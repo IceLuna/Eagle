@@ -3,16 +3,16 @@
 
 namespace Eagle
 {
-	Ref<SkeletalMesh> SkeletalMesh::Create(const std::vector<SkeletalVertex>& vertices, const std::vector<Index>& indices, const SkeletalMeshInfo& skeletal, const AABB& aabb)
+	Ref<SkeletalMesh> SkeletalMesh::Create(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb)
 	{
 		class LocalSkeletalMesh : public SkeletalMesh
 		{
 		public:
-			LocalSkeletalMesh(const std::vector<SkeletalVertex>& vertices, const std::vector<Index>& indices, const SkeletalMeshInfo& skeletal, const AABB& aabb)
-				: SkeletalMesh(vertices, indices, skeletal, aabb) {}
+			LocalSkeletalMesh(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb)
+				: SkeletalMesh(vertices, indicesPerMaterial, skeletal, aabb) {}
 		};
 
-		return MakeRef<LocalSkeletalMesh>(vertices, indices, skeletal, aabb);
+		return MakeRef<LocalSkeletalMesh>(vertices, indicesPerMaterial, skeletal, aabb);
 	}
 
 	Ref<SkeletalMesh> SkeletalMesh::Create(const Ref<SkeletalMesh>& other)

@@ -590,18 +590,23 @@ namespace Eagle
             set { SetCastsShadows_Native(Parent.ID, value); }
         }
 
-        public AssetMaterial GetMaterialAsset()
+        public AssetMaterial GetMaterialAsset(uint index)
         {
-            GetMaterial_Native(Parent.ID, out GUID assetID);
+            GetMaterial_Native(Parent.ID, index, out GUID assetID);
             if (assetID.IsNull())
                 return null;
 
             return new AssetMaterial(assetID);
         }
 
-        public void SetMaterialAsset(AssetMaterial value)
+        public void SetMaterialAsset(uint index, AssetMaterial value)
         {
-            SetMaterial_Native(Parent.ID, (value != null) ? value.GetGUID() : GUID.Null());
+            SetMaterial_Native(Parent.ID, index, (value != null) ? value.GetGUID() : GUID.Null());
+        }
+
+        public uint GetMaterialsSlotsCount()
+        {
+            return GetMaterialsSlotsCount_Native(Parent.ID);
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -611,16 +616,19 @@ namespace Eagle
         internal static extern GUID GetMesh_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetMaterial_Native(in GUID entityID, out GUID assetID);
+        internal static extern void GetMaterial_Native(in GUID entityID, uint index, out GUID assetID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetMaterial_Native(in GUID entityID, in GUID assetID);
+        internal static extern void SetMaterial_Native(in GUID entityID, uint index, in GUID assetID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetCastsShadows_Native(in GUID entityID, bool value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool DoesCastShadows_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint GetMaterialsSlotsCount_Native(in GUID entityID);
     }
 
     public class SkeletalMeshComponent : SceneComponent
@@ -652,18 +660,23 @@ namespace Eagle
             set { SetCastsShadows_Native(Parent.ID, value); }
         }
 
-        public AssetMaterial GetMaterialAsset()
+        public AssetMaterial GetMaterialAsset(uint index)
         {
-            GetMaterial_Native(Parent.ID, out GUID assetID);
+            GetMaterial_Native(Parent.ID, index, out GUID assetID);
             if (assetID.IsNull())
                 return null;
 
             return new AssetMaterial(assetID);
         }
 
-        public void SetMaterialAsset(AssetMaterial value)
+        public void SetMaterialAsset(uint index, AssetMaterial value)
         {
-            SetMaterial_Native(Parent.ID, (value != null) ? value.GetGUID() : GUID.Null());
+            SetMaterial_Native(Parent.ID, index, (value != null) ? value.GetGUID() : GUID.Null());
+        }
+
+        public uint GetMaterialsSlotsCount()
+        {
+            return GetMaterialsSlotsCount_Native(Parent.ID);
         }
 
         public AssetAnimation GetAnimationAsset()
@@ -794,10 +807,10 @@ namespace Eagle
         internal static extern GUID GetMesh_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetMaterial_Native(in GUID entityID, out GUID assetID);
+        internal static extern void GetMaterial_Native(in GUID entityID, uint index, out GUID assetID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetMaterial_Native(in GUID entityID, in GUID assetID);
+        internal static extern void SetMaterial_Native(in GUID entityID, uint index, in GUID assetID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetAnimation_Native(in GUID entityID, out GUID assetID);
@@ -870,6 +883,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetBoneWorldScale_Native(in GUID entityID, string name, out Vector3 result);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint GetMaterialsSlotsCount_Native(in GUID entityID);
     }
 
     public class SpriteComponent : SceneComponent

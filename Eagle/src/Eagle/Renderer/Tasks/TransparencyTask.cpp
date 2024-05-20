@@ -17,6 +17,39 @@
 
 namespace Eagle
 {
+	namespace Utils
+	{
+		template<typename MeshData, typename MeshGeometryData>
+		static void RenderMeshes(const Ref<CommandBuffer>& cmd, const MeshData& meshes, const MeshGeometryData& meshesData, SceneRenderer::Statistics& stats)
+		{
+			uint32_t firstIndex = 0;
+			uint32_t firstInstance = 0;
+			uint32_t vertexOffset = 0;
+			for (auto& [meshKey, datas] : meshes)
+			{
+				const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
+				const uint32_t instanceCount = (uint32_t)datas.Datas.size();
+
+				stats.Vertices += verticesCount;
+
+				const auto& slotsToRender = datas.MaterialSlots;
+				for (const uint32_t matSlot : slotsToRender)
+				{
+					const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices(matSlot).size();
+					const uint32_t indicesOffset = (uint32_t)meshKey.Mesh->GetIndicesOffset(matSlot);
+					cmd->DrawIndexedInstanced(meshesData.VertexBuffer, meshesData.IndexBuffer, indicesCount, firstIndex + indicesOffset, vertexOffset, instanceCount, firstInstance + instanceCount * matSlot, meshesData.InstanceBuffer);
+
+					stats.Indeces += indicesCount;
+					++stats.DrawCalls;
+				}
+				firstInstance += instanceCount * meshKey.Mesh->GetMaterialSlotsCount();
+				firstIndex += (uint32_t)meshKey.Mesh->GetTotalIndicesCount();
+
+				vertexOffset += verticesCount;
+			}
+		}
+	}
+
 	TransparencyTask::TransparencyTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
@@ -242,10 +275,6 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Transparency. Meshes. Depth");
 
 		const auto& meshesData = m_Renderer.GetTranslucentMeshesData();
-		const auto& vb = meshesData.VertexBuffer;
-		const auto& ivb = meshesData.InstanceBuffer;
-		const auto& ib = meshesData.IndexBuffer;
-
 		const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
 		const glm::mat4& viewProj = m_Renderer.GetViewProjection();
 		const glm::uvec2 viewportSize = m_Renderer.GetViewportSize();
@@ -253,28 +282,10 @@ namespace Eagle
 		m_MeshesDepthPipeline->SetBuffer(transformsBuffer, EG_PERSISTENT_SET, 0);
 		m_MeshesDepthPipeline->SetBuffer(m_OITBuffer, EG_PERSISTENT_SET, 1);
 
+		auto& stats = m_Renderer.GetStats();
 		cmd->BeginGraphics(m_MeshesDepthPipeline);
 		cmd->SetGraphicsRootConstants(&viewProj[0][0], &viewportSize);
-
-		auto& stats = m_Renderer.GetStats();
-		uint32_t firstIndex = 0;
-		uint32_t firstInstance = 0;
-		uint32_t vertexOffset = 0;
-		for (auto& [meshKey, datas] : meshes)
-		{
-			const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-			const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-			const uint32_t instanceCount = (uint32_t)datas.size();
-
-			++stats.DrawCalls;
-			stats.Indeces += indicesCount;
-			stats.Vertices += verticesCount;
-			cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-
-			firstIndex += indicesCount;
-			vertexOffset += verticesCount;
-			firstInstance += instanceCount;
-		}
+		Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 		cmd->EndGraphics();
 	}
 
@@ -289,10 +300,6 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Transparency. Skeletal Meshes. Depth");
 
 		const auto& meshesData = m_Renderer.GetTranslucentSkeletalMeshesData();
-		const auto& vb = meshesData.VertexBuffer;
-		const auto& ivb = meshesData.InstanceBuffer;
-		const auto& ib = meshesData.IndexBuffer;
-
 		const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
 		const glm::mat4& viewProj = m_Renderer.GetViewProjection();
 		const glm::uvec2 viewportSize = m_Renderer.GetViewportSize();
@@ -301,28 +308,10 @@ namespace Eagle
 		m_SkeletalMeshesDepthPipeline->SetBuffer(m_OITBuffer, EG_PERSISTENT_SET, 1);
 		m_SkeletalMeshesDepthPipeline->SetBufferArray(m_Renderer.GetAnimationTransformsBuffers(), 5, 0);
 
+		auto& stats = m_Renderer.GetStats();
 		cmd->BeginGraphics(m_SkeletalMeshesDepthPipeline);
 		cmd->SetGraphicsRootConstants(&viewProj[0][0], &viewportSize);
-
-		auto& stats = m_Renderer.GetStats();
-		uint32_t firstIndex = 0;
-		uint32_t firstInstance = 0;
-		uint32_t vertexOffset = 0;
-		for (auto& [meshKey, datas] : meshes)
-		{
-			const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-			const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-			const uint32_t instanceCount = (uint32_t)datas.size();
-
-			++stats.DrawCalls;
-			stats.Indeces += indicesCount;
-			stats.Vertices += verticesCount;
-			cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-
-			firstIndex += indicesCount;
-			vertexOffset += verticesCount;
-			firstInstance += instanceCount;
-		}
+		Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 		cmd->EndGraphics();
 	}
 
@@ -389,9 +378,6 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Transparency. Meshes. Color");
 
 		const auto& meshesData = m_Renderer.GetTranslucentMeshesData();
-		const auto& vb = meshesData.VertexBuffer;
-		const auto& ivb = meshesData.InstanceBuffer;
-		const auto& ib = meshesData.IndexBuffer;
 
 		const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
 		const glm::mat4& viewProj = m_Renderer.GetViewProjection();
@@ -422,28 +408,10 @@ namespace Eagle
 		m_MeshesColorPipeline->SetImageSamplerArray(m_Renderer.GetPointLightShadowMaps(), m_Renderer.GetPointLightShadowMapsSamplers(), 3, 0);
 		m_MeshesColorPipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), 4, 0);
 
+		auto& stats = m_Renderer.GetStats();
 		cmd->BeginGraphics(m_MeshesColorPipeline);
 		cmd->SetGraphicsRootConstants(&viewProj[0][0], &m_ColorPushData);
-
-		auto& stats = m_Renderer.GetStats();
-		uint32_t firstIndex = 0;
-		uint32_t firstInstance = 0;
-		uint32_t vertexOffset = 0;
-		for (auto& [meshKey, datas] : meshes)
-		{
-			const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-			const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-			const uint32_t instanceCount = (uint32_t)datas.size();
-
-			++stats.DrawCalls;
-			stats.Indeces += indicesCount;
-			stats.Vertices += verticesCount;
-			cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-
-			firstIndex += indicesCount;
-			vertexOffset += verticesCount;
-			firstInstance += instanceCount;
-		}
+		Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 		cmd->EndGraphics();
 	}
 	
@@ -458,10 +426,6 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Transparency. Skeletal Meshes. Color");
 
 		const auto& meshesData = m_Renderer.GetTranslucentSkeletalMeshesData();
-		const auto& vb = meshesData.VertexBuffer;
-		const auto& ivb = meshesData.InstanceBuffer;
-		const auto& ib = meshesData.IndexBuffer;
-
 		const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
 		const glm::mat4& viewProj = m_Renderer.GetViewProjection();
 
@@ -492,28 +456,10 @@ namespace Eagle
 		m_SkeletalMeshesColorPipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), 4, 0);
 		m_SkeletalMeshesColorPipeline->SetBufferArray(m_Renderer.GetAnimationTransformsBuffers(), 5, 0);
 
+		auto& stats = m_Renderer.GetStats();
 		cmd->BeginGraphics(m_SkeletalMeshesColorPipeline);
 		cmd->SetGraphicsRootConstants(&viewProj[0][0], &m_ColorPushData);
-
-		auto& stats = m_Renderer.GetStats();
-		uint32_t firstIndex = 0;
-		uint32_t firstInstance = 0;
-		uint32_t vertexOffset = 0;
-		for (auto& [meshKey, datas] : meshes)
-		{
-			const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-			const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-			const uint32_t instanceCount = (uint32_t)datas.size();
-
-			++stats.DrawCalls;
-			stats.Indeces += indicesCount;
-			stats.Vertices += verticesCount;
-			cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-
-			firstIndex += indicesCount;
-			vertexOffset += verticesCount;
-			firstInstance += instanceCount;
-		}
+		Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 		cmd->EndGraphics();
 	}
 
@@ -648,32 +594,11 @@ namespace Eagle
 				m_MeshesEntityIDPipeline->SetBuffer(transformsBuffer, 0, 0);
 
 				const auto& meshesData = m_Renderer.GetTranslucentMeshesData();
-				const auto& vb = meshesData.VertexBuffer;
-				const auto& ivb = meshesData.InstanceBuffer;
-				const auto& ib = meshesData.IndexBuffer;
+				auto& stats = m_Renderer.GetStats();
 
 				cmd->BeginGraphics(m_MeshesEntityIDPipeline);
 				cmd->SetGraphicsRootConstants(&viewProj[0][0], nullptr);
-
-				auto& stats = m_Renderer.GetStats();
-				uint32_t firstIndex = 0;
-				uint32_t firstInstance = 0;
-				uint32_t vertexOffset = 0;
-				for (auto& [meshKey, datas] : meshes)
-				{
-					const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-					const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-					const uint32_t instanceCount = (uint32_t)datas.size();
-
-					++stats.DrawCalls;
-					stats.Indeces += indicesCount;
-					stats.Vertices += verticesCount;
-					cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-
-					firstIndex += indicesCount;
-					vertexOffset += verticesCount;
-					firstInstance += instanceCount;
-				}
+				Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 				cmd->EndGraphics();
 			}
 		}
@@ -691,32 +616,11 @@ namespace Eagle
 				m_SkeletalMeshesEntityIDPipeline->SetBufferArray(m_Renderer.GetAnimationTransformsBuffers(), 5, 0);
 
 				const auto& meshesData = m_Renderer.GetTranslucentMeshesData();
-				const auto& vb = meshesData.VertexBuffer;
-				const auto& ivb = meshesData.InstanceBuffer;
-				const auto& ib = meshesData.IndexBuffer;
+				auto& stats = m_Renderer.GetStats();
 
 				cmd->BeginGraphics(m_SkeletalMeshesEntityIDPipeline);
 				cmd->SetGraphicsRootConstants(&viewProj[0][0], nullptr);
-
-				auto& stats = m_Renderer.GetStats();
-				uint32_t firstIndex = 0;
-				uint32_t firstInstance = 0;
-				uint32_t vertexOffset = 0;
-				for (auto& [meshKey, datas] : meshes)
-				{
-					const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-					const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-					const uint32_t instanceCount = (uint32_t)datas.size();
-
-					++stats.DrawCalls;
-					stats.Indeces += indicesCount;
-					stats.Vertices += verticesCount;
-					cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-
-					firstIndex += indicesCount;
-					vertexOffset += verticesCount;
-					firstInstance += instanceCount;
-				}
+				Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 				cmd->EndGraphics();
 			}
 		}

@@ -465,16 +465,18 @@ namespace Eagle
 			for (auto& [meshKey, meshData] : m_SkeletalMeshes)
 			{
 				const auto& mesh = meshKey.Mesh;
-				for (auto& data : meshData)
+				for (auto& data : meshData.Datas)
 				{
-					auto& transforms = animTransforms[data.InstanceData.AnimTransformIndex];
-					auto it = finalAnimTransforms.find(data.InstanceData.ObjectID);
+					// It doesn't matter which index we take, since `AnimTransformIndex` and `ObjectID` are going to be the same
+					const auto& instanceData = data.InstanceDatas[0];
+					auto& transforms = animTransforms[instanceData.AnimTransformIndex];
+					auto it = finalAnimTransforms.find(instanceData.ObjectID);
 					EG_ASSERT(it != finalAnimTransforms.end());
-					transforms = std::move(it->second);
+					transforms = it->second;
 
 					bool bGarbage = bTransformsGarbage;
 
-					auto& animTransformsBuffer = animTransformsBuffers[data.InstanceData.AnimTransformIndex];
+					auto& animTransformsBuffer = animTransformsBuffers[instanceData.AnimTransformIndex];
 					const size_t currentBufferSize = transforms.size() * sizeof(glm::mat4);
 					if (!animTransformsBuffer || (animTransformsBuffer == Buffer::Dummy))
 					{
@@ -482,7 +484,7 @@ namespace Eagle
 						transformsBufferSpecs.Size = currentBufferSize;
 						transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
 						transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst | BufferUsage::TransferSrc;
-						animTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Meshes_AnimationTransformsBuffer_#" + std::to_string(data.InstanceData.AnimTransformIndex));
+						animTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Meshes_AnimationTransformsBuffer_#" + std::to_string(instanceData.AnimTransformIndex));
 						bGarbage = true;
 					}
 					else if (currentBufferSize > animTransformsBuffer->GetSize())
@@ -495,14 +497,14 @@ namespace Eagle
 					Ref<Buffer>* prevAnimTransformsBuffer = nullptr;
 					if (bMotionRequired)
 					{
-						auto& prevAnimTransformsBufferRef = prevAnimTransformsBuffers[data.InstanceData.AnimTransformIndex];
+						auto& prevAnimTransformsBufferRef = prevAnimTransformsBuffers[instanceData.AnimTransformIndex];
 						if (!prevAnimTransformsBufferRef || (prevAnimTransformsBufferRef == Buffer::Dummy))
 						{
 							BufferSpecifications transformsBufferSpecs;
 							transformsBufferSpecs.Size = currentBufferSize;
 							transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
 							transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
-							prevAnimTransformsBufferRef = Buffer::Create(transformsBufferSpecs, "Meshes_AnimationPrevTransformsBuffer_#" + std::to_string(data.InstanceData.AnimTransformIndex));
+							prevAnimTransformsBufferRef = Buffer::Create(transformsBufferSpecs, "Meshes_AnimationPrevTransformsBuffer_#" + std::to_string(instanceData.AnimTransformIndex));
 							bGarbage = true;
 						}
 						else if (currentBufferSize > prevAnimTransformsBufferRef->GetSize())
@@ -574,7 +576,7 @@ namespace Eagle
 		if (!bDirty)
 			return;
 
-		std::unordered_map<MeshKey, std::vector<MeshData>> tempMeshes;
+		std::unordered_map<MeshKey, MeshDatas> tempMeshes;
 		std::unordered_map<uint32_t, uint64_t> meshTransformIndices; // EntityID -> uint64_t (index to m_MeshTransforms)
 		std::vector<glm::mat4> tempMeshTransforms;
 
@@ -593,15 +595,19 @@ namespace Eagle
 			if (!staticMesh || !staticMesh->IsValid())
 				continue;
 
-			const auto& materialAsset = comp->GetMaterialAsset();
-
+			const uint32_t materialsCount = comp->GetMaterialsSlotsCount();
 			const uint32_t meshID = comp->Parent.GetID();
 			auto& instanceData = tempMeshes[{staticMesh, meshAsset->GetGUID(), comp->DoesCastShadows()}];
-			auto& meshData = instanceData.emplace_back();
-			meshData.Material = materialAsset ? materialAsset->GetMaterial() : nullptr;
-			meshData.InstanceData.TransformIndex = meshIndex;
-			meshData.InstanceData.ObjectID = meshID;
-			// meshData.InstanceData.MaterialIndex is set later during the update
+			auto& meshData = instanceData.Datas.emplace_back();
+			for (uint32_t i = 0; i < materialsCount; ++i)
+			{
+				const auto& materialAsset = comp->GetMaterialAsset(i);
+				meshData.Materials.push_back(materialAsset ? materialAsset->GetMaterial() : nullptr);
+				auto& meshInstanceData = meshData.InstanceDatas.emplace_back();
+				meshInstanceData.TransformIndex = meshIndex;
+				meshInstanceData.ObjectID = meshID;
+				// meshInstanceData.MaterialIndex is set later during the update
+			}
 
 			tempMeshTransforms.push_back(Math::ToTransformMatrix(comp->GetWorldTransform()));
 			meshTransformIndices.emplace(meshID, meshIndex);
@@ -664,27 +670,61 @@ namespace Eagle
 		m_MaskedMeshes.clear();
 
 		for (auto& [mesh, datas] : m_Meshes)
-			for (auto& data : datas)
+			for (auto& data : datas.Datas)
 			{
-				const Material::BlendMode blendMode = data.Material ? data.Material->GetBlendMode() : Material::BlendMode::Opaque;
+				const size_t materialsCount = data.Materials.size();
+				for (size_t i = 0; i < materialsCount; ++i)
+					data.InstanceDatas[i].MaterialIndex = MaterialSystem::GetMaterialIndex(data.Materials[i]);
 
-				data.InstanceData.MaterialIndex = MaterialSystem::GetMaterialIndex(data.Material);
-				switch (blendMode)
+				struct MeshDataPerBlendMode
 				{
-					case Material::BlendMode::Opaque:
-						m_OpaqueMeshes[mesh].push_back(data);
-						break;
-					case Material::BlendMode::Translucent:
-						m_TranslucentMeshes[mesh].push_back(data);
-						break;
-					case Material::BlendMode::Masked:
-						m_MaskedMeshes[mesh].push_back(data);
-						break;
+					MeshData Data;
+					std::vector<uint32_t> MaterialSlots;
+				};
+				std::array<MeshDataPerBlendMode, Material::MaxBlendModes> datasPerBlendMode;
+				for (size_t i = 0; i < materialsCount; ++i)
+				{
+					const Material::BlendMode blendMode = data.Materials[i] ? data.Materials[i]->GetBlendMode() : Material::BlendMode::Opaque;
+					auto& perBlendData = datasPerBlendMode[uint32_t(blendMode)];
+					perBlendData.Data.InstanceDatas.push_back(data.InstanceDatas[i]);
+					perBlendData.MaterialSlots.push_back(uint32_t(i));
+				}
+
+				for (uint32_t i = 0; i < Material::MaxBlendModes; ++i)
+				{
+					const Material::BlendMode blendMode = Material::BlendMode(i);
+					if (datasPerBlendMode[i].Data.InstanceDatas.size())
+					{
+						switch (blendMode)
+						{
+							case Material::BlendMode::Opaque:
+							{
+								auto& meshes = m_OpaqueMeshes[mesh];
+								meshes.Datas.push_back(data);
+								meshes.MaterialSlots = std::move(datasPerBlendMode[i].MaterialSlots);
+								break;
+							}
+							case Material::BlendMode::Translucent:
+							{
+								auto& meshes = m_TranslucentMeshes[mesh];
+								meshes.Datas.push_back(data);
+								meshes.MaterialSlots = std::move(datasPerBlendMode[i].MaterialSlots);
+								break;
+							}
+							case Material::BlendMode::Masked:
+							{
+								auto& meshes = m_MaskedMeshes[mesh];
+								meshes.Datas.push_back(data);
+								meshes.MaterialSlots = std::move(datasPerBlendMode[i].MaterialSlots);
+								break;
+							}
+						}
+					}
 				}
 			}
 	}
 
-	void GeometryManagerTask::UploadMeshes(const Ref<CommandBuffer>& cmd, MeshGeometryData& meshData, const std::unordered_map<MeshKey, std::vector<MeshData>>& meshes)
+	void GeometryManagerTask::UploadMeshes(const Ref<CommandBuffer>& cmd, MeshGeometryData& meshData, const std::unordered_map<MeshKey, MeshDatas>& meshes)
 	{
 		if (meshes.empty())
 			return;
@@ -699,41 +739,46 @@ namespace Eagle
 		size_t meshesCount = 0;
 		for (auto& [meshKey, datas] : meshes)
 		{
+			const uint32_t materialsCount = meshKey.Mesh->GetMaterialSlotsCount();
 			currentVertexSize += meshKey.Mesh->GetVerticesCount() * sizeof(Vertex);
-			currentIndexSize += meshKey.Mesh->GetIndicesCount() * sizeof(Index);
-			meshesCount += datas.size();
+			for (uint32_t i = 0; i < materialsCount; ++i)
+				currentIndexSize += meshKey.Mesh->GetIndicesCount(i) * sizeof(Index);
+			meshesCount += datas.Datas.size() * materialsCount;
 		}
 		const size_t currentInstanceVertexSize = meshesCount * sizeof(PerInstanceData);
 
 		if (currentVertexSize > vb->GetSize())
-		{
-			currentVertexSize = (currentVertexSize * 3) / 2;
-			vb->Resize(currentVertexSize);
-		}
+			vb->Resize((currentVertexSize * 3) / 2);
 		if (currentInstanceVertexSize > ivb->GetSize())
-			vb->Resize((currentInstanceVertexSize * 3) / 2);
+			ivb->Resize((currentInstanceVertexSize * 3) / 2);
 		if (currentIndexSize > ib->GetSize())
-		{
-			currentIndexSize = (currentIndexSize * 3) / 2;
-			ib->Resize(currentIndexSize);
-		}
+			ib->Resize((currentIndexSize * 3) / 2);
 
 		meshData.Vertices.clear();
 		meshData.Indices.clear();
 		meshData.InstanceVertices.clear();
-		meshData.Vertices.reserve(currentVertexSize);
-		meshData.InstanceVertices.reserve(currentInstanceVertexSize);
-		meshData.Indices.reserve(currentIndexSize);
+		meshData.Vertices.reserve(currentVertexSize / sizeof(Vertex));
+		meshData.InstanceVertices.reserve(currentInstanceVertexSize / sizeof(PerInstanceData));
+		meshData.Indices.reserve(currentIndexSize / sizeof(Index));
 
 		for (auto& [meshKey, datas] : meshes)
 		{
+			const uint32_t materialsCount = meshKey.Mesh->GetMaterialSlotsCount();
 			const auto& meshVertices = meshKey.Mesh->GetVertices();
-			const auto& meshIndices = meshKey.Mesh->GetIndices();
 			meshData.Vertices.insert(meshData.Vertices.end(), meshVertices.begin(), meshVertices.end());
-			meshData.Indices.insert(meshData.Indices.end(), meshIndices.begin(), meshIndices.end());
 
-			for (auto& data : datas)
-				meshData.InstanceVertices.push_back(data.InstanceData);
+			for (uint32_t i = 0; i < materialsCount; ++i)
+			{
+				const auto& meshIndices = meshKey.Mesh->GetIndices(i);
+				meshData.Indices.insert(meshData.Indices.end(), meshIndices.begin(), meshIndices.end());
+			}
+
+			// Iterate over every mesh in the batch.
+			// Append instance data in the pattern of `Structure of Arrays`.
+			// For example, [0, 0, 0, 1, 1, 1] rather than [0, 1, 0, 1, 0, 1]
+			for (uint32_t i = 0; i < materialsCount; ++i)
+				for (auto& data : datas.Datas)
+					meshData.InstanceVertices.push_back(data.InstanceDatas[i]);
 		}
 
 		cmd->Write(vb, meshData.Vertices.data(), meshData.Vertices.size() * sizeof(Vertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
@@ -750,7 +795,7 @@ namespace Eagle
 		if (!bDirty)
 			return;
 
-		std::unordered_map<SkeletalMeshKey, std::vector<SkeletalMeshData>> tempMeshes;
+		std::unordered_map<SkeletalMeshKey, SkeletalMeshDatas> tempMeshes;
 		std::unordered_map<uint32_t, uint64_t> meshTransformIndices; // EntityID -> uint64_t (index to m_SkeletalMeshTransforms)
 		std::vector<glm::mat4> tempMeshTransforms;
 
@@ -769,17 +814,20 @@ namespace Eagle
 			if (!skeletalMesh || !skeletalMesh->IsValid())
 				continue;
 
-			const auto& materialAsset = comp->GetMaterialAsset();
-			const auto& animationAsset = comp->GetAnimationAsset();
-
+			const uint32_t materialsCount = comp->GetMaterialsSlotsCount();
 			const uint32_t meshID = comp->Parent.GetID();
 			auto& instanceData = tempMeshes[{skeletalMesh, meshAsset->GetGUID(), comp->DoesCastShadows()}];
-			auto& meshData = instanceData.emplace_back();
-			meshData.Material = materialAsset ? materialAsset->GetMaterial() : nullptr;
-			meshData.InstanceData.TransformIndex = meshIndex;
-			meshData.InstanceData.ObjectID = meshID;
-			// meshData.InstanceData.MaterialIndex is set later during the update
-			// meshData.InstanceData.AnimTransformIndex is set later during the update
+			auto& meshData = instanceData.Datas.emplace_back();
+			for (uint32_t i = 0; i < materialsCount; ++i)
+			{
+				const auto& materialAsset = comp->GetMaterialAsset(i);
+				meshData.Materials.push_back(materialAsset ? materialAsset->GetMaterial() : nullptr);
+				auto& instanceData = meshData.InstanceDatas.emplace_back();
+				instanceData.TransformIndex = meshIndex;
+				instanceData.ObjectID = meshID;
+				// instanceData.MaterialIndex is set later during the update
+				// instanceData.AnimTransformIndex is set later during the update
+			}
 
 			tempMeshTransforms.push_back(Math::ToTransformMatrix(comp->GetWorldTransform()));
 			meshTransformIndices.emplace(meshID, meshIndex);
@@ -843,23 +891,59 @@ namespace Eagle
 		uint32_t animationsCount = 0u;
 
 		for (auto& [mesh, datas] : m_SkeletalMeshes)
-			for (auto& data : datas)
+			for (auto& data : datas.Datas)
 			{
-				const Material::BlendMode blendMode = data.Material ? data.Material->GetBlendMode() : Material::BlendMode::Opaque;
-
-				data.InstanceData.AnimTransformIndex = animationsCount++;
-				data.InstanceData.MaterialIndex = MaterialSystem::GetMaterialIndex(data.Material);
-				switch (blendMode)
+				const size_t materialsCount = data.Materials.size();
+				for (size_t i = 0; i < materialsCount; ++i)
 				{
-				case Material::BlendMode::Opaque:
-					m_OpaqueSkeletalMeshes[mesh].push_back(data);
-					break;
-				case Material::BlendMode::Translucent:
-					m_TranslucentSkeletalMeshes[mesh].push_back(data);
-					break;
-				case Material::BlendMode::Masked:
-					m_MaskedSkeletalMeshes[mesh].push_back(data);
-					break;
+					data.InstanceDatas[i].AnimTransformIndex = animationsCount++;
+					data.InstanceDatas[i].MaterialIndex = MaterialSystem::GetMaterialIndex(data.Materials[i]);
+				}
+
+				struct MeshDataPerBlendMode
+				{
+					SkeletalMeshData Data;
+					std::vector<uint32_t> MaterialSlots;
+				};
+				std::array<MeshDataPerBlendMode, Material::MaxBlendModes> datasPerBlendMode;
+				for (size_t i = 0; i < materialsCount; ++i)
+				{
+					const Material::BlendMode blendMode = data.Materials[i] ? data.Materials[i]->GetBlendMode() : Material::BlendMode::Opaque;
+					auto& perBlendData = datasPerBlendMode[uint32_t(blendMode)];
+					perBlendData.Data.InstanceDatas.push_back(data.InstanceDatas[i]);
+					perBlendData.MaterialSlots.push_back(uint32_t(i));
+				}
+
+				for (uint32_t i = 0; i < Material::MaxBlendModes; ++i)
+				{
+					const Material::BlendMode blendMode = Material::BlendMode(i);
+					if (datasPerBlendMode[i].Data.InstanceDatas.size())
+					{
+						switch (blendMode)
+						{
+							case Material::BlendMode::Opaque:
+							{
+								auto& meshes = m_OpaqueSkeletalMeshes[mesh];
+								meshes.Datas.push_back(data);
+								meshes.MaterialSlots = std::move(datasPerBlendMode[i].MaterialSlots);
+								break;
+							}
+							case Material::BlendMode::Translucent:
+							{
+								auto& meshes = m_TranslucentSkeletalMeshes[mesh];
+								meshes.Datas.push_back(data);
+								meshes.MaterialSlots = std::move(datasPerBlendMode[i].MaterialSlots);
+								break;
+							}
+							case Material::BlendMode::Masked:
+							{
+								auto& meshes = m_MaskedSkeletalMeshes[mesh];
+								meshes.Datas.push_back(data);
+								meshes.MaterialSlots = std::move(datasPerBlendMode[i].MaterialSlots);
+								break;
+							}
+						}
+					}
 				}
 			}
 
@@ -885,7 +969,7 @@ namespace Eagle
 			m_AnimationPrevTransformsBuffers.clear();
 	}
 
-	void GeometryManagerTask::UploadSkeletalMeshes(const Ref<CommandBuffer>& cmd, SkeletalMeshGeometryData& meshData, const std::unordered_map<SkeletalMeshKey, std::vector<SkeletalMeshData>>& meshes)
+	void GeometryManagerTask::UploadSkeletalMeshes(const Ref<CommandBuffer>& cmd, SkeletalMeshGeometryData& meshData, const std::unordered_map<SkeletalMeshKey, SkeletalMeshDatas>& meshes)
 	{
 		if (meshes.empty())
 			return;
@@ -900,41 +984,46 @@ namespace Eagle
 		size_t meshesCount = 0;
 		for (auto& [meshKey, datas] : meshes)
 		{
+			const uint32_t materialsCount = meshKey.Mesh->GetMaterialSlotsCount();
 			currentVertexSize += meshKey.Mesh->GetVerticesCount() * sizeof(SkeletalVertex);
-			currentIndexSize += meshKey.Mesh->GetIndicesCount() * sizeof(Index);
-			meshesCount += datas.size();
+			for (uint32_t i = 0; i < materialsCount; ++i)
+				currentIndexSize += meshKey.Mesh->GetIndicesCount(i) * sizeof(Index);
+			meshesCount += datas.Datas.size() * materialsCount;
 		}
 		const size_t currentInstanceVertexSize = meshesCount * sizeof(SkeletalPerInstanceData);
 
 		if (currentVertexSize > vb->GetSize())
-		{
-			currentVertexSize = (currentVertexSize * 3) / 2;
-			vb->Resize(currentVertexSize);
-		}
+			vb->Resize((currentVertexSize * 3) / 2);
 		if (currentInstanceVertexSize > ivb->GetSize())
-			vb->Resize((currentInstanceVertexSize * 3) / 2);
+			ivb->Resize((currentInstanceVertexSize * 3) / 2);
 		if (currentIndexSize > ib->GetSize())
-		{
-			currentIndexSize = (currentIndexSize * 3) / 2;
-			ib->Resize(currentIndexSize);
-		}
+			ib->Resize((currentIndexSize * 3) / 2);
 
 		meshData.Vertices.clear();
 		meshData.Indices.clear();
 		meshData.InstanceVertices.clear();
-		meshData.Vertices.reserve(currentVertexSize);
-		meshData.InstanceVertices.reserve(currentInstanceVertexSize);
-		meshData.Indices.reserve(currentIndexSize);
+		meshData.Vertices.reserve(currentVertexSize/ sizeof(SkeletalVertex));
+		meshData.InstanceVertices.reserve(currentInstanceVertexSize / sizeof(SkeletalPerInstanceData));
+		meshData.Indices.reserve(currentIndexSize / sizeof(Index));
 
 		for (auto& [meshKey, datas] : meshes)
 		{
+			const uint32_t materialsCount = meshKey.Mesh->GetMaterialSlotsCount();
 			const auto& meshVertices = meshKey.Mesh->GetVertices();
-			const auto& meshIndices = meshKey.Mesh->GetIndices();
 			meshData.Vertices.insert(meshData.Vertices.end(), meshVertices.begin(), meshVertices.end());
-			meshData.Indices.insert(meshData.Indices.end(), meshIndices.begin(), meshIndices.end());
 
-			for (auto& data : datas)
-				meshData.InstanceVertices.push_back(data.InstanceData);
+			for (uint32_t i = 0; i < materialsCount; ++i)
+			{
+				const auto& meshIndices = meshKey.Mesh->GetIndices(i);
+				meshData.Indices.insert(meshData.Indices.end(), meshIndices.begin(), meshIndices.end());
+			}
+
+			// Iterate over every mesh in the batch.
+			// Append instance data in the pattern of `Structure of Arrays`.
+			// For example, [0, 0, 0, 1, 1, 1] rather than [0, 1, 0, 1, 0, 1]
+			for (uint32_t i = 0; i < materialsCount; ++i)
+				for (auto& data : datas.Datas)
+					meshData.InstanceVertices.push_back(data.InstanceDatas[i]);
 		}
 
 		cmd->Write(vb, meshData.Vertices.data(), meshData.Vertices.size() * sizeof(SkeletalVertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);

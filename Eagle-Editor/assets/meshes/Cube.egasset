@@ -1,12 +1,13 @@
 Version: 0.7
 Type: StaticMesh
-GUID: [10185338465733569743, 4921805117990165499]
+GUID: [16517551168529506033, 4683174636225984574]
 RawPath: D:\dev\Cube.fbx
 AABB:
   Min: [-0.5, -0.5, -0.5]
   Max: [0.5, 0.5, 0.5]
 Data:
   SizeVertices: 2376
-  SizeIndices: 576
   Vertices: !!binary "KLUv/WBICC0JAJQDAAAAPwAAAL+Avz8/gD8APz8xMQ2lgIC/AD+Av6QAAL+/JACAMTGNpHS+G4k/gAAAAAA/v7+ApYA/gIygkM0wB+ACESEibu/YDyaI7Al5W2sbiyeFs9WasOW6MbvPVGDdeEzNQs9k/mmXq2eCDEfOEx+a5mZxtMzkLrp59AA636eyQ+e00BQf6wF9JbRfDu+zHntMk23PxZPMGhy2yAGZI+ST3bY8yKyGeV3calEYiBGSPAdvgJcfHlcfyTrzgBMPZrbBm03zUWhO41k/2nEg1+Bhzzy37WPbbn+/Wc485sUDZkq2WG02mN1kYa7U/CUP2tl1K/zlJtC72ENMfJp/NgzhzDDzw2mCNb0M+jv58KXcLWjlV7MYhqnz4Py/jzSbs5UC"
-  Indices: !!binary "KLUv/WBAAaUEANJGEgsQ0NcM/FHK4Tgop0c99Z1QJ1PpI310UajzQN7H03XO+UazcRkOc9ksr5wyyTSJFoFkjzveYFzYAlMkLsQPNxSsyiIMBFXggA9BqHB4zwFwIvUBECgRZh3u+z+xheufwM3/fLV3i7icye9c1z+/WYLjTfzmff7au0UczuR3ruuf3yzB8Sb+f2arHFexnnJ9PqQ="
+  IndicesPerMaterial:
+    - SizeIndices: 576
+      Indices: !!binary "KLUv/WBAAaUEANJGEgsQ0NcM/FHK4Tgop0c99Z1QJ1PpI310UajzQN7H03XO+UazcRkOc9ksr5wyyTSJFoFkjzveYFzYAlMkLsQPNxSsyiIMBFXggA9BqHB4zwFwIvUBECgRZh3u+z+xheufwM3/fLV3i7icye9c1z+/WYLjTfzmff7au0UczuR3ruuf3yzB8Sb+f2arHFexnnJ9PqQ="

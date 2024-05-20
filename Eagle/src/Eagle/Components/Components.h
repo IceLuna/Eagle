@@ -498,7 +498,7 @@ namespace Eagle
 			SceneComponent::operator=(other);
 
 			m_MeshAsset = other.m_MeshAsset;
-			m_MaterialAsset = other.m_MaterialAsset;
+			m_MaterialAssets = other.m_MaterialAssets;
 			m_bCastsShadows = other.m_bCastsShadows;
 
 			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnStateChanged);
@@ -509,6 +509,17 @@ namespace Eagle
 		void SetMeshAsset(const Ref<AssetStaticMesh>& mesh)
 		{
 			m_MeshAsset = mesh;
+			if (m_MeshAsset)
+			{
+				const auto& mesh = m_MeshAsset->GetMesh();
+				const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
+				m_MaterialAssets.resize(materialsCount);
+				for (uint32_t i = 0; i < materialsCount; ++i)
+					m_MaterialAssets[i] = mesh->GetMaterialAsset(i);
+			}
+			else
+				m_MaterialAssets.clear();
+
 			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnStateChanged);
 		}
 
@@ -531,16 +542,19 @@ namespace Eagle
 		}
 		bool DoesCastShadows() const { return m_bCastsShadows; }
 
-		const Ref<AssetMaterial>& GetMaterialAsset() const { return m_MaterialAsset; }
-		void SetMaterialAsset(const Ref<AssetMaterial>& material)
+		uint32_t GetMaterialsSlotsCount() const { return (uint32_t)m_MaterialAssets.size(); }
+		const Ref<AssetMaterial>& GetMaterialAsset(uint32_t index) const { return m_MaterialAssets[index]; }
+		void SetMaterialAsset(uint32_t index, const Ref<AssetMaterial>& material)
 		{
-			m_MaterialAsset = material;
+			if (index >= m_MaterialAssets.size())
+				return;
+			m_MaterialAssets[index] = material;
 			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnMaterialChanged);
 		}
 
 	private:
 		Ref<AssetStaticMesh> m_MeshAsset;
-		Ref<AssetMaterial> m_MaterialAsset;
+		std::vector<Ref<AssetMaterial>> m_MaterialAssets;
 		bool m_bCastsShadows = true;
 	};
 
@@ -560,6 +574,18 @@ namespace Eagle
 			m_MeshAsset = mesh;
 			CurrentClipPlayTime = 0.f;
 			PrevClipPlayTime = 0.f;
+
+			if (m_MeshAsset)
+			{
+				const auto& mesh = m_MeshAsset->GetMesh();
+				const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
+				m_MaterialAssets.resize(materialsCount);
+				for (uint32_t i = 0; i < materialsCount; ++i)
+					m_MaterialAssets[i] = mesh->GetMaterialAsset(i);
+			}
+			else
+				m_MaterialAssets.clear();
+
 			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnStateChanged);
 		}
 
@@ -595,10 +621,13 @@ namespace Eagle
 		}
 		bool DoesCastShadows() const { return m_bCastsShadows; }
 
-		const Ref<AssetMaterial>& GetMaterialAsset() const { return m_MaterialAsset; }
-		void SetMaterialAsset(const Ref<AssetMaterial>& material)
+		uint32_t GetMaterialsSlotsCount() const { return (uint32_t)m_MaterialAssets.size(); }
+		const Ref<AssetMaterial>& GetMaterialAsset(uint32_t index) const { return m_MaterialAssets[index]; }
+		void SetMaterialAsset(uint32_t index, const Ref<AssetMaterial>& material)
 		{
-			m_MaterialAsset = material;
+			if (index >= m_MaterialAssets.size())
+				return;
+			m_MaterialAssets[index] = material;
 			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnMaterialChanged);
 		}
 
@@ -632,7 +661,7 @@ namespace Eagle
 
 	private:
 		Ref<AssetSkeletalMesh> m_MeshAsset;
-		Ref<AssetMaterial> m_MaterialAsset;
+		std::vector<Ref<AssetMaterial>> m_MaterialAssets;
 		Ref<AssetAnimation> m_AnimAsset;
 		Ref<AssetAnimationGraph> m_AnimGraphAsset;
 		Ref<AnimationGraph> m_Graph;

@@ -34,7 +34,7 @@ namespace Eagle
 
 	private:
 		AssetImportSettings m_Settings;
-		bool bSkeletal = true;
+		bool bSkeletal = false;
 
 		Path m_Path;
 	};

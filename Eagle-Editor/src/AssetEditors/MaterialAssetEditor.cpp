@@ -20,7 +20,7 @@ namespace Eagle
 		Entity entity = m_Scene->CreateEntity("MaterialAssetEditor");
 		auto& sm = entity.AddComponent<StaticMeshComponent>();
 		sm.SetMeshAsset(m_Sphere);
-		sm.SetMaterialAsset(m_Asset);
+		sm.SetMaterialAsset(0, m_Asset);
 
 		Transform tr{};
 		tr.Rotation = glm::rotate(tr.Rotation.GetQuat(), glm::radians(-90.f), glm::vec3(1.f, 0.f, 0.f));

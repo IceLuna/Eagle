@@ -16,6 +16,18 @@ namespace Eagle
 
 namespace Eagle::Utils
 {
+	struct StaticMeshImportData
+	{
+		Ref<StaticMesh> Mesh;
+		std::vector<uint32_t> MaterialIndices; // Indices of imported materials
+	};
+
+	struct SkeletalMeshImportData
+	{
+		Ref<SkeletalMesh> Mesh;
+		std::vector<uint32_t> MaterialIndices; // Indices of imported materials
+	};
+
 	std::string ToUtf8(const std::wstring& str);
 
 	static uint16_t ToFloat16(float value)
@@ -44,9 +56,9 @@ namespace Eagle::Utils
 		return Enum();
 	}
 
-	Ref<StaticMesh> ImportStaticMesh(const Path& path);
+	StaticMeshImportData ImportStaticMesh(const Path& path);
 
-	Ref<SkeletalMesh> ImportSkeletalMesh(const Path& path);
+	SkeletalMeshImportData ImportSkeletalMesh(const Path& path);
 
 	std::vector<SkeletalMeshAnimation> ImportAnimations(const Path& path, const Ref<SkeletalMesh>& skeletal, bool bRootMotion);
 

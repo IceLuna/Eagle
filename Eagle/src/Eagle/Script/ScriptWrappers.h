@@ -113,18 +113,20 @@ namespace Eagle::Script
 	//StaticMeshComponent
 	void Eagle_StaticMeshComponent_SetMesh(GUID entityID, GUID guid);
 	GUID Eagle_StaticMeshComponent_GetMesh(GUID entityID);
-	void Eagle_StaticMeshComponent_GetMaterial(GUID entityID, GUID* outAssetID);
-	void Eagle_StaticMeshComponent_SetMaterial(GUID entityID, GUID assetID);
+	void Eagle_StaticMeshComponent_GetMaterial(GUID entityID, uint32_t index, GUID* outAssetID);
+	void Eagle_StaticMeshComponent_SetMaterial(GUID entityID, uint32_t index, GUID assetID);
+	uint32_t Eagle_StaticMeshComponent_GetMaterialsSlotsCount(GUID entityID);
 	void Eagle_StaticMeshComponent_SetCastsShadows(GUID entityID, bool value);
 	bool Eagle_StaticMeshComponent_DoesCastShadows(GUID entityID);
 
 	// SkeletalMeshComponent
 	void Eagle_SkeletalMeshComponent_SetMesh(GUID entityID, GUID guid);
 	GUID Eagle_SkeletalMeshComponent_GetMesh(GUID entityID);
-	void Eagle_SkeletalMeshComponent_GetMaterial(GUID entityID, GUID* outAssetID);
-	void Eagle_SkeletalMeshComponent_SetMaterial(GUID entityID, GUID assetID);
+	void Eagle_SkeletalMeshComponent_GetMaterial(GUID entityID, uint32_t index, GUID* outAssetID);
+	void Eagle_SkeletalMeshComponent_SetMaterial(GUID entityID, uint32_t index, GUID assetID);
 	void Eagle_SkeletalMeshComponent_GetAnimation(GUID entityID, GUID* outAssetID);
 	void Eagle_SkeletalMeshComponent_SetAnimation(GUID entityID, GUID assetID);
+	uint32_t Eagle_SkeletalMeshComponent_GetMaterialsSlotsCount(GUID entityID);
 	void Eagle_SkeletalMeshComponent_SetCastsShadows(GUID entityID, bool value);
 	bool Eagle_SkeletalMeshComponent_DoesCastShadows(GUID entityID);
 	SkeletalMeshComponent::AnimationType Eagle_SkeletalMeshComponent_GetAnimType(GUID entityID);

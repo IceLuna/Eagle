@@ -23,6 +23,41 @@
 
 namespace Eagle
 {
+	namespace Utils
+	{
+		template<typename MeshData, typename MeshGeometryData>
+		static void RenderMeshes(const Ref<CommandBuffer>& cmd, const MeshData& meshes, const MeshGeometryData& meshesData, SceneRenderer::Statistics& stats)
+		{
+			uint32_t firstIndex = 0;
+			uint32_t firstInstance = 0;
+			uint32_t vertexOffset = 0;
+			for (auto& [meshKey, datas] : meshes)
+			{
+				const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
+				const uint32_t instanceCount = (uint32_t)datas.Datas.size();
+
+				stats.Vertices += verticesCount;
+
+				const auto& slotsToRender = datas.MaterialSlots;
+				for (const uint32_t matSlot : slotsToRender)
+				{
+					const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices(matSlot).size();
+					const uint32_t indicesOffset = (uint32_t)meshKey.Mesh->GetIndicesOffset(matSlot);
+					if (meshKey.bCastsShadows)
+					{
+						cmd->DrawIndexedInstanced(meshesData.VertexBuffer, meshesData.IndexBuffer, indicesCount, firstIndex + indicesOffset, vertexOffset, instanceCount, firstInstance + instanceCount * matSlot, meshesData.InstanceBuffer);
+						stats.Indeces += indicesCount;
+						++stats.DrawCalls;
+					}
+				}
+				firstInstance += instanceCount * meshKey.Mesh->GetMaterialSlotsCount();
+				firstIndex += (uint32_t)meshKey.Mesh->GetTotalIndicesCount();
+
+				vertexOffset += verticesCount;
+			}
+		}
+	}
+
 	glm::uvec2 ShadowPassTask::GetPointLightSMSize(float distanceToCamera, float maxShadowDistance)
 	{
 		const float k = distanceToCamera / maxShadowDistance;
@@ -572,9 +607,6 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Opacity Meshes shadow pass");
 
 		const auto& meshesData = m_Renderer.GetOpaqueMeshesData();
-		const auto& vb = meshesData.VertexBuffer;
-		const auto& ivb = meshesData.InstanceBuffer;
-		const auto& ib = meshesData.IndexBuffer;
 		const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
@@ -596,28 +628,7 @@ namespace Eagle
 
 				cmd->BeginGraphics(m_OpacityMDLPipeline, m_DLFramebuffers[i]);
 				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-
-				uint32_t firstIndex = 0;
-				uint32_t firstInstance = 0;
-				uint32_t vertexOffset = 0;
-				for (auto& [meshKey, datas] : meshes)
-				{
-					const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-					const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-					const uint32_t instanceCount = (uint32_t)datas.size();
-
-					if (meshKey.bCastsShadows)
-					{
-						stats.Indeces += indicesCount;
-						stats.Vertices += verticesCount;
-						++stats.DrawCalls;
-						cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-					}
-
-					firstIndex += indicesCount;
-					vertexOffset += verticesCount;
-					firstInstance += instanceCount;
-				}
+				Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 				cmd->EndGraphics();
 			}
 		}
@@ -651,28 +662,7 @@ namespace Eagle
 						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
-
-						uint32_t firstIndex = 0;
-						uint32_t firstInstance = 0;
-						uint32_t vertexOffset = 0;
-						for (auto& [meshKey, datas] : meshes)
-						{
-							const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-							const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-							const uint32_t instanceCount = (uint32_t)datas.size();
-
-							if (meshKey.bCastsShadows)
-							{
-								stats.Indeces += indicesCount;
-								stats.Vertices += verticesCount;
-								++stats.DrawCalls;
-								cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-							}
-
-							firstIndex += indicesCount;
-							vertexOffset += verticesCount;
-							firstInstance += instanceCount;
-						}
+						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 						cmd->EndGraphics();
 						++i;
 					}
@@ -703,28 +693,7 @@ namespace Eagle
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-
-						uint32_t firstIndex = 0;
-						uint32_t firstInstance = 0;
-						uint32_t vertexOffset = 0;
-						for (auto& [meshKey, datas] : meshes)
-						{
-							const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-							const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-							const uint32_t instanceCount = (uint32_t)datas.size();
-
-							if (meshKey.bCastsShadows)
-							{
-								stats.Indeces += indicesCount;
-								stats.Vertices += verticesCount;
-								++stats.DrawCalls;
-								cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-							}
-
-							firstIndex += indicesCount;
-							vertexOffset += verticesCount;
-							firstInstance += instanceCount;
-						}
+						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 						cmd->EndGraphics();
 						++spotLightsCount;
 					}
@@ -743,9 +712,6 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Translucent Meshes shadow pass");
 
 		const auto& meshesData = m_Renderer.GetTranslucentMeshesData();
-		const auto& vb = meshesData.VertexBuffer;
-		const auto& ivb = meshesData.InstanceBuffer;
-		const auto& ib = meshesData.IndexBuffer;
 		const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
@@ -789,28 +755,7 @@ namespace Eagle
 
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
 				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-
-				uint32_t firstIndex = 0;
-				uint32_t firstInstance = 0;
-				uint32_t vertexOffset = 0;
-				for (auto& [meshKey, datas] : meshes)
-				{
-					const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-					const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-					const uint32_t instanceCount = (uint32_t)datas.size();
-
-					if (meshKey.bCastsShadows)
-					{
-						stats.Indeces += indicesCount;
-						stats.Vertices += verticesCount;
-						++stats.DrawCalls;
-						cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-					}
-
-					firstIndex += indicesCount;
-					vertexOffset += verticesCount;
-					firstInstance += instanceCount;
-				}
+				Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 				cmd->EndGraphics();
 			}
 			bDidDrawDLC = true;
@@ -858,28 +803,7 @@ namespace Eagle
 						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
-
-						uint32_t firstIndex = 0;
-						uint32_t firstInstance = 0;
-						uint32_t vertexOffset = 0;
-						for (auto& [meshKey, datas] : meshes)
-						{
-							const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-							const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-							const uint32_t instanceCount = (uint32_t)datas.size();
-
-							if (meshKey.bCastsShadows)
-							{
-								stats.Indeces += indicesCount;
-								stats.Vertices += verticesCount;
-								++stats.DrawCalls;
-								cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-							}
-
-							firstIndex += indicesCount;
-							vertexOffset += verticesCount;
-							firstInstance += instanceCount;
-						}
+						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 						cmd->EndGraphics();
 						++pointLightsCount;
 					}
@@ -922,28 +846,7 @@ namespace Eagle
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-
-						uint32_t firstIndex = 0;
-						uint32_t firstInstance = 0;
-						uint32_t vertexOffset = 0;
-						for (auto& [meshKey, datas] : meshes)
-						{
-							const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-							const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-							const uint32_t instanceCount = (uint32_t)datas.size();
-
-							if (meshKey.bCastsShadows)
-							{
-								stats.Indeces += indicesCount;
-								stats.Vertices += verticesCount;
-								++stats.DrawCalls;
-								cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-							}
-
-							firstIndex += indicesCount;
-							vertexOffset += verticesCount;
-							firstInstance += instanceCount;
-						}
+						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 						cmd->EndGraphics();
 						++spotLightsCount;
 					}
@@ -962,9 +865,6 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Masked Meshes shadow pass");
 
 		const auto& meshesData = m_Renderer.GetMaskedMeshesData();
-		const auto& vb = meshesData.VertexBuffer;
-		const auto& ivb = meshesData.InstanceBuffer;
-		const auto& ib = meshesData.IndexBuffer;
 		const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
@@ -1000,28 +900,7 @@ namespace Eagle
 
 				cmd->BeginGraphics(pipeline, m_DLFramebuffers[i]);
 				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-
-				uint32_t firstIndex = 0;
-				uint32_t firstInstance = 0;
-				uint32_t vertexOffset = 0;
-				for (auto& [meshKey, datas] : meshes)
-				{
-					const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-					const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-					const uint32_t instanceCount = (uint32_t)datas.size();
-
-					if (meshKey.bCastsShadows)
-					{
-						stats.Indeces += indicesCount;
-						stats.Vertices += verticesCount;
-						++stats.DrawCalls;
-						cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-					}
-
-					firstIndex += indicesCount;
-					vertexOffset += verticesCount;
-					firstInstance += instanceCount;
-				}
+				Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 				cmd->EndGraphics();
 			}
 			bDidDrawDL = true;
@@ -1067,28 +946,7 @@ namespace Eagle
 						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
-
-						uint32_t firstIndex = 0;
-						uint32_t firstInstance = 0;
-						uint32_t vertexOffset = 0;
-						for (auto& [meshKey, datas] : meshes)
-						{
-							const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-							const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-							const uint32_t instanceCount = (uint32_t)datas.size();
-
-							if (meshKey.bCastsShadows)
-							{
-								stats.Indeces += indicesCount;
-								stats.Vertices += verticesCount;
-								++stats.DrawCalls;
-								cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-							}
-
-							firstIndex += indicesCount;
-							vertexOffset += verticesCount;
-							firstInstance += instanceCount;
-						}
+						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 						cmd->EndGraphics();
 						++i;
 					}
@@ -1130,28 +988,7 @@ namespace Eagle
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-
-						uint32_t firstIndex = 0;
-						uint32_t firstInstance = 0;
-						uint32_t vertexOffset = 0;
-						for (auto& [meshKey, datas] : meshes)
-						{
-							const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-							const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-							const uint32_t instanceCount = (uint32_t)datas.size();
-
-							if (meshKey.bCastsShadows)
-							{
-								stats.Indeces += indicesCount;
-								stats.Vertices += verticesCount;
-								++stats.DrawCalls;
-								cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-							}
-
-							firstIndex += indicesCount;
-							vertexOffset += verticesCount;
-							firstInstance += instanceCount;
-						}
+						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 						cmd->EndGraphics();
 						++spotLightsCount;
 					}
@@ -1170,9 +1007,6 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Opacity Skeletal Meshes shadow pass");
 
 		const auto& meshesData = m_Renderer.GetOpaqueSkeletalMeshesData();
-		const auto& vb = meshesData.VertexBuffer;
-		const auto& ivb = meshesData.InstanceBuffer;
-		const auto& ib = meshesData.IndexBuffer;
 		const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
 		const auto& animTransformsBuffers = m_Renderer.GetAnimationTransformsBuffers();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
@@ -1197,28 +1031,7 @@ namespace Eagle
 
 				cmd->BeginGraphics(pipeline, m_DLFramebuffers[i]);
 				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-
-				uint32_t firstIndex = 0;
-				uint32_t firstInstance = 0;
-				uint32_t vertexOffset = 0;
-				for (auto& [meshKey, datas] : meshes)
-				{
-					const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-					const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-					const uint32_t instanceCount = (uint32_t)datas.size();
-
-					if (meshKey.bCastsShadows)
-					{
-						stats.Indeces += indicesCount;
-						stats.Vertices += verticesCount;
-						++stats.DrawCalls;
-						cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-					}
-
-					firstIndex += indicesCount;
-					vertexOffset += verticesCount;
-					firstInstance += instanceCount;
-				}
+				Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 				cmd->EndGraphics();
 			}
 			bDidDrawDL = true;
@@ -1254,28 +1067,7 @@ namespace Eagle
 						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
-
-						uint32_t firstIndex = 0;
-						uint32_t firstInstance = 0;
-						uint32_t vertexOffset = 0;
-						for (auto& [meshKey, datas] : meshes)
-						{
-							const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-							const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-							const uint32_t instanceCount = (uint32_t)datas.size();
-
-							if (meshKey.bCastsShadows)
-							{
-								stats.Indeces += indicesCount;
-								stats.Vertices += verticesCount;
-								++stats.DrawCalls;
-								cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-							}
-
-							firstIndex += indicesCount;
-							vertexOffset += verticesCount;
-							firstInstance += instanceCount;
-						}
+						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 						cmd->EndGraphics();
 						++i;
 					}
@@ -1307,28 +1099,7 @@ namespace Eagle
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-
-						uint32_t firstIndex = 0;
-						uint32_t firstInstance = 0;
-						uint32_t vertexOffset = 0;
-						for (auto& [meshKey, datas] : meshes)
-						{
-							const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-							const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-							const uint32_t instanceCount = (uint32_t)datas.size();
-
-							if (meshKey.bCastsShadows)
-							{
-								stats.Indeces += indicesCount;
-								stats.Vertices += verticesCount;
-								++stats.DrawCalls;
-								cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-							}
-
-							firstIndex += indicesCount;
-							vertexOffset += verticesCount;
-							firstInstance += instanceCount;
-						}
+						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 						cmd->EndGraphics();
 						++spotLightsCount;
 					}
@@ -1347,9 +1118,6 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Translucent Skeletal Meshes shadow pass");
 
 		const auto& meshesData = m_Renderer.GetTranslucentSkeletalMeshesData();
-		const auto& vb = meshesData.VertexBuffer;
-		const auto& ivb = meshesData.InstanceBuffer;
-		const auto& ib = meshesData.IndexBuffer;
 		const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
 		const auto& animTransformsBuffers = m_Renderer.GetAnimationTransformsBuffers();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
@@ -1399,28 +1167,7 @@ namespace Eagle
 
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
 				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-
-				uint32_t firstIndex = 0;
-				uint32_t firstInstance = 0;
-				uint32_t vertexOffset = 0;
-				for (auto& [meshKey, datas] : meshes)
-				{
-					const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-					const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-					const uint32_t instanceCount = (uint32_t)datas.size();
-
-					if (meshKey.bCastsShadows)
-					{
-						stats.Indeces += indicesCount;
-						stats.Vertices += verticesCount;
-						++stats.DrawCalls;
-						cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-					}
-
-					firstIndex += indicesCount;
-					vertexOffset += verticesCount;
-					firstInstance += instanceCount;
-				}
+				Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 				cmd->EndGraphics();
 			}
 			bDidDrawDLC = true;
@@ -1473,28 +1220,7 @@ namespace Eagle
 						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
-
-						uint32_t firstIndex = 0;
-						uint32_t firstInstance = 0;
-						uint32_t vertexOffset = 0;
-						for (auto& [meshKey, datas] : meshes)
-						{
-							const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-							const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-							const uint32_t instanceCount = (uint32_t)datas.size();
-
-							if (meshKey.bCastsShadows)
-							{
-								stats.Indeces += indicesCount;
-								stats.Vertices += verticesCount;
-								++stats.DrawCalls;
-								cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-							}
-
-							firstIndex += indicesCount;
-							vertexOffset += verticesCount;
-							firstInstance += instanceCount;
-						}
+						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 						cmd->EndGraphics();
 						++pointLightsCount;
 					}
@@ -1542,28 +1268,7 @@ namespace Eagle
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-
-						uint32_t firstIndex = 0;
-						uint32_t firstInstance = 0;
-						uint32_t vertexOffset = 0;
-						for (auto& [meshKey, datas] : meshes)
-						{
-							const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-							const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-							const uint32_t instanceCount = (uint32_t)datas.size();
-
-							if (meshKey.bCastsShadows)
-							{
-								stats.Indeces += indicesCount;
-								stats.Vertices += verticesCount;
-								++stats.DrawCalls;
-								cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-							}
-
-							firstIndex += indicesCount;
-							vertexOffset += verticesCount;
-							firstInstance += instanceCount;
-						}
+						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 						cmd->EndGraphics();
 						++spotLightsCount;
 					}
@@ -1582,9 +1287,6 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Masked Skeletal Meshes shadow pass");
 
 		const auto& meshesData = m_Renderer.GetMaskedSkeletalMeshesData();
-		const auto& vb = meshesData.VertexBuffer;
-		const auto& ivb = meshesData.InstanceBuffer;
-		const auto& ib = meshesData.IndexBuffer;
 		const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
 		const auto& animTransformsBuffers = m_Renderer.GetAnimationTransformsBuffers();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
@@ -1622,28 +1324,7 @@ namespace Eagle
 
 				cmd->BeginGraphics(pipeline, m_DLFramebuffers[i]);
 				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-
-				uint32_t firstIndex = 0;
-				uint32_t firstInstance = 0;
-				uint32_t vertexOffset = 0;
-				for (auto& [meshKey, datas] : meshes)
-				{
-					const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-					const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-					const uint32_t instanceCount = (uint32_t)datas.size();
-
-					if (meshKey.bCastsShadows)
-					{
-						stats.Indeces += indicesCount;
-						stats.Vertices += verticesCount;
-						++stats.DrawCalls;
-						cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-					}
-
-					firstIndex += indicesCount;
-					vertexOffset += verticesCount;
-					firstInstance += instanceCount;
-				}
+				Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 				cmd->EndGraphics();
 			}
 			bDidDrawDL = true;
@@ -1690,28 +1371,7 @@ namespace Eagle
 						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
-
-						uint32_t firstIndex = 0;
-						uint32_t firstInstance = 0;
-						uint32_t vertexOffset = 0;
-						for (auto& [meshKey, datas] : meshes)
-						{
-							const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-							const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-							const uint32_t instanceCount = (uint32_t)datas.size();
-
-							if (meshKey.bCastsShadows)
-							{
-								stats.Indeces += indicesCount;
-								stats.Vertices += verticesCount;
-								++stats.DrawCalls;
-								cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-							}
-
-							firstIndex += indicesCount;
-							vertexOffset += verticesCount;
-							firstInstance += instanceCount;
-						}
+						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 						cmd->EndGraphics();
 						++i;
 					}
@@ -1754,28 +1414,7 @@ namespace Eagle
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-
-						uint32_t firstIndex = 0;
-						uint32_t firstInstance = 0;
-						uint32_t vertexOffset = 0;
-						for (auto& [meshKey, datas] : meshes)
-						{
-							const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-							const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
-							const uint32_t instanceCount = (uint32_t)datas.size();
-
-							if (meshKey.bCastsShadows)
-							{
-								stats.Indeces += indicesCount;
-								stats.Vertices += verticesCount;
-								++stats.DrawCalls;
-								cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
-							}
-
-							firstIndex += indicesCount;
-							vertexOffset += verticesCount;
-							firstInstance += instanceCount;
-						}
+						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
 						cmd->EndGraphics();
 						++spotLightsCount;
 					}

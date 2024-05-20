@@ -393,12 +393,8 @@ namespace Eagle
 	{
 		const auto& mesh = asset->GetMesh();
 		DataBuffer verticesBuffer{ (void*)mesh->GetVerticesData(), mesh->GetVerticesCount() * sizeof(Vertex) };
-		DataBuffer indicesBuffer{ (void*)mesh->GetIndicesData(), mesh->GetIndicesCount() * sizeof(Index) };
 		const size_t origVerticesDataSize = verticesBuffer.Size; // Required for decompression
-		const size_t origIndicesDataSize = indicesBuffer.Size; // Required for decompression
-
 		ScopedDataBuffer compressedVertices(Compressor::Compress(verticesBuffer));
-		ScopedDataBuffer compressedIndices(Compressor::Compress(indicesBuffer));
 
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
@@ -415,13 +411,54 @@ namespace Eagle
 			out << YAML::EndMap;
 		}
 
+		if (const uint32_t materialsCount = mesh->GetMaterialSlotsCount())
+		{
+			bool bAnyValid = false;
+			for (uint32_t i = 0; i < materialsCount; ++i)
+				if (const auto& materialAsset = mesh->GetMaterialAsset(i))
+				{
+					bAnyValid = true;
+					break;
+				}
+
+			if (bAnyValid)
+			{
+				out << YAML::Key << "Materials" << YAML::Value << YAML::BeginSeq;
+				for (uint32_t i = 0; i < materialsCount; ++i)
+				{
+					if (const auto& materialAsset = mesh->GetMaterialAsset(i))
+					{
+						out << YAML::BeginMap;
+						out << YAML::Key << "Index" << YAML::Value << i;
+						out << YAML::Key << "Material" << YAML::Value << materialAsset->GetGUID();
+						out << YAML::EndMap;
+					}
+				}
+				out << YAML::EndSeq;
+			}
+		}
+
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
 		out << YAML::Key << "SizeVertices" << YAML::Value << origVerticesDataSize;
-		out << YAML::Key << "SizeIndices" << YAML::Value << origIndicesDataSize;
 		out << YAML::Key << "Vertices" << YAML::Value << YAML::Binary((uint8_t*)compressedVertices.Data(), compressedVertices.Size());
-		out << YAML::Key << "Indices" << YAML::Value << YAML::Binary((uint8_t*)compressedIndices.Data(), compressedIndices.Size());
-		out << YAML::EndMap;
 
+		// Indices per material
+		const uint32_t materialSlots = mesh->GetMaterialSlotsCount();
+		out << YAML::Key << "IndicesPerMaterial" << YAML::Value << YAML::BeginSeq;
+		for (uint32_t i = 0; i < materialSlots; ++i)
+		{
+			DataBuffer indicesBuffer{ (void*)mesh->GetIndicesData(i), mesh->GetIndicesCount(i) * sizeof(Index) };
+			const size_t origIndicesDataSize = indicesBuffer.Size; // Required for decompression
+			ScopedDataBuffer compressedIndices(Compressor::Compress(indicesBuffer));
+
+			out << YAML::BeginMap;
+			out << YAML::Key << "SizeIndices" << YAML::Value << origIndicesDataSize;
+			out << YAML::Key << "Indices" << YAML::Value << YAML::Binary((uint8_t*)compressedIndices.Data(), compressedIndices.Size());
+			out << YAML::EndMap;
+		}
+		out << YAML::EndSeq;
+
+		out << YAML::EndMap;
 		out << YAML::EndMap;
 	}
 
@@ -429,12 +466,8 @@ namespace Eagle
 	{
 		const auto& mesh = asset->GetMesh();
 		DataBuffer verticesBuffer{ (void*)mesh->GetVerticesData(), mesh->GetVerticesCount() * sizeof(SkeletalVertex) };
-		DataBuffer indicesBuffer{ (void*)mesh->GetIndicesData(), mesh->GetIndicesCount() * sizeof(Index) };
 		const size_t origVerticesDataSize = verticesBuffer.Size; // Required for decompression
-		const size_t origIndicesDataSize = indicesBuffer.Size; // Required for decompression
-
 		ScopedDataBuffer compressedVertices(Compressor::Compress(verticesBuffer));
-		ScopedDataBuffer compressedIndices(Compressor::Compress(indicesBuffer));
 
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
@@ -449,6 +482,33 @@ namespace Eagle
 			out << YAML::Key << "Min" << YAML::Value << aabb.Min;
 			out << YAML::Key << "Max" << YAML::Value << aabb.Max;
 			out << YAML::EndMap;
+		}
+
+		if (const uint32_t materialsCount = mesh->GetMaterialSlotsCount())
+		{
+			bool bAnyValid = false;
+			for (uint32_t i = 0; i < materialsCount; ++i)
+				if (const auto& materialAsset = mesh->GetMaterialAsset(i))
+				{
+					bAnyValid = true;
+					break;
+				}
+
+			if (bAnyValid)
+			{
+				out << YAML::Key << "Materials" << YAML::Value << YAML::BeginSeq;
+				for (uint32_t i = 0; i < materialsCount; ++i)
+				{
+					if (const auto& materialAsset = mesh->GetMaterialAsset(i))
+					{
+						out << YAML::BeginMap;
+						out << YAML::Key << "Index" << YAML::Value << i;
+						out << YAML::Key << "Material" << YAML::Value << materialAsset->GetGUID();
+						out << YAML::EndMap;
+					}
+				}
+				out << YAML::EndSeq;
+			}
 		}
 
 		const auto& skeletalInfo = mesh->GetSkeletalMeshInfo();
@@ -479,9 +539,23 @@ namespace Eagle
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
 		out << YAML::Key << "SizeVertices" << YAML::Value << origVerticesDataSize;
-		out << YAML::Key << "SizeIndices" << YAML::Value << origIndicesDataSize;
 		out << YAML::Key << "Vertices" << YAML::Value << YAML::Binary((uint8_t*)compressedVertices.Data(), compressedVertices.Size());
-		out << YAML::Key << "Indices" << YAML::Value << YAML::Binary((uint8_t*)compressedIndices.Data(), compressedIndices.Size());
+
+		// Indices per material
+		const uint32_t materialSlots = mesh->GetMaterialSlotsCount();
+		out << YAML::Key << "IndicesPerMaterial" << YAML::Value << YAML::BeginSeq;
+		for (uint32_t i = 0; i < materialSlots; ++i)
+		{
+			DataBuffer indicesBuffer{ (void*)mesh->GetIndicesData(i), mesh->GetIndicesCount(i) * sizeof(Index) };
+			const size_t origIndicesDataSize = indicesBuffer.Size; // Required for decompression
+			ScopedDataBuffer compressedIndices(Compressor::Compress(indicesBuffer));
+
+			out << YAML::BeginMap;
+			out << YAML::Key << "SizeIndices" << YAML::Value << origIndicesDataSize;
+			out << YAML::Key << "Indices" << YAML::Value << YAML::Binary((uint8_t*)compressedIndices.Data(), compressedIndices.Size());
+			out << YAML::EndMap;
+		}
+		out << YAML::EndSeq;
 
 		out << YAML::EndMap;
 
@@ -788,9 +862,33 @@ namespace Eagle
 
 			if (const auto& meshAsset = smComponent.GetMeshAsset())
 				out << YAML::Key << "Mesh" << YAML::Value << meshAsset->GetGUID();
+			
+			if (const uint32_t materialsCount = smComponent.GetMaterialsSlotsCount())
+			{
+				bool bAnyValid = false;
+				for (uint32_t i = 0; i < materialsCount; ++i)
+					if (const auto& materialAsset = smComponent.GetMaterialAsset(i))
+					{
+						bAnyValid = true;
+						break;
+					}
 
-			if (const auto& materialAsset = smComponent.GetMaterialAsset())
-				out << YAML::Key << "Material" << YAML::Value << materialAsset->GetGUID();
+				if (bAnyValid)
+				{
+					out << YAML::Key << "Materials" << YAML::Value << YAML::BeginSeq;
+					for (uint32_t i = 0; i < materialsCount; ++i)
+					{
+						if (const auto& materialAsset = smComponent.GetMaterialAsset(i))
+						{
+							out << YAML::BeginMap;
+							out << YAML::Key << "Index" << YAML::Value << i;
+							out << YAML::Key << "Material" << YAML::Value << materialAsset->GetGUID();
+							out << YAML::EndMap;
+						}
+					}
+					out << YAML::EndSeq;
+				}
+			}
 
 			out << YAML::EndMap; //StaticMeshComponent
 		}
@@ -809,8 +907,32 @@ namespace Eagle
 			if (const auto& meshAsset = smComponent.GetMeshAsset())
 				out << YAML::Key << "Mesh" << YAML::Value << meshAsset->GetGUID();
 
-			if (const auto& materialAsset = smComponent.GetMaterialAsset())
-				out << YAML::Key << "Material" << YAML::Value << materialAsset->GetGUID();
+			if (const uint32_t materialsCount = smComponent.GetMaterialsSlotsCount())
+			{
+				bool bAnyValid = false;
+				for (uint32_t i = 0; i < materialsCount; ++i)
+					if (const auto& materialAsset = smComponent.GetMaterialAsset(i))
+					{
+						bAnyValid = true;
+						break;
+					}
+
+				if (bAnyValid)
+				{
+					out << YAML::Key << "Materials" << YAML::Value << YAML::BeginSeq;
+					for (uint32_t i = 0; i < materialsCount; ++i)
+					{
+						if (const auto& materialAsset = smComponent.GetMaterialAsset(i))
+						{
+							out << YAML::BeginMap;
+							out << YAML::Key << "Index" << YAML::Value << i;
+							out << YAML::Key << "Material" << YAML::Value << materialAsset->GetGUID();
+							out << YAML::EndMap;
+						}
+					}
+					out << YAML::EndSeq;
+				}
+			}
 
 			out << YAML::Key << "AnimationType" << Utils::GetEnumName(smComponent.AnimType);
 			if (const auto& animAsset = smComponent.GetAnimationAsset())
@@ -1251,8 +1373,9 @@ namespace Eagle
 
 			if (auto meshNode = staticMeshComponentNode["Mesh"])
 				smComponent.SetMeshAsset(GetAsset<AssetStaticMesh>(meshNode));
-			if (auto materialNode = staticMeshComponentNode["Material"])
-				smComponent.SetMaterialAsset(GetAsset<AssetMaterial>(materialNode));
+			if (auto materialsNode = staticMeshComponentNode["Materials"])
+				for (const auto& matNode : materialsNode)
+					smComponent.SetMaterialAsset(matNode["Index"].as<uint32_t>(), GetAsset<AssetMaterial>(matNode["Material"]));
 		}
 
 		if (auto skeletalMeshComponentNode = entityNode["SkeletalMeshComponent"])
@@ -1266,8 +1389,9 @@ namespace Eagle
 
 			if (auto meshNode = skeletalMeshComponentNode["Mesh"])
 				smComponent.SetMeshAsset(GetAsset<AssetSkeletalMesh>(meshNode));
-			if (auto materialNode = skeletalMeshComponentNode["Material"])
-				smComponent.SetMaterialAsset(GetAsset<AssetMaterial>(materialNode));
+			if (auto materialsNode = skeletalMeshComponentNode["Materials"])
+				for (const auto& matNode : materialsNode)
+					smComponent.SetMaterialAsset(matNode["Index"].as<uint32_t>(), GetAsset<AssetMaterial>(matNode["Material"]));
 			if (auto animationNode = skeletalMeshComponentNode["AnimationType"])
 				smComponent.AnimType = Utils::GetEnumFromName<SkeletalMeshComponent::AnimationType>(animationNode.as<std::string>());
 			if (auto animationNode = skeletalMeshComponentNode["AnimationClip"])
@@ -2250,14 +2374,14 @@ namespace Eagle
 
 		if (bReloadRaw)
 		{
-			auto mesh = Utils::ImportStaticMesh(pathToRaw);
-			if (!mesh)
+			auto importedMeshData = Utils::ImportStaticMesh(pathToRaw);
+			if (!importedMeshData.Mesh)
 			{
 				EG_CORE_ERROR("Failed to reload a mesh asset: {}", pathToRaw.u8string());
 				return {};
 			}
 
-			return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, mesh);
+			return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, importedMeshData.Mesh);
 		}
 
 		AABB aabb{};
@@ -2267,45 +2391,48 @@ namespace Eagle
 			aabb.Max = aabbNode["Max"].as<glm::vec3>();
 		}
 
-		ScopedDataBuffer decompressedBinaryVertices;
-		ScopedDataBuffer decompressedBinaryIndices;
+		auto materialsNode = baseNode["Materials"];
+
+		std::vector<Vertex> vertices;
+		std::vector<std::vector<Index>> indicesPerMaterial;
 
 		if (auto baseDataNode = baseNode["Data"])
 		{
 			const size_t origVerticesSize = baseDataNode["SizeVertices"].as<size_t>();
-			const size_t origIndicesSize = baseDataNode["SizeIndices"].as<size_t>();
 
 			// Vertices
 			{
 				YAML::Binary yamlBinaryVertices = baseDataNode["Vertices"].as<YAML::Binary>();
-				decompressedBinaryVertices = Compressor::Decompress(DataBuffer{ (void*)yamlBinaryVertices.data(), yamlBinaryVertices.size() }, origVerticesSize);
+				ScopedDataBuffer decompressedBinaryVertices{ Compressor::Decompress(DataBuffer{ (void*)yamlBinaryVertices.data(), yamlBinaryVertices.size() }, origVerticesSize) };
+
+				const size_t verticesCount = decompressedBinaryVertices.Size() / sizeof(Vertex);
+				vertices.resize(verticesCount);
+				memcpy(vertices.data(), decompressedBinaryVertices.Data(), decompressedBinaryVertices.Size());
 			}
 
 			// Indices
 			{
-				YAML::Binary yamlBinaryIndices = baseDataNode["Indices"].as<YAML::Binary>();
-				decompressedBinaryIndices = Compressor::Decompress(DataBuffer{ (void*)yamlBinaryIndices.data(), yamlBinaryIndices.size() }, origIndicesSize);
+				auto indicesPerMaterialNode = baseDataNode["IndicesPerMaterial"];
+				for (const auto& node : indicesPerMaterialNode)
+				{
+					const size_t origIndicesSize = node["SizeIndices"].as<size_t>();
+					YAML::Binary yamlBinaryIndices = node["Indices"].as<YAML::Binary>();
+					ScopedDataBuffer decompressedBinaryIndices{ Compressor::Decompress(DataBuffer{ (void*)yamlBinaryIndices.data(), yamlBinaryIndices.size() }, origIndicesSize) };
+
+					const size_t indicesCount = decompressedBinaryIndices.Size() / sizeof(Index);
+					auto& indices = indicesPerMaterial.emplace_back();
+					indices.resize(indicesCount);
+					memcpy(indices.data(), decompressedBinaryIndices.Data(), decompressedBinaryIndices.Size());
+				}
 			}
 		}
 
-		std::vector<Vertex> vertices;
-		std::vector<Index> indices;
+		Ref<StaticMesh> staticMesh = StaticMesh::Create(vertices, indicesPerMaterial, aabb);
+		if (materialsNode)
+			for (const auto& matNode : materialsNode)
+				staticMesh->SetMaterialAsset(matNode["Index"].as<uint32_t>(), GetAsset<AssetMaterial>(matNode["Material"]));
 
-		// Vertices
-		{
-			const size_t verticesCount = decompressedBinaryVertices.Size() / sizeof(Vertex);
-			vertices.resize(verticesCount);
-			memcpy(vertices.data(), decompressedBinaryVertices.Data(), decompressedBinaryVertices.Size());
-		}
-
-		// Indices
-		{
-			const size_t indicesCount = decompressedBinaryIndices.Size() / sizeof(Index);
-			indices.resize(indicesCount);
-			memcpy(indices.data(), decompressedBinaryIndices.Data(), decompressedBinaryIndices.Size());
-		}
-
-		return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, StaticMesh::Create(vertices, indices, aabb));
+		return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, staticMesh);
 	}
 	
 	Ref<AssetSkeletalMesh> Serializer::DeserializeAssetSkeletalMesh(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
@@ -2332,14 +2459,14 @@ namespace Eagle
 		GUID guid = baseNode["GUID"].as<GUID>();
 		if (bReloadRaw)
 		{
-			Ref<SkeletalMesh> mesh = Utils::ImportSkeletalMesh(pathToRaw);
-			if (mesh)
+			auto importedMeshData = Utils::ImportSkeletalMesh(pathToRaw);
+			if (importedMeshData.Mesh)
 			{
 				EG_CORE_ERROR("Failed to reload a skeletal mesh asset: {}", pathToRaw.u8string());
 				return {};
 			}
 
-			return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, mesh);
+			return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, importedMeshData.Mesh);
 		}
 
 		AABB aabb{};
@@ -2348,6 +2475,8 @@ namespace Eagle
 			aabb.Min = aabbNode["Min"].as<glm::vec3>();
 			aabb.Max = aabbNode["Max"].as<glm::vec3>();
 		}
+
+		auto materialsNode = baseNode["Materials"];
 
 		SkeletalMeshInfo skeletalInfo;
 		skeletalInfo.InverseTransform = baseNode["InverseTransform"].as<glm::mat4>();
@@ -2366,45 +2495,46 @@ namespace Eagle
 			}
 		}
 
-		ScopedDataBuffer decompressedBinaryVertices;
-		ScopedDataBuffer decompressedBinaryIndices;
+		std::vector<SkeletalVertex> vertices;
+		std::vector<std::vector<Index>> indicesPerMaterial;
 
 		if (auto baseDataNode = baseNode["Data"])
 		{
 			const size_t origVerticesSize = baseDataNode["SizeVertices"].as<size_t>();
-			const size_t origIndicesSize = baseDataNode["SizeIndices"].as<size_t>();
 
 			// Vertices
 			{
 				YAML::Binary yamlBinaryVertices = baseDataNode["Vertices"].as<YAML::Binary>();
-				decompressedBinaryVertices = Compressor::Decompress(DataBuffer{ (void*)yamlBinaryVertices.data(), yamlBinaryVertices.size() }, origVerticesSize);
+				ScopedDataBuffer decompressedBinaryVertices{ Compressor::Decompress(DataBuffer{ (void*)yamlBinaryVertices.data(), yamlBinaryVertices.size() }, origVerticesSize) };
+
+				const size_t verticesCount = decompressedBinaryVertices.Size() / sizeof(SkeletalVertex);
+				vertices.resize(verticesCount);
+				memcpy(vertices.data(), decompressedBinaryVertices.Data(), decompressedBinaryVertices.Size());
 			}
 
 			// Indices
 			{
-				YAML::Binary yamlBinaryIndices = baseDataNode["Indices"].as<YAML::Binary>();
-				decompressedBinaryIndices = Compressor::Decompress(DataBuffer{ (void*)yamlBinaryIndices.data(), yamlBinaryIndices.size() }, origIndicesSize);
+				auto indicesPerMaterialNode = baseDataNode["IndicesPerMaterial"];
+				for (const auto& node : indicesPerMaterialNode)
+				{
+					const size_t origIndicesSize = node["SizeIndices"].as<size_t>();
+					YAML::Binary yamlBinaryIndices = node["Indices"].as<YAML::Binary>();
+					ScopedDataBuffer decompressedBinaryIndices{ Compressor::Decompress(DataBuffer{ (void*)yamlBinaryIndices.data(), yamlBinaryIndices.size() }, origIndicesSize) };
+
+					const size_t indicesCount = decompressedBinaryIndices.Size() / sizeof(Index);
+					auto& indices = indicesPerMaterial.emplace_back();
+					indices.resize(indicesCount);
+					memcpy(indices.data(), decompressedBinaryIndices.Data(), decompressedBinaryIndices.Size());
+				}
 			}
 		}
 
-		std::vector<SkeletalVertex> vertices;
-		std::vector<Index> indices;
+		Ref<SkeletalMesh> skeletalMesh = SkeletalMesh::Create(vertices, indicesPerMaterial, skeletalInfo, aabb);
+		if (materialsNode)
+			for (const auto& matNode : materialsNode)
+				skeletalMesh->SetMaterialAsset(matNode["Index"].as<uint32_t>(), GetAsset<AssetMaterial>(matNode["Material"]));
 
-		// Vertices
-		{
-			const size_t verticesCount = decompressedBinaryVertices.Size() / sizeof(SkeletalVertex);
-			vertices.resize(verticesCount);
-			memcpy(vertices.data(), decompressedBinaryVertices.Data(), decompressedBinaryVertices.Size());
-		}
-
-		// Indices
-		{
-			const size_t indicesCount = decompressedBinaryIndices.Size() / sizeof(Index);
-			indices.resize(indicesCount);
-			memcpy(indices.data(), decompressedBinaryIndices.Data(), decompressedBinaryIndices.Size());
-		}
-
-		return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, SkeletalMesh::Create(vertices, indices, skeletalInfo, aabb));
+		return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, skeletalMesh);
 	}
 
 	Ref<AssetAudio> Serializer::DeserializeAssetAudio(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)

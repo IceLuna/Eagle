@@ -1290,7 +1290,7 @@ namespace Eagle
 		return asset ? asset->GetGUID() : GUID(0, 0);
 	}
 
-	void Script::Eagle_StaticMeshComponent_GetMaterial(GUID entityID, GUID* outAssetID)
+	void Script::Eagle_StaticMeshComponent_GetMaterial(GUID entityID, uint32_t index, GUID* outAssetID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1301,11 +1301,16 @@ namespace Eagle
 		}
 
 		const auto& component = entity.GetComponent<StaticMeshComponent>();
-		const auto& materialAsset = component.GetMaterialAsset();
+		if (index >= component.GetMaterialsSlotsCount())
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get static mesh component material. Material slot `{}` is invalid!", index);
+			return;
+		}
+		const auto& materialAsset = component.GetMaterialAsset(index);
 		*outAssetID = materialAsset ? materialAsset->GetGUID() : GUID(0, 0);
 	}
 
-	void Script::Eagle_StaticMeshComponent_SetMaterial(GUID entityID, GUID assetID)
+	void Script::Eagle_StaticMeshComponent_SetMaterial(GUID entityID, uint32_t index, GUID assetID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1316,9 +1321,15 @@ namespace Eagle
 		}
 
 		auto& component = entity.GetComponent<StaticMeshComponent>();
+		if (index >= component.GetMaterialsSlotsCount())
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set static mesh component material. Material slot `{}` is invalid!", index);
+			return;
+		}
+
 		if (assetID.IsNull())
 		{
-			component.SetMaterialAsset(nullptr);
+			component.SetMaterialAsset(index, nullptr);
 			return;
 		}
 
@@ -1336,7 +1347,21 @@ namespace Eagle
 			return;
 		}
 
-		component.SetMaterialAsset(materialAsset);
+		component.SetMaterialAsset(index, materialAsset);
+	}
+
+	uint32_t Script::Eagle_StaticMeshComponent_GetMaterialsSlotsCount(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get static mesh material slots count. Entity is null");
+			return 0;
+		}
+
+		auto& component = entity.GetComponent<StaticMeshComponent>();
+		return component.GetMaterialsSlotsCount();
 	}
 
 	void Script::Eagle_StaticMeshComponent_SetCastsShadows(GUID entityID, bool value)
@@ -1412,7 +1437,7 @@ namespace Eagle
 		return asset ? asset->GetGUID() : GUID(0, 0);
 	}
 
-	void Script::Eagle_SkeletalMeshComponent_GetMaterial(GUID entityID, GUID* outAssetID)
+	void Script::Eagle_SkeletalMeshComponent_GetMaterial(GUID entityID, uint32_t index, GUID* outAssetID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1423,11 +1448,16 @@ namespace Eagle
 		}
 
 		const auto& component = entity.GetComponent<SkeletalMeshComponent>();
-		const auto& materialAsset = component.GetMaterialAsset();
+		if (index >= component.GetMaterialsSlotsCount())
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get skeletal mesh component material. Material slot `{}` is invalid!", index);
+			return;
+		}
+		const auto& materialAsset = component.GetMaterialAsset(index);
 		*outAssetID = materialAsset ? materialAsset->GetGUID() : GUID(0, 0);
 	}
 
-	void Script::Eagle_SkeletalMeshComponent_SetMaterial(GUID entityID, GUID assetID)
+	void Script::Eagle_SkeletalMeshComponent_SetMaterial(GUID entityID, uint32_t index, GUID assetID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1438,9 +1468,14 @@ namespace Eagle
 		}
 
 		auto& component = entity.GetComponent<SkeletalMeshComponent>();
+		if (index >= component.GetMaterialsSlotsCount())
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set skeletal mesh component material. Material slot `{}` is invalid!", index);
+			return;
+		}
 		if (assetID.IsNull())
 		{
-			component.SetMaterialAsset(nullptr);
+			component.SetMaterialAsset(index, nullptr);
 			return;
 		}
 
@@ -1458,7 +1493,7 @@ namespace Eagle
 			return;
 		}
 
-		component.SetMaterialAsset(materialAsset);
+		component.SetMaterialAsset(index, materialAsset);
 	}
 	
 	void Script::Eagle_SkeletalMeshComponent_GetAnimation(GUID entityID, GUID* outAssetID)
@@ -1508,6 +1543,20 @@ namespace Eagle
 		}
 
 		component.SetAnimationAsset(animationAsset);
+	}
+
+	uint32_t Script::Eagle_SkeletalMeshComponent_GetMaterialsSlotsCount(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get skeletal mesh material slots count. Entity is null");
+			return 0;
+		}
+
+		auto& component = entity.GetComponent<SkeletalMeshComponent>();
+		return component.GetMaterialsSlotsCount();
 	}
 
 	void Script::Eagle_SkeletalMeshComponent_SetCastsShadows(GUID entityID, bool value)

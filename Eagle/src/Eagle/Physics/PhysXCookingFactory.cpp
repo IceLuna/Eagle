@@ -108,7 +108,20 @@ namespace Eagle
 	{
 		const auto& mesh = meshAsset->GetMesh();
 		const auto& vertices = mesh->GetVertices();
-		const auto& indices = mesh->GetIndices();
+
+		size_t indicesCount = 0;
+		const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
+		for (uint32_t i = 0; i < materialsCount; ++i)
+			indicesCount += mesh->GetIndicesCount(i);
+
+		std::vector<Index> indices;
+		indices.reserve(indicesCount);
+
+		for (uint32_t i = 0; i < materialsCount; ++i)
+		{
+			const auto& inserting = mesh->GetIndices(i);
+			indices.insert(indices.end(), inserting.begin(), inserting.end());
+		}
 
 		physx::PxConvexMeshDesc convexDesc;
 		convexDesc.points.count = (uint32_t)vertices.size();
@@ -138,7 +151,20 @@ namespace Eagle
 	{
 		const auto& mesh = meshAsset->GetMesh();
 		const auto& vertices = mesh->GetVertices();
-		const auto& indices = mesh->GetIndices();
+
+		size_t indicesCount = 0;
+		const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
+		for (uint32_t i = 0; i < materialsCount; ++i)
+			indicesCount += mesh->GetIndicesCount(i);
+
+		std::vector<Index> indices;
+		indices.reserve(indicesCount);
+
+		for (uint32_t i = 0; i < materialsCount; ++i)
+		{
+			const auto& inserting = mesh->GetIndices(i);
+			indices.insert(indices.end(), inserting.begin(), inserting.end());
+		}
 
 		physx::PxTriangleMeshDesc triangleDesc;
 		triangleDesc.points.count = (uint32_t)vertices.size();

@@ -6,8 +6,8 @@ namespace Eagle
 {
 	struct AABB
 	{
-		glm::vec3 Min = glm::vec3(0.f);
-		glm::vec3 Max = glm::vec3(0.f);
+		glm::vec3 Min = glm::vec3(std::numeric_limits<float>::max());
+		glm::vec3 Max = glm::vec3(std::numeric_limits<float>::lowest());
 
 		glm::vec3 Center() const { return (Min + Max) * 0.5f; }
 		glm::vec3 Extents() const { return Max - Min; }
@@ -37,8 +37,8 @@ namespace Eagle
 
 		float MaxSide() const
 		{
-			const glm::vec3 max = glm::max(Min, Max);
-			return glm::max(max.x, glm::max(max.y, max.z));
+			const glm::vec3 extents = Extents();
+			return glm::max(extents.x, glm::max(extents.y, extents.z));
 		}
 	};
 }

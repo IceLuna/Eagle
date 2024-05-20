@@ -593,7 +593,8 @@ namespace Eagle
 		else
 		{
 			SceneSerializer serializer(m_EditorScene);
-			serializer.Serialize(m_OpenedSceneAsset->GetPath());
+			if (serializer.Serialize(m_OpenedSceneAsset->GetPath()))
+				m_OpenedSceneAsset->SetDirty(false);
 		}
 		return true;
 	}

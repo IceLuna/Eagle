@@ -45,12 +45,8 @@ namespace Eagle
 
 			constexpr AssetType type = bStatic ? AssetType::StaticMesh : AssetType::SkeletalMesh;
 			DataBuffer verticesBuffer = { (void*)mesh->GetVerticesData(), mesh->GetVerticesCount() * (bStatic ? sizeof(Vertex) : sizeof(SkeletalVertex)) };
-			DataBuffer indicesBuffer{ (void*)mesh->GetIndicesData(), mesh->GetIndicesCount() * sizeof(Index) };
 			const size_t origVerticesDataSize = verticesBuffer.Size; // Required for decompression
-			const size_t origIndicesDataSize = indicesBuffer.Size; // Required for decompression
-
 			ScopedDataBuffer compressedVertices(Compressor::Compress(verticesBuffer));
-			ScopedDataBuffer compressedIndices(Compressor::Compress(indicesBuffer));
 
 			YAML::Emitter out;
 			out << YAML::BeginMap;
@@ -66,6 +62,33 @@ namespace Eagle
 				out << YAML::Key << "Min" << YAML::Value << aabb.Min;
 				out << YAML::Key << "Max" << YAML::Value << aabb.Max;
 				out << YAML::EndMap;
+			}
+
+			if (const uint32_t materialsCount = mesh->GetMaterialSlotsCount())
+			{
+				bool bAnyValid = false;
+				for (uint32_t i = 0; i < materialsCount; ++i)
+					if (const auto& materialAsset = mesh->GetMaterialAsset(i))
+					{
+						bAnyValid = true;
+						break;
+					}
+
+				if (bAnyValid)
+				{
+					out << YAML::Key << "Materials" << YAML::Value << YAML::BeginSeq;
+					for (uint32_t i = 0; i < materialsCount; ++i)
+					{
+						if (const auto& materialAsset = mesh->GetMaterialAsset(i))
+						{
+							out << YAML::BeginMap;
+							out << YAML::Key << "Index" << YAML::Value << i;
+							out << YAML::Key << "Material" << YAML::Value << materialAsset->GetGUID();
+							out << YAML::EndMap;
+						}
+					}
+					out << YAML::EndSeq;
+				}
 			}
 
 			if constexpr (bSkeletal)
@@ -96,9 +119,23 @@ namespace Eagle
 
 			out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
 			out << YAML::Key << "SizeVertices" << YAML::Value << origVerticesDataSize;
-			out << YAML::Key << "SizeIndices" << YAML::Value << origIndicesDataSize;
 			out << YAML::Key << "Vertices" << YAML::Value << YAML::Binary((uint8_t*)compressedVertices.Data(), compressedVertices.Size());
-			out << YAML::Key << "Indices" << YAML::Value << YAML::Binary((uint8_t*)compressedIndices.Data(), compressedIndices.Size());
+
+			// Indices per material
+			const uint32_t materialSlots = mesh->GetMaterialSlotsCount();
+			out << YAML::Key << "IndicesPerMaterial" << YAML::Value << YAML::BeginSeq;
+			for (uint32_t i = 0; i < materialSlots; ++i)
+			{
+				DataBuffer indicesBuffer{ (void*)mesh->GetIndicesData(i), mesh->GetIndicesCount(i) * sizeof(Index) };
+				const size_t origIndicesDataSize = indicesBuffer.Size; // Required for decompression
+				ScopedDataBuffer compressedIndices(Compressor::Compress(indicesBuffer));
+
+				out << YAML::BeginMap;
+				out << YAML::Key << "SizeIndices" << YAML::Value << origIndicesDataSize;
+				out << YAML::Key << "Indices" << YAML::Value << YAML::Binary((uint8_t*)compressedIndices.Data(), compressedIndices.Size());
+				out << YAML::EndMap;
+			}
+			out << YAML::EndSeq;
 
 			out << YAML::EndMap;
 			out << YAML::EndMap;
@@ -191,9 +228,6 @@ namespace Eagle
 					AssetManager::Register(Asset::Create(output));
 				}
 			}
-			
-			if (settings.MeshSettings.bImportMaterials && (bSkeletal || bStatic))
-				Utils::ImportMaterials(pathToRaw, saveTo);
 		}
 
 		return bSuccess;
@@ -490,28 +524,54 @@ namespace Eagle
 	
 	bool AssetImporter::ImportStaticMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings)
 	{
-		Ref<StaticMesh> importedMesh = Utils::ImportStaticMesh(pathToRaw);
-		if (!importedMesh)
+		Utils::StaticMeshImportData importedMeshData = Utils::ImportStaticMesh(pathToRaw);
+		if (!importedMeshData.Mesh)
 		{
 			EG_CORE_ERROR("Failed to import a mesh. No meshes in file '{0}'", pathToRaw.u8string());
 			return false;
 		}
 
-		Utils::SerializeMesh(StaticMesh::Create(importedMesh), pathToRaw, outputFilename);
+		if (settings.MeshSettings.bImportMaterials)
+		{
+			std::vector<Ref<AssetMaterial>> importedMaterials = Utils::ImportMaterials(pathToRaw, saveTo);
+			for (size_t i = 0; i < importedMeshData.MaterialIndices.size(); ++i)
+			{
+				const uint32_t materialIndex = importedMeshData.MaterialIndices[i];
+				if (materialIndex >= importedMaterials.size())
+					continue;
+
+				importedMeshData.Mesh->SetMaterialAsset(uint32_t(i), importedMaterials[materialIndex]);
+			}
+		}
+
+		Utils::SerializeMesh(importedMeshData.Mesh, pathToRaw, outputFilename);
 
 		return true;
 	}
 
 	bool AssetImporter::ImportSkeletalMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings)
 	{
-		Ref<SkeletalMesh> importedMesh = Utils::ImportSkeletalMesh(pathToRaw);
-		if (!importedMesh)
+		Utils::SkeletalMeshImportData importedMeshData = Utils::ImportSkeletalMesh(pathToRaw);
+		if (!importedMeshData.Mesh)
 		{
 			EG_CORE_ERROR("Failed to import a mesh. No meshes in file '{0}'", pathToRaw.u8string());
 			return false;
 		}
 
-		Utils::SerializeMesh(importedMesh, pathToRaw, outputFilename);
+		if (settings.MeshSettings.bImportMaterials)
+		{
+			std::vector<Ref<AssetMaterial>> importedMaterials = Utils::ImportMaterials(pathToRaw, saveTo);
+			for (size_t i = 0; i < importedMeshData.MaterialIndices.size(); ++i)
+			{
+				const uint32_t materialIndex = importedMeshData.MaterialIndices[i];
+				if (materialIndex >= importedMaterials.size())
+					continue;
+
+				importedMeshData.Mesh->SetMaterialAsset(uint32_t(i), importedMaterials[materialIndex]);
+			}
+		}
+
+		Utils::SerializeMesh(importedMeshData.Mesh, pathToRaw, outputFilename);
 
 		return true;
 	}

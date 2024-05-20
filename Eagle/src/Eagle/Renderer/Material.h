@@ -13,6 +13,7 @@ namespace Eagle
 		{
 			Opaque, Translucent, Masked
 		};
+		static const uint32_t MaxBlendModes = (uint32_t)magic_enum::enum_count<BlendMode>();
 
 		virtual ~Material() = default;
 

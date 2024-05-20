@@ -122,7 +122,9 @@ namespace Eagle
 	{
 		auto& mesh = m_Asset->GetMesh();
 		const size_t verticesCount = mesh->GetVerticesCount();
-		const size_t indicesCount = mesh->GetIndicesCount();
+		size_t indicesCount = 0;
+		for (uint32_t i = 0; i < mesh->GetMaterialSlotsCount(); ++i)
+			indicesCount += mesh->GetIndicesCount(i);
 		bool bChanged = false;
 
 		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);

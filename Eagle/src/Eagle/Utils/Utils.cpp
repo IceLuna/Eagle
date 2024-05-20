@@ -93,7 +93,7 @@ namespace Eagle
 		return MyFindStrTemplate(str1, str2);
 	}
 	
-	static Ref<StaticMesh> ProcessStaticMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4& tr)
+	static Utils::StaticMeshImportData ProcessStaticMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4& tr)
 	{
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
@@ -140,9 +140,10 @@ namespace Eagle
 		}
 
 		AABB aabb;
-		aabb.Min = ToGLM(mesh->mAABB.mMin);
-		aabb.Max = ToGLM(mesh->mAABB.mMax);
-		return StaticMesh::Create(vertices, indices, aabb);
+		aabb.Min = tr * glm::vec4(ToGLM(mesh->mAABB.mMin), 1.f);
+		aabb.Max = tr * glm::vec4(ToGLM(mesh->mAABB.mMax), 1.f);
+
+		return Utils::StaticMeshImportData{ StaticMesh::Create(vertices, { indices }, aabb), { mesh->mMaterialIndex } };
 	}
 
 	static bool ProcessBoneNode(BoneNode& output, const aiNode* node, const BonesMap& bones)
@@ -173,7 +174,7 @@ namespace Eagle
 		return bShouldAdd;
 	}
 
-	static Ref<SkeletalMesh> ProcessSkeletalMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4& tr, BonesMap& bones)
+	static Utils::SkeletalMeshImportData ProcessSkeletalMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4& tr, BonesMap& bones)
 	{
 		std::vector<SkeletalVertex> vertices;
 		std::vector<uint32_t> indices;
@@ -296,14 +297,14 @@ namespace Eagle
 		// Note: skeletal.BoneInfoMap and RootBone will be set at the end
 
 		AABB aabb;
-		aabb.Min = ToGLM(mesh->mAABB.mMin);
-		aabb.Max = ToGLM(mesh->mAABB.mMax);
-		return SkeletalMesh::Create(vertices, indices, skeletal, aabb);
+		aabb.Min = tr * glm::vec4(ToGLM(mesh->mAABB.mMin), 1.f);
+		aabb.Max = tr * glm::vec4(ToGLM(mesh->mAABB.mMax), 1.f);
+		return Utils::SkeletalMeshImportData{ SkeletalMesh::Create(vertices, { indices }, skeletal, aabb), { mesh->mMaterialIndex } };
 	}
 
 	// processes a node in a recursive fashion. Processes each individual mesh located at the node and repeats this process on its children nodes (if any).
-	template <typename MeshType>
-	static void ProcessNode(aiNode* node, const aiScene* scene, std::vector<Ref<MeshType>>& meshes, BonesMap& bones, const glm::mat4& tr = glm::mat4(1.f))
+	template <typename MeshImportData>
+	static void ProcessNode(aiNode* node, const aiScene* scene, std::vector<MeshImportData>& meshes, BonesMap& bones, const glm::mat4& tr = glm::mat4(1.f))
 	{
 		glm::mat4 nodeTransform = tr * ToGLM(node->mTransformation);
 		// process each mesh located at the current node
@@ -312,7 +313,7 @@ namespace Eagle
 			// the node object only contains indices to index the actual objects in the scene. 
 			// the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
 			aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-			if constexpr (std::is_same<MeshType, StaticMesh>::value)
+			if constexpr (std::is_same<MeshImportData, Utils::StaticMeshImportData>::value)
 				meshes.push_back(ProcessStaticMesh(mesh, scene, nodeTransform));
 			else
 				meshes.push_back(ProcessSkeletalMesh(mesh, scene, nodeTransform, bones));
@@ -440,55 +441,98 @@ namespace Eagle
 		return animations;
 	}
 
-	template <typename MeshType, typename VertexType>
-	static Ref<MeshType> MergeMeshes(const std::vector<Ref<MeshType>>& importedMeshes)
+	template <typename MeshImportData, typename VertexType>
+	static MeshImportData MergeMeshes(const std::vector<MeshImportData>& importedMeshes)
 	{
 		std::vector<VertexType> vertices;
-		std::vector<Index> indeces;
 		size_t verticesTotalSize = 0;
-		size_t indecesTotalSize = 0;
 
-		for (const auto& mesh : importedMeshes)
+		// Key - Material Index; Value - index into `importedMeshes`
+		std::map<uint32_t, std::vector<size_t>> meshesPerMaterial;
+
+		for (size_t i = 0; i < importedMeshes.size(); ++i)
 		{
+			const auto& data = importedMeshes[i];
+			const auto& mesh = data.Mesh;
 			verticesTotalSize += mesh->GetVerticesCount();
-			indecesTotalSize += mesh->GetIndicesCount();
+
+			meshesPerMaterial[data.MaterialIndices[0]].push_back(i);
+		}
+		vertices.reserve(verticesTotalSize);
+
+		const size_t meshesPerMaterialCount = meshesPerMaterial.size();
+		std::vector<std::vector<Index>> indicesPerMaterial(meshesPerMaterialCount);
+		// Reserve space for indices
+		{
+			auto it = meshesPerMaterial.begin();
+			size_t i = 0;
+			for (; i < meshesPerMaterialCount; ++i, ++it)
+			{
+				size_t indicesTotalSize = 0;
+				for (const auto& meshIndex : it->second)
+				{
+					const auto& mesh = importedMeshes[meshIndex].Mesh;
+					indicesTotalSize += mesh->GetIndicesCount(0);
+				}
+				indicesPerMaterial[i].reserve(indicesTotalSize);
+			}
 		}
 
-		vertices.reserve(verticesTotalSize);
-		indeces.reserve(indecesTotalSize);
-
-		for (const auto& mesh : importedMeshes)
+		// Merge vertices
+		std::vector<size_t> indicesOffsets(importedMeshes.size());
+		for (size_t i = 0; i < importedMeshes.size(); ++i)
 		{
+			const auto& mesh = importedMeshes[i].Mesh;
 			const auto& meshVertices = mesh->GetVertices();
-			const auto& meshIndeces = mesh->GetIndices();
 
 			const size_t vSizeBeforeCopy = vertices.size();
+			indicesOffsets[i] = vSizeBeforeCopy;
 			vertices.insert(vertices.end(), meshVertices.begin(), meshVertices.end());
+		}
 
-			const size_t iSizeBeforeCopy = indeces.size();
-			indeces.insert(indeces.end(), meshIndeces.begin(), meshIndeces.end());
-			const size_t iSizeAfterCopy = indeces.size();
-
-			if (vSizeBeforeCopy)
+		// Merge indices
+		{
+			auto it = meshesPerMaterial.begin();
+			size_t i = 0;
+			for (; i < meshesPerMaterialCount; ++i, ++it)
 			{
-				for (size_t i = iSizeBeforeCopy; i < iSizeAfterCopy; ++i)
-					indeces[i] += uint32_t(vSizeBeforeCopy);
+				for (const auto& meshIndex : it->second)
+				{
+					const auto& mesh = importedMeshes[meshIndex].Mesh;
+					const auto& meshIndeces = mesh->GetIndices(0);
+					auto& indices = indicesPerMaterial[i];
+
+					const size_t iSizeBeforeCopy = indices.size();
+					indices.insert(indices.end(), meshIndeces.begin(), meshIndeces.end());
+					const size_t iSizeAfterCopy = indices.size();
+
+					const size_t vSizeBeforeCopy = indicesOffsets[meshIndex];
+					if (vSizeBeforeCopy)
+					{
+						for (size_t j = iSizeBeforeCopy; j < iSizeAfterCopy; ++j)
+							indices[j] += uint32_t(vSizeBeforeCopy);
+					}
+				}
 			}
 		}
 
 		AABB aabb{};
 		if (const size_t count = importedMeshes.size())
 		{
-			aabb = importedMeshes[0]->GetAABB();
-			for (size_t i = 1; i < count; ++i)
-				aabb.Grow(importedMeshes[i]->GetAABB());
+			for (size_t i = 0; i < count; ++i)
+				aabb.Grow(importedMeshes[i].Mesh->GetAABB());
 		}
 
+		std::vector<uint32_t> materialIndices;
+		materialIndices.reserve(importedMeshes.size());
+		for (size_t i = 0; i < importedMeshes.size(); ++i)
+			materialIndices.push_back(importedMeshes[i].MaterialIndices[0]);
+
 		// TODO: How to merge InvAnimTransform of skeletal meshes?
-		if constexpr (std::is_same<SkeletalMesh, MeshType>::value)
-			return MeshType::Create(vertices, indeces, importedMeshes[0]->GetSkeletalMeshInfo(), aabb);
+		if constexpr (std::is_same<Utils::SkeletalMeshImportData, MeshImportData>::value)
+			return Utils::SkeletalMeshImportData{ SkeletalMesh::Create(vertices, indicesPerMaterial, importedMeshes[0].Mesh->GetSkeletalMeshInfo(), aabb), materialIndices };
 		else
-			return MeshType::Create(vertices, indeces, aabb);
+			return Utils::StaticMeshImportData{ StaticMesh::Create(vertices, indicesPerMaterial, aabb), materialIndices };
 	}
 
 	constexpr static uint32_t s_ImportMeshFlags = aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace
@@ -496,7 +540,7 @@ namespace Eagle
 	constexpr static uint32_t s_ImportAnimFlags = aiProcess_OptimizeGraph | aiProcess_ImproveCacheLocality | aiProcess_JoinIdenticalVertices | aiProcess_GlobalScale;
 	constexpr static uint32_t s_ImportMaterialsFlags = aiProcess_OptimizeGraph | aiProcess_RemoveRedundantMaterials;
 
-	Ref<StaticMesh> Utils::ImportStaticMesh(const Path& path)
+	Utils::StaticMeshImportData Utils::ImportStaticMesh(const Path& path)
 	{
 		Assimp::Importer importer;
 		importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1.0f);
@@ -516,13 +560,13 @@ namespace Eagle
 #endif
 
 		BonesMap unused1;
-		std::vector<Ref<StaticMesh>> importedMeshes;
+		std::vector<Utils::StaticMeshImportData> importedMeshes;
 		ProcessNode(scene->mRootNode, scene, importedMeshes, unused1);
 		if (!importedMeshes.empty())
 		{
 			if (importedMeshes.size() > 1)
 			{
-				importedMeshes[0] = MergeMeshes<StaticMesh, Vertex>(importedMeshes);
+				importedMeshes[0] = MergeMeshes<Utils::StaticMeshImportData, Vertex>(importedMeshes);
 				importedMeshes.resize(1);
 			}
 			return importedMeshes[0];
@@ -531,7 +575,7 @@ namespace Eagle
 			return {};
 	}
 
-	Ref<SkeletalMesh> Utils::ImportSkeletalMesh(const Path& path)
+	Utils::SkeletalMeshImportData Utils::ImportSkeletalMesh(const Path& path)
 	{
 		Assimp::Importer importer;
 		importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1.0f);
@@ -546,17 +590,17 @@ namespace Eagle
 		}
 
 		BonesMap bones;
-		std::vector<Ref<SkeletalMesh>> importedMeshes;
+		std::vector<Utils::SkeletalMeshImportData> importedMeshes;
 		ProcessNode(scene->mRootNode, scene, importedMeshes, bones);
 		if (importedMeshes.size() > 1)
 		{
-			importedMeshes[0] = MergeMeshes<SkeletalMesh, SkeletalVertex>(importedMeshes);
+			importedMeshes[0] = MergeMeshes<Utils::SkeletalMeshImportData, SkeletalVertex>(importedMeshes);
 			importedMeshes.resize(1);
 		}
 
 		if (!importedMeshes.empty())
 		{
-			auto& skeletalInfo = importedMeshes[0]->GetSkeletalMeshInfo();
+			auto& skeletalInfo = importedMeshes[0].Mesh->GetSkeletalMeshInfo();
 			skeletalInfo.BoneInfoMap = std::move(bones);
 			ProcessBoneNode(skeletalInfo.RootBone, scene->mRootNode, skeletalInfo.BoneInfoMap);
 			return importedMeshes[0];

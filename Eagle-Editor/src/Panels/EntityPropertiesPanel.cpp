@@ -351,11 +351,15 @@ namespace Eagle
 
 					ImGui::Separator();
 
-					auto materialAsset = smComponent.GetMaterialAsset();
-					if (UI::DrawAssetSelection("Material", materialAsset))
+					const uint32_t materialsCount = smComponent.GetMaterialsSlotsCount();
+					for (uint32_t i = 0; i < materialsCount; ++i)
 					{
-						smComponent.SetMaterialAsset(materialAsset);
-						bEntityChanged = true;
+						auto materialAsset = smComponent.GetMaterialAsset(i);
+						if (UI::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
+						{
+							smComponent.SetMaterialAsset(i, materialAsset);
+							bEntityChanged = true;
+						}
 					}
 
 					UI::EndPropertyGrid();
@@ -386,11 +390,15 @@ namespace Eagle
 
 					ImGui::Separator();
 
-					auto materialAsset = smComponent.GetMaterialAsset();
-					if (UI::DrawAssetSelection("Material", materialAsset))
+					const uint32_t materialsCount = smComponent.GetMaterialsSlotsCount();
+					for (uint32_t i = 0; i < materialsCount; ++i)
 					{
-						smComponent.SetMaterialAsset(materialAsset);
-						bEntityChanged = true;
+						auto materialAsset = smComponent.GetMaterialAsset(i);
+						if (UI::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
+						{
+							smComponent.SetMaterialAsset(i, materialAsset);
+							bEntityChanged = true;
+						}
 					}
 
 					ImGui::Separator();

@@ -298,6 +298,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.StaticMeshComponent::GetMesh_Native", Eagle::Script::Eagle_StaticMeshComponent_GetMesh);
 		mono_add_internal_call("Eagle.StaticMeshComponent::GetMaterial_Native", Eagle::Script::Eagle_StaticMeshComponent_GetMaterial);
 		mono_add_internal_call("Eagle.StaticMeshComponent::SetMaterial_Native", Eagle::Script::Eagle_StaticMeshComponent_SetMaterial);
+		mono_add_internal_call("Eagle.StaticMeshComponent::GetMaterialsSlotsCount_Native", Eagle::Script::Eagle_StaticMeshComponent_SetMaterial);
 		mono_add_internal_call("Eagle.StaticMeshComponent::SetCastsShadows_Native", Eagle::Script::Eagle_StaticMeshComponent_SetCastsShadows);
 		mono_add_internal_call("Eagle.StaticMeshComponent::DoesCastShadows_Native", Eagle::Script::Eagle_StaticMeshComponent_DoesCastShadows);
 
@@ -308,6 +309,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetMaterial_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetMaterial);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetAnimation_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetAnimation);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetAnimation_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetAnimation);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetMaterialsSlotsCount_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetMaterial);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetCastsShadows_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetCastsShadows);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::DoesCastShadows_Native", Eagle::Script::Eagle_SkeletalMeshComponent_DoesCastShadows);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetAnimType_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetAnimType);

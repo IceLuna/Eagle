@@ -411,7 +411,7 @@ namespace Eagle
 		SceneComponent::operator=(other);
 
 		m_MeshAsset = other.m_MeshAsset;
-		m_MaterialAsset = other.m_MaterialAsset;
+		m_MaterialAssets = other.m_MaterialAssets;
 		m_AnimAsset = other.m_AnimAsset;
 		m_AnimGraphAsset = other.m_AnimGraphAsset;
 		if (other.m_Graph)

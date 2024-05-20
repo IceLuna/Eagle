@@ -80,8 +80,7 @@ namespace Eagle
 		void DrawBox(std::vector<RendererLine>& buffer, AABB aabb, const Transform& worldTr, const glm::vec3& color = glm::vec3(1, 0, 0))
 		{
 			const glm::mat4 trMat = Math::ToTransformMatrix(worldTr);
-			aabb.Min = trMat * glm::vec4(aabb.Min, 1.f);
-			aabb.Max = trMat * glm::vec4(aabb.Max, 1.f);
+			const size_t startIdx = buffer.size();
 
 			for (glm::length_t i = 0; i < aabb.Min.length(); ++i)
 			{
@@ -161,6 +160,13 @@ namespace Eagle
 
 				line.End = line.Start;
 				line.End.x = aabb.Max.x;
+			}
+		
+			for (size_t i = startIdx; i < buffer.size(); ++i)
+			{
+				auto& line = buffer[i];
+				line.Start = trMat * glm::vec4(line.Start, 1.f);
+				line.End = trMat * glm::vec4(line.End, 1.f);
 			}
 		}
 	}
@@ -851,12 +857,23 @@ namespace Eagle
 			// AABBs
 			if (false)
 			{
-				auto view = m_Registry.view<SkeletalMeshComponent>();
-				for (auto entity : view)
 				{
-					auto& skeletal = view.get<SkeletalMeshComponent>(entity);
-					if (auto& asset = skeletal.GetMeshAsset())
-						Utils::DrawBox(m_DebugLinesToDraw, asset->GetMesh()->GetAABB(), skeletal.GetWorldTransform());
+					auto view = m_Registry.view<SkeletalMeshComponent>();
+					for (auto entity : view)
+					{
+						auto& skeletal = view.get<SkeletalMeshComponent>(entity);
+						if (auto& asset = skeletal.GetMeshAsset())
+							Utils::DrawBox(m_DebugLinesToDraw, asset->GetMesh()->GetAABB(), skeletal.GetWorldTransform());
+					}
+				}
+				{
+					auto view = m_Registry.view<StaticMeshComponent>();
+					for (auto entity : view)
+					{
+						auto& staticMesh = view.get<StaticMeshComponent>(entity);
+						if (auto& asset = staticMesh.GetMeshAsset())
+							Utils::DrawBox(m_DebugLinesToDraw, asset->GetMesh()->GetAABB(), staticMesh.GetWorldTransform());
+					}
 				}
 			}
 
