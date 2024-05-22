@@ -185,16 +185,37 @@ namespace Eagle
         public Material GetMaterial()
         {
             Material result = new Material();
-            GetMaterial_Native(m_GUID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
+            GetMaterial_Native(m_GUID,
+                out GUID albedoTexture, out GUID metalnessTexture, out GUID normalTexture, out GUID roughnessTexture, out GUID aoTexture, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
+                out Color3 albedo, out float metalness, out float roughness, out float ao, out Color3 emissive, out float opacity, out float opacityMask,
+                out bool bUseAlbedoTexture, out bool bUseMetalnessTexture, out bool bUseRoughnessTexture, out bool bUseAOTexture, out bool bUseEmissiveTexture, out bool bUseOpacityTexture, out bool bUseOpacityMaskTexture,
                 out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
-            result.AlbedoAsset = new AssetTexture2D(albedo);
-            result.MetallnessAsset = new AssetTexture2D(metallness);
-            result.NormalAsset = new AssetTexture2D(normal);
-            result.RoughnessAsset = new AssetTexture2D(roughness);
-            result.AOAsset = new AssetTexture2D(ao);
+
+            result.AlbedoAsset = new AssetTexture2D(albedoTexture);
+            result.MetalnessAsset = new AssetTexture2D(metalnessTexture);
+            result.NormalAsset = new AssetTexture2D(normalTexture);
+            result.RoughnessAsset = new AssetTexture2D(roughnessTexture);
+            result.AOAsset = new AssetTexture2D(aoTexture);
             result.EmissiveAsset = new AssetTexture2D(emissiveTexture);
             result.OpacityAsset = new AssetTexture2D(opacityTexture);
             result.OpacityMaskAsset = new AssetTexture2D(opacityMaskTexture);
+
+            result.Albedo = albedo;
+            result.Metalness = metalness;
+            result.Roughness = roughness;
+            result.AO = ao;
+            result.Emissive = emissive;
+            result.Opacity = opacity;
+            result.OpacityMask = opacityMask;
+
+            result.bUseAlbedoTexture = bUseAlbedoTexture;
+            result.bUseMetalnessTexture = bUseMetalnessTexture;
+            result.bUseRoughnessTexture = bUseRoughnessTexture;
+            result.bUseAOTexture = bUseAOTexture;
+            result.bUseEmissiveTexture = bUseEmissiveTexture;
+            result.bUseOpacityTexture = bUseOpacityTexture;
+            result.bUseOpacityMaskTexture = bUseOpacityMaskTexture;
+
             result.TintColor = tint;
             result.EmissiveIntensity = emissiveIntensity;
             result.TilingFactor = tilingFactor;
@@ -208,7 +229,7 @@ namespace Eagle
             GUID nullGUID = GUID.Null();
 
             GUID albedoID = value.AlbedoAsset != null ? value.AlbedoAsset.GetGUID() : nullGUID;
-            GUID metallnessID = value.MetallnessAsset != null ? value.MetallnessAsset.GetGUID() : nullGUID;
+            GUID metalnessID = value.MetalnessAsset != null ? value.MetalnessAsset.GetGUID() : nullGUID;
             GUID normalID = value.NormalAsset != null ? value.NormalAsset.GetGUID() : nullGUID;
             GUID roughnessID = value.RoughnessAsset != null ? value.RoughnessAsset.GetGUID() : nullGUID;
             GUID aoID = value.AOAsset != null ? value.AOAsset.GetGUID() : nullGUID;
@@ -216,15 +237,25 @@ namespace Eagle
             GUID opacityID = value.OpacityAsset != null ? value.OpacityAsset.GetGUID() : nullGUID;
             GUID opacityMaskID = value.OpacityMaskAsset != null ? value.OpacityMaskAsset.GetGUID() : nullGUID;
 
-            SetMaterial_Native(m_GUID, albedoID, metallnessID, normalID, roughnessID, aoID, emissiveID, opacityID, opacityMaskID, ref value.TintColor, ref value.EmissiveIntensity, value.TilingFactor, value.BlendMode);
+            SetMaterial_Native(m_GUID,
+                albedoID, metalnessID, normalID, roughnessID, aoID, emissiveID, opacityID, opacityMaskID,
+                ref value.Albedo, value.Metalness, value.Roughness, value.AO, ref value.Emissive, value.Opacity, value.OpacityMask,
+                value.bUseAlbedoTexture, value.bUseMetalnessTexture, value.bUseRoughnessTexture, value.bUseAOTexture, value.bUseEmissiveTexture, value.bUseOpacityTexture, value.bUseOpacityMaskTexture,
+                ref value.TintColor, ref value.EmissiveIntensity, value.TilingFactor, value.BlendMode);
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetMaterial_Native(in GUID entityID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
+        internal static extern void GetMaterial_Native(in GUID entityID,
+            out GUID albedoTexture, out GUID metalnessTexture, out GUID normalTexture, out GUID roughnessTexture, out GUID aoTexture, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
+            out Color3 albedo, out float metalness, out float roughness, out float ao, out Color3 emissive, out float opacity, out float opacityMask,
+            out bool bUseAlbedoTexture, out bool bUseMetalnessTexture, out bool bUseRoughnessTexture, out bool bUseAOTexture, out bool bUseEmissiveTexture, out bool bUseOpacityTexture, out bool bUseOpacityMaskTexture,
             out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetMaterial_Native(in GUID entityID, in GUID albedo, in GUID metallness, in GUID normal, in GUID roughness, in GUID ao, in GUID emissiveTexture, in GUID opacityTexture, in GUID opacityMaskTexture,
+        internal static extern void SetMaterial_Native(in GUID entityID,
+            in GUID albedoTexture, in GUID metalnessTexture, in GUID normalTexture, in GUID roughnessTexture, in GUID aoTexture, in GUID emissiveTexture, in GUID opacityTexture, in GUID opacityMaskTexture,
+            ref Color3 albedo, float metalness, float roughness, float ao, ref Color3 emissive, float opacity, float opacityMask,
+            bool bUseAlbedoTexture, bool bUseMetalnessTexture, bool bUseRoughnessTexture, bool bUseAOTexture, bool bUseEmissiveTexture, bool bUseOpacityTexture, bool bUseOpacityMaskTexture,
             ref Color4 tint, ref Vector3 emissiveIntensity, float tilingFactor, MaterialBlendMode blendMode);
     }
 

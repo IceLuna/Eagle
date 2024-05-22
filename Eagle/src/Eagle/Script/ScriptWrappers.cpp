@@ -71,27 +71,53 @@ namespace Eagle::Script::Utils
 			(rawMaterial->*textureSetter)(nullptr);
 	};
 
-	static void SetMaterial(const Ref<Material>& material, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
+	static void SetMaterial(const Ref<Material>& material,
+		GUID albedoTexture, GUID metalnessTexture, GUID normalTexture, GUID roughnessTexture, GUID aoTexture, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
+		const glm::vec3* albedo, float metalness, float roughness, float ao, const glm::vec3* emissive, float opacity, float opacityMask,
+		bool bUseAlbedoTexture, bool bUseMetalnessTexture, bool bUseRoughnessTexture, bool bUseAOTexture, bool bUseEmissiveTexture, bool bUseOpacityTexture, bool bUseOpacityMaskTexture,
 		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode)
 	{
 		// Update textures
 		{
-			SetMaterialTexture(material, albedo, &Material::SetAlbedoAsset);
-			SetMaterialTexture(material, metallness, &Material::SetMetallnessAsset);
-			SetMaterialTexture(material, normal, &Material::SetNormalAsset);
-			SetMaterialTexture(material, roughness, &Material::SetRoughnessAsset);
-			SetMaterialTexture(material, ao, &Material::SetAOAsset);
+			SetMaterialTexture(material, albedoTexture, &Material::SetAlbedoAsset);
+			SetMaterialTexture(material, metalnessTexture, &Material::SetMetalnessAsset);
+			SetMaterialTexture(material, normalTexture, &Material::SetNormalAsset);
+			SetMaterialTexture(material, roughnessTexture, &Material::SetRoughnessAsset);
+			SetMaterialTexture(material, aoTexture, &Material::SetAOAsset);
 			SetMaterialTexture(material, emissiveTexture, &Material::SetEmissiveAsset);
 			SetMaterialTexture(material, opacityTexture, &Material::SetOpacityAsset);
 			SetMaterialTexture(material, opacityMaskTexture, &Material::SetOpacityMaskAsset);
 		}
+
+		// Update raw values
+		{
+			material->SetAlbedo(*albedo);
+			material->SetMetalness(metalness);
+			material->SetRoughness(roughness);
+			material->SetAO(ao);
+			material->SetEmissive(*emissive);
+			material->SetOpacity(opacity);
+			material->SetOpacityMask(opacityMask);
+
+			material->SetRawAlbedoUsed(!bUseAlbedoTexture);
+			material->SetRawMetalnessUsed(!bUseMetalnessTexture);
+			material->SetRawRoughnessUsed(!bUseRoughnessTexture);
+			material->SetRawAOUsed(!bUseAOTexture);
+			material->SetRawEmissiveUsed(!bUseEmissiveTexture);
+			material->SetRawOpacityUsed(!bUseOpacityTexture);
+			material->SetRawOpacityMaskUsed(!bUseOpacityMaskTexture);
+		}
+
 		material->SetTintColor(*tint);
 		material->SetEmissiveIntensity(*emissiveIntensity);
 		material->SetTilingFactor(tilingFactor);
 		material->SetBlendMode(blendMode);
 	}
 
-	static void GetMaterial(const Ref<Material>& material, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
+	static void GetMaterial(const Ref<Material>& material,
+		GUID* outAlbedoTexture, GUID* outMetalnessTexture, GUID* outNormalTexture, GUID* outRoughnessTexture, GUID* outAOTexture, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
+		glm::vec3* albedo, float* metalness, float* roughness, float* ao, glm::vec3* emissive, float* opacity, float* opacityMask,
+		bool* bUseAlbedoTexture, bool* bUseMetalnessTexture, bool* bUseRoughnessTexture, bool* bUseAOTexture, bool* bUseEmissiveTexture, bool* bUseOpacityTexture, bool* bUseOpacityMaskTexture,
 		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode)
 	{
 		const GUID null(0, 0);
@@ -101,27 +127,27 @@ namespace Eagle::Script::Utils
 			// Albedo
 			{
 				const auto& asset = material->GetAlbedoAsset();
-				*outAlbedo = asset ? asset->GetGUID() : null;
+				*outAlbedoTexture = asset ? asset->GetGUID() : null;
 			}
-			// Metallness
+			// Metalness
 			{
-				const auto& asset = material->GetMetallnessAsset();
-				*outMetallness = asset ? asset->GetGUID() : null;
+				const auto& asset = material->GetMetalnessAsset();
+				*outMetalnessTexture = asset ? asset->GetGUID() : null;
 			}
 			// Normal
 			{
 				const auto& asset = material->GetNormalAsset();
-				*outNormal = asset ? asset->GetGUID() : null;
+				*outNormalTexture = asset ? asset->GetGUID() : null;
 			}
 			// Roughness
 			{
 				const auto& asset = material->GetRoughnessAsset();
-				*outRoughness = asset ? asset->GetGUID() : null;
+				*outRoughnessTexture = asset ? asset->GetGUID() : null;
 			}
 			// AO
 			{
 				const auto& asset = material->GetAOAsset();
-				*outAO = asset ? asset->GetGUID() : null;
+				*outAOTexture = asset ? asset->GetGUID() : null;
 			}
 			// Emissive
 			{
@@ -139,6 +165,26 @@ namespace Eagle::Script::Utils
 				*outOpacityMaskTexture = asset ? asset->GetGUID() : null;
 			}
 		}
+		
+		// Get raw values
+		{
+			*albedo = material->GetAlbedo();
+			*metalness = material->GetMetalness();
+			*roughness = material->GetRoughness();
+			*ao = material->GetAO();
+			*emissive = material->GetEmissive();
+			*opacity = material->GetOpacity();
+			*opacityMask = material->GetOpacityMask();
+
+			*bUseAlbedoTexture = !material->IsRawAlbedoUsed();
+			*bUseMetalnessTexture = !material->IsRawMetalnessUsed();
+			*bUseRoughnessTexture = !material->IsRawRoughnessUsed();
+			*bUseAOTexture = !material->IsRawAOUsed();
+			*bUseEmissiveTexture = !material->IsRawEmissiveUsed();
+			*bUseOpacityTexture = !material->IsRawOpacityUsed();
+			*bUseOpacityMaskTexture = !material->IsRawOpacityMaskUsed();
+		}
+		
 		*outTint = material->GetTintColor();
 		*outEmissiveIntensity = material->GetEmissiveIntensity();
 		*outTilingFactor = material->GetTilingFactor();
@@ -5859,7 +5905,10 @@ namespace Eagle
 	}
 
 	//--------------AssetMaterial--------------
-	void Script::Eagle_AssetMaterial_GetMaterial(GUID assetID, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
+	void Script::Eagle_AssetMaterial_GetMaterial(GUID assetID,
+		GUID* outAlbedoTexture, GUID* outMetalnessTexture, GUID* outNormalTexture, GUID* outRoughnessTexture, GUID* outAOTexture, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
+		glm::vec3* albedo, float* metalness, float* roughness, float* ao, glm::vec3* emissive, float* opacity, float* opacityMask,
+		bool* bUseAlbedoTexture, bool* bUseMetalnessTexture, bool* bUseRoughnessTexture, bool* bUseAOTexture, bool* bUseEmissiveTexture, bool* bUseOpacityTexture, bool* bUseOpacityMaskTexture,
 		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode)
 	{
 		Ref<Asset> asset;
@@ -5871,12 +5920,21 @@ namespace Eagle
 		}
 
 		if (Ref<AssetMaterial> materialAsset = Cast<AssetMaterial>(asset))
-			Utils::GetMaterial(materialAsset->GetMaterial(), outAlbedo, outMetallness, outNormal, outRoughness, outAO, outEmissiveTexture, outOpacityTexture, outOpacityMaskTexture, outTint, outEmissiveIntensity, outTilingFactor, outBlendMode);
+		{
+			Utils::GetMaterial(materialAsset->GetMaterial(),
+				outAlbedoTexture, outMetalnessTexture, outNormalTexture, outRoughnessTexture, outAOTexture, outEmissiveTexture, outOpacityTexture, outOpacityMaskTexture,
+				albedo, metalness, roughness, ao, emissive, opacity, opacityMask,
+				bUseAlbedoTexture, bUseMetalnessTexture, bUseRoughnessTexture, bUseAOTexture, bUseEmissiveTexture, bUseOpacityTexture, bUseOpacityMaskTexture,
+				outTint, outEmissiveIntensity, outTilingFactor, outBlendMode);
+		}
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get material. It's not a material asset");
 	}
 
-	void Script::Eagle_AssetMaterial_SetMaterial(GUID assetID, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
+	void Script::Eagle_AssetMaterial_SetMaterial(GUID assetID,
+		GUID albedoTexture, GUID metalnessTexture, GUID normalTexture, GUID roughnessTexture, GUID aoTexture, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
+		const glm::vec3* albedo, float metalness, float roughness, float ao, const glm::vec3* emissive, float opacity, float opacityMask,
+		bool bUseAlbedoTexture, bool bUseMetalnessTexture, bool bUseRoughnessTexture, bool bUseAOTexture, bool bUseEmissiveTexture, bool bUseOpacityTexture, bool bUseOpacityMaskTexture,
 		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode)
 	{
 		Ref<Asset> asset;
@@ -5888,7 +5946,13 @@ namespace Eagle
 		}
 
 		if (Ref<AssetMaterial> materialAsset = Cast<AssetMaterial>(asset))
-			Utils::SetMaterial(materialAsset->GetMaterial(), albedo, metallness, normal, roughness, ao, emissiveTexture, opacityTexture, opacityMaskTexture, tint, emissiveIntensity, tilingFactor, blendMode);
+		{
+			Utils::SetMaterial(materialAsset->GetMaterial(),
+				albedoTexture, metalnessTexture, normalTexture, roughnessTexture, aoTexture, emissiveTexture, opacityTexture, opacityMaskTexture,
+				albedo, metalness, roughness, ao, emissive, opacity, opacityMask,
+				bUseAlbedoTexture, bUseMetalnessTexture, bUseRoughnessTexture, bUseAOTexture, bUseEmissiveTexture, bUseOpacityTexture, bUseOpacityMaskTexture,
+				tint, emissiveIntensity, tilingFactor, blendMode);
+		}
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set material. It's not a material asset");
 	}

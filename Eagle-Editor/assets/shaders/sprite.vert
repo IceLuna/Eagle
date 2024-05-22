@@ -1,7 +1,8 @@
 #include "defines.h"
 #include "common_structures.h"
 #include "sprite_vertex_input_layout.h"
-#include "material_pipeline_layout.h"
+#define EG_NO_TEXTURES
+#include "pipeline_layout.h"
 
 layout(push_constant) uniform PushConstants
 {
@@ -53,8 +54,9 @@ void main()
     gl_Position = g_ViewProj * model * vec4(s_QuadVertexPosition[vertexID], 1.f);
 
     const CPUMaterial material = g_Materials[materialIndex];
-    uint normalTextureIndex, unused;
-    UnpackTextureIndices(material, unused, unused, normalTextureIndex, unused, unused, unused, unused, unused);
+    bool unused;
+    const uint normalTextureIndex = Material_GetIndex(material.PackedIndices2, NormalIndexMask, NormalIndexOffset, unused);
+
     const mat3 normalModel = mat3(transpose(inverse(model)));
     vec3 worldNormal = normalize(normalModel * s_Normal);
     const bool bInvert = (gl_VertexIndex % 8u) >= 4;
@@ -62,7 +64,7 @@ void main()
         worldNormal = -worldNormal;
     o_Normal = worldNormal;
 
-    if (normalTextureIndex != EG_INVALID_TEXTURE_INDEX)
+    if (normalTextureIndex != EG_INVALID_INDEX)
     {
         const vec3 worldTangent = normalize(normalModel * s_Tangent);
         const vec3 worldBitangent = normalize(normalModel * s_Bitangent);

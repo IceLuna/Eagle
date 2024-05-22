@@ -59,6 +59,11 @@ namespace Eagle
 		return glm::vec3(vec.x, vec.y, vec.z);
 	}
 
+	static inline glm::vec3 ToGLM(const aiColor3D& vec)
+	{
+		return glm::vec3(vec.r, vec.g, vec.b);
+	}
+
 	static inline glm::quat ToGLM(const aiQuaternion& pOrientation)
 	{
 		return glm::quat(pOrientation.w, pOrientation.x, pOrientation.y, pOrientation.z);
@@ -710,7 +715,6 @@ namespace Eagle
 
 		for (uint32_t i = 0; i < scene->mNumMaterials; ++i)
 		{
-			// TODO: Load color values when they're supported by eagle materials
 			auto aiMaterial = scene->mMaterials[i];
 			Ref<Material> material = Material::Create();
 
@@ -724,15 +728,63 @@ namespace Eagle
 			material->SetAlbedoAsset(albedo);
 			material->SetNormalAsset(normal);
 			material->SetRoughnessAsset(roughness);
-			material->SetMetallnessAsset(metalness);
+			material->SetMetalnessAsset(metalness);
 			material->SetAOAsset(ao);
 			material->SetEmissiveAsset(emissive);
 			material->SetOpacityAsset(opacity);
 			if (opacity)
 				material->SetBlendMode(Material::BlendMode::Translucent);
 
+			// Raw values
+			{
+				aiColor3D aiValue;
+				if (aiMaterial->Get(AI_MATKEY_BASE_COLOR, aiValue) == AI_SUCCESS || aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiValue) == AI_SUCCESS)
+				{
+					material->SetAlbedo(ToGLM(aiValue));
+					material->SetRawAlbedoUsed(true);
+				}
+
+				if (aiMaterial->Get(AI_MATKEY_COLOR_EMISSIVE, aiValue) == AI_SUCCESS)
+				{
+					material->SetEmissive(ToGLM(aiValue));
+					material->SetRawEmissiveUsed(true);
+				}
+
+				if (aiMaterial->Get(AI_MATKEY_EMISSIVE_INTENSITY, aiValue) == AI_SUCCESS)
+				{
+					material->SetEmissiveIntensity(ToGLM(aiValue));
+				}
+
+				if (aiMaterial->Get(AI_MATKEY_ROUGHNESS_FACTOR, aiValue) == AI_SUCCESS)
+				{
+					material->SetRoughness(aiValue.r);
+					material->SetRawRoughnessUsed(true);
+				}
+
+				if (aiMaterial->Get(AI_MATKEY_REFLECTIVITY, aiValue) == AI_SUCCESS || aiMaterial->Get(AI_MATKEY_METALLIC_FACTOR, aiValue) == AI_SUCCESS)
+				{
+					material->SetMetalness(aiValue.r);
+					material->SetRawMetalnessUsed(true);
+				}
+
+				if (aiMaterial->Get(AI_MATKEY_OPACITY, aiValue) == AI_SUCCESS)
+				{
+					material->SetOpacity(aiValue.r);
+					material->SetRawOpacityUsed(true);
+				}
+				else if (aiMaterial->Get(AI_MATKEY_TRANSMISSION_FACTOR, aiValue) == AI_SUCCESS)
+				{
+					material->SetOpacity(1.f - aiValue.r);
+					material->SetRawOpacityUsed(true);
+				}
+			}
+
 			const Path materialFilename = AssetImporter::CreateMaterial(saveTo, aiMaterial->GetName().C_Str());
-			Ref<AssetMaterial> materialAsset = Cast<AssetMaterial>(Asset::Create(materialFilename));
+			Ref<Asset> asset;
+			Ref<AssetMaterial> materialAsset;
+			if (AssetManager::Get(materialFilename, &asset))
+				materialAsset = Cast<AssetMaterial>(asset);
+			
 			if (!materialAsset)
 				EG_CORE_ERROR("Failed to create a material asset: {}", materialFilename.u8string());
 			else

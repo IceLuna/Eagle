@@ -51,69 +51,100 @@ namespace Eagle
 	}
 }
 
-CPUMaterial::CPUMaterial(const Eagle::Ref<Eagle::Material>& material)
-	: TintColor(material->GetTintColor()), EmissiveIntensity(material->GetEmissiveIntensity()), TilingFactor(material->GetTilingFactor())
+CPUMaterial CPUMaterial::Convert(const Eagle::Ref<Eagle::Material>& material, std::vector<float>& rawValues)
 {
 	using namespace Eagle;
+	CPUMaterial result;
+	result.TintColor = material->GetTintColor();
+	result.EmissiveIntensity = material->GetEmissiveIntensity();
+	result.TilingFactor = material->GetTilingFactor();
 
-	const uint32_t albedoTextureIndex = material->GetAlbedoAsset() ? TextureSystem::AddTexture(material->GetAlbedoAsset()->GetTexture()) : 0u;
-	const uint32_t metallnessTextureIndex = material->GetMetallnessAsset() ? TextureSystem::AddTexture(material->GetMetallnessAsset()->GetTexture()) : 0u;
-	const uint32_t normalTextureIndex = material->GetNormalAsset() ? TextureSystem::AddTexture(material->GetNormalAsset()->GetTexture()) : 0u;
-	const uint32_t roughnessTextureIndex = material->GetRoughnessAsset() ? TextureSystem::AddTexture(material->GetRoughnessAsset()->GetTexture()) : 0u;
-	const uint32_t aoTextureIndex = material->GetAOAsset() ? TextureSystem::AddTexture(material->GetAOAsset()->GetTexture()) : 0u;
-	const uint32_t emissiveTextureIndex = material->GetEmissiveAsset() ? TextureSystem::AddTexture(material->GetEmissiveAsset()->GetTexture()) : 0u;
-	const uint32_t opacityTextureIndex = material->GetOpacityAsset() ? TextureSystem::AddTexture(material->GetOpacityAsset()->GetTexture()) : 0u;
-	const uint32_t opacityMaskTextureIndex = material->GetOpacityMaskAsset() ? TextureSystem::AddTexture(material->GetOpacityMaskAsset()->GetTexture()) : 0u;
+	uint32_t albedoIndex = 0u;
+	if (material->IsRawAlbedoUsed())
+	{
+		albedoIndex = (uint32_t)rawValues.size();
+		const glm::vec3 albedo = material->GetAlbedo();
+		for (uint32_t i = 0; i < 3; ++i)
+			rawValues.push_back(albedo[i]);
+	}
+	else if (const auto& asset = material->GetAlbedoAsset())
+		albedoIndex = TextureSystem::AddTexture(asset->GetTexture());
 
-	PackedTextureIndices = PackedTextureIndices2 = PackedTextureIndices3 = 0;
-	PackedTextureIndices |= (normalTextureIndex << NormalTextureOffset);
-	PackedTextureIndices |= (metallnessTextureIndex << MetallnessTextureOffset);
-	PackedTextureIndices |= (albedoTextureIndex & AlbedoTextureMask);
+	uint32_t metalnessIndex = 0u;
+	if (material->IsRawMetalnessUsed())
+	{
+		metalnessIndex = (uint32_t)rawValues.size();
+		rawValues.push_back(material->GetMetalness());
+	}
+	else if (const auto& asset = material->GetMetalnessAsset())
+		metalnessIndex = TextureSystem::AddTexture(asset->GetTexture());
 
-	PackedTextureIndices2 |= (emissiveTextureIndex << EmissiveTextureOffset);
-	PackedTextureIndices2 |= (aoTextureIndex << AOTextureOffset);
-	PackedTextureIndices2 |= (roughnessTextureIndex & RoughnessTextureMask);
+	const uint32_t normalIndex = material->GetNormalAsset() ? TextureSystem::AddTexture(material->GetNormalAsset()->GetTexture()) : 0u;
 
-	PackedTextureIndices3 |= (opacityMaskTextureIndex << OpacityTextureOffset);
-	PackedTextureIndices3 |= (opacityTextureIndex & OpacityTextureMask);
-}
+	uint32_t roughnessIndex = 0u;
+	if (material->IsRawRoughnessUsed())
+	{
+		roughnessIndex = (uint32_t)rawValues.size();
+		rawValues.push_back(material->GetRoughness());
+	}
+	else if (const auto& asset = material->GetRoughnessAsset())
+		roughnessIndex = TextureSystem::AddTexture(asset->GetTexture());
 
-CPUMaterial& CPUMaterial::operator=(const std::shared_ptr<Eagle::Texture2D>& texture)
-{
-	uint32_t albedoTextureIndex = Eagle::TextureSystem::AddTexture(texture);
-	PackedTextureIndices |= (albedoTextureIndex & AlbedoTextureMask);
+	uint32_t aoIndex = 0u;
+	if (material->IsRawAOUsed())
+	{
+		aoIndex = (uint32_t)rawValues.size();
+		rawValues.push_back(material->GetAO());
+	}
+	else if (const auto& asset = material->GetAOAsset())
+		aoIndex = TextureSystem::AddTexture(asset->GetTexture());
 
-	return *this;
-}
+	uint32_t emissiveIndex = 0u;
+	if (material->IsRawEmissiveUsed())
+	{
+		emissiveIndex = (uint32_t)rawValues.size();
+		const glm::vec3 emissive = material->GetEmissive();
+		for (uint32_t i = 0; i < 3; ++i)
+			rawValues.push_back(emissive[i]);
+	}
+	else if (const auto& asset = material->GetEmissiveAsset())
+		emissiveIndex = TextureSystem::AddTexture(asset->GetTexture());
 
-CPUMaterial& CPUMaterial::operator=(const std::shared_ptr<Eagle::Material>& material)
-{
-	using namespace Eagle;
+	uint32_t opacityIndex = 0u;
+	if (material->IsRawOpacityUsed())
+	{
+		opacityIndex = (uint32_t)rawValues.size();
+		rawValues.push_back(material->GetOpacity());
+	}
+	else if (const auto& asset = material->GetOpacityAsset())
+		opacityIndex = TextureSystem::AddTexture(asset->GetTexture());
 
-	TintColor = material->GetTintColor();
-	EmissiveIntensity = material->GetEmissiveIntensity();
-	TilingFactor = material->GetTilingFactor();
+	uint32_t opacityMaskIndex = 0u;
+	if (material->IsRawOpacityMaskUsed())
+	{
+		opacityMaskIndex = (uint32_t)rawValues.size();
+		rawValues.push_back(material->GetOpacityMask());
+	}
+	else if (const auto& asset = material->GetOpacityMaskAsset())
+		opacityMaskIndex = TextureSystem::AddTexture(asset->GetTexture());
 
-	const uint32_t albedoTextureIndex = material->GetAlbedoAsset() ? TextureSystem::AddTexture(material->GetAlbedoAsset()->GetTexture()) : 0u;
-	const uint32_t metallnessTextureIndex = material->GetMetallnessAsset() ? TextureSystem::AddTexture(material->GetMetallnessAsset()->GetTexture()) : 0u;
-	const uint32_t normalTextureIndex = material->GetNormalAsset() ? TextureSystem::AddTexture(material->GetNormalAsset()->GetTexture()) : 0u;
-	const uint32_t roughnessTextureIndex = material->GetRoughnessAsset() ? TextureSystem::AddTexture(material->GetRoughnessAsset()->GetTexture()) : 0u;
-	const uint32_t aoTextureIndex = material->GetAOAsset() ? TextureSystem::AddTexture(material->GetAOAsset()->GetTexture()) : 0u;
-	const uint32_t emissiveTextureIndex = material->GetEmissiveAsset() ? TextureSystem::AddTexture(material->GetEmissiveAsset()->GetTexture()) : 0u;
-	const uint32_t opacityTextureIndex = material->GetOpacityAsset() ? TextureSystem::AddTexture(material->GetOpacityAsset()->GetTexture()) : 0u;
-	const uint32_t opacityMaskTextureIndex = material->GetOpacityMaskAsset() ? TextureSystem::AddTexture(material->GetOpacityMaskAsset()->GetTexture()) : 0u;
-
-	PackedTextureIndices = PackedTextureIndices2 = PackedTextureIndices3 = 0u;
-	PackedTextureIndices |= (normalTextureIndex << NormalTextureOffset);
-	PackedTextureIndices |= (metallnessTextureIndex << MetallnessTextureOffset);
-	PackedTextureIndices |= (albedoTextureIndex & AlbedoTextureMask);
-
-	PackedTextureIndices2 |= (emissiveTextureIndex << EmissiveTextureOffset);
-	PackedTextureIndices2 |= (aoTextureIndex << AOTextureOffset);
-	PackedTextureIndices2 |= (roughnessTextureIndex & RoughnessTextureMask);
+	result.PackedIndices = result.PackedIndices2 = result.PackedIndices3 = result.PackedIndices4 = 0u;
 	
-	PackedTextureIndices3 |= (opacityMaskTextureIndex << OpacityTextureOffset);
-	PackedTextureIndices3 |= (opacityTextureIndex & OpacityTextureMask);
+	// Pack 1
+	result.PackedIndices   = ( albedoIndex    & MaterialIndexMask) | (material->IsRawAlbedoUsed()    ? IsRawValueMask : 0u);
+	result.PackedIndices  |= ((metalnessIndex & MaterialIndexMask) | (material->IsRawMetalnessUsed() ? IsRawValueMask : 0u)) << MetalnessIndexOffset;
 
-	return *this;
+	// Pack 2
+	result.PackedIndices2  = ( normalIndex    & MaterialIndexMask);
+	result.PackedIndices2 |= ((roughnessIndex & MaterialIndexMask) | (material->IsRawRoughnessUsed() ? IsRawValueMask : 0u)) << RoughnessIndexOffset;
+
+	// Pack 3
+	result.PackedIndices3  = ( aoIndex        & MaterialIndexMask) | (material->IsRawAOUsed()        ? IsRawValueMask : 0u);
+	result.PackedIndices3 |= ((emissiveIndex  & MaterialIndexMask) | (material->IsRawEmissiveUsed()  ? IsRawValueMask : 0u)) << EmissiveIndexOffset;
+
+	// Pack 4
+	result.PackedIndices4  = ( opacityIndex     & MaterialIndexMask) | (material->IsRawOpacityUsed()     ? IsRawValueMask : 0u);
+	result.PackedIndices4 |= ((opacityMaskIndex & MaterialIndexMask) | (material->IsRawOpacityMaskUsed() ? IsRawValueMask : 0u)) << OpacityMaskIndexOffset;
+
+	return result;
 }

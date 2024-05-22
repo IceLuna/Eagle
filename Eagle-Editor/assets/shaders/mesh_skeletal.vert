@@ -1,7 +1,6 @@
 #include "skeletal_mesh_vertex_input_layout.h"
+#define EG_NO_TEXTURES
 #include "pipeline_layout.h"
-
-#include "material_pipeline_layout.h"
 
 layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX)
 readonly buffer MeshTransformsBuffer
@@ -77,8 +76,8 @@ void main()
     const mat3 normalModel = mat3(transpose(inverse(model * boneTransform)));
     const vec3 worldNormal = normalize(normalModel * a_Normal);
 
-    ShaderMaterial material = FetchMaterial(a_PerInstanceData.y);
-    if (material.NormalTextureIndex != EG_INVALID_TEXTURE_INDEX)
+    const uint normalTextureIndex = FetchMaterialNormalTextureIndex(a_PerInstanceData.y);
+    if (normalTextureIndex != EG_INVALID_INDEX)
     {
         vec3 tangent = normalize(normalModel * a_Tangent);
         tangent = normalize(tangent - worldNormal * dot(tangent, worldNormal));

@@ -3,7 +3,6 @@
 
 #include "pipeline_layout.h"
 #include "utils.h"
-#include "material_pipeline_layout.h"
 #include "transparency/transparency_color_pipeline_layout.h"
 
 #include "pbr_utils.h"
@@ -73,9 +72,9 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv);
 
 void main()
 {
-    const ShaderMaterial material = FetchMaterial(i_MaterialIndex);
-    const vec2 uv = i_TexCoords * material.TilingFactor;
-    float opacity = material.OpacityTextureIndex != EG_INVALID_TEXTURE_INDEX ? ReadTexture(material.OpacityTextureIndex, uv).r : 0.5f;
+    vec2 uv = i_TexCoords;
+    const ShaderMaterial material = FetchMaterial(i_MaterialIndex, uv);
+    float opacity = material.Opacity;
     opacity = clamp(opacity * material.TintColor.a, 0.f, 1.f);
 
     vec4 color = vec4(vec3(0.f), opacity);
@@ -131,23 +130,16 @@ void main()
     outColor = vec4(0);
 }
 
-vec4 GetAlbedoRoughness(in ShaderMaterial material, vec2 uv)
-{
-    vec3 color = ReadTexture(material.AlbedoTextureIndex, uv).rgb;
-    float roughness = (material.RoughnessTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.RoughnessTextureIndex, uv).x : EG_DEFAULT_ROUGHNESS;
-    return vec4(color, roughness);
-}
-
 vec3 Lighting(in ShaderMaterial material, vec2 uv)
 {
-    const vec4 albedo_roughness = GetAlbedoRoughness(material, uv);
-    const vec3 lambert_albedo = albedo_roughness.rgb * EG_INV_PI;
+    const vec3 albedo = material.Albedo;
+    const vec3 lambert_albedo = albedo * EG_INV_PI;
     const vec3 worldPos = i_WorldPos;
 
-    const float metallness = ReadTexture(material.MetallnessTextureIndex, uv).x;
-    const float ao = (material.AOTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.AOTextureIndex, uv).r : EG_DEFAULT_AO;
-    const float roughness = albedo_roughness.a;
-    const vec3 F0 = mix(vec3(EG_BASE_REFLECTIVITY), albedo_roughness.rgb, metallness);
+    const float metalness = material.Metalness;
+    const float ao = material.AO;
+    const float roughness = material.Roughness;
+    const vec3 F0 = mix(vec3(EG_BASE_REFLECTIVITY), albedo, metalness);
 
     const vec3 fragToCamera = g_CameraPos - worldPos;
     const bool bInShadowRange = dot(fragToCamera, fragToCamera) < g_MaxShadowDistance2;
@@ -155,7 +147,7 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
 
     vec3 Lo = vec3(0.f);
     vec3 shadingNormal = normalize(i_Normal);
-    if (material.NormalTextureIndex != EG_INVALID_TEXTURE_INDEX)
+    if (material.NormalTextureIndex != EG_INVALID_INDEX)
     {
         shadingNormal = ReadTexture(material.NormalTextureIndex, uv).rgb;
         shadingNormal = normalize(shadingNormal * 2.0 - 1.0);
@@ -195,7 +187,7 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
             plShadowMapIndex++;
         }
 
-        const vec3 pointLightLo = EvaluatePBR_TwoSided(lambert_albedo, normIncoming, V, shadingNormal, F0, metallness, roughness, pointLight.LightColor, attenuation);
+        const vec3 pointLightLo = EvaluatePBR_TwoSided(lambert_albedo, normIncoming, V, shadingNormal, F0, metalness, roughness, pointLight.LightColor, attenuation);
         Lo += pointLightLo * shadow;
     }
 
@@ -247,7 +239,7 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
 
             slShadowMapIndex++;
         }
-        const vec3 spotLightLo = EvaluatePBR_TwoSided(lambert_albedo, normIncoming, V, shadingNormal, F0, metallness, roughness, spotLight.LightColor, attenuation);
+        const vec3 spotLightLo = EvaluatePBR_TwoSided(lambert_albedo, normIncoming, V, shadingNormal, F0, metalness, roughness, spotLight.LightColor, attenuation);
         Lo += spotLightLo * shadow;
     }
 
@@ -310,12 +302,12 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
 #endif // EG_CSM_SMOOTH_TRANSITION
             }
         }
-        const vec3 directional_Lo = EvaluatePBR_TwoSided(lambert_albedo, incoming, V, shadingNormal, F0, metallness, roughness, g_DirectionalLight.LightColor, 1.f);
+        const vec3 directional_Lo = EvaluatePBR_TwoSided(lambert_albedo, incoming, V, shadingNormal, F0, metalness, roughness, g_DirectionalLight.LightColor, 1.f);
         Lo += directional_Lo * shadow;
     }
 
     // Ambient
-    vec3 ambient = (g_HasDirLight != 0) ? (albedo_roughness.rgb * g_DirectionalLight.Ambient) : vec3(0.f);
+    vec3 ambient = (g_HasDirLight != 0) ? (albedo * g_DirectionalLight.Ambient) : vec3(0.f);
     if (s_HasIrradiance)
     {
         const vec3 R = reflect(-V, shadingNormal);
@@ -332,7 +324,7 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
         const vec3 Favg = F0 + (1.0 - F0) / 21.0;
         const vec3 FmsEms = Ems * FssEss * Favg / (1.0 - Favg * Ems);
 
-        const vec3 diffuseColor = albedo_roughness.rgb * (1.f - EG_BASE_REFLECTIVITY) * (1.f - metallness);
+        const vec3 diffuseColor = albedo * (1.f - EG_BASE_REFLECTIVITY) * (1.f - metalness);
         const vec3 kD = diffuseColor * (1.0 - FssEss - FmsEms);
 
         const vec3 radiance = textureLod(g_PrefilterMap, R, roughness * g_MaxReflectionLOD).rgb;
@@ -341,7 +333,7 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
         ambient += color * ao * g_IBLIntensity;
     }
 
-    const vec3 emissive = ReadTexture(material.EmissiveTextureIndex, uv).rgb * material.EmissiveIntensity;
+    const vec3 emissive = material.Emissive * material.EmissiveIntensity;
     vec3 resultColor = ambient + Lo + emissive;
 #ifdef EG_ENABLE_CSM_VISUALIZATION
     resultColor += cascadeVisualizationColor;

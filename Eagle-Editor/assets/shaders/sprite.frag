@@ -1,5 +1,4 @@
 #include "pipeline_layout.h"
-#include "material_pipeline_layout.h"
 #include "utils.h"
 
 // Outputs
@@ -25,38 +24,34 @@ layout(location = 8) in vec3 i_PrevPos;
 
 void main()
 {
-	const ShaderMaterial material = FetchMaterial(i_MaterialIndex);
+	vec2 uv = i_TexCoords;
+	const ShaderMaterial material = FetchMaterial(i_MaterialIndex, uv);
 #ifdef EG_MASKED
-	if (material.OpacityMaskTextureIndex != EG_INVALID_TEXTURE_INDEX)
+	if (material.OpacityMask < EG_OPACITY_MASK_THRESHOLD)
 	{
-		const float opacityMask = ReadTexture(material.OpacityMaskTextureIndex, i_TexCoords).r;
-		if (opacityMask < EG_OPACITY_MASK_THRESHOLD)
-		{
-			discard;
-			return;
-		}
+		discard;
+		return;
 	}
 #endif
 
     const vec2 packedGeometryNormal = EncodeNormal(normalize(i_Normal));
 	vec2 packedShadingNormal = packedGeometryNormal;
-	if (material.NormalTextureIndex != EG_INVALID_TEXTURE_INDEX)
+	if (material.NormalTextureIndex != EG_INVALID_INDEX)
 	{
-		vec3 shadingNormal = ReadTexture(material.NormalTextureIndex, i_TexCoords).rgb;
+		vec3 shadingNormal = ReadTexture(material.NormalTextureIndex, uv).rgb;
 		shadingNormal = normalize(shadingNormal * 2.0 - 1.0);
 		shadingNormal = normalize(i_TBN * shadingNormal);
 		packedShadingNormal = EncodeNormal(shadingNormal);
 	}
 
-	const float metallness = ReadTexture(material.MetallnessTextureIndex, i_TexCoords).x;
-	float roughness = (material.RoughnessTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.RoughnessTextureIndex, i_TexCoords).x : EG_DEFAULT_ROUGHNESS;
-	roughness = max(roughness, EG_MIN_ROUGHNESS);
-	const float ao = (material.AOTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.AOTextureIndex, i_TexCoords).r : EG_DEFAULT_AO;
+	const float metalness = material.Metalness;
+	const float roughness = material.Roughness;
+	const float ao = material.AO;
 	
-	outAlbedo = vec4(ReadTexture(material.AlbedoTextureIndex, i_TexCoords).rgb * material.TintColor.rgb, roughness);
+	outAlbedo = vec4(material.Albedo * material.TintColor.rgb, roughness);
 	outGeometryShadingNormals = vec4(packedGeometryNormal, packedShadingNormal);
-	outEmissive = ReadTexture(material.EmissiveTextureIndex, i_TexCoords) * vec4(material.EmissiveIntensity, 1.0);
-	outMaterialData = vec2(metallness, ao);
+	outEmissive = vec4(material.Emissive * material.EmissiveIntensity, 1.0);
+	outMaterialData = vec2(metalness, ao);
 	outObjectID = i_EntityID;
 
 	// TODO: Pack to outEmissive.a since it's not used anyway

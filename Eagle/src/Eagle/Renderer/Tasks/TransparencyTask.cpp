@@ -384,6 +384,7 @@ namespace Eagle
 
 		const auto& materials = MaterialSystem::GetMaterialsBuffer();
 		m_MeshesColorPipeline->SetBuffer(materials, EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+		m_MeshesColorPipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 		m_MeshesColorPipeline->SetBuffer(transformsBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
 		m_MeshesColorPipeline->SetBuffer(m_OITBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 		m_MeshesColorPipeline->SetBuffer(m_Renderer.GetCameraBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
@@ -431,6 +432,7 @@ namespace Eagle
 
 		const auto& materials = MaterialSystem::GetMaterialsBuffer();
 		m_SkeletalMeshesColorPipeline->SetBuffer(materials, EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+		m_SkeletalMeshesColorPipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 		m_SkeletalMeshesColorPipeline->SetBuffer(transformsBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
 		m_SkeletalMeshesColorPipeline->SetBuffer(m_OITBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 		m_SkeletalMeshesColorPipeline->SetBuffer(m_Renderer.GetCameraBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
@@ -478,6 +480,7 @@ namespace Eagle
 
 		const auto& materials = MaterialSystem::GetMaterialsBuffer();
 		m_SpritesColorPipeline->SetBuffer(materials, EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+		m_SpritesColorPipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 		m_SpritesColorPipeline->SetBuffer(transformsBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
 		m_SpritesColorPipeline->SetBuffer(m_OITBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 		m_SpritesColorPipeline->SetBuffer(m_Renderer.GetCameraBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);

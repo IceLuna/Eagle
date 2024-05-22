@@ -14,27 +14,32 @@ using vec4 = glm::vec4;
 
 #endif
 
-// Pack 1
-const uint MetallnessTextureOffset = 10;
-const uint NormalTextureOffset   = 20;
+const uint IsRawValueMask         = 0x8000;
+const uint MaterialIndexMask      = 0xFFFF; // 16 bits per index
 
-const uint AlbedoTextureMask     = 0x3FF; // 0b11111'11111 - first 10 bits
-const uint MetallnessTextureMask = AlbedoTextureMask << MetallnessTextureOffset;
-const uint NormalTextureMask     = AlbedoTextureMask << NormalTextureOffset;
+// Pack 1
+const uint AlbedoIndexOffset      = 0;
+const uint MetalnessIndexOffset   = 16;
+const uint AlbedoIndexMask        = MaterialIndexMask << AlbedoIndexOffset;
+const uint MetalnessIndexMask     = MaterialIndexMask << MetalnessIndexOffset;
 
 // Pack 2
-const uint AOTextureOffset = 10;
-const uint EmissiveTextureOffset = 20;
-
-const uint RoughnessTextureMask = 0x3FF;
-const uint AOTextureMask        = RoughnessTextureMask << AOTextureOffset;
-const uint EmissiveTextureMask  = RoughnessTextureMask << EmissiveTextureOffset;
+const uint NormalIndexOffset      = 0;
+const uint RoughnessIndexOffset   = 16;
+const uint NormalIndexMask        = MaterialIndexMask << NormalIndexOffset;
+const uint RoughnessIndexMask     = MaterialIndexMask << RoughnessIndexOffset;
 
 // Pack 3
-const uint OpacityTextureOffset = 10;
+const uint AOIndexOffset          = 0;
+const uint EmissiveIndexOffset    = 16;
+const uint AOIndexMask            = MaterialIndexMask << AOIndexOffset;
+const uint EmissiveIndexMask      = MaterialIndexMask << EmissiveIndexOffset;
 
-const uint OpacityTextureMask     = 0x3FF; // 0b11111'11111 - first 10 bits
-const uint OpacityMaskTextureMask = OpacityTextureMask << OpacityTextureOffset;
+// Pack 4
+const uint OpacityIndexOffset     = 0;
+const uint OpacityMaskIndexOffset = 16;
+const uint OpacityIndexMask       = MaterialIndexMask << OpacityIndexOffset;
+const uint OpacityMaskIndexMask   = MaterialIndexMask << OpacityMaskIndexOffset;
 
 struct CPUMaterial
 {
@@ -43,47 +48,55 @@ struct CPUMaterial
 	vec3 EmissiveIntensity;
 	float TilingFactor;
 
-	// [0-9]   bits AlbedoTextureIndex
-	// [10-19] bits MetallnessTextureIndex
-	// [20-29] bits NormalTextureIndex
-	uint PackedTextureIndices;
+	// Packed indices. 16bits for each index.
+	// Highest bit is used to indicate that the index points into the buffer of raw values (not textures)
+	//
+	// [0-15]  bits Albedo Index
+	// [16-31] bits Metalness Index
+	uint PackedIndices;
 
-	// [0-9]   bits RoughnessTextureIndex
-	// [10-19] bits AOTextureIndex
-	// [20-29] bits EmissiveTextureIndex
-	uint PackedTextureIndices2;
+	// [0-15]  bits Normal Index
+	// [16-31] bits Roughness Index
+	uint PackedIndices2;
 
-	// [0-9]   bits OpacityTextureIndex
-	uint PackedTextureIndices3;
-	uint padding1;
+	// [0-15]  bits AO Index
+	// [16-31] bits Emissive Index
+	uint PackedIndices3;
+	
+	// [0-15]  bits Opacity Index
+	// [16-31] bits Opacity Mask Index
+	uint PackedIndices4;
 
 #ifdef __cplusplus
 	CPUMaterial()
 		: TintColor(1.f), EmissiveIntensity(0.f), TilingFactor(1.f)
-		, PackedTextureIndices(0), PackedTextureIndices2(0), PackedTextureIndices3(0), padding1(0)
+		, PackedIndices(0), PackedIndices2(0), PackedIndices3(0), PackedIndices4(0)
 	{
 	}
 	
-	CPUMaterial(const std::shared_ptr<Eagle::Material>& material);
-	CPUMaterial& operator=(const std::shared_ptr<Eagle::Texture2D>& texture);
-	CPUMaterial& operator=(const std::shared_ptr<Eagle::Material>& material);
+	static CPUMaterial Convert(const std::shared_ptr<Eagle::Material>& material, std::vector<float>& rawValues);
 #endif
 };
 
 struct ShaderMaterial
 {
 	vec4 TintColor;
+
 	vec3 EmissiveIntensity;
 	float TilingFactor;
 
-	uint AlbedoTextureIndex;
-	uint MetallnessTextureIndex;
+	vec3 Albedo;
+	float Metalness;
+
+	vec3 Emissive;
+	float Roughness;
+	
+	float AO;
+	float Opacity;
+	float OpacityMask;
+
+	// Normal can only be a texture, so we keep it as an index so that the code can verify if the texture was set. If not, geometry normals will be used
 	uint NormalTextureIndex;
-	uint RoughnessTextureIndex;
-	uint AOTextureIndex;
-	uint EmissiveTextureIndex;
-	uint OpacityTextureIndex;
-	uint OpacityMaskTextureIndex;
 };
 
 struct PointLight
@@ -136,18 +149,12 @@ struct SpotLight
 
 #ifndef __cplusplus
 
-void UnpackTextureIndices(CPUMaterial material, out uint albedo, out uint metallness, out uint normal, out uint roughness, out uint ao, out uint emissive, out uint opacity, out uint opacityMask)
+uint Material_GetIndex(uint packed, uint mask, uint offset, out bool bRawValue)
 {
-	albedo     = (material.PackedTextureIndices & AlbedoTextureMask);
-	metallness = (material.PackedTextureIndices & MetallnessTextureMask) >> MetallnessTextureOffset;
-	normal     = (material.PackedTextureIndices & NormalTextureMask)     >> NormalTextureOffset;
+	uint unpacked = (packed & mask) >> offset;
+	bRawValue = (unpacked & IsRawValueMask) != 0;
 
-	roughness = (material.PackedTextureIndices2 & RoughnessTextureMask);
-	ao        = (material.PackedTextureIndices2 & AOTextureMask)       >> AOTextureOffset;
-	emissive  = (material.PackedTextureIndices2 & EmissiveTextureMask) >> EmissiveTextureOffset;
-
-	opacity     = (material.PackedTextureIndices3 & OpacityTextureMask);
-	opacityMask = (material.PackedTextureIndices3 & OpacityMaskTextureMask) >> OpacityTextureOffset;
+	return unpacked & (~IsRawValueMask);
 }
 
 #endif

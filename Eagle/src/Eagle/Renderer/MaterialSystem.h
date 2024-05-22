@@ -21,6 +21,7 @@ namespace Eagle
 		static bool HasChanged() { return s_Changed; }
 
 		static const Ref<Buffer>& GetMaterialsBuffer() { return s_MaterialsBuffer; }
+		static const Ref<Buffer>& GetMaterialsRawBuffer() { return s_MaterialsRawBuffer; }
 
 		static void SetDirty();
 
@@ -34,6 +35,7 @@ namespace Eagle
 	private:
 		static std::vector<Ref<Material>> s_Materials;
 		static Ref<Buffer> s_MaterialsBuffer; // GPU buffer
+		static Ref<Buffer> s_MaterialsRawBuffer; // GPU buffer of raw values
 		static std::unordered_map<Ref<Material>, uint32_t> s_UsedMaterialsMap; // uint32_t = index to s_Materials
 
 		// If true, materials were changed or new ones were added

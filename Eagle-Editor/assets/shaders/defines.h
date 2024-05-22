@@ -3,7 +3,7 @@
 
 //----------------------------
 #define EG_MAX_LIGHT_SHADOW_MAPS 1024 // TODO: Replace with dynamic array and move this to size to C++ so we can resize it if we exceed max number.
-#define EG_INVALID_TEXTURE_INDEX 0 // Must be 0
+#define EG_INVALID_INDEX 0 // Must be 0
 
 #ifndef EG_CASCADES_COUNT
 #define EG_CASCADES_COUNT 4 // After changing this, projections need to be adjusted. The same defined in Camera.h
@@ -14,8 +14,9 @@
 #define EG_MAX_SET        1
 #define EG_TEXTURES_SET   EG_MAX_SET + 1
 
-#define EG_BINDING_MATERIALS 0
-#define EG_BINDING_MAX       1
+#define EG_BINDING_MATERIALS     0
+#define EG_BINDING_RAW_MATERIALS 1
+#define EG_BINDING_MAX           2
 
 #define EG_BINDING_TEXTURES  0
 //----------------------------

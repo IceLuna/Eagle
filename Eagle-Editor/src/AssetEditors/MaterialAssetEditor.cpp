@@ -59,8 +59,8 @@ namespace Eagle
 
 		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
 		bool bHidden = !ImGui::Begin(m_Asset->GetPath().u8string().c_str(), pOpen);
+		
 		UI::BeginPropertyGrid("MaterialDetails");
-
 		UI::Text("Name", m_Asset->GetPath().stem().u8string());
 		UI::Text("Type", "Material");
 
@@ -70,47 +70,153 @@ namespace Eagle
 			material->SetBlendMode(blendMode);
 			bChanged = true;
 		}
+		UI::EndPropertyGrid();
 
-		Ref<AssetTexture2D> temp = material->GetAlbedoAsset();
-		if (UI::DrawAssetSelection("Albedo", temp))
+		Ref<AssetTexture2D> temp;
+
+		// Albedo
 		{
-			material->SetAlbedoAsset(temp);
-			bChanged = true;
+			UI::TextWithSeparator("Albedo");
+			UI::BeginPropertyGrid("MaterialDetails");
+			
+			temp = material->GetAlbedoAsset();
+			if (UI::DrawAssetSelection("Albedo Texture", temp))
+			{
+				material->SetAlbedoAsset(temp);
+				bChanged = true;
+			}
+
+			glm::vec3 value = material->GetAlbedo();
+			if (UI::PropertyColor("Albedo Value", value, false))
+			{
+				material->SetAlbedo(value);
+				bChanged = true;
+			}
+
+			bool bUseTexture = !material->IsRawAlbedoUsed();
+			if (UI::Property("Use Texture", bUseTexture))
+				material->SetRawAlbedoUsed(!bUseTexture);
+			
+			UI::EndPropertyGrid();
 		}
 
-		temp = material->GetMetallnessAsset();
-		if (UI::DrawAssetSelection("Metalness", temp, s_MetalnessHelpMsg))
+		// Metalness
 		{
-			material->SetMetallnessAsset(temp);
-			bChanged = true;
+			UI::TextWithSeparator("Metalness");
+			UI::BeginPropertyGrid("MaterialDetails");
+			
+			temp = material->GetMetalnessAsset();
+			if (UI::DrawAssetSelection("Metalness Texture", temp, s_MetalnessHelpMsg))
+			{
+				material->SetMetalnessAsset(temp);
+				bChanged = true;
+			}
+
+			float value = material->GetMetalness();
+			if (UI::PropertySlider("Metalness Value", value, 0.f, 1.f, s_MetalnessHelpMsg))
+			{
+				material->SetMetalness(value);
+				bChanged = true;
+			}
+
+			bool bUseTexture = !material->IsRawMetalnessUsed();
+			if (UI::Property("Use Texture", bUseTexture))
+				material->SetRawMetalnessUsed(!bUseTexture);
+			
+			UI::EndPropertyGrid();
 		}
 
-		temp = material->GetNormalAsset();
-		if (UI::DrawAssetSelection("Normal", temp))
+		// Normal
 		{
-			material->SetNormalAsset(temp);
-			bChanged = true;
+			UI::TextWithSeparator("Normal");
+			UI::BeginPropertyGrid("MaterialDetails");
+			
+			temp = material->GetNormalAsset();
+			if (UI::DrawAssetSelection("Normal", temp))
+			{
+				material->SetNormalAsset(temp);
+				bChanged = true;
+			}
+			
+			UI::EndPropertyGrid();
 		}
 
-		temp = material->GetRoughnessAsset();
-		if (UI::DrawAssetSelection("Roughness", temp, s_RoughnessHelpMsg))
+		// Roughness
 		{
-			material->SetRoughnessAsset(temp);
-			bChanged = true;
+			UI::TextWithSeparator("Roughness");
+			UI::BeginPropertyGrid("MaterialDetails");
+			
+			temp = material->GetRoughnessAsset();
+			if (UI::DrawAssetSelection("Roughness Texture", temp, s_RoughnessHelpMsg))
+			{
+				material->SetRoughnessAsset(temp);
+				bChanged = true;
+			}
+
+			float value = material->GetRoughness();
+			if (UI::PropertySlider("Roughness Value", value, 0.f, 1.f, s_RoughnessHelpMsg))
+			{
+				material->SetRoughness(value);
+				bChanged = true;
+			}
+
+			bool bUseTexture = !material->IsRawRoughnessUsed();
+			if (UI::Property("Use Texture", bUseTexture))
+				material->SetRawRoughnessUsed(!bUseTexture);
+			
+			UI::EndPropertyGrid();
 		}
 
-		temp = material->GetAOAsset();
-		if (UI::DrawAssetSelection("Ambient Occlusion", temp, s_AOHelpMsg))
+		// AO
 		{
-			material->SetAOAsset(temp);
-			bChanged = true;
+			UI::TextWithSeparator("AO");
+			UI::BeginPropertyGrid("MaterialDetails");
+			
+			temp = material->GetAOAsset();
+			if (UI::DrawAssetSelection("AO Texture", temp, s_AOHelpMsg))
+			{
+				material->SetAOAsset(temp);
+				bChanged = true;
+			}
+
+			float value = material->GetAO();
+			if (UI::PropertySlider("AO Value", value, 0.f, 1.f, s_AOHelpMsg))
+			{
+				material->SetAO(value);
+				bChanged = true;
+			}
+
+			bool bUseTexture = !material->IsRawAOUsed();
+			if (UI::Property("Use Texture", bUseTexture))
+				material->SetRawAOUsed(!bUseTexture);
+			
+			UI::EndPropertyGrid();
 		}
 
-		temp = material->GetEmissiveAsset();
-		if (UI::DrawAssetSelection("Emissive Color", temp))
+		// Emissive
 		{
-			material->SetEmissiveAsset(temp);
-			bChanged = true;
+			UI::TextWithSeparator("Emissive");
+			UI::BeginPropertyGrid("MaterialDetails");
+			
+			temp = material->GetEmissiveAsset();
+			if (UI::DrawAssetSelection("Emissive Texture", temp))
+			{
+				material->SetEmissiveAsset(temp);
+				bChanged = true;
+			}
+
+			glm::vec3 value = material->GetEmissive();
+			if (UI::PropertyColor("Emissive Value", value, false))
+			{
+				material->SetEmissive(value);
+				bChanged = true;
+			}
+
+			bool bUseTexture = !material->IsRawEmissiveUsed();
+			if (UI::Property("Use Texture", bUseTexture))
+				material->SetRawEmissiveUsed(!bUseTexture);
+			
+			UI::EndPropertyGrid();
 		}
 
 		// Disable if not translucent
@@ -119,11 +225,30 @@ namespace Eagle
 			if (!bTranslucent)
 				UI::PushItemDisabled();
 
-			temp = material->GetOpacityAsset();
-			if (UI::DrawAssetSelection("Opacity", temp, s_OpacityHelpMsg))
+			// Opacity
 			{
-				material->SetOpacityAsset(temp);
-				bChanged = true;
+				UI::TextWithSeparator("Opacity");
+				UI::BeginPropertyGrid("MaterialDetails");
+				
+				temp = material->GetOpacityAsset();
+				if (UI::DrawAssetSelection("Opacity Texture", temp, s_OpacityHelpMsg))
+				{
+					material->SetOpacityAsset(temp);
+					bChanged = true;
+				}
+
+				float value = material->GetOpacity();
+				if (UI::PropertySlider("Opacity Value", value, 0.f, 1.f, s_OpacityHelpMsg))
+				{
+					material->SetOpacity(value);
+					bChanged = true;
+				}
+
+				bool bUseTexture = !material->IsRawOpacityUsed();
+				if (UI::Property("Use Texture", bUseTexture))
+					material->SetRawOpacityUsed(!bUseTexture);
+				
+				UI::EndPropertyGrid();
 			}
 
 			if (!bTranslucent)
@@ -136,17 +261,37 @@ namespace Eagle
 			if (!bMasked)
 				UI::PushItemDisabled();
 
-			temp = material->GetOpacityMaskAsset();
-			if (UI::DrawAssetSelection("Opacity Mask", temp, s_OpacityMaskHelpMsg))
+			// Opacity Mask
 			{
-				material->SetOpacityMaskAsset(temp);
-				bChanged = true;
+				UI::TextWithSeparator("Opacity Mask");
+				UI::BeginPropertyGrid("MaterialDetails");
+
+				temp = material->GetOpacityMaskAsset();
+				if (UI::DrawAssetSelection("Opacity Mask Texture", temp, s_OpacityMaskHelpMsg))
+				{
+					material->SetOpacityMaskAsset(temp);
+					bChanged = true;
+				}
+
+				float value = material->GetOpacityMask();
+				if (UI::PropertySlider("Opacity Mask Value", value, 0.f, 1.f, s_OpacityMaskHelpMsg))
+				{
+					material->SetOpacityMask(value);
+					bChanged = true;
+				}
+
+				bool bUseTexture = !material->IsRawOpacityMaskUsed();
+				if (UI::Property("Use Texture", bUseTexture))
+					material->SetRawOpacityMaskUsed(!bUseTexture);
+
+				UI::EndPropertyGrid();
 			}
 
 			if (!bMasked)
 				UI::PopItemDisabled();
 		}
 
+		UI::BeginPropertyGrid("MaterialDetails");
 		glm::vec3 emissiveIntensity = material->GetEmissiveIntensity();
 		if (UI::PropertyColor("Emissive Intensity", emissiveIntensity, true, "HDR"))
 		{

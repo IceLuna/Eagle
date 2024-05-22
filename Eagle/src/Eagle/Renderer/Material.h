@@ -18,13 +18,29 @@ namespace Eagle
 		virtual ~Material() = default;
 
 		void SetAlbedoAsset(const Ref<AssetTexture2D>& asset)      { if (m_AlbedoAsset == asset)      return; m_AlbedoAsset = asset;      OnMaterialChanged(); }
-		void SetMetallnessAsset(const Ref<AssetTexture2D>& asset)  { if (m_MetallnessAsset == asset)  return; m_MetallnessAsset = asset;  OnMaterialChanged(); }
+		void SetMetalnessAsset(const Ref<AssetTexture2D>& asset)   { if (m_MetallnessAsset == asset)  return; m_MetallnessAsset = asset;  OnMaterialChanged(); }
 		void SetNormalAsset(const Ref<AssetTexture2D>& asset)      { if (m_NormalAsset == asset)      return; m_NormalAsset = asset;      OnMaterialChanged(); }
 		void SetRoughnessAsset(const Ref<AssetTexture2D>& asset)   { if (m_RoughnessAsset == asset)   return; m_RoughnessAsset = asset;   OnMaterialChanged(); }
 		void SetAOAsset(const Ref<AssetTexture2D>& asset)          { if (m_AOAsset == asset)          return; m_AOAsset = asset;          OnMaterialChanged(); }
 		void SetEmissiveAsset(const Ref<AssetTexture2D>& asset)    { if (m_EmissiveAsset == asset)    return; m_EmissiveAsset = asset;    OnMaterialChanged(); }
 		void SetOpacityAsset(const Ref<AssetTexture2D>& asset)     { if (m_OpacityAsset == asset)     return; m_OpacityAsset = asset;     OnMaterialChanged(); }
 		void SetOpacityMaskAsset(const Ref<AssetTexture2D>& asset) { if (m_OpacityMaskAsset == asset) return; m_OpacityMaskAsset = asset; OnMaterialChanged(); }
+
+		void SetAlbedo(const glm::vec3& value)   { m_Albedo.first      = value;                       if (m_Albedo.second)      OnMaterialChanged(); }
+		void SetMetalness(float value)           { m_Metalness.first   = glm::clamp(value, 0.f, 1.f); if (m_Metalness.second)   OnMaterialChanged(); }
+		void SetRoughness(float value)           { m_Roughness.first   = glm::clamp(value, 0.f, 1.f); if (m_Roughness.second)   OnMaterialChanged(); }
+		void SetAO(float value)                  { m_AO.first          = glm::clamp(value, 0.f, 1.f); if (m_AO.second)          OnMaterialChanged(); }
+		void SetEmissive(const glm::vec3& value) { m_Emissive.first    = value;                       if (m_Emissive.second)    OnMaterialChanged(); }
+		void SetOpacity(float value)             { m_Opacity.first     = glm::clamp(value, 0.f, 1.f); if (m_Opacity.second)     OnMaterialChanged(); }
+		void SetOpacityMask(float value)         { m_OpacityMask.first = glm::clamp(value, 0.f, 1.f); if (m_OpacityMask.second) OnMaterialChanged(); }
+
+		void SetRawAlbedoUsed(bool bUse)      { if (m_Albedo.second      == bUse) return; m_Albedo.second      = bUse; OnMaterialChanged();}
+		void SetRawMetalnessUsed(bool bUse)   { if (m_Metalness.second   == bUse) return; m_Metalness.second   = bUse; OnMaterialChanged();}
+		void SetRawRoughnessUsed(bool bUse)   { if (m_Roughness.second   == bUse) return; m_Roughness.second   = bUse; OnMaterialChanged();}
+		void SetRawAOUsed(bool bUse)          { if (m_AO.second          == bUse) return; m_AO.second          = bUse; OnMaterialChanged();}
+		void SetRawEmissiveUsed(bool bUse)    { if (m_Emissive.second    == bUse) return; m_Emissive.second    = bUse; OnMaterialChanged();}
+		void SetRawOpacityUsed(bool bUse)     { if (m_Opacity.second     == bUse) return; m_Opacity.second     = bUse; OnMaterialChanged();}
+		void SetRawOpacityMaskUsed(bool bUse) { if (m_OpacityMask.second == bUse) return; m_OpacityMask.second = bUse; OnMaterialChanged();}
 
 		void SetTintColor(const glm::vec4& tintColor)         { m_TintColor = tintColor;         OnMaterialChanged(); }
 		void SetEmissiveIntensity(const glm::vec3& intensity) { m_EmissiveIntensity = intensity; OnMaterialChanged(); }
@@ -39,13 +55,29 @@ namespace Eagle
 		}
 
 		const Ref<AssetTexture2D>& GetAlbedoAsset() const { return m_AlbedoAsset; }
-		const Ref<AssetTexture2D>& GetMetallnessAsset() const { return m_MetallnessAsset; }
+		const Ref<AssetTexture2D>& GetMetalnessAsset() const { return m_MetallnessAsset; }
 		const Ref<AssetTexture2D>& GetNormalAsset() const { return m_NormalAsset; }
 		const Ref<AssetTexture2D>& GetRoughnessAsset() const { return m_RoughnessAsset; }
 		const Ref<AssetTexture2D>& GetAOAsset() const { return m_AOAsset; }
 		const Ref<AssetTexture2D>& GetEmissiveAsset() const { return m_EmissiveAsset; }
 		const Ref<AssetTexture2D>& GetOpacityAsset() const { return m_OpacityAsset; }
 		const Ref<AssetTexture2D>& GetOpacityMaskAsset() const { return m_OpacityMaskAsset; }
+
+		glm::vec3 GetAlbedo() const { return m_Albedo.first; }
+		float GetMetalness() const { return m_Metalness.first; }
+		float GetRoughness() const { return m_Roughness.first; }
+		float GetAO() const { return m_AO.first; }
+		glm::vec3 GetEmissive() const { return m_Emissive.first; }
+		float GetOpacity() const { return m_Opacity.first; }
+		float GetOpacityMask() const { return m_OpacityMask.first; }
+
+		bool IsRawAlbedoUsed() const { return m_Albedo.second; }
+		bool IsRawMetalnessUsed() const { return m_Metalness.second; }
+		bool IsRawRoughnessUsed() const { return m_Roughness.second; }
+		bool IsRawAOUsed() const { return m_AO.second; }
+		bool IsRawEmissiveUsed() const { return m_Emissive.second; }
+		bool IsRawOpacityUsed() const { return m_Opacity.second; }
+		bool IsRawOpacityMaskUsed() const { return m_OpacityMask.second; }
 
 		const glm::vec4& GetTintColor() const { return m_TintColor; }
 		const glm::vec3& GetEmissiveIntensity() const { return m_EmissiveIntensity; }
@@ -76,6 +108,15 @@ namespace Eagle
 		Ref<AssetTexture2D> m_EmissiveAsset;
 		Ref<AssetTexture2D> m_OpacityAsset;
 		Ref<AssetTexture2D> m_OpacityMaskAsset;
+
+		// Bool indicates if raw values should be used instead of an asset
+		std::pair<glm::vec3, bool> m_Albedo      = { glm::vec3(0.f), true };
+		std::pair<float, bool>     m_Metalness   = { 0.f,            true };
+		std::pair<glm::vec3, bool> m_Emissive    = { glm::vec3(0.f), true };
+		std::pair<float, bool>     m_Roughness   = { 0.5f,           true };
+		std::pair<float, bool>     m_AO          = { 1.0f,           true };
+		std::pair<float, bool>     m_Opacity     = { 0.5f,           true };
+		std::pair<float, bool>     m_OpacityMask = { 1.0f,           true };
 
 		glm::vec4 m_TintColor = glm::vec4(1.0);
 		glm::vec3 m_EmissiveIntensity = glm::vec3(1.f);

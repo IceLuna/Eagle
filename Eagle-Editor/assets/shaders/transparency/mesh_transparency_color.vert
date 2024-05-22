@@ -1,6 +1,7 @@
 #include "defines.h"
 #include "mesh_vertex_input_layout.h"
-#include "material_pipeline_layout.h"
+#define EG_NO_TEXTURES
+#include "pipeline_layout.h"
 
 layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX)
 readonly buffer MeshTransformsBuffer
@@ -26,8 +27,8 @@ void main()
     
     o_WorldPos = vec3(model * vec4(a_Position, 1.0));
     
-    ShaderMaterial material = FetchMaterial(a_PerInstanceData.y);
-    if (material.NormalTextureIndex != EG_INVALID_TEXTURE_INDEX)
+    const uint normalTextureIndex = FetchMaterialNormalTextureIndex(a_PerInstanceData.y);
+    if (normalTextureIndex != EG_INVALID_INDEX)
     {
         vec3 tangent = normalize(vec3(model * vec4(a_Tangent, 0.0)));
         vec3 normal = normalize(vec3(model * vec4(a_Normal, 0.0)));

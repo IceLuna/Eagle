@@ -748,6 +748,7 @@ namespace Eagle
 				m_TranslucentMeshesDLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 			}
 			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+			pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 
 			for (uint32_t i = 0; i < framebuffers.size(); ++i)
 			{
@@ -785,6 +786,7 @@ namespace Eagle
 					m_TranslucentMeshesPLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 				}
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+				pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 
 				{
 					EG_GPU_TIMING_SCOPED(cmd, "Translucent Meshes: Point Lights Shadow pass");
@@ -829,6 +831,7 @@ namespace Eagle
 					m_TranslucentMeshesSLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 				}
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+				pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 
 				{
 					EG_GPU_TIMING_SCOPED(cmd, "Translucent Meshes: Spot Lights Shadow pass");
@@ -893,6 +896,7 @@ namespace Eagle
 				m_MaskedMeshesDLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 			}
 			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+			pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
@@ -930,6 +934,7 @@ namespace Eagle
 					m_MaskedMeshesPLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 				}
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+				pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 
 				{
 					EG_GPU_TIMING_SCOPED(cmd, "Masked Meshes: Point Lights Shadow pass");
@@ -972,6 +977,7 @@ namespace Eagle
 					m_MaskedMeshesSLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 				}
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+				pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 
 				{
 					EG_GPU_TIMING_SCOPED(cmd, "Masked Meshes: Spot Lights Shadow pass");
@@ -1160,6 +1166,7 @@ namespace Eagle
 				m_TranslucentSkeletalMeshesDLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 			}
 			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+			pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 
 			for (uint32_t i = 0; i < framebuffers.size(); ++i)
 			{
@@ -1202,6 +1209,7 @@ namespace Eagle
 					m_TranslucentSkeletalMeshesDLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 				}
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+				pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 
 				{
 					EG_GPU_TIMING_SCOPED(cmd, "Translucent Skeletal Meshes: Point Lights Shadow pass");
@@ -1251,6 +1259,7 @@ namespace Eagle
 					m_TranslucentSkeletalMeshesSLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 				}
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+				pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 
 				{
 					EG_GPU_TIMING_SCOPED(cmd, "Translucent Meshes: Spot Lights Shadow pass");
@@ -1317,6 +1326,7 @@ namespace Eagle
 				m_MaskedSkeletalMeshesDLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 			}
 			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+			pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
@@ -1355,6 +1365,7 @@ namespace Eagle
 					m_MaskedSkeletalMeshesPLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 				}
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+				pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 
 				{
 					EG_GPU_TIMING_SCOPED(cmd, "Masked Skeletal Meshes: Point Lights Shadow pass");
@@ -1398,6 +1409,7 @@ namespace Eagle
 					m_MaskedSkeletalMeshesSLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 				}
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+				pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 
 				{
 					EG_GPU_TIMING_SCOPED(cmd, "Masked Skeletal Meshes: Spot Lights Shadow pass");
@@ -1587,6 +1599,7 @@ namespace Eagle
 				m_TranslucentSpritesDLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 			}
 			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+			pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 			pipeline->SetBuffer(transformsBuffer, 1, 0);
 
 			for (uint32_t i = 0; i < framebuffers.size(); ++i)
@@ -1630,6 +1643,7 @@ namespace Eagle
 					m_TranslucentSpritesPLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 				}
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+				pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 
 				pipeline->SetBuffer(transformsBuffer, 1, 0);
 				pipeline->SetBuffer(vpsBuffer, 1, 1);
@@ -1683,6 +1697,7 @@ namespace Eagle
 					m_TranslucentSpritesSLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 				}
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+				pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 
 				pipeline->SetBuffer(transformsBuffer, 1, 0);
 
@@ -1747,6 +1762,7 @@ namespace Eagle
 				m_MaskedSpritesDLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 			}
 			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+			pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 
 			pipeline->SetBuffer(transformsBuffer, 1, 0);
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
@@ -1785,6 +1801,7 @@ namespace Eagle
 				m_MaskedSpritesPLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 			}
 			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+			pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 
 			pipeline->SetBuffer(transformsBuffer, 1, 0);
 			pipeline->SetBuffer(vpsBuffer, 1, 1);
@@ -1829,6 +1846,7 @@ namespace Eagle
 				m_MaskedSpritesSLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 			}
 			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+			pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 
 			pipeline->SetBuffer(transformsBuffer, 1, 0);
 

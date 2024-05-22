@@ -1,6 +1,7 @@
 #include "defines.h"
 #include "sprite_vertex_input_layout.h"
-#include "material_pipeline_layout.h"
+#define EG_NO_TEXTURES
+#include "pipeline_layout.h"
 
 layout(push_constant) uniform PushConstants
 {
@@ -38,10 +39,8 @@ void main()
         worldNormal = -worldNormal;
     o_Normal = worldNormal;
 
-    const CPUMaterial material = g_Materials[materialIndex];
-    uint normalTextureIndex, unused;
-    UnpackTextureIndices(material, unused, unused, normalTextureIndex, unused, unused, unused, unused, unused);
-    if (normalTextureIndex != EG_INVALID_TEXTURE_INDEX)
+    const uint normalTextureIndex = FetchMaterialNormalTextureIndex(materialIndex);
+    if (normalTextureIndex != EG_INVALID_INDEX)
     {
         const vec3 worldTangent = normalize(normalModel * s_Tangent);
         const vec3 worldBitangent = normalize(normalModel * s_Bitangent);
