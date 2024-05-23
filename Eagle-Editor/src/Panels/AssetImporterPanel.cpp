@@ -54,7 +54,7 @@ namespace Eagle
 
 			if (bCube)
 			{
-				UI::Text("Format", Utils::GetEnumName(m_CubeSettings.ImportFormat), "Currently, other formats are not supported");
+				UI::ComboEnum("Format", m_CubeSettings.ImportFormat);
 				if (UI::PropertyDrag("Layer Size", m_CubeSettings.LayerSize, 16.f, 32, 0, "Resolution of a cube side"))
 					m_CubeSettings.LayerSize = glm::clamp(m_CubeSettings.LayerSize, 16u, 4096u);
 				if (UI::PropertyDrag("Prefilter Size", m_CubeSettings.PrefilterSize, 16.f, 32, 0, "The quality of IBL reflection"))

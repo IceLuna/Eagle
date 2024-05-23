@@ -122,6 +122,7 @@ namespace Eagle
 
 		virtual void SetLayerSize(uint32_t layerSize) = 0;
 		virtual void SetPrefilterSize(uint32_t prefilterSize) = 0;
+		virtual void SetData(const void* data, ImageFormat format) = 0;
 
 		uint32_t GetPrefilterSize() const { return m_PrefilterSize; }
 

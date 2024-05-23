@@ -38,6 +38,8 @@ namespace Eagle
 		{
 			const glm::ivec2 textureSize = glm::ivec2(textureToView->GetSize());
 			const std::string textureSizeString = std::to_string(textureSize.x) + "x" + std::to_string(textureSize.y);
+			auto assetFormat = m_Asset->GetFormat();
+			bool bChanged = false;
 
 			ImGui::Begin("Details");
 			detailsDocked = ImGui::IsWindowDocked();
@@ -45,7 +47,12 @@ namespace Eagle
 			UI::Text("Name", m_Asset->GetPath().stem().u8string());
 			UI::Text("Type", "Texture Cube");
 			UI::Text("Resolution", textureSizeString);
-			UI::Text("Format", Utils::GetEnumName(m_Asset->GetFormat()));
+
+			if (UI::ComboEnum("Format", assetFormat))
+			{
+				if (m_Asset->SetFormat(assetFormat))
+					bChanged = true;
+			}
 
 			size_t gpuMemSize = textureCube->GetMemoryUsage();
 
@@ -82,7 +89,7 @@ namespace Eagle
 				if (ImGui::Button("Generate"))
 				{
 					m_Asset->SetLayerSize(uint32_t(m_LayersSize));
-					m_Asset->SetDirty(true);
+					bChanged = true;
 				}
 			}
 
@@ -114,7 +121,7 @@ namespace Eagle
 				if (ImGui::Button("Generate"))
 				{
 					m_Asset->SetPrefilterSize(uint32_t(m_PrefilterSize));
-					m_Asset->SetDirty(true);
+					bChanged = true;
 				}
 				ImGui::PopID();
 			}
@@ -123,6 +130,9 @@ namespace Eagle
 
 			ImGui::Separator();
 			ImGui::Separator();
+
+			if (bChanged)
+				m_Asset->SetDirty(true);
 
 			if (ImGui::Button("Save asset"))
 				Asset::Save(m_Asset);

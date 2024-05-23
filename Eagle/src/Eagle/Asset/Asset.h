@@ -57,12 +57,9 @@ namespace Eagle
 	{
 		RGBA32,
 		RGBA16,
-		RG32,
-		RG16,
-		R32,
-		R16,
+		R11G11B10,
 
-		Default = RGBA16
+		Default = R11G11B10
 	};
 
 	static constexpr uint32_t AssetTextureFormatToChannels(AssetTexture2DFormat format)
@@ -101,11 +98,7 @@ namespace Eagle
 		case Format::RGBA32:
 		case Format::RGBA16: return 4u;
 
-		case Format::RG32:
-		case Format::RG16: return 2u;
-
-		case Format::R32:
-		case Format::R16: return 1u;
+		case Format::R11G11B10: return 3u;
 		}
 
 		EG_CORE_ASSERT(!"Invalid format");
@@ -120,11 +113,7 @@ namespace Eagle
 		case Format::RGBA32: return ImageFormat::R32G32B32A32_Float;
 		case Format::RGBA16: return ImageFormat::R16G16B16A16_Float;
 
-		case Format::RG32: return ImageFormat::R32G32_Float;
-		case Format::RG16: return ImageFormat::R16G16_Float;
-
-		case Format::R32: return ImageFormat::R32_Float;
-		case Format::R16: return ImageFormat::R16_Float;
+		case Format::R11G11B10: return ImageFormat::R11G11B10_Float;
 		}
 
 		EG_CORE_ASSERT(!"Invalid format");
@@ -136,9 +125,7 @@ namespace Eagle
 		using Format = AssetTextureCubeFormat;
 		switch (format)
 		{
-		case Format::RGBA16:
-		case Format::RG16:
-		case Format::R16: return true;
+		case Format::RGBA16: return true;
 		}
 		return false;
 	}
@@ -296,6 +283,7 @@ namespace Eagle
 	public:
 		void SetLayerSize(uint32_t layerSize);
 		void SetPrefilterSize(uint32_t prefilter);
+		bool SetFormat(AssetTextureCubeFormat format);
 
 		const Ref<TextureCube>& GetTexture() const { return m_Texture; }
 		AssetTextureCubeFormat GetFormat() const { return m_Format; }

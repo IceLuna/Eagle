@@ -97,6 +97,7 @@ namespace Eagle
 		if (!m_ImageData[0])
 			return;
 
+		m_bIsLoaded = false;
 		m_Specs.MipsCount = glm::min(CalculateMipCount(m_Size), m_Specs.MipsCount);
 		const bool bGenerateMips = m_Specs.MipsCount > 1;
 
@@ -115,7 +116,6 @@ namespace Eagle
 		m_Sampler = Sampler::Create(m_Specs.FilterMode, m_Specs.AddressMode, CompareOperation::Never, 0.f, float(mipsCount - 1), m_Specs.MaxAnisotropy);
 
 		// We need to copy it to insure the safety on RenderThread.
-		// If the texture is destroyed before the RT is executed, it'll dereference a dead pointer
 		std::vector<ScopedDataBuffer> dataPerMips(m_ImageData.size());
 		for (uint32_t i = 0; i < m_ImageData.size(); ++i)
 			dataPerMips[i] = DataBuffer::Copy(m_ImageData[i].Data(), m_ImageData[i].Size());

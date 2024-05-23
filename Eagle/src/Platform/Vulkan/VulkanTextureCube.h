@@ -15,6 +15,7 @@ namespace Eagle
 
 		void SetLayerSize(uint32_t layerSize) override;
 		void SetPrefilterSize(uint32_t prefilterSize) override;
+		void SetData(const void* data, ImageFormat format) override;
 		void GenerateIBL();
 
 	private:

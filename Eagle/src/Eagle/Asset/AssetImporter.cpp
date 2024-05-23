@@ -10,6 +10,7 @@
 #include "Eagle/Utils/Compressor.h"
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Utils/YamlUtils.h"
+#include "Eagle/Utils/AssimpImporter.h"
 #include "Eagle/Renderer/TextureCompressor.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Core/Project.h"

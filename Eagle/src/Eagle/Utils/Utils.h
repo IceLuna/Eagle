@@ -35,6 +35,67 @@ namespace Eagle::Utils
 		return glm::detail::toFloat16(value);
 	}
 
+	// Function to convert float32 to unsigned float10
+	static uint16_t ToFloat10(float value)
+	{
+		uint32_t float_bits;
+		std::memcpy(&float_bits, &value, sizeof(float_bits));
+
+		uint32_t sign = (float_bits >> 31) & 0x1;
+		uint32_t exponent = (float_bits >> 23) & 0xFF;
+		uint32_t significand = float_bits & 0x7FFFFF;
+
+		uint16_t unsigned_float10_exponent;
+		uint16_t unsigned_float10_significand;
+
+		if (exponent == 0) {
+			unsigned_float10_exponent = 0;
+			unsigned_float10_significand = significand >> 18;
+		}
+		else {
+			unsigned_float10_exponent = exponent - 127 + 15;  // Adjusting bias from float32 (127) to float10 (15)
+			unsigned_float10_significand = significand >> 18;
+		}
+
+		return (unsigned_float10_exponent << 5) | (unsigned_float10_significand & 0x1F);
+	}
+
+	// Function to convert float32 to unsigned float11
+	static uint16_t ToFloat11(float value)
+	{
+		uint32_t float_bits;
+		std::memcpy(&float_bits, &value, sizeof(float_bits));
+
+		uint32_t sign = (float_bits >> 31) & 0x1;
+		uint32_t exponent = (float_bits >> 23) & 0xFF;
+		uint32_t significand = float_bits & 0x7FFFFF;
+
+		uint16_t unsigned_float11_exponent;
+		uint16_t unsigned_float11_significand;
+
+		if (exponent == 0) {
+			unsigned_float11_exponent = 0;
+			unsigned_float11_significand = significand >> 17;
+		}
+		else {
+			unsigned_float11_exponent = exponent - 127 + 15;  // Adjusting bias from float32 (127) to float11 (15)
+			unsigned_float11_significand = significand >> 17;
+		}
+
+		return (unsigned_float11_exponent << 6) | (unsigned_float11_significand & 0x3F);
+	}
+
+	// Function to pack float32 RGB values into a uint32_t
+	static uint32_t ToR11G11B10(glm::vec3 rgb)
+	{
+		uint16_t r11 = ToFloat11(rgb.r);
+		uint16_t g11 = ToFloat11(rgb.g);
+		uint16_t b10 = ToFloat10(rgb.b);
+
+		uint32_t packed_value = (b10 << 22) | (g11 << 11) | r11;
+		return packed_value;
+	}
+
 	size_t FindSubstringI(const std::string& str1, const std::string& str2);
 	size_t FindSubstringI(const std::wstring& str1, const std::wstring& str2);
 
@@ -55,15 +116,6 @@ namespace Eagle::Utils
 		EG_CORE_WARN("Couldn't get enum from name: {}", name);
 		return Enum();
 	}
-
-	StaticMeshImportData ImportStaticMesh(const Path& path);
-
-	SkeletalMeshImportData ImportSkeletalMesh(const Path& path);
-
-	std::vector<SkeletalMeshAnimation> ImportAnimations(const Path& path, const Ref<SkeletalMesh>& skeletal, bool bRootMotion);
-
-	// Imports materials from a 3D model file
-	std::vector<Ref<AssetMaterial>> ImportMaterials(const Path& path, const Path& saveTo);
 
 	static bool HasExtension(const Path& filepath, const char* extension)
 	{

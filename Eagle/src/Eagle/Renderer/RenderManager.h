@@ -139,9 +139,9 @@ namespace Eagle
 		static uint32_t GetCurrentFrameIndex();
 		static uint32_t GetCurrentReleaseFrameIndex();
 		static Ref<DescriptorManager>& GetDescriptorSetManager();
-		static Ref<PipelineGraphics>& GetIBLPipeline();
-		static Ref<PipelineGraphics>& GetIrradiancePipeline();
-		static Ref<PipelineGraphics>& GetPrefilterPipeline();
+		static Ref<PipelineGraphics>& GetIBLPipeline(ImageFormat format);
+		static Ref<PipelineGraphics>& GetIrradiancePipeline(ImageFormat format);
+		static Ref<PipelineGraphics>& GetPrefilterPipeline(ImageFormat format);
 		static Ref<PipelineGraphics>& GetBRDFLUTPipeline();
 		static void* GetPresentRenderPassHandle();
 		static uint64_t GetFrameNumber_RT();

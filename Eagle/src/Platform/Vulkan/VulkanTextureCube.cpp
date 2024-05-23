@@ -35,7 +35,7 @@ namespace Eagle
 	VulkanTextureCube::VulkanTextureCube(const std::string& name, ImageFormat format, const void* data, glm::uvec2 size, uint32_t layerSize, uint32_t prefilterSize)
 		: TextureCube(format, layerSize, prefilterSize)
 	{
-		m_Texture2D = Texture2D::Create(name, format, size, data, Texture2DSpecifications{});
+		m_Texture2D = Texture2D::Create(name, m_Format, size, data, Texture2DSpecifications{});
 		m_Sampler = Sampler::PointSampler;
 
 		// The data is not uploaded to the GPU here.
@@ -71,13 +71,20 @@ namespace Eagle
 		GenerateIBL();
 	}
 
+	void VulkanTextureCube::SetData(const void* data, ImageFormat format)
+	{
+		m_Format = format;
+		m_Texture2D->SetData(data, format);
+		GenerateIBL();
+	}
+
 	void VulkanTextureCube::GenerateIBL()
 	{
 		m_Loaded = false;
 
 		ImageSpecifications imageSpecs;
 		imageSpecs.Size = m_Size;
-		imageSpecs.Format = ImageFormat::R16G16B16A16_Float;
+		imageSpecs.Format = m_Format;
 		imageSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc | ImageUsage::TransferDst;
 		imageSpecs.Layout = ImageLayoutType::RenderTarget;
 		imageSpecs.bIsCube = true;
@@ -87,7 +94,7 @@ namespace Eagle
 
 		ImageSpecifications irradianceImageSpecs;
 		irradianceImageSpecs.Size = glm::uvec3{ TextureCube::IrradianceSize, TextureCube::IrradianceSize, 1 };
-		irradianceImageSpecs.Format = ImageFormat::R16G16B16A16_Float;
+		irradianceImageSpecs.Format = m_Format;
 		irradianceImageSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
 		irradianceImageSpecs.Layout = ImageLayoutType::RenderTarget;
 		irradianceImageSpecs.bIsCube = true;
@@ -95,7 +102,7 @@ namespace Eagle
 
 		ImageSpecifications prefilterImageSpecs;
 		prefilterImageSpecs.Size = glm::uvec3{ m_PrefilterSize, m_PrefilterSize, 1 };
-		prefilterImageSpecs.Format = ImageFormat::R16G16B16A16_Float;
+		prefilterImageSpecs.Format = m_Format;
 		prefilterImageSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc | ImageUsage::TransferDst;
 		prefilterImageSpecs.Layout = ImageLayoutType::RenderTarget;
 		prefilterImageSpecs.bIsCube = true;
@@ -103,8 +110,8 @@ namespace Eagle
 		m_PrefilterImage = MakeRef<VulkanImage>(prefilterImageSpecs, "PrefilterCubeImage");
 		m_PrefilterImageSampler = MakeRef<VulkanSampler>(FilterMode::Trilinear, AddressMode::Clamp, CompareOperation::Never, 0.f, float(prefilterImageSpecs.MipsCount - 1u));
 
-		const void* renderpassHandle = RenderManager::GetIBLPipeline()->GetRenderPassHandle();
-		const void* irradianceRenderpassHandle = RenderManager::GetIrradiancePipeline()->GetRenderPassHandle();
+		const void* renderpassHandle = RenderManager::GetIBLPipeline(m_Format)->GetRenderPassHandle();
+		const void* irradianceRenderpassHandle = RenderManager::GetIrradiancePipeline(m_Format)->GetRenderPassHandle();
 		ImageView imageView{};
 		imageView.LayersCount = 1;
 		const glm::uvec2 squareSize = { m_Size.x, m_Size.y };
@@ -141,9 +148,9 @@ namespace Eagle
 				glm::mat4 VP;
 			} pushData;
 
-			Ref<PipelineGraphics>& iblPipeline = RenderManager::GetIBLPipeline();
-			Ref<PipelineGraphics>& irradiancePipeline = RenderManager::GetIrradiancePipeline();
-			Ref<PipelineGraphics>& prefilterPipeline = RenderManager::GetPrefilterPipeline();
+			Ref<PipelineGraphics>& iblPipeline = RenderManager::GetIBLPipeline(texture->GetFormat());
+			Ref<PipelineGraphics>& irradiancePipeline = RenderManager::GetIrradiancePipeline(texture->GetFormat());
+			Ref<PipelineGraphics>& prefilterPipeline = RenderManager::GetPrefilterPipeline(texture->GetFormat());
 
 			iblPipeline->SetImageSampler(texture->m_Texture2D->GetImage(), Sampler::PointSampler, 0, 0);
 			irradiancePipeline->SetImageSampler(texture->m_Image, texture->m_CubemapSampler, 0, 0);

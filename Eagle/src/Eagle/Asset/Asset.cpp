@@ -208,6 +208,55 @@ namespace Eagle
 		m_Texture->SetPrefilterSize(prefilter);
 	}
 
+	bool AssetTextureCube::SetFormat(AssetTextureCubeFormat format)
+	{
+		int width, height, channels;
+		const int desiredChannels = AssetTextureFormatToChannels(format);
+		void* stbiImageData = stbi_loadf_from_memory((uint8_t*)m_RawData.Data(), (int)m_RawData.Size(), &width, &height, &channels, desiredChannels);
+
+		if (!stbiImageData)
+		{
+			EG_CORE_ERROR("Failed to change format of TextureCube asset. stbi_loadf failed: {}", Utils::GetEnumName(format));
+			return false;
+		}
+
+		const ImageFormat imageFormat = AssetTextureFormatToImageFormat(format);
+		const bool bFloat16 = IsFloat16Format(format);
+		void* imageData = stbiImageData;
+		if (bFloat16)
+		{
+			const size_t pixels = size_t(width) * height * desiredChannels;
+			imageData = malloc(pixels * sizeof(uint16_t));
+			uint16_t* imageData16 = (uint16_t*)imageData;
+			float* stbiImageData32 = (float*)stbiImageData;
+
+			for (size_t i = 0; i < pixels; ++i)
+				imageData16[i] = Utils::ToFloat16(stbiImageData32[i]);
+		}
+		else if (format == AssetTextureCubeFormat::R11G11B10)
+		{
+			const size_t pixels = size_t(width) * height;
+			imageData = malloc(pixels * sizeof(uint32_t));
+			uint32_t* imageData32 = (uint32_t*)imageData;
+			float* stbiImageData32 = (float*)stbiImageData;
+			for (size_t i = 0; i < pixels; ++i)
+			{
+				glm::vec3 rgb = glm::vec3(stbiImageData32[i * 3], stbiImageData32[i * 3 + 1], stbiImageData32[i * 3 + 2]);
+				imageData32[i] = Utils::ToR11G11B10(rgb);
+			}
+		}
+
+		m_Texture->SetData(imageData, imageFormat);
+
+		if (stbiImageData != imageData)
+			free(imageData);
+		stbi_image_free(stbiImageData);
+
+		m_Format = format;
+
+		return true;
+	}
+
 	Ref<Asset> Asset::Create(const Path& path)
 	{
 		if (!std::filesystem::exists(path))

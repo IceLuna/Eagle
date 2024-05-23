@@ -13,6 +13,7 @@
 #include "Eagle/Animation/AnimationGraph.h"
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Utils/Compressor.h"
+#include "Eagle/Utils/AssimpImporter.h"
 
 #include <stb_image.h>
 
@@ -2351,6 +2352,18 @@ namespace Eagle
 
 			for (size_t i = 0; i < pixels; ++i)
 				imageData16[i] = Utils::ToFloat16(stbiImageData32[i]);
+		}
+		else if (assetFormat == AssetTextureCubeFormat::R11G11B10)
+		{
+			const size_t pixels = size_t(width) * height;
+			imageData = malloc(pixels * sizeof(uint32_t));
+			uint32_t* imageData32 = (uint32_t*)imageData;
+			float* stbiImageData32 = (float*)stbiImageData;
+			for (size_t i = 0; i < pixels; ++i)
+			{
+				glm::vec3 rgb = glm::vec3(stbiImageData32[i * 3], stbiImageData32[i * 3 + 1], stbiImageData32[i * 3 + 2]);
+				imageData32[i] = Utils::ToR11G11B10(rgb);
+			}
 		}
 
 		class LocalAssetTextureCube : public AssetTextureCube

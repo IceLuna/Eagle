@@ -33,9 +33,9 @@ namespace Eagle
 		Ref<VulkanSwapchain> Swapchain;
 
 		Ref<PipelineGraphics> PresentPipeline;
-		Ref<PipelineGraphics> IBLPipeline;
-		Ref<PipelineGraphics> IrradiancePipeline;
-		Ref<PipelineGraphics> PrefilterPipeline;
+		std::unordered_map<ImageFormat, Ref<PipelineGraphics>> IBLPipelines;
+		std::unordered_map<ImageFormat, Ref<PipelineGraphics>> IrradiancePipelines;
+		std::unordered_map<ImageFormat, Ref<PipelineGraphics>> PrefilterPipelines;
 		Ref<PipelineGraphics> BRDFLUTPipeline;
 		std::vector<Ref<Framebuffer>> PresentFramebuffers;
 		Ref<Image> PresentImage;
@@ -52,12 +52,13 @@ namespace Eagle
 		Ref<Image> DummyImageR16;
 		Ref<Image> DummyImageR16Cube;
 		Ref<Image> DummyImage3D;
+		Ref<Image> DummyRGBA11FImage;
 		Ref<Image> DummyRGBA16FImage;
+		Ref<Image> DummyRGBA32FImage;
 		Ref<Image> DummyDepthImage;
 		Ref<Image> DummyCubeDepthImage;
 		Ref<Image> BRDFLUTImage;
 		Ref<TextureCube> DummyIBL;
-		Ref<TextureCube> IBLTexture;
 
 		GPUTimingsContainer GPUTimings; // Sorted
 #ifdef EG_GPU_TIMINGS
@@ -230,7 +231,7 @@ namespace Eagle
 		colorAttachment.ClearOperation = ClearOperation::Clear;
 		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.Image = s_RendererData->DummyRGBA16FImage; // just a dummy here
+		colorAttachment.Image = s_RendererData->DummyRGBA32FImage; // just a dummy here
 
 		PipelineGraphicsState state;
 		state.VertexShader = vertexShader;
@@ -253,9 +254,30 @@ namespace Eagle
 		prefilterState.Size = { 1, 1 };
 		prefilterState.bImagelessFramebuffer = true;
 
-		s_RendererData->IBLPipeline = PipelineGraphics::Create(state);
-		s_RendererData->IrradiancePipeline = PipelineGraphics::Create(irradianceState);
-		s_RendererData->PrefilterPipeline = PipelineGraphics::Create(prefilterState);
+		s_RendererData->IBLPipelines[ImageFormat::R32G32B32A32_Float] = PipelineGraphics::Create(state);
+		s_RendererData->IrradiancePipelines[ImageFormat::R32G32B32A32_Float] = PipelineGraphics::Create(irradianceState);
+		s_RendererData->PrefilterPipelines[ImageFormat::R32G32B32A32_Float] = PipelineGraphics::Create(prefilterState);
+
+		state.ColorAttachments[0].Image = s_RendererData->DummyRGBA16FImage;
+		irradianceState.ColorAttachments[0].Image = s_RendererData->DummyRGBA16FImage;
+		prefilterState.ColorAttachments[0].Image = s_RendererData->DummyRGBA16FImage;
+		s_RendererData->IBLPipelines[ImageFormat::R16G16B16A16_Float] = PipelineGraphics::Create(state);
+		s_RendererData->IrradiancePipelines[ImageFormat::R16G16B16A16_Float] = PipelineGraphics::Create(irradianceState);
+		s_RendererData->PrefilterPipelines[ImageFormat::R16G16B16A16_Float] = PipelineGraphics::Create(prefilterState);
+
+		state.ColorAttachments[0].Image = s_RendererData->DummyRGBA11FImage;
+		irradianceState.ColorAttachments[0].Image = s_RendererData->DummyRGBA11FImage;
+		prefilterState.ColorAttachments[0].Image = s_RendererData->DummyRGBA11FImage;
+		s_RendererData->IBLPipelines[ImageFormat::R11G11B10_Float] = PipelineGraphics::Create(state);
+		s_RendererData->IrradiancePipelines[ImageFormat::R11G11B10_Float] = PipelineGraphics::Create(irradianceState);
+		s_RendererData->PrefilterPipelines[ImageFormat::R11G11B10_Float] = PipelineGraphics::Create(prefilterState);
+
+		state.ColorAttachments[0].Image = s_RendererData->DummyImage;
+		irradianceState.ColorAttachments[0].Image = s_RendererData->DummyImage;
+		prefilterState.ColorAttachments[0].Image = s_RendererData->DummyImage;
+		s_RendererData->IBLPipelines[ImageFormat::R8G8B8A8_UNorm] = PipelineGraphics::Create(state);
+		s_RendererData->IrradiancePipelines[ImageFormat::R8G8B8A8_UNorm] = PipelineGraphics::Create(irradianceState);
+		s_RendererData->PrefilterPipelines[ImageFormat::R8G8B8A8_UNorm] = PipelineGraphics::Create(prefilterState);
 	}
 
 	static void SetupBRDFLUTPipeline()
@@ -342,11 +364,16 @@ namespace Eagle
 		Sampler::TrilinearSampler = Sampler::Create(FilterMode::Trilinear, AddressMode::Wrap, CompareOperation::Never, 0.f, 0.f, 1.f);
 
 		ImageSpecifications colorSpecs;
-		colorSpecs.Format = ImageFormat::R16G16B16A16_Float;
 		colorSpecs.Layout = ImageLayoutType::Unknown;
 		colorSpecs.Size = { 1, 1, 1 };
 		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+
+		colorSpecs.Format = ImageFormat::R11G11B10_Float;
+		s_RendererData->DummyRGBA11FImage = Image::Create(colorSpecs, "DummyRGBA11F");
+		colorSpecs.Format = ImageFormat::R16G16B16A16_Float;
 		s_RendererData->DummyRGBA16FImage = Image::Create(colorSpecs, "DummyRGBA16F");
+		colorSpecs.Format = ImageFormat::R32G32B32A32_Float;
+		s_RendererData->DummyRGBA32FImage = Image::Create(colorSpecs, "DummyRGBA32F");
 
 		colorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
 		s_RendererData->DummyImage = Image::Create(colorSpecs, "Dummy2D");
@@ -781,19 +808,40 @@ namespace Eagle
 		return s_RendererData->DescriptorManager;
 	}
 
-	Ref<PipelineGraphics>& RenderManager::GetIBLPipeline()
+	Ref<PipelineGraphics>& RenderManager::GetIBLPipeline(ImageFormat format)
 	{
-		return s_RendererData->IBLPipeline;
+		auto it = s_RendererData->IBLPipelines.find(format);
+		if (it == s_RendererData->IBLPipelines.end())
+		{
+			EG_CORE_ASSERT(false);
+			EG_CORE_ERROR("Failed to find `IBL Pipeline` for: {}", Utils::GetEnumName(format));
+			return s_RendererData->IBLPipelines.at(ImageFormat::R16G16B16A16_Float);
+		}
+		return it->second;
 	}
 
-	Ref<PipelineGraphics>& RenderManager::GetIrradiancePipeline()
+	Ref<PipelineGraphics>& RenderManager::GetIrradiancePipeline(ImageFormat format)
 	{
-		return s_RendererData->IrradiancePipeline;
+		auto it = s_RendererData->IrradiancePipelines.find(format);
+		if (it == s_RendererData->IrradiancePipelines.end())
+		{
+			EG_CORE_ASSERT(false);
+			EG_CORE_ERROR("Failed to find `Irradiance Pipeline` for: {}", Utils::GetEnumName(format));
+			return s_RendererData->IrradiancePipelines.at(ImageFormat::R16G16B16A16_Float);
+		}
+		return it->second;
 	}
 
-	Ref<PipelineGraphics>& RenderManager::GetPrefilterPipeline()
+	Ref<PipelineGraphics>& RenderManager::GetPrefilterPipeline(ImageFormat format)
 	{
-		return s_RendererData->PrefilterPipeline;
+		auto it = s_RendererData->PrefilterPipelines.find(format);
+		if (it == s_RendererData->PrefilterPipelines.end())
+		{
+			EG_CORE_ASSERT(false);
+			EG_CORE_ERROR("Failed to find `Prefilter Pipeline` for: {}", Utils::GetEnumName(format));
+			return s_RendererData->PrefilterPipelines.at(ImageFormat::R16G16B16A16_Float);
+		}
+		return it->second;
 	}
 
 	Ref<PipelineGraphics>& RenderManager::GetBRDFLUTPipeline()
