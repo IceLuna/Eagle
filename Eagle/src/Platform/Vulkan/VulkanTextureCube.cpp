@@ -108,7 +108,7 @@ namespace Eagle
 		prefilterImageSpecs.bIsCube = true;
 		prefilterImageSpecs.MipsCount = glm::min(CalculateMipCount(prefilterImageSpecs.Size), 6u);
 		m_PrefilterImage = MakeRef<VulkanImage>(prefilterImageSpecs, "PrefilterCubeImage");
-		m_PrefilterImageSampler = MakeRef<VulkanSampler>(FilterMode::Trilinear, AddressMode::Clamp, CompareOperation::Never, 0.f, float(prefilterImageSpecs.MipsCount - 1u));
+		m_PrefilterImageSampler = MakeRef<VulkanSampler>(FilterMode::Trilinear, AddressMode::Clamp, CompareOperation::Never, 0.f, float(m_PrefilterImage->GetMipsCount() - 1u));
 
 		const void* renderpassHandle = RenderManager::GetIBLPipeline(m_Format)->GetRenderPassHandle();
 		const void* irradianceRenderpassHandle = RenderManager::GetIrradiancePipeline(m_Format)->GetRenderPassHandle();

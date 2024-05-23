@@ -17,5 +17,9 @@ namespace Eagle
 
 	private:
 		Ref<AssetTexture2D> m_Asset;
+		std::vector<std::string> m_MipNames;
+		int m_SelectedMip = 0;
+		bool bDetailsDocked = false;
+		bool bDetailsVisible = false;
 	};
 }

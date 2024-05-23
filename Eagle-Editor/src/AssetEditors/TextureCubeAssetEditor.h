@@ -19,5 +19,7 @@ namespace Eagle
 		Ref<AssetTextureCube> m_Asset;
 		int m_LayersSize = 0;
 		int m_PrefilterSize = 0;
+		bool bDetailsDocked = false;
+		bool bDetailsVisible = false;
 	};
 }

@@ -12,24 +12,19 @@ namespace Eagle
 
 		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
 		bool bHidden = !ImGui::Begin(m_Asset->GetPath().u8string().c_str(), pOpen);
-		static bool detailsDocked = false;
-		static bool bDetailsVisible;
-		bDetailsVisible = (!bHidden) || (bHidden && !detailsDocked);
+		bDetailsVisible = (!bHidden) || (bHidden && !bDetailsDocked);
 		ImVec2 availSize = ImGui::GetContentRegionAvail();
 		glm::vec2 visualizeImageSize = textureToView->GetSize();
 		const uint32_t mipsCount = textureToView->GetMipsCount(); // MipsCount == 1 means no mips, just the original
-		static int selectedMip = 0;
-		selectedMip = glm::clamp(selectedMip, 0, (int)mipsCount - 1);
+		m_SelectedMip = glm::clamp(m_SelectedMip, 0, (int)mipsCount - 1);
 
 		const float tRatio = visualizeImageSize[0] / visualizeImageSize[1];
 		const float wRatio = availSize[0] / availSize[1];
 
 		visualizeImageSize = wRatio > tRatio ? glm::vec2{ visualizeImageSize[0] * availSize[1] / visualizeImageSize[1], availSize[1] }
-		: glm::vec2{ availSize[0], visualizeImageSize[1] * availSize[0] / visualizeImageSize[0] };
+											 : glm::vec2{ availSize[0], visualizeImageSize[1] * availSize[0] / visualizeImageSize[0] };
 
-		UI::ImageMip(Cast<Texture2D>(textureToView), uint32_t(selectedMip), { visualizeImageSize[0], visualizeImageSize[1] });
-
-		bool bChanged = false;
+		UI::ImageMip(Cast<Texture2D>(textureToView), uint32_t(m_SelectedMip), { visualizeImageSize[0], visualizeImageSize[1] });
 
 		if (bDetailsVisible)
 		{
@@ -42,14 +37,15 @@ namespace Eagle
 			bool bNormalMap = m_Asset->IsNormalMap();
 			bool bNeedAlpha = m_Asset->DoesNeedAlpha();
 			auto assetFormat = m_Asset->GetFormat();
+			bool bChanged = false;
 
 			const glm::ivec2 baseTextureSize = textureToView->GetSize();
-			const glm::ivec2 mipTextureSize = baseTextureSize >> selectedMip;
+			const glm::ivec2 mipTextureSize = baseTextureSize >> m_SelectedMip;
 			const std::string baseSizeString = std::to_string(baseTextureSize.x) + "x" + std::to_string(baseTextureSize.y);
 			const std::string mipSizeString = std::to_string(mipTextureSize.x) + "x" + std::to_string(mipTextureSize.y);
 
-			ImGui::Begin("Details");
-			detailsDocked = ImGui::IsWindowDocked();
+			ImGui::Begin(("Details: " + m_Asset->GetPath().u8string()).c_str());
+			bDetailsDocked = ImGui::IsWindowDocked();
 			UI::BeginPropertyGrid("TextureDetails");
 			UI::Text("Name", m_Asset->GetPath().stem().u8string());
 			UI::Text("Type", "Texture 2D");
@@ -107,7 +103,7 @@ namespace Eagle
 
 			// Filter mode
 			{
-				static std::vector<std::string> modesStrings = { "Nearest", "Bilinear", "Trilinear" };
+				static const std::vector<std::string> modesStrings = { "Nearest", "Bilinear", "Trilinear" };
 				int selectedIndex = 0;
 				if (UI::Combo("Filtering", (uint32_t)filterMode, modesStrings, selectedIndex))
 				{
@@ -119,7 +115,7 @@ namespace Eagle
 
 			// Address Mode
 			{
-				static std::vector<std::string> modesStrings = { "Wrap", "Mirror", "Clamp", "Clamp to Black", "Clamp to White" };
+				static const std::vector<std::string> modesStrings = { "Wrap", "Mirror", "Clamp", "Clamp to Black", "Clamp to White" };
 
 				int selectedIndex = 0;
 				if (UI::Combo("Wrapping", (uint32_t)addressMode, modesStrings, selectedIndex))
@@ -132,29 +128,22 @@ namespace Eagle
 
 			// Visualize mips
 			{
-				static std::vector<std::string> modesStrings;
-				if (modesStrings.size() != mipsCount)
+				if (m_MipNames.size() != mipsCount)
 				{
-					modesStrings.resize(mipsCount);
+					m_MipNames.resize(mipsCount);
 					for (uint32_t i = 0; i < mipsCount; ++i)
-						modesStrings[i] = "Mip #" + std::to_string(i);
+						m_MipNames[i] = "Mip #" + std::to_string(i);
 				}
 
-				UI::Combo("Visualize", (uint32_t)selectedMip, modesStrings, selectedMip, {}, "Mip #0 is the original texture");
+				UI::Combo("Visualize", (uint32_t)m_SelectedMip, m_MipNames, m_SelectedMip, {}, "Mip #0 is the original texture");
 			}
 
 			// Generate Mips
 			{
-				static const Texture2D* s_LastTexture = nullptr;
 				constexpr int minMips = 1;
 				const int maxMips = (int)CalculateMipCount(textureToView->GetSize());
 
-				static int generateMipsCount = 1;
-				if (s_LastTexture != textureToView.get()) // Texture changed, reset mips slider
-				{
-					s_LastTexture = textureToView.get();
-					generateMipsCount = textureToView->GetMipsCount();
-				}
+				int generateMipsCount = textureToView->GetMipsCount();
 				generateMipsCount = glm::clamp(generateMipsCount, minMips, maxMips);
 
 				UI::UpdateIDBuffer("Generate Mips");

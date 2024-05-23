@@ -108,7 +108,7 @@ namespace Eagle
 			stbi_image_free(stbiImageData);
 		}
 		else
-			EG_CORE_ERROR("Failed to load the image: {}", GetPath().u8string());
+			EG_CORE_ERROR("Failed to change the format of Texture 2D: {}", GetPath().u8string());
 	}
 
 	void AssetTexture2D::UpdateTextureData_Internal(bool bCompressed, uint32_t mipsCount)
@@ -210,6 +210,9 @@ namespace Eagle
 
 	bool AssetTextureCube::SetFormat(AssetTextureCubeFormat format)
 	{
+		if (m_Format == format)
+			return false;
+
 		int width, height, channels;
 		const int desiredChannels = AssetTextureFormatToChannels(format);
 		void* stbiImageData = stbi_loadf_from_memory((uint8_t*)m_RawData.Data(), (int)m_RawData.Size(), &width, &height, &channels, desiredChannels);

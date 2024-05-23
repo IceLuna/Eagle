@@ -21,9 +21,7 @@ namespace Eagle
 
 		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
 		bool bHidden = !ImGui::Begin(m_Asset->GetPath().u8string().c_str(), pOpen);
-		static bool detailsDocked = false;
-		static bool bDetailsVisible;
-		bDetailsVisible = (!bHidden) || (bHidden && !detailsDocked);
+		bDetailsVisible = (!bHidden) || (bHidden && !bDetailsDocked);
 		ImVec2 availSize = ImGui::GetContentRegionAvail();
 		glm::vec2 visualizeImageSize = textureToView->GetSize();
 
@@ -31,7 +29,7 @@ namespace Eagle
 		const float wRatio = availSize[0] / availSize[1];
 
 		visualizeImageSize = wRatio > tRatio ? glm::vec2{ visualizeImageSize[0] * availSize[1] / visualizeImageSize[1], availSize[1] }
-		: glm::vec2{ availSize[0], visualizeImageSize[1] * availSize[0] / visualizeImageSize[0] };
+											 : glm::vec2{ availSize[0], visualizeImageSize[1] * availSize[0] / visualizeImageSize[0] };
 
 		UI::Image(Cast<Texture2D>(textureToView), { visualizeImageSize[0], visualizeImageSize[1] });
 		if (bDetailsVisible)
@@ -41,8 +39,8 @@ namespace Eagle
 			auto assetFormat = m_Asset->GetFormat();
 			bool bChanged = false;
 
-			ImGui::Begin("Details");
-			detailsDocked = ImGui::IsWindowDocked();
+			ImGui::Begin(("Details: " + m_Asset->GetPath().u8string()).c_str());
+			bDetailsDocked = ImGui::IsWindowDocked();
 			UI::BeginPropertyGrid("TextureCubeDetails");
 			UI::Text("Name", m_Asset->GetPath().stem().u8string());
 			UI::Text("Type", "Texture Cube");
@@ -50,8 +48,14 @@ namespace Eagle
 
 			if (UI::ComboEnum("Format", assetFormat))
 			{
-				if (m_Asset->SetFormat(assetFormat))
-					bChanged = true;
+				// IBL generation might take some time, which for some reason results in vulkan validation error (from ImGui)
+				// saying that ImageView is destroyed before commands finish executing. But deferring this call fixes it.
+				// It's strange because the error seems to come from ImGui, but ImGui used 2D texture, which is created fast.
+				Application::Get().CallNextFrame([asset = m_Asset, format = assetFormat]()
+				{
+					asset->SetFormat(format);
+				});
+				bChanged = true;
 			}
 
 			size_t gpuMemSize = textureCube->GetMemoryUsage();
