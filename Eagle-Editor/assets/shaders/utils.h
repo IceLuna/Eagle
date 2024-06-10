@@ -97,4 +97,86 @@ float VectorToDepth(vec3 val, float n, float f)
     return normZComp * 0.5f + 0.5f;
 }
 
+float EG_min3(float a, float b, float c)
+{
+    return min(a, min(b, c));
+}
+
+vec2 EG_min3(vec2 a, vec2 b, vec2 c)
+{
+    return min(a, min(b, c));
+}
+
+vec3 EG_min3(vec3 a, vec3 b, vec3 c)
+{
+    return min(a, min(b, c));
+}
+
+vec4 EG_min3(vec4 a, vec4 b, vec4 c)
+{
+    return min(a, min(b, c));
+}
+
+float EG_max3(float a, float b, float c)
+{
+    return max(a, max(b, c));
+}
+
+vec2 EG_max3(vec2 a, vec2 b, vec2 c)
+{
+    return max(a, max(b, c));
+}
+
+vec3 EG_max3(vec3 a, vec3 b, vec3 c)
+{
+    return max(a, max(b, c));
+}
+
+vec4 EG_max3(vec4 a, vec4 b, vec4 c)
+{
+    return max(a, max(b, c));
+}
+
+float EG_med3(float a, float b, float c)
+{
+    return a + b + c - EG_min3(a, b, c) - EG_max3(a, b, c);
+}
+
+vec2 EG_med3(vec2 a, vec2 b, vec2 c)
+{
+    return a + b + c - EG_min3(a, b, c) - EG_max3(a, b, c);
+}
+
+vec3 EG_med3(vec3 a, vec3 b, vec3 c)
+{
+    return a + b + c - EG_min3(a, b, c) - EG_max3(a, b, c);
+}
+
+vec4 EG_med3(vec4 a, vec4 b, vec4 c)
+{
+    return a + b + c - EG_min3(a, b, c) - EG_max3(a, b, c);
+}
+
+void sort3(inout float p1, inout float p2, inout float p3)
+{
+    float minValue = EG_min3(p1, p2, p3);
+    float medValue = EG_med3(p1, p2, p3);
+    float maxValue = EG_max3(p1, p2, p3);
+
+    p1 = minValue;
+    p2 = medValue;
+    p3 = maxValue;
+}
+
+void sort3(inout vec3 p1, inout vec3 p2, inout vec3 p3)
+{
+    vec3 minValue = EG_min3(p1, p2, p3);
+    vec3 medValue = EG_med3(p1, p2, p3);
+    vec3 maxValue = EG_max3(p1, p2, p3);
+
+    p1 = minValue;
+    p2 = medValue;
+    p3 = maxValue;
+}
+
 #endif

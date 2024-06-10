@@ -269,6 +269,18 @@ namespace Eagle
         }
     };
 
+    struct IndirectDispatchArgs
+    {
+        glm::uvec4 ThreadGroupCount = glm::uvec4(0); // It's `uvec4` because of padding issues on GPU side
+    };
+
+    struct PostprocessTileStatistics
+    {
+        IndirectDispatchArgs EarlyExit;
+        IndirectDispatchArgs Cheap;
+        IndirectDispatchArgs Expensive;
+    };
+
     enum class BlendOperation
     {
         Add,
@@ -710,6 +722,34 @@ namespace Eagle
         }
     };
 
+    struct DepthOfFieldSettings
+    {
+        glm::vec2 ApertureShape = glm::vec2(1.f); // [0; 2]
+        float ApertureSize = 0.f;
+        float FocalLength = 1.0f;
+        float COCScale = 10.f;
+        float MaxCOC = 18.f;
+        bool bDebugOutput = false;
+
+        bool operator== (const DepthOfFieldSettings& other) const
+        {
+            bool bEqual =
+                ApertureShape == other.ApertureShape &&
+                ApertureSize == other.ApertureSize &&
+                FocalLength == other.FocalLength &&
+                COCScale == other.COCScale &&
+                MaxCOC == other.MaxCOC &&
+                bDebugOutput == other.bDebugOutput;
+
+            return bEqual;
+        }
+
+        bool operator!= (const DepthOfFieldSettings& other) const
+        {
+            return !((*this) == other);
+        }
+    };
+
     struct SceneRendererSettings
     {
         BloomSettings BloomSettings;
@@ -720,6 +760,7 @@ namespace Eagle
         VolumetricLightsSettings VolumetricSettings;
         PhotoLinearTonemappingSettings PhotoLinearTonemappingParams;
         FilmicTonemappingSettings FilmicTonemappingParams;
+        DepthOfFieldSettings DOFSettings;
         float Gamma = 2.2f;
         float Exposure = 1.f;
         float LineWidth = 2.5f;
@@ -742,6 +783,7 @@ namespace Eagle
         {
             return PhotoLinearTonemappingParams == other.PhotoLinearTonemappingParams &&
                 FilmicTonemappingParams == other.FilmicTonemappingParams &&
+                DOFSettings == other.DOFSettings &&
                 FogSettings == other.FogSettings &&
                 ShadowsSettings == other.ShadowsSettings &&
                 VolumetricSettings == other.VolumetricSettings &&

@@ -15,6 +15,7 @@
 #include "Tasks/RenderSpritesTask.h"
 #include "Tasks/TAATask.h"
 #include "Tasks/VolumetricLightTask.h"
+#include "Tasks/DOFTask.h"
 
 #include "Eagle/Debug/CPUTimings.h" 
 #include "Eagle/Debug/GPUTimings.h"
@@ -78,6 +79,7 @@ namespace Eagle
 		m_TransparencyTask = MakeRef<TransparencyTask>(*this);
 		m_Text2DTask = MakeRef<RenderText2DTask>(*this);
 		m_Images2DTask = MakeRef<RenderImages2DTask>(*this);
+		m_DOFTask = MakeRef<DOFTask>(*this);
 		
 		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this, m_HDRRTImage);
 		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);
@@ -104,8 +106,10 @@ namespace Eagle
 
 		RenderManager::Submit([renderer = shared_from_this(), viewMat, proj = camera->GetProjection(), viewPosition, bRenderGrid = m_bGridEnabled, options = m_Options,
 			cascadeProjections = std::move(cameraCascadeProjections), cascadeFarPlanes = std::move(cameraCascadeFarPlanes), shadowDistance = camera->GetShadowFarClip(),
-			cascadesSmoothTransitionAlpha = camera->GetCascadesSmoothTransitionAlpha()](Ref<CommandBuffer>& cmd) mutable
+			cascadesSmoothTransitionAlpha = camera->GetCascadesSmoothTransitionAlpha(), zNear = camera->GetPerspectiveNearClip(), zFar = camera->GetPerspectiveFarClip()](Ref<CommandBuffer>& cmd) mutable
 		{
+			renderer->m_ZNear = zNear;
+			renderer->m_ZFar = zFar;
 			if (renderer->m_Options_RT != options)
 			{
 				renderer->m_Options_RT = options;
@@ -165,6 +169,7 @@ namespace Eagle
 			renderer->m_RenderUnlitTextTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderLinesTask->RecordCommandBuffer(cmd);
 			
+			renderer->m_DOFTask->RecordCommandBuffer(cmd);
 			renderer->m_TransparencyTask->RecordCommandBuffer(cmd);
 
 			if (renderer->m_Options_RT.AA == AAMethod::TAA)
@@ -285,6 +290,7 @@ namespace Eagle
 		m_PostProcessingPassTask->OnResize(m_Size);
 		m_GridTask->OnResize(m_Size);
 		m_TransparencyTask->OnResize(m_Size);
+		m_DOFTask->OnResize(m_Size);
 
 		if (m_Options.BloomSettings.bEnable)
 			m_BloomTask->OnResize(m_Size);
@@ -342,6 +348,7 @@ namespace Eagle
 		m_TransparencyTask->InitWithOptions(options);
 		m_GridTask->InitWithOptions(options);
 		m_ShadowPassTask->InitWithOptions(options);
+		m_DOFTask->InitWithOptions(options);
 
 		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this, m_HDRRTImage);
 		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);

@@ -9,7 +9,14 @@
 
 #ifndef EG_NO_TEXTURES
 layout(set = EG_TEXTURES_SET, binding = EG_BINDING_TEXTURES) uniform sampler2D g_Textures[];
+
+vec4 ReadTexture(uint index, vec2 uv)
+{
+	return texture(g_Textures[nonuniformEXT(index)], uv);
+}
 #endif
+
+#ifndef EG_NO_MATERIALS
 
 layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MATERIALS)
 readonly buffer Materials
@@ -23,6 +30,7 @@ readonly buffer RawMaterials
 	float g_MaterialRawValues[];
 };
 
+
 uint FetchMaterialNormalTextureIndex(uint index)
 {
 	bool unused;
@@ -31,11 +39,6 @@ uint FetchMaterialNormalTextureIndex(uint index)
 }
 
 #ifndef EG_NO_TEXTURES
-vec4 ReadTexture(uint index, vec2 uv)
-{
-	return texture(g_Textures[nonuniformEXT(index)], uv);
-}
-
 ShaderMaterial FetchMaterial(uint index, inout vec2 uv)
 {
 	ShaderMaterial result;
@@ -105,6 +108,7 @@ ShaderMaterial FetchMaterial(uint index, inout vec2 uv)
 
 	return result;
 }
-#endif // EG_NO_TEXTURES
+#endif // #ifndef EG_NO_TEXTURES
+#endif // #ifndef EG_NO_MATERIALS
 
 #endif

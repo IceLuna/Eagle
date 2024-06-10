@@ -717,6 +717,7 @@ namespace Eagle
 		options.Tonemapping = settings.Tonemapping;
 		options.PhotoLinearTonemappingParams = settings.PhotoLinearTonemappingParams;
 		options.FilmicTonemappingParams = settings.FilmicTonemappingParams;
+		options.DOFSettings = settings.DOFSettings;
 		sceneRenderer->SetOptions(options);
 	}
 
@@ -1496,6 +1497,31 @@ namespace Eagle
 				bSettingsChanged |= UI::PropertyDrag("Min Distance", settings.MinDistance, 0.5f, 0.f, 0.f, "Everything closer won't be affected by the fog. Used by Linear equation");
 				bSettingsChanged |= UI::PropertyDrag("Max Distance", settings.MaxDistance, 0.5f, 0.f, 0.f, "Everything after this distance is fog. Used by Linear equation");
 				bSettingsChanged |= UI::PropertyDrag("Density", settings.Density, 0.001f, 0.f, 0.f, "Used by Exponential equations");
+
+				UI::EndPropertyGrid();
+				ImGui::TreePop();
+			}
+		}
+
+		// DOF settings
+		{
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx("DOF Settings", treeFlags);
+			ImGui::PopStyleVar();
+			if (treeOpened)
+			{
+				UI::BeginPropertyGrid("DOF Settings");
+
+				auto& settings = options.DOFSettings;
+
+				bSettingsChanged |= UI::PropertyDrag("Aperture Shape X", settings.ApertureShape.x, 0.1f, 0.f, 2.f);
+				bSettingsChanged |= UI::PropertyDrag("Aperture Shape Y", settings.ApertureShape.y, 0.1f, 0.f, 2.f);
+				bSettingsChanged |= UI::PropertyDrag("Aperture Size", settings.ApertureSize, 0.01f, 0.f, FLT_MAX);
+				bSettingsChanged |= UI::PropertyDrag("Focal Length", settings.FocalLength, 0.01f);
+				bSettingsChanged |= UI::PropertyDrag("COC Scale", settings.COCScale, 0.1f, 0.f, FLT_MAX, "Circle of Confusion scale");
+				bSettingsChanged |= UI::PropertyDrag("Max COC", settings.MaxCOC, 0.1f, 0.f, FLT_MAX, "Max Circle of Confusion");
+				bSettingsChanged |= UI::Property("Debug Output", settings.bDebugOutput);
 
 				UI::EndPropertyGrid();
 				ImGui::TreePop();

@@ -198,7 +198,9 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::SetVolumetricLightsSettings_Native", Eagle::Script::Eagle_Renderer_SetVolumetricLightsSettings);
 		mono_add_internal_call("Eagle.Renderer::GetVolumetricLightsSettings_Native", Eagle::Script::Eagle_Renderer_GetVolumetricLightsSettings);
 		mono_add_internal_call("Eagle.Renderer::GetShadowMapsSettings_Native", Eagle::Script::Eagle_Renderer_GetShadowMapsSettings);
+		mono_add_internal_call("Eagle.Renderer::GetDepthOfFieldSettings_Native", Eagle::Script::Eagle_Renderer_GetDepthOfFieldSettings);
 		mono_add_internal_call("Eagle.Renderer::SetShadowMapsSettings_Native", Eagle::Script::Eagle_Renderer_SetShadowMapsSettings);
+		mono_add_internal_call("Eagle.Renderer::SetDepthOfFieldSettings_Native", Eagle::Script::Eagle_Renderer_SetDepthOfFieldSettings);
 		mono_add_internal_call("Eagle.Renderer::SetStutterlessShaders_Native", Eagle::Script::Eagle_Renderer_SetStutterlessShaders);
 		mono_add_internal_call("Eagle.Renderer::GetStutterlessShaders_Native", Eagle::Script::Eagle_Renderer_GetStutterlessShaders);
 		mono_add_internal_call("Eagle.Renderer::SetTranslucentShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_SetTranslucentShadowsEnabled);

@@ -108,6 +108,15 @@ namespace Eagle
         public uint[] DirLightShadowMapSizes;
     }
 
+    public struct DepthOfFieldSettings
+    {
+        public Vector2 ApertureShape;
+        public float ApertureSize;
+        public float FocalLength;
+        public float COCScale;
+        public float MaxCOC;
+    }
+
     public static class Renderer
     {
         public const uint CascadesCount = 4u;
@@ -277,6 +286,18 @@ namespace Eagle
             result.DirLightShadowMapSizes = GetShadowMapsSettings_Native(out uint pointLightSize, out uint spotLightSize);
             result.PointLightShadowMapSize = pointLightSize;
             result.SpotLightShadowMapSize = spotLightSize;
+            return result;
+        }
+
+        public static void SetDepthOfFieldSettings(DepthOfFieldSettings value)
+        {
+            SetDepthOfFieldSettings_Native(ref value.ApertureShape, value.ApertureSize, value.FocalLength, value.COCScale, value.MaxCOC);
+        }
+
+        public static DepthOfFieldSettings GetDepthOfFieldSettings()
+        {
+            DepthOfFieldSettings result = new DepthOfFieldSettings();
+            GetDepthOfFieldSettings_Native(out result.ApertureShape, out result.ApertureSize, out result.FocalLength, out result.COCScale, out result.MaxCOC);
             return result;
         }
 
@@ -543,7 +564,13 @@ namespace Eagle
         private static extern uint[] GetShadowMapsSettings_Native(out uint pointLightSize, out uint spotLightSize);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetDepthOfFieldSettings_Native(out Vector2 apertureShape, out float apertureSize, out float focalLength, out float COCScale, out float maxCOC);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetShadowMapsSettings_Native(uint pointLightSize, uint spotLightSize, uint[] dirLightSizes);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetDepthOfFieldSettings_Native(ref Vector2 apertureShape, float apertureSize, float focalLength, float COCScale, float maxCOC);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void GetViewportSize_Native(out Vector2 size);

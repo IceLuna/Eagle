@@ -66,7 +66,7 @@ namespace Eagle
 		cmd->TransitionLayout(m_Result, inputOldLayout, ImageLayoutType::StorageImage);
 		cmd->Dispatch(m_Pipeline, numGroups.x, numGroups.y, 1, &pushData);
 		cmd->TransitionLayout(m_Result, ImageLayoutType::StorageImage, inputOldLayout);
-		cmd->TransitionLayout(m_Renderer.GetGBuffer().Depth, ImageReadAccess::PixelShaderRead, oldDepthLayout);
+		cmd->TransitionLayout(depth, ImageReadAccess::PixelShaderRead, oldDepthLayout);
 	}
 	
 	void FogPassTask::InitPipeline()

@@ -112,9 +112,7 @@ namespace Eagle
 			size_t bytesToClear = m_OITBuffer->GetSize() / 2;
 			bytesToClear += 4ull - (bytesToClear % 4ull);
 
-			cmd->TransitionLayout(m_OITBuffer, BufferLayoutType::Unknown, BufferLayoutType::CopyDest);
 			cmd->FillBuffer(m_OITBuffer, 0xFFFFFFFFu, 0, bytesToClear);
-			cmd->TransitionLayout(m_OITBuffer, BufferLayoutType::CopyDest, BufferLayoutType::StorageBuffer);
 		}
 
 		cmd->StorageBufferBarrier(m_OITBuffer);

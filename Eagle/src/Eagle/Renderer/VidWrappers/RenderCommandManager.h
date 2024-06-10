@@ -72,6 +72,7 @@ namespace Eagle
 		virtual void End() = 0;
 
 		virtual void Dispatch(Ref<PipelineCompute>& pipeline, uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ, const void* pushConstants = nullptr) = 0;
+		virtual void DispatchIndirect(Ref<PipelineCompute>& pipeline, const Ref<Buffer>& args, size_t offset, const void* pushConstants = nullptr) = 0;
 
 		virtual void BeginGraphics(Ref<PipelineGraphics>& pipeline) = 0;
 		virtual void BeginGraphics(Ref<PipelineGraphics>& pipeline, const Ref<Framebuffer>& framebuffer) = 0;

@@ -1,0 +1,35 @@
+#include "dof/common.h"
+
+layout(binding = 0, rg16f) uniform readonly image2D g_TileMinDepthMaxCOC_Hor;
+layout(binding = 1, rg16f) uniform writeonly image2D g_TileMinDepthMaxCOC;
+layout(binding = 2, r16f) uniform readonly image2D g_TileMinCOC_Hor;
+layout(binding = 3, r16f) uniform writeonly image2D g_TileMinCOC;
+
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+void main()
+{
+    const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID);
+    if (pixelCoords.x >= g_PassSize.x || pixelCoords.y >= g_PassSize.y)
+        return;
+
+	const ivec2 tileUpperleft = ivec2(pixelCoords.x, pixelCoords.y * DOF_TILESIZE);
+	float closestDepth = g_ZFar;
+	float minCOC = g_MaxCOC;
+	float maxCOC = 0;
+
+	for (uint i = 0; i < DOF_TILESIZE; ++i)
+	{
+		const ivec2 pixel = ivec2(tileUpperleft.x, tileUpperleft.y + i);
+		if (pixel.x >= 0 && pixel.y >= 0 && pixel.x < g_Size.x && pixel.y < g_Size.y)
+		{
+			const vec2 minDepth_maxCOC = imageLoad(g_TileMinDepthMaxCOC_Hor, pixel).xy;
+			closestDepth = min(closestDepth, minDepth_maxCOC.x);
+			minCOC = min(minCOC, imageLoad(g_TileMinCOC_Hor, pixel).x);
+			maxCOC = max(maxCOC, minDepth_maxCOC.y);
+		}
+	}
+
+	imageStore(g_TileMinCOC, pixelCoords, vec4(minCOC));
+	imageStore(g_TileMinDepthMaxCOC, pixelCoords, vec4(closestDepth, maxCOC, 0.f, 0.f));
+}

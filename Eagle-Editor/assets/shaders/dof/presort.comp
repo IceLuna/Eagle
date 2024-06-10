@@ -1,0 +1,68 @@
+#include "dof/common.h"
+
+layout(binding = 0) uniform sampler2D g_Color;
+layout(binding = 1) uniform sampler2D g_Depth;
+layout(binding = 2, rg16f) uniform image2D g_NeighborHoodMinMax;
+
+layout(binding = 3, r11f_g11f_b10f) uniform image2D g_Presort;
+layout(binding = 4, r11f_g11f_b10f) uniform image2D g_Prefilter;
+
+layout(binding = 5) buffer Tiles
+{
+	uint g_Tiles[];
+};
+
+layout(local_size_x = GROUP_SIZE * GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+void main()
+{
+    const uint tileReplicate = DOF_TILE_REPLICATE;
+    const uint tileIdx = gl_WorkGroupID.x / tileReplicate;
+    const uint tilePacked = g_Tiles[tileIdx];
+    const uvec2 tile = uvec2(tilePacked & 0xFFFF, (tilePacked >> 16) & 0xFFFF);
+    const uint subtileIdx = gl_WorkGroupID.x % tileReplicate;
+    const uvec2 subtile = Unflatten2D(subtileIdx, uvec2(DOF_TILESIZE / 2u / GROUP_SIZE));
+    const uvec2 subtileUpperleft = tile * DOF_TILESIZE / 2 + subtile * GROUP_SIZE;
+    const ivec2 pixelCoords = ivec2(subtileUpperleft + Unflatten2D(gl_LocalInvocationID.x, uvec2(GROUP_SIZE)));
+
+    if (pixelCoords.x >= g_PassSize.x || pixelCoords.y >= g_PassSize.y)
+        return;
+
+    const vec2 uv = (pixelCoords + 0.5f) * g_TexelSize;
+
+#ifdef DOF_EARLYEXIT
+    vec3 prefilter = texture(g_Color, uv).rgb;
+
+#else
+
+	const float minDepth = imageLoad(g_NeighborHoodMinMax, 2 * pixelCoords / DOF_TILESIZE).x;
+    const float centerDepth = ToLinear(texture(g_Depth, uv).x);
+	const float coc = GetCOC(centerDepth);
+	const float alpha = SampleAlpha(coc);
+	const vec2 depthCmp = DepthCmp2(centerDepth, minDepth);
+
+    const float backgroundFactor = alpha * depthCmp.x;
+    const float foregroundFactor = alpha * depthCmp.y;
+
+	imageStore(g_Presort, pixelCoords, vec4(coc, backgroundFactor, foregroundFactor, 0.f));
+
+    const vec3 centerColor = texture(g_Color, uv).rgb;
+    vec3 prefilter = centerColor;
+
+    if (backgroundFactor < 1.0f)
+    {
+        const vec2 ringScale = 0.5f * coc * g_ApertureShape * g_TexelSize;
+        for (uint i = g_DOFRingSampleCount[0]; i < g_DOFRingSampleCount[1]; ++i)
+        {
+            const vec2 uv2 = uv + ringScale * g_DOFDisk[i].xy;
+            const float depth = ToLinear(texture(g_Depth, uv2).x);
+            const vec3 color = texture(g_Color, uv2).rgb;
+            const float weight = clamp(abs(depth - centerDepth) * 2.f, 0.f, 1.f);
+            prefilter += mix(color, centerColor, weight);
+        }
+        prefilter *= g_DOFRingNormFactor[1];
+    }
+
+#endif
+	imageStore(g_Prefilter, pixelCoords, vec4(prefilter, 0.0));
+}

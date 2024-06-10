@@ -228,6 +228,8 @@ namespace Eagle
 		const glm::mat4& GetViewProjection() const { return m_ViewProjection; }
 		const glm::vec3 GetViewPosition() const { return m_ViewPos; }
 		float GetPhotoLinearScale() const { return m_PhotoLinearScale; }
+		float GetZNear() const { return m_ZNear; }
+		float GetZFar() const { return m_ZFar; }
 
 		// Prev frame data
 		const glm::mat4& GetPrevViewMatrix() const { return m_PrevView; }
@@ -289,6 +291,7 @@ namespace Eagle
 		Ref<RenderImages2DTask> m_Images2DTask;
 		Ref<RendererTask> m_VolumetricTask;
 		Ref<FogPassTask> m_FogTask;
+		Ref<RendererTask> m_DOFTask;
 		
 		Ref<Buffer> m_Jitter;
 
@@ -318,6 +321,8 @@ namespace Eagle
 
 		glm::uvec2 m_Size = { 1, 1 };
 		float m_PhotoLinearScale = 1.f;
+		float m_ZNear = 1.f;
+		float m_ZFar = 1.f;
 		SceneRendererSettings m_Options_RT; // Render thread
 		SceneRendererSettings m_Options;
 

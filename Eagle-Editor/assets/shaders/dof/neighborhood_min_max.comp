@@ -1,0 +1,73 @@
+#include "dof/common.h"
+
+layout(binding = 0, rg16f) uniform readonly image2D g_TileMinDepthMaxCOC;
+layout(binding = 1, r16f) uniform readonly image2D g_TileMinCOC;
+layout(binding = 2, rg16f) uniform writeonly image2D g_NeighborHoodMinMax;
+
+layout(binding = 3) buffer Tiles
+{
+	uvec4 EarlyExit;
+	uvec4 Cheap;
+	uvec4 Expensive;
+} g_TileArgs;
+
+layout(binding = 4) buffer EarlyExitTiles
+{
+	uint g_EarlyExitTiles[];
+};
+
+layout(binding = 5) buffer CheapTiles
+{
+	uint g_CheapTiles[];
+};
+
+layout(binding = 6) buffer ExpensiveTiles
+{
+	uint g_ExpensiveTiles[];
+};
+
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+void main()
+{
+    const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID);
+    if (pixelCoords.x >= g_PassSize.x || pixelCoords.y >= g_PassSize.y)
+        return;
+
+	float closestDepth = g_ZFar;
+	float minCOC = g_MaxCOC;
+	float maxCOC = 0;
+
+	for (int x = -1; x <= 1; ++x)
+	{
+		for (int y = -1; y <= 1; ++y)
+		{
+			const ivec2 pixel = pixelCoords.xy + ivec2(x, y);
+			if (pixel.x >= 0 && pixel.y >= 0 && pixel.x < g_Size.x && pixel.y < g_Size.y)
+			{
+				const vec2 mindepth_maxcoc = imageLoad(g_TileMinDepthMaxCOC, pixel).xy;
+				closestDepth = min(closestDepth, mindepth_maxcoc.x);
+				maxCOC = max(maxCOC, mindepth_maxcoc.y);
+				minCOC = min(minCOC, imageLoad(g_TileMinCOC, pixel).x);
+			}
+		}
+	}
+	imageStore(g_NeighborHoodMinMax, pixelCoords, vec4(closestDepth, maxCOC, 0.f, 0.f));
+
+	const uint tile = (pixelCoords.x & 0xFFFF) | ((pixelCoords.y & 0xFFFF) << 16);
+	if (maxCOC < 1.f)
+	{
+		uint prev = atomicAdd(g_TileArgs.EarlyExit.x, DOF_TILE_REPLICATE); 
+		g_EarlyExitTiles[prev / DOF_TILE_REPLICATE] = tile;
+	}
+	else if (abs(maxCOC - minCOC) < 1)
+	{
+		uint prev = atomicAdd(g_TileArgs.Cheap.x, DOF_TILE_REPLICATE); 
+		g_CheapTiles[prev / DOF_TILE_REPLICATE] = tile;
+	}
+	else
+	{
+		uint prev = atomicAdd(g_TileArgs.Expensive.x, DOF_TILE_REPLICATE); 
+		g_ExpensiveTiles[prev / DOF_TILE_REPLICATE] = tile;
+	}
+}

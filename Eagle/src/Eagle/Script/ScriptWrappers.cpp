@@ -5470,6 +5470,19 @@ namespace Eagle
 		return result;
 	}
 
+	void Script::Eagle_Renderer_GetDepthOfFieldSettings(glm::vec2* apertureShape, float* apertureSize, float* focalLength, float* COCScale, float* maxCOC)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& settings = sceneRenderer->GetOptions().DOFSettings;
+
+		*apertureShape = settings.ApertureShape;
+		*apertureSize = settings.ApertureSize;
+		*focalLength = settings.FocalLength;
+		*COCScale = settings.COCScale;
+		*maxCOC = settings.MaxCOC;
+	}
+
 	void Script::Eagle_Renderer_SetShadowMapsSettings(uint32_t pointLightSize, uint32_t spotLightSize, MonoArray* dirLightSizes)
 	{
 		const auto& scene = Scene::GetCurrentScene();
@@ -5487,6 +5500,23 @@ namespace Eagle
 			uint32_t val = mono_array_get(dirLightSizes, uint32_t, i);
 			settings.ShadowsSettings.DirLightShadowMapSizes[i] = glm::max(val, ShadowMapsSettings::MinDirLightShadowMapSize);
 		}
+
+		sceneRenderer->SetOptions(settings);
+	}
+
+	void Script::Eagle_Renderer_SetDepthOfFieldSettings(const glm::vec2* apertureShape, float apertureSize, float focalLength, float COCScale, float maxCOC)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+
+		auto settings = sceneRenderer->GetOptions();
+		settings.DOFSettings.ApertureShape = *apertureShape;
+		settings.DOFSettings.ApertureSize = apertureSize;
+		settings.DOFSettings.FocalLength = focalLength;
+		settings.DOFSettings.COCScale = COCScale;
+		settings.DOFSettings.MaxCOC = maxCOC;
+		
+		sceneRenderer->SetOptions(settings);
 	}
 
 	void Script::Eagle_Renderer_SetStutterlessShaders(bool value)

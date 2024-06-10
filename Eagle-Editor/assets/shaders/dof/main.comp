@@ -1,0 +1,105 @@
+#include "dof/common.h"
+
+layout(binding = 0) uniform sampler2D g_Presort;
+layout(binding = 1) uniform sampler2D g_Prefilter;
+layout(binding = 2, rg16f) uniform image2D g_NeighborHoodMinMax;
+
+layout(binding = 3, r11f_g11f_b10f) uniform image2D g_Main;
+layout(binding = 4, r8) uniform image2D g_Alpha;
+
+layout(binding = 5) buffer Tiles
+{
+	uint g_Tiles[];
+};
+
+layout(local_size_x = GROUP_SIZE * GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+void main()
+{
+    const uint tileReplicate = DOF_TILE_REPLICATE;
+    const uint tileIdx = gl_WorkGroupID.x / tileReplicate;
+    const uint tilePacked = g_Tiles[tileIdx];
+    const uvec2 tile = uvec2(tilePacked & 0xFFFF, (tilePacked >> 16) & 0xFFFF);
+    const uint subtileIdx = gl_WorkGroupID.x % tileReplicate;
+    const uvec2 subtile = Unflatten2D(subtileIdx, uvec2(DOF_TILESIZE / 2u / GROUP_SIZE));
+    const uvec2 subtileUpperleft = tile * DOF_TILESIZE / 2 + subtile * GROUP_SIZE;
+    const ivec2 pixelCoords = ivec2(subtileUpperleft + Unflatten2D(gl_LocalInvocationID.x, uvec2(GROUP_SIZE)));
+
+    if (pixelCoords.x >= g_PassSize.x || pixelCoords.y >= g_PassSize.y)
+        return;
+
+	const vec2 uv = (pixelCoords + 0.5f) * g_TexelSize;
+
+#ifdef DOF_EARLYEXIT
+    vec3 color = texture(g_Prefilter, uv).rgb;
+    const float alpha = 1.f;
+
+#else
+    vec3 color = vec3(0);
+    float alpha = 0.f;
+
+    const float maxcoc = imageLoad(g_NeighborHoodMinMax, 2 * pixelCoords / DOF_TILESIZE).y;
+
+    const uint ringCount = uint(clamp(ceil(pow(maxcoc, 0.5f) * DOF_RING_COUNT), 1, DOF_RING_COUNT));
+    const float spreadScale = ringCount / maxcoc;
+    const vec2 ringScale = float(ringCount) / float(DOF_RING_COUNT) * maxcoc * g_ApertureShape * g_TexelSize;
+
+    const vec3 centerColor = texture(g_Prefilter, uv).rgb;
+    const vec3 centerPresort = texture(g_Presort, uv).rgb;
+    const float centerBackgroundWeight = centerPresort.g;
+    const float centerForegroundWeight = centerPresort.b;
+
+#ifdef DOF_CHEAP
+    color = centerColor;
+    for (uint j = 0; j < ringCount; ++j)
+    {
+        for (uint i = g_DOFRingSampleCount[j]; i < g_DOFRingSampleCount[j + 1]; ++i)
+        {
+            const vec2 uv2 = uv + ringScale * g_DOFDisk[i].xy;
+            color += texture(g_Prefilter, uv2).rgb;
+        }
+    }
+    color *= g_DOFRingNormFactor[ringCount];
+#else
+    vec4 background = centerBackgroundWeight * vec4(centerColor.rgb, 1);
+    vec4 foreground = centerForegroundWeight * vec4(centerColor.rgb, 1);
+    for (uint j = 0; j < ringCount; ++j)
+    {
+        for (uint i = g_DOFRingSampleCount[j]; i < g_DOFRingSampleCount[j + 1]; ++i)
+        {
+            const float offsetCoc = g_DOFDisk[i].z;
+            const vec2 uv2 = uv + ringScale * g_DOFDisk[i].xy;
+            const vec4 color = vec4(texture(g_Prefilter, uv2).rgb, 1);
+            const vec3 presort = texture(g_Presort, uv2).rgb;
+            const float coc = presort.r;
+            const float spreadCmp = SpreadCmp(offsetCoc, coc, spreadScale);
+            const float backgroundWeight = presort.g * spreadCmp;
+            const float foregroundWeight = presort.b * spreadCmp;
+            background += backgroundWeight * color;
+            foreground += foregroundWeight * color;
+        }
+    }
+    background.rgb *= 1.f / (max(0.00001, background.a));
+    foreground.rgb *= 1.f / (max(0.00001, foreground.a));
+
+    alpha = clamp(g_DOFRingNormFactor[ringCount] / SampleAlpha(maxcoc) * foreground.a, 0.f, 1.f);
+    color = mix(background.rgb, foreground.rgb, alpha);
+#endif
+
+#endif
+
+#ifdef DOF_DEBUG_TILING
+
+#if defined(DOF_EARLYEXIT)
+    color = mix(color, vec3(0, 0, 1), 0.15f);
+#elif defined(DOF_CHEAP)
+    color = mix(color, vec3(0, 1, 0), 0.15f);
+#else
+    color = mix(color, vec3(1, 0, 0), 0.15f);
+#endif
+
+#endif // DOF_DEBUG_TILING
+
+    imageStore(g_Main, pixelCoords, vec4(color, 0.f));
+    imageStore(g_Alpha, pixelCoords, vec4(alpha));
+}

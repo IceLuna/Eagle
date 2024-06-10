@@ -10,7 +10,7 @@ layout(push_constant) uniform PushConstants
 layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
 
 layout(set = 0, binding = 0) uniform sampler2D g_Volumetric;
-layout(set = 0, binding = 1, rgba16f) uniform image2D g_Result;
+layout(set = 0, binding = 1, r11f_g11f_b10f) uniform image2D g_Result;
 
 void main()
 {
@@ -21,28 +21,26 @@ void main()
     const vec2 uv = (pixelCoords + 0.5) * g_TexelSize;
     
     // GAUSSIAN BLUR SETTINGS {{{
-    float Directions = 16.0; // BLUR DIRECTIONS (Default 16.0 - More is better but slower)
-    float Quality = 4.0; // BLUR QUALITY (Default 4.0 - More is better but slower)
-    float Size = 8.0; // BLUR SIZE (Radius)
+    float directions = 16.0; // BLUR DIRECTIONS (Default 16.0 - More is better but slower)
+    float quality = 4.0; // BLUR QUALITY (Default 4.0 - More is better but slower)
+    float size = 8.0; // BLUR SIZE (Radius)
     // GAUSSIAN BLUR SETTINGS }}}
    
-    vec2 Radius = Size/g_Size;
-
-    // Pixel colour
+    vec2 radius = size * g_TexelSize;
     vec4 color = texture(g_Volumetric, uv);
     
     // Blur calculations
-    for(float d = 0.f; d < EG_2PI; d += EG_2PI / Directions)
+    for(float d = 0.f; d < EG_2PI; d += EG_2PI / directions)
     {
         const vec2 offset = vec2(cos(d), sin(d));
-        for(float i = 1.0 / Quality; i < 1.0001; i += 1.0 / Quality)
+        for(float i = 1.0 / quality; i < 1.0001; i += 1.0 / quality)
         {
-            color += texture(g_Volumetric, uv + offset * Radius * i);		
+            color += texture(g_Volumetric, uv + offset * radius * i);		
         }
     }
     
     // Output to screen
-    color /= Quality * Directions + 1.f;
+    color /= quality * directions + 1.f;
     imageStore(g_Result, pixelCoords, color);
 }
 

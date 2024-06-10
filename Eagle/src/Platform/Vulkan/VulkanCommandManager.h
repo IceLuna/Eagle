@@ -57,6 +57,7 @@ namespace Eagle
 		bool IsSecondary() const override { return !m_bIsPrimary; }
 
 		void Dispatch(Ref<PipelineCompute>& pipeline, uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ, const void* pushConstants = nullptr) override;
+		void DispatchIndirect(Ref<PipelineCompute>& pipeline, const Ref<Buffer>& args, size_t offset, const void* pushConstants = nullptr) override;
 
 		void BeginGraphics(Ref<PipelineGraphics>& pipeline) override;
 		void BeginGraphics(Ref<PipelineGraphics>& pipeline, const Ref<Framebuffer>& framebuffer) override;

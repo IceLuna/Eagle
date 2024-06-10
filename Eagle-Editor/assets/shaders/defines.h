@@ -70,4 +70,6 @@
 
 #define IS_EQUAL(x, y) (abs(dot(x - y, x - y)) < 1e-3f)
 
+#define EG_SQUARE(x) ((x) * (x))
+
 #endif

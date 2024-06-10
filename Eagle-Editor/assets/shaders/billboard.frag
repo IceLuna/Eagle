@@ -1,3 +1,4 @@
+#define EG_NO_MATERIALS
 #include "pipeline_layout.h"
 
 layout(location = 0) out vec4 outAlbedo;

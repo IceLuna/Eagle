@@ -1749,6 +1749,7 @@ namespace Eagle
 		const auto& shadowSettings = settings.ShadowsSettings;
 		const auto& photoLinearParams = settings.PhotoLinearTonemappingParams;
 		const auto& filmicParams = settings.FilmicTonemappingParams;
+		const auto& dofSettings = settings.DOFSettings;
 
 		out << YAML::Key << "RendererSettings" << YAML::Value << YAML::BeginMap;
 
@@ -1828,6 +1829,16 @@ namespace Eagle
 		out << YAML::BeginMap;
 		out << YAML::Key << "WhitePoint" << YAML::Value << filmicParams.WhitePoint;
 		out << YAML::EndMap; //FilmicTonemappingSettings
+
+		out << YAML::Key << "DOF";
+		out << YAML::BeginMap;
+		out << YAML::Key << "ApertureShape" << YAML::Value << dofSettings.ApertureShape;
+		out << YAML::Key << "ApertureSize" << YAML::Value << dofSettings.ApertureSize;
+		out << YAML::Key << "FocalLength" << YAML::Value << dofSettings.FocalLength;
+		out << YAML::Key << "COCScale" << YAML::Value << dofSettings.COCScale;
+		out << YAML::Key << "MaxCOC" << YAML::Value << dofSettings.MaxCOC;
+		out << YAML::Key << "bDebug" << YAML::Value << dofSettings.bDebugOutput;
+		out << YAML::EndMap; //DOF
 
 		out << YAML::EndMap;
 	}
@@ -2009,6 +2020,15 @@ namespace Eagle
 			settings.FilmicTonemappingParams.WhitePoint = filmicNode["WhitePoint"].as<float>();
 		}
 
+		if (auto dofNode = data["DOF"])
+		{
+			settings.DOFSettings.ApertureShape = dofNode["ApertureShape"].as<glm::vec2>();
+			settings.DOFSettings.ApertureSize = dofNode["ApertureSize"].as<float>();
+			settings.DOFSettings.FocalLength = dofNode["FocalLength"].as<float>();
+			settings.DOFSettings.COCScale = dofNode["COCScale"].as<float>();
+			settings.DOFSettings.MaxCOC = dofNode["MaxCOC"].as<float>();
+			settings.DOFSettings.bDebugOutput = dofNode["bDebug"].as<bool>();
+		}
 	}
 
 	void Serializer::DeserializeAnimation(const YAML::Node& node, SkeletalMeshAnimation& animation)

@@ -224,6 +224,26 @@ namespace Eagle
 		vkCmdDispatch(m_CommandBuffer, numGroupsX, numGroupsY, numGroupsZ);
 	}
 
+	void VulkanCommandBuffer::DispatchIndirect(Ref<PipelineCompute>& pipeline, const Ref<Buffer>& args, size_t offset, const void* pushConstants)
+	{
+		EG_CORE_ASSERT(args->HasUsage(BufferUsage::IndirectBuffer));
+
+		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, (VkPipeline)pipeline->GetPipelineHandle());
+
+		Ref<Pipeline> purePipeline = Cast<Pipeline>(pipeline);
+		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_COMPUTE);
+
+		if (pushConstants)
+		{
+			auto& ranges = pipeline->GetState().ComputeShader->GetPushConstantRanges();
+			assert(ranges.size());
+			vkCmdPushConstants(m_CommandBuffer, (VkPipelineLayout)pipeline->GetPipelineLayoutHandle(),
+				ShaderTypeToVulkan(ranges[0].ShaderStage), ranges[0].Offset, ranges[0].Size, pushConstants);
+		}
+
+		vkCmdDispatchIndirect(m_CommandBuffer, (VkBuffer)args->GetHandle(), offset);
+	}
+
 	void VulkanCommandBuffer::BeginGraphics(Ref<PipelineGraphics>& pipeline)
 	{
 		Ref<VulkanPipelineGraphics> vulkanPipeline = Cast<VulkanPipelineGraphics>(pipeline);
@@ -523,7 +543,7 @@ namespace Eagle
 	void VulkanCommandBuffer::ClearColorImage(Ref<Image>& image, const glm::vec4& color)
 	{
 		Ref<VulkanImage> vulkanImage = Cast<VulkanImage>(image);
-		assert(vulkanImage->GetDefaultAspectMask() == VK_IMAGE_ASPECT_COLOR_BIT);
+		EG_CORE_ASSERT(vulkanImage->GetDefaultAspectMask() == VK_IMAGE_ASPECT_COLOR_BIT);
 		VkClearColorValue clearColor{};
 		clearColor.float32[0] = color.r;
 		clearColor.float32[1] = color.g;
@@ -543,7 +563,7 @@ namespace Eagle
 		Ref<VulkanImage> vulkanImage = Cast<VulkanImage>(image);
 		VkImageAspectFlags aspectMask = vulkanImage->GetDefaultAspectMask();
 		VkFormat format = vulkanImage->GetVulkanFormat();
-		assert((aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT) > 0 || (aspectMask & VK_IMAGE_ASPECT_STENCIL_BIT));
+		EG_CORE_ASSERT((aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT) > 0 || (aspectMask & VK_IMAGE_ASPECT_STENCIL_BIT));
 
 		VkClearDepthStencilValue clearValue{};
 		clearValue.depth = depthValue;
@@ -565,9 +585,9 @@ namespace Eagle
 		Ref<VulkanImage> vulkanSrcImage = Cast<VulkanImage>(src);
 		Ref<VulkanImage> vulkanDstImage = Cast<VulkanImage>(dst);
 
-		assert(vulkanSrcImage->GetDefaultAspectMask() == vulkanDstImage->GetDefaultAspectMask());
-		assert(vulkanSrcImage->HasUsage(ImageUsage::TransferSrc));
-		assert(vulkanDstImage->HasUsage(ImageUsage::TransferDst));
+		EG_CORE_ASSERT(vulkanSrcImage->GetDefaultAspectMask() == vulkanDstImage->GetDefaultAspectMask());
+		EG_CORE_ASSERT(vulkanSrcImage->HasUsage(ImageUsage::TransferSrc));
+		EG_CORE_ASSERT(vulkanDstImage->HasUsage(ImageUsage::TransferDst));
 
 		VkImage vkSrcImage = (VkImage)vulkanSrcImage->GetHandle();
 		VkImage vkDstImage = (VkImage)vulkanDstImage->GetHandle();
@@ -631,8 +651,8 @@ namespace Eagle
 
 	void VulkanCommandBuffer::CopyBuffer(const Ref<Buffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size)
 	{
-		assert(src->HasUsage(BufferUsage::TransferSrc));
-		assert(dst->HasUsage(BufferUsage::TransferDst));
+		EG_CORE_ASSERT(src->HasUsage(BufferUsage::TransferSrc));
+		EG_CORE_ASSERT(dst->HasUsage(BufferUsage::TransferDst));
 
 		const BufferLayout srcOldLayout = src->GetLayout();
 		const BufferLayout dstOldLayout = dst->GetLayout();
@@ -663,7 +683,10 @@ namespace Eagle
 		assert(dst->HasUsage(BufferUsage::TransferDst));
 		assert(numBytes % 4 == 0);
 
+		BufferLayout layout = dst->GetLayout();
+		TransitionLayout(dst, layout, BufferLayoutType::CopyDest);
 		vkCmdFillBuffer(m_CommandBuffer, (VkBuffer)dst->GetHandle(), offset, numBytes ? numBytes : VK_WHOLE_SIZE, data);
+		TransitionLayout(dst, BufferLayoutType::CopyDest, layout);
 	}
 
 	void VulkanCommandBuffer::CopyBufferToImage(const Ref<Buffer>& src, Ref<Image>& dst, const std::vector<BufferImageCopy>& regions)
@@ -671,9 +694,9 @@ namespace Eagle
 		Ref<VulkanImage> vulkanImage = Cast<VulkanImage>(dst);
 
 		const size_t regionsCount = regions.size();
-		assert(src->HasUsage(BufferUsage::TransferSrc));
-		assert(vulkanImage->HasUsage(ImageUsage::TransferDst));
-		assert(regionsCount > 0);
+		EG_CORE_ASSERT(src->HasUsage(BufferUsage::TransferSrc));
+		EG_CORE_ASSERT(vulkanImage->HasUsage(ImageUsage::TransferDst));
+		EG_CORE_ASSERT(regionsCount > 0);
 
 		std::vector<VkBufferImageCopy> imageCopyRegions;
 		imageCopyRegions.reserve(regionsCount);
