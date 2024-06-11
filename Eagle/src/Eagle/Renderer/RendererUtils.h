@@ -750,6 +750,28 @@ namespace Eagle
         }
     };
 
+    struct MotionBlurSettings
+    {
+        uint32_t NumSamples = 16;
+        bool bEnable = false;
+        bool bDebugOutput = false;
+
+        bool operator== (const MotionBlurSettings& other) const
+        {
+            bool bEqual =
+                NumSamples == other.NumSamples &&
+                bEnable == other.bEnable &&
+                bDebugOutput == other.bDebugOutput;
+
+            return bEqual;
+        }
+
+        bool operator!= (const MotionBlurSettings& other) const
+        {
+            return !((*this) == other);
+        }
+    };
+
     struct SceneRendererSettings
     {
         BloomSettings BloomSettings;
@@ -761,6 +783,7 @@ namespace Eagle
         PhotoLinearTonemappingSettings PhotoLinearTonemappingParams;
         FilmicTonemappingSettings FilmicTonemappingParams;
         DepthOfFieldSettings DOFSettings;
+        MotionBlurSettings MotionBlur;
         float Gamma = 2.2f;
         float Exposure = 1.f;
         float LineWidth = 2.5f;
@@ -784,6 +807,7 @@ namespace Eagle
             return PhotoLinearTonemappingParams == other.PhotoLinearTonemappingParams &&
                 FilmicTonemappingParams == other.FilmicTonemappingParams &&
                 DOFSettings == other.DOFSettings &&
+                MotionBlur == other.MotionBlur &&
                 FogSettings == other.FogSettings &&
                 ShadowsSettings == other.ShadowsSettings &&
                 VolumetricSettings == other.VolumetricSettings &&

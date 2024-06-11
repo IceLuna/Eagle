@@ -56,6 +56,8 @@ namespace Eagle
         bool IsCube() const { return m_Specs.bIsCube; }
         const std::string& GetDebugName() const { return m_DebugName; }
 
+        const ImageSpecifications& GetSpecs() const { return m_Specs; }
+
         virtual void Resize(const glm::uvec3& size) = 0;
         [[nodiscard]] virtual void* Map() = 0;
         virtual void Unmap() = 0;
@@ -74,6 +76,7 @@ namespace Eagle
         size_t GetMemoryUsage() const;
 
         static Ref<Image> Create(ImageSpecifications specs, const std::string& debugName = "");
+        static Ref<Image> Create(const Ref<Image>& image, const std::string& debugName = "") { Create(image->GetSpecs(), debugName); }
 
     private:
         void SetImageLayout(ImageLayout layout) { m_Specs.Layout = layout; }

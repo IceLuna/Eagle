@@ -618,6 +618,15 @@ namespace Eagle::UI
 		return bModified;
 	}
 
+	bool PropertySlider(const std::string_view label, uint32_t& value, int min, int max, const std::string_view helpMessage)
+	{
+		int temp = (int)value;
+		const bool bChanged = PropertySlider(label, temp, min, max, helpMessage);
+		if (bChanged)
+			value = uint32_t(glm::max(temp, 0)); // Clamp negatives to 0 so that we don't overflow
+		return bChanged;
+	}
+
 	bool PropertySlider(const std::string_view label, float& value, float min, float max, const std::string_view helpMessage)
 	{
 		bool bModified = false;

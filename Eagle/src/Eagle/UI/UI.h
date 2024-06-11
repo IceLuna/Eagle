@@ -258,6 +258,7 @@ namespace Eagle::UI
 	bool PropertyDrag(const std::string_view label, glm::uvec3& value, float speed = 1.f, int min = 0, int max = 0, const std::string_view helpMessage = "");
 
 	bool PropertySlider(const std::string_view label, int& value, int min, int max, const std::string_view helpMessage = "");
+	bool PropertySlider(const std::string_view label, uint32_t& value, int min, int max, const std::string_view helpMessage = "");
 	bool PropertySlider(const std::string_view label, float& value, float min, float max, const std::string_view helpMessage = "");
 	bool PropertySlider(const std::string_view label, glm::vec2& value, float min, float max, const std::string_view helpMessage = "");
 	bool PropertySlider(const std::string_view label, glm::vec3& value, float min, float max, const std::string_view helpMessage = "");

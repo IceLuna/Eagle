@@ -117,6 +117,12 @@ namespace Eagle
         public float MaxCOC;
     }
 
+    public struct MotionBlurSettings
+    {
+        public bool bEnabled;
+        public uint NumSamples;
+    }
+
     public static class Renderer
     {
         public const uint CascadesCount = 4u;
@@ -298,6 +304,18 @@ namespace Eagle
         {
             DepthOfFieldSettings result = new DepthOfFieldSettings();
             GetDepthOfFieldSettings_Native(out result.ApertureShape, out result.ApertureSize, out result.FocalLength, out result.COCScale, out result.MaxCOC);
+            return result;
+        }
+
+        public static void SetMotionBlurSettings(MotionBlurSettings value)
+        {
+            SetMotionBlurSettings_Native(value.bEnabled, value.NumSamples);
+        }
+
+        public static MotionBlurSettings GetMotionBlurSettings()
+        {
+            MotionBlurSettings result = new MotionBlurSettings();
+            GetMotionBlurSettings_Native(out result.bEnabled, out result.NumSamples);
             return result;
         }
 
@@ -567,10 +585,16 @@ namespace Eagle
         private static extern void GetDepthOfFieldSettings_Native(out Vector2 apertureShape, out float apertureSize, out float focalLength, out float COCScale, out float maxCOC);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetMotionBlurSettings_Native(out bool bEnabled, out uint numSamples);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetShadowMapsSettings_Native(uint pointLightSize, uint spotLightSize, uint[] dirLightSizes);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetDepthOfFieldSettings_Native(ref Vector2 apertureShape, float apertureSize, float focalLength, float COCScale, float maxCOC);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetMotionBlurSettings_Native(bool bEnabled, uint numSamples);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void GetViewportSize_Native(out Vector2 size);

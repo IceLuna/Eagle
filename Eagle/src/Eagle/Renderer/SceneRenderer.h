@@ -292,6 +292,7 @@ namespace Eagle
 		Ref<RendererTask> m_VolumetricTask;
 		Ref<FogPassTask> m_FogTask;
 		Ref<RendererTask> m_DOFTask;
+		Ref<RendererTask> m_MotionBlurTask;
 		
 		Ref<Buffer> m_Jitter;
 

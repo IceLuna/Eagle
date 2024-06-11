@@ -2,6 +2,7 @@
 #define EG_DOF_COMMON
 
 #include "defines.h"
+#include "utils.h"
 
 #define GROUP_SIZE 8
 #define DOF_TILESIZE 32
@@ -25,7 +26,7 @@ layout(push_constant) uniform PushConstants
 
 float ToLinear(float d)
 {
-    return g_ZNear * g_ZFar / (g_ZFar + d * (g_ZNear - g_ZFar));
+    return ToLinear(d, g_ZNear, g_ZFar);
 }
 
 float GetCOC(float depth)
@@ -57,11 +58,6 @@ float SpreadToe(float offsetCoc, float spreadCmp)
 float SpreadCmp(float offsetCoc, float sampleCoc, float pixelToSampleUnitsScale)
 {
     return SpreadToe(offsetCoc, clamp(pixelToSampleUnitsScale * sampleCoc - offsetCoc + 1.f, 0.f, 1.f));
-}
-
-uvec2 Unflatten2D(uint idx, uvec2 dim)
-{
-    return uvec2(idx % dim.x, idx / dim.x);
 }
 
 const vec3 g_DOFDisk[] =

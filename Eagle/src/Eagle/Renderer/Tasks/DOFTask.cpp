@@ -12,6 +12,7 @@ namespace Eagle
 	DOFTask::DOFTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
+		bDebugTiles = m_Renderer.GetOptions().DOFSettings.bDebugOutput;
 		InitPipeline();
 		m_Size = m_Renderer.GetViewportSize();
 		InitResources();

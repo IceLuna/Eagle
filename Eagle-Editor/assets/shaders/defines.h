@@ -54,6 +54,7 @@
 #define EG_HALF_PI (EG_PI * 0.5f)
 
 #define FLT_EPSILON 1.192092896e-07F // smallest such that 1.0+FLT_EPSILON != 1.0
+#define FLT_MAX 3.402823466e+38F     // max value
 #define EG_FLT_SMALL 0.001f
 #define EG_MIN_ROUGHNESS 0.04f
 #define EG_BASE_REFLECTIVITY 0.04f

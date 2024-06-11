@@ -88,12 +88,13 @@ namespace Eagle::Utils
 	// Function to pack float32 RGB values into a uint32_t
 	static uint32_t ToR11G11B10(glm::vec3 rgb)
 	{
-		uint16_t r11 = ToFloat11(rgb.r);
-		uint16_t g11 = ToFloat11(rgb.g);
-		uint16_t b10 = ToFloat10(rgb.b);
-
-		uint32_t packed_value = (b10 << 22) | (g11 << 11) | r11;
-		return packed_value;
+		// Discarding some mantissa bits.
+		// Note: shifting to the right needs to be "4 or 5" instead of "5 or 6"
+		// because float16 has a sign bit and we don't need it.
+		uint16_t r11 = (Utils::ToFloat16(rgb.r) >> 4) & 0x7FF;
+		uint16_t g11 = (Utils::ToFloat16(rgb.g) >> 4) & 0x7FF;
+		uint16_t b10 = (Utils::ToFloat16(rgb.b) >> 5) & 0x3FF;
+		return (b10 << 22) | (g11 << 11) | r11;
 	}
 
 	size_t FindSubstringI(const std::string& str1, const std::string& str2);

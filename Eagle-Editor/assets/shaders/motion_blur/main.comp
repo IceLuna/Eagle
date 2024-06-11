@@ -1,0 +1,179 @@
+#include "motion_blur/common.h"
+
+layout(binding = 0, r11f_g11f_b10f) uniform readonly image2D g_Color;
+layout(binding = 1, rg16f) uniform readonly image2D g_NeighborHoodMax;
+layout(binding = 2) uniform sampler2D g_Depth;
+layout(binding = 3) uniform sampler2D g_Motion;
+layout(binding = 4, r11f_g11f_b10f) uniform writeonly image2D g_Output;
+
+layout(binding = 5) buffer Tiles
+{
+	uint g_Tiles[];
+};
+
+layout(constant_id = 0) const uint g_NumSamples = 16;
+
+float InterleavedGradientNoise( vec2 uv, float frameId )
+{
+    // magic values are found by experimentation
+    uv += frameId * (vec2(47, 17) * 0.695f);
+
+    const vec3 magic = vec3( 0.06711056f, 0.00583715f, 52.9829189f );
+    return fract(magic.z * fract(dot(uv, magic.xy)));
+}
+
+vec2 LimitVelocityVector(vec2 velocity, float limit)
+{
+    const float len = length(velocity);
+    if (len > limit)
+    {
+    	float coef = len / limit;
+    	velocity /= coef;
+    	return velocity;
+    }
+    return velocity;
+}
+
+#define SOFT_Z_EXTENT 0.0001
+#define VELOCITY_LIMIT 0.02f // Limit velocity so it remains smooth
+
+float GetLimitedVelocityLen(vec2 velocity, float limit)
+{
+    const float len = length(velocity);
+    return len > limit ? limit : len;
+}
+
+vec2 DepthCmp(float centerDepth, float sampleDepth, float depthScale)
+{
+    return clamp(0.5f + vec2(depthScale, -depthScale) * (sampleDepth - centerDepth), vec2(0.f), vec2(1.f));
+}
+
+vec2 SpreadCmp(float offsetLen, vec2 spreadLen, float pixelToSampleScale)
+{
+    return clamp(pixelToSampleScale * spreadLen - max(offsetLen - 1, 0), vec2(0.f), vec2(1.f));
+}
+
+float SampleWeight(float centerDepth, float sampleDepth, float offsetLen, float centerSpreadLen, float sampleSpreadLen, float pixelToSampleScale, float depthScale)
+{
+    vec2 depthWeights = DepthCmp(centerDepth, sampleDepth, depthScale);
+    vec2 spreadWeights = SpreadCmp(offsetLen, vec2(centerSpreadLen, sampleSpreadLen), pixelToSampleScale);
+    return dot(depthWeights, spreadWeights);
+}
+
+layout(local_size_x = GROUP_SIZE * GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+void main()
+{
+    const uint tileReplicate = MOTIONBLUR_TILE_REPLICATE;
+    const uint tileIdx = gl_WorkGroupID.x / tileReplicate;
+    const uint tilePacked = g_Tiles[tileIdx];
+    const uvec2 tile = uvec2(tilePacked & 0xFFFF, (tilePacked >> 16) & 0xFFFF);
+    const uint subtileIdx = gl_WorkGroupID.x % tileReplicate;
+    const uvec2 subtile = Unflatten2D(subtileIdx, uvec2(MOTIONBLUR_TILESIZE / GROUP_SIZE));
+    const uvec2 subtileUpperleft = tile * MOTIONBLUR_TILESIZE + subtile * GROUP_SIZE;
+    const ivec2 pixelCoords = ivec2(subtileUpperleft + Unflatten2D(gl_LocalInvocationID.x, uvec2(GROUP_SIZE)));
+
+    if (pixelCoords.x >= g_PassSize.x || pixelCoords.y >= g_PassSize.y)
+        return;
+
+	const vec2 uv = (pixelCoords + 0.5f) * g_TexelSize;
+
+#ifdef MOTIONBLUR_EARLYEXIT
+    vec3 resultColor = imageLoad(g_Color, pixelCoords).rgb;
+
+#else
+    const float blurRadius = MOTIONBLUR_TILESIZE;
+    const float pixelToTileScale = 1.f / blurRadius;
+
+    const float random1 = InterleavedGradientNoise(uv, 0);
+    const float random2 = InterleavedGradientNoise(uv, 1);
+    
+    // [-0.25, 0.25]
+    const vec2 tileJitter = (vec2(random1, random2) - 0.5f) * 0.5f;
+
+    // Map to velocity tile pos with jitter.
+    const vec2 velocityTilePos = (vec2(pixelCoords) * pixelToTileScale + tileJitter);
+    const vec2 neighborMax = imageLoad(g_NeighborHoodMax, ivec2(velocityTilePos)).xy;
+    
+    const vec2 maxVelocity = LimitVelocityVector(neighborMax, VELOCITY_LIMIT);
+    const float maxVelocitySquaredLen = dot(maxVelocity, maxVelocity);
+    
+    const vec3 centerColor = imageLoad(g_Color, pixelCoords).rgb;
+    vec4 searchVector = vec4(maxVelocity, -maxVelocity);
+    
+    // converts pixel length to sample steps
+    const float sampleScale = g_NumSamples * inversesqrt(maxVelocitySquaredLen);
+
+    const vec2 velocity = texture(g_Motion, uv).xy;
+    const float centerDepth = ToLinear(texture(g_Depth, uv).x);
+    const float centerVelocityLen = GetLimitedVelocityLen(velocity, VELOCITY_LIMIT);
+    vec3 colorAccum = vec3(0.f);
+    float colorAccumWeight = 0.f;
+
+    for (uint i = 0; i < g_NumSamples; i++)
+    {
+    	vec2 sampleUV[2];
+    	vec3 sampleColor[2];
+    	float sampleDepth[2];
+    	float sampleVelocityLen[2];
+    	float weight[2];
+    
+    	vec2 offsetLen = vec2(random1 - 0.5, 0.5 - random1) + i + 0.5f;
+    	vec2 offsetFraction = offsetLen / g_NumSamples;
+    
+    	sampleUV[0] = uv + offsetFraction.x * searchVector.xy;
+    	sampleUV[1] = uv + offsetFraction.y * searchVector.zw;
+
+#ifdef MOTIONBLUR_CHEAP
+    	for (uint j = 0; j < 2; j++)
+    	{
+            ivec2 coords = ivec2(sampleUV[j] * g_Size);
+            coords = clamp(coords, ivec2(0, 0), ivec2(g_Size.x - 1, g_Size.y - 1));
+		    colorAccum += imageLoad(g_Color, coords).rgb;
+            colorAccumWeight += 1.f;
+        }
+#else
+    	for (uint j = 0; j < 2; j++)
+    	{
+            ivec2 coords = ivec2(sampleUV[j] * g_Size);
+            coords = clamp(coords, ivec2(0, 0), ivec2(g_Size.x - 1, g_Size.y - 1));
+    		
+            sampleColor[j] = imageLoad(g_Color, coords).rgb;
+            sampleDepth[j] = ToLinear(texture(g_Depth, (coords + 0.5f) * g_TexelSize).x);
+    
+            const vec2 sampleVelocity = texture(g_Motion, (coords + 0.5f) * g_TexelSize).xy;
+            sampleVelocityLen[j] = GetLimitedVelocityLen(sampleVelocity, VELOCITY_LIMIT);
+    
+            weight[j] = SampleWeight(centerDepth, sampleDepth[j], offsetLen.x, centerVelocityLen, sampleVelocityLen[j], sampleScale, SOFT_Z_EXTENT);
+    	}
+    	
+    	bvec2 mirror = bvec2(sampleDepth[0] > sampleDepth[1], sampleVelocityLen[1] > sampleVelocityLen[0]);
+    	weight[0] = all(mirror) ? weight[1] : weight[0];
+    	weight[1] = any(mirror) ? weight[1] : weight[0];
+    		
+    	colorAccum += weight[0] * sampleColor[0] + weight[1] * sampleColor[1];
+    	colorAccumWeight += weight[0] + weight[1];
+#endif
+    }
+    
+    colorAccum	*= 0.5 / g_NumSamples;
+    colorAccumWeight *= 0.5 / g_NumSamples;
+    
+    vec3 resultColor = colorAccum + (1.f - colorAccumWeight) * centerColor;
+
+#endif
+
+#ifdef MOTIONBLUR_DEBUG_TILING
+
+#if defined(MOTIONBLUR_EARLYEXIT)
+    resultColor = mix(resultColor, vec3(0, 0, 1), 0.15f);
+#elif defined(MOTIONBLUR_CHEAP)
+    resultColor = mix(resultColor, vec3(0, 1, 0), 0.15f);
+#else
+    resultColor = mix(resultColor, vec3(1, 0, 0), 0.15f);
+#endif
+
+#endif // MOTIONBLUR_DEBUG_TILING
+
+    imageStore(g_Output, pixelCoords, vec4(resultColor, 0.f));
+}

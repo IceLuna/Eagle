@@ -442,8 +442,10 @@ namespace Eagle::Script
 	void Eagle_Renderer_GetVolumetricLightsSettings(uint32_t* outSamples, float* outMaxScatteringDist, float* fogSpeed, bool* bFogEnable, bool* bEnable);
 	MonoArray* Eagle_Renderer_GetShadowMapsSettings(uint32_t* outPointLightSize, uint32_t* outSpotLightSize);
 	void Eagle_Renderer_GetDepthOfFieldSettings(glm::vec2* apertureShape, float* apertureSize, float* focalLength, float* COCScale, float* maxCOC);
+	void Eagle_Renderer_GetMotionBlurSettings(bool* bEnabled, uint32_t* numSamples);
 	void Eagle_Renderer_SetShadowMapsSettings(uint32_t pointLightSize, uint32_t spotLightSize, MonoArray* dirLightSizes);
 	void Eagle_Renderer_SetDepthOfFieldSettings(const glm::vec2* apertureShape, float apertureSize, float focalLength, float COCScale, float maxCOC);
+	void Eagle_Renderer_SetMotionBlurSettings(bool bEnabled, uint32_t numSamples);
 	void Eagle_Renderer_SetStutterlessShaders(bool value);
 	bool Eagle_Renderer_GetStutterlessShaders();
 	void Eagle_Renderer_SetTranslucentShadowsEnabled(bool value);

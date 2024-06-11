@@ -1750,6 +1750,7 @@ namespace Eagle
 		const auto& photoLinearParams = settings.PhotoLinearTonemappingParams;
 		const auto& filmicParams = settings.FilmicTonemappingParams;
 		const auto& dofSettings = settings.DOFSettings;
+		const auto& motionBlurSettings = settings.MotionBlur;
 
 		out << YAML::Key << "RendererSettings" << YAML::Value << YAML::BeginMap;
 
@@ -1839,6 +1840,13 @@ namespace Eagle
 		out << YAML::Key << "MaxCOC" << YAML::Value << dofSettings.MaxCOC;
 		out << YAML::Key << "bDebug" << YAML::Value << dofSettings.bDebugOutput;
 		out << YAML::EndMap; //DOF
+
+		out << YAML::Key << "MotionBlur";
+		out << YAML::BeginMap;
+		out << YAML::Key << "bEnable" << YAML::Value << motionBlurSettings.bEnable;
+		out << YAML::Key << "NumSamples" << YAML::Value << motionBlurSettings.NumSamples;
+		out << YAML::Key << "bDebug" << YAML::Value << motionBlurSettings.bDebugOutput;
+		out << YAML::EndMap; //MotionBlur
 
 		out << YAML::EndMap;
 	}
@@ -2028,6 +2036,13 @@ namespace Eagle
 			settings.DOFSettings.COCScale = dofNode["COCScale"].as<float>();
 			settings.DOFSettings.MaxCOC = dofNode["MaxCOC"].as<float>();
 			settings.DOFSettings.bDebugOutput = dofNode["bDebug"].as<bool>();
+		}
+
+		if (auto motionBlurNode = data["MotionBlur"])
+		{
+			settings.MotionBlur.bEnable = motionBlurNode["bEnable"].as<bool>();
+			settings.MotionBlur.NumSamples = motionBlurNode["NumSamples"].as<uint32_t>();
+			settings.MotionBlur.bDebugOutput = motionBlurNode["bDebug"].as<bool>();
 		}
 	}
 

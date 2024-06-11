@@ -179,4 +179,14 @@ void sort3(inout vec3 p1, inout vec3 p2, inout vec3 p3)
     p3 = maxValue;
 }
 
+float ToLinear(float d, float near, float far)
+{
+    return near * far / (far + d * (near - far));
+}
+
+uvec2 Unflatten2D(uint idx, uvec2 dim)
+{
+    return uvec2(idx % dim.x, idx / dim.x);
+}
+
 #endif

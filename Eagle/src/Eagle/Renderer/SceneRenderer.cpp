@@ -16,6 +16,7 @@
 #include "Tasks/TAATask.h"
 #include "Tasks/VolumetricLightTask.h"
 #include "Tasks/DOFTask.h"
+#include "Tasks/MotionBlurTask.h"
 
 #include "Eagle/Debug/CPUTimings.h" 
 #include "Eagle/Debug/GPUTimings.h"
@@ -87,6 +88,7 @@ namespace Eagle
 		InitOptionalTask<TAATask>(m_TAATask, options, options.AA == AAMethod::TAA, *this);
 		InitOptionalTask<VolumetricLightTask>(m_VolumetricTask, options, options.VolumetricSettings.bEnable, *this, m_HDRRTImage);
 		InitOptionalTask<FogPassTask>(m_FogTask, options, options.FogSettings.bEnable, *this, m_HDRRTImage);
+		InitOptionalTask<MotionBlurTask>(m_MotionBlurTask, options, options.MotionBlur.bEnable, *this);
 
 		InitWithOptions();
 	}
@@ -169,8 +171,11 @@ namespace Eagle
 			renderer->m_RenderUnlitTextTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderLinesTask->RecordCommandBuffer(cmd);
 			
-			renderer->m_DOFTask->RecordCommandBuffer(cmd);
+			if (renderer->m_MotionBlurTask)
+				renderer->m_MotionBlurTask->RecordCommandBuffer(cmd);
+
 			renderer->m_TransparencyTask->RecordCommandBuffer(cmd);
+			renderer->m_DOFTask->RecordCommandBuffer(cmd);
 
 			if (renderer->m_Options_RT.AA == AAMethod::TAA)
 				renderer->m_TAATask->RecordCommandBuffer(cmd);
@@ -254,7 +259,7 @@ namespace Eagle
 		m_Options = options;
 		
 		const bool bTAAEnabled = m_Options.AA == AAMethod::TAA;
-		m_Options.InternalState.bMotionBuffer = (m_Options.AO == AmbientOcclusion::GTAO) || bTAAEnabled;
+		m_Options.InternalState.bMotionBuffer = (m_Options.AO == AmbientOcclusion::GTAO) || bTAAEnabled || m_Options.MotionBlur.bEnable;
 		m_Options.InternalState.bJitter = bTAAEnabled;
 	}
 
@@ -308,6 +313,9 @@ namespace Eagle
 		if (m_Options.AA == AAMethod::TAA)
 			m_TAATask->OnResize(m_Size);
 
+		if (m_MotionBlurTask)
+			m_MotionBlurTask->OnResize(m_Size);
+
 		RenderManager::SetImmediateDeletionMode(false);
 		RenderManager::ReleasePendingResources();
 		StagingManager::ReleaseBuffers();
@@ -356,6 +364,7 @@ namespace Eagle
 		InitOptionalTask<TAATask>(m_TAATask, options, options.AA == AAMethod::TAA, *this);
 		InitOptionalTask<VolumetricLightTask>(m_VolumetricTask, options, options.VolumetricSettings.bEnable, *this, m_HDRRTImage);
 		InitOptionalTask<FogPassTask>(m_FogTask, options, options.FogSettings.bEnable, *this, m_HDRRTImage);
+		InitOptionalTask<MotionBlurTask>(m_MotionBlurTask, options, options.MotionBlur.bEnable, *this);
 	}
 
 	void GBuffer::Init(const glm::uvec3& size)

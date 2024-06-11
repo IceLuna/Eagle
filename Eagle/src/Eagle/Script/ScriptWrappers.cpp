@@ -5483,6 +5483,16 @@ namespace Eagle
 		*maxCOC = settings.MaxCOC;
 	}
 
+	void Script::Eagle_Renderer_GetMotionBlurSettings(bool* bEnabled, uint32_t* numSamples)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& settings = sceneRenderer->GetOptions().MotionBlur;
+
+		*bEnabled = settings.bEnable;
+		*numSamples = settings.NumSamples;
+	}
+
 	void Script::Eagle_Renderer_SetShadowMapsSettings(uint32_t pointLightSize, uint32_t spotLightSize, MonoArray* dirLightSizes)
 	{
 		const auto& scene = Scene::GetCurrentScene();
@@ -5516,6 +5526,18 @@ namespace Eagle
 		settings.DOFSettings.COCScale = COCScale;
 		settings.DOFSettings.MaxCOC = maxCOC;
 		
+		sceneRenderer->SetOptions(settings);
+	}
+
+	void Script::Eagle_Renderer_SetMotionBlurSettings(bool bEnabled, uint32_t numSamples)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+
+		auto settings = sceneRenderer->GetOptions();
+		settings.MotionBlur.bEnable = bEnabled;
+		settings.MotionBlur.NumSamples = numSamples;
+
 		sceneRenderer->SetOptions(settings);
 	}
 

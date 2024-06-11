@@ -694,31 +694,7 @@ namespace Eagle
 		window.SetWindowMaximized(bWindowMaximized);
 		
 		auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
-		auto options = sceneRenderer->GetOptions();
-		options.BloomSettings = settings.BloomSettings;
-		options.SSAOSettings = settings.SSAOSettings;
-		options.GTAOSettings = settings.GTAOSettings;
-		options.FogSettings = settings.FogSettings;
-		options.ShadowsSettings = settings.ShadowsSettings;
-		options.VolumetricSettings = settings.VolumetricSettings;
-		options.bEnableSoftShadows = settings.bEnableSoftShadows;
-		options.bTranslucentShadows = settings.bTranslucentShadows;
-		options.bEnableCSMSmoothTransition = settings.bEnableCSMSmoothTransition;
-		options.bStutterlessShaders = settings.bStutterlessShaders;
-		options.bEnableObjectPicking = settings.bEnableObjectPicking;
-		options.bEnable2DObjectPicking = settings.bEnable2DObjectPicking;
-		options.LineWidth = settings.LineWidth;
-		options.GridScale = settings.GridScale;
-		options.TransparencyLayers = settings.TransparencyLayers;
-		options.AO = settings.AO;
-		options.AA = settings.AA;
-		options.Gamma = settings.Gamma;
-		options.Exposure = settings.Exposure;
-		options.Tonemapping = settings.Tonemapping;
-		options.PhotoLinearTonemappingParams = settings.PhotoLinearTonemappingParams;
-		options.FilmicTonemappingParams = settings.FilmicTonemappingParams;
-		options.DOFSettings = settings.DOFSettings;
-		sceneRenderer->SetOptions(options);
+		sceneRenderer->SetOptions(settings);
 	}
 
 	void EditorLayer::SetCurrentScene(const Ref<Scene>& scene)
@@ -1521,6 +1497,27 @@ namespace Eagle
 				bSettingsChanged |= UI::PropertyDrag("Focal Length", settings.FocalLength, 0.01f);
 				bSettingsChanged |= UI::PropertyDrag("COC Scale", settings.COCScale, 0.1f, 0.f, FLT_MAX, "Circle of Confusion scale");
 				bSettingsChanged |= UI::PropertyDrag("Max COC", settings.MaxCOC, 0.1f, 0.f, FLT_MAX, "Max Circle of Confusion");
+				bSettingsChanged |= UI::Property("Debug Output", settings.bDebugOutput);
+
+				UI::EndPropertyGrid();
+				ImGui::TreePop();
+			}
+		}
+
+		// Motion Blur settings
+		{
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx("Motion Blur Settings", treeFlags);
+			ImGui::PopStyleVar();
+			if (treeOpened)
+			{
+				UI::BeginPropertyGrid("Motion Blur Settings");
+
+				auto& settings = options.MotionBlur;
+
+				bSettingsChanged |= UI::Property("Enable", settings.bEnable);
+				bSettingsChanged |= UI::PropertySlider("Num Samples", settings.NumSamples, 1u, 64u);
 				bSettingsChanged |= UI::Property("Debug Output", settings.bDebugOutput);
 
 				UI::EndPropertyGrid();
