@@ -141,13 +141,13 @@ namespace Eagle
 		// Downscale pipeline
 		{
 			PipelineComputeState state;
-			state.ComputeShader = Shader::Create("bloom_downscale.comp", ShaderType::Compute);
+			state.ComputeShader = Shader::Create("bloom/bloom_downscale.comp", ShaderType::Compute);
 			m_DownscalePipeline = PipelineCompute::Create(state);
 		}
 		// Upscale pipeline
 		{
 			PipelineComputeState state;
-			state.ComputeShader = Shader::Create("bloom_upscale.comp", ShaderType::Compute);
+			state.ComputeShader = Shader::Create("bloom/bloom_upscale.comp", ShaderType::Compute);
 			m_UpscalePipeline = PipelineCompute::Create(state);
 		}
 	}

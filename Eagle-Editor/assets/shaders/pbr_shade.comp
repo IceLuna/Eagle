@@ -3,7 +3,7 @@
 #include "pbr_utils.h"
 
 #define EG_PIXEL_COORDS vec2(gl_GlobalInvocationID)
-#include "shadows_utils.h"
+#include "shadow_maps/shadows_utils.h"
 
 #extension GL_EXT_nonuniform_qualifier : enable
 

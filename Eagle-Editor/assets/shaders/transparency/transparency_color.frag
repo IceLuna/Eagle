@@ -8,7 +8,7 @@
 #include "pbr_utils.h"
 
 #define EG_PIXEL_COORDS vec2(gl_FragCoord.xy)
-#include "shadows_utils.h"
+#include "shadow_maps/shadows_utils.h"
 #include "postprocessing_utils.h"
 
 // Input

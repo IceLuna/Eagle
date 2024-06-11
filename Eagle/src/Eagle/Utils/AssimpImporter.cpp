@@ -725,12 +725,20 @@ namespace Eagle
 				if (aiMaterial->Get(AI_MATKEY_OPACITY, aiValue) == AI_SUCCESS)
 				{
 					material->SetOpacity(aiValue.r);
-					material->SetRawOpacityUsed(true);
+					if (!opacity && aiValue.r < 1.f)
+					{
+						material->SetBlendMode(Material::BlendMode::Translucent);
+						material->SetRawOpacityUsed(true);
+					}
 				}
 				else if (aiMaterial->Get(AI_MATKEY_TRANSMISSION_FACTOR, aiValue) == AI_SUCCESS)
 				{
 					material->SetOpacity(1.f - aiValue.r);
-					material->SetRawOpacityUsed(true);
+					if (!opacity && (1.f - aiValue.r) < 1.f)
+					{
+						material->SetBlendMode(Material::BlendMode::Translucent);
+						material->SetRawOpacityUsed(true);
+					}
 				}
 			}
 

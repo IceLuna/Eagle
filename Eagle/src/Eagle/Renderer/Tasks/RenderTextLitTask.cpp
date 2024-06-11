@@ -152,8 +152,8 @@ namespace Eagle
 			vertexDefines["EG_JITTER"] = "";
 
 		PipelineGraphicsState state;
-		state.VertexShader = Shader::Create("text_lit.vert", ShaderType::Vertex, vertexDefines);
-		state.FragmentShader = Shader::Create("text_lit.frag", ShaderType::Fragment, fragmentDefines);
+		state.VertexShader = Shader::Create("text/text_lit.vert", ShaderType::Vertex, vertexDefines);
+		state.FragmentShader = Shader::Create("text/text_lit.frag", ShaderType::Fragment, fragmentDefines);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.ColorAttachments.push_back(geometry_shading_NormalsAttachment);
 		state.ColorAttachments.push_back(emissiveAttachment);
@@ -177,7 +177,7 @@ namespace Eagle
 			m_OpaquePipeline = PipelineGraphics::Create(state);
 
 		fragmentDefines["EG_MASKED"] = "";
-		state.FragmentShader = Shader::Create("text_lit.frag", ShaderType::Fragment, fragmentDefines);
+		state.FragmentShader = Shader::Create("text/text_lit.frag", ShaderType::Fragment, fragmentDefines);
 		if (m_MaskedPipeline)
 			m_MaskedPipeline->SetState(state);
 		else
