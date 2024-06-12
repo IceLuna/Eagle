@@ -18,10 +18,18 @@ namespace Eagle
 		void SetData(const void* data, ImageFormat format) override;
 		void GenerateIBL();
 
+		Ref<PipelineGraphics>& GetIBLPipeline() { return m_IBLPipeline; }
+		Ref<PipelineGraphics>& GetIrradiancePipeline() { return m_IrradiancePipeline; }
+		Ref<PipelineGraphics>& GetPrefilterPipeline() { return m_PrefilterPipeline; }
+
 	private:
 		Ref<Sampler> m_CubemapSampler;
 		std::array<Ref<Framebuffer>, 6> m_Framebuffers;
 		std::array<Ref<VulkanFramebuffer>, 6> m_IrradianceFramebuffers;
 		std::vector<std::array<Ref<VulkanFramebuffer>, 6>> m_PrefilterFramebuffers;
+
+		Ref<PipelineGraphics> m_IBLPipeline;
+		Ref<PipelineGraphics> m_IrradiancePipeline;
+		Ref<PipelineGraphics> m_PrefilterPipeline;
 	};
 }

@@ -411,7 +411,7 @@ namespace Eagle
 		SkySettings m_Sky;
 		float m_CubemapIntensity = 1.f;
 		bool m_bSkyboxEnabled = true;
-		bool m_bUseSkyAsBackground = true;
+		bool m_bUseSkyAsBackground = false;
 
 		std::unordered_map<GUID, Ref<Sound>> m_SpawnedSounds;
 

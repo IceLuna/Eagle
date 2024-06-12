@@ -32,10 +32,12 @@ namespace Eagle
 		Ref<DescriptorManager> DescriptorManager;
 		Ref<VulkanSwapchain> Swapchain;
 
+		Ref<Shader> IBLVertex;
+		Ref<Shader> IBLFrag;
+		Ref<Shader> IBLIrradiance;
+		Ref<Shader> IBLPrefilter;
+
 		Ref<PipelineGraphics> PresentPipeline;
-		std::unordered_map<ImageFormat, Ref<PipelineGraphics>> IBLPipelines;
-		std::unordered_map<ImageFormat, Ref<PipelineGraphics>> IrradiancePipelines;
-		std::unordered_map<ImageFormat, Ref<PipelineGraphics>> PrefilterPipelines;
 		Ref<PipelineGraphics> BRDFLUTPipeline;
 		std::vector<Ref<Framebuffer>> PresentFramebuffers;
 		Ref<Image> PresentImage;
@@ -223,63 +225,6 @@ namespace Eagle
 			s_RendererData->PresentFramebuffers.push_back(Framebuffer::Create({ image }, size, s_RendererData->PresentPipeline->GetRenderPassHandle()));
 	}
 
-	static void SetupIBLPipeline()
-	{
-		auto vertexShader = Shader::Create("ibl.vert", ShaderType::Vertex);
-
-		ColorAttachment colorAttachment;
-		colorAttachment.ClearOperation = ClearOperation::Clear;
-		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
-		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.Image = s_RendererData->DummyRGBA32FImage; // just a dummy here
-
-		PipelineGraphicsState state;
-		state.VertexShader = vertexShader;
-		state.FragmentShader = Shader::Create("ibl.frag", ShaderType::Fragment);
-		state.ColorAttachments.push_back(colorAttachment);
-		state.Size = { TextureCube::SkyboxSize, TextureCube::SkyboxSize };
-		state.bImagelessFramebuffer = true;
-
-		PipelineGraphicsState irradianceState;
-		irradianceState.VertexShader = vertexShader;
-		irradianceState.FragmentShader = Shader::Create("generate_irradiance.frag", ShaderType::Fragment);
-		irradianceState.ColorAttachments.push_back(colorAttachment);
-		irradianceState.Size = { TextureCube::IrradianceSize, TextureCube::IrradianceSize };
-		irradianceState.bImagelessFramebuffer = true;
-
-		PipelineGraphicsState prefilterState;
-		prefilterState.VertexShader = vertexShader;
-		prefilterState.FragmentShader = Shader::Create("prefilter_ibl.frag", ShaderType::Fragment);
-		prefilterState.ColorAttachments.push_back(colorAttachment);
-		prefilterState.Size = { 1, 1 };
-		prefilterState.bImagelessFramebuffer = true;
-
-		s_RendererData->IBLPipelines[ImageFormat::R32G32B32A32_Float] = PipelineGraphics::Create(state);
-		s_RendererData->IrradiancePipelines[ImageFormat::R32G32B32A32_Float] = PipelineGraphics::Create(irradianceState);
-		s_RendererData->PrefilterPipelines[ImageFormat::R32G32B32A32_Float] = PipelineGraphics::Create(prefilterState);
-
-		state.ColorAttachments[0].Image = s_RendererData->DummyRGBA16FImage;
-		irradianceState.ColorAttachments[0].Image = s_RendererData->DummyRGBA16FImage;
-		prefilterState.ColorAttachments[0].Image = s_RendererData->DummyRGBA16FImage;
-		s_RendererData->IBLPipelines[ImageFormat::R16G16B16A16_Float] = PipelineGraphics::Create(state);
-		s_RendererData->IrradiancePipelines[ImageFormat::R16G16B16A16_Float] = PipelineGraphics::Create(irradianceState);
-		s_RendererData->PrefilterPipelines[ImageFormat::R16G16B16A16_Float] = PipelineGraphics::Create(prefilterState);
-
-		state.ColorAttachments[0].Image = s_RendererData->DummyRGBA11FImage;
-		irradianceState.ColorAttachments[0].Image = s_RendererData->DummyRGBA11FImage;
-		prefilterState.ColorAttachments[0].Image = s_RendererData->DummyRGBA11FImage;
-		s_RendererData->IBLPipelines[ImageFormat::R11G11B10_Float] = PipelineGraphics::Create(state);
-		s_RendererData->IrradiancePipelines[ImageFormat::R11G11B10_Float] = PipelineGraphics::Create(irradianceState);
-		s_RendererData->PrefilterPipelines[ImageFormat::R11G11B10_Float] = PipelineGraphics::Create(prefilterState);
-
-		state.ColorAttachments[0].Image = s_RendererData->DummyImage;
-		irradianceState.ColorAttachments[0].Image = s_RendererData->DummyImage;
-		prefilterState.ColorAttachments[0].Image = s_RendererData->DummyImage;
-		s_RendererData->IBLPipelines[ImageFormat::R8G8B8A8_UNorm] = PipelineGraphics::Create(state);
-		s_RendererData->IrradiancePipelines[ImageFormat::R8G8B8A8_UNorm] = PipelineGraphics::Create(irradianceState);
-		s_RendererData->PrefilterPipelines[ImageFormat::R8G8B8A8_UNorm] = PipelineGraphics::Create(prefilterState);
-	}
-
 	static void SetupBRDFLUTPipeline()
 	{
 		ColorAttachment colorAttachment;
@@ -401,11 +346,15 @@ namespace Eagle
 		s_RendererData->DummyCubeDepthImage = CreateDepthImage(glm::uvec3{ 1, 1, 1 }, "DummyDepthImage_Cube", true);
 		s_RendererData->DummyDepthImage = CreateDepthImage(glm::uvec3{ 1, 1, 1 }, "DummyDepthImage", false);
 
+		s_RendererData->IBLVertex     = Shader::Create("ibl.vert", ShaderType::Vertex);
+		s_RendererData->IBLFrag       = Shader::Create("ibl.frag", ShaderType::Fragment);
+		s_RendererData->IBLIrradiance = Shader::Create("generate_irradiance.frag", ShaderType::Fragment);
+		s_RendererData->IBLPrefilter  = Shader::Create("prefilter_ibl.frag", ShaderType::Fragment);
+
 		MaterialSystem::Init();
 		TextureSystem::Init();
 		// Init renderer pipelines
 		SetupPresentPipeline();
-		SetupIBLPipeline();
 		SetupBRDFLUTPipeline();
 
 		s_RendererData->DummyIBL = TextureCube::Create(Texture2D::BlackTexture, 1, 1);
@@ -808,40 +757,58 @@ namespace Eagle
 		return s_RendererData->DescriptorManager;
 	}
 
-	Ref<PipelineGraphics>& RenderManager::GetIBLPipeline(ImageFormat format)
+	Ref<PipelineGraphics> RenderManager::CreateIBLPipeline(const Ref<Image>& attachment)
 	{
-		auto it = s_RendererData->IBLPipelines.find(format);
-		if (it == s_RendererData->IBLPipelines.end())
-		{
-			EG_CORE_ASSERT(false);
-			EG_CORE_ERROR("Failed to find `IBL Pipeline` for: {}", Utils::GetEnumName(format));
-			return s_RendererData->IBLPipelines.at(ImageFormat::R16G16B16A16_Float);
-		}
-		return it->second;
+		ColorAttachment colorAttachment;
+		colorAttachment.ClearOperation = ClearOperation::Clear;
+		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
+		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.Image = attachment;
+
+		PipelineGraphicsState state;
+		state.VertexShader = s_RendererData->IBLVertex;
+		state.FragmentShader = Shader::Create("ibl.frag", ShaderType::Fragment);
+		state.ColorAttachments.push_back(colorAttachment);
+		state.Size = { TextureCube::SkyboxSize, TextureCube::SkyboxSize };
+		state.bImagelessFramebuffer = true;
+
+		return PipelineGraphics::Create(state);
 	}
 
-	Ref<PipelineGraphics>& RenderManager::GetIrradiancePipeline(ImageFormat format)
+	Ref<PipelineGraphics> RenderManager::CreateIrradiancePipeline(const Ref<Image>& attachment)
 	{
-		auto it = s_RendererData->IrradiancePipelines.find(format);
-		if (it == s_RendererData->IrradiancePipelines.end())
-		{
-			EG_CORE_ASSERT(false);
-			EG_CORE_ERROR("Failed to find `Irradiance Pipeline` for: {}", Utils::GetEnumName(format));
-			return s_RendererData->IrradiancePipelines.at(ImageFormat::R16G16B16A16_Float);
-		}
-		return it->second;
+		ColorAttachment colorAttachment;
+		colorAttachment.ClearOperation = ClearOperation::Clear;
+		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
+		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.Image = attachment;
+
+		PipelineGraphicsState irradianceState;
+		irradianceState.VertexShader = s_RendererData->IBLVertex;
+		irradianceState.FragmentShader = Shader::Create("generate_irradiance.frag", ShaderType::Fragment);
+		irradianceState.ColorAttachments.push_back(colorAttachment);
+		irradianceState.Size = { TextureCube::IrradianceSize, TextureCube::IrradianceSize };
+		irradianceState.bImagelessFramebuffer = true;
+
+		return PipelineGraphics::Create(irradianceState);
 	}
 
-	Ref<PipelineGraphics>& RenderManager::GetPrefilterPipeline(ImageFormat format)
+	Ref<PipelineGraphics> RenderManager::CreatePrefilterPipeline(const Ref<Image>& attachment)
 	{
-		auto it = s_RendererData->PrefilterPipelines.find(format);
-		if (it == s_RendererData->PrefilterPipelines.end())
-		{
-			EG_CORE_ASSERT(false);
-			EG_CORE_ERROR("Failed to find `Prefilter Pipeline` for: {}", Utils::GetEnumName(format));
-			return s_RendererData->PrefilterPipelines.at(ImageFormat::R16G16B16A16_Float);
-		}
-		return it->second;
+		ColorAttachment colorAttachment;
+		colorAttachment.ClearOperation = ClearOperation::Clear;
+		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
+		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.Image = attachment;
+
+		PipelineGraphicsState prefilterState;
+		prefilterState.VertexShader = s_RendererData->IBLVertex;
+		prefilterState.FragmentShader = Shader::Create("prefilter_ibl.frag", ShaderType::Fragment);
+		prefilterState.ColorAttachments.push_back(colorAttachment);
+		prefilterState.Size = { 1, 1 };
+		prefilterState.bImagelessFramebuffer = true;
+
+		return PipelineGraphics::Create(prefilterState);
 	}
 
 	Ref<PipelineGraphics>& RenderManager::GetBRDFLUTPipeline()

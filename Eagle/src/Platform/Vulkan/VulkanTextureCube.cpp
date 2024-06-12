@@ -110,8 +110,12 @@ namespace Eagle
 		m_PrefilterImage = MakeRef<VulkanImage>(prefilterImageSpecs, "PrefilterCubeImage");
 		m_PrefilterImageSampler = MakeRef<VulkanSampler>(FilterMode::Trilinear, AddressMode::Clamp, CompareOperation::Never, 0.f, float(m_PrefilterImage->GetMipsCount() - 1u));
 
-		const void* renderpassHandle = RenderManager::GetIBLPipeline(m_Format)->GetRenderPassHandle();
-		const void* irradianceRenderpassHandle = RenderManager::GetIrradiancePipeline(m_Format)->GetRenderPassHandle();
+		m_IBLPipeline = RenderManager::CreateIBLPipeline(m_Image);
+		m_IrradiancePipeline = RenderManager::CreateIrradiancePipeline(m_IrradianceImage);
+		m_PrefilterPipeline = RenderManager::CreatePrefilterPipeline(m_PrefilterImage);
+
+		const void* renderpassHandle = m_IBLPipeline->GetRenderPassHandle();
+		const void* irradianceRenderpassHandle = m_IrradiancePipeline->GetRenderPassHandle();
 		ImageView imageView{};
 		imageView.LayersCount = 1;
 		const glm::uvec2 squareSize = { m_Size.x, m_Size.y };
@@ -148,9 +152,9 @@ namespace Eagle
 				glm::mat4 VP;
 			} pushData;
 
-			Ref<PipelineGraphics>& iblPipeline = RenderManager::GetIBLPipeline(texture->GetFormat());
-			Ref<PipelineGraphics>& irradiancePipeline = RenderManager::GetIrradiancePipeline(texture->GetFormat());
-			Ref<PipelineGraphics>& prefilterPipeline = RenderManager::GetPrefilterPipeline(texture->GetFormat());
+			Ref<PipelineGraphics>& iblPipeline = texture->GetIBLPipeline();
+			Ref<PipelineGraphics>& irradiancePipeline = texture->GetIrradiancePipeline();
+			Ref<PipelineGraphics>& prefilterPipeline = texture->GetPrefilterPipeline();
 
 			iblPipeline->SetImageSampler(texture->m_Texture2D->GetImage(), Sampler::PointSampler, 0, 0);
 			irradiancePipeline->SetImageSampler(texture->m_Image, texture->m_CubemapSampler, 0, 0);
