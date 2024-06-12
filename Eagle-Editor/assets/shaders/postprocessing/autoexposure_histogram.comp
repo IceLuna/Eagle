@@ -1,0 +1,65 @@
+#include "defines.h"
+#include "postprocessing/utils.h"
+
+layout(push_constant) uniform PushData
+{
+    ivec2 g_Size;
+    int g_DownscaleFactor;
+    float g_MinLog2Lum;
+    float g_InvLog2Lum;
+};
+
+layout(binding = 0, r11f_g11f_b10f) uniform readonly image2D g_Color;
+layout(binding = 1) buffer Histogram
+{
+    uint g_Histogram[];
+};
+
+#define GROUP_SIZE 16
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+shared uint histogramShared[GROUP_SIZE * GROUP_SIZE];
+
+// For a given color and luminance range, return the histogram bin index
+uint ColorToBin(vec3 color, float minLogLum, float inverseLogLumRange)
+{
+    float lum = Luminance(color);
+    
+    // Avoid taking the log of zero
+    if (lum < FLT_EPSILON)
+        return 0;
+    
+    // Calculate the log_2 luminance and express it as a value in [0.0, 1.0]
+    // where 0.0 represents the minimum luminance, and 1.0 represents the max.
+    float logLum = clamp((log2(lum) - minLogLum) * inverseLogLumRange, 0.0, 1.0);
+    
+    // Map [0, 1] to [1, 255]. The zeroth bin is handled by the epsilon check above.
+    return uint(logLum * 254.0 + 1.0);
+}
+
+void main()
+{
+    const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID);
+    
+    // Initialize the bin for this thread to 0
+    histogramShared[gl_LocalInvocationIndex] = 0;
+    barrier();
+
+    // Ignore threads that map to areas beyond the bounds of our HDR image
+    if (pixelCoords.x < g_Size.x && pixelCoords.y < g_Size.y)
+    {
+        vec3 color = imageLoad(g_Color, pixelCoords * g_DownscaleFactor).rgb;
+        uint binIndex = ColorToBin(color, g_MinLog2Lum, g_InvLog2Lum);
+        // We use an atomic add to ensure we don't write to the same bin in our
+        // histogram from two different threads at the same time.
+        atomicAdd(histogramShared[binIndex], 1);
+    }
+
+    // Wait for all threads in the work group to reach this point before adding our
+    // local histogram to the global one
+    barrier();
+
+    // Technically there's no chance that two threads write to the same bin here,
+    // but different work groups might! So we still need the atomic add.
+    atomicAdd(g_Histogram[gl_LocalInvocationIndex], histogramShared[gl_LocalInvocationIndex]);
+}

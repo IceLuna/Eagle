@@ -5493,6 +5493,20 @@ namespace Eagle
 		*numSamples = settings.NumSamples;
 	}
 
+	void Script::Eagle_Renderer_GetAutoExposureSettings(float* minLogLum, float* maxLogLum, float* adaptationSpeed, float* adaptationKey, bool* bEnabled, bool* bHalfResolution)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& settings = sceneRenderer->GetOptions().AutoExposure;
+
+		*minLogLum = settings.MinLogLum;
+		*maxLogLum = settings.MaxLogLum;
+		*adaptationSpeed = settings.AdaptationSpeed;
+		*adaptationKey = settings.AdaptationKey;
+		*bEnabled = settings.bEnable;
+		*bHalfResolution = settings.bHalfResolution;
+	}
+
 	void Script::Eagle_Renderer_SetShadowMapsSettings(uint32_t pointLightSize, uint32_t spotLightSize, MonoArray* dirLightSizes)
 	{
 		const auto& scene = Scene::GetCurrentScene();
@@ -5537,6 +5551,22 @@ namespace Eagle
 		auto settings = sceneRenderer->GetOptions();
 		settings.MotionBlur.bEnable = bEnabled;
 		settings.MotionBlur.NumSamples = numSamples;
+
+		sceneRenderer->SetOptions(settings);
+	}
+
+	void Script::Eagle_Renderer_SetAutoExposureSettings(float minLogLum, float maxLogLum, float adaptationSpeed, float adaptationKey, bool bEnabled, bool bHalfResolution)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+
+		auto settings = sceneRenderer->GetOptions();
+		settings.AutoExposure.MinLogLum = minLogLum;
+		settings.AutoExposure.MaxLogLum = maxLogLum;
+		settings.AutoExposure.AdaptationSpeed = adaptationSpeed;
+		settings.AutoExposure.AdaptationKey = adaptationKey;
+		settings.AutoExposure.bEnable = bEnabled;
+		settings.AutoExposure.bHalfResolution = bHalfResolution;
 
 		sceneRenderer->SetOptions(settings);
 	}

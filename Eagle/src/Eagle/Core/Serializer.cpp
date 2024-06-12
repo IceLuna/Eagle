@@ -1751,6 +1751,7 @@ namespace Eagle
 		const auto& filmicParams = settings.FilmicTonemappingParams;
 		const auto& dofSettings = settings.DOFSettings;
 		const auto& motionBlurSettings = settings.MotionBlur;
+		const auto& autoExposureSettings = settings.AutoExposure;
 
 		out << YAML::Key << "RendererSettings" << YAML::Value << YAML::BeginMap;
 
@@ -1847,6 +1848,16 @@ namespace Eagle
 		out << YAML::Key << "NumSamples" << YAML::Value << motionBlurSettings.NumSamples;
 		out << YAML::Key << "bDebug" << YAML::Value << motionBlurSettings.bDebugOutput;
 		out << YAML::EndMap; //MotionBlur
+
+		out << YAML::Key << "AutoExposure";
+		out << YAML::BeginMap;
+		out << YAML::Key << "MinLogLum" << YAML::Value << autoExposureSettings.MinLogLum;
+		out << YAML::Key << "MaxLogLum" << YAML::Value << autoExposureSettings.MaxLogLum;
+		out << YAML::Key << "AdaptationSpeed" << YAML::Value << autoExposureSettings.AdaptationSpeed;
+		out << YAML::Key << "AdaptationKey" << YAML::Value << autoExposureSettings.AdaptationKey;
+		out << YAML::Key << "bEnable" << YAML::Value << autoExposureSettings.bEnable;
+		out << YAML::Key << "bHalfResolution" << YAML::Value << autoExposureSettings.bHalfResolution;
+		out << YAML::EndMap; //AutoExposure
 
 		out << YAML::EndMap;
 	}
@@ -2043,6 +2054,16 @@ namespace Eagle
 			settings.MotionBlur.bEnable = motionBlurNode["bEnable"].as<bool>();
 			settings.MotionBlur.NumSamples = motionBlurNode["NumSamples"].as<uint32_t>();
 			settings.MotionBlur.bDebugOutput = motionBlurNode["bDebug"].as<bool>();
+		}
+
+		if (auto autoExposureNode = data["AutoExposure"])
+		{
+			settings.AutoExposure.MinLogLum = autoExposureNode["MinLogLum"].as<float>();
+			settings.AutoExposure.MaxLogLum = autoExposureNode["MaxLogLum"].as<float>();
+			settings.AutoExposure.AdaptationSpeed = autoExposureNode["AdaptationSpeed"].as<float>();
+			settings.AutoExposure.AdaptationKey = autoExposureNode["AdaptationKey"].as<float>();
+			settings.AutoExposure.bEnable = autoExposureNode["bEnable"].as<bool>();
+			settings.AutoExposure.bHalfResolution = autoExposureNode["bHalfResolution"].as<bool>();
 		}
 	}
 

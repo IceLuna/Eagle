@@ -1,19 +1,23 @@
 #include "defines.h"
-#include "postprocessing_utils.h"
+#include "postprocessing/utils.h"
 #include "utils.h"
 
 layout(push_constant) uniform PushData
 {
     ivec2 g_Size;
     float g_InvGamma;
-    float g_Exposure;
     float g_PhotolinearScale;
     float g_WhitePoint;
     uint g_TonemappingMethod;
 };
 
-layout(binding = 0, r11f_g11f_b10f) uniform readonly  image2D g_Color;
-layout(binding = 1, rgba8)   uniform writeonly image2D g_Output;
+layout(binding = 0, r11f_g11f_b10f) uniform readonly image2D g_Color;
+layout(binding = 1, rgba8) uniform writeonly image2D g_Output;
+layout(binding = 2) readonly buffer Exposure
+{
+    float g_Exposure;
+    float g_AverageLuminance;
+};
 
 #define GROUP_SIZE 8
 layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;

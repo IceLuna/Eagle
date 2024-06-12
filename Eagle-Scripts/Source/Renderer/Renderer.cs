@@ -123,6 +123,17 @@ namespace Eagle
         public uint NumSamples;
     }
 
+    public struct AutoExposureSettings
+    {
+        public float MinLogLum;
+        public float MaxLogLum;
+        public float AdaptationSpeed;
+        public float AdaptationKey;
+
+        public bool bEnabled;
+        public bool bHalfResolution;
+    }
+
     public static class Renderer
     {
         public const uint CascadesCount = 4u;
@@ -316,6 +327,18 @@ namespace Eagle
         {
             MotionBlurSettings result = new MotionBlurSettings();
             GetMotionBlurSettings_Native(out result.bEnabled, out result.NumSamples);
+            return result;
+        }
+
+        public static void SetAutoExposureSettings(AutoExposureSettings value)
+        {
+            SetAutoExposureSettings_Native(value.MinLogLum, value.MaxLogLum, value.AdaptationSpeed, value.AdaptationKey, value.bEnabled, value.bHalfResolution);
+        }
+
+        public static AutoExposureSettings GetAutoExposureSettings()
+        {
+            AutoExposureSettings result = new AutoExposureSettings();
+            GetAutoExposureSettings_Native(out result.MinLogLum, out result.MaxLogLum, out result.AdaptationSpeed, out result.AdaptationKey, out result.bEnabled, out result.bHalfResolution);
             return result;
         }
 
@@ -588,6 +611,9 @@ namespace Eagle
         private static extern void GetMotionBlurSettings_Native(out bool bEnabled, out uint numSamples);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetAutoExposureSettings_Native(out float minLogLum, out float maxLogLum, out float adaptationSpeed, out float adaptationKey, out bool bEnabled, out bool bHalfResolution);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetShadowMapsSettings_Native(uint pointLightSize, uint spotLightSize, uint[] dirLightSizes);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -595,6 +621,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetMotionBlurSettings_Native(bool bEnabled, uint numSamples);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetAutoExposureSettings_Native(float minLogLum, float maxLogLum, float adaptationSpeed, float adaptationKey, bool bEnabled, bool bHalfResolution);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void GetViewportSize_Native(out Vector2 size);

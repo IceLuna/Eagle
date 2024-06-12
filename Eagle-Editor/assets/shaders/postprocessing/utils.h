@@ -126,4 +126,9 @@ float GetFogFactor(uint fogEquation, float distance, float density, float fogMin
     }
 }
 
+float Luminance(vec3 rgb)
+{
+    return dot(rgb, vec3(0.2125f, 0.7154f, 0.0721f));
+}
+
 #endif

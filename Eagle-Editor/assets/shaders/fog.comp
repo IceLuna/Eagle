@@ -1,5 +1,5 @@
 #include "defines.h"
-#include "postprocessing_utils.h"
+#include "postprocessing/utils.h"
 #include "utils.h"
 
 layout(binding = 0, r11f_g11f_b10f) uniform image2D g_Result;

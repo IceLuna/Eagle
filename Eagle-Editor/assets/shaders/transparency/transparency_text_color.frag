@@ -10,7 +10,7 @@
 
 #define EG_PIXEL_COORDS vec2(gl_FragCoord.xy)
 #include "shadow_maps/shadows_utils.h"
-#include "postprocessing_utils.h"
+#include "postprocessing/utils.h"
 
 // Input
 layout(location = 0) in vec4      i_AlbedoRoughness;

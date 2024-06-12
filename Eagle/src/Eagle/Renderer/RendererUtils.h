@@ -772,6 +772,35 @@ namespace Eagle
         }
     };
 
+    struct AutoExposureSettings
+    {
+        float MinLogLum = -10.0f;
+        float MaxLogLum = 2.0f;
+        float AdaptationSpeed = 1.0f;
+        float AdaptationKey = 0.1f;
+
+        bool bEnable = false;
+        bool bHalfResolution = true;
+
+        bool operator== (const AutoExposureSettings& other) const
+        {
+            bool bEqual =
+                MinLogLum == other.MinLogLum &&
+                MaxLogLum == other.MaxLogLum &&
+                AdaptationSpeed == other.AdaptationSpeed &&
+                AdaptationKey == other.AdaptationKey &&
+                bEnable == other.bEnable &&
+                bHalfResolution == other.bHalfResolution;
+
+            return bEqual;
+        }
+
+        bool operator!= (const AutoExposureSettings& other) const
+        {
+            return !((*this) == other);
+        }
+    };
+
     struct SceneRendererSettings
     {
         BloomSettings BloomSettings;
@@ -784,6 +813,7 @@ namespace Eagle
         FilmicTonemappingSettings FilmicTonemappingParams;
         DepthOfFieldSettings DOFSettings;
         MotionBlurSettings MotionBlur;
+        AutoExposureSettings AutoExposure;
         float Gamma = 2.2f;
         float Exposure = 1.f;
         float LineWidth = 2.5f;
@@ -824,6 +854,7 @@ namespace Eagle
                 bStutterlessShaders == other.bStutterlessShaders &&
                 bEnableObjectPicking == other.bEnableObjectPicking &&
                 bEnable2DObjectPicking == other.bEnable2DObjectPicking &&
+                AutoExposure == other.AutoExposure &&
                 SSAOSettings == other.SSAOSettings &&
                 GTAOSettings == other.GTAOSettings &&
                 GridScale == other.GridScale &&

@@ -1139,7 +1139,13 @@ namespace Eagle
 		}
 
 		bSettingsChanged |= UI::PropertyDrag("Gamma", options.Gamma, 0.1f, 0.0f, 10.f);
-		bSettingsChanged |= UI::PropertyDrag("Exposure", options.Exposure, 0.1f, 0.0f, 100.f);
+
+		if (options.AutoExposure.bEnable)
+			UI::PushItemDisabled();
+		bSettingsChanged |= UI::PropertyDrag("Exposure", options.Exposure, 0.1f, 0.0f, 100.f, "Disabled, if Auto Exposure is used");
+		if (options.AutoExposure.bEnable)
+			UI::PopItemDisabled();
+
 		bSettingsChanged |= UI::ComboEnum<TonemappingMethod>("Tonemapping", options.Tonemapping);
 
 		if (UI::Property("Stutterless", options.bStutterlessShaders, s_StutterlessHelpMsg))
@@ -1222,11 +1228,43 @@ namespace Eagle
 		constexpr ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
 			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
 
+		// Auto Exposure settings
+		{
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx("Auto Exposure", treeFlags);
+			ImGui::PopStyleVar();
+			if (treeOpened)
+			{
+				UI::BeginPropertyGrid("Auto Exposure Settings");
+
+				auto& settings = options.AutoExposure;
+
+				bSettingsChanged |= UI::Property("Enable", settings.bEnable);
+				bSettingsChanged |= UI::Property("Half Resolution", settings.bHalfResolution, "If set to true, histogram calculation are performed in half-res, hence improving performance by the cost of the quality.");
+				bSettingsChanged |= UI::PropertyDrag("Min Luminance (log)", settings.MinLogLum, 0.1f, 0.f, 0.f, "Logarithmic value");
+				bSettingsChanged |= UI::PropertyDrag("Max Luminance (log)", settings.MaxLogLum, 0.1f, 0.f, 0.f, "Logarithmic value");
+				if (UI::PropertyDrag("Adaptation Speed", settings.AdaptationSpeed, 0.05f, 0.f, 0.f, "Controls how fast Auto Exposure reacts to changes"))
+				{
+					settings.AdaptationSpeed = glm::max(settings.AdaptationSpeed, 0.f);
+					bSettingsChanged = true;
+				}
+				if (UI::PropertyDrag("Adaptation Key", settings.AdaptationKey, 0.01f, 0.f, 0.f, "Controls the final Exposure"))
+				{
+					settings.AdaptationKey = glm::max(settings.AdaptationKey, 0.f);
+					bSettingsChanged = true;
+				}
+
+				UI::EndPropertyGrid();
+				ImGui::TreePop();
+			}
+		}
+
 		// Shadow Resolutions settings
 		{
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Shadow Settings", treeFlags);
+			bool treeOpened = ImGui::TreeNodeEx("Shadows", treeFlags);
 			ImGui::PopStyleVar();
 			if (treeOpened)
 			{
@@ -1288,7 +1326,7 @@ namespace Eagle
 		{
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Bloom Settings", treeFlags);
+			bool treeOpened = ImGui::TreeNodeEx("Bloom", treeFlags);
 			ImGui::PopStyleVar();
 			if (treeOpened)
 			{
@@ -1340,7 +1378,7 @@ namespace Eagle
 		{
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("SSAO Settings", treeFlags);
+			bool treeOpened = ImGui::TreeNodeEx("SSAO", treeFlags);
 			ImGui::PopStyleVar();
 			if (treeOpened)
 			{
@@ -1379,7 +1417,7 @@ namespace Eagle
 		{
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("GTAO Settings", treeFlags);
+			bool treeOpened = ImGui::TreeNodeEx("GTAO", treeFlags);
 			ImGui::PopStyleVar();
 			if (treeOpened)
 			{
@@ -1411,7 +1449,7 @@ namespace Eagle
 		{
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Volumetric Lights Settings", treeFlags);
+			bool treeOpened = ImGui::TreeNodeEx("Volumetric Lights", treeFlags);
 			ImGui::PopStyleVar();
 			if (treeOpened)
 			{
@@ -1455,7 +1493,7 @@ namespace Eagle
 		{
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Fog Settings", treeFlags);
+			bool treeOpened = ImGui::TreeNodeEx("Fog", treeFlags);
 			ImGui::PopStyleVar();
 			if (treeOpened)
 			{
@@ -1483,7 +1521,7 @@ namespace Eagle
 		{
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("DOF Settings", treeFlags);
+			bool treeOpened = ImGui::TreeNodeEx("Depth of Field", treeFlags);
 			ImGui::PopStyleVar();
 			if (treeOpened)
 			{
@@ -1508,7 +1546,7 @@ namespace Eagle
 		{
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Motion Blur Settings", treeFlags);
+			bool treeOpened = ImGui::TreeNodeEx("Motion Blur", treeFlags);
 			ImGui::PopStyleVar();
 			if (treeOpened)
 			{
@@ -1529,7 +1567,7 @@ namespace Eagle
 		{
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Photo Linear Tonemapping Settings", treeFlags);
+			bool treeOpened = ImGui::TreeNodeEx("Photo Linear tonemapping", treeFlags);
 			ImGui::PopStyleVar();
 			if (treeOpened)
 			{
@@ -1567,7 +1605,7 @@ namespace Eagle
 		{
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Filmic Tonemapping Settings", treeFlags);
+			bool treeOpened = ImGui::TreeNodeEx("Filmic tonemapping", treeFlags);
 			ImGui::PopStyleVar();
 
 			if (treeOpened)

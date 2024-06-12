@@ -59,6 +59,5 @@ void main()
 	// TODO: Pack to outEmissive.a since it's not used anyway
 #ifdef EG_MOTION
 	outMotion = ((i_CurPos.xy / i_CurPos.z) - (i_PrevPos.xy / i_PrevPos.z)) * 0.5f; // The + 0.5 part is unnecessary, since it cancels out in a-b anyway
-	outMotion = vec2(0.25f, 0.f);
 #endif
 }
