@@ -18,6 +18,8 @@ namespace Eagle
 
 	AssetsMap AssetManager::s_Assets;
 	AssetsMapByGUID AssetManager::s_AssetsByGUID;
+	Ref<AssetTextureCube> AssetManager::s_Skybox;
+	Ref<AssetStaticMesh> AssetManager::s_Sphere;
 
 	// Just to store path along side with the node when we use GUID as a key.
 	struct NodeData
@@ -89,6 +91,9 @@ namespace Eagle
 
 		for (const auto& assetPath : delayedAssetsLastly)
 			Register(Asset::Create(assetPath));
+
+		s_Skybox = AssetTextureCube::Create(Application::GetCorePath() / "assets/textures/IBL.egasset");
+		s_Sphere = AssetStaticMesh::Create(Application::GetCorePath() / "assets/meshes/Sphere.egasset");
 	}
 
 	void AssetManager::InitGame(const YAML::Node& baseNode)
@@ -115,6 +120,8 @@ namespace Eagle
 		s_AssetsByGUID.clear();
 		s_AssetPackAssets.clear();
 		s_AssetPackAssetsByGUID.clear();
+		s_Skybox.reset();
+		s_Sphere.reset();
 	}
 
 	void AssetManager::Register(const Ref<Asset>& asset)

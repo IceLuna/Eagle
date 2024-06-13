@@ -471,27 +471,14 @@ public:
         push_task(
             [task_function, task_promise]
             {
-                try
+                if constexpr (std::is_void_v<R>)
                 {
-                    if constexpr (std::is_void_v<R>)
-                    {
-                        std::invoke(task_function);
-                        task_promise->set_value();
-                    }
-                    else
-                    {
-                        task_promise->set_value(std::invoke(task_function));
-                    }
+                    std::invoke(task_function);
+                    task_promise->set_value();
                 }
-                catch (...)
+                else
                 {
-                    try
-                    {
-                        task_promise->set_exception(std::current_exception());
-                    }
-                    catch (...)
-                    {
-                    }
+                    task_promise->set_value(std::invoke(task_function));
                 }
             });
         return task_promise->get_future();

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -1029,16 +1030,26 @@ namespace Eagle
             }
         }
 
+        public AssetMaterial Material
+        {
+            get
+            {
+                GetMaterial_Native(Parent.ID, out GUID assetID);
+                if (assetID.IsNull())
+                    return null;
+
+                return new AssetMaterial(assetID);
+            }
+            set
+            {
+                SetMaterial_Native(Parent.ID, (value != null) ? value.GetGUID() : GUID.Null());
+            }
+        }
+
         public string Text
         {
             get { return GetText_Native(Parent.ID); }
             set { SetText_Native(Parent.ID, value); }
-        }
-
-        public MaterialBlendMode BlendMode
-        {
-            get { return GetBlendMode_Native(Parent.ID); }
-            set { SetBlendMode_Native(Parent.ID, value); }
         }
 
         public Color3 Color // Used only if bLit is false. It's an HDR value
@@ -1071,53 +1082,10 @@ namespace Eagle
             set { SetCastsShadows_Native(Parent.ID, value); }
         }
 
-        // Values below are used only if bLit is true
         public bool bLit
         {
             get { return GetIsLit_Native(Parent.ID); }
             set { SetIsLit_Native(Parent.ID, value); }
-        }
-
-        public Color3 Albedo
-        {
-            get { GetAlbedo_Native(Parent.ID, out Color3 result); return result; }
-            set { SetAlbedo_Native(Parent.ID, ref value); }
-        }
-        
-        public Color3 Emissive
-        {
-            get { GetEmissive_Native(Parent.ID, out Color3 result); return result; }
-            set { SetEmissive_Native(Parent.ID, ref value); }
-        }
-
-        public float Metallness
-        {
-            get { return GetMetallness_Native(Parent.ID); }
-            set { SetMetallness_Native(Parent.ID, value); }
-        }
-
-        public float Roughness
-        {
-            get { return GetRoughness_Native(Parent.ID); }
-            set { SetRoughness_Native(Parent.ID, value); }
-        }
-
-        public float AmbientOcclusion
-        {
-            get { return GetAO_Native(Parent.ID); }
-            set { SetAO_Native(Parent.ID, value); }
-        }
-
-        public float Opacity
-        {
-            get { return GetOpacity_Native(Parent.ID); }
-            set { SetOpacity_Native(Parent.ID, value); }
-        }
-
-        public float OpacityMask
-        {
-            get { return GetOpacityMask_Native(Parent.ID); }
-            set { SetOpacityMask_Native(Parent.ID, value); }
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -1131,12 +1099,6 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetText_Native(in GUID entityID, string value);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern MaterialBlendMode GetBlendMode_Native(in GUID entityID);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetBlendMode_Native(in GUID entityID, MaterialBlendMode value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetColor_Native(in GUID entityID, out Color3 outValue);
@@ -1163,48 +1125,6 @@ namespace Eagle
         internal static extern void SetMaxWidth_Native(in GUID entityID, float value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetAlbedo_Native(in GUID entityID, out Color3 outValue);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetAlbedo_Native(in GUID entityID, ref Color3 value);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetEmissive_Native(in GUID entityID, out Color3 outValue);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetEmissive_Native(in GUID entityID, ref Color3 value);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetMetallness_Native(in GUID entityID, float value);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern float GetMetallness_Native(in GUID entityID);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetRoughness_Native(in GUID entityID, float value);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern float GetRoughness_Native(in GUID entityID);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetAO_Native(in GUID entityID, float value);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern float GetAO_Native(in GUID entityID);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetOpacity_Native(in GUID entityID, float value);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern float GetOpacity_Native(in GUID entityID);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetOpacityMask_Native(in GUID entityID, float value);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern float GetOpacityMask_Native(in GUID entityID);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetIsLit_Native(in GUID entityID, bool value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -1215,6 +1135,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool DoesCastShadows_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetMaterial_Native(in GUID entityID, out GUID assetID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMaterial_Native(in GUID entityID, in GUID assetID);
 
     }
     

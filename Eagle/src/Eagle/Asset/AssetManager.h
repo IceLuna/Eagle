@@ -49,8 +49,15 @@ namespace Eagle
 
 		static const char* GetAssetPackExtension() { return ".egpack"; }
 
+		static const Ref<AssetTextureCube>& GetPreviewSkybox() { return s_Skybox; }
+		static const Ref<AssetStaticMesh>& GetPreviewSphere() { return s_Sphere; }
+
 	private:
 		static AssetsMap s_Assets;
 		static AssetsMapByGUID s_AssetsByGUID;
+
+		// Engine-only assets that's used for asset previews
+		static Ref<AssetTextureCube> s_Skybox;
+		static Ref<AssetStaticMesh> s_Sphere;
 	};
 }

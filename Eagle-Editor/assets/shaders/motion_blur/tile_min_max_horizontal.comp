@@ -26,7 +26,7 @@ void main()
 		if (pixel.x >= 0 && pixel.y >= 0 && pixel.x < g_Size.x && pixel.y < g_Size.y)
 		{
 			const vec2 uv = (pixel + 0.5) * g_TexelSize;
-			const vec2 velocity = texture(g_Motion, uv).xy;
+			const vec2 velocity = texture(g_Motion, uv).xy * g_Strength;
 
 			const float magnitudeSquared = dot(velocity, velocity);
 			if (minMagnitudeSquared > magnitudeSquared)

@@ -149,6 +149,7 @@ namespace Eagle
 			const bool bTexturesDirty = texturesChangedFrame >= m_TexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()];
 			if (bTexturesDirty)
 			{
+				m_TextColorPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
 				m_SpritesColorPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
 				m_MeshesColorPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
 				m_TexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()] = texturesChangedFrame + 1;
@@ -523,13 +524,16 @@ namespace Eagle
 
 		const auto& viewProj = m_Renderer.GetViewProjection();
 
-		m_TextColorPipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
-		m_TextColorPipeline->SetBuffer(m_OITBuffer, 0, 1);
-		m_TextColorPipeline->SetBuffer(m_Renderer.GetCameraBuffer(), 0, 2);
+		const auto& materials = MaterialSystem::GetMaterialsBuffer();
+		m_TextColorPipeline->SetBuffer(materials, EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+		m_TextColorPipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
+		m_TextColorPipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
+		m_TextColorPipeline->SetBuffer(m_OITBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+		m_TextColorPipeline->SetBuffer(m_Renderer.GetCameraBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
 		if (bFog)
-			m_TextColorPipeline->SetBuffer(m_Renderer.GetFogDataBuffer(), 0, 3);
+			m_TextColorPipeline->SetBuffer(m_Renderer.GetFogDataBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 3);
 
-		m_TextColorPipeline->SetTextureArray(m_Renderer.GetAtlases(), 2, 0);
+		m_TextColorPipeline->SetTextureArray(m_Renderer.GetAtlases(), 5, 0);
 
 		const auto& iblAsset = m_Renderer.GetSkybox();
 		const bool bHasIrradiance = m_Renderer.IsSkyboxEnabled() && iblAsset.operator bool() && iblAsset->GetTexture()->IsLoaded();

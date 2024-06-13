@@ -2,6 +2,8 @@
 #include "RenderTextLitTask.h"
 
 #include "Eagle/Renderer/RenderManager.h"
+#include "Eagle/Renderer/TextureSystem.h"
+#include "Eagle/Renderer/MaterialSystem.h"
 #include "Eagle/Renderer/VidWrappers/Buffer.h"
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
 
@@ -60,11 +62,21 @@ namespace Eagle
 		PushData pushData;
 		pushData.ViewProj = m_Renderer.GetViewProjection();
 
-		m_OpaquePipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
+		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
+		const bool bTexturesDirty = texturesChangedFrame >= m_OpaqueTexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()];
+		if (bTexturesDirty)
+		{
+			m_OpaquePipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+			m_OpaqueTexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()] = texturesChangedFrame + 1;
+		}
+		m_OpaquePipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+		m_OpaquePipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
+
+		m_OpaquePipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
 		if (bMotionRequired)
 		{
 			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
-			m_OpaquePipeline->SetBuffer(m_Renderer.GetTextsPrevTransformBuffer(), 0, 1);
+			m_OpaquePipeline->SetBuffer(m_Renderer.GetTextsPrevTransformBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 		}
 		m_OpaquePipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 
@@ -86,11 +98,21 @@ namespace Eagle
 		PushData pushData;
 		pushData.ViewProj = m_Renderer.GetViewProjection();
 
-		m_MaskedPipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
+		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
+		const bool bTexturesDirty = texturesChangedFrame >= m_MaskedTexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()];
+		if (bTexturesDirty)
+		{
+			m_MaskedPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+			m_MaskedTexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()] = texturesChangedFrame + 1;
+		}
+		m_MaskedPipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+		m_MaskedPipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
+
+		m_MaskedPipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
 		if (bMotionRequired)
 		{
 			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
-			m_MaskedPipeline->SetBuffer(m_Renderer.GetTextsPrevTransformBuffer(), 0, 1);
+			m_MaskedPipeline->SetBuffer(m_Renderer.GetTextsPrevTransformBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 		}
 		m_MaskedPipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 

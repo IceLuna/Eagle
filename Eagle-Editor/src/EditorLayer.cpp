@@ -1556,6 +1556,7 @@ namespace Eagle
 
 				bSettingsChanged |= UI::Property("Enable", settings.bEnable);
 				bSettingsChanged |= UI::PropertySlider("Num Samples", settings.NumSamples, 1u, 64u);
+				bSettingsChanged |= UI::PropertySlider("Strength", settings.Strength, 0.f, 1.f);
 				bSettingsChanged |= UI::Property("Debug Output", settings.bDebugOutput);
 
 				UI::EndPropertyGrid();

@@ -3871,29 +3871,6 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set Text of Text Component. Entity is null");
 	}
 
-	Material::BlendMode Script::Eagle_TextComponent_GetBlendMode(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			return entity.GetComponent<TextComponent>().GetBlendMode();
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get BlendMode of Text Component. Entity is null");
-			return Material::BlendMode::Opaque;
-		}
-	}
-
-	void Script::Eagle_TextComponent_SetBlendMode(GUID entityID, Material::BlendMode value)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<TextComponent>().SetBlendMode(value);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set BlendMode of Text Component. Entity is null");
-	}
-
 	void Script::Eagle_TextComponent_GetColor(GUID entityID, glm::vec3* outValue)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
@@ -3983,115 +3960,6 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set max width of Text Component. Entity is null");
 	}
 
-	void Script::Eagle_TextComponent_GetAlbedo(GUID entityID, glm::vec3* outValue)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			*outValue = entity.GetComponent<TextComponent>().GetAlbedoColor();
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get albedo color of Text Component. Entity is null");
-			return;
-		}
-	}
-
-	void Script::Eagle_TextComponent_SetAlbedo(GUID entityID, const glm::vec3* value)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<TextComponent>().SetAlbedoColor(*value);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set albedo color of Text Component. Entity is null");
-	}
-
-	void Script::Eagle_TextComponent_GetEmissive(GUID entityID, glm::vec3* outValue)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			*outValue = entity.GetComponent<TextComponent>().GetEmissiveColor();
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get emissive color of Text Component. Entity is null");
-			return;
-		}
-	}
-
-	void Script::Eagle_TextComponent_SetEmissive(GUID entityID, const glm::vec3* value)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<TextComponent>().SetEmissiveColor(*value);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set emissive color of Text Component. Entity is null");
-	}
-
-	float Script::Eagle_TextComponent_GetMetallness(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			return entity.GetComponent<TextComponent>().GetMetallness();
-			
-		EG_CORE_ERROR("[ScriptEngine] Couldn't get metallness of Text Component. Entity is null");
-		return 0.f;
-	}
-
-	void Script::Eagle_TextComponent_SetMetallness(GUID entityID, float value)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<TextComponent>().SetMetallness(value);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set metallness of Text Component. Entity is null");
-	}
-
-	float Script::Eagle_TextComponent_GetRoughness(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			return entity.GetComponent<TextComponent>().GetRoughness();
-			
-		EG_CORE_ERROR("[ScriptEngine] Couldn't get roughness of Text Component. Entity is null");
-		return 1.f;
-	}
-
-	void Script::Eagle_TextComponent_SetRoughness(GUID entityID, float value)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<TextComponent>().SetRoughness(value);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set roughness of Text Component. Entity is null");
-	}
-
-	float Script::Eagle_TextComponent_GetAO(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			return entity.GetComponent<TextComponent>().GetAO();
-
-		EG_CORE_ERROR("[ScriptEngine] Couldn't get ambient occlusion of Text Component. Entity is null");
-		return 1.f;
-	}
-
-	void Script::Eagle_TextComponent_SetAO(GUID entityID, float value)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<TextComponent>().SetAO(value);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set ambient occlusion of Text Component. Entity is null");
-	}
-
 	bool Script::Eagle_TextComponent_GetIsLit(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
@@ -4136,52 +4004,6 @@ namespace Eagle
 			entity.GetComponent<TextComponent>().SetCastsShadows(value);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetCastsShadows` of Text Component. Entity is null");
-	}
-
-	void Script::Eagle_TextComponent_SetOpacity(GUID entityID, float value)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<TextComponent>().SetOpacity(value);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetOpacity` of Text Component. Entity is null");
-	}
-
-	float Script::Eagle_TextComponent_GetOpacity(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			return entity.GetComponent<TextComponent>().GetOpacity();
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetOpacity` of Text Component. Entity is null");
-			return 1.f;
-		}
-	}
-
-	void Script::Eagle_TextComponent_SetOpacityMask(GUID entityID, float value)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<TextComponent>().SetOpacityMask(value);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetOpacityMask` of Text Component. Entity is null");
-	}
-
-	float Script::Eagle_TextComponent_GetOpacityMask(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			return entity.GetComponent<TextComponent>().GetOpacityMask();
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetOpacityMask` of Text Component. Entity is null");
-			return 1.f;
-		}
 	}
 
 	GUID Script::Eagle_TextComponent_GetFont(GUID entityID)
@@ -4231,6 +4053,56 @@ namespace Eagle
 		}
 
 		component.SetFontAsset(fontAsset);
+	}
+
+	void Script::Eagle_TextComponent_GetMaterial(GUID entityID, GUID* outAssetID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get Text Component material. Entity is null");
+			return;
+		}
+
+		const auto& component = entity.GetComponent<TextComponent>();
+		const auto& materialAsset = component.GetMaterialAsset();
+		*outAssetID = materialAsset ? materialAsset->GetGUID() : GUID(0, 0);
+	}
+
+	void Script::Eagle_TextComponent_SetMaterial(GUID entityID, GUID assetID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set Text Component component material. Entity is null");
+			return;
+		}
+
+		auto& component = entity.GetComponent<TextComponent>();
+
+		if (assetID.IsNull())
+		{
+			component.SetMaterialAsset(nullptr);
+			return;
+		}
+
+		Ref<Asset> asset;
+		if (!AssetManager::Get(assetID, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set Text Component material. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetMaterial> materialAsset = Cast<AssetMaterial>(asset);
+		if (!materialAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set Text Component material. Provided asset is not a material asset");
+			return;
+		}
+
+		component.SetMaterialAsset(materialAsset);
 	}
 
 	//--------------Text2D Component--------------
@@ -5483,7 +5355,7 @@ namespace Eagle
 		*maxCOC = settings.MaxCOC;
 	}
 
-	void Script::Eagle_Renderer_GetMotionBlurSettings(bool* bEnabled, uint32_t* numSamples)
+	void Script::Eagle_Renderer_GetMotionBlurSettings(bool* bEnabled, uint32_t* numSamples, float* strength)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		const auto& sceneRenderer = scene->GetSceneRenderer();
@@ -5491,6 +5363,7 @@ namespace Eagle
 
 		*bEnabled = settings.bEnable;
 		*numSamples = settings.NumSamples;
+		*strength = settings.Strength;
 	}
 
 	void Script::Eagle_Renderer_GetAutoExposureSettings(float* minLogLum, float* maxLogLum, float* adaptationSpeed, float* adaptationKey, bool* bEnabled, bool* bHalfResolution)
@@ -5543,7 +5416,7 @@ namespace Eagle
 		sceneRenderer->SetOptions(settings);
 	}
 
-	void Script::Eagle_Renderer_SetMotionBlurSettings(bool bEnabled, uint32_t numSamples)
+	void Script::Eagle_Renderer_SetMotionBlurSettings(bool bEnabled, uint32_t numSamples, float strength)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		const auto& sceneRenderer = scene->GetSceneRenderer();
@@ -5551,6 +5424,7 @@ namespace Eagle
 		auto settings = sceneRenderer->GetOptions();
 		settings.MotionBlur.bEnable = bEnabled;
 		settings.MotionBlur.NumSamples = numSamples;
+		settings.MotionBlur.Strength = strength;
 
 		sceneRenderer->SetOptions(settings);
 	}

@@ -11,8 +11,6 @@
 
 namespace Eagle
 {
-	static Ref<AssetTextureCube> s_Skybox = nullptr; // We save the state so that we don't recreate it for each asset editor
-
 	AssetEditor::AssetEditor(bool bNeedRenderer)
 	{
 		if (bNeedRenderer)
@@ -28,10 +26,6 @@ namespace Eagle
 	{
 		m_Scene.reset();
 		m_Renderer.reset();
-		// `2` because `s_Skybox` also holds one ref.
-		// `3` because `m_Renderer` might still be rendering which means it still holds one ref 
-		if (size_t useCount = m_Skybox.use_count(); useCount == 2 || useCount == 3)
-			s_Skybox.reset(); // Clear the state when the last ref dies
 	}
 
 	void AssetEditor::DrawViewport(bool bForceAnimUpdate)
@@ -84,10 +78,7 @@ namespace Eagle
 
 	void AssetEditor::AddSkybox()
 	{
-		if (!s_Skybox)
-			s_Skybox = AssetTextureCube::Create(Application::GetCorePath() / "assets/textures/IBL.egasset");
-		
-		m_Skybox = s_Skybox;
+		m_Skybox = AssetManager::GetPreviewSkybox();
 		m_Scene->SetSkybox(m_Skybox);
 		m_Scene->SetSkyboxEnabled(true);
 		m_Scene->SetUseSkyAsBackground(false);

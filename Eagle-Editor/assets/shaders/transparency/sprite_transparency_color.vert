@@ -20,7 +20,6 @@ layout(location = 2) flat out uint o_MaterialIndex;
 layout(location = 3) out vec3 o_WorldPos;
 layout(location = 4) out mat3 o_TBN;
 
-
 void main()
 {
     const uint vertexID = gl_VertexIndex % 4u;

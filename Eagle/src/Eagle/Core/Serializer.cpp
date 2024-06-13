@@ -1224,18 +1224,13 @@ namespace Eagle
 			SerializeRelativeTransform(out, text.GetRelativeTransform());
 			if (const auto& asset = text.GetFontAsset())
 				out << YAML::Key << "Font" << YAML::Value << asset->GetGUID();
+			if (const auto& asset = text.GetMaterialAsset())
+				out << YAML::Key << "Material" << YAML::Value << asset->GetGUID();
 
 			out << YAML::Key << "Text" << YAML::Value << text.GetText();
 			out << YAML::Key << "Color" << YAML::Value << text.GetColor();
-			out << YAML::Key << "BlendMode" << YAML::Value << Utils::GetEnumName(text.GetBlendMode());
-			out << YAML::Key << "AlbedoColor" << YAML::Value << text.GetAlbedoColor();
-			out << YAML::Key << "EmissiveColor" << YAML::Value << text.GetEmissiveColor();
 			out << YAML::Key << "IsLit" << YAML::Value << text.IsLit();
 			out << YAML::Key << "bCastsShadows" << YAML::Value << text.DoesCastShadows();
-			out << YAML::Key << "Metallness" << YAML::Value << text.GetMetallness();
-			out << YAML::Key << "Roughness" << YAML::Value << text.GetRoughness();
-			out << YAML::Key << "AO" << YAML::Value << text.GetAO();
-			out << YAML::Key << "Opacity" << YAML::Value << text.GetOpacity();
 			out << YAML::Key << "LineSpacing" << YAML::Value << text.GetLineSpacing();
 			out << YAML::Key << "Kerning" << YAML::Value << text.GetKerning();
 			out << YAML::Key << "MaxWidth" << YAML::Value << text.GetMaxWidth();
@@ -1679,22 +1674,13 @@ namespace Eagle
 			DeserializeRelativeTransform(textNode, relativeTransform);
 			text.SetRelativeTransform(relativeTransform);
 
-
 			text.SetFontAsset(GetAsset<AssetFont>(textNode["Font"]));
+			text.SetMaterialAsset(GetAsset<AssetMaterial>(textNode["Material"]));
 			text.SetText(textNode["Text"].as<std::string>());
 			text.SetColor(textNode["Color"].as<glm::vec3>());
-			if (auto node = textNode["BlendMode"])
-				text.SetBlendMode(Utils::GetEnumFromName<Material::BlendMode>(node.as<std::string>()));
-			text.SetAlbedoColor(textNode["AlbedoColor"].as<glm::vec3>());
-			text.SetEmissiveColor(textNode["EmissiveColor"].as<glm::vec3>());
 			text.SetIsLit(textNode["IsLit"].as<bool>());
 			if (auto node = textNode["bCastsShadows"])
 				text.SetCastsShadows(node.as<bool>());
-			text.SetMetallness(textNode["Metallness"].as<float>());
-			text.SetRoughness(textNode["Roughness"].as<float>());
-			text.SetAO(textNode["AO"].as<float>());
-			if (auto node = textNode["Opacity"])
-				text.SetOpacity(node.as<float>());
 			text.SetLineSpacing(textNode["LineSpacing"].as<float>());
 			text.SetKerning(textNode["Kerning"].as<float>());
 			text.SetMaxWidth(textNode["MaxWidth"].as<float>());
@@ -1846,6 +1832,7 @@ namespace Eagle
 		out << YAML::BeginMap;
 		out << YAML::Key << "bEnable" << YAML::Value << motionBlurSettings.bEnable;
 		out << YAML::Key << "NumSamples" << YAML::Value << motionBlurSettings.NumSamples;
+		out << YAML::Key << "Strength" << YAML::Value << motionBlurSettings.Strength;
 		out << YAML::Key << "bDebug" << YAML::Value << motionBlurSettings.bDebugOutput;
 		out << YAML::EndMap; //MotionBlur
 
@@ -2053,6 +2040,7 @@ namespace Eagle
 		{
 			settings.MotionBlur.bEnable = motionBlurNode["bEnable"].as<bool>();
 			settings.MotionBlur.NumSamples = motionBlurNode["NumSamples"].as<uint32_t>();
+			settings.MotionBlur.Strength = motionBlurNode["Strength"].as<float>();
 			settings.MotionBlur.bDebugOutput = motionBlurNode["bDebug"].as<bool>();
 		}
 

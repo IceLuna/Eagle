@@ -104,7 +104,7 @@ void main()
     // converts pixel length to sample steps
     const float sampleScale = g_NumSamples * inversesqrt(maxVelocitySquaredLen);
 
-    const vec2 velocity = texture(g_Motion, uv).xy;
+    const vec2 velocity = texture(g_Motion, uv).xy * g_Strength;
     const float centerDepth = ToLinear(texture(g_Depth, uv).x);
     const float centerVelocityLen = GetLimitedVelocityLen(velocity, VELOCITY_LIMIT);
     vec3 colorAccum = vec3(0.f);
@@ -141,7 +141,7 @@ void main()
             sampleColor[j] = imageLoad(g_Color, coords).rgb;
             sampleDepth[j] = ToLinear(texture(g_Depth, (coords + 0.5f) * g_TexelSize).x);
     
-            const vec2 sampleVelocity = texture(g_Motion, (coords + 0.5f) * g_TexelSize).xy;
+            const vec2 sampleVelocity = texture(g_Motion, (coords + 0.5f) * g_TexelSize).xy * g_Strength;
             sampleVelocityLen[j] = GetLimitedVelocityLen(sampleVelocity, VELOCITY_LIMIT);
     
             weight[j] = SampleWeight(centerDepth, sampleDepth[j], offsetLen.x, centerVelocityLen, sampleVelocityLen[j], sampleScale, SOFT_Z_EXTENT);

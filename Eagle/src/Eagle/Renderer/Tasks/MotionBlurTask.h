@@ -56,12 +56,13 @@ namespace Eagle
 
 		struct PushData
 		{
+			float Strength = 1.f;
 			float ZNear = 0.f;
 			float ZFar = 1.f;
+			uint32_t Unused = 0;
 			glm::vec2 TexelSize;
 			glm::uvec2 Size;
 			glm::uvec2 PassSize;
-			//uint32_t NumSamples = 16; // TODO: Make it a const_id
 		} m_PushData;
 
 		constexpr static uint32_t s_TileSize = 16; // Same in shaders

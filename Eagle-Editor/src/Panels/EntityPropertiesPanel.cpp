@@ -540,6 +540,7 @@ namespace Eagle
 					bool bLit = component.IsLit();
 					bool bCastsShadows = component.DoesCastShadows();
 					Ref<AssetFont> asset = component.GetFontAsset();
+					Ref<AssetMaterial> materialAsset = component.GetMaterialAsset();
 
 					UI::BeginPropertyGrid("TextComponent");
 
@@ -569,81 +570,10 @@ namespace Eagle
 
 					if (bLit)
 					{
-						glm::vec3 albedo = component.GetAlbedoColor();
-						glm::vec3 emissive = component.GetEmissiveColor();
-						float metallness = component.GetMetallness();
-						float roughness = component.GetRoughness();
-						float ao = component.GetAO();
-						auto blendMode = component.GetBlendMode();
-
-						if (UI::ComboEnum("Blend Mode", blendMode, s_BlendModeHelpMsg))
+						if (UI::DrawAssetSelection("Material", materialAsset))
 						{
-							component.SetBlendMode(blendMode);
+							component.SetMaterialAsset(materialAsset);
 							bEntityChanged = true;
-						}
-
-						if (UI::PropertyColor("Albedo", albedo))
-						{
-							component.SetAlbedoColor(albedo);
-							bEntityChanged = true;
-						}
-
-						if (UI::PropertyColor("Emissive Color", emissive, true, "HDR"))
-						{
-							component.SetEmissiveColor(emissive);
-							bEntityChanged = true;
-						}
-
-						if (UI::PropertySlider("Metalness", metallness, 0.f, 1.f, s_MetalnessHelpMsg))
-						{
-							component.SetMetallness(metallness);
-							bEntityChanged = true;
-						}
-
-						if (UI::PropertySlider("Roughness", roughness, 0.f, 1.f, s_RoughnessHelpMsg))
-						{
-							component.SetRoughness(roughness);
-							bEntityChanged = true;
-						}
-
-						if (UI::PropertySlider("Ambient Occlusion", ao, 0.f, 1.f, s_AOHelpMsg))
-						{
-							component.SetAO(ao);
-							bEntityChanged = true;
-						}
-
-						{
-							const bool bTranslucent = blendMode == Material::BlendMode::Translucent;
-							float opacity = component.GetOpacity();
-
-							if (!bTranslucent)
-								UI::PushItemDisabled();
-
-							if (UI::PropertySlider("Opacity", opacity, 0.f, 1.f, s_OpacityHelpMsg))
-							{
-								component.SetOpacity(opacity);
-								bEntityChanged = true;
-							}
-
-							if (!bTranslucent)
-								UI::PopItemDisabled();
-						}
-
-						{
-							const bool bMasked = blendMode == Material::BlendMode::Masked;
-							float opacityMask = component.GetOpacityMask();
-
-							if (!bMasked)
-								UI::PushItemDisabled();
-
-							if (UI::PropertySlider("Opacity Mask", opacityMask, 0.f, 1.f, s_OpacityMaskHelpMsg))
-							{
-								component.SetOpacityMask(opacityMask);
-								bEntityChanged = true;
-							}
-
-							if (!bMasked)
-								UI::PopItemDisabled();
 						}
 					}
 					else

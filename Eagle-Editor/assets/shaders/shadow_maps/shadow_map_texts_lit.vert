@@ -1,6 +1,12 @@
 #include "text/text_lit_vertex_input_layout.h"
 
-layout(binding = 0) readonly buffer TransformsBuffer
+#ifdef EG_MATERIALS_REQUIRED
+const uint s_Set = 1;
+#else
+const uint s_Set = 0;
+#endif
+
+layout(set = s_Set, binding = 0) readonly buffer TransformsBuffer
 {
     mat4 g_Transforms[];
 };
@@ -8,7 +14,7 @@ layout(binding = 0) readonly buffer TransformsBuffer
 // For point lights & multi-view depth-pass
 #ifdef EG_POINT_LIGHT_PASS
 #extension GL_EXT_multiview : enable
-layout(binding = 1) uniform ViewProjectionsBuffer
+layout(set = s_Set, binding = 1) uniform ViewProjectionsBuffer
 {
     mat4 g_ViewProjections[6];
 };
@@ -23,13 +29,8 @@ layout(push_constant) uniform PushData
 
 layout(location = 0) out vec2 o_TexCoords;
 layout(location = 1) flat out uint o_AtlasIndex;
-#ifdef EG_MASKED
-layout(location = 2) flat out float o_OpacityMask;
-#endif
-
-#ifdef EG_TRANSLUCENT
-layout(location = 2) flat out vec3 o_Albedo;
-layout(location = 3) flat out float o_Opacity;
+#ifdef EG_MATERIALS_REQUIRED
+layout(location = 2) flat out uint o_MaterialIndex;
 #endif
 
 void main()
@@ -40,13 +41,8 @@ void main()
 
     o_TexCoords = a_TexCoords;
     o_AtlasIndex = a_AtlasIndex;
-#ifdef EG_MASKED
-    o_OpacityMask = a_OpacityMask;
-#endif
-
-#ifdef EG_TRANSLUCENT
-    o_Albedo = a_AlbedoRoughness.rgb;
-    o_Opacity = a_Opacity;
+#ifdef EG_MATERIALS_REQUIRED
+    o_MaterialIndex = a_MaterialIndex;
 #endif
 
 #ifdef EG_POINT_LIGHT_PASS

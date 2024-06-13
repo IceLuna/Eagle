@@ -493,8 +493,6 @@ namespace Eagle
 		// Text Component
 		mono_add_internal_call("Eagle.TextComponent::GetText_Native", Eagle::Script::Eagle_TextComponent_GetText);
 		mono_add_internal_call("Eagle.TextComponent::SetText_Native", Eagle::Script::Eagle_TextComponent_SetText);
-		mono_add_internal_call("Eagle.TextComponent::GetBlendMode_Native", Eagle::Script::Eagle_TextComponent_GetBlendMode);
-		mono_add_internal_call("Eagle.TextComponent::SetBlendMode_Native", Eagle::Script::Eagle_TextComponent_SetBlendMode);
 		mono_add_internal_call("Eagle.TextComponent::GetColor_Native", Eagle::Script::Eagle_TextComponent_GetColor);
 		mono_add_internal_call("Eagle.TextComponent::SetColor_Native", Eagle::Script::Eagle_TextComponent_SetColor);
 		mono_add_internal_call("Eagle.TextComponent::GetLineSpacing_Native", Eagle::Script::Eagle_TextComponent_GetLineSpacing);
@@ -503,26 +501,14 @@ namespace Eagle
 		mono_add_internal_call("Eagle.TextComponent::SetKerning_Native", Eagle::Script::Eagle_TextComponent_SetKerning);
 		mono_add_internal_call("Eagle.TextComponent::GetMaxWidth_Native", Eagle::Script::Eagle_TextComponent_GetMaxWidth);
 		mono_add_internal_call("Eagle.TextComponent::SetMaxWidth_Native", Eagle::Script::Eagle_TextComponent_SetMaxWidth);
-		mono_add_internal_call("Eagle.TextComponent::GetAlbedo_Native", Eagle::Script::Eagle_TextComponent_GetAlbedo);
-		mono_add_internal_call("Eagle.TextComponent::SetAlbedo_Native", Eagle::Script::Eagle_TextComponent_SetAlbedo);
-		mono_add_internal_call("Eagle.TextComponent::GetEmissive_Native", Eagle::Script::Eagle_TextComponent_GetEmissive);
-		mono_add_internal_call("Eagle.TextComponent::SetEmissive_Native", Eagle::Script::Eagle_TextComponent_SetEmissive);
-		mono_add_internal_call("Eagle.TextComponent::GetMetallness_Native", Eagle::Script::Eagle_TextComponent_GetMetallness);
-		mono_add_internal_call("Eagle.TextComponent::SetMetallness_Native", Eagle::Script::Eagle_TextComponent_SetMetallness);
-		mono_add_internal_call("Eagle.TextComponent::GetRoughness_Native", Eagle::Script::Eagle_TextComponent_GetRoughness);
-		mono_add_internal_call("Eagle.TextComponent::SetRoughness_Native", Eagle::Script::Eagle_TextComponent_SetRoughness);
-		mono_add_internal_call("Eagle.TextComponent::GetAO_Native", Eagle::Script::Eagle_TextComponent_GetAO);
-		mono_add_internal_call("Eagle.TextComponent::SetAO_Native", Eagle::Script::Eagle_TextComponent_SetAO);
 		mono_add_internal_call("Eagle.TextComponent::GetIsLit_Native", Eagle::Script::Eagle_TextComponent_GetIsLit);
 		mono_add_internal_call("Eagle.TextComponent::SetIsLit_Native", Eagle::Script::Eagle_TextComponent_SetIsLit);
 		mono_add_internal_call("Eagle.TextComponent::SetCastsShadows_Native", Eagle::Script::Eagle_TextComponent_SetCastsShadows);
 		mono_add_internal_call("Eagle.TextComponent::DoesCastShadows_Native", Eagle::Script::Eagle_TextComponent_DoesCastShadows);
-		mono_add_internal_call("Eagle.TextComponent::SetOpacity_Native", Eagle::Script::Eagle_TextComponent_SetOpacity);
-		mono_add_internal_call("Eagle.TextComponent::GetOpacity_Native", Eagle::Script::Eagle_TextComponent_GetOpacity);
-		mono_add_internal_call("Eagle.TextComponent::SetOpacityMask_Native", Eagle::Script::Eagle_TextComponent_SetOpacityMask);
-		mono_add_internal_call("Eagle.TextComponent::GetOpacityMask_Native", Eagle::Script::Eagle_TextComponent_GetOpacityMask);
 		mono_add_internal_call("Eagle.TextComponent::SetFont_Native", Eagle::Script::Eagle_TextComponent_SetFont);
 		mono_add_internal_call("Eagle.TextComponent::GetFont_Native", Eagle::Script::Eagle_TextComponent_GetFont);
+		mono_add_internal_call("Eagle.TextComponent::SetMaterial_Native", Eagle::Script::Eagle_TextComponent_SetMaterial);
+		mono_add_internal_call("Eagle.TextComponent::GetMaterial_Native", Eagle::Script::Eagle_TextComponent_GetMaterial);
 
 		// Text2D Component
 		mono_add_internal_call("Eagle.Text2DComponent::GetText_Native", Eagle::Script::Eagle_Text2DComponent_GetText);

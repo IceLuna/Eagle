@@ -53,11 +53,11 @@ uniform CameraView
 #ifdef EG_FOG
 layout(binding = EG_BINDING_MAX + 3) uniform FogData
 {
-vec3  g_FogColor;
-float g_FogMin;
-float g_FogMax;
-float g_FogDensity;
-uint  g_FogEquation;
+    vec3  g_FogColor;
+    float g_FogMin;
+    float g_FogMax;
+    float g_FogDensity;
+    uint  g_FogEquation;
 };
 #endif
 

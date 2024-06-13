@@ -361,7 +361,7 @@ namespace Eagle
 
 			if constexpr (std::is_base_of<TextComponent, T>::value)
 			{
-				if (notification == Notification::OnStateChanged)
+				if (notification == Notification::OnStateChanged || notification == Notification::OnMaterialChanged)
 				{
 					m_DirtyFlags.bTextDirty = true;
 				}

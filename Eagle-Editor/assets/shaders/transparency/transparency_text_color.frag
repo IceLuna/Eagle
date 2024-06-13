@@ -3,6 +3,7 @@
 
 #extension GL_EXT_nonuniform_qualifier : enable
 
+#include "pipeline_layout.h"
 #include "utils.h"
 #include "transparency/transparency_color_pipeline_layout.h"
 
@@ -13,14 +14,12 @@
 #include "postprocessing/utils.h"
 
 // Input
-layout(location = 0) in vec4      i_AlbedoRoughness;
-layout(location = 1) in vec4      i_EmissiveMetallness;
-layout(location = 2) in vec3      i_Normal;
-layout(location = 3) in float     i_AO;
-layout(location = 4) in vec3      i_WorldPos;
-layout(location = 5) flat in uint i_AtlasIndex;
-layout(location = 6) in vec2      i_TexCoords;
-layout(location = 7) in float     i_Opacity;
+layout(location = 0) in vec3      i_Normal;
+layout(location = 1) in vec3      i_WorldPos;
+layout(location = 2) flat in uint i_AtlasIndex;
+layout(location = 3) flat in uint i_MaterialIndex;
+layout(location = 4) in vec2      i_TexCoords;
+layout(location = 5) in mat3      i_TBN;
 
 layout(location = 0) out vec4 outColor;
 
@@ -46,16 +45,16 @@ layout(constant_id = 2) const uint g_HasDirLight = 0;
 #endif
 layout(constant_id = 3) const bool s_HasIrradiance = false;
 
-layout(binding = 1, r32ui) uniform coherent uimageBuffer imgAbuffer;
+layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX + 1, r32ui) uniform coherent uimageBuffer imgAbuffer;
 
-layout(binding = 2)
+layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX + 2)
 uniform CameraView
 {
     mat4 g_CameraView;
 };
 
 #ifdef EG_FOG
-layout(binding = 3) uniform FogData
+layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX + 3) uniform FogData
 {
     vec3  g_FogColor;
     float g_FogMin;
@@ -65,7 +64,7 @@ layout(binding = 3) uniform FogData
 };
 #endif
 
-layout(set = 2, binding = 0) uniform sampler2D g_FontAtlases[];
+layout(set = 5, binding = 0) uniform sampler2D g_FontAtlases[];
 
 #extension GL_ARB_post_depth_coverage : enable
 layout(post_depth_coverage) in;
@@ -74,7 +73,7 @@ layout(post_depth_coverage) in;
 // If we find a match, we write the fragment's color into the corresponding
 // place in an array of colors. Otherwise, we tail blend it if enabled.
 
-vec3 Lighting();
+vec3 Lighting(ShaderMaterial material, vec2 uv);
 
 float median(float r, float g, float b)
 {
@@ -91,6 +90,9 @@ float ScreenPxRange()
 
 void main()
 {
+    vec2 uv = i_TexCoords;
+    const ShaderMaterial material = FetchMaterial(i_MaterialIndex, uv);
+
     const vec3 msd = texture(g_FontAtlases[nonuniformEXT(i_AtlasIndex)], i_TexCoords).rgb;
     const float sd = median(msd.r, msd.g, msd.b);
     const float screenPxDistance = ScreenPxRange() * (sd - 0.5f);
@@ -102,9 +104,9 @@ void main()
         return;
     }
 
-    vec4 color = vec4(vec3(0.f), i_Opacity);
-    if (!IS_ZERO(i_Opacity))
-        color.rgb = Lighting();
+    vec4 color = vec4(vec3(0.f), material.Opacity);
+    if (!IS_ZERO(material.Opacity))
+        color.rgb = Lighting(material, uv);
 
 #ifdef EG_FOG
     {
@@ -155,23 +157,29 @@ void main()
     outColor = vec4(0);
 }
 
-vec3 Lighting()
+vec3 Lighting(ShaderMaterial material, vec2 uv)
 {
-    const vec4 albedo_roughness = i_AlbedoRoughness;
-    const vec3 lambert_albedo = albedo_roughness.rgb * EG_INV_PI;
+    const vec3 albedo = material.Albedo;
+    const vec3 lambert_albedo = albedo * EG_INV_PI;
     const vec3 worldPos = i_WorldPos;
 
-    const float metallness = i_EmissiveMetallness.a;
-    const float ao = i_AO;
-    const float roughness = albedo_roughness.a;
-    const vec3 F0 = mix(vec3(EG_BASE_REFLECTIVITY), albedo_roughness.rgb, metallness);
+    const float metallness = material.Metalness;
+    const float ao = material.AO;
+    const float roughness = material.Roughness;
+    const vec3 F0 = mix(vec3(EG_BASE_REFLECTIVITY), albedo, metallness);
 
     const vec3 fragToCamera = g_CameraPos - worldPos;
     const bool bInShadowRange = dot(fragToCamera, fragToCamera) < g_MaxShadowDistance2;
     const vec3 V = normalize(fragToCamera);
 
     vec3 Lo = vec3(0.f);
-    const vec3 normal = normalize(i_Normal);
+    vec3 normal = normalize(i_Normal);
+    if (material.NormalTextureIndex != EG_INVALID_INDEX)
+    {
+        normal = ReadTexture(material.NormalTextureIndex, uv).rgb;
+        normal = normalize(normal * 2.0 - 1.0);
+        normal = normalize(i_TBN * normal);
+    }
 
     // PointLights
     uint plShadowMapIndex = 0;
@@ -323,7 +331,7 @@ vec3 Lighting()
     }
 
     // Ambient
-    vec3 ambient = (g_HasDirLight != 0) ? (albedo_roughness.rgb * g_DirectionalLight.Ambient) : vec3(0.f);
+    vec3 ambient = (g_HasDirLight != 0) ? (albedo * g_DirectionalLight.Ambient) : vec3(0.f);
     if (s_HasIrradiance)
     {
         const vec3 R = reflect(-V, normal);
@@ -340,7 +348,7 @@ vec3 Lighting()
         const vec3 Favg = F0 + (1.0 - F0) / 21.0;
         const vec3 FmsEms = Ems * FssEss * Favg / (1.0 - Favg * Ems);
 
-        const vec3 diffuseColor = albedo_roughness.rgb * (1.f - EG_BASE_REFLECTIVITY) * (1.f - metallness);
+        const vec3 diffuseColor = albedo * (1.f - EG_BASE_REFLECTIVITY) * (1.f - metallness);
         const vec3 kD = diffuseColor * (1.0 - FssEss - FmsEms);
 
         const vec3 radiance = textureLod(g_PrefilterMap, R, roughness * g_MaxReflectionLOD).rgb;
@@ -349,7 +357,7 @@ vec3 Lighting()
         ambient += color * ao * g_IBLIntensity;
     }
 
-    const vec3 emissive = i_EmissiveMetallness.rgb;
+    const vec3 emissive = material.Emissive * material.EmissiveIntensity;
     vec3 resultColor = ambient + Lo + emissive;
 #ifdef EG_ENABLE_CSM_VISUALIZATION
     resultColor += cascadeVisualizationColor;

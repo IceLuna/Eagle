@@ -146,8 +146,6 @@ namespace Eagle
 		std::fill(m_DLCShadowMaps.begin(), m_DLCShadowMaps.end(), RenderManager::GetDummyImage());
 		std::fill(m_DLCDShadowMaps.begin(), m_DLCDShadowMaps.end(), RenderManager::GetDummyImageR16());
 
-		m_TextFragShader = Shader::Create("shadow_maps/shadow_map_texts.frag", ShaderType::Fragment);
-
 		InitOpacityMaskedMeshPipelines();
 		InitTranslucentMeshPipelines();
 
@@ -2001,6 +1999,8 @@ namespace Eagle
 		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
 		auto& stats = m_Renderer.GetStats2D();
 
+		const uint32_t currentFrameIndex = RenderManager::GetCurrentFrameIndex();
+
 		// For directional light
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
 		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
@@ -2022,8 +2022,21 @@ namespace Eagle
 			if (framebuffers.empty())
 				InitColoredDirectionalLightFramebuffers(framebuffers, pipeline, bDidDrawDL);
 
-			pipeline->SetBuffer(transformsBuffer, 0, 0);
-			pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+			const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
+			const bool bTexturesDirty = texturesChangedFrame >= m_TranslucentLitTextsDLTexturesUpdatedFrames[currentFrameIndex];
+			if (bTexturesDirty)
+			{
+				m_TranslucentLitTDLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_TranslucentLitTDLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_TranslucentLitTDLPipeline_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_TranslucentLitTDLPipelineClearing_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_TranslucentLitTextsDLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
+			}
+			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+			pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
+			pipeline->SetBuffer(transformsBuffer, 1, 0);
+			pipeline->SetTextureArray(m_Renderer.GetAtlases(), 3, 0);
+
 			for (uint32_t i = 0; i < framebuffers.size(); ++i)
 			{
 				++stats.DrawCalls;
@@ -2053,9 +2066,22 @@ namespace Eagle
 				auto& pipeline = bDidDrawPL ?
 					bDidDrawPLC ? m_TranslucentLitTPLPipeline : m_TranslucentLitTPLPipelineClearing :
 					bDidDrawPLC ? m_TranslucentLitTPLPipeline_NoDepth : m_TranslucentLitTPLPipelineClearing_NoDepth;
-				pipeline->SetBuffer(transformsBuffer, 0, 0);
-				pipeline->SetBuffer(vpsBuffer, 0, 1);
-				pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+
+				const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
+				const bool bTexturesDirty = texturesChangedFrame >= m_TranslucentLitTextsPLTexturesUpdatedFrames[currentFrameIndex];
+				if (bTexturesDirty)
+				{
+					m_TranslucentLitTPLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentLitTPLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentLitTPLPipeline_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentLitTPLPipelineClearing_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentLitTextsPLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
+				}
+				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+				pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
+				pipeline->SetBuffer(transformsBuffer, 1, 0);
+				pipeline->SetBuffer(vpsBuffer, 1, 1);
+				pipeline->SetTextureArray(m_Renderer.GetAtlases(), 3, 0);
 
 				auto& pointLights = m_Renderer.GetPointLights();
 				uint32_t pointLightsCount = 0;
@@ -2094,8 +2120,21 @@ namespace Eagle
 				auto& pipeline = bDidDrawSL ?
 					bDidDrawSLC ? m_TranslucentLitTSLPipeline : m_TranslucentLitTSLPipelineClearing :
 					bDidDrawSLC ? m_TranslucentLitTSLPipeline_NoDepth : m_TranslucentLitTSLPipelineClearing_NoDepth;
-				pipeline->SetBuffer(transformsBuffer, 0, 0);
-				pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+
+				const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
+				const bool bTexturesDirty = texturesChangedFrame >= m_TranslucentLitTextsSLTexturesUpdatedFrames[currentFrameIndex];
+				if (bTexturesDirty)
+				{
+					m_TranslucentLitTSLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentLitTSLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentLitTSLPipeline_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentLitTSLPipelineClearing_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentLitTextsSLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
+				}
+				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+				pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
+				pipeline->SetBuffer(transformsBuffer, 1, 0);
+				pipeline->SetTextureArray(m_Renderer.GetAtlases(), 3, 0);
 
 				uint32_t spotLightsCount = 0;
 				for (auto& index : m_SpotLightIndices)
@@ -2137,6 +2176,8 @@ namespace Eagle
 		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
 		auto& stats = m_Renderer.GetStats2D();
 
+		const uint32_t currentFrameIndex = RenderManager::GetCurrentFrameIndex();
+
 		// For directional light
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
 		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
@@ -2147,8 +2188,19 @@ namespace Eagle
 			CreateIfNeededDirectionalLightShadowMaps();
 
 			auto& pipeline = bDidDrawDL ? m_MaskedLitTDLPipeline : m_MaskedLitTDLPipelineClearing;
-			pipeline->SetBuffer(transformsBuffer, 0, 0);
-			pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+			const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
+			const bool bTexturesDirty = texturesChangedFrame >= m_MaskedLitTextsDLTexturesUpdatedFrames[currentFrameIndex];
+			if (bTexturesDirty)
+			{
+				m_MaskedLitTDLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_MaskedLitTDLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_MaskedLitTextsDLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
+			}
+			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+			pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
+			pipeline->SetBuffer(transformsBuffer, 1, 0);
+			pipeline->SetTextureArray(m_Renderer.GetAtlases(), 3, 0);
+
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
 				++stats.DrawCalls;
@@ -2175,9 +2227,20 @@ namespace Eagle
 			auto& framebuffers = m_PLFramebuffers;
 			auto& vpsBuffer = m_PLVPsBuffer;
 			auto& pipeline = bDidDrawPL ? m_MaskedLitTPLPipeline : m_MaskedLitTPLPipelineClearing;
-			pipeline->SetBuffer(transformsBuffer, 0, 0);
-			pipeline->SetBuffer(vpsBuffer, 0, 1);
-			pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+
+			const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
+			const bool bTexturesDirty = texturesChangedFrame >= m_MaskedLitTextsPLTexturesUpdatedFrames[currentFrameIndex];
+			if (bTexturesDirty)
+			{
+				m_MaskedLitTPLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_MaskedLitTPLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_MaskedLitTextsPLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
+			}
+			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+			pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
+			pipeline->SetBuffer(transformsBuffer, 1, 0);
+			pipeline->SetBuffer(vpsBuffer, 1, 1);
+			pipeline->SetTextureArray(m_Renderer.GetAtlases(), 3, 0);
 
 			uint32_t i = 0;
 			for (auto& index : m_PointLightIndices)
@@ -2209,8 +2272,19 @@ namespace Eagle
 			uint32_t spotLightsCount = 0;
 			auto& framebuffers = m_SLFramebuffers;
 			auto& pipeline = bDidDrawSL ? m_MaskedLitTSLPipeline : m_MaskedLitTSLPipelineClearing;
-			pipeline->SetBuffer(transformsBuffer, 0, 0);
-			pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+
+			const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
+			const bool bTexturesDirty = texturesChangedFrame >= m_MaskedLitTextsSLTexturesUpdatedFrames[currentFrameIndex];
+			if (bTexturesDirty)
+			{
+				m_MaskedLitTSLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_MaskedLitTSLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_MaskedLitTextsSLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
+			}
+			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+			pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
+			pipeline->SetBuffer(transformsBuffer, 1, 0);
+			pipeline->SetTextureArray(m_Renderer.GetAtlases(), 3, 0);
 
 			for (auto& index : m_SpotLightIndices)
 			{
@@ -3389,6 +3463,8 @@ namespace Eagle
 
 	void ShadowPassTask::InitOpaqueLitTextsPipelines()
 	{
+		Ref<Shader> fragShader = Shader::Create("shadow_maps/shadow_map_texts_lit.frag", ShaderType::Fragment);
+
 		// Directional light
 		{
 			DepthStencilAttachment depthAttachment;
@@ -3399,7 +3475,7 @@ namespace Eagle
 
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_lit.vert", ShaderType::Vertex);
-			state.FragmentShader = m_TextFragShader;
+			state.FragmentShader = fragShader;
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Front;
 			state.FrontFace = FrontFaceMode::Clockwise;
@@ -3424,7 +3500,7 @@ namespace Eagle
 
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_lit.vert", ShaderType::Vertex, plDefines);
-			state.FragmentShader = m_TextFragShader;
+			state.FragmentShader = fragShader;
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Front;
 			state.FrontFace = FrontFaceMode::Clockwise;
@@ -3451,7 +3527,7 @@ namespace Eagle
 
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_lit.vert", ShaderType::Vertex, slDefines);
-			state.FragmentShader = m_TextFragShader;
+			state.FragmentShader = fragShader;
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Back;
 			state.FrontFace = FrontFaceMode::Clockwise;
@@ -3466,7 +3542,7 @@ namespace Eagle
 	
 	void ShadowPassTask::InitMaskedLitTextsPipelines()
 	{
-		Ref<Shader> fragShader = Shader::Create("shadow_maps/shadow_map_texts.frag", ShaderType::Fragment, { {"EG_MASKED", ""} });
+		Ref<Shader> fragShader = Shader::Create("shadow_maps/shadow_map_texts_lit.frag", ShaderType::Fragment, { {"EG_MASKED", ""}, {"EG_MATERIALS_REQUIRED", ""} });
 
 		// Directional light
 		{
@@ -3477,7 +3553,7 @@ namespace Eagle
 			depthAttachment.ClearOperation = ClearOperation::Load;
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_lit.vert", ShaderType::Vertex, { {"EG_MASKED", ""} });
+			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_lit.vert", ShaderType::Vertex, { {"EG_MATERIALS_REQUIRED", ""} });
 			state.FragmentShader = fragShader;
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Front;
@@ -3500,7 +3576,7 @@ namespace Eagle
 
 			ShaderDefines plDefines;
 			plDefines["EG_POINT_LIGHT_PASS"] = "";
-			plDefines["EG_MASKED"] = "";
+			plDefines["EG_MATERIALS_REQUIRED"] = "";
 
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_lit.vert", ShaderType::Vertex, plDefines);
@@ -3528,7 +3604,7 @@ namespace Eagle
 
 			ShaderDefines slDefines;
 			slDefines["EG_SPOT_LIGHT_PASS"] = "";
-			slDefines["EG_MASKED"] = "";
+			slDefines["EG_MATERIALS_REQUIRED"] = "";
 
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_lit.vert", ShaderType::Vertex, slDefines);
@@ -3549,10 +3625,11 @@ namespace Eagle
 	{
 		ShaderDefines fragmentDefines;
 		fragmentDefines["EG_TRANSLUCENT"] = "";
+		fragmentDefines["EG_MATERIALS_REQUIRED"] = "";
 		if (bVolumetricLightsEnabled)
 			fragmentDefines["EG_OUTPUT_DEPTH"] = "";
 
-		Ref<Shader> fragShader = Shader::Create("shadow_maps/shadow_map_texts.frag", ShaderType::Fragment, fragmentDefines);
+		Ref<Shader> fragShader = Shader::Create("shadow_maps/shadow_map_texts_lit.frag", ShaderType::Fragment, fragmentDefines);
 
 		// Directional light
 		{
@@ -3586,7 +3663,7 @@ namespace Eagle
 			depthAttachment.bWriteDepth = false;
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_lit.vert", ShaderType::Vertex, { {"EG_TRANSLUCENT", ""} });
+			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_lit.vert", ShaderType::Vertex, { {"EG_MATERIALS_REQUIRED", ""} });
 			state.FragmentShader = fragShader;
 			state.ColorAttachments.push_back(colorAttachment);
 			if (bVolumetricLightsEnabled)
@@ -3657,7 +3734,7 @@ namespace Eagle
 
 			ShaderDefines plDefines;
 			plDefines["EG_POINT_LIGHT_PASS"] = "";
-			plDefines["EG_TRANSLUCENT"] = "";
+			plDefines["EG_MATERIALS_REQUIRED"] = "";
 
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_lit.vert", ShaderType::Vertex, plDefines);
@@ -3732,7 +3809,7 @@ namespace Eagle
 
 			ShaderDefines slDefines;
 			slDefines["EG_SPOT_LIGHT_PASS"] = "";
-			slDefines["EG_TRANSLUCENT"] = "";
+			slDefines["EG_MATERIALS_REQUIRED"] = "";
 
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_lit.vert", ShaderType::Vertex, slDefines);
@@ -3775,6 +3852,8 @@ namespace Eagle
 
 	void ShadowPassTask::InitUnlitTextsPipelines()
 	{
+		Ref<Shader> fragShader = Shader::Create("shadow_maps/shadow_map_texts_unlit.frag", ShaderType::Fragment);
+
 		// Directional light
 		{
 			DepthStencilAttachment depthAttachment;
@@ -3785,7 +3864,7 @@ namespace Eagle
 
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_unlit.vert", ShaderType::Vertex);
-			state.FragmentShader = m_TextFragShader;
+			state.FragmentShader = fragShader;
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::None;
 			state.FrontFace = FrontFaceMode::Clockwise;
@@ -3810,7 +3889,7 @@ namespace Eagle
 
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_unlit.vert", ShaderType::Vertex, plDefines);
-			state.FragmentShader = m_TextFragShader;
+			state.FragmentShader = fragShader;
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::None;
 			state.FrontFace = FrontFaceMode::Clockwise;
@@ -3837,7 +3916,7 @@ namespace Eagle
 
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_unlit.vert", ShaderType::Vertex, slDefines);
-			state.FragmentShader = m_TextFragShader;
+			state.FragmentShader = fragShader;
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::None;
 			state.FrontFace = FrontFaceMode::Clockwise;

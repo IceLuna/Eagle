@@ -10,8 +10,10 @@
 
 layout(push_constant) uniform PushConstants
 {
+    float g_Strength;
     float g_ZNear;
     float g_ZFar;
+    uint g_Unused;
     vec2 g_TexelSize;
     uvec2 g_Size;
     uvec2 g_PassSize;

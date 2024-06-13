@@ -305,8 +305,6 @@ namespace Eagle::Script
 	// Text Component
 	MonoString* Eagle_TextComponent_GetText(GUID entityID);
 	void Eagle_TextComponent_SetText(GUID entityID, MonoString* value);
-	Material::BlendMode Eagle_TextComponent_GetBlendMode(GUID entityID);
-	void Eagle_TextComponent_SetBlendMode(GUID entityID, Material::BlendMode value);
 	void Eagle_TextComponent_GetColor(GUID entityID, glm::vec3* outValue);
 	void Eagle_TextComponent_SetColor(GUID entityID, const glm::vec3* value);
 	float Eagle_TextComponent_GetLineSpacing(GUID entityID);
@@ -315,26 +313,14 @@ namespace Eagle::Script
 	void Eagle_TextComponent_SetKerning(GUID entityID, float value);
 	float Eagle_TextComponent_GetMaxWidth(GUID entityID);
 	void Eagle_TextComponent_SetMaxWidth(GUID entityID, float value);
-	void Eagle_TextComponent_GetAlbedo(GUID entityID, glm::vec3* outValue);
-	void Eagle_TextComponent_SetAlbedo(GUID entityID, const glm::vec3* value);
-	void Eagle_TextComponent_GetEmissive(GUID entityID, glm::vec3* outValue);
-	void Eagle_TextComponent_SetEmissive(GUID entityID, const glm::vec3* value);
-	void Eagle_TextComponent_SetMetallness(GUID entityID, float value);
-	float Eagle_TextComponent_GetMetallness(GUID entityID);
-	void Eagle_TextComponent_SetRoughness(GUID entityID, float value);
-	float Eagle_TextComponent_GetRoughness(GUID entityID);
-	void Eagle_TextComponent_SetAO(GUID entityID, float value);
-	float Eagle_TextComponent_GetAO(GUID entityID);
 	void Eagle_TextComponent_SetIsLit(GUID entityID, bool value);
 	bool Eagle_TextComponent_GetIsLit(GUID entityID);
 	void Eagle_TextComponent_SetCastsShadows(GUID entityID, bool value);
 	bool Eagle_TextComponent_DoesCastShadows(GUID entityID);
-	void Eagle_TextComponent_SetOpacity(GUID entityID, float value);
-	float Eagle_TextComponent_GetOpacity(GUID entityID);
-	void Eagle_TextComponent_SetOpacityMask(GUID entityID, float value);
-	float Eagle_TextComponent_GetOpacityMask(GUID entityID);
 	GUID Eagle_TextComponent_GetFont(GUID entityID);
 	void Eagle_TextComponent_SetFont(GUID entityID, GUID assetID);
+	void Eagle_TextComponent_GetMaterial(GUID entityID, GUID* outAssetID);
+	void Eagle_TextComponent_SetMaterial(GUID entityID, GUID assetID);
 
 	// Text2D Component
 	MonoString* Eagle_Text2DComponent_GetText(GUID entityID);
@@ -442,11 +428,11 @@ namespace Eagle::Script
 	void Eagle_Renderer_GetVolumetricLightsSettings(uint32_t* outSamples, float* outMaxScatteringDist, float* fogSpeed, bool* bFogEnable, bool* bEnable);
 	MonoArray* Eagle_Renderer_GetShadowMapsSettings(uint32_t* outPointLightSize, uint32_t* outSpotLightSize);
 	void Eagle_Renderer_GetDepthOfFieldSettings(glm::vec2* apertureShape, float* apertureSize, float* focalLength, float* COCScale, float* maxCOC);
-	void Eagle_Renderer_GetMotionBlurSettings(bool* bEnabled, uint32_t* numSamples);
+	void Eagle_Renderer_GetMotionBlurSettings(bool* bEnabled, uint32_t* numSamples, float* strength);
 	void Eagle_Renderer_GetAutoExposureSettings(float* minLogLum, float* maxLogLum, float* adaptationSpeed, float* adaptationKey, bool* bEnabled, bool* bHalfResolution);
 	void Eagle_Renderer_SetShadowMapsSettings(uint32_t pointLightSize, uint32_t spotLightSize, MonoArray* dirLightSizes);
 	void Eagle_Renderer_SetDepthOfFieldSettings(const glm::vec2* apertureShape, float apertureSize, float focalLength, float COCScale, float maxCOC);
-	void Eagle_Renderer_SetMotionBlurSettings(bool bEnabled, uint32_t numSamples);
+	void Eagle_Renderer_SetMotionBlurSettings(bool bEnabled, uint32_t numSamples, float strength);
 	void Eagle_Renderer_SetAutoExposureSettings(float minLogLum, float maxLogLum, float adaptationSpeed, float adaptationKey, bool bEnabled, bool bHalfResolution);
 	void Eagle_Renderer_SetStutterlessShaders(bool value);
 	bool Eagle_Renderer_GetStutterlessShaders();

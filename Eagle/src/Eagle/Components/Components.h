@@ -763,20 +763,13 @@ namespace Eagle
 		}
 
 		const Ref<AssetFont>& GetFontAsset() const { return m_FontAsset; }
+		const Ref<AssetMaterial>& GetMaterialAsset() const { return m_MaterialAsset; }
 		const std::string& GetText() const { return m_Text; }
 		const glm::vec3& GetColor() const { return m_Color; }
 		float GetLineSpacing() const { return m_LineSpacing; }
 		float GetKerning() const { return m_Kerning; }
 		float GetMaxWidth() const { return m_MaxWidth; }
 		bool IsLit() const { return m_bLit; }
-		const glm::vec3& GetAlbedoColor() const { return m_Albedo; }
-		const glm::vec3& GetEmissiveColor() const { return m_Emissive; }
-		float GetMetallness() const { return m_Metallness; }
-		float GetRoughness() const { return m_Roughness; }
-		float GetAO() const { return m_AO; }
-		float GetOpacity() const { return m_Opacity; }
-		float GetOpacityMask() const { return m_OpacityMask; }
-		Material::BlendMode GetBlendMode() const { return m_BlendMode; }
 
 		void SetFontAsset(const Ref<AssetFont>& font)
 		{
@@ -820,52 +813,10 @@ namespace Eagle
 			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
 		}
 
-		void SetAlbedoColor(const glm::vec3& albedo)
+		void SetMaterialAsset(const Ref<AssetMaterial>& material)
 		{
-			m_Albedo = albedo;
-			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
-		}
-
-		void SetEmissiveColor(const glm::vec3& emissive)
-		{
-			m_Emissive = emissive;
-			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
-		}
-
-		void SetMetallness(float value)
-		{
-			m_Metallness = glm::clamp(value, 0.f, 1.f);
-			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
-		}
-
-		void SetRoughness(float value)
-		{
-			m_Roughness = glm::clamp(value, 0.f, 1.f);
-			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
-		}
-
-		void SetAO(float value)
-		{
-			m_AO = glm::clamp(value, 0.f, 1.f);
-			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
-		}
-
-		void SetOpacity(float value)
-		{
-			m_Opacity = glm::clamp(value, 0.f, 1.f);
-			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
-		}
-
-		void SetOpacityMask(float value)
-		{
-			m_OpacityMask = glm::clamp(value, 0.f, 1.f);
-			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
-		}
-
-		void SetBlendMode(Material::BlendMode blendMode)
-		{
-			m_BlendMode = blendMode;
-			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+			m_MaterialAsset = material;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnMaterialChanged);
 		}
 
 		void SetCastsShadows(bool bCasts)
@@ -878,22 +829,12 @@ namespace Eagle
 	private:
 		std::string m_Text = "Hello, World!";
 		Ref<AssetFont> m_FontAsset;
+		Ref<AssetMaterial> m_MaterialAsset; // Used if bLit == true
 
 		glm::vec3 m_Color = glm::vec3(1.f); // Used if bLit == false
 		float m_LineSpacing = 0.0f;
-
-		glm::vec3 m_Albedo = glm::vec3(1.f); // Used if bLit == true
 		float m_Kerning = 0.0f;
-		glm::vec3 m_Emissive = glm::vec3(0.f); // Used if bLit == true
 		float m_MaxWidth = 10.0f;
-
-		// Used if bLit == true
-		Material::BlendMode m_BlendMode = Material::BlendMode::Opaque;
-		float m_Metallness = 0.f;
-		float m_Roughness = 0.5f;
-		float m_AO = 1.f;
-		float m_Opacity = 0.5f;
-		float m_OpacityMask = 1.f;
 
 		bool m_bLit = false;
 		bool m_bCastsShadows = false;

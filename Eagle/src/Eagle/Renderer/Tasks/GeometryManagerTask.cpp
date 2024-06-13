@@ -427,9 +427,11 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "Process Texts");
 			EG_CPU_TIMING_SCOPED("Process Texts");
 
-			const bool bTextMaterialsChanged = false; // Texts have their own material type
-			if (bUploadTextQuads || bTextMaterialsChanged)
+			if (bUploadTextQuads || bMaterialsChanged)
 			{
+				if (!bUploadTextQuads)
+					SortLitTexts(); // Required only when materials were changed. Because they're already sorted if `bUploadTextQuads` == true
+
 				EG_GPU_TIMING_SCOPED(cmd, "Texts. Upload vertex & index buffers");
 				EG_CPU_TIMING_SCOPED("Texts. Upload vertex & index buffers");
 
@@ -439,8 +441,12 @@ namespace Eagle
 				UploadTexts(cmd, m_MaskedLitNonShadowTextData);
 				UploadTexts(cmd, m_TranslucentLitTextData);
 				UploadTexts(cmd, m_TranslucentNonShadowLitTextData);
-				UploadTexts(cmd, m_UnlitTextData);
-				UploadTexts(cmd, m_UnlitNonShadowTextData);
+
+				if (bUploadTextQuads) // Don't need to reupload if just materials have changes since unlit ones don't have materials
+				{
+					UploadTexts(cmd, m_UnlitTextData);
+					UploadTexts(cmd, m_UnlitNonShadowTextData);
+				}
 			}
 			const bool bTransformBufferGarbage = bUploadTextQuads;
 			UploadTransforms(cmd, m_TextTransforms, m_TextTransformsBuffer, m_TextPrevTransformsBuffer, m_TextUploadSpecificTransforms,
@@ -1249,19 +1255,13 @@ namespace Eagle
 	// --------- Texts ---------
 	struct LitTextComponentData
 	{
-		glm::vec3 Albedo;
-		float Roughness;
-		glm::vec3 Emissive;
-		float Metallness;
+		Ref<Material> Material;
 		std::u32string Text;
 		Ref<Font> Font;
 		int EntityID;
 		float LineHeightOffset;
 		float KerningOffset;
 		float MaxWidth;
-		float AO;
-		float Opacity;
-		float OpacityMask;
 		uint32_t TransformIndex;
 	};
 
@@ -1283,7 +1283,8 @@ namespace Eagle
 		return conv.from_bytes(s);
 	}
 
-	static void ProcessLitComponents(const std::vector<LitTextComponentData>& textComponents, std::unordered_map<Ref<Texture2D>, uint32_t>& fontAtlases, LitTextGeometryData& geometryData, uint32_t& atlasCurrentIndex)
+	static void ProcessLitComponents(const std::vector<LitTextComponentData>& textComponents, std::unordered_map<Ref<Texture2D>, uint32_t>& fontAtlases, LitTextGeometryData& geometryData,
+		std::unordered_map<uint32_t, Ref<Material>>& textMaterials, uint32_t& atlasCurrentIndex)
 	{
 		if (textComponents.empty())
 			return;
@@ -1320,6 +1321,9 @@ namespace Eagle
 				double fsScale = 1 / (metrics.ascenderY - metrics.descenderY);
 				double y = 0.0;
 				const uint32_t transformIndex = component.TransformIndex;
+				const uint32_t materialIndex = MaterialSystem::GetMaterialIndex(component.Material);
+
+				textMaterials[materialIndex] = component.Material;
 
 				const size_t textSize = text.size();
 				for (int i = 0; i < textSize; i++)
@@ -1373,11 +1377,7 @@ namespace Eagle
 					{
 						auto& q1 = geometryData.QuadVertices.emplace_back();
 						q1.Position = glm::vec2(pl, pb);
-						q1.AlbedoRoughness = glm::vec4(component.Albedo, component.Roughness);
-						q1.EmissiveMetallness = glm::vec4(component.Emissive, component.Metallness);
-						q1.AO = component.AO;
-						q1.Opacity = component.Opacity;
-						q1.OpacityMask = component.OpacityMask;
+						q1.MaterialIndex = materialIndex;
 						q1.TexCoord = { l, b };
 						q1.EntityID = component.EntityID;
 						q1.AtlasIndex = atlasIndex;
@@ -1590,9 +1590,12 @@ namespace Eagle
 			const uint32_t transformIndex = (uint32_t)tempTransforms.size();
 			if (text->IsLit())
 			{
+				const auto& materialAsset = text->GetMaterialAsset();
+				Ref<Material> material = materialAsset ? materialAsset->GetMaterial() : nullptr;
 				LitTextComponentData* data = nullptr;
+				Material::BlendMode blendMode = material ? material->GetBlendMode() : Material::BlendMode::Opaque;
 				// Emplace into correct container
-				switch (text->GetBlendMode())
+				switch (blendMode)
 				{
 					case Material::BlendMode::Opaque:
 						data = &(text->DoesCastShadows() ? opaqueLitDatas.emplace_back() : opaqueLitNotCastingShadowDatas.emplace_back());
@@ -1607,20 +1610,14 @@ namespace Eagle
 					default: EG_ASSERT(false);
 				}
 
+				data->Material = std::move(material);
 				data->Text = ToUTF32(text->GetText());
 				data->Font = asset->GetFont();
-				data->Albedo = text->GetAlbedoColor();
-				data->Emissive = text->GetEmissiveColor();
-				data->Roughness = glm::max(EG_MIN_ROUGHNESS, text->GetRoughness());
-				data->Metallness = text->GetMetallness();
-				data->AO = text->GetAO();
 				data->EntityID = text->Parent.GetID();
 				data->LineHeightOffset = text->GetLineSpacing();
 				data->KerningOffset = text->GetKerning();
 				data->MaxWidth = text->GetMaxWidth();
 				data->TransformIndex = transformIndex;
-				data->Opacity = text->GetOpacity();
-				data->OpacityMask = text->GetOpacityMask();
 			}
 			else
 			{
@@ -1656,6 +1653,7 @@ namespace Eagle
 			thisRef->m_TranslucentNonShadowLitTextData.QuadVertices.clear();
 			thisRef->m_UnlitTextData.QuadVertices.clear();
 			thisRef->m_UnlitNonShadowTextData.QuadVertices.clear();
+			thisRef->m_TextMaterials.clear();
 
 			thisRef->m_FontAtlases.clear();
 			thisRef->m_Atlases.clear();
@@ -1663,12 +1661,12 @@ namespace Eagle
 			thisRef->m_TextTransformIndices = std::move(transformsIndices);
 
 			uint32_t atlasCurrentIndex = 0;
-			ProcessLitComponents(opaqueTextComponents, thisRef->m_FontAtlases, thisRef->m_OpaqueLitTextData, atlasCurrentIndex);
-			ProcessLitComponents(opaqueNotCastingShadowsTextComponents, thisRef->m_FontAtlases, thisRef->m_OpaqueLitNonShadowTextData, atlasCurrentIndex);
-			ProcessLitComponents(maskedTextComponents, thisRef->m_FontAtlases, thisRef->m_MaskedLitTextData, atlasCurrentIndex);
-			ProcessLitComponents(maskedNotCastingShadowsTextComponents, thisRef->m_FontAtlases, thisRef->m_MaskedLitNonShadowTextData, atlasCurrentIndex);
-			ProcessLitComponents(translucentTextComponents, thisRef->m_FontAtlases, thisRef->m_TranslucentLitTextData, atlasCurrentIndex);
-			ProcessLitComponents(translucentNotCastingShadowsTextComponents, thisRef->m_FontAtlases, thisRef->m_TranslucentNonShadowLitTextData, atlasCurrentIndex);
+			ProcessLitComponents(opaqueTextComponents, thisRef->m_FontAtlases, thisRef->m_OpaqueLitTextData, thisRef->m_TextMaterials, atlasCurrentIndex);
+			ProcessLitComponents(opaqueNotCastingShadowsTextComponents, thisRef->m_FontAtlases, thisRef->m_OpaqueLitNonShadowTextData, thisRef->m_TextMaterials, atlasCurrentIndex);
+			ProcessLitComponents(maskedTextComponents, thisRef->m_FontAtlases, thisRef->m_MaskedLitTextData, thisRef->m_TextMaterials, atlasCurrentIndex);
+			ProcessLitComponents(maskedNotCastingShadowsTextComponents, thisRef->m_FontAtlases, thisRef->m_MaskedLitNonShadowTextData, thisRef->m_TextMaterials, atlasCurrentIndex);
+			ProcessLitComponents(translucentTextComponents, thisRef->m_FontAtlases, thisRef->m_TranslucentLitTextData, thisRef->m_TextMaterials, atlasCurrentIndex);
+			ProcessLitComponents(translucentNotCastingShadowsTextComponents, thisRef->m_FontAtlases, thisRef->m_TranslucentNonShadowLitTextData, thisRef->m_TextMaterials, atlasCurrentIndex);
 			ProcessUnlitComponents(unlitTextComponents, thisRef->m_FontAtlases, thisRef->m_UnlitTextData, atlasCurrentIndex);
 			ProcessUnlitComponents(unlitNotCastingShadowsTextComponents, thisRef->m_FontAtlases, thisRef->m_UnlitNonShadowTextData, atlasCurrentIndex);
 
@@ -1709,6 +1707,69 @@ namespace Eagle
 				}
 			}
 		});
+	}
+
+	static void FillByBlendMode(std::vector<LitTextQuadVertex>& newOpaqueData, std::vector<LitTextQuadVertex>& newMaskedData, std::vector<LitTextQuadVertex>& newTranslucentData,
+		const LitTextGeometryData& data, const std::unordered_map<uint32_t, Ref<Material>>& materials)
+	{
+		for (const auto& vertex : data.QuadVertices)
+		{
+			auto it = materials.find(vertex.MaterialIndex);
+			EG_CORE_ASSERT(it != materials.end());
+			const auto& material = it->second;
+			const Material::BlendMode blend = material->GetBlendMode();
+
+			switch (blend)
+			{
+			case Material::BlendMode::Opaque:
+				newOpaqueData.push_back(vertex);
+				break;
+			case Material::BlendMode::Masked:
+				newMaskedData.push_back(vertex);
+				break;
+			case Material::BlendMode::Translucent:
+				newTranslucentData.push_back(vertex);
+				break;
+			}
+		}
+	}
+
+	void GeometryManagerTask::SortLitTexts()
+	{
+		std::vector<LitTextQuadVertex> newOpaqueData;
+		newOpaqueData.reserve(m_OpaqueLitTextData.QuadVertices.size());
+		std::vector<LitTextQuadVertex> newMaskedData;
+		newMaskedData.reserve(m_MaskedLitTextData.QuadVertices.size());
+		std::vector<LitTextQuadVertex> newTranslucentData;
+		newTranslucentData.reserve(m_TranslucentLitTextData.QuadVertices.size());
+
+		{
+			newOpaqueData.clear();
+			newMaskedData.clear();
+			newTranslucentData.clear();
+
+			FillByBlendMode(newOpaqueData, newMaskedData, newTranslucentData, m_OpaqueLitTextData, m_TextMaterials);
+			FillByBlendMode(newOpaqueData, newMaskedData, newTranslucentData, m_MaskedLitTextData, m_TextMaterials);
+			FillByBlendMode(newOpaqueData, newMaskedData, newTranslucentData, m_TranslucentLitTextData, m_TextMaterials);
+
+			m_OpaqueLitTextData.QuadVertices = std::move(newOpaqueData);
+			m_MaskedLitTextData.QuadVertices = std::move(newMaskedData);
+			m_TranslucentLitTextData.QuadVertices = std::move(newTranslucentData);
+		}
+
+		{
+			newOpaqueData.clear();
+			newMaskedData.clear();
+			newTranslucentData.clear();
+
+			FillByBlendMode(newOpaqueData, newMaskedData, newTranslucentData, m_OpaqueLitNonShadowTextData, m_TextMaterials);
+			FillByBlendMode(newOpaqueData, newMaskedData, newTranslucentData, m_MaskedLitNonShadowTextData, m_TextMaterials);
+			FillByBlendMode(newOpaqueData, newMaskedData, newTranslucentData, m_TranslucentNonShadowLitTextData, m_TextMaterials);
+
+			m_OpaqueLitNonShadowTextData.QuadVertices = std::move(newOpaqueData);
+			m_MaskedLitNonShadowTextData.QuadVertices = std::move(newMaskedData);
+			m_TranslucentNonShadowLitTextData.QuadVertices = std::move(newTranslucentData);
+		}
 	}
 
 	void GeometryManagerTask::UploadTexts(const Ref<CommandBuffer>& cmd, LitTextGeometryData& textsData)

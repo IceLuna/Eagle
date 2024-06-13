@@ -252,8 +252,6 @@ namespace Eagle
 		Ref<PipelineGraphics> m_UnlitTSLPipelineClearing;
 		Ref<PipelineGraphics> m_UnlitTDLPipelineClearing;
 
-		Ref<Shader> m_TextFragShader;
-
 		// Used as a flag to indicate that atleast one draw happened
 		bool bDidDrawDL = false;
 		bool bDidDrawPL = false;
@@ -287,6 +285,14 @@ namespace Eagle
 		uint64_t m_TranslucentSpritesDLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 		uint64_t m_TranslucentSpritesPLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 		uint64_t m_TranslucentSpritesSLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
+
+		uint64_t m_MaskedLitTextsDLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
+		uint64_t m_MaskedLitTextsPLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
+		uint64_t m_MaskedLitTextsSLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
+
+		uint64_t m_TranslucentLitTextsDLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
+		uint64_t m_TranslucentLitTextsPLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
+		uint64_t m_TranslucentLitTextsSLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 
 		bool bVolumetricLightsEnabled = false;
 		bool bTranslucencyShadowsEnabled = false;

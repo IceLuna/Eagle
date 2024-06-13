@@ -89,16 +89,12 @@ namespace Eagle
 
 	struct LitTextQuadVertex
 	{
-		glm::vec4 AlbedoRoughness = glm::vec4(1.f);
-		glm::vec4 EmissiveMetallness = glm::vec4(1.f);
 		glm::vec2 Position = glm::vec2{ 0.f };
 		glm::vec2 TexCoord = glm::vec2{ 0.f };
 		int EntityID = -1;
 		uint32_t AtlasIndex = 0;
-		float AO = 1.f;
-		float Opacity = 1.f;
-		float OpacityMask = 1.f;
 		uint32_t TransformIndex = 0;
+		uint32_t MaterialIndex = 0;
 	};
 
 	struct UnlitTextQuadVertex
@@ -246,6 +242,7 @@ namespace Eagle
 		// ------- Texts -------
 		void SetTexts(const std::vector<const TextComponent*>& texts, bool bDirty);
 		void SetTransforms(const std::unordered_set<const TextComponent*>& texts);
+		void SortLitTexts();
 		void UploadTexts(const Ref<CommandBuffer>& cmd, LitTextGeometryData& textsData);
 		void UploadTexts(const Ref<CommandBuffer>& cmd, UnlitTextGeometryData& textsData);
 
@@ -391,6 +388,7 @@ namespace Eagle
 		Ref<Buffer> m_TextPrevTransformsBuffer;
 		std::unordered_map<Ref<Texture2D>, uint32_t> m_FontAtlases;
 		std::vector<Ref<Texture2D>> m_Atlases;
+		std::unordered_map<uint32_t, Ref<Material>> m_TextMaterials; // Materials that are used by the text quads.
 
 		// ------- Lit Text 3D -------
 		LitTextGeometryData m_OpaqueLitTextData;

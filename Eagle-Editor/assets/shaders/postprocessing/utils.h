@@ -128,7 +128,13 @@ float GetFogFactor(uint fogEquation, float distance, float density, float fogMin
 
 float Luminance(vec3 rgb)
 {
-    return dot(rgb, vec3(0.2125f, 0.7154f, 0.0721f));
+    return dot(rgb, vec3(0.2126729, 0.7151522, 0.0721750));
+}
+
+// [Karis2013] proposed reducing the dynamic range before averaging
+vec4 KarisAvg(vec4 c)
+{
+    return c / (1.0 + Luminance(c.rgb));
 }
 
 #endif

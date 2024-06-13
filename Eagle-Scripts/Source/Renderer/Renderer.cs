@@ -121,6 +121,7 @@ namespace Eagle
     {
         public bool bEnabled;
         public uint NumSamples;
+        public float Strength;
     }
 
     public struct AutoExposureSettings
@@ -320,13 +321,13 @@ namespace Eagle
 
         public static void SetMotionBlurSettings(MotionBlurSettings value)
         {
-            SetMotionBlurSettings_Native(value.bEnabled, value.NumSamples);
+            SetMotionBlurSettings_Native(value.bEnabled, value.NumSamples, value.Strength);
         }
 
         public static MotionBlurSettings GetMotionBlurSettings()
         {
             MotionBlurSettings result = new MotionBlurSettings();
-            GetMotionBlurSettings_Native(out result.bEnabled, out result.NumSamples);
+            GetMotionBlurSettings_Native(out result.bEnabled, out result.NumSamples, out result.Strength);
             return result;
         }
 
@@ -608,7 +609,7 @@ namespace Eagle
         private static extern void GetDepthOfFieldSettings_Native(out Vector2 apertureShape, out float apertureSize, out float focalLength, out float COCScale, out float maxCOC);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetMotionBlurSettings_Native(out bool bEnabled, out uint numSamples);
+        private static extern void GetMotionBlurSettings_Native(out bool bEnabled, out uint numSamples, out float strength);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void GetAutoExposureSettings_Native(out float minLogLum, out float maxLogLum, out float adaptationSpeed, out float adaptationKey, out bool bEnabled, out bool bHalfResolution);
@@ -620,7 +621,7 @@ namespace Eagle
         private static extern void SetDepthOfFieldSettings_Native(ref Vector2 apertureShape, float apertureSize, float focalLength, float COCScale, float maxCOC);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetMotionBlurSettings_Native(bool bEnabled, uint numSamples);
+        private static extern void SetMotionBlurSettings_Native(bool bEnabled, uint numSamples, float strength);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetAutoExposureSettings_Native(float minLogLum, float maxLogLum, float adaptationSpeed, float adaptationKey, bool bEnabled, bool bHalfResolution);

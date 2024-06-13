@@ -8,14 +8,11 @@
 
 namespace Eagle
 {
-	static Ref<AssetStaticMesh> s_Sphere;
 
 	MaterialAssetEditor::MaterialAssetEditor(const Ref<AssetMaterial>& asset)
 		: AssetEditor(true), m_Asset(asset)
 	{
-		if (!s_Sphere) // Avoid loading multiple times
-			s_Sphere = AssetStaticMesh::Create(Application::GetCorePath() / "assets/meshes/Sphere.egasset");
-		m_Sphere = s_Sphere;
+		m_Sphere = AssetManager::GetPreviewSphere();
 
 		Entity entity = m_Scene->CreateEntity("MaterialAssetEditor");
 		auto& sm = entity.AddComponent<StaticMeshComponent>();
@@ -35,14 +32,6 @@ namespace Eagle
 		const glm::vec3 center = aabb.Center();
 		camera.LookAt(center);
 		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 5.f); // Move back
-	}
-
-	MaterialAssetEditor::~MaterialAssetEditor()
-	{
-		// `2` because `s_Sphere` also holds one ref.
-		// `3` because `m_Renderer` might still be rendering which means it still holds one ref 
-		if (size_t useCount = m_Sphere.use_count(); useCount == 2 || useCount == 3)
-			s_Sphere.reset(); // Clear the state when the last ref dies
 	}
 
 	void MaterialAssetEditor::OnImGuiRender(bool* pOpen)

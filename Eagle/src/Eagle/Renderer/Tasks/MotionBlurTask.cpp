@@ -32,6 +32,7 @@ namespace Eagle
 
 		m_PushData.ZNear = m_Renderer.GetZNear();
 		m_PushData.ZFar = m_Renderer.GetZFar();
+		m_PushData.Strength = m_Renderer.GetOptions_RT().MotionBlur.Strength;
 
 		auto& depth = m_Renderer.GetGBuffer().Depth;
 		const ImageLayout oldDepthLayout = depth->GetLayout();

@@ -2,15 +2,14 @@
 
 #include "defines.h"
 #include "utils.h"
+#include "pipeline_layout.h"
 
-layout(location = 0) flat in vec4 i_AlbedoRoughness;
-layout(location = 1) flat in vec4 i_EmissiveMetallness;
-layout(location = 2) in vec3 i_Normal;
-layout(location = 3) flat in int i_EntityID;
-layout(location = 4) in vec2 i_TexCoords;
-layout(location = 5) flat in uint i_AtlasIndex;
-layout(location = 6) flat in float i_AO;
-layout(location = 7) flat in float i_OpacityMask;
+layout(location = 0) in mat3 i_TBN;
+layout(location = 3) in vec3 i_Normal;
+layout(location = 4) flat in int i_EntityID;
+layout(location = 5) in vec2 i_TexCoords;
+layout(location = 6) flat in uint i_AtlasIndex;
+layout(location = 7) flat in uint i_MaterialIndex;
 #ifdef EG_MOTION
 layout(location = 8) in vec3 i_CurPos;
 layout(location = 9) in vec3 i_PrevPos;
@@ -46,8 +45,11 @@ void main()
     //const vec4 fgColor = vec4(i_Color, 1.0);
     //outColor = mix(bgColor, fgColor, opacity);
 
+    vec2 uv = i_TexCoords;
+    const ShaderMaterial material = FetchMaterial(i_MaterialIndex, uv);
+
 #ifdef EG_MASKED
-    if (i_OpacityMask < EG_OPACITY_MASK_THRESHOLD)
+    if (material.OpacityMask < EG_OPACITY_MASK_THRESHOLD)
     {
         discard;
         return;
@@ -65,12 +67,24 @@ void main()
         return;
     }
 
-    const vec2 packedNormal = EncodeNormal(normalize(i_Normal));
+    const vec2 packedGeometryNormal = EncodeNormal(normalize(i_Normal));
+	vec2 packedShadingNormal = packedGeometryNormal;
+	if (material.NormalTextureIndex != EG_INVALID_INDEX)
+	{
+		vec3 shadingNormal = ReadTexture(material.NormalTextureIndex, uv).rgb;
+		shadingNormal = normalize(shadingNormal * 2.0 - 1.0);
+		shadingNormal = normalize(i_TBN * shadingNormal);
+		packedShadingNormal = EncodeNormal(shadingNormal);
+	}
 
-    outAlbedo = i_AlbedoRoughness;
-    outGeometryShadingNormals = vec4(packedNormal, packedNormal);
-    outEmissive = vec4(i_EmissiveMetallness.rgb, 1.f);
-    outMaterialData = vec2(i_EmissiveMetallness.a, i_AO);
+    const float metalness = material.Metalness;
+	const float roughness = material.Roughness;
+	const float ao = material.AO;
+
+    outAlbedo = vec4(material.Albedo * material.TintColor.rgb, roughness);
+    outGeometryShadingNormals = vec4(packedGeometryNormal, packedShadingNormal);
+	outEmissive = vec4(material.Emissive * material.EmissiveIntensity, 1.f);
+	outMaterialData = vec2(metalness, ao);
     outObjectID = i_EntityID;
 
     // TODO: Pack to outEmissive.a since it's not used anyway

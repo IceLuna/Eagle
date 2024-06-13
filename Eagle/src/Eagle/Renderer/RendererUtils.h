@@ -752,6 +752,7 @@ namespace Eagle
 
     struct MotionBlurSettings
     {
+        float Strength = 1.f; // [0; 1]
         uint32_t NumSamples = 16;
         bool bEnable = false;
         bool bDebugOutput = false;
@@ -759,6 +760,7 @@ namespace Eagle
         bool operator== (const MotionBlurSettings& other) const
         {
             bool bEqual =
+                Strength == other.Strength &&
                 NumSamples == other.NumSamples &&
                 bEnable == other.bEnable &&
                 bDebugOutput == other.bDebugOutput;

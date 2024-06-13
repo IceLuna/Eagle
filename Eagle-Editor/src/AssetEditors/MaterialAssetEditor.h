@@ -11,7 +11,6 @@ namespace Eagle
 	{
 	public:
 		MaterialAssetEditor(const Ref<AssetMaterial>& asset);
-		~MaterialAssetEditor();
 
 		void OnImGuiRender(bool* pOpen) override;
 
