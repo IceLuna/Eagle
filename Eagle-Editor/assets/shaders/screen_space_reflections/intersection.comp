@@ -1,0 +1,222 @@
+#extension GL_KHR_shader_subgroup_basic : require
+#extension GL_KHR_shader_subgroup_ballot : require
+
+#include "defines.h"
+#include "utils.h"
+#include "screen_space_reflections/common.h"
+
+layout(binding = 1) uniform sampler2D g_Normal;
+layout(binding = 2) uniform sampler2D g_BlueNoise;
+layout(binding = 3, r11f_g11f_b10f) uniform readonly image2D g_Color;
+layout(binding = 4, rgba16f) uniform writeonly image2D g_IntersectionOutput;
+layout(binding = 5) uniform sampler2D g_DepthBufferHierarchy;
+layout(binding = 6, r32ui) uniform uimageBuffer g_RayCounter;
+layout(binding = 7) buffer RayList
+{
+	uint g_RayList[];
+};
+layout(binding = 8, r8) uniform readonly image2D g_Roughness;
+
+layout(push_constant) uniform PushConstants
+{
+    uvec2 g_Size;
+    vec2 g_TexelSize;
+    float g_BlueNoisePhase;
+    uint g_MaxTraversalIntersections;
+};
+
+const float g_DepthBufferThickness = 0.015f;
+const uint g_MostDetailedMip = 0;
+const uint g_MinTraversalOccupancy = 4;
+
+vec3 FFX_SSSR_LoadWorldSpaceNormal(ivec2 pixel_coordinate)
+{
+    const vec3 normalWS = DecodeNormal(texelFetch(g_Normal, pixel_coordinate, 0).zw); // zw - is a shading normal
+    return normalWS;
+}
+
+float FFX_SSSR_LoadDepth(ivec2 pixel_coordinate, int mip)
+{
+    return texelFetch(g_DepthBufferHierarchy, pixel_coordinate, mip).x;
+}
+
+vec3 FFX_SSSR_ScreenSpaceToViewSpace(vec3 screen_space_position)
+{
+    return InvProjectPosition(screen_space_position, g_InvProj);
+}
+
+vec3 ScreenSpaceToWorldSpace(vec3 screen_space_position)
+{
+    return InvProjectPosition(screen_space_position, g_InvViewProj);
+}
+
+// http://jcgt.org/published/0007/04/01/paper.pdf by Eric Heitz
+// Input Ve: view direction
+// Input alpha_x, alpha_y: roughness parameters
+// Input U1, U2: uniform random numbers
+// Output Ne: normal sampled with PDF D_Ve(Ne) = G1(Ve) * max(0, dot(Ve, Ne)) * D(Ne) / Ve.z
+vec3 SampleGGXVNDF(vec3 Ve, float alpha_x, float alpha_y, float U1, float U2)
+{
+    // Section 3.2: transforming the view direction to the hemisphere configuration
+    vec3 Vh = normalize(vec3(alpha_x * Ve.x, alpha_y * Ve.y, Ve.z));
+    // Section 4.1: orthonormal basis (with special case if cross product is zero)
+    float lensq = Vh.x * Vh.x + Vh.y * Vh.y;
+    vec3 T1 = lensq > 0 ? vec3(-Vh.y, Vh.x, 0) * inversesqrt(lensq) : vec3(1, 0, 0);
+    vec3 T2 = cross(Vh, T1);
+    // Section 4.2: parameterization of the projected area
+    float r = sqrt(U1);
+    float phi = 2.0 * EG_PI * U2;
+    float t1 = r * cos(phi);
+    float t2 = r * sin(phi);
+    float s = 0.5 * (1.0 + Vh.z);
+    t2 = (1.0 - s) * sqrt(1.0 - t1 * t1) + s * t2;
+    // Section 4.3: reprojection onto hemisphere
+    vec3 Nh = t1 * T1 + t2 * T2 + sqrt(max(0.0, 1.0 - t1 * t1 - t2 * t2)) * Vh;
+    // Section 3.4: transforming the normal back to the ellipsoid configuration
+    vec3 Ne = normalize(vec3(alpha_x * Nh.x, alpha_y * Nh.y, max(0.0, Nh.z)));
+    return Ne;
+}
+
+vec3 Sample_GGX_VNDF_Ellipsoid(vec3 Ve, float alpha_x, float alpha_y, float U1, float U2)
+{
+    return SampleGGXVNDF(Ve, alpha_x, alpha_y, U1, U2);
+}
+
+vec3 Sample_GGX_VNDF_Hemisphere(vec3 Ve, float alpha, float U1, float U2)
+{
+    return Sample_GGX_VNDF_Ellipsoid(Ve, alpha, alpha, U1, U2);
+}
+
+mat3 CreateTBN(vec3 N)
+{
+    vec3 U;
+    if (abs(N.z) > 0.0) {
+        float k = sqrt(N.y * N.y + N.z * N.z);
+        U.x = 0.0; U.y = -N.z / k; U.z = N.y / k;
+    }
+    else {
+        float k = sqrt(N.x * N.x + N.y * N.y);
+        U.x = N.y / k; U.y = -N.x / k; U.z = 0.0;
+    }
+
+    mat3 TBN;
+    TBN[0] = U;
+    TBN[1] = cross(N, U);
+    TBN[2] = N;
+    return transpose(TBN);
+}
+
+vec2 SampleRandomVector2D(ivec2 pixel)
+{
+	return fract(texelFetch(g_BlueNoise, pixel % 128, 0).xy + g_BlueNoisePhase);
+}
+
+vec3 SampleReflectionVector(vec3 view_direction, vec3 normal, float roughness, ivec2 dispatch_thread_id)
+{
+    mat3 tbn_transform = CreateTBN(normal);
+    vec3 view_direction_tbn = tbn_transform * (-view_direction);
+
+    vec2 u = SampleRandomVector2D(dispatch_thread_id);
+    
+    vec3 sampled_normal_tbn = Sample_GGX_VNDF_Hemisphere(view_direction_tbn, roughness, u.x, u.y);
+    #ifdef PERFECT_REFLECTIONS
+        sampled_normal_tbn = vec3(0, 0, 1); // Overwrite normal sample to produce perfect reflection.
+    #endif
+    
+    vec3 reflected_direction_tbn = reflect(-view_direction_tbn, sampled_normal_tbn);
+
+    // Transform reflected_direction back to the initial space.
+    mat3 inv_tbn_transform = transpose(tbn_transform);
+    return inv_tbn_transform * reflected_direction_tbn;
+}
+
+vec3 SampleEnvironmentMap(vec3 direction)
+{
+    return vec3(0.f);
+}
+
+bool IsMirrorReflection(float roughness)
+{
+    return roughness <= EG_SQUARE(EG_MIN_ROUGHNESS + 0.01f);
+}
+
+#include "screen_space_reflections/ffx_sssr.h"
+
+#define GROUP_SIZE 8
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+void main()
+{
+    uint groupId = uint(gl_WorkGroupID);
+    uint groupIndex = gl_LocalInvocationIndex;
+    uint rayIndex = groupId * 64 + groupIndex;
+    if (rayIndex >= imageLoad(g_RayCounter, 1).x)
+        return;
+
+    uint packedCoords = g_RayList[rayIndex];
+    
+    ivec2 coords;
+    bool bCopyHorizontal;
+    bool bCopyVertical;
+    bool bCopyDiagonal;
+    UnpackRayCoords(packedCoords, coords, bCopyHorizontal, bCopyVertical, bCopyDiagonal);
+
+    vec2 uv = (coords + 0.5) * g_TexelSize;
+
+    vec3 normalWS = FFX_SSSR_LoadWorldSpaceNormal(coords);
+    float roughness = imageLoad(g_Roughness, coords).x;
+    bool bMirror = IsMirrorReflection(roughness);
+
+    int mostDetailedMip = bMirror ? 0 : int(g_MostDetailedMip);
+    vec2 mip_resolution = FFX_SSSR_GetMipResolution(g_Size, mostDetailedMip);
+    float z = FFX_SSSR_LoadDepth(ivec2(uv * mip_resolution), mostDetailedMip);
+
+    vec3 screenUVSpaceRayOrigin = vec3(uv, z);
+    vec3 rayVS = FFX_DNSR_Reflections_ScreenSpaceToViewSpace(screenUVSpaceRayOrigin);
+    vec3 rayDirVS = normalize(rayVS);
+
+    vec3 normalVS = (g_View * vec4(normalWS, 0)).xyz;
+    vec3 reflectedVS = SampleReflectionVector(rayDirVS, normalVS, roughness, coords);
+    vec3 rayDirScreenSpace = ProjectDirection(rayVS, reflectedVS, screenUVSpaceRayOrigin, g_Proj);
+
+    //====SSSR====
+    bool bValidHit = false;
+    vec3 hit = FFX_SSSR_HierarchicalRaymarch(screenUVSpaceRayOrigin, rayDirScreenSpace, bMirror, g_Size, mostDetailedMip, g_MinTraversalOccupancy, g_MaxTraversalIntersections, bValidHit);
+
+    vec3 originWS   = ScreenSpaceToWorldSpace(screenUVSpaceRayOrigin);
+    vec3 hitWS      = ScreenSpaceToWorldSpace(hit);
+    vec3 rayWS      = hitWS - originWS.xyz;
+
+    float confidence = bValidHit ? FFX_SSSR_ValidateHit(hit, uv, rayWS, g_Size, g_DepthBufferThickness) : 0;
+    float worldRayLength = max(0, length(rayWS));
+
+    vec3 reflectionRadiance = vec3(0);
+    if (confidence > 0.f)
+    {
+        // Found an intersection with the depth buffer -> We can lookup the color from lit scene.
+        reflectionRadiance = imageLoad(g_Color, ivec2(g_Size * hit.xy)).xyz;  
+    }
+
+    // Sample environment map.
+    vec3 reflectedDirectionWS = (g_InvView * vec4(reflectedVS, 0)).xyz;
+
+    vec4 newSample = vec4(reflectionRadiance, worldRayLength);
+    imageStore(g_IntersectionOutput, coords, newSample);
+
+    uvec2 copyTarget = coords ^ 1; // Flip last bit to find the mirrored coords along the x and y axis within a quad.
+    if (bCopyHorizontal)
+    {
+        uvec2 copyCoords = uvec2(copyTarget.x, coords.y);
+        imageStore(g_IntersectionOutput, ivec2(copyCoords), newSample);
+    }
+    if (bCopyVertical)
+    {
+        uvec2 copyCoords = uvec2(coords.x, copyTarget.y);
+        imageStore(g_IntersectionOutput, ivec2(copyCoords), newSample);
+    }
+    if (bCopyDiagonal)
+    {
+        uvec2 copyCoords = copyTarget;
+        imageStore(g_IntersectionOutput, ivec2(copyCoords), newSample);
+    }
+}

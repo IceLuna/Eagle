@@ -1,0 +1,84 @@
+
+layout(binding = 0) uniform sampler2D g_Input;
+layout(binding = 1, r32f) uniform writeonly image2D g_Outputs[16];
+
+layout(push_constant) uniform PushConstants
+{
+    uvec2 g_Size;
+	uvec2 g_PrevSize;
+	int g_PrevMipLevel;
+};
+
+#define GROUP_SIZE 8
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+#ifdef HZB_MAX
+#define HZB_FUNC max
+#else
+#define HZB_FUNC min
+#endif
+
+void main()
+{
+	const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID);
+    if (pixelCoords.x >= g_Size.x || pixelCoords.y >= g_Size.y)
+        return;
+
+	ivec2 previousLevelBaseTexelCoord = 2 * pixelCoords;
+
+	vec4 depthTexelValues;
+	depthTexelValues.x = texelFetch(g_Input,
+                                    previousLevelBaseTexelCoord,
+                                    g_PrevMipLevel).r;
+	depthTexelValues.y = texelFetch(g_Input,
+                                    previousLevelBaseTexelCoord + ivec2(1, 0),
+                                    g_PrevMipLevel).r;
+	depthTexelValues.z = texelFetch(g_Input,
+                                    previousLevelBaseTexelCoord + ivec2(1, 1),
+                                    g_PrevMipLevel).r;
+	depthTexelValues.w = texelFetch(g_Input,
+                                    previousLevelBaseTexelCoord + ivec2(0, 1),
+                                    g_PrevMipLevel).r;
+
+	float minDepth = HZB_FUNC(HZB_FUNC(depthTexelValues.x, depthTexelValues.y),
+                         HZB_FUNC(depthTexelValues.z, depthTexelValues.w));
+
+    // Incorporate additional texels if the previous level's width or height (or both)
+    // are odd.
+	bool shouldIncludeExtraColumnFromPreviousLevel = ((g_PrevSize.x & 1) != 0);
+	bool shouldIncludeExtraRowFromPreviousLevel = ((g_PrevSize.y & 1) != 0);
+	if (shouldIncludeExtraColumnFromPreviousLevel)
+	{
+		vec2 extraColumnTexelValues;
+		extraColumnTexelValues.x = texelFetch(g_Input,
+                                              previousLevelBaseTexelCoord + ivec2(2, 0),
+                                              g_PrevMipLevel).r;
+		extraColumnTexelValues.y = texelFetch(g_Input,
+                                              previousLevelBaseTexelCoord + ivec2(2, 1),
+                                              g_PrevMipLevel).r;
+
+		// In the case where the width and height are both odd, need to include the
+        // 'corner' value as well.
+		if (shouldIncludeExtraRowFromPreviousLevel)
+		{
+			float cornerTexelValue = texelFetch(g_Input,
+                                                previousLevelBaseTexelCoord + ivec2(2, 2),
+                                                g_PrevMipLevel).r;
+			minDepth = HZB_FUNC(minDepth, cornerTexelValue);
+		}
+		minDepth = HZB_FUNC(minDepth, HZB_FUNC(extraColumnTexelValues.x, extraColumnTexelValues.y));
+	}
+	if (shouldIncludeExtraRowFromPreviousLevel)
+	{
+		vec2 extraRowTexelValues;
+		extraRowTexelValues.x = texelFetch(g_Input,
+                                           previousLevelBaseTexelCoord + ivec2(0, 2),
+                                           g_PrevMipLevel).r;
+		extraRowTexelValues.y = texelFetch(g_Input,
+                                           previousLevelBaseTexelCoord + ivec2(1, 2),
+                                           g_PrevMipLevel).r;
+		minDepth = HZB_FUNC(minDepth, HZB_FUNC(extraRowTexelValues.x, extraRowTexelValues.y));
+	}
+    
+	imageStore(g_Outputs[g_PrevMipLevel + 1], pixelCoords, vec4(minDepth));
+}

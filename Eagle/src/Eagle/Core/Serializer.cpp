@@ -1738,6 +1738,7 @@ namespace Eagle
 		const auto& dofSettings = settings.DOFSettings;
 		const auto& motionBlurSettings = settings.MotionBlur;
 		const auto& autoExposureSettings = settings.AutoExposure;
+		const auto& sssr = settings.ScreenSpaceReflections;
 
 		out << YAML::Key << "RendererSettings" << YAML::Value << YAML::BeginMap;
 
@@ -1845,6 +1846,14 @@ namespace Eagle
 		out << YAML::Key << "bEnable" << YAML::Value << autoExposureSettings.bEnable;
 		out << YAML::Key << "bHalfResolution" << YAML::Value << autoExposureSettings.bHalfResolution;
 		out << YAML::EndMap; //AutoExposure
+
+		out << YAML::Key << "SSSR";
+		out << YAML::BeginMap;
+		out << YAML::Key << "RoughnessThreshold" << YAML::Value << sssr.RoughnessThreshold;
+		out << YAML::Key << "SamplesPerQuad" << YAML::Value << sssr.SamplesPerQuad;
+		out << YAML::Key << "MaxTraversalIterations" << YAML::Value << sssr.MaxTraversalIterations;
+		out << YAML::Key << "bEnable" << YAML::Value << sssr.bEnable;
+		out << YAML::EndMap; //SSSR
 
 		out << YAML::EndMap;
 	}
@@ -2052,6 +2061,14 @@ namespace Eagle
 			settings.AutoExposure.AdaptationKey = autoExposureNode["AdaptationKey"].as<float>();
 			settings.AutoExposure.bEnable = autoExposureNode["bEnable"].as<bool>();
 			settings.AutoExposure.bHalfResolution = autoExposureNode["bHalfResolution"].as<bool>();
+		}
+
+		if (auto sssrNode = data["SSSR"])
+		{
+			settings.ScreenSpaceReflections.RoughnessThreshold = sssrNode["RoughnessThreshold"].as<float>();
+			settings.ScreenSpaceReflections.SamplesPerQuad = sssrNode["SamplesPerQuad"].as<uint32_t>();
+			settings.ScreenSpaceReflections.MaxTraversalIterations = sssrNode["MaxTraversalIterations"].as<uint32_t>();
+			settings.ScreenSpaceReflections.bEnable = sssrNode["bEnable"].as<bool>();
 		}
 	}
 

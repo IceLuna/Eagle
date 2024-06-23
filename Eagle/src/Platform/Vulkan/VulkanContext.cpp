@@ -262,6 +262,7 @@ namespace Eagle
 		deviceFeatures12.descriptorBindingPartiallyBound = VK_TRUE;
 		deviceFeatures12.imagelessFramebuffer = VK_TRUE;
 		deviceFeatures12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+		deviceFeatures12.shaderFloat16 = VK_TRUE;
 #ifdef EG_GPU_TIMINGS
 		deviceFeatures12.hostQueryReset = VK_TRUE;
 #endif
@@ -276,6 +277,7 @@ namespace Eagle
 		features.features.textureCompressionASTC_LDR = supportedFeatures.bTextureCompressionASTC_LDR;
 		features.features.textureCompressionETC2 = supportedFeatures.bTextureCompressionETC2;
 		features.features.textureCompressionBC = supportedFeatures.bTextureCompressionBC;
+		features.features.shaderInt16 = VK_TRUE;
 		features.pNext = &deviceFeatures12;
 
 		m_Device = VulkanDevice::Create(m_PhysicalDevice, features);

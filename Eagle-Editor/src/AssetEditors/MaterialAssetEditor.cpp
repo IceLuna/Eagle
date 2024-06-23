@@ -66,7 +66,7 @@ namespace Eagle
 		// Albedo
 		{
 			UI::TextWithSeparator("Albedo");
-			UI::BeginPropertyGrid("MaterialDetails");
+			UI::BeginPropertyGrid("MaterialDetails_Albedo");
 			
 			temp = material->GetAlbedoAsset();
 			if (UI::DrawAssetSelection("Albedo Texture", temp))
@@ -92,7 +92,7 @@ namespace Eagle
 		// Metalness
 		{
 			UI::TextWithSeparator("Metalness");
-			UI::BeginPropertyGrid("MaterialDetails");
+			UI::BeginPropertyGrid("MaterialDetails_Metalness");
 			
 			temp = material->GetMetalnessAsset();
 			if (UI::DrawAssetSelection("Metalness Texture", temp, s_MetalnessHelpMsg))
@@ -118,7 +118,7 @@ namespace Eagle
 		// Normal
 		{
 			UI::TextWithSeparator("Normal");
-			UI::BeginPropertyGrid("MaterialDetails");
+			UI::BeginPropertyGrid("MaterialDetails_Normal");
 			
 			temp = material->GetNormalAsset();
 			if (UI::DrawAssetSelection("Normal", temp))
@@ -133,7 +133,7 @@ namespace Eagle
 		// Roughness
 		{
 			UI::TextWithSeparator("Roughness");
-			UI::BeginPropertyGrid("MaterialDetails");
+			UI::BeginPropertyGrid("MaterialDetails_Roughness");
 			
 			temp = material->GetRoughnessAsset();
 			if (UI::DrawAssetSelection("Roughness Texture", temp, s_RoughnessHelpMsg))
@@ -159,7 +159,7 @@ namespace Eagle
 		// AO
 		{
 			UI::TextWithSeparator("AO");
-			UI::BeginPropertyGrid("MaterialDetails");
+			UI::BeginPropertyGrid("MaterialDetails_AO");
 			
 			temp = material->GetAOAsset();
 			if (UI::DrawAssetSelection("AO Texture", temp, s_AOHelpMsg))
@@ -185,7 +185,7 @@ namespace Eagle
 		// Emissive
 		{
 			UI::TextWithSeparator("Emissive");
-			UI::BeginPropertyGrid("MaterialDetails");
+			UI::BeginPropertyGrid("MaterialDetails_Emissive");
 			
 			temp = material->GetEmissiveAsset();
 			if (UI::DrawAssetSelection("Emissive Texture", temp))
@@ -210,14 +210,15 @@ namespace Eagle
 
 		// Disable if not translucent
 		{
+			UI::TextWithSeparator("Opacity");
+
 			const bool bTranslucent = blendMode == Material::BlendMode::Translucent;
 			if (!bTranslucent)
 				UI::PushItemDisabled();
 
 			// Opacity
 			{
-				UI::TextWithSeparator("Opacity");
-				UI::BeginPropertyGrid("MaterialDetails");
+				UI::BeginPropertyGrid("MaterialDetails_Opacity");
 				
 				temp = material->GetOpacityAsset();
 				if (UI::DrawAssetSelection("Opacity Texture", temp, s_OpacityHelpMsg))
@@ -246,14 +247,15 @@ namespace Eagle
 
 		// Disable if not masked
 		{
+			UI::TextWithSeparator("Opacity Mask");
+
 			const bool bMasked = blendMode == Material::BlendMode::Masked;
 			if (!bMasked)
 				UI::PushItemDisabled();
 
 			// Opacity Mask
 			{
-				UI::TextWithSeparator("Opacity Mask");
-				UI::BeginPropertyGrid("MaterialDetails");
+				UI::BeginPropertyGrid("MaterialDetails_Opacity Mask");
 
 				temp = material->GetOpacityMaskAsset();
 				if (UI::DrawAssetSelection("Opacity Mask Texture", temp, s_OpacityMaskHelpMsg))
@@ -280,6 +282,7 @@ namespace Eagle
 				UI::PopItemDisabled();
 		}
 
+		UI::TextWithSeparator("Other");
 		UI::BeginPropertyGrid("MaterialDetails");
 		glm::vec3 emissiveIntensity = material->GetEmissiveIntensity();
 		if (UI::PropertyColor("Emissive Intensity", emissiveIntensity, true, "HDR"))

@@ -5380,6 +5380,18 @@ namespace Eagle
 		*bHalfResolution = settings.bHalfResolution;
 	}
 
+	void Script::Eagle_Renderer_GetScreenSpaceReflectionsSettings(float* roughnessThreshold, uint32_t* samplesPerQuad, uint32_t* maxIters, bool* bEnabled)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& settings = sceneRenderer->GetOptions().ScreenSpaceReflections;
+
+		*roughnessThreshold = settings.RoughnessThreshold;
+		*samplesPerQuad = settings.SamplesPerQuad;
+		*maxIters = settings.MaxTraversalIterations;
+		*bEnabled = settings.bEnable;
+	}
+
 	void Script::Eagle_Renderer_SetShadowMapsSettings(uint32_t pointLightSize, uint32_t spotLightSize, MonoArray* dirLightSizes)
 	{
 		const auto& scene = Scene::GetCurrentScene();
@@ -5441,6 +5453,20 @@ namespace Eagle
 		settings.AutoExposure.AdaptationKey = adaptationKey;
 		settings.AutoExposure.bEnable = bEnabled;
 		settings.AutoExposure.bHalfResolution = bHalfResolution;
+
+		sceneRenderer->SetOptions(settings);
+	}
+
+	void Script::Eagle_Renderer_SetScreenSpaceReflectionsSettings(float roughnessThreshold, uint32_t samplesPerQuad, uint32_t maxIters, bool bEnabled)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+
+		auto settings = sceneRenderer->GetOptions();
+		settings.ScreenSpaceReflections.RoughnessThreshold = roughnessThreshold;
+		settings.ScreenSpaceReflections.SamplesPerQuad = samplesPerQuad;
+		settings.ScreenSpaceReflections.MaxTraversalIterations = maxIters;
+		settings.ScreenSpaceReflections.bEnable = bEnabled;
 
 		sceneRenderer->SetOptions(settings);
 	}

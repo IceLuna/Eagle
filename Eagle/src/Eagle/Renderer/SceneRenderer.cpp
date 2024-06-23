@@ -17,6 +17,7 @@
 #include "Tasks/VolumetricLightTask.h"
 #include "Tasks/DOFTask.h"
 #include "Tasks/MotionBlurTask.h"
+#include "Tasks/ScreenSpaceReflectionsTask.h"
 
 #include "Eagle/Debug/CPUTimings.h" 
 #include "Eagle/Debug/GPUTimings.h"
@@ -41,16 +42,18 @@ namespace Eagle
 	}
 
 	SceneRenderer::SceneRenderer(const glm::uvec2 size, const SceneRendererSettings& options)
-		: m_Size(size), m_Options(options), m_Options_RT(options)
+		: m_Size(size)
 	{
 		m_bIsGame = Application::Get().IsGame();
+		SetOptions(options);
+		m_Options_RT = m_Options;
 
 		ImageSpecifications finalColorSpecs;
 		finalColorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
 		finalColorSpecs.Layout = ImageLayoutType::RenderTarget;
 		finalColorSpecs.Size = { size.x, size.y, 1 };
 		finalColorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::Storage | ImageUsage::TransferSrc | ImageUsage::TransferDst;
-		m_FinalImage = Image::Create(finalColorSpecs, "Renderer_FinalImage");
+		m_FinalImage = Image::Create(finalColorSpecs, "Renderer_LDR");
 
 		ImageSpecifications colorSpecs;
 		colorSpecs.Format = ImageFormat::R11G11B10_Float;
@@ -58,7 +61,7 @@ namespace Eagle
 		colorSpecs.Size = { size.x, size.y, 1 };
 		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::Storage | ImageUsage::TransferSrc;
 		colorSpecs.MipsCount = UINT_MAX;
-		m_HDRRTImage = Image::Create(colorSpecs, "Renderer_HDR_RT");
+		m_HDRRTImage = Image::Create(colorSpecs, "Renderer_HDR");
 
 		m_GBuffer.Init({ m_Size, 1 });
 		m_GBuffer.InitOptional(m_Options.InternalState, glm::uvec3(m_Size, 1u));
@@ -89,11 +92,12 @@ namespace Eagle
 		InitOptionalTask<VolumetricLightTask>(m_VolumetricTask, options, options.VolumetricSettings.bEnable, *this, m_HDRRTImage);
 		InitOptionalTask<FogPassTask>(m_FogTask, options, options.FogSettings.bEnable, *this, m_HDRRTImage);
 		InitOptionalTask<MotionBlurTask>(m_MotionBlurTask, options, options.MotionBlur.bEnable, *this);
+		InitOptionalTask<ScreenSpaceReflectionsTask>(m_ScreenSpaceReflectionsTask, options, options.ScreenSpaceReflections.bEnable, *this);
 
 		InitWithOptions();
 	}
 
-	void SceneRenderer::Render(const Camera* camera, const glm::mat4& viewMat, glm::vec3 viewPosition)
+	void SceneRenderer::Render(const Camera* camera, const glm::mat4& viewMat, glm::vec3 viewPosition, glm::vec3 viewDirection)
 	{
 		EG_ASSERT(camera);
 
@@ -106,7 +110,7 @@ namespace Eagle
 			cameraCascadeFarPlanes[i] = camera->GetCascadeFarPlane(i);
 		}
 
-		RenderManager::Submit([renderer = shared_from_this(), viewMat, proj = camera->GetProjection(), viewPosition, bRenderGrid = m_bGridEnabled, options = m_Options,
+		RenderManager::Submit([renderer = shared_from_this(), viewMat, proj = camera->GetProjection(), viewPosition, viewDirection, bRenderGrid = m_bGridEnabled, options = m_Options,
 			cascadeProjections = std::move(cameraCascadeProjections), cascadeFarPlanes = std::move(cameraCascadeFarPlanes), shadowDistance = camera->GetShadowFarClip(),
 			cascadesSmoothTransitionAlpha = camera->GetCascadesSmoothTransitionAlpha(), zNear = camera->GetPerspectiveNearClip(), zFar = camera->GetPerspectiveFarClip()](Ref<CommandBuffer>& cmd) mutable
 		{
@@ -130,6 +134,7 @@ namespace Eagle
 			renderer->m_Projection = proj;
 			renderer->m_ViewProjection = renderer->m_Projection * renderer->m_View;
 			renderer->m_ViewPos = viewPosition;
+			renderer->m_ViewDir = viewDirection;
 			renderer->m_CameraCascadeProjections = std::move(cascadeProjections);
 			renderer->m_CameraCascadeFarPlanes = std::move(cascadeFarPlanes);
 			renderer->m_MaxShadowDistance = shadowDistance;
@@ -170,9 +175,17 @@ namespace Eagle
 			renderer->m_RenderBillboardsTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderUnlitTextTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderLinesTask->RecordCommandBuffer(cmd);
+
+			if (renderer->m_GBuffer.DepthHistory)
+				cmd->CopyImage(renderer->m_GBuffer.Depth, renderer->m_GBuffer.DepthHistory, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			if (renderer->m_GBuffer.NormalsHistory)
+				cmd->CopyImage(renderer->m_GBuffer.Geometry_Shading_Normals, renderer->m_GBuffer.NormalsHistory, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
 			
 			if (renderer->m_MotionBlurTask)
 				renderer->m_MotionBlurTask->RecordCommandBuffer(cmd);
+			
+			if (renderer->m_ScreenSpaceReflectionsTask)
+				renderer->m_ScreenSpaceReflectionsTask->RecordCommandBuffer(cmd);
 
 			renderer->m_TransparencyTask->RecordCommandBuffer(cmd);
 			renderer->m_DOFTask->RecordCommandBuffer(cmd);
@@ -259,8 +272,10 @@ namespace Eagle
 		m_Options = options;
 		
 		const bool bTAAEnabled = m_Options.AA == AAMethod::TAA;
-		m_Options.InternalState.bMotionBuffer = (m_Options.AO == AmbientOcclusion::GTAO) || bTAAEnabled || m_Options.MotionBlur.bEnable;
+		m_Options.InternalState.bMotionBuffer = (m_Options.AO == AmbientOcclusion::GTAO) || bTAAEnabled || m_Options.MotionBlur.bEnable || m_Options.ScreenSpaceReflections.bEnable;
 		m_Options.InternalState.bJitter = bTAAEnabled;
+		m_Options.InternalState.bDepthHistory = m_Options.ScreenSpaceReflections.bEnable;
+		m_Options.InternalState.bNormalHistory = m_Options.ScreenSpaceReflections.bEnable;
 	}
 
 	void SceneRenderer::SetViewportSize(const glm::uvec2 size)
@@ -316,6 +331,9 @@ namespace Eagle
 		if (m_MotionBlurTask)
 			m_MotionBlurTask->OnResize(m_Size);
 
+		if (m_ScreenSpaceReflectionsTask)
+			m_ScreenSpaceReflectionsTask->OnResize(m_Size);
+
 		RenderManager::SetImmediateDeletionMode(false);
 		RenderManager::ReleasePendingResources();
 		StagingManager::ReleaseBuffers();
@@ -365,6 +383,7 @@ namespace Eagle
 		InitOptionalTask<VolumetricLightTask>(m_VolumetricTask, options, options.VolumetricSettings.bEnable, *this, m_HDRRTImage);
 		InitOptionalTask<FogPassTask>(m_FogTask, options, options.FogSettings.bEnable, *this, m_HDRRTImage);
 		InitOptionalTask<MotionBlurTask>(m_MotionBlurTask, options, options.MotionBlur.bEnable, *this);
+		InitOptionalTask<ScreenSpaceReflectionsTask>(m_ScreenSpaceReflectionsTask, options, options.ScreenSpaceReflections.bEnable, *this);
 	}
 
 	void GBuffer::Init(const glm::uvec3& size)
@@ -373,10 +392,7 @@ namespace Eagle
 		depthSpecs.Format = Application::Get().GetRenderContext()->GetDepthFormat();
 		depthSpecs.Layout = ImageLayoutType::DepthStencilWrite;
 		depthSpecs.Size = size;
-		depthSpecs.Usage = ImageUsage::DepthStencilAttachment | ImageUsage::Sampled;
-		if (!Application::Get().IsGame())
-			depthSpecs.Usage |= ImageUsage::TransferSrc; // Required for mouse dropping. TODO: Test if affects perf
-		
+		depthSpecs.Usage = ImageUsage::DepthStencilAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc;
 		Depth = Image::Create(depthSpecs, "GBuffer_Depth");
 
 		ImageSpecifications colorSpecs;
@@ -390,7 +406,7 @@ namespace Eagle
 		normalSpecs.Format = ImageFormat::R16G16B16A16_Float;
 		normalSpecs.Layout = ImageLayoutType::RenderTarget;
 		normalSpecs.Size = size;
-		normalSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+		normalSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc;
 		Geometry_Shading_Normals = Image::Create(normalSpecs, "GBuffer_Geometry_Shading_Normals");
 
 		ImageSpecifications emissiveSpecs;
@@ -438,6 +454,69 @@ namespace Eagle
 		else
 		{
 			Motion.reset();
+		}
+
+		if (optional.bDepthHistory)
+		{
+			if (!DepthHistory)
+			{
+				ImageSpecifications specs;
+				specs.Format = Depth->GetFormat();
+				specs.Size = size;
+				specs.Usage = Depth->GetUsage() | ImageUsage::TransferDst;
+				DepthHistory = Image::Create(specs, "GBuffer_DepthHistory");
+			}
+		}
+		else
+		{
+			DepthHistory.reset();
+		}
+
+		if (optional.bNormalHistory)
+		{
+			if (!NormalsHistory)
+			{
+				ImageSpecifications specs;
+				specs.Format = Geometry_Shading_Normals->GetFormat();
+				specs.Size = size;
+				specs.Usage = Geometry_Shading_Normals->GetUsage() | ImageUsage::TransferDst;
+				NormalsHistory = Image::Create(specs, "GBuffer_NormalsHistory");
+			}
+		}
+		else
+		{
+			NormalsHistory.reset();
+		}
+	}
+	
+	void GBuffer::Resize(const glm::uvec3& size)
+	{
+		AlbedoRoughness->Resize(size);
+		MaterialData->Resize(size);
+		Geometry_Shading_Normals->Resize(size);
+		Emissive->Resize(size);
+		ObjectID->Resize(size);
+		ObjectIDCopy->Resize(size);
+		Depth->Resize(size);
+		if (Motion)
+			Motion->Resize(size);
+		
+		const bool bNeedClear = DepthHistory || NormalsHistory;
+		if (DepthHistory)
+			DepthHistory->Resize(size);
+		if (NormalsHistory)
+			NormalsHistory->Resize(size);
+
+		if (bNeedClear)
+		{
+			RenderManager::Submit([depth = DepthHistory, normals = NormalsHistory](const Ref<CommandBuffer>& cmd) mutable
+			{
+				constexpr glm::vec4 clearColor = glm::vec4(0.f);
+				if (depth)
+					cmd->ClearDepthStencilImage(depth, 0.f, 0, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+				if (normals)
+					cmd->ClearColorImage(normals, clearColor, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			});
 		}
 	}
 }

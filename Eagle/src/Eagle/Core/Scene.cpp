@@ -979,7 +979,8 @@ namespace Eagle
 
 		const glm::mat4& viewMatrix = bIsPlaying ? m_RuntimeCamera->GetViewMatrix() : m_EditorCamera.GetViewMatrix();
 		const glm::vec3& viewPos = bIsPlaying ? m_RuntimeCamera->GetWorldTransform().Location : m_EditorCamera.GetLocation();
-		m_SceneRenderer->Render(camera, viewMatrix, viewPos);
+		const glm::vec3& viewDir = bIsPlaying ? m_RuntimeCamera->GetForwardVector() : m_EditorCamera.GetForwardVector();
+		m_SceneRenderer->Render(camera, viewMatrix, viewPos, viewDir);
 
 		m_DirtyTransformStaticMeshes.clear();
 		m_DirtyTransformSkeletalMeshes.clear();

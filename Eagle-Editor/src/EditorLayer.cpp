@@ -227,7 +227,6 @@ namespace Eagle
 		ReloadScriptsIfNecessary();
 		HandleResize();
 		m_CurrentScene->OnUpdate(ts, !m_ViewportHidden && bShouldRenderBasedOnFocus);
-		HandleEntitySelection();
 	}
 
 	void EditorLayer::OnEvent(Eagle::Event& e)
@@ -257,6 +256,7 @@ namespace Eagle
 
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<KeyPressedEvent>(EG_BIND_FN(EditorLayer::OnKeyPressed));
+		dispatcher.Dispatch<MouseButtonPressedEvent>(EG_BIND_FN(EditorLayer::HandleEntitySelection));
 	}
 
 	void EditorLayer::OnImGuiRender()
@@ -436,10 +436,10 @@ namespace Eagle
 		}
 	}
 
-	void EditorLayer::HandleEntitySelection()
+	bool EditorLayer::HandleEntitySelection(MouseButtonPressedEvent& e)
 	{
-		if (m_EditorState == EditorState::Play)
-			return;
+		if (m_EditorState == EditorState::Play || e.GetMouseCode() != Mouse::ButtonLeft)
+			return false;
 
 		//Entity Selection
 		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
@@ -461,8 +461,10 @@ namespace Eagle
 				memcpy(&data, ((uint32_t*)mapped) + mouse.x, sizeof(int));
 				image->Unmap();
 				m_SceneHierarchyPanel.SetEntitySelected(data);
+				return true;
 			}
 		}
+		return false;
 	}
 
 	void EditorLayer::HandleEntityDragDrop()
@@ -510,6 +512,7 @@ namespace Eagle
 		const auto& editorCamera = m_EditorScene->GetEditorCamera();
 		glm::vec3 worldPos = Math::WorldPosFromDepth(glm::inverse(editorCamera.GetViewProjection()), uv, depth);
 		
+		// TODO: Check if depth is reversed
 		if (depth == 1.f)
 		{
 			const auto& cameraPos = editorCamera.GetLocation();
@@ -1316,6 +1319,33 @@ namespace Eagle
 						bSettingsChanged = true;
 					}
 				}
+
+				UI::EndPropertyGrid();
+				ImGui::TreePop();
+			}
+		}
+
+		// Screen Space Reflections settings
+		{
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx("Screen-space Reflections", treeFlags);
+			ImGui::PopStyleVar();
+			if (treeOpened)
+			{
+				UI::BeginPropertyGrid("Screen-space Reflections Settings");
+
+				auto& settings = options.ScreenSpaceReflections;
+
+				bSettingsChanged |= UI::Property("Enable", settings.bEnable);
+				bSettingsChanged |= UI::PropertySlider("Roughness Threshold", settings.RoughnessThreshold, 0.f, 1.f);
+				if (UI::PropertySlider("Samples Per Quad", settings.SamplesPerQuad, 1, 4, "1, 2, or 4"))
+				{
+					if (settings.SamplesPerQuad == 3)
+						settings.SamplesPerQuad = 4;
+					bSettingsChanged = true;
+				}
+				bSettingsChanged |= UI::PropertyDrag("Max Traversal Iterations", settings.MaxTraversalIterations, 1, 1, 512);
 
 				UI::EndPropertyGrid();
 				ImGui::TreePop();

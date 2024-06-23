@@ -85,6 +85,9 @@ namespace Eagle
 		static const glm::vec2 GetHalton(uint32_t index);
 		static const glm::vec2 GetHalton() { return GetHalton(GetFrameNumber_RT() % s_JitterSize); }
 
+		static const Ref<Texture2D>& GetBlueNoise();
+		static float GetBlueNoisePhase();
+
 		static GPUTimingsContainer GetTimings();
 #ifdef EG_GPU_TIMINGS
 		static void RegisterGPUTiming(Ref<RHIGPUTiming>& timing, std::string_view name);
@@ -95,8 +98,11 @@ namespace Eagle
 		template<typename FuncT>
 		static void Submit(FuncT&& func)
 		{
-			// Shouldn't call Submit from inside the render thread
-			EG_ASSERT(std::this_thread::get_id() != GetThreadPool()->get_threads()[0].get_id());
+			if (std::this_thread::get_id() == GetThreadPool()->get_threads()[0].get_id())
+			{
+				func(GetCurrentFrameCommandBuffer());
+				return;
+			}
 
 			auto renderCmd = [](void* ptr)
 			{

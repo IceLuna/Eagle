@@ -115,7 +115,7 @@ namespace Eagle
 			pushData.ViewRow1 = view[0];
 			pushData.ViewRow2 = view[1];
 			pushData.ViewRow3 = view[2];
-			pushData.Size = m_ResultImage->GetSize();
+			pushData.Size = viewportSize;
 
 			// Tile noise texture over screen, based on screen dimensions divided by noise size
 			pushData.NoiseScale = viewportSize / float(s_NoiseTextureSize);

@@ -540,7 +540,7 @@ namespace Eagle
 			1, &barrier);
 	}
 
-	void VulkanCommandBuffer::ClearColorImage(Ref<Image>& image, const glm::vec4& color)
+	void VulkanCommandBuffer::ClearColorImage(Ref<Image>& image, const glm::vec4& color, ImageLayout layout, ImageLayout newLayout)
 	{
 		Ref<VulkanImage> vulkanImage = Cast<VulkanImage>(image);
 		EG_CORE_ASSERT(vulkanImage->GetDefaultAspectMask() == VK_IMAGE_ASPECT_COLOR_BIT);
@@ -555,10 +555,12 @@ namespace Eagle
 		range.levelCount = vulkanImage->GetMipsCount();
 		range.layerCount = vulkanImage->GetLayersCount();
 
+		TransitionLayout(image, layout, ImageLayoutType::CopyDest);
 		vkCmdClearColorImage(m_CommandBuffer, (VkImage)vulkanImage->GetHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &range);
+		TransitionLayout(image, ImageLayoutType::CopyDest, newLayout);
 	}
 
-	void VulkanCommandBuffer::ClearDepthStencilImage(Ref<Image>& image, float depthValue, uint32_t stencilValue)
+	void VulkanCommandBuffer::ClearDepthStencilImage(Ref<Image>& image, float depthValue, uint32_t stencilValue, ImageLayout layout, ImageLayout newLayout)
 	{
 		Ref<VulkanImage> vulkanImage = Cast<VulkanImage>(image);
 		VkImageAspectFlags aspectMask = vulkanImage->GetDefaultAspectMask();
@@ -574,7 +576,9 @@ namespace Eagle
 		range.levelCount = vulkanImage->GetMipsCount();
 		range.layerCount = vulkanImage->GetLayersCount();
 
+		TransitionLayout(image, layout, ImageLayoutType::CopyDest);
 		vkCmdClearDepthStencilImage(m_CommandBuffer, (VkImage)vulkanImage->GetHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearValue, 1, &range);
+		TransitionLayout(image, ImageLayoutType::CopyDest, newLayout);
 	}
 
 	void VulkanCommandBuffer::CopyImage(const Ref<Image>& src, const ImageView& srcView,
@@ -704,7 +708,7 @@ namespace Eagle
 
 		for (auto& region : regions)
 		{
-			VkBufferImageCopy copyRegion = imageCopyRegions.emplace_back();
+			VkBufferImageCopy& copyRegion = imageCopyRegions.emplace_back();
 			copyRegion = {};
 
 			copyRegion.bufferOffset = region.BufferOffset;
@@ -739,7 +743,7 @@ namespace Eagle
 
 		for (auto& region : regions)
 		{
-			VkBufferImageCopy copyRegion = imageCopyRegions.emplace_back();
+			VkBufferImageCopy& copyRegion = imageCopyRegions.emplace_back();
 			copyRegion = {};
 
 			copyRegion.bufferOffset = region.BufferOffset;
@@ -835,6 +839,10 @@ namespace Eagle
 		VkImage vkImage = (VkImage)image->GetHandle();
 		const uint32_t mipCount = image->GetMipsCount();
 		const uint32_t layersCount = image->GetLayersCount();
+		const VkImageAspectFlags aspectMask = Cast<VulkanImage>(image)->GetDefaultAspectMask();
+		VkFilter filter = VK_FILTER_LINEAR;
+		if (aspectMask == VK_IMAGE_ASPECT_DEPTH_BIT)
+			filter = VK_FILTER_NEAREST;
 
 		TransitionLayout(image, initialLayout, ImageLayoutType::CopyDest);
 		for (uint32_t i = 1; i < mipCount; ++i)
@@ -855,12 +863,12 @@ namespace Eagle
 			imageBlit.dstOffsets[0] = { 0, 0, 0 };
 			imageBlit.dstOffsets[1] = { nextMipSize.x, nextMipSize.y, nextMipSize.z };
 
-			imageBlit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			imageBlit.srcSubresource.aspectMask = aspectMask;
 			imageBlit.srcSubresource.mipLevel = i - 1;
 			imageBlit.srcSubresource.baseArrayLayer = 0;
 			imageBlit.srcSubresource.layerCount = layersCount;
 
-			imageBlit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			imageBlit.dstSubresource.aspectMask = aspectMask;
 			imageBlit.dstSubresource.mipLevel = i;
 			imageBlit.dstSubresource.baseArrayLayer = 0;
 			imageBlit.dstSubresource.layerCount = layersCount;
@@ -871,7 +879,7 @@ namespace Eagle
 				vkImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 				vkImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				1, &imageBlit,
-				VK_FILTER_LINEAR);
+				filter);
 
 			// Transition all layers of previous mip to final layout
 			for (uint32_t layer = 0; layer < layersCount; ++layer)

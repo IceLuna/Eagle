@@ -73,8 +73,8 @@ namespace Eagle
 
 		void TransitionLayout(const Ref<Image>& image, ImageLayout oldLayout, ImageLayout newLayout) override;
 		void TransitionLayout(const Ref<Image>& image, const ImageView& imageView, ImageLayout oldLayout, ImageLayout newLayout) override;
-		void ClearColorImage(Ref<Image>& image, const glm::vec4& color) override;
-		void ClearDepthStencilImage(Ref<Image>& image, float depthValue, uint32_t stencilValue) override;
+		void ClearColorImage(Ref<Image>& image, const glm::vec4& color, ImageLayout layout, ImageLayout newLayout) override;
+		void ClearDepthStencilImage(Ref<Image>& image, float depthValue, uint32_t stencilValue, ImageLayout layout, ImageLayout newLayout) override;
 		void CopyImage(const Ref<Image>& src, const ImageView& srcView,
 			Ref<Image>& dst, const ImageView& dstView, ImageLayout dstOldLayout, ImageLayout dstNewLayout,
 			const glm::ivec3& srcOffset, const glm::ivec3& dstOffset,

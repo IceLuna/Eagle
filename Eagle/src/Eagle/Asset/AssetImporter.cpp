@@ -388,6 +388,7 @@ namespace Eagle
 			{ ".hdr",   AssetType::TextureCube },
 			{ ".eagle", AssetType::Scene },
 			{ ".fbx",   AssetType::StaticMesh },
+			{ ".gltf",  AssetType::StaticMesh },
 			{ ".blend", AssetType::StaticMesh },
 			{ ".3ds",   AssetType::StaticMesh },
 			{ ".obj",   AssetType::StaticMesh },
@@ -541,7 +542,7 @@ namespace Eagle
 				if (materialIndex >= importedMaterials.size())
 					continue;
 
-				importedMeshData.Mesh->SetMaterialAsset(uint32_t(i), importedMaterials[materialIndex]);
+				importedMeshData.Mesh->SetMaterialAsset(materialIndex, importedMaterials[materialIndex]);
 			}
 		}
 

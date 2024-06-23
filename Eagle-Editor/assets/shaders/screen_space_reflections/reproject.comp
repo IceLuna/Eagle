@@ -1,0 +1,155 @@
+#include "defines.h"
+#include "utils.h"
+#include "screen_space_reflections/common.h"
+
+layout(binding = 1) uniform sampler2D g_Depth;
+layout(binding = 2) uniform sampler2D g_DepthHistory;
+layout(binding = 3) uniform sampler2D g_Radiance;
+layout(binding = 4) uniform sampler2D g_RadianceHistory;
+layout(binding = 5) uniform sampler2D g_SampleCountHistory;
+layout(binding = 6) uniform sampler2D g_Normal;
+layout(binding = 7) uniform sampler2D g_NormalHistory;
+layout(binding = 8) uniform sampler2D g_Roughness;
+layout(binding = 9) uniform sampler2D g_RoughnessHistory;
+layout(binding = 10) uniform sampler2D g_AverageRadianceHistory;
+layout(binding = 11) uniform sampler2D g_VarianceHistory;
+layout(binding = 12) uniform sampler2D g_Motion;
+
+layout(binding = 13, rgba16f) uniform writeonly image2D g_OutReprojectedRadiance;
+layout(binding = 14, r11f_g11f_b10f) uniform writeonly image2D g_OutAverageRadiance;
+layout(binding = 15, r16f) uniform writeonly image2D g_OutVariance;
+layout(binding = 16, r16f) uniform writeonly image2D g_OutSampleCount;
+
+layout(binding = 17, r32ui) uniform uimageBuffer g_DenoiserTileList;
+
+layout(push_constant) uniform PushConstants
+{
+    uvec2 g_Size;
+};
+
+const float g_TemporalStabilityFactor = 0.7;
+
+float FFX_DNSR_Reflections_LoadDepth(ivec2 pixelCoordinate)
+{
+    return texelFetch(g_Depth, pixelCoordinate, 0).x;
+}
+
+float FFX_DNSR_Reflections_LoadDepthHistory(ivec2 pixelCoordinate)
+{
+    return texelFetch(g_DepthHistory, pixelCoordinate, 0).x;
+}
+
+float FFX_DNSR_Reflections_SampleDepthHistory(vec2 uv)
+{
+    return texture(g_DepthHistory, uv).x;
+}
+
+f16vec3 FFX_DNSR_Reflections_LoadRadiance(ivec2 pixelCoordinate)
+{
+    return f16vec3(texelFetch(g_Radiance, pixelCoordinate, 0).xyz);
+}
+
+f16vec3 FFX_DNSR_Reflections_LoadRadianceHistory(ivec2 pixelCoordinate)
+{
+    return f16vec3(texelFetch(g_RadianceHistory, pixelCoordinate, 0).xyz);
+}
+
+f16vec3 FFX_DNSR_Reflections_SampleRadianceHistory(vec2 uv)
+{
+    return f16vec3(texture(g_RadianceHistory, uv).xyz);
+}
+
+float16_t FFX_DNSR_Reflections_SampleNumSamplesHistory(vec2 uv)
+{
+    return float16_t(texture(g_SampleCountHistory, uv).x);
+}
+
+f16vec3 FFX_DNSR_Reflections_LoadWorldSpaceNormal(ivec2 pixelCoordinate)
+{
+    return normalize(f16vec3(DecodeNormal(texelFetch(g_Normal, pixelCoordinate, 0).zw)));
+}
+
+f16vec3 FFX_DNSR_Reflections_LoadWorldSpaceNormalHistory(ivec2 pixelCoordinate)
+{
+    return normalize(f16vec3(DecodeNormal(texelFetch(g_NormalHistory, pixelCoordinate, 0).zw)));
+}
+
+f16vec3 FFX_DNSR_Reflections_SampleWorldSpaceNormalHistory(vec2 uv)
+{
+    return normalize(f16vec3(DecodeNormal(texture(g_NormalHistory, uv).zw)));
+}
+
+float16_t FFX_DNSR_Reflections_LoadRoughness(ivec2 pixelCoordinate)
+{
+    return float16_t(texelFetch(g_Roughness, pixelCoordinate, 0).x);
+}
+
+float16_t FFX_DNSR_Reflections_SampleRoughnessHistory(vec2 uv)
+{
+    return float16_t(texture(g_RoughnessHistory, uv).x);
+}
+
+float16_t FFX_DNSR_Reflections_LoadRoughnessHistory(ivec2 pixelCoordinate)
+{
+    return float16_t(texelFetch(g_RoughnessHistory, pixelCoordinate, 0).x);
+}
+
+vec2 FFX_DNSR_Reflections_LoadMotionVector(ivec2 pixelCoordinate)
+{
+    return texelFetch(g_Motion, pixelCoordinate, 0).xy;
+}
+
+f16vec3 FFX_DNSR_Reflections_SamplePreviousAverageRadiance(vec2 uv)
+{
+    return f16vec3(texture(g_AverageRadianceHistory, uv).xyz);
+}
+
+float16_t FFX_DNSR_Reflections_SampleVarianceHistory(vec2 uv)
+{
+    return float16_t(texture(g_VarianceHistory, uv).x);
+}
+
+float16_t FFX_DNSR_Reflections_LoadRayLength(ivec2 pixelCoordinate)
+{
+    return float16_t(texelFetch(g_Radiance, pixelCoordinate, 0).w);
+}
+
+void FFX_DNSR_Reflections_StoreRadianceReprojected(ivec2 pixelCoordinate, f16vec3 value)
+{
+    imageStore(g_OutReprojectedRadiance, pixelCoordinate, f16vec4(value, float16_t(0.f)));
+}
+
+void FFX_DNSR_Reflections_StoreAverageRadiance(ivec2 pixelCoordinate, f16vec3 value)
+{
+    imageStore(g_OutAverageRadiance, pixelCoordinate, f16vec4(value, float16_t(0.f)));
+}
+
+void FFX_DNSR_Reflections_StoreVariance(ivec2 pixelCoordinate, float16_t value)
+{
+    imageStore(g_OutVariance, pixelCoordinate, f16vec4(value));
+}
+
+void FFX_DNSR_Reflections_StoreNumSamples(ivec2 pixelCoordinate, float16_t value)
+{
+    imageStore(g_OutSampleCount, pixelCoordinate, f16vec4(value));
+}
+
+#include "screen_space_reflections/ffx_denoiser_reflections_reproject.h"
+
+#define GROUP_SIZE 8
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+void main()
+{
+    ivec2 groupThreadId = ivec2(gl_LocalInvocationID);
+    uint groupIndex     = gl_LocalInvocationIndex;
+    uint groupId        = uint(gl_WorkGroupID);
+
+    uint packedCoords              = imageLoad(g_DenoiserTileList, int(groupId)).x;
+    ivec2 dispatchThreadId         = ivec2(packedCoords & 0xFFFFu, (packedCoords >> 16) & 0xFFFFu) + groupThreadId;
+    ivec2 dispatchGroupId          = dispatchThreadId / 8;
+    uvec2 remappedGroupThreadId    = FFX_DNSR_Reflections_RemapLane8x8(groupIndex);
+    uvec2 remappedDispatchThreadId = dispatchGroupId * 8 + remappedGroupThreadId;
+
+    FFX_DNSR_Reflections_Reproject(ivec2(remappedDispatchThreadId), ivec2(remappedGroupThreadId), g_Size, g_TemporalStabilityFactor, 32);
+}

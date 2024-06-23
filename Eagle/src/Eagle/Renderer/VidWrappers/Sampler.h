@@ -35,6 +35,7 @@ namespace Eagle
 		static Ref<Sampler> BilinearSampler;
 		static Ref<Sampler> BilinearSamplerClamp;
 		static Ref<Sampler> TrilinearSampler;
+		static Ref<Sampler> TrilinearSamplerClamp;
 
 	protected:
 		FilterMode m_FilterMode = FilterMode::Point;

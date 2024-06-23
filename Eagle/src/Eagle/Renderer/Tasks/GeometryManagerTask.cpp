@@ -195,8 +195,6 @@ namespace Eagle
 	GeometryManagerTask::GeometryManagerTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
-		bMotionRequired = m_Renderer.GetOptions_RT().InternalState.bMotionBuffer;
-
 		// Create Mesh buffers
 		{
 			BufferSpecifications vertexSpecs;
@@ -338,6 +336,8 @@ namespace Eagle
 
 			m_TextTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Text_TransformsBuffer");
 		}
+	
+		InitWithOptions(m_Renderer.GetOptions());
 	}
 
 	void GeometryManagerTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)

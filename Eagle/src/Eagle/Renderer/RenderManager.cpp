@@ -13,6 +13,8 @@
 #include "VidWrappers/Semaphore.h"
 #include "VidWrappers/Texture.h"
 
+#include "Eagle/Utils/BlueNoise.h"
+
 #include "Platform/Vulkan/VulkanSwapchain.h"
 
 #include "Eagle/Asset/AssetManager.h"
@@ -68,6 +70,7 @@ namespace Eagle
 		std::unordered_map<std::string_view, Weak<RHIGPUTiming>> RHIGPUTimingsParentless; // Timings that do not have parents
 #endif
 
+		Ref<Texture2D> BlueNoise;
 		glm::vec2 HaltonSequence[s_JitterSize];
 
 		uint32_t SwapchainImageIndex = 0;
@@ -242,6 +245,31 @@ namespace Eagle
 		s_RendererData->BRDFLUTPipeline = PipelineGraphics::Create(brdfLutState);
 	}
 
+	static void InitBlueNoise()
+	{
+		uint32_t bluenoise[128 * 128]; // rgba8
+
+		for (int y = 0; y < 128; ++y)
+		{
+			for (int x = 0; x < 128; ++x)
+			{
+				glm::vec4 noise;
+				noise[0] = Utils::BlueNoise(x, y, 0, 0);
+				noise[1] = Utils::BlueNoise(x, y, 0, 1);
+				noise[2] = Utils::BlueNoise(x, y, 0, 2);
+				noise[3] = Utils::BlueNoise(x, y, 0, 3);
+				
+				glm::uvec4 uNoise = glm::uvec4(noise * 255.f);
+				uint32_t packed = uint32_t(uNoise.x) | (uint32_t(uNoise.y) << 8) | (uint32_t(uNoise.z) << 16) | (uint32_t(uNoise.w) << 24);
+				bluenoise[x + y * 128] = packed;
+			}
+		}
+
+		Texture2DSpecifications specs{};
+		specs.FilterMode = FilterMode::Point;
+		s_RendererData->BlueNoise = Texture2D::Create("Blue Noise", ImageFormat::R8G8B8A8_UNorm, glm::uvec2(128u), bluenoise, specs);
+	}
+
 	void RenderManager::Init()
 	{
 		Application& app = Application::Get();
@@ -306,7 +334,8 @@ namespace Eagle
 		Sampler::PointSamplerClamp = Sampler::Create(FilterMode::Point, AddressMode::Clamp, CompareOperation::Never, 0.f, 0.f, 1.f);
 		Sampler::BilinearSampler = Sampler::Create(FilterMode::Bilinear, AddressMode::Wrap, CompareOperation::Never, 0.f, 0.f, 1.f);
 		Sampler::BilinearSamplerClamp = Sampler::Create(FilterMode::Bilinear, AddressMode::Clamp, CompareOperation::Never, 0.f, 0.f, 1.f);
-		Sampler::TrilinearSampler = Sampler::Create(FilterMode::Trilinear, AddressMode::Wrap, CompareOperation::Never, 0.f, 0.f, 1.f);
+		Sampler::TrilinearSampler = Sampler::Create(FilterMode::Trilinear, AddressMode::Wrap, CompareOperation::Never, 0.f, 16.f, 1.f);
+		Sampler::TrilinearSamplerClamp = Sampler::Create(FilterMode::Trilinear, AddressMode::Clamp, CompareOperation::Never, 0.f, 16.f, 1.f);
 
 		ImageSpecifications colorSpecs;
 		colorSpecs.Layout = ImageLayoutType::Unknown;
@@ -356,6 +385,7 @@ namespace Eagle
 		// Init renderer pipelines
 		SetupPresentPipeline();
 		SetupBRDFLUTPipeline();
+		InitBlueNoise();
 
 		s_RendererData->DummyIBL = TextureCube::Create(Texture2D::BlackTexture, 1, 1);
 
@@ -462,6 +492,16 @@ namespace Eagle
 		return s_RendererData->HaltonSequence[index];
 	}
 
+	const Ref<Texture2D>& RenderManager::GetBlueNoise()
+	{
+		return s_RendererData->BlueNoise;
+	}
+
+	float RenderManager::GetBlueNoisePhase()
+	{
+		return (s_RendererData->FrameNumber & 0xFF) * 1.6180339887f;
+	}
+
 	void RenderManager::Shutdown()
 	{
 #ifdef EG_GPU_TIMINGS
@@ -493,6 +533,7 @@ namespace Eagle
 		Sampler::BilinearSampler.reset();
 		Sampler::BilinearSamplerClamp.reset();
 		Sampler::TrilinearSampler.reset();
+		Sampler::TrilinearSamplerClamp.reset();
 		TextureSystem::Reset();
 		MaterialSystem::Shutdown();
 

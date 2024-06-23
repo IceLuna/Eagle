@@ -12,8 +12,6 @@ Eagle-Editor/fmodL.dll
 Eagle-Editor/mono-2.0-sgen.dll
 Eagle-Editor/shaderc_sharedd.dll
 Eagle-Editor/shaderc_shared.dll
-Eagle-Editor/zlib.dll
-Sandbox/Cache/*
 
 # Files
 *.sln

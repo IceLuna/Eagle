@@ -89,8 +89,8 @@ namespace Eagle
 		void StorageImageBarrier(Ref<Image>& image) { TransitionLayout(image, ImageLayoutType::StorageImage, ImageLayoutType::StorageImage); }
 		virtual void TransitionLayout(const Ref<Image>& image, ImageLayout oldLayout, ImageLayout newLayout) = 0;
 		virtual void TransitionLayout(const Ref<Image>& image, const ImageView& imageView, ImageLayout oldLayout, ImageLayout newLayout) = 0;
-		virtual void ClearColorImage(Ref<Image>& image, const glm::vec4& color) = 0;
-		virtual void ClearDepthStencilImage(Ref<Image>& image, float depthValue, uint32_t stencilValue) = 0;
+		virtual void ClearColorImage(Ref<Image>& image, const glm::vec4& color, ImageLayout layout, ImageLayout newLayout) = 0;
+		virtual void ClearDepthStencilImage(Ref<Image>& image, float depthValue, uint32_t stencilValue, ImageLayout layout, ImageLayout newLayout) = 0;
 
 		void CopyImage(const Ref<Image>& src, const ImageView& srcView,
 			Ref<Image>& dst, const ImageView& dstView,

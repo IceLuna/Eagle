@@ -617,7 +617,7 @@ namespace Eagle
 		if (!hasTexture)
 			return {};
 
-		const Path texturePath = (aiTexturePath.C_Str());
+		const Path texturePath = path.parent_path() / (aiTexturePath.C_Str());
 
 		Ref<AssetTexture2D> assetTexture;
 		if (hasTexture)
@@ -634,11 +634,9 @@ namespace Eagle
 			}
 			else
 			{
-				auto path = texturePath.parent_path();
-				path /= texturePath;
-				if (AssetImporter::Import(path, saveTo, AssetType::Texture2D, {}))
+				if (AssetImporter::Import(texturePath, saveTo, AssetType::Texture2D, {}))
 				{
-					Path outputFilename = saveTo / (path.stem().u8string() + Asset::GetExtension());
+					Path outputFilename = saveTo / (texturePath.stem().u8string() + Asset::GetExtension());
 					assetTexture = Cast<AssetTexture2D>(Asset::Create(outputFilename));
 					AssetManager::Register(assetTexture);
 				}
@@ -680,29 +678,47 @@ namespace Eagle
 			Ref<AssetTexture2D> ao = ProcessTextureInMaterial(path, scene, aiMaterial, saveTo, aiTextureType_AMBIENT_OCCLUSION, aiTextureType_AMBIENT);
 			Ref<AssetTexture2D> emissive = ProcessTextureInMaterial(path, scene, aiMaterial, saveTo, aiTextureType_EMISSION_COLOR, aiTextureType_EMISSIVE);
 			Ref<AssetTexture2D> opacity = ProcessTextureInMaterial(path, scene, aiMaterial, saveTo, aiTextureType_OPACITY);
-			material->SetAlbedoAsset(albedo);
 			material->SetNormalAsset(normal);
-			material->SetRoughnessAsset(roughness);
-			material->SetMetalnessAsset(metalness);
-			material->SetAOAsset(ao);
-			material->SetEmissiveAsset(emissive);
-			material->SetOpacityAsset(opacity);
+			if (ao)
+			{
+				material->SetAOAsset(ao);
+				material->SetRawAOUsed(false);
+			}
 			if (opacity)
+			{
+				material->SetRawOpacityUsed(false);
 				material->SetBlendMode(Material::BlendMode::Translucent);
+			}
 
-			// Raw values
 			{
 				aiColor3D aiValue;
-				if (aiMaterial->Get(AI_MATKEY_BASE_COLOR, aiValue) == AI_SUCCESS || aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiValue) == AI_SUCCESS)
+
+				if (albedo)
 				{
-					material->SetAlbedo(ToGLM(aiValue));
-					material->SetRawAlbedoUsed(true);
+					material->SetAlbedoAsset(albedo);
+					material->SetRawAlbedoUsed(false);
+				}
+				else
+				{
+					if (aiMaterial->Get(AI_MATKEY_BASE_COLOR, aiValue) == AI_SUCCESS || aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiValue) == AI_SUCCESS)
+					{
+						material->SetAlbedo(ToGLM(aiValue));
+						material->SetRawAlbedoUsed(true);
+					}
 				}
 
-				if (aiMaterial->Get(AI_MATKEY_COLOR_EMISSIVE, aiValue) == AI_SUCCESS)
+				if (emissive)
 				{
-					material->SetEmissive(ToGLM(aiValue));
-					material->SetRawEmissiveUsed(true);
+					material->SetEmissiveAsset(emissive);
+					material->SetRawEmissiveUsed(false);
+				}
+				else
+				{
+					if (aiMaterial->Get(AI_MATKEY_COLOR_EMISSIVE, aiValue) == AI_SUCCESS)
+					{
+						material->SetEmissive(ToGLM(aiValue));
+						material->SetRawEmissiveUsed(true);
+					}
 				}
 
 				if (aiMaterial->Get(AI_MATKEY_EMISSIVE_INTENSITY, aiValue) == AI_SUCCESS)
@@ -710,16 +726,32 @@ namespace Eagle
 					material->SetEmissiveIntensity(ToGLM(aiValue));
 				}
 
-				if (aiMaterial->Get(AI_MATKEY_ROUGHNESS_FACTOR, aiValue) == AI_SUCCESS)
+				if (roughness)
 				{
-					material->SetRoughness(aiValue.r);
-					material->SetRawRoughnessUsed(true);
+					material->SetRoughnessAsset(roughness);
+					material->SetRawRoughnessUsed(false);
+				}
+				else
+				{
+					if (aiMaterial->Get(AI_MATKEY_ROUGHNESS_FACTOR, aiValue) == AI_SUCCESS)
+					{
+						material->SetRoughness(aiValue.r);
+						material->SetRawRoughnessUsed(true);
+					}
 				}
 
-				if (aiMaterial->Get(AI_MATKEY_REFLECTIVITY, aiValue) == AI_SUCCESS || aiMaterial->Get(AI_MATKEY_METALLIC_FACTOR, aiValue) == AI_SUCCESS)
+				if (metalness)
 				{
-					material->SetMetalness(aiValue.r);
-					material->SetRawMetalnessUsed(true);
+					material->SetMetalnessAsset(metalness);
+					material->SetRawMetalnessUsed(false);
+				}
+				else
+				{
+					if (aiMaterial->Get(AI_MATKEY_REFLECTIVITY, aiValue) == AI_SUCCESS || aiMaterial->Get(AI_MATKEY_METALLIC_FACTOR, aiValue) == AI_SUCCESS)
+					{
+						material->SetMetalness(aiValue.r);
+						material->SetRawMetalnessUsed(true);
+					}
 				}
 
 				if (aiMaterial->Get(AI_MATKEY_OPACITY, aiValue) == AI_SUCCESS)

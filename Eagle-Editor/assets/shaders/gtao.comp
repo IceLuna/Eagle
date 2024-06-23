@@ -71,7 +71,7 @@ void main()
     vec2 UV = (pixelCoords + 0.5) * texelSize;
 
     const float depth = texture(g_Depth, UV).x;
-    if (depth == 1.f)
+    if (depth == EG_DEPTH_FAR)
     {
         imageStore(g_Result, pixelCoords, vec4(0.f));
         return;

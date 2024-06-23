@@ -135,6 +135,14 @@ namespace Eagle
         public bool bHalfResolution;
     }
 
+    public struct ScreenSpaceReflectionsSettings
+    {
+        public float RoughnessThreshold;
+        public uint SamplesPerQuad;
+        public uint MaxTraversalIterations;
+        public bool bEnabled;
+    }
+
     public static class Renderer
     {
         public const uint CascadesCount = 4u;
@@ -340,6 +348,18 @@ namespace Eagle
         {
             AutoExposureSettings result = new AutoExposureSettings();
             GetAutoExposureSettings_Native(out result.MinLogLum, out result.MaxLogLum, out result.AdaptationSpeed, out result.AdaptationKey, out result.bEnabled, out result.bHalfResolution);
+            return result;
+        }
+
+        public static void SetScreenSpaceReflectionsSettings(ScreenSpaceReflectionsSettings value)
+        {
+            SetScreenSpaceReflectionsSettings_Native(value.RoughnessThreshold, value.SamplesPerQuad, value.MaxTraversalIterations, value.bEnabled);
+        }
+
+        public static ScreenSpaceReflectionsSettings GetScreenSpaceReflectionsSettings()
+        {
+            ScreenSpaceReflectionsSettings result = new ScreenSpaceReflectionsSettings();
+            GetScreenSpaceReflectionsSettings_Native(out result.RoughnessThreshold, out result.SamplesPerQuad, out result.MaxTraversalIterations, out result.bEnabled);
             return result;
         }
 
@@ -615,6 +635,9 @@ namespace Eagle
         private static extern void GetAutoExposureSettings_Native(out float minLogLum, out float maxLogLum, out float adaptationSpeed, out float adaptationKey, out bool bEnabled, out bool bHalfResolution);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetScreenSpaceReflectionsSettings_Native(out float roughnessThreshold, out uint samplesPerQuad, out uint maxIters, out bool bEnabled);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetShadowMapsSettings_Native(uint pointLightSize, uint spotLightSize, uint[] dirLightSizes);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -625,6 +648,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetAutoExposureSettings_Native(float minLogLum, float maxLogLum, float adaptationSpeed, float adaptationKey, bool bEnabled, bool bHalfResolution);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetScreenSpaceReflectionsSettings_Native(float roughnessThreshold, uint samplesPerQuad, uint maxIters, bool bEnabled);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void GetViewportSize_Native(out Vector2 size);

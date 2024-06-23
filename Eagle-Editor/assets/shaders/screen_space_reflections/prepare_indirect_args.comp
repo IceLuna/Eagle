@@ -1,0 +1,34 @@
+layout(binding = 0, r32ui) uniform uimageBuffer g_RayCounter;
+layout(binding = 1) buffer Args
+{
+	uint g_IntersectArgs[];
+};
+
+layout(local_size_x = 1, local_size_y = 1) in;
+
+void main()
+{
+    // Prepare intersection args
+    {
+        uint rayCount = imageLoad(g_RayCounter, 0).x;
+        
+        g_IntersectArgs[0] = (rayCount + 63) / 64;
+        g_IntersectArgs[1] = 1;
+        g_IntersectArgs[2] = 1;
+
+        imageStore(g_RayCounter, 0, uvec4(0));
+        imageStore(g_RayCounter, 1, uvec4(rayCount));
+    }
+
+    // Prepare denoiser args
+    {
+        uint tileCount = imageLoad(g_RayCounter, 2).x;
+    
+        g_IntersectArgs[3] = tileCount;
+        g_IntersectArgs[4] = 1;
+        g_IntersectArgs[5] = 1;
+        
+        imageStore(g_RayCounter, 2, uvec4(0));
+        imageStore(g_RayCounter, 3, uvec4(tileCount));
+    }
+}

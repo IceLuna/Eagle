@@ -1,3 +1,4 @@
+#include "defines.h"
 #include "utils.h"
 
 layout(push_constant) uniform PushConstants
@@ -41,7 +42,7 @@ void main()
     const mat3 viewMat = mat3(g_ViewRow1, g_ViewRow2, g_ViewRow3);
 
     const float depth = texture(g_Depth, uv).x;
-    if (depth == 1.f)
+    if (depth == EG_DEPTH_FAR)
     {
         imageStore(g_Result, pixelCoords, vec4(0.f));
         return;

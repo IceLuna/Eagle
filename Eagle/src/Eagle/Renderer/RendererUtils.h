@@ -419,10 +419,10 @@ namespace Eagle
         uint32_t ImageArrayLayers = 1;
 
         // Specifies offset of image region in pixels.
-        glm::ivec3 ImageOffset;
+        glm::ivec3 ImageOffset = glm::ivec3(0);
 
         // Specifies extent of image region in pixels.
-        glm::uvec3 ImageExtent;
+        glm::uvec3 ImageExtent = glm::uvec3(0);
     };
 
     enum class TonemappingMethod
@@ -622,6 +622,8 @@ namespace Eagle
         float CascadesSmoothTransitionAlpha = 3.5f / 100.f;
         bool bJitter = false;
         bool bMotionBuffer = false;
+        bool bDepthHistory = false;
+        bool bNormalHistory = false;
     };
 
     struct PBRConstantsKernelInfo
@@ -803,6 +805,30 @@ namespace Eagle
         }
     };
 
+    struct ScreenSpaceReflectionsSettings
+    {
+        float RoughnessThreshold = 0.7f;
+        uint32_t SamplesPerQuad = 1;
+        uint32_t MaxTraversalIterations = 128;
+        bool bEnable = true;
+
+        bool operator== (const ScreenSpaceReflectionsSettings& other) const
+        {
+            bool bEqual =
+                RoughnessThreshold == other.RoughnessThreshold &&
+                SamplesPerQuad == other.SamplesPerQuad &&
+                MaxTraversalIterations == other.MaxTraversalIterations &&
+                bEnable == other.bEnable;
+
+            return bEqual;
+        }
+
+        bool operator!= (const ScreenSpaceReflectionsSettings& other) const
+        {
+            return !((*this) == other);
+        }
+    };
+
     struct SceneRendererSettings
     {
         BloomSettings BloomSettings;
@@ -816,6 +842,7 @@ namespace Eagle
         DepthOfFieldSettings DOFSettings;
         MotionBlurSettings MotionBlur;
         AutoExposureSettings AutoExposure;
+        ScreenSpaceReflectionsSettings ScreenSpaceReflections;
         float Gamma = 2.2f;
         float Exposure = 1.f;
         float LineWidth = 2.5f;
@@ -857,6 +884,7 @@ namespace Eagle
                 bEnableObjectPicking == other.bEnableObjectPicking &&
                 bEnable2DObjectPicking == other.bEnable2DObjectPicking &&
                 AutoExposure == other.AutoExposure &&
+                ScreenSpaceReflections == other.ScreenSpaceReflections &&
                 SSAOSettings == other.SSAOSettings &&
                 GTAOSettings == other.GTAOSettings &&
                 GridScale == other.GridScale &&
@@ -873,6 +901,7 @@ namespace Eagle
             settings.bTranslucentShadows = false;
             settings.bEnableCSMSmoothTransition = false;
             settings.bEnableObjectPicking = false;
+            settings.ScreenSpaceReflections.bEnable = false;
             settings.TransparencyLayers = 2u;
 
             return settings;

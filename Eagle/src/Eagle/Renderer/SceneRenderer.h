@@ -49,22 +49,12 @@ namespace Eagle
 		Ref<Image> ObjectIDCopy;
 		Ref<Image> Depth;
 		Ref<Image> Motion;
-
-		void Resize(const glm::uvec3& size)
-		{
-			AlbedoRoughness->Resize(size);
-			MaterialData->Resize(size);
-			Geometry_Shading_Normals->Resize(size);
-			Emissive->Resize(size);
-			ObjectID->Resize(size);
-			ObjectIDCopy->Resize(size);
-			Depth->Resize(size);
-			if (Motion)
-				Motion->Resize(size);
-		}
+		Ref<Image> DepthHistory;
+		Ref<Image> NormalsHistory;
 
 		void Init(const glm::uvec3& size);
 		void InitOptional(const SceneRendererInternalState& optional, const glm::uvec3& size);
+		void Resize(const glm::uvec3& size);
 	};
 
 	class SceneRenderer : public std::enable_shared_from_this<SceneRenderer>
@@ -72,7 +62,7 @@ namespace Eagle
 	public:
 		SceneRenderer(const glm::uvec2 size, const SceneRendererSettings& options = {});
 
-		void Render(const Camera* camera, const glm::mat4& viewMat, glm::vec3 viewPosition);
+		void Render(const Camera* camera, const glm::mat4& viewMat, glm::vec3 viewPosition, glm::vec3 viewDirection);
 
 		//---------------------------------- Render functions ----------------------------------
 		// For these functions, Renderer copies required data from components
@@ -227,6 +217,7 @@ namespace Eagle
 		const glm::mat4& GetProjectionMatrix() const { return m_Projection; }
 		const glm::mat4& GetViewProjection() const { return m_ViewProjection; }
 		const glm::vec3 GetViewPosition() const { return m_ViewPos; }
+		const glm::vec3 GetViewDirection() const { return m_ViewDir; }
 		float GetPhotoLinearScale() const { return m_PhotoLinearScale; }
 		float GetZNear() const { return m_ZNear; }
 		float GetZFar() const { return m_ZFar; }
@@ -293,6 +284,7 @@ namespace Eagle
 		Ref<FogPassTask> m_FogTask;
 		Ref<RendererTask> m_DOFTask;
 		Ref<RendererTask> m_MotionBlurTask;
+		Ref<RendererTask> m_ScreenSpaceReflectionsTask;
 		
 		Ref<Buffer> m_Jitter;
 
@@ -310,6 +302,7 @@ namespace Eagle
 		glm::mat4 m_Projection = glm::mat4(1.f);
 		glm::mat4 m_ViewProjection = glm::mat4(1.f);
 		glm::vec3 m_ViewPos = glm::vec3(0.f);
+		glm::vec3 m_ViewDir = glm::vec3(0.f);
 
 		// Prev frame data
 		glm::mat4 m_PrevView = glm::mat4(1.f);

@@ -55,9 +55,7 @@ namespace Eagle
 			cmd->FillBuffer(m_CheapTiles, 0);
 			cmd->FillBuffer(m_ExpensiveTiles, 0);
 
-			cmd->TransitionLayout(m_Presort, ImageLayoutType::Unknown, ImageLayoutType::CopyDest);
-			cmd->ClearColorImage(m_Presort, glm::vec4(0.f));
-			cmd->TransitionLayout(m_Presort, ImageLayoutType::CopyDest, ImageLayoutType::StorageImage);
+			cmd->ClearColorImage(m_Presort, glm::vec4(0.f), ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
 		}
 
 		TileMinMaxPass(cmd);
