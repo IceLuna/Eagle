@@ -30,10 +30,12 @@ namespace Eagle
 		virtual void* GetHandle() const = 0;
 		virtual void* GetViewHandle() const = 0;
 
+		const BufferSpecifications GetSpecs() const { return m_Specs; }
 		size_t GetSize() const { return m_Specs.Size; }
 		MemoryType GetMemoryType() const { return m_Specs.MemoryType; }
 		BufferUsage GetUsage() const { return m_Specs.Usage; }
 		BufferLayout GetLayout() const { return m_Specs.Layout; }
+		const std::string& GetDebugName() const { return m_DebugName; }
 
 		bool HasUsage(BufferUsage usage) const { return HasFlags(m_Specs.Usage, usage); }
 

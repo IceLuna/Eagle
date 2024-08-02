@@ -1,0 +1,147 @@
+#extension GL_KHR_shader_subgroup_basic : require
+#extension GL_KHR_shader_subgroup_arithmetic : require
+#extension GL_ARB_shader_ballot : require
+
+#include "sort/common.h"
+
+layout(binding = 0) buffer ScratchBuffer
+{
+    uint g_SumTable[];
+};
+
+layout(binding = 1) readonly buffer ReduceBuffer
+{
+    uint g_ReduceTable[];
+};
+
+layout(binding = 2) readonly buffer SortDataBuffer
+{
+    SortData g_SortData;
+};
+
+uint LoadScanSource(uint index)
+{
+    return g_SumTable[index];
+}
+
+void StoreScanDest(uint index, uint value)
+{
+    g_SumTable[index] = value;
+}
+
+uint LoadScanScratch(uint index)
+{
+    return g_ReduceTable[index];
+}
+
+shared uint s_LDS[FFX_PARALLELSORT_ELEMENTS_PER_THREAD][FFX_PARALLELSORT_THREADGROUP_SIZE];
+shared uint s_LDSSums[FFX_PARALLELSORT_THREADGROUP_SIZE];
+
+uint BlockScanPrefix(uint localSum, uint localID)
+{
+    // Do wave local scan-prefix
+    uint wavePrefixed = subgroupExclusiveAdd(localSum);
+
+    // Since we are dealing with thread group sizes greater than HW wave size, we need to account for what wave we are in.
+    uint waveID = localID / gl_SubGroupSizeARB;
+    uint laneID = gl_SubGroupInvocationARB;
+
+    // Last element in a wave writes out partial sum to LDS
+    if (laneID == gl_SubGroupSizeARB - 1)
+        s_LDSSums[waveID] = wavePrefixed + localSum;
+
+    // Wait for everyone to catch up
+    groupMemoryBarrier();
+    barrier();
+
+    // First wave prefixes partial sums
+    if (waveID == 0)
+        s_LDSSums[localID] = subgroupExclusiveAdd(s_LDSSums[localID]);
+
+    // Wait for everyone to catch up
+    groupMemoryBarrier();
+    barrier();
+
+    // Add the partial sums back to each wave prefix
+    wavePrefixed += s_LDSSums[waveID];
+
+    return wavePrefixed;
+}
+
+void Sort_ScanPrefix(uint numValuesToScan, uint localID, uint groupID, uint binOffset, uint baseIndex, bool bAddPartialSums)
+{
+    // Perform coalesced loads into LDS
+    for (uint i = 0; i < FFX_PARALLELSORT_ELEMENTS_PER_THREAD; i++)
+    {
+        const uint dataIndex = baseIndex + (i * FFX_PARALLELSORT_THREADGROUP_SIZE) + localID;
+
+        const uint col = ((i * FFX_PARALLELSORT_THREADGROUP_SIZE) + localID) / FFX_PARALLELSORT_ELEMENTS_PER_THREAD;
+        const uint row = ((i * FFX_PARALLELSORT_THREADGROUP_SIZE) + localID) % FFX_PARALLELSORT_ELEMENTS_PER_THREAD;
+        s_LDS[row][col] = (dataIndex < numValuesToScan) ? LoadScanSource(binOffset + dataIndex) : 0;
+    }
+
+    // Wait for everyone to catch up
+    groupMemoryBarrier();
+    barrier();
+
+    uint threadgroupSum = 0;
+    // Calculate the local scan-prefix for current thread
+    for (uint i = 0; i < FFX_PARALLELSORT_ELEMENTS_PER_THREAD; i++)
+    {
+        uint tmp = s_LDS[i][localID];
+        s_LDS[i][localID] = threadgroupSum;
+        threadgroupSum += tmp;
+    }
+
+    // Scan prefix partial sums
+    threadgroupSum = BlockScanPrefix(threadgroupSum, localID);
+
+    // Add reduced partial sums if requested
+    uint partialSum = 0;
+    if (bAddPartialSums)
+    {
+        // Partial sum additions are a little special as they are tailored to the optimal number of 
+        // thread groups we ran in the beginning, so need to take that into account
+        partialSum = LoadScanScratch(groupID);
+    }
+
+    // Add the block scanned-prefixes back in
+    for (uint i = 0; i < FFX_PARALLELSORT_ELEMENTS_PER_THREAD; i++)
+        s_LDS[i][localID] += threadgroupSum;
+
+    // Wait for everyone to catch up
+    groupMemoryBarrier();
+    barrier();
+
+    // Perform coalesced writes to scan dst
+    for (uint i = 0; i < FFX_PARALLELSORT_ELEMENTS_PER_THREAD; i++)
+    {
+        const uint dataIndex = baseIndex + (i * FFX_PARALLELSORT_THREADGROUP_SIZE) + localID;
+
+        const uint col = ((i * FFX_PARALLELSORT_THREADGROUP_SIZE) + localID) / FFX_PARALLELSORT_ELEMENTS_PER_THREAD;
+        const uint row = ((i * FFX_PARALLELSORT_THREADGROUP_SIZE) + localID) % FFX_PARALLELSORT_ELEMENTS_PER_THREAD;
+
+        if (dataIndex < numValuesToScan)
+            StoreScanDest(binOffset + dataIndex, s_LDS[row][col] + partialSum);
+    }
+}
+
+layout(local_size_x = FFX_PARALLELSORT_THREADGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+void main()
+{
+    const uint localID = gl_LocalInvocationID.x;
+    const uint groupID = gl_WorkGroupID.x;
+
+    // When doing adds, we need to access data differently because reduce
+    // has a more specialized access pattern to match optimized count
+    // Access needs to be done similarly to reduce
+    // Figure out what bin data we are reducing
+    const uint binID     = groupID / g_SortData.NumReduceThreadgroupPerBin;
+    const uint binOffset = binID * g_SortData.NumThreadGroups;
+
+    // Get the base index for this thread group
+    const uint baseIndex = (groupID % g_SortData.NumReduceThreadgroupPerBin) * FFX_PARALLELSORT_ELEMENTS_PER_THREAD * FFX_PARALLELSORT_THREADGROUP_SIZE;
+
+    Sort_ScanPrefix(g_SortData.NumThreadGroups, localID, groupID, binOffset, baseIndex, true);
+}

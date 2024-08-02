@@ -14,7 +14,7 @@ namespace Eagle
 		RenderLinesTask(SceneRenderer& renderer);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
-		void OnResize(const glm::uvec2 size) { m_Pipeline->Resize(size.x, size.y); }
+		void OnResize(const glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
 		void InitWithOptions(const SceneRendererSettings& settings) override
 		{
 			if (settings.LineWidth == m_LineWidth && settings.InternalState.bJitter == bJitter)

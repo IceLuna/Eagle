@@ -27,6 +27,7 @@ namespace Eagle
 	class TextComponent;
 	class Text2DComponent;
 	class Image2DComponent;
+	class ParticleSystemComponent;
 
 	class PointLightComponent;
 	class SpotLightComponent;
@@ -38,6 +39,8 @@ namespace Eagle
 	class AssetTextureCube;
 	
 	class Camera;
+
+	class ParticleSystemTask;
 
 	struct GBuffer
 	{
@@ -76,6 +79,10 @@ namespace Eagle
 		void SetTexts(const std::vector<const TextComponent*>& texts, bool bDirty) { m_GeometryManagerTask->SetTexts(texts, bDirty); }
 		void SetTexts2D(const std::vector<const Text2DComponent*>& texts, bool bDirty) { m_Text2DTask->SetTexts(texts, bDirty); }
 		void SetImages2D(const std::vector<const Image2DComponent*>& images, bool bDirty) { m_Images2DTask->SetImages(images, bDirty); }
+		void AddParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems);
+		void UpdateParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems);
+		void RemoveParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems);
+		void UpdateParticleTransforms(const std::unordered_set<const ParticleSystemComponent*>& systems);
 		//--------------------------------------------------------------------------------------
 		//---------------------------------- Render functions ----------------------------------
 		void SetBillboards(const std::vector<const BillboardComponent*>& billboards) { m_RenderBillboardsTask->SetBillboards(billboards); }
@@ -112,6 +119,9 @@ namespace Eagle
 
 		void SetUseSkyAsBackground(bool value);
 		bool GetUseSkyAsBackground() const { return m_bUseSkyAsBackground; }
+
+		void SetGravity(const glm::vec3& gravity) { m_Gravity = gravity; }
+		glm::vec3 GetGravity() const { return m_Gravity; }
 
 		void SetOptions(const SceneRendererSettings& options);
 		void SetViewportSize(const glm::uvec2 size);
@@ -221,6 +231,7 @@ namespace Eagle
 		float GetPhotoLinearScale() const { return m_PhotoLinearScale; }
 		float GetZNear() const { return m_ZNear; }
 		float GetZFar() const { return m_ZFar; }
+		float GetFOV() const { return m_CameraFOV; }
 
 		// Prev frame data
 		const glm::mat4& GetPrevViewMatrix() const { return m_PrevView; }
@@ -282,6 +293,7 @@ namespace Eagle
 		Ref<RenderImages2DTask> m_Images2DTask;
 		Ref<RendererTask> m_VolumetricTask;
 		Ref<FogPassTask> m_FogTask;
+		Ref<ParticleSystemTask> m_ParticleTask;
 		Ref<RendererTask> m_DOFTask;
 		Ref<RendererTask> m_MotionBlurTask;
 		Ref<RendererTask> m_ScreenSpaceReflectionsTask;
@@ -316,7 +328,9 @@ namespace Eagle
 		glm::uvec2 m_Size = { 1, 1 };
 		float m_PhotoLinearScale = 1.f;
 		float m_ZNear = 1.f;
+		glm::vec3 m_Gravity = glm::vec3(0);
 		float m_ZFar = 1.f;
+		float m_CameraFOV = 1.f;
 		SceneRendererSettings m_Options_RT; // Render thread
 		SceneRendererSettings m_Options;
 

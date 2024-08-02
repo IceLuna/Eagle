@@ -1,0 +1,130 @@
+#include "particle_system/common.h"
+#include "utils.h"
+
+layout(binding = 0) buffer PS_Data
+{
+    ParticleSystemData g_Data;
+};
+
+layout(binding = 1) buffer DrawArgsBuffer
+{
+    uint VertexCount;
+    uint InstanceCount;
+    uint FirstVertex;
+    uint FirstInstance;
+} g_DrawArgs;
+
+layout(binding = 2) buffer DispatchArgsBuffer
+{
+    uvec4 g_EmitArgs;
+    uvec4 g_SimulateArgs;
+};
+
+layout(binding = 3) buffer EmittersBuffer
+{
+    Emitter g_Emitters[];
+};
+
+layout(binding = 4) buffer EmitterSpawnCountBuffer
+{
+    uint g_EmittersSpawnCount[];
+};
+
+layout(binding = 5) readonly buffer EmitterTransforms
+{
+    mat4 g_Transforms[];
+};
+
+layout(push_constant) uniform PushConstants
+{
+    mat4 g_View;
+    uint g_PreSimIndex;
+    uint g_PostSimIndex;
+    uint g_NumEmitters;
+    float g_DeltaTime;
+    CullingFrustum g_Frustum;
+};
+
+#define GROUP_SIZE 32
+
+shared uint s_EmitCount[GROUP_SIZE];
+
+layout(local_size_x = GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+void main()
+{
+    const uint lid = gl_LocalInvocationIndex;
+    s_EmitCount[lid] = 0;
+
+    const uint emittersPerThread = (g_NumEmitters + GROUP_SIZE - 1) / GROUP_SIZE;
+    for (uint e = 0; e < emittersPerThread; ++e)
+    {
+        const uint i = lid * emittersPerThread + e;
+        if (i >= g_NumEmitters)
+            break;
+
+        Emitter emitter = g_Emitters[i];
+
+        if (HasFlag(emitter.Flags, Emitter_Enabled_Mask) == false)
+        {
+            g_EmittersSpawnCount[i] = 0;
+            continue;
+        }
+
+        const bool bExpode = HasFlag(emitter.Flags, Emitter_Explode_Mask);
+        const float spawnInterval = bExpode ? emitter.LifetimeMax : emitter.LifetimeMax / float(emitter.NumParticles);
+        const float deltaTime = emitter.DeltaTime;
+        uint count = 0;
+        if (deltaTime >= spawnInterval)
+        {
+            const uint spawnTriggersCount = uint(deltaTime / spawnInterval);
+            count = spawnTriggersCount * (bExpode ? emitter.NumParticles : 1u);
+            s_EmitCount[lid] += count;
+            emitter.DeltaTime -= float(spawnInterval * spawnTriggersCount);
+        }
+        else
+        {
+            emitter.DeltaTime += g_DeltaTime;
+        }
+
+        const mat4 emitterTr = g_Transforms[emitter.TransformIndex];
+        emitter.IsVisible = FrustumAABBIntersection(g_Frustum, g_View * emitterTr, emitter.AABBMin, emitter.AABBMax) ? 1u : 0u;
+        emitter.WorldPos = vec3(emitterTr[3][0], emitterTr[3][1], emitterTr[3][2]);
+
+        g_Emitters[i] = emitter;
+        g_EmittersSpawnCount[i] = count;
+    }
+
+    barrier();
+
+    // Sum up all `emit counts`
+    for (uint cutoff = GROUP_SIZE >> 1; cutoff > 0; cutoff >>= 1)
+    {
+        if (lid < cutoff)
+            s_EmitCount[lid] += s_EmitCount[lid + cutoff];
+        barrier();
+    }
+
+    if (lid == 0)
+    {
+        // Reset particle indirect draw instance count
+        g_DrawArgs.VertexCount   = 6;
+        g_DrawArgs.InstanceCount = 0;
+        g_DrawArgs.FirstVertex   = 0;
+        g_DrawArgs.FirstInstance = 0;
+
+        g_Data.EmitCount = s_EmitCount[0];
+        g_EmitArgs.x = uint(ceil(float(g_Data.EmitCount) / float(EG_PS_THREAD_SIZE)));
+        g_EmitArgs.y = 1;
+        g_EmitArgs.z = 1;
+
+        // Calculate total number of particles to simulate this frame
+        g_Data.SimulateCount = g_Data.AliveCount[g_PreSimIndex] + g_Data.EmitCount;
+        g_SimulateArgs.x = uint(ceil(float(g_Data.SimulateCount) / float(EG_PS_THREAD_SIZE)));
+        g_SimulateArgs.y = 1;
+        g_SimulateArgs.z = 1;
+
+        // Reset post sim alive index count
+        g_Data.AliveCount[g_PostSimIndex] = 0;
+    }
+}

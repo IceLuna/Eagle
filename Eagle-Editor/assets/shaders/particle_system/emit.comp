@@ -1,0 +1,104 @@
+#include "particle_system/common.h"
+#include "utils.h"
+
+layout(binding = 0) buffer PS_Data
+{
+    ParticleSystemData g_Data;
+};
+
+layout(binding = 1) buffer Particles
+{
+    Particle g_Particles[];
+};
+
+layout(binding = 2) readonly buffer Emitters
+{
+    Emitter g_Emitters[];
+};
+
+layout(binding = 3) buffer DeadIndices
+{
+    uint g_DeadIndices[];
+};
+
+layout(binding = 4) buffer AliveIndicesPreSim
+{
+    uint g_AliveIndicesPreSim[];
+};
+
+layout(binding = 5) readonly buffer EmittersSpawnCountBuffer
+{
+    uint g_EmittersSpawnCount[];
+};
+
+layout(binding = 6) readonly buffer TransformsBuffer
+{
+    mat4 g_Transforms[];
+};
+
+layout(push_constant) uniform PushConstants
+{
+    uint g_PreSimIndex;
+    uint g_FrameNumber;
+    uint g_NumEmitters;
+};
+
+void PushAlive(uint particleIndex)
+{
+    uint insertIdx;
+    EG_SUBGROUP_ATOMIC_INCREMENT(g_Data.AliveCount[g_PreSimIndex], true, insertIdx);
+    g_AliveIndicesPreSim[insertIdx] = particleIndex;
+}
+
+uint PopDead()
+{
+    uint index;
+    EG_SUBGROUP_ATOMIC_DECREMENT(g_Data.DeadCount, true, index);
+    return g_DeadIndices[index - 1];
+}
+
+uint GetEmitterIndex(uint id)
+{
+    for (uint i = 0; i < g_NumEmitters; ++i)
+    {
+        if (id < g_EmittersSpawnCount[i])
+            return i;
+        id -= g_EmittersSpawnCount[i];
+    }
+}
+
+layout(local_size_x = EG_PS_THREAD_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+void main()
+{
+    const uint gidx = gl_GlobalInvocationID.x;
+    if (gidx >= g_Data.EmitCount)
+        return;
+
+    const uint emitterIndex = GetEmitterIndex(gidx);
+    const uint particleIndex = PopDead();
+
+    const Emitter emitter = g_Emitters[emitterIndex];
+    Particle particle = g_Particles[particleIndex];
+
+    Random random = Random_Init(uvec2(0, gidx), g_FrameNumber);
+
+    vec3 particlePos = Emitter_GetParticlePosition(emitter, random);
+    particlePos = vec3(g_Transforms[emitter.TransformIndex] * vec4(particlePos, 1.f));
+
+    particle.Color = emitter.ColorStart;
+    particle.Size = emitter.SizeStart;
+    particle.CurrentLifetime = 0.f;
+    particle.Position = particlePos;
+    particle.Lifetime = mix(emitter.LifetimeMin, emitter.LifetimeMax, Random_NextFloat(random));
+    particle.Velocity = mix(emitter.VelocityMin, emitter.VelocityMax, Random_NextFloat3(random));
+    particle.Bounciness = mix(emitter.BouncinessMin, emitter.BouncinessMax, Random_NextFloat(random));
+    particle.RotationZ = emitter.RotationZStart;
+    particle.VelocityCoef = emitter.VelocityCoefStart;
+    particle.EmitterIndex = emitterIndex;
+    particle.AnimationSpriteCoord = uvec2(0, 0);
+    Particle_CalculateAnimationUV(particle.AnimationSpriteCoord, emitter.AnimationImagesNum, particle.AnimationUV0, particle.AnimationUV1);
+
+    g_Particles[particleIndex] = particle;
+    PushAlive(particleIndex);
+}

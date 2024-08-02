@@ -1,0 +1,112 @@
+#extension GL_EXT_nonuniform_qualifier : enable
+
+#include "sort/common.h"
+
+layout(binding = 0) writeonly buffer ScratchBuffer
+{
+    uint g_SumTable[];
+};
+
+layout(binding = 1) readonly buffer SortDataBuffer
+{
+    SortData g_SortData;
+};
+
+layout(set = 1, binding = 0) readonly buffer KeysBuffers
+{
+    uint Keys[];
+} g_Keys[2];
+
+layout(push_constant) uniform PushConstants
+{
+    uint g_PingPong;
+};
+
+shared uint s_Histogram[FFX_PARALLELSORT_THREADGROUP_SIZE * FFX_PARALLELSORT_SORT_BIN_COUNT];
+
+uint LoadSourceKey(uint index)
+{
+    return g_Keys[nonuniformEXT(g_PingPong)].Keys[index]; // TODO: Can omit `nonuniformEXT`?
+}
+
+void StoreSumTable(uint index, uint value)
+{
+    g_SumTable[index] = value;
+}
+
+layout(local_size_x = FFX_PARALLELSORT_THREADGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+void main()
+{
+    const uint localID = gl_LocalInvocationID.x;
+    const uint groupID = gl_WorkGroupID.x;
+    const uint shiftBit = g_SortData.Shift;
+
+    // Start by clearing our local counts in LDS
+    for (int i = 0; i < FFX_PARALLELSORT_SORT_BIN_COUNT; i++)
+        s_Histogram[(i * FFX_PARALLELSORT_THREADGROUP_SIZE) + localID] = 0;
+
+    // Wait for everyone to catch up
+    groupMemoryBarrier();
+    barrier();
+
+    // Data is processed in blocks, and how many we process can changed based on how much data we are processing
+    // versus how many thread groups we are processing with
+    const int blockSize = FFX_PARALLELSORT_ELEMENTS_PER_THREAD * FFX_PARALLELSORT_THREADGROUP_SIZE;
+
+    // Figure out this thread group's index into the block data (taking into account thread groups that need to do extra reads)
+    const uint numBlocksPerThreadGroup = g_SortData.NumBlocksPerThreadGroup;
+    const uint numThreadGroups = g_SortData.NumThreadGroups;
+    const uint numThreadGroupsWithAdditionalBlocks = g_SortData.NumThreadGroupsWithAdditionalBlocks;
+    const uint numKeys = g_SortData.NumKeys;
+
+    uint threadgroupBlockStart = (blockSize * numBlocksPerThreadGroup * groupID);
+    uint numBlocksToProcess = numBlocksPerThreadGroup;
+
+    if (groupID >= numThreadGroups - numThreadGroupsWithAdditionalBlocks)
+    {
+        threadgroupBlockStart += (groupID - (numThreadGroups - numThreadGroupsWithAdditionalBlocks)) * blockSize;
+        numBlocksToProcess++;
+    }
+
+    // Get the block start index for this thread
+    uint blockIndex = threadgroupBlockStart + localID;
+
+    // Count value occurrence
+    for (uint BlockCount = 0; BlockCount < numBlocksToProcess; BlockCount++, blockIndex += blockSize)
+    {
+        uint dataIndex = blockIndex;
+
+        // Pre-load the key values in order to hide some of the read latency
+        uint srcKeys[FFX_PARALLELSORT_ELEMENTS_PER_THREAD];
+        srcKeys[0] = (dataIndex < numKeys ? LoadSourceKey(dataIndex) : 0xffffffff);
+        srcKeys[1] = (dataIndex + FFX_PARALLELSORT_THREADGROUP_SIZE < numKeys ? LoadSourceKey(dataIndex + FFX_PARALLELSORT_THREADGROUP_SIZE) : 0xffffffff);
+        srcKeys[2] = (dataIndex + FFX_PARALLELSORT_THREADGROUP_SIZE * 2 < numKeys ? LoadSourceKey(dataIndex + FFX_PARALLELSORT_THREADGROUP_SIZE * 2) : 0xffffffff);
+        srcKeys[3] = (dataIndex + FFX_PARALLELSORT_THREADGROUP_SIZE * 3 < numKeys ? LoadSourceKey(dataIndex + FFX_PARALLELSORT_THREADGROUP_SIZE * 3) : 0xffffffff);
+
+        for (uint i = 0; i < FFX_PARALLELSORT_ELEMENTS_PER_THREAD; i++)
+        {
+            if (dataIndex < numKeys)
+            {
+                uint localKey = (srcKeys[i] >> shiftBit) & 0xf;
+                atomicAdd(s_Histogram[(localKey * FFX_PARALLELSORT_THREADGROUP_SIZE) + localID], 1); // TODO: Use subgroups
+                dataIndex += FFX_PARALLELSORT_THREADGROUP_SIZE;
+            }
+        }
+    }
+
+    // Even though our LDS layout guarantees no collisions, our thread group size is greater than a wave
+    // so we need to make sure all thread groups are done counting before we start tallying up the results
+    groupMemoryBarrier();
+    barrier();
+
+    if (localID < FFX_PARALLELSORT_SORT_BIN_COUNT)
+    {
+        uint sum = 0;
+        for (int i = 0; i < FFX_PARALLELSORT_THREADGROUP_SIZE; i++)
+        {
+            sum += s_Histogram[localID * FFX_PARALLELSORT_THREADGROUP_SIZE + i];
+        }
+        StoreSumTable(localID * numThreadGroups + groupID, sum);
+    }
+}

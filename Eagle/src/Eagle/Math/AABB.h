@@ -40,5 +40,10 @@ namespace Eagle
 			const glm::vec3 extents = Extents();
 			return glm::max(extents.x, glm::max(extents.y, extents.z));
 		}
+
+		bool operator== (const AABB& other) const
+		{
+			return Min == other.Min && Max == other.Max;
+		}
 	};
 }

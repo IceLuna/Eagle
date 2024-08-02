@@ -269,16 +269,24 @@ namespace Eagle
         }
     };
 
-    struct IndirectDispatchArgs
+    struct DispatchIndirectArgs
     {
         glm::uvec4 ThreadGroupCount = glm::uvec4(0); // It's `uvec4` because of padding issues on GPU side
     };
 
+    struct DrawIndirectArgs
+    {
+        uint32_t VertexCount = 0;
+        uint32_t InstanceCount = 0;
+        uint32_t FirstVertex = 0;
+        uint32_t FirstInstance = 0;
+    };
+
     struct PostprocessTileStatistics
     {
-        IndirectDispatchArgs EarlyExit;
-        IndirectDispatchArgs Cheap;
-        IndirectDispatchArgs Expensive;
+        DispatchIndirectArgs EarlyExit;
+        DispatchIndirectArgs Cheap;
+        DispatchIndirectArgs Expensive;
     };
 
     enum class BlendOperation

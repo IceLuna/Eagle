@@ -26,6 +26,7 @@ namespace Eagle
 		ReverbComponent,
 		Text2D,
 		Image2D,
+		ParticleSystem,
 	};
 
 	class EntityPropertiesPanel

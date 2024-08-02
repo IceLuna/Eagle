@@ -1,0 +1,195 @@
+#include "particle_system/common.h"
+#include "utils.h"
+
+layout(binding = 0) buffer PS_Data
+{
+    ParticleSystemData g_Data;
+};
+
+layout(binding = 1) buffer Particles
+{
+    Particle g_Particles[];
+};
+
+layout(binding = 2) readonly buffer Emitters
+{
+    Emitter g_Emitters[];
+};
+
+layout(binding = 3) buffer DeadIndices
+{
+    uint g_DeadIndices[];
+};
+
+layout(binding = 4) buffer AliveIndicesPreSim
+{
+    uint g_AliveIndicesPreSim[];
+};
+
+layout(binding = 5) buffer AliveIndicesPostSim
+{
+    uint g_AliveIndicesPostSim[];
+};
+
+layout(binding = 6) buffer IndicesToRenderBuffer
+{
+    uint g_IndicesToRender[];
+};
+
+layout(binding = 7) buffer DistancesBuffer
+{
+    float g_Distances[];
+};
+
+layout(binding = 8) buffer DrawArgsBuffer
+{
+    uint VertexCount;
+    uint InstanceCount;
+    uint FirstVertex;
+    uint FirstInstance;
+} g_DrawArgs;
+
+layout(binding = 9)  uniform sampler2D g_Depth;
+layout(binding = 10) uniform sampler2D g_Normal;
+
+layout(push_constant) uniform PushConstants
+{
+    mat4 g_ViewProj;
+
+    vec3 g_Gravity;
+    float g_CameraNear;
+
+    vec3 g_CameraPos;
+    float g_CameraFar;
+
+    float g_DeltaTime;
+    uint g_PreSimIndex;
+    uint g_PostSimIndex;
+};
+
+void PushAlive(uint particleIndex)
+{
+    uint insertIdx;
+    EG_SUBGROUP_ATOMIC_INCREMENT(g_Data.AliveCount[g_PostSimIndex], true, insertIdx);
+    g_AliveIndicesPostSim[insertIdx] = particleIndex;
+}
+
+uint PopAlive()
+{
+    uint index;
+    EG_SUBGROUP_ATOMIC_DECREMENT(g_Data.AliveCount[g_PreSimIndex], true, index);
+    return g_AliveIndicesPreSim[index - 1];
+}
+
+void PushDead(uint particleIndex)
+{
+    uint insertIdx;
+    EG_SUBGROUP_ATOMIC_INCREMENT(g_Data.DeadCount, true, insertIdx);
+    g_DeadIndices[insertIdx] = particleIndex;
+}
+
+void PushToDraw(uint particleIndex, float dist)
+{
+    uint insertIdx;
+    EG_SUBGROUP_ATOMIC_INCREMENT(g_DrawArgs.InstanceCount, true, insertIdx);
+    g_IndicesToRender[insertIdx] = particleIndex;
+    g_Distances[insertIdx] = dist;
+}
+
+layout(local_size_x = EG_PS_THREAD_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+void main()
+{
+    const uint gidx = gl_GlobalInvocationID.x;
+    if (gidx >= g_Data.SimulateCount)
+        return;
+
+    const uint particleIndex = PopAlive();
+    Particle particle = g_Particles[particleIndex];
+    if (particle.CurrentLifetime >= particle.Lifetime)
+    {
+        PushDead(particleIndex);
+        return;
+    }
+
+    vec3 force = vec3(0.f);
+    const Emitter emitter = g_Emitters[particle.EmitterIndex];
+    if (HasFlag(emitter.Flags, Emitter_ApplyGravity_Mask))
+        force += g_Gravity;
+        
+    // Apply radial & tangential accelerations
+    {
+        vec3 dir = particle.Position - emitter.WorldPos;
+        if (dot(dir, dir) > 0.0001f) // if dir is not zero
+        {
+            dir = normalize(dir);
+            force += dir * emitter.RadialAcceleration; // Radial
+            force += vec3(-dir.y, dir.x, 0.f) * emitter.TangentialAcceleration; // Tangential
+        }
+    }
+    particle.Velocity += force * g_DeltaTime;
+
+    if (emitter.CollisionType != ParticleCollisionType_None)
+    {
+        vec4 position = g_ViewProj * vec4(particle.Position, 1.0);
+        position.xyz /= position.w;
+
+        const vec2 uv = position.xy * 0.5 + vec2(0.5); // TODO: Check out-of-bounds
+        const vec3 normal = DecodeNormal(texture(g_Normal, uv).xy); // .xy - Geometry Normal
+
+        const float depth = ToLinear(texture(g_Depth, uv).x, g_CameraNear, g_CameraFar);
+        const float particleSize = 0.1f; // TODO:
+		const float surfaceThickness = 1.5f;
+		if ((position.w + particleSize > depth) && (position.w - particleSize < depth + surfaceThickness))
+        {
+            if (dot(particle.Velocity, normal) < 0.0)
+            {
+                switch (emitter.CollisionType)
+                {
+                    case ParticleCollisionType_DestroyOnHit:
+                        PushDead(particleIndex);
+                        return;
+                    case ParticleCollisionType_Bounce:
+                        particle.Velocity = reflect(particle.Velocity, normal) * particle.Bounciness; 
+                        break;
+                }
+            }
+        }
+    }
+
+    // Handle animation
+    {
+        const float nextLifetime = particle.CurrentLifetime + g_DeltaTime;
+        const float animationFPS = emitter.AnimationSpeed * float(emitter.AnimationImagesNum.x * emitter.AnimationImagesNum.y) / particle.Lifetime;
+
+        // Don't update anim if about to die
+        uint AdvanceAnimationCount = nextLifetime >= particle.Lifetime ? 0u : uint(nextLifetime * animationFPS) - uint(particle.CurrentLifetime * animationFPS);
+        const bool bAdvancedAnimation = AdvanceAnimationCount > 0;
+        while (AdvanceAnimationCount > 0)
+        {
+            Particle_AdvanceAnimation(particle.AnimationSpriteCoord, emitter.AnimationImagesNum);
+            --AdvanceAnimationCount;
+        }
+        if (bAdvancedAnimation)
+            Particle_CalculateAnimationUV(particle.AnimationSpriteCoord, emitter.AnimationImagesNum, particle.AnimationUV0, particle.AnimationUV1);
+    }
+
+    const float lifeAlpha = particle.CurrentLifetime / particle.Lifetime;
+    particle.Color = mix(emitter.ColorStart, emitter.ColorEnd, lifeAlpha);
+    particle.Position += particle.Velocity * particle.VelocityCoef * g_DeltaTime; // TODO: `g_DeltaTime` is needed?
+    particle.Size = mix(emitter.SizeStart, emitter.SizeEnd, lifeAlpha);
+    particle.CurrentLifetime += g_DeltaTime;
+    particle.RotationZ = mix(emitter.RotationZStart, emitter.RotationZEnd, lifeAlpha);
+    particle.VelocityCoef = mix(emitter.VelocityCoefStart, emitter.VelocityCoefEnd, lifeAlpha);
+    particle.TextureIndex = emitter.TextureIndex;
+
+    g_Particles[particleIndex] = particle;
+    PushAlive(particleIndex);
+
+    if (emitter.IsVisible == 1)
+    {
+        const vec3 dir = g_CameraPos - particle.Position;
+        const float length2 = dot(dir, dir);
+        PushToDraw(particleIndex, length2);
+    }
+}

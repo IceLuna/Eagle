@@ -1050,6 +1050,14 @@ namespace Eagle
 
 		ImGui::PushID("SceneSettings");
 		ImGui::Begin("Scene Settings");
+		
+		UI::BeginPropertyGrid("CommonSceneSettings");
+
+		glm::vec3 gravity = m_CurrentScene->GetGravity();
+		if (UI::PropertyDrag("Gravity", gravity, 0.1f, 0, 0))
+			m_CurrentScene->SetGravity(gravity);
+
+		UI::EndPropertyGrid();
 
 		constexpr uint64_t treeID1 = 95292191ull;
 

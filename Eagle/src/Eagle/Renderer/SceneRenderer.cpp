@@ -18,6 +18,7 @@
 #include "Tasks/DOFTask.h"
 #include "Tasks/MotionBlurTask.h"
 #include "Tasks/ScreenSpaceReflectionsTask.h"
+#include "Tasks/ParticleSystemTask.h"
 
 #include "Eagle/Debug/CPUTimings.h" 
 #include "Eagle/Debug/GPUTimings.h"
@@ -84,6 +85,7 @@ namespace Eagle
 		m_Text2DTask = MakeRef<RenderText2DTask>(*this);
 		m_Images2DTask = MakeRef<RenderImages2DTask>(*this);
 		m_DOFTask = MakeRef<DOFTask>(*this);
+		m_ParticleTask = MakeRef<ParticleSystemTask>(*this);
 		
 		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this, m_HDRRTImage);
 		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);
@@ -112,10 +114,12 @@ namespace Eagle
 
 		RenderManager::Submit([renderer = shared_from_this(), viewMat, proj = camera->GetProjection(), viewPosition, viewDirection, bRenderGrid = m_bGridEnabled, options = m_Options,
 			cascadeProjections = std::move(cameraCascadeProjections), cascadeFarPlanes = std::move(cameraCascadeFarPlanes), shadowDistance = camera->GetShadowFarClip(),
-			cascadesSmoothTransitionAlpha = camera->GetCascadesSmoothTransitionAlpha(), zNear = camera->GetPerspectiveNearClip(), zFar = camera->GetPerspectiveFarClip()](Ref<CommandBuffer>& cmd) mutable
+			cascadesSmoothTransitionAlpha = camera->GetCascadesSmoothTransitionAlpha(), zNear = camera->GetPerspectiveNearClip(), zFar = camera->GetPerspectiveFarClip(),
+			cameraFov = camera->GetPerspectiveVerticalFOV()](Ref<CommandBuffer>& cmd) mutable
 		{
 			renderer->m_ZNear = zNear;
 			renderer->m_ZFar = zFar;
+			renderer->m_CameraFOV = cameraFov;
 			if (renderer->m_Options_RT != options)
 			{
 				renderer->m_Options_RT = options;
@@ -183,6 +187,8 @@ namespace Eagle
 			
 			if (renderer->m_MotionBlurTask)
 				renderer->m_MotionBlurTask->RecordCommandBuffer(cmd);
+
+			renderer->m_ParticleTask->RecordCommandBuffer(cmd); // TODO: Should this be after `TransparencyTask`?
 			
 			if (renderer->m_ScreenSpaceReflectionsTask)
 				renderer->m_ScreenSpaceReflectionsTask->RecordCommandBuffer(cmd);
@@ -233,6 +239,26 @@ namespace Eagle
 
 			renderer->m_FrameIndex = (renderer->m_FrameIndex + 1) % RendererConfig::FramesInFlight;
 		});
+	}
+
+	void SceneRenderer::AddParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems)
+	{
+		m_ParticleTask->AddParticleSystems(systems);
+	}
+
+	void SceneRenderer::UpdateParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems)
+	{
+		m_ParticleTask->UpdateParticleSystems(systems);
+	}
+
+	void SceneRenderer::RemoveParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems)
+	{
+		m_ParticleTask->RemoveParticleSystems(systems);
+	}
+
+	void SceneRenderer::UpdateParticleTransforms(const std::unordered_set<const ParticleSystemComponent*>& systems)
+	{
+		m_ParticleTask->UpdateTransforms(systems);
 	}
 
 	void SceneRenderer::SetSkybox(const Ref<AssetTextureCube>& cubemap)
@@ -311,6 +337,7 @@ namespace Eagle
 		m_GridTask->OnResize(m_Size);
 		m_TransparencyTask->OnResize(m_Size);
 		m_DOFTask->OnResize(m_Size);
+		m_ParticleTask->OnResize(m_Size);
 
 		if (m_Options.BloomSettings.bEnable)
 			m_BloomTask->OnResize(m_Size);
@@ -375,6 +402,7 @@ namespace Eagle
 		m_GridTask->InitWithOptions(options);
 		m_ShadowPassTask->InitWithOptions(options);
 		m_DOFTask->InitWithOptions(options);
+		m_ParticleTask->InitWithOptions(options);
 
 		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this, m_HDRRTImage);
 		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);

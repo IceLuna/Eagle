@@ -1,0 +1,32 @@
+#include "particle_system/common.h"
+
+layout(binding = 0) buffer PS_Data
+{
+    ParticleSystemData g_Data;
+};
+
+layout(binding = 1) buffer DeadIndices
+{
+    uint g_DeadIndices[];
+};
+
+layout(push_constant) uniform PushConstants
+{
+    uint g_NewParticlesAmount;
+    uint g_OldMaxParticles;
+};
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+void main()
+{
+    const uint gidx = gl_GlobalInvocationID.x;
+    if (gidx >= g_NewParticlesAmount)
+        return;
+
+    const uint particleIndex = g_OldMaxParticles + gidx;
+    g_DeadIndices[gidx] = particleIndex;
+
+    if (gidx == 0)
+        g_Data.DeadCount += g_NewParticlesAmount;
+}

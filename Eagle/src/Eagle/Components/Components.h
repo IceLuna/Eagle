@@ -16,6 +16,7 @@
 #include "Eagle/Audio/Reverb3D.h"
 #include "Eagle/Classes/Font.h"
 #include "Eagle/Renderer/Material.h"
+#include "Eagle/Renderer/ParticleEmitter.h"
 
 // If new component class is created, other changes are required:
 // 1) Add new line into Scene's copy constructor;
@@ -1585,5 +1586,43 @@ namespace Eagle
 	private:
 		Ref<Reverb3D> m_Reverb = Reverb3D::Create();
 		bool m_bVisualize = false;
+	};
+
+	class ParticleSystemComponent : public SceneComponent
+	{
+	public:
+		ParticleSystemComponent() = default;
+		COMPONENT_DEFAULTS(ParticleSystemComponent);
+
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			SceneComponent::SetWorldTransform(worldTransform);
+			Parent.SignalComponentChanged<ParticleSystemComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			SceneComponent::SetRelativeTransform(relativeTransform);
+			Parent.SignalComponentChanged<ParticleSystemComponent>(Notification::OnTransformChanged);
+		}
+
+		void Spawn()
+		{
+			Parent.GetScene()->AddParticleSystem(this);
+		}
+
+		void Despawn()
+		{
+			Parent.GetScene()->RemoveParticleSystem(this);
+		}
+
+		void Update()
+		{
+			Parent.GetScene()->UpdateParticleSystem(this);
+		}
+
+	public:
+		std::vector<ParticleEmitter> Emitters;
+		bool bAutoSpawn = true;
 	};
 }

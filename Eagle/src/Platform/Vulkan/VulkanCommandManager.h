@@ -63,7 +63,11 @@ namespace Eagle
 		void BeginGraphics(Ref<PipelineGraphics>& pipeline, const Ref<Framebuffer>& framebuffer) override;
 		void EndGraphics() override;
 		void Draw(uint32_t vertexCount, uint32_t firstVertex) override;
+		void DrawIndirect(const Ref<Buffer>& args, size_t offset, uint32_t drawCount, uint32_t stride) override;
 		void Draw(const Ref<Buffer>& vertexBuffer, uint32_t vertexCount, uint32_t firstVertex) override;
+		void DrawIndirect(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& args, size_t offset, uint32_t drawCount, uint32_t stride) override;
+		void DrawInstanced(const Ref<Buffer>& vertexBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance, const Ref<Buffer>& perInstanceBuffer) override;
+		void DrawInstancedIndirect(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& args, size_t offset, uint32_t drawCount, uint32_t stride, const Ref<Buffer>& perInstanceBuffer) override;
 		void DrawIndexedInstanced(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, int32_t vertexOffset,
 			uint32_t instanceCount, uint32_t firstInstance, const Ref<Buffer>& perInstanceBuffer) override;
 		void DrawIndexed(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset) override;
@@ -82,6 +86,7 @@ namespace Eagle
 
 		void TransitionLayout(const Ref<Buffer>& buffer, BufferLayout oldLayout, BufferLayout newLayout) override;
 		void CopyBuffer(const Ref<Buffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size) override;
+		void CopyBufferTransitionless(const Ref<Buffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size) override; // Doesn't transition layouts
 		void CopyBuffer(const Ref<StagingBuffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size) override;
 		void FillBuffer(Ref<Buffer>& dst, uint32_t data, size_t offset = 0, size_t numBytes = 0) override;
 
@@ -90,6 +95,7 @@ namespace Eagle
 
 		void Write(Ref<Image>& image, const void* data, size_t size, ImageLayout initialLayout, ImageLayout finalLayout) override;
 		void Write(Ref<Buffer>& buffer, const void* data, size_t size, size_t offset, BufferLayout initialLayout, BufferLayout finalLayout) override;
+		void WriteTransitionless(Ref<Buffer>& buffer, const void* data, size_t size, size_t offset) override;
 
 		void GenerateMips(Ref<Image>& image, ImageLayout initialLayout, ImageLayout finalLayout) override;
 		void GenerateMips(Ref<Image>& image, const std::vector<ScopedDataBuffer>& dataPerMip, ImageLayout initialLayout, ImageLayout finalLayout) override;

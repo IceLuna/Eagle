@@ -1,0 +1,90 @@
+#extension GL_KHR_shader_subgroup_basic : require
+#extension GL_KHR_shader_subgroup_arithmetic : require
+#extension GL_ARB_shader_ballot : require
+
+#include "sort/common.h"
+
+layout(binding = 0) readonly buffer ScratchBuffer
+{
+    uint g_SumTable[];
+};
+
+layout(binding = 1) writeonly buffer ReduceBuffer
+{
+    uint g_ReduceTable[];
+};
+
+layout(binding = 2) readonly buffer SortDataBuffer
+{
+    SortData g_SortData;
+};
+
+shared uint s_Sums[FFX_PARALLELSORT_THREADGROUP_SIZE];
+
+uint LoadSumTable(uint index)
+{
+    return g_SumTable[index];
+}
+
+uint ffxParallelSortThreadgroupReduce(uint localSum, uint localID)
+{
+    uint waveReduced = subgroupAdd(localSum);
+
+    // First lane in a wave writes out wave reduction to LDS (this accounts for num waves per group greater than HW wave size)
+    // Note that some hardware with very small HW wave sizes (i.e. <= 8) may exhibit issues with this algorithm, and have not been tested.
+    uint waveID = localID / gl_SubGroupSizeARB;
+    if (subgroupElect())
+        s_Sums[waveID] = waveReduced;
+
+    // Wait for everyone to catch up
+    groupMemoryBarrier();
+    barrier();
+
+    // First wave worth of threads sum up wave reductions
+    if (waveID == 0)
+        waveReduced = subgroupAdd((localID < FFX_PARALLELSORT_THREADGROUP_SIZE / gl_SubGroupSizeARB) ? s_Sums[localID] : 0);
+
+    // Returned the reduced sum
+    return waveReduced;
+}
+
+void StoreReduceTable(uint index, uint value)
+{
+    g_ReduceTable[index] = value;
+}
+
+layout(local_size_x = FFX_PARALLELSORT_THREADGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+void main()
+{
+    const uint localID = gl_LocalInvocationID.x;
+    const uint groupID = gl_WorkGroupID.x;
+
+    const uint numReduceThreadgroupPerBin = g_SortData.NumReduceThreadgroupPerBin;
+    const uint numThreadGroups = g_SortData.NumThreadGroups;
+
+    // Figure out what bin data we are reducing
+    const uint binID = groupID / numReduceThreadgroupPerBin;
+    const uint binOffset = binID * numThreadGroups;
+
+    // Get the base index for this thread group
+    const uint baseIndex = (groupID % numReduceThreadgroupPerBin) * FFX_PARALLELSORT_ELEMENTS_PER_THREAD * FFX_PARALLELSORT_THREADGROUP_SIZE;
+
+    // Calculate partial sums for entries this thread reads in
+    uint threadgroupSum = 0;
+    for (uint i = 0; i < FFX_PARALLELSORT_ELEMENTS_PER_THREAD; ++i)
+    {
+        const uint dataIndex = baseIndex + (i * FFX_PARALLELSORT_THREADGROUP_SIZE) + localID;
+        threadgroupSum += (dataIndex < numThreadGroups) ? LoadSumTable(binOffset + dataIndex) : 0;
+    }
+
+    // Reduce across the entirety of the thread group
+    threadgroupSum = ffxParallelSortThreadgroupReduce(threadgroupSum, localID);
+
+    // First thread of the group writes out the reduced sum for the bin
+    if (localID == 0)
+        StoreReduceTable(groupID, threadgroupSum);
+
+    // What this will look like in the reduced table is:
+    //	[ [bin0 ... bin0] [bin1 ... bin1] ... ]
+}

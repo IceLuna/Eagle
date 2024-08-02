@@ -1,0 +1,70 @@
+#include "sort/common.h"
+
+layout(binding = 0) readonly buffer KeyCountBuffer
+{
+    uint g_KeyCount[];
+};
+
+layout(binding = 1) writeonly buffer ScatterArgsBuffer
+{
+    uvec3 g_ScatterArgs;
+};
+
+layout(binding = 2) writeonly buffer ReduceScanArgsBuffer
+{
+    uvec3 g_ReduceScanArgs;
+};
+
+layout(binding = 3) writeonly buffer SortDataBuffer
+{
+    SortData g_SortData;
+};
+
+layout(push_constant) uniform PushConstants
+{
+    uint g_MaxThreadGroups;
+    uint g_Shift;
+    uint g_NumKeysOffset;
+};
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+void main()
+{
+    const uint sizeofUint = 4;
+    const uint numKeys = g_KeyCount[g_NumKeysOffset / sizeofUint];
+    SortData sortData;
+    sortData.NumKeys   = numKeys;
+    sortData.Shift     = g_Shift;
+
+    const uint blockSize = FFX_PARALLELSORT_ELEMENTS_PER_THREAD * FFX_PARALLELSORT_THREADGROUP_SIZE;
+    const uint numBlocks = (numKeys + blockSize - 1u) / blockSize;
+
+    // Figure out data distribution
+    uint numThreadGroupsToRun  = g_MaxThreadGroups;
+    uint blocksPerThreadGroup  = (numBlocks / numThreadGroupsToRun);
+    sortData.NumThreadGroupsWithAdditionalBlocks = numBlocks % numThreadGroupsToRun;
+
+    if (numBlocks < numThreadGroupsToRun)
+    {
+        blocksPerThreadGroup                         = 1u;
+        numThreadGroupsToRun                         = numBlocks;
+        sortData.NumThreadGroupsWithAdditionalBlocks = 0u;
+    }
+
+    sortData.NumThreadGroups         = numThreadGroupsToRun;
+    sortData.NumBlocksPerThreadGroup = int(blocksPerThreadGroup);
+
+    // Calculate the number of thread groups to run for reduction (each thread group can process `blockSize` number of entries)
+    uint numReducedThreadGroupsToRun =
+        FFX_PARALLELSORT_SORT_BIN_COUNT * ((blockSize > numThreadGroupsToRun) ? 1u : (numThreadGroupsToRun + blockSize - 1) / blockSize);
+    sortData.NumReduceThreadgroupPerBin = numReducedThreadGroupsToRun / FFX_PARALLELSORT_SORT_BIN_COUNT;
+    sortData.NumScanValues = numReducedThreadGroupsToRun;  // The number of reduce thread groups becomes our scan count (as each thread group writes out 1 value that needs scan prefix)
+
+    // Setup indirect constant buffer
+    g_SortData = sortData;
+
+    // Setup dispatch arguments
+    g_ScatterArgs = uvec3(numThreadGroupsToRun, 1u, 1u);
+    g_ReduceScanArgs = uvec3(numReducedThreadGroupsToRun, 1u, 1u);
+}

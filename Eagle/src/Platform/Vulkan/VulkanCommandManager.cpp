@@ -26,7 +26,7 @@ namespace Eagle
 		case CommandQueueFamily::Compute:  return indices.ComputeFamily;
 		case CommandQueueFamily::Transfer: return indices.TransferFamily;
 		}
-		assert(!"Unknown queue family");
+		EG_CORE_ASSERT(!"Unknown queue family");
 		return uint32_t(-1);
 	}
 
@@ -38,7 +38,7 @@ namespace Eagle
 		case CommandQueueFamily::Compute:  return device->GetComputeQueue();
 		case CommandQueueFamily::Transfer: return device->GetTransferQueue();
 		}
-		assert(!"Unknown queue family");
+		EG_CORE_ASSERT(!"Unknown queue family");
 		return VK_NULL_HANDLE;
 	}
 
@@ -46,11 +46,11 @@ namespace Eagle
 	{
 		switch (queueFamily)
 		{
-		case CommandQueueFamily::Graphics: return VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT;
+		case CommandQueueFamily::Graphics: return VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT;
 		case CommandQueueFamily::Compute:  return VK_QUEUE_COMPUTE_BIT;
 		case CommandQueueFamily::Transfer: return VK_QUEUE_TRANSFER_BIT;
 		}
-		assert(!"Unknown queue family");
+		EG_CORE_ASSERT(!"Unknown queue family");
 		return VK_QUEUE_GRAPHICS_BIT;
 	}
 
@@ -216,7 +216,7 @@ namespace Eagle
 		if (pushConstants)
 		{
 			auto& ranges = pipeline->GetState().ComputeShader->GetPushConstantRanges();
-			assert(ranges.size());
+			EG_CORE_ASSERT(ranges.size());
 			vkCmdPushConstants(m_CommandBuffer, (VkPipelineLayout)pipeline->GetPipelineLayoutHandle(),
 				ShaderTypeToVulkan(ranges[0].ShaderStage), ranges[0].Offset, ranges[0].Size, pushConstants);
 		}
@@ -236,7 +236,7 @@ namespace Eagle
 		if (pushConstants)
 		{
 			auto& ranges = pipeline->GetState().ComputeShader->GetPushConstantRanges();
-			assert(ranges.size());
+			EG_CORE_ASSERT(ranges.size());
 			vkCmdPushConstants(m_CommandBuffer, (VkPipelineLayout)pipeline->GetPipelineLayoutHandle(),
 				ShaderTypeToVulkan(ranges[0].ShaderStage), ranges[0].Offset, ranges[0].Size, pushConstants);
 		}
@@ -353,7 +353,7 @@ namespace Eagle
 
 	void VulkanCommandBuffer::EndGraphics()
 	{
-		assert(m_CurrentGraphicsPipeline);
+		EG_CORE_ASSERT(m_CurrentGraphicsPipeline);
 
 		auto& state = m_CurrentGraphicsPipeline->m_State;
 
@@ -386,16 +386,27 @@ namespace Eagle
 
 	void VulkanCommandBuffer::Draw(uint32_t vertexCount, uint32_t firstVertex)
 	{
-		assert(m_CurrentGraphicsPipeline);
+		EG_CORE_ASSERT(m_CurrentGraphicsPipeline);
 		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
 		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
 		vkCmdDraw(m_CommandBuffer, vertexCount, 1, firstVertex, 0);
 	}
 
+	void VulkanCommandBuffer::DrawIndirect(const Ref<Buffer>& args, size_t offset, uint32_t drawCount, uint32_t stride)
+	{
+		EG_CORE_ASSERT(m_CurrentGraphicsPipeline);
+		EG_CORE_ASSERT(args->HasUsage(BufferUsage::IndirectBuffer));
+
+		VkBuffer vkArgs = (VkBuffer)args->GetHandle();
+		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
+		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
+		vkCmdDrawIndirect(m_CommandBuffer, vkArgs, offset, drawCount, stride);
+	}
+
 	void VulkanCommandBuffer::Draw(const Ref<Buffer>& vertexBuffer, uint32_t vertexCount, uint32_t firstVertex)
 	{
-		assert(m_CurrentGraphicsPipeline);
-		assert(vertexBuffer->HasUsage(BufferUsage::VertexBuffer));
+		EG_CORE_ASSERT(m_CurrentGraphicsPipeline);
+		EG_CORE_ASSERT(vertexBuffer->HasUsage(BufferUsage::VertexBuffer));
 
 		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
 		VkBuffer vkVertex = (VkBuffer)vertexBuffer->GetHandle();
@@ -406,13 +417,61 @@ namespace Eagle
 		vkCmdDraw(m_CommandBuffer, vertexCount, 1, firstVertex, 0);
 	}
 
+	void VulkanCommandBuffer::DrawIndirect(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& args, size_t offset, uint32_t drawCount, uint32_t stride)
+	{
+		EG_CORE_ASSERT(m_CurrentGraphicsPipeline);
+		EG_CORE_ASSERT(vertexBuffer->HasUsage(BufferUsage::VertexBuffer));
+		EG_CORE_ASSERT(args->HasUsage(BufferUsage::IndirectBuffer));
+
+		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
+		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+		VkBuffer vkVertex = (VkBuffer)vertexBuffer->GetHandle();
+		VkBuffer vkArgs = (VkBuffer)args->GetHandle();
+		VkDeviceSize offsets[] = { 0, 0 };
+		vkCmdBindVertexBuffers(m_CommandBuffer, 0, 1, &vkVertex, offsets);
+		vkCmdDrawIndirect(m_CommandBuffer, vkArgs, offset, drawCount, stride);
+	}
+
+	void VulkanCommandBuffer::DrawInstanced(const Ref<Buffer>& vertexBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance, const Ref<Buffer>& perInstanceBuffer)
+	{
+		EG_CORE_ASSERT(m_CurrentGraphicsPipeline);
+		EG_CORE_ASSERT(vertexBuffer->HasUsage(BufferUsage::VertexBuffer));
+		EG_CORE_ASSERT(perInstanceBuffer->HasUsage(BufferUsage::VertexBuffer));
+
+		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
+		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+		VkBuffer vertexBuffers[2] = { (VkBuffer)vertexBuffer->GetHandle(), (VkBuffer)perInstanceBuffer->GetHandle() };
+		VkDeviceSize offsets[] = { 0, 0 };
+		vkCmdBindVertexBuffers(m_CommandBuffer, 0, 2, vertexBuffers, offsets);
+		vkCmdDraw(m_CommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
+	}
+
+	void VulkanCommandBuffer::DrawInstancedIndirect(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& args, size_t offset, uint32_t drawCount, uint32_t stride, const Ref<Buffer>& perInstanceBuffer)
+	{
+		EG_CORE_ASSERT(m_CurrentGraphicsPipeline);
+		EG_CORE_ASSERT(vertexBuffer->HasUsage(BufferUsage::VertexBuffer));
+		EG_CORE_ASSERT(perInstanceBuffer->HasUsage(BufferUsage::VertexBuffer));
+		EG_CORE_ASSERT(args->HasUsage(BufferUsage::IndirectBuffer));
+
+		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
+		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+		VkBuffer vertexBuffers[2] = { (VkBuffer)vertexBuffer->GetHandle(), (VkBuffer)perInstanceBuffer->GetHandle() };
+		VkBuffer vkArgs = (VkBuffer)args->GetHandle();
+		VkDeviceSize offsets[] = { 0, 0 };
+		vkCmdBindVertexBuffers(m_CommandBuffer, 0, 2, vertexBuffers, offsets);
+		vkCmdDrawIndirect(m_CommandBuffer, vkArgs, offset, drawCount, stride);
+	}
+
 	void VulkanCommandBuffer::DrawIndexedInstanced(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, int32_t vertexOffset,
 		uint32_t instanceCount, uint32_t firstInstance, const Ref<Buffer>& perInstanceBuffer)
 	{
-		assert(m_CurrentGraphicsPipeline);
-		assert(vertexBuffer->HasUsage(BufferUsage::VertexBuffer));
-		assert(perInstanceBuffer->HasUsage(BufferUsage::VertexBuffer));
-		assert(indexBuffer->HasUsage(BufferUsage::IndexBuffer));
+		EG_CORE_ASSERT(m_CurrentGraphicsPipeline);
+		EG_CORE_ASSERT(vertexBuffer->HasUsage(BufferUsage::VertexBuffer));
+		EG_CORE_ASSERT(perInstanceBuffer->HasUsage(BufferUsage::VertexBuffer));
+		EG_CORE_ASSERT(indexBuffer->HasUsage(BufferUsage::IndexBuffer));
 
 		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
 		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
@@ -426,9 +485,9 @@ namespace Eagle
 
 	void VulkanCommandBuffer::DrawIndexed(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset)
 	{
-		assert(m_CurrentGraphicsPipeline);
-		assert(vertexBuffer->HasUsage(BufferUsage::VertexBuffer));
-		assert(indexBuffer->HasUsage(BufferUsage::IndexBuffer));
+		EG_CORE_ASSERT(m_CurrentGraphicsPipeline);
+		EG_CORE_ASSERT(vertexBuffer->HasUsage(BufferUsage::VertexBuffer));
+		EG_CORE_ASSERT(indexBuffer->HasUsage(BufferUsage::IndexBuffer));
 
 		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
 		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
@@ -452,7 +511,7 @@ namespace Eagle
 
 	void VulkanCommandBuffer::SetGraphicsRootConstants(const void* vertexRootConstants, const void* fragmentRootConstants)
 	{
-		assert(m_CurrentGraphicsPipeline);
+		EG_CORE_ASSERT(m_CurrentGraphicsPipeline);
 		const auto& pipelineState = m_CurrentGraphicsPipeline->GetState();
 
 		const Ref<Shader>& vs = pipelineState.VertexShader;
@@ -464,7 +523,7 @@ namespace Eagle
 		{
 			auto& ranges = vs->GetPushConstantRanges();
 			auto& fsRanges = fs->GetPushConstantRanges();
-			assert(ranges.size());
+			EG_CORE_ASSERT(ranges.size());
 
 			uint32_t fsRangeSize = fragmentRootConstants ? fsRanges[0].Size : 0;
 			VkPushConstantRange range;
@@ -478,7 +537,7 @@ namespace Eagle
 		if (fragmentRootConstants && (vertexRootConstants != fragmentRootConstants))
 		{
 			auto& ranges = fs->GetPushConstantRanges();
-			assert(ranges.size());
+			EG_CORE_ASSERT(ranges.size());
 			if (ranges[0].Size == 0)
 				return;
 
@@ -489,7 +548,7 @@ namespace Eagle
 			if (vertexRootConstants)
 			{
 				auto& vsRanges = vs->GetPushConstantRanges();
-				assert(vsRanges.size());
+				EG_CORE_ASSERT(vsRanges.size());
 
 				range.offset += vsRanges[0].Size;
 				range.size -= range.offset;
@@ -677,6 +736,20 @@ namespace Eagle
 		TransitionLayout(dst, BufferLayoutType::CopyDest, dstOldLayout);
 	}
 
+	void VulkanCommandBuffer::CopyBufferTransitionless(const Ref<Buffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size)
+	{
+		EG_CORE_ASSERT(src->HasUsage(BufferUsage::TransferSrc));
+		EG_CORE_ASSERT(dst->HasUsage(BufferUsage::TransferDst));
+		EG_CORE_ASSERT(src->GetLayout() == BufferReadAccess::CopySource);
+		EG_CORE_ASSERT(dst->GetLayout() == BufferLayoutType::CopyDest);
+
+		VkBufferCopy region{};
+		region.size = size;
+		region.srcOffset = srcOffset;
+		region.dstOffset = dstOffset;
+		vkCmdCopyBuffer(m_CommandBuffer, (VkBuffer)src->GetHandle(), (VkBuffer)dst->GetHandle(), 1, &region);
+	}
+
 	void VulkanCommandBuffer::CopyBuffer(const Ref<StagingBuffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size)
 	{
 		CopyBuffer(src->GetBuffer(), dst, srcOffset, dstOffset, size);
@@ -684,8 +757,8 @@ namespace Eagle
 
 	void VulkanCommandBuffer::FillBuffer(Ref<Buffer>& dst, uint32_t data, size_t offset, size_t numBytes)
 	{
-		assert(dst->HasUsage(BufferUsage::TransferDst));
-		assert(numBytes % 4 == 0);
+		EG_CORE_ASSERT(dst->HasUsage(BufferUsage::TransferDst));
+		EG_CORE_ASSERT(numBytes % 4 == 0);
 
 		BufferLayout layout = dst->GetLayout();
 		TransitionLayout(dst, layout, BufferLayoutType::CopyDest);
@@ -733,9 +806,9 @@ namespace Eagle
 		Ref<VulkanImage> vulkanImage = Cast<VulkanImage>(src);
 
 		const size_t regionsCount = regions.size();
-		assert(vulkanImage->HasUsage(ImageUsage::TransferSrc));
-		assert(dst->HasUsage(BufferUsage::TransferDst));
-		assert(regionsCount > 0);
+		EG_CORE_ASSERT(vulkanImage->HasUsage(ImageUsage::TransferSrc));
+		EG_CORE_ASSERT(dst->HasUsage(BufferUsage::TransferDst));
+		EG_CORE_ASSERT(regionsCount > 0);
 
 		std::vector<VkBufferImageCopy> imageCopyRegions;
 		imageCopyRegions.reserve(regionsCount);
@@ -767,8 +840,8 @@ namespace Eagle
 	{
 		Ref<VulkanImage> vulkanImage = Cast<VulkanImage>(image);
 
-		assert(vulkanImage->HasUsage(ImageUsage::TransferDst));
-		assert(!vulkanImage->HasUsage(ImageUsage::DepthStencilAttachment)); // Writing to depth-stencil is not supported
+		EG_CORE_ASSERT(vulkanImage->HasUsage(ImageUsage::TransferDst));
+		EG_CORE_ASSERT(!vulkanImage->HasUsage(ImageUsage::DepthStencilAttachment)); // Writing to depth-stencil is not supported
 
 		Ref<StagingBuffer> stagingBuffer = StagingManager::AcquireBuffer(size, false);
 		m_UsedStagingBuffers.insert(stagingBuffer.get());
@@ -796,8 +869,8 @@ namespace Eagle
 
 	void VulkanCommandBuffer::Write(Ref<Buffer>& buffer, const void* data, size_t size, size_t offset, BufferLayout initialLayout, BufferLayout finalLayout)
 	{
-		assert(buffer);
-		assert(buffer->HasUsage(BufferUsage::TransferDst));
+		EG_CORE_ASSERT(buffer);
+		EG_CORE_ASSERT(buffer->HasUsage(BufferUsage::TransferDst));
 
 		Ref<StagingBuffer> stagingBuffer = StagingManager::AcquireBuffer(size, false);
 		m_UsedStagingBuffers.insert(stagingBuffer.get());
@@ -824,10 +897,35 @@ namespace Eagle
 			TransitionLayout(buffer, BufferLayoutType::CopyDest, finalLayout);
 	}
 
+	void VulkanCommandBuffer::WriteTransitionless(Ref<Buffer>& buffer, const void* data, size_t size, size_t offset)
+	{
+		EG_CORE_ASSERT(buffer);
+		EG_CORE_ASSERT(buffer->HasUsage(BufferUsage::TransferDst));
+		EG_CORE_ASSERT(buffer->GetLayout() == BufferLayoutType::CopyDest);
+
+		Ref<StagingBuffer> stagingBuffer = StagingManager::AcquireBuffer(size, false);
+		m_UsedStagingBuffers.insert(stagingBuffer.get());
+		void* mapped = stagingBuffer->Map();
+		memcpy(mapped, data, size);
+		stagingBuffer->Unmap();
+
+		// Copy
+		{
+			auto& src = stagingBuffer->GetBuffer();
+			auto& dst = buffer;
+
+			VkBufferCopy region{};
+			region.size = size;
+			region.srcOffset = 0;
+			region.dstOffset = offset;
+			vkCmdCopyBuffer(m_CommandBuffer, (VkBuffer)src->GetHandle(), (VkBuffer)dst->GetHandle(), 1, &region);
+		}
+	}
+
 	void VulkanCommandBuffer::GenerateMips(Ref<Image>& image, ImageLayout initialLayout, ImageLayout finalLayout)
 	{
-		assert(image->HasUsage(ImageUsage::TransferSrc | ImageUsage::TransferDst));
-		assert(image->GetSamplesCount() == SamplesCount::Samples1); // Multisampled images are not supported
+		EG_CORE_ASSERT(image->HasUsage(ImageUsage::TransferSrc | ImageUsage::TransferDst));
+		EG_CORE_ASSERT(image->GetSamplesCount() == SamplesCount::Samples1); // Multisampled images are not supported
 
 		if (!VulkanContext::GetDevice()->GetPhysicalDevice()->IsMipGenerationSupported(image->GetFormat()))
 		{
@@ -1036,7 +1134,7 @@ namespace Eagle
 		{
 			uint32_t set = it.first;
 			auto it = descriptorSets.find(set);
-			assert(it != descriptorSets.end());
+			EG_CORE_ASSERT(it != descriptorSets.end());
 
 			VkDescriptorSet descriptorSet = (VkDescriptorSet)it->second->GetHandle();
 			vkCmdBindDescriptorSets(m_CommandBuffer, bindPoint, vkPipelineLayout,

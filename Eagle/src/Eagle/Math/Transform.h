@@ -18,6 +18,11 @@ namespace Eagle
 		Rotator& operator=(const Rotator& other) { m_Rotation = other.m_Rotation; return *this; }
 		Rotator& operator=(const glm::quat& other) { m_Rotation = other; return *this; }
 
+		bool operator== (const Rotator& other) const
+		{
+			return m_Rotation == other.m_Rotation;
+		}
+
 		const glm::quat& GetQuat() const { return m_Rotation; }
 		glm::quat& GetQuat() { return m_Rotation; }
 
@@ -110,6 +115,11 @@ namespace Eagle
 			result.Scale3D = Scale3D / other.Scale3D;
 
 			return result;
+		}
+
+		bool operator== (const Transform& other) const
+		{
+			return Location == other.Location && Rotation == other.Rotation && Scale3D == other.Scale3D;
 		}
 
 		static Transform Blend(const Transform& tr1, const Transform& tr2, float weight)

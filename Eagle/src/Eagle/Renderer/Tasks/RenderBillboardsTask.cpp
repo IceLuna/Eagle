@@ -160,6 +160,7 @@ namespace Eagle
 		m_Vertices.clear();
 		m_Vertices.reserve(m_BillboardsData.size() * 4);
 
+		// TODO: Optimize
 		size_t oldVertexIndex = 0;
 		for (auto& billboard : m_BillboardsData)
 		{

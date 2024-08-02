@@ -78,7 +78,11 @@ namespace Eagle
 		virtual void BeginGraphics(Ref<PipelineGraphics>& pipeline, const Ref<Framebuffer>& framebuffer) = 0;
 		virtual void EndGraphics() = 0;
 		virtual void Draw(uint32_t vertexCount, uint32_t firstVertex) = 0;
+		virtual void DrawIndirect(const Ref<Buffer>& args, size_t offset, uint32_t drawCount, uint32_t stride) = 0;
 		virtual void Draw(const Ref<Buffer>& vertexBuffer, uint32_t vertexCount, uint32_t firstVertex) = 0;
+		virtual void DrawIndirect(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& args, size_t offset, uint32_t drawCount, uint32_t stride) = 0;
+		virtual void DrawInstancedIndirect(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& args, size_t offset, uint32_t drawCount, uint32_t stride, const Ref<Buffer>& perInstanceBuffer) = 0;
+		virtual void DrawInstanced(const Ref<Buffer>& vertexBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance, const Ref<Buffer>& perInstanceBuffer) = 0;
 		virtual void DrawIndexedInstanced(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, int32_t vertexOffset,
 			uint32_t instanceCount, uint32_t firstInstance, const Ref<Buffer>& perInstanceBuffer) = 0;
 		virtual void DrawIndexed(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset) = 0;
@@ -114,6 +118,7 @@ namespace Eagle
 		void StorageBufferBarrier(const Ref<Buffer>& buffer) { TransitionLayout(buffer, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer); };
 		virtual void TransitionLayout(const Ref<Buffer>& buffer, BufferLayout oldLayout, BufferLayout newLayout) = 0;
 		virtual void CopyBuffer(const Ref<Buffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size) = 0;
+		virtual void CopyBufferTransitionless(const Ref<Buffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size) = 0; // Doesn't transition layouts
 		virtual void CopyBuffer(const Ref<StagingBuffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size) = 0;
 		virtual void FillBuffer(Ref<Buffer>& dst, uint32_t data, size_t offset = 0, size_t numBytes = 0) = 0;
 
@@ -125,6 +130,7 @@ namespace Eagle
 
 		virtual void Write(Ref<Image>& image, const void* data, size_t size, ImageLayout initialLayout, ImageLayout finalLayout) = 0;
 		virtual void Write(Ref<Buffer>& buffer, const void* data, size_t size, size_t offset, BufferLayout initialLayout, BufferLayout finalLayout) = 0;
+		virtual void WriteTransitionless(Ref<Buffer>& buffer, const void* data, size_t size, size_t offset) = 0;
 
 		virtual void GenerateMips(Ref<Image>& image, ImageLayout initialLayout, ImageLayout finalLayout) = 0;
 		virtual void GenerateMips(Ref<Image>& image, const std::vector<ScopedDataBuffer>& dataPerMip, ImageLayout initialLayout, ImageLayout finalLayout) = 0;

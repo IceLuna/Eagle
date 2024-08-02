@@ -1,4 +1,4 @@
-FidelityFX SSSR
+FidelityFX SSSR https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK
 
 AMD copyrighted code (MIT) 
 Copyright (c) 2021 Advanced Micro Devices, Inc. All rights reserved. 

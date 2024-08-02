@@ -130,6 +130,9 @@ namespace Eagle
 		GUID GetGUID() const { return m_GUID; }
 		void SetGUID(GUID guid) { m_GUID = guid; }
 
+		void SetGravity(const glm::vec3& gravity);
+		const glm::vec3& GetGravity() const { return m_Gravity; }
+
 		template <typename T>
 		auto GetAllEntitiesWith()
 		{
@@ -207,6 +210,10 @@ namespace Eagle
 			m_DirtyFlags.bText2DDirty = bDirty;
 		}
 
+		void AddParticleSystem(const ParticleSystemComponent* system);
+		void RemoveParticleSystem(const ParticleSystemComponent* system);
+		void UpdateParticleSystem(const ParticleSystemComponent* system);
+
 		void UpdateAnimGraphAsset(const Ref<AssetAnimationGraph>& graph);
 
 	private:
@@ -235,6 +242,7 @@ namespace Eagle
 		void OnTextAddedRemoved(entt::registry& r, entt::entity e);
 		void OnText2DAddedRemoved(entt::registry& r, entt::entity e);
 		void OnImage2DAddedRemoved(entt::registry& r, entt::entity e);
+		void OnParticleSystemAddedRemoved(entt::registry& r, entt::entity e);
 
 		// T - is component type
 		template<typename T>
@@ -387,6 +395,18 @@ namespace Eagle
 					m_DirtyFlags.bImage2DDirty = true;
 				}
 			}
+
+			if constexpr (std::is_base_of<ParticleSystemComponent, T>::value)
+			{
+				if (notification == Notification::OnStateChanged)
+				{
+					m_ParticlesToUpdate.emplace(&component);
+				}
+				else if (notification == Notification::OnTransformChanged)
+				{
+					m_DirtyTransformParticles.emplace(&component);
+				}
+			}
 		}
 
 	public:
@@ -419,6 +439,11 @@ namespace Eagle
 		std::unordered_set<const SkeletalMeshComponent*> m_DirtyTransformSkeletalMeshes;
 		std::unordered_set<const SpriteComponent*> m_DirtyTransformSprites;
 		std::unordered_set<const TextComponent*> m_DirtyTransformTexts;
+
+		std::unordered_set<const ParticleSystemComponent*> m_ParticlesToAdd;
+		std::unordered_set<const ParticleSystemComponent*> m_ParticlesToRemove;
+		std::unordered_set<const ParticleSystemComponent*> m_ParticlesToUpdate;
+		std::unordered_set<const ParticleSystemComponent*> m_DirtyTransformParticles;
 
 		std::unordered_map<GUID, Entity> m_AliveEntities;
 		std::vector<const PointLightComponent*> m_PointLights;
@@ -461,6 +486,7 @@ namespace Eagle
 		bool m_ReverbDebugBoxesDirty = true;
 
 		GUID m_GUID;
+		glm::vec3 m_Gravity = glm::vec3(0, -9.81f, 0.f);
 
 		friend class Entity;
 		friend class SceneSerializer;

@@ -244,6 +244,7 @@ namespace Eagle
 	, m_ViewportWidth(other->m_ViewportWidth)
 	, m_ViewportHeight(other->m_ViewportHeight)
 	, m_DebugName(debugName)
+	, m_Gravity(other->m_Gravity)
 	{
 		// Reuse renderer so that we don't allocate additional GPU resources
 		m_SceneRenderer = other->m_SceneRenderer;
@@ -281,6 +282,7 @@ namespace Eagle
 		SceneAddAndCopyComponent<TextComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<Text2DComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<Image2DComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<ParticleSystemComponent>(this, m_Registry, other->m_Registry, createdEntities);
 
 		for (auto entt : m_Registry.view<RigidBodyComponent>())
 		{
@@ -923,6 +925,30 @@ namespace Eagle
 			}
 		}
 
+		// Particle Systems
+		{
+			if (m_DirtyTransformParticles.size())
+			{
+				m_SceneRenderer->UpdateParticleTransforms(m_DirtyTransformParticles);
+				m_DirtyTransformParticles.clear();
+			}
+			if (m_ParticlesToAdd.size())
+			{
+				m_SceneRenderer->AddParticleSystems(m_ParticlesToAdd);
+				m_ParticlesToAdd.clear();
+			}
+			if (m_ParticlesToRemove.size())
+			{
+				m_SceneRenderer->RemoveParticleSystems(m_ParticlesToRemove);
+				m_ParticlesToRemove.clear();
+			}
+			if (m_ParticlesToUpdate.size())
+			{
+				m_SceneRenderer->UpdateParticleSystems(m_ParticlesToUpdate);
+				m_ParticlesToUpdate.clear();
+			}
+		}
+
 		if (bRuntime || bForceAnimationsUpdate)
 		{
 			m_AnimationTransforms = AnimationSystem::Update(m_SkeletalMeshes, ts);
@@ -932,7 +958,9 @@ namespace Eagle
 				m_SceneRenderer->UpdateSkeletalMeshesTransforms(m_DirtyTransformSkeletalMeshes);
 		}
 		else
+		{
 			m_AnimationTransforms = AnimationSystem::UpdateBasePose(m_SkeletalMeshes, ts);
+		}
 
 		const Camera* camera = bIsPlaying ? (Camera*)&m_RuntimeCamera->Camera : (Camera*)&m_EditorCamera;
 		m_SceneRenderer->SetPointLights(m_PointLights, m_DirtyFlags.bPointLightsDirty);
@@ -948,6 +976,7 @@ namespace Eagle
 		m_SceneRenderer->SetImages2D(m_Images2D, m_DirtyFlags.bImage2DDirty);
 		m_SceneRenderer->SetIsRuntime(bIsPlaying);
 		m_SceneRenderer->SetMeshesAnimationTransforms(std::move(m_AnimationTransforms));
+		m_SceneRenderer->SetGravity(m_Gravity);
 
 		const bool bDrawEditorHelpers = !bIsPlaying && bDrawMiscellaneous;
 		m_SceneRenderer->SetGridEnabled(bDrawEditorHelpers);
@@ -1028,6 +1057,8 @@ namespace Eagle
 					comp.Play();
 			}
 		}
+
+		m_PhysicsScene->SetGravity(m_Gravity);
 	}
 
 	void Scene::OnRuntimeStop()
@@ -1240,9 +1271,31 @@ namespace Eagle
 		return s_NullPhysicsActor;
 	}
 
+	void Scene::SetGravity(const glm::vec3& gravity)
+	{
+		m_Gravity = gravity;
+		if (m_PhysicsScene == m_RuntimePhysicsScene)
+			m_PhysicsScene->SetGravity(m_Gravity);
+	}
+
 	const CameraComponent* Scene::GetRuntimeCamera() const
 	{
 		return m_RuntimeCamera;
+	}
+
+	void Scene::AddParticleSystem(const ParticleSystemComponent* system)
+	{
+		m_ParticlesToAdd.emplace(system);
+	}
+
+	void Scene::RemoveParticleSystem(const ParticleSystemComponent* system)
+	{
+		m_ParticlesToRemove.emplace(system);
+	}
+
+	void Scene::UpdateParticleSystem(const ParticleSystemComponent* system)
+	{
+		m_ParticlesToUpdate.emplace(system);
 	}
 
 	void Scene::UpdateAnimGraphAsset(const Ref<AssetAnimationGraph>& graph)
@@ -1330,6 +1383,11 @@ namespace Eagle
 		m_DirtyFlags.bImage2DDirty = true;
 	}
 
+	void Scene::OnParticleSystemAddedRemoved(entt::registry& r, entt::entity e)
+	{
+		// TODO:
+	}
+
 	void Scene::ConnectSignals()
 	{
 		m_Registry.on_destroy<StaticMeshComponent>().connect<&Scene::OnStaticMeshComponentRemoved>(*this);
@@ -1346,6 +1404,8 @@ namespace Eagle
 		m_Registry.on_destroy<Text2DComponent>().connect<&Scene::OnText2DAddedRemoved>(*this);
 		m_Registry.on_construct<Image2DComponent>().connect<&Scene::OnImage2DAddedRemoved>(*this);
 		m_Registry.on_destroy<Image2DComponent>().connect<&Scene::OnImage2DAddedRemoved>(*this);
+		m_Registry.on_construct<ParticleSystemComponent>().connect<&Scene::OnParticleSystemAddedRemoved>(*this);
+		m_Registry.on_destroy<ParticleSystemComponent>().connect<&Scene::OnParticleSystemAddedRemoved>(*this);
 	}
 
 	void Scene::CopyComponents(Entity source, Entity dest)
@@ -1370,5 +1430,6 @@ namespace Eagle
 		EntityCopyComponent<TextComponent>(source, dest);
 		EntityCopyComponent<Text2DComponent>(source, dest);
 		EntityCopyComponent<Image2DComponent>(source, dest);
+		EntityCopyComponent<ParticleSystemComponent>(source, dest);
 	}
 }

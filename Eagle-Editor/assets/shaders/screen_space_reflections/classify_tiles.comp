@@ -3,6 +3,7 @@
 
 #extension GL_KHR_shader_subgroup_basic : require
 #extension GL_KHR_shader_subgroup_ballot : require
+#extension GL_KHR_shader_subgroup_shuffle : require
 
 #include "screen_space_reflections/common.h"
 #include "screen_space_reflections/ffx_denoiser_reflections_common.h"
@@ -111,9 +112,9 @@ void ClassifyTiles(uvec2 dispatchThreadId, uvec2 groupThreadId, float roughness)
 
     // Next we have to figure out for which pixels that ray is creating the values for. Thus, if we have to copy its value horizontal, vertical or across.
     bool bRequireCopy = !bNeedsRay && bNeedsDenoiser; // Our pixel only requires a copy if we want to run a denoiser on it but don't want to shoot a ray for it.
-    bool bCopyHorizontal = (g_SamplesPerQuad != 4) && bBaseRay && subgroupBroadcast(bRequireCopy, gl_SubgroupInvocationID ^ 1); // QuadReadAcrossX
-    bool bCopyVertical = (g_SamplesPerQuad == 1) && bBaseRay && subgroupBroadcast(bRequireCopy, gl_SubgroupInvocationID ^ 2); // QuadReadAcrossY
-    bool bCopyDiagonal = (g_SamplesPerQuad == 1) && bBaseRay && subgroupBroadcast(bRequireCopy, gl_SubgroupInvocationID ^ 3); // QuadReadAcrossDiagonal
+    bool bCopyHorizontal = (g_SamplesPerQuad != 4) && bBaseRay && subgroupShuffle(bRequireCopy, gl_SubgroupInvocationID ^ 1); // QuadReadAcrossX
+    bool bCopyVertical = (g_SamplesPerQuad == 1) && bBaseRay && subgroupShuffle(bRequireCopy, gl_SubgroupInvocationID ^ 2); // QuadReadAcrossY
+    bool bCopyDiagonal = (g_SamplesPerQuad == 1) && bBaseRay && subgroupShuffle(bRequireCopy, gl_SubgroupInvocationID ^ 3); // QuadReadAcrossDiagonal
 
     // Thus, we need to compact the rays and append them all at once to the ray list.
     uvec4 mask = subgroupBallot(bNeedsRay);
