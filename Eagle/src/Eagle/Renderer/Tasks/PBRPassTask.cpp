@@ -27,22 +27,12 @@ namespace Eagle
 		SetStutterlessEnabled(options.bStutterlessShaders);
 		SetTranslucentShadowsEnabled(options.bTranslucentShadows);
 		InitPipeline();
-
-		BufferSpecifications cameraViewDataBufferSpecs;
-		cameraViewDataBufferSpecs.Size = sizeof(glm::mat4);
-		cameraViewDataBufferSpecs.Usage = BufferUsage::UniformBuffer | BufferUsage::TransferDst;
-		cameraViewDataBufferSpecs.Layout = BufferReadAccess::Uniform;
-		m_CameraViewDataBuffer = Buffer::Create(cameraViewDataBufferSpecs, "CameraViewData");
 	}
 
 	void PBRPassTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
 		EG_GPU_TIMING_SCOPED(cmd, "PBR Pass");
 		EG_CPU_TIMING_SCOPED("PBR Pass");
-
-		auto& cameraViewBuffer = m_CameraViewDataBuffer;
-		cmd->Write(cameraViewBuffer, &m_Renderer.GetViewMatrix()[0][0], sizeof(glm::mat4), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-		cmd->TransitionLayout(cameraViewBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 		struct PushData
 		{
@@ -111,7 +101,7 @@ namespace Eagle
 		m_Pipeline->SetImageSampler(ibl->GetIrradianceImage(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_IRRADIANCE_MAP);
 		m_Pipeline->SetImageSampler(ibl->GetPrefilterImage(), ibl->GetPrefilterImageSampler(), EG_SCENE_SET, EG_BINDING_PREFILTER_MAP);
 		m_Pipeline->SetImageSampler(RenderManager::GetBRDFLUTImage(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_BRDF_LUT);
-		m_Pipeline->SetBuffer(m_CameraViewDataBuffer, EG_SCENE_SET, EG_BINDING_CAMERA_VIEW);
+		m_Pipeline->SetBuffer(m_Renderer.GetCameraBuffer(), EG_SCENE_SET, EG_BINDING_CAMERA_VIEW);
 		m_Pipeline->SetImageSampler(smDistribution, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SM_DISTRIBUTION);
 		m_Pipeline->SetImageSampler(ssaoImage, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SSAO);
 

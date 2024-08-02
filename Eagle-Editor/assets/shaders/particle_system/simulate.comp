@@ -52,6 +52,11 @@ layout(binding = 8) buffer DrawArgsBuffer
 layout(binding = 9)  uniform sampler2D g_Depth;
 layout(binding = 10) uniform sampler2D g_Normal;
 
+layout(binding = 11) uniform CameraView
+{
+	mat4 g_CameraView;
+};
+
 layout(push_constant) uniform PushConstants
 {
     mat4 g_ViewProj;
@@ -59,9 +64,7 @@ layout(push_constant) uniform PushConstants
     vec3 g_Gravity;
     float g_CameraNear;
 
-    vec3 g_CameraPos;
     float g_CameraFar;
-
     float g_DeltaTime;
     uint g_PreSimIndex;
     uint g_PostSimIndex;
@@ -188,8 +191,7 @@ void main()
 
     if (emitter.IsVisible == 1)
     {
-        const vec3 dir = g_CameraPos - particle.Position;
-        const float length2 = dot(dir, dir);
-        PushToDraw(particleIndex, length2);
+        const vec4 viewPos = g_CameraView * vec4(particle.Position, 1.0);
+        PushToDraw(particleIndex, viewPos.z);
     }
 }

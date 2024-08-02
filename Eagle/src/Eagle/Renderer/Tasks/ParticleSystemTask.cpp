@@ -354,9 +354,7 @@ namespace Eagle
 			glm::vec3 Gravity;
 			float CameraNear;
 
-			glm::vec3 CameraPos;
 			float CameraFar;
-
 			float DeltaTime;
 			uint32_t PreSimIndex;
 			uint32_t PostSimIndex;
@@ -364,7 +362,6 @@ namespace Eagle
 		pushData.ViewProj = m_Renderer.GetViewProjection();
 		pushData.Gravity = m_Renderer.GetGravity();
 		pushData.CameraNear = m_Renderer.GetZNear();
-		pushData.CameraPos = m_Renderer.GetViewPosition();
 		pushData.CameraFar = m_Renderer.GetZFar();
 		pushData.DeltaTime = Application::Get().GetTimestep();
 		pushData.PreSimIndex = m_PingPong;
@@ -383,6 +380,7 @@ namespace Eagle
 		m_Simulate->SetBuffer(m_DrawArgs, 0, 8);
 		m_Simulate->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 9);
 		m_Simulate->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 10);
+		m_Simulate->SetBuffer(m_Renderer.GetCameraBuffer(), 0, 11);
 
 		const ImageLayout oldDepthLayout = gbuffer.Depth->GetLayout();
 		cmd->TransitionLayout(gbuffer.Depth, oldDepthLayout, ImageReadAccess::PixelShaderRead);
@@ -802,7 +800,7 @@ namespace Eagle
 			depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
 			depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 			depthAttachment.Image = gBuffer.Depth;
-			// depthAttachment.bWriteDepth = true; TODO: Should enable?
+			// depthAttachment.bWriteDepth = true; // TODO: Should enable?
 			depthAttachment.DepthCompareOp = CompareOperation::LessEqual;
 			depthAttachment.ClearOperation = ClearOperation::Load;
 

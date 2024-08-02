@@ -31,7 +31,6 @@ namespace Eagle
 				m_Shader->SetDefines(m_ShaderDefines);
 		}
 
-		const Ref<Buffer>& GetCameraBuffer() const { return m_CameraViewDataBuffer; }
 		const Ref<Image>& GetSMDistribution() const { return m_ShadowMapDistribution; }
 
 	private:
@@ -50,7 +49,6 @@ namespace Eagle
 		Ref<PipelineCompute> m_Pipeline;
 		Ref<Shader> m_Shader;
 		Ref<Image> m_ResultImage;
-		Ref<Buffer> m_CameraViewDataBuffer;
 		Ref<Image> m_ShadowMapDistribution; // For soft shadows
 		ShaderDefines m_ShaderDefines;
 		PBRConstantsKernelInfo m_KernelInfo;

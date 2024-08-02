@@ -208,7 +208,7 @@ namespace Eagle
 		const Ref<Buffer>& GetFogDataBuffer() const { return m_FogTask->GetFogDataBuffer(); }
 
 		// Contains View Matrix
-		const Ref<Buffer>& GetCameraBuffer() const { return m_PBRPassTask->GetCameraBuffer(); }
+		const Ref<Buffer>& GetCameraBuffer() const { return m_CameraViewDataBuffer; }
 		const Ref<Image>& GetSMDistribution() const { return m_PBRPassTask->GetSMDistribution(); }
 
 		const Ref<Image>& GetSSAOResult() const { return m_SSAOTask->GetResult(); }
@@ -299,6 +299,7 @@ namespace Eagle
 		Ref<RendererTask> m_ScreenSpaceReflectionsTask;
 		
 		Ref<Buffer> m_Jitter;
+		Ref<Buffer> m_CameraViewDataBuffer;
 
 		GBuffer m_GBuffer;
 		Ref<Image> m_FinalImage;

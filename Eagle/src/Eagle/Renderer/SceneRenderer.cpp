@@ -49,6 +49,14 @@ namespace Eagle
 		SetOptions(options);
 		m_Options_RT = m_Options;
 
+		{
+			BufferSpecifications cameraViewDataBufferSpecs;
+			cameraViewDataBufferSpecs.Size = sizeof(glm::mat4);
+			cameraViewDataBufferSpecs.Usage = BufferUsage::UniformBuffer | BufferUsage::TransferDst;
+			cameraViewDataBufferSpecs.Layout = BufferReadAccess::Uniform;
+			m_CameraViewDataBuffer = Buffer::Create(cameraViewDataBufferSpecs, "CameraViewData");
+		}
+
 		ImageSpecifications finalColorSpecs;
 		finalColorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
 		finalColorSpecs.Layout = ImageLayoutType::RenderTarget;
@@ -153,6 +161,9 @@ namespace Eagle
 				cmd->Write(renderer->m_Jitter, &jitter, sizeof(glm::vec2), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
 				cmd->Barrier(renderer->m_Jitter);
 			}
+
+			auto& cameraViewBuffer = renderer->m_CameraViewDataBuffer;
+			cmd->Write(cameraViewBuffer, &(renderer->m_View[0][0]), sizeof(glm::mat4), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
 
 			renderer->m_LightsManagerTask->RecordCommandBuffer(cmd);
 			renderer->m_GeometryManagerTask->RecordCommandBuffer(cmd);
