@@ -8,11 +8,8 @@ layout(binding = 0) buffer PS_Data
 
 layout(binding = 1) buffer DrawArgsBuffer
 {
-    uint VertexCount;
-    uint InstanceCount;
-    uint FirstVertex;
-    uint FirstInstance;
-} g_DrawArgs;
+    DrawArgs g_DrawArgs[2];
+};
 
 layout(binding = 2) buffer DispatchArgsBuffer
 {
@@ -108,10 +105,15 @@ void main()
     if (lid == 0)
     {
         // Reset particle indirect draw instance count
-        g_DrawArgs.VertexCount   = 6;
-        g_DrawArgs.InstanceCount = 0;
-        g_DrawArgs.FirstVertex   = 0;
-        g_DrawArgs.FirstInstance = 0;
+        g_DrawArgs[0].VertexCount   = 6;
+        g_DrawArgs[0].InstanceCount = 0;
+        g_DrawArgs[0].FirstVertex   = 0;
+        g_DrawArgs[0].FirstInstance = 0;
+
+        g_DrawArgs[1].VertexCount   = 6;
+        g_DrawArgs[1].InstanceCount = 0;
+        g_DrawArgs[1].FirstVertex   = 0;
+        g_DrawArgs[1].FirstInstance = 0;
 
         g_Data.EmitCount = s_EmitCount[0];
         g_EmitArgs.x = uint(ceil(float(g_Data.EmitCount) / float(EG_PS_THREAD_SIZE)));

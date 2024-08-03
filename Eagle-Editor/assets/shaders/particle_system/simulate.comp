@@ -31,28 +31,35 @@ layout(binding = 5) buffer AliveIndicesPostSim
     uint g_AliveIndicesPostSim[];
 };
 
-layout(binding = 6) buffer IndicesToRenderBuffer
+layout(binding = 6) buffer IndicesToRenderOpaqueBuffer
 {
-    uint g_IndicesToRender[];
+    uint g_IndicesToRenderOpaque[];
 };
 
-layout(binding = 7) buffer DistancesBuffer
+layout(binding = 7) buffer DistancesOpaqueBuffer
 {
-    float g_Distances[];
+    float g_DistancesOpaque[];
 };
 
-layout(binding = 8) buffer DrawArgsBuffer
+layout(binding = 8) buffer IndicesToRenderTranslucentBuffer
 {
-    uint VertexCount;
-    uint InstanceCount;
-    uint FirstVertex;
-    uint FirstInstance;
-} g_DrawArgs;
+    uint g_IndicesToRenderTranslucent[];
+};
 
-layout(binding = 9)  uniform sampler2D g_Depth;
-layout(binding = 10) uniform sampler2D g_Normal;
+layout(binding = 9) buffer DistancesTranslucentBuffer
+{
+    float g_DistancesTranslucent[];
+};
 
-layout(binding = 11) uniform CameraView
+layout(binding = 10) buffer DrawArgsBuffer
+{
+    DrawArgs g_DrawArgs[2];
+};
+
+layout(binding = 11)  uniform sampler2D g_Depth;
+layout(binding = 12) uniform sampler2D g_Normal;
+
+layout(binding = 13) uniform CameraView
 {
 	mat4 g_CameraView;
 };
@@ -91,12 +98,20 @@ void PushDead(uint particleIndex)
     g_DeadIndices[insertIdx] = particleIndex;
 }
 
-void PushToDraw(uint particleIndex, float dist)
+void PushToDrawOpaque(uint particleIndex, float dist)
 {
     uint insertIdx;
-    EG_SUBGROUP_ATOMIC_INCREMENT(g_DrawArgs.InstanceCount, true, insertIdx);
-    g_IndicesToRender[insertIdx] = particleIndex;
-    g_Distances[insertIdx] = dist;
+    EG_SUBGROUP_ATOMIC_INCREMENT(g_DrawArgs[0].InstanceCount, true, insertIdx);
+    g_IndicesToRenderOpaque[insertIdx] = particleIndex;
+    g_DistancesOpaque[insertIdx] = dist;
+}
+
+void PushToDrawTranslucent(uint particleIndex, float dist)
+{
+    uint insertIdx;
+    EG_SUBGROUP_ATOMIC_INCREMENT(g_DrawArgs[1].InstanceCount, true, insertIdx);
+    g_IndicesToRenderTranslucent[insertIdx] = particleIndex;
+    g_DistancesTranslucent[insertIdx] = dist;
 }
 
 layout(local_size_x = EG_PS_THREAD_SIZE, local_size_y = 1, local_size_z = 1) in;
@@ -192,6 +207,9 @@ void main()
     if (emitter.IsVisible == 1)
     {
         const vec4 viewPos = g_CameraView * vec4(particle.Position, 1.0);
-        PushToDraw(particleIndex, viewPos.z);
+        if (HasFlag(emitter.Flags, Emitter_AlphaBlending_Mask))
+            PushToDrawTranslucent(particleIndex, viewPos.z);
+        else
+            PushToDrawOpaque(particleIndex, viewPos.z);
     }
 }

@@ -28,13 +28,12 @@ layout(binding = 1) readonly buffer IndicesToRender
     uint g_IndicesToRender[];
 };
 
+#ifdef EG_PARTICLE_BACK_TO_FRONT
 layout(binding = 2) uniform DrawDataBuffer
 {
-    uint VertexCount;
-    uint InstanceCount;
-    uint FirstVertex;
-    uint FirstInstance;
-} g_DrawArgs;
+    DrawArgs g_DrawArgs[2];
+};
+#endif
 
 layout(push_constant) uniform PushConstants
 {
@@ -48,7 +47,11 @@ layout(location = 2) flat out uint o_TextureIndex;
 
 void main()
 {
-    const uint particleIndex = g_IndicesToRender[g_DrawArgs.InstanceCount - gl_InstanceIndex - 1u];
+#ifdef EG_PARTICLE_BACK_TO_FRONT
+    const uint particleIndex = g_IndicesToRender[g_DrawArgs[1].InstanceCount - gl_InstanceIndex - 1u];
+#else
+    const uint particleIndex = g_IndicesToRender[gl_InstanceIndex];
+#endif
     const Particle particle = g_Particles[particleIndex];
 
     const vec2 uv = s_TexCoords[gl_VertexIndex] * (particle.AnimationUV1 - particle.AnimationUV0) + particle.AnimationUV0;

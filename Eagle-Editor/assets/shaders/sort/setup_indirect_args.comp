@@ -37,34 +37,43 @@ void main()
     sortData.NumKeys   = numKeys;
     sortData.Shift     = g_Shift;
 
-    const uint blockSize = FFX_PARALLELSORT_ELEMENTS_PER_THREAD * FFX_PARALLELSORT_THREADGROUP_SIZE;
-    const uint numBlocks = (numKeys + blockSize - 1u) / blockSize;
-
-    // Figure out data distribution
-    uint numThreadGroupsToRun  = g_MaxThreadGroups;
-    uint blocksPerThreadGroup  = (numBlocks / numThreadGroupsToRun);
-    sortData.NumThreadGroupsWithAdditionalBlocks = numBlocks % numThreadGroupsToRun;
-
-    if (numBlocks < numThreadGroupsToRun)
+    if (numKeys > 1)
     {
-        blocksPerThreadGroup                         = 1u;
-        numThreadGroupsToRun                         = numBlocks;
-        sortData.NumThreadGroupsWithAdditionalBlocks = 0u;
+        const uint blockSize = FFX_PARALLELSORT_ELEMENTS_PER_THREAD * FFX_PARALLELSORT_THREADGROUP_SIZE;
+        const uint numBlocks = (numKeys + blockSize - 1u) / blockSize;
+
+        // Figure out data distribution
+        uint numThreadGroupsToRun  = g_MaxThreadGroups;
+        uint blocksPerThreadGroup  = (numBlocks / numThreadGroupsToRun);
+        sortData.NumThreadGroupsWithAdditionalBlocks = numBlocks % numThreadGroupsToRun;
+
+        if (numBlocks < numThreadGroupsToRun)
+        {
+            blocksPerThreadGroup                         = 1u;
+            numThreadGroupsToRun                         = numBlocks;
+            sortData.NumThreadGroupsWithAdditionalBlocks = 0u;
+        }
+
+        sortData.NumThreadGroups         = numThreadGroupsToRun;
+        sortData.NumBlocksPerThreadGroup = int(blocksPerThreadGroup);
+
+        // Calculate the number of thread groups to run for reduction (each thread group can process `blockSize` number of entries)
+        uint numReducedThreadGroupsToRun =
+            FFX_PARALLELSORT_SORT_BIN_COUNT * ((blockSize > numThreadGroupsToRun) ? 1u : (numThreadGroupsToRun + blockSize - 1) / blockSize);
+        sortData.NumReduceThreadgroupPerBin = numReducedThreadGroupsToRun / FFX_PARALLELSORT_SORT_BIN_COUNT;
+        sortData.NumScanValues = numReducedThreadGroupsToRun;  // The number of reduce thread groups becomes our scan count (as each thread group writes out 1 value that needs scan prefix)
+
+        // Setup dispatch arguments
+        g_ScatterArgs = uvec3(numThreadGroupsToRun, 1u, 1u);
+        g_ReduceScanArgs = uvec3(numReducedThreadGroupsToRun, 1u, 1u);
     }
-
-    sortData.NumThreadGroups         = numThreadGroupsToRun;
-    sortData.NumBlocksPerThreadGroup = int(blocksPerThreadGroup);
-
-    // Calculate the number of thread groups to run for reduction (each thread group can process `blockSize` number of entries)
-    uint numReducedThreadGroupsToRun =
-        FFX_PARALLELSORT_SORT_BIN_COUNT * ((blockSize > numThreadGroupsToRun) ? 1u : (numThreadGroupsToRun + blockSize - 1) / blockSize);
-    sortData.NumReduceThreadgroupPerBin = numReducedThreadGroupsToRun / FFX_PARALLELSORT_SORT_BIN_COUNT;
-    sortData.NumScanValues = numReducedThreadGroupsToRun;  // The number of reduce thread groups becomes our scan count (as each thread group writes out 1 value that needs scan prefix)
+    else
+    {
+        // Setup dispatch arguments
+        g_ScatterArgs = uvec3(0u, 1u, 1u);
+        g_ReduceScanArgs = uvec3(0u, 1u, 1u);
+    }
 
     // Setup indirect constant buffer
     g_SortData = sortData;
-
-    // Setup dispatch arguments
-    g_ScatterArgs = uvec3(numThreadGroupsToRun, 1u, 1u);
-    g_ReduceScanArgs = uvec3(numReducedThreadGroupsToRun, 1u, 1u);
 }

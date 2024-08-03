@@ -125,6 +125,9 @@ layout(local_size_x = FFX_PARALLELSORT_THREADGROUP_SIZE, local_size_y = 1, local
 
 void main()
 {
+    if (g_SortData.NumKeys < 2)
+        return;
+
     const uint localID = gl_LocalInvocationID.x;
     const uint groupID = gl_WorkGroupID.x;
     const uint baseIndex = FFX_PARALLELSORT_ELEMENTS_PER_THREAD * FFX_PARALLELSORT_THREADGROUP_SIZE * groupID;

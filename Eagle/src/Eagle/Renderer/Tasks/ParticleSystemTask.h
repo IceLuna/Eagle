@@ -83,19 +83,23 @@ namespace Eagle
 		Ref<Buffer> m_EmittersSpawnCountBuffer;
 		Ref<Buffer> m_EmittersBuffer;
 		Ref<Buffer> m_AliveIndices[2]; // Pre/Post simulation
-		Ref<Buffer> m_IndicesToRender;
 		Ref<Buffer> m_DeadIndices;
 		Ref<Buffer> m_SystemData;
 		Ref<Buffer> m_DispatchArgs;
 		Ref<Buffer> m_DrawArgs;
-		Ref<Buffer> m_DistancesBuffer;
+
+		Ref<Buffer> m_OpaqueIndicesToRender;
+		Ref<Buffer> m_OpaqueDistancesBuffer;
+		Ref<Buffer> m_TranslucentIndicesToRender;
+		Ref<Buffer> m_TranslucentDistancesBuffer;
 
 		Ref<PipelineCompute> m_UpdateMaxParticles;
 		Ref<PipelineCompute> m_PrepareData;
 		Ref<PipelineCompute> m_Emit;
 		Ref<PipelineCompute> m_Simulate;
 
-		Ref<PipelineGraphics> m_BillboardRender; // Alpha-blending enabled
+		Ref<PipelineGraphics> m_BillboardRenderTranslucent;
+		Ref<PipelineGraphics> m_BillboardRender;
 
 		glm::uvec2 m_Size;
 		uint32_t m_PingPong = 0; // Pre/Post simulation index
@@ -106,6 +110,7 @@ namespace Eagle
 		uint32_t m_MaxParticles = 100000;
 		uint32_t m_MaxEmitters = 100;
 
-		SortTask m_Sort;
+		SortTask m_SortOpaque;
+		SortTask m_SortTranslucent;
 	};
 }

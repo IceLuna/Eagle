@@ -137,6 +137,15 @@ struct Particle
 };
 
 #ifndef __cplusplus
+
+struct DrawArgs
+{
+	uint VertexCount;
+	uint InstanceCount;
+	uint FirstVertex;
+	uint FirstInstance;
+};
+
 vec3 Emitter_GetParticlePosition(Emitter emitter, inout Random random)
 {
 	switch (emitter.EmissionShape)

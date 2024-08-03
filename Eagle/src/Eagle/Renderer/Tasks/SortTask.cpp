@@ -58,6 +58,9 @@ namespace Eagle
 
     void SortTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd, const Ref<Buffer>& keysBuffer, const Ref<Buffer>& numKeysToSortBuffer, uint32_t numKeysOffset, uint32_t numKeysToSort, const Ref<Buffer>& payloadBuffer)
     {
+        if (!m_bIndirect && numKeysToSort < 2)
+            return;
+
         const std::vector keys = { keysBuffer, m_SortScratchBuffer };
         const std::vector payloads = { payloadBuffer, m_PayloadScratchBuffer };
 

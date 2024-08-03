@@ -75,7 +75,8 @@ namespace Eagle
 
 	ParticleSystemTask::ParticleSystemTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
-		, m_Sort(m_MaxParticles, true, true)
+		, m_SortOpaque(m_MaxParticles, true, true)
+		, m_SortTranslucent(m_MaxParticles, true, true)
 	{
 		m_Size = m_Renderer.GetViewportSize();
 		InitPipelines();
@@ -93,11 +94,16 @@ namespace Eagle
 		SimulatePass(cmd);
 
 		{
-			EG_GPU_TIMING_SCOPED(cmd, "Particle System. Sort");
-			EG_CPU_TIMING_SCOPED("Particle System. Sort");
-			m_Sort.RecordCommandBuffer(cmd, m_DistancesBuffer, m_DrawArgs, offsetof(DrawIndirectArgs, InstanceCount), 0u, m_IndicesToRender);
-			cmd->TransitionLayout(m_DrawArgs, BufferLayoutType::StorageBuffer, BufferReadAccess::IndirectArgument | BufferReadAccess::Uniform);
+			EG_GPU_TIMING_SCOPED(cmd, "Particle System. Sort Opaque");
+			EG_CPU_TIMING_SCOPED("Particle System. Sort Opaque");
+			m_SortOpaque.RecordCommandBuffer(cmd, m_OpaqueDistancesBuffer, m_DrawArgs, offsetof(DrawIndirectArgs, InstanceCount), 0u, m_OpaqueIndicesToRender);
 		}
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Particle System. Sort Translucent");
+			EG_CPU_TIMING_SCOPED("Particle System. Sort Translucent");
+			m_SortTranslucent.RecordCommandBuffer(cmd, m_TranslucentDistancesBuffer, m_DrawArgs, sizeof(DrawIndirectArgs) + offsetof(DrawIndirectArgs, InstanceCount), 0u, m_TranslucentIndicesToRender);
+		}
+		cmd->TransitionLayout(m_DrawArgs, BufferLayoutType::StorageBuffer, BufferReadAccess::IndirectArgument | BufferReadAccess::Uniform);
 
 		RenderPass(cmd);
 
@@ -108,6 +114,7 @@ namespace Eagle
 	{
 		m_Size = size;
 		m_BillboardRender->Resize(size);
+		m_BillboardRenderTranslucent->Resize(size);
 	}
 
 	void ParticleSystemTask::Update(const Ref<CommandBuffer>& cmd)
@@ -375,12 +382,14 @@ namespace Eagle
 		m_Simulate->SetBuffer(m_DeadIndices, 0, 3);
 		m_Simulate->SetBuffer(m_AliveIndices[m_PingPong], 0, 4);
 		m_Simulate->SetBuffer(m_AliveIndices[1 - m_PingPong], 0, 5);
-		m_Simulate->SetBuffer(m_IndicesToRender, 0, 6);
-		m_Simulate->SetBuffer(m_DistancesBuffer, 0, 7);
-		m_Simulate->SetBuffer(m_DrawArgs, 0, 8);
-		m_Simulate->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 9);
-		m_Simulate->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 10);
-		m_Simulate->SetBuffer(m_Renderer.GetCameraBuffer(), 0, 11);
+		m_Simulate->SetBuffer(m_OpaqueIndicesToRender, 0, 6);
+		m_Simulate->SetBuffer(m_OpaqueDistancesBuffer, 0, 7);
+		m_Simulate->SetBuffer(m_TranslucentIndicesToRender, 0, 8);
+		m_Simulate->SetBuffer(m_TranslucentDistancesBuffer, 0, 9);
+		m_Simulate->SetBuffer(m_DrawArgs, 0, 10);
+		m_Simulate->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 11);
+		m_Simulate->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 12);
+		m_Simulate->SetBuffer(m_Renderer.GetCameraBuffer(), 0, 13);
 
 		const ImageLayout oldDepthLayout = gbuffer.Depth->GetLayout();
 		cmd->TransitionLayout(gbuffer.Depth, oldDepthLayout, ImageReadAccess::PixelShaderRead);
@@ -390,8 +399,10 @@ namespace Eagle
 		cmd->TransitionLayout(gbuffer.Depth, ImageReadAccess::PixelShaderRead, oldDepthLayout);
 		cmd->Barrier(m_SystemData);
 		cmd->Barrier(m_ParticlesBuffer);
-		cmd->Barrier(m_IndicesToRender);
-		cmd->Barrier(m_DistancesBuffer);
+		cmd->Barrier(m_OpaqueIndicesToRender);
+		cmd->Barrier(m_OpaqueDistancesBuffer);
+		cmd->Barrier(m_TranslucentIndicesToRender);
+		cmd->Barrier(m_TranslucentDistancesBuffer);
 		cmd->Barrier(m_DrawArgs);
 	}
 
@@ -409,20 +420,29 @@ namespace Eagle
 		pushData.Proj = m_Renderer.GetProjectionMatrix();
 
 		m_BillboardRender->SetBuffer(m_ParticlesBuffer, 0, 0);
-		m_BillboardRender->SetBuffer(m_IndicesToRender, 0, 1);
-		m_BillboardRender->SetBuffer(m_DrawArgs, 0, 2);
+		m_BillboardRender->SetBuffer(m_OpaqueIndicesToRender, 0, 1);
+
+		m_BillboardRenderTranslucent->SetBuffer(m_ParticlesBuffer, 0, 0);
+		m_BillboardRenderTranslucent->SetBuffer(m_TranslucentIndicesToRender, 0, 1);
+		m_BillboardRenderTranslucent->SetBuffer(m_DrawArgs, 0, 2);
 
 		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
 		const bool bTexturesDirty = texturesChangedFrame >= m_TexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()];
 		if (bTexturesDirty)
 		{
 			m_BillboardRender->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), 1, 0);
+			m_BillboardRenderTranslucent->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), 1, 0);
 			m_TexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()] = texturesChangedFrame + 1;
 		}
 
 		cmd->BeginGraphics(m_BillboardRender);
 		cmd->SetGraphicsRootConstants(&pushData, nullptr);
 		cmd->DrawIndirect(m_DrawArgs, 0, 1, sizeof(DrawIndirectArgs));
+		cmd->EndGraphics();
+
+		cmd->BeginGraphics(m_BillboardRenderTranslucent);
+		cmd->SetGraphicsRootConstants(&pushData, nullptr);
+		cmd->DrawIndirect(m_DrawArgs, sizeof(DrawIndirectArgs), 1, sizeof(DrawIndirectArgs));
 		cmd->EndGraphics();
 	}
 
@@ -449,8 +469,10 @@ namespace Eagle
 			Ref<Buffer> aliveIndices0 = Buffer::Create(specs, m_AliveIndices[0]->GetDebugName());
 			Ref<Buffer> aliveIndices1 = Buffer::Create(specs, m_AliveIndices[1]->GetDebugName());
 			Ref<Buffer> deadIndices = Buffer::Create(specs, m_DeadIndices->GetDebugName());
-			m_IndicesToRender = Buffer::Create(specs, m_IndicesToRender->GetDebugName());
-			m_DistancesBuffer = Buffer::Create(specs, m_DistancesBuffer->GetDebugName());
+			m_OpaqueIndicesToRender = Buffer::Create(specs, m_OpaqueIndicesToRender->GetDebugName());
+			m_OpaqueDistancesBuffer = Buffer::Create(specs, m_OpaqueDistancesBuffer->GetDebugName());
+			m_TranslucentIndicesToRender = Buffer::Create(specs, m_TranslucentIndicesToRender->GetDebugName());
+			m_TranslucentDistancesBuffer = Buffer::Create(specs, m_TranslucentDistancesBuffer->GetDebugName());
 
 			cmd->CopyBuffer(m_ParticlesBuffer, newParticlesBuffer, 0, 0, m_ParticlesBuffer->GetSize());
 			cmd->CopyBuffer(m_AliveIndices[0], aliveIndices0, 0, 0, m_AliveIndices[0]->GetSize());
@@ -477,7 +499,8 @@ namespace Eagle
 			cmd->Barrier(m_DeadIndices);
 		}
 	
-		m_Sort = SortTask(m_MaxParticles, true, true);
+		m_SortOpaque = SortTask(m_MaxParticles, true, true);
+		m_SortTranslucent = SortTask(m_MaxParticles, true, true);
 	}
 
 	bool ParticleSystemTask::AddEmitter(const ParticleEmitter& emitter, const GUID& systemID, const glm::mat4& transform)
@@ -713,8 +736,10 @@ namespace Eagle
 			m_AliveIndices[0] = Buffer::Create(specs, "ParticleSystem_AliveIndices_Pre");
 			m_AliveIndices[1] = Buffer::Create(specs, "ParticleSystem_AliveIndices_Post");
 			m_DeadIndices = Buffer::Create(specs, "ParticleSystem_DeadIndices");
-			m_IndicesToRender = Buffer::Create(specs, "ParticleSystem_IndicesToRender");
-			m_DistancesBuffer = Buffer::Create(specs, "ParticleSystem_Distances");
+			m_OpaqueIndicesToRender = Buffer::Create(specs, "ParticleSystem_OpaqueIndicesToRender");
+			m_OpaqueDistancesBuffer = Buffer::Create(specs, "ParticleSystem_OpaqueDistances");
+			m_TranslucentIndicesToRender = Buffer::Create(specs, "ParticleSystem_TranslucentIndicesToRender");
+			m_TranslucentDistancesBuffer = Buffer::Create(specs, "ParticleSystem_TranslucentDistances");
 			
 			specs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 			specs.Size = m_MaxEmitters * sizeof(Emitter);
@@ -743,7 +768,7 @@ namespace Eagle
 			specs.Size = sizeof(DispatchIndirectArgs) * 2; // Emit args + Simulate args
 			m_DispatchArgs = Buffer::Create(specs, "ParticleSystem_DispatchArgs");
 
-			specs.Size = sizeof(DrawIndirectArgs);
+			specs.Size = sizeof(DrawIndirectArgs) * 2; // Args for opaque + translucent passes
 			m_DrawArgs = Buffer::Create(specs, "ParticleSystem_DrawArgs");
 		}
 
@@ -805,12 +830,20 @@ namespace Eagle
 			depthAttachment.ClearOperation = ClearOperation::Load;
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("particle_system/particle2D.vert", ShaderType::Vertex);
+			state.VertexShader = Shader::Create("particle_system/particle2D.vert", ShaderType::Vertex, ShaderDefines{ {"EG_PARTICLE_BACK_TO_FRONT", ""} });
 			state.FragmentShader = Shader::Create("particle_system/particle.frag", ShaderType::Fragment);
 			state.ColorAttachments.push_back(colorAttachment);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Front;
 
+			if (m_BillboardRenderTranslucent)
+				m_BillboardRenderTranslucent->SetState(state);
+			else
+				m_BillboardRenderTranslucent = PipelineGraphics::Create(state);
+
+			state.VertexShader = Shader::Create("particle_system/particle2D.vert", ShaderType::Vertex);
+			state.DepthStencilAttachment.bWriteDepth = true;
+			state.ColorAttachments[0].bBlendEnabled = false;
 			if (m_BillboardRender)
 				m_BillboardRender->SetState(state);
 			else
