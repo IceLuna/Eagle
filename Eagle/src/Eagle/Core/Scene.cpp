@@ -857,24 +857,38 @@ namespace Eagle
 			}
 
 			// AABBs
-			if (false)
+			if (true)
 			{
+				if (false)
 				{
 					auto view = m_Registry.view<SkeletalMeshComponent>();
 					for (auto entity : view)
 					{
-						auto& skeletal = view.get<SkeletalMeshComponent>(entity);
-						if (auto& asset = skeletal.GetMeshAsset())
+						const auto& skeletal = view.get<SkeletalMeshComponent>(entity);
+						if (const auto& asset = skeletal.GetMeshAsset())
 							Utils::DrawBox(m_DebugLinesToDraw, asset->GetMesh()->GetAABB(), skeletal.GetWorldTransform());
 					}
 				}
+				if (false)
 				{
 					auto view = m_Registry.view<StaticMeshComponent>();
 					for (auto entity : view)
 					{
-						auto& staticMesh = view.get<StaticMeshComponent>(entity);
-						if (auto& asset = staticMesh.GetMeshAsset())
+						const auto& staticMesh = view.get<StaticMeshComponent>(entity);
+						if (const auto& asset = staticMesh.GetMeshAsset())
 							Utils::DrawBox(m_DebugLinesToDraw, asset->GetMesh()->GetAABB(), staticMesh.GetWorldTransform());
+					}
+				}
+				if (false)
+				{
+					auto view = m_Registry.view<ParticleSystemComponent>();
+					for (auto entity : view)
+					{
+						const auto& system = view.get<ParticleSystemComponent>(entity);
+						for (const auto& emitter : system.Emitters)
+						{
+							Utils::DrawBox(m_DebugLinesToDraw, emitter.VisibilityAABB, system.GetWorldTransform());
+						}
 					}
 				}
 			}

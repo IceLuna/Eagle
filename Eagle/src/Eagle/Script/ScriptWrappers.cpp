@@ -5584,6 +5584,20 @@ namespace Eagle
 		return sceneRenderer->GetOptions().bEnable2DObjectPicking;
 	}
 
+	void Script::Eagle_Renderer_SetSortOpaqueParticlesEnabled(bool value)
+	{
+		auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+		options.bSortOpaqueParticles = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	bool Script::Eagle_Renderer_IsSortOpaqueParticlesEnabled()
+	{
+		const auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		return sceneRenderer->GetOptions().bSortOpaqueParticles;
+	}
+
 	//-------------- Project --------------
 	MonoString* Script::Eagle_Project_GetProjectPath()
 	{

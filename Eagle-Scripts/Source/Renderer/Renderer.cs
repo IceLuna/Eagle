@@ -465,6 +465,12 @@ namespace Eagle
             get { return Is2DObjectPickingEnabled_Native(); }
         }
 
+        public static bool bSortOpaqueParticles
+        {
+            set { SetSortOpaqueParticlesEnabled_Native(value); }
+            get { return IsSortOpaqueParticlesEnabled_Native(); }
+        }
+
         public static uint TransparencyLayers
         {
             set { SetTransparencyLayers_Native(value); }
@@ -603,6 +609,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern bool Is2DObjectPickingEnabled_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetSortOpaqueParticlesEnabled_Native(bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern bool IsSortOpaqueParticlesEnabled_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetTransparencyLayers_Native(uint value);

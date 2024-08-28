@@ -864,6 +864,7 @@ namespace Eagle
         bool bStutterlessShaders = true;
         bool bEnableObjectPicking = true;
         bool bEnable2DObjectPicking = false;
+        bool bSortOpaqueParticles = false;
         float GridScale = 4.f; // Editor Only
         uint32_t TransparencyLayers = 4u;
 
@@ -891,6 +892,7 @@ namespace Eagle
                 bStutterlessShaders == other.bStutterlessShaders &&
                 bEnableObjectPicking == other.bEnableObjectPicking &&
                 bEnable2DObjectPicking == other.bEnable2DObjectPicking &&
+                bSortOpaqueParticles == other.bSortOpaqueParticles &&
                 AutoExposure == other.AutoExposure &&
                 ScreenSpaceReflections == other.ScreenSpaceReflections &&
                 SSAOSettings == other.SSAOSettings &&

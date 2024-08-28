@@ -1177,6 +1177,12 @@ namespace Eagle
 			bSettingsChanged = true;
 		}
 
+		if (UI::Property("Sort opaque particles", options.bSortOpaqueParticles))
+		{
+			EG_CORE_TRACE("Changed `Sort opaque particles` to: {}", options.bSortOpaqueParticles);
+			bSettingsChanged = true;
+		}
+
 		if (UI::PropertyDrag("Line width", options.LineWidth, 0.1f))
 		{
 			options.LineWidth = glm::max(options.LineWidth, 0.f);

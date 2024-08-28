@@ -31,38 +31,40 @@ layout(binding = 5) buffer AliveIndicesPostSim
     uint g_AliveIndicesPostSim[];
 };
 
-layout(binding = 6) buffer IndicesToRenderOpaqueBuffer
-{
-    uint g_IndicesToRenderOpaque[];
-};
-
-layout(binding = 7) buffer DistancesOpaqueBuffer
-{
-    float g_DistancesOpaque[];
-};
-
-layout(binding = 8) buffer IndicesToRenderTranslucentBuffer
+layout(binding = 6) buffer IndicesToRenderTranslucentBuffer
 {
     uint g_IndicesToRenderTranslucent[];
 };
 
-layout(binding = 9) buffer DistancesTranslucentBuffer
+layout(binding = 7) buffer DistancesTranslucentBuffer
 {
     float g_DistancesTranslucent[];
 };
 
-layout(binding = 10) buffer DrawArgsBuffer
+layout(binding = 8) buffer DrawArgsBuffer
 {
     DrawArgs g_DrawArgs[2];
 };
 
-layout(binding = 11)  uniform sampler2D g_Depth;
-layout(binding = 12) uniform sampler2D g_Normal;
+layout(binding = 9)  uniform sampler2D g_Depth;
+layout(binding = 10) uniform sampler2D g_Normal;
 
-layout(binding = 13) uniform CameraView
+layout(binding = 11) uniform CameraView
 {
 	mat4 g_CameraView;
 };
+
+layout(binding = 12) buffer IndicesToRenderOpaqueBuffer
+{
+    uint g_IndicesToRenderOpaque[];
+};
+
+#ifdef EG_SORT_OPAQUE
+layout(binding = 13) buffer DistancesOpaqueBuffer
+{
+    float g_DistancesOpaque[];
+};
+#endif
 
 layout(push_constant) uniform PushConstants
 {
@@ -103,7 +105,9 @@ void PushToDrawOpaque(uint particleIndex, float dist)
     uint insertIdx;
     EG_SUBGROUP_ATOMIC_INCREMENT(g_DrawArgs[0].InstanceCount, true, insertIdx);
     g_IndicesToRenderOpaque[insertIdx] = particleIndex;
+#ifdef EG_SORT_OPAQUE
     g_DistancesOpaque[insertIdx] = dist;
+#endif
 }
 
 void PushToDrawTranslucent(uint particleIndex, float dist)

@@ -18,6 +18,7 @@ namespace Eagle
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(glm::uvec2 size) override;
+		void InitWithOptions(const SceneRendererSettings& settings);
 
 		void AddParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems);
 		void UpdateParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems);
@@ -30,6 +31,7 @@ namespace Eagle
 
 		void InitResources();
 		void InitPipelines();
+		void InitSortOpaqueResources();
 
 		void Update(const Ref<CommandBuffer>& cmd);
 		void PreparePass(const Ref<CommandBuffer>& cmd);
@@ -105,12 +107,13 @@ namespace Eagle
 		uint32_t m_PingPong = 0; // Pre/Post simulation index
 		uint64_t m_TexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 		bool bUpdateTransforms = false;
+		bool bSortOpaque = false;
 
 		uint32_t m_NumEmitters = 0;
 		uint32_t m_MaxParticles = 100000;
 		uint32_t m_MaxEmitters = 100;
 
-		SortTask m_SortOpaque;
+		Scope<SortTask> m_SortOpaque;
 		SortTask m_SortTranslucent;
 	};
 }

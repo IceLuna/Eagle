@@ -75,10 +75,12 @@ namespace Eagle
 
 	ParticleSystemTask::ParticleSystemTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
-		, m_SortOpaque(m_MaxParticles, true, true)
 		, m_SortTranslucent(m_MaxParticles, true, true)
 	{
 		m_Size = m_Renderer.GetViewportSize();
+		bSortOpaque = m_Renderer.GetOptions().bSortOpaqueParticles;
+
+		InitSortOpaqueResources();
 		InitPipelines();
 		InitResources();
 	}
@@ -93,11 +95,13 @@ namespace Eagle
 		EmitPass(cmd);
 		SimulatePass(cmd);
 
+		if (bSortOpaque)
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Particle System. Sort Opaque");
 			EG_CPU_TIMING_SCOPED("Particle System. Sort Opaque");
-			m_SortOpaque.RecordCommandBuffer(cmd, m_OpaqueDistancesBuffer, m_DrawArgs, offsetof(DrawIndirectArgs, InstanceCount), 0u, m_OpaqueIndicesToRender);
+			m_SortOpaque->RecordCommandBuffer(cmd, m_OpaqueDistancesBuffer, m_DrawArgs, offsetof(DrawIndirectArgs, InstanceCount), 0u, m_OpaqueIndicesToRender);
 		}
+
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Particle System. Sort Translucent");
 			EG_CPU_TIMING_SCOPED("Particle System. Sort Translucent");
@@ -115,6 +119,15 @@ namespace Eagle
 		m_Size = size;
 		m_BillboardRender->Resize(size);
 		m_BillboardRenderTranslucent->Resize(size);
+	}
+
+	void ParticleSystemTask::InitWithOptions(const SceneRendererSettings& settings)
+	{
+		if (bSortOpaque == settings.bSortOpaqueParticles)
+			return;
+
+		bSortOpaque = settings.bSortOpaqueParticles;
+		InitSortOpaqueResources();
 	}
 
 	void ParticleSystemTask::Update(const Ref<CommandBuffer>& cmd)
@@ -382,14 +395,17 @@ namespace Eagle
 		m_Simulate->SetBuffer(m_DeadIndices, 0, 3);
 		m_Simulate->SetBuffer(m_AliveIndices[m_PingPong], 0, 4);
 		m_Simulate->SetBuffer(m_AliveIndices[1 - m_PingPong], 0, 5);
-		m_Simulate->SetBuffer(m_OpaqueIndicesToRender, 0, 6);
-		m_Simulate->SetBuffer(m_OpaqueDistancesBuffer, 0, 7);
-		m_Simulate->SetBuffer(m_TranslucentIndicesToRender, 0, 8);
-		m_Simulate->SetBuffer(m_TranslucentDistancesBuffer, 0, 9);
-		m_Simulate->SetBuffer(m_DrawArgs, 0, 10);
-		m_Simulate->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 11);
-		m_Simulate->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 12);
-		m_Simulate->SetBuffer(m_Renderer.GetCameraBuffer(), 0, 13);
+		m_Simulate->SetBuffer(m_TranslucentIndicesToRender, 0, 6);
+		m_Simulate->SetBuffer(m_TranslucentDistancesBuffer, 0, 7);
+		m_Simulate->SetBuffer(m_DrawArgs, 0, 8);
+		m_Simulate->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 9);
+		m_Simulate->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 10);
+		m_Simulate->SetBuffer(m_Renderer.GetCameraBuffer(), 0, 11);
+		m_Simulate->SetBuffer(m_OpaqueIndicesToRender, 0, 12);
+		if (bSortOpaque)
+		{
+			m_Simulate->SetBuffer(m_OpaqueDistancesBuffer, 0, 13);
+		}
 
 		const ImageLayout oldDepthLayout = gbuffer.Depth->GetLayout();
 		cmd->TransitionLayout(gbuffer.Depth, oldDepthLayout, ImageReadAccess::PixelShaderRead);
@@ -400,7 +416,10 @@ namespace Eagle
 		cmd->Barrier(m_SystemData);
 		cmd->Barrier(m_ParticlesBuffer);
 		cmd->Barrier(m_OpaqueIndicesToRender);
-		cmd->Barrier(m_OpaqueDistancesBuffer);
+		if (bSortOpaque)
+		{
+			cmd->Barrier(m_OpaqueDistancesBuffer);
+		}
 		cmd->Barrier(m_TranslucentIndicesToRender);
 		cmd->Barrier(m_TranslucentDistancesBuffer);
 		cmd->Barrier(m_DrawArgs);
@@ -469,8 +488,11 @@ namespace Eagle
 			Ref<Buffer> aliveIndices0 = Buffer::Create(specs, m_AliveIndices[0]->GetDebugName());
 			Ref<Buffer> aliveIndices1 = Buffer::Create(specs, m_AliveIndices[1]->GetDebugName());
 			Ref<Buffer> deadIndices = Buffer::Create(specs, m_DeadIndices->GetDebugName());
+			if (bSortOpaque)
+			{
+				m_OpaqueDistancesBuffer = Buffer::Create(specs, m_OpaqueDistancesBuffer->GetDebugName());
+			}
 			m_OpaqueIndicesToRender = Buffer::Create(specs, m_OpaqueIndicesToRender->GetDebugName());
-			m_OpaqueDistancesBuffer = Buffer::Create(specs, m_OpaqueDistancesBuffer->GetDebugName());
 			m_TranslucentIndicesToRender = Buffer::Create(specs, m_TranslucentIndicesToRender->GetDebugName());
 			m_TranslucentDistancesBuffer = Buffer::Create(specs, m_TranslucentDistancesBuffer->GetDebugName());
 
@@ -499,7 +521,8 @@ namespace Eagle
 			cmd->Barrier(m_DeadIndices);
 		}
 	
-		m_SortOpaque = SortTask(m_MaxParticles, true, true);
+		if (bSortOpaque)
+			m_SortOpaque = MakeScope<SortTask>(m_MaxParticles, true, true);
 		m_SortTranslucent = SortTask(m_MaxParticles, true, true);
 	}
 
@@ -737,7 +760,6 @@ namespace Eagle
 			m_AliveIndices[1] = Buffer::Create(specs, "ParticleSystem_AliveIndices_Post");
 			m_DeadIndices = Buffer::Create(specs, "ParticleSystem_DeadIndices");
 			m_OpaqueIndicesToRender = Buffer::Create(specs, "ParticleSystem_OpaqueIndicesToRender");
-			m_OpaqueDistancesBuffer = Buffer::Create(specs, "ParticleSystem_OpaqueDistances");
 			m_TranslucentIndicesToRender = Buffer::Create(specs, "ParticleSystem_TranslucentIndicesToRender");
 			m_TranslucentDistancesBuffer = Buffer::Create(specs, "ParticleSystem_TranslucentDistances");
 			
@@ -798,12 +820,9 @@ namespace Eagle
 			
 			state.ComputeShader = Shader::Create("particle_system/emit.comp", ShaderType::Compute);
 			m_Emit = PipelineCompute::Create(state);
-			
-			state.ComputeShader = Shader::Create("particle_system/simulate.comp", ShaderType::Compute);
-			m_Simulate = PipelineCompute::Create(state);
 		}
 
-		// Graphics pipelines with Alpha-blending
+		// Graphics pipelines
 		{
 			const auto& gBuffer = m_Renderer.GetGBuffer();
 			ColorAttachment colorAttachment;
@@ -848,6 +867,38 @@ namespace Eagle
 				m_BillboardRender->SetState(state);
 			else
 				m_BillboardRender = PipelineGraphics::Create(state);
+		}
+	}
+	
+	void ParticleSystemTask::InitSortOpaqueResources()
+	{
+		// Simulate pipeline
+		{
+			PipelineComputeState state{};
+			ShaderDefines simulateDefs;
+			if (bSortOpaque)
+				simulateDefs["EG_SORT_OPAQUE"] = "";
+			state.ComputeShader = Shader::Create("particle_system/simulate.comp", ShaderType::Compute, simulateDefs);
+			if (m_Simulate)
+				m_Simulate->SetState(state);
+			else
+				m_Simulate = PipelineCompute::Create(state);
+		}
+
+		if (bSortOpaque)
+		{
+			BufferSpecifications specs{};
+			specs.Layout = BufferLayoutType::StorageBuffer;
+			specs.Usage = BufferUsage::StorageBuffer;
+			specs.Size = m_MaxParticles * sizeof(uint32_t);
+
+			m_SortOpaque = MakeScope<SortTask>(m_MaxParticles, true, true);
+			m_OpaqueDistancesBuffer = Buffer::Create(specs, "ParticleSystem_OpaqueDistances");
+		}
+		else
+		{
+			m_SortOpaque.reset();
+			m_OpaqueDistancesBuffer.reset();
 		}
 	}
 }
