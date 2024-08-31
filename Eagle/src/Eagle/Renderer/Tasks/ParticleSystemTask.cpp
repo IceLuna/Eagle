@@ -70,6 +70,7 @@ namespace Eagle
 			const float spawnInterval = emitter.bExplode ? outData.LifetimeMax : outData.LifetimeMax / float(outData.NumParticles);
 			outData.DeltaTime = spawnInterval; // Needed so it spawns particles on the first update
 			outData.IsVisible = 0u;
+			outData.SpawnedSoFar = 0u;
 		}
 	}
 
@@ -136,8 +137,9 @@ namespace Eagle
 		// 2. Process emitters that need to be removed
 		// 3. Process emitters that need to be added
 		// 4. Process emitters that need to be updated
-		// 5. Update transforms if required
-		// 6. Check if GPU Particles buffer is big enough and allocate enough memory if required
+		// 5. Process one-shot emitters
+		// 6. Update transforms if required
+		// 7. Check if GPU Particles buffer is big enough and allocate enough memory if required
 
 		bool bEmittersChangedOrAdded = false;
 
@@ -246,6 +248,33 @@ namespace Eagle
 		}
 
 		// Step 5
+		if (m_OneShotEmitters.size())
+		{
+			const auto now = std::chrono::high_resolution_clock::now();
+			for (auto it = m_OneShotEmitters.begin(); it != m_OneShotEmitters.end();)
+			{
+				auto& data = *it;
+				
+				if (m_EmittersMapping.find(data.first) == m_EmittersMapping.end())
+				{
+					// Particle was already removed
+					it = m_OneShotEmitters.erase(it);
+					continue;
+				}
+
+				const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - data.second).count() / 1000.f; // To seconds
+				if (duration >= data.first.LifetimeMax) // Is dead
+				{
+					GUID systemID = m_EmitterToSystemMapping.at(data.first.ID);
+					RemoveEmitter(data.first, systemID);
+					it = m_OneShotEmitters.erase(it);
+					continue;
+				}
+				++it;
+			}
+		}
+
+		// Step 6
 		if (bUpdateTransforms)
 		{
 			const size_t size = m_Transforms.size() * sizeof(glm::mat4);
@@ -258,7 +287,7 @@ namespace Eagle
 			bUpdateTransforms = false;
 		}
 		
-		// Step 6
+		// Step 7
 		if (bEmittersChangedOrAdded)
 		{
 			uint32_t maxParticles = 0;
@@ -535,6 +564,13 @@ namespace Eagle
 		}
 
 		m_EmittersToAdd.emplace_back(emitter);
+		if (emitter.bOneShot)
+		{
+			auto& data = m_OneShotEmitters.emplace_back();
+			data.first = emitter;
+			data.second = std::chrono::high_resolution_clock::now();
+		}
+
 		uint32_t transformIndex = 0;
 		if (m_FreeTransformSlots.empty())
 		{
@@ -549,6 +585,7 @@ namespace Eagle
 		m_EmitterTransformsMapping[emitter.ID] = transformIndex;
 		m_Transforms[transformIndex] = transform * Math::ToTransformMatrix(emitter.RelativeTransform);
 		m_SystemToEmittersMapping[systemID].emplace_back(emitter);
+		m_EmitterToSystemMapping[emitter.ID] = systemID;
 
 		return true;
 	}
@@ -569,10 +606,15 @@ namespace Eagle
 		m_FreeTransformSlots.push_back(transformIndex);
 		m_EmitterTransformsMapping.erase(transformIt);
 		m_EmittersMapping.erase(it);
+		m_EmitterToSystemMapping.erase(emitter.ID);
 
 		auto& systemEmitters = m_SystemToEmittersMapping[systemID];
 		auto itEmitter = std::find(systemEmitters.begin(), systemEmitters.end(), emitter);
 		systemEmitters.erase(itEmitter);
+		if (systemEmitters.empty())
+		{
+			m_SystemToEmittersMapping.erase(systemID);
+		}
 
 		return true;
 	}
@@ -666,17 +708,20 @@ namespace Eagle
 					}
 					else
 					{
-						const uint32_t emitterIndex = it->second;
-						// Update key
-						thisRef->m_EmittersMapping.erase(it);
-						thisRef->m_EmittersMapping.emplace(emitter, emitterIndex);
+						if (!it->first.bOneShot) // Update of OneShot emitters is not supported
+						{
+							const uint32_t emitterIndex = it->second;
+							// Update key
+							thisRef->m_EmittersMapping.erase(it);
+							thisRef->m_EmittersMapping.emplace(emitter, emitterIndex);
 
-						*itEmitterInSystem = emitter;
+							*itEmitterInSystem = emitter;
 
-						// New emitter is found in the old list, so update its state
-						thisRef->m_EmittersToUpdate.emplace_back(emitter, emitterIndex);
-						uint32_t transformIndex = thisRef->m_EmitterTransformsMapping.at(emitter.ID);
-						thisRef->m_Transforms[transformIndex] = transform * Math::ToTransformMatrix(emitter.RelativeTransform);
+							// New emitter is found in the old list, so update its state
+							thisRef->m_EmittersToUpdate.emplace_back(emitter, emitterIndex);
+							uint32_t transformIndex = thisRef->m_EmitterTransformsMapping.at(emitter.ID);
+							thisRef->m_Transforms[transformIndex] = transform * Math::ToTransformMatrix(emitter.RelativeTransform);
+						}
 					}
 				}
 			}
@@ -709,7 +754,6 @@ namespace Eagle
 				{
 					thisRef->RemoveEmitter(emitter, systemID);
 				}
-				thisRef->m_SystemToEmittersMapping.erase(systemID);
 			}
 		});
 	}
@@ -891,9 +935,9 @@ namespace Eagle
 			specs.Layout = BufferLayoutType::StorageBuffer;
 			specs.Usage = BufferUsage::StorageBuffer;
 			specs.Size = m_MaxParticles * sizeof(uint32_t);
+			m_OpaqueDistancesBuffer = Buffer::Create(specs, "ParticleSystem_OpaqueDistances");
 
 			m_SortOpaque = MakeScope<SortTask>(m_MaxParticles, true, true);
-			m_OpaqueDistancesBuffer = Buffer::Create(specs, "ParticleSystem_OpaqueDistances");
 		}
 		else
 		{

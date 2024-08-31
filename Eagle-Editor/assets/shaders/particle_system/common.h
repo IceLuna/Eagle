@@ -107,9 +107,9 @@ struct Emitter
 	float DeltaTime;
 
 	uint IsVisible;
+	uint SpawnedSoFar; // Used for `OneShot` emitters
 	float Padding0;
 	float Padding1;
-	float Padding2;
 };
 
 struct Particle

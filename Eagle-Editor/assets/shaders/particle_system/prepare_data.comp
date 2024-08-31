@@ -76,6 +76,18 @@ void main()
         {
             const uint spawnTriggersCount = uint(deltaTime / spawnInterval);
             count = spawnTriggersCount * (bExpode ? emitter.NumParticles : 1u);
+
+            const bool bOneShot = HasFlag(emitter.Flags, Emitter_OneShot_Mask);
+            if (bOneShot)
+            {
+                if ((emitter.SpawnedSoFar + count) >= emitter.NumParticles)
+                {
+                    count = emitter.NumParticles - emitter.SpawnedSoFar;
+                    emitter.Flags = emitter.Flags & (~Emitter_Enabled_Mask); // Disable emitter
+                }
+                emitter.SpawnedSoFar += count;
+            }
+
             s_EmitCount[lid] += count;
             emitter.DeltaTime -= float(spawnInterval * spawnTriggersCount);
         }
@@ -105,15 +117,13 @@ void main()
     if (lid == 0)
     {
         // Reset particle indirect draw instance count
-        g_DrawArgs[0].VertexCount   = 6;
-        g_DrawArgs[0].InstanceCount = 0;
-        g_DrawArgs[0].FirstVertex   = 0;
-        g_DrawArgs[0].FirstInstance = 0;
-
-        g_DrawArgs[1].VertexCount   = 6;
-        g_DrawArgs[1].InstanceCount = 0;
-        g_DrawArgs[1].FirstVertex   = 0;
-        g_DrawArgs[1].FirstInstance = 0;
+        for (uint i = 0; i < 2; ++i)
+        {
+            g_DrawArgs[i].VertexCount   = 6;
+            g_DrawArgs[i].InstanceCount = 0;
+            g_DrawArgs[i].FirstVertex   = 0;
+            g_DrawArgs[i].FirstInstance = 0;
+        }
 
         g_Data.EmitCount = s_EmitCount[0];
         g_EmitArgs.x = uint(ceil(float(g_Data.EmitCount) / float(EG_PS_THREAD_SIZE)));

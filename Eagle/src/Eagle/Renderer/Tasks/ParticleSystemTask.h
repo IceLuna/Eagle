@@ -54,8 +54,8 @@ namespace Eagle
 
 		struct DeadEmitterData
 		{
-			uint32_t EmitterIndex = 0;
 			std::chrono::high_resolution_clock::time_point TimeOfDeath;
+			uint32_t EmitterIndex = 0;
 			float TimeTillDead = 0.f; // In seconds
 
 			bool IsDead() const
@@ -71,10 +71,12 @@ namespace Eagle
 
 		std::unordered_map<ParticleEmitter, uint32_t> m_EmittersMapping; // uint32_t - index of the emitter inside of `m_EmittersBuffer` 
 		std::vector<ParticleEmitter> m_EmittersToAdd;
+		std::vector<std::pair<ParticleEmitter, std::chrono::high_resolution_clock::time_point>> m_OneShotEmitters; // time_point - time of death
 		std::vector<std::pair<ParticleEmitter, uint32_t>> m_EmittersToUpdate; // uint32_t - index of the emitter inside of `m_EmittersBuffer`
 		std::vector<std::pair<ParticleEmitter, uint32_t>> m_EmittersToRemove; // uint32_t - index of the emitter inside of `m_EmittersBuffer`
 		std::vector<DeadEmitterData> m_DeadEmitters;
 		std::unordered_map<GUID, std::vector<ParticleEmitter>> m_SystemToEmittersMapping; // Key - Particle system; Value - its emitters.
+		std::unordered_map<GUID, GUID> m_EmitterToSystemMapping; // Key - ID of an emitter; Value - its systems ID.
 
 		std::vector<glm::mat4> m_Transforms;
 		std::unordered_map<GUID, uint32_t> m_EmitterTransformsMapping; // GUID - Emitter ID; uint32_t - index of the emitter inside of `m_Transforms` 
