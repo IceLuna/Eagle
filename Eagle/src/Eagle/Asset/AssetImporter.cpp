@@ -375,6 +375,25 @@ namespace Eagle
 		return outputFilename;
 	}
 
+	Path AssetImporter::CreateParticleSystem(const Path& saveTo, const std::string& filename)
+	{
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::ParticleSystem);
+		out << YAML::Key << "GUID" << YAML::Value << GUID{};
+		out << YAML::EndMap;
+
+		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename);
+		std::ofstream fout(outputFilename);
+		fout << out.c_str();
+		fout.close();
+
+		AssetManager::Register(Asset::Create(outputFilename));
+
+		return outputFilename;
+	}
+
 	AssetType AssetImporter::GetAssetTypeByExtension(const Path& filepath)
 	{
 		if (!filepath.has_extension())

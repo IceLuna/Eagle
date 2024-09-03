@@ -973,6 +973,9 @@ namespace Eagle::UI
 
 	void TextWithSeparator(const std::string_view text, float thickness)
 	{
+		const int columns = ImGui::GetColumnsCount();
+		ImGui::Columns(1);
+
 		auto* window = ImGui::GetCurrentWindow();
 		const ImVec2 size = ImGui::CalcTextSize(text.data());
 		const auto& style = ImGui::GetStyle();
@@ -991,11 +994,13 @@ namespace Eagle::UI
 		ImGui::SameLine();
 		ImGui::SetCursorPosX(0.0f);
 		const ImVec2 pos = ImGui::GetCursorScreenPos();
-		const ImVec2 start = ImVec2(size.x + padding.x * 4.0f, size.y * 0.5f) + pos;
+		const ImVec2 start = ImVec2(size.x + (window->DC.TreeDepth * style.IndentSpacing) + (padding.x * 4.0f), size.y * 0.5f) + pos;
 		const ImVec2 end = pos + ImVec2(ImGui::GetWindowWidth() - padding.x - window->ScrollbarSizes.x, size.y * 0.5f);
 		window->DrawList->AddLine(start, end, ImGui::GetColorU32(ImGuiCol_Separator), thickness);
 
 		ImGui::Dummy(ImVec2(0.0f, size.y));
+
+		ImGui::Columns(columns);
 	}
 
 	void PushItemDisabled()

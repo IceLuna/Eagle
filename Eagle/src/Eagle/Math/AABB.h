@@ -6,6 +6,9 @@ namespace Eagle
 {
 	struct AABB
 	{
+		AABB() = default;
+		AABB(const glm::vec3& min, const glm::vec3& max) : Min(min), Max(max) {}
+
 		glm::vec3 Min = glm::vec3(std::numeric_limits<float>::max());
 		glm::vec3 Max = glm::vec3(std::numeric_limits<float>::lowest());
 

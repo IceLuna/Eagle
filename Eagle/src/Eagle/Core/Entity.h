@@ -130,12 +130,11 @@ namespace Eagle
 		T& AddComponent(Args&&... args)
 		{
 			EG_CORE_ASSERT(!HasComponent<T>(), "Entity already has component!");
-			T& component = m_Scene->m_Registry.emplace<T>(m_Entity, std::forward<Args>(args)...);
 
 			if constexpr (std::is_base_of<Component, T>::value)
-				component.OnInit(*this);
-
-			return component;
+				return m_Scene->m_Registry.emplace<T>(m_Entity, *this, std::forward<Args>(args)...);
+			else
+				return m_Scene->m_Registry.emplace<T>(m_Entity, std::forward<Args>(args)...);
 		}
 
 		template<typename T>

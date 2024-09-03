@@ -327,7 +327,12 @@ namespace Eagle
 			case AssetType::AnimationGraph:
 				SerializeAssetAnimationGraph(out, Cast<AssetAnimationGraph>(asset));
 				break;
-			default: EG_CORE_ERROR("Failed to serialize an asset. Unknown asset.");
+			case AssetType::ParticleSystem:
+				SerializeAssetParticleSystem(out, Cast<AssetParticleSystem>(asset));
+				break;
+			default:
+				EG_CORE_ASSERT(false);
+				EG_CORE_ERROR("Failed to serialize an asset. Unknown asset.");
 		}
 	}
 
@@ -751,6 +756,79 @@ namespace Eagle
 		out << YAML::Key << "Graph" << YAML::Value << YAML::BeginMap;
 		SerializeGraph(out, editorGraphData.Graph);
 		out << YAML::EndMap;
+
+		out << YAML::EndMap;
+	}
+
+	void Serializer::SerializeAssetParticleSystem(YAML::Emitter& out, const Ref<AssetParticleSystem>& asset)
+	{
+		const auto& emitters = asset->GetEmitters();
+
+		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::ParticleSystem);
+		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
+
+		out << YAML::Key << "Emitters";
+		out << YAML::BeginSeq;
+		for (const auto& emitter : emitters)
+		{
+			out << YAML::BeginMap;
+			if (const auto& asset = emitter.Texture)
+				out << YAML::Key << "Texture" << YAML::Value << asset->GetGUID();
+			out << YAML::Key << "ColorStart" << YAML::Value << emitter.ColorStart;
+			out << YAML::Key << "ColorEnd" << YAML::Value << emitter.ColorEnd;
+
+			out << YAML::Key << "VelocityMin" << YAML::Value << emitter.VelocityMin;
+			out << YAML::Key << "VelocityMax" << YAML::Value << emitter.VelocityMax;
+
+			out << YAML::Key << "VelocityCoefStart" << YAML::Value << emitter.VelocityCoefStart;
+			out << YAML::Key << "VelocityCoefEnd" << YAML::Value << emitter.VelocityCoefEnd;
+
+			out << YAML::Key << "RotationZStart" << YAML::Value << emitter.RotationZStart;
+			out << YAML::Key << "RotationZEnd" << YAML::Value << emitter.RotationZEnd;
+
+			out << YAML::Key << "SizeStart" << YAML::Value << emitter.SizeStart;
+			out << YAML::Key << "SizeEnd" << YAML::Value << emitter.SizeEnd;
+			out << YAML::Key << "ColliderSizeRatio" << YAML::Value << emitter.ColliderSizeRatio;
+
+			out << YAML::Key << "LifetimeMin" << YAML::Value << emitter.LifetimeMin;
+			out << YAML::Key << "LifetimeMax" << YAML::Value << emitter.LifetimeMax;
+
+			out << YAML::Key << "BouncinessMin" << YAML::Value << emitter.BouncinessMin;
+			out << YAML::Key << "BouncinessMax" << YAML::Value << emitter.BouncinessMax;
+
+			out << YAML::Key << "AnimationImagesNum" << YAML::Value << emitter.AnimationImagesNum;
+			out << YAML::Key << "AnimationSpeed" << YAML::Value << emitter.AnimationSpeed;
+
+			out << YAML::Key << "ID" << YAML::Value << emitter.ID;
+			out << YAML::Key << "RelativeLocation" << YAML::Value << emitter.RelativeTransform.Location;
+			out << YAML::Key << "RelativeRotation" << YAML::Value << emitter.RelativeTransform.Rotation;
+			out << YAML::Key << "VisibilityAABBMin" << YAML::Value << emitter.VisibilityAABB.Min;
+			out << YAML::Key << "VisibilityAABBMax" << YAML::Value << emitter.VisibilityAABB.Max;
+			out << YAML::Key << "NumParticles" << YAML::Value << emitter.NumParticles;
+			out << YAML::Key << "NumParticlesRatio" << YAML::Value << emitter.NumParticlesRatio;
+			out << YAML::Key << "FastForwardTo" << YAML::Value << emitter.FastForwardTo;
+			out << YAML::Key << "RadialAcceleration" << YAML::Value << emitter.RadialAcceleration;
+			out << YAML::Key << "TangentialAcceleration" << YAML::Value << emitter.TangentialAcceleration;
+
+			out << YAML::Key << "EmissionShape" << YAML::Value << Utils::GetEnumName(emitter.EmissionShape);
+			out << YAML::Key << "SphereRadius" << YAML::Value << emitter.SphereRadius;
+			out << YAML::Key << "BoxMin" << YAML::Value << emitter.BoxMin;
+			out << YAML::Key << "BoxMax" << YAML::Value << emitter.BoxMax;
+			out << YAML::Key << "RingRadius" << YAML::Value << emitter.RingRadius;
+			out << YAML::Key << "RingThickness" << YAML::Value << emitter.RingThickness;
+			out << YAML::Key << "CollisionMode" << YAML::Value << Utils::GetEnumName(emitter.CollisionMode);
+
+			out << YAML::Key << "bEmit" << YAML::Value << emitter.bEmit;
+			out << YAML::Key << "bOneShot" << YAML::Value << emitter.bOneShot;
+			out << YAML::Key << "bExplode" << YAML::Value << emitter.bExplode;
+			out << YAML::Key << "bApplyGravity" << YAML::Value << emitter.bApplyGravity;
+			out << YAML::Key << "bAlphaBlending" << YAML::Value << emitter.bAlphaBlending;
+
+			out << YAML::EndMap;
+		}
+		out << YAML::EndSeq;
 
 		out << YAML::EndMap;
 	}
@@ -1290,66 +1368,8 @@ namespace Eagle
 			
 			SerializeRelativeTransform(out, system.GetRelativeTransform());
 
-			out << YAML::Key << "Emitters";
-			out << YAML::BeginSeq;
-			for (const auto& emitter : system.Emitters)
-			{
-				out << YAML::BeginMap;
-				if (const auto& asset = emitter.Texture)
-					out << YAML::Key << "Texture" << YAML::Value << asset->GetGUID();
-				out << YAML::Key << "ColorStart" << YAML::Value << emitter.ColorStart;
-				out << YAML::Key << "ColorEnd" << YAML::Value << emitter.ColorEnd;
-
-				out << YAML::Key << "VelocityMin" << YAML::Value << emitter.VelocityMin;
-				out << YAML::Key << "VelocityMax" << YAML::Value << emitter.VelocityMax;
-
-				out << YAML::Key << "VelocityCoefStart" << YAML::Value << emitter.VelocityCoefStart;
-				out << YAML::Key << "VelocityCoefEnd" << YAML::Value << emitter.VelocityCoefEnd;
-
-				out << YAML::Key << "RotationZStart" << YAML::Value << emitter.RotationZStart;
-				out << YAML::Key << "RotationZEnd" << YAML::Value << emitter.RotationZEnd;
-
-				out << YAML::Key << "SizeStart" << YAML::Value << emitter.SizeStart;
-				out << YAML::Key << "SizeEnd" << YAML::Value << emitter.SizeEnd;
-				out << YAML::Key << "ColliderSizeRatio" << YAML::Value << emitter.ColliderSizeRatio;
-
-				out << YAML::Key << "LifetimeMin" << YAML::Value << emitter.LifetimeMin;
-				out << YAML::Key << "LifetimeMax" << YAML::Value << emitter.LifetimeMax;
-
-				out << YAML::Key << "BouncinessMin" << YAML::Value << emitter.BouncinessMin;
-				out << YAML::Key << "BouncinessMax" << YAML::Value << emitter.BouncinessMax;
-
-				out << YAML::Key << "AnimationImagesNum" << YAML::Value << emitter.AnimationImagesNum;
-				out << YAML::Key << "AnimationSpeed" << YAML::Value << emitter.AnimationSpeed;
-
-				out << YAML::Key << "ID" << YAML::Value << emitter.ID;
-				out << YAML::Key << "RelativeLocation" << YAML::Value << emitter.RelativeTransform.Location;
-				out << YAML::Key << "RelativeRotation" << YAML::Value << emitter.RelativeTransform.Rotation;
-				out << YAML::Key << "VisibilityAABBMin" << YAML::Value << emitter.VisibilityAABB.Min;
-				out << YAML::Key << "VisibilityAABBMax" << YAML::Value << emitter.VisibilityAABB.Max;
-				out << YAML::Key << "NumParticles" << YAML::Value << emitter.NumParticles;
-				out << YAML::Key << "NumParticlesRatio" << YAML::Value << emitter.NumParticlesRatio;
-				out << YAML::Key << "FastForwardTo" << YAML::Value << emitter.FastForwardTo;
-				out << YAML::Key << "RadialAcceleration" << YAML::Value << emitter.RadialAcceleration;
-				out << YAML::Key << "TangentialAcceleration" << YAML::Value << emitter.TangentialAcceleration;
-
-				out << YAML::Key << "EmissionShape" << YAML::Value << Utils::GetEnumName(emitter.EmissionShape);
-				out << YAML::Key << "SphereRadius" << YAML::Value << emitter.SphereRadius;
-				out << YAML::Key << "BoxMin" << YAML::Value << emitter.BoxMin;
-				out << YAML::Key << "BoxMax" << YAML::Value << emitter.BoxMax;
-				out << YAML::Key << "RingRadius" << YAML::Value << emitter.RingRadius;
-				out << YAML::Key << "RingThickness" << YAML::Value << emitter.RingThickness;
-				out << YAML::Key << "CollisionMode" << YAML::Value << Utils::GetEnumName(emitter.CollisionMode);
-
-				out << YAML::Key << "bEmit" << YAML::Value << emitter.bEmit;
-				out << YAML::Key << "bOneShot" << YAML::Value << emitter.bOneShot;
-				out << YAML::Key << "bExplode" << YAML::Value << emitter.bExplode;
-				out << YAML::Key << "bApplyGravity" << YAML::Value << emitter.bApplyGravity;
-				out << YAML::Key << "bAlphaBlending" << YAML::Value << emitter.bAlphaBlending;
-
-				out << YAML::EndMap;
-			}
-			out << YAML::EndSeq;
+			if (const auto& asset = system.GetAsset())
+				out << YAML::Key << "ParticleSystem" << YAML::Value << asset->GetGUID();
 			
 			out << YAML::EndMap; //ParticleSystemComponent
 		}
@@ -1797,74 +1817,7 @@ namespace Eagle
 			Transform relativeTransform;
 			DeserializeRelativeTransform(systemNode, relativeTransform);
 			system.SetRelativeTransform(relativeTransform);
-
-			auto emittersNode = systemNode["Emitters"];
-			for (const auto& node : emittersNode)
-			{
-				auto& emitter = system.Emitters.emplace_back();
-
-				emitter.Texture = GetAsset<AssetTexture2D>(node["Texture"]);
-				emitter.ColorStart = node["ColorStart"].as<glm::vec4>();
-				emitter.ColorEnd = node["ColorEnd"].as<glm::vec4>();
-
-				if (auto n = node["VelocityMin"])
-					emitter.VelocityMin = n.as<glm::vec3>();
-				if (auto n = node["VelocityMax"])
-					emitter.VelocityMax = n.as<glm::vec3>();
-
-				if (auto n = node["VelocityCoefStart"])
-					emitter.VelocityCoefStart = n.as<glm::vec3>();
-				if (auto n = node["VelocityCoefEnd"])
-					emitter.VelocityCoefEnd = n.as<glm::vec3>();
-
-				if (auto n = node["RotationZStart"])
-					emitter.RotationZStart = n.as<float>();
-				if (auto n = node["RotationZEnd"])
-					emitter.RotationZEnd = n.as<float>();
-
-				emitter.SizeStart = node["SizeStart"].as<glm::vec3>();
-				emitter.SizeEnd = node["SizeEnd"].as<glm::vec3>();
-				emitter.ColliderSizeRatio = node["ColliderSizeRatio"].as<glm::vec3>();
-
-				emitter.LifetimeMin = node["LifetimeMin"].as<float>();
-				emitter.LifetimeMax = node["LifetimeMax"].as<float>();
-
-				emitter.BouncinessMin = node["BouncinessMin"].as<float>();
-				emitter.BouncinessMax = node["BouncinessMax"].as<float>();
-
-				if (auto n = node["AnimationImagesNum"])
-					emitter.AnimationImagesNum = n.as<glm::uvec2>();
-				if (auto n = node["AnimationSpeed"])
-					emitter.AnimationSpeed = n.as<float>();
-
-				emitter.ID = node["ID"].as<GUID>();
-				emitter.RelativeTransform.Location = node["RelativeLocation"].as<glm::vec3>();
-				emitter.RelativeTransform.Rotation = node["RelativeRotation"].as<Rotator>();
-				emitter.VisibilityAABB.Min = node["VisibilityAABBMin"].as<glm::vec3>();
-				emitter.VisibilityAABB.Max = node["VisibilityAABBMax"].as<glm::vec3>();
-				emitter.NumParticles = node["NumParticles"].as<uint32_t>();
-				emitter.NumParticlesRatio = node["NumParticlesRatio"].as<float>();
-				emitter.FastForwardTo = node["FastForwardTo"].as<float>();
-				emitter.RadialAcceleration = node["RadialAcceleration"].as<float>();
-				emitter.TangentialAcceleration = node["TangentialAcceleration"].as<float>();
-				emitter.EmissionShape = Utils::GetEnumFromName<ParticleEmitter::EmissionShapeType>(node["EmissionShape"].as<std::string>());
-				if (auto n = node["SphereRadius"])
-					emitter.SphereRadius = n.as<glm::vec3>();
-				if (auto n = node["BoxMin"])
-					emitter.BoxMin = n.as<glm::vec3>();
-				if (auto n = node["BoxMax"])
-					emitter.BoxMax = n.as<glm::vec3>();
-				if (auto n = node["RingRadius"])
-					emitter.RingRadius = n.as<glm::vec3>();
-				if (auto n = node["RingThickness"])
-					emitter.RingThickness = n.as<glm::vec3>();
-				emitter.CollisionMode = Utils::GetEnumFromName<ParticleEmitter::CollisionModeType>(node["CollisionMode"].as<std::string>());
-				emitter.bEmit = node["bEmit"].as<bool>();
-				emitter.bOneShot = node["bOneShot"].as<bool>();
-				emitter.bExplode = node["bExplode"].as<bool>();
-				emitter.bApplyGravity = node["bApplyGravity"].as<bool>();
-				emitter.bAlphaBlending = node["bAlphaBlending"].as<bool>();
-			}
+			system.SetAsset(GetAsset<AssetParticleSystem>(systemNode["ParticleSystem"]));
 		}
 	}
 
@@ -2356,7 +2309,10 @@ namespace Eagle
 			return DeserializeAssetAnimation(baseNode, pathToAsset, bReloadRaw);
 		case AssetType::AnimationGraph:
 			return DeserializeAssetAnimationGraph(baseNode, pathToAsset);
+		case AssetType::ParticleSystem:
+			return DeserializeAssetParticleSystem(baseNode, pathToAsset);
 		default:
+			EG_CORE_ASSERT(false);
 			EG_CORE_ERROR("Failed to serialize an asset. Unknown asset.");
 			return {};
 		}
@@ -3144,6 +3100,92 @@ namespace Eagle
 		return result;
 	}
 
+	Ref<AssetParticleSystem> Serializer::DeserializeAssetParticleSystem(const YAML::Node& baseNode, const Path& pathToAsset)
+	{
+		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::ParticleSystem))
+			return {};
+
+		GUID guid = baseNode["GUID"].as<GUID>();
+
+		std::vector<ParticleEmitter> emitters;
+		auto emittersNode = baseNode["Emitters"];
+		for (const auto& node : emittersNode)
+		{
+			auto& emitter = emitters.emplace_back();
+
+			emitter.Texture = GetAsset<AssetTexture2D>(node["Texture"]);
+			emitter.ColorStart = node["ColorStart"].as<glm::vec4>();
+			emitter.ColorEnd = node["ColorEnd"].as<glm::vec4>();
+
+			if (auto n = node["VelocityMin"])
+				emitter.VelocityMin = n.as<glm::vec3>();
+			if (auto n = node["VelocityMax"])
+				emitter.VelocityMax = n.as<glm::vec3>();
+
+			if (auto n = node["VelocityCoefStart"])
+				emitter.VelocityCoefStart = n.as<glm::vec3>();
+			if (auto n = node["VelocityCoefEnd"])
+				emitter.VelocityCoefEnd = n.as<glm::vec3>();
+
+			if (auto n = node["RotationZStart"])
+				emitter.RotationZStart = n.as<float>();
+			if (auto n = node["RotationZEnd"])
+				emitter.RotationZEnd = n.as<float>();
+
+			emitter.SizeStart = node["SizeStart"].as<glm::vec3>();
+			emitter.SizeEnd = node["SizeEnd"].as<glm::vec3>();
+			emitter.ColliderSizeRatio = node["ColliderSizeRatio"].as<glm::vec3>();
+
+			emitter.LifetimeMin = node["LifetimeMin"].as<float>();
+			emitter.LifetimeMax = node["LifetimeMax"].as<float>();
+
+			emitter.BouncinessMin = node["BouncinessMin"].as<float>();
+			emitter.BouncinessMax = node["BouncinessMax"].as<float>();
+
+			if (auto n = node["AnimationImagesNum"])
+				emitter.AnimationImagesNum = n.as<glm::uvec2>();
+			if (auto n = node["AnimationSpeed"])
+				emitter.AnimationSpeed = n.as<float>();
+
+			emitter.ID = node["ID"].as<GUID>();
+			emitter.RelativeTransform.Location = node["RelativeLocation"].as<glm::vec3>();
+			emitter.RelativeTransform.Rotation = node["RelativeRotation"].as<Rotator>();
+			emitter.VisibilityAABB.Min = node["VisibilityAABBMin"].as<glm::vec3>();
+			emitter.VisibilityAABB.Max = node["VisibilityAABBMax"].as<glm::vec3>();
+			emitter.NumParticles = node["NumParticles"].as<uint32_t>();
+			emitter.NumParticlesRatio = node["NumParticlesRatio"].as<float>();
+			emitter.FastForwardTo = node["FastForwardTo"].as<float>();
+			emitter.RadialAcceleration = node["RadialAcceleration"].as<float>();
+			emitter.TangentialAcceleration = node["TangentialAcceleration"].as<float>();
+			emitter.EmissionShape = Utils::GetEnumFromName<ParticleEmitter::EmissionShapeType>(node["EmissionShape"].as<std::string>());
+			if (auto n = node["SphereRadius"])
+				emitter.SphereRadius = n.as<glm::vec3>();
+			if (auto n = node["BoxMin"])
+				emitter.BoxMin = n.as<glm::vec3>();
+			if (auto n = node["BoxMax"])
+				emitter.BoxMax = n.as<glm::vec3>();
+			if (auto n = node["RingRadius"])
+				emitter.RingRadius = n.as<glm::vec3>();
+			if (auto n = node["RingThickness"])
+				emitter.RingThickness = n.as<glm::vec3>();
+			emitter.CollisionMode = Utils::GetEnumFromName<ParticleEmitter::CollisionModeType>(node["CollisionMode"].as<std::string>());
+			emitter.bEmit = node["bEmit"].as<bool>();
+			emitter.bOneShot = node["bOneShot"].as<bool>();
+			emitter.bExplode = node["bExplode"].as<bool>();
+			emitter.bApplyGravity = node["bApplyGravity"].as<bool>();
+			emitter.bAlphaBlending = node["bAlphaBlending"].as<bool>();
+		}
+
+		class LocalAssetParticleSystem : public AssetParticleSystem
+		{
+		public:
+			LocalAssetParticleSystem(const Path& path, GUID guid, const std::vector<ParticleEmitter>& emitters)
+				: AssetParticleSystem(path, guid, emitters) {}
+		};
+
+		return MakeRef<LocalAssetParticleSystem>(pathToAsset, guid, emitters);
+	}
+
 	AssetType Serializer::GetAssetType(const Path& pathToAsset)
 	{
 		YAML::Node baseNode = YAML::LoadFile(pathToAsset.string());
@@ -3285,6 +3327,7 @@ namespace Eagle
 					case FieldType::AssetScene:
 					case FieldType::AssetAnimation:
 					case FieldType::AssetAnimationGraph:
+					case FieldType::AssetParticleSystem:
 						SetStoredValue<GUID>(node, field);
 				}
 			}
@@ -3320,6 +3363,7 @@ namespace Eagle
 			case FieldType::AssetScene:
 			case FieldType::AssetAnimation:
 			case FieldType::AssetAnimationGraph:
+			case FieldType::AssetParticleSystem:
 				return true;
 			default: return false;
 		}

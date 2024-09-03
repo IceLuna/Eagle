@@ -199,7 +199,7 @@ namespace Eagle
 			if (renderer->m_MotionBlurTask)
 				renderer->m_MotionBlurTask->RecordCommandBuffer(cmd);
 
-			renderer->m_ParticleTask->RecordCommandBuffer(cmd); // TODO: Should this be after `TransparencyTask`?
+			renderer->m_ParticleTask->RecordCommandBuffer(cmd); // TODO: Should this be after `TransparencyTask`? // TODO: Particle reflections in SSR pass?
 			
 			if (renderer->m_ScreenSpaceReflectionsTask)
 				renderer->m_ScreenSpaceReflectionsTask->RecordCommandBuffer(cmd);
@@ -262,7 +262,7 @@ namespace Eagle
 		m_ParticleTask->UpdateParticleSystems(systems);
 	}
 
-	void SceneRenderer::RemoveParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems)
+	void SceneRenderer::RemoveParticleSystems(const std::unordered_set<GUID>& systems)
 	{
 		m_ParticleTask->RemoveParticleSystems(systems);
 	}

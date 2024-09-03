@@ -21,6 +21,7 @@
 #include "../AssetEditors/EntityAssetEditor.h"
 #include "../AssetEditors/StaticMeshAssetEditor.h"
 #include "../AssetEditors/SkeletalMeshAssetEditor.h"
+#include "../AssetEditors/ParticleSystemAssetEditor.h"
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
@@ -30,7 +31,7 @@ namespace Eagle
 	constexpr static float s_ItemSize = 96.f;
 	char ContentBrowserPanel::searchBuffer[searchBufferSize];
 
-	static const char* s_ImportTooltip = "Import a texture, mesh, audio, or font";
+	static const char* s_ImportTooltip = "Import a texture, mesh, animation, audio, or font";
 	static bool IsReloadableAsset(AssetType type)
 	{
 		switch (type)
@@ -84,6 +85,15 @@ namespace Eagle
 		case AssetType::Scene:
 			borderColor = ImVec4(0.95f, 0.95f, 0.15f, 1.f); // TODO: it's the same as sound group. Figure it out
 			return true;
+		case AssetType::Animation:
+			borderColor = ImVec4(0.95f, 0.95f, 0.15f, 1.f); // TODO: it's the same as sound group. Figure it out
+			return true;
+		case AssetType::AnimationGraph:
+			borderColor = ImVec4(0.95f, 0.95f, 0.15f, 1.f); // TODO: it's the same as sound group. Figure it out
+			return true;
+		case AssetType::ParticleSystem:
+			borderColor = ImVec4(0.5f, 0.5f, 0.5f, 1.f); // TODO: fix color
+			return true;
 		}
 		return false;
 	}
@@ -128,6 +138,8 @@ namespace Eagle
 				AssetImporter::CreatePhysicsMaterial(m_CurrentDirectoryRelative);
 			if (ImGui::MenuItem("Create Sound Group"))
 				AssetImporter::CreateSoundGroup(m_CurrentDirectoryRelative);
+			if (ImGui::MenuItem("Create Particle System"))
+				AssetImporter::CreateParticleSystem(m_CurrentDirectoryRelative);
 			if (ImGui::MenuItem("Create Animation Graph"))
 			{
 				m_AnimationGraphImporter = AnimationGraphImporterPanel(m_CurrentDirectoryRelative);
@@ -656,35 +668,54 @@ namespace Eagle
 			}
 			bClicked = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && bClicked;
 
+			// Open asset editor
 			if (bClicked)
 			{
-				if (assetType == AssetType::Scene)
+				switch (assetType)
 				{
-					m_ShowSaveScenePopup = true;
-					m_SceneToOpen = Cast<AssetScene>(asset);
+					case AssetType::Texture2D:
+						AddAssetEditor<Texture2DAssetEditor, AssetTexture2D>(asset);
+						break;
+					case AssetType::TextureCube:
+						AddAssetEditor<TextureCubeAssetEditor, AssetTextureCube>(asset);
+						break;
+					case AssetType::StaticMesh:
+						AddAssetEditor<StaticMeshAssetEditor, AssetStaticMesh>(asset);
+						break;
+					case AssetType::SkeletalMesh:
+						AddAssetEditor<SkeletalMeshAssetEditor, AssetSkeletalMesh>(asset);
+						break;
+					case AssetType::Audio:
+						AddAssetEditor<AudioAssetEditor, AssetAudio>(asset);
+						break;
+					case AssetType::SoundGroup:
+						AddAssetEditor<SoundGroupAssetEditor, AssetSoundGroup>(asset);
+						break;
+					case AssetType::Material:
+						AddAssetEditor<MaterialAssetEditor, AssetMaterial>(asset);
+						break;
+					case AssetType::PhysicsMaterial:
+						AddAssetEditor<PhysicsMaterialAssetEditor, AssetPhysicsMaterial>(asset);
+						break;
+					case AssetType::Entity:
+						AddAssetEditor<EntityAssetEditor, AssetEntity>(asset, m_EditorLayer);
+						break;
+					case AssetType::Scene:
+					{
+						m_ShowSaveScenePopup = true;
+						m_SceneToOpen = Cast<AssetScene>(asset);
+						break;
+					}
+					case AssetType::Animation:
+						AddAssetEditor<AnimationAssetEditor, AssetAnimation>(asset);
+						break;
+					case AssetType::AnimationGraph:
+						AddAssetEditor<AnimationGraphAssetEditor, AssetAnimationGraph>(asset);
+						break;
+					case AssetType::ParticleSystem:
+						AddAssetEditor<ParticleSystemAssetEditor, AssetParticleSystem>(asset);
+						break;
 				}
-				else if (assetType == AssetType::Texture2D)
-					AddAssetEditor<Texture2DAssetEditor, AssetTexture2D>(asset);
-				else if (assetType == AssetType::TextureCube)
-					AddAssetEditor<TextureCubeAssetEditor, AssetTextureCube>(asset);
-				else if (assetType == AssetType::Material)
-					AddAssetEditor<MaterialAssetEditor, AssetMaterial>(asset);
-				else if (assetType == AssetType::PhysicsMaterial)
-					AddAssetEditor<PhysicsMaterialAssetEditor, AssetPhysicsMaterial>(asset);
-				else if (assetType == AssetType::Audio)
-					AddAssetEditor<AudioAssetEditor, AssetAudio>(asset);
-				else if (assetType == AssetType::SoundGroup)
-					AddAssetEditor<SoundGroupAssetEditor, AssetSoundGroup>(asset);
-				else if (assetType == AssetType::Entity)
-					AddAssetEditor<EntityAssetEditor, AssetEntity>(asset, m_EditorLayer);
-				else if (assetType == AssetType::AnimationGraph)
-					AddAssetEditor<AnimationGraphAssetEditor, AssetAnimationGraph>(asset);
-				else if (assetType == AssetType::Animation)
-					AddAssetEditor<AnimationAssetEditor, AssetAnimation>(asset);
-				else if (assetType == AssetType::SkeletalMesh)
-					AddAssetEditor<SkeletalMeshAssetEditor, AssetSkeletalMesh>(asset);
-				else if (assetType == AssetType::StaticMesh)
-					AddAssetEditor<StaticMeshAssetEditor, AssetStaticMesh>(asset);
 			}
 
 			bHoveredAnyItem |= ImGui::IsItemHovered();
@@ -976,6 +1007,8 @@ namespace Eagle
 				return m_EntityIcon;
 			case AssetType::Scene:
 				return m_SceneIcon;
+			case AssetType::ParticleSystem:
+				return m_UnknownIcon; // TODO:
 			default:
 				return m_UnknownIcon;
 		}

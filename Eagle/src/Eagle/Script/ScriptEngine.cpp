@@ -705,7 +705,8 @@ namespace Eagle
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetEntity")]           = FieldType::AssetEntity;
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetScene")]            = FieldType::AssetScene;
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetAnimation")]        = FieldType::AssetAnimation;
-		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetAnimationGraph")]        = FieldType::AssetAnimationGraph;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetAnimationGraph")]   = FieldType::AssetAnimationGraph;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetParticleSystem")]   = FieldType::AssetParticleSystem;
 
 		return true;
 	}

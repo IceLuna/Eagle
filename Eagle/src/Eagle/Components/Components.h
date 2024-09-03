@@ -45,7 +45,7 @@ namespace Eagle
 	class OwnershipComponent : public Component
 	{
 	public:
-		OwnershipComponent() = default;
+		OwnershipComponent(const Entity& entity) : Component(entity) {}
 
 		OwnershipComponent& operator= (const OwnershipComponent& other)
 		{
@@ -109,8 +109,8 @@ namespace Eagle
 	class LightComponent : public SceneComponent
 	{
 	public:
-		LightComponent() = default;
-		LightComponent(const glm::vec3& lightColor) : m_LightColor(lightColor) {}
+		LightComponent(const Entity& entity) : SceneComponent(entity) {}
+		LightComponent(const Entity& entity, const glm::vec3& lightColor) : SceneComponent(entity), m_LightColor(lightColor) {}
 		COMPONENT_DEFAULTS(LightComponent);
 
 		const glm::vec3& GetLightColor() const { return m_LightColor; }
@@ -162,7 +162,7 @@ namespace Eagle
 	class PointLightComponent : public LightComponent
 	{
 	public:
-		PointLightComponent() = default;
+		PointLightComponent(const Entity& entity) : LightComponent(entity) {}
 		PointLightComponent(const PointLightComponent&) = delete;
 		PointLightComponent(PointLightComponent&& other) = default;
 		PointLightComponent& operator=(PointLightComponent&& other) = default;
@@ -254,9 +254,9 @@ namespace Eagle
 	class DirectionalLightComponent : public LightComponent
 	{
 	public:
-		DirectionalLightComponent() = default;
-		DirectionalLightComponent(const glm::vec3& lightColor)
-			: LightComponent(lightColor) {}
+		DirectionalLightComponent(const Entity& entity) : LightComponent(entity) {}
+		DirectionalLightComponent(const Entity& entity, const glm::vec3& lightColor)
+			: LightComponent(entity, lightColor) {}
 
 		COMPONENT_DEFAULTS(DirectionalLightComponent);
 
@@ -267,7 +267,7 @@ namespace Eagle
 	class SpotLightComponent : public LightComponent
 	{
 	public:
-		SpotLightComponent() = default;
+		SpotLightComponent(const Entity& entity) : LightComponent(entity) {}
 
 		SpotLightComponent(const SpotLightComponent&) = delete;
 		SpotLightComponent(SpotLightComponent&& other) = default;
@@ -388,7 +388,7 @@ namespace Eagle
 	class SpriteComponent : public SceneComponent
 	{
 	public:
-		SpriteComponent() = default;
+		SpriteComponent(const Entity& entity) : SceneComponent(entity) {}
 		SpriteComponent(const SpriteComponent&) = delete;
 		SpriteComponent(SpriteComponent&&) noexcept = default;
 		SpriteComponent& operator=(SpriteComponent&&) noexcept = default;
@@ -486,7 +486,7 @@ namespace Eagle
 	class StaticMeshComponent : public SceneComponent
 	{
 	public:
-		StaticMeshComponent() = default;
+		StaticMeshComponent(const Entity& entity) : SceneComponent(entity) {}
 		StaticMeshComponent(const StaticMeshComponent&) = delete;
 		StaticMeshComponent(StaticMeshComponent&& other) = default;
 		StaticMeshComponent& operator=(StaticMeshComponent&& other) = default;
@@ -562,7 +562,7 @@ namespace Eagle
 	class SkeletalMeshComponent : public SceneComponent
 	{
 	public:
-		SkeletalMeshComponent() = default;
+		SkeletalMeshComponent(const Entity& entity) : SceneComponent(entity) {}
 		SkeletalMeshComponent(const SkeletalMeshComponent&) = delete;
 		SkeletalMeshComponent(SkeletalMeshComponent&& other) = default;
 		SkeletalMeshComponent& operator=(SkeletalMeshComponent&& other) = default;
@@ -673,7 +673,7 @@ namespace Eagle
 	class BillboardComponent : public SceneComponent
 	{
 	public:
-		BillboardComponent() = default;
+		BillboardComponent(const Entity& entity) : SceneComponent(entity) {}
 		COMPONENT_DEFAULTS(BillboardComponent);
 
 		Ref<AssetTexture2D> TextureAsset;
@@ -682,7 +682,7 @@ namespace Eagle
 	class Image2DComponent : public Component
 	{
 	public:
-		Image2DComponent() = default;
+		Image2DComponent(const Entity& entity) : Component(entity) {}
 		COMPONENT_DEFAULTS(Image2DComponent);
 
 		void SetTextureAsset(const Ref<AssetTexture2D>& asset)
@@ -748,7 +748,7 @@ namespace Eagle
 	class TextComponent : public SceneComponent
 	{
 	public:
-		TextComponent() = default;
+		TextComponent(const Entity& entity) : SceneComponent(entity) {}
 		COMPONENT_DEFAULTS(TextComponent);
 
 		void SetWorldTransform(const Transform& worldTransform) override
@@ -844,7 +844,7 @@ namespace Eagle
 	class Text2DComponent : public Component
 	{
 	public:
-		Text2DComponent() = default;
+		Text2DComponent(const Entity& entity) : Component(entity) {}
 		COMPONENT_DEFAULTS(Text2DComponent);
 
 		void SetFontAsset(const Ref<AssetFont>& font)
@@ -943,7 +943,7 @@ namespace Eagle
 	class CameraComponent : public SceneComponent
 	{
 	public:
-		CameraComponent() = default;
+		CameraComponent(const Entity& entity) : SceneComponent(entity) {}
 		COMPONENT_DEFAULTS(CameraComponent);
 
 		void SetWorldTransform(const Transform& worldTransform) override
@@ -992,7 +992,7 @@ namespace Eagle
 		enum class Type { Static, Dynamic };
 		enum class CollisionDetectionType { Discrete, Continuous, ContinuousSpeculative };
 
-		RigidBodyComponent() = default;
+		RigidBodyComponent(const Entity& entity) : Component(entity) {}
 		COMPONENT_DEFAULTS(RigidBodyComponent);
 
 		void SetMass(float mass);
@@ -1055,7 +1055,7 @@ namespace Eagle
 		virtual void SetShowCollision(bool bShowCollision) = 0;
 
 	protected:
-		BaseColliderComponent() = default;
+		BaseColliderComponent(const Entity& entity) : SceneComponent(entity) {}
 		COMPONENT_DEFAULTS(BaseColliderComponent);
 		virtual void UpdatePhysicsTransform() = 0;
 
@@ -1068,7 +1068,7 @@ namespace Eagle
 	class BoxColliderComponent : public BaseColliderComponent
 	{
 	public:
-		BoxColliderComponent() = default;
+		BoxColliderComponent(const Entity& entity) : BaseColliderComponent(entity) { OnInit(Parent); }
 		BoxColliderComponent& operator=(const BoxColliderComponent& other)
 		{
 			BaseColliderComponent::operator=(other);
@@ -1088,13 +1088,13 @@ namespace Eagle
 		virtual void SetIsTrigger(bool bTrigger) override;
 		virtual void SetPhysicsMaterialAsset(const Ref<AssetPhysicsMaterial>& material) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
-		virtual void OnInit(Entity entity) override;
 		virtual void OnRemoved(Entity entity) override;
 
 		void SetSize(const glm::vec3& size);
 		const glm::vec3& GetSize() const { return m_Size; }
 	
 	protected:
+		void OnInit(Entity entity);
 		virtual void UpdatePhysicsTransform() override;
 
 	protected:
@@ -1105,7 +1105,7 @@ namespace Eagle
 	class SphereColliderComponent : public BaseColliderComponent
 	{
 	public:
-		SphereColliderComponent() = default;
+		SphereColliderComponent(const Entity& entity) : BaseColliderComponent(entity) { OnInit(Parent); }
 		SphereColliderComponent& operator=(const SphereColliderComponent& other)
 		{ 
 			BaseColliderComponent::operator=(other);
@@ -1129,10 +1129,10 @@ namespace Eagle
 		virtual void SetPhysicsMaterialAsset(const Ref<AssetPhysicsMaterial>& material) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
 
-		virtual void OnInit(Entity entity) override;
 		virtual void OnRemoved(Entity entity) override;
 	
 	protected:
+		void OnInit(Entity entity);
 		virtual void UpdatePhysicsTransform() override;
 
 	protected:
@@ -1143,7 +1143,7 @@ namespace Eagle
 	class CapsuleColliderComponent : public BaseColliderComponent
 	{
 	public:
-		CapsuleColliderComponent() = default;
+		CapsuleColliderComponent(const Entity& entity) : BaseColliderComponent(entity) { OnInit(Parent); }
 		CapsuleColliderComponent& operator=(const CapsuleColliderComponent& other)
 		{
 			BaseColliderComponent::operator=(other);
@@ -1178,11 +1178,11 @@ namespace Eagle
 
 		void SetHeightAndRadius(float height, float radius);
 
-		virtual void OnInit(Entity entity) override;
 		virtual void OnRemoved(Entity entity) override;
 
 	protected:
 		virtual void UpdatePhysicsTransform() override;
+		void OnInit(Entity entity);
 
 	protected:
 		Ref<CapsuleColliderShape> m_Shape;
@@ -1193,7 +1193,7 @@ namespace Eagle
 	class MeshColliderComponent : public BaseColliderComponent
 	{
 	public:
-		MeshColliderComponent() = default;
+		MeshColliderComponent(const Entity& entity) : BaseColliderComponent(entity) { OnInit(Parent); }
 		MeshColliderComponent& operator=(const MeshColliderComponent& other)
 		{
 			BaseColliderComponent::operator=(other);
@@ -1240,10 +1240,10 @@ namespace Eagle
 				SetCollisionMeshAsset(m_CollisionMeshAsset);
 		}
 
-		virtual void OnInit(Entity entity) override;
 		virtual void OnRemoved(Entity entity) override;
 
 	protected:
+		void OnInit(Entity entity);
 		virtual void UpdatePhysicsTransform() override;
 	
 	protected:
@@ -1325,7 +1325,7 @@ namespace Eagle
 	class AudioComponent : public SceneComponent
 	{
 	public:
-		AudioComponent() = default;
+		AudioComponent(const Entity& entity) : SceneComponent(entity) { }
 		AudioComponent& operator=(const AudioComponent& other)
 		{
 			if (this == &other)
@@ -1500,7 +1500,7 @@ namespace Eagle
 	class ReverbComponent : public SceneComponent
 	{
 	public:
-		ReverbComponent() = default;
+		ReverbComponent(const Entity& entity) : SceneComponent(entity) { OnInit(Parent); }
 		ReverbComponent& operator=(const ReverbComponent& other)
 		{
 			if (this == &other)
@@ -1519,12 +1519,6 @@ namespace Eagle
 		ReverbComponent(const ReverbComponent&) = delete;
 		ReverbComponent(ReverbComponent&&) noexcept = default;
 		ReverbComponent& operator=(ReverbComponent&&) noexcept = default;
-
-		virtual void OnInit(Entity entity) override
-		{
-			SceneComponent::OnInit(entity);
-			m_Reverb->SetPosition(WorldTransform.Location);
-		}
 
 		void SetWorldTransform(const Transform& worldTransform) override
 		{
@@ -1584,6 +1578,12 @@ namespace Eagle
 		bool IsVisualizeRadiusEnabled() const { return m_bVisualize; }
 
 	private:
+		void OnInit(Entity entity)
+		{
+			m_Reverb->SetPosition(WorldTransform.Location);
+		}
+
+	private:
 		Ref<Reverb3D> m_Reverb = Reverb3D::Create();
 		bool m_bVisualize = false;
 	};
@@ -1591,7 +1591,11 @@ namespace Eagle
 	class ParticleSystemComponent : public SceneComponent
 	{
 	public:
-		ParticleSystemComponent() = default;
+		ParticleSystemComponent(const Entity& entity) : SceneComponent(entity) { }
+		ParticleSystemComponent(const Entity& entity, const Ref<AssetParticleSystem>& asset) : SceneComponent(entity), m_Asset(asset) {}
+
+		~ParticleSystemComponent() { Destroy(); }
+
 		COMPONENT_DEFAULTS(ParticleSystemComponent);
 
 		void SetWorldTransform(const Transform& worldTransform) override
@@ -1606,23 +1610,39 @@ namespace Eagle
 			Parent.SignalComponentChanged<ParticleSystemComponent>(Notification::OnTransformChanged);
 		}
 
+		void SetAsset(const Ref<AssetParticleSystem>& asset);
+
+		const Ref<AssetParticleSystem>& GetAsset() const { return m_Asset; }
+
 		void Spawn()
 		{
-			Parent.GetScene()->AddParticleSystem(this);
+			if (!bSpawned && m_Asset)
+			{
+				Parent.GetScene()->AddParticleSystem(this);
+				bSpawned = true;
+			}
 		}
 
-		void Despawn()
+		void Destroy()
 		{
-			Parent.GetScene()->RemoveParticleSystem(this);
+			if (bSpawned)
+			{
+				Parent.GetScene()->RemoveParticleSystem(this);
+				bSpawned = false;
+			}
 		}
 
 		void Update()
 		{
-			Parent.GetScene()->UpdateParticleSystem(this);
+			if (bSpawned)
+				Parent.GetScene()->UpdateParticleSystem(this);
 		}
 
+	private:
+		Ref<AssetParticleSystem> m_Asset;
+		bool bSpawned = false;
+
 	public:
-		std::vector<ParticleEmitter> Emitters;
-		bool bAutoSpawn = true;
+		bool bAutospawn = true;
 	};
 }

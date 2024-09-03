@@ -26,6 +26,7 @@ namespace Eagle
 		Bool, Color3, Color4, Enum,
 		Asset, AssetTexture2D, AssetTextureCube, AssetStaticMesh, AssetSkeletalMesh, AssetAudio, AssetSoundGroup,
 		AssetFont, AssetMaterial, AssetPhysicsMaterial, AssetEntity, AssetScene, AssetAnimation, AssetAnimationGraph,
+		AssetParticleSystem,
 	};
 
 	inline bool IsAssetType(FieldType type)
@@ -46,6 +47,7 @@ namespace Eagle
 			case FieldType::AssetScene:
 			case FieldType::AssetAnimation:
 			case FieldType::AssetAnimationGraph:
+			case FieldType::AssetParticleSystem:
 				return true;
 			default:
 				return false;
@@ -161,6 +163,7 @@ namespace Eagle
 			case FieldType::AssetScene:
 			case FieldType::AssetAnimation:
 			case FieldType::AssetAnimationGraph:
+			case FieldType::AssetParticleSystem:
 				return sizeof(GUID);
 			}
 			EG_CORE_ASSERT(false, "Unknown type size");

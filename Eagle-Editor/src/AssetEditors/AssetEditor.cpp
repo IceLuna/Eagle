@@ -11,14 +11,16 @@
 
 namespace Eagle
 {
-	AssetEditor::AssetEditor(bool bNeedRenderer)
+	AssetEditor::AssetEditor(bool bNeedRenderer, bool bNeedSkybox)
 	{
 		if (bNeedRenderer)
 		{
 			SceneRendererSettings settings = SceneRendererSettings::GetBasicSettings();
 			m_Renderer = MakeRef<SceneRenderer>(glm::uvec2{ 1, 1 }, settings);
 			m_Scene = MakeRef<Scene>("AssetEditor", m_Renderer);
-			AddSkybox();
+			m_Scene->SetSkyboxEnabled(bNeedSkybox);
+			if (bNeedSkybox)
+				AddSkybox();
 		}
 	}
 

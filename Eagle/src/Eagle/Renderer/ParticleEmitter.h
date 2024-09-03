@@ -49,7 +49,7 @@ namespace Eagle
 		// ---------------- Emitter properties ----------------
 		GUID ID{};
 		Transform RelativeTransform; // Relative to the particle system
-		AABB VisibilityAABB; // If not visible by the camera, it's not rendered to improve perf
+		AABB VisibilityAABB = AABB(glm::vec3(-1.f), glm::vec3(1.f)); // If not visible by the camera, it's not rendered to improve perf
 		uint32_t NumParticles = 1;
 		float NumParticlesRatio = 1.f; // Can be used to control `NumParticles`
 		float FastForwardTo = 0.f; // Allows to fast-forward the simulation to make it look like it was running for `FastForwardTo` seconds

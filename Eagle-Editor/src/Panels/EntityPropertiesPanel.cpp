@@ -1279,6 +1279,7 @@ namespace Eagle
 								AssetField_Case(AssetScene);
 								AssetField_Case(AssetAnimation);
 								AssetField_Case(AssetAnimationGraph);
+								AssetField_Case(AssetParticleSystem);
 							}
 						}
 					}
@@ -1724,100 +1725,18 @@ namespace Eagle
 				DrawComponentTransformNode(entity, entity.GetComponent<ParticleSystemComponent>());
 				DrawComponent<ParticleSystemComponent>("Particle System", entity, [&entity, this](ParticleSystemComponent& system)
 				{
+					auto asset = system.GetAsset();
+
 					UI::BeginPropertyGrid("ParticleSystemComponent");
 
-					if (UI::Button("Emitter", "Add"))
-						system.Emitters.emplace_back();
+					if (UI::DrawAssetSelection("Particle System", asset))
+					{
+						system.SetAsset(asset);
+						bEntityChanged = true;
+					}
+					bEntityChanged |= UI::Property("Auto-spawn", system.bAutospawn);
 
 					UI::EndPropertyGrid();
-
-					ImGui::Separator();
-					for (auto& emitter : system.Emitters)
-					{
-						UI::BeginPropertyGrid("ParticleSystemComponent");
-
-						UI::PropertyDrag("Relative Location", emitter.RelativeTransform.Location, 0.1f);
-						UI::PropertyDrag("Visibility AABB Min", emitter.VisibilityAABB.Min, 0.1f, 0, 0, "It AABB is not visible by the camera, the particle system is not rendered");
-						UI::PropertyDrag("Visibility AABB Max", emitter.VisibilityAABB.Max, 0.1f, 0, 0, "It AABB is not visible by the camera, the particle system is not rendered");
-
-						UI::PropertyDrag("Particles Amount", emitter.NumParticles);
-						if (UI::PropertyDrag("Particles Amount Ratio", emitter.NumParticlesRatio, 0.1f, 0, 0, "Can be used to control `Particles Amount`"))
-							emitter.NumParticlesRatio = std::max(0.f, emitter.NumParticlesRatio);
-
-						UI::DrawAssetSelection("Texture", emitter.Texture);
-
-						UI::PropertyDrag("Hor. frames number", emitter.AnimationImagesNum.x, 1.f, 1u, UINT_MAX, "The number of columns in the sprite sheet");
-						UI::PropertyDrag("Ver. frames number", emitter.AnimationImagesNum.y, 1.f, 1u, UINT_MAX, "The number of rows in the sprite sheet");
-						UI::PropertyDrag("Animation Speed", emitter.AnimationSpeed, 0.1f);
-
-						if (UI::PropertyDrag("Fast forward to", emitter.FastForwardTo, 0.1f, 0, 0, "Allows to fast-forward the simulation to make it look like it was running for `Fast forward to` seconds"))
-							emitter.FastForwardTo = std::max(0.f, emitter.FastForwardTo);
-
-						UI::PropertyDrag("Radial Acceleration", emitter.RadialAcceleration, 0.1f, 0, 0, "If it's negative, particles will move towards the center of the emitter. If positive, they move away from the center");
-						UI::PropertyDrag("Tangential Acceleration", emitter.TangentialAcceleration, 0.1f, 0, 0, "If it's negative, particles will move towards the center of the emitter in a spiral way. If positive, they move away from the center");
-
-						UI::ComboEnum("Collision Mode", emitter.CollisionMode);
-						UI::ComboEnum("Emission Shape", emitter.EmissionShape);
-						UI::PropertyDrag("Sphere Radius", emitter.SphereRadius, 0.1f, 0, 0);
-						UI::PropertyDrag("Box Min", emitter.BoxMin, 0.1f, 0, 0);
-						UI::PropertyDrag("Box Max", emitter.BoxMax, 0.1f, 0, 0);
-						UI::PropertyDrag("Ring Radius", emitter.RingRadius, 0.1f, 0, 0);
-						UI::PropertyDrag("Ring Thickness", emitter.RingThickness, 0.1f, 0, 0);
-
-						UI::Property("Emit", emitter.bEmit);
-						UI::Property("OneShot", emitter.bOneShot);
-						UI::Property("Explode", emitter.bExplode, "If set to true, all particles will be emitted at once. Otherwise, they're emitted sequentially throughout the lifetime");
-						UI::Property("Apply Gravity", emitter.bApplyGravity);
-						UI::Property("Alpha Blending", emitter.bAlphaBlending);
-
-						ImGui::Separator();
-
-						UI::PropertyColor("Color Start", emitter.ColorStart, true);
-						UI::PropertyColor("Color End", emitter.ColorEnd, true);
-
-						UI::PropertyDrag("Velocity Min", emitter.VelocityMin, 0.25f);
-						UI::PropertyDrag("Velocity Max", emitter.VelocityMax, 0.25f);
-
-						UI::PropertyDrag("Velocity Coef Start", emitter.VelocityCoefStart, 0.25f, 0, 0, "Can be used to change the velocity of a particle throughout the lifetime");
-						UI::PropertyDrag("Velocity Coef End", emitter.VelocityCoefEnd, 0.25f, 0, 0, "Can be used to change the velocity of a particle throughout the lifetime");
-
-						UI::PropertyDrag("Rotation Z Start", emitter.RotationZStart, 1.f);
-						UI::PropertyDrag("Rotation Z End", emitter.RotationZEnd, 1.f);
-
-						UI::PropertyDrag("Size Start", emitter.SizeStart, 0.1f);
-						UI::PropertyDrag("Size End", emitter.SizeEnd, 0.1f);
-
-						UI::PropertyDrag("Collider Size Ratio", emitter.ColliderSizeRatio, 0.1f, 0, 0, "Can be used to increase the size of a collider to prevent small and fast-moving particles from clipping through");
-
-						if (UI::PropertyDrag("Lifetime Min", emitter.LifetimeMin, 0.1f, 0.f, FLT_MAX, "In seconds"))
-						{
-							// TODO: Handle this in ParticleSystemComponent::SetMinLife
-							emitter.LifetimeMin = glm::max(0.f, emitter.LifetimeMin);
-							if (emitter.LifetimeMin > emitter.LifetimeMax)
-								emitter.LifetimeMax = emitter.LifetimeMin;
-						}
-
-						if (UI::PropertyDrag("Lifetime Max", emitter.LifetimeMax, 0.1f, 0.f, FLT_MAX, "In seconds"))
-						{
-							emitter.LifetimeMax = glm::max(0.f, emitter.LifetimeMax);
-							if (emitter.LifetimeMax < emitter.LifetimeMin)
-								emitter.LifetimeMin = emitter.LifetimeMax;
-						}
-
-						UI::PropertyDrag("Bounciness Min", emitter.BouncinessMin, 0.1f);
-						UI::PropertyDrag("Bounciness Max", emitter.BouncinessMax, 0.1f);
-
-						if (UI::Button("Spawn", "Spawn"))
-							system.Spawn();
-
-						if (UI::Button("Update", "Update"))
-							system.Update();
-
-						if (UI::Button("Despawn", "Despawn"))
-							system.Despawn();
-
-						UI::EndPropertyGrid();
-					}
 				});
 				break;
 			}

@@ -20,6 +20,7 @@ namespace Eagle
 	class Texture2D;
 	class Reverb3D;
 	class Font;
+
 	class Asset;
 	class AssetTexture2D;
 	class AssetTextureCube;
@@ -33,6 +34,8 @@ namespace Eagle
 	class AssetEntity;
 	class AssetAnimation;
 	class AssetAnimationGraph;
+	class AssetParticleSystem;
+
 	enum class AssetType;
 	struct SceneRendererSettings;
 	struct BoneNode;
@@ -109,6 +112,7 @@ namespace Eagle
 		static void SerializeAssetEntity(YAML::Emitter& out, const Ref<AssetEntity>& asset);
 		static void SerializeAssetAnimation(YAML::Emitter& out, const Ref<AssetAnimation>& asset);
 		static void SerializeAssetAnimationGraph(YAML::Emitter& out, const Ref<AssetAnimationGraph>& asset);
+		static void SerializeAssetParticleSystem(YAML::Emitter& out, const Ref<AssetParticleSystem>& asset);
 
 		static Ref<Asset> DeserializeAsset(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
 		static Ref<AssetTexture2D> DeserializeAssetTexture2D(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
@@ -123,6 +127,7 @@ namespace Eagle
 		static Ref<AssetEntity> DeserializeAssetEntity(const YAML::Node& baseNode, const Path& pathToAsset);
 		static Ref<AssetAnimation> DeserializeAssetAnimation(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
 		static Ref<AssetAnimationGraph> DeserializeAssetAnimationGraph(const YAML::Node& baseNode, const Path& pathToAsset);
+		static Ref<AssetParticleSystem> DeserializeAssetParticleSystem(const YAML::Node& baseNode, const Path& pathToAsset);
 
 		static AssetType GetAssetType(const Path& pathToAsset);
 		

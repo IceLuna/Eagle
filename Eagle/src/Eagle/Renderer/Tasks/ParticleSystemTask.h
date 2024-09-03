@@ -22,7 +22,7 @@ namespace Eagle
 
 		void AddParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems);
 		void UpdateParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems);
-		void RemoveParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems);
+		void RemoveParticleSystems(const std::unordered_set<GUID>& systems);
 		void UpdateTransforms(const std::unordered_set<const ParticleSystemComponent*>& systems);
 
 	private:
@@ -69,17 +69,33 @@ namespace Eagle
 			}
 		};
 
-		std::unordered_map<ParticleEmitter, uint32_t> m_EmittersMapping; // uint32_t - index of the emitter inside of `m_EmittersBuffer` 
-		std::vector<ParticleEmitter> m_EmittersToAdd;
-		std::vector<std::pair<ParticleEmitter, std::chrono::high_resolution_clock::time_point>> m_OneShotEmitters; // time_point - time of death
-		std::vector<std::pair<ParticleEmitter, uint32_t>> m_EmittersToUpdate; // uint32_t - index of the emitter inside of `m_EmittersBuffer`
+		struct OneShotEmitterData
+		{
+			ParticleEmitter Emitter;
+			std::chrono::high_resolution_clock::time_point TimeOfDeath;
+			GUID SystemID; // Emitter's system
+		};
+
+		struct AddingEmitterData
+		{
+			ParticleEmitter Emitter;
+			GUID SystemID;
+		};
+
+		struct EmitterData
+		{
+			uint32_t EmitterIndex = s_InvalidEmitterIndex; // index of the emitter inside of `m_EmittersBuffer`
+			uint32_t TransformIndex = s_InvalidEmitterIndex; // index of the emitter inside of `m_Transforms`
+		};
+
+		std::unordered_map<GUID, std::unordered_map<ParticleEmitter, EmitterData>> m_SystemToEmittersMapping; // Key - Particle system; Value - its emitters
+		std::vector<AddingEmitterData> m_EmittersToAdd;
+		std::vector<OneShotEmitterData> m_OneShotEmitters;
+		std::vector<std::pair<ParticleEmitter, EmitterData>> m_EmittersToUpdate;
 		std::vector<std::pair<ParticleEmitter, uint32_t>> m_EmittersToRemove; // uint32_t - index of the emitter inside of `m_EmittersBuffer`
 		std::vector<DeadEmitterData> m_DeadEmitters;
-		std::unordered_map<GUID, std::vector<ParticleEmitter>> m_SystemToEmittersMapping; // Key - Particle system; Value - its emitters.
-		std::unordered_map<GUID, GUID> m_EmitterToSystemMapping; // Key - ID of an emitter; Value - its systems ID.
 
 		std::vector<glm::mat4> m_Transforms;
-		std::unordered_map<GUID, uint32_t> m_EmitterTransformsMapping; // GUID - Emitter ID; uint32_t - index of the emitter inside of `m_Transforms` 
 		std::vector<uint32_t> m_FreeTransformSlots; // Free slots inside of `m_Transforms`
 
 		Ref<Buffer> m_TransformsBuffer;
@@ -117,5 +133,7 @@ namespace Eagle
 
 		Scope<SortTask> m_SortOpaque;
 		SortTask m_SortTranslucent;
+
+		constexpr static uint32_t s_InvalidEmitterIndex = uint32_t(-1);
 	};
 }

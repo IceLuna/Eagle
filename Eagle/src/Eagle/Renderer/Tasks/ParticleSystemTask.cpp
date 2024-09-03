@@ -191,9 +191,12 @@ namespace Eagle
 			const uint32_t count = (uint32_t)m_EmittersToAdd.size();
 			for (uint32_t i = 0; i < count; ++i)
 			{
+				auto& itEmitters = m_SystemToEmittersMapping.at(m_EmittersToAdd[i].SystemID);
+				auto& it = itEmitters.at(m_EmittersToAdd[i].Emitter);
+				const uint32_t transformIndex = it.TransformIndex;
+
 				Emitter emitter;
-				const uint32_t transformIndex = m_EmitterTransformsMapping.at(m_EmittersToAdd[i].ID);
-				Utils::ToGPUEmitter(m_EmittersToAdd[i], transformIndex, emitter);
+				Utils::ToGPUEmitter(m_EmittersToAdd[i].Emitter, transformIndex, emitter);
 
 				uint32_t insertIndex = m_NumEmitters;
 				for (auto it = m_DeadEmitters.begin(); it != m_DeadEmitters.end(); ++it)
@@ -201,9 +204,14 @@ namespace Eagle
 					const auto& deadEmitter = *it;
 					if (deadEmitter.IsDead())
 					{
-						insertIndex = deadEmitter.EmitterIndex;
+						const uint32_t emitterIndex = deadEmitter.EmitterIndex;
 						m_DeadEmitters.erase(it);
-						break;
+
+						if (emitterIndex != s_InvalidEmitterIndex)
+						{
+							insertIndex = emitterIndex;
+							break;
+						}
 					}
 				}
 				
@@ -213,7 +221,7 @@ namespace Eagle
 				const size_t offset = insertIndex * sizeof(Emitter);
 				cmd->WriteTransitionless(m_EmittersBuffer, &emitter, sizeof(Emitter), offset);
 
-				m_EmittersMapping.emplace(m_EmittersToAdd[i], insertIndex);
+				it.EmitterIndex = insertIndex;
 			}
 			cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::CopyDest, BufferLayoutType::StorageBuffer);
 
@@ -228,14 +236,13 @@ namespace Eagle
 		{
 			cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::StorageBuffer, BufferLayoutType::CopyDest);
 
-			for (const auto& [emitter, emitterIndex] : m_EmittersToUpdate)
+			for (const auto& [emitter, emitterData] : m_EmittersToUpdate)
 			{
 				Emitter gpuEmitter;
-				const uint32_t transformIndex = m_EmitterTransformsMapping.at(emitter.ID);
-				Utils::ToGPUEmitter(emitter, transformIndex, gpuEmitter);
+				Utils::ToGPUEmitter(emitter, emitterData.TransformIndex, gpuEmitter);
 
 				const size_t sizeToUpdate = offsetof(Emitter, WorldPos); // We're updating the data before the 'WorldPos' because everything after is an internal state
-				const size_t offset = emitterIndex * sizeof(Emitter);
+				const size_t offset = emitterData.EmitterIndex * sizeof(Emitter);
 				cmd->WriteTransitionless(m_EmittersBuffer, &gpuEmitter, sizeToUpdate, offset);
 			}
 
@@ -254,19 +261,27 @@ namespace Eagle
 			for (auto it = m_OneShotEmitters.begin(); it != m_OneShotEmitters.end();)
 			{
 				auto& data = *it;
-				
-				if (m_EmittersMapping.find(data.first) == m_EmittersMapping.end())
+
+				auto itSystem = m_SystemToEmittersMapping.find(data.SystemID);
+				if (itSystem == m_SystemToEmittersMapping.end())
 				{
-					// Particle was already removed
+					// Emmiter was already removed
+					it = m_OneShotEmitters.erase(it);
+					continue;
+				}
+				
+				const auto& emitter = itSystem->second;
+				if (emitter.find(data.Emitter) == emitter.end())
+				{
+					// Emitter was already removed
 					it = m_OneShotEmitters.erase(it);
 					continue;
 				}
 
-				const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - data.second).count() / 1000.f; // To seconds
-				if (duration >= data.first.LifetimeMax) // Is dead
+				const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - data.TimeOfDeath).count() / 1000.f; // To seconds
+				if (duration >= data.Emitter.LifetimeMax) // Is dead
 				{
-					GUID systemID = m_EmitterToSystemMapping.at(data.first.ID);
-					RemoveEmitter(data.first, systemID);
+					RemoveEmitter(data.Emitter, data.SystemID);
 					it = m_OneShotEmitters.erase(it);
 					continue;
 				}
@@ -291,8 +306,9 @@ namespace Eagle
 		if (bEmittersChangedOrAdded)
 		{
 			uint32_t maxParticles = 0;
-			for (const auto& [emitter, _] : m_EmittersMapping)
-				maxParticles += uint32_t(float(emitter.NumParticles) * emitter.NumParticlesRatio);
+			for (const auto& [_, emitters] : m_SystemToEmittersMapping)
+				for (const auto& [emitter, _] : emitters)
+					maxParticles += uint32_t(float(emitter.NumParticles) * emitter.NumParticlesRatio);
 
 			if (maxParticles > m_MaxParticles)
 			{
@@ -557,18 +573,24 @@ namespace Eagle
 
 	bool ParticleSystemTask::AddEmitter(const ParticleEmitter& emitter, const GUID& systemID, const glm::mat4& transform)
 	{
-		if (m_EmittersMapping.find(emitter) != m_EmittersMapping.end())
+		if (auto it = m_SystemToEmittersMapping.find(systemID); it != m_SystemToEmittersMapping.end())
 		{
-			EG_CORE_ASSERT(false); // Shouldn't really happen
-			return false; // Already exists
+			const auto& emitters = it->second;
+			if (emitters.find(emitter) != emitters.end())
+			{
+				// Trying to add already existing emitter
+				EG_CORE_ASSERT(false); // Shouldn't really happen
+				return false; // Already exists
+			}
 		}
 
-		m_EmittersToAdd.emplace_back(emitter);
+		m_EmittersToAdd.emplace_back(AddingEmitterData{ emitter, systemID });
 		if (emitter.bOneShot)
 		{
 			auto& data = m_OneShotEmitters.emplace_back();
-			data.first = emitter;
-			data.second = std::chrono::high_resolution_clock::now();
+			data.Emitter = emitter;
+			data.TimeOfDeath = std::chrono::high_resolution_clock::now();
+			data.SystemID = systemID;
 		}
 
 		uint32_t transformIndex = 0;
@@ -582,36 +604,35 @@ namespace Eagle
 			transformIndex = m_FreeTransformSlots.back();
 			m_FreeTransformSlots.pop_back();
 		}
-		m_EmitterTransformsMapping[emitter.ID] = transformIndex;
 		m_Transforms[transformIndex] = transform * Math::ToTransformMatrix(emitter.RelativeTransform);
-		m_SystemToEmittersMapping[systemID].emplace_back(emitter);
-		m_EmitterToSystemMapping[emitter.ID] = systemID;
+		auto& emitters = m_SystemToEmittersMapping[systemID];
+		emitters[emitter] = EmitterData{ s_InvalidEmitterIndex, transformIndex }; // Emitter index will be set later
 
 		return true;
 	}
 
 	bool ParticleSystemTask::RemoveEmitter(const ParticleEmitter& emitter, const GUID& systemID)
 	{
-		auto it = m_EmittersMapping.find(emitter);
-		if (it == m_EmittersMapping.end())
+		auto itSystem = m_SystemToEmittersMapping.find(systemID);
+		if (itSystem == m_SystemToEmittersMapping.end())
 		{
-			EG_CORE_ASSERT(false); // Shouldn't really happen
+			EG_CORE_ASSERT(false, "Non-existing system");
 			return false; // Not found
 		}
 
-		m_EmittersToRemove.emplace_back(std::pair{ emitter, it->second });
-		auto transformIt = m_EmitterTransformsMapping.find(emitter.ID);
-		EG_CORE_ASSERT(transformIt != m_EmitterTransformsMapping.end()); // Should never happen
-		const uint32_t transformIndex = transformIt->second;
-		m_FreeTransformSlots.push_back(transformIndex);
-		m_EmitterTransformsMapping.erase(transformIt);
-		m_EmittersMapping.erase(it);
-		m_EmitterToSystemMapping.erase(emitter.ID);
+		auto& emitters = itSystem->second;
+		auto it = emitters.find(emitter);
+		if (it == emitters.end())
+		{
+			EG_CORE_ASSERT(false, "Trying to remove non-existing emitter");
+			return false; // Not found
+		}
 
-		auto& systemEmitters = m_SystemToEmittersMapping[systemID];
-		auto itEmitter = std::find(systemEmitters.begin(), systemEmitters.end(), emitter);
-		systemEmitters.erase(itEmitter);
-		if (systemEmitters.empty())
+		m_EmittersToRemove.emplace_back(std::pair{ emitter, it->second.EmitterIndex });
+		const uint32_t transformIndex = it->second.TransformIndex;
+		m_FreeTransformSlots.push_back(transformIndex);
+		emitters.erase(it);
+		if (emitters.empty())
 		{
 			m_SystemToEmittersMapping.erase(systemID);
 		}
@@ -631,17 +652,29 @@ namespace Eagle
 		updateData.reserve(systems.size());
 		for (const auto& system : systems)
 		{
+			const auto& asset = system->GetAsset();
+			if (!asset)
+				continue;
+
 			auto& data = updateData.emplace_back();
-			data.Emitters = system->Emitters;
+			data.Emitters = asset->GetEmitters();
 			data.Transformation = Math::ToTransformMatrix(system->GetWorldTransform());
 			data.SystemID = system->Parent.GetGUID();
 		}
+
+		if (updateData.empty())
+			return;
 
 		RenderManager::Submit([task = shared_from_this(), updateData = std::move(updateData)](const Ref<CommandBuffer>&)
 		{
 			auto thisRef = Cast<ParticleSystemTask>(task);
 			for (const auto& [emitters, transform, systemID] : updateData)
 			{
+				if (emitters.empty())
+				{
+					thisRef->m_SystemToEmittersMapping.emplace(systemID, std::unordered_map<ParticleEmitter, EmitterData>{});
+					continue;
+				}
 				for (const auto& emitter : emitters)
 				{
 					thisRef->AddEmitter(emitter, systemID, transform);
@@ -662,64 +695,62 @@ namespace Eagle
 		updateData.reserve(systems.size());
 		for (const auto& system : systems)
 		{
+			const auto& asset = system->GetAsset();
+			if (!asset)
+				continue;
+
 			auto& data = updateData.emplace_back();
-			data.Emitters = system->Emitters;
+			data.Emitters = asset->GetEmitters();
 			data.Transformation = Math::ToTransformMatrix(system->GetWorldTransform());
 			data.SystemID = system->Parent.GetGUID();
 		}
+
+		if (updateData.empty())
+			return;
 
 		RenderManager::Submit([task = shared_from_this(), updateData = std::move(updateData)](const Ref<CommandBuffer>&)
 		{
 			auto thisRef = Cast<ParticleSystemTask>(task);
 			for (const auto& [emitters, transform, systemID] : updateData)
 			{
-				// Intentional copy because `AddEmitter` and `RemoveEmitter` functions modify it
-				auto systemEmitters = thisRef->m_SystemToEmittersMapping.at(systemID);
+				auto itSystem = thisRef->m_SystemToEmittersMapping.find(systemID);
+				if (itSystem == thisRef->m_SystemToEmittersMapping.end())
+				{
+					EG_CORE_ASSERT(false, "Trying to update non-existing system");
+					continue;
+				}
+				auto systemEmitters = itSystem->second; // Intentional copy because `AddEmitter` and `RemoveEmitter` functions modify it
 
 				// Remove emitters if not found in the new list
-				for (const auto& currentEmitter : systemEmitters)
+				for (const auto& [existingEmitter, _] : systemEmitters)
 				{
-					auto it = thisRef->m_EmittersMapping.find(currentEmitter);
-					if (it == thisRef->m_EmittersMapping.end())
-					{
-						EG_CORE_ASSERT(false); // Shouldn't really happen
-						continue;
-					}
-
-					auto it2 = std::find(emitters.begin(), emitters.end(), it->first);
+					auto it2 = std::find(emitters.begin(), emitters.end(), existingEmitter);
 					if (it2 == emitters.end()) // Old emitter isn't found in the new list, so remove it
-						thisRef->RemoveEmitter(*it2, systemID);
+						thisRef->RemoveEmitter(existingEmitter, systemID);
 				}
 
 				// Update or create emitters
 				for (const auto& emitter : emitters)
 				{
-					auto it = thisRef->m_EmittersMapping.find(emitter);
-					if (it == thisRef->m_EmittersMapping.end())
-					{
-						EG_CORE_ASSERT(false); // Shouldn't really happen
-						continue;
-					}
-
-					auto itEmitterInSystem = std::find(systemEmitters.begin(), systemEmitters.end(), emitter);
-					if (itEmitterInSystem == systemEmitters.end())
+					if (systemEmitters.find(emitter) == systemEmitters.end())
 					{
 						thisRef->AddEmitter(emitter, systemID, transform); // New emitter isn't found in the old list, so add it
 					}
 					else
 					{
+						auto& existingEmitters = itSystem->second;
+						auto it = existingEmitters.find(emitter);
 						if (!it->first.bOneShot) // Update of OneShot emitters is not supported
 						{
-							const uint32_t emitterIndex = it->second;
-							// Update key
-							thisRef->m_EmittersMapping.erase(it);
-							thisRef->m_EmittersMapping.emplace(emitter, emitterIndex);
+							const uint32_t emitterIndex = it->second.EmitterIndex;
+							const uint32_t transformIndex = it->second.TransformIndex;
 
-							*itEmitterInSystem = emitter;
+							// Update key
+							existingEmitters.erase(it);
+							existingEmitters.emplace(emitter, EmitterData{ emitterIndex, transformIndex });
 
 							// New emitter is found in the old list, so update its state
-							thisRef->m_EmittersToUpdate.emplace_back(emitter, emitterIndex);
-							uint32_t transformIndex = thisRef->m_EmitterTransformsMapping.at(emitter.ID);
+							thisRef->m_EmittersToUpdate.emplace_back(emitter, EmitterData{ emitterIndex, transformIndex });
 							thisRef->m_Transforms[transformIndex] = transform * Math::ToTransformMatrix(emitter.RelativeTransform);
 						}
 					}
@@ -728,29 +759,36 @@ namespace Eagle
 		});
 	}
 
-	void ParticleSystemTask::RemoveParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems)
+	void ParticleSystemTask::RemoveParticleSystems(const std::unordered_set<GUID>& systems)
 	{
-		struct SystemRemoveData
-		{
-			std::vector<ParticleEmitter> Emitters;
-			GUID SystemID;
-		};
-
-		std::vector<SystemRemoveData> removeData;
+		std::vector<GUID> removeData;
 		removeData.reserve(systems.size());
-		for (const auto& system : systems)
+		for (const auto& systemID : systems)
 		{
-			auto& data = removeData.emplace_back();
-			data.Emitters = system->Emitters;
-			data.SystemID = system->Parent.GetGUID();
+			removeData.push_back(systemID);
 		}
+
+		if (removeData.empty())
+			return;
 
 		RenderManager::Submit([task = shared_from_this(), removeData = std::move(removeData)](const Ref<CommandBuffer>&)
 		{
 			auto thisRef = Cast<ParticleSystemTask>(task);
-			for (const auto& [emitters, systemID] : removeData)
+			for (const auto& systemID : removeData)
 			{
-				for (const auto& emitter : emitters)
+				auto it = thisRef->m_SystemToEmittersMapping.find(systemID);
+				if (it == thisRef->m_SystemToEmittersMapping.end())
+					continue;
+
+				const auto& emitters = it->second;
+				if (emitters.empty())
+				{
+					thisRef->m_SystemToEmittersMapping.erase(systemID);
+					continue;
+				}
+
+				auto copyEmitters = emitters;
+				for (const auto& [emitter, _] : copyEmitters)
 				{
 					thisRef->RemoveEmitter(emitter, systemID);
 				}
@@ -760,30 +798,55 @@ namespace Eagle
 
 	void ParticleSystemTask::UpdateTransforms(const std::unordered_set<const ParticleSystemComponent*>& systems)
 	{
-		std::vector<std::pair<glm::mat4, GUID>> newTransforms;
+		struct UpdateTrData
+		{
+			glm::mat4 Transform;
+			GUID EmitterID;
+		};
+		std::unordered_map<GUID, std::vector<UpdateTrData>> newTransforms;
 		for (const auto& system : systems)
 		{
+			const auto& asset = system->GetAsset();
+			if (!asset)
+				continue;
+
+			const auto& emitters = asset->GetEmitters();
 			const glm::mat4 systemTr = Math::ToTransformMatrix(system->GetWorldTransform());
-			for (const auto& emitter : system->Emitters)
+			auto& updateEmitters = newTransforms[system->Parent.GetGUID()];
+			for (const auto& emitter : emitters)
 			{
-				auto& data = newTransforms.emplace_back();
-				data.first = systemTr * Math::ToTransformMatrix(emitter.RelativeTransform);
-				data.second = emitter.ID;
+				auto& data = updateEmitters.emplace_back();
+				data.Transform = systemTr * Math::ToTransformMatrix(emitter.RelativeTransform);
+				data.EmitterID = emitter.ID;
 			}
 		}
+
+		if (newTransforms.empty())
+			return;
 
 		RenderManager::Submit([task = shared_from_this(), newTransforms = std::move(newTransforms)](const Ref<CommandBuffer>&)
 		{
 			auto thisRef = Cast<ParticleSystemTask>(task);
 
-			for (const auto& [newTransform, emitterID] : newTransforms)
+			for (const auto& [systemID, datas] : newTransforms)
 			{
-				auto transformIt = thisRef->m_EmitterTransformsMapping.find(emitterID);
-				if (transformIt != thisRef->m_EmitterTransformsMapping.end())
+				auto itSystem = thisRef->m_SystemToEmittersMapping.find(systemID);
+				if (itSystem == thisRef->m_SystemToEmittersMapping.end())
+					continue;
+
+				for (const auto& [transform, emitterID] : datas)
 				{
-					const uint32_t transformIndex = transformIt->second;
-					thisRef->m_Transforms[transformIndex] = newTransform;
-					thisRef->bUpdateTransforms = true;
+					ParticleEmitter dummy;
+					dummy.ID = emitterID;
+
+					auto& emitters = itSystem->second;
+					auto it = emitters.find(dummy);
+					if (it != emitters.end())
+					{
+						const uint32_t transformIndex = it->second.TransformIndex;
+						thisRef->m_Transforms[transformIndex] = transform;
+						thisRef->bUpdateTransforms = true;
+					}
 				}
 			}
 		});

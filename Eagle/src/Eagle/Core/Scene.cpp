@@ -885,7 +885,11 @@ namespace Eagle
 					for (auto entity : view)
 					{
 						const auto& system = view.get<ParticleSystemComponent>(entity);
-						for (const auto& emitter : system.Emitters)
+						const auto& asset = system.GetAsset();
+						if (!asset)
+							continue;
+
+						for (const auto& emitter : asset->GetEmitters())
 						{
 							Utils::DrawBox(m_DebugLinesToDraw, emitter.VisibilityAABB, system.GetWorldTransform());
 						}
@@ -1304,7 +1308,7 @@ namespace Eagle
 
 	void Scene::RemoveParticleSystem(const ParticleSystemComponent* system)
 	{
-		m_ParticlesToRemove.emplace(system);
+		m_ParticlesToRemove.emplace(system->Parent.GetGUID());
 	}
 
 	void Scene::UpdateParticleSystem(const ParticleSystemComponent* system)
@@ -1397,11 +1401,6 @@ namespace Eagle
 		m_DirtyFlags.bImage2DDirty = true;
 	}
 
-	void Scene::OnParticleSystemAddedRemoved(entt::registry& r, entt::entity e)
-	{
-		// TODO:
-	}
-
 	void Scene::ConnectSignals()
 	{
 		m_Registry.on_destroy<StaticMeshComponent>().connect<&Scene::OnStaticMeshComponentRemoved>(*this);
@@ -1418,8 +1417,6 @@ namespace Eagle
 		m_Registry.on_destroy<Text2DComponent>().connect<&Scene::OnText2DAddedRemoved>(*this);
 		m_Registry.on_construct<Image2DComponent>().connect<&Scene::OnImage2DAddedRemoved>(*this);
 		m_Registry.on_destroy<Image2DComponent>().connect<&Scene::OnImage2DAddedRemoved>(*this);
-		m_Registry.on_construct<ParticleSystemComponent>().connect<&Scene::OnParticleSystemAddedRemoved>(*this);
-		m_Registry.on_destroy<ParticleSystemComponent>().connect<&Scene::OnParticleSystemAddedRemoved>(*this);
 	}
 
 	void Scene::CopyComponents(Entity source, Entity dest)

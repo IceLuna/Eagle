@@ -10,7 +10,7 @@ namespace Eagle
 	class AssetEditor
 	{
 	public:
-		AssetEditor(bool bNeedRenderer = false);
+		AssetEditor(bool bNeedRenderer = false, bool bNeedSkybox = true);
 
 		virtual ~AssetEditor();
 

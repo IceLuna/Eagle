@@ -11,15 +11,18 @@ namespace Eagle
 	class SceneComponent : public Component
 	{
 	public:
-		SceneComponent() : Component() {}
+		SceneComponent(const Entity& entity) : Component(entity)
+		{
+			EG_CORE_ASSERT(Parent);
+			const auto& world = Parent.GetWorldTransform();
+			WorldTransform = world;
+		}
 		
 		SceneComponent(const SceneComponent&) = delete;
 		SceneComponent(SceneComponent&&) noexcept;
 		SceneComponent& operator=(const SceneComponent&) = default;
 		SceneComponent& operator=(SceneComponent&&) noexcept;
 
-		virtual void OnInit(Entity entity) override;
-		
 		const Transform& GetWorldTransform() const { return WorldTransform; }
 		const Transform& GetRelativeTransform() const { return RelativeTransform; }
 

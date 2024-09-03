@@ -298,6 +298,7 @@ namespace Eagle
 			case AssetType::Scene: return AssetScene::Create(path);
 			case AssetType::Animation: return AssetAnimation::Create(path);
 			case AssetType::AnimationGraph: return AssetAnimationGraph::Create(path);
+			case AssetType::ParticleSystem: return AssetParticleSystem::Create(path);
 		}
 
 		EG_CORE_ASSERT(!"Unknown type");
@@ -551,5 +552,17 @@ namespace Eagle
 
 		YAML::Node data = YAML::LoadFile(path.string());
 		return Serializer::DeserializeAssetAnimationGraph(data, path);
+	}
+	
+	Ref<AssetParticleSystem> AssetParticleSystem::Create(const Path& path)
+	{
+		if (!std::filesystem::exists(path))
+		{
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path.u8string());
+			return {};
+		}
+
+		YAML::Node data = YAML::LoadFile(path.string());
+		return Serializer::DeserializeAssetParticleSystem(data, path);
 	}
 }

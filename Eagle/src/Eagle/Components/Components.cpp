@@ -136,7 +136,6 @@ namespace Eagle
 	
 	void BoxColliderComponent::OnInit(Entity entity)
 	{
-		BaseColliderComponent::OnInit(entity);
 		auto actor = Parent.GetPhysicsActor();
 		if (actor)
 			m_Shape = actor->AddCollider(*this);
@@ -204,7 +203,6 @@ namespace Eagle
 	
 	void SphereColliderComponent::OnInit(Entity entity)
 	{
-		BaseColliderComponent::OnInit(entity);
 		auto actor = Parent.GetPhysicsActor();
 		if (actor)
 			m_Shape = actor->AddCollider(*this);
@@ -267,7 +265,6 @@ namespace Eagle
 	
 	void CapsuleColliderComponent::OnInit(Entity entity)
 	{
-		BaseColliderComponent::OnInit(entity);
 		auto actor = Parent.GetPhysicsActor();
 		if (actor)
 			m_Shape = actor->AddCollider(*this);
@@ -361,7 +358,6 @@ namespace Eagle
 	
 	void MeshColliderComponent::OnInit(Entity entity)
 	{
-		BaseColliderComponent::OnInit(entity);
 		if (Parent && Parent.HasComponent<StaticMeshComponent>())
 		{
 			auto& comp = Parent.GetComponent<StaticMeshComponent>();
@@ -510,5 +506,28 @@ namespace Eagle
 
 		if (ScriptEngine::ModuleExists(Parent.GetComponent<ScriptComponent>().ModuleName))
 			ScriptEngine::OnAnimationEventEntity(Parent, name);
+	}
+
+	void ParticleSystemComponent::SetAsset(const Ref<AssetParticleSystem>& asset)
+	{
+		if (m_Asset == asset)
+			return;
+
+		const bool bHadValidAsset = m_Asset.operator bool();
+		m_Asset = asset;
+		if (m_Asset)
+		{
+			if (bAutospawn)
+			{
+				if (bHadValidAsset)
+					Update();
+				else
+					Spawn();
+			}
+		}
+		else
+		{
+			Destroy();
+		}
 	}
 }

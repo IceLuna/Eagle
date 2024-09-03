@@ -11,8 +11,11 @@ namespace Eagle
 	class Component : public Object
 	{
 	public:
-		Component()
-			: Object(), Parent(Entity::Null) {}
+		Component(const Entity& entity)
+			: Object(), Parent(entity)
+		{
+			ComponentsNotificationSystem::AddObserver(Parent, this);
+		}
 
 		Component(const Component&) = delete;
 		Component(Component&&) noexcept;
@@ -20,8 +23,7 @@ namespace Eagle
 		Component& operator=(Component&&) noexcept;
 		virtual ~Component();
 
-		virtual void OnInit(Entity entity);
-		//Not called if entity has been destroyed.
+		// Not called if entity has been destroyed.
 		virtual void OnRemoved(Entity entity) {}
 
 	public:

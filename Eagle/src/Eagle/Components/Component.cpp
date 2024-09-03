@@ -44,10 +44,4 @@ namespace Eagle
 		if (Parent)
 			ComponentsNotificationSystem::RemoveObserver(Parent, this);
 	}
-
-	void Component::OnInit(Entity entity)
-	{
-		Parent = entity;
-		ComponentsNotificationSystem::AddObserver(Parent, this);
-	}
 }

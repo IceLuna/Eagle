@@ -242,7 +242,6 @@ namespace Eagle
 		void OnTextAddedRemoved(entt::registry& r, entt::entity e);
 		void OnText2DAddedRemoved(entt::registry& r, entt::entity e);
 		void OnImage2DAddedRemoved(entt::registry& r, entt::entity e);
-		void OnParticleSystemAddedRemoved(entt::registry& r, entt::entity e);
 
 		// T - is component type
 		template<typename T>
@@ -441,7 +440,7 @@ namespace Eagle
 		std::unordered_set<const TextComponent*> m_DirtyTransformTexts;
 
 		std::unordered_set<const ParticleSystemComponent*> m_ParticlesToAdd;
-		std::unordered_set<const ParticleSystemComponent*> m_ParticlesToRemove;
+		std::unordered_set<GUID> m_ParticlesToRemove; // GUIDs of ParticleSystemComponent: system->Parent.GetGUID(). It's done like that because we can't store a pointer to a dead component
 		std::unordered_set<const ParticleSystemComponent*> m_ParticlesToUpdate;
 		std::unordered_set<const ParticleSystemComponent*> m_DirtyTransformParticles;
 

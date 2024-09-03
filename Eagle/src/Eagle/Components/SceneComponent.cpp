@@ -21,17 +21,6 @@ namespace Eagle
 		return *this;
 	}
 
-	void SceneComponent::OnInit(Entity entity)
-	{
-		Component::OnInit(entity);
-
-		if (Parent)
-		{
-			const auto& world = Parent.GetWorldTransform();
-			WorldTransform = world;
-		}
-	}
-
 	void SceneComponent::SetWorldTransform(const Transform& worldTransform)
 	{
 		const auto& parentWorldTransform = Parent.GetWorldTransform();

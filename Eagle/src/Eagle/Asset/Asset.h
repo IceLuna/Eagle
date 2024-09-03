@@ -4,6 +4,7 @@
 #include "Eagle/Core/GUID.h"
 #include "Eagle/Core/Serializer.h"
 #include "Eagle/Renderer/RendererUtils.h"
+#include "Eagle/Renderer/ParticleEmitter.h"
 
 namespace YAML
 {
@@ -42,6 +43,7 @@ namespace Eagle
 		Scene,
 		Animation,
 		AnimationGraph,
+		ParticleSystem,
 	};
 
 	enum class AssetTexture2DFormat
@@ -144,21 +146,26 @@ namespace Eagle
 			return "SKELETAL_MESH_CELL";
 		case AssetType::Audio:
 			return "SOUND_CELL";
+		case AssetType::SoundGroup:
+			return "SOUND_GROUP_CELL";
 		case AssetType::Font:
 			return "FONT_CELL";
 		case AssetType::Material:
 			return "MATERIAL_CELL";
 		case AssetType::PhysicsMaterial:
 			return "PHYSICS_MATERIAL_CELL";
-		case AssetType::SoundGroup:
-			return "SOUND_GROUP_CELL";
 		case AssetType::Entity:
 			return "ENTITY_CELL";
 		case AssetType::Scene:
 			return "SCENE_CELL";
 		case AssetType::Animation:
 			return "ANIMATION_CELL";
+		case AssetType::AnimationGraph:
+			return "ANIMATION_GRAPH_CELL";
+		case AssetType::ParticleSystem:
+			return "PARTICLE_SYSTEM_CELL";
 		default:
+			EG_CORE_ASSERT(false);
 			return "INVALID_CELL";
 		}
 	}
@@ -674,5 +681,42 @@ namespace Eagle
 	private:
 		Ref<AnimationGraph> m_Graph;
 		GraphEditorSerializationData m_Data;
+	};
+
+	class AssetParticleSystem : public Asset
+	{
+	public:
+		void SetEmitters(const std::vector<ParticleEmitter>& emitters)
+		{
+			m_Emitters = emitters;
+			SetDirty(true);
+		}
+
+		const std::vector<ParticleEmitter>& GetEmitters() const { return m_Emitters; }
+
+		AssetParticleSystem& operator=(Asset&& other) noexcept override
+		{
+			if (this == &other)
+				return *this;
+
+			Asset::operator=(std::move(other));
+
+			AssetParticleSystem&& fontAsset = (AssetParticleSystem&&)other;
+			m_Emitters = std::move(fontAsset.m_Emitters);
+
+			return *this;
+		}
+
+		// @path. Path to an `.egasset` file
+		static Ref<AssetParticleSystem> Create(const Path& path);
+
+		static AssetType GetAssetType_Static() { return AssetType::ParticleSystem; }
+
+	protected:
+		AssetParticleSystem(const Path& path, GUID guid, const std::vector<ParticleEmitter>& emitters)
+			: Asset(path, {}, AssetType::ParticleSystem, guid, {}), m_Emitters(emitters) {}
+
+	private:
+		std::vector<ParticleEmitter> m_Emitters;
 	};
 }
