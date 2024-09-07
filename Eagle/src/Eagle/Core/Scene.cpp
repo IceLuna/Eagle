@@ -1401,6 +1401,20 @@ namespace Eagle
 		m_DirtyFlags.bImage2DDirty = true;
 	}
 
+	void Scene::OnParticleSystemAdded(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		auto& comp = entity.GetComponent<ParticleSystemComponent>();
+		if (comp.bAutospawn)
+			comp.Spawn();
+	}
+
+	void Scene::OnParticleSystemRemoved(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		entity.GetComponent<ParticleSystemComponent>().Destroy();
+	}
+
 	void Scene::ConnectSignals()
 	{
 		m_Registry.on_destroy<StaticMeshComponent>().connect<&Scene::OnStaticMeshComponentRemoved>(*this);
@@ -1417,6 +1431,8 @@ namespace Eagle
 		m_Registry.on_destroy<Text2DComponent>().connect<&Scene::OnText2DAddedRemoved>(*this);
 		m_Registry.on_construct<Image2DComponent>().connect<&Scene::OnImage2DAddedRemoved>(*this);
 		m_Registry.on_destroy<Image2DComponent>().connect<&Scene::OnImage2DAddedRemoved>(*this);
+		m_Registry.on_construct<ParticleSystemComponent>().connect<&Scene::OnParticleSystemAdded>(*this);
+		m_Registry.on_destroy<ParticleSystemComponent>().connect<&Scene::OnParticleSystemRemoved>(*this);
 	}
 
 	void Scene::CopyComponents(Entity source, Entity dest)

@@ -242,6 +242,8 @@ namespace Eagle
 		void OnTextAddedRemoved(entt::registry& r, entt::entity e);
 		void OnText2DAddedRemoved(entt::registry& r, entt::entity e);
 		void OnImage2DAddedRemoved(entt::registry& r, entt::entity e);
+		void OnParticleSystemAdded(entt::registry& r, entt::entity e);
+		void OnParticleSystemRemoved(entt::registry& r, entt::entity e);
 
 		// T - is component type
 		template<typename T>

@@ -23,12 +23,15 @@ namespace Eagle
 		float length = 1.f;
 		if (m_Asset)
 		{
-			AABB aabb;
 			const auto& emitters = m_Asset->GetEmitters();
-			for (const auto& emitter : emitters)
-				aabb.Grow(emitter.VisibilityAABB);
-			center = aabb.Center();
-			length = aabb.MaxSide();
+			if (emitters.size())
+			{
+				AABB aabb;
+				for (const auto& emitter : emitters)
+					aabb.Grow(emitter.VisibilityAABB);
+				center = aabb.Center();
+				length = aabb.MaxSide();
+			}
 		}
 		camera.LookAt(center);
 		camera.SetLocation(center - cameraDir * length * 2.5f); // Move back

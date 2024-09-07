@@ -156,24 +156,27 @@ void main()
         vec4 position = g_ViewProj * vec4(particle.Position, 1.0);
         position.xyz /= position.w;
 
-        const vec2 uv = position.xy * 0.5 + vec2(0.5); // TODO: Check out-of-bounds
-        const vec3 normal = DecodeNormal(texture(g_Normal, uv).xy); // .xy - Geometry Normal
-
-        const float depth = ToLinear(texture(g_Depth, uv).x, g_CameraNear, g_CameraFar);
-        const float particleSize = 0.1f; // TODO:
-		const float surfaceThickness = 1.5f;
-		if ((position.w + particleSize > depth) && (position.w - particleSize < depth + surfaceThickness))
+        const vec2 uv = position.xy * 0.5 + vec2(0.5);
+        if (uv.x >= 0.f && uv.y >= 0.f && uv.x <= 1.f && uv.y <= 1.f)
         {
-            if (dot(particle.Velocity, normal) < 0.0)
+            const vec3 normal = DecodeNormal(texture(g_Normal, uv).xy); // .xy - Geometry Normal
+            const float depth = ToLinear(texture(g_Depth, uv).x, g_CameraNear, g_CameraFar);
+            const vec3 particleSize = particle.Size * emitter.ColliderSizeRatio;
+            const float particleSizeMax = max(particleSize.x, max(particleSize.y, particleSize.z));
+		    const float surfaceThickness = 1.5f;
+		    if ((position.w + particleSizeMax > depth) && (position.w - particleSizeMax < depth + surfaceThickness))
             {
-                switch (emitter.CollisionType)
+                if (dot(particle.Velocity, normal) < 0.0)
                 {
-                    case ParticleCollisionType_DestroyOnHit:
-                        PushDead(particleIndex);
-                        return;
-                    case ParticleCollisionType_Bounce:
-                        particle.Velocity = reflect(particle.Velocity, normal) * particle.Bounciness; 
-                        break;
+                    switch (emitter.CollisionType)
+                    {
+                        case ParticleCollisionType_DestroyOnHit:
+                            PushDead(particleIndex);
+                            return;
+                        case ParticleCollisionType_Bounce:
+                            particle.Velocity = reflect(particle.Velocity, normal) * particle.Bounciness; 
+                            break;
+                    }
                 }
             }
         }
@@ -198,7 +201,7 @@ void main()
 
     const float lifeAlpha = particle.CurrentLifetime / particle.Lifetime;
     particle.Color = mix(emitter.ColorStart, emitter.ColorEnd, lifeAlpha);
-    particle.Position += particle.Velocity * particle.VelocityCoef * g_DeltaTime; // TODO: `g_DeltaTime` is needed?
+    particle.Position += particle.Velocity * particle.VelocityCoef * g_DeltaTime;
     particle.Size = mix(emitter.SizeStart, emitter.SizeEnd, lifeAlpha);
     particle.CurrentLifetime += g_DeltaTime;
     particle.RotationZ = mix(emitter.RotationZStart, emitter.RotationZEnd, lifeAlpha);

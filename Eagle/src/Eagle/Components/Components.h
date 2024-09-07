@@ -1591,10 +1591,9 @@ namespace Eagle
 	class ParticleSystemComponent : public SceneComponent
 	{
 	public:
+		// Note: Scene is responsible for ParticleSystem creation/destruction when this component is being created/deleted
 		ParticleSystemComponent(const Entity& entity) : SceneComponent(entity) { }
 		ParticleSystemComponent(const Entity& entity, const Ref<AssetParticleSystem>& asset) : SceneComponent(entity), m_Asset(asset) {}
-
-		~ParticleSystemComponent() { Destroy(); }
 
 		COMPONENT_DEFAULTS(ParticleSystemComponent);
 
