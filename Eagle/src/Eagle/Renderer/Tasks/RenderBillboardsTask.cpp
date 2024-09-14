@@ -261,7 +261,7 @@ namespace Eagle
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.Image = gBuffer.Depth;
 		depthAttachment.bWriteDepth = true;
-		depthAttachment.DepthCompareOp = CompareOperation::Less;
+		depthAttachment.DepthCompareOp = CompareOperation::Greater;
 		depthAttachment.ClearOperation = ClearOperation::Load;
 
 		ShaderDefines vertexDefines;

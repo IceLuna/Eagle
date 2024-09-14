@@ -2432,8 +2432,8 @@ namespace Eagle
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.bWriteDepth = true;
 			depthAttachment.ClearOperation = ClearOperation::Clear;
-			depthAttachment.DepthClearValue = 1.f;
-			depthAttachment.DepthCompareOp = CompareOperation::Less;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_meshes.vert", ShaderType::Vertex);
@@ -2460,6 +2460,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthCubeImage();
 			depthAttachment.ClearOperation = ClearOperation::Clear;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines defines;
 			defines["EG_POINT_LIGHT_PASS"] = "";
@@ -2493,6 +2495,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Clear;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines defines;
 			defines["EG_SPOT_LIGHT_PASS"] = "";
@@ -2530,7 +2534,7 @@ namespace Eagle
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.bWriteDepth = false;
 			depthAttachment.ClearOperation = ClearOperation::Load;
-			depthAttachment.DepthCompareOp = CompareOperation::Less;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			const ShaderDefines vertexDefines = { {"EG_MATERIALS_REQUIRED", ""} };
 
@@ -2587,6 +2591,7 @@ namespace Eagle
 			depthAttachment.Image = RenderManager::GetDummyDepthCubeImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
 			depthAttachment.bWriteDepth = false;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines defines;
 			defines["EG_POINT_LIGHT_PASS"] = "";
@@ -2648,6 +2653,7 @@ namespace Eagle
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
 			depthAttachment.bWriteDepth = false;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines defines;
 			defines["EG_SPOT_LIGHT_PASS"] = "";
@@ -2709,6 +2715,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_skeletal_meshes.vert", ShaderType::Vertex);
@@ -2730,6 +2738,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthCubeImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines defines;
 			defines["EG_POINT_LIGHT_PASS"] = "";
@@ -2756,6 +2766,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines defines;
 			defines["EG_SPOT_LIGHT_PASS"] = "";
@@ -2783,6 +2795,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			const ShaderDefines defines = { {"EG_MATERIALS_REQUIRED", ""} };
 			PipelineGraphicsState state;
@@ -2806,6 +2820,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthCubeImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines defines;
 			defines["EG_POINT_LIGHT_PASS"] = "";
@@ -2834,6 +2850,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines defines;
 			defines["EG_SPOT_LIGHT_PASS"] = "";
@@ -2890,6 +2908,7 @@ namespace Eagle
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
 			depthAttachment.bWriteDepth = false;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			const ShaderDefines vertexDefines = { {"EG_MATERIALS_REQUIRED", ""} };
 
@@ -2962,6 +2981,7 @@ namespace Eagle
 			depthAttachment.Image = RenderManager::GetDummyDepthCubeImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
 			depthAttachment.bWriteDepth = false;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines defines;
 			defines["EG_POINT_LIGHT_PASS"] = "";
@@ -3039,6 +3059,7 @@ namespace Eagle
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
 			depthAttachment.bWriteDepth = false;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines defines;
 			defines["EG_SPOT_LIGHT_PASS"] = "";
@@ -3093,6 +3114,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_sprites.vert", ShaderType::Vertex);
@@ -3114,6 +3137,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthCubeImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines plDefines;
 			plDefines["EG_POINT_LIGHT_PASS"] = "";
@@ -3140,6 +3165,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines slDefines;
 			slDefines["EG_SPOT_LIGHT_PASS"] = "";
@@ -3167,6 +3194,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_sprites.vert", ShaderType::Vertex, { {"EG_MATERIALS_REQUIRED", ""} });
@@ -3189,6 +3218,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthCubeImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines plDefines;
 			plDefines["EG_POINT_LIGHT_PASS"] = "";
@@ -3217,6 +3248,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines slDefines;
 			slDefines["EG_SPOT_LIGHT_PASS"] = "";
@@ -3273,6 +3306,7 @@ namespace Eagle
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
 			depthAttachment.bWriteDepth = false;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_sprites.vert", ShaderType::Vertex, { {"EG_MATERIALS_REQUIRED", ""} });
@@ -3342,6 +3376,7 @@ namespace Eagle
 			depthAttachment.Image = RenderManager::GetDummyDepthCubeImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
 			depthAttachment.bWriteDepth = false;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines plDefines;
 			plDefines["EG_POINT_LIGHT_PASS"] = "";
@@ -3417,6 +3452,7 @@ namespace Eagle
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
 			depthAttachment.bWriteDepth = false;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines slDefines;
 			slDefines["EG_SPOT_LIGHT_PASS"] = "";
@@ -3472,6 +3508,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_lit.vert", ShaderType::Vertex);
@@ -3494,6 +3532,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthCubeImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines plDefines;
 			plDefines["EG_POINT_LIGHT_PASS"] = "";
@@ -3521,6 +3561,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines slDefines;
 			slDefines["EG_SPOT_LIGHT_PASS"] = "";
@@ -3551,6 +3593,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_lit.vert", ShaderType::Vertex, { {"EG_MATERIALS_REQUIRED", ""} });
@@ -3573,6 +3617,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthCubeImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines plDefines;
 			plDefines["EG_POINT_LIGHT_PASS"] = "";
@@ -3601,6 +3647,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines slDefines;
 			slDefines["EG_SPOT_LIGHT_PASS"] = "";
@@ -3661,6 +3709,7 @@ namespace Eagle
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
 			depthAttachment.bWriteDepth = false;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_lit.vert", ShaderType::Vertex, { {"EG_MATERIALS_REQUIRED", ""} });
@@ -3731,6 +3780,7 @@ namespace Eagle
 			depthAttachment.Image = RenderManager::GetDummyDepthCubeImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
 			depthAttachment.bWriteDepth = false;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines plDefines;
 			plDefines["EG_POINT_LIGHT_PASS"] = "";
@@ -3806,6 +3856,7 @@ namespace Eagle
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
 			depthAttachment.bWriteDepth = false;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines slDefines;
 			slDefines["EG_SPOT_LIGHT_PASS"] = "";
@@ -3861,6 +3912,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_unlit.vert", ShaderType::Vertex);
@@ -3883,6 +3936,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthCubeImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines plDefines;
 			plDefines["EG_POINT_LIGHT_PASS"] = "";
@@ -3910,6 +3965,8 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.DepthClearValue = 0.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 			ShaderDefines slDefines;
 			slDefines["EG_SPOT_LIGHT_PASS"] = "";

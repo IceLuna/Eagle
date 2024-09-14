@@ -159,8 +159,8 @@ namespace Eagle
 		depthAttachment.Image = gbuffer.Depth;
 		depthAttachment.ClearOperation = ClearOperation::Load;
 		depthAttachment.bWriteDepth = true;
-		depthAttachment.DepthClearValue = 1.f;
-		depthAttachment.DepthCompareOp = CompareOperation::Less;
+		depthAttachment.DepthClearValue = 0.f;
+		depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
 		ShaderDefines vertexDefines;
 		ShaderDefines fragmentDefines;

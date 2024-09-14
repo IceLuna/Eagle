@@ -25,9 +25,9 @@ namespace Eagle
 	struct DepthStencilAttachment : Attachment
 	{
 		float DepthBias = 0.f;
-		float DepthClearValue = 1.f;
+		float DepthClearValue = 0.f;
 		uint32_t StencilClearValue = 0;
-		CompareOperation DepthCompareOp = CompareOperation::Less;
+		CompareOperation DepthCompareOp = CompareOperation::GreaterEqual;
 		bool bWriteDepth = true;
 	};
 

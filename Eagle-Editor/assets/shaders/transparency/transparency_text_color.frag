@@ -8,6 +8,7 @@
 #include "transparency/transparency_color_pipeline_layout.h"
 
 #include "pbr_utils.h"
+#define EG_OIT_NULL 0x0u // 0xFFFFFFFFu
 
 #define EG_PIXEL_COORDS vec2(gl_FragCoord.xy)
 #include "shadow_maps/shadows_utils.h"
@@ -125,7 +126,7 @@ void main()
 
     // If this fragment was behind the frontmost EG_OIT_LAYERS fragments, it didn't
     // make it in, so tail blend it:
-    if(imageLoad(imgAbuffer, listPos + (EG_OIT_LAYERS - 1) * viewSize).x < zcur)
+    if(imageLoad(imgAbuffer, listPos + (EG_OIT_LAYERS - 1) * viewSize).x > zcur)
     {
         outColor = vec4(color.rgb * color.a, color.a); // TAILBLEND
         return;
@@ -140,7 +141,7 @@ void main()
     {
         int mid = (start + end) / 2;
         ztest = imageLoad(imgAbuffer, listPos + mid * viewSize).x;
-        if(ztest < zcur)
+        if(ztest > zcur)
             start = mid + 1;  // in [mid + 1, end]
         else
             end = mid;  // in [start, mid]

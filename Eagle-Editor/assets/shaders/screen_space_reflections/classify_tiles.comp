@@ -54,7 +54,7 @@ void StoreDenoiserTile(uint index, uvec2 tileCoord)
 
 bool IsReflectiveSurface(uvec2 pixelCoordinate, float roughness)
 {
-    return texelFetch(g_Depth, ivec2(pixelCoordinate), 0).x < EG_DEPTH_FAR;
+    return texelFetch(g_Depth, ivec2(pixelCoordinate), 0).x > EG_DEPTH_FAR;
 }
 
 bool IsBaseRay(uvec2 dispatchThreadId, uint samplesPerQuad)

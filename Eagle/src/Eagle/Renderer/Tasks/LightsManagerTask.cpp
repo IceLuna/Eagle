@@ -6,6 +6,7 @@
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
 #include "Eagle/Renderer/VidWrappers/Buffer.h"
 #include "Eagle/Components/Components.h"
+#include "Eagle/Math/Math.h"
 
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Debug/GPUTimings.h"
@@ -18,7 +19,7 @@ namespace Eagle
 	static constexpr glm::vec3 s_UpVectors[6] = { glm::vec3(0.0, -1.0, +0.0), glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, +0.0, 1.0),
 										          glm::vec3(0.0, +0.0, -1.0), glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, -1.0, 0.0) };
 
-	static const glm::mat4 s_PointLightPerspectiveProjection = glm::perspective(glm::radians(90.f), 1.f, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
+	static const glm::mat4 s_PointLightPerspectiveProjection = Math::Perspective(glm::radians(90.f), 1.f, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
 
 	LightsManagerTask::LightsManagerTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
@@ -118,7 +119,7 @@ namespace Eagle
 			for (auto& light : thisRef->m_SpotLights)
 			{
 				const float cutoff = light.OuterCutOffRadians * 2.f;
-				glm::mat4 spotLightPerspectiveProjection = glm::perspective(cutoff, 1.f, 0.01f, 50.f);
+				glm::mat4 spotLightPerspectiveProjection = Math::Perspective(cutoff, 1.f, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
 				spotLightPerspectiveProjection[1][1] *= -1.f;
 				const glm::vec3 upVector = light.ViewProj[0];
 				light.ViewProj = spotLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + light.Direction, upVector);
@@ -179,7 +180,7 @@ namespace Eagle
 
 					glm::vec3 lightDir = directionalLight.Direction;
 					glm::mat4 lightViewMatrix = glm::lookAt(frustumCenter - lightDir * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
-					glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f + CascadeNearPlaneOffset, maxExtents.z - minExtents.z + CascadeFarPlaneOffset);
+					glm::mat4 lightOrthoMatrix = Math::Ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f + CascadeNearPlaneOffset, maxExtents.z - minExtents.z + CascadeFarPlaneOffset);
 
 					// Offset to texel space to avoid shimmering (from https://stackoverflow.com/questions/33499053/cascaded-shadow-map-shimmering)
 					glm::mat4 shadowMatrix = lightOrthoMatrix * lightViewMatrix;

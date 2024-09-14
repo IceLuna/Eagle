@@ -489,7 +489,7 @@ namespace Eagle
 						RenderManager::Submit([editorLayer = this, mouse, entityAsset](Ref<CommandBuffer>&)
 						{
 							Ref<Image>& depthBuffer = editorLayer->m_CurrentScene->GetSceneRenderer()->GetGBuffer().Depth;
-							float depth = 1.f;
+							float depth = 0.f;
 							const ImageLayout depthLayout = depthBuffer->GetLayout();
 							depthBuffer->Read(&depth, sizeof(float), glm::ivec3{ mouse.x, mouse.y, 0 }, glm::uvec3{ 1 }, depthLayout, depthLayout);
 
@@ -512,8 +512,7 @@ namespace Eagle
 		const auto& editorCamera = m_EditorScene->GetEditorCamera();
 		glm::vec3 worldPos = Math::WorldPosFromDepth(glm::inverse(editorCamera.GetViewProjection()), uv, depth);
 		
-		// TODO: Check if depth is reversed
-		if (depth == 1.f)
+		if (depth == 0.f)
 		{
 			const auto& cameraPos = editorCamera.GetLocation();
 			worldPos = cameraPos + glm::normalize(worldPos - cameraPos);

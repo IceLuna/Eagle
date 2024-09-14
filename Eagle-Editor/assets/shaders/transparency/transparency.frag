@@ -2,6 +2,7 @@
 // Minor modification were made to the color & composite algorithms to store HDR colors
 
 #include "utils.h"
+#define EG_OIT_NULL 0x0u // 0xFFFFFFFFu
 
 ////////////////////////////////////////////////////////////////////////////////
 // Depth sorting pass                                                         //
@@ -35,13 +36,13 @@ void main()
     // have to do.
     // If the fragment is further away than the last depth fragment, skip it:
     uint pretest = imageLoad(imgAbuffer, listPos + (EG_OIT_LAYERS - 1) * viewSize).x;
-    if(zcur > pretest)
+    if(zcur < pretest)
         return;
 
     // Check to see if the fragment can be inserted in the latter half of the
     // depth array:
     pretest = imageLoad(imgAbuffer, listPos + (EG_OIT_LAYERS / 2) * viewSize).x;
-    if(zcur > pretest)
+    if(zcur < pretest)
         i = (EG_OIT_LAYERS / 2);
 
     // Try to insert zcur in the place of the first element of the array that
@@ -49,14 +50,14 @@ void main()
     // remaining elements in the array down.
     for(; i < EG_OIT_LAYERS; i++)
     {
-        const uint ztest = imageAtomicMin(imgAbuffer, listPos + i * viewSize, zcur);
-        if(ztest == 0xFFFFFFFFu || ztest == zcur)
+        const uint ztest = imageAtomicMax(imgAbuffer, listPos + i * viewSize, zcur);
+        if(ztest == EG_OIT_NULL || ztest == zcur)
         {
             // In the former case, we just inserted zcur into an empty space in the
             // array. In the latter case, we found a depth value that exactly matched.
             break;
         }
-        zcur = max(ztest, zcur);
+        zcur = min(ztest, zcur);
     }
 
     // Note that this line is necessary, since otherwise we'll get a warning from
@@ -114,7 +115,7 @@ void main()
     for(int i = 0; i < EG_OIT_LAYERS; i++)
     {
         const uint ztest = imageLoad(imgAbuffer, listPos + i * viewSize).r;
-        if(ztest != 0xFFFFFFFFu)
+        if(ztest != EG_OIT_NULL)
             fragments++;
         else
             break;

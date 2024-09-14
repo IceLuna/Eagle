@@ -85,7 +85,7 @@ float DirLight_ShadowCalculation_Volumetric(sampler2D depthTexture, vec3 fragPos
 	
 	float shadow = 0.f;
 	const float closestDepth = texture(depthTexture, uv).r;
-	if (currentDepth > closestDepth)
+	if (currentDepth < closestDepth)
 		shadow += 1.f;
 	
 	return 1.f - shadow;
@@ -103,7 +103,7 @@ float PointLight_ShadowCalculation_Volumetric(samplerCube depthTexture, vec3 lig
 	float shadow = 0.f;
 	
 	float closestDepth = texture(depthTexture, lightToFrag).r;
-	if (currentDepth > closestDepth)
+	if (currentDepth < closestDepth)
 		shadow += 1.f;
 	
 	return 1.f - shadow;
@@ -119,7 +119,7 @@ float SpotLight_ShadowCalculation_Volumetric(sampler2D depthTexture, vec3 fragPo
 	
 	float shadow = 0.f;
 	const float closestDepth = texture(depthTexture, uv).r;
-	if (currentDepth > closestDepth)
+	if (currentDepth < closestDepth)
 		shadow += 1.f;
 	
 	return 1.f - shadow;
@@ -141,7 +141,7 @@ vec3 DirLight_ColoredShadowCalculation_Volumetric(sampler2D depthTexture, sample
 	
 	const float currentDepth = fragPosLightSpace.z - bias;
 	const float depth = texture(coloredDepthTexture, projCoords).r;
-	if (currentDepth < depth)
+	if (currentDepth > depth)
 		return vec3(1);
 	
 	return texture(depthTexture, projCoords).rgb;
@@ -155,7 +155,7 @@ vec3 PointLight_ColoredShadowCalculation_Volumetric(samplerCube depthTexture, sa
 	
 	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
 	const float depth = texture(coloredDepthTexture, lightToFrag).r;
-	if (currentDepth < depth)
+	if (currentDepth > depth)
 		return vec3(1);
 	
 	return texture(depthTexture, lightToFrag).rgb;
@@ -170,7 +170,7 @@ vec3 SpotLight_ColoredShadowCalculation_Volumetric(sampler2D coloredTexture, sam
 	
 	const float currentDepth = fragPosLightSpace.z;
 	const float depth = texture(coloredDepthTexture, projCoords).r;
-	if (currentDepth < depth)
+	if (currentDepth > depth)
 		return vec3(1);
 	
 	return texture(coloredTexture, projCoords).rgb;

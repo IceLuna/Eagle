@@ -593,7 +593,7 @@ namespace Eagle
 
     private:
         uint32_t m_NumberOfSamples = 8; // For each direction
-        float m_Radius = 0.5f;
+        float m_Radius = 1.f;
     };
 
     enum class FogEquation

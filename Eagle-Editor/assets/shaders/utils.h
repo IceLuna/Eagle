@@ -181,7 +181,7 @@ void sort3(inout vec3 p1, inout vec3 p2, inout vec3 p3)
     p3 = maxValue;
 }
 
-float ToLinear(float d, float near, float far)
+float ToLinear(float d, float far, float near)
 {
     return near * far / (far + d * (near - far));
 }

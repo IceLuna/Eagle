@@ -104,7 +104,7 @@ namespace Eagle
 		depthAttachment.Image = m_Renderer.GetGBuffer().Depth;
 		depthAttachment.bWriteDepth = false;
 		depthAttachment.ClearOperation = ClearOperation::Load;
-		depthAttachment.DepthCompareOp = CompareOperation::LessEqual;
+		depthAttachment.DepthCompareOp = CompareOperation::GreaterEqual;
 
 		PipelineGraphicsState state;
 		state.VertexShader = Shader::Create("skybox.vert", ShaderType::Vertex);

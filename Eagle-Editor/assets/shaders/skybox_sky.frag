@@ -149,7 +149,7 @@ float Noise(vec3 x)
 }
 
 const mat3 m = mat3(0.0, 1.60,  1.20, -1.6, 0.72, -0.96, -1.2, -0.96, 1.28);
-float fbm(vec3 p)
+float fbm(vec3 p) // TODO: Optimize?
 {
     float f = 0.0;
     f += Noise(p) / 2; p = m * p * 1.1;

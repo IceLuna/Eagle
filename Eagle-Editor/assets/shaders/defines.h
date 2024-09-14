@@ -76,7 +76,8 @@
 
 #define EG_SQUARE(x) ((x) * (x))
 
-#ifdef EG_REVERSED_DEPTH // TODO: When implemented, also change comparison for all EG_DEPTH_FAR
+#define EG_REVERSED_DEPTH
+#ifdef EG_REVERSED_DEPTH
 #define EG_DEPTH_FAR 0.f
 #else
 #define EG_DEPTH_FAR 1.f

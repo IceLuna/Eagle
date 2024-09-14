@@ -12,6 +12,7 @@ layout(push_constant) uniform PushConstants
 #define GROUP_SIZE 8
 layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
 
+#define HZB_MAX
 #ifdef HZB_MAX
 #define HZB_FUNC max
 #else
@@ -40,7 +41,7 @@ void main()
                                     previousLevelBaseTexelCoord + ivec2(0, 1),
                                     g_PrevMipLevel).r;
 
-	float minDepth = HZB_FUNC(HZB_FUNC(depthTexelValues.x, depthTexelValues.y),
+	float closestDepth = HZB_FUNC(HZB_FUNC(depthTexelValues.x, depthTexelValues.y),
                          HZB_FUNC(depthTexelValues.z, depthTexelValues.w));
 
     // Incorporate additional texels if the previous level's width or height (or both)
@@ -64,9 +65,9 @@ void main()
 			float cornerTexelValue = texelFetch(g_Input,
                                                 previousLevelBaseTexelCoord + ivec2(2, 2),
                                                 g_PrevMipLevel).r;
-			minDepth = HZB_FUNC(minDepth, cornerTexelValue);
+			closestDepth = HZB_FUNC(closestDepth, cornerTexelValue);
 		}
-		minDepth = HZB_FUNC(minDepth, HZB_FUNC(extraColumnTexelValues.x, extraColumnTexelValues.y));
+		closestDepth = HZB_FUNC(closestDepth, HZB_FUNC(extraColumnTexelValues.x, extraColumnTexelValues.y));
 	}
 	if (shouldIncludeExtraRowFromPreviousLevel)
 	{
@@ -77,8 +78,8 @@ void main()
 		extraRowTexelValues.y = texelFetch(g_Input,
                                            previousLevelBaseTexelCoord + ivec2(1, 2),
                                            g_PrevMipLevel).r;
-		minDepth = HZB_FUNC(minDepth, HZB_FUNC(extraRowTexelValues.x, extraRowTexelValues.y));
+		closestDepth = HZB_FUNC(closestDepth, HZB_FUNC(extraRowTexelValues.x, extraRowTexelValues.y));
 	}
     
-	imageStore(g_Outputs[g_PrevMipLevel + 1], pixelCoords, vec4(minDepth));
+	imageStore(g_Outputs[g_PrevMipLevel + 1], pixelCoords, vec4(closestDepth));
 }

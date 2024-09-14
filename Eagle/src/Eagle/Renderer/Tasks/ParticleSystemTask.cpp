@@ -659,7 +659,7 @@ namespace Eagle
 			auto& data = updateData.emplace_back();
 			data.Emitters = asset->GetEmitters();
 			data.Transformation = Math::ToTransformMatrix(system->GetWorldTransform());
-			data.SystemID = system->Parent.GetGUID();
+			data.SystemID = system->GetSystemID();
 		}
 
 		if (updateData.empty())
@@ -702,7 +702,7 @@ namespace Eagle
 			auto& data = updateData.emplace_back();
 			data.Emitters = asset->GetEmitters();
 			data.Transformation = Math::ToTransformMatrix(system->GetWorldTransform());
-			data.SystemID = system->Parent.GetGUID();
+			data.SystemID = system->GetSystemID();
 		}
 
 		if (updateData.empty())
@@ -812,7 +812,7 @@ namespace Eagle
 
 			const auto& emitters = asset->GetEmitters();
 			const glm::mat4 systemTr = Math::ToTransformMatrix(system->GetWorldTransform());
-			auto& updateEmitters = newTransforms[system->Parent.GetGUID()];
+			auto& updateEmitters = newTransforms[system->GetSystemID()];
 			for (const auto& emitter : emitters)
 			{
 				auto& data = updateEmitters.emplace_back();
@@ -952,7 +952,7 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 			depthAttachment.Image = gBuffer.Depth;
 			// depthAttachment.bWriteDepth = true; // TODO: Should enable?
-			depthAttachment.DepthCompareOp = CompareOperation::LessEqual;
+			depthAttachment.DepthCompareOp = CompareOperation::GreaterEqual;
 			depthAttachment.ClearOperation = ClearOperation::Load;
 
 			PipelineGraphicsState state;

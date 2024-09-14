@@ -7,12 +7,13 @@
 #include "VulkanSampler.h"
 
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
+#include "Eagle/Math/Math.h"
 
 #include <glm/gtx/transform.hpp>
 
 namespace Eagle
 {
-	static const glm::mat4 g_CaptureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+	static const glm::mat4 g_CaptureProjection = Math::Perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
 	static const glm::mat4 g_CaptureViews[] =
 	{
 	   glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),

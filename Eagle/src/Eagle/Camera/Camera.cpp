@@ -1,5 +1,6 @@
 #include "egpch.h"
 #include "Camera.h"
+#include "Eagle/Math/Math.h"
 
 #include "../../Eagle-Editor/assets/shaders/defines.h"
 
@@ -38,7 +39,7 @@ namespace Eagle
 	{
 		if (m_ProjectionMode == CameraProjectionMode::Perspective)
 		{
-			m_Projection = glm::perspective(m_PerspectiveVerticalFOV, m_AspectRatio, m_PerspectiveNear, m_PerspectiveFar);
+			m_Projection = Math::Perspective(m_PerspectiveVerticalFOV, m_AspectRatio, m_PerspectiveNear, m_PerspectiveFar);
 
 			float cascadeSplits[EG_CASCADES_COUNT];
 
@@ -65,12 +66,12 @@ namespace Eagle
 				for (uint32_t i = 0; i < EG_CASCADES_COUNT; i++)
 					m_CascadeFarPlanes[i] = m_ShadowFar * cascadeSplits[i];
 
-				m_CascadeProjections[0] = glm::perspective(m_PerspectiveVerticalFOV, m_AspectRatio, m_PerspectiveNear, m_CascadeFarPlanes[0]);
+				m_CascadeProjections[0] = Math::Perspective(m_PerspectiveVerticalFOV, m_AspectRatio, m_PerspectiveNear, m_CascadeFarPlanes[0]);
 				for (int i = 1; i < EG_CASCADES_COUNT; ++i)
 				{
 					const float farPlane = m_CascadeFarPlanes[i - 1];
 					// Adding a little overlap between cascades to blend between them
-					m_CascadeProjections[i] = glm::perspective(m_PerspectiveVerticalFOV, m_AspectRatio, farPlane - farPlane * m_CSMSmoothTransitionAlpha, m_CascadeFarPlanes[i]);
+					m_CascadeProjections[i] = Math::Perspective(m_PerspectiveVerticalFOV, m_AspectRatio, farPlane - farPlane * m_CSMSmoothTransitionAlpha, m_CascadeFarPlanes[i]);
 				}
 			}
 		}
@@ -81,7 +82,7 @@ namespace Eagle
 			const float orthoBottom = -m_OrthographicSize * 0.5f;
 			const float orthoTop = m_OrthographicSize * 0.5f;
 
-			m_Projection = glm::ortho(orthoLeft, orthoRight, orthoBottom, orthoTop, m_OrthographicNear, m_OrthographicFar);
+			m_Projection = Math::Ortho(orthoLeft, orthoRight, orthoBottom, orthoTop, m_OrthographicNear, m_OrthographicFar);
 
 			// Calculating cascade projections
 			{
@@ -91,7 +92,7 @@ namespace Eagle
 				const float orthoBottom = -orthoSize * 0.5f;
 				const float orthoTop = orthoSize * 0.5f;
 
-				const glm::mat4 projection = glm::ortho(orthoLeft, orthoRight, orthoBottom, orthoTop, m_OrthographicNear, m_OrthographicFar);
+				const glm::mat4 projection = Math::Ortho(orthoLeft, orthoRight, orthoBottom, orthoTop, m_OrthographicNear, m_OrthographicFar);
 				for (uint32_t i = 0; i < EG_CASCADES_COUNT; ++i)
 					m_CascadeProjections[i] = projection; // TODO: Different projections?
 			}

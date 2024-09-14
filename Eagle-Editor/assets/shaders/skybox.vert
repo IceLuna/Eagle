@@ -1,3 +1,5 @@
+#include "defines.h"
+
 #define VERTEX_COUNT 36
 
 vec3 positions[VERTEX_COUNT] = vec3[](
@@ -58,6 +60,9 @@ void main()
     const vec4 clipPos = g_ViewProj * pos;
 
     gl_Position = clipPos.xyww;
+#ifdef EG_REVERSED_DEPTH
+    gl_Position.z = EG_DEPTH_FAR;
+#endif
 
     o_Pos = pos.xyz;
 }

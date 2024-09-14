@@ -50,12 +50,12 @@ float DirLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLightS
 		const vec3 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0).rgb * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
 		vec2 uv = shadowCoords + offsets.rg * texelSize;
 		float closestDepth = texture(depthTexture, uv).x;
-		if (currentDepth > closestDepth)
+		if (currentDepth < closestDepth)
 			sum += 1.f;
 
 		uv = shadowCoords + offsets.br * texelSize;
 		closestDepth = texture(depthTexture, uv).x;
-		if (currentDepth > closestDepth)
+		if (currentDepth < closestDepth)
 			sum += 1.f;
 	}
 	float shadow = sum * invSamplesCount;
@@ -69,12 +69,12 @@ float DirLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLightS
 			const vec3 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0).rgb * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
 			vec2 uv = shadowCoords + offsets.rg * texelSize;
 			float closestDepth = texture(depthTexture, uv).x;
-			if (currentDepth > closestDepth)
+			if (currentDepth < closestDepth)
 				sum += 1.f;
 
 			uv = shadowCoords + offsets.br * texelSize;
 			closestDepth = texture(depthTexture, uv).x;
-			if (currentDepth > closestDepth)
+			if (currentDepth < closestDepth)
 				sum += 1.f;
 		}
 
@@ -92,7 +92,7 @@ float PointLight_ShadowCalculation_Soft(samplerCube depthTexture, vec3 lightToFr
 	const vec3 normalBias = geometryNormal * bias;
 	lightToFrag += normalBias;
 	
-	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
+	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_FAR, EG_POINT_LIGHT_NEAR);
 	
 	const ivec2 f = ivec2(mod(EG_PIXEL_COORDS, vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
 	
@@ -108,12 +108,12 @@ float PointLight_ShadowCalculation_Soft(samplerCube depthTexture, vec3 lightToFr
 
 		vec3 uv = lightToFrag + offsets.rgb * diskRadius;
 		float closestDepth = texture(depthTexture, uv).r;
-		if (currentDepth > closestDepth)
+		if (currentDepth < closestDepth)
 			sum += 1.f;
 
 		uv = lightToFrag + offsets.brg * diskRadius;
 		closestDepth = texture(depthTexture, uv).r;
-		if (currentDepth > closestDepth)
+		if (currentDepth < closestDepth)
 			sum += 1.f;
 	}
 	float shadow = sum * invSamples;
@@ -128,12 +128,12 @@ float PointLight_ShadowCalculation_Soft(samplerCube depthTexture, vec3 lightToFr
 			
 			vec3 uv = lightToFrag + offsets.rgb * diskRadius;
 			float closestDepth = texture(depthTexture, uv).r;
-			if (currentDepth > closestDepth)
+			if (currentDepth < closestDepth)
 				sum += 1.f;
 
 			uv = lightToFrag + offsets.brg * diskRadius;
 			closestDepth = texture(depthTexture, uv).x;
-			if (currentDepth > closestDepth)
+			if (currentDepth < closestDepth)
 				sum += 1.f;
 		}
 
@@ -160,12 +160,12 @@ float SpotLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLight
 		const vec4 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0) * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
 		vec2 uv = shadowCoords + offsets.rg * texelSize;
 		float closestDepth = texture(depthTexture, uv).x;
-		if (currentDepth > closestDepth)
+		if (currentDepth < closestDepth)
 			sum += 1.f;
 
 		uv = shadowCoords + offsets.ba * texelSize;
 		closestDepth = texture(depthTexture, uv).x;
-		if (currentDepth > closestDepth)
+		if (currentDepth < closestDepth)
 			sum += 1.f;
 	}
 	float shadow = sum * invSamplesCount;
@@ -179,12 +179,12 @@ float SpotLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLight
 			const vec4 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0) * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
 			vec2 uv = shadowCoords + offsets.rg * texelSize;
 			float closestDepth = texture(depthTexture, uv).x;
-			if (currentDepth > closestDepth)
+			if (currentDepth < closestDepth)
 				sum += 1.f;
 
 			uv = shadowCoords + offsets.ba * texelSize;
 			closestDepth = texture(depthTexture, uv).x;
-			if (currentDepth > closestDepth)
+			if (currentDepth < closestDepth)
 				sum += 1.f;
 		}
 
@@ -366,7 +366,7 @@ float DirLight_ShadowCalculation_Hard(sampler2D depthTexture, vec3 fragPosLightS
 		{
 			const vec2 uv = projCoords + vec2(x, y) * texelSize;
 			const float closestDepth = texture(depthTexture, uv).r;
-			if (currentDepth > closestDepth)
+			if (currentDepth < closestDepth)
 				shadow += 1.f;
 		}
 
@@ -392,7 +392,7 @@ float PointLight_ShadowCalculation_Hard(samplerCube depthTexture, vec3 lightToFr
 	const vec3 normalBias = geometryNormal * bias;
 	lightToFrag += normalBias;
 	
-	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
+	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_FAR, EG_POINT_LIGHT_NEAR);
 	float shadow = 0.f;
 	
 	const float baseDiskRadius = 0.001f;
@@ -400,7 +400,7 @@ float PointLight_ShadowCalculation_Hard(samplerCube depthTexture, vec3 lightToFr
 	for (int i = 0; i < samples; ++i)
 	{
 		float closestDepth = texture(depthTexture, lightToFrag + sampleOffsetDirections[i] * diskRadius).r;
-		if (currentDepth > closestDepth)
+		if (currentDepth < closestDepth)
 			shadow += 1.f;
 	}
 	shadow *= invSamples;
@@ -426,7 +426,7 @@ float SpotLight_ShadowCalculation_Hard(sampler2D depthTexture, vec3 fragPosLight
 		{
 			const vec2 uv = projCoords + vec2(x, y) * texelSize;
 			const float closestDepth = texture(depthTexture, uv).r;
-			if (currentDepth > closestDepth)
+			if (currentDepth < closestDepth)
 				shadow += 1.f;
 		}
 

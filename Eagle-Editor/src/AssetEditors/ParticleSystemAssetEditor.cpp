@@ -91,11 +91,12 @@ namespace Eagle
 			bChanged |= UI::PropertyDrag("Ver. frames number", emitter.AnimationImagesNum.y, 1.f, 1u, UINT_MAX, "The number of rows in the sprite sheet");
 			bChanged |= UI::PropertyDrag("Animation Speed", emitter.AnimationSpeed, 0.1f);
 
-			if (UI::PropertyDrag("Fast forward to", emitter.FastForwardTo, 0.1f, 0, 0, "Allows to fast-forward the simulation to make it look like it was running for `Fast forward to` seconds"))
-			{
-				emitter.FastForwardTo = std::max(0.f, emitter.FastForwardTo);
-				bChanged = true;
-			}
+			// TODO: it's currently not supported
+			//if (UI::PropertyDrag("Fast forward to", emitter.FastForwardTo, 0.1f, 0, 0, "Allows to fast-forward the simulation to make it look like it was running for `Fast forward to` seconds"))
+			//{
+			//	emitter.FastForwardTo = std::max(0.f, emitter.FastForwardTo);
+			//	bChanged = true;
+			//}
 
 			bChanged |= UI::PropertyDrag("Radial Acceleration", emitter.RadialAcceleration, 0.1f, 0, 0, "If it's negative, particles will move towards the center of the emitter. If positive, they move away from the center");
 			bChanged |= UI::PropertyDrag("Tangential Acceleration", emitter.TangentialAcceleration, 0.1f, 0, 0, "If it's negative, particles will move towards the center of the emitter in a spiral way. If positive, they move away from the center");

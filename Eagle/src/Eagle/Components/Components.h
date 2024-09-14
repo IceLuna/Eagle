@@ -1637,8 +1637,11 @@ namespace Eagle
 				Parent.GetScene()->UpdateParticleSystem(this);
 		}
 
+		const GUID& GetSystemID() const { return m_SystemID; }
+
 	private:
 		Ref<AssetParticleSystem> m_Asset;
+		GUID m_SystemID = {};
 		bool bSpawned = false;
 
 	public:

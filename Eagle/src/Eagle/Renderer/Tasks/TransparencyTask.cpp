@@ -50,6 +50,8 @@ namespace Eagle
 		}
 	}
 
+	constexpr static uint32_t s_OITFillValue = 0x0u; // 0xFFFFFFFFu
+
 	TransparencyTask::TransparencyTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
@@ -112,7 +114,7 @@ namespace Eagle
 			size_t bytesToClear = m_OITBuffer->GetSize() / 2;
 			bytesToClear += 4ull - (bytesToClear % 4ull);
 
-			cmd->FillBuffer(m_OITBuffer, 0xFFFFFFFFu, 0, bytesToClear);
+			cmd->FillBuffer(m_OITBuffer, s_OITFillValue, 0, bytesToClear);
 		}
 
 		cmd->StorageBufferBarrier(m_OITBuffer);
@@ -717,7 +719,7 @@ namespace Eagle
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.Image = gbuffer.Depth;
 		depthAttachment.bWriteDepth = false;
-		depthAttachment.DepthCompareOp = CompareOperation::Less;
+		depthAttachment.DepthCompareOp = CompareOperation::Greater;
 		depthAttachment.ClearOperation = ClearOperation::Load;
 
 		PipelineGraphicsState state;
@@ -772,7 +774,7 @@ namespace Eagle
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.Image = gbuffer.Depth;
 		depthAttachment.bWriteDepth = false;
-		depthAttachment.DepthCompareOp = CompareOperation::Less;
+		depthAttachment.DepthCompareOp = CompareOperation::Greater;
 		depthAttachment.ClearOperation = ClearOperation::Load;
 
 		PipelineGraphicsState state;
@@ -827,7 +829,7 @@ namespace Eagle
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.Image = gbuffer.Depth;
 		depthAttachment.bWriteDepth = false;
-		depthAttachment.DepthCompareOp = CompareOperation::Less;
+		depthAttachment.DepthCompareOp = CompareOperation::Greater;
 		depthAttachment.ClearOperation = ClearOperation::Load;
 
 		PipelineGraphicsState state;
@@ -881,7 +883,7 @@ namespace Eagle
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.Image = gbuffer.Depth;
 		depthAttachment.bWriteDepth = false;
-		depthAttachment.DepthCompareOp = CompareOperation::Less;
+		depthAttachment.DepthCompareOp = CompareOperation::Greater;
 		depthAttachment.ClearOperation = ClearOperation::Load;
 
 		PipelineGraphicsState state;
@@ -928,19 +930,10 @@ namespace Eagle
 		colorAttachment.BlendingState.BlendSrcAlpha = BlendFactor::One;
 		colorAttachment.BlendingState.BlendDstAlpha = BlendFactor::OneMinusSrcAlpha;
 
-		DepthStencilAttachment depthAttachment;
-		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
-		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
-		depthAttachment.Image = m_Renderer.GetGBuffer().Depth;
-		depthAttachment.bWriteDepth = false;
-		depthAttachment.DepthCompareOp = CompareOperation::Less;
-		depthAttachment.ClearOperation = ClearOperation::Load;
-
 		PipelineGraphicsState state;
 		state.VertexShader = Shader::Create("quad_tri.vert", ShaderType::Vertex);
 		state.FragmentShader = m_TransparencyCompositeShader;
 		state.ColorAttachments.push_back(colorAttachment);
-		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::None;
 
 		m_CompositePipeline = PipelineGraphics::Create(state);
@@ -959,7 +952,7 @@ namespace Eagle
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.Image = m_Renderer.GetGBuffer().Depth;
 		depthAttachment.bWriteDepth = false;
-		depthAttachment.DepthCompareOp = CompareOperation::Less;
+		depthAttachment.DepthCompareOp = CompareOperation::Greater;
 		depthAttachment.ClearOperation = ClearOperation::Load;
 
 		PipelineGraphicsState state;

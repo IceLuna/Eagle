@@ -86,7 +86,7 @@ namespace Eagle
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.Image = m_Renderer.GetGBuffer().Depth;
 		depthAttachment.bWriteDepth = true;
-		depthAttachment.DepthCompareOp = CompareOperation::Less;
+		depthAttachment.DepthCompareOp = CompareOperation::Greater;
 		depthAttachment.ClearOperation = ClearOperation::Load;
 
 		ShaderDefines defines;
