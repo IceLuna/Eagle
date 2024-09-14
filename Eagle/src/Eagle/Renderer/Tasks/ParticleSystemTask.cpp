@@ -951,7 +951,7 @@ namespace Eagle
 			depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
 			depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 			depthAttachment.Image = gBuffer.Depth;
-			// depthAttachment.bWriteDepth = true; // TODO: Should enable?
+			depthAttachment.bWriteDepth = false; // TODO: Should enable?
 			depthAttachment.DepthCompareOp = CompareOperation::GreaterEqual;
 			depthAttachment.ClearOperation = ClearOperation::Load;
 

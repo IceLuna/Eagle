@@ -1308,7 +1308,7 @@ namespace Eagle
 
 	void Scene::RemoveParticleSystem(const ParticleSystemComponent* system)
 	{
-		m_ParticlesToRemove.emplace(system->Parent.GetGUID());
+		m_ParticlesToRemove.emplace(system->GetSystemID());
 	}
 
 	void Scene::UpdateParticleSystem(const ParticleSystemComponent* system)

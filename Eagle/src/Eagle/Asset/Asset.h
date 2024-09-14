@@ -184,6 +184,16 @@ namespace Eagle
 		void SetDirty(bool dirty) { bDirty = dirty; }
 		bool IsDirty() const { return bDirty; }
 
+		void AddOnAssetModifiedCallback(const GUID& id, const std::function<void()>& func)
+		{
+			m_Callbacks[id] = func;
+		}
+
+		void RemoveOnAssetModifiedCallback(const GUID& id)
+		{
+			m_Callbacks.erase(id);
+		}
+
 		virtual Asset& operator=(Asset&& other) noexcept
 		{
 			if (this == &other)
@@ -212,7 +222,14 @@ namespace Eagle
 	protected:
 		Asset(const Path& path, const Path& pathToRaw, AssetType type, GUID guid, const DataBuffer& rawData);
 
+		void OnModified()
+		{
+			for (auto& [_, func] : m_Callbacks)
+				func();
+		}
+
 	protected:
+		std::unordered_map<GUID, std::function<void()>> m_Callbacks;
 		Path m_Path;
 		Path m_PathToRaw;
 		GUID m_GUID;
@@ -690,6 +707,7 @@ namespace Eagle
 		{
 			m_Emitters = emitters;
 			SetDirty(true);
+			OnModified();
 		}
 
 		const std::vector<ParticleEmitter>& GetEmitters() const { return m_Emitters; }

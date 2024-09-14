@@ -508,26 +508,60 @@ namespace Eagle
 			ScriptEngine::OnAnimationEventEntity(Parent, name);
 	}
 
+	ParticleSystemComponent::ParticleSystemComponent(const Entity& entity, const Ref<AssetParticleSystem>& asset)
+		: SceneComponent(entity), m_Asset(asset)
+	{
+	}
+
 	void ParticleSystemComponent::SetAsset(const Ref<AssetParticleSystem>& asset)
 	{
 		if (m_Asset == asset)
 			return;
 
 		const bool bHadValidAsset = m_Asset.operator bool();
-		m_Asset = asset;
-		if (m_Asset)
-		{
-			if (bAutospawn)
-			{
-				if (bHadValidAsset)
-					Update();
-				else
-					Spawn();
-			}
-		}
-		else
-		{
+		if (bHadValidAsset)
+			m_Asset->RemoveOnAssetModifiedCallback(m_SystemID);
+
+		const bool bWillUseNewAsset = asset && bAutospawn;
+		if (!bWillUseNewAsset) // Destroy the old one if we're not going to spawn a new one
 			Destroy();
+
+		m_Asset = asset;
+		if (bWillUseNewAsset)
+		{
+			if (bHadValidAsset && bSpawned)
+			{
+				m_Asset->AddOnAssetModifiedCallback(m_SystemID, [this]() { Update(); });
+				Update();
+			}
+			else
+				Spawn();
 		}
+	}
+	
+	void ParticleSystemComponent::Spawn()
+	{
+		if (!bSpawned && m_Asset)
+		{
+			Parent.GetScene()->AddParticleSystem(this);
+			bSpawned = true;
+			m_Asset->AddOnAssetModifiedCallback(m_SystemID, [this]() { Update(); });
+		}
+	}
+
+	void ParticleSystemComponent::Destroy()
+	{
+		if (bSpawned)
+		{
+			Parent.GetScene()->RemoveParticleSystem(this);
+			bSpawned = false;
+			m_Asset->RemoveOnAssetModifiedCallback(m_SystemID);
+		}
+	}
+	
+	void ParticleSystemComponent::Update()
+	{
+		if (bSpawned)
+			Parent.GetScene()->UpdateParticleSystem(this);
 	}
 }

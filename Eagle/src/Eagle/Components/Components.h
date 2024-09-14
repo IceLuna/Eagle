@@ -1593,7 +1593,7 @@ namespace Eagle
 	public:
 		// Note: Scene is responsible for ParticleSystem creation/destruction when this component is being created/deleted
 		ParticleSystemComponent(const Entity& entity) : SceneComponent(entity) { }
-		ParticleSystemComponent(const Entity& entity, const Ref<AssetParticleSystem>& asset) : SceneComponent(entity), m_Asset(asset) {}
+		ParticleSystemComponent(const Entity& entity, const Ref<AssetParticleSystem>& asset);
 
 		COMPONENT_DEFAULTS(ParticleSystemComponent);
 
@@ -1613,29 +1613,9 @@ namespace Eagle
 
 		const Ref<AssetParticleSystem>& GetAsset() const { return m_Asset; }
 
-		void Spawn()
-		{
-			if (!bSpawned && m_Asset)
-			{
-				Parent.GetScene()->AddParticleSystem(this);
-				bSpawned = true;
-			}
-		}
-
-		void Destroy()
-		{
-			if (bSpawned)
-			{
-				Parent.GetScene()->RemoveParticleSystem(this);
-				bSpawned = false;
-			}
-		}
-
-		void Update()
-		{
-			if (bSpawned)
-				Parent.GetScene()->UpdateParticleSystem(this);
-		}
+		void Spawn();
+		void Destroy();
+		void Update();
 
 		const GUID& GetSystemID() const { return m_SystemID; }
 
