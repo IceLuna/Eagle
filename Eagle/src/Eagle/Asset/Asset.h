@@ -5,6 +5,7 @@
 #include "Eagle/Core/Serializer.h"
 #include "Eagle/Renderer/RendererUtils.h"
 #include "Eagle/Renderer/ParticleEmitter.h"
+#include "Eagle/Physics/PhysicsMaterial.h"
 
 namespace YAML
 {
@@ -21,7 +22,6 @@ namespace Eagle
 	class Audio;
 	class SoundGroup;
 	class Font;
-	class PhysicsMaterial;
 	class Entity;
 	class Scene;
 	class AnimationGraph;
@@ -542,7 +542,14 @@ namespace Eagle
 	class AssetPhysicsMaterial : public Asset
 	{
 	public:
-		const Ref<PhysicsMaterial>& GetMaterial() const { return m_Material; }
+		void SetMaterial(const PhysicsMaterial& material)
+		{
+			m_Material = material;
+			OnModified();
+			SetDirty(true);
+		}
+
+		const PhysicsMaterial& GetMaterial() const { return m_Material; }
 
 		AssetPhysicsMaterial& operator=(Asset&& other) noexcept override
 		{
@@ -563,11 +570,11 @@ namespace Eagle
 		static AssetType GetAssetType_Static() { return AssetType::PhysicsMaterial; }
 
 	protected:
-		AssetPhysicsMaterial(const Path& path, GUID guid, const Ref<PhysicsMaterial>& material)
+		AssetPhysicsMaterial(const Path& path, GUID guid, const PhysicsMaterial& material)
 			: Asset(path, {}, AssetType::PhysicsMaterial, guid, {}), m_Material(material) {}
 
 	private:
-		Ref<PhysicsMaterial> m_Material;
+		PhysicsMaterial m_Material;
 	};
 
 	class AssetEntity : public Asset

@@ -32,7 +32,7 @@ namespace Eagle
 			m_Material->release();
 		}
 
-		void SetPhysicsMaterial(const Ref<PhysicsMaterial>& material);
+		void SetPhysicsMaterial(const PhysicsMaterial& material);
 		bool IsTrigger() const { return m_Shape->getFlags() & physx::PxShapeFlag::Enum::eTRIGGER_SHAPE; }
 		void SetIsTrigger(bool bTrigger);
 		virtual bool IsValid() const { return true; }
@@ -49,7 +49,7 @@ namespace Eagle
 		const glm::vec3& GetColliderScale() const { return m_ColliderScale; }
 	
 	protected:
-		void CreateMaterial(const Ref<PhysicsMaterial>& material);
+		void CreateMaterial(const PhysicsMaterial& material);
 	
 	protected:
 		glm::vec3 m_ColliderScale = glm::vec3{ 0.f };

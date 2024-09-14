@@ -122,10 +122,9 @@ namespace Eagle
 		m_Shape->SetIsTrigger(bTrigger);
 	}
 	
-	void BoxColliderComponent::SetPhysicsMaterialAsset(const Ref<AssetPhysicsMaterial>& material)
+	void BoxColliderComponent::UpdatePhysicsMaterials()
 	{
-		m_MaterialAsset = material;
-		m_Shape->SetPhysicsMaterial(m_MaterialAsset ? m_MaterialAsset->GetMaterial() : PhysicsMaterial::Default);
+		m_Shape->SetPhysicsMaterial(m_MaterialAsset ? m_MaterialAsset->GetMaterial() : PhysicsMaterial{});
 	}
 
 	void BoxColliderComponent::SetShowCollision(bool bShowCollision)
@@ -189,10 +188,9 @@ namespace Eagle
 		m_Shape->SetIsTrigger(bTrigger);
 	}
 	
-	void SphereColliderComponent::SetPhysicsMaterialAsset(const Ref<AssetPhysicsMaterial>& material)
+	void SphereColliderComponent::UpdatePhysicsMaterials()
 	{
-		m_MaterialAsset = material;
-		m_Shape->SetPhysicsMaterial(m_MaterialAsset ? m_MaterialAsset->GetMaterial() : PhysicsMaterial::Default);
+		m_Shape->SetPhysicsMaterial(m_MaterialAsset ? m_MaterialAsset->GetMaterial() : PhysicsMaterial{});
 	}
 
 	void SphereColliderComponent::SetShowCollision(bool bShowCollision)
@@ -244,10 +242,9 @@ namespace Eagle
 		m_Shape->SetIsTrigger(bTrigger);
 	}
 	
-	void CapsuleColliderComponent::SetPhysicsMaterialAsset(const Ref<AssetPhysicsMaterial>& material)
+	void CapsuleColliderComponent::UpdatePhysicsMaterials()
 	{
-		m_MaterialAsset = material;
-		m_Shape->SetPhysicsMaterial(m_MaterialAsset ? m_MaterialAsset->GetMaterial() : PhysicsMaterial::Default);
+		m_Shape->SetPhysicsMaterial(m_MaterialAsset ? m_MaterialAsset->GetMaterial() : PhysicsMaterial{});
 	}
 
 	void CapsuleColliderComponent::SetShowCollision(bool bShowCollision)
@@ -308,12 +305,12 @@ namespace Eagle
 				shape->SetIsTrigger(bTrigger);
 	}
 	
-	void MeshColliderComponent::SetPhysicsMaterialAsset(const Ref<AssetPhysicsMaterial>& material)
+	void MeshColliderComponent::UpdatePhysicsMaterials()
 	{
-		m_MaterialAsset = material;
+		PhysicsMaterial material = m_MaterialAsset ? m_MaterialAsset->GetMaterial() : PhysicsMaterial{};
 		for (auto& shape : m_Shapes)
 			if (shape)
-				shape->SetPhysicsMaterial(m_MaterialAsset ? m_MaterialAsset->GetMaterial() : PhysicsMaterial::Default);
+				shape->SetPhysicsMaterial(material);
 	}
 
 	void MeshColliderComponent::SetShowCollision(bool bShowCollision)

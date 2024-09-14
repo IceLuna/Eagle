@@ -190,57 +190,6 @@ namespace Eagle::Script::Utils
 		*outTilingFactor = material->GetTilingFactor();
 		*outBlendMode = material->GetBlendMode();
 	}
-
-	static void OnPhysicsMaterialChanged(const Ref<AssetPhysicsMaterial>& material)
-	{
-		// TODO: not the best solution...
-
-		const auto& scene = Scene::GetCurrentScene();
-
-		// BoxColliderComponent
-		{
-			auto view = scene->GetAllEntitiesWith<BoxColliderComponent>();
-			for (auto e : view)
-			{
-				auto& component = view.get<BoxColliderComponent>(e);
-				if (component.GetPhysicsMaterialAsset() == material)
-					component.SetPhysicsMaterialAsset(material);
-			}
-		}
-
-		// SphereColliderComponent
-		{
-			auto view = scene->GetAllEntitiesWith<SphereColliderComponent>();
-			for (auto e : view)
-			{
-				auto& component = view.get<SphereColliderComponent>(e);
-				if (component.GetPhysicsMaterialAsset() == material)
-					component.SetPhysicsMaterialAsset(material);
-			}
-		}
-
-		// CapsuleColliderComponent
-		{
-			auto view = scene->GetAllEntitiesWith<CapsuleColliderComponent>();
-			for (auto e : view)
-			{
-				auto& component = view.get<CapsuleColliderComponent>(e);
-				if (component.GetPhysicsMaterialAsset() == material)
-					component.SetPhysicsMaterialAsset(material);
-			}
-		}
-
-		// MeshColliderComponent
-		{
-			auto view = scene->GetAllEntitiesWith<MeshColliderComponent>();
-			for (auto e : view)
-			{
-				auto& component = view.get<MeshColliderComponent>(e);
-				if (component.GetPhysicsMaterialAsset() == material)
-					component.SetPhysicsMaterialAsset(material);
-			}
-		}
-	}
 }
 
 namespace Eagle
@@ -6046,10 +5995,11 @@ namespace Eagle
 			return;
 		}
 
-		if (Ref<AssetPhysicsMaterial> material = Cast<AssetPhysicsMaterial>(asset))
+		if (Ref<AssetPhysicsMaterial> materialAsset = Cast<AssetPhysicsMaterial>(asset))
 		{
-			material->GetMaterial()->DynamicFriction = value;
-			Utils::OnPhysicsMaterialChanged(material);
+			auto material = materialAsset->GetMaterial();
+			material.DynamicFriction = value;
+			materialAsset->SetMaterial(material);
 		}
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set asset dynamic friction. It's not a PhysicsMaterial asset");
@@ -6065,10 +6015,11 @@ namespace Eagle
 			return;
 		}
 
-		if (Ref<AssetPhysicsMaterial> material = Cast<AssetPhysicsMaterial>(asset))
+		if (Ref<AssetPhysicsMaterial> materialAsset = Cast<AssetPhysicsMaterial>(asset))
 		{
-			material->GetMaterial()->Bounciness = value;
-			Utils::OnPhysicsMaterialChanged(material);
+			auto material = materialAsset->GetMaterial();
+			material.Bounciness = value;
+			materialAsset->SetMaterial(material);
 		}
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set asset bounciness. It's not a PhysicsMaterial asset");
@@ -6084,10 +6035,11 @@ namespace Eagle
 			return;
 		}
 
-		if (Ref<AssetPhysicsMaterial> material = Cast<AssetPhysicsMaterial>(asset))
+		if (Ref<AssetPhysicsMaterial> materialAsset = Cast<AssetPhysicsMaterial>(asset))
 		{
-			material->GetMaterial()->StaticFriction = value;
-			Utils::OnPhysicsMaterialChanged(material);
+			auto material = materialAsset->GetMaterial();
+			material.StaticFriction = value;
+			materialAsset->SetMaterial(material);
 		}
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set asset static friction. It's not a PhysicsMaterial asset");
@@ -6104,7 +6056,7 @@ namespace Eagle
 		}
 
 		if (Ref<AssetPhysicsMaterial> material = Cast<AssetPhysicsMaterial>(asset))
-			return material->GetMaterial()->StaticFriction;
+			return material->GetMaterial().StaticFriction;
 
 		EG_CORE_ERROR("[ScriptEngine] Couldn't get asset static friction. It's not a PhysicsMaterial asset");
 		return 0.f;
@@ -6121,7 +6073,7 @@ namespace Eagle
 		}
 
 		if (Ref<AssetPhysicsMaterial> material = Cast<AssetPhysicsMaterial>(asset))
-			return material->GetMaterial()->DynamicFriction;
+			return material->GetMaterial().DynamicFriction;
 
 		EG_CORE_ERROR("[ScriptEngine] Couldn't get asset dynamic friction. It's not a PhysicsMaterial asset");
 		return 0.f;
@@ -6138,7 +6090,7 @@ namespace Eagle
 		}
 
 		if (Ref<AssetPhysicsMaterial> material = Cast<AssetPhysicsMaterial>(asset))
-			return material->GetMaterial()->Bounciness;
+			return material->GetMaterial().Bounciness;
 
 		EG_CORE_ERROR("[ScriptEngine] Couldn't get asset bounciness. It's not a PhysicsMaterial asset");
 		return 0.f;

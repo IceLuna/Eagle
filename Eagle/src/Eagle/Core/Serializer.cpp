@@ -674,9 +674,9 @@ namespace Eagle
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::PhysicsMaterial);
 		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
 
-		out << YAML::Key << "StaticFriction" << YAML::Value << material->StaticFriction;
-		out << YAML::Key << "DynamicFriction" << YAML::Value << material->DynamicFriction;
-		out << YAML::Key << "Bounciness" << YAML::Value << material->Bounciness;
+		out << YAML::Key << "StaticFriction" << YAML::Value << material.StaticFriction;
+		out << YAML::Key << "DynamicFriction" << YAML::Value << material.DynamicFriction;
+		out << YAML::Key << "Bounciness" << YAML::Value << material.Bounciness;
 
 		out << YAML::EndMap;
 	}
@@ -2948,21 +2948,21 @@ namespace Eagle
 
 		GUID guid = baseNode["GUID"].as<GUID>();
 
-		Ref<PhysicsMaterial> material = MakeRef<PhysicsMaterial>();
+		PhysicsMaterial material{};
 
 		if (auto node = baseNode["StaticFriction"])
-			material->StaticFriction = node.as<float>();
+			material.StaticFriction = node.as<float>();
 
 		if (auto node = baseNode["DynamicFriction"])
-			material->DynamicFriction = node.as<float>();
+			material.DynamicFriction = node.as<float>();
 
 		if (auto node = baseNode["Bounciness"])
-			material->Bounciness = node.as<float>();
+			material.Bounciness = node.as<float>();
 
 		class LocalAssetPhysicsMaterial : public AssetPhysicsMaterial
 		{
 		public:
-			LocalAssetPhysicsMaterial(const Path& path, GUID guid, const Ref<PhysicsMaterial>& material)
+			LocalAssetPhysicsMaterial(const Path& path, GUID guid, const PhysicsMaterial& material)
 				: AssetPhysicsMaterial(path, guid, material) {}
 		};
 

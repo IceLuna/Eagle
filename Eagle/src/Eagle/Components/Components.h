@@ -1045,7 +1045,21 @@ namespace Eagle
 		virtual void SetIsTrigger(bool bTrigger) = 0;
 		bool IsTrigger() const { return bTrigger; }
 
-		virtual void SetPhysicsMaterialAsset(const Ref<AssetPhysicsMaterial>& material) = 0;
+		void SetPhysicsMaterialAsset(const Ref<AssetPhysicsMaterial>& material)
+		{
+			if (material == m_MaterialAsset)
+				return;
+
+			if (m_MaterialAsset)
+				m_MaterialAsset->RemoveOnAssetModifiedCallback(m_CallbackID);
+
+			m_MaterialAsset = material;
+			if (m_MaterialAsset)
+				m_MaterialAsset->AddOnAssetModifiedCallback(m_CallbackID, [this]() { UpdatePhysicsMaterials(); });
+
+			UpdatePhysicsMaterials();
+		}
+
 		const Ref<AssetPhysicsMaterial>& GetPhysicsMaterialAsset() const { return m_MaterialAsset; }
 
 		virtual void SetWorldTransform(const Transform& worldTransform) override;
@@ -1055,12 +1069,15 @@ namespace Eagle
 		virtual void SetShowCollision(bool bShowCollision) = 0;
 
 	protected:
-		BaseColliderComponent(const Entity& entity) : SceneComponent(entity) {}
+		BaseColliderComponent(const Entity& entity) : SceneComponent(entity){}
 		COMPONENT_DEFAULTS(BaseColliderComponent);
+
 		virtual void UpdatePhysicsTransform() = 0;
+		virtual void UpdatePhysicsMaterials() = 0;
 
 	protected:
 		Ref<AssetPhysicsMaterial> m_MaterialAsset;
+		GUID m_CallbackID;
 		bool bTrigger = false;
 		bool bShowCollision = false;
 	};
@@ -1086,7 +1103,6 @@ namespace Eagle
 		BoxColliderComponent& operator=(BoxColliderComponent&&) noexcept = default;
 
 		virtual void SetIsTrigger(bool bTrigger) override;
-		virtual void SetPhysicsMaterialAsset(const Ref<AssetPhysicsMaterial>& material) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
 		virtual void OnRemoved(Entity entity) override;
 
@@ -1096,6 +1112,7 @@ namespace Eagle
 	protected:
 		void OnInit(Entity entity);
 		virtual void UpdatePhysicsTransform() override;
+		virtual void UpdatePhysicsMaterials() override;
 
 	protected:
 		Ref<BoxColliderShape> m_Shape;
@@ -1126,7 +1143,6 @@ namespace Eagle
 		float GetRadius() const { return Radius; }
 
 		virtual void SetIsTrigger(bool bTrigger) override;
-		virtual void SetPhysicsMaterialAsset(const Ref<AssetPhysicsMaterial>& material) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
 
 		virtual void OnRemoved(Entity entity) override;
@@ -1134,6 +1150,7 @@ namespace Eagle
 	protected:
 		void OnInit(Entity entity);
 		virtual void UpdatePhysicsTransform() override;
+		virtual void UpdatePhysicsMaterials() override;
 
 	protected:
 		Ref<SphereColliderShape> m_Shape;
@@ -1161,7 +1178,6 @@ namespace Eagle
 		CapsuleColliderComponent& operator=(CapsuleColliderComponent&&) noexcept = default;
 
 		virtual void SetIsTrigger(bool bTrigger) override;
-		virtual void SetPhysicsMaterialAsset(const Ref<AssetPhysicsMaterial>& material) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
 
 		void SetHeight(float height)
@@ -1182,6 +1198,7 @@ namespace Eagle
 
 	protected:
 		virtual void UpdatePhysicsTransform() override;
+		virtual void UpdatePhysicsMaterials() override;
 		void OnInit(Entity entity);
 
 	protected:
@@ -1218,7 +1235,6 @@ namespace Eagle
 		MeshColliderComponent& operator=(MeshColliderComponent&&) noexcept = default;
 
 		virtual void SetIsTrigger(bool bTrigger) override;
-		virtual void SetPhysicsMaterialAsset(const Ref<AssetPhysicsMaterial>& material) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
 
 		void SetCollisionMeshAsset(const Ref<AssetStaticMesh>& meshAsset);
@@ -1245,7 +1261,8 @@ namespace Eagle
 	protected:
 		void OnInit(Entity entity);
 		virtual void UpdatePhysicsTransform() override;
-	
+		virtual void UpdatePhysicsMaterials() override;
+
 	protected:
 		std::array<Ref<MeshShape>, 2> m_Shapes; // [0] - front side, [1] - backside. If two-sided collision is enabled, backside will be a valid shape
 		Ref<AssetStaticMesh> m_CollisionMeshAsset;
