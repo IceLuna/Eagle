@@ -710,6 +710,10 @@ namespace Eagle
 	{
 		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
 		SceneComponent* selectedComponent = m_SceneHierarchyPanel.GetSelectedComponent();
+		if (selectedComponent && m_SceneHierarchyPanel.GetSelectedComponentType() == SelectedComponent::Decal)
+		{
+			m_CurrentScene->VisualizeDecalAABB((DecalComponent*)selectedComponent);
+		}
 
 		if (selectedEntity && (m_GuizmoType != -1))
 		{
@@ -2022,7 +2026,7 @@ namespace Eagle
 		switch (m_VisualizingGBufferType)
 		{
 			case Eagle::EditorLayer::GBufferVisualizingType::Final: return renderer->GetOutput();
-			case Eagle::EditorLayer::GBufferVisualizingType::Albedo: return gbuffer.AlbedoRoughness;
+			case Eagle::EditorLayer::GBufferVisualizingType::Albedo: return gbuffer.Albedo;
 			case Eagle::EditorLayer::GBufferVisualizingType::Emissive:  return gbuffer.Emissive;
 			case Eagle::EditorLayer::GBufferVisualizingType::SSAO:  return renderer->GetSSAOResult();
 			case Eagle::EditorLayer::GBufferVisualizingType::GTAO:  return renderer->GetGTAOResult();

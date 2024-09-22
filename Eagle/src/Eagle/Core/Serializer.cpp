@@ -926,6 +926,7 @@ namespace Eagle
 
 			out << YAML::Key << "bAtlas" << YAML::Value << spriteComponent.IsAtlas();
 			out << YAML::Key << "bCastsShadows" << YAML::Value << spriteComponent.DoesCastShadows();
+			out << YAML::Key << "bReceivesDecals" << YAML::Value << spriteComponent.DoesReceiveDecals();
 			out << YAML::Key << "AtlasSpriteCoords" << YAML::Value << spriteComponent.GetAtlasSpriteCoords();
 			out << YAML::Key << "AtlasSpriteSize" << YAML::Value << spriteComponent.GetAtlasSpriteSize();
 			out << YAML::Key << "AtlasSpriteSizeCoef" << YAML::Value << spriteComponent.GetAtlasSpriteSizeCoef();
@@ -957,6 +958,7 @@ namespace Eagle
 			out << YAML::BeginMap; //StaticMeshComponent
 
 			out << YAML::Key << "bCastsShadows" << YAML::Value << smComponent.DoesCastShadows();
+			out << YAML::Key << "bReceivesDecals" << YAML::Value << smComponent.DoesReceiveDecals();
 
 			SerializeRelativeTransform(out, smComponent.GetRelativeTransform());
 
@@ -1001,6 +1003,7 @@ namespace Eagle
 			out << YAML::BeginMap; //SkeletalMeshComponent
 
 			out << YAML::Key << "bCastsShadows" << YAML::Value << smComponent.DoesCastShadows();
+			out << YAML::Key << "bReceivesDecals" << YAML::Value << smComponent.DoesReceiveDecals();
 
 			SerializeRelativeTransform(out, smComponent.GetRelativeTransform());
 
@@ -1309,6 +1312,7 @@ namespace Eagle
 			out << YAML::Key << "Color" << YAML::Value << text.GetColor();
 			out << YAML::Key << "IsLit" << YAML::Value << text.IsLit();
 			out << YAML::Key << "bCastsShadows" << YAML::Value << text.DoesCastShadows();
+			out << YAML::Key << "bReceivesDecals" << YAML::Value << text.DoesReceiveDecals();
 			out << YAML::Key << "LineSpacing" << YAML::Value << text.GetLineSpacing();
 			out << YAML::Key << "Kerning" << YAML::Value << text.GetKerning();
 			out << YAML::Key << "MaxWidth" << YAML::Value << text.GetMaxWidth();
@@ -1372,6 +1376,22 @@ namespace Eagle
 				out << YAML::Key << "ParticleSystem" << YAML::Value << asset->GetGUID();
 			
 			out << YAML::EndMap; //ParticleSystemComponent
+		}
+
+		if (entity.HasComponent<DecalComponent>())
+		{
+			auto& decal = entity.GetComponent<DecalComponent>();
+
+			out << YAML::Key << "DecalComponent";
+			out << YAML::BeginMap; //DecalComponent
+			
+			SerializeRelativeTransform(out, decal.GetRelativeTransform());
+			out << YAML::Key << "SortPriority" << YAML::Value << decal.GetSortPriority();
+			out << YAML::Key << "AdjustAspectRatio" << YAML::Value << decal.IsAdjustAspectRatioEnabled();
+			if (const auto& asset = decal.GetMaterialAsset())
+				out << YAML::Key << "Material" << YAML::Value << asset->GetGUID();
+			
+			out << YAML::EndMap; //DecalComponent
 		}
 	}
 
@@ -1453,6 +1473,8 @@ namespace Eagle
 				spriteComponent.SetIsAtlas(node.as<bool>());
 			if (auto node = spriteComponentNode["bCastsShadows"])
 				spriteComponent.SetCastsShadows(node.as<bool>());
+			if (auto node = spriteComponentNode["bReceivesDecals"])
+				spriteComponent.SetReceivesDecals(node.as<bool>());
 			if (auto node = spriteComponentNode["AtlasSpriteCoords"])
 				spriteComponent.SetAtlasSpriteCoords(node.as<glm::vec2>());
 			if (auto node = spriteComponentNode["AtlasSpriteSize"])
@@ -1476,6 +1498,8 @@ namespace Eagle
 		{
 			auto& smComponent = deserializedEntity.AddComponent<StaticMeshComponent>();
 			smComponent.SetCastsShadows(staticMeshComponentNode["bCastsShadows"].as<bool>());
+			if (auto node = staticMeshComponentNode["bReceivesDecals"])
+				smComponent.SetReceivesDecals(node.as<bool>());
 
 			Transform relativeTransform;
 			DeserializeRelativeTransform(staticMeshComponentNode, relativeTransform);
@@ -1492,6 +1516,8 @@ namespace Eagle
 		{
 			auto& smComponent = deserializedEntity.AddComponent<SkeletalMeshComponent>();
 			smComponent.SetCastsShadows(skeletalMeshComponentNode["bCastsShadows"].as<bool>());
+			if (auto node = skeletalMeshComponentNode["bReceivesDecals"])
+				smComponent.SetReceivesDecals(node.as<bool>());
 
 			Transform relativeTransform;
 			DeserializeRelativeTransform(skeletalMeshComponentNode, relativeTransform);
@@ -1774,6 +1800,8 @@ namespace Eagle
 			text.SetIsLit(textNode["IsLit"].as<bool>());
 			if (auto node = textNode["bCastsShadows"])
 				text.SetCastsShadows(node.as<bool>());
+			if (auto node = textNode["bReceivesDecals"])
+				text.SetReceivesDecals(node.as<bool>());
 			text.SetLineSpacing(textNode["LineSpacing"].as<float>());
 			text.SetKerning(textNode["Kerning"].as<float>());
 			text.SetMaxWidth(textNode["MaxWidth"].as<float>());
@@ -1818,6 +1846,20 @@ namespace Eagle
 			DeserializeRelativeTransform(systemNode, relativeTransform);
 			system.SetRelativeTransform(relativeTransform);
 			system.SetAsset(GetAsset<AssetParticleSystem>(systemNode["ParticleSystem"]));
+		}
+
+		if (auto decalNode = entityNode["DecalComponent"])
+		{
+			auto& decal = deserializedEntity.AddComponent<DecalComponent>();
+
+			Transform relativeTransform;
+			DeserializeRelativeTransform(decalNode, relativeTransform);
+			decal.SetRelativeTransform(relativeTransform);
+			if (auto node = decalNode["SortPriority"])
+				decal.SetSortPriority(node.as<uint32_t>());
+			if (auto node = decalNode["AdjustAspectRatio"])
+				decal.SetAdjustAspectRatioEnabled(node.as<bool>());
+			decal.SetMaterialAsset(GetAsset<AssetMaterial>(decalNode["Material"]));
 		}
 	}
 

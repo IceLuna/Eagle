@@ -39,11 +39,12 @@ namespace Eagle
         SetArg(idx, image, imageView, nullptr);
     }
 
-    void DescriptorSetData::SetArg(uint32_t idx, const Ref<Image>& image, const Ref<Sampler>& sampler)
+    void DescriptorSetData::SetArg(uint32_t idx, const Ref<Image>& image, const Ref<Sampler>& sampler, bool bDepth)
     {
         auto& currentBinding = m_Bindings[idx];
 
         ImageBinding binding(image, sampler);
+        binding.bDepth = bDepth;
         if (currentBinding.ImageBindings[0] != binding)
         {
             currentBinding.ImageBindings[0] = binding;

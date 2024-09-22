@@ -1,4 +1,5 @@
 #extension GL_EXT_nonuniform_qualifier : enable
+#include "defines.h"
 #include "skeletal_mesh_vertex_input_layout.h"
 
 #ifdef EG_MATERIALS_REQUIRED
@@ -54,7 +55,8 @@ void main()
 
     totalPosition = boneTransform * vec4(a_Position, 1.0);
 
-    const vec4 worldPos = g_Transforms[a_PerInstanceData.x] * totalPosition;
+    const uint transformIndex = a_PerInstanceData.x & (EG_RECEIVES_DECALS_MASK - 1); // Get all but the highest bit
+    const vec4 worldPos = g_Transforms[transformIndex] * totalPosition;
 #ifdef EG_POINT_LIGHT_PASS
     gl_Position = g_ViewProjections[gl_ViewIndex] * worldPos;
 #elif defined(EG_SPOT_LIGHT_PASS)

@@ -30,14 +30,18 @@ layout(location = 4) flat out int o_EntityID;
 layout(location = 5) out vec2 o_TexCoords;
 layout(location = 6) flat out uint o_AtlasIndex;
 layout(location = 7) flat out uint o_MaterialIndex;
+layout(location = 8) flat out uint o_ReceivesDecals;
 #ifdef EG_MOTION
-layout(location = 8) out vec3 o_CurPos;
-layout(location = 9) out vec3 o_PrevPos;
+layout(location = 9) out vec3 o_CurPos;
+layout(location = 10) out vec3 o_PrevPos;
 #endif
 
 void main()
 {
-    const mat4 model = g_Transforms[a_TransformIndex];
+    const uint transformIndex = a_TransformIndex & (EG_RECEIVES_DECALS_MASK - 1); // Get all but the highest bit
+    o_ReceivesDecals = (a_TransformIndex & EG_RECEIVES_DECALS_MASK) == EG_RECEIVES_DECALS_MASK ? 1u : 0u;
+
+    const mat4 model = g_Transforms[transformIndex];
     gl_Position = g_ViewProj * model * vec4(a_Position, 0.f, 1.0);
 
     const uint materialIndex  = a_MaterialIndex;
@@ -67,7 +71,7 @@ void main()
 #ifdef EG_MOTION
     o_CurPos = gl_Position.xyw;
 
-    const mat4 prevModel = g_PrevTransforms[a_TransformIndex];
+    const mat4 prevModel = g_PrevTransforms[transformIndex];
     const vec4 prevPos = g_PrevViewProjection * prevModel * vec4(a_Position, 0.f, 1.f);
     o_PrevPos = prevPos.xyw;
 #endif

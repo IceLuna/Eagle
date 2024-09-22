@@ -25,6 +25,10 @@ namespace Eagle
 
 		static void SetDirty();
 
+		// Indices to `0.0` and `1.0` values inside s_MaterialsRawBuffer
+		static const uint32_t ZeroRawIndex = 0u;
+		static const uint32_t OneRawIndex = 1u;
+
 	private:
 		static void OnMaterialChanged(const Ref<Material>& material);
 		static void SetDirty_Internal()

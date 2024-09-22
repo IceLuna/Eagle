@@ -591,6 +591,12 @@ namespace Eagle
             set { SetCastsShadows_Native(Parent.ID, value); }
         }
 
+        public bool bReceivesDecals
+        {
+            get { return DoesReceiveDecals_Native(Parent.ID); }
+            set { SetReceivesDecals_Native(Parent.ID, value); }
+        }
+
         public AssetMaterial GetMaterialAsset(uint index)
         {
             GetMaterial_Native(Parent.ID, index, out GUID assetID);
@@ -629,6 +635,12 @@ namespace Eagle
         internal static extern bool DoesCastShadows_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetReceivesDecals_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool DoesReceiveDecals_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern uint GetMaterialsSlotsCount_Native(in GUID entityID);
     }
 
@@ -659,6 +671,12 @@ namespace Eagle
         {
             get { return DoesCastShadows_Native(Parent.ID); }
             set { SetCastsShadows_Native(Parent.ID, value); }
+        }
+
+        public bool bReceivesDecals
+        {
+            get { return DoesReceiveDecals_Native(Parent.ID); }
+            set { SetReceivesDecals_Native(Parent.ID, value); }
         }
 
         public AssetMaterial GetMaterialAsset(uint index)
@@ -802,6 +820,12 @@ namespace Eagle
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetReceivesDecals_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool DoesReceiveDecals_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetMesh_Native(in GUID entityID, GUID meshGUID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -940,6 +964,12 @@ namespace Eagle
             set { SetCastsShadows_Native(Parent.ID, value); }
         }
 
+        public bool bReceivesDecals
+        {
+            get { return DoesReceiveDecals_Native(Parent.ID); }
+            set { SetReceivesDecals_Native(Parent.ID, value); }
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetMaterial_Native(in GUID entityID, out GUID assetID);
 
@@ -975,6 +1005,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool DoesCastShadows_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetReceivesDecals_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool DoesReceiveDecals_Native(in GUID entityID);
     }
 
     public class BillboardComponent : SceneComponent
@@ -1082,6 +1118,12 @@ namespace Eagle
             set { SetCastsShadows_Native(Parent.ID, value); }
         }
 
+        public bool bReceivesDecals
+        {
+            get { return DoesReceiveDecals_Native(Parent.ID); }
+            set { SetReceivesDecals_Native(Parent.ID, value); }
+        }
+
         public bool bLit
         {
             get { return GetIsLit_Native(Parent.ID); }
@@ -1135,6 +1177,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool DoesCastShadows_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetReceivesDecals_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool DoesReceiveDecals_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetMaterial_Native(in GUID entityID, out GUID assetID);
@@ -2056,5 +2104,88 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern Entity GetInstance_Native(in GUID entityID);
+    }
+
+    public class ParticleSystemComponent : SceneComponent
+    {
+        public ParticleSystemComponent()
+        {
+            m_Type = typeof(ParticleSystemComponent);
+        }
+
+        void Spawn() { Spawn_Native(Parent.ID); }
+        void Destroy() { Destroy_Native(Parent.ID); }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Spawn_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Destroy_Native(in GUID entityID);
+    }
+
+    public class DecalComponent : SceneComponent
+    {
+        public DecalComponent()
+        {
+            m_Type = typeof(DecalComponent);
+        }
+
+        public AssetMaterial MaterialAsset
+        {
+            set
+            {
+                SetMaterial_Native(Parent.ID, value != null ? value.GetGUID() : GUID.Null());
+            }
+            get
+            {
+                GUID assetGUID = GetMaterial_Native(Parent.ID);
+                if (assetGUID.IsNull())
+                    return null;
+
+                return new AssetMaterial(assetGUID);
+            }
+        }
+
+        public uint SortPriority
+        {
+            set
+            {
+                SetSortPriority_Native(Parent.ID, value);
+            }
+            get
+            {
+                return GetSortPriority_Native(Parent.ID);
+            }
+        }
+
+        public bool bAdjustAspectRatio
+        {
+            set
+            {
+                SetAdjustAspectRatioEnabled_Native(Parent.ID, value);
+            }
+            get
+            {
+                return IsAdjustAspectRatioEnabled_Native(Parent.ID);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMaterial_Native(in GUID entityID, in GUID assetID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID GetMaterial_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAdjustAspectRatioEnabled_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsAdjustAspectRatioEnabled_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetSortPriority_Native(in GUID entityID, uint value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint GetSortPriority_Native(in GUID entityID);
     }
 }

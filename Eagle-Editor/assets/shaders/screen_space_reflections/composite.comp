@@ -3,7 +3,7 @@
 
 layout(binding = 0, rgba16f) uniform readonly image2D g_ReflectionTarget;
 layout(binding = 1) uniform sampler2D g_Normals;
-layout(binding = 2) uniform sampler2D g_AlbedoRoughness;
+layout(binding = 2) uniform sampler2D g_Albedo;
 layout(binding = 3) uniform sampler2D g_MaterialData;
 layout(binding = 4) uniform sampler2D g_BRDF;
 layout(binding = 5, r11f_g11f_b10f) uniform image2D g_Result;
@@ -39,12 +39,14 @@ void main()
     const vec2 uv = (pixelCoords + 0.5) * g_TexelSize;
      
     vec3 radiance = imageLoad(g_ReflectionTarget, pixelCoords).rgb;
-    vec4 albedoRoughness = texture(g_AlbedoRoughness, uv);
-    float metalness = texture(g_MaterialData, uv).x;
+    const vec3 albedo = texture(g_Albedo, uv).rgb;
+    const vec2 materialData = texture(g_MaterialData, uv).xz;
+    const float metalness = materialData.x;
+    const float roughness = materialData.y;
 
     vec3 F0 = vec3(EG_BASE_REFLECTIVITY);
-    vec3 specularColor = mix(F0, albedoRoughness.rgb, metalness);
-    float perceptualRoughness = albedoRoughness.w;
+    vec3 specularColor = mix(F0, albedo, metalness);
+    float perceptualRoughness = roughness;
     vec3 normal = DecodeNormal(texture(g_Normals, uv).zw);
 
     uint showReflectionTarget = 0;

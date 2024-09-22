@@ -83,4 +83,6 @@
 #define EG_DEPTH_FAR 1.f
 #endif
 
+#define EG_RECEIVES_DECALS_MASK (1 << 31)
+
 #endif

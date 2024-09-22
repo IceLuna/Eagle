@@ -181,7 +181,7 @@ namespace Eagle
                             if (it != imageBindingsUnique.end() && it->second == false) // If different layouts are used for the image, make it general
                                 imageLayout = VK_IMAGE_LAYOUT_GENERAL;
                             else if ((binding.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE) || (binding.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER))
-                                imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                                imageLayout = image.bDepth ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                             else
                                 imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 

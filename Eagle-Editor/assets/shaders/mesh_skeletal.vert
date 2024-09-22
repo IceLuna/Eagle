@@ -50,14 +50,20 @@ layout(location = 3) out vec3 o_Normal;
 layout(location = 4) out vec2 o_TexCoords;
 layout(location = 5) flat out uint o_MaterialIndex;
 layout(location = 6) flat out uint o_ObjectID;
+layout(location = 7) flat out uint o_ReceivesDecals;
 #ifdef EG_MOTION
-layout(location = 7) out vec3 o_CurPos;
-layout(location = 8) out vec3 o_PrevPos;
+layout(location = 8) out vec3 o_CurPos;
+layout(location = 9) out vec3 o_PrevPos;
 #endif
 
 void main()
 {
-    const mat4 model = g_Transforms[a_PerInstanceData.x];
+    const uint transformIndex = a_PerInstanceData.x & (EG_RECEIVES_DECALS_MASK - 1); // Get all but the highest bit
+    const uint materialIndex = a_PerInstanceData.y;
+    const uint objectID = a_PerInstanceData.z;
+    o_ReceivesDecals = (a_PerInstanceData.x & EG_RECEIVES_DECALS_MASK) == EG_RECEIVES_DECALS_MASK ? 1u : 0u;
+
+    const mat4 model = g_Transforms[transformIndex];
     vec4 totalPosition = vec4(a_Position, 1.0);
     
     mat4 boneTransform = mat4(0.f);
@@ -76,7 +82,7 @@ void main()
     const mat3 normalModel = mat3(transpose(inverse(model * boneTransform)));
     const vec3 worldNormal = normalize(normalModel * a_Normal);
 
-    const uint normalTextureIndex = FetchMaterialNormalTextureIndex(a_PerInstanceData.y);
+    const uint normalTextureIndex = FetchMaterialNormalTextureIndex(materialIndex);
     if (normalTextureIndex != EG_INVALID_INDEX)
     {
         vec3 tangent = normalize(normalModel * a_Tangent);
@@ -87,8 +93,8 @@ void main()
 
     o_Normal = worldNormal;
     o_TexCoords = a_TexCoords;
-    o_MaterialIndex = a_PerInstanceData.y;
-    o_ObjectID = a_PerInstanceData.z;
+    o_MaterialIndex = materialIndex;
+    o_ObjectID = objectID;
 
 #ifdef EG_MOTION
     o_CurPos = gl_Position.xyw;
@@ -108,7 +114,7 @@ void main()
 
         prevTotalPosition = prevBoneTransform * vec4(a_Position, 1.0);
 
-        const mat4 prevModel = g_PrevTransforms[a_PerInstanceData.x];
+        const mat4 prevModel = g_PrevTransforms[transformIndex];
         const vec4 prevPos = g_PrevViewProjection * prevModel * prevTotalPosition;
         o_PrevPos = prevPos.xyw;
     }

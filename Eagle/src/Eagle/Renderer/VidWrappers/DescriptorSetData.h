@@ -19,6 +19,7 @@ namespace Eagle
 			void* ImageHandle = nullptr;
 			void* ImageViewHandle = nullptr;
 			void* SamplerHandle = nullptr;
+			bool bDepth = false;
 
 			ImageBinding() = default;
 			ImageBinding(const Ref<Eagle::Image>& image) : ImageHandle(image->GetHandle()), ImageViewHandle(image->GetImageViewHandle()) {}
@@ -34,7 +35,7 @@ namespace Eagle
 
 			bool operator!=(const ImageBinding& other) const
 			{
-				return ImageHandle != other.ImageHandle || ImageViewHandle != other.ImageViewHandle || SamplerHandle != other.SamplerHandle;
+				return ImageHandle != other.ImageHandle || ImageViewHandle != other.ImageViewHandle || SamplerHandle != other.SamplerHandle || bDepth != other.bDepth;
 			}
 
 			friend bool operator!=(const std::vector<ImageBinding>& left, const std::vector<ImageBinding>& right)
@@ -106,7 +107,7 @@ namespace Eagle
 		void SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images, const std::vector<ImageView>& imageViews);
 		void SetArgArray(uint32_t idx, const Ref<Image>& image, const std::vector<ImageView>& imageViews);
 
-		void SetArg(uint32_t idx, const Ref<Image>& image, const Ref<Sampler>& sampler);
+		void SetArg(uint32_t idx, const Ref<Image>& image, const Ref<Sampler>& sampler, bool bDepth = false);
 		void SetArg(uint32_t idx, const Ref<Image>& image, const ImageView& imageView, const Ref<Sampler>& sampler);
 		void SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images, const std::vector<Ref<Sampler>>& samplers);
 		void SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images, const std::vector<ImageView>& imageViews, const std::vector<Ref<Sampler>>& samplers);

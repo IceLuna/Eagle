@@ -25,6 +25,7 @@ namespace Eagle
 
 		void SetImageSampler(const Ref<Image>& image, const Ref<Sampler>& sampler, uint32_t set, uint32_t binding);
 		void SetImageSampler(const Ref<Image>& image, const ImageView& imageView, const Ref<Sampler>& sampler, uint32_t set, uint32_t binding);
+		void SetImageSamplerDepth(const Ref<Image>& image, const Ref<Sampler>& sampler, uint32_t set, uint32_t binding); // Used for ImageReadAccess::DepthStencilRead if it's used as a read-only attachment & binding
 		void SetImageSamplerArray(const std::vector<Ref<Image>>& images, const std::vector<Ref<Sampler>>& samplers, uint32_t set, uint32_t binding);
 		void SetImageSamplerArray(const std::vector<Ref<Image>>& images, const std::vector<ImageView>& imageViews, const std::vector<Ref<Sampler>>& samplers, uint32_t set, uint32_t binding);
 

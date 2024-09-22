@@ -157,6 +157,23 @@ uint Material_GetIndex(uint packed, uint mask, uint offset, out bool bRawValue)
 	return unpacked & (~IsRawValueMask);
 }
 
+ShaderMaterial ShaderMaterial_Default()
+{
+	ShaderMaterial result;
+	result.TintColor = vec4(1.f);
+	result.EmissiveIntensity = vec3(1.f);
+	result.TilingFactor = 1.f;
+	result.Albedo = vec3(1, 0, 1);
+	result.Metalness = 0.f;
+	result.Emissive = vec3(0.f);
+	result.Roughness = EG_MIN_ROUGHNESS;
+	result.AO = 1.f;
+	result.Opacity = 1.f;
+	result.OpacityMask = 1.f;
+	result.NormalTextureIndex = EG_INVALID_INDEX;
+	return result;
+}
+
 #endif
 
 #endif

@@ -417,6 +417,7 @@ namespace Eagle
 			m_Graph->SetVariablesToUse(copiedVars); // Forcing all graphs/subgraphs to use these variables
 		}
 		m_bCastsShadows = other.m_bCastsShadows;
+		m_bReceivesDecals = other.m_bReceivesDecals;
 		CurrentClipPlayTime = other.CurrentClipPlayTime;
 		PrevClipPlayTime = other.PrevClipPlayTime;
 		ClipPlaybackSpeed = other.ClipPlaybackSpeed;

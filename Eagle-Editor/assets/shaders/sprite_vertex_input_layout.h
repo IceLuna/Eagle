@@ -1,5 +1,5 @@
 layout(location = 0) in vec2 a_TexCoords;
-layout(location = 1) in uint a_TransformIndex;
+layout(location = 1) in uint a_TransformIndex; // highest bit is flag whether it receives decals
 layout(location = 2) in uint a_MaterialIndex;
 layout(location = 3) in int  a_EntityID;
 

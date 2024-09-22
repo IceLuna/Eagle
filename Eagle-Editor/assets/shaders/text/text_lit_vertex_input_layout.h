@@ -2,7 +2,7 @@ layout(location = 0) in vec2  a_Position;
 layout(location = 1) in vec2  a_TexCoords;
 layout(location = 2) in int   a_EntityID;
 layout(location = 3) in uint  a_AtlasIndex;
-layout(location = 4) in uint  a_TransformIndex;
+layout(location = 4) in uint  a_TransformIndex; // highest bit is flag whether it receives decals
 layout(location = 5) in uint  a_MaterialIndex;
 
 const vec3 s_Normal = vec3(0.0f, 0.0f, 1.0f);

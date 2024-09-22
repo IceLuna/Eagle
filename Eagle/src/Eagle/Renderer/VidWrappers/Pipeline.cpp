@@ -50,6 +50,11 @@ namespace Eagle
 		m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()][set].SetArg(binding, image, sampler);
 	}
 
+	void Pipeline::SetImageSamplerDepth(const Ref<Image>& image, const Ref<Sampler>& sampler, uint32_t set, uint32_t binding)
+	{
+		m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()][set].SetArg(binding, image, sampler, true);
+	}
+
 	void Pipeline::SetTexture(const Ref<Texture2D>& texture, uint32_t set, uint32_t binding)
 	{
 		m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()][set].SetArg(binding, texture->GetImage(), texture->GetSampler());

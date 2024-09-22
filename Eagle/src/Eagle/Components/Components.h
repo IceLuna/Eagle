@@ -22,7 +22,7 @@
 // 1) Add new line into Scene's copy constructor;
 // 2) Add new line into Scene::CopyComponents function;
 // 3) Make it serializable;
-// 4) Add it to SceneHierarchyPanel to draw UI (optional)
+// 4) Add it to EntityPropertiesPanel to draw UI (optional)
 // 5) Add to ScriptEngineRegistry (optional)
 
 namespace Eagle
@@ -406,6 +406,7 @@ namespace Eagle
 			m_SpriteSizeCoef = other.m_SpriteSizeCoef;
 			bAtlas = other.bAtlas;
 			m_bCastsShadows = other.m_bCastsShadows;
+			m_bReceivesDecals = other.m_bReceivesDecals;
 			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
 
 			return *this;
@@ -471,6 +472,13 @@ namespace Eagle
 		
 		bool DoesCastShadows() const { return m_bCastsShadows; }
 
+		void SetReceivesDecals(bool bReceives)
+		{
+			m_bReceivesDecals = bReceives;
+			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
+		}
+		bool DoesReceiveDecals() const { return m_bReceivesDecals; }
+
 	private:
 		Ref<AssetMaterial> m_MaterialAsset;
 		
@@ -481,6 +489,7 @@ namespace Eagle
 
 		bool bAtlas = false;
 		bool m_bCastsShadows = true;
+		bool m_bReceivesDecals = true;
 	};
 
 	class StaticMeshComponent : public SceneComponent
@@ -501,6 +510,7 @@ namespace Eagle
 			m_MeshAsset = other.m_MeshAsset;
 			m_MaterialAssets = other.m_MaterialAssets;
 			m_bCastsShadows = other.m_bCastsShadows;
+			m_bReceivesDecals = other.m_bReceivesDecals;
 
 			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnStateChanged);
 			return *this;
@@ -553,10 +563,18 @@ namespace Eagle
 			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnMaterialChanged);
 		}
 
+		void SetReceivesDecals(bool bReceives)
+		{
+			m_bReceivesDecals = bReceives;
+			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnStateChanged);
+		}
+		bool DoesReceiveDecals() const { return m_bReceivesDecals; }
+
 	private:
 		Ref<AssetStaticMesh> m_MeshAsset;
 		std::vector<Ref<AssetMaterial>> m_MaterialAssets;
 		bool m_bCastsShadows = true;
+		bool m_bReceivesDecals = true;
 	};
 
 	class SkeletalMeshComponent : public SceneComponent
@@ -622,6 +640,13 @@ namespace Eagle
 		}
 		bool DoesCastShadows() const { return m_bCastsShadows; }
 
+		void SetReceivesDecals(bool bReceives)
+		{
+			m_bReceivesDecals = bReceives;
+			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnStateChanged);
+		}
+		bool DoesReceiveDecals() const { return m_bReceivesDecals; }
+
 		uint32_t GetMaterialsSlotsCount() const { return (uint32_t)m_MaterialAssets.size(); }
 		const Ref<AssetMaterial>& GetMaterialAsset(uint32_t index) const { return m_MaterialAssets[index]; }
 		void SetMaterialAsset(uint32_t index, const Ref<AssetMaterial>& material)
@@ -668,6 +693,7 @@ namespace Eagle
 		Ref<AnimationGraph> m_Graph;
 		RootMotionLockFlag m_RootMotionLockFlags = RootMotionLockFlag::None;
 		bool m_bCastsShadows = true;
+		bool m_bReceivesDecals = true;
 	};
 
 	class BillboardComponent : public SceneComponent
@@ -827,6 +853,13 @@ namespace Eagle
 		}
 		bool DoesCastShadows() const { return m_bCastsShadows; }
 
+		void SetReceivesDecals(bool bReceives)
+		{
+			m_bReceivesDecals = bReceives;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+		bool DoesReceiveDecals() const { return m_bReceivesDecals; }
+
 	private:
 		std::string m_Text = "Hello, World!";
 		Ref<AssetFont> m_FontAsset;
@@ -839,6 +872,7 @@ namespace Eagle
 
 		bool m_bLit = false;
 		bool m_bCastsShadows = false;
+		bool m_bReceivesDecals = true;
 	};
 
 	class Text2DComponent : public Component
@@ -1643,5 +1677,51 @@ namespace Eagle
 
 	public:
 		bool bAutospawn = true;
+	};
+
+	class DecalComponent : public SceneComponent
+	{
+	public:
+		DecalComponent(const Entity& entity) : SceneComponent(entity) {}
+		COMPONENT_DEFAULTS(DecalComponent);
+
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			SceneComponent::SetWorldTransform(worldTransform);
+			Parent.SignalComponentChanged<DecalComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			SceneComponent::SetRelativeTransform(relativeTransform);
+			Parent.SignalComponentChanged<DecalComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetMaterialAsset(const Ref<AssetMaterial>& material)
+		{
+			m_MaterialAsset = material;
+			Parent.SignalComponentChanged<DecalComponent>(Notification::OnStateChanged);
+		}
+
+		void SetSortPriority(uint32_t sortPriority)
+		{
+			m_SortPriority = sortPriority;
+			Parent.SignalComponentChanged<DecalComponent>(Notification::OnStateChanged);
+		}
+
+		void SetAdjustAspectRatioEnabled(bool bAdjustAspectRatio)
+		{
+			m_AdjustAspectRatio = bAdjustAspectRatio;
+			Parent.SignalComponentChanged<DecalComponent>(Notification::OnStateChanged);
+		}
+
+		const Ref<AssetMaterial>& GetMaterialAsset() const { return m_MaterialAsset; }
+		uint32_t GetSortPriority() const { return m_SortPriority; }
+		bool IsAdjustAspectRatioEnabled() const { return m_AdjustAspectRatio; }
+
+	private:
+		Ref<AssetMaterial> m_MaterialAsset;
+		uint32_t m_SortPriority = 0u;
+		bool m_AdjustAspectRatio = true;
 	};
 }

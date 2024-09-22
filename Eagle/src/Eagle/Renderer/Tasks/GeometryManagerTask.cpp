@@ -607,10 +607,12 @@ namespace Eagle
 			auto& meshData = instanceData.Datas.emplace_back();
 			for (uint32_t i = 0; i < materialsCount; ++i)
 			{
+				const bool bReceivesDecals = comp->DoesReceiveDecals();
+
 				const auto& materialAsset = comp->GetMaterialAsset(i);
 				meshData.Materials.push_back(materialAsset ? materialAsset->GetMaterial() : nullptr);
 				auto& meshInstanceData = meshData.InstanceDatas.emplace_back();
-				meshInstanceData.TransformIndex = meshIndex;
+				meshInstanceData.PackedTransformIndex = meshIndex | (bReceivesDecals ? (1 << 31) : 0u);
 				meshInstanceData.ObjectID = meshID;
 				// meshInstanceData.MaterialIndex is set later during the update
 			}
@@ -826,10 +828,11 @@ namespace Eagle
 			auto& meshData = instanceData.Datas.emplace_back();
 			for (uint32_t i = 0; i < materialsCount; ++i)
 			{
+				const bool bReceivesDecals = comp->DoesReceiveDecals();
 				const auto& materialAsset = comp->GetMaterialAsset(i);
 				meshData.Materials.push_back(materialAsset ? materialAsset->GetMaterial() : nullptr);
 				auto& instanceData = meshData.InstanceDatas.emplace_back();
-				instanceData.TransformIndex = meshIndex;
+				instanceData.PackedTransformIndex = meshIndex | (bReceivesDecals ? (1 << 31) : 0u);
 				instanceData.ObjectID = meshID;
 				// instanceData.MaterialIndex is set later during the update
 				// instanceData.AnimTransformIndex is set later during the update
@@ -1057,31 +1060,32 @@ namespace Eagle
 		{
 			const auto& sprite = m_Sprites[i];
 			const uint32_t transformIndex = uint32_t(i);
+			const uint32_t transformIndexPacked = transformIndex | (sprite.bReceivesDecals ? (1 << 31) : 0u);
 			const Material::BlendMode blendMode = sprite.Material ? sprite.Material->GetBlendMode() : Material::BlendMode::Opaque;
 			switch (blendMode)
 			{
 				case Material::BlendMode::Opaque:
 				{
 					if (sprite.bCastsShadows)
-						AddQuad(m_OpaqueSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndex);
+						AddQuad(m_OpaqueSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
 					else
-						AddQuad(m_OpaqueNonShadowSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndex);
+						AddQuad(m_OpaqueNonShadowSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
 					break;
 				}
 				case Material::BlendMode::Translucent:
 				{
 					if (sprite.bCastsShadows)
-						AddQuad(m_TranslucentSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndex);
+						AddQuad(m_TranslucentSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
 					else
-						AddQuad(m_TranslucentNonShadowSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndex);
+						AddQuad(m_TranslucentNonShadowSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
 					break;
 				}
 				case Material::BlendMode::Masked:
 				{
 					if (sprite.bCastsShadows)
-						AddQuad(m_MaskedSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndex);
+						AddQuad(m_MaskedSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
 					else
-						AddQuad(m_MaskedNonShadowSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndex);
+						AddQuad(m_MaskedNonShadowSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
 					break;
 				}
 				default: EG_CORE_ASSERT("Unknown blend mode!");
@@ -1146,6 +1150,7 @@ namespace Eagle
 			data.EntityID = sprite->Parent.GetID();
 			data.bAtlas = sprite->IsAtlas();
 			data.bCastsShadows = sprite->DoesCastShadows();
+			data.bReceivesDecals = sprite->DoesReceiveDecals();
 			if (data.bAtlas && data.Material)
 			{
 				if (const auto& asset = data.Material->GetAlbedoAsset())
@@ -1617,7 +1622,7 @@ namespace Eagle
 				data->LineHeightOffset = text->GetLineSpacing();
 				data->KerningOffset = text->GetKerning();
 				data->MaxWidth = text->GetMaxWidth();
-				data->TransformIndex = transformIndex;
+				data->TransformIndex = transformIndex | (text->DoesReceiveDecals() ? (1 << 31) : 0u);
 			}
 			else
 			{

@@ -443,7 +443,8 @@ namespace Eagle
 			depthStencilCI.depthCompareOp = bDepthTestEnabled ? CompareOpToVulkan(m_State.DepthStencilAttachment.DepthCompareOp) : VK_COMPARE_OP_NEVER;
 			depthStencilCI.depthWriteEnable = m_State.DepthStencilAttachment.bWriteDepth;
 
-			depthRef.push_back({ attachmentIndex, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL });
+			const bool bWrite = m_State.DepthStencilAttachment.bWriteDepth;
+			depthRef.push_back({ attachmentIndex, bWrite ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL });
 			attachmentsImageViews.push_back((VkImageView)depthStencilImage->GetImageViewHandle(ImageView{ 0 }));
 
 			rasterization.depthBiasEnable = m_State.DepthStencilAttachment.DepthBias != 0.f ? VK_TRUE : VK_FALSE;

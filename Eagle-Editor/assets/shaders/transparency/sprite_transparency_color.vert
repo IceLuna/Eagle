@@ -24,7 +24,7 @@ void main()
 {
     const uint vertexID = gl_VertexIndex % 4u;
     const uint materialIndex  = a_MaterialIndex;
-    const uint transformIndex = a_TransformIndex;
+    const uint transformIndex = a_TransformIndex & (EG_RECEIVES_DECALS_MASK - 1); // Get all but the highest bit
 
     const mat4 model = g_Transforms[transformIndex];
     gl_Position = g_ViewProj * model * vec4(s_QuadVertexPosition[vertexID], 1.f);

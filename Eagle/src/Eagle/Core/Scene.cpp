@@ -283,6 +283,7 @@ namespace Eagle
 		SceneAddAndCopyComponent<Text2DComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<Image2DComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<ParticleSystemComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<DecalComponent>(this, m_Registry, other->m_Registry, createdEntities);
 
 		for (auto entt : m_Registry.view<RigidBodyComponent>())
 		{
@@ -672,6 +673,10 @@ namespace Eagle
 		if (m_DirtyFlags.bSpriteTransformsDirty && !m_DirtyFlags.bSpritesDirty)
 			m_SceneRenderer->UpdateSpritesTransforms(m_DirtyTransformSprites);
 
+		// Same for decals
+		if (m_DirtyFlags.bDecalTransformsDirty && !m_DirtyFlags.bDecalsDirty)
+			m_SceneRenderer->UpdateDecalsTransforms(m_DirtyTransformDecals);
+
 		// Same for texts
 		if (m_DirtyFlags.bTextTransformsDirty && !m_DirtyFlags.bTextDirty)
 			m_SceneRenderer->UpdateTextsTransforms(m_DirtyTransformTexts);
@@ -705,6 +710,16 @@ namespace Eagle
 			{
 				auto& sprite = view.get<SpriteComponent>(entity);
 				m_Sprites.push_back(&sprite);
+			}
+		}
+		if (m_DirtyFlags.bDecalsDirty)
+		{
+			auto view = m_Registry.view<DecalComponent>();
+			m_Decals.clear();
+			for (auto entity : view)
+			{
+				auto& decal = view.get<DecalComponent>(entity);
+				m_Decals.push_back(&decal);
 			}
 		}
 
@@ -895,6 +910,12 @@ namespace Eagle
 						}
 					}
 				}
+				if (m_DecalToVisualize)
+				{
+					const AABB aabb(glm::vec3(-0.5f), glm::vec3(0.5f));
+					Utils::DrawBox(m_DebugLinesToDraw, aabb, m_DecalToVisualize->GetWorldTransform());
+					m_DecalToVisualize = nullptr;
+				}
 			}
 
 			// Append user provided lines
@@ -995,6 +1016,7 @@ namespace Eagle
 		m_SceneRenderer->SetIsRuntime(bIsPlaying);
 		m_SceneRenderer->SetMeshesAnimationTransforms(std::move(m_AnimationTransforms));
 		m_SceneRenderer->SetGravity(m_Gravity);
+		m_SceneRenderer->SetDecals(m_Decals, m_DirtyFlags.bDecalsDirty);
 
 		const bool bDrawEditorHelpers = !bIsPlaying && bDrawMiscellaneous;
 		m_SceneRenderer->SetGridEnabled(bDrawEditorHelpers);
@@ -1355,6 +1377,12 @@ namespace Eagle
 		m_DirtyFlags.bSpriteTransformsDirty = true;
 	}
 
+	void Scene::OnDecalComponentAddedRemoved(entt::registry& r, entt::entity e)
+	{
+		m_DirtyFlags.bDecalsDirty = true;
+		m_DirtyFlags.bDecalTransformsDirty = true;
+	}
+
 	void Scene::OnPointLightAdded(entt::registry& r, entt::entity e)
 	{
 		m_DirtyFlags.bPointLightsDirty = true;
@@ -1421,6 +1449,8 @@ namespace Eagle
 		m_Registry.on_destroy<SkeletalMeshComponent>().connect<&Scene::OnSkeletalMeshComponentRemoved>(*this);
 		m_Registry.on_construct<SpriteComponent>().connect<&Scene::OnSpriteComponentAddedRemoved>(*this);
 		m_Registry.on_destroy<SpriteComponent>().connect<&Scene::OnSpriteComponentAddedRemoved>(*this);
+		m_Registry.on_construct<DecalComponent>().connect<&Scene::OnDecalComponentAddedRemoved>(*this);
+		m_Registry.on_destroy<DecalComponent>().connect<&Scene::OnDecalComponentAddedRemoved>(*this);
 		m_Registry.on_construct<PointLightComponent>().connect<&Scene::OnPointLightAdded>(*this);
 		m_Registry.on_destroy<PointLightComponent>().connect<&Scene::OnPointLightRemoved>(*this);
 		m_Registry.on_construct<SpotLightComponent>().connect<&Scene::OnSpotLightAdded>(*this);
@@ -1458,5 +1488,6 @@ namespace Eagle
 		EntityCopyComponent<Text2DComponent>(source, dest);
 		EntityCopyComponent<Image2DComponent>(source, dest);
 		EntityCopyComponent<ParticleSystemComponent>(source, dest);
+		EntityCopyComponent<DecalComponent>(source, dest);
 	}
 }

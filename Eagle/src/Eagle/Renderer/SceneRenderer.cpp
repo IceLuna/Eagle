@@ -78,6 +78,7 @@ namespace Eagle
 		m_RenderMeshesTask = MakeRef<RenderMeshesTask>(*this);
 		m_RenderSkeletalMeshesTask = MakeRef<RenderSkeletalMeshesTask>(*this);
 		m_RenderSpritesTask = MakeRef<RenderSpritesTask>(*this);
+		m_RenderDecalsTask = MakeRef<RenderDecalsTask>(*this);
 		m_LightsManagerTask = MakeRef<LightsManagerTask>(*this);
 		m_GeometryManagerTask = MakeRef<GeometryManagerTask>(*this);
 		m_RenderLinesTask = MakeRef<RenderLinesTask>(*this);
@@ -170,8 +171,9 @@ namespace Eagle
 			renderer->m_RenderMeshesTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderSpritesTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderSkeletalMeshesTask->RecordCommandBuffer(cmd);
-			renderer->m_ShadowPassTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderLitTextTask->RecordCommandBuffer(cmd);
+			renderer->m_RenderDecalsTask->RecordCommandBuffer(cmd);
+			renderer->m_ShadowPassTask->RecordCommandBuffer(cmd);
 
 			if (renderer->m_Options_RT.AO == AmbientOcclusion::SSAO)
 				renderer->m_SSAOTask->RecordCommandBuffer(cmd);
@@ -230,7 +232,7 @@ namespace Eagle
 				{
 					ImageSpecifications objectIDCopySpecs;
 					objectIDCopySpecs.Format = ImageFormat::R32_SInt;
-					objectIDCopySpecs.Size = renderer->m_GBuffer.AlbedoRoughness->GetSize();
+					objectIDCopySpecs.Size = renderer->m_GBuffer.ObjectID->GetSize();
 					objectIDCopySpecs.Usage = ImageUsage::TransferSrc | ImageUsage::TransferDst | ImageUsage::Sampled;
 					objectIDCopySpecs.MemoryType = MemoryType::GpuToCpu;
 					renderer->m_GBuffer.ObjectIDCopy = Image::Create(objectIDCopySpecs, "GBuffer_ObjectIDCopy");
@@ -334,6 +336,7 @@ namespace Eagle
 		m_RenderMeshesTask->OnResize(m_Size);
 		m_RenderSkeletalMeshesTask->OnResize(m_Size);
 		m_RenderSpritesTask->OnResize(m_Size);
+		m_RenderDecalsTask->OnResize(m_Size);
 		m_LightsManagerTask->OnResize(m_Size);
 		m_RenderLinesTask->OnResize(m_Size);
 		m_RenderBillboardsTask->OnResize(m_Size);
@@ -402,6 +405,7 @@ namespace Eagle
 		m_RenderMeshesTask->InitWithOptions(options);
 		m_RenderSkeletalMeshesTask->InitWithOptions(options);
 		m_RenderSpritesTask->InitWithOptions(options);
+		m_RenderDecalsTask->InitWithOptions(options);
 		m_RenderBillboardsTask->InitWithOptions(options);
 		m_RenderLitTextTask->InitWithOptions(options);
 		m_Text2DTask->InitWithOptions(options);
@@ -439,7 +443,7 @@ namespace Eagle
 		colorSpecs.Layout = ImageLayoutType::RenderTarget;
 		colorSpecs.Size = size;
 		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
-		AlbedoRoughness = Image::Create(colorSpecs, "GBuffer_Albedo_Roughness");
+		Albedo = Image::Create(colorSpecs, "GBuffer_Albedo");
 
 		ImageSpecifications normalSpecs;
 		normalSpecs.Format = ImageFormat::R16G16B16A16_Float;
@@ -449,18 +453,25 @@ namespace Eagle
 		Geometry_Shading_Normals = Image::Create(normalSpecs, "GBuffer_Geometry_Shading_Normals");
 
 		ImageSpecifications emissiveSpecs;
-		emissiveSpecs.Format = ImageFormat::R16G16B16A16_Float;
+		emissiveSpecs.Format = ImageFormat::R11G11B10_Float;
 		emissiveSpecs.Layout = ImageLayoutType::RenderTarget;
 		emissiveSpecs.Size = size;
 		emissiveSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
 		Emissive = Image::Create(emissiveSpecs, "GBuffer_Emissive");
 
 		ImageSpecifications materialSpecs;
-		materialSpecs.Format = ImageFormat::R8G8_UNorm;
+		materialSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
 		materialSpecs.Layout = ImageLayoutType::RenderTarget;
 		materialSpecs.Size = size;
 		materialSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
 		MaterialData = Image::Create(materialSpecs, "GBuffer_MaterialData");
+
+		ImageSpecifications flagSpecs;
+		flagSpecs.Format = ImageFormat::R8_UNorm;
+		flagSpecs.Layout = ImageLayoutType::RenderTarget;
+		flagSpecs.Size = size;
+		flagSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+		Flags = Image::Create(materialSpecs, "GBuffer_Flags");
 
 		ImageSpecifications objectIDSpecs;
 		objectIDSpecs.Format = ImageFormat::R32_SInt;
@@ -530,13 +541,14 @@ namespace Eagle
 	
 	void GBuffer::Resize(const glm::uvec3& size)
 	{
-		AlbedoRoughness->Resize(size);
+		Albedo->Resize(size);
 		MaterialData->Resize(size);
 		Geometry_Shading_Normals->Resize(size);
 		Emissive->Resize(size);
 		ObjectID->Resize(size);
 		ObjectIDCopy->Resize(size);
 		Depth->Resize(size);
+		Flags->Resize(size);
 		if (Motion)
 			Motion->Resize(size);
 		

@@ -14,6 +14,7 @@
 #include "Tasks/RenderTextLitTask.h"
 #include "Tasks/RenderText2DTask.h"
 #include "Tasks/RenderImages2DTask.h"
+#include "Tasks/RenderDecalsTask.h"
 #include "Tasks/SSAOTask.h"
 #include "Tasks/GTAOTask.h"
 #include "Tasks/FogPassTask.h"
@@ -44,10 +45,11 @@ namespace Eagle
 
 	struct GBuffer
 	{
-		Ref<Image> AlbedoRoughness; // Albedo Roughness
+		Ref<Image> Albedo;
 		Ref<Image> Geometry_Shading_Normals;
 		Ref<Image> Emissive;
-		Ref<Image> MaterialData; // R: Metallness; G: AO
+		Ref<Image> MaterialData; // R: Metallness; G: AO; B: Roughness; A: Used for blending of material data when decals are used
+		Ref<Image> Flags; // R: Flags. Currently, used for `bReceivesDecals`
 		Ref<Image> ObjectID;
 		Ref<Image> ObjectIDCopy;
 		Ref<Image> Depth;
@@ -79,6 +81,7 @@ namespace Eagle
 		void SetTexts(const std::vector<const TextComponent*>& texts, bool bDirty) { m_GeometryManagerTask->SetTexts(texts, bDirty); }
 		void SetTexts2D(const std::vector<const Text2DComponent*>& texts, bool bDirty) { m_Text2DTask->SetTexts(texts, bDirty); }
 		void SetImages2D(const std::vector<const Image2DComponent*>& images, bool bDirty) { m_Images2DTask->SetImages(images, bDirty); }
+		void SetDecals(const std::vector<const DecalComponent*>& decals, bool bDirty) { m_RenderDecalsTask->SetDecals(decals, bDirty); }
 		void AddParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems);
 		void UpdateParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems);
 		void RemoveParticleSystems(const std::unordered_set<GUID>& systems); // GUIDs of ParticleSystemComponent: system->Parent.GetGUID(). It's done like that because we can't store a pointer to a dead component
@@ -97,6 +100,7 @@ namespace Eagle
 		void UpdateMeshesTransforms(const std::unordered_set<const StaticMeshComponent*>& meshes) { m_GeometryManagerTask->SetTransforms(meshes); }
 		void UpdateSkeletalMeshesTransforms(const std::unordered_set<const SkeletalMeshComponent*>& meshes) { m_GeometryManagerTask->SetTransforms(meshes); }
 		void UpdateSpritesTransforms(const std::unordered_set<const SpriteComponent*>& sprites) { m_GeometryManagerTask->SetTransforms(sprites); }
+		void UpdateDecalsTransforms(const std::unordered_set<const DecalComponent*>& decals) { m_RenderDecalsTask->SetTransforms(decals); }
 		void UpdateTextsTransforms(const std::unordered_set<const TextComponent*>& texts) { m_GeometryManagerTask->SetTransforms(texts); }
 
 		void SetGridEnabled(bool bEnabled) { m_bGridEnabled = bEnabled; }
@@ -274,6 +278,7 @@ namespace Eagle
 		Ref<RendererTask> m_RenderMeshesTask;
 		Ref<RendererTask> m_RenderSkeletalMeshesTask;
 		Ref<RendererTask> m_RenderSpritesTask;
+		Ref<RenderDecalsTask> m_RenderDecalsTask;
 		Ref<RenderTextLitTask> m_RenderLitTextTask;
 		Ref<RenderTextUnlitTask> m_RenderUnlitTextTask;
 		Ref<LightsManagerTask> m_LightsManagerTask;

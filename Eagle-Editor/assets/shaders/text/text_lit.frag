@@ -10,18 +10,20 @@ layout(location = 4) flat in int i_EntityID;
 layout(location = 5) in vec2 i_TexCoords;
 layout(location = 6) flat in uint i_AtlasIndex;
 layout(location = 7) flat in uint i_MaterialIndex;
+layout(location = 8) flat in uint i_ReceivesDecals;
 #ifdef EG_MOTION
-layout(location = 8) in vec3 i_CurPos;
-layout(location = 9) in vec3 i_PrevPos;
+layout(location = 9) in vec3 i_CurPos;
+layout(location = 10) in vec3 i_PrevPos;
 #endif
 
 layout(location = 0) out vec4 outAlbedo;
 layout(location = 1) out vec4 outGeometryShadingNormals;
 layout(location = 2) out vec4 outEmissive;
-layout(location = 3) out vec2 outMaterialData;
-layout(location = 4) out int  outObjectID;
+layout(location = 3) out vec4 outMaterialData;
+layout(location = 4) out float outFlags;
+layout(location = 5) out int  outObjectID;
 #ifdef EG_MOTION
-layout(location = 5) out vec2 outMotion;
+layout(location = 6) out vec2 outMotion;
 #endif
 
 layout(set = 1, binding = 0) uniform sampler2D g_FontAtlases[];
@@ -81,13 +83,13 @@ void main()
 	const float roughness = material.Roughness;
 	const float ao = material.AO;
 
-    outAlbedo = vec4(material.Albedo * material.TintColor.rgb, roughness);
+    outAlbedo = vec4(material.Albedo * material.TintColor.rgb, 1.f);
     outGeometryShadingNormals = vec4(packedGeometryNormal, packedShadingNormal);
 	outEmissive = vec4(material.Emissive * material.EmissiveIntensity, 1.f);
-	outMaterialData = vec2(metalness, ao);
+	outMaterialData = vec4(metalness, ao, roughness, 0);
     outObjectID = i_EntityID;
+	outFlags = i_ReceivesDecals == 1u ? 1.f : 0.f;
 
-    // TODO: Pack to outEmissive.a since it's not used anyway
 #ifdef EG_MOTION
     outMotion = ((i_CurPos.xy / i_CurPos.z) - (i_PrevPos.xy / i_PrevPos.z)) * 0.5f; // The + 0.5 part is unnecessary, since it cancels out in a-b anyway
 #endif

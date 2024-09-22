@@ -17,7 +17,7 @@ layout(binding = 4) buffer RayList
 };
 layout(binding = 5) uniform sampler2D g_Depth;
 layout(binding = 6) uniform sampler2D g_Normal;
-layout(binding = 7) uniform sampler2D g_AlbedoRoughness;
+layout(binding = 7) uniform sampler2D g_MaterialData;
 layout(binding = 8, rgba16f) uniform writeonly image2D g_IntersectionOutput;
 layout(binding = 9, r8) uniform writeonly image2D g_ExtractedRoughness;
 
@@ -162,7 +162,7 @@ void main()
     const uvec2 groupThreadId = FFX_DNSR_Reflections_RemapLane8x8(groupIndex); // Remap lanes to ensure four neighboring lanes are arranged in a quad pattern
     const uvec2 dispatchThreadId = groupId * 8 + groupThreadId;
 
-    float roughness = texelFetch(g_AlbedoRoughness, ivec2(dispatchThreadId), 0).w;
+    float roughness = texelFetch(g_MaterialData, ivec2(dispatchThreadId), 0).z;
     roughness = roughness * roughness;
 
     ClassifyTiles(dispatchThreadId, groupThreadId, roughness);

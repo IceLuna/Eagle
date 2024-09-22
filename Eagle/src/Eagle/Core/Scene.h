@@ -56,6 +56,9 @@ namespace Eagle
 			bool bTextTransformsDirty = true;
 			bool bImage2DDirty = true;
 
+			bool bDecalsDirty = true;
+			bool bDecalTransformsDirty = true;
+
 			void SetEverythingDirty(bool bDirty)
 			{
 				bStaticMeshesDirty = bDirty;
@@ -70,6 +73,8 @@ namespace Eagle
 				bText2DDirty = bDirty;
 				bTextTransformsDirty = bDirty;
 				bImage2DDirty = bDirty;
+				bDecalsDirty = bDirty;
+				bDecalTransformsDirty = bDirty;
 			}
 		};
 
@@ -216,6 +221,9 @@ namespace Eagle
 
 		void UpdateAnimGraphAsset(const Ref<AssetAnimationGraph>& graph);
 
+		// Resets after the first render
+		void VisualizeDecalAABB(const DecalComponent* decal) { m_DecalToVisualize = decal; }
+
 	private:
 		static void OnSceneOpened(const Ref<Scene>& scene);
 
@@ -235,6 +243,7 @@ namespace Eagle
 		void OnStaticMeshComponentRemoved(entt::registry& r, entt::entity e);
 		void OnSkeletalMeshComponentRemoved(entt::registry& r, entt::entity e);
 		void OnSpriteComponentAddedRemoved(entt::registry& r, entt::entity e);
+		void OnDecalComponentAddedRemoved(entt::registry& r, entt::entity e);
 		void OnPointLightAdded(entt::registry& r, entt::entity e);
 		void OnPointLightRemoved(entt::registry& r, entt::entity e);
 		void OnSpotLightAdded(entt::registry& r, entt::entity e);
@@ -408,6 +417,19 @@ namespace Eagle
 					m_DirtyTransformParticles.emplace(&component);
 				}
 			}
+
+			if constexpr (std::is_base_of<DecalComponent, T>::value)
+			{
+				if (notification == Notification::OnStateChanged)
+				{
+					m_DirtyFlags.bDecalsDirty = true;
+				}
+				else if (notification == Notification::OnTransformChanged)
+				{
+					m_DirtyTransformDecals.emplace(&component);
+					m_DirtyFlags.bDecalTransformsDirty = true;
+				}
+			}
 		}
 
 	public:
@@ -440,6 +462,7 @@ namespace Eagle
 		std::unordered_set<const SkeletalMeshComponent*> m_DirtyTransformSkeletalMeshes;
 		std::unordered_set<const SpriteComponent*> m_DirtyTransformSprites;
 		std::unordered_set<const TextComponent*> m_DirtyTransformTexts;
+		std::unordered_set<const DecalComponent*> m_DirtyTransformDecals;
 
 		std::unordered_set<const ParticleSystemComponent*> m_ParticlesToAdd;
 		std::unordered_set<GUID> m_ParticlesToRemove; // GUIDs of ParticleSystemComponent: system->Parent.GetGUID(). It's done like that because we can't store a pointer to a dead component
@@ -453,6 +476,7 @@ namespace Eagle
 		std::vector<Entity> m_EntitiesToDestroy;
 		entt::registry m_Registry;
 		CameraComponent* m_RuntimeCamera = nullptr;
+		const DecalComponent* m_DecalToVisualize = nullptr;
 
 		// It's a pointer because `Entity` is forward declared.
 		Entity* m_RuntimeCameraHolder = nullptr; //In case there's no user provided runtime primary-camera
@@ -464,6 +488,7 @@ namespace Eagle
 		std::vector<const TextComponent*> m_Texts;
 		std::vector<const Text2DComponent*> m_Texts2D;
 		std::vector<const Image2DComponent*> m_Images2D;
+		std::vector<const DecalComponent*> m_Decals;
 		std::string m_DebugName;
 
 		bool bIsPlaying = false;

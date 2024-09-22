@@ -118,6 +118,8 @@ namespace Eagle::Script
 	uint32_t Eagle_StaticMeshComponent_GetMaterialsSlotsCount(GUID entityID);
 	void Eagle_StaticMeshComponent_SetCastsShadows(GUID entityID, bool value);
 	bool Eagle_StaticMeshComponent_DoesCastShadows(GUID entityID);
+	void Eagle_StaticMeshComponent_SetReceivesDecals(GUID entityID, bool value);
+	bool Eagle_StaticMeshComponent_DoesReceiveDecals(GUID entityID);
 
 	// SkeletalMeshComponent
 	void Eagle_SkeletalMeshComponent_SetMesh(GUID entityID, GUID guid);
@@ -131,6 +133,8 @@ namespace Eagle::Script
 	bool Eagle_SkeletalMeshComponent_DoesCastShadows(GUID entityID);
 	SkeletalMeshComponent::AnimationType Eagle_SkeletalMeshComponent_GetAnimType(GUID entityID);
 	void Eagle_SkeletalMeshComponent_SetAnimType(GUID entityID, SkeletalMeshComponent::AnimationType value);
+	void Eagle_SkeletalMeshComponent_SetReceivesDecals(GUID entityID, bool value);
+	bool Eagle_SkeletalMeshComponent_DoesReceiveDecals(GUID entityID);
 
 	void Eagle_SkeletalMeshComponent_SetCurrentClipPlayTime(GUID entityID, float value);
 	void Eagle_SkeletalMeshComponent_SetClipPlaybackSpeed(GUID entityID, float value);
@@ -321,6 +325,8 @@ namespace Eagle::Script
 	void Eagle_TextComponent_SetFont(GUID entityID, GUID assetID);
 	void Eagle_TextComponent_GetMaterial(GUID entityID, GUID* outAssetID);
 	void Eagle_TextComponent_SetMaterial(GUID entityID, GUID assetID);
+	void Eagle_TextComponent_SetReceivesDecals(GUID entityID, bool value);
+	bool Eagle_TextComponent_DoesReceiveDecals(GUID entityID);
 
 	// Text2D Component
 	MonoString* Eagle_Text2DComponent_GetText(GUID entityID);
@@ -379,11 +385,25 @@ namespace Eagle::Script
 	void Eagle_SpriteComponent_SetIsAtlas(GUID entityID, bool value);
 	void Eagle_SpriteComponent_SetCastsShadows(GUID entityID, bool value);
 	bool Eagle_SpriteComponent_DoesCastShadows(GUID entityID);
+	void Eagle_SpriteComponent_SetReceivesDecals(GUID entityID, bool value);
+	bool Eagle_SpriteComponent_DoesReceiveDecals(GUID entityID);
 
 	// Script Component
 	void Eagle_ScriptComponent_SetScript(GUID entityID, void* type);
 	MonoReflectionType* Eagle_ScriptComponent_GetScriptType(GUID entityID);
 	MonoObject* Eagle_ScriptComponent_GetInstance(GUID entityID);
+
+	// Particle System Component
+	void Eagle_ParticleSystemComponent_Spawn(GUID entityID);
+	void Eagle_ParticleSystemComponent_Destroy(GUID entityID);
+
+	// Decal Component
+	void Eagle_DecalComponent_SetMaterial(GUID entityID, GUID assetID);
+	GUID Eagle_DecalComponent_GetMaterial(GUID entityID);
+	void Eagle_DecalComponent_SetAdjustAspectRatioEnabled(GUID entityID, bool value);
+	bool Eagle_DecalComponent_IsAdjustAspectRatioEnabled(GUID entityID);
+	void Eagle_DecalComponent_SetSortPriority(GUID entityID, uint32_t value);
+	uint32_t Eagle_DecalComponent_GetSortPriority(GUID entityID);
 
 	// Renderer
 	void Eagle_Renderer_SetFogSettings(const glm::vec3* color, float minDistance, float maxDistance, float density, FogEquation equation, bool bEnabled);

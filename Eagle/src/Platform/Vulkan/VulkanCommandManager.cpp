@@ -448,6 +448,20 @@ namespace Eagle
 		vkCmdDraw(m_CommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
 	}
 
+	void VulkanCommandBuffer::DrawInstanced(const Ref<Buffer>& perInstanceBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+	{
+		EG_CORE_ASSERT(m_CurrentGraphicsPipeline);
+		EG_CORE_ASSERT(perInstanceBuffer->HasUsage(BufferUsage::VertexBuffer));
+
+		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
+		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+		VkBuffer vertexBuffers[] = { (VkBuffer)perInstanceBuffer->GetHandle() };
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(m_CommandBuffer, 1, 1, vertexBuffers, offsets);
+		vkCmdDraw(m_CommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
+	}
+
 	void VulkanCommandBuffer::DrawInstancedIndirect(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& args, size_t offset, uint32_t drawCount, uint32_t stride, const Ref<Buffer>& perInstanceBuffer)
 	{
 		EG_CORE_ASSERT(m_CurrentGraphicsPipeline);

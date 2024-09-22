@@ -1381,6 +1381,29 @@ namespace Eagle
 
 		return entity.GetComponent<StaticMeshComponent>().DoesCastShadows();
 	}
+
+	void Script::Eagle_StaticMeshComponent_SetReceivesDecals(GUID entityID, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetReceivesDecals' for static mesh. Entity is null");
+
+		entity.GetComponent<StaticMeshComponent>().SetReceivesDecals(value);
+	}
+
+	bool Script::Eagle_StaticMeshComponent_DoesReceiveDecals(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'DoesReceiveDecals' for static mesh. Entity is null");
+			return false;
+		}
+
+		return entity.GetComponent<StaticMeshComponent>().DoesReceiveDecals();
+	}
 	
 	//--------------SkeletalMesh Component--------------
 	void Script::Eagle_SkeletalMeshComponent_SetMesh(GUID entityID, GUID assetID)
@@ -1578,6 +1601,29 @@ namespace Eagle
 		}
 
 		return entity.GetComponent<SkeletalMeshComponent>().DoesCastShadows();
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_SetReceivesDecals(GUID entityID, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetReceivesDecals' for skeletal mesh. Entity is null");
+
+		entity.GetComponent<SkeletalMeshComponent>().SetReceivesDecals(value);
+	}
+
+	bool Script::Eagle_SkeletalMeshComponent_DoesReceiveDecals(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'DoesReceiveDecals' for skeletal mesh. Entity is null");
+			return false;
+		}
+
+		return entity.GetComponent<SkeletalMeshComponent>().DoesReceiveDecals();
 	}
 
 	SkeletalMeshComponent::AnimationType Script::Eagle_SkeletalMeshComponent_GetAnimType(GUID entityID)
@@ -3954,6 +4000,29 @@ namespace Eagle
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetCastsShadows` of Text Component. Entity is null");
 	}
+	
+	bool Script::Eagle_TextComponent_DoesReceiveDecals(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<TextComponent>().DoesReceiveDecals();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `DoesReceiveDecals` of Text Component. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_TextComponent_SetReceivesDecals(GUID entityID, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetReceivesDecals(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetReceivesDecals` of Text Component. Entity is null");
+	}
 
 	GUID Script::Eagle_TextComponent_GetFont(GUID entityID)
 	{
@@ -4712,6 +4781,29 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetCastsShadows` of Sprite Component. Entity is null");
 	}
 
+	bool Script::Eagle_SpriteComponent_DoesReceiveDecals(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<SpriteComponent>().DoesReceiveDecals();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `DoesReceiveDecals` of Sprite Component. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_SpriteComponent_SetReceivesDecals(GUID entityID, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<SpriteComponent>().SetReceivesDecals(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetReceivesDecals` of Sprite Component. Entity is null");
+	}
+
 	//--------------Script Component--------------
 	void Script::Eagle_ScriptComponent_SetScript(GUID entityID, void* type)
 	{
@@ -4778,6 +4870,144 @@ namespace Eagle
 
 		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetInstance`. Entity is null");
 		return nullptr;
+	}
+
+	//--------------ParticleSystem Component--------------
+	void Script::Eagle_ParticleSystemComponent_Spawn(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			entity.GetComponent<ParticleSystemComponent>().Spawn();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `Spawn` of Particle System Component. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_ParticleSystemComponent_Destroy(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			entity.GetComponent<ParticleSystemComponent>().Destroy();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `Destroy` of Particle System Component. Entity is null");
+			return;
+		}
+	}
+
+	//--------------Decal Component--------------
+	void Script::Eagle_DecalComponent_SetMaterial(GUID entityID, GUID assetID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set decal component material. Entity is null");
+			return;
+		}
+
+		auto& component = entity.GetComponent<DecalComponent>();
+		if (assetID.IsNull())
+		{
+			component.SetMaterialAsset(nullptr);
+			return;
+		}
+
+		Ref<Asset> asset;
+		if (!AssetManager::Get(assetID, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set decal component material. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetMaterial> materialAsset = Cast<AssetMaterial>(asset);
+		if (!materialAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set decal component material. Provided asset is not a material asset");
+			return;
+		}
+
+		component.SetMaterialAsset(materialAsset);
+	}
+
+	GUID Script::Eagle_DecalComponent_GetMaterial(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			const auto& asset = entity.GetComponent<DecalComponent>().GetMaterialAsset();
+			return asset ? asset->GetGUID() : GUID(0, 0);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get material of Decal Component. Entity is null");
+			return GUID(0, 0);
+		}
+	}
+
+	void Script::Eagle_DecalComponent_SetAdjustAspectRatioEnabled(GUID entityID, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			entity.GetComponent<DecalComponent>().SetAdjustAspectRatioEnabled(value);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set `bAdjustAspectRatio` of Decal Component. Entity is null");
+			return;
+		}
+	}
+
+	bool Script::Eagle_DecalComponent_IsAdjustAspectRatioEnabled(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<DecalComponent>().IsAdjustAspectRatioEnabled();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsAdjustAspectRatioEnabled` of Decal Component. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_DecalComponent_SetSortPriority(GUID entityID, uint32_t value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			entity.GetComponent<DecalComponent>().SetSortPriority(value);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set `SortPriority` of Decal Component. Entity is null");
+			return;
+		}
+	}
+
+	uint32_t Script::Eagle_DecalComponent_GetSortPriority(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<DecalComponent>().GetSortPriority();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get `SortPriority` of Decal Component. Entity is null");
+			return 0u;
+		}
 	}
 
 	//--------------Input--------------

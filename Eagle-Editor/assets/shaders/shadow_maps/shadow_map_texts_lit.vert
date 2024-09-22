@@ -1,3 +1,4 @@
+#include "defines.h"
 #include "text/text_lit_vertex_input_layout.h"
 
 #ifdef EG_MATERIALS_REQUIRED
@@ -35,8 +36,9 @@ layout(location = 2) flat out uint o_MaterialIndex;
 
 void main()
 {
+    const uint transformIndex = a_TransformIndex & (EG_RECEIVES_DECALS_MASK - 1); // Get all but the highest bit
     const uint vertexID = gl_VertexIndex % 4u;
-    const mat4 model = g_Transforms[a_TransformIndex];
+    const mat4 model = g_Transforms[transformIndex];
     const vec4 worldPos = model * vec4(a_Position, 0.f, 1.f);
 
     o_TexCoords = a_TexCoords;

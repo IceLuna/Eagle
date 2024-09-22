@@ -37,7 +37,7 @@ namespace Eagle
 		const auto& gbuffer = m_Renderer.GetGBuffer();
 
 		ColorAttachment colorAttachment;
-		colorAttachment.Image = gbuffer.AlbedoRoughness;
+		colorAttachment.Image = gbuffer.Albedo;
 		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.ClearOperation = ClearOperation::Load;
@@ -59,6 +59,12 @@ namespace Eagle
 		materialAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 		materialAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		materialAttachment.ClearOperation = ClearOperation::Load;
+
+		ColorAttachment flagsAttachment;
+		flagsAttachment.Image = gbuffer.Flags;
+		flagsAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+		flagsAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		flagsAttachment.ClearOperation = ClearOperation::Load;
 
 		ColorAttachment objectIDAttachment;
 		objectIDAttachment.Image = gbuffer.ObjectID;
@@ -92,6 +98,7 @@ namespace Eagle
 		state.ColorAttachments.push_back(geometry_shading_NormalsAttachment);
 		state.ColorAttachments.push_back(emissiveAttachment);
 		state.ColorAttachments.push_back(materialAttachment);
+		state.ColorAttachments.push_back(flagsAttachment);
 		state.ColorAttachments.push_back(objectIDAttachment);
 		if (bMotionRequired)
 		{

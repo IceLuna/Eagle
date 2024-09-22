@@ -31,6 +31,8 @@ namespace Eagle
 
 			return m_Properties.GetSelectedComponent();
 		}
+		
+		SelectedComponent GetSelectedComponentType() const { return m_Properties.GetSelectedComponentType(); }
 
 		bool OnImGuiRender();
 

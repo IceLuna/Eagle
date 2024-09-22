@@ -42,12 +42,15 @@ void main()
 
     totalPosition = boneTransform * vec4(a_Position, 1.0);
 
-    const mat4 model = g_Transforms[a_PerInstanceData.x];
+    const uint transformIndex = a_PerInstanceData.x & (EG_RECEIVES_DECALS_MASK - 1); // Get all but the highest bit
+    const uint materialIndex = a_PerInstanceData.y;
+
+    const mat4 model = g_Transforms[transformIndex];
     gl_Position = g_ViewProjection * model * totalPosition;
     
     o_WorldPos = vec3(model * boneTransform * totalPosition);
     
-    const uint normalTextureIndex = FetchMaterialNormalTextureIndex(a_PerInstanceData.y);
+    const uint normalTextureIndex = FetchMaterialNormalTextureIndex(materialIndex);
     if (normalTextureIndex != EG_INVALID_INDEX)
     {
         vec3 tangent = normalize(vec3(model * boneTransform * vec4(a_Tangent, 0.0)));
@@ -59,5 +62,5 @@ void main()
 
     o_Normal = mat3(transpose(inverse(model * boneTransform))) * a_Normal;
     o_TexCoords = a_TexCoords;
-    o_MaterialIndex = a_PerInstanceData.y;
+    o_MaterialIndex = materialIndex;
 }

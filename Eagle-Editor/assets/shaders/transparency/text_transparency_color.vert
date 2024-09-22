@@ -23,7 +23,8 @@ layout(location = 5) out mat3 o_TBN;
 
 void main()
 {
-    const mat4 model = g_Transforms[a_TransformIndex];
+    const uint transformIndex = a_TransformIndex & (EG_RECEIVES_DECALS_MASK - 1); // Get all but the highest bit
+    const mat4 model = g_Transforms[transformIndex];
     gl_Position = g_ViewProjection * model * vec4(a_Position, 0.f, 1.0);
     
     const mat3 normalModel = mat3(transpose(inverse(model)));

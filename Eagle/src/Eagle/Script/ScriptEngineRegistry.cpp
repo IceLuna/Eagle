@@ -123,6 +123,8 @@ namespace Eagle
 		REGISTER_COMPONENT_TYPE(ScriptComponent);
 		REGISTER_COMPONENT_TYPE(Text2DComponent);
 		REGISTER_COMPONENT_TYPE(Image2DComponent);
+		REGISTER_COMPONENT_TYPE(ParticleSystemComponent);
+		REGISTER_COMPONENT_TYPE(DecalComponent);
 	}
 
 	void ScriptEngineRegistry::RegisterAll()
@@ -311,6 +313,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.StaticMeshComponent::GetMaterialsSlotsCount_Native", Eagle::Script::Eagle_StaticMeshComponent_SetMaterial);
 		mono_add_internal_call("Eagle.StaticMeshComponent::SetCastsShadows_Native", Eagle::Script::Eagle_StaticMeshComponent_SetCastsShadows);
 		mono_add_internal_call("Eagle.StaticMeshComponent::DoesCastShadows_Native", Eagle::Script::Eagle_StaticMeshComponent_DoesCastShadows);
+		mono_add_internal_call("Eagle.StaticMeshComponent::SetReceivesDecals_Native", Eagle::Script::Eagle_StaticMeshComponent_SetReceivesDecals);
+		mono_add_internal_call("Eagle.StaticMeshComponent::DoesReceiveDecals_Native", Eagle::Script::Eagle_StaticMeshComponent_DoesReceiveDecals);
 
 		//SkeletalMeshComponent
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetMesh_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetMesh);
@@ -324,6 +328,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::DoesCastShadows_Native", Eagle::Script::Eagle_SkeletalMeshComponent_DoesCastShadows);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetAnimType_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetAnimType);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetAnimType_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetAnimType);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetReceivesDecals_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetReceivesDecals);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::DoesReceiveDecals_Native", Eagle::Script::Eagle_SkeletalMeshComponent_DoesReceiveDecals);
 
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetCurrentClipPlayTime_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetCurrentClipPlayTime);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetClipPlaybackSpeed_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetClipPlaybackSpeed);
@@ -513,6 +519,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.TextComponent::GetFont_Native", Eagle::Script::Eagle_TextComponent_GetFont);
 		mono_add_internal_call("Eagle.TextComponent::SetMaterial_Native", Eagle::Script::Eagle_TextComponent_SetMaterial);
 		mono_add_internal_call("Eagle.TextComponent::GetMaterial_Native", Eagle::Script::Eagle_TextComponent_GetMaterial);
+		mono_add_internal_call("Eagle.TextComponent::SetReceivesDecals_Native", Eagle::Script::Eagle_TextComponent_SetReceivesDecals);
+		mono_add_internal_call("Eagle.TextComponent::DoesReceiveDecals_Native", Eagle::Script::Eagle_TextComponent_DoesReceiveDecals);
 
 		// Text2D Component
 		mono_add_internal_call("Eagle.Text2DComponent::GetText_Native", Eagle::Script::Eagle_Text2DComponent_GetText);
@@ -558,6 +566,18 @@ namespace Eagle
 		mono_add_internal_call("Eagle.BillboardComponent::SetTexture_Native", Eagle::Script::Eagle_BillboardComponent_SetTexture);
 		mono_add_internal_call("Eagle.BillboardComponent::GetTexture_Native", Eagle::Script::Eagle_BillboardComponent_GetTexture);
 
+		// Particle System Component
+		mono_add_internal_call("Eagle.ParticleSystemComponent::Spawn_Native", Eagle::Script::Eagle_ParticleSystemComponent_Spawn);
+		mono_add_internal_call("Eagle.ParticleSystemComponent::Destroy_Native", Eagle::Script::Eagle_ParticleSystemComponent_Destroy);
+
+		// Decal Component
+		mono_add_internal_call("Eagle.DecalComponent::SetMaterial_Native", Eagle::Script::Eagle_DecalComponent_SetMaterial);
+		mono_add_internal_call("Eagle.DecalComponent::GetMaterial_Native", Eagle::Script::Eagle_DecalComponent_GetMaterial);
+		mono_add_internal_call("Eagle.DecalComponent::SetAdjustAspectRatioEnabled_Native", Eagle::Script::Eagle_DecalComponent_SetAdjustAspectRatioEnabled);
+		mono_add_internal_call("Eagle.DecalComponent::IsAdjustAspectRatioEnabled_Native", Eagle::Script::Eagle_DecalComponent_IsAdjustAspectRatioEnabled);
+		mono_add_internal_call("Eagle.DecalComponent::SetSortPriority_Native", Eagle::Script::Eagle_DecalComponent_SetSortPriority);
+		mono_add_internal_call("Eagle.DecalComponent::GetSortPriority_Native", Eagle::Script::Eagle_DecalComponent_GetSortPriority);
+
 		// Sprite Component
 		mono_add_internal_call("Eagle.SpriteComponent::GetMaterial_Native", Eagle::Script::Eagle_SpriteComponent_GetMaterial);
 		mono_add_internal_call("Eagle.SpriteComponent::SetMaterial_Native", Eagle::Script::Eagle_SpriteComponent_SetMaterial);
@@ -571,6 +591,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.SpriteComponent::SetIsAtlas_Native", Eagle::Script::Eagle_SpriteComponent_SetIsAtlas);
 		mono_add_internal_call("Eagle.SpriteComponent::SetCastsShadows_Native", Eagle::Script::Eagle_SpriteComponent_SetCastsShadows);
 		mono_add_internal_call("Eagle.SpriteComponent::DoesCastShadows_Native", Eagle::Script::Eagle_SpriteComponent_DoesCastShadows);
+		mono_add_internal_call("Eagle.SpriteComponent::SetReceivesDecals_Native", Eagle::Script::Eagle_SpriteComponent_SetReceivesDecals);
+		mono_add_internal_call("Eagle.SpriteComponent::DoesReceiveDecals_Native", Eagle::Script::Eagle_SpriteComponent_DoesReceiveDecals);
 
 		// Project
 		mono_add_internal_call("Eagle.Project::GetProjectPath_Native", Eagle::Script::Eagle_Project_GetProjectPath);

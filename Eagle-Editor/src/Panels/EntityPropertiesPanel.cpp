@@ -87,6 +87,7 @@ namespace Eagle
 		case SelectedComponent::AudioComponent: return &m_Entity.GetComponent<AudioComponent>();
 		case SelectedComponent::ReverbComponent: return &m_Entity.GetComponent<ReverbComponent>();
 		case SelectedComponent::ParticleSystem: return &m_Entity.GetComponent<ParticleSystemComponent>();
+		case SelectedComponent::Decal: return &m_Entity.GetComponent<DecalComponent>();
 		}
 		return nullptr;
 	}
@@ -125,6 +126,7 @@ namespace Eagle
 			EG_ADD_COMPONENT_MENU_ITEM(BillboardComponent, "Billboard");
 			EG_ADD_COMPONENT_MENU_ITEM(Text2DComponent, "Text 2D");
 			EG_ADD_COMPONENT_MENU_ITEM(Image2DComponent, "Image 2D");
+			EG_ADD_COMPONENT_MENU_ITEM(DecalComponent, "Decal");
 			EG_ADD_COMPONENT_MENU_ITEM(ParticleSystemComponent, "Particle System");
 
 			UI::TextWithSeparator("3D");
@@ -179,86 +181,29 @@ namespace Eagle
 			
 			if(entityTreeOpened)
 			{
-				if (DrawComponentLine<ScriptComponent>("C# Script", entity, m_SelectedComponent == SelectedComponent::Script))
-				{
-					m_SelectedComponent = SelectedComponent::Script;
-				}
-				if (DrawComponentLine<AudioComponent>("Audio", entity, m_SelectedComponent == SelectedComponent::AudioComponent))
-				{
-					m_SelectedComponent = SelectedComponent::AudioComponent;
-				}
-				if (DrawComponentLine<ReverbComponent>("Reverb", entity, m_SelectedComponent == SelectedComponent::ReverbComponent))
-				{
-					m_SelectedComponent = SelectedComponent::ReverbComponent;
-				}
-				if (DrawComponentLine<RigidBodyComponent>("Rigid Body", entity, m_SelectedComponent == SelectedComponent::RigidBody))
-				{
-					m_SelectedComponent = SelectedComponent::RigidBody;
-				}
-				if (DrawComponentLine<BoxColliderComponent>("Box Collider", entity, m_SelectedComponent == SelectedComponent::BoxCollider))
-				{
-					m_SelectedComponent = SelectedComponent::BoxCollider;
-				}
-				if (DrawComponentLine<SphereColliderComponent>("Sphere Collider", entity, m_SelectedComponent == SelectedComponent::SphereCollider))
-				{
-					m_SelectedComponent = SelectedComponent::SphereCollider;
-				}
-				if (DrawComponentLine<CapsuleColliderComponent>("Capsule Collider", entity, m_SelectedComponent == SelectedComponent::CapsuleCollider))
-				{
-					m_SelectedComponent = SelectedComponent::CapsuleCollider;
-				}
-				if (DrawComponentLine<MeshColliderComponent>("Mesh Collider", entity, m_SelectedComponent == SelectedComponent::MeshCollider))
-				{
-					m_SelectedComponent = SelectedComponent::MeshCollider;
-				}
-				if (DrawComponentLine<SpriteComponent>("Sprite", entity, m_SelectedComponent == SelectedComponent::Sprite))
-				{
-					m_SelectedComponent = SelectedComponent::Sprite;
-				}
-				if (DrawComponentLine<StaticMeshComponent>("Static Mesh", entity, m_SelectedComponent == SelectedComponent::StaticMesh))
-				{
-					m_SelectedComponent = SelectedComponent::StaticMesh;
-				}
-				if (DrawComponentLine<SkeletalMeshComponent>("Skeletal Mesh", entity, m_SelectedComponent == SelectedComponent::SkeletalMesh))
-				{
-					m_SelectedComponent = SelectedComponent::SkeletalMesh;
-				}
-				if (DrawComponentLine<BillboardComponent>("Billboard", entity, m_SelectedComponent == SelectedComponent::Billboard))
-				{
-					m_SelectedComponent = SelectedComponent::Billboard;
-				}
-				if (DrawComponentLine<TextComponent>("Text", entity, m_SelectedComponent == SelectedComponent::Text3D))
-				{
-					m_SelectedComponent = SelectedComponent::Text3D;
-				}
-				if (DrawComponentLine<Text2DComponent>("Text 2D", entity, m_SelectedComponent == SelectedComponent::Text2D))
-				{
-					m_SelectedComponent = SelectedComponent::Text2D;
-				}
-				if (DrawComponentLine<Image2DComponent>("Image 2D", entity, m_SelectedComponent == SelectedComponent::Image2D))
-				{
-					m_SelectedComponent = SelectedComponent::Image2D;
-				}
-				if (DrawComponentLine<CameraComponent>("Camera", entity, m_SelectedComponent == SelectedComponent::Camera))
-				{
-					m_SelectedComponent = SelectedComponent::Camera;
-				}
-				if (DrawComponentLine<PointLightComponent>("Point Light", entity, m_SelectedComponent == SelectedComponent::PointLight))
-				{
-					m_SelectedComponent = SelectedComponent::PointLight;
-				}
-				if (DrawComponentLine<DirectionalLightComponent>("Directional Light", entity, m_SelectedComponent == SelectedComponent::DirectionalLight))
-				{
-					m_SelectedComponent = SelectedComponent::DirectionalLight;
-				}
-				if (DrawComponentLine<SpotLightComponent>("Spot Light", entity, m_SelectedComponent == SelectedComponent::SpotLight))
-				{
-					m_SelectedComponent = SelectedComponent::SpotLight;
-				}
-				if (DrawComponentLine<ParticleSystemComponent>("Particle System", entity, m_SelectedComponent == SelectedComponent::ParticleSystem))
-				{
-					m_SelectedComponent = SelectedComponent::ParticleSystem;
-				}
+#define EG_DRAW_COMPONENT_LINE(label, type, typeEnum) { if (DrawComponentLine<type>(label, entity, m_SelectedComponent == typeEnum)) m_SelectedComponent = typeEnum; }
+				EG_DRAW_COMPONENT_LINE("C# Script", ScriptComponent, SelectedComponent::Script);
+				EG_DRAW_COMPONENT_LINE("Audio", AudioComponent, SelectedComponent::AudioComponent);
+				EG_DRAW_COMPONENT_LINE("Reverb", ReverbComponent, SelectedComponent::ReverbComponent);
+				EG_DRAW_COMPONENT_LINE("Rigid Body", RigidBodyComponent, SelectedComponent::RigidBody);
+				EG_DRAW_COMPONENT_LINE("Box Collider", BoxColliderComponent, SelectedComponent::BoxCollider);
+				EG_DRAW_COMPONENT_LINE("Sphere Collider", SphereColliderComponent, SelectedComponent::SphereCollider);
+				EG_DRAW_COMPONENT_LINE("Capsule Collider", CapsuleColliderComponent, SelectedComponent::CapsuleCollider);
+				EG_DRAW_COMPONENT_LINE("Mesh Collider", MeshColliderComponent, SelectedComponent::MeshCollider);
+				EG_DRAW_COMPONENT_LINE("Sprite", SpriteComponent, SelectedComponent::Sprite);
+				EG_DRAW_COMPONENT_LINE("Static Mesh", StaticMeshComponent, SelectedComponent::StaticMesh);
+				EG_DRAW_COMPONENT_LINE("Skeletal Mesh", SkeletalMeshComponent, SelectedComponent::SkeletalMesh);
+				EG_DRAW_COMPONENT_LINE("Billboard", BillboardComponent, SelectedComponent::Billboard);
+				EG_DRAW_COMPONENT_LINE("Text", TextComponent, SelectedComponent::Text3D);
+				EG_DRAW_COMPONENT_LINE("Text 2D", Text2DComponent, SelectedComponent::Text2D);
+				EG_DRAW_COMPONENT_LINE("Image 2D", Image2DComponent, SelectedComponent::Image2D);
+				EG_DRAW_COMPONENT_LINE("Camera", CameraComponent, SelectedComponent::Camera);
+				EG_DRAW_COMPONENT_LINE("Point Light", PointLightComponent, SelectedComponent::PointLight);
+				EG_DRAW_COMPONENT_LINE("Directional Light", DirectionalLightComponent, SelectedComponent::DirectionalLight);
+				EG_DRAW_COMPONENT_LINE("Spot Light", SpotLightComponent, SelectedComponent::SpotLight);
+				EG_DRAW_COMPONENT_LINE("Particle System", ParticleSystemComponent, SelectedComponent::ParticleSystem);
+				EG_DRAW_COMPONENT_LINE("Decal", DecalComponent, SelectedComponent::Decal);
+#undef EG_DRAW_COMPONENT_LINE
 				ImGui::TreePop();
 			}
 
@@ -280,10 +225,17 @@ namespace Eagle
 					UI::BeginPropertyGrid("SpriteComponent");
 
 					bool bCastsShadows = sprite.DoesCastShadows();
+					bool bReceivesDecals = sprite.DoesReceiveDecals();
 
 					if (UI::Property("Casts shadows", bCastsShadows, s_CastsShadowsHelpMsg))
 					{
 						sprite.SetCastsShadows(bCastsShadows);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Receives Decals", bReceivesDecals))
+					{
+						sprite.SetReceivesDecals(bReceivesDecals);
 						bEntityChanged = true;
 					}
 
@@ -340,6 +292,7 @@ namespace Eagle
 				DrawComponent<StaticMeshComponent>("Static Mesh", entity, [&entity, this](StaticMeshComponent& smComponent)
 				{
 					UI::BeginPropertyGrid("StaticMeshComponent");
+					bool bReceivesDecals = smComponent.DoesReceiveDecals();
 					Ref<AssetStaticMesh> staticMesh = smComponent.GetMeshAsset();
 					bool bCastsShadows = smComponent.DoesCastShadows();
 
@@ -352,6 +305,12 @@ namespace Eagle
 					if (UI::Property("Casts shadows", bCastsShadows, s_CastsShadowsHelpMsg))
 					{
 						smComponent.SetCastsShadows(bCastsShadows);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Receives Decals", bReceivesDecals))
+					{
+						smComponent.SetReceivesDecals(bReceivesDecals);
 						bEntityChanged = true;
 					}
 
@@ -381,6 +340,7 @@ namespace Eagle
 					UI::BeginPropertyGrid("SkeletalMeshComponent");
 					Ref<AssetSkeletalMesh> skeletalMesh = smComponent.GetMeshAsset();
 					bool bCastsShadows = smComponent.DoesCastShadows();
+					bool bReceivesDecals = smComponent.DoesReceiveDecals();
 
 					if (UI::DrawAssetSelection("Skeletal Mesh", skeletalMesh))
 					{
@@ -391,6 +351,12 @@ namespace Eagle
 					if (UI::Property("Casts shadows", bCastsShadows, s_CastsShadowsHelpMsg))
 					{
 						smComponent.SetCastsShadows(bCastsShadows);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Receives Decals", bReceivesDecals))
+					{
+						smComponent.SetReceivesDecals(bReceivesDecals);
 						bEntityChanged = true;
 					}
 
@@ -545,6 +511,7 @@ namespace Eagle
 					std::string text = component.GetText();
 					bool bLit = component.IsLit();
 					bool bCastsShadows = component.DoesCastShadows();
+					bool bReceivesDecals = component.DoesReceiveDecals();
 					Ref<AssetFont> asset = component.GetFontAsset();
 					Ref<AssetMaterial> materialAsset = component.GetMaterialAsset();
 
@@ -579,6 +546,12 @@ namespace Eagle
 						if (UI::DrawAssetSelection("Material", materialAsset))
 						{
 							component.SetMaterialAsset(materialAsset);
+							bEntityChanged = true;
+						}
+
+						if (UI::Property("Receives Decals", bReceivesDecals))
+						{
+							component.SetReceivesDecals(bReceivesDecals);
 							bEntityChanged = true;
 						}
 					}
@@ -1735,6 +1708,38 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 					bEntityChanged |= UI::Property("Auto-spawn", system.bAutospawn);
+
+					UI::EndPropertyGrid();
+				});
+				break;
+			}
+
+			case SelectedComponent::Decal:
+			{
+				DrawComponentTransformNode(entity, entity.GetComponent<DecalComponent>());
+				DrawComponent<DecalComponent>("Decal", entity, [&entity, this](DecalComponent& decal)
+				{
+					UI::BeginPropertyGrid("DecalComponent");
+
+					auto materialAsset = decal.GetMaterialAsset();
+					uint32_t sortPriority = decal.GetSortPriority();
+					bool bAdjustAspectRatio = decal.IsAdjustAspectRatioEnabled();
+
+					if (UI::DrawAssetSelection("Material", materialAsset, "Material data will be blended with the underlying material based on 'Opacity'"))
+					{
+						decal.SetMaterialAsset(materialAsset);
+						bEntityChanged = true;
+					}
+					if (UI::PropertyDrag("Sort Priority", sortPriority, 1.f, 0, 0, "Higher value results in Decal being draw on top of others"))
+					{
+						decal.SetSortPriority(sortPriority);
+						bEntityChanged = true;
+					}
+					if (UI::Property("Adjust Aspect Ratio", bAdjustAspectRatio, "Aspect Ratio will be adjusted according to Albedo texture"))
+					{
+						decal.SetAdjustAspectRatioEnabled(bAdjustAspectRatio);
+						bEntityChanged = true;
+					}
 
 					UI::EndPropertyGrid();
 				});

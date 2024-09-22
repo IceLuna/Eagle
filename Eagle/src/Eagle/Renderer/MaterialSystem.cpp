@@ -131,6 +131,7 @@ namespace Eagle
 		s_CPURawMaterials.clear();
 		s_CPURawMaterials.reserve(s_MaterialsRawBuffer->GetSize() / sizeof(float));
 		s_CPURawMaterials.push_back(0.f); // Dummy shader-fallback value
+		s_CPURawMaterials.push_back(1.f); // Dummy shader-fallback value
 
 		for (auto& material : s_Materials)
 			s_CPUMaterials.emplace_back(CPUMaterial::Convert(material, s_CPURawMaterials));

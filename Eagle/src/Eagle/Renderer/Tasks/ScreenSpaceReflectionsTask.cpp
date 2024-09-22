@@ -28,9 +28,6 @@ namespace Eagle
 		auto& gbuffer = m_Renderer.GetGBuffer();
 		auto& color = m_Renderer.GetHDROutput();
 		auto& depth = gbuffer.Depth;
-		auto& normal = gbuffer.Geometry_Shading_Normals;
-		auto& albedoRoughness = gbuffer.AlbedoRoughness;
-		auto& materialData = gbuffer.MaterialData;
 
 		const ImageLayout oldDepthLayout = depth->GetLayout();
 		const ImageLayout oldColorLayout = color->GetLayout();
@@ -98,7 +95,7 @@ namespace Eagle
 		m_ClassifyPipeline->SetBuffer(m_RayList, 0, 4);
 		m_ClassifyPipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 5);
 		m_ClassifyPipeline->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 6);
-		m_ClassifyPipeline->SetImageSampler(gbuffer.AlbedoRoughness, Sampler::PointSamplerClamp, 0, 7);
+		m_ClassifyPipeline->SetImageSampler(gbuffer.MaterialData, Sampler::PointSamplerClamp, 0, 7);
 		m_ClassifyPipeline->SetImage(m_Radiance[m_PingPong], 0, 8);
 		m_ClassifyPipeline->SetImage(m_Roughness, 0, 9);
 
@@ -372,7 +369,7 @@ namespace Eagle
 		auto& gbuffer = m_Renderer.GetGBuffer();
 		m_CompositePipeline->SetImage(m_Radiance[m_PingPong], 0, 0);
 		m_CompositePipeline->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 1);
-		m_CompositePipeline->SetImageSampler(gbuffer.AlbedoRoughness, Sampler::PointSamplerClamp, 0, 2);
+		m_CompositePipeline->SetImageSampler(gbuffer.Albedo, Sampler::PointSamplerClamp, 0, 2);
 		m_CompositePipeline->SetImageSampler(gbuffer.MaterialData, Sampler::PointSamplerClamp, 0, 3);
 		m_CompositePipeline->SetImageSampler(RenderManager::GetBRDFLUTImage(), Sampler::PointSamplerClamp, 0, 4);
 		m_CompositePipeline->SetImage(m_Renderer.GetHDROutput(), 0, 5);

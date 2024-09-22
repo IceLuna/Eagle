@@ -38,15 +38,17 @@ layout(location = 3) out vec3 o_Normal;
 layout(location = 4) out vec2 o_TexCoords;
 layout(location = 5) flat out uint o_MaterialIndex;
 layout(location = 6) flat out int o_EntityID;
+layout(location = 7) flat out uint o_ReceivesDecals;
 #ifdef EG_MOTION
-layout(location = 7) out vec3 o_CurPos;
-layout(location = 8) out vec3 o_PrevPos;
+layout(location = 8) out vec3 o_CurPos;
+layout(location = 9) out vec3 o_PrevPos;
 #endif
 
 void main()
 {
     const uint materialIndex  = a_MaterialIndex;
-    const uint transformIndex = a_TransformIndex;
+    const uint transformIndex = a_TransformIndex & (EG_RECEIVES_DECALS_MASK - 1); // Get all but the highest bit
+    o_ReceivesDecals = (a_TransformIndex & EG_RECEIVES_DECALS_MASK) == EG_RECEIVES_DECALS_MASK ? 1u : 0u;
 
     const mat4 model = g_Transforms[transformIndex];
 

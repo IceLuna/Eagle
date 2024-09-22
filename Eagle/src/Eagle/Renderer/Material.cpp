@@ -111,22 +111,45 @@ CPUMaterial CPUMaterial::Convert(const Eagle::Ref<Eagle::Material>& material, st
 		emissiveIndex = TextureSystem::AddTexture(asset->GetTexture());
 
 	uint32_t opacityIndex = 0u;
-	if (material->IsRawOpacityUsed())
+	bool bUseRawOpacity = true;
+	if (material->GetBlendMode() == Material::BlendMode::Translucent)
 	{
-		opacityIndex = (uint32_t)rawValues.size();
-		rawValues.push_back(material->GetOpacity());
+		if (material->IsRawOpacityUsed())
+		{
+			opacityIndex = (uint32_t)rawValues.size();
+			rawValues.push_back(material->GetOpacity());
+		}
+		else if (const auto& asset = material->GetOpacityAsset())
+		{
+			opacityIndex = TextureSystem::AddTexture(asset->GetTexture());
+			bUseRawOpacity = false;
+		}
 	}
-	else if (const auto& asset = material->GetOpacityAsset())
-		opacityIndex = TextureSystem::AddTexture(asset->GetTexture());
+	else
+	{
+		opacityIndex = MaterialSystem::OneRawIndex;
+	}
 
 	uint32_t opacityMaskIndex = 0u;
-	if (material->IsRawOpacityMaskUsed())
+	bool bUseRawOpacityMask = true;
+	if (material->GetBlendMode() == Material::BlendMode::Masked)
 	{
-		opacityMaskIndex = (uint32_t)rawValues.size();
-		rawValues.push_back(material->GetOpacityMask());
+		if (material->IsRawOpacityMaskUsed())
+		{
+			opacityMaskIndex = (uint32_t)rawValues.size();
+			rawValues.push_back(material->GetOpacityMask());
+		}
+		else if (const auto& asset = material->GetOpacityMaskAsset())
+		{
+			opacityMaskIndex = TextureSystem::AddTexture(asset->GetTexture());
+			bUseRawOpacityMask = false;
+		}
 	}
-	else if (const auto& asset = material->GetOpacityMaskAsset())
-		opacityMaskIndex = TextureSystem::AddTexture(asset->GetTexture());
+	else
+	{
+		opacityMaskIndex = MaterialSystem::OneRawIndex;
+	}
+	
 
 	result.PackedIndices = result.PackedIndices2 = result.PackedIndices3 = result.PackedIndices4 = 0u;
 	
@@ -143,8 +166,8 @@ CPUMaterial CPUMaterial::Convert(const Eagle::Ref<Eagle::Material>& material, st
 	result.PackedIndices3 |= ((emissiveIndex  & MaterialIndexMask) | (material->IsRawEmissiveUsed()  ? IsRawValueMask : 0u)) << EmissiveIndexOffset;
 
 	// Pack 4
-	result.PackedIndices4  = ( opacityIndex     & MaterialIndexMask) | (material->IsRawOpacityUsed()     ? IsRawValueMask : 0u);
-	result.PackedIndices4 |= ((opacityMaskIndex & MaterialIndexMask) | (material->IsRawOpacityMaskUsed() ? IsRawValueMask : 0u)) << OpacityMaskIndexOffset;
+	result.PackedIndices4  = ( opacityIndex     & MaterialIndexMask) | (bUseRawOpacity     ? IsRawValueMask : 0u);
+	result.PackedIndices4 |= ((opacityMaskIndex & MaterialIndexMask) | (bUseRawOpacityMask ? IsRawValueMask : 0u)) << OpacityMaskIndexOffset;
 
 	return result;
 }
