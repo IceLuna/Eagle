@@ -693,6 +693,7 @@ namespace Eagle
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Color3")]                = FieldType::Color3;
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Color4")]                = FieldType::Color4;
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Asset")]                 = FieldType::Asset;
+		s_BuiltInEagleTypes[s_EntityClass]                                                               = FieldType::Entity;
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetTexture2D")]        = FieldType::AssetTexture2D;
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetTextureCube")]      = FieldType::AssetTextureCube;
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetStaticMesh")]       = FieldType::AssetStaticMesh;

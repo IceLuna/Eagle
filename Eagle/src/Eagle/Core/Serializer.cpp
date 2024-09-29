@@ -3291,6 +3291,7 @@ namespace Eagle
 			case FieldType::Enum:
 				SerializeField<int>(out, field);
 				break;
+			case FieldType::Entity:
 			case FieldType::Asset:
 			case FieldType::AssetTexture2D:
 			case FieldType::AssetTextureCube:
@@ -3361,6 +3362,7 @@ namespace Eagle
 					case FieldType::Enum:
 						SetStoredValue<int>(node, field);
 						break;
+					case FieldType::Entity:
 					case FieldType::Asset:
 					case FieldType::AssetTexture2D:
 					case FieldType::AssetTextureCube:
@@ -3377,6 +3379,7 @@ namespace Eagle
 					case FieldType::AssetAnimationGraph:
 					case FieldType::AssetParticleSystem:
 						SetStoredValue<GUID>(node, field);
+						break;
 				}
 			}
 		}
@@ -3397,6 +3400,7 @@ namespace Eagle
 			case FieldType::Color3:
 			case FieldType::Color4:
 			case FieldType::Enum:
+			case FieldType::Entity:
 			case FieldType::Asset:
 			case FieldType::AssetTexture2D:
 			case FieldType::AssetTextureCube:

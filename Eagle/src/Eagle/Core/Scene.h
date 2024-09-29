@@ -138,10 +138,10 @@ namespace Eagle
 		void SetGravity(const glm::vec3& gravity);
 		const glm::vec3& GetGravity() const { return m_Gravity; }
 
-		template <typename T>
+		template <typename... T>
 		auto GetAllEntitiesWith()
 		{
-			return m_Registry.view<T>();
+			return m_Registry.view<T...>();
 		}
 
 		// void(const Entity);

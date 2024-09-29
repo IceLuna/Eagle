@@ -153,7 +153,7 @@ namespace Eagle
 		{
 			SetRuntimeValue_Internal(entityInstance, *((std::string*)m_StoredValueBuffer));
 		}
-		else if (IsAssetType(Type))
+		else if (Type == FieldType::Entity || IsAssetType(Type))
 		{
 			EG_CORE_ASSERT(!TypeName.empty(), "Empty TypeName");
 
@@ -183,7 +183,7 @@ namespace Eagle
 		if (IsReadOnly)
 			return;
 
-		if (IsAssetType(Type))
+		if (Type == FieldType::Entity || IsAssetType(Type))
 		{
 			GUID guid;
 			memcpy(&guid, value, GetFieldSize(Type));
@@ -246,7 +246,7 @@ namespace Eagle
 		MonoObject* monoInstance = entityInstance.GetMonoInstance();
 		EG_CORE_ASSERT(monoInstance, "No mono instance");
 
-		if (IsAssetType(Type))
+		if (Type == FieldType::Entity || IsAssetType(Type))
 		{
 			MonoObject* obj;
 			if (m_MonoProperty)
@@ -257,10 +257,18 @@ namespace Eagle
 			if (obj)
 			{
 				const std::string test = Utils::GetEnumName(Type);
-				MonoClass* assetClass = ScriptEngine::GetCoreClass("Eagle", "Asset");
-				MonoClass* testClass = ScriptEngine::GetCoreClass("Eagle", test);
-				MonoClassField* field = mono_class_get_field_from_name(assetClass, "m_GUID");
-				mono_field_get_value(obj, field, outValue);
+				if (Type == FieldType::Entity)
+				{
+					MonoClass* entityClass = ScriptEngine::GetEntityClass();
+					MonoClassField* field = mono_class_get_field_from_name(entityClass, "<ID>k__BackingField"); // For some reason, `ID` field has this name in mono.
+					mono_field_get_value(obj, field, outValue);
+				}
+				else
+				{
+					MonoClass* assetClass = ScriptEngine::GetCoreClass("Eagle", "Asset");
+					MonoClassField* field = mono_class_get_field_from_name(assetClass, "m_GUID");
+					mono_field_get_value(obj, field, outValue);
+				}
 			}
 			else
 			{

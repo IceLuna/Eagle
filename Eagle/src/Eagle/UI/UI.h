@@ -281,7 +281,7 @@ namespace Eagle::UI
 	// OptionsSize can be smaller to cutoff some options
 	bool Combo(const std::string_view label, uint32_t currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string_view helpMessage = "");
 	bool Combo(const std::string_view label, uint32_t currentSelection, const std::vector<std::string>& options, size_t optionsSize, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string_view helpMessage = "");
-	bool ComboWithNone(const std::string_view label, int currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string_view helpMessage = "");
+	bool ComboWithNone(const std::string_view label, int currentSelectionIndex, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string_view helpMessage = "");
 	bool Combo(const std::string_view label, int currentValue, const ScriptEnumFields& fields, int& outSelectedValue);
 
 	template <typename Enum>

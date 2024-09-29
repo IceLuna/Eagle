@@ -184,6 +184,7 @@ namespace Eagle
 		out << YAML::BeginMap; //Entity
 
 		out << YAML::Key << "EntityID" << YAML::Value << entityID;
+		out << YAML::Key << "GUID" << YAML::Value << entity.GetGUID();
 		Serializer::SerializeEntity(out, entity);
 		
 		out << YAML::EndMap; //Entity
@@ -221,6 +222,11 @@ namespace Eagle
 	void SceneSerializer::DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode)
 	{
 		const uint32_t id = entityNode["EntityID"].as<uint32_t>();
+		GUID guid(0, 0);
+		if (auto node = entityNode["GUID"])
+			guid = node.as<GUID>();
+		else
+			guid = GUID{}; // Generate a new one
 
 		std::string name;
 		int parentID = -1;
@@ -230,7 +236,7 @@ namespace Eagle
 			parentID = sceneNameComponentNode["Parent"].as<int>();
 		}
 
-		Entity deserializedEntity = scene->CreateEntity(name);
+		Entity deserializedEntity = scene->CreateEntityWithGUID(guid, name);
 		m_AllEntities[id] = deserializedEntity;
 
 		if (parentID != -1)

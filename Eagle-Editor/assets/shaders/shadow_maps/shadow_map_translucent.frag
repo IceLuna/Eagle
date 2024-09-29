@@ -14,11 +14,8 @@ void main()
     vec2 uv = i_TexCoords;
     const ShaderMaterial material = FetchMaterial(i_MaterialIndex, uv);
 
-    float opacity = material.Opacity;
-    opacity = clamp(opacity * material.TintColor.a, 0.f, 1.f);
-
     const vec3 color = material.Albedo;
-    o_Color = vec4(color * (1.f - opacity), 1.f);
+    o_Color = vec4(color * (1.f - material.Opacity), 1.f);
 
 #ifdef EG_OUTPUT_DEPTH
     o_Depth = gl_FragCoord.z;

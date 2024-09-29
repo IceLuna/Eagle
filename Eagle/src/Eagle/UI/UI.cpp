@@ -841,7 +841,7 @@ namespace Eagle::UI
 		return Combo(label, currentSelection, options, options.size(), outSelectedIndex, tooltips, helpMessage);
 	}
 
-	bool ComboWithNone(const std::string_view label, int currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips, const std::string_view helpMessage)
+	bool ComboWithNone(const std::string_view label, int currentSelectionIndex, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips, const std::string_view helpMessage)
 	{
 		size_t tooltipsSize = tooltips.size();
 		bool bModified = false;
@@ -856,12 +856,13 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		const bool bNoneSelected = currentSelection == -1;
-		const std::string& currentString = bNoneSelected ? "None" : options[currentSelection];
+		const bool bNoneSelected = currentSelectionIndex == -1;
+		const std::string& currentString = bNoneSelected ? "None" : options[currentSelectionIndex];
 		if (ImGui::BeginCombo(s_IDBuffer, currentString.c_str()))
 		{
 			// None
 			{
+				ImGui::PushID(-1);
 				if (ImGui::Selectable("None", bNoneSelected))
 				{
 					bModified = true;
@@ -870,11 +871,13 @@ namespace Eagle::UI
 
 				if (bNoneSelected)
 					ImGui::SetItemDefaultFocus();
+				ImGui::PopID();
 			}
 
 			for (int i = 0; i < options.size(); ++i)
 			{
-				bool isSelected = !bNoneSelected && (currentString == options[i]);
+				bool isSelected = currentSelectionIndex == i;
+				ImGui::PushID(i);
 
 				if (ImGui::Selectable(options[i].c_str(), isSelected))
 				{
@@ -890,13 +893,14 @@ namespace Eagle::UI
 				{
 					ImGui::SetItemDefaultFocus();
 				}
+				ImGui::PopID();
 			}
 			ImGui::EndCombo();
 		}
 
-		if (currentSelection < tooltipsSize)
-			if (!tooltips[currentSelection].empty())
-				Tooltip(tooltips[currentSelection]);
+		if (currentSelectionIndex < tooltipsSize)
+			if (!tooltips[currentSelectionIndex].empty())
+				Tooltip(tooltips[currentSelectionIndex]);
 
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();

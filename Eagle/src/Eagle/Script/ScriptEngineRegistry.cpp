@@ -138,6 +138,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Entity::DestroyEntity_Native", Eagle::Script::Eagle_Entity_DestroyEntity);
 		mono_add_internal_call("Eagle.Entity::AddComponent_Native", Eagle::Script::Eagle_Entity_AddComponent);
 		mono_add_internal_call("Eagle.Entity::HasComponent_Native", Eagle::Script::Eagle_Entity_HasComponent);
+		mono_add_internal_call("Eagle.Entity::IsValid_Native", Eagle::Script::Eagle_Entity_IsValid);
 		mono_add_internal_call("Eagle.Entity::GetEntityName_Native", Eagle::Script::Eagle_Entity_GetEntityName);
 		mono_add_internal_call("Eagle.Entity::GetForwardVector_Native", Eagle::Script::Eagle_Entity_GetForwardVector);
 		mono_add_internal_call("Eagle.Entity::GetRightVector_Native", Eagle::Script::Eagle_Entity_GetRightVector);
@@ -605,6 +606,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Scene::OpenScene_Native", Eagle::Script::Eagle_Scene_OpenScene);
 		mono_add_internal_call("Eagle.Scene::Raycast_Native", Eagle::Script::Eagle_Scene_Raycast);
 		mono_add_internal_call("Eagle.Scene::DrawLine_Native", Eagle::Script::Eagle_Scene_DrawLine);
+		mono_add_internal_call("Eagle.Scene::SetGravity_Native", Eagle::Script::Eagle_Scene_SetGravity);
+		mono_add_internal_call("Eagle.Scene::GetGravity_Native", Eagle::Script::Eagle_Scene_GetGravity);
 
 		// Script Component
 		mono_add_internal_call("Eagle.ScriptComponent::SetScript_Native", Eagle::Script::Eagle_ScriptComponent_SetScript);

@@ -10,6 +10,7 @@
 #include "Eagle/Camera/CameraController.h"
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsScene.h"
+#include "Eagle/Physics/PhysicsUtils.h"
 #include "Eagle/Audio/AudioEngine.h"
 #include "Eagle/Audio/Sound2D.h"
 #include "Eagle/Debug/CPUTimings.h"
@@ -38,22 +39,26 @@ namespace Eagle
 				auto& line = buffer.emplace_back();
 				line.Start = center + radius * glm::vec3(cosAngle1, sinAngle1, 0.f);
 				line.End = center + radius * glm::vec3(cosAngle2, sinAngle2, 0.f);
-				line.Color = color;
+				line.StartColor = color;
+				line.EndColor = color;
 
 				auto& line2 = buffer.emplace_back();
 				line2.Start = center + radius * glm::vec3(0.f, cosAngle1, sinAngle1);
 				line2.End = center + radius * glm::vec3(0.f, cosAngle2, sinAngle2);
-				line2.Color = color;
+				line2.StartColor = color;
+				line2.EndColor = color;
 
 				auto& line3 = buffer.emplace_back();
 				line3.Start = center + radius * glm::vec3(cos45 * sinAngle1, cosAngle1, sinAngle1 * cos45);
 				line3.End = center + radius * glm::vec3(cos45 * sinAngle2, cosAngle2, sinAngle2 * cos45);
-				line3.Color = color;
+				line3.StartColor = color;
+				line3.EndColor = color;
 
 				auto& line4 = buffer.emplace_back();
 				line4.Start = center + radius * glm::vec3(cosMinus45 * sinAngle1, cosAngle1, sinAngle1 * cos45);
 				line4.End = center + radius * glm::vec3(cosMinus45 * sinAngle2, cosAngle2, sinAngle2 * cos45);
-				line4.Color = color;
+				line4.StartColor = color;
+				line4.EndColor = color;
 			}
 		}
 
@@ -85,7 +90,8 @@ namespace Eagle
 			for (glm::length_t i = 0; i < aabb.Min.length(); ++i)
 			{
 				auto& line = buffer.emplace_back();
-				line.Color = color;
+				line.StartColor = color;
+				line.EndColor = color;
 				line.Start = aabb.Min;
 
 				line.End = aabb.Min;
@@ -95,7 +101,8 @@ namespace Eagle
 			for (glm::length_t i = 0; i < aabb.Max.length(); ++i)
 			{
 				auto& line = buffer.emplace_back();
-				line.Color = color;
+				line.StartColor = color;
+				line.EndColor = color;
 				line.Start = aabb.Max;
 
 				line.End = aabb.Max;
@@ -104,7 +111,8 @@ namespace Eagle
 
 			{
 				auto& line = buffer.emplace_back();
-				line.Color = color;
+				line.StartColor = color;
+				line.EndColor = color;
 				line.Start = aabb.Min;
 				line.Start.y = aabb.Max.y;
 
@@ -114,7 +122,8 @@ namespace Eagle
 
 			{
 				auto& line = buffer.emplace_back();
-				line.Color = color;
+				line.StartColor = color;
+				line.EndColor = color;
 				line.Start = aabb.Min;
 				line.Start.y = aabb.Max.y;
 
@@ -124,7 +133,8 @@ namespace Eagle
 
 			{
 				auto& line = buffer.emplace_back();
-				line.Color = color;
+				line.StartColor = color;
+				line.EndColor = color;
 				line.Start = aabb.Min;
 				line.Start.x = aabb.Max.x;
 
@@ -134,7 +144,8 @@ namespace Eagle
 
 			{
 				auto& line = buffer.emplace_back();
-				line.Color = color;
+				line.StartColor = color;
+				line.EndColor = color;
 				line.Start = aabb.Min;
 				line.Start.x = aabb.Max.x;
 
@@ -144,7 +155,8 @@ namespace Eagle
 
 			{
 				auto& line = buffer.emplace_back();
-				line.Color = color;
+				line.StartColor = color;
+				line.EndColor = color;
 				line.Start = aabb.Min;
 				line.Start.z = aabb.Max.z;
 
@@ -154,7 +166,8 @@ namespace Eagle
 
 			{
 				auto& line = buffer.emplace_back();
-				line.Color = color;
+				line.StartColor = color;
+				line.EndColor = color;
 				line.Start = aabb.Min;
 				line.Start.z = aabb.Max.z;
 
@@ -782,12 +795,14 @@ namespace Eagle
 						auto& outerCircleLine = m_DebugSpotLines.emplace_back();
 						outerCircleLine.Start = center + glm::rotate(quat, outerRadius * glm::vec3(cosAngle1, sinAngle1, 0.f));
 						outerCircleLine.End = center + glm::rotate(quat, outerRadius * glm::vec3(cosAngle2, sinAngle2, 0.f));
-						outerCircleLine.Color = glm::vec3(0.75, 0.75f, 0.f);
+						outerCircleLine.StartColor = glm::vec3(0.75, 0.75f, 0.f);
+						outerCircleLine.EndColor = glm::vec3(0.75, 0.75f, 0.f);
 
 						auto& toOuterLine = m_DebugSpotLines.emplace_back();
 						toOuterLine.Start = location;
 						toOuterLine.End = outerCircleLine.Start;
-						toOuterLine.Color = glm::vec3(0.75, 0.75f, 0.f);
+						toOuterLine.StartColor = glm::vec3(0.75, 0.75f, 0.f);
+						toOuterLine.EndColor = glm::vec3(0.75, 0.75f, 0.f);
 					}
 				}
 				m_SpotLightsDebugRadiiDirty = false;
@@ -853,8 +868,9 @@ namespace Eagle
 				for (uint32_t i = 0; i < debugCollisionsLinesSize; ++i)
 				{
 					auto& line = physicsLines[i];
-					// color, start, end
-					const RendererLine rendererLine{ { 0.f, 1.f, 0.f }, *(glm::vec3*)(&line.pos0), *(glm::vec3*)(&line.pos1) };
+					RendererLine rendererLine;
+					rendererLine.Start = PhysXUtils::FromPhysXVector(line.pos0);
+					rendererLine.End = PhysXUtils::FromPhysXVector(line.pos1);
 					m_DebugLinesToDraw.push_back(rendererLine);
 				}
 			}

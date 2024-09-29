@@ -23,7 +23,7 @@ namespace Eagle
 	enum class FieldType : uint32_t
 	{
 		None, Int, UnsignedInt, Float, String, Vec2, Vec3, Vec4, ClassReference,
-		Bool, Color3, Color4, Enum,
+		Bool, Color3, Color4, Enum, Entity,
 		Asset, AssetTexture2D, AssetTextureCube, AssetStaticMesh, AssetSkeletalMesh, AssetAudio, AssetSoundGroup,
 		AssetFont, AssetMaterial, AssetPhysicsMaterial, AssetEntity, AssetScene, AssetAnimation, AssetAnimationGraph,
 		AssetParticleSystem,
@@ -149,6 +149,7 @@ namespace Eagle
 			case FieldType::Color3: return 4 * 3;
 			case FieldType::Color4: return 4 * 4;
 			case FieldType::Enum: return 4;
+			case FieldType::Entity:
 			case FieldType::Asset:
 			case FieldType::AssetTexture2D:
 			case FieldType::AssetTextureCube:

@@ -173,6 +173,8 @@ namespace Eagle
             return null;
         }
 
+        public bool IsValid() { return IsValid_Native(ID); }
+
         public GUID GetID() { return ID; }
 
         public Vector3 GetForwardVector()
@@ -316,6 +318,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool HasComponent_Native(in GUID entityID, Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsValid_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void DestroyEntity_Native(in GUID entityID);

@@ -50,9 +50,9 @@ void main()
 	const float roughness = material.Roughness;
 	const float ao = material.AO;
 	
-	outAlbedo = vec4(material.Albedo * material.TintColor.rgb, 1.f);
+	outAlbedo = vec4(material.Albedo, 1.f);
 	outGeometryShadingNormals = vec4(packedGeometryNormal, packedShadingNormal);
-	outEmissive = vec4(material.Emissive * material.EmissiveIntensity, 1.0);
+	outEmissive = vec4(material.Emissive, 1.0);
 	outMaterialData = vec4(metalness, ao, roughness, 0);
 	outObjectID = i_EntityID;
 	outFlags = i_ReceivesDecals == 1u ? 1.f : 0.f;

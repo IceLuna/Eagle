@@ -46,8 +46,8 @@ namespace Eagle
 
 		for (auto& line : lines)
 		{
-			tempData.push_back({ line.Color, line.Start });
-			tempData.push_back({ line.Color, line.End });
+			tempData.push_back({ line.StartColor, line.Start });
+			tempData.push_back({ line.EndColor, line.End });
 		}
 
 		RenderManager::Submit([task = shared_from_this(), vertices = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable

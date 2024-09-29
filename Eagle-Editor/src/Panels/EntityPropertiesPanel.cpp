@@ -43,8 +43,10 @@ namespace Eagle
 			if (bRuntime)\
 				field.SetRuntimeValue(entityInstance, value);\
 			else\
+			{\
 				field.SetStoredValue(value);\
-			bEntityChanged = true;\
+				bEntityChanged = true;\
+			}\
 		}\
 		break;\
 	}
@@ -1116,8 +1118,10 @@ namespace Eagle
 										if (bRuntime)
 											field.SetRuntimeValue(entityInstance, value);
 										else
+										{
 											field.SetStoredValue(value);
-										bEntityChanged = true;
+											bEntityChanged = true;
+										}
 									}
 									break;
 								}
@@ -1129,8 +1133,10 @@ namespace Eagle
 										if (bRuntime)
 											field.SetRuntimeValue(entityInstance, value);
 										else
+										{
 											field.SetStoredValue(value);
-										bEntityChanged = true;
+											bEntityChanged = true;
+										}
 									}
 									break;
 								}
@@ -1142,8 +1148,10 @@ namespace Eagle
 										if (bRuntime)
 											field.SetRuntimeValue<std::string>(entityInstance, value);
 										else
+										{
 											field.SetStoredValue<std::string>(value);
-										bEntityChanged = true;
+											bEntityChanged = true;
+										}
 									}
 									break;
 								}
@@ -1155,8 +1163,10 @@ namespace Eagle
 										if (bRuntime)
 											field.SetRuntimeValue(entityInstance, value);
 										else
+										{
 											field.SetStoredValue(value);
-										bEntityChanged = true;
+											bEntityChanged = true;
+										}
 									}
 									break;
 								}
@@ -1168,8 +1178,10 @@ namespace Eagle
 										if (bRuntime)
 											field.SetRuntimeValue(entityInstance, value);
 										else
+										{
 											field.SetStoredValue(value);
-										bEntityChanged = true;
+											bEntityChanged = true;
+										}
 									}
 									break;
 								}
@@ -1181,8 +1193,10 @@ namespace Eagle
 										if (bRuntime)
 											field.SetRuntimeValue(entityInstance, value);
 										else
+										{
 											field.SetStoredValue(value);
-										bEntityChanged = true;
+											bEntityChanged = true;
+										}
 									}
 									break;
 								}
@@ -1194,8 +1208,10 @@ namespace Eagle
 										if (bRuntime)
 											field.SetRuntimeValue(entityInstance, value);
 										else
+										{
 											field.SetStoredValue(value);
-										bEntityChanged = true;
+											bEntityChanged = true;
+										}
 									}
 									break;
 								}
@@ -1207,8 +1223,10 @@ namespace Eagle
 										if (bRuntime)
 											field.SetRuntimeValue(entityInstance, value);
 										else
+										{
 											field.SetStoredValue(value);
-										bEntityChanged = true;
+											bEntityChanged = true;
+										}
 									}
 									break;
 								}
@@ -1220,8 +1238,10 @@ namespace Eagle
 										if (bRuntime)
 											field.SetRuntimeValue(entityInstance, value);
 										else
+										{
 											field.SetStoredValue(value);
-										bEntityChanged = true;
+											bEntityChanged = true;
+										}
 									}
 									break;
 								}
@@ -1233,8 +1253,52 @@ namespace Eagle
 										if (bRuntime)
 											field.SetRuntimeValue(entityInstance, value);
 										else
+										{
 											field.SetStoredValue(value);
-										bEntityChanged = true;
+											bEntityChanged = true;
+										}
+									}
+									break;
+								}
+								case FieldType::Entity:
+								{
+									const auto& scene = Scene::GetCurrentScene();
+									GUID value = bRuntime ? field.GetRuntimeValue<GUID>(entityInstance) : field.GetStoredValue<GUID>();
+									Entity entity = scene->GetEntityByGUID(value);
+									const bool bValid = entity.IsValid();
+									int currentSelection = -1;
+									int i = 0;
+
+									const auto entities = scene->GetAllEntitiesWith<IDComponent, EntitySceneNameComponent>();
+									std::vector<std::string> names;
+									std::vector<GUID> ids;
+									names.reserve(entities.size_hint());
+									ids.reserve(entities.size_hint());
+
+									for (auto& [entity, idComp, nameComp] : entities.each())
+									{
+										const auto& ID = idComp.ID;
+										const auto& name = nameComp.Name;
+										ids.emplace_back(ID);
+										names.emplace_back(name);
+
+										if (bValid && (ID == value))
+										{
+											currentSelection = i;
+										}
+										i++;
+									}
+									if (UI::ComboWithNone(field.Name.c_str(), currentSelection, names, currentSelection))
+									{
+										value = currentSelection == -1 ? GUID(0, 0) : ids[currentSelection];
+
+										if (bRuntime)
+											field.SetRuntimeValue(entityInstance, value);
+										else
+										{
+											field.SetStoredValue(value);
+											bEntityChanged = true;
+										}
 									}
 									break;
 								}

@@ -301,7 +301,13 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'HasComponent'. Entity is null");
 			return false;
 		}
+	}
 
+	bool Script::Eagle_Entity_IsValid(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		return entity.IsValid();
 	}
 
 	MonoString* Script::Eagle_Entity_GetEntityName(GUID entityID)
@@ -5842,9 +5848,19 @@ namespace Eagle
 		return bHit;
 	}
 
-	void Script::Eagle_Scene_DrawLine(const glm::vec3* color, const glm::vec3* start, const glm::vec3* end)
+	void Script::Eagle_Scene_DrawLine(const glm::vec3* startColor, const glm::vec3* endColor, const glm::vec3* start, const glm::vec3* end)
 	{
-		Scene::GetCurrentScene()->DrawDebugLine({ *color, *start, *end });
+		Scene::GetCurrentScene()->DrawDebugLine({ *startColor, *endColor, *start, *end });
+	}
+
+	void Script::Eagle_Scene_SetGravity(const glm::vec3* gravity)
+	{
+		Scene::GetCurrentScene()->SetGravity(*gravity);
+	}
+
+	void Script::Eagle_Scene_GetGravity(glm::vec3* gravity)
+	{
+		*gravity = Scene::GetCurrentScene()->GetGravity();
 	}
 
 	//-------------- Log --------------

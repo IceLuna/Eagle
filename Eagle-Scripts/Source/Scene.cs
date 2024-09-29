@@ -22,7 +22,8 @@ namespace Eagle
 
     public struct RendererLine
     {
-        public Color3 Color;
+        public Color3 StartColor;
+        public Color3 EndColor;
         public Vector3 StartPos;
         public Vector3 EndPos;
     }
@@ -42,7 +43,18 @@ namespace Eagle
 
         public static void DrawLine(RendererLine line)
         {
-            DrawLine_Native(ref line.Color, ref line.StartPos, ref line.EndPos);
+            DrawLine_Native(ref line.StartColor, ref line.EndColor, ref line.StartPos, ref line.EndPos);
+        }
+
+        public static void SetGravity(ref Vector3 gravity)
+        {
+            SetGravity_Native(ref gravity);
+        }
+
+        public static Vector3 GetGravity()
+        {
+            GetGravity_Native(out Vector3 result);
+            return result;
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -52,6 +64,12 @@ namespace Eagle
         private static extern bool Raycast_Native(ref Vector3 origin, ref Vector3 dir, float maxDistance, out GUID hitEntity, out Vector3 position, out Vector3 normal, out float distance);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void DrawLine_Native(ref Color3 color, ref Vector3 start, ref Vector3 end);
+        private static extern void DrawLine_Native(ref Color3 startColor, ref Color3 endColor, ref Vector3 start, ref Vector3 end);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetGravity_Native(ref Vector3 gravity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetGravity_Native(out Vector3 gravity);
     }
 }

@@ -19,6 +19,7 @@ namespace Eagle::Script
 	void Eagle_Entity_DestroyEntity(GUID entityID);
 	void Eagle_Entity_AddComponent(GUID entityID, void* type);
 	bool Eagle_Entity_HasComponent(GUID entityID, void* type);
+	bool Eagle_Entity_IsValid(GUID entityID);
 	MonoString* Eagle_Entity_GetEntityName(GUID entityID);
 	void Eagle_Entity_GetForwardVector(GUID entityID, glm::vec3* result);
 	void Eagle_Entity_GetRightVector(GUID entityID, glm::vec3* result);
@@ -485,7 +486,9 @@ namespace Eagle::Script
 	// Scene
 	void Eagle_Scene_OpenScene(GUID assetID);
 	bool Eagle_Scene_Raycast(const glm::vec3* origin, const glm::vec3* dir, float maxDistance, GUID* outHitEntity, glm::vec3* outPosition, glm::vec3* outNormal, float* outDistance);
-	void Eagle_Scene_DrawLine(const glm::vec3* color, const glm::vec3* start, const glm::vec3* end);
+	void Eagle_Scene_DrawLine(const glm::vec3* startColor, const glm::vec3* endColor, const glm::vec3* start, const glm::vec3* end);
+	void Eagle_Scene_SetGravity(const glm::vec3* gravity);
+	void Eagle_Scene_GetGravity(glm::vec3* gravity);
 
 	// Log
 	void Eagle_Log_Trace(MonoString* message);

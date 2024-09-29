@@ -361,7 +361,7 @@ vec3 Lighting(ShaderMaterial material, vec2 uv)
         ambient += color * ao * g_IBLIntensity;
     }
 
-    const vec3 emissive = material.Emissive * material.EmissiveIntensity;
+    const vec3 emissive = material.Emissive;
     vec3 resultColor = ambient + Lo + emissive;
 #ifdef EG_ENABLE_CSM_VISUALIZATION
     resultColor += cascadeVisualizationColor;

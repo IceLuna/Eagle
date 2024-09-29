@@ -75,11 +75,9 @@ void main()
 {
     vec2 uv = i_TexCoords;
     const ShaderMaterial material = FetchMaterial(i_MaterialIndex, uv);
-    float opacity = material.Opacity;
-    opacity = clamp(opacity * material.TintColor.a, 0.f, 1.f);
 
-    vec4 color = vec4(vec3(0.f), opacity);
-    if (!IS_ZERO(opacity))
+    vec4 color = vec4(vec3(0.f), material.Opacity);
+    if (!IS_ZERO(material.Opacity))
         color.rgb = Lighting(material, uv);
 
 #ifdef EG_FOG
@@ -337,7 +335,7 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
         ambient += color * ao * g_IBLIntensity;
     }
 
-    const vec3 emissive = material.Emissive * material.EmissiveIntensity;
+    const vec3 emissive = material.Emissive;
     vec3 resultColor = ambient + Lo + emissive;
 #ifdef EG_ENABLE_CSM_VISUALIZATION
     resultColor += cascadeVisualizationColor;

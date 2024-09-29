@@ -44,8 +44,6 @@ ShaderMaterial FetchMaterial(uint index, inout vec2 uv)
 	ShaderMaterial result;
 	CPUMaterial material = g_Materials[index];
 
-	result.TintColor = material.TintColor;
-	result.EmissiveIntensity = material.EmissiveIntensity;
 	result.TilingFactor = material.TilingFactor;
 	uv *= material.TilingFactor;
 
@@ -105,6 +103,11 @@ ShaderMaterial FetchMaterial(uint index, inout vec2 uv)
 		result.OpacityMask = bRawValue ? g_MaterialRawValues[nonuniformEXT(opacityMaskIndex)] : ReadTexture(opacityMaskIndex, uv).x;
 	else
 		result.OpacityMask = 1.f;
+
+	result.Albedo *= material.TintColor.rgb;
+	result.Emissive *= material.EmissiveIntensity;
+	result.Opacity = clamp(result.Opacity * material.TintColor.a, 0.f, 1.f);
+	result.OpacityMask = clamp(result.OpacityMask * material.TintColor.a, 0.f, 1.f);
 
 	return result;
 }

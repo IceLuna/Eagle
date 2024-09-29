@@ -62,8 +62,8 @@ void main()
 	const float roughness = material.Roughness;
 	const float ao = material.AO;
 
-	outAlbedo = vec4(material.Albedo * material.TintColor.rgb, material.Opacity);
-	outEmissive = vec4(material.Emissive * material.EmissiveIntensity, material.Opacity);
+	outAlbedo = vec4(material.Albedo, material.Opacity);
+	outEmissive = vec4(material.Emissive, material.Opacity);
 	outMaterialData = vec4(metalness, ao, roughness, material.Opacity);
 	outObjectID = int(i_EntityID);
 }
