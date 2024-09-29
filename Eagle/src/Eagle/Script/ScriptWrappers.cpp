@@ -5476,12 +5476,14 @@ namespace Eagle
 		return scene->IsSkyboxEnabled();
 	}
 
-	void Script::Eagle_Renderer_SetVolumetricLightsSettings(uint32_t samples, float maxScatteringDist, float fogSpeed, bool bFogEnable, bool bEnable)
+	void Script::Eagle_Renderer_SetVolumetricLightsSettings(const glm::vec3* albedo, float anisotropy, uint32_t samples, float maxScatteringDist, float fogSpeed, bool bFogEnable, bool bEnable)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		auto& sceneRenderer = scene->GetSceneRenderer();
 		auto settings = sceneRenderer->GetOptions();
 
+		settings.VolumetricSettings.Albedo = *albedo;
+		settings.VolumetricSettings.Anisotropy = anisotropy;
 		settings.VolumetricSettings.Samples = samples;
 		settings.VolumetricSettings.MaxScatteringDistance = maxScatteringDist;
 		settings.VolumetricSettings.FogSpeed = fogSpeed;
@@ -5490,12 +5492,14 @@ namespace Eagle
 		sceneRenderer->SetOptions(settings);
 	}
 
-	void Script::Eagle_Renderer_GetVolumetricLightsSettings(uint32_t* outSamples, float* outMaxScatteringDist, float* fogSpeed, bool* bFogEnable, bool* bEnable)
+	void Script::Eagle_Renderer_GetVolumetricLightsSettings(glm::vec3* albedo, float* anisotropy, uint32_t* outSamples, float* outMaxScatteringDist, float* fogSpeed, bool* bFogEnable, bool* bEnable)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		const auto& sceneRenderer = scene->GetSceneRenderer();
 		const auto& settings = sceneRenderer->GetOptions().VolumetricSettings;
 
+		*albedo = settings.Albedo;
+		*anisotropy = settings.Anisotropy;
 		*outSamples = settings.Samples;
 		*outMaxScatteringDist = settings.MaxScatteringDistance;
 		*fogSpeed = settings.FogSpeed;

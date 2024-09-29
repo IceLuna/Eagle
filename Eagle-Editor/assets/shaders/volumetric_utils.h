@@ -51,20 +51,19 @@ float SampleFog(vec3 pos)
 	return (Noise3D(pos * 2.2 / 8, 0.2f, g_Time) * 0.75) * 5.f; // 5 is an arbitrary number so that overall intensity doesn't drop
 }
 
-float PhaseFunction(float cosAngle)
+float PhaseFunction(float anisotropy, float cosAngle)
 {
-	const float anisotropy = 0.f;
 	const float anisotropy2 = anisotropy * anisotropy;
 	const float nom = 1.f - anisotropy2;
 	const float denom = 4.f * EG_PI * pow(1 + anisotropy2 - 2 * anisotropy * cosAngle, 1.5f);
 	return nom / denom;
 }
 
-const mat4 DITHER_PATTERN = mat4(
-	vec4(0.0f, 0.5f, 0.125f, 0.625f),
-	vec4(0.75f, 0.22f, 0.875f, 0.375f),
-	vec4(0.1875f, 0.6875f, 0.0625f, 0.5625f),
-	vec4(0.9375f, 0.4375f, 0.8125f, 0.3125f)
+const float DITHER_PATTERN[16] = float[](
+	0.0f, 0.5f, 0.125f, 0.625f,
+	0.75f, 0.22f, 0.875f, 0.375f,
+	0.1875f, 0.6875f, 0.0625f, 0.5625f,
+	0.9375f, 0.4375f, 0.8125f, 0.3125f
 );
 
 float DirLight_ShadowCalculation_Volumetric(sampler2D depthTexture, vec3 fragPosLightSpace, float NdotL, int cascade)
@@ -99,7 +98,7 @@ float PointLight_ShadowCalculation_Volumetric(samplerCube depthTexture, vec3 lig
 	const vec3 normalBias = geometryNormal * bias;
 	lightToFrag += normalBias;
 	
-	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
+	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_FAR, EG_POINT_LIGHT_NEAR);
 	float shadow = 0.f;
 	
 	float closestDepth = texture(depthTexture, lightToFrag).r;
@@ -128,7 +127,7 @@ float SpotLight_ShadowCalculation_Volumetric(sampler2D depthTexture, vec3 fragPo
 vec3 DirLight_ColoredShadowCalculation_Volumetric(sampler2D depthTexture, sampler2D coloredDepthTexture, vec3 fragPosLightSpace, float NdotL, int cascade)
 {
 	const float texelSize = 1.f / textureSize(depthTexture, 0).x;
-	const float baseBias = texelSize * 0.1f;
+	const float baseBias = texelSize * (cascade == 0 ? 0.25f : 0.5f);
 	float k = 0.f;
 	switch (cascade)
 	{
@@ -153,7 +152,7 @@ vec3 PointLight_ColoredShadowCalculation_Volumetric(samplerCube depthTexture, sa
 	const float bias = texelSize * (1.f - NdotL) * 4.f;
 	lightToFrag += bias;
 	
-	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
+	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_FAR, EG_POINT_LIGHT_NEAR);
 	const float depth = texture(coloredDepthTexture, lightToFrag).r;
 	if (currentDepth > depth)
 		return vec3(1);
@@ -181,7 +180,7 @@ vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2D depthTextures
 	sampler2D coloredTextures[EG_CASCADES_COUNT], sampler2D coloredDepthTextures[EG_CASCADES_COUNT],
 #endif
 	vec3 worldPos, vec3 cameraPos,
-	vec3 incoming, vec3 normal, mat4 cameraView, uint scatteringSamples, float scatteringZFar, float maxShadowDistance)
+	vec3 incoming, vec3 normal, mat4 cameraView, uint scatteringSamples, float scatteringZFar, float maxShadowDistance2)
 {
 	const bool bVolumetricLight = light.bVolumetricLight != 0;
 	if (!bVolumetricLight)
@@ -189,18 +188,16 @@ vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2D depthTextures
 
 	vec3 camToFrag = worldPos - cameraPos;
 	float camToFragLen = length(camToFrag);
-	const vec3 camToFragNorm = camToFrag / camToFragLen;
+	const vec3 camDir = camToFrag / camToFragLen;
 	if (camToFragLen > scatteringZFar)
 	{
-		camToFrag = camToFragNorm * scatteringZFar;
+		camToFrag = camDir * scatteringZFar;
 		camToFragLen = scatteringZFar;
 	}
-	const vec3 deltaStep = camToFrag / (scatteringSamples + 1);
-	const vec3 fragToCamNorm = -camToFragNorm;
-	vec3 currentPos = cameraPos;
-	
-	const float rand = DITHER_PATTERN[int(EG_PIXEL_COORDS.x) % 4][int(EG_PIXEL_COORDS.y) % 4];
-	currentPos += deltaStep * rand;
+
+	const float deltaStep = (camToFragLen) / float(scatteringSamples);
+	float currentT = deltaStep * 0.5f;
+	float tempT = currentT;
 	
 	const float NdotL = clamp(dot(incoming, normal), EG_FLT_SMALL, 1.0);
 	const float k = 100.f;
@@ -211,15 +208,19 @@ vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2D depthTextures
 #endif
 
 	bool bCastsShadows = light.bCastsShadows != 0;
-	for (uint i = 0; i < scatteringSamples; ++i)
+	for (uint i = 0; i < scatteringSamples && (currentT < g_Far); ++i)
 	{
+		vec3 currentPos = cameraPos + camDir * currentT;
+
 #ifdef EG_TRANSLUCENT_SHADOWS
 		vec3 coloredVisibility = vec3(1.f);
 #endif
 		float visibility = bCastsShadows ? 0.f : 1.f;
 		if (bCastsShadows)
 		{
-			if (length(currentPos - cameraPos) < maxShadowDistance)
+			const vec3 incoming = currentPos - cameraPos;
+			const float distance2 = dot(incoming, incoming);
+			if (distance2 < maxShadowDistance2)
 			{
 				const float cascadeDepth = abs((cameraView * vec4(currentPos, 1.0)).z);
 				int layer = -1;
@@ -253,15 +254,49 @@ vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2D depthTextures
 #endif
 
 #ifdef EG_TRANSLUCENT_SHADOWS
-		result += fog * coloredVisibility * visibility * PhaseFunction(dot(incoming, fragToCamNorm));
+		result += fog * coloredVisibility * visibility * PhaseFunction(g_FogAnisotropy, dot(incoming, camDir));
 #else
-		result += fog * visibility * PhaseFunction(dot(incoming, fragToCamNorm));
+		result += fog * visibility * PhaseFunction(g_FogAnisotropy, dot(incoming, camDir));
 #endif
-		
-		currentPos += deltaStep;
+
+		tempT += deltaStep;
+
+		const float rand = DITHER_PATTERN[i % 16];
+		const float jitter = (rand - 0.5) * deltaStep;
+		currentT = tempT + jitter;
 	}
 
 	return result / scatteringSamples * light.LightColor * light.VolumetricFogIntensity;
+}
+
+bool SphereIntersect(vec3 ro, vec3 rd, vec3 sphere, float radius2, out float t0, out float t1)
+{
+	vec3 tmp = ro - sphere;
+
+	float b = dot(rd, tmp);
+	float c = dot(tmp, tmp) - radius2;
+
+	float disc = b * b - c;
+
+	if (disc < 0.0)
+	{
+		return false;
+	}
+
+	disc = sqrt(disc);
+
+	t0 = -b - disc;
+	t1 = -b + disc;
+
+	t1 = min(t1, g_Far);
+	t0 = clamp(t0, 0.0, t1);
+
+	if (t0 == t1)
+	{
+		return false;
+	}
+
+	return true;
 }
 
 vec3 PointLight_Volumetric(in PointLight light, samplerCube shadowMap,
@@ -277,18 +312,28 @@ vec3 PointLight_Volumetric(in PointLight light, samplerCube shadowMap,
 
 	vec3 camToFrag = worldPos - cameraPos;
 	float camToFragLen = length(camToFrag);
-	const vec3 camToFragNorm = camToFrag / camToFragLen;
-	if (camToFragLen > scatteringZFar)
+	const vec3 camDir = camToFrag / camToFragLen;
+	const float radius2 = abs(light.Radius2);
+	float t0, t1;
+
+	if (!SphereIntersect(
+		cameraPos,
+		camDir,
+		light.Position,
+		radius2,
+		t0, t1))
 	{
-		camToFrag = camToFragNorm * scatteringZFar;
-		camToFragLen = scatteringZFar;
+		return vec3(0);
 	}
-	const vec3 deltaStep = camToFrag / (scatteringSamples + 1);
-	const vec3 fragToCamNorm = -camToFragNorm;
-	vec3 currentPos = cameraPos;
-	
-	const float rand = DITHER_PATTERN[int(EG_PIXEL_COORDS.x) % 4][int(EG_PIXEL_COORDS.y) % 4];
-	currentPos += deltaStep * rand;
+
+	if (t1 < g_Near || t0 > g_Far || t0 > scatteringZFar)
+	{
+		return vec3(0);
+	}
+
+	const float deltaStep = (t1 - t0) / float(scatteringSamples);
+	float currentT = (t0 + deltaStep * 0.5f);
+	float tempT = currentT;
 
 #ifdef EG_TRANSLUCENT_SHADOWS
 	vec3 result = vec3(0.0);
@@ -296,17 +341,20 @@ vec3 PointLight_Volumetric(in PointLight light, samplerCube shadowMap,
 	float result = 0.f;
 #endif
 
-	for (uint i = 0; i < scatteringSamples; ++i)
+	for (uint i = 0; i < scatteringSamples && (currentT < g_Far); ++i)
 	{
+		vec3 currentPos = cameraPos + camDir * currentT;
+
 		const vec3 incoming = light.Position - currentPos;
 		const float distance2 = dot(incoming, incoming);
-		if (distance2 < abs(light.Radius2))
+		if (distance2 < radius2)
 		{
 #ifdef EG_TRANSLUCENT_SHADOWS
 			vec3 coloredVisibility = vec3(1.f);
 #endif
 			float visibility = bCastsShadow ? 0.f : 1.f;
-			const float attenuation = 1.f / distance2;
+			const float attenuation = 1.f / distance2
+				* EG_SQUARE(clamp(1.0 - EG_SQUARE(distance2 * 1.0f / radius2), 0.f, 1.f));
 			
 			if (bCastsShadow && NOT_ZERO(attenuation))
 			{
@@ -325,16 +373,91 @@ vec3 PointLight_Volumetric(in PointLight light, samplerCube shadowMap,
 #endif
 
 #ifdef EG_TRANSLUCENT_SHADOWS
-			result += fog * coloredVisibility * visibility * attenuation * PhaseFunction(dot(normalize(incoming), fragToCamNorm));
+			result += fog * coloredVisibility * visibility * attenuation * PhaseFunction(g_FogAnisotropy, dot(normalize(incoming), camDir));
 #else
-			result += fog * visibility * attenuation * PhaseFunction(dot(normalize(incoming), fragToCamNorm));
+			result += fog * visibility * attenuation * PhaseFunction(g_FogAnisotropy, dot(normalize(incoming), camDir));
 #endif
 		}
 
-		currentPos += deltaStep;
+		tempT += deltaStep;
+
+		const float rand = DITHER_PATTERN[i % 16];
+		const float jitter = (rand - 0.5) * deltaStep;
+		currentT = tempT + jitter;
 	}
 
 	return result / scatteringSamples * light.LightColor * abs(light.VolumetricFogIntensity);
+}
+
+// Cone-ray intersection routine
+// Based on: http://lousodrome.net/blog/light/2017/01/03/intersection-of-a-ray-and-a-cone/
+bool ConeIntersect(vec3 ro, vec3 rd, vec3 conePoint, vec3 axis, float h, float cosTheta, out float t0, out float t1)
+{
+	// looking for intersect ray and infinity cone
+	vec3 co = ro - conePoint;
+
+	float rdAxis = dot(rd, axis);
+	float coAxis = dot(co, axis);
+
+	float a = rdAxis * rdAxis - cosTheta * cosTheta;
+	float b = rdAxis * coAxis - dot(rd, co) * cosTheta * cosTheta;
+	float c = coAxis * coAxis - dot(co, co) * cosTheta * cosTheta;
+
+	bool bT0Valid, bT1Valid;
+
+	if (a == 0)
+	{
+		t0 = -c / b;
+		bT0Valid = true;
+		bT1Valid = false;
+	}
+	else
+	{
+		float det = b * b - a * c;
+		if (det < 0.0)
+		{
+			return false;
+		}
+
+		det = sqrt(det);
+		float sol0 = (-b - det) / a;
+		float sol1 = (-b + det) / a;
+		t0 = min(sol0, sol1);
+		t1 = max(sol0, sol1);
+
+		// check if points are in limited cone
+		float h0 = dot(ro + t0 * rd - conePoint, axis);
+		float h1 = dot(ro + t1 * rd - conePoint, axis);
+
+		bT0Valid = (h0 >= 0.0) && (h0 <= h);
+		bT1Valid = (h1 >= 0.0) && (h1 <= h);
+	}
+
+	if (bT0Valid && bT1Valid)
+	{
+		return true;
+	}
+
+	if (!bT0Valid && !bT1Valid)
+	{
+		return false;
+	}
+
+	// looking for intersect ray and cone base plane
+	if (rdAxis == 0)
+	{
+		return false;
+	}
+
+	float t2 = (h - coAxis) / rdAxis;
+	float tv = bT0Valid ? t0 : t1;
+	t0 = min(tv, t2);
+	t1 = max(tv, t2);
+	t0 = clamp(t0, 0.0, t1);
+
+	if (t0 == t1)
+		return false;
+	return true;
 }
 
 vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap,
@@ -350,18 +473,29 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap,
 
 	vec3 camToFrag = worldPos - cameraPos;
 	float camToFragLen = length(camToFrag);
-	const vec3 camToFragNorm = camToFrag / camToFragLen;
-	if (camToFragLen > scatteringZFar)
+	const vec3 camDir = camToFrag / camToFragLen;
+	float t0, t1;
+
+	if (!ConeIntersect(
+		cameraPos,
+		camDir,
+		light.Position,
+		light.Direction,
+		sqrt(light.Distance2),
+		cos(light.OuterCutOffRadians),
+		t0, t1) || t1 < 0.f)
 	{
-		camToFrag = camToFragNorm * scatteringZFar;
-		camToFragLen = scatteringZFar;
+		return vec3(0);
 	}
-	const vec3 deltaStep = camToFrag / (scatteringSamples + 1);
-	const vec3 fragToCamNorm = -camToFragNorm;
-	vec3 currentPos = cameraPos;
-	
-	const float rand = DITHER_PATTERN[int(EG_PIXEL_COORDS.x) % 4][int(EG_PIXEL_COORDS.y) % 4];
-	currentPos += deltaStep * rand;
+
+	if (t1 < g_Near || t0 > g_Far || t0 > scatteringZFar)
+	{
+		return vec3(0);
+	}
+
+	const float deltaStep = (t1 - t0) / float(scatteringSamples);
+	float currentT = (t0 + deltaStep * 0.5f);
+	float tempT = currentT;
 
 #ifdef EG_TRANSLUCENT_SHADOWS
 	vec3 result = vec3(0.0);
@@ -376,14 +510,17 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap,
 	const float epsilon = innerCutOffCos - outerCutOffCos;
 	const vec3 normSpotDir = normalize(-light.Direction);
 	
-	for (uint i = 0; i < scatteringSamples; ++i)
+	for (uint i = 0; (i < scatteringSamples) && (currentT < g_Far); ++i)
 	{
+		vec3 currentPos = cameraPos + camDir * currentT;
+
 		const vec3 incoming = light.Position - currentPos;
 		const float distance2 = dot(incoming, incoming);
-		if (distance2 < light.Distance2)
-		{			
-			float attenuation = 1.f / distance2;
-			const vec3 normIncoming = normalize(incoming);
+		const float incomingLen = sqrt(distance2);
+		{
+			float attenuation = 1.f / distance2
+				* EG_SQUARE(clamp(1.0 - EG_SQUARE(distance2 * 1.0f / light.Distance2), 0.f, 1.f));
+			const vec3 normIncoming = incoming / incomingLen;
 			const float theta = clamp(dot(normIncoming, normSpotDir), EG_FLT_SMALL, 1.0);
 			const float cutoffIntensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
 			attenuation *= cutoffIntensity;
@@ -415,13 +552,17 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap,
 #endif
 
 #ifdef EG_TRANSLUCENT_SHADOWS
-			result += fog * coloredShadow * visibility * attenuation * PhaseFunction(dot(normIncoming, fragToCamNorm));
+			result += fog * coloredShadow * visibility * attenuation * PhaseFunction(g_FogAnisotropy, dot(normIncoming, camDir));
 #else
-			result += fog * visibility * attenuation * PhaseFunction(dot(normIncoming, fragToCamNorm));
+			result += fog * visibility * attenuation * PhaseFunction(g_FogAnisotropy, dot(normIncoming, camDir));
 #endif
 		}
 
-		currentPos += deltaStep;
+		tempT += deltaStep;
+
+		const float rand = DITHER_PATTERN[i % 16];
+		const float jitter = (rand - 0.5) * deltaStep;
+		currentT = tempT + jitter;
 	}
 
 	return result / scatteringSamples * light.LightColor * light.VolumetricFogIntensity;

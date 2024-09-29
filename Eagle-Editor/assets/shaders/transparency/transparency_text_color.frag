@@ -190,13 +190,15 @@ vec3 Lighting(ShaderMaterial material, vec2 uv)
         const vec3 incoming = pointLight.Position - worldPos;
         const float distance2 = dot(incoming, incoming);
         const bool bCastsShadows = (floatBitsToUint(pointLight.Radius2) & 0x80000000) != 0; // TODO: replace with `pointLight.Radius2 < 0.0`
-        if (distance2 > abs(pointLight.Radius2))
+        const float radius2 = abs(pointLight.Radius2);
+        if (distance2 > radius2)
         {
             if (bCastsShadows)
                 plShadowMapIndex++;
             continue;
         }
-        const float attenuation = 1.f / distance2;
+        const float attenuation = 1.f / distance2
+                    * EG_SQUARE(clamp(1.0 - EG_SQUARE(distance2 * 1.0f / radius2), 0.f, 1.f));
 
         const vec3 normIncoming = normalize(incoming);
         float shadow = 1.f;
@@ -232,7 +234,8 @@ vec3 Lighting(ShaderMaterial material, vec2 uv)
             continue;
         }
 
-        float attenuation = 1.f / distance2;
+        float attenuation = 1.f / distance2
+                    * EG_SQUARE(clamp(1.0 - EG_SQUARE(distance2 * 1.0f / spotLight.Distance2), 0.f, 1.f));
 
         const vec3 normIncoming = normalize(incoming);
 

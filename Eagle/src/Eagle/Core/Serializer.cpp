@@ -1939,9 +1939,11 @@ namespace Eagle
 
 		out << YAML::Key << "Volumetric Light Settings";
 		out << YAML::BeginMap;
+		out << YAML::Key << "Albedo" << YAML::Value << volumetricSettings.Albedo;
 		out << YAML::Key << "Samples" << YAML::Value << volumetricSettings.Samples;
 		out << YAML::Key << "MaxScatteringDistance" << YAML::Value << volumetricSettings.MaxScatteringDistance;
 		out << YAML::Key << "FogSpeed" << YAML::Value << volumetricSettings.FogSpeed;
+		out << YAML::Key << "Anisotropy" << YAML::Value << volumetricSettings.Anisotropy;
 		out << YAML::Key << "bFogEnable" << YAML::Value << volumetricSettings.bFogEnable;
 		out << YAML::Key << "bEnable" << YAML::Value << volumetricSettings.bEnable;
 		out << YAML::EndMap; // Volumetric Light Settings
@@ -2156,10 +2158,14 @@ namespace Eagle
 
 		if (auto volumetricSettingsNode = data["Volumetric Light Settings"])
 		{
+			if (auto node = volumetricSettingsNode["Albedo"])
+				settings.VolumetricSettings.Albedo = node.as<glm::vec3>();
 			settings.VolumetricSettings.Samples = volumetricSettingsNode["Samples"].as<uint32_t>();
 			settings.VolumetricSettings.MaxScatteringDistance = volumetricSettingsNode["MaxScatteringDistance"].as<float>();
 			if (auto node = volumetricSettingsNode["FogSpeed"])
 				settings.VolumetricSettings.FogSpeed = node.as<float>();
+			if (auto node = volumetricSettingsNode["Anisotropy"])
+				settings.VolumetricSettings.Anisotropy = node.as<float>();
 			settings.VolumetricSettings.bFogEnable = volumetricSettingsNode["bFogEnable"].as<bool>();
 			settings.VolumetricSettings.bEnable = volumetricSettingsNode["bEnable"].as<bool>();
 		}

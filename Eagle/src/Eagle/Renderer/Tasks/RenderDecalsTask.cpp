@@ -122,7 +122,7 @@ namespace Eagle
 		m_Pipeline->SetImageSampler(gbuffer.Flags, Sampler::PointSampler, 3, 1);
 
 		const glm::mat4& vp = m_Renderer.GetViewProjection();
-		const glm::mat4 invVP = glm::inverse(vp);
+		const glm::mat4& invVP = m_Renderer.GetInverseViewProjection();
 		const uint32_t instanceCount = (uint32_t)m_Decals.size();
 
 		cmd->TransitionLayout(depth, oldLayout, ImageReadAccess::PixelShaderRead);

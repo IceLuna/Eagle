@@ -444,8 +444,8 @@ namespace Eagle::Script
 	void Eagle_Renderer_SetSkySettings(const glm::vec3* sunPos, const glm::vec3* cloudsColor, float skyIntensity, float cloudsIntensity, float scattering, float cirrus, float cumulus, uint32_t cumulusLayers, bool bEnableCirrusClouds, bool bEnableCumulusClouds);
 	void Eagle_Renderer_SetUseSkyAsBackground(bool value);
 	bool Eagle_Renderer_GetUseSkyAsBackground();
-	void Eagle_Renderer_SetVolumetricLightsSettings(uint32_t samples, float maxScatteringDist, float fogSpeed, bool bFogEnable, bool bEnable);
-	void Eagle_Renderer_GetVolumetricLightsSettings(uint32_t* outSamples, float* outMaxScatteringDist, float* fogSpeed, bool* bFogEnable, bool* bEnable);
+	void Eagle_Renderer_SetVolumetricLightsSettings(const glm::vec3* albedo, float anisotropy, uint32_t samples, float maxScatteringDist, float fogSpeed, bool bFogEnable, bool bEnable);
+	void Eagle_Renderer_GetVolumetricLightsSettings(glm::vec3* albedo, float* anisotropy, uint32_t* outSamples, float* outMaxScatteringDist, float* fogSpeed, bool* bFogEnable, bool* bEnable);
 	MonoArray* Eagle_Renderer_GetShadowMapsSettings(uint32_t* outPointLightSize, uint32_t* outSpotLightSize);
 	void Eagle_Renderer_GetDepthOfFieldSettings(glm::vec2* apertureShape, float* apertureSize, float* focalLength, float* COCScale, float* maxCOC);
 	void Eagle_Renderer_GetMotionBlurSettings(bool* bEnabled, uint32_t* numSamples, float* strength);

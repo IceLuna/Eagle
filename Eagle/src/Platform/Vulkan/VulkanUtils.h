@@ -143,6 +143,26 @@ namespace Eagle
 		}
 	}
 
+	inline VkBlendOp GetVulkanBlendOp(BlendOperation op)
+	{
+		switch (op)
+		{
+		case BlendOperation::Add:
+			return VK_BLEND_OP_ADD;
+		case BlendOperation::Substract:
+			return VK_BLEND_OP_SUBTRACT;
+		case BlendOperation::ReverseSubstract:
+			return VK_BLEND_OP_REVERSE_SUBTRACT;
+		case BlendOperation::Min:
+			return VK_BLEND_OP_MIN;
+		case BlendOperation::Max:
+			return VK_BLEND_OP_MAX;
+		default:
+			EG_CORE_ASSERT(!"Unknown op");
+			return VK_BLEND_OP_ADD;
+		}
+	}
+
 	inline VkImageUsageFlags ImageUsageToVulkan(ImageUsage usage)
 	{
 		VkImageUsageFlags res = 0;

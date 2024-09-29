@@ -211,8 +211,8 @@ namespace Eagle
 
 		const Ref<Buffer>& GetFogDataBuffer() const { return m_FogTask->GetFogDataBuffer(); }
 
-		// Contains View Matrix
-		const Ref<Buffer>& GetCameraBuffer() const { return m_CameraViewDataBuffer; }
+		// Contains View Matrix, InvVP
+		const Ref<Buffer>& GetCameraBuffer() const { return m_CameraDataBuffer; }
 		const Ref<Image>& GetSMDistribution() const { return m_PBRPassTask->GetSMDistribution(); }
 
 		const Ref<Image>& GetSSAOResult() const { return m_SSAOTask->GetResult(); }
@@ -230,6 +230,7 @@ namespace Eagle
 		const glm::mat4& GetViewMatrix() const { return m_View; }
 		const glm::mat4& GetProjectionMatrix() const { return m_Projection; }
 		const glm::mat4& GetViewProjection() const { return m_ViewProjection; }
+		const glm::mat4& GetInverseViewProjection() const { return m_InvViewProjection; }
 		const glm::vec3 GetViewPosition() const { return m_ViewPos; }
 		const glm::vec3 GetViewDirection() const { return m_ViewDir; }
 		float GetPhotoLinearScale() const { return m_PhotoLinearScale; }
@@ -304,7 +305,7 @@ namespace Eagle
 		Ref<RendererTask> m_ScreenSpaceReflectionsTask;
 		
 		Ref<Buffer> m_Jitter;
-		Ref<Buffer> m_CameraViewDataBuffer;
+		Ref<Buffer> m_CameraDataBuffer;
 
 		GBuffer m_GBuffer;
 		Ref<Image> m_FinalImage;
@@ -319,6 +320,7 @@ namespace Eagle
 		glm::mat4 m_View = glm::mat4(1.f);
 		glm::mat4 m_Projection = glm::mat4(1.f);
 		glm::mat4 m_ViewProjection = glm::mat4(1.f);
+		glm::mat4 m_InvViewProjection = glm::mat4(1.f);
 		glm::vec3 m_ViewPos = glm::vec3(0.f);
 		glm::vec3 m_ViewDir = glm::vec3(0.f);
 

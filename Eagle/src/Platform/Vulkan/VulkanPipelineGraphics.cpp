@@ -226,8 +226,8 @@ namespace Eagle
 			colorBlendAttachment.blendEnable = m_State.ColorAttachments[i].bBlendEnabled;
 
 			const BlendState& blendState = m_State.ColorAttachments[i].BlendingState;
-			colorBlendAttachment.colorBlendOp = (VkBlendOp)blendState.BlendOp;
-			colorBlendAttachment.alphaBlendOp = (VkBlendOp)blendState.BlendOpAlpha;
+			colorBlendAttachment.colorBlendOp = GetVulkanBlendOp(blendState.BlendOp);
+			colorBlendAttachment.alphaBlendOp = GetVulkanBlendOp(blendState.BlendOpAlpha);
 			colorBlendAttachment.srcColorBlendFactor = (VkBlendFactor)blendState.BlendSrc;
 			colorBlendAttachment.dstColorBlendFactor = (VkBlendFactor)blendState.BlendDst;
 			colorBlendAttachment.srcAlphaBlendFactor = (VkBlendFactor)blendState.BlendSrcAlpha;

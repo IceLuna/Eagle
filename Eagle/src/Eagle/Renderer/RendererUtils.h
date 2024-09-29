@@ -675,15 +675,19 @@ namespace Eagle
 
     struct VolumetricLightsSettings
     {
+        glm::vec3 Albedo = glm::vec3(1.f);
         uint32_t Samples = 20;
         float MaxScatteringDistance = 250.f;
         float FogSpeed = 1.f;
+        float Anisotropy = 0.f;
         bool bFogEnable = true;
         bool bEnable = false;
 
         bool operator== (const VolumetricLightsSettings& other) const
         {
-            return Samples == other.Samples &&
+            return Albedo == other.Albedo &&
+                Anisotropy == other.Anisotropy &&
+                Samples == other.Samples &&
                 MaxScatteringDistance == other.MaxScatteringDistance &&
                 FogSpeed == other.FogSpeed &&
                 bFogEnable == other.bFogEnable &&

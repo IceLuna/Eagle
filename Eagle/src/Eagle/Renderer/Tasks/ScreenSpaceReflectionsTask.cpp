@@ -38,14 +38,14 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "SSSR. Update uniform data");
 			EG_CPU_TIMING_SCOPED("SSSR. Update uniform data");
 			
-			glm::mat4 view = m_Renderer.GetViewMatrix();
-			glm::mat4 proj = m_Renderer.GetProjectionMatrix();
+			const glm::mat4& view = m_Renderer.GetViewMatrix();
+			const glm::mat4& proj = m_Renderer.GetProjectionMatrix();
 
 			m_UniformData.View = view;
 			m_UniformData.Proj = proj;
 			m_UniformData.InvProj = glm::inverse(proj);
 			m_UniformData.InvView = glm::inverse(view);
-			m_UniformData.InvViewProj = glm::inverse(proj * view);
+			m_UniformData.InvViewProj = m_Renderer.GetInverseViewProjection();
 			m_UniformData.PrevViewProj = m_Renderer.GetPrevViewProjection();
 			m_UniformData.RoughnessThreshold = m_Renderer.GetOptions_RT().ScreenSpaceReflections.RoughnessThreshold;
 

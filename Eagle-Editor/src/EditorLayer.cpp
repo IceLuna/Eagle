@@ -1530,6 +1530,16 @@ namespace Eagle
 					bSettingsChanged = true;
 					EG_CORE_TRACE("Changed Volumetric Fog Speed to: {}", settings.FogSpeed);
 				}
+				if (UI::PropertyColor("Albedo", settings.Albedo))
+				{
+					bSettingsChanged = true;
+					EG_CORE_TRACE("Changed Volumetric Albedo to: {}", settings.Albedo);
+				}
+				if (UI::PropertyDrag("Anisotropy", settings.Anisotropy, 0.05f, -1.f, 1.f))
+				{
+					bSettingsChanged = true;
+					EG_CORE_TRACE("Changed Volumetric Anisotropy to: {}", settings.Anisotropy);
+				}
 
 				UI::EndPropertyGrid();
 				ImGui::TreePop();

@@ -28,6 +28,12 @@
 
 namespace Eagle
 {
+	struct CameraData
+	{
+		glm::mat4 View;
+		glm::mat4 InvViewProj;
+	};
+
 	template <typename TaskClass, typename Task, typename... Args>
 	static void InitOptionalTask(Ref<Task>& task, const SceneRendererSettings& settings, bool bEnabled, Args&&... args)
 	{
@@ -51,10 +57,10 @@ namespace Eagle
 
 		{
 			BufferSpecifications cameraViewDataBufferSpecs;
-			cameraViewDataBufferSpecs.Size = sizeof(glm::mat4);
+			cameraViewDataBufferSpecs.Size = sizeof(CameraData);
 			cameraViewDataBufferSpecs.Usage = BufferUsage::UniformBuffer | BufferUsage::TransferDst;
 			cameraViewDataBufferSpecs.Layout = BufferReadAccess::Uniform;
-			m_CameraViewDataBuffer = Buffer::Create(cameraViewDataBufferSpecs, "CameraViewData");
+			m_CameraDataBuffer = Buffer::Create(cameraViewDataBufferSpecs, "CameraData");
 		}
 
 		ImageSpecifications finalColorSpecs;
@@ -146,6 +152,7 @@ namespace Eagle
 			renderer->m_View = viewMat;
 			renderer->m_Projection = proj;
 			renderer->m_ViewProjection = renderer->m_Projection * renderer->m_View;
+			renderer->m_InvViewProjection = glm::inverse(renderer->m_ViewProjection);
 			renderer->m_ViewPos = viewPosition;
 			renderer->m_ViewDir = viewDirection;
 			renderer->m_CameraCascadeProjections = std::move(cascadeProjections);
@@ -163,8 +170,13 @@ namespace Eagle
 				cmd->Barrier(renderer->m_Jitter);
 			}
 
-			auto& cameraViewBuffer = renderer->m_CameraViewDataBuffer;
-			cmd->Write(cameraViewBuffer, &(renderer->m_View[0][0]), sizeof(glm::mat4), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
+			// Update camera data
+			{
+				CameraData cameraData;
+				cameraData.View = renderer->m_View;
+				cameraData.InvViewProj = renderer->m_InvViewProjection;
+				cmd->Write(renderer->m_CameraDataBuffer, &cameraData, sizeof(CameraData), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
+			}
 
 			renderer->m_LightsManagerTask->RecordCommandBuffer(cmd);
 			renderer->m_GeometryManagerTask->RecordCommandBuffer(cmd);

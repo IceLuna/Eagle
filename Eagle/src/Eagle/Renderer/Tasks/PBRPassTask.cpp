@@ -36,7 +36,6 @@ namespace Eagle
 
 		struct PushData
 		{
-			glm::mat4 ViewProjInv;
 			glm::vec3 CameraPos;
 			float MaxReflectionLOD;
 			glm::ivec2 Size;
@@ -55,7 +54,6 @@ namespace Eagle
 		const auto& options = m_Renderer.GetOptions_RT();
 		auto& gbuffer = m_Renderer.GetGBuffer();
 
-		pushData.ViewProjInv = glm::inverse(m_Renderer.GetViewProjection());
 		pushData.CameraPos = m_Renderer.GetViewPosition();
 		pushData.MaxReflectionLOD = float(ibl->GetPrefilterImage()->GetMipsCount() - 1);
 		pushData.MaxShadowDistance = m_Renderer.GetShadowMaxDistance() * m_Renderer.GetShadowMaxDistance();

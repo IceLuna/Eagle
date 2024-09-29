@@ -49,22 +49,30 @@ namespace Eagle
 
 		struct PushDataVol
 		{
-			glm::mat4 ViewProjInv;
 			glm::vec3 CameraPos;
 			float VolumetricMaxScatteringDist;
 			glm::ivec2 Size;
 			float MaxShadowDistance;
 			float Time;
+			glm::vec3 FogAlbedo;
+			float FogAnisotropy;
+			float NearPlane;
+			float FarPlane;
 			uint32_t PointLights;
 			uint32_t SpotLights;
 			uint32_t HasDirLight;
 		} pushData;
-		pushData.ViewProjInv = glm::inverse(m_Renderer.GetViewProjection());
+		static_assert(sizeof(PushDataVol) <= 128);
+
 		pushData.CameraPos = m_Renderer.GetViewPosition();
 		pushData.VolumetricMaxScatteringDist = m_VolumetricSettings.MaxScatteringDistance;
 		pushData.Size = halfSize;
 		pushData.MaxShadowDistance = m_Renderer.GetShadowMaxDistance() * m_Renderer.GetShadowMaxDistance();
 		pushData.Time = m_Time;
+		pushData.FogAlbedo = m_VolumetricSettings.Albedo;
+		pushData.FogAnisotropy = m_VolumetricSettings.Anisotropy;
+		pushData.NearPlane = m_Renderer.GetZNear();
+		pushData.FarPlane = m_Renderer.GetZFar();
 		pushData.PointLights = (uint32_t)m_Renderer.GetPointLights().size();
 		pushData.SpotLights = (uint32_t)m_Renderer.GetSpotLights().size();
 		pushData.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());

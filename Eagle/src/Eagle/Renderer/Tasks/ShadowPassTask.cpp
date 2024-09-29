@@ -2539,7 +2539,7 @@ namespace Eagle
 			const ShaderDefines vertexDefines = { {"EG_MATERIALS_REQUIRED", ""} };
 
 			PipelineGraphicsState state;
-			state.CullMode = CullMode::None;
+			state.CullMode = CullMode::Back;
 			state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_meshes.vert", ShaderType::Vertex, vertexDefines);
 
@@ -2559,11 +2559,11 @@ namespace Eagle
 			depthColorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthColorAttachment.Image = RenderManager::GetDummyImageR16();
 			depthColorAttachment.ClearOperation = ClearOperation::Clear;
-			depthColorAttachment.ClearColor = glm::vec4(1.f);
+			depthColorAttachment.ClearColor = glm::vec4(0.f);
 			depthColorAttachment.bBlendEnabled = true;
 			depthColorAttachment.BlendingState.BlendSrc = BlendFactor::One;
 			depthColorAttachment.BlendingState.BlendDst = BlendFactor::One;
-			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Min;
+			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Max;
 
 			state.DepthStencilAttachment = depthAttachment;
 			state.ColorAttachments.push_back(colorAttachment);
@@ -2599,7 +2599,7 @@ namespace Eagle
 
 			PipelineGraphicsState state;
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::None;
+			state.CullMode = CullMode::Back;
 			state.bEnableMultiViewRendering = true;
 			state.MultiViewPasses = 6;
 			state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
@@ -2623,11 +2623,11 @@ namespace Eagle
 			depthColorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthColorAttachment.Image = RenderManager::GetDummyImageR16Cube();
 			depthColorAttachment.ClearOperation = ClearOperation::Clear;
-			depthColorAttachment.ClearColor = glm::vec4(1.f);
+			depthColorAttachment.ClearColor = glm::vec4(0.f);
 			depthColorAttachment.bBlendEnabled = true;
 			depthColorAttachment.BlendingState.BlendSrc = BlendFactor::One;
 			depthColorAttachment.BlendingState.BlendDst = BlendFactor::One;
-			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Min;
+			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Max;
 
 			state.ColorAttachments.push_back(colorAttachment);
 			if (bVolumetricLightsEnabled)
@@ -2661,7 +2661,7 @@ namespace Eagle
 
 			PipelineGraphicsState state;
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::None;
+			state.CullMode = CullMode::Back;
 			state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
 
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_meshes.vert", ShaderType::Vertex, defines);
@@ -2683,11 +2683,11 @@ namespace Eagle
 			depthColorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthColorAttachment.Image = RenderManager::GetDummyImageR16();
 			depthColorAttachment.ClearOperation = ClearOperation::Clear;
-			depthColorAttachment.ClearColor = glm::vec4(1.f);
+			depthColorAttachment.ClearColor = glm::vec4(0.f);
 			depthColorAttachment.bBlendEnabled = true;
 			depthColorAttachment.BlendingState.BlendSrc = BlendFactor::One;
 			depthColorAttachment.BlendingState.BlendDst = BlendFactor::One;
-			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Min;
+			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Max;
 
 			state.ColorAttachments.push_back(colorAttachment);
 			if (bVolumetricLightsEnabled)
@@ -2896,11 +2896,11 @@ namespace Eagle
 			depthColorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthColorAttachment.Image = RenderManager::GetDummyImageR16();
 			depthColorAttachment.ClearOperation = ClearOperation::Clear;
-			depthColorAttachment.ClearColor = glm::vec4(1.f);
+			depthColorAttachment.ClearColor = glm::vec4(0.f);
 			depthColorAttachment.bBlendEnabled = true;
 			depthColorAttachment.BlendingState.BlendSrc = BlendFactor::One;
 			depthColorAttachment.BlendingState.BlendDst = BlendFactor::One;
-			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Min;
+			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Max;
 
 			DepthStencilAttachment depthAttachment;
 			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
@@ -2913,7 +2913,7 @@ namespace Eagle
 			const ShaderDefines vertexDefines = { {"EG_MATERIALS_REQUIRED", ""} };
 
 			PipelineGraphicsState state;
-			state.CullMode = CullMode::None;
+			state.CullMode = CullMode::Back;
 			state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_skeletal_meshes.vert", ShaderType::Vertex, vertexDefines);
 			state.FragmentShader = Shader::Create("shadow_maps/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
@@ -2969,11 +2969,11 @@ namespace Eagle
 			depthColorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthColorAttachment.Image = RenderManager::GetDummyImageR16Cube();
 			depthColorAttachment.ClearOperation = ClearOperation::Clear;
-			depthColorAttachment.ClearColor = glm::vec4(1.f);
+			depthColorAttachment.ClearColor = glm::vec4(0.f);
 			depthColorAttachment.bBlendEnabled = true;
 			depthColorAttachment.BlendingState.BlendSrc = BlendFactor::One;
 			depthColorAttachment.BlendingState.BlendDst = BlendFactor::One;
-			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Min;
+			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Max;
 
 			DepthStencilAttachment depthAttachment;
 			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
@@ -2991,7 +2991,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_skeletal_meshes.vert", ShaderType::Vertex, defines);
 			state.FragmentShader = Shader::Create("shadow_maps/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::None;
+			state.CullMode = CullMode::Back;
 			state.bEnableMultiViewRendering = true;
 			state.MultiViewPasses = 6;
 			state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
@@ -3047,11 +3047,11 @@ namespace Eagle
 			depthColorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthColorAttachment.Image = RenderManager::GetDummyImageR16();
 			depthColorAttachment.ClearOperation = ClearOperation::Clear;
-			depthColorAttachment.ClearColor = glm::vec4(1.f);
+			depthColorAttachment.ClearColor = glm::vec4(0.f);
 			depthColorAttachment.bBlendEnabled = true;
 			depthColorAttachment.BlendingState.BlendSrc = BlendFactor::One;
 			depthColorAttachment.BlendingState.BlendDst = BlendFactor::One;
-			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Min;
+			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Max;
 
 			DepthStencilAttachment depthAttachment;
 			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
@@ -3069,7 +3069,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_skeletal_meshes.vert", ShaderType::Vertex, defines);
 			state.FragmentShader = Shader::Create("shadow_maps/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::None;
+			state.CullMode = CullMode::Back;
 			state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
 			state.ColorAttachments.push_back(colorAttachment);
 			if (bVolumetricLightsEnabled)
@@ -3294,11 +3294,11 @@ namespace Eagle
 			depthColorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthColorAttachment.Image = RenderManager::GetDummyImageR16();
 			depthColorAttachment.ClearOperation = ClearOperation::Clear;
-			depthColorAttachment.ClearColor = glm::vec4(1.f);
+			depthColorAttachment.ClearColor = glm::vec4(0.f);
 			depthColorAttachment.bBlendEnabled = true;
 			depthColorAttachment.BlendingState.BlendSrc = BlendFactor::One;
 			depthColorAttachment.BlendingState.BlendDst = BlendFactor::One;
-			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Min;
+			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Max;
 
 			DepthStencilAttachment depthAttachment;
 			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
@@ -3312,7 +3312,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_sprites.vert", ShaderType::Vertex, { {"EG_MATERIALS_REQUIRED", ""} });
 			state.FragmentShader = Shader::Create("shadow_maps/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
 			state.DepthStencilAttachment = depthAttachment;
-			state.FrontFace = FrontFaceMode::Clockwise;
+			state.CullMode = CullMode::Back;
 			state.ColorAttachments.push_back(colorAttachment);
 			if (bVolumetricLightsEnabled)
 				state.ColorAttachments.push_back(depthColorAttachment);
@@ -3364,11 +3364,11 @@ namespace Eagle
 			depthColorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthColorAttachment.Image = RenderManager::GetDummyImageR16Cube();
 			depthColorAttachment.ClearOperation = ClearOperation::Clear;
-			depthColorAttachment.ClearColor = glm::vec4(1.f);
+			depthColorAttachment.ClearColor = glm::vec4(0.f);
 			depthColorAttachment.bBlendEnabled = true;
 			depthColorAttachment.BlendingState.BlendSrc = BlendFactor::One;
 			depthColorAttachment.BlendingState.BlendDst = BlendFactor::One;
-			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Min;
+			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Max;
 
 			DepthStencilAttachment depthAttachment;
 			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
@@ -3386,7 +3386,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_sprites.vert", ShaderType::Vertex, plDefines);
 			state.FragmentShader = Shader::Create("shadow_maps/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
 			state.DepthStencilAttachment = depthAttachment;
-			state.FrontFace = FrontFaceMode::Clockwise;
+			state.CullMode = CullMode::Back;
 			state.bEnableMultiViewRendering = true;
 			state.MultiViewPasses = 6;
 			state.ColorAttachments.push_back(colorAttachment);
@@ -3429,7 +3429,7 @@ namespace Eagle
 			colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			colorAttachment.Image = RenderManager::GetDummyImage();
 			colorAttachment.ClearOperation = ClearOperation::Clear;
-			colorAttachment.ClearColor = glm::vec4(1.f, 1.f, 1.f, 0.f);
+			colorAttachment.ClearColor = glm::vec4(1.f);
 			colorAttachment.bBlendEnabled = true;
 			colorAttachment.BlendingState.BlendSrc = BlendFactor::Zero;
 			colorAttachment.BlendingState.BlendDst = BlendFactor::SrcColor;
@@ -3440,11 +3440,11 @@ namespace Eagle
 			depthColorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthColorAttachment.Image = RenderManager::GetDummyImageR16();
 			depthColorAttachment.ClearOperation = ClearOperation::Clear;
-			depthColorAttachment.ClearColor = glm::vec4(1.f);
+			depthColorAttachment.ClearColor = glm::vec4(0.f);
 			depthColorAttachment.bBlendEnabled = true;
 			depthColorAttachment.BlendingState.BlendSrc = BlendFactor::One;
 			depthColorAttachment.BlendingState.BlendDst = BlendFactor::One;
-			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Min;
+			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Max;
 
 			DepthStencilAttachment depthAttachment;
 			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
@@ -3462,7 +3462,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_sprites.vert", ShaderType::Vertex, slDefines);
 			state.FragmentShader = Shader::Create("shadow_maps/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
 			state.DepthStencilAttachment = depthAttachment;
-			state.FrontFace = FrontFaceMode::Clockwise;
+			state.CullMode = CullMode::Back;
 			state.ColorAttachments.push_back(colorAttachment);
 			if (bVolumetricLightsEnabled)
 				state.ColorAttachments.push_back(depthColorAttachment);
@@ -3697,11 +3697,11 @@ namespace Eagle
 			depthColorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthColorAttachment.Image = RenderManager::GetDummyImageR16();
 			depthColorAttachment.ClearOperation = ClearOperation::Clear;
-			depthColorAttachment.ClearColor = glm::vec4(1.f);
+			depthColorAttachment.ClearColor = glm::vec4(0.f);
 			depthColorAttachment.bBlendEnabled = true;
 			depthColorAttachment.BlendingState.BlendSrc = BlendFactor::One;
 			depthColorAttachment.BlendingState.BlendDst = BlendFactor::One;
-			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Min;
+			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Max;
 
 			DepthStencilAttachment depthAttachment;
 			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
@@ -3718,7 +3718,7 @@ namespace Eagle
 			if (bVolumetricLightsEnabled)
 				state.ColorAttachments.push_back(depthColorAttachment);
 			state.DepthStencilAttachment = depthAttachment;
-			state.FrontFace = FrontFaceMode::Clockwise;
+			state.CullMode = CullMode::Back;
 
 			if (m_TranslucentLitTDLPipelineClearing)
 				m_TranslucentLitTDLPipelineClearing->SetState(state);
@@ -3768,11 +3768,11 @@ namespace Eagle
 			depthColorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthColorAttachment.Image = RenderManager::GetDummyImageR16Cube();
 			depthColorAttachment.ClearOperation = ClearOperation::Clear;
-			depthColorAttachment.ClearColor = glm::vec4(1.f);
+			depthColorAttachment.ClearColor = glm::vec4(0.f);
 			depthColorAttachment.bBlendEnabled = true;
 			depthColorAttachment.BlendingState.BlendSrc = BlendFactor::One;
 			depthColorAttachment.BlendingState.BlendDst = BlendFactor::One;
-			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Min;
+			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Max;
 
 			DepthStencilAttachment depthAttachment;
 			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
@@ -3790,7 +3790,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_lit.vert", ShaderType::Vertex, plDefines);
 			state.FragmentShader = fragShader;
 			state.DepthStencilAttachment = depthAttachment;
-			state.FrontFace = FrontFaceMode::Clockwise;
+			state.CullMode = CullMode::Back;
 			state.bEnableMultiViewRendering = true;
 			state.MultiViewPasses = 6;
 			state.ColorAttachments.push_back(colorAttachment);
@@ -3844,11 +3844,11 @@ namespace Eagle
 			depthColorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthColorAttachment.Image = RenderManager::GetDummyImageR16();
 			depthColorAttachment.ClearOperation = ClearOperation::Clear;
-			depthColorAttachment.ClearColor = glm::vec4(1.f);
+			depthColorAttachment.ClearColor = glm::vec4(0.f);
 			depthColorAttachment.bBlendEnabled = true;
 			depthColorAttachment.BlendingState.BlendSrc = BlendFactor::One;
 			depthColorAttachment.BlendingState.BlendDst = BlendFactor::One;
-			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Min;
+			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Max;
 
 			DepthStencilAttachment depthAttachment;
 			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
@@ -3866,7 +3866,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_lit.vert", ShaderType::Vertex, slDefines);
 			state.FragmentShader = fragShader;
 			state.DepthStencilAttachment = depthAttachment;
-			state.FrontFace = FrontFaceMode::Clockwise;
+			state.CullMode = CullMode::Back;
 			state.ColorAttachments.push_back(colorAttachment);
 			if (bVolumetricLightsEnabled)
 				state.ColorAttachments.push_back(depthColorAttachment);

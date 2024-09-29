@@ -26,6 +26,7 @@ layout(set = EG_SCENE_SET, binding = EG_BINDING_CAMERA_VIEW)
 uniform CameraView
 {
 	mat4 g_CameraView;
+	mat4 g_ViewProjInv;
 };
 
 layout(set = EG_SCENE_SET, binding = EG_BINDING_ALBEDO_ROUGHNESS_TEXTURE)         uniform sampler2D       g_AlbedoTexture;
