@@ -45,11 +45,9 @@ namespace Eagle
 		
 		AssetEntity::s_EntityAssetsScene = MakeRef<Scene>();
 
-		std::vector<Path> delayedAssets;
-		delayedAssets.reserve(25);
-
-		std::vector<Path> delayedAssetsLastly;
-		delayedAssetsLastly.reserve(25);
+		std::array<std::vector<Path>, 4> delayedAssets;
+		for (auto& assets : delayedAssets)
+			assets.reserve(25);
 
 		const Path contentPath = Project::GetContentPath();
 		const Path& projectPath = Project::GetProjectPath();
@@ -68,29 +66,38 @@ namespace Eagle
 			// We deffer the loading of some assets:
 			// Materials: we can't load materials unless all textures are loaded since materials refer to them
 			// Audio: we can't load audios unless all sound groups are loaded since audios refer to them
-			// Animation: we can't load animations unless all skeletal meshes are loaded since animations refer to them
-			if (type == AssetType::Material || type == AssetType::Audio || type == AssetType::Animation)
+			if (type == AssetType::Material || type == AssetType::Audio)
 			{
-				delayedAssets.emplace_back(std::move(assetPath));
+				delayedAssets[0].emplace_back(std::move(assetPath));
+				continue;
+			}
+			// Static & Skeletal meshes: we can't load graphs unless all materials are loaded since meshes refer to them
+			else if (type == AssetType::StaticMesh || type == AssetType::SkeletalMesh)
+			{
+				delayedAssets[1].emplace_back(std::move(assetPath));
+				continue;
+			}
+			// Animation & Animation Graph: we can't load animations unless all skeletal meshes are loaded since animations refer to them
+			else if (type == AssetType::AnimationGraph || type == AssetType::Animation)
+			{
+				delayedAssets[2].emplace_back(std::move(assetPath));
 				continue;
 			}
 			// Entity: we can't load entities unless all assets are loaded since entities might refer to anything
-			// Animation Graph: we can't load graphs unless all assets are loaded since graphs might refer to anything
-			// Static & Skeletal meshes: we can't load graphs unless all materials are loaded since meshes refer to them
-			else if (type == AssetType::Entity || type == AssetType::AnimationGraph || type == AssetType::StaticMesh || type == AssetType::SkeletalMesh)
+			else if (type == AssetType::Entity)
 			{
-				delayedAssetsLastly.emplace_back(std::move(assetPath));
+				delayedAssets[3].emplace_back(std::move(assetPath));
 				continue;
 			}
 
 			Register(Asset::Create(assetPath));
 		}
 
-		for (const auto& assetPath : delayedAssets)
-			Register(Asset::Create(assetPath));
-
-		for (const auto& assetPath : delayedAssetsLastly)
-			Register(Asset::Create(assetPath));
+		for (const auto& assets : delayedAssets)
+		{
+			for (const auto& assetPath : assets)
+				Register(Asset::Create(assetPath));
+		}
 
 		s_Skybox = AssetTextureCube::Create(Application::GetCorePath() / "assets/textures/IBL.egasset");
 		s_Sphere = AssetStaticMesh::Create(Application::GetCorePath() / "assets/meshes/Sphere.egasset");

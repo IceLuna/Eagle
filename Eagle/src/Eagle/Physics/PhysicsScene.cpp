@@ -118,10 +118,6 @@ namespace Eagle
     {
         static const Ref<PhysicsActor> s_InvalidActor;
         const bool bHasRigidBody = entity.HasComponent<RigidBodyComponent>();
-        const bool bHasAnyCollider = entity.HasAny<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, MeshColliderComponent>();
-
-        if (!bHasAnyCollider && !bHasRigidBody)
-            return s_InvalidActor;
 
         if (!bHasRigidBody)
             entity.AddComponent<RigidBodyComponent>();

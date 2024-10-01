@@ -905,9 +905,10 @@ namespace Eagle
 				const size_t materialsCount = data.Materials.size();
 				for (size_t i = 0; i < materialsCount; ++i)
 				{
-					data.InstanceDatas[i].AnimTransformIndex = animationsCount++;
+					data.InstanceDatas[i].AnimTransformIndex = animationsCount;
 					data.InstanceDatas[i].MaterialIndex = MaterialSystem::GetMaterialIndex(data.Materials[i]);
 				}
+				animationsCount++;
 
 				struct MeshDataPerBlendMode
 				{
@@ -961,7 +962,7 @@ namespace Eagle
 		{
 			m_AnimationTransformsBuffers.resize(animationsCount);
 			if (bMotionRequired)
-				m_AnimationTransformsBuffers.resize(animationsCount);
+				m_AnimationPrevTransformsBuffers.resize(animationsCount);
 		}
 		else
 		{

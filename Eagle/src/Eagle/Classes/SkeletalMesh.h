@@ -72,7 +72,7 @@ namespace Eagle
 
 		SkeletalMesh(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb)
 			: m_Vertices(vertices)
-			, m_IndicesPerMaterial(m_IndicesPerMaterial)
+			, m_IndicesPerMaterial(indicesPerMaterial)
 			, m_Skeletal(skeletal)
 			, m_AABB(aabb)
 			, m_MaterialSlots((uint32_t)m_IndicesPerMaterial.size())
