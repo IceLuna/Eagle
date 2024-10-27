@@ -343,6 +343,7 @@ namespace Eagle
 					Ref<AssetSkeletalMesh> skeletalMesh = smComponent.GetMeshAsset();
 					bool bCastsShadows = smComponent.DoesCastShadows();
 					bool bReceivesDecals = smComponent.DoesReceiveDecals();
+					bool bRagdollEnabled = smComponent.IsRagdollEnabled();
 
 					if (UI::DrawAssetSelection("Skeletal Mesh", skeletalMesh))
 					{
@@ -376,6 +377,12 @@ namespace Eagle
 					}
 
 					ImGui::Separator();
+
+					if (UI::Property("Ragdolling", bRagdollEnabled))
+					{
+						smComponent.SetRagdollEnabled(bRagdollEnabled);
+						bEntityChanged = true;
+					}
 
 					UI::ComboEnum("Animation Type", smComponent.AnimType);
 
@@ -1336,12 +1343,12 @@ namespace Eagle
 					if (bRuntime)
 						UI::PushItemDisabled();
 
-					bEntityChanged |= UI::ComboEnum<RigidBodyComponent::Type>("Body type", rigidBody.BodyType);
+					bEntityChanged |= UI::ComboEnum<PhysicsBodyType>("Body type", rigidBody.BodyType);
 
 					if (bRuntime)
 						UI::PopItemDisabled();
 						
-					if (rigidBody.BodyType == RigidBodyComponent::Type::Dynamic)
+					if (rigidBody.BodyType == PhysicsBodyType::Dynamic)
 					{
 						float mass = rigidBody.GetMass();
 						float linearDamping = rigidBody.GetLinearDamping();
@@ -1357,7 +1364,7 @@ namespace Eagle
 						if (bRuntime)
 							UI::PushItemDisabled();
 							
-						bEntityChanged |= UI::ComboEnum<RigidBodyComponent::CollisionDetectionType>("Collision Detection", rigidBody.CollisionDetection,
+						bEntityChanged |= UI::ComboEnum<CollisionDetectionType>("Collision Detection", rigidBody.CollisionDetection,
 							"When continuous collision detection (or CCD) is turned on, the affected rigid bodies will not go through other objects at high velocities (a problem also known as tunnelling)."
 							"A cheaper but less robust approach is called speculative CCD");
 							
@@ -1400,9 +1407,8 @@ namespace Eagle
 							bEntityChanged = true;
 						}
 
-						if (UI::Property("Is Kinematic", bKinematic, "Sometimes controlling an actor using forces or constraints is not sufficiently robust, precise or flexible."
-							" For example moving platforms or character controllers often need to manipulate an actor's position or have"
-							" it exactly follow a specific path. Such a control scheme is provided by kinematic actors."))
+						if (UI::Property("Is Kinematic", bKinematic, "Kinametics have infinite mass and inertia. Use `SetKinematicTarget` to control it."
+							" These are good for dynamic objects that are moved by your code instead of by the physics simulation (e.g. moving platform)"))
 						{
 							rigidBody.SetIsKinematic(bKinematic);
 							bEntityChanged = true;

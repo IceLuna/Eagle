@@ -148,7 +148,7 @@ namespace Eagle
 				bEntityChanged = true;
 
 				m_Entity.AddComponent<T>();
-				EG_CORE_TRACE("Added '{}' to {}", typeName, m_Entity.GetSceneName());
+				EG_CORE_TRACE("Added '{}' to {}", typeName, m_Entity.GetName());
 
 				ImGui::CloseCurrentPopup();
 			}

@@ -3,9 +3,12 @@
 #include "Eagle/Core/GUID.h"
 #include "Eagle/Renderer/RendererUtils.h"
 #include "Eagle/Math/AABB.h"
+#include "Eagle/Math/Transform.h"
 
 #include <vector>
 #include <glm/glm.hpp>
+
+#define EG_MAX_BONES_PER_VERTEX 4
 
 namespace Eagle
 {
@@ -39,6 +42,7 @@ namespace Eagle
 			return !((*this) == other);
 		}
 	};
+	static_assert(EG_MAX_BONES_PER_VERTEX == decltype(SkeletalVertex::Weights)::length());
 
 	struct BoneNode
 	{
@@ -55,6 +59,7 @@ namespace Eagle
 		uint32_t BoneID = 0;
 	};
 
+	// TODO: Optimize these structs by using `std::vector` and storing indices into it, instead of making a look-up into a hash map
 	// string - bone name
 	using BonesMap = std::unordered_map<std::string, BoneInfo>;
 
@@ -65,29 +70,22 @@ namespace Eagle
 		BonesMap BoneInfoMap;
 	};
 
+	struct SkeletalRagdollBones
+	{
+		glm::mat4 LocalTransform = glm::mat4(1.f);
+		Transform UserOffset;
+		std::string Name;
+		AABB AABB;
+		std::vector<SkeletalRagdollBones> Children;
+	};
+
 	class SkeletalMesh
 	{
 	protected:
 		SkeletalMesh() = default;
-
-		SkeletalMesh(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb)
-			: m_Vertices(vertices)
-			, m_IndicesPerMaterial(indicesPerMaterial)
-			, m_Skeletal(skeletal)
-			, m_AABB(aabb)
-			, m_MaterialSlots((uint32_t)m_IndicesPerMaterial.size())
-			, m_Materials(m_MaterialSlots)
-		{
-		}
-
-		SkeletalMesh(const SkeletalMesh& other)
-			: m_Vertices(other.m_Vertices)
-			, m_IndicesPerMaterial(other.m_IndicesPerMaterial)
-			, m_Skeletal(other.m_Skeletal)
-			, m_AABB(other.m_AABB)
-			, m_MaterialSlots(other.m_MaterialSlots)
-			, m_Materials(other.m_Materials)
-		{}
+		SkeletalMesh(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
+			const std::unordered_map<std::string, Transform>& ragdollOffsets = {}, float minRagdollBoneSize = 0.1f, float maxRagdollTwist = 22.5f, float maxRagdollSwing = 45.f);
+		SkeletalMesh(const SkeletalMesh& other);
 
 	public:
 		const Index* GetIndicesData(uint32_t materialIndex) const { return m_IndicesPerMaterial[materialIndex].data(); }
@@ -130,8 +128,19 @@ namespace Eagle
 
 		const Ref<AssetMaterial>& GetMaterialAsset(uint32_t index) { return m_Materials[index]; }
 
+		void RegenerateRagdollData(float minBoneSize);
+		void SetRagdollMaxTwist(float twist) { m_MaxRagdollTwist = twist; }
+		void SetRagdollMaxSwing(float swing) { m_MaxRagdollSwing = swing; }
+		const SkeletalRagdollBones& GetRagdollRoot() const { return m_RagdollRoot; }
+		SkeletalRagdollBones& GetRagdollRoot() { return m_RagdollRoot; }
+		float GetMinRagdollBoneSize() const { return m_MinRagdollBoneSize; }
+		float GetRagdollMaxTwist() const { return m_MaxRagdollTwist; }
+		float GetRagdollMaxSwing() const { return m_MaxRagdollSwing; }
+
 	public:
-		static Ref<SkeletalMesh> Create(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& m_IndicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb);
+		// @ragdollOffsets. Can be used to override `UserOffset` inside `SkeletalRagdollBones`. std::string is a bone name which `UserOffset` needs to be overwritten
+		static Ref<SkeletalMesh> Create(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& m_IndicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
+			const std::unordered_map<std::string, Transform>& ragdollOffsets = {}, float minRagdollBoneSize = 0.1f, float maxRagdollTwist = 22.5f, float maxRagdollSwing = 45.f);
 		static Ref<SkeletalMesh> Create(const Ref<SkeletalMesh>& other);
 
 	private:
@@ -141,5 +150,9 @@ namespace Eagle
 		AABB m_AABB;
 		uint32_t m_MaterialSlots;
 		std::vector<Ref<AssetMaterial>> m_Materials;
+		SkeletalRagdollBones m_RagdollRoot;
+		float m_MinRagdollBoneSize = 0.1f;
+		float m_MaxRagdollTwist = 22.5f;
+		float m_MaxRagdollSwing = 45.0f;
 	};
 }

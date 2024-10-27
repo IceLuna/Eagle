@@ -712,6 +712,16 @@ namespace Eagle
             SetAnimation_Native(Parent.ID, (value != null) ? value.GetGUID() : GUID.Null());
         }
 
+        public void SetRagdollEnabled(bool bEnabled)
+        {
+            SetRagdollEnabled_Native(Parent.ID, bEnabled);
+        }
+
+        public bool IsRagdollEnabled()
+        {
+            return IsRagdollEnabled_Native(Parent.ID);
+        }
+
         public Transform GetBoneWorldTransform(string name)
         {
             Transform result;
@@ -842,6 +852,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetAnimation_Native(in GUID entityID, in GUID assetID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetRagdollEnabled_Native(in GUID entityID, bool bEnabled);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsRagdollEnabled_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetCastsShadows_Native(in GUID entityID, bool value);

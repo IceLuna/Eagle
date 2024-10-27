@@ -11,14 +11,16 @@ namespace Eagle
 	namespace Utils
 	{
 		// True if found
-		static bool GetBoneWorldTransform(const SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const std::string_view targetBoneName, Transform* outTransform)
+		static bool GetBoneWorldTransform(const SkeletalPose& pose, const BoneNode& node, bool bRagdoll, const glm::mat4& parentTransform, const std::string_view targetBoneName, Transform* outTransform)
 		{
 			const std::string& nodeName = node.Name;
 			glm::mat4 globalTransformation;
 			if (auto it = pose.Bones.find(nodeName); it != pose.Bones.end())
 			{
 				const auto& bone = it->second;
-				globalTransformation = parentTransform * Math::ToTransformMatrix(bone);
+				const glm::mat4 boneTransform = Math::ToTransformMatrix(bone);
+				// If a ragdoll, then it's already a global transform
+				globalTransformation = bRagdoll ? boneTransform : parentTransform * boneTransform;
 			}
 			else
 				globalTransformation = parentTransform * node.Transformation;
@@ -30,7 +32,7 @@ namespace Eagle
 			}
 
 			for (auto& child : node.Children)
-				if (GetBoneWorldTransform(pose, child, globalTransformation, targetBoneName, outTransform))
+				if (GetBoneWorldTransform(pose, child, bRagdoll, globalTransformation, targetBoneName, outTransform))
 					return true;
 
 			return false;
@@ -396,6 +398,12 @@ namespace Eagle
 		}
 	}
 	
+	SkeletalMeshComponent::~SkeletalMeshComponent()
+	{
+		if (m_MeshAsset)
+			m_MeshAsset->RemoveOnAssetModifiedCallback(m_CallbackID);
+	}
+
 	SkeletalMeshComponent& SkeletalMeshComponent::operator=(const SkeletalMeshComponent& other)
 	{
 		if (this == &other)
@@ -425,8 +433,78 @@ namespace Eagle
 		bClipLooping = other.bClipLooping;
 		AnimType = other.AnimType;
 
+		if (m_MeshAsset)
+		{
+			if (other.m_bRagdollEnabled)
+			{
+				SetRagdollEnabled(true);
+			}
+		}
+		else
+		{
+			m_bRagdollEnabled = other.m_bRagdollEnabled;
+		}
+
 		Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnStateChanged);
 		return *this;
+	}
+
+	void SkeletalMeshComponent::SetMeshAsset(const Ref<AssetSkeletalMesh>& mesh)
+	{
+		const bool bHadValidAsset = m_MeshAsset.operator bool();
+
+		if (bHadValidAsset)
+			m_MeshAsset->RemoveOnAssetModifiedCallback(m_CallbackID);
+
+		m_MeshAsset = mesh;
+		CurrentClipPlayTime = 0.f;
+		PrevClipPlayTime = 0.f;
+
+		if (m_MeshAsset)
+		{
+			const auto& mesh = m_MeshAsset->GetMesh();
+			const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
+			m_MaterialAssets.resize(materialsCount);
+			for (uint32_t i = 0; i < materialsCount; ++i)
+				m_MaterialAssets[i] = mesh->GetMaterialAsset(i);
+		}
+		else
+		{
+			m_MaterialAssets.clear();
+		}
+
+		if (bHadValidAsset)
+		{
+			if (IsRagdollEnabled())
+			{
+				SetRagdollEnabled(false);
+				// Restore the state after `SetRagdollEnabled()` call.
+				// Needed so that we can automatically create a ragdoll when `SetMeshAsset` is called next time
+				m_bRagdollEnabled = true;
+			}
+		}
+		if (m_MeshAsset)
+		{
+			m_MeshAsset->AddOnAssetModifiedCallback(m_CallbackID, [this]()
+				{
+					if (IsRagdollEnabled())
+					{
+						// Recreate ragdoll
+						SetRagdollEnabled(false);
+						SetRagdollEnabled(true);
+					}
+				}
+			);
+
+			if (IsRagdollEnabled())
+			{
+				// Required, otherwise `SetRagdollEnabled(true)` will early-exit
+				m_bRagdollEnabled = false;
+				SetRagdollEnabled(true);
+			}
+		}
+
+		Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnStateChanged);
 	}
 	
 	void SkeletalMeshComponent::SetAnimationGraphAsset(const Ref<AssetAnimationGraph>& anim)
@@ -471,6 +549,18 @@ namespace Eagle
 			m_Graph.reset();
 	}
 
+	void SkeletalMeshComponent::SetWorldTransform(const Transform& worldTransform)
+	{
+		SceneComponent::SetWorldTransform(worldTransform);
+		Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnTransformChanged);
+	}
+
+	void SkeletalMeshComponent::SetRelativeTransform(const Transform& relativeTransform)
+	{
+		SceneComponent::SetRelativeTransform(relativeTransform);
+		Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnTransformChanged);
+	}
+
 	Transform SkeletalMeshComponent::GetBoneWorldTransform(const std::string_view boneName)
 	{
 		const auto& asset = GetMeshAsset();
@@ -478,7 +568,7 @@ namespace Eagle
 			return {};
 
 		Transform result;
-		Utils::GetBoneWorldTransform(LastPose, asset->GetMesh()->GetSkeletalMeshInfo().RootBone, Math::ToTransformMatrix(GetWorldTransform()), boneName, &result);
+		Utils::GetBoneWorldTransform(LastPose, asset->GetMesh()->GetSkeletalMeshInfo().RootBone, IsRagdollEnabled(), Math::ToTransformMatrix(GetWorldTransform()), boneName, &result);
 		return result;
 	}
 
@@ -506,9 +596,33 @@ namespace Eagle
 			ScriptEngine::OnAnimationEventEntity(Parent, name);
 	}
 
+	void SkeletalMeshComponent::SetRagdollEnabled(bool bEnabled)
+	{
+		if (bEnabled == m_bRagdollEnabled)
+			return;
+
+		if (bEnabled)
+		{
+			m_RagdollActor = Parent.GetScene()->GetPhysicsScene()->CreateRagdoll(*this);
+			m_bRagdollEnabled = m_RagdollActor.operator bool();
+		}
+		else
+		{
+			Parent.GetScene()->GetPhysicsScene()->ReleaseRagdoll(*this);
+			m_RagdollActor.reset();
+			m_bRagdollEnabled = bEnabled;
+		}
+	}
+
 	ParticleSystemComponent::ParticleSystemComponent(const Entity& entity, const Ref<AssetParticleSystem>& asset)
 		: SceneComponent(entity), m_Asset(asset)
 	{
+	}
+
+	ParticleSystemComponent::~ParticleSystemComponent()
+	{
+		if (m_Asset)
+			m_Asset->RemoveOnAssetModifiedCallback(m_SystemID);
 	}
 
 	void ParticleSystemComponent::SetAsset(const Ref<AssetParticleSystem>& asset)

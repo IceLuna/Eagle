@@ -371,7 +371,7 @@ namespace Eagle
 		const std::string name = mono_string_to_utf8(monoName);
 
 		for (auto& child : children)
-			if (child.GetSceneName() == name)
+			if (child.GetName() == name)
 				return child.GetGUID();
 
 		return { 0, 0 };
@@ -2037,6 +2037,32 @@ namespace Eagle
 		return mono_string_new(mono_domain_get(), Cast<GraphVariableString>(var)->Value.c_str());
 	}
 
+	void Script::Eagle_SkeletalMeshComponent_SetRagdollEnabled(GUID entityID, bool bEnabled)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetRagdollEnabled' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<SkeletalMeshComponent>().SetRagdollEnabled(bEnabled);
+	}
+
+	bool Script::Eagle_SkeletalMeshComponent_IsRagdollEnabled(GUID entityID)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsRagdollEnabled' for skeletal mesh. Entity is null");
+			return false;
+		}
+
+		return entity.GetComponent<SkeletalMeshComponent>().IsRagdollEnabled();
+	}
+
 	void Script::Eagle_SkeletalMeshComponent_GetBoneWorldTransform(GUID entityID, MonoString* monoName, Transform* result)
 	{
 		const Ref<Scene>& scene = Scene::GetCurrentScene();
@@ -2626,7 +2652,7 @@ namespace Eagle
 	}
 
 	//--------------RigidBodyComponent--------------
-	void Script::Eagle_RigidBodyComponent_SetBodyType(GUID entityID, RigidBodyComponent::Type type)
+	void Script::Eagle_RigidBodyComponent_SetBodyType(GUID entityID, PhysicsBodyType type)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2636,7 +2662,7 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set physics body type. Entity is null");
 	}
 
-	RigidBodyComponent::Type Script::Eagle_RigidBodyComponent_GetBodyType(GUID entityID)
+	PhysicsBodyType Script::Eagle_RigidBodyComponent_GetBodyType(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2645,7 +2671,7 @@ namespace Eagle
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get physics body type. Entity is null");
-			return RigidBodyComponent::Type::Static;
+			return PhysicsBodyType::Static;
 		}
 	}
 
@@ -2777,7 +2803,7 @@ namespace Eagle
 			}
 			else
 			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't wake up Entity. It's not a physics actor: {}", entity.GetSceneName());
+				EG_CORE_ERROR("[ScriptEngine] Couldn't wake up Entity. It's not a physics actor: {}", entity.GetName());
 				return;
 			}
 		}
@@ -2801,7 +2827,7 @@ namespace Eagle
 			}
 			else
 			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't put to sleep Entity. It's not a physics actor: {}", entity.GetSceneName());
+				EG_CORE_ERROR("[ScriptEngine] Couldn't put to sleep Entity. It's not a physics actor: {}", entity.GetName());
 				return;
 			}
 		}
@@ -2825,7 +2851,7 @@ namespace Eagle
 			}
 			else
 			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't add force to Entity. It's not a physics actor: {}", entity.GetSceneName());
+				EG_CORE_ERROR("[ScriptEngine] Couldn't add force to Entity. It's not a physics actor: {}", entity.GetName());
 				return;
 			}
 		}
@@ -2849,7 +2875,7 @@ namespace Eagle
 			}
 			else
 			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't add torque to Entity. It's not a physics actor: {}", entity.GetSceneName());
+				EG_CORE_ERROR("[ScriptEngine] Couldn't add torque to Entity. It's not a physics actor: {}", entity.GetName());
 				return;
 			}
 		}
@@ -2874,7 +2900,7 @@ namespace Eagle
 			}
 			else
 			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get linear velocity of Entity. It's not a physics actor: {}", entity.GetSceneName());
+				EG_CORE_ERROR("[ScriptEngine] Couldn't get linear velocity of Entity. It's not a physics actor: {}", entity.GetName());
 				return;
 			}
 		}
@@ -2924,7 +2950,7 @@ namespace Eagle
 			}
 			else
 			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get angular velocity of Entity. It's not a physics actor: {}", entity.GetSceneName());
+				EG_CORE_ERROR("[ScriptEngine] Couldn't get angular velocity of Entity. It's not a physics actor: {}", entity.GetName());
 				return;
 			}
 		}
@@ -2949,7 +2975,7 @@ namespace Eagle
 			}
 			else
 			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set angular velocity of Entity. It's not a physics actor: {}", entity.GetSceneName());
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set angular velocity of Entity. It's not a physics actor: {}", entity.GetName());
 				return;
 			}
 		}
@@ -3033,7 +3059,7 @@ namespace Eagle
 			}
 			else
 			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsDynamic`. It's not a physics actor: {}", entity.GetSceneName());
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsDynamic`. It's not a physics actor: {}", entity.GetName());
 				return false;
 			}
 		}
@@ -3088,7 +3114,7 @@ namespace Eagle
 			}
 			else
 			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetKinematicTarget` of Entity. It's is not a physics actor: {}", entity.GetSceneName());
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetKinematicTarget` of Entity. It's is not a physics actor: {}", entity.GetName());
 				return;
 			}
 		}
@@ -3113,7 +3139,7 @@ namespace Eagle
 			}
 			else
 			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetKinematicTargetLocation` of Entity. It's is not a physics actor: {}", entity.GetSceneName());
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetKinematicTargetLocation` of Entity. It's is not a physics actor: {}", entity.GetName());
 				return;
 			}
 		}
@@ -3138,7 +3164,7 @@ namespace Eagle
 			}
 			else
 			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetKinematicTargetRotation` of Entity. It's is not a physics actor: {}", entity.GetSceneName());
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetKinematicTargetRotation` of Entity. It's is not a physics actor: {}", entity.GetName());
 				return;
 			}
 		}
@@ -3163,7 +3189,7 @@ namespace Eagle
 			}
 			else
 			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetKinematicTarget` of Entity. It's is not a physics actor: {}", entity.GetSceneName());
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetKinematicTarget` of Entity. It's is not a physics actor: {}", entity.GetName());
 				return;
 			}
 		}
@@ -3188,7 +3214,7 @@ namespace Eagle
 			}
 			else
 			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetKinematicTargetLocation` of Entity. It's is not a physics actor: {}", entity.GetSceneName());
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetKinematicTargetLocation` of Entity. It's is not a physics actor: {}", entity.GetName());
 				return;
 			}
 		}
@@ -3213,7 +3239,7 @@ namespace Eagle
 			}
 			else
 			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetKinematicTargetRotation` of Entity. It's is not a physics actor: {}", entity.GetSceneName());
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetKinematicTargetRotation` of Entity. It's is not a physics actor: {}", entity.GetName());
 				return;
 			}
 		}

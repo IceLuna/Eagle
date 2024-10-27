@@ -285,7 +285,10 @@ namespace Eagle
 		{
 			DrawSimulatePanel();
 			if (m_SceneHierarchyPanel.OnImGuiRender())
-				m_OpenedSceneAsset->SetDirty(true);
+			{
+				if (m_EditorState == EditorState::Edit)
+					m_OpenedSceneAsset->SetDirty(true);
+			}
 			m_ContentBrowserPanel.OnImGuiRender();
 			m_ConsolePanel.OnImGuiRender();
 			DrawDirtyAssetsPopup();
@@ -1050,6 +1053,7 @@ namespace Eagle
 	void EditorLayer::DrawSceneSettings()
 	{
 		auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
+		bool bChanged = false;
 
 		ImGui::PushID("SceneSettings");
 		ImGui::Begin("Scene Settings");
@@ -1058,7 +1062,10 @@ namespace Eagle
 
 		glm::vec3 gravity = m_CurrentScene->GetGravity();
 		if (UI::PropertyDrag("Gravity", gravity, 0.1f, 0, 0))
+		{
 			m_CurrentScene->SetGravity(gravity);
+			bChanged = true;
+		}
 
 		UI::EndPropertyGrid();
 
@@ -1077,40 +1084,46 @@ namespace Eagle
 
 			auto cubemap = m_CurrentScene->GetSkybox();
 			if (UI::DrawAssetSelection("IBL", cubemap))
+			{
 				m_CurrentScene->SetSkybox(cubemap);
+				bChanged = true;
+			}
 			
 			float iblIntensity = m_CurrentScene->GetSkyboxIntensity();
 			if (UI::PropertyDrag("IBL Lighting Intensity", iblIntensity, 0.1f))
+			{
 				m_CurrentScene->SetSkyboxIntensity(iblIntensity);
+				bChanged = true;
+			}
 
 			ImGui::Separator();
 
 			auto skySettings = m_CurrentScene->GetSkySettings();
-			bool bChanged = false;
+			bool bChangedSky = false;
 			int cumulusLayers = skySettings.CumulusLayers;
 
-			bChanged |= UI::PropertyDrag("Sky Sun Position", skySettings.SunPos, 0.01f);
-			bChanged |= UI::PropertyDrag("Sky Intensity", skySettings.SkyIntensity, 0.1f);
-			bChanged |= UI::PropertyDrag("Sky Scattering", skySettings.Scattering, 0.01f, 0.001f, 0.999f);
+			bChangedSky |= UI::PropertyDrag("Sky Sun Position", skySettings.SunPos, 0.01f);
+			bChangedSky |= UI::PropertyDrag("Sky Intensity", skySettings.SkyIntensity, 0.1f);
+			bChangedSky |= UI::PropertyDrag("Sky Scattering", skySettings.Scattering, 0.01f, 0.001f, 0.999f);
 
-			bChanged |= UI::Property("Cirrus Clouds", skySettings.bEnableCirrusClouds);
-			bChanged |= UI::Property("Cumulus Clouds", skySettings.bEnableCumulusClouds);
+			bChangedSky |= UI::Property("Cirrus Clouds", skySettings.bEnableCirrusClouds);
+			bChangedSky |= UI::Property("Cumulus Clouds", skySettings.bEnableCumulusClouds);
 
-			bChanged |= UI::PropertyColor("Clouds Color", skySettings.CloudsColor);
-			bChanged |= UI::PropertyDrag("Clouds Intensity", skySettings.CloudsIntensity, 0.1f);
+			bChangedSky |= UI::PropertyColor("Clouds Color", skySettings.CloudsColor);
+			bChangedSky |= UI::PropertyDrag("Clouds Intensity", skySettings.CloudsIntensity, 0.1f);
 
-			bChanged |= UI::PropertyDrag("Cirrus Clouds Amount", skySettings.Cirrus, 0.01f);
-			bChanged |= UI::PropertyDrag("Cumulus Clouds Amount", skySettings.Cumulus, 0.01f);
+			bChangedSky |= UI::PropertyDrag("Cirrus Clouds Amount", skySettings.Cirrus, 0.01f);
+			bChangedSky |= UI::PropertyDrag("Cumulus Clouds Amount", skySettings.Cumulus, 0.01f);
 			if (UI::PropertyDrag("Cumulus Clouds Layers", cumulusLayers, 1.f, 1, INT_MAX))
 			{
 				skySettings.CumulusLayers = uint32_t(cumulusLayers);
-				bChanged = true;
+				bChangedSky = true;
 			}
 
-			if (bChanged)
+			if (bChangedSky)
 			{
 				m_CurrentScene->SetSkybox(skySettings);
-				m_OpenedSceneAsset->SetDirty(true);
+				bChanged = true;
 			}
 
 			ImGui::Separator();
@@ -1118,14 +1131,14 @@ namespace Eagle
 			if (UI::Property("Sky as background", bUseSkyAsBackground, s_SkyHelpMsg))
 			{
 				m_CurrentScene->SetUseSkyAsBackground(bUseSkyAsBackground);
-				m_OpenedSceneAsset->SetDirty(true);
+				bChanged = true;
 			}
 
 			bool bEnableSkybox = m_CurrentScene->IsSkyboxEnabled();
 			if (UI::Property("Enable Skybox", bEnableSkybox, s_SkyboxEnableHelpMsg))
 			{
 				m_CurrentScene->SetSkyboxEnabled(bEnableSkybox);
-				m_OpenedSceneAsset->SetDirty(true);
+				bChanged = true;
 			}
 
 			UI::EndPropertyGrid();
@@ -1134,6 +1147,9 @@ namespace Eagle
 
 		ImGui::End();
 		ImGui::PopID();
+
+		if (bChanged)
+			m_OpenedSceneAsset->SetDirty(true);
 	}
 
 	void EditorLayer::DrawRendererSettings()
@@ -1897,18 +1913,32 @@ namespace Eagle
 			const float footer_height_to_reserve = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing() + 3.f;
 			if (ImGui::BeginChild("DirtyAssetsScrollingRegion", ImVec2(0, -footer_height_to_reserve), false, ImGuiWindowFlags_HorizontalScrollbar))
 			{
-				for (const auto& asset : m_DirtyAssets)
-					ImGui::BulletText(asset->GetPath().u8string().c_str());
+				const size_t size = m_DirtyAssets.size();
+				for (size_t i = 0; i < size; ++i)
+				{
+					const auto& asset = m_DirtyAssets[i];
+					bool bChecked = m_DirtyAssetsChecked[i];
+					if (ImGui::Checkbox(asset->GetPath().u8string().c_str(), &bChecked))
+					{
+						m_DirtyAssetsChecked[i] = bChecked;
+					}
+				}
 			}
 			ImGui::EndChild();
 			ImGui::Separator();
 
 			bool bPressedAnyButton = false;
 
-			if (ImGui::Button("Save all"))
+			if (ImGui::Button("Save"))
 			{
-				for (const auto& asset : m_DirtyAssets)
+				const size_t size = m_DirtyAssets.size();
+				for (size_t i = 0; i < size; ++i)
 				{
+					const bool bSave = m_DirtyAssetsChecked[i];
+					if (bSave == false)
+						continue;
+
+					const auto& asset = m_DirtyAssets[i];
 					if (asset->GetAssetType() == AssetType::Scene)
 					{
 						if (m_OpenedSceneAsset == asset)
@@ -2019,8 +2049,10 @@ namespace Eagle
 
 	void EditorLayer::HandleCloseRequest(bool bCloseEngine)
 	{
+		m_DirtyAssetsChecked.clear();
 		m_CloseEngineRequested = bCloseEngine;
 		m_DirtyAssets = AssetManager::GetDirtyAssets();
+		m_DirtyAssetsChecked.resize(m_DirtyAssets.size(), true);
 		m_ShowDirtyAssetMessage = m_DirtyAssets.empty() == false;
 		if (!m_ShowDirtyAssetMessage)
 		{

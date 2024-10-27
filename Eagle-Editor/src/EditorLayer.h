@@ -151,6 +151,7 @@ namespace Eagle
 		bool m_CloseEngineRequested = false;
 		bool m_ShowDirtyAssetMessage = false;
 		std::vector<Ref<Asset>> m_DirtyAssets;
+		std::vector<bool> m_DirtyAssetsChecked;
 
 		friend class EditorSerializer;
 	};

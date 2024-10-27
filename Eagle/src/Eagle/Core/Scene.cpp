@@ -62,24 +62,33 @@ namespace Eagle
 			}
 		}
 
-		void DrawBones(std::vector<RendererLine>& buffer, const BoneNode& node, const glm::mat4& baseTransform)
+		void DrawBones(std::vector<RendererLine>& buffer, const BoneNode& node, const SkeletalPose& currentPose, bool bRagdoll, const glm::mat4& baseTransform)
 		{
-			glm::mat4 tr = baseTransform * node.Transformation;
+			glm::mat4 tr;
+			if (auto it = currentPose.Bones.find(node.Name); it != currentPose.Bones.end())
+			{
+				const auto& bone = it->second;
+				const glm::mat4 boneTransform = Math::ToTransformMatrix(bone);
+				// If a ragdoll, then it's already a global transform
+				tr = bRagdoll ? boneTransform : baseTransform * boneTransform;
+			}
+			else
+				tr = baseTransform * node.Transformation;
 
+			const glm::vec3 parentLocation = Math::DecomposeTransformMatrix(tr).Location;
 			for (const auto& child : node.Children)
 			{
-				glm::vec3 location;
-				glm::vec3 unused;
-				Math::DecomposeTransformMatrix(tr, location, unused, unused);
 				auto& line = buffer.emplace_back();
-				line.Start = location;
+				line.Start = parentLocation;
+				line.StartColor = glm::vec3(0, 1, 0);
 				
-				Math::DecomposeTransformMatrix(tr * child.Transformation, location, unused, unused);
+				const glm::vec3 location = Math::DecomposeTransformMatrix(tr * child.Transformation).Location;
 				line.End = location;
+				line.EndColor = glm::vec3(1, 1, 0);
 			}
 
 			for (const auto& child : node.Children)
-				DrawBones(buffer, child, tr);
+				DrawBones(buffer, child, currentPose, bRagdoll, tr);
 		}
 	
 		void DrawBox(std::vector<RendererLine>& buffer, AABB aabb, const Transform& worldTr, const glm::vec3& color = glm::vec3(1, 0, 0))
@@ -251,6 +260,7 @@ namespace Eagle
 
 	Scene::Scene(const Ref<Scene>& other, const std::string& debugName)
 	: bCanUpdateEditorCamera(other->bCanUpdateEditorCamera)
+	, m_RuntimePhysicsScene(other->m_RuntimePhysicsScene)
 	, m_PhysicsScene(other->m_RuntimePhysicsScene)
 	, m_EditorCamera(other->m_EditorCamera)
 	, m_EntitiesToDestroy(other->m_EntitiesToDestroy)
@@ -640,7 +650,7 @@ namespace Eagle
 			if (!m_RuntimeCameraHolder)
 			{
 				//If user provided primary-camera doesn't exist, provide one and set its transform to match editor camera's transform
-				m_RuntimeCameraHolder = new Entity(CreateEntity("Runtime Camera"));
+				m_RuntimeCameraHolder = new Entity(CreateEntity("EAGLE:RuntimeCamera"));
 				m_RuntimeCameraHolder->AddComponent<NativeScriptComponent>().Bind<CameraController>();
 				m_RuntimeCameraHolder->RemoveComponent<EntitySceneNameComponent>(); // Delete it so it doesn't show up in the Scene hierarchy
 
@@ -883,7 +893,7 @@ namespace Eagle
 				{
 					auto& skeletal = view.get<SkeletalMeshComponent>(entity);
 					if (auto& asset = skeletal.GetMeshAsset())
-						Utils::DrawBones(m_DebugLinesToDraw, asset->GetMesh()->GetSkeletalMeshInfo().RootBone, Math::ToTransformMatrix(skeletal.GetWorldTransform()));
+						Utils::DrawBones(m_DebugLinesToDraw, asset->GetMesh()->GetSkeletalMeshInfo().RootBone, skeletal.LastPose, skeletal.IsRagdollEnabled(), Math::ToTransformMatrix(skeletal.GetWorldTransform()));
 				}
 			}
 
@@ -1263,6 +1273,7 @@ namespace Eagle
 		}
 
 		m_PhysicsScene.reset();
+		m_RuntimePhysicsScene.reset();
 		m_Registry.clear();
 		m_SpawnedSounds.clear();
 	}

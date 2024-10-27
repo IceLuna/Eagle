@@ -90,6 +90,7 @@ namespace Eagle::Math
 
 	glm::mat4 ToTransformMatrix(const Transform& transform)
 	{
+		// TODO: Optimize by passing required matrices instead of `glm::mat4(1.0f)`
 		glm::mat4 rotation = GetRotationMatrix(transform.Rotation);
 		return glm::translate(glm::mat4(1.0f), transform.Location)
 			* rotation

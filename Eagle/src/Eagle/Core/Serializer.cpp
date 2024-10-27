@@ -234,6 +234,17 @@ namespace Eagle
 		return false;
 	}
 
+	static void SerializeRagdollBoneOffsets(YAML::Emitter& out, const SkeletalRagdollBones& node)
+	{
+		out << YAML::BeginMap;
+		out << YAML::Key << "Name" << YAML::Value << node.Name;
+		out << YAML::Key << "Offset" << YAML::Value << Math::ToTransformMatrix(node.UserOffset);
+		out << YAML::EndMap;
+
+		for (const auto& child : node.Children)
+			SerializeRagdollBoneOffsets(out, child);
+	}
+
 	void Serializer::EmitBoneNode(YAML::Emitter& out, const BoneNode& node)
 	{
 		out << YAML::BeginMap;
@@ -488,6 +499,18 @@ namespace Eagle
 			out << YAML::Key << "Min" << YAML::Value << aabb.Min;
 			out << YAML::Key << "Max" << YAML::Value << aabb.Max;
 			out << YAML::EndMap;
+		}
+
+		out << YAML::Key << "MinRagdollBoneSize" << YAML::Value << mesh->GetMinRagdollBoneSize();
+		out << YAML::Key << "MaxRagdollTwist" << YAML::Value << mesh->GetRagdollMaxTwist();
+		out << YAML::Key << "MaxRagdollSwing" << YAML::Value << mesh->GetRagdollMaxSwing();
+
+		const auto& ragdollData = mesh->GetRagdollRoot();
+		if (!ragdollData.Name.empty())
+		{
+			out << YAML::Key << "RagdollBoneOffsets" << YAML::Value << YAML::BeginSeq;
+			SerializeRagdollBoneOffsets(out, ragdollData);
+			out << YAML::EndSeq;
 		}
 
 		if (const uint32_t materialsCount = mesh->GetMaterialSlotsCount())
@@ -1066,6 +1089,7 @@ namespace Eagle
 			out << YAML::Key << "ClipPlaybackSpeed" << smComponent.ClipPlaybackSpeed;
 			out << YAML::Key << "ClipLooping" << smComponent.bClipLooping;
 			out << YAML::Key << "RootMotionLockFlags" << (uint32_t)smComponent.GetRootMotionLockFlags();
+			out << YAML::Key << "bRagdoll" << YAML::Value << smComponent.IsRagdollEnabled();
 
 			out << YAML::EndMap; //SkeletalMeshComponent
 		}
@@ -1564,6 +1588,8 @@ namespace Eagle
 				smComponent.bClipLooping = node.as<bool>();
 			if (auto node = skeletalMeshComponentNode["RootMotionLockFlags"])
 				smComponent.SetRootMotionLockFlag((RootMotionLockFlag)node.as<uint32_t>());
+			if (auto node = skeletalMeshComponentNode["bRagdoll"])
+				smComponent.SetRagdollEnabled(node.as<bool>());
 		}
 
 		if (auto pointLightComponentNode = entityNode["PointLightComponent"])
@@ -1664,8 +1690,8 @@ namespace Eagle
 		{
 			auto& rigidBodyComponent = deserializedEntity.AddComponent<RigidBodyComponent>();
 
-			rigidBodyComponent.BodyType = Utils::GetEnumFromName<RigidBodyComponent::Type>(rigidBodyComponentNode["BodyType"].as<std::string>());
-			rigidBodyComponent.CollisionDetection = Utils::GetEnumFromName<RigidBodyComponent::CollisionDetectionType>(rigidBodyComponentNode["CollisionDetectionType"].as<std::string>());
+			rigidBodyComponent.BodyType = Utils::GetEnumFromName<PhysicsBodyType>(rigidBodyComponentNode["BodyType"].as<std::string>());
+			rigidBodyComponent.CollisionDetection = Utils::GetEnumFromName<CollisionDetectionType>(rigidBodyComponentNode["CollisionDetectionType"].as<std::string>());
 			rigidBodyComponent.SetMass(rigidBodyComponentNode["Mass"].as<float>());
 			rigidBodyComponent.SetLinearDamping(rigidBodyComponentNode["LinearDamping"].as<float>());
 			rigidBodyComponent.SetAngularDamping(rigidBodyComponentNode["AngularDamping"].as<float>());
@@ -2731,6 +2757,26 @@ namespace Eagle
 			aabb.Max = aabbNode["Max"].as<glm::vec3>();
 		}
 
+		float minRagdollBoneSize = 0.1f;
+		float maxRagdollTwist = 22.5f;
+		float maxRagdollSwing = 45.0f;
+		if (auto node = baseNode["MinRagdollBoneSize"])
+			minRagdollBoneSize = node.as<float>();
+		if (auto node = baseNode["MaxRagdollTwist"])
+			maxRagdollTwist = node.as<float>();
+		if (auto node = baseNode["MaxRagdollSwing"])
+			maxRagdollSwing = node.as<float>();
+
+		std::unordered_map<std::string, Transform> ragdollOffsets;
+		if (auto node = baseNode["RagdollBoneOffsets"])
+		{
+			ragdollOffsets.reserve(node.size());
+			for (const auto& dataNode : node)
+			{
+				ragdollOffsets.emplace(dataNode["Name"].as<std::string>(), Math::DecomposeTransformMatrix(dataNode["Offset"].as<glm::mat4>()));
+			}
+		}
+
 		auto materialsNode = baseNode["Materials"];
 
 		SkeletalMeshInfo skeletalInfo;
@@ -2784,7 +2830,7 @@ namespace Eagle
 			}
 		}
 
-		Ref<SkeletalMesh> skeletalMesh = SkeletalMesh::Create(vertices, indicesPerMaterial, skeletalInfo, aabb);
+		Ref<SkeletalMesh> skeletalMesh = SkeletalMesh::Create(vertices, indicesPerMaterial, skeletalInfo, aabb, ragdollOffsets, minRagdollBoneSize, maxRagdollTwist, maxRagdollSwing);
 		if (materialsNode)
 			for (const auto& matNode : materialsNode)
 				skeletalMesh->SetMaterialAsset(matNode["Index"].as<uint32_t>(), GetAsset<AssetMaterial>(matNode["Material"]));

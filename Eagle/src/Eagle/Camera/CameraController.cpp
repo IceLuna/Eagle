@@ -92,4 +92,21 @@ namespace Eagle
 			}
 		}
 	}
+	
+	void CameraController::OnEvent(Event& e)
+	{
+		EventDispatcher dispatcher(e);
+		dispatcher.Dispatch<MouseScrolledEvent>(EG_BIND_FN(CameraController::OnMouseScrolled));
+	}
+	
+	bool CameraController::OnMouseScrolled(MouseScrolledEvent& e)
+	{
+		if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
+		{
+			m_MoveSpeed += e.GetYOffset() * 0.25f;
+			m_MoveSpeed = std::max(0.1f, m_MoveSpeed);
+		}
+
+		return false;
+	}
 }

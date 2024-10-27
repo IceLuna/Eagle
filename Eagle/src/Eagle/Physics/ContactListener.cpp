@@ -1,6 +1,7 @@
 #include "egpch.h"
 #include "ContactListener.h"
 #include "PhysicsActor.h"
+#include "PhysicsRagdollActor.h"
 #include "Eagle/Script/ScriptEngine.h"
 
 namespace Eagle
@@ -11,24 +12,50 @@ namespace Eagle
 	
 	void ContactListener::onWake(physx::PxActor** actors, physx::PxU32 count)
 	{
+#if 0
 		for (uint32_t i = 0; i < count; ++i)
 		{
 			physx::PxActor& physxActor = *actors[i];
-			PhysicsActor* actor = (PhysicsActor*)physxActor.userData;
-			const Entity& entity = actor->GetEntity();
+
+			Entity entity;
+			const PhysicsActorPayload* payload = (PhysicsActorPayload*)physxActor.userData;
+			if (payload->bRagdoll)
+			{
+				const PhysicsRagdollActor* actor = (PhysicsRagdollActor*)payload->Ptr;
+				entity = actor->GetEntity();
+			}
+			else
+			{
+				const PhysicsActor* actor = (PhysicsActor*)payload->Ptr;
+				entity = actor->GetEntity();
+			}
 			//EG_CORE_INFO("[Physics Engine] Physics Actor is waking up. Name {0}", entity.GetComponent<EntitySceneNameComponent>().Name);
 		}
+#endif
 	}
 	
 	void ContactListener::onSleep(physx::PxActor** actors, physx::PxU32 count)
 	{
+#if 0
 		for (uint32_t i = 0; i < count; ++i)
 		{
 			physx::PxActor& physxActor = *actors[i];
-			PhysicsActor* actor = (PhysicsActor*)physxActor.userData;
-			const Entity& entity = actor->GetEntity();
+
+			Entity entity;
+			const PhysicsActorPayload* payload = (PhysicsActorPayload*)physxActor.userData;
+			if (payload->bRagdoll)
+			{
+				const PhysicsRagdollActor* actor = (PhysicsRagdollActor*)payload->Ptr;
+				entity = actor->GetEntity();
+			}
+			else
+			{
+				const PhysicsActor* actor = (PhysicsActor*)payload->Ptr;
+				entity = actor->GetEntity();
+			}
 			//EG_CORE_INFO("[Physics Engine] Physics Actor is going to sleep. Name {0}", entity.GetComponent<EntitySceneNameComponent>().Name);
 		}
+#endif
 	}
 	
 	void ContactListener::onContact(const physx::PxContactPairHeader& pairHeader, const physx::PxContactPair* pairs, physx::PxU32 nbPairs)
@@ -42,11 +69,44 @@ namespace Eagle
 		if (removedActorA || removedActorB)
 			return;
 
-		PhysicsActor* actorA = (PhysicsActor*)pairHeader.actors[0]->userData;
-		PhysicsActor* actorB = (PhysicsActor*)pairHeader.actors[1]->userData;
+		Entity entityA;
+		Entity entityB;
+		float simulationTimeStepA;
 
-		bool bActorAHasScript = ScriptEngine::IsEntityModuleValid(actorA->GetEntity());
-		bool bActorBHasScript = ScriptEngine::IsEntityModuleValid(actorB->GetEntity());
+		// Actor A
+		{
+			const PhysicsActorPayload* payload = (PhysicsActorPayload*)pairHeader.actors[0]->userData;
+			if (payload->bRagdoll)
+			{
+				const PhysicsRagdollActor* actor = (PhysicsRagdollActor*)payload->Ptr;
+				entityA = actor->GetEntity();
+				simulationTimeStepA = actor->GetSimulationTimeStep();
+			}
+			else
+			{
+				const PhysicsActor* actor = (PhysicsActor*)payload->Ptr;
+				entityA = actor->GetEntity();
+				simulationTimeStepA = actor->GetSimulationTimeStep();
+			}
+		}
+		
+		// Actor B
+		{
+			const PhysicsActorPayload* payload = (PhysicsActorPayload*)pairHeader.actors[1]->userData;
+			if (payload->bRagdoll)
+			{
+				const PhysicsRagdollActor* actor = (PhysicsRagdollActor*)payload->Ptr;
+				entityB = actor->GetEntity();
+			}
+			else
+			{
+				const PhysicsActor* actor = (PhysicsActor*)payload->Ptr;
+				entityB = actor->GetEntity();
+			}
+		}
+
+		bool bActorAHasScript = ScriptEngine::IsEntityModuleValid(entityA);
+		bool bActorBHasScript = ScriptEngine::IsEntityModuleValid(entityB);
 
 		CollisionInfo collisionInfo{};
 		if (nbPairs > 0)
@@ -59,7 +119,7 @@ namespace Eagle
 			{
 				collisionInfo.Position = PhysXUtils::FromPhysXVector(contact.position);
 				collisionInfo.Impulse = PhysXUtils::FromPhysXVector(contact.impulse);
-				collisionInfo.Force = collisionInfo.Impulse * actorA->GetSimulationTimeStep();
+				collisionInfo.Force = collisionInfo.Impulse * simulationTimeStepA;
 				collisionInfo.Normal = PhysXUtils::FromPhysXVector(contact.normal);
 			}
 		}
@@ -70,16 +130,16 @@ namespace Eagle
 		if ((pairs->flags & physx::PxContactPairFlag::eACTOR_PAIR_HAS_FIRST_TOUCH) == physx::PxContactPairFlag::eACTOR_PAIR_HAS_FIRST_TOUCH)
 		{
 			if (bActorAHasScript)
-				ScriptEngine::OnCollisionBegin(actorA->GetEntity(), actorB->GetEntity(), collisionInfo);
+				ScriptEngine::OnCollisionBegin(entityA, entityB, collisionInfo);
 			if (bActorBHasScript)
-				ScriptEngine::OnCollisionBegin(actorB->GetEntity(), actorA->GetEntity(), collisionInfo);
+				ScriptEngine::OnCollisionBegin(entityB, entityA, collisionInfo);
 		}
 		else if ((pairs->flags & physx::PxContactPairFlag::eACTOR_PAIR_LOST_TOUCH) == physx::PxContactPairFlag::eACTOR_PAIR_LOST_TOUCH)
 		{
 			if (bActorAHasScript)
-				ScriptEngine::OnCollisionEnd(actorA->GetEntity(), actorB->GetEntity(), collisionInfo);
+				ScriptEngine::OnCollisionEnd(entityA, entityB, collisionInfo);
 			if (bActorBHasScript)
-				ScriptEngine::OnCollisionEnd(actorB->GetEntity(), actorA->GetEntity(), collisionInfo);
+				ScriptEngine::OnCollisionEnd(entityB, entityA, collisionInfo);
 		}
 	}
 	
@@ -93,14 +153,47 @@ namespace Eagle
 			if (pairs[i].flags & (physx::PxTriggerPairFlag::eREMOVED_SHAPE_TRIGGER | physx::PxTriggerPairFlag::eREMOVED_SHAPE_OTHER))
 				continue;
 			
-			PhysicsActor* triggerActor = (PhysicsActor*)pairs[i].triggerActor->userData;
-			PhysicsActor* otherActor = (PhysicsActor*)pairs[i].otherActor->userData;
+			Entity triggerEntity;
+			Entity otherEntity;
 
-			if (!triggerActor || !otherActor)
-				continue;
+			// Actor A
+			{
+				const PhysicsActorPayload* payload = (PhysicsActorPayload*)pairs[i].triggerActor->userData;
+				if (payload == nullptr)
+					continue;
 
-			bool bTriggerHasScript = ScriptEngine::IsEntityModuleValid(triggerActor->GetEntity());
-			bool bOtherHasScript = ScriptEngine::IsEntityModuleValid(otherActor->GetEntity());
+				if (payload->bRagdoll)
+				{
+					const PhysicsRagdollActor* actor = (PhysicsRagdollActor*)payload->Ptr;
+					triggerEntity = actor->GetEntity();
+				}
+				else
+				{
+					const PhysicsActor* actor = (PhysicsActor*)payload->Ptr;
+					triggerEntity = actor->GetEntity();
+				}
+			}
+
+			// Actor B
+			{
+				const PhysicsActorPayload* payload = (PhysicsActorPayload*)pairs[i].otherActor->userData;
+				if (payload == nullptr)
+					continue;
+
+				if (payload->bRagdoll)
+				{
+					const PhysicsRagdollActor* actor = (PhysicsRagdollActor*)payload->Ptr;
+					otherEntity = actor->GetEntity();
+				}
+				else
+				{
+					const PhysicsActor* actor = (PhysicsActor*)payload->Ptr;
+					otherEntity = actor->GetEntity();
+				}
+			}
+
+			bool bTriggerHasScript = ScriptEngine::IsEntityModuleValid(triggerEntity);
+			bool bOtherHasScript = ScriptEngine::IsEntityModuleValid(otherEntity);
 
 			if (!bTriggerHasScript && !bOtherHasScript)
 				continue;
@@ -108,16 +201,16 @@ namespace Eagle
 			if ((pairs[i].status & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND) == physx::PxPairFlag::eNOTIFY_TOUCH_FOUND)
 			{
 				if (bTriggerHasScript)
-					ScriptEngine::OnTriggerBegin(triggerActor->GetEntity(), otherActor->GetEntity());
+					ScriptEngine::OnTriggerBegin(triggerEntity, otherEntity);
 				if (bOtherHasScript)
-					ScriptEngine::OnTriggerBegin(otherActor->GetEntity(), triggerActor->GetEntity());
+					ScriptEngine::OnTriggerBegin(otherEntity, triggerEntity);
 			}
 			else if ((pairs[i].status & physx::PxPairFlag::eNOTIFY_TOUCH_LOST) == physx::PxPairFlag::eNOTIFY_TOUCH_LOST)
 			{
 				if (bTriggerHasScript)
-					ScriptEngine::OnTriggerEnd(triggerActor->GetEntity(), otherActor->GetEntity());
+					ScriptEngine::OnTriggerEnd(triggerEntity, otherEntity);
 				if (bOtherHasScript)
-					ScriptEngine::OnTriggerEnd(otherActor->GetEntity(), triggerActor->GetEntity());
+					ScriptEngine::OnTriggerEnd(otherEntity, triggerEntity);
 			}
 		}
 	}

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Eagle/Math/Transform.h"
+
 namespace Eagle
 {
 	class Asset;
@@ -28,14 +30,19 @@ namespace Eagle
 		// Called right before ImGui::End() of viewport to allow custom widgets
 		virtual void OnViewportEnd() {}
 
+		bool DrawGuizmo(Transform& transform, int ID, bool bEnabled);
+		int GetGuizmoType() const { return m_GuizmoType; }
+
 	private:
 		void AddSkybox();
+		bool OnKeyPressed(KeyPressedEvent& e);
 
 	protected:
 		Ref<Scene> m_Scene;
 		Ref<SceneRenderer> m_Renderer;
 		Ref<AssetTextureCube> m_Skybox;
 		glm::vec2 m_ViewportBounds[2] = { glm::vec2(), glm::vec2() };
+		int m_GuizmoType = 7; // TRANSLATE;
 
 		bool bViewportVisible = false;
 		bool bViewportFocused = false;

@@ -11,17 +11,20 @@ namespace Eagle
 	PhysicsActor::PhysicsActor(Entity& entity, const PhysicsSettings& settings)
 	: m_Settings(settings)
 	, m_Entity(entity)
-	, m_RigidBodyComponent(m_Entity.GetComponent<RigidBodyComponent>())
 	{
-		m_BodyType = m_RigidBodyComponent.BodyType;
+		const auto& rigidBody = m_Entity.GetComponent<RigidBodyComponent>();
+		m_BodyType = rigidBody.BodyType;
 		m_FilterData.word0 = 1; // word0 = own ID
 		m_FilterData.word1 = 1; // word1 = ID mask to filter pairs that trigger a contact callback;
-		m_FilterData.word2 = (uint32_t)m_RigidBodyComponent.CollisionDetection;
+		m_FilterData.word2 = (uint32_t)rigidBody.CollisionDetection;
+		m_Payload.Ptr = this;
+		m_Payload.bRagdoll = false;
 		CreateRigidActor();
 	}
 	
 	PhysicsActor::~PhysicsActor()
 	{
+		Release();
 	}
 	
 	void PhysicsActor::SetLocation(const glm::vec3& location, bool autowake)
@@ -47,6 +50,11 @@ namespace Eagle
 		
 		m_RigidActor->setGlobalPose(transform, autowake);
 	}
+
+	void PhysicsActor::SetTransform(const Transform& transform, bool bAutowake)
+	{
+		m_RigidActor->setGlobalPose(PhysXUtils::ToPhysXTranform(transform), bAutowake);
+	}
 	
 	void PhysicsActor::WakeUp()
 	{
@@ -62,15 +70,15 @@ namespace Eagle
 	
 	float PhysicsActor::GetMass() const
 	{
-		//TODO: check if we can always return 'm_RigidBodyComponent.Mass'
-		return !IsDynamic() ? m_RigidBodyComponent.GetMass() : m_RigidActor->is<physx::PxRigidDynamic>()->getMass();
+		//TODO: check if we can always return 'RigidBodyComponent.Mass'
+		return !IsDynamic() ? m_Entity.GetComponent<RigidBodyComponent>().GetMass() : m_RigidActor->is<physx::PxRigidDynamic>()->getMass();
 	}
 	
 	void PhysicsActor::SetMass(float mass)
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot set mass of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot set mass of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return;
 		}
 
@@ -83,31 +91,30 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot add force to non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot add force to non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return;
 		}
-		else if (m_RigidBodyComponent.IsKinematic())
+		else if (m_Entity.GetComponent<RigidBodyComponent>().IsKinematic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot add force to Kinamatic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot add force to Kinamatic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return;
 		}
 
 		physx::PxRigidDynamic* actor = m_RigidActor->is<physx::PxRigidDynamic>();
 		EG_CORE_ASSERT(actor, "No actor");
 		actor->addForce(PhysXUtils::ToPhysXVector(force), (physx::PxForceMode::Enum)forceMode);
-
 	}
 	
 	void PhysicsActor::AddTorque(const glm::vec3& torque, ForceMode forceMode)
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot add torque to non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot add torque to non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return;
 		}
-		else if (m_RigidBodyComponent.IsKinematic())
+		else if (m_Entity.GetComponent<RigidBodyComponent>().IsKinematic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot add torque to Kinamatic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot add torque to Kinamatic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return;
 		}
 
@@ -120,7 +127,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot get linear velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot get linear velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return glm::vec3(0.f);
 		}
 
@@ -134,7 +141,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot set linear velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot set linear velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return;
 		}
 
@@ -147,7 +154,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot get angular velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot get angular velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return glm::vec3(0.f);
 		}
 
@@ -161,7 +168,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot set angular velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot set angular velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return;
 		}
 
@@ -175,7 +182,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot get max linear velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot get max linear velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return 0.f;
 		}
 
@@ -189,7 +196,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot set max linear velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot set max linear velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return;
 		}
 
@@ -203,7 +210,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot get max angular velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot get max angular velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return 0.f;
 		}
 
@@ -217,7 +224,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot set max angular velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot set max angular velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return;
 		}
 
@@ -231,7 +238,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot set linear damping of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot set linear damping of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return;
 		}
 
@@ -245,7 +252,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot set angular damping of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot set angular damping of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return;
 		}
 
@@ -259,7 +266,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot get linear damping of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot get linear damping of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return 0.f;
 		}
 
@@ -273,7 +280,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot get angular damping of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot get angular damping of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return 0.f;
 		}
 
@@ -287,7 +294,7 @@ namespace Eagle
 	{
 		if (!IsKinematic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot get kinematic target of non-kinematic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot get kinematic target of non-kinematic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return {};
 		}
 
@@ -303,7 +310,7 @@ namespace Eagle
 	{
 		if (!IsKinematic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot get kinematic target location of non-kinematic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot get kinematic target location of non-kinematic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return glm::vec3(0.f);
 		}
 
@@ -319,7 +326,7 @@ namespace Eagle
 	{
 		if (!IsKinematic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot get kinematic target rotation of non-kinematic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot get kinematic target rotation of non-kinematic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return glm::vec3(0.f);
 		}
 
@@ -335,7 +342,7 @@ namespace Eagle
 	{
 		if (!IsKinematic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot set kinematic target of non-kinematic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot set kinematic target of non-kinematic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return;
 		}
 
@@ -349,7 +356,7 @@ namespace Eagle
 	{
 		if (!IsKinematic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot set kinematic target location of non-kinematic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot set kinematic target location of non-kinematic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return;
 		}
 
@@ -367,7 +374,7 @@ namespace Eagle
 	{
 		if (!IsKinematic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot set kinematic target rotation of non-kinematic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot set kinematic target rotation of non-kinematic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return;
 		}
 
@@ -387,11 +394,16 @@ namespace Eagle
 			collider->SetFilterData(m_FilterData);
 	}
 	
+	bool PhysicsActor::IsKinematic() const
+	{
+		return IsDynamic() && m_Entity.GetComponent<RigidBodyComponent>().IsKinematic();
+	}
+
 	bool PhysicsActor::SetKinematic(bool bKinematic)
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Static PhysicsActor can't be kinematic. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Static PhysicsActor can't be kinematic. Entity: '{0}'", m_Entity.GetName());
 			return false;
 		}
 
@@ -403,7 +415,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot call `SetGravityEnabled`. It's not a dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Cannot call `SetGravityEnabled`. It's not a dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
 			return;
 		}
 
@@ -414,7 +426,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Can't lock Static Physics Actor. Entity: '{0}'", m_Entity.GetSceneName());
+			EG_CORE_WARN("[PhysicsEngine] Can't lock Static Physics Actor. Entity: '{0}'", m_Entity.GetName());
 			return;
 		}
 
@@ -456,7 +468,7 @@ namespace Eagle
 		const auto& collisionMesh = collider.GetCollisionMeshAsset();
 		if (!collisionMesh)
 		{
-			EG_CORE_ERROR("[Physics Engine] Set collision mesh inside MeshCollider Component. Entity: '{0}'", collider.Parent.GetSceneName());
+			EG_CORE_ERROR("[Physics Engine] Set collision mesh inside MeshCollider Component. Entity: '{0}'", collider.Parent.GetName());
 			return {};
 		}
 
@@ -475,7 +487,7 @@ namespace Eagle
 		{
 			if (IsDynamic() && !IsKinematic())
 			{
-				EG_CORE_ERROR("[Physics Engine] Can't have a non-convex MeshColliderComponent for a non-kinematic dynamic RigidBody Component. Entity: '{0}'", m_Entity.GetSceneName());
+				EG_CORE_ERROR("[Physics Engine] Can't have a non-convex MeshColliderComponent for a non-kinematic dynamic RigidBody Component. Entity: '{0}'", m_Entity.GetName());
 				return {};
 			}
 
@@ -523,49 +535,52 @@ namespace Eagle
 		m_Colliders.clear();
 	}
 
+	void PhysicsActor::Release()
+	{
+		RemoveAllColliders();
+		m_RigidActor->release();
+		m_RigidActor = nullptr;
+	}
+
 	void PhysicsActor::CreateRigidActor()
 	{
 		auto& physics = PhysXInternal::GetPhysics();
 		const Transform& transform = m_Entity.GetWorldTransform();
 
-		if (m_BodyType == RigidBodyComponent::Type::Static)
+		if (m_BodyType == PhysicsBodyType::Static)
 		{
 			m_RigidActor = physics.createRigidStatic(PhysXUtils::ToPhysXTranform(transform));
-			m_RigidActor->userData = this;
 		}
 		else
 		{
 			m_RigidActor = physics.createRigidDynamic(PhysXUtils::ToPhysXTranform(transform));
 
-			SetLinearDamping(m_RigidBodyComponent.GetLinearDamping());
-			SetAngularDamping(m_RigidBodyComponent.GetAngularDamping());
-			SetKinematic(m_RigidBodyComponent.IsKinematic());
-			SetLockFlag(m_RigidBodyComponent.GetLockFlags());
-			SetGravityEnabled(m_RigidBodyComponent.IsGravityEnabled());
-			SetMaxLinearVelocity(m_RigidBodyComponent.GetMaxLinearVelocity());
-			SetMaxAngularVelocity(m_RigidBodyComponent.GetMaxAngularVelocity());
+			const auto& rigidBody = m_Entity.GetComponent<RigidBodyComponent>();
+			SetLinearDamping(rigidBody.GetLinearDamping());
+			SetAngularDamping(rigidBody.GetAngularDamping());
+			SetKinematic(rigidBody.IsKinematic());
+			SetLockFlag(rigidBody.GetLockFlags());
+			SetGravityEnabled(rigidBody.IsGravityEnabled());
+			SetMaxLinearVelocity(rigidBody.GetMaxLinearVelocity());
+			SetMaxAngularVelocity(rigidBody.GetMaxAngularVelocity());
 
 			m_RigidActor->is<physx::PxRigidDynamic>()->setSolverIterationCounts(m_Settings.SolverIterations, m_Settings.SolverVelocityIterations);
-			m_RigidActor->is<physx::PxRigidDynamic>()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, m_RigidBodyComponent.CollisionDetection == RigidBodyComponent::CollisionDetectionType::Continuous);
-			m_RigidActor->is<physx::PxRigidDynamic>()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_SPECULATIVE_CCD, m_RigidBodyComponent.CollisionDetection == RigidBodyComponent::CollisionDetectionType::ContinuousSpeculative);
+			m_RigidActor->is<physx::PxRigidDynamic>()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, rigidBody.CollisionDetection == CollisionDetectionType::Continuous);
+			m_RigidActor->is<physx::PxRigidDynamic>()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_SPECULATIVE_CCD, rigidBody.CollisionDetection == CollisionDetectionType::ContinuousSpeculative);
 
-			SetMass(m_RigidBodyComponent.GetMass());
-
-			m_RigidActor->userData = this;
+			SetMass(rigidBody.GetMass());
 		}
-		#ifdef EG_DEBUG
-			auto& name = m_Entity.GetComponent<EntitySceneNameComponent>().Name;
-			m_RigidActor->setName(name.c_str());
-		#endif
+
+		m_RigidActor->userData = &m_Payload;
+#ifdef EG_DEBUG
+		const auto& name = m_Entity.GetComponent<EntitySceneNameComponent>().Name;
+		m_RigidActor->setName(name.c_str());
+#endif
 	}
 	
 	void PhysicsActor::SynchronizeTransform()
 	{
-		Transform transform;
-		physx::PxTransform actorPose = m_RigidActor->getGlobalPose();
-		transform.Location = PhysXUtils::FromPhysXVector(actorPose.p);
-		transform.Rotation = PhysXUtils::FromPhysXQuat(actorPose.q);
-
+		Transform transform = PhysXUtils::FromPhysXTransform(m_RigidActor->getGlobalPose());
 		m_Entity.SetWorldLocation(transform.Location, false);
 		m_Entity.SetWorldRotation(transform.Rotation, false);
 	}

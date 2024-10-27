@@ -194,7 +194,7 @@ namespace Eagle
 				BoneInfo info;
 				info.BoneID = boneID;
 				info.Offset = ToGLM(mesh->mBones[i]->mOffsetMatrix);
-				bones.emplace(std::move(boneName), std::move(info));
+				it = bones.emplace(std::move(boneName), std::move(info)).first;
 			}
 			else
 			{
@@ -210,12 +210,10 @@ namespace Eagle
 
 				auto& vertex = vertices[vertexID];
 				{
-					// Check the max bones limit
 					static_assert(std::is_same<glm::vec4, decltype(SkeletalVertex::Weights)>::value);
-					constexpr int maxBones = glm::vec4::length();
 
 					bool bInserted = false;
-					for (int i = 0; i < maxBones; ++i)
+					for (int i = 0; i < EG_MAX_BONES_PER_VERTEX; ++i)
 					{
 						if (vertex.Weights[i] == 0.f)
 						{
@@ -230,7 +228,7 @@ namespace Eagle
 						int leastInfluentialBoneIndex = -1;
 						float minWeight = weight;
 						// Find the least influential bone to replace it
-						for (int i = 0; i < maxBones; ++i)
+						for (int i = 0; i < EG_MAX_BONES_PER_VERTEX; ++i)
 						{
 							if (vertex.Weights[i] < weight)
 							{
@@ -245,6 +243,7 @@ namespace Eagle
 						{
 							vertex.Weights[leastInfluentialBoneIndex] = weight;
 							vertex.BoneID[leastInfluentialBoneIndex] = boneID;
+							bInserted = true;
 						}
 					}
 				}

@@ -1,16 +1,13 @@
 #pragma once
 
+#include "Eagle/Core/Entity.h"
 #include "PhysicsEngine.h"
 #include "PhysicsUtils.h"
 #include "PhysicsShapes.h"
 #include <PhysX/PxPhysicsAPI.h>
-#include "Eagle/Components/Components.h"
 
 namespace Eagle
 {
-	class Entity;
-	class RigidBodyComponent;
-
 	class PhysicsActor
 	{
 	public:
@@ -23,6 +20,9 @@ namespace Eagle
 		Rotator GetRotation() const { return PhysXUtils::FromPhysXQuat(m_RigidActor->getGlobalPose().q); }
 		void SetRotation(const Rotator& rotation, bool autowake = true);
 		void Rotate(const Rotator& rotation, bool autowake = true);
+
+		Transform GetTransform() const { return PhysXUtils::FromPhysXTransform(m_RigidActor->getGlobalPose()); }
+		void SetTransform(const Transform& transform, bool bAutowake = true);
 
 		void WakeUp();
 		void PutToSleep();
@@ -56,9 +56,9 @@ namespace Eagle
 		void SetKinematicTargetLocation(const glm::vec3& location);
 		void SetKinematicTargetRotation(const Rotator& rotation);
 
-		bool IsDynamic() const { return m_BodyType == RigidBodyComponent::Type::Dynamic; }
+		bool IsDynamic() const { return m_BodyType == PhysicsBodyType::Dynamic; }
 
-		bool IsKinematic() const { return IsDynamic() && m_RigidBodyComponent.IsKinematic(); };
+		bool IsKinematic() const;
 		bool SetKinematic(bool bKinematic);
 
 		bool IsGravityEnabled() const { return !m_RigidActor->getActorFlags().isSet(physx::PxActorFlag::eDISABLE_GRAVITY); }
@@ -66,7 +66,7 @@ namespace Eagle
 
 		void SetLockFlag(ActorLockFlag flag);
 		ActorLockFlag GetLockFlags() const { return m_LockFlags; }
-		RigidBodyComponent::Type GetBodyType() const { return m_BodyType; }
+		PhysicsBodyType GetBodyType() const { return m_BodyType; }
 
 		void OnFixedUpdate(Timestep fixedDeltaTime);
 
@@ -83,8 +83,12 @@ namespace Eagle
 
 		bool RemoveCollider(const Ref<ColliderShape>& shape);
 		void RemoveAllColliders();
+		void Release();
 
 		float GetSimulationTimeStep() const { return m_Settings.FixedTimeStep; }
+
+		void SynchronizeTransform();
+		void SetSimulationData();
 
 	private:
 		template <typename T>
@@ -96,19 +100,15 @@ namespace Eagle
 		}
 
 		void CreateRigidActor();
-		void SynchronizeTransform();
-		void SetSimulationData();
 
 	private:
-		const PhysicsSettings& m_Settings;
+		PhysicsSettings m_Settings;
 		physx::PxFilterData m_FilterData;
-		RigidBodyComponent::Type m_BodyType;
+		PhysicsBodyType m_BodyType;
 		physx::PxRigidActor* m_RigidActor = nullptr;
 		Entity m_Entity;
-		RigidBodyComponent& m_RigidBodyComponent;
 		ActorLockFlag m_LockFlags = ActorLockFlag::None;
 		std::set<Ref<ColliderShape>> m_Colliders;
-
-		friend class PhysicsScene;
+		PhysicsActorPayload m_Payload;
 	};
 }

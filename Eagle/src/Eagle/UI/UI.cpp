@@ -783,7 +783,13 @@ namespace Eagle::UI
 
 	bool InputText(const std::string_view label, std::string& value, ImGuiInputTextFlags flags, const std::string_view helpMessage)
 	{
-		return ImGui::InputText(label.data(), value.data(), value.length() + 1, flags | ImGuiInputTextFlags_CallbackResize, UI::TextResizeCallback, &value);
+		const bool bChanged = ImGui::InputText(label.data(), value.data(), value.length() + 1, flags | ImGuiInputTextFlags_CallbackResize, UI::TextResizeCallback, &value);
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		return bChanged;
 	}
 
 	bool Combo(const std::string_view label, uint32_t currentSelection, const std::vector<std::string>& options, size_t optionsSize, int& outSelectedIndex, const std::vector<std::string>& tooltips, const std::string_view helpMessage)

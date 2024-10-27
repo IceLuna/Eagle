@@ -5,7 +5,7 @@
 #include <PhysX/PxPhysicsAPI.h>
 #include <glm/glm.hpp>
 
-#define OVERLAP_MAX_COLLIDERS 10
+#define EG_OVERLAP_MAX_COLLIDERS 10
 
 namespace Eagle
 {
@@ -17,6 +17,7 @@ namespace Eagle
 		glm::vec3 Normal;
 	};
 
+	class PhysicsRagdollActor;
 	struct PhysicsSettings;
 
 	class PhysicsScene
@@ -40,14 +41,17 @@ namespace Eagle
 		void SetGravity(const glm::vec3& gravity) { m_Scene->setGravity(PhysXUtils::ToPhysXVector(gravity)); }
 
 		bool Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, RaycastHit* outHit) const;
-		bool OverlapBox(const glm::vec3& origin, const glm::vec3& halfSize, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const;
-		bool OverlapCapsule(const glm::vec3& origin, float radius, float halfHeight, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const;
-		bool OverlapSphere(const glm::vec3& origin, float radius, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const;
+		bool OverlapBox(const glm::vec3& origin, const glm::vec3& halfSize, std::array<physx::PxOverlapHit, EG_OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const;
+		bool OverlapCapsule(const glm::vec3& origin, float radius, float halfHeight, std::array<physx::PxOverlapHit, EG_OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const;
+		bool OverlapSphere(const glm::vec3& origin, float radius, std::array<physx::PxOverlapHit, EG_OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const;
 
 		bool IsValid() const { return m_Scene != nullptr; }
 
 		void Clear();
 		void Reset();
+
+		Ref<PhysicsRagdollActor> CreateRagdoll(const SkeletalMeshComponent& skeletalComp);
+		void ReleaseRagdoll(const SkeletalMeshComponent& skeletalComp);
 
 		const physx::PxRenderBuffer& GetRenderBuffer() const { return m_Scene->getRenderBuffer(); }
 		const PhysicsSettings& GetSettings() const { return m_Settings; }
@@ -61,12 +65,13 @@ namespace Eagle
 
 		void Destroy();
 
-		bool OverlapGeometry(const glm::vec3& origin, const physx::PxGeometry& geometry, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const;
+		bool OverlapGeometry(const glm::vec3& origin, const physx::PxGeometry& geometry, std::array<physx::PxOverlapHit, EG_OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const;
 
 	private:
 		PhysicsSettings m_Settings;
 		physx::PxScene* m_Scene = nullptr;
 		std::unordered_map<GUID, Ref<PhysicsActor>> m_Actors;
+		std::unordered_map<GUID, Ref<PhysicsRagdollActor>> m_RagdollActors;
 
 		float m_SubstepSize;
 		float m_Accumulator = 0.f;

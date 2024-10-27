@@ -43,4 +43,9 @@ namespace Eagle::Random
 	{
 		return s_DoubleDistribution(s_Engine) * (max - min) + min;
 	}
+
+	glm::vec3 Color()
+	{
+		return glm::vec3(Float(), Float(), Float());
+	}
 }

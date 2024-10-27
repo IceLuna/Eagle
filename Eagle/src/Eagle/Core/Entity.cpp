@@ -117,8 +117,7 @@ namespace Eagle
 		{
 			if (auto physicsActor = GetPhysicsActor())
 			{
-				physicsActor->SetLocation(transformComponent.WorldTransform.Location);
-				physicsActor->SetRotation(transformComponent.WorldTransform.Rotation);
+				physicsActor->SetTransform(transformComponent.WorldTransform);
 			}
 		}
 
@@ -231,8 +230,7 @@ namespace Eagle
 			{
 				if (auto physicsActor = GetPhysicsActor())
 				{
-					physicsActor->SetLocation(myWorldTransform.Location);
-					physicsActor->SetRotation(myWorldTransform.Rotation);
+					physicsActor->SetTransform(myWorldTransform);
 				}
 			}
 
@@ -270,7 +268,7 @@ namespace Eagle
 		return GetComponent<IDComponent>().ID;
 	}
 
-	const std::string& Entity::GetSceneName() const
+	const std::string& Entity::GetName() const
 	{
 		return GetComponent<EntitySceneNameComponent>().Name;
 	}

@@ -204,11 +204,6 @@ namespace Eagle
 			renderer->m_RenderBillboardsTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderUnlitTextTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderLinesTask->RecordCommandBuffer(cmd);
-
-			if (renderer->m_GBuffer.DepthHistory)
-				cmd->CopyImage(renderer->m_GBuffer.Depth, renderer->m_GBuffer.DepthHistory, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
-			if (renderer->m_GBuffer.NormalsHistory)
-				cmd->CopyImage(renderer->m_GBuffer.Geometry_Shading_Normals, renderer->m_GBuffer.NormalsHistory, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
 			
 			if (renderer->m_MotionBlurTask)
 				renderer->m_MotionBlurTask->RecordCommandBuffer(cmd);
@@ -223,6 +218,11 @@ namespace Eagle
 
 			if (renderer->m_Options_RT.AA == AAMethod::TAA)
 				renderer->m_TAATask->RecordCommandBuffer(cmd);
+
+			if (renderer->m_GBuffer.DepthHistory)
+				cmd->CopyImage(renderer->m_GBuffer.Depth, renderer->m_GBuffer.DepthHistory, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			if (renderer->m_GBuffer.NormalsHistory)
+				cmd->CopyImage(renderer->m_GBuffer.Geometry_Shading_Normals, renderer->m_GBuffer.NormalsHistory, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
 
 			renderer->m_Images2DTask->RecordCommandBuffer(cmd);
 			renderer->m_Text2DTask->RecordCommandBuffer(cmd);

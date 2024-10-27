@@ -2,9 +2,11 @@
 
 #include "AssetEditor.h"
 #include "Eagle/Math/Transform.h"
+#include "Eagle/Core/Entity.h"
 
 namespace Eagle
 {
+	class SkeletalMesh;
 	class AssetSkeletalMesh;
 	struct SkeletalMeshInfo;
 	struct BoneNode;
@@ -19,12 +21,33 @@ namespace Eagle
 		const Ref<Asset> GetAsset() const override { return Cast<Asset>(m_Asset); }
 
 	private:
-		bool DrawSkeletalTree(const SkeletalMeshInfo& skeletalInfo, BoneNode& node, size_t baseHash, bool* outDelete = nullptr);
+		bool DrawSkeletalTree(const SkeletalMeshInfo& skeletalInfo, BoneNode& node, size_t baseHash, bool* outDelete = nullptr, const glm::mat4& baseTransform = glm::mat4(1.f));
+		bool DrawRagdollTree(SkeletalRagdollBones& node, size_t baseHash);
+		bool DrawSkeletalTab(const Ref<SkeletalMesh>& mesh, size_t& assetHash);
+		bool DrawRagdollTab(const Ref<SkeletalMesh>& mesh, size_t& assetHash);
+		void UpdateGuizmo();
+		void OnViewportEnd() override { UpdateGuizmo(); }
+
+		enum class OpenedTabType
+		{
+			Skeletal, Ragdoll
+		};
 
 	private:
 		Ref<AssetSkeletalMesh> m_Asset;
+
 		std::string m_SelectedBoneName;
 		Transform m_SelectedBoneTransform;
 		BoneNode* m_SelectedBone = nullptr;
+
+		std::string m_SelectedRagdollBoneName;
+		Transform m_SelectedRagdollBoneTransform;
+		SkeletalRagdollBones* m_SelectedRagdollBone = nullptr;
+
+		OpenedTabType m_OpenedTab = OpenedTabType::Ragdoll;
+		Entity m_Entity;
+		float m_MinRagdollBoneSize = 0.1f;
+		float m_Twist = 22.5f;
+		float m_Swing = 45.f;
 	};
 }

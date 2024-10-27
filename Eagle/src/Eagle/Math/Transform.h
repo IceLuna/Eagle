@@ -26,8 +26,8 @@ namespace Eagle
 		const glm::quat& GetQuat() const { return m_Rotation; }
 		glm::quat& GetQuat() { return m_Rotation; }
 
-		Rotator operator*(const Rotator& other) const { return Rotator(glm::normalize(other.m_Rotation * m_Rotation)); }
-		Rotator& operator*=(const Rotator& other) { m_Rotation = other.m_Rotation * m_Rotation; Normalize(); return *this; }
+		Rotator operator*(const Rotator& other) const { return Rotator(m_Rotation * other.m_Rotation); }
+		Rotator& operator*=(const Rotator& other) { m_Rotation = m_Rotation * other.m_Rotation; return *this; }
 
 		Rotator Inverse() const { return Rotator(glm::inverse(m_Rotation)); }
 		Rotator Conjugate() const { return Rotator(glm::conjugate(m_Rotation)); }
@@ -38,8 +38,6 @@ namespace Eagle
 
 		// Returns in radians
 		glm::vec3 EulerAngles() const { return glm::eulerAngles(m_Rotation); }
-
-		Rotator operator*(const Rotator& other) { return Rotator(m_Rotation * other.m_Rotation); }
 
 	public:
 

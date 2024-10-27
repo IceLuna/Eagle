@@ -32,6 +32,7 @@ namespace Eagle
 	class CapsuleColliderShape;
 	class MeshShape;
 	class PhysicsActor;
+	class PhysicsRagdollActor;
 
 	class IDComponent
 	{
@@ -581,6 +582,7 @@ namespace Eagle
 	{
 	public:
 		SkeletalMeshComponent(const Entity& entity) : SceneComponent(entity) {}
+		~SkeletalMeshComponent();
 		SkeletalMeshComponent(const SkeletalMeshComponent&) = delete;
 		SkeletalMeshComponent(SkeletalMeshComponent&& other) = default;
 		SkeletalMeshComponent& operator=(SkeletalMeshComponent&& other) = default;
@@ -588,25 +590,7 @@ namespace Eagle
 		SkeletalMeshComponent& operator=(const SkeletalMeshComponent& other);
 
 		const Ref<AssetSkeletalMesh>& GetMeshAsset() const { return m_MeshAsset; }
-		void SetMeshAsset(const Ref<AssetSkeletalMesh>& mesh)
-		{
-			m_MeshAsset = mesh;
-			CurrentClipPlayTime = 0.f;
-			PrevClipPlayTime = 0.f;
-
-			if (m_MeshAsset)
-			{
-				const auto& mesh = m_MeshAsset->GetMesh();
-				const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
-				m_MaterialAssets.resize(materialsCount);
-				for (uint32_t i = 0; i < materialsCount; ++i)
-					m_MaterialAssets[i] = mesh->GetMaterialAsset(i);
-			}
-			else
-				m_MaterialAssets.clear();
-
-			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnStateChanged);
-		}
+		void SetMeshAsset(const Ref<AssetSkeletalMesh>& mesh);
 
 		const Ref<AssetAnimation>& GetAnimationAsset() const { return m_AnimAsset; }
 		void SetAnimationAsset(const Ref<AssetAnimation>& anim)
@@ -621,17 +605,8 @@ namespace Eagle
 
 		const Ref<AnimationGraph>& GetAnimationGraph() const { return m_Graph; }
 
-		void SetWorldTransform(const Transform& worldTransform) override
-		{
-			SceneComponent::SetWorldTransform(worldTransform);
-			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnTransformChanged);
-		}
-
-		void SetRelativeTransform(const Transform& relativeTransform) override
-		{
-			SceneComponent::SetRelativeTransform(relativeTransform);
-			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnTransformChanged);
-		}
+		void SetWorldTransform(const Transform& worldTransform) override;
+		void SetRelativeTransform(const Transform& relativeTransform) override;
 
 		void SetCastsShadows(bool bCasts)
 		{
@@ -669,10 +644,15 @@ namespace Eagle
 		void SetRootMotionLockFlag(RootMotionLockFlag flag) { m_RootMotionLockFlags = flag; }
 		RootMotionLockFlag GetRootMotionLockFlags() const { return m_RootMotionLockFlags; }
 
+		void SetRagdollEnabled(bool bEnabled);
+		bool IsRagdollEnabled() const { return m_bRagdollEnabled; }
+		const Ref<PhysicsRagdollActor>& GetRagdollActor() const { return m_RagdollActor; }
+		Ref<PhysicsRagdollActor>& GetRagdollActor() { return m_RagdollActor; }
+
 	public:
 		SkeletalPose LastPose; // The final pose that was calculated during the last animation update
 
-		// Used only if `AnimType` == `AnimationType::Clip`
+		// These are used only if `AnimType` == `AnimationType::Clip`
 		float CurrentClipPlayTime = 0.f;
 		float PrevClipPlayTime = 0.f;
 		float ClipPlaybackSpeed = 1.f;
@@ -691,9 +671,12 @@ namespace Eagle
 		Ref<AssetAnimation> m_AnimAsset;
 		Ref<AssetAnimationGraph> m_AnimGraphAsset;
 		Ref<AnimationGraph> m_Graph;
+		Ref<PhysicsRagdollActor> m_RagdollActor;
+		GUID m_CallbackID;
 		RootMotionLockFlag m_RootMotionLockFlags = RootMotionLockFlag::None;
 		bool m_bCastsShadows = true;
 		bool m_bReceivesDecals = true;
+		bool m_bRagdollEnabled = false;
 	};
 
 	class BillboardComponent : public SceneComponent
@@ -1023,9 +1006,6 @@ namespace Eagle
 	class RigidBodyComponent : public Component
 	{
 	public:
-		enum class Type { Static, Dynamic };
-		enum class CollisionDetectionType { Discrete, Continuous, ContinuousSpeculative };
-
 		RigidBodyComponent(const Entity& entity) : Component(entity) {}
 		COMPONENT_DEFAULTS(RigidBodyComponent);
 
@@ -1059,7 +1039,7 @@ namespace Eagle
 		ActorLockFlag GetLockFlags() const { return m_LockFlags; }
 
 	public:
-		Type BodyType = Type::Static;
+		PhysicsBodyType BodyType = PhysicsBodyType::Static;
 		CollisionDetectionType CollisionDetection = CollisionDetectionType::Discrete;
 	protected:
 		float Mass = 1.f;
@@ -1104,6 +1084,11 @@ namespace Eagle
 
 	protected:
 		BaseColliderComponent(const Entity& entity) : SceneComponent(entity){}
+		~BaseColliderComponent()
+		{
+			if (m_MaterialAsset)
+				m_MaterialAsset->RemoveOnAssetModifiedCallback(m_CallbackID);
+		}
 		COMPONENT_DEFAULTS(BaseColliderComponent);
 
 		virtual void UpdatePhysicsTransform() = 0;
@@ -1645,6 +1630,7 @@ namespace Eagle
 		// Note: Scene is responsible for ParticleSystem creation/destruction when this component is being created/deleted
 		ParticleSystemComponent(const Entity& entity) : SceneComponent(entity) { }
 		ParticleSystemComponent(const Entity& entity, const Ref<AssetParticleSystem>& asset);
+		~ParticleSystemComponent();
 
 		COMPONENT_DEFAULTS(ParticleSystemComponent);
 

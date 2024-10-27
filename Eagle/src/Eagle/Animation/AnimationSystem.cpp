@@ -7,6 +7,7 @@
 #include "Eagle/Animation/AnimationGraph.h"
 #include "Eagle/Math/Math.h"
 #include "Eagle/Components/Components.h"
+#include "Eagle/Physics/PhysicsRagdollActor.h"
 
 namespace Eagle
 {
@@ -332,7 +333,7 @@ namespace Eagle
         }
     }
 
-    ThreadPool AnimationSystem::s_ThreadPool("AnimationSystem", std::thread::hardware_concurrency(), false);
+    ThreadPool AnimationSystem::s_ThreadPool("AnimationSystem", std::thread::hardware_concurrency() - 1u, false);
 
     std::unordered_map<uint32_t, std::vector<glm::mat4>> AnimationSystem::s_Transforms;
 
@@ -344,7 +345,10 @@ namespace Eagle
         const auto& skeletalInfo = mesh->GetSkeletalMeshInfo();
         outPose->Reset();
         if (animation)
+        {
+            outPose->Bones.reserve(animation->Bones.size());
             AnimationClip(animation, skeletalInfo.RootBone, currentTime, outPose);
+        }
 
         glm::mat4 rootTransform = glm::mat4(1.f);
         FinalizePose(*outPose, skeletalInfo.RootBone, rootTransform, skeletalInfo, *outTransforms);
@@ -395,6 +399,7 @@ namespace Eagle
         s_ThreadPool->wait_for_tasks();
 
         s_Transforms.clear();
+        s_Transforms.reserve(meshes.size());
         // Reserve memory
         for (auto& mesh : meshes)
         {
@@ -415,6 +420,19 @@ namespace Eagle
             {
                 const auto& skeletalMesh = asset->GetMesh();
                 auto& transforms = s_Transforms[mesh->Parent.GetID()];
+                if (mesh->IsRagdollEnabled())
+                {
+                    // When it's in a ragdoll state, we don't update animations,
+                    // but rather read `LastPose` which already contains data from ragdoll simulation
+                    auto& ragdollActor = mesh->GetRagdollActor();
+                    if (ragdollActor->DoesNeedSync())
+                    {
+                        ragdollActor->SynchronizeTransform(); // Update `LastPose`
+                    }
+                    const auto& skeletalInfo = skeletalMesh->GetSkeletalMeshInfo();
+                    FinalizePoseRagdoll(mesh->LastPose, skeletalInfo.RootBone, glm::mat4(1.f), skeletalInfo, transforms);
+                    return;
+                }
 
                 if (mesh->AnimType == SkeletalMeshComponent::AnimationType::Clip)
                 {
@@ -454,8 +472,7 @@ namespace Eagle
                     else
                     {
                         const auto& skeletalInfo = skeletalMesh->GetSkeletalMeshInfo();
-                        glm::mat4 rootTransform = glm::mat4(1.f);
-                        FinalizePose({}, skeletalInfo.RootBone, rootTransform, skeletalInfo, transforms);
+                        FinalizePose(mesh->LastPose, skeletalInfo.RootBone, glm::mat4(1.f), skeletalInfo, transforms);
                     }
                 }
             });
@@ -488,6 +505,7 @@ namespace Eagle
 
         s_ThreadPool->wait_for_tasks();
         s_Transforms.clear();
+        s_Transforms.reserve(meshes.size());
 
         // Reserve memory
         for (auto& mesh : meshes)
@@ -513,7 +531,7 @@ namespace Eagle
                 mesh->LastPose.Reset();
 
                 glm::mat4 rootTransform = glm::mat4(1.f);
-                FinalizePose({}, skeletalInfo.RootBone, rootTransform, skeletalInfo, transforms);
+                FinalizePose(mesh->LastPose, skeletalInfo.RootBone, rootTransform, skeletalInfo, transforms);
             });
         }
         s_ThreadPool->wait_for_tasks();
@@ -684,7 +702,7 @@ namespace Eagle
         }
     }
 
-    void AnimationSystem::FinalizePose(const SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>& outTransforms)
+    void AnimationSystem::FinalizePose(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>& outTransforms)
     {
         const std::string& nodeName = node.Name;
         glm::mat4 globalTransformation;
@@ -694,7 +712,10 @@ namespace Eagle
             globalTransformation = parentTransform * Math::ToTransformMatrix(bone);
         }
         else
+        {
+            pose.Bones[nodeName] = Math::DecomposeTransformMatrix(node.Transformation);
             globalTransformation = parentTransform * node.Transformation;
+        }
 
         if (auto it = skeletal.BoneInfoMap.find(nodeName); it != skeletal.BoneInfoMap.end())
         {
@@ -708,5 +729,53 @@ namespace Eagle
 
         for (auto& child : node.Children)
             FinalizePose(pose, child, globalTransformation, skeletal, outTransforms);
+    }
+
+    void AnimationSystem::FinalizePose(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform)
+    {
+        const std::string& nodeName = node.Name;
+        glm::mat4 globalTransformation;
+        if (auto it = pose.Bones.find(nodeName); it != pose.Bones.end())
+        {
+            const auto& bone = it->second;
+            globalTransformation = parentTransform * Math::ToTransformMatrix(bone);
+        }
+        else
+        {
+            pose.Bones[nodeName] = Math::DecomposeTransformMatrix(node.Transformation);
+            globalTransformation = parentTransform * node.Transformation;
+        }
+
+        for (auto& child : node.Children)
+            FinalizePose(pose, child, globalTransformation);
+    }
+    
+    void AnimationSystem::FinalizePoseRagdoll(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>& outTransforms)
+    {
+        const std::string& nodeName = node.Name;
+        glm::mat4 globalTransformation;
+        if (auto it = pose.Bones.find(nodeName); it != pose.Bones.end())
+        {
+            const auto& bone = it->second;
+            globalTransformation = Math::ToTransformMatrix(bone); // It's already a global transform
+        }
+        else
+        {
+            globalTransformation = parentTransform * node.Transformation;
+            pose.Bones[nodeName] = Math::DecomposeTransformMatrix(globalTransformation);
+        }
+
+        if (auto it = skeletal.BoneInfoMap.find(nodeName); it != skeletal.BoneInfoMap.end())
+        {
+            const uint32_t index = it->second.BoneID;
+            const glm::mat4& offset = it->second.Offset;
+            if (index >= outTransforms.size())
+                outTransforms.resize(index + 1);
+
+            outTransforms[index] = skeletal.InverseTransform * globalTransformation * offset;
+        }
+
+        for (auto& child : node.Children)
+            FinalizePoseRagdoll(pose, child, globalTransformation, skeletal, outTransforms);
     }
 }

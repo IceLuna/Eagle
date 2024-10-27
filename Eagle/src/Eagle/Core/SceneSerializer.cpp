@@ -72,6 +72,7 @@ namespace Eagle
 		out << YAML::Key << "Location" << YAML::Value << transform.Location;
 		out << YAML::Key << "Rotation" << YAML::Value << transform.Rotation;
 		out << YAML::EndMap; //Editor Camera
+		out << YAML::Key << "Gravity" << YAML::Value << m_Scene->GetGravity();
 
 		SerializeSkybox(out);
 
@@ -157,6 +158,10 @@ namespace Eagle
 			transform.Rotation = editorCameraNode["Rotation"].as<Rotator>();
 			
 			camera.SetTransform(transform);
+		}
+		if (auto node = data["Gravity"])
+		{
+			m_Scene->SetGravity(node.as<glm::vec3>());
 		}
 
 		DeserializeSkybox(data);

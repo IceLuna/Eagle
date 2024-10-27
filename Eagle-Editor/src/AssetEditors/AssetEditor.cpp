@@ -3,11 +3,13 @@
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/UI/UI.h"
 #include "Eagle/Math/Math.h"
-
+#include "Eagle/Input/Input.h"
 #include "Eagle/Renderer/SceneRenderer.h"
 #include "Eagle/Core/Scene.h"
 
 #include <imgui/imgui_internal.h>
+#include <ImGuizmo/ImGuizmo.h>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace Eagle
 {
@@ -22,6 +24,7 @@ namespace Eagle
 			if (bNeedSkybox)
 				AddSkybox();
 		}
+		m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
 	}
 
 	AssetEditor::~AssetEditor()
@@ -78,6 +81,58 @@ namespace Eagle
 		ImGui::End();
 	}
 
+	bool AssetEditor::DrawGuizmo(Transform& transform, int ID, bool bEnabled)
+	{
+		if (m_GuizmoType == -1)
+			return false;
+		
+		bool bChanged = false;
+		const bool bWasEnabled = ImGuizmo::IsEnabled();
+
+		ImGuizmo::SetDrawlist();
+		ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
+
+		//Camera
+		const auto& editorCamera = m_Scene->GetEditorCamera();
+		const glm::mat4& cameraViewMatrix = editorCamera.GetViewMatrix();
+		glm::mat4 cameraProjection = editorCamera.GetProjection();
+		cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
+
+		Transform finalTransform = transform;
+		const bool bRelative = m_GuizmoType == ImGuizmo::OPERATION::ROTATE;
+
+		int snappingIndex = 0;
+		if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
+			snappingIndex = 1;
+		else if (m_GuizmoType == ImGuizmo::OPERATION::SCALE)
+			snappingIndex = 2;
+
+		//Snapping
+		ImGuizmo::SetID(ID);
+
+		glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
+
+		ImGuizmo::Enable(bEnabled);
+		ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,
+			ImGuizmo::WORLD, glm::value_ptr(transformMatrix));
+		ImGuizmo::Enable(bWasEnabled); // Restore state
+
+		if (ImGuizmo::IsUsing())
+		{
+			finalTransform = Math::DecomposeTransformMatrix(transformMatrix);
+
+			if (m_GuizmoType == ImGuizmo::OPERATION::TRANSLATE)
+				transform.Location = finalTransform.Location;
+			else if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
+				transform.Rotation = finalTransform.Rotation;
+			else if (m_GuizmoType == ImGuizmo::OPERATION::SCALE)
+				transform.Scale3D = finalTransform.Scale3D;
+
+			bChanged = true;
+		}
+		return bChanged;
+	}
+
 	void AssetEditor::AddSkybox()
 	{
 		m_Skybox = AssetManager::GetPreviewSkybox();
@@ -100,5 +155,43 @@ namespace Eagle
 	{
 		if (bViewportVisible)
 			m_Scene->OnEventEditor(e);
+
+		EventDispatcher dispatcher(e);
+		dispatcher.Dispatch<KeyPressedEvent>(EG_BIND_FN(AssetEditor::OnKeyPressed));
+	}
+
+	bool AssetEditor::OnKeyPressed(KeyPressedEvent& e)
+	{
+		if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
+			return false;
+
+		//Shortcuts
+		if (e.GetRepeatCount() > 0)
+			return false;
+
+		//Gizmos
+		const Key pressedKey = e.GetKey();
+		if (bViewportHovered && !ImGuizmo::IsUsing())
+		{
+			switch (pressedKey)
+			{
+			case Key::Q:
+				m_GuizmoType = -1;
+				break;
+
+			case Key::W:
+				m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
+				break;
+
+			case Key::E:
+				m_GuizmoType = ImGuizmo::OPERATION::ROTATE;
+				break;
+
+			case Key::R:
+				m_GuizmoType = ImGuizmo::OPERATION::SCALE;
+				break;
+			}
+		}
+		return false;
 	}
 }

@@ -13,6 +13,19 @@ namespace Eagle
 		Acceleration
 	};
 
+	enum class PhysicsBodyType
+	{
+		Static,
+		Dynamic
+	};
+	
+	enum class CollisionDetectionType
+	{
+		Discrete,
+		Continuous,
+		ContinuousSpeculative
+	};
+
 	enum class ActorLockFlag
 	{
 		None = 0,
@@ -27,6 +40,12 @@ namespace Eagle
 		glm::vec3 Normal = glm::vec3(0.f);
 		glm::vec3 Impulse = glm::vec3(0.f);
 		glm::vec3 Force = glm::vec3(0.f);
+	};
+
+	struct PhysicsActorPayload
+	{
+		void* Ptr = nullptr; // Either `PhysicsActor*` or `PhysicsRagdollActor*`
+		bool bRagdoll = false;
 	};
 
 	class PhysicsEngine

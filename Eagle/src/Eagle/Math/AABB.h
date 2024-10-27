@@ -14,6 +14,7 @@ namespace Eagle
 
 		glm::vec3 Center() const { return (Min + Max) * 0.5f; }
 		glm::vec3 Extents() const { return Max - Min; }
+		float Length() const { return glm::length(Extents()); }
 
 		void Grow(const AABB& other)
 		{

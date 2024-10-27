@@ -153,6 +153,8 @@ namespace Eagle::Script
 	GUID Eagle_SkeletalMeshComponent_GetAnimGraphVariableAnim(GUID entityID, MonoString* monoName);
 	MonoString* Eagle_SkeletalMeshComponent_GetAnimGraphVariableString(GUID entityID, MonoString* monoName);
 
+	void Eagle_SkeletalMeshComponent_SetRagdollEnabled(GUID entityID, bool bEnabled);
+	bool Eagle_SkeletalMeshComponent_IsRagdollEnabled(GUID entityID);
 	void Eagle_SkeletalMeshComponent_GetBoneWorldTransform(GUID entityID, MonoString* monoName, Transform* result);
 	void Eagle_SkeletalMeshComponent_GetBoneWorldLocation(GUID entityID, MonoString* monoName, glm::vec3* result);
 	void Eagle_SkeletalMeshComponent_GetBoneWorldRotation(GUID entityID, MonoString* monoName, Rotator* result);
@@ -213,8 +215,8 @@ namespace Eagle::Script
 	bool Eagle_AudioComponent_IsDopplerEffectEnabled(GUID entityID);
 	
 	//RigidBodyComponent
-	void Eagle_RigidBodyComponent_SetBodyType(GUID entityID, RigidBodyComponent::Type type);
-	RigidBodyComponent::Type Eagle_RigidBodyComponent_GetBodyType(GUID entityID);
+	void Eagle_RigidBodyComponent_SetBodyType(GUID entityID, PhysicsBodyType type);
+	PhysicsBodyType Eagle_RigidBodyComponent_GetBodyType(GUID entityID);
 	void Eagle_RigidBodyComponent_SetMass(GUID entityID, float mass);
 	float Eagle_RigidBodyComponent_GetMass(GUID entityID);
 	void Eagle_RigidBodyComponent_SetLinearDamping(GUID entityID, float linearDamping);

@@ -5,7 +5,10 @@
 #include "PhysXDebugger.h"
 #include "PhysXInternal.h"
 #include "ContactListener.h"
+#include "PhysicsRagdollActor.h"
+
 #include "Eagle/Core/Project.h"
+#include "Eagle/Components/Components.h"
 #include "Eagle/Debug/CPUTimings.h"
 
 namespace Eagle
@@ -35,7 +38,9 @@ namespace Eagle
         m_Scene = PhysXInternal::GetPhysics().createScene(sceneDesc);
         EG_CORE_ASSERT(m_Scene, "Invalid scene");
         m_Scene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE, 1.f);
-        m_Scene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES, 2.f);
+        m_Scene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES, 1.f);
+        //m_Scene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LOCAL_FRAMES, 0.01f);
+        //m_Scene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LIMITS, 1.0f);
 
         CreateRegions();
 
@@ -63,10 +68,21 @@ namespace Eagle
     {
         uint32_t nActiveActors;
         physx::PxActor** activeActors = m_Scene->getActiveActors(nActiveActors);
+
         for (uint32_t i = 0; i < nActiveActors; ++i)
         {
-            PhysicsActor* activeActor = (PhysicsActor*)activeActors[i]->userData;
-            activeActor->SynchronizeTransform();
+            PhysicsActorPayload* payload = (PhysicsActorPayload*)activeActors[i]->userData;
+            if (payload->bRagdoll)
+            {
+                PhysicsRagdollActor* ragdoll = (PhysicsRagdollActor*)payload->Ptr;
+                // `SynchronizeTransform()` call is postponed. It'll be called by `AnimationSystem` in a multithreaded manner
+                ragdoll->MarkTransformDirty();
+            }
+            else
+            {
+                PhysicsActor* activeActor = (PhysicsActor*)payload->Ptr;
+                activeActor->SynchronizeTransform();
+            }
         }
     }
 
@@ -124,7 +140,7 @@ namespace Eagle
 
         Ref<PhysicsActor> actor = MakeRef<PhysicsActor>(entity, m_Settings);
         m_Actors[entity.GetGUID()] = actor;
-        m_Scene->addActor(*actor->m_RigidActor);
+        m_Scene->addActor(*actor->GetPhysXActor());
 
         actor->SetSimulationData();
         
@@ -136,10 +152,7 @@ namespace Eagle
         if (!physicsActor)
             return;
 
-        physicsActor->RemoveAllColliders();
-        m_Scene->removeActor(*physicsActor->m_RigidActor);
-        physicsActor->m_RigidActor->release();
-        physicsActor->m_RigidActor = nullptr;
+        m_Scene->removeActor(*physicsActor->GetPhysXActor());
         m_Actors.erase(physicsActor->GetEntity().GetGUID());
     }
     
@@ -150,8 +163,17 @@ namespace Eagle
 
         if (bResult)
         {
-            PhysicsActor* actor = (PhysicsActor*)hitInfo.block.actor->userData;
-            outHit->HitEntity = actor->GetEntity().GetGUID();
+            const PhysicsActorPayload* payload = (PhysicsActorPayload*)hitInfo.block.actor->userData;
+            if (payload->bRagdoll)
+            {
+                const PhysicsRagdollActor* actor = (PhysicsRagdollActor*)payload->Ptr;
+                outHit->HitEntity = actor->GetEntity().GetGUID();
+            }
+            else
+            {
+                const PhysicsActor* actor = (PhysicsActor*)payload->Ptr;
+                outHit->HitEntity = actor->GetEntity().GetGUID();
+            }
             outHit->Position = PhysXUtils::FromPhysXVector(hitInfo.block.position);
             outHit->Normal = PhysXUtils::FromPhysXVector(hitInfo.block.normal);
             outHit->Distance = hitInfo.block.distance;
@@ -160,17 +182,17 @@ namespace Eagle
         return bResult;
     }
     
-    bool PhysicsScene::OverlapBox(const glm::vec3& origin, const glm::vec3& halfSize, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const
+    bool PhysicsScene::OverlapBox(const glm::vec3& origin, const glm::vec3& halfSize, std::array<physx::PxOverlapHit, EG_OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const
     {
         return OverlapGeometry(origin, physx::PxBoxGeometry(halfSize.x, halfSize.y, halfSize.z), buffer, count);
     }
     
-    bool PhysicsScene::OverlapCapsule(const glm::vec3& origin, float radius, float halfHeight, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const
+    bool PhysicsScene::OverlapCapsule(const glm::vec3& origin, float radius, float halfHeight, std::array<physx::PxOverlapHit, EG_OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const
     {
         return OverlapGeometry(origin, physx::PxCapsuleGeometry(radius, halfHeight), buffer, count);
     }
     
-    bool PhysicsScene::OverlapSphere(const glm::vec3& origin, float radius, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const
+    bool PhysicsScene::OverlapSphere(const glm::vec3& origin, float radius, std::array<physx::PxOverlapHit, EG_OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const
     {
         return OverlapGeometry(origin, physx::PxSphereGeometry(radius), buffer, count);
     }
@@ -202,6 +224,7 @@ namespace Eagle
                 RemovePhysicsActor(m_Actors.begin()->second);
 
             m_Actors.clear(); //Just in case
+            m_RagdollActors.clear();
         }
     }
 
@@ -210,6 +233,25 @@ namespace Eagle
         Clear();
         m_Accumulator = 0.f;
         m_NumSubsteps = 0;
+    }
+
+    Ref<PhysicsRagdollActor> PhysicsScene::CreateRagdoll(const SkeletalMeshComponent& skeletalComp)
+    {
+        const auto& asset = skeletalComp.GetMeshAsset();
+        if (!asset)
+        {
+            EG_CORE_ERROR("Failed to create a ragdoll actor. Skeletal mesh asset is not present (Entity: {})", skeletalComp.Parent.GetName());
+            return {};
+        }
+
+        Ref<PhysicsRagdollActor> result = MakeRef<PhysicsRagdollActor>(skeletalComp.Parent, m_Scene, m_Settings);
+        m_RagdollActors[skeletalComp.Parent.GetGUID()] = result;
+        return result;
+    }
+
+    void PhysicsScene::ReleaseRagdoll(const SkeletalMeshComponent& skeletalComp)
+    {
+        m_RagdollActors.erase(skeletalComp.Parent.GetGUID());
     }
 
     void PhysicsScene::Destroy()
@@ -224,14 +266,15 @@ namespace Eagle
                 RemovePhysicsActor(m_Actors.begin()->second);
 
             m_Actors.clear(); //Just in case
+            m_RagdollActors.clear(); //Just in case
             m_Scene->release();
             m_Scene = nullptr;
         }
     }
     
-    bool PhysicsScene::OverlapGeometry(const glm::vec3& origin, const physx::PxGeometry& geometry, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const
+    bool PhysicsScene::OverlapGeometry(const glm::vec3& origin, const physx::PxGeometry& geometry, std::array<physx::PxOverlapHit, EG_OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const
     {
-        physx::PxOverlapBuffer buf(buffer.data(), OVERLAP_MAX_COLLIDERS);
+        physx::PxOverlapBuffer buf(buffer.data(), EG_OVERLAP_MAX_COLLIDERS);
         physx::PxTransform pose = PhysXUtils::ToPhysXTranform(glm::translate(glm::mat4(1.f), origin));
 
         bool bResult = m_Scene->overlap(geometry, pose, buf);

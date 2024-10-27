@@ -99,8 +99,8 @@ namespace Eagle
 
 		pairFlags = physx::PxPairFlag::eCONTACT_DEFAULT | physx::PxPairFlag::eNOTIFY_CONTACT_POINTS;
 
-		if (filterData0.word2 == (uint32_t)RigidBodyComponent::CollisionDetectionType::Continuous ||
-			filterData1.word2 == (uint32_t)RigidBodyComponent::CollisionDetectionType::Continuous)
+		if (filterData0.word2 == (uint32_t)CollisionDetectionType::Continuous ||
+			filterData1.word2 == (uint32_t)CollisionDetectionType::Continuous)
 		{
 			pairFlags |= physx::PxPairFlag::eDETECT_DISCRETE_CONTACT;
 			pairFlags |= physx::PxPairFlag::eDETECT_CCD_CONTACT;

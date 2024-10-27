@@ -212,7 +212,6 @@ namespace Eagle
 			AssetManager::Register(asset);
 			const AssetType assetType = asset->GetAssetType();
 			const bool bSkeletal = assetType == AssetType::SkeletalMesh;
-			const bool bStatic = assetType == AssetType::StaticMesh;
 
 			// Import animations if required
 			if (settings.MeshSettings.bImportAnimations && bSkeletal)

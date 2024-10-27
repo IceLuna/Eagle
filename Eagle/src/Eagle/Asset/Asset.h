@@ -208,6 +208,12 @@ namespace Eagle
 			return *this;
 		}
 
+		void OnModified()
+		{
+			for (auto& [_, func] : m_Callbacks)
+				func();
+		}
+
 		// This function can be used if you don't care about the asset type and you just want to load it
 		// @path. Path to an `.egasset` file
 		static Ref<Asset> Create(const Path& path);
@@ -221,12 +227,6 @@ namespace Eagle
 
 	protected:
 		Asset(const Path& path, const Path& pathToRaw, AssetType type, GUID guid, const DataBuffer& rawData);
-
-		void OnModified()
-		{
-			for (auto& [_, func] : m_Callbacks)
-				func();
-		}
 
 	protected:
 		std::unordered_map<GUID, std::function<void()>> m_Callbacks;

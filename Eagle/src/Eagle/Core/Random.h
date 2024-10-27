@@ -19,4 +19,6 @@ namespace Eagle::Random
 
 	// Max is exclusive
 	double Double(double min = 0.f, double max = 1.f);
+
+	glm::vec3 Color();
 }

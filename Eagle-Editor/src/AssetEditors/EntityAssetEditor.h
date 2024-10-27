@@ -14,7 +14,6 @@ namespace Eagle
 		EntityAssetEditor(const Ref<AssetEntity>& asset, const EditorLayer& editorLayer);
 
 		void OnImGuiRender(bool* pOpen) override;
-		void OnEvent(Event& e) override;
 
 		const Ref<Asset> GetAsset() const override { return Cast<Asset>(m_Asset); }
 
@@ -31,6 +30,5 @@ namespace Eagle
 		EntityPropertiesPanel m_EntityProperties;
 
 		Entity m_Entity;
-		int m_GuizmoType = 7; // TRANSLATE;
 	};
 }
