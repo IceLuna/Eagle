@@ -78,7 +78,7 @@ namespace Eagle
 		if (ImGui::IsItemClicked())
 		{
 			m_SelectedBoneName = node.Name;
-			m_SelectedBoneTransform = Math::DecomposeTransformMatrix(worldTr);
+			m_SelectedBoneParentWorldTr = Math::DecomposeTransformMatrix(baseTransform);
 			m_SelectedBone = &node;
 		}
 
@@ -146,7 +146,6 @@ namespace Eagle
 		if (ImGui::IsItemClicked())
 		{
 			m_SelectedRagdollBoneName = node.Name;
-			m_SelectedRagdollBoneTransform = node.UserOffset;
 			m_SelectedRagdollBone = &node;
 		}
 
@@ -223,9 +222,6 @@ namespace Eagle
 			}
 		}
 
-		if (bChanged)
-			m_Asset->SetDirty(true);
-
 		ImGui::Separator();
 		ImGui::Separator();
 		if (ImGui::Button("Save asset"))
@@ -234,6 +230,11 @@ namespace Eagle
 		ImGui::End();
 
 		DrawViewport();
+		bChanged |= bGuizmoChanged;
+		bGuizmoChanged = false;
+
+		if (bChanged)
+			m_Asset->SetDirty(true);
 	}
 
 	bool SkeletalMeshAssetEditor::DrawSkeletalTab(const Ref<SkeletalMesh>& mesh, size_t& assetHash)
@@ -271,9 +272,11 @@ namespace Eagle
 					if (m_SelectedBone->bVirtualBone == false)
 						UI::PushItemDisabled();
 
+					Transform boneTransform = Math::DecomposeTransformMatrix(m_SelectedBone->Transformation);
+
 					bool bTransformChanged = false;
 					bool bRotationChanged = false;
-					glm::vec3 rotationInDegrees = glm::degrees(m_SelectedBoneTransform.Rotation.EulerAngles());
+					glm::vec3 rotationInDegrees = glm::degrees(boneTransform.Rotation.EulerAngles());
 
 					bool bStoppedEditing = false;
 					if (UI::InputText("Name", m_SelectedBoneName, ImGuiInputTextFlags_EnterReturnsTrue, "Only user-created (virtual) bones can be modified"))
@@ -297,18 +300,18 @@ namespace Eagle
 						}
 					}
 
-					bTransformChanged |= UI::DrawVec3Control("Location", m_SelectedBoneTransform.Location, glm::vec3{ 0.f });
+					bTransformChanged |= UI::DrawVec3Control("Location", boneTransform.Location, glm::vec3{ 0.f });
 					bRotationChanged = UI::DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{ 0.f });
-					bTransformChanged |= UI::DrawVec3Control("Scale", m_SelectedBoneTransform.Scale3D, glm::vec3{ 1.f });
+					bTransformChanged |= UI::DrawVec3Control("Scale", boneTransform.Scale3D, glm::vec3{ 1.f });
 					bTransformChanged |= bRotationChanged;
 
 					if (bRotationChanged)
 					{
-						m_SelectedBoneTransform.Rotation = Rotator::FromEulerAngles(glm::radians(rotationInDegrees));
+						boneTransform.Rotation = Rotator::FromEulerAngles(glm::radians(rotationInDegrees));
 					}
 					if (bTransformChanged)
 					{
-						m_SelectedBone->Transformation = Math::ToTransformMatrix(m_SelectedBoneTransform);
+						m_SelectedBone->Transformation = Math::ToTransformMatrix(boneTransform);
 						bChanged = true;
 					}
 
@@ -362,24 +365,27 @@ namespace Eagle
 					UI::EndPropertyGrid();
 					ImGui::Separator();
 
+					const Transform origBoneTransform = GetSelectedRagdollBoneTransform();
+					Transform boneTransform = origBoneTransform;
+
 					bool bTransformChanged = false;
 					bool bRotationChanged = false;
-					glm::vec3 rotationInDegrees = glm::degrees(m_SelectedRagdollBoneTransform.Rotation.EulerAngles());
+					glm::vec3 rotationInDegrees = glm::degrees(boneTransform.Rotation.EulerAngles());
 
-					bTransformChanged |= UI::DrawVec3Control("Location", m_SelectedRagdollBoneTransform.Location, glm::vec3{ 0.f });
+					bTransformChanged |= UI::DrawVec3Control("Location", boneTransform.Location, glm::vec3{ 0.f });
 					bRotationChanged = UI::DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{ 0.f });
-					bTransformChanged |= UI::DrawVec3Control("Scale", m_SelectedRagdollBoneTransform.Scale3D, glm::vec3{ 1.f });
+					bTransformChanged |= UI::DrawVec3Control("Scale", boneTransform.Scale3D, glm::vec3{ 1.f });
 					bTransformChanged |= bRotationChanged;
 
 					if (bRotationChanged)
 					{
-						m_SelectedRagdollBoneTransform.Rotation = Rotator::FromEulerAngles(glm::radians(rotationInDegrees));
+						boneTransform.Rotation = Rotator::FromEulerAngles(glm::radians(rotationInDegrees));
 					}
 					if (bTransformChanged)
 					{
-						m_SelectedRagdollBone->UserOffset = m_SelectedRagdollBoneTransform;
+						m_SelectedRagdollBone->UserOffset += boneTransform - origBoneTransform;
 						bChanged = true;
-						m_Asset->OnModified();
+						OnRagdollModified();
 					}
 
 					ImGui::TreePop();
@@ -404,10 +410,7 @@ namespace Eagle
 			mesh->SetRagdollMaxTwist(m_Twist);
 			mesh->SetRagdollMaxSwing(m_Swing);
 			mesh->RegenerateRagdollData(m_MinRagdollBoneSize);
-			m_Asset->OnModified();
-
-			auto& comp = m_Entity.GetComponent<SkeletalMeshComponent>();
-			comp.GetRagdollActor()->SetShowCollision(true);
+			OnRagdollModified();
 			bChanged = true;
 		}
 
@@ -417,27 +420,44 @@ namespace Eagle
 	
 	void SkeletalMeshAssetEditor::UpdateGuizmo()
 	{
-		if (m_OpenedTab == OpenedTabType::Skeletal)
+		const int id = int(m_Entity.GetID());
+
+		if (m_OpenedTab == OpenedTabType::Skeletal && m_SelectedBone)
 		{
-			if (m_SelectedBone)
+			const bool bEnableModification = m_SelectedBone->bVirtualBone;
+			const Transform origBoneTransform = m_SelectedBoneParentWorldTr + Math::DecomposeTransformMatrix(m_SelectedBone->Transformation);
+			Transform boneTransform = origBoneTransform;
+			if (DrawGuizmo(boneTransform, id, bEnableModification))
 			{
-				const int id = int(m_Entity.GetID());
-				const bool bEnableModification = m_SelectedBone->bVirtualBone;
-				DrawGuizmo(m_SelectedBoneTransform, id, bEnableModification);
+				m_SelectedBone->Transformation *= Math::ToTransformMatrix(boneTransform - origBoneTransform);
+				bGuizmoChanged = true;
 			}
 		}
-		else if (m_OpenedTab == OpenedTabType::Ragdoll)
+		else if (m_OpenedTab == OpenedTabType::Ragdoll && m_SelectedRagdollBone)
 		{
-			if (m_SelectedRagdollBone)
+			const bool bEnableModification = true;
+			const Transform origBoneTransform = GetSelectedRagdollBoneTransform();
+			Transform boneTransform = origBoneTransform;
+			if (DrawGuizmo(boneTransform, id, bEnableModification))
 			{
-				const int id = int(m_Entity.GetID());
-				const bool bEnableModification = true;
-				if (DrawGuizmo(m_SelectedRagdollBoneTransform, id, bEnableModification))
-				{
-					m_SelectedRagdollBone->UserOffset = m_SelectedRagdollBoneTransform;
-					m_Asset->OnModified();
-				}
+				m_SelectedRagdollBone->UserOffset += boneTransform - origBoneTransform;
+				OnRagdollModified();
+				bGuizmoChanged = true;
 			}
 		}
+	}
+	
+	Transform SkeletalMeshAssetEditor::GetSelectedRagdollBoneTransform()
+	{
+		Transform transform = m_Entity.GetComponent<SkeletalMeshComponent>().GetRagdollActor()->GetBoneWorldTransform(m_SelectedRagdollBoneName);
+		transform.Scale3D = m_SelectedRagdollBone->UserOffset.Scale3D; // Originally, bones don't have scale, so we restore it
+		return transform;
+	}
+	
+	void SkeletalMeshAssetEditor::OnRagdollModified()
+	{
+		m_Asset->OnModified();
+		auto& comp = m_Entity.GetComponent<SkeletalMeshComponent>();
+		comp.GetRagdollActor()->SetShowCollision(true);
 	}
 }

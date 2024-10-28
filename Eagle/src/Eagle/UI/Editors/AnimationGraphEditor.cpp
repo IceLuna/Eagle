@@ -52,10 +52,7 @@ namespace Eagle
         }
 
         graph->SetResult(result);
-
-        // Required to update graphs
-        if (auto& scene = Scene::GetCurrentScene())
-            scene->UpdateAnimGraphAsset(m_Graph);
+        m_Graph->OnModified();
     }
 
     GraphEditorSerializationData AnimationGraphEditor::Save()

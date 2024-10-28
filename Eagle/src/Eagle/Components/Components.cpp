@@ -402,6 +402,8 @@ namespace Eagle
 	{
 		if (m_MeshAsset)
 			m_MeshAsset->RemoveOnAssetModifiedCallback(m_CallbackID);
+		if (m_AnimGraphAsset)
+			m_AnimGraphAsset->RemoveOnAssetModifiedCallback(m_CallbackID);
 	}
 
 	SkeletalMeshComponent& SkeletalMeshComponent::operator=(const SkeletalMeshComponent& other)
@@ -510,9 +512,23 @@ namespace Eagle
 	void SkeletalMeshComponent::SetAnimationGraphAsset(const Ref<AssetAnimationGraph>& anim)
 	{
 		const bool bSameGraph = m_AnimGraphAsset == anim;
+		if (bSameGraph == false)
+		{
+			if (m_AnimGraphAsset)
+			{
+				m_AnimGraphAsset->RemoveOnAssetModifiedCallback(m_CallbackID);
+			}
+		}
 		m_AnimGraphAsset = anim;
 		if (m_AnimGraphAsset)
 		{
+			if (bSameGraph == false)
+			{
+				m_AnimGraphAsset->AddOnAssetModifiedCallback(m_CallbackID, [this]()
+				{
+					SetAnimationGraphAsset(m_AnimGraphAsset); // Update graph
+				});
+			}
 			// Merging means that the values of old variables will be used if possible
 			const bool bMergeVars = bSameGraph && m_Graph;
 

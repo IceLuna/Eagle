@@ -219,8 +219,6 @@ namespace Eagle
 		void RemoveParticleSystem(const ParticleSystemComponent* system);
 		void UpdateParticleSystem(const ParticleSystemComponent* system);
 
-		void UpdateAnimGraphAsset(const Ref<AssetAnimationGraph>& graph);
-
 		// Resets after the first render
 		void VisualizeDecalAABB(const DecalComponent* decal) { m_DecalToVisualize = decal; }
 

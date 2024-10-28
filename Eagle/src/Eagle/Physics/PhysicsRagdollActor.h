@@ -36,6 +36,7 @@ namespace Eagle
 		void MarkTransformDirty() { m_bDirtyTransform = true; }
 
 		void SetShowCollision(bool bShowCollision);
+		Transform GetBoneWorldTransform(const std::string& boneName) const;
 
 	public:
 		struct BoneData
@@ -59,6 +60,7 @@ namespace Eagle
 		bool m_bDirtyTransform = true;
 
 		BoneData m_Root;
+		std::unordered_map<std::string, physx::PxRigidDynamic*> m_BonesMap;
 		PhysicsActorPayload m_Payload;
 	};
 }

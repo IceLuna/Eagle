@@ -27,6 +27,8 @@ namespace Eagle
 		bool DrawRagdollTab(const Ref<SkeletalMesh>& mesh, size_t& assetHash);
 		void UpdateGuizmo();
 		void OnViewportEnd() override { UpdateGuizmo(); }
+		Transform GetSelectedRagdollBoneTransform();
+		void OnRagdollModified();
 
 		enum class OpenedTabType
 		{
@@ -37,11 +39,10 @@ namespace Eagle
 		Ref<AssetSkeletalMesh> m_Asset;
 
 		std::string m_SelectedBoneName;
-		Transform m_SelectedBoneTransform;
+		Transform m_SelectedBoneParentWorldTr;
 		BoneNode* m_SelectedBone = nullptr;
 
 		std::string m_SelectedRagdollBoneName;
-		Transform m_SelectedRagdollBoneTransform;
 		SkeletalRagdollBones* m_SelectedRagdollBone = nullptr;
 
 		OpenedTabType m_OpenedTab = OpenedTabType::Ragdoll;
@@ -49,5 +50,6 @@ namespace Eagle
 		float m_MinRagdollBoneSize = 0.1f;
 		float m_Twist = 22.5f;
 		float m_Swing = 45.f;
+		bool bGuizmoChanged = false;
 	};
 }

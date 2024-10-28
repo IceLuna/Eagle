@@ -113,9 +113,10 @@ namespace Eagle
     }
 #endif
 
+    // TODO: group args
     static void CreateArticulationChain(const SkeletalRagdollBones& merged, const SkeletalPose& currentPose, const BonesMap& boneMap, physx::PxScene* scene, PhysicsRagdollActor::BoneData& physicsBoneData, PhysicsActorPayload& payload,
         const PhysicsSettings& settings, const glm::mat4& worldTransform, const glm::mat4& compWorldTrInv, const physx::PxMaterial& material, float twist, float swing, const physx::PxVec3& linearVelocity,
-        const physx::PxVec3& angularVelocity, physx::PxRigidDynamic* parentBody = nullptr)
+        const physx::PxVec3& angularVelocity, std::unordered_map<std::string, physx::PxRigidDynamic*>& ragdollBonesMap, physx::PxRigidDynamic* parentBody = nullptr)
     {
         using namespace physx;
 
@@ -129,7 +130,7 @@ namespace Eagle
         {
             for (const auto& child : merged.Children)
             {
-                CreateArticulationChain(child, currentPose, boneMap, scene, physicsBoneData, payload, settings, worldTransform, compWorldTrInv, material, twist, swing, linearVelocity, angularVelocity, parentBody);
+                CreateArticulationChain(child, currentPose, boneMap, scene, physicsBoneData, payload, settings, worldTransform, compWorldTrInv, material, twist, swing, linearVelocity, angularVelocity, ragdollBonesMap, parentBody);
             }
             return;
         }
@@ -187,7 +188,7 @@ namespace Eagle
             body->attachShape(*shape);
             body->setLinearVelocity(linearVelocity);
             body->setAngularVelocity(angularVelocity);
-            body->setActorFlag(PxActorFlag::eVISUALIZATION, true);
+            shape->setFlag(physx::PxShapeFlag::Enum::eVISUALIZATION, false);
 
             // Setup Joint
             PxD6Joint* joint = PxD6JointCreate(physics,
@@ -210,9 +211,10 @@ namespace Eagle
             childData.Name = merged.Name;
             childData.BoneWorldTr = compWorldTrInv * boneWorldTransform;
             childData.OriginalBodyTrInv = glm::inverse(compWorldTrInv * Math::ToTransformMatrix(PhysXUtils::FromPhysXTransform(body->getGlobalPose())));
+            ragdollBonesMap[merged.Name] = body;
 
             for (const auto& child : merged.Children)
-                CreateArticulationChain(child, currentPose, boneMap, scene, childData, payload, settings, worldTransform, compWorldTrInv, material, twist, swing, linearVelocity, angularVelocity, body);
+                CreateArticulationChain(child, currentPose, boneMap, scene, childData, payload, settings, worldTransform, compWorldTrInv, material, twist, swing, linearVelocity, angularVelocity, ragdollBonesMap, body);
         }
     }
 
@@ -257,9 +259,9 @@ namespace Eagle
 
     static void SetShowCollision_Internal(const PhysicsRagdollActor::BoneData& node, bool bShow)
     {
-        if (node.Body)
+        if (node.Shape)
         {
-            node.Body->setActorFlag(physx::PxActorFlag::eVISUALIZATION, true);
+            node.Shape->setFlag(physx::PxShapeFlag::Enum::eVISUALIZATION, bShow);
         }
 
         for (const auto& child : node.Children)
@@ -314,7 +316,7 @@ namespace Eagle
         
         m_Material = physics.createMaterial(0.5f, 0.5f, 0.6f);
 		CreateArticulationChain(mesh->GetRagdollRoot(), skeletalComp.LastPose, meshInfo.BoneInfoMap, m_Scene, m_Root, m_Payload, m_Settings, worldTransform, m_OriginalTransformInv, *m_Material,
-            glm::radians(twist), glm::radians(swing), linearVelocity, angularVelocity);
+            glm::radians(twist), glm::radians(swing), linearVelocity, angularVelocity, m_BonesMap);
 	}
 
     PhysicsRagdollActor::~PhysicsRagdollActor()
@@ -346,5 +348,12 @@ namespace Eagle
     void PhysicsRagdollActor::SetShowCollision(bool bShowCollision)
     {
         SetShowCollision_Internal(m_Root, bShowCollision);
+    }
+    
+    Transform PhysicsRagdollActor::GetBoneWorldTransform(const std::string& boneName) const
+    {
+        if (auto it = m_BonesMap.find(boneName); it != m_BonesMap.end())
+            return PhysXUtils::FromPhysXTransform(it->second->getGlobalPose());
+        return {};
     }
 }

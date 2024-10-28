@@ -528,6 +528,19 @@ namespace Eagle
                 const auto& skeletalMesh = asset->GetMesh();
                 auto& transforms = s_Transforms[mesh->Parent.GetID()];
                 const auto& skeletalInfo = skeletalMesh->GetSkeletalMeshInfo();
+                if (mesh->IsRagdollEnabled())
+                {
+                    // When it's in a ragdoll state, we don't update animations,
+                    // but rather read `LastPose` which already contains data from ragdoll simulation
+                    auto& ragdollActor = mesh->GetRagdollActor();
+                    if (ragdollActor->DoesNeedSync())
+                    {
+                        ragdollActor->SynchronizeTransform(); // Update `LastPose`
+                    }
+                    FinalizePoseRagdoll(mesh->LastPose, skeletalInfo.RootBone, glm::mat4(1.f), skeletalInfo, transforms);
+                    return;
+                }
+
                 mesh->LastPose.Reset();
 
                 glm::mat4 rootTransform = glm::mat4(1.f);

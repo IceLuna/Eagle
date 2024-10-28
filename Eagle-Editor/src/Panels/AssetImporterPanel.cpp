@@ -254,7 +254,7 @@ namespace Eagle
 			if (!bCanCreate)
 				UI::PushItemDisabled();
 
-			if (ImGui::Button("Import"))
+			if (ImGui::Button("Create"))
 			{
 				AssetImporter::CreateAnimationGraph(m_Path, m_Mesh);
 

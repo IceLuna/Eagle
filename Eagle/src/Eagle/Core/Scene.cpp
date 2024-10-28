@@ -1365,17 +1365,6 @@ namespace Eagle
 		m_ParticlesToUpdate.emplace(system);
 	}
 
-	void Scene::UpdateAnimGraphAsset(const Ref<AssetAnimationGraph>& graph)
-	{
-		auto view = GetAllEntitiesWith<SkeletalMeshComponent>();
-		for (auto& e : view)
-		{
-			auto& component = view.get<SkeletalMeshComponent>(e);
-			if (component.GetAnimationGraphAsset() == graph)
-				component.SetAnimationGraphAsset(graph);
-		}
-	}
-
 	void Scene::OnStaticMeshComponentRemoved(entt::registry& r, entt::entity e)
 	{
 		Entity entity(e, this);
