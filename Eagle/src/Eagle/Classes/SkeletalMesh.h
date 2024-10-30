@@ -12,6 +12,8 @@
 
 namespace Eagle
 {
+	class AssetPhysicsMaterial;
+
 	struct SkeletalVertex
 	{
 		glm::vec3 Position;
@@ -73,10 +75,18 @@ namespace Eagle
 	struct SkeletalRagdollBones
 	{
 		glm::mat4 LocalTransform = glm::mat4(1.f);
-		Transform UserOffset;
 		std::string Name;
 		AABB AABB;
 		std::vector<SkeletalRagdollBones> Children;
+
+		struct UserSettings
+		{
+			Transform UserOffset;
+			Ref<AssetPhysicsMaterial> Material;
+			float LinearDamping = 0.f;
+			float Mass = 1.f;
+			float AngularDamping = 0.05f;
+		} Settings;
 	};
 
 	class SkeletalMesh
@@ -84,7 +94,7 @@ namespace Eagle
 	protected:
 		SkeletalMesh() = default;
 		SkeletalMesh(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
-			const std::unordered_map<std::string, Transform>& ragdollOffsets = {}, float minRagdollBoneSize = 0.1f, float maxRagdollTwist = 22.5f, float maxRagdollSwing = 45.f);
+			const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollPerBoneSettings = {}, float minRagdollBoneSize = 0.1f, float maxRagdollTwist = 22.5f, float maxRagdollSwing = 45.f);
 		SkeletalMesh(const SkeletalMesh& other);
 
 	public:
@@ -140,7 +150,7 @@ namespace Eagle
 	public:
 		// @ragdollOffsets. Can be used to override `UserOffset` inside `SkeletalRagdollBones`. std::string is a bone name which `UserOffset` needs to be overwritten
 		static Ref<SkeletalMesh> Create(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& m_IndicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
-			const std::unordered_map<std::string, Transform>& ragdollOffsets = {}, float minRagdollBoneSize = 0.1f, float maxRagdollTwist = 22.5f, float maxRagdollSwing = 45.f);
+			const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollPerBoneSettings = {}, float minRagdollBoneSize = 0.1f, float maxRagdollTwist = 22.5f, float maxRagdollSwing = 45.f);
 		static Ref<SkeletalMesh> Create(const Ref<SkeletalMesh>& other);
 
 	private:

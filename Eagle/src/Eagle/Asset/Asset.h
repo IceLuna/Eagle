@@ -542,14 +542,14 @@ namespace Eagle
 	class AssetPhysicsMaterial : public Asset
 	{
 	public:
-		void SetMaterial(const PhysicsMaterial& material)
+		void SetMaterial(const Ref<PhysicsMaterial>& material)
 		{
 			m_Material = material;
 			OnModified();
 			SetDirty(true);
 		}
 
-		const PhysicsMaterial& GetMaterial() const { return m_Material; }
+		const Ref<PhysicsMaterial>& GetMaterial() const { return m_Material; }
 
 		AssetPhysicsMaterial& operator=(Asset&& other) noexcept override
 		{
@@ -570,11 +570,11 @@ namespace Eagle
 		static AssetType GetAssetType_Static() { return AssetType::PhysicsMaterial; }
 
 	protected:
-		AssetPhysicsMaterial(const Path& path, GUID guid, const PhysicsMaterial& material)
+		AssetPhysicsMaterial(const Path& path, GUID guid, const Ref<PhysicsMaterial>& material)
 			: Asset(path, {}, AssetType::PhysicsMaterial, guid, {}), m_Material(material) {}
 
 	private:
-		PhysicsMaterial m_Material;
+		Ref<PhysicsMaterial> m_Material;
 	};
 
 	class AssetEntity : public Asset

@@ -53,5 +53,7 @@ namespace Eagle
 	public:
 		static void Init();
 		static void Shutdown();
+
+		static const Ref<class PhysicsMaterial>& GetDefaultMaterial();
 	};
 }

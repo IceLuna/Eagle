@@ -106,6 +106,15 @@ namespace Eagle
 			actor->SetLockFlag(m_LockFlags);
 	}
 
+	void BaseColliderComponent::SetPhysicsMaterialAsset(const Ref<AssetPhysicsMaterial>& material)
+	{
+		if (material == m_MaterialAsset)
+			return;
+
+		m_MaterialAsset = material;
+		UpdatePhysicsMaterials();
+	}
+
 	void BaseColliderComponent::SetWorldTransform(const Transform& worldTransform)
 	{
 		SceneComponent::SetWorldTransform(worldTransform);
@@ -117,7 +126,26 @@ namespace Eagle
 		SceneComponent::SetRelativeTransform(relativeTransform);
 		UpdatePhysicsTransform();
 	}
+
+	BaseColliderComponent& BaseColliderComponent::operator=(const BaseColliderComponent& other)
+	{
+		SceneComponent::operator=(other);
+		SetPhysicsMaterialAsset(other.m_MaterialAsset);
+		SetIsTrigger(other.bTrigger);
+		SetShowCollision(other.bShowCollision);
+
+		return *this;
+	}
 	
+	BoxColliderComponent& BoxColliderComponent::operator=(const BoxColliderComponent& other)
+	{
+		BaseColliderComponent::operator=(other);
+		SetSize(other.m_Size);
+		UpdatePhysicsTransform();
+
+		return *this;
+	}
+
 	void BoxColliderComponent::SetIsTrigger(bool bTrigger)
 	{
 		this->bTrigger = bTrigger;
@@ -126,7 +154,7 @@ namespace Eagle
 	
 	void BoxColliderComponent::UpdatePhysicsMaterials()
 	{
-		m_Shape->SetPhysicsMaterial(m_MaterialAsset ? m_MaterialAsset->GetMaterial() : PhysicsMaterial{});
+		m_Shape->SetPhysicsMaterial(m_MaterialAsset);
 	}
 
 	void BoxColliderComponent::SetShowCollision(bool bShowCollision)
@@ -178,6 +206,15 @@ namespace Eagle
 		}
 	}
 
+	SphereColliderComponent& SphereColliderComponent::operator=(const SphereColliderComponent& other)
+	{
+		BaseColliderComponent::operator=(other);
+		SetRadius(other.Radius);
+		UpdatePhysicsTransform();
+
+		return *this;
+	}
+
 	void SphereColliderComponent::SetRadius(float radius)
 	{
 		Radius = glm::max(radius, 0.f);
@@ -192,7 +229,7 @@ namespace Eagle
 	
 	void SphereColliderComponent::UpdatePhysicsMaterials()
 	{
-		m_Shape->SetPhysicsMaterial(m_MaterialAsset ? m_MaterialAsset->GetMaterial() : PhysicsMaterial{});
+		m_Shape->SetPhysicsMaterial(m_MaterialAsset);
 	}
 
 	void SphereColliderComponent::SetShowCollision(bool bShowCollision)
@@ -238,6 +275,15 @@ namespace Eagle
 		}
 	}
 
+	CapsuleColliderComponent& CapsuleColliderComponent::operator=(const CapsuleColliderComponent& other)
+	{
+		BaseColliderComponent::operator=(other);
+		SetHeightAndRadius(other.Height, other.Radius);
+		UpdatePhysicsTransform();
+
+		return *this;
+	}
+
 	void CapsuleColliderComponent::SetIsTrigger(bool bTrigger)
 	{
 		this->bTrigger = bTrigger;
@@ -246,7 +292,7 @@ namespace Eagle
 	
 	void CapsuleColliderComponent::UpdatePhysicsMaterials()
 	{
-		m_Shape->SetPhysicsMaterial(m_MaterialAsset ? m_MaterialAsset->GetMaterial() : PhysicsMaterial{});
+		m_Shape->SetPhysicsMaterial(m_MaterialAsset);
 	}
 
 	void CapsuleColliderComponent::SetShowCollision(bool bShowCollision)
@@ -299,6 +345,25 @@ namespace Eagle
 		}
 	}
 
+	MeshColliderComponent& MeshColliderComponent::operator=(const MeshColliderComponent& other)
+	{
+		BaseColliderComponent::operator=(other);
+
+		// This call is disabled since `SetIsConvex` will call it anyway. So we just set the mesh
+		// SetCollisionMeshAsset(other.m_CollisionMeshAsset);
+		m_CollisionMeshAsset = other.m_CollisionMeshAsset;
+		
+		{
+			// Should be in this order so that we don't need to call `SetIsTwoSided`
+			bTwoSided = other.bTwoSided;
+			SetIsConvex(other.bConvex);
+		}
+
+		UpdatePhysicsTransform();
+
+		return *this;
+	}
+
 	void MeshColliderComponent::SetIsTrigger(bool bTrigger)
 	{
 		this->bTrigger = bTrigger;
@@ -309,10 +374,9 @@ namespace Eagle
 	
 	void MeshColliderComponent::UpdatePhysicsMaterials()
 	{
-		PhysicsMaterial material = m_MaterialAsset ? m_MaterialAsset->GetMaterial() : PhysicsMaterial{};
 		for (auto& shape : m_Shapes)
 			if (shape)
-				shape->SetPhysicsMaterial(material);
+				shape->SetPhysicsMaterial(m_MaterialAsset);
 	}
 
 	void MeshColliderComponent::SetShowCollision(bool bShowCollision)
@@ -353,6 +417,9 @@ namespace Eagle
 		for (auto& shape : m_Shapes)
 			if (shape)
 				shape->SetFilterData(actor->GetFilterData());
+
+		SetShowCollision(bShowCollision);
+		SetIsTrigger(bTrigger);
 	}
 	
 	void MeshColliderComponent::OnInit(Entity entity)

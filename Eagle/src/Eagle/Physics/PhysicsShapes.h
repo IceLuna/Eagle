@@ -5,6 +5,7 @@
 
 namespace Eagle
 {
+	class AssetPhysicsMaterial;
 	class PhysicsMaterial;
 	class PhysicsActor;
 	class BoxColliderComponent;
@@ -23,16 +24,11 @@ namespace Eagle
 	{
 	public:
 		ColliderShape(ColliderType type)
-		: m_Material(nullptr), m_Type(type) {}
+		: m_Type(type) {}
 
 		virtual ~ColliderShape() = default;
 
-		void Release()
-		{
-			m_Material->release();
-		}
-
-		void SetPhysicsMaterial(const PhysicsMaterial& material);
+		void SetPhysicsMaterial(const Ref<AssetPhysicsMaterial>& materialAsset);
 		bool IsTrigger() const { return m_Shape->getFlags() & physx::PxShapeFlag::Enum::eTRIGGER_SHAPE; }
 		void SetIsTrigger(bool bTrigger);
 		virtual bool IsValid() const { return true; }
@@ -41,7 +37,6 @@ namespace Eagle
 
 		void SetFilterData(const physx::PxFilterData& filterData) { m_Shape->setSimulationFilterData(filterData); };
 
-		const physx::PxMaterial* GetMaterial() const { return m_Material; }
 		const physx::PxShape* GetShape() const { return m_Shape; }
 		physx::PxShape* GetShape() { return m_Shape; }
 
@@ -49,12 +44,8 @@ namespace Eagle
 		const glm::vec3& GetColliderScale() const { return m_ColliderScale; }
 	
 	protected:
-		void CreateMaterial(const PhysicsMaterial& material);
-	
-	protected:
 		glm::vec3 m_ColliderScale = glm::vec3{ 0.f };
 		physx::PxShape* m_Shape = nullptr;
-		physx::PxMaterial* m_Material;
 		ColliderType m_Type;
 	};
 

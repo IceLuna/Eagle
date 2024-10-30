@@ -39,6 +39,12 @@ namespace Eagle
 				(glm::abs(p.z - center.z) <= radius.z);
 		}
 
+		float MinSide() const
+		{
+			const glm::vec3 extents = Extents();
+			return glm::min(extents.x, glm::min(extents.y, extents.z));
+		}
+
 		float MaxSide() const
 		{
 			const glm::vec3 extents = Extents();

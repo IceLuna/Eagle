@@ -360,8 +360,26 @@ namespace Eagle
 				bool bOpenedDetails = ImGui::TreeNodeEx((void*)(assetHash++), flags, "Details");
 				if (bOpenedDetails)
 				{
+					bool bRagdollChanged = false;
 					UI::BeginPropertyGrid("Details");
 					UI::Text("Name", m_SelectedRagdollBoneName);
+					if (UI::PropertyDrag("Mass", m_SelectedRagdollBone->Settings.Mass, 0.5f))
+					{
+						m_SelectedRagdollBone->Settings.Mass = glm::max(0.f, m_SelectedRagdollBone->Settings.Mass);
+						bRagdollChanged = true;
+					}
+					if (UI::PropertyDrag("Linear Damping", m_SelectedRagdollBone->Settings.LinearDamping, 0.1f))
+					{
+						m_SelectedRagdollBone->Settings.LinearDamping = glm::max(0.f, m_SelectedRagdollBone->Settings.LinearDamping);
+						bRagdollChanged = true;
+					}
+					if (UI::PropertyDrag("Angular Damping", m_SelectedRagdollBone->Settings.AngularDamping, 0.1f))
+					{
+						m_SelectedRagdollBone->Settings.AngularDamping = glm::max(0.f, m_SelectedRagdollBone->Settings.AngularDamping);
+						bRagdollChanged = true;
+					}
+					bRagdollChanged |= UI::DrawAssetSelection("Material", m_SelectedRagdollBone->Settings.Material);
+
 					UI::EndPropertyGrid();
 					ImGui::Separator();
 
@@ -383,10 +401,14 @@ namespace Eagle
 					}
 					if (bTransformChanged)
 					{
-						m_SelectedRagdollBone->UserOffset += boneTransform - origBoneTransform;
-						bChanged = true;
-						OnRagdollModified();
+						m_SelectedRagdollBone->Settings.UserOffset += boneTransform - origBoneTransform;
+						bRagdollChanged = true;
 					}
+
+					if (bRagdollChanged)
+						OnRagdollModified();
+
+					bChanged |= bRagdollChanged;
 
 					ImGui::TreePop();
 				}
@@ -440,7 +462,7 @@ namespace Eagle
 			Transform boneTransform = origBoneTransform;
 			if (DrawGuizmo(boneTransform, id, bEnableModification))
 			{
-				m_SelectedRagdollBone->UserOffset += boneTransform - origBoneTransform;
+				m_SelectedRagdollBone->Settings.UserOffset += boneTransform - origBoneTransform;
 				OnRagdollModified();
 				bGuizmoChanged = true;
 			}
@@ -450,7 +472,7 @@ namespace Eagle
 	Transform SkeletalMeshAssetEditor::GetSelectedRagdollBoneTransform()
 	{
 		Transform transform = m_Entity.GetComponent<SkeletalMeshComponent>().GetRagdollActor()->GetBoneWorldTransform(m_SelectedRagdollBoneName);
-		transform.Scale3D = m_SelectedRagdollBone->UserOffset.Scale3D; // Originally, bones don't have scale, so we restore it
+		transform.Scale3D = m_SelectedRagdollBone->Settings.UserOffset.Scale3D; // Originally, bones don't have scale, so we restore it
 		return transform;
 	}
 	

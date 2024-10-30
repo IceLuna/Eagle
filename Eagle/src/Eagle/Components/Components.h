@@ -1059,21 +1059,7 @@ namespace Eagle
 		virtual void SetIsTrigger(bool bTrigger) = 0;
 		bool IsTrigger() const { return bTrigger; }
 
-		void SetPhysicsMaterialAsset(const Ref<AssetPhysicsMaterial>& material)
-		{
-			if (material == m_MaterialAsset)
-				return;
-
-			if (m_MaterialAsset)
-				m_MaterialAsset->RemoveOnAssetModifiedCallback(m_CallbackID);
-
-			m_MaterialAsset = material;
-			if (m_MaterialAsset)
-				m_MaterialAsset->AddOnAssetModifiedCallback(m_CallbackID, [this]() { UpdatePhysicsMaterials(); });
-
-			UpdatePhysicsMaterials();
-		}
-
+		void SetPhysicsMaterialAsset(const Ref<AssetPhysicsMaterial>& material);
 		const Ref<AssetPhysicsMaterial>& GetPhysicsMaterialAsset() const { return m_MaterialAsset; }
 
 		virtual void SetWorldTransform(const Transform& worldTransform) override;
@@ -1084,19 +1070,16 @@ namespace Eagle
 
 	protected:
 		BaseColliderComponent(const Entity& entity) : SceneComponent(entity){}
-		~BaseColliderComponent()
-		{
-			if (m_MaterialAsset)
-				m_MaterialAsset->RemoveOnAssetModifiedCallback(m_CallbackID);
-		}
-		COMPONENT_DEFAULTS(BaseColliderComponent);
+		BaseColliderComponent& operator=(const BaseColliderComponent& other);
+		BaseColliderComponent(const BaseColliderComponent&) = delete;
+		BaseColliderComponent(BaseColliderComponent&&) noexcept = default;
+		BaseColliderComponent& operator=(BaseColliderComponent&&) noexcept = default;
 
 		virtual void UpdatePhysicsTransform() = 0;
 		virtual void UpdatePhysicsMaterials() = 0;
 
 	protected:
 		Ref<AssetPhysicsMaterial> m_MaterialAsset;
-		GUID m_CallbackID;
 		bool bTrigger = false;
 		bool bShowCollision = false;
 	};
@@ -1105,18 +1088,7 @@ namespace Eagle
 	{
 	public:
 		BoxColliderComponent(const Entity& entity) : BaseColliderComponent(entity) { OnInit(Parent); }
-		BoxColliderComponent& operator=(const BoxColliderComponent& other)
-		{
-			BaseColliderComponent::operator=(other);
-			SetSize(other.m_Size);
-			SetPhysicsMaterialAsset(m_MaterialAsset);
-			SetIsTrigger(other.bTrigger);
-			SetShowCollision(other.bShowCollision);
-			UpdatePhysicsTransform();
-
-			return *this;
-		}
-
+		BoxColliderComponent& operator=(const BoxColliderComponent& other);
 		BoxColliderComponent(const BoxColliderComponent&) = delete;
 		BoxColliderComponent(BoxColliderComponent&&) noexcept = default;
 		BoxColliderComponent& operator=(BoxColliderComponent&&) noexcept = default;
@@ -1142,18 +1114,7 @@ namespace Eagle
 	{
 	public:
 		SphereColliderComponent(const Entity& entity) : BaseColliderComponent(entity) { OnInit(Parent); }
-		SphereColliderComponent& operator=(const SphereColliderComponent& other)
-		{ 
-			BaseColliderComponent::operator=(other);
-			SetRadius(other.Radius);
-			SetPhysicsMaterialAsset(m_MaterialAsset);
-			SetIsTrigger(other.bTrigger);
-			SetShowCollision(other.bShowCollision);
-			UpdatePhysicsTransform();
-
-			return *this;
-		}
-
+		SphereColliderComponent& operator=(const SphereColliderComponent& other);
 		SphereColliderComponent(const SphereColliderComponent&) = delete;
 		SphereColliderComponent(SphereColliderComponent&&) noexcept = default;
 		SphereColliderComponent& operator=(SphereColliderComponent&&) noexcept = default;
@@ -1180,18 +1141,7 @@ namespace Eagle
 	{
 	public:
 		CapsuleColliderComponent(const Entity& entity) : BaseColliderComponent(entity) { OnInit(Parent); }
-		CapsuleColliderComponent& operator=(const CapsuleColliderComponent& other)
-		{
-			BaseColliderComponent::operator=(other);
-			SetHeightAndRadius(other.Height, other.Radius);
-			SetPhysicsMaterialAsset(m_MaterialAsset);
-			SetIsTrigger(other.bTrigger);
-			SetShowCollision(other.bShowCollision);
-			UpdatePhysicsTransform();
-
-			return *this;
-		}
-
+		CapsuleColliderComponent& operator=(const CapsuleColliderComponent& other);
 		CapsuleColliderComponent(const CapsuleColliderComponent&) = delete;
 		CapsuleColliderComponent(CapsuleColliderComponent&&) noexcept = default;
 		CapsuleColliderComponent& operator=(CapsuleColliderComponent&&) noexcept = default;
@@ -1230,25 +1180,7 @@ namespace Eagle
 	{
 	public:
 		MeshColliderComponent(const Entity& entity) : BaseColliderComponent(entity) { OnInit(Parent); }
-		MeshColliderComponent& operator=(const MeshColliderComponent& other)
-		{
-			BaseColliderComponent::operator=(other);
-			SetCollisionMeshAsset(other.m_CollisionMeshAsset);
-			SetPhysicsMaterialAsset(m_MaterialAsset);
-			SetIsTrigger(other.bTrigger);
-			SetShowCollision(other.bShowCollision);
-
-			{
-				// Should be in this order so that we don't need to call `SetIsTwoSided`
-				bTwoSided = other.bTwoSided;
-				SetIsConvex(other.bConvex);
-			}
-
-			UpdatePhysicsTransform();
-
-			return *this;
-		}
-
+		MeshColliderComponent& operator=(const MeshColliderComponent& other);
 		MeshColliderComponent(const MeshColliderComponent&) = delete;
 		MeshColliderComponent(MeshColliderComponent&&) noexcept = default;
 		MeshColliderComponent& operator=(MeshColliderComponent&&) noexcept = default;

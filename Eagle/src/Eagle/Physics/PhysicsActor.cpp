@@ -518,7 +518,6 @@ namespace Eagle
 		{
 			ColliderShape* collider = it->get();
 			m_RigidActor->detachShape(*collider->GetShape());
-			collider->Release();
 			m_Colliders.erase(it);
 			return true;
 		}
@@ -530,7 +529,6 @@ namespace Eagle
 		for (auto& collider : m_Colliders)
 		{
 			m_RigidActor->detachShape(*collider->GetShape());
-			collider->Release();
 		}
 		m_Colliders.clear();
 	}

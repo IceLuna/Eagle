@@ -8,18 +8,16 @@
 
 namespace Eagle
 {
-	void ColliderShape::CreateMaterial(const PhysicsMaterial& material)
+	static physx::PxMaterial* GetMaterial_Internal(const Ref<AssetPhysicsMaterial>& materialAsset)
 	{
-		if (m_Material != nullptr)
-			m_Material->release();
-			
-		m_Material = PhysXInternal::GetPhysics().createMaterial(material.StaticFriction, material.DynamicFriction, material.Bounciness);
+		const Ref<PhysicsMaterial>& material = materialAsset ? materialAsset->GetMaterial() : PhysicsEngine::GetDefaultMaterial();
+		return (physx::PxMaterial*)material->GetNativeHandle();
 	}
 
-	void ColliderShape::SetPhysicsMaterial(const PhysicsMaterial& material)
+	void ColliderShape::SetPhysicsMaterial(const Ref<AssetPhysicsMaterial>& materialAsset)
 	{
-		CreateMaterial(material);
-		m_Shape->setMaterials(&m_Material, 1);
+		physx::PxMaterial* material = GetMaterial_Internal(materialAsset);
+		m_Shape->setMaterials(&material, 1);
 	}
 
 	void ColliderShape::SetIsTrigger(bool bTrigger)
@@ -42,12 +40,12 @@ namespace Eagle
 	: ColliderShape(ColliderType::Box), m_Component(component)
 	{
 		const auto& materialAsset = m_Component.GetPhysicsMaterialAsset();
-		CreateMaterial(materialAsset ? materialAsset->GetMaterial() : PhysicsMaterial{});
+		physx::PxMaterial* material = GetMaterial_Internal(materialAsset);
 		bool bTrigger = m_Component.IsTrigger();
 
 		m_ColliderScale = m_Component.GetWorldTransform().Scale3D * m_Component.GetSize();
 		physx::PxBoxGeometry geometry = physx::PxBoxGeometry(m_ColliderScale.x / 2.f, m_ColliderScale.y / 2.f, m_ColliderScale.z / 2.f);
-		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), geometry, *m_Material);
+		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), geometry, *material);
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !bTrigger);
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, bTrigger);
 		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(m_Component.GetRelativeTransform()));
@@ -65,14 +63,14 @@ namespace Eagle
 	: ColliderShape(ColliderType::Sphere), m_Component(component)
 	{
 		const auto& materialAsset = m_Component.GetPhysicsMaterialAsset();
-		CreateMaterial(materialAsset ? materialAsset->GetMaterial() : PhysicsMaterial{});
+		physx::PxMaterial* material = GetMaterial_Internal(materialAsset);
 
 		m_ColliderScale = m_Component.GetWorldTransform().Scale3D;
 		float largestAxis = glm::max(m_ColliderScale.x, glm::max(m_ColliderScale.y, m_ColliderScale.z));
 		bool bTrigger = m_Component.IsTrigger();
 
 		physx::PxSphereGeometry geometry = physx::PxSphereGeometry(largestAxis * m_Component.GetRadius());
-		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), geometry, *m_Material);
+		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), geometry, *material);
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !bTrigger);
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, bTrigger);
 		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(m_Component.GetRelativeTransform()));
@@ -91,14 +89,14 @@ namespace Eagle
 	: ColliderShape(ColliderType::Capsule), m_Component(component)
 	{
 		const auto& materialAsset = m_Component.GetPhysicsMaterialAsset();
-		CreateMaterial(materialAsset ? materialAsset->GetMaterial() : PhysicsMaterial{});
+		physx::PxMaterial* material = GetMaterial_Internal(materialAsset);
 
 		m_ColliderScale = m_Component.GetWorldTransform().Scale3D;
 		float radiusScale = glm::max(m_ColliderScale.x, m_ColliderScale.z);
 		bool bTrigger = m_Component.IsTrigger();
 
 		physx::PxCapsuleGeometry geometry = physx::PxCapsuleGeometry(radiusScale * m_Component.GetRadius(), (m_Component.GetHeight() / 2.f) * m_ColliderScale.y);
-		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), geometry, *m_Material);
+		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), geometry, *material);
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !bTrigger);
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, bTrigger);
 		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(m_Component.GetRelativeTransform()));
@@ -123,7 +121,7 @@ namespace Eagle
 			return;
 
 		const auto& materialAsset = m_Component.GetPhysicsMaterialAsset();
-		CreateMaterial(materialAsset ? materialAsset->GetMaterial() : PhysicsMaterial{});
+		physx::PxMaterial* material = GetMaterial_Internal(materialAsset);
 
 		MeshColliderData colliderData;
 		CookingResult cookingResult = PhysXCookingFactory::CookMesh(m_Component.GetCollisionMeshAsset(), m_Component.IsConvex(), false, false, colliderData);
@@ -145,7 +143,7 @@ namespace Eagle
 
 		convexGeometry.meshFlags = physx::PxConvexMeshGeometryFlag::Enum::eTIGHT_BOUNDS;
 
-		m_Shape = PhysXInternal::GetPhysics().createShape(convexGeometry, *m_Material, true);
+		m_Shape = PhysXInternal::GetPhysics().createShape(convexGeometry, *material, true);
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !bTrigger);
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, bTrigger);
 		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(m_Component.GetRelativeTransform()));
@@ -177,7 +175,7 @@ namespace Eagle
 			return;
 
 		const auto& materialAsset = m_Component.GetPhysicsMaterialAsset();
-		CreateMaterial(materialAsset ? materialAsset->GetMaterial() : PhysicsMaterial{});
+		physx::PxMaterial* material = GetMaterial_Internal(materialAsset);
 
 		MeshColliderData colliderData;
 		CookingResult cookingResult = PhysXCookingFactory::CookMesh(m_Component.GetCollisionMeshAsset(), m_Component.IsConvex(), bFlip, false, colliderData);
@@ -197,7 +195,7 @@ namespace Eagle
 		physx::PxTriangleMeshGeometry triGeometry = physx::PxTriangleMeshGeometry(m_TriMesh,
 			physx::PxMeshScale(PhysXUtils::ToPhysXVector(m_ColliderScale)));
 
-		m_Shape = PhysXInternal::GetPhysics().createShape(triGeometry, *m_Material, true);
+		m_Shape = PhysXInternal::GetPhysics().createShape(triGeometry, *material, true);
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !bTrigger);
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, bTrigger);
 		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(m_Component.GetRelativeTransform()));

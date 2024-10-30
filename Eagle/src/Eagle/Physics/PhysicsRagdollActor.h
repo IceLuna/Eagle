@@ -54,7 +54,6 @@ namespace Eagle
 	private:
 		Entity m_Entity;
 		physx::PxScene* m_Scene = nullptr;
-		physx::PxMaterial* m_Material = nullptr;
 		PhysicsSettings m_Settings;
 		glm::mat4 m_OriginalTransformInv = glm::mat4(1.f);
 		bool m_bDirtyTransform = true;

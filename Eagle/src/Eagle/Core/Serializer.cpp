@@ -234,15 +234,20 @@ namespace Eagle
 		return false;
 	}
 
-	static void SerializeRagdollBoneOffsets(YAML::Emitter& out, const SkeletalRagdollBones& node)
+	static void SerializeRagdollBonesData(YAML::Emitter& out, const SkeletalRagdollBones& node)
 	{
 		out << YAML::BeginMap;
 		out << YAML::Key << "Name" << YAML::Value << node.Name;
-		out << YAML::Key << "Offset" << YAML::Value << Math::ToTransformMatrix(node.UserOffset);
+		out << YAML::Key << "Offset" << YAML::Value << Math::ToTransformMatrix(node.Settings.UserOffset);
+		out << YAML::Key << "LinearDamping" << YAML::Value << node.Settings.LinearDamping;
+		out << YAML::Key << "AngularDamping" << YAML::Value << node.Settings.AngularDamping;
+		out << YAML::Key << "Mass" << YAML::Value << node.Settings.Mass;
+		if (node.Settings.Material)
+			out << YAML::Key << "Material" << YAML::Value << node.Settings.Material->GetGUID();
 		out << YAML::EndMap;
 
 		for (const auto& child : node.Children)
-			SerializeRagdollBoneOffsets(out, child);
+			SerializeRagdollBonesData(out, child);
 	}
 
 	void Serializer::EmitBoneNode(YAML::Emitter& out, const BoneNode& node)
@@ -508,8 +513,8 @@ namespace Eagle
 		const auto& ragdollData = mesh->GetRagdollRoot();
 		if (!ragdollData.Name.empty())
 		{
-			out << YAML::Key << "RagdollBoneOffsets" << YAML::Value << YAML::BeginSeq;
-			SerializeRagdollBoneOffsets(out, ragdollData);
+			out << YAML::Key << "RagdollBonesData" << YAML::Value << YAML::BeginSeq;
+			SerializeRagdollBonesData(out, ragdollData);
 			out << YAML::EndSeq;
 		}
 
@@ -697,9 +702,9 @@ namespace Eagle
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::PhysicsMaterial);
 		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
 
-		out << YAML::Key << "StaticFriction" << YAML::Value << material.StaticFriction;
-		out << YAML::Key << "DynamicFriction" << YAML::Value << material.DynamicFriction;
-		out << YAML::Key << "Bounciness" << YAML::Value << material.Bounciness;
+		out << YAML::Key << "StaticFriction" << YAML::Value << material->GetStaticFriction();
+		out << YAML::Key << "DynamicFriction" << YAML::Value << material->GetDynamicFriction();
+		out << YAML::Key << "Bounciness" << YAML::Value << material->GetBounciness();
 
 		out << YAML::EndMap;
 	}
@@ -2767,13 +2772,18 @@ namespace Eagle
 		if (auto node = baseNode["MaxRagdollSwing"])
 			maxRagdollSwing = node.as<float>();
 
-		std::unordered_map<std::string, Transform> ragdollOffsets;
-		if (auto node = baseNode["RagdollBoneOffsets"])
+		std::unordered_map<std::string, SkeletalRagdollBones::UserSettings> ragdollPerBoneData;
+		if (auto node = baseNode["RagdollBonesData"])
 		{
-			ragdollOffsets.reserve(node.size());
+			ragdollPerBoneData.reserve(node.size());
 			for (const auto& dataNode : node)
 			{
-				ragdollOffsets.emplace(dataNode["Name"].as<std::string>(), Math::DecomposeTransformMatrix(dataNode["Offset"].as<glm::mat4>()));
+				auto& data = ragdollPerBoneData[dataNode["Name"].as<std::string>()];
+				data.UserOffset = Math::DecomposeTransformMatrix(dataNode["Offset"].as<glm::mat4>());
+				data.LinearDamping = dataNode["LinearDamping"].as<float>();
+				data.AngularDamping = dataNode["AngularDamping"].as<float>();
+				data.Mass = dataNode["Mass"].as<float>();
+				data.Material = GetAsset<AssetPhysicsMaterial>(dataNode["Material"]);
 			}
 		}
 
@@ -2830,7 +2840,7 @@ namespace Eagle
 			}
 		}
 
-		Ref<SkeletalMesh> skeletalMesh = SkeletalMesh::Create(vertices, indicesPerMaterial, skeletalInfo, aabb, ragdollOffsets, minRagdollBoneSize, maxRagdollTwist, maxRagdollSwing);
+		Ref<SkeletalMesh> skeletalMesh = SkeletalMesh::Create(vertices, indicesPerMaterial, skeletalInfo, aabb, ragdollPerBoneData, minRagdollBoneSize, maxRagdollTwist, maxRagdollSwing);
 		if (materialsNode)
 			for (const auto& matNode : materialsNode)
 				skeletalMesh->SetMaterialAsset(matNode["Index"].as<uint32_t>(), GetAsset<AssetMaterial>(matNode["Material"]));
@@ -3042,25 +3052,27 @@ namespace Eagle
 
 		GUID guid = baseNode["GUID"].as<GUID>();
 
-		PhysicsMaterial material{};
+		float staticFriction = 0.6f;
+		float dynamicFriction = 0.6f;
+		float bounciness = 0.5f;
 
 		if (auto node = baseNode["StaticFriction"])
-			material.StaticFriction = node.as<float>();
+			staticFriction = node.as<float>();
 
 		if (auto node = baseNode["DynamicFriction"])
-			material.DynamicFriction = node.as<float>();
+			dynamicFriction = node.as<float>();
 
 		if (auto node = baseNode["Bounciness"])
-			material.Bounciness = node.as<float>();
+			bounciness = node.as<float>();
 
 		class LocalAssetPhysicsMaterial : public AssetPhysicsMaterial
 		{
 		public:
-			LocalAssetPhysicsMaterial(const Path& path, GUID guid, const PhysicsMaterial& material)
+			LocalAssetPhysicsMaterial(const Path& path, GUID guid, const Ref<PhysicsMaterial>& material)
 				: AssetPhysicsMaterial(path, guid, material) {}
 		};
 
-		return MakeRef<LocalAssetPhysicsMaterial>(pathToAsset, guid, material);
+		return MakeRef<LocalAssetPhysicsMaterial>(pathToAsset, guid, PhysicsMaterial::Create(staticFriction, dynamicFriction, bounciness));
 	}
 
 	Ref<AssetSoundGroup> Serializer::DeserializeAssetSoundGroup(const YAML::Node& baseNode, const Path& pathToAsset)

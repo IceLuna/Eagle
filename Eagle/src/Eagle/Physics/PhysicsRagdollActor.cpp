@@ -115,7 +115,7 @@ namespace Eagle
 
     // TODO: group args
     static void CreateArticulationChain(const SkeletalRagdollBones& merged, const SkeletalPose& currentPose, const BonesMap& boneMap, physx::PxScene* scene, PhysicsRagdollActor::BoneData& physicsBoneData, PhysicsActorPayload& payload,
-        const PhysicsSettings& settings, const glm::mat4& worldTransform, const glm::mat4& compWorldTrInv, const physx::PxMaterial& material, float twist, float swing, const physx::PxVec3& linearVelocity,
+        const PhysicsSettings& settings, const glm::mat4& worldTransform, const glm::mat4& compWorldTrInv, float twist, float swing, const physx::PxVec3& linearVelocity,
         const physx::PxVec3& angularVelocity, std::unordered_map<std::string, physx::PxRigidDynamic*>& ragdollBonesMap, physx::PxRigidDynamic* parentBody = nullptr)
     {
         using namespace physx;
@@ -130,7 +130,7 @@ namespace Eagle
         {
             for (const auto& child : merged.Children)
             {
-                CreateArticulationChain(child, currentPose, boneMap, scene, physicsBoneData, payload, settings, worldTransform, compWorldTrInv, material, twist, swing, linearVelocity, angularVelocity, ragdollBonesMap, parentBody);
+                CreateArticulationChain(child, currentPose, boneMap, scene, physicsBoneData, payload, settings, worldTransform, compWorldTrInv, twist, swing, linearVelocity, angularVelocity, ragdollBonesMap, parentBody);
             }
             return;
         }
@@ -138,7 +138,7 @@ namespace Eagle
         const glm::mat4 boneWorldTransform = worldTransform * merged.LocalTransform;
         const PxTransform transform = PhysXUtils::ToPhysXTranform(boneWorldTransform);
 
-        const glm::vec3 locationOffset = merged.UserOffset.Location;
+        const glm::vec3 locationOffset = merged.Settings.UserOffset.Location;
         glm::vec3 parentPos = PhysXUtils::FromPhysXVector(transform.p) + locationOffset;
         const PxTransform jointTransform{ transform.p, PhysXUtils::ToPhysXQuat(glm::quat_cast(itParentBoneMap->second.Offset)) };
 
@@ -156,8 +156,8 @@ namespace Eagle
             const glm::vec3 bodyLocation = (parentPos + childPos) * 0.5f;
 
             // Rotate around `bodyLocation`
-            parentPos = bodyLocation + glm::rotate(merged.UserOffset.Rotation.GetQuat(), parentPos - bodyLocation);
-            childPos = bodyLocation + glm::rotate(merged.UserOffset.Rotation.GetQuat(), childPos - bodyLocation);
+            parentPos = bodyLocation + glm::rotate(merged.Settings.UserOffset.Rotation.GetQuat(), parentPos - bodyLocation);
+            childPos = bodyLocation + glm::rotate(merged.Settings.UserOffset.Rotation.GetQuat(), childPos - bodyLocation);
 
             const glm::mat4 lookAt = glm::inverse(glm::lookAt(bodyLocation, childPos, glm::vec3(0, 1, 0)));
             const PxQuat q = PhysXUtils::ToPhysXQuat(Math::DecomposeTransformMatrix(lookAt).Rotation.GetQuat());
@@ -181,14 +181,19 @@ namespace Eagle
 
             // Setup collider
             const glm::mat4 rot = glm::rotate(glm::mat4(1.0f), PxHalfPi, glm::vec3(0.0f, 1.0f, 0.0f));
-            PxShape* shape = physics.createShape(PxCapsuleGeometry(radius * merged.UserOffset.Scale3D.x, halfHeight * merged.UserOffset.Scale3D.y), material);
+            const auto& material = merged.Settings.Material ? merged.Settings.Material->GetMaterial() : PhysicsEngine::GetDefaultMaterial();
+            const PxMaterial* physxMaterial = (const PxMaterial*)material->GetNativeHandle();
+            PxShape* shape = physics.createShape(PxCapsuleGeometry(radius * merged.Settings.UserOffset.Scale3D.x, halfHeight * merged.Settings.UserOffset.Scale3D.y), *physxMaterial);
+            shape->setFlag(physx::PxShapeFlag::Enum::eVISUALIZATION, false);
             shape->setSimulationFilterData(s_FilterData);
             PxTransform local(PhysXUtils::ToPhysXQuat(glm::quat_cast(rot)));
             shape->setLocalPose(local);
             body->attachShape(*shape);
             body->setLinearVelocity(linearVelocity);
             body->setAngularVelocity(angularVelocity);
-            shape->setFlag(physx::PxShapeFlag::Enum::eVISUALIZATION, false);
+            body->setLinearDamping(merged.Settings.LinearDamping);
+            body->setAngularDamping(merged.Settings.AngularDamping);
+            body->setMass(merged.Settings.Mass);
 
             // Setup Joint
             PxD6Joint* joint = PxD6JointCreate(physics,
@@ -214,7 +219,7 @@ namespace Eagle
             ragdollBonesMap[merged.Name] = body;
 
             for (const auto& child : merged.Children)
-                CreateArticulationChain(child, currentPose, boneMap, scene, childData, payload, settings, worldTransform, compWorldTrInv, material, twist, swing, linearVelocity, angularVelocity, ragdollBonesMap, body);
+                CreateArticulationChain(child, currentPose, boneMap, scene, childData, payload, settings, worldTransform, compWorldTrInv, twist, swing, linearVelocity, angularVelocity, ragdollBonesMap, body);
         }
     }
 
@@ -314,8 +319,7 @@ namespace Eagle
             }
         }
         
-        m_Material = physics.createMaterial(0.5f, 0.5f, 0.6f);
-		CreateArticulationChain(mesh->GetRagdollRoot(), skeletalComp.LastPose, meshInfo.BoneInfoMap, m_Scene, m_Root, m_Payload, m_Settings, worldTransform, m_OriginalTransformInv, *m_Material,
+		CreateArticulationChain(mesh->GetRagdollRoot(), skeletalComp.LastPose, meshInfo.BoneInfoMap, m_Scene, m_Root, m_Payload, m_Settings, worldTransform, m_OriginalTransformInv,
             glm::radians(twist), glm::radians(swing), linearVelocity, angularVelocity, m_BonesMap);
 	}
 
@@ -326,8 +330,6 @@ namespace Eagle
         {
             m_Entity.GetComponent<SkeletalMeshComponent>().LastPose.Reset();
         }
-        m_Material->release();
-        m_Material = nullptr;
         Release(m_Root);
     }
     

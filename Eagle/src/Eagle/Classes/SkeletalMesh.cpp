@@ -47,19 +47,19 @@ namespace Eagle
             return data;
         }
 
-        static void OverwriteUserOffsets(SkeletalRagdollBones& node, const std::unordered_map<std::string, Transform>& ragdollOffsets)
+        static void OverwriteUserSettings(SkeletalRagdollBones& node, const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollPerBoneSettings)
         {
-            auto it = ragdollOffsets.find(node.Name);
-            if (it != ragdollOffsets.end())
-                node.UserOffset = it->second;
+            auto it = ragdollPerBoneSettings.find(node.Name);
+            if (it != ragdollPerBoneSettings.end())
+                node.Settings = it->second;
 
             for (auto& child : node.Children)
-                OverwriteUserOffsets(child, ragdollOffsets);
+                OverwriteUserSettings(child, ragdollPerBoneSettings);
         }
 	}
 
     SkeletalMesh::SkeletalMesh(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
-        const std::unordered_map<std::string, Transform>& ragdollOffsets, float minRagdollBoneSize, float maxRagdollTwist, float maxRagdollSwing)
+        const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollPerBoneSettings, float minRagdollBoneSize, float maxRagdollTwist, float maxRagdollSwing)
         : m_Vertices(vertices)
         , m_IndicesPerMaterial(indicesPerMaterial)
         , m_Skeletal(skeletal)
@@ -71,7 +71,7 @@ namespace Eagle
         , m_MaxRagdollSwing(maxRagdollSwing)
     {
         RegenerateRagdollData(m_MinRagdollBoneSize);
-        Utils::OverwriteUserOffsets(m_RagdollRoot, ragdollOffsets);
+        Utils::OverwriteUserSettings(m_RagdollRoot, ragdollPerBoneSettings);
     }
 
     SkeletalMesh::SkeletalMesh(const SkeletalMesh& other)
@@ -99,17 +99,17 @@ namespace Eagle
     }
 
     Ref<SkeletalMesh> SkeletalMesh::Create(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
-        const std::unordered_map<std::string, Transform>& ragdollOffsets, float minRagdollBoneSize, float maxRagdollTwist, float maxRagdollSwing)
+        const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollPerBoneSettings, float minRagdollBoneSize, float maxRagdollTwist, float maxRagdollSwing)
 	{
 		class LocalSkeletalMesh : public SkeletalMesh
 		{
 		public:
 			LocalSkeletalMesh(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
-                const std::unordered_map<std::string, Transform>& ragdollOffsets, float minRagdollBoneSize, float maxRagdollTwist, float maxRagdollSwing)
-				: SkeletalMesh(vertices, indicesPerMaterial, skeletal, aabb, ragdollOffsets, minRagdollBoneSize, maxRagdollTwist, maxRagdollSwing) {}
+                const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollSettings, float minRagdollBoneSize, float maxRagdollTwist, float maxRagdollSwing)
+				: SkeletalMesh(vertices, indicesPerMaterial, skeletal, aabb, ragdollSettings, minRagdollBoneSize, maxRagdollTwist, maxRagdollSwing) {}
 		};
 
-		return MakeRef<LocalSkeletalMesh>(vertices, indicesPerMaterial, skeletal, aabb, ragdollOffsets, minRagdollBoneSize, maxRagdollTwist, maxRagdollSwing);
+		return MakeRef<LocalSkeletalMesh>(vertices, indicesPerMaterial, skeletal, aabb, ragdollPerBoneSettings, minRagdollBoneSize, maxRagdollTwist, maxRagdollSwing);
 	}
 
 	Ref<SkeletalMesh> SkeletalMesh::Create(const Ref<SkeletalMesh>& other)
