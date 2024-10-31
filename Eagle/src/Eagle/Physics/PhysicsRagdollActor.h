@@ -24,10 +24,6 @@ namespace Eagle
 		PhysicsRagdollActor(Entity entity, physx::PxScene* scene, const PhysicsSettings& settings);
 		~PhysicsRagdollActor();
 
-		// TODO:
-		void SetLocation(const glm::vec3& location, bool autowake = true) {}
-		void SetRotation(const Rotator& rotation, bool autowake = true) {}
-
 		float GetSimulationTimeStep() const { return m_Settings.FixedTimeStep; }
 		const Entity& GetEntity() const { return m_Entity; }
 

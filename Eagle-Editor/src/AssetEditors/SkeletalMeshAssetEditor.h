@@ -27,7 +27,7 @@ namespace Eagle
 		bool DrawRagdollTab(const Ref<SkeletalMesh>& mesh, size_t& assetHash);
 		void UpdateGuizmo();
 		void OnViewportEnd() override { UpdateGuizmo(); }
-		Transform GetSelectedRagdollBoneTransform();
+		Transform GetSelectedRagdollBoneWorldTransform();
 		void OnRagdollModified();
 
 		enum class OpenedTabType
@@ -39,7 +39,7 @@ namespace Eagle
 		Ref<AssetSkeletalMesh> m_Asset;
 
 		std::string m_SelectedBoneName;
-		Transform m_SelectedBoneParentWorldTr;
+		glm::mat4 m_SelectedBoneParentWorldTr = glm::mat4(1.f);
 		BoneNode* m_SelectedBone = nullptr;
 
 		std::string m_SelectedRagdollBoneName;

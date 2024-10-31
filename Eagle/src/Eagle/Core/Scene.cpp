@@ -62,15 +62,14 @@ namespace Eagle
 			}
 		}
 
-		void DrawBones(std::vector<RendererLine>& buffer, const BoneNode& node, const SkeletalPose& currentPose, bool bRagdoll, const glm::mat4& baseTransform)
+		void DrawBones_Internal(std::vector<RendererLine>& buffer, const BoneNode& node, const SkeletalPose& currentPose, const glm::mat4& baseTransform)
 		{
 			glm::mat4 tr;
 			if (auto it = currentPose.Bones.find(node.Name); it != currentPose.Bones.end())
 			{
 				const auto& bone = it->second;
 				const glm::mat4 boneTransform = Math::ToTransformMatrix(bone);
-				// If a ragdoll, then it's already a global transform
-				tr = bRagdoll ? boneTransform : baseTransform * boneTransform;
+				tr = baseTransform * boneTransform;
 			}
 			else
 				tr = baseTransform * node.Transformation;
@@ -88,7 +87,42 @@ namespace Eagle
 			}
 
 			for (const auto& child : node.Children)
-				DrawBones(buffer, child, currentPose, bRagdoll, tr);
+				DrawBones_Internal(buffer, child, currentPose, tr);
+		}
+
+		void DrawRagdollBones_Internal(std::vector<RendererLine>& buffer, const BoneNode& node, const SkeletalPose& currentPose, const glm::mat4& worldTransform, const glm::mat4& baseTransform)
+		{
+			glm::mat4 tr;
+			if (auto it = currentPose.Bones.find(node.Name); it != currentPose.Bones.end())
+			{
+				const auto& bone = it->second;
+				tr = Math::ToTransformMatrix(bone); // Ragdoll is already a global transform
+			}
+			else
+				tr = baseTransform * node.Transformation;
+
+			const glm::vec3 parentLocation = Math::DecomposeTransformMatrix(worldTransform * tr).Location;
+			for (const auto& child : node.Children)
+			{
+				auto& line = buffer.emplace_back();
+				line.Start = parentLocation;
+				line.StartColor = glm::vec3(0, 1, 0);
+
+				const glm::vec3 location = Math::DecomposeTransformMatrix(worldTransform * (tr * child.Transformation)).Location;
+				line.End = location;
+				line.EndColor = glm::vec3(1, 1, 0);
+			}
+
+			for (const auto& child : node.Children)
+				DrawRagdollBones_Internal(buffer, child, currentPose, worldTransform, tr);
+		}
+
+		void DrawBones(std::vector<RendererLine>& buffer, const BoneNode& node, const SkeletalPose& currentPose, bool bRagdoll, const glm::mat4& baseTransform)
+		{
+			if (bRagdoll)
+				DrawRagdollBones_Internal(buffer, node, currentPose, baseTransform, baseTransform);
+			else
+				DrawBones_Internal(buffer, node, currentPose, baseTransform);
 		}
 	
 		void DrawBox(std::vector<RendererLine>& buffer, AABB aabb, const Transform& worldTr, const glm::vec3& color = glm::vec3(1, 0, 0))
@@ -682,28 +716,6 @@ namespace Eagle
 
 		GatherLightsInfo();
 
-		// If meshes are dirty, there's not point in updating specific transforms
-		// Since meshes are going to be fully updated anyway
-		if (m_DirtyFlags.bStaticMeshTransformsDirty && !m_DirtyFlags.bStaticMeshesDirty)
-			m_SceneRenderer->UpdateMeshesTransforms(m_DirtyTransformStaticMeshes);
-
-		// Same for skeletals
-		// If runtime, we differ the update until animation system runs
-		if (!bRuntime && m_DirtyFlags.bSkeletalMeshTransformsDirty && !m_DirtyFlags.bSkeletalMeshesDirty)
-			m_SceneRenderer->UpdateSkeletalMeshesTransforms(m_DirtyTransformSkeletalMeshes);
-
-		// Same for sprites
-		if (m_DirtyFlags.bSpriteTransformsDirty && !m_DirtyFlags.bSpritesDirty)
-			m_SceneRenderer->UpdateSpritesTransforms(m_DirtyTransformSprites);
-
-		// Same for decals
-		if (m_DirtyFlags.bDecalTransformsDirty && !m_DirtyFlags.bDecalsDirty)
-			m_SceneRenderer->UpdateDecalsTransforms(m_DirtyTransformDecals);
-
-		// Same for texts
-		if (m_DirtyFlags.bTextTransformsDirty && !m_DirtyFlags.bTextDirty)
-			m_SceneRenderer->UpdateTextsTransforms(m_DirtyTransformTexts);
-
 		if (m_DirtyFlags.bStaticMeshesDirty)
 		{
 			auto view = m_Registry.view<StaticMeshComponent>();
@@ -716,6 +728,7 @@ namespace Eagle
 		}
 		if (m_DirtyFlags.bSkeletalMeshesDirty)
 		{
+			// TODO: Maybe update the list in callbacks? 
 			auto view = m_Registry.view<SkeletalMeshComponent>();
 			m_SkeletalMeshes.clear();
 			for (auto entity : view)
@@ -745,6 +758,32 @@ namespace Eagle
 				m_Decals.push_back(&decal);
 			}
 		}
+
+		if (bRuntime || bForceAnimationsUpdate)
+			m_AnimationTransforms = AnimationSystem::Update(m_SkeletalMeshes, ts);
+		else
+			m_AnimationTransforms = AnimationSystem::UpdateBasePose(m_SkeletalMeshes, ts);
+
+		// If meshes are dirty, there's not point in updating specific transforms
+		// Since meshes are going to be fully updated anyway
+		if (m_DirtyFlags.bStaticMeshTransformsDirty && !m_DirtyFlags.bStaticMeshesDirty)
+			m_SceneRenderer->UpdateMeshesTransforms(m_DirtyTransformStaticMeshes);
+
+		// Same for skeletals
+		if (m_DirtyFlags.bSkeletalMeshTransformsDirty && !m_DirtyFlags.bSkeletalMeshesDirty)
+			m_SceneRenderer->UpdateSkeletalMeshesTransforms(m_DirtyTransformSkeletalMeshes);
+
+		// Same for sprites
+		if (m_DirtyFlags.bSpriteTransformsDirty && !m_DirtyFlags.bSpritesDirty)
+			m_SceneRenderer->UpdateSpritesTransforms(m_DirtyTransformSprites);
+
+		// Same for decals
+		if (m_DirtyFlags.bDecalTransformsDirty && !m_DirtyFlags.bDecalsDirty)
+			m_SceneRenderer->UpdateDecalsTransforms(m_DirtyTransformDecals);
+
+		// Same for texts
+		if (m_DirtyFlags.bTextTransformsDirty && !m_DirtyFlags.bTextDirty)
+			m_SceneRenderer->UpdateTextsTransforms(m_DirtyTransformTexts);
 
 		// Gather billboards
 		{
@@ -1012,19 +1051,6 @@ namespace Eagle
 				m_SceneRenderer->UpdateParticleSystems(m_ParticlesToUpdate);
 				m_ParticlesToUpdate.clear();
 			}
-		}
-
-		if (bRuntime || bForceAnimationsUpdate)
-		{
-			m_AnimationTransforms = AnimationSystem::Update(m_SkeletalMeshes, ts);
-
-			// Update transforms if animation system changed them
-			if (m_DirtyFlags.bSkeletalMeshTransformsDirty && !m_DirtyFlags.bSkeletalMeshesDirty)
-				m_SceneRenderer->UpdateSkeletalMeshesTransforms(m_DirtyTransformSkeletalMeshes);
-		}
-		else
-		{
-			m_AnimationTransforms = AnimationSystem::UpdateBasePose(m_SkeletalMeshes, ts);
 		}
 
 		const Camera* camera = bIsPlaying ? (Camera*)&m_RuntimeCamera->Camera : (Camera*)&m_EditorCamera;

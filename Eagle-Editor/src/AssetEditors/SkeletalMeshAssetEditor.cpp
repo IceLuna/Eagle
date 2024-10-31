@@ -78,7 +78,7 @@ namespace Eagle
 		if (ImGui::IsItemClicked())
 		{
 			m_SelectedBoneName = node.Name;
-			m_SelectedBoneParentWorldTr = Math::DecomposeTransformMatrix(baseTransform);
+			m_SelectedBoneParentWorldTr = baseTransform;
 			m_SelectedBone = &node;
 		}
 
@@ -245,7 +245,7 @@ namespace Eagle
 
 		if (m_OpenedTab != OpenedTabType::Skeletal)
 		{
-			m_Entity.GetComponent<SkeletalMeshComponent>().GetRagdollActor()->SetShowCollision(false);
+			m_Entity.GetComponent<SkeletalMeshComponent>().SetRagdollEnabled(false);
 		}
 		m_OpenedTab = OpenedTabType::Skeletal;
 
@@ -337,7 +337,9 @@ namespace Eagle
 
 		if (m_OpenedTab != OpenedTabType::Ragdoll)
 		{
-			m_Entity.GetComponent<SkeletalMeshComponent>().GetRagdollActor()->SetShowCollision(true);
+			auto& comp = m_Entity.GetComponent<SkeletalMeshComponent>();
+			comp.SetRagdollEnabled(true);
+			comp.GetRagdollActor()->SetShowCollision(true);
 		}
 		m_OpenedTab = OpenedTabType::Ragdoll;
 
@@ -379,12 +381,12 @@ namespace Eagle
 						bRagdollChanged = true;
 					}
 					bRagdollChanged |= UI::DrawAssetSelection("Material", m_SelectedRagdollBone->Settings.Material);
+					bRagdollChanged |= UI::ComboEnum("Shape", m_SelectedRagdollBone->Settings.Shape);
 
 					UI::EndPropertyGrid();
 					ImGui::Separator();
 
-					const Transform origBoneTransform = GetSelectedRagdollBoneTransform();
-					Transform boneTransform = origBoneTransform;
+					Transform& boneTransform = m_SelectedRagdollBone->Settings.UserOffset;
 
 					bool bTransformChanged = false;
 					bool bRotationChanged = false;
@@ -401,7 +403,6 @@ namespace Eagle
 					}
 					if (bTransformChanged)
 					{
-						m_SelectedRagdollBone->Settings.UserOffset += boneTransform - origBoneTransform;
 						bRagdollChanged = true;
 					}
 
@@ -447,29 +448,32 @@ namespace Eagle
 		if (m_OpenedTab == OpenedTabType::Skeletal && m_SelectedBone)
 		{
 			const bool bEnableModification = m_SelectedBone->bVirtualBone;
-			const Transform origBoneTransform = m_SelectedBoneParentWorldTr + Math::DecomposeTransformMatrix(m_SelectedBone->Transformation);
-			Transform boneTransform = origBoneTransform;
+			Transform boneTransform = Math::DecomposeTransformMatrix(m_SelectedBoneParentWorldTr * m_SelectedBone->Transformation);
 			if (DrawGuizmo(boneTransform, id, bEnableModification))
 			{
-				m_SelectedBone->Transformation *= Math::ToTransformMatrix(boneTransform - origBoneTransform);
+				m_SelectedBone->Transformation = glm::inverse(m_SelectedBoneParentWorldTr) * Math::ToTransformMatrix(boneTransform);
 				bGuizmoChanged = true;
 			}
 		}
 		else if (m_OpenedTab == OpenedTabType::Ragdoll && m_SelectedRagdollBone)
 		{
 			const bool bEnableModification = true;
-			const Transform origBoneTransform = GetSelectedRagdollBoneTransform();
-			Transform boneTransform = origBoneTransform;
+			const glm::vec3 worldLocation = GetSelectedRagdollBoneWorldTransform().Location;
+			Transform boneTransform = m_SelectedRagdollBone->Settings.UserOffset;
+			const glm::vec3 origOffsetLocation = boneTransform.Location;
+			boneTransform.Location = worldLocation; // We wanna draw guizmo in WS
 			if (DrawGuizmo(boneTransform, id, bEnableModification))
 			{
-				m_SelectedRagdollBone->Settings.UserOffset += boneTransform - origBoneTransform;
+				const glm::vec3 diff = boneTransform.Location - worldLocation;
+				boneTransform.Location = origOffsetLocation + diff; // Back to local
+				m_SelectedRagdollBone->Settings.UserOffset = boneTransform;
 				OnRagdollModified();
 				bGuizmoChanged = true;
 			}
 		}
 	}
 	
-	Transform SkeletalMeshAssetEditor::GetSelectedRagdollBoneTransform()
+	Transform SkeletalMeshAssetEditor::GetSelectedRagdollBoneWorldTransform()
 	{
 		Transform transform = m_Entity.GetComponent<SkeletalMeshComponent>().GetRagdollActor()->GetBoneWorldTransform(m_SelectedRagdollBoneName);
 		transform.Scale3D = m_SelectedRagdollBone->Settings.UserOffset.Scale3D; // Originally, bones don't have scale, so we restore it

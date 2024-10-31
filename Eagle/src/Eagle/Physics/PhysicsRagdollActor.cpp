@@ -112,6 +112,23 @@ namespace Eagle
         }
     }
 #endif
+    
+    static physx::PxShape* CreateShape(physx::PxPhysics& physics, SkeletalRagdollBones::UserSettings::ShapeType type, const glm::vec3& scale, float radius, float halfHeight, const physx::PxMaterial* material)
+    {
+        using namespace physx;
+        switch (type)
+        {
+            case SkeletalRagdollBones::UserSettings::ShapeType::Box:
+                return physics.createShape(PxBoxGeometry(halfHeight * scale.x, halfHeight * scale.y, halfHeight * scale.z), *material);
+            case SkeletalRagdollBones::UserSettings::ShapeType::Sphere:
+                return physics.createShape(PxSphereGeometry(radius * scale.x), *material);
+            case SkeletalRagdollBones::UserSettings::ShapeType::Capsule:
+                return physics.createShape(PxCapsuleGeometry(radius * scale.x, halfHeight * scale.y), *material);
+            default:
+                EG_CORE_ASSERT(false);
+                return physics.createShape(PxCapsuleGeometry(radius * scale.x, halfHeight * scale.y), *material);
+        }
+    }
 
     // TODO: group args
     static void CreateArticulationChain(const SkeletalRagdollBones& merged, const SkeletalPose& currentPose, const BonesMap& boneMap, physx::PxScene* scene, PhysicsRagdollActor::BoneData& physicsBoneData, PhysicsActorPayload& payload,
@@ -183,7 +200,7 @@ namespace Eagle
             const glm::mat4 rot = glm::rotate(glm::mat4(1.0f), PxHalfPi, glm::vec3(0.0f, 1.0f, 0.0f));
             const auto& material = merged.Settings.Material ? merged.Settings.Material->GetMaterial() : PhysicsEngine::GetDefaultMaterial();
             const PxMaterial* physxMaterial = (const PxMaterial*)material->GetNativeHandle();
-            PxShape* shape = physics.createShape(PxCapsuleGeometry(radius * merged.Settings.UserOffset.Scale3D.x, halfHeight * merged.Settings.UserOffset.Scale3D.y), *physxMaterial);
+            PxShape* shape = CreateShape(physics, merged.Settings.Shape, merged.Settings.UserOffset.Scale3D, radius, halfHeight, physxMaterial);
             shape->setFlag(physx::PxShapeFlag::Enum::eVISUALIZATION, false);
             shape->setSimulationFilterData(s_FilterData);
             PxTransform local(PhysXUtils::ToPhysXQuat(glm::quat_cast(rot)));

@@ -86,6 +86,10 @@ namespace Eagle
 			float LinearDamping = 0.f;
 			float Mass = 1.f;
 			float AngularDamping = 0.05f;
+			enum ShapeType
+			{
+				Box, Sphere, Capsule
+			} Shape = ShapeType::Capsule;
 		} Settings;
 	};
 

@@ -98,7 +98,6 @@ namespace Eagle
 		glm::mat4 cameraProjection = editorCamera.GetProjection();
 		cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
 
-		Transform finalTransform = transform;
 		const bool bRelative = m_GuizmoType == ImGuizmo::OPERATION::ROTATE;
 
 		int snappingIndex = 0;
@@ -119,7 +118,7 @@ namespace Eagle
 
 		if (ImGuizmo::IsUsing())
 		{
-			finalTransform = Math::DecomposeTransformMatrix(transformMatrix);
+			Transform finalTransform = Math::DecomposeTransformMatrix(transformMatrix);
 
 			if (m_GuizmoType == ImGuizmo::OPERATION::TRANSLATE)
 				transform.Location = finalTransform.Location;

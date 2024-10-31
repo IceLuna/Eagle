@@ -242,6 +242,7 @@ namespace Eagle
 		out << YAML::Key << "LinearDamping" << YAML::Value << node.Settings.LinearDamping;
 		out << YAML::Key << "AngularDamping" << YAML::Value << node.Settings.AngularDamping;
 		out << YAML::Key << "Mass" << YAML::Value << node.Settings.Mass;
+		out << YAML::Key << "Shape" << YAML::Value << Utils::GetEnumName(node.Settings.Shape);
 		if (node.Settings.Material)
 			out << YAML::Key << "Material" << YAML::Value << node.Settings.Material->GetGUID();
 		out << YAML::EndMap;
@@ -2784,6 +2785,7 @@ namespace Eagle
 				data.AngularDamping = dataNode["AngularDamping"].as<float>();
 				data.Mass = dataNode["Mass"].as<float>();
 				data.Material = GetAsset<AssetPhysicsMaterial>(dataNode["Material"]);
+				data.Shape = Utils::GetEnumFromName<SkeletalRagdollBones::UserSettings::ShapeType>(dataNode["Shape"].as<std::string>());
 			}
 		}
 
