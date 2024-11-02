@@ -2519,7 +2519,7 @@ namespace Eagle
 			stbiImageData = stbi_load_from_memory((uint8_t*)binary.Data(), (int)binary.Size(), &width, &height, &channels, desiredChannels);
 			if (!stbiImageData)
 			{
-				EG_CORE_ERROR("Deserialization failed. stbi_load failed: {}", pathToAsset.u8string());
+				EG_CORE_ERROR("Deserialization failed. stbi_load_from_memory failed: {}", pathToAsset.u8string());
 				return {};
 			}
 			const ImageFormat imageFormat = AssetTextureFormatToImageFormat(assetFormat);
@@ -2590,7 +2590,7 @@ namespace Eagle
 
 		if (!stbiImageData)
 		{
-			EG_CORE_ERROR("Import failed. stbi_loadf failed: {} - {}", pathToAsset.u8string(), Utils::GetEnumName(assetFormat));
+			EG_CORE_ERROR("Import failed. stbi_loadf_from_memory failed: {} - {}", pathToAsset.u8string(), Utils::GetEnumName(assetFormat));
 			return {};
 		}
 		const ImageFormat imageFormat = AssetTextureFormatToImageFormat(assetFormat);

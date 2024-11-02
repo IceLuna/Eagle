@@ -454,7 +454,7 @@ namespace Eagle
 			void* stbiImageData = stbi_load_from_memory((uint8_t*)buffer.Data(), (int)buffer.Size(), &width, &height, &channels, desiredChannels);
 			if (!stbiImageData)
 			{
-				EG_CORE_ERROR("Import failed. stbi_load failed: {}", pathToRaw.u8string());
+				EG_CORE_ERROR("Import failed. stbi_load_from_memory failed: {}", pathToRaw.u8string());
 				return false;
 			}
 

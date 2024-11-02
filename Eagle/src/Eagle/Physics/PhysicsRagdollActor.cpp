@@ -82,6 +82,7 @@ namespace Eagle
                 physicsBoneData.Name = bone.Name;
                 physicsBoneData.BoneWorldTr = compWorldTrInv * boneWorldTransform;
                 physicsBoneData.OriginalBodyTrInv = glm::inverse(Math::ToTransformMatrix(PhysXUtils::FromPhysXTransform(parentBody->getGlobalPose())));
+                physicsBoneData.bValidBone = bValidBone;
                 parentBody->userData = &payload;
                 parentBody->setSolverIterationCounts(settings.SolverIterations, settings.SolverVelocityIterations);
             }
@@ -123,7 +124,7 @@ namespace Eagle
 
             auto& childData = physicsBoneData.Children.emplace_back();
             childData.Shape = shape;
-            childData.bShapeEnabled = bValidBone;
+            childData.bValidBone = bValidBone;
             childData.Body = body;
             childData.Joint = joint;
             childData.Name = bone.Name;
@@ -138,11 +139,13 @@ namespace Eagle
 
     static void UpdatePose(const PhysicsRagdollActor::BoneData& node, SkeletalPose& pose, const glm::mat4& origBaseWorldTrInv)
     {
-        const auto& nodeToReactTo = node;// node.Children.empty() ? node : node.Children[0];
-        Transform transform = PhysXUtils::FromPhysXTransform(nodeToReactTo.Body->getGlobalPose());
-        glm::mat4 currentWorldTr = origBaseWorldTrInv * Math::ToTransformMatrix(transform);
-        glm::mat4 offsetTr = currentWorldTr * nodeToReactTo.OriginalBodyTrInv;
-        pose.Bones[node.Name] = Math::DecomposeTransformMatrix(offsetTr * node.BoneWorldTr);
+        if (node.bValidBone)
+        {
+            Transform transform = PhysXUtils::FromPhysXTransform(node.Body->getGlobalPose());
+            glm::mat4 currentWorldTr = origBaseWorldTrInv * Math::ToTransformMatrix(transform);
+            glm::mat4 offsetTr = currentWorldTr * node.OriginalBodyTrInv;
+            pose.Bones[node.Name] = Math::DecomposeTransformMatrix(offsetTr * node.BoneWorldTr);
+        }
 
         for (const auto& child : node.Children)
         {
@@ -177,7 +180,7 @@ namespace Eagle
 
     static void SetShowCollision_Internal(const PhysicsRagdollActor::BoneData& node, bool bShow)
     {
-        if (node.Shape && node.bShapeEnabled)
+        if (node.Shape && node.bValidBone)
         {
             node.Shape->setFlag(physx::PxShapeFlag::Enum::eVISUALIZATION, bShow);
         }

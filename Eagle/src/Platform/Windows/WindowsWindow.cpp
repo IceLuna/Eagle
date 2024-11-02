@@ -116,12 +116,7 @@ namespace Eagle
 	{
 		int width, height, channels;
 		stbi_set_flip_vertically_on_load(0);
-		std::wstring pathString = iconPath.wstring();
-
-		char cpath[2048];
-		WideCharToMultiByte(65001 /* UTF8 */, 0, pathString.c_str(), -1, cpath, 2048, NULL, NULL);
-		stbi_uc* data = stbi_load(cpath, &width, &height, &channels, 0);
-
+		uint8_t* data = Utils::LoadTextureFromFile(iconPath, &width, &height, &channels, 0);
 		if (data)
 		{
 			GLFWimage images[1];
@@ -130,7 +125,7 @@ namespace Eagle
 			images[0].height = height;
 			glfwSetWindowIcon(m_Window, 1, images);
 
-			stbi_image_free(data);
+			Utils::FreeTextureData(data);
 		}
 	}
 

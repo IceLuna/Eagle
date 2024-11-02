@@ -28,21 +28,12 @@ namespace Eagle
 
 	Ref<Texture2D> Texture2D::Create(const Path& path, const Texture2DSpecifications& specs)
 	{
-		void* imageData = nullptr;
-		int width = 0, height = 0;
-
-		// Load data
+		int width = 0, height = 0, channels = 0;
+		void* imageData = Utils::LoadTextureFromFile(path, &width, &height, &channels, 4);
+		if (!imageData)
 		{
-			int channels;
-			char cpath[2048];
-			std::wstring wPathString = path.wstring();
-			WideCharToMultiByte(65001 /* UTF8 */, 0, wPathString.c_str(), -1, cpath, 2048, NULL, NULL);
-			imageData = stbi_load(cpath, &width, &height, &channels, 4);
-			if (!imageData)
-			{
-				EG_CORE_ERROR("Failed to load a texture: {}", path.u8string());
-				return {};
-			}
+			EG_CORE_ERROR("Failed to load a texture: {}", path.u8string());
+			return {};
 		}
 
 		const ImageFormat imageFormat = ImageFormat::B8G8R8A8_UNorm;
@@ -62,7 +53,7 @@ namespace Eagle
 			EG_CORE_ASSERT(false, "Unknown RendererAPI!");
 		}
 
-		stbi_image_free(imageData);
+		Utils::FreeTextureData(imageData);
 		return result;
 	}
 

@@ -17,6 +17,10 @@ namespace Eagle
 		const AssetType assetType = AssetImporter::GetAssetTypeByExtension(path);
 		EG_CORE_ASSERT(assetType == AssetType::Texture2D || assetType == AssetType::TextureCube)
 		bCube = assetType == AssetType::TextureCube;
+		if (assetType == AssetType::Texture2D)
+		{
+			m_2DSettings.bNormalMap = Utils::IsNormalMap(path);
+		}
 	}
 
 	bool TextureImporterPanel::OnImGuiRender(const Path& importTo, bool* pOpen)

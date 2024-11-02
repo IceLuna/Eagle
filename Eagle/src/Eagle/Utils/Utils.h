@@ -100,6 +100,15 @@ namespace Eagle::Utils
 	size_t FindSubstringI(const std::string& str1, const std::string& str2);
 	size_t FindSubstringI(const std::wstring& str1, const std::wstring& str2);
 
+	// It's a guess, not a 100% answer
+	bool IsNormalMap(const Path& path);
+	bool IsNormalMap(const uint8_t* data, uint32_t width, uint32_t height, uint32_t channels);
+
+	// @channels. Number of channels in a file.
+	// @desiredNumChannels. Output data will contain `desiredNumChannels` channels. Can be set to 0 to avoid conversion
+	uint8_t* LoadTextureFromFile(const Path& path, int* width, int* height, int* channels, uint32_t desiredNumChannels);
+	void FreeTextureData(void* data);
+
 	template<typename Enum>
 	const char* GetEnumName(Enum value)
 	{

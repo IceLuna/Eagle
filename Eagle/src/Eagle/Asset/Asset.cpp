@@ -219,7 +219,7 @@ namespace Eagle
 
 		if (!stbiImageData)
 		{
-			EG_CORE_ERROR("Failed to change format of TextureCube asset. stbi_loadf failed: {}", Utils::GetEnumName(format));
+			EG_CORE_ERROR("Failed to change format of TextureCube asset. stbi_loadf_from_memory failed: {}", Utils::GetEnumName(format));
 			return false;
 		}
 
