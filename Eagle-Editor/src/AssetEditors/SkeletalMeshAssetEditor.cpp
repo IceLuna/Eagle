@@ -421,7 +421,8 @@ namespace Eagle
 		ImGui::Separator();
 
 		UI::BeginPropertyGrid("Ragdoll props");
-		UI::PropertyDrag("Min ragdoll bone size", m_MinRagdollBoneSize, 0.05f, 0.01f);
+		if (UI::PropertyDrag("Min ragdoll bone size", m_MinRagdollBoneSize, 0.05f, 0.01f))
+			m_MinRagdollBoneSize = glm::max(m_MinRagdollBoneSize, 0.05f);
 		UI::PropertyDrag("Max Twist angle", m_Twist, 1.f, 0.01f, 180.f);
 		UI::PropertyDrag("Max Swing angle", m_Swing, 1.f, 0.01f, 180.f);
 		UI::EndPropertyGrid();

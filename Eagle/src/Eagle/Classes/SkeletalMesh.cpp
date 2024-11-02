@@ -47,14 +47,14 @@ namespace Eagle
             return data;
         }
 
-        static void OverwriteUserSettings(SkeletalRagdollBones& node, const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollPerBoneSettings)
+        static void SetUserSettings(SkeletalRagdollBones& node, const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollPerBoneSettings)
         {
             auto it = ragdollPerBoneSettings.find(node.Name);
             if (it != ragdollPerBoneSettings.end())
                 node.Settings = it->second;
 
             for (auto& child : node.Children)
-                OverwriteUserSettings(child, ragdollPerBoneSettings);
+                SetUserSettings(child, ragdollPerBoneSettings);
         }
 	}
 
@@ -71,7 +71,7 @@ namespace Eagle
         , m_MaxRagdollSwing(maxRagdollSwing)
     {
         RegenerateRagdollData(m_MinRagdollBoneSize);
-        Utils::OverwriteUserSettings(m_RagdollRoot, ragdollPerBoneSettings);
+        Utils::SetUserSettings(m_RagdollRoot, ragdollPerBoneSettings);
     }
 
     SkeletalMesh::SkeletalMesh(const SkeletalMesh& other)

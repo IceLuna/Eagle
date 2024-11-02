@@ -41,6 +41,7 @@ namespace Eagle
 			std::vector<BoneData> Children;
 			glm::mat4 BoneWorldTr = glm::mat4(1.f);
 			glm::mat4 OriginalBodyTrInv = glm::mat4(1.f);
+			bool bShapeEnabled = true;
 
 			physx::PxShape* Shape = nullptr;
 			physx::PxRigidDynamic* Body = nullptr;
