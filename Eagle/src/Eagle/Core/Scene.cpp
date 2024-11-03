@@ -555,12 +555,10 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& component = view.get<PointLightComponent>(entity);
+				if (component.VisualizeRadiusEnabled())
+					m_PointLightsDebugRadii.emplace(&component);
 				if (component.DoesAffectWorld())
-				{
 					m_PointLights.push_back(&component);
-					if (component.VisualizeRadiusEnabled())
-						m_PointLightsDebugRadii.emplace(&component);
-				}
 			}
 		}
 
@@ -589,12 +587,10 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& component = view.get<SpotLightComponent>(entity);
+				if (component.VisualizeDistanceEnabled())
+					m_SpotLightsDebugRadii.emplace(&component);
 				if (component.DoesAffectWorld())
-				{
 					m_SpotLights.push_back(&component);
-					if (component.VisualizeDistanceEnabled())
-						m_SpotLightsDebugRadii.emplace(&component);
-				}
 			}
 		}
 	}

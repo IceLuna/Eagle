@@ -1822,7 +1822,6 @@ namespace Eagle
 	{
 		Transform transform;
 		bool bValueChanged = false;
-		bool bRotationChanged = false;
 		bool bUseRelativeTransform = false;
 
 		if (Entity parent = entity.GetParent())
@@ -1833,54 +1832,28 @@ namespace Eagle
 		else
 			transform = entity.GetWorldTransform();
 
-		glm::vec3 rotationInDegrees = glm::degrees(transform.Rotation.EulerAngles());
-		glm::vec3 rotationInDegreesOld = rotationInDegrees;
-
 		if (bDrawWorldTransform || bUseRelativeTransform)
 		{
-			DrawComponent<TransformComponent>(bUseRelativeTransform ? "Transform (relative)" : "Transform", entity, [&transform, &rotationInDegrees, &bValueChanged, &bRotationChanged](auto& transformComponent)
+			DrawComponent<TransformComponent>(bUseRelativeTransform ? "Transform (relative)" : "Transform", entity, [&transform, &bValueChanged](auto& transformComponent)
 			{
+				const glm::quat q = transform.Rotation.GetQuat();
+				glm::vec4 quat(q.x, q.y, q.z, q.w);
+
 				bValueChanged |= UI::DrawVec3Control("Location", transform.Location, glm::vec3{ 0.f });
-				bRotationChanged = UI::DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{ 0.f });
+				if (UI::DrawVec4Control("Rotation (Quat)", quat, glm::vec4{ 0, 0, 0, 1 }))
+				{
+					if (glm::all(glm::epsilonEqual(quat, glm::vec4(0), 0.001f)))
+						quat.w = 1.f;
+				    quat = glm::normalize(quat);
+				    transform.Rotation = glm::quat(quat.w, quat.x, quat.y, quat.z);
+				    bValueChanged = true;
+				}
 				bValueChanged |= UI::DrawVec3Control("Scale", transform.Scale3D, glm::vec3{ 1.f });
-				bValueChanged |= bRotationChanged;
 			}, false);
 		}
 
 		if (bValueChanged)
 		{
-			if (bRotationChanged)
-			{
-				float newYRot = rotationInDegrees.y;
-				bool bInverted = m_InvertEntityRotation[entity];
-				if (bInverted)
-				{
-					glm::vec3 rotDiff = rotationInDegreesOld - rotationInDegrees;
-					rotDiff *= -1.f;
-					rotationInDegrees = rotationInDegreesOld - rotDiff;
-					newYRot = rotationInDegrees.y;
-				}
-
-				if (newYRot < -90.f)
-				{
-					m_InvertEntityRotation[entity] = !bInverted;
-					rotationInDegrees.x -= 180.f;
-					rotationInDegrees.y += 180.f;
-					rotationInDegrees.y *= -1.f;
-					rotationInDegrees.z += 180.f;
-				}
-				else if (newYRot > 90.f)
-				{
-					m_InvertEntityRotation[entity] = !bInverted;
-					rotationInDegrees.x -= -180.f;
-					rotationInDegrees.y += -180.f;
-					rotationInDegrees.y *= -1.f;
-					rotationInDegrees.z += -180.f;
-				}
-
-				transform.Rotation = Rotator::FromEulerAngles(glm::radians(rotationInDegrees));
-			}
-
 			if (bUseRelativeTransform)
 				entity.SetRelativeTransform(transform);
 			else
@@ -1893,54 +1866,28 @@ namespace Eagle
 	void EntityPropertiesPanel::DrawComponentTransformNode(Entity& entity, SceneComponent& sceneComponent)
 	{
 		Transform relativeTranform = sceneComponent.GetRelativeTransform();
-		glm::vec3 rotationInDegrees = glm::degrees(relativeTranform.Rotation.EulerAngles());
-		glm::vec3 rotationInDegreesOld = rotationInDegrees;
 		bool bValueChanged = false;
-		bool bRotationChanged = false;
 
-		DrawComponent<TransformComponent>("Transform (relative)", entity, [&relativeTranform, &rotationInDegrees, &bValueChanged, &bRotationChanged](auto& transformComponent)
+		DrawComponent<TransformComponent>("Transform (relative)", entity, [&relativeTranform, &bValueChanged](auto& transformComponent)
 		{
+			const glm::quat q = relativeTranform.Rotation.GetQuat();
+			glm::vec4 quat(q.x, q.y, q.z, q.w);
+
 			bValueChanged |= UI::DrawVec3Control("Location", relativeTranform.Location, glm::vec3{0.f});
-			bRotationChanged = UI::DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{0.f});
+			if (UI::DrawVec4Control("Rotation (Quat)", quat, glm::vec4{ 0, 0, 0, 1 }))
+			{
+				if (glm::all(glm::epsilonEqual(quat, glm::vec4(0), 0.001f)))
+					quat.w = 1.f;
+				quat = glm::normalize(quat);
+				relativeTranform.Rotation = glm::quat(quat.w, quat.x, quat.y, quat.z);
+				bValueChanged = true;
+			}
 			bValueChanged |= UI::DrawVec3Control("Scale", relativeTranform.Scale3D, glm::vec3{1.f});
-			bValueChanged |= bRotationChanged;
 		}, false);
 
 		if (bValueChanged)
 		{
-			if (bRotationChanged)
-			{
-				float newYRot = rotationInDegrees.y;
-				bool bInverted = m_InvertComponentRotation[entity];
-				if (bInverted)
-				{
-					glm::vec3 rotDiff = rotationInDegreesOld - rotationInDegrees;
-					rotDiff *= -1.f;
-					rotationInDegrees = rotationInDegreesOld - rotDiff;
-					newYRot = rotationInDegrees.y;
-				}
-
-				if (newYRot < -90.f)
-				{
-					m_InvertComponentRotation[entity] = !bInverted;
-					rotationInDegrees.x -= 180.f;
-					rotationInDegrees.y += 180.f;
-					rotationInDegrees.y *= -1.f;
-					rotationInDegrees.z += 180.f;
-				}
-				else if (newYRot > 90.f)
-				{
-					m_InvertComponentRotation[entity] = !bInverted;
-					rotationInDegrees.x -= -180.f;
-					rotationInDegrees.y += -180.f;
-					rotationInDegrees.y *= -1.f;
-					rotationInDegrees.z += -180.f;
-				}
-
-				relativeTranform.Rotation = Rotator::FromEulerAngles(glm::radians(rotationInDegrees));
-			}
 			sceneComponent.SetRelativeTransform(relativeTranform);
-			
 			bEntityChanged |= bValueChanged;
 		}
 	}

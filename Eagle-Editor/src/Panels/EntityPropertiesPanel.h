@@ -168,8 +168,6 @@ namespace Eagle
 		void DrawComponentTransformNode(Entity& entity, SceneComponent& sceneComponent);
 
 	private:
-		std::unordered_map<Entity, bool> m_InvertEntityRotation;
-		std::unordered_map<Entity, bool> m_InvertComponentRotation;
 		Entity m_Entity;
 		SelectedComponent m_SelectedComponent = SelectedComponent::None;
 		bool bRuntime = false;
