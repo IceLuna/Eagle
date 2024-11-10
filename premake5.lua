@@ -45,6 +45,7 @@ IncludeDir["MagicEnum"] = "Eagle/vendor/magic_enum/include"
 IncludeDir["zstd"] = "Eagle/vendor/zstd/include"
 IncludeDir["BasisUniversal"] = "Eagle/vendor/KTX-Software/basis_universal"
 IncludeDir["KTX"] = "Eagle/vendor/KTX-Software/include"
+IncludeDir["RecastNavigation"] = "Eagle/vendor/recastnavigation"
 
 -- Lib dirs
 LibDir = {}
@@ -111,6 +112,8 @@ group "Dependecies"
 	include "Eagle/vendor/imgui-node-editor"
 	include "Eagle/vendor/yaml-cpp"
 	include "Eagle/vendor/msdf-atlas-gen"
+	group "Dependecies/RecastNavigation"
+		include "Eagle/vendor/recastnavigation"
 group ""
 
 project "Eagle"
@@ -174,7 +177,8 @@ project "Eagle"
 		"%{IncludeDir.MagicEnum}",
 		"%{IncludeDir.zstd}",
 		"%{IncludeDir.BasisUniversal}",
-		"%{IncludeDir.KTX}"
+		"%{IncludeDir.KTX}",
+		"%{IncludeDir.RecastNavigation}",
 	}
 
 	defines
@@ -192,7 +196,7 @@ project "Eagle"
 	libdirs
 	{
 		"%{LibDir.assimp}",
-		"%{LibDir.VulkanSDK}"
+		"%{LibDir.VulkanSDK}",
 	}
 
 	links
@@ -203,7 +207,14 @@ project "Eagle"
 		"yaml-cpp",
 		"MSDF-Atlas",
 		"assimp-vc143-mt.lib",
-		"%{LibFiles.Vulkan}"
+		"%{LibFiles.Vulkan}",
+
+		-- Recast navigation
+		"DebugUtils",
+		"Detour",
+		"DetourCrowd",
+		"DetourTileCache",
+		"Recast",
 	}
 
 	linkoptions
@@ -289,6 +300,7 @@ project "Eagle"
 		}
 		runtime "Release"
 		optimize "Speed"
+		symbols "on"
 
 	filter "configurations:Dist"
 		defines 
@@ -418,6 +430,7 @@ project "Eagle-Editor"
 		}
 		runtime "Release"
 		optimize "Speed"
+		symbols "on"
 
 		postbuildcommands 
 		{
@@ -540,6 +553,7 @@ project "Eagle-Game"
 		}
 		runtime "Release"
 		optimize "Speed"
+		symbols "on"
 
 	filter "configurations:Dist"
 		defines 

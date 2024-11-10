@@ -26,3 +26,6 @@
 [submodule "Eagle/vendor/imgui-node-editor"]
 	path = Eagle/vendor/imgui-node-editor
 	url = https://github.com/IceLuna/imgui-node-editor.git
+[submodule "Eagle/vendor/recastnavigation"]
+	path = Eagle/vendor/recastnavigation
+	url = https://github.com/IceLuna/recastnavigation.git
