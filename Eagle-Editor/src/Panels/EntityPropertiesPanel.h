@@ -28,6 +28,7 @@ namespace Eagle
 		Image2D,
 		ParticleSystem,
 		Decal,
+		AINavigationComponent,
 	};
 
 	class EntityPropertiesPanel

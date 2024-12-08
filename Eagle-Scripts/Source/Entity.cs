@@ -203,7 +203,7 @@ namespace Eagle
         public bool IsMouseHovered() { return IsMouseHovered_Native(ID); }
 
         // @ mouseCoord. Mouse coord within a viewport
-        public bool IsMouseHovered(ref Vector2 mouseCoord) { return IsMouseHoveredByCoord_Native(ID, ref mouseCoord); }
+        public bool IsMouseHovered(Vector2 mouseCoord) { return IsMouseHoveredByCoord_Native(ID, ref mouseCoord); }
 
         public void AddCollisionBeginCallback(Action<Entity, Entity, CollisionInfo> callback)
         {

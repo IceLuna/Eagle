@@ -5,7 +5,7 @@
 
 namespace Eagle
 {
-	//Release buffer manually
+	// Release buffer manually
 	class DataBuffer
 	{
 	public:

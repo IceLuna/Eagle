@@ -43,6 +43,10 @@ namespace Eagle
 	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsCollisionVisibleFunctions;
 	std::unordered_map<MonoType*, std::function<void(Entity&, const Ref<AssetPhysicsMaterial>&)>> m_SetPhysicsMaterialFunctions;
 	std::unordered_map<MonoType*, std::function<GUID(Entity&)>> m_GetPhysicsMaterialFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetAffectsNavMeshBuildFunctions;
+	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_DoesAffectNavMeshBuildFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsObstacleFunctions;
+	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsObstacleFunctions;
 
 	extern MonoImage* s_CoreAssemblyImage;
 
@@ -95,6 +99,10 @@ namespace Eagle
 				m_IsCollisionVisibleFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).IsCollisionVisible(); };\
 				m_SetPhysicsMaterialFunctions[type] = [](Entity& entity, const Ref<AssetPhysicsMaterial>& asset) { ((BaseColliderComponent&)entity.GetComponent<Type>()).SetPhysicsMaterialAsset(asset); };\
 				m_GetPhysicsMaterialFunctions[type] = [](Entity& entity) { const auto& asset = ((BaseColliderComponent&)entity.GetComponent<Type>()).GetPhysicsMaterialAsset(); return asset ? asset->GetGUID() : GUID(0, 0); };\
+				m_SetAffectsNavMeshBuildFunctions[type] = [](Entity& entity, bool bAffects) { ((BaseColliderComponent&)entity.GetComponent<Type>()).SetAffectsNavMeshBuild(bAffects); };\
+				m_DoesAffectNavMeshBuildFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).DoesAffectNavMeshBuild(); };\
+				m_SetIsObstacleFunctions[type] = [](Entity& entity, bool bObstacle) { ((BaseColliderComponent&)entity.GetComponent<Type>()).SetIsObstacle(bObstacle); };\
+				m_IsObstacleFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).IsObstacle(); };\
 			}\
 		}\
 		else\
@@ -125,6 +133,7 @@ namespace Eagle
 		REGISTER_COMPONENT_TYPE(Image2DComponent);
 		REGISTER_COMPONENT_TYPE(ParticleSystemComponent);
 		REGISTER_COMPONENT_TYPE(DecalComponent);
+		REGISTER_COMPONENT_TYPE(AINavigationComponent);
 	}
 
 	void ScriptEngineRegistry::RegisterAll()
@@ -350,6 +359,7 @@ namespace Eagle
 
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetRagdollEnabled_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetRagdollEnabled);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::IsRagdollEnabled_Native", Eagle::Script::Eagle_SkeletalMeshComponent_IsRagdollEnabled);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetRagdollBoneWorldTransform_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetRagdollBoneWorldTransform);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetBoneWorldTransform_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetBoneWorldTransform);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetBoneWorldLocation_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetBoneWorldLocation);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetBoneWorldRotation_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetBoneWorldRotation);
@@ -452,6 +462,10 @@ namespace Eagle
 		mono_add_internal_call("Eagle.BaseColliderComponent::IsCollisionVisible_Native", Eagle::Script::Eagle_BaseColliderComponent_IsCollisionVisible);
 		mono_add_internal_call("Eagle.BaseColliderComponent::SetPhysicsMaterial_Native", Eagle::Script::Eagle_BaseColliderComponent_SetPhysicsMaterial);
 		mono_add_internal_call("Eagle.BaseColliderComponent::GetPhysicsMaterial_Native", Eagle::Script::Eagle_BaseColliderComponent_GetPhysicsMaterial);
+		mono_add_internal_call("Eagle.BaseColliderComponent::SetAffectsNavMeshBuild_Native", Eagle::Script::Eagle_BaseColliderComponent_SetAffectsNavMeshBuild);
+		mono_add_internal_call("Eagle.BaseColliderComponent::DoesAffectNavMeshBuild_Native", Eagle::Script::Eagle_BaseColliderComponent_DoesAffectNavMeshBuild);
+		mono_add_internal_call("Eagle.BaseColliderComponent::SetIsObstacle_Native", Eagle::Script::Eagle_BaseColliderComponent_SetIsObstacle);
+		mono_add_internal_call("Eagle.BaseColliderComponent::IsObstacle_Native", Eagle::Script::Eagle_BaseColliderComponent_IsObstacle);
 
 		//BoxColliderComponent
 		mono_add_internal_call("Eagle.BoxColliderComponent::SetSize_Native", Eagle::Script::Eagle_BoxColliderComponent_SetSize);
@@ -581,6 +595,9 @@ namespace Eagle
 		mono_add_internal_call("Eagle.DecalComponent::SetSortPriority_Native", Eagle::Script::Eagle_DecalComponent_SetSortPriority);
 		mono_add_internal_call("Eagle.DecalComponent::GetSortPriority_Native", Eagle::Script::Eagle_DecalComponent_GetSortPriority);
 
+		// AINavigation Component
+		mono_add_internal_call("Eagle.AINavigationComponent::Build_Native", Eagle::Script::Eagle_AINavigationComponent_Build);
+
 		// Sprite Component
 		mono_add_internal_call("Eagle.SpriteComponent::GetMaterial_Native", Eagle::Script::Eagle_SpriteComponent_GetMaterial);
 		mono_add_internal_call("Eagle.SpriteComponent::SetMaterial_Native", Eagle::Script::Eagle_SpriteComponent_SetMaterial);
@@ -608,8 +625,11 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Scene::OpenScene_Native", Eagle::Script::Eagle_Scene_OpenScene);
 		mono_add_internal_call("Eagle.Scene::Raycast_Native", Eagle::Script::Eagle_Scene_Raycast);
 		mono_add_internal_call("Eagle.Scene::DrawLine_Native", Eagle::Script::Eagle_Scene_DrawLine);
+		mono_add_internal_call("Eagle.Scene::DrawTriangle_Native", Eagle::Script::Eagle_Scene_DrawTriangle);
 		mono_add_internal_call("Eagle.Scene::SetGravity_Native", Eagle::Script::Eagle_Scene_SetGravity);
 		mono_add_internal_call("Eagle.Scene::GetGravity_Native", Eagle::Script::Eagle_Scene_GetGravity);
+		mono_add_internal_call("Eagle.Scene::FindStraightPath_Native", Eagle::Script::Eagle_Scene_FindStraightPath);
+		mono_add_internal_call("Eagle.Scene::FindSmoothPath_Native", Eagle::Script::Eagle_Scene_FindSmoothPath);
 
 		// Script Component
 		mono_add_internal_call("Eagle.ScriptComponent::SetScript_Native", Eagle::Script::Eagle_ScriptComponent_SetScript);

@@ -55,5 +55,12 @@ namespace Eagle
 		{
 			return Min == other.Min && Max == other.Max;
 		}
+
+		static bool Overlap(const AABB& a, const AABB& b)
+		{
+			return (a.Min.x <= b.Max.x && a.Max.x >= b.Min.x) &&
+				(a.Min.y <= b.Max.y && a.Max.y >= b.Min.y) &&
+				(a.Min.z <= b.Max.z && a.Max.z >= b.Min.z);
+		}
 	};
 }

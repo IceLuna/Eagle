@@ -34,6 +34,11 @@ namespace Eagle::Random
 		return (s_UInt64Distribution(s_Engine) % (max - min)) + min;
 	}
 
+	float Float()
+	{
+		return s_FloatDistribution(s_Engine);
+	}
+
 	float Float(float min, float max)
 	{
 		return s_FloatDistribution(s_Engine) * (max - min) + min;

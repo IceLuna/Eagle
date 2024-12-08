@@ -155,6 +155,7 @@ namespace Eagle::Script
 
 	void Eagle_SkeletalMeshComponent_SetRagdollEnabled(GUID entityID, bool bEnabled);
 	bool Eagle_SkeletalMeshComponent_IsRagdollEnabled(GUID entityID);
+	void Eagle_SkeletalMeshComponent_GetRagdollBoneWorldTransform(GUID entityID, MonoString* monoName, Transform* result);
 	void Eagle_SkeletalMeshComponent_GetBoneWorldTransform(GUID entityID, MonoString* monoName, Transform* result);
 	void Eagle_SkeletalMeshComponent_GetBoneWorldLocation(GUID entityID, MonoString* monoName, glm::vec3* result);
 	void Eagle_SkeletalMeshComponent_GetBoneWorldRotation(GUID entityID, MonoString* monoName, Rotator* result);
@@ -258,6 +259,10 @@ namespace Eagle::Script
 	bool Eagle_BaseColliderComponent_IsCollisionVisible(GUID entityID, void* type);
 	GUID Eagle_BaseColliderComponent_GetPhysicsMaterial(GUID entityID, void* type);
 	void Eagle_BaseColliderComponent_SetPhysicsMaterial(GUID entityID, void* type, GUID assetID);
+	void Eagle_BaseColliderComponent_SetAffectsNavMeshBuild(GUID entityID, void* type, bool bAffects);
+	bool Eagle_BaseColliderComponent_DoesAffectNavMeshBuild(GUID entityID, void* type);
+	void Eagle_BaseColliderComponent_SetIsObstacle(GUID entityID, void* type, bool bObstacle);
+	bool Eagle_BaseColliderComponent_IsObstacle(GUID entityID, void* type);
 
 	//BoxColliderComponent
 	void Eagle_BoxColliderComponent_SetSize(GUID entityID, const glm::vec3* size);
@@ -408,6 +413,9 @@ namespace Eagle::Script
 	void Eagle_DecalComponent_SetSortPriority(GUID entityID, uint32_t value);
 	uint32_t Eagle_DecalComponent_GetSortPriority(GUID entityID);
 
+	// AINavigationComponent
+	void Eagle_AINavigationComponent_Build(GUID entityID);
+
 	// Renderer
 	void Eagle_Renderer_SetFogSettings(const glm::vec3* color, float minDistance, float maxDistance, float density, FogEquation equation, bool bEnabled);
 	void Eagle_Renderer_GetFogSettings(glm::vec3* outcolor, float* outMinDistance, float* outMaxDistance, float* outDensity, FogEquation* outEquation, bool* outbEnabled);
@@ -489,8 +497,11 @@ namespace Eagle::Script
 	void Eagle_Scene_OpenScene(GUID assetID);
 	bool Eagle_Scene_Raycast(const glm::vec3* origin, const glm::vec3* dir, float maxDistance, GUID* outHitEntity, glm::vec3* outPosition, glm::vec3* outNormal, float* outDistance);
 	void Eagle_Scene_DrawLine(const glm::vec3* startColor, const glm::vec3* endColor, const glm::vec3* start, const glm::vec3* end);
+	void Eagle_Scene_DrawTriangle(const glm::vec3* v0Location, const glm::vec3* v0Color, const glm::vec3* v1Location, const glm::vec3* v1Color, const glm::vec3* v2Location, const glm::vec3* v2Color);
 	void Eagle_Scene_SetGravity(const glm::vec3* gravity);
 	void Eagle_Scene_GetGravity(glm::vec3* gravity);
+	MonoArray* Eagle_Scene_FindStraightPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys);
+	MonoArray* Eagle_Scene_FindSmoothPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys, uint32_t maxSmooth);
 
 	// Log
 	void Eagle_Log_Trace(MonoString* message);

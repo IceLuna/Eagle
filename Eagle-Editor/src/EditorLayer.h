@@ -54,7 +54,7 @@ namespace Eagle
 
 		void UpdateEditorTitle(const Ref<AssetScene>& scene);
 
-		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync, bool bRenderOnlyWhenFocused, Key stopSimulationKey);
+		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync, bool bRenderOnlyWhenFocused, bool bDrawNavMesh, Key stopSimulationKey);
 		void SetCurrentScene(const Ref<Scene>& scene);
 
 		void UpdateGuizmo();
@@ -82,6 +82,8 @@ namespace Eagle
 		void EndDocking();
 
 		const Ref<Image>& GetRequiredGBufferImage(const Ref<SceneRenderer>& renderer, const GBuffer& gbuffer);
+
+		void SetDrawNavMesh(bool bDraw);
 
 	private:
 		enum class GBufferVisualizingType
@@ -127,6 +129,7 @@ namespace Eagle
 		ImGuiLayer::Style m_EditorStyle = ImGuiLayer::Style::Default;
 		EditorState m_EditorState = EditorState::Edit;
 		bool bRenderOnlyWhenFocused = true;
+		bool bDrawNavMesh = true;
 		Key m_StopSimulationKey = Key::Escape;
 		
 		ImGuiWindowClass m_SimulatePanelSettings;

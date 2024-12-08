@@ -46,6 +46,10 @@ namespace Eagle
 	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsCollisionVisibleFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, const Ref<AssetPhysicsMaterial>&)>> m_SetPhysicsMaterialFunctions;
 	extern std::unordered_map<MonoType*, std::function<GUID(Entity&)>> m_GetPhysicsMaterialFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetAffectsNavMeshBuildFunctions;
+	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_DoesAffectNavMeshBuildFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsObstacleFunctions;
+	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsObstacleFunctions;
 
 	extern MonoImage* s_AppAssemblyImage;
 }
@@ -236,7 +240,7 @@ namespace Eagle
 
 			MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetEntityClass(), children.size());
 
-			uint32_t index = 0;
+			size_t index = 0;
 			for (auto& child : children)
 			{
 				GUID guid = child.GetGUID();
@@ -2063,6 +2067,19 @@ namespace Eagle
 		return entity.GetComponent<SkeletalMeshComponent>().IsRagdollEnabled();
 	}
 
+	void Script::Eagle_SkeletalMeshComponent_GetRagdollBoneWorldTransform(GUID entityID, MonoString* monoName, Transform* result)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetRagdollBoneWorldTransform' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		*result = entity.GetComponent<SkeletalMeshComponent>().GetRagdollBoneWorldTransform(mono_string_to_utf8(monoName));
+	}
+
 	void Script::Eagle_SkeletalMeshComponent_GetBoneWorldTransform(GUID entityID, MonoString* monoName, Transform* result)
 	{
 		const Ref<Scene>& scene = Scene::GetCurrentScene();
@@ -3367,6 +3384,62 @@ namespace Eagle
 		}
 
 		m_SetPhysicsMaterialFunctions[monoType](entity, material);
+	}
+
+	void Script::Eagle_BaseColliderComponent_SetAffectsNavMeshBuild(GUID entityID, void* type, bool bAffects)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+		{
+			m_SetAffectsNavMeshBuildFunctions[monoType](entity, bAffects);
+			return;
+		}
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAffectsNavMeshBuild'. Entity is null");
+	}
+
+	bool Script::Eagle_BaseColliderComponent_DoesAffectNavMeshBuild(GUID entityID, void* type)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			return m_DoesAffectNavMeshBuildFunctions[monoType](entity);
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call 'DoesAffectNavMeshBuild'. Entity is null");
+		return false;
+	}
+
+	void Script::Eagle_BaseColliderComponent_SetIsObstacle(GUID entityID, void* type, bool bObstacle)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+		{
+			m_SetIsObstacleFunctions[monoType](entity, bObstacle);
+			return;
+		}
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetIsObstacle'. Entity is null");
+	}
+
+	bool Script::Eagle_BaseColliderComponent_IsObstacle(GUID entityID, void* type)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			return m_IsObstacleFunctions[monoType](entity);
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsObstacle'. Entity is null");
+		return false;
 	}
 
 	//--------------BoxColliderComponent--------------
@@ -5042,6 +5115,22 @@ namespace Eagle
 		}
 	}
 
+	//--------------AINavigation Component--------------
+	void Script::Eagle_AINavigationComponent_Build(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			scene->BuildNavMesh(&entity.GetComponent<AINavigationComponent>());
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `Build` of AINavigation Component. Entity is null");
+			return;
+		}
+	}
+
 	//--------------Input--------------
 	bool Script::Eagle_Input_IsMouseButtonPressed(Mouse button)
 	{
@@ -5550,7 +5639,7 @@ namespace Eagle
 
 		MonoClass* uintClass = mono_get_uint32_class();
 		MonoArray* result = mono_array_new(mono_domain_get(), uintClass, RendererConfig::CascadesCount);
-		uint32_t index = 0;
+		size_t index = 0;
 		for (auto& res : settings.DirLightShadowMapSizes)
 			mono_array_set(result, uint32_t, index++, res);
 
@@ -5876,7 +5965,25 @@ namespace Eagle
 
 	void Script::Eagle_Scene_DrawLine(const glm::vec3* startColor, const glm::vec3* endColor, const glm::vec3* start, const glm::vec3* end)
 	{
-		Scene::GetCurrentScene()->DrawDebugLine({ *startColor, *endColor, *start, *end });
+		RendererLine line;
+		line.Start.Color = *startColor;
+		line.Start.Location = *start;
+		line.End.Color = *endColor;
+		line.End.Location = *end;
+		Scene::GetCurrentScene()->DrawDebugLine(line);
+	}
+
+	void Script::Eagle_Scene_DrawTriangle(const glm::vec3* v0Location, const glm::vec3* v0Color, const glm::vec3* v1Location, const glm::vec3* v1Color, const glm::vec3* v2Location, const glm::vec3* v2Color)
+	{
+		RendererTriangle triangle;
+		triangle.Vertices[0].Location = *v0Location;
+		triangle.Vertices[0].Color = *v0Color;
+		triangle.Vertices[1].Location = *v1Location;
+		triangle.Vertices[1].Color = *v1Color;
+		triangle.Vertices[2].Location = *v2Location;
+		triangle.Vertices[2].Color = *v2Color;
+
+		Scene::GetCurrentScene()->DrawDebugTriangle(triangle);
 	}
 
 	void Script::Eagle_Scene_SetGravity(const glm::vec3* gravity)
@@ -5887,6 +5994,48 @@ namespace Eagle
 	void Script::Eagle_Scene_GetGravity(glm::vec3* gravity)
 	{
 		*gravity = Scene::GetCurrentScene()->GetGravity();
+	}
+
+	MonoArray* Script::Eagle_Scene_FindStraightPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		const auto& navMesh = scene->GetNavMesh();
+		if (!navMesh)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `FindStraightPath`. There's not a nav mesh");
+			return nullptr;
+		}
+
+		std::vector<glm::vec3> path = navMesh->FindStraightPath(*start, *end, maxPolys);
+		MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetVector3Class(), path.size());
+
+		size_t index = 0;
+		for (auto& point : path)
+		{
+			mono_array_set(result, glm::vec3, index++, point);
+		}
+		return result;
+	}
+
+	MonoArray* Script::Eagle_Scene_FindSmoothPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys, uint32_t maxSmooth)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		const auto& navMesh = scene->GetNavMesh();
+		if (!navMesh)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `FindSmoothPath`. There's not a nav mesh");
+			return nullptr;
+		}
+
+		std::vector<glm::vec3> path = navMesh->FindSmoothPath(*start, *end, maxPolys, maxSmooth);
+		MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetVector3Class(), path.size());
+
+		size_t index = 0;
+		for (auto& point : path)
+		{
+			mono_array_set(result, glm::vec3, index++, point);
+		}
+		return result;
 	}
 
 	//-------------- Log --------------

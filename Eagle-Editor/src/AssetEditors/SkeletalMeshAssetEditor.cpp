@@ -4,7 +4,6 @@
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/UI/UI.h"
 #include "Eagle/Components/Components.h"
-#include "Eagle/Physics/PhysicsRagdollActor.h"
 
 namespace Eagle
 {
@@ -275,8 +274,9 @@ namespace Eagle
 					Transform boneTransform = Math::DecomposeTransformMatrix(m_SelectedBone->Transformation);
 
 					bool bTransformChanged = false;
-					bool bRotationChanged = false;
-					glm::vec3 rotationInDegrees = glm::degrees(boneTransform.Rotation.EulerAngles());
+
+					const glm::quat q = boneTransform.Rotation.GetQuat();
+					glm::vec4 quat(q.x, q.y, q.z, q.w);
 
 					bool bStoppedEditing = false;
 					if (UI::InputText("Name", m_SelectedBoneName, ImGuiInputTextFlags_EnterReturnsTrue, "Only user-created (virtual) bones can be modified"))
@@ -301,14 +301,16 @@ namespace Eagle
 					}
 
 					bTransformChanged |= UI::DrawVec3Control("Location", boneTransform.Location, glm::vec3{ 0.f });
-					bRotationChanged = UI::DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{ 0.f });
-					bTransformChanged |= UI::DrawVec3Control("Scale", boneTransform.Scale3D, glm::vec3{ 1.f });
-					bTransformChanged |= bRotationChanged;
-
-					if (bRotationChanged)
+					if (UI::DrawVec4Control("Rotation (Quat)", quat, glm::vec4{ 0, 0, 0, 1 }))
 					{
-						boneTransform.Rotation = Rotator::FromEulerAngles(glm::radians(rotationInDegrees));
+						if (glm::all(glm::epsilonEqual(quat, glm::vec4(0), 0.001f)))
+							quat.w = 1.f;
+						quat = glm::normalize(quat);
+						boneTransform.Rotation = glm::quat(quat.w, quat.x, quat.y, quat.z);
+						bTransformChanged = true;
 					}
+					bTransformChanged |= UI::DrawVec3Control("Scale", boneTransform.Scale3D, glm::vec3{ 1.f });
+
 					if (bTransformChanged)
 					{
 						m_SelectedBone->Transformation = Math::ToTransformMatrix(boneTransform);
@@ -339,7 +341,7 @@ namespace Eagle
 		{
 			auto& comp = m_Entity.GetComponent<SkeletalMeshComponent>();
 			comp.SetRagdollEnabled(true);
-			comp.GetRagdollActor()->SetShowCollision(true);
+			comp.SetShowRagdollCollision(true);
 		}
 		m_OpenedTab = OpenedTabType::Ragdoll;
 
@@ -389,18 +391,20 @@ namespace Eagle
 					Transform& boneTransform = m_SelectedRagdollBone->Settings.UserOffset;
 
 					bool bTransformChanged = false;
-					bool bRotationChanged = false;
-					glm::vec3 rotationInDegrees = glm::degrees(boneTransform.Rotation.EulerAngles());
+					const glm::quat q = boneTransform.Rotation.GetQuat();
+					glm::vec4 quat(q.x, q.y, q.z, q.w);
 
 					bTransformChanged |= UI::DrawVec3Control("Location", boneTransform.Location, glm::vec3{ 0.f });
-					bRotationChanged = UI::DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{ 0.f });
-					bTransformChanged |= UI::DrawVec3Control("Scale", boneTransform.Scale3D, glm::vec3{ 1.f });
-					bTransformChanged |= bRotationChanged;
-
-					if (bRotationChanged)
+					if (UI::DrawVec4Control("Rotation (Quat)", quat, glm::vec4{ 0, 0, 0, 1 }))
 					{
-						boneTransform.Rotation = Rotator::FromEulerAngles(glm::radians(rotationInDegrees));
+						if (glm::all(glm::epsilonEqual(quat, glm::vec4(0), 0.001f)))
+							quat.w = 1.f;
+						quat = glm::normalize(quat);
+						boneTransform.Rotation = glm::quat(quat.w, quat.x, quat.y, quat.z);
+						bTransformChanged = true;
 					}
+					bTransformChanged |= UI::DrawVec3Control("Scale", boneTransform.Scale3D, glm::vec3{ 1.f });
+
 					if (bTransformChanged)
 					{
 						bRagdollChanged = true;
@@ -476,7 +480,7 @@ namespace Eagle
 	
 	Transform SkeletalMeshAssetEditor::GetSelectedRagdollBoneWorldTransform()
 	{
-		Transform transform = m_Entity.GetComponent<SkeletalMeshComponent>().GetRagdollActor()->GetBoneWorldTransform(m_SelectedRagdollBoneName);
+		Transform transform = m_Entity.GetComponent<SkeletalMeshComponent>().GetRagdollBoneWorldTransform(m_SelectedRagdollBoneName);
 		transform.Scale3D = m_SelectedRagdollBone->Settings.UserOffset.Scale3D; // Originally, bones don't have scale, so we restore it
 		return transform;
 	}
@@ -485,6 +489,6 @@ namespace Eagle
 	{
 		m_Asset->OnModified();
 		auto& comp = m_Entity.GetComponent<SkeletalMeshComponent>();
-		comp.GetRagdollActor()->SetShowCollision(true);
+		comp.SetShowRagdollCollision(true);
 	}
 }

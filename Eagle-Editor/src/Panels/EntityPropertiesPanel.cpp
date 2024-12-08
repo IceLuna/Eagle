@@ -27,6 +27,16 @@ namespace Eagle
 	static const char* s_TwoSidedMeshColliderHelpMsg = "Only affects non-convex mesh colliders.\nNon-convex meshes are one-sided meaning collision won't be registered from the back side. For example, that might be a problem for windows."
 		" To fix it, set this flag";
 	static const char* s_SpriteCoordsHelpMsg = "It's a sprite index within an atlas. For example, if an atlas is 128x128 and a sprite has a 32x32 size, and in case you want to select a sprite at 64x32, here you enter 2x1.";
+	static const char* s_ObstacleHelpMsg = "Can be used for AI Navigation to block the path. Note: only box obstacles react to rotation (along Y), other obstacles don't rotate!\nMesh colliders can't be obstacles";
+	static const char* s_AffectsNavMeshHelpMsg = "If set to false, it won't affect NavMesh builds. It still can be used as an obstacle though";
+	static const char* s_FilterLowHangingObstaclesHelpMsg = "Marks non-walkable spans as walkable if their maximum is within AgentMaxClimb of the span below them.\n"
+		"This removes small obstacles and rasterization artifacts that the agent would be able to walk over such as curbs.\n"
+		"It also allows agents to move up terraced structures like stairs.";
+	static const char* s_FilterLedgeSpans = "Marks spans that are ledges as not-walkable.\nA ledge is a span with one or more neighbors whose maximum is further away than AgentMaxClimb from the current span's maximum.\n"
+		"This method removes the impact of the overestimation of conservative voxelization so the resulting mesh will not have regions hanging in the air over ledges.";
+	static const char* s_FilterWalkableLowHeightSpans = "Marks walkable spans as not walkable if the clearance above the span is less than the specified AgentHeight.\n"
+		"For this filter, the clearance above the span is the distance from the span's maximum to the minimum of the next higher span in the same column.\n"
+		"If there is no higher span in the column, the clearance is computed as the distance from the top of the span to the maximum heightfield height.";
 	static const std::vector<std::string> s_LockStrings = { "X", "Y", "Z" };
 
 #define AssetField_Case(type) \
@@ -90,6 +100,7 @@ namespace Eagle
 		case SelectedComponent::ReverbComponent: return &m_Entity.GetComponent<ReverbComponent>();
 		case SelectedComponent::ParticleSystem: return &m_Entity.GetComponent<ParticleSystemComponent>();
 		case SelectedComponent::Decal: return &m_Entity.GetComponent<DecalComponent>();
+		case SelectedComponent::AINavigationComponent: return &m_Entity.GetComponent<AINavigationComponent>();
 		}
 		return nullptr;
 	}
@@ -141,6 +152,7 @@ namespace Eagle
 			EG_ADD_COMPONENT_MENU_ITEM(ReverbComponent, "Reverb");
 
 			UI::TextWithSeparator("Physics");
+			EG_ADD_COMPONENT_MENU_ITEM(AINavigationComponent, "AI Navigation");
 			EG_ADD_COMPONENT_MENU_ITEM(RigidBodyComponent, "Rigid Body");
 			EG_ADD_COMPONENT_MENU_ITEM(BoxColliderComponent, "Box Collider");
 			EG_ADD_COMPONENT_MENU_ITEM(SphereColliderComponent, "Sphere Collider");
@@ -205,6 +217,7 @@ namespace Eagle
 				EG_DRAW_COMPONENT_LINE("Spot Light", SpotLightComponent, SelectedComponent::SpotLight);
 				EG_DRAW_COMPONENT_LINE("Particle System", ParticleSystemComponent, SelectedComponent::ParticleSystem);
 				EG_DRAW_COMPONENT_LINE("Decal", DecalComponent, SelectedComponent::Decal);
+				EG_DRAW_COMPONENT_LINE("AI Navigation", AINavigationComponent, SelectedComponent::AINavigationComponent);
 #undef EG_DRAW_COMPONENT_LINE
 				ImGui::TreePop();
 			}
@@ -1444,10 +1457,18 @@ namespace Eagle
 					glm::vec3 size = collider.GetSize();
 					bool bTrigger = collider.IsTrigger();
 					bool bShowCollision = collider.IsCollisionVisible();
+					bool bObstacle = collider.IsObstacle();
+					bool bAffectsNavMesh = collider.DoesAffectNavMeshBuild();
 
 					if (UI::DrawAssetSelection("Physics Material", materialAsset))
 					{
 						collider.SetPhysicsMaterialAsset(materialAsset);
+						bEntityChanged = true;
+					}
+
+					if (UI::PropertyDrag("Size", size, 0.05f))
+					{
+						collider.SetSize(size);
 						bEntityChanged = true;
 					}
 
@@ -1457,9 +1478,15 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					if (UI::PropertyDrag("Size", size, 0.05f))
+					if (UI::Property("Is Obstacle", bObstacle, s_ObstacleHelpMsg))
 					{
-						collider.SetSize(size);
+						collider.SetIsObstacle(bObstacle);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Affects NavMesh", bAffectsNavMesh, s_AffectsNavMeshHelpMsg))
+					{
+						collider.SetAffectsNavMeshBuild(bAffectsNavMesh);
 						bEntityChanged = true;
 					}
 
@@ -1485,10 +1512,18 @@ namespace Eagle
 					float radius = collider.GetRadius();
 					bool bTrigger = collider.IsTrigger();
 					bool bShowCollision = collider.IsCollisionVisible();
+					bool bObstacle = collider.IsObstacle();
+					bool bAffectsNavMesh = collider.DoesAffectNavMeshBuild();
 
 					if (UI::DrawAssetSelection("Physics Material", materialAsset))
 					{
 						collider.SetPhysicsMaterialAsset(materialAsset);
+						bEntityChanged = true;
+					}
+
+					if (UI::PropertyDrag("Radius", radius, 0.5f))
+					{
+						collider.SetRadius(radius);
 						bEntityChanged = true;
 					}
 						
@@ -1498,9 +1533,15 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					if (UI::PropertyDrag("Radius", radius, 0.5f))
+					if (UI::Property("Is Obstacle", bObstacle, s_ObstacleHelpMsg))
 					{
-						collider.SetRadius(radius);
+						collider.SetIsObstacle(bObstacle);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Affects NavMesh", bAffectsNavMesh, s_AffectsNavMeshHelpMsg))
+					{
+						collider.SetAffectsNavMeshBuild(bAffectsNavMesh);
 						bEntityChanged = true;
 					}
 
@@ -1527,16 +1568,12 @@ namespace Eagle
 					float radius = collider.GetRadius();
 					bool bTrigger = collider.IsTrigger();
 					bool bShowCollision = collider.IsCollisionVisible();
+					bool bObstacle = collider.IsObstacle();
+					bool bAffectsNavMesh = collider.DoesAffectNavMeshBuild();
 
 					if (UI::DrawAssetSelection("Physics Material", materialAsset))
 					{
 						collider.SetPhysicsMaterialAsset(materialAsset);
-						bEntityChanged = true;
-					}
-
-					if (UI::Property("Is Trigger", bTrigger, s_TriggerHelpMsg))
-					{
-						collider.SetIsTrigger(bTrigger);
 						bEntityChanged = true;
 					}
 
@@ -1549,6 +1586,24 @@ namespace Eagle
 					if (UI::PropertyDrag("Height", height, 0.05f))
 					{
 						collider.SetHeight(height);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Is Trigger", bTrigger, s_TriggerHelpMsg))
+					{
+						collider.SetIsTrigger(bTrigger);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Is Obstacle", bObstacle, s_ObstacleHelpMsg))
+					{
+						collider.SetIsObstacle(bObstacle);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Affects NavMesh", bAffectsNavMesh, s_AffectsNavMeshHelpMsg))
+					{
+						collider.SetAffectsNavMeshBuild(bAffectsNavMesh);
 						bEntityChanged = true;
 					}
 
@@ -1576,6 +1631,7 @@ namespace Eagle
 					bool bShowCollision = collider.IsCollisionVisible();
 					bool bConvex = collider.IsConvex();
 					bool bTwoSided = collider.IsTwoSided();
+					bool bAffectsNavMesh = collider.DoesAffectNavMeshBuild();
 
 					if (UI::DrawAssetSelection("Collision Mesh", collisionMesh, "Must be set. Set the mesh that will be used to generate collision data for it"))
 					{
@@ -1610,6 +1666,12 @@ namespace Eagle
 					if (UI::Property("Is Two-Sided", bTwoSided, s_TwoSidedMeshColliderHelpMsg))
 					{
 						collider.SetIsTwoSided(bTwoSided);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Affects NavMesh", bAffectsNavMesh, s_AffectsNavMeshHelpMsg))
+					{
+						collider.SetAffectsNavMeshBuild(bAffectsNavMesh);
 						bEntityChanged = true;
 					}
 
@@ -1813,6 +1875,126 @@ namespace Eagle
 
 					UI::EndPropertyGrid();
 				});
+				break;
+			}
+		
+			case SelectedComponent::AINavigationComponent:
+			{
+				DrawComponentTransformNode(entity, entity.GetComponent<AINavigationComponent>());
+				DrawComponent<AINavigationComponent>("AI Navigation", entity, [&entity, this](AINavigationComponent& component)
+				{
+					auto settings = component.GetSettings();
+					bool bChanged = false;
+
+					UI::BeginPropertyGrid("AINavigationComponent");
+
+					if (UI::Button("Build", "Build"))
+					{
+						entity.GetScene()->BuildNavMesh(&component);
+					}
+					UI::Property("Auto Rebuild", component.bAutoRebuild, "If enabled, nav mesh is rebuilt automatically when its transform or settings are changed");
+					
+					UI::TextWithSeparator("Settings");
+
+					bChanged |= UI::PropertyDrag("Visibility AABB Min", settings.AABB.Min, 0.1f, 0, 0);
+					bChanged |= UI::PropertyDrag("Visibility AABB Max", settings.AABB.Max, 0.1f, 0, 0);
+
+					if (UI::PropertyDrag("Max Query Nodes", settings.MaxQueryNodes, 32.f, 1, 65535, "Maximum number of search nodes. [Limits: 0 < value <= 65535]"))
+					{
+						settings.MaxQueryNodes = glm::clamp(settings.MaxQueryNodes, 1u, 65535u);
+						bChanged = true;
+					}
+					if (UI::PropertyDrag("Expected Layers per tile", settings.ExpectedLayersPerTile))
+					{
+						settings.ExpectedLayersPerTile = glm::clamp(settings.ExpectedLayersPerTile, 1u, 65535u);
+						bChanged = true;
+					}
+					if (UI::PropertyDrag("Max Layers", settings.MaxLayers))
+					{
+						settings.MaxLayers = glm::clamp(settings.MaxLayers, 1u, 65535u);
+						bChanged = true;
+					}
+					if (UI::PropertyDrag("Max Obstacles", settings.MaxObstacles))
+					{
+						settings.MaxObstacles = glm::clamp(settings.MaxObstacles, 0u, 1u << 24u);
+						bChanged = true;
+					}
+					if (UI::PropertyDrag("Tile Size", settings.TileSize, 1.f, 0, 0, "The width/height size of tile's on the xz-plane"))
+					{
+						settings.TileSize = glm::clamp(settings.TileSize, 1u, 1u << 24u);
+						bChanged = true;
+					}
+					if (UI::PropertyDrag("Cell Size", settings.CellSize, 0.05f, 0, 0, "The xz-plane cell size to use for fields"))
+					{
+						settings.CellSize = glm::max(settings.CellSize, 0.005f);
+						bChanged = true;
+					}
+					if (UI::PropertyDrag("Cell Height", settings.CellHeight, 0.05f, 0, 0, "The y-axis cell size to use for fields"))
+					{
+						settings.CellHeight = glm::max(settings.CellHeight, 0.005f);
+						bChanged = true;
+					}
+
+					if (UI::PropertyDrag("Max Slope", settings.MaxSlope, 1.f, 0.f, 90.f, "The maximum slope that is considered walkable"))
+					{
+						settings.MaxSlope = glm::clamp(settings.MaxSlope, 0.f, 90.f);
+						bChanged = true;
+					}
+					if (UI::PropertyDrag("Agent Height", settings.AgentHeight, 0.05f, 0.0f, 0.f, "Minimum floor to 'ceiling' height that will still allow the floor area to be considered walkable"))
+					{
+						settings.AgentHeight = glm::max(settings.AgentHeight, 0.1f);
+						bChanged = true;
+					}
+					if (UI::PropertyDrag("Agent Max Climb", settings.AgentMaxClimb, 0.05f, 0.f, 0.f, "Maximum ledge height that is considered to still be traversable"))
+					{
+						settings.AgentMaxClimb = glm::max(settings.AgentMaxClimb, 0.0f);
+						bChanged = true;
+					}
+					if (UI::PropertyDrag("Agent Radius", settings.AgentRadius, 0.05f, 0.f, 0.f, "The distance to erode/shrink the walkable area of the heightfield away from obstructions"))
+					{
+						settings.AgentRadius = glm::max(settings.AgentRadius, 0.0f);
+						bChanged = true;
+					}
+					if (UI::PropertyDrag("Edge Max Len", settings.EdgeMaxLen, 0.05f, 0.f, 0.f, "The maximum allowed length for contour edges along the border of the mesh"))
+					{
+						settings.EdgeMaxLen = glm::max(settings.EdgeMaxLen, 0.0f);
+						bChanged = true;
+					}
+					if (UI::PropertyDrag("Edge Max Error", settings.EdgeMaxError, 0.05f, 0.f, 0.f, "The maximum distance a simplified contour's border edges should deviate the original raw contour"))
+					{
+						settings.EdgeMaxError = glm::max(settings.EdgeMaxError, 0.0f);
+						bChanged = true;
+					}
+					if (UI::PropertyDrag("Region Min Size", settings.RegionMinSize, 0.05f, 0.f, 0.f, "The minimum number of cells allowed to form isolated island areas"))
+					{
+						settings.RegionMinSize = glm::max(settings.RegionMinSize, 0.0f);
+						bChanged = true;
+					}
+					if (UI::PropertyDrag("Region Merge Size", settings.RegionMergeSize, 0.05f, 0.f, 0.f, "Any regions with a span count smaller than this value will, if possible, be merged with larger regions"))
+					{
+						settings.RegionMergeSize = glm::max(settings.RegionMergeSize, 0.0f);
+						bChanged = true;
+					}
+					if (UI::PropertyDrag("Verts Per Poly", settings.VertsPerPoly, 1, 3, 0, "The maximum number of vertices allowed for polygons generated during the contour to polygon conversion process"))
+					{
+						settings.VertsPerPoly = glm::clamp(settings.VertsPerPoly, 3u, 65535u);
+						bChanged = true;
+					}
+					
+					bChanged |= UI::PropertyDrag("Border Size", settings.BorderSize, 1, 0, 0, "The size of the non-navigable border around the heightfield");
+					bChanged |= UI::Property("Filter Low Hanging Obstacles", settings.FilterLowHangingObstacles, s_FilterLowHangingObstaclesHelpMsg);
+					bChanged |= UI::Property("Filter Ledge Spans", settings.FilterLedgeSpans, s_FilterLedgeSpans);
+					bChanged |= UI::Property("Filter Walkable Low Height Spans", settings.FilterWalkableLowHeightSpans, s_FilterWalkableLowHeightSpans);
+
+					UI::EndPropertyGrid();
+
+					if (bChanged)
+					{
+						component.SetSettings(settings);
+						bEntityChanged = true;
+					}
+				});
+				
 				break;
 			}
 		}

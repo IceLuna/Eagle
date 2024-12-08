@@ -11,6 +11,14 @@ namespace Eagle
         public float Z;
         public float W;
 
+        public Vector4(Vector4 v)
+        {
+            X = v.X;
+            Y = v.Y;
+            Z = v.Z;
+            W = v.W;
+        }
+
         public Vector4(Color4 color)
         {
             X = color.R;

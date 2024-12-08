@@ -1224,6 +1224,8 @@ namespace Eagle
 			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
 			out << YAML::Key << "Size" << YAML::Value << collider.GetSize();
 			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
+			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
+			out << YAML::Key << "DoesAffectNavMeshBuild" << YAML::Value << collider.DoesAffectNavMeshBuild();
 			out << YAML::EndMap; //BoxColliderComponent
 		}
 
@@ -1242,6 +1244,8 @@ namespace Eagle
 			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
 			out << YAML::Key << "Radius" << YAML::Value << collider.GetRadius();
 			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
+			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
+			out << YAML::Key << "DoesAffectNavMeshBuild" << YAML::Value << collider.DoesAffectNavMeshBuild();
 			out << YAML::EndMap; //SphereColliderComponent
 		}
 
@@ -1261,6 +1265,8 @@ namespace Eagle
 			out << YAML::Key << "Radius" << YAML::Value << collider.GetRadius();
 			out << YAML::Key << "Height" << YAML::Value << collider.GetHeight();
 			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
+			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
+			out << YAML::Key << "DoesAffectNavMeshBuild" << YAML::Value << collider.DoesAffectNavMeshBuild();
 			out << YAML::EndMap; //CapsuleColliderComponent
 		}
 
@@ -1283,6 +1289,8 @@ namespace Eagle
 			out << YAML::Key << "IsConvex" << YAML::Value << collider.IsConvex();
 			out << YAML::Key << "IsTwoSided" << YAML::Value << collider.IsTwoSided();
 			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
+			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
+			out << YAML::Key << "DoesAffectNavMeshBuild" << YAML::Value << collider.DoesAffectNavMeshBuild();
 			out << YAML::EndMap; //MeshColliderComponent
 		}
 
@@ -1422,6 +1430,55 @@ namespace Eagle
 				out << YAML::Key << "Material" << YAML::Value << asset->GetGUID();
 			
 			out << YAML::EndMap; //DecalComponent
+		}
+
+		if (entity.HasComponent<AINavigationComponent>())
+		{
+			auto& component = entity.GetComponent<AINavigationComponent>();
+
+			out << YAML::Key << "AINavigationComponent";
+			out << YAML::BeginMap; //AINavigationComponent
+
+			SerializeRelativeTransform(out, component.GetRelativeTransform());
+			out << YAML::Key << "bAutoRebuild" << YAML::Value << component.bAutoRebuild;
+
+			// Settings
+			{
+				const auto& settings = component.GetSettings();
+
+				out << YAML::Key << "Settings" << YAML::Value << YAML::BeginMap;
+
+				// AABB
+				out << YAML::Key << "AABB" << YAML::Value << YAML::BeginMap;
+				out << YAML::Key << "Min" << YAML::Value << settings.AABB.Min;
+				out << YAML::Key << "Max" << YAML::Value << settings.AABB.Max;
+				out << YAML::EndMap;
+
+				out << YAML::Key << "MaxQueryNodes" << YAML::Value << settings.MaxQueryNodes;
+				out << YAML::Key << "ExpectedLayersPerTile" << YAML::Value << settings.ExpectedLayersPerTile;
+				out << YAML::Key << "MaxLayers" << YAML::Value << settings.MaxLayers;
+				out << YAML::Key << "MaxObstacles" << YAML::Value << settings.MaxObstacles;
+				out << YAML::Key << "TileSize" << YAML::Value << settings.TileSize;
+				out << YAML::Key << "CellSize" << YAML::Value << settings.CellSize;
+				out << YAML::Key << "CellHeight" << YAML::Value << settings.CellHeight;
+				out << YAML::Key << "MaxSlope" << YAML::Value << settings.MaxSlope;
+				out << YAML::Key << "AgentHeight" << YAML::Value << settings.AgentHeight;
+				out << YAML::Key << "AgentMaxClimb" << YAML::Value << settings.AgentMaxClimb;
+				out << YAML::Key << "AgentRadius" << YAML::Value << settings.AgentRadius;
+				out << YAML::Key << "EdgeMaxLen" << YAML::Value << settings.EdgeMaxLen;
+				out << YAML::Key << "EdgeMaxError" << YAML::Value << settings.EdgeMaxError;
+				out << YAML::Key << "RegionMinSize" << YAML::Value << settings.RegionMinSize;
+				out << YAML::Key << "RegionMergeSize" << YAML::Value << settings.RegionMergeSize;
+				out << YAML::Key << "VertsPerPoly" << YAML::Value << settings.VertsPerPoly;
+				out << YAML::Key << "BorderSize" << YAML::Value << settings.BorderSize;
+				out << YAML::Key << "FilterLowHangingObstacles" << YAML::Value << settings.FilterLowHangingObstacles;
+				out << YAML::Key << "FilterLedgeSpans" << YAML::Value << settings.FilterLedgeSpans;
+				out << YAML::Key << "FilterWalkableLowHeightSpans" << YAML::Value << settings.FilterWalkableLowHeightSpans;
+
+				out << YAML::EndMap;
+			}
+
+			out << YAML::EndMap; //AINavigationComponent
 		}
 	}
 
@@ -1720,6 +1777,10 @@ namespace Eagle
 			collider.SetIsTrigger(boxColliderNode["IsTrigger"].as<bool>());
 			collider.SetSize(boxColliderNode["Size"].as<glm::vec3>());
 			collider.SetShowCollision(boxColliderNode["IsCollisionVisible"].as<bool>());
+			if (auto node = boxColliderNode["IsObstacle"])
+				collider.SetIsObstacle(node.as<bool>());
+			if (auto node = boxColliderNode["DoesAffectNavMeshBuild"])
+				collider.SetAffectsNavMeshBuild(node.as<bool>());
 		}
 
 		if (auto sphereColliderNode = entityNode["SphereColliderComponent"])
@@ -1734,6 +1795,10 @@ namespace Eagle
 			collider.SetIsTrigger(sphereColliderNode["IsTrigger"].as<bool>());
 			collider.SetRadius(sphereColliderNode["Radius"].as<float>());
 			collider.SetShowCollision(sphereColliderNode["IsCollisionVisible"].as<bool>());
+			if (auto node = sphereColliderNode["IsObstacle"])
+				collider.SetIsObstacle(node.as<bool>());
+			if (auto node = sphereColliderNode["DoesAffectNavMeshBuild"])
+				collider.SetAffectsNavMeshBuild(node.as<bool>());
 		}
 
 		if (auto capsuleColliderNode = entityNode["CapsuleColliderComponent"])
@@ -1749,6 +1814,10 @@ namespace Eagle
 			collider.SetRadius(capsuleColliderNode["Radius"].as<float>());
 			collider.SetHeight(capsuleColliderNode["Height"].as<float>());
 			collider.SetShowCollision(capsuleColliderNode["IsCollisionVisible"].as<bool>());
+			if (auto node = capsuleColliderNode["IsObstacle"])
+				collider.SetIsObstacle(node.as<bool>());
+			if (auto node = capsuleColliderNode["DoesAffectNavMeshBuild"])
+				collider.SetAffectsNavMeshBuild(node.as<bool>());
 		}
 
 		if (auto meshColliderNode = entityNode["MeshColliderComponent"])
@@ -1765,9 +1834,12 @@ namespace Eagle
 			collider.SetIsConvex(meshColliderNode["IsConvex"].as<bool>());
 			if (auto node = meshColliderNode["IsTwoSided"])
 				collider.SetIsTwoSided(node.as<bool>());
-
 			if (auto meshNode = meshColliderNode["Mesh"])
 				collider.SetCollisionMeshAsset(GetAsset<AssetStaticMesh>(meshNode));
+			if (auto node = meshColliderNode["IsObstacle"])
+				collider.SetIsObstacle(node.as<bool>());
+			if (auto node = meshColliderNode["DoesAffectNavMeshBuild"])
+				collider.SetAffectsNavMeshBuild(node.as<bool>());
 		}
 
 		if (auto audioNode = entityNode["AudioComponent"])
@@ -1892,6 +1964,49 @@ namespace Eagle
 			if (auto node = decalNode["AdjustAspectRatio"])
 				decal.SetAdjustAspectRatioEnabled(node.as<bool>());
 			decal.SetMaterialAsset(GetAsset<AssetMaterial>(decalNode["Material"]));
+		}
+
+		if (auto componentNode = entityNode["AINavigationComponent"])
+		{
+			auto& component = deserializedEntity.AddComponent<AINavigationComponent>();
+
+			Transform relativeTransform;
+			DeserializeRelativeTransform(componentNode, relativeTransform);
+			component.SetRelativeTransform(relativeTransform);
+			if (auto rebuildNode = componentNode["bAutoRebuild"])
+				component.bAutoRebuild = rebuildNode.as<bool>();
+
+			AINavigation::Mesh::Settings settings{};
+			if (auto settingsNode = componentNode["Settings"])
+			{
+				if (auto aabbNode = settingsNode["AABB"])
+				{
+					settings.AABB.Min = aabbNode["Min"].as<glm::vec3>();
+					settings.AABB.Max = aabbNode["Max"].as<glm::vec3>();
+				}
+				settings.MaxQueryNodes = settingsNode["MaxQueryNodes"].as<uint32_t>();
+				settings.ExpectedLayersPerTile = settingsNode["ExpectedLayersPerTile"].as<uint32_t>();
+				settings.MaxLayers = settingsNode["MaxLayers"].as<uint32_t>();
+				settings.MaxObstacles = settingsNode["MaxObstacles"].as<uint32_t>();
+				settings.TileSize = settingsNode["TileSize"].as<uint32_t>();
+				settings.CellSize = settingsNode["CellSize"].as<float>();
+				settings.CellHeight = settingsNode["CellHeight"].as<float>();
+				settings.MaxSlope = settingsNode["MaxSlope"].as<float>();
+				settings.AgentHeight = settingsNode["AgentHeight"].as<float>();
+				settings.AgentMaxClimb = settingsNode["AgentMaxClimb"].as<float>();
+				settings.AgentRadius = settingsNode["AgentRadius"].as<float>();
+				settings.EdgeMaxLen = settingsNode["EdgeMaxLen"].as<float>();
+				settings.EdgeMaxError = settingsNode["EdgeMaxError"].as<float>();
+				settings.RegionMinSize = settingsNode["RegionMinSize"].as<float>();
+				settings.RegionMergeSize = settingsNode["RegionMergeSize"].as<float>();
+				settings.VertsPerPoly = settingsNode["VertsPerPoly"].as<uint32_t>();
+				settings.BorderSize = settingsNode["BorderSize"].as<uint32_t>();
+				settings.FilterLowHangingObstacles = settingsNode["FilterLowHangingObstacles"].as<bool>();
+				settings.FilterLedgeSpans = settingsNode["FilterLedgeSpans"].as<bool>();
+				settings.FilterWalkableLowHeightSpans = settingsNode["FilterWalkableLowHeightSpans"].as<bool>();
+			}
+
+			component.SetSettings(settings);
 		}
 	}
 

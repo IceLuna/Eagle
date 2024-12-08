@@ -38,6 +38,7 @@ namespace Eagle
 		out << YAML::Key << "GuizmoType" << YAML::Value << guizmoType;
 		out << YAML::Key << "Style" << YAML::Value << Utils::GetEnumName(m_Editor->m_EditorStyle);
 		out << YAML::Key << "EcoRendering" << YAML::Value << m_Editor->bRenderOnlyWhenFocused;
+		out << YAML::Key << "DrawNavMesh" << YAML::Value << m_Editor->bDrawNavMesh;
 		out << YAML::Key << "StopSimulationKey" << YAML::Value << Utils::GetEnumName(m_Editor->m_StopSimulationKey);
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
 
@@ -68,6 +69,7 @@ namespace Eagle
 		YAML::Node data = YAML::LoadFile(filepath.string());
 		bool bVSync = true;
 		bool bRenderOnlyWhenFocused = m_Editor->bRenderOnlyWhenFocused;
+		bool bDrawNavMesh = m_Editor->bDrawNavMesh;
 		Key stopSimulationKey = m_Editor->m_StopSimulationKey;
 
 		if (auto openedScenePathNode = data["EditorStartupScene"])
@@ -106,6 +108,8 @@ namespace Eagle
 			m_Editor->m_EditorStyle = Utils::GetEnumFromName<ImGuiLayer::Style>(styleNode.as<std::string>());
 		if (auto node = data["EcoRendering"])
 			bRenderOnlyWhenFocused = node.as<bool>();
+		if (auto node = data["DrawNavMesh"])
+			bDrawNavMesh = node.as<bool>();
 		if (auto node = data["StopSimulationKey"])
 			stopSimulationKey = Utils::GetEnumFromName<Eagle::Key>(node.as<std::string>());
 		if (auto VSyncNode = data["VSync"])
@@ -113,7 +117,7 @@ namespace Eagle
 		
 		Serializer::DeserializeRendererSettings(data, settings);
 
-		m_Editor->OnDeserialized(windowSize, windowPos, settings, bWindowMaximized, bVSync, bRenderOnlyWhenFocused, stopSimulationKey);
+		m_Editor->OnDeserialized(windowSize, windowPos, settings, bWindowMaximized, bVSync, bRenderOnlyWhenFocused, bDrawNavMesh, stopSimulationKey);
 		return true;
 	}
 }

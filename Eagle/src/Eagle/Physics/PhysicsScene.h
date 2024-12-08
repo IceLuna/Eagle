@@ -1,7 +1,9 @@
 #pragma once
 
+#include "Eagle/AINavigation/AINavigationUtils.h"
 #include "Eagle/Core/GUID.h"
 #include "PhysicsActor.h"
+
 #include <PhysX/PxPhysicsAPI.h>
 #include <glm/glm.hpp>
 
@@ -56,6 +58,10 @@ namespace Eagle
 		const physx::PxRenderBuffer& GetRenderBuffer() const { return m_Scene->getRenderBuffer(); }
 		const PhysicsSettings& GetSettings() const { return m_Settings; }
 
+		OverlapGeometryData CollectGeometry(const AABB& aabb);
+		QueryHits CollectCollidersWithinVolume(const AABB& volume);
+		OverlapGeometryData AppendColliderGeometry(const AABB& aabb, const QueryHits& overlapHits);
+
 	private:
 		void CreateRegions();
 
@@ -66,12 +72,14 @@ namespace Eagle
 		void Destroy();
 
 		bool OverlapGeometry(const glm::vec3& origin, const physx::PxGeometry& geometry, std::array<physx::PxOverlapHit, EG_OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const;
+		void QueryScene(const BoxOverlapRequest& request);
 
 	private:
 		PhysicsSettings m_Settings;
 		physx::PxScene* m_Scene = nullptr;
 		std::unordered_map<GUID, Ref<PhysicsActor>> m_Actors;
 		std::unordered_map<GUID, Ref<PhysicsRagdollActor>> m_RagdollActors;
+		std::vector<physx::PxOverlapHit> m_OverlapBuffer;
 
 		float m_SubstepSize;
 		float m_Accumulator = 0.f;

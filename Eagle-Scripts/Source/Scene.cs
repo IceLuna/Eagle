@@ -20,12 +20,21 @@ namespace Eagle
         public Vector3 Force;
     }
 
+    public struct RendererVertex
+    {
+        public Vector3 Location;
+        public Color3 Color;
+    }
+
     public struct RendererLine
     {
-        public Color3 StartColor;
-        public Color3 EndColor;
-        public Vector3 StartPos;
-        public Vector3 EndPos;
+        public RendererVertex Start;
+        public RendererVertex End;
+    }
+
+    public struct RendererTriangle
+    {
+        public RendererVertex V0, V1, V2;
     }
 
     public class Scene
@@ -43,10 +52,17 @@ namespace Eagle
 
         public static void DrawLine(RendererLine line)
         {
-            DrawLine_Native(ref line.StartColor, ref line.EndColor, ref line.StartPos, ref line.EndPos);
+            DrawLine_Native(ref line.Start.Color, ref line.End.Color, ref line.Start.Location, ref line.End.Location);
         }
 
-        public static void SetGravity(ref Vector3 gravity)
+        public static void DrawTriangle(RendererTriangle triangle)
+        {
+            DrawTriangle_Native(ref triangle.V0.Location, ref triangle.V0.Color,
+                ref triangle.V1.Location, ref triangle.V1.Color,
+                ref triangle.V2.Location, ref triangle.V2.Color);
+        }
+
+        public static void SetGravity(Vector3 gravity)
         {
             SetGravity_Native(ref gravity);
         }
@@ -55,6 +71,16 @@ namespace Eagle
         {
             GetGravity_Native(out Vector3 result);
             return result;
+        }
+
+        public static Vector3[] FindStraightPath(Vector3 start, Vector3 end, uint maxPolys = 256)
+        {
+            return FindStraightPath_Native(ref start, ref end, maxPolys);
+        }
+
+        public static Vector3[] FindSmoothPath(Vector3 start, Vector3 end, uint maxPolys = 256, uint maxSmooth = 2048)
+        {
+            return FindSmoothPath_Native(ref start, ref end, maxPolys, maxSmooth);
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -67,9 +93,18 @@ namespace Eagle
         private static extern void DrawLine_Native(ref Color3 startColor, ref Color3 endColor, ref Vector3 start, ref Vector3 end);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void DrawTriangle_Native(ref Vector3 LocationV0, ref Color3 ColorV0, ref Vector3 LocationV1, ref Color3 ColorV1, ref Vector3 LocationV2, ref Color3 ColorV2);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetGravity_Native(ref Vector3 gravity);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void GetGravity_Native(out Vector3 gravity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern Vector3[] FindStraightPath_Native(ref Vector3 start, ref Vector3 end, uint maxPolys);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern Vector3[] FindSmoothPath_Native(ref Vector3 start, ref Vector3 end, uint maxPolys, uint maxSmooth);
     }
 }

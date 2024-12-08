@@ -722,6 +722,13 @@ namespace Eagle
             return IsRagdollEnabled_Native(Parent.ID);
         }
 
+        public Transform GetRagdollBoneWorldTransform(string name)
+        {
+            Transform result;
+            GetRagdollBoneWorldTransform_Native(Parent.ID, name, out result);
+            return result;
+        }
+
         public Transform GetBoneWorldTransform(string name)
         {
             Transform result;
@@ -912,6 +919,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetAnimType_Native(in GUID entityID, AnimationType value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetRagdollBoneWorldTransform_Native(in GUID entityID, string name, out Transform result);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetBoneWorldTransform_Native(in GUID entityID, string name, out Transform result);
@@ -1954,6 +1964,26 @@ namespace Eagle
 
         public bool IsCollisionVisible(bool bVisible) { return IsCollisionVisible_Native(Parent.ID, m_Type); }
 
+        public void SetAffectsNavMeshBuild(bool bAffects)
+        {
+            SetAffectsNavMeshBuild_Native(Parent.ID, m_Type, bAffects);
+        }
+
+        public bool DoesAffectNavMeshBuild()
+        {
+            return DoesAffectNavMeshBuild_Native(Parent.ID, m_Type);
+        }
+
+        public void SetIsObstacle(bool bObstacle)
+        {
+            SetIsObstacle_Native(Parent.ID, m_Type, bObstacle);
+        }
+
+        public bool IsObstacle()
+        {
+            return IsObstacle_Native(Parent.ID, m_Type);
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetIsTrigger_Native(in GUID entityID, Type type, bool bTrigger);
 
@@ -1965,6 +1995,18 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsCollisionVisible_Native(in GUID entityID, Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAffectsNavMeshBuild_Native(in GUID entityID, Type type, bool bAffects);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool DoesAffectNavMeshBuild_Native(in GUID entityID, Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetIsObstacle_Native(in GUID entityID, Type type, bool bObstacle);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsObstacle_Native(in GUID entityID, Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern GUID GetPhysicsMaterial_Native(in GUID entityID, Type type);
@@ -1980,7 +2022,7 @@ namespace Eagle
             m_Type = typeof(BoxColliderComponent);
         }
 
-        public void SetSize(ref Vector3 size) { SetSize_Native(Parent.ID, ref size); }
+        public void SetSize(Vector3 size) { SetSize_Native(Parent.ID, ref size); }
 
 		public Vector3 GetSize()
         {
@@ -2203,5 +2245,21 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern uint GetSortPriority_Native(in GUID entityID);
+    }
+
+    public class AINavigationComponent : SceneComponent
+    {
+        public AINavigationComponent()
+        {
+            m_Type = typeof(AINavigationComponent);
+        }
+
+        public void Build()
+        {
+            Build_Native(Parent.ID);
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Build_Native(in GUID entityID);
     }
 }

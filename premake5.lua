@@ -178,7 +178,11 @@ project "Eagle"
 		"%{IncludeDir.zstd}",
 		"%{IncludeDir.BasisUniversal}",
 		"%{IncludeDir.KTX}",
-		"%{IncludeDir.RecastNavigation}",
+		"%{IncludeDir.RecastNavigation}/Detour/Include",
+		"%{IncludeDir.RecastNavigation}/DetourCrowd/Include",
+		"%{IncludeDir.RecastNavigation}/DetourTileCache/Include",
+		"%{IncludeDir.RecastNavigation}/Recast/Include",
+		"%{IncludeDir.RecastNavigation}/DebugUtils/Include",
 	}
 
 	defines
@@ -373,7 +377,13 @@ project "Eagle-Editor"
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.ImGuiNodeEditor}",
 		"%{IncludeDir.ThreadPool}",
-		"%{IncludeDir.MagicEnum}"
+		"%{IncludeDir.MagicEnum}",
+		"%{IncludeDir.RecastNavigation}/Detour/Include",
+		"%{IncludeDir.RecastNavigation}/DetourCrowd/Include",
+		"%{IncludeDir.RecastNavigation}/DetourTileCache/Include",
+		"%{IncludeDir.RecastNavigation}/Recast/Include",
+		"%{IncludeDir.RecastNavigation}/Recast/DebugUtils",
+		"%{IncludeDir.RecastNavigation}/DebugUtils/Include",
 	}
 
 	links
@@ -508,7 +518,13 @@ project "Eagle-Game"
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.ImGuiNodeEditor}",
 		"%{IncludeDir.ThreadPool}",
-		"%{IncludeDir.MagicEnum}"
+		"%{IncludeDir.MagicEnum}",
+		"%{IncludeDir.RecastNavigation}/Detour/Include",
+		"%{IncludeDir.RecastNavigation}/DetourCrowd/Include",
+		"%{IncludeDir.RecastNavigation}/DetourTileCache/Include",
+		"%{IncludeDir.RecastNavigation}/Recast/Include",
+		"%{IncludeDir.RecastNavigation}/Recast/DebugUtils",
+		"%{IncludeDir.RecastNavigation}/DebugUtils/Include",
 	}
 
 	links

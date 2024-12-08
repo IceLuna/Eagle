@@ -15,14 +15,14 @@ namespace Eagle
         switch (type)
         {
             case SkeletalRagdollBones::UserSettings::ShapeType::Box:
-                return physics.createShape(PxBoxGeometry(halfHeight * scale.x, halfHeight * scale.y, halfHeight * scale.z), *material);
+                return physics.createShape(PxBoxGeometry(halfHeight * scale.x, halfHeight * scale.y, halfHeight * scale.z), *material, true);
             case SkeletalRagdollBones::UserSettings::ShapeType::Sphere:
-                return physics.createShape(PxSphereGeometry(radius * scale.x), *material);
+                return physics.createShape(PxSphereGeometry(radius * scale.x), *material, true);
             case SkeletalRagdollBones::UserSettings::ShapeType::Capsule:
-                return physics.createShape(PxCapsuleGeometry(radius * scale.x, halfHeight * scale.y), *material);
+                return physics.createShape(PxCapsuleGeometry(radius * scale.x, halfHeight * scale.y), *material, true);
             default:
                 EG_CORE_ASSERT(false);
-                return physics.createShape(PxCapsuleGeometry(radius * scale.x, halfHeight * scale.y), *material);
+                return physics.createShape(PxCapsuleGeometry(radius * scale.x, halfHeight * scale.y), *material, true);
         }
     }
 
@@ -102,8 +102,11 @@ namespace Eagle
             PxTransform local(PhysXUtils::ToPhysXQuat(glm::quat_cast(rot)));
             shape->setLocalPose(local);
             body->attachShape(*shape);
-            body->setLinearVelocity(linearVelocity);
-            body->setAngularVelocity(angularVelocity);
+            if (bValidBone)
+            {
+                body->setLinearVelocity(linearVelocity);
+                body->setAngularVelocity(angularVelocity);
+            }
             body->setLinearDamping(bone.Settings.LinearDamping);
             body->setAngularDamping(bone.Settings.AngularDamping);
             body->setMass(bone.Settings.Mass);
@@ -157,7 +160,8 @@ namespace Eagle
     {
         if (node.Shape)
         {
-            node.Shape->release();
+            // No need to release, it's a exclusive shape
+            //node.Shape->release();
             node.Shape = nullptr;
         }
         if (node.Body)
@@ -265,6 +269,10 @@ namespace Eagle
     
     void PhysicsRagdollActor::SetShowCollision(bool bShowCollision)
     {
+        if (m_bShowCollision == bShowCollision)
+            return;
+
+        m_bShowCollision = bShowCollision;
         SetShowCollision_Internal(m_Root, bShowCollision);
     }
     

@@ -922,12 +922,21 @@ namespace Eagle
         }
     };
 
+    struct RendererDebugVertex
+    {
+        glm::vec3 Location = glm::vec3(0);
+        glm::vec3 Color = glm::vec3(0, 1, 0);
+    };
+
     struct RendererLine
     {
-        glm::vec3 StartColor = glm::vec3(0, 1, 0);
-        glm::vec3 EndColor = glm::vec3(0, 1, 0);
-        glm::vec3 Start = glm::vec3(0.f);
-        glm::vec3 End = glm::vec3(0.f);
+        RendererDebugVertex Start;
+        RendererDebugVertex End;
+    };
+
+    struct RendererTriangle
+    {
+        std::array<RendererDebugVertex, 3> Vertices;
     };
 
     // Returns bits

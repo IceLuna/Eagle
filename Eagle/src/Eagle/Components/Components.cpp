@@ -2,6 +2,7 @@
 #include "Component.h"
 
 #include "Eagle/Physics/PhysicsActor.h"
+#include "Eagle/Physics/PhysicsRagdollActor.h"
 #include "Eagle/Physics/PhysicsShapes.h"
 #include "Eagle/Physics/PhysicsScene.h"
 #include "Components.h"
@@ -127,14 +128,45 @@ namespace Eagle
 		UpdatePhysicsTransform();
 	}
 
+	void BaseColliderComponent::SetIsObstacle(bool bValue)
+	{
+		if (bObstacle == bValue)
+			return;
+
+		bObstacle = bValue;
+		if (bObstacle)
+			CreateObstacle();
+		else
+			RemoveObstacle();
+	}
+
 	BaseColliderComponent& BaseColliderComponent::operator=(const BaseColliderComponent& other)
 	{
 		SceneComponent::operator=(other);
 		SetPhysicsMaterialAsset(other.m_MaterialAsset);
 		SetIsTrigger(other.bTrigger);
 		SetShowCollision(other.bShowCollision);
+		SetAffectsNavMeshBuild(other.bAffectsNavMeshBuild);
+		SetIsObstacle(other.IsObstacle());
 
 		return *this;
+	}
+
+	bool BaseColliderComponent::RemoveObstacle()
+	{
+		if (m_ObstacleID == 0u)
+			return false;
+
+		const Ref<AINavigation::Mesh>& navMesh = Parent.GetScene()->GetNavMesh();
+		if (!navMesh)
+			return false;
+
+		if (navMesh->RemoveObstacle(m_ObstacleID))
+		{
+			m_ObstacleID = 0u;
+			return true;
+		}
+		return false;
 	}
 	
 	BoxColliderComponent& BoxColliderComponent::operator=(const BoxColliderComponent& other)
@@ -155,6 +187,27 @@ namespace Eagle
 	void BoxColliderComponent::UpdatePhysicsMaterials()
 	{
 		m_Shape->SetPhysicsMaterial(m_MaterialAsset);
+	}
+
+	void BoxColliderComponent::CreateObstacle()
+	{
+		if (m_ObstacleID != 0u)
+		{
+			if (RemoveObstacle() == false)
+				return; // Remove failed, so we shouldn't create a new one.
+		}
+
+		const Ref<AINavigation::Mesh>& navMesh = Parent.GetScene()->GetNavMesh();
+		if (!navMesh)
+			return;
+
+		const glm::vec3 halfExtents = m_Shape->GetColliderScale() * 0.5f;
+		AABB aabb(WorldTransform.Location - halfExtents, WorldTransform.Location + halfExtents);
+		if (!AABB::Overlap(aabb, navMesh->GetAABB()))
+			return; // Don't create if it doesn't overlap a nav mesh
+
+		const float yRotation = WorldTransform.Rotation.EulerAngles().y;
+		m_ObstacleID = navMesh->AddBoxObstacle(WorldTransform.Location, halfExtents, yRotation);
 	}
 
 	void BoxColliderComponent::SetShowCollision(bool bShowCollision)
@@ -190,7 +243,9 @@ namespace Eagle
 	void BoxColliderComponent::SetSize(const glm::vec3& size)
 	{
 		m_Size = glm::max(size, glm::vec3(0.f));
-		m_Shape->SetSize(m_Size);
+		m_Shape->SetSize(WorldTransform.Scale3D * m_Size);
+		if (IsObstacle())
+			CreateObstacle();
 	}
 
 	void BoxColliderComponent::UpdatePhysicsTransform()
@@ -199,17 +254,18 @@ namespace Eagle
 		{
 			m_Shape->SetRelativeLocationAndRotation(RelativeTransform);
 
-			const glm::vec3& oldSize = m_Shape->GetColliderScale();
-			const glm::vec3 newSize = WorldTransform.Scale3D * m_Size;
-			if (newSize != oldSize)
-				m_Shape->SetSize(m_Size);
+			const glm::vec3 size = WorldTransform.Scale3D * m_Size;
+			m_Shape->SetSize(size);
+
+			if (IsObstacle())
+				CreateObstacle(); // Recreate obstacle
 		}
 	}
 
 	SphereColliderComponent& SphereColliderComponent::operator=(const SphereColliderComponent& other)
 	{
 		BaseColliderComponent::operator=(other);
-		SetRadius(other.Radius);
+		SetRadius(other.m_Radius);
 		UpdatePhysicsTransform();
 
 		return *this;
@@ -217,8 +273,13 @@ namespace Eagle
 
 	void SphereColliderComponent::SetRadius(float radius)
 	{
-		Radius = glm::max(radius, 0.f);
-		m_Shape->SetRadius(Radius);
+		m_Radius = glm::max(radius, 0.f);
+
+		const auto& scale = WorldTransform.Scale3D;
+		const float largestAxis = glm::max(scale.x, glm::max(scale.y, scale.z));
+		m_Shape->SetRadius(largestAxis * m_Radius);
+		if (IsObstacle())
+			CreateObstacle();
 	}
 	
 	void SphereColliderComponent::SetIsTrigger(bool bTrigger)
@@ -230,6 +291,28 @@ namespace Eagle
 	void SphereColliderComponent::UpdatePhysicsMaterials()
 	{
 		m_Shape->SetPhysicsMaterial(m_MaterialAsset);
+	}
+
+	void SphereColliderComponent::CreateObstacle()
+	{
+		if (m_ObstacleID != 0u)
+		{
+			if (RemoveObstacle() == false)
+				return; // Remove failed, so we shouldn't create a new one.
+		}
+
+		const Ref<AINavigation::Mesh>& navMesh = Parent.GetScene()->GetNavMesh();
+		if (!navMesh)
+			return;
+
+		const float radius = m_Shape->GetColliderScale().x;
+
+		AABB aabb(WorldTransform.Location - radius, WorldTransform.Location + radius);
+		if (!AABB::Overlap(aabb, navMesh->GetAABB()))
+			return; // Don't create if it doesn't overlap a nav mesh
+
+		const float height = radius * 2.f;
+		m_ObstacleID = navMesh->AddCylinderObstacle(WorldTransform.Location - glm::vec3(0.f, radius, 0.f), radius, height);
 	}
 
 	void SphereColliderComponent::SetShowCollision(bool bShowCollision)
@@ -268,17 +351,20 @@ namespace Eagle
 		{
 			m_Shape->SetRelativeLocationAndRotation(RelativeTransform);
 
-			const glm::vec3& newSize = WorldTransform.Scale3D;
-			const glm::vec3& oldSize = m_Shape->GetColliderScale();
-			if (newSize != oldSize)
-				m_Shape->SetRadius(Radius);
+			const auto& scale = WorldTransform.Scale3D;
+			const float largestAxis = glm::max(scale.x, glm::max(scale.y, scale.z));
+			const float radius = largestAxis * m_Radius;
+			m_Shape->SetRadius(radius);
+
+			if (IsObstacle())
+				CreateObstacle(); // Recreate obstacle
 		}
 	}
 
 	CapsuleColliderComponent& CapsuleColliderComponent::operator=(const CapsuleColliderComponent& other)
 	{
 		BaseColliderComponent::operator=(other);
-		SetHeightAndRadius(other.Height, other.Radius);
+		SetHeightAndRadius(other.m_Height, other.m_Radius);
 		UpdatePhysicsTransform();
 
 		return *this;
@@ -303,9 +389,12 @@ namespace Eagle
 	
 	void CapsuleColliderComponent::SetHeightAndRadius(float height, float radius)
 	{
-		Height = glm::max(height, 0.f);
-		Radius = glm::max(radius, 0.f);
-		m_Shape->SetHeightAndRadius(Height, Radius);
+		m_Height = glm::max(height, 0.f);
+		m_Radius = glm::max(radius, 0.f);
+
+		m_Shape->SetHeightAndRadius(height, radius);
+		if (IsObstacle())
+			CreateObstacle();
 	}
 	
 	void CapsuleColliderComponent::OnInit(Entity entity)
@@ -319,6 +408,31 @@ namespace Eagle
 			m_Shape = actor->AddCollider(*this);
 		}
 		m_Shape->SetFilterData(actor->GetFilterData());
+	}
+
+	void CapsuleColliderComponent::CreateObstacle()
+	{
+		if (m_ObstacleID != 0u)
+		{
+			if (RemoveObstacle() == false)
+				return; // Remove failed, so we shouldn't create a new one.
+		}
+
+		const Ref<AINavigation::Mesh>& navMesh = Parent.GetScene()->GetNavMesh();
+		if (!navMesh)
+			return;
+
+		const glm::vec3& scale = m_Shape->GetColliderScale();
+		const float& radius = scale.x;
+		const float& height = scale.y;
+
+		const glm::vec3 halfExtent1 = glm::vec3(radius, 0.f, radius);
+		const glm::vec3 halfExtent2 = glm::vec3(radius, height, radius);
+		AABB aabb(WorldTransform.Location - halfExtent1, WorldTransform.Location + halfExtent2);
+		if (!AABB::Overlap(aabb, navMesh->GetAABB()))
+			return; // Don't create if it doesn't overlap a nav mesh
+
+		m_ObstacleID = navMesh->AddCylinderObstacle(WorldTransform.Location, radius, height);
 	}
 
 	void CapsuleColliderComponent::OnRemoved(Entity entity)
@@ -338,10 +452,13 @@ namespace Eagle
 		{
 			m_Shape->SetRelativeLocationAndRotation(RelativeTransform);
 
-			const glm::vec3& newSize = WorldTransform.Scale3D;
-			const glm::vec3& oldSize = m_Shape->GetColliderScale();
-			if (newSize != oldSize)
-				m_Shape->SetHeightAndRadius(Height, Radius);
+			const auto& scale = WorldTransform.Scale3D;
+			const float radius = glm::max(scale.x, scale.z) * m_Radius;
+			const float height = scale.y * m_Height;
+			m_Shape->SetHeightAndRadius(height, radius);
+
+			if (IsObstacle())
+				CreateObstacle(); // Recreate obstacle
 		}
 	}
 
@@ -377,6 +494,13 @@ namespace Eagle
 		for (auto& shape : m_Shapes)
 			if (shape)
 				shape->SetPhysicsMaterial(m_MaterialAsset);
+	}
+
+	void MeshColliderComponent::CreateObstacle()
+	{
+		// When/If support is added, update `Scene::BuildNavMesh()`
+		EG_CORE_ASSERT(false);
+		EG_CORE_ERROR("MeshColliderComponent can't be an obstacle!");
 	}
 
 	void MeshColliderComponent::SetShowCollision(bool bShowCollision)
@@ -456,11 +580,7 @@ namespace Eagle
 			if (shape)
 			{
 				shape->SetRelativeLocationAndRotation(RelativeTransform);
-
-				const glm::vec3& newSize = WorldTransform.Scale3D;
-				const glm::vec3& oldSize = shape->GetColliderScale();
-				if (newSize != oldSize)
-					shape->SetScale(newSize);
+				shape->SetScale(WorldTransform.Scale3D);
 			}
 		}
 	}
@@ -697,6 +817,32 @@ namespace Eagle
 		}
 	}
 
+	bool SkeletalMeshComponent::IsRagdollCollisionShown() const
+	{
+		if (m_RagdollActor)
+			return m_RagdollActor->IsCollisionShown();
+		
+		EG_CORE_ERROR("Failed to call SkeletalMeshComponent::SetShowRagdollCollision. Ragdoll is null");
+		return false;
+	}
+
+	void SkeletalMeshComponent::SetShowRagdollCollision(bool bShow)
+	{
+		if (m_RagdollActor)
+			m_RagdollActor->SetShowCollision(bShow);
+		else
+			EG_CORE_ERROR("Failed to call SkeletalMeshComponent::SetShowRagdollCollision. Ragdoll is null");
+	}
+
+	Transform SkeletalMeshComponent::GetRagdollBoneWorldTransform(const std::string& name) const
+	{
+		if (m_RagdollActor)
+			return m_RagdollActor->GetBoneWorldTransform(name);
+
+		EG_CORE_ERROR("Failed to call SkeletalMeshComponent::GetRagdollBoneWorldTransform. Ragdoll is null");
+		return {};
+	}
+
 	ParticleSystemComponent::ParticleSystemComponent(const Entity& entity, const Ref<AssetParticleSystem>& asset)
 		: SceneComponent(entity), m_Asset(asset)
 	{
@@ -758,5 +904,90 @@ namespace Eagle
 	{
 		if (bSpawned)
 			Parent.GetScene()->UpdateParticleSystem(this);
+	}
+	
+	AINavigationComponent& AINavigationComponent::operator=(const AINavigationComponent& other)
+	{
+		if (this == &other)
+			return *this;
+
+		SceneComponent::operator=(other);
+		bAutoRebuild = other.bAutoRebuild;
+		m_Settings = other.m_Settings;
+		if (other.m_NavMesh)
+		{
+			Parent.GetScene()->BuildNavMesh(this);
+		}
+
+		return *this;
+	}
+
+	void AINavigationComponent::GetNavMeshDebugDraw(duDebugDraw* debugDraw) const
+	{
+		if (!m_NavMesh)
+			return;
+
+		m_NavMesh->GetDebugDraw(debugDraw);
+	}
+
+	void AINavigationComponent::Update(Timestep ts)
+	{
+		if (!m_NavMesh)
+			return;
+
+		m_NavMesh->Update(ts);
+	}
+
+	void AINavigationComponent::Build()
+	{
+		auto& physicsScene = Parent.GetScene()->GetPhysicsScene();
+
+		glm::mat4 worldTr = Math::ToTransformMatrix(GetWorldTransform());
+		auto settings = m_Settings;
+		settings.AABB.Min = worldTr * glm::vec4(m_Settings.AABB.Min, 1.f);
+		settings.AABB.Max = worldTr * glm::vec4(m_Settings.AABB.Max, 1.f);
+
+		const QueryHits overlaps = physicsScene->CollectCollidersWithinVolume(settings.AABB);
+		
+		// Remove colliders that shouldn't affect the nav mesh
+		QueryHits filteredOverlaps;
+		filteredOverlaps.reserve(overlaps.size());
+		for (const auto& overlap : overlaps)
+		{
+			if (!overlap.Shape)
+				continue;
+
+			const BaseColliderComponent* collider = nullptr;
+
+			switch (overlap.Shape->GetType())
+			{
+			case ColliderType::Box:
+				EG_CORE_ASSERT(overlap.EntityID.HasComponent<BoxColliderComponent>());
+				collider = &overlap.EntityID.GetComponent<BoxColliderComponent>();
+				break;
+			case ColliderType::Sphere:
+				EG_CORE_ASSERT(overlap.EntityID.HasComponent<SphereColliderComponent>());
+				collider = &overlap.EntityID.GetComponent<SphereColliderComponent>();
+				break;
+			case ColliderType::Capsule:
+				EG_CORE_ASSERT(overlap.EntityID.HasComponent<CapsuleColliderComponent>());
+				collider = &overlap.EntityID.GetComponent<CapsuleColliderComponent>();
+				break;
+			case ColliderType::ConvexMesh:
+			case ColliderType::TriangleMesh:
+				EG_CORE_ASSERT(overlap.EntityID.HasComponent<MeshColliderComponent>());
+				collider = &overlap.EntityID.GetComponent<MeshColliderComponent>();
+				break;
+			}
+
+			EG_CORE_ASSERT(collider);
+			if (collider->DoesAffectNavMeshBuild())
+			{
+				filteredOverlaps.push_back(overlap);
+			}
+		}
+
+		auto geometry = physicsScene->AppendColliderGeometry(settings.AABB, filteredOverlaps);
+		m_NavMesh = AINavigation::Mesh::Create(geometry, settings);
 	}
 }

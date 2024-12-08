@@ -7,6 +7,7 @@
 #include "ContactListener.h"
 #include "PhysicsRagdollActor.h"
 
+#include "Eagle/AINavigation/AINavigationUtils.h"
 #include "Eagle/Core/Project.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Debug/CPUTimings.h"
@@ -197,6 +198,12 @@ namespace Eagle
         return OverlapGeometry(origin, physx::PxSphereGeometry(radius), buffer, count);
     }
     
+    OverlapGeometryData PhysicsScene::CollectGeometry(const AABB& aabb)
+    {
+        QueryHits results = CollectCollidersWithinVolume(aabb);
+        return AppendColliderGeometry(aabb, results);
+    }
+
     void PhysicsScene::CreateRegions()
     {
         const PhysicsSettings& settings = m_Settings;
@@ -204,9 +211,10 @@ namespace Eagle
         if (settings.BroadphaseAlgorithm == BroadphaseType::AutomaticBoxPrune)
             return;
         
-        physx::PxBounds3* regionBounds = new physx::PxBounds3[(uint64_t)settings.WorldBoundsSubdivisions * settings.WorldBoundsSubdivisions];
-        physx::PxBounds3 globalBounds(PhysXUtils::ToPhysXVector(settings.WorldBoundsMin), PhysXUtils::ToPhysXVector(settings.WorldBoundsMax));
-        uint32_t regionCount = physx::PxBroadPhaseExt::createRegionsFromWorldBounds(regionBounds, globalBounds, settings.WorldBoundsSubdivisions);
+        std::vector<physx::PxBounds3> regionBounds((uint64_t)settings.WorldBoundsSubdivisions * settings.WorldBoundsSubdivisions);
+        physx::PxBounds3 globalBounds(PhysXUtils::ToPhysXVector(settings.WorldAABB.Min), PhysXUtils::ToPhysXVector(settings.WorldAABB.Max));
+        uint32_t regionCount = physx::PxBroadPhaseExt::createRegionsFromWorldBounds(regionBounds.data(), globalBounds, settings.WorldBoundsSubdivisions);
+        regionCount = glm::min(uint32_t(regionBounds.size()), regionCount);
 
         for (uint32_t i = 0; i < regionCount; ++i)
         {
@@ -275,7 +283,7 @@ namespace Eagle
     bool PhysicsScene::OverlapGeometry(const glm::vec3& origin, const physx::PxGeometry& geometry, std::array<physx::PxOverlapHit, EG_OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const
     {
         physx::PxOverlapBuffer buf(buffer.data(), EG_OVERLAP_MAX_COLLIDERS);
-        physx::PxTransform pose = PhysXUtils::ToPhysXTranform(glm::translate(glm::mat4(1.f), origin));
+        physx::PxTransform pose = PhysXUtils::ToPhysXTranform(origin);
 
         bool bResult = m_Scene->overlap(geometry, pose, buf);
 
@@ -286,5 +294,103 @@ namespace Eagle
         }
 
         return bResult;
+    }
+    
+    QueryHits PhysicsScene::CollectCollidersWithinVolume(const AABB& volume)
+    {
+        QueryHits hits;
+
+        UnboundedOverlapHitCallback unboundedOverlapHitCallback =
+            [&hits](std::optional<SceneQueryHit>&& hit)
+            {
+                if (hit && hit->IsValid())
+                {
+                    const SceneQueryHit& sceneQueryHit = *hit;
+                    hits.push_back(sceneQueryHit);
+                }
+
+                return true;
+            };
+
+        BoxOverlapRequest request;
+        request.Dimension = volume.Extents();
+        request.Pose = Transform(volume.Center());
+        request.Type = QueryType::Static;
+        request.OverlapHitCallback = unboundedOverlapHitCallback;
+
+        // results are in outHits
+        QueryScene(request);
+        return hits;
+    }
+
+    OverlapGeometryData PhysicsScene::AppendColliderGeometry(const AABB& aabb, const QueryHits& overlapHits)
+    {
+        OverlapGeometryData geometry;
+        geometry.ScanBounds = aabb;
+
+        std::vector<glm::vec3> vertices;
+        std::vector<uint32_t> indices;
+        vertices.reserve(100);
+        indices.reserve(100);
+        geometry.Vertices.reserve(100);
+        geometry.Indices.reserve(100);
+
+        std::size_t indicesCount = 0;
+
+        for (const auto& overlapHit : overlapHits)
+        {
+            if (!overlapHit.Body)
+                continue;
+
+            // Create an AABB for the Recast tile in local space and pass it in to GetGeometry so that large geometry sets
+            // (like heightfields) can just return the subset of geometry that overlaps the AABB.
+            Transform pose = PhysXUtils::FromPhysXTransform(overlapHit.Shape->GetShape()->getLocalPose());
+            const glm::vec3 offset = -pose.Location;
+            AABB localScanBounds = AABB(geometry.ScanBounds.Min + offset, geometry.ScanBounds.Max + offset);
+            overlapHit.Shape->GetGeometry(vertices, indices, &localScanBounds);
+
+            // Note: returned geometry data is also in local space
+            Transform tBody = PhysXUtils::FromPhysXTransform(overlapHit.Body->getGlobalPose());
+            glm::mat4 t = Math::ToTransformMatrix(tBody + pose);
+
+            if (vertices.empty())
+                continue;
+
+            for (const glm::vec3& vertex : vertices)
+            {
+                const glm::vec3 translated = t * glm::vec4(vertex, 1.f);
+                geometry.Vertices.push_back(translated);
+            }
+
+            for (size_t i = 0; i < indices.size(); i += 3)
+            {
+                geometry.Indices.push_back(uint32_t(indicesCount + indices[i]));
+                geometry.Indices.push_back(uint32_t(indicesCount + indices[i + 1]));
+                geometry.Indices.push_back(uint32_t(indicesCount + indices[i + 2]));
+            }
+
+            indicesCount += vertices.size();
+            vertices.clear();
+            indices.clear();
+        }
+
+        return geometry;
+    }
+    
+    void PhysicsScene::QueryScene(const BoxOverlapRequest& request)
+    {
+        QueryHits hits;
+        m_OverlapBuffer.resize(64);
+
+        // Prepare overlap data
+        const glm::vec3 halfExtent = request.Pose.Scale3D * request.Dimension * 0.5f;
+        physx::PxBoxGeometry box = physx::PxBoxGeometry(PhysXUtils::ToPhysXVector(halfExtent));
+        const physx::PxTransform pose = PhysXUtils::ToPhysXTranform(request.Pose);
+
+        UnboundedOverlapCallback callback(request.OverlapHitCallback, m_OverlapBuffer, hits);
+        PhysXQueryFilterCallback filterCallback(physx::PxQueryHitType::eTOUCH);
+        const physx::PxQueryFilterData queryData(PhysXUtils::GetPxQueryFlags(request.Type));
+
+        m_Scene->overlap(box, pose, callback, queryData, &filterCallback);
     }
 }

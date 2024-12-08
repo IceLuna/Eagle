@@ -74,7 +74,7 @@ namespace Eagle
 
 	public:
 		Transform() : Location(0.f), Rotation(), Scale3D(1.f) {}
-
+		Transform(const glm::vec3& location) : Location(location), Rotation(), Scale3D(1.f) {}
 		Transform(const glm::vec3& location, const Rotator& rotation, const glm::vec3& scale = glm::vec3(1.f))
 			: Location(location)
 			, Rotation(rotation)

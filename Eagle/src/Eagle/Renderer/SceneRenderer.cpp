@@ -88,6 +88,7 @@ namespace Eagle
 		m_LightsManagerTask = MakeRef<LightsManagerTask>(*this);
 		m_GeometryManagerTask = MakeRef<GeometryManagerTask>(*this);
 		m_RenderLinesTask = MakeRef<RenderLinesTask>(*this);
+		m_RenderTrianglesTask = MakeRef<RenderTrianglesTask>(*this);
 		m_RenderBillboardsTask = MakeRef<RenderBillboardsTask>(*this, m_HDRRTImage);
 		m_RenderLitTextTask = MakeRef<RenderTextLitTask>(*this);
 		m_RenderUnlitTextTask = MakeRef<RenderTextUnlitTask>(*this, m_HDRRTImage);
@@ -204,6 +205,7 @@ namespace Eagle
 			renderer->m_RenderBillboardsTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderUnlitTextTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderLinesTask->RecordCommandBuffer(cmd);
+			renderer->m_RenderTrianglesTask->RecordCommandBuffer(cmd);
 			
 			if (renderer->m_MotionBlurTask)
 				renderer->m_MotionBlurTask->RecordCommandBuffer(cmd);
@@ -351,6 +353,7 @@ namespace Eagle
 		m_RenderDecalsTask->OnResize(m_Size);
 		m_LightsManagerTask->OnResize(m_Size);
 		m_RenderLinesTask->OnResize(m_Size);
+		m_RenderTrianglesTask->OnResize(m_Size);
 		m_RenderBillboardsTask->OnResize(m_Size);
 		m_RenderUnlitTextTask->OnResize(m_Size);
 		m_RenderLitTextTask->OnResize(m_Size);
@@ -424,6 +427,7 @@ namespace Eagle
 		m_Images2DTask->InitWithOptions(options);
 		m_PBRPassTask->InitWithOptions(options);
 		m_RenderLinesTask->InitWithOptions(options);
+		m_RenderTrianglesTask->InitWithOptions(options);
 		m_PostProcessingPassTask->InitWithOptions(options);
 		m_TransparencyTask->InitWithOptions(options);
 		m_GridTask->InitWithOptions(options);

@@ -17,6 +17,7 @@
 #include "Eagle/Classes/Font.h"
 #include "Eagle/Renderer/Material.h"
 #include "Eagle/Renderer/ParticleEmitter.h"
+#include "Eagle/AINavigation/AINavigationMesh.h"
 
 // If new component class is created, other changes are required:
 // 1) Add new line into Scene's copy constructor;
@@ -649,6 +650,10 @@ namespace Eagle
 		const Ref<PhysicsRagdollActor>& GetRagdollActor() const { return m_RagdollActor; }
 		Ref<PhysicsRagdollActor>& GetRagdollActor() { return m_RagdollActor; }
 
+		bool IsRagdollCollisionShown() const;
+		void SetShowRagdollCollision(bool bShow);
+		Transform GetRagdollBoneWorldTransform(const std::string& name) const;
+
 	public:
 		SkeletalPose LastPose; // The final pose that was calculated during the last animation update
 
@@ -1068,6 +1073,12 @@ namespace Eagle
 		bool IsCollisionVisible() const { return bShowCollision; }
 		virtual void SetShowCollision(bool bShowCollision) = 0;
 
+		void SetAffectsNavMeshBuild(bool bAffects) { bAffectsNavMeshBuild = bAffects; }
+		bool DoesAffectNavMeshBuild() const { return bAffectsNavMeshBuild; }
+
+		bool IsObstacle() const { return bObstacle; }
+		void SetIsObstacle(bool bValue);
+
 	protected:
 		BaseColliderComponent(const Entity& entity) : SceneComponent(entity){}
 		BaseColliderComponent& operator=(const BaseColliderComponent& other);
@@ -1077,11 +1088,16 @@ namespace Eagle
 
 		virtual void UpdatePhysicsTransform() = 0;
 		virtual void UpdatePhysicsMaterials() = 0;
+		virtual void CreateObstacle() {} // Should remove an obstacle if it's already created
+		bool RemoveObstacle(); // Returns true if success. It might fail if there have been a lot of nav mesh change requests
 
 	protected:
 		Ref<AssetPhysicsMaterial> m_MaterialAsset;
+		dtObstacleRef m_ObstacleID = 0u;
 		bool bTrigger = false;
 		bool bShowCollision = false;
+		bool bAffectsNavMeshBuild = true; // If set to true, collider won't be used during the nav mesh build process
+		bool bObstacle = false; // Can be used for NavMesh to dynamically block the path. Not supported by mesh colliders
 	};
 
 	class BoxColliderComponent : public BaseColliderComponent
@@ -1099,11 +1115,14 @@ namespace Eagle
 
 		void SetSize(const glm::vec3& size);
 		const glm::vec3& GetSize() const { return m_Size; }
+
+		const Ref<BoxColliderShape>& GetShape() const { return m_Shape; }
 	
 	protected:
 		void OnInit(Entity entity);
-		virtual void UpdatePhysicsTransform() override;
-		virtual void UpdatePhysicsMaterials() override;
+		void UpdatePhysicsTransform() override;
+		void UpdatePhysicsMaterials() override;
+		void CreateObstacle() override;
 
 	protected:
 		Ref<BoxColliderShape> m_Shape;
@@ -1120,21 +1139,24 @@ namespace Eagle
 		SphereColliderComponent& operator=(SphereColliderComponent&&) noexcept = default;
 
 		void SetRadius(float radius);
-		float GetRadius() const { return Radius; }
+		float GetRadius() const { return m_Radius; }
 
 		virtual void SetIsTrigger(bool bTrigger) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
 
 		virtual void OnRemoved(Entity entity) override;
+
+		const Ref<SphereColliderShape>& GetShape() const { return m_Shape; }
 	
 	protected:
 		void OnInit(Entity entity);
-		virtual void UpdatePhysicsTransform() override;
-		virtual void UpdatePhysicsMaterials() override;
+		void UpdatePhysicsTransform() override;
+		void UpdatePhysicsMaterials() override;
+		void CreateObstacle() override;
 
 	protected:
 		Ref<SphereColliderShape> m_Shape;
-		float Radius = 0.5f;
+		float m_Radius = 0.5f;
 	};
 
 	class CapsuleColliderComponent : public BaseColliderComponent
@@ -1151,29 +1173,32 @@ namespace Eagle
 
 		void SetHeight(float height)
 		{
-			SetHeightAndRadius(height, Radius);
+			SetHeightAndRadius(height, m_Radius);
 		}
-		float GetHeight() const { return Height; }
+		float GetHeight() const { return m_Height; }
 
 		void SetRadius(float radius)
 		{
-			SetHeightAndRadius(Height, radius);
+			SetHeightAndRadius(m_Height, radius);
 		}
-		float GetRadius() const { return Radius; }
+		float GetRadius() const { return m_Radius; }
 
 		void SetHeightAndRadius(float height, float radius);
 
 		virtual void OnRemoved(Entity entity) override;
 
+		const Ref<CapsuleColliderShape>& GetShape() const { return m_Shape; }
+
 	protected:
-		virtual void UpdatePhysicsTransform() override;
-		virtual void UpdatePhysicsMaterials() override;
+		void UpdatePhysicsTransform() override;
+		void UpdatePhysicsMaterials() override;
 		void OnInit(Entity entity);
+		void CreateObstacle() override;
 
 	protected:
 		Ref<CapsuleColliderShape> m_Shape;
-		float Radius = 0.5f;
-		float Height = 1.f;
+		float m_Radius = 0.5f;
+		float m_Height = 1.f;
 	};
 
 	class MeshColliderComponent : public BaseColliderComponent
@@ -1209,10 +1234,13 @@ namespace Eagle
 
 		virtual void OnRemoved(Entity entity) override;
 
+		const Ref<MeshShape>& GetShape() const { return m_Shapes[0]; }
+
 	protected:
 		void OnInit(Entity entity);
-		virtual void UpdatePhysicsTransform() override;
-		virtual void UpdatePhysicsMaterials() override;
+		void UpdatePhysicsTransform() override;
+		void UpdatePhysicsMaterials() override;
+		void CreateObstacle() override;
 
 	protected:
 		std::array<Ref<MeshShape>, 2> m_Shapes; // [0] - front side, [1] - backside. If two-sided collision is enabled, backside will be a valid shape
@@ -1641,5 +1669,62 @@ namespace Eagle
 		Ref<AssetMaterial> m_MaterialAsset;
 		uint32_t m_SortPriority = 0u;
 		bool m_AdjustAspectRatio = true;
+	};
+
+	class AINavigationComponent : public SceneComponent
+	{
+	public:
+		AINavigationComponent(const Entity& entity) : SceneComponent(entity) {}
+
+		AINavigationComponent& operator=(const AINavigationComponent& other);
+		AINavigationComponent(const AINavigationComponent&) = delete;
+		AINavigationComponent(AINavigationComponent&&) noexcept = default;
+		AINavigationComponent& operator=(AINavigationComponent&&) noexcept = default;
+
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			SceneComponent::SetWorldTransform(worldTransform);
+			OnChanged();
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			SceneComponent::SetRelativeTransform(relativeTransform);
+			OnChanged();
+		}
+
+		void SetSettings(const AINavigation::Mesh::Settings& settings)
+		{
+			m_Settings = settings;
+			OnChanged();
+		}
+		const AINavigation::Mesh::Settings& GetSettings() const { return m_Settings; }
+		
+		void GetNavMeshDebugDraw(duDebugDraw* debugDraw) const;
+		const Ref<AINavigation::Mesh>& GetNavMesh() const { return m_NavMesh; }
+
+		void Update(Timestep ts);
+
+	public:
+		bool bAutoRebuild = false; // Rebuilds on changes if activated
+
+	private:
+		void OnChanged()
+		{
+			if (bAutoRebuild)
+			{
+				if (m_NavMesh && m_NavMesh == Parent.GetScene()->GetNavMesh())
+					Parent.GetScene()->BuildNavMesh(this);
+			}
+		}
+
+	private:
+		AINavigation::Mesh::Settings m_Settings;
+		Ref<AINavigation::Mesh> m_NavMesh;
+
+		// TODO: Ugly, but we only support one NavMesh, so for it to work, scene must control it
+		friend class Scene;
+		void Build();
+		void DestroyNavMesh() { m_NavMesh.reset(); }
 	};
 }

@@ -14,8 +14,11 @@ namespace Eagle::Random
 	// Max is exclusive
 	uint64_t UInt64(uint64_t min = 0, uint64_t max = std::numeric_limits<uint64_t>::max());
 
+	// [0; 1]
+	float Float();
+
 	// Max is exclusive
-	float Float(float min = 0.f, float max = 1.f);
+	float Float(float min, float max);
 
 	// Max is exclusive
 	double Double(double min = 0.f, double max = 1.f);

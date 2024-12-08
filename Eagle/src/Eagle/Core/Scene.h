@@ -23,11 +23,17 @@ namespace Eagle
 	class StaticMeshComponent;
 	class SkeletalMeshComponent;
 	class ReverbComponent;
+	class AINavigationComponent;
 	class Sound2D;
 	class AssetAudio;
 	class AssetEntity;
 	class AssetScene;
 	class AssetAnimationGraph;
+
+	namespace AINavigation
+	{
+		class Mesh;
+	}
 
 	struct SceneSoundData
 	{
@@ -116,6 +122,12 @@ namespace Eagle
 			m_UserDebugLines.push_back(line);
 		}
 
+		// Needs to be called every frame
+		void DrawDebugTriangle(const RendererTriangle& triangle)
+		{
+			m_UserDebugTriangles.push_back(triangle);
+		}
+
 		SceneSoundData SpawnSound2D(const Ref<AssetAudio>& audio, const SoundSettings& settings);
 		SceneSoundData SpawnSound3D(const Ref<AssetAudio>& audio, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, const SoundSettings& settings = {});
 		Ref<Sound> GetSpawnedSound(GUID id) const;
@@ -171,6 +183,11 @@ namespace Eagle
 
 		void SetUseSkyAsBackground(bool value);
 		bool GetUseSkyAsBackground() const { return m_bUseSkyAsBackground; }
+
+		// Currently, scene can only have on NavMesh. So all other NavMeshes are destroyed.
+		// Can pass a nullptr to remove all nav meshes & update obstacles properly
+		void BuildNavMesh(AINavigationComponent* navMesh);
+		const Ref<AINavigation::Mesh>& GetNavMesh() const { return m_CurrentNavMesh; }
 		
 		//Camera
 		const CameraComponent* GetRuntimeCamera() const;
@@ -230,6 +247,7 @@ namespace Eagle
 
 		void OnUpdateEditor(Timestep ts, bool bRender, bool bForceAnimationsUpdate);
 		void OnUpdateRuntime(Timestep ts, bool bRender, bool bForceAnimationsUpdate);
+		void UpdateNavMesh(Timestep ts);
 
 		void GatherLightsInfo();
 		void DestroyPendingEntities();
@@ -251,6 +269,7 @@ namespace Eagle
 		void OnImage2DAddedRemoved(entt::registry& r, entt::entity e);
 		void OnParticleSystemAdded(entt::registry& r, entt::entity e);
 		void OnParticleSystemRemoved(entt::registry& r, entt::entity e);
+		void OnNavMeshRemoved(entt::registry& r, entt::entity e);
 
 		// T - is component type
 		template<typename T>
@@ -434,6 +453,7 @@ namespace Eagle
 		glm::vec2 ViewportBounds[2] = { glm::vec2(0.f) };
 		bool bCanUpdateEditorCamera = true;
 		bool bDrawMiscellaneous = true;
+		bool bDrawNavMesh = false;
 
 	private:
 		static Ref<Scene> s_CurrentScene;
@@ -493,9 +513,11 @@ namespace Eagle
 
 		DirtyFlags m_DirtyFlags;
 
-		// Debug lines
+		// Debug data
 		std::vector<RendererLine> m_UserDebugLines;
 		std::vector<RendererLine> m_DebugLinesToDraw;
+		std::vector<RendererTriangle> m_DebugTrianglesToDraw;
+		std::vector<RendererTriangle> m_UserDebugTriangles;
 		std::vector<RendererLine> m_DebugPointLines;
 		std::vector<RendererLine> m_DebugSpotLines;
 		std::vector<RendererLine> m_DebugReverbLines;
@@ -511,6 +533,8 @@ namespace Eagle
 
 		GUID m_GUID;
 		glm::vec3 m_Gravity = glm::vec3(0, -9.81f, 0.f);
+
+		Ref<AINavigation::Mesh> m_CurrentNavMesh;
 
 		friend class Entity;
 		friend class SceneSerializer;

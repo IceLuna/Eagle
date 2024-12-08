@@ -661,7 +661,7 @@ namespace Eagle
 		m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + displayName);
 	}
 
-	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync, bool bRenderOnlyWhenFocused, Key stopSimulationKey)
+	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync, bool bRenderOnlyWhenFocused, bool bDrawNavMesh, Key stopSimulationKey)
 	{
 		// Scene creation needs to go through this way of setting it up since we need to get Ref<Scene> immediately
 		m_EditorScene = MakeRef<Scene>("Editor Scene");
@@ -686,6 +686,7 @@ namespace Eagle
 		window.SetVSync(bVSync);
 		ImGuiLayer::SelectStyle(m_EditorStyle);
 		this->bRenderOnlyWhenFocused = bRenderOnlyWhenFocused;
+		SetDrawNavMesh(bDrawNavMesh);
 		m_StopSimulationKey = stopSimulationKey;
 
 		if ((int)windowSize.x > 0 && (int)windowSize.y > 0)
@@ -707,6 +708,8 @@ namespace Eagle
 		m_CurrentScene = scene;
 		Scene::SetCurrentScene(m_CurrentScene);
 		m_SceneHierarchyPanel.SetContext(m_CurrentScene);
+		if (m_CurrentScene)
+			m_CurrentScene->bDrawNavMesh;
 	}
 
 	void EditorLayer::UpdateGuizmo()
@@ -1772,6 +1775,8 @@ namespace Eagle
 			UI::BeginPropertyGrid("EditorPreferences");
 
 			UI::Property("Eco rendering", bRenderOnlyWhenFocused, "If checked, the scene won't render if the window is not in focus");
+			UI::Property("Draw Editor Miscellaneous", m_CurrentScene->bDrawMiscellaneous);
+			UI::Property("Draw Nav Mesh", m_CurrentScene->bDrawNavMesh);
 			UI::ComboEnum<Eagle::Key>("Stop simulation key", m_StopSimulationKey, "The editor will stop the game-simulation when this key is pressed. Set it to 'None' to disable");
 			ImGuiLayer::ShowStyleSelector("Style", m_EditorStyle);
 
@@ -2075,6 +2080,13 @@ namespace Eagle
 			case Eagle::EditorLayer::GBufferVisualizingType::Motion: return gbuffer.Motion ? gbuffer.Motion : renderer->GetOutput();
 			default: return renderer->GetOutput();
 		}
+	}
+
+	void EditorLayer::SetDrawNavMesh(bool bDraw)
+	{
+		bDrawNavMesh = bDraw;
+		if (m_CurrentScene)
+			m_CurrentScene->bDrawNavMesh = bDrawNavMesh;
 	}
 
 	void EditorLayer::SetVisualizingBufferType(GBufferVisualizingType value)

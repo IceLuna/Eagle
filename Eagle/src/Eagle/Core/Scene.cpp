@@ -15,6 +15,7 @@
 #include "Eagle/Audio/Sound2D.h"
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Asset/AssetManager.h"
+#include "Eagle/AINavigation/AINavigationDebugDraw.h"
 
 namespace Eagle
 {
@@ -37,28 +38,28 @@ namespace Eagle
 				constexpr float cosMinus45 = -0.707106f;
 
 				auto& line = buffer.emplace_back();
-				line.Start = center + radius * glm::vec3(cosAngle1, sinAngle1, 0.f);
-				line.End = center + radius * glm::vec3(cosAngle2, sinAngle2, 0.f);
-				line.StartColor = color;
-				line.EndColor = color;
+				line.Start.Location = center + radius * glm::vec3(cosAngle1, sinAngle1, 0.f);
+				line.End.Location = center + radius * glm::vec3(cosAngle2, sinAngle2, 0.f);
+				line.Start.Color = color;
+				line.End.Color = color;
 
 				auto& line2 = buffer.emplace_back();
-				line2.Start = center + radius * glm::vec3(0.f, cosAngle1, sinAngle1);
-				line2.End = center + radius * glm::vec3(0.f, cosAngle2, sinAngle2);
-				line2.StartColor = color;
-				line2.EndColor = color;
+				line2.Start.Location = center + radius * glm::vec3(0.f, cosAngle1, sinAngle1);
+				line2.End.Location = center + radius * glm::vec3(0.f, cosAngle2, sinAngle2);
+				line2.Start.Color = color;
+				line2.End.Color = color;
 
 				auto& line3 = buffer.emplace_back();
-				line3.Start = center + radius * glm::vec3(cos45 * sinAngle1, cosAngle1, sinAngle1 * cos45);
-				line3.End = center + radius * glm::vec3(cos45 * sinAngle2, cosAngle2, sinAngle2 * cos45);
-				line3.StartColor = color;
-				line3.EndColor = color;
+				line3.Start.Location = center + radius * glm::vec3(cos45 * sinAngle1, cosAngle1, sinAngle1 * cos45);
+				line3.End.Location = center + radius * glm::vec3(cos45 * sinAngle2, cosAngle2, sinAngle2 * cos45);
+				line3.Start.Color = color;
+				line3.End.Color = color;
 
 				auto& line4 = buffer.emplace_back();
-				line4.Start = center + radius * glm::vec3(cosMinus45 * sinAngle1, cosAngle1, sinAngle1 * cos45);
-				line4.End = center + radius * glm::vec3(cosMinus45 * sinAngle2, cosAngle2, sinAngle2 * cos45);
-				line4.StartColor = color;
-				line4.EndColor = color;
+				line4.Start.Location = center + radius * glm::vec3(cosMinus45 * sinAngle1, cosAngle1, sinAngle1 * cos45);
+				line4.End.Location = center + radius * glm::vec3(cosMinus45 * sinAngle2, cosAngle2, sinAngle2 * cos45);
+				line4.Start.Color = color;
+				line4.End.Color = color;
 			}
 		}
 
@@ -78,12 +79,12 @@ namespace Eagle
 			for (const auto& child : node.Children)
 			{
 				auto& line = buffer.emplace_back();
-				line.Start = parentLocation;
-				line.StartColor = glm::vec3(0, 1, 0);
+				line.Start.Location = parentLocation;
+				line.Start.Color = glm::vec3(0, 1, 0);
 				
 				const glm::vec3 location = Math::DecomposeTransformMatrix(tr * child.Transformation).Location;
-				line.End = location;
-				line.EndColor = glm::vec3(1, 1, 0);
+				line.End.Location = location;
+				line.End.Color = glm::vec3(1, 1, 0);
 			}
 
 			for (const auto& child : node.Children)
@@ -105,12 +106,12 @@ namespace Eagle
 			for (const auto& child : node.Children)
 			{
 				auto& line = buffer.emplace_back();
-				line.Start = parentLocation;
-				line.StartColor = glm::vec3(0, 1, 0);
+				line.Start.Location = parentLocation;
+				line.Start.Color = glm::vec3(0, 1, 0);
 
 				const glm::vec3 location = Math::DecomposeTransformMatrix(worldTransform * (tr * child.Transformation)).Location;
-				line.End = location;
-				line.EndColor = glm::vec3(1, 1, 0);
+				line.End.Location = location;
+				line.End.Color = glm::vec3(1, 1, 0);
 			}
 
 			for (const auto& child : node.Children)
@@ -125,7 +126,7 @@ namespace Eagle
 				DrawBones_Internal(buffer, node, currentPose, baseTransform);
 		}
 	
-		void DrawBox(std::vector<RendererLine>& buffer, AABB aabb, const Transform& worldTr, const glm::vec3& color = glm::vec3(1, 0, 0))
+		void DrawBox(std::vector<RendererLine>& buffer, AABB aabb, const Transform& worldTr, const glm::vec3& color = glm::vec3(0, 1, 0))
 		{
 			const glm::mat4 trMat = Math::ToTransformMatrix(worldTr);
 			const size_t startIdx = buffer.size();
@@ -133,96 +134,96 @@ namespace Eagle
 			for (glm::length_t i = 0; i < aabb.Min.length(); ++i)
 			{
 				auto& line = buffer.emplace_back();
-				line.StartColor = color;
-				line.EndColor = color;
-				line.Start = aabb.Min;
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Min;
 
-				line.End = aabb.Min;
-				line.End[i] = aabb.Max[i];
+				line.End.Location = aabb.Min;
+				line.End.Location[i] = aabb.Max[i];
 			}
 
 			for (glm::length_t i = 0; i < aabb.Max.length(); ++i)
 			{
 				auto& line = buffer.emplace_back();
-				line.StartColor = color;
-				line.EndColor = color;
-				line.Start = aabb.Max;
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Max;
 
-				line.End = aabb.Max;
-				line.End[i] = aabb.Min[i];
+				line.End.Location = aabb.Max;
+				line.End.Location[i] = aabb.Min[i];
 			}
 
 			{
 				auto& line = buffer.emplace_back();
-				line.StartColor = color;
-				line.EndColor = color;
-				line.Start = aabb.Min;
-				line.Start.y = aabb.Max.y;
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Min;
+				line.Start.Location.y = aabb.Max.y;
 
-				line.End = line.Start;
-				line.End.z = aabb.Max.z;
+				line.End.Location = line.Start.Location;
+				line.End.Location.z = aabb.Max.z;
 			}
 
 			{
 				auto& line = buffer.emplace_back();
-				line.StartColor = color;
-				line.EndColor = color;
-				line.Start = aabb.Min;
-				line.Start.y = aabb.Max.y;
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Min;
+				line.Start.Location.y = aabb.Max.y;
 
-				line.End = line.Start;
-				line.End.x = aabb.Max.x;
+				line.End.Location = line.Start.Location;
+				line.End.Location.x = aabb.Max.x;
 			}
 
 			{
 				auto& line = buffer.emplace_back();
-				line.StartColor = color;
-				line.EndColor = color;
-				line.Start = aabb.Min;
-				line.Start.x = aabb.Max.x;
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Min;
+				line.Start.Location.x = aabb.Max.x;
 
-				line.End = line.Start;
-				line.End.z = aabb.Max.z;
+				line.End.Location = line.Start.Location;
+				line.End.Location.z = aabb.Max.z;
 			}
 
 			{
 				auto& line = buffer.emplace_back();
-				line.StartColor = color;
-				line.EndColor = color;
-				line.Start = aabb.Min;
-				line.Start.x = aabb.Max.x;
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Min;
+				line.Start.Location.x = aabb.Max.x;
 
-				line.End = line.Start;
-				line.End.y = aabb.Max.y;
+				line.End.Location = line.Start.Location;
+				line.End.Location.y = aabb.Max.y;
 			}
 
 			{
 				auto& line = buffer.emplace_back();
-				line.StartColor = color;
-				line.EndColor = color;
-				line.Start = aabb.Min;
-				line.Start.z = aabb.Max.z;
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Min;
+				line.Start.Location.z = aabb.Max.z;
 
-				line.End = line.Start;
-				line.End.y = aabb.Max.y;
+				line.End.Location = line.Start.Location;
+				line.End.Location.y = aabb.Max.y;
 			}
 
 			{
 				auto& line = buffer.emplace_back();
-				line.StartColor = color;
-				line.EndColor = color;
-				line.Start = aabb.Min;
-				line.Start.z = aabb.Max.z;
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Min;
+				line.Start.Location.z = aabb.Max.z;
 
-				line.End = line.Start;
-				line.End.x = aabb.Max.x;
+				line.End.Location = line.Start.Location;
+				line.End.Location.x = aabb.Max.x;
 			}
 		
 			for (size_t i = startIdx; i < buffer.size(); ++i)
 			{
 				auto& line = buffer[i];
-				line.Start = trMat * glm::vec4(line.Start, 1.f);
-				line.End = trMat * glm::vec4(line.End, 1.f);
+				line.Start.Location = trMat * glm::vec4(line.Start.Location, 1.f);
+				line.End.Location = trMat * glm::vec4(line.End.Location, 1.f);
 			}
 		}
 	}
@@ -302,6 +303,7 @@ namespace Eagle
 	, m_ViewportHeight(other->m_ViewportHeight)
 	, m_DebugName(debugName)
 	, m_Gravity(other->m_Gravity)
+	, bDrawNavMesh(other->bDrawNavMesh)
 	{
 		// Reuse renderer so that we don't allocate additional GPU resources
 		m_SceneRenderer = other->m_SceneRenderer;
@@ -341,6 +343,7 @@ namespace Eagle
 		SceneAddAndCopyComponent<Image2DComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<ParticleSystemComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<DecalComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<AINavigationComponent>(this, m_Registry, other->m_Registry, createdEntities);
 
 		for (auto entt : m_Registry.view<RigidBodyComponent>())
 		{
@@ -355,8 +358,8 @@ namespace Eagle
 
 	Scene::~Scene()
 	{
-		ClearScene();
 		delete m_RuntimeCameraHolder;
+		ClearScene();
 	}
 
 	Entity Scene::CreateEntity(const std::string& name)
@@ -494,6 +497,71 @@ namespace Eagle
 			m_SceneRenderer->SetUseSkyAsBackground(m_bUseSkyAsBackground);
 	}
 
+	void Scene::BuildNavMesh(AINavigationComponent* navMesh)
+	{
+		std::vector<BaseColliderComponent*> obstacleColliders;
+		obstacleColliders.reserve(100u);
+		// Collect obstacle colliders
+		{
+			// Box colliders
+			{
+				auto view = m_Registry.view<BoxColliderComponent>();
+				for (auto entity : view)
+				{
+					auto& component = view.get<BoxColliderComponent>(entity);
+					if (component.IsObstacle())
+						obstacleColliders.push_back(&component);
+				}
+			}
+			// Sphere colliders
+			{
+				auto view = m_Registry.view<SphereColliderComponent>();
+				for (auto entity : view)
+				{
+					auto& component = view.get<SphereColliderComponent>(entity);
+					if (component.IsObstacle())
+						obstacleColliders.push_back(&component);
+				}
+			}
+			// Capsule colliders
+			{
+				auto view = m_Registry.view<CapsuleColliderComponent>();
+				for (auto entity : view)
+				{
+					auto& component = view.get<CapsuleColliderComponent>(entity);
+					if (component.IsObstacle())
+						obstacleColliders.push_back(&component);
+				}
+			}
+		}
+
+		// Go through all colliders and delete obstacles
+		for (BaseColliderComponent* collider : obstacleColliders)
+			collider->SetIsObstacle(false);
+
+		// Destroy NavMeshes
+		{
+			m_CurrentNavMesh.reset();
+			auto view = m_Registry.view<AINavigationComponent>();
+			for (auto entity : view)
+			{
+				auto& component = view.get<AINavigationComponent>(entity);
+				component.DestroyNavMesh();
+			}
+		}
+
+		// Build a new nav mesh
+		if (navMesh)
+		{
+			navMesh->Build();
+			m_CurrentNavMesh = navMesh->GetNavMesh();
+		}
+
+		// Go through all colliders and generate obstacles back
+		for (BaseColliderComponent* collider : obstacleColliders)
+			collider->SetIsObstacle(true);
+	}
+
 	GUID Scene::AddOnSceneOpenedCallback(const std::function<void(const Ref<Scene>&)>& func)
 	{
 		GUID id{};
@@ -518,7 +586,7 @@ namespace Eagle
 
 		m_EditorCamera.OnUpdate(ts, bCanUpdateEditorCamera);
 		m_PhysicsScene->Simulate(ts, false);
-
+		UpdateNavMesh(ts);
 		RenderScene(ts, bRender, false, bForceAnimationsUpdate);
 	}
 
@@ -534,11 +602,21 @@ namespace Eagle
 				m_RuntimeCamera->Camera.SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 		}
 
+		// TODO: Why negative forward?
 		AudioEngine::SetListenerData(m_RuntimeCamera->GetWorldTransform().Location, -m_RuntimeCamera->GetForwardVector(), m_RuntimeCamera->GetUpVector());
 
 		m_PhysicsScene->Simulate(ts, true);
-
+		UpdateNavMesh(ts);
 		RenderScene(ts, bRender, true, bForceAnimationsUpdate);
+	}
+
+	void Scene::UpdateNavMesh(Timestep ts)
+	{
+		if (!m_CurrentNavMesh)
+			return;
+
+		EG_CPU_TIMING_SCOPED("Scene. Update NavMesh");
+		m_CurrentNavMesh->Update(ts);
 	}
 
 	void Scene::GatherLightsInfo()
@@ -830,24 +908,24 @@ namespace Eagle
 						const float sinAngle2 = glm::sin(angle2);
 
 						auto& innerCircleLine = m_DebugSpotLines.emplace_back();
-						innerCircleLine.Start = center + glm::rotate(quat, innerRadius * glm::vec3(cosAngle1, sinAngle1, 0.f));
-						innerCircleLine.End = center + glm::rotate(quat, innerRadius * glm::vec3(cosAngle2, sinAngle2, 0.f));
+						innerCircleLine.Start.Location = center + glm::rotate(quat, innerRadius * glm::vec3(cosAngle1, sinAngle1, 0.f));
+						innerCircleLine.End.Location = center + glm::rotate(quat, innerRadius * glm::vec3(cosAngle2, sinAngle2, 0.f));
 
 						auto& toInnerLine = m_DebugSpotLines.emplace_back();
-						toInnerLine.Start = location;
-						toInnerLine.End = innerCircleLine.Start;
+						toInnerLine.Start.Location = location;
+						toInnerLine.End.Location = innerCircleLine.Start.Location;
 
 						auto& outerCircleLine = m_DebugSpotLines.emplace_back();
-						outerCircleLine.Start = center + glm::rotate(quat, outerRadius * glm::vec3(cosAngle1, sinAngle1, 0.f));
-						outerCircleLine.End = center + glm::rotate(quat, outerRadius * glm::vec3(cosAngle2, sinAngle2, 0.f));
-						outerCircleLine.StartColor = glm::vec3(0.75, 0.75f, 0.f);
-						outerCircleLine.EndColor = glm::vec3(0.75, 0.75f, 0.f);
+						outerCircleLine.Start.Location = center + glm::rotate(quat, outerRadius * glm::vec3(cosAngle1, sinAngle1, 0.f));
+						outerCircleLine.End.Location = center + glm::rotate(quat, outerRadius * glm::vec3(cosAngle2, sinAngle2, 0.f));
+						outerCircleLine.Start.Color = glm::vec3(0.75, 0.75f, 0.f);
+						outerCircleLine.End.Color = glm::vec3(0.75, 0.75f, 0.f);
 
 						auto& toOuterLine = m_DebugSpotLines.emplace_back();
-						toOuterLine.Start = location;
-						toOuterLine.End = outerCircleLine.Start;
-						toOuterLine.StartColor = glm::vec3(0.75, 0.75f, 0.f);
-						toOuterLine.EndColor = glm::vec3(0.75, 0.75f, 0.f);
+						toOuterLine.Start.Location = location;
+						toOuterLine.End.Location = outerCircleLine.Start.Location;
+						toOuterLine.Start.Color = glm::vec3(0.75, 0.75f, 0.f);
+						toOuterLine.End.Color = glm::vec3(0.75, 0.75f, 0.f);
 					}
 				}
 				m_SpotLightsDebugRadiiDirty = false;
@@ -879,6 +957,7 @@ namespace Eagle
 			m_DebugLinesToDraw = m_DebugPointLines;
 			m_DebugLinesToDraw.insert(m_DebugLinesToDraw.end(), m_DebugSpotLines.begin(), m_DebugSpotLines.end());
 			m_DebugLinesToDraw.insert(m_DebugLinesToDraw.end(), m_DebugReverbLines.begin(), m_DebugReverbLines.end());
+			m_DebugTrianglesToDraw.clear();
 
 			for (auto entity : dirLightsView)
 			{
@@ -893,14 +972,14 @@ namespace Eagle
 
 					// Drawing an arrow
 					RendererLine line;
-					line.Start = location;
-					line.End = endLocation;
+					line.Start.Location = location;
+					line.End.Location = endLocation;
 					m_DebugLinesToDraw.push_back(line);
 
-					line.Start = location + forward * 0.15f + up * 0.05f;
+					line.Start.Location = location + forward * 0.15f + up * 0.05f;
 					m_DebugLinesToDraw.push_back(line);
 
-					line.Start = location + forward * 0.15f + up * -0.05f;
+					line.Start.Location = location + forward * 0.15f + up * -0.05f;
 					m_DebugLinesToDraw.push_back(line);
 				}
 			}
@@ -914,8 +993,8 @@ namespace Eagle
 				{
 					auto& line = physicsLines[i];
 					RendererLine rendererLine;
-					rendererLine.Start = PhysXUtils::FromPhysXVector(line.pos0);
-					rendererLine.End = PhysXUtils::FromPhysXVector(line.pos1);
+					rendererLine.Start.Location = PhysXUtils::FromPhysXVector(line.pos0);
+					rendererLine.End.Location = PhysXUtils::FromPhysXVector(line.pos1);
 					m_DebugLinesToDraw.push_back(rendererLine);
 				}
 			}
@@ -971,6 +1050,94 @@ namespace Eagle
 						}
 					}
 				}
+				if (bDrawNavMesh)
+				{
+					auto view = m_Registry.view<AINavigationComponent>();
+					for (auto entity : view)
+					{
+						const auto& navigation = view.get<AINavigationComponent>(entity);
+						const auto& settings = navigation.GetSettings();
+						const auto& aabb = settings.AABB;
+						Utils::DrawBox(m_DebugLinesToDraw, aabb, navigation.GetWorldTransform(), glm::vec3(1, 0, 0));
+
+						AINavigation::DebugDraw debugDraw(m_DebugLinesToDraw, m_DebugTrianglesToDraw);
+						navigation.GetNavMeshDebugDraw(&debugDraw);
+					}
+				}
+				if (false)
+				{
+					if (m_CurrentNavMesh)
+					{
+						const glm::vec3 start = { 2.1703f, 0.f, -2.2557f };
+						const glm::vec3 end = { -2.1192f, 0.f, 2.3706 };
+						std::vector<glm::vec3> path = m_CurrentNavMesh->FindSmoothPath(start, end);
+						if (!path.empty())
+						{
+							const size_t count = path.size();
+							glm::vec3 startPos = path.front();
+							for (size_t i = 1; i < count; i++)
+							{
+								RendererLine line;
+								line.Start.Location = startPos;
+								line.End.Location = path[i];
+								DrawDebugLine(line);
+								startPos = path[i];
+							}
+						}
+					}
+				}
+				if (false)
+				{
+					auto view = m_Registry.view<BoxColliderComponent>();
+					for (auto entity : view)
+					{
+						const auto& component = view.get<BoxColliderComponent>(entity);
+						const auto& shape = component.GetShape();
+						std::vector<glm::vec3> vertices;
+						std::vector<uint32_t> indices;
+
+						Transform pose = shape->GetLocalTransform();
+						Transform tBody = shape->GetGlobalTransform();
+						glm::mat4 t = Math::ToTransformMatrix(tBody + pose);
+
+						shape->GetGeometry(vertices, indices);
+
+						for (uint32_t i = 0; i < indices.size(); i += 3)
+						{
+							auto& line1 = m_DebugLinesToDraw.emplace_back();
+							line1.Start.Location = t * glm::vec4(vertices[indices[i]], 1.f);
+							line1.End.Location = t * glm::vec4(vertices[indices[i + 1]], 1.f);
+
+							auto& line2 = m_DebugLinesToDraw.emplace_back();
+							line2.Start.Location = t * glm::vec4(vertices[indices[i]], 1.f);
+							line2.End.Location = t * glm::vec4(vertices[indices[i + 2]], 1.f);
+
+							auto& line3 = m_DebugLinesToDraw.emplace_back();
+							line3.Start.Location = t * glm::vec4(vertices[indices[i + 1]], 1.f);
+							line3.End.Location = t * glm::vec4(vertices[indices[i + 2]], 1.f);
+						}
+					}
+				}
+				if (false)
+				{
+					auto view = m_Registry.view<CapsuleColliderComponent>();
+					for (auto entity : view)
+					{
+						const auto& component = view.get<CapsuleColliderComponent>(entity);
+						const auto& shape = component.GetShape();
+						const glm::vec3& location = component.GetWorldTransform().Location;
+
+						const glm::vec3& scale = shape->GetColliderScale();
+						const float& radius = scale.x;
+						const float& height = scale.y;
+
+						const glm::vec3 halfExtent1 = glm::vec3(radius, 0.f, radius);
+						const glm::vec3 halfExtent2 = glm::vec3(radius, height, radius);
+						AABB aabb(location - halfExtent1, location + halfExtent2);
+
+						Utils::DrawBox(m_DebugLinesToDraw, aabb, {}, glm::vec3(0, 0, 1));
+					}
+				}
 				if (m_DecalToVisualize)
 				{
 					const AABB aabb(glm::vec3(-0.5f), glm::vec3(0.5f));
@@ -981,7 +1148,10 @@ namespace Eagle
 
 			// Append user provided lines
 			m_DebugLinesToDraw.insert(m_DebugLinesToDraw.end(), m_UserDebugLines.begin(), m_UserDebugLines.end());
-			m_UserDebugLines.clear(); // User provided lines need to provided each frame. So clear it.
+			m_DebugTrianglesToDraw.insert(m_DebugTrianglesToDraw.end(), m_UserDebugTriangles.begin(), m_UserDebugTriangles.end());
+			// User provided lines need to provided each frame. So clear it.
+			m_UserDebugLines.clear();
+			m_UserDebugTriangles.clear();
 		}
 
 		// Text components
@@ -1057,6 +1227,7 @@ namespace Eagle
 		m_SceneRenderer->SetSkeletalMeshes(m_SkeletalMeshes, m_DirtyFlags.bSkeletalMeshesDirty);
 		m_SceneRenderer->SetSprites(m_Sprites, m_DirtyFlags.bSpritesDirty);
 		m_SceneRenderer->SetDebugLines(m_DebugLinesToDraw);
+		m_SceneRenderer->SetDebugTriangles(m_DebugTrianglesToDraw);
 		m_SceneRenderer->SetBillboards(m_Billboards);
 		m_SceneRenderer->SetTexts(m_Texts, m_DirtyFlags.bTextDirty);
 		m_SceneRenderer->SetTexts2D(m_Texts2D, m_DirtyFlags.bText2DDirty);
@@ -1294,6 +1465,7 @@ namespace Eagle
 			}
 		}
 
+		m_CurrentNavMesh.reset();
 		m_PhysicsScene.reset();
 		m_RuntimePhysicsScene.reset();
 		m_Registry.clear();
@@ -1481,6 +1653,19 @@ namespace Eagle
 		entity.GetComponent<ParticleSystemComponent>().Destroy();
 	}
 
+	void Scene::OnNavMeshRemoved(entt::registry& r, entt::entity e)
+	{
+		if (!m_CurrentNavMesh)
+			return;
+
+		Entity entity(e, this);
+		const auto& builder = entity.GetComponent<AINavigationComponent>().GetNavMesh();
+		if (m_CurrentNavMesh == builder)
+		{
+			BuildNavMesh(nullptr);
+		}
+	}
+
 	void Scene::ConnectSignals()
 	{
 		m_Registry.on_destroy<StaticMeshComponent>().connect<&Scene::OnStaticMeshComponentRemoved>(*this);
@@ -1501,6 +1686,7 @@ namespace Eagle
 		m_Registry.on_destroy<Image2DComponent>().connect<&Scene::OnImage2DAddedRemoved>(*this);
 		m_Registry.on_construct<ParticleSystemComponent>().connect<&Scene::OnParticleSystemAdded>(*this);
 		m_Registry.on_destroy<ParticleSystemComponent>().connect<&Scene::OnParticleSystemRemoved>(*this);
+		m_Registry.on_destroy<AINavigationComponent>().connect<&Scene::OnNavMeshRemoved>(*this);
 	}
 
 	void Scene::CopyComponents(Entity source, Entity dest)
@@ -1527,5 +1713,6 @@ namespace Eagle
 		EntityCopyComponent<Image2DComponent>(source, dest);
 		EntityCopyComponent<ParticleSystemComponent>(source, dest);
 		EntityCopyComponent<DecalComponent>(source, dest);
+		EntityCopyComponent<AINavigationComponent>(source, dest);
 	}
 }

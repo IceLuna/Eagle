@@ -42,6 +42,21 @@ namespace Eagle
 		glm::vec3 Force = glm::vec3(0.f);
 	};
 
+	// A collection of triangle data within a volume defined by an axis aligned bounding box.
+	struct OverlapGeometryData
+	{
+	public:
+		AABB ScanBounds;
+
+		std::vector<glm::vec3> Vertices;
+		std::vector<uint32_t> Indices;
+
+		bool IsEmpty() const
+		{
+			return Vertices.empty();
+		}
+	};
+
 	struct PhysicsActorPayload
 	{
 		void* Ptr = nullptr; // Either `PhysicsActor*` or `PhysicsRagdollActor*`

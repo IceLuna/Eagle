@@ -1,17 +1,9 @@
 #pragma once
 
 #include "PhysicsEngine.h"
-
 #include "Eagle/Core/Entity.h"
 
-namespace physx
-{
-	class PxScene;
-	class PxShape;
-	class PxRigidDynamic;
-	class PxD6Joint;
-	class PxMaterial;
-}
+#include <PhysX/PxPhysicsAPI.h>
 
 namespace Eagle
 {
@@ -31,8 +23,10 @@ namespace Eagle
 		bool DoesNeedSync() const { return m_bDirtyTransform; }
 		void MarkTransformDirty() { m_bDirtyTransform = true; }
 
+		bool IsCollisionShown() const { return m_bShowCollision; }
 		void SetShowCollision(bool bShowCollision);
 		Transform GetBoneWorldTransform(const std::string& boneName) const;
+		const physx::PxRigidActor* GetPhysXActor() const { return m_Root.Body; }
 
 	public:
 		struct BoneData
@@ -54,6 +48,7 @@ namespace Eagle
 		PhysicsSettings m_Settings;
 		glm::mat4 m_OriginalTransformInv = glm::mat4(1.f);
 		bool m_bDirtyTransform = true;
+		bool m_bShowCollision = false;
 
 		BoneData m_Root;
 		std::unordered_map<std::string, physx::PxRigidDynamic*> m_BonesMap;

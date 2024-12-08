@@ -1,5 +1,9 @@
 #pragma once
 
+#include "Eagle/Core/Entity.h"
+#include "Eagle/Math/AABB.h"
+#include "PhysicsUtils.h"
+
 #include <PhysX/PxPhysicsAPI.h>
 #include <glm/glm.hpp>
 
@@ -37,51 +41,52 @@ namespace Eagle
 
 		void SetFilterData(const physx::PxFilterData& filterData) { m_Shape->setSimulationFilterData(filterData); };
 
+		Transform GetGlobalTransform() const { return PhysXUtils::FromPhysXTransform(m_Shape->getActor()->getGlobalPose()); }
+		Transform GetLocalTransform() const { return PhysXUtils::FromPhysXTransform(m_Shape->getLocalPose()); }
+
 		const physx::PxShape* GetShape() const { return m_Shape; }
 		physx::PxShape* GetShape() { return m_Shape; }
 
-		//Returns scale3D used to create this shape
+		ColliderType GetType() const { return m_Type; }
+
 		const glm::vec3& GetColliderScale() const { return m_ColliderScale; }
+
+		virtual void GetGeometry(std::vector<glm::vec3>& vertices, std::vector<uint32_t>& indices, const AABB* optionalBounds = nullptr) const = 0;
 	
 	protected:
-		glm::vec3 m_ColliderScale = glm::vec3{ 0.f };
-		physx::PxShape* m_Shape = nullptr;
+		physx::PxShape* m_Shape = nullptr; // Note: it's not released manually since it's created as an Exclusive Shape
+		glm::vec3 m_ColliderScale = glm::vec3{ 1.f };
 		ColliderType m_Type;
 	};
-
+	
 	class BoxColliderShape : public ColliderShape
 	{
 	public:
-		BoxColliderShape(BoxColliderComponent& component, PhysicsActor& actor);
+		BoxColliderShape(const BoxColliderComponent& component, PhysicsActor& actor);
 		~BoxColliderShape() = default;
 
 		void SetSize(const glm::vec3& size);
-	private:
-		BoxColliderComponent& m_Component;
+		void GetGeometry(std::vector<glm::vec3>& vertices, std::vector<uint32_t>& indices, const AABB* optionalBounds = nullptr) const override;
 	};
 
 	class SphereColliderShape : public ColliderShape
 	{
 	public:
-		SphereColliderShape(SphereColliderComponent& component, PhysicsActor& actor);
+		SphereColliderShape(const SphereColliderComponent& component, PhysicsActor& actor);
 		~SphereColliderShape() = default;
 
 		void SetRadius(float radius);
-
-	private:
-		SphereColliderComponent& m_Component;
+		void GetGeometry(std::vector<glm::vec3>& vertices, std::vector<uint32_t>& indices, const AABB* optionalBounds = nullptr) const override;
 	};
 
 	class CapsuleColliderShape : public ColliderShape
 	{
 	public:
-		CapsuleColliderShape(CapsuleColliderComponent& component, PhysicsActor& actor);
+		CapsuleColliderShape(const CapsuleColliderComponent& component, PhysicsActor& actor);
 		~CapsuleColliderShape() = default;
 
 		void SetHeightAndRadius(float height, float radius);
-
-	private:
-		CapsuleColliderComponent& m_Component;
+		void GetGeometry(std::vector<glm::vec3>& vertices, std::vector<uint32_t>& indices, const AABB* optionalBounds = nullptr) const override;
 	};
 
 	class MeshShape : public ColliderShape
@@ -94,14 +99,14 @@ namespace Eagle
 	class ConvexMeshShape : public MeshShape
 	{
 	public:
-		ConvexMeshShape(MeshColliderComponent& component, PhysicsActor& actor);
+		ConvexMeshShape(const MeshColliderComponent& component, PhysicsActor& actor);
 		~ConvexMeshShape() { m_ConvexMesh->release(); };
 
 		virtual bool IsValid() const override { return bValid; }
 		virtual void SetScale(const glm::vec3& scale) override;
+		void GetGeometry(std::vector<glm::vec3>& vertices, std::vector<uint32_t>& indices, const AABB* optionalBounds = nullptr) const override;
 
 	private:
-		MeshColliderComponent& m_Component;
 		physx::PxConvexMesh* m_ConvexMesh = nullptr;
 		bool bValid = true;
 	};
@@ -109,14 +114,15 @@ namespace Eagle
 	class TriangleMeshShape : public MeshShape
 	{
 	public:
-		TriangleMeshShape(MeshColliderComponent& component, bool bFlip, PhysicsActor& actor);
+		TriangleMeshShape(const MeshColliderComponent& component, bool bFlip, PhysicsActor& actor);
 		~TriangleMeshShape() { m_TriMesh->release(); };
 
 		virtual bool IsValid() const override { return bValid; }
 		virtual void SetScale(const glm::vec3& scale) override;
 
+		void GetGeometry(std::vector<glm::vec3>& vertices, std::vector<uint32_t>& indices, const AABB* optionalBounds = nullptr) const override;
+
 	private:
-		MeshColliderComponent& m_Component;
 		physx::PxTriangleMesh* m_TriMesh = nullptr;
 		bool bValid = true;
 	};

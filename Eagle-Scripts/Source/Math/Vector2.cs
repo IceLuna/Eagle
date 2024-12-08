@@ -9,6 +9,12 @@ namespace Eagle
         public float X;
         public float Y;
 
+        public Vector2(Vector2 v)
+        {
+            X = v.X;
+            Y = v.Y;
+        }
+
         public Vector2(float scalar)
         {
             X = Y = scalar;

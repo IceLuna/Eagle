@@ -11,7 +11,7 @@ namespace Eagle
 	class PhysicsActor
 	{
 	public:
-		PhysicsActor(Entity& entity, const PhysicsSettings& settings);
+		PhysicsActor(const Entity& entity, const PhysicsSettings& settings);
 		~PhysicsActor();
 
 		glm::vec3 GetLocation() const { return PhysXUtils::FromPhysXVector(m_RigidActor->getGlobalPose().p); }

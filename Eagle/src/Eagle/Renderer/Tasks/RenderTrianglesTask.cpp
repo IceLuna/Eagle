@@ -1,5 +1,5 @@
 #include "egpch.h"
-#include "RenderLinesTask.h"
+#include "RenderTrianglesTask.h"
 
 #include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/Renderer/SceneRenderer.h"
@@ -11,10 +11,9 @@
 
 namespace Eagle
 {
-	RenderLinesTask::RenderLinesTask(SceneRenderer& renderer)
+	RenderTrianglesTask::RenderTrianglesTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
-		m_LineWidth = m_Renderer.GetOptions().LineWidth;
 		bJitter = m_Renderer.GetOptions().InternalState.bJitter;
 		InitPipeline();
 
@@ -23,60 +22,60 @@ namespace Eagle
 		linesVertexSpecs.Layout = BufferReadAccess::Vertex;
 		linesVertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
 
-		m_VertexBuffer = Buffer::Create(linesVertexSpecs, "DebugLinesVertexBuffer");
-		m_Vertices.reserve(s_DefaultLinesVerticesCount);
+		m_VertexBuffer = Buffer::Create(linesVertexSpecs, "DebugTrianglesVertexBuffer");
+		m_Vertices.reserve(s_DefaultTrianglesVerticesCount);
 	}
 
-	void RenderLinesTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
+	void RenderTrianglesTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
 		if (m_Vertices.empty())
 			return;
 
-		EG_CPU_TIMING_SCOPED("Debug lines");
-		EG_GPU_TIMING_SCOPED(cmd, "Debug lines");
+		EG_CPU_TIMING_SCOPED("Debug triangles");
+		EG_GPU_TIMING_SCOPED(cmd, "Debug triangles");
 
 		UploadVertexBuffer(cmd);
-		RenderLines(cmd);
+		RenderTriangles(cmd);
 	}
 
-	void RenderLinesTask::SetDebugLines(const std::vector<RendererLine>& lines)
+	void RenderTrianglesTask::SetDebugTriangles(const std::vector<RendererTriangle>& triangles)
 	{
 		std::vector<RendererDebugVertex> tempData;
-		tempData.reserve(lines.size() * 2);
+		tempData.reserve(triangles.size() * 3);
 
-		for (auto& line : lines)
+		for (auto& triangle : triangles)
 		{
-			tempData.push_back(line.Start);
-			tempData.push_back(line.End);
+			for (const auto& vertex : triangle.Vertices)
+				tempData.push_back(vertex);
 		}
 
 		RenderManager::Submit([task = shared_from_this(), vertices = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
 		{
-			auto thisRef = Cast<RenderLinesTask>(task);
+			auto thisRef = Cast<RenderTrianglesTask>(task);
 			thisRef->m_Vertices = std::move(vertices);
 		});
 	}
 
-	void RenderLinesTask::RenderLines(const Ref<CommandBuffer>& cmd)
+	void RenderTrianglesTask::RenderTriangles(const Ref<CommandBuffer>& cmd)
 	{
-		EG_CPU_TIMING_SCOPED("Render Debug lines");
-		EG_GPU_TIMING_SCOPED(cmd, "Render Debug lines");
+		EG_CPU_TIMING_SCOPED("Render Debug triangles");
+		EG_GPU_TIMING_SCOPED(cmd, "Render Debug triangles");
 
-		const uint32_t linesCount = (uint32_t)(m_Vertices.size());
+		const uint32_t trianglesCount = (uint32_t)(m_Vertices.size());
 
 		if (bJitter)
 			m_Pipeline->SetBuffer(m_Renderer.GetJitter(), 0, 0);
 
 		cmd->BeginGraphics(m_Pipeline);
 		cmd->SetGraphicsRootConstants(&m_Renderer.GetViewProjection()[0][0], nullptr);
-		cmd->Draw(m_VertexBuffer, linesCount, 0);
+		cmd->Draw(m_VertexBuffer, trianglesCount, 0);
 		cmd->EndGraphics();
 	}
 
-	void RenderLinesTask::UploadVertexBuffer(const Ref<CommandBuffer>& cmd)
+	void RenderTrianglesTask::UploadVertexBuffer(const Ref<CommandBuffer>& cmd)
 	{
-		EG_CPU_TIMING_SCOPED("Upload Debug lines data");
-		EG_GPU_TIMING_SCOPED(cmd, "Upload Debug lines data");
+		EG_CPU_TIMING_SCOPED("Upload Debug triangles data");
+		EG_GPU_TIMING_SCOPED(cmd, "Upload Debug triangles data");
 
 		const size_t currentVertexSize = m_Vertices.size() * sizeof(RendererDebugVertex);
 		auto& vb = m_VertexBuffer;
@@ -92,7 +91,7 @@ namespace Eagle
 		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
 	}
 
-	void RenderLinesTask::InitPipeline()
+	void RenderTrianglesTask::InitPipeline()
 	{
 		ColorAttachment colorAttachment;
 		colorAttachment.ClearOperation = ClearOperation::Load;
@@ -117,8 +116,7 @@ namespace Eagle
 		state.FragmentShader = Shader::Create("simple_colored_geometry.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.DepthStencilAttachment = depthAttachment;
-		state.Topology = Topology::Lines;
-		state.LineWidth = m_LineWidth;
+		state.Topology = Topology::Triangles;
 
 		if (m_Pipeline)
 			m_Pipeline->SetState(state);

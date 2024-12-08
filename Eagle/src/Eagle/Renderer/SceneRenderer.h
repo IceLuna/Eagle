@@ -5,6 +5,7 @@
 
 #include "Tasks/RendererTask.h"
 #include "Tasks/RenderLinesTask.h"
+#include "Tasks/RenderTrianglesTask.h"
 #include "Tasks/RenderBillboardsTask.h"
 #include "Tasks/ShadowPassTask.h"
 #include "Tasks/PBRPassTask.h"
@@ -90,6 +91,7 @@ namespace Eagle
 		//---------------------------------- Render functions ----------------------------------
 		void SetBillboards(const std::vector<const BillboardComponent*>& billboards) { m_RenderBillboardsTask->SetBillboards(billboards); }
 		void SetDebugLines(const std::vector<RendererLine>& lines) { m_RenderLinesTask->SetDebugLines(lines); }
+		void SetDebugTriangles(const std::vector<RendererTriangle>& triangles) { m_RenderTrianglesTask->SetDebugTriangles(triangles); }
 		void AddAdditionalBillboard(const Transform& worldTransform, const Ref<Texture2D>& texture, int entityID = -1) { m_RenderBillboardsTask->AddAdditionalBillboard(worldTransform, texture, entityID); } // For internal usage
 
 		// `directionalLight` can be set to nullptr to disable directional light
@@ -284,6 +286,7 @@ namespace Eagle
 		Ref<RenderTextUnlitTask> m_RenderUnlitTextTask;
 		Ref<LightsManagerTask> m_LightsManagerTask;
 		Ref<RenderLinesTask> m_RenderLinesTask;
+		Ref<RenderTrianglesTask> m_RenderTrianglesTask;
 		Ref<RendererTask> m_TAATask;
 		Ref<RenderBillboardsTask> m_RenderBillboardsTask;
 		Ref<PBRPassTask> m_PBRPassTask;

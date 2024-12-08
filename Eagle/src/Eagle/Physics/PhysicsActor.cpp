@@ -8,7 +8,7 @@
 
 namespace Eagle
 {
-	PhysicsActor::PhysicsActor(Entity& entity, const PhysicsSettings& settings)
+	PhysicsActor::PhysicsActor(const Entity& entity, const PhysicsSettings& settings)
 	: m_Settings(settings)
 	, m_Entity(entity)
 	{
