@@ -5115,18 +5115,18 @@ namespace Eagle
 		}
 	}
 
-	//--------------AINavigation Component--------------
-	void Script::Eagle_AINavigationComponent_Build(GUID entityID)
+	//--------------NavigationMesh Component--------------
+	void Script::Eagle_NavigationMeshComponent_Build(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
-			scene->BuildNavMesh(&entity.GetComponent<AINavigationComponent>());
+			scene->BuildNavMesh(&entity.GetComponent<NavigationMeshComponent>());
 		}
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `Build` of AINavigation Component. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `Build` of Navigation Mesh Component. Entity is null");
 			return;
 		}
 	}
@@ -5955,7 +5955,7 @@ namespace Eagle
 		RaycastHit hit{};
 		const bool bHit = physicsScene->Raycast(*origin, *dir, maxDistance, &hit);
 
-		*outHitEntity = hit.HitEntity;
+		*outHitEntity = hit.HitEntity ? hit.HitEntity.GetGUID() : GUID(0, 0);
 		*outPosition = hit.Position;
 		*outNormal = hit.Normal;
 		*outDistance = hit.Distance;
@@ -5996,19 +5996,20 @@ namespace Eagle
 		*gravity = Scene::GetCurrentScene()->GetGravity();
 	}
 
-	MonoArray* Script::Eagle_Scene_FindStraightPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys)
+	//-------------- Navigation --------------
+	MonoArray* Script::Eagle_Navigation_FindStraightPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys)
 	{
 		const Ref<Scene>& scene = Scene::GetCurrentScene();
 		const auto& navMesh = scene->GetNavMesh();
+
 		if (!navMesh)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `FindStraightPath`. There's not a nav mesh");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `FindStraightPath`. There's no a navigation mesh");
 			return nullptr;
 		}
 
 		std::vector<glm::vec3> path = navMesh->FindStraightPath(*start, *end, maxPolys);
 		MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetVector3Class(), path.size());
-
 		size_t index = 0;
 		for (auto& point : path)
 		{
@@ -6017,25 +6018,80 @@ namespace Eagle
 		return result;
 	}
 
-	MonoArray* Script::Eagle_Scene_FindSmoothPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys, uint32_t maxSmooth)
+	MonoArray* Script::Eagle_Navigation_FindSmoothPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys, uint32_t maxSmooth)
 	{
 		const Ref<Scene>& scene = Scene::GetCurrentScene();
 		const auto& navMesh = scene->GetNavMesh();
 		if (!navMesh)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `FindSmoothPath`. There's not a nav mesh");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `FindSmoothPath`. There's no a navigation mesh");
 			return nullptr;
 		}
 
-		std::vector<glm::vec3> path = navMesh->FindSmoothPath(*start, *end, maxPolys, maxSmooth);
+		std::vector<glm::vec3> path = navMesh->FindSmoothPath(*start, *end, maxPolys);
 		MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetVector3Class(), path.size());
-
 		size_t index = 0;
 		for (auto& point : path)
 		{
 			mono_array_set(result, glm::vec3, index++, point);
 		}
 		return result;
+	}
+
+	bool Script::Eagle_Navigation_FindDistanceToWall(const glm::vec3* pos, float maxRadius, glm::vec3* outHitPos, glm::vec3* outHitNormal, float* outHitDistance)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		const auto& navMesh = scene->GetNavMesh();
+		if (!navMesh)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `FindDistanceToWall`. There's no a navigation mesh");
+			return false;
+		}
+
+		const bool bSuccess = navMesh->FindDistanceToWall(*pos, maxRadius, outHitPos, outHitNormal, outHitDistance);
+		return bSuccess;
+	}
+
+	bool Script::Eagle_Navigation_FindRandomPoint(glm::vec3* outRandomPoint)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		const auto& navMesh = scene->GetNavMesh();
+		if (!navMesh)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `FindRandomPoint`. There's no a navigation mesh");
+			return false;
+		}
+
+		const bool bSuccess = navMesh->FindRandomPoint(outRandomPoint);
+		return bSuccess;
+	}
+
+	bool Script::Eagle_Navigation_FindRandomPointInCircle(const glm::vec3* pos, float radius, glm::vec3* outRandomPoint)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		const auto& navMesh = scene->GetNavMesh();
+		if (!navMesh)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `FindRandomPointInCircle`. There's not a nav mesh");
+			return false;
+		}
+
+		const bool bSuccess = navMesh->FindRandomPointInCircle(*pos, radius, outRandomPoint);
+		return bSuccess;
+	}
+
+	bool Script::Eagle_Navigation_IsValidPoint(const glm::vec3* pos)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		const auto& navMesh = scene->GetNavMesh();
+		if (!navMesh)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsValidPoint`. There's not a nav mesh");
+			return false;
+		}
+
+		const bool bSuccess = navMesh->IsValidPoint(*pos);
+		return bSuccess;
 	}
 
 	//-------------- Log --------------

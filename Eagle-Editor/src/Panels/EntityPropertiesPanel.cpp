@@ -100,7 +100,7 @@ namespace Eagle
 		case SelectedComponent::ReverbComponent: return &m_Entity.GetComponent<ReverbComponent>();
 		case SelectedComponent::ParticleSystem: return &m_Entity.GetComponent<ParticleSystemComponent>();
 		case SelectedComponent::Decal: return &m_Entity.GetComponent<DecalComponent>();
-		case SelectedComponent::AINavigationComponent: return &m_Entity.GetComponent<AINavigationComponent>();
+		case SelectedComponent::NavigationMeshComponent: return &m_Entity.GetComponent<NavigationMeshComponent>();
 		}
 		return nullptr;
 	}
@@ -152,12 +152,14 @@ namespace Eagle
 			EG_ADD_COMPONENT_MENU_ITEM(ReverbComponent, "Reverb");
 
 			UI::TextWithSeparator("Physics");
-			EG_ADD_COMPONENT_MENU_ITEM(AINavigationComponent, "AI Navigation");
 			EG_ADD_COMPONENT_MENU_ITEM(RigidBodyComponent, "Rigid Body");
 			EG_ADD_COMPONENT_MENU_ITEM(BoxColliderComponent, "Box Collider");
 			EG_ADD_COMPONENT_MENU_ITEM(SphereColliderComponent, "Sphere Collider");
 			EG_ADD_COMPONENT_MENU_ITEM(CapsuleColliderComponent, "Capsule Collider");
 			EG_ADD_COMPONENT_MENU_ITEM(MeshColliderComponent, "Mesh Collider");
+
+			UI::TextWithSeparator("AI Navigation");
+			EG_ADD_COMPONENT_MENU_ITEM(NavigationMeshComponent, "Navigation Mesh");
 
 			UI::TextWithSeparator("Lights");
 			EG_ADD_COMPONENT_MENU_ITEM(PointLightComponent, "Point Light");
@@ -217,7 +219,7 @@ namespace Eagle
 				EG_DRAW_COMPONENT_LINE("Spot Light", SpotLightComponent, SelectedComponent::SpotLight);
 				EG_DRAW_COMPONENT_LINE("Particle System", ParticleSystemComponent, SelectedComponent::ParticleSystem);
 				EG_DRAW_COMPONENT_LINE("Decal", DecalComponent, SelectedComponent::Decal);
-				EG_DRAW_COMPONENT_LINE("AI Navigation", AINavigationComponent, SelectedComponent::AINavigationComponent);
+				EG_DRAW_COMPONENT_LINE("Navigation Mesh", NavigationMeshComponent, SelectedComponent::NavigationMeshComponent);
 #undef EG_DRAW_COMPONENT_LINE
 				ImGui::TreePop();
 			}
@@ -1878,15 +1880,15 @@ namespace Eagle
 				break;
 			}
 		
-			case SelectedComponent::AINavigationComponent:
+			case SelectedComponent::NavigationMeshComponent:
 			{
-				DrawComponentTransformNode(entity, entity.GetComponent<AINavigationComponent>());
-				DrawComponent<AINavigationComponent>("AI Navigation", entity, [&entity, this](AINavigationComponent& component)
+				DrawComponentTransformNode(entity, entity.GetComponent<NavigationMeshComponent>());
+				DrawComponent<NavigationMeshComponent>("Navigation Mesh", entity, [&entity, this](NavigationMeshComponent& component)
 				{
 					auto settings = component.GetSettings();
 					bool bChanged = false;
 
-					UI::BeginPropertyGrid("AINavigationComponent");
+					UI::BeginPropertyGrid("NavigationMeshComponent");
 
 					if (UI::Button("Build", "Build"))
 					{

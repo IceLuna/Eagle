@@ -343,7 +343,7 @@ namespace Eagle
 		SceneAddAndCopyComponent<Image2DComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<ParticleSystemComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<DecalComponent>(this, m_Registry, other->m_Registry, createdEntities);
-		SceneAddAndCopyComponent<AINavigationComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<NavigationMeshComponent>(this, m_Registry, other->m_Registry, createdEntities);
 
 		for (auto entt : m_Registry.view<RigidBodyComponent>())
 		{
@@ -497,7 +497,7 @@ namespace Eagle
 			m_SceneRenderer->SetUseSkyAsBackground(m_bUseSkyAsBackground);
 	}
 
-	void Scene::BuildNavMesh(AINavigationComponent* navMesh)
+	void Scene::BuildNavMesh(NavigationMeshComponent* navMesh)
 	{
 		std::vector<BaseColliderComponent*> obstacleColliders;
 		obstacleColliders.reserve(100u);
@@ -542,10 +542,10 @@ namespace Eagle
 		// Destroy NavMeshes
 		{
 			m_CurrentNavMesh.reset();
-			auto view = m_Registry.view<AINavigationComponent>();
+			auto view = m_Registry.view<NavigationMeshComponent>();
 			for (auto entity : view)
 			{
-				auto& component = view.get<AINavigationComponent>(entity);
+				auto& component = view.get<NavigationMeshComponent>(entity);
 				component.DestroyNavMesh();
 			}
 		}
@@ -1052,10 +1052,10 @@ namespace Eagle
 				}
 				if (bDrawNavMesh)
 				{
-					auto view = m_Registry.view<AINavigationComponent>();
+					auto view = m_Registry.view<NavigationMeshComponent>();
 					for (auto entity : view)
 					{
-						const auto& navigation = view.get<AINavigationComponent>(entity);
+						const auto& navigation = view.get<NavigationMeshComponent>(entity);
 						const auto& settings = navigation.GetSettings();
 						const auto& aabb = settings.AABB;
 						Utils::DrawBox(m_DebugLinesToDraw, aabb, navigation.GetWorldTransform(), glm::vec3(1, 0, 0));
@@ -1659,8 +1659,8 @@ namespace Eagle
 			return;
 
 		Entity entity(e, this);
-		const auto& builder = entity.GetComponent<AINavigationComponent>().GetNavMesh();
-		if (m_CurrentNavMesh == builder)
+		const auto& navMesh = entity.GetComponent<NavigationMeshComponent>().GetNavMesh();
+		if (m_CurrentNavMesh == navMesh)
 		{
 			BuildNavMesh(nullptr);
 		}
@@ -1686,7 +1686,7 @@ namespace Eagle
 		m_Registry.on_destroy<Image2DComponent>().connect<&Scene::OnImage2DAddedRemoved>(*this);
 		m_Registry.on_construct<ParticleSystemComponent>().connect<&Scene::OnParticleSystemAdded>(*this);
 		m_Registry.on_destroy<ParticleSystemComponent>().connect<&Scene::OnParticleSystemRemoved>(*this);
-		m_Registry.on_destroy<AINavigationComponent>().connect<&Scene::OnNavMeshRemoved>(*this);
+		m_Registry.on_destroy<NavigationMeshComponent>().connect<&Scene::OnNavMeshRemoved>(*this);
 	}
 
 	void Scene::CopyComponents(Entity source, Entity dest)
@@ -1713,6 +1713,6 @@ namespace Eagle
 		EntityCopyComponent<Image2DComponent>(source, dest);
 		EntityCopyComponent<ParticleSystemComponent>(source, dest);
 		EntityCopyComponent<DecalComponent>(source, dest);
-		EntityCopyComponent<AINavigationComponent>(source, dest);
+		EntityCopyComponent<NavigationMeshComponent>(source, dest);
 	}
 }

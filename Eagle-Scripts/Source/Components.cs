@@ -2247,11 +2247,11 @@ namespace Eagle
         internal static extern uint GetSortPriority_Native(in GUID entityID);
     }
 
-    public class AINavigationComponent : SceneComponent
+    public class NavigationMeshComponent : SceneComponent
     {
-        public AINavigationComponent()
+        public NavigationMeshComponent()
         {
-            m_Type = typeof(AINavigationComponent);
+            m_Type = typeof(NavigationMeshComponent);
         }
 
         public void Build()

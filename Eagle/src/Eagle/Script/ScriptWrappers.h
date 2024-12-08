@@ -413,8 +413,8 @@ namespace Eagle::Script
 	void Eagle_DecalComponent_SetSortPriority(GUID entityID, uint32_t value);
 	uint32_t Eagle_DecalComponent_GetSortPriority(GUID entityID);
 
-	// AINavigationComponent
-	void Eagle_AINavigationComponent_Build(GUID entityID);
+	// NavigationMeshComponent
+	void Eagle_NavigationMeshComponent_Build(GUID entityID);
 
 	// Renderer
 	void Eagle_Renderer_SetFogSettings(const glm::vec3* color, float minDistance, float maxDistance, float density, FogEquation equation, bool bEnabled);
@@ -500,8 +500,14 @@ namespace Eagle::Script
 	void Eagle_Scene_DrawTriangle(const glm::vec3* v0Location, const glm::vec3* v0Color, const glm::vec3* v1Location, const glm::vec3* v1Color, const glm::vec3* v2Location, const glm::vec3* v2Color);
 	void Eagle_Scene_SetGravity(const glm::vec3* gravity);
 	void Eagle_Scene_GetGravity(glm::vec3* gravity);
-	MonoArray* Eagle_Scene_FindStraightPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys);
-	MonoArray* Eagle_Scene_FindSmoothPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys, uint32_t maxSmooth);
+
+	// Navigation
+	MonoArray* Eagle_Navigation_FindStraightPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys);
+	MonoArray* Eagle_Navigation_FindSmoothPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys, uint32_t maxSmooth);
+	bool Eagle_Navigation_FindDistanceToWall(const glm::vec3* pos, float maxRadius, glm::vec3* outHitPos, glm::vec3* outHitNormal, float* outHitDistance);
+	bool Eagle_Navigation_FindRandomPoint(glm::vec3* outRandomPoint);
+	bool Eagle_Navigation_FindRandomPointInCircle(const glm::vec3* pos, float radius, glm::vec3* outRandomPoint);
+	bool Eagle_Navigation_IsValidPoint(const glm::vec3* pos);
 
 	// Log
 	void Eagle_Log_Trace(MonoString* message);

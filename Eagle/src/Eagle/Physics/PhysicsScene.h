@@ -13,7 +13,7 @@ namespace Eagle
 {
 	struct RaycastHit
 	{
-		GUID HitEntity;
+		Entity HitEntity;
 		glm::vec3 Position;
 		float Distance;
 		glm::vec3 Normal;

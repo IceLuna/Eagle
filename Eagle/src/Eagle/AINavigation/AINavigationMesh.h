@@ -61,6 +61,10 @@ namespace Eagle::AINavigation
 
 		std::vector<glm::vec3> FindStraightPath(const glm::vec3& start, const glm::vec3& end, uint32_t maxPolys = 256u) const;
 		std::vector<glm::vec3> FindSmoothPath(const glm::vec3& start, const glm::vec3& end, uint32_t maxPolys = 256u, uint32_t maxSmooth = 2048u) const;
+		bool FindDistanceToWall(const glm::vec3& pos, float maxRadius, glm::vec3* outHitPos, glm::vec3* outHitNormal, float* outHitDistance);
+		bool FindRandomPoint(glm::vec3* outRandomPoint);
+		bool FindRandomPointInCircle(const glm::vec3& pos, float radius, glm::vec3* outRandomPoint);
+		bool IsValidPoint(const glm::vec3& pos);
 
 		void GetDebugDraw(duDebugDraw* debugDraw) const;
 		const rcConfig& GetConfig() const { return m_Config; }
@@ -108,6 +112,7 @@ namespace Eagle::AINavigation
 		Settings m_Settings;
 		rcConfig m_Config{};
 		dtTileCacheParams m_TileCacheConfig{};
+		dtQueryFilter m_Filter{};
 
 		// Temp data for build process
 		rcHeightfield* m_Solid = nullptr;

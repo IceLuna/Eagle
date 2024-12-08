@@ -23,7 +23,7 @@ namespace Eagle
 	class StaticMeshComponent;
 	class SkeletalMeshComponent;
 	class ReverbComponent;
-	class AINavigationComponent;
+	class NavigationMeshComponent;
 	class Sound2D;
 	class AssetAudio;
 	class AssetEntity;
@@ -186,7 +186,7 @@ namespace Eagle
 
 		// Currently, scene can only have on NavMesh. So all other NavMeshes are destroyed.
 		// Can pass a nullptr to remove all nav meshes & update obstacles properly
-		void BuildNavMesh(AINavigationComponent* navMesh);
+		void BuildNavMesh(NavigationMeshComponent* navMesh);
 		const Ref<AINavigation::Mesh>& GetNavMesh() const { return m_CurrentNavMesh; }
 		
 		//Camera

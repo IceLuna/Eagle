@@ -1,6 +1,4 @@
-﻿using System;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.CompilerServices;
 
 namespace Eagle
 {
@@ -73,16 +71,6 @@ namespace Eagle
             return result;
         }
 
-        public static Vector3[] FindStraightPath(Vector3 start, Vector3 end, uint maxPolys = 256)
-        {
-            return FindStraightPath_Native(ref start, ref end, maxPolys);
-        }
-
-        public static Vector3[] FindSmoothPath(Vector3 start, Vector3 end, uint maxPolys = 256, uint maxSmooth = 2048)
-        {
-            return FindSmoothPath_Native(ref start, ref end, maxPolys, maxSmooth);
-        }
-
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void OpenScene_Native(GUID assetID);
 
@@ -100,11 +88,5 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void GetGravity_Native(out Vector3 gravity);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern Vector3[] FindStraightPath_Native(ref Vector3 start, ref Vector3 end, uint maxPolys);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern Vector3[] FindSmoothPath_Native(ref Vector3 start, ref Vector3 end, uint maxPolys, uint maxSmooth);
     }
 }

@@ -133,7 +133,7 @@ namespace Eagle
 		REGISTER_COMPONENT_TYPE(Image2DComponent);
 		REGISTER_COMPONENT_TYPE(ParticleSystemComponent);
 		REGISTER_COMPONENT_TYPE(DecalComponent);
-		REGISTER_COMPONENT_TYPE(AINavigationComponent);
+		REGISTER_COMPONENT_TYPE(NavigationMeshComponent);
 	}
 
 	void ScriptEngineRegistry::RegisterAll()
@@ -596,7 +596,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.DecalComponent::GetSortPriority_Native", Eagle::Script::Eagle_DecalComponent_GetSortPriority);
 
 		// AINavigation Component
-		mono_add_internal_call("Eagle.AINavigationComponent::Build_Native", Eagle::Script::Eagle_AINavigationComponent_Build);
+		mono_add_internal_call("Eagle.NavigationMeshComponent::Build_Native", Eagle::Script::Eagle_NavigationMeshComponent_Build);
 
 		// Sprite Component
 		mono_add_internal_call("Eagle.SpriteComponent::GetMaterial_Native", Eagle::Script::Eagle_SpriteComponent_GetMaterial);
@@ -628,8 +628,14 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Scene::DrawTriangle_Native", Eagle::Script::Eagle_Scene_DrawTriangle);
 		mono_add_internal_call("Eagle.Scene::SetGravity_Native", Eagle::Script::Eagle_Scene_SetGravity);
 		mono_add_internal_call("Eagle.Scene::GetGravity_Native", Eagle::Script::Eagle_Scene_GetGravity);
-		mono_add_internal_call("Eagle.Scene::FindStraightPath_Native", Eagle::Script::Eagle_Scene_FindStraightPath);
-		mono_add_internal_call("Eagle.Scene::FindSmoothPath_Native", Eagle::Script::Eagle_Scene_FindSmoothPath);
+
+		// Navigation
+		mono_add_internal_call("Eagle.Navigation::FindStraightPath_Native", Eagle::Script::Eagle_Navigation_FindStraightPath);
+		mono_add_internal_call("Eagle.Navigation::FindSmoothPath_Native", Eagle::Script::Eagle_Navigation_FindSmoothPath);
+		mono_add_internal_call("Eagle.Navigation::FindDistanceToWall_Native", Eagle::Script::Eagle_Navigation_FindDistanceToWall);
+		mono_add_internal_call("Eagle.Navigation::FindRandomPoint_Native", Eagle::Script::Eagle_Navigation_FindRandomPoint);
+		mono_add_internal_call("Eagle.Navigation::FindRandomPointInCircle_Native", Eagle::Script::Eagle_Navigation_FindRandomPointInCircle);
+		mono_add_internal_call("Eagle.Navigation::IsValidPoint_Native", Eagle::Script::Eagle_Navigation_IsValidPoint);
 
 		// Script Component
 		mono_add_internal_call("Eagle.ScriptComponent::SetScript_Native", Eagle::Script::Eagle_ScriptComponent_SetScript);

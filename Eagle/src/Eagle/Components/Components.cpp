@@ -906,7 +906,7 @@ namespace Eagle
 			Parent.GetScene()->UpdateParticleSystem(this);
 	}
 	
-	AINavigationComponent& AINavigationComponent::operator=(const AINavigationComponent& other)
+	NavigationMeshComponent& NavigationMeshComponent::operator=(const NavigationMeshComponent& other)
 	{
 		if (this == &other)
 			return *this;
@@ -922,7 +922,7 @@ namespace Eagle
 		return *this;
 	}
 
-	void AINavigationComponent::GetNavMeshDebugDraw(duDebugDraw* debugDraw) const
+	void NavigationMeshComponent::GetNavMeshDebugDraw(duDebugDraw* debugDraw) const
 	{
 		if (!m_NavMesh)
 			return;
@@ -930,7 +930,7 @@ namespace Eagle
 		m_NavMesh->GetDebugDraw(debugDraw);
 	}
 
-	void AINavigationComponent::Update(Timestep ts)
+	void NavigationMeshComponent::Update(Timestep ts)
 	{
 		if (!m_NavMesh)
 			return;
@@ -938,7 +938,7 @@ namespace Eagle
 		m_NavMesh->Update(ts);
 	}
 
-	void AINavigationComponent::Build()
+	void NavigationMeshComponent::Build()
 	{
 		auto& physicsScene = Parent.GetScene()->GetPhysicsScene();
 

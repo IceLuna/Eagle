@@ -93,6 +93,13 @@ namespace Eagle::AINavigation
 	Mesh::Mesh(const OverlapGeometryData& geometry, const Settings& settings)
 		: m_Settings(settings)
 	{
+		m_Filter.setIncludeFlags(SAMPLE_POLYFLAGS_ALL ^ SAMPLE_POLYFLAGS_DISABLED);
+		m_Filter.setExcludeFlags(0);
+		m_Filter.setAreaCost(SAMPLE_POLYAREA_GROUND, 1.0f);
+		m_Filter.setAreaCost(SAMPLE_POLYAREA_WATER, 10.0f);
+		m_Filter.setAreaCost(SAMPLE_POLYAREA_DOOR, 1.0f);
+		m_Filter.setAreaCost(SAMPLE_POLYAREA_JUMP, 1.5f);
+
 		m_Compressor = MakeScope<TileCacheCompressor>();
 		m_MeshProcess = MakeScope<TileCacheMeshProcess>();
 
@@ -230,21 +237,13 @@ namespace Eagle::AINavigation
 
 	std::vector<glm::vec3> Mesh::FindStraightPath(const glm::vec3& start, const glm::vec3& end, uint32_t maxPolys) const
 	{
-		dtQueryFilter filter;
-		filter.setIncludeFlags(SAMPLE_POLYFLAGS_ALL ^ SAMPLE_POLYFLAGS_DISABLED);
-		filter.setExcludeFlags(0);
-		filter.setAreaCost(SAMPLE_POLYAREA_GROUND, 1.0f);
-		filter.setAreaCost(SAMPLE_POLYAREA_WATER, 10.0f);
-		filter.setAreaCost(SAMPLE_POLYAREA_DOOR, 1.0f);
-		filter.setAreaCost(SAMPLE_POLYAREA_JUMP, 1.5f);
-
 		const float searchHalfExtent[3] = { 2, 4, 2 };
 		dtPolyRef startPoly, endPoly;
-		m_NavQuery->findNearestPoly(&start[0], searchHalfExtent, &filter, &startPoly, nullptr);
-		m_NavQuery->findNearestPoly(&end[0], searchHalfExtent, &filter, &endPoly, nullptr);
+		m_NavQuery->findNearestPoly(&start[0], searchHalfExtent, &m_Filter, &startPoly, nullptr);
+		m_NavQuery->findNearestPoly(&end[0], searchHalfExtent, &m_Filter, &endPoly, nullptr);
 		std::vector<dtPolyRef> polys(maxPolys);
 		int npolys = 0;
-		m_NavQuery->findPath(startPoly, endPoly, &start[0], &end[0], &filter, polys.data(), &npolys, maxPolys);
+		m_NavQuery->findPath(startPoly, endPoly, &start[0], &end[0], &m_Filter, polys.data(), &npolys, maxPolys);
 
 		if (npolys == 0)
 		{
@@ -273,21 +272,13 @@ namespace Eagle::AINavigation
 
 	std::vector<glm::vec3> Mesh::FindSmoothPath(const glm::vec3& start, const glm::vec3& end, uint32_t maxPolys, uint32_t maxSmooth) const
 	{
-		dtQueryFilter filter;
-		filter.setIncludeFlags(SAMPLE_POLYFLAGS_ALL ^ SAMPLE_POLYFLAGS_DISABLED);
-		filter.setExcludeFlags(0);
-		filter.setAreaCost(SAMPLE_POLYAREA_GROUND, 1.0f);
-		filter.setAreaCost(SAMPLE_POLYAREA_WATER, 10.0f);
-		filter.setAreaCost(SAMPLE_POLYAREA_DOOR, 1.0f);
-		filter.setAreaCost(SAMPLE_POLYAREA_JUMP, 1.5f);
-
-		const float searchHalfExtent[3] = { 2, 4, 2 };
+		const float searchHalfExtent[3] = { 2, 4, 2 }; // TODO: Expose
 		dtPolyRef startPoly, endPoly;
-		m_NavQuery->findNearestPoly(&start[0], searchHalfExtent, &filter, &startPoly, nullptr);
-		m_NavQuery->findNearestPoly(&end[0], searchHalfExtent, &filter, &endPoly, nullptr);
+		m_NavQuery->findNearestPoly(&start[0], searchHalfExtent, &m_Filter, &startPoly, nullptr);
+		m_NavQuery->findNearestPoly(&end[0], searchHalfExtent, &m_Filter, &endPoly, nullptr);
 		std::vector<dtPolyRef> polys(maxPolys);
 		int npolys = 0;
-		m_NavQuery->findPath(startPoly, endPoly, &start[0], &end[0], &filter, polys.data(), &npolys, maxPolys);
+		m_NavQuery->findPath(startPoly, endPoly, &start[0], &end[0], &m_Filter, polys.data(), &npolys, maxPolys);
 
 		if (npolys == 0)
 		{
@@ -341,7 +332,7 @@ namespace Eagle::AINavigation
 			float result[3];
 			dtPolyRef visited[16];
 			int nvisited = 0;
-			m_NavQuery->moveAlongSurface(polys[0], iterPos, moveTgt, &filter,
+			m_NavQuery->moveAlongSurface(polys[0], iterPos, moveTgt, &m_Filter,
 				result, visited, &nvisited, 16);
 
 			npolys = dtMergeCorridorStartMoved(polys.data(), npolys, maxPolys, visited, nvisited);
@@ -415,6 +406,42 @@ namespace Eagle::AINavigation
 	
 		smoothPath.resize(nsmoothPath);
 		return smoothPath;
+	}
+
+	bool Mesh::FindDistanceToWall(const glm::vec3& pos, float maxRadius, glm::vec3* outHitPos, glm::vec3* outHitNormal, float* outHitDistance)
+	{
+		const float searchHalfExtent[3] = { 2, 4, 2 };
+		dtPolyRef poly;
+		m_NavQuery->findNearestPoly(&pos[0], searchHalfExtent, &m_Filter, &poly, nullptr);
+
+		const dtStatus status = m_NavQuery->findDistanceToWall(poly, &pos[0], maxRadius, &m_Filter, outHitDistance, &outHitPos->x, &outHitNormal->x);
+		return dtStatusSucceed(status);
+	}
+
+	bool Mesh::FindRandomPoint(glm::vec3* outRandomPoint)
+	{
+		dtPolyRef randomPoly;
+		const dtStatus status = m_NavQuery->findRandomPoint(&m_Filter, Random::Float, &randomPoly, &outRandomPoint->x);
+		return dtStatusSucceed(status);
+	}
+
+	bool Mesh::FindRandomPointInCircle(const glm::vec3& pos, float radius, glm::vec3* outRandomPoint)
+	{
+		const float searchHalfExtent[3] = { 2, 4, 2 };
+		dtPolyRef poly;
+		m_NavQuery->findNearestPoly(&pos[0], searchHalfExtent, &m_Filter, &poly, nullptr);
+
+		dtPolyRef randomPoly;
+		const dtStatus status = m_NavQuery->findRandomPointAroundCircle(poly, &pos.x, radius, &m_Filter, Random::Float, &randomPoly, &outRandomPoint->x);
+		return dtStatusSucceed(status);
+	}
+
+	bool Mesh::IsValidPoint(const glm::vec3& pos)
+	{
+		const float searchHalfExtent[3] = { 2, 4, 2 };
+		dtPolyRef poly;
+		m_NavQuery->findNearestPoly(&pos[0], searchHalfExtent, &m_Filter, &poly, nullptr);
+		return m_NavQuery->isValidPolyRef(poly, &m_Filter);
 	}
 
 	void Mesh::GetDebugDraw(duDebugDraw* debugDraw) const

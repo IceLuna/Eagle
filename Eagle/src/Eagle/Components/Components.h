@@ -1671,15 +1671,15 @@ namespace Eagle
 		bool m_AdjustAspectRatio = true;
 	};
 
-	class AINavigationComponent : public SceneComponent
+	class NavigationMeshComponent : public SceneComponent
 	{
 	public:
-		AINavigationComponent(const Entity& entity) : SceneComponent(entity) {}
+		NavigationMeshComponent(const Entity& entity) : SceneComponent(entity) {}
 
-		AINavigationComponent& operator=(const AINavigationComponent& other);
-		AINavigationComponent(const AINavigationComponent&) = delete;
-		AINavigationComponent(AINavigationComponent&&) noexcept = default;
-		AINavigationComponent& operator=(AINavigationComponent&&) noexcept = default;
+		NavigationMeshComponent& operator=(const NavigationMeshComponent& other);
+		NavigationMeshComponent(const NavigationMeshComponent&) = delete;
+		NavigationMeshComponent(NavigationMeshComponent&&) noexcept = default;
+		NavigationMeshComponent& operator=(NavigationMeshComponent&&) noexcept = default;
 
 		void SetWorldTransform(const Transform& worldTransform) override
 		{

@@ -1432,12 +1432,12 @@ namespace Eagle
 			out << YAML::EndMap; //DecalComponent
 		}
 
-		if (entity.HasComponent<AINavigationComponent>())
+		if (entity.HasComponent<NavigationMeshComponent>())
 		{
-			auto& component = entity.GetComponent<AINavigationComponent>();
+			auto& component = entity.GetComponent<NavigationMeshComponent>();
 
-			out << YAML::Key << "AINavigationComponent";
-			out << YAML::BeginMap; //AINavigationComponent
+			out << YAML::Key << "NavigationMeshComponent";
+			out << YAML::BeginMap; // NavigationMeshComponent
 
 			SerializeRelativeTransform(out, component.GetRelativeTransform());
 			out << YAML::Key << "bAutoRebuild" << YAML::Value << component.bAutoRebuild;
@@ -1478,7 +1478,7 @@ namespace Eagle
 				out << YAML::EndMap;
 			}
 
-			out << YAML::EndMap; //AINavigationComponent
+			out << YAML::EndMap; // NavigationMeshComponent
 		}
 	}
 
@@ -1966,9 +1966,9 @@ namespace Eagle
 			decal.SetMaterialAsset(GetAsset<AssetMaterial>(decalNode["Material"]));
 		}
 
-		if (auto componentNode = entityNode["AINavigationComponent"])
+		if (auto componentNode = entityNode["NavigationMeshComponent"])
 		{
-			auto& component = deserializedEntity.AddComponent<AINavigationComponent>();
+			auto& component = deserializedEntity.AddComponent<NavigationMeshComponent>();
 
 			Transform relativeTransform;
 			DeserializeRelativeTransform(componentNode, relativeTransform);

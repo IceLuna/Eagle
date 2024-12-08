@@ -168,12 +168,12 @@ namespace Eagle
             if (payload->bRagdoll)
             {
                 const PhysicsRagdollActor* actor = (PhysicsRagdollActor*)payload->Ptr;
-                outHit->HitEntity = actor->GetEntity().GetGUID();
+                outHit->HitEntity = actor->GetEntity();
             }
             else
             {
                 const PhysicsActor* actor = (PhysicsActor*)payload->Ptr;
-                outHit->HitEntity = actor->GetEntity().GetGUID();
+                outHit->HitEntity = actor->GetEntity();
             }
             outHit->Position = PhysXUtils::FromPhysXVector(hitInfo.block.position);
             outHit->Normal = PhysXUtils::FromPhysXVector(hitInfo.block.normal);
