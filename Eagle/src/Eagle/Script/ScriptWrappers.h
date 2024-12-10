@@ -517,6 +517,7 @@ namespace Eagle::Script
 	void Eagle_Scene_DrawTriangle(const glm::vec3* v0Location, const glm::vec3* v0Color, const glm::vec3* v1Location, const glm::vec3* v1Color, const glm::vec3* v2Location, const glm::vec3* v2Color);
 	void Eagle_Scene_SetGravity(const glm::vec3* gravity);
 	void Eagle_Scene_GetGravity(glm::vec3* gravity);
+	MonoArray* Eagle_Scene_GetAllEntitiesWithComponent(void* type);
 
 	// Navigation
 	MonoArray* Eagle_Navigation_FindStraightPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys);

@@ -157,6 +157,20 @@ namespace Eagle
 			return m_Registry.view<T...>();
 		}
 
+		template <typename... T>
+		std::vector<Entity> GetAllEntitiesWith_Vector()
+		{
+			auto view = m_Registry.view<T...>();
+			std::vector<Entity> result;
+			result.reserve(view.size());
+			for (auto& e : view)
+			{
+				result.emplace_back(e, this);
+			}
+
+			return result;
+		}
+
 		// void(const Entity);
 		template<typename Func>
 		void OnEach(Func func)

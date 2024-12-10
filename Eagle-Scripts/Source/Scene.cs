@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Runtime.CompilerServices;
 
 namespace Eagle
 {
@@ -71,6 +72,11 @@ namespace Eagle
             return result;
         }
 
+        public static Entity[] GetAllEntitiesWithComponent<T>() where T : Component, new()
+        {
+            return GetAllEntitiesWithComponent_Native(typeof(T));
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void OpenScene_Native(GUID assetID);
 
@@ -88,5 +94,8 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void GetGravity_Native(out Vector3 gravity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern Entity[] GetAllEntitiesWithComponent_Native(Type type);
     }
 }

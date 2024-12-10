@@ -51,6 +51,9 @@ namespace Eagle
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsObstacleFunctions;
 	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsObstacleFunctions;
 
+	// Scene
+	extern std::unordered_map<MonoType*, std::function<std::vector<Entity>(const Ref<Scene>&)>> m_GetAllEntitiesWith;
+
 	extern MonoImage* s_AppAssemblyImage;
 }
 
@@ -236,7 +239,7 @@ namespace Eagle
 		{
 			const std::vector<Entity>& children = entity.GetChildren();
 			if (children.empty())
-				return nullptr;
+				return mono_array_new(mono_domain_get(), ScriptEngine::GetEntityClass(), 0);
 
 			MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetEntityClass(), children.size());
 
@@ -255,7 +258,7 @@ namespace Eagle
 		}
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get children. Entity is null");
-		return nullptr;
+		return mono_array_new(mono_domain_get(), ScriptEngine::GetEntityClass(), 0);
 	}
 
 	void Script::Eagle_Entity_DestroyEntity(GUID entityID)
@@ -6132,6 +6135,34 @@ namespace Eagle
 		*gravity = Scene::GetCurrentScene()->GetGravity();
 	}
 
+	MonoArray* Script::Eagle_Scene_GetAllEntitiesWithComponent(void* type)
+	{
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+		auto it = m_GetAllEntitiesWith.find(monoType);
+		if (it == m_GetAllEntitiesWith.end())
+		{
+			EG_CORE_ERROR("[ScriptEngine] Failed to call 'GetAllEntitiesWithComponent'. Unknown type");
+			return mono_array_new(mono_domain_get(), ScriptEngine::GetEntityClass(), 0);
+		}
+
+		std::vector<Entity> entities = it->second(Scene::GetCurrentScene());
+
+		MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetEntityClass(), entities.size());
+		size_t index = 0;
+		for (auto& entity : entities)
+		{
+			GUID guid = entity.GetGUID();
+			void* data[] =
+			{
+				&guid
+			};
+			MonoObject* obj = ScriptEngine::Construct("Eagle.Entity:.ctor(Eagle.GUID)", true, data);
+			mono_array_set(result, MonoObject*, index++, obj);
+		}
+
+		return result;
+	}
+
 	//-------------- Navigation --------------
 	MonoArray* Script::Eagle_Navigation_FindStraightPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys)
 	{
@@ -6141,7 +6172,7 @@ namespace Eagle
 		if (!navMesh)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call `FindStraightPath`. There's no a navigation mesh");
-			return nullptr;
+			return mono_array_new(mono_domain_get(), ScriptEngine::GetVector3Class(), 0);
 		}
 
 		std::vector<glm::vec3> path = navMesh->FindStraightPath(*start, *end, maxPolys);
@@ -6161,7 +6192,7 @@ namespace Eagle
 		if (!navMesh)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call `FindSmoothPath`. There's no a navigation mesh");
-			return nullptr;
+			return mono_array_new(mono_domain_get(), ScriptEngine::GetVector3Class(), 0);
 		}
 
 		std::vector<glm::vec3> path = navMesh->FindSmoothPath(*start, *end, maxPolys);

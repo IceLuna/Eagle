@@ -48,6 +48,9 @@ namespace Eagle
 	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsObstacleFunctions;
 	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsObstacleFunctions;
 
+	// Scene
+	std::unordered_map<MonoType*, std::function<std::vector<Entity>(const Ref<Scene>&)>> m_GetAllEntitiesWith;
+
 	extern MonoImage* s_CoreAssemblyImage;
 
 #define REGISTER_COMPONENT_TYPE(Type)\
@@ -57,6 +60,7 @@ namespace Eagle
 		{\
 			m_HasComponentFunctions[type] = [](Entity& entity) { return entity.HasComponent<Type>(); };\
 			m_AddComponentFunctions[type] = [](Entity& entity) { entity.AddComponent<Type>(); };\
+			m_GetAllEntitiesWith[type] = [](const Ref<Scene>& scene) { return scene->GetAllEntitiesWith_Vector<Type>(); };\
 			\
 			if constexpr (std::is_base_of<SceneComponent, Type>::value)\
 			{\
@@ -640,6 +644,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Scene::DrawTriangle_Native", Eagle::Script::Eagle_Scene_DrawTriangle);
 		mono_add_internal_call("Eagle.Scene::SetGravity_Native", Eagle::Script::Eagle_Scene_SetGravity);
 		mono_add_internal_call("Eagle.Scene::GetGravity_Native", Eagle::Script::Eagle_Scene_GetGravity);
+		mono_add_internal_call("Eagle.Scene::GetAllEntitiesWithComponent_Native", Eagle::Script::Eagle_Scene_GetAllEntitiesWithComponent);
 
 		// Navigation
 		mono_add_internal_call("Eagle.Navigation::FindStraightPath_Native", Eagle::Script::Eagle_Navigation_FindStraightPath);
