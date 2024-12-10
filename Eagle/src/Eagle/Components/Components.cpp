@@ -988,6 +988,127 @@ namespace Eagle
 		}
 
 		auto geometry = physicsScene->AppendColliderGeometry(settings.AABB, filteredOverlaps);
-		m_NavMesh = AINavigation::Mesh::Create(geometry, settings);
+		m_NavMesh = AINavigation::Mesh::Create(geometry, settings, m_CrowdSettings);
+	}
+	
+	NavigationCrowdAgentComponent& NavigationCrowdAgentComponent::operator=(const NavigationCrowdAgentComponent& other)
+	{
+		if (this == &other)
+			return *this;
+
+		Component::operator=(other);
+		m_Settings = other.m_Settings;
+		if (other.IsValid())
+			CreateAgent(Parent.GetWorldLocation());
+
+		return *this;
+	}
+	
+	void NavigationCrowdAgentComponent::TeleportAgent(const glm::vec3& location)
+	{
+		if (!IsValid())
+			return;
+
+		RemoveAgent();
+		CreateAgent(location);
+	}
+
+	void NavigationCrowdAgentComponent::SetMoveTarget(const glm::vec3& pos)
+	{
+		if (!IsValid())
+			return;
+
+		const auto& navMesh = Parent.GetScene()->GetNavMesh();
+		if (!navMesh)
+			return;
+
+		navMesh->GetCrowd().SetMoveTarget(m_AgentIndex, pos);
+	}
+
+	void NavigationCrowdAgentComponent::ResetMoveTarget()
+	{
+		if (!IsValid())
+			return;
+
+		const auto& navMesh = Parent.GetScene()->GetNavMesh();
+		if (!navMesh)
+			return;
+
+		navMesh->GetCrowd().ResetMoveTarget(m_AgentIndex);
+	}
+
+	bool NavigationCrowdAgentComponent::GetLocation(glm::vec3* outLocation) const
+	{
+		if (!IsValid())
+			return false;
+
+		const auto& navMesh = Parent.GetScene()->GetNavMesh();
+		if (!navMesh)
+			return false;
+
+		return navMesh->GetCrowd().GetAgentLocation(m_AgentIndex, outLocation);
+	}
+
+	bool NavigationCrowdAgentComponent::GetVelocity(glm::vec3* outVelocity) const
+	{
+		if (!IsValid())
+			return false;
+
+		const auto& navMesh = Parent.GetScene()->GetNavMesh();
+		if (!navMesh)
+			return false;
+
+		return navMesh->GetCrowd().GetAgentVelocity(m_AgentIndex, outVelocity);
+	}
+
+	MoveRequestState NavigationCrowdAgentComponent::GetAgentTargetState() const
+	{
+		if (!IsValid())
+			return MoveRequestState::DT_CROWDAGENT_TARGET_NONE;
+
+		const auto& navMesh = Parent.GetScene()->GetNavMesh();
+		if (!navMesh)
+			return MoveRequestState::DT_CROWDAGENT_TARGET_NONE;
+
+		return navMesh->GetCrowd().GetAgentTargetState(m_AgentIndex);
+	}
+	
+	void NavigationCrowdAgentComponent::SetSettings(const AINavigation::AgentSettings& settings)
+	{
+		m_Settings = settings;
+
+		if (!IsValid())
+			return;
+
+		const auto& navMesh = Parent.GetScene()->GetNavMesh();
+		if (!navMesh)
+			return;
+
+		navMesh->GetCrowd().UpdateAgentSettings(m_AgentIndex, m_Settings);
+	}
+	
+	void NavigationCrowdAgentComponent::CreateAgent(const glm::vec3& location)
+	{
+		if (IsValid())
+			return;
+
+		const auto& navMesh = Parent.GetScene()->GetNavMesh();
+		if (!navMesh)
+			return;
+
+		m_AgentIndex = navMesh->GetCrowd().AddAgent(location, m_Settings);
+	}
+	
+	void NavigationCrowdAgentComponent::RemoveAgent()
+	{
+		if (!IsValid())
+			return;
+
+		const auto& navMesh = Parent.GetScene()->GetNavMesh();
+		if (!navMesh)
+			return;
+
+		navMesh->GetCrowd().RemoveAgent(m_AgentIndex);
+		m_AgentIndex = -1;
 	}
 }

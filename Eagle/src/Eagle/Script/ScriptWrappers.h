@@ -10,6 +10,12 @@ extern "C" {
 	typedef struct _MonoReflectionType MonoReflectionType;
 }
 
+namespace Eagle::AINavigation
+{
+	struct AgentSettings;
+	struct CrowdSettings;
+}
+
 namespace Eagle::Script
 {
 	//Entity
@@ -416,6 +422,17 @@ namespace Eagle::Script
 	// NavigationMeshComponent
 	void Eagle_NavigationMeshComponent_Build(GUID entityID);
 
+	// NavigationCrowdAgentComponent
+	void Eagle_NavigationCrowdAgentComponent_TeleportAgent(GUID entityID, const glm::vec3* location);
+	void Eagle_NavigationCrowdAgentComponent_SetMoveTarget(GUID entityID, const glm::vec3* location);
+	void Eagle_NavigationCrowdAgentComponent_ResetMoveTarget(GUID entityID);
+	bool Eagle_NavigationCrowdAgentComponent_IsValid(GUID entityID);
+	void Eagle_NavigationCrowdAgentComponent_SetSettings(GUID entityID, const AINavigation::AgentSettings* settings);
+	void Eagle_NavigationCrowdAgentComponent_GetSettings(GUID entityID, AINavigation::AgentSettings* settings);
+	bool Eagle_NavigationCrowdAgentComponent_GetLocation(GUID entityID, glm::vec3* location);
+	bool Eagle_NavigationCrowdAgentComponent_GetVelocity(GUID entityID, glm::vec3* velocity);
+	MoveRequestState Eagle_NavigationCrowdAgentComponent_GetTargetState(GUID entityID);
+
 	// Renderer
 	void Eagle_Renderer_SetFogSettings(const glm::vec3* color, float minDistance, float maxDistance, float density, FogEquation equation, bool bEnabled);
 	void Eagle_Renderer_GetFogSettings(glm::vec3* outcolor, float* outMinDistance, float* outMaxDistance, float* outDensity, FogEquation* outEquation, bool* outbEnabled);
@@ -508,6 +525,10 @@ namespace Eagle::Script
 	bool Eagle_Navigation_FindRandomPoint(glm::vec3* outRandomPoint);
 	bool Eagle_Navigation_FindRandomPointInCircle(const glm::vec3* pos, float radius, glm::vec3* outRandomPoint);
 	bool Eagle_Navigation_IsValidPoint(const glm::vec3* pos);
+
+	// CrowdNavigation
+	void Eagle_CrowdNavigation_SetMoveTarget(const glm::vec3* pos);
+	void Eagle_CrowdNavigation_ResetMoveTarget();
 
 	// Log
 	void Eagle_Log_Trace(MonoString* message);

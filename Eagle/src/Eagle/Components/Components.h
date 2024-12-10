@@ -1693,13 +1693,21 @@ namespace Eagle
 			OnChanged();
 		}
 
-		void SetSettings(const AINavigation::Mesh::Settings& settings)
+		void SetSettings(const AINavigation::MeshSettings& settings)
 		{
 			m_Settings = settings;
 			OnChanged();
 		}
-		const AINavigation::Mesh::Settings& GetSettings() const { return m_Settings; }
-		
+
+		void SetCrowdSettings(const AINavigation::CrowdSettings& settings)
+		{
+			m_CrowdSettings = settings;
+			Parent.GetScene()->BuildCrowd(m_CrowdSettings);
+		}
+
+		const AINavigation::MeshSettings& GetSettings() const { return m_Settings; }
+		const AINavigation::CrowdSettings& GetCrowdSettings() const { return m_CrowdSettings; }
+
 		void GetNavMeshDebugDraw(duDebugDraw* debugDraw) const;
 		const Ref<AINavigation::Mesh>& GetNavMesh() const { return m_NavMesh; }
 
@@ -1711,20 +1719,54 @@ namespace Eagle
 	private:
 		void OnChanged()
 		{
-			if (bAutoRebuild)
-			{
-				if (m_NavMesh && m_NavMesh == Parent.GetScene()->GetNavMesh())
-					Parent.GetScene()->BuildNavMesh(this);
-			}
+			Parent.SignalComponentChanged<NavigationMeshComponent>(Notification::OnStateChanged);
 		}
 
 	private:
-		AINavigation::Mesh::Settings m_Settings;
+		AINavigation::MeshSettings m_Settings;
+		AINavigation::CrowdSettings m_CrowdSettings;
 		Ref<AINavigation::Mesh> m_NavMesh;
 
 		// TODO: Ugly, but we only support one NavMesh, so for it to work, scene must control it
 		friend class Scene;
 		void Build();
 		void DestroyNavMesh() { m_NavMesh.reset(); }
+	};
+
+	class NavigationCrowdAgentComponent : public Component
+	{
+	public:
+		NavigationCrowdAgentComponent(const Entity& entity) : Component(entity) {}
+
+		NavigationCrowdAgentComponent& operator=(const NavigationCrowdAgentComponent& other);
+		NavigationCrowdAgentComponent(const NavigationCrowdAgentComponent&) = delete;
+		NavigationCrowdAgentComponent(NavigationCrowdAgentComponent&&) noexcept = default;
+		NavigationCrowdAgentComponent& operator=(NavigationCrowdAgentComponent&&) noexcept = default;
+
+		// Agents are controlled by the crowd system. But if teleportation is required,
+		// this function can be used. It'll recreate an agent at a new location
+		void TeleportAgent(const glm::vec3& location);
+
+		void SetMoveTarget(const glm::vec3& pos);
+		void ResetMoveTarget();
+
+		bool GetLocation(glm::vec3* outLocation) const;
+		bool GetVelocity(glm::vec3* outVelocity) const;
+		MoveRequestState GetAgentTargetState() const;
+
+		const AINavigation::AgentSettings& GetSettings() const { return m_Settings; }
+		void SetSettings(const AINavigation::AgentSettings& settings);
+
+		bool IsValid() const { return m_AgentIndex != -1; }
+
+	private:
+		// TODO: Ugly, but we only support one NavMesh, so for it to work, scene must control it
+		void CreateAgent(const glm::vec3& location);
+		void RemoveAgent();
+		friend class Scene;
+
+	private:
+		AINavigation::AgentSettings m_Settings{};
+		int m_AgentIndex = -1;
 	};
 }

@@ -1478,6 +1478,48 @@ namespace Eagle
 				out << YAML::EndMap;
 			}
 
+			// Crowd Settings
+			{
+				const auto& settings = component.GetCrowdSettings();
+
+				out << YAML::Key << "CrowdSettings" << YAML::Value << YAML::BeginMap;
+
+				out << YAML::Key << "MaxAgents" << YAML::Value << settings.MaxAgents;
+				out << YAML::Key << "MaxAgents" << YAML::Value << settings.MaxAgentRadius;
+
+				out << YAML::EndMap;
+			}
+
+			out << YAML::EndMap; // NavigationMeshComponent
+		}
+
+		if (entity.HasComponent<NavigationCrowdAgentComponent>())
+		{
+			auto& component = entity.GetComponent<NavigationCrowdAgentComponent>();
+
+			out << YAML::Key << "NavigationCrowdAgentComponent";
+			out << YAML::BeginMap; // NavigationCrowdAgentComponent
+
+			// Settings
+			{
+				const auto& settings = component.GetSettings();
+
+				out << YAML::Key << "Settings" << YAML::Value << YAML::BeginMap;
+
+				out << YAML::Key << "AgentRadius" << YAML::Value << settings.AgentRadius;
+				out << YAML::Key << "AgentHeight" << YAML::Value << settings.AgentHeight;
+				out << YAML::Key << "MaxAcceleration" << YAML::Value << settings.MaxAcceleration;
+				out << YAML::Key << "MaxSpeed" << YAML::Value << settings.MaxSpeed;
+				out << YAML::Key << "SeparationWeight" << YAML::Value << settings.SeparationWeight;
+				out << YAML::Key << "ObstacleAvoidanceQuality" << YAML::Value << Utils::GetEnumName(settings.ObstacleAvoidanceQuality);
+				out << YAML::Key << "bAnticipateTurns" << YAML::Value << settings.bAnticipateTurns;
+				out << YAML::Key << "bOptimizeVis" << YAML::Value << settings.bOptimizeVis;
+				out << YAML::Key << "bOptimizeTopo" << YAML::Value << settings.bOptimizeTopo;
+				out << YAML::Key << "bSeparation" << YAML::Value << settings.bSeparation;
+
+				out << YAML::EndMap;
+			}
+
 			out << YAML::EndMap; // NavigationMeshComponent
 		}
 	}
@@ -1976,7 +2018,8 @@ namespace Eagle
 			if (auto rebuildNode = componentNode["bAutoRebuild"])
 				component.bAutoRebuild = rebuildNode.as<bool>();
 
-			AINavigation::Mesh::Settings settings{};
+			AINavigation::MeshSettings settings{};
+			AINavigation::CrowdSettings crowdSettings{};
 			if (auto settingsNode = componentNode["Settings"])
 			{
 				if (auto aabbNode = settingsNode["AABB"])
@@ -2004,6 +2047,35 @@ namespace Eagle
 				settings.FilterLowHangingObstacles = settingsNode["FilterLowHangingObstacles"].as<bool>();
 				settings.FilterLedgeSpans = settingsNode["FilterLedgeSpans"].as<bool>();
 				settings.FilterWalkableLowHeightSpans = settingsNode["FilterWalkableLowHeightSpans"].as<bool>();
+			}
+
+			if (auto settingsNode = componentNode["CrowdSettings"])
+			{
+				crowdSettings.MaxAgents = settingsNode["MaxAgents"].as<uint32_t>();
+				crowdSettings.MaxAgentRadius = settingsNode["MaxAgents"].as<float>();
+				component.SetCrowdSettings(crowdSettings);
+			}
+
+			component.SetSettings(settings);
+		}
+
+		if (auto componentNode = entityNode["NavigationCrowdAgentComponent"])
+		{
+			auto& component = deserializedEntity.AddComponent<NavigationCrowdAgentComponent>();
+
+			AINavigation::AgentSettings settings{};
+			if (auto settingsNode = componentNode["Settings"])
+			{
+				settings.AgentRadius = settingsNode["AgentRadius"].as<float>();
+				settings.AgentHeight = settingsNode["AgentHeight"].as<float>();
+				settings.MaxAcceleration = settingsNode["MaxAcceleration"].as<float>();
+				settings.MaxSpeed = settingsNode["MaxSpeed"].as<float>();
+				settings.SeparationWeight = settingsNode["SeparationWeight"].as<float>();
+				settings.ObstacleAvoidanceQuality = Utils::GetEnumFromName<AINavigation::AgentObstacleAvoidanceQuality>(settingsNode["ObstacleAvoidanceQuality"].as<std::string>());
+				settings.bAnticipateTurns = settingsNode["bAnticipateTurns"].as<bool>();
+				settings.bOptimizeVis = settingsNode["bOptimizeVis"].as<bool>();
+				settings.bOptimizeTopo = settingsNode["bOptimizeTopo"].as<bool>();
+				settings.bSeparation = settingsNode["bSeparation"].as<bool>();
 			}
 
 			component.SetSettings(settings);

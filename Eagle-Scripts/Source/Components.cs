@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using static Eagle.CrowdNavigation;
 
 namespace Eagle
 {
@@ -2261,5 +2262,84 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void Build_Native(in GUID entityID);
+    }
+
+    public class NavigationCrowdAgentComponent : Component
+    {
+        // Agents are controlled by the crowd system. But if teleportation is required,
+        // this function can be used. It'll recreate an agent at a new location
+        public void TeleportAgent(Vector3 location)
+        {
+            TeleportAgent_Native(Parent.ID, ref location);
+        }
+
+        public void SetMoveTarget(Vector3 location)
+        {
+            SetMoveTarget_Native(Parent.ID, ref location);
+        }
+
+        public void ResetMoveTarget()
+        {
+            ResetMoveTarget_Native(Parent.ID);
+        }
+
+        public bool IsValid()
+        {
+            return IsValid_Native(Parent.ID);
+        }
+
+        // Entity.WorldLocation should be the same because agents control entities.
+        bool GetLocation(out Vector3 outLocation)
+        {
+            return GetLocation_Native(Parent.ID, out outLocation);
+        }
+
+        bool GetVelocity(out Vector3 outVelocity)
+        {
+            return GetVelocity_Native(Parent.ID, out outVelocity);
+        }
+
+        public void SetSettings(AgentSettings settings)
+        {
+            SetSettings_Native(Parent.ID, ref settings);
+        }
+
+        public AgentSettings GetSettings()
+        {
+            GetSettings_Native(Parent.ID, out AgentSettings settings);
+            return settings;
+        }
+
+        public AgentTargetState GetTargetState()
+        {
+            return GetTargetState_Native(Parent.ID);
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TeleportAgent_Native(in GUID entityID, ref Vector3 location);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMoveTarget_Native(in GUID entityID, ref Vector3 location);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void ResetMoveTarget_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsValid_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetSettings_Native(in GUID entityID, ref AgentSettings settings);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetSettings_Native(in GUID entityID, out AgentSettings settings);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetLocation_Native(in GUID entityID, out Vector3 location);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetVelocity_Native(in GUID entityID, out Vector3 velocity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern AgentTargetState GetTargetState_Native(in GUID entityID);
     }
 }

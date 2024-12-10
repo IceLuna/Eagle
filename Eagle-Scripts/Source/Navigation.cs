@@ -1,7 +1,40 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Eagle
 {
+    public enum AgentObstacleAvoidanceQuality
+    {
+        Low, Medium, Good, High
+    };
+
+    public enum AgentTargetState
+    {
+        None = 0,
+        Failed,
+        Valid,
+        Requesting,
+        WaitingForQueue,
+        WaitingForPath,
+        Velocity,
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct AgentSettings
+    {
+        public float AgentRadius;
+        public float AgentHeight;
+        public float MaxAcceleration;
+        public float MaxSpeed;
+        public float SeparationWeight;
+        public AgentObstacleAvoidanceQuality ObstacleAvoidanceQuality;
+        public bool bAnticipateTurns;
+        public bool bOptimizeVis;
+        public bool bOptimizeTopo;
+        public bool bSeparation;
+    };
+
     public class Navigation
     {
         // Returns true if success
@@ -54,5 +87,24 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern Vector3[] FindSmoothPath_Native(ref Vector3 start, ref Vector3 end, uint maxPolys, uint maxSmooth);
+    }
+
+    public class CrowdNavigation
+    {
+        public static void SetMoveTarget(Vector3 pos)
+        {
+            SetMoveTarget_Native(ref pos);
+        }
+
+        public static void ResetMoveTarget()
+        {
+            ResetMoveTarget_Native();
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMoveTarget_Native(ref Vector3 pos);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void ResetMoveTarget_Native();
     }
 }

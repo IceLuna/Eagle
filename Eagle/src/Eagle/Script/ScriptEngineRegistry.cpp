@@ -134,6 +134,7 @@ namespace Eagle
 		REGISTER_COMPONENT_TYPE(ParticleSystemComponent);
 		REGISTER_COMPONENT_TYPE(DecalComponent);
 		REGISTER_COMPONENT_TYPE(NavigationMeshComponent);
+		REGISTER_COMPONENT_TYPE(NavigationCrowdAgentComponent);
 	}
 
 	void ScriptEngineRegistry::RegisterAll()
@@ -595,8 +596,19 @@ namespace Eagle
 		mono_add_internal_call("Eagle.DecalComponent::SetSortPriority_Native", Eagle::Script::Eagle_DecalComponent_SetSortPriority);
 		mono_add_internal_call("Eagle.DecalComponent::GetSortPriority_Native", Eagle::Script::Eagle_DecalComponent_GetSortPriority);
 
-		// AINavigation Component
+		// NavigationMesh Component
 		mono_add_internal_call("Eagle.NavigationMeshComponent::Build_Native", Eagle::Script::Eagle_NavigationMeshComponent_Build);
+
+		// NavigationCrowdAgent Component
+		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::TeleportAgent_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_TeleportAgent);
+		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::SetMoveTarget_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_SetMoveTarget);
+		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::ResetMoveTarget_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_ResetMoveTarget);
+		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::IsValid_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_IsValid);
+		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::SetSettings_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_SetSettings);
+		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::GetSettings_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_GetSettings);
+		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::GetLocation_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_GetLocation);
+		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::GetVelocity_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_GetVelocity);
+		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::GetTargetState_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_GetTargetState);
 
 		// Sprite Component
 		mono_add_internal_call("Eagle.SpriteComponent::GetMaterial_Native", Eagle::Script::Eagle_SpriteComponent_GetMaterial);
@@ -636,6 +648,10 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Navigation::FindRandomPoint_Native", Eagle::Script::Eagle_Navigation_FindRandomPoint);
 		mono_add_internal_call("Eagle.Navigation::FindRandomPointInCircle_Native", Eagle::Script::Eagle_Navigation_FindRandomPointInCircle);
 		mono_add_internal_call("Eagle.Navigation::IsValidPoint_Native", Eagle::Script::Eagle_Navigation_IsValidPoint);
+
+		// CrowdNavigation
+		mono_add_internal_call("Eagle.CrowdNavigation::SetMoveTarget_Native", Eagle::Script::Eagle_CrowdNavigation_SetMoveTarget);
+		mono_add_internal_call("Eagle.CrowdNavigation::ResetMoveTarget_Native", Eagle::Script::Eagle_CrowdNavigation_ResetMoveTarget);
 
 		// Script Component
 		mono_add_internal_call("Eagle.ScriptComponent::SetScript_Native", Eagle::Script::Eagle_ScriptComponent_SetScript);

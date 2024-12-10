@@ -343,6 +343,7 @@ namespace Eagle
 		SceneAddAndCopyComponent<Image2DComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<ParticleSystemComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<DecalComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<NavigationCrowdAgentComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<NavigationMeshComponent>(this, m_Registry, other->m_Registry, createdEntities);
 
 		for (auto entt : m_Registry.view<RigidBodyComponent>())
@@ -539,6 +540,15 @@ namespace Eagle
 		for (BaseColliderComponent* collider : obstacleColliders)
 			collider->SetIsObstacle(false);
 
+		auto agentComponents = m_Registry.view<NavigationCrowdAgentComponent>();
+
+		// Go through all agents and delete them
+		for (auto entity : agentComponents)
+		{
+			auto& component = agentComponents.get<NavigationCrowdAgentComponent>(entity);
+			component.RemoveAgent();
+		}
+
 		// Destroy NavMeshes
 		{
 			m_CurrentNavMesh.reset();
@@ -557,9 +567,41 @@ namespace Eagle
 			m_CurrentNavMesh = navMesh->GetNavMesh();
 		}
 
+		// Go through all agents and create them back
+		for (auto entity : agentComponents)
+		{
+			auto& component = agentComponents.get<NavigationCrowdAgentComponent>(entity);
+			component.CreateAgent(component.Parent.GetWorldLocation());
+		}
+
 		// Go through all colliders and generate obstacles back
 		for (BaseColliderComponent* collider : obstacleColliders)
 			collider->SetIsObstacle(true);
+	}
+
+	void Scene::BuildCrowd(const AINavigation::CrowdSettings& settings)
+	{
+		if (!m_CurrentNavMesh)
+			return;
+
+		auto agentComponents = m_Registry.view<NavigationCrowdAgentComponent>();
+
+		// Go through all agents and delete them
+		for (auto entity : agentComponents)
+		{
+			auto& component = agentComponents.get<NavigationCrowdAgentComponent>(entity);
+			component.RemoveAgent();
+		}
+
+		// Recreate crowd system
+		m_CurrentNavMesh->GetCrowd().SetSettings(settings);
+
+		// Go through all agents and create them back
+		for (auto entity : agentComponents)
+		{
+			auto& component = agentComponents.get<NavigationCrowdAgentComponent>(entity);
+			component.CreateAgent(component.Parent.GetWorldLocation());
+		}
 	}
 
 	GUID Scene::AddOnSceneOpenedCallback(const std::function<void(const Ref<Scene>&)>& func)
@@ -607,6 +649,7 @@ namespace Eagle
 
 		m_PhysicsScene->Simulate(ts, true);
 		UpdateNavMesh(ts);
+		SyncCrowdAgents();
 		RenderScene(ts, bRender, true, bForceAnimationsUpdate);
 	}
 
@@ -617,6 +660,24 @@ namespace Eagle
 
 		EG_CPU_TIMING_SCOPED("Scene. Update NavMesh");
 		m_CurrentNavMesh->Update(ts);
+	}
+
+	void Scene::SyncCrowdAgents()
+	{
+		if (!m_CurrentNavMesh)
+			return;
+
+		auto view = m_Registry.view<NavigationCrowdAgentComponent>();
+		for (auto& e : view)
+		{
+			Entity entity = Entity(e, this);
+			auto& component = entity.GetComponent<NavigationCrowdAgentComponent>();
+			glm::vec3 location;
+			if (component.GetLocation(&location))
+			{
+				entity.SetWorldLocation(location);
+			}
+		}
 	}
 
 	void Scene::GatherLightsInfo()
@@ -1666,6 +1727,38 @@ namespace Eagle
 		}
 	}
 
+	void Scene::OnBoxColliderRemoved(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		entity.GetComponent<BoxColliderComponent>().SetIsObstacle(false);
+	}
+
+	void Scene::OnSphereColliderRemoved(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		entity.GetComponent<SphereColliderComponent>().SetIsObstacle(false);
+	}
+
+	void Scene::OnCapsuleColliderRemoved(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		entity.GetComponent<CapsuleColliderComponent>().SetIsObstacle(false);
+	}
+
+	void Scene::OnCrowdAgentAdded(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		auto& component = entity.GetComponent<NavigationCrowdAgentComponent>();
+		component.CreateAgent(component.Parent.GetWorldLocation());
+	}
+
+	void Scene::OnCrowdAgentRemoved(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		auto& component = entity.GetComponent<NavigationCrowdAgentComponent>();
+		component.RemoveAgent();
+	}
+
 	void Scene::ConnectSignals()
 	{
 		m_Registry.on_destroy<StaticMeshComponent>().connect<&Scene::OnStaticMeshComponentRemoved>(*this);
@@ -1687,6 +1780,11 @@ namespace Eagle
 		m_Registry.on_construct<ParticleSystemComponent>().connect<&Scene::OnParticleSystemAdded>(*this);
 		m_Registry.on_destroy<ParticleSystemComponent>().connect<&Scene::OnParticleSystemRemoved>(*this);
 		m_Registry.on_destroy<NavigationMeshComponent>().connect<&Scene::OnNavMeshRemoved>(*this);
+		m_Registry.on_destroy<BoxColliderComponent>().connect<&Scene::OnBoxColliderRemoved>(*this);
+		m_Registry.on_destroy<SphereColliderComponent>().connect<&Scene::OnSphereColliderRemoved>(*this);
+		m_Registry.on_destroy<CapsuleColliderComponent>().connect<&Scene::OnCapsuleColliderRemoved>(*this);
+		m_Registry.on_construct<NavigationCrowdAgentComponent>().connect<&Scene::OnCrowdAgentAdded>(*this);
+		m_Registry.on_destroy<NavigationCrowdAgentComponent>().connect<&Scene::OnCrowdAgentRemoved>(*this);
 	}
 
 	void Scene::CopyComponents(Entity source, Entity dest)
@@ -1713,6 +1811,7 @@ namespace Eagle
 		EntityCopyComponent<Image2DComponent>(source, dest);
 		EntityCopyComponent<ParticleSystemComponent>(source, dest);
 		EntityCopyComponent<DecalComponent>(source, dest);
+		EntityCopyComponent<NavigationCrowdAgentComponent>(source, dest);
 		EntityCopyComponent<NavigationMeshComponent>(source, dest);
 	}
 }

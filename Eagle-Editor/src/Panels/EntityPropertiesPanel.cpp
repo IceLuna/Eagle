@@ -160,6 +160,7 @@ namespace Eagle
 
 			UI::TextWithSeparator("AI Navigation");
 			EG_ADD_COMPONENT_MENU_ITEM(NavigationMeshComponent, "Navigation Mesh");
+			EG_ADD_COMPONENT_MENU_ITEM(NavigationCrowdAgentComponent, "Navigation Crowd Agent");
 
 			UI::TextWithSeparator("Lights");
 			EG_ADD_COMPONENT_MENU_ITEM(PointLightComponent, "Point Light");
@@ -220,6 +221,7 @@ namespace Eagle
 				EG_DRAW_COMPONENT_LINE("Particle System", ParticleSystemComponent, SelectedComponent::ParticleSystem);
 				EG_DRAW_COMPONENT_LINE("Decal", DecalComponent, SelectedComponent::Decal);
 				EG_DRAW_COMPONENT_LINE("Navigation Mesh", NavigationMeshComponent, SelectedComponent::NavigationMeshComponent);
+				EG_DRAW_COMPONENT_LINE("Navigation Crowd Agent", NavigationCrowdAgentComponent, SelectedComponent::NavigationCrowdAgentComponent);
 #undef EG_DRAW_COMPONENT_LINE
 				ImGui::TreePop();
 			}
@@ -1885,9 +1887,6 @@ namespace Eagle
 				DrawComponentTransformNode(entity, entity.GetComponent<NavigationMeshComponent>());
 				DrawComponent<NavigationMeshComponent>("Navigation Mesh", entity, [&entity, this](NavigationMeshComponent& component)
 				{
-					auto settings = component.GetSettings();
-					bool bChanged = false;
-
 					UI::BeginPropertyGrid("NavigationMeshComponent");
 
 					if (UI::Button("Build", "Build"))
@@ -1896,7 +1895,29 @@ namespace Eagle
 					}
 					UI::Property("Auto Rebuild", component.bAutoRebuild, "If enabled, nav mesh is rebuilt automatically when its transform or settings are changed");
 					
-					UI::TextWithSeparator("Settings");
+					UI::TextWithSeparator("Crowd Settings");
+					{
+						auto settings = component.GetCrowdSettings();
+						bool bCrowdChanged = false;
+
+						bCrowdChanged |= UI::PropertyDrag("Max Agents", settings.MaxAgents);
+
+						if (UI::PropertyDrag("Max Agent Radius", settings.MaxAgentRadius, 0.05f))
+						{
+							settings.MaxAgentRadius = glm::max(settings.MaxAgentRadius, 0.0f);
+							bCrowdChanged = true;
+						}
+
+						if (bCrowdChanged)
+						{
+							component.SetCrowdSettings(settings);
+							bEntityChanged = true;
+						}
+					}
+
+					UI::TextWithSeparator("Nav Mesh Settings");
+					auto settings = component.GetSettings();
+					bool bChanged = false;
 
 					bChanged |= UI::PropertyDrag("Visibility AABB Min", settings.AABB.Min, 0.1f, 0, 0);
 					bChanged |= UI::PropertyDrag("Visibility AABB Max", settings.AABB.Max, 0.1f, 0, 0);
@@ -1987,6 +2008,65 @@ namespace Eagle
 					bChanged |= UI::Property("Filter Low Hanging Obstacles", settings.FilterLowHangingObstacles, s_FilterLowHangingObstaclesHelpMsg);
 					bChanged |= UI::Property("Filter Ledge Spans", settings.FilterLedgeSpans, s_FilterLedgeSpans);
 					bChanged |= UI::Property("Filter Walkable Low Height Spans", settings.FilterWalkableLowHeightSpans, s_FilterWalkableLowHeightSpans);
+
+					UI::EndPropertyGrid();
+
+					if (bChanged)
+					{
+						component.SetSettings(settings);
+						bEntityChanged = true;
+					}
+				});
+				
+				break;
+			}
+
+			case SelectedComponent::NavigationCrowdAgentComponent:
+			{
+				DrawComponent<NavigationCrowdAgentComponent>("Navigation Crowd Agent", entity, [&entity, this](NavigationCrowdAgentComponent& component)
+				{
+					auto settings = component.GetSettings();
+					bool bChanged = false;
+
+					UI::BeginPropertyGrid("NavigationCrowdAgentComponent");
+					
+					if (UI::PropertyDrag("Agent Radius", settings.AgentRadius, 0.05f))
+					{
+						settings.AgentRadius = glm::max(settings.AgentRadius, 0.1f);
+						bChanged = true;
+					}
+
+					if (UI::PropertyDrag("Agent Height", settings.AgentHeight, 0.05f))
+					{
+						settings.AgentHeight = glm::max(settings.AgentHeight, 0.1f);
+						bChanged = true;
+					}
+
+					if (UI::PropertyDrag("Max Acceleration", settings.MaxAcceleration, 0.1f))
+					{
+						settings.MaxAcceleration = glm::max(settings.MaxAcceleration, 0.1f);
+						bChanged = true;
+					}
+
+					if (UI::PropertyDrag("Max Speed", settings.MaxSpeed, 0.1f))
+					{
+						settings.MaxSpeed = glm::max(settings.MaxSpeed, 0.1f);
+						bChanged = true;
+					}
+
+					if (UI::PropertyDrag("Separation Weight", settings.SeparationWeight, 0.1f))
+					{
+						settings.SeparationWeight = glm::max(settings.SeparationWeight, 0.1f);
+						bChanged = true;
+					}
+
+					bChanged |= UI::ComboEnum("Obstacle Avoidance Quality", settings.ObstacleAvoidanceQuality);
+					
+					// TODO: help messages
+					bChanged |= UI::Property("Anticipate Turns", settings.bAnticipateTurns);
+					bChanged |= UI::Property("Optimize Vis", settings.bOptimizeVis);
+					bChanged |= UI::Property("Optimize Topo", settings.bOptimizeTopo);
+					bChanged |= UI::Property("Separation", settings.bSeparation);
 
 					UI::EndPropertyGrid();
 

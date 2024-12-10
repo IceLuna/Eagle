@@ -33,6 +33,7 @@ namespace Eagle
 	namespace AINavigation
 	{
 		class Mesh;
+		struct CrowdSettings;
 	}
 
 	struct SceneSoundData
@@ -188,6 +189,7 @@ namespace Eagle
 		// Can pass a nullptr to remove all nav meshes & update obstacles properly
 		void BuildNavMesh(NavigationMeshComponent* navMesh);
 		const Ref<AINavigation::Mesh>& GetNavMesh() const { return m_CurrentNavMesh; }
+		void BuildCrowd(const AINavigation::CrowdSettings& settings); // Builds crowd system for the current nav mesh
 		
 		//Camera
 		const CameraComponent* GetRuntimeCamera() const;
@@ -248,6 +250,7 @@ namespace Eagle
 		void OnUpdateEditor(Timestep ts, bool bRender, bool bForceAnimationsUpdate);
 		void OnUpdateRuntime(Timestep ts, bool bRender, bool bForceAnimationsUpdate);
 		void UpdateNavMesh(Timestep ts);
+		void SyncCrowdAgents();
 
 		void GatherLightsInfo();
 		void DestroyPendingEntities();
@@ -270,10 +273,15 @@ namespace Eagle
 		void OnParticleSystemAdded(entt::registry& r, entt::entity e);
 		void OnParticleSystemRemoved(entt::registry& r, entt::entity e);
 		void OnNavMeshRemoved(entt::registry& r, entt::entity e);
+		void OnBoxColliderRemoved(entt::registry& r, entt::entity e);
+		void OnSphereColliderRemoved(entt::registry& r, entt::entity e);
+		void OnCapsuleColliderRemoved(entt::registry& r, entt::entity e);
+		void OnCrowdAgentAdded(entt::registry& r, entt::entity e);
+		void OnCrowdAgentRemoved(entt::registry& r, entt::entity e);
 
 		// T - is component type
 		template<typename T>
-		void OnComponentChanged(const T& component, Notification notification)
+		void OnComponentChanged(T& component, Notification notification)
 		{
 			if constexpr (std::is_base_of<StaticMeshComponent, T>::value)
 			{
@@ -445,6 +453,19 @@ namespace Eagle
 				{
 					m_DirtyTransformDecals.emplace(&component);
 					m_DirtyFlags.bDecalTransformsDirty = true;
+				}
+			}
+
+			if constexpr (std::is_base_of<NavigationMeshComponent, T>::value)
+			{
+				if (notification == Notification::OnStateChanged)
+				{
+					if (component.bAutoRebuild)
+					{
+						auto& navMesh = component.GetNavMesh();
+						if (navMesh && navMesh == m_CurrentNavMesh)
+							BuildNavMesh(&component);
+					}
 				}
 			}
 		}

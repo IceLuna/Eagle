@@ -29,6 +29,7 @@ namespace Eagle
 		ParticleSystem,
 		Decal,
 		NavigationMeshComponent,
+		NavigationCrowdAgentComponent,
 	};
 
 	class EntityPropertiesPanel

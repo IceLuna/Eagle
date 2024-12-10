@@ -5131,6 +5131,142 @@ namespace Eagle
 		}
 	}
 
+	//--------------NavigationCrowdAgent Component--------------
+	void Script::Eagle_NavigationCrowdAgentComponent_TeleportAgent(GUID entityID, const glm::vec3* location)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			entity.GetComponent<NavigationCrowdAgentComponent>().TeleportAgent(*location);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `TeleportAgent` of Navigation Crowd Agent Component. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_NavigationCrowdAgentComponent_SetMoveTarget(GUID entityID, const glm::vec3* location)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			entity.GetComponent<NavigationCrowdAgentComponent>().SetMoveTarget(*location);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetMoveTarget` of Navigation Crowd Agent Component. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_NavigationCrowdAgentComponent_ResetMoveTarget(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			entity.GetComponent<NavigationCrowdAgentComponent>().ResetMoveTarget();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `ResetMoveTarget` of Navigation Crowd Agent Component. Entity is null");
+			return;
+		}
+	}
+
+	bool Script::Eagle_NavigationCrowdAgentComponent_IsValid(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<NavigationCrowdAgentComponent>().IsValid();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsValid` of Navigation Crowd Agent Component. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_NavigationCrowdAgentComponent_SetSettings(GUID entityID, const AINavigation::AgentSettings* settings)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			entity.GetComponent<NavigationCrowdAgentComponent>().SetSettings(*settings);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetSettings` of Navigation Crowd Agent Component. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_NavigationCrowdAgentComponent_GetSettings(GUID entityID, AINavigation::AgentSettings* settings)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			*settings = entity.GetComponent<NavigationCrowdAgentComponent>().GetSettings();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetSettings` of Navigation Crowd Agent Component. Entity is null");
+			return;
+		}
+	}
+
+	bool Script::Eagle_NavigationCrowdAgentComponent_GetLocation(GUID entityID, glm::vec3* location)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<NavigationCrowdAgentComponent>().GetLocation(location);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetLocation` of Navigation Crowd Agent Component. Entity is null");
+			return false;
+		}
+	}
+
+	bool Script::Eagle_NavigationCrowdAgentComponent_GetVelocity(GUID entityID, glm::vec3* velocity)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<NavigationCrowdAgentComponent>().GetVelocity(velocity);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetVelocity` of Navigation Crowd Agent Component. Entity is null");
+			return false;
+		}
+	}
+
+	MoveRequestState Script::Eagle_NavigationCrowdAgentComponent_GetTargetState(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<NavigationCrowdAgentComponent>().GetAgentTargetState();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetTargetState` of Navigation Crowd Agent Component. Entity is null");
+			return MoveRequestState::DT_CROWDAGENT_TARGET_NONE;
+		}
+	}
+
 	//--------------Input--------------
 	bool Script::Eagle_Input_IsMouseButtonPressed(Mouse button)
 	{
@@ -6072,7 +6208,7 @@ namespace Eagle
 		const auto& navMesh = scene->GetNavMesh();
 		if (!navMesh)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `FindRandomPointInCircle`. There's not a nav mesh");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `FindRandomPointInCircle`. There's no a navigation mesh");
 			return false;
 		}
 
@@ -6086,12 +6222,39 @@ namespace Eagle
 		const auto& navMesh = scene->GetNavMesh();
 		if (!navMesh)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsValidPoint`. There's not a nav mesh");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsValidPoint`. There's no a navigation mesh");
 			return false;
 		}
 
 		const bool bSuccess = navMesh->IsValidPoint(*pos);
 		return bSuccess;
+	}
+
+	//-------------- CrowdNavigation --------------
+	void Script::Eagle_CrowdNavigation_SetMoveTarget(const glm::vec3* pos)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		const auto& navMesh = scene->GetNavMesh();
+		if (!navMesh)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetMoveTarget`. There's no a navigation mesh");
+			return;
+		}
+
+		navMesh->GetCrowd().SetMoveTarget(*pos);
+	}
+
+	void Script::Eagle_CrowdNavigation_ResetMoveTarget()
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		const auto& navMesh = scene->GetNavMesh();
+		if (!navMesh)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetMoveTarget`. There's no a navigation mesh");
+			return;
+		}
+
+		navMesh->GetCrowd().ResetMoveTarget();
 	}
 
 	//-------------- Log --------------

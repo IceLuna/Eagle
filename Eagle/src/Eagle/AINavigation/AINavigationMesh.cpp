@@ -90,8 +90,8 @@ namespace Eagle::AINavigation
 		}
 	}
 
-	Mesh::Mesh(const OverlapGeometryData& geometry, const Settings& settings)
-		: m_Settings(settings)
+	Mesh::Mesh(const OverlapGeometryData& geometry, const MeshSettings& meshSettings, const CrowdSettings& crowdSettings)
+		: m_Settings(meshSettings)
 	{
 		m_Filter.setIncludeFlags(SAMPLE_POLYFLAGS_ALL ^ SAMPLE_POLYFLAGS_DISABLED);
 		m_Filter.setExcludeFlags(0);
@@ -174,10 +174,14 @@ namespace Eagle::AINavigation
 				m_TileCache->buildNavMeshTilesAt(x, y, m_NavMesh);
 			}
 		}
+	
+		m_Crowd.Init(crowdSettings, m_NavMesh, m_NavQuery, m_Filter);
 	}
 
 	Mesh::~Mesh()
 	{
+		m_Crowd.Release();
+
 		dtFreeNavMesh(m_NavMesh); 
 		dtFreeNavMeshQuery(m_NavQuery);
 		dtFreeTileCache(m_TileCache);
@@ -200,6 +204,7 @@ namespace Eagle::AINavigation
 	void Mesh::Update(Timestep ts)
 	{
 		m_TileCache->update(ts, m_NavMesh);
+		m_Crowd.Update(ts);
 	}
 
 	dtObstacleRef Mesh::AddCylinderObstacle(const glm::vec3& pos, float radius, float height)
@@ -453,9 +458,9 @@ namespace Eagle::AINavigation
 		duDebugDrawNavMeshWithClosedList(debugDraw, *m_NavMesh, *m_NavQuery, drawFlags/*|DU_DRAWNAVMESH_COLOR_TILES*/);
 	}
 
-	Ref<Mesh> Mesh::Create(const OverlapGeometryData& geometry, const Settings& settings)
+	Ref<Mesh> Mesh::Create(const OverlapGeometryData& geometry, const MeshSettings& settings, const CrowdSettings& crowdSettings)
 	{
-		return MakeRef<Mesh>(geometry, settings);
+		return MakeRef<Mesh>(geometry, settings, crowdSettings);
 	}
 
 	void Mesh::InitConfig()

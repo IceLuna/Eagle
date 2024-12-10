@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Eagle/AINavigation/AINavigationUtils.h"
+#include "Eagle/AINavigation/AINavigationCrowd.h"
 #include "Eagle/Math/AABB.h"
 #include "Eagle/Core/DataBuffer.h"
 #include "Eagle/Core/Timestep.h"
@@ -18,37 +19,37 @@ namespace Eagle
 
 namespace Eagle::AINavigation
 {
+	struct MeshSettings
+	{
+		AABB AABB = { glm::vec3(-0.5f), glm::vec3(0.5f) };
+
+		uint32_t MaxQueryNodes = 2048u;
+		uint32_t ExpectedLayersPerTile = 4u;
+		uint32_t MaxLayers = 32u;
+		uint32_t MaxObstacles = 128u;
+		uint32_t TileSize = 8u;
+		float CellSize = 0.3f;
+		float CellHeight = 0.1f;
+		float MaxSlope = 45.f;
+		float AgentHeight = 2.f;
+		float AgentMaxClimb = 0.9f;
+		float AgentRadius = 0.6f;
+		float EdgeMaxLen = 12.f;
+		float EdgeMaxError = 1.3f;
+		float RegionMinSize = 8.f;
+		float RegionMergeSize = 20.f;
+		uint32_t VertsPerPoly = 6u;
+		uint32_t BorderSize = 3u;
+
+		bool FilterLowHangingObstacles = true;
+		bool FilterLedgeSpans = true;
+		bool FilterWalkableLowHeightSpans = true;
+	};
+
 	class Mesh
 	{
 	public:
-		struct Settings
-		{
-			AABB AABB = { glm::vec3(-0.5f), glm::vec3(0.5f) };
-
-			uint32_t MaxQueryNodes = 2048u;
-			uint32_t ExpectedLayersPerTile = 4u;
-			uint32_t MaxLayers = 32u;
-			uint32_t MaxObstacles = 128u;
-			uint32_t TileSize = 8u;
-			float CellSize = 0.3f;
-			float CellHeight = 0.1f;
-			float MaxSlope = 45.f;
-			float AgentHeight = 2.f;
-			float AgentMaxClimb = 0.9f;
-			float AgentRadius = 0.6f;
-			float EdgeMaxLen = 12.f;
-			float EdgeMaxError = 1.3f;
-			float RegionMinSize = 8.f;
-			float RegionMergeSize = 20.f;
-			uint32_t VertsPerPoly = 6u;
-			uint32_t BorderSize = 3u;
-
-			bool FilterLowHangingObstacles = true;
-			bool FilterLedgeSpans = true;
-			bool FilterWalkableLowHeightSpans = true;
-		};
-
-		Mesh(const OverlapGeometryData& tiles, const Settings& settings);
+		Mesh(const OverlapGeometryData& tiles, const MeshSettings& meshSettings, const CrowdSettings& crowdSettings);
 		~Mesh();
 
 		// Updates the tile cache by rebuilding tiles touched by unfinished obstacle requests.
@@ -70,7 +71,10 @@ namespace Eagle::AINavigation
 		const rcConfig& GetConfig() const { return m_Config; }
 		const AABB& GetAABB() const { return m_Settings.AABB; }
 
-		static Ref<Mesh> Create(const OverlapGeometryData& tiles, const Settings& settings);
+		Crowd& GetCrowd() { return m_Crowd; }
+		const Crowd& GetCrowd() const { return m_Crowd; }
+
+		static Ref<Mesh> Create(const OverlapGeometryData& tiles, const MeshSettings& settings, const CrowdSettings& crowdSettings);
 
 	private:
 
@@ -109,10 +113,11 @@ namespace Eagle::AINavigation
 			}
 		} m_Context;
 
-		Settings m_Settings;
+		MeshSettings m_Settings;
 		rcConfig m_Config{};
 		dtTileCacheParams m_TileCacheConfig{};
 		dtQueryFilter m_Filter{};
+		Crowd m_Crowd;
 
 		// Temp data for build process
 		rcHeightfield* m_Solid = nullptr;
