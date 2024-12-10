@@ -74,6 +74,29 @@ namespace Eagle
 		out << YAML::EndMap; //Editor Camera
 		out << YAML::Key << "Gravity" << YAML::Value << m_Scene->GetGravity();
 
+		// Save EntityID that has a valid nav mesh. It'll be used during deserialization to build the nav mesh after a scene has been loaded
+		{
+			GUID navMeshEntity = GUID(0, 0);
+			if (m_Scene->GetNavMesh())
+			{
+				auto view = m_Scene->GetAllEntitiesWith<NavigationMeshComponent>();
+				for (auto& e : view)
+				{
+					Entity entity(e, m_Scene.get());
+					const auto& component = entity.GetComponent<NavigationMeshComponent>();
+					if (component.GetNavMesh())
+					{
+						navMeshEntity = entity.GetGUID();
+						break;
+					}
+				}
+			}
+			if (!navMeshEntity.IsNull())
+			{
+				out << YAML::Key << "NavMesh" << YAML::Value << navMeshEntity;
+			}
+		}
+
 		SerializeSkybox(out);
 
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
@@ -130,6 +153,8 @@ namespace Eagle
 		if (!data)
 			return false;
 
+		GUID navMeshEntityGUID = GUID(0, 0);
+
 		if (auto editorCameraNode = data["EditorCamera"])
 		{
 			auto& camera = m_Scene->m_EditorCamera;
@@ -164,6 +189,11 @@ namespace Eagle
 			m_Scene->SetGravity(node.as<glm::vec3>());
 		}
 
+		if (auto node = data["NavMesh"])
+		{
+			navMeshEntityGUID = node.as<GUID>();
+		}
+
 		DeserializeSkybox(data);
 
 		if (auto entities = data["Entities"])
@@ -177,6 +207,13 @@ namespace Eagle
 				Entity child((entt::entity)element.first, m_Scene.get());
 				child.SetParent(parent);
 			}
+		}
+
+		if (!navMeshEntityGUID.IsNull())
+		{
+			Entity entity = m_Scene->GetEntityByGUID(navMeshEntityGUID);
+			EG_CORE_ASSERT(entity && entity.HasComponent<NavigationMeshComponent>());
+			m_Scene->BuildNavMesh(&entity.GetComponent<NavigationMeshComponent>());
 		}
 
 		return true;

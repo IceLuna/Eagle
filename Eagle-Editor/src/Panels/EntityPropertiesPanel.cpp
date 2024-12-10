@@ -1892,6 +1892,7 @@ namespace Eagle
 					if (UI::Button("Build", "Build"))
 					{
 						entity.GetScene()->BuildNavMesh(&component);
+						bEntityChanged = true;
 					}
 					UI::Property("Auto Rebuild", component.bAutoRebuild, "If enabled, nav mesh is rebuilt automatically when its transform or settings are changed");
 					
