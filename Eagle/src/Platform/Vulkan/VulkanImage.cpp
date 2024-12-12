@@ -206,10 +206,7 @@ namespace Eagle
 
 		vkCmdCopyImageToBuffer((VkCommandBuffer)cmd->GetHandle(), m_Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, vkStagingBuffer, 1u, &copyRegion);
 
-		if (finalLayout != ImageReadAccess::CopySource)
-		{
-			cmd->TransitionLayout(thisShared, ImageReadAccess::CopySource, finalLayout);
-		}
+		cmd->TransitionLayout(thisShared, ImageReadAccess::CopySource, finalLayout);
 
 		cmd->End();
 		RenderManager::SubmitCommandBuffer(cmd, true);

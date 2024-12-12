@@ -21,6 +21,9 @@ namespace Eagle
 		{
 			m_2DSettings.bNormalMap = Utils::IsNormalMap(path);
 		}
+
+		int comp = 1;
+		stbi_info(m_Path.u8string().c_str(), &m_Width, &m_Height, &comp);
 	}
 
 	bool TextureImporterPanel::OnImGuiRender(const Path& importTo, bool* pOpen)
@@ -48,11 +51,8 @@ namespace Eagle
 		{
 			UI::BeginPropertyGrid("TextureImporter");
 
-			int width = 1, height = 1, comp = 1;
-			stbi_info(m_Path.u8string().c_str(), &width, &height, &comp);
-
 			UI::Text("Path", m_Path.u8string());
-			UI::Text("Size", std::to_string(width) + 'x' + std::to_string(height));
+			UI::Text("Size", std::to_string(m_Width) + 'x' + std::to_string(m_Height));
 
 			ImGui::Separator();
 
@@ -67,7 +67,7 @@ namespace Eagle
 			else
 			{
 				constexpr int minMips = 1;
-				const int maxMips = (int)CalculateMipCount(uint32_t(width), uint32_t(height));
+				const int maxMips = (int)CalculateMipCount(uint32_t(m_Width), uint32_t(m_Height));
 				int mips = int(m_2DSettings.MipsCount);
 
 				UI::ComboEnum("Format", m_2DSettings.ImportFormat, "Compression only supports RGBA8 format!");

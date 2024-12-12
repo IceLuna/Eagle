@@ -40,7 +40,7 @@ externalproject "Eagle-Scripts"
 group ""
 
 project "%{ProjectName}"
-	location "%{ProjectDir}"
+	location ("%{ProjectDir}" .. "/Source")
 	kind "SharedLib"
 	language "C#"
 
@@ -50,7 +50,7 @@ project "%{ProjectName}"
 
 	files
 	{
-		"%{ProjectDir}/Content/**.cs"
+		"%{ProjectDir}/Source/**.cs"
 	}
 
 	links

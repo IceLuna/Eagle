@@ -19,6 +19,8 @@ namespace Eagle
 		AssetImportTextureCubeSettings m_CubeSettings;
 
 		Path m_Path;
+		int m_Width = -1;
+		int m_Height = -1;
 		bool bCube = false;
 	};
 

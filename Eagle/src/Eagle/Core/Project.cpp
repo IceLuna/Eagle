@@ -46,6 +46,7 @@ namespace Eagle
 
 		std::filesystem::create_directory(info.BasePath / "Content");
 		std::filesystem::create_directory(info.BasePath / "Binaries");
+		std::filesystem::create_directory(info.BasePath / "Source");
 
 		Save(info);
 
@@ -100,10 +101,11 @@ namespace Eagle
 	{
 		const std::string vs2019 = "vs2019";
 		const std::string vs2022 = "vs2022";
-		std::string args = std::string(" --file=..\\premake5_project.lua ") + "--projectname=" + info.Name
-			+ " --projectdir=" + info.BasePath.u8string() + " --eagledir=" + Application::GetCorePath().parent_path().u8string();
+		const std::string eagleDir = Application::GetCorePath().parent_path().u8string();
+		std::string args = std::string(" --file=" + eagleDir + "/premake5_project.lua ") + "--projectname=" + info.Name
+			+ " --projectdir=" + info.BasePath.u8string() + " --eagledir=" + eagleDir;
 		
-		const int result = Utils::Execute("..\\vendor\\premake\\premake5.exe", vs2022 + args);
+		const int result = Utils::Execute(eagleDir + "/vendor/premake/premake5.exe", vs2022 + args);
 		if (result == 0)
 			EG_CORE_INFO("Successfully generated VS 2022 solution files: {}", info.BasePath.u8string());
 		else

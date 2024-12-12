@@ -50,7 +50,7 @@ namespace Eagle
 	public:
 		StagingManager() = delete;
 
-		static Ref<StagingBuffer>& AcquireBuffer(size_t size, bool bIsCPURead);
+		[[nodiscard]] static Ref<StagingBuffer>& AcquireBuffer(size_t size, bool bIsCPURead);
 		static void ReleaseBuffers();
 		static void NextFrame();
 

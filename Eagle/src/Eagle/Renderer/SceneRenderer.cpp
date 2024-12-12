@@ -530,6 +530,7 @@ namespace Eagle
 				specs.Format = Depth->GetFormat();
 				specs.Size = size;
 				specs.Usage = Depth->GetUsage() | ImageUsage::TransferDst;
+				specs.Layout = ImageReadAccess::PixelShaderRead;
 				DepthHistory = Image::Create(specs, "GBuffer_DepthHistory");
 			}
 		}
@@ -546,6 +547,7 @@ namespace Eagle
 				specs.Format = Geometry_Shading_Normals->GetFormat();
 				specs.Size = size;
 				specs.Usage = Geometry_Shading_Normals->GetUsage() | ImageUsage::TransferDst;
+				specs.Layout = ImageReadAccess::PixelShaderRead;
 				NormalsHistory = Image::Create(specs, "GBuffer_NormalsHistory");
 			}
 		}
