@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Eagle/Renderer/ParticleEmitter.h"
+
 #include "AssetEditor.h"
 
 namespace Eagle
@@ -17,7 +19,14 @@ namespace Eagle
 		const Ref<Asset> GetAsset() const override { return Cast<Asset>(m_Asset); }
 
 	private:
+		void OnViewportEnd() override { UpdateGuizmo(); }
+		void UpdateGuizmo();
+
+	private:
 		Ref<AssetParticleSystem> m_Asset;
 		ParticleSystemComponent* m_Component = nullptr; // Not owning
+		std::vector<ParticleEmitter> m_Emitters;
+		ParticleEmitter* m_SelectedEmitter = nullptr;
+		bool bGuizmoChanged = false;
 	};
 }

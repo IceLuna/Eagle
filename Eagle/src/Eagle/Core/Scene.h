@@ -230,7 +230,7 @@ namespace Eagle
 		static GUID AddOnSceneOpenedCallback(const std::function<void(const Ref<Scene>&)>& func);
 		static void RemoveOnSceneOpenedCallback(GUID id);
 
-		static Ref<Scene>& GetCurrentScene() { return s_CurrentScene; }
+		static const Ref<Scene>& GetCurrentScene() { return s_CurrentScene; }
 
 		void SetStaticMeshesDirty(bool bDirty)
 		{

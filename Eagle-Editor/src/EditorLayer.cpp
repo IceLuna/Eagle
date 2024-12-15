@@ -1774,7 +1774,7 @@ namespace Eagle
 		{
 			UI::BeginPropertyGrid("EditorPreferences");
 
-			UI::Property("Eco rendering", bRenderOnlyWhenFocused, "If checked, the scene won't render if the window is not in focus");
+			UI::Property("Eco rendering", bRenderOnlyWhenFocused, "If checked, the scene won't be rendered if the window is not in focus");
 			UI::Property("Draw Editor Miscellaneous", m_CurrentScene->bDrawMiscellaneous);
 			UI::Property("Draw Nav Mesh", m_CurrentScene->bDrawNavMesh);
 			UI::ComboEnum<Eagle::Key>("Stop simulation key", m_StopSimulationKey, "The editor will stop the game-simulation when this key is pressed. Set it to 'None' to disable");

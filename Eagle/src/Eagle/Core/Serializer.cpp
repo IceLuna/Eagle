@@ -835,11 +835,13 @@ namespace Eagle
 			out << YAML::Key << "RelativeRotation" << YAML::Value << emitter.RelativeTransform.Rotation;
 			out << YAML::Key << "VisibilityAABBMin" << YAML::Value << emitter.VisibilityAABB.Min;
 			out << YAML::Key << "VisibilityAABBMax" << YAML::Value << emitter.VisibilityAABB.Max;
+			out << YAML::Key << "LoopCount" << YAML::Value << emitter.LoopCount;
 			out << YAML::Key << "NumParticles" << YAML::Value << emitter.NumParticles;
 			out << YAML::Key << "NumParticlesRatio" << YAML::Value << emitter.NumParticlesRatio;
 			out << YAML::Key << "FastForwardTo" << YAML::Value << emitter.FastForwardTo;
 			out << YAML::Key << "RadialAcceleration" << YAML::Value << emitter.RadialAcceleration;
 			out << YAML::Key << "TangentialAcceleration" << YAML::Value << emitter.TangentialAcceleration;
+			out << YAML::Key << "NormalVelocityFactor" << YAML::Value << emitter.NormalVelocityFactor;
 
 			out << YAML::Key << "EmissionShape" << YAML::Value << Utils::GetEnumName(emitter.EmissionShape);
 			out << YAML::Key << "SphereRadius" << YAML::Value << emitter.SphereRadius;
@@ -847,10 +849,11 @@ namespace Eagle
 			out << YAML::Key << "BoxMax" << YAML::Value << emitter.BoxMax;
 			out << YAML::Key << "RingRadius" << YAML::Value << emitter.RingRadius;
 			out << YAML::Key << "RingThickness" << YAML::Value << emitter.RingThickness;
+			if (emitter.MeshAsset)
+				out << YAML::Key << "Mesh" << YAML::Value << emitter.MeshAsset->GetGUID();
 			out << YAML::Key << "CollisionMode" << YAML::Value << Utils::GetEnumName(emitter.CollisionMode);
 
 			out << YAML::Key << "bEmit" << YAML::Value << emitter.bEmit;
-			out << YAML::Key << "bOneShot" << YAML::Value << emitter.bOneShot;
 			out << YAML::Key << "bExplode" << YAML::Value << emitter.bExplode;
 			out << YAML::Key << "bApplyGravity" << YAML::Value << emitter.bApplyGravity;
 			out << YAML::Key << "bAlphaBlending" << YAML::Value << emitter.bAlphaBlending;
@@ -3447,11 +3450,15 @@ namespace Eagle
 			emitter.RelativeTransform.Rotation = node["RelativeRotation"].as<Rotator>();
 			emitter.VisibilityAABB.Min = node["VisibilityAABBMin"].as<glm::vec3>();
 			emitter.VisibilityAABB.Max = node["VisibilityAABBMax"].as<glm::vec3>();
+			if (auto n = node["LoopCount"])
+				emitter.LoopCount = n.as<uint32_t>();
 			emitter.NumParticles = node["NumParticles"].as<uint32_t>();
 			emitter.NumParticlesRatio = node["NumParticlesRatio"].as<float>();
 			emitter.FastForwardTo = node["FastForwardTo"].as<float>();
 			emitter.RadialAcceleration = node["RadialAcceleration"].as<float>();
 			emitter.TangentialAcceleration = node["TangentialAcceleration"].as<float>();
+			if (auto n = node["NormalVelocityFactor"])
+				emitter.NormalVelocityFactor = n.as<float>();
 			emitter.EmissionShape = Utils::GetEnumFromName<ParticleEmitter::EmissionShapeType>(node["EmissionShape"].as<std::string>());
 			if (auto n = node["SphereRadius"])
 				emitter.SphereRadius = n.as<glm::vec3>();
@@ -3463,9 +3470,10 @@ namespace Eagle
 				emitter.RingRadius = n.as<glm::vec3>();
 			if (auto n = node["RingThickness"])
 				emitter.RingThickness = n.as<glm::vec3>();
+			if (auto n = node["Mesh"])
+				emitter.MeshAsset = GetAsset<AssetStaticMesh>(n);
 			emitter.CollisionMode = Utils::GetEnumFromName<ParticleEmitter::CollisionModeType>(node["CollisionMode"].as<std::string>());
 			emitter.bEmit = node["bEmit"].as<bool>();
-			emitter.bOneShot = node["bOneShot"].as<bool>();
 			emitter.bExplode = node["bExplode"].as<bool>();
 			emitter.bApplyGravity = node["bApplyGravity"].as<bool>();
 			emitter.bAlphaBlending = node["bAlphaBlending"].as<bool>();

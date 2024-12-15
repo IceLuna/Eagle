@@ -448,6 +448,11 @@ bool FrustumAABBIntersection(CullingFrustum frustum, mat4 vsTransform, vec3 aabb
     return true;
 }
 
+vec3 BarycentricInterp(vec3 v0, vec3 v1, vec3 v2, vec2 buv)
+{
+    return v0 * (1.f - buv.x - buv.y) + v1 * buv.x + v2 * buv.y;
+}
+
 #define EG_SUBGROUP_ATOMIC_INCREMENT(data, bActive, outputIndex) \
 { \
     const uvec4 activeLanes = subgroupBallot(bActive); \
@@ -465,7 +470,7 @@ bool FrustumAABBIntersection(CullingFrustum frustum, mat4 vsTransform, vec3 aabb
     outputIndex = waveStartIndex + localIndex; \
 }
 
-#define EG_SUBGROUP_ATOMIC_DECREMENT(data, bActive, outputIndex) \
+#define EG_SUBGROUP_ATOMIC_DECREMENT(data, bActive, outputIndex, origValue) \
 { \
     const uvec4 activeLanes = subgroupBallot(bActive); \
     const uint activeLanesCount = subgroupBallotBitCount(activeLanes); \
@@ -473,9 +478,10 @@ bool FrustumAABBIntersection(CullingFrustum frustum, mat4 vsTransform, vec3 aabb
     uint waveStartIndex; \
     if (subgroupElect()) \
     { \
-        waveStartIndex = atomicAdd(data, -int(activeLanesCount)); \
+        waveStartIndex = atomicAdd(data, (~activeLanesCount) + 1u); \
     } \
     waveStartIndex = subgroupBroadcastFirst(waveStartIndex); \
+    origValue = waveStartIndex; \
     \
     uint localIndex = subgroupBallotExclusiveBitCount(activeLanes); \
     \

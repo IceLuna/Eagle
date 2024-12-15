@@ -5,6 +5,7 @@
 
 #include "defines.h"
 #include "random.h"
+#include "utils.h"
 
 #define EG_PS_THREAD_SIZE 64
 
@@ -25,6 +26,7 @@ const uint EmissionShapeType_Sphere = 1;
 const uint EmissionShapeType_SphereSurface = 2;
 const uint EmissionShapeType_Box = 3;
 const uint EmissionShapeType_Ring = 4;
+const uint EmissionShapeType_Mesh = 5;
 
 #endif
 
@@ -40,11 +42,10 @@ using uvec2 = glm::uvec2;
 
 #endif
 
-const uint Emitter_OneShot_Mask       = 1 << 0;
-const uint Emitter_Explode_Mask       = 1 << 1;
-const uint Emitter_ApplyGravity_Mask  = 1 << 2;
-const uint Emitter_AlphaBlending_Mask = 1 << 3;
-const uint Emitter_Enabled_Mask       = 1 << 4;
+const uint Emitter_Explode_Mask       = 1 << 0;
+const uint Emitter_ApplyGravity_Mask  = 1 << 1;
+const uint Emitter_AlphaBlending_Mask = 1 << 2;
+const uint Emitter_Enabled_Mask       = 1 << 3;
 
 bool HasFlag(uint flags, uint mask)
 {
@@ -96,11 +97,17 @@ struct Emitter
 	uint Flags;
 
 	vec3 VelocityCoefEnd;
-	float FastForwardTo; // TODO:
+	uint LoopCount;
 
 	uvec2 AnimationImagesNum;
 	float AnimationSpeed;
 	uint TextureIndex;
+
+	float NormalVelocityFactor;
+	// Used when EmissionShape is Mesh
+	uint VertexOffset;
+	uint IndexOffset;
+	uint IndexCount;
 
 	// This is internal data. Keep it at the end because during update only the data before it is being updated
 	vec3 WorldPos; // First
@@ -108,8 +115,8 @@ struct Emitter
 
 	uint IsVisible;
 	uint SpawnedSoFar; // Used for `OneShot` emitters
-	float Padding0;
-	float Padding1;
+	uint WasExplode; // Used to handle `bExplode` correctly
+	uint LoopIteration; // Current loop iteration. When reaches LoopCount, it won't spawn any particles
 };
 
 struct Particle
@@ -136,7 +143,18 @@ struct Particle
 	uvec2 AnimationSpriteCoord;
 };
 
+struct MeshVertex
+{
+	vec3 Position;
+	uint Normal;
+};
+
 #ifndef __cplusplus
+
+vec3 Particle_UnpackNormal(uint packed)
+{
+	return DecodeNormal(unpackHalf2x16(packed));
+}
 
 struct DrawArgs
 {
@@ -145,19 +163,6 @@ struct DrawArgs
 	uint FirstVertex;
 	uint FirstInstance;
 };
-
-vec3 Emitter_GetParticlePosition(Emitter emitter, inout Random random)
-{
-	switch (emitter.EmissionShape)
-	{
-		case EmissionShapeType_Point: return vec3(0);
-		case EmissionShapeType_Sphere: return Random_PointInSphere(random, emitter.SphereRadius);
-		case EmissionShapeType_SphereSurface: return Random_PointOnSphere(random, emitter.SphereRadius);
-		case EmissionShapeType_Box: return mix(emitter.BoxMin, emitter.BoxMax, Random_NextFloat3(random));
-		case EmissionShapeType_Ring: return Random_PointInRing(random, emitter.RingRadius, emitter.RingThickness);
-	}
-	return vec3(0);
-}
 
 void Particle_CalculateAnimationUV(uvec2 coord, uvec2 animationImagesNum, out vec2 uv0, out vec2 uv1)
 {

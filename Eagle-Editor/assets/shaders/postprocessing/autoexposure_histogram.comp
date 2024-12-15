@@ -43,6 +43,7 @@ void main()
     
     // Initialize the bin for this thread to 0
     histogramShared[gl_LocalInvocationIndex] = 0;
+    memoryBarrierShared();
     barrier();
 
     // Ignore threads that map to areas beyond the bounds of our HDR image
@@ -57,6 +58,7 @@ void main()
 
     // Wait for all threads in the work group to reach this point before adding our
     // local histogram to the global one
+    memoryBarrierShared();
     barrier();
 
     // Technically there's no chance that two threads write to the same bin here,

@@ -41,6 +41,9 @@ namespace Eagle
 
 		void SetMaxParticles(const Ref<CommandBuffer>& cmd, uint32_t maxParticles);
 
+		void AddEmitterMeshData(const ParticleEmitter& emitter);
+		void RemoveEmitterMeshData(const ParticleEmitter& emitter);
+
 	private:
 		struct ParticleSystemData
 		{
@@ -69,13 +72,6 @@ namespace Eagle
 			}
 		};
 
-		struct OneShotEmitterData
-		{
-			ParticleEmitter Emitter;
-			std::chrono::high_resolution_clock::time_point TimeOfDeath;
-			GUID SystemID; // Emitter's system
-		};
-
 		struct AddingEmitterData
 		{
 			ParticleEmitter Emitter;
@@ -88,9 +84,22 @@ namespace Eagle
 			uint32_t TransformIndex = s_InvalidEmitterIndex; // index of the emitter inside of `m_Transforms`
 		};
 
+		struct ParticleMeshVertex
+		{
+			glm::vec3 Position = glm::vec3(0);
+			uint32_t Normal = 0; // Packed. Used to set initial velocity.
+		};
+
+		struct MeshEmitterData
+		{
+			uint32_t VertexOffset = 0u;
+			uint32_t IndexOffset = 0u;
+			uint32_t IndexCount = 0u;
+			uint32_t UsageCounter = 1u; // If it reaches 0, mesh is removed from the mapping and mesh buffers are rebuilt
+		};
+
 		std::unordered_map<GUID, std::unordered_map<ParticleEmitter, EmitterData>> m_SystemToEmittersMapping; // Key - Particle system; Value - its emitters
 		std::vector<AddingEmitterData> m_EmittersToAdd;
-		std::vector<OneShotEmitterData> m_OneShotEmitters;
 		std::vector<std::pair<ParticleEmitter, EmitterData>> m_EmittersToUpdate;
 		std::vector<std::pair<ParticleEmitter, uint32_t>> m_EmittersToRemove; // uint32_t - index of the emitter inside of `m_EmittersBuffer`
 		std::vector<DeadEmitterData> m_DeadEmitters;
@@ -112,6 +121,14 @@ namespace Eagle
 		Ref<Buffer> m_OpaqueDistancesBuffer;
 		Ref<Buffer> m_TranslucentIndicesToRender;
 		Ref<Buffer> m_TranslucentDistancesBuffer;
+
+		// For mesh emitters. TODO: Remove this when a bindless(global) mesh buffers are introduced, so that we don't have to duplicate it here
+		std::vector<ParticleMeshVertex> m_MeshVertices;
+		std::vector<Index> m_MeshIndices;
+		Ref<Buffer> m_MeshVertexBuffer;
+		Ref<Buffer> m_MeshIndexBuffer;
+		std::unordered_map<Ref<StaticMesh>, MeshEmitterData> m_MeshDataMapping; // To avoid duplicating meshes in the memory
+		bool bRebuildMeshData = false;
 
 		Ref<PipelineCompute> m_UpdateMaxParticles;
 		Ref<PipelineCompute> m_PrepareData;

@@ -42,6 +42,11 @@ layout(push_constant) uniform PushConstants
     CullingFrustum g_Frustum;
 };
 
+uint CalcNumGroups(uint size, uint groupSize)
+{
+	return (size + groupSize - 1) / groupSize;
+}
+
 #define GROUP_SIZE 32
 
 shared uint s_EmitCount[GROUP_SIZE];
@@ -61,32 +66,54 @@ void main()
             break;
 
         Emitter emitter = g_Emitters[i];
+        if (emitter.LoopCount == 0)
+            emitter.LoopIteration = 0u;
 
-        if (HasFlag(emitter.Flags, Emitter_Enabled_Mask) == false)
+        if (HasFlag(emitter.Flags, Emitter_Enabled_Mask) == false || (emitter.LoopCount != 0 && emitter.LoopIteration == emitter.LoopCount))
         {
             g_EmittersSpawnCount[i] = 0;
             continue;
         }
 
         const bool bExpode = HasFlag(emitter.Flags, Emitter_Explode_Mask);
-        const float spawnInterval = bExpode ? emitter.LifetimeMax : emitter.LifetimeMax / float(emitter.NumParticles);
-        const float deltaTime = emitter.DeltaTime;
+        if (bExpode)
+        {
+            if (emitter.WasExplode == 0u)
+            {
+                emitter.DeltaTime = 0.f; // Just entered explode mode. Reset delta time
+                emitter.WasExplode = 1u;
+            }
+        }
+
+        // If no longer in explode mode, wait for all exploded particles to die
+        const float spawnInterval = (bExpode || emitter.WasExplode == 1u) ? emitter.LifetimeMax : emitter.LifetimeMax / float(emitter.NumParticles);
+        float deltaTime = emitter.DeltaTime;
         uint count = 0;
         if (deltaTime >= spawnInterval)
         {
-            const uint spawnTriggersCount = uint(deltaTime / spawnInterval);
+            if (!bExpode && (emitter.WasExplode == 1u))
+            {
+                // No longer in explode mode. We waited for all exploded particles to die.
+                // Restore the default spawn rate
+                emitter.WasExplode = 0u;
+                emitter.DeltaTime = g_DeltaTime;
+                deltaTime = 0.f; // Don't spawn anything this frame
+            }
+            
+            uint spawnTriggersCount = uint(deltaTime / spawnInterval);
             count = spawnTriggersCount * (bExpode ? emitter.NumParticles : 1u);
 
-            const bool bOneShot = HasFlag(emitter.Flags, Emitter_OneShot_Mask);
-            if (bOneShot)
+            if ((emitter.SpawnedSoFar + count) > emitter.NumParticles)
             {
-                if ((emitter.SpawnedSoFar + count) >= emitter.NumParticles)
-                {
-                    count = emitter.NumParticles - emitter.SpawnedSoFar;
-                    emitter.Flags = emitter.Flags & (~Emitter_Enabled_Mask); // Disable emitter
-                }
-                emitter.SpawnedSoFar += count;
+                // Don't spawn this frame to avoid overflow
+                count = 0;
+                spawnTriggersCount = 0;
+                emitter.SpawnedSoFar = 0u;
+                if (emitter.LoopCount != 0)
+                    emitter.LoopIteration += 1;
             }
+            else
+                emitter.SpawnedSoFar += count;
 
             s_EmitCount[lid] += count;
             emitter.DeltaTime -= float(spawnInterval * spawnTriggersCount);
@@ -104,6 +131,7 @@ void main()
         g_EmittersSpawnCount[i] = count;
     }
 
+    memoryBarrierShared();
     barrier();
 
     // Sum up all `emit counts`
@@ -111,6 +139,7 @@ void main()
     {
         if (lid < cutoff)
             s_EmitCount[lid] += s_EmitCount[lid + cutoff];
+        memoryBarrierShared();
         barrier();
     }
 
@@ -126,13 +155,13 @@ void main()
         }
 
         g_Data.EmitCount = s_EmitCount[0];
-        g_EmitArgs.x = uint(ceil(float(g_Data.EmitCount) / float(EG_PS_THREAD_SIZE)));
+        g_EmitArgs.x = CalcNumGroups(g_Data.EmitCount, EG_PS_THREAD_SIZE);
         g_EmitArgs.y = 1;
         g_EmitArgs.z = 1;
 
         // Calculate total number of particles to simulate this frame
         g_Data.SimulateCount = g_Data.AliveCount[g_PreSimIndex] + g_Data.EmitCount;
-        g_SimulateArgs.x = uint(ceil(float(g_Data.SimulateCount) / float(EG_PS_THREAD_SIZE)));
+        g_SimulateArgs.x = CalcNumGroups(g_Data.SimulateCount, EG_PS_THREAD_SIZE);
         g_SimulateArgs.y = 1;
         g_SimulateArgs.z = 1;
 

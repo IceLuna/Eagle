@@ -36,11 +36,22 @@ layout(binding = 6) readonly buffer TransformsBuffer
     mat4 g_Transforms[];
 };
 
+layout(binding = 7) readonly buffer MeshVerticesBuffer
+{
+    MeshVertex g_Vertices[];
+};
+
+layout(binding = 8) readonly buffer MeshIndicesBuffer
+{
+    uint g_Indices[];
+};
+
 layout(push_constant) uniform PushConstants
 {
     uint g_PreSimIndex;
     uint g_FrameNumber;
     uint g_NumEmitters;
+    uint g_MaxParticles;
 };
 
 void PushAlive(uint particleIndex)
@@ -50,11 +61,19 @@ void PushAlive(uint particleIndex)
     g_AliveIndicesPreSim[insertIdx] = particleIndex;
 }
 
-uint PopDead()
+// Returns false if there are no slots available
+bool PopDead(out uint particleIndex)
 {
-    uint index;
-    EG_SUBGROUP_ATOMIC_DECREMENT(g_Data.DeadCount, true, index);
-    return g_DeadIndices[index - 1];
+    uint index, origDeadCount;
+    EG_SUBGROUP_ATOMIC_DECREMENT(g_Data.DeadCount, true, index, origDeadCount);
+    if (index == 0 || index > origDeadCount || origDeadCount > g_MaxParticles) // `origDeadCount > g_MaxParticles` - Someone overflowed, which means there are no slots available
+    {
+        // Overflow, ignore particle emission
+        EG_SUBGROUP_ATOMIC_INCREMENT(g_Data.DeadCount, true, index);
+        return false;
+    }
+    particleIndex = g_DeadIndices[index - 1];
+    return true;
 }
 
 uint GetEmitterIndex(uint id)
@@ -67,6 +86,62 @@ uint GetEmitterIndex(uint id)
     }
 }
 
+void GetPosAndNormalOnMesh(Emitter emitter, inout Random random, inout vec3 pos, inout vec3 normal)
+{
+    // random triangle on emitter surface:
+	const uint triangleCount = emitter.IndexCount / 3;
+	const uint tri = Random_NextUint(random, triangleCount);
+
+	// load indices of triangle from index buffer
+	uint i0 = g_Indices[emitter.IndexOffset + tri * 3 + 0];
+	uint i1 = g_Indices[emitter.IndexOffset + tri * 3 + 1];
+	uint i2 = g_Indices[emitter.IndexOffset + tri * 3 + 2];
+
+	// load vertices of triangle from vertex buffer:
+    MeshVertex v0 = g_Vertices[emitter.VertexOffset + i0];
+    MeshVertex v1 = g_Vertices[emitter.VertexOffset + i1];
+    MeshVertex v2 = g_Vertices[emitter.VertexOffset + i2];
+
+    // random barycentric coords:
+    vec2 buv = Random_NextFloat2(random);
+	if (buv.x + buv.y > 1.f)
+	{
+		buv.x = 1.f - buv.x;
+		buv.y = 1.f - buv.y;
+	}
+	
+    // compute final surface position on triangle from barycentric coords:
+	pos = BarycentricInterp(v0.Position, v1.Position, v2.Position, buv);
+	normal = normalize(BarycentricInterp(Particle_UnpackNormal(v0.Normal), Particle_UnpackNormal(v1.Normal), Particle_UnpackNormal(v2.Normal), buv));
+}
+
+void Emitter_GetParticlePositionAndNormal(Emitter emitter, inout Random random, out vec3 position, out vec3 normal)
+{
+	position = vec3(0);
+	normal = vec3(0);
+	switch (emitter.EmissionShape)
+	{
+		// case EmissionShapeType_Point: return; // Returns 0
+		case EmissionShapeType_Sphere:
+			position = Random_PointInSphere(random, emitter.SphereRadius);
+            normal = normalize(position);
+			break;
+		case EmissionShapeType_SphereSurface:
+			position = Random_PointOnSphere(random, emitter.SphereRadius);
+            normal = normalize(position);
+			break;
+		case EmissionShapeType_Box:
+			position = mix(emitter.BoxMin, emitter.BoxMax, Random_NextFloat3(random));
+			break;
+		case EmissionShapeType_Ring:
+			position = Random_PointInRing(random, emitter.RingRadius, emitter.RingThickness);
+			break;
+		case EmissionShapeType_Mesh:
+			GetPosAndNormalOnMesh(emitter, random, position, normal);
+			break;
+	}
+}
+
 layout(local_size_x = EG_PS_THREAD_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 void main()
@@ -75,23 +150,33 @@ void main()
     if (gidx >= g_Data.EmitCount)
         return;
 
-    const uint emitterIndex = GetEmitterIndex(gidx);
-    const uint particleIndex = PopDead();
+    uint particleIndex;
+    if (!PopDead(particleIndex))
+        return;
 
+    const uint emitterIndex = GetEmitterIndex(gidx);
     const Emitter emitter = g_Emitters[emitterIndex];
     Particle particle = g_Particles[particleIndex];
 
     Random random = Random_Init(uvec2(0, gidx), g_FrameNumber);
 
-    vec3 particlePos = Emitter_GetParticlePosition(emitter, random);
-    particlePos = vec3(g_Transforms[emitter.TransformIndex] * vec4(particlePos, 1.f));
+    const mat4 worldTr = g_Transforms[emitter.TransformIndex];
+
+    vec3 position, normal;
+    Emitter_GetParticlePositionAndNormal(emitter, random, position, normal);
+    position = vec3(worldTr * vec4(position, 1.f));
+    if (NOT_ZERO(normal) && emitter.NormalVelocityFactor != 0.f)
+    {
+        const mat3 normalModel = mat3(transpose(inverse(worldTr)));
+        normal = normalize(normalModel * normal);
+    }
 
     particle.Color = emitter.ColorStart;
     particle.Size = emitter.SizeStart;
     particle.CurrentLifetime = 0.f;
-    particle.Position = particlePos;
+    particle.Position = position;
     particle.Lifetime = mix(emitter.LifetimeMin, emitter.LifetimeMax, Random_NextFloat(random));
-    particle.Velocity = mix(emitter.VelocityMin, emitter.VelocityMax, Random_NextFloat3(random));
+    particle.Velocity = normal * emitter.NormalVelocityFactor + mix(emitter.VelocityMin, emitter.VelocityMax, Random_NextFloat3(random));
     particle.Bounciness = mix(emitter.BouncinessMin, emitter.BouncinessMax, Random_NextFloat(random));
     particle.RotationZ = emitter.RotationZStart;
     particle.VelocityCoef = emitter.VelocityCoefStart;

@@ -1286,10 +1286,10 @@ namespace Eagle
 								}
 								case FieldType::Entity:
 								{
-									const auto& scene = Scene::GetCurrentScene();
+									const auto& scene = entity.GetScene();
 									GUID value = bRuntime ? field.GetRuntimeValue<GUID>(entityInstance) : field.GetStoredValue<GUID>();
-									Entity entity = scene->GetEntityByGUID(value);
-									const bool bValid = entity.IsValid();
+									Entity userEntity = scene->GetEntityByGUID(value);
+									const bool bValid = userEntity.IsValid();
 									int currentSelection = -1;
 									int i = 0;
 
@@ -1299,8 +1299,11 @@ namespace Eagle
 									names.reserve(entities.size_hint());
 									ids.reserve(entities.size_hint());
 
-									for (auto& [entity, idComp, nameComp] : entities.each())
+									for (auto& [sceneEntity, idComp, nameComp] : entities.each())
 									{
+										if (sceneEntity == entity.GetEnttID())
+											continue; // Don't show itself
+
 										const auto& ID = idComp.ID;
 										const auto& name = nameComp.Name;
 										ids.emplace_back(ID);

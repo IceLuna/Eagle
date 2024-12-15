@@ -77,6 +77,7 @@ layout(push_constant) uniform PushConstants
     float g_DeltaTime;
     uint g_PreSimIndex;
     uint g_PostSimIndex;
+    uint g_MaxParticles;
 };
 
 void PushAlive(uint particleIndex)
@@ -86,11 +87,19 @@ void PushAlive(uint particleIndex)
     g_AliveIndicesPostSim[insertIdx] = particleIndex;
 }
 
-uint PopAlive()
+// Returns false if there are no slots available
+bool PopAlive(out uint particleIndex)
 {
-    uint index;
-    EG_SUBGROUP_ATOMIC_DECREMENT(g_Data.AliveCount[g_PreSimIndex], true, index);
-    return g_AliveIndicesPreSim[index - 1];
+    uint index, origAliveCount;
+    EG_SUBGROUP_ATOMIC_DECREMENT(g_Data.AliveCount[g_PreSimIndex], true, index, origAliveCount);
+    if (index == 0 || index > origAliveCount || origAliveCount > g_MaxParticles) // `origAliveCount > g_MaxParticles` - Someone overflowed, which means there are no slots available
+    {
+        // Overflow, ignore particle emission
+        EG_SUBGROUP_ATOMIC_INCREMENT(g_Data.AliveCount[g_PreSimIndex], true, index);
+        return false;
+    }
+    particleIndex = g_AliveIndicesPreSim[index - 1];
+    return true;
 }
 
 void PushDead(uint particleIndex)
@@ -126,7 +135,10 @@ void main()
     if (gidx >= g_Data.SimulateCount)
         return;
 
-    const uint particleIndex = PopAlive();
+    uint particleIndex;
+    if (!PopAlive(particleIndex))
+        return;
+
     Particle particle = g_Particles[particleIndex];
     if (particle.CurrentLifetime >= particle.Lifetime)
     {
