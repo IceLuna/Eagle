@@ -82,6 +82,7 @@ namespace Eagle
 		bool bExplode = false; // If set to true, all particles will be emitted at once. Otherwise, they're emitted sequentially throughout the lifetime
 		bool bApplyGravity = false;
 		bool bAlphaBlending = true;
+		bool bAdditive = false;
 
 		bool operator== (const ParticleEmitter& other) const
 		{

@@ -345,6 +345,7 @@ namespace Eagle
 		Asset& reloadedRaw = *reloaded.get();
 		*asset = std::move(reloadedRaw);
 
+		// TODO: Use `OnModified`
 		if (assetType == AssetType::Texture2D || assetType == AssetType::Material)
 			MaterialSystem::SetDirty();
 		else if (assetType == AssetType::StaticMesh)

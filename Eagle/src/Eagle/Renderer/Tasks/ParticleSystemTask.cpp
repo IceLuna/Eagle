@@ -27,7 +27,7 @@ namespace Eagle
 			);
 		}
 
-		// Packs a 3-component normal to 2 channels using octahedron normals
+		// Packs a 3-component normal to 2 f16-channels using octahedron normals
 		static uint32_t PackNormal(vec3 v)
 		{
 			float x = abs(v.x) + abs(v.y) + abs(v.z);
@@ -54,6 +54,7 @@ namespace Eagle
 			flags |= emitter.bApplyGravity ? Emitter_ApplyGravity_Mask : 0;
 			flags |= emitter.bAlphaBlending ? Emitter_AlphaBlending_Mask : 0;
 			flags |= emitter.bEmit ? Emitter_Enabled_Mask : 0;
+			flags |= emitter.bAdditive ? Emitter_AdditiveBlending_Mask : 0;
 
 			return flags;
 		}
@@ -1069,7 +1070,7 @@ namespace Eagle
 
 			colorAttachment.bBlendEnabled = true;
 			colorAttachment.BlendingState.BlendOp = BlendOperation::Add;
-			colorAttachment.BlendingState.BlendSrc = BlendFactor::SrcAlpha;
+			colorAttachment.BlendingState.BlendSrc = BlendFactor::One;
 			colorAttachment.BlendingState.BlendDst = BlendFactor::OneMinusSrcAlpha;
 
 			colorAttachment.BlendingState.BlendOpAlpha = BlendOperation::Add;
@@ -1084,9 +1085,13 @@ namespace Eagle
 			depthAttachment.DepthCompareOp = CompareOperation::GreaterEqual;
 			depthAttachment.ClearOperation = ClearOperation::Load;
 
+			ShaderDefines transparentDefines;
+			transparentDefines["EG_PARTICLE_BACK_TO_FRONT"] = "";
+			transparentDefines["EG_BLEND"] = "";
+
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("particle_system/particle2D.vert", ShaderType::Vertex, ShaderDefines{ {"EG_PARTICLE_BACK_TO_FRONT", ""} });
-			state.FragmentShader = Shader::Create("particle_system/particle.frag", ShaderType::Fragment);
+			state.VertexShader = Shader::Create("particle_system/particle2D.vert", ShaderType::Vertex, transparentDefines);
+			state.FragmentShader = Shader::Create("particle_system/particle.frag", ShaderType::Fragment, transparentDefines);
 			state.ColorAttachments.push_back(colorAttachment);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Front;
@@ -1097,6 +1102,7 @@ namespace Eagle
 				m_BillboardRenderTranslucent = PipelineGraphics::Create(state);
 
 			state.VertexShader = Shader::Create("particle_system/particle2D.vert", ShaderType::Vertex);
+			state.FragmentShader = Shader::Create("particle_system/particle.frag", ShaderType::Fragment);
 			state.DepthStencilAttachment.bWriteDepth = true;
 			state.ColorAttachments[0].bBlendEnabled = false;
 			if (m_BillboardRender)

@@ -44,6 +44,9 @@ layout(push_constant) uniform PushConstants
 layout(location = 0) out vec4 o_Color;
 layout(location = 1) out vec2 o_UV;
 layout(location = 2) flat out uint o_TextureIndex;
+#ifdef EG_BLEND
+layout(location = 3) flat out uint o_Additive;
+#endif
 
 void main()
 {
@@ -59,6 +62,9 @@ void main()
     o_Color = particle.Color;
     o_UV = uv;
     o_TextureIndex = particle.TextureIndex;
+#ifdef EG_BLEND
+    o_Additive = Particle_Unpack_IsAdditive(particle) ? 1u : 0u;
+#endif
 
     const float rotationZ = particle.RotationZ;
     vec3 quadPos = vec3(s_Positions[gl_VertexIndex], 0.f);

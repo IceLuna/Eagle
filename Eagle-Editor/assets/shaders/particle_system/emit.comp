@@ -180,7 +180,7 @@ void main()
     particle.Bounciness = mix(emitter.BouncinessMin, emitter.BouncinessMax, Random_NextFloat(random));
     particle.RotationZ = emitter.RotationZStart;
     particle.VelocityCoef = emitter.VelocityCoefStart;
-    particle.EmitterIndex = emitterIndex;
+    particle.PackedData = Particle_PackData(emitterIndex, HasFlag(emitter.Flags, Emitter_AdditiveBlending_Mask));
     particle.AnimationSpriteCoord = uvec2(0, 0);
     Particle_CalculateAnimationUV(particle.AnimationSpriteCoord, emitter.AnimationImagesNum, particle.AnimationUV0, particle.AnimationUV1);
 

@@ -155,6 +155,11 @@ namespace Eagle
 			bChanged |= UI::Property("Explode", emitter.bExplode, "If set to true, all particles will be emitted at once. Otherwise, they're emitted sequentially throughout the lifetime");
 			bChanged |= UI::Property("Apply Gravity", emitter.bApplyGravity);
 			bChanged |= UI::Property("Alpha Blending", emitter.bAlphaBlending);
+			if (!emitter.bAlphaBlending)
+				UI::PushItemDisabled();
+			bChanged |= UI::Property("Additive Blending", emitter.bAdditive);
+			if (!emitter.bAlphaBlending)
+				UI::PopItemDisabled();
 
 			UI::TextWithSeparator("Particle settings");
 

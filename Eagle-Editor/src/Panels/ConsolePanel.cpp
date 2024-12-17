@@ -148,22 +148,19 @@ namespace Eagle
 
                 ImGui::PushID(int(i));
                 ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 0, 0 }); // make align with text height
-                ImGui::PushStyleColor(ImGuiCol_FrameBg, { 0.f, 0.f, 0.f, 0.f }); // remove text input box
 
-                ImVec2 uiTextSize = ImGui::CalcTextSize(log.Message.c_str(), NULL, true);
                 ImVec4 color;
                 if (GetLogColor(log.Level, &color))
                 {
                     ImGui::PushStyleColor(ImGuiCol_Text, color);
-                    ImGui::InputTextMultiline("##log", log.Message.data(), log.Message.size() + 1, uiTextSize, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
+                    ImGui::TextUnformatted(log.Message.data());
                     ImGui::PopStyleColor();
                 }
                 else
                 {
-                    ImGui::InputTextMultiline("##log", log.Message.data(), log.Message.size() + 1, uiTextSize, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
+                    ImGui::TextUnformatted(log.Message.data());
                 }
 
-                ImGui::PopStyleColor();
                 ImGui::PopStyleVar();
                 ImGui::PopID();
             }

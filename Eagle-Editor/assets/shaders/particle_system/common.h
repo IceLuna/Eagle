@@ -42,10 +42,14 @@ using uvec2 = glm::uvec2;
 
 #endif
 
-const uint Emitter_Explode_Mask       = 1 << 0;
-const uint Emitter_ApplyGravity_Mask  = 1 << 1;
-const uint Emitter_AlphaBlending_Mask = 1 << 2;
-const uint Emitter_Enabled_Mask       = 1 << 3;
+const uint Emitter_Explode_Mask          = 1 << 0;
+const uint Emitter_ApplyGravity_Mask     = 1 << 1;
+const uint Emitter_AlphaBlending_Mask    = 1 << 2;
+const uint Emitter_Enabled_Mask          = 1 << 3;
+const uint Emitter_AdditiveBlending_Mask = 1 << 4;
+
+const uint Particle_Additive_Mask     = 1 << 31;
+const uint Particle_EmitterIndex_Mask = ~Particle_Additive_Mask;
 
 bool HasFlag(uint flags, uint mask)
 {
@@ -121,6 +125,8 @@ struct Emitter
 
 struct Particle
 {
+	// TODO: Change some of them to f16 to save space
+	// Color as uint (R11G11B10) and Opacity as uint8?
 	vec4 Color;
 
 	vec3 Size;
@@ -136,7 +142,7 @@ struct Particle
 	float RotationZ;
 
 	vec2 AnimationUV0;
-	uint EmitterIndex;
+	uint PackedData; // Highest bit is a flag for `Particle_Additive_Mask`. Rest - EmitterIndex
 	uint TextureIndex; // This could be stored just in Emitter. But it's here to avoid an addition read from emitters buffer just to get this index
 
 	vec2 AnimationUV1;
@@ -184,6 +190,21 @@ void Particle_AdvanceAnimation(inout uvec2 coord, uvec2 animationImagesNum)
 		if (exceededHeight)
 			coord.y = 0u;
 	}
+}
+
+uint Particle_PackData(uint emitterIndex, bool bAdditive)
+{
+	return (emitterIndex & Particle_EmitterIndex_Mask) | (bAdditive ? Particle_Additive_Mask : 0);
+}
+
+uint Particle_Unpack_EmitterIndex(Particle particle)
+{
+	return particle.PackedData & Particle_EmitterIndex_Mask;
+}
+
+bool Particle_Unpack_IsAdditive(Particle particle)
+{
+	return (particle.PackedData & Particle_Additive_Mask) == Particle_Additive_Mask;
 }
 
 #endif
