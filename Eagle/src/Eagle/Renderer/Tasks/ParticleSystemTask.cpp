@@ -12,6 +12,8 @@
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Debug/GPUTimings.h"
 
+#include <glm/gtc/packing.hpp>
+
 #include "../../Eagle-Editor/assets/shaders/particle_system/common.h"
 
 namespace Eagle
@@ -41,10 +43,7 @@ namespace Eagle
 				v.y = x.y;
 			}
 
-			// packHalf2x16
-			const uint32_t v1 = ToFloat16(v.x);
-			const uint32_t v2 = ToFloat16(v.y);
-			return (v2 << 16) | v1;
+			return glm::packHalf2x16(v);
 		}
 
 		static uint32_t PackEmitterFlags(const ParticleEmitter& emitter)
@@ -55,6 +54,7 @@ namespace Eagle
 			flags |= emitter.bAlphaBlending ? Emitter_AlphaBlending_Mask : 0;
 			flags |= emitter.bEmit ? Emitter_Enabled_Mask : 0;
 			flags |= emitter.bAdditive ? Emitter_AdditiveBlending_Mask : 0;
+			flags |= emitter.bBlendAnimation ? Emitter_BlendAnimation_Mask : 0;
 
 			return flags;
 		}
@@ -609,7 +609,7 @@ namespace Eagle
 
 		// Recreate resources
 		{
-			const size_t newParticlesSize = m_MaxParticles * sizeof(Particle);
+			const size_t newParticlesSize = m_MaxParticles * sizeof(PackedParticle);
 			BufferSpecifications specs = m_ParticlesBuffer->GetSpecs();
 			specs.Size = newParticlesSize;
 			Ref<Buffer> newParticlesBuffer = Buffer::Create(specs, m_ParticlesBuffer->GetDebugName());
@@ -980,7 +980,7 @@ namespace Eagle
 			specs.Layout = BufferLayoutType::StorageBuffer;
 			specs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferSrc | BufferUsage::TransferDst;
 
-			specs.Size = m_MaxParticles * sizeof(Particle);
+			specs.Size = m_MaxParticles * sizeof(PackedParticle);
 			m_ParticlesBuffer = Buffer::Create(specs, "Particles");
 
 			specs.Size = m_MaxParticles * sizeof(uint32_t);

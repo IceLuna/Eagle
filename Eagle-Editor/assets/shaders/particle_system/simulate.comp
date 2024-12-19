@@ -6,9 +6,9 @@ layout(binding = 0) buffer PS_Data
     ParticleSystemData g_Data;
 };
 
-layout(binding = 1) buffer Particles
+layout(binding = 1) buffer PackedParticles
 {
-    Particle g_Particles[];
+    PackedParticle g_Particles[];
 };
 
 layout(binding = 2) readonly buffer Emitters
@@ -139,7 +139,7 @@ void main()
     if (!PopAlive(particleIndex))
         return;
 
-    Particle particle = g_Particles[particleIndex];
+    Particle particle = Particle_Unpack(g_Particles[particleIndex]);
     if (particle.CurrentLifetime >= particle.Lifetime)
     {
         PushDead(particleIndex);
@@ -147,8 +147,7 @@ void main()
     }
 
     vec3 force = vec3(0.f);
-    const uint emitterIndex = Particle_Unpack_EmitterIndex(particle);
-    const Emitter emitter = g_Emitters[emitterIndex];
+    const Emitter emitter = g_Emitters[particle.EmitterIndex];
     if (HasFlag(emitter.Flags, Emitter_ApplyGravity_Mask))
         force += g_Gravity;
         
@@ -174,8 +173,8 @@ void main()
         {
             const vec3 normal = DecodeNormal(texture(g_Normal, uv).xy); // .xy - Geometry Normal
             const float depth = ToLinear(texture(g_Depth, uv).x, g_CameraNear, g_CameraFar);
-            const vec3 particleSize = particle.Size * emitter.ColliderSizeRatio;
-            const float particleSizeMax = max(particleSize.x, max(particleSize.y, particleSize.z));
+            const vec2 particleSize = particle.Size * emitter.ColliderSizeRatio.xy;
+            const float particleSizeMax = max(particleSize.x, particleSize.y);
 		    const float surfaceThickness = 1.5f;
 		    if ((position.w + particleSizeMax > depth) && (position.w - particleSizeMax < depth + surfaceThickness))
             {
@@ -196,33 +195,37 @@ void main()
     }
 
     // Handle animation
+    float animationLerp = 0.f;
     if (emitter.TextureIndex != EG_INVALID_INDEX)
     {
         const float nextLifetime = particle.CurrentLifetime + g_DeltaTime;
         const float animationFPS = emitter.AnimationSpeed * float(emitter.AnimationImagesNum.x * emitter.AnimationImagesNum.y) / particle.Lifetime;
+        const float lifetimeMod = particle.Lifetime - uint(particle.Lifetime / animationFPS) * animationFPS;
+        animationLerp = lifetimeMod / animationFPS;
 
         // Don't update anim if about to die
         uint AdvanceAnimationCount = nextLifetime >= particle.Lifetime ? 0u : uint(nextLifetime * animationFPS) - uint(particle.CurrentLifetime * animationFPS);
-        const bool bAdvancedAnimation = AdvanceAnimationCount > 0;
-        while (AdvanceAnimationCount > 0)
+        while (AdvanceAnimationCount > 0) // TODO: Advance at once
         {
-            Particle_AdvanceAnimation(particle.AnimationSpriteCoord, emitter.AnimationImagesNum);
+            Particle_AdvanceAnimation(particle.AnimationSpriteCoord, u16vec2(emitter.AnimationImagesNum));
             --AdvanceAnimationCount;
         }
-        if (bAdvancedAnimation)
-            Particle_CalculateAnimationUV(particle.AnimationSpriteCoord, emitter.AnimationImagesNum, particle.AnimationUV0, particle.AnimationUV1);
     }
 
     const float lifeAlpha = particle.CurrentLifetime / particle.Lifetime;
-    particle.Color = mix(emitter.ColorStart, emitter.ColorEnd, lifeAlpha);
-    particle.Position += particle.Velocity * particle.VelocityCoef * g_DeltaTime;
-    particle.Size = mix(emitter.SizeStart, emitter.SizeEnd, lifeAlpha);
-    particle.CurrentLifetime += g_DeltaTime;
-    particle.RotationZ = mix(emitter.RotationZStart, emitter.RotationZEnd, lifeAlpha);
-    particle.VelocityCoef = mix(emitter.VelocityCoefStart, emitter.VelocityCoefEnd, lifeAlpha);
-    particle.TextureIndex = emitter.TextureIndex;
+    const float rotationZ = mix(emitter.RotationZStart, emitter.RotationZEnd, lifeAlpha);
 
-    g_Particles[particleIndex] = particle;
+    particle.Size = mix(emitter.SizeStart.xy, emitter.SizeEnd.xy, lifeAlpha);
+    particle.CurrentLifetime += g_DeltaTime;
+    particle.Position += particle.Velocity * particle.VelocityCoef * g_DeltaTime;
+    particle.Flags = EmitterFlagsToParticleFlags(emitter.Flags);
+    particle.RotationZ = float16_t(rotationZ);
+    particle.VelocityCoef = mix(emitter.VelocityCoefStart, emitter.VelocityCoefEnd, lifeAlpha);
+    particle.Color = f16vec4(mix(emitter.ColorStart, emitter.ColorEnd, lifeAlpha));
+    particle.TextureIndex = emitter.TextureIndex;
+    particle.AnimationLerp = float16_t(animationLerp);
+
+    g_Particles[particleIndex] = Particle_Pack(particle, u16vec2(emitter.AnimationImagesNum));
     PushAlive(particleIndex);
 
     if (emitter.IsVisible == 1)

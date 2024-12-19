@@ -2,6 +2,8 @@
 #define EG_UTILS
 
 #extension GL_KHR_shader_subgroup_ballot : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 
 // For each component of v, returns -1 if the component is < 0, else 1
 vec2 sign_not_zero(vec2 v)
@@ -451,6 +453,39 @@ bool FrustumAABBIntersection(CullingFrustum frustum, mat4 vsTransform, vec3 aabb
 vec3 BarycentricInterp(vec3 v0, vec3 v1, vec3 v2, vec2 buv)
 {
     return v0 * (1.f - buv.x - buv.y) + v1 * buv.x + v2 * buv.y;
+}
+
+uint PackR11G11B10_F16(f16vec3 value)
+{
+    u16vec3 value16 = halfBitsToUint16(value);
+
+    // Discarding some mantissa bits.
+    // Note: shifting to the right needs to be "4 or 5" instead of "5 or 6"
+    // because float16 has a sign bit and we don't need it.
+    uint r11 = uint(value16.x >> 4) & 0x7FF;
+    uint g11 = uint(value16.y >> 4) & 0x7FF;
+    uint b10 = uint(value16.z >> 5) & 0x3FF;
+    return (b10 << 22) | (g11 << 11) | r11;
+}
+
+f16vec3 UnpackR11G11B10_F16(uint packed)
+{
+    u16vec3 value16;
+    value16.x = uint16_t(packed & 0x7FF) << 4;
+    value16.y = uint16_t((packed >> 11) & 0x7FF) << 4;
+    value16.z = uint16_t((packed >> 22) & 0x3FF) << 5;
+
+    return uint16BitsToHalf(value16);
+}
+
+uint PackR11G11B10_F32(vec3 value)
+{
+    return PackR11G11B10_F16(f16vec3(value));
+}
+
+vec3 UnpackR11G11B10_F32(uint packed)
+{
+    return vec3(UnpackR11G11B10_F16(packed));
 }
 
 #define EG_SUBGROUP_ATOMIC_INCREMENT(data, bActive, outputIndex) \

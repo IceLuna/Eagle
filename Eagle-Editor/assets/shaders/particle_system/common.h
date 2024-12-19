@@ -47,9 +47,13 @@ const uint Emitter_ApplyGravity_Mask     = 1 << 1;
 const uint Emitter_AlphaBlending_Mask    = 1 << 2;
 const uint Emitter_Enabled_Mask          = 1 << 3;
 const uint Emitter_AdditiveBlending_Mask = 1 << 4;
+const uint Emitter_BlendAnimation_Mask   = 1 << 5;
 
-const uint Particle_Additive_Mask     = 1 << 31;
-const uint Particle_EmitterIndex_Mask = ~Particle_Additive_Mask;
+const uint Particle_Additive_Mask = 1 << 0;
+const uint Particle_BlendAnimation_Mask = 1 << 1;
+
+const uint Particle_TextureIndex_Bits = 12; // 12 bits
+const uint Particle_TextureIndex_Mask = (1 << Particle_TextureIndex_Bits) - 1u; // 0xFFF (12 bits)
 
 bool HasFlag(uint flags, uint mask)
 {
@@ -73,10 +77,11 @@ struct Emitter
 	vec3 VelocityMax;
 	uint NumParticles;
 
-	vec3 SizeStart;
-	float RotationZEnd;
+	vec2 SizeStart;
+	vec2 SizeEnd;
 
-	vec3 SizeEnd;
+	vec2 ColliderSizeRatio;
+	float RotationZEnd;
 	float RadialAcceleration;
 
 	vec3 RingRadius;
@@ -84,9 +89,6 @@ struct Emitter
 
 	vec3 RingThickness;
 	float TangentialAcceleration;
-
-	vec3 ColliderSizeRatio;
-	float BouncinessMax;
 
 	vec3 SphereRadius;
 	uint TransformIndex;
@@ -113,6 +115,12 @@ struct Emitter
 	uint IndexOffset;
 	uint IndexCount;
 
+	// TODO: Pack it somewhere
+	float BouncinessMax;
+	uint Padding0;
+	uint Padding1;
+	uint Padding2;
+
 	// This is internal data. Keep it at the end because during update only the data before it is being updated
 	vec3 WorldPos; // First
 	float DeltaTime;
@@ -123,30 +131,25 @@ struct Emitter
 	uint LoopIteration; // Current loop iteration. When reaches LoopCount, it won't spawn any particles
 };
 
-struct Particle
+struct PackedParticle
 {
-	// TODO: Change some of them to f16 to save space
-	// Color as uint (R11G11B10) and Opacity as uint8?
-	vec4 Color;
-
-	vec3 Size;
+	vec2 Size;
 	float CurrentLifetime;
+	float Lifetime;
 
 	vec3 Position;
-	float Lifetime;
-	
+	uint Flags;
+
 	vec3 Velocity;
-	float Bounciness;
+	uint Color; // R11G11B10
 
 	vec3 VelocityCoef;
-	float RotationZ;
+	uint Bounciness_Opacity; // packHalf2x16
 
-	vec2 AnimationUV0;
-	uint PackedData; // Highest bit is a flag for `Particle_Additive_Mask`. Rest - EmitterIndex
-	uint TextureIndex; // This could be stored just in Emitter. But it's here to avoid an addition read from emitters buffer just to get this index
-
-	vec2 AnimationUV1;
-	uvec2 AnimationSpriteCoord;
+	uint RotationZ_AnimationLerp; // packHalf2x16
+	uint Emitter_Texture_Indices; // Low 12 bits for texture index, rest is for emitter index. Texture index is stored here to avoid an addition read from emitters buffer just to get this index
+	uint AnimationImagesNum; // Used to calculate SpriteSize, which is used to calculate UV1 from UV0 (uv1 = uv0 + spriteSize)
+	uint AnimationSpriteCoord; // High 16 bits - x, rest - y
 };
 
 struct MeshVertex
@@ -157,11 +160,6 @@ struct MeshVertex
 
 #ifndef __cplusplus
 
-vec3 Particle_UnpackNormal(uint packed)
-{
-	return DecodeNormal(unpackHalf2x16(packed));
-}
-
 struct DrawArgs
 {
 	uint VertexCount;
@@ -170,41 +168,152 @@ struct DrawArgs
 	uint FirstInstance;
 };
 
-void Particle_CalculateAnimationUV(uvec2 coord, uvec2 animationImagesNum, out vec2 uv0, out vec2 uv1)
+struct Particle
+{
+	vec2 Size;
+	float CurrentLifetime;
+	float Lifetime;
+
+	vec3 Position;
+	uint Flags;
+
+	vec3 Velocity;
+	float16_t Bounciness;
+	float16_t RotationZ;
+
+	vec3 VelocityCoef;
+	uint EmitterIndex;
+
+	vec2 AnimationUV0;
+	vec2 AnimationUV1;
+	vec2 NextAnimationUV0; // Used for lerping
+	vec2 NextAnimationUV1; // Used for lerping
+
+	f16vec4 Color; // RGBA
+	uint TextureIndex;
+	u16vec2 AnimationSpriteCoord;
+	float16_t AnimationLerp;
+};
+
+void Particle_CalculateAnimationUV(u16vec2 coord, u16vec2 animationImagesNum, out vec2 uv0, out vec2 uv1)
 {
 	const vec2 spriteSize = 1.f / vec2(animationImagesNum);
-	uv0 = coord * spriteSize;
+	uv0 = vec2(coord) * spriteSize;
 	uv1 = uv0 + spriteSize;
 }
 
-void Particle_AdvanceAnimation(inout uvec2 coord, uvec2 animationImagesNum)
+void Particle_AdvanceAnimation(inout u16vec2 coord, u16vec2 animationImagesNum)
 {
-	coord.x += 1u;
+	coord.x += uint16_t(1u);
 
 	const bool exceededWidth = coord.x >= animationImagesNum.x;
 	if (exceededWidth)
 	{
-		coord.x = 0u;
-		coord.y += 1u;
+		coord.x = uint16_t(0u);
+		coord.y += uint16_t(1u);
 		const bool exceededHeight = coord.y >= animationImagesNum.y;
 		if (exceededHeight)
-			coord.y = 0u;
+			coord.y = uint16_t(0u);
 	}
 }
 
-uint Particle_PackData(uint emitterIndex, bool bAdditive)
+PackedParticle Particle_Pack(Particle particle, u16vec2 animationImagesNum)
 {
-	return (emitterIndex & Particle_EmitterIndex_Mask) | (bAdditive ? Particle_Additive_Mask : 0);
+	PackedParticle packed;
+
+	packed.Size = particle.Size;
+	packed.CurrentLifetime = particle.CurrentLifetime;
+	packed.Lifetime = particle.Lifetime;
+
+	packed.Position = particle.Position;
+	packed.Flags = particle.Flags;
+
+	packed.Velocity = particle.Velocity;
+	packed.Color = PackR11G11B10_F16(particle.Color.rgb);
+
+	packed.VelocityCoef = particle.VelocityCoef;
+	packed.Bounciness_Opacity = packFloat2x16(f16vec2(particle.Bounciness, particle.Color.a));
+
+	packed.RotationZ_AnimationLerp = packFloat2x16(f16vec2(particle.RotationZ, particle.AnimationLerp));
+	packed.Emitter_Texture_Indices = (particle.EmitterIndex << Particle_TextureIndex_Bits) | (particle.TextureIndex & Particle_TextureIndex_Mask);
+
+	packed.AnimationImagesNum = packUint2x16(animationImagesNum);
+	packed.AnimationSpriteCoord = packUint2x16(particle.AnimationSpriteCoord);
+
+	return packed;
 }
 
-uint Particle_Unpack_EmitterIndex(Particle particle)
+Particle Particle_Unpack(PackedParticle packed)
 {
-	return particle.PackedData & Particle_EmitterIndex_Mask;
+	f16vec2 unpackedf16;
+
+	Particle particle;
+
+	particle.Size = packed.Size;
+	particle.CurrentLifetime = packed.CurrentLifetime;
+	particle.Lifetime = packed.Lifetime;
+
+	particle.Position = packed.Position;
+	particle.Flags = packed.Flags;
+
+	particle.Velocity = packed.Velocity;
+	particle.Color.rgb = UnpackR11G11B10_F16(packed.Color);
+
+	unpackedf16 = unpackFloat2x16(packed.Bounciness_Opacity);
+	particle.VelocityCoef = packed.VelocityCoef;
+	particle.Bounciness = unpackedf16.x;
+	particle.Color.a = unpackedf16.y;
+
+	unpackedf16 = unpackFloat2x16(packed.RotationZ_AnimationLerp);
+	particle.RotationZ = unpackedf16.x;
+	particle.AnimationLerp = unpackedf16.y;
+	particle.TextureIndex = packed.Emitter_Texture_Indices & Particle_TextureIndex_Mask;
+	particle.EmitterIndex = packed.Emitter_Texture_Indices >> Particle_TextureIndex_Bits;
+
+	if (particle.TextureIndex != EG_INVALID_INDEX)
+	{
+		u16vec2 animationImagesNum = unpackUint2x16(packed.AnimationImagesNum);
+		u16vec2 animationSpriteCoord = unpackUint2x16(packed.AnimationSpriteCoord);
+		particle.AnimationSpriteCoord = animationSpriteCoord;
+
+		Particle_CalculateAnimationUV(animationSpriteCoord, animationImagesNum, particle.AnimationUV0, particle.AnimationUV1);
+		if (HasFlag(particle.Flags, Particle_BlendAnimation_Mask))
+		{
+			Particle_AdvanceAnimation(animationSpriteCoord, animationImagesNum);
+			Particle_CalculateAnimationUV(animationSpriteCoord, animationImagesNum, particle.NextAnimationUV0, particle.NextAnimationUV1);
+		}
+		else
+		{
+			particle.NextAnimationUV0 = vec2(0);
+			particle.NextAnimationUV1 = vec2(0);
+		}
+	}
+	else
+	{
+		particle.AnimationSpriteCoord = u16vec2(0);
+		particle.AnimationUV0 = vec2(0);
+		particle.AnimationUV1 = vec2(0);
+		particle.NextAnimationUV0 = vec2(0);
+		particle.NextAnimationUV1 = vec2(0);
+	}
+
+	return particle;
 }
 
-bool Particle_Unpack_IsAdditive(Particle particle)
+vec3 Particle_UnpackNormal(uint packed)
 {
-	return (particle.PackedData & Particle_Additive_Mask) == Particle_Additive_Mask;
+	return DecodeNormal(unpackHalf2x16(packed));
+}
+
+uint EmitterFlagsToParticleFlags(uint flags)
+{
+	uint result = 0u;
+	if (HasFlag(flags, Emitter_AdditiveBlending_Mask))
+		result |= Particle_Additive_Mask;
+	if (HasFlag(flags, Emitter_BlendAnimation_Mask))
+		result |= Emitter_BlendAnimation_Mask;
+
+	return result;
 }
 
 #endif

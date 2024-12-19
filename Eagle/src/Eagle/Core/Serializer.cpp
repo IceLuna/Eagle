@@ -803,6 +803,7 @@ namespace Eagle
 		for (const auto& emitter : emitters)
 		{
 			out << YAML::BeginMap;
+			out << YAML::Key << "Name" << YAML::Value << emitter.Name;
 			if (const auto& asset = emitter.Texture)
 				out << YAML::Key << "Texture" << YAML::Value << asset->GetGUID();
 			out << YAML::Key << "ColorStart" << YAML::Value << emitter.ColorStart;
@@ -858,6 +859,7 @@ namespace Eagle
 			out << YAML::Key << "bApplyGravity" << YAML::Value << emitter.bApplyGravity;
 			out << YAML::Key << "bAlphaBlending" << YAML::Value << emitter.bAlphaBlending;
 			out << YAML::Key << "bAdditive" << YAML::Value << emitter.bAdditive;
+			out << YAML::Key << "bBlendAnimation" << YAML::Value << emitter.bBlendAnimation;
 
 			out << YAML::EndMap;
 		}
@@ -3412,6 +3414,8 @@ namespace Eagle
 		{
 			auto& emitter = emitters.emplace_back();
 
+			if (auto n = node["Name"])
+				emitter.Name = n.as<std::string>();
 			emitter.Texture = GetAsset<AssetTexture2D>(node["Texture"]);
 			emitter.ColorStart = node["ColorStart"].as<glm::vec4>();
 			emitter.ColorEnd = node["ColorEnd"].as<glm::vec4>();
@@ -3431,9 +3435,9 @@ namespace Eagle
 			if (auto n = node["RotationZEnd"])
 				emitter.RotationZEnd = n.as<float>();
 
-			emitter.SizeStart = node["SizeStart"].as<glm::vec3>();
-			emitter.SizeEnd = node["SizeEnd"].as<glm::vec3>();
-			emitter.ColliderSizeRatio = node["ColliderSizeRatio"].as<glm::vec3>();
+			emitter.SizeStart = node["SizeStart"].as<glm::vec2>();
+			emitter.SizeEnd = node["SizeEnd"].as<glm::vec2>();
+			emitter.ColliderSizeRatio = node["ColliderSizeRatio"].as<glm::vec2>();
 
 			emitter.LifetimeMin = node["LifetimeMin"].as<float>();
 			emitter.LifetimeMax = node["LifetimeMax"].as<float>();
@@ -3480,6 +3484,8 @@ namespace Eagle
 			emitter.bAlphaBlending = node["bAlphaBlending"].as<bool>();
 			if (auto n = node["bAdditive"])
 				emitter.bAdditive = n.as<bool>();
+			if (auto n = node["bBlendAnimation"])
+				emitter.bBlendAnimation = n.as<bool>();
 		}
 
 		class LocalAssetParticleSystem : public AssetParticleSystem

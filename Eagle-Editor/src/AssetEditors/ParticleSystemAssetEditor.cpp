@@ -52,34 +52,37 @@ namespace Eagle
 		if (UI::Button("Emitter", "Add"))
 		{
 			m_Emitters.emplace_back();
-			m_SelectedEmitter = &m_Emitters.back();
+			m_SelectedEmitterIndex = m_Emitters.size() - 1u;
 			bChanged = true;
 		}
 
 		UI::EndPropertyGrid();
 
 		ImGui::Separator();
-		const ParticleEmitter* emitterToDelete = nullptr;
-		for (auto& emitter : m_Emitters)
+		size_t emitterIndexToDelete = s_InvalidIndex;
+		const size_t emittersCount = m_Emitters.size();
+		for (size_t i = 0; i < m_Emitters.size(); ++i)
 		{
-			const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | (&emitter == m_SelectedEmitter ? ImGuiTreeNodeFlags_Selected : 0);
+			auto& emitter = m_Emitters[i];
+			const ParticleEmitter* selectedEmitter = m_SelectedEmitterIndex != s_InvalidIndex ? &m_Emitters[m_SelectedEmitterIndex] : nullptr;
+			const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | (&emitter == selectedEmitter ? ImGuiTreeNodeFlags_Selected : 0);
 			const void* hash = (void*)emitter.ID.GetHash();
-			const bool opened = ImGui::TreeNodeEx(hash, flags, "Emitter");
+			const bool opened = ImGui::TreeNodeEx(hash, flags, emitter.Name.c_str());
 
 			if (ImGui::IsItemClicked())
 			{
-				m_SelectedEmitter = &emitter;
+				m_SelectedEmitterIndex = i;
 			}
 
 			if (ImGui::BeginPopupContextItem(nullptr))
 			{
 				if (ImGui::MenuItem("Delete"))
 				{
-					if (m_SelectedEmitter == &emitter)
+					if (selectedEmitter == &emitter)
 					{
-						m_SelectedEmitter = nullptr;
+						m_SelectedEmitterIndex = s_InvalidIndex;
 					}
-					emitterToDelete = &emitter;
+					emitterIndexToDelete = i;
 					bChanged = true;
 				}
 
@@ -88,6 +91,10 @@ namespace Eagle
 
 			if (!opened && !bChanged)
 				continue;
+
+			ImGui::PushID(hash);
+
+			bChanged |= UI::InputText("Name", emitter.Name);
 
 			ImGui::Separator();
 			{
@@ -112,7 +119,6 @@ namespace Eagle
 			ImGui::Separator();
 
 			UI::BeginPropertyGrid("ParticleSystemAssetEditor");
-			ImGui::PushID(hash);
 
 			bChanged |= UI::PropertyDrag("Visibility AABB Min", emitter.VisibilityAABB.Min, 0.1f, 0, 0, "If AABB is not visible by the camera, the particle system is not rendered");
 			bChanged |= UI::PropertyDrag("Visibility AABB Max", emitter.VisibilityAABB.Max, 0.1f, 0, 0, "If AABB is not visible by the camera, the particle system is not rendered");
@@ -125,11 +131,12 @@ namespace Eagle
 				bChanged = true;
 			}
 
+			UI::TextWithSeparator("Animation");
 			bChanged |= UI::DrawAssetSelection("Texture", emitter.Texture);
-
 			bChanged |= UI::PropertyDrag("Hor. frames number", emitter.AnimationImagesNum.x, 1.f, 1u, UINT_MAX, "The number of columns in the sprite sheet");
 			bChanged |= UI::PropertyDrag("Ver. frames number", emitter.AnimationImagesNum.y, 1.f, 1u, UINT_MAX, "The number of rows in the sprite sheet");
 			bChanged |= UI::PropertyDrag("Animation Speed", emitter.AnimationSpeed, 0.1f);
+			bChanged |= UI::Property("Blend Animation", emitter.bBlendAnimation);
 
 			// TODO: it's currently not supported
 			//if (UI::PropertyDrag("Fast forward to", emitter.FastForwardTo, 0.1f, 0, 0, "Allows to fast-forward the simulation to make it look like it was running for `Fast forward to` seconds"))
@@ -138,10 +145,12 @@ namespace Eagle
 			//	bChanged = true;
 			//}
 
+			UI::TextWithSeparator("Acceleration");
 			bChanged |= UI::PropertyDrag("Radial Acceleration", emitter.RadialAcceleration, 0.1f, 0, 0, "If it's negative, particles will move towards the center of the emitter. If positive, they move away from the center");
 			bChanged |= UI::PropertyDrag("Tangential Acceleration", emitter.TangentialAcceleration, 0.1f, 0, 0, "If it's negative, particles will move towards the center of the emitter in a spiral way. If positive, they move away from the center");
 			bChanged |= UI::PropertyDrag("Normal Velocity Factor", emitter.NormalVelocityFactor, 0.1f, 0, 0, "If not 0, particle's initial velocity will be affected by `EmissionShapeType` normal direction.\nOnly supported for Sphere and Mesh shapes!");
 
+			UI::TextWithSeparator("Modes");
 			bChanged |= UI::ComboEnum("Collision Mode", emitter.CollisionMode, "It's a screen space collision detection");
 			bChanged |= UI::ComboEnum("Emission Shape", emitter.EmissionShape);
 			bChanged |= UI::PropertyDrag("Sphere Radius", emitter.SphereRadius, 0.1f, 0, 0);
@@ -151,6 +160,7 @@ namespace Eagle
 			bChanged |= UI::PropertyDrag("Ring Thickness", emitter.RingThickness, 0.1f, 0, 0);
 			bChanged |= UI::DrawAssetSelection("Mesh", emitter.MeshAsset);
 
+			UI::TextWithSeparator("Flags");
 			bChanged |= UI::Property("Emit", emitter.bEmit);
 			bChanged |= UI::Property("Explode", emitter.bExplode, "If set to true, all particles will be emitted at once. Otherwise, they're emitted sequentially throughout the lifetime");
 			bChanged |= UI::Property("Apply Gravity", emitter.bApplyGravity);
@@ -199,26 +209,32 @@ namespace Eagle
 			bChanged |= UI::PropertyDrag("Bounciness Min", emitter.BouncinessMin, 0.1f);
 			bChanged |= UI::PropertyDrag("Bounciness Max", emitter.BouncinessMax, 0.1f);
 
-			ImGui::PopID();
 			UI::EndPropertyGrid();
+			ImGui::PopID();
+			ImGui::Separator();
 			if (opened)
 				ImGui::TreePop();
 		}
 
-		if (emitterToDelete)
+		if (emitterIndexToDelete != s_InvalidIndex)
 		{
-			// Not the most efficient way, but hey, it's executed once in a lifetime
-			for (size_t i = 0; i < m_Emitters.size(); ++i)
+			auto it = m_Emitters.begin();
+			std::advance(it, emitterIndexToDelete);
+			m_Emitters.erase(it);
+
+			if (m_SelectedEmitterIndex != s_InvalidIndex)
 			{
-				if (emitterToDelete == &m_Emitters[i])
+				if (m_SelectedEmitterIndex == emitterIndexToDelete)
 				{
-					auto it = m_Emitters.begin();
-					std::advance(it, i);
-					m_Emitters.erase(it);
-					break;
+					m_SelectedEmitterIndex = s_InvalidIndex;
+				}
+				else if (m_SelectedEmitterIndex > emitterIndexToDelete)
+				{
+					--m_SelectedEmitterIndex;
 				}
 			}
-			emitterToDelete = nullptr;
+
+			emitterIndexToDelete = s_InvalidIndex;
 		}
 
 		bChanged |= bGuizmoChanged;
@@ -244,10 +260,11 @@ namespace Eagle
 	
 	void ParticleSystemAssetEditor::UpdateGuizmo()
 	{
-		if (!m_SelectedEmitter)
+		if (m_SelectedEmitterIndex == s_InvalidIndex)
 			return;
 
-		const int id = int(m_SelectedEmitter->ID.GetHash());
-		bGuizmoChanged = DrawGuizmo(m_SelectedEmitter->RelativeTransform, id, true);
+		auto& emitter = m_Emitters[m_SelectedEmitterIndex];
+		const int id = int(emitter.ID.GetHash());
+		bGuizmoChanged = DrawGuizmo(emitter.RelativeTransform, id, true);
 	}
 }

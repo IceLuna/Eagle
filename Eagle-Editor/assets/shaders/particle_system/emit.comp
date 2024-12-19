@@ -6,9 +6,9 @@ layout(binding = 0) buffer PS_Data
     ParticleSystemData g_Data;
 };
 
-layout(binding = 1) buffer Particles
+layout(binding = 1) buffer PackedParticles
 {
-    Particle g_Particles[];
+    PackedParticle g_Particles[];
 };
 
 layout(binding = 2) readonly buffer Emitters
@@ -156,7 +156,6 @@ void main()
 
     const uint emitterIndex = GetEmitterIndex(gidx);
     const Emitter emitter = g_Emitters[emitterIndex];
-    Particle particle = g_Particles[particleIndex];
 
     Random random = Random_Init(uvec2(0, gidx), g_FrameNumber);
 
@@ -171,19 +170,29 @@ void main()
         normal = normalize(normalModel * normal);
     }
 
-    particle.Color = emitter.ColorStart;
-    particle.Size = emitter.SizeStart;
-    particle.CurrentLifetime = 0.f;
-    particle.Position = position;
-    particle.Lifetime = mix(emitter.LifetimeMin, emitter.LifetimeMax, Random_NextFloat(random));
-    particle.Velocity = normal * emitter.NormalVelocityFactor + mix(emitter.VelocityMin, emitter.VelocityMax, Random_NextFloat3(random));
-    particle.Bounciness = mix(emitter.BouncinessMin, emitter.BouncinessMax, Random_NextFloat(random));
-    particle.RotationZ = emitter.RotationZStart;
-    particle.VelocityCoef = emitter.VelocityCoefStart;
-    particle.PackedData = Particle_PackData(emitterIndex, HasFlag(emitter.Flags, Emitter_AdditiveBlending_Mask));
-    particle.AnimationSpriteCoord = uvec2(0, 0);
-    Particle_CalculateAnimationUV(particle.AnimationSpriteCoord, emitter.AnimationImagesNum, particle.AnimationUV0, particle.AnimationUV1);
+    const float bounciness = mix(emitter.BouncinessMin, emitter.BouncinessMax, Random_NextFloat(random));
+    const float opacity = emitter.ColorStart.a;
 
-    g_Particles[particleIndex] = particle;
+    Particle particle;
+    particle.Size = emitter.SizeStart.xy;
+    particle.CurrentLifetime = 0.f;
+    particle.Lifetime = mix(emitter.LifetimeMin, emitter.LifetimeMax, Random_NextFloat(random));
+
+    particle.Position = position;
+    particle.Flags = EmitterFlagsToParticleFlags(emitter.Flags);
+
+    particle.Velocity = normal * emitter.NormalVelocityFactor + mix(emitter.VelocityMin, emitter.VelocityMax, Random_NextFloat3(random));
+    particle.Bounciness = float16_t(bounciness);
+    particle.RotationZ = float16_t(emitter.RotationZStart);
+
+    particle.VelocityCoef = emitter.VelocityCoefStart;
+    particle.EmitterIndex = emitterIndex;
+
+    particle.Color = f16vec4(emitter.ColorStart);
+    particle.TextureIndex = emitter.TextureIndex;
+    particle.AnimationSpriteCoord = u16vec2(0);
+    particle.AnimationLerp = float16_t(0.f);
+
+    g_Particles[particleIndex] = Particle_Pack(particle, u16vec2(emitter.AnimationImagesNum));
     PushAlive(particleIndex);
 }

@@ -37,9 +37,9 @@ namespace Eagle
 		float RotationZStart = 0.f;
 		float RotationZEnd = 0.f;
 
-		glm::vec3 SizeStart = glm::vec3(1);
-		glm::vec3 SizeEnd = glm::vec3(0);
-		glm::vec3 ColliderSizeRatio = glm::vec3(1); // Can be used to increase the size of a collider to prevent small and fast-moving particles from clipping through
+		glm::vec2 SizeStart = glm::vec2(1);
+		glm::vec2 SizeEnd = glm::vec2(0);
+		glm::vec2 ColliderSizeRatio = glm::vec2(1); // Can be used to increase the size of a collider to prevent small and fast-moving particles from clipping through
 
 		// In seconds
 		float LifetimeMin = 1.f;
@@ -49,6 +49,7 @@ namespace Eagle
 		float BouncinessMax = 1.f;
 
 		// ---------------- Emitter properties ----------------
+		std::string Name = "Emitter";
 		GUID ID{};
 		Transform RelativeTransform; // Relative to the particle system
 		AABB VisibilityAABB = AABB(glm::vec3(-1.f), glm::vec3(1.f)); // If not visible by the camera, it's not rendered to improve perf
@@ -83,6 +84,7 @@ namespace Eagle
 		bool bApplyGravity = false;
 		bool bAlphaBlending = true;
 		bool bAdditive = false;
+		bool bBlendAnimation = true;
 
 		bool operator== (const ParticleEmitter& other) const
 		{
