@@ -333,7 +333,7 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					ImGui::Separator();
+					UI::TextWithSeparator("Materials");
 
 					const uint32_t materialsCount = smComponent.GetMaterialsSlotsCount();
 					for (uint32_t i = 0; i < materialsCount; ++i)

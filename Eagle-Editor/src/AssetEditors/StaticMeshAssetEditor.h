@@ -6,6 +6,7 @@
 namespace Eagle
 {
 	class AssetStaticMesh;
+	class StaticMeshComponent;
 
 	class StaticMeshAssetEditor : public AssetEditor
 	{
@@ -18,5 +19,6 @@ namespace Eagle
 
 	private:
 		Ref<AssetStaticMesh> m_Asset;
+		StaticMeshComponent* m_Component = nullptr; // Not owning
 	};
 }

@@ -34,6 +34,7 @@ namespace Eagle
 		void HandleAddPanel();
 		void HandleAssetEditors();
 		void RefreshContentInfo();
+		bool HandleImport();
 
 		void GetSearchingContent(const std::string& search, std::vector<Path>& outFiles);
 

@@ -130,6 +130,13 @@ namespace Eagle
 
 		if (ImGui::BeginPopupContextWindow("ContentBrowserPopup", ImGuiPopupFlags_MouseButtonRight))
 		{
+			if (ImGui::MenuItem("Import..."))
+			{
+				if (HandleImport())
+					m_RefreshBrowser = true;
+			}
+			ImGui::Separator();
+
 			if (ImGui::MenuItem("Create Entity"))
 				AssetImporter::CreateEntity(m_CurrentDirectoryRelative);
 			if (ImGui::MenuItem("Create Material"))
@@ -146,7 +153,7 @@ namespace Eagle
 				m_DrawAnimationGraphImporter = true;
 			}
 
-			if (ImGui::MenuItem("Create folder"))
+			if (ImGui::MenuItem("Create Folder"))
 			{
 				m_bShowInputName = true;
 				m_InputState = InputNameState::NewFolder;
@@ -345,6 +352,36 @@ namespace Eagle
 		}
 	}
 
+	bool ContentBrowserPanel::HandleImport()
+	{
+		bool bCreatedAsset = false;
+
+		Path path = FileDialog::OpenFile(FileDialog::IMPORT_FILTER);
+		if (!path.empty())
+		{
+			const AssetType assetType = AssetImporter::GetAssetTypeByExtension(path);
+			if (assetType == AssetType::Texture2D || assetType == AssetType::TextureCube)
+			{
+				m_TextureImporter = TextureImporterPanel(path);
+				m_DrawAddPanel = false;
+				m_DrawTextureImporter = true;
+			}
+			else if (assetType == AssetType::StaticMesh || assetType == AssetType::SkeletalMesh)
+			{
+				m_MeshImporter = MeshImporterPanel(path);
+				m_DrawAddPanel = false;
+				m_DrawMeshImporter = true;
+			}
+			else
+			{
+				AssetImporter::Import(path, m_CurrentDirectoryRelative, assetType, {});
+				bCreatedAsset = true;
+			}
+		}
+
+		return bCreatedAsset;
+	}
+
 	void ContentBrowserPanel::HandleAssetEditors()
 	{
 		for (auto it = m_AssetEditors.begin(); it != m_AssetEditors.end(); )
@@ -379,28 +416,7 @@ namespace Eagle
 
 			if (UI::ImageButtonWithTextHorizontal(m_UnknownIcon, "Import...", { s_ItemSize, s_ItemSize }, s_ItemSize))
 			{
-				Path path = FileDialog::OpenFile(FileDialog::IMPORT_FILTER);
-				if (!path.empty())
-				{
-					const AssetType assetType = AssetImporter::GetAssetTypeByExtension(path);
-					if (assetType == AssetType::Texture2D || assetType == AssetType::TextureCube)
-					{
-						m_TextureImporter = TextureImporterPanel(path);
-						m_DrawAddPanel = false;
-						m_DrawTextureImporter = true;
-					}
-					else if (assetType == AssetType::StaticMesh || assetType == AssetType::SkeletalMesh)
-					{
-						m_MeshImporter = MeshImporterPanel(path);
-						m_DrawAddPanel = false;
-						m_DrawMeshImporter = true;
-					}
-					else
-					{
-						AssetImporter::Import(path, m_CurrentDirectoryRelative, assetType, {});
-						bCreatedAsset = true;
-					}
-				}
+				bCreatedAsset |= HandleImport();
 			}
 			UI::Tooltip(s_ImportTooltip);
 

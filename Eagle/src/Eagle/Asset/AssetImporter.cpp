@@ -587,7 +587,7 @@ namespace Eagle
 				if (materialIndex >= importedMaterials.size())
 					continue;
 
-				importedMeshData.Mesh->SetMaterialAsset(uint32_t(i), importedMaterials[materialIndex]);
+				importedMeshData.Mesh->SetMaterialAsset(materialIndex, importedMaterials[materialIndex]);
 			}
 		}
 

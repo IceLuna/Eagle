@@ -96,7 +96,7 @@ namespace Eagle
 
 	private:
 		std::vector<Vertex> m_Vertices;
-		std::vector<std::vector<Index>> m_IndicesPerMaterial; // Indices of different materials are split. So, indices that correspond to `material slot = 0` is `m_IndicesPerMaterial[0]
+		std::vector<std::vector<Index>> m_IndicesPerMaterial; // Indices per material. So, indices that correspond to `material slot = 0` is `m_IndicesPerMaterial[0]`
 		AABB m_AABB;
 		uint32_t m_MaterialSlots;
 		std::vector<Ref<AssetMaterial>> m_Materials;

@@ -187,6 +187,7 @@ namespace Eagle
 
 	void SkeletalMeshAssetEditor::OnImGuiRender(bool* pOpen)
 	{
+		auto& component = m_Entity.GetComponent<SkeletalMeshComponent>();
 		auto& mesh = m_Asset->GetMesh();
 		const size_t verticesCount = mesh->GetVerticesCount();
 		size_t indicesCount = 0;
@@ -198,13 +199,27 @@ namespace Eagle
 		ImGui::Begin(m_Asset->GetPath().u8string().c_str(), pOpen);
 		UI::BeginPropertyGrid("SkeletalMeshDetails");
 
+		UI::TextWithSeparator("Data");
 		UI::Text("Name", m_Asset->GetPath().stem().u8string());
 		UI::Text("Type", "Skeletal Mesh");
 		UI::Text("Vertices", std::to_string(verticesCount));
 		UI::Text("Indices", std::to_string(indicesCount));
 		UI::Text("Vertices Mem Usage (Kb)", std::to_string(verticesCount * sizeof(SkeletalVertex) / 1024));
 		UI::Text("Indices Mem Usage (Kb)", std::to_string(indicesCount * sizeof(Index) / 1024));
-		ImGui::Separator();
+
+		UI::TextWithSeparator("Materials");
+
+		const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
+		for (uint32_t i = 0; i < materialsCount; ++i)
+		{
+			auto materialAsset = mesh->GetMaterialAsset(i);
+			if (UI::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
+			{
+				mesh->SetMaterialAsset(i, materialAsset);
+				component.SetMaterialAsset(i, materialAsset);
+				bChanged = true;
+			}
+		}
 
 		UI::EndPropertyGrid();
 

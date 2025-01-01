@@ -12,7 +12,8 @@ namespace Eagle
 		: AssetEditor(true), m_Asset(asset)
 	{
 		Entity entity = m_Scene->CreateEntity("StaticMeshAssetEditor");
-		entity.AddComponent<StaticMeshComponent>().SetMeshAsset(m_Asset);
+		m_Component = &entity.AddComponent<StaticMeshComponent>();
+		m_Component->SetMeshAsset(m_Asset);
 
 		auto& camera = m_Scene->GetEditorCamera();
 		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
@@ -38,13 +39,27 @@ namespace Eagle
 		ImGui::Begin(m_Asset->GetPath().u8string().c_str(), pOpen);
 		UI::BeginPropertyGrid("StaticMeshDetails");
 
+		UI::TextWithSeparator("Data");
 		UI::Text("Name", m_Asset->GetPath().stem().u8string());
 		UI::Text("Type", "Static Mesh");
 		UI::Text("Vertices", std::to_string(verticesCount));
 		UI::Text("Indices", std::to_string(indicesCount));
 		UI::Text("Vertices Mem Usage (Kb)", std::to_string(verticesCount * sizeof(Vertex) / 1024));
 		UI::Text("Indices Mem Usage (Kb)", std::to_string(indicesCount * sizeof(Index) / 1024));
-		ImGui::Separator();
+
+		UI::TextWithSeparator("Materials");
+
+		const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
+		for (uint32_t i = 0; i < materialsCount; ++i)
+		{
+			auto materialAsset = mesh->GetMaterialAsset(i);
+			if (UI::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
+			{
+				mesh->SetMaterialAsset(i, materialAsset);
+				m_Component->SetMaterialAsset(i, materialAsset);
+				bChanged = true;
+			}
+		}
 
 		UI::EndPropertyGrid();
 
