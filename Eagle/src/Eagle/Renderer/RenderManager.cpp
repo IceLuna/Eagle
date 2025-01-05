@@ -608,6 +608,11 @@ namespace Eagle
 			const bool bSwapchainValid = s_RendererData->Swapchain->IsValid();
 			fence->Reset();
 
+			{
+				EG_CPU_TIMING_SCOPED("Freeing resources");
+				s_ResourceFreeQueue[s_RendererData->CurrentReleaseFrameIndex].Execute();
+			}
+
 			UpdateGPUTimings();
 
 			auto& cmd = GetCurrentFrameCommandBuffer();
@@ -638,10 +643,6 @@ namespace Eagle
 
 			s_RendererData->CurrentRenderingFrameIndex = (s_RendererData->CurrentRenderingFrameIndex + 1) % RendererConfig::FramesInFlight;
 			s_RendererData->CurrentReleaseFrameIndex = (s_RendererData->CurrentReleaseFrameIndex + 1) % RendererConfig::ReleaseFramesInFlight;
-
-			EG_CPU_TIMING_SCOPED("Freeing resources");
-			s_ResourceFreeQueue[s_RendererData->CurrentReleaseFrameIndex].Execute();
-
 			s_RendererData->FrameNumber++;
 		});
 
