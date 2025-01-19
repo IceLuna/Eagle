@@ -146,8 +146,14 @@ void main()
         return;
     }
 
-    vec3 force = vec3(0.f);
     const Emitter emitter = g_Emitters[particle.EmitterIndex];
+    if ((HasFlag(emitter.Flags, Emitter_Enabled_Mask) == false) && HasFlag(emitter.Flags, Emitter_DestroyImmediately_Mask))
+    {
+        PushDead(particleIndex);
+        return;
+    }
+
+    vec3 force = vec3(0.f);
     if (HasFlag(emitter.Flags, Emitter_ApplyGravity_Mask))
         force += g_Gravity;
         

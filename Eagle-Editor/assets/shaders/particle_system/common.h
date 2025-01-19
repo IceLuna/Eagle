@@ -42,12 +42,13 @@ using uvec2 = glm::uvec2;
 
 #endif
 
-const uint Emitter_Explode_Mask          = 1 << 0;
-const uint Emitter_ApplyGravity_Mask     = 1 << 1;
-const uint Emitter_AlphaBlending_Mask    = 1 << 2;
-const uint Emitter_Enabled_Mask          = 1 << 3;
-const uint Emitter_AdditiveBlending_Mask = 1 << 4;
-const uint Emitter_BlendAnimation_Mask   = 1 << 5;
+const uint Emitter_Explode_Mask            = 1 << 0;
+const uint Emitter_ApplyGravity_Mask       = 1 << 1;
+const uint Emitter_AlphaBlending_Mask      = 1 << 2;
+const uint Emitter_Enabled_Mask            = 1 << 3;
+const uint Emitter_AdditiveBlending_Mask   = 1 << 4;
+const uint Emitter_BlendAnimation_Mask     = 1 << 5;
+const uint Emitter_DestroyImmediately_Mask = 1 << 6;
 
 const uint Particle_Additive_Mask = 1 << 0;
 const uint Particle_BlendAnimation_Mask = 1 << 1;

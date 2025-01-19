@@ -854,6 +854,7 @@ namespace Eagle
 				out << YAML::Key << "Mesh" << YAML::Value << emitter.MeshAsset->GetGUID();
 			out << YAML::Key << "CollisionMode" << YAML::Value << Utils::GetEnumName(emitter.CollisionMode);
 
+			out << YAML::Key << "bDestroyImmediately" << YAML::Value << emitter.bDestroyImmediately;
 			out << YAML::Key << "bEmit" << YAML::Value << emitter.bEmit;
 			out << YAML::Key << "bExplode" << YAML::Value << emitter.bExplode;
 			out << YAML::Key << "bApplyGravity" << YAML::Value << emitter.bApplyGravity;
@@ -3478,6 +3479,8 @@ namespace Eagle
 			if (auto n = node["Mesh"])
 				emitter.MeshAsset = GetAsset<AssetStaticMesh>(n);
 			emitter.CollisionMode = Utils::GetEnumFromName<ParticleEmitter::CollisionModeType>(node["CollisionMode"].as<std::string>());
+			if (auto n = node["bDestroyImmediately"])
+				emitter.bDestroyImmediately = n.as<bool>();
 			emitter.bEmit = node["bEmit"].as<bool>();
 			emitter.bExplode = node["bExplode"].as<bool>();
 			emitter.bApplyGravity = node["bApplyGravity"].as<bool>();

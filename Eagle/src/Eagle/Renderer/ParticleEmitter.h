@@ -79,6 +79,7 @@ namespace Eagle
 		glm::uvec2 AnimationImagesNum = glm::uvec2(1u); // Horizontal & Vertical images count
 		float AnimationSpeed = 1.f;
 
+		bool bDestroyImmediately = false; // If set to true, particles will be destroyed immediately when emitter is disabled/destroyed (instead of following their lifetime)
 		bool bEmit = true;
 		bool bExplode = false; // If set to true, all particles will be emitted at once. Otherwise, they're emitted sequentially throughout the lifetime
 		bool bApplyGravity = false;

@@ -69,6 +69,9 @@ namespace Eagle
 		SceneRenderer(const glm::uvec2 size, const SceneRendererSettings& options = {});
 
 		void Render(const Camera* camera, const glm::mat4& viewMat, glm::vec3 viewPosition, glm::vec3 viewDirection);
+		void SetOutputImage(const Ref<Image>& image);
+
+		ImageSpecifications GetOutputImageSpecs() const; // Can be used to create an output image that can be used be the renderer (SetOutputImage)
 
 		//---------------------------------- Render functions ----------------------------------
 		// For these functions, Renderer copies required data from components

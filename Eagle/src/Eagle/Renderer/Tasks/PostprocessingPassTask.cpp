@@ -10,10 +10,9 @@
 
 namespace Eagle
 {
-	PostprocessingPassTask::PostprocessingPassTask(SceneRenderer& renderer, const Ref<Image>& input, const Ref<Image>& output)
+	PostprocessingPassTask::PostprocessingPassTask(SceneRenderer& renderer, const Ref<Image>& input)
 		: RendererTask(renderer)
 		, m_Input(input)
-		, m_Output(output)
 	{
 		bAutoExposure = m_Renderer.GetOptions().AutoExposure.bEnable;
 
@@ -170,6 +169,7 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Postprocessing. Apply");
 
 		const auto& options = m_Renderer.GetOptions_RT();
+		auto& output = m_Renderer.GetOutput();
 
 		struct PushData
 		{
@@ -192,11 +192,11 @@ namespace Eagle
 		pushData.TonemappingMethod = (uint32_t)options.Tonemapping;
 
 		m_Pipeline->SetImage(m_Input, 0, 0);
-		m_Pipeline->SetImage(m_Output, 0, 1);
+		m_Pipeline->SetImage(output, 0, 1);
 		m_Pipeline->SetBuffer(m_Exposure, 0, 2);
 
-		cmd->TransitionLayout(m_Output, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
+		cmd->TransitionLayout(output, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
 		cmd->Dispatch(m_Pipeline, numGroups.x, numGroups.y, 1, &pushData);
-		cmd->TransitionLayout(m_Output, ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(output, ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
 	}
 }

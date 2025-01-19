@@ -10,7 +10,7 @@ namespace Eagle
 	class GridTask : public RendererTask
 	{
 	public:
-		GridTask(SceneRenderer& renderer, const Ref<Image>& output);
+		GridTask(SceneRenderer& renderer);
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void InitWithOptions(const SceneRendererSettings& settings) override
 		{
@@ -28,7 +28,6 @@ namespace Eagle
 
 	private:
 		Ref<PipelineGraphics> m_Pipeline;
-		Ref<Image> m_Output;
 		bool bJitter = false;
 	};
 }

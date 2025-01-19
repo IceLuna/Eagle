@@ -92,6 +92,7 @@ namespace Eagle
 	void EntityAssetEditor::OnEntityChanged()
 	{
 		m_Asset->SetDirty(true);
+		m_Asset->OnModified();
 		m_Scene->DestroyEntity(m_Entity);
 		m_Entity = m_Scene->CreateFromEntityAsset(m_Asset);
 	}

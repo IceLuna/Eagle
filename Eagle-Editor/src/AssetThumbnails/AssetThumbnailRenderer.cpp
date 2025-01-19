@@ -1,0 +1,167 @@
+#include "egpch.h"
+
+#include "AssetThumbnailRenderer.h"
+
+#include "Eagle/Core/Scene.h"
+#include "Eagle/Asset/AssetManager.h"
+#include "Eagle/Components/Components.h"
+
+namespace Eagle
+{
+	AssetThumbnailRenderer::AssetThumbnailRenderer()
+	{
+		SceneRendererSettings settings = SceneRendererSettings::GetBasicSettings();
+		m_Renderer = MakeRef<SceneRenderer>(glm::uvec2{1u}, settings);
+		m_Scene = MakeRef<Scene>("AssetThumbnail", m_Renderer);
+		m_Scene->bDrawMiscellaneous = false;
+		m_Scene->SetUseSkyAsBackground(false);
+	}
+
+	void AssetThumbnailRenderer::Prepare(glm::uvec2 size, bool bNeedSkybox)
+	{
+		m_Scene->ClearScene();
+		m_Scene->OnViewportResize(size.x, size.y);
+		m_Scene->SetSkyboxEnabled(bNeedSkybox);
+		if (bNeedSkybox)
+		{
+			const auto& skybox = AssetManager::GetPreviewSkybox();
+			m_Scene->SetSkybox(skybox);
+		}
+	}
+
+	void AssetThumbnailRenderer::Render()
+	{
+		m_Image = Image::Create(m_Renderer->GetOutputImageSpecs(), "Thumbnail_Output");
+		m_Renderer->SetOutputImage(m_Image);
+		m_Scene->OnUpdate(Application::Get().GetTimestep(), true, true);
+		m_TempAsset.reset();
+	}
+
+	void AssetThumbnailRenderer::SetupScene(const Ref<AssetStaticMesh>& asset)
+	{
+		Entity entity = m_Scene->CreateEntity("StaticMeshAssetThumbnail");
+		auto& component = entity.AddComponent<StaticMeshComponent>();
+		component.SetMeshAsset(asset);
+
+		auto& camera = m_Scene->GetEditorCamera();
+		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
+		camera.LookAt(glm::vec3(0, 0, 0));
+		const glm::vec3 cameraDir = camera.GetForwardVector();
+
+		const auto& aabb = asset->GetMesh()->GetAABB();
+		const glm::vec3 center = aabb.Center();
+		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 1.5f); // Move back
+		camera.LookAt(center);
+	}
+
+	void AssetThumbnailRenderer::SetupScene(const Ref<AssetSkeletalMesh>& asset)
+	{
+		Entity entity = m_Scene->CreateEntity("SkeletalMeshAssetThumbnail");
+		auto& component = entity.AddComponent<SkeletalMeshComponent>();
+		component.SetMeshAsset(asset);
+
+		auto& camera = m_Scene->GetEditorCamera();
+		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
+		camera.LookAt(glm::vec3(0, 0, 0));
+		const glm::vec3 cameraDir = camera.GetForwardVector();
+
+		const auto& aabb = asset->GetMesh()->GetAABB();
+		const glm::vec3 center = aabb.Center();
+		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 1.5f); // Move back
+		camera.LookAt(center);
+	}
+
+	void AssetThumbnailRenderer::SetupScene(const Ref<AssetMaterial>& asset)
+	{
+		const auto& sphere = AssetManager::GetPreviewSphere();
+
+		Entity entity = m_Scene->CreateEntity("MaterialAssetThumbnail");
+		auto& component = entity.AddComponent<StaticMeshComponent>();
+		component.SetMeshAsset(sphere);
+		component.SetMaterialAsset(0, asset);
+
+		Transform tr{};
+		tr.Rotation = glm::rotate(tr.Rotation.GetQuat(), glm::radians(-90.f), glm::vec3(1.f, 0.f, 0.f));
+		component.SetWorldTransform(tr);
+
+		auto& camera = m_Scene->GetEditorCamera();
+		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
+		camera.LookAt(glm::vec3(0, 0, 0));
+		const glm::vec3 cameraDir = camera.GetForwardVector();
+
+		const auto& aabb = sphere->GetMesh()->GetAABB();
+		const glm::vec3 center = aabb.Center();
+		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 1.5f); // Move back
+		camera.LookAt(center);
+	}
+
+	void AssetThumbnailRenderer::SetupScene(const Ref<AssetEntity>& asset)
+	{
+		Entity entity = m_Scene->CreateFromEntityAsset(asset);
+
+		auto& camera = m_Scene->GetEditorCamera();
+		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
+		camera.LookAt(glm::vec3(0, 0, 0));
+		const glm::vec3 cameraDir = camera.GetForwardVector();
+
+		// TODO: Calculate entity AABB
+		
+		//const auto& aabb = sphere->GetMesh()->GetAABB();
+		//const glm::vec3 center = aabb.Center();
+		//camera.SetLocation(center - cameraDir * aabb.MaxSide() * 1.5f); // Move back
+		//camera.LookAt(center);
+	}
+
+	void AssetThumbnailRenderer::SetupScene(const Ref<AssetAnimation>& asset)
+	{
+		const auto& skeletal = asset->GetSkeletal();
+
+		Entity entity = m_Scene->CreateEntity("AnimationAssetThumbnail");
+		auto& component = entity.AddComponent<SkeletalMeshComponent>();
+		component.SetMeshAsset(skeletal);
+		component.SetAnimationAsset(asset);
+
+		auto& camera = m_Scene->GetEditorCamera();
+		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
+		camera.LookAt(glm::vec3(0, 0, 0));
+		const glm::vec3 cameraDir = camera.GetForwardVector();
+
+		const auto& aabb = skeletal->GetMesh()->GetAABB();
+		const glm::vec3 center = aabb.Center();
+		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 1.5f); // Move back
+		camera.LookAt(center);
+	}
+
+	void AssetThumbnailRenderer::SetupScene(const Ref<AssetParticleSystem>& asset)
+	{
+		Ref<AssetParticleSystem> assetCopy = AssetParticleSystem::Copy(asset);
+		m_TempAsset = assetCopy;
+		
+		// Mark emitters to be destoyed immediately
+		{
+			auto emitters = assetCopy->GetEmitters();
+			for (auto& emitter : emitters)
+				emitter.bDestroyImmediately = true;
+			assetCopy->SetEmitters(std::move(emitters));
+		}
+
+		Entity entity = m_Scene->CreateEntity("ParticleSystemAssetThumbnail");
+		auto& component = entity.AddComponent<ParticleSystemComponent>();
+		component.SetAsset(assetCopy);
+
+		auto& camera = m_Scene->GetEditorCamera();
+		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
+		camera.LookAt(glm::vec3(0, 0, 0));
+		const glm::vec3 cameraDir = camera.GetForwardVector();
+
+		AABB aabb;
+		for (const auto& emitter : assetCopy->GetEmitters())
+		{
+			aabb.Grow(emitter.VisibilityAABB);
+		}
+
+		const glm::vec3 center = aabb.Center();
+		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 1.5f); // Move back
+		camera.LookAt(center);
+	}
+}

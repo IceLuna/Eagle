@@ -9,6 +9,7 @@
 #include "Eagle/Asset/Asset.h"
 
 #include "../AssetEditors/AssetEditor.h"
+#include "../AssetThumbnails/AssetThumbnailRenderer.h"
 
 #include <filesystem>
 
@@ -23,6 +24,7 @@ namespace Eagle
 	{
 	public:
 		ContentBrowserPanel(EditorLayer& editorLayer);
+		~ContentBrowserPanel();
 
 		void OnImGuiRender();
 
@@ -53,7 +55,7 @@ namespace Eagle
 		void OnDirectoryOpened(const Path& previousPath);
 
 		void SelectFile(const Path& path);
-		Ref<Texture2D>& GetFileIconTexture(AssetType fileFormat);
+		const Ref<Texture2D>& GetFileIconTexture(AssetType fileFormat) const;
 
 	private:
 		template<typename EditorType, typename AssetType, class... Args>
@@ -66,9 +68,15 @@ namespace Eagle
 				it->second->SetInFocus();
 		}
 
+		bool RenderThumbnail(const Ref<Asset>& asset, AssetType type);
+
 	private:
 		static constexpr int searchBufferSize = 512;
 		static char searchBuffer[searchBufferSize];
+
+		GUID m_AssetModifiedCallbackID;
+		AssetThumbnailRenderer m_AssetThumbnailRenderer;
+		std::unordered_map<Ref<Asset>, Ref<Image>> m_ThumbnailCache;
 
 		Ref<AssetScene> m_SceneToOpen;
 		

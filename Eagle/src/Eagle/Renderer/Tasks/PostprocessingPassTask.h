@@ -11,7 +11,7 @@ namespace Eagle
 	class PostprocessingPassTask : public RendererTask
 	{
 	public:
-		PostprocessingPassTask(SceneRenderer& renderer, const Ref<Image>& input, const Ref<Image>& output);
+		PostprocessingPassTask(SceneRenderer& renderer, const Ref<Image>& input);
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 
 		void InitWithOptions(const SceneRendererSettings&) override;
@@ -26,7 +26,6 @@ namespace Eagle
 	private:
 		Ref<PipelineCompute> m_Pipeline;
 		Ref<Image> m_Input;
-		Ref<Image> m_Output;
 		
 		Ref<PipelineCompute> m_HistogramPipeline;
 		Ref<PipelineCompute> m_AveragePipeline;

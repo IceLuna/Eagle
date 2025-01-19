@@ -89,7 +89,7 @@ namespace Eagle
 			borderColor = ImVec4(0.95f, 0.95f, 0.15f, 1.f); // TODO: it's the same as sound group. Figure it out
 			return true;
 		case AssetType::AnimationGraph:
-			borderColor = ImVec4(0.95f, 0.95f, 0.15f, 1.f); // TODO: it's the same as sound group. Figure it out
+			borderColor = ImVec4(0.95f, 0.55f, 0.15f, 1.f);
 			return true;
 		case AssetType::ParticleSystem:
 			borderColor = ImVec4(0.5f, 0.5f, 0.5f, 1.f); // TODO: fix color
@@ -117,6 +117,24 @@ namespace Eagle
 		m_FolderIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/foldericon.png");
 		m_AsteriskIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/asterisk.png");
 		m_UnknownIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/unknownicon.png");
+
+		AssetManager::AddOnAssetModifiedCallback(m_AssetModifiedCallbackID, [this](const Ref<Asset>& asset)
+		{
+			auto it = m_ThumbnailCache.find(asset);
+			if (it != m_ThumbnailCache.end())
+			{
+				RenderManager::Submit([image = it->second](const Ref<CommandBuffer>&) mutable
+				{
+					image.reset(); // Release it in RT
+				});
+				m_ThumbnailCache.erase(it);
+			}
+		});
+	}
+
+	ContentBrowserPanel::~ContentBrowserPanel()
+	{
+		AssetManager::RemoveOnAssetModifiedCallback(m_AssetModifiedCallbackID);
 	}
 
 	void ContentBrowserPanel::OnImGuiRender()
@@ -556,6 +574,38 @@ namespace Eagle
 		e.Handled |= bHandled;
 	}
 
+	bool ContentBrowserPanel::RenderThumbnail(const Ref<Asset>& asset, AssetType type)
+	{
+		constexpr static glm::uvec2 thumbnailRenderSize = { uint32_t(s_ItemSize), uint32_t(s_ItemSize) };
+
+		switch (type)
+		{
+		case Eagle::AssetType::StaticMesh:
+			m_AssetThumbnailRenderer.Render(Cast<AssetStaticMesh>(asset), thumbnailRenderSize);
+			break;
+		case Eagle::AssetType::SkeletalMesh:
+			m_AssetThumbnailRenderer.Render(Cast<AssetSkeletalMesh>(asset), thumbnailRenderSize);
+			break;
+		case Eagle::AssetType::Material:
+			m_AssetThumbnailRenderer.Render(Cast<AssetMaterial>(asset), thumbnailRenderSize);
+			break;
+		case Eagle::AssetType::Entity:
+			m_AssetThumbnailRenderer.Render(Cast<AssetEntity>(asset), thumbnailRenderSize);
+			break;
+		case Eagle::AssetType::Animation:
+			m_AssetThumbnailRenderer.Render(Cast<AssetAnimation>(asset), thumbnailRenderSize);
+			break;
+		case Eagle::AssetType::ParticleSystem:
+			m_AssetThumbnailRenderer.Render(Cast<AssetParticleSystem>(asset), thumbnailRenderSize);
+			break;
+		default:
+			EG_CORE_ASSERT(!"Unknown asset type");
+			return false;
+		}
+		
+		return true;
+	}
+
 	void ContentBrowserPanel::DrawContent(const std::vector<Path>& directories, const std::vector<Path>& files, bool bHintFullPath /* = false */)
 	{
 		bool bHoveredAnyItem = false;
@@ -605,6 +655,7 @@ namespace Eagle
 		ImGui::PopID();
 
 		ImGui::PushID("FILES_FILL");
+		bool bRenderingThumbnail = false; // One thumbnail per frame
 		for (auto& file : files)
 		{
 			const auto& path = file;
@@ -615,15 +666,32 @@ namespace Eagle
 			if (AssetManager::Get(path, &asset) == false)
 				continue; // Ignore non assets
 
-			Ref<Texture> texture;
+			Ref<Image> image;
 			const AssetType assetType = asset->GetAssetType();
 
 			if (assetType == AssetType::Texture2D)
-				texture = Cast<AssetTexture2D>(asset)->GetTexture();
+				image = Cast<AssetTexture2D>(asset)->GetTexture()->GetImage();
 			else if (assetType == AssetType::TextureCube)
-				texture = Cast<AssetTextureCube>(asset)->GetTexture()->GetTexture2D();
-			else
-				texture = GetFileIconTexture(assetType);
+				image = Cast<AssetTextureCube>(asset)->GetTexture()->GetTexture2D()->GetImage();
+			else if (AssetThumbnailRenderer::IsRenderableAssetType(assetType))
+			{
+				auto it = m_ThumbnailCache.find(asset);
+				if (it != m_ThumbnailCache.end())
+				{
+					image = it->second;
+				}
+				else if (!bRenderingThumbnail)
+				{
+					if (RenderThumbnail(asset, assetType))
+					{
+						it = m_ThumbnailCache.emplace(asset, m_AssetThumbnailRenderer.GetImage()).first;
+						bRenderingThumbnail = true;
+					}
+				}
+			}
+			
+			if (!image)
+				image = GetFileIconTexture(assetType)->GetImage();
 
 			bool bClicked = false;
 			ImVec2 p = ImGui::GetCursorScreenPos();
@@ -638,7 +706,7 @@ namespace Eagle
 				if (bBorderColor)
 					ImGui::PushStyleColor(ImGuiCol_Border, borderColor);
 
-				UI::ImageButtonWithText(Cast<Texture2D>(texture), filename, { s_ItemSize, s_ItemSize }, bFillBg, 2.0f);
+				UI::ImageButtonWithText(image, filename, { s_ItemSize, s_ItemSize }, bFillBg, 2.0f);
 
 				if (bBorderColor)
 					ImGui::PopStyleColor();
@@ -735,7 +803,11 @@ namespace Eagle
 			}
 
 			bHoveredAnyItem |= ImGui::IsItemHovered();
-			UI::Tooltip(bHintFullPath ? pathString : filename);
+			{
+				std::string tooltip = std::string("Asset Type: ") + Utils::GetEnumName(assetType) + '\n';
+				tooltip += bHintFullPath ? pathString : filename;
+				UI::Tooltip(tooltip);
+			}
 			ImGui::NextColumn();
 			ImGui::SetColumnWidth(-1, m_ColumnWidth);
 		}
@@ -1002,7 +1074,7 @@ namespace Eagle
 		m_CurrentDirectoryRelative = std::filesystem::relative(m_CurrentDirectory, m_ProjectPath);
 	}
 	
-	Ref<Texture2D>& ContentBrowserPanel::GetFileIconTexture(AssetType fileFormat)
+	const Ref<Texture2D>& ContentBrowserPanel::GetFileIconTexture(AssetType fileFormat) const
 	{
 		switch (fileFormat)
 		{

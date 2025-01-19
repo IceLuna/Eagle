@@ -136,7 +136,10 @@ namespace Eagle
 			ImGui::Separator();
 
 			if (bChanged)
+			{
 				m_Asset->SetDirty(true);
+				m_Asset->OnModified();
+			}
 
 			if (ImGui::Button("Save asset"))
 				Asset::Save(m_Asset);

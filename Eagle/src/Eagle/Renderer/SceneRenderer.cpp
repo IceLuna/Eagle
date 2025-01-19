@@ -63,17 +63,12 @@ namespace Eagle
 			m_CameraDataBuffer = Buffer::Create(cameraViewDataBufferSpecs, "CameraData");
 		}
 
-		ImageSpecifications finalColorSpecs;
-		finalColorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
-		finalColorSpecs.Layout = ImageLayoutType::RenderTarget;
-		finalColorSpecs.Size = { size.x, size.y, 1 };
-		finalColorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::Storage | ImageUsage::TransferSrc | ImageUsage::TransferDst;
-		m_FinalImage = Image::Create(finalColorSpecs, "Renderer_LDR");
+		m_FinalImage = Image::Create(GetOutputImageSpecs(), "Renderer_LDR");
 
 		ImageSpecifications colorSpecs;
 		colorSpecs.Format = ImageFormat::R11G11B10_Float;
 		colorSpecs.Layout = ImageLayoutType::RenderTarget;
-		colorSpecs.Size = { size.x, size.y, 1 };
+		colorSpecs.Size = { m_Size.x, m_Size.y, 1 };
 		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::Storage | ImageUsage::TransferSrc;
 		colorSpecs.MipsCount = UINT_MAX;
 		m_HDRRTImage = Image::Create(colorSpecs, "Renderer_HDR");
@@ -95,8 +90,8 @@ namespace Eagle
 		m_PBRPassTask = MakeRef<PBRPassTask>(*this, m_HDRRTImage);
 		m_ShadowPassTask = MakeRef<ShadowPassTask>(*this);
 		m_SkyboxPassTask = MakeRef<SkyboxPassTask>(*this, m_HDRRTImage);
-		m_PostProcessingPassTask = MakeRef<PostprocessingPassTask>(*this, m_HDRRTImage, m_FinalImage);
-		m_GridTask = MakeRef<GridTask>(*this, m_FinalImage);
+		m_PostProcessingPassTask = MakeRef<PostprocessingPassTask>(*this, m_HDRRTImage);
+		m_GridTask = MakeRef<GridTask>(*this);
 		m_TransparencyTask = MakeRef<TransparencyTask>(*this);
 		m_Text2DTask = MakeRef<RenderText2DTask>(*this);
 		m_Images2DTask = MakeRef<RenderImages2DTask>(*this);
@@ -210,7 +205,9 @@ namespace Eagle
 			if (renderer->m_MotionBlurTask)
 				renderer->m_MotionBlurTask->RecordCommandBuffer(cmd);
 
-			renderer->m_ParticleTask->RecordCommandBuffer(cmd); // TODO: Should this be after `TransparencyTask`? // TODO: Particle reflections in SSR pass?
+			// TODO: Particle reflections in SSR pass?
+			// TODO: Should this be after `TransparencyTask`?
+			renderer->m_ParticleTask->RecordCommandBuffer(cmd);
 			
 			if (renderer->m_ScreenSpaceReflectionsTask)
 				renderer->m_ScreenSpaceReflectionsTask->RecordCommandBuffer(cmd);
@@ -266,6 +263,25 @@ namespace Eagle
 
 			renderer->m_FrameIndex = (renderer->m_FrameIndex + 1) % RendererConfig::FramesInFlight;
 		});
+	}
+
+	void SceneRenderer::SetOutputImage(const Ref<Image>& image)
+	{
+		RenderManager::Submit([renderer = shared_from_this(), image](Ref<CommandBuffer>& cmd) mutable
+		{
+			renderer->m_FinalImage = image;
+		});
+	}
+
+	ImageSpecifications SceneRenderer::GetOutputImageSpecs() const
+	{
+		ImageSpecifications specs;
+		specs.Format = ImageFormat::R8G8B8A8_UNorm;
+		specs.Layout = ImageLayoutType::RenderTarget;
+		specs.Size = { m_Size.x, m_Size.y, 1 };
+		specs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::Storage | ImageUsage::TransferSrc | ImageUsage::TransferDst;
+
+		return specs;
 	}
 
 	void SceneRenderer::AddParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems)

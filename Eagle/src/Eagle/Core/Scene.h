@@ -260,6 +260,7 @@ namespace Eagle
 
 	private:
 		void CopyComponents(Entity source, Entity dest);
+		void DestroyScripts();
 
 		void OnUpdateEditor(Timestep ts, bool bRender, bool bForceAnimationsUpdate);
 		void OnUpdateRuntime(Timestep ts, bool bRender, bool bForceAnimationsUpdate);

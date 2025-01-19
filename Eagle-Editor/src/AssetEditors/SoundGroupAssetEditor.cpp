@@ -50,7 +50,10 @@ namespace Eagle
 		UI::EndPropertyGrid();
 
 		if (bChanged)
+		{
 			m_Asset->SetDirty(true);
+			m_Asset->OnModified();
+		}
 
 		ImGui::Separator();
 		ImGui::Separator();

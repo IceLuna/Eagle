@@ -1,6 +1,7 @@
 #include "egpch.h"
 #include "Asset.h"
 #include "AssetImporter.h"
+#include "AssetManager.h"
 
 #include "Eagle/Renderer/MaterialSystem.h"
 #include "Eagle/Renderer/TextureCompressor.h"
@@ -258,6 +259,14 @@ namespace Eagle
 		m_Format = format;
 
 		return true;
+	}
+
+	void Asset::OnModified()
+	{
+		AssetManager::OnModified(shared_from_this());
+
+		for (auto& [_, func] : m_Callbacks)
+			func();
 	}
 
 	Ref<Asset> Asset::Create(const Path& path)
@@ -565,5 +574,17 @@ namespace Eagle
 
 		YAML::Node data = YAML::LoadFile(path.string());
 		return Serializer::DeserializeAssetParticleSystem(data, path);
+	}
+	
+	Ref<AssetParticleSystem> AssetParticleSystem::Copy(const Ref<AssetParticleSystem>& asset)
+	{
+		class LocalAssetParticleSystem : public AssetParticleSystem
+		{
+		public:
+			LocalAssetParticleSystem(const Path& path, GUID guid, const std::vector<ParticleEmitter>& emitters)
+				: AssetParticleSystem(path, guid, emitters) {}
+		};
+
+		return MakeRef<LocalAssetParticleSystem>(asset->GetPath(), asset->GetGUID(), asset->GetEmitters());
 	}
 }

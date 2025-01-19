@@ -22,8 +22,8 @@ namespace Eagle
 
 		const auto& aabb = m_Asset->GetMesh()->GetAABB();
 		const glm::vec3 center = aabb.Center();
-		camera.LookAt(center);
 		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 2.f); // Move back
+		camera.LookAt(center);
 	}
 
 	void StaticMeshAssetEditor::OnImGuiRender(bool* pOpen)
@@ -64,7 +64,10 @@ namespace Eagle
 		UI::EndPropertyGrid();
 
 		if (bChanged)
+		{
 			m_Asset->SetDirty(true);
+			m_Asset->OnModified();
+		}
 
 		ImGui::Separator();
 		ImGui::Separator();

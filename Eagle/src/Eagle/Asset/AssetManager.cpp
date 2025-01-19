@@ -18,6 +18,7 @@ namespace Eagle
 
 	AssetsMap AssetManager::s_Assets;
 	AssetsMapByGUID AssetManager::s_AssetsByGUID;
+	std::unordered_map<GUID, std::function<void(const Ref<Asset>&)>> AssetManager::s_Callbacks;
 	Ref<AssetTextureCube> AssetManager::s_Skybox;
 	Ref<AssetStaticMesh> AssetManager::s_Sphere;
 
@@ -126,6 +127,7 @@ namespace Eagle
 		AssetEntity::s_EntityAssetsScene.reset();
 		s_Assets.clear();
 		s_AssetsByGUID.clear();
+		s_Callbacks.clear();
 		s_AssetPackAssets.clear();
 		s_AssetPackAssetsByGUID.clear();
 		s_Skybox.reset();
@@ -255,6 +257,22 @@ namespace Eagle
 				dirty.push_back(asset);
 
 		return dirty;
+	}
+
+	void AssetManager::OnModified(const Ref<Asset>& asset)
+	{
+		for (auto& [_, func] : s_Callbacks)
+			func(asset);
+	}
+
+	void AssetManager::AddOnAssetModifiedCallback(const GUID& id, const std::function<void(const Ref<Asset>&)>& func)
+	{
+		s_Callbacks[id] = func;
+	}
+
+	void AssetManager::RemoveOnAssetModifiedCallback(const GUID& id)
+	{
+		s_Callbacks.erase(id);
 	}
 	
 	bool AssetManager::Rename(const Ref<Asset>& asset, const Path& filepath)

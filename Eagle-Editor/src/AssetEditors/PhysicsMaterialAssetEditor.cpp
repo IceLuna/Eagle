@@ -45,7 +45,10 @@ namespace Eagle
 		UI::EndPropertyGrid();
 
 		if (bPhysicsMaterialChanged)
+		{
 			m_Asset->SetDirty(true);
+			m_Asset->OnModified();
+		}
 
 		ImGui::Separator();
 		ImGui::Separator();

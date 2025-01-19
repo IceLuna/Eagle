@@ -29,6 +29,10 @@ namespace Eagle
 		static bool GetRuntimeAssetNode(const Path& path, YAML::Node* outNode);
 		static std::vector<Ref<Asset>> GetDirtyAssets();
 
+		static void OnModified(const Ref<Asset>& asset);
+		static void AddOnAssetModifiedCallback(const GUID& id, const std::function<void(const Ref<Asset>&)>& func);
+		static void RemoveOnAssetModifiedCallback(const GUID& id);
+
 		// Can be used to rename or move an asset file.
 		// Example: from "Content/texture.egasset" to "Content/texture2.egasset", or to "Content/Textures/texture.egasset"
 		// Note: this DOES change the original asset-file
@@ -55,6 +59,7 @@ namespace Eagle
 	private:
 		static AssetsMap s_Assets;
 		static AssetsMapByGUID s_AssetsByGUID;
+		static std::unordered_map<GUID, std::function<void(const Ref<Asset>&)>> s_Callbacks;
 
 		// Engine-only assets that's used for asset previews
 		static Ref<AssetTextureCube> s_Skybox;

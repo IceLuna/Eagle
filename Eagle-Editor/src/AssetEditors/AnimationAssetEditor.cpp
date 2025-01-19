@@ -28,8 +28,8 @@ namespace Eagle
 
 		const auto& aabb = skeletalMeshAsset->GetMesh()->GetAABB();
 		const glm::vec3 center = aabb.Center();
-		camera.LookAt(center);
 		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 2.f); // Move back
+		camera.LookAt(center);
 	}
 
 	void AnimationAssetEditor::OnImGuiRender(bool* pOpen)
@@ -133,7 +133,10 @@ namespace Eagle
 		}
 
 		if (bChanged)
+		{
 			m_Asset->SetDirty(true);
+			m_Asset->OnModified();
+		}
 
 		ImGui::Separator();
 		UI::TextWithSeparator("Visualization settings");

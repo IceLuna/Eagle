@@ -8,7 +8,6 @@
 
 namespace Eagle
 {
-
 	MaterialAssetEditor::MaterialAssetEditor(const Ref<AssetMaterial>& asset)
 		: AssetEditor(true), m_Asset(asset)
 	{
@@ -30,8 +29,8 @@ namespace Eagle
 
 		const auto& aabb = m_Sphere->GetMesh()->GetAABB();
 		const glm::vec3 center = aabb.Center();
-		camera.LookAt(center);
 		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 5.f); // Move back
+		camera.LookAt(center);
 	}
 
 	void MaterialAssetEditor::OnImGuiRender(bool* pOpen)
@@ -308,7 +307,10 @@ namespace Eagle
 		UI::EndPropertyGrid();
 
 		if (bChanged)
+		{
 			m_Asset->SetDirty(true);
+			m_Asset->OnModified();
+		}
 
 		ImGui::Separator();
 		ImGui::Separator();

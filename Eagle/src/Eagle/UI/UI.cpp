@@ -1426,6 +1426,23 @@ namespace Eagle::UI
 		return ImGui::ImageButtonRotatedEx(id, textureID, size, angleRad, uv0, uv1, bg_col, tint_col);
 	}
 
+	void AddImage(const Ref<Eagle::Image>& image, const ImVec2& min, const ImVec2& max, const ImVec2& uv0, const ImVec2& uv1, uint32_t col)
+	{
+		if (!image)
+			return;
+
+		if (RendererContext::Current() == RendererAPIType::Vulkan)
+		{
+			constexpr uint32_t mip = 0;
+			ImageView imageView{ mip };
+			VkSampler vkSampler = (VkSampler)Sampler::PointSampler->GetHandle();
+			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle(imageView);
+
+			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			ImGui::GetWindowDrawList()->AddImage(textureID, min, max, uv0, uv1, col);
+		}
+	}
+
 	void AddImage(const Ref<Texture2D>& texture, const ImVec2& min, const ImVec2& max, const ImVec2& uv0, const ImVec2& uv1, uint32_t col)
 	{
 		if (!texture || !texture->IsLoaded())
@@ -1447,7 +1464,7 @@ namespace Eagle::UI
 		}
 	}
 
-	bool ImageButtonWithText(const Ref<Texture2D>& image, const std::string_view text, ImVec2 size, bool bFillFrameDefault, float borderSize, float textHeightOffset, ImVec2 framePadding)
+	bool ImageButtonWithText(const Ref<Eagle::Image>& image, const std::string_view text, ImVec2 size, bool bFillFrameDefault, float borderSize, float textHeightOffset, ImVec2 framePadding)
 	{
 		ImGuiContext& g = *GImGui;
 		const ImVec2 padding = g.Style.FramePadding;
@@ -1482,7 +1499,7 @@ namespace Eagle::UI
 		if (!bFillFrameDefault)
 			ImGui::PopStyleColor();
 
-		UI::AddImage(image, p, ImVec2(p.x + size.x, p.y + size.y));
+		UI::AddImage(image, p + padding * 0.5f, p + size - padding * 0.5f);
 
 		// Centering text
 		ImGui::SetCursorScreenPos(ImVec2(glm::max(p.x, p.x + 0.5f * (size.x - textSize.x)), p.y + size.y + itemSpacingHeight + textHeightOffset));
@@ -1494,6 +1511,11 @@ namespace Eagle::UI
 		g.LastItemData = buttonItemData;
 
 		return bResult;
+	}
+
+	bool ImageButtonWithText(const Ref<Texture2D>& texture, const std::string_view text, ImVec2 size, bool bFillFrameDefault, float borderSize, float textHeightOffset, ImVec2 framePadding)
+	{
+		return ImageButtonWithText(texture->GetImage(), text, size, bFillFrameDefault, borderSize, textHeightOffset, framePadding);
 	}
 
 	bool ImageButtonWithTextHorizontal(const Ref<Texture2D>& image, const std::string_view text, ImVec2 size, float frameHeight, bool bFillFrameDefault)

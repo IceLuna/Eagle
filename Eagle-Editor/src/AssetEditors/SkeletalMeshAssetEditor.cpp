@@ -181,8 +181,8 @@ namespace Eagle
 
 		const auto& aabb = mesh->GetAABB();
 		const glm::vec3 center = aabb.Center();
-		camera.LookAt(center);
 		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 2.f); // Move back
+		camera.LookAt(center);
 	}
 
 	void SkeletalMeshAssetEditor::OnImGuiRender(bool* pOpen)
@@ -248,7 +248,10 @@ namespace Eagle
 		bGuizmoChanged = false;
 
 		if (bChanged)
+		{
 			m_Asset->SetDirty(true);
+			m_Asset->OnModified();
+		}
 	}
 
 	bool SkeletalMeshAssetEditor::DrawSkeletalTab(const Ref<SkeletalMesh>& mesh, size_t& assetHash)

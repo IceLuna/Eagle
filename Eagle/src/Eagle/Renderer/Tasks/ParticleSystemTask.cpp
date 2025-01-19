@@ -55,6 +55,7 @@ namespace Eagle
 			flags |= emitter.bEmit ? Emitter_Enabled_Mask : 0;
 			flags |= emitter.bAdditive ? Emitter_AdditiveBlending_Mask : 0;
 			flags |= emitter.bBlendAnimation ? Emitter_BlendAnimation_Mask : 0;
+			flags |= emitter.bDestroyImmediately ? Emitter_DestroyImmediately_Mask : 0;
 
 			return flags;
 		}

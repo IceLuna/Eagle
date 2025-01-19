@@ -474,7 +474,7 @@ namespace Eagle
 	{
 		if (ImGui::BeginDragDropTarget())
 		{
-			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_CELL"))
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(GetAssetDragDropCellTag(AssetType::Entity)))
 			{
 				const wchar_t* payload_n = (const wchar_t*)payload->Data;
 				Path filepath(payload_n);

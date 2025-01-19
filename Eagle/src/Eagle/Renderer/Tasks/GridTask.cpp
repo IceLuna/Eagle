@@ -11,9 +11,8 @@
 
 namespace Eagle
 {
-	GridTask::GridTask(SceneRenderer& renderer, const Ref<Image>& output)
+	GridTask::GridTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
-		, m_Output(output)
 	{
 		bJitter = m_Renderer.GetOptions().InternalState.bJitter;
 		InitPipeline();
@@ -23,6 +22,9 @@ namespace Eagle
 	{
 		EG_GPU_TIMING_SCOPED(cmd, "Editor Grid");
 		EG_CPU_TIMING_SCOPED("Editor Grid");
+
+		if (m_Pipeline->GetState().ColorAttachments[0].Image != m_Renderer.GetOutput())
+			InitPipeline();
 
 		struct PushData
 		{
@@ -51,7 +53,7 @@ namespace Eagle
 	void GridTask::InitPipeline()
 	{
 		ColorAttachment attachment;
-		attachment.Image = m_Output;
+		attachment.Image = m_Renderer.GetOutput();
 		attachment.ClearOperation = ClearOperation::Load;
 		attachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 		attachment.FinalLayout = ImageReadAccess::PixelShaderRead;

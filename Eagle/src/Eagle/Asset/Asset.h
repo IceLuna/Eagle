@@ -208,11 +208,7 @@ namespace Eagle
 			return *this;
 		}
 
-		void OnModified()
-		{
-			for (auto& [_, func] : m_Callbacks)
-				func();
-		}
+		void OnModified();
 
 		// This function can be used if you don't care about the asset type and you just want to load it
 		// @path. Path to an `.egasset` file
@@ -717,6 +713,13 @@ namespace Eagle
 			OnModified();
 		}
 
+		void SetEmitters(std::vector<ParticleEmitter>&& emitters)
+		{
+			m_Emitters = std::move(emitters);
+			SetDirty(true);
+			OnModified();
+		}
+
 		const std::vector<ParticleEmitter>& GetEmitters() const { return m_Emitters; }
 
 		AssetParticleSystem& operator=(Asset&& other) noexcept override
@@ -734,6 +737,7 @@ namespace Eagle
 
 		// @path. Path to an `.egasset` file
 		static Ref<AssetParticleSystem> Create(const Path& path);
+		static Ref<AssetParticleSystem> Copy(const Ref<AssetParticleSystem>& asset);
 
 		static AssetType GetAssetType_Static() { return AssetType::ParticleSystem; }
 

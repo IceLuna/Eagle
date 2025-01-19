@@ -31,8 +31,8 @@ namespace Eagle
 			center = aabb.Center();
 			length = aabb.MaxSide();
 		}
-		camera.LookAt(center);
 		camera.SetLocation(center - cameraDir * length * 2.5f); // Move back
+		camera.LookAt(center);
 	}
 
 	void ParticleSystemAssetEditor::OnImGuiRender(bool* pOpen)
@@ -161,6 +161,7 @@ namespace Eagle
 			bChanged |= UI::DrawAssetSelection("Mesh", emitter.MeshAsset);
 
 			UI::TextWithSeparator("Flags");
+			bChanged |= UI::Property("Destroy Immediately", emitter.bDestroyImmediately, "If set to true, particles will be disabled/destroyed immediately when emitter is destroyed (instead of following their lifetime)");
 			bChanged |= UI::Property("Emit", emitter.bEmit);
 			bChanged |= UI::Property("Explode", emitter.bExplode, "If set to true, all particles will be emitted at once. Otherwise, they're emitted sequentially throughout the lifetime");
 			bChanged |= UI::Property("Apply Gravity", emitter.bApplyGravity);
@@ -246,7 +247,10 @@ namespace Eagle
 		}
 
 		if (bChanged)
+		{
 			m_Asset->SetDirty(true);
+			m_Asset->OnModified();
+		}
 
 		ImGui::Separator();
 		ImGui::Separator();

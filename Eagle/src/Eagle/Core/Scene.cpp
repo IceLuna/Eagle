@@ -270,7 +270,12 @@ namespace Eagle
 		: m_DebugName(debugName)
 	{
 		if (sceneRenderer)
+		{
+			glm::uvec2 size = sceneRenderer->GetViewportSize();
 			m_SceneRenderer = sceneRenderer;
+			m_ViewportWidth = size.x;
+			m_ViewportHeight = size.y;
+		}
 		else
 			m_SceneRenderer = MakeRef<SceneRenderer>(glm::uvec2{ m_ViewportWidth, m_ViewportHeight });
 		ConnectSignals();
@@ -360,7 +365,14 @@ namespace Eagle
 	Scene::~Scene()
 	{
 		delete m_RuntimeCameraHolder;
-		ClearScene();
+
+		DestroyScripts();
+
+		m_CurrentNavMesh.reset();
+		m_PhysicsScene.reset();
+		m_RuntimePhysicsScene.reset();
+		m_Registry.clear();
+		m_SpawnedSounds.clear();
 	}
 
 	Entity Scene::CreateEntity(const std::string& name)
@@ -1496,7 +1508,7 @@ namespace Eagle
 		m_SceneRenderer->SetViewportSize({ width, height });
 	}
 
-	void Scene::ClearScene()
+	void Scene::DestroyScripts()
 	{
 		if (bIsPlaying)
 		{
@@ -1525,11 +1537,15 @@ namespace Eagle
 				}
 			}
 		}
+	}
 
-		m_CurrentNavMesh.reset();
-		m_PhysicsScene.reset();
-		m_RuntimePhysicsScene.reset();
+	void Scene::ClearScene()
+	{
+		DestroyScripts();
+
+		m_PhysicsScene->Reset();
 		m_Registry.clear();
+		m_CurrentNavMesh.reset();
 		m_SpawnedSounds.clear();
 	}
 
