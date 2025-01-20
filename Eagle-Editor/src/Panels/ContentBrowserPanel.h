@@ -37,6 +37,7 @@ namespace Eagle
 		void HandleAssetEditors();
 		void RefreshContentInfo();
 		bool HandleImport();
+		void HandleDragDropOnFolder(const Path& destinationFolder);
 
 		void GetSearchingContent(const std::string& search, std::vector<Path>& outFiles);
 
@@ -49,8 +50,8 @@ namespace Eagle
 		void OnCutAsset(const Path& path);
 		void OnRenameAsset(const Ref<Asset>& asset);
 		void OnDeleteAsset(const Ref<Asset>& asset);
-		void OnPasteAsset();
 		void OnSaveAsset(const Ref<Asset>& asset);
+		void OnDeleteFolder(const Path& path);
 
 		void OnDirectoryOpened(const Path& previousPath);
 
@@ -115,6 +116,7 @@ namespace Eagle
 
 		float m_ColumnWidth = 1.f;
 
+		Path m_FolderToDelete;
 		Ref<Asset> m_AssetToDelete;
 		Ref<Asset> m_AssetToRename;
 		Path m_CopiedPath;

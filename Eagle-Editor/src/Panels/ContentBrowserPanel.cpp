@@ -98,6 +98,44 @@ namespace Eagle
 		return false;
 	}
 
+	static void OnPasteAsset(const Path& path, const Path& destinationFolder, bool bCopy)
+	{
+		Ref<Asset> assetToCopy;
+		AssetManager::Get(path, &assetToCopy);
+		if (assetToCopy)
+		{
+			const std::string newName = path.stem().u8string() + (bCopy ? "_Copy" : "") + Asset::GetExtension();
+			const Path newFilepath = destinationFolder / newName;
+			if (std::filesystem::exists(newFilepath))
+			{
+				Application::Get().GetImGuiLayer()->AddMessage("Paste failed. File already exists");
+				EG_CORE_ERROR("Paste failed. File already exists: {}", newFilepath.u8string());
+			}
+			else
+			{
+				if (bCopy)
+				{
+					if (!AssetManager::Duplicate(assetToCopy, newFilepath))
+					{
+						Application::Get().GetImGuiLayer()->AddMessage("Copy failed. See logs for more details");
+					}
+				}
+				else
+				{
+					if (!AssetManager::Rename(assetToCopy, newFilepath))
+					{
+						Application::Get().GetImGuiLayer()->AddMessage("Move failed. See logs for more details");
+					}
+				}
+			}
+		}
+		else
+		{
+			Application::Get().GetImGuiLayer()->AddMessage("Failed to paste an asset. Didn't find an asset");
+			EG_CORE_ERROR("Failed to paste an asset. Didn't find an asset at: {}", path.u8string());
+		}
+	}
+
 	ContentBrowserPanel::ContentBrowserPanel(EditorLayer& editorLayer)
 		: m_ProjectPath(Project::GetProjectPath())
 		, m_ContentPath(Project::GetContentPath())
@@ -184,7 +222,10 @@ namespace Eagle
 				UI::PushItemDisabled();
 
 			if (ImGui::MenuItem("Paste"))
-				OnPasteAsset();
+			{
+				OnPasteAsset(m_CopiedPath, m_CurrentDirectoryRelative, m_bCopy);
+				m_CopiedPath.clear();
+			}
 
 			if (bDisablePaste)
 				UI::PopItemDisabled();
@@ -236,9 +277,30 @@ namespace Eagle
 			{
 				if (button == UI::ButtonType::OK)
 				{
-					AssetManager::Delete(m_AssetToDelete);
-					m_AssetToDelete.reset();
-					m_RefreshBrowser = true;
+					if (m_AssetToDelete)
+					{
+						AssetManager::Delete(m_AssetToDelete);
+						m_AssetToDelete.reset();
+						m_RefreshBrowser = true;
+					}
+					else if (!m_FolderToDelete.empty())
+					{
+						// Delete assets
+						for (auto& dir : std::filesystem::directory_iterator(m_FolderToDelete))
+						{
+							const auto& path = dir.path();
+							if (!dir.is_directory())
+							{
+								Ref<Asset> asset;
+								if (AssetManager::Get(path, &asset))
+								{
+									AssetManager::Delete(asset);
+								}
+							}
+						}
+						std::filesystem::remove_all(m_FolderToDelete); // Delete folder & its content
+						m_FolderToDelete.clear();
+					}
 				}
 				m_ShowDeleteConfirmation = false;
 			}
@@ -398,6 +460,28 @@ namespace Eagle
 		}
 
 		return bCreatedAsset;
+	}
+
+	void ContentBrowserPanel::HandleDragDropOnFolder(const Path& destinationFolder)
+	{
+		if (!ImGui::BeginDragDropTarget())
+			return;
+
+		magic_enum::enum_for_each<AssetType>([&destinationFolder](AssetType assetType)
+		{
+			if (assetType == AssetType::None)
+				return;
+
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(GetAssetDragDropCellTag(assetType)))
+			{
+				const wchar_t* payload_n = (const wchar_t*)payload->Data;
+				Path filepath(payload_n);
+
+				OnPasteAsset(filepath, destinationFolder, false);
+			}
+		});
+
+		ImGui::EndDragDropTarget();
 	}
 
 	void ContentBrowserPanel::HandleAssetEditors()
@@ -566,7 +650,8 @@ namespace Eagle
 			
 			if (pressedKey == Key::V && control)
 			{
-				OnPasteAsset();
+				OnPasteAsset(m_CopiedPath, m_CurrentDirectoryRelative, m_bCopy);
+				m_CopiedPath.clear();
 				bHandled = true;
 			}
 		}
@@ -629,6 +714,7 @@ namespace Eagle
 			}
 			
 			DrawPopupMenu(path);
+			HandleDragDropOnFolder(path);
 
 			bHoveredAnyItem |= ImGui::IsItemHovered();
 			if (ImGui::IsItemClicked())
@@ -849,14 +935,15 @@ namespace Eagle
 		ImGui::SameLine();
 
 		Path temp = m_CurrentDirectoryRelative;
-		static std::vector<Path> paths; paths.clear();
-		paths.push_back(temp.filename()); //Current dir
+		static std::vector<Path> paths;
+		paths.clear();
+		paths.push_back(temp); //Current dir
 		while (!temp.empty()) //Saving all dir names separatly in vector
 		{
 			auto parent = temp.parent_path();
 			if (parent.empty())
 				break;
-			paths.push_back(parent.filename());
+			paths.push_back(parent);
 			temp = temp.parent_path();
 		}
 
@@ -864,9 +951,9 @@ namespace Eagle
 
 		for (auto it = paths.rbegin(); it != paths.rend(); ++it) //Drawing buttons
 		{
-			temp /= (*it);
-			std::string filename = (*it).u8string();
-			if (ImGui::Button(filename.c_str()))
+			Path filename = it->filename();
+			temp /= filename;
+			if (ImGui::Button(filename.u8string().c_str()))
 			{
 				m_SelectedFile.clear();
 				auto prevPath = m_CurrentDirectory;
@@ -874,6 +961,9 @@ namespace Eagle
 				m_CurrentDirectoryRelative = std::filesystem::relative(m_CurrentDirectory, m_ProjectPath);
 				OnDirectoryOpened(prevPath);
 			}
+
+			if ((*it) != m_CurrentDirectory) // Don't move to the current dir
+				HandleDragDropOnFolder(*it);
 
 			auto tempIT = it;
 			++tempIT;
@@ -921,7 +1011,15 @@ namespace Eagle
 			if (ImGui::MenuItem("Show In Explorer"))
 				Utils::ShowInExplorer(path);
 
-			if (!std::filesystem::is_directory(path))
+			const bool bDirectory = std::filesystem::is_directory(path);
+
+			if (bDirectory)
+			{
+				ImGui::Separator();
+				if (ImGui::MenuItem("Delete"))
+					OnDeleteFolder(path);
+			}
+			else
 			{
 				if (ImGui::MenuItem("Show In Folder View"))
 					SelectFile(path);
@@ -1010,39 +1108,11 @@ namespace Eagle
 			+ "?\nDeleting it won't remove it from the current scene,\nbut the next time it's opened, it will be replaced with an empty asset";
 	}
 
-	void ContentBrowserPanel::OnPasteAsset()
+	void ContentBrowserPanel::OnDeleteFolder(const Path& path)
 	{
-		Ref<Asset> assetToCopy;
-		AssetManager::Get(m_CopiedPath, &assetToCopy);
-		if (assetToCopy)
-		{
-			const std::string newName = m_CopiedPath.stem().u8string() + (m_bCopy ? "_Copy" : "") + Asset::GetExtension();
-			const Path newFilepath = m_CurrentDirectoryRelative / newName;
-			if (std::filesystem::exists(newFilepath))
-			{
-				Application::Get().GetImGuiLayer()->AddMessage("Paste failed. File already exists");
-				EG_CORE_ERROR("Paste failed. File already exists: {}", newFilepath.u8string());
-			}
-			else
-			{
-				if (m_bCopy)
-				{
-					if (!AssetManager::Duplicate(assetToCopy, newFilepath))
-						Application::Get().GetImGuiLayer()->AddMessage("Copy failed. See logs for more details");
-				}
-				else
-				{
-					if (!AssetManager::Rename(assetToCopy, newFilepath))
-						Application::Get().GetImGuiLayer()->AddMessage("Cut failed. See logs for more details");
-				}
-			}
-		}
-		else
-		{
-			Application::Get().GetImGuiLayer()->AddMessage("Failed to paste an asset. Didn't find an asset");
-			EG_CORE_ERROR("Failed to paste an asset. Didn't find an asset at: {}", m_CopiedPath.u8string());
-		}
-		m_CopiedPath.clear();
+		m_ShowDeleteConfirmation = true;
+		m_FolderToDelete = path;
+		m_DeleteConfirmationMessage = "Are you sure you want to delete this folder and all of its content?\nFolder: " + m_FolderToDelete.u8string();
 	}
 
 	void ContentBrowserPanel::OnSaveAsset(const Ref<Asset>& asset)
