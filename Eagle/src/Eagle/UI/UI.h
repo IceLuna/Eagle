@@ -3,6 +3,7 @@
 #include "Eagle/Core/EnumUtils.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Asset/AssetManager.h"
+#include "Eagle/Utils/ThumbnailCache.h"
 #include "imgui.h"
 #include "magic_enum.hpp"
 #include "magic_enum_utility.hpp"
@@ -31,12 +32,16 @@ namespace Eagle::UI
 
 	// maxItemWidth. Ignored if < 0
 	template<class Type>
-	bool DrawAssetSelection(const std::string_view label, Ref<Type>& modifyingAsset, const std::string_view helpMessage = "", float maxItemWidth = -1.f)
+	bool DrawAssetSelection(const std::string_view label, Ref<Type>& modifyingAsset, const std::string_view helpMessage = "", float maxItemWidth = -1.f, const Ref<Eagle::Image>& preview = nullptr, bool* outPreviewClicked = nullptr)
 	{
+		const ImVec2 previewSize = ImVec2(46.f, 46.f);
 		bool bResult = false;
+		constexpr bool bRenderablePreview = ThumbnailCache::IsRenderableAssetType(Type::GetAssetType_Static());
 
 		if constexpr (std::is_same<Type, AssetTexture2D>::value || std::is_same<Type, AssetTextureCube>::value)
-			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6.f);
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + previewSize.y * 0.5f - ImGui::CalcTextSize(label.data()).y * 0.5f); // Place text in the middle
+		else if (preview)
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + previewSize.y * 0.5f - ImGui::CalcTextSize(label.data()).y * 0.5f);
 		else
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.data());
@@ -56,7 +61,18 @@ namespace Eagle::UI
 		{
 			if (modifyingAsset || Texture2D::NoneIconTexture)
 			{
-				UI::Image(modifyingAsset ? modifyingAsset->GetTexture() : Texture2D::NoneIconTexture, { 32, 32 });
+				const ImVec2 p = ImGui::GetCursorScreenPos();
+				const bool bClicked = ImGui::InvisibleButton("##preview_inv_btn", previewSize);
+				const bool bHovered = ImGui::IsItemHovered();
+				ImGui::SetCursorScreenPos(p);
+
+				UI::Image(modifyingAsset ? modifyingAsset->GetTexture() : Texture2D::NoneIconTexture, previewSize, { 0, 0 }, { 1, 1 }, bHovered && modifyingAsset ? ImVec4(0.5f, 0.5f, 0.5f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+
+				if (outPreviewClicked)
+				{
+					*outPreviewClicked = bClicked;
+				}
+
 				ImGui::SameLine();
 			}
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
@@ -65,12 +81,42 @@ namespace Eagle::UI
 		{
 			if ((modifyingAsset && modifyingAsset->GetTexture()->GetTexture2D()) || Texture2D::NoneIconTexture)
 			{
-				UI::Image(modifyingAsset ? modifyingAsset->GetTexture()->GetTexture2D() : Texture2D::NoneIconTexture, { 32, 32 });
+				const ImVec2 p = ImGui::GetCursorScreenPos();
+				const bool bClicked = ImGui::InvisibleButton("##preview_inv_btn", previewSize);
+				const bool bHovered = ImGui::IsItemHovered();
+				ImGui::SetCursorScreenPos(p);
+
+				UI::Image(modifyingAsset ? modifyingAsset->GetTexture()->GetTexture2D() : Texture2D::NoneIconTexture, previewSize, { 0, 0 }, { 1, 1 }, bHovered && modifyingAsset ? ImVec4(0.5f, 0.5f, 0.5f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+
+				if (outPreviewClicked)
+				{
+					*outPreviewClicked = bClicked;
+				}
+
 				ImGui::SameLine();
 			}
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		}
-		
+		else
+		{
+			if (preview)
+			{
+				const ImVec2 p = ImGui::GetCursorScreenPos();
+				const bool bClicked = ImGui::InvisibleButton("##preview_inv_btn", previewSize);
+				const bool bHovered = ImGui::IsItemHovered();
+				ImGui::SetCursorScreenPos(p);
+
+				UI::Image(preview, previewSize, { 0, 0 }, {1, 1}, bHovered && modifyingAsset ? ImVec4(0.5f, 0.5f, 0.5f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+
+				if (outPreviewClicked)
+				{
+					*outPreviewClicked = bClicked;
+				}
+				ImGui::SameLine();
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+			}
+		}
+
 		const bool bApplyMaxWidth = maxItemWidth > 0.f;
 		if (bApplyMaxWidth)
 			ImGui::PushItemWidth(maxItemWidth);
@@ -166,42 +212,63 @@ namespace Eagle::UI
 					continue;
 
 				const bool bSelected = currentItemIdx == i;
-				ImGui::PushID((int)asset->GetGUID().GetHash());
+				ImGui::PushID((void*)asset->GetGUID().GetHash());
 
-				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowItemOverlap, {0.0f, 32.f});
+				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowItemOverlap, {0.0f, previewSize.y});
 				bool bSelectableClicked = ImGui::IsItemClicked();
 
+				bool bHasPreview = false;
 				if constexpr (std::is_same<Type, Asset>::value)
 				{
 					if (const auto texture2DAsset = Cast<AssetTexture2D>(asset))
 					{
 						ImGui::SameLine();
-						UI::Image(texture2DAsset->GetTexture(), { 32, 32 });
+						UI::Image(texture2DAsset->GetTexture(), previewSize);
+						bHasPreview = true;
 					}
 					else if (const auto textureCubeAsset = Cast<AssetTextureCube>(asset))
 					{
 						if (const auto& texture2D = textureCubeAsset->GetTexture()->GetTexture2D())
 						{
 							ImGui::SameLine();
-							UI::Image(texture2D, { 32, 32 });
+							UI::Image(texture2D, previewSize);
+							bHasPreview = true;
 						}
+					}
+					else if (bRenderablePreview)
+					{
+						ImGui::SameLine();
+						Ref<Eagle::Image> preview = ThumbnailCache::Get(asset);
+						UI::Image(preview ? preview : Texture2D::NoneIconTexture->GetImage(), previewSize);
+						bHasPreview = true;
 					}
 				}
 				else if constexpr (std::is_same<Type, AssetTexture2D>::value)
 				{
 					ImGui::SameLine();
-					UI::Image(castedAsset->GetTexture(), { 32, 32 });
+					UI::Image(castedAsset->GetTexture(), previewSize);
+					bHasPreview = true;
 				}
 				else if constexpr (std::is_same<Type, AssetTextureCube>::value)
 				{
 					if (const auto& texture2D = castedAsset->GetTexture()->GetTexture2D())
 					{
 						ImGui::SameLine();
-						UI::Image(texture2D, {32, 32});
+						UI::Image(texture2D, previewSize);
+						bHasPreview = true;
 					}
+				}
+				else if constexpr (bRenderablePreview)
+				{
+					ImGui::SameLine();
+					Ref<Eagle::Image> preview = ThumbnailCache::Get(asset);
+					UI::Image(preview ? preview : Texture2D::NoneIconTexture->GetImage(), previewSize);
+					bHasPreview = true;
 				}
 
 				ImGui::SameLine();
+				if (bHasPreview)
+					ImGui::SetCursorPosY(ImGui::GetCursorPosY() + previewSize.y * 0.25f);
 				ImGui::Text("%s", path.stem().u8string().c_str());
 
 				if (bSelectableTriggered)
@@ -232,6 +299,12 @@ namespace Eagle::UI
 		ImGui::PopID();
 
 		return bResult;
+	}
+
+	template<class Type>
+	bool DrawAssetSelection(const std::string_view label, Ref<Type>& modifyingAsset, const Ref<Eagle::Image>& preview, bool* outPreviewClicked = nullptr)
+	{
+		return DrawAssetSelection(label, modifyingAsset, "", -1.f, preview, outPreviewClicked);
 	}
 
 	// @bReturnOnEnter. If set to true, the function won't return true while the values is being changed. True will be returned after a user stops editing the value

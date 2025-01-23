@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../EditorResources.h"
+
 #include "Eagle/Math/Transform.h"
 
 namespace Eagle

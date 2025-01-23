@@ -195,6 +195,8 @@ namespace Eagle
 		// Also disables/enables sky (not just cubemap)
 		void SetSkyboxEnabled(bool bEnabled);
 		bool IsSkyboxEnabled() const { return m_bSkyboxEnabled; }
+		void SetRenderSkybox(bool bEnabled);
+		bool IsRenderSkyboxEnabled() const { return m_bRenderSkybox; }
 
 		void SetUseSkyAsBackground(bool value);
 		bool GetUseSkyAsBackground() const { return m_bUseSkyAsBackground; }
@@ -508,6 +510,7 @@ namespace Eagle
 		SkySettings m_Sky;
 		float m_CubemapIntensity = 1.f;
 		bool m_bSkyboxEnabled = true;
+		bool m_bRenderSkybox = true;
 		bool m_bUseSkyAsBackground = false;
 
 		std::unordered_map<GUID, Ref<Sound>> m_SpawnedSounds;

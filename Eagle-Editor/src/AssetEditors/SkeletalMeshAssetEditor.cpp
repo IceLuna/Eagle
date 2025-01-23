@@ -213,7 +213,7 @@ namespace Eagle
 		for (uint32_t i = 0; i < materialsCount; ++i)
 		{
 			auto materialAsset = mesh->GetMaterialAsset(i);
-			if (UI::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
+			if (EditorResources::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
 			{
 				mesh->SetMaterialAsset(i, materialAsset);
 				component.SetMaterialAsset(i, materialAsset);
@@ -400,7 +400,7 @@ namespace Eagle
 						m_SelectedRagdollBone->Settings.AngularDamping = glm::max(0.f, m_SelectedRagdollBone->Settings.AngularDamping);
 						bRagdollChanged = true;
 					}
-					bRagdollChanged |= UI::DrawAssetSelection("Material", m_SelectedRagdollBone->Settings.Material);
+					bRagdollChanged |= EditorResources::DrawAssetSelection("Material", m_SelectedRagdollBone->Settings.Material);
 					bRagdollChanged |= UI::ComboEnum("Shape", m_SelectedRagdollBone->Settings.Shape);
 
 					UI::EndPropertyGrid();

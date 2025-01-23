@@ -34,7 +34,7 @@ namespace Eagle
 
 		const Ref<Image>& GetImage() const { return m_Image; }
 
-		static bool IsRenderableAssetType(AssetType type)
+		static constexpr bool IsRenderableAssetType(AssetType type)
 		{
 			switch (type)
 			{
@@ -51,7 +51,7 @@ namespace Eagle
 		}
 
 	protected:
-		void Prepare(glm::uvec2 size, bool bNeedSkybox = true);
+		void Prepare(glm::uvec2 size, bool bNeedSkyboxLighting = true);
 		void Render();
 		void SetupScene(const Ref<AssetStaticMesh>& asset);
 		void SetupScene(const Ref<AssetSkeletalMesh>& asset);

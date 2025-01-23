@@ -489,6 +489,8 @@ namespace Eagle::Script
 	void Eagle_Renderer_SetTranslucentShadowsEnabled(bool value);
 	bool Eagle_Renderer_GetTranslucentShadowsEnabled();
 	void Eagle_Renderer_GetViewportSize(glm::vec2* outSize);
+	void Eagle_Renderer_SetRenderSkyboxEnabled(bool value);
+	bool Eagle_Renderer_IsRenderSkyboxEnabled();
 	void Eagle_Renderer_SetSkyboxEnabled(bool value);
 	bool Eagle_Renderer_IsSkyboxEnabled();
 	void Eagle_Renderer_SetObjectPickingEnabled(bool value);

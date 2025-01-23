@@ -190,7 +190,9 @@ namespace Eagle
 
 			renderer->m_PBRPassTask->RecordCommandBuffer(cmd);
 
-			renderer->m_SkyboxPassTask->RecordCommandBuffer(cmd);
+			if (renderer->IsSkyboxEnabled() && renderer->IsRenderSkyboxEnabled())
+				renderer->m_SkyboxPassTask->RecordCommandBuffer(cmd);
+
 			if (renderer->m_Options_RT.FogSettings.bEnable)
 				renderer->m_FogTask->RecordCommandBuffer(cmd);
 

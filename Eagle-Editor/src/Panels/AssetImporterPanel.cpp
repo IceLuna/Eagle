@@ -1,6 +1,6 @@
 #include "egpch.h"
 #include "AssetImporterPanel.h"
-#include "Eagle/Asset/AssetManager.h"
+#include "../EditorResources.h"
 
 #include "Eagle/Core/Application.h"
 #include "Eagle/UI/UI.h"
@@ -177,7 +177,7 @@ namespace Eagle
 				if (!bSkeletal || !m_Settings.bOnlyImportAnimations)
 					UI::PushItemDisabled();
 
-				UI::DrawAssetSelection("Skeletal", m_Settings.AnimationSettings.Skeletal, "Select skeletal asset to be used for the animation");
+				EditorResources::DrawAssetSelection("Skeletal", m_Settings.AnimationSettings.Skeletal, "Select skeletal asset to be used for the animation");
 
 				if (!bSkeletal || !m_Settings.bOnlyImportAnimations)
 					UI::PopItemDisabled();
@@ -245,7 +245,7 @@ namespace Eagle
 		{
 			UI::BeginPropertyGrid("AnimationGraphImporter");
 
-			UI::DrawAssetSelection("Skeletal", m_Mesh, "Select skeletal asset to be used for the animation graph");
+			EditorResources::DrawAssetSelection("Skeletal", m_Mesh, "Select skeletal asset to be used for the animation graph");
 
 			UI::EndPropertyGrid();
 

@@ -26,7 +26,7 @@ namespace Eagle
 		}
 
 		auto soundGroupAsset = m_Asset->GetSoundGroupAsset();
-		if (UI::DrawAssetSelection("Sound Group", soundGroupAsset))
+		if (EditorResources::DrawAssetSelection("Sound Group", soundGroupAsset))
 		{
 			m_Asset->SetSoundGroupAsset(soundGroupAsset);
 			bChanged = true;

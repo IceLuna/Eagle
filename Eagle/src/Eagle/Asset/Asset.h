@@ -221,6 +221,8 @@ namespace Eagle
 
 		static const char* GetExtension() { return ".egasset"; }
 
+		static constexpr AssetType GetAssetType_Static() { return AssetType::None; }
+
 	protected:
 		Asset(const Path& path, const Path& pathToRaw, AssetType type, GUID guid, const DataBuffer& rawData);
 
@@ -273,7 +275,7 @@ namespace Eagle
 		// @path. Path to an `.egasset` file
 		static Ref<AssetTexture2D> Create(const Path& path);
 
-		static AssetType GetAssetType_Static() { return AssetType::Texture2D; }
+		static constexpr AssetType GetAssetType_Static() { return AssetType::Texture2D; }
 
 	protected:
 		AssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const DataBuffer& ktxData, const Ref<Texture2D>& texture,
@@ -325,7 +327,7 @@ namespace Eagle
 		// @path. Path to an `.egasset` file
 		static Ref<AssetTextureCube> Create(const Path& path);
 
-		static AssetType GetAssetType_Static() { return AssetType::TextureCube; }
+		static constexpr AssetType GetAssetType_Static() { return AssetType::TextureCube; }
 
 	protected:
 		AssetTextureCube(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<TextureCube>& texture, AssetTextureCubeFormat format)
@@ -357,7 +359,7 @@ namespace Eagle
 		// @path. Path to an `.egasset` file
 		static Ref<AssetStaticMesh> Create(const Path& path);
 
-		static AssetType GetAssetType_Static() { return AssetType::StaticMesh; }
+		static constexpr AssetType GetAssetType_Static() { return AssetType::StaticMesh; }
 
 	protected:
 		AssetStaticMesh(const Path& path, const Path& pathToRaw, GUID guid, const Ref<StaticMesh>& mesh)
@@ -388,7 +390,7 @@ namespace Eagle
 		// @path. Path to an `.egasset` file
 		static Ref<AssetSkeletalMesh> Create(const Path& path);
 
-		static AssetType GetAssetType_Static() { return AssetType::SkeletalMesh; }
+		static constexpr AssetType GetAssetType_Static() { return AssetType::SkeletalMesh; }
 
 	protected:
 		AssetSkeletalMesh(const Path& path, const Path& pathToRaw, GUID guid, const Ref<SkeletalMesh>& mesh)
@@ -419,7 +421,7 @@ namespace Eagle
 		// @path. Path to an `.egasset` file
 		static Ref<AssetSoundGroup> Create(const Path& path);
 
-		static AssetType GetAssetType_Static() { return AssetType::SoundGroup; }
+		static constexpr AssetType GetAssetType_Static() { return AssetType::SoundGroup; }
 
 	protected:
 		AssetSoundGroup(const Path& path, GUID guid, const Ref<SoundGroup>& group)
@@ -454,7 +456,7 @@ namespace Eagle
 		// @path. Path to an `.egasset` file
 		static Ref<AssetAudio> Create(const Path& path);
 
-		static AssetType GetAssetType_Static() { return AssetType::Audio; }
+		static constexpr AssetType GetAssetType_Static() { return AssetType::Audio; }
 
 	protected:
 		AssetAudio(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Audio>& audio, const Ref<AssetSoundGroup>& soundGroup)
@@ -489,7 +491,7 @@ namespace Eagle
 		// @path. Path to an `.egasset` file
 		static Ref<AssetFont> Create(const Path& path);
 
-		static AssetType GetAssetType_Static() { return AssetType::Font; }
+		static constexpr AssetType GetAssetType_Static() { return AssetType::Font; }
 
 	protected:
 		AssetFont(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Font>& font)
@@ -525,7 +527,7 @@ namespace Eagle
 		// @path. Path to an `.egasset` file
 		static Ref<AssetMaterial> Create(const Path& path);
 
-		static AssetType GetAssetType_Static() { return AssetType::Material; }
+		static constexpr AssetType GetAssetType_Static() { return AssetType::Material; }
 
 	protected:
 		AssetMaterial(const Path& path, GUID guid, const Ref<Material>& material)
@@ -563,7 +565,7 @@ namespace Eagle
 		// @path. Path to an `.egasset` file
 		static Ref<AssetPhysicsMaterial> Create(const Path& path);
 
-		static AssetType GetAssetType_Static() { return AssetType::PhysicsMaterial; }
+		static constexpr AssetType GetAssetType_Static() { return AssetType::PhysicsMaterial; }
 
 	protected:
 		AssetPhysicsMaterial(const Path& path, GUID guid, const Ref<PhysicsMaterial>& material)
@@ -596,7 +598,7 @@ namespace Eagle
 
 		static Entity CreateEntity(GUID guid);
 
-		static AssetType GetAssetType_Static() { return AssetType::Entity; }
+		static constexpr AssetType GetAssetType_Static() { return AssetType::Entity; }
 
 	protected:
 		AssetEntity(const Path& path, GUID guid, const Ref<Entity>& entity)
@@ -616,7 +618,7 @@ namespace Eagle
 		static Ref<AssetScene> Create(const Path& path);
 		static Ref<AssetScene> Create(const Path& path, const YAML::Node& data);
 
-		static AssetType GetAssetType_Static() { return AssetType::Scene; }
+		static constexpr AssetType GetAssetType_Static() { return AssetType::Scene; }
 
 	protected:
 		AssetScene(const Path& path, GUID guid)
@@ -650,7 +652,7 @@ namespace Eagle
 		// @path. Path to an `.egasset` file
 		static Ref<AssetAnimation> Create(const Path& path);
 
-		static AssetType GetAssetType_Static() { return AssetType::Animation; }
+		static constexpr AssetType GetAssetType_Static() { return AssetType::Animation; }
 
 	protected:
 		AssetAnimation(const Path& path, const Path& pathToRaw, GUID guid, const Ref<SkeletalMeshAnimation>& anim, const Ref<AssetSkeletalMesh>& skeletal, uint32_t animIndex)
@@ -693,7 +695,7 @@ namespace Eagle
 		// @path. Path to an `.egasset` file
 		static Ref<AssetAnimationGraph> Create(const Path& path);
 
-		static AssetType GetAssetType_Static() { return AssetType::AnimationGraph; }
+		static constexpr AssetType GetAssetType_Static() { return AssetType::AnimationGraph; }
 
 	protected:
 		AssetAnimationGraph(const Path& path, GUID guid, const Ref<AnimationGraph>& graph, const GraphEditorSerializationData& data);
@@ -739,7 +741,7 @@ namespace Eagle
 		static Ref<AssetParticleSystem> Create(const Path& path);
 		static Ref<AssetParticleSystem> Copy(const Ref<AssetParticleSystem>& asset);
 
-		static AssetType GetAssetType_Static() { return AssetType::ParticleSystem; }
+		static constexpr AssetType GetAssetType_Static() { return AssetType::ParticleSystem; }
 
 	protected:
 		AssetParticleSystem(const Path& path, GUID guid, const std::vector<ParticleEmitter>& emitters)

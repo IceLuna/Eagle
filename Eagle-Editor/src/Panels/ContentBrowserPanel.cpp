@@ -1,11 +1,13 @@
 #include "egpch.h"
 #include "ContentBrowserPanel.h"
 #include "../EditorLayer.h"
+#include "../EditorResources.h"
 
 #include "Eagle/Core/Project.h"
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Asset/AssetImporter.h"
 #include "Eagle/Utils/PlatformUtils.h"
+#include "Eagle/Utils/ThumbnailCache.h"
 #include "Eagle/UI/UI.h"
 
 #include "Eagle/Debug/CPUTimings.h"
@@ -30,6 +32,7 @@ namespace Eagle
 {
 	constexpr static float s_ItemSize = 96.f;
 	char ContentBrowserPanel::searchBuffer[searchBufferSize];
+	static ContentBrowserPanel* s_Instance = nullptr;
 
 	static const char* s_ImportTooltip = "Import a texture, mesh, animation, audio, or font";
 	static bool IsReloadableAsset(AssetType type)
@@ -143,36 +146,15 @@ namespace Eagle
 		, m_CurrentDirectoryRelative(std::filesystem::relative(m_CurrentDirectory, m_ProjectPath))
 		, m_EditorLayer(editorLayer)
 	{
-		m_TextureIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/textureicon.png");
-		m_MeshIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/meshicon.png");
-		m_AudioIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/audioicon.png");
-		m_SoundGroupIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/soundgroupicon.png");
-		m_FontIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/fonticon.png");
-		m_PhysicsMaterialIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/physicsmaterialicon.png");
-		m_EntityIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/entityicon.png");
-		m_SceneIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/sceneicon.png");
-
+		EG_CORE_ASSERT(!s_Instance);
+		s_Instance = this;
 		m_FolderIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/foldericon.png");
 		m_AsteriskIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/asterisk.png");
-		m_UnknownIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/unknownicon.png");
-
-		AssetManager::AddOnAssetModifiedCallback(m_AssetModifiedCallbackID, [this](const Ref<Asset>& asset)
-		{
-			auto it = m_ThumbnailCache.find(asset);
-			if (it != m_ThumbnailCache.end())
-			{
-				RenderManager::Submit([image = it->second](const Ref<CommandBuffer>&) mutable
-				{
-					image.reset(); // Release it in RT
-				});
-				m_ThumbnailCache.erase(it);
-			}
-		});
 	}
 
 	ContentBrowserPanel::~ContentBrowserPanel()
 	{
-		AssetManager::RemoveOnAssetModifiedCallback(m_AssetModifiedCallbackID);
+		s_Instance = nullptr;
 	}
 
 	void ContentBrowserPanel::OnImGuiRender()
@@ -516,7 +498,7 @@ namespace Eagle
 		{
 			bool bCreatedAsset = false;
 
-			if (UI::ImageButtonWithTextHorizontal(m_UnknownIcon, "Import...", { s_ItemSize, s_ItemSize }, s_ItemSize))
+			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::None), "Import...", {s_ItemSize, s_ItemSize}, s_ItemSize))
 			{
 				bCreatedAsset |= HandleImport();
 			}
@@ -524,31 +506,31 @@ namespace Eagle
 
 			ImGui::Separator();
 
-			if (UI::ImageButtonWithTextHorizontal(m_EntityIcon, "Entity", { s_ItemSize, s_ItemSize }, s_ItemSize))
+			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::Entity), "Entity", { s_ItemSize, s_ItemSize }, s_ItemSize))
 			{
 				AssetImporter::CreateEntity(m_CurrentDirectoryRelative);
 				bCreatedAsset = true;
 			}
 
-			if (UI::ImageButtonWithTextHorizontal(m_MeshIcon, "Material", { s_ItemSize, s_ItemSize }, s_ItemSize))
+			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::Material), "Material", { s_ItemSize, s_ItemSize }, s_ItemSize))
 			{
 				AssetImporter::CreateMaterial(m_CurrentDirectoryRelative);
 				bCreatedAsset = true;
 			}
 
-			if (UI::ImageButtonWithTextHorizontal(m_PhysicsMaterialIcon, "Physics Material", { s_ItemSize, s_ItemSize }, s_ItemSize))
+			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::PhysicsMaterial), "Physics Material", { s_ItemSize, s_ItemSize }, s_ItemSize))
 			{
 				AssetImporter::CreatePhysicsMaterial(m_CurrentDirectoryRelative);
 				bCreatedAsset = true;
 			}
 
-			if (UI::ImageButtonWithTextHorizontal(m_SoundGroupIcon, "Sound Group", { s_ItemSize, s_ItemSize }, s_ItemSize))
+			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::SoundGroup), "Sound Group", { s_ItemSize, s_ItemSize }, s_ItemSize))
 			{
 				AssetImporter::CreateSoundGroup(m_CurrentDirectoryRelative);
 				bCreatedAsset = true;
 			}
 
-			if (UI::ImageButtonWithTextHorizontal(m_UnknownIcon, "Animation Graph", { s_ItemSize, s_ItemSize }, s_ItemSize))
+			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::AnimationGraph), "Animation Graph", { s_ItemSize, s_ItemSize }, s_ItemSize))
 			{
 				m_AnimationGraphImporter = AnimationGraphImporterPanel(m_CurrentDirectoryRelative);
 				m_DrawAddPanel = false;
@@ -659,36 +641,64 @@ namespace Eagle
 		e.Handled |= bHandled;
 	}
 
+	void ContentBrowserPanel::OpenAssetEditor(const Ref<Asset>& asset)
+	{
+		switch (asset->GetAssetType())
+		{
+		case AssetType::Texture2D:
+			AddAssetEditor<Texture2DAssetEditor, AssetTexture2D>(asset);
+			break;
+		case AssetType::TextureCube:
+			AddAssetEditor<TextureCubeAssetEditor, AssetTextureCube>(asset);
+			break;
+		case AssetType::StaticMesh:
+			AddAssetEditor<StaticMeshAssetEditor, AssetStaticMesh>(asset);
+			break;
+		case AssetType::SkeletalMesh:
+			AddAssetEditor<SkeletalMeshAssetEditor, AssetSkeletalMesh>(asset);
+			break;
+		case AssetType::Audio:
+			AddAssetEditor<AudioAssetEditor, AssetAudio>(asset);
+			break;
+		case AssetType::SoundGroup:
+			AddAssetEditor<SoundGroupAssetEditor, AssetSoundGroup>(asset);
+			break;
+		case AssetType::Material:
+			AddAssetEditor<MaterialAssetEditor, AssetMaterial>(asset);
+			break;
+		case AssetType::PhysicsMaterial:
+			AddAssetEditor<PhysicsMaterialAssetEditor, AssetPhysicsMaterial>(asset);
+			break;
+		case AssetType::Entity:
+			AddAssetEditor<EntityAssetEditor, AssetEntity>(asset, m_EditorLayer);
+			break;
+		case AssetType::Scene:
+		{
+			m_ShowSaveScenePopup = true;
+			m_SceneToOpen = Cast<AssetScene>(asset);
+			break;
+		}
+		case AssetType::Animation:
+			AddAssetEditor<AnimationAssetEditor, AssetAnimation>(asset);
+			break;
+		case AssetType::AnimationGraph:
+			AddAssetEditor<AnimationGraphAssetEditor, AssetAnimationGraph>(asset);
+			break;
+		case AssetType::ParticleSystem:
+			AddAssetEditor<ParticleSystemAssetEditor, AssetParticleSystem>(asset);
+			break;
+		}
+	}
+
+	ContentBrowserPanel& ContentBrowserPanel::Get()
+	{
+		return *s_Instance;
+	}
+
 	bool ContentBrowserPanel::RenderThumbnail(const Ref<Asset>& asset, AssetType type)
 	{
 		constexpr static glm::uvec2 thumbnailRenderSize = { uint32_t(s_ItemSize), uint32_t(s_ItemSize) };
-
-		switch (type)
-		{
-		case Eagle::AssetType::StaticMesh:
-			m_AssetThumbnailRenderer.Render(Cast<AssetStaticMesh>(asset), thumbnailRenderSize);
-			break;
-		case Eagle::AssetType::SkeletalMesh:
-			m_AssetThumbnailRenderer.Render(Cast<AssetSkeletalMesh>(asset), thumbnailRenderSize);
-			break;
-		case Eagle::AssetType::Material:
-			m_AssetThumbnailRenderer.Render(Cast<AssetMaterial>(asset), thumbnailRenderSize);
-			break;
-		case Eagle::AssetType::Entity:
-			m_AssetThumbnailRenderer.Render(Cast<AssetEntity>(asset), thumbnailRenderSize);
-			break;
-		case Eagle::AssetType::Animation:
-			m_AssetThumbnailRenderer.Render(Cast<AssetAnimation>(asset), thumbnailRenderSize);
-			break;
-		case Eagle::AssetType::ParticleSystem:
-			m_AssetThumbnailRenderer.Render(Cast<AssetParticleSystem>(asset), thumbnailRenderSize);
-			break;
-		default:
-			EG_CORE_ASSERT(!"Unknown asset type");
-			return false;
-		}
-		
-		return true;
+		return ThumbnailCache::Render(asset, type, thumbnailRenderSize);
 	}
 
 	void ContentBrowserPanel::DrawContent(const std::vector<Path>& directories, const std::vector<Path>& files, bool bHintFullPath /* = false */)
@@ -741,7 +751,6 @@ namespace Eagle
 		ImGui::PopID();
 
 		ImGui::PushID("FILES_FILL");
-		bool bRenderingThumbnail = false; // One thumbnail per frame
 		for (auto& file : files)
 		{
 			const auto& path = file;
@@ -759,25 +768,20 @@ namespace Eagle
 				image = Cast<AssetTexture2D>(asset)->GetTexture()->GetImage();
 			else if (assetType == AssetType::TextureCube)
 				image = Cast<AssetTextureCube>(asset)->GetTexture()->GetTexture2D()->GetImage();
-			else if (AssetThumbnailRenderer::IsRenderableAssetType(assetType))
+			else if (ThumbnailCache::IsRenderableAssetType(assetType))
 			{
-				auto it = m_ThumbnailCache.find(asset);
-				if (it != m_ThumbnailCache.end())
-				{
-					image = it->second;
-				}
-				else if (!bRenderingThumbnail)
+				image = ThumbnailCache::Get(asset);
+				if (!image)
 				{
 					if (RenderThumbnail(asset, assetType))
 					{
-						it = m_ThumbnailCache.emplace(asset, m_AssetThumbnailRenderer.GetImage()).first;
-						bRenderingThumbnail = true;
+						image = ThumbnailCache::Get(asset);
 					}
 				}
 			}
-			
+
 			if (!image)
-				image = GetFileIconTexture(assetType)->GetImage();
+				image = EditorResources::GetAssetIconTexture(assetType)->GetImage();
 
 			bool bClicked = false;
 			ImVec2 p = ImGui::GetCursorScreenPos();
@@ -841,51 +845,7 @@ namespace Eagle
 			// Open asset editor
 			if (bClicked)
 			{
-				switch (assetType)
-				{
-					case AssetType::Texture2D:
-						AddAssetEditor<Texture2DAssetEditor, AssetTexture2D>(asset);
-						break;
-					case AssetType::TextureCube:
-						AddAssetEditor<TextureCubeAssetEditor, AssetTextureCube>(asset);
-						break;
-					case AssetType::StaticMesh:
-						AddAssetEditor<StaticMeshAssetEditor, AssetStaticMesh>(asset);
-						break;
-					case AssetType::SkeletalMesh:
-						AddAssetEditor<SkeletalMeshAssetEditor, AssetSkeletalMesh>(asset);
-						break;
-					case AssetType::Audio:
-						AddAssetEditor<AudioAssetEditor, AssetAudio>(asset);
-						break;
-					case AssetType::SoundGroup:
-						AddAssetEditor<SoundGroupAssetEditor, AssetSoundGroup>(asset);
-						break;
-					case AssetType::Material:
-						AddAssetEditor<MaterialAssetEditor, AssetMaterial>(asset);
-						break;
-					case AssetType::PhysicsMaterial:
-						AddAssetEditor<PhysicsMaterialAssetEditor, AssetPhysicsMaterial>(asset);
-						break;
-					case AssetType::Entity:
-						AddAssetEditor<EntityAssetEditor, AssetEntity>(asset, m_EditorLayer);
-						break;
-					case AssetType::Scene:
-					{
-						m_ShowSaveScenePopup = true;
-						m_SceneToOpen = Cast<AssetScene>(asset);
-						break;
-					}
-					case AssetType::Animation:
-						AddAssetEditor<AnimationAssetEditor, AssetAnimation>(asset);
-						break;
-					case AssetType::AnimationGraph:
-						AddAssetEditor<AnimationGraphAssetEditor, AssetAnimationGraph>(asset);
-						break;
-					case AssetType::ParticleSystem:
-						AddAssetEditor<ParticleSystemAssetEditor, AssetParticleSystem>(asset);
-						break;
-				}
+				OpenAssetEditor(asset);
 			}
 
 			bHoveredAnyItem |= ImGui::IsItemHovered();
@@ -1142,33 +1102,5 @@ namespace Eagle
 		m_SelectedFile = path;
 		m_CurrentDirectory = path.parent_path();
 		m_CurrentDirectoryRelative = std::filesystem::relative(m_CurrentDirectory, m_ProjectPath);
-	}
-	
-	const Ref<Texture2D>& ContentBrowserPanel::GetFileIconTexture(AssetType fileFormat) const
-	{
-		switch (fileFormat)
-		{
-			case AssetType::Texture2D:
-			case AssetType::TextureCube:
-				return m_TextureIcon;
-			case AssetType::StaticMesh:
-				return m_MeshIcon;
-			case AssetType::Audio:
-				return m_AudioIcon;
-			case AssetType::SoundGroup:
-				return m_SoundGroupIcon;
-			case AssetType::Font:
-				return m_FontIcon;
-			case AssetType::PhysicsMaterial:
-				return m_PhysicsMaterialIcon;
-			case AssetType::Entity:
-				return m_EntityIcon;
-			case AssetType::Scene:
-				return m_SceneIcon;
-			case AssetType::ParticleSystem:
-				return m_UnknownIcon; // TODO:
-			default:
-				return m_UnknownIcon;
-		}
 	}
 }

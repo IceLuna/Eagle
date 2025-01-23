@@ -229,6 +229,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::SetTranslucentShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_SetTranslucentShadowsEnabled);
 		mono_add_internal_call("Eagle.Renderer::GetTranslucentShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_GetTranslucentShadowsEnabled);
 		mono_add_internal_call("Eagle.Renderer::GetViewportSize_Native", Eagle::Script::Eagle_Renderer_GetViewportSize);
+		mono_add_internal_call("Eagle.Renderer::SetRenderSkyboxEnabled_Native", Eagle::Script::Eagle_Renderer_SetRenderSkyboxEnabled);
+		mono_add_internal_call("Eagle.Renderer::IsRenderSkyboxEnabled_Native", Eagle::Script::Eagle_Renderer_IsRenderSkyboxEnabled);
 		mono_add_internal_call("Eagle.Renderer::SetSkyboxEnabled_Native", Eagle::Script::Eagle_Renderer_SetSkyboxEnabled);
 		mono_add_internal_call("Eagle.Renderer::IsSkyboxEnabled_Native", Eagle::Script::Eagle_Renderer_IsSkyboxEnabled);
 		mono_add_internal_call("Eagle.Renderer::SetSkybox_Native", Eagle::Script::Eagle_Renderer_SetSkybox);

@@ -9,7 +9,6 @@
 #include "Eagle/Asset/Asset.h"
 
 #include "../AssetEditors/AssetEditor.h"
-#include "../AssetThumbnails/AssetThumbnailRenderer.h"
 
 #include <filesystem>
 
@@ -29,6 +28,10 @@ namespace Eagle
 		void OnImGuiRender();
 
 		void OnEvent(Event& e);
+
+		void OpenAssetEditor(const Ref<Asset>& asset);
+
+		static ContentBrowserPanel& Get(); // Not a good idea™
 
 	private:
 		void DrawContent(const std::vector<Path>& directories, const std::vector<Path>& files, bool bHintFullPath = false);
@@ -56,7 +59,6 @@ namespace Eagle
 		void OnDirectoryOpened(const Path& previousPath);
 
 		void SelectFile(const Path& path);
-		const Ref<Texture2D>& GetFileIconTexture(AssetType fileFormat) const;
 
 	private:
 		template<typename EditorType, typename AssetType, class... Args>
@@ -75,25 +77,12 @@ namespace Eagle
 		static constexpr int searchBufferSize = 512;
 		static char searchBuffer[searchBufferSize];
 
-		GUID m_AssetModifiedCallbackID;
-		AssetThumbnailRenderer m_AssetThumbnailRenderer;
-		std::unordered_map<Ref<Asset>, Ref<Image>> m_ThumbnailCache;
-
 		Ref<AssetScene> m_SceneToOpen;
 		
 		std::unordered_map<Ref<Asset>, Ref<AssetEditor>> m_AssetEditors;
 
-		Ref<Texture2D> m_TextureIcon;
-		Ref<Texture2D> m_MeshIcon;
-		Ref<Texture2D> m_AudioIcon;
-		Ref<Texture2D> m_SoundGroupIcon;
-		Ref<Texture2D> m_FontIcon;
-		Ref<Texture2D> m_PhysicsMaterialIcon;
-		Ref<Texture2D> m_EntityIcon;
-		Ref<Texture2D> m_SceneIcon;
 		Ref<Texture2D> m_FolderIcon;
 		Ref<Texture2D> m_AsteriskIcon;
-		Ref<Texture2D> m_UnknownIcon;
 
 		Path m_ProjectPath;
 		Path m_ContentPath;

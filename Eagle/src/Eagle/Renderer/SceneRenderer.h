@@ -125,6 +125,8 @@ namespace Eagle
 		// Also disables/enables sky (not just cubemap)
 		void SetSkyboxEnabled(bool bEnabled) { m_bSkyboxEnabled = bEnabled; }
 		bool IsSkyboxEnabled() const { return m_bSkyboxEnabled; }
+		void SetRenderSkybox(bool bEnabled) { m_bRenderSkybox = bEnabled; }
+		bool IsRenderSkyboxEnabled() const { return m_bRenderSkybox; }
 
 		void SetUseSkyAsBackground(bool value);
 		bool GetUseSkyAsBackground() const { return m_bUseSkyAsBackground; }
@@ -319,6 +321,7 @@ namespace Eagle
 		Ref<AssetTextureCube> m_Cubemap;
 		float m_CubemapIntensity = 1.f;
 		bool m_bSkyboxEnabled = true;
+		bool m_bRenderSkybox = true;
 
 		std::unordered_map<uint32_t, std::vector<glm::mat4>> m_AnimationTransforms;
 

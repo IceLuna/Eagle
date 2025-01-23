@@ -503,6 +503,13 @@ namespace Eagle
 			m_SceneRenderer->SetSkyboxEnabled(m_bSkyboxEnabled);
 	}
 
+	void Scene::SetRenderSkybox(bool bEnabled)
+	{
+		m_bRenderSkybox = bEnabled;
+		if (m_SceneRenderer)
+			m_SceneRenderer->SetRenderSkybox(m_bRenderSkybox);
+	}
+
 	void Scene::SetUseSkyAsBackground(bool value)
 	{
 		m_bUseSkyAsBackground = value;

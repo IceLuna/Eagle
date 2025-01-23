@@ -12,6 +12,7 @@
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Renderer/VidWrappers/Shader.h"
 #include "Eagle/Renderer/TextureCompressor.h"
+#include "Eagle/Utils/ThumbnailCache.h"
 
 #include "Platform/Vulkan/VulkanSwapchain.h"
 
@@ -97,6 +98,7 @@ namespace Eagle
 	{
 		if (Project::IsOpened())
 			Project::Close();
+		ThumbnailCache::Release();
 		RenderManager::Finish();
 		AssetManager::Reset();
 		m_ImGuiLayer.reset();
@@ -143,6 +145,7 @@ namespace Eagle
 	{
 		Get().CallNextFrame([bOpened, corePath = Get().m_CorePath]()
 		{
+			ThumbnailCache::Release();
 			RenderManager::Reset();
 			ScriptEngine::Reset();
 			Log::ClearLogHistory();
@@ -152,6 +155,7 @@ namespace Eagle
 			{
 				std::filesystem::current_path(Project::GetProjectPath());
 				AssetManager::Init();
+				ThumbnailCache::Init();
 			}
 			else
 			{
@@ -217,6 +221,8 @@ namespace Eagle
 			if (!m_Minimized)
 			{
 				RenderManager::BeginFrame();
+
+				ThumbnailCache::NextFrame();
 
 				for (auto& layer : m_LayerStack)
 					layer->OnUpdate(m_Timestep);

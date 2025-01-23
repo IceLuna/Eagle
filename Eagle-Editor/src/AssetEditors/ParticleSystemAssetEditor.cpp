@@ -132,7 +132,7 @@ namespace Eagle
 			}
 
 			UI::TextWithSeparator("Animation");
-			bChanged |= UI::DrawAssetSelection("Texture", emitter.Texture);
+			bChanged |= EditorResources::DrawAssetSelection("Texture", emitter.Texture);
 			bChanged |= UI::PropertyDrag("Hor. frames number", emitter.AnimationImagesNum.x, 1.f, 1u, UINT_MAX, "The number of columns in the sprite sheet");
 			bChanged |= UI::PropertyDrag("Ver. frames number", emitter.AnimationImagesNum.y, 1.f, 1u, UINT_MAX, "The number of rows in the sprite sheet");
 			bChanged |= UI::PropertyDrag("Animation Speed", emitter.AnimationSpeed, 0.1f);
@@ -158,7 +158,7 @@ namespace Eagle
 			bChanged |= UI::PropertyDrag("Box Max", emitter.BoxMax, 0.1f, 0, 0);
 			bChanged |= UI::PropertyDrag("Ring Radius", emitter.RingRadius, 0.1f, 0, 0);
 			bChanged |= UI::PropertyDrag("Ring Thickness", emitter.RingThickness, 0.1f, 0, 0);
-			bChanged |= UI::DrawAssetSelection("Mesh", emitter.MeshAsset);
+			bChanged |= EditorResources::DrawAssetSelection("Mesh", emitter.MeshAsset);
 
 			UI::TextWithSeparator("Flags");
 			bChanged |= UI::Property("Destroy Immediately", emitter.bDestroyImmediately, "If set to true, particles will be disabled/destroyed immediately when emitter is destroyed (instead of following their lifetime)");

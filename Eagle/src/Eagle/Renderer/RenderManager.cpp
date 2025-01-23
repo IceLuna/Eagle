@@ -539,10 +539,12 @@ namespace Eagle
 
 		Finish();
 
+		ReleasePendingResources();
+
 		delete s_RendererData;
 		s_RendererData = nullptr;
 
-		ReleasePendingResources();
+		ReleasePendingResources(); // Required to release data after executing `delete s_RendererData`
 	}
 
 	void RenderManager::Reset()

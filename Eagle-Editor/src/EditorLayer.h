@@ -142,6 +142,7 @@ namespace Eagle
 			float CubemapIntensity = 1.f;
 			bool bSkyAsBackground = false;
 			bool bSkyboxEnabled = false;
+			bool bRenderSkybox = false;
 		} m_BeforeSimulationData;
 
 		bool m_WindowFocused = true;

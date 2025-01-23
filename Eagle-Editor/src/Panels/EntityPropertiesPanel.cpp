@@ -1,4 +1,5 @@
 #include "EntityPropertiesPanel.h"
+#include "../EditorResources.h"
 
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Animation/Animation.h"
@@ -47,7 +48,7 @@ namespace Eagle
 		Ref<type> castedAsset;\
 		if (AssetManager::Get(value, &asset))\
 			castedAsset = Cast<type>(asset);\
-		if (UI::DrawAssetSelection(field.Name, castedAsset))\
+		if (EditorResources::DrawAssetSelection(field.Name, castedAsset))\
 		{\
 			value = castedAsset ? castedAsset->GetGUID() : GUID(0, 0);\
 			if (bRuntime)\
@@ -294,7 +295,7 @@ namespace Eagle
 					}
 
 					auto materialAsset = sprite.GetMaterialAsset();
-					if (UI::DrawAssetSelection("Material", materialAsset))
+					if (EditorResources::DrawAssetSelection("Material", materialAsset))
 					{
 						sprite.SetMaterialAsset(materialAsset);
 						bEntityChanged = true;
@@ -315,7 +316,7 @@ namespace Eagle
 					Ref<AssetStaticMesh> staticMesh = smComponent.GetMeshAsset();
 					bool bCastsShadows = smComponent.DoesCastShadows();
 
-					if (UI::DrawAssetSelection("Static Mesh", staticMesh))
+					if (EditorResources::DrawAssetSelection("Static Mesh", staticMesh))
 					{
 						smComponent.SetMeshAsset(staticMesh);
 						bEntityChanged = true;
@@ -339,7 +340,7 @@ namespace Eagle
 					for (uint32_t i = 0; i < materialsCount; ++i)
 					{
 						auto materialAsset = smComponent.GetMaterialAsset(i);
-						if (UI::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
+						if (EditorResources::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
 						{
 							smComponent.SetMaterialAsset(i, materialAsset);
 							bEntityChanged = true;
@@ -362,7 +363,7 @@ namespace Eagle
 					bool bReceivesDecals = smComponent.DoesReceiveDecals();
 					bool bRagdollEnabled = smComponent.IsRagdollEnabled();
 
-					if (UI::DrawAssetSelection("Skeletal Mesh", skeletalMesh))
+					if (EditorResources::DrawAssetSelection("Skeletal Mesh", skeletalMesh))
 					{
 						smComponent.SetMeshAsset(skeletalMesh);
 						bEntityChanged = true;
@@ -386,7 +387,7 @@ namespace Eagle
 					for (uint32_t i = 0; i < materialsCount; ++i)
 					{
 						auto materialAsset = smComponent.GetMaterialAsset(i);
-						if (UI::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
+						if (EditorResources::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
 						{
 							smComponent.SetMaterialAsset(i, materialAsset);
 							bEntityChanged = true;
@@ -417,7 +418,7 @@ namespace Eagle
 					if (smComponent.AnimType == SkeletalMeshComponent::AnimationType::Clip)
 					{
 						auto animAsset = smComponent.GetAnimationAsset();
-						if (UI::DrawAssetSelection("Animation Clip", animAsset))
+						if (EditorResources::DrawAssetSelection("Animation Clip", animAsset))
 						{
 							smComponent.SetAnimationAsset(animAsset);
 							bEntityChanged = true;
@@ -445,7 +446,7 @@ namespace Eagle
 					else
 					{
 						auto graphAsset = smComponent.GetAnimationGraphAsset();
-						if (UI::DrawAssetSelection("Animation Graph", graphAsset))
+						if (EditorResources::DrawAssetSelection("Animation Graph", graphAsset))
 						{
 							smComponent.SetAnimationGraphAsset(graphAsset);
 							bEntityChanged = true;
@@ -486,7 +487,7 @@ namespace Eagle
 									case GraphVariableType::Animation:
 									{
 										auto animVar = Cast<GraphVariableAnimation>(var);
-										bEntityChanged |= UI::DrawAssetSelection(name, animVar->Value);
+										bEntityChanged |= EditorResources::DrawAssetSelection(name, animVar->Value);
 										break;
 									}
 									case GraphVariableType::String:
@@ -519,7 +520,7 @@ namespace Eagle
 				{
 					UI::BeginPropertyGrid("BillboardComponent");
 
-					bEntityChanged |= UI::DrawAssetSelection("Texture", billboard.TextureAsset);
+					bEntityChanged |= EditorResources::DrawAssetSelection("Texture", billboard.TextureAsset);
 
 					UI::EndPropertyGrid();
 				});
@@ -543,7 +544,7 @@ namespace Eagle
 
 					UI::BeginPropertyGrid("TextComponent");
 
-					if (UI::DrawAssetSelection("Font", asset))
+					if (EditorResources::DrawAssetSelection("Font", asset))
 					{
 						component.SetFontAsset(asset);
 						bEntityChanged = true;
@@ -569,7 +570,7 @@ namespace Eagle
 
 					if (bLit)
 					{
-						if (UI::DrawAssetSelection("Material", materialAsset))
+						if (EditorResources::DrawAssetSelection("Material", materialAsset))
 						{
 							component.SetMaterialAsset(materialAsset);
 							bEntityChanged = true;
@@ -626,7 +627,7 @@ namespace Eagle
 
 					UI::BeginPropertyGrid("Text2DComponent");
 
-					if (UI::DrawAssetSelection("Font", asset))
+					if (EditorResources::DrawAssetSelection("Font", asset))
 					{
 						component.SetFontAsset(asset);
 						bEntityChanged = true;
@@ -711,7 +712,7 @@ namespace Eagle
 
 					UI::BeginPropertyGrid("Image2DComponent");
 
-					if (UI::DrawAssetSelection("Texture", asset))
+					if (EditorResources::DrawAssetSelection("Texture", asset))
 					{
 						component.SetTextureAsset(asset);
 						bEntityChanged = true;
@@ -1467,7 +1468,7 @@ namespace Eagle
 					bool bObstacle = collider.IsObstacle();
 					bool bAffectsNavMesh = collider.DoesAffectNavMeshBuild();
 
-					if (UI::DrawAssetSelection("Physics Material", materialAsset))
+					if (EditorResources::DrawAssetSelection("Physics Material", materialAsset))
 					{
 						collider.SetPhysicsMaterialAsset(materialAsset);
 						bEntityChanged = true;
@@ -1522,7 +1523,7 @@ namespace Eagle
 					bool bObstacle = collider.IsObstacle();
 					bool bAffectsNavMesh = collider.DoesAffectNavMeshBuild();
 
-					if (UI::DrawAssetSelection("Physics Material", materialAsset))
+					if (EditorResources::DrawAssetSelection("Physics Material", materialAsset))
 					{
 						collider.SetPhysicsMaterialAsset(materialAsset);
 						bEntityChanged = true;
@@ -1578,7 +1579,7 @@ namespace Eagle
 					bool bObstacle = collider.IsObstacle();
 					bool bAffectsNavMesh = collider.DoesAffectNavMeshBuild();
 
-					if (UI::DrawAssetSelection("Physics Material", materialAsset))
+					if (EditorResources::DrawAssetSelection("Physics Material", materialAsset))
 					{
 						collider.SetPhysicsMaterialAsset(materialAsset);
 						bEntityChanged = true;
@@ -1640,13 +1641,13 @@ namespace Eagle
 					bool bTwoSided = collider.IsTwoSided();
 					bool bAffectsNavMesh = collider.DoesAffectNavMeshBuild();
 
-					if (UI::DrawAssetSelection("Collision Mesh", collisionMesh, "Must be set. Set the mesh that will be used to generate collision data for it"))
+					if (EditorResources::DrawAssetSelection("Collision Mesh", collisionMesh, "Must be set. Set the mesh that will be used to generate collision data for it"))
 					{
 						collider.SetCollisionMeshAsset(collisionMesh);
 						bEntityChanged = true;
 					}
 
-					if (UI::DrawAssetSelection("Physics Material", materialAsset))
+					if (EditorResources::DrawAssetSelection("Physics Material", materialAsset))
 					{
 						collider.SetPhysicsMaterialAsset(materialAsset);
 						bEntityChanged = true;
@@ -1714,7 +1715,7 @@ namespace Eagle
 					float maxDistance = audio.GetMaxDistance();
 					uint32_t currentRollOff = (uint32_t)audio.GetRollOffModel();
 
-					if (UI::DrawAssetSelection("Audio", asset))
+					if (EditorResources::DrawAssetSelection("Audio", asset))
 					{
 						audio.SetAudioAsset(asset);
 						bEntityChanged = true;
@@ -1841,7 +1842,7 @@ namespace Eagle
 
 					UI::BeginPropertyGrid("ParticleSystemComponent");
 
-					if (UI::DrawAssetSelection("Particle System", asset))
+					if (EditorResources::DrawAssetSelection("Particle System", asset))
 					{
 						system.SetAsset(asset);
 						bEntityChanged = true;
@@ -1864,7 +1865,7 @@ namespace Eagle
 					uint32_t sortPriority = decal.GetSortPriority();
 					bool bAdjustAspectRatio = decal.IsAdjustAspectRatioEnabled();
 
-					if (UI::DrawAssetSelection("Material", materialAsset, "Material data will be blended with the underlying material based on 'Opacity'"))
+					if (EditorResources::DrawAssetSelection("Material", materialAsset, "Material data will be blended with the underlying material based on 'Opacity'"))
 					{
 						decal.SetMaterialAsset(materialAsset);
 						bEntityChanged = true;

@@ -257,6 +257,7 @@ namespace Eagle
 			}
 		}
 		out << YAML::Key << "bUseSky" << YAML::Value << m_Scene->GetUseSkyAsBackground();
+		out << YAML::Key << "bRenderSkybox" << YAML::Value << m_Scene->IsRenderSkyboxEnabled();
 		out << YAML::Key << "bEnabled" << YAML::Value << m_Scene->IsSkyboxEnabled();
 		out << YAML::EndMap;
 	}
@@ -323,6 +324,11 @@ namespace Eagle
 		}
 		m_Scene->SetSkybox(sky);
 		m_Scene->SetUseSkyAsBackground(skyboxNode["bUseSky"].as<bool>());
+
+		bool bRenderSkybox = true;
+		if (auto node = skyboxNode["bRenderSkybox"])
+			bRenderSkybox = node.as<bool>();
+		m_Scene->SetRenderSkybox(bRenderSkybox);
 
 		bool bSkyboxEnabled = true;
 		if (auto node = skyboxNode["bEnabled"])

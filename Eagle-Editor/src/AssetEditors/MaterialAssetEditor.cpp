@@ -68,7 +68,7 @@ namespace Eagle
 			UI::BeginPropertyGrid("MaterialDetails_Albedo");
 			
 			temp = material->GetAlbedoAsset();
-			if (UI::DrawAssetSelection("Albedo Texture", temp))
+			if (EditorResources::DrawAssetSelection("Albedo Texture", temp))
 			{
 				material->SetAlbedoAsset(temp);
 				bChanged = true;
@@ -94,7 +94,7 @@ namespace Eagle
 			UI::BeginPropertyGrid("MaterialDetails_Metalness");
 			
 			temp = material->GetMetalnessAsset();
-			if (UI::DrawAssetSelection("Metalness Texture", temp, s_MetalnessHelpMsg))
+			if (EditorResources::DrawAssetSelection("Metalness Texture", temp, s_MetalnessHelpMsg))
 			{
 				material->SetMetalnessAsset(temp);
 				bChanged = true;
@@ -120,7 +120,7 @@ namespace Eagle
 			UI::BeginPropertyGrid("MaterialDetails_Normal");
 			
 			temp = material->GetNormalAsset();
-			if (UI::DrawAssetSelection("Normal", temp, "Currently, decals ignore this input"))
+			if (EditorResources::DrawAssetSelection("Normal", temp, "Currently, decals ignore this input"))
 			{
 				material->SetNormalAsset(temp);
 				bChanged = true;
@@ -135,7 +135,7 @@ namespace Eagle
 			UI::BeginPropertyGrid("MaterialDetails_Roughness");
 			
 			temp = material->GetRoughnessAsset();
-			if (UI::DrawAssetSelection("Roughness Texture", temp, s_RoughnessHelpMsg))
+			if (EditorResources::DrawAssetSelection("Roughness Texture", temp, s_RoughnessHelpMsg))
 			{
 				material->SetRoughnessAsset(temp);
 				bChanged = true;
@@ -161,7 +161,7 @@ namespace Eagle
 			UI::BeginPropertyGrid("MaterialDetails_AO");
 			
 			temp = material->GetAOAsset();
-			if (UI::DrawAssetSelection("AO Texture", temp, s_AOHelpMsg))
+			if (EditorResources::DrawAssetSelection("AO Texture", temp, s_AOHelpMsg))
 			{
 				material->SetAOAsset(temp);
 				bChanged = true;
@@ -187,7 +187,7 @@ namespace Eagle
 			UI::BeginPropertyGrid("MaterialDetails_Emissive");
 			
 			temp = material->GetEmissiveAsset();
-			if (UI::DrawAssetSelection("Emissive Texture", temp))
+			if (EditorResources::DrawAssetSelection("Emissive Texture", temp))
 			{
 				material->SetEmissiveAsset(temp);
 				bChanged = true;
@@ -220,7 +220,7 @@ namespace Eagle
 				UI::BeginPropertyGrid("MaterialDetails_Opacity");
 				
 				temp = material->GetOpacityAsset();
-				if (UI::DrawAssetSelection("Opacity Texture", temp, s_OpacityHelpMsg))
+				if (EditorResources::DrawAssetSelection("Opacity Texture", temp, s_OpacityHelpMsg))
 				{
 					material->SetOpacityAsset(temp);
 					bChanged = true;
@@ -257,7 +257,7 @@ namespace Eagle
 				UI::BeginPropertyGrid("MaterialDetails_Opacity Mask");
 
 				temp = material->GetOpacityMaskAsset();
-				if (UI::DrawAssetSelection("Opacity Mask Texture", temp, s_OpacityMaskHelpMsg))
+				if (EditorResources::DrawAssetSelection("Opacity Mask Texture", temp, s_OpacityMaskHelpMsg))
 				{
 					material->SetOpacityMaskAsset(temp);
 					bChanged = true;

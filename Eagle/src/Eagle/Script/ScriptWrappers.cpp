@@ -5724,6 +5724,18 @@ namespace Eagle
 		return scene->GetUseSkyAsBackground();
 	}
 
+	void Script::Eagle_Renderer_SetRenderSkyboxEnabled(bool value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		scene->SetRenderSkybox(value);
+	}
+
+	bool Script::Eagle_Renderer_IsRenderSkyboxEnabled()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		return scene->IsRenderSkyboxEnabled();
+	}
+
 	void Script::Eagle_Renderer_SetSkyboxEnabled(bool value)
 	{
 		const auto& scene = Scene::GetCurrentScene();

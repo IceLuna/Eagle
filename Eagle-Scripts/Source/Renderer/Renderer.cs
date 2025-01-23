@@ -379,6 +379,12 @@ namespace Eagle
             get { return GetUseSkyAsBackground_Native(); }
         }
 
+        public static bool bRenderSkyboxEnabled
+        {
+            set { SetRenderSkyboxEnabled_Native(value); }
+            get { return IsRenderSkyboxEnabled_Native(); }
+        }
+
         public static bool bSkyboxEnabled
         {
             set { SetSkyboxEnabled_Native(value); }
@@ -583,6 +589,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern bool IsSkyboxEnabled_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetRenderSkyboxEnabled_Native(bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern bool IsRenderSkyboxEnabled_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetCSMSmoothTransitionEnabled_Native(bool value);

@@ -15,14 +15,15 @@ namespace Eagle
 		m_Scene = MakeRef<Scene>("AssetThumbnail", m_Renderer);
 		m_Scene->bDrawMiscellaneous = false;
 		m_Scene->SetUseSkyAsBackground(false);
+		m_Scene->SetRenderSkybox(false);
 	}
 
-	void AssetThumbnailRenderer::Prepare(glm::uvec2 size, bool bNeedSkybox)
+	void AssetThumbnailRenderer::Prepare(glm::uvec2 size, bool bNeedSkyboxLighting)
 	{
 		m_Scene->ClearScene();
 		m_Scene->OnViewportResize(size.x, size.y);
-		m_Scene->SetSkyboxEnabled(bNeedSkybox);
-		if (bNeedSkybox)
+		m_Scene->SetSkyboxEnabled(bNeedSkyboxLighting);
+		if (bNeedSkyboxLighting)
 		{
 			const auto& skybox = AssetManager::GetPreviewSkybox();
 			m_Scene->SetSkybox(skybox);

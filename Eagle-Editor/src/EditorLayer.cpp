@@ -1,5 +1,6 @@
 ﻿#include "EditorLayer.h"
 #include "ProjectLayer.h"
+#include "EditorResources.h"
 
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/Asset/AssetManager.h"
@@ -144,6 +145,8 @@ namespace Eagle
 
 	void EditorLayer::OnAttach()
 	{
+		EditorResources::Init();
+
 		m_ImGuiLayer = Application::Get().GetImGuiLayer();
 
 		const auto& project = Project::GetProjectInfo();
@@ -207,6 +210,7 @@ namespace Eagle
 		m_EditorSerializer.Serialize(Project::GetConfigPath() / "EditorDefault.ini");
 		Scene::SetCurrentScene(nullptr);
 		Scene::RemoveOnSceneOpenedCallback(m_OpenedSceneCallbackID);
+		EditorResources::Release();
 	}
 
 	void EditorLayer::OnUpdate(Timestep ts)
@@ -1086,7 +1090,7 @@ namespace Eagle
 			UI::BeginPropertyGrid("IBLSceneSettings");
 
 			auto cubemap = m_CurrentScene->GetSkybox();
-			if (UI::DrawAssetSelection("IBL", cubemap))
+			if (EditorResources::DrawAssetSelection("IBL", cubemap))
 			{
 				m_CurrentScene->SetSkybox(cubemap);
 				bChanged = true;
@@ -1134,6 +1138,13 @@ namespace Eagle
 			if (UI::Property("Sky as background", bUseSkyAsBackground, s_SkyHelpMsg))
 			{
 				m_CurrentScene->SetUseSkyAsBackground(bUseSkyAsBackground);
+				bChanged = true;
+			}
+
+			bool bRenderSkybox = m_CurrentScene->IsRenderSkyboxEnabled();
+			if (UI::Property("Render Skybox", bRenderSkybox, "If disabled, IBL will still light the scene"))
+			{
+				m_CurrentScene->SetRenderSkybox(bRenderSkybox);
 				bChanged = true;
 			}
 
@@ -1429,7 +1440,7 @@ namespace Eagle
 					bSettingsChanged = true;
 					EG_CORE_TRACE("Changed Bloom Knee to: {}", settings.Knee);
 				}
-				if (UI::DrawAssetSelection("Dirt", settings.Dirt))
+				if (EditorResources::DrawAssetSelection("Dirt", settings.Dirt))
 				{
 					bSettingsChanged = true;
 					EG_CORE_TRACE("Changed Bloom Dirt Texture to: {}", settings.Dirt ? settings.Dirt->GetPath().u8string() : "None");
@@ -1716,7 +1727,7 @@ namespace Eagle
 		UI::BeginPropertyGrid("RendererSettingsPanel");
 
 		bool bChanged = false;
-		if (UI::DrawAssetSelection("Game startup scene", startupScene, "If 'None' is selected, an empty scene will be opened"))
+		if (EditorResources::DrawAssetSelection("Game startup scene", startupScene, "If 'None' is selected, an empty scene will be opened"))
 		{
 			Project::SetStartupScene(startupScene);
 			bChanged = true;
@@ -2011,6 +2022,7 @@ namespace Eagle
 			m_BeforeSimulationData.CubemapIntensity = m_EditorScene->GetSkyboxIntensity();
 			m_BeforeSimulationData.bSkyAsBackground = m_EditorScene->GetUseSkyAsBackground();
 			m_BeforeSimulationData.bSkyboxEnabled = m_EditorScene->IsSkyboxEnabled();
+			m_BeforeSimulationData.bRenderSkybox = m_EditorScene->IsRenderSkyboxEnabled();
 		}
 
 		m_SimulationScene = MakeRef<Scene>(m_EditorScene, "Simulation Scene");
@@ -2039,6 +2051,7 @@ namespace Eagle
 			m_CurrentScene->SetSkyboxIntensity(m_BeforeSimulationData.CubemapIntensity);
 			m_CurrentScene->SetUseSkyAsBackground(m_BeforeSimulationData.bSkyAsBackground);
 			m_CurrentScene->SetSkyboxEnabled(m_BeforeSimulationData.bSkyboxEnabled);
+			m_CurrentScene->SetRenderSkybox(m_BeforeSimulationData.bRenderSkybox);
 		}
 
 		EG_CORE_TRACE("Editor Stop pressed");

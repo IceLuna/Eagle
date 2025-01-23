@@ -53,7 +53,7 @@ namespace Eagle
 		for (uint32_t i = 0; i < materialsCount; ++i)
 		{
 			auto materialAsset = mesh->GetMaterialAsset(i);
-			if (UI::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
+			if (EditorResources::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
 			{
 				mesh->SetMaterialAsset(i, materialAsset);
 				m_Component->SetMaterialAsset(i, materialAsset);

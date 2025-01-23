@@ -125,9 +125,9 @@ namespace Eagle
 	void AssetManager::Reset()
 	{
 		AssetEntity::s_EntityAssetsScene.reset();
+		s_Callbacks.clear();
 		s_Assets.clear();
 		s_AssetsByGUID.clear();
-		s_Callbacks.clear();
 		s_AssetPackAssets.clear();
 		s_AssetPackAssetsByGUID.clear();
 		s_Skybox.reset();
