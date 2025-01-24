@@ -14,7 +14,7 @@ namespace Eagle
 	class AssetEditor
 	{
 	public:
-		AssetEditor(bool bNeedRenderer = false, bool bNeedSkybox = true);
+		AssetEditor(bool bNeedRenderer = false, bool bNeedSkybox = true, bool bSimulate = false);
 
 		virtual ~AssetEditor();
 

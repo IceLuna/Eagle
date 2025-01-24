@@ -73,15 +73,15 @@ namespace Eagle
 		glm::vec3 Scale3D;
 
 	public:
-		Transform() : Location(0.f), Rotation(), Scale3D(1.f) {}
-		Transform(const glm::vec3& location) : Location(location), Rotation(), Scale3D(1.f) {}
-		Transform(const glm::vec3& location, const Rotator& rotation, const glm::vec3& scale = glm::vec3(1.f))
+		constexpr Transform() : Location(0.f), Rotation(), Scale3D(1.f) {}
+		constexpr Transform(const glm::vec3& location) : Location(location), Rotation(), Scale3D(1.f) {}
+		constexpr Transform(const glm::vec3& location, const Rotator& rotation, const glm::vec3& scale = glm::vec3(1.f))
 			: Location(location)
 			, Rotation(rotation)
 			, Scale3D(scale) {}
 
-		Transform(const Transform&) = default;
-		Transform(Transform&& other) = default;
+		constexpr Transform(const Transform&) = default;
+		constexpr Transform(Transform&& other) = default;
 
 		Transform& operator= (const Transform&) = default;
 		Transform& operator= (Transform&& other) = default;
@@ -115,7 +115,7 @@ namespace Eagle
 			return result;
 		}
 
-		bool operator== (const Transform& other) const
+		constexpr bool operator== (const Transform& other) const
 		{
 			return Location == other.Location && Rotation == other.Rotation && Scale3D == other.Scale3D;
 		}

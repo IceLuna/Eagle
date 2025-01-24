@@ -1,0 +1,52 @@
+#include "FontAssetEditor.h"
+
+#include "Eagle/Asset/Asset.h"
+#include "Eagle/UI/UI.h"
+
+#include "Eagle/Components/Components.h"
+
+namespace Eagle
+{
+	FontAssetEditor::FontAssetEditor(const Ref<AssetFont>& asset)
+		: AssetEditor(true, false), m_Asset(asset)
+	{
+		m_Scene->bDrawMiscellaneous = false;
+
+		Entity entity = m_Scene->CreateEntity("FontAssetEditor");
+		m_Component = &entity.AddComponent<Text2DComponent>();
+		m_Component->SetFontAsset(asset);
+		m_Component->SetText(m_Text);
+		m_Component->SetPosition({ -0.9f, -0.9f });
+		m_Component->SetScale(glm::vec2(0.1f));
+	}
+
+	void FontAssetEditor::OnImGuiRender(bool* pOpen)
+	{
+		glm::vec2 position = m_Component->GetPosition();
+		glm::vec2 scale = m_Component->GetScale();
+
+		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
+		ImGui::Begin(m_Asset->GetPath().u8string().c_str(), pOpen);
+
+		UI::BeginPropertyGrid("FontDetails");
+
+		UI::TextWithSeparator("Data");
+		UI::Text("Name", m_Asset->GetPath().stem().u8string());
+		UI::Text("Type", "Font");
+
+		UI::TextWithSeparator("Visualization Settings");
+		
+		if (UI::PropertyTextMultiline("Text", m_Text))
+			m_Component->SetText(m_Text);
+		if (UI::PropertyDrag("Position", position, 0.05f, 0.f, 0.f, "In normalized device coordinates"))
+			m_Component->SetPosition(position);
+		if (UI::PropertyDrag("Scale", scale, 0.05f))
+			m_Component->SetScale(scale);
+
+		UI::EndPropertyGrid();
+
+		ImGui::End();
+
+		DrawViewport();
+	}
+}

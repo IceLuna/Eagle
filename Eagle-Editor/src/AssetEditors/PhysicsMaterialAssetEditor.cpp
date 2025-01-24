@@ -5,8 +5,93 @@
 #include "Eagle/UI/UI.h"
 #include "Eagle/Physics/PhysicsMaterial.h"
 
+#include "Eagle/Components/Components.h"
+
 namespace Eagle
 {
+	constexpr static Transform s_Sphere1Transform(glm::vec3(-3.f, 3.f, 0.f));
+	constexpr static Transform s_Sphere2Transform(glm::vec3(+3.f, 3.f, 0.f));
+	constexpr static glm::vec3 s_PlaneScale = glm::vec3(3.f, 0.05f, 10.f);
+
+	PhysicsMaterialAssetEditor::PhysicsMaterialAssetEditor(const Ref<AssetPhysicsMaterial>& asset)
+		: AssetEditor(true, true, true), m_Asset(asset)
+	{
+		const auto& sphere = AssetManager::GetPreviewSphere();
+		const auto& cube = AssetManager::GetPreviewCube();
+		m_Scene->bDrawMiscellaneous = false;
+
+		// Plane 1
+		{
+			m_Plane1 = m_Scene->CreateEntity("PhysicsMaterialAssetEditor_Plane1");
+			m_Plane1.AddComponent<StaticMeshComponent>().SetMeshAsset(cube);
+			m_Plane1.AddComponent<BoxColliderComponent>();
+
+			auto tr = s_Sphere1Transform;
+			tr.Location -= glm::vec3(0.f, 3.f, 0.f); // Put under the sphere
+			tr.Rotation = glm::quat(0.9672f, -0.2540f, 0.f, 0.f);
+			tr.Scale3D = s_PlaneScale;
+			m_Plane1.SetWorldTransform(tr);
+		}
+
+		// Plane 2
+		{
+			m_Plane2 = m_Scene->CreateEntity("PhysicsMaterialAssetEditor_Plane2");
+			m_Plane2.AddComponent<StaticMeshComponent>().SetMeshAsset(cube);
+			m_Plane2.AddComponent<BoxColliderComponent>();
+
+			auto tr = s_Sphere2Transform;
+			tr.Location -= glm::vec3(0.f, 3.f, 0.f); // Put under the sphere
+			tr.Scale3D = s_PlaneScale;
+			m_Plane2.SetWorldTransform(tr);
+		}
+
+		// Sphere 1
+		{
+			m_Sphere1 = m_Scene->CreateEntity("PhysicsMaterialAssetEditor_Sphere1");
+
+			auto& rigidBody = m_Sphere1.AddComponent<RigidBodyComponent>();
+			rigidBody.BodyType = PhysicsBodyType::Dynamic;
+			rigidBody.SetEnableGravity(true);
+
+			m_Sphere1.AddComponent<SphereColliderComponent>().SetPhysicsMaterialAsset(asset);
+			m_Sphere1.AddComponent<StaticMeshComponent>().SetMeshAsset(sphere);
+			m_Sphere1.SetWorldTransform(s_Sphere1Transform);
+		}
+
+		// Sphere 2
+		{
+			m_Sphere2 = m_Scene->CreateEntity("PhysicsMaterialAssetEditor_Sphere2");
+
+			auto& rigidBody = m_Sphere2.AddComponent<RigidBodyComponent>();
+			rigidBody.BodyType = PhysicsBodyType::Dynamic;
+			rigidBody.SetEnableGravity(true);
+
+			m_Sphere2.AddComponent<SphereColliderComponent>().SetPhysicsMaterialAsset(asset);
+			m_Sphere2.AddComponent<StaticMeshComponent>().SetMeshAsset(sphere);
+			m_Sphere2.SetWorldTransform(s_Sphere2Transform);
+		}
+
+		// Sun
+		{
+			Entity entity = m_Scene->CreateEntity("PhysicsMaterialAssetEditor_Sun");
+			entity.SetWorldRotation(glm::quat(0.707f, -0.707f, 0.f, 0.f));
+			auto& sun = entity.AddComponent<DirectionalLightComponent>();
+			sun.SetLightColor(glm::vec3(20.5f));
+			sun.bVisualizeDirection = true;
+		}
+
+		auto& camera = m_Scene->GetEditorCamera();
+		camera.SetLocation(glm::vec3(-4.f, 0.f, 0.f));
+		camera.LookAt(glm::vec3(0, 0, 0));
+		const glm::vec3 cameraDir = camera.GetForwardVector();
+
+		constexpr AABB aabb(s_Sphere1Transform.Location, s_Sphere2Transform.Location);
+
+		constexpr glm::vec3 center = aabb.Center();
+		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 2.5f); // Move back
+		camera.LookAt(center);
+	}
+
 	void PhysicsMaterialAssetEditor::OnImGuiRender(bool* pOpen)
 	{
 		static const char* s_StaticFrictionHelpMsg = "Static friction defines the amount of friction that is applied between surfaces that are not moving lateral to each-other";
@@ -15,7 +100,7 @@ namespace Eagle
 		auto& material = m_Asset->GetMaterial();
 
 		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
-		bool bHidden = !ImGui::Begin(m_Asset->GetPath().u8string().c_str(), pOpen);
+		ImGui::Begin(m_Asset->GetPath().u8string().c_str(), pOpen);
 		UI::BeginPropertyGrid("PhysicsMaterialDetails");
 
 		UI::Text("Name", m_Asset->GetPath().stem().u8string());
@@ -42,7 +127,40 @@ namespace Eagle
 			bPhysicsMaterialChanged = true;
 		}
 
+		UI::TextWithSeparator("Simulation Settings");
+
+		if (UI::Button("Simulation", "Reset"))
+		{
+			ResetScene();
+		}
 		UI::EndPropertyGrid();
+
+		// Plane 1 rotation
+		{
+			glm::quat q = m_Plane1.GetWorldRotation().GetQuat();
+			glm::vec4 quat(q.x, q.y, q.z, q.w);
+
+			if (UI::DrawVec4Control("1st Plane Rotation (Quat)", quat, glm::vec4{ 0, 0, 0, 1 }, 140.f))
+			{
+				if (glm::all(glm::epsilonEqual(quat, glm::vec4(0), 0.001f)))
+					quat.w = 1.f;
+				quat = glm::normalize(quat);
+				m_Plane1.SetWorldRotation(glm::quat(quat.w, quat.x, quat.y, quat.z));
+			}
+		}
+		// Plane 2 rotation
+		{
+			glm::quat q = m_Plane2.GetWorldRotation().GetQuat();
+			glm::vec4 quat(q.x, q.y, q.z, q.w);
+
+			if (UI::DrawVec4Control("2nd Plane Rotation (Quat)", quat, glm::vec4{ 0, 0, 0, 1 }, 140.f))
+			{
+				if (glm::all(glm::epsilonEqual(quat, glm::vec4(0), 0.001f)))
+					quat.w = 1.f;
+				quat = glm::normalize(quat);
+				m_Plane2.SetWorldRotation(glm::quat(quat.w, quat.x, quat.y, quat.z));
+			}
+		}
 
 		if (bPhysicsMaterialChanged)
 		{
@@ -56,5 +174,18 @@ namespace Eagle
 			Asset::Save(m_Asset);
 
 		ImGui::End();
+
+		DrawViewport();
+	}
+	
+	void PhysicsMaterialAssetEditor::ResetScene()
+	{
+		m_Sphere1.SetWorldTransform(s_Sphere1Transform);
+		m_Sphere1.SetLinearVelocity(glm::vec3(0));
+		m_Sphere1.SetAngularVelocity(glm::vec3(0));
+
+		m_Sphere2.SetWorldTransform(s_Sphere2Transform);
+		m_Sphere2.SetLinearVelocity(glm::vec3(0));
+		m_Sphere2.SetAngularVelocity(glm::vec3(0));
 	}
 }

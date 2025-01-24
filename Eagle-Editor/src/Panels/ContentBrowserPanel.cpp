@@ -24,6 +24,7 @@
 #include "../AssetEditors/StaticMeshAssetEditor.h"
 #include "../AssetEditors/SkeletalMeshAssetEditor.h"
 #include "../AssetEditors/ParticleSystemAssetEditor.h"
+#include "../AssetEditors/FontAssetEditor.h"
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
@@ -662,6 +663,9 @@ namespace Eagle
 			break;
 		case AssetType::SoundGroup:
 			AddAssetEditor<SoundGroupAssetEditor, AssetSoundGroup>(asset);
+			break;
+		case AssetType::Font:
+			AddAssetEditor<FontAssetEditor, AssetFont>(asset);
 			break;
 		case AssetType::Material:
 			AddAssetEditor<MaterialAssetEditor, AssetMaterial>(asset);

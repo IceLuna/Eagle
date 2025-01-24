@@ -21,6 +21,7 @@ namespace Eagle
 	std::unordered_map<GUID, std::function<void(const Ref<Asset>&)>> AssetManager::s_Callbacks;
 	Ref<AssetTextureCube> AssetManager::s_Skybox;
 	Ref<AssetStaticMesh> AssetManager::s_Sphere;
+	Ref<AssetStaticMesh> AssetManager::s_Cube;
 
 	// Just to store path along side with the node when we use GUID as a key.
 	struct NodeData
@@ -103,6 +104,7 @@ namespace Eagle
 
 		s_Skybox = AssetTextureCube::Create(Application::GetCorePath() / "assets/textures/IBL.egasset");
 		s_Sphere = AssetStaticMesh::Create(Application::GetCorePath() / "assets/meshes/Sphere.egasset");
+		s_Cube = AssetStaticMesh::Create(Application::GetCorePath() / "assets/meshes/Cube.egasset");
 	}
 
 	void AssetManager::InitGame(const YAML::Node& baseNode)
@@ -132,6 +134,7 @@ namespace Eagle
 		s_AssetPackAssetsByGUID.clear();
 		s_Skybox.reset();
 		s_Sphere.reset();
+		s_Cube.reset();
 	}
 
 	void AssetManager::Register(const Ref<Asset>& asset)

@@ -6,14 +6,14 @@ namespace Eagle
 {
 	struct AABB
 	{
-		AABB() = default;
-		AABB(const glm::vec3& min, const glm::vec3& max) : Min(min), Max(max) {}
+		constexpr AABB() = default;
+		constexpr AABB(const glm::vec3& min, const glm::vec3& max) : Min(min), Max(max) {}
 
 		glm::vec3 Min = glm::vec3(std::numeric_limits<float>::max());
 		glm::vec3 Max = glm::vec3(std::numeric_limits<float>::lowest());
 
-		glm::vec3 Center() const { return (Min + Max) * 0.5f; }
-		glm::vec3 Extents() const { return Max - Min; }
+		constexpr glm::vec3 Center() const { return (Min + Max) * 0.5f; }
+		constexpr glm::vec3 Extents() const { return Max - Min; }
 		float Length() const { return glm::length(Extents()); }
 
 		void Grow(const AABB& other)
@@ -28,7 +28,7 @@ namespace Eagle
 			Max = glm::max(Max, p);
 		}
 
-		bool Contains(const glm::vec3& p) const
+		constexpr bool Contains(const glm::vec3& p) const
 		{
 			const glm::vec3 radius = Extents() * 0.5f;
 			const glm::vec3 center = Center();
@@ -39,19 +39,19 @@ namespace Eagle
 				(glm::abs(p.z - center.z) <= radius.z);
 		}
 
-		float MinSide() const
+		constexpr float MinSide() const
 		{
 			const glm::vec3 extents = Extents();
 			return glm::min(extents.x, glm::min(extents.y, extents.z));
 		}
 
-		float MaxSide() const
+		constexpr float MaxSide() const
 		{
 			const glm::vec3 extents = Extents();
 			return glm::max(extents.x, glm::max(extents.y, extents.z));
 		}
 
-		bool operator== (const AABB& other) const
+		constexpr bool operator== (const AABB& other) const
 		{
 			return Min == other.Min && Max == other.Max;
 		}

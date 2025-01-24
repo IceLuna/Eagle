@@ -364,6 +364,9 @@ namespace Eagle
 
 	Scene::~Scene()
 	{
+		if (IsPlaying())
+			OnRuntimeStop();
+
 		delete m_RuntimeCameraHolder;
 
 		DestroyScripts();

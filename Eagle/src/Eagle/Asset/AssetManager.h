@@ -55,6 +55,7 @@ namespace Eagle
 
 		static const Ref<AssetTextureCube>& GetPreviewSkybox() { return s_Skybox; }
 		static const Ref<AssetStaticMesh>& GetPreviewSphere() { return s_Sphere; }
+		static const Ref<AssetStaticMesh>& GetPreviewCube() { return s_Cube; }
 
 	private:
 		static AssetsMap s_Assets;
@@ -64,5 +65,6 @@ namespace Eagle
 		// Engine-only assets that's used for asset previews
 		static Ref<AssetTextureCube> s_Skybox;
 		static Ref<AssetStaticMesh> s_Sphere;
+		static Ref<AssetStaticMesh> s_Cube;
 	};
 }

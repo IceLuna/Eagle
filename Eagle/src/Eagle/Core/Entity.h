@@ -65,7 +65,11 @@ namespace Eagle
 		void SetRelativeTransform(const Transform& relativeTransform, bool bTeleportPhysics = true);
 		const Transform& GetRelativeTransform() const;
 
+		void SetLinearVelocity(const glm::vec3& velocity);
 		glm::vec3 GetLinearVelocity() const;
+
+		void SetAngularVelocity(const glm::vec3& velocity);
+		glm::vec3 GetAngularVelocity() const;
 
 		glm::vec3 GetForwardVector() const
 		{

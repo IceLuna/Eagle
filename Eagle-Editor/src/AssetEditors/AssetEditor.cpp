@@ -13,22 +13,31 @@
 
 namespace Eagle
 {
-	AssetEditor::AssetEditor(bool bNeedRenderer, bool bNeedSkybox)
+	AssetEditor::AssetEditor(bool bNeedRenderer, bool bNeedSkybox, bool bSimulate)
 	{
 		if (bNeedRenderer)
 		{
 			SceneRendererSettings settings = SceneRendererSettings::GetBasicSettings();
 			m_Renderer = MakeRef<SceneRenderer>(glm::uvec2{ 1, 1 }, settings);
-			m_Scene = MakeRef<Scene>("AssetEditor", m_Renderer);
+			m_Scene = MakeRef<Scene>("AssetEditor", m_Renderer, bSimulate);
 			m_Scene->SetSkyboxEnabled(bNeedSkybox);
+			m_Scene->SetRenderSkybox(false);
 			if (bNeedSkybox)
 				AddSkybox();
+
+			if (bSimulate)
+			{
+				m_Scene->OnRuntimeStart();
+			}
 		}
 		m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
 	}
 
 	AssetEditor::~AssetEditor()
 	{
+		if (m_Scene && m_Scene->IsPlaying())
+			m_Scene->OnRuntimeStop();
+
 		m_Scene.reset();
 		m_Renderer.reset();
 	}

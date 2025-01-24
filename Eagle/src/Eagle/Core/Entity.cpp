@@ -201,10 +201,29 @@ namespace Eagle
 		return GetComponent<TransformComponent>().RelativeTransform;
 	}
 
+	void Entity::SetLinearVelocity(const glm::vec3& velocity)
+	{
+		if (auto actor = GetPhysicsActor())
+			return actor->SetLinearVelocity(velocity);
+	}
+
 	glm::vec3 Entity::GetLinearVelocity() const
 	{
 		if (auto actor = GetPhysicsActor())
 			return actor->GetLinearVelocity();
+		return glm::vec3(0.f);
+	}
+
+	void Entity::SetAngularVelocity(const glm::vec3& velocity)
+	{
+		if (auto actor = GetPhysicsActor())
+			return actor->SetAngularVelocity(velocity);
+	}
+
+	glm::vec3 Entity::GetAngularVelocity() const
+	{
+		if (auto actor = GetPhysicsActor())
+			return actor->GetAngularVelocity();
 		return glm::vec3(0.f);
 	}
 
