@@ -853,6 +853,14 @@ namespace Eagle
 					}
 					
 					UI::EndPropertyGrid();
+
+					ImGui::Separator();
+					if (ImGui::Button("Copy transform from the editor camera"))
+					{
+						const auto& scene = entity.GetScene();
+						const auto& editorCamera = scene->GetEditorCamera();
+						cameraComponent.SetWorldTransform(editorCamera.GetTransform());
+					}
 				});
 				break;
 			}

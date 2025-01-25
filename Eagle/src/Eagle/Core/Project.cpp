@@ -16,21 +16,23 @@ namespace Eagle
 	
 	bool Project::Create(const ProjectInfo& info)
 	{
+		namespace fs = std::filesystem;
+
 		// TODO: needed?
 		std::error_code error;
-		if (!std::filesystem::exists(info.BasePath))
-			std::filesystem::create_directory(info.BasePath, error);
+		if (!fs::exists(info.BasePath))
+			fs::create_directory(info.BasePath, error);
 
-		if (!std::filesystem::is_directory(info.BasePath))
+		if (!fs::is_directory(info.BasePath))
 		{
 			EG_CORE_ERROR("Couldn't create project at: {}. It's not a folder!", info.BasePath.u8string());
 			return false;
 		}
 
 		// Checking if folder already contains another eagle project
-		for (auto& dirEntry : std::filesystem::directory_iterator(info.BasePath))
+		for (auto& dirEntry : fs::directory_iterator(info.BasePath))
 		{
-			if (std::filesystem::is_directory(dirEntry))
+			if (fs::is_directory(dirEntry))
 				continue;
 
 			const Path filepath = dirEntry;
@@ -44,9 +46,14 @@ namespace Eagle
 			}
 		}
 
-		std::filesystem::create_directory(info.BasePath / "Content");
-		std::filesystem::create_directory(info.BasePath / "Binaries");
-		std::filesystem::create_directory(info.BasePath / "Source");
+		const fs::path contentPath = info.BasePath / "Content";
+
+		fs::create_directory(contentPath);
+		fs::create_directory(info.BasePath / "Binaries");
+		fs::create_directory(info.BasePath / "Source");
+
+		fs::copy(Application::GetCorePath() / "assets/meshes/Cube.egasset", contentPath / "Cube.egasset");
+		fs::copy(Application::GetCorePath() / "assets/meshes/Sphere.egasset", contentPath / "Sphere.egasset");
 
 		Save(info);
 

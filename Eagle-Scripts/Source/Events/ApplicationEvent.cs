@@ -29,6 +29,18 @@
 
     public class WindowCloseEvent : Event
 	{
+        public readonly bool bQuitGame; // `True` if it was requested from C# scripts
+
+        public WindowCloseEvent(bool bQuitGame)
+        {
+            this.bQuitGame = bQuitGame;
+        }
+
+        public override string ToString()
+        {
+            return $"WindowCloseEvent. Quit Game: {bQuitGame}";
+        }
+
         public override EventType GetEventType()
         {
             return EventType.WindowClosed;

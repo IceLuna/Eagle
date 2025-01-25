@@ -31,7 +31,6 @@
 
 namespace Eagle
 {
-	constexpr static float s_ItemSize = 96.f;
 	char ContentBrowserPanel::searchBuffer[searchBufferSize];
 	static ContentBrowserPanel* s_Instance = nullptr;
 
@@ -290,7 +289,7 @@ namespace Eagle
 		}
 
 		ImVec2 size = ImGui::GetContentRegionAvail();
-		m_ColumnWidth = s_ItemSize + GImGui->Style.FramePadding.x * 2.f + 1.f;
+		m_ColumnWidth = UI::GetThumbnailSize().x + GImGui->Style.FramePadding.x * 2.f + 1.f;
 		const int columns = int(size[0] / m_ColumnWidth);
 		m_ContentBrowserHovered = ImGui::IsWindowHovered();
 
@@ -484,13 +483,15 @@ namespace Eagle
 
 	void ContentBrowserPanel::HandleAddPanel()
 	{
+		constexpr ImVec2 thumbnailSize = ImVec2(UI::GetThumbnailSize().x, UI::GetThumbnailSize().y);
+
 		if (m_DrawAddPanel)
 		{
 			ImGui::OpenPopup("Add asset");
 
 			// Always center this window when appearing
 			ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-			ImVec2 size = ImVec2(720.f, 5.66f * s_ItemSize);
+			ImVec2 size = ImVec2(720.f, 5.66f * thumbnailSize.y);
 			ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 			ImGui::SetNextWindowSize(size, ImGuiCond_FirstUseEver);
 		}
@@ -499,7 +500,7 @@ namespace Eagle
 		{
 			bool bCreatedAsset = false;
 
-			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::None), "Import...", {s_ItemSize, s_ItemSize}, s_ItemSize))
+			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::None), "Import...", thumbnailSize, thumbnailSize.x))
 			{
 				bCreatedAsset |= HandleImport();
 			}
@@ -507,31 +508,31 @@ namespace Eagle
 
 			ImGui::Separator();
 
-			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::Entity), "Entity", { s_ItemSize, s_ItemSize }, s_ItemSize))
+			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::Entity), "Entity", thumbnailSize, thumbnailSize.x))
 			{
 				AssetImporter::CreateEntity(m_CurrentDirectoryRelative);
 				bCreatedAsset = true;
 			}
 
-			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::Material), "Material", { s_ItemSize, s_ItemSize }, s_ItemSize))
+			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::Material), "Material", thumbnailSize, thumbnailSize.x))
 			{
 				AssetImporter::CreateMaterial(m_CurrentDirectoryRelative);
 				bCreatedAsset = true;
 			}
 
-			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::PhysicsMaterial), "Physics Material", { s_ItemSize, s_ItemSize }, s_ItemSize))
+			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::PhysicsMaterial), "Physics Material", thumbnailSize, thumbnailSize.x))
 			{
 				AssetImporter::CreatePhysicsMaterial(m_CurrentDirectoryRelative);
 				bCreatedAsset = true;
 			}
 
-			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::SoundGroup), "Sound Group", { s_ItemSize, s_ItemSize }, s_ItemSize))
+			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::SoundGroup), "Sound Group", thumbnailSize, thumbnailSize.x))
 			{
 				AssetImporter::CreateSoundGroup(m_CurrentDirectoryRelative);
 				bCreatedAsset = true;
 			}
 
-			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::AnimationGraph), "Animation Graph", { s_ItemSize, s_ItemSize }, s_ItemSize))
+			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::AnimationGraph), "Animation Graph", thumbnailSize, thumbnailSize.x))
 			{
 				m_AnimationGraphImporter = AnimationGraphImporterPanel(m_CurrentDirectoryRelative);
 				m_DrawAddPanel = false;
@@ -699,14 +700,15 @@ namespace Eagle
 		return *s_Instance;
 	}
 
-	bool ContentBrowserPanel::RenderThumbnail(const Ref<Asset>& asset, AssetType type)
+	bool ContentBrowserPanel::RenderThumbnail(const Ref<Asset>& asset)
 	{
-		constexpr static glm::uvec2 thumbnailRenderSize = { uint32_t(s_ItemSize), uint32_t(s_ItemSize) };
-		return ThumbnailCache::Render(asset, type, thumbnailRenderSize);
+		constexpr glm::uvec2 thumbnailRenderSize = glm::uvec2(UI::GetThumbnailSize());
+		return ThumbnailCache::Render(asset, thumbnailRenderSize);
 	}
 
 	void ContentBrowserPanel::DrawContent(const std::vector<Path>& directories, const std::vector<Path>& files, bool bHintFullPath /* = false */)
 	{
+		constexpr ImVec2 thumbnailSize = ImVec2(UI::GetThumbnailSize().x, UI::GetThumbnailSize().y);
 		bool bHoveredAnyItem = false;
 
 		ImGui::PushID("DIRECTORIES_FILL");
@@ -721,7 +723,7 @@ namespace Eagle
 				if (bFillBg)
 					UI::PushButtonSelectedStyleColors();
 
-				UI::ImageButtonWithText(m_FolderIcon, filename, { s_ItemSize, s_ItemSize }, bFillBg);
+				UI::ImageButtonWithText(m_FolderIcon, filename, thumbnailSize, bFillBg);
 
 				if (bFillBg)
 					UI::PopButtonSelectedStyleColors();
@@ -777,7 +779,7 @@ namespace Eagle
 				image = ThumbnailCache::Get(asset);
 				if (!image)
 				{
-					if (RenderThumbnail(asset, assetType))
+					if (RenderThumbnail(asset))
 					{
 						image = ThumbnailCache::Get(asset);
 					}
@@ -800,7 +802,7 @@ namespace Eagle
 				if (bBorderColor)
 					ImGui::PushStyleColor(ImGuiCol_Border, borderColor);
 
-				UI::ImageButtonWithText(image, filename, { s_ItemSize, s_ItemSize }, bFillBg, 2.0f);
+				UI::ImageButtonWithText(image, filename, thumbnailSize, bFillBg, 2.0f);
 
 				if (bBorderColor)
 					ImGui::PopStyleColor();
@@ -818,8 +820,8 @@ namespace Eagle
 				invWindowBg.z = 1.f - invWindowBg.z;
 				const uint32_t color = IM_COL32(uint32_t(invWindowBg.x * 255.f), uint32_t(invWindowBg.y * 255.f), uint32_t(invWindowBg.z * 255.f), 255u);
 
-				constexpr float asteriskDrawOffset = 36.f;
-				UI::AddImage(m_AsteriskIcon, ImVec2(p.x + s_ItemSize - asteriskDrawOffset, p.y + s_ItemSize - asteriskDrawOffset), ImVec2(p.x + s_ItemSize, p.y + s_ItemSize), ImVec2(0, 0), ImVec2(1, 1), color);
+				constexpr ImVec2 asteriskDrawOffset = ImVec2(36.f, 36.f);
+				UI::AddImage(m_AsteriskIcon, p + thumbnailSize - asteriskDrawOffset, p + thumbnailSize, ImVec2(0, 0), ImVec2(1, 1), color);
 			}
 			DrawPopupMenu(path);
 

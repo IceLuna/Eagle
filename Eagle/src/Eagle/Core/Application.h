@@ -39,6 +39,8 @@ namespace Eagle
 		Application(const Application&) = delete;
 		virtual ~Application();
 
+		virtual void OnEvent(Event& e);
+
 		double GetTime() const { return m_Time; }
 		Timestep GetTimestep() const { return m_Timestep; }
 
@@ -80,7 +82,6 @@ namespace Eagle
 	protected:
 		virtual bool OnWindowClose(WindowCloseEvent& e);
 		virtual bool OnWindowResize(WindowResizeEvent& e);
-		virtual void OnEvent(Event& e);
 
 		void Run();
 

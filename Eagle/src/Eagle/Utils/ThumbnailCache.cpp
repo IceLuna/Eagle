@@ -43,12 +43,15 @@ namespace Eagle
 		s_RenderingThumbnail = false;
 	}
 
-	bool ThumbnailCache::Render(const Ref<Asset>& asset, AssetType type, glm::uvec2 size)
+	bool ThumbnailCache::Render(const Ref<Asset>& asset, glm::uvec2 size)
 	{
+		if (!asset)
+			return false;
+
 		if (s_RenderingThumbnail) // One thumbnail per frame
 			return false;
 
-		switch (type)
+		switch (asset->GetAssetType())
 		{
 		case Eagle::AssetType::StaticMesh:
 			s_AssetThumbnailRenderer->Render(Cast<AssetStaticMesh>(asset), size);

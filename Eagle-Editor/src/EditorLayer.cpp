@@ -230,7 +230,7 @@ namespace Eagle
 		const bool bShouldRenderBasedOnFocus = !bRenderOnlyWhenFocused || m_WindowFocused;
 		ReloadScriptsIfNecessary();
 		HandleResize();
-		m_CurrentScene->OnUpdate(ts, !m_ViewportHidden && bShouldRenderBasedOnFocus);
+		m_CurrentScene->OnUpdate(ts, !m_ViewportHidden && bShouldRenderBasedOnFocus, bUpdateAnimationsInEditor);
 	}
 
 	void EditorLayer::OnEvent(Eagle::Event& e)
@@ -255,7 +255,21 @@ namespace Eagle
 		else if (e.GetEventType() == EventType::WindowClose)
 		{
 			e.Handled = true;
-			HandleCloseRequest(true);
+			WindowCloseEvent& closeEvent = (WindowCloseEvent&)e;
+			if (closeEvent.IsQuitGame() && m_EditorState == EditorState::Play)
+			{
+				// Quit game was requested from C# scripts.
+				// But since we're in the editor, we just need to stop the simulation.
+				// But do it when the next frame starts to avoid corrupting the current frame logic
+				Submit([this]()
+				{
+					StopPlayingScene();
+				});
+			}
+			else
+			{
+				HandleCloseRequest(true);
+			}
 		}
 
 		EventDispatcher dispatcher(e);
@@ -374,7 +388,19 @@ namespace Eagle
 				if (leftShift)
 				{
 					Window& window = Application::Get().GetWindow();
+					bool bFullscreen = window.IsFullscreen();
+					if (!bFullscreen)
+					{
+						m_WindowPosBeforeFS = window.GetWindowPos();
+						m_WindowSizeBeforeFS = window.GetWindowSize();
+					}
 					window.SetFullscreen(!window.IsFullscreen());
+					bFullscreen = window.IsFullscreen();
+					if (!bFullscreen)
+					{
+						window.SetWindowPos(int(m_WindowPosBeforeFS.x), int(m_WindowPosBeforeFS.y));
+						window.SetWindowSize(int(m_WindowSizeBeforeFS.x), int(m_WindowSizeBeforeFS.y));
+					}
 				}
 				else
 					m_bFullScreen = !m_bFullScreen;
@@ -665,7 +691,8 @@ namespace Eagle
 		m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + displayName);
 	}
 
-	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync, bool bRenderOnlyWhenFocused, bool bDrawNavMesh, Key stopSimulationKey)
+	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync,
+		bool bRenderOnlyWhenFocused, bool bDrawNavMesh, Key stopSimulationKey, bool bUpdateAnimationsInEditor)
 	{
 		// Scene creation needs to go through this way of setting it up since we need to get Ref<Scene> immediately
 		m_EditorScene = MakeRef<Scene>("Editor Scene");
@@ -690,6 +717,7 @@ namespace Eagle
 		window.SetVSync(bVSync);
 		ImGuiLayer::SelectStyle(m_EditorStyle);
 		this->bRenderOnlyWhenFocused = bRenderOnlyWhenFocused;
+		this->bUpdateAnimationsInEditor = bUpdateAnimationsInEditor;
 		SetDrawNavMesh(bDrawNavMesh);
 		m_StopSimulationKey = stopSimulationKey;
 
@@ -1786,6 +1814,7 @@ namespace Eagle
 			UI::BeginPropertyGrid("EditorPreferences");
 
 			UI::Property("Eco rendering", bRenderOnlyWhenFocused, "If checked, the scene won't be rendered if the window is not in focus");
+			UI::Property("Update Animations", bUpdateAnimationsInEditor, "If checked, animations will be updated in the editor mode");
 			UI::Property("Draw Editor Miscellaneous", m_CurrentScene->bDrawMiscellaneous);
 			UI::Property("Draw Nav Mesh", m_CurrentScene->bDrawNavMesh);
 			UI::ComboEnum<Eagle::Key>("Stop simulation key", m_StopSimulationKey, "The editor will stop the game-simulation when this key is pressed. Set it to 'None' to disable");

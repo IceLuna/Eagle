@@ -40,6 +40,8 @@ namespace Eagle
     {
         public static void OpenScene(AssetScene scene) { OpenScene_Native(scene.GetGUID()); }
 
+        public static void QuitGame() { QuitGame_Native(); }
+
         public static bool Raycast(Vector3 origin, Vector3 dir, float maxDistance, out RaycastHit outHit)
         {
             GUID guid = GUID.Null();
@@ -79,6 +81,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void OpenScene_Native(GUID assetID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void QuitGame_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern bool Raycast_Native(ref Vector3 origin, ref Vector3 dir, float maxDistance, out GUID hitEntity, out Vector3 position, out Vector3 normal, out float distance);

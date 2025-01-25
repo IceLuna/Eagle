@@ -80,7 +80,16 @@ namespace Eagle
 
 		Ref<Image> preview;
 		if (ThumbnailCache::IsRenderableAssetType(asset->GetAssetType()))
+		{
 			preview = ThumbnailCache::Get(asset);
+			if (!preview)
+			{
+				if (ThumbnailCache::Render(asset, UI::GetThumbnailSize()))
+				{
+					preview = ThumbnailCache::Get(asset);
+				}
+			}
+		}
 
 		if (preview)
 			return preview;

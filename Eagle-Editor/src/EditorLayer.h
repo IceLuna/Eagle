@@ -54,7 +54,7 @@ namespace Eagle
 
 		void UpdateEditorTitle(const Ref<AssetScene>& scene);
 
-		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync, bool bRenderOnlyWhenFocused, bool bDrawNavMesh, Key stopSimulationKey);
+		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync, bool bRenderOnlyWhenFocused, bool bDrawNavMesh, Key stopSimulationKey, bool bUpdateAnimationsInEditor);
 		void SetCurrentScene(const Ref<Scene>& scene);
 
 		void UpdateGuizmo();
@@ -129,6 +129,7 @@ namespace Eagle
 		ImGuiLayer::Style m_EditorStyle = ImGuiLayer::Style::Default;
 		EditorState m_EditorState = EditorState::Edit;
 		bool bRenderOnlyWhenFocused = true;
+		bool bUpdateAnimationsInEditor = true;
 		bool bDrawNavMesh = true;
 		Key m_StopSimulationKey = Key::Escape;
 		
@@ -144,6 +145,9 @@ namespace Eagle
 			bool bSkyboxEnabled = false;
 			bool bRenderSkybox = false;
 		} m_BeforeSimulationData;
+
+		glm::vec2 m_WindowSizeBeforeFS;
+		glm::vec2 m_WindowPosBeforeFS;
 
 		bool m_WindowFocused = true;
 		bool m_ViewportHovered = false;

@@ -6100,6 +6100,12 @@ namespace Eagle
 		Scene::OpenScene(sceneAsset, true, true);
 	}
 
+	void Script::Eagle_Scene_QuitGame()
+	{
+		WindowCloseEvent e(true);
+		Application::Get().OnEvent(e);
+	}
+
 	bool Script::Eagle_Scene_Raycast(const glm::vec3* origin, const glm::vec3* dir, float maxDistance, GUID* outHitEntity, glm::vec3* outPosition, glm::vec3* outNormal, float* outDistance)
 	{
 		const auto& physicsScene = Scene::GetCurrentScene()->GetPhysicsScene();

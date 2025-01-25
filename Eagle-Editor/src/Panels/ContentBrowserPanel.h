@@ -71,7 +71,7 @@ namespace Eagle
 				it->second->SetInFocus();
 		}
 
-		bool RenderThumbnail(const Ref<Asset>& asset, AssetType type);
+		bool RenderThumbnail(const Ref<Asset>& asset);
 
 	private:
 		static constexpr int searchBufferSize = 512;

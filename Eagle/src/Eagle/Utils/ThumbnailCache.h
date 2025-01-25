@@ -14,7 +14,7 @@ namespace Eagle
 		static void Release();
 		static void NextFrame();
 
-		static bool Render(const Ref<Asset>& asset, AssetType type, glm::uvec2 size);
+		static bool Render(const Ref<Asset>& asset, glm::uvec2 size);
 		static Ref<Image> Get(const Ref<Asset>& asset);
 
 		static constexpr bool IsRenderableAssetType(AssetType type) { return AssetThumbnailRenderer::IsRenderableAssetType(type); }

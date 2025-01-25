@@ -35,9 +35,22 @@ namespace Eagle
 	{
 	public:
 		EVENT_CLASS_CATEGORY(EventCategory::Application)
-		EVENT_CLASS_TYPE(WindowClose)
+		EVENT_CLASS_TYPE(WindowClose, bool)
 
-		WindowCloseEvent() = default;
+		WindowCloseEvent(bool bQuitGame)
+			: bQuitGame(bQuitGame) {}
+
+		bool IsQuitGame() const { return bQuitGame; }
+
+		std::string ToString() const override
+		{
+			return bQuitGame ? "WindowCloseEvent. Quit Game: true" : "WindowCloseEvent. Quit Game: false";
+		}
+
+		std::array<void*, 2> GetData() override { return { &bQuitGame, nullptr }; }
+
+	private:
+		bool bQuitGame; // `True` if it was requested from C# scripts
 	};
 
 	class WindowFocusedEvent : public Event

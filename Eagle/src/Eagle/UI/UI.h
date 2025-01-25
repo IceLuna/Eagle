@@ -30,11 +30,13 @@ namespace Eagle::UI
 	};
 	DECLARE_FLAGS(ButtonType);
 
+	constexpr glm::vec2 GetThumbnailSize() { return glm::vec2(96.f, 96.f); }
+
 	// maxItemWidth. Ignored if < 0
 	template<class Type>
 	bool DrawAssetSelection(const std::string_view label, Ref<Type>& modifyingAsset, const std::string_view helpMessage = "", float maxItemWidth = -1.f, const Ref<Eagle::Image>& preview = nullptr, bool* outPreviewClicked = nullptr)
 	{
-		const ImVec2 previewSize = ImVec2(46.f, 46.f);
+		const ImVec2 previewSize = ImVec2(32.f, 32.f);
 		bool bResult = false;
 		constexpr bool bRenderablePreview = ThumbnailCache::IsRenderableAssetType(Type::GetAssetType_Static());
 
@@ -239,6 +241,16 @@ namespace Eagle::UI
 					{
 						ImGui::SameLine();
 						Ref<Eagle::Image> preview = ThumbnailCache::Get(asset);
+						if (!preview)
+						{
+							if (ThumbnailCache::IsRenderableAssetType(asset->GetAssetType()))
+							{
+								if (ThumbnailCache::Render(asset, UI::GetThumbnailSize()))
+								{
+									preview = ThumbnailCache::Get(asset);
+								}
+							}
+						}
 						UI::Image(preview ? preview : Texture2D::NoneIconTexture->GetImage(), previewSize);
 						bHasPreview = true;
 					}
@@ -262,6 +274,16 @@ namespace Eagle::UI
 				{
 					ImGui::SameLine();
 					Ref<Eagle::Image> preview = ThumbnailCache::Get(asset);
+					if (!preview)
+					{
+						if (ThumbnailCache::IsRenderableAssetType(asset->GetAssetType()))
+						{
+							if (ThumbnailCache::Render(asset, UI::GetThumbnailSize()))
+							{
+								preview = ThumbnailCache::Get(asset);
+							}
+						}
+					}
 					UI::Image(preview ? preview : Texture2D::NoneIconTexture->GetImage(), previewSize);
 					bHasPreview = true;
 				}

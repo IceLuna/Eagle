@@ -1257,10 +1257,15 @@ namespace Eagle::UI
 
 		if (ImGui::BeginPopupModal(title.data(), NULL, ImGuiWindowFlags_AlwaysAutoResize))
 		{
-			char buf[128] = {0};
-			memcpy_s(buf, sizeof(buf), input.c_str(), input.size());
-			if (ImGui::InputTextWithHint("##MyInputPopup", hint.data(), buf, sizeof(buf)))
-				input = buf;
+			// Set focus on input text
+			if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0))
+				ImGui::SetKeyboardFocusHere(0);
+
+			if (ImGui::InputTextWithHint("##MyInputPopup", hint.data(), input.data(), input.length() + 1, ImGuiInputTextFlags_CallbackResize | ImGuiInputTextFlags_EnterReturnsTrue, UI::TextResizeCallback, &input))
+			{
+				if (!input.empty())
+					pressedButton = ButtonType::OK;
+			}
 
 			ImGui::Separator();
 

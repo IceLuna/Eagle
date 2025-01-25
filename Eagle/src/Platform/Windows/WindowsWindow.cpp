@@ -209,7 +209,7 @@ namespace Eagle
 		{
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
-			WindowCloseEvent event;
+			WindowCloseEvent event(false);
 			data.EventCallback(event);
 		});
 
