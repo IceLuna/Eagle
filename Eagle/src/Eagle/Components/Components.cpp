@@ -674,13 +674,14 @@ namespace Eagle
 		}
 		if (m_MeshAsset)
 		{
-			m_MeshAsset->AddOnAssetModifiedCallback(m_CallbackID, [this]()
+			m_MeshAsset->AddOnAssetModifiedCallback(m_CallbackID, [entity = Parent]() mutable
 				{
-					if (IsRagdollEnabled())
+					auto& component = entity.GetComponent<SkeletalMeshComponent>();
+					if (component.IsRagdollEnabled())
 					{
 						// Recreate ragdoll
-						SetRagdollEnabled(false);
-						SetRagdollEnabled(true);
+						component.SetRagdollEnabled(false);
+						component.SetRagdollEnabled(true);
 					}
 				}
 			);
@@ -711,9 +712,9 @@ namespace Eagle
 		{
 			if (bSameGraph == false)
 			{
-				m_AnimGraphAsset->AddOnAssetModifiedCallback(m_CallbackID, [this]()
+				m_AnimGraphAsset->AddOnAssetModifiedCallback(m_CallbackID, [entity = Parent, animGraph = m_AnimGraphAsset]() mutable
 				{
-					SetAnimationGraphAsset(m_AnimGraphAsset); // Update graph
+					entity.GetComponent<SkeletalMeshComponent>().SetAnimationGraphAsset(animGraph); // Update graph
 				});
 			}
 			// Merging means that the values of old variables will be used if possible
@@ -843,15 +844,23 @@ namespace Eagle
 		return {};
 	}
 
-	ParticleSystemComponent::ParticleSystemComponent(const Entity& entity, const Ref<AssetParticleSystem>& asset)
-		: SceneComponent(entity), m_Asset(asset)
-	{
-	}
-
 	ParticleSystemComponent::~ParticleSystemComponent()
 	{
 		if (m_Asset)
 			m_Asset->RemoveOnAssetModifiedCallback(m_SystemID);
+	}
+
+	ParticleSystemComponent& ParticleSystemComponent::operator=(const ParticleSystemComponent& other)
+	{
+		if (this == &other)
+			return *this;
+
+		SceneComponent::operator=(other);
+
+		bAutospawn = other.bAutospawn;
+		SetAsset(other.m_Asset);
+
+		return *this;
 	}
 
 	void ParticleSystemComponent::SetAsset(const Ref<AssetParticleSystem>& asset)
@@ -872,7 +881,10 @@ namespace Eagle
 		{
 			if (bHadValidAsset && bSpawned)
 			{
-				m_Asset->AddOnAssetModifiedCallback(m_SystemID, [this]() { Update(); });
+				m_Asset->AddOnAssetModifiedCallback(m_SystemID, [entity = Parent]() mutable
+				{
+					entity.GetComponent<ParticleSystemComponent>().Update();
+				});
 				Update();
 			}
 			else
@@ -886,7 +898,10 @@ namespace Eagle
 		{
 			Parent.GetScene()->AddParticleSystem(this);
 			bSpawned = true;
-			m_Asset->AddOnAssetModifiedCallback(m_SystemID, [this]() { Update(); });
+			m_Asset->AddOnAssetModifiedCallback(m_SystemID, [entity = Parent]() mutable
+			{
+				entity.GetComponent<ParticleSystemComponent>().Update();
+			});
 		}
 	}
 

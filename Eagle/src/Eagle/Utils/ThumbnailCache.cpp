@@ -34,6 +34,16 @@ namespace Eagle
 	{
 		AssetManager::RemoveOnAssetModifiedCallback(s_AssetModifiedCallbackID);
 		s_AssetThumbnailRenderer.reset();
+
+		// Release cache images in RT
+		RenderManager::Submit([cache = std::move(s_ThumbnailCache)](const Ref<CommandBuffer>&) mutable
+		{
+			for (auto& [_, image] : cache)
+			{
+				image.reset();
+			}
+		});
+
 		s_ThumbnailCache.clear();
 		s_RenderingThumbnail = false;
 	}

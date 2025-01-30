@@ -23,11 +23,12 @@ namespace Eagle
 		void AddParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems);
 		void UpdateParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems);
 		void RemoveParticleSystems(const std::unordered_set<GUID>& systems);
+		void RemoveAllParticleSystems();
 		void UpdateTransforms(const std::unordered_set<const ParticleSystemComponent*>& systems);
 
 	private:
 		bool AddEmitter(const ParticleEmitter& emitter, const GUID& systemID, const glm::mat4& transform);
-		bool RemoveEmitter(const ParticleEmitter& emitter, const GUID& systemID);
+		bool RemoveEmitter(const ParticleEmitter& emitter, const GUID& systemID, bool bForceImmediateRemoval = false);
 
 		void InitResources();
 		void InitPipelines();

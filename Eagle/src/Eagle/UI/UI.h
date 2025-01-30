@@ -30,8 +30,6 @@ namespace Eagle::UI
 	};
 	DECLARE_FLAGS(ButtonType);
 
-	constexpr glm::vec2 GetThumbnailSize() { return glm::vec2(96.f, 96.f); }
-
 	// maxItemWidth. Ignored if < 0
 	template<class Type>
 	bool DrawAssetSelection(const std::string_view label, Ref<Type>& modifyingAsset, const std::string_view helpMessage = "", float maxItemWidth = -1.f, const Ref<Eagle::Image>& preview = nullptr, bool* outPreviewClicked = nullptr)
@@ -245,7 +243,7 @@ namespace Eagle::UI
 						{
 							if (ThumbnailCache::IsRenderableAssetType(asset->GetAssetType()))
 							{
-								if (ThumbnailCache::Render(asset, UI::GetThumbnailSize()))
+								if (ThumbnailCache::Render(asset, ThumbnailCache::GetThumbnailSize()))
 								{
 									preview = ThumbnailCache::Get(asset);
 								}
@@ -278,7 +276,7 @@ namespace Eagle::UI
 					{
 						if (ThumbnailCache::IsRenderableAssetType(asset->GetAssetType()))
 						{
-							if (ThumbnailCache::Render(asset, UI::GetThumbnailSize()))
+							if (ThumbnailCache::Render(asset, ThumbnailCache::GetThumbnailSize()))
 							{
 								preview = ThumbnailCache::Get(asset);
 							}
@@ -330,8 +328,8 @@ namespace Eagle::UI
 	}
 
 	// @bReturnOnEnter. If set to true, the function won't return true while the values is being changed. True will be returned after a user stops editing the value
-	bool DrawVec3Control(const std::string_view label, glm::vec3& values, const glm::vec3 resetValues = glm::vec3{ 0.f }, float columnWidth = 100.f, bool bReturnOnEnter = false);
-	bool DrawVec4Control(const std::string_view label, glm::vec4& values, const glm::vec4 resetValues = glm::vec4{ 0.f }, float columnWidth = 100.f, bool bReturnOnEnter = false);
+	bool DrawVec3Control(const std::string_view label, glm::vec3& values, const glm::vec3& resetValues = glm::vec3{ 0.f }, float columnWidth = 100.f, bool bReturnOnEnter = false);
+	bool DrawQuatControl(const std::string_view label, glm::quat& values, const glm::quat& resetValues = glm::quat(1.f, 0.f, 0.f, 0.f), float columnWidth = 100.f, bool bReturnOnEnter = false);
 
 	ButtonType DrawButtons(ButtonType buttons);
 

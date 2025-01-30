@@ -90,6 +90,7 @@ namespace Eagle
 		void UpdateParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems);
 		void RemoveParticleSystems(const std::unordered_set<GUID>& systems); // GUIDs of ParticleSystemComponent: system->Parent.GetGUID(). It's done like that because we can't store a pointer to a dead component
 		void UpdateParticleTransforms(const std::unordered_set<const ParticleSystemComponent*>& systems);
+		void RemoveAllParticleSystems();
 		//--------------------------------------------------------------------------------------
 		//---------------------------------- Render functions ----------------------------------
 		void SetBillboards(const std::vector<const BillboardComponent*>& billboards) { m_RenderBillboardsTask->SetBillboards(billboards); }

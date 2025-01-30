@@ -145,6 +145,82 @@ namespace Eagle
         public bool bEnabled;
     }
 
+    public enum EmitterEmissionShapeType
+    {
+        Point, Sphere, SphereSurface, Box, Ring, Mesh
+    }
+
+    public enum EmitterCollisionModeType
+    {
+        None, DestroyOnHit, Bounce,
+	}
+
+    public struct ParticleEmitter
+	{
+		// ---------------- Particle properties ----------------
+		public AssetTexture2D TextureAsset;
+
+		public Color4 ColorStart;
+        public Color4 ColorEnd;
+		
+		public Vector3 VelocityMin;
+        public Vector3 VelocityMax;
+
+		public Vector3 VelocityCoefStart;
+        public Vector3 VelocityCoefEnd;
+
+		public float RotationZStart;
+        public float RotationZEnd;
+
+		public Vector2 SizeStart;
+		public Vector2 SizeEnd;
+        public Vector2 ColliderSizeRatio; // Can be used to increase the size of a collider to prevent small and fast-moving particles from clipping through
+
+		// In seconds
+		public float LifetimeMin;
+        public float LifetimeMax;
+
+		public float BouncinessMin;
+        public float BouncinessMax;
+
+		// ---------------- Emitter properties ----------------
+		public string Name;
+		public Transform RelativeTransform; // Relative to the particle system
+		public AABB VisibilityAABB; // If not visible by the camera, it's not rendered to improve perf
+		public uint LoopCount; // 0 - infinity
+		public uint NumParticles;
+		public float NumParticlesRatio; // Can be used to control `NumParticles`
+		public float RadialAcceleration; // If it's negative, particles will move towards the center of the emitter. If positive, they move away from the center
+		public float TangentialAcceleration; // If it's negative, particles will move towards the center of the emitter in a spiral way. If positive, they move away from the center.
+        public float NormalVelocityFactor; // If not 0, particle's initial velocity will be affected by `EmissionShapeType` normal direction
+
+        public EmitterEmissionShapeType EmissionShape;
+        // Sphere emission shape
+        public Vector3 SphereRadius;
+        // Box emission shape
+        public Vector3 BoxMin;
+        public Vector3 BoxMax;
+        // Ring emission shape
+        public Vector3 RingRadius;
+        public Vector3 RingThickness;
+        // Mesh emission shape
+        public AssetStaticMesh MeshAsset;
+
+        public EmitterCollisionModeType CollisionMode;
+
+        // Animation
+        public UVector2 AnimationImagesNum; // Horizontal & Vertical images count
+        public float AnimationSpeed;
+
+		public bool bDestroyImmediately; // If set to true, particles will be destroyed immediately when emitter is disabled/destroyed (instead of following their lifetime)
+		public bool bEmit;
+		public bool bExplode; // If set to true, all particles will be emitted at once. Otherwise, they're emitted sequentially throughout the lifetime
+		public bool bApplyGravity;
+		public bool bAlphaBlending;
+		public bool bAdditive;
+        public bool bBlendAnimation;
+	}
+
     public static class Renderer
     {
         public const uint CascadesCount = 4u;

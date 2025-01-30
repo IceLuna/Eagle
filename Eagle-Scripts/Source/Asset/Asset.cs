@@ -479,5 +479,106 @@ namespace Eagle
         internal AssetParticleSystem(GUID guid) : base(AssetType.ParticleSystem, guid)
         {
         }
+
+        public uint GetEmittersCount()
+        {
+            return GetEmittersCount_Native(m_GUID);
+        }
+
+        public ParticleEmitter[] GetEmitters()
+        {
+            uint count = GetEmittersCount_Native(m_GUID);
+            ParticleEmitter[] emitters = new ParticleEmitter[count];
+            for (uint i = 0; i < count; ++i)
+            {
+                GUID textureID;
+                GUID meshID;
+
+                string name = GetEmitter_Native(m_GUID, i,
+                    out textureID, out emitters[i].ColorStart, out emitters[i].ColorEnd, out emitters[i].VelocityMin, out emitters[i].VelocityMax,
+                    out emitters[i].VelocityCoefStart, out emitters[i].VelocityCoefEnd, out emitters[i].RotationZStart, out emitters[i].RotationZEnd,
+                    out emitters[i].SizeStart, out emitters[i].SizeEnd, out emitters[i].ColliderSizeRatio, out emitters[i].LifetimeMin, out emitters[i].LifetimeMax,
+                    out emitters[i].BouncinessMin, out emitters[i].BouncinessMax, out emitters[i].RelativeTransform, out emitters[i].VisibilityAABB,
+                    out emitters[i].LoopCount, out emitters[i].NumParticles, out emitters[i].NumParticlesRatio, out emitters[i].RadialAcceleration, out emitters[i].TangentialAcceleration,
+                    out emitters[i].NormalVelocityFactor, out emitters[i].EmissionShape, out emitters[i].SphereRadius, out emitters[i].BoxMin, out emitters[i].BoxMax,
+                    out emitters[i].RingRadius, out emitters[i].RingThickness, out meshID, out emitters[i].CollisionMode, out emitters[i].AnimationImagesNum,
+                    out emitters[i].AnimationSpeed, out emitters[i].bDestroyImmediately, out emitters[i].bEmit, out emitters[i].bExplode, out emitters[i].bApplyGravity, out emitters[i].bAlphaBlending,
+                    out emitters[i].bAdditive, out emitters[i].bBlendAnimation);
+
+                emitters[i].TextureAsset = new AssetTexture2D(textureID);
+                emitters[i].MeshAsset = new AssetStaticMesh(meshID);
+                emitters[i].Name = name;
+            }
+
+            return emitters;
+        }
+
+        public void SetEmitters(ParticleEmitter[] emitters)
+        {
+            if (emitters.Length == 0)
+            {
+                RemoveEmitters_Native(m_GUID);
+            }
+            else
+            {
+                IntPtr data = SetEmitters_Prepare_Native((uint)emitters.Length);
+
+                for (uint i = 0; i < emitters.Length; i++)
+                {
+                    GUID textureID = emitters[i].TextureAsset != null ? emitters[i].TextureAsset.GetGUID() : GUID.Null();
+                    GUID meshID = emitters[i].MeshAsset != null ? emitters[i].MeshAsset.GetGUID() : GUID.Null();
+
+                    SetEmitter_Native(data, i,
+                        textureID, ref emitters[i].ColorStart, ref emitters[i].ColorEnd, ref emitters[i].VelocityMin, ref emitters[i].VelocityMax,
+                        ref emitters[i].VelocityCoefStart, ref emitters[i].VelocityCoefEnd, emitters[i].RotationZStart, emitters[i].RotationZEnd,
+                        ref emitters[i].SizeStart, ref emitters[i].SizeEnd, ref emitters[i].ColliderSizeRatio, emitters[i].LifetimeMin, emitters[i].LifetimeMax,
+                        emitters[i].BouncinessMin, emitters[i].BouncinessMax, emitters[i].Name, ref emitters[i].RelativeTransform, ref emitters[i].VisibilityAABB,
+                        emitters[i].LoopCount, emitters[i].NumParticles, emitters[i].NumParticlesRatio, emitters[i].RadialAcceleration, emitters[i].TangentialAcceleration,
+                        emitters[i].NormalVelocityFactor, emitters[i].EmissionShape, ref emitters[i].SphereRadius, ref emitters[i].BoxMin, ref emitters[i].BoxMax,
+                        ref emitters[i].RingRadius, ref emitters[i].RingThickness, meshID, emitters[i].CollisionMode, ref emitters[i].AnimationImagesNum,
+                        emitters[i].AnimationSpeed, emitters[i].bDestroyImmediately, emitters[i].bEmit, emitters[i].bExplode, emitters[i].bApplyGravity, emitters[i].bAlphaBlending,
+                        emitters[i].bAdditive, emitters[i].bBlendAnimation);
+                }
+
+                SetEmitters_Finish_Native(m_GUID, data);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint GetEmittersCount_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void RemoveEmitters_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern IntPtr SetEmitters_Prepare_Native(uint count);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetEmitters_Finish_Native(GUID id, IntPtr data);
+
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetEmitter_Native(IntPtr data, uint index,
+            GUID texture, ref Color4 colorStart, ref Color4 colorEnd, ref Vector3 velocityMin, ref Vector3 velocityMax,
+            ref Vector3 velocityCoefStart, ref Vector3 velocityCoefEnd, float rotationZStart, float rotationZEnd,
+            ref Vector2 sizeStart, ref Vector2 sizeEnd, ref Vector2 colliderSizeRatio, float lifetimeMin, float lifetimeMax,
+            float bouncinessMin, float bouncinessMax, string name, ref Transform relativeTransform, ref AABB visibilityAABB,
+            uint loopCount, uint numParticles, float numParticlesRatio, float radialAcceleration, float tangentialAcceleration,
+            float normalVelocityFactor, EmitterEmissionShapeType emissionShape, ref Vector3 sphereRadius, ref Vector3 boxMin, ref Vector3 boxMax,
+            ref Vector3 ringRadius, ref Vector3 ringThickness, GUID meshAsset, EmitterCollisionModeType collisionMode, ref UVector2 animationImagesNum,
+            float animationSpeed, bool bDestroyImmediately, bool bEmit, bool bExplode, bool bApplyGravity, bool bAlphaBlending,
+            bool bAdditive, bool bBlendAnimation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern string GetEmitter_Native(GUID id, uint index,
+            out GUID texture, out Color4 colorStart, out Color4 colorEnd, out Vector3 velocityMin, out Vector3 velocityMax,
+            out Vector3 velocityCoefStart, out Vector3 velocityCoefEnd, out float rotationZStart, out float rotationZEnd,
+            out Vector2 sizeStart, out Vector2 sizeEnd, out Vector2 colliderSizeRatio, out float lifetimeMin, out float lifetimeMax,
+            out float bouncinessMin, out float bouncinessMax, out Transform relativeTransform, out AABB visibilityAABB,
+            out uint loopCount, out uint numParticles, out float numParticlesRatio, out float radialAcceleration, out float tangentialAcceleration,
+            out float normalVelocityFactor, out EmitterEmissionShapeType emissionShape, out Vector3 sphereRadius, out Vector3 boxMin, out Vector3 boxMax,
+            out Vector3 ringRadius, out Vector3 ringThickness, out GUID meshAsset, out EmitterCollisionModeType collisionMode, out UVector2 animationImagesNum,
+            out float animationSpeed, out bool bDestroyImmediately, out bool bEmit, out bool bExplode, out bool bApplyGravity, out bool bAlphaBlending,
+            out bool bAdditive, out bool bBlendAnimation);
     }
 }

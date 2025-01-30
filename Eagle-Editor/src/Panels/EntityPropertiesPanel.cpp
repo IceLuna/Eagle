@@ -2113,16 +2113,12 @@ namespace Eagle
 		{
 			DrawComponent<TransformComponent>(bUseRelativeTransform ? "Transform (relative)" : "Transform", entity, [&transform, &bValueChanged](auto& transformComponent)
 			{
-				const glm::quat q = transform.Rotation.GetQuat();
-				glm::vec4 quat(q.x, q.y, q.z, q.w);
+				glm::quat quat = transform.Rotation.GetQuat();
 
 				bValueChanged |= UI::DrawVec3Control("Location", transform.Location, glm::vec3{ 0.f });
-				if (UI::DrawVec4Control("Rotation (Quat)", quat, glm::vec4{ 0, 0, 0, 1 }))
+				if (UI::DrawQuatControl("Rotation (Quat)", quat))
 				{
-					if (glm::all(glm::epsilonEqual(quat, glm::vec4(0), 0.001f)))
-						quat.w = 1.f;
-				    quat = glm::normalize(quat);
-				    transform.Rotation = glm::quat(quat.w, quat.x, quat.y, quat.z);
+				    transform.Rotation = quat;
 				    bValueChanged = true;
 				}
 				bValueChanged |= UI::DrawVec3Control("Scale", transform.Scale3D, glm::vec3{ 1.f });
@@ -2147,16 +2143,12 @@ namespace Eagle
 
 		DrawComponent<TransformComponent>("Transform (relative)", entity, [&relativeTranform, &bValueChanged](auto& transformComponent)
 		{
-			const glm::quat q = relativeTranform.Rotation.GetQuat();
-			glm::vec4 quat(q.x, q.y, q.z, q.w);
+			glm::quat quat = relativeTranform.Rotation.GetQuat();
 
 			bValueChanged |= UI::DrawVec3Control("Location", relativeTranform.Location, glm::vec3{0.f});
-			if (UI::DrawVec4Control("Rotation (Quat)", quat, glm::vec4{ 0, 0, 0, 1 }))
+			if (UI::DrawQuatControl("Rotation (Quat)", quat))
 			{
-				if (glm::all(glm::epsilonEqual(quat, glm::vec4(0), 0.001f)))
-					quat.w = 1.f;
-				quat = glm::normalize(quat);
-				relativeTranform.Rotation = glm::quat(quat.w, quat.x, quat.y, quat.z);
+				relativeTranform.Rotation = quat;
 				bValueChanged = true;
 			}
 			bValueChanged |= UI::DrawVec3Control("Scale", relativeTranform.Scale3D, glm::vec3{1.f});

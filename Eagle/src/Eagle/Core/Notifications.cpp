@@ -35,7 +35,7 @@ namespace Eagle
 			child->OnNotify(notification);
 	}
 	
-	void ComponentsNotificationSystem::ResetSystem()
+	void ComponentsNotificationSystem::Reset()
 	{
 		s_Entities.clear();
 	}

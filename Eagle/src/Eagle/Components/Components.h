@@ -1589,10 +1589,12 @@ namespace Eagle
 	public:
 		// Note: Scene is responsible for ParticleSystem creation/destruction when this component is being created/deleted
 		ParticleSystemComponent(const Entity& entity) : SceneComponent(entity) { }
-		ParticleSystemComponent(const Entity& entity, const Ref<AssetParticleSystem>& asset);
 		~ParticleSystemComponent();
 
-		COMPONENT_DEFAULTS(ParticleSystemComponent);
+		ParticleSystemComponent& operator=(const ParticleSystemComponent& other);
+		ParticleSystemComponent(const ParticleSystemComponent&) = delete;
+		ParticleSystemComponent(ParticleSystemComponent&&) noexcept = default;
+		ParticleSystemComponent& operator=(ParticleSystemComponent&&) noexcept = default;
 
 		void SetWorldTransform(const Transform& worldTransform) override
 		{

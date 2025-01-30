@@ -293,9 +293,6 @@ namespace Eagle
 
 					bool bTransformChanged = false;
 
-					const glm::quat q = boneTransform.Rotation.GetQuat();
-					glm::vec4 quat(q.x, q.y, q.z, q.w);
-
 					bool bStoppedEditing = false;
 					if (UI::InputText("Name", m_SelectedBoneName, ImGuiInputTextFlags_EnterReturnsTrue, "Only user-created (virtual) bones can be modified"))
 						bStoppedEditing = true;
@@ -318,13 +315,12 @@ namespace Eagle
 						}
 					}
 
+					glm::quat quat = boneTransform.Rotation.GetQuat();
+
 					bTransformChanged |= UI::DrawVec3Control("Location", boneTransform.Location, glm::vec3{ 0.f });
-					if (UI::DrawVec4Control("Rotation (Quat)", quat, glm::vec4{ 0, 0, 0, 1 }))
+					if (UI::DrawQuatControl("Rotation (Quat)", quat))
 					{
-						if (glm::all(glm::epsilonEqual(quat, glm::vec4(0), 0.001f)))
-							quat.w = 1.f;
-						quat = glm::normalize(quat);
-						boneTransform.Rotation = glm::quat(quat.w, quat.x, quat.y, quat.z);
+						boneTransform.Rotation = quat;
 						bTransformChanged = true;
 					}
 					bTransformChanged |= UI::DrawVec3Control("Scale", boneTransform.Scale3D, glm::vec3{ 1.f });
@@ -409,16 +405,12 @@ namespace Eagle
 					Transform& boneTransform = m_SelectedRagdollBone->Settings.UserOffset;
 
 					bool bTransformChanged = false;
-					const glm::quat q = boneTransform.Rotation.GetQuat();
-					glm::vec4 quat(q.x, q.y, q.z, q.w);
+					glm::quat quat = boneTransform.Rotation.GetQuat();
 
 					bTransformChanged |= UI::DrawVec3Control("Location", boneTransform.Location, glm::vec3{ 0.f });
-					if (UI::DrawVec4Control("Rotation (Quat)", quat, glm::vec4{ 0, 0, 0, 1 }))
+					if (UI::DrawQuatControl("Rotation (Quat)", quat))
 					{
-						if (glm::all(glm::epsilonEqual(quat, glm::vec4(0), 0.001f)))
-							quat.w = 1.f;
-						quat = glm::normalize(quat);
-						boneTransform.Rotation = glm::quat(quat.w, quat.x, quat.y, quat.z);
+						boneTransform.Rotation = quat;
 						bTransformChanged = true;
 					}
 					bTransformChanged |= UI::DrawVec3Control("Scale", boneTransform.Scale3D, glm::vec3{ 1.f });

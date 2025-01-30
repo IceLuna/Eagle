@@ -13,7 +13,9 @@ namespace Eagle
 	{
 		EG_CORE_ASSERT(m_Asset);
 		Entity entity = m_Scene->CreateEntity("ParticleSystemAssetEditor");
-		m_Component = &entity.AddComponent<ParticleSystemComponent>(m_Asset);
+		auto& component = entity.AddComponent<ParticleSystemComponent>();
+		component.SetAsset(asset);
+
 		m_Emitters = m_Asset->GetEmitters();
 
 		auto& camera = m_Scene->GetEditorCamera();
@@ -99,17 +101,13 @@ namespace Eagle
 			ImGui::Separator();
 			{
 				auto& transform = emitter.RelativeTransform;
-				const glm::quat q = transform.Rotation.GetQuat();
-				glm::vec4 quat(q.x, q.y, q.z, q.w);
+				glm::quat quat = transform.Rotation.GetQuat();
 				bool bTransformChanged = false;
 
 				bTransformChanged |= UI::DrawVec3Control("Location", transform.Location, glm::vec3{ 0.f });
-				if (UI::DrawVec4Control("Rotation (Quat)", quat, glm::vec4{ 0, 0, 0, 1 }))
+				if (UI::DrawQuatControl("Rotation (Quat)", quat))
 				{
-					if (glm::all(glm::epsilonEqual(quat, glm::vec4(0), 0.001f)))
-						quat.w = 1.f;
-					quat = glm::normalize(quat);
-					transform.Rotation = glm::quat(quat.w, quat.x, quat.y, quat.z);
+					transform.Rotation = quat;
 					bTransformChanged = true;
 				}
 				bTransformChanged |= UI::DrawVec3Control("Scale", transform.Scale3D, glm::vec3{ 1.f });

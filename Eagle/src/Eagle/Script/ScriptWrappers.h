@@ -593,4 +593,32 @@ namespace Eagle::Script
 	float Eagle_AssetSoundGroup_GetPitch(GUID assetID);
 	bool Eagle_AssetSoundGroup_IsPaused(GUID assetID);
 	bool Eagle_AssetSoundGroup_IsMuted(GUID assetID);
+
+	// AssetParticleSystem
+	uint32_t Eagle_AssetParticleSystem_GetEmittersCount(GUID assetID);
+	void Eagle_AssetParticleSystem_RemoveEmitters(GUID assetID);
+	void* Eagle_AssetParticleSystem_SetEmitters_Prepare(uint32_t count);
+	void Eagle_AssetParticleSystem_SetEmitters_Finish(GUID assetID, void* data);
+
+	void SetEmitter_Native(void* data, uint32_t index,
+		GUID texture, const glm::vec4* colorStart, const glm::vec4* colorEnd, const glm::vec3* velocityMin, const glm::vec3* velocityMax,
+		const glm::vec3* velocityCoefStart, const glm::vec3* velocityCoefEnd, float rotationZStart, float rotationZEnd,
+		const glm::vec2* sizeStart, const glm::vec2* sizeEnd, const glm::vec2* colliderSizeRatio, float lifetimeMin, float lifetimeMax,
+		float bouncinessMin, float bouncinessMax, MonoString* name, const Transform* relativeTransform, const AABB* visibilityAABB,
+		uint32_t loopCount, uint32_t numParticles, float numParticlesRatio, float radialAcceleration, float tangentialAcceleration,
+		float normalVelocityFactor, ParticleEmitter::EmissionShapeType emissionShape, const glm::vec3* sphereRadius, const glm::vec3* boxMin, const glm::vec3* boxMax,
+		const glm::vec3* ringRadius, const glm::vec3* ringThickness, GUID meshAsset, ParticleEmitter::CollisionModeType collisionMode, const glm::uvec2* animationImagesNum,
+		float animationSpeed, bool bDestroyImmediately, bool bEmit, bool bExplode, bool bApplyGravity, bool bAlphaBlending,
+		bool bAdditive, bool bBlendAnimation);
+
+	MonoString* Eagle_AssetParticleSystem_GetEmitter(GUID assetID, uint32_t index,
+		GUID* texture, glm::vec4* colorStart, glm::vec4* colorEnd, glm::vec3* velocityMin, glm::vec3* velocityMax,
+		glm::vec3* velocityCoefStart, glm::vec3* velocityCoefEnd, float* rotationZStart, float* rotationZEnd,
+		glm::vec2* sizeStart, glm::vec2* sizeEnd, glm::vec2* colliderSizeRatio, float* lifetimeMin, float* lifetimeMax,
+		float* bouncinessMin, float* bouncinessMax, Transform* relativeTransform, AABB* visibilityAABB,
+		uint32_t* loopCount, uint32_t* numParticles, float* numParticlesRatio, float* radialAcceleration, float* tangentialAcceleration,
+		float* normalVelocityFactor, ParticleEmitter::EmissionShapeType* emissionShape, glm::vec3* sphereRadius, glm::vec3* boxMin, glm::vec3* boxMax,
+		glm::vec3* ringRadius, glm::vec3* ringThickness, GUID* meshAsset, ParticleEmitter::CollisionModeType* collisionMode, glm::uvec2* animationImagesNum,
+		float* animationSpeed, bool* bDestroyImmediately, bool* bEmit, bool* bExplode, bool* bApplyGravity, bool* bAlphaBlending,
+		bool* bAdditive, bool* bBlendAnimation);
 }

@@ -66,6 +66,8 @@ namespace Eagle
 			bool bDecalsDirty = true;
 			bool bDecalTransformsDirty = true;
 
+			bool bRecreateParticleSystems = true;
+
 			void SetEverythingDirty(bool bDirty)
 			{
 				bStaticMeshesDirty = bDirty;
@@ -82,6 +84,7 @@ namespace Eagle
 				bImage2DDirty = bDirty;
 				bDecalsDirty = bDirty;
 				bDecalTransformsDirty = bDirty;
+				bRecreateParticleSystems = bDirty;
 			}
 		};
 
@@ -269,6 +272,7 @@ namespace Eagle
 		void UpdateNavMesh(Timestep ts);
 		void SyncCrowdAgents();
 
+		void CollectParticleSystems(const std::unordered_set<GUID>& input); // Pushes data from `input` into `m_TempParticleSystems`
 		void GatherLightsInfo();
 		void DestroyPendingEntities();
 		void UpdateScripts(Timestep ts);
@@ -452,11 +456,13 @@ namespace Eagle
 			{
 				if (notification == Notification::OnStateChanged)
 				{
-					m_ParticlesToUpdate.emplace(&component);
+					m_ParticlesToUpdate.emplace(component.Parent.GetGUID());
 				}
 				else if (notification == Notification::OnTransformChanged)
 				{
-					m_DirtyTransformParticles.emplace(&component);
+					auto it = m_ParticlesToUpdate.find(component.Parent.GetGUID());
+					if (it == m_ParticlesToUpdate.end()) // No need to update transform separately if it's already waiting for an update
+						m_DirtyTransformParticles.emplace(component.Parent.GetGUID());
 				}
 			}
 
@@ -521,10 +527,13 @@ namespace Eagle
 		std::unordered_set<const TextComponent*> m_DirtyTransformTexts;
 		std::unordered_set<const DecalComponent*> m_DirtyTransformDecals;
 
-		std::unordered_set<const ParticleSystemComponent*> m_ParticlesToAdd;
+		// GUID of Entities. Can't store Entity (forward declaration)
+		std::unordered_set<GUID> m_ParticlesToAdd;
+		std::unordered_set<GUID> m_ParticlesToUpdate;
+		std::unordered_set<GUID> m_DirtyTransformParticles;
+
 		std::unordered_set<GUID> m_ParticlesToRemove; // GUIDs of ParticleSystemComponent: system->Parent.GetGUID(). It's done like that because we can't store a pointer to a dead component
-		std::unordered_set<const ParticleSystemComponent*> m_ParticlesToUpdate;
-		std::unordered_set<const ParticleSystemComponent*> m_DirtyTransformParticles;
+		std::unordered_set<const ParticleSystemComponent*> m_TempParticleSystems; // Used to update and to avoid reallocation
 
 		std::unordered_map<GUID, Entity> m_AliveEntities;
 		std::vector<const PointLightComponent*> m_PointLights;
@@ -535,8 +544,8 @@ namespace Eagle
 		CameraComponent* m_RuntimeCamera = nullptr;
 		const DecalComponent* m_DecalToVisualize = nullptr;
 
-		// It's a pointer because `Entity` is forward declared.
-		Entity* m_RuntimeCameraHolder = nullptr; //In case there's no user provided runtime primary-camera
+		// It's a scope-pointer because `Entity` is forward declared.
+		Scope<Entity> m_RuntimeCameraHolder = nullptr; // In case there's no user provided runtime primary-camera
 
 		std::vector<const StaticMeshComponent*> m_Meshes;
 		std::vector<SkeletalMeshComponent*> m_SkeletalMeshes;

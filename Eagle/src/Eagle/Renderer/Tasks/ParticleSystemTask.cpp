@@ -727,7 +727,7 @@ namespace Eagle
 		return true;
 	}
 
-	bool ParticleSystemTask::RemoveEmitter(const ParticleEmitter& emitter, const GUID& systemID)
+	bool ParticleSystemTask::RemoveEmitter(const ParticleEmitter& emitter, const GUID& systemID, bool bForceImmediateRemoval)
 	{
 		auto itSystem = m_SystemToEmittersMapping.find(systemID);
 		if (itSystem == m_SystemToEmittersMapping.end())
@@ -744,7 +744,9 @@ namespace Eagle
 			return false; // Not found
 		}
 
-		m_EmittersToRemove.emplace_back(std::pair{ emitter, it->second.EmitterIndex });
+		auto& data = m_EmittersToRemove.emplace_back(std::pair{ emitter, it->second.EmitterIndex });
+		data.first.bDestroyImmediately |= bForceImmediateRemoval;
+
 		const uint32_t transformIndex = it->second.TransformIndex;
 		m_FreeTransformSlots.push_back(transformIndex);
 		emitters.erase(it);
@@ -918,6 +920,26 @@ namespace Eagle
 		});
 	}
 
+	void ParticleSystemTask::RemoveAllParticleSystems()
+	{
+		RenderManager::Submit([task = shared_from_this()](const Ref<CommandBuffer>&)
+		{
+			auto thisRef = Cast<ParticleSystemTask>(task);
+			for (const auto& [systemID, emitters] : thisRef->m_SystemToEmittersMapping)
+			{
+				if (emitters.empty())
+					continue;
+
+				auto copyEmitters = emitters;
+				for (const auto& [emitter, _] : copyEmitters)
+				{
+					thisRef->RemoveEmitter(emitter, systemID, true);
+				}
+			}
+			thisRef->m_SystemToEmittersMapping.clear();
+		});
+	}
+
 	void ParticleSystemTask::UpdateTransforms(const std::unordered_set<const ParticleSystemComponent*>& systems)
 	{
 		struct UpdateTrData
@@ -992,7 +1014,7 @@ namespace Eagle
 			m_TranslucentIndicesToRender = Buffer::Create(specs, "ParticleSystem_TranslucentIndicesToRender");
 			m_TranslucentDistancesBuffer = Buffer::Create(specs, "ParticleSystem_TranslucentDistances");
 			
-			specs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+			specs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst | BufferUsage::TransferSrc;
 			specs.Size = m_MaxEmitters * sizeof(Emitter);
 			m_EmittersBuffer = Buffer::Create(specs, "ParticleSystem_Emitters");
 

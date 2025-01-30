@@ -3573,6 +3573,7 @@ namespace Eagle
 			case FieldType::AssetScene:
 			case FieldType::AssetAnimation:
 			case FieldType::AssetAnimationGraph:
+			case FieldType::AssetParticleSystem:
 				SerializeField<GUID>(out, field);
 				break;
 		}

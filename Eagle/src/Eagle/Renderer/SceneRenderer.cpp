@@ -306,6 +306,11 @@ namespace Eagle
 		m_ParticleTask->UpdateTransforms(systems);
 	}
 
+	void SceneRenderer::RemoveAllParticleSystems()
+	{
+		m_ParticleTask->RemoveAllParticleSystems();
+	}
+
 	void SceneRenderer::SetSkybox(const Ref<AssetTextureCube>& cubemap)
 	{
 		RenderManager::Submit([renderer = shared_from_this(), cubemap](Ref<CommandBuffer>& cmd) mutable

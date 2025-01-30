@@ -26,7 +26,6 @@ namespace Eagle
 		static constexpr size_t s_InvalidIndex = size_t(-1);
 
 		Ref<AssetParticleSystem> m_Asset;
-		ParticleSystemComponent* m_Component = nullptr; // Not owning
 		std::vector<ParticleEmitter> m_Emitters;
 		size_t m_SelectedEmitterIndex = s_InvalidIndex;
 		bool bGuizmoChanged = false;

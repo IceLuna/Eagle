@@ -277,7 +277,9 @@ namespace Eagle
 			m_ViewportHeight = size.y;
 		}
 		else
+		{
 			m_SceneRenderer = MakeRef<SceneRenderer>(glm::uvec2{ m_ViewportWidth, m_ViewportHeight });
+		}
 		ConnectSignals();
 
 		m_RuntimePhysicsScene = MakeRef<PhysicsScene>(PhysicsSettings());
@@ -367,7 +369,7 @@ namespace Eagle
 		if (IsPlaying())
 			OnRuntimeStop();
 
-		delete m_RuntimeCameraHolder;
+		m_RuntimeCameraHolder.reset();
 
 		DestroyScripts();
 
@@ -448,7 +450,7 @@ namespace Eagle
 	{
 		auto func = [path = sceneAsset ? sceneAsset->GetPath() : "", bReuseCurrentSceneRenderer, bRuntime]()
 		{
-			ComponentsNotificationSystem::ResetSystem();
+			ComponentsNotificationSystem::Reset();
 			ScriptEngine::Reset();
 			RenderManager::Wait();
 			Ref<Scene> scene = MakeRef<Scene>(path.u8string(), (bReuseCurrentSceneRenderer && s_CurrentScene) ? s_CurrentScene->GetSceneRenderer() : nullptr, bRuntime);
@@ -702,6 +704,19 @@ namespace Eagle
 		}
 	}
 
+	void Scene::CollectParticleSystems(const std::unordered_set<GUID>& input)
+	{
+		m_TempParticleSystems.clear();
+		for (const auto& guid : input)
+		{
+			Entity entity = GetEntityByGUID(guid);
+			if (entity && entity.HasComponent<ParticleSystemComponent>())
+			{
+				m_TempParticleSystems.emplace(&entity.GetComponent<ParticleSystemComponent>());
+			}
+		}
+	}
+
 	void Scene::GatherLightsInfo()
 	{
 		EG_CPU_TIMING_SCOPED("Scene. Gather Lights Info");
@@ -841,7 +856,7 @@ namespace Eagle
 			if (!m_RuntimeCameraHolder)
 			{
 				//If user provided primary-camera doesn't exist, provide one and set its transform to match editor camera's transform
-				m_RuntimeCameraHolder = new Entity(CreateEntity("EAGLE:RuntimeCamera"));
+				m_RuntimeCameraHolder = MakeScope<Entity>(CreateEntity("EAGLE:RuntimeCamera"));
 				m_RuntimeCameraHolder->AddComponent<NativeScriptComponent>().Bind<CameraController>();
 				m_RuntimeCameraHolder->RemoveComponent<EntitySceneNameComponent>(); // Delete it so it doesn't show up in the Scene hierarchy
 
@@ -1279,15 +1294,40 @@ namespace Eagle
 		}
 
 		// Particle Systems
+		if (m_DirtyFlags.bRecreateParticleSystems)
+		{
+			m_DirtyTransformParticles.clear();
+			m_ParticlesToAdd.clear();
+			m_ParticlesToRemove.clear();
+			m_ParticlesToUpdate.clear();
+			m_TempParticleSystems.clear();
+
+			m_SceneRenderer->RemoveAllParticleSystems();
+
+			auto view = m_Registry.view<ParticleSystemComponent>();
+			for (auto entity : view)
+			{
+				auto& ps = view.get<ParticleSystemComponent>(entity);
+				if (ps.bAutospawn)
+				{
+					m_TempParticleSystems.insert(&ps);
+				}
+			}
+			m_SceneRenderer->AddParticleSystems(m_TempParticleSystems);
+			m_TempParticleSystems.clear();
+		}
+		else
 		{
 			if (m_DirtyTransformParticles.size())
 			{
-				m_SceneRenderer->UpdateParticleTransforms(m_DirtyTransformParticles);
+				CollectParticleSystems(m_DirtyTransformParticles);
+				m_SceneRenderer->UpdateParticleTransforms(m_TempParticleSystems);
 				m_DirtyTransformParticles.clear();
 			}
 			if (m_ParticlesToAdd.size())
 			{
-				m_SceneRenderer->AddParticleSystems(m_ParticlesToAdd);
+				CollectParticleSystems(m_ParticlesToAdd);
+				m_SceneRenderer->AddParticleSystems(m_TempParticleSystems);
 				m_ParticlesToAdd.clear();
 			}
 			if (m_ParticlesToRemove.size())
@@ -1297,7 +1337,8 @@ namespace Eagle
 			}
 			if (m_ParticlesToUpdate.size())
 			{
-				m_SceneRenderer->UpdateParticleSystems(m_ParticlesToUpdate);
+				CollectParticleSystems(m_ParticlesToUpdate);
+				m_SceneRenderer->UpdateParticleSystems(m_TempParticleSystems);
 				m_ParticlesToUpdate.clear();
 			}
 		}
@@ -1633,7 +1674,7 @@ namespace Eagle
 
 	void Scene::AddParticleSystem(const ParticleSystemComponent* system)
 	{
-		m_ParticlesToAdd.emplace(system);
+		m_ParticlesToAdd.emplace(system->Parent.GetGUID());
 	}
 
 	void Scene::RemoveParticleSystem(const ParticleSystemComponent* system)
@@ -1643,7 +1684,8 @@ namespace Eagle
 
 	void Scene::UpdateParticleSystem(const ParticleSystemComponent* system)
 	{
-		m_ParticlesToUpdate.emplace(system);
+		m_ParticlesToUpdate.emplace(system->Parent.GetGUID());
+		m_DirtyTransformParticles.erase(system->Parent.GetGUID()); // No need to update transform separately
 	}
 
 	void Scene::OnStaticMeshComponentRemoved(entt::registry& r, entt::entity e)
@@ -1775,7 +1817,7 @@ namespace Eagle
 	{
 		Entity entity(e, this);
 		auto& component = entity.GetComponent<NavigationCrowdAgentComponent>();
-		component.CreateAgent(component.Parent.GetWorldLocation());
+		component.CreateAgent(entity.GetWorldLocation());
 	}
 
 	void Scene::OnCrowdAgentRemoved(entt::registry& r, entt::entity e)

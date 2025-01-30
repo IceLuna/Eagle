@@ -103,7 +103,7 @@ namespace Eagle::UI
 		return s_IDBuffer;
 	}
 
-	bool DrawVec3Control(const std::string_view label, glm::vec3& values, const glm::vec3 resetValues /* = glm::vec3{ 0.f }*/, float columnWidth /*= 100.f*/, bool bReturnOnEnter /* = false */)
+	bool DrawVec3Control(const std::string_view label, glm::vec3& values, const glm::vec3& resetValues /* = glm::vec3{ 0.f }*/, float columnWidth /*= 100.f*/, bool bReturnOnEnter /* = false */)
 	{
 		bool bValueChanged = false;
 		ImGuiIO& io = ImGui::GetIO();
@@ -211,7 +211,7 @@ namespace Eagle::UI
 		return bValueChanged;
 	}
 
-	bool DrawVec4Control(const std::string_view label, glm::vec4& values, const glm::vec4 resetValues, float columnWidth, bool bReturnOnEnter)
+	bool DrawQuatControl(const std::string_view label, glm::quat& values, const glm::quat& resetValues, float columnWidth, bool bReturnOnEnter)
 	{
 		bool bValueChanged = false;
 		ImGuiIO& io = ImGui::GetIO();
@@ -342,6 +342,13 @@ namespace Eagle::UI
 		ImGui::Columns(1);
 
 		ImGui::PopID();
+
+		if (bValueChanged)
+		{
+			if (glm::all(glm::epsilonEqual(values, glm::quat(0, 0, 0, 0), 0.001f)))
+				values.w = 1.f;
+			values = glm::normalize(values);
+		}
 
 		return bValueChanged;
 	}

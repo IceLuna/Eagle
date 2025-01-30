@@ -175,6 +175,22 @@ namespace Eagle
 
         public static Vector4 Fract(Vector4 x) => x - Floor(x);
 
+        public static float Min(float a, float b) => Math.Min(a, b);
+
+        public static Vector2 Min(Vector2 a, Vector2 b) => new Vector2(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y));
+
+        public static Vector3 Min(Vector3 a, Vector3 b) => new Vector3(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Min(a.Z, b.Z));
+
+        public static Vector4 Min(Vector4 a, Vector4 b) => new Vector4(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Min(a.Z, b.Z), Math.Min(a.W, b.W));
+
+        public static float Max(float a, float b) => Math.Max(a, b);
+
+        public static Vector2 Max(Vector2 a, Vector2 b) => new Vector2(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y));
+
+        public static Vector3 Max(Vector3 a, Vector3 b) => new Vector3(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y), Math.Max(a.Z, b.Z));
+
+        public static Vector4 Max(Vector4 a, Vector4 b) => new Vector4(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y), Math.Max(a.Z, b.Z), Math.Max(a.W, b.W));
+
         // All components are in the range [0…1], including hue.
         public static Color3 RGB2HSV(Color3 c)
         {

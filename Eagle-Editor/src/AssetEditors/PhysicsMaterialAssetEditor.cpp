@@ -137,27 +137,19 @@ namespace Eagle
 
 		// Plane 1 rotation
 		{
-			glm::quat q = m_Plane1.GetWorldRotation().GetQuat();
-			glm::vec4 quat(q.x, q.y, q.z, q.w);
+			glm::quat quat = m_Plane1.GetWorldRotation().GetQuat();
 
-			if (UI::DrawVec4Control("1st Plane Rotation (Quat)", quat, glm::vec4{ 0, 0, 0, 1 }, 140.f))
+			if (UI::DrawQuatControl("1st Plane Rotation (Quat)", quat, glm::quat{ 1, 0, 0, 0 }, 140.f))
 			{
-				if (glm::all(glm::epsilonEqual(quat, glm::vec4(0), 0.001f)))
-					quat.w = 1.f;
-				quat = glm::normalize(quat);
-				m_Plane1.SetWorldRotation(glm::quat(quat.w, quat.x, quat.y, quat.z));
+				m_Plane1.SetWorldRotation(quat);
 			}
 		}
 		// Plane 2 rotation
 		{
-			glm::quat q = m_Plane2.GetWorldRotation().GetQuat();
-			glm::vec4 quat(q.x, q.y, q.z, q.w);
+			glm::quat quat = m_Plane2.GetWorldRotation().GetQuat();
 
-			if (UI::DrawVec4Control("2nd Plane Rotation (Quat)", quat, glm::vec4{ 0, 0, 0, 1 }, 140.f))
+			if (UI::DrawQuatControl("2nd Plane Rotation (Quat)", quat, glm::quat{ 1, 0, 0, 0 }, 140.f))
 			{
-				if (glm::all(glm::epsilonEqual(quat, glm::vec4(0), 0.001f)))
-					quat.w = 1.f;
-				quat = glm::normalize(quat);
 				m_Plane2.SetWorldRotation(glm::quat(quat.w, quat.x, quat.y, quat.z));
 			}
 		}

@@ -709,5 +709,13 @@ namespace Eagle
 		mono_add_internal_call("Eagle.AssetSoundGroup::GetPitch_Native", Eagle::Script::Eagle_AssetSoundGroup_GetPitch);
 		mono_add_internal_call("Eagle.AssetSoundGroup::IsPaused_Native", Eagle::Script::Eagle_AssetSoundGroup_IsPaused);
 		mono_add_internal_call("Eagle.AssetSoundGroup::IsMuted_Native", Eagle::Script::Eagle_AssetSoundGroup_IsMuted);
+
+		// AssetParticleSystem
+		mono_add_internal_call("Eagle.AssetParticleSystem::GetEmittersCount_Native", Eagle::Script::Eagle_AssetParticleSystem_GetEmittersCount);
+		mono_add_internal_call("Eagle.AssetParticleSystem::RemoveEmitters_Native", Eagle::Script::Eagle_AssetParticleSystem_RemoveEmitters);
+		mono_add_internal_call("Eagle.AssetParticleSystem::SetEmitters_Prepare_Native", Eagle::Script::Eagle_AssetParticleSystem_SetEmitters_Prepare);
+		mono_add_internal_call("Eagle.AssetParticleSystem::SetEmitters_Finish_Native", Eagle::Script::Eagle_AssetParticleSystem_SetEmitters_Finish);
+		mono_add_internal_call("Eagle.AssetParticleSystem::SetEmitter_Native", Eagle::Script::SetEmitter_Native);
+		mono_add_internal_call("Eagle.AssetParticleSystem::GetEmitter_Native", Eagle::Script::Eagle_AssetParticleSystem_GetEmitter);
 	}
 }

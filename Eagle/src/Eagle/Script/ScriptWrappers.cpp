@@ -6931,4 +6931,262 @@ namespace Eagle
 		EG_CORE_ERROR("[ScriptEngine] Couldn't get `IsMuted`. It's not a SoundGroup asset");
 		return false;
 	}
+
+	//--------------AssetParticleSystem--------------
+	uint32_t Script::Eagle_AssetParticleSystem_GetEmittersCount(GUID assetID)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetEmittersCount()`. Couldn't find a ParticleSystem asset");
+			return 0u;
+		}
+
+		if (Ref<AssetParticleSystem> ps = Cast<AssetParticleSystem>(asset))
+			return uint32_t(ps->GetEmitters().size());
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetEmittersCount()`. It's not a ParticleSystem asset");
+		return 0u;
+	}
+
+	void Script::Eagle_AssetParticleSystem_RemoveEmitters(GUID assetID)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `RemoveEmitters()`. Couldn't find a ParticleSystem asset");
+			return;
+		}
+
+		if (Ref<AssetParticleSystem> ps = Cast<AssetParticleSystem>(asset))
+			return ps->SetEmitters({});
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `RemoveEmitters()`. It's not a ParticleSystem asset");
+		return;
+	}
+
+	void* Script::Eagle_AssetParticleSystem_SetEmitters_Prepare(uint32_t count)
+	{
+		std::vector<ParticleEmitter>* emitters = new std::vector<ParticleEmitter>(count);
+		EG_CORE_INFO("Count {}", emitters->size());
+		return emitters;
+	}
+
+	void Script::Eagle_AssetParticleSystem_SetEmitters_Finish(GUID assetID, void* data)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			delete data;
+			return;
+		}
+
+		if (Ref<AssetParticleSystem> ps = Cast<AssetParticleSystem>(asset))
+		{
+			std::vector<ParticleEmitter>* emitters = (std::vector<ParticleEmitter>*)data;
+			ps->SetEmitters(std::move(*emitters));
+		}
+
+		delete data;
+	}
+
+	void Script::SetEmitter_Native(void* data, uint32_t index, GUID texture, const glm::vec4* colorStart, const glm::vec4* colorEnd,
+		const glm::vec3* velocityMin, const glm::vec3* velocityMax, const glm::vec3* velocityCoefStart, const glm::vec3* velocityCoefEnd,
+		float rotationZStart, float rotationZEnd, const glm::vec2* sizeStart, const glm::vec2* sizeEnd, const glm::vec2* colliderSizeRatio,
+		float lifetimeMin, float lifetimeMax, float bouncinessMin, float bouncinessMax, MonoString* name, const Transform* relativeTransform,
+		const AABB* visibilityAABB, uint32_t loopCount, uint32_t numParticles, float numParticlesRatio, float radialAcceleration, float tangentialAcceleration,
+		float normalVelocityFactor, ParticleEmitter::EmissionShapeType emissionShape, const glm::vec3* sphereRadius, const glm::vec3* boxMin, const glm::vec3* boxMax,
+		const glm::vec3* ringRadius, const glm::vec3* ringThickness, GUID mesh, ParticleEmitter::CollisionModeType collisionMode, const glm::uvec2* animationImagesNum,
+		float animationSpeed, bool bDestroyImmediately, bool bEmit, bool bExplode, bool bApplyGravity, bool bAlphaBlending, bool bAdditive, bool bBlendAnimation)
+	{
+		std::vector<ParticleEmitter>* emitters = (std::vector<ParticleEmitter>*)data;
+		EG_CORE_ASSERT(emitters->size() >= index);
+
+		ParticleEmitter& emitter = (*emitters)[index];
+		emitter.ColorStart = *colorStart;
+		emitter.ColorEnd = *colorEnd;
+
+		emitter.VelocityMin = *velocityMin;
+		emitter.VelocityMax = *velocityMax;
+		emitter.VelocityCoefStart = *velocityCoefStart;
+		emitter.VelocityCoefEnd = *velocityCoefEnd;
+
+		emitter.RotationZStart = rotationZStart;
+		emitter.RotationZEnd = rotationZEnd;
+		emitter.SizeStart = *sizeStart;
+		emitter.SizeEnd = *sizeEnd;
+		emitter.ColliderSizeRatio = *colliderSizeRatio;
+
+		emitter.LifetimeMin = lifetimeMin;
+		emitter.LifetimeMax = lifetimeMax;
+		emitter.BouncinessMin = bouncinessMin;
+		emitter.BouncinessMax = bouncinessMax;
+		emitter.Name = mono_string_to_utf8(name);
+		emitter.RelativeTransform = *relativeTransform;
+
+		emitter.VisibilityAABB = *visibilityAABB;
+		emitter.LoopCount = loopCount;
+		emitter.NumParticles = numParticles;
+		emitter.NumParticlesRatio = numParticlesRatio;
+		emitter.RadialAcceleration = radialAcceleration;
+		emitter.TangentialAcceleration = tangentialAcceleration;
+
+		emitter.NormalVelocityFactor = normalVelocityFactor;
+		emitter.EmissionShape = emissionShape;
+		emitter.SphereRadius = *sphereRadius;
+		emitter.BoxMin = *boxMin;
+		emitter.BoxMax = *boxMax;
+
+		emitter.RingRadius = *ringRadius;
+		emitter.RingThickness = *ringThickness;
+		emitter.CollisionMode = collisionMode;
+		emitter.AnimationImagesNum = *animationImagesNum;
+		
+		emitter.AnimationSpeed = animationSpeed;
+		emitter.bDestroyImmediately = bDestroyImmediately;
+		emitter.bEmit = bEmit;
+		emitter.bExplode = bExplode;
+		emitter.bApplyGravity = bApplyGravity;
+		emitter.bAlphaBlending = bAlphaBlending;
+		emitter.bAdditive = bAdditive;
+		emitter.bBlendAnimation = bBlendAnimation;
+
+		if (texture.IsNull())
+		{
+			emitter.Texture.reset();
+		}
+		else
+		{
+			Ref<Asset> asset;
+			if (AssetManager::Get(texture, &asset))
+			{
+				Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
+				if (textureAsset)
+				{
+					emitter.Texture = std::move(textureAsset);
+				}
+				else
+				{
+					emitter.Texture.reset();
+					EG_CORE_ERROR("[ScriptEngine] Couldn't set Emitter Texture at index {}. Provided asset is not a Texture2D asset", index);
+				}
+			}
+			else
+			{
+				emitter.Texture.reset();
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set Emitter Texture at index {}. Couldn't find an asset", index);
+			}
+		}
+		
+		if (mesh.IsNull())
+		{
+			emitter.MeshAsset.reset();
+		}
+		else
+		{
+			Ref<Asset> asset;
+			if (AssetManager::Get(mesh, &asset))
+			{
+				Ref<AssetStaticMesh> meshAsset = Cast<AssetStaticMesh>(asset);
+				if (meshAsset)
+				{
+					emitter.MeshAsset = std::move(meshAsset);
+				}
+				else
+				{
+					emitter.MeshAsset.reset();
+					EG_CORE_ERROR("[ScriptEngine] Couldn't set Emitter Mesh at index {}. Provided asset is not a Static Mesh asset", index);
+				}
+			}
+			else
+			{
+				emitter.MeshAsset.reset();
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set Emitter Mesh at index {}. Couldn't find an asset", index);
+			}
+		}
+	}
+
+	MonoString* Script::Eagle_AssetParticleSystem_GetEmitter(GUID assetID, uint32_t index, GUID* texture, glm::vec4* colorStart, glm::vec4* colorEnd,
+		glm::vec3* velocityMin, glm::vec3* velocityMax, glm::vec3* velocityCoefStart, glm::vec3* velocityCoefEnd, float* rotationZStart, float* rotationZEnd,
+		glm::vec2* sizeStart, glm::vec2* sizeEnd, glm::vec2* colliderSizeRatio, float* lifetimeMin, float* lifetimeMax, float* bouncinessMin, float* bouncinessMax,
+		Transform* relativeTransform, AABB* visibilityAABB, uint32_t* loopCount, uint32_t* numParticles, float* numParticlesRatio, float* radialAcceleration,
+		float* tangentialAcceleration, float* normalVelocityFactor, ParticleEmitter::EmissionShapeType* emissionShape, glm::vec3* sphereRadius, glm::vec3* boxMin,
+		glm::vec3* boxMax, glm::vec3* ringRadius, glm::vec3* ringThickness, GUID* meshAsset, ParticleEmitter::CollisionModeType* collisionMode, glm::uvec2* animationImagesNum,
+		float* animationSpeed, bool* bDestroyImmediately, bool* bEmit, bool* bExplode, bool* bApplyGravity, bool* bAlphaBlending, bool* bAdditive, bool* bBlendAnimation)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetEmitter()`. Couldn't find a ParticleSystem asset");
+			return mono_string_new(mono_domain_get(), "");
+		}
+
+		if (Ref<AssetParticleSystem> ps = Cast<AssetParticleSystem>(asset))
+		{
+			const auto& emitters = ps->GetEmitters();
+			if (index >= uint32_t(emitters.size()))
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't get Emitter at index {}. Size: {}", index, emitters.size());
+				return mono_string_new(mono_domain_get(), "");
+			}
+
+			const auto& emitter = emitters[index];
+			*texture = emitter.Texture ? emitter.Texture->GetGUID() : GUID(0, 0);
+			*colorStart = emitter.ColorStart;
+			*colorEnd = emitter.ColorEnd;
+
+			*velocityMin = emitter.VelocityMin;
+			*velocityMax = emitter.VelocityMax;
+			*velocityCoefStart = emitter.VelocityCoefStart;
+			*velocityCoefEnd = emitter.VelocityCoefEnd;
+			*rotationZStart = emitter.RotationZStart;
+			*rotationZEnd = emitter.RotationZEnd;
+
+			*sizeStart = emitter.SizeStart;
+			*sizeEnd = emitter.SizeEnd;
+			*colliderSizeRatio = emitter.ColliderSizeRatio;
+			*lifetimeMin = emitter.LifetimeMin;
+			*lifetimeMax = emitter.LifetimeMax;
+			*bouncinessMin = emitter.BouncinessMin;
+			*bouncinessMax = emitter.BouncinessMax;
+
+			*relativeTransform = emitter.RelativeTransform;
+			*visibilityAABB = emitter.VisibilityAABB;
+			*loopCount = emitter.LoopCount;
+			*numParticles = emitter.NumParticles;
+			*numParticlesRatio = emitter.NumParticlesRatio;
+			*radialAcceleration = emitter.RadialAcceleration;
+
+			*tangentialAcceleration = emitter.TangentialAcceleration;
+			*normalVelocityFactor = emitter.NormalVelocityFactor;
+			*emissionShape = emitter.EmissionShape;
+			*sphereRadius = emitter.SphereRadius;
+			*boxMin = emitter.BoxMin;
+
+			*boxMax = emitter.BoxMax;
+			*ringRadius = emitter.RingRadius;
+			*ringThickness = emitter.RingThickness;
+			*meshAsset = emitter.MeshAsset ? emitter.MeshAsset->GetGUID() : GUID(0, 0);
+			*collisionMode = emitter.CollisionMode;
+			*animationImagesNum = emitter.AnimationImagesNum;
+
+			*animationSpeed = emitter.AnimationSpeed;
+			*bDestroyImmediately = emitter.bDestroyImmediately;
+			*bEmit = emitter.bEmit;
+			*bExplode = emitter.bExplode;
+			*bApplyGravity = emitter.bApplyGravity;
+			*bAlphaBlending = emitter.bAlphaBlending;
+			*bAdditive = emitter.bAdditive;
+			*bBlendAnimation = emitter.bBlendAnimation;
+
+			return mono_string_new(mono_domain_get(), emitter.Name.c_str());
+		}
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetEmitter()`. It's not a ParticleSystem asset");
+		return mono_string_new(mono_domain_get(), "");
+	}
 }

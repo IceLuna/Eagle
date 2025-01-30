@@ -105,4 +105,102 @@ namespace Eagle
 
         public override int GetHashCode() => (X, Y).GetHashCode();
     }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct UVector2 : IEquatable<UVector2>
+    {
+        public uint X;
+        public uint Y;
+
+        public UVector2(UVector2 v)
+        {
+            X = v.X;
+            Y = v.Y;
+        }
+
+        public UVector2(uint scalar)
+        {
+            X = Y = scalar;
+        }
+
+        public UVector2(uint x, uint y)
+        {
+            X = x;
+            Y = y;
+        }
+
+        public static UVector2 operator +(UVector2 left, UVector2 right)
+        {
+            return new UVector2(left.X + right.X, left.Y + right.Y);
+        }
+
+        public static UVector2 operator +(UVector2 left, uint scalar)
+        {
+            return new UVector2(left.X + scalar, left.Y + scalar);
+        }
+
+        public static UVector2 operator +(uint scalar, UVector2 right)
+        {
+            return new UVector2(right.X + scalar, right.Y + scalar);
+        }
+
+        public static UVector2 operator -(UVector2 left, UVector2 right)
+        {
+            return new UVector2(left.X - right.X, left.Y - right.Y);
+        }
+
+        public static UVector2 operator -(UVector2 left, uint scalar)
+        {
+            return new UVector2(left.X - scalar, left.Y - scalar);
+        }
+
+        public static UVector2 operator -(uint  scalar, UVector2 right)
+        {
+            return new UVector2(scalar - right.X, scalar - right.Y);
+        }
+
+        public static UVector2 operator *(UVector2 left, UVector2 right)
+        {
+            return new UVector2(left.X * right.X, left.Y * right.Y);
+        }
+
+        public static UVector2 operator *(UVector2 left, uint scalar)
+        {
+            return new UVector2(left.X * scalar, left.Y * scalar);
+        }
+
+        public static UVector2 operator *(uint scalar, UVector2 right)
+        {
+            return new UVector2(right.X * scalar, right.Y * scalar);
+        }
+
+        public static UVector2 operator /(UVector2 left, UVector2 right)
+        {
+            return new UVector2(left.X / right.X, left.Y / right.Y);
+        }
+
+        public static UVector2 operator /(UVector2 left, uint scalar)
+        {
+            return new UVector2(left.X / scalar, left.Y / scalar);
+        }
+
+        public static UVector2 operator /(uint scalar, UVector2 right)
+        {
+            return new UVector2(scalar / right.X, scalar / right.Y);
+        }
+
+        public override bool Equals(object obj) => obj is UVector2 other && this.Equals(other);
+
+        public bool Equals(UVector2 right) => X == right.X && Y == right.Y;
+
+        public static bool operator ==(UVector2 left, UVector2 right) => left.Equals(right);
+        public static bool operator !=(UVector2 left, UVector2 right) => !(left == right);
+
+        public override string ToString()
+        {
+            return "UVector2[" + X + ", " + Y + "]";
+        }
+
+        public override int GetHashCode() => (X, Y).GetHashCode();
+    }
 }

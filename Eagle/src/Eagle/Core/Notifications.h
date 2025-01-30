@@ -26,6 +26,6 @@ namespace Eagle
 		static void AddObserver(const Entity& parent, Component* observer);
 		static void RemoveObserver(const Entity& parent, Component* observer);
 		static void Notify(const Entity& parent, Notification notification);
-		static void ResetSystem();
+		static void Reset();
 	};
 }

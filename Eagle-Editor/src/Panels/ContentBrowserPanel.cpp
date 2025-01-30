@@ -289,7 +289,7 @@ namespace Eagle
 		}
 
 		ImVec2 size = ImGui::GetContentRegionAvail();
-		m_ColumnWidth = UI::GetThumbnailSize().x + GImGui->Style.FramePadding.x * 2.f + 1.f;
+		m_ColumnWidth = ThumbnailCache::GetThumbnailSize().x + GImGui->Style.FramePadding.x * 2.f + 1.f;
 		const int columns = int(size[0] / m_ColumnWidth);
 		m_ContentBrowserHovered = ImGui::IsWindowHovered();
 
@@ -483,7 +483,7 @@ namespace Eagle
 
 	void ContentBrowserPanel::HandleAddPanel()
 	{
-		constexpr ImVec2 thumbnailSize = ImVec2(UI::GetThumbnailSize().x, UI::GetThumbnailSize().y);
+		constexpr ImVec2 thumbnailSize = ImVec2(ThumbnailCache::GetThumbnailSize().x, ThumbnailCache::GetThumbnailSize().y);
 
 		if (m_DrawAddPanel)
 		{
@@ -702,13 +702,13 @@ namespace Eagle
 
 	bool ContentBrowserPanel::RenderThumbnail(const Ref<Asset>& asset)
 	{
-		constexpr glm::uvec2 thumbnailRenderSize = glm::uvec2(UI::GetThumbnailSize());
+		constexpr glm::uvec2 thumbnailRenderSize = glm::uvec2(ThumbnailCache::GetThumbnailSize());
 		return ThumbnailCache::Render(asset, thumbnailRenderSize);
 	}
 
 	void ContentBrowserPanel::DrawContent(const std::vector<Path>& directories, const std::vector<Path>& files, bool bHintFullPath /* = false */)
 	{
-		constexpr ImVec2 thumbnailSize = ImVec2(UI::GetThumbnailSize().x, UI::GetThumbnailSize().y);
+		constexpr ImVec2 thumbnailSize = ImVec2(ThumbnailCache::GetThumbnailSize().x, ThumbnailCache::GetThumbnailSize().y);
 		bool bHoveredAnyItem = false;
 
 		ImGui::PushID("DIRECTORIES_FILL");
