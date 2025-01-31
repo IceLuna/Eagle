@@ -1024,6 +1024,29 @@ namespace Eagle
         assert(!"Unknown format");
 	    return 0;
     }
+    
+    inline constexpr bool IsCompressedFormat(ImageFormat format)
+    {
+	    switch (format)
+	    {
+            case ImageFormat::BC1_RGBA_UNorm :
+            case ImageFormat::BC1_RGB_UNorm : 
+            case ImageFormat::BC1_UNorm_SRGB :
+            case ImageFormat::BC2_UNorm :     
+            case ImageFormat::BC2_UNorm_SRGB :
+            case ImageFormat::BC3_UNorm :     
+            case ImageFormat::BC3_UNorm_SRGB :
+            case ImageFormat::BC4_UNorm :     
+            case ImageFormat::BC4_SNorm :     
+            case ImageFormat::BC5_UNorm :     
+            case ImageFormat::BC5_SNorm :     
+            case ImageFormat::BC6H_UFloat16 : 
+            case ImageFormat::BC6H_SFloat16 : 
+            case ImageFormat::BC7_UNorm :     
+            case ImageFormat::BC7_UNorm_SRGB: return true;
+	    }
+	    return false;
+    }
 
     inline uint32_t CalculateMipCount(uint32_t width, uint32_t height)
     {

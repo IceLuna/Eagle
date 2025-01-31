@@ -93,13 +93,17 @@ namespace Eagle
 				continue;
 			}
 
+			EG_CORE_INFO("Loading asset: {}", assetPath.u8string());
 			Register(Asset::Create(assetPath));
 		}
 
 		for (const auto& assets : delayedAssets)
 		{
 			for (const auto& assetPath : assets)
+			{
+				EG_CORE_INFO("Loading asset: {}", assetPath.u8string());
 				Register(Asset::Create(assetPath));
+			}
 		}
 
 		s_Skybox = AssetTextureCube::Create(Application::GetCorePath() / "assets/textures/IBL.egasset");
@@ -177,9 +181,11 @@ namespace Eagle
 				auto typeNode = assetNode["Type"];
 				if (!typeNode)
 				{
-					EG_CORE_ERROR("Failed to load an asset. It's not an eagle asset: {}", path.u8string());
+					EG_CORE_ERROR("Failed to load an asset. It's not an Eagle asset: {}", path.u8string());
 					return false;
 				}
+				EG_CORE_INFO("Loading asset: {}", path.u8string());
+				
 				assetType = Utils::GetEnumFromName<AssetType>(typeNode.as<std::string>());
 				if (assetType == AssetType::Scene)
 					*outAsset = AssetScene::Create(path, assetNode);
@@ -221,8 +227,9 @@ namespace Eagle
 					EG_CORE_ERROR("Failed to load an asset. It's not an eagle asset");
 					return false;
 				}
-				assetType = Utils::GetEnumFromName<AssetType>(typeNode.as<std::string>());
+				EG_CORE_INFO("Loading asset: {}", assetNodeData.AssetPath.u8string());
 
+				assetType = Utils::GetEnumFromName<AssetType>(typeNode.as<std::string>());
 				if (assetType == AssetType::Scene)
 					*outAsset = AssetScene::Create(assetNodeData.AssetPath, assetNodeData.Node);
 				else

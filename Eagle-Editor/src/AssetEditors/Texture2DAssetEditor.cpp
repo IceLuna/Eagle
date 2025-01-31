@@ -6,6 +6,15 @@
 
 namespace Eagle
 {
+	static constexpr int s_MinMips = 1;
+
+	Texture2DAssetEditor::Texture2DAssetEditor(const Ref<AssetTexture2D>& asset)
+		: m_Asset(asset)
+	{
+		const auto& textureToView = m_Asset->GetTexture();
+		m_GenerateMipsCount = textureToView->GetMipsCount();
+	}
+
 	void Texture2DAssetEditor::OnImGuiRender(bool* pOpen)
 	{
 		const auto& textureToView = m_Asset->GetTexture();
@@ -17,6 +26,9 @@ namespace Eagle
 		glm::vec2 visualizeImageSize = textureToView->GetSize();
 		const uint32_t mipsCount = textureToView->GetMipsCount(); // MipsCount == 1 means no mips, just the original
 		m_SelectedMip = glm::clamp(m_SelectedMip, 0, (int)mipsCount - 1);
+
+		const int maxMips = (int)CalculateMipCount(textureToView->GetSize());
+		m_GenerateMipsCount = glm::clamp(m_GenerateMipsCount, s_MinMips, maxMips);
 
 		const float tRatio = visualizeImageSize[0] / visualizeImageSize[1];
 		const float wRatio = availSize[0] / availSize[1];
@@ -140,12 +152,6 @@ namespace Eagle
 
 			// Generate Mips
 			{
-				constexpr int minMips = 1;
-				const int maxMips = (int)CalculateMipCount(textureToView->GetSize());
-
-				int generateMipsCount = textureToView->GetMipsCount();
-				generateMipsCount = glm::clamp(generateMipsCount, minMips, maxMips);
-
 				UI::UpdateIDBuffer("Generate Mips");
 				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 				ImGui::Text("Generate Mips");
@@ -160,7 +166,10 @@ namespace Eagle
 					const float width = ImGui::GetColumnWidth();
 					ImGui::PushItemWidth(width - buttonWidth);
 				}
-				ImGui::SliderInt(UI::GetIDBuffer(), &generateMipsCount, minMips, maxMips);
+				if (ImGui::SliderInt(UI::GetIDBuffer(), &m_GenerateMipsCount, s_MinMips, maxMips))
+				{
+					m_GenerateMipsCount = glm::clamp(m_GenerateMipsCount, s_MinMips, maxMips);
+				}
 
 				ImGui::PopItemWidth();
 
@@ -168,7 +177,7 @@ namespace Eagle
 
 				if (ImGui::Button("Generate"))
 				{
-					m_Asset->SetIsCompressed(m_Asset->IsCompressed(), uint32_t(generateMipsCount));
+					m_Asset->SetIsCompressed(m_Asset->IsCompressed(), uint32_t(m_GenerateMipsCount));
 					bChanged = true;
 				}
 			}

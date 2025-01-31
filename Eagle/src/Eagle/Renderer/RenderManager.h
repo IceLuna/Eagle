@@ -5,7 +5,6 @@
 
 #include "RenderCommandQueue.h"
 #include "Eagle/Core/Application.h"
-#include "Eagle/Core/ThreadPool.h"
 
 #include "Eagle/Debug/GPUTimings.h"
 
@@ -98,7 +97,7 @@ namespace Eagle
 		template<typename FuncT>
 		static void Submit(FuncT&& func)
 		{
-			if (std::this_thread::get_id() == GetThreadPool()->get_threads()[0].get_id())
+			if (IsRenderThread())
 			{
 				func(GetCurrentFrameCommandBuffer());
 				return;
@@ -123,6 +122,27 @@ namespace Eagle
 				return;
 			}
 
+			if (!IsRenderThread())
+			{
+				// We need to request resource removal in RenderThread.
+				Submit([funcPtr = MakeScope<FuncT>(std::forward<FuncT>(func))](const Ref<CommandBuffer>&)
+				{
+					// Ideally, we'd just call `SubmitResourceFree()` here, but we can't because of recursive template evaluation: SubmitResourceFree() -> Submit() -> SubmitResourceFree
+					// So, we just do it manually (duplicate the code from below)
+					auto renderCmd = [](void* ptr)
+					{
+						auto f = (FuncT*)ptr;
+						(*f)();
+						f->~FuncT();
+					};
+
+					const uint32_t frameIndex = RenderManager::GetCurrentReleaseFrameIndex();
+					auto mem = GetResourceReleaseQueue(frameIndex).Allocate(renderCmd, sizeof(*funcPtr));
+					new(mem) FuncT(std::forward<FuncT>(*funcPtr));
+				});
+				return;
+			}
+
 			auto renderCmd = [](void* ptr)
 			{
 				auto f = (FuncT*)ptr;
@@ -134,6 +154,8 @@ namespace Eagle
 			auto mem = GetResourceReleaseQueue(frameIndex).Allocate(renderCmd, sizeof(func));
 			new(mem) FuncT(std::forward<FuncT>(func));
 		}
+
+		static bool IsRenderThread();
 
 		static void RegisterShaderDependency(const Shader* shader, const Ref<Pipeline>& pipeline);
 		static void RemoveShaderDependency(const Shader* shader, const Ref<Pipeline>& pipeline);
@@ -158,7 +180,6 @@ namespace Eagle
 	private:
 		static Ref<CommandBuffer>& GetCurrentFrameCommandBuffer();
 		static RenderCommandQueue& GetRenderCommandQueue();
-		static const ThreadPool& GetThreadPool();
 
 		static void PresentEditor(Ref<CommandBuffer>& cmd, const PresentPushData& pushData);
 		static void PresentGame(Ref<CommandBuffer>& cmd, const PresentPushData& pushData);

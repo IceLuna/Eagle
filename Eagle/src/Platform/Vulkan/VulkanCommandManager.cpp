@@ -1026,9 +1026,23 @@ namespace Eagle
 		const uint32_t layersCount = image->GetLayersCount();
 		VkImageAspectFlags aspectMask = vulkanImage->GetDefaultAspectMask();
 
+		const bool bCompressedFormat = IsCompressedFormat(image->GetFormat());
+		constexpr uint32_t compressedBlockSize = 4u;
+
 		TransitionLayout(image, initialLayout, ImageLayoutType::CopyDest);
 		for (uint32_t i = 1; i < mipCount; ++i)
 		{
+			glm::uvec2 mipSize = baseMipSize >> i;
+			if (bCompressedFormat)
+			{
+				mipSize -= mipSize % compressedBlockSize;
+				if (glm::any(glm::equal(mipSize, glm::uvec2(0))))
+				{
+					// Size is too small to generate a mip for a block
+					break;
+				}
+			}
+
 			const auto& data = dataPerMip[i];
 			Ref<StagingBuffer> stagingBuffer = StagingManager::AcquireBuffer(data.Size(), false);
 			m_UsedStagingBuffers.insert(stagingBuffer.get());
@@ -1036,7 +1050,6 @@ namespace Eagle
 			memcpy(mapped, data.Data(), data.Size());
 			stagingBuffer->Unmap();
 
-			const glm::uvec2 mipSize = baseMipSize >> i;
 			VkBufferImageCopy region = {};
 			region.bufferOffset = 0;
 			region.bufferRowLength = mipSize.x;

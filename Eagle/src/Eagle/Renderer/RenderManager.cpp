@@ -20,6 +20,7 @@
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Classes/StaticMesh.h"
+#include "Eagle/Core/ThreadPool.h"
 
 namespace Eagle
 {
@@ -272,6 +273,8 @@ namespace Eagle
 
 	void RenderManager::Init()
 	{
+		bImmediateDeletionMode = false;
+
 		Application& app = Application::Get();
 		const bool bGame = app.IsGame();
 		s_RendererData = new RendererData();
@@ -541,10 +544,9 @@ namespace Eagle
 
 		ReleasePendingResources();
 
+		bImmediateDeletionMode = true; // Required to immediately release data during `delete s_RendererData`
 		delete s_RendererData;
 		s_RendererData = nullptr;
-
-		ReleasePendingResources(); // Required to release data after executing `delete s_RendererData`
 	}
 
 	void RenderManager::Reset()
@@ -694,9 +696,9 @@ namespace Eagle
 		return s_CommandQueue[s_RendererData->CurrentFrameIndex];
 	}
 
-	const ThreadPool& RenderManager::GetThreadPool()
+	bool RenderManager::IsRenderThread()
 	{
-		return s_RendererData->ThreadPool;
+		return std::this_thread::get_id() == s_RendererData->ThreadPool->get_threads()[0].get_id();
 	}
 
 	void RenderManager::RegisterShaderDependency(const Shader* shader, const Ref<Pipeline>& pipeline)
