@@ -555,6 +555,22 @@ namespace Eagle::Script
 	AddressMode Eagle_AssetTexture2D_GetAddressMode(GUID id);
 	void Eagle_AssetTexture2D_SetMipsCount(GUID id, uint32_t mipsCount);
 	uint32_t Eagle_AssetTexture2D_GetMipsCount(GUID id);
+	void Eagle_AssetTexture2D_SetFormat(GUID id, AssetTexture2DFormat value);
+	void Eagle_AssetTexture2D_SetIsNormalMap(GUID id, bool value);
+	void Eagle_AssetTexture2D_SetNeedsAlpha(GUID id, bool value);
+	void Eagle_AssetTexture2D_SetIsCompressed(GUID id, bool value);
+	AssetTexture2DFormat Eagle_AssetTexture2D_GetFormat(GUID id);
+	bool Eagle_AssetTexture2D_IsNormalMap(GUID id);
+	bool Eagle_AssetTexture2D_DoesNeedAlpha(GUID id);
+	bool Eagle_AssetTexture2D_IsCompressed(GUID id);
+
+	// AssetTextureCube
+	void Eagle_AssetTextureCube_SetLayerSize(GUID id, uint32_t value);
+	void Eagle_AssetTextureCube_SetPrefilterSize(GUID id, uint32_t value);
+	bool Eagle_AssetTextureCube_SetFormat(GUID id, AssetTextureCubeFormat value);
+	uint32_t Eagle_AssetTextureCube_GetLayerSize(GUID id);
+	uint32_t Eagle_AssetTextureCube_GetPrefilterSize(GUID id);
+	AssetTextureCubeFormat Eagle_AssetTextureCube_GetFormat(GUID id);
 
 	// AssetMaterial
 	void Eagle_AssetMaterial_GetMaterial(GUID assetID,
@@ -593,6 +609,14 @@ namespace Eagle::Script
 	float Eagle_AssetSoundGroup_GetPitch(GUID assetID);
 	bool Eagle_AssetSoundGroup_IsPaused(GUID assetID);
 	bool Eagle_AssetSoundGroup_IsMuted(GUID assetID);
+
+	// AssetAnimation
+	void Eagle_AssetAnimation_SetRootMotionEnabled(GUID id, bool value);
+	float Eagle_AssetAnimation_GetDuration(GUID id);
+	float Eagle_AssetAnimation_GetTicksPerSecond(GUID id);
+	void Eagle_AssetAnimation_AddAnimationEvent(GUID id, MonoString* name, float time);
+	bool Eagle_AssetAnimation_RemoveAnimationEvent(GUID id, MonoString* name);
+	bool Eagle_AssetAnimation_HasAnimationEvent(GUID id, MonoString* name);
 
 	// AssetParticleSystem
 	uint32_t Eagle_AssetParticleSystem_GetEmittersCount(GUID assetID);

@@ -8,6 +8,7 @@
 #include "Eagle/Core/Project.h"
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
+#include "Eagle/Utils/Utils.h"
 
 #include <mono/jit/jit.h>
 
@@ -6542,6 +6543,278 @@ namespace Eagle
 		return textureAsset->GetTexture()->GetMipsCount();
 	}
 
+	void Script::Eagle_AssetTexture2D_SetFormat(GUID id, AssetTexture2DFormat value)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set AssetTexture2D format. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set AssetTexture2D format. It's not a texture 2D asset");
+			return;
+		}
+
+		if (textureAsset->IsCompressed())
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set AssetTexture2D format. Compressed textures only support RGBA8 format. Current format: {}", Eagle::Utils::GetEnumName(textureAsset->GetFormat()));
+			return;
+		}
+		textureAsset->SetFormat(value);
+	}
+
+	void Script::Eagle_AssetTexture2D_SetIsNormalMap(GUID id, bool value)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetIsNormalMap` for AssetTexture2D. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetIsNormalMap` for AssetTexture2D. It's not a texture 2D asset");
+			return;
+		}
+
+		textureAsset->SetIsNormalMap(value);
+	}
+
+	void Script::Eagle_AssetTexture2D_SetNeedsAlpha(GUID id, bool value)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetNeedsAlpha` for AssetTexture2D. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetNeedsAlpha` for AssetTexture2D. It's not a texture 2D asset");
+			return;
+		}
+
+		textureAsset->SetNeedsAlpha(value);
+	}
+
+	void Script::Eagle_AssetTexture2D_SetIsCompressed(GUID id, bool value)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetIsCompressed` for AssetTexture2D. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetIsCompressed` for AssetTexture2D. It's not a texture 2D asset");
+			return;
+		}
+
+		textureAsset->SetIsCompressed(value, textureAsset->GetTexture()->GetMipsCount());
+	}
+
+	AssetTexture2DFormat Script::Eagle_AssetTexture2D_GetFormat(GUID id)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetFormat` of AssetTexture2D. Couldn't find an asset");
+			return AssetTexture2DFormat::Default;
+		}
+
+		Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetFormat` of AssetTexture2D. It's not a texture 2D asset");
+			return AssetTexture2DFormat::Default;
+		}
+
+		return textureAsset->GetFormat();
+	}
+
+	bool Script::Eagle_AssetTexture2D_IsNormalMap(GUID id)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsNormalMap` of AssetTexture2D. Couldn't find an asset");
+			return false;
+		}
+
+		Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsNormalMap` of AssetTexture2D. It's not a texture 2D asset");
+			return false;
+		}
+
+		return textureAsset->IsNormalMap();
+	}
+
+	bool Script::Eagle_AssetTexture2D_DoesNeedAlpha(GUID id)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `DoesNeedAlpha` of AssetTexture2D. Couldn't find an asset");
+			return false;
+		}
+
+		Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `DoesNeedAlpha` of AssetTexture2D. It's not a texture 2D asset");
+			return false;
+		}
+
+		return textureAsset->DoesNeedAlpha();
+	}
+
+	bool Script::Eagle_AssetTexture2D_IsCompressed(GUID id)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsCompressed` of AssetTexture2D. Couldn't find an asset");
+			return false;
+		}
+
+		Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsCompressed` of AssetTexture2D. It's not a texture 2D asset");
+			return false;
+		}
+
+		return textureAsset->IsCompressed();
+	}
+
+	//--------------AssetTextureCube--------------
+	void Script::Eagle_AssetTextureCube_SetLayerSize(GUID id, uint32_t value)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetLayerSize` for AssetTextureCube. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetTextureCube> textureAsset = Cast<AssetTextureCube>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetLayerSize` for AssetTextureCube. It's not a texture cube asset");
+			return;
+		}
+
+		textureAsset->SetLayerSize(value);
+	}
+
+	void Script::Eagle_AssetTextureCube_SetPrefilterSize(GUID id, uint32_t value)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetPrefilterSize` for AssetTextureCube. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetTextureCube> textureAsset = Cast<AssetTextureCube>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetPrefilterSize` for AssetTextureCube. It's not a texture cube asset");
+			return;
+		}
+
+		textureAsset->SetPrefilterSize(value);
+	}
+
+	bool Script::Eagle_AssetTextureCube_SetFormat(GUID id, AssetTextureCubeFormat value)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetFormat` for AssetTextureCube. Couldn't find an asset");
+			return false;
+		}
+
+		Ref<AssetTextureCube> textureAsset = Cast<AssetTextureCube>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetFormat` for AssetTextureCube. It's not a texture cube asset");
+			return false;
+		}
+
+		return textureAsset->SetFormat(value);
+	}
+
+	uint32_t Script::Eagle_AssetTextureCube_GetLayerSize(GUID id)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetLayerSize` for AssetTextureCube. Couldn't find an asset");
+			return 0u;
+		}
+
+		Ref<AssetTextureCube> textureAsset = Cast<AssetTextureCube>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetLayerSize` for AssetTextureCube. It's not a texture cube asset");
+			return 0u;
+		}
+
+		return textureAsset->GetTexture()->GetSize().x;
+	}
+
+	uint32_t Script::Eagle_AssetTextureCube_GetPrefilterSize(GUID id)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetPrefilterSize` for AssetTextureCube. Couldn't find an asset");
+			return 0u;
+		}
+
+		Ref<AssetTextureCube> textureAsset = Cast<AssetTextureCube>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetPrefilterSize` for AssetTextureCube. It's not a texture cube asset");
+			return 0u;
+		}
+
+		return textureAsset->GetTexture()->GetPrefilterSize();
+	}
+
+	AssetTextureCubeFormat Script::Eagle_AssetTextureCube_GetFormat(GUID id)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetFormat` for AssetTextureCube. Couldn't find an asset");
+			return AssetTextureCubeFormat::Default;
+		}
+
+		Ref<AssetTextureCube> textureAsset = Cast<AssetTextureCube>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetFormat` for AssetTextureCube. It's not a texture cube asset");
+			return AssetTextureCubeFormat::Default;
+		}
+
+		return textureAsset->GetFormat();
+	}
+
 	//--------------AssetMaterial--------------
 	void Script::Eagle_AssetMaterial_GetMaterial(GUID assetID,
 		GUID* outAlbedoTexture, GUID* outMetalnessTexture, GUID* outNormalTexture, GUID* outRoughnessTexture, GUID* outAOTexture, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
@@ -6930,6 +7203,141 @@ namespace Eagle
 
 		EG_CORE_ERROR("[ScriptEngine] Couldn't get `IsMuted`. It's not a SoundGroup asset");
 		return false;
+	}
+
+	//--------------AssetAnimation--------------
+	void Script::Eagle_AssetAnimation_SetRootMotionEnabled(GUID id, bool value)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetRootMotionEnabled` for AssetAnimation. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetAnimation> animationAsset = Cast<AssetAnimation>(asset);
+		if (!animationAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetRootMotionEnabled` for AssetAnimation. It's not an animation asset");
+			return;
+		}
+
+		const auto& skeletalInfo = animationAsset->GetSkeletal()->GetMesh()->GetSkeletalMeshInfo();
+		if (value)
+			animationAsset->GetAnimation()->ExtractRootMotion(skeletalInfo);
+		else
+			animationAsset->GetAnimation()->RemoveRootMotion(skeletalInfo);
+	}
+
+	float Script::Eagle_AssetAnimation_GetDuration(GUID id)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetDuration` for AssetAnimation. Couldn't find an asset");
+			return 0.f;
+		}
+
+		Ref<AssetAnimation> animationAsset = Cast<AssetAnimation>(asset);
+		if (!animationAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetDuration` for AssetAnimation. It's not an animation asset");
+			return 0.f;
+		}
+
+		return animationAsset->GetAnimation()->Duration;
+	}
+
+	float Script::Eagle_AssetAnimation_GetTicksPerSecond(GUID id)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetTicksPerSecond` for AssetAnimation. Couldn't find an asset");
+			return 0.f;
+		}
+
+		Ref<AssetAnimation> animationAsset = Cast<AssetAnimation>(asset);
+		if (!animationAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetTicksPerSecond` for AssetAnimation. It's not an animation asset");
+			return 0.f;
+		}
+
+		return animationAsset->GetAnimation()->TicksPerSecond;
+	}
+
+	void Script::Eagle_AssetAnimation_AddAnimationEvent(GUID id, MonoString* name, float time)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `AddAnimationEvent` for AssetAnimation. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetAnimation> animationAsset = Cast<AssetAnimation>(asset);
+		if (!animationAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `AddAnimationEvent` for AssetAnimation. It's not an animation asset");
+			return;
+		}
+
+		auto& event = animationAsset->GetAnimation()->Events.emplace_back();
+		event.Name = mono_string_to_utf8(name);
+		event.Time = time;
+	}
+
+	bool Script::Eagle_AssetAnimation_RemoveAnimationEvent(GUID id, MonoString* monoName)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `RemoveAnimationEvent` for AssetAnimation. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetAnimation> animationAsset = Cast<AssetAnimation>(asset);
+		if (!animationAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `RemoveAnimationEvent` for AssetAnimation. It's not an animation asset");
+			return;
+		}
+
+		const std::string name = mono_string_to_utf8(monoName);
+
+		auto& events = animationAsset->GetAnimation()->Events;
+		auto it = std::find_if(events.begin(), events.end(), [&name](const AnimationEvent& a) { return a.Name == name; });
+		if (it != events.end())
+		{
+			events.erase(it);
+			return true;
+		}
+
+		return false;
+	}
+
+	bool Script::Eagle_AssetAnimation_HasAnimationEvent(GUID id, MonoString* monoName)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `HasAnimationEvent` for AssetAnimation. Couldn't find an asset");
+			return false;
+		}
+
+		Ref<AssetAnimation> animationAsset = Cast<AssetAnimation>(asset);
+		if (!animationAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `HasAnimationEvent` for AssetAnimation. It's not an animation asset");
+			return false;
+		}
+
+		const std::string name = mono_string_to_utf8(monoName);
+
+		const auto& events = animationAsset->GetAnimation()->Events;
+		auto it = std::find_if(events.begin(), events.end(), [&name](const AnimationEvent& a) { return a.Name == name; });
+		return it != events.end();
 	}
 
 	//--------------AssetParticleSystem--------------

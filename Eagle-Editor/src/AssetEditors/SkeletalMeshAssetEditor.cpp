@@ -228,7 +228,7 @@ namespace Eagle
 
 		ImGui::Separator();
 		{
-			if (ImGui::BeginTabBar("MyTabBar"))
+			if (ImGui::BeginTabBar("SkeletalMeshAssetEditorTabBar"))
 			{
 				bChanged |= DrawSkeletalTab(mesh, assetHash);
 				bChanged |= DrawRagdollTab(mesh, assetHash);

@@ -680,6 +680,22 @@ namespace Eagle
 		mono_add_internal_call("Eagle.AssetTexture2D::GetAddressMode_Native", Eagle::Script::Eagle_AssetTexture2D_GetAddressMode);
 		mono_add_internal_call("Eagle.AssetTexture2D::SetMipsCount_Native", Eagle::Script::Eagle_AssetTexture2D_SetMipsCount);
 		mono_add_internal_call("Eagle.AssetTexture2D::GetMipsCount_Native", Eagle::Script::Eagle_AssetTexture2D_GetMipsCount);
+		mono_add_internal_call("Eagle.AssetTexture2D::SetFormat_Native", Eagle::Script::Eagle_AssetTexture2D_SetFormat);
+		mono_add_internal_call("Eagle.AssetTexture2D::SetIsNormalMap_Native", Eagle::Script::Eagle_AssetTexture2D_SetIsNormalMap);
+		mono_add_internal_call("Eagle.AssetTexture2D::SetNeedsAlpha_Native", Eagle::Script::Eagle_AssetTexture2D_SetNeedsAlpha);
+		mono_add_internal_call("Eagle.AssetTexture2D::SetIsCompressed_Native", Eagle::Script::Eagle_AssetTexture2D_SetIsCompressed);
+		mono_add_internal_call("Eagle.AssetTexture2D::GetFormat_Native", Eagle::Script::Eagle_AssetTexture2D_GetFormat);
+		mono_add_internal_call("Eagle.AssetTexture2D::IsNormalMap_Native", Eagle::Script::Eagle_AssetTexture2D_IsNormalMap);
+		mono_add_internal_call("Eagle.AssetTexture2D::DoesNeedAlpha_Native", Eagle::Script::Eagle_AssetTexture2D_DoesNeedAlpha);
+		mono_add_internal_call("Eagle.AssetTexture2D::IsCompressed_Native", Eagle::Script::Eagle_AssetTexture2D_IsCompressed);
+
+		// AssetTextureCube
+		mono_add_internal_call("Eagle.AssetTextureCube::SetLayerSize_Native", Eagle::Script::Eagle_AssetTextureCube_SetLayerSize);
+		mono_add_internal_call("Eagle.AssetTextureCube::SetPrefilterSize_Native", Eagle::Script::Eagle_AssetTextureCube_SetPrefilterSize);
+		mono_add_internal_call("Eagle.AssetTextureCube::SetFormat_Native", Eagle::Script::Eagle_AssetTextureCube_SetFormat);
+		mono_add_internal_call("Eagle.AssetTextureCube::GetLayerSize_Native", Eagle::Script::Eagle_AssetTextureCube_GetLayerSize);
+		mono_add_internal_call("Eagle.AssetTextureCube::GetPrefilterSize_Native", Eagle::Script::Eagle_AssetTextureCube_GetPrefilterSize);
+		mono_add_internal_call("Eagle.AssetTextureCube::GetFormat_Native", Eagle::Script::Eagle_AssetTextureCube_GetFormat);
 
 		// AssetMaterial
 		mono_add_internal_call("Eagle.AssetMaterial::GetMaterial_Native", Eagle::Script::Eagle_AssetMaterial_GetMaterial);
@@ -709,6 +725,14 @@ namespace Eagle
 		mono_add_internal_call("Eagle.AssetSoundGroup::GetPitch_Native", Eagle::Script::Eagle_AssetSoundGroup_GetPitch);
 		mono_add_internal_call("Eagle.AssetSoundGroup::IsPaused_Native", Eagle::Script::Eagle_AssetSoundGroup_IsPaused);
 		mono_add_internal_call("Eagle.AssetSoundGroup::IsMuted_Native", Eagle::Script::Eagle_AssetSoundGroup_IsMuted);
+
+		// AssetAnimation
+		mono_add_internal_call("Eagle.AssetAnimation::SetRootMotionEnabled_Native", Eagle::Script::Eagle_AssetAnimation_SetRootMotionEnabled);
+		mono_add_internal_call("Eagle.AssetAnimation::GetDuration_Native", Eagle::Script::Eagle_AssetAnimation_GetDuration);
+		mono_add_internal_call("Eagle.AssetAnimation::GetTicksPerSecond_Native", Eagle::Script::Eagle_AssetAnimation_GetTicksPerSecond);
+		mono_add_internal_call("Eagle.AssetAnimation::AddAnimationEvent_Native", Eagle::Script::Eagle_AssetAnimation_AddAnimationEvent);
+		mono_add_internal_call("Eagle.AssetAnimation::RemoveAnimationEvent_Native", Eagle::Script::Eagle_AssetAnimation_RemoveAnimationEvent);
+		mono_add_internal_call("Eagle.AssetAnimation::HasAnimationEvent_Native", Eagle::Script::Eagle_AssetAnimation_HasAnimationEvent);
 
 		// AssetParticleSystem
 		mono_add_internal_call("Eagle.AssetParticleSystem::GetEmittersCount_Native", Eagle::Script::Eagle_AssetParticleSystem_GetEmittersCount);

@@ -43,6 +43,24 @@ namespace Eagle
         ParticleSystem,
     };
 
+    public enum AssetTexture2DFormat
+    {
+        RGBA8,
+		RG8,
+		R8,
+
+		Default = RGBA8
+    };
+
+    public enum AssetTextureCubeFormat
+    {
+        RGBA32,
+		RGBA16,
+		R11G11B10,
+
+		Default = R11G11B10
+    };
+
     // Note that changing assets affects the whole asset, meaning it will affect the editor
     public class Asset
     {
@@ -123,6 +141,14 @@ namespace Eagle
 
         public void SetMipsCount(uint mips) { SetMipsCount_Native(m_GUID, mips); }
 
+        public void SetFormat(AssetTexture2DFormat format) { SetFormat_Native(m_GUID, format); }
+
+        public void SetIsNormalMap(bool bNormalMap) { SetIsNormalMap_Native(m_GUID, bNormalMap); }
+
+        public void SetNeedsAlpha(bool bNeedsAlpha) { SetNeedsAlpha_Native(m_GUID, bNeedsAlpha); }
+
+        public void SetIsCompressed(bool bCompressed) { SetIsCompressed_Native(m_GUID, bCompressed); }
+
         public float GetAnisotropy() { return GetAnisotropy_Native(m_GUID); }
 
         public FilterMode GetFilterMode() { return GetFilterMode_Native(m_GUID); }
@@ -131,6 +157,13 @@ namespace Eagle
 
         public uint GetMipsCount() { return GetMipsCount_Native(m_GUID); }
 
+        public AssetTexture2DFormat GetFormat() { return GetFormat_Native(m_GUID); }
+
+        public bool IsNormalMap() { return IsNormalMap_Native(m_GUID); }
+
+        public bool DoesNeedAlpha() { return DoesNeedAlpha_Native(m_GUID); }
+
+        public bool IsCompressed() { return IsCompressed_Native(m_GUID); }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetAnisotropy_Native(GUID id, float value);
@@ -140,6 +173,18 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetFilterMode_Native(GUID id, FilterMode value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetFormat_Native(GUID id, AssetTexture2DFormat value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetIsNormalMap_Native(GUID id, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetNeedsAlpha_Native(GUID id, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetIsCompressed_Native(GUID id, bool value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern FilterMode GetFilterMode_Native(GUID id);
@@ -155,6 +200,18 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern uint GetMipsCount_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern AssetTexture2DFormat GetFormat_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsNormalMap_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool DoesNeedAlpha_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsCompressed_Native(GUID id);
     }
 
     public class AssetTextureCube : Asset
@@ -162,6 +219,36 @@ namespace Eagle
         internal AssetTextureCube(GUID guid) : base(AssetType.TextureCube, guid)
         {
         }
+
+        public void SetLayerSize(uint layerSize) { SetLayerSize_Native(m_GUID, layerSize); }
+
+        public void SetPrefilterSize(uint prefilter) { SetPrefilterSize_Native(m_GUID, prefilter); }
+
+        public bool SetFormat(AssetTextureCubeFormat format) { return SetFormat_Native(m_GUID, format); }
+
+        public uint GetLayerSize() { return GetLayerSize_Native(m_GUID); }
+
+        public uint GetPrefilterSize() { return GetPrefilterSize_Native(m_GUID); }
+
+        public AssetTextureCubeFormat GetFormat() { return GetFormat_Native(m_GUID); }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetLayerSize_Native(GUID id, uint value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetPrefilterSize_Native(GUID id, uint value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool SetFormat_Native(GUID id, AssetTextureCubeFormat value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint GetLayerSize_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint GetPrefilterSize_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern AssetTextureCubeFormat GetFormat_Native(GUID id);
     }
 
     public class AssetStaticMesh : Asset
@@ -191,7 +278,7 @@ namespace Eagle
                 out GUID albedoTexture, out GUID metalnessTexture, out GUID normalTexture, out GUID roughnessTexture, out GUID aoTexture, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
                 out Color3 albedo, out float metalness, out float roughness, out float ao, out Color3 emissive, out float opacity, out float opacityMask,
                 out bool bUseAlbedoTexture, out bool bUseMetalnessTexture, out bool bUseRoughnessTexture, out bool bUseAOTexture, out bool bUseEmissiveTexture, out bool bUseOpacityTexture, out bool bUseOpacityMaskTexture,
-                out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
+                out Color4 tint, out Color3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
 
             result.AlbedoAsset = new AssetTexture2D(albedoTexture);
             result.MetalnessAsset = new AssetTexture2D(metalnessTexture);
@@ -251,14 +338,14 @@ namespace Eagle
             out GUID albedoTexture, out GUID metalnessTexture, out GUID normalTexture, out GUID roughnessTexture, out GUID aoTexture, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
             out Color3 albedo, out float metalness, out float roughness, out float ao, out Color3 emissive, out float opacity, out float opacityMask,
             out bool bUseAlbedoTexture, out bool bUseMetalnessTexture, out bool bUseRoughnessTexture, out bool bUseAOTexture, out bool bUseEmissiveTexture, out bool bUseOpacityTexture, out bool bUseOpacityMaskTexture,
-            out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
+            out Color4 tint, out Color3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetMaterial_Native(in GUID entityID,
             in GUID albedoTexture, in GUID metalnessTexture, in GUID normalTexture, in GUID roughnessTexture, in GUID aoTexture, in GUID emissiveTexture, in GUID opacityTexture, in GUID opacityMaskTexture,
             ref Color3 albedo, float metalness, float roughness, float ao, ref Color3 emissive, float opacity, float opacityMask,
             bool bUseAlbedoTexture, bool bUseMetalnessTexture, bool bUseRoughnessTexture, bool bUseAOTexture, bool bUseEmissiveTexture, bool bUseOpacityTexture, bool bUseOpacityMaskTexture,
-            ref Color4 tint, ref Vector3 emissiveIntensity, float tilingFactor, MaterialBlendMode blendMode);
+            ref Color4 tint, ref Color3 emissiveIntensity, float tilingFactor, MaterialBlendMode blendMode);
     }
 
     public class AssetAudio : Asset
@@ -465,6 +552,40 @@ namespace Eagle
         internal AssetAnimation(GUID guid) : base(AssetType.Animation, guid)
         {
         }
+
+        public void SetRootMotionEnabled(bool bEnabled) { SetRootMotionEnabled_Native(m_GUID, bEnabled); }
+
+        public float GetDuration() { return GetDuration_Native(m_GUID); }
+
+        public float GetTicksPerSecond() { return GetTicksPerSecond_Native(m_GUID); }
+
+        // Note: there can be multiple events with the same name
+        // @name. When the event is triggered, C# `Entity.OnAnimationEvent()` is called with this as a parameter.
+        // @time. A value between [0; Duration] when an event should be triggered.
+        public void AddAnimationEvent(string name, float time) { AddAnimationEvent_Native(m_GUID, name, time); }
+
+        // Returns true if event was removed
+        public bool RemoveAnimationEvent(string name) { return RemoveAnimationEvent_Native(m_GUID, name); }
+
+        public bool HasAnimationEvent(string name) { return HasAnimationEvent_Native(m_GUID, name); }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetRootMotionEnabled_Native(GUID id, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetDuration_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetTicksPerSecond_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void AddAnimationEvent_Native(GUID id, string name, float time);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool RemoveAnimationEvent_Native(GUID id, string name);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool HasAnimationEvent_Native(GUID id, string name);
     }
 
     public class AssetAnimationGraph: Asset
