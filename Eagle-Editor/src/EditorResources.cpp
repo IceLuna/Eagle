@@ -14,6 +14,10 @@ namespace Eagle
 	Ref<Texture2D> EditorResources::s_PhysicsMaterialIcon;
 	Ref<Texture2D> EditorResources::s_EntityIcon;
 	Ref<Texture2D> EditorResources::s_SceneIcon;
+	Ref<Texture2D> EditorResources::s_AnimationIcon;
+	Ref<Texture2D> EditorResources::s_AnimationGraphIcon;
+	Ref<Texture2D> EditorResources::s_ParticleSystemIcon;
+	Ref<Texture2D> EditorResources::s_MaterialIcon;
 	Ref<Texture2D> EditorResources::s_UnknownIcon;
 
 	void EditorResources::Init()
@@ -26,6 +30,10 @@ namespace Eagle
 		s_PhysicsMaterialIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/physicsmaterialicon.png");
 		s_EntityIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/entityicon.png");
 		s_SceneIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/sceneicon.png");
+		s_AnimationIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/animationicon.png");
+		s_AnimationGraphIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/animationgraphicon.png");
+		s_ParticleSystemIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/particlesystemicon.png");
+		s_MaterialIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/material.png");
 		s_UnknownIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/unknownicon.png");
 	}
 
@@ -39,6 +47,10 @@ namespace Eagle
 		s_PhysicsMaterialIcon.reset();
 		s_EntityIcon.reset();
 		s_SceneIcon.reset();
+		s_AnimationIcon.reset();
+		s_AnimationGraphIcon.reset();
+		s_ParticleSystemIcon.reset();
+		s_MaterialIcon.reset();
 		s_UnknownIcon.reset();
 	}
 
@@ -58,16 +70,20 @@ namespace Eagle
 			return s_SoundGroupIcon;
 		case AssetType::Font:
 			return s_FontIcon;
+		case AssetType::Material:
+			return s_MaterialIcon;
 		case AssetType::PhysicsMaterial:
 			return s_PhysicsMaterialIcon;
 		case AssetType::Entity:
 			return s_EntityIcon;
 		case AssetType::Scene:
 			return s_SceneIcon;
+		case AssetType::Animation:
+			return s_AnimationIcon;
 		case AssetType::AnimationGraph:
-			return s_UnknownIcon; // TODO:
+			return s_AnimationGraphIcon;
 		case AssetType::ParticleSystem:
-			return s_UnknownIcon; // TODO:
+			return s_ParticleSystemIcon;
 		default:
 			return s_UnknownIcon;
 		}

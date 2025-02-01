@@ -1309,7 +1309,7 @@ namespace Eagle::UI
 
 		if (RendererContext::Current() == RendererAPIType::Vulkan)
 		{
-			VkSampler vkSampler = (VkSampler)Sampler::PointSampler->GetHandle();
+			VkSampler vkSampler = (VkSampler)Sampler::BilinearSampler->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
 
 			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
@@ -1365,7 +1365,7 @@ namespace Eagle::UI
 		{
 			ImageView imageView{ mip };
 
-			VkSampler vkSampler = (VkSampler)Sampler::PointSampler->GetHandle();
+			VkSampler vkSampler = (VkSampler)Sampler::BilinearSampler->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle(imageView);
 
 			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
@@ -1380,7 +1380,7 @@ namespace Eagle::UI
 
 		if (RendererContext::Current() == RendererAPIType::Vulkan)
 		{
-			VkSampler vkSampler = (VkSampler)Sampler::PointSampler->GetHandle();
+			VkSampler vkSampler = (VkSampler)Sampler::BilinearSampler->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
 
 			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
@@ -1447,7 +1447,7 @@ namespace Eagle::UI
 		{
 			constexpr uint32_t mip = 0;
 			ImageView imageView{ mip };
-			VkSampler vkSampler = (VkSampler)Sampler::PointSampler->GetHandle();
+			VkSampler vkSampler = (VkSampler)Sampler::BilinearSampler->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle(imageView);
 
 			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);

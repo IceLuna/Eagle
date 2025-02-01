@@ -108,6 +108,10 @@ namespace Eagle
         public uint PointLightShadowMapSize;
         public uint SpotLightShadowMapSize;
         public uint[] DirLightShadowMapSizes;
+
+        public const uint MinPointLightShadowMapSize = 64u;
+        public const uint MinSpotLightShadowMapSize = 64u;
+        public const uint MinDirLightShadowMapSize = 64u;
     }
 
     public struct DepthOfFieldSettings
@@ -276,7 +280,7 @@ namespace Eagle
             return settings;
         }
 
-        public static void SetGTAOSettings(SSAOSettings value)
+        public static void SetGTAOSettings(GTAOSettings value)
         {
             SetGTAOSettings_Native(value.Samples, value.Radius);
         }
