@@ -25,7 +25,8 @@ namespace Eagle
 		constexpr bool bDrawTransform = false;
 
 		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
-		if (ImGui::Begin(m_Asset->GetPath().u8string().c_str(), pOpen))
+		const std::string windowName = m_Asset->GetPath().u8string();
+		if (ImGui::Begin(windowName.c_str(), pOpen))
 		{
 			const bool bEntityChanged = m_EntityProperties.OnImGuiRender(*m_Asset->GetEntity().get(), bRuntime, bVolumetricsEnabled, bDrawTransform);
 			if (bEntityChanged)
@@ -61,7 +62,7 @@ namespace Eagle
 		}
 		ImGui::End(); // Entity Editor
 
-		DrawViewport();
+		DrawViewport(false, windowName);
 	}
 
 	void EntityAssetEditor::UpdateGuizmo()

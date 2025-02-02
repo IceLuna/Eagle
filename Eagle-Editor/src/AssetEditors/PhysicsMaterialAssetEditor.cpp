@@ -100,7 +100,8 @@ namespace Eagle
 		auto& material = m_Asset->GetMaterial();
 
 		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
-		ImGui::Begin(m_Asset->GetPath().u8string().c_str(), pOpen);
+		const std::string windowName = m_Asset->GetPath().u8string();
+		ImGui::Begin(windowName.c_str(), pOpen);
 		UI::BeginPropertyGrid("PhysicsMaterialDetails");
 
 		UI::Text("Name", m_Asset->GetPath().stem().u8string());
@@ -167,7 +168,7 @@ namespace Eagle
 
 		ImGui::End();
 
-		DrawViewport();
+		DrawViewport(false, windowName);
 	}
 	
 	void PhysicsMaterialAssetEditor::ResetScene()

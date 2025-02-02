@@ -7294,14 +7294,14 @@ namespace Eagle
 		if (!AssetManager::Get(id, &asset))
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call `RemoveAnimationEvent` for AssetAnimation. Couldn't find an asset");
-			return;
+			return false;
 		}
 
 		Ref<AssetAnimation> animationAsset = Cast<AssetAnimation>(asset);
 		if (!animationAsset)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call `RemoveAnimationEvent` for AssetAnimation. It's not an animation asset");
-			return;
+			return false;
 		}
 
 		const std::string name = mono_string_to_utf8(monoName);

@@ -42,10 +42,28 @@ namespace Eagle
 		m_Renderer.reset();
 	}
 
-	void AssetEditor::DrawViewport(bool bForceAnimUpdate)
+	void AssetEditor::DrawViewport(bool bForceAnimUpdate, const std::string_view parentName)
 	{
 		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
-		bViewportVisible = ImGui::Begin((GetAsset()->GetPath().u8string() + "_Viewport").c_str());
+
+		const std::string windowName = GetAsset()->GetPath().u8string() + "_Viewport";
+		bViewportVisible = ImGui::Begin(windowName.c_str());
+		const bool bFirstUseEver = (ImGui::GetCurrentWindow()->SetWindowDockAllowFlags & ImGuiCond_FirstUseEver) == ImGuiCond_FirstUseEver;
+
+		if (bFirstUseEver && !parentName.empty())
+		{
+			ImGuiID parent_node = ImGui::DockBuilderAddNode();
+			ImGui::DockBuilderSetNodePos(parent_node, ImGui::GetWindowPos());
+			ImGui::DockBuilderSetNodeSize(parent_node, ImGui::GetWindowSize());
+			ImGuiID nodeA;
+			ImGuiID nodeB;
+			ImGui::DockBuilderSplitNode(parent_node, ImGuiDir_Right, 0.5f, &nodeB, &nodeA);
+
+			ImGui::DockBuilderDockWindow(parentName.data(), nodeA);
+			ImGui::DockBuilderDockWindow(windowName.c_str(), nodeB);
+
+			ImGui::SetWindowSize(ImVec2(720.f * 2.f, 560.f));
+		}
 
 		if (bViewportVisible)
 		{

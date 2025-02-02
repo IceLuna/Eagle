@@ -304,7 +304,7 @@ namespace Eagle
 			DrawSimulatePanel();
 			if (m_SceneHierarchyPanel.OnImGuiRender())
 			{
-				if (m_EditorState == EditorState::Edit)
+				if (m_EditorState == EditorState::Edit && m_OpenedSceneAsset)
 					m_OpenedSceneAsset->SetDirty(true);
 			}
 			m_ContentBrowserPanel.OnImGuiRender();
@@ -554,7 +554,8 @@ namespace Eagle
 		Entity createdEntity = m_EditorScene->CreateFromEntityAsset(entityAsset);
 		createdEntity.SetWorldLocation(worldPos);
 		m_SceneHierarchyPanel.SetEntitySelected((int)createdEntity.GetEnttID());
-		m_OpenedSceneAsset->SetDirty(true);
+		if (m_OpenedSceneAsset)
+			m_OpenedSceneAsset->SetDirty(true);
 	}
 
 	glm::ivec2 EditorLayer::GetMousePosWithinViewport() const
@@ -821,7 +822,8 @@ namespace Eagle
 				if (m_GuizmoType == ImGuizmo::OPERATION::SCALE)
 					finalTransform.Scale3D = transform.Scale3D;
 
-				m_OpenedSceneAsset->SetDirty(true);
+				if (m_OpenedSceneAsset)
+					m_OpenedSceneAsset->SetDirty(true);
 				if (selectedComponent)
 					bRelative ? selectedComponent->SetRelativeTransform(finalTransform) : selectedComponent->SetWorldTransform(finalTransform);
 				else
@@ -1190,7 +1192,7 @@ namespace Eagle
 		ImGui::End();
 		ImGui::PopID();
 
-		if (bChanged)
+		if (bChanged && m_OpenedSceneAsset)
 			m_OpenedSceneAsset->SetDirty(true);
 	}
 

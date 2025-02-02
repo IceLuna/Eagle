@@ -27,7 +27,7 @@ namespace Eagle
 		virtual void OnEvent(Event& e);
 
 		virtual const Ref<Asset> GetAsset() const = 0;
-		void DrawViewport(bool bForceAnimUpdate = false);
+		void DrawViewport(bool bForceAnimUpdate = false, const std::string_view parentName = "");
 
 		// Called right before ImGui::End() of viewport to allow custom widgets
 		virtual void OnViewportEnd() {}

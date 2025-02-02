@@ -38,7 +38,8 @@ namespace Eagle
 		bool bChanged = false;
 
 		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
-		bool bHidden = !ImGui::Begin(m_Asset->GetPath().u8string().c_str(), pOpen);
+		const std::string windowName = m_Asset->GetPath().u8string();
+		ImGui::Begin(windowName.c_str(), pOpen);
 		UI::BeginPropertyGrid("AnimationDetails");
 
 		UI::Text("Name", m_Asset->GetPath().stem().u8string());
@@ -173,7 +174,7 @@ namespace Eagle
 
 		ImGui::End();
 
-		DrawViewport(true);
+		DrawViewport(true, windowName);
 		if (!bPlayAnimation)
 			m_Component->CurrentClipPlayTime = m_Component->PrevClipPlayTime; // Prevent animation from advancing
 	}
