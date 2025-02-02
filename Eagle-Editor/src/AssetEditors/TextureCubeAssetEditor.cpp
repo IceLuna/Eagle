@@ -4,6 +4,8 @@
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/UI/UI.h"
 
+#include <imgui_internal.h>
+
 namespace Eagle
 {
 	TextureCubeAssetEditor::TextureCubeAssetEditor(const Ref<AssetTextureCube>& asset)
@@ -20,7 +22,8 @@ namespace Eagle
 		const Ref<Texture2D>& textureToView = textureCube->GetTexture2D();
 
 		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
-		bool bHidden = !ImGui::Begin(m_Asset->GetPath().u8string().c_str(), pOpen);
+		const std::string parentName = m_Asset->GetPath().u8string();
+		bool bHidden = !ImGui::Begin(parentName.c_str(), pOpen);
 		bDetailsVisible = (!bHidden) || (bHidden && !bDetailsDocked);
 		ImVec2 availSize = ImGui::GetContentRegionAvail();
 		glm::vec2 visualizeImageSize = textureToView->GetSize();
@@ -39,7 +42,26 @@ namespace Eagle
 			auto assetFormat = m_Asset->GetFormat();
 			bool bChanged = false;
 
-			ImGui::Begin(("Details: " + m_Asset->GetPath().u8string()).c_str());
+			ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
+			const std::string windowName = "Details: " + m_Asset->GetPath().u8string();
+			ImGui::Begin(windowName.c_str());
+
+			const bool bFirstUseEver = (ImGui::GetCurrentWindow()->SetWindowDockAllowFlags & ImGuiCond_FirstUseEver) == ImGuiCond_FirstUseEver;
+			if (bFirstUseEver && !parentName.empty())
+			{
+				ImGuiID parent_node = ImGui::DockBuilderAddNode();
+				ImGui::DockBuilderSetNodePos(parent_node, ImGui::GetWindowPos());
+				ImGui::DockBuilderSetNodeSize(parent_node, ImGui::GetWindowSize());
+				ImGuiID nodeA;
+				ImGuiID nodeB;
+				ImGui::DockBuilderSplitNode(parent_node, ImGuiDir_Right, 0.5f, &nodeB, &nodeA);
+
+				ImGui::DockBuilderDockWindow(parentName.data(), nodeA);
+				ImGui::DockBuilderDockWindow(windowName.c_str(), nodeB);
+
+				ImGui::SetWindowSize(ImVec2(720.f * 2.f, 560.f));
+			}
+
 			bDetailsDocked = ImGui::IsWindowDocked();
 			UI::BeginPropertyGrid("TextureCubeDetails");
 			UI::Text("Name", m_Asset->GetPath().stem().u8string());

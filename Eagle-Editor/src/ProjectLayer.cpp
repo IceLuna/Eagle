@@ -120,8 +120,7 @@ namespace Eagle
 
 	void ProjectLayer::OpenEditor()
 	{
-		const auto& projectInfo = Project::GetProjectInfo();
-		const auto path = projectInfo.BasePath / (projectInfo.Name + Project::GetExtension());
+		const auto path = Project::GetProjectFilePath();
 		AddRecentProject(std::filesystem::absolute(path));
 
 		Application::Get().CallNextFrame([projectLayer = shared_from_this()]()

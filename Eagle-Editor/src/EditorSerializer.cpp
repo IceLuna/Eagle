@@ -21,16 +21,12 @@ namespace Eagle
 		bool bWindowMaximized = window.IsMaximized();
 		glm::vec2 windowPos = window.GetWindowPos();
 		bool bVSync = window.IsVSync();
-		const auto& projectInfo = Project::GetProjectInfo();
 		
 		const auto rendererOptions = m_Editor->GetEditorState() == EditorState::Play ? m_Editor->m_BeforeSimulationData.RendererSettings :
 			m_Editor->m_CurrentScene ? m_Editor->m_CurrentScene->GetSceneRenderer()->GetOptions() : SceneRendererSettings{};
 
 		if (m_Editor->m_OpenedSceneAsset)
 			out << YAML::Key << "EditorStartupScene" << YAML::Value << m_Editor->m_OpenedSceneAsset->GetGUID();
-		if (const auto& scene = projectInfo.GameStartupScene)
-			out << YAML::Key << "GameStartupScene" << YAML::Value << scene->GetGUID();
-		out << YAML::Key << "ProjectVersion" << YAML::Value << projectInfo.Version;
 		out << YAML::Key << "WindowSize" << YAML::Value << windowSize;
 		out << YAML::Key << "WindowMaximized" << YAML::Value << bWindowMaximized;
 		out << YAML::Key << "WindowPos" << YAML::Value << windowPos;
@@ -84,18 +80,6 @@ namespace Eagle
 					m_Editor->m_OpenedSceneAsset = sceneAsset;
 			}
 		}
-		if (auto gameScenePathNode = data["GameStartupScene"])
-		{
-			const GUID sceneGUID = gameScenePathNode.as<GUID>();
-			Ref<Asset> asset;
-			if (AssetManager::Get(sceneGUID, &asset))
-			{
-				if (Ref<AssetScene> sceneAsset = Cast<AssetScene>(asset))
-					Project::SetStartupScene(sceneAsset);
-			}
-		}
-		if (auto projectVersionNode = data["ProjectVersion"])
-			Project::SetVersion(projectVersionNode.as<glm::uvec3>());
 		if (auto windowSizeNode = data["WindowSize"])
 			windowSize = windowSizeNode.as<glm::vec2>();
 		if (auto windowMaximizedNode = data["WindowMaximized"])

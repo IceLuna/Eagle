@@ -140,4 +140,8 @@ namespace Eagle::Utils
 
 		return fileExtension == extension;
 	}
+
+	// @saveTo. Folder to save to.
+	// @assetFilename. Asset filename (without the extension)
+	Path GetUniqueAssetFilepath(const Path& saveTo, const std::string& assetFilename);
 }

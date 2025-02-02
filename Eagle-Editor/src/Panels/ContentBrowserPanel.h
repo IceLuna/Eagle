@@ -55,6 +55,7 @@ namespace Eagle
 		void OnDeleteAsset(const Ref<Asset>& asset);
 		void OnSaveAsset(const Ref<Asset>& asset);
 		void OnDeleteFolder(const Path& path);
+		void DuplicateAsset(const Ref<Asset>& asset);
 
 		void OnDirectoryOpened(const Path& previousPath);
 

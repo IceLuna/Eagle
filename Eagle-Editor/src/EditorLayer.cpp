@@ -218,6 +218,8 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("EditorLayer. OnUpdate");
 
 		m_Ts = ts;
+		m_CurrentScene->bDrawMiscellaneous = m_bDrawEditorMisc;
+		m_CurrentScene->bDrawNavMesh = bDrawNavMesh;
 
 		{
 			std::scoped_lock lock(s_DeferredCallsMutex);
@@ -375,7 +377,7 @@ namespace Eagle
 
 			case Key::G:
 				if (m_ViewportFocused)
-					m_CurrentScene->bDrawMiscellaneous = !m_CurrentScene->bDrawMiscellaneous;
+					m_bDrawEditorMisc = !m_bDrawEditorMisc;
 				break;
 
 			case Key::P:
@@ -719,7 +721,7 @@ namespace Eagle
 		ImGuiLayer::SelectStyle(m_EditorStyle);
 		this->bRenderOnlyWhenFocused = bRenderOnlyWhenFocused;
 		this->bUpdateAnimationsInEditor = bUpdateAnimationsInEditor;
-		SetDrawNavMesh(bDrawNavMesh);
+		this->bDrawNavMesh = bDrawNavMesh;
 		m_StopSimulationKey = stopSimulationKey;
 
 		if ((int)windowSize.x > 0 && (int)windowSize.y > 0)
@@ -741,8 +743,6 @@ namespace Eagle
 		m_CurrentScene = scene;
 		Scene::SetCurrentScene(m_CurrentScene);
 		m_SceneHierarchyPanel.SetContext(m_CurrentScene);
-		if (m_CurrentScene)
-			m_CurrentScene->bDrawNavMesh;
 	}
 
 	void EditorLayer::UpdateGuizmo()
@@ -1817,8 +1817,8 @@ namespace Eagle
 
 			UI::Property("Eco rendering", bRenderOnlyWhenFocused, "If checked, the scene won't be rendered if the window is not in focus");
 			UI::Property("Update Animations", bUpdateAnimationsInEditor, "If checked, animations will be updated in the editor mode");
-			UI::Property("Draw Editor Miscellaneous", m_CurrentScene->bDrawMiscellaneous);
-			UI::Property("Draw Nav Mesh", m_CurrentScene->bDrawNavMesh);
+			UI::Property("Draw Editor Miscellaneous", m_bDrawEditorMisc);
+			UI::Property("Draw Nav Mesh", bDrawNavMesh);
 			UI::ComboEnum<Eagle::Key>("Stop simulation key", m_StopSimulationKey, "The editor will stop the game-simulation when this key is pressed. Set it to 'None' to disable");
 			ImGuiLayer::ShowStyleSelector("Style", m_EditorStyle);
 
@@ -2124,13 +2124,6 @@ namespace Eagle
 			case Eagle::EditorLayer::GBufferVisualizingType::Motion: return gbuffer.Motion ? gbuffer.Motion : renderer->GetOutput();
 			default: return renderer->GetOutput();
 		}
-	}
-
-	void EditorLayer::SetDrawNavMesh(bool bDraw)
-	{
-		bDrawNavMesh = bDraw;
-		if (m_CurrentScene)
-			m_CurrentScene->bDrawNavMesh = bDrawNavMesh;
 	}
 
 	void EditorLayer::SetVisualizingBufferType(GBufferVisualizingType value)

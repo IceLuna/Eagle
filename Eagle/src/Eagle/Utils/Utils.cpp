@@ -1,6 +1,8 @@
 #include "egpch.h"
 #include "Utils.h"
 
+#include "Eagle/Asset/Asset.h"
+
 #include <locale>
 #include <stb_image.h>
 
@@ -112,5 +114,19 @@ namespace Eagle
 	void Utils::FreeTextureData(void* data)
 	{
 		stbi_image_free(data);
+	}
+	
+	Path Utils::GetUniqueAssetFilepath(const Path& saveTo, const std::string& assetFilename)
+	{
+		Path outputFilename = saveTo / (assetFilename + Asset::GetExtension());
+		uint32_t i = 0;
+		while (std::filesystem::exists(outputFilename))
+		{
+			std::string uniqueFilename = assetFilename + '_' + std::to_string(i);
+			outputFilename = saveTo / (uniqueFilename + Asset::GetExtension());
+			++i;
+		}
+
+		return outputFilename;
 	}
 }

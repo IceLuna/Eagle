@@ -55,7 +55,7 @@ namespace Eagle::UI
 
 		const std::string assetName = modifyingAsset ? modifyingAsset->GetPath().stem().u8string() : "None";
 		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
-		ImGui::PushID(label.data());
+		ImGui::PushID((const void*)label.data());
 
 		if constexpr (std::is_same<Type, AssetTexture2D>::value)
 		{
@@ -126,7 +126,7 @@ namespace Eagle::UI
 		//Drop event
 		if (ImGui::BeginDragDropTarget())
 		{
-			static auto processAssetDrop = [&](AssetType assetType)
+			auto processAssetDrop = [&](AssetType assetType)
 			{
 				if (assetType == AssetType::None)
 					return;
@@ -215,7 +215,7 @@ namespace Eagle::UI
 				ImGui::PushID((void*)asset->GetGUID().GetHash());
 
 				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowItemOverlap, {0.0f, previewSize.y});
-				bool bSelectableClicked = ImGui::IsItemClicked();
+				bSelectableTriggered |= ImGui::IsItemClicked();
 
 				bool bHasPreview = false;
 				if constexpr (std::is_same<Type, Asset>::value)
@@ -291,14 +291,11 @@ namespace Eagle::UI
 					ImGui::SetCursorPosY(ImGui::GetCursorPosY() + previewSize.y * 0.25f);
 				ImGui::Text("%s", path.stem().u8string().c_str());
 
-				if (bSelectableTriggered)
-					currentItemIdx = i;
-
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
 				if (bSelected)
 					ImGui::SetItemDefaultFocus();
 
-				if (bSelectableClicked)
+				if (bSelectableTriggered)
 				{
 					currentItemIdx = i;
 

@@ -20,6 +20,7 @@ namespace Eagle
 		static void Init();
 		static void InitGame(const YAML::Node& assetNode);
 		static void Reset();
+		static void ResetGameAssets();
 
 		static void Register(const Ref<Asset>& asset);
 		static bool Exist(const Path& path);

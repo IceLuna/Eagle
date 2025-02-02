@@ -83,8 +83,6 @@ namespace Eagle
 
 		const Ref<Image>& GetRequiredGBufferImage(const Ref<SceneRenderer>& renderer, const GBuffer& gbuffer);
 
-		void SetDrawNavMesh(bool bDraw);
-
 	private:
 		enum class GBufferVisualizingType
 		{
@@ -155,6 +153,7 @@ namespace Eagle
 		bool m_ViewportHidden = false;
 		bool m_bFullScreen = false;
 		bool m_ShowSaveScenePopupForNewScene = false;
+		bool m_bDrawEditorMisc = true;
 
 		bool m_CloseEngineRequested = false;
 		bool m_ShowDirtyAssetMessage = false;

@@ -22,20 +22,6 @@ namespace Eagle
 {
 	namespace Utils
 	{
-		static Path GetUniqueFilepath(const Path& saveTo, const std::string& filename)
-		{
-			Path outputFilename = saveTo / (filename + Asset::GetExtension());
-			uint32_t i = 0;
-			while (std::filesystem::exists(outputFilename))
-			{
-				std::string uniqueFilename = filename + '_' + std::to_string(i);
-				outputFilename = saveTo / (uniqueFilename + Asset::GetExtension());
-				++i;
-			}
-
-			return outputFilename;
-		}
-
 		template<typename MeshType> // Either `StaticMesh` or `SkeletalMesh`
 		static void SerializeMesh(const Ref<MeshType>& mesh, const Path& pathToRaw, const Path& outputFilename)
 		{
@@ -175,7 +161,7 @@ namespace Eagle
 
 		Path outputFilename = saveTo / (pathToRaw.stem().u8string() + Asset::GetExtension());
 		if (std::filesystem::exists(outputFilename))
-			outputFilename = Utils::GetUniqueFilepath(outputFilename.parent_path(), outputFilename.stem().u8string());
+			outputFilename = Utils::GetUniqueAssetFilepath(outputFilename.parent_path(), outputFilename.stem().u8string());
 
 		bool bSuccess = false;
 		switch (type)
@@ -223,7 +209,7 @@ namespace Eagle
 				uint32_t animIndex = 0;
 				for (const auto& anim : animations)
 				{
-					Path output = Utils::GetUniqueFilepath(saveTo, filename);
+					Path output = Utils::GetUniqueAssetFilepath(saveTo, filename);
 					Utils::SerializeAnimation(anim, skeletal, pathToRaw, output, animIndex++);
 					AssetManager::Register(Asset::Create(output));
 				}
@@ -264,7 +250,7 @@ namespace Eagle
 		out << YAML::Key << "GUID" << YAML::Value << GUID{};
 		out << YAML::EndMap;
 
-		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename);
+		const Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, filename);
 		std::ofstream fout(outputFilename);
 		fout << out.c_str();
 		fout.close();
@@ -283,7 +269,7 @@ namespace Eagle
 		out << YAML::Key << "GUID" << YAML::Value << GUID{};
 		out << YAML::EndMap;
 
-		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename);
+		const Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, filename);
 		std::ofstream fout(outputFilename);
 		fout << out.c_str();
 		fout.close();
@@ -306,7 +292,7 @@ namespace Eagle
 		out << YAML::Key << "IsMuted" << YAML::Value << false;
 		out << YAML::EndMap;
 
-		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename);
+		const Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, filename);
 		std::ofstream fout(outputFilename);
 		fout << out.c_str();
 		fout.close();
@@ -325,7 +311,7 @@ namespace Eagle
 		out << YAML::Key << "GUID" << YAML::Value << GUID{};
 		out << YAML::EndMap;
 
-		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename);
+		const Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, filename);
 		std::ofstream fout(outputFilename);
 		fout << out.c_str();
 		fout.close();
@@ -344,7 +330,7 @@ namespace Eagle
 		out << YAML::Key << "GUID" << YAML::Value << GUID{};
 		out << YAML::EndMap;
 
-		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename);
+		const Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, filename);
 		std::ofstream fout(outputFilename);
 		fout << out.c_str();
 		fout.close();
@@ -364,7 +350,7 @@ namespace Eagle
 		out << YAML::Key << "SkeletalMesh" << YAML::Value << skeletal->GetGUID();
 		out << YAML::EndMap;
 
-		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename);
+		const Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, filename);
 		std::ofstream fout(outputFilename);
 		fout << out.c_str();
 		fout.close();
@@ -383,7 +369,7 @@ namespace Eagle
 		out << YAML::Key << "GUID" << YAML::Value << GUID{};
 		out << YAML::EndMap;
 
-		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename);
+		const Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, filename);
 		std::ofstream fout(outputFilename);
 		fout << out.c_str();
 		fout.close();
@@ -665,7 +651,7 @@ namespace Eagle
 		uint32_t animIndex = 0;
 		for (const auto& anim : animations)
 		{
-			Path output = Utils::GetUniqueFilepath(saveTo, filename);
+			Path output = Utils::GetUniqueAssetFilepath(saveTo, filename);
 			Utils::SerializeAnimation(anim, skeletal, pathToRaw, output, animIndex++);
 		}
 

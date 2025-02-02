@@ -266,6 +266,13 @@ namespace Eagle
 		}
 	}
 
+	Scene::Scene()
+		: m_DebugName("Empty")
+	{
+		m_RuntimePhysicsScene = MakeRef<PhysicsScene>(PhysicsSettings());
+		m_PhysicsScene = m_RuntimePhysicsScene;
+	}
+
 	Scene::Scene(const std::string& debugName, const Ref<SceneRenderer>& sceneRenderer, bool bRuntime)
 		: m_DebugName(debugName)
 	{
@@ -459,6 +466,7 @@ namespace Eagle
 				YAML::Node sceneNode;
 				if (AssetManager::GetRuntimeAssetNode(path, &sceneNode))
 				{
+					AssetManager::ResetGameAssets();
 					SceneSerializer serializer(scene);
 					serializer.Deserialize(sceneNode);
 					OnSceneOpened(scene);
@@ -1549,9 +1557,6 @@ namespace Eagle
 
 	void Scene::OnViewportResize(uint32_t width, uint32_t height)
 	{
-		if (m_ViewportWidth == width && m_ViewportHeight == height)
-			return;
-
 		m_ViewportWidth = width;
 		m_ViewportHeight = height;
 
@@ -1663,7 +1668,7 @@ namespace Eagle
 	void Scene::SetGravity(const glm::vec3& gravity)
 	{
 		m_Gravity = gravity;
-		if (m_PhysicsScene == m_RuntimePhysicsScene)
+		if (m_PhysicsScene && m_PhysicsScene == m_RuntimePhysicsScene)
 			m_PhysicsScene->SetGravity(m_Gravity);
 	}
 

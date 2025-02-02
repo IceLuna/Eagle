@@ -6,7 +6,7 @@ namespace Eagle
 
 	struct ProjectInfo
 	{
-		Path BasePath; // path to the folder that contains `.egproj`
+		Path BasePath; // Path to the folder that contains `.egproj`
 		std::string Name;
 		glm::uvec3 Version = glm::uvec3(1, 0, 0); // Major, minor, patch
 		Ref<AssetScene> GameStartupScene;
@@ -27,6 +27,7 @@ namespace Eagle
 		static void OpenGameBuild(const Path& filepath); // Path to .egpack
 		static void Save();
 		static void Save(const ProjectInfo& info);
+		static void OnProjectOpenProcessed(); // Called when application has finished resetting & initializing systems
 
 		static void SetStartupScene(const Ref<AssetScene>& scene) { s_Info.GameStartupScene = scene; }
 		static void SetVersion(const glm::uvec3& version) { s_Info.Version = version; }
@@ -34,6 +35,7 @@ namespace Eagle
 		static const ProjectInfo& GetProjectInfo() { return s_Info; }
 
 		static const Path& GetProjectPath() { return s_Info.BasePath; }
+		static const Path GetProjectFilePath() { return s_Info.BasePath / (s_Info.Name + Project::GetExtension()); }
 		static bool IsOpened() { return !s_Info.BasePath.empty(); }
 
 		static Path GetBinariesPath() { return GetProjectPath() / "Binaries"; }

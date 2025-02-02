@@ -141,6 +141,12 @@ namespace Eagle
 		s_Cube.reset();
 	}
 
+	void AssetManager::ResetGameAssets()
+	{
+		s_Assets.clear();
+		s_AssetsByGUID.clear();
+	}
+
 	void AssetManager::Register(const Ref<Asset>& asset)
 	{
 		if (asset)

@@ -628,6 +628,10 @@ namespace Eagle
 						OnDeleteAsset(asset);
 						bHandled = true;
 						break;
+					case Key::W:
+						DuplicateAsset(asset);
+						bHandled = true;
+						break;
 					}
 				}
 			}
@@ -1005,6 +1009,8 @@ namespace Eagle
 
 						ImGui::Separator();
 
+						if (ImGui::MenuItem("Duplicate"))
+							DuplicateAsset(asset);
 						if (ImGui::MenuItem("Copy"))
 							OnCopyAsset(path);
 						if (ImGui::MenuItem("Cut"))
@@ -1079,6 +1085,16 @@ namespace Eagle
 		m_ShowDeleteConfirmation = true;
 		m_FolderToDelete = path;
 		m_DeleteConfirmationMessage = "Are you sure you want to delete this folder and all of its content?\nFolder: " + m_FolderToDelete.u8string();
+	}
+
+	void ContentBrowserPanel::DuplicateAsset(const Ref<Asset>& asset)
+	{
+		const auto& path = asset->GetPath();
+		Path newFilepath = Utils::GetUniqueAssetFilepath(path.parent_path(), path.stem().u8string());
+		if (!AssetManager::Duplicate(asset, newFilepath))
+		{
+			Application::Get().GetImGuiLayer()->AddMessage("Duplicate failed. See logs for more details");
+		}
 	}
 
 	void ContentBrowserPanel::OnSaveAsset(const Ref<Asset>& asset)

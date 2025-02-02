@@ -95,7 +95,8 @@ namespace Eagle
 			return false;
 		}
 
-		Save();
+		if (!Application::Get().IsGame())
+			Save();
 
 		EG_CORE_INFO("Closed project at: {}", s_Info.BasePath.u8string());
 		s_Info = {};
@@ -130,7 +131,8 @@ namespace Eagle
 	void Project::Build(const Path& outputFolder)
 	{
 		YAML::Emitter shaderPackOut;
-		std::thread buildThread([&outputFolder, &shaderPackOut]()
+		bool bFailed = false;
+		std::thread buildThread([&outputFolder, &shaderPackOut, &bFailed]()
 		{
 			shaderPackOut << YAML::BeginMap;
 			ShaderManager::BuildShaderPack(shaderPackOut);
@@ -162,8 +164,15 @@ namespace Eagle
 				const fs::copy_options folderCopyOptions = fs::copy_options::overwrite_existing | fs::copy_options::recursive;
 				const fs::copy_options fileCopyOptions = fs::copy_options::overwrite_existing;
 
+				const Path gameExeFile = Application::GetCorePath() / "Eagle-Game.exe";
 				const Path projectScriptsFilename = s_Info.Name + ".dll";
-				fs::copy(Application::GetCorePath() / "Eagle-Game.exe", outputFolder / (s_Info.Name + ".exe"), fileCopyOptions);
+				if (!fs::exists(gameExeFile))
+				{
+					Application::Get().GetImGuiLayer()->AddMessage("Failed to build the game. Game executable is missing. Please, build the `Eagle-Game` project!");
+					bFailed = true;
+					return;
+				}
+				fs::copy(gameExeFile, outputFolder / (s_Info.Name + ".exe"), fileCopyOptions);
 				fs::copy(Application::GetCorePath() / "Eagle-Scripts.dll", outputFolder / "Eagle-Scripts.dll", fileCopyOptions);
 				fs::copy(Project::GetBinariesPath() / projectScriptsFilename, outputFolder / projectScriptsFilename, fileCopyOptions);
 
@@ -192,6 +201,10 @@ namespace Eagle
 		std::string serializedData = out.c_str();
 		serializedData += '\n';
 		buildThread.join();
+		if (bFailed)
+		{
+			return;
+		}
 		serializedData += shaderPackOut.c_str();
 
 		// Compress and save
@@ -221,8 +234,6 @@ namespace Eagle
 			}
 #endif
 		}
-
-		return;
 	}
 	
 	void Project::OpenGameBuild(const Path& filepath)
@@ -281,6 +292,11 @@ namespace Eagle
 		std::ofstream fout(info.BasePath / (info.Name + GetExtension()));
 		fout << out.c_str();
 		fout.close();
+	}
+
+	void Project::OnProjectOpenProcessed()
+	{
+		Load(GetProjectFilePath(), &s_Info); // Required to correctly load `StartupScene`. Previously, it was not loaded because AssetManager wasn't initialized
 	}
 
 	bool Project::Load(const Path& filepath, ProjectInfo* outInfo)

@@ -41,10 +41,6 @@ namespace Eagle
 		s_Instance = this;
 
 		m_Game = props.bGame;
-		Log::Init();
-		TextureCompressor::Init();
-		EG_CORE_INFO("Creating Application!");
-
 		m_CorePath = props.argv[0];
 		m_CorePath = m_CorePath.parent_path();
 		std::filesystem::current_path(m_CorePath);
@@ -52,6 +48,10 @@ namespace Eagle
 		m_Threads.reserve(4);
 		m_CPUTimingsInUse.reserve(4);
 		m_Threads[std::this_thread::get_id()] = "Main Thread";
+
+		Log::Init();
+		EG_CORE_INFO("Creating Application!");
+		TextureCompressor::Init();
 
 		if (m_Game)
 		{
@@ -156,6 +156,7 @@ namespace Eagle
 				std::filesystem::current_path(Project::GetProjectPath());
 				AssetManager::Init();
 				ThumbnailCache::Init();
+				Project::OnProjectOpenProcessed();
 			}
 			else
 			{

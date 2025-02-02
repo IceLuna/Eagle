@@ -31,9 +31,6 @@ namespace Eagle
 			ofn.nFilterIndex = 1;
 			ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
-			if (GetCurrentDirectoryW(256, currentDir))
-				ofn.lpstrInitialDir = currentDir;
-
 			if (GetOpenFileNameW(&ofn) == TRUE)
 			{
 				return Path(ofn.lpstrFile);
@@ -55,9 +52,6 @@ namespace Eagle
 			ofn.nFilterIndex = 1;
 			ofn.lpstrDefExt = std::wcschr(filter, L'\0') + 1;
 			ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
-
-			if (GetCurrentDirectoryW(256, currentDir))
-				ofn.lpstrInitialDir = currentDir;
 
 			if (GetSaveFileNameW(&ofn) == TRUE)
 			{
