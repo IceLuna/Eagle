@@ -116,7 +116,10 @@ namespace Eagle
 		state.VertexShader = Shader::Create("simple_colored_geometry.vert", ShaderType::Vertex, defines);
 		state.FragmentShader = Shader::Create("simple_colored_geometry.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(colorAttachment);
-		state.DepthStencilAttachment = depthAttachment;
+		if (bEnableDebugLinesDepthTest)
+		{
+			state.DepthStencilAttachment = depthAttachment;
+		}
 		state.Topology = Topology::Lines;
 		state.LineWidth = m_LineWidth;
 

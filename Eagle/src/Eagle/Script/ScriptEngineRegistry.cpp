@@ -243,6 +243,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::Is2DObjectPickingEnabled_Native", Eagle::Script::Eagle_Renderer_Is2DObjectPickingEnabled);
 		mono_add_internal_call("Eagle.Renderer::SetSortOpaqueParticlesEnabled_Native", Eagle::Script::Eagle_Renderer_SetSortOpaqueParticlesEnabled);
 		mono_add_internal_call("Eagle.Renderer::IsSortOpaqueParticlesEnabled_Native", Eagle::Script::Eagle_Renderer_IsSortOpaqueParticlesEnabled);
+		mono_add_internal_call("Eagle.Renderer::SetDebugLinesDepthTestEnabled_Native", Eagle::Script::Eagle_Renderer_SetDebugLinesDepthTestEnabled);
+		mono_add_internal_call("Eagle.Renderer::IsDebugLinesDepthTestEnabled_Native", Eagle::Script::Eagle_Renderer_IsDebugLinesDepthTestEnabled);
 
 		// Log
 		mono_add_internal_call("Eagle.Log::Trace", Eagle::Script::Eagle_Log_Trace);

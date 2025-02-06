@@ -6054,6 +6054,20 @@ namespace Eagle
 		return sceneRenderer->GetOptions().bSortOpaqueParticles;
 	}
 
+	void Script::Eagle_Renderer_SetDebugLinesDepthTestEnabled(bool value)
+	{
+		auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+		options.bEnableDebugLinesDepthTest = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	bool Script::Eagle_Renderer_IsDebugLinesDepthTestEnabled()
+	{
+		const auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		return sceneRenderer->GetOptions().bEnableDebugLinesDepthTest;
+	}
+
 	//-------------- Project --------------
 	MonoString* Script::Eagle_Project_GetProjectPath()
 	{

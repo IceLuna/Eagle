@@ -40,6 +40,7 @@ namespace Eagle
 	private:
 		bool OnKeyPressed(KeyPressedEvent& e);
 		
+		void LoadAppAssembly();
 		void ReloadScriptsIfNecessary();
 		void HandleResize();
 		bool HandleEntitySelection(MouseButtonPressedEvent& e);

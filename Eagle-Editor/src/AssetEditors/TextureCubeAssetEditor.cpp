@@ -39,6 +39,7 @@ namespace Eagle
 		{
 			const glm::ivec2 textureSize = glm::ivec2(textureToView->GetSize());
 			const std::string textureSizeString = std::to_string(textureSize.x) + "x" + std::to_string(textureSize.y);
+			size_t gpuMemSize = textureCube->GetMemoryUsage();
 			auto assetFormat = m_Asset->GetFormat();
 			bool bChanged = false;
 
@@ -68,6 +69,13 @@ namespace Eagle
 			UI::Text("Type", "Texture Cube");
 			UI::Text("Resolution", textureSizeString);
 
+			if (gpuMemSize < 1024)
+				UI::Text("GPU memory usage (Bytes)", std::to_string(gpuMemSize), "Cube + Prefilter + Irradiance images");
+			else if (gpuMemSize < 1024 * 1024)
+				UI::Text("GPU memory usage (KB)", std::to_string(gpuMemSize / 1024.f), "Cube + Prefilter + Irradiance images");
+			else
+				UI::Text("GPU memory usage (MB)", std::to_string(gpuMemSize / 1024.f / 1024.f), "Cube + Prefilter + Irradiance images");
+
 			if (UI::ComboEnum("Format", assetFormat))
 			{
 				// IBL generation might take some time, which for some reason results in vulkan validation error (from ImGui)
@@ -79,15 +87,6 @@ namespace Eagle
 				});
 				bChanged = true;
 			}
-
-			size_t gpuMemSize = textureCube->GetMemoryUsage();
-
-			if (gpuMemSize < 1024)
-				UI::Text("GPU memory usage (Bytes)", std::to_string(gpuMemSize), "Cube + Prefilter + Irradiance images");
-			else if (gpuMemSize < 1024 * 1024)
-				UI::Text("GPU memory usage (KB)", std::to_string(gpuMemSize / 1024.f), "Cube + Prefilter + Irradiance images");
-			else
-				UI::Text("GPU memory usage (MB)", std::to_string(gpuMemSize / 1024.f / 1024.f), "Cube + Prefilter + Irradiance images");
 
 			{
 				UI::UpdateIDBuffer("Generate Layer size");

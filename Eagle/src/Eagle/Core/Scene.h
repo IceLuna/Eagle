@@ -189,7 +189,7 @@ namespace Eagle
 		void SetSkybox(const Ref<AssetTextureCube>& cubemap);
 		const Ref<AssetTextureCube>& GetSkybox() const { return m_Cubemap; }
 		void SetSkyboxIntensity(float intensity);
-		float GetSkyboxIntensity() const { return m_CubemapIntensity; }
+		float GetSkyboxIntensity() const { return m_SkyboxIntensity; }
 
 		void SetSkybox(const SkySettings& sky);
 		const SkySettings& GetSkySettings() const { return m_Sky; }
@@ -210,7 +210,7 @@ namespace Eagle
 		void BuildCrowd(const AINavigation::CrowdSettings& settings); // Builds crowd system for the current nav mesh
 		
 		//Camera
-		const CameraComponent* GetRuntimeCamera() const;
+		CameraComponent* GetRuntimeCamera();
 		Entity GetPrimaryCameraEntity(); //TODO: Remove
 		const EditorCamera& GetEditorCamera() const { return m_EditorCamera; }
 		EditorCamera& GetEditorCamera() { return m_EditorCamera; }
@@ -513,10 +513,10 @@ namespace Eagle
 		// Skybox
 		Ref<AssetTextureCube> m_Cubemap;
 		SkySettings m_Sky;
-		float m_CubemapIntensity = 1.f;
+		float m_SkyboxIntensity = 1.f;
 		bool m_bSkyboxEnabled = true;
 		bool m_bRenderSkybox = true;
-		bool m_bUseSkyAsBackground = false;
+		bool m_bUseSkyAsBackground = true;
 
 		std::unordered_map<GUID, Ref<Sound>> m_SpawnedSounds;
 

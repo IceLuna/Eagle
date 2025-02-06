@@ -17,10 +17,11 @@ namespace Eagle
 		void OnResize(const glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
 		void InitWithOptions(const SceneRendererSettings& settings) override
 		{
-			if (settings.InternalState.bJitter == bJitter)
+			if (settings.InternalState.bJitter == bJitter && settings.bEnableDebugLinesDepthTest == bEnableDebugLinesDepthTest)
 				return;
 
 			bJitter = settings.InternalState.bJitter;
+			bEnableDebugLinesDepthTest = settings.bEnableDebugLinesDepthTest;
 
 			InitPipeline();
 		}
@@ -37,6 +38,7 @@ namespace Eagle
 		Ref<Buffer> m_VertexBuffer;
 		std::vector<RendererDebugVertex> m_Vertices;
 		bool bJitter = false;
+		bool bEnableDebugLinesDepthTest = true;
 
 		static constexpr size_t s_DefaultTrianglesCount = 256; // How much triangles we can render without reallocating
 		static constexpr size_t s_DefaultTrianglesVerticesCount = s_DefaultTrianglesCount * 3;

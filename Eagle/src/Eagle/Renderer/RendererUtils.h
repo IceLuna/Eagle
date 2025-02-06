@@ -869,6 +869,7 @@ namespace Eagle
         bool bEnableObjectPicking = true;
         bool bEnable2DObjectPicking = false;
         bool bSortOpaqueParticles = false;
+        bool bEnableDebugLinesDepthTest = true;
         float GridScale = 4.f; // Editor Only
         uint32_t TransparencyLayers = 4u;
 
@@ -897,6 +898,7 @@ namespace Eagle
                 bEnableObjectPicking == other.bEnableObjectPicking &&
                 bEnable2DObjectPicking == other.bEnable2DObjectPicking &&
                 bSortOpaqueParticles == other.bSortOpaqueParticles &&
+                bEnableDebugLinesDepthTest == other.bEnableDebugLinesDepthTest &&
                 AutoExposure == other.AutoExposure &&
                 ScreenSpaceReflections == other.ScreenSpaceReflections &&
                 SSAOSettings == other.SSAOSettings &&

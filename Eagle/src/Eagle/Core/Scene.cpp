@@ -287,6 +287,11 @@ namespace Eagle
 		{
 			m_SceneRenderer = MakeRef<SceneRenderer>(glm::uvec2{ m_ViewportWidth, m_ViewportHeight });
 		}
+		SetUseSkyAsBackground(m_bUseSkyAsBackground);
+		SetRenderSkybox(m_bRenderSkybox);
+		SetSkyboxEnabled(m_bSkyboxEnabled);
+		SetSkyboxIntensity(m_SkyboxIntensity);
+		SetSkybox(m_Sky);
 		ConnectSignals();
 
 		m_RuntimePhysicsScene = MakeRef<PhysicsScene>(PhysicsSettings());
@@ -317,10 +322,22 @@ namespace Eagle
 	, m_ViewportHeight(other->m_ViewportHeight)
 	, m_DebugName(debugName)
 	, m_Gravity(other->m_Gravity)
+	, bDrawMiscellaneous(other->bDrawMiscellaneous)
 	, bDrawNavMesh(other->bDrawNavMesh)
+	, m_Cubemap(other->m_Cubemap)
+	, m_Sky(other->m_Sky)
+	, m_SkyboxIntensity(other->m_SkyboxIntensity)
+	, m_bSkyboxEnabled(other->m_bSkyboxEnabled)
+	, m_bRenderSkybox(other->m_bRenderSkybox)
+	, m_bUseSkyAsBackground(other->m_bUseSkyAsBackground)
 	{
 		// Reuse renderer so that we don't allocate additional GPU resources
 		m_SceneRenderer = other->m_SceneRenderer;
+		SetUseSkyAsBackground(m_bUseSkyAsBackground);
+		SetRenderSkybox(m_bRenderSkybox);
+		SetSkyboxEnabled(m_bSkyboxEnabled);
+		SetSkyboxIntensity(m_SkyboxIntensity);
+		SetSkybox(m_Sky);
 
 		std::unordered_map<entt::entity, entt::entity> createdEntities;
 		createdEntities.reserve(other->m_Registry.size());
@@ -426,13 +443,15 @@ namespace Eagle
 
 	void Scene::DestroyEntity(Entity entity)
 	{
+		if (!entity)
+			return;
+
 		if (bIsPlaying)
 		{
 			if (entity.HasComponent<NativeScriptComponent>())
 			{
 				auto& nsc = entity.GetComponent<NativeScriptComponent>();
-				if (nsc.Instance)
-					nsc.Instance->OnDestroy();
+				nsc.Destroy();
 			}
 
 			if (entity.HasComponent<ScriptComponent>())
@@ -504,7 +523,7 @@ namespace Eagle
 
 	void Scene::SetSkyboxIntensity(float intensity)
 	{
-		m_CubemapIntensity = glm::max(0.f, intensity);
+		m_SkyboxIntensity = glm::max(0.f, intensity);
 		if (m_SceneRenderer)
 			m_SceneRenderer->SetSkyboxIntensity(intensity);
 	}
@@ -816,15 +835,7 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& nsc = view.get<NativeScriptComponent>(entity);
-
-				if (nsc.Instance == nullptr)
-				{
-					nsc.Instance = nsc.InitScript();
-					nsc.Instance->m_Entity = Entity{ entity, this };
-					nsc.Instance->OnCreate();
-				}
-
-				nsc.Instance->OnUpdate(ts);
+				nsc.OnUpdate(Entity{ entity, this }, ts);
 			}
 		}
 
@@ -1461,8 +1472,7 @@ namespace Eagle
 			for (auto& e : view)
 			{
 				auto& nsc = m_Registry.get<NativeScriptComponent>(e);
-				if (nsc.Instance)
-					nsc.Instance->OnDestroy();
+				nsc.Destroy();
 			}
 		}
 		{
@@ -1523,15 +1533,7 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& nsc = view.get<NativeScriptComponent>(entity);
-
-				if (nsc.Instance == nullptr)
-				{
-					nsc.Instance = nsc.InitScript();
-					nsc.Instance->m_Entity = Entity{ entity, this };
-					nsc.Instance->OnCreate();
-				}
-
-				nsc.Instance->OnEvent(e);
+				nsc.OnEvent(Entity{ entity, this }, e);
 			}
 		}
 
@@ -1574,10 +1576,7 @@ namespace Eagle
 				for (auto entity : view)
 				{
 					auto& nsc = view.get<NativeScriptComponent>(entity);
-					if (nsc.Instance)
-					{
-						nsc.Instance->OnDestroy();
-					}
+					nsc.Destroy();
 				}
 			}
 
@@ -1672,7 +1671,7 @@ namespace Eagle
 			m_PhysicsScene->SetGravity(m_Gravity);
 	}
 
-	const CameraComponent* Scene::GetRuntimeCamera() const
+	CameraComponent* Scene::GetRuntimeCamera()
 	{
 		return m_RuntimeCamera;
 	}

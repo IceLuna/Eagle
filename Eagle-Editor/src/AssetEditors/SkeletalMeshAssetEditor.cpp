@@ -162,7 +162,7 @@ namespace Eagle
 	}
 
 	SkeletalMeshAssetEditor::SkeletalMeshAssetEditor(const Ref<AssetSkeletalMesh>& asset)
-		: AssetEditor(true), m_Asset(asset)
+		: AssetEditor(true, true, true), m_Asset(asset)
 	{
 		const auto& mesh = m_Asset->GetMesh();
 		m_MinRagdollBoneSize = mesh->GetMinRagdollBoneSize();
@@ -183,6 +183,12 @@ namespace Eagle
 		const glm::vec3 center = aabb.Center();
 		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 2.f); // Move back
 		camera.LookAt(center);
+
+		auto& sceneRenderer = m_Scene->GetSceneRenderer();
+		auto settings = sceneRenderer->GetOptions();
+		settings.bEnableDebugLinesDepthTest = false;
+		sceneRenderer->SetOptions(settings);
+		OnSimulateRagdollChanged();
 	}
 
 	void SkeletalMeshAssetEditor::OnImGuiRender(bool* pOpen)
@@ -222,6 +228,16 @@ namespace Eagle
 			}
 		}
 
+		ImGui::Separator();
+		if (EditorResources::DrawAssetSelection("Preview Animation", m_PreviewAnimation))
+		{
+			m_Entity.GetComponent<SkeletalMeshComponent>().SetAnimationAsset(m_PreviewAnimation);
+			if (!m_PreviewAnimation)
+			{
+				m_Entity.SetWorldTransform({});
+			}
+		}
+
 		UI::EndPropertyGrid();
 
 		size_t assetHash = m_Asset->GetGUID().GetHash();
@@ -244,7 +260,8 @@ namespace Eagle
 
 		ImGui::End();
 
-		DrawViewport(false, windowName);
+		const bool bUpdateAnimation = m_PreviewAnimation.operator bool();
+		DrawViewport(bUpdateAnimation, windowName);
 		bChanged |= bGuizmoChanged;
 		bGuizmoChanged = false;
 
@@ -264,6 +281,10 @@ namespace Eagle
 		if (m_OpenedTab != OpenedTabType::Skeletal)
 		{
 			m_Entity.GetComponent<SkeletalMeshComponent>().SetRagdollEnabled(false);
+		}
+		if (m_Plane)
+		{
+			DeletePlane();
 		}
 		m_OpenedTab = OpenedTabType::Skeletal;
 
@@ -358,6 +379,10 @@ namespace Eagle
 			comp.SetRagdollEnabled(true);
 			comp.SetShowRagdollCollision(true);
 		}
+		if (!m_Plane)
+		{
+			CreatePlane();
+		}
 		m_OpenedTab = OpenedTabType::Ragdoll;
 
 		constexpr ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
@@ -397,7 +422,7 @@ namespace Eagle
 						m_SelectedRagdollBone->Settings.AngularDamping = glm::max(0.f, m_SelectedRagdollBone->Settings.AngularDamping);
 						bRagdollChanged = true;
 					}
-					bRagdollChanged |= EditorResources::DrawAssetSelection("Material", m_SelectedRagdollBone->Settings.Material);
+					bRagdollChanged |= EditorResources::DrawAssetSelection("Physics Material", m_SelectedRagdollBone->Settings.Material);
 					bRagdollChanged |= UI::ComboEnum("Shape", m_SelectedRagdollBone->Settings.Shape);
 
 					UI::EndPropertyGrid();
@@ -421,9 +446,6 @@ namespace Eagle
 						bRagdollChanged = true;
 					}
 
-					if (bRagdollChanged)
-						OnRagdollModified();
-
 					bChanged |= bRagdollChanged;
 
 					ImGui::TreePop();
@@ -443,13 +465,18 @@ namespace Eagle
 		UI::EndPropertyGrid();
 
 		ImGui::Separator();
+		if (UI::Property("Simulate", bSimulate))
+		{
+			OnSimulateRagdollChanged();
+		}
+
+		ImGui::Separator();
 		if (ImGui::Button("Regenerate"))
 		{
 			auto& mesh = m_Asset->GetMesh();
 			mesh->SetRagdollMaxTwist(m_Twist);
 			mesh->SetRagdollMaxSwing(m_Swing);
 			mesh->RegenerateRagdollData(m_MinRagdollBoneSize);
-			OnRagdollModified();
 			bChanged = true;
 		}
 
@@ -483,7 +510,6 @@ namespace Eagle
 				const glm::vec3 diff = boneTransform.Location - worldLocation;
 				boneTransform.Location = origOffsetLocation + diff; // Back to local
 				m_SelectedRagdollBone->Settings.UserOffset = boneTransform;
-				OnRagdollModified();
 				bGuizmoChanged = true;
 			}
 		}
@@ -496,10 +522,39 @@ namespace Eagle
 		return transform;
 	}
 	
-	void SkeletalMeshAssetEditor::OnRagdollModified()
+	void SkeletalMeshAssetEditor::CreatePlane()
 	{
-		m_Asset->OnModified();
-		auto& comp = m_Entity.GetComponent<SkeletalMeshComponent>();
-		comp.SetShowRagdollCollision(true);
+		const auto& cube = AssetManager::GetPreviewCube();
+		m_Plane = m_Scene->CreateEntity("SkeletalMeshAssetEditor_Plane1");
+		m_Plane.AddComponent<StaticMeshComponent>().SetMeshAsset(cube);
+		m_Plane.AddComponent<BoxColliderComponent>();
+
+		const auto& mesh = m_Asset->GetMesh();
+		const auto& aabb = mesh->GetAABB();
+		const glm::vec3 center = aabb.Center();
+		const glm::vec3 planeLocation = glm::vec3(center.x, aabb.Min.y, center.z); // Place the plane under the mesh
+
+		constexpr static glm::vec3 planeScale = glm::vec3(100.f, 0.05f, 100.f);
+		const glm::vec3 extent = aabb.Extents() * 0.5f;
+		const glm::vec3 meshScale = glm::vec3(extent.x, 1.f, extent.z); // To make the floor bigger than the mesh
+		Transform tr;
+		tr.Location = planeLocation;
+		tr.Scale3D = planeScale * meshScale;
+		m_Plane.SetWorldTransform(tr);
+	}
+	
+	void SkeletalMeshAssetEditor::DeletePlane()
+	{
+		m_Scene->DestroyEntity(m_Plane);
+		m_Plane = {};
+	}
+	
+	void SkeletalMeshAssetEditor::OnSimulateRagdollChanged()
+	{
+		m_Asset->OnModified(); // Reset ragdoll
+		if (bSimulate)
+			m_Scene->SetGravity(glm::vec3(0.f, -9.81f, 0.f));
+		else
+			m_Scene->SetGravity(glm::vec3(0)); // Hack to disable simulation
 	}
 }

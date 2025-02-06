@@ -6,6 +6,8 @@
 #include "Eagle/Input/Input.h"
 #include "Eagle/Renderer/SceneRenderer.h"
 #include "Eagle/Core/Scene.h"
+#include "Eagle/Components/Components.h"
+#include "Eagle/Camera/CameraController.h"
 
 #include <imgui/imgui_internal.h>
 #include <ImGuizmo/ImGuizmo.h>
@@ -14,6 +16,7 @@
 namespace Eagle
 {
 	AssetEditor::AssetEditor(bool bNeedRenderer, bool bNeedSkybox, bool bSimulate)
+		: bSimulating(bSimulate)
 	{
 		if (bNeedRenderer)
 		{
@@ -92,16 +95,7 @@ namespace Eagle
 
 			bViewportHovered = ImGui::IsWindowHovered();
 			bViewportFocused = ImGui::IsWindowFocused();
-
-			if (bViewportVisible)
-			{
-				if (ImGui::IsMouseReleased(1) || !bViewportFocused)
-					m_Scene->bCanUpdateEditorCamera = false;
-				else if (m_Scene->bCanUpdateEditorCamera || (bViewportHovered && ImGui::IsMouseClicked(1, true)))
-					m_Scene->bCanUpdateEditorCamera = true;
-			}
-			else
-				m_Scene->bCanUpdateEditorCamera = false;
+			HandleCameraFocus();
 		}
 
 		OnViewportEnd();
@@ -219,5 +213,54 @@ namespace Eagle
 			}
 		}
 		return false;
+	}
+	
+	void AssetEditor::HandleCameraFocus()
+	{
+		if (bSimulating)
+		{
+			CameraComponent* camera = m_Scene->GetRuntimeCamera();
+			const bool bHasCameraMovement = camera->Parent.HasComponent<NativeScriptComponent>();
+			EG_CORE_INFO("bHasCameraMovement: {}", bHasCameraMovement);
+			if (bViewportVisible)
+			{
+				if (ImGui::IsMouseReleased(1) || !bViewportFocused)
+				{
+					// Disable camera movement
+					if (bHasCameraMovement)
+					{
+						camera->Parent.RemoveComponent<NativeScriptComponent>();
+					}
+				}
+				else if (bHasCameraMovement || (bViewportHovered && ImGui::IsMouseClicked(1, true)))
+				{
+					// Enable camera movement
+					if (!bHasCameraMovement)
+					{
+						camera->Parent.AddComponent<NativeScriptComponent>().Bind<CameraController>();
+					}
+				}
+			}
+			else
+			{
+				// Disable camera movement
+				if (bHasCameraMovement)
+				{
+					camera->Parent.RemoveComponent<NativeScriptComponent>();
+				}
+			}
+		}
+		else
+		{
+			if (bViewportVisible)
+			{
+				if (ImGui::IsMouseReleased(1) || !bViewportFocused)
+					m_Scene->bCanUpdateEditorCamera = false;
+				else if (m_Scene->bCanUpdateEditorCamera || (bViewportHovered && ImGui::IsMouseClicked(1, true)))
+					m_Scene->bCanUpdateEditorCamera = true;
+			}
+			else
+				m_Scene->bCanUpdateEditorCamera = false;
+		}
 	}
 }

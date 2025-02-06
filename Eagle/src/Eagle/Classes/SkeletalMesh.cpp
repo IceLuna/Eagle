@@ -9,7 +9,7 @@ namespace Eagle
 	namespace Utils
 	{
         // Merges bone-colliders based on `minBoneSize`
-        static SkeletalRagdollBones MergeBones(float minBoneSize, const BoneNode& node, const SkeletalPose& currentPose, const glm::mat4& baseTransform = glm::mat4(1.f))
+        static SkeletalRagdollBones MergeBones(float minBoneSize, const BonesMap& boneMap, const BoneNode& node, const SkeletalPose& currentPose, const glm::mat4& baseTransform = glm::mat4(1.f))
         {
             SkeletalRagdollBones data;
             if (node.bVirtualBone)
@@ -28,13 +28,14 @@ namespace Eagle
             data.AABB.Grow(parentLocation);
             data.Name = node.Name;
             data.Children.reserve(node.Children.size());
+            const bool bCanMergeToCurrent = boneMap.find(node.Name) != boneMap.end();
             for (const auto& child : node.Children)
             {
-                SkeletalRagdollBones childData = MergeBones(minBoneSize, child, currentPose, data.LocalTransform);
+                SkeletalRagdollBones childData = MergeBones(minBoneSize, boneMap, child, currentPose, data.LocalTransform);
                 const glm::vec3 childPos = Math::DecomposeTransformMatrix(childData.LocalTransform).Location;
                 data.AABB.Grow(childPos);
 
-                if (childData.AABB.Length() < minBoneSize)
+                if (bCanMergeToCurrent && childData.AABB.Length() < minBoneSize)
                 {
                     // Merge
                     data.Children.insert(data.Children.end(), childData.Children.begin(), childData.Children.end());
@@ -95,7 +96,7 @@ namespace Eagle
         const glm::mat4 rootTransform = glm::mat4(1.f);
         SkeletalPose basePose;
         AnimationSystem::FinalizePose(basePose, m_Skeletal.RootBone, rootTransform);
-        m_RagdollRoot = Utils::MergeBones(m_MinRagdollBoneSize, m_Skeletal.RootBone, basePose);
+        m_RagdollRoot = Utils::MergeBones(m_MinRagdollBoneSize, m_Skeletal.BoneInfoMap, m_Skeletal.RootBone, basePose);
     }
 
     Ref<SkeletalMesh> SkeletalMesh::Create(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,

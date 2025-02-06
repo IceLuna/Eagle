@@ -55,7 +55,7 @@ namespace Eagle::UI
 
 		const std::string assetName = modifyingAsset ? modifyingAsset->GetPath().stem().u8string() : "None";
 		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
-		ImGui::PushID((const void*)label.data());
+		ImGui::PushID(label.data());
 
 		if constexpr (std::is_same<Type, AssetTexture2D>::value)
 		{

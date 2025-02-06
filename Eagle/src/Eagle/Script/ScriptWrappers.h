@@ -499,6 +499,8 @@ namespace Eagle::Script
 	bool Eagle_Renderer_Is2DObjectPickingEnabled();
 	void Eagle_Renderer_SetSortOpaqueParticlesEnabled(bool value);
 	bool Eagle_Renderer_IsSortOpaqueParticlesEnabled();
+	void Eagle_Renderer_SetDebugLinesDepthTestEnabled(bool value);
+	bool Eagle_Renderer_IsDebugLinesDepthTestEnabled();
 
 	void Eagle_Renderer_SetSkybox(GUID cubemapID);
 	GUID Eagle_Renderer_GetSkybox();

@@ -1265,57 +1265,65 @@ namespace Eagle
 	public:
 		NativeScriptComponent() = default;
 
+		~NativeScriptComponent()
+		{
+			Destroy();
+		}
+
 		NativeScriptComponent(NativeScriptComponent&& other) noexcept 
-		:Instance(other.Instance), 
-		InitScript(other.InitScript), 
-		DestroyScript(other.DestroyScript) 
+		: Instance(std::move(other.Instance)), 
+		InitScript(other.InitScript)
 		{
 			other.Instance = nullptr; 
 			other.InitScript = nullptr; 
-			other.DestroyScript = nullptr; 
 		}
 
-		NativeScriptComponent& operator=(const NativeScriptComponent& other) 
-		{ 
+		NativeScriptComponent& operator=(const NativeScriptComponent& other)
+		{
 			if (this == &other)
 				return *this;
 
-			Instance = nullptr;
 			InitScript = other.InitScript;
-			DestroyScript = other.DestroyScript;
-
 			return *this;
 		}
 
 		NativeScriptComponent& operator=(NativeScriptComponent&& other) noexcept 
 		{ 
-			Instance = other.Instance;
+			Instance = std::move(other.Instance);
 			InitScript = other.InitScript;
-			DestroyScript = other.DestroyScript;
 
 			other.Instance = nullptr;
 			other.InitScript = nullptr;
-			other.DestroyScript = nullptr;
 
 			return *this;
 		}
 
+		void OnUpdate(Entity entity, Timestep ts);
+		void OnEvent(Entity entity, Event& e);
+		void Destroy();
+
 		template<typename T>
 		void Bind()
 		{
-			EG_CORE_ASSERT(InitScript == nullptr, "Initialized Script twice!");
-			InitScript = []() { return static_cast<ScriptableEntity*>(new T()); };
-			DestroyScript = [](NativeScriptComponent* nsc) { delete nsc->Instance; nsc->Instance = nullptr; };
+			Destroy();
+			InitScript = [](NativeScriptComponent* comp) { comp->Instance = MakeScope<T>(); };
 		}
 
 	protected:
-		ScriptableEntity* Instance = nullptr;
 
-		ScriptableEntity* (*InitScript)() = nullptr;
-		void (*DestroyScript)(NativeScriptComponent*) = nullptr;
+		void InitScriptsIfNeeded(Entity entity)
+		{
+			if (!Instance && InitScript)
+			{
+				InitScript(this);
+				Instance->m_Entity = entity;
+				Instance->OnCreate();
+			}
+		}
 
-		friend class Scene;
-		friend void DestroyScript(NativeScriptComponent*);
+	protected:
+		Scope<ScriptableEntity> Instance = nullptr;
+		void(*InitScript)(NativeScriptComponent*) = nullptr;
 	};
 
 	class AudioComponent : public SceneComponent

@@ -149,16 +149,7 @@ namespace Eagle
 
 		m_ImGuiLayer = Application::Get().GetImGuiLayer();
 
-		const auto& project = Project::GetProjectInfo();
-
-		if (!ScriptEngine::LoadAppAssembly(Project::GetBinariesPath() / (Project::GetProjectInfo().Name + ".dll")))
-		{
-			const std::string error = std::string("Open VS solution (") +
-				(project.BasePath / (project.Name + ".sln")).u8string() + ") and compile the project. If the solution is not there, try to generate it \"File > Generate VS Solution\"";
-			m_ImGuiLayer->AddMessage(error);
-
-			EG_CORE_WARN(error);
-		}
+		LoadAppAssembly();
 
 		m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
 
@@ -439,6 +430,18 @@ namespace Eagle
 		return false;
 	}
 
+	void EditorLayer::LoadAppAssembly()
+	{
+		const auto& project = Project::GetProjectInfo();
+		if (!ScriptEngine::LoadAppAssembly(Project::GetBinariesPath() / (project.Name + ".dll")))
+		{
+			const std::string error = std::string("Open VS solution (") +
+				(project.BasePath / (project.Name + ".sln")).u8string() + " or \"File > Open VS Solution\") and compile the project.\nIf the solution is not there, try to generate it \"File > Generate VS Solution\"";
+			m_ImGuiLayer->AddMessage(error);
+			EG_CORE_WARN(error);
+		}
+	}
+
 	void EditorLayer::ReloadScriptsIfNecessary()
 	{
 		static bool bRequiresScriptsRebuild = false;
@@ -447,16 +450,10 @@ namespace Eagle
 			if (m_EditorState == EditorState::Edit)
 			{
 				bRequiresScriptsRebuild = false;
-				if (!ScriptEngine::LoadAppAssembly(Project::GetBinariesPath() / (Project::GetProjectInfo().Name + ".dll")))
-				{
-					const auto& project = Project::GetProjectInfo();
-					const std::string error = std::string("Open VS solution (") +
-						(project.BasePath / (project.Name + ".sln")).u8string() + ") and compile the project. If the solution is not there, try to generate it \"File > Generate VS Solution\"";
-					m_ImGuiLayer->AddMessage(error);
-					EG_CORE_WARN(error);
-				}
+				LoadAppAssembly();
 			}
-			else bRequiresScriptsRebuild = true; // Set it to true since it might be false and `Utils::WereScriptsRebuild()` is triggered only once
+			else
+				bRequiresScriptsRebuild = true; // Set it to true since it might be false and `Utils::WereScriptsRebuild()` is triggered only once
 		}
 	}
 
@@ -1815,7 +1812,7 @@ namespace Eagle
 		{
 			UI::BeginPropertyGrid("EditorPreferences");
 
-			UI::Property("Eco rendering", bRenderOnlyWhenFocused, "If checked, the scene won't be rendered if the window is not in focus");
+			UI::Property("Eco Rendering", bRenderOnlyWhenFocused, "If checked, the scene won't be rendered if the window is not in focus");
 			UI::Property("Update Animations", bUpdateAnimationsInEditor, "If checked, animations will be updated in the editor mode");
 			UI::Property("Draw Editor Miscellaneous", m_bDrawEditorMisc);
 			UI::Property("Draw Nav Mesh", bDrawNavMesh);

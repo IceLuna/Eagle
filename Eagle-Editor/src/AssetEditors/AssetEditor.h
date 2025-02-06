@@ -39,6 +39,8 @@ namespace Eagle
 		void AddSkybox();
 		bool OnKeyPressed(KeyPressedEvent& e);
 
+		void HandleCameraFocus();
+
 	protected:
 		Ref<Scene> m_Scene;
 		Ref<SceneRenderer> m_Renderer;
@@ -49,5 +51,6 @@ namespace Eagle
 		bool bViewportVisible = false;
 		bool bViewportFocused = false;
 		bool bViewportHovered = false;
+		bool bSimulating = false;
 	};
 }

@@ -561,6 +561,12 @@ namespace Eagle
             get { return IsSortOpaqueParticlesEnabled_Native(); }
         }
 
+        public static bool bEnableDebugLinesDepthTest
+        {
+            set { SetDebugLinesDepthTestEnabled_Native(value); }
+            get { return IsDebugLinesDepthTestEnabled_Native(); }
+        }
+
         public static uint TransparencyLayers
         {
             set { SetTransparencyLayers_Native(value); }
@@ -711,6 +717,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern bool IsSortOpaqueParticlesEnabled_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetDebugLinesDepthTestEnabled_Native(bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern bool IsDebugLinesDepthTestEnabled_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetTransparencyLayers_Native(uint value);

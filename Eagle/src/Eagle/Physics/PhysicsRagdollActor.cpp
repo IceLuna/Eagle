@@ -269,9 +269,6 @@ namespace Eagle
     
     void PhysicsRagdollActor::SetShowCollision(bool bShowCollision)
     {
-        if (m_bShowCollision == bShowCollision)
-            return;
-
         m_bShowCollision = bShowCollision;
         SetShowCollision_Internal(m_Root, bShowCollision);
     }

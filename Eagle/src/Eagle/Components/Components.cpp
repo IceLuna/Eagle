@@ -679,9 +679,12 @@ namespace Eagle
 					auto& component = entity.GetComponent<SkeletalMeshComponent>();
 					if (component.IsRagdollEnabled())
 					{
+						const bool bCollisionEnabled = component.IsRagdollCollisionShown();
 						// Recreate ragdoll
 						component.SetRagdollEnabled(false);
 						component.SetRagdollEnabled(true);
+						if (bCollisionEnabled)
+							component.SetShowRagdollCollision(true);
 					}
 				}
 			);
@@ -1125,5 +1128,28 @@ namespace Eagle
 
 		navMesh->GetCrowd().RemoveAgent(m_AgentIndex);
 		m_AgentIndex = -1;
+	}
+	
+	void NativeScriptComponent::OnUpdate(Entity entity, Timestep ts)
+	{
+		InitScriptsIfNeeded(entity);
+		if (Instance)
+			Instance->OnUpdate(ts);
+	}
+	
+	void NativeScriptComponent::OnEvent(Entity entity, Event& e)
+	{
+		InitScriptsIfNeeded(entity);
+		if (Instance)
+			Instance->OnEvent(e);
+	}
+
+	void NativeScriptComponent::Destroy()
+	{
+		if (Instance)
+		{
+			Instance->OnDestroy();
+			Instance.reset();
+		}
 	}
 }

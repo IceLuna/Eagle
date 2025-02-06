@@ -587,7 +587,8 @@ namespace Eagle
 		Geometry_Shading_Normals->Resize(size);
 		Emissive->Resize(size);
 		ObjectID->Resize(size);
-		ObjectIDCopy->Resize(size);
+		if (ObjectIDCopy)
+			ObjectIDCopy->Resize(size);
 		Depth->Resize(size);
 		Flags->Resize(size);
 		if (Motion)

@@ -8,6 +8,7 @@ namespace Eagle
 {
 	class SkeletalMesh;
 	class AssetSkeletalMesh;
+	class AssetAnimation;
 	struct SkeletalMeshInfo;
 	struct BoneNode;
 
@@ -28,7 +29,10 @@ namespace Eagle
 		void UpdateGuizmo();
 		void OnViewportEnd() override { UpdateGuizmo(); }
 		Transform GetSelectedRagdollBoneWorldTransform();
-		void OnRagdollModified();
+
+		void CreatePlane();
+		void DeletePlane();
+		void OnSimulateRagdollChanged();
 
 		enum class OpenedTabType
 		{
@@ -37,6 +41,7 @@ namespace Eagle
 
 	private:
 		Ref<AssetSkeletalMesh> m_Asset;
+		Ref<AssetAnimation> m_PreviewAnimation;
 
 		std::string m_SelectedBoneName;
 		glm::mat4 m_SelectedBoneParentWorldTr = glm::mat4(1.f);
@@ -47,9 +52,11 @@ namespace Eagle
 
 		OpenedTabType m_OpenedTab = OpenedTabType::Ragdoll;
 		Entity m_Entity;
+		Entity m_Plane;
 		float m_MinRagdollBoneSize = 0.1f;
 		float m_Twist = 22.5f;
 		float m_Swing = 45.f;
 		bool bGuizmoChanged = false;
+		bool bSimulate = false;
 	};
 }
