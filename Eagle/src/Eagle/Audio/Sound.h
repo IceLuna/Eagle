@@ -12,6 +12,7 @@ namespace FMOD
 namespace Eagle
 {
 	//@ VolumeMultiplier. Gets multiplied by `Audio` volume to determine final volume.
+	//@ Pitch. Any value between 0 and 10. Gets multiplied by `Audio` pitch to determine final pitch.
 	//@ Pan. -1 = Completely on the left. +1 = Completely on the right
 	//@ LoopCount. -1 = Loop Endlessly; 0 = Play once; 1 = Play twice, etc...
 	//@ IsStreaming. When you stream a sound, you can only have one instance of it playing at any time.
@@ -22,6 +23,7 @@ namespace Eagle
 	{
 		float VolumeMultiplier = 1.f;
 		float Pan = 0.f;
+		float Pitch = 1.f;
 		int LoopCount = -1;
 		bool IsLooping = false;
 		bool IsStreaming = false;
@@ -48,6 +50,9 @@ namespace Eagle
 		void SetVolume(float volume) { m_Volume = volume; }
 		float GetVolume() const { return m_Volume; }
 
+		void SetPitch(float pitch) { m_Pitch = std::clamp(pitch, 0.f, 10.f); }
+		float GetPitch() const { return m_Pitch; }
+
 		void Play();
 
 		static Ref<Audio> Create(const DataBuffer& buffer, float volume = 1.f);
@@ -59,6 +64,7 @@ namespace Eagle
 		FMOD::Sound* m_Sound = nullptr;
 		Ref<SoundGroup> m_SoundGroup;
 		float m_Volume = 1.f;
+		float m_Pitch = 1.f;
 	};
 
 	class Sound
@@ -80,6 +86,9 @@ namespace Eagle
 
 		void SetVolumeMultiplier(float volume);
 		float GetVolumeMultiplier() const { return m_Settings.VolumeMultiplier; }
+
+		void SetPitch(float pitch);
+		float GetPitch() const { return m_Settings.Pitch; }
 
 		void SetMuted(bool bMuted);
 		bool IsMuted() const { return m_Settings.IsMuted; }

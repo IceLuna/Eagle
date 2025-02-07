@@ -25,6 +25,13 @@ namespace Eagle
 			bChanged = true;
 		}
 
+		float pitch = audio->GetPitch();
+		if (UI::PropertyDrag("Pitch", pitch, 0.05f))
+		{
+			audio->SetPitch(pitch);
+			bChanged = true;
+		}
+
 		auto soundGroupAsset = m_Asset->GetSoundGroupAsset();
 		if (EditorResources::DrawAssetSelection("Sound Group", soundGroupAsset))
 		{

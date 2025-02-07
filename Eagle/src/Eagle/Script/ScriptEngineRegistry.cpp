@@ -407,6 +407,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.AudioComponent::SetMinMaxDistance_Native", Eagle::Script::Eagle_AudioComponent_SetMinMaxDistance);
 		mono_add_internal_call("Eagle.AudioComponent::SetRollOffModel_Native", Eagle::Script::Eagle_AudioComponent_SetRollOffModel);
 		mono_add_internal_call("Eagle.AudioComponent::SetVolume_Native", Eagle::Script::Eagle_AudioComponent_SetVolume);
+		mono_add_internal_call("Eagle.AudioComponent::SetPitch_Native", Eagle::Script::Eagle_AudioComponent_SetPitch);
 		mono_add_internal_call("Eagle.AudioComponent::SetLoopCount_Native", Eagle::Script::Eagle_AudioComponent_SetLoopCount);
 		mono_add_internal_call("Eagle.AudioComponent::SetLooping_Native", Eagle::Script::Eagle_AudioComponent_SetLooping);
 		mono_add_internal_call("Eagle.AudioComponent::SetMuted_Native", Eagle::Script::Eagle_AudioComponent_SetMuted);
@@ -421,6 +422,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.AudioComponent::GetMaxDistance_Native", Eagle::Script::Eagle_AudioComponent_GetMaxDistance);
 		mono_add_internal_call("Eagle.AudioComponent::GetRollOffModel_Native", Eagle::Script::Eagle_AudioComponent_GetRollOffModel);
 		mono_add_internal_call("Eagle.AudioComponent::GetVolume_Native", Eagle::Script::Eagle_AudioComponent_GetVolume);
+		mono_add_internal_call("Eagle.AudioComponent::GetPitch_Native", Eagle::Script::Eagle_AudioComponent_GetPitch);
 		mono_add_internal_call("Eagle.AudioComponent::GetLoopCount_Native", Eagle::Script::Eagle_AudioComponent_GetLoopCount);
 		mono_add_internal_call("Eagle.AudioComponent::IsLooping_Native", Eagle::Script::Eagle_AudioComponent_IsLooping);
 		mono_add_internal_call("Eagle.AudioComponent::IsMuted_Native", Eagle::Script::Eagle_AudioComponent_IsMuted);
@@ -704,8 +706,10 @@ namespace Eagle
 		mono_add_internal_call("Eagle.AssetMaterial::SetMaterial_Native", Eagle::Script::Eagle_AssetMaterial_SetMaterial);
 
 		// AssetAudio
-		mono_add_internal_call("Eagle.AssetAudio::GetMaterial_Native", Eagle::Script::Eagle_AssetAudio_GetVolume);
-		mono_add_internal_call("Eagle.AssetAudio::SetMaterial_Native", Eagle::Script::Eagle_AssetAudio_SetVolume);
+		mono_add_internal_call("Eagle.AssetAudio::GetVolume_Native", Eagle::Script::Eagle_AssetAudio_GetVolume);
+		mono_add_internal_call("Eagle.AssetAudio::SetVolume_Native", Eagle::Script::Eagle_AssetAudio_SetVolume);
+		mono_add_internal_call("Eagle.AssetAudio::GetPitch_Native", Eagle::Script::Eagle_AssetAudio_GetVolume);
+		mono_add_internal_call("Eagle.AssetAudio::SetPitch_Native", Eagle::Script::Eagle_AssetAudio_SetVolume);
 		mono_add_internal_call("Eagle.AssetAudio::SetSoundGroup_Native", Eagle::Script::Eagle_AssetAudio_SetSoundGroup);
 		mono_add_internal_call("Eagle.AssetAudio::GetSoundGroup_Native", Eagle::Script::Eagle_AssetAudio_GetSoundGroup);
 

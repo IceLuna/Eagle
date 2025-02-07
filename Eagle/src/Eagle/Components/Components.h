@@ -1337,6 +1337,7 @@ namespace Eagle
 
 			SceneComponent::operator=(other);
 			Volume = other.Volume;
+			Pitch = other.Pitch;
 			LoopCount = other.LoopCount;
 			bLooping = other.bLooping;
 			bMuted = other.bMuted;
@@ -1396,6 +1397,14 @@ namespace Eagle
 		}
 		float GetVolume() const { return Volume; }
 
+		void SetPitch(float pitch)
+		{
+			Pitch = std::clamp(pitch, 0.f, 10.f);
+			if (m_Sound)
+				m_Sound->SetPitch(Pitch);
+		}
+		float GetPitch() const { return Pitch; }
+
 		void SetLoopCount(int loopCount)
 		{
 			LoopCount = loopCount;
@@ -1428,6 +1437,7 @@ namespace Eagle
 
 				SoundSettings settings;
 				settings.VolumeMultiplier = Volume;
+				settings.Pitch = Pitch;
 				settings.LoopCount = LoopCount;
 				settings.IsLooping = bLooping;
 				settings.IsMuted = bMuted;
@@ -1489,6 +1499,7 @@ namespace Eagle
 		Ref<AssetAudio> m_AudioAsset;
 		Ref<Sound3D> m_Sound;
 		float Volume = 1.f;
+		float Pitch = 1.f;
 		int LoopCount = -1;
 		bool bLooping = false;
 		bool bMuted = false;

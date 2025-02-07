@@ -2413,6 +2413,16 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's volume. Entity is null");
 	}
 
+	void Script::Eagle_AudioComponent_SetPitch(GUID entityID, float pitch)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<AudioComponent>().SetPitch(pitch);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's pitch. Entity is null");
+	}
+
 	void Script::Eagle_AudioComponent_SetLoopCount(GUID entityID, int loopCount)
 	{
 		auto& scene = Scene::GetCurrentScene();
@@ -2591,6 +2601,19 @@ namespace Eagle
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get audio component's volume. Entity is null");
 			return 0.f;
+		}
+	}
+
+	float Script::Eagle_AudioComponent_GetPitch(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<AudioComponent>().GetPitch();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get audio component's pitch. Entity is null");
+			return 1.f;
 		}
 	}
 
@@ -6914,6 +6937,39 @@ namespace Eagle
 			
 		EG_CORE_ERROR("[ScriptEngine] Couldn't get asset volume. It's not an audio asset");
 		return 0.f;
+	}
+
+	void Script::Eagle_AssetAudio_SetPitch(GUID assetID, float pitch)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set asset pitch. Couldn't find an asset");
+			return;
+		}
+
+		if (Ref<AssetAudio> audioAsset = Cast<AssetAudio>(asset))
+			audioAsset->GetAudio()->SetPitch(pitch);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set asset pitch. It's not an audio asset");
+	}
+
+	float Script::Eagle_AssetAudio_GetPitch(GUID assetID)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get asset pitch. Couldn't find an asset");
+			return 1.f;
+		}
+
+		if (Ref<AssetAudio> audioAsset = Cast<AssetAudio>(asset))
+			return audioAsset->GetAudio()->GetPitch();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get asset pitch. It's not an audio asset");
+		return 1.f;
 	}
 
 	void Script::Eagle_AssetAudio_SetSoundGroup(GUID audioID, GUID soundGroupID)

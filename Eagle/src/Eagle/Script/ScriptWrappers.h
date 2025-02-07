@@ -200,6 +200,7 @@ namespace Eagle::Script
 	void Eagle_AudioComponent_SetMinMaxDistance(GUID entityID, float minDistance, float maxDistance);
 	void Eagle_AudioComponent_SetRollOffModel(GUID entityID, RollOffModel rollOff);
 	void Eagle_AudioComponent_SetVolume(GUID entityID, float volume);
+	void Eagle_AudioComponent_SetPitch(GUID entityID, float pitch);
 	void Eagle_AudioComponent_SetLoopCount(GUID entityID, int loopCount);
 	void Eagle_AudioComponent_SetLooping(GUID entityID, bool bLooping);
 	void Eagle_AudioComponent_SetMuted(GUID entityID, bool bMuted);
@@ -213,6 +214,7 @@ namespace Eagle::Script
 	float Eagle_AudioComponent_GetMaxDistance(GUID entityID);
 	RollOffModel Eagle_AudioComponent_GetRollOffModel(GUID entityID);
 	float Eagle_AudioComponent_GetVolume(GUID entityID);
+	float Eagle_AudioComponent_GetPitch(GUID entityID);
 	int Eagle_AudioComponent_GetLoopCount(GUID entityID);
 	bool Eagle_AudioComponent_IsLooping(GUID entityID);
 	bool Eagle_AudioComponent_IsMuted(GUID entityID);
@@ -590,6 +592,8 @@ namespace Eagle::Script
 	// AssetAudio
 	void Eagle_AssetAudio_SetVolume(GUID id, float volume);
 	float Eagle_AssetAudio_GetVolume(GUID id);
+	void Eagle_AssetAudio_SetPitch(GUID id, float pitch);
+	float Eagle_AssetAudio_GetPitch(GUID id);
 	void Eagle_AssetAudio_SetSoundGroup(GUID id, GUID soundGroupID);
 	GUID Eagle_AssetAudio_GetSoundGroup(GUID id);
 

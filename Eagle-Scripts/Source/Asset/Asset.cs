@@ -364,6 +364,16 @@ namespace Eagle
             return GetVolume_Native(m_GUID);
         }
 
+        public void SetPitch(float pitch)
+        {
+            SetPitch_Native(m_GUID, pitch);
+        }
+
+        public float GetPitch()
+        {
+            return GetPitch_Native(m_GUID);
+        }
+
         public void SetSoundGroup(AssetSoundGroup soundGroup)
         {
             SetSoundGroup_Native(m_GUID, soundGroup != null ? soundGroup.GetGUID() : GUID.Null());
@@ -382,6 +392,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetVolume_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetPitch_Native(GUID id, float pitch);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetPitch_Native(GUID id);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetSoundGroup_Native(GUID id, GUID soundGroupID);

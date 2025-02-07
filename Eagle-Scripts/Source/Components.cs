@@ -1493,6 +1493,13 @@ namespace Eagle
         
         public float GetVolumeMultiplier() { return GetVolume_Native(Parent.ID); }
         
+        public void SetPitch(float pitch)
+        {
+            SetPitch_Native(Parent.ID, pitch);
+        }
+        
+        public float GetPitch() { return GetPitch_Native(Parent.ID); }
+        
         public void SetLoopCount(int loopCount)
         {
             SetLoopCount_Native(Parent.ID, loopCount);
@@ -1580,6 +1587,9 @@ namespace Eagle
         internal static extern void SetVolume_Native(in GUID entityID, float volume);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetPitch_Native(in GUID entityID, float pitch);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetLoopCount_Native(in GUID entityID, int loopCount);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -1617,6 +1627,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetVolume_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetPitch_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern int GetLoopCount_Native(in GUID entityID);

@@ -8,6 +8,13 @@
 
 namespace Eagle
 {
+	Audio::Audio(const DataBuffer& buffer, float volume)
+		: m_SoundGroup(SoundGroup::GetMasterGroup())
+		, m_Volume(volume)
+	{
+		AudioEngine::CreateSoundFromBuffer(buffer, FMOD_DEFAULT, &m_Sound);
+	}
+
 	Audio::~Audio()
 	{
 		if (m_Sound)
@@ -22,6 +29,7 @@ namespace Eagle
 		FMOD::Channel* channel;
 		AudioEngine::PlaySound(m_Sound, &channel);
 		channel->setVolume(m_Volume);
+		channel->setPitch(m_Pitch);
 
 		if (const auto& group = GetSoundGroup())
 			channel->setChannelGroup(group->GetFMODGroup());
@@ -36,13 +44,6 @@ namespace Eagle
 		};
 
 		return MakeRef<LocalAudio>(buffer, volume);
-	}
-
-	Audio::Audio(const DataBuffer& buffer, float volume)
-		: m_SoundGroup(SoundGroup::GetMasterGroup())
-		, m_Volume(volume)
-	{
-		AudioEngine::CreateSoundFromBuffer(buffer, FMOD_DEFAULT, &m_Sound);
 	}
 
 	Sound::~Sound()
@@ -142,6 +143,13 @@ namespace Eagle
 		m_Settings.VolumeMultiplier = volume;
 		if (m_Channel)
 			m_Channel->setVolume(volume * m_Audio->GetVolume());
+	}
+
+	void Sound::SetPitch(float pitch)
+	{
+		m_Settings.Pitch = std::clamp(pitch, 0.f, 10.f);
+		if (m_Channel)
+			m_Channel->setPitch(std::clamp(pitch * m_Audio->GetPitch(), 0.f, 10.f));
 	}
 
 	void Sound::SetMuted(bool bMuted)

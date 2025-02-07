@@ -1715,6 +1715,7 @@ namespace Eagle
 
 					Ref<AssetAudio> asset = audio.GetAudioAsset();
 					float volume = audio.GetVolume();
+					float pitch = audio.GetPitch();
 					int loopCount = audio.GetLoopCount();
 					bool bLooping = audio.IsLooping();
 					bool bMuted = audio.IsMuted();
@@ -1738,6 +1739,12 @@ namespace Eagle
 					if (UI::PropertySlider("Volume", volume, 0.f, 1.f))
 					{
 						audio.SetVolume(volume);
+						bEntityChanged = true;
+					}
+
+					if (UI::PropertySlider("Pitch", pitch, 0.f, 10.f))
+					{
+						audio.SetPitch(pitch);
 						bEntityChanged = true;
 					}
 

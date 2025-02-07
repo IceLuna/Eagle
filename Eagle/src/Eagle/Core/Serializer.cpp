@@ -609,6 +609,7 @@ namespace Eagle
 		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
 		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
 		out << YAML::Key << "Volume" << YAML::Value << asset->GetAudio()->GetVolume();
+		out << YAML::Key << "Pitch" << YAML::Value << asset->GetAudio()->GetPitch();
 		if (const auto& soundGroup = asset->GetSoundGroupAsset())
 			out << YAML::Key << "SoundGroup" << YAML::Value << soundGroup->GetGUID();
 
@@ -1313,6 +1314,7 @@ namespace Eagle
 				out << YAML::Key << "Sound" << YAML::Value << asset->GetGUID();
 
 			out << YAML::Key << "Volume" << YAML::Value << audio.GetVolume();
+			out << YAML::Key << "Pitch" << YAML::Value << audio.GetPitch();
 			out << YAML::Key << "LoopCount" << YAML::Value << audio.GetLoopCount();
 			out << YAML::Key << "IsLooping" << YAML::Value << audio.IsLooping();
 			out << YAML::Key << "IsMuted" << YAML::Value << audio.IsMuted();
@@ -3061,6 +3063,9 @@ namespace Eagle
 		GUID guid = baseNode["GUID"].as<GUID>();
 
 		const float volume = baseNode["Volume"].as<float>();
+		float pitch = 1.f;
+		if (auto node = baseNode["Pitch"])
+			pitch = node.as<float>();
 
 		Ref<AssetSoundGroup> soundGroup = GetAsset<AssetSoundGroup>(baseNode["SoundGroup"]);
 
@@ -3104,6 +3109,7 @@ namespace Eagle
 		DataBuffer buffer = DataBuffer(binary.Data(), binary.Size());
 		Ref<Audio> audio = Audio::Create(buffer);
 		audio->SetVolume(volume);
+		audio->SetPitch(pitch);
 		return MakeRef<LocalAssetAudio>(pathToAsset, pathToRaw, guid, buffer, audio, soundGroup);
 	}
 
