@@ -3,11 +3,11 @@
 # -- Project information
 
 project = 'Eagle Engine'
-copyright = '2023, Eagle Engine'
+copyright = '2025, Eagle Engine'
 author = 'Shikhali Shikhaliev'
 
-release = '0.6'
-version = '0.6.0'
+release = '0.7'
+version = '0.7.0'
 
 # -- General configuration
 
