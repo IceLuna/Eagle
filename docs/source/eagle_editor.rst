@@ -7,7 +7,7 @@ If you've successfully :ref:`installed <installation_guide>` `Eagle Engine`, cre
 
 When you open a project, you should see something like this.
 
-.. figure:: imgs/empty_project.png
+.. figure:: imgs/editor/empty_project.png
    :align: center
 
    Eagle Editor
@@ -311,15 +311,15 @@ Use the links below to learn more about assets & their settings
 .. toctree::
    :maxdepth: 1
 
-   assets/asset_texture_2d
-   assets/asset_texture_cube
-   assets/asset_static_mesh
-   assets/asset_skeletal_mesh
-   assets/asset_sound_group
-   assets/asset_audio
-   assets/asset_font
-   assets/asset_material
-   assets/asset_physics_material
+   assets/texture2d
+   assets/texturecube
+   assets/staticmesh
+   assets/skeletalmesh
+   assets/sound_group
+   assets/audio
+   assets/font
+   assets/material
+   assets/physics_material
 
 Shortcuts
 ---------

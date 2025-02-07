@@ -6,7 +6,7 @@ Physics Material asset
 This asset type represents a physics material which you can modify by using `Physics Material Editor`. The editor also allows you to visualize how settings affect the physics.
 Physics Material asset can be applied to colliders and ragdoll bones.
 
-.. figure:: imgs/editor/assets/physicsmaterial/physicsmaterial.png
+.. figure:: ../imgs/editor/assets/physicsmaterial/physicsmaterial.png
    :align: center 
 
    Physics Material Editor

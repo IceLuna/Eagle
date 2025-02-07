@@ -50,7 +50,7 @@ In this case, IBL will used only for lighting, and Sky will used for the backgro
 
     Sky with clouds + Directional Light
 
-.. figure:: ../imgs/scene_settings.png
+.. figure:: ../imgs/editor/scene_settings.png
     :align: center
 
     IBL and Sky Settings

@@ -5,7 +5,7 @@ Skeletal Mesh asset
 
 This asset type represents a skeletal 3D mesh that can be animated. You can modify it by using `Skeletal Mesh Editor`.
 
-.. figure:: imgs/editor/assets/skeletalmesh/skeletalmesh.png
+.. figure:: ../imgs/editor/assets/skeletalmesh/skeletalmesh.png
    :align: center 
 
    Skeletal Mesh Editor
@@ -25,7 +25,7 @@ This asset type represents a skeletal 3D mesh that can be animated. You can modi
   So, for performance reasons, it's recommended to set it as high as possible. You can also control `Max Twist` and `Max Swing` angles (in degrees).
   `Skeletal Mesh Editor` also allows you to simulate the ragdoll you've set up.
 
-.. figure:: imgs/editor/assets/skeletalmesh/ragdoll.png
+.. figure:: ../imgs/editor/assets/skeletalmesh/ragdoll.png
    :align: center 
 
    Ragdoll

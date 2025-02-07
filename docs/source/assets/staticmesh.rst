@@ -5,7 +5,7 @@ Static Mesh asset
 
 This asset type represents a static 3D mesh which you can modify by using `Static Mesh Editor`. It's called `static` because it can't be animated.
 
-.. figure:: imgs/editor/assets/staticmesh/staticmesh.png
+.. figure:: ../imgs/editor/assets/staticmesh/staticmesh.png
    :align: center 
 
    Static Mesh Editor

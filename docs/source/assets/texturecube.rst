@@ -5,7 +5,7 @@ Texture Cube asset
 
 This asset type represents a cube texture (HDR) which you can modify by using `Texture Cube Editor`.
 
-.. figure:: imgs/editor/assets/texturecube/texturecube.png
+.. figure:: ../imgs/editor/assets/texturecube/texturecube.png
    :align: center 
 
    Texture Cube Editor

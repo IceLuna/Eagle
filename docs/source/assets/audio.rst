@@ -5,7 +5,7 @@ Audio asset
 
 This asset type represents an audio which you can modify by using `Audio Editor`.
 
-.. figure:: imgs/editor/assets/audio/audio.png
+.. figure:: ../imgs/editor/assets/audio/audio.png
    :align: center 
 
    Audio Editor
