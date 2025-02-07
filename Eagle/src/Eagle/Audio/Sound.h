@@ -12,8 +12,8 @@ namespace FMOD
 namespace Eagle
 {
 	//@ VolumeMultiplier. Gets multiplied by `Audio` volume to determine final volume.
-	//@ Pitch. Any value between 0 and 10. Gets multiplied by `Audio` pitch to determine final pitch.
 	//@ Pan. -1 = Completely on the left. +1 = Completely on the right
+	//@ Pitch. Any value between 0 and 10. Gets multiplied by `Audio` pitch to determine final pitch.
 	//@ LoopCount. -1 = Loop Endlessly; 0 = Play once; 1 = Play twice, etc...
 	//@ IsStreaming. When you stream a sound, you can only have one instance of it playing at any time.
 	//	           This limitation exists because there is only one decode buffer per stream.

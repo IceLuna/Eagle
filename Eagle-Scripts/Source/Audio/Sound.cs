@@ -6,6 +6,7 @@ namespace Eagle
 {
     //@ Volume. 0.0 = Silence; 1.0 = Max Volume
     //@ Pan. -1 = Completely on the left. +1 = Completely on the right
+    //@ Pitch. Any value between 0 and 10. Gets multiplied by `Audio` pitch to determine final pitch.
     //@ LoopCount. -1 = Loop Endlessly; 0 = Play once; 1 = Play twice, etc...
     //@ IsStreaming. When you stream a sound, you can only have one instance of it playing at any time.
     //	           This limitation exists because there is only one decode buffer per stream.
@@ -15,10 +16,11 @@ namespace Eagle
     [StructLayout(LayoutKind.Sequential)]
     public struct SoundSettings
     {
-        public SoundSettings(float volume, float pan = 0f, int loopCount = -1, bool bLooping = false, bool bMuted = false, bool bStreaming = false)
+        public SoundSettings(float volume, float pan = 0f, float pitch = 1f, int loopCount = -1, bool bLooping = false, bool bMuted = false, bool bStreaming = false)
         {
             Volume = volume;
             Pan = pan;
+            Pitch = pitch;
             LoopCount = loopCount;
             this.bLooping = bLooping;
             this.bStreaming = bStreaming;
@@ -27,6 +29,7 @@ namespace Eagle
 
         public float Volume;
         public float Pan;
+        public float Pitch;
         public int LoopCount;
         public bool bLooping;
         public bool bStreaming;

@@ -221,7 +221,6 @@ namespace Eagle
 		{
 			CameraComponent* camera = m_Scene->GetRuntimeCamera();
 			const bool bHasCameraMovement = camera->Parent.HasComponent<NativeScriptComponent>();
-			EG_CORE_INFO("bHasCameraMovement: {}", bHasCameraMovement);
 			if (bViewportVisible)
 			{
 				if (ImGui::IsMouseReleased(1) || !bViewportFocused)

@@ -2143,6 +2143,7 @@ namespace Eagle
 		if (auto sound = scene->GetSpawnedSound(id))
 		{
 			sound->SetVolumeMultiplier(settings->VolumeMultiplier);
+			sound->SetPitch(settings->Pitch);
 			sound->SetPan(settings->Pan);
 			sound->SetLoopCount(settings->LoopCount);
 			sound->SetLooping(settings->IsLooping);
