@@ -24,7 +24,7 @@ GTAO has two settings: `Samples`, and `Radius`. They have the same meaning as fo
 
 .. note::
 
-	Currently, GTAO is not production ready. It doesn't always work as intented.
+	Currently, GTAO is not production ready
 
 .. figure:: imgs/ao.png
     :align: center 

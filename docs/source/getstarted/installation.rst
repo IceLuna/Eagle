@@ -11,12 +11,12 @@ Building Manually
 -----------------
 Steps to build the engine:
 
-- Install `VulkanSDK 1.3.261.1 <https://sdk.lunarg.com/sdk/download/1.3.261.1/windows/VulkanSDK-1.3.261.1-Installer.exe>`_. (current version of the engine was tested on it)
+- Install `VulkanSDK 1.3.283.0 <https://sdk.lunarg.com/sdk/download/1.3.283.0/windows/VulkanSDK-1.3.283.0-Installer.exe>`_. (current version of the engine was tested on it)
 - Install ``Visual Studio`` with `C++` and `.NET SDK` support. `.NET` support is required for building scripts core.
 - Install ``Git``
 - Clone the `repository <https://github.com/iceluna/eagle>`_ using the following command: ``git clone --recursive https://github.com/IceLuna/Eagle``
 - In the root directory, open ``scripts`` folder and run ``Win-GenProjects-vs****.bat`` script to generate VS solution.
-  Also, run ``Win-SetupFileAssociation.bat`` to associate ``.egproj`` files with the engine so that you can open ``.egproj`` files directly.
+  Also, run ``Win-SetupFileAssociation.bat`` to associate ``.egproj`` files with the engine so that you can open ``.egproj`` files by double-clicking.
 - Go to the root directory, run ``Eagle.sln``, build the solution and run `Eagle-Editor`.
 
 .. figure:: imgs/vs_install.png
@@ -53,6 +53,6 @@ If you don't want to build the engine manually, you can download pre-built binar
 Go to `Releases <https://github.com/IceLuna/Eagle/releases>`_ where you will see all engine releases. Each post has files attached to it and
 there you'll see a `.zip` archieve with the engine. Download it and unpack it. Go to ``Eagle-Editor`` folder and run the engine (``Eagle-Editor.exe``).
 
-For writing scripts, open the ``ProjectFolder/ProjectName.sln`` file. For that you'll need Visual Studio with `.NET SDK` support.
+For writing scripts you'll need Visual Studio with `.NET SDK` support.
 
 Go :ref:`here <scripts_guide>` to learn more about writing scripts.

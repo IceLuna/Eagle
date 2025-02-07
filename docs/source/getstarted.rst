@@ -9,3 +9,6 @@ Here you'll find the information on how to build/download the engine and use it.
 
    getstarted/requirements
    getstarted/installation
+   projects
+   eagle_editor
+   demo

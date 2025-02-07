@@ -28,6 +28,7 @@ Contents
    :maxdepth: 2
 
    getstarted
+   projects
    eagle_editor
    rendering
    components
