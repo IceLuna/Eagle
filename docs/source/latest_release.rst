@@ -357,22 +357,22 @@ Now you can see what your GPU and CPU are doing. New debug windows were added th
 Since the engine uses two threads (main and render), `CPU Timings` tab displays timings per thread. Each of these windows allow you to pause the updates of the timings.
 Also, the editor can show your GPU memory usage and what resources take up the memory.
 
-.. figure:: imgs/menubar_debug.png
+.. figure:: imgs/editor/menubar_debug.png
    :align: center
 
    Debug menu bar
 
-.. figure:: imgs/cpu_timings.png
+.. figure:: imgs/editor/cpu_timings.png
    :align: center
 
    CPU timings
 
-.. figure:: imgs/gpu_timings.png
+.. figure:: imgs/editor/gpu_timings.png
    :align: center
 
    GPU timings
 
-.. figure:: imgs/gpu_mem_usage.png
+.. figure:: imgs/editor/gpu_mem_usage.png
    :align: center
 
    GPU memory usage
@@ -388,22 +388,10 @@ Console also supports searches to filter the messages you need.
 	You can use up/down arrow buttons to go through the history of commands.
 	Console also supports command auto-completion by pressing Tab.
 
-.. figure:: imgs/console.png
+.. figure:: imgs/editor/console.png
    :align: center
 
    Console
-
-Texture Viewer
---------------
-Now it allows you to configure textures settings such as: `anisotropic filtering`; `filtering` (sampling); `wrapping`; `mipmaps`.
-Also, `Texture Viewer` now supports cubemaps (textures with `.hdr` extension). But it won't let you configure them.
-
-Go :ref:`here <texture viewer>` to learn more about `Texture Viewer`.
-
-.. figure:: imgs/texture_viewer.png
-   :align: center 
-
-   Texture Viewer
 
 Other editor changes
 --------------------
