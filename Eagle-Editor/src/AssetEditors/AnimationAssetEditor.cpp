@@ -36,6 +36,7 @@ namespace Eagle
 	{
 		auto& animation = m_Asset->GetAnimation();
 		bool bChanged = false;
+		const std::string durationSec = std::to_string(animation->Duration / animation->TicksPerSecond);
 
 		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
 		const std::string windowName = m_Asset->GetPath().u8string();
@@ -44,7 +45,7 @@ namespace Eagle
 
 		UI::Text("Name", m_Asset->GetPath().stem().u8string());
 		UI::Text("Type", "Animation");
-		UI::Text("Duration", std::to_string(animation->Duration));
+		UI::Text("Duration", std::to_string(animation->Duration) + " ticks (" + durationSec + " seconds)");
 		UI::Text("Ticks per Second", std::to_string(animation->TicksPerSecond));
 
 		bool bExtractRootMotion = animation->HasRootMotion();

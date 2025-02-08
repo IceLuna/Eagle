@@ -27,7 +27,7 @@ namespace Eagle
 
         public virtual void OnEvent(Event e) { }
 
-        public virtual void OnAnimationEvent(string eventName) { }
+        public virtual void OnAnimationEvent(string eventName, float time) { }
 
         public Entity Parent
         {

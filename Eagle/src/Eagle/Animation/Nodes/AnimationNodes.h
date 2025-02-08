@@ -533,6 +533,38 @@ namespace Eagle
 		static constexpr size_t s_Inputs = 1;
 	};
 
+	class AnimationGraphNodeASin : public AnimationGraphNodeFloat
+	{
+	public:
+		AnimationGraphNodeASin(const Ref<AnimationGraph>& graph) : AnimationGraphNodeFloat(graph, s_Inputs) {}
+
+		const SkeletalPose& Update(Timestep ts) override;
+
+		Ref<GraphNode> Clone() const override
+		{
+			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeASin>(m_Graph);
+		}
+
+	private:
+		static constexpr size_t s_Inputs = 1;
+	};
+
+	class AnimationGraphNodeACos : public AnimationGraphNodeFloat
+	{
+	public:
+		AnimationGraphNodeACos(const Ref<AnimationGraph>& graph) : AnimationGraphNodeFloat(graph, s_Inputs) {}
+
+		const SkeletalPose& Update(Timestep ts) override;
+
+		Ref<GraphNode> Clone() const override
+		{
+			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeACos>(m_Graph);
+		}
+
+	private:
+		static constexpr size_t s_Inputs = 1;
+	};
+
 	class AnimationGraphNodeToRad : public AnimationGraphNodeFloat
 	{
 	public:

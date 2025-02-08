@@ -157,7 +157,7 @@ namespace Eagle
             }
         }
 
-        ed::Begin("Node editor");
+        ed::Begin(m_GraphData.Name.c_str());
 
         ProcessPendingDeletion();
         HandleDragDrop();

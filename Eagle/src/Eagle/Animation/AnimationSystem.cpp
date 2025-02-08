@@ -370,7 +370,7 @@ namespace Eagle
         return currentTime <= animation->Duration;
     }
 
-    void AnimationSystem::GetEventsToTrigger(const SkeletalMeshAnimation* animation, float prevTime, float curTime, float prevSpeed, float curSpeed, std::unordered_set<std::string>* outEvents)
+    void AnimationSystem::GetEventsToTrigger(const SkeletalMeshAnimation* animation, float prevTime, float curTime, float prevSpeed, float curSpeed, std::vector<AnimationEvent>* outEvents)
     {
         if (prevSpeed < 0 && curSpeed > 0 || curSpeed < 0 && prevSpeed > 0) // If speed changed signs
             std::swap(curTime, prevTime);
@@ -388,7 +388,7 @@ namespace Eagle
         for (const auto& event : animation->Events)
         {
             if (comparisonFunc(event.Time, prevTime, curTime))
-                outEvents->emplace(event.Name);
+                outEvents->push_back(event);
         }
     }
     
@@ -490,8 +490,8 @@ namespace Eagle
                 Application::Get().CallNextFrame([mesh]()
                 {
                     const auto& events = mesh->LastPose.GetEventsToTrigger();
-                    for (const auto& eventName : events)
-                        mesh->TriggerAnimationEvent(eventName);
+                    for (const auto& event : events)
+                        mesh->TriggerAnimationEvent(event.Name, event.Time);
                 });
             }
         }

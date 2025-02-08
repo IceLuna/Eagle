@@ -275,6 +275,10 @@ Use the links below to learn more about assets & their settings
    assets/font
    assets/material
    assets/physics_material
+   assets/entity
+   assets/scene
+   assets/animation
+   assets/animation_graph
 
 Shortcuts
 ---------

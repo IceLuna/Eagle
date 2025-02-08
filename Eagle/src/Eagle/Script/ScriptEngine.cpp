@@ -331,16 +331,16 @@ namespace Eagle
 		}
 	}
 
-	void ScriptEngine::OnAnimationEventEntity(Entity& entity, const std::string& eventName)
+	void ScriptEngine::OnAnimationEventEntity(Entity& entity, const std::string& eventName, float time)
 	{
-		typedef void (*OnAnimationEventFunc)(MonoObject*, MonoString*, MonoObject**);
+		typedef void (*OnAnimationEventFunc)(MonoObject*, MonoString*, float, MonoObject**);
 
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnAnimationEventMethod)
 		{
 			OnAnimationEventFunc function = (OnAnimationEventFunc)entityInstance.ScriptClass->OnAnimationEventMethod.Thunk;
 			MonoObject* exception = nullptr;
-			function(entityInstance.GetMonoInstance(), mono_string_new(mono_domain_get(), eventName.c_str()), &exception);
+			function(entityInstance.GetMonoInstance(), mono_string_new(mono_domain_get(), eventName.c_str()), time, &exception);
 			HandleException(exception);
 		}
 	}

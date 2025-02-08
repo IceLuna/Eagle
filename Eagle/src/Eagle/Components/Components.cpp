@@ -794,13 +794,13 @@ namespace Eagle
 		return GetBoneWorldTransform(boneName).Scale3D;
 	}
 
-	void SkeletalMeshComponent::TriggerAnimationEvent(const std::string& name)
+	void SkeletalMeshComponent::TriggerAnimationEvent(const std::string& name, float time)
 	{
 		if (Parent.HasComponent<ScriptComponent>() == false)
 			return;
 
 		if (ScriptEngine::ModuleExists(Parent.GetComponent<ScriptComponent>().ModuleName))
-			ScriptEngine::OnAnimationEventEntity(Parent, name);
+			ScriptEngine::OnAnimationEventEntity(Parent, name, time);
 	}
 
 	void SkeletalMeshComponent::SetRagdollEnabled(bool bEnabled)

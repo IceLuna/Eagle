@@ -233,7 +233,7 @@ namespace Eagle
 				AnimationSystem::BlendPoses(pose0, pose1, skeletal->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
 
 				m_Pose.EventsToTrigger = pose0.GetEventsToTrigger();
-				m_Pose.EventsToTrigger.insert(pose1.GetEventsToTrigger().begin(), pose1.GetEventsToTrigger().end());
+				m_Pose.EventsToTrigger.insert(m_Pose.EventsToTrigger.end(), pose1.GetEventsToTrigger().begin(), pose1.GetEventsToTrigger().end());
 			}
 		}
 
@@ -288,7 +288,7 @@ namespace Eagle
 				AnimationSystem::ApplyAdditive(pose0, pose1, skeletal->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
 
 				m_Pose.EventsToTrigger = pose0.GetEventsToTrigger();
-				m_Pose.EventsToTrigger.insert(pose1.GetEventsToTrigger().begin(), pose1.GetEventsToTrigger().end());
+				m_Pose.EventsToTrigger.insert(m_Pose.EventsToTrigger.end(), pose1.GetEventsToTrigger().begin(), pose1.GetEventsToTrigger().end());
 			}
 		}
 
@@ -316,7 +316,7 @@ namespace Eagle
 				AnimationSystem::CalculateAdditivePose(pose0, pose1, skeletal->GetSkeletalMeshInfo().RootBone, &m_Pose);
 
 				m_Pose.EventsToTrigger = pose0.GetEventsToTrigger();
-				m_Pose.EventsToTrigger.insert(pose1.GetEventsToTrigger().begin(), pose1.GetEventsToTrigger().end());
+				m_Pose.EventsToTrigger.insert(m_Pose.EventsToTrigger.end(), pose1.GetEventsToTrigger().begin(), pose1.GetEventsToTrigger().end());
 			}
 		}
 
@@ -648,6 +648,38 @@ namespace Eagle
 		Utils::GetValue(m_Inputs[0], m_Variables[0], ts, &value);
 
 		Result = glm::cos(value);
+
+		m_CalculatedOnFrame = currentFrame;
+
+		return m_Pose;
+	}
+
+	const SkeletalPose& AnimationGraphNodeASin::Update(Timestep ts)
+	{
+		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
+		if (currentFrame <= m_CalculatedOnFrame)
+			return m_Pose;
+
+		float value = 0.f;
+		Utils::GetValue(m_Inputs[0], m_Variables[0], ts, &value);
+
+		Result = glm::asin(value);
+
+		m_CalculatedOnFrame = currentFrame;
+
+		return m_Pose;
+	}
+
+	const SkeletalPose& AnimationGraphNodeACos::Update(Timestep ts)
+	{
+		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
+		if (currentFrame <= m_CalculatedOnFrame)
+			return m_Pose;
+
+		float value = 0.f;
+		Utils::GetValue(m_Inputs[0], m_Variables[0], ts, &value);
+
+		Result = glm::acos(value);
 
 		m_CalculatedOnFrame = currentFrame;
 

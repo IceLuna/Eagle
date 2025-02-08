@@ -571,6 +571,7 @@ namespace Eagle
 
         public void SetRootMotionEnabled(bool bEnabled) { SetRootMotionEnabled_Native(m_GUID, bEnabled); }
 
+        // Duration in ticks
         public float GetDuration() { return GetDuration_Native(m_GUID); }
 
         public float GetTicksPerSecond() { return GetTicksPerSecond_Native(m_GUID); }

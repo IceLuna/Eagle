@@ -11,6 +11,7 @@ namespace Eagle
 	struct SkeletalPose;
 	struct BoneNode;
 	struct SkeletalMeshInfo;
+	struct AnimationEvent;
 	
 	class AnimationSystem
 	{
@@ -39,7 +40,7 @@ namespace Eagle
 		// Returns true if `currentTime` is valid value for the animation
 		static bool IsValidTime(const SkeletalMeshAnimation* animation, float currentTime);
 
-		static void GetEventsToTrigger(const SkeletalMeshAnimation* animation, float prevTime, float curTime, float prevSpeed, float curSpeed, std::unordered_set<std::string>* outEvents);
+		static void GetEventsToTrigger(const SkeletalMeshAnimation* animation, float prevTime, float curTime, float prevSpeed, float curSpeed, std::vector<AnimationEvent>* outEvents);
 
 	private:
 		static ThreadPool s_ThreadPool;
