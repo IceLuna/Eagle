@@ -8,7 +8,7 @@
 namespace Eagle
 {
 	AnimationGraphAssetEditor::AnimationGraphAssetEditor(const Ref<AssetAnimationGraph>& asset)
-		: m_Asset(asset), m_Graph(MakeScope<AnimationGraphEditor>(m_Asset))
+		: m_Asset(asset), m_Graph(MakeScope<AnimationGraphEditor>(m_Asset, m_Asset->GetPath().u8string()))
 	{
 	}
 

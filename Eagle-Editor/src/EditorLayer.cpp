@@ -380,20 +380,7 @@ namespace Eagle
 			{
 				if (leftShift)
 				{
-					Window& window = Application::Get().GetWindow();
-					bool bFullscreen = window.IsFullscreen();
-					if (!bFullscreen)
-					{
-						m_WindowPosBeforeFS = window.GetWindowPos();
-						m_WindowSizeBeforeFS = window.GetWindowSize();
-					}
-					window.SetFullscreen(!window.IsFullscreen());
-					bFullscreen = window.IsFullscreen();
-					if (!bFullscreen)
-					{
-						window.SetWindowPos(int(m_WindowPosBeforeFS.x), int(m_WindowPosBeforeFS.y));
-						window.SetWindowSize(int(m_WindowSizeBeforeFS.x), int(m_WindowSizeBeforeFS.y));
-					}
+					ToggleWindowFullscreenState();
 				}
 				else
 					m_bFullScreen = !m_bFullScreen;
@@ -497,6 +484,24 @@ namespace Eagle
 			}
 		}
 		return false;
+	}
+
+	void EditorLayer::ToggleWindowFullscreenState()
+	{
+		Window& window = Application::Get().GetWindow();
+		bool bFullscreen = window.IsFullscreen();
+		if (!bFullscreen)
+		{
+			m_WindowPosBeforeFS = window.GetWindowPos();
+			m_WindowSizeBeforeFS = window.GetWindowSize();
+		}
+		window.SetFullscreen(!window.IsFullscreen());
+		bFullscreen = window.IsFullscreen();
+		if (!bFullscreen)
+		{
+			window.SetWindowPos(int(m_WindowPosBeforeFS.x), int(m_WindowPosBeforeFS.y));
+			window.SetWindowSize(int(m_WindowSizeBeforeFS.x), int(m_WindowSizeBeforeFS.y));
+		}
 	}
 
 	void EditorLayer::HandleEntityDragDrop()
@@ -746,9 +751,14 @@ namespace Eagle
 	{
 		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
 		SceneComponent* selectedComponent = m_SceneHierarchyPanel.GetSelectedComponent();
-		if (selectedComponent && m_SceneHierarchyPanel.GetSelectedComponentType() == SelectedComponent::Decal)
+		if (selectedComponent)
 		{
-			m_CurrentScene->VisualizeDecalAABB((DecalComponent*)selectedComponent);
+			const auto selectedType = m_SceneHierarchyPanel.GetSelectedComponentType();
+			if (selectedType == SelectedComponent::Decal)
+			{
+				const AABB aabb(glm::vec3(-0.5f), glm::vec3(0.5f));
+				m_CurrentScene->DrawAABB(aabb, selectedComponent->GetWorldTransform());
+			}
 		}
 
 		if (selectedEntity && (m_GuizmoType != -1))
@@ -894,8 +904,12 @@ namespace Eagle
 			if (ImGui::BeginMenu("Windows"))
 			{
 				bool bConsoleOpened = m_ConsolePanel.IsOpened();
+				bool bFullscreen = Application::Get().GetWindow().IsFullscreen();
+
 				if (ImGui::Checkbox("Console", &bConsoleOpened))
 					m_ConsolePanel.SetOpened(bConsoleOpened);
+				if (ImGui::Checkbox("Fullscreen (Shift + F11)", &bFullscreen))
+					ToggleWindowFullscreenState();
 
 				ImGui::EndMenu();
 			}

@@ -44,6 +44,7 @@ namespace Eagle
 		void ReloadScriptsIfNecessary();
 		void HandleResize();
 		bool HandleEntitySelection(MouseButtonPressedEvent& e);
+		void ToggleWindowFullscreenState();
 
 		void HandleEntityDragDrop();
 		void SpawnEntityAtDepth(const Ref<AssetEntity>& entityAsset, glm::vec2 uv, float depth);

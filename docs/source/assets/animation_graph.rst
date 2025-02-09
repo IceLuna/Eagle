@@ -11,13 +11,9 @@ It allows you to create complex animation logic by usign nodes.
 
    Animation Graph Editor
 
-|
-
 It allows you to create variables of four types: `Bool`, `Float`, `String`, and `Animation`. All variables can be changed during runtime and accessed in C#.
 You can use this asset in `SkeletalMesh` component. Note that each component has its own copy of the graph. So, changing variables in one component won't affect the others.
 To break a node link/connection, left-click it while holding `Alt`.
-
-Here's the list of supported nodes:
 
 Select Pose by Bool
 -------------------
@@ -93,7 +89,7 @@ Blend Poses
 -----------
 Linearly blends poses based on the weight. `Weight = 0` is `Pose1`, `Weight = 1` is `Pose2`.
 
-.. figure:: ../imgs/editor/assets/animationgraph/animationclip.png
+.. figure:: ../imgs/editor/assets/animationgraph/blendposes.png
    :align: center 
    
 |

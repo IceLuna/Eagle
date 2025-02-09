@@ -245,6 +245,9 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::IsSortOpaqueParticlesEnabled_Native", Eagle::Script::Eagle_Renderer_IsSortOpaqueParticlesEnabled);
 		mono_add_internal_call("Eagle.Renderer::SetDebugLinesDepthTestEnabled_Native", Eagle::Script::Eagle_Renderer_SetDebugLinesDepthTestEnabled);
 		mono_add_internal_call("Eagle.Renderer::IsDebugLinesDepthTestEnabled_Native", Eagle::Script::Eagle_Renderer_IsDebugLinesDepthTestEnabled);
+		mono_add_internal_call("Eagle.Renderer::DrawLine_Native", Eagle::Script::Eagle_Renderer_DrawLine);
+		mono_add_internal_call("Eagle.Renderer::DrawTriangle_Native", Eagle::Script::Eagle_Renderer_DrawTriangle);
+		mono_add_internal_call("Eagle.Renderer::DrawAABB_Native", Eagle::Script::Eagle_Renderer_DrawAABB);
 
 		// Log
 		mono_add_internal_call("Eagle.Log::Trace", Eagle::Script::Eagle_Log_Trace);
@@ -647,8 +650,6 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Scene::OpenScene_Native", Eagle::Script::Eagle_Scene_OpenScene);
 		mono_add_internal_call("Eagle.Scene::QuitGame_Native", Eagle::Script::Eagle_Scene_QuitGame);
 		mono_add_internal_call("Eagle.Scene::Raycast_Native", Eagle::Script::Eagle_Scene_Raycast);
-		mono_add_internal_call("Eagle.Scene::DrawLine_Native", Eagle::Script::Eagle_Scene_DrawLine);
-		mono_add_internal_call("Eagle.Scene::DrawTriangle_Native", Eagle::Script::Eagle_Scene_DrawTriangle);
 		mono_add_internal_call("Eagle.Scene::SetGravity_Native", Eagle::Script::Eagle_Scene_SetGravity);
 		mono_add_internal_call("Eagle.Scene::GetGravity_Native", Eagle::Script::Eagle_Scene_GetGravity);
 		mono_add_internal_call("Eagle.Scene::GetAllEntitiesWithComponent_Native", Eagle::Script::Eagle_Scene_GetAllEntitiesWithComponent);

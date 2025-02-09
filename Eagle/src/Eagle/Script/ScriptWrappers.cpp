@@ -6035,6 +6035,34 @@ namespace Eagle
 	{
 		return Scene::GetCurrentScene()->GetSkyboxIntensity();
 	}
+
+	void Script::Eagle_Renderer_DrawLine(const glm::vec3* startColor, const glm::vec3* endColor, const glm::vec3* start, const glm::vec3* end)
+	{
+		RendererLine line;
+		line.Start.Color = *startColor;
+		line.Start.Location = *start;
+		line.End.Color = *endColor;
+		line.End.Location = *end;
+		Scene::GetCurrentScene()->DrawDebugLine(line);
+	}
+
+	void Script::Eagle_Renderer_DrawTriangle(const glm::vec3* v0Location, const glm::vec3* v0Color, const glm::vec3* v1Location, const glm::vec3* v1Color, const glm::vec3* v2Location, const glm::vec3* v2Color)
+	{
+		RendererTriangle triangle;
+		triangle.Vertices[0].Location = *v0Location;
+		triangle.Vertices[0].Color = *v0Color;
+		triangle.Vertices[1].Location = *v1Location;
+		triangle.Vertices[1].Color = *v1Color;
+		triangle.Vertices[2].Location = *v2Location;
+		triangle.Vertices[2].Color = *v2Color;
+
+		Scene::GetCurrentScene()->DrawDebugTriangle(triangle);
+	}
+
+	void Script::Eagle_Renderer_DrawAABB(const AABB* aabb, const Transform* transform)
+	{
+		Scene::GetCurrentScene()->DrawAABB(*aabb, *transform);
+	}
 	
 	void Script::Eagle_Renderer_SetObjectPickingEnabled(bool value)
 	{
@@ -6157,29 +6185,6 @@ namespace Eagle
 		*outDistance = hit.Distance;
 
 		return bHit;
-	}
-
-	void Script::Eagle_Scene_DrawLine(const glm::vec3* startColor, const glm::vec3* endColor, const glm::vec3* start, const glm::vec3* end)
-	{
-		RendererLine line;
-		line.Start.Color = *startColor;
-		line.Start.Location = *start;
-		line.End.Color = *endColor;
-		line.End.Location = *end;
-		Scene::GetCurrentScene()->DrawDebugLine(line);
-	}
-
-	void Script::Eagle_Scene_DrawTriangle(const glm::vec3* v0Location, const glm::vec3* v0Color, const glm::vec3* v1Location, const glm::vec3* v1Color, const glm::vec3* v2Location, const glm::vec3* v2Color)
-	{
-		RendererTriangle triangle;
-		triangle.Vertices[0].Location = *v0Location;
-		triangle.Vertices[0].Color = *v0Color;
-		triangle.Vertices[1].Location = *v1Location;
-		triangle.Vertices[1].Color = *v1Color;
-		triangle.Vertices[2].Location = *v2Location;
-		triangle.Vertices[2].Color = *v2Color;
-
-		Scene::GetCurrentScene()->DrawDebugTriangle(triangle);
 	}
 
 	void Script::Eagle_Scene_SetGravity(const glm::vec3* gravity)

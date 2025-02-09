@@ -5,6 +5,23 @@ using System.Security.Permissions;
 
 namespace Eagle
 {
+    public struct RendererVertex
+    {
+        public Vector3 Location;
+        public Color3 Color;
+    }
+
+    public struct RendererLine
+    {
+        public RendererVertex Start;
+        public RendererVertex End;
+    }
+
+    public struct RendererTriangle
+    {
+        public RendererVertex V0, V1, V2;
+    }
+
     public enum FogEquation
     {
         Linear = 0,
@@ -227,6 +244,23 @@ namespace Eagle
 
     public static class Renderer
     {
+        public static void DrawLine(RendererLine line)
+        {
+            DrawLine_Native(ref line.Start.Color, ref line.End.Color, ref line.Start.Location, ref line.End.Location);
+        }
+
+        public static void DrawTriangle(RendererTriangle triangle)
+        {
+            DrawTriangle_Native(ref triangle.V0.Location, ref triangle.V0.Color,
+                ref triangle.V1.Location, ref triangle.V1.Color,
+                ref triangle.V2.Location, ref triangle.V2.Color);
+        }
+
+        public static void DrawAABB(AABB aabb, Transform worldTransform)
+        {
+            DrawAABB_Native(ref aabb, ref worldTransform);
+        }
+
         public const uint CascadesCount = 4u;
 
         public static void SetFogSettings(FogSettings value)
@@ -574,6 +608,15 @@ namespace Eagle
         }
 
         // Native calls
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void DrawLine_Native(ref Color3 startColor, ref Color3 endColor, ref Vector3 start, ref Vector3 end);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void DrawTriangle_Native(ref Vector3 LocationV0, ref Color3 ColorV0, ref Vector3 LocationV1, ref Color3 ColorV1, ref Vector3 LocationV2, ref Color3 ColorV2);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void DrawAABB_Native(ref AABB aabb, ref Transform worldTransform);
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetFogSettings_Native(ref Color3 color, float minDistance, float maxDistance, float density, FogEquation equation, bool bEnabled);
 

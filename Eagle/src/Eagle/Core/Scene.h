@@ -131,6 +131,12 @@ namespace Eagle
 			m_UserDebugTriangles.push_back(triangle);
 		}
 
+		// Needs to be called every frame
+		void DrawAABB(const AABB& aabb, const Transform& transform)
+		{
+			m_UserAABBs.emplace_back(aabb, transform);
+		}
+
 		SceneSoundData SpawnSound2D(const Ref<AssetAudio>& audio, const SoundSettings& settings);
 		SceneSoundData SpawnSound3D(const Ref<AssetAudio>& audio, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, const SoundSettings& settings = {});
 		Ref<Sound> GetSpawnedSound(GUID id) const;
@@ -255,9 +261,6 @@ namespace Eagle
 		void AddParticleSystem(const ParticleSystemComponent* system);
 		void RemoveParticleSystem(const ParticleSystemComponent* system);
 		void UpdateParticleSystem(const ParticleSystemComponent* system);
-
-		// Resets after the first render
-		void VisualizeDecalAABB(const DecalComponent* decal) { m_DecalToVisualize = decal; }
 
 	private:
 		static void OnSceneOpened(const Ref<Scene>& scene);
@@ -541,7 +544,6 @@ namespace Eagle
 		std::vector<Entity> m_EntitiesToDestroy;
 		entt::registry m_Registry;
 		CameraComponent* m_RuntimeCamera = nullptr;
-		const DecalComponent* m_DecalToVisualize = nullptr;
 
 		// It's a scope-pointer because `Entity` is forward declared.
 		Scope<Entity> m_RuntimeCameraHolder = nullptr; // In case there's no user provided runtime primary-camera
@@ -568,6 +570,7 @@ namespace Eagle
 		std::vector<RendererLine> m_DebugPointLines;
 		std::vector<RendererLine> m_DebugSpotLines;
 		std::vector<RendererLine> m_DebugReverbLines;
+		std::vector<std::pair<AABB, Transform>> m_UserAABBs; // AABB and its world transform
 
 		std::unordered_set<const PointLightComponent*> m_PointLightsDebugRadii;
 		bool m_PointLightsDebugRadiiDirty = true;

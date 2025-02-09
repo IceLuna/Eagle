@@ -279,6 +279,7 @@ Use the links below to learn more about assets & their settings
    assets/scene
    assets/animation
    assets/animation_graph
+   assets/particle_system
 
 Shortcuts
 ---------

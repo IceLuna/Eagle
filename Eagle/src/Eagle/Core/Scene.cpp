@@ -1255,12 +1255,11 @@ namespace Eagle
 						Utils::DrawBox(m_DebugLinesToDraw, aabb, {}, glm::vec3(0, 0, 1));
 					}
 				}
-				if (m_DecalToVisualize)
+				for (const auto& [aabb, transform] :m_UserAABBs)
 				{
-					const AABB aabb(glm::vec3(-0.5f), glm::vec3(0.5f));
-					Utils::DrawBox(m_DebugLinesToDraw, aabb, m_DecalToVisualize->GetWorldTransform());
-					m_DecalToVisualize = nullptr;
+					Utils::DrawBox(m_DebugLinesToDraw, aabb, transform);
 				}
+				m_UserAABBs.clear();
 			}
 
 			// Append user provided lines

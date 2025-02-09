@@ -45,14 +45,11 @@ namespace Eagle
 		const std::string windowName = m_Asset->GetPath().u8string();
 		ImGui::Begin(windowName.c_str(), pOpen);
 
-		UI::BeginPropertyGrid("ParticleSystemDetails");
+		UI::BeginPropertyGrid("ParticleSystemAssetEditor");
 		UI::Text("Name", m_Asset->GetPath().stem().u8string());
 		UI::Text("Type", "Particle System");
-		UI::EndPropertyGrid();
 
-		UI::BeginPropertyGrid("ParticleSystemAssetEditor");
-
-		if (UI::Button("Emitter", "Add"))
+		if (UI::Button("Emitters", "Add"))
 		{
 			m_Emitters.emplace_back();
 			m_SelectedEmitterIndex = m_Emitters.size() - 1u;
@@ -72,9 +69,17 @@ namespace Eagle
 			const void* hash = (void*)emitter.ID.GetHash();
 			const bool opened = ImGui::TreeNodeEx(hash, flags, emitter.Name.c_str());
 
+			if (selectedEmitter)
+			{
+				m_Scene->DrawAABB(selectedEmitter->VisibilityAABB, selectedEmitter->RelativeTransform);
+			}
+
 			if (ImGui::IsItemClicked())
 			{
-				m_SelectedEmitterIndex = i;
+				if (m_SelectedEmitterIndex == i)
+					m_SelectedEmitterIndex = s_InvalidIndex; // Remove selection
+				else
+					m_SelectedEmitterIndex = i;
 			}
 
 			if (ImGui::BeginPopupContextItem(nullptr))
@@ -145,8 +150,8 @@ namespace Eagle
 			//}
 
 			UI::TextWithSeparator("Acceleration");
-			bChanged |= UI::PropertyDrag("Radial Acceleration", emitter.RadialAcceleration, 0.1f, 0, 0, "If it's negative, particles will move towards the center of the emitter. If positive, they move away from the center");
-			bChanged |= UI::PropertyDrag("Tangential Acceleration", emitter.TangentialAcceleration, 0.1f, 0, 0, "If it's negative, particles will move towards the center of the emitter in a spiral way. If positive, they move away from the center");
+			bChanged |= UI::PropertyDrag("Radial Acceleration", emitter.RadialAcceleration, 0.1f, 0, 0, "If it's negative, particles will move towards the center of the emitter. If positive, they'll move away from the center");
+			bChanged |= UI::PropertyDrag("Tangential Acceleration", emitter.TangentialAcceleration, 0.1f, 0, 0, "If it's negative, particles will move towards the center of the emitter in a spiral way. If positive, they'll move away from the center");
 			bChanged |= UI::PropertyDrag("Normal Velocity Factor", emitter.NormalVelocityFactor, 0.1f, 0, 0, "If not 0, particle's initial velocity will be affected by `EmissionShapeType` normal direction.\nOnly supported for Sphere and Mesh shapes!");
 
 			UI::TextWithSeparator("Modes");
