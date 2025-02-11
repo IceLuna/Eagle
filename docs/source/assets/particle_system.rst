@@ -12,8 +12,6 @@ Currently, emitters only support 2D particles, meaning they'll always face the c
 
    Particle System Editor
 
-|
-
 Emitter settings
 ----------------
 - **Relative Transform**. It's relative to the systems world transform.
@@ -53,8 +51,8 @@ Emitter settings
 
 .. note::
 
-   It's a screen space collision detection, meaning collision detection won't work if a geometry it's supposed to collider with is not visible.
-   Also, precision of the collision detection heavily depends on the view angle.
+   It's a screen space collision detection, meaning collision detection won't work if a geometry it's supposed to collide with is not visible.
+   Also, precision of the collision detection heavily depends on the camera angle and distance from the geometry.
 
 - **Emission Shape**. Can be set to ``Point``, ``Sphere``, ``Sphere Surface``, ``Box``, ``Ring``, or ``Mesh``.
 

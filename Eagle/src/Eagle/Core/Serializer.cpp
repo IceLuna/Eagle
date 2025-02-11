@@ -610,6 +610,7 @@ namespace Eagle
 		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
 		out << YAML::Key << "Volume" << YAML::Value << asset->GetAudio()->GetVolume();
 		out << YAML::Key << "Pitch" << YAML::Value << asset->GetAudio()->GetPitch();
+		out << YAML::Key << "Pan" << YAML::Value << asset->GetAudio()->GetPan();
 		if (const auto& soundGroup = asset->GetSoundGroupAsset())
 			out << YAML::Key << "SoundGroup" << YAML::Value << soundGroup->GetGUID();
 
@@ -1315,15 +1316,20 @@ namespace Eagle
 
 			out << YAML::Key << "Volume" << YAML::Value << audio.GetVolume();
 			out << YAML::Key << "Pitch" << YAML::Value << audio.GetPitch();
+			out << YAML::Key << "Pan" << YAML::Value << audio.GetPan();
 			out << YAML::Key << "LoopCount" << YAML::Value << audio.GetLoopCount();
+			out << YAML::Key << "FFTSamples" << YAML::Value << audio.GetFFTSamples();
+			out << YAML::Key << "FFTType" << YAML::Value << Utils::GetEnumName(audio.GetFFTType());
 			out << YAML::Key << "IsLooping" << YAML::Value << audio.IsLooping();
 			out << YAML::Key << "IsMuted" << YAML::Value << audio.IsMuted();
 			out << YAML::Key << "IsStreaming" << YAML::Value << audio.IsStreaming();
+			out << YAML::Key << "FFTEnabled" << YAML::Value << audio.IsFFTEnabled();
 			out << YAML::Key << "MinDistance" << YAML::Value << audio.GetMinDistance();
 			out << YAML::Key << "MaxDistance" << YAML::Value << audio.GetMaxDistance();
 			out << YAML::Key << "RollOff" << YAML::Value << Utils::GetEnumName(audio.GetRollOffModel());
 			out << YAML::Key << "Autoplay" << YAML::Value << audio.bAutoplay;
 			out << YAML::Key << "EnableDopplerEffect" << YAML::Value << audio.bEnableDopplerEffect;
+			out << YAML::Key << "Is3D" << YAML::Value << audio.Is3D();
 
 			out << YAML::EndMap; //AudioComponent
 		}
@@ -1901,18 +1907,30 @@ namespace Eagle
 			Transform relativeTransform;
 			DeserializeRelativeTransform(audioNode, relativeTransform);
 			audio.SetRelativeTransform(relativeTransform);
-			audio.SetAudioAsset(GetAsset<AssetAudio>(audioNode["Sound"]));
+			auto asset = GetAsset<AssetAudio>(audioNode["Sound"]);
 
 			float volume = audioNode["Volume"].as<float>();
+			if (auto node = audioNode["Pitch"])
+				audio.SetPitch(node.as<float>());
+			if (auto node = audioNode["Pan"])
+				audio.SetPan(node.as<float>());
 			int loopCount = audioNode["LoopCount"].as<int>();
+			if (auto node = audioNode["FFTSamples"])
+				audio.SetFFTSamples(node.as<uint32_t>());
+			if (auto node = audioNode["FFTType"])
+				audio.SetFFTType(Utils::GetEnumFromName<FFTWindowType>(node.as<std::string>()));
 			bool bLooping = audioNode["IsLooping"].as<bool>();
 			bool bMuted = audioNode["IsMuted"].as<bool>();
 			bool bStreaming = audioNode["IsStreaming"].as<bool>();
+			if (auto node = audioNode["FFTEnabled"])
+				audio.SetFFTEnabled(node.as<bool>());
 			float minDistance = audioNode["MinDistance"].as<float>();
 			float maxDistance = audioNode["MaxDistance"].as<float>();
 			RollOffModel rollOff = Utils::GetEnumFromName<RollOffModel>(audioNode["RollOff"].as<std::string>());
 			bool bAutoplay = audioNode["Autoplay"].as<bool>();
 			bool bEnableDoppler = audioNode["EnableDopplerEffect"].as<bool>();
+			if (auto node = audioNode["Is3D"])
+				audio.SetIs3D(node.as<bool>());
 
 			audio.SetVolume(volume);
 			audio.SetLoopCount(loopCount);
@@ -1923,6 +1941,8 @@ namespace Eagle
 			audio.SetStreaming(bStreaming);
 			audio.bAutoplay = bAutoplay;
 			audio.bEnableDopplerEffect = bEnableDoppler;
+
+			audio.SetAudioAsset(asset);
 		}
 
 		if (auto reverbNode = entityNode["ReverbComponent"])
@@ -3067,6 +3087,10 @@ namespace Eagle
 		if (auto node = baseNode["Pitch"])
 			pitch = node.as<float>();
 
+		float pan = 0.f;
+		if (auto node = baseNode["Pan"])
+			pan = node.as<float>();
+
 		Ref<AssetSoundGroup> soundGroup = GetAsset<AssetSoundGroup>(baseNode["SoundGroup"]);
 
 		ScopedDataBuffer binary;
@@ -3110,6 +3134,7 @@ namespace Eagle
 		Ref<Audio> audio = Audio::Create(buffer);
 		audio->SetVolume(volume);
 		audio->SetPitch(pitch);
+		audio->SetPan(pan);
 		return MakeRef<LocalAssetAudio>(pathToAsset, pathToRaw, guid, buffer, audio, soundGroup);
 	}
 

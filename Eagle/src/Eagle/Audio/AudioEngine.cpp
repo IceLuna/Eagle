@@ -20,7 +20,7 @@ namespace Eagle
 	void AudioEngine::Init(const AudioEngineSettings& settings)
 	{
 		FMOD::System_Create(&s_CoreData.System);
-		auto result = s_CoreData.System->init(settings.MaxChannels, FMOD_INIT_NORMAL, 0);
+		auto result = s_CoreData.System->init(settings.MaxChannels, FMOD_INIT_NORMAL | FMOD_INIT_3D_RIGHTHANDED, 0);
 		if (result != FMOD_OK)
 		{
 			EG_CORE_CRITICAL("[AudioEngine] Failed to init Audio System. Error: {0}", FMOD_ErrorString(result));
@@ -69,8 +69,7 @@ namespace Eagle
 
 	void AudioEngine::SetListenerData(const glm::vec3& position, const glm::vec3& forward, const glm::vec3& up)
 	{
-		static const FMOD_VECTOR vel = { 0.f, 0.f, 0.f };
-		s_CoreData.System->set3DListenerAttributes(0, (FMOD_VECTOR*)&position.x, &vel, (FMOD_VECTOR*)&forward.x, (FMOD_VECTOR*)&up.x);
+		s_CoreData.System->set3DListenerAttributes(0, (FMOD_VECTOR*)&position.x, nullptr, (FMOD_VECTOR*)&forward.x, (FMOD_VECTOR*)&up.x);
 	}
 	
 	FMOD::System* AudioEngine::GetSystem()

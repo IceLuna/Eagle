@@ -61,17 +61,17 @@ namespace Eagle
 		}
 	}
 
-	void Sound3D::SetPosition(const glm::vec3& position)
+	void Sound3D::SetWorldPosition(const glm::vec3& position)
 	{
-		SetPositionAndVelocity(position, m_SoundData.Velocity);
+		SetWorldPositionAndVelocity(position, m_SoundData.Velocity);
 	}
 
 	void Sound3D::SetVelocity(const glm::vec3& velocity)
 	{
-		SetPositionAndVelocity(m_SoundData.Position, velocity);
+		SetWorldPositionAndVelocity(m_SoundData.Position, velocity);
 	}
 
-	void Sound3D::SetPositionAndVelocity(const glm::vec3& position, const glm::vec3& velocity)
+	void Sound3D::SetWorldPositionAndVelocity(const glm::vec3& position, const glm::vec3& velocity)
 	{
 		m_SoundData.Position = position;
 		m_SoundData.Velocity = velocity;

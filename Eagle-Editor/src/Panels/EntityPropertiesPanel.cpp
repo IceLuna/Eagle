@@ -39,6 +39,9 @@ namespace Eagle
 		"For this filter, the clearance above the span is the distance from the span's maximum to the minimum of the next higher span in the same column.\n"
 		"If there is no higher span in the column, the clearance is computed as the distance from the top of the span to the maximum heightfield height.";
 	static const std::vector<std::string> s_LockStrings = { "X", "Y", "Z" };
+	static const char* s_FFTTypeHelpMsg = "Used in spectrum analysis to reduce leakage/transient signals interfering with the analysis.\n"
+		"This is a problem with analysis of continuous signals that only have a small portion of the signal sample (the fft window size).\n"
+		"Windowing the signal with a curve or triangle tapers the sides of the fft window to help alleviate this problem.";
 
 #define AssetField_Case(type) \
 	case FieldType::type:\
@@ -1716,17 +1719,28 @@ namespace Eagle
 					Ref<AssetAudio> asset = audio.GetAudioAsset();
 					float volume = audio.GetVolume();
 					float pitch = audio.GetPitch();
+					float pan = audio.GetPan();
 					int loopCount = audio.GetLoopCount();
+					uint32_t fftSamples = audio.GetFFTSamples();
+					FFTWindowType fftType = audio.GetFFTType();
 					bool bLooping = audio.IsLooping();
 					bool bMuted = audio.IsMuted();
 					bool bStreaming = audio.IsStreaming();
+					bool bFFTEnabled = audio.IsFFTEnabled();
 					float minDistance = audio.GetMinDistance();
 					float maxDistance = audio.GetMaxDistance();
 					uint32_t currentRollOff = (uint32_t)audio.GetRollOffModel();
+					bool b3D = audio.Is3D();
 
 					if (EditorResources::DrawAssetSelection("Audio", asset))
 					{
 						audio.SetAudioAsset(asset);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Is 3D", b3D))
+					{
+						audio.SetIs3D(b3D);
 						bEntityChanged = true;
 					}
 
@@ -1736,8 +1750,9 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					if (UI::PropertySlider("Volume", volume, 0.f, 1.f))
+					if (UI::PropertyDrag("Volume", volume, 0.05f))
 					{
+						volume = glm::max(volume, 0.f);
 						audio.SetVolume(volume);
 						bEntityChanged = true;
 					}
@@ -1745,6 +1760,12 @@ namespace Eagle
 					if (UI::PropertySlider("Pitch", pitch, 0.f, 10.f))
 					{
 						audio.SetPitch(pitch);
+						bEntityChanged = true;
+					}
+
+					if (UI::PropertySlider("Pan", pan, -1.f, 1.f))
+					{
+						audio.SetPan(pan);
 						bEntityChanged = true;
 					}
 
@@ -1768,13 +1789,13 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					if (UI::Property("Is Looping?", bLooping))
+					if (UI::Property("Is Looping", bLooping))
 					{
 						audio.SetLooping(bLooping);
 						bEntityChanged = true;
 					}
 						
-					if (UI::Property("Is Streaming?", bStreaming, "When you stream a sound, you can only have one instance of it playing at any time."
+					if (UI::Property("Is Streaming", bStreaming, "When you stream a sound, you can only have one instance of it playing at any time."
 						" This limitation exists because there is only one decode buffer per stream."
 						" As a rule of thumb, streaming is great for music tracks, voice cues, and ambient tracks,"
 						" while most sound effects should be loaded into memory"))
@@ -1783,9 +1804,27 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					if (UI::Property("Is Muted?", bMuted))
+					if (UI::Property("Is Muted", bMuted))
 					{
 						audio.SetMuted(bMuted);
+						bEntityChanged = true;
+					}
+
+					if (UI::PropertyDrag("FFT Samples", fftSamples, 1.f, 0, 0, "Must be a power of 2 between 64 and 8192"))
+					{
+						audio.SetFFTSamples(fftSamples);
+						bEntityChanged = true;
+					}
+
+					if (UI::ComboEnum("FFT Type", fftType, s_FFTTypeHelpMsg))
+					{
+						audio.SetFFTType(fftType);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("FFT Enabled", bFFTEnabled, "If enabled, you can extract spectrum data of the sound"))
+					{
+						audio.SetFFTEnabled(bFFTEnabled);
 						bEntityChanged = true;
 					}
 

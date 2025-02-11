@@ -176,6 +176,15 @@ namespace Eagle::Script
 	bool Eagle_Sound_IsPlaying(GUID id);
 	void Eagle_Sound_SetPosition(GUID id, uint32_t ms);
 	uint32_t Eagle_Sound_GetPosition(GUID id);
+	void Eagle_Sound_SetFFTEnabled(GUID id, bool value);
+	bool Eagle_Sound_IsFFTEnabled(GUID id);
+	void Eagle_Sound_SetFFTSamples(GUID id, uint32_t value);
+	uint32_t Eagle_Sound_GetFFTSamples(GUID id);
+	void Eagle_Sound_SetFFTType(GUID id, FFTWindowType value);
+	FFTWindowType Eagle_Sound_GetFFTType(GUID id);
+	bool Eagle_Sound_GetSpectrumData(GUID id, MonoArray* data, int channelIndex);
+	float Eagle_Sound_GetSampleRate(GUID id);
+	int Eagle_Sound_GetChannelsCount(GUID id);
 
 	//Sound2D
 	GUID Eagle_Sound2D_Create(GUID assetID, const SoundSettings* settings);
@@ -222,7 +231,22 @@ namespace Eagle::Script
 	bool Eagle_AudioComponent_IsStreaming(GUID entityID);
 	bool Eagle_AudioComponent_IsPlaying(GUID entityID);
 	bool Eagle_AudioComponent_IsDopplerEffectEnabled(GUID entityID);
-	
+	void Eagle_AudioComponent_SetFFTEnabled(GUID id, bool value);
+	bool Eagle_AudioComponent_IsFFTEnabled(GUID id);
+	void Eagle_AudioComponent_SetFFTSamples(GUID id, uint32_t value);
+	uint32_t Eagle_AudioComponent_GetFFTSamples(GUID id);
+	void Eagle_AudioComponent_SetFFTType(GUID id, FFTWindowType value);
+	FFTWindowType Eagle_AudioComponent_GetFFTType(GUID id);
+	bool Eagle_AudioComponent_GetSpectrumData(GUID entityID, MonoArray* data, int channelIndex);
+	float Eagle_AudioComponent_GetSampleRate(GUID entityID);
+	void Eagle_AudioComponent_SetPosition(GUID entityID, uint32_t ms);
+	uint32_t Eagle_AudioComponent_GetPosition(GUID entityID);
+	void Eagle_AudioComponent_SetIs3D(GUID entityID, bool value);
+	bool Eagle_AudioComponent_Is3D(GUID entityID);
+	void Eagle_AudioComponent_SetPan(GUID entityID, float pan);
+	float Eagle_AudioComponent_GetPan(GUID entityID);
+	int Eagle_AudioComponent_GetChannelsCount(GUID id);
+
 	//RigidBodyComponent
 	void Eagle_RigidBodyComponent_SetBodyType(GUID entityID, PhysicsBodyType type);
 	PhysicsBodyType Eagle_RigidBodyComponent_GetBodyType(GUID entityID);
@@ -596,6 +620,8 @@ namespace Eagle::Script
 	float Eagle_AssetAudio_GetVolume(GUID id);
 	void Eagle_AssetAudio_SetPitch(GUID id, float pitch);
 	float Eagle_AssetAudio_GetPitch(GUID id);
+	void Eagle_AssetAudio_SetPan(GUID id, float pan);
+	float Eagle_AssetAudio_GetPan(GUID id);
 	void Eagle_AssetAudio_SetSoundGroup(GUID id, GUID soundGroupID);
 	GUID Eagle_AssetAudio_GetSoundGroup(GUID id);
 

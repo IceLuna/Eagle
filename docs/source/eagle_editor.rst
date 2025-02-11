@@ -234,7 +234,7 @@ Currently, the engine supports the following asset types:
 
 - **Static & Skeletal Meshes**. Supported mesh formats: ``fbx``; ``gltf``, ``blend``; ``3ds``; ``obj``; ``smd``; ``vta``; ``stl``.
 
-- **Audio**. Supported sound formats: ``wav``; ``ogg``; ``wma``.
+- **Audio**. Supported sound formats: ``mp3``; ``wav``; ``ogg``; ``wma``.
 
 - **Sound Group**.
 

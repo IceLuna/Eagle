@@ -4,36 +4,56 @@ using System.Runtime.InteropServices;
 
 namespace Eagle
 {
-    //@ Volume. 0.0 = Silence; 1.0 = Max Volume
+    public enum FFTWindowType
+    {
+        Rect,
+		Triangle,
+		Hamming,
+		Hanning,
+		Blackman,
+		BlackmanHarris
+    }
+
+    //@ Volume. 0 = silent, 1 = full. Negative level inverts the signal. Values larger than 1 amplify the signal.
     //@ Pan. -1 = Completely on the left. +1 = Completely on the right
     //@ Pitch. Any value between 0 and 10. Gets multiplied by `Audio` pitch to determine final pitch.
     //@ LoopCount. -1 = Loop Endlessly; 0 = Play once; 1 = Play twice, etc...
+    //@ FFTSamples. Number of samples in the output of spectrum data. Must be the power of 2 between 64 and 8192.
+    //@ FFTType. Defines the method that will be used to calculate the spectrum data. https://www.fmod.com/docs/2.00/api/core-api-common-dsp-effects.html#fmod_dsp_fft
     //@ IsStreaming. When you stream a sound, you can only have one instance of it playing at any time.
     //	           This limitation exists because there is only one decode buffer per stream.
     //	           As a rule of thumb, streaming is great for music tracks, voice cues, and ambient tracks,
     //	           while most sound effects should be loaded into memory
+    //@ bEnableFFT. If set to true, you can get the spectrum data of the sound
 
     [StructLayout(LayoutKind.Sequential)]
     public struct SoundSettings
     {
-        public SoundSettings(float volume, float pan = 0f, float pitch = 1f, int loopCount = -1, bool bLooping = false, bool bMuted = false, bool bStreaming = false)
+        public SoundSettings(float volume, float pan = 0f, float pitch = 1f, int loopCount = -1, uint fftSamples = 256, FFTWindowType fftType = FFTWindowType.Rect,
+            bool bLooping = false, bool bMuted = false, bool bStreaming = false, bool bEnableFFT = false)
         {
             Volume = volume;
             Pan = pan;
             Pitch = pitch;
             LoopCount = loopCount;
+            FFTSamples = fftSamples;
+            FFTType = fftType;
             this.bLooping = bLooping;
             this.bStreaming = bStreaming;
             this.bMuted = bMuted;
+            this.bEnableFFT = bEnableFFT;
         }
 
         public float Volume;
         public float Pan;
         public float Pitch;
         public int LoopCount;
+        public uint FFTSamples;
+        public FFTWindowType FFTType;
         public bool bLooping;
         public bool bStreaming;
         public bool bMuted;
+		public bool bEnableFFT;
     };
 
     public enum RollOffModel
@@ -94,6 +114,52 @@ namespace Eagle
             return settings;
         }
 
+        public void SetFFTEnabled(bool bEnable)
+		{
+            SetFFTEnabled_Native(ID, bEnable);
+        }
+
+		public bool IsFFTEnabled()
+        {
+            return IsFFTEnabled_Native(ID);
+        }
+
+		public void SetFFTSamples(uint samples)
+		{
+            SetFFTSamples_Native(ID, samples);
+        }
+
+		public uint GetFFTSamples()
+        {
+            return GetFFTSamples_Native(ID);
+        }
+
+		public void SetFFTType(FFTWindowType type)
+		{
+            SetFFTType_Native(ID, type);
+        }
+
+		public FFTWindowType GetFFTType()
+        {
+            return GetFFTType_Native(ID);
+        }
+
+		// channelIndex. Allows to get data from a specific audio channel. Starts from 0. If -1, get average over all channels
+        public bool GetSpectrumData(ref float[] data, int channelIndex = -1)
+        {
+            return GetSpectrumData(ID, data, channelIndex);
+        }
+
+        public float GetSampleRate()
+        {
+            return GetSampleRate_Native(ID);
+        }
+
+        public int GetChannelsCount()
+        {
+            return GetChannelsCount_Native(ID);
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetSettings_Native(GUID id, ref SoundSettings settings);
 
@@ -117,6 +183,33 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern uint GetPosition_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetSpectrumData(GUID id, float[] data, int channelIndex);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetFFTEnabled_Native(GUID id, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsFFTEnabled_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetFFTSamples_Native(GUID id, uint value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint GetFFTSamples_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetFFTType_Native(GUID id, FFTWindowType value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern FFTWindowType GetFFTType_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetSampleRate_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern int GetChannelsCount_Native(GUID id);
     }
 
     public class Sound2D : Sound

@@ -374,6 +374,16 @@ namespace Eagle
             return GetPitch_Native(m_GUID);
         }
 
+        public void SetPan(float pan)
+        {
+            SetPan_Native(m_GUID, pan);
+        }
+
+        public float GetPan()
+        {
+            return GetPan_Native(m_GUID);
+        }
+
         public void SetSoundGroup(AssetSoundGroup soundGroup)
         {
             SetSoundGroup_Native(m_GUID, soundGroup != null ? soundGroup.GetGUID() : GUID.Null());
@@ -398,6 +408,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetPitch_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetPan_Native(GUID id, float pan);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetPan_Native(GUID id);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetSoundGroup_Native(GUID id, GUID soundGroupID);

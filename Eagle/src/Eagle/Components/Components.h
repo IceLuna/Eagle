@@ -12,6 +12,7 @@
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsMaterial.h"
 #include "Eagle/Physics/PhysicsEngine.h"
+#include "Eagle/Audio/Sound2D.h"
 #include "Eagle/Audio/Sound3D.h"
 #include "Eagle/Audio/Reverb3D.h"
 #include "Eagle/Classes/Font.h"
@@ -1338,15 +1339,20 @@ namespace Eagle
 			SceneComponent::operator=(other);
 			Volume = other.Volume;
 			Pitch = other.Pitch;
+			Pan = other.Pan;
 			LoopCount = other.LoopCount;
+			FFTSamples = other.FFTSamples;
+			FFTType = other.FFTType;
 			bLooping = other.bLooping;
 			bMuted = other.bMuted;
 			bStreaming = other.bStreaming;
+			bEnableFFT = other.bEnableFFT;
 			MinDistance = other.MinDistance;
 			MaxDistance = other.MaxDistance;
 			RollOff = other.RollOff;
 			bAutoplay = other.bAutoplay;
 			bEnableDopplerEffect = other.bEnableDopplerEffect;
+			b3D = other.b3D;
 
 			SetAudioAsset(other.m_AudioAsset);
 
@@ -1375,8 +1381,8 @@ namespace Eagle
 		{
 			MinDistance = minDistance;
 			MaxDistance = maxDistance;
-			if (m_Sound)
-				m_Sound->SetMinMaxDistance(MinDistance, MaxDistance);
+			if (b3D && m_Sound)
+				Cast<Sound3D>(m_Sound)->SetMinMaxDistance(MinDistance, MaxDistance);
 		}
 		float GetMinDistance() const { return MinDistance; }
 		float GetMaxDistance() const { return MaxDistance; }
@@ -1384,8 +1390,8 @@ namespace Eagle
 		void SetRollOffModel(RollOffModel rollOff)
 		{
 			RollOff = rollOff;
-			if (m_Sound)
-				m_Sound->SetRollOffModel(RollOff);
+			if (b3D && m_Sound)
+				Cast<Sound3D>(m_Sound)->SetRollOffModel(RollOff);
 		}
 		RollOffModel GetRollOffModel() const { return RollOff; }
 
@@ -1405,6 +1411,14 @@ namespace Eagle
 		}
 		float GetPitch() const { return Pitch; }
 
+		void SetPan(float pan)
+		{
+			Pan = std::clamp(pan, -1.f, 1.f);
+			if (m_Sound)
+				m_Sound->SetPan(Pan);
+		}
+		float GetPan() const { return Pan; }
+
 		void SetLoopCount(int loopCount)
 		{
 			LoopCount = loopCount;
@@ -1412,6 +1426,41 @@ namespace Eagle
 				m_Sound->SetLoopCount(loopCount);
 		}
 		int GetLoopCount() const { return LoopCount; }
+
+		void SetFFTEnabled(bool bEnable)
+		{
+			bEnableFFT = bEnable;
+			if (m_Sound)
+				m_Sound->SetFFTEnabled(bEnable);
+		}
+		bool IsFFTEnabled() const { return bEnableFFT; }
+
+		void SetFFTSamples(uint32_t samples)
+		{
+			if (samples == FFTSamples)
+				return;
+
+			uint32_t power = 0u;
+			if (samples > FFTSamples)
+				power = (uint32_t)std::ceil(std::log2(samples));
+			else
+				power = (uint32_t)std::floor(std::log2(samples));
+			samples = (uint32_t)glm::pow(2u, power);
+			samples = glm::clamp(samples, 64u, 8192u);
+
+			FFTSamples = samples;
+			if (m_Sound)
+				m_Sound->SetFFTSamples(samples);
+		}
+		uint32_t GetFFTSamples() const { return FFTSamples; }
+
+		void SetFFTType(FFTWindowType type)
+		{
+			FFTType = type;
+			if (m_Sound)
+				m_Sound->SetFFTType(FFTType);
+		}
+		FFTWindowType GetFFTType() const { return FFTType; }
 
 		void SetLooping(bool bLooping)
 		{
@@ -1434,16 +1483,14 @@ namespace Eagle
 			if (asset)
 			{
 				m_AudioAsset = asset;
-
-				SoundSettings settings;
-				settings.VolumeMultiplier = Volume;
-				settings.Pitch = Pitch;
-				settings.LoopCount = LoopCount;
-				settings.IsLooping = bLooping;
-				settings.IsMuted = bMuted;
-				settings.IsStreaming = bStreaming;
-				m_Sound = Sound3D::Create(m_AudioAsset->GetAudio(), WorldTransform.Location, RollOff, settings);
-				m_Sound->SetMinMaxDistance(MinDistance, MaxDistance);
+				if (b3D)
+				{
+					m_Sound = Create3D();
+				}
+				else
+				{
+					m_Sound = Create2D();
+				}
 			}
 			else
 			{
@@ -1483,27 +1530,128 @@ namespace Eagle
 			return false;
 		}
 
+		// dataCount. Array size of `outData`
+		// channelIndex. Allows to get data from a specific audio channel. Starts from 0. If -1, get average over all channels
+		bool GetSpectrumData(float* outData, uint32_t dataCount, int channelIndex = -1) const
+		{
+			if (m_Sound)
+				return m_Sound->GetSpectrumData(outData, dataCount, channelIndex);
+			return false;
+		}
+
+		float GetSampleRate() const
+		{
+			if (m_Sound)
+				return m_Sound->GetSampleRate();
+			
+			return 0.f;
+		}
+
+		int GetChannelsCount() const
+		{
+			if (m_Sound)
+				return m_Sound->GetChannelsCount();
+			
+			return 0;
+		}
+
+		void SetPosition(uint32_t ms)
+		{
+			if (m_Sound)
+				m_Sound->SetPosition(ms);
+		}
+		uint32_t GetPosition()
+		{
+			return m_Sound ? m_Sound->GetPosition() : 0u;
+		}
+
+		void SetIs3D(bool bValue)
+		{
+			if (bValue == b3D)
+				return;
+
+			b3D = bValue;
+			if (m_Sound)
+			{
+				const bool bPlaying = m_Sound->IsPlaying();
+				const bool bPaused = m_Sound->IsPaused();
+				uint32_t ms = m_Sound->GetPosition();
+
+				if (b3D)
+					m_Sound = Create3D();
+				else
+					m_Sound = Create2D();
+
+				if (bPlaying)
+				{
+					m_Sound->Play();
+				}
+				else if (bPaused)
+				{
+					m_Sound->Play();
+					m_Sound->SetPaused(true);
+				}
+
+				m_Sound->SetPosition(ms);
+			}
+		}
+		bool Is3D() const { return b3D; }
+
 	private:
 		void UpdateSoundPositionAndVelocity()
 		{
-			if (m_Sound)
+			if (b3D && m_Sound)
 			{
 				if (bEnableDopplerEffect)
-					m_Sound->SetPositionAndVelocity(WorldTransform.Location, Parent.GetLinearVelocity());
+					Cast<Sound3D>(m_Sound)->SetWorldPositionAndVelocity(WorldTransform.Location, Parent.GetLinearVelocity());
 				else
-					m_Sound->SetPositionAndVelocity(WorldTransform.Location, glm::vec3{ 0.f });
+					Cast<Sound3D>(m_Sound)->SetWorldPositionAndVelocity(WorldTransform.Location, glm::vec3{ 0.f });
 			}
+		}
+
+		Ref<Sound2D> Create2D()
+		{
+			return Sound2D::Create(m_AudioAsset->GetAudio(), GetSoundSettings());
+		}
+
+		Ref<Sound3D> Create3D()
+		{
+			Ref<Sound3D> sound = Sound3D::Create(m_AudioAsset->GetAudio(), WorldTransform.Location, RollOff, GetSoundSettings());
+			sound->SetMinMaxDistance(MinDistance, MaxDistance);
+			return sound;
+		}
+
+		SoundSettings GetSoundSettings() const
+		{
+			SoundSettings settings;
+			settings.VolumeMultiplier = Volume;
+			settings.Pan = Pan;
+			settings.Pitch = Pitch;
+			settings.LoopCount = LoopCount;
+			settings.FFTSamples = FFTSamples;
+			settings.FFTType = FFTType;
+			settings.IsLooping = bLooping;
+			settings.IsMuted = bMuted;
+			settings.IsStreaming = bStreaming;
+			settings.bEnableFFT = bEnableFFT;
+
+			return settings;
 		}
 	
 	protected:
 		Ref<AssetAudio> m_AudioAsset;
-		Ref<Sound3D> m_Sound;
+		Ref<Sound> m_Sound;
 		float Volume = 1.f;
 		float Pitch = 1.f;
+		float Pan = 0.f;
 		int LoopCount = -1;
+		uint32_t FFTSamples = 256;
+		FFTWindowType FFTType = FFTWindowType::Rect;
 		bool bLooping = false;
 		bool bMuted = false;
 		bool bStreaming = false;
+		bool bEnableFFT = false;
+		bool b3D = true;
 		float MinDistance = 1.f;
 		float MaxDistance = 10000.f;
 		RollOffModel RollOff = RollOffModel::Default;

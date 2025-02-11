@@ -2146,9 +2146,12 @@ namespace Eagle
 			sound->SetPitch(settings->Pitch);
 			sound->SetPan(settings->Pan);
 			sound->SetLoopCount(settings->LoopCount);
+			sound->SetFFTSamples(settings->FFTSamples);
+			sound->SetFFTType(settings->FFTType);
 			sound->SetLooping(settings->IsLooping);
 			sound->SetStreaming(settings->IsStreaming);
 			sound->SetMuted(settings->IsMuted);
+			sound->SetFFTEnabled(settings->bEnableFFT);
 		}
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set sound settings. Sound is not found");
@@ -2217,6 +2220,101 @@ namespace Eagle
 
 		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetPosition`. Sound is not found");
 		return 0u;
+	}
+
+	void Script::Eagle_Sound_SetFFTEnabled(GUID id, bool value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+			sound->SetFFTEnabled(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetFFTEnabled`. Sound is not found");
+	}
+
+	bool Script::Eagle_Sound_IsFFTEnabled(GUID id)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+			return sound->IsFFTEnabled();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsFFTEnabled`. Sound is not found");
+		return false;
+	}
+
+	void Script::Eagle_Sound_SetFFTSamples(GUID id, uint32_t value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+			sound->SetFFTSamples(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetFFTSamples`. Sound is not found");
+	}
+
+	uint32_t Script::Eagle_Sound_GetFFTSamples(GUID id)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+			return sound->GetFFTSamples();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetFFTSamples`. Sound is not found");
+		return 0u;
+	}
+
+	void Script::Eagle_Sound_SetFFTType(GUID id, FFTWindowType value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+			sound->SetFFTType(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetFFTType`. Sound is not found");
+	}
+
+	FFTWindowType Script::Eagle_Sound_GetFFTType(GUID id)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+			return sound->GetFFTType();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetFFTType`. Sound is not found");
+		return FFTWindowType::Rect;
+	}
+
+	bool Script::Eagle_Sound_GetSpectrumData(GUID id, MonoArray* data, int channelIndex)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+		{
+			const uint32_t monoLength = (uint32_t)mono_array_length(data);
+			void* sampleData = mono_array_addr(data, float, 0);
+			return sound->GetSpectrumData((float*)sampleData, monoLength, channelIndex);
+		}
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetSpectrumData`. Sound is not found");
+		return false;
+	}
+
+	float Script::Eagle_Sound_GetSampleRate(GUID id)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+		{
+			return sound->GetSampleRate();
+		}
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetSampleRate`. Sound is not found");
+		return 0.f;
+	}
+
+	int Script::Eagle_Sound_GetChannelsCount(GUID id)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+		{
+			return sound->GetChannelsCount();
+		}
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetChannelsCount`. Sound is not found");
+		return 0;
 	}
 
 	//--------------Sound2D--------------
@@ -2292,7 +2390,7 @@ namespace Eagle
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
-			sound->SetPosition(*position);
+			sound->SetWorldPosition(*position);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetWorldPosition`. Sound is not found");
 	}
@@ -2693,6 +2791,209 @@ namespace Eagle
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'IsDopplerEffectEnabled' function. Entity is null");
 			return false;
+		}
+	}
+
+	void Script::Eagle_AudioComponent_SetFFTEnabled(GUID entityID, bool value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<AudioComponent>().SetFFTEnabled(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'SetFFTEnabled' function. Entity is null");
+	}
+
+	bool Script::Eagle_AudioComponent_IsFFTEnabled(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<AudioComponent>().IsFFTEnabled();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'IsFFTEnabled' function. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_AudioComponent_SetFFTSamples(GUID entityID, uint32_t value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<AudioComponent>().SetFFTSamples(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'SetFFTSamples' function. Entity is null");
+	}
+
+	uint32_t Script::Eagle_AudioComponent_GetFFTSamples(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<AudioComponent>().GetFFTSamples();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'GetFFTSamples' function. Entity is null");
+			return 0u;
+		}
+	}
+
+	void Script::Eagle_AudioComponent_SetFFTType(GUID entityID, FFTWindowType value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<AudioComponent>().SetFFTType(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'SetFFTType' function. Entity is null");
+	}
+
+	FFTWindowType Script::Eagle_AudioComponent_GetFFTType(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<AudioComponent>().GetFFTType();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'GetFFTType' function. Entity is null");
+			return FFTWindowType::Rect;
+		}
+	}
+
+	bool Script::Eagle_AudioComponent_GetSpectrumData(GUID entityID, MonoArray* data, int channelIndex)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			const uint32_t monoLength = (uint32_t)mono_array_length(data);
+			void* sampleData = mono_array_addr(data, float, 0);
+			return entity.GetComponent<AudioComponent>().GetSpectrumData((float*)sampleData, monoLength, channelIndex);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'GetSpectrumData' function. Entity is null");
+			return false;
+		}
+	}
+
+	float Script::Eagle_AudioComponent_GetSampleRate(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<AudioComponent>().GetSampleRate();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'GetSampleRate' function. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_AudioComponent_SetPosition(GUID entityID, uint32_t ms)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<AudioComponent>().SetPosition(ms);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'SetPosition' function. Entity is null");
+		}
+	}
+
+	uint32_t Script::Eagle_AudioComponent_GetPosition(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<AudioComponent>().GetPosition();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'GetPosition' function. Entity is null");
+			return 0u;
+		}
+	}
+
+	void Script::Eagle_AudioComponent_SetIs3D(GUID entityID, bool value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<AudioComponent>().SetIs3D(value);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'SetIs3D' function. Entity is null");
+		}
+	}
+
+	bool Script::Eagle_AudioComponent_Is3D(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<AudioComponent>().Is3D();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'Is3D' function. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_AudioComponent_SetPan(GUID entityID, float pan)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<AudioComponent>().SetPan(pan);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'SetPan' function. Entity is null");
+		}
+	}
+
+	float Script::Eagle_AudioComponent_GetPan(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<AudioComponent>().GetPan();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'GetPan' function. Entity is null");
+			return 0.f;
+		}
+	}
+
+	int Script::Eagle_AudioComponent_GetChannelsCount(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<AudioComponent>().GetChannelsCount();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'GetChannelsCount' function. Entity is null");
+			return 0;
 		}
 	}
 
@@ -6976,6 +7277,39 @@ namespace Eagle
 
 		EG_CORE_ERROR("[ScriptEngine] Couldn't get asset pitch. It's not an audio asset");
 		return 1.f;
+	}
+
+	void Script::Eagle_AssetAudio_SetPan(GUID assetID, float pan)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set asset pan. Couldn't find an asset");
+			return;
+		}
+
+		if (Ref<AssetAudio> audioAsset = Cast<AssetAudio>(asset))
+			audioAsset->GetAudio()->SetPan(pan);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set asset pan. It's not an audio asset");
+	}
+
+	float Script::Eagle_AssetAudio_GetPan(GUID assetID)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get asset pan. Couldn't find an asset");
+			return 0.f;
+		}
+
+		if (Ref<AssetAudio> audioAsset = Cast<AssetAudio>(asset))
+			return audioAsset->GetAudio()->GetPan();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get asset pan. It's not an audio asset");
+		return 0.f;
 	}
 
 	void Script::Eagle_AssetAudio_SetSoundGroup(GUID audioID, GUID soundGroupID)

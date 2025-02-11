@@ -399,6 +399,7 @@ namespace Eagle
 			{ ".smd",   AssetType::StaticMesh },
 			{ ".vta",   AssetType::StaticMesh },
 			{ ".stl",   AssetType::StaticMesh },
+			{ ".mp3",   AssetType::Audio },
 			{ ".wav",   AssetType::Audio },
 			{ ".ogg",   AssetType::Audio },
 			{ ".wma",   AssetType::Audio },

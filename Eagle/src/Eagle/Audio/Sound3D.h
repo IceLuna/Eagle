@@ -15,9 +15,9 @@ namespace Eagle
 	class Sound3D : public Sound
 	{
 	public:
-		void SetPosition(const glm::vec3& position);
+		void SetWorldPosition(const glm::vec3& position);
 		void SetVelocity(const glm::vec3& velocity);
-		void SetPositionAndVelocity(const glm::vec3& position, const glm::vec3& velocity);
+		void SetWorldPositionAndVelocity(const glm::vec3& position, const glm::vec3& velocity);
 
 		glm::vec3 GetWorldPosition() const { return m_SoundData.Position; }
 		glm::vec3 GetVelocity() const { return m_SoundData.Velocity; }

@@ -1500,6 +1500,13 @@ namespace Eagle
         
         public float GetPitch() { return GetPitch_Native(Parent.ID); }
         
+        public void SetPan(float pan)
+        {
+            SetPan_Native(Parent.ID, pan);
+        }
+        
+        public float GetPan() { return GetPan_Native(Parent.ID); }
+        
         public void SetLoopCount(int loopCount)
         {
             SetLoopCount_Native(Parent.ID, loopCount);
@@ -1571,6 +1578,72 @@ namespace Eagle
             return IsDopplerEffectEnabled_Native(Parent.ID);
         }
 
+        public void SetFFTEnabled(bool bEnable)
+        {
+            SetFFTEnabled_Native(Parent.ID, bEnable);
+        }
+
+        public bool IsFFTEnabled()
+        {
+            return IsFFTEnabled_Native(Parent.ID);
+        }
+
+        public void SetFFTSamples(uint samples)
+        {
+            SetFFTSamples_Native(Parent.ID, samples);
+        }
+
+        public uint GetFFTSamples()
+        {
+            return GetFFTSamples_Native(Parent.ID);
+        }
+
+        public void SetFFTType(FFTWindowType type)
+        {
+            SetFFTType_Native(Parent.ID, type);
+        }
+
+        public FFTWindowType GetFFTType()
+        {
+            return GetFFTType_Native(Parent.ID);
+        }
+
+		// channelIndex. Allows to get data from a specific audio channel. Starts from 0. If -1, get average over all channels
+        public bool GetSpectrumData(ref float[] data, int channelIndex = -1)
+        {
+            return GetSpectrumData_Native(Parent.ID, data, channelIndex);
+        }
+
+        public float GetSampleRate()
+        {
+            return GetSampleRate_Native(Parent.ID);
+        }
+
+        public int GetChannelsCount()
+        {
+            return GetChannelsCount_Native(Parent.ID);
+        }
+
+        public void SetPosition(uint ms)
+        {
+            SetPosition_Native(Parent.ID, ms);
+        }
+
+        public uint GetPosition()
+        {
+            return GetPosition_Native(Parent.ID);
+        }
+
+        public void SetIs3D(bool b3D)
+        {
+            SetIs3D_Native(Parent.ID, b3D);
+        }
+
+        public bool Is3D()
+        {
+            return Is3D_Native(Parent.ID);
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetMinDistance_Native(in GUID entityID, float minDistance);
 
@@ -1588,6 +1661,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetPitch_Native(in GUID entityID, float pitch);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetPan_Native(in GUID entityID, float pan);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetLoopCount_Native(in GUID entityID, int loopCount);
@@ -1632,6 +1708,9 @@ namespace Eagle
         internal static extern float GetPitch_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetPan_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern int GetLoopCount_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -1651,6 +1730,45 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsDopplerEffectEnabled_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetFFTEnabled_Native(GUID id, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsFFTEnabled_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetFFTSamples_Native(GUID id, uint value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint GetFFTSamples_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetFFTType_Native(GUID id, FFTWindowType value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern FFTWindowType GetFFTType_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetSpectrumData_Native(in GUID entityID, float[] data, int channelIndex);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetSampleRate_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetPosition_Native(GUID id, uint ms);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint GetPosition_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetIs3D_Native(GUID id, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool Is3D_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern int GetChannelsCount_Native(GUID id);
     }
 
     public class ReverbComponent : SceneComponent

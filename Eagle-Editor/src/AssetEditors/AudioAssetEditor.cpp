@@ -17,6 +17,7 @@ namespace Eagle
 
 		UI::Text("Name", m_Asset->GetPath().stem().u8string());
 		UI::Text("Type", "Audio");
+		UI::Text("Channels", std::to_string(m_Asset->GetAudio()->GetChannelsCount()));
 
 		float volume = audio->GetVolume();
 		if (UI::PropertyDrag("Volume", volume, 0.05f))
@@ -32,6 +33,13 @@ namespace Eagle
 			bChanged = true;
 		}
 
+		float pan = audio->GetPan();
+		if (UI::PropertySlider("Pan", pan, -1.f, 1.f))
+		{
+			audio->SetPan(pan);
+			bChanged = true;
+		}
+
 		auto soundGroupAsset = m_Asset->GetSoundGroupAsset();
 		if (EditorResources::DrawAssetSelection("Sound Group", soundGroupAsset))
 		{
@@ -44,8 +52,15 @@ namespace Eagle
 		ImGui::Separator();
 		ImGui::Separator();
 
-		if (ImGui::Button("Play"))
-			audio->Play();
+		const bool bPlaying = audio->IsPlaying();
+		const char* buttonName = bPlaying ? "Stop" : "Play";
+		if (ImGui::Button(buttonName))
+		{
+			if (bPlaying)
+				audio->Stop();
+			else
+				audio->Play();
+		}
 
 		ImGui::SameLine();
 
@@ -59,5 +74,10 @@ namespace Eagle
 			Asset::Save(m_Asset);
 
 		ImGui::End();
+
+		if (pOpen && (*pOpen == false))
+		{
+			audio->Stop(); // Stop on exit
+		}
 	}
 }

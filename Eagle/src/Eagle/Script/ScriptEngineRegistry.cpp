@@ -386,6 +386,15 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Sound::IsPlaying_Native", Eagle::Script::Eagle_Sound_IsPlaying);
 		mono_add_internal_call("Eagle.Sound::SetPosition_Native", Eagle::Script::Eagle_Sound_SetPosition);
 		mono_add_internal_call("Eagle.Sound::GetPosition_Native", Eagle::Script::Eagle_Sound_GetPosition);
+		mono_add_internal_call("Eagle.Sound::SetFFTEnabled_Native", Eagle::Script::Eagle_Sound_SetFFTEnabled);
+		mono_add_internal_call("Eagle.Sound::IsFFTEnabled_Native", Eagle::Script::Eagle_Sound_IsFFTEnabled);
+		mono_add_internal_call("Eagle.Sound::SetFFTSamples_Native", Eagle::Script::Eagle_Sound_SetFFTSamples);
+		mono_add_internal_call("Eagle.Sound::GetFFTSamples_Native", Eagle::Script::Eagle_Sound_GetFFTSamples);
+		mono_add_internal_call("Eagle.Sound::SetFFTType_Native", Eagle::Script::Eagle_Sound_SetFFTType);
+		mono_add_internal_call("Eagle.Sound::GetFFTType_Native", Eagle::Script::Eagle_Sound_GetFFTType);
+		mono_add_internal_call("Eagle.Sound::GetSpectrumData_Native", Eagle::Script::Eagle_Sound_GetSpectrumData);
+		mono_add_internal_call("Eagle.Sound::GetSampleRate_Native", Eagle::Script::Eagle_Sound_GetSampleRate);
+		mono_add_internal_call("Eagle.Sound::GetChannelsCount_Native", Eagle::Script::Eagle_Sound_GetChannelsCount);
 
 		//Sound2D
 		mono_add_internal_call("Eagle.Sound2D::Create_Native", Eagle::Script::Eagle_Sound2D_Create);
@@ -432,6 +441,21 @@ namespace Eagle
 		mono_add_internal_call("Eagle.AudioComponent::IsStreaming_Native", Eagle::Script::Eagle_AudioComponent_IsStreaming);
 		mono_add_internal_call("Eagle.AudioComponent::IsPlaying_Native", Eagle::Script::Eagle_AudioComponent_IsPlaying);
 		mono_add_internal_call("Eagle.AudioComponent::IsDopplerEffectEnabled_Native", Eagle::Script::Eagle_AudioComponent_IsDopplerEffectEnabled);
+		mono_add_internal_call("Eagle.AudioComponent::SetFFTEnabled_Native", Eagle::Script::Eagle_AudioComponent_SetFFTEnabled);
+		mono_add_internal_call("Eagle.AudioComponent::IsFFTEnabled_Native", Eagle::Script::Eagle_AudioComponent_IsFFTEnabled);
+		mono_add_internal_call("Eagle.AudioComponent::SetFFTSamples_Native", Eagle::Script::Eagle_AudioComponent_SetFFTSamples);
+		mono_add_internal_call("Eagle.AudioComponent::GetFFTSamples_Native", Eagle::Script::Eagle_AudioComponent_GetFFTSamples);
+		mono_add_internal_call("Eagle.AudioComponent::SetFFTType_Native", Eagle::Script::Eagle_AudioComponent_SetFFTType);
+		mono_add_internal_call("Eagle.AudioComponent::GetFFTType_Native", Eagle::Script::Eagle_AudioComponent_GetFFTType);
+		mono_add_internal_call("Eagle.AudioComponent::GetSpectrumData_Native", Eagle::Script::Eagle_AudioComponent_GetSpectrumData);
+		mono_add_internal_call("Eagle.AudioComponent::GetSampleRate_Native", Eagle::Script::Eagle_AudioComponent_GetSampleRate);
+		mono_add_internal_call("Eagle.AudioComponent::SetPosition_Native", Eagle::Script::Eagle_AudioComponent_SetPosition);
+		mono_add_internal_call("Eagle.AudioComponent::GetPosition_Native", Eagle::Script::Eagle_AudioComponent_GetPosition);
+		mono_add_internal_call("Eagle.AudioComponent::SetIs3D_Native", Eagle::Script::Eagle_AudioComponent_SetIs3D);
+		mono_add_internal_call("Eagle.AudioComponent::Is3D_Native", Eagle::Script::Eagle_AudioComponent_Is3D);
+		mono_add_internal_call("Eagle.AudioComponent::SetPan_Native", Eagle::Script::Eagle_AudioComponent_SetPan);
+		mono_add_internal_call("Eagle.AudioComponent::GetPan_Native", Eagle::Script::Eagle_AudioComponent_GetPan);
+		mono_add_internal_call("Eagle.AudioComponent::GetChannelsCount_Native", Eagle::Script::Eagle_AudioComponent_GetChannelsCount);
 
 		//RigidBodyComponent
 		mono_add_internal_call("Eagle.RigidBodyComponent::SetBodyType_Native", Eagle::Script::Eagle_RigidBodyComponent_SetBodyType);
@@ -709,10 +733,12 @@ namespace Eagle
 		// AssetAudio
 		mono_add_internal_call("Eagle.AssetAudio::GetVolume_Native", Eagle::Script::Eagle_AssetAudio_GetVolume);
 		mono_add_internal_call("Eagle.AssetAudio::SetVolume_Native", Eagle::Script::Eagle_AssetAudio_SetVolume);
-		mono_add_internal_call("Eagle.AssetAudio::GetPitch_Native", Eagle::Script::Eagle_AssetAudio_GetVolume);
-		mono_add_internal_call("Eagle.AssetAudio::SetPitch_Native", Eagle::Script::Eagle_AssetAudio_SetVolume);
+		mono_add_internal_call("Eagle.AssetAudio::GetPitch_Native", Eagle::Script::Eagle_AssetAudio_GetPitch);
+		mono_add_internal_call("Eagle.AssetAudio::SetPitch_Native", Eagle::Script::Eagle_AssetAudio_SetPitch);
 		mono_add_internal_call("Eagle.AssetAudio::SetSoundGroup_Native", Eagle::Script::Eagle_AssetAudio_SetSoundGroup);
 		mono_add_internal_call("Eagle.AssetAudio::GetSoundGroup_Native", Eagle::Script::Eagle_AssetAudio_GetSoundGroup);
+		mono_add_internal_call("Eagle.AssetAudio::SetPan_Native", Eagle::Script::Eagle_AssetAudio_SetPan);
+		mono_add_internal_call("Eagle.AssetAudio::GetPan_Native", Eagle::Script::Eagle_AssetAudio_GetPan);
 
 		// AssetPhysicsMaterial
 		mono_add_internal_call("Eagle.AssetPhysicsMaterial::SetStaticFriction_Native", Eagle::Script::Eagle_AssetPhysicsMaterial_SetStaticFriction);

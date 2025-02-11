@@ -1424,6 +1424,18 @@ namespace Eagle
 		EG_CORE_TRACE("Runtime started");
 
 		bIsPlaying = true;
+
+		// Update Audio
+		{
+			auto view = m_Registry.view<AudioComponent>();
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+				auto& comp = e.GetComponent<AudioComponent>();
+				if (comp.bAutoplay)
+					comp.Play();
+			}
+		}
 		
 		// Update C# scripts
 		{
@@ -1444,18 +1456,6 @@ namespace Eagle
 				Entity e = { entity, this };
 				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
 					ScriptEngine::OnCreateEntity(e);
-			}
-		}
-
-		// Update Audio
-		{
-			auto view = m_Registry.view<AudioComponent>();
-			for (auto entity : view)
-			{
-				Entity e = { entity, this };
-				auto& comp = e.GetComponent<AudioComponent>();
-				if (comp.bAutoplay)
-					comp.Play();
 			}
 		}
 
