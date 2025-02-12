@@ -352,6 +352,12 @@ namespace Eagle
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetAnimType_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetAnimType);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetReceivesDecals_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetReceivesDecals);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::DoesReceiveDecals_Native", Eagle::Script::Eagle_SkeletalMeshComponent_DoesReceiveDecals);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetAnimationGraph_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetAnimationGraph);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetAnimationGraph_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetAnimationGraph);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::IsRootMotionLockFlagSet_Native", Eagle::Script::Eagle_SkeletalMeshComponent_IsRootMotionLockFlagSet);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetRootMotionLockFlagBool_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetRootMotionLockFlagBool);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetRootMotionLockFlag_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetRootMotionLockFlag);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetRootMotionLockFlags_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetRootMotionLockFlags);
 
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetCurrentClipPlayTime_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetCurrentClipPlayTime);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetClipPlaybackSpeed_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetClipPlaybackSpeed);
@@ -544,6 +550,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.CameraComponent::SetCascadesSmoothTransitionAlpha_Native", Eagle::Script::Eagle_CameraComponent_SetCascadesSmoothTransitionAlpha);
 		mono_add_internal_call("Eagle.CameraComponent::GetCameraProjectionMode_Native", Eagle::Script::Eagle_CameraComponent_GetCameraProjectionMode);
 		mono_add_internal_call("Eagle.CameraComponent::SetCameraProjectionMode_Native", Eagle::Script::Eagle_CameraComponent_SetCameraProjectionMode);
+		mono_add_internal_call("Eagle.CameraComponent::GetAspectRatio_Native", Eagle::Script::Eagle_CameraComponent_GetAspectRatio);
 
 		// Reverb component
 		mono_add_internal_call("Eagle.ReverbComponent::IsActive_Native", Eagle::Script::Eagle_ReverbComponent_IsActive);
@@ -624,6 +631,8 @@ namespace Eagle
 		// Particle System Component
 		mono_add_internal_call("Eagle.ParticleSystemComponent::Spawn_Native", Eagle::Script::Eagle_ParticleSystemComponent_Spawn);
 		mono_add_internal_call("Eagle.ParticleSystemComponent::Destroy_Native", Eagle::Script::Eagle_ParticleSystemComponent_Destroy);
+		mono_add_internal_call("Eagle.ParticleSystemComponent::SetAsset_Native", Eagle::Script::Eagle_ParticleSystemComponent_SetAsset);
+		mono_add_internal_call("Eagle.ParticleSystemComponent::GetAsset_Native", Eagle::Script::Eagle_ParticleSystemComponent_GetAsset);
 
 		// Decal Component
 		mono_add_internal_call("Eagle.DecalComponent::SetMaterial_Native", Eagle::Script::Eagle_DecalComponent_SetMaterial);
@@ -635,6 +644,10 @@ namespace Eagle
 
 		// NavigationMesh Component
 		mono_add_internal_call("Eagle.NavigationMeshComponent::Build_Native", Eagle::Script::Eagle_NavigationMeshComponent_Build);
+		mono_add_internal_call("Eagle.NavigationMeshComponent::SetCrowdSettings_Native", Eagle::Script::Eagle_NavigationMeshComponent_SetCrowdSettings);
+		mono_add_internal_call("Eagle.NavigationMeshComponent::GetCrowdSettings_Native", Eagle::Script::Eagle_NavigationMeshComponent_GetCrowdSettings);
+		mono_add_internal_call("Eagle.NavigationMeshComponent::GetSettings_Native", Eagle::Script::Eagle_NavigationMeshComponent_GetSettings);
+		mono_add_internal_call("Eagle.NavigationMeshComponent::SetSettings_Native", Eagle::Script::Eagle_NavigationMeshComponent_SetSettings);
 
 		// NavigationCrowdAgent Component
 		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::TeleportAgent_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_TeleportAgent);

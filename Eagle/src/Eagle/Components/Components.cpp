@@ -604,6 +604,7 @@ namespace Eagle
 		m_MaterialAssets = other.m_MaterialAssets;
 		m_AnimAsset = other.m_AnimAsset;
 		m_AnimGraphAsset = other.m_AnimGraphAsset;
+		m_RootMotionLockFlags = other.m_RootMotionLockFlags;
 		if (other.m_Graph)
 		{
 			VariablesMap copiedVars;

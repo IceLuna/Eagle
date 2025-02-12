@@ -35,6 +35,39 @@ namespace Eagle
         public bool bSeparation;
     };
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct CrowdSettings
+    {
+        public uint MaxAgents;
+        public float MaxAgentRadius;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct NavMeshSettings
+    {
+        public AABB AABB;
+        public uint MaxQueryNodes;
+        public uint ExpectedLayersPerTile;
+        public uint MaxLayers;
+        public uint MaxObstacles;
+        public uint TileSize;
+        public float CellSize;
+        public float CellHeight;
+        public float MaxSlope;
+        public float AgentHeight;
+        public float AgentMaxClimb;
+        public float AgentRadius;
+        public float EdgeMaxLen;
+        public float EdgeMaxError;
+        public float RegionMinSize;
+        public float RegionMergeSize;
+        public uint VertsPerPoly;
+        public uint BorderSize;
+        public bool FilterLowHangingObstacles;
+        public bool FilterLedgeSpans;
+        public bool FilterWalkableLowHeightSpans;
+    };
+
     public class Navigation
     {
         // Returns true if success

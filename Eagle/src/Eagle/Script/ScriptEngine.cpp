@@ -864,12 +864,16 @@ namespace Eagle
 
 	MonoObject* ScriptEngine::GetEntityMonoObject(Entity entity)
 	{
-		const GUID& entityGUID = entity.GetGUID();
-		auto it = s_EntityInstanceDataMap.find(entityGUID);
+		return GetEntityMonoObject(entity.GetGUID());
+	}
+
+	MonoObject* ScriptEngine::GetEntityMonoObject(GUID entityID)
+	{
+		auto it = s_EntityInstanceDataMap.find(entityID);
 		if (it == s_EntityInstanceDataMap.end())
 			return nullptr;
 
-		return s_EntityInstanceDataMap[entityGUID].Instance.GetMonoInstance();
+		return s_EntityInstanceDataMap[entityID].Instance.GetMonoInstance();
 	}
 	
 	void EntityScriptClass::InitClassMethods(MonoImage* image)

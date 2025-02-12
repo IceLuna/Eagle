@@ -1577,6 +1577,55 @@ namespace Eagle
 		component.SetAnimationAsset(animationAsset);
 	}
 
+	void Script::Eagle_SkeletalMeshComponent_GetAnimationGraph(GUID entityID, GUID* outAssetID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get skeletal mesh component animation graph. Entity is null");
+			return;
+		}
+
+		const auto& component = entity.GetComponent<SkeletalMeshComponent>();
+		const auto& animationAsset = component.GetAnimationGraphAsset();
+		*outAssetID = animationAsset ? animationAsset->GetGUID() : GUID(0, 0);
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_SetAnimationGraph(GUID entityID, GUID assetID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set skeletal mesh component animation graph. Entity is null");
+			return;
+		}
+
+		auto& component = entity.GetComponent<SkeletalMeshComponent>();
+		if (assetID.IsNull())
+		{
+			component.SetAnimationGraphAsset(nullptr);
+			return;
+		}
+
+		Ref<Asset> asset;
+		if (!AssetManager::Get(assetID, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set skeletal mesh component animation graph. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetAnimationGraph> animationAsset = Cast<AssetAnimationGraph>(asset);
+		if (!animationAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set skeletal mesh component animation graph. Provided asset is not a animation asset");
+			return;
+		}
+
+		component.SetAnimationGraphAsset(animationAsset);
+	}
+
 	uint32_t Script::Eagle_SkeletalMeshComponent_GetMaterialsSlotsCount(GUID entityID)
 	{
 		auto& scene = Scene::GetCurrentScene();
@@ -1638,6 +1687,58 @@ namespace Eagle
 		}
 
 		return entity.GetComponent<SkeletalMeshComponent>().DoesReceiveDecals();
+	}
+
+	bool Script::Eagle_SkeletalMeshComponent_IsRootMotionLockFlagSet(GUID entityID, RootMotionLockFlag value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsRootMotionLockFlagSet' for skeletal mesh. Entity is null");
+			return false;
+		}
+
+		return entity.GetComponent<SkeletalMeshComponent>().IsRootMotionLockFlagSet(value);
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_SetRootMotionLockFlagBool(GUID entityID, RootMotionLockFlag flag, bool value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetRootMotionLockFlag' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<SkeletalMeshComponent>().SetRootMotionLockFlag(flag, value);
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_SetRootMotionLockFlag(GUID entityID, RootMotionLockFlag value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetRootMotionLockFlag' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<SkeletalMeshComponent>().SetRootMotionLockFlag(value);
+	}
+
+	RootMotionLockFlag Script::Eagle_SkeletalMeshComponent_GetRootMotionLockFlags(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetRootMotionLockFlags' for skeletal mesh. Entity is null");
+			return RootMotionLockFlag::None;
+		}
+
+		return entity.GetComponent<SkeletalMeshComponent>().GetRootMotionLockFlags();
 	}
 
 	SkeletalMeshComponent::AnimationType Script::Eagle_SkeletalMeshComponent_GetAnimType(GUID entityID)
@@ -4175,6 +4276,18 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'ProjectionMode'. Entity is null");
 	}
 
+	float Script::Eagle_CameraComponent_GetAspectRatio(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<CameraComponent>().Camera.GetAspectRatio();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call Camera Component 'GetAspectRatio'. Entity is null");
+		return 0.f;
+	}
+
 	//--------------Reverb Component--------------
 	bool Script::Eagle_ReverbComponent_IsActive(GUID entityID)
 	{
@@ -5297,10 +5410,8 @@ namespace Eagle
 
 	MonoObject* Script::Eagle_ScriptComponent_GetInstance(GUID entityID)
 	{
-		auto& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			return ScriptEngine::GetEntityMonoObject(entity);
+		if (!entityID.IsNull())
+			return ScriptEngine::GetEntityMonoObject(entityID);
 
 		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetInstance`. Entity is null");
 		return nullptr;
@@ -5335,6 +5446,55 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call `Destroy` of Particle System Component. Entity is null");
 			return;
 		}
+	}
+
+	void Script::Eagle_ParticleSystemComponent_SetAsset(GUID entityID, GUID assetID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call ParticleSystemComponent `SetAsset`. Entity is null");
+			return;
+		}
+
+		auto& component = entity.GetComponent<ParticleSystemComponent>();
+		if (assetID.IsNull())
+		{
+			component.SetAsset(nullptr);
+			return;
+		}
+
+		Ref<Asset> asset;
+		if (!AssetManager::Get(assetID, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call ParticleSystemComponent `SetAsset`. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetParticleSystem> psAsset = Cast<AssetParticleSystem>(asset);
+		if (!psAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call ParticleSystemComponent `SetAsset`. Provided asset is not a Particle System asset");
+			return;
+		}
+
+		component.SetAsset(psAsset);
+	}
+
+	GUID Script::Eagle_ParticleSystemComponent_GetAsset(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call ParticleSystemComponent `GetAsset`. Entity is null");
+			return GUID(0, 0);
+		}
+
+		const auto& component = entity.GetComponent<ParticleSystemComponent>();
+		const auto& asset = component.GetAsset();
+		return asset ? asset->GetGUID() : GUID(0, 0);
 	}
 
 	//--------------Decal Component--------------
@@ -5456,6 +5616,66 @@ namespace Eagle
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call `Build` of Navigation Mesh Component. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_NavigationMeshComponent_SetCrowdSettings(GUID entityID, const AINavigation::CrowdSettings* settings)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			entity.GetComponent<NavigationMeshComponent>().SetCrowdSettings(*settings);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetCrowdSettings` of Navigation Mesh Component. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_NavigationMeshComponent_GetCrowdSettings(GUID entityID, AINavigation::CrowdSettings* settings)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			*settings = entity.GetComponent<NavigationMeshComponent>().GetCrowdSettings();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetCrowdSettings` of Navigation Mesh Component. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_NavigationMeshComponent_SetSettings(GUID entityID, const AINavigation::MeshSettings* settings)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			entity.GetComponent<NavigationMeshComponent>().SetSettings(*settings);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetSettings` of Navigation Mesh Component. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_NavigationMeshComponent_GetSettings(GUID entityID, AINavigation::MeshSettings* settings)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			*settings = entity.GetComponent<NavigationMeshComponent>().GetSettings();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetSettings` of Navigation Mesh Component. Entity is null");
 			return;
 		}
 	}

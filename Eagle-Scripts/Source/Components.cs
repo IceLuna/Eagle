@@ -32,11 +32,18 @@ namespace Eagle
         RotationX = 1 << 3, RotationY = 1 << 4, RotationZ = 1 << 5, Rotation = RotationX | RotationY | RotationZ
     }
 
+    public enum RootMotionLockFlag
+    {
+        None = 0,
+        PositionX = 1 << 0, PositionY = 1 << 1, PositionZ = 1 << 2,
+        Position = PositionX | PositionY | PositionZ
+    }
+
     public enum AnimationType
     {
         Clip,
 		Graph
-    };
+    }
 
     public abstract class Component
     {
@@ -278,6 +285,11 @@ namespace Eagle
             set { SetCascadesSmoothTransitionAlpha_Native(Parent.ID, value); }
         }
 
+        public float GetAspectRatio()
+        {
+            return GetAspectRatio_Native(Parent.ID);
+        }
+
         public CameraProjectionMode ProjectionMode
         {
             get { return GetCameraProjectionMode_Native(Parent.ID); }
@@ -331,6 +343,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetCameraProjectionMode_Native(in GUID entityID, CameraProjectionMode value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetAspectRatio_Native(in GUID entityID);
     }
 
     public abstract class LightComponent : SceneComponent
@@ -689,7 +704,7 @@ namespace Eagle
             return new AssetMaterial(assetID);
         }
 
-        public void SetMaterialAsset(uint index, AssetMaterial value)
+        public void SetMaterialAsset(AssetMaterial value, uint index)
         {
             SetMaterial_Native(Parent.ID, index, (value != null) ? value.GetGUID() : GUID.Null());
         }
@@ -711,6 +726,21 @@ namespace Eagle
         public void SetAnimationAsset(AssetAnimation value)
         {
             SetAnimation_Native(Parent.ID, (value != null) ? value.GetGUID() : GUID.Null());
+        }
+        
+
+        public AssetAnimationGraph GetAnimationGraphAsset()
+        {
+            GetAnimationGraph_Native(Parent.ID, out GUID assetID);
+            if (assetID.IsNull())
+                return null;
+
+            return new AssetAnimationGraph(assetID);
+        }
+
+        public void SetAnimationAssetGraph(AssetAnimationGraph value)
+        {
+            SetAnimationGraph_Native(Parent.ID, (value != null) ? value.GetGUID() : GUID.Null());
         }
 
         public void SetRagdollEnabled(bool bEnabled)
@@ -837,6 +867,26 @@ namespace Eagle
             return GetAnimGraphVariableString_Native(Parent.ID, name);
         }
 
+        public bool IsRootMotionLockFlagSet(RootMotionLockFlag flag)
+        {
+            return IsRootMotionLockFlagSet_Native(Parent.ID, flag);
+        }
+
+        public void SetRootMotionLockFlag(RootMotionLockFlag flag, bool value)
+        {
+            SetRootMotionLockFlagBool_Native(Parent.ID, flag, value);
+        }
+
+        public void SetRootMotionLockFlag(RootMotionLockFlag flag)
+        {
+            SetRootMotionLockFlag_Native(Parent.ID, flag);
+        }
+
+        public RootMotionLockFlag GetRootMotionLockFlags()
+        {
+            return GetRootMotionLockFlags_Native(Parent.ID);
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetReceivesDecals_Native(in GUID entityID, bool value);
 
@@ -860,6 +910,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetAnimation_Native(in GUID entityID, in GUID assetID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetAnimationGraph_Native(in GUID entityID, out GUID assetID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAnimationGraph_Native(in GUID entityID, in GUID assetID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetRagdollEnabled_Native(in GUID entityID, bool bEnabled);
@@ -938,6 +994,18 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern uint GetMaterialsSlotsCount_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsRootMotionLockFlagSet_Native(GUID entityID, RootMotionLockFlag value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetRootMotionLockFlagBool_Native(GUID entityID, RootMotionLockFlag flag, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetRootMotionLockFlag_Native(GUID entityID, RootMotionLockFlag value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern RootMotionLockFlag GetRootMotionLockFlags_Native(GUID entityID);
     }
 
     public class SpriteComponent : SceneComponent
@@ -1486,12 +1554,12 @@ namespace Eagle
         
         public RollOffModel GetRollOffModel() { return GetRollOffModel_Native(Parent.ID); }
         
-        public void SetVolumeMultiplier(float volume)
+        public void SetVolume(float volume)
         {
             SetVolume_Native(Parent.ID, volume);
         }
         
-        public float GetVolumeMultiplier() { return GetVolume_Native(Parent.ID); }
+        public float GetVolume() { return GetVolume_Native(Parent.ID); }
         
         public void SetPitch(float pitch)
         {
@@ -1826,6 +1894,7 @@ namespace Eagle
 
     public class RigidBodyComponent : Component
     {
+        // Needs to be called before colliders are added. Otherwise, doesn't have an effect.
         public void SetBodyType(PhysicsBodyType bodyType) { SetBodyType_Native(Parent.ID, bodyType); }
         
         public PhysicsBodyType GetBodyType() { return GetBodyType_Native(Parent.ID); }
@@ -2269,7 +2338,7 @@ namespace Eagle
     public class ScriptComponent : Component
     {
         // Removes old script and calls `OnDestroy` if present.
-        // Creates a new script and call `OnCreate`.
+        // Creates a new script and calls `OnCreate`.
         // @type. Must be derived from `Eagle.Entity` class. It can be null to remove a script
         public void SetScript(Type type)
         {
@@ -2281,6 +2350,9 @@ namespace Eagle
             return GetScriptType_Native(Parent.ID);
         }
 
+        // Call this method to correctly retrieve script instance.
+        // For example, if you have a script `public class MyScript : Entity`, using `ScriptComponent.Parent` won't work.
+        // You need to call `ScriptComponent.GetInstance()` to get script instance that you can cast to `MyScript`
         public Entity GetInstance()
         {
             return GetInstance_Native(Parent.ID);
@@ -2303,8 +2375,27 @@ namespace Eagle
             m_Type = typeof(ParticleSystemComponent);
         }
 
+        public void SetAsset(AssetParticleSystem ps)
+        {
+            SetAsset_Native(Parent.ID, ps != null ? ps.GetGUID() : GUID.Null());
+        }
+
+        public AssetParticleSystem GetAsset()
+        {
+            GUID assetID = GetAsset_Native(Parent.ID);
+            if (assetID.IsNull())
+                return null;
+            return new AssetParticleSystem(assetID);
+        }
+
         void Spawn() { Spawn_Native(Parent.ID); }
         void Destroy() { Destroy_Native(Parent.ID); }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAsset_Native(GUID entityID, GUID assetGUID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID GetAsset_Native(GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void Spawn_Native(in GUID entityID);
@@ -2386,6 +2477,30 @@ namespace Eagle
             m_Type = typeof(NavigationMeshComponent);
         }
 
+        public void SetSettings(NavMeshSettings settings)
+        {
+            SetSettings_Native(Parent.ID, ref settings);
+        }
+
+        public NavMeshSettings GetSettings()
+        {
+            GetSettings_Native(Parent.ID, out NavMeshSettings settings);
+            return settings;
+        }
+
+        public void SetCrowdSettings(CrowdSettings settings)
+        {
+            SetCrowdSettings_Native(Parent.ID, ref settings);
+        }
+
+        public CrowdSettings GetCrowdSettings()
+        {
+            GetCrowdSettings_Native(Parent.ID, out CrowdSettings settings);
+            return settings;
+        }
+
+        // Currently, only one nav mesh is supported.
+        // Building it will invalidate existing nav mesh.
         public void Build()
         {
             Build_Native(Parent.ID);
@@ -2393,6 +2508,18 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void Build_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetCrowdSettings_Native(in GUID entityID, ref CrowdSettings settings);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetCrowdSettings_Native(in GUID entityID, out CrowdSettings settings);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetSettings_Native(in GUID entityID, ref NavMeshSettings settings);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetSettings_Native(in GUID entityID, out NavMeshSettings settings);
     }
 
     public class NavigationCrowdAgentComponent : Component

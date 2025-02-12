@@ -1097,7 +1097,7 @@ namespace Eagle
 		dtObstacleRef m_ObstacleID = 0u;
 		bool bTrigger = false;
 		bool bShowCollision = false;
-		bool bAffectsNavMeshBuild = true; // If set to true, collider won't be used during the nav mesh build process
+		bool bAffectsNavMeshBuild = true; // If set to false, collider won't be used during the nav mesh build process
 		bool bObstacle = false; // Can be used for NavMesh to dynamically block the path. Not supported by mesh colliders
 	};
 

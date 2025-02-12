@@ -84,6 +84,7 @@ namespace Eagle
 		static void InstantiateEntityClass(Entity& entity);
 		static EntityInstanceData& GetEntityInstanceData(Entity& entity);
 		static MonoObject* GetEntityMonoObject(Entity entity);
+		static MonoObject* GetEntityMonoObject(GUID entityID);
 
 		static void OnCreateEntity(Entity& entity);
 		static void OnUpdateEntity(Entity& entity, Timestep ts);

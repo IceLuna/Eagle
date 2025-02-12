@@ -135,6 +135,8 @@ namespace Eagle::Script
 	void Eagle_SkeletalMeshComponent_SetMaterial(GUID entityID, uint32_t index, GUID assetID);
 	void Eagle_SkeletalMeshComponent_GetAnimation(GUID entityID, GUID* outAssetID);
 	void Eagle_SkeletalMeshComponent_SetAnimation(GUID entityID, GUID assetID);
+	void Eagle_SkeletalMeshComponent_GetAnimationGraph(GUID entityID, GUID* outAssetID);
+	void Eagle_SkeletalMeshComponent_SetAnimationGraph(GUID entityID, GUID assetID);
 	uint32_t Eagle_SkeletalMeshComponent_GetMaterialsSlotsCount(GUID entityID);
 	void Eagle_SkeletalMeshComponent_SetCastsShadows(GUID entityID, bool value);
 	bool Eagle_SkeletalMeshComponent_DoesCastShadows(GUID entityID);
@@ -142,6 +144,10 @@ namespace Eagle::Script
 	void Eagle_SkeletalMeshComponent_SetAnimType(GUID entityID, SkeletalMeshComponent::AnimationType value);
 	void Eagle_SkeletalMeshComponent_SetReceivesDecals(GUID entityID, bool value);
 	bool Eagle_SkeletalMeshComponent_DoesReceiveDecals(GUID entityID);
+	bool Eagle_SkeletalMeshComponent_IsRootMotionLockFlagSet(GUID entityID, RootMotionLockFlag value);
+	void Eagle_SkeletalMeshComponent_SetRootMotionLockFlagBool(GUID entityID, RootMotionLockFlag flag, bool value);
+	void Eagle_SkeletalMeshComponent_SetRootMotionLockFlag(GUID entityID, RootMotionLockFlag value);
+	RootMotionLockFlag Eagle_SkeletalMeshComponent_GetRootMotionLockFlags(GUID entityID);
 
 	void Eagle_SkeletalMeshComponent_SetCurrentClipPlayTime(GUID entityID, float value);
 	void Eagle_SkeletalMeshComponent_SetClipPlaybackSpeed(GUID entityID, float value);
@@ -335,6 +341,7 @@ namespace Eagle::Script
 	void Eagle_CameraComponent_SetCascadesSmoothTransitionAlpha(GUID entityID, float value);
 	CameraProjectionMode Eagle_CameraComponent_GetCameraProjectionMode(GUID entityID);
 	void Eagle_CameraComponent_SetCameraProjectionMode(GUID entityID, CameraProjectionMode value);
+	float Eagle_CameraComponent_GetAspectRatio(GUID entityID);
 
 	// Reverb Component
 	bool Eagle_ReverbComponent_IsActive(GUID entityID);
@@ -436,6 +443,8 @@ namespace Eagle::Script
 	// Particle System Component
 	void Eagle_ParticleSystemComponent_Spawn(GUID entityID);
 	void Eagle_ParticleSystemComponent_Destroy(GUID entityID);
+	void Eagle_ParticleSystemComponent_SetAsset(GUID entityID, GUID assetGUID);
+	GUID Eagle_ParticleSystemComponent_GetAsset(GUID entityID);
 
 	// Decal Component
 	void Eagle_DecalComponent_SetMaterial(GUID entityID, GUID assetID);
@@ -447,6 +456,10 @@ namespace Eagle::Script
 
 	// NavigationMeshComponent
 	void Eagle_NavigationMeshComponent_Build(GUID entityID);
+	void Eagle_NavigationMeshComponent_SetCrowdSettings(GUID entityID, const AINavigation::CrowdSettings* settings);
+	void Eagle_NavigationMeshComponent_GetCrowdSettings(GUID entityID, AINavigation::CrowdSettings* settings);
+	void Eagle_NavigationMeshComponent_SetSettings(GUID entityID, const AINavigation::MeshSettings* settings);
+	void Eagle_NavigationMeshComponent_GetSettings(GUID entityID, AINavigation::MeshSettings* settings);
 
 	// NavigationCrowdAgentComponent
 	void Eagle_NavigationCrowdAgentComponent_TeleportAgent(GUID entityID, const glm::vec3* location);
