@@ -21,10 +21,10 @@ namespace Eagle
 		static void InitGame(const YAML::Node& assetNode);
 		static void Reset();
 		static void ResetGameAssets();
+		static void ResetRuntimeAsset();
 
 		static void Register(const Ref<Asset>& asset);
-		static bool Exist(const Path& path);
-		static bool Exist(const GUID& guid);
+		static void AddRuntimeAsset(const Ref<Asset>& asset); // Created by C#
 		static bool Get(const Path& path, Ref<Asset>* outAsset);
 		static bool Get(const GUID& guid, Ref<Asset>* outAsset);
 		static bool GetRuntimeAssetNode(const Path& path, YAML::Node* outNode);
@@ -62,6 +62,9 @@ namespace Eagle
 		static AssetsMap s_Assets;
 		static AssetsMapByGUID s_AssetsByGUID;
 		static std::unordered_map<GUID, std::function<void(const Ref<Asset>&)>> s_Callbacks;
+
+		// Used to store assets that are created at runtime (using C#). They're deleted once the scene is closed
+		static AssetsMapByGUID s_RuntimeAssets;
 
 		// Engine-only assets that's used for asset previews
 		static Ref<AssetTextureCube> s_Skybox;

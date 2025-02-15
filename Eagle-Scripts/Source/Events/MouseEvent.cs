@@ -1,6 +1,6 @@
 ﻿namespace Eagle
 {
-    abstract public class MouseEvent : Event
+    public abstract class MouseEvent : Event
     {
         public override EventCategory GetCategoryFlags()
         {

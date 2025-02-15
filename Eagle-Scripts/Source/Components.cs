@@ -788,7 +788,7 @@ namespace Eagle
             return result;
         }
 
-        AnimationType AnimType
+        public AnimationType AnimType
         {
             get { return GetAnimType_Native(Parent.ID); }
             set { SetAnimType_Native(Parent.ID, value); }
@@ -2547,12 +2547,12 @@ namespace Eagle
         }
 
         // Entity.WorldLocation should be the same because agents control entities.
-        bool GetLocation(out Vector3 outLocation)
+        public bool GetLocation(out Vector3 outLocation)
         {
             return GetLocation_Native(Parent.ID, out outLocation);
         }
 
-        bool GetVelocity(out Vector3 outVelocity)
+        public bool GetVelocity(out Vector3 outVelocity)
         {
             return GetVelocity_Native(Parent.ID, out outVelocity);
         }

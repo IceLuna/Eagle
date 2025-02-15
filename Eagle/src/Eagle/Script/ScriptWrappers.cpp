@@ -7380,6 +7380,36 @@ namespace Eagle
 	}
 
 	//--------------AssetMaterial--------------
+	GUID Script::Eagle_AssetMaterial_Create()
+	{
+		Ref<Material> material = Material::Create();
+		Ref<AssetMaterial> materialAsset = AssetMaterial::Create(material);
+		AssetManager::AddRuntimeAsset(materialAsset);
+		return materialAsset->GetGUID();
+	}
+
+	GUID Script::Eagle_AssetMaterial_CreateFromAsset(GUID assetID)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't create material asset. Couldn't find an asset");
+			return GUID(0, 0);
+		}
+
+		if (Ref<AssetMaterial> materialAsset = Cast<AssetMaterial>(asset))
+		{
+			Ref<Material> material = Material::Create(materialAsset->GetMaterial());
+			Ref<AssetMaterial> newAsset = AssetMaterial::Create(material);
+			AssetManager::AddRuntimeAsset(newAsset);
+			return newAsset->GetGUID();
+		}
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't create material asset. It's not a material asset");
+		return GUID(0, 0);
+	}
+
 	void Script::Eagle_AssetMaterial_GetMaterial(GUID assetID,
 		GUID* outAlbedoTexture, GUID* outMetalnessTexture, GUID* outNormalTexture, GUID* outRoughnessTexture, GUID* outAOTexture, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
 		glm::vec3* albedo, float* metalness, float* roughness, float* ao, glm::vec3* emissive, float* opacity, float* opacityMask,
@@ -7684,6 +7714,37 @@ namespace Eagle
 
 		EG_CORE_ERROR("[ScriptEngine] Couldn't get asset bounciness. It's not a PhysicsMaterial asset");
 		return 0.f;
+	}
+
+	GUID Script::Eagle_AssetPhysicsMaterial_Create(float staticFriction, float dynamicFriction, float bounciness)
+	{
+		Ref<PhysicsMaterial> material = PhysicsMaterial::Create(staticFriction, dynamicFriction, bounciness);
+		Ref<AssetPhysicsMaterial> asset = AssetPhysicsMaterial::Create(material);
+		AssetManager::AddRuntimeAsset(asset);
+		return asset->GetGUID();
+	}
+
+	GUID Script::Eagle_AssetPhysicsMaterial_CreateFromAsset(GUID assetID)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't create physics material asset. Couldn't find an asset");
+			return GUID(0, 0);
+		}
+
+		if (Ref<AssetPhysicsMaterial> materialAsset = Cast<AssetPhysicsMaterial>(asset))
+		{
+			const auto& material = materialAsset->GetMaterial();
+			Ref<PhysicsMaterial> newMaterial = PhysicsMaterial::Create(material->GetStaticFriction(), material->GetDynamicFriction(), material->GetBounciness());
+			Ref<AssetPhysicsMaterial> newAsset = AssetPhysicsMaterial::Create(newMaterial);
+			AssetManager::AddRuntimeAsset(newAsset);
+			return newAsset->GetGUID();
+		}
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't create physics material asset. It's not a PhysicsMaterial asset");
+		return GUID(0, 0);
 	}
 
 	//--------------AssetSoundGroup--------------
@@ -8031,7 +8092,14 @@ namespace Eagle
 		delete data;
 	}
 
-	void Script::SetEmitter_Native(void* data, uint32_t index, GUID texture, const glm::vec4* colorStart, const glm::vec4* colorEnd,
+	GUID Script::Eagle_AssetParticleSystem_Create()
+	{
+		Ref<AssetParticleSystem> asset = AssetParticleSystem::Create();
+		AssetManager::AddRuntimeAsset(asset);
+		return asset->GetGUID();
+	}
+
+	void Script::Eagle_AssetParticleSystem_SetEmitter(void* data, uint32_t index, GUID texture, const glm::vec4* colorStart, const glm::vec4* colorEnd,
 		const glm::vec3* velocityMin, const glm::vec3* velocityMax, const glm::vec3* velocityCoefStart, const glm::vec3* velocityCoefEnd,
 		float rotationZStart, float rotationZEnd, const glm::vec2* sizeStart, const glm::vec2* sizeEnd, const glm::vec2* colliderSizeRatio,
 		float lifetimeMin, float lifetimeMax, float bouncinessMin, float bouncinessMax, MonoString* name, const Transform* relativeTransform,

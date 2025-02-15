@@ -514,6 +514,12 @@ namespace Eagle
 				bCreatedAsset = true;
 			}
 
+			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::ParticleSystem), "Particle System", thumbnailSize, thumbnailSize.x))
+			{
+				AssetImporter::CreateParticleSystem(m_CurrentDirectoryRelative);
+				bCreatedAsset = true;
+			}
+
 			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::Material), "Material", thumbnailSize, thumbnailSize.x))
 			{
 				AssetImporter::CreateMaterial(m_CurrentDirectoryRelative);

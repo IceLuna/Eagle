@@ -2082,6 +2082,7 @@ namespace Eagle
 		m_SimulationScene->OnRuntimeStop();
 		m_EditorState = EditorState::Edit;
 		m_SimulationScene.reset();
+		AssetManager::ResetRuntimeAsset();
 		SetCurrentScene(m_EditorScene);
 
 		// Restore some renderer settings

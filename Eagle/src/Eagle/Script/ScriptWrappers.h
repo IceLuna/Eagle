@@ -616,12 +616,13 @@ namespace Eagle::Script
 	AssetTextureCubeFormat Eagle_AssetTextureCube_GetFormat(GUID id);
 
 	// AssetMaterial
+	GUID Eagle_AssetMaterial_Create();
+	GUID Eagle_AssetMaterial_CreateFromAsset(GUID assetID);
 	void Eagle_AssetMaterial_GetMaterial(GUID assetID,
 		GUID* outAlbedoTexture, GUID* outMetalnessTexture, GUID* outNormalTexture, GUID* outRoughnessTexture, GUID* outAOTexture, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
 		glm::vec3* albedo, float* metalness, float* roughness, float* ao, glm::vec3* emissive, float* opacity, float* opacityMask,
 		bool* bUseAlbedoTexture, bool* bUseMetalnessTexture, bool* bUseRoughnessTexture, bool* bUseAOTexture, bool* bUseEmissiveTexture, bool* bUseOpacityTexture, bool* bUseOpacityMaskTexture,
 		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode);
-
 	void Eagle_AssetMaterial_SetMaterial(GUID assetID,
 		GUID albedoTexture, GUID metalnessTexture, GUID normalTexture, GUID roughnessTexture, GUID aoTexture, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
 		const glm::vec3* albedo, float metalness, float roughness, float ao, const glm::vec3* emissive, float opacity, float opacityMask,
@@ -645,6 +646,8 @@ namespace Eagle::Script
 	float Eagle_AssetPhysicsMaterial_GetStaticFriction(GUID assetID);
 	float Eagle_AssetPhysicsMaterial_GetDynamicFriction(GUID assetID);
 	float Eagle_AssetPhysicsMaterial_GetBounciness(GUID assetID);
+	GUID Eagle_AssetPhysicsMaterial_Create(float staticFriction, float dynamicFriction, float bounciness);
+	GUID Eagle_AssetPhysicsMaterial_CreateFromAsset(GUID assetID);
 
 	// AssetSoundGroup
 	void Eagle_AssetSoundGroup_Stop(GUID assetID);
@@ -670,8 +673,9 @@ namespace Eagle::Script
 	void Eagle_AssetParticleSystem_RemoveEmitters(GUID assetID);
 	void* Eagle_AssetParticleSystem_SetEmitters_Prepare(uint32_t count);
 	void Eagle_AssetParticleSystem_SetEmitters_Finish(GUID assetID, void* data);
+	GUID Eagle_AssetParticleSystem_Create();
 
-	void SetEmitter_Native(void* data, uint32_t index,
+	void Eagle_AssetParticleSystem_SetEmitter(void* data, uint32_t index,
 		GUID texture, const glm::vec4* colorStart, const glm::vec4* colorEnd, const glm::vec3* velocityMin, const glm::vec3* velocityMax,
 		const glm::vec3* velocityCoefStart, const glm::vec3* velocityCoefEnd, float rotationZStart, float rotationZEnd,
 		const glm::vec2* sizeStart, const glm::vec2* sizeEnd, const glm::vec2* colliderSizeRatio, float lifetimeMin, float lifetimeMax,

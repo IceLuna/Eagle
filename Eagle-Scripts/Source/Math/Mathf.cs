@@ -227,7 +227,7 @@ namespace Eagle
         // Maps `value` from range [minA; maxA] to range [minB; maxB]
         public static float MapRange(float value, float minA, float maxA, float minB, float maxB)
         {
-            float alpha = (value - minA) / (maxA - minA);
+            float alpha = Mathf.Clamp((value - minA) / (maxA - minA), 0f, 1f);
             float result = alpha * (maxB - minB) + minB;
             return result;
         }

@@ -526,6 +526,7 @@ namespace Eagle
 
 		// @path. Path to an `.egasset` file
 		static Ref<AssetMaterial> Create(const Path& path);
+		static Ref<AssetMaterial> Create(const Ref<Material>& material); // Used to create runtime simulation assets using C#
 
 		static constexpr AssetType GetAssetType_Static() { return AssetType::Material; }
 
@@ -564,6 +565,7 @@ namespace Eagle
 
 		// @path. Path to an `.egasset` file
 		static Ref<AssetPhysicsMaterial> Create(const Path& path);
+		static Ref<AssetPhysicsMaterial> Create(const Ref<PhysicsMaterial>& material); // Used to create runtime simulation assets using C#
 
 		static constexpr AssetType GetAssetType_Static() { return AssetType::PhysicsMaterial; }
 
@@ -731,14 +733,15 @@ namespace Eagle
 
 			Asset::operator=(std::move(other));
 
-			AssetParticleSystem&& fontAsset = (AssetParticleSystem&&)other;
-			m_Emitters = std::move(fontAsset.m_Emitters);
+			AssetParticleSystem&& psAsset = (AssetParticleSystem&&)other;
+			m_Emitters = std::move(psAsset.m_Emitters);
 
 			return *this;
 		}
 
 		// @path. Path to an `.egasset` file
 		static Ref<AssetParticleSystem> Create(const Path& path);
+		static Ref<AssetParticleSystem> Create(); // Used to create runtime simulation assets using C#
 		static Ref<AssetParticleSystem> Copy(const Ref<AssetParticleSystem>& asset);
 
 		static constexpr AssetType GetAssetType_Static() { return AssetType::ParticleSystem; }

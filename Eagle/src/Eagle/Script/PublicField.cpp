@@ -265,7 +265,7 @@ namespace Eagle
 				}
 				else
 				{
-					MonoClass* assetClass = ScriptEngine::GetCoreClass("Eagle", "Asset");
+					MonoClass* assetClass = ScriptEngine::GetAssetClass();
 					MonoClassField* field = mono_class_get_field_from_name(assetClass, "m_GUID");
 					mono_field_get_value(obj, field, outValue);
 				}

@@ -34,6 +34,7 @@ namespace Eagle
 
 	static MonoMethod* s_ExceptionMethod = nullptr;
 	static MonoClass* s_EntityClass = nullptr;
+	static MonoClass* s_AssetClass = nullptr;
 	static MonoClass* s_Vector3Class = nullptr;
 
 	static std::unordered_map<std::string, EntityScriptClass> s_EntityClassMap;
@@ -230,6 +231,11 @@ namespace Eagle
 	MonoClass* ScriptEngine::GetEntityClass()
 	{
 		return s_EntityClass;
+	}
+
+	MonoClass* ScriptEngine::GetAssetClass()
+	{
+		return s_AssetClass;
 	}
 
 	MonoClass* ScriptEngine::GetVector3Class()
@@ -690,6 +696,7 @@ namespace Eagle
 		s_CoreAssemblyImage = GetAssemblyImage(s_CoreAssembly);
 		s_ExceptionMethod = GetMethod(s_CoreAssemblyImage, "Eagle.RuntimeException:OnException(object)");
 		s_EntityClass = mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Entity");
+		s_AssetClass = mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Asset");
 		s_Vector3Class = mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector3");
 
 		s_BuiltInEagleTypes.clear();
@@ -699,7 +706,7 @@ namespace Eagle
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector4")]               = FieldType::Vec4;
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Color3")]                = FieldType::Color3;
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Color4")]                = FieldType::Color4;
-		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Asset")]                 = FieldType::Asset;
+		s_BuiltInEagleTypes[s_AssetClass]                                                                = FieldType::Asset;
 		s_BuiltInEagleTypes[s_EntityClass]                                                               = FieldType::Entity;
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetTexture2D")]        = FieldType::AssetTexture2D;
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetTextureCube")]      = FieldType::AssetTextureCube;

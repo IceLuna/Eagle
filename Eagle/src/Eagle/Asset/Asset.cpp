@@ -409,6 +409,18 @@ namespace Eagle
 		YAML::Node data = YAML::LoadFile(path.string());
 		return Serializer::DeserializeAssetMaterial(data, path);
 	}
+
+	Ref<AssetMaterial> AssetMaterial::Create(const Ref<Material>& material)
+	{
+		class LocalAssetMaterial : public AssetMaterial
+		{
+		public:
+			LocalAssetMaterial(const Path& path, GUID guid, const Ref<Material>& material)
+				: AssetMaterial(path, guid, material) {}
+		};
+
+		return MakeRef<LocalAssetMaterial>("", GUID(), material);
+	}
 	
 	Ref<AssetStaticMesh> AssetStaticMesh::Create(const Path& path)
 	{
@@ -477,6 +489,18 @@ namespace Eagle
 
 		YAML::Node data = YAML::LoadFile(path.string());
 		return Serializer::DeserializeAssetPhysicsMaterial(data, path);
+	}
+
+	Ref<AssetPhysicsMaterial> AssetPhysicsMaterial::Create(const Ref<PhysicsMaterial>& material)
+	{
+		class LocalAssetPhysicsMaterial : public AssetPhysicsMaterial
+		{
+		public:
+			LocalAssetPhysicsMaterial(const Path& path, GUID guid, const Ref<PhysicsMaterial>& material)
+				: AssetPhysicsMaterial(path, guid, material) {}
+		};
+
+		return MakeRef<LocalAssetPhysicsMaterial>("", GUID(), material);
 	}
 	
 	Ref<AssetSoundGroup> AssetSoundGroup::Create(const Path& path)
@@ -574,6 +598,18 @@ namespace Eagle
 
 		YAML::Node data = YAML::LoadFile(path.string());
 		return Serializer::DeserializeAssetParticleSystem(data, path);
+	}
+
+	Ref<AssetParticleSystem> AssetParticleSystem::Create()
+	{
+		class LocalAssetParticleSystem : public AssetParticleSystem
+		{
+		public:
+			LocalAssetParticleSystem(const Path& path, GUID guid, const std::vector<ParticleEmitter>& emitters)
+				: AssetParticleSystem(path, guid, emitters) {}
+		};
+
+		return MakeRef<LocalAssetParticleSystem>("", GUID{}, std::vector<ParticleEmitter>{});
 	}
 	
 	Ref<AssetParticleSystem> AssetParticleSystem::Copy(const Ref<AssetParticleSystem>& asset)

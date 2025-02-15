@@ -53,7 +53,6 @@ namespace Eagle
 
         public static CursorMode GetCursorMode() => GetCursorMode_Native();
 
-
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern bool IsMouseButtonPressed_Native(MouseButton button);
 
@@ -77,8 +76,5 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern CursorMode GetCursorMode_Native();
-
     }
-
-
 }

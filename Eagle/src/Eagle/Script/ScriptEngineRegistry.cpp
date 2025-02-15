@@ -332,7 +332,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.StaticMeshComponent::GetMesh_Native", Eagle::Script::Eagle_StaticMeshComponent_GetMesh);
 		mono_add_internal_call("Eagle.StaticMeshComponent::GetMaterial_Native", Eagle::Script::Eagle_StaticMeshComponent_GetMaterial);
 		mono_add_internal_call("Eagle.StaticMeshComponent::SetMaterial_Native", Eagle::Script::Eagle_StaticMeshComponent_SetMaterial);
-		mono_add_internal_call("Eagle.StaticMeshComponent::GetMaterialsSlotsCount_Native", Eagle::Script::Eagle_StaticMeshComponent_SetMaterial);
+		mono_add_internal_call("Eagle.StaticMeshComponent::GetMaterialsSlotsCount_Native", Eagle::Script::Eagle_StaticMeshComponent_GetMaterialsSlotsCount);
 		mono_add_internal_call("Eagle.StaticMeshComponent::SetCastsShadows_Native", Eagle::Script::Eagle_StaticMeshComponent_SetCastsShadows);
 		mono_add_internal_call("Eagle.StaticMeshComponent::DoesCastShadows_Native", Eagle::Script::Eagle_StaticMeshComponent_DoesCastShadows);
 		mono_add_internal_call("Eagle.StaticMeshComponent::SetReceivesDecals_Native", Eagle::Script::Eagle_StaticMeshComponent_SetReceivesDecals);
@@ -345,7 +345,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetMaterial_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetMaterial);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetAnimation_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetAnimation);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetAnimation_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetAnimation);
-		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetMaterialsSlotsCount_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetMaterial);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetMaterialsSlotsCount_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetMaterialsSlotsCount);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetCastsShadows_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetCastsShadows);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::DoesCastShadows_Native", Eagle::Script::Eagle_SkeletalMeshComponent_DoesCastShadows);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetAnimType_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetAnimType);
@@ -742,6 +742,8 @@ namespace Eagle
 		// AssetMaterial
 		mono_add_internal_call("Eagle.AssetMaterial::GetMaterial_Native", Eagle::Script::Eagle_AssetMaterial_GetMaterial);
 		mono_add_internal_call("Eagle.AssetMaterial::SetMaterial_Native", Eagle::Script::Eagle_AssetMaterial_SetMaterial);
+		mono_add_internal_call("Eagle.AssetMaterial::Create_Native", Eagle::Script::Eagle_AssetMaterial_Create);
+		mono_add_internal_call("Eagle.AssetMaterial::CreateFromAsset_Native", Eagle::Script::Eagle_AssetMaterial_CreateFromAsset);
 
 		// AssetAudio
 		mono_add_internal_call("Eagle.AssetAudio::GetVolume_Native", Eagle::Script::Eagle_AssetAudio_GetVolume);
@@ -760,6 +762,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.AssetPhysicsMaterial::GetStaticFriction_Native", Eagle::Script::Eagle_AssetPhysicsMaterial_GetStaticFriction);
 		mono_add_internal_call("Eagle.AssetPhysicsMaterial::GetDynamicFriction_Native", Eagle::Script::Eagle_AssetPhysicsMaterial_GetDynamicFriction);
 		mono_add_internal_call("Eagle.AssetPhysicsMaterial::GetBounciness_Native", Eagle::Script::Eagle_AssetPhysicsMaterial_GetBounciness);
+		mono_add_internal_call("Eagle.AssetPhysicsMaterial::Create_Native", Eagle::Script::Eagle_AssetPhysicsMaterial_Create);
+		mono_add_internal_call("Eagle.AssetPhysicsMaterial::CreateFromAsset_Native", Eagle::Script::Eagle_AssetPhysicsMaterial_CreateFromAsset);
 
 		// AssetSoundGroup
 		mono_add_internal_call("Eagle.AssetSoundGroup::Stop_Native", Eagle::Script::Eagle_AssetSoundGroup_Stop);
@@ -785,7 +789,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.AssetParticleSystem::RemoveEmitters_Native", Eagle::Script::Eagle_AssetParticleSystem_RemoveEmitters);
 		mono_add_internal_call("Eagle.AssetParticleSystem::SetEmitters_Prepare_Native", Eagle::Script::Eagle_AssetParticleSystem_SetEmitters_Prepare);
 		mono_add_internal_call("Eagle.AssetParticleSystem::SetEmitters_Finish_Native", Eagle::Script::Eagle_AssetParticleSystem_SetEmitters_Finish);
-		mono_add_internal_call("Eagle.AssetParticleSystem::SetEmitter_Native", Eagle::Script::SetEmitter_Native);
+		mono_add_internal_call("Eagle.AssetParticleSystem::SetEmitter_Native", Eagle::Script::Eagle_AssetParticleSystem_SetEmitter);
 		mono_add_internal_call("Eagle.AssetParticleSystem::GetEmitter_Native", Eagle::Script::Eagle_AssetParticleSystem_GetEmitter);
+		mono_add_internal_call("Eagle.AssetParticleSystem::Create_Native", Eagle::Script::Eagle_AssetParticleSystem_Create);
 	}
 }

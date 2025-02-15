@@ -32,8 +32,8 @@
         public bool bUseOpacityTexture = false;
         public bool bUseOpacityMaskTexture = false;
         
-        public Color4 TintColor = new Color4();
-        public Color3 EmissiveIntensity = new Color3();
+        public Color4 TintColor = new Color4(1f);
+        public Color3 EmissiveIntensity = new Color3(1f);
         public float TilingFactor = 1f;
         public MaterialBlendMode BlendMode = MaterialBlendMode.Opaque;
     }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Security.AccessControl;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -271,6 +272,40 @@ namespace Eagle
         {
         }
 
+        public static AssetMaterial Create()
+        {
+            GUID id = Create_Native();
+            if (id.IsNull())
+                return null;
+
+            return new AssetMaterial(id);
+        }
+
+        public static AssetMaterial Create(Material value)
+        {
+            if (value == null)
+                return null;
+
+            AssetMaterial asset = Create();
+            if (asset != null)
+            {
+                asset.SetMaterial(value);
+            }
+            return asset;
+        }
+
+        public static AssetMaterial Create(AssetMaterial material)
+        {
+            if (material == null)
+                return null;
+
+            GUID id = CreateFromAsset_Native(material.GetGUID());
+            if (id.IsNull())
+                return null;
+
+            return new AssetMaterial(id);
+        }
+
         public Material GetMaterial()
         {
             Material result = new Material();
@@ -313,7 +348,7 @@ namespace Eagle
             return result;
         }
 
-        void SetMaterial(Material value)
+        public void SetMaterial(Material value)
         {
             GUID nullGUID = GUID.Null();
 
@@ -334,18 +369,24 @@ namespace Eagle
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetMaterial_Native(in GUID entityID,
+        internal static extern void GetMaterial_Native(in GUID assetID,
             out GUID albedoTexture, out GUID metalnessTexture, out GUID normalTexture, out GUID roughnessTexture, out GUID aoTexture, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
             out Color3 albedo, out float metalness, out float roughness, out float ao, out Color3 emissive, out float opacity, out float opacityMask,
             out bool bUseAlbedoTexture, out bool bUseMetalnessTexture, out bool bUseRoughnessTexture, out bool bUseAOTexture, out bool bUseEmissiveTexture, out bool bUseOpacityTexture, out bool bUseOpacityMaskTexture,
             out Color4 tint, out Color3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetMaterial_Native(in GUID entityID,
+        internal static extern void SetMaterial_Native(in GUID assetID,
             in GUID albedoTexture, in GUID metalnessTexture, in GUID normalTexture, in GUID roughnessTexture, in GUID aoTexture, in GUID emissiveTexture, in GUID opacityTexture, in GUID opacityMaskTexture,
             ref Color3 albedo, float metalness, float roughness, float ao, ref Color3 emissive, float opacity, float opacityMask,
             bool bUseAlbedoTexture, bool bUseMetalnessTexture, bool bUseRoughnessTexture, bool bUseAOTexture, bool bUseEmissiveTexture, bool bUseOpacityTexture, bool bUseOpacityMaskTexture,
             ref Color4 tint, ref Color3 emissiveIntensity, float tilingFactor, MaterialBlendMode blendMode);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID Create_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID CreateFromAsset_Native(GUID assetID);
     }
 
     public class AssetAudio : Asset
@@ -428,53 +469,80 @@ namespace Eagle
         {
         }
 
-        float GetStaticFriction()
+        public static AssetPhysicsMaterial Create(float staticFriction = 0.6f, float dynamicFriction = 0.6f, float bounciness = 0.5f)
+        {
+            GUID id = Create_Native(staticFriction, dynamicFriction, bounciness);
+            if (id.IsNull())
+                return null;
+
+            return new AssetPhysicsMaterial(id);
+        }
+
+        public static AssetPhysicsMaterial Create(AssetPhysicsMaterial material)
+        {
+            if (material == null)
+                return null;
+
+            GUID id = CreateFromAsset_Native(material.GetGUID());
+            if (id.IsNull())
+                return null;
+
+            return new AssetPhysicsMaterial(id);
+        }
+
+        public float GetStaticFriction()
         {
             return GetStaticFriction_Native(m_GUID);
         }
 
-        float GetDynamicFriction()
+        public float GetDynamicFriction()
         {
             return GetDynamicFriction_Native(m_GUID);
         }
 
-        float GetBounciness()
+        public float GetBounciness()
         {
             return GetBounciness_Native(m_GUID);
         }
 
-        void SetStaticFriction(float value)
+        public void SetStaticFriction(float value)
         {
             SetStaticFriction_Native(m_GUID, value);
         }
 
-        void SetDynamicFriction(float value)
+        public void SetDynamicFriction(float value)
         {
             SetDynamicFriction_Native(m_GUID, value);
         }
 
-        void SetBounciness(float value)
+        public void SetBounciness(float value)
         {
             SetBounciness_Native(m_GUID, value);
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetDynamicFriction_Native(in GUID entityID, float value);
+        internal static extern void SetDynamicFriction_Native(in GUID assetID, float value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetBounciness_Native(in GUID entityID, float value);
+        internal static extern void SetBounciness_Native(in GUID assetID, float value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetStaticFriction_Native(in GUID entityID, float value);
+        internal static extern void SetStaticFriction_Native(in GUID assetID, float value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern float GetStaticFriction_Native(in GUID entityID);
+        internal static extern float GetStaticFriction_Native(in GUID assetID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern float GetDynamicFriction_Native(in GUID entityID);
+        internal static extern float GetDynamicFriction_Native(in GUID assetID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern float GetBounciness_Native(in GUID entityID);
+        internal static extern float GetBounciness_Native(in GUID assetID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID Create_Native(float staticFriction, float dynamicFriction, float bounciness);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID CreateFromAsset_Native(GUID assetID);
     }
 
     public class AssetFont : Asset
@@ -634,6 +702,25 @@ namespace Eagle
         {
         }
 
+        public static AssetParticleSystem Create()
+        {
+            return new AssetParticleSystem(Create_Native());
+        }
+
+        public static AssetParticleSystem Create(AssetParticleSystem asset)
+        {
+            if (asset == null)
+                return null;
+
+            AssetParticleSystem newAsset = Create();
+            if (newAsset != null)
+            {
+                newAsset.SetEmitters(asset.GetEmitters());
+            }
+
+            return null;
+        }
+
         public uint GetEmittersCount()
         {
             return GetEmittersCount_Native(m_GUID);
@@ -699,6 +786,9 @@ namespace Eagle
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID Create_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern uint GetEmittersCount_Native(GUID id);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -709,7 +799,6 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetEmitters_Finish_Native(GUID id, IntPtr data);
-
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetEmitter_Native(IntPtr data, uint index,

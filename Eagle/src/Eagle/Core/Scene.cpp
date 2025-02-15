@@ -486,6 +486,7 @@ namespace Eagle
 				if (AssetManager::GetRuntimeAssetNode(path, &sceneNode))
 				{
 					AssetManager::ResetGameAssets();
+					AssetManager::ResetRuntimeAsset();
 					SceneSerializer serializer(scene);
 					serializer.Deserialize(sceneNode);
 					OnSceneOpened(scene);
@@ -500,6 +501,7 @@ namespace Eagle
 					SceneSerializer serializer(scene);
 					serializer.Deserialize(path);
 				}
+				AssetManager::ResetRuntimeAsset();
 				OnSceneOpened(scene);
 			}
 		};

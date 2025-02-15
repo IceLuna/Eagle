@@ -19,6 +19,7 @@ namespace Eagle
 	AssetsMap AssetManager::s_Assets;
 	AssetsMapByGUID AssetManager::s_AssetsByGUID;
 	std::unordered_map<GUID, std::function<void(const Ref<Asset>&)>> AssetManager::s_Callbacks;
+	AssetsMapByGUID AssetManager::s_RuntimeAssets;
 	Ref<AssetTextureCube> AssetManager::s_Skybox;
 	Ref<AssetStaticMesh> AssetManager::s_Sphere;
 	Ref<AssetStaticMesh> AssetManager::s_Cube;
@@ -134,6 +135,7 @@ namespace Eagle
 		s_Callbacks.clear();
 		s_Assets.clear();
 		s_AssetsByGUID.clear();
+		s_RuntimeAssets.clear();
 		s_AssetPackAssets.clear();
 		s_AssetPackAssetsByGUID.clear();
 		s_Skybox.reset();
@@ -147,6 +149,11 @@ namespace Eagle
 		s_AssetsByGUID.clear();
 	}
 
+	void AssetManager::ResetRuntimeAsset()
+	{
+		s_RuntimeAssets.clear();
+	}
+
 	void AssetManager::Register(const Ref<Asset>& asset)
 	{
 		if (asset)
@@ -155,15 +162,13 @@ namespace Eagle
 			s_AssetsByGUID.emplace(asset->GetGUID(), asset);
 		}
 	}
-	
-	bool AssetManager::Exist(const Path& path)
-	{
-		return s_Assets.find(path) != s_Assets.end();
-	}
 
-	bool AssetManager::Exist(const GUID& guid)
+	void AssetManager::AddRuntimeAsset(const Ref<Asset>& asset)
 	{
-		return s_AssetsByGUID.find(guid) != s_AssetsByGUID.end();
+		if (asset)
+		{
+			s_RuntimeAssets.emplace(asset->GetGUID(), asset);
+		}
 	}
 	
 	bool AssetManager::Get(const Path& path, Ref<Asset>* outAsset)
@@ -213,6 +218,13 @@ namespace Eagle
 
 		auto it = s_AssetsByGUID.find(guid);
 		if (it != s_AssetsByGUID.end())
+		{
+			*outAsset = it->second;
+			return true;
+		}
+
+		it = s_RuntimeAssets.find(guid);
+		if (it != s_RuntimeAssets.end())
 		{
 			*outAsset = it->second;
 			return true;

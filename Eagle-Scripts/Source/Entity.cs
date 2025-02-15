@@ -293,12 +293,12 @@ namespace Eagle
             return new Entity(GetChildrenByName_Native(ID, name));
         }
 
-        static public Entity SpawnEntity(string name = "")
+        public static Entity SpawnEntity(string name = "")
         {
             return new Entity(SpawnEntity_Native(name));
         }
 
-        static public Entity SpawnEntity(AssetEntity asset)
+        public static Entity SpawnEntity(AssetEntity asset)
         {
             return new Entity(SpawnEntityFromAsset_Native(asset.GetGUID()));
         }
