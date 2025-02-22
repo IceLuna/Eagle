@@ -56,10 +56,22 @@ namespace Eagle
 			ParticleSystemData(uint32_t deadCount) : DeadCount(deadCount) {}
 		};
 
+		struct AddingEmitterData
+		{
+			ParticleEmitter Emitter;
+			GUID SystemID;
+		};
+
+		struct RemovingEmitterData
+		{
+			uint32_t EmitterIndex = 0; // index of the emitter inside of `m_EmittersBuffer`
+			uint32_t TransformIndex = 0;
+		};
+
 		struct DeadEmitterData
 		{
 			std::chrono::high_resolution_clock::time_point TimeOfDeath;
-			uint32_t EmitterIndex = 0;
+			RemovingEmitterData Data;
 			float TimeTillDead = 0.f; // In seconds
 
 			bool IsDead() const
@@ -71,12 +83,6 @@ namespace Eagle
 
 				return false;
 			}
-		};
-
-		struct AddingEmitterData
-		{
-			ParticleEmitter Emitter;
-			GUID SystemID;
 		};
 
 		struct EmitterData
@@ -102,7 +108,7 @@ namespace Eagle
 		std::unordered_map<GUID, std::unordered_map<ParticleEmitter, EmitterData>> m_SystemToEmittersMapping; // Key - Particle system; Value - its emitters
 		std::vector<AddingEmitterData> m_EmittersToAdd;
 		std::vector<std::pair<ParticleEmitter, EmitterData>> m_EmittersToUpdate;
-		std::vector<std::pair<ParticleEmitter, uint32_t>> m_EmittersToRemove; // uint32_t - index of the emitter inside of `m_EmittersBuffer`
+		std::vector<std::pair<ParticleEmitter, RemovingEmitterData>> m_EmittersToRemove;
 		std::vector<DeadEmitterData> m_DeadEmitters;
 
 		std::vector<glm::mat4> m_Transforms;

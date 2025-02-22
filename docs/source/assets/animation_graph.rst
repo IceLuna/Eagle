@@ -44,6 +44,8 @@ It allows you to define a transition logic for animations.
 
 By clicking on a state itself, you can define an animation that will be played when the state is active.
 You can also specify transition settings, such as: transition condition, transition time, smooth transition.
+If smooth transition is disabled, frozen transition will be used: clip A is frozen while clip B gradually takes over the movement.
+This kind of transitional blend works well when the two clips/poses are unrelated and smooth transition looks unnatural.
 
 .. figure:: ../imgs/editor/assets/animationgraph/simple_statemachine.png
    :align: center 

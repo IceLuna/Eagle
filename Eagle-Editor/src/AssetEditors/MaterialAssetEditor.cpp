@@ -84,7 +84,10 @@ namespace Eagle
 
 			bool bUseTexture = !material->IsRawAlbedoUsed();
 			if (UI::Property("Use Texture", bUseTexture))
+			{
 				material->SetRawAlbedoUsed(!bUseTexture);
+				bChanged = true;
+			}
 			
 			UI::EndPropertyGrid();
 		}
@@ -110,7 +113,10 @@ namespace Eagle
 
 			bool bUseTexture = !material->IsRawMetalnessUsed();
 			if (UI::Property("Use Texture", bUseTexture))
+			{
 				material->SetRawMetalnessUsed(!bUseTexture);
+				bChanged = true;
+			}
 			
 			UI::EndPropertyGrid();
 		}
@@ -151,8 +157,11 @@ namespace Eagle
 
 			bool bUseTexture = !material->IsRawRoughnessUsed();
 			if (UI::Property("Use Texture", bUseTexture))
+			{
 				material->SetRawRoughnessUsed(!bUseTexture);
-			
+				bChanged = true;
+			}
+
 			UI::EndPropertyGrid();
 		}
 
@@ -177,7 +186,10 @@ namespace Eagle
 
 			bool bUseTexture = !material->IsRawAOUsed();
 			if (UI::Property("Use Texture", bUseTexture))
+			{
 				material->SetRawAOUsed(!bUseTexture);
+				bChanged = true;
+			}
 			
 			UI::EndPropertyGrid();
 		}
@@ -203,7 +215,10 @@ namespace Eagle
 
 			bool bUseTexture = !material->IsRawEmissiveUsed();
 			if (UI::Property("Use Texture", bUseTexture))
+			{
 				material->SetRawEmissiveUsed(!bUseTexture);
+				bChanged = true;
+			}
 			
 			UI::EndPropertyGrid();
 		}
@@ -236,7 +251,10 @@ namespace Eagle
 
 				bool bUseTexture = !material->IsRawOpacityUsed();
 				if (UI::Property("Use Texture", bUseTexture))
+				{
 					material->SetRawOpacityUsed(!bUseTexture);
+					bChanged = true;
+				}
 				
 				UI::EndPropertyGrid();
 			}
@@ -273,7 +291,10 @@ namespace Eagle
 
 				bool bUseTexture = !material->IsRawOpacityMaskUsed();
 				if (UI::Property("Use Texture", bUseTexture))
+				{
 					material->SetRawOpacityMaskUsed(!bUseTexture);
+					bChanged = true;
+				}
 
 				UI::EndPropertyGrid();
 			}

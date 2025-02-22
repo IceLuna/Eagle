@@ -88,14 +88,13 @@ namespace Eagle
 		ScriptEngine::Init(m_CorePath / "Eagle-Scripts.dll");
 
 		ProcessCmdCommands(props.argc, props.argv);
-
-		for (auto& func : m_NextFrameFuncs)
-			func();
-		m_NextFrameFuncs.clear();
+		ProcessNextFrameFuncs();
 	}
 
 	Application::~Application()
 	{
+		ProcessNextFrameFuncs();
+
 		if (Project::IsOpened())
 			Project::Close();
 		ThumbnailCache::Release();
@@ -139,6 +138,15 @@ namespace Eagle
 					Project::Open(projectPath);
 			}
 		}
+	}
+
+	void Application::ProcessNextFrameFuncs()
+	{
+		bProcessingNextFrameFuncs = true;
+		for (auto& func : m_NextFrameFuncs)
+			func();
+		m_NextFrameFuncs.clear();
+		bProcessingNextFrameFuncs = false;
 	}
 
 	void Application::OnProjectChanged(bool bOpened)
@@ -209,15 +217,8 @@ namespace Eagle
 			if (m_Timestep > 1.f)
 				m_Timestep = 0.016f;
 #endif
-			
-			{
-				bProcessingNextFrameFuncs = true;
-				for (auto& func : m_NextFrameFuncs)
-					func();
-				m_NextFrameFuncs.clear();
-				bProcessingNextFrameFuncs = false;
-			}
 
+			ProcessNextFrameFuncs();
 
 			if (!m_Minimized)
 			{

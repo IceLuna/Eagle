@@ -76,17 +76,18 @@ uint Random_NextUint(inout Random random, uint nmax)
 
 vec3 Random_PointInSphere(inout Random random, vec3 radius)
 {
-    // Rejection sampling method
-    while (true)
-    {
-        vec3 point = mix(-radius, radius, Random_NextFloat3(random));
-        vec3 testPoint = point / radius;
-        testPoint *= testPoint;
+    if (IS_ZERO(radius))
+        return vec3(0);
 
-        // Triaxial ellipsoid equation
-        if (dot(testPoint, vec3(1)) <= 1)
-            return point;
-    }
+    // Rejection sampling method
+    vec3 point;
+    do {
+        point.x = (radius.x != 0.0f) ? Random_NextFloat(random) * 2.f - 1.f : 0.0f;
+        point.y = (radius.y != 0.0f) ? Random_NextFloat(random) * 2.f - 1.f : 0.0f;
+        point.z = (radius.z != 0.0f) ? Random_NextFloat(random) * 2.f - 1.f : 0.0f;
+    } while (dot(point, point) > 1.0f); // Ensure it's inside unit sphere
+
+    return point * radius;
 }
 
 vec3 Random_PointOnSphere(inout Random random, vec3 radius)

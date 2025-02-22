@@ -11,7 +11,9 @@ Some material inputs can be specified as textures or raw values. If you want to 
 
    Material Editor
 
-|
+.. note::
+
+	This asset type can be created at runtime using C#
 
 
 - **Blend Mode**.

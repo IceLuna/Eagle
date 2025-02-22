@@ -261,6 +261,12 @@ You can use Content Browser to create/import assets by clicking `Add asset` butt
 
    Add asset UI
 
+.. note::
+
+	Modifying assets during simulation runtime (from C#) won't be reverted when it stops.
+	You can create some asset types during runtime that will be destroyed when it stops.
+	Such assets types: `Material`, `Physics Material`, and `Particle System`.
+
 Use the links below to learn more about assets & their settings
 
 .. toctree::
@@ -283,6 +289,7 @@ Use the links below to learn more about assets & their settings
 
 Shortcuts
 ---------
+- **F2**. Renames a selected asset, graph variable, or sub-graph.
 - **F5**. Reloads the shaders if there were any changes.
 - **Ctrl+N**. Opens a new empty scene.
 - **Ctrl+S**. Saves the current scene.
@@ -292,3 +299,7 @@ Shortcuts
 - **F11**. Toggles viewport fullscreen mode.
 - **Shift+F11**. Toggles window fullscreen mode.
 - **Q**/**W**/**E**/**R**. **Hidden**/**Location**/**Rotation**/**Scale** gizmo modes.
+- **Delete**. Deletes selected entity or asset.
+- **Ctrl+D**. Duplicates selected entity.
+- **Ctrl+W**. Duplicates selected asset.
+- **Ctrl+X/C/V**. Cuts/Copies/Pastes an asset.

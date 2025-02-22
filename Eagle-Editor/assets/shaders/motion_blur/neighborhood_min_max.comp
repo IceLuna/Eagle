@@ -72,7 +72,7 @@ void main()
 		uint prev = atomicAdd(g_TileArgs.EarlyExit.x, MOTIONBLUR_TILE_REPLICATE); 
 		g_EarlyExitTiles[prev / MOTIONBLUR_TILE_REPLICATE] = tile;
 	}
-	else if (abs(maxMagnitudeSquared - minMagnitudeSquared) < 0.0005f)
+	else if (abs(maxMagnitudeSquared - minMagnitudeSquared) < 0.0002f)
 	{
 		uint prev = atomicAdd(g_TileArgs.Cheap.x, MOTIONBLUR_TILE_REPLICATE); 
 		g_CheapTiles[prev / MOTIONBLUR_TILE_REPLICATE] = tile;

@@ -14,6 +14,7 @@ namespace Eagle
 	public:
 		AnimationStateMachineGraph() = default;
 		AnimationStateMachineGraph(const Ref<AnimationStateMachineGraph>& other, const VariablesMap& variablesToUse);
+		virtual ~AnimationStateMachineGraph() = default;
 
 		// Can be used by other graphs in cases when they need to calculate subgraphs
 		const SkeletalPose& Update(Timestep ts);

@@ -1005,29 +1005,16 @@ namespace Eagle
 			
 			if (const uint32_t materialsCount = smComponent.GetMaterialsSlotsCount())
 			{
-				bool bAnyValid = false;
+				out << YAML::Key << "Materials" << YAML::Value << YAML::BeginSeq;
 				for (uint32_t i = 0; i < materialsCount; ++i)
-					if (const auto& materialAsset = smComponent.GetMaterialAsset(i))
-					{
-						bAnyValid = true;
-						break;
-					}
-
-				if (bAnyValid)
 				{
-					out << YAML::Key << "Materials" << YAML::Value << YAML::BeginSeq;
-					for (uint32_t i = 0; i < materialsCount; ++i)
-					{
-						if (const auto& materialAsset = smComponent.GetMaterialAsset(i))
-						{
-							out << YAML::BeginMap;
-							out << YAML::Key << "Index" << YAML::Value << i;
-							out << YAML::Key << "Material" << YAML::Value << materialAsset->GetGUID();
-							out << YAML::EndMap;
-						}
-					}
-					out << YAML::EndSeq;
+					const auto& materialAsset = smComponent.GetMaterialAsset(i);
+					out << YAML::BeginMap;
+					out << YAML::Key << "Index" << YAML::Value << i;
+					out << YAML::Key << "Material" << YAML::Value << (materialAsset ? materialAsset->GetGUID() : GUID(0, 0));
+					out << YAML::EndMap;
 				}
+				out << YAML::EndSeq;
 			}
 
 			out << YAML::EndMap; //StaticMeshComponent
@@ -1050,29 +1037,16 @@ namespace Eagle
 
 			if (const uint32_t materialsCount = smComponent.GetMaterialsSlotsCount())
 			{
-				bool bAnyValid = false;
+				out << YAML::Key << "Materials" << YAML::Value << YAML::BeginSeq;
 				for (uint32_t i = 0; i < materialsCount; ++i)
-					if (const auto& materialAsset = smComponent.GetMaterialAsset(i))
-					{
-						bAnyValid = true;
-						break;
-					}
-
-				if (bAnyValid)
 				{
-					out << YAML::Key << "Materials" << YAML::Value << YAML::BeginSeq;
-					for (uint32_t i = 0; i < materialsCount; ++i)
-					{
-						if (const auto& materialAsset = smComponent.GetMaterialAsset(i))
-						{
-							out << YAML::BeginMap;
-							out << YAML::Key << "Index" << YAML::Value << i;
-							out << YAML::Key << "Material" << YAML::Value << materialAsset->GetGUID();
-							out << YAML::EndMap;
-						}
-					}
-					out << YAML::EndSeq;
+					const auto& materialAsset = smComponent.GetMaterialAsset(i);
+					out << YAML::BeginMap;
+					out << YAML::Key << "Index" << YAML::Value << i;
+					out << YAML::Key << "Material" << YAML::Value << (materialAsset ? materialAsset->GetGUID() : GUID(0, 0));
+					out << YAML::EndMap;
 				}
+				out << YAML::EndSeq;
 			}
 
 			out << YAML::Key << "AnimationType" << Utils::GetEnumName(smComponent.AnimType);

@@ -48,7 +48,7 @@ namespace Eagle
 		
 		AssetEntity::s_EntityAssetsScene = MakeRef<Scene>();
 
-		std::array<std::vector<Path>, 4> delayedAssets;
+		std::array<std::vector<Path>, 5> delayedAssets;
 		for (auto& assets : delayedAssets)
 			assets.reserve(25);
 
@@ -80,17 +80,23 @@ namespace Eagle
 				delayedAssets[1].emplace_back(std::move(assetPath));
 				continue;
 			}
-			// Animation & Animation Graph: we can't load animations unless all skeletal meshes are loaded since animations refer to them
+			// Animation: we can't load animations unless all skeletal meshes are loaded since animations refer to them
+			else if (type == AssetType::Animation)
+			{
+				delayedAssets[2].emplace_back(std::move(assetPath));
+				continue;
+			}
+			// Animation Graph: we can't load graphs unless all skeletal meshes & animations are loaded since graphs refer to them
 			// Particle System: we can't load particles unless all skeletal meshes are loaded since particle systems might refer to them
 			else if (type == AssetType::AnimationGraph || type == AssetType::Animation || type == AssetType::ParticleSystem)
 			{
-				delayedAssets[2].emplace_back(std::move(assetPath));
+				delayedAssets[3].emplace_back(std::move(assetPath));
 				continue;
 			}
 			// Entity: we can't load entities unless all assets are loaded since entities might refer to anything
 			else if (type == AssetType::Entity)
 			{
-				delayedAssets[3].emplace_back(std::move(assetPath));
+				delayedAssets[4].emplace_back(std::move(assetPath));
 				continue;
 			}
 

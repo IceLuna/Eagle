@@ -47,7 +47,8 @@ This components allows you to attach a C# script to an entity.
 
 In the editor, there's a ``Script Class`` drop down menu that contains a list of all your scripts where you can select one.
 When a script is selected, the editor displays public values from it allowing you to change their default values without modifying scripts.
-Currently, the editor only exposes the following types: ``bool``, ``int``, ``uint``, ``float``, ``string``, ``Vector2``, ``Vector3``, ``Vector4``, ``Color3``, ``Color4``, ``Enum`` (any enum).
+Currently, the editor only exposes the following types: ``bool``, ``int``, ``uint``, ``float``, ``string``, ``Vector2``, ``Vector3``, ``Vector4``, ``Color3``, ``Color4``, ``Enum`` (any enum), ``Entity``, ``Asset``.
+When you use a ``public Entity entity``, in the editor you'll be able to select an entity from the scene.
 
 .. figure:: imgs/components/script.png
    :align: center 

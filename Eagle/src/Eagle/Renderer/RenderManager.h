@@ -122,33 +122,26 @@ namespace Eagle
 				return;
 			}
 
-			if (!IsRenderThread())
-			{
-				// We need to request resource removal in RenderThread.
-				Submit([funcPtr = MakeScope<FuncT>(std::forward<FuncT>(func))](const Ref<CommandBuffer>&)
-				{
-					// Ideally, we'd just call `SubmitResourceFree()` here, but we can't because of recursive template evaluation: SubmitResourceFree() -> Submit() -> SubmitResourceFree
-					// So, we just do it manually (duplicate the code from below)
-					auto renderCmd = [](void* ptr)
-					{
-						auto f = (FuncT*)ptr;
-						(*f)();
-						f->~FuncT();
-					};
-
-					const uint32_t frameIndex = RenderManager::GetCurrentReleaseFrameIndex();
-					auto mem = GetResourceReleaseQueue(frameIndex).Allocate(renderCmd, sizeof(*funcPtr));
-					new(mem) FuncT(std::forward<FuncT>(*funcPtr));
-				});
-				return;
-			}
-
 			auto renderCmd = [](void* ptr)
 			{
 				auto f = (FuncT*)ptr;
 				(*f)();
 				f->~FuncT();
 			};
+
+			if (!IsRenderThread())
+			{
+				// We need to request resource removal in RenderThread.
+				Submit([funcPtr = MakeScope<FuncT>(std::forward<FuncT>(func)), renderCmd](const Ref<CommandBuffer>&)
+				{
+					// Ideally, we'd just call `SubmitResourceFree()` here, but we can't because of recursive template evaluation: SubmitResourceFree() -> Submit() -> SubmitResourceFree()
+					// So, we just do it manually (duplicate the code from below)
+					const uint32_t frameIndex = RenderManager::GetCurrentReleaseFrameIndex();
+					auto mem = GetResourceReleaseQueue(frameIndex).Allocate(renderCmd, sizeof(*funcPtr));
+					new(mem) FuncT(std::forward<FuncT>(*funcPtr));
+				});
+				return;
+			}
 
 			const uint32_t frameIndex = RenderManager::GetCurrentReleaseFrameIndex();
 			auto mem = GetResourceReleaseQueue(frameIndex).Allocate(renderCmd, sizeof(func));

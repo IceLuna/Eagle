@@ -67,7 +67,8 @@ namespace Eagle
             childPos = bodyLocation + glm::rotate(bone.Settings.UserOffset.Rotation.GetQuat(), childPos - bodyLocation);
 
             const glm::mat4 lookAt = glm::inverse(glm::lookAt(bodyLocation, childPos, glm::vec3(0, 1, 0)));
-            const PxQuat q = PhysXUtils::ToPhysXQuat(Math::DecomposeTransformMatrix(lookAt).Rotation.GetQuat());
+            const bool bAnyNan = glm::any(glm::isnan(lookAt[0])) || glm::any(glm::isnan(lookAt[1])) || glm::any(glm::isnan(lookAt[2])) || glm::any(glm::isnan(lookAt[3]));
+            const PxQuat q = bAnyNan ? PxQuat(PxIdentity) : PhysXUtils::ToPhysXQuat(Math::DecomposeTransformMatrix(lookAt).Rotation.GetQuat());
 
             PxRigidDynamic* body = physics.createRigidDynamic(PxTransform(PhysXUtils::ToPhysXVector(bodyLocation), q));
             body->setSolverIterationCounts(settings.SolverIterations, settings.SolverVelocityIterations);

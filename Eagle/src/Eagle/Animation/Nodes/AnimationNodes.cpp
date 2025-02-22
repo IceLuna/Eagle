@@ -71,6 +71,13 @@ namespace Eagle
 		}
 	}
 
+	AnimationGraphNode::AnimationGraphNode(const Weak<AnimationGraph>&graph, size_t numInputs)
+		: GraphNode(numInputs)
+		, m_Graph(graph)
+		, m_Skeletal(graph.lock()->GetSkeletal())
+	{
+	}
+
 	const SkeletalPose& AnimationGraphNodeOutput::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
@@ -144,7 +151,7 @@ namespace Eagle
 	Ref<GraphNode> AnimationGraphStateMachineEntry::Clone() const
 	{
 		auto clone = AnimationGraphNode::CloneNode<AnimationGraphStateMachineEntry>(m_Graph);
-		clone->m_StateMachine = MakeRef<AnimationStateMachineGraph>(m_StateMachine, m_Graph->GetVariables());
+		clone->m_StateMachine = MakeRef<AnimationStateMachineGraph>(m_StateMachine, m_Graph.lock()->GetVariables());
 		return clone;
 	}
 
@@ -160,7 +167,7 @@ namespace Eagle
 
 		m_Pose.Reset();
 
-		const auto& skeletal = m_Graph->GetSkeletal();
+		const auto& skeletal = GetSkeletal();
 		const SkeletalMeshAnimation* animation = nullptr;
 		float speed = 1.f;
 		bool bLoop = true;
@@ -221,7 +228,7 @@ namespace Eagle
 			const auto& input1 = m_Inputs[1];
 			if (input0 && input1)
 			{
-				const auto& skeletal = m_Graph->GetSkeletal();
+				const auto& skeletal = GetSkeletal();
 				float weight = 0.f;
 				if (Utils::GetValue(m_Inputs[2], m_Variables[2], ts, &weight))
 					weight = glm::clamp(weight, 0.f, 1.f);
@@ -251,7 +258,7 @@ namespace Eagle
 		m_Pose.Reset();
 		if (const auto& input = m_Inputs[0])
 		{
-			const auto& skeletal = m_Graph->GetSkeletal();
+			const auto& skeletal = GetSkeletal();
 			std::string boneName;
 			Utils::GetValue(m_Variables[1], &boneName);
 
@@ -278,7 +285,7 @@ namespace Eagle
 			const auto& input1 = m_Inputs[1];
 			if (input0 && input1)
 			{
-				const auto& skeletal = m_Graph->GetSkeletal();
+				const auto& skeletal = GetSkeletal();
 				float weight = 0.f;
 				if (Utils::GetValue(m_Inputs[2], m_Variables[2], ts, &weight))
 					weight = glm::clamp(weight, 0.f, 1.f);
@@ -310,7 +317,7 @@ namespace Eagle
 			const auto& input1 = m_Inputs[1];
 			if (input0 && input1)
 			{
-				const auto& skeletal = m_Graph->GetSkeletal();
+				const auto& skeletal = GetSkeletal();
 				const auto& pose0 = input0->Update(ts);
 				const auto& pose1 = input1->Update(ts);
 				AnimationSystem::CalculateAdditivePose(pose0, pose1, skeletal->GetSkeletalMeshInfo().RootBone, &m_Pose);

@@ -139,7 +139,7 @@ namespace Eagle
 			bChanged |= EditorResources::DrawAssetSelection("Texture", emitter.Texture);
 			bChanged |= UI::PropertyDrag("Hor. frames number", emitter.AnimationImagesNum.x, 1.f, 1u, UINT_MAX, "The number of columns in the sprite sheet");
 			bChanged |= UI::PropertyDrag("Ver. frames number", emitter.AnimationImagesNum.y, 1.f, 1u, UINT_MAX, "The number of rows in the sprite sheet");
-			bChanged |= UI::PropertyDrag("Animation Speed", emitter.AnimationSpeed, 0.1f);
+			bChanged |= UI::PropertyDrag("Animation Speed", emitter.AnimationSpeed, 0.05f);
 			bChanged |= UI::Property("Blend Animation", emitter.bBlendAnimation);
 
 			// TODO: it's currently not supported
@@ -157,11 +157,11 @@ namespace Eagle
 			UI::TextWithSeparator("Modes");
 			bChanged |= UI::ComboEnum("Collision Mode", emitter.CollisionMode, "It's a screen space collision detection");
 			bChanged |= UI::ComboEnum("Emission Shape", emitter.EmissionShape);
-			bChanged |= UI::PropertyDrag("Sphere Radius", emitter.SphereRadius, 0.1f, 0, 0);
-			bChanged |= UI::PropertyDrag("Box Min", emitter.BoxMin, 0.1f, 0, 0);
-			bChanged |= UI::PropertyDrag("Box Max", emitter.BoxMax, 0.1f, 0, 0);
-			bChanged |= UI::PropertyDrag("Ring Radius", emitter.RingRadius, 0.1f, 0, 0);
-			bChanged |= UI::PropertyDrag("Ring Thickness", emitter.RingThickness, 0.1f, 0, 0);
+			bChanged |= UI::PropertyDrag("Sphere Radius", emitter.SphereRadius, 0.05f, 0, 0);
+			bChanged |= UI::PropertyDrag("Box Min", emitter.BoxMin, 0.05f, 0, 0);
+			bChanged |= UI::PropertyDrag("Box Max", emitter.BoxMax, 0.05f, 0, 0);
+			bChanged |= UI::PropertyDrag("Ring Radius", emitter.RingRadius, 0.05f, 0, 0);
+			bChanged |= UI::PropertyDrag("Ring Thickness", emitter.RingThickness, 0.05f, 0, 0);
 			bChanged |= EditorResources::DrawAssetSelection("Mesh", emitter.MeshAsset);
 
 			UI::TextWithSeparator("Flags");
@@ -181,19 +181,19 @@ namespace Eagle
 			bChanged |= UI::PropertyColor("Color Start", emitter.ColorStart, true);
 			bChanged |= UI::PropertyColor("Color End", emitter.ColorEnd, true);
 
-			bChanged |= UI::PropertyDrag("Velocity Min", emitter.VelocityMin, 0.25f);
-			bChanged |= UI::PropertyDrag("Velocity Max", emitter.VelocityMax, 0.25f);
+			bChanged |= UI::PropertyDrag("Velocity Min", emitter.VelocityMin, 0.05f);
+			bChanged |= UI::PropertyDrag("Velocity Max", emitter.VelocityMax, 0.05f);
 
-			bChanged |= UI::PropertyDrag("Velocity Coef Start", emitter.VelocityCoefStart, 0.25f, 0, 0, "Can be used to change the velocity of a particle throughout the lifetime");
-			bChanged |= UI::PropertyDrag("Velocity Coef End", emitter.VelocityCoefEnd, 0.25f, 0, 0, "Can be used to change the velocity of a particle throughout the lifetime");
+			bChanged |= UI::PropertyDrag("Velocity Coef Start", emitter.VelocityCoefStart, 0.05f, 0, 0, "Can be used to change the velocity of a particle throughout the lifetime");
+			bChanged |= UI::PropertyDrag("Velocity Coef End", emitter.VelocityCoefEnd, 0.05f, 0, 0, "Can be used to change the velocity of a particle throughout the lifetime");
 
 			bChanged |= UI::PropertyDrag("Rotation Z Start", emitter.RotationZStart, 1.f);
 			bChanged |= UI::PropertyDrag("Rotation Z End", emitter.RotationZEnd, 1.f);
 
-			bChanged |= UI::PropertyDrag("Size Start", emitter.SizeStart, 0.1f);
-			bChanged |= UI::PropertyDrag("Size End", emitter.SizeEnd, 0.1f);
+			bChanged |= UI::PropertyDrag("Size Start", emitter.SizeStart, 0.05f);
+			bChanged |= UI::PropertyDrag("Size End", emitter.SizeEnd, 0.05f);
 
-			bChanged |= UI::PropertyDrag("Collider Size Ratio", emitter.ColliderSizeRatio, 0.1f, 0, 0, "Can be used to increase the size of a collider to prevent small and fast-moving particles from clipping through");
+			bChanged |= UI::PropertyDrag("Collider Size Ratio", emitter.ColliderSizeRatio, 0.05f, 0, 0, "Can be used to increase the size of a collider to prevent small and fast-moving particles from clipping through");
 
 			if (UI::PropertyDrag("Lifetime Min", emitter.LifetimeMin, 0.1f, 0.f, FLT_MAX, "In seconds"))
 			{

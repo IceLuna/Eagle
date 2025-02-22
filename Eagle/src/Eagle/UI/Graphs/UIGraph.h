@@ -191,6 +191,7 @@ namespace Eagle
 
     class GraphEditor;
 
+    // TODO: Shouldn't exist on Engine side. Move to editor.
 	// Base class for UI graph editors (just the graph itself)
 	class UIGraph
 	{

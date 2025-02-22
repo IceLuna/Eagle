@@ -154,6 +154,7 @@ namespace Eagle
 				m_TextColorPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
 				m_SpritesColorPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
 				m_MeshesColorPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_SkeletalMeshesColorPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
 				m_TexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()] = texturesChangedFrame + 1;
 			}
 
@@ -1148,6 +1149,11 @@ namespace Eagle
 			auto state = m_MeshesColorPipeline->GetState();
 			state.FragmentSpecializationInfo = constants;
 			m_MeshesColorPipeline->SetState(state);
+		}
+		{
+			auto state = m_SkeletalMeshesColorPipeline->GetState();
+			state.FragmentSpecializationInfo = constants;
+			m_SkeletalMeshesColorPipeline->SetState(state);
 		}
 		{
 			auto state = m_SpritesColorPipeline->GetState();

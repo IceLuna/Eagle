@@ -175,8 +175,8 @@ namespace Eagle
 	{
 		// 1. Update mesh data
 		// 2. Check if GPU Emitters buffer is big enough and allocate enough memory if required
-		// 3. Process emitters that need to be removed
-		// 4. Process emitters that need to be added
+		// 3. Process emitters that need to be added
+		// 4. Process emitters that need to be removed. Needs to be executed after Step 3 because an emitter might require one more update
 		// 5. Process emitters that need to be updated
 		// 6. Update transforms if required
 		// 7. Check if GPU Particles buffer is big enough and allocate enough memory if required
@@ -243,8 +243,8 @@ namespace Eagle
 
 		// Step 2
 		{
-			const size_t numEmittersAfterUpdate = m_NumEmitters + m_EmittersToAdd.size() - m_EmittersToRemove.size();
-			const size_t currentSize = m_EmittersBuffer->GetSize();
+			const size_t numEmittersAfterUpdate = m_NumEmitters + m_EmittersToAdd.size();
+			size_t currentSize = m_EmittersBuffer->GetSize();
 			size_t newSize = numEmittersAfterUpdate * sizeof(Emitter);
 			if (newSize > currentSize)
 			{
@@ -256,32 +256,17 @@ namespace Eagle
 				cmd->CopyBuffer(m_EmittersBuffer, newBuffer, 0, 0, m_NumEmitters * sizeof(Emitter));
 				m_EmittersBuffer = std::move(newBuffer);
 			}
+
+			currentSize = m_EmittersSpawnCountBuffer->GetSize();
+			newSize = numEmittersAfterUpdate * sizeof(uint32_t);
+			if (newSize > currentSize)
+			{
+				newSize = (newSize * 12) / 10; // Resize policy: increase by 20%
+				m_EmittersSpawnCountBuffer->Resize(newSize);
+			}
 		}
 
 		// Step 3
-		if (m_EmittersToRemove.size())
-		{
-			cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::StorageBuffer, BufferLayoutType::CopyDest);
-			for (const auto& [emitter, emitterIndex] : m_EmittersToRemove)
-			{
-				ParticleEmitter disabledEmitter = emitter;
-				disabledEmitter.bEmit = false;
-
-				const uint32_t flags = Utils::PackEmitterFlags(disabledEmitter);
-				const size_t offset = emitterIndex * sizeof(Emitter) + offsetof(Emitter, Flags);
-				cmd->WriteTransitionless(m_EmittersBuffer, &flags, sizeof(uint32_t), offset);
-
-				auto& dead = m_DeadEmitters.emplace_back();
-				dead.EmitterIndex = emitterIndex;
-				dead.TimeTillDead = emitter.LifetimeMax;
-				dead.TimeOfDeath = std::chrono::high_resolution_clock::now();
-			}
-			cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::CopyDest, BufferLayoutType::StorageBuffer);
-
-			m_EmittersToRemove.clear();
-		}
-
-		// Step 4
 		if (m_EmittersToAdd.size())
 		{
 			cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::StorageBuffer, BufferLayoutType::CopyDest);
@@ -306,12 +291,13 @@ namespace Eagle
 					meshEmitterData.IndexOffset, meshEmitterData.IndexCount, emitter);
 
 				uint32_t insertIndex = m_NumEmitters;
-				for (auto it = m_DeadEmitters.begin(); it != m_DeadEmitters.end(); ++it)
+				for (auto it = m_DeadEmitters.begin(); it != m_DeadEmitters.end(); ++it) // Find the first available slot
 				{
 					const auto& deadEmitter = *it;
 					if (deadEmitter.IsDead())
 					{
-						const uint32_t emitterIndex = deadEmitter.EmitterIndex;
+						const uint32_t emitterIndex = deadEmitter.Data.EmitterIndex;
+						m_FreeTransformSlots.push_back(deadEmitter.Data.TransformIndex);
 						m_DeadEmitters.erase(it);
 
 						if (emitterIndex != s_InvalidEmitterIndex)
@@ -336,6 +322,29 @@ namespace Eagle
 
 			bUpdateTransforms = true;
 			bEmittersChangedOrAdded = true;
+		}
+
+		// Step 4
+		if (m_EmittersToRemove.size())
+		{
+			cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::StorageBuffer, BufferLayoutType::CopyDest);
+			for (const auto& [emitter, removingData] : m_EmittersToRemove)
+			{
+				ParticleEmitter disabledEmitter = emitter;
+				disabledEmitter.bEmit = false;
+
+				const uint32_t flags = Utils::PackEmitterFlags(disabledEmitter);
+				const size_t offset = removingData.EmitterIndex * sizeof(Emitter) + offsetof(Emitter, Flags);
+				cmd->WriteTransitionless(m_EmittersBuffer, &flags, sizeof(uint32_t), offset);
+
+				auto& dead = m_DeadEmitters.emplace_back();
+				dead.Data = removingData;
+				dead.TimeTillDead = emitter.bDestroyImmediately ? 0.f : emitter.LifetimeMax;
+				dead.TimeOfDeath = std::chrono::high_resolution_clock::now();
+			}
+			cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::CopyDest, BufferLayoutType::StorageBuffer);
+
+			m_EmittersToRemove.clear();
 		}
 
 		// Step 5
@@ -744,13 +753,14 @@ namespace Eagle
 			return false; // Not found
 		}
 
-		auto& data = m_EmittersToRemove.emplace_back(std::pair{ emitter, it->second.EmitterIndex });
+		auto& data = m_EmittersToRemove.emplace_back();
+		data.first = emitter;
+		data.second.EmitterIndex = it->second.EmitterIndex;
+		data.second.TransformIndex = it->second.TransformIndex;
 		data.first.bDestroyImmediately |= bForceImmediateRemoval;
-
-		const uint32_t transformIndex = it->second.TransformIndex;
-		m_FreeTransformSlots.push_back(transformIndex);
-		emitters.erase(it);
 		RemoveEmitterMeshData(emitter);
+
+		emitters.erase(it);
 
 		return true;
 	}

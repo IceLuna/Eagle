@@ -11,7 +11,9 @@ Physics Material asset can be applied to colliders and ragdoll bones.
 
    Physics Material Editor
 
-|
+.. note::
+
+	This asset type can be created at runtime using C#
 
 
 - **Static Friction**. Static friction defines the amount of friction that is applied between surfaces that are not moving lateral to each-other.

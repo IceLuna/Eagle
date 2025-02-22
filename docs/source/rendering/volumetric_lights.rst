@@ -14,6 +14,7 @@ Volumetric Fog
 --------------
 In the `renderer settings`, there's also an option to enable fog for volumetric lights.
 If it is enabled, the fog created by lights will be animated. You can control the animation speed by using ``Speed`` parameter.
+Additionally, you can set global volumetric fog albedo color. Basically, it allows you to set what color the fog has in the whole scene.
 
 .. figure:: imgs/volumetric_light.png
     :align: center 

@@ -6,6 +6,7 @@
 
 namespace Eagle
 {
+    // TODO: Shouldn't exist on Engine side. Move to editor.
 	// Base class for graph editors
 	class GraphEditor
 	{

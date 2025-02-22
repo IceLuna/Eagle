@@ -86,6 +86,7 @@ namespace Eagle
 		void Run();
 
 		void ProcessCmdCommands(int argc, char** argv);
+		void ProcessNextFrameFuncs();
 
 		friend int ::main(int argc, char** argv);
 

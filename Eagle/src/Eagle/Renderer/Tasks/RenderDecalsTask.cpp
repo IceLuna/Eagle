@@ -247,18 +247,21 @@ namespace Eagle
 	{
 		const auto& gbuffer = m_Renderer.GetGBuffer();
 
+		BlendState alphaBlendingState{};
+		alphaBlendingState.BlendOp = BlendOperation::Add;
+		alphaBlendingState.BlendSrc = BlendFactor::SrcAlpha;
+		alphaBlendingState.BlendDst = BlendFactor::OneMinusSrcAlpha;
+		alphaBlendingState.BlendOpAlpha = BlendOperation::Add;
+		alphaBlendingState.BlendSrcAlpha = BlendFactor::SrcAlpha;
+		alphaBlendingState.BlendDstAlpha = BlendFactor::OneMinusSrcAlpha;
+
 		ColorAttachment colorAttachment;
 		colorAttachment.ClearOperation = ClearOperation::Load;
 		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.Image = gbuffer.Albedo;
 		colorAttachment.bBlendEnabled = true;
-		colorAttachment.BlendingState.BlendOp = BlendOperation::Add;
-		colorAttachment.BlendingState.BlendSrc = BlendFactor::SrcAlpha;
-		colorAttachment.BlendingState.BlendDst = BlendFactor::OneMinusSrcAlpha;
-		colorAttachment.BlendingState.BlendOpAlpha = BlendOperation::Add;
-		colorAttachment.BlendingState.BlendSrcAlpha = BlendFactor::SrcAlpha;
-		colorAttachment.BlendingState.BlendDstAlpha = BlendFactor::OneMinusSrcAlpha;
+		colorAttachment.BlendingState = alphaBlendingState;
 
 		ColorAttachment emissiveAttachment;
 		emissiveAttachment.ClearOperation = ClearOperation::Load;
@@ -266,12 +269,7 @@ namespace Eagle
 		emissiveAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		emissiveAttachment.Image = gbuffer.Emissive;
 		emissiveAttachment.bBlendEnabled = true;
-		emissiveAttachment.BlendingState.BlendOp = BlendOperation::Add;
-		emissiveAttachment.BlendingState.BlendSrc = BlendFactor::SrcAlpha;
-		emissiveAttachment.BlendingState.BlendDst = BlendFactor::OneMinusSrcAlpha;
-		emissiveAttachment.BlendingState.BlendOpAlpha = BlendOperation::Add;
-		emissiveAttachment.BlendingState.BlendSrcAlpha = BlendFactor::SrcAlpha;
-		emissiveAttachment.BlendingState.BlendDstAlpha = BlendFactor::OneMinusSrcAlpha;
+		emissiveAttachment.BlendingState = alphaBlendingState;
 
 		ColorAttachment materialAttachment;
 		materialAttachment.ClearOperation = ClearOperation::Load;
@@ -279,12 +277,7 @@ namespace Eagle
 		materialAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		materialAttachment.Image = gbuffer.MaterialData;
 		materialAttachment.bBlendEnabled = true;
-		materialAttachment.BlendingState.BlendOp = BlendOperation::Add;
-		materialAttachment.BlendingState.BlendSrc = BlendFactor::SrcAlpha;
-		materialAttachment.BlendingState.BlendDst = BlendFactor::OneMinusSrcAlpha;
-		materialAttachment.BlendingState.BlendOpAlpha = BlendOperation::Add;
-		materialAttachment.BlendingState.BlendSrcAlpha = BlendFactor::SrcAlpha;
-		materialAttachment.BlendingState.BlendDstAlpha = BlendFactor::OneMinusSrcAlpha;
+		materialAttachment.BlendingState = alphaBlendingState;
 
 		ColorAttachment objectIDAttachment;
 		objectIDAttachment.ClearOperation = ClearOperation::Load;

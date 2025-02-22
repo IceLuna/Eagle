@@ -17,6 +17,8 @@ namespace Eagle
 		AnimationGraph(const Ref<const AnimationGraph>& other); // This constructor creates its own copy of variables, which is not what we want when it's a subgraph
 		AnimationGraph(const Ref<const AnimationGraph>& other, const VariablesMap& variablesToUse); // But this constructor uses @variablesToUse, instead of creating its own copy of variables
 
+		virtual ~AnimationGraph() = default;
+
 		// Results will be written to transforms
 		void Update(Timestep ts, std::vector<glm::mat4>* outTransforms);
 

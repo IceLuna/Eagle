@@ -25,7 +25,7 @@
 namespace Eagle
 {
 	std::mutex g_ImGuiMutex;
-	std::mutex g_TimingsMutex;
+	static std::mutex g_TimingsMutex;
 
 	struct RendererData
 	{
