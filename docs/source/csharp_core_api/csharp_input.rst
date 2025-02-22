@@ -31,6 +31,6 @@ It is a static class that allows you to query states of some input devices.
         // Also, there's a `Renderer.GetViewportSize`
         public static void SetMousePositionInViewport(Vector2 position);
 
-        public static void SetCursorMode(CursorMode mode) => SetCursorMode_Native(mode);
-        public static CursorMode GetCursorMode() => GetCursorMode_Native();
+        public static void SetCursorMode(CursorMode mode);
+        public static CursorMode GetCursorMode();
     }

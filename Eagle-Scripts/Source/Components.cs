@@ -728,7 +728,6 @@ namespace Eagle
             SetAnimation_Native(Parent.ID, (value != null) ? value.GetGUID() : GUID.Null());
         }
         
-
         public AssetAnimationGraph GetAnimationGraphAsset()
         {
             GetAnimationGraph_Native(Parent.ID, out GUID assetID);
@@ -2477,6 +2476,12 @@ namespace Eagle
             m_Type = typeof(NavigationMeshComponent);
         }
 
+        public bool bAutoRebuild // Rebuilds on changes if activated
+        {
+            get { return GetAutoRebuild_Native(Parent.ID); }
+            set { SetAutoRebuild_Native(Parent.ID, value); }
+        }
+
         public void SetSettings(NavMeshSettings settings)
         {
             SetSettings_Native(Parent.ID, ref settings);
@@ -2520,6 +2525,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetSettings_Native(in GUID entityID, out NavMeshSettings settings);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAutoRebuild_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetAutoRebuild_Native(in GUID entityID);
     }
 
     public class NavigationCrowdAgentComponent : Component

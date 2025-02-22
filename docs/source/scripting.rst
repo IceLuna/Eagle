@@ -28,7 +28,10 @@ To learn how to use C# with Eagle, check out these pages:
    csharp_core_api/csharp_input
    csharp_core_api/csharp_events
    csharp_core_api/csharp_math
+   csharp_core_api/csharp_navigation
+   csharp_core_api/csharp_assets
    csharp_core_api/csharp_renderer
+   csharp_core_api/csharp_material
    csharp_core_api/csharp_entity
    csharp_core_api/csharp_components
 

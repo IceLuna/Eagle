@@ -3,160 +3,30 @@
 C# Renderer
 ===========
 
-C# Renderer API allows you to change renderer settings; import textures and meshes; create materials and many more.
+C# Renderer API allows you to change renderer settings and draw debug primitives.
+To learn more about renderer settings themselves and what they do, read the :ref:`renderer <rendering_guide>` documentation.
 
-To learn more about settings themselves and what they do, read the :ref:`renderer <rendering_guide>` documentation.
-
-Textures
---------
-Textures API can be used for importing textures or getting already imported ones.
-
-There are two main classes: ``Texture2D`` and ``TextureCube`` which are derived from ``Texture`` class.
-Texture classes have constructors that expect a filepath. Additionally, ``TextureCube`` expects a layer size and it can be created from an existing 2D texture.
-
-``Texture2D`` class also contains static members of ``Texture2D`` type that represent built-in textures: ``Black``, ``White``, ``Gray``, ``Red``, ``Green``, ``Blue``.
-
-.. note::
-
-	Currently, there is no way to unload a texture from memory and it will be unloaded only on the engine exit.
-
-.. note::
-
-	The engine will not import a texture again if a texture with a specified filepath already exists. It will just return an existing one.
-
-.. code-block:: csharp
-
-    public enum FilterMode
-    {
-        Point,
-        Bilinear,
-        Trilinear
-    }
-
-    public enum AddressMode
-    {
-        Wrap,
-        Mirror,
-        Clamp,
-        ClampToOpaqueBlack,
-        ClampToOpaqueWhite
-    }
-
-    abstract public class Texture
-    {
-        public GUID ID { get; protected set; }
-        public bool IsValid() { return IsValid_Native(ID); }
-        public string GetPath() { return GetPath_Native(ID); }
-        public Vector3 GetSize();
-    }
-
-    public class Texture2D : Texture
-    {
-        public Texture2D() {}
-        public Texture2D(GUID guid) { ID = guid; }
-        public Texture2D(string filepath);
-
-        // Note that changing these values affects the whole asset, meaning it will affect the editor as well
-        public void SetAnisotropy(float anisotropy);
-        public void SetFilterMode(FilterMode filterMode);
-        public void SetAddressMode(AddressMode addressMode);
-        public void SetMipsCount(uint mips); // Minimum is `1`, which means that there's only one mip level - base level (original texture)
-
-        public float GetAnisotropy();
-        public FilterMode GetFilterMode();
-        public AddressMode GetAddressMode();
-        public uint GetMipsCount();
-
-        public static Texture2D Black;
-        public static Texture2D White;
-        public static Texture2D Gray;
-        public static Texture2D Red;
-        public static Texture2D Green;
-        public static Texture2D Blue;
-    }
-
-    public class TextureCube : Texture
-    {
-        public TextureCube() { }
-        public TextureCube(GUID guid) { ID = guid; }
-        public TextureCube(string filepath, uint layerSize = 1024u);
-        public TextureCube(Texture2D texture, uint layerSize = 1024u);
-    }
-
-.. note::
-
-    ``TextureCube`` constructor that takes ``Texture2D`` always creates a cube texture and allocates memory. It doesn't check if it was already created.
-
-`Static Mesh` class
--------------------
-It can be used for importing meshes or getting already imported ones.
-
-.. note::
-
-	Currently, there is no way to unload a static mesh from memory and it will be unloaded only on the engine exit.
-
-.. note::
-
-	The engine will not import a mesh again if a mesh with a specified filepath already exists. It will just return an existing one.
-
-.. code-block:: csharp
-
-    public class StaticMesh
-    {
-        public GUID ID { get; internal set; }
-
-        public StaticMesh() {}
-        public StaticMesh(string filepath);
-
-        public bool IsValid();
-    }
-
-Material API
-------------
-This API allows you to create materials that can be assigned to Static Meshes and/or Sprites.
-
-.. code-block:: csharp
-
-    public enum MaterialBlendMode
-    {
-        Opaque, Translucent, Masked
-    }
-
-    public class Material
-    {
-        public Texture2D AlbedoTexture;
-        public Texture2D MetallnessTexture; // Controls how `metal-like` surface looks like. Default is 0.
-        public Texture2D NormalTexture;
-        public Texture2D RoughnessTexture; // Controls how rough surface looks like. Roughness of 0 is a mirror reflection and 1 is completely matte. Default is 0.5.
-        public Texture2D AOTexture; // Can be used to affect how ambient lighting is applied to an object. If it is 0, ambient lighting wont affect it. Default is 1.0.
-        public Texture2D EmissiveTexture;
-        public Texture2D OpacityTexture; // When in `Translucent` mode, controls the translucency of the material. 0 - fully transparent, 1 - fully opaque. Default is 0.5.
-        public Texture2D OpacityMaskTexture; // When in `Masked` mode, a material is either completely visible or completely invisible. Values below 0.5 are invisible.
-        
-        public Color4 TintColor = new Color4(); // HDR value
-        public Vector3 EmissiveIntensity = new Vector3();
-        public float TilingFactor; // UV tiling
-        public MaterialBlendMode BlendMode = MaterialBlendMode.Opaque;
-    }
-
-``MaterialBlendMode`` enum allows you to specify a material type.
-
-.. note::
-
-    Translucent materials do not cast shadows! Use translucent materials with caution because rendering them might be expensive.
-
-.. note::
-
-    `Masked` mode is basically the same as `Opaque` but it additionally allows you to `punch` holes in an object.
-    It us more computationally expensive to generate shadows that are cast by `Masked` materials since `Mask` must be taken into account when generating a shadow map.
-
-Renderer API
-------------
 ``Renderer`` class is a static class that can be used for changing renderer settings.
-
 There are special `enums` and `structs` that ``Renderer`` class uses. They are listed below:
 
 .. code-block:: csharp
+
+    public struct RendererVertex
+    {
+        public Vector3 Location;
+        public Color3 Color;
+    }
+
+    public struct RendererLine
+    {
+        public RendererVertex Start;
+        public RendererVertex End;
+    }
+
+    public struct RendererTriangle
+    {
+        public RendererVertex V0, V1, V2;
+    }
 
     public enum FogEquation
     {
@@ -170,7 +40,7 @@ There are special `enums` and `structs` that ``Renderer`` class uses. They are l
         None,
         SSAO,
         GTAO
-    }
+    };
 
     public enum TonemappingMethod
     {
@@ -184,7 +54,7 @@ There are special `enums` and `structs` that ``Renderer`` class uses. They are l
     {
         None,
         TAA
-    }
+    };
 
     public struct PhotoLinearTonemappingSettings
     {
@@ -215,16 +85,16 @@ There are special `enums` and `structs` that ``Renderer`` class uses. They are l
     public struct FogSettings
     {
         public Color3 Color;
-        public float MinDistance; // Everything closer won't be affected by the fog. Used by `Linear` equation.
-        public float MaxDistance; // Everything after this distance is fog. Used by `Linear` equation.
-        public float Density;     // Used by Exponential equations
+        public float MinDistance;
+        public float MaxDistance;
+        public float Density;
         public FogEquation Equation;
         public bool bEnabled;
     }
 
     public struct BloomSettings
     {
-        public Texture2D Dirt; // Can be used to create different types of screen effects
+        public AssetTexture2D Dirt;
         public float Threshold;
         public float Intensity;
         public float DirtIntensity;
@@ -247,19 +117,136 @@ There are special `enums` and `structs` that ``Renderer`` class uses. They are l
 
     public struct VolumetricLightsSettings
     {
-        public uint Samples; // Use with caution! Making it to high might kill the performance. Especially if the light casts shadows.
+        public Vector3 Albedo;
+        public float Anisotropy;
+        public uint Samples;
         public float MaxScatteringDistance;
         public float FogSpeed;
         public bool bFogEnabled;
-        public bool bEnabled; // This just notifies the engine that volumetric lights can be used
+        public bool bEnabled;
     }
 
     public struct ShadowMapsSettings
     {
         public uint PointLightShadowMapSize;
         public uint SpotLightShadowMapSize;
-        public uint[] DirLightShadowMapSizes; // It is an array of sizes for each cascade. Currently, it has the size of `4`
+        public uint[] DirLightShadowMapSizes;
+
+        public const uint MinPointLightShadowMapSize = 64u;
+        public const uint MinSpotLightShadowMapSize = 64u;
+        public const uint MinDirLightShadowMapSize = 64u;
     }
+
+    public struct DepthOfFieldSettings
+    {
+        public Vector2 ApertureShape;
+        public float ApertureSize;
+        public float FocalLength;
+        public float COCScale;
+        public float MaxCOC;
+    }
+
+    public struct MotionBlurSettings
+    {
+        public bool bEnabled;
+        public uint NumSamples;
+        public float Strength;
+    }
+
+    public struct AutoExposureSettings
+    {
+        public float MinLogLum;
+        public float MaxLogLum;
+        public float AdaptationSpeed;
+        public float AdaptationKey;
+
+        public bool bEnabled;
+        public bool bHalfResolution;
+    }
+
+    public struct ScreenSpaceReflectionsSettings
+    {
+        public float RoughnessThreshold;
+        public uint SamplesPerQuad;
+        public uint MaxTraversalIterations;
+        public bool bEnabled;
+    }
+
+    public enum EmitterEmissionShapeType
+    {
+        Point, Sphere, SphereSurface, Box, Ring, Mesh
+    }
+
+    public enum EmitterCollisionModeType
+    {
+        None, DestroyOnHit, Bounce,
+	}
+
+    public struct ParticleEmitter
+	{
+		// ---------------- Particle properties ----------------
+		public AssetTexture2D TextureAsset;
+
+		public Color4 ColorStart;
+        public Color4 ColorEnd;
+		
+		public Vector3 VelocityMin;
+        public Vector3 VelocityMax;
+
+		public Vector3 VelocityCoefStart;
+        public Vector3 VelocityCoefEnd;
+
+		public float RotationZStart;
+        public float RotationZEnd;
+
+		public Vector2 SizeStart;
+		public Vector2 SizeEnd;
+        public Vector2 ColliderSizeRatio; // Can be used to increase the size of a collider to prevent small and fast-moving particles from clipping through
+
+		// In seconds
+		public float LifetimeMin;
+        public float LifetimeMax;
+
+		public float BouncinessMin;
+        public float BouncinessMax;
+
+		// ---------------- Emitter properties ----------------
+		public string Name;
+		public Transform RelativeTransform; // Relative to the particle system
+		public AABB VisibilityAABB; // If not visible by the camera, it's not rendered to improve perf
+		public uint LoopCount; // 0 - infinity
+		public uint NumParticles;
+		public float NumParticlesRatio; // Can be used to control `NumParticles`
+		public float RadialAcceleration; // If it's negative, particles will move towards the center of the emitter. If positive, they move away from the center
+		public float TangentialAcceleration; // If it's negative, particles will move towards the center of the emitter in a spiral way. If positive, they move away from the center.
+        public float NormalVelocityFactor; // If not 0, particle's initial velocity will be affected by `EmissionShapeType` normal direction
+
+        public EmitterEmissionShapeType EmissionShape;
+        // Sphere emission shape
+        public Vector3 SphereRadius;
+        // Box emission shape
+        public Vector3 BoxMin;
+        public Vector3 BoxMax;
+        // Ring emission shape
+        public Vector3 RingRadius;
+        public Vector3 RingThickness;
+        // Mesh emission shape
+        public AssetStaticMesh MeshAsset;
+
+        public EmitterCollisionModeType CollisionMode;
+
+        // Animation
+        public UVector2 AnimationImagesNum; // Horizontal & Vertical images count
+        public float AnimationSpeed;
+
+		public bool bDestroyImmediately; // If set to true, particles will be destroyed immediately when emitter is disabled/destroyed (instead of following their lifetime)
+		public bool bEmit;
+		public bool bExplode; // If set to true, all particles will be emitted at once. Otherwise, they're emitted sequentially throughout the lifetime
+		public bool bApplyGravity;
+		public bool bAlphaBlending;
+		public bool bAdditive;
+        public bool bBlendAnimation;
+	}
 
 ``Renderer`` class has the following functionality
 
@@ -268,6 +255,10 @@ There are special `enums` and `structs` that ``Renderer`` class uses. They are l
     public static class Renderer
     {
         public const uint CascadesCount = 4u; // The size of `DirLightShadowMapSizes` array
+
+        public static void DrawLine(RendererLine line);
+        public static void DrawTriangle(RendererTriangle triangle);
+        public static void DrawAABB(AABB aabb, Transform worldTransform);
 
         public static void SetFogSettings(FogSettings value);
         public static FogSettings GetFogSettings();
@@ -278,7 +269,7 @@ There are special `enums` and `structs` that ``Renderer`` class uses. They are l
         public static void SetSSAOSettings(SSAOSettings value);
         public static SSAOSettings GetSSAOSettings();
 
-        public static void SetGTAOSettings(SSAOSettings value);
+        public static void SetGTAOSettings(GTAOSettings value);
         public static GTAOSettings GetGTAOSettings();
 
         public static void SetPhotoLinearTonemappingSettings(PhotoLinearTonemappingSettings value);
@@ -287,8 +278,8 @@ There are special `enums` and `structs` that ``Renderer`` class uses. They are l
         public static void SetFilmicTonemappingSettings(FilmicTonemappingSettings value);
         public static FilmicTonemappingSettings GetFilmicTonemappingSettings();
 
-        public static void SetCubemap(TextureCube cubemap);
-        public static TextureCube GetCubemap();
+        public static void SetCubemap(AssetTextureCube cubemap);
+        public static AssetTextureCube GetCubemap();
 
         public static void SetCubemapIntensity(float intensity);
         public static float GetCubemapIntensity();
@@ -302,9 +293,22 @@ There are special `enums` and `structs` that ``Renderer`` class uses. They are l
         public static void SetShadowMapsSettings(ShadowMapsSettings value);
         public static ShadowMapsSettings GetShadowMapsSettings();
 
+        public static void SetDepthOfFieldSettings(DepthOfFieldSettings value);
+        public static DepthOfFieldSettings GetDepthOfFieldSettings();
+
+        public static void SetMotionBlurSettings(MotionBlurSettings value);
+        public static MotionBlurSettings GetMotionBlurSettings();
+
+        public static void SetAutoExposureSettings(AutoExposureSettings value);
+        public static AutoExposureSettings GetAutoExposureSettings();
+
+        public static void SetScreenSpaceReflectionsSettings(ScreenSpaceReflectionsSettings value);
+        public static ScreenSpaceReflectionsSettings GetScreenSpaceReflectionsSettings();
+
         public static Vector2 GetViewportSize();
 
         public static bool bUseSkyAsBackground; // Allows you to render sky while keeping IBL enabled.
+        public static bool bRenderSkyboxEnabled; // Allows you to disable just the skybox rendering (If disabled, IBL will still light the scene)
         public static bool bSkyboxEnabled; // Affects Sky and Cubemap (IBL)
         public static float Gamma;
         public static float Exposure;
@@ -320,5 +324,7 @@ There are special `enums` and `structs` that ``Renderer`` class uses. They are l
         public static bool bStutterlessShaders;
         public static bool bEnableObjectPicking; // You can disable it when it is not needed to improve performance and reduce memory usage.
         public static bool bEnable2DObjectPicking; // If set to true, 2D objects will be ignored. This value is ignored, if `bEnableObjectPicking` is disabled
+        public static bool bSortOpaqueParticles;
+        public static bool bEnableDebugLinesDepthTest;
         public static uint TransparencyLayers;
     }

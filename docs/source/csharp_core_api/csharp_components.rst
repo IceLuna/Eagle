@@ -78,6 +78,8 @@ If multiple cameras have this flag set to true, the engine will pick one of them
         // The blend amount between cascades of directional light shadows (if smooth transition is enabled). Try to keep it as low as possible
         public float CascadesSmoothTransitionAlpha;
 
+        public float GetAspectRatio();
+
         public CameraProjectionMode ProjectionMode;
     }
 
@@ -188,9 +190,9 @@ Inherits ``LightComponent``. Additionally, it has the following members: ``Inner
         public float Distance;
     }
 
-`StaticMesh Component`
+`Static Mesh Component`
 -----------------------
-Allows you to add meshes to entities and manipulate its material.
+Allows you to add meshes to entities.
 
 .. note::
     If an object has a translucent material, it won't cast shadows unless ``Translucent shadows`` feature is enabled. Translucent materials do not cast shadows on other translucent materials!
@@ -199,12 +201,89 @@ Allows you to add meshes to entities and manipulate its material.
 
     public class StaticMeshComponent : SceneComponent
     {
-        public StaticMesh Mesh;
+        public AssetStaticMesh MeshAsset;
 
         public bool bCastsShadows;
+        public bool bReceivesDecals;
 
-        public Material GetMaterial();
-        public void SetMaterial(Material value);
+        public AssetMaterial GetMaterialAsset(uint index);
+        public void SetMaterialAsset(uint index, AssetMaterial value);
+
+        public uint GetMaterialsSlotsCount();
+    }
+    
+
+`Skeletal Mesh Component`
+-----------------------
+Allows you to add animated meshes to entities.
+
+.. note::
+    If an object has a translucent material, it won't cast shadows unless ``Translucent shadows`` feature is enabled. Translucent materials do not cast shadows on other translucent materials!
+
+.. code-block:: csharp
+
+    public enum RootMotionLockFlag
+    {
+        None = 0,
+        PositionX = 1 << 0, PositionY = 1 << 1, PositionZ = 1 << 2,
+        Position = PositionX | PositionY | PositionZ
+    }
+
+    public enum AnimationType
+    {
+        Clip,
+		Graph
+    }
+
+    public class SkeletalMeshComponent : SceneComponent
+    {
+        public AssetSkeletalMesh MeshAsset;
+
+        public bool bCastsShadows;
+        public bool bReceivesDecals;
+
+        public AssetMaterial GetMaterialAsset(uint index);
+        public void SetMaterialAsset(AssetMaterial value, uint index);
+
+        public uint GetMaterialsSlotsCount();
+
+        public AssetAnimation GetAnimationAsset();
+        public void SetAnimationAsset(AssetAnimation value);
+        
+        public AssetAnimationGraph GetAnimationGraphAsset();
+        public void SetAnimationAssetGraph(AssetAnimationGraph value);
+
+        public void SetRagdollEnabled(bool bEnabled);
+        public bool IsRagdollEnabled();
+
+        public Transform GetRagdollBoneWorldTransform(string name);
+        
+        public Transform GetBoneWorldTransform(string name);
+        public Vector3 GetBoneWorldLocation(string name);
+        public Rotator GetBoneWorldRotation(string name);
+        public Vector3 GetBoneWorldScale(string name);
+
+        public AnimationType AnimType;
+
+        // These are used only if `AnimType` == `AnimationType::Clip`
+        public float CurrentClipPlayTime;
+        public float ClipPlaybackSpeed;
+        public bool bClipLooping;
+
+        // These are used only if `AnimType` == `AnimationType::Graph`
+        public void SetAnimGraphVariable(string name, bool value);
+        public void SetAnimGraphVariable(string name, float value);
+        public void SetAnimGraphVariable(string name, AssetAnimation value);
+        public void SetAnimGraphVariable(string name, string value);
+        public bool GetAnimGraphVariableBool(string name);
+        public float GetAnimGraphVariableFloat(string name);
+        public AssetAnimation GetAnimGraphVariableAnimation(string name);
+        public string GetAnimGraphVariableString(string name);
+
+        public bool IsRootMotionLockFlagSet(RootMotionLockFlag flag);
+        public void SetRootMotionLockFlag(RootMotionLockFlag flag, bool value);
+        public void SetRootMotionLockFlag(RootMotionLockFlag flag);
+        public RootMotionLockFlag GetRootMotionLockFlags();
     }
 
 `Sprite Component`
@@ -218,16 +297,17 @@ Allows you to add sprites to entities and manipulate its material.
 
     public class SpriteComponent : SceneComponent
     {
-        public Material GetMaterial();
-        void SetMaterial(Material value);
-    
-        public bool bCastsShadows;
-    
+        public AssetMaterial GetMaterialAsset();
+        public void SetMaterialAsset(AssetMaterial value);
+
         // These are atlas parameters (sprite sheets)
         public Vector2 AtlasSpriteCoords;
         public Vector2 AtlasSpriteSize;
         public Vector2 AtlasSpriteSizeCoef;
+
         public bool bAtlas;
+        public bool bCastsShadows;
+        public bool bReceivesDecals;
     }
 
 `Billboard Component`
@@ -238,7 +318,7 @@ Just a texture that always faces the camera
 
     public class BillboardComponent : SceneComponent
     {
-        public Texture2D Texture;
+        public AssetTexture2D TextureAsset;
     }
 
 `Text Component`
@@ -253,25 +333,17 @@ Allows you to render 3D Text
 
     public class TextComponent : SceneComponent
     {
+        public AssetFont Font;
+        public AssetMaterial Material; // Used only if "bLit" is true.
+
         public string Text;
-
-        public MaterialBlendMode BlendMode;
-        public bool bCastsShadows;
-
         public Color3 Color; // Used only if bLit is false. It's an HDR value
         public float LineSpacing;
         public float Kerning;
         public float MaxWidth;
-
-        // Values below are used only if bLit is true
+        public bool bCastsShadows;
+        public bool bReceivesDecals;
         public bool bLit;
-        public Color3 Albedo;
-        public Color3 Emissive;
-        public float Metallness;
-        public float Roughness;
-        public float AmbientOcclusion;
-        public float Opacity; // To use it, `BlendMode` must be set to `Translucent`
-        public float OpacityMask; // To use it, `BlendMode` must be set to `Masked`
     }
 
 `Text2D Component`
@@ -282,6 +354,7 @@ Allows you to render screen-space 2D Text (useful for in-game UI)
 
     public class Text2DComponent : Component
     {
+        public AssetFont Font;
         public string Text;
 
         public Color3 Color; // HDR
@@ -311,7 +384,7 @@ Allows you to render textures in screen-space (useful for in-game UI)
 
     public class Image2DComponent : Component
     {
-        public Texture2D Texture;
+        public AssetTexture2D Texture;
         public Color3 Tint; // HDR
 
         // Same as for `Text2DComponent`
@@ -331,29 +404,29 @@ Allows you to play 3D audio.
 
     public class AudioComponent : SceneComponent
     {
-        public void SetSound(in string filepath);
-
-        public void Play();
-        public void Stop();
-        public void SetPaused(bool bPaused);
-        public bool IsPlaying();
-        
         // The minimum distance is the point at which the sound starts attenuating.
         // If the listener is any closer to the source than the minimum distance, the sound will play at full volume.
         public void SetMinDistance(float minDistance);
-        public float GetMinDistance();
 
         // The maximum distance is the point at which the sound stops attenuating and its volume remains constant (a volume which is not necessarily zero)
         public void SetMaxDistance(float maxDistance);
-        public float GetMaxDistance();
 
         public void SetMinMaxDistance(float minDistance, float maxDistance);
+        
+        public float GetMinDistance();
+        public float GetMaxDistance();
         
         public void SetRollOffModel(RollOffModel rollOff);
         public RollOffModel GetRollOffModel();
         
         public void SetVolume(float volume);
         public float GetVolume();
+        
+        public void SetPitch(float pitch);
+        public float GetPitch();
+        
+        public void SetPan(float pan);
+        public float GetPan();
         
         // @loopCount. `-1` = `Loop Endlessly`; `0` = `Play once`; `1` = `Play twice`, etc...
         public void SetLoopCount(int loopCount);
@@ -365,14 +438,43 @@ Allows you to play 3D audio.
         public void SetMuted(bool bMuted);
         public bool IsMuted();
         
+        public void SetAudioAsset(AssetAudio asset);
+        public AssetAudio GetAudioAsset();
+        
         // When you stream a sound, you can only have one instance of it playing at any time.
         // This limitation exists because there is only one decode buffer per stream.
         // As a rule of thumb, streaming is great for music tracks, voice cues, and ambient tracks, while most sound effects should be loaded into memory.
         public void SetStreaming(bool bStreaming);
         public bool IsStreaming();
+        
+        public void Play();
+        public void Stop();
+        
+        public void SetPaused(bool bPaused);
+        public bool IsPlaying();
 
         public void SetDopplerEffectEnabled(bool bEnable);
         public bool IsDopplerEffectEnabled();
+
+        public void SetFFTEnabled(bool bEnable);
+        public bool IsFFTEnabled();
+
+        public void SetFFTSamples(uint samples);
+        public uint GetFFTSamples();
+
+        public void SetFFTType(FFTWindowType type);
+        public FFTWindowType GetFFTType();
+
+		// channelIndex. Allows to get data from a specific audio channel. Starts from 0. If -1, get average over all channels
+        public bool GetSpectrumData(ref float[] data, int channelIndex = -1);
+        public float GetSampleRate();
+        public int GetChannelsCount();
+
+        public void SetPosition(uint ms);
+        public uint GetPosition();
+
+        public void SetIs3D(bool b3D);
+        public bool Is3D();
     }
 
 `Reverb Component`
@@ -502,17 +604,15 @@ It is an abstract base class for all physics collider components (Inherits ``Sce
         // Trigger shapes play no part in the simulation of the scene.
         public void SetIsTrigger(bool bTrigger);
         public bool IsTrigger();
+
+        public void SetAffectsNavMeshBuild(bool bAffects);
+        public bool DoesAffectNavMeshBuild();
+
+        public void SetIsObstacle(bool bObstacle);
+        public bool IsObstacle();
         
-        // Static friction defines the amount of friction that is applied between surfaces that are not moving lateral to each-other.
-        public void SetStaticFriction(float staticFriction);
-        public float GetStaticFriction();
-        
-        // Dynamic friction defines the amount of friction applied between surfaces that are moving relative to each-other.
-        public void SetDynamicFriction(float dynamicFriction);
-        public float GetDynamicFriction();
-        
-        public void SetBounciness(float bounciness);
-        public float GetBounciness();
+        public AssetPhysicsMaterial GetPhysicsMaterial();
+        public void SetPhysicsMaterial(AssetPhysicsMaterial material);
 
         public void SetCollisionVisible(bool bVisible);
         public bool IsCollisionVisible(bool bVisible);
@@ -564,8 +664,8 @@ Allows you to select a static mesh to create a collider from. Inherits ``BaseCol
 
     public class MeshColliderComponent : BaseColliderComponent
     {
-        public void SetCollisionMesh(StaticMesh mesh);
-        public StaticMesh GetCollisionMesh();
+        public void SetCollisionMesh(AssetStaticMesh mesh);
+        public AssetStaticMesh GetCollisionMesh();
 
         // Collider will be created using a rough approximation of the mesh.
         // Non-convex mesh collider can be used only with kinematic or static actors.
@@ -576,4 +676,78 @@ Allows you to select a static mesh to create a collider from. Inherits ``BaseCol
         // So to fix this problem, you can set this flag to true
         public void SetIsTwoSided(bool bConvex);
         public bool IsTwoSided();
+    }
+
+`Particle System Component`
+---------------------------
+Allows you to spawn and control particle systems.
+
+.. code-block:: csharp
+
+    public class ParticleSystemComponent : SceneComponent
+    {
+        public void SetAsset(AssetParticleSystem ps);
+        public AssetParticleSystem GetAsset();
+    }
+    
+`Decal Component`
+-----------------
+Allows you to spawn decals.
+
+.. code-block:: csharp
+
+    public class DecalComponent : SceneComponent
+    {
+        public AssetMaterial MaterialAsset;
+        public uint SortPriority;
+        public bool bAdjustAspectRatio;
+    }
+
+`Navigation Mesh Component`
+---------------------------
+Allows you to spawn decals.
+
+.. code-block:: csharp
+
+    public class NavigationMeshComponent : SceneComponent
+    {
+        public bool bAutoRebuild; // Rebuilds on changes if set to true
+
+        public void SetSettings(NavMeshSettings settings);
+        public NavMeshSettings GetSettings();
+
+        public void SetCrowdSettings(CrowdSettings settings);
+        public CrowdSettings GetCrowdSettings();
+
+        // Currently, only one nav mesh is supported.
+        // Building it will invalidate existing nav mesh.
+        public void Build();
+    }
+
+
+`Navigation Crowd Agent Component`
+----------------------------------
+Allows you to mark entities as agents which can be controlled by the :ref:`crowd navigation system <csharp_navigation_guide>`.
+
+.. code-block:: csharp
+
+    public class NavigationCrowdAgentComponent : Component
+    {
+        // Agents are controlled by the crowd system. But if teleportation is required,
+        // this function can be used. It'll recreate an agent at a new location
+        public void TeleportAgent(Vector3 location);
+
+        public void SetMoveTarget(Vector3 location);
+        public void ResetMoveTarget();
+
+        public bool IsValid();
+
+        // Entity.WorldLocation should be the same because agents control entities.
+        public bool GetLocation(out Vector3 outLocation);
+        public bool GetVelocity(out Vector3 outVelocity);
+
+        public void SetSettings(AgentSettings settings);
+        public AgentSettings GetSettings();
+
+        public AgentTargetState GetTargetState();
     }

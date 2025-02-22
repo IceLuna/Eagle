@@ -933,6 +933,7 @@ namespace Eagle
 		SceneComponent::operator=(other);
 		bAutoRebuild = other.bAutoRebuild;
 		m_Settings = other.m_Settings;
+		m_CrowdSettings = other.m_CrowdSettings;
 		if (other.m_NavMesh)
 		{
 			Parent.GetScene()->BuildNavMesh(this);

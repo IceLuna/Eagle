@@ -1592,7 +1592,8 @@ namespace Eagle
 					m_Sound->SetPaused(true);
 				}
 
-				m_Sound->SetPosition(ms);
+				if (m_Sound->IsPlaying())
+					m_Sound->SetPosition(ms);
 			}
 		}
 		bool Is3D() const { return b3D; }

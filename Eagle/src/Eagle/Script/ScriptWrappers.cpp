@@ -5680,6 +5680,36 @@ namespace Eagle
 		}
 	}
 
+	void Script::Eagle_NavigationMeshComponent_SetAutoRebuild(GUID entityID, bool value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			entity.GetComponent<NavigationMeshComponent>().bAutoRebuild = value;
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set `bAutoRebuild` of Navigation Mesh Component. Entity is null");
+			return;
+		}
+	}
+
+	bool Script::Eagle_NavigationMeshComponent_GetAutoRebuild(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<NavigationMeshComponent>().bAutoRebuild;
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get `bAutoRebuild` of Navigation Mesh Component. Entity is null");
+			return false;
+		}
+	}
+
 	//--------------NavigationCrowdAgent Component--------------
 	void Script::Eagle_NavigationCrowdAgentComponent_TeleportAgent(GUID entityID, const glm::vec3* location)
 	{
@@ -6645,6 +6675,16 @@ namespace Eagle
 	MonoString* Script::Eagle_Project_GetProjectPath()
 	{
 		return mono_string_new(mono_domain_get(), Project::GetProjectPath().u8string().c_str());
+	}
+
+	MonoString* Script::Eagle_Project_GetBinariesPath()
+	{
+		return mono_string_new(mono_domain_get(), Project::GetBinariesPath().u8string().c_str());
+	}
+
+	MonoString* Script::Eagle_Project_GetConfigPath()
+	{
+		return mono_string_new(mono_domain_get(), Project::GetConfigPath().u8string().c_str());
 	}
 
 	MonoString* Script::Eagle_Project_GetContentPath()

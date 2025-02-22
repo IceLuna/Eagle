@@ -648,6 +648,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.NavigationMeshComponent::GetCrowdSettings_Native", Eagle::Script::Eagle_NavigationMeshComponent_GetCrowdSettings);
 		mono_add_internal_call("Eagle.NavigationMeshComponent::GetSettings_Native", Eagle::Script::Eagle_NavigationMeshComponent_GetSettings);
 		mono_add_internal_call("Eagle.NavigationMeshComponent::SetSettings_Native", Eagle::Script::Eagle_NavigationMeshComponent_SetSettings);
+		mono_add_internal_call("Eagle.NavigationMeshComponent::SetAutoRebuild_Native", Eagle::Script::Eagle_NavigationMeshComponent_SetAutoRebuild);
+		mono_add_internal_call("Eagle.NavigationMeshComponent::GetAutoRebuild_Native", Eagle::Script::Eagle_NavigationMeshComponent_GetAutoRebuild);
 
 		// NavigationCrowdAgent Component
 		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::TeleportAgent_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_TeleportAgent);
@@ -678,7 +680,8 @@ namespace Eagle
 
 		// Project
 		mono_add_internal_call("Eagle.Project::GetProjectPath_Native", Eagle::Script::Eagle_Project_GetProjectPath);
-		mono_add_internal_call("Eagle.Project::GetContentPath_Native", Eagle::Script::Eagle_Project_GetContentPath);
+		mono_add_internal_call("Eagle.Project::GetBinariesPath_Native", Eagle::Script::Eagle_Project_GetBinariesPath);
+		mono_add_internal_call("Eagle.Project::GetConfigPath_Native", Eagle::Script::Eagle_Project_GetConfigPath);
 		mono_add_internal_call("Eagle.Project::GetCachePath_Native", Eagle::Script::Eagle_Project_GetCachePath);
 		mono_add_internal_call("Eagle.Project::GetRendererCachePath_Native", Eagle::Script::Eagle_Project_GetRendererCachePath);
 		mono_add_internal_call("Eagle.Project::GetSavedPath_Native", Eagle::Script::Eagle_Project_GetSavedPath);

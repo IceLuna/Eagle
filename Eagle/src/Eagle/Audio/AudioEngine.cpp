@@ -20,7 +20,7 @@ namespace Eagle
 	void AudioEngine::Init(const AudioEngineSettings& settings)
 	{
 		FMOD::System_Create(&s_CoreData.System);
-		auto result = s_CoreData.System->init(settings.MaxChannels, FMOD_INIT_NORMAL | FMOD_INIT_3D_RIGHTHANDED, 0);
+		auto result = s_CoreData.System->init(settings.MaxChannels, FMOD_INIT_NORMAL, 0);
 		if (result != FMOD_OK)
 		{
 			EG_CORE_CRITICAL("[AudioEngine] Failed to init Audio System. Error: {0}", FMOD_ErrorString(result));

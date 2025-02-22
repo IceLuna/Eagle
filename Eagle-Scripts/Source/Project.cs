@@ -6,6 +6,10 @@ namespace Eagle
     {
         public static string GetProjectPath() { return GetProjectPath_Native(); }
 
+        public static string GetBinariesPath() { return GetBinariesPath_Native(); }
+
+        public static string GetConfigPath() { return GetConfigPath_Native(); }
+
         public static string GetContentPath() { return GetContentPath_Native(); }
 
         public static string GetCachePath() { return GetCachePath_Native(); }
@@ -17,6 +21,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern string GetProjectPath_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern string GetBinariesPath_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern string GetConfigPath_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern string GetContentPath_Native();

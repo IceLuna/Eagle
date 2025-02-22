@@ -11,14 +11,6 @@ namespace Eagle
         public Vector3 Normal;
     };
 
-    public struct CollisionInfo
-    {
-        public Vector3 Position;
-        public Vector3 Normal;
-        public Vector3 Impulse;
-        public Vector3 Force;
-    }
-
     public class Scene
     {
         public static void OpenScene(AssetScene scene) { OpenScene_Native(scene.GetGUID()); }

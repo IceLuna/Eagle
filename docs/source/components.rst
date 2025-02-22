@@ -386,7 +386,7 @@ Navigation Mesh Component has the following parameters:
 
    i) `Max Slope`. The maximum slope that is considered walkable.
 
-   j) `Agent Height`. Minimum floor to 'ceiling' height that will still allow the floor area to be considered walkable.
+   j) `Agent Height`. Minimum floor to `ceiling` height that will still allow the floor area to be considered walkable.
 
    k) `Agent Max Climb`. Maximum ledge height that is considered to still be traversable.
 

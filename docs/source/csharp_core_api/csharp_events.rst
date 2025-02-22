@@ -61,6 +61,12 @@ There are three events that are in ``Application`` category: ``Window Resize``, 
         ...
     }
 
+    public class WindowCloseEvent : Event
+    {
+        public readonly bool bQuitGame; // `True` if it was requested from C# scripts
+        ...
+    }
+
     public class WindowFocusedEvent : Event
     {
         public readonly bool bFocused;

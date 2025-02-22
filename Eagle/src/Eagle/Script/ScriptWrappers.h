@@ -460,6 +460,8 @@ namespace Eagle::Script
 	void Eagle_NavigationMeshComponent_GetCrowdSettings(GUID entityID, AINavigation::CrowdSettings* settings);
 	void Eagle_NavigationMeshComponent_SetSettings(GUID entityID, const AINavigation::MeshSettings* settings);
 	void Eagle_NavigationMeshComponent_GetSettings(GUID entityID, AINavigation::MeshSettings* settings);
+	void Eagle_NavigationMeshComponent_SetAutoRebuild(GUID entityID, bool value);
+	bool Eagle_NavigationMeshComponent_GetAutoRebuild(GUID entityID);
 
 	// NavigationCrowdAgentComponent
 	void Eagle_NavigationCrowdAgentComponent_TeleportAgent(GUID entityID, const glm::vec3* location);
@@ -552,6 +554,8 @@ namespace Eagle::Script
 
 	// Project
 	MonoString* Eagle_Project_GetProjectPath();
+	MonoString* Eagle_Project_GetBinariesPath();
+	MonoString* Eagle_Project_GetConfigPath();
 	MonoString* Eagle_Project_GetContentPath();
 	MonoString* Eagle_Project_GetCachePath();
 	MonoString* Eagle_Project_GetRendererCachePath();

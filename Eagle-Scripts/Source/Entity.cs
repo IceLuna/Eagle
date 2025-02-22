@@ -3,6 +3,13 @@ using System.Runtime.CompilerServices;
 
 namespace Eagle
 {
+    public struct CollisionInfo
+    {
+        public Vector3 Position;
+        public Vector3 Normal;
+        public Vector3 Impulse;
+        public Vector3 Force;
+    }
     public class Entity
     {
         // First `Entity` is an entity that owns a callback
@@ -174,8 +181,6 @@ namespace Eagle
         }
 
         public bool IsValid() { return IsValid_Native(ID); }
-
-        public GUID GetID() { return ID; }
 
         public Vector3 GetForwardVector()
         {

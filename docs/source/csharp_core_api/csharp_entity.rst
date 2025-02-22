@@ -10,10 +10,11 @@ In order to write scripts for game objects, you need to create a class and deriv
 ``Entity`` class allows you to override some important functions:
 
 - ``OnCreate``. It is called when an entity is spawned.
-- ``OnDestroy``. It is called when an entity is destroyed.
+- ``OnDestroy``. It is called when an entity is destroyed. Even though `OnDestroy` function is triggered immediately, you can safely access its data since an entity and its data are deleted from memory at the beginning of the next frame
 - ``OnUpdate``. It is called on each frame and you can use its first parameter ``float timestamp`` which depends on the FPS.
 - ``OnPhysicsUpdate``. It is called each time the physics system is updated. It has the same arguments as ``OnUpdate`` function but the ``timestamp`` value is always the same and it does not depend on the FPS. Currently, ``timestamp`` is always `0.00833` ms (120 FPS).
 - ``OnEvent``. It is called each time an event is triggered. It receives an ``Event`` object as its first parameter.
+- ``OnAnimationEvent``. It is called each time an animation event is triggered.
 
 .. note::
     Physics callbacks receive two ``Entity`` objects.
@@ -22,12 +23,19 @@ In order to write scripts for game objects, you need to create a class and deriv
 
     Additionally, `Collision` callbacks receive a ``CollisionInfo`` as a third argument. It contains information about collision position, normal, impulse, and force.
 
+.. note::
+    Use ``Entity.SpawnEntity()`` functions to spawn new entities in a scene.
+
 ``Entity`` class:
 
 .. code-block:: csharp
 
     public class Entity
     {
+        // Use these function to spawn new entities in a scene
+        public static Entity SpawnEntity(string name = "");
+        public static Entity SpawnEntity(AssetEntity asset);
+
         public GUID ID { get; private set; }
 
         public virtual void OnCreate() { }
@@ -35,6 +43,7 @@ In order to write scripts for game objects, you need to create a class and deriv
         public virtual void OnUpdate(float ts) { }
         public virtual void OnPhysicsUpdate(float ts) { }
         public virtual void OnEvent(Event e) { }
+        public virtual void OnAnimationEvent(string eventName, float time) { }
 
         public Entity Parent;
         public Entity[] Children;
@@ -55,14 +64,12 @@ In order to write scripts for game objects, you need to create a class and deriv
         public bool HasComponent(Type type);
         public T GetComponent<T>() where T : Component, new();
 
-        public GUID GetID() { return ID; }
+        public bool IsValid();
 
         public Vector3 GetForwardVector();
         public Vector3 GetRightVector();
         public Vector3 GetUpVector();
 
-        // Even though `OnDestroy` function is triggered immediately,
-        // an entity and its data are deleted from memory at the beginning of the next frame
         public void Destroy();
 
         // Checks if a mouse is hovered over an entity
@@ -99,7 +106,4 @@ In order to write scripts for game objects, you need to create a class and deriv
         public override string ToString();
 
         public Entity GetChildrenByName(string name);
-
-        // Use this function to spawn new entities in a scene
-        static public Entity SpawnEntity(string name = "");
     }

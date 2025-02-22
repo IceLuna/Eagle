@@ -7,9 +7,10 @@ Math API has some structs and functions that might help you with the development
 
 	It's not complete at all and misses a bunch of functionality, but anyways it's here :)
 
-`Vector2` struct
-----------------
+`Vector2` & `UVector2`
+----------------------
 It is a utility struct representing 2D vector.
+``UVector2D`` has the same functionality as ``Vector2D``.
 
 .. code-block:: csharp
 
@@ -19,10 +20,8 @@ It is a utility struct representing 2D vector.
         public float X;
         public float Y;
 
-        // X = Y = scalar
+        public Vector2(Vector2 v);
         public Vector2(float scalar);
-
-        // X = x, Y = y
         public Vector2(float x, float y);
 
         public static Vector2 operator+ (Vector2 left, Vector2 right);
@@ -42,22 +41,17 @@ It is a utility struct representing 2D vector.
         public static Vector2 operator/ (Vector2 left, float scalar);
         public static Vector2 operator/ (float scalar, Vector2 right);
 
-        public override bool Equals(object obj) => obj is Vector2 other && this.Equals(other);
-        public bool Equals(Vector2 right) => X == right.X && Y == right.Y;
+        public override bool Equals(object obj);
+        public bool Equals(Vector2 right);
 
-        public static bool operator== (Vector2 left, Vector2 right) => left.Equals(right);
-        public static bool operator!= (Vector2 left, Vector2 right) => !(left == right);
+        public static bool operator== (Vector2 left, Vector2 right);
+        public static bool operator!= (Vector2 left, Vector2 right);
 
-        public override string ToString()
-        {
-            return "Vector2[" + X + ", " + Y + "]";
-        }
-
-        public override int GetHashCode() => (X, Y).GetHashCode();
+        public override string ToString();
     }
 
-`Vector3` struct
-----------------
+`Vector3`
+---------
 It is a utility struct representing 3D vector. It has the same functionality as ``Vector2D`` but additionally, it has a construct that takes ``Color3`` vector and an implicit cast operator.
 
 ``Vector3`` and ``Color3`` structs are identical. They can be used in your scripts so that the editor can distinguish them and display an appropriate way of editing it. For example, for a ``Color3`` value, there will be a color picker.
@@ -83,14 +77,14 @@ It is a utility struct representing 3D vector. It has the same functionality as 
         ...
     }
 
-`Vector4` struct
-----------------
+`Vector4`
+---------
 It is a utility struct representing 4D vector. It has the same functionality as ``Vector3D`` but instead of ``Color3``, it works with ``Color4``.
 
 ``Vector4`` and ``Color4`` structs are identical. They can be used so that the editor can distinguish them and display an appropriate way of editing it. For example, for a ``Color4`` value, there will be a color-alpha picker.
 
-`Quat` struct
--------------
+`Quat`
+------
 It represents a quaternion that can be used for rotations.
 
 .. code-block:: csharp
@@ -103,31 +97,13 @@ It represents a quaternion that can be used for rotations.
         public float Y;
         public float Z;
 
-        // W = w, X = x, Y = y, Z = z
         public Quat(float w, float x, float y, float z);
-
-        // W = w, X = v.X, Y = v.Y, Z = v.Z
         public Quat(float w, Vector3 v);
 
-        public static Quat Conjugate(Quat val)
-        {
-            return new Quat(val.W, -val.X, -val.Y, -val.Z);
-        }
-
-        public static float Dot(Quat left, Quat right)
-        {
-            return left.X * right.X + left.Y * right.Y + left.Z * right.Z + left.W * right.W;
-        }
-
-        public Quat Inverse()
-        {
-            return Conjugate(this) / Dot(this, this);
-        }
-
-        public float Lenght()
-        {
-            return (float)Math.Sqrt(Quat.Dot(this, this));
-        }
+        public static Quat Conjugate(Quat val);
+        public static float Dot(Quat left, Quat right);
+        public Quat Inverse();
+        public float Lenght();
 
         // Turns it into a unit length quat
         public void Normalize();
@@ -137,39 +113,22 @@ It represents a quaternion that can be used for rotations.
             return new Quat(1f, 0f, 0f, 0f);
         }
 
-        public static Quat operator* (Quat left, Quat right)
-        {
-            Quat p = left;
-            Quat q = right;
-            Quat result = new Quat();
-
-            result.W = p.W * q.W - p.X * q.X - p.Y * q.Y - p.Z * q.Z;
-            result.X = p.W * q.X + p.X * q.W + p.Y * q.Z - p.Z * q.Y;
-            result.Y = p.W * q.Y + p.Y * q.W + p.Z * q.X - p.X * q.Z;
-            result.Z = p.W * q.Z + p.Z * q.W + p.X * q.Y - p.Y * q.X;
-
-            return result;
-        }
-
+        public static Quat operator* (Quat left, Quat right);
         public static Quat operator/ (Quat left, float scalar);
 
-        public override bool Equals(object obj) => obj is Quat other && this.Equals(other);
+        public override bool Equals(object obj);
+        public bool Equals(Quat right);
 
-        public bool Equals(Quat right) => X == right.X && Y == right.Y && Z == right.Z && W == right.W;
+        public static bool operator== (Quat left, Quat right);
+        public static bool operator!= (Quat left, Quat right);
 
-        public static bool operator== (Quat left, Quat right) => left.Equals(right);
-        public static bool operator!= (Quat left, Quat right) => !(left == right);
+        public override string ToString();
 
-        public override string ToString()
-        {
-            return "Quat[" + X + ", " + Y + ", " + Z + ", " + W + "]";
-        }
-
-        public override int GetHashCode() => (X, Y, Z, W).GetHashCode();
+        public override int GetHashCode();
     }
 
-`Rotator` struct
-----------------
+`Rotator`
+---------
 Currently, it just contains a ``Quat`` member
 
 .. code-block:: csharp
@@ -180,8 +139,8 @@ Currently, it just contains a ``Quat`` member
         public Quat Rotation;
     }
 
-`Transform` struct
-------------------
+`Transform`
+-----------
 It is used to represent an objects transformation
 
 .. code-block:: csharp
@@ -194,8 +153,57 @@ It is used to represent an objects transformation
         public Vector3 Scale;
     }
 
-`Math` class
-------------
+`AABB`
+------
+It is used to represent an objects extents
+
+.. code-block:: csharp
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct AABB
+    {
+        public Vector3 Min;
+        public Vector3 Max;
+
+        public AABB(Vector3 min, Vector3 max);
+
+        public static AABB Default()
+        {
+            AABB result = new AABB();
+            result.Min = new Vector3(float.MinValue);
+            result.Max = new Vector3(float.MaxValue);
+            return result;
+        }
+
+        public Vector3 Center() { return (Min + Max) * 0.5f; }
+		public Vector3 Extents() { return Max - Min; }
+		public float Length() { return Mathf.Length(Extents()); }
+
+		public void Grow(AABB other);
+
+		public void Grow(Vector3 p);
+
+		public bool Contains(Vector3 p);
+
+        // Return min/max extents value
+		public float MinSide();
+		public float MaxSide();
+
+        public static bool Overlap(AABB a, AABB b);
+
+        public override bool Equals(object obj);
+        public bool Equals(AABB right);
+
+        public static bool operator ==(AABB left, AABB right);
+        public static bool operator !=(AABB left, AABB right);
+
+        public override string ToString();
+
+        public override int GetHashCode();
+    }
+
+`Math`
+------
 It is a static class that contains utility functions.
 
 .. code-block:: csharp
@@ -257,6 +265,16 @@ It is a static class that contains utility functions.
         public static Vector2 Fract(Vector2 x) => x - Floor(x);
         public static Vector3 Fract(Vector3 x) => x - Floor(x);
         public static Vector4 Fract(Vector4 x) => x - Floor(x);
+
+        public static float Min(float a, float b) => Math.Min(a, b);
+        public static Vector2 Min(Vector2 a, Vector2 b) => new Vector2(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y));
+        public static Vector3 Min(Vector3 a, Vector3 b) => new Vector3(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Min(a.Z, b.Z));
+        public static Vector4 Min(Vector4 a, Vector4 b) => new Vector4(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Min(a.Z, b.Z), Math.Min(a.W, b.W));
+
+        public static float Max(float a, float b) => Math.Max(a, b);
+        public static Vector2 Max(Vector2 a, Vector2 b) => new Vector2(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y));
+        public static Vector3 Max(Vector3 a, Vector3 b) => new Vector3(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y), Math.Max(a.Z, b.Z));
+        public static Vector4 Max(Vector4 a, Vector4 b) => new Vector4(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y), Math.Max(a.Z, b.Z), Math.Max(a.W, b.W));
 
         // All components are in the range [0; 1], including hue.
         public static Color3 RGB2HSV(Color3 c);
