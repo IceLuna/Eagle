@@ -7,9 +7,8 @@ This API represents all engine asset types.
 All asset classes are derived from ``Asset`` class.
 
 .. note::
-	
-	Note that changing assets affects the whole asset, meaning it will affect the editor and other objects that use it.
-    `Material`, `Physics Material`, and `Particle System` assets allow you to create new copies so that you are able to generate unique assets at runtime.
+    Changing assets affects the whole asset, meaning it will affect the editor and other objects that use it.
+    Material, Physics Material, and Particle System assets allow you to create new copies so that you are able to generate unique assets at runtime.
 
 .. code-block:: csharp
 
@@ -218,4 +217,3 @@ All asset classes are derived from ``Asset`` class.
         public ParticleEmitter[] GetEmitters();
         public void SetEmitters(ParticleEmitter[] emitters);
     }
-

@@ -25,7 +25,7 @@ It can be used with ``AudioComponent``.
 ``InverseTapered`` roll off model means that a sounds will follow the inverse roll off model at distances close to `MinDistance` and a linear-square roll off close to `MaxDistance`.
 
 `Reverb Preset` enum
--------------------
+--------------------
 It allows you to simulate different types of environments.
 It can be used with ``ReverbComponent``.
 

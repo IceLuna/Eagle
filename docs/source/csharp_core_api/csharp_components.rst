@@ -214,7 +214,7 @@ Allows you to add meshes to entities.
     
 
 `Skeletal Mesh Component`
------------------------
+-------------------------
 Allows you to add animated meshes to entities.
 
 .. note::

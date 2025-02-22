@@ -410,9 +410,8 @@ Navigation Mesh Component has the following parameters:
    t) `Filter Ledge Spans`. Marks spans that are ledges as not-walkable. A ledge is a span with one or more neighbors whose maximum is further away than AgentMaxClimb from the current span's maximum.
       This method removes the impact of the overestimation of conservative voxelization so the resulting mesh will not have regions hanging in the air over ledges.
 
-   u) `Filter Walkable Low Height Spans`. Marks walkable spans as not walkable if the clearance above the span is less than the specified AgentHeight.
-      For this filter, the clearance above the span is the distance from the span's maximum to the minimum of the next higher span in the same column.
-	  If there is no higher span in the column, the clearance is computed as the distance from the top of the span to the maximum heightfield height.
+   u) `Filter Walkable Low Height Spans`. Marks walkable spans as not walkable if the clearance above the span is less than the specified `Agent Height`. For this filter, the clearance above the span is the distance
+      from the span's maximum to the minimum of the next higher span in the same column. If there is no higher span in the column, the clearance is computed as the distance from the top of the span to the maximum heightfield height.
 
 .. figure:: imgs/components/nav_mesh.png
    :align: center 
