@@ -1474,7 +1474,7 @@ namespace Eagle
 				out << YAML::Key << "CrowdSettings" << YAML::Value << YAML::BeginMap;
 
 				out << YAML::Key << "MaxAgents" << YAML::Value << settings.MaxAgents;
-				out << YAML::Key << "MaxAgents" << YAML::Value << settings.MaxAgentRadius;
+				out << YAML::Key << "MaxAgentRadius" << YAML::Value << settings.MaxAgentRadius;
 
 				out << YAML::EndMap;
 			}
@@ -2055,7 +2055,8 @@ namespace Eagle
 			if (auto settingsNode = componentNode["CrowdSettings"])
 			{
 				crowdSettings.MaxAgents = settingsNode["MaxAgents"].as<uint32_t>();
-				crowdSettings.MaxAgentRadius = settingsNode["MaxAgents"].as<float>();
+				if (auto node = settingsNode["MaxAgentRadius"])
+					crowdSettings.MaxAgentRadius = node.as<float>();
 				component.SetCrowdSettings(crowdSettings);
 			}
 

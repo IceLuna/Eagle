@@ -27,7 +27,7 @@ To learn more about the renderer itself, check out these pages:
    rendering/fog
    rendering/text_rendering
    rendering/anti_aliasing
-   rendering/sssr
+   rendering/ss_reflections
    rendering/particles
    rendering/depth_of_field
    rendering/motion_blur

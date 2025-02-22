@@ -1978,8 +1978,8 @@ namespace Eagle
 					auto settings = component.GetSettings();
 					bool bChanged = false;
 
-					bChanged |= UI::PropertyDrag("Visibility AABB Min", settings.AABB.Min, 0.1f, 0, 0);
-					bChanged |= UI::PropertyDrag("Visibility AABB Max", settings.AABB.Max, 0.1f, 0, 0);
+					bChanged |= UI::PropertyDrag("AABB Min", settings.AABB.Min, 0.1f, 0, 0);
+					bChanged |= UI::PropertyDrag("AABB Max", settings.AABB.Max, 0.1f, 0, 0);
 
 					if (UI::PropertyDrag("Max Query Nodes", settings.MaxQueryNodes, 32.f, 1, 65535, "Maximum number of search nodes. [Limits: 0 < value <= 65535]"))
 					{
@@ -2121,11 +2121,10 @@ namespace Eagle
 
 					bChanged |= UI::ComboEnum("Obstacle Avoidance Quality", settings.ObstacleAvoidanceQuality);
 					
-					// TODO: help messages
 					bChanged |= UI::Property("Anticipate Turns", settings.bAnticipateTurns);
-					bChanged |= UI::Property("Optimize Vis", settings.bOptimizeVis);
-					bChanged |= UI::Property("Optimize Topo", settings.bOptimizeTopo);
-					bChanged |= UI::Property("Separation", settings.bSeparation);
+					bChanged |= UI::Property("Optimize Path Visibility", settings.bOptimizeVis);
+					bChanged |= UI::Property("Optimize Path Topology", settings.bOptimizeTopo);
+					bChanged |= UI::Property("Crowd Separation", settings.bSeparation);
 
 					UI::EndPropertyGrid();
 
