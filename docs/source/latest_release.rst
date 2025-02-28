@@ -33,31 +33,31 @@ Instead, they need to be explicitly imported that will convert them into a speci
 
 Currently, the engine supports the following asset types:
 
-- :ref:`**Texture 2D** <asset_texture_2d>`. Supported formats: ``png``; ``jpg``; ``tga``.
+- :ref:`Texture 2D <asset_texture_2d>`. Supported formats: ``png``; ``jpg``; ``tga``.
 
-- :ref:`**Texture Cube** <asset_texture_cube>`. Supported format: ``hdr``.
+- :ref:`Texture Cube <asset_texture_cube>`. Supported format: ``hdr``.
 
-- :ref:`**Static** <asset_static_mesh>` & :ref:`**Skeletal** <asset_skeletal_mesh>` meshes. Supported mesh formats: ``fbx``; ``gltf``, ``blend``; ``3ds``; ``obj``; ``smd``; ``vta``; ``stl``.
+- :ref:`Static <asset_static_mesh>` & :ref:`**Skeletal** <asset_skeletal_mesh>` meshes. Supported mesh formats: ``fbx``; ``gltf``, ``blend``; ``3ds``; ``obj``; ``smd``; ``vta``; ``stl``.
 
-- :ref:`**Audio** <asset_audio>`. Supported sound formats: ``mp3``; ``wav``; ``ogg``; ``wma``.
+- :ref:`Audio <asset_audio>`. Supported sound formats: ``mp3``; ``wav``; ``ogg``; ``wma``.
 
-- :ref:`**Sound Group** <asset_sound_group>`. Allows you to group sounds. For example, you can create a "Background music" sound group and assign audio assets to it. Then, you can mute all of them just by muting the sound group.
+- :ref:`Sound Group <asset_sound_group>`. Allows you to group sounds. For example, you can create a "Background music" sound group and assign audio assets to it. Then, you can mute all of them just by muting the sound group.
 
-- :ref:`**Font** <asset_font>`. Supported font formats: ``ttf``; ``otf``.
+- :ref:`Font <asset_font>`. Supported font formats: ``ttf``; ``otf``.
 
-- :ref:`**Material** <asset_material>`.
+- :ref:`Material <asset_material>`.
 
-- :ref:`**Physics Material** <asset_physics_material>`. Controls static & dynamic friction, and bounciness.
+- :ref:`Physics Material <asset_physics_material>`. Controls static & dynamic friction, and bounciness.
 
-- :ref:`**Entity** <asset_entity>`. It's is a pretty useful asset type since it allows you to set up an entity that you can easily spawn in the editor or in runtime. You don't have to manually create the same entities anymore.
+- :ref:`Entity <asset_entity>`. It's is a pretty useful asset type since it allows you to set up an entity that you can easily spawn in the editor or in runtime. You don't have to manually create the same entities anymore.
 
-- :ref:`**Scene** <asset_scene>`.
+- :ref:`Scene <asset_scene>`.
 
-- :ref:`**Animation** <asset_animation>`.
+- :ref:`Animation <asset_animation>`.
 
-- :ref:`**Animation Graph** <asset_animation_graph>`.
+- :ref:`Animation Graph <asset_animation_graph>`.
 
-- :ref:`**Particle System** <asset_particle_system>`.
+- :ref:`Particle System <asset_particle_system>`.
 
 .. note::
 
@@ -104,15 +104,15 @@ You can open a skeletal mesh asset to visualize it which displays some data abou
 **Skeletal Tree** displays bone transforms in local space (offsets from the origin).
 You can't move bones of a mesh, but you can create your own `Virtual` bones by right-clicking a bone in the tree. You can modify their transforms and use them in C# to attach any other game-objects.
 
-**Ragdoll Tree** allows you to setup ragdoll of the mesh. You can change the transformation, mass, linear & angular damping, physics material, and shape of a ragdoll collider (Capsule, Box, or Sphere).
-Transforms of ragdoll bones are displayed relative to originally computed transforms. You can also change the way a ragdoll is generated. By increasing ``Min ragdoll bone size``, you can optimize the simulation, since more bones will be merged into a single ragdoll collider.
-So, for performance reasons, it's recommended to set it as high as possible. You can also control `Max Twist` and `Max Swing` angles (in degrees).
-`Skeletal Mesh Editor` also allows you to simulate the ragdoll you've set up.
-
 .. figure:: imgs/editor/assets/skeletalmesh/skeletalmesh.png
    :align: center
 
    Skeletal Mesh asset editor
+
+**Ragdoll Tree** allows you to setup ragdoll of the mesh. You can change the transformation, mass, linear & angular damping, physics material, and shape of a ragdoll collider (Capsule, Box, or Sphere).
+Transforms of ragdoll bones are displayed relative to originally computed transforms. You can also change the way a ragdoll is generated. By increasing ``Min ragdoll bone size``, you can optimize the simulation, since more bones will be merged into a single ragdoll collider.
+So, for performance reasons, it's recommended to set it as high as possible. You can also control `Max Twist` and `Max Swing` angles (in degrees).
+`Skeletal Mesh Editor` also allows you to simulate the ragdoll you've set up.
 
 .. figure:: imgs/editor/assets/skeletalmesh/ragdoll.png
    :align: center
@@ -123,10 +123,10 @@ So, for performance reasons, it's recommended to set it as high as possible. You
 
 You can open an animation asset to adjust some of its properties.
 
-**Extract Root Motion**. Some animations have transformation data embedded into them. In this case, you can enable root motion to let animations drive the entity transformation.
+- **Extract Root Motion**. Some animations have transformation data embedded into them. In this case, you can enable root motion to let animations drive the entity transformation.
   For example, if root motion is supported and enabled, and you're playing "Run" animation, then the whole Entity will move. So, you can build animation-driven gameplay.
 
-**Events**. You can create animation events that will allow you to react to them in C#.
+- **Events**. You can create animation events that will allow you to react to them in C#.
   For example, if you want to play "Step" sound, you can create an event at an appropriate timing, and when it's reached, C# ``Entity.OnAnimationEvent()`` is called.
 
 .. figure:: imgs/editor/assets/animation/animation.png
@@ -172,7 +172,7 @@ Currently, emitters only support 2D particles, meaning they'll always face the c
 
 Go :ref:`here <feature_particles>` to learn more about particles and their settings.
 
-.. figure:: rendering/imgs/ps_smoke.png
+.. figure:: rendering/imgs/ps_smoke.gif
     :align: center 
 
     Simple smoke effect

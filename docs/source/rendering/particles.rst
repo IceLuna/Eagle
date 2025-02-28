@@ -8,7 +8,7 @@ Currently, emitters only support 2D particles, meaning they'll always face the c
 There's a ``Sort opaque particles`` parameter in `Renderer Settings` which you can use to potentially improve performance if you have a lot of opaque particles.
 Enabling it will help to avoid overdraws.
 
-.. figure:: imgs/ps_smoke.png
+.. figure:: imgs/ps_smoke.gif
     :align: center 
 
     Simple smoke effect
