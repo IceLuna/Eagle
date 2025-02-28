@@ -145,7 +145,7 @@ namespace Eagle
 		UI::BeginPropertyGrid("AnimationDetails");
 
 		UI::Property("Play animation", bPlayAnimation);
-		if (UI::Property("In place", bInPlace))
+		if (UI::Property("In place", bInPlace, "Affects root motion"))
 		{
 			if (bInPlace)
 			{

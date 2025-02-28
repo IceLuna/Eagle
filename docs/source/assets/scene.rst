@@ -1,4 +1,4 @@
-.. _asset_Scene:
+.. _asset_scene:
 
 Scene asset
 ===========

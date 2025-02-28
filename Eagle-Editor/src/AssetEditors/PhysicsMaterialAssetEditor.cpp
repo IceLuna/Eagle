@@ -77,7 +77,6 @@ namespace Eagle
 			entity.SetWorldRotation(glm::quat(0.707f, -0.707f, 0.f, 0.f));
 			auto& sun = entity.AddComponent<DirectionalLightComponent>();
 			sun.SetLightColor(glm::vec3(20.5f));
-			sun.bVisualizeDirection = true;
 		}
 
 		auto& camera = m_Scene->GetEditorCamera();
@@ -143,6 +142,7 @@ namespace Eagle
 			if (UI::DrawQuatControl("1st Plane Rotation (Quat)", quat, glm::quat{ 1, 0, 0, 0 }, 140.f))
 			{
 				m_Plane1.SetWorldRotation(quat);
+				WakeUpActors();
 			}
 		}
 		// Plane 2 rotation
@@ -152,6 +152,7 @@ namespace Eagle
 			if (UI::DrawQuatControl("2nd Plane Rotation (Quat)", quat, glm::quat{ 1, 0, 0, 0 }, 140.f))
 			{
 				m_Plane2.SetWorldRotation(glm::quat(quat.w, quat.x, quat.y, quat.z));
+				WakeUpActors();
 			}
 		}
 
@@ -180,5 +181,11 @@ namespace Eagle
 		m_Sphere2.SetWorldTransform(s_Sphere2Transform);
 		m_Sphere2.SetLinearVelocity(glm::vec3(0));
 		m_Sphere2.SetAngularVelocity(glm::vec3(0));
+	}
+	
+	void PhysicsMaterialAssetEditor::WakeUpActors()
+	{
+		m_Sphere1.GetComponent<RigidBodyComponent>().WakeUp();
+		m_Sphere2.GetComponent<RigidBodyComponent>().WakeUp();
 	}
 }

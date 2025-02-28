@@ -1039,6 +1039,8 @@ namespace Eagle
 		void SetIsKinematic(bool bKinematic);
 		bool IsKinematic() const { return bKinematic; }
 
+		void WakeUp();
+
 		bool IsLockFlagSet(ActorLockFlag flag) const { return HasFlags(m_LockFlags, flag); }
 		void SetLockFlag(ActorLockFlag flag, bool value);
 		void SetLockFlag(ActorLockFlag flag);

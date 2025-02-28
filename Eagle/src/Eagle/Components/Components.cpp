@@ -75,6 +75,12 @@ namespace Eagle
 			actor->SetKinematic(bKinematic);
 	}
 
+	void RigidBodyComponent::WakeUp()
+	{
+		if (const auto& actor = Parent.GetPhysicsActor())
+			actor->WakeUp();
+	}
+
 	void RigidBodyComponent::SetMaxLinearVelocity(float velocity)
 	{
 		MaxLinearVelocity = glm::max(0.f, velocity);

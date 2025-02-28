@@ -346,6 +346,8 @@ Reverb Component has the following parameters:
 
    Reverb Component
 
+.. _nav_mesh_component:
+
 Navigation Mesh Component
 -------------------------
 It allows you to build navigation mesh that can be used by your AI scripts to move from one point to another while avoiding obstacles.
@@ -418,12 +420,16 @@ Navigation Mesh Component has the following parameters:
 
    Navigation Mesh Component
 
+.. figure:: imgs/components/nav_mesh_example.gif
+    :align: center 
+
+    Navigation Mesh in action
+
 .. _nav_crowd_agent_component:
 
 Navigation Crowd Agent Component
 --------------------------------
-It allows you mark entities as crowd agents.
-The benefit of it is that you can easily control a lot of agents.
+It allows you mark entities as crowd agents. And the benefit of it is that you can easily control a lot of NPCs and change their move target.
 
 For example, you can create 100 crowd agents, and make all of them to move to a single point by simply calling one C# function: ``CrowdNavigation.SetMoveTarget()``.
 Of cource, you can also control each agent individually.
@@ -455,6 +461,10 @@ Navigation Crowd Agent Component has the following parameters:
 
    Navigation Crowd Agent Component
 
+.. note::
+
+    You don't have to use crowd agents to move your entities.
+    If you want to do it manually, you can call C# functions such as ``Navigation.FindStraightPath()`` to get an array of points you need to move to.
 
 Rigid Body Component
 --------------------

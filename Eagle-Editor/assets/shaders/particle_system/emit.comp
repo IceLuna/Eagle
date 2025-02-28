@@ -88,7 +88,7 @@ uint GetEmitterIndex(uint id)
 
 void GetPosAndNormalOnMesh(Emitter emitter, inout Random random, inout vec3 pos, inout vec3 normal)
 {
-    // random triangle on emitter surface:
+    // random triangle on emitter surface
 	const uint triangleCount = emitter.IndexCount / 3;
 	const uint tri = Random_NextUint(random, triangleCount);
 
@@ -97,12 +97,12 @@ void GetPosAndNormalOnMesh(Emitter emitter, inout Random random, inout vec3 pos,
 	uint i1 = g_Indices[emitter.IndexOffset + tri * 3 + 1];
 	uint i2 = g_Indices[emitter.IndexOffset + tri * 3 + 2];
 
-	// load vertices of triangle from vertex buffer:
+	// load vertices of triangle from vertex buffer
     MeshVertex v0 = g_Vertices[emitter.VertexOffset + i0];
     MeshVertex v1 = g_Vertices[emitter.VertexOffset + i1];
     MeshVertex v2 = g_Vertices[emitter.VertexOffset + i2];
 
-    // random barycentric coords:
+    // random barycentric coords
     vec2 buv = Random_NextFloat2(random);
 	if (buv.x + buv.y > 1.f)
 	{

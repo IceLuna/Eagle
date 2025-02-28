@@ -58,7 +58,7 @@ namespace Eagle
 		float NumParticlesRatio = 1.f; // Can be used to control `NumParticles`
 		float FastForwardTo = 0.f; // Allows to fast-forward the simulation to make it look like it was running for `FastForwardTo` seconds
 		float RadialAcceleration = 0.f; // If it's negative, particles will move towards the center of the emitter. If positive, they move away from the center
-		float TangentialAcceleration = 0.f; // If it's negative, particles will move towards the center of the emitter in a spiral way. If positive, they move away from the center.
+		float TangentialAcceleration = 0.f; // Particles will move away from the center of the emitter in a spiral way.
 		float NormalVelocityFactor = 0.f; // If not 0, particle's initial velocity will be affected by `EmissionShapeType` normal direction
 
 		EmissionShapeType EmissionShape = EmissionShapeType::Point;

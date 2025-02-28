@@ -20,6 +20,7 @@ namespace Eagle
 
 	private:
 		void ResetScene();
+		void WakeUpActors();
 
 	private:
 		Ref<AssetPhysicsMaterial> m_Asset;

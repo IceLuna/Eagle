@@ -212,7 +212,7 @@ namespace Eagle
 		public uint NumParticles;
 		public float NumParticlesRatio; // Can be used to control `NumParticles`
 		public float RadialAcceleration; // If it's negative, particles will move towards the center of the emitter. If positive, they move away from the center
-		public float TangentialAcceleration; // If it's negative, particles will move towards the center of the emitter in a spiral way. If positive, they move away from the center.
+		public float TangentialAcceleration; // Particles will move away from the center of the emitter in a spiral way.
         public float NormalVelocityFactor; // If not 0, particle's initial velocity will be affected by `EmissionShapeType` normal direction
 
         public EmitterEmissionShapeType EmissionShape;

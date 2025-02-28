@@ -1327,7 +1327,10 @@ namespace Eagle
 										}
 										i++;
 									}
-									if (UI::ComboWithNone(field.Name.c_str(), currentSelection, names, currentSelection))
+
+									const bool bChanged = UI::ComboWithNone(field.Name.c_str(), currentSelection, names, currentSelection);
+									const bool bInvalidEntity = currentSelection == -1 && value != GUID(0, 0); // Can happen if an entity was removed from the scene
+									if (bChanged || bInvalidEntity)
 									{
 										value = currentSelection == -1 ? GUID(0, 0) : ids[currentSelection];
 

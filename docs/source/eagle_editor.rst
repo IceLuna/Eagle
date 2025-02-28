@@ -228,31 +228,31 @@ Assets
 ------
 Currently, the engine supports the following asset types:
 
-- **Texture 2D**. Supported formats: ``png``; ``jpg``; ``tga``.
+- :ref:`**Texture 2D** <asset_texture_2d>`. Supported formats: ``png``; ``jpg``; ``tga``.
 
-- **Texture Cube**. Supported format: ``hdr``.
+- :ref:`**Texture Cube** <asset_texture_cube>`. Supported format: ``hdr``.
 
-- **Static & Skeletal Meshes**. Supported mesh formats: ``fbx``; ``gltf``, ``blend``; ``3ds``; ``obj``; ``smd``; ``vta``; ``stl``.
+- :ref:`**Static** <asset_static_mesh>` & :ref:`**Skeletal** <asset_skeletal_mesh>` meshes. Supported mesh formats: ``fbx``; ``gltf``, ``blend``; ``3ds``; ``obj``; ``smd``; ``vta``; ``stl``.
 
-- **Audio**. Supported sound formats: ``mp3``; ``wav``; ``ogg``; ``wma``.
+- :ref:`**Audio** <asset_audio>`. Supported sound formats: ``mp3``; ``wav``; ``ogg``; ``wma``.
 
-- **Sound Group**.
+- :ref:`**Sound Group** <asset_sound_group>`.
 
-- **Font**. Supported font formats: ``ttf``; ``otf``.
+- :ref:`**Font** <asset_font>`. Supported font formats: ``ttf``; ``otf``.
 
-- **Material**.
+- :ref:`**Material** <asset_material>`.
 
-- **Physics Material**.
+- :ref:`**Physics Material** <asset_physics_material>`.
 
-- **Entity**.
+- :ref:`**Entity** <asset_entity>`.
 
-- **Scene**.
+- :ref:`**Scene** <asset_scene>`.
 
-- **Animation**.
+- :ref:`**Animation** <asset_animation>`.
 
-- **Animation Graph**.
+- :ref:`**Animation Graph** <asset_animation_graph>`.
 
-- **Particle System**.
+- :ref:`**Particle System** <asset_particle_system>`.
 
 You can use Content Browser to create/import assets by clicking `Add asset` button. Also, all assets can be opened by double-clicking them.
 

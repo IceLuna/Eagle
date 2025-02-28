@@ -5,6 +5,7 @@ Entity asset
 
 This asset type represents an entity which you can modify by using `Entity Editor`.
 It allows you to setup an entity beforehand which can be used to spawn entities at runtime or in the editor.
+If you want to spawn it in the editor, just drag & drop it onto the viewport.
 
 .. note::
 

@@ -1,584 +1,531 @@
 Release notes
 =============
-It's been two years since the last release and the new version is finally here!
-You're probably starving to see what's new... and oh boy, there're a lot of changes.
+New version of `Eagle Engine` is finally here!
+It introduces a lot of new exciting features that make it one big step closer to becoming a more or less complete engine.
 
-First of all, let's say goodbye to our good old friend `OpenGL` since it was discombobulated (removed) from Eagle Engine. Now the engine uses `Vulkan` as a rendering API.
+New version adds support for projects and building them as games (finally).
+Rendering now supports `particles`, `animated meshes`, features such as `depth of field`, `motion blur`, `reflections`, and many more.
+And last, but not least: Navigation Meshes! Now you're able to make your NPCs have a big brain - they'll able to navigate around the scene and avoid walls & obstacles.
 
-Rendering system was completely rewritten because the old code was a disaster. You can't even comprehend how much faster the rendering is right now.
+Breathtaking, I know. A wise man once said: "i havig  my new game enjain! coe closer and see. YOU WILL BE IMPRESSED WHAT I AM GOING TO SHOW THE REST OF THE WOLRd!!"
+So here it is. Enjoy!
 
-Now there're no engine limitations on the amount of point & spot lights you can use in a scene. You want hundreds of them? So be it.
-But be aware that there's a limit on how many point & spot lights can cast shadows. The limit is 1024. So, a scene can have 1024 point lights and 1024 spot lights that cast shadows.
-The same limit of 1024 separately applies to the amount of imported textures and fonts.
-
-**Even faster**. Now, rendering runs in its own dedicated `Render thread` which will make things much faster since other engine systems don't need to wait for the rendering to finish.
-
-PBR
----
-The new version introduces support for `physically based rendering <https://en.wikipedia.org/wiki/Physically_based_rendering>`_ (PBR) which makes renders more photo realistic.
-`Metalness` and `Roughness` textures were added to materials. `Metalness` controls how 'metal-like' surface looks like. By default, it's 0.
-`Roughness` controls how rough surface looks like. `Roughness` of 0 is a mirror reflection and 1 is completely matte. By default, it's 0.5.
-
-.. figure:: rendering/imgs/metalness.png
-    :align: center 
-
-    The sphere on the left has a metalness of 0. The right one - 1. In both cases, the roughness is 0.5
-
-.. figure:: rendering/imgs/roughness.png
-    :align: center 
-
-    The sphere on the left has a roughness of 0. The right one - 1. In both cases, the metalness is 0.
-
-Ambient
--------
-The old way of working with skyboxes was changed. Now it's required to specify just one cubemap texture (with the .hdr extension) which also lights the scene (Image-based lighting with multiple-scattering).
-Additionally, materials have a new `Ambient Occlusion` input which can be used to affect ambient lighting. For example, if material's ambient occlusion is 0, that means the material won't be affected by ambient lighting. 
-
-.. figure:: rendering/imgs/ibl.png
-   :align: center
-
-   Image-based lighting (IBL)
-
-Ambient Occlusion
+Projects & Assets
 -----------------
-Eagle Engine now also supports SSAO (screen-space ambient occlusion) and GTAO (ground-truth ambient occlusion).
-These techniques are used for efficiently approximating the ambient occlusion effect in real time. Note that they do nothing if there's no ambient lighting (for example, IBL). It's also affected by material's `Ambient Occlusion` input.
+With this release you're able to create your AAA-projects and work on them separately.
+After creating a new project, Visual Studio 2022/2019 solution will be generated for your game-scripts. But you'll need to build it manually by opening up `.sln` file in the projects folder and compiling it.
 
-.. figure:: rendering/imgs/ao.png
-   :align: center
+.. figure:: imgs/projects/projects.png
+   :align: center 
 
-   Ambient Occlusion
+   Projects
 
-Sky & Clouds
-------------
-Now you can easily render sky and clouds as your skybox.
-Sky doesn't light the scene; it can be used just as a background. It can be used with IBL though. IBL will light the scene, but the background can be rendered as a sky and clouds. 
-This feature can noticeably affect the performance especially if a lot of layers of clouds are used. So be careful with it.
+.. figure:: imgs/projects/project_create.png
+   :align: center 
 
-.. figure:: rendering/imgs/sky.png
-   :align: center
+   Project creation
 
-   Sky & Clouds with directional light
+Engine now comes with ``Win-SetupFileAssociation.bat`` script that allows to associate ``.egproj`` files with `Eagle Engine`.
+Which means you'll be able to double-click your project file to open it.
 
-Soft Shadows
-------------
-Previous versions of the engine are known for its blocky and awful shadows. It's time to make it better (or worse, depends on what you like).
-Now the engine supports soft shadows!
+Projects don't recognize raw content files anymore (such as ``.png``, ``.fbx``, and etc...)
+Instead, they need to be explicitly imported that will convert them into a special `Eagle` asset file format (``.egasset``).
 
-Also, a technique called **Cascaded shadow mapping** is implemented that improves shadows that come from a directional light!
-The idea of the technique is to divide the scene in front of the camera into `N` sections and assign each section its own shadow map (4 sections in our implementation, each has its own coverage distance).
-That way objects close to camera will have better shadows. But what if a shadow lies on two sections? In that case a visible hard transition line will appear.
-You can make it not so noticeable by enabling **Shadows smooth transition** feature. Also there's an option to visualize different cascades (sections), and shadow map resolutions can be adjusted to your needs.
+Currently, the engine supports the following asset types:
 
-Generation of shadows maps of point lights is now much faster. It was achieved by multi-view rendering that allows to draw into different layers of a shadow map at the same time (without issuing a separate draw call for each layer).
+- :ref:`**Texture 2D** <asset_texture_2d>`. Supported formats: ``png``; ``jpg``; ``tga``.
 
-All objects & lights now have `Casts shadows` flag; and shadows are now limited by the distance. Shadows are not calculated If an object is too far from the camera.
+- :ref:`**Texture Cube** <asset_texture_cube>`. Supported format: ``hdr``.
 
-.. figure:: rendering/imgs/shadows.png
-   :align: center
+- :ref:`**Static** <asset_static_mesh>` & :ref:`**Skeletal** <asset_skeletal_mesh>` meshes. Supported mesh formats: ``fbx``; ``gltf``, ``blend``; ``3ds``; ``obj``; ``smd``; ``vta``; ``stl``.
 
-   Hard/Soft shadows
+- :ref:`**Audio** <asset_audio>`. Supported sound formats: ``mp3``; ``wav``; ``ogg``; ``wma``.
 
-Bloom
------
-It's an effect that makes bright objects to glow. It can be controlled through new material parameters: `Emissive Color` and `Emissive Intensity`.
-You can also set a dirt texture for a bloom to use. It can be used to simulate dirty camera lens.
+- :ref:`**Sound Group** <asset_sound_group>`. Allows you to group sounds. For example, you can create a "Background music" sound group and assign audio assets to it. Then, you can mute all of them just by muting the sound group.
 
-.. figure:: rendering/imgs/no_bloom.png
-    :align: center 
+- :ref:`**Font** <asset_font>`. Supported font formats: ``ttf``; ``otf``.
 
-    Without bloom
+- :ref:`**Material** <asset_material>`.
 
-.. figure:: rendering/imgs/bloom.png
-   :align: center
+- :ref:`**Physics Material** <asset_physics_material>`. Controls static & dynamic friction, and bounciness.
 
-   Bloom
+- :ref:`**Entity** <asset_entity>`. It's is a pretty useful asset type since it allows you to set up an entity that you can easily spawn in the editor or in runtime. You don't have to manually create the same entities anymore.
 
-.. figure:: rendering/imgs/bloom_dirt.png
-   :align: center
+- :ref:`**Scene** <asset_scene>`.
 
-   Bloom with a `Dirt` texture.
+- :ref:`**Animation** <asset_animation>`.
 
-Translucent Materials
----------------------
-Before, all objects were opaque meaning you couldn't see through them. The new version of the engine introduces support for order independent translucency. It is a technique which doesn't require us to draw our transparent objects in an orderly fashion.
-For example, translucent materials can be used for windows. Corresponding material input was added (`Opacity`) which should be in the range from 0 (fully transparent) to 1 (fully opaque).
-By default, opacity is 0.5. You can set whether material is translucent or not by changing `Blend mode` parameter of a material.
+- :ref:`**Animation Graph** <asset_animation_graph>`.
 
-The engine exposes a setting called **Transparency Layers** which lets you control how good translucent object mix their colors when they're stacked behind each other.
-Use this setting with caution because it affects memory usage. Memory consumption in bytes can be calculated by this formula: ``Memory consumption = viewport_width * viewport_height * layers * 12``.
-
-Translucent materials are two-sided meaning the lighting is calculated for both sides.
-Also, they receive shadows but, by default, they don't cast one. If you want translucent materials to cast shadows, enable **Translucent Shadows** feature.
-
-On the image below you can see that translucent objects affect lighting. In this example, the light source is white, and the glass is green.
-Opacity also affects how much light is passed through. If it's 1, the light will be completely blocked. If it's 0, the light won't get dimmer (it'll be full green).
-
-.. figure:: rendering/imgs/translucent_shadows.png
-   :align: center
-
-   Translucent shadows
-
-Be aware that translucent materials do not receive shadows from other translucent materials. And objects that don't cast shadows, might receive incorrect translucent shadows. Note that enabling translucent shadows increases memory usage.
-
-.. figure:: rendering/imgs/opacity.png
-   :align: center
-
-   Translucent material
-
-Masked Materials
-----------------
-There's more! Now the engine supports masked materials! When in Masked mode, a material is either completely visible or completely invisible.
-Masked materials act like opaque ones but with one additional option: you can set a new `Opacity Mask` material input that'll be used to discard certain fragments of an object.
-Values below 0.5 are treated as invisible. For example, masked materials can be used for a chain.
+- :ref:`**Particle System** <asset_particle_system>`.
 
 .. note::
 
-    Please, don't confuse `Translucent` and `Masked` blend modes. `Masked` pixels are discarded and not renderer at all! They simply don't affect the rendering.
-    But `Translucent` pixels are always rendered, lit, and blended with the background allowing you to see through it. `Translucent` blend mode is much more computationally expensive.
+    A newly created project has two static mesh assets by default: `Cube`, and `Sphere`.
 
-.. figure:: rendering/imgs/opacity_mask.png
-   :align: center
+The benefit of having assets is that you can change its settings and affect the whole project.
+For example, previously there were no material assets, so if you wanted to create a bunch of same-looking objects, you had to go through all of them and set each material inputs individually. And what if you wanted to adjust something? Again, you'd have go through all of them and change it.
+But now you can create a material asset, set it up once, and just assign it to other renderables (meshes, sprites, texts, etc...). When an asset is changed, other object pick up the latest version automatically.
 
-   Masked material
+Each asset type has its own editor which can be opened by double-clicking an asset in `Content Browser`. And almost all of these editors have a viewport where you can visualize it.
 
-Volumetric Lights
------------------
-Volumetric light sources allow you to see beams of light by simulating light scattering through the air.
-Now all lights can be marked as volumetrics. But in order to use this feature, you'll need to enable it in the `Renderer Settings`.
+.. figure:: imgs/editor/assets/physicsmaterial/physicsmaterial.png
+   :align: center 
 
-There's also an option to enable fog for volumetric lights.
-If it is enabled, the fog created by lights will be animated.
+   Physics Material Editor
 
-.. note::
+.. figure:: imgs/editor/assets/skeletalmesh/skeletalmesh.png
+   :align: center 
 
-	Volumetric lights can also account for translucent shadows. If translucent shadows are enabled, a volumetric light will increase GPU memory usage.
+   Skeletal Mesh Editor
 
-.. figure:: rendering/imgs/volumetric_light.png
-    :align: center 
+.. warning::
+    If you ever decide to duplicate an asset manually (bypassing editor's content browser functionality),
+    you need to know that it probably won't work correctly since each asset file stores its own unique ID.
+    Which means you'll end up with two or more assets that have the same ID.
+    So, if you desperately need to do it, you'll have to manually open asset files in a text editor and change its ``GUID`` (two ``uint64`` values).
 
-    Volumetric Lights Off / On
-
-.. figure:: rendering/imgs/volumetric_light_2.png
-    :align: center 
-
-    Volumetric Lights Enabled
-
-.. figure:: rendering/imgs/volumetric_light_off.png
-    :align: center 
-
-    Volumetric Lights disabled
-
-.. figure:: rendering/imgs/volumetric_light_on.png
-    :align: center 
-
-    Volumetric Lights enabled
-
-Text Rendering
---------------
-Now Eagle Engine supports font rendering using a technique called `Multi-channel Signed Distance Field` (MSDF).
-Using MSDF allows to render text efficiently at almost any size including extremely large text without any pixelization.
-
-You can use new `Text` and `Text2D` components for text rendering. `Text2D` component is not placed on a scene but rather on a screen which can be used for in-game UI.
-Text2D will try to be at the same position of the screen no matter the resolution. Also, it'll try to occupy the same amount of space.
-
-You can add font files to a project (.ttf & .otf formats) and set it to be used by text components. Text components have the following parameters: Line spacing, Kerning, Max Width.
-
-`Text` component can either cast shadows or not. Also, it has two modes in which it operates: `Lit` or `Unlit` (default).
-In `Unlit` mode, there's only one additional `Color` parameter that you can change.
-In Lit mode, it reacts to lighting and material parameters can be changed to determine how it should be rendered using full PBR pipeline.
-
-`Text2D` component has the following extra parameters: `Color`, `Position`, `Scale`, `Rotation`, `Opacity`, `Is Visible`.
-`Position` is a normalized device coordinates. It's the position of the top left vertex of the first symbol. (-1; -1) is the top left corner of a screen; (0; 0) is the center; (1; 1) is the bottom right corner.
-
-.. figure:: rendering/imgs/text.png
-    :align: center 
-
-    Text rendering
-
-Anti-aliasing
--------------
-Antialiasing is a technique used in computer graphics to remove the aliasing effect. The aliasing effect is the appearance of jagged edges or `jaggies` in a rasterized image.
-
-Now, Eagle Engine supports `Temporal Anti-aliasing` (TAA).
-It is a spatial anti-aliasing technique that combines information from past frames and the current frame to remove jaggies in the current frame.
-
-.. figure:: rendering/imgs/taa.png
-    :align: center 
-
-    TAA disabled (on top) / TAA enabled (on bottom).
-
-Fog rendering
--------------
-The engine now supports fog rendering which allows you to give depth to a scene by making further objects blend with the fog color.
-There are three fog equations that you can use: `Linear`, `Exponential`, and `Exponential Squared`.
-
-.. figure:: rendering/imgs/fog_linear.png
-    :align: center 
-
-    Linear fog
-
-Tonemapping
+Game Builds
 -----------
-Tonemapping is the process of mapping color values from high dynamic range (HDR) to low dynamic range (LDR).
-Eagle Engine now supports 4 tonemapping methods: `ACES`, `Reinhard`, `Filmic`, `Photo Linear`. By default, `ACES` is used.
+Finally, game builds that you'll be able to share with your friends! If you want to build & ship you project as a game, you can just click ``File -> Build project`` and select the destination folder.
+But before building it, make sure you've selected a start up scene for the game in ``Project Settings`` tab.
 
-.. figure:: rendering/imgs/aces.png
-    :align: center 
-
-    ACES
-
-.. figure:: rendering/imgs/reinhard.png
-    :align: center 
-
-    Reinhard
-
-.. figure:: rendering/imgs/filmic_1.png
-    :align: center 
-
-    Filmic. White point is ``1.0``
-
-.. figure:: rendering/imgs/filmic_5.png
-    :align: center 
-
-    Filmic. White point is ``5.0``
-
-.. figure:: rendering/imgs/photo_linear.png
-    :align: center 
-
-    Photo Linear. ``S = 0.12``; ``E = 0.1``; ``F = 0.45``. Probably there're better values to use.
-
-Other rendering features
-------------------------
-1. **Billboards**. Now there's a new `Billboard` Component that allows you to render a texture that always faces the camera. It doesn't affect lighting and doesn't depend on it.
-   The editor uses it for lights to show you where they're. You can press `G` to toggle the visibility of Editor-only billboards. Also, Editor-only billboards are not being rendered during a simulation.
-
-2. **Grid**. Now editor scenes have grid that should help with the development. Each cell is a 1x1 m. You can control grid's scale in `Renderer Settings` tab. Press `G` to toggle its visibility. Also, it's not rendered during a simulation.
-
-3. **Instanced mesh rendering**. Now the same meshes are rendered much more efficiently.
-
-4. **Lights visualization**. Now point/spot lights have radius parameters that can be used to limit them. You can visualize point/spot lights radii by toggling a corresponding flag in their components. As for directional light, you can visualize its direction.
-
-5. **Line width**. Added `Line Width` as an option. By changing it, you can tweak the width of rendered lines.
-
-6. **Reworked SpriteComponent atlas workflow**. Now it uses a full material.
-
-7. **Image2D component**. It's the same as `Text2D` but for rendering textures. Note that it's rendered under `Text2D`.
-
-8. **Object picking settings**. Added two settings for object picking: ``Enable/Disable object picking`` and ``Enable/Disable 2D object picking``.
-   You can disable it when it is not needed to improve performance and reduce memory usage. If 2D object picking is disabled, 2D objects will be ignored. Disabling ``Object Picking`` also disables ``2D Object Picking``.
-   Note that these settings do not affect the editor.
-
-C# Debugging
-------------
-Now you can debug C# scripts! The engine comes with ``CSharpDebuggingTool.vsix`` file that can be installed to enable debugging of scripts through C#.
-
-Step to debug:
-
-1. Install ``CSharpDebuggingTool.vsix``.
-
-2. Run Eagle-Editor.
-
-3. Open up project's solution file that contains scripts.
-
-4. In Visual Studio, press ``Debug->Attach Mono Debugger``.
-
-You're good to go. Now you can place breakpoints in your scripts.
-
-C# improvements
----------------
-1. Now all components are supported by C#. 
-
-2. Added logging functions: ``Log.Trace()``, ``Log.Info()``, ``Log.Warn()``, ``Log.Error()``, ``Log.Critical()``.
-
-3. Renderer settings are exposed to C#.
-
-4. Added ``Color3`` & ``Color4`` classes which are identical to ``Vector3`` & ``Vector4``. The only difference is how it's displayed in Editor (for colors there'll be a color picker)
-
-5. ``Bool`` type variables are now also exposed from C# to the editor.
-
-6. Now there's no need to type ``Namespace.Class`` for Script Component anymore. It's a drop-down menu where you can choose any existing script.
-
-7. Added ``GetChildrenByName()`` function to C#.
-
-8. Added more `Math` functions.
-
-9. Added default engine textures.
-
-10. Added ``Scene`` class. It allows you to: open a scene; draw lines; raycast for physics interactions.
-
-11. Added ``Project`` class. It allows you to get paths to project folders.
-
-12. Added `Setter/Getter` of `BodyType` of ``RigidBodyComponent``. By default, it's static. So, if you want a dynamic object, you must add RigidBodyComponent first,
-    set its body type to dynamic and only after that add any collider component, because the body type is read when a collider component is initialized and it cannot be changed later.
-
-13. Added events and ``OnEvent()`` function to C# entity. Currently supported events: WindowClose, WindowResize, WindowFocused, KeyPressed, KeyReleased, KeyTyped, MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled.
-
-14. Added ``IsMouseHovered()`` function to Entity. It can be used to test if an entity is hovered. There's also an overload that takes 2D coords. It checks if an entity would be hovered if a mouse was at the given coordinates.
-
-15. New C# functions: ``Renderer.GetViewportSize()``; ``Input.GetMousePositionInViewport()``; ``Input.SetMousePositionInViewport()``; ``Input.SetMousePosition()``.
-
-16. Unmanaged (faster) execution of C# functions: ``OnCreate()``; ``OnDestroy()``; ``OnUpdate()``; ``OnEvent()``; ``OnPhysicsUpdate()``.
-
-17. Now C# public enum fields are exposed to the editor.
-
-18. Added ``TextureCube`` to C#.
-
-19. Added support for `DopplerEffect` to C#.
-
-20. Added functions to ``Texture`` class of C# that allow you to work with `anisotropy`, `filter mode`, `address mode`, `mips`.
-
-21. Added `VSync` option to C#.
-
-22. Moved physics related functions from ``Entity`` class to ``RigidBodyComponent``.
-
-23. Added ``GetRightVector()`` and ``GetUpVector()`` functions to ``SceneComponent``.
-
-24. Added kinematic related functions to ``RigidBodyComponent``.
-
-25. Renamed ``CreateEntity()`` function to ``SpawnEntity()``.
-
-26. Removed ``TransformComponent``. For transformation of entities, use ``Entity`` class functions.
-
-27. Changed C# `Sound` API. `Sound` classes are no longer static.
-
-28. Now C# ``OnCollisionBegin`` and ``OnCollsionEnd`` receive collision info.
-
-29. Now C# physics callbacks receive parent entity as the first argument.
-
-30. Now script instances are freed when required.
-
-31. Added collision visibility function to C#.
-
-New debug windows
------------------
-Now you can see what your GPU and CPU are doing. New debug windows were added that show you the list of tasks that were just executed and how much time it took to execute.
-
-Since the engine uses two threads (main and render), `CPU Timings` tab displays timings per thread. Each of these windows allow you to pause the updates of the timings.
-Also, the editor can show your GPU memory usage and what resources take up the memory.
-
-.. figure:: imgs/editor/menubar_debug.png
+.. figure:: imgs/editor/menubar_file.png
    :align: center
 
-   Debug menu bar
+|
 
-.. figure:: imgs/editor/cpu_timings.png
+Animations
+----------
+`Eagle` now supports `Skeletal Mesh` component which means you can render animated meshes.
+
+You can open a skeletal mesh asset to visualize it which displays some data about the mesh, materials, skeletal tree, and ragdoll data.
+
+**Skeletal Tree** displays bone transforms in local space (offsets from the origin).
+You can't move bones of a mesh, but you can create your own `Virtual` bones by right-clicking a bone in the tree. You can modify their transforms and use them in C# to attach any other game-objects.
+
+**Ragdoll Tree** allows you to setup ragdoll of the mesh. You can change the transformation, mass, linear & angular damping, physics material, and shape of a ragdoll collider (Capsule, Box, or Sphere).
+Transforms of ragdoll bones are displayed relative to originally computed transforms. You can also change the way a ragdoll is generated. By increasing ``Min ragdoll bone size``, you can optimize the simulation, since more bones will be merged into a single ragdoll collider.
+So, for performance reasons, it's recommended to set it as high as possible. You can also control `Max Twist` and `Max Swing` angles (in degrees).
+`Skeletal Mesh Editor` also allows you to simulate the ragdoll you've set up.
+
+.. figure:: imgs/editor/assets/skeletalmesh/skeletalmesh.png
    :align: center
 
-   CPU timings
+   Skeletal Mesh asset editor
 
-.. figure:: imgs/editor/gpu_timings.png
+.. figure:: imgs/editor/assets/skeletalmesh/ragdoll.png
    :align: center
 
-   GPU timings
+   Skeletal Mesh asset ragdoll editor
 
-.. figure:: imgs/editor/gpu_mem_usage.png
+|
+
+You can open an animation asset to adjust some of its properties.
+
+**Extract Root Motion**. Some animations have transformation data embedded into them. In this case, you can enable root motion to let animations drive the entity transformation.
+  For example, if root motion is supported and enabled, and you're playing "Run" animation, then the whole Entity will move. So, you can build animation-driven gameplay.
+
+**Events**. You can create animation events that will allow you to react to them in C#.
+  For example, if you want to play "Step" sound, you can create an event at an appropriate timing, and when it's reached, C# ``Entity.OnAnimationEvent()`` is called.
+
+.. figure:: imgs/editor/assets/animation/animation.png
    :align: center
 
-   GPU memory usage
+   Animation asset editor
 
-Console
--------
-It allows you to see all engine messages and errors.
-Currently, it supports just a couple of commands: ``Help`` and ``Clear``. ``Help`` command displays all supported commands and ``Clear`` command clears the console.
-Console also supports searches to filter the messages you need.
+Animation Graphs
+----------------
+You didn't think `Eagle` wouldn't support any tools to build complex animations, did you?
+
+New version of the engine adds support for `Animation Graphs` which allows to do exactly that.
+It's a node based graph editor that drives the animation.
+`Animation Graph` supports variables of four types: `Bool`, `Float`, `String`, and `Animation`. All variables can be changed during runtime and accessed in C#.
+You can use this asset in ``Skeletal Mesh`` component. Note that each component has its own copy of the graph. So, changing variables in one component won't affect others.
+
+.. figure:: imgs/editor/assets/animationgraph/animationgraph.png
+   :align: center
+
+   Animation Graph editor
+
+Animation Graph supports `State Machines` that allow you to define a transition logic for animations.
+By clicking on a state itself, you can define an animation that will be played when the state is active.
+You can also specify transition settings, such as: `transition condition`, `transition time`, `smooth transition`.
+If smooth transition is disabled, frozen transition will be used: clip A is frozen while clip B gradually takes over the movement.
+This kind of transitional blend works well when the two clips/poses are unrelated and smooth transition looks unnatural.
+
+To learn more about animation graph and its possibilities, go :ref:`here <asset_animation_graph>`.
+
+.. figure:: imgs/editor/assets/animationgraph/simple_statemachine.png
+   :align: center 
+
+   State Machine example
 
 .. note::
 
-	You can use up/down arrow buttons to go through the history of commands.
-	Console also supports command auto-completion by pressing Tab.
+    To break a node link/connection, left-click it while holding `Alt`.
 
-.. figure:: imgs/editor/console.png
+GPU Particle System
+-------------------
+Need particles? Not a problem. The engine now supports emitters that are responsible for spawning and managing a lot particles.
+Currently, emitters only support 2D particles, meaning they'll always face the camera.
+
+Go :ref:`here <feature_particles>` to learn more about particles and their settings.
+
+.. figure:: rendering/imgs/ps_smoke.png
+    :align: center 
+
+    Simple smoke effect
+
+Screen Space Reflections
+------------------------
+New version of the engine adds new rendering feature: `Screen Space Reflection (SSR)`.
+SSR is a technique for reusing screen space data to calculate reflections.
+Since it's a screen space effect, you won't be able to see objects in reflections if they're not on the screen.
+
+.. figure:: rendering/imgs/no_ssr.png
+    :align: center 
+
+    SSR is disabled
+
+.. figure:: rendering/imgs/ssr.png
+    :align: center 
+
+    SSR is enabled
+
+.. figure:: rendering/imgs/ssr_cutoff.png
+    :align: center 
+
+    Reflection is cutoff
+
+You can control the quality of SSR by changing ``Samples per Quad`` and ``Max Traversal Iterations``.
+The more, the better, and also slower.
+
+Additionally, you can adjust ``Roughness Threshold`` for SSR. If material's roughness is higher than the threshold, SSR won't be applied.
+
+Depth of Field
+--------------
+`Eagle` now supports `Depth of Field (DoF)`.
+`DoF` is a rendering technique that simulates blur effect similar to how real cameras work.
+
+.. figure:: rendering/imgs/depth_of_field.png
+    :align: center 
+
+    Depth of Field
+
+You can change aperture shape, size, and focal length to adjust the way blur is applied.
+There are also ``COC Scale`` and ``Max COC`` settings for adjusting circle of confusion.
+
+.. note::
+
+	You can set ``Aperture Size`` to `0` to disable DoF.
+
+Motion Blur
+-----------
+`Eagle` now supports `Motion Blur`. It's a rendering technique that blurs objects that are in motion.
+
+.. figure:: rendering/imgs/motion_blur.png
+    :align: center 
+
+    Motion Blur
+
+You can adjust its quality by changing the ``Samples`` setting.
+Also, you can adjust ``Strength`` parameter.
+
+Auto Exposure
+-------------
+`Eagle` now supports `Auto Exposure`. It simulates how the human eye adjusts to changes in brightness in real-time.
+For example, when walking from a dimly lit interior to a brightly lit exterior, or the other way around.
+
+Decals
+------
+New `Decal` component was added that allows you to project a material on other objects.
+Decals support all material features except for the normal.
+
+When using decals, you can set its sort priority: higher values means decal will be drawn on top of others.
+
+If you don't want an object to receive a decal, you can disable it in the corresponding component settings. For example, in `Static Mesh` component.
+
+.. figure:: rendering/imgs/decal.png
+    :align: center 
+
+    "Pattern" texture applied as a decal on top of a sphere.
+
+AI Navigation
+-------------
+Brains! Now `Eagle` supports building navigation meshes which means you'll be able to create NPCs that can move from one point to another and avoid obstacles!
+
+To build a navigation mesh, use :ref:`Navigation Mesh Component <nav_mesh_component>`.
+
+All colliders (expect for mesh collider) can be markes as `Obstacles` that'll affect Nav Mesh.
+Obstacles can be spawned & deleted at runtime and navigational mesh will dynamically update itself.
+
+Also all colliders affect nav mesh during the build. If you don't want a collider to affect it during the build, disable ``Affects NavMesh`` in its component.
+
+You can visualize navigation mesh by enabling ``Draw NavMesh`` in ``Editor Preferences`` tab.
+
+.. note::
+
+    ``Is Obstacle`` and ``Affects NavMesh`` are independent from each other.
+    Which means you can still use a collider as an obstacle while ``Affects NavMesh`` is disabled.
+    Basically, ``Is Obstacle`` is an obstacle that updates Nav Mesh dynamically.
+    And ``Affects NavMesh`` is a static obstacle. So, if it changes (moved or deleted), Nav Mesh won't update unless it's rebuilt.
+
+.. note::
+
+    Currently, a scene can only have one active navigation mesh.
+    If you need to change Nav Mesh at runtime, then you'll have to do it manually using C# scripts.
+
+The engine also supports a crowd system.
+`Navigation Crowd Agent` component allows you mark entities as crowd agents. And the benefit of it is that you can easily control a lot of NPCs and change their move target.
+For example, you can create 100 crowd agents, and make all of them to move to a single point by simply calling one C# function: ``CrowdNavigation.SetMoveTarget()``.
+Of cource, you can also control each agent individually.
+See :ref:`Navigation Crowd Agent Component <nav_crowd_agent_component>` for more details.
+
+.. note::
+
+    You don't have to use crowd agents to move your entities.
+    If you want to do it manually, you can call C# functions such as ``Navigation.FindStraightPath()`` to get an array of points you need to move to.
+
+.. figure:: imgs/components/nav_mesh_example.gif
+    :align: center 
+
+    Navigation Mesh in action
+
+Editor Updates
+--------------
+There a few nice editor updates that make your life easier. Mainly, these are `Content Browser` updates.
+
+Since now engine works with assets, content browser allows you to import, save, and reload assets.
+What does `reload assets` mean? When importing an assets, its original filepath is saved (e.g. "D:/art/texture.png").
+So, if at some point you update this texture and you want to update its asset, you can reload it to update the data.
+
+Content Browser also allows you can copy/cut/paste assets, rename (`F2`), duplicate (`Ctrl + W`), and delete them. Also, now it can delete folders.
+As was mentioned before, you content browser allows you to open asset editors by double-clicking them. But also you can open it by clicking an asset thumbnail (for example, in ``StaticMeshComponent`` which display selected asset).
+
+Support for runtime assets thumbnails was added so it's easier to tell what it actually looks like.
+
+.. figure:: imgs/editor/content_browser_thumbnails.png
    :align: center
 
-   Console
+   Asset thumbnails
 
-Other editor changes
---------------------
-1. Removed `Shaders` Debug-tab.
+Editor now exposes more C# types: all asset types (including base ``Asset`` class), and ``Entity`` type.
+When ``public Entity`` variable is created in your scripts, the editor allows you to select an entity from the scene to assign to it.
 
-2. Shader now can be reloaded by F5 (they will reload only if changes were detected).
+.. note::
 
-3. Removed instructions from `Help` window. Instead, it displays a link to the repository.
+    Now UI displays `Quaternions` instead of `Eulers` angles for rotation. Not sure that's a good idea, but it completely fixes Gimbal lock issue.
 
-4. Performance improvements of `Content Browser` and `Scene Hierarchy`.
+Other editor changes:
 
-5. Improved ``Show in Explorer`` button of `Content Browser`. It doesn't cause a stall of the engine anymore.
+1. Added UI popup messages so that you don't have to look into the console all the time.
 
-6. Added more help messages & improved some sliders.
+2. Editor now shows unsaved assets before closing. You can select whether to save them or discard changes.
 
-7. Now viewport can be rendered in fullscreen (`F11`).
+3. Increased content browser items from `64x64` to `96x96`.
 
-8. Now the editor can be rendered in fullscreen (`Shift+F11`).
+4. Now Content browser is refreshed if changes are detected.
 
-9. Now you can toggle simulation button (`Alt+P`).
+5. Now `ContentBrowser` displays base mip of textures.
 
-10. Camera was improved. Now its movement is smooth, and it doesn't flip (hopefully)
+6. Increase UI-precision of transforms (now it displays 4-digits after the point).
 
-11. GPU Buffers visualization only supports: `Albedo`, `Emission`, `SSAO`, `GTAO`, `Motion`. Note that albedo visualization is wrong at the moment because its alpha channel is used for storing ``roughness`` of materials.
+7. Changed key-event of "Entity duplication" to `Ctrl+D`.
 
-12. Now opening another scene is safer in case you wanted to save the current scene. Also it won't open a new scene if saving has failed.
+8. UI improvements: Now components are just unclickable in the `Add Components` list if it already exists.
 
-13. Now there's a pop-up when you want to open a blank scene.
+9. Now windows move only if dragged by title bar.
 
-14. Eco Rendering mode. When enabled, the scene won't be rendered if the OS window is not in focus. It can be changed in `Editor Preferences` panel.
+10. Now `Albedo` buffer visualization works as expect since it no longer stores `Roughness` in its `Alpha`-channel.
 
-15. Simulation termination key. In `Editor Preferences` panel, you can specify an additional key that will terminate game-simulation.
+11. `Draw Editor Miscellaneous` and `Draw NavMesh` are exposed to `Editor Preferences` window.
 
-16. Now the editor displays if a transform is relative.
+12. Added a checkbox to enabled/disable animation updates in the editor.
+
+13. Added `Copy transform from editor camera` button to `Camera Component`'s UI.
+
+14. Input popups now have focus by default & return when `Enter` is pressed.
+
+15. Editor now supports `Sound Groups`.
 
 Other changes
 -------------
-1. Now sprites are two-sided meaning each side will be lit independently.
+1. **Materials**. Now materials support raw values, so you don't have to use textures. Also, `Eagle` now supports multiple materials per mesh.
 
-2. Limited Inner & Outer angles of Spot lights. Improved UI for it.
+2. Minor perf improvements: now `Conjugate` is used instead of `Inverse` for rotations.
 
-3. Now serialization stores enum-values as text (before they were stored as integers).
+3. Now the size of Prefilter image of IBL can be configured.
 
-4. Added ``.tga`` to supported textures.
+4. Removed flip of `Y` uv when importing a mesh.
 
-5. Now ``MeshColliderComponent`` matches ``StaticMeshComponent`` on initialization.
+5. Lit 3D Texts now use `Material` assets.
 
-6. Removed ``Open Scene`` button.
+6. Added support for .gltf files.
 
-7. Improved UI text inputs.
+7. Exposed `Scene Gravity` setting.
 
-8. Now you can't duplicate an entity during simulation.
+8. Reversed depth buffer.
 
-9. Removed ``Shininess`` from Material.
+9. Improved handling of `Physics Materials`.
 
-10. Now textures are always loaded in Linear Space (non sRGB).
+10. Meshes, Sprites, and Lit Texts now have `bReceivesDecals` setting.
 
-11. Added default `Grey`, `Red`, `Green`, and `Blue` textures.
+11. Added `Albedo` and `Anisotropy` as a volumetric fog params.
 
-12. Now when creating an entity through right-clicking on another entity, newly created entity will become its child and copy parent's transform.
+12. Improved quality of volumetrics.
 
-13. Reworked `LockFlags` of `RigidBodyComponent`.
+13. Reduced flickering of Volumetric Lights near the light source by using Karis Average.
 
-14. Exposed `MaxLinearVelocity` and `MaxAngularVelocity` of ``RigidBodyComponent`` to the editor.
+14. Added smooth falloff near light edges.
 
-15. Now Tint values are HDR.
+15. Added set/get gravity to C#.
 
-16. Now kinematic physics actors do trigger callbacks.
+16. Now you can specify `Start` and `End` colors for debug lines.
 
-17. Now `RigidBodyComponent` inherits `Component` instead of `SceneComponent`.
+17. Added `IsValid` to C# entity.
 
-18. Now all renderer settings affect the whole project.
+18. Mouse scroll now can be used to change engine provided runtime camera.
 
-19. Now you can remove a component by right-clicking it.
+19. C#: Added `GetAllEntitiesWithComponent()`.
 
-20. Removed `SubTexture2D` class.
+20. C# wrappers don't return null arrays anymore.
 
-21. Increased `dynamicTreeRebuildRateHint` that will hopefully lead to improved performance of physics simulations.
+21. Added a way to disable skybox background rendering (Lightting is still applied).
 
-22. Increased `MaxSubsteps` of `Physics System` from `8` to `16`. It means that if a frame takes too much time, the physics system might be updated up to `16` times to catch up.
+22. Added `QuitGame` to C# (`Scene.QuitGame()`).
 
-23. Added support for two-sided mesh colliders. It only affects non-convex mesh colliders. By default, non-convex meshes are one-sided meaning collision won't be registered from the back side. For example, that might be a problem for windows.
+23. Added `AABB`, `UVector2`, and `Min/Max` functions to C#.
 
-24. Updated some 3rd party libraries.
+24. Now C# API supports fonts.
 
-25. Added `Reverb` radius visualization.
+25. Editor & C# now support `Sound Groups`.
 
-26. Changed C++ handling of spawned sounds. Now ``Scene`` class is responsible for it.
+26. Moved C# draw function from `Scene` class to `Renderer`.
 
-27. Now collision contact reports information about it.
+27. Added support for `mp3` audios.
 
-28. Added `WindowFocusedEvent`.
+28. Added support for extracting spectrum data of an audio.
+
+29. Added `Pan` to `AudioComponent`.
+
+30. Now you can select whether `AudioComponent` should use 2D or 3D sound.
 
 Fixes
 -----
-1. Fixed `Static Mesh` component using wrong material.
+1. Fixed content browser bug when folder name was cutoff during its creation.
 
-2. Fixed `Static Mesh` component not copying Material.
+2. Fixed potential crash because of data races in material system.
 
-3. Fixed `Audio` & `Reverb` components not updating its location in some cases.
+3. Fixed wrong aspect mask when reading from vulkan image.
 
-4. Fixed potential memory-leak in Audio Engine.
+4. Fixed logging of path. Now it's converted to utf-8.
 
-5. Fixed `Texture Viewer` displaying wrong resolution.
+5. Fixed users being able to drag simulation panel window.
 
-6. Now logger doesn't output to an invisible console in `Dist` builds anymore.
+6. Fixed a crash when changing editor's style.
 
-7. Fixed incorrect ``PhysX::Quat`` to ``glm::Quat`` conversion.
+7. Fixed content browser items not being spaced out uniformly in some cases.
 
-8. Fixed `PhysicsActor` setting its own transform.
+8. Fixed ``CalculateImageMemorySize`` returning incorrect results if `bits < 8`.
 
-9. Removed unnecessary reloading of C# assembly.
+9. Fixed events being processed by Editor even if they were processed by content browser.
 
-10. Fixed C# ``GetCollisionMesh()`` & ``SetCollisionMesh()`` functions. They were using ``StaticMeshComponent`` instead of ``MeshColliderComponent``.
+10. Fixed incorrect gpu layout of index buffer (it was vertex).
 
-11. Fixed C# ``SetDynamicFriction()`` changing `static friction` instead.
+11. Fixed incorrectly removing textures from the texture system.
 
-12. Fixed memory leak of ``DelayCall()``.
+12. Fixed static mesh import not accounting for translation-offset of the mesh.
 
-13. Fixed crash if runtime camera is deleted.
+13. Fixed ImGuizmo incorrectly manipulating relative rotation.
 
-14. Fixed passing invalid values to `PhysX`.
+14. Fixed ``operator-`` of ``struct Transform``. Now it divides scales, instead of subtracting.
 
-15. Fixed texture cube recreation on scene serialization. Now it checks if it's already loaded.
+15. Fixed rare cases of `Help Message` causing crash.
 
-16. Fixed C# `Static Mesh` component using wrong material.
+16. Fixed ``UI::Text()`` misalignment of text.
 
-17. Fixed `InputText` losing focus when `Alt` is pressed.
+17. Fixed crash in some C# wrappers if Entity is null.
 
-18. Fixed UI items not losing focus when `Viewport` is right clicked (moving camera).
+18. Fixed potential memory corruptions.
 
-19. Fixed crash when using unsupported C# public types.
+19. Fixed ``EditorCamera`` always calling ``SetShowMouse(true)``.
 
-20. Sound selection UI fixes.
+20. Fixed ``ShadowPassTask`` incorrectly initializing some shadow maps in some cases.
 
-21. Fixed notification system hashing ``entt::entity`` which could result in hash collisions between entities of different scenes.
+21. Fixed not initializing ``m_Options_RT`` in `SceneRenderer` constructor.
 
-22. Fixed UI `Help Marker` not working if the item is disabled.
+22. Fixed ``UI::PushItemDisabled`` incorrectly handling multiple `item disabled` pushes.
 
-23. Fixed C# Quat layout not matching C++.
+23. Fixed calculation of `TBN` for meshes.
 
-24. Fixed not finding some C# functions.
+24. Fixed some issues with camera controls in editor.
 
-25. Fixed a crash when getting entity children from C#.
+25. Fixed resizing ``VertexBuffer`` instead of ``Indexed VB`` during meshes upload.
 
-26. Fixed a bug when parenting entities through UI.
+26. Fixed allocating too much memory on CPU during meshes upload.
 
-27. Fixed ``bConvex`` of ``MeshColliderComponent`` not being copied.
+27. Fixed not applying ``Tiling Factor`` when reading a normal map of sprites.
 
-28. Fixed not clamping some physics values to prevent them becoming negative.
+28. Fixed `Texture2D` not setting ``m_bIsLoaded`` to `false` while loading.
 
-29. Fixed a crash when an imported mesh doesn't have tangents.
+29. Fixed `TextureCube` not applying format to all image resources.
 
-30. Now light intensity can't be less than 0.
+30. Fixed some image layout formats being ``rgba16f`` instead of ``r11f_g11f_b10f``.
 
-31. Fixed mouse clicks selecting an entity during a simulation.
+31. Fixed C# ``SetShadowMapsSettings`` not affecting settings.
 
-32. Fixed incorrectly deserializing static mesh by index.
+32. Fixed erros during an import of multiple Texture Cubes.
 
-33. Added a check for ``HasComponent`` in `Script Wrappers` so that engine doesn't crash.
+33. Fixed ``CopyBufferToImage`` and ``CopyImageToBuffer`` bugs.
 
-34. Fixed a potential crash if the engine is run on a CPU that doesn't support SSE2.
+34. Fixed barriers not working for compute shaders.
 
-35. Fixed a bug when renaming one entity could affect another.
+35. Fixed ``DrawAssetSelection`` ignoring `Help Message`.
 
-36. Fixed a crash when attaching/deleting entities.
+36. Fixed not culling back faces for volume shadows.
 
-37. Fixed not triggering viewport resize functionality for simulation.
+37. Fixed `Tint Color` not being applied in some cases.
 
-38. Fixed C# ``RigidBodyComponent.IsKinematic()`` calling wrong C++ function.
+38. Fixed collisions in ``UI::Combo`` functions.
 
-39. Fixed access visibility of some C# functions.
+39. Fixed crash when closing the engine during simulation.
 
-40. Fixed a crash when setting/reading a string to/from C# during runtime.
+40. Fixed ``Gravity`` not being serialized.
 
-41. Fixed a crash when setting an empty string to C#.
+41. Fixed potential crashes in `Physics Actor` when accessing `RigidBodyComponent`.
 
-42. Fixed not passing constant timestep to ``OnPhysicsUpdate()``.
+42. Fixed incorrect GBuffer history copies.
 
-43. Fixed not calling ``OnPhysicsUpdate()`` 120 times per second.
+43. Fixed ``UI::InputText()`` not showing a help message.
 
-44. Fixed a crash if a browsing folder was deleted.
+44. Fixed a bug where physics material wasn't properly initialized in components.
 
-45. Fixed not being able to create a folder.
+45. Fixed a bug where ``ShowCollision`` and ``IsTrigger`` states were not set correctly when changing mesh collider.
 
-46. Fixed some potential crashes when trying to use `Sounds`.
+46. Fixed some issues with lights visulization flags.
 
-47. Fixed C# sounds not looping.
+47. Fixed potential crashes in ``Collider Shape``.
 
-48. Fixed a bug when deleting an entity: physics and script were removed immediately, now it's delayed.
+48. Fixed not putting a barrier in ``Image::Read``.
+
+49. Fixed some issues with console messages.
+
+50. Fixed freeing GPU resources too early.
+
+51. Fixed incorrectly shutting down render manager in some cases.
+
+52. Fixed incorrectly leaving fullscreen mode in some cases.
+
+53. Fixed some crashes related to dereferencing dead pointers.
+
+54. Fixed errors when releasing a GPU resource from the main thread.
+
+55. Fixed C# using ``SSAOSettings`` to set ``GTAOSettings``.
+
+56. Fixed ``bAutoPlay`` audios being spawned after scripts.
+
+57. Fixed ``AudioComponent`` not serializing ``Pitch``.
+
+58. Fixed incorrect C# bindings.
+
