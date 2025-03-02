@@ -115,8 +115,9 @@ namespace Eagle
 
 		//Camera
 		const auto& editorCamera = m_Scene->GetEditorCamera();
-		const glm::mat4& cameraViewMatrix = editorCamera.GetViewMatrix();
-		glm::mat4 cameraProjection = editorCamera.GetProjection();
+		const auto runtimeCamera = m_Scene->GetRuntimeCamera();
+		glm::mat4 cameraProjection = !bSimulating ? editorCamera.GetProjection() : runtimeCamera->Camera.GetProjection();
+		const glm::mat4& cameraViewMatrix = !bSimulating ? editorCamera.GetViewMatrix() : runtimeCamera->GetViewMatrix();
 		cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
 
 		const bool bRelative = m_GuizmoType == ImGuizmo::OPERATION::ROTATE;

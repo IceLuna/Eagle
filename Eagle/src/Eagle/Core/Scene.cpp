@@ -862,6 +862,10 @@ namespace Eagle
 		auto view = m_Registry.view<CameraComponent>();
 		for (auto entity : view)
 		{
+			// Ignore engine provided camera
+			if (m_RuntimeCameraHolder && entity == m_RuntimeCameraHolder->GetEnttID())
+				continue;
+
 			auto& cameraComponent = view.get<CameraComponent>(entity);
 
 			if (cameraComponent.Primary)

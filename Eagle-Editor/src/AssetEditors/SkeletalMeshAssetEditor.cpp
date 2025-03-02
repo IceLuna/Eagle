@@ -62,7 +62,7 @@ namespace Eagle
 	}
 
 	// Returns true if it changed
-	bool SkeletalMeshAssetEditor::DrawSkeletalTree(const SkeletalMeshInfo& skeletalInfo, BoneNode& node, size_t baseHash, bool* outDelete, const glm::mat4& baseTransform)
+	bool SkeletalMeshAssetEditor::DrawSkeletalTree(const SkeletalMeshInfo& skeletalInfo, BoneNode& node, size_t baseHash, bool* outDelete, const glm::mat4& baseTransform, const std::string& parentName)
 	{
 		size_t hash = std::hash<std::string>()(node.Name);
 		HashCombine(hash, baseHash);
@@ -77,7 +77,7 @@ namespace Eagle
 		if (ImGui::IsItemClicked())
 		{
 			m_SelectedBoneName = node.Name;
-			m_SelectedBoneParentWorldTr = baseTransform;
+			m_SelectedBoneParentName = parentName;
 			m_SelectedBone = &node;
 		}
 
@@ -117,7 +117,7 @@ namespace Eagle
 				auto& child = *it;
 
 				bool bDelete = false;
-				bChanged |= DrawSkeletalTree(skeletalInfo, child, baseHash, &bDelete, worldTr);
+				bChanged |= DrawSkeletalTree(skeletalInfo, child, baseHash, &bDelete, worldTr, node.Name);
 
 				if (bDelete)
 					it = node.Children.erase(it);
@@ -491,10 +491,12 @@ namespace Eagle
 		if (m_OpenedTab == OpenedTabType::Skeletal && m_SelectedBone)
 		{
 			const bool bEnableModification = m_SelectedBone->bVirtualBone;
-			Transform boneTransform = Math::DecomposeTransformMatrix(m_SelectedBoneParentWorldTr * m_SelectedBone->Transformation);
+			Transform boneTransform = Math::DecomposeTransformMatrix(Math::ToTransformMatrix(GetBoneWorldTransform(m_SelectedBoneName)));
 			if (DrawGuizmo(boneTransform, id, bEnableModification))
 			{
-				m_SelectedBone->Transformation = glm::inverse(m_SelectedBoneParentWorldTr) * Math::ToTransformMatrix(boneTransform);
+				// We need to remove parent's transform
+				const glm::mat4 parentTr = Math::ToTransformMatrix(GetBoneWorldTransform(m_SelectedBoneParentName));
+				m_SelectedBone->Transformation = glm::inverse(parentTr) * Math::ToTransformMatrix(boneTransform);
 				bGuizmoChanged = true;
 			}
 		}
@@ -519,6 +521,12 @@ namespace Eagle
 	{
 		Transform transform = m_Entity.GetComponent<SkeletalMeshComponent>().GetRagdollBoneWorldTransform(m_SelectedRagdollBoneName);
 		transform.Scale3D = m_SelectedRagdollBone->Settings.UserOffset.Scale3D; // Originally, bones don't have scale, so we restore it
+		return transform;
+	}
+
+	Transform SkeletalMeshAssetEditor::GetBoneWorldTransform(const std::string& name)
+	{
+		Transform transform = m_Entity.GetComponent<SkeletalMeshComponent>().GetBoneWorldTransform(name);
 		return transform;
 	}
 	

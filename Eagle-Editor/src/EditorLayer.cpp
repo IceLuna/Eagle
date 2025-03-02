@@ -228,13 +228,6 @@ namespace Eagle
 
 	void EditorLayer::OnEvent(Eagle::Event& e)
 	{
-		if (!m_ViewportHidden)
-		{
-			if (m_EditorState == EditorState::Edit)
-				m_EditorScene->OnEventEditor(e);
-			else if (m_EditorState == EditorState::Play)
-				m_SimulationScene->OnEventRuntime(e);
-		}
 		m_SceneHierarchyPanel.OnEvent(e);
 		if (e.Handled)
 			return;
@@ -242,6 +235,14 @@ namespace Eagle
 		m_ContentBrowserPanel.OnEvent(e);
 		if (e.Handled)
 			return;
+
+		if (!m_ViewportHidden)
+		{
+			if (m_EditorState == EditorState::Edit)
+				m_EditorScene->OnEventEditor(e);
+			else if (m_EditorState == EditorState::Play)
+				m_SimulationScene->OnEventRuntime(e);
+		}
 
 		if (e.GetEventType() == EventType::WindowFocused)
 			m_WindowFocused = ((WindowFocusedEvent&)e).IsFocused();
@@ -479,7 +480,7 @@ namespace Eagle
 				mapped += imageLayout.RowPitch * mouse.y;
 				memcpy(&data, ((uint32_t*)mapped) + mouse.x, sizeof(int));
 				image->Unmap();
-				m_SceneHierarchyPanel.SetEntitySelected(data);
+				m_SceneHierarchyPanel.SetEntitySelected(data == -1 ? Entity::Null : Entity{ (entt::entity)data, m_CurrentScene.get() });
 				return true;
 			}
 		}
@@ -557,7 +558,7 @@ namespace Eagle
 
 		Entity createdEntity = m_EditorScene->CreateFromEntityAsset(entityAsset);
 		createdEntity.SetWorldLocation(worldPos);
-		m_SceneHierarchyPanel.SetEntitySelected((int)createdEntity.GetEnttID());
+		m_SceneHierarchyPanel.SetEntitySelected(createdEntity);
 		if (m_OpenedSceneAsset)
 			m_OpenedSceneAsset->SetDirty(true);
 	}
@@ -594,7 +595,7 @@ namespace Eagle
 
 		if (!m_OpenedSceneAsset)
 		{
-			Path filepath = FileDialog::SaveFile(FileDialog::ASSET_FILTER);
+			Path filepath = FileDialog::SaveFile(FileDialog::ASSET_FILTER, Project::GetContentPath());
 			if (!filepath.empty())
 			{
 				const Path currentPath = Project::GetProjectPath();
@@ -644,7 +645,7 @@ namespace Eagle
 		if (m_EditorState != EditorState::Edit)
 			return false;
 
-		Path filepath = FileDialog::SaveFile(FileDialog::ASSET_FILTER);
+		Path filepath = FileDialog::SaveFile(FileDialog::ASSET_FILTER, Project::GetContentPath());
 		if (!filepath.empty())
 		{
 			const Path currentPath = Project::GetProjectPath();
@@ -2096,16 +2097,23 @@ namespace Eagle
 			m_CurrentScene->SetSkyboxEnabled(m_BeforeSimulationData.bSkyboxEnabled);
 			m_CurrentScene->SetRenderSkybox(m_BeforeSimulationData.bRenderSkybox);
 		}
+		Input::SetShowMouse(true); // Just in case restore the mouse state.
 
 		EG_CORE_TRACE("Editor Stop pressed");
 	}
 
 	void EditorLayer::HandleOnSimulationButton()
 	{
+		// To restore selection settings
+		auto selectedComp = m_SceneHierarchyPanel.GetSelectedComponentType();
+		auto selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
+
 		if (m_EditorState == EditorState::Edit)
 			PlayScene();
 		else if (m_EditorState != EditorState::Edit)
 			StopPlayingScene();
+
+		m_SceneHierarchyPanel.SetEntitySelected(selectedEntity, selectedComp);
 	}
 
 	void EditorLayer::HandleCloseRequest(bool bCloseEngine)

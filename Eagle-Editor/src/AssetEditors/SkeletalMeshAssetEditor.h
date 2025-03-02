@@ -22,13 +22,14 @@ namespace Eagle
 		const Ref<Asset> GetAsset() const override { return Cast<Asset>(m_Asset); }
 
 	private:
-		bool DrawSkeletalTree(const SkeletalMeshInfo& skeletalInfo, BoneNode& node, size_t baseHash, bool* outDelete = nullptr, const glm::mat4& baseTransform = glm::mat4(1.f));
+		bool DrawSkeletalTree(const SkeletalMeshInfo& skeletalInfo, BoneNode& node, size_t baseHash, bool* outDelete = nullptr, const glm::mat4& baseTransform = glm::mat4(1.f), const std::string& parentName = "");
 		bool DrawRagdollTree(SkeletalRagdollBones& node, size_t baseHash);
 		bool DrawSkeletalTab(const Ref<SkeletalMesh>& mesh, size_t& assetHash);
 		bool DrawRagdollTab(const Ref<SkeletalMesh>& mesh, size_t& assetHash);
 		void UpdateGuizmo();
 		void OnViewportEnd() override { UpdateGuizmo(); }
 		Transform GetSelectedRagdollBoneWorldTransform();
+		Transform GetBoneWorldTransform(const std::string& name);
 
 		void CreatePlane();
 		void DeletePlane();
@@ -44,7 +45,7 @@ namespace Eagle
 		Ref<AssetAnimation> m_PreviewAnimation;
 
 		std::string m_SelectedBoneName;
-		glm::mat4 m_SelectedBoneParentWorldTr = glm::mat4(1.f);
+		std::string m_SelectedBoneParentName;
 		BoneNode* m_SelectedBone = nullptr;
 
 		std::string m_SelectedRagdollBoneName;

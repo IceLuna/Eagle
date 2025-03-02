@@ -24,6 +24,7 @@ namespace Eagle
 
 	void AnimationGraphAssetEditor::OnEvent(Event& e)
 	{
+		AssetEditor::OnEvent(e);
 		m_Graph->OnEvent(e);
 	}
 }

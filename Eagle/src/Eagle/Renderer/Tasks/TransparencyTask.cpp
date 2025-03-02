@@ -87,12 +87,13 @@ namespace Eagle
 	void TransparencyTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
 		const auto& meshes = m_Renderer.GetTranslucentMeshes();
+		const auto& skeletalMeshes = m_Renderer.GetTranslucentSkeletalMeshes();
 		const auto& spritesData = m_Renderer.GetTranslucentSpritesData();
 		const auto& spritesNoShadowData = m_Renderer.GetTranslucentNotCastingShadowSpriteData();
 		const auto& textsData = m_Renderer.GetTranslucentLitTextData();
 		const auto& textsNoShadowData = m_Renderer.GetTranslucentLitNotCastingShadowTextData();
 
-		if (meshes.empty() &&
+		if (meshes.empty() && skeletalMeshes.empty() &&
 			spritesData.QuadVertices.empty() && spritesNoShadowData.QuadVertices.empty() &&
 			textsData.QuadVertices.empty() && textsNoShadowData.QuadVertices.empty())
 		{

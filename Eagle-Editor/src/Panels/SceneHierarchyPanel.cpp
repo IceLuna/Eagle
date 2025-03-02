@@ -34,15 +34,14 @@ namespace Eagle
 		m_Properties.SetSelectedComponent(SelectedComponent::None);
 	}
 
-	void SceneHierarchyPanel::SetEntitySelected(int entityID)
+	void SceneHierarchyPanel::SetEntitySelected(Entity entity, SelectedComponent component)
 	{
 		ClearSelection();
 
-		if (entityID >= 0)
+		if (entity)
 		{
-			entt::entity enttID = (entt::entity)entityID;
-			m_SelectedEntity = Entity{enttID, m_Scene.get()};
-			m_Properties.SetSelectedComponent(SelectedComponent::None);
+			m_SelectedEntity = entity;
+			m_Properties.SetSelectedComponent(component);
 			m_ScrollToSelected = true;
 		}
 	}

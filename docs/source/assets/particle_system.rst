@@ -12,6 +12,11 @@ Go :ref:`here <feature_particles>` to learn more about particles and their setti
 
    Particle System Editor
 
+.. figure:: ../rendering/imgs/ps_smoke.gif
+    :align: center 
+
+    Simple smoke effect
+
 .. note::
 
 	This asset type can be created at runtime using C#

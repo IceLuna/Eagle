@@ -14,7 +14,7 @@ namespace Eagle
 		float GetBounciness() const { return m_Bounciness; }
 		void* GetNativeHandle() const { return m_NativeHandle; }
 
-		static Ref<PhysicsMaterial> Create(float staticFriction = 0.6f, float dynamicFriction = 0.6f, float bounciness = 0.5f);
+		static Ref<PhysicsMaterial> Create(float staticFriction = 0.6f, float dynamicFriction = 0.6f, float bounciness = 0.0f);
 
 	protected:
 		PhysicsMaterial(float staticFriction, float dynamicFriction, float bounciness);

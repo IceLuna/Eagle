@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Eagle
@@ -6,10 +7,10 @@ namespace Eagle
     [StructLayout(LayoutKind.Sequential)]
     public struct Quat : IEquatable<Quat>
     {
-        public float W;
         public float X;
         public float Y;
         public float Z;
+        public float W;
 
         public Quat(float w, float x, float y, float z)
         {
@@ -56,7 +57,17 @@ namespace Eagle
             Z = Z * oneOverLen;
         }
 
-        //TODO: EulerAngles; FromEulerAngles
+        // Returns in radians. X - pitch, Y - yaw, Z - roll
+        public Vector3 EulerAngles()
+        {
+            return EulerAngles_Native(ref this);
+        }
+
+        public static Quat FromEulerAngles(Vector3 radians)
+        {
+            return FromEulerAngles_Native(ref radians);
+
+        }
 
         public static Quat Unit()
         {
@@ -65,16 +76,7 @@ namespace Eagle
 
         public static Quat operator*(Quat left, Quat right)
         {
-            Quat p = left;
-            Quat q = right;
-            Quat result = new Quat();
-
-            result.W = p.W * q.W - p.X * q.X - p.Y * q.Y - p.Z * q.Z;
-            result.X = p.W * q.X + p.X * q.W + p.Y * q.Z - p.Z * q.Y;
-            result.Y = p.W * q.Y + p.Y * q.W + p.Z * q.X - p.X * q.Z;
-            result.Z = p.W * q.Z + p.Z * q.W + p.X * q.Y - p.Y * q.X;
-
-            return result;
+            return Mul_Native(ref left, ref right);
         }
 
         public static Quat operator/ (Quat left, float scalar)
@@ -95,5 +97,14 @@ namespace Eagle
         }
 
         public override int GetHashCode() => (X, Y, Z, W).GetHashCode();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern Quat Mul_Native(ref Quat left, ref Quat right);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern Vector3 EulerAngles_Native(ref Quat q);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern Quat FromEulerAngles_Native(ref Vector3 rads);
     }
 }

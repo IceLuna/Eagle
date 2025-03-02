@@ -357,59 +357,57 @@ Other changes
 
 3. Now the size of Prefilter image of IBL can be configured.
 
-4. Removed flip of `Y` uv when importing a mesh.
+4. Lit 3D Texts now use `Material` assets.
 
-5. Lit 3D Texts now use `Material` assets.
+5. Added support for .gltf files.
 
-6. Added support for .gltf files.
+6. Exposed `Scene Gravity` setting.
 
-7. Exposed `Scene Gravity` setting.
+7. Reversed depth buffer.
 
-8. Reversed depth buffer.
+8. Improved handling of `Physics Materials`.
 
-9. Improved handling of `Physics Materials`.
+9. Meshes, Sprites, and Lit Texts now have `bReceivesDecals` setting.
 
-10. Meshes, Sprites, and Lit Texts now have `bReceivesDecals` setting.
+10. Added `Albedo` and `Anisotropy` as a volumetric fog params.
 
-11. Added `Albedo` and `Anisotropy` as a volumetric fog params.
+11. Improved quality of volumetrics.
 
-12. Improved quality of volumetrics.
+12. Reduced flickering of Volumetric Lights near the light source by using Karis Average.
 
-13. Reduced flickering of Volumetric Lights near the light source by using Karis Average.
+13. Added smooth falloff near light edges.
 
-14. Added smooth falloff near light edges.
+14. Added set/get gravity to C#.
 
-15. Added set/get gravity to C#.
+15. Now you can specify `Start` and `End` colors for debug lines.
 
-16. Now you can specify `Start` and `End` colors for debug lines.
+16. Added `IsValid` to C# entity.
 
-17. Added `IsValid` to C# entity.
+17. Mouse scroll now can be used to change engine provided runtime camera.
 
-18. Mouse scroll now can be used to change engine provided runtime camera.
+18. C#: Added `GetAllEntitiesWithComponent()`.
 
-19. C#: Added `GetAllEntitiesWithComponent()`.
+19. C# wrappers don't return null arrays anymore.
 
-20. C# wrappers don't return null arrays anymore.
+20. Added a way to disable skybox background rendering (Lightting is still applied).
 
-21. Added a way to disable skybox background rendering (Lightting is still applied).
+21. Added `QuitGame` to C# (`Scene.QuitGame()`).
 
-22. Added `QuitGame` to C# (`Scene.QuitGame()`).
+22. Added `AABB`, `UVector2`, and `Min/Max` functions to C#.
 
-23. Added `AABB`, `UVector2`, and `Min/Max` functions to C#.
+23. Now C# API supports fonts.
 
-24. Now C# API supports fonts.
+24. Editor & C# now support `Sound Groups`.
 
-25. Editor & C# now support `Sound Groups`.
+25. Moved C# draw function from `Scene` class to `Renderer`.
 
-26. Moved C# draw function from `Scene` class to `Renderer`.
+26. Added support for `mp3` audios.
 
-27. Added support for `mp3` audios.
+27. Added support for extracting spectrum data of an audio.
 
-28. Added support for extracting spectrum data of an audio.
+28. Added `Pan` to `AudioComponent`.
 
-29. Added `Pan` to `AudioComponent`.
-
-30. Now you can select whether `AudioComponent` should use 2D or 3D sound.
+29. Now you can select whether `AudioComponent` should use 2D or 3D sound.
 
 Fixes
 -----
@@ -528,4 +526,10 @@ Fixes
 57. Fixed ``AudioComponent`` not serializing ``Pitch``.
 
 58. Fixed incorrect C# bindings.
+
+59. Fixed engine provided runtime camera potentially blocking other cameras that might be spawned.
+
+60. Fixed deselecting entity when simulation starts.
+
+61. Fixed wrong ``Quat`` layout in C#.
 

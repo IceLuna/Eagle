@@ -74,6 +74,17 @@ namespace Eagle
             return ((float)Math.PI / 180f) * angle;
         }
 
+        public static float Degrees(float radians)
+        {
+            return (180f / (float)Math.PI) * radians;
+        }
+
+        // Projects vector `v` on a plane with normal `n`
+        public static Vector3 Project(Vector3 v, Vector3 n)
+        {
+            return v - Dot(v, n) * n;
+        }
+
 	    public static Quat AngleAxis(float angle, Vector3 v)
 	    {
 		    float s = (float)Math.Sin(angle * 0.5f);

@@ -17,8 +17,8 @@ namespace Eagle
 		static const wchar_t* IMPORT_FILTER = L"File (*.png,*.jpg,*.tga,*.hdr,*.fbx,*.gltf,*.blend,*.3ds,*.obj,*.smd,*.vta,*.stl,*.mp3,*.wav,*.ogg,*.wma,*.ttf,*.otf)\0*.png;*.jpg;*.tga;*.hdr;*.fbx;*.gltf;*.blend;*.3ds;*.obj;*.smd;*.vta;*.stl;*.mp3;*.wav;*.ogg;*.wma;*.ttf;*.otf\0";
 
 		//Returns empty string if failed
-		Path OpenFile(const wchar_t* filter);
-		Path SaveFile(const wchar_t* filter);
+		Path OpenFile(const wchar_t* filter, const Path& initialDir = "");
+		Path SaveFile(const wchar_t* filter, const Path& initialDir = "");
 		Path OpenFolder();
 	};
 	

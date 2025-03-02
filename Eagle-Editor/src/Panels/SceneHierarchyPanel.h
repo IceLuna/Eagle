@@ -22,7 +22,7 @@ namespace Eagle
 		void OnEvent(Event& e);
 
 		Entity GetSelectedEntity() const { return m_SelectedEntity; }
-		void SetEntitySelected(int entityID);
+		void SetEntitySelected(Entity entity, SelectedComponent component = SelectedComponent::None);
 
 		SceneComponent* GetSelectedComponent()
 		{

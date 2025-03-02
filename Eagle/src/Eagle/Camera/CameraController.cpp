@@ -22,7 +22,8 @@ namespace Eagle
 					float offsetX = m_MouseX - Input::GetMouseX();
 					float offsetY = m_MouseY - Input::GetMouseY();
 
-					// There's a GLFW bug when mouse pos jumps on second frame, so here we're ignoring mouse delta on first two frames
+					// There's a GLFW bug when mouse pos jumps on second frame after we hide the mouse.
+					// So, here we're ignoring mouse delta on first two frames
 					if (m_NumberOfFramesMoving++ < 2)
 						offsetX = offsetY = 0.f;
 

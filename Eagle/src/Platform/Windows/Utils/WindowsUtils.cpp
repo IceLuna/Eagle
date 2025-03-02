@@ -17,11 +17,10 @@ namespace Eagle
 
 	namespace FileDialog
 	{
-		Path OpenFile(const wchar_t* filter)
+		Path OpenFile(const wchar_t* filter, const Path& initialDir)
 		{
 			OPENFILENAMEW ofn;
 			WCHAR szFile[256] = { 0 };
-			WCHAR currentDir[256] = { 0 };
 			ZeroMemory(&ofn, sizeof(OPENFILENAME));
 			ofn.lStructSize = sizeof(OPENFILENAME);
 			ofn.hwndOwner = (HWND)Application::Get().GetWindow().GetNativeWindow();
@@ -31,6 +30,13 @@ namespace Eagle
 			ofn.nFilterIndex = 1;
 			ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
+			std::wstring initialDirStr;
+			if (!initialDir.empty())
+			{
+				initialDirStr = initialDir.wstring();
+				ofn.lpstrInitialDir = initialDirStr.c_str();
+			}
+
 			if (GetOpenFileNameW(&ofn) == TRUE)
 			{
 				return Path(ofn.lpstrFile);
@@ -38,11 +44,10 @@ namespace Eagle
 			return Path();
 		}
 
-		Path SaveFile(const wchar_t* filter)
+		Path SaveFile(const wchar_t* filter, const Path& initialDir)
 		{
 			OPENFILENAMEW ofn;
 			WCHAR szFile[256] = { 0 };
-			WCHAR currentDir[256] = { 0 };
 			ZeroMemory(&ofn, sizeof(OPENFILENAME));
 			ofn.lStructSize = sizeof(OPENFILENAME);
 			ofn.hwndOwner = HWND(Application::Get().GetWindow().GetNativeWindow());
@@ -52,6 +57,13 @@ namespace Eagle
 			ofn.nFilterIndex = 1;
 			ofn.lpstrDefExt = std::wcschr(filter, L'\0') + 1;
 			ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
+
+			std::wstring initialDirStr;
+			if (!initialDir.empty())
+			{
+				initialDirStr = initialDir.wstring();
+				ofn.lpstrInitialDir = initialDirStr.c_str();
+			}
 
 			if (GetSaveFileNameW(&ofn) == TRUE)
 			{

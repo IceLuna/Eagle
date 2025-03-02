@@ -700,4 +700,9 @@ namespace Eagle::Script
 		glm::vec3* ringRadius, glm::vec3* ringThickness, GUID* meshAsset, ParticleEmitter::CollisionModeType* collisionMode, glm::uvec2* animationImagesNum,
 		float* animationSpeed, bool* bDestroyImmediately, bool* bEmit, bool* bExplode, bool* bApplyGravity, bool* bAlphaBlending,
 		bool* bAdditive, bool* bBlendAnimation);
+
+	// Math
+	glm::quat Eagle_Quat_Mul(const glm::quat& left, const glm::quat& right);
+	glm::vec3 Eagle_Quat_EulerAngles(const glm::quat* q);
+	glm::quat Eagle_Quat_FromEulerAngles(const glm::vec3* rads);
 }

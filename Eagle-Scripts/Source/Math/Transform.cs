@@ -7,6 +7,13 @@ namespace Eagle
     public struct Rotator
     {
         public Quat Rotation;
+
+        public static implicit operator Rotator(Quat value)
+        {
+            Rotator rotator = new Rotator();
+            rotator.Rotation = value;
+            return rotator;
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]

@@ -12,6 +12,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <stb_image.h>
 
 namespace Eagle
 {
@@ -495,7 +496,7 @@ namespace Eagle
 	}
 
 	constexpr static uint32_t s_ImportMeshFlags = aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace
-		| aiProcess_OptimizeGraph | aiProcess_ImproveCacheLocality | aiProcess_JoinIdenticalVertices | aiProcess_GlobalScale | aiProcess_GenBoundingBoxes;
+		| aiProcess_OptimizeGraph | aiProcess_ImproveCacheLocality | aiProcess_JoinIdenticalVertices | aiProcess_GlobalScale | aiProcess_GenBoundingBoxes | aiProcess_FlipUVs;
 	constexpr static uint32_t s_ImportAnimFlags = aiProcess_OptimizeGraph | aiProcess_ImproveCacheLocality | aiProcess_JoinIdenticalVertices | aiProcess_GlobalScale;
 	constexpr static uint32_t s_ImportMaterialsFlags = aiProcess_OptimizeGraph | aiProcess_RemoveRedundantMaterials;
 
@@ -616,19 +617,37 @@ namespace Eagle
 		if (!hasTexture)
 			return {};
 
-		const Path texturePath = path.parent_path() / (aiTexturePath.C_Str());
+		const Path filename = Path(aiTexturePath.C_Str()).filename();
+		const Path texturePath = path.parent_path() / filename;
 
 		Ref<AssetTexture2D> assetTexture;
 		if (hasTexture)
 		{
 			if (auto aiTexture = scene->GetEmbeddedTexture(aiTexturePath.C_Str()))
 			{
-				const glm::uvec2 size = { aiTexture->mWidth, aiTexture->mHeight };
-				if (size.x > 0 && size.y > 0)
+				glm::uvec2 size = { aiTexture->mWidth, aiTexture->mHeight };
+				// aiTexture->mHeight can be zero, in this case `aiTexture->pcData` is not RGB values but compressed JPEG/PNG data
+				if (size.y == 0u)
+				{
+					int width, height, cpp;
+					void* stbiData = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexture->pcData), aiTexture->mWidth, &width, &height, &cpp, 4);
+					size = glm::uvec2(width, height);
+
+					const std::string textureName = texturePath.stem().u8string();
+					Ref<Texture2D> texture = Texture2D::Create(textureName, ImageFormat::R8G8B8A8_UNorm, size, stbiData, {});
+					assetTexture = CreateAssetFromTexture(texture, saveTo);
+
+					stbi_image_free(stbiData);
+				}
+				else if (size.x > 0 && size.y > 0)
 				{
 					const std::string textureName = texturePath.stem().u8string();
 					Ref<Texture2D> texture = Texture2D::Create(textureName, ImageFormat::R8G8B8A8_UNorm, size, aiTexture->pcData, {});
 					assetTexture = CreateAssetFromTexture(texture, saveTo);
+				}
+				else
+				{
+					EG_CORE_ERROR("Failed to read an embedded texture: {}", filename.u8string());
 				}
 			}
 			else

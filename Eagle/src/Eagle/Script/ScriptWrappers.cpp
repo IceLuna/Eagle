@@ -8335,4 +8335,20 @@ namespace Eagle
 		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetEmitter()`. It's not a ParticleSystem asset");
 		return mono_string_new(mono_domain_get(), "");
 	}
+	
+	//--------------Math--------------
+	glm::quat Script::Eagle_Quat_Mul(const glm::quat& left, const glm::quat& right)
+	{
+		return left * right;
+	}
+	
+	glm::vec3 Script::Eagle_Quat_EulerAngles(const glm::quat* q)
+	{
+		return glm::eulerAngles(*q);
+	}
+	
+	glm::quat Script::Eagle_Quat_FromEulerAngles(const glm::vec3* rads)
+	{
+		return Rotator::FromEulerAngles(*rads).GetQuat();
+	}
 }

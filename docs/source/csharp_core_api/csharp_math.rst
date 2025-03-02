@@ -92,10 +92,10 @@ It represents a quaternion that can be used for rotations.
     [StructLayout(LayoutKind.Sequential)]
     public struct Quat : IEquatable<Quat>
     {
-        public float W;
         public float X;
         public float Y;
         public float Z;
+        public float W;
 
         public Quat(float w, float x, float y, float z);
         public Quat(float w, Vector3 v);
@@ -107,6 +107,11 @@ It represents a quaternion that can be used for rotations.
 
         // Turns it into a unit length quat
         public void Normalize();
+
+        // Returns in radians. X - pitch, Y - yaw, Z - roll
+        public Vector3 EulerAngles();
+
+        public static Quat FromEulerAngles(Vector3 radians);
 
         public static Quat Unit()
         {
@@ -137,6 +142,8 @@ Currently, it just contains a ``Quat`` member
     public struct Rotator
     {
         public Quat Rotation;
+
+        public static implicit operator Rotator(Quat value);
     }
 
 `Transform`
@@ -223,6 +230,12 @@ It is a static class that contains utility functions.
         
         // Converts angles to radians
         public static float Radians(float angle);
+
+        // Converts radians to angles
+        public static float Degrees(float radians);
+
+        // Projects vector `v` on a plane with normal `n`
+        public static Vector3 Project(Vector3 v, Vector3 n);
 
         // It can be used to get a quaternion that represent a rotation around an axis
         public static Quat AngleAxis(float angle, Vector3 v);

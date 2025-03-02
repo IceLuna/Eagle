@@ -795,5 +795,10 @@ namespace Eagle
 		mono_add_internal_call("Eagle.AssetParticleSystem::SetEmitter_Native", Eagle::Script::Eagle_AssetParticleSystem_SetEmitter);
 		mono_add_internal_call("Eagle.AssetParticleSystem::GetEmitter_Native", Eagle::Script::Eagle_AssetParticleSystem_GetEmitter);
 		mono_add_internal_call("Eagle.AssetParticleSystem::Create_Native", Eagle::Script::Eagle_AssetParticleSystem_Create);
+
+		// Math
+		mono_add_internal_call("Eagle.Quat::Mul_Native", Eagle::Script::Eagle_Quat_Mul);
+		mono_add_internal_call("Eagle.Quat::EulerAngles_Native", Eagle::Script::Eagle_Quat_EulerAngles);
+		mono_add_internal_call("Eagle.Quat::FromEulerAngles_Native", Eagle::Script::Eagle_Quat_FromEulerAngles);
 	}
 }
