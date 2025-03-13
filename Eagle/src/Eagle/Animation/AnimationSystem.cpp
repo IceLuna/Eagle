@@ -392,7 +392,7 @@ namespace Eagle
         }
     }
     
-    std::unordered_map<uint32_t, std::vector<glm::mat4>> AnimationSystem::Update(const std::vector<SkeletalMeshComponent*>& meshes, float ts)
+    std::unordered_map<uint32_t, std::vector<glm::mat4>> AnimationSystem::Update(const std::vector<SkeletalMeshComponent*>& meshes, float ts, bool bApplyRootMotion)
     {
         EG_CPU_TIMING_SCOPED("Animation System. Update");
 
@@ -482,7 +482,7 @@ namespace Eagle
 
         for (auto& mesh : meshes)
         {
-            if (mesh->LastPose.HasRootMotion())
+            if (bApplyRootMotion && mesh->LastPose.HasRootMotion())
                 ApplyRootMotion(mesh, mesh->LastPose.TotalRootMotion, mesh->LastPose.GetRootMotion());
 
             if (mesh->LastPose.EventsToTrigger.size() > 0)

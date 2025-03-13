@@ -23,12 +23,14 @@ This kind of transitional blend works well when the two clips/poses are unrelate
             mathCategory["Multiply"] = &GraphNodeFactory::SpawnMulNode;
             mathCategory["Divide"] = &GraphNodeFactory::SpawnDivNode;
             mathCategory["Sqrt"] = &GraphNodeFactory::SpawnSqrtNode;
+            mathCategory["Abs"] = &GraphNodeFactory::SpawnAbsNode;
             mathCategory["Sin (rad)"] = &GraphNodeFactory::SpawnSinNode;
             mathCategory["Cos (rad)"] = &GraphNodeFactory::SpawnCosNode;
             mathCategory["ASin"] = &GraphNodeFactory::SpawnASinNode;
             mathCategory["ACos"] = &GraphNodeFactory::SpawnACosNode;
             mathCategory["To Radians"] = &GraphNodeFactory::SpawnToRadNode;
             mathCategory["To Degrees"] = &GraphNodeFactory::SpawnToDegNode;
+            mathCategory["Map Range"] = &GraphNodeFactory::SpawnMapRangeNode;
         }
 
         // Logical catergory
@@ -748,6 +750,23 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         return node;
     }
 
+    Node& GraphNodeFactory::SpawnAbsNode(UIGraph& graph, const std::string_view name)
+    {
+        const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
+
+        auto& node = graph.AddNode(name, ImColor(128, 195, 248));
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Float);
+        node.Type = NodeType::Simple;
+
+        node.GraphNode = MakeRef<AnimationGraphNodeAbs>(graphAsset->GetGraph());
+
+        graph.BuildNode(node);
+        graph.OnNodeAdded(node);
+
+        return node;
+    }
+
     Node& GraphNodeFactory::SpawnCosNode(UIGraph& graph, const std::string_view name)
     {
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
@@ -826,6 +845,27 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         node.Type = NodeType::Simple;
 
         node.GraphNode = MakeRef<AnimationGraphNodeToDeg>(graphAsset->GetGraph());
+
+        graph.BuildNode(node);
+        graph.OnNodeAdded(node);
+
+        return node;
+    }
+
+    Node& GraphNodeFactory::SpawnMapRangeNode(UIGraph& graph, const std::string_view name)
+    {
+        const auto & graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
+
+        auto& node = graph.AddNode(name, ImColor(128, 195, 248));
+        node.InputPins.emplace_back(graph.GetNextId(), "Value", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "Min A", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "Max A", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "Min B", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "Max B", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Float);
+        node.Type = NodeType::Simple;
+
+        node.GraphNode = MakeRef<AnimationGraphNodeMapRange>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);

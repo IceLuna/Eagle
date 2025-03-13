@@ -501,6 +501,22 @@ namespace Eagle
 		static constexpr size_t s_Inputs = 1;
 	};
 
+	class AnimationGraphNodeAbs : public AnimationGraphNodeFloat
+	{
+	public:
+		AnimationGraphNodeAbs(const Weak<AnimationGraph>& graph) : AnimationGraphNodeFloat(graph, s_Inputs) {}
+
+		const SkeletalPose& Update(Timestep ts) override;
+
+		Ref<GraphNode> Clone() const override
+		{
+			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeAbs>(m_Graph);
+		}
+
+	private:
+		static constexpr size_t s_Inputs = 1;
+	};
+
 	class AnimationGraphNodeSin : public AnimationGraphNodeFloat
 	{
 	public:
@@ -595,5 +611,21 @@ namespace Eagle
 
 	private:
 		static constexpr size_t s_Inputs = 1;
+	};
+
+	class AnimationGraphNodeMapRange : public AnimationGraphNodeFloat
+	{
+	public:
+		AnimationGraphNodeMapRange(const Weak<AnimationGraph>& graph) : AnimationGraphNodeFloat(graph, s_Inputs) {}
+
+		const SkeletalPose& Update(Timestep ts) override;
+
+		Ref<GraphNode> Clone() const override
+		{
+			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeMapRange>(m_Graph);
+		}
+
+	private:
+		static constexpr size_t s_Inputs = 5;
 	};
 }

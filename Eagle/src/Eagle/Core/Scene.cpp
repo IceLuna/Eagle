@@ -903,7 +903,7 @@ namespace Eagle
 			if (bRuntime || bForceAnimationsUpdate)
 			{
 				EG_CPU_TIMING_SCOPED("Scene. Just tick animations");
-				AnimationSystem::Update(m_SkeletalMeshes, ts);
+				AnimationSystem::Update(m_SkeletalMeshes, ts, bRuntime);
 			}
 
 			return;
@@ -957,7 +957,7 @@ namespace Eagle
 		}
 
 		if (bRuntime || bForceAnimationsUpdate)
-			m_AnimationTransforms = AnimationSystem::Update(m_SkeletalMeshes, ts);
+			m_AnimationTransforms = AnimationSystem::Update(m_SkeletalMeshes, ts, bRuntime);
 		else
 			m_AnimationTransforms = AnimationSystem::UpdateBasePose(m_SkeletalMeshes, ts);
 

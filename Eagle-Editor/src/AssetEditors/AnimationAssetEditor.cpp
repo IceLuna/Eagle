@@ -145,17 +145,6 @@ namespace Eagle
 		UI::BeginPropertyGrid("AnimationDetails");
 
 		UI::Property("Play animation", bPlayAnimation);
-		if (UI::Property("In place", bInPlace, "Affects root motion"))
-		{
-			if (bInPlace)
-			{
-				auto transform = m_Component->Parent.GetWorldTransform();
-				transform.Location = glm::vec3(0.f);
-				m_Component->Parent.SetWorldTransform(transform);
-				m_Component->SetRootMotionLockFlag(RootMotionLockFlag::Position);
-			}
-			m_Component->SetRootMotionLockFlag(bInPlace ? RootMotionLockFlag::Position : RootMotionLockFlag::None);
-		}
 		UI::Property("Looping", m_Component->bClipLooping);
 		UI::PropertyDrag("Playback Speed", m_Component->ClipPlaybackSpeed, 0.1f);
 

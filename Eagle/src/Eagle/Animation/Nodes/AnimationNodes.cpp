@@ -629,6 +629,22 @@ namespace Eagle
 		return m_Pose;
 	}
 
+	const SkeletalPose& AnimationGraphNodeAbs::Update(Timestep ts)
+	{
+		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
+		if (currentFrame <= m_CalculatedOnFrame)
+			return m_Pose;
+
+		float value = 0.f;
+		Utils::GetValue(m_Inputs[0], m_Variables[0], ts, &value);
+
+		Result = glm::abs(value);
+
+		m_CalculatedOnFrame = currentFrame;
+
+		return m_Pose;
+	}
+
 	const SkeletalPose& AnimationGraphNodeSin::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
@@ -719,6 +735,33 @@ namespace Eagle
 		Utils::GetValue(m_Inputs[0], m_Variables[0], ts, &value);
 
 		Result = glm::degrees(value);
+
+		m_CalculatedOnFrame = currentFrame;
+
+		return m_Pose;
+	}
+	
+	const SkeletalPose& AnimationGraphNodeMapRange::Update(Timestep ts)
+	{
+		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
+		if (currentFrame <= m_CalculatedOnFrame)
+			return m_Pose;
+
+		float value = 0.f;
+		Utils::GetValue(m_Inputs[0], m_Variables[0], ts, &value);
+
+		float minA = 0.f;
+		float maxA = 0.f;
+		Utils::GetValue(m_Inputs[1], m_Variables[1], ts, &minA);
+		Utils::GetValue(m_Inputs[2], m_Variables[2], ts, &maxA);
+
+		float minB = 0.f;
+		float maxB = 0.f;
+		Utils::GetValue(m_Inputs[3], m_Variables[3], ts, &minB);
+		Utils::GetValue(m_Inputs[4], m_Variables[4], ts, &maxB);
+
+		float alpha = glm::clamp((value - minA) / (maxA - minA), 0.f, 1.f);
+		Result = alpha * (maxB - minB) + minB;
 
 		m_CalculatedOnFrame = currentFrame;
 

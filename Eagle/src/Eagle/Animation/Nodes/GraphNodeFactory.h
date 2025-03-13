@@ -63,12 +63,14 @@ namespace Eagle
         static Node& SpawnMulNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnDivNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnSqrtNode(UIGraph& graph, const std::string_view name);
+        static Node& SpawnAbsNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnSinNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnCosNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnASinNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnACosNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnToRadNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnToDegNode(UIGraph& graph, const std::string_view name);
+        static Node& SpawnMapRangeNode(UIGraph& graph, const std::string_view name);
         
         // State Machine
         static Node& SpawnStateMachine(UIGraph& graph, const std::string_view name);
