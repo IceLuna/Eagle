@@ -8,7 +8,7 @@ namespace Eagle
 
 	struct StatesConnection
 	{
-		Ref<AnimationStateGraph> ConnectedTo;
+		Ref<AnimationStateGraph> ConnectedTo; // Warning: possible circular dependency. That's why we need to clear connections manually in `~AnimationStateMachineGraph`
 		Ref<AnimationGraph> Transition;
 	};
 
@@ -16,16 +16,20 @@ namespace Eagle
 	{
 	public:
 		AnimationStateGraph(const Ref<AssetSkeletalMesh>& skeletal) : AnimationGraph(skeletal) {}
-		AnimationStateGraph(const Ref<const AnimationStateGraph>& other, const VariablesMap& variablesToUse) : AnimationGraph(other, variablesToUse) {}
 
 		void AddConnection(const StatesConnection& connection) { m_Connections.push_back(connection); }
-
+		void ClearConnections() { m_Connections.clear(); }
 		void SetConnections(const std::vector<StatesConnection>& connections) { m_Connections = connections; }
 		const std::vector<StatesConnection>& GetConnections() const { return m_Connections; }
 
 		// Returns a valid "Ref<AnimationStateGraph>" if should transition.
 		// Also returns the time it should take for a full transition (outTransitionTime)
 		Ref<AnimationStateGraph> CheckTransitions(Timestep ts, float* outTransitionTime, bool* outUseSmoothTransition);
+
+		static Ref<AnimationStateGraph> Create(const Ref<const AnimationStateGraph>& other, const VariablesMap& variablesToUse);
+
+	protected:
+		AnimationStateGraph() = default;
 
 	private:
 		// Note: this class is not responsible for cloning and setting variables (SetVariablesToUse) of connections because of infinite recursion complications.

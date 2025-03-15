@@ -71,9 +71,8 @@ namespace Eagle
 		}
 	}
 
-	AnimationGraphNode::AnimationGraphNode(const Weak<AnimationGraph>&graph, size_t numInputs)
-		: GraphNode(numInputs)
-		, m_Graph(graph)
+	AnimationGraphNode::AnimationGraphNode(const Weak<AnimationGraph>& graph, size_t numInputs)
+		: GraphNode(graph, numInputs)
 		, m_Skeletal(graph.lock()->GetSkeletal())
 	{
 	}
@@ -135,23 +134,24 @@ namespace Eagle
 
 		m_Pose.Reset();
 
-		if (m_StateMachine)
-			m_Pose = m_StateMachine->Update(ts);
+		if (const auto& ref = GetStateMachine())
+			m_Pose = ref->Update(ts);
 
 		m_CalculatedOnFrame = currentFrame;
 
 		return m_Pose;
 	}
 
-	void AnimationGraphStateMachineEntry::SetVariablesToUse(const VariablesMap& vars)
+	const Ref<AnimationStateMachineGraph>& AnimationGraphStateMachineEntry::GetStateMachine() const
 	{
-		m_StateMachine->SetVariablesToUse(vars);
+		// TODO: I don't like creating a ref each time. Improve it.
+		return m_Graph.lock()->GetStateMachine(m_StateMachineIndex);
 	}
 
-	Ref<GraphNode> AnimationGraphStateMachineEntry::Clone() const
+	Ref<GraphNode> AnimationGraphStateMachineEntry::Clone(const Weak<AnimationGraph>& newGraph) const
 	{
-		auto clone = AnimationGraphNode::CloneNode<AnimationGraphStateMachineEntry>(m_Graph);
-		clone->m_StateMachine = MakeRef<AnimationStateMachineGraph>(m_StateMachine, m_Graph.lock()->GetVariables());
+		auto clone = AnimationGraphNode::CloneNode<AnimationGraphStateMachineEntry>(newGraph);
+		clone->m_StateMachineIndex = m_StateMachineIndex;
 		return clone;
 	}
 

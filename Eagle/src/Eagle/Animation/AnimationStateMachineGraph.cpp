@@ -15,7 +15,7 @@ namespace Eagle
 		if (it != cache.end())
 			return it->second;
 		
-		Ref<AnimationStateGraph> copiedState = states.emplace_back(MakeRef<AnimationStateGraph>(stateToCopy, variablesToUse));
+		Ref<AnimationStateGraph> copiedState = states.emplace_back(AnimationStateGraph::Create(stateToCopy, variablesToUse));
 		cache.emplace(stateToCopy, copiedState);
 
 		return copiedState;
@@ -39,13 +39,20 @@ namespace Eagle
 			{
 				StatesConnection state;
 				state.ConnectedTo = GetGraphFromCache(cache, m_States, connection.ConnectedTo, variablesToUse);
-				state.Transition = MakeRef<AnimationGraph>(connection.Transition, variablesToUse);
+				state.Transition = AnimationGraph::Create(connection.Transition, variablesToUse);
 
 				copiedState->AddConnection(state);
 			}
 		}
 		if (m_States.empty() == false)
 			m_CurrentState = m_States[0];
+	}
+
+	AnimationStateMachineGraph::~AnimationStateMachineGraph()
+	{
+		for (auto& state : m_States)
+			state->ClearConnections();
+		m_States.clear();
 	}
 
 	const SkeletalPose& AnimationStateMachineGraph::Update(Timestep ts)

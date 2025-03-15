@@ -47,7 +47,7 @@ namespace Eagle
         // We clone it so that changing node in the editor doesn't affect the final component without compilation
         if (result)
         {
-            result = result->Clone();
+            result = result->Clone(result->GetGraph());
             EG_CORE_ASSERT(result);
         }
 

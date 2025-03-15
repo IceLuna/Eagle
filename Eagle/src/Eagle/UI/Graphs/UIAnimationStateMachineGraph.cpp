@@ -164,7 +164,7 @@ namespace Eagle
                             Ref<UIAnimationStateTransitionGraph> transitionGraph = it->second[1];
                             connection.Transition = MakeRef<AnimationGraph>(skeletalAsset);
                             connection.Transition->SetResult(transitionGraph->Compile(outVariables));
-
+                            connection.Transition->SetVariables(outVariables);
                             // EG_CORE_INFO("{} is connected to {} via {}", node->GetName(), connectedNode->GetName(), transitionGraph->GetName());
                         }
                         else
@@ -220,6 +220,7 @@ namespace Eagle
                             Ref<UIAnimationStateTransitionGraph> transitionGraph = it->second[0];
                             connection.Transition = MakeRef<AnimationGraph>(skeletalAsset);
                             connection.Transition->SetResult(transitionGraph->Compile(outVariables));
+                            connection.Transition->SetVariables(outVariables);
 
                             // EG_CORE_INFO("{} is connected to {} via {}", node->GetName(), connectedNode->GetName(), transitionGraph->GetName());
                         }
@@ -243,30 +244,29 @@ namespace Eagle
         ed::SetCurrentEditor(m_GraphData.Editor);
 
         auto stateMachine = MakeRef<AnimationStateMachineGraph>();
+        const auto& graphAsset = ((AnimationGraphEditor&)m_Editor).GetGraphAsset();
+        const auto& graph = graphAsset->GetGraph();
+        const uint32_t stateMachineIndex = graph->AddStateMachine(stateMachine);
 
         Node* entryNode = GetOutputNode();
         entryNode->GraphNode->ResetInputs();
 
+        auto casted = Cast<AnimationGraphStateMachineEntry>(entryNode->GraphNode);
+        casted->SetStateMachineIndex(stateMachineIndex);
+        EG_CORE_ASSERT(casted);
+
         if (entryNode->OutputsPerPin[0].size() > 0)
         {
-            if (auto casted = Cast<AnimationGraphStateMachineEntry>(entryNode->GraphNode))
+            const auto& skeletalAsset = graph->GetSkeletalAsset();
+            Node* connectedToEntry = FindNode(entryNode->OutputsPerPin[0][0].NodeID);
+            if (connectedToEntry)
             {
-                const auto& skeletalAsset = ((AnimationGraphEditor&)m_Editor).GetGraphAsset()->GetGraph()->GetSkeletalAsset();
-                Node* connectedToEntry = FindNode(entryNode->OutputsPerPin[0][0].NodeID);
-                if (connectedToEntry)
-                {
-                    auto compiled = Parse(connectedToEntry, skeletalAsset, stateMachine, true, outUsedVars);
-                    entryNode->GraphNode->SetInput(compiled->GetResult(), 0);
-                    casted->SetStateMachine(stateMachine);
+                auto compiled = Parse(connectedToEntry, skeletalAsset, stateMachine, true, outUsedVars);
+                entryNode->GraphNode->SetInput(compiled->GetResult(), 0);
 
-                    // Set varaibles map to newly created graphs
-                    for (auto& [_, graph] : m_CompiledNodes)
-                        graph->SetVariables(outUsedVars);
-                }
-            }
-            else
-            {
-                EG_CORE_ASSERT(false); // Should never happen
+                // Set varaibles map to newly created graphs
+                for (auto& [_, graph] : m_CompiledNodes)
+                    graph->SetVariables(outUsedVars);
             }
         }
 

@@ -9,13 +9,12 @@ namespace Eagle
 	class SkeletalMesh;
 	class AssetSkeletalMesh;
 	class GraphNode;
+	class AnimationStateMachineGraph;
 
-	class AnimationGraph
+	class AnimationGraph : virtual public std::enable_shared_from_this<AnimationGraph>
 	{
 	public:
 		AnimationGraph(const Ref<AssetSkeletalMesh>& skeletal) : m_Skeletal(skeletal) {}
-		AnimationGraph(const Ref<const AnimationGraph>& other); // This constructor creates its own copy of variables, which is not what we want when it's a subgraph
-		AnimationGraph(const Ref<const AnimationGraph>& other, const VariablesMap& variablesToUse); // But this constructor uses @variablesToUse, instead of creating its own copy of variables
 
 		virtual ~AnimationGraph() = default;
 
@@ -34,6 +33,7 @@ namespace Eagle
 		{
 			m_ResultNode.reset();
 			m_Variables.clear();
+			m_StateMachines.clear();
 		}
 
 		void SetVariables(const VariablesMap& vars)
@@ -44,6 +44,19 @@ namespace Eagle
 		void SetVariables(VariablesMap&& vars)
 		{
 			m_Variables = std::move(vars);
+		}
+
+		uint32_t AddStateMachine(const Ref<AnimationStateMachineGraph>& stateMachine)
+		{
+			const uint32_t index = (uint32_t)m_StateMachines.size();
+			m_StateMachines.push_back(stateMachine);
+			return index;
+		}
+
+		const Ref<AnimationStateMachineGraph>& GetStateMachine(uint32_t index)
+		{
+			EG_CORE_ASSERT(index < m_StateMachines.size());
+			return m_StateMachines[index];
 		}
 
 		virtual void SetVariablesToUse(const VariablesMap& vars);
@@ -67,10 +80,19 @@ namespace Eagle
 
 		const SkeletalPose& GetPose() const { return m_Pose; }
 
+		static Ref<AnimationGraph> Create(const Ref<const AnimationGraph>& other); // This constructor creates its own copy of variables, which is not what we want when it's a subgraph
+		static Ref<AnimationGraph> Create(const Ref<const AnimationGraph>& other, const VariablesMap& variablesToUse); // But this constructor uses @variablesToUse, instead of creating its own copy of variables
+
+	protected:
+		AnimationGraph() = default;
+		void Init(const Ref<const AnimationGraph>& other); // This creates its own copy of variables, which is not what we want when it's a subgraph
+		void Init(const Ref<const AnimationGraph>& other, const VariablesMap& variablesToUse); // But this uses @variablesToUse, instead of creating its own copy of variables
+
 	protected:
 		Ref<AssetSkeletalMesh> m_Skeletal;
 		Ref<GraphNode> m_ResultNode;
 		SkeletalPose m_Pose; // Pose that was calculated by the node during the latest update
+		std::vector<Ref<AnimationStateMachineGraph>> m_StateMachines;
 
 		// Name - variable
 		VariablesMap m_Variables;

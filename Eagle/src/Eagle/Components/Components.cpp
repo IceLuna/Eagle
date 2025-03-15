@@ -617,7 +617,7 @@ namespace Eagle
 			for (const auto& [name, var] : other.m_Graph->GetVariables())
 				copiedVars[name] = CopyVarByType(var);
 
-			m_Graph = MakeRef<AnimationGraph>(other.m_Graph); // Copy
+			m_Graph = AnimationGraph::Create(other.m_Graph); // Copy
 			m_Graph->SetVariablesToUse(copiedVars); // Forcing all graphs/subgraphs to use these variables
 		}
 		m_bCastsShadows = other.m_bCastsShadows;
@@ -739,7 +739,7 @@ namespace Eagle
 				for (const auto& [name, var] : m_AnimGraphAsset->GetGraph()->GetVariables())
 					copiedVars[name] = CopyVarByType(var);
 
-				m_Graph = MakeRef<AnimationGraph>(m_AnimGraphAsset->GetGraph()); // Copy
+				m_Graph = AnimationGraph::Create(m_AnimGraphAsset->GetGraph()); // Copy
 				m_Graph->SetVariablesToUse(copiedVars); // Forcing all graphs/subgraphs to use these variables
 			}
 			if (bMergeVars)

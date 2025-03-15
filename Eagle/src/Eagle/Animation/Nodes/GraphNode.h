@@ -6,13 +6,15 @@
 
 namespace Eagle
 {
+	class AnimationGraph;
 	struct SkeletalPose;
 
 	// TODO: currently, it's still tied to Animation Graph. Find a way to fix it (for example, currently Update() returns SkeletalPose)
 	class GraphNode
 	{
 	public:
-		GraphNode(size_t numInputs)
+		GraphNode(const Weak<AnimationGraph>& graph, size_t numInputs)
+			: m_Graph(graph)
 		{
 			m_Inputs.resize(numInputs);
 			m_Variables.resize(numInputs);
@@ -21,7 +23,7 @@ namespace Eagle
 		virtual ~GraphNode() = default;
 
 		virtual const SkeletalPose& Update(Timestep ts) = 0;
-		virtual Ref<GraphNode> Clone() const = 0;
+		virtual Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const = 0;
 
 		void SetInput(const Ref<GraphNode>& node, size_t index)
 		{
@@ -41,6 +43,7 @@ namespace Eagle
 			m_Variables[index].reset();
 		}
 
+		const Weak<AnimationGraph>& GetGraph() const { return m_Graph; }
 		const std::vector<Ref<GraphNode>>& GetInputNodes() const { return m_Inputs; }
 		const std::vector<Ref<GraphVariable>>& GetInputVariables() const { return m_Variables; }
 
@@ -65,7 +68,7 @@ namespace Eagle
 
 			for (size_t i = 0; i < m_Inputs.size(); ++i)
 			{
-				clone->m_Inputs[i] = m_Inputs[i] ? m_Inputs[i]->Clone() : nullptr;
+				clone->m_Inputs[i] = m_Inputs[i] ? m_Inputs[i]->Clone(clone->m_Graph) : nullptr;
 				// Vars are copied as is because otherwise each node would have its own copy of a variable
 				// Making it impossible/hard to make a variable-change affect every node
 				clone->m_Variables[i] = m_Variables[i];
@@ -75,6 +78,7 @@ namespace Eagle
 		}
 
 	protected:
+		Weak<AnimationGraph> m_Graph;
 		std::vector<Ref<GraphNode>> m_Inputs;
 		std::vector<Ref<GraphVariable>> m_Variables;
 

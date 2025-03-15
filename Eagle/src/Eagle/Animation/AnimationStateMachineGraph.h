@@ -14,12 +14,19 @@ namespace Eagle
 	public:
 		AnimationStateMachineGraph() = default;
 		AnimationStateMachineGraph(const Ref<AnimationStateMachineGraph>& other, const VariablesMap& variablesToUse);
-		virtual ~AnimationStateMachineGraph() = default;
+		virtual ~AnimationStateMachineGraph();
 
 		// Can be used by other graphs in cases when they need to calculate subgraphs
 		const SkeletalPose& Update(Timestep ts);
 
-		void AddState(const Ref<AnimationStateGraph>& state) { m_States.push_back(state); }
+		void AddState(const Ref<AnimationStateGraph>& state)
+		{
+			m_States.push_back(state);
+			if (m_States.size() == 1)
+				m_CurrentState = m_States[0];
+		}
+
+		const std::vector<Ref<AnimationStateGraph>>& GetStates() const { return m_States; }
 
 		void SetVariablesToUse(const VariablesMap& vars);
 
