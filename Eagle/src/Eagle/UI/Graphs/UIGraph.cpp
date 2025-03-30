@@ -26,6 +26,31 @@ namespace Eagle
         return result;
     }
 
+    static bool DragVec4(glm::vec4& value)
+    {
+        bool bChanged = false;
+
+        constexpr float s_ItemWidth = 50.f;
+        const auto& style = ImGui::GetStyle();
+        const ImVec2 start = ImGui::GetCursorScreenPos();
+        ImVec2 pos = start;
+
+        const char* labels[4] = { "##vX", "##vY", "##vZ", "##vW" };
+
+        ImGui::PushItemWidth(s_ItemWidth);
+        for (uint32_t i = 0; i < 4; ++i)
+        {
+            ImGui::SetCursorScreenPos(pos);
+
+            bChanged |= ImGui::DragFloat(labels[i], &value[i], 0.01f);
+
+            pos.x = start.x + (style.ItemInnerSpacing.x + s_ItemWidth) * (i + 1);
+        }
+        ImGui::PopItemWidth();
+
+        return bChanged;
+    }
+
     static void UpdateNodeSize(const ed::Detail::Settings& settings, Node& node)
     {
         const ed::Detail::NodeSettings* nodeSettings = settings.FindNode(node.ID);
@@ -81,6 +106,7 @@ namespace Eagle
         case GraphVariableType::Float: return PinType::Float;
         case GraphVariableType::Animation: return PinType::Object;
         case GraphVariableType::String: return PinType::String;
+        case GraphVariableType::Vec4: return PinType::Vec4;
         }
         EG_CORE_ASSERT(false);
         return PinType::Object;
@@ -470,6 +496,9 @@ namespace Eagle
                     case PinType::Float:
                         varName = m_Editor.CreateNewVar<GraphVariableFloat>(m_NewNodeLinkPin->DefaultValue);
                         break;
+                    case PinType::Vec4:
+                        varName = m_Editor.CreateNewVar<GraphVariableVec4>(m_NewNodeLinkPin->DefaultValue);
+                        break;
                     case PinType::String:
                         varName = m_Editor.CreateNewVar<GraphVariableString>(m_NewNodeLinkPin->DefaultValue);
                         break;
@@ -740,6 +769,7 @@ namespace Eagle
         case PinType::Bool:      iconType = IconType::Circle; break;
         case PinType::Int:       iconType = IconType::Circle; break;
         case PinType::Float:     iconType = IconType::Circle; break;
+        case PinType::Vec4:      iconType = IconType::Circle; break;
         case PinType::String:    iconType = IconType::Circle; break;
         case PinType::Object:    iconType = IconType::Circle; break;
         case PinType::Pose:      iconType = IconType::Circle; break;
@@ -1195,6 +1225,13 @@ namespace Eagle
                     if (ImGui::DragFloat("##v", &value->Value, 0.01f))
                         m_Editor.OnGraphChanged();
                     ImGui::PopItemWidth();
+                    ImGui::Spring(0);
+                }
+                else if (input.Type == PinType::Vec4)
+                {
+                    Ref<GraphVariableVec4> value = Cast<GraphVariableVec4>(input.DefaultValue);
+                    if (DragVec4(value->Value))
+                        m_Editor.OnGraphChanged();
                     ImGui::Spring(0);
                 }
                 else if (input.Type == PinType::String)

@@ -83,6 +83,7 @@ namespace Eagle
             case GraphVariableType::Float: return CreateNewVar<GraphVariableFloat>(defaultVal, baseName);
             case GraphVariableType::Animation: return CreateNewVar<GraphVariableAnimation>(defaultVal, baseName);
             case GraphVariableType::String: return CreateNewVar<GraphVariableString>(defaultVal, baseName);
+            case GraphVariableType::Vec4: return CreateNewVar<GraphVariableVec4>(defaultVal, baseName);
             }
             EG_CORE_ASSERT(false);
             return "";
@@ -108,6 +109,8 @@ namespace Eagle
             {
             case PinType::Bool: return GraphVariableType::Bool;
             case PinType::Float: return GraphVariableType::Float;
+            case PinType::String: return GraphVariableType::String;
+            case PinType::Vec4: return GraphVariableType::Vec4;
             case PinType::Object: return GraphVariableType::Animation;
             }
             EG_CORE_ASSERT(false);

@@ -44,6 +44,7 @@ namespace Eagle
         static Node& SpawnAnimClipNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnSelectPoseByBoolNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnAnimFilterBones(UIGraph& graph, const std::string_view name);
+        static Node& SpawnAnimTransformBone(UIGraph& graph, const std::string_view name);
 
         // Logical
         static Node& SpawnAndNode(UIGraph& graph, const std::string_view name);
@@ -71,6 +72,7 @@ namespace Eagle
         static Node& SpawnToRadNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnToDegNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnMapRangeNode(UIGraph& graph, const std::string_view name);
+        static Node& SpawnEulerToQuatNode(UIGraph& graph, const std::string_view name);
         
         // State Machine
         static Node& SpawnStateMachine(UIGraph& graph, const std::string_view name);

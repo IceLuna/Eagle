@@ -11,7 +11,8 @@ namespace Eagle
 		Bool = 0,
 		Float,
 		Animation,
-		String
+		String,
+		Vec4,
 	};
 
 	using VariablesMap = std::map<std::string, Ref<class GraphVariable>>;
@@ -141,6 +142,32 @@ namespace Eagle
 		std::string Value;
 	};
 
+	class GraphVariableVec4 : public GraphVariable
+	{
+	public:
+		GraphVariableVec4(const glm::vec4& val = glm::vec4(0)) : GraphVariable(GraphVariableType::Vec4), Value(val) {}
+
+		GraphVariableVec4(const Ref<GraphVariableVec4>& other)
+			: GraphVariable(other)
+			, Value(other->Value)
+		{}
+
+		bool CopyValue(const Ref<GraphVariable>& other) override
+		{
+			EG_CORE_ASSERT(other);
+			auto casted = Cast<GraphVariableVec4>(other);
+			if (!casted)
+				return false;
+
+			Value = casted->Value;
+			return true;
+		}
+
+		virtual bool HasValue() const override { return true; }
+
+		glm::vec4 Value = glm::vec4(0);
+	};
+
 	static Ref<GraphVariable> CopyVarByType(const Ref<GraphVariable>& var)
 	{
 		if (!var)
@@ -156,6 +183,8 @@ namespace Eagle
 			return MakeRef<GraphVariableAnimation>(Cast<GraphVariableAnimation>(var));
 		case GraphVariableType::String:
 			return MakeRef<GraphVariableString>(Cast<GraphVariableString>(var));
+		case GraphVariableType::Vec4:
+			return MakeRef<GraphVariableVec4>(Cast<GraphVariableVec4>(var));
 		default:
 			EG_CORE_ASSERT(false);
 			return {};

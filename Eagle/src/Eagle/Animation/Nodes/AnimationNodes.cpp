@@ -19,7 +19,8 @@ namespace Eagle
 			using GraphType =
 				std::conditional_t<std::is_same<bool, T>::value, AnimationGraphNodeBool,
 				std::conditional_t<std::is_same<float, T>::value, AnimationGraphNodeFloat,
-				void>>;
+				std::conditional_t<std::is_same<glm::vec4, T>::value, AnimationGraphNodeVec4,
+				void>>>;
 
 			if (input)
 			{
@@ -43,7 +44,8 @@ namespace Eagle
 				std::conditional_t<std::is_same<float, T>::value, GraphVariableFloat,
 				std::conditional_t<std::is_same<Ref<AssetAnimation>, T>::value, GraphVariableAnimation,
 				std::conditional_t<std::is_same<std::string, T>::value, GraphVariableString,
-				void>>>>;
+				std::conditional_t<std::is_same<glm::vec4, T>::value, GraphVariableVec4,
+				void>>>>>;
 
 			if (variable)
 			{
@@ -265,6 +267,44 @@ namespace Eagle
 			const auto& pose = input->Update(ts);
 			AnimationSystem::FilterPose(pose, skeletal->GetSkeletalMeshInfo().RootBone, boneName, &m_Pose);
 			m_Pose.EventsToTrigger_Pointer = &(pose.GetEventsToTrigger());
+		}
+
+		m_CalculatedOnFrame = currentFrame;
+
+		return m_Pose;
+	}
+
+	const SkeletalPose& AnimationGraphNodeTransformBone::Update(Timestep ts)
+	{
+		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
+		if (currentFrame <= m_CalculatedOnFrame)
+			return m_Pose;
+
+		m_Pose.Reset();
+		if (const auto& input = m_Inputs[0])
+		{
+			const auto& skeletal = GetSkeletal();
+			std::string boneName;
+			Utils::GetValue(m_Variables[1], &boneName);
+			glm::vec4 rotation;
+			Utils::GetValue(m_Inputs[2], m_Variables[2], ts, &rotation);
+
+			m_Pose = input->Update(ts);
+			auto it = m_Pose.Bones.find(boneName);
+			if (it != m_Pose.Bones.end())
+			{
+				glm::quat q;
+				q.x = rotation.x;
+				q.y = rotation.y;
+				q.z = rotation.z;
+				q.w = rotation.w;
+				q = glm::normalize(q);
+
+				Transform offset{};
+				offset.Rotation = q;
+
+				it->second += offset;
+			}
 		}
 
 		m_CalculatedOnFrame = currentFrame;
@@ -762,6 +802,28 @@ namespace Eagle
 
 		float alpha = glm::clamp((value - minA) / (maxA - minA), 0.f, 1.f);
 		Result = alpha * (maxB - minB) + minB;
+
+		m_CalculatedOnFrame = currentFrame;
+
+		return m_Pose;
+	}
+	
+	const SkeletalPose& AnimationGraphNodeEulerToQuat::Update(Timestep ts)
+	{
+		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
+		if (currentFrame <= m_CalculatedOnFrame)
+			return m_Pose;
+
+		glm::vec3 euler;
+		Utils::GetValue(m_Inputs[0], m_Variables[0], ts, &euler[0]);
+		Utils::GetValue(m_Inputs[1], m_Variables[1], ts, &euler[1]);
+		Utils::GetValue(m_Inputs[2], m_Variables[2], ts, &euler[2]);
+
+		const glm::quat q = Rotator::FromEulerAngles(euler).GetQuat();
+		Result.x = q.x;
+		Result.y = q.y;
+		Result.z = q.z;
+		Result.w = q.w;
 
 		m_CalculatedOnFrame = currentFrame;
 

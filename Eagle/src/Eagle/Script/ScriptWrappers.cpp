@@ -2004,6 +2004,41 @@ namespace Eagle
 		Cast<GraphVariableString>(var)->Value = mono_string_to_utf8(monoValue);
 	}
 
+	void Script::Eagle_SkeletalMeshComponent_SetAnimGraphVariableVec4(GUID entityID, MonoString* monoName, const glm::vec4* value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableVec4' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		const auto& graph = entity.GetComponent<SkeletalMeshComponent>().GetAnimationGraph();
+		if (!graph)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableVec4' for skeletal mesh. Graph is null");
+			return;
+		}
+
+		const std::string name = mono_string_to_utf8(monoName);
+		auto& var = graph->GetVariable(name);
+		if (!var)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableVec4' for skeletal mesh. Variable '{}' is not found", name);
+			return;
+		}
+
+		const GraphVariableType varType = var->GetType();
+		if (varType != GraphVariableType::Vec4)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableVec4' for skeletal mesh. Variable '{}' is not a Vector4", name);
+			return;
+		}
+
+		Cast<GraphVariableVec4>(var)->Value = *value;
+	}
+
 	bool Script::Eagle_SkeletalMeshComponent_GetAnimGraphVariableBool(GUID entityID, MonoString* monoName)
 	{
 		const auto& scene = Scene::GetCurrentScene();
@@ -2144,6 +2179,41 @@ namespace Eagle
 		}
 
 		return mono_string_new(mono_domain_get(), Cast<GraphVariableString>(var)->Value.c_str());
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_GetAnimGraphVariableVec4(GUID entityID, MonoString* monoName, glm::vec4* outResult)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableVec4' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		const auto& graph = entity.GetComponent<SkeletalMeshComponent>().GetAnimationGraph();
+		if (!graph)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableVec4' for skeletal mesh. Graph is null");
+			return;
+		}
+
+		const std::string name = mono_string_to_utf8(monoName);
+		auto& var = graph->GetVariable(name);
+		if (!var)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableVec4' for skeletal mesh. Variable '{}' is not found", name);
+			return;
+		}
+
+		const GraphVariableType varType = var->GetType();
+		if (varType != GraphVariableType::Vec4)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableVec4' for skeletal mesh. Variable '{}' is not a Vector4", name);
+			return;
+		}
+
+		*outResult = Cast<GraphVariableVec4>(var)->Value;
 	}
 
 	void Script::Eagle_SkeletalMeshComponent_SetRagdollEnabled(GUID entityID, bool bEnabled)

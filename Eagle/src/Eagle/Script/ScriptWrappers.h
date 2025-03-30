@@ -160,10 +160,12 @@ namespace Eagle::Script
 	void Eagle_SkeletalMeshComponent_SetAnimGraphVariableFloat(GUID entityID, MonoString* monoName, float value);
 	void Eagle_SkeletalMeshComponent_SetAnimGraphVariableAnim(GUID entityID, MonoString* monoName, GUID animID);
 	void Eagle_SkeletalMeshComponent_SetAnimGraphVariableString(GUID entityID, MonoString* monoName, MonoString* monoValue);
+	void Eagle_SkeletalMeshComponent_SetAnimGraphVariableVec4(GUID entityID, MonoString* monoName, const glm::vec4* value);
 	bool Eagle_SkeletalMeshComponent_GetAnimGraphVariableBool(GUID entityID, MonoString* monoName);
 	float Eagle_SkeletalMeshComponent_GetAnimGraphVariableFloat(GUID entityID, MonoString* monoName);
 	GUID Eagle_SkeletalMeshComponent_GetAnimGraphVariableAnim(GUID entityID, MonoString* monoName);
 	MonoString* Eagle_SkeletalMeshComponent_GetAnimGraphVariableString(GUID entityID, MonoString* monoName);
+	void Eagle_SkeletalMeshComponent_GetAnimGraphVariableVec4(GUID entityID, MonoString* monoName, glm::vec4* outResult);
 
 	void Eagle_SkeletalMeshComponent_SetRagdollEnabled(GUID entityID, bool bEnabled);
 	bool Eagle_SkeletalMeshComponent_IsRagdollEnabled(GUID entityID);

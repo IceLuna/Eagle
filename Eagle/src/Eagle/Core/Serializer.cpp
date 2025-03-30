@@ -77,6 +77,9 @@ namespace Eagle
 			case GraphVariableType::String:
 				out << YAML::Value << Cast<GraphVariableString>(var)->Value;
 				break;
+			case GraphVariableType::Vec4:
+				out << YAML::Value << Cast<GraphVariableVec4>(var)->Value;
+				break;
 			default:
 				EG_CORE_ASSERT(false);
 			}
@@ -100,6 +103,8 @@ namespace Eagle
 			return MakeRef<GraphVariableAnimation>(valueNode ? GetAsset<AssetAnimation>(valueNode) : nullptr);
 		case GraphVariableType::String:
 			return MakeRef<GraphVariableString>(valueNode ? valueNode.as<std::string>() : nullptr);
+		case GraphVariableType::Vec4:
+			return MakeRef<GraphVariableVec4>(valueNode ? valueNode.as<glm::vec4>() : glm::vec4(1));
 		default:
 			EG_CORE_ASSERT(false);
 		}

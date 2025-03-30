@@ -624,7 +624,7 @@ namespace Eagle
 				m_SkeletalMeshesEntityIDPipeline->SetBuffer(transformsBuffer, 0, 0);
 				m_SkeletalMeshesEntityIDPipeline->SetBufferArray(m_Renderer.GetAnimationTransformsBuffers(), 5, 0);
 
-				const auto& meshesData = m_Renderer.GetTranslucentMeshesData();
+				const auto& meshesData = m_Renderer.GetTranslucentSkeletalMeshesData();
 				auto& stats = m_Renderer.GetStats();
 
 				cmd->BeginGraphics(m_SkeletalMeshesEntityIDPipeline);

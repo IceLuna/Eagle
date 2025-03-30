@@ -31,6 +31,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
             mathCategory["To Radians"] = &GraphNodeFactory::SpawnToRadNode;
             mathCategory["To Degrees"] = &GraphNodeFactory::SpawnToDegNode;
             mathCategory["Map Range"] = &GraphNodeFactory::SpawnMapRangeNode;
+            mathCategory["Euler (rad) to Quat"] = &GraphNodeFactory::SpawnEulerToQuatNode;
         }
 
         // Logical catergory
@@ -65,6 +66,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         animationsCategory["Calculate Additive"] = &GraphNodeFactory::SpawnAnimCalculateAdditiveNode;
         animationsCategory["Select Pose by Bool"] = &GraphNodeFactory::SpawnSelectPoseByBoolNode;
         animationsCategory["Filter Bones"] = &GraphNodeFactory::SpawnAnimFilterBones;
+        animationsCategory["Transform Bone"] = &GraphNodeFactory::SpawnAnimTransformBone;
     }
 
     Node& GraphNodeFactory::SpawnInputActionNode(UIGraph& graph)
@@ -458,6 +460,26 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         node.Type = NodeType::Blueprint;
 
         node.GraphNode = MakeRef<AnimationGraphNodeFilterBones>(graphAsset->GetGraph());
+
+        graph.BuildNode(node);
+        graph.OnNodeAdded(node);
+
+        return node;
+    }
+
+    Node& GraphNodeFactory::SpawnAnimTransformBone(UIGraph& graph, const std::string_view name)
+    {
+        const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
+
+        auto& node = graph.AddNode(name, ImColor(128, 195, 248));
+        node.InputPins.emplace_back(graph.GetNextId(), "Pose", PinType::Pose);
+        node.InputPins.emplace_back(graph.GetNextId(), "Bone Name", PinType::String, MakeRef<GraphVariableString>());
+        node.InputPins.emplace_back(graph.GetNextId(), "Rotation", PinType::Vec4, MakeRef<GraphVariableVec4>(glm::vec4(0, 0, 0, 1)));
+
+        node.OutputPins.emplace_back(graph.GetNextId(), "Output pose", PinType::Pose);
+        node.Type = NodeType::Blueprint;
+
+        node.GraphNode = MakeRef<AnimationGraphNodeTransformBone>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);
@@ -866,6 +888,25 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         node.Type = NodeType::Simple;
 
         node.GraphNode = MakeRef<AnimationGraphNodeMapRange>(graphAsset->GetGraph());
+
+        graph.BuildNode(node);
+        graph.OnNodeAdded(node);
+
+        return node;
+    }
+
+    Node& GraphNodeFactory::SpawnEulerToQuatNode(UIGraph& graph, const std::string_view name)
+    {
+        const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
+
+        auto& node = graph.AddNode(name, ImColor(128, 195, 248));
+        node.InputPins.emplace_back(graph.GetNextId(), "X", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "Y", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "Z", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Vec4);
+        node.Type = NodeType::Simple;
+
+        node.GraphNode = MakeRef<AnimationGraphNodeEulerToQuat>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);

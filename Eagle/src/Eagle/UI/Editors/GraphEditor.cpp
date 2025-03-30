@@ -15,6 +15,7 @@ namespace Eagle
         case Eagle::GraphVariableType::Float: return MakeRef<GraphVariableFloat>();
         case Eagle::GraphVariableType::Animation: return MakeRef<GraphVariableAnimation>();
         case Eagle::GraphVariableType::String: return MakeRef<GraphVariableString>();
+        case Eagle::GraphVariableType::Vec4: return MakeRef<GraphVariableVec4>();
         }
         EG_CORE_ASSERT(false);
         return nullptr;
@@ -301,6 +302,13 @@ namespace Eagle
                         {
                             auto valueVar = Cast<GraphVariableString>(var);
                             if (UI::PropertyText("Value", valueVar->Value))
+                                OnGraphChanged();
+                            break;
+                        }
+                        case GraphVariableType::Vec4:
+                        {
+                            auto valueVar = Cast<GraphVariableVec4>(var);
+                            if (UI::PropertyDrag("Value", valueVar->Value, 0.05f))
                                 OnGraphChanged();
                             break;
                         }

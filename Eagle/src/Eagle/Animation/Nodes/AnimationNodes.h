@@ -167,6 +167,22 @@ namespace Eagle
 		static constexpr size_t s_Inputs = 2;
 	};
 
+	class AnimationGraphNodeTransformBone : public AnimationGraphNode
+	{
+	public:
+		AnimationGraphNodeTransformBone(const Weak<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
+
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		{
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeTransformBone>(newGraph);
+		}
+
+		const SkeletalPose& Update(Timestep ts) override;
+
+	private:
+		static constexpr size_t s_Inputs = 3;
+	};
+
 	class AnimationGraphNodeAdditiveBlend : public AnimationGraphNode
 	{
 	public:
@@ -617,6 +633,42 @@ namespace Eagle
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
 			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeMapRange>(newGraph);
+		}
+
+	private:
+		static constexpr size_t s_Inputs = 5;
+	};
+
+	// Base class for such nodes that return Vec4
+	class AnimationGraphNodeVec4 : public AnimationGraphNode
+	{
+	public:
+		AnimationGraphNodeVec4(const Weak<AnimationGraph>& graph, size_t numInputs) : AnimationGraphNode(graph, numInputs) {}
+
+	protected:
+		template<typename T, class... Args>
+		Ref<T> CloneNode(Args&&... args) const
+		{
+			Ref<T> clone = AnimationGraphNode::CloneNode<T>(std::forward<Args>(args)...);
+			clone->Result = Result;
+
+			return clone;
+		}
+
+	public:
+		glm::vec4 Result = glm::vec4(0.f);
+	};
+
+	class AnimationGraphNodeEulerToQuat : public AnimationGraphNodeVec4
+	{
+	public:
+		AnimationGraphNodeEulerToQuat(const Weak<AnimationGraph>& graph) : AnimationGraphNodeVec4(graph, s_Inputs) {}
+
+		const SkeletalPose& Update(Timestep ts) override;
+
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		{
+			return AnimationGraphNodeVec4::CloneNode<AnimationGraphNodeEulerToQuat>(newGraph);
 		}
 
 	private:

@@ -839,6 +839,12 @@ namespace Eagle
         }
 
         // Used only if `AnimType` == `AnimationType::Graph`
+        public void SetAnimGraphVariable(string name, Vector4 value)
+        {
+            SetAnimGraphVariableVec4_Native(Parent.ID, name, ref value);
+        }
+
+        // Used only if `AnimType` == `AnimationType::Graph`
         public bool GetAnimGraphVariableBool(string name)
         {
             return GetAnimGraphVariableBool_Native(Parent.ID, name);
@@ -864,6 +870,13 @@ namespace Eagle
         public string GetAnimGraphVariableString(string name)
         {
             return GetAnimGraphVariableString_Native(Parent.ID, name);
+        }
+
+        // Used only if `AnimType` == `AnimationType::Graph`
+        public Vector4 GetAnimGraphVariableVec4(string name)
+        {
+            GetAnimGraphVariableVec4_Native(Parent.ID, name, out Vector4 result);
+            return result;
         }
 
         public bool IsRootMotionLockFlagSet(RootMotionLockFlag flag)
@@ -959,6 +972,9 @@ namespace Eagle
         internal static extern void SetAnimGraphVariableString_Native(in GUID entityID, string name, string value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAnimGraphVariableVec4_Native(in GUID entityID, string name, ref Vector4 value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool GetAnimGraphVariableBool_Native(in GUID entityID, string name);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -969,6 +985,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern string GetAnimGraphVariableString_Native(in GUID entityID, string name);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetAnimGraphVariableVec4_Native(in GUID entityID, string name, out Vector4 result);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern AnimationType GetAnimType_Native(in GUID entityID);
