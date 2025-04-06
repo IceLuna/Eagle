@@ -50,6 +50,7 @@ namespace Eagle
         const PxTransform jointTransform{ transform.p, PhysXUtils::ToPhysXQuat(glm::quat_cast(boneOffset)) };
 
         {
+            constexpr float minHalfHeight = 0.005f;
             constexpr float minRadius = 0.005f;
             constexpr float maxRadius = 0.05f;
 
@@ -59,7 +60,7 @@ namespace Eagle
             const float len = glm::length(parentPos - childPos) * 0.95f; // shorten to reduce overlap
             const float radius = glm::clamp(len * 0.1f, minRadius, maxRadius);
             const float lenMinus2r = len - 2.0f * radius;
-            const float halfHeight = lenMinus2r * 0.5f;
+            const float halfHeight = glm::max(lenMinus2r * 0.5f, minHalfHeight);
             const glm::vec3 bodyLocation = (parentPos + childPos) * 0.5f;
 
             // Rotate around `bodyLocation`

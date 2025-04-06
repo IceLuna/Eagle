@@ -8,6 +8,23 @@ namespace Eagle
 {
 	namespace Utils
 	{
+        static bool IsIKBone(std::string name)
+        {
+            constexpr std::array IKs = { "_ik", "ik_", "_target", "target_", "_pole", "pole_" };
+            std::transform(name.begin(), name.end(), name.begin(),
+                [](unsigned char c) { return std::tolower(c); });
+
+            for (const auto& ik : IKs)
+            {
+                if (name.find(ik) != std::string::npos)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         // Merges bone-colliders based on `minBoneSize`
         static SkeletalRagdollBones MergeBones(float minBoneSize, const BonesMap& boneMap, const BoneNode& node, const SkeletalPose& currentPose, const glm::mat4& baseTransform = glm::mat4(1.f))
         {
@@ -31,6 +48,9 @@ namespace Eagle
             const bool bCanMergeToCurrent = boneMap.find(node.Name) != boneMap.end();
             for (const auto& child : node.Children)
             {
+                if (IsIKBone(child.Name))
+                    continue;
+
                 SkeletalRagdollBones childData = MergeBones(minBoneSize, boneMap, child, currentPose, data.LocalTransform);
                 const glm::vec3 childPos = Math::DecomposeTransformMatrix(childData.LocalTransform).Location;
                 data.AABB.Grow(childPos);

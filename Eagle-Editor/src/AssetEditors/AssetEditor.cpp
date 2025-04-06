@@ -8,6 +8,7 @@
 #include "Eagle/Core/Scene.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Camera/CameraController.h"
+#include "../EditorLayer.h"
 
 #include <imgui/imgui_internal.h>
 #include <ImGuizmo/ImGuizmo.h>
@@ -120,8 +121,6 @@ namespace Eagle
 		const glm::mat4& cameraViewMatrix = !bSimulating ? editorCamera.GetViewMatrix() : runtimeCamera->GetViewMatrix();
 		cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
 
-		const bool bRelative = m_GuizmoType == ImGuizmo::OPERATION::ROTATE;
-
 		int snappingIndex = 0;
 		if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
 			snappingIndex = 1;
@@ -133,9 +132,14 @@ namespace Eagle
 
 		glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
 
+		//Snapping
+		const glm::vec3& snapping = EditorLayer::Get()->GetSnappingValues();
+		const float snapValues[3] = { snapping[snappingIndex], snapping[snappingIndex], snapping[snappingIndex] };
+		const bool bSnap = Input::IsKeyPressed(Key::LeftShift);
+
 		ImGuizmo::Enable(bEnabled);
 		ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,
-			ImGuizmo::WORLD, glm::value_ptr(transformMatrix));
+			ImGuizmo::WORLD, glm::value_ptr(transformMatrix), nullptr, bSnap ? snapValues : nullptr);
 		ImGuizmo::Enable(bWasEnabled); // Restore state
 
 		if (ImGuizmo::IsUsing())

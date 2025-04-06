@@ -37,6 +37,9 @@ namespace Eagle
 
 		const glm::vec3& GetSnappingValues() const { return m_SnappingValues; }
 
+		// Oh boy... I guess it's better than passing around `EditorLayer`
+		static const EditorLayer* Get();
+
 	private:
 		bool OnKeyPressed(KeyPressedEvent& e);
 		

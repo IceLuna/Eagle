@@ -37,6 +37,7 @@ namespace Eagle
 	
 	static glm::vec3 notUsed1;
 	static glm::vec4 notUsed2;
+	static const EditorLayer* s_EditorLayer = nullptr;
 
 	static void ShowHelpWindow(bool* p_open = nullptr);
 
@@ -145,6 +146,9 @@ namespace Eagle
 
 	void EditorLayer::OnAttach()
 	{
+		EG_CORE_ASSERT(!s_EditorLayer);
+		s_EditorLayer = this;
+
 		EditorResources::Init();
 
 		m_ImGuiLayer = Application::Get().GetImGuiLayer();
@@ -202,6 +206,8 @@ namespace Eagle
 		Scene::SetCurrentScene(nullptr);
 		Scene::RemoveOnSceneOpenedCallback(m_OpenedSceneCallbackID);
 		EditorResources::Release();
+		EG_CORE_ASSERT(s_EditorLayer);
+		s_EditorLayer = nullptr;
 	}
 
 	void EditorLayer::OnUpdate(Timestep ts)
@@ -328,6 +334,11 @@ namespace Eagle
 
 		//ImGui::ShowStyleEditor();
 		//ImGui::ShowDemoWindow();
+	}
+
+	const EditorLayer* EditorLayer::Get()
+	{
+		return s_EditorLayer;
 	}
 
 	bool EditorLayer::OnKeyPressed(KeyPressedEvent& e)

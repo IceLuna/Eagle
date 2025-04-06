@@ -47,6 +47,63 @@ namespace Eagle
 		return glm::quat(pOrientation.w, pOrientation.x, pOrientation.y, pOrientation.z);
 	}
 
+	static void CorrectRootTransform(const aiScene* scene)
+	{
+		// This function can be used to rotate the mesh into engines coord system.
+		// Otherwise, some meshes may be laying on the floor because of diff in coord system
+
+		if (scene == nullptr)
+			return;
+
+		if (scene->mMetaData == nullptr)
+			return;
+
+		int32_t UpAxis = 1, UpAxisSign = 1, FrontAxis = 2, FrontAxisSign = 1, CoordAxis = 0, CoordAxisSign = 1;
+		double UnitScaleFactor = 1.0;
+		for (unsigned MetadataIndex = 0; MetadataIndex < scene->mMetaData->mNumProperties; ++MetadataIndex)
+		{
+			if (strcmp(scene->mMetaData->mKeys[MetadataIndex].C_Str(), "UpAxis") == 0)
+			{
+				scene->mMetaData->Get<int32_t>(MetadataIndex, UpAxis);
+			}
+			if (strcmp(scene->mMetaData->mKeys[MetadataIndex].C_Str(), "UpAxisSign") == 0)
+			{
+				scene->mMetaData->Get<int32_t>(MetadataIndex, UpAxisSign);
+			}
+			if (strcmp(scene->mMetaData->mKeys[MetadataIndex].C_Str(), "FrontAxis") == 0)
+			{
+				scene->mMetaData->Get<int32_t>(MetadataIndex, FrontAxis);
+			}
+			if (strcmp(scene->mMetaData->mKeys[MetadataIndex].C_Str(), "FrontAxisSign") == 0)
+			{
+				scene->mMetaData->Get<int32_t>(MetadataIndex, FrontAxisSign);
+			}
+			if (strcmp(scene->mMetaData->mKeys[MetadataIndex].C_Str(), "CoordAxis") == 0)
+			{
+				scene->mMetaData->Get<int32_t>(MetadataIndex, CoordAxis);
+			}
+			if (strcmp(scene->mMetaData->mKeys[MetadataIndex].C_Str(), "CoordAxisSign") == 0)
+			{
+				scene->mMetaData->Get<int32_t>(MetadataIndex, CoordAxisSign);
+			}
+			if (strcmp(scene->mMetaData->mKeys[MetadataIndex].C_Str(), "UnitScaleFactor") == 0)
+			{
+				scene->mMetaData->Get<double>(MetadataIndex, UnitScaleFactor);
+			}
+		}
+
+		aiVector3D upVec, forwardVec, rightVec;
+		upVec[UpAxis] = UpAxisSign * static_cast<float>(UnitScaleFactor);
+		forwardVec[FrontAxis] = FrontAxisSign * static_cast<float>(UnitScaleFactor);
+		rightVec[CoordAxis] = CoordAxisSign * (float)UnitScaleFactor;
+
+		aiMatrix4x4 mat(rightVec.x, rightVec.y, rightVec.z, 0.0f,
+			upVec.x, upVec.y, upVec.z, 0.0f,
+			forwardVec.x, forwardVec.y, forwardVec.z, 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f);
+		scene->mRootNode->mTransformation *= mat;
+	}
+
 	static void PreprocessBoneName(std::string* boneName)
 	{
 		const size_t nameFilterPos = (*boneName).find_first_of(':');
@@ -291,9 +348,6 @@ namespace Eagle
 		const uint32_t animationsCount = scene->mNumAnimations;
 		std::vector<SkeletalMeshAnimation> animations(animationsCount);
 
-		// Find root bone name.
-		std::string rootBoneName;
-
 		for (uint32_t i = 0; i < animationsCount; ++i)
 		{
 			aiAnimation* assimpAnimation = scene->mAnimations[i];
@@ -513,6 +567,7 @@ namespace Eagle
 			EG_CORE_ERROR("Failed to load Static Mesh. {0} ({1})", importer.GetErrorString(), path.u8string());
 			return {};
 		}
+		CorrectRootTransform(scene);
 
 #if 0
 		for (unsigned MetadataIndex = 0; MetadataIndex < scene->mMetaData->mNumProperties; ++MetadataIndex)
@@ -549,6 +604,9 @@ namespace Eagle
 			return {};
 		}
 
+		// Causes issues with animations and ragdolls, so disabled for now.
+		// CorrectRootTransform(scene);
+
 		BonesMap bones;
 		std::vector<Utils::SkeletalMeshImportData> importedMeshes;
 		ProcessNode(scene->mRootNode, scene, importedMeshes, bones);
@@ -563,6 +621,23 @@ namespace Eagle
 			auto& skeletalInfo = importedMeshes[0].Mesh->GetSkeletalMeshInfo();
 			skeletalInfo.BoneInfoMap = std::move(bones);
 			ProcessBoneNode(skeletalInfo.RootBone, scene->mRootNode, skeletalInfo.BoneInfoMap);
+
+			// It's possible that we have two root bones: one from the mesh, and one from assimp. So keep only one of them
+			{
+				const bool bValidBone = skeletalInfo.BoneInfoMap.find(skeletalInfo.RootBone.Name) != skeletalInfo.BoneInfoMap.end();
+				if (!bValidBone)
+				{
+					// It's assimp root, delete it if we have another root
+					if (skeletalInfo.RootBone.Children.size() == 1)
+					{
+						auto children = std::move(skeletalInfo.RootBone.Children);
+						const glm::mat4 rootTr = skeletalInfo.RootBone.Transformation;
+						children[0].Transformation = rootTr * children[0].Transformation;
+						skeletalInfo.RootBone = children[0];
+					}
+				}
+			}
+
 			return importedMeshes[0];
 		}
 		else

@@ -303,3 +303,4 @@ Shortcuts
 - **Ctrl+D**. Duplicates selected entity.
 - **Ctrl+W**. Duplicates selected asset.
 - **Ctrl+X/C/V**. Cuts/Copies/Pastes an asset.
+- **Left Shift**. Hold to enable guizmo snapping.

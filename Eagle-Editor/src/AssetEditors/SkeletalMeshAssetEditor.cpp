@@ -228,20 +228,24 @@ namespace Eagle
 			}
 		}
 
-		ImGui::Separator();
-		if (EditorResources::DrawAssetSelection("Preview Animation", m_PreviewAnimation))
+		UI::TextWithSeparator("Preview Settings");
+		if (EditorResources::DrawAssetSelection("Animation", m_PreviewAnimation))
 		{
 			m_Entity.GetComponent<SkeletalMeshComponent>().SetAnimationAsset(m_PreviewAnimation);
 			if (!m_PreviewAnimation)
 			{
-				m_Entity.SetWorldTransform({});
+				m_Entity.SetWorldLocation({});
 			}
 		}
-
 		UI::EndPropertyGrid();
 
-		size_t assetHash = m_Asset->GetGUID().GetHash();
+		glm::quat quat = m_Entity.GetWorldRotation().GetQuat();
+		if (UI::DrawQuatControl("Mesh Rotation(Quat)", quat, glm::quat{ 1, 0, 0, 0 }, 140.f))
+		{
+			m_Entity.SetWorldRotation(glm::quat(quat.w, quat.x, quat.y, quat.z));
+		}
 
+		size_t assetHash = m_Asset->GetGUID().GetHash();
 
 		ImGui::Separator();
 		{
