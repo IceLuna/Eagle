@@ -634,6 +634,8 @@ namespace Eagle
 			if (other.m_bRagdollEnabled)
 			{
 				SetRagdollEnabled(true);
+				if (other.IsRagdollCollisionShown())
+					SetShowRagdollCollision(true);
 			}
 		}
 		else
@@ -852,6 +854,90 @@ namespace Eagle
 
 		EG_CORE_ERROR("Failed to call SkeletalMeshComponent::GetRagdollBoneWorldTransform. Ragdoll is null");
 		return {};
+	}
+
+	void SkeletalMeshComponent::SetRagdollLinearVelocity(const glm::vec3& velocity)
+	{
+		if (m_RagdollActor)
+		{
+			m_RagdollActor->SetLinearVelocity(velocity);
+			return;
+		}
+
+		EG_CORE_ERROR("Failed to call SkeletalMeshComponent::SetRagdollLinearVelocity. Ragdoll is null");
+	}
+
+	void SkeletalMeshComponent::SetRagdollAngularVelocity(const glm::vec3& velocity)
+	{
+		if (m_RagdollActor)
+		{
+			m_RagdollActor->SetAngularVelocity(velocity);
+			return;
+		}
+
+		EG_CORE_ERROR("Failed to call SkeletalMeshComponent::SetRagdollAngularVelocity. Ragdoll is null");
+	}
+
+	void SkeletalMeshComponent::SetRagdollBoneLinearVelocity(const std::string& boneName, const glm::vec3& velocity)
+	{
+		if (m_RagdollActor)
+		{
+			m_RagdollActor->SetBoneLinearVelocity(boneName, velocity);
+			return;
+		}
+
+		EG_CORE_ERROR("Failed to call SkeletalMeshComponent::SetRagdollBoneLinearVelocity. Ragdoll is null");
+	}
+
+	void SkeletalMeshComponent::SetRagdollBoneAngularVelocity(const std::string& boneName, const glm::vec3& velocity)
+	{
+		if (m_RagdollActor)
+		{
+			m_RagdollActor->SetBoneAngularVelocity(boneName, velocity);
+			return;
+		}
+
+		EG_CORE_ERROR("Failed to call SkeletalMeshComponent::SetRagdollBoneAngularVelocity. Ragdoll is null");
+	}
+
+	glm::vec3 SkeletalMeshComponent::GetRagdollBoneLinearVelocity(const std::string& boneName) const
+	{
+		if (m_RagdollActor)
+			return m_RagdollActor->GetBoneLinearVelocity(boneName);
+
+		EG_CORE_ERROR("Failed to call SkeletalMeshComponent::GetRagdollBoneLinearVelocity. Ragdoll is null");
+		return glm::vec3(0);
+	}
+
+	glm::vec3 SkeletalMeshComponent::GetRagdollBoneAngularVelocity(const std::string& boneName) const
+	{
+		if (m_RagdollActor)
+			return m_RagdollActor->GetBoneAngularVelocity(boneName);
+
+		EG_CORE_ERROR("Failed to call SkeletalMeshComponent::GetRagdollBoneAngularVelocity. Ragdoll is null");
+		return glm::vec3(0);
+	}
+
+	void SkeletalMeshComponent::PutRagdollToSleep()
+	{
+		if (m_RagdollActor)
+		{
+			m_RagdollActor->PutToSleep();
+			return;
+		}
+
+		EG_CORE_ERROR("Failed to call SkeletalMeshComponent::PutRagdollToSleep. Ragdoll is null");
+	}
+
+	void SkeletalMeshComponent::WakeUpRagdoll()
+	{
+		if (m_RagdollActor)
+		{
+			m_RagdollActor->WakeUp();
+			return;
+		}
+
+		EG_CORE_ERROR("Failed to call SkeletalMeshComponent::WakeUpRagdoll. Ragdoll is null");
 	}
 
 	ParticleSystemComponent::~ParticleSystemComponent()

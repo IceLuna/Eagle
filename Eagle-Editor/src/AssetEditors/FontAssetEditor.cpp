@@ -10,9 +10,10 @@ namespace Eagle
 	FontAssetEditor::FontAssetEditor(const Ref<AssetFont>& asset)
 		: AssetEditor(true, false), m_Asset(asset)
 	{
-		m_Scene->bDrawMiscellaneous = false;
+		const auto& scene = GetCurrentScene();
+		scene->bDrawMiscellaneous = false;
 
-		Entity entity = m_Scene->CreateEntity("FontAssetEditor");
+		Entity entity = scene->CreateEntity("FontAssetEditor");
 		m_Component = &entity.AddComponent<Text2DComponent>();
 		m_Component->SetFontAsset(asset);
 		m_Component->SetText(m_Text);

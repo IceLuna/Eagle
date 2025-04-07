@@ -13,15 +13,16 @@ namespace Eagle
 		, m_Asset(asset)
 	{
 		const auto& skeletalMeshAsset = m_Asset->GetSkeletal();
+		const auto& scene = GetCurrentScene();
 
-		Entity entity = m_Scene->CreateEntity("AnimationAssetEditor");
+		Entity entity = scene->CreateEntity("AnimationAssetEditor");
 		m_Component = &entity.AddComponent<SkeletalMeshComponent>();
 		m_Component->SetMeshAsset(skeletalMeshAsset);
 		m_Component->SetAnimationAsset(m_Asset);
 		m_Component->AnimType = SkeletalMeshComponent::AnimationType::Clip;
 		m_Component->SetRootMotionLockFlag(bInPlace ? RootMotionLockFlag::Position : RootMotionLockFlag::None);
 
-		auto& camera = m_Scene->GetEditorCamera();
+		auto& camera = scene->GetEditorCamera();
 		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
 		camera.LookAt(glm::vec3(0, 0, 0));
 		const glm::vec3 cameraDir = camera.GetForwardVector();

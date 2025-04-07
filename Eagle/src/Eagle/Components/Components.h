@@ -655,6 +655,18 @@ namespace Eagle
 		void SetShowRagdollCollision(bool bShow);
 		Transform GetRagdollBoneWorldTransform(const std::string& name) const;
 
+		// Update all bones
+		void SetRagdollLinearVelocity(const glm::vec3& velocity);
+		void SetRagdollAngularVelocity(const glm::vec3& velocity);
+
+		void SetRagdollBoneLinearVelocity(const std::string& boneName, const glm::vec3& velocity);
+		void SetRagdollBoneAngularVelocity(const std::string& boneName, const glm::vec3& velocity);
+		glm::vec3 GetRagdollBoneLinearVelocity(const std::string& boneName) const;
+		glm::vec3 GetRagdollBoneAngularVelocity(const std::string& boneName) const;
+
+		void PutRagdollToSleep();
+		void WakeUpRagdoll();
+
 	public:
 		SkeletalPose LastPose; // The final pose that was calculated during the last animation update
 

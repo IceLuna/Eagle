@@ -14,7 +14,7 @@ namespace Eagle
 	class AssetEditor
 	{
 	public:
-		AssetEditor(bool bNeedRenderer = false, bool bNeedSkybox = true, bool bSimulate = false);
+		AssetEditor(bool bNeedRenderer = false, bool bNeedSkybox = true);
 
 		virtual ~AssetEditor();
 
@@ -35,14 +35,22 @@ namespace Eagle
 		bool DrawGuizmo(Transform& transform, int ID, bool bEnabled);
 		int GetGuizmoType() const { return m_GuizmoType; }
 
+		void SetSimulationEnabled(bool bEnabled);
+
+		const Ref<Scene>& GetCurrentScene() const { return m_CurrentScene; }
+
 	private:
 		void AddSkybox();
 		bool OnKeyPressed(KeyPressedEvent& e);
 
 		void HandleCameraFocus();
 
-	protected:
+	private:
 		Ref<Scene> m_Scene;
+		Ref<Scene> m_SimulationScene;
+		Ref<Scene> m_CurrentScene;
+
+	protected:
 		Ref<SceneRenderer> m_Renderer;
 		Ref<AssetTextureCube> m_Skybox;
 		glm::vec2 m_ViewportBounds[2] = { glm::vec2(), glm::vec2() };
@@ -51,6 +59,5 @@ namespace Eagle
 		bool bViewportVisible = false;
 		bool bViewportFocused = false;
 		bool bViewportHovered = false;
-		bool bSimulating = false;
 	};
 }

@@ -15,7 +15,7 @@ namespace Eagle
 	EntityAssetEditor::EntityAssetEditor(const Ref<AssetEntity>& asset, const EditorLayer& editorLayer)
 		: AssetEditor(true), m_Asset(asset), m_EditorLayer(editorLayer)
 	{
-		m_Entity = m_Scene->CreateFromEntityAsset(m_Asset);
+		m_Entity = GetCurrentScene()->CreateFromEntityAsset(m_Asset);
 	}
 
 	void EntityAssetEditor::OnImGuiRender(bool* pOpen)
@@ -92,9 +92,11 @@ namespace Eagle
 	
 	void EntityAssetEditor::OnEntityChanged()
 	{
+		const auto& scene = GetCurrentScene();
+
 		m_Asset->SetDirty(true);
 		m_Asset->OnModified();
-		m_Scene->DestroyEntity(m_Entity);
-		m_Entity = m_Scene->CreateFromEntityAsset(m_Asset);
+		scene->DestroyEntity(m_Entity);
+		m_Entity = scene->CreateFromEntityAsset(m_Asset);
 	}
 }

@@ -759,6 +759,49 @@ namespace Eagle
             return result;
         }
 
+        // Update all bones
+        public void SetRagdollLinearVelocity(Vector3 velocity)
+        {
+            SetRagdollLinearVelocity_Native(Parent.ID, ref velocity);
+        }
+
+		public void SetRagdollAngularVelocity(Vector3 velocity)
+        {
+            SetRagdollAngularVelocity_Native(Parent.ID, ref velocity);
+        }
+
+        public void SetRagdollBoneLinearVelocity(string boneName, Vector3 velocity)
+        {
+            SetRagdollBoneLinearVelocity_Native(Parent.ID, boneName, ref velocity);
+        }
+
+		public void SetRagdollBoneAngularVelocity(string boneName, Vector3 velocity)
+        {
+            SetRagdollBoneAngularVelocity_Native(Parent.ID, boneName, ref velocity);
+        }
+
+        public Vector3 GetRagdollBoneLinearVelocity(string boneName)
+        {
+            GetRagdollBoneLinearVelocity_Native(Parent.ID, boneName, out Vector3 velocity);
+            return velocity;
+        }
+
+        public Vector3 GetRagdollBoneAngularVelocity(string boneName)
+        {
+            GetRagdollBoneAngularVelocity_Native(Parent.ID, boneName, out Vector3 velocity);
+            return velocity;
+        }
+
+        public void PutRagdollToSleep()
+        {
+            PutRagdollToSleep_Native(Parent.ID);
+        }
+
+        public void WakeUpRagdoll()
+        {
+            WakeUpRagdoll_Native(Parent.ID);
+        }
+
         public Transform GetBoneWorldTransform(string name)
         {
             Transform result;
@@ -997,6 +1040,30 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetRagdollBoneWorldTransform_Native(in GUID entityID, string name, out Transform result);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetRagdollLinearVelocity_Native(in GUID entityID, ref Vector3 velocity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetRagdollAngularVelocity_Native(in GUID entityID, ref Vector3 velocity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetRagdollBoneLinearVelocity_Native(in GUID entityID, string boneName, ref Vector3 velocity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetRagdollBoneAngularVelocity_Native(in GUID entityID, string boneName, ref Vector3 velocity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetRagdollBoneLinearVelocity_Native(in GUID entityID, string boneName, out Vector3 velocity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetRagdollBoneAngularVelocity_Native(in GUID entityID, string boneName, out Vector3 velocity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void PutRagdollToSleep_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void WakeUpRagdoll_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetBoneWorldTransform_Native(in GUID entityID, string name, out Transform result);

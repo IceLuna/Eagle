@@ -14,15 +14,19 @@ namespace Eagle
 	constexpr static glm::vec3 s_PlaneScale = glm::vec3(3.f, 0.05f, 10.f);
 
 	PhysicsMaterialAssetEditor::PhysicsMaterialAssetEditor(const Ref<AssetPhysicsMaterial>& asset)
-		: AssetEditor(true, true, true), m_Asset(asset)
+		: AssetEditor(true, true), m_Asset(asset)
 	{
+		SetSimulationEnabled(true);
+
 		const auto& sphere = AssetManager::GetPreviewSphere();
 		const auto& cube = AssetManager::GetPreviewCube();
-		m_Scene->bDrawMiscellaneous = false;
+
+		const auto& scene = GetCurrentScene();
+		scene->bDrawMiscellaneous = false;
 
 		// Plane 1
 		{
-			m_Plane1 = m_Scene->CreateEntity("PhysicsMaterialAssetEditor_Plane1");
+			m_Plane1 = scene->CreateEntity("PhysicsMaterialAssetEditor_Plane1");
 			m_Plane1.AddComponent<StaticMeshComponent>().SetMeshAsset(cube);
 			m_Plane1.AddComponent<BoxColliderComponent>();
 
@@ -35,7 +39,7 @@ namespace Eagle
 
 		// Plane 2
 		{
-			m_Plane2 = m_Scene->CreateEntity("PhysicsMaterialAssetEditor_Plane2");
+			m_Plane2 = scene->CreateEntity("PhysicsMaterialAssetEditor_Plane2");
 			m_Plane2.AddComponent<StaticMeshComponent>().SetMeshAsset(cube);
 			m_Plane2.AddComponent<BoxColliderComponent>();
 
@@ -47,7 +51,7 @@ namespace Eagle
 
 		// Sphere 1
 		{
-			m_Sphere1 = m_Scene->CreateEntity("PhysicsMaterialAssetEditor_Sphere1");
+			m_Sphere1 = scene->CreateEntity("PhysicsMaterialAssetEditor_Sphere1");
 
 			auto& rigidBody = m_Sphere1.AddComponent<RigidBodyComponent>();
 			rigidBody.BodyType = PhysicsBodyType::Dynamic;
@@ -60,7 +64,7 @@ namespace Eagle
 
 		// Sphere 2
 		{
-			m_Sphere2 = m_Scene->CreateEntity("PhysicsMaterialAssetEditor_Sphere2");
+			m_Sphere2 = scene->CreateEntity("PhysicsMaterialAssetEditor_Sphere2");
 
 			auto& rigidBody = m_Sphere2.AddComponent<RigidBodyComponent>();
 			rigidBody.BodyType = PhysicsBodyType::Dynamic;
@@ -73,13 +77,13 @@ namespace Eagle
 
 		// Sun
 		{
-			Entity entity = m_Scene->CreateEntity("PhysicsMaterialAssetEditor_Sun");
+			Entity entity = scene->CreateEntity("PhysicsMaterialAssetEditor_Sun");
 			entity.SetWorldRotation(glm::quat(0.707f, -0.707f, 0.f, 0.f));
 			auto& sun = entity.AddComponent<DirectionalLightComponent>();
 			sun.SetLightColor(glm::vec3(20.5f));
 		}
 
-		auto& camera = m_Scene->GetEditorCamera();
+		auto& camera = scene->GetEditorCamera();
 		camera.SetLocation(glm::vec3(-4.f, 0.f, 0.f));
 		camera.LookAt(glm::vec3(0, 0, 0));
 		const glm::vec3 cameraDir = camera.GetForwardVector();

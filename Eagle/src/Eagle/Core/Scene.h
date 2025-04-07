@@ -258,6 +258,11 @@ namespace Eagle
 			m_DirtyFlags.bText2DDirty = bDirty;
 		}
 
+		void SetEverythingDirty()
+		{
+			m_DirtyFlags.SetEverythingDirty(true);
+		}
+
 		void AddParticleSystem(const ParticleSystemComponent* system);
 		void RemoveParticleSystem(const ParticleSystemComponent* system);
 		void UpdateParticleSystem(const ParticleSystemComponent* system);

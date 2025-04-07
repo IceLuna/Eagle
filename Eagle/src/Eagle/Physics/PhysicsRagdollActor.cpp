@@ -29,7 +29,7 @@ namespace Eagle
     // TODO: group args
     static void CreateArticulationChain(const SkeletalRagdollBones& bone, const SkeletalPose& currentPose, const BonesMap& boneMap, physx::PxScene* scene, PhysicsRagdollActor::BoneData& physicsBoneData, PhysicsActorPayload& payload,
         const PhysicsSettings& settings, const glm::mat4& worldTransform, const glm::mat4& compWorldTrInv, float twist, float swing, const physx::PxVec3& linearVelocity,
-        const physx::PxVec3& angularVelocity, std::unordered_map<std::string, physx::PxRigidDynamic*>& ragdollBonesMap, physx::PxRigidDynamic* parentBody = nullptr)
+        const physx::PxVec3& angularVelocity, std::unordered_map<std::string, physx::PxRigidDynamic*>& ragdollBonesMap, physx::PxRigidDynamic*& parentBody)
     {
         using namespace physx;
 
@@ -240,9 +240,10 @@ namespace Eagle
                 angularVelocity = PhysXUtils::ToPhysXVector(actor->GetAngularVelocity());
             }
         }
-        
+
+        m_ParentBody = nullptr;
 		CreateArticulationChain(mesh->GetRagdollRoot(), skeletalComp.LastPose, meshInfo.BoneInfoMap, m_Scene, m_Root, m_Payload, m_Settings, worldTransform, m_OriginalTransformInv,
-            glm::radians(twist), glm::radians(swing), linearVelocity, angularVelocity, m_BonesMap);
+            glm::radians(twist), glm::radians(swing), linearVelocity, angularVelocity, m_BonesMap, m_ParentBody);
 	}
 
     PhysicsRagdollActor::~PhysicsRagdollActor()
@@ -280,5 +281,69 @@ namespace Eagle
         if (auto it = m_BonesMap.find(boneName); it != m_BonesMap.end())
             return PhysXUtils::FromPhysXTransform(it->second->getGlobalPose());
         return {};
+    }
+
+    void PhysicsRagdollActor::SetLinearVelocity(const glm::vec3& velocity)
+    {
+        auto pxVel = PhysXUtils::ToPhysXVector(velocity);
+        m_ParentBody->setLinearVelocity(pxVel);
+        for (auto& [_, body] : m_BonesMap)
+        {
+            body->setLinearVelocity(pxVel);
+        }
+    }
+
+    void PhysicsRagdollActor::SetAngularVelocity(const glm::vec3& velocity)
+    {
+        auto pxVel = PhysXUtils::ToPhysXVector(velocity);
+        m_ParentBody->setAngularVelocity(pxVel);
+        for (auto& [_, body] : m_BonesMap)
+        {
+            body->setAngularVelocity(pxVel);
+        }
+    }
+    
+    void PhysicsRagdollActor::SetBoneLinearVelocity(const std::string& boneName, const glm::vec3& velocity)
+    {
+        if (auto it = m_BonesMap.find(boneName); it != m_BonesMap.end())
+            it->second->setLinearVelocity(PhysXUtils::ToPhysXVector(velocity));
+    }
+    
+    glm::vec3 PhysicsRagdollActor::GetBoneLinearVelocity(const std::string& boneName) const
+    {
+        if (auto it = m_BonesMap.find(boneName); it != m_BonesMap.end())
+            return PhysXUtils::FromPhysXVector(it->second->getLinearVelocity());
+        return glm::vec3(0);
+    }
+    
+    void PhysicsRagdollActor::SetBoneAngularVelocity(const std::string& boneName, const glm::vec3& velocity)
+    {
+        if (auto it = m_BonesMap.find(boneName); it != m_BonesMap.end())
+            it->second->setAngularVelocity(PhysXUtils::ToPhysXVector(velocity));
+    }
+    
+    glm::vec3 PhysicsRagdollActor::GetBoneAngularVelocity(const std::string& boneName) const
+    {
+        if (auto it = m_BonesMap.find(boneName); it != m_BonesMap.end())
+            return PhysXUtils::FromPhysXVector(it->second->getAngularVelocity());
+        return glm::vec3(0);
+    }
+    
+    void PhysicsRagdollActor::PutToSleep()
+    {
+        m_ParentBody->putToSleep();
+        for (auto& [_, body] : m_BonesMap)
+        {
+            body->putToSleep();
+        }
+    }
+    
+    void PhysicsRagdollActor::WakeUp()
+    {
+        m_ParentBody->wakeUp();
+        for (auto& [_, body] : m_BonesMap)
+        {
+            body->wakeUp();
+        }
     }
 }

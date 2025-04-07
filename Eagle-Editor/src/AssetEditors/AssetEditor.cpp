@@ -16,38 +16,39 @@
 
 namespace Eagle
 {
-	AssetEditor::AssetEditor(bool bNeedRenderer, bool bNeedSkybox, bool bSimulate)
-		: bSimulating(bSimulate)
+	AssetEditor::AssetEditor(bool bNeedRenderer, bool bNeedSkybox)
 	{
 		if (bNeedRenderer)
 		{
 			SceneRendererSettings settings = SceneRendererSettings::GetBasicSettings();
 			m_Renderer = MakeRef<SceneRenderer>(glm::uvec2{ 1, 1 }, settings);
-			m_Scene = MakeRef<Scene>("AssetEditor", m_Renderer, bSimulate);
+			m_Scene = MakeRef<Scene>("AssetEditor", m_Renderer);
 			m_Scene->SetSkyboxEnabled(bNeedSkybox);
 			m_Scene->SetRenderSkybox(false);
 			if (bNeedSkybox)
 				AddSkybox();
 
-			if (bSimulate)
-			{
-				m_Scene->OnRuntimeStart();
-			}
+			m_CurrentScene = m_Scene;
 		}
 		m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
 	}
 
 	AssetEditor::~AssetEditor()
 	{
-		if (m_Scene && m_Scene->IsPlaying())
-			m_Scene->OnRuntimeStop();
+		if (m_SimulationScene)
+			m_SimulationScene->OnRuntimeStop();
 
+		m_CurrentScene.reset();
 		m_Scene.reset();
+		m_SimulationScene.reset();
 		m_Renderer.reset();
 	}
 
 	void AssetEditor::DrawViewport(bool bForceAnimUpdate, const std::string_view parentName)
 	{
+		if (!m_CurrentScene)
+			return;
+
 		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
 
 		const std::string windowName = GetAsset()->GetPath().u8string() + "_Viewport";
@@ -80,13 +81,13 @@ namespace Eagle
 				m_ViewportBounds[1] = { viewportMaxRegion.x + viewportOffset.x, viewportMaxRegion.y + viewportOffset.y };
 			}
 
-			auto& renderer = m_Scene->GetSceneRenderer();
+			auto& renderer = m_CurrentScene->GetSceneRenderer();
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
 			auto viewportSize = glm::uvec2(viewportPanelSize.x, viewportPanelSize.y);
 			if (renderer->GetViewportSize() != viewportSize)
-				m_Scene->OnViewportResize(viewportSize.x, viewportSize.y);
+				m_CurrentScene->OnViewportResize(viewportSize.x, viewportSize.y);
 
-			m_Scene->OnUpdate(Application::Get().GetTimestep(), true, bForceAnimUpdate);
+			m_CurrentScene->OnUpdate(Application::Get().GetTimestep(), true, bForceAnimUpdate);
 			const auto& render = renderer->GetOutput();
 			const auto& size = render->GetSize();
 			UI::Image(render, ImVec2(float(size.x), float(size.y)));
@@ -105,7 +106,7 @@ namespace Eagle
 
 	bool AssetEditor::DrawGuizmo(Transform& transform, int ID, bool bEnabled)
 	{
-		if (m_GuizmoType == -1)
+		if (!m_CurrentScene || m_GuizmoType == -1)
 			return false;
 		
 		bool bChanged = false;
@@ -115,10 +116,10 @@ namespace Eagle
 		ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
 
 		//Camera
-		const auto& editorCamera = m_Scene->GetEditorCamera();
-		const auto runtimeCamera = m_Scene->GetRuntimeCamera();
-		glm::mat4 cameraProjection = !bSimulating ? editorCamera.GetProjection() : runtimeCamera->Camera.GetProjection();
-		const glm::mat4& cameraViewMatrix = !bSimulating ? editorCamera.GetViewMatrix() : runtimeCamera->GetViewMatrix();
+		const auto& editorCamera = m_CurrentScene->GetEditorCamera();
+		const auto runtimeCamera = m_CurrentScene->GetRuntimeCamera();
+		glm::mat4 cameraProjection = m_SimulationScene ? runtimeCamera->Camera.GetProjection() : editorCamera.GetProjection();
+		const glm::mat4& cameraViewMatrix = m_SimulationScene ? runtimeCamera->GetViewMatrix() : editorCamera.GetViewMatrix();
 		cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
 
 		int snappingIndex = 0;
@@ -158,6 +159,26 @@ namespace Eagle
 		return bChanged;
 	}
 
+	void AssetEditor::SetSimulationEnabled(bool bEnabled)
+	{
+		if (!m_CurrentScene || (bEnabled == bool(m_SimulationScene)))
+			return;
+
+		if (bEnabled)
+		{
+			m_SimulationScene = MakeRef<Scene>(m_Scene, "Asset Editor. Simulation Scene");
+			m_SimulationScene->OnRuntimeStart();
+			m_CurrentScene = m_SimulationScene;
+		}
+		else
+		{
+			m_SimulationScene->OnRuntimeStop();
+			m_SimulationScene.reset();
+			m_CurrentScene = m_Scene;
+		}
+		m_CurrentScene->SetEverythingDirty();
+	}
+
 	void AssetEditor::AddSkybox()
 	{
 		m_Skybox = AssetManager::GetPreviewSkybox();
@@ -179,7 +200,7 @@ namespace Eagle
 	void AssetEditor::OnEvent(Event& e)
 	{
 		if (bViewportVisible)
-			m_Scene->OnEventEditor(e);
+			m_CurrentScene->OnEventEditor(e);
 
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<KeyPressedEvent>(EG_BIND_FN(AssetEditor::OnKeyPressed));
@@ -222,9 +243,9 @@ namespace Eagle
 	
 	void AssetEditor::HandleCameraFocus()
 	{
-		if (bSimulating)
+		if (m_SimulationScene)
 		{
-			CameraComponent* camera = m_Scene->GetRuntimeCamera();
+			CameraComponent* camera = m_SimulationScene->GetRuntimeCamera();
 			const bool bHasCameraMovement = camera->Parent.HasComponent<NativeScriptComponent>();
 			if (bViewportVisible)
 			{

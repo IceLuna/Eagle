@@ -28,6 +28,19 @@ namespace Eagle
 		Transform GetBoneWorldTransform(const std::string& boneName) const;
 		const physx::PxRigidActor* GetPhysXActor() const { return m_Root.Body; }
 
+		// Update all bones
+		void SetLinearVelocity(const glm::vec3& velocity);
+		void SetAngularVelocity(const glm::vec3& velocity);
+
+		void SetBoneLinearVelocity(const std::string& boneName, const glm::vec3& velocity);
+		glm::vec3 GetBoneLinearVelocity(const std::string& boneName) const;
+
+		void SetBoneAngularVelocity(const std::string& boneName, const glm::vec3& velocity);
+		glm::vec3 GetBoneAngularVelocity(const std::string& boneName) const;
+
+		void PutToSleep();
+		void WakeUp();
+
 	public:
 		struct BoneData
 		{
@@ -52,6 +65,7 @@ namespace Eagle
 
 		BoneData m_Root;
 		std::unordered_map<std::string, physx::PxRigidDynamic*> m_BonesMap;
+		physx::PxRigidDynamic* m_ParentBody = nullptr;
 		PhysicsActorPayload m_Payload;
 	};
 }

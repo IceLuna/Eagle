@@ -12,13 +12,15 @@ namespace Eagle
 		: AssetEditor(true, false), m_Asset(asset)
 	{
 		EG_CORE_ASSERT(m_Asset);
-		Entity entity = m_Scene->CreateEntity("ParticleSystemAssetEditor");
+		const auto& scene = GetCurrentScene();
+
+		Entity entity = scene->CreateEntity("ParticleSystemAssetEditor");
 		auto& component = entity.AddComponent<ParticleSystemComponent>();
 		component.SetAsset(asset);
 
 		m_Emitters = m_Asset->GetEmitters();
 
-		auto& camera = m_Scene->GetEditorCamera();
+		auto& camera = scene->GetEditorCamera();
 		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
 		camera.LookAt(glm::vec3(0, 0, 0));
 		const glm::vec3 cameraDir = camera.GetForwardVector();
@@ -71,7 +73,7 @@ namespace Eagle
 
 			if (selectedEmitter)
 			{
-				m_Scene->DrawAABB(selectedEmitter->VisibilityAABB, selectedEmitter->RelativeTransform);
+				GetCurrentScene()->DrawAABB(selectedEmitter->VisibilityAABB, selectedEmitter->RelativeTransform);
 			}
 
 			if (ImGui::IsItemClicked())

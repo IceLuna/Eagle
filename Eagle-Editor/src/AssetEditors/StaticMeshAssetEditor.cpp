@@ -11,11 +11,13 @@ namespace Eagle
 	StaticMeshAssetEditor::StaticMeshAssetEditor(const Ref<AssetStaticMesh>& asset)
 		: AssetEditor(true), m_Asset(asset)
 	{
-		Entity entity = m_Scene->CreateEntity("StaticMeshAssetEditor");
+		const auto& scene = GetCurrentScene();
+
+		Entity entity = scene->CreateEntity("StaticMeshAssetEditor");
 		m_Component = &entity.AddComponent<StaticMeshComponent>();
 		m_Component->SetMeshAsset(m_Asset);
 
-		auto& camera = m_Scene->GetEditorCamera();
+		auto& camera = scene->GetEditorCamera();
 		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
 		camera.LookAt(glm::vec3(0, 0, 0));
 		const glm::vec3 cameraDir = camera.GetForwardVector();

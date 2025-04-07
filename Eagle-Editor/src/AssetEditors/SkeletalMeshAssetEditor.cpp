@@ -162,19 +162,21 @@ namespace Eagle
 	}
 
 	SkeletalMeshAssetEditor::SkeletalMeshAssetEditor(const Ref<AssetSkeletalMesh>& asset)
-		: AssetEditor(true, true, true), m_Asset(asset)
+		: AssetEditor(true, true), m_Asset(asset)
 	{
 		const auto& mesh = m_Asset->GetMesh();
 		m_MinRagdollBoneSize = mesh->GetMinRagdollBoneSize();
 		m_Twist = mesh->GetRagdollMaxTwist();
 		m_Swing = mesh->GetRagdollMaxSwing();
 
-		m_Entity = m_Scene->CreateEntity("SkeletalMeshAssetEditor");
+		const auto& scene = GetCurrentScene();
+
+		m_Entity = scene->CreateEntity("SkeletalMeshAssetEditor");
 		auto& component = m_Entity.AddComponent<SkeletalMeshComponent>();
 		component.SetMeshAsset(m_Asset);
 		component.SetRagdollEnabled(true);
 
-		auto& camera = m_Scene->GetEditorCamera();
+		auto& camera = scene->GetEditorCamera();
 		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
 		camera.LookAt(glm::vec3(0, 0, 0));
 		const glm::vec3 cameraDir = camera.GetForwardVector();
@@ -184,7 +186,7 @@ namespace Eagle
 		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 2.f); // Move back
 		camera.LookAt(center);
 
-		auto& sceneRenderer = m_Scene->GetSceneRenderer();
+		auto& sceneRenderer = scene->GetSceneRenderer();
 		auto settings = sceneRenderer->GetOptions();
 		settings.bEnableDebugLinesDepthTest = false;
 		sceneRenderer->SetOptions(settings);
@@ -239,10 +241,27 @@ namespace Eagle
 		}
 		UI::EndPropertyGrid();
 
-		glm::quat quat = m_Entity.GetWorldRotation().GetQuat();
-		if (UI::DrawQuatControl("Mesh Rotation(Quat)", quat, glm::quat{ 1, 0, 0, 0 }, 140.f))
 		{
-			m_Entity.SetWorldRotation(glm::quat(quat.w, quat.x, quat.y, quat.z));
+			const bool bDisableRotation = bSimulate && m_OpenedTab == OpenedTabType::Ragdoll;
+			if (bDisableRotation)
+				UI::PushItemDisabled();
+
+			glm::quat quat = m_Entity.GetWorldRotation().GetQuat();
+			if (UI::DrawQuatControl("Mesh Rotation(Quat)", quat, glm::quat{ 1, 0, 0, 0 }, 140.f))
+			{
+				m_Entity.SetWorldRotation(glm::quat(quat.w, quat.x, quat.y, quat.z));
+
+				if (m_OpenedTab == OpenedTabType::Ragdoll)
+				{
+					auto& comp = m_Entity.GetComponent<SkeletalMeshComponent>();
+					comp.SetRagdollEnabled(false);
+					comp.SetRagdollEnabled(true);
+					comp.SetShowRagdollCollision(true);
+				}
+			}
+
+			if (bDisableRotation)
+				UI::PopItemDisabled();
 		}
 
 		size_t assetHash = m_Asset->GetGUID().GetHash();
@@ -285,10 +304,7 @@ namespace Eagle
 		if (m_OpenedTab != OpenedTabType::Skeletal)
 		{
 			m_Entity.GetComponent<SkeletalMeshComponent>().SetRagdollEnabled(false);
-		}
-		if (m_Plane)
-		{
-			DeletePlane();
+			SetSimulationEnabled(false);
 		}
 		m_OpenedTab = OpenedTabType::Skeletal;
 
@@ -382,9 +398,7 @@ namespace Eagle
 			auto& comp = m_Entity.GetComponent<SkeletalMeshComponent>();
 			comp.SetRagdollEnabled(true);
 			comp.SetShowRagdollCollision(true);
-		}
-		if (!m_Plane)
-		{
+			SetSimulationEnabled(bSimulate);
 			CreatePlane();
 		}
 		m_OpenedTab = OpenedTabType::Ragdoll;
@@ -523,23 +537,49 @@ namespace Eagle
 	
 	Transform SkeletalMeshAssetEditor::GetSelectedRagdollBoneWorldTransform()
 	{
-		Transform transform = m_Entity.GetComponent<SkeletalMeshComponent>().GetRagdollBoneWorldTransform(m_SelectedRagdollBoneName);
+		const bool bRuntime = bSimulate && m_OpenedTab == OpenedTabType::Ragdoll;
+		Entity entity;
+
+		if (bRuntime)
+		{
+			const auto& scene = GetCurrentScene();
+			auto view = scene->GetAllEntitiesWith<SkeletalMeshComponent>();
+			auto entt = view[0];
+			entity = Entity(entt, scene.get());
+		}
+		else
+		{
+			entity = m_Entity;
+		}
+
+		Transform transform = entity.GetComponent<SkeletalMeshComponent>().GetRagdollBoneWorldTransform(m_SelectedRagdollBoneName);
 		transform.Scale3D = m_SelectedRagdollBone->Settings.UserOffset.Scale3D; // Originally, bones don't have scale, so we restore it
 		return transform;
 	}
 
 	Transform SkeletalMeshAssetEditor::GetBoneWorldTransform(const std::string& name)
 	{
-		Transform transform = m_Entity.GetComponent<SkeletalMeshComponent>().GetBoneWorldTransform(name);
-		return transform;
+		const bool bRuntime = bSimulate && m_OpenedTab == OpenedTabType::Ragdoll;
+		if (bRuntime)
+		{
+			const auto& scene = GetCurrentScene();
+			auto view = scene->GetAllEntitiesWith<SkeletalMeshComponent>();
+			auto entt = view[0];
+			Entity entity = Entity(entt, scene.get());
+			return entity.GetComponent<SkeletalMeshComponent>().GetBoneWorldTransform(name);
+		}
+		else
+		{
+			return m_Entity.GetComponent<SkeletalMeshComponent>().GetBoneWorldTransform(name);
+		}
 	}
 	
 	void SkeletalMeshAssetEditor::CreatePlane()
 	{
 		const auto& cube = AssetManager::GetPreviewCube();
-		m_Plane = m_Scene->CreateEntity("SkeletalMeshAssetEditor_Plane1");
-		m_Plane.AddComponent<StaticMeshComponent>().SetMeshAsset(cube);
-		m_Plane.AddComponent<BoxColliderComponent>();
+		Entity plane = GetCurrentScene()->CreateEntity("SkeletalMeshAssetEditor_Plane1");
+		plane.AddComponent<StaticMeshComponent>().SetMeshAsset(cube);
+		plane.AddComponent<BoxColliderComponent>();
 
 		const auto& mesh = m_Asset->GetMesh();
 		const auto& aabb = mesh->GetAABB();
@@ -552,21 +592,12 @@ namespace Eagle
 		Transform tr;
 		tr.Location = planeLocation;
 		tr.Scale3D = planeScale * meshScale;
-		m_Plane.SetWorldTransform(tr);
-	}
-	
-	void SkeletalMeshAssetEditor::DeletePlane()
-	{
-		m_Scene->DestroyEntity(m_Plane);
-		m_Plane = {};
+		plane.SetWorldTransform(tr);
 	}
 	
 	void SkeletalMeshAssetEditor::OnSimulateRagdollChanged()
 	{
 		m_Asset->OnModified(); // Reset ragdoll
-		if (bSimulate)
-			m_Scene->SetGravity(glm::vec3(0.f, -9.81f, 0.f));
-		else
-			m_Scene->SetGravity(glm::vec3(0)); // Hack to disable simulation
+		SetSimulationEnabled(bSimulate);
 	}
 }

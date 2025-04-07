@@ -175,6 +175,15 @@ namespace Eagle::Script
 	void Eagle_SkeletalMeshComponent_GetBoneWorldRotation(GUID entityID, MonoString* monoName, Rotator* result);
 	void Eagle_SkeletalMeshComponent_GetBoneWorldScale(GUID entityID, MonoString* monoName, glm::vec3* result);
 
+	void Eagle_SkeletalMeshComponent_SetRagdollLinearVelocity(GUID entityID, const glm::vec3* velocity);
+	void Eagle_SkeletalMeshComponent_SetRagdollAngularVelocity(GUID entityID, const glm::vec3* velocity);
+	void Eagle_SkeletalMeshComponent_SetRagdollBoneLinearVelocity(GUID entityID, MonoString* boneName, const glm::vec3* velocity);
+	void Eagle_SkeletalMeshComponent_SetRagdollBoneAngularVelocity(GUID entityID, MonoString* boneName, const glm::vec3* velocity);
+	void Eagle_SkeletalMeshComponent_GetRagdollBoneLinearVelocity(GUID entityID, MonoString* boneName, glm::vec3* outVelocity);
+	void Eagle_SkeletalMeshComponent_GetRagdollBoneAngularVelocity(GUID entityID, MonoString* boneName, glm::vec3* outVelocity);
+	void Eagle_SkeletalMeshComponent_PutRagdollToSleep(GUID entityID);
+	void Eagle_SkeletalMeshComponent_WakeUpRagdoll(GUID entityID);
+
 	// Sound
 	void Eagle_Sound_SetSettings(GUID id, const SoundSettings* settings);
 	void Eagle_Sound_GetSettings(GUID id, SoundSettings* outSettings);

@@ -13,7 +13,9 @@ namespace Eagle
 	{
 		m_Sphere = AssetManager::GetPreviewSphere();
 
-		Entity entity = m_Scene->CreateEntity("MaterialAssetEditor");
+		const auto& scene = GetCurrentScene();
+
+		Entity entity = scene->CreateEntity("MaterialAssetEditor");
 		auto& sm = entity.AddComponent<StaticMeshComponent>();
 		sm.SetMeshAsset(m_Sphere);
 		sm.SetMaterialAsset(0, m_Asset);
@@ -22,7 +24,7 @@ namespace Eagle
 		tr.Rotation = glm::rotate(tr.Rotation.GetQuat(), glm::radians(-90.f), glm::vec3(1.f, 0.f, 0.f));
 		sm.SetWorldTransform(tr);
 
-		auto& camera = m_Scene->GetEditorCamera();
+		auto& camera = scene->GetEditorCamera();
 		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
 		camera.LookAt(glm::vec3(0, 0, 0));
 		const glm::vec3 cameraDir = camera.GetForwardVector();

@@ -2307,6 +2307,110 @@ namespace Eagle
 		*result = entity.GetComponent<SkeletalMeshComponent>().GetBoneWorldScale(mono_string_to_utf8(monoName));
 	}
 
+	void Script::Eagle_SkeletalMeshComponent_SetRagdollLinearVelocity(GUID entityID, const glm::vec3* velocity)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetRagdollLinearVelocity' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<SkeletalMeshComponent>().SetRagdollLinearVelocity(*velocity);
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_SetRagdollAngularVelocity(GUID entityID, const glm::vec3* velocity)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetRagdollAngularVelocity' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<SkeletalMeshComponent>().SetRagdollAngularVelocity(*velocity);
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_SetRagdollBoneLinearVelocity(GUID entityID, MonoString* boneName, const glm::vec3* velocity)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetRagdollBoneLinearVelocity' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<SkeletalMeshComponent>().SetRagdollBoneLinearVelocity(mono_string_to_utf8(boneName), *velocity);
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_SetRagdollBoneAngularVelocity(GUID entityID, MonoString* boneName, const glm::vec3* velocity)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetRagdollBoneAngularVelocity' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<SkeletalMeshComponent>().SetRagdollBoneAngularVelocity(mono_string_to_utf8(boneName), *velocity);
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_GetRagdollBoneLinearVelocity(GUID entityID, MonoString* boneName, glm::vec3* outVelocity)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetRagdollBoneLinearVelocity' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		*outVelocity = entity.GetComponent<SkeletalMeshComponent>().GetRagdollBoneLinearVelocity(mono_string_to_utf8(boneName));
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_GetRagdollBoneAngularVelocity(GUID entityID, MonoString* boneName, glm::vec3* outVelocity)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetRagdollBoneAngularVelocity' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		*outVelocity = entity.GetComponent<SkeletalMeshComponent>().GetRagdollBoneAngularVelocity(mono_string_to_utf8(boneName));
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_PutRagdollToSleep(GUID entityID)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'PutRagdollToSleep' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<SkeletalMeshComponent>().PutRagdollToSleep();
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_WakeUpRagdoll(GUID entityID)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'WakeUpRagdoll' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<SkeletalMeshComponent>().WakeUpRagdoll();
+	}
+
 	//--------------Sound--------------
 	void Script::Eagle_Sound_SetSettings(GUID id, const SoundSettings* settings)
 	{
