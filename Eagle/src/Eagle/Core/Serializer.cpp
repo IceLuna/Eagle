@@ -57,6 +57,7 @@ namespace Eagle
 	{
 		GraphVariableType varType = var->GetType();
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(varType);
+		out << YAML::Key << "bShowInUI" << YAML::Value << var->bShowInUI;
 		if (index != -1)
 			out << YAML::Key << "Index" << YAML::Value << index;
 
@@ -93,23 +94,39 @@ namespace Eagle
 			*outIndex = varNode["Index"].as<int>();
 
 		auto valueNode = varNode["Value"];
+		Ref<GraphVariable> result;
+
 		switch (varType)
 		{
 		case GraphVariableType::Bool:
-			return MakeRef<GraphVariableBool>(valueNode ? valueNode.as<bool>() : false);
+			result = MakeRef<GraphVariableBool>(valueNode ? valueNode.as<bool>() : false);
+			break;
 		case GraphVariableType::Float:
-			return MakeRef<GraphVariableFloat>(valueNode ? valueNode.as<float>() : 0.f);
+			result = MakeRef<GraphVariableFloat>(valueNode ? valueNode.as<float>() : 0.f);
+			break;
 		case GraphVariableType::Animation:
-			return MakeRef<GraphVariableAnimation>(valueNode ? GetAsset<AssetAnimation>(valueNode) : nullptr);
+			result = MakeRef<GraphVariableAnimation>(valueNode ? GetAsset<AssetAnimation>(valueNode) : nullptr);
+			break;
 		case GraphVariableType::String:
-			return MakeRef<GraphVariableString>(valueNode ? valueNode.as<std::string>() : nullptr);
+			result = MakeRef<GraphVariableString>(valueNode ? valueNode.as<std::string>() : nullptr);
+			break;
 		case GraphVariableType::Vec4:
-			return MakeRef<GraphVariableVec4>(valueNode ? valueNode.as<glm::vec4>() : glm::vec4(1));
+			result = MakeRef<GraphVariableVec4>(valueNode ? valueNode.as<glm::vec4>() : glm::vec4(0));
+			break;
 		default:
 			EG_CORE_ASSERT(false);
+			break;
 		}
 
-		return {};
+		if (result)
+		{
+			if (auto bShowNode = varNode["bShowInUI"])
+			{
+				result->bShowInUI = bShowNode.as<bool>();
+			}
+		}
+
+		return result;
 	}
 
 	static void SerializeGraph(YAML::Emitter& out, const GraphSerializationData& data)
@@ -246,6 +263,8 @@ namespace Eagle
 		out << YAML::Key << "Offset" << YAML::Value << Math::ToTransformMatrix(node.Settings.UserOffset);
 		out << YAML::Key << "LinearDamping" << YAML::Value << node.Settings.LinearDamping;
 		out << YAML::Key << "AngularDamping" << YAML::Value << node.Settings.AngularDamping;
+		out << YAML::Key << "bEnableSimulation" << YAML::Value << node.Settings.bEnableSimulation;
+		out << YAML::Key << "bEnableCollision" << YAML::Value << node.Settings.bEnableCollision;
 		out << YAML::Key << "Mass" << YAML::Value << node.Settings.Mass;
 		out << YAML::Key << "Shape" << YAML::Value << Utils::GetEnumName(node.Settings.Shape);
 		if (node.Settings.Material)
@@ -1674,7 +1693,10 @@ namespace Eagle
 							{
 								auto deserializedVar = DeserializeGraphVar(varNode);
 								if (deserializedVar->GetType() == it->second->GetType())
+								{
 									it->second->CopyValue(deserializedVar);
+									it->second->bShowInUI = deserializedVar->bShowInUI;
+								}
 							}
 						}
 					}
@@ -2241,6 +2263,7 @@ namespace Eagle
 
 		out << YAML::Key << "Duration" << YAML::Value << anim.Duration;
 		out << YAML::Key << "TicksPerSecond" << YAML::Value << anim.TicksPerSecond;
+		out << YAML::Key << "bInPlace" << YAML::Value << anim.bInPlace;
 
 		if (anim.HasRootMotion())
 		{
@@ -2469,6 +2492,8 @@ namespace Eagle
 
 		animation.Duration = baseNode["Duration"].as<float>();
 		animation.TicksPerSecond = baseNode["TicksPerSecond"].as<float>();
+		if (auto inPlaceNode = baseNode["bInPlace"])
+			animation.bInPlace = inPlaceNode.as<bool>();
 
 		// Root Motion
 		if (auto rootMotionNode = baseNode["RootMotion"])
@@ -2980,6 +3005,10 @@ namespace Eagle
 				data.UserOffset = Math::DecomposeTransformMatrix(dataNode["Offset"].as<glm::mat4>());
 				data.LinearDamping = dataNode["LinearDamping"].as<float>();
 				data.AngularDamping = dataNode["AngularDamping"].as<float>();
+				if (auto simulateNode = dataNode["bEnableSimulation"])
+					data.bEnableSimulation = simulateNode.as<bool>();
+				if (auto collisionNode = dataNode["bEnableCollision"])
+					data.bEnableCollision = collisionNode.as<bool>();
 				data.Mass = dataNode["Mass"].as<float>();
 				data.Material = GetAsset<AssetPhysicsMaterial>(dataNode["Material"]);
 				data.Shape = Utils::GetEnumFromName<SkeletalRagdollBones::UserSettings::ShapeType>(dataNode["Shape"].as<std::string>());
@@ -3412,6 +3441,19 @@ namespace Eagle
 
 		auto result = MakeRef<LocalAssetAnimationGraph>(pathToAsset, guid, graph, graphEditorData);
 		result->Compile();
+
+		const auto& usedVars = result->GetGraph()->GetVariables();
+		for (const auto& [name, oldVar] : graphEditorData.Variables)
+		{
+			auto it = usedVars.find(name);
+			if (it == usedVars.end())
+				continue; // Var is not present in the newly compiled graph. Ignore it
+
+			auto& usedVar = it->second;
+			if (usedVar->GetType() == oldVar->GetType())
+				usedVar->bShowInUI = oldVar->bShowInUI;
+		}
+
 		return result;
 	}
 

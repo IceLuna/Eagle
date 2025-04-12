@@ -194,8 +194,8 @@ namespace Eagle
 				m_PrevTime = CurrentTime = 0.f;
 
 			const auto& skeletalInfo = skeletal->GetSkeletalMeshInfo();
-			AnimationSystem::AnimationClip(animation, skeletalInfo.RootBone, CurrentTime, &m_Pose);
-			if (animation->HasRootMotion())
+			AnimationSystem::AnimationClip(skeletalInfo, animation, skeletalInfo.RootBone, CurrentTime, &m_Pose);
+			if (!animation->bInPlace && animation->HasRootMotion())
 			{
 				if (m_PrevSpeed < 0 && speed > 0 || speed < 0 && m_PrevSpeed > 0) // If speed changed signs
 					std::swap(CurrentTime, m_PrevTime);

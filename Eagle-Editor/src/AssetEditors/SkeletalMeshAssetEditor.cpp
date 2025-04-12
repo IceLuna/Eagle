@@ -445,6 +445,8 @@ namespace Eagle
 					}
 					bRagdollChanged |= EditorResources::DrawAssetSelection("Physics Material", m_SelectedRagdollBone->Settings.Material);
 					bRagdollChanged |= UI::ComboEnum("Shape", m_SelectedRagdollBone->Settings.Shape);
+					bRagdollChanged |= UI::Property("Enable Simulation", m_SelectedRagdollBone->Settings.bEnableSimulation);
+					bRagdollChanged |= UI::Property("Enable Collision", m_SelectedRagdollBone->Settings.bEnableCollision);
 
 					UI::EndPropertyGrid();
 					ImGui::Separator();

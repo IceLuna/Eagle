@@ -49,6 +49,10 @@ namespace Eagle
 		UI::Text("Duration", std::to_string(animation->Duration) + " ticks (" + durationSec + " seconds)");
 		UI::Text("Ticks per Second", std::to_string(animation->TicksPerSecond));
 
+		ImGui::Separator();
+
+		bChanged|= UI::Property("In Place", animation->bInPlace);
+
 		bool bExtractRootMotion = animation->HasRootMotion();
 		if (UI::Property("Extract Root Motion", bExtractRootMotion))
 		{

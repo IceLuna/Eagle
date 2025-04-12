@@ -108,6 +108,8 @@ namespace Eagle
             {
                 body->setLinearVelocity(linearVelocity);
                 body->setAngularVelocity(angularVelocity);
+                body->setActorFlag(PxActorFlag::eDISABLE_SIMULATION, !bone.Settings.bEnableSimulation);
+                shape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, bone.Settings.bEnableSimulation);
             }
             body->setLinearDamping(bone.Settings.LinearDamping);
             body->setAngularDamping(bone.Settings.AngularDamping);

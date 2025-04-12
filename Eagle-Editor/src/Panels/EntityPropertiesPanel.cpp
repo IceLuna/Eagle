@@ -473,6 +473,9 @@ namespace Eagle
 								auto& graph = smComponent.GetAnimationGraph();
 								for (auto& [name, var] : graph->GetVariables())
 								{
+									if (!var->bShowInUI)
+										continue;
+
 									switch (var->GetType())
 									{
 									case GraphVariableType::Bool:

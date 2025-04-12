@@ -24,7 +24,7 @@ namespace Eagle
 		virtual ~GraphVariable() = default;
 
 		GraphVariable(const Ref<GraphVariable>& other)
-			: m_Type(other->m_Type)
+			: m_Type(other->m_Type), bShowInUI(other->bShowInUI)
 		{}
 
 		// Returns false on failure (for example, if variables have different types)
@@ -33,6 +33,8 @@ namespace Eagle
 		virtual bool HasValue() const = 0;
 
 		GraphVariableType GetType() const { return m_Type; }
+
+		bool bShowInUI = true;
 
 	private:
 		GraphVariableType m_Type;

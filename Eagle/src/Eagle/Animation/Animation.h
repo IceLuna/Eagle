@@ -50,6 +50,7 @@ namespace Eagle
 
         float Duration = 0.f;
         float TicksPerSecond = 0.f;
+        bool bInPlace = false;
 
         bool HasRootMotion() const { return RootMotion.Locations.size() > 0; }
 

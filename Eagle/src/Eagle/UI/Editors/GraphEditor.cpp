@@ -268,8 +268,10 @@ namespace Eagle
 
                     if (UI::ComboEnum("Type", type))
                     {
+                        const bool bShowInUI = var->bShowInUI;
                         ChangeVariableType(m_SelectedVar, type);
                         var = GetVariable(m_SelectedVar);
+                        var->bShowInUI = bShowInUI;
                         OnGraphChanged();
                     }
 
@@ -313,6 +315,11 @@ namespace Eagle
                             break;
                         }
                         }
+                    }
+
+                    if (UI::Property("Show in UI", var->bShowInUI))
+                    {
+                        OnGraphChanged();
                     }
 
                     UI::EndPropertyGrid();

@@ -81,14 +81,14 @@ namespace Eagle
 				continue;
 			}
 			// Animation: we can't load animations unless all skeletal meshes are loaded since animations refer to them
-			else if (type == AssetType::Animation)
+			// Particle System: we can't load particles unless all skeletal meshes are loaded since particle systems might refer to them
+			else if (type == AssetType::Animation || type == AssetType::ParticleSystem)
 			{
 				delayedAssets[2].emplace_back(std::move(assetPath));
 				continue;
 			}
 			// Animation Graph: we can't load graphs unless all skeletal meshes & animations are loaded since graphs refer to them
-			// Particle System: we can't load particles unless all skeletal meshes are loaded since particle systems might refer to them
-			else if (type == AssetType::AnimationGraph || type == AssetType::Animation || type == AssetType::ParticleSystem)
+			else if (type == AssetType::AnimationGraph)
 			{
 				delayedAssets[3].emplace_back(std::move(assetPath));
 				continue;

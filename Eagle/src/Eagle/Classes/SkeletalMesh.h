@@ -90,6 +90,8 @@ namespace Eagle
 			float LinearDamping = 0.f;
 			float Mass = 1.f;
 			float AngularDamping = 0.05f;
+			bool bEnableSimulation = true;
+			bool bEnableCollision = true;
 			enum ShapeType
 			{
 				Box, Sphere, Capsule

@@ -160,43 +160,6 @@ namespace Eagle
             return finalScale;
         }
 
-        static void CalculateBoneTransform(const std::vector<std::string>& requestedName, const SkeletalMeshAnimation* animation, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal,
-            float currentTime, std::vector<glm::mat4>& outTransforms, bool bProcess = false)
-        {
-            const std::string& nodeName = node.Name;
-            if (!bProcess)
-                bProcess = std::find(requestedName.begin(), requestedName.end(), nodeName) != requestedName.end();
-
-            glm::mat4 globalTransformation = (bProcess && animation) ? parentTransform : parentTransform * node.Transformation;
-
-            if (bProcess && animation)
-            {
-                if (auto it = animation->Bones.find(nodeName); it != animation->Bones.end())
-                {
-                    const auto& bone = it->second;
-                    glm::mat4 translation = InterpolatePosition(bone, currentTime);
-                    glm::mat4 rotation = InterpolateRotation(bone, currentTime);
-                    glm::mat4 scale = InterpolateScaling(bone, currentTime);
-
-                    const glm::mat4 nodeTransform = translation * rotation * scale;
-                    globalTransformation = parentTransform * nodeTransform;
-                }
-            }
-
-            if (auto it = skeletal.BoneInfoMap.find(nodeName); it != skeletal.BoneInfoMap.end())
-            {
-                const uint32_t index = it->second.BoneID;
-                const glm::mat4& offset = it->second.Offset;
-                if (index >= outTransforms.size())
-                    outTransforms.resize(index + 1);
-
-                outTransforms[index] = skeletal.InverseTransform * globalTransformation * offset;
-            }
-
-            for (auto& child : node.Children)
-                CalculateBoneTransform(requestedName, animation, child, globalTransformation, skeletal, currentTime, outTransforms, bProcess);
-        }
-    
         static void CalculateAdditivePose_Internal(const SkeletalPose& refPose, const SkeletalPose& sourcePose, const BoneNode& node, SkeletalPose* resultPose)
         {
             const std::string& nodeName = node.Name;
@@ -467,7 +430,7 @@ namespace Eagle
         if (animation)
         {
             outPose->Bones.reserve(animation->Bones.size());
-            AnimationClip(animation, skeletalInfo.RootBone, currentTime, outPose);
+            AnimationClip(skeletalInfo, animation, skeletalInfo.RootBone, currentTime, outPose);
         }
 
         glm::mat4 rootTransform = glm::mat4(1.f);
@@ -561,7 +524,7 @@ namespace Eagle
                     Update(skeletalMesh, animation, mesh->CurrentClipPlayTime, &transforms, &mesh->LastPose);
                     if (animation)
                     {
-                        if (animation->HasRootMotion())
+                        if (!animation->bInPlace && animation->HasRootMotion())
                         {
                             const float speed = mesh->ClipPlaybackSpeed;
                             const float prevSpeed = mesh->PrevClipPlaybackSpeed;
@@ -801,21 +764,23 @@ namespace Eagle
         }
     }
 
-    void AnimationSystem::AnimationClip(const SkeletalMeshAnimation* animation, const BoneNode& node, float currentTime, SkeletalPose* outPose)
+    void AnimationSystem::AnimationClip(const SkeletalMeshInfo& skeletal, const SkeletalMeshAnimation* animation, const BoneNode& node, float currentTime, SkeletalPose* outPose)
     {
         const std::string& nodeName = node.Name;
 
         if (auto it = animation->Bones.find(nodeName); it != animation->Bones.end())
         {
+            const bool bRoot = &node == &skeletal.RootBone;
+
             const auto& bone = it->second;
             auto& tr = outPose->Bones[nodeName];
-            tr.Location = Utils::InterpolatePositionRaw(bone, currentTime);
+            tr.Location = (animation->bInPlace && bRoot) ? glm::vec3(0) : Utils::InterpolatePositionRaw(bone, currentTime);
             tr.Rotation = Utils::InterpolateRotationRaw(bone, currentTime);
             tr.Scale3D = Utils::InterpolateScalingRaw(bone, currentTime);
         }
 
         for (auto& child : node.Children)
-            AnimationClip(animation, child, currentTime, outPose);
+            AnimationClip(skeletal, animation, child, currentTime, outPose);
     }
 
     void AnimationSystem::FilterPose(const SkeletalPose& pose, BoneNode& node, const std::string& boneName, bool bIgnoreParentLocation, bool bIgnoreParentRotation, bool bIgnoreParentScale, SkeletalPose* outPose)
