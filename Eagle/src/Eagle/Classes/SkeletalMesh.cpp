@@ -115,7 +115,7 @@ namespace Eagle
         // Fill it with base pose data
         const glm::mat4 rootTransform = glm::mat4(1.f);
         SkeletalPose basePose;
-        AnimationSystem::FinalizePose(basePose, m_Skeletal.RootBone, rootTransform);
+        AnimationSystem::FinalizePose(basePose, m_Skeletal.RootBone, rootTransform, m_Skeletal);
         m_RagdollRoot = Utils::MergeBones(m_MinRagdollBoneSize, m_Skeletal.BoneInfoMap, m_Skeletal.RootBone, basePose);
     }
 

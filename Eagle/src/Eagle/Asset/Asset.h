@@ -508,6 +508,7 @@ namespace Eagle
 		void SetMaterial(const Ref<Material>& material)
 		{
 			m_Material = material;
+			OnModified();
 			SetDirty(true);
 		}
 

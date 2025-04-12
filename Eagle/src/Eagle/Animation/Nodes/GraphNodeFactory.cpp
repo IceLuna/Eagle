@@ -455,6 +455,9 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
         node.InputPins.emplace_back(graph.GetNextId(), "Pose", PinType::Pose);
         node.InputPins.emplace_back(graph.GetNextId(), "Bone Name", PinType::String, MakeRef<GraphVariableString>(), "The node will filter-out the bones that are not related to the specified bone");
+        node.InputPins.emplace_back(graph.GetNextId(), "Ignore parent location", PinType::Bool, MakeRef<GraphVariableBool>(false), "Parent location of a specified bone will be ignored");
+        node.InputPins.emplace_back(graph.GetNextId(), "Ignore parent rotation", PinType::Bool, MakeRef<GraphVariableBool>(true), "Parent rotation of a specified bone will be ignored");
+        node.InputPins.emplace_back(graph.GetNextId(), "Ignore parent scale", PinType::Bool, MakeRef<GraphVariableBool>(true), "Parent scale of a specified bone will be ignored");
 
         node.OutputPins.emplace_back(graph.GetNextId(), "Output pose", PinType::Pose);
         node.Type = NodeType::Blueprint;

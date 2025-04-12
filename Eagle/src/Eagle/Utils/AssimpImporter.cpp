@@ -47,16 +47,15 @@ namespace Eagle
 		return glm::quat(pOrientation.w, pOrientation.x, pOrientation.y, pOrientation.z);
 	}
 
-	static void CorrectRootTransform(const aiScene* scene)
+	// This function can be used to rotate the mesh into engines coord system.
+	// Otherwise, some meshes may be laying on the floor because of diff in coord system
+	static glm::mat4 GetCorrectionMatrix(const aiScene* scene)
 	{
-		// This function can be used to rotate the mesh into engines coord system.
-		// Otherwise, some meshes may be laying on the floor because of diff in coord system
-
 		if (scene == nullptr)
-			return;
+			return glm::mat4(1);
 
 		if (scene->mMetaData == nullptr)
-			return;
+			return glm::mat4(1);
 
 		int32_t UpAxis = 1, UpAxisSign = 1, FrontAxis = 2, FrontAxisSign = 1, CoordAxis = 0, CoordAxisSign = 1;
 		double UnitScaleFactor = 1.0;
@@ -101,7 +100,8 @@ namespace Eagle
 			upVec.x, upVec.y, upVec.z, 0.0f,
 			forwardVec.x, forwardVec.y, forwardVec.z, 0.0f,
 			0.0f, 0.0f, 0.0f, 1.0f);
-		scene->mRootNode->mTransformation *= mat;
+
+		return ToGLM(mat);
 	}
 
 	static void PreprocessBoneName(std::string* boneName)
@@ -111,13 +111,15 @@ namespace Eagle
 			(*boneName) = (*boneName).substr(nameFilterPos + 1);
 	}
 
-	static Utils::StaticMeshImportData ProcessStaticMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4& tr)
+	static Utils::StaticMeshImportData ProcessStaticMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4& coordCorrection, const glm::mat4& tr)
 	{
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
 		vertices.reserve(mesh->mNumVertices);
 		indices.reserve(mesh->mNumFaces * 3);
-		const glm::mat3 normalTr = glm::transpose(glm::inverse(glm::mat3(tr)));
+
+		const glm::mat4 correctedTr = coordCorrection * tr;
+		const glm::mat3 normalTr = glm::transpose(glm::inverse(glm::mat3(correctedTr)));
 
 		// walk through each of the mesh's vertices
 		for (unsigned int i = 0; i < mesh->mNumVertices; i++)
@@ -126,7 +128,7 @@ namespace Eagle
 
 			// positions
 			vertex.Position = ToGLM(mesh->mVertices[i]);
-			vertex.Position = tr * glm::vec4(vertex.Position, 1.f);
+			vertex.Position = correctedTr * glm::vec4(vertex.Position, 1.f);
 
 			// normals
 			if (mesh->HasNormals())
@@ -158,8 +160,8 @@ namespace Eagle
 		}
 
 		AABB aabb;
-		aabb.Min = tr * glm::vec4(ToGLM(mesh->mAABB.mMin), 1.f);
-		aabb.Max = tr * glm::vec4(ToGLM(mesh->mAABB.mMax), 1.f);
+		aabb.Min = correctedTr * glm::vec4(ToGLM(mesh->mAABB.mMin), 1.f);
+		aabb.Max = correctedTr * glm::vec4(ToGLM(mesh->mAABB.mMax), 1.f);
 
 		return Utils::StaticMeshImportData{ StaticMesh::Create(vertices, { indices }, aabb), { mesh->mMaterialIndex } };
 	}
@@ -192,12 +194,15 @@ namespace Eagle
 		return bShouldAdd;
 	}
 
-	static Utils::SkeletalMeshImportData ProcessSkeletalMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4& tr, BonesMap& bones)
+	static Utils::SkeletalMeshImportData ProcessSkeletalMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4& coordCorrection, const glm::mat4& tr, BonesMap& bones)
 	{
 		std::vector<SkeletalVertex> vertices;
 		std::vector<uint32_t> indices;
 		vertices.reserve(mesh->mNumVertices);
 		indices.reserve(mesh->mNumFaces * 3);
+
+		// Note: we don't apply "coordCorrection" to skeletal vertex data since it'll be applied to vertices through animation matrices inside of a shader
+		// So, we only correct skeletal root bone, and animation's root bone
 		const glm::mat3 normalTr = glm::transpose(glm::inverse(glm::mat3(tr)));
 
 		// walk through each of the mesh's vertices
@@ -311,17 +316,19 @@ namespace Eagle
 		// Gather skeletal info
 		SkeletalMeshInfo skeletal;
 		skeletal.InverseTransform = glm::inverse(tr);
+		skeletal.CoordCorrection = coordCorrection;
 		// Note: skeletal.BoneInfoMap and RootBone will be set at the end
 
+		const glm::mat4 correctedTr = coordCorrection * tr;
 		AABB aabb;
-		aabb.Min = tr * glm::vec4(ToGLM(mesh->mAABB.mMin), 1.f);
-		aabb.Max = tr * glm::vec4(ToGLM(mesh->mAABB.mMax), 1.f);
+		aabb.Min = correctedTr * glm::vec4(ToGLM(mesh->mAABB.mMin), 1.f);
+		aabb.Max = correctedTr * glm::vec4(ToGLM(mesh->mAABB.mMax), 1.f);
 		return Utils::SkeletalMeshImportData{ SkeletalMesh::Create(vertices, { indices }, skeletal, aabb), { mesh->mMaterialIndex } };
 	}
 
 	// processes a node in a recursive fashion. Processes each individual mesh located at the node and repeats this process on its children nodes (if any).
 	template <typename MeshImportData>
-	static void ProcessNode(aiNode* node, const aiScene* scene, std::vector<MeshImportData>& meshes, BonesMap& bones, const glm::mat4& tr = glm::mat4(1.f))
+	static void ProcessNode(aiNode* node, const aiScene* scene, std::vector<MeshImportData>& meshes, BonesMap& bones, const glm::mat4& coordCorrection, const glm::mat4& tr = glm::mat4(1.f))
 	{
 		glm::mat4 nodeTransform = tr * ToGLM(node->mTransformation);
 		// process each mesh located at the current node
@@ -331,14 +338,14 @@ namespace Eagle
 			// the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
 			aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
 			if constexpr (std::is_same<MeshImportData, Utils::StaticMeshImportData>::value)
-				meshes.push_back(ProcessStaticMesh(mesh, scene, nodeTransform));
+				meshes.push_back(ProcessStaticMesh(mesh, scene, coordCorrection, nodeTransform));
 			else
-				meshes.push_back(ProcessSkeletalMesh(mesh, scene, nodeTransform, bones));
+				meshes.push_back(ProcessSkeletalMesh(mesh, scene, coordCorrection, nodeTransform, bones));
 		}
 		// after we've processed all of the meshes (if any) we then recursively process each of the children nodes
 		for (unsigned int i = 0; i < node->mNumChildren; i++)
 		{
-			ProcessNode(node->mChildren[i], scene, meshes, bones, nodeTransform);
+			ProcessNode(node->mChildren[i], scene, meshes, bones, coordCorrection, nodeTransform);
 		}
 	}
 
@@ -347,6 +354,7 @@ namespace Eagle
 		const auto& meshBoneInfoMap = skeletalInfo.BoneInfoMap;
 		const uint32_t animationsCount = scene->mNumAnimations;
 		std::vector<SkeletalMeshAnimation> animations(animationsCount);
+		const glm::mat4 correction = GetCorrectionMatrix(scene);
 
 		for (uint32_t i = 0; i < animationsCount; ++i)
 		{
@@ -381,11 +389,15 @@ namespace Eagle
 							auto& locationKey = bone.Locations.emplace_back();
 							locationKey.Location = ToGLM(channel->mPositionKeys[pI].mValue);
 							locationKey.TimeStamp = 0.f;
+							if (boneName == skeletalInfo.RootBone.Name)
+								locationKey.Location = correction * glm::vec4(locationKey.Location, 1.f);
 						}
 
 						auto& locationKey = bone.Locations.emplace_back();
 						locationKey.Location = ToGLM(channel->mPositionKeys[pI].mValue);
 						locationKey.TimeStamp = (float)channel->mPositionKeys[pI].mTime;
+						if (boneName == skeletalInfo.RootBone.Name)
+							locationKey.Location = correction * glm::vec4(locationKey.Location, 1.f);
 						pI++;
 					}
 
@@ -394,6 +406,8 @@ namespace Eagle
 						auto& locationKey = bone.Locations.emplace_back();
 						locationKey.Location = ToGLM(channel->mPositionKeys[pI].mValue);
 						locationKey.TimeStamp = (float)channel->mPositionKeys[pI].mTime;
+						if (boneName == skeletalInfo.RootBone.Name)
+							locationKey.Location = correction * glm::vec4(locationKey.Location, 1.f);
 					}
 				}
 
@@ -406,11 +420,15 @@ namespace Eagle
 							auto& rotationKey = bone.Rotations.emplace_back();
 							rotationKey.Rotation = ToGLM(channel->mRotationKeys[pI].mValue);
 							rotationKey.TimeStamp = 0.f;
+							if (boneName == skeletalInfo.RootBone.Name)
+								rotationKey.Rotation = glm::toQuat(glm::mat3(correction) * glm::toMat3(rotationKey.Rotation));
 						}
 
 						auto& rotationKey = bone.Rotations.emplace_back();
 						rotationKey.Rotation = ToGLM(channel->mRotationKeys[pI].mValue);
 						rotationKey.TimeStamp = (float)channel->mRotationKeys[pI].mTime;
+						if (boneName == skeletalInfo.RootBone.Name)
+							rotationKey.Rotation = glm::toQuat(glm::mat3(correction) * glm::toMat3(rotationKey.Rotation));
 						pI++;
 					}
 
@@ -419,6 +437,8 @@ namespace Eagle
 						auto& rotationKey = bone.Rotations.emplace_back();
 						rotationKey.Rotation = ToGLM(channel->mRotationKeys[pI].mValue);
 						rotationKey.TimeStamp = (float)channel->mRotationKeys[pI].mTime;
+						if (boneName == skeletalInfo.RootBone.Name)
+							rotationKey.Rotation = glm::toQuat(glm::mat3(correction) * glm::toMat3(rotationKey.Rotation));
 					}
 				}
 
@@ -567,16 +587,16 @@ namespace Eagle
 			EG_CORE_ERROR("Failed to load Static Mesh. {0} ({1})", importer.GetErrorString(), path.u8string());
 			return {};
 		}
-		CorrectRootTransform(scene);
 
 #if 0
 		for (unsigned MetadataIndex = 0; MetadataIndex < scene->mMetaData->mNumProperties; ++MetadataIndex)
 			EG_CORE_TRACE("{} - {}", scene->mMetaData->mKeys[MetadataIndex].C_Str(), *(uint32_t*)scene->mMetaData->mValues[MetadataIndex].mData);
 #endif
 
+		const glm::mat4 coordCorrection = GetCorrectionMatrix(scene);
 		BonesMap unused1;
 		std::vector<Utils::StaticMeshImportData> importedMeshes;
-		ProcessNode(scene->mRootNode, scene, importedMeshes, unused1);
+		ProcessNode(scene->mRootNode, scene, importedMeshes, unused1, coordCorrection);
 		if (!importedMeshes.empty())
 		{
 			if (importedMeshes.size() > 1)
@@ -604,12 +624,10 @@ namespace Eagle
 			return {};
 		}
 
-		// Causes issues with animations and ragdolls, so disabled for now.
-		// CorrectRootTransform(scene);
-
+		const glm::mat4 coordCorrection = GetCorrectionMatrix(scene);
 		BonesMap bones;
 		std::vector<Utils::SkeletalMeshImportData> importedMeshes;
-		ProcessNode(scene->mRootNode, scene, importedMeshes, bones);
+		ProcessNode(scene->mRootNode, scene, importedMeshes, bones, coordCorrection);
 		if (importedMeshes.size() > 1)
 		{
 			importedMeshes[0] = MergeMeshes<Utils::SkeletalMeshImportData, SkeletalVertex>(importedMeshes);
@@ -621,6 +639,7 @@ namespace Eagle
 			auto& skeletalInfo = importedMeshes[0].Mesh->GetSkeletalMeshInfo();
 			skeletalInfo.BoneInfoMap = std::move(bones);
 			ProcessBoneNode(skeletalInfo.RootBone, scene->mRootNode, skeletalInfo.BoneInfoMap);
+			skeletalInfo.RootBone.Transformation = coordCorrection * skeletalInfo.RootBone.Transformation;
 
 			// It's possible that we have two root bones: one from the mesh, and one from assimp. So keep only one of them
 			{
@@ -631,8 +650,7 @@ namespace Eagle
 					if (skeletalInfo.RootBone.Children.size() == 1)
 					{
 						auto children = std::move(skeletalInfo.RootBone.Children);
-						const glm::mat4 rootTr = skeletalInfo.RootBone.Transformation;
-						children[0].Transformation = rootTr * children[0].Transformation;
+						children[0].Transformation = skeletalInfo.RootBone.Transformation * children[0].Transformation;
 						skeletalInfo.RootBone = children[0];
 					}
 				}

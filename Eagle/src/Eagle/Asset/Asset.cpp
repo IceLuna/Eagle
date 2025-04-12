@@ -349,7 +349,10 @@ namespace Eagle
 			return;
 
 		if (bReloadRawData)
+		{
 			asset->SetDirty(true);
+			asset->OnModified();
+		}
 
 		Asset& reloadedRaw = *reloaded.get();
 		*asset = std::move(reloadedRaw);

@@ -32,6 +32,7 @@ namespace Eagle
 		Transform GetBoneWorldTransform(const std::string& name);
 
 		void CreatePlane();
+		void DeletePlane();
 		void OnSimulateRagdollChanged();
 
 		enum class OpenedTabType
@@ -52,6 +53,7 @@ namespace Eagle
 
 		OpenedTabType m_OpenedTab = OpenedTabType::Ragdoll;
 		Entity m_Entity;
+		GUID m_PlaneEntityGUID;
 		float m_MinRagdollBoneSize = 0.1f;
 		float m_Twist = 22.5f;
 		float m_Swing = 45.f;

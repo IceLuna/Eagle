@@ -14,7 +14,7 @@ namespace Eagle
 	namespace Utils
 	{
 		template <typename T>
-		static bool GetValue(const Ref<GraphNode>& input, Timestep ts, T* outValue)
+		static bool GetValueFromInput(const Ref<GraphNode>& input, Timestep ts, T* outValue)
 		{
 			using GraphType =
 				std::conditional_t<std::is_same<bool, T>::value, AnimationGraphNodeBool,
@@ -37,7 +37,7 @@ namespace Eagle
 
 		// Return true if success
 		template <typename T>
-		static bool GetValue(const Ref<GraphVariable>& variable, T* outValue)
+		static bool GetValueFromVariable(const Ref<GraphVariable>& variable, T* outValue)
 		{
 			using VariableType =
 				std::conditional_t<std::is_same<bool, T>::value, GraphVariableBool,
@@ -63,10 +63,10 @@ namespace Eagle
 		template <typename T>
 		static bool GetValue(const Ref<GraphNode>& input, const Ref<GraphVariable>& variable, Timestep ts, T* outValue)
 		{
-			if (GetValue(input, ts, outValue))
+			if (GetValueFromInput(input, ts, outValue))
 				return true;
 			
-			if (GetValue(variable, outValue))
+			if (GetValueFromVariable(variable, outValue))
 				return true;
 
 			return false;
@@ -176,7 +176,7 @@ namespace Eagle
 
 		// Anim
 		Ref<AssetAnimation> animationAsset;
-		if (Utils::GetValue(m_Variables[0], &animationAsset) && animationAsset)
+		if (Utils::GetValueFromVariable(m_Variables[0], &animationAsset) && animationAsset)
 			animation = animationAsset->GetAnimation().get();
 		
 		Utils::GetValue(m_Inputs[1], m_Variables[1], ts, &speed);
@@ -262,10 +262,17 @@ namespace Eagle
 		{
 			const auto& skeletal = GetSkeletal();
 			std::string boneName;
-			Utils::GetValue(m_Variables[1], &boneName);
+			Utils::GetValueFromVariable(m_Variables[1], &boneName);
+
+			bool bIgnoreParentLocation = false;
+			Utils::GetValue(m_Inputs[2], m_Variables[2], ts, &bIgnoreParentLocation);
+			bool bIgnoreParentRotation = true;
+			Utils::GetValue(m_Inputs[3], m_Variables[3], ts, &bIgnoreParentRotation);
+			bool bIgnoreParentScale = true;
+			Utils::GetValue(m_Inputs[4], m_Variables[4], ts, &bIgnoreParentScale);
 
 			const auto& pose = input->Update(ts);
-			AnimationSystem::FilterPose(pose, skeletal->GetSkeletalMeshInfo().RootBone, boneName, &m_Pose);
+			AnimationSystem::FilterPose(pose, skeletal->GetSkeletalMeshInfo().RootBone, boneName, bIgnoreParentLocation, bIgnoreParentRotation, bIgnoreParentScale, &m_Pose);
 			m_Pose.EventsToTrigger_Pointer = &(pose.GetEventsToTrigger());
 		}
 
@@ -285,7 +292,7 @@ namespace Eagle
 		{
 			const auto& skeletal = GetSkeletal();
 			std::string boneName;
-			Utils::GetValue(m_Variables[1], &boneName);
+			Utils::GetValueFromVariable(m_Variables[1], &boneName);
 			glm::vec4 rotation;
 			Utils::GetValue(m_Inputs[2], m_Variables[2], ts, &rotation);
 

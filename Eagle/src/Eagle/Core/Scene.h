@@ -505,6 +505,7 @@ namespace Eagle
 		bool bCanUpdateEditorCamera = true;
 		bool bDrawMiscellaneous = true;
 		bool bDrawNavMesh = false;
+		bool bDrawBones = false;
 
 	private:
 		static Ref<Scene> s_CurrentScene;

@@ -297,10 +297,21 @@ namespace Eagle
                 BlendPoses_Internal(pose1, pose2, child, blendAlpha, outPose);
         }
     
-        static void FilterBone_Internal(const SkeletalPose& pose, const BoneNode& node, const std::string& boneName, SkeletalPose* outPose, bool bProcess = false)
+        static void FilterBone_Internal(const SkeletalPose& pose, BoneNode& node, const std::string& boneName, bool bIgnoreParentLocation, bool bIgnoreParentRotation, bool bIgnoreParentScale, SkeletalPose* outPose, bool bProcess = false)
         {
             if (!bProcess)
-                bProcess = boneName == node.Name;
+            {
+                const bool bTargetBone = boneName == node.Name;
+                bProcess = bTargetBone;
+
+                // Only change target bone node
+                if (bTargetBone)
+                {
+                    node.bIgnoreParentLocation = bIgnoreParentLocation;
+                    node.bIgnoreParentRotation = bIgnoreParentRotation;
+                    node.bIgnoreParentScale = bIgnoreParentScale;
+                }
+            }
 
             if (bProcess)
             {
@@ -309,7 +320,7 @@ namespace Eagle
             }
 
             for (auto& child : node.Children)
-                FilterBone_Internal(pose, child, boneName, outPose, bProcess);
+                FilterBone_Internal(pose, child, boneName, bIgnoreParentLocation, bIgnoreParentRotation, bIgnoreParentScale, outPose, bProcess);
         }
     
         static bool CheckEvent_Forward(float eventTime, float prevTime, float curTime)
@@ -330,6 +341,115 @@ namespace Eagle
         static bool CheckEvent_BackwardLoopedOver(float eventTime, float prevTime, float curTime)
         {
             return eventTime < prevTime || eventTime >= curTime;
+        }
+
+        // @parentNode. We need to use parent nodes base transformation that's not affected by any other animation.
+        static glm::mat4 FilterTransform_Test(const glm::mat4& tr, const BoneNode& node, const BoneNode* parentNode)
+        {
+            if (!node.bIgnoreParentLocation && !node.bIgnoreParentRotation && !node.bIgnoreParentScale)
+                return tr; // Not ignoring anything
+
+            Transform transform = Math::DecomposeTransformMatrix(tr);
+            Transform baseTransform = parentNode ? Math::DecomposeTransformMatrix(parentNode->Transformation) : Transform{};
+
+            if (node.bIgnoreParentLocation)
+                transform.Location = baseTransform.Location;
+            if (node.bIgnoreParentRotation)
+                transform.Rotation = baseTransform.Rotation;
+            if (node.bIgnoreParentScale)
+                transform.Scale3D = baseTransform.Scale3D;
+
+            return Math::ToTransformMatrix(transform);
+        }
+
+        // @parentNode. We need to use parent nodes base transformation that's not affected by any other animation.
+        static glm::mat4 FilterTransform(const SkeletalMeshInfo& skeletal, const glm::mat4& parentTr, const BoneNode& node, Transform& nodeBoneTr, const BoneNode* parentNode)
+        {
+            if (!node.bIgnoreParentLocation && !node.bIgnoreParentRotation && !node.bIgnoreParentScale)
+                return Math::ToTransformMatrix(nodeBoneTr); // Not ignoring anything
+
+            Transform parent = Math::DecomposeTransformMatrix(parentTr);
+
+            // We revert parent node's transformation, so that calculating "parentNodeTr * nodeTr" gives us back "nodeTr".
+            // Basically, embedding `inverse(parentNodeTr)` into `nodeTr`
+            if (!node.bIgnoreParentLocation)
+                parent.Location = glm::vec3(0);
+            if (!node.bIgnoreParentRotation)
+                parent.Rotation = Rotator{};
+            if (!node.bIgnoreParentScale)
+                parent.Scale3D = glm::vec3(1);
+
+            // But we don't need to ignore it completely, we just take parent node's base transformation
+            if (parentNode)
+            {
+                Transform parentBaseTransform;
+                if (parentNode != &skeletal.RootBone) // RootBone can be affected by `CoordCorrection`, but since we ignore parent here, we need to apply it again
+                    parentBaseTransform = Math::DecomposeTransformMatrix(skeletal.CoordCorrection * parentNode->Transformation);
+                else
+                    parentBaseTransform = Math::DecomposeTransformMatrix(parentNode->Transformation);
+
+                Transform baseTransform;
+                if (node.bIgnoreParentLocation)
+                    baseTransform.Location = parentBaseTransform.Location;
+                if (node.bIgnoreParentRotation)
+                    baseTransform.Rotation = parentBaseTransform.Rotation;
+                if (node.bIgnoreParentScale)
+                    baseTransform.Scale3D = parentBaseTransform.Scale3D;
+
+                nodeBoneTr = baseTransform + nodeBoneTr;
+            }
+
+            const glm::mat4 newBoneTr = glm::inverse(Math::ToTransformMatrix(parent)) * Math::ToTransformMatrix(nodeBoneTr);
+            nodeBoneTr = Math::DecomposeTransformMatrix(newBoneTr);
+            return newBoneTr;
+        }
+
+        static void FinalizePose_Internal(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>& outTransforms, const BoneNode* parentNode = nullptr)
+        {
+            const std::string& nodeName = node.Name;
+            glm::mat4 globalTransformation;
+            if (auto it = pose.Bones.find(nodeName); it != pose.Bones.end())
+            {
+                auto& boneTr = it->second;
+                globalTransformation = parentTransform * Utils::FilterTransform(skeletal, parentTransform, node, boneTr, parentNode);
+            }
+            else
+            {
+                pose.Bones[nodeName] = Math::DecomposeTransformMatrix(node.Transformation);
+                globalTransformation = parentTransform * node.Transformation;
+            }
+
+            if (auto it = skeletal.BoneInfoMap.find(nodeName); it != skeletal.BoneInfoMap.end())
+            {
+                const uint32_t index = it->second.BoneID;
+                const glm::mat4& offset = it->second.Offset;
+                if (index >= outTransforms.size())
+                    outTransforms.resize(index + 1);
+
+                outTransforms[index] = skeletal.InverseTransform * globalTransformation * offset;
+            }
+
+            for (auto& child : node.Children)
+                FinalizePose_Internal(pose, child, globalTransformation, skeletal, outTransforms, &node);
+        }
+
+        static void FinalizePose_Internal(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, const BoneNode* parentNode = nullptr)
+        {
+            const std::string& nodeName = node.Name;
+            glm::mat4 globalTransformation;
+            if (auto it = pose.Bones.find(nodeName); it != pose.Bones.end())
+            {
+                auto& bone = it->second;
+                globalTransformation = parentTransform * Utils::FilterTransform(skeletal, parentTransform, node, bone, parentNode);
+            }
+            else
+            {
+                pose.Bones[nodeName] = Math::DecomposeTransformMatrix(node.Transformation);
+                globalTransformation = parentTransform * node.Transformation;
+            }
+
+            for (auto& child : node.Children)
+                FinalizePose_Internal(pose, child, globalTransformation, skeletal, &node);
         }
     }
 
@@ -698,7 +818,7 @@ namespace Eagle
             AnimationClip(animation, child, currentTime, outPose);
     }
 
-    void AnimationSystem::FilterPose(const SkeletalPose& pose, const BoneNode& node, const std::string& boneName, SkeletalPose* outPose)
+    void AnimationSystem::FilterPose(const SkeletalPose& pose, BoneNode& node, const std::string& boneName, bool bIgnoreParentLocation, bool bIgnoreParentRotation, bool bIgnoreParentScale, SkeletalPose* outPose)
     {
         if (boneName.empty() || (pose.Bones.find(boneName) == pose.Bones.end()))
         {
@@ -706,7 +826,7 @@ namespace Eagle
             return;
         }
 
-        Utils::FilterBone_Internal(pose, node, boneName, outPose);
+        Utils::FilterBone_Internal(pose, node, boneName, bIgnoreParentLocation, bIgnoreParentRotation, bIgnoreParentScale, outPose);
         outPose->bWasFiltered = true;
         if (pose.HasRootMotion())
         {
@@ -717,50 +837,12 @@ namespace Eagle
 
     void AnimationSystem::FinalizePose(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>& outTransforms)
     {
-        const std::string& nodeName = node.Name;
-        glm::mat4 globalTransformation;
-        if (auto it = pose.Bones.find(nodeName); it != pose.Bones.end())
-        {
-            const auto& bone = it->second;
-            globalTransformation = parentTransform * Math::ToTransformMatrix(bone);
-        }
-        else
-        {
-            pose.Bones[nodeName] = Math::DecomposeTransformMatrix(node.Transformation);
-            globalTransformation = parentTransform * node.Transformation;
-        }
-
-        if (auto it = skeletal.BoneInfoMap.find(nodeName); it != skeletal.BoneInfoMap.end())
-        {
-            const uint32_t index = it->second.BoneID;
-            const glm::mat4& offset = it->second.Offset;
-            if (index >= outTransforms.size())
-                outTransforms.resize(index + 1);
-
-            outTransforms[index] = skeletal.InverseTransform * globalTransformation * offset;
-        }
-
-        for (auto& child : node.Children)
-            FinalizePose(pose, child, globalTransformation, skeletal, outTransforms);
+        Utils::FinalizePose_Internal(pose, node, parentTransform, skeletal, outTransforms);
     }
 
-    void AnimationSystem::FinalizePose(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform)
+    void AnimationSystem::FinalizePose(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal)
     {
-        const std::string& nodeName = node.Name;
-        glm::mat4 globalTransformation;
-        if (auto it = pose.Bones.find(nodeName); it != pose.Bones.end())
-        {
-            const auto& bone = it->second;
-            globalTransformation = parentTransform * Math::ToTransformMatrix(bone);
-        }
-        else
-        {
-            pose.Bones[nodeName] = Math::DecomposeTransformMatrix(node.Transformation);
-            globalTransformation = parentTransform * node.Transformation;
-        }
-
-        for (auto& child : node.Children)
-            FinalizePose(pose, child, globalTransformation);
+        Utils::FinalizePose_Internal(pose, node, parentTransform, skeletal);
     }
     
     void AnimationSystem::FinalizePoseRagdoll(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>& outTransforms)

@@ -6,7 +6,7 @@ Currently, Eagle Engine supports only `Temporal Anti-aliasing` (TAA).
 
 TAA
 ---
-It is a spatial anti-aliasing technique that combines information from past frames and the current frame to remove jaggies in the current frame.
+It is a temporal anti-aliasing technique that combines information from past frames and the current frame to remove jaggies in the current frame.
 
 .. figure:: imgs/taa.png
     :align: center 

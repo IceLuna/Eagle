@@ -164,7 +164,7 @@ namespace Eagle
 		const SkeletalPose& Update(Timestep ts) override;
 
 	private:
-		static constexpr size_t s_Inputs = 2;
+		static constexpr size_t s_Inputs = 5;
 	};
 
 	class AnimationGraphNodeTransformBone : public AnimationGraphNode

@@ -82,6 +82,7 @@ namespace Eagle
 			{
 				const auto& skeletalInfo = mesh->GetSkeletalMeshInfo();
 				out << YAML::Key << "InverseTransform" << YAML::Value << skeletalInfo.InverseTransform;
+				out << YAML::Key << "CoordCorrection" << YAML::Value << skeletalInfo.CoordCorrection;
 
 				out << YAML::Key << "Skeletal" << YAML::Value;
 				Serializer::EmitBoneNode(out, skeletalInfo.RootBone);

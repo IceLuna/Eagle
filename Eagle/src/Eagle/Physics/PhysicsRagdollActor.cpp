@@ -227,7 +227,7 @@ namespace Eagle
         {
             // If LastPose is empty, fill it with base pose data
             const glm::mat4 rootTransform = glm::mat4(1.f);
-            AnimationSystem::FinalizePose(skeletalComp.LastPose, rootNode, rootTransform);
+            AnimationSystem::FinalizePose(skeletalComp.LastPose, rootNode, rootTransform, meshInfo);
         }
 
         physx::PxVec3 linearVelocity(0.f);

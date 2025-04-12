@@ -102,7 +102,7 @@ Currently, only textures can be used as an input for it.
 
 Ambient Occlusion (AO)
 ----------------------
-Can be used to affect how a surface is affected by ambient lighting (IBL or `Ambient` of directional light). For example, if material's AO is 0, that means the material won't be affected by ambient lighting.
+Can be used to change how a surface is affected by ambient lighting (IBL or `Ambient` of directional light). For example, if material's AO is 0, that means the material won't be affected by ambient lighting.
 By default, it's 1. Currently, can be used as an input for it.
 
 .. _Emissive:
@@ -127,7 +127,7 @@ It can be used to multiply `Emissive` input by some value. Currently, it's an RG
 Opacity
 -------
 Can be used to control translucency of a material. It's only used if `Blend Mode` is set to `Translucent`. It's a value between 0 and 1, where 0 means completely transparent; and 1 represents fully opaque.
-By default, it's 0.5. Currently, can be used as an input for it.
+By default, it's `0.5`.
 
 .. figure:: imgs/opacity.png
     :align: center 
@@ -139,7 +139,7 @@ By default, it's 0.5. Currently, can be used as an input for it.
 Opacity Mask
 ------------
 Can be used to control what parts of a material are either completely visible or completely invisible. It's only used if `Blend Mode` is set to `Masked`. 
-Values below ``0.5`` are treated as invisible. By default, everything is visible. Currently, can be used as an input for it.
+Values below ``0.5`` are treated as invisible. By default, everything is visible.
 
 .. figure:: imgs/opacity_mask.png
     :align: center 

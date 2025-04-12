@@ -2124,7 +2124,11 @@ namespace Eagle
 		else if (m_EditorState != EditorState::Edit)
 			StopPlayingScene();
 
-		m_SceneHierarchyPanel.SetEntitySelected(selectedEntity, selectedComp);
+		if (selectedEntity)
+		{
+			selectedEntity = m_CurrentScene->GetEntityByGUID(selectedEntity.GetGUID());
+			m_SceneHierarchyPanel.SetEntitySelected(selectedEntity, selectedComp);
+		}
 	}
 
 	void EditorLayer::HandleCloseRequest(bool bCloseEngine)

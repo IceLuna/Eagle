@@ -65,9 +65,9 @@ namespace Eagle
 		EG_CORE_ASSERT(it != Bones.end());
 
 		auto& bone = it->second;
-		RootMotion.Locations.reserve(bone.Locations.size());
-		RootMotion.Rotations.reserve(bone.Rotations.size());
-		RootMotion.Scales.reserve(bone.Scales.size());
+		RootMotion.Locations.reserve(bone.Locations.size() + 1);
+		RootMotion.Rotations.reserve(bone.Rotations.size() + 2);
+		RootMotion.Scales.reserve(bone.Scales.size() + 2);
 		RootMotion.BoneID = bone.BoneID;
 
 		// Here we need to add (0) transformation because if an animation has some initial transformation,

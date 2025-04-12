@@ -53,6 +53,9 @@ namespace Eagle
 		std::vector<BoneNode> Children;
 
 		bool bVirtualBone = false;
+		bool bIgnoreParentLocation = false;
+		bool bIgnoreParentRotation = false;
+		bool bIgnoreParentScale = false;
 	};
 
 	struct BoneInfo
@@ -68,6 +71,7 @@ namespace Eagle
 	struct SkeletalMeshInfo
 	{
 		glm::mat4 InverseTransform = glm::mat4(1.f);
+		glm::mat4 CoordCorrection = glm::mat4(1.f); // Stores matrix that can be used for coord system correction, since some imported meshes can have different basis
 		BoneNode RootBone;
 		BonesMap BoneInfoMap;
 	};

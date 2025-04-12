@@ -195,6 +195,7 @@ namespace Eagle
 
 	void SkeletalMeshAssetEditor::OnImGuiRender(bool* pOpen)
 	{
+		const auto& scene = GetCurrentScene();
 		auto& component = m_Entity.GetComponent<SkeletalMeshComponent>();
 		auto& mesh = m_Asset->GetMesh();
 		const size_t verticesCount = mesh->GetVerticesCount();
@@ -239,6 +240,7 @@ namespace Eagle
 				m_Entity.SetWorldLocation({});
 			}
 		}
+		UI::Property("Visualize bones", scene->bDrawBones);
 		UI::EndPropertyGrid();
 
 		{
@@ -305,6 +307,7 @@ namespace Eagle
 		{
 			m_Entity.GetComponent<SkeletalMeshComponent>().SetRagdollEnabled(false);
 			SetSimulationEnabled(false);
+			DeletePlane();
 		}
 		m_OpenedTab = OpenedTabType::Skeletal;
 
@@ -578,6 +581,7 @@ namespace Eagle
 	{
 		const auto& cube = AssetManager::GetPreviewCube();
 		Entity plane = GetCurrentScene()->CreateEntity("SkeletalMeshAssetEditor_Plane1");
+		m_PlaneEntityGUID = plane.GetGUID();
 		plane.AddComponent<StaticMeshComponent>().SetMeshAsset(cube);
 		plane.AddComponent<BoxColliderComponent>();
 
@@ -593,6 +597,16 @@ namespace Eagle
 		tr.Location = planeLocation;
 		tr.Scale3D = planeScale * meshScale;
 		plane.SetWorldTransform(tr);
+	}
+
+	void SkeletalMeshAssetEditor::DeletePlane()
+	{
+		const auto& scene = GetCurrentScene();
+		if (Entity plane = scene->GetEntityByGUID(m_PlaneEntityGUID))
+		{
+			scene->DestroyEntity(plane);
+			m_PlaneEntityGUID = GUID(0, 0);
+		}
 	}
 	
 	void SkeletalMeshAssetEditor::OnSimulateRagdollChanged()

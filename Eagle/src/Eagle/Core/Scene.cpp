@@ -324,6 +324,7 @@ namespace Eagle
 	, m_Gravity(other->m_Gravity)
 	, bDrawMiscellaneous(other->bDrawMiscellaneous)
 	, bDrawNavMesh(other->bDrawNavMesh)
+	, bDrawBones(other->bDrawBones)
 	, m_Cubemap(other->m_Cubemap)
 	, m_Sky(other->m_Sky)
 	, m_SkyboxIntensity(other->m_SkyboxIntensity)
@@ -1123,7 +1124,7 @@ namespace Eagle
 			}
 
 			// Bones
-			if (false)
+			if (bDrawBones)
 			{
 				auto view = m_Registry.view<SkeletalMeshComponent>();
 				for (auto entity : view)

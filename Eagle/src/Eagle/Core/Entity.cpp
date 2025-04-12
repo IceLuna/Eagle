@@ -104,9 +104,8 @@ namespace Eagle
 			myRelativeTransform.Rotation = inverseParentWorldRotation * myWorldTransform.Rotation;
 			myRelativeTransform.Scale3D = myWorldTransform.Scale3D / parentWorldTransform.Scale3D;
 
-			const glm::vec3& radius = myRelativeTransform.Location;
-			glm::vec3 rotated = glm::rotate(inverseParentWorldRotation.GetQuat(), radius);
-			myRelativeTransform.Location = rotated;
+			myRelativeTransform.Location /= parentWorldTransform.Scale3D; // Undo parent's scaling
+			myRelativeTransform.Location = inverseParentWorldRotation.GetQuat() * myRelativeTransform.Location;
 		}
 		else
 		{
@@ -238,11 +237,10 @@ namespace Eagle
 
 			myRelativeTransform = relativeTransform;
 
-			myWorldTransform.Rotation = myRelativeTransform.Rotation * parentWorldTransform.Rotation;
+			myWorldTransform.Rotation = parentWorldTransform.Rotation * myRelativeTransform.Rotation;
 			myWorldTransform.Scale3D = parentWorldTransform.Scale3D * myRelativeTransform.Scale3D;
 
-			glm::vec3 radius = myRelativeTransform.Location;
-			glm::vec3 rotated = glm::rotate(parentWorldTransform.Rotation.GetQuat(), radius);
+			glm::vec3 rotated = parentWorldTransform.Rotation.GetQuat() * (myRelativeTransform.Location * parentWorldTransform.Scale3D);
 			myWorldTransform.Location = parentWorldTransform.Location + rotated;
 
 			if (bTeleportPhysics)

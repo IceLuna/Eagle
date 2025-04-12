@@ -555,6 +555,7 @@ namespace Eagle
 		// Skeletal data
 		{
 			out << YAML::Key << "InverseTransform" << YAML::Value << skeletalInfo.InverseTransform;
+			out << YAML::Key << "CoordCorrection" << YAML::Value << skeletalInfo.CoordCorrection;
 
 			out << YAML::Key << "Skeletal" << YAML::Value;
 			Serializer::EmitBoneNode(out, skeletalInfo.RootBone);
@@ -2943,7 +2944,7 @@ namespace Eagle
 		if (bReloadRaw)
 		{
 			auto importedMeshData = Utils::ImportSkeletalMesh(pathToRaw);
-			if (importedMeshData.Mesh)
+			if (!importedMeshData.Mesh)
 			{
 				EG_CORE_ERROR("Failed to reload a skeletal mesh asset: {}", pathToRaw.u8string());
 				return {};
@@ -2989,6 +2990,7 @@ namespace Eagle
 
 		SkeletalMeshInfo skeletalInfo;
 		skeletalInfo.InverseTransform = baseNode["InverseTransform"].as<glm::mat4>();
+		skeletalInfo.CoordCorrection = baseNode["CoordCorrection"].as<glm::mat4>();
 		ReadBoneNode(baseNode["Skeletal"], skeletalInfo.RootBone);
 
 		// BoneInfoMap
