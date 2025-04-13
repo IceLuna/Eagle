@@ -47,13 +47,21 @@ namespace Eagle
 		uint32_t PinIndex = uint32_t(-1); // PinIndex the pin is connected to
 	};
 
+	enum class GraphNodeType
+	{
+		Node, Variable, PoseCache, PoseCacheGetter,
+	};
+
 	struct GraphNodeSerializationData
 	{
+		GUID OwnerID; // ID of GraphSerializationData
 		std::string Name;
 		glm::vec2 Position;
 		glm::vec2 Size = glm::vec2{0.f};
 		uint32_t NodeID = 0;
-		bool bVariable = false;
+		GUID CachedOwnerID; // ID of GraphSerializationData
+		uint32_t CachedNodeID = 0;
+		GraphNodeType Type = GraphNodeType::Node;
 		std::vector<GraphConnectionData> OutputConnections;
 		std::vector<Ref<GraphVariable>> DefaultValues;
 
@@ -71,6 +79,7 @@ namespace Eagle
 		std::string Name = "Animation Graph";
 		std::vector<GraphNodeSerializationData> Nodes;
 		glm::vec2 ScrollOffset = glm::vec2{0.f};
+		GUID ID;
 		float Zoom = 1.f;
 
 		std::vector<GraphSerializationData> Subgraphs;

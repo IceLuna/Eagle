@@ -67,6 +67,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         animationsCategory["Select Pose by Bool"] = &GraphNodeFactory::SpawnSelectPoseByBoolNode;
         animationsCategory["Filter Bones"] = &GraphNodeFactory::SpawnAnimFilterBones;
         animationsCategory["Transform Bone"] = &GraphNodeFactory::SpawnAnimTransformBone;
+        animationsCategory["Cache Pose"] = &GraphNodeFactory::SpawnCachePoseNode;
     }
 
     Node& GraphNodeFactory::SpawnInputActionNode(UIGraph& graph)
@@ -287,6 +288,26 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         return node;
     }
 
+    Node& GraphNodeFactory::SpawnCachePoseGetterNode(UIGraph& graph, const Node* cache)
+    {
+        const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
+
+        auto& node = graph.AddNode(cache ? cache->GetName() : "Unknown", ImColor(128, 195, 248));
+        node.OutputPins.emplace_back(graph.GetNextId(), "Cached", PinType::Pose);
+
+        node.Type = NodeType::PoseCacheGetter;
+        if (cache)
+        {
+            node.CachedNode.Owner = cache->Owner;
+            node.CachedNode.NodeID = cache->ID;
+        }
+
+        graph.BuildNode(node);
+        graph.OnNodeAdded(node);
+
+        return node;
+    }
+
     Node& GraphNodeFactory::SpawnOutputPoseNode(UIGraph& graph)
     {
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
@@ -483,6 +504,23 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         node.Type = NodeType::Blueprint;
 
         node.GraphNode = MakeRef<AnimationGraphNodeTransformBone>(graphAsset->GetGraph());
+
+        graph.BuildNode(node);
+        graph.OnNodeAdded(node);
+
+        return node;
+    }
+
+    Node& GraphNodeFactory::SpawnCachePoseNode(UIGraph& graph, const std::string_view name)
+    {
+        const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
+
+        auto& node = graph.AddNode(name, ImColor(128, 195, 248));
+        node.InputPins.emplace_back(graph.GetNextId(), "Pose", PinType::Pose);
+
+        node.Type = NodeType::PoseCache;
+
+        node.GraphNode = MakeRef<AnimationGraphNodeCachePose>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);

@@ -17,5 +17,7 @@ namespace Eagle
 
 	private:
 		ax::NodeEditor::NodeId m_OutputNodeId;
+
+		friend class UIAnimationStateMachineGraph; // To call `Deserialize_Internal`
 	};
 }

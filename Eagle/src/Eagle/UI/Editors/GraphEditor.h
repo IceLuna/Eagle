@@ -133,6 +133,9 @@ namespace Eagle
             return s_Null;
         }
 
+        const std::vector<CachedNodeData>& GetPoseCacheNodes() const { return m_PoseCacheNodes; }
+        std::vector<CachedNodeData>& GetPoseCacheNodes() { return m_PoseCacheNodes; }
+
         const Ref<Texture2D>& GetHeaderTexture() const { return m_HeaderTexture; }
         const Ref<Texture2D>& GetSaveTexture() const { return m_SaveTexture; }
         const Ref<Texture2D>& GetRestoreTexture() const { return m_RestoreTexture; }
@@ -176,6 +179,8 @@ namespace Eagle
         std::vector<Ref<UIGraph>> m_History; // For back/forward navigation
 
         VariablesMap m_Variables;
+
+        std::vector<CachedNodeData> m_PoseCacheNodes;
 
         bool m_bIgnoreChangedEvent = true;
         bool m_bGraphFocused = false;

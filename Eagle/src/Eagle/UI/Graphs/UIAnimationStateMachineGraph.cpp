@@ -238,7 +238,7 @@ namespace Eagle
         return compiledState;
     }
 
-    Ref<GraphNode> UIAnimationStateMachineGraph::Compile(VariablesMap& outUsedVars)
+    Ref<GraphNode> UIAnimationStateMachineGraph::Compile_Internal(Node* node, VariablesMap& outUsedVars, std::unordered_set<UIGraph*> compiledGraphs)
     {
         ed::Detail::EditorContext* editorBefore = ed::GetCurrentEditor();
         ed::SetCurrentEditor(m_GraphData.Editor);
@@ -248,21 +248,20 @@ namespace Eagle
         const auto& graph = graphAsset->GetGraph();
         const uint32_t stateMachineIndex = graph->AddStateMachine(stateMachine);
 
-        Node* entryNode = GetOutputNode();
-        entryNode->GraphNode->ResetInputs();
+        EG_CORE_ASSERT(node->GraphNode);
+        node->GraphNode->ResetInputs();
 
-        auto casted = Cast<AnimationGraphStateMachineEntry>(entryNode->GraphNode);
-        casted->SetStateMachineIndex(stateMachineIndex);
-        EG_CORE_ASSERT(casted);
+        if (auto entryNode = Cast<AnimationGraphStateMachineEntry>(node->GraphNode))
+            entryNode->SetStateMachineIndex(stateMachineIndex);
 
-        if (entryNode->OutputsPerPin[0].size() > 0)
+        if (node->OutputsPerPin[0].size() > 0)
         {
             const auto& skeletalAsset = graph->GetSkeletalAsset();
-            Node* connectedToEntry = FindNode(entryNode->OutputsPerPin[0][0].NodeID);
+            Node* connectedToEntry = FindNode(node->OutputsPerPin[0][0].NodeID);
             if (connectedToEntry)
             {
                 auto compiled = Parse(connectedToEntry, skeletalAsset, stateMachine, true, outUsedVars);
-                entryNode->GraphNode->SetInput(compiled->GetResult(), 0);
+                node->GraphNode->SetInput(compiled->GetResult(), 0);
 
                 // Set varaibles map to newly created graphs
                 for (auto& [_, graph] : m_CompiledNodes)
@@ -270,7 +269,7 @@ namespace Eagle
             }
         }
 
-        Ref<GraphNode> compiledNode = entryNode->GraphNode;
+        Ref<GraphNode> compiledNode = node->GraphNode;
         m_CompiledNodes.clear();
 
         ed::SetCurrentEditor(editorBefore);
@@ -424,9 +423,9 @@ namespace Eagle
         return data;
     }
 
-    void UIAnimationStateMachineGraph::Deserialize(const GraphEditorSerializationData& editorData, const GraphSerializationData& data)
+    void UIAnimationStateMachineGraph::Deserialize_Internal(const GraphEditorSerializationData& editorData, const GraphSerializationData& data, std::vector<UIGraph*>& deserializedGraphs, std::vector<PoseCacheGetterDeserializationData>& poseCacheGetterData)
     {
-        UIGraph::Deserialize(editorData, data);
+        UIGraph::Deserialize_Internal(editorData, data, deserializedGraphs, poseCacheGetterData);
 
         // Deserialize transition graphs attached to links
         for (const auto& [linkID, graphs] : m_LinkTransitions)
@@ -437,7 +436,7 @@ namespace Eagle
                 {
                     if (graphData.Name == graph->GetName())
                     {
-                        graph->Deserialize(editorData, graphData);
+                        graph->Deserialize_Internal(editorData, graphData, deserializedGraphs, poseCacheGetterData);
                         break;
                     }
                 }

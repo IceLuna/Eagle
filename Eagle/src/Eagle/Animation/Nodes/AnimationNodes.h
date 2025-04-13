@@ -231,6 +231,22 @@ namespace Eagle
 		static constexpr size_t s_Inputs = 3;
 	};
 
+	class AnimationGraphNodeCachePose : public AnimationGraphNode
+	{
+	public:
+		AnimationGraphNodeCachePose(const Weak<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
+
+		const SkeletalPose& Update(Timestep ts) override;
+
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		{
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeCachePose>(newGraph);
+		}
+
+	private:
+		static constexpr size_t s_Inputs = 1;
+	};
+
 	// Base class for such nodes as: less, and, etc..
 	class AnimationGraphNodeBool : public AnimationGraphNode
 	{

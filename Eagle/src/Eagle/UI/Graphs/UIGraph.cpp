@@ -112,6 +112,17 @@ namespace Eagle
         return PinType::Object;
     }
 
+    static GraphNodeType NodeTypeToGraphNodeType(NodeType type)
+    {
+        switch (type)
+        {
+            case NodeType::Variable: return GraphNodeType::Variable;
+            case NodeType::PoseCache: return GraphNodeType::PoseCache;
+            case NodeType::PoseCacheGetter: return GraphNodeType::PoseCacheGetter;
+            default: return GraphNodeType::Node;
+        }
+    }
+
     UIGraph::UIGraph(GraphEditor& editor, const std::string_view name)
         : m_Editor(editor)
 	{
@@ -212,16 +223,19 @@ namespace Eagle
         ed::End();
     }
 
-    void UIGraph::Parse(Node* node, bool bCloneVars, VariablesMap& outVariables)
+    void UIGraph::Parse(Node* node, bool bCloneVars, VariablesMap& outVariables, std::unordered_set<UIGraph*> compiledGraphs)
     {
+        compiledGraphs.emplace(this);
+
         if (node->GraphNode)
             node->GraphNode->ResetInputs();
 
         const size_t baseInputsCount = node->InputPins.size();
         for (size_t baseNodeInputIdx = 0; baseNodeInputIdx < baseInputsCount; ++baseNodeInputIdx)
         {
+            // Process input pins
             auto& pinInputs = node->InputsPerPin[baseNodeInputIdx];
-            if (pinInputs.empty())
+            if (pinInputs.empty()) // No inputs connected, try to set default value
             {
                 const Pin& pin = node->InputPins[baseNodeInputIdx];
                 if (pin.DefaultValue)
@@ -232,7 +246,7 @@ namespace Eagle
             for (auto& pinInput : pinInputs)
             {
                 auto& input = pinInput.NodeID;
-                if (!input)
+                if (!input) // Safety check again
                 {
                     const Pin& pin = node->InputPins[baseNodeInputIdx];
                     if (pin.DefaultValue)
@@ -241,9 +255,9 @@ namespace Eagle
                 }
 
                 Node* connectedNode = FindNode(input);
-                if (connectedNode->Graph)
+                if (connectedNode->Graph) // Compile graph and set its result as an input
                 {
-                    node->GraphNode->SetInput(connectedNode->Graph->Compile(outVariables), baseNodeInputIdx);
+                    node->GraphNode->SetInput(connectedNode->Graph->Compile_Internal(connectedNode->Graph->GetOutputNode(), outVariables, compiledGraphs), baseNodeInputIdx);
                     continue;
                 }
                 else if (connectedNode->Type == NodeType::Variable)
@@ -251,6 +265,23 @@ namespace Eagle
                     const auto& varName = connectedNode->GetName();
                     auto var = ProcessVariable(m_Editor.GetVariable(varName), varName, bCloneVars, outVariables);
                     node->GraphNode->SetInput(var, baseNodeInputIdx);
+                    continue;
+                }
+                else if (connectedNode->Type == NodeType::PoseCacheGetter)
+                {
+                    auto& cachedNode = connectedNode->CachedNode;
+                    if (cachedNode.Owner)
+                    {
+                        Node* cached = cachedNode.Owner->FindNode(cachedNode.NodeID);
+                        if (cached && cached->GraphNode)
+                        {
+                            node->GraphNode->SetInput(cached->GraphNode, baseNodeInputIdx);
+                            // We need to compile graph that owns the cache, otherwise cache will remain empty.
+                            if (compiledGraphs.count(cachedNode.Owner) == 0u)
+                                cachedNode.Owner->Compile_Internal(cached, outVariables, compiledGraphs);
+                        }
+                    }
+
                     continue;
                 }
                 else if (!connectedNode->GraphNode)
@@ -271,7 +302,7 @@ namespace Eagle
                         {
                             if (inputNode->Graph)
                             {
-                                auto graph = inputNode->Graph->Compile(outVariables);
+                                auto graph = inputNode->Graph->Compile_Internal(inputNode->Graph->GetOutputNode(), outVariables, compiledGraphs);
                                 graphNode->SetInput(graph, i);
                             }
                             else if (inputNode->GraphNode)
@@ -292,7 +323,7 @@ namespace Eagle
                     }
                 }
 
-                Parse(connectedNode, bCloneVars, outVariables);
+                Parse(connectedNode, bCloneVars, outVariables, compiledGraphs);
             }
         }
     }
@@ -304,18 +335,23 @@ namespace Eagle
         node->bEditing = true;
     }
 
-    Ref<GraphNode> UIGraph::Compile(VariablesMap& outUsedVars)
+    Ref<GraphNode> UIGraph::Compile_Internal(Node* outputNode, VariablesMap& outUsedVars, std::unordered_set<UIGraph*> compiledGraphs)
     {
         ed::Detail::EditorContext* editorBefore = ed::GetCurrentEditor();
         ed::SetCurrentEditor(m_GraphData.Editor);
 
-        Node* outputNode = GetOutputNode();
-        Parse(outputNode, true, outUsedVars);
+        Parse(outputNode, true, outUsedVars, compiledGraphs);
         Ref<GraphNode> compiledNode = outputNode->GraphNode;
 
         ed::SetCurrentEditor(editorBefore);
 
         return compiledNode;
+    }
+
+    Ref<GraphNode> UIGraph::Compile(VariablesMap& outUsedVars)
+    {
+        Node* outputNode = GetOutputNode();
+        return Compile_Internal(outputNode, outUsedVars);
     }
     
     void UIGraph::SetupNodeFactory()
@@ -361,7 +397,8 @@ namespace Eagle
         // BP
         for (auto& [_, node] : m_GraphData.Nodes)
         {
-            if (node.Type != NodeType::Blueprint && node.Type != NodeType::Simple && node.Type != NodeType::Variable && node.Type != NodeType::StateMachine)
+            if (node.Type != NodeType::Blueprint && node.Type != NodeType::Simple && node.Type != NodeType::Variable &&
+                node.Type != NodeType::PoseCache && node.Type != NodeType::PoseCacheGetter && node.Type != NodeType::StateMachine)
                 continue;
 
             HandleBPNode(builder, node, m_NewLinkPin);
@@ -408,7 +445,7 @@ namespace Eagle
                 //ImGui::Text("Output Pins: %d", (int)node->OutputPins.size());
                 //ImGui::Separator();
 
-                if (node->Type == NodeType::Variable || node->Graph)
+                if (node->Type == NodeType::Variable || node->Type == NodeType::PoseCache || node->Graph)
                 {
                     if (ImGui::MenuItem("Rename", "F2"))
                         OnStartedRenamingNode(node);
@@ -569,13 +606,35 @@ namespace Eagle
             {
                 const auto& variables = m_Editor.GetVariables();
                 if (variables.size())
+                {
                     UI::TextWithSeparator("Variables");
 
-                for (auto& [name, var] : variables)
-                {
-                    if (ImGui::MenuItem(name.c_str()))
+                    for (const auto& [name, var] : variables)
                     {
-                        node = &GraphNodeFactory::SpawnVarNode(*this, name, GetPinType(var->GetType()));
+                        if (ImGui::MenuItem(name.c_str()))
+                        {
+                            node = &GraphNodeFactory::SpawnVarNode(*this, name, GetPinType(var->GetType()));
+                        }
+                    }
+                }
+
+                const auto& poseCacheNodes = m_Editor.GetPoseCacheNodes();
+                if (!poseCacheNodes.empty())
+                {
+                    UI::TextWithSeparator("Caches");
+
+                    for (const auto& [owner, nodeID] : poseCacheNodes)
+                    {
+                        Node* cacheNode = owner->FindNode(nodeID);
+                        if (!cacheNode)
+                            continue;
+
+                        ImGui::PushID(cacheNode);
+                        if (ImGui::MenuItem(cacheNode->Name.c_str()))
+                        {
+                            node = &GraphNodeFactory::SpawnCachePoseGetterNode(*this, cacheNode);
+                        }
+                        ImGui::PopID();
                     }
                 }
             }
@@ -603,6 +662,7 @@ namespace Eagle
         result.Name = m_GraphData.Name;
         result.ScrollOffset = glm::vec2(settings.m_ViewScroll.x, settings.m_ViewScroll.y);
         result.Zoom = settings.m_ViewZoom;
+        result.ID = m_ID;
 
         for (const auto& [_, node] : m_GraphData.Nodes)
         {
@@ -612,11 +672,14 @@ namespace Eagle
             ImVec2 pos = ed::GetNodePosition(node.ID);
             ImVec2 size = ed::GetNodeSize(node.ID);
             GraphNodeSerializationData nodeData;
+            nodeData.OwnerID = m_ID;
             nodeData.Name = node.Name;
-            nodeData.bVariable = node.Type == NodeType::Variable;
+            nodeData.Type = NodeTypeToGraphNodeType(node.Type);
             nodeData.Position = glm::vec2(pos.x, pos.y);
             nodeData.Size = glm::vec2(size.x, size.y);
             nodeData.NodeID = (uint32_t)node.ID.Get();
+            nodeData.CachedOwnerID = node.CachedNode.Owner ? node.CachedNode.Owner->m_ID : GUID(0, 0);
+            nodeData.CachedNodeID = (uint32_t)node.CachedNode.NodeID.Get();
             nodeData.UserData = node.UserData;
 
             // Inputs default values
@@ -652,14 +715,17 @@ namespace Eagle
         return result;
     }
 
-    void UIGraph::Deserialize(const GraphEditorSerializationData& editorData, const GraphSerializationData& data)
+    void UIGraph::Deserialize_Internal(const GraphEditorSerializationData& editorData, const GraphSerializationData& data, std::vector<UIGraph*>& deserializedGraphs, std::vector<PoseCacheGetterDeserializationData>& poseCacheGetterData)
     {
+        deserializedGraphs.push_back(this);
+
         ed::Detail::EditorContext* editorBefore = ed::GetCurrentEditor();
         ed::SetCurrentEditor(m_GraphData.Editor);
 
         m_GraphData.Name = data.Name;
         m_GraphData.Editor->SetViewScroll(ImVec2(data.ScrollOffset.x, data.ScrollOffset.y));
         m_GraphData.Editor->SetViewZoom(data.Zoom);
+        m_ID = data.ID;
 
         // Create nodes
         int maxNodeID = m_GraphData.NextId;
@@ -681,7 +747,7 @@ namespace Eagle
 
             m_GraphData.NextId = int(nodeData.NodeID); // So that the node is created with the required ID
 
-            if (nodeData.bVariable)
+            if (nodeData.Type == GraphNodeType::Variable)
             {
                 if (const auto& var = m_Editor.GetVariable(nodeData.Name))
                 {
@@ -689,7 +755,26 @@ namespace Eagle
                     ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
                 }
             }
-            else
+            else if (nodeData.Type == GraphNodeType::PoseCache)
+            {
+                Node& createdNode = GraphNodeFactory::SpawnCachePoseNode(*this, nodeData.Name);
+                ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
+            }
+            else if (nodeData.Type == GraphNodeType::PoseCacheGetter)
+            {
+                // It's nullptr because we might not have all `CachePose` nodes created,
+                // so we temporarily set it to nullptr, and at the end of deserialization, assign correct values
+                const Node* cached = nullptr;
+                Node& createdNode = GraphNodeFactory::SpawnCachePoseGetterNode(*this, cached);
+                ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
+
+                auto& data = poseCacheGetterData.emplace_back();
+                data.Owner = m_ID;
+                data.ID = createdNode.ID;
+                data.CacheNodeID = nodeData.CachedNodeID;
+                data.CacheNodeOwner = nodeData.CachedOwnerID;
+            }
+            else if (nodeData.Type == GraphNodeType::Node)
             {
                 for (const auto& [unused, factory] : m_NodeFactory)
                 {
@@ -724,7 +809,7 @@ namespace Eagle
                                 }
                             }
                             if (createdNodeData)
-                                createdNode.Graph->Deserialize(editorData, *createdNodeData);
+                                createdNode.Graph->Deserialize_Internal(editorData, *createdNodeData, deserializedGraphs, poseCacheGetterData);
                         }
                         break;
                     }
@@ -734,6 +819,7 @@ namespace Eagle
             if (m_GraphData.NextId > maxNodeID)
                 maxNodeID = m_GraphData.NextId; // Save the max node ID so that we can set `m_NextId` to it after all nodes are created
         }
+
         m_GraphData.NextId = maxNodeID;
 
         // Link nodes
@@ -744,15 +830,62 @@ namespace Eagle
                 if (Node* connectToNode = FindNode(connection.NodeID))
                 {
                     Node* currentNode = FindNode(nodeData.NodeID);
-                    const Pin* startPin = &currentNode->OutputPins[0];
-                    const Pin* endPin = &connectToNode->InputPins[connection.PinIndex];
+                    if (currentNode)
+                    {
+                        const Pin* startPin = &currentNode->OutputPins[0];
+                        const Pin* endPin = &connectToNode->InputPins[connection.PinIndex];
 
-                    AddLink(startPin, endPin);
+                        AddLink(startPin, endPin);
+                    }
                 }
             }
         }
 
         ed::SetCurrentEditor(editorBefore);
+    }
+
+    void UIGraph::Deserialize(const GraphEditorSerializationData& editorData, const GraphSerializationData& data)
+    {
+        std::vector<PoseCacheGetterDeserializationData> poseCacheGetterData; // Creation is delayed since we need to wait till all `PoseCache` nodes are created
+        std::vector<UIGraph*> deserializedGraphs;
+        poseCacheGetterData.reserve(4);
+        deserializedGraphs.reserve(4);
+
+        auto GetGraphByID = [&deserializedGraphs](GUID id) -> UIGraph*
+        {
+            for (auto& graph : deserializedGraphs)
+            {
+                if (graph->GetID() == id)
+                    return graph;
+            }
+
+            return nullptr;
+        };
+
+        Deserialize_Internal(editorData, data, deserializedGraphs, poseCacheGetterData);
+
+        for (const auto& data : poseCacheGetterData)
+        {
+            UIGraph* getterOwner = GetGraphByID(data.Owner);
+            if (!getterOwner)
+                continue;
+
+            UIGraph* cacheOwner = GetGraphByID(data.CacheNodeOwner);
+            if (!cacheOwner)
+                continue;
+
+            const Node* cacheNode = cacheOwner->FindNode(data.CacheNodeID);
+            if (!cacheNode)
+                continue;
+
+            Node* cacheGetterNode = getterOwner->FindNode(data.ID);
+            if (!cacheGetterNode)
+                continue;
+
+            cacheGetterNode->SetName(cacheNode->GetName());
+            cacheGetterNode->CachedNode.Owner = cacheNode->Owner;
+            cacheGetterNode->CachedNode.NodeID = cacheNode->ID;
+        }
     }
 
     void UIGraph::DrawPinIcon(const Pin& pin, bool connected, int alpha)
@@ -1091,6 +1224,8 @@ namespace Eagle
     {
         if (node.Type == NodeType::Variable)
             m_VarToNodesMapping[node.GetName()].push_back(node.ID);
+        else if (node.Type == NodeType::PoseCache)
+            m_Editor.GetPoseCacheNodes().emplace_back(this, node.ID);
 
         if (node.Graph)
             m_NodesWithGraph.push_back(node.ID);
@@ -1107,11 +1242,25 @@ namespace Eagle
             if (it != m_NodesWithGraph.end())
                 m_NodesWithGraph.erase(it);
         }
+        else if (node.Type == NodeType::PoseCache)
+        {
+            auto& poseCacheNodes = m_Editor.GetPoseCacheNodes();
+            CachedNodeData nodeToFind{ this, node.ID };
+            auto it = std::find_if(poseCacheNodes.begin(), poseCacheNodes.end(), [nodeToFind](const CachedNodeData& a)
+            {
+                return a == nodeToFind;
+            });
+            if (it != poseCacheNodes.end())
+            {
+                poseCacheNodes.erase(it);
+            }
+        }
     }
 
     void UIGraph::HandleBPNode(util::BlueprintNodeBuilder& builder, Node& node, Pin* newLinkPin)
     {
-        const auto isSimple = node.Type == NodeType::Simple || node.Type == NodeType::Variable || node.Type == NodeType::StateMachine;
+        const auto isSimple = node.Type == NodeType::Simple || node.Type == NodeType::Variable ||
+            node.Type == NodeType::PoseCache || node.Type == NodeType::PoseCacheGetter || node.Type == NodeType::StateMachine;
 
         bool hasOutputDelegates = false;
         for (auto& output : node.OutputPins)
@@ -1303,6 +1452,10 @@ namespace Eagle
                             if (RenameVariable(node.GetName(), m_RenamingNodeTemp) == false)
                                 Application::Get().GetImGuiLayer()->AddMessage("Failed to rename the variable! This name already exists!");
                         }
+                        else if (node.Type == NodeType::PoseCache)
+                        {
+                            node.SetName(m_RenamingNodeTemp);
+                        }
                         else if (node.Graph)
                         {
                             if (RenameGraph(node.GetName(), m_RenamingNodeTemp) == false)
@@ -1313,7 +1466,25 @@ namespace Eagle
             }
             else
             {
-                ImGui::TextUnformatted(name.c_str());
+                if (node.Type == NodeType::PoseCacheGetter)
+                {
+                    bool bFound = false;
+                    if (node.CachedNode.Owner)
+                    {
+                        if (const Node* cached = node.CachedNode.Owner->FindNode(node.CachedNode.NodeID))
+                        {
+                            ImGui::TextUnformatted(cached->GetName().c_str());
+                            bFound = true;
+                        }
+                    }
+
+                    if (!bFound)
+                        ImGui::TextUnformatted("Unknown cache");
+                }
+                else
+                {
+                    ImGui::TextUnformatted(name.c_str());
+                }
             }
 
             ImGui::Spring(1, 0);

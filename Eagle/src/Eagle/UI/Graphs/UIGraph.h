@@ -63,6 +63,8 @@ namespace Eagle
         Blueprint,
         Simple,
         Variable,
+        PoseCache,
+        PoseCacheGetter,
         StateMachine,
         StateMachineState,
         Tree,
@@ -94,9 +96,25 @@ namespace Eagle
         uint32_t PinIndex; // The pin index it's connected to (first pin, or second pin, etc...)
     };
 
+
+    struct CachedNodeData
+    {
+        CachedNodeData() = default;
+        CachedNodeData(UIGraph* owner, ed::NodeId id) : Owner(owner), NodeID(id) {}
+
+        UIGraph* Owner = nullptr;
+        ed::NodeId NodeID;
+
+        bool operator==(const CachedNodeData& other) const
+        {
+            return Owner == other.Owner && NodeID == other.NodeID;
+        }
+    };
+
     class AnimationGraphNode;
     struct Node
     {
+        UIGraph* Owner = nullptr; // Graph that created this Node
         ed::NodeId ID;
         std::string Name; // Node's name, which can be used for node factory. So user provided names are not stored here, but rather in "UserData"
         std::vector<Pin> InputPins;
@@ -106,6 +124,7 @@ namespace Eagle
         ImVec2 Size;
         Ref<AnimationGraphNode> GraphNode; // Used if a node is a function (for example, addition)
         Ref<UIGraph> Graph; // Used if a node is a graph (for example, state machine graph)
+        CachedNodeData CachedNode; // Used if a node is a "PoseCacheGetter".
 
         std::vector<std::vector<PinConnectionData>> InputsPerPin;
         std::vector<std::vector<PinConnectionData>> OutputsPerPin; // One pin-output can be used as an input for multiple nodes.
@@ -114,8 +133,8 @@ namespace Eagle
         bool bDeletable = true;
         bool bEditing = false; // Can be used to indicate that it's in "editing" state (for example, it'll be `true` while renaming a node)
 
-        Node(ed::NodeId id, const std::string_view name, ImColor color = ImColor(255, 255, 255), bool bDeletable = true) :
-            ID(id), Name(name), Color(color), bDeletable(bDeletable), Type(NodeType::Blueprint), Size(0, 0)
+        Node(UIGraph* owner, ed::NodeId id, const std::string_view name, ImColor color = ImColor(255, 255, 255), bool bDeletable = true) :
+            Owner(owner), ID(id), Name(name), Color(color), bDeletable(bDeletable), Type(NodeType::Blueprint), Size(0, 0)
         {
         }
 
@@ -208,7 +227,7 @@ namespace Eagle
 
         // @outUsedVars. Map of variables that were used by this graph
         // @return. Returns an object that can be used to run compiled logic
-        virtual Ref<GraphNode> Compile(VariablesMap& outUsedVars);
+        Ref<GraphNode> Compile(VariablesMap& outUsedVars);
 
         void SetupNodeFactory();
 
@@ -221,7 +240,7 @@ namespace Eagle
 
         // Can return serialization data of inner graphs as well
         virtual GraphSerializationData Serialize() const;
-        virtual void Deserialize(const GraphEditorSerializationData& editorData, const GraphSerializationData& data);
+        void Deserialize(const GraphEditorSerializationData& editorData, const GraphSerializationData& data);
 
         const GraphEditor& GetEditor() const { return m_Editor; }
         GraphEditor& GetEditor() { return m_Editor; }
@@ -280,7 +299,7 @@ namespace Eagle
         Node& AddNode(const std::string_view name, ImColor color = ImColor(255, 255, 255), bool bDeletable = true)
         {
             ed::NodeId id = GetNextId();
-            auto inserted = m_GraphData.Nodes.emplace(id, Node{ id, name, color, bDeletable });
+            auto inserted = m_GraphData.Nodes.emplace(id, Node{ this, id, name, color, bDeletable });
             auto& it = inserted.first;
             return it->second;
         }
@@ -302,6 +321,9 @@ namespace Eagle
 
         virtual Node* GetOutputNode() { return nullptr; };
         virtual ax::NodeEditor::NodeId GetOutputNodeID() { return {}; };
+
+        void SetID(GUID id) { m_ID = id; }
+        GUID GetID() const { return m_ID; }
 
     protected:
         virtual void HandleBPNode(util::BlueprintNodeBuilder& builder, Node& node, Pin* newLinkPin);
@@ -338,11 +360,28 @@ namespace Eagle
 
         static void ShowLabel(const char* label, ImColor color);
 
-    private:
-        void Parse(Node* node, bool bCloneVars, VariablesMap& outVariables);
+        struct PoseCacheGetterDeserializationData
+        {
+            GUID Owner = GUID(0, 0);
+            ed::NodeId ID;
+            ed::NodeId CacheNodeID;
+            GUID CacheNodeOwner = GUID(0, 0);
+        };
+
+        // @deserializedGraphs. Graphs that were deserialized during the process
+        // @poseCacheGetterData. All pose cache getter nodes are stored here. We need to postpone their creation because we need to wait till all graphs are deserialized and have CachePose nodes ready.
+        virtual void Deserialize_Internal(const GraphEditorSerializationData& editorData, const GraphSerializationData& data, std::vector<UIGraph*>& deserializedGraphs, std::vector<PoseCacheGetterDeserializationData>& poseCacheGetterData);
+
+    protected:
+        // @node. Node to parse from.
+        // @compiledGraphs. Required to prevent infinite recursion when processing pose caches.
+        virtual Ref<GraphNode> Compile_Internal(Node* node, VariablesMap& outUsedVars, std::unordered_set<UIGraph*> compiledGraphs = {});
+        void Parse(Node* node, bool bCloneVars, VariablesMap& outVariables, std::unordered_set<UIGraph*> compiledGraphs = {});
         void OnStartedRenamingNode(Node* node);
 
     protected:
+        GUID m_ID;
+
         GraphData m_GraphData;
         GraphEditor& m_Editor; // Owner of this UI graph
         const float m_TouchTime = 1.0f;

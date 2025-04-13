@@ -224,27 +224,27 @@ namespace Eagle
 			return m_Pose;
 
 		m_Pose.Reset();
-		if (m_Inputs[0] && m_Inputs[1])
-		{
-			const auto& input0 = m_Inputs[0];
-			const auto& input1 = m_Inputs[1];
-			if (input0 && input1)
-			{
-				const auto& skeletal = GetSkeletal();
-				float weight = 0.f;
-				if (Utils::GetValue(m_Inputs[2], m_Variables[2], ts, &weight))
-					weight = glm::clamp(weight, 0.f, 1.f);
 
-				weight = glm::clamp(weight, 0.f, 1.f);
-				const auto& pose0 = input0->Update(ts);
-				const auto& pose1 = input1->Update(ts);
+		const SkeletalPose* pose0 = nullptr;
+		const SkeletalPose* pose1 = nullptr;
 
-				AnimationSystem::BlendPoses(pose0, pose1, skeletal->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
+		if (m_Inputs[0])
+			pose0 = &(m_Inputs[0]->Update(ts));
 
-				m_Pose.EventsToTrigger = pose0.GetEventsToTrigger();
-				m_Pose.EventsToTrigger.insert(m_Pose.EventsToTrigger.end(), pose1.GetEventsToTrigger().begin(), pose1.GetEventsToTrigger().end());
-			}
-		}
+		if (m_Inputs[1])
+			pose1 = &(m_Inputs[1]->Update(ts));
+
+		float weight = 0.f;
+		if (Utils::GetValue(m_Inputs[2], m_Variables[2], ts, &weight))
+			weight = glm::clamp(weight, 0.f, 1.f);
+
+		const auto& skeletal = GetSkeletal();
+		AnimationSystem::BlendPoses(pose0 ? *pose0 : SkeletalPose{}, pose1 ? *pose1 : SkeletalPose{}, skeletal->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
+
+		if (pose0)
+			m_Pose.EventsToTrigger = pose0->GetEventsToTrigger();
+		if (pose1)
+			m_Pose.EventsToTrigger.insert(m_Pose.EventsToTrigger.end(), pose1->GetEventsToTrigger().begin(), pose1->GetEventsToTrigger().end());
 
 		m_CalculatedOnFrame = currentFrame;
 
@@ -831,6 +831,22 @@ namespace Eagle
 		Result.y = q.y;
 		Result.z = q.z;
 		Result.w = q.w;
+
+		m_CalculatedOnFrame = currentFrame;
+
+		return m_Pose;
+	}
+	
+	const SkeletalPose& AnimationGraphNodeCachePose::Update(Timestep ts)
+	{
+		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
+		if (currentFrame <= m_CalculatedOnFrame)
+			return m_Pose;
+
+		if (m_Inputs[0])
+			m_Pose = m_Inputs[0]->Update(ts);
+		else
+			m_Pose.Reset();
 
 		m_CalculatedOnFrame = currentFrame;
 

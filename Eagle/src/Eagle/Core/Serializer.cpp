@@ -133,21 +133,25 @@ namespace Eagle
 	{
 		out << YAML::Key << "Name" << YAML::Value << data.Name;
 		out << YAML::Key << "Scroll" << YAML::Value << data.ScrollOffset;
+		out << YAML::Key << "ID" << YAML::Value << data.ID;
 		out << YAML::Key << "Zoom" << YAML::Value << data.Zoom;
 
 		out << YAML::Key << "Nodes" << YAML::Value << YAML::BeginSeq;
 		for (const auto& node : data.Nodes)
 		{
 			out << YAML::BeginMap;
+			out << YAML::Key << "OwnerID" << YAML::Value << node.OwnerID;
 			out << YAML::Key << "Name" << YAML::Value << node.Name;
 			out << YAML::Key << "Position" << YAML::Value << node.Position;
 			out << YAML::Key << "Size" << YAML::Value << node.Size;
 			out << YAML::Key << "NodeID" << YAML::Value << node.NodeID;
-			out << YAML::Key << "IsVariable" << YAML::Value << node.bVariable;
+			out << YAML::Key << "CachedOwnerID" << YAML::Value << node.CachedOwnerID;
+			out << YAML::Key << "CachedNodeID" << YAML::Value << node.CachedNodeID;
+			out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(node.Type);
 			if (node.UserData.empty() == false)
 				out << YAML::Key << "UserData" << YAML::Value << node.UserData;
 
-			if (!node.bVariable)
+			if (node.Type == GraphNodeType::Node)
 			{
 				out << YAML::Key << "DefaultValues" << YAML::Value << YAML::BeginSeq;
 				int index = 0;
@@ -197,22 +201,33 @@ namespace Eagle
 	{
 		data.Name = baseGraphNode["Name"].as<std::string>();
 		data.ScrollOffset = baseGraphNode["Scroll"].as<glm::vec2>();
+		if (auto node = baseGraphNode["ID"])
+			data.ID = node.as<GUID>();
 		data.Zoom = baseGraphNode["Zoom"].as<float>();
 
 		auto nodesNode = baseGraphNode["Nodes"];
 		for (const auto& nodeNode : nodesNode)
 		{
 			auto& nodeData = data.Nodes.emplace_back();
+			if (auto ownerNode = nodeNode["OwnerID"])
+				nodeData.OwnerID = ownerNode.as<GUID>();
 			nodeData.Name = nodeNode["Name"].as<std::string>();
 			nodeData.Position = nodeNode["Position"].as<glm::vec2>();
 			if (auto sizeNode = nodeNode["Size"])
 				nodeData.Size = sizeNode.as<glm::vec2>();
 			nodeData.NodeID = nodeNode["NodeID"].as<uint32_t>();
-			nodeData.bVariable = nodeNode["IsVariable"].as<bool>();
+			if (auto cachedNode = nodeNode["CachedOwnerID"])
+				nodeData.CachedOwnerID = cachedNode.as<GUID>();
+			if (auto cachedNode = nodeNode["CachedNodeID"])
+				nodeData.CachedNodeID = cachedNode.as<uint32_t>();
+			if (auto typeNode = nodeNode["Type"])
+			{
+				nodeData.Type = Utils::GetEnumFromName<GraphNodeType>(typeNode.as<std::string>());
+			}
 			if (auto userDataNode = nodeNode["UserData"])
 				nodeData.UserData = userDataNode.as<std::string>();
 
-			if (!nodeData.bVariable)
+			if (nodeData.Type == GraphNodeType::Node)
 			{
 				const auto defaultValuesNode = nodeNode["DefaultValues"];
 				for (const auto& defaultValNode : defaultValuesNode)
@@ -3413,8 +3428,13 @@ namespace Eagle
 
 		GUID guid = baseNode["GUID"].as<GUID>();
 
-		// TODO: Handle the case if asset wasn't found
 		auto mesh = GetAsset<AssetSkeletalMesh>(baseNode["SkeletalMesh"]);
+		if (!mesh)
+		{
+			EG_CORE_ERROR("Failed to deserialize animation graph at {}. Skeletal mesh wasn't found", pathToAsset.u8string());
+			return {};
+		}
+
 		auto graph = MakeRef<AnimationGraph>(mesh);
 		GraphEditorSerializationData graphEditorData;
 

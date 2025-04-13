@@ -910,7 +910,7 @@ namespace Eagle
 			return;
 		}
 
-		EG_CPU_TIMING_SCOPED("Scene. Render Scene");
+		EG_CPU_TIMING_SCOPED("Scene. Update Scene");
 
 		GatherLightsInfo();
 
@@ -1417,7 +1417,10 @@ namespace Eagle
 		const glm::mat4& viewMatrix = bIsPlaying ? m_RuntimeCamera->GetViewMatrix() : m_EditorCamera.GetViewMatrix();
 		const glm::vec3& viewPos = bIsPlaying ? m_RuntimeCamera->GetWorldTransform().Location : m_EditorCamera.GetLocation();
 		const glm::vec3& viewDir = bIsPlaying ? m_RuntimeCamera->GetForwardVector() : m_EditorCamera.GetForwardVector();
-		m_SceneRenderer->Render(camera, viewMatrix, viewPos, viewDir);
+		{
+			EG_CPU_TIMING_SCOPED("Scene. Render");
+			m_SceneRenderer->Render(camera, viewMatrix, viewPos, viewDir);
+		}
 
 		m_DirtyTransformStaticMeshes.clear();
 		m_DirtyTransformSkeletalMeshes.clear();
