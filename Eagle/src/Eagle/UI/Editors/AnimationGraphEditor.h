@@ -22,15 +22,9 @@ namespace Eagle
         void OnAddGraphPre() override;
         void OnAddGraphPost() override;
 
-        void DrawEditor();
-
         void Compile() override;
 
     private:
-        // @bCloneVars. If set to true, vars will be cloned before set to graph
-        // @outVariables. All variables that were used
-        void Parse(const Ref<UIGraph>& graph, Node* node, bool bCloneVars, VariablesMap& outVariables);
-
         void Deserialize();
 
         bool IgnoreChangedEvent() const { return m_bIgnoreChangedEvent; }

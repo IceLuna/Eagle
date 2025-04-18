@@ -23,15 +23,18 @@ namespace Eagle
 		return {};
 	}
 	
-	Ref<AnimationStateGraph> AnimationStateGraph::Create(const Ref<const AnimationStateGraph>& other, const VariablesMap& variablesToUse)
+	Ref<AnimationStateGraph> AnimationStateGraph::CreateSubgraph(const Ref<AnimationGraph>& root, const Ref<const AnimationStateGraph>& other, const VariablesMap& variablesToUse)
 	{
 		class LocalAnimationStateGraph : public AnimationStateGraph
 		{
 		public:
 			LocalAnimationStateGraph() = default;
+
+			friend class AnimationStateGraph;
 		};
 
 		auto result = MakeRef<LocalAnimationStateGraph>();
+		result->SetRootGraph(root);
 		result->Init(other, variablesToUse);
 
 		return result;

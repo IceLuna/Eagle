@@ -223,10 +223,8 @@ namespace Eagle
         ed::End();
     }
 
-    void UIGraph::Parse(Node* node, bool bCloneVars, VariablesMap& outVariables, std::unordered_set<UIGraph*> compiledGraphs)
+    void UIGraph::Parse(Node* node, bool bCloneVars, VariablesMap& outVariables, std::unordered_set<UIGraph*>& compiledGraphs)
     {
-        compiledGraphs.emplace(this);
-
         if (node->GraphNode)
             node->GraphNode->ResetInputs();
 
@@ -257,6 +255,7 @@ namespace Eagle
                 Node* connectedNode = FindNode(input);
                 if (connectedNode->Graph) // Compile graph and set its result as an input
                 {
+                    compiledGraphs.emplace(connectedNode->Graph.get());
                     node->GraphNode->SetInput(connectedNode->Graph->Compile_Internal(connectedNode->Graph->GetOutputNode(), outVariables, compiledGraphs), baseNodeInputIdx);
                     continue;
                 }
@@ -278,7 +277,10 @@ namespace Eagle
                             node->GraphNode->SetInput(cached->GraphNode, baseNodeInputIdx);
                             // We need to compile graph that owns the cache, otherwise cache will remain empty.
                             if (compiledGraphs.count(cachedNode.Owner) == 0u)
+                            {
+                                compiledGraphs.emplace(connectedNode->Owner);
                                 cachedNode.Owner->Compile_Internal(cached, outVariables, compiledGraphs);
+                            }
                         }
                     }
 
@@ -302,6 +304,7 @@ namespace Eagle
                         {
                             if (inputNode->Graph)
                             {
+                                compiledGraphs.emplace(inputNode->Graph.get());
                                 auto graph = inputNode->Graph->Compile_Internal(inputNode->Graph->GetOutputNode(), outVariables, compiledGraphs);
                                 graphNode->SetInput(graph, i);
                             }
@@ -335,7 +338,7 @@ namespace Eagle
         node->bEditing = true;
     }
 
-    Ref<GraphNode> UIGraph::Compile_Internal(Node* outputNode, VariablesMap& outUsedVars, std::unordered_set<UIGraph*> compiledGraphs)
+    Ref<GraphNode> UIGraph::Compile_Internal(Node* outputNode, VariablesMap& outUsedVars, std::unordered_set<UIGraph*>& compiledGraphs)
     {
         ed::Detail::EditorContext* editorBefore = ed::GetCurrentEditor();
         ed::SetCurrentEditor(m_GraphData.Editor);
@@ -351,7 +354,8 @@ namespace Eagle
     Ref<GraphNode> UIGraph::Compile(VariablesMap& outUsedVars)
     {
         Node* outputNode = GetOutputNode();
-        return Compile_Internal(outputNode, outUsedVars);
+        std::unordered_set<UIGraph*> compiledGraphs;
+        return Compile_Internal(outputNode, outUsedVars, compiledGraphs);
     }
     
     void UIGraph::SetupNodeFactory()

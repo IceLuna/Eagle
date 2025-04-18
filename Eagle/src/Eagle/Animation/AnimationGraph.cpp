@@ -190,15 +190,18 @@ namespace Eagle
 		return result;
 	}
 	
-	Ref<AnimationGraph> AnimationGraph::Create(const Ref<const AnimationGraph>& other, const VariablesMap& variablesToUse)
+	Ref<AnimationGraph> AnimationGraph::CreateSubgraph(const Ref<AnimationGraph>& root, const Ref<const AnimationGraph>& other, const VariablesMap& variablesToUse)
 	{
 		class LocalAnimationGraph : public AnimationGraph
 		{
 		public:
 			LocalAnimationGraph() = default;
+
+			friend class AnimationGraph;
 		};
 
 		auto result = MakeRef<LocalAnimationGraph>();
+		result->SetRootGraph(root);
 		result->Init(other, variablesToUse);
 		return result;
 	}
@@ -208,9 +211,11 @@ namespace Eagle
 		m_Skeletal = other->m_Skeletal;
 		m_Pose = other->m_Pose;
 
+		Ref<AnimationGraph> sharedThis = shared_from_this();
+
 		if (other->m_ResultNode)
 		{
-			m_ResultNode = other->m_ResultNode->Clone(shared_from_this());
+			m_ResultNode = other->m_ResultNode->Clone(sharedThis);
 			EG_CORE_ASSERT(m_ResultNode);
 		}
 
@@ -220,7 +225,7 @@ namespace Eagle
 
 		for (const auto& stateMachine : other->m_StateMachines)
 		{
-			m_StateMachines.emplace_back(MakeRef<AnimationStateMachineGraph>(stateMachine, m_Variables));
+			m_StateMachines.emplace_back(MakeRef<AnimationStateMachineGraph>(sharedThis, stateMachine, m_Variables));
 		}
 	}
 	
@@ -230,14 +235,16 @@ namespace Eagle
 		m_Pose = other->m_Pose;
 		m_Variables = variablesToUse;
 
+		Ref<AnimationGraph> sharedThis = shared_from_this();
+
 		if (other->m_ResultNode)
-			m_ResultNode = other->m_ResultNode->Clone(shared_from_this());
+			m_ResultNode = other->m_ResultNode->Clone(sharedThis);
 
 		SetVariablesMap(m_ResultNode, other->m_Variables, m_Variables);
 
 		for (const auto& stateMachine : other->m_StateMachines)
 		{
-			m_StateMachines.emplace_back(MakeRef<AnimationStateMachineGraph>(stateMachine, m_Variables));
+			m_StateMachines.emplace_back(MakeRef<AnimationStateMachineGraph>(sharedThis, stateMachine, m_Variables));
 		}
 	}
 }

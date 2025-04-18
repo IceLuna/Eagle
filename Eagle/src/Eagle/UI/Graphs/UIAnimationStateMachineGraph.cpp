@@ -81,16 +81,16 @@ namespace Eagle
             m_StateNodes.erase(it);
     }
 
-    static Ref<GraphNode> ProcessStateNode(Node* stateNode, VariablesMap& outVariables)
+    Ref<GraphNode> UIAnimationStateMachineGraph::ProcessStateNode(Node* stateNode, VariablesMap& outVariables, std::unordered_set<UIGraph*>& compiledGraphs)
     {
         if (!stateNode || stateNode->Type != NodeType::StateMachineState)
             return {};
 
         EG_CORE_ASSERT(stateNode->Graph);
-        return stateNode->Graph->Compile(outVariables);
+        return stateNode->Graph->Compile_Internal(stateNode->Graph->GetOutputNode(), outVariables, compiledGraphs);
     }
 
-    Ref<AnimationStateGraph> UIAnimationStateMachineGraph::CompileStateNode(Node* node, const Ref<AssetSkeletalMesh>& skeletalAsset, const Ref<AnimationStateMachineGraph>& stateMachine, VariablesMap& outVariables)
+    Ref<AnimationStateGraph> UIAnimationStateMachineGraph::CompileStateNode(Node* node, const Ref<AssetSkeletalMesh>& skeletalAsset, const Ref<AnimationStateMachineGraph>& stateMachine, VariablesMap& outVariables, std::unordered_set<UIGraph*>& compiledGraphs)
     {
         // Check if already was compiled
         auto it = m_CompiledNodes.find(node->ID);
@@ -98,7 +98,7 @@ namespace Eagle
             return it->second;
             
         Ref<AnimationStateGraph> state;
-        auto compiledNode = ProcessStateNode(node, outVariables);
+        auto compiledNode = ProcessStateNode(node, outVariables, compiledGraphs);
         if (compiledNode)
         {
             state = MakeRef<AnimationStateGraph>(skeletalAsset);
@@ -110,7 +110,7 @@ namespace Eagle
         return state;
     }
 
-    Ref<AnimationStateGraph> UIAnimationStateMachineGraph::Parse(Node* node, const Ref<AssetSkeletalMesh>& skeletalAsset, const Ref<AnimationStateMachineGraph>& stateMachine, bool bCloneVars, VariablesMap& outVariables)
+    Ref<AnimationStateGraph> UIAnimationStateMachineGraph::Parse(Node* node, const Ref<AssetSkeletalMesh>& skeletalAsset, const Ref<AnimationStateMachineGraph>& stateMachine, bool bCloneVars, VariablesMap& outVariables, std::unordered_set<UIGraph*>& compiledGraphs)
     {
         if (node->GraphNode)
             node->GraphNode->ResetInputs();
@@ -120,7 +120,7 @@ namespace Eagle
         // Meaning an execution can continue in any way.
 
         // Compile current node & and add to state machine
-        Ref<AnimationStateGraph> compiledState = CompileStateNode(node, skeletalAsset, stateMachine, outVariables);
+        Ref<AnimationStateGraph> compiledState = CompileStateNode(node, skeletalAsset, stateMachine, outVariables, compiledGraphs);
 
         // Input directions
         {
@@ -144,7 +144,7 @@ namespace Eagle
                     if (it != m_CompiledNodes.end())
                         connection.ConnectedTo = it->second;
                     else
-                        connection.ConnectedTo = Parse(connectedNode, skeletalAsset, stateMachine, bCloneVars, outVariables);
+                        connection.ConnectedTo = Parse(connectedNode, skeletalAsset, stateMachine, bCloneVars, outVariables, compiledGraphs);
 
                     // Find and set a transition link
                     {
@@ -163,7 +163,7 @@ namespace Eagle
                         {
                             Ref<UIAnimationStateTransitionGraph> transitionGraph = it->second[1];
                             connection.Transition = MakeRef<AnimationGraph>(skeletalAsset);
-                            connection.Transition->SetResult(transitionGraph->Compile(outVariables));
+                            connection.Transition->SetResult(transitionGraph->Compile_Internal(transitionGraph->GetOutputNode(), outVariables, compiledGraphs));
                             connection.Transition->SetVariables(outVariables);
                             // EG_CORE_INFO("{} is connected to {} via {}", node->GetName(), connectedNode->GetName(), transitionGraph->GetName());
                         }
@@ -200,7 +200,7 @@ namespace Eagle
                     if (it != m_CompiledNodes.end())
                         connection.ConnectedTo = it->second;
                     else
-                        connection.ConnectedTo = Parse(connectedNode, skeletalAsset, stateMachine, bCloneVars, outVariables);
+                        connection.ConnectedTo = Parse(connectedNode, skeletalAsset, stateMachine, bCloneVars, outVariables, compiledGraphs);
 
                     // Find and set a transition link
                     {
@@ -219,7 +219,7 @@ namespace Eagle
                         {
                             Ref<UIAnimationStateTransitionGraph> transitionGraph = it->second[0];
                             connection.Transition = MakeRef<AnimationGraph>(skeletalAsset);
-                            connection.Transition->SetResult(transitionGraph->Compile(outVariables));
+                            connection.Transition->SetResult(transitionGraph->Compile_Internal(transitionGraph->GetOutputNode(), outVariables, compiledGraphs));
                             connection.Transition->SetVariables(outVariables);
 
                             // EG_CORE_INFO("{} is connected to {} via {}", node->GetName(), connectedNode->GetName(), transitionGraph->GetName());
@@ -238,7 +238,7 @@ namespace Eagle
         return compiledState;
     }
 
-    Ref<GraphNode> UIAnimationStateMachineGraph::Compile_Internal(Node* node, VariablesMap& outUsedVars, std::unordered_set<UIGraph*> compiledGraphs)
+    Ref<GraphNode> UIAnimationStateMachineGraph::Compile_Internal(Node* node, VariablesMap& outUsedVars, std::unordered_set<UIGraph*>& compiledGraphs)
     {
         ed::Detail::EditorContext* editorBefore = ed::GetCurrentEditor();
         ed::SetCurrentEditor(m_GraphData.Editor);
@@ -260,7 +260,7 @@ namespace Eagle
             Node* connectedToEntry = FindNode(node->OutputsPerPin[0][0].NodeID);
             if (connectedToEntry)
             {
-                auto compiled = Parse(connectedToEntry, skeletalAsset, stateMachine, true, outUsedVars);
+                auto compiled = Parse(connectedToEntry, skeletalAsset, stateMachine, true, outUsedVars, compiledGraphs);
                 node->GraphNode->SetInput(compiled->GetResult(), 0);
 
                 // Set varaibles map to newly created graphs

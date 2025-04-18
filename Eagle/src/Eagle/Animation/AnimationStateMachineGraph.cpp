@@ -9,20 +9,20 @@
 namespace Eagle
 {
 	static Ref<AnimationStateGraph> GetGraphFromCache(std::unordered_map<Ref<AnimationStateGraph>, Ref<AnimationStateGraph>>& cache,
-		std::vector<Ref<AnimationStateGraph>>& states, const Ref<AnimationStateGraph>& stateToCopy, const VariablesMap& variablesToUse)
+		std::vector<Ref<AnimationStateGraph>>& states, const Ref<AnimationStateGraph>& stateToCopy, const VariablesMap& variablesToUse, const Ref<AnimationGraph>& root)
 	{
 		auto it = cache.find(stateToCopy);
 		if (it != cache.end())
 			return it->second;
 		
-		Ref<AnimationStateGraph> copiedState = states.emplace_back(AnimationStateGraph::Create(stateToCopy, variablesToUse));
+		Ref<AnimationStateGraph> copiedState = states.emplace_back(AnimationStateGraph::CreateSubgraph(root, stateToCopy, variablesToUse));
 		cache.emplace(stateToCopy, copiedState);
 
 		return copiedState;
 	}
 
-	AnimationStateMachineGraph::AnimationStateMachineGraph(const Ref<AnimationStateMachineGraph>& other, const VariablesMap& variablesToUse)
-		: m_Pose(other->m_Pose)
+	AnimationStateMachineGraph::AnimationStateMachineGraph(const Ref<AnimationGraph>& root, const Ref<AnimationStateMachineGraph>& other, const VariablesMap& variablesToUse)
+		: m_RootGraph(root), m_Pose(other->m_Pose)
 	{
 		// Key - graph that was copied
 		// Value - It's copy
@@ -32,14 +32,14 @@ namespace Eagle
 		m_States.reserve(other->m_States.size());
 		for (const auto& stateToCopy : other->m_States)
 		{
-			Ref<AnimationStateGraph> copiedState = GetGraphFromCache(cache, m_States, stateToCopy, variablesToUse);
+			Ref<AnimationStateGraph> copiedState = GetGraphFromCache(cache, m_States, stateToCopy, variablesToUse, root);
 
 			const auto& connectionsToCopy = stateToCopy->GetConnections();
 			for (const auto& connection : connectionsToCopy)
 			{
 				StatesConnection state;
-				state.ConnectedTo = GetGraphFromCache(cache, m_States, connection.ConnectedTo, variablesToUse);
-				state.Transition = AnimationGraph::Create(connection.Transition, variablesToUse);
+				state.ConnectedTo = GetGraphFromCache(cache, m_States, connection.ConnectedTo, variablesToUse, root);
+				state.Transition = AnimationGraph::CreateSubgraph(root, connection.Transition, variablesToUse);
 
 				copiedState->AddConnection(state);
 			}

@@ -26,7 +26,7 @@ namespace Eagle
 		// Also returns the time it should take for a full transition (outTransitionTime)
 		Ref<AnimationStateGraph> CheckTransitions(Timestep ts, float* outTransitionTime, bool* outUseSmoothTransition);
 
-		static Ref<AnimationStateGraph> Create(const Ref<const AnimationStateGraph>& other, const VariablesMap& variablesToUse);
+		static Ref<AnimationStateGraph> CreateSubgraph(const Ref<AnimationGraph>& root, const Ref<const AnimationStateGraph>& other, const VariablesMap& variablesToUse);
 
 	protected:
 		AnimationStateGraph() = default;

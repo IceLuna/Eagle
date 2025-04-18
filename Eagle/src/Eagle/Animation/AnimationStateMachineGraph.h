@@ -8,12 +8,13 @@ namespace Eagle
 {
 	class GraphNode;
 	class AnimationStateGraph;
+	class AnimationGraph;
 
 	class AnimationStateMachineGraph
 	{
 	public:
 		AnimationStateMachineGraph() = default;
-		AnimationStateMachineGraph(const Ref<AnimationStateMachineGraph>& other, const VariablesMap& variablesToUse);
+		AnimationStateMachineGraph(const Ref<AnimationGraph>& root, const Ref<AnimationStateMachineGraph>& other, const VariablesMap& variablesToUse);
 		virtual ~AnimationStateMachineGraph();
 
 		// Can be used by other graphs in cases when they need to calculate subgraphs
@@ -31,6 +32,7 @@ namespace Eagle
 		void SetVariablesToUse(const VariablesMap& vars);
 
 	private:
+		Weak<AnimationGraph> m_RootGraph;
 		std::vector<Ref<AnimationStateGraph>> m_States;
 		Ref<AnimationStateGraph> m_CurrentState;
 		Ref<AnimationStateGraph> m_TransitioningToState;

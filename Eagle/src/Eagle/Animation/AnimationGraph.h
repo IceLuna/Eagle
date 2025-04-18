@@ -55,6 +55,11 @@ namespace Eagle
 
 		const Ref<AnimationStateMachineGraph>& GetStateMachine(uint32_t index)
 		{
+			// If possible, get it from the root graph since it contains all state machines
+			if (auto root = m_RootGraph.lock())
+			{
+				return root->GetStateMachine(index);
+			}
 			EG_CORE_ASSERT(index < m_StateMachines.size());
 			return m_StateMachines[index];
 		}
@@ -62,7 +67,6 @@ namespace Eagle
 		virtual void SetVariablesToUse(const VariablesMap& vars);
 
 		const VariablesMap& GetVariables() const { return m_Variables; }
-		VariablesMap& GetVariables() { return m_Variables; }
 
 		const Ref<GraphVariable>& GetVariable(const std::string& name) const
 		{
@@ -75,23 +79,25 @@ namespace Eagle
 		}
 
 		const Ref<AssetSkeletalMesh>& GetSkeletalAsset() const { return m_Skeletal; }
-
 		const Ref<SkeletalMesh>& GetSkeletal() const;
-
 		const SkeletalPose& GetPose() const { return m_Pose; }
+		Ref<AnimationGraph> GetRootGraph() const { return m_RootGraph.lock(); }
 
 		static Ref<AnimationGraph> Create(const Ref<const AnimationGraph>& other); // This constructor creates its own copy of variables, which is not what we want when it's a subgraph
-		static Ref<AnimationGraph> Create(const Ref<const AnimationGraph>& other, const VariablesMap& variablesToUse); // But this constructor uses @variablesToUse, instead of creating its own copy of variables
+		static Ref<AnimationGraph> CreateSubgraph(const Ref<AnimationGraph>& root, const Ref<const AnimationGraph>& other, const VariablesMap& variablesToUse); // But this constructor uses @variablesToUse, instead of creating its own copy of variables
 
 	protected:
 		AnimationGraph() = default;
 		void Init(const Ref<const AnimationGraph>& other); // This creates its own copy of variables, which is not what we want when it's a subgraph
 		void Init(const Ref<const AnimationGraph>& other, const VariablesMap& variablesToUse); // But this uses @variablesToUse, instead of creating its own copy of variables
 
+		void SetRootGraph(const Ref<AnimationGraph>& root) { m_RootGraph = root; }
+
 	protected:
+		Weak<AnimationGraph> m_RootGraph;
 		Ref<AssetSkeletalMesh> m_Skeletal;
 		Ref<GraphNode> m_ResultNode;
-		SkeletalPose m_Pose; // Pose that was calculated by the node during the latest update
+		SkeletalPose m_Pose; // Pose that was calculated by the graph during the latest update
 		std::vector<Ref<AnimationStateMachineGraph>> m_StateMachines;
 
 		// Name - variable

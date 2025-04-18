@@ -229,6 +229,10 @@ namespace Eagle
         // @return. Returns an object that can be used to run compiled logic
         Ref<GraphNode> Compile(VariablesMap& outUsedVars);
 
+        // @node. Node to parse from.
+        // @compiledGraphs. Required to prevent infinite recursion when processing pose caches.
+        virtual Ref<GraphNode> Compile_Internal(Node* node, VariablesMap& outUsedVars, std::unordered_set<UIGraph*>& compiledGraphs);
+
         void SetupNodeFactory();
 
         virtual void DrawNodes();
@@ -373,10 +377,7 @@ namespace Eagle
         virtual void Deserialize_Internal(const GraphEditorSerializationData& editorData, const GraphSerializationData& data, std::vector<UIGraph*>& deserializedGraphs, std::vector<PoseCacheGetterDeserializationData>& poseCacheGetterData);
 
     protected:
-        // @node. Node to parse from.
-        // @compiledGraphs. Required to prevent infinite recursion when processing pose caches.
-        virtual Ref<GraphNode> Compile_Internal(Node* node, VariablesMap& outUsedVars, std::unordered_set<UIGraph*> compiledGraphs = {});
-        void Parse(Node* node, bool bCloneVars, VariablesMap& outVariables, std::unordered_set<UIGraph*> compiledGraphs = {});
+        void Parse(Node* node, bool bCloneVars, VariablesMap& outVariables, std::unordered_set<UIGraph*>& compiledGraphs);
         void OnStartedRenamingNode(Node* node);
 
     protected:

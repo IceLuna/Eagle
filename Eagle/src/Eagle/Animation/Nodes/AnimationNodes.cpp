@@ -146,7 +146,7 @@ namespace Eagle
 
 	const Ref<AnimationStateMachineGraph>& AnimationGraphStateMachineEntry::GetStateMachine() const
 	{
-		// TODO: I don't like creating a ref each time. Improve it.
+		// TODO: I don't like creating a ref each time. Improve it. Here two refs are created: first from `m_Graph.lock()`; second from `GetRootGraph()`
 		return m_Graph.lock()->GetStateMachine(m_StateMachineIndex);
 	}
 

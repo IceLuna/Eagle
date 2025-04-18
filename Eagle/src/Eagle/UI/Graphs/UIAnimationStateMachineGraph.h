@@ -28,10 +28,6 @@ namespace Eagle
 		GraphSerializationData Serialize() const override;
 		void Deserialize_Internal(const GraphEditorSerializationData& editorData, const GraphSerializationData& data, std::vector<UIGraph*>& deserializedGraphs, std::vector<PoseCacheGetterDeserializationData>& poseCacheGetterData) override;
 
-		// @outUsedVars. Map of variables that were used by this graph
-        // @return. Returns an object that can be used to run compiled logic
-		Ref<GraphNode> Compile_Internal(Node* node, VariablesMap& outUsedVars, std::unordered_set<UIGraph*> compiledGraphs = {}) override;
-
 		void OnVariableRenamed(const std::string& varName, const std::string& newName) override;
 
 	protected:
@@ -47,8 +43,13 @@ namespace Eagle
 		void OnLinkDeleted(const Link& link) override;
 
 	private:
-		Ref<AnimationStateGraph> CompileStateNode(Node* node, const Ref<AssetSkeletalMesh>& skeletalAsset, const Ref<AnimationStateMachineGraph>& stateMachine, VariablesMap& outVariables);
-		Ref<AnimationStateGraph> Parse(Node* node, const Ref<AssetSkeletalMesh>& skeletalAsset, const Ref<AnimationStateMachineGraph>& stateMachine, bool bCloneVars, VariablesMap& outVariables);
+		// @outUsedVars. Map of variables that were used by this graph
+		// @return. Returns an object that can be used to run compiled logic
+		Ref<GraphNode> Compile_Internal(Node* node, VariablesMap& outUsedVars, std::unordered_set<UIGraph*>& compiledGraphs) override;
+
+		Ref<AnimationStateGraph> CompileStateNode(Node* node, const Ref<AssetSkeletalMesh>& skeletalAsset, const Ref<AnimationStateMachineGraph>& stateMachine, VariablesMap& outVariables, std::unordered_set<UIGraph*>& compiledGraphs);
+		Ref<AnimationStateGraph> Parse(Node* node, const Ref<AssetSkeletalMesh>& skeletalAsset, const Ref<AnimationStateMachineGraph>& stateMachine, bool bCloneVars, VariablesMap& outVariables, std::unordered_set<UIGraph*>& compiledGraphs);
+		Ref<GraphNode> ProcessStateNode(Node* stateNode, VariablesMap& outVariables, std::unordered_set<UIGraph*>& compiledGraphs);
 
 	private:
 		ax::NodeEditor::NodeId m_EntryNodeId;
