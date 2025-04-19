@@ -46,6 +46,7 @@ namespace Eagle
 		const Weak<AnimationGraph>& GetGraph() const { return m_Graph; }
 		const std::vector<Ref<GraphNode>>& GetInputNodes() const { return m_Inputs; }
 		const std::vector<Ref<GraphVariable>>& GetInputVariables() const { return m_Variables; }
+		float GetTimeTillAnimationLoops() const { return m_Pose.TimeTillAnimationLoops; }
 
 		void ResetInputs()
 		{

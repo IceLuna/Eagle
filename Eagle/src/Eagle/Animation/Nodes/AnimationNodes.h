@@ -71,6 +71,7 @@ namespace Eagle
 		bool ShouldTransition() const { return m_bTransition; }
 		float GetTransitionTime() const { return m_TransitionTime; }
 		bool ShouldUseSmoothTransition() const { return m_bUseSmoothTransition; }
+		bool ShouldAutoTransition() const { return m_bAutoTransition; }
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -78,6 +79,7 @@ namespace Eagle
 			clone->m_TransitionTime = m_TransitionTime;
 			clone->m_bTransition = m_bTransition;
 			clone->m_bUseSmoothTransition = m_bUseSmoothTransition;
+			clone->m_bAutoTransition = m_bAutoTransition;
 			return clone;
 		}
 
@@ -85,7 +87,8 @@ namespace Eagle
 		float m_TransitionTime = 0.f;
 		bool m_bTransition = false;
 		bool m_bUseSmoothTransition = true;
-		static constexpr size_t s_Inputs = 3;
+		bool m_bAutoTransition = false;
+		static constexpr size_t s_Inputs = 4;
 	};
 
 	class AnimationGraphStateMachineEntry : public AnimationGraphNode

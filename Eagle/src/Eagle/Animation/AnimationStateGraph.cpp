@@ -8,12 +8,25 @@ namespace Eagle
 	{
 		for (auto& connection : m_Connections)
 		{
-			if (auto transitionNode = Cast<AnimationGraphNodeTransitionOutput>(connection.Transition->GetResult()))
+			auto transitionNode = Cast<AnimationGraphNodeTransitionOutput>(connection.Transition->GetResult());
+			if (!transitionNode)
+				continue;
+
+			transitionNode->Update(ts);
+			if (transitionNode->ShouldTransition())
 			{
-				transitionNode->Update(ts);
-				if (transitionNode->ShouldTransition())
+				*outTransitionTime = transitionNode->GetTransitionTime();
+				*outUseSmoothTransition = transitionNode->ShouldUseSmoothTransition();
+				return connection.ConnectedTo;
+			}
+			else if (transitionNode->ShouldAutoTransition())
+			{
+				const float timeTillLoop = GetResult()->GetTimeTillAnimationLoops();
+				const float transitionTime = transitionNode->GetTransitionTime();
+				const bool bTransition = transitionTime >= timeTillLoop; // Start transitioning before animation is about to finish
+				if (bTransition)
 				{
-					*outTransitionTime = transitionNode->GetTransitionTime();
+					*outTransitionTime = timeTillLoop;
 					*outUseSmoothTransition = transitionNode->ShouldUseSmoothTransition();
 					return connection.ConnectedTo;
 				}

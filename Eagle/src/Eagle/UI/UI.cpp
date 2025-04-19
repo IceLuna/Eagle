@@ -1214,6 +1214,7 @@ namespace Eagle::UI
 			UI::PopItemDisabled();
 		}
 
+		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 1.f);
 		ImGui::TextDisabled("(?)");
 		if (ImGui::IsItemHovered())
 		{
@@ -1223,6 +1224,7 @@ namespace Eagle::UI
 			ImGui::PopTextWrapPos();
 			ImGui::EndTooltip();
 		}
+		ImGui::PopStyleVar();
 
 		// Restore
 		for (size_t i = 0; i < disabledCount; ++i)

@@ -70,6 +70,7 @@ namespace Eagle
         // So, `Filter Bones` pose will get a pointer to `EventsToTrigger` of `Animation Clip` node.
         const std::vector<AnimationEvent>* EventsToTrigger_Pointer = nullptr;
 
+        float TimeTillAnimationLoops = FLT_MAX;
         bool bWasFiltered = false;
 
         void Reset()
@@ -81,6 +82,7 @@ namespace Eagle
             TotalRootMotion = {};
             bHasRootMotion = false;
             bWasFiltered = false;
+            TimeTillAnimationLoops = FLT_MAX;
         }
 
         void SetRootMotion(const Transform& rootMotion)

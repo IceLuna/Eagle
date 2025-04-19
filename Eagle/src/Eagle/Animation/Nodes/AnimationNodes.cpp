@@ -122,6 +122,8 @@ namespace Eagle
 			m_TransitionTime = 0.f;
 		if (!Utils::GetValue(m_Inputs[2], m_Variables[2], ts, &m_bUseSmoothTransition))
 			m_bUseSmoothTransition = true;
+		if (!Utils::GetValue(m_Inputs[3], m_Variables[3], ts, &m_bAutoTransition))
+			m_bAutoTransition = false;
 
 		m_CalculatedOnFrame = currentFrame;
 
@@ -207,9 +209,31 @@ namespace Eagle
 			m_PrevTime = CurrentTime;
 			CurrentTime = AnimationSystem::StepForwardAnimTime(animation, CurrentTime, ts * speed, bLoop);
 			AnimationSystem::GetEventsToTrigger(animation, m_PrevTime, CurrentTime, m_PrevSpeed, speed, &m_Pose.EventsToTrigger);
+
+			constexpr float speedDelta = 0.00001f;
+			if (speed > speedDelta)
+			{
+				// Playing forward
+				float durationLeft = animation->Duration - CurrentTime;
+				m_Pose.TimeTillAnimationLoops = durationLeft / (speed * animation->TicksPerSecond);
+			}
+			else if (speed < -speedDelta)
+			{
+				// Playing backwards
+				float durationLeft = CurrentTime; // Simplified version of: `Duration - (Duration - CurrentTime)`
+				m_Pose.TimeTillAnimationLoops = durationLeft / (speed * animation->TicksPerSecond);
+			}
+			else
+			{
+				// Speed is 0
+				m_Pose.TimeTillAnimationLoops = FLT_MAX; // Animation is not playing, so we'll never loop
+			}
 		}
 		else
+		{
 			m_PrevTime = CurrentTime = 0.f;
+			m_Pose.TimeTillAnimationLoops = FLT_MAX;
+		}
 
 		m_CalculatedOnFrame = currentFrame;
 		m_PrevSpeed = speed;

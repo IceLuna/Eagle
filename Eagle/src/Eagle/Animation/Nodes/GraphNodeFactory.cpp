@@ -12,6 +12,7 @@ namespace Eagle
 {
     static const char* s_FrozenTransitionHelpMsg = "If set to false, frozen transition will be used: clip A is frozen while clip B gradually takes over the movement.\
 This kind of transitional blend works well when the two clips/poses are unrelated and smooth transition looks unnatural";
+    static const char* s_AutoTransitionHelpMsg = "When enabled, it'll auto transition. Transition will start when `Transition Time` seconds are left to play. Transition time will be whatever time is left to play";
 
     void GraphNodeFactory::FillCommonNodes(std::unordered_map<std::string, NodeFactoryMap>& factory)
     {
@@ -343,9 +344,11 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
         
         auto& node = graph.AddNode("Transition", ImColor(128, 195, 248), false);
-        node.InputPins.emplace_back(graph.GetNextId(), "Should Transition", PinType::Bool, MakeRef<GraphVariableBool>(false));
+        const ed::PinId shouldTransitionPinID = node.InputPins.emplace_back(graph.GetNextId(), "Should Transition", PinType::Bool, MakeRef<GraphVariableBool>(false)).ID;
         node.InputPins.emplace_back(graph.GetNextId(), "Transition Time", PinType::Float, MakeRef<GraphVariableFloat>(0.1f));
         node.InputPins.emplace_back(graph.GetNextId(), "Smooth Transition", PinType::Bool, MakeRef<GraphVariableBool>(true), s_FrozenTransitionHelpMsg);
+        auto& pin = node.InputPins.emplace_back(graph.GetNextId(), "Auto-Transition", PinType::Bool, MakeRef<GraphVariableBool>(false), s_AutoTransitionHelpMsg);
+        pin.DisableInUIWhenPinIndexIsUsed = shouldTransitionPinID;
 
         node.GraphNode = MakeRef<AnimationGraphNodeTransitionOutput>(graphAsset->GetGraph());
 

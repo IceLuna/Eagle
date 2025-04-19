@@ -2117,16 +2117,18 @@ namespace Eagle
 	{
 		// To restore selection settings
 		auto selectedComp = m_SceneHierarchyPanel.GetSelectedComponentType();
-		auto selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
+		GUID selectedEntityGUID(0, 0);
+		if (Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity())
+			selectedEntityGUID = selectedEntity.GetGUID();
 
 		if (m_EditorState == EditorState::Edit)
 			PlayScene();
 		else if (m_EditorState != EditorState::Edit)
 			StopPlayingScene();
 
-		if (selectedEntity)
+		if (!selectedEntityGUID.IsNull())
 		{
-			selectedEntity = m_CurrentScene->GetEntityByGUID(selectedEntity.GetGUID());
+			Entity selectedEntity = m_CurrentScene->GetEntityByGUID(selectedEntityGUID);
 			m_SceneHierarchyPanel.SetEntitySelected(selectedEntity, selectedComp);
 		}
 	}

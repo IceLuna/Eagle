@@ -703,6 +703,7 @@ namespace Eagle
     void AnimationSystem::CalculateAdditivePose(const SkeletalPose& refPose, const SkeletalPose& sourcePose, const BoneNode& node, SkeletalPose* resultPose)
     {
         Utils::CalculateAdditivePose_Internal(refPose, sourcePose, node, resultPose);
+        resultPose->TimeTillAnimationLoops = sourcePose.TimeTillAnimationLoops; // We're probably interested in the source pose, not reference
     }
 
     void AnimationSystem::ApplyAdditive(const SkeletalPose& targetPose, const SkeletalPose& additivePose, const BoneNode& node, float blendAlpha, SkeletalPose* resultPose)
@@ -719,6 +720,7 @@ namespace Eagle
             resultPose->SetRootMotion(targetPose.GetRootMotion());
             resultPose->TotalRootMotion = targetPose.TotalRootMotion;
         }
+        resultPose->TimeTillAnimationLoops = glm::min(targetPose.TimeTillAnimationLoops, additivePose.TimeTillAnimationLoops);
     }
 
     void AnimationSystem::BlendPoses(const SkeletalPose& pose1, const SkeletalPose& pose2, const BoneNode& node, float blendAlpha, SkeletalPose* outPose)
@@ -762,6 +764,7 @@ namespace Eagle
             outPose->SetRootMotion(pose2.GetRootMotion());
             outPose->TotalRootMotion = pose2.TotalRootMotion;
         }
+        outPose->TimeTillAnimationLoops = glm::min(pose1.TimeTillAnimationLoops, pose2.TimeTillAnimationLoops);
     }
 
     void AnimationSystem::AnimationClip(const SkeletalMeshInfo& skeletal, const SkeletalMeshAnimation* animation, const BoneNode& node, float currentTime, SkeletalPose* outPose)
@@ -798,6 +801,8 @@ namespace Eagle
             outPose->SetRootMotion(pose.GetRootMotion());
             outPose->TotalRootMotion = pose.TotalRootMotion;
         }
+
+        outPose->TimeTillAnimationLoops = pose.TimeTillAnimationLoops;
     }
 
     void AnimationSystem::FinalizePose(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>& outTransforms)

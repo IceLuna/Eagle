@@ -1334,8 +1334,10 @@ namespace Eagle
 
         for (auto& input : node.InputPins)
         {
+            const bool bDrawDisabled = IsPinLinked(input.DisableInUIWhenPinIndexIsUsed);
+
             auto alpha = ImGui::GetStyle().Alpha;
-            if (newLinkPin && !CanCreateLink(newLinkPin, &input) && &input != newLinkPin)
+            if (bDrawDisabled || newLinkPin && !CanCreateLink(newLinkPin, &input) && &input != newLinkPin)
                 alpha = alpha * (48.0f / 255.0f);
 
             builder.Input(input.ID);
