@@ -87,7 +87,15 @@ namespace Eagle
 		{
 			m_TransitioningToState = m_CurrentState->CheckTransitions(ts, &m_TransitionTime, &bUseSmoothTransition);
 			if (m_TransitioningToState)
+			{
+				if (m_TransitionTime < 0.001f)
+				{
+					// Finished transitioning. Update the current state
+					m_CurrentState.reset();
+					std::swap(m_CurrentState, m_TransitioningToState);
+				}
 				m_CurrentTransitionTime = 0.f;
+			}
 		}
 
 		return m_Pose;

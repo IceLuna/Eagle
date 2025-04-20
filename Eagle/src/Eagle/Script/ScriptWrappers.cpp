@@ -1880,6 +1880,41 @@ namespace Eagle
 		Cast<GraphVariableBool>(var)->Value = value;
 	}
 
+	void Script::Eagle_SkeletalMeshComponent_SetAnimGraphVariableInt(GUID entityID, MonoString* monoName, int value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableInt' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		const auto& graph = entity.GetComponent<SkeletalMeshComponent>().GetAnimationGraph();
+		if (!graph)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableInt' for skeletal mesh. Graph is null");
+			return;
+		}
+
+		const std::string name = mono_string_to_utf8(monoName);
+		auto& var = graph->GetVariable(name);
+		if (!var)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableInt' for skeletal mesh. Variable '{}' is not found", name);
+			return;
+		}
+
+		const GraphVariableType varType = var->GetType();
+		if (varType != GraphVariableType::Int)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableInt' for skeletal mesh. Variable '{}' is not an integer", name);
+			return;
+		}
+
+		Cast<GraphVariableInt>(var)->Value = value;
+	}
+
 	void Script::Eagle_SkeletalMeshComponent_SetAnimGraphVariableFloat(GUID entityID, MonoString* monoName, float value)
 	{
 		auto& scene = Scene::GetCurrentScene();
@@ -2072,6 +2107,41 @@ namespace Eagle
 		}
 
 		return Cast<GraphVariableBool>(var)->Value;
+	}
+
+	int Script::Eagle_SkeletalMeshComponent_GetAnimGraphVariableInt(GUID entityID, MonoString* monoName)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableInt' for skeletal mesh. Entity is null");
+			return 0;
+		}
+
+		const auto& graph = entity.GetComponent<SkeletalMeshComponent>().GetAnimationGraph();
+		if (!graph)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableInt' for skeletal mesh. Graph is null");
+			return 0;
+		}
+
+		const std::string name = mono_string_to_utf8(monoName);
+		auto& var = graph->GetVariable(name);
+		if (!var)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableInt' for skeletal mesh. Variable '{}' is not found", name);
+			return 0;
+		}
+
+		const GraphVariableType varType = var->GetType();
+		if (varType != GraphVariableType::Int)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableInt' for skeletal mesh. Variable '{}' is not an integer", name);
+			return 0;
+		}
+
+		return Cast<GraphVariableInt>(var)->Value;
 	}
 
 	float Script::Eagle_SkeletalMeshComponent_GetAnimGraphVariableFloat(GUID entityID, MonoString* monoName)

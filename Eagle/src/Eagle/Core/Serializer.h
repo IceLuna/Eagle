@@ -62,6 +62,7 @@ namespace Eagle
 		GUID CachedOwnerID; // ID of GraphSerializationData
 		uint32_t CachedNodeID = 0;
 		GraphNodeType Type = GraphNodeType::Node;
+		uint32_t AddedCounter = 0u; // Required for serialization so that we know how many times to call "AddPinsCallback" during deserialization
 		std::vector<GraphConnectionData> OutputConnections;
 		std::vector<Ref<GraphVariable>> DefaultValues;
 

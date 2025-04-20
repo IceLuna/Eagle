@@ -65,7 +65,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         animationsCategory["Blend Poses"] = &GraphNodeFactory::SpawnAnimBlendNode;
         animationsCategory["Additive Blend"] = &GraphNodeFactory::SpawnAnimAdditiveBlendNode;
         animationsCategory["Calculate Additive"] = &GraphNodeFactory::SpawnAnimCalculateAdditiveNode;
-        animationsCategory["Select Pose by Bool"] = &GraphNodeFactory::SpawnSelectPoseByBoolNode;
+        animationsCategory["Blend Pose by Bool"] = &GraphNodeFactory::SpawnBlendPoseByBoolNode;
+        animationsCategory["Blend Pose by Int"] = &GraphNodeFactory::SpawnBlendPoseByIntNode;
         animationsCategory["Filter Bones"] = &GraphNodeFactory::SpawnAnimFilterBones;
         animationsCategory["Transform Bone"] = &GraphNodeFactory::SpawnAnimTransformBone;
         animationsCategory["Cache Pose"] = &GraphNodeFactory::SpawnCachePoseNode;
@@ -452,19 +453,75 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         return node;
     }
 
-    Node& GraphNodeFactory::SpawnSelectPoseByBoolNode(UIGraph& graph, const std::string_view name)
+    Node& GraphNodeFactory::SpawnBlendPoseByBoolNode(UIGraph& graph, const std::string_view name)
     {
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "False pose", PinType::Pose);
-        node.InputPins.emplace_back(graph.GetNextId(), "True pose", PinType::Pose);
         node.InputPins.emplace_back(graph.GetNextId(), "Condition", PinType::Bool, MakeRef<GraphVariableBool>(true));
+        node.InputPins.emplace_back(graph.GetNextId(), "False pose", PinType::Pose);
+        node.InputPins.emplace_back(graph.GetNextId(), "False Blend Time", PinType::Float, MakeRef<GraphVariableFloat>(0.1f), "Used to control how long it will take to blend into the pose");
+        node.InputPins.emplace_back(graph.GetNextId(), "True pose", PinType::Pose);
+        node.InputPins.emplace_back(graph.GetNextId(), "True Blend Time", PinType::Float, MakeRef<GraphVariableFloat>(0.1f), "Used to control how long it will take to blend into the pose");
 
         node.OutputPins.emplace_back(graph.GetNextId(), "Output pose", PinType::Pose);
         node.Type = NodeType::Blueprint;
 
-        node.GraphNode = MakeRef<AnimationGraphNodeSelectPoseByBool>(graphAsset->GetGraph());
+        node.GraphNode = MakeRef<AnimationGraphNodeBlendPoseByBool>(graphAsset->GetGraph());
+
+        graph.BuildNode(node);
+        graph.OnNodeAdded(node);
+
+        return node;
+    }
+
+    Node& GraphNodeFactory::SpawnBlendPoseByIntNode(UIGraph& graph, const std::string_view name)
+    {
+        const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
+
+        auto& node = graph.AddNode(name, ImColor(128, 195, 248));
+        node.InputPins.emplace_back(graph.GetNextId(), "Active Pose index", PinType::Int, MakeRef<GraphVariableInt>(0));
+        node.InputPins.emplace_back(graph.GetNextId(), "Pose 0", PinType::Pose);
+        node.InputPins.emplace_back(graph.GetNextId(), "Pose 0 Blend Time", PinType::Float, MakeRef<GraphVariableFloat>(0.1f), "Used to control how long it will take to blend into the pose");
+        node.InputPins.emplace_back(graph.GetNextId(), "Pose 1", PinType::Pose);
+        node.InputPins.emplace_back(graph.GetNextId(), "Pose 1 Blend Time", PinType::Float, MakeRef<GraphVariableFloat>(0.1f), "Used to control how long it will take to blend into the pose");
+
+        node.OutputPins.emplace_back(graph.GetNextId(), "Output pose", PinType::Pose);
+        node.Type = NodeType::Blueprint;
+
+        node.SetAddPinsCallback([](Node& node)
+        {
+            UIGraph& graph = *node.Owner;
+
+            const uint32_t poseIndex = ((uint32_t)node.InputPins.size() - 1) / 2;
+            const std::string poseName = "Pose " + std::to_string(poseIndex);
+            node.InputPins.emplace_back(graph.GetNextId(), poseName, PinType::Pose);
+            node.InputPins.emplace_back(graph.GetNextId(), poseName + " Blend Time", PinType::Float, MakeRef<GraphVariableFloat>(0.1f), "Used to control how long it will take to blend into the pose");
+            node.GraphNode->AddInput();
+            node.GraphNode->AddInput();
+            
+            graph.BuildNode(node);
+        });
+
+        node.SetRemovePinsCallback([](Node& node)
+        {
+            UIGraph& graph = *node.Owner;
+
+            node.InputPins.pop_back();
+            node.InputPins.pop_back();
+            node.GraphNode->PopInput();
+            node.GraphNode->PopInput();
+
+            graph.BuildNode(node);
+        });
+
+        node.SetCanRemovePinsCallback([](const Node& node)
+        {
+            const uint32_t poseIndex = ((uint32_t)node.InputPins.size() - 1) / 2;
+            return poseIndex > 2; // Can't have less than two poses
+        });
+
+        node.GraphNode = MakeRef<AnimationGraphNodeBlendPoseByInt>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);

@@ -72,6 +72,9 @@ namespace Eagle
 			case GraphVariableType::Float:
 				out << YAML::Value << Cast<GraphVariableFloat>(var)->Value;
 				break;
+			case GraphVariableType::Int:
+				out << YAML::Value << Cast<GraphVariableInt>(var)->Value;
+				break;
 			case GraphVariableType::Animation:
 				out << YAML::Value << Cast<GraphVariableAnimation>(var)->Value->GetGUID();
 				break;
@@ -100,6 +103,9 @@ namespace Eagle
 		{
 		case GraphVariableType::Bool:
 			result = MakeRef<GraphVariableBool>(valueNode ? valueNode.as<bool>() : false);
+			break;
+		case GraphVariableType::Int:
+			result = MakeRef<GraphVariableInt>(valueNode ? valueNode.as<int>() : 0);
 			break;
 		case GraphVariableType::Float:
 			result = MakeRef<GraphVariableFloat>(valueNode ? valueNode.as<float>() : 0.f);
@@ -148,6 +154,7 @@ namespace Eagle
 			out << YAML::Key << "CachedOwnerID" << YAML::Value << node.CachedOwnerID;
 			out << YAML::Key << "CachedNodeID" << YAML::Value << node.CachedNodeID;
 			out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(node.Type);
+			out << YAML::Key << "AddedCounter" << YAML::Value << node.AddedCounter;
 			if (node.UserData.empty() == false)
 				out << YAML::Key << "UserData" << YAML::Value << node.UserData;
 
@@ -221,9 +228,9 @@ namespace Eagle
 			if (auto cachedNode = nodeNode["CachedNodeID"])
 				nodeData.CachedNodeID = cachedNode.as<uint32_t>();
 			if (auto typeNode = nodeNode["Type"])
-			{
 				nodeData.Type = Utils::GetEnumFromName<GraphNodeType>(typeNode.as<std::string>());
-			}
+			if (auto counterNode = nodeNode["AddedCounter"])
+				nodeData.AddedCounter = counterNode.as<uint32_t>();
 			if (auto userDataNode = nodeNode["UserData"])
 				nodeData.UserData = userDataNode.as<std::string>();
 

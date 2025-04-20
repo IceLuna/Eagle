@@ -85,7 +85,7 @@ namespace Eagle
         std::string HelpMessage;
         ed::PinId DisableInUIWhenPinIndexIsUsed{}; // When specified pin is used, draw this pin as disabled
 
-        Pin(int id, const char* name, PinType type, const Ref<GraphVariable>& defaultValue = nullptr, const std::string help = "") :
+        Pin(int id, std::string_view name, PinType type, const Ref<GraphVariable>& defaultValue = nullptr, const std::string help = "") :
             ID(id), NodeID(), Name(name), Type(type), Kind(PinKind::Input), Index(0), DefaultValue(defaultValue), HelpMessage(help)
         {
         }
@@ -150,6 +150,48 @@ namespace Eagle
 
         const std::string& GetName() const { return Graph ? UserData : Name; }
         std::string& GetName() { return Graph ? UserData : Name; }
+
+        bool CanAddPins() const { return m_CanAddPinsCallback ? m_CanAddPinsCallback(*this) : true; }
+        bool CanRemovePins() const { return m_CanRemovePinsCallback ? m_CanRemovePinsCallback(*this) : true; }
+
+        bool HasAddPinsCallback() const { return m_AddPinsCallback.operator bool(); }
+        bool HasRemovePinsCallback() const { return m_RemovePinsCallback.operator bool(); }
+
+        void OnAddPins() { m_AddPinsCallback(*this); ++m_AddedCounter; }
+        void OnRemovePins() { m_RemovePinsCallback(*this); if (m_AddedCounter > 0) --m_AddedCounter; }
+
+        template <typename Func>
+        void SetAddPinsCallback(Func&& func)
+        {
+            m_AddPinsCallback = std::move(func);
+        }
+
+        template <typename Func>
+        void SetRemovePinsCallback(Func&& func)
+        {
+            m_RemovePinsCallback = std::move(func);
+        }
+
+        template <typename Func>
+        void SetCanAddPinsCallback(Func&& func)
+        {
+            m_CanAddPinsCallback = std::move(func);
+        }
+
+        template <typename Func>
+        void SetCanRemovePinsCallback(Func&& func)
+        {
+            m_CanRemovePinsCallback = std::move(func);
+        }
+
+        uint32_t GetAddedCounter() const { return m_AddedCounter; }
+
+    private:
+        std::function<void(Node& node)> m_AddPinsCallback;
+        std::function<bool(const Node& node)> m_CanAddPinsCallback;
+        std::function<void(Node& node)> m_RemovePinsCallback;
+        std::function<bool(const Node& node)> m_CanRemovePinsCallback;
+        uint32_t m_AddedCounter = 0u; // Required for serialization so that we know how many times to call "AddPinsCallback" during deserialization
     };
 
     struct Link
@@ -199,7 +241,7 @@ namespace Eagle
         case PinType::Bool:      return ImColor(220, 48, 48);
         case PinType::Int:       return ImColor(68, 201, 156);
         case PinType::Float:     return ImColor(147, 226, 74);
-        case PinType::Vec4:      return ImColor(47, 226, 174);
+        case PinType::Vec4:      return ImColor(247, 226,  74);
         case PinType::String:    return ImColor(124, 21, 153);
         case PinType::Object:    return ImColor(51, 150, 215);
         case PinType::Pose:      return ImColor(255, 150, 25);

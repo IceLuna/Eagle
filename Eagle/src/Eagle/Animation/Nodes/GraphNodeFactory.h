@@ -7,7 +7,7 @@ namespace Eagle
     enum class PinType;
 
     typedef Node& (*CreateNodeFunc)(UIGraph& graph, const std::string_view name);
-    using NodeFactoryMap = std::unordered_map<std::string, CreateNodeFunc>; // Key: Node name; Value: Node-creation function
+    using NodeFactoryMap = std::map<std::string, CreateNodeFunc>; // Key: Node name; Value: Node-creation function
 
 	class GraphNodeFactory
 	{
@@ -42,7 +42,8 @@ namespace Eagle
         static Node& SpawnAnimCalculateAdditiveNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnAnimAdditiveBlendNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnAnimClipNode(UIGraph& graph, const std::string_view name);
-        static Node& SpawnSelectPoseByBoolNode(UIGraph& graph, const std::string_view name);
+        static Node& SpawnBlendPoseByBoolNode(UIGraph& graph, const std::string_view name);
+        static Node& SpawnBlendPoseByIntNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnAnimFilterBones(UIGraph& graph, const std::string_view name);
         static Node& SpawnAnimTransformBone(UIGraph& graph, const std::string_view name);
         static Node& SpawnCachePoseNode(UIGraph& graph, const std::string_view name);

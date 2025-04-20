@@ -9,6 +9,7 @@ namespace Eagle
 	enum class GraphVariableType
 	{
 		Bool = 0,
+		Int,
 		Float,
 		Animation,
 		String,
@@ -64,6 +65,32 @@ namespace Eagle
 		virtual bool HasValue() const override { return true; }
 
 		bool Value = false;
+	};
+
+	class GraphVariableInt : public GraphVariable
+	{
+	public:
+		GraphVariableInt(int val = 0) : GraphVariable(GraphVariableType::Int), Value(val) {}
+
+		GraphVariableInt(const Ref<GraphVariableInt>& other)
+			: GraphVariable(other)
+			, Value(other->Value)
+		{}
+
+		bool CopyValue(const Ref<GraphVariable>& other) override
+		{
+			EG_CORE_ASSERT(other);
+			auto casted = Cast<GraphVariableInt>(other);
+			if (!casted)
+				return false;
+
+			Value = casted->Value;
+			return true;
+		}
+
+		virtual bool HasValue() const override { return true; }
+
+		int Value = 0;
 	};
 
 	class GraphVariableFloat : public GraphVariable
@@ -181,6 +208,8 @@ namespace Eagle
 			return MakeRef<GraphVariableBool>(Cast<GraphVariableBool>(var));
 		case GraphVariableType::Float:
 			return MakeRef<GraphVariableFloat>(Cast<GraphVariableFloat>(var));
+		case GraphVariableType::Int:
+			return MakeRef<GraphVariableInt>(Cast<GraphVariableInt>(var));
 		case GraphVariableType::Animation:
 			return MakeRef<GraphVariableAnimation>(Cast<GraphVariableAnimation>(var));
 		case GraphVariableType::String:

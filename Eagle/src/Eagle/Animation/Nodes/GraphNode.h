@@ -43,6 +43,18 @@ namespace Eagle
 			m_Variables[index].reset();
 		}
 
+		void AddInput()
+		{
+			m_Inputs.emplace_back();
+			m_Variables.emplace_back();
+		}
+
+		void PopInput()
+		{
+			m_Inputs.pop_back();
+			m_Variables.pop_back();
+		}
+
 		const Weak<AnimationGraph>& GetGraph() const { return m_Graph; }
 		const std::vector<Ref<GraphNode>>& GetInputNodes() const { return m_Inputs; }
 		const std::vector<Ref<GraphVariable>>& GetInputVariables() const { return m_Variables; }

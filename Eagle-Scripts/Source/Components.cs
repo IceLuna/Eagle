@@ -870,6 +870,12 @@ namespace Eagle
         }
 
         // Used only if `AnimType` == `AnimationType::Graph`
+        public void SetAnimGraphVariable(string name, int value)
+        {
+            SetAnimGraphVariableInt_Native(Parent.ID, name, value);
+        }
+
+        // Used only if `AnimType` == `AnimationType::Graph`
         public void SetAnimGraphVariable(string name, AssetAnimation value)
         {
             SetAnimGraphVariableAnim_Native(Parent.ID, name, value != null ? value.GetGUID() : GUID.Null());
@@ -891,6 +897,12 @@ namespace Eagle
         public bool GetAnimGraphVariableBool(string name)
         {
             return GetAnimGraphVariableBool_Native(Parent.ID, name);
+        }
+
+        // Used only if `AnimType` == `AnimationType::Graph`
+        public int GetAnimGraphVariableInt(string name)
+        {
+            return GetAnimGraphVariableInt_Native(Parent.ID, name);
         }
 
         // Used only if `AnimType` == `AnimationType::Graph`
@@ -1006,6 +1018,9 @@ namespace Eagle
         internal static extern void SetAnimGraphVariableBool_Native(in GUID entityID, string name, bool value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAnimGraphVariableInt_Native(in GUID entityID, string name, int value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetAnimGraphVariableFloat_Native(in GUID entityID, string name, float value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -1019,6 +1034,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool GetAnimGraphVariableBool_Native(in GUID entityID, string name);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern int GetAnimGraphVariableInt_Native(in GUID entityID, string name);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetAnimGraphVariableFloat_Native(in GUID entityID, string name);

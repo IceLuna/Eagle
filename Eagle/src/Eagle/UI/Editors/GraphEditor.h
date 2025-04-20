@@ -80,6 +80,7 @@ namespace Eagle
             switch (type)
             {
             case GraphVariableType::Bool: return CreateNewVar<GraphVariableBool>(defaultVal, baseName);
+            case GraphVariableType::Int: return CreateNewVar<GraphVariableInt>(defaultVal, baseName);
             case GraphVariableType::Float: return CreateNewVar<GraphVariableFloat>(defaultVal, baseName);
             case GraphVariableType::Animation: return CreateNewVar<GraphVariableAnimation>(defaultVal, baseName);
             case GraphVariableType::String: return CreateNewVar<GraphVariableString>(defaultVal, baseName);
@@ -111,6 +112,7 @@ namespace Eagle
             case PinType::Float: return GraphVariableType::Float;
             case PinType::String: return GraphVariableType::String;
             case PinType::Vec4: return GraphVariableType::Vec4;
+            case PinType::Int: return GraphVariableType::Int;
             case PinType::Object: return GraphVariableType::Animation;
             }
             EG_CORE_ASSERT(false);

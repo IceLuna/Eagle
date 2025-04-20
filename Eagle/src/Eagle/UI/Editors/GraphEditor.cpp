@@ -12,6 +12,7 @@ namespace Eagle
         switch (type)
         {
         case Eagle::GraphVariableType::Bool: return MakeRef<GraphVariableBool>();
+        case Eagle::GraphVariableType::Int: return MakeRef<GraphVariableInt>();
         case Eagle::GraphVariableType::Float: return MakeRef<GraphVariableFloat>();
         case Eagle::GraphVariableType::Animation: return MakeRef<GraphVariableAnimation>();
         case Eagle::GraphVariableType::String: return MakeRef<GraphVariableString>();
@@ -289,6 +290,13 @@ namespace Eagle
                         case GraphVariableType::Float:
                         {
                             auto valueVar = Cast<GraphVariableFloat>(var);
+                            if (UI::PropertyDrag("Value", valueVar->Value))
+                                OnGraphChanged();
+                            break;
+                        }
+                        case GraphVariableType::Int:
+                        {
+                            auto valueVar = Cast<GraphVariableInt>(var);
                             if (UI::PropertyDrag("Value", valueVar->Value))
                                 OnGraphChanged();
                             break;

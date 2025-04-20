@@ -103,6 +103,7 @@ namespace Eagle
         switch (type)
         {
         case GraphVariableType::Bool: return PinType::Bool;
+        case GraphVariableType::Int: return PinType::Int;
         case GraphVariableType::Float: return PinType::Float;
         case GraphVariableType::Animation: return PinType::Object;
         case GraphVariableType::String: return PinType::String;
@@ -455,6 +456,31 @@ namespace Eagle
                         OnStartedRenamingNode(node);
                     ImGui::Separator();
                 }
+
+                if (node->HasAddPinsCallback())
+                {
+                    const bool bCanAdd = node->CanAddPins();
+                    if (!bCanAdd)
+                        UI::PushItemDisabled();
+
+                    if (ImGui::MenuItem("Add Pins"))
+                        node->OnAddPins();
+
+                    if (!bCanAdd)
+                        UI::PopItemDisabled();
+                }
+                if (node->HasRemovePinsCallback())
+                {
+                    const bool bCanRemove = node->CanRemovePins();
+                    if (!bCanRemove)
+                        UI::PushItemDisabled();
+
+                    if (ImGui::MenuItem("Remove Pins"))
+                        node->OnRemovePins();
+
+                    if (!bCanRemove)
+                        UI::PopItemDisabled();
+                }
             }
             else
                 ImGui::Text("Unknown node: %p", m_ContextNodeId.AsPointer());
@@ -536,6 +562,9 @@ namespace Eagle
                         break;
                     case PinType::Float:
                         varName = m_Editor.CreateNewVar<GraphVariableFloat>(m_NewNodeLinkPin->DefaultValue);
+                        break;
+                    case PinType::Int:
+                        varName = m_Editor.CreateNewVar<GraphVariableInt>(m_NewNodeLinkPin->DefaultValue);
                         break;
                     case PinType::Vec4:
                         varName = m_Editor.CreateNewVar<GraphVariableVec4>(m_NewNodeLinkPin->DefaultValue);
@@ -685,6 +714,7 @@ namespace Eagle
             nodeData.CachedOwnerID = node.CachedNode.Owner ? node.CachedNode.Owner->m_ID : GUID(0, 0);
             nodeData.CachedNodeID = (uint32_t)node.CachedNode.NodeID.Get();
             nodeData.UserData = node.UserData;
+            nodeData.AddedCounter = node.GetAddedCounter();
 
             // Inputs default values
             for (const auto& inputPin : node.InputPins)
@@ -719,6 +749,21 @@ namespace Eagle
         return result;
     }
 
+    static void HandleAdditionalPinsCreation(Node* node, uint32_t addCounter)
+    {
+        if (!node)
+            return;
+
+        if (node->HasAddPinsCallback())
+        {
+            while (addCounter > 0)
+            {
+                node->OnAddPins();
+                --addCounter;
+            }
+        }
+    }
+
     void UIGraph::Deserialize_Internal(const GraphEditorSerializationData& editorData, const GraphSerializationData& data, std::vector<UIGraph*>& deserializedGraphs, std::vector<PoseCacheGetterDeserializationData>& poseCacheGetterData)
     {
         deserializedGraphs.push_back(this);
@@ -746,6 +791,7 @@ namespace Eagle
                     for (size_t i = 0; i < inputPinsCount; ++i)
                         node->InputPins[i].DefaultValue = nodeData.DefaultValues[i];
                 }
+                HandleAdditionalPinsCreation(node, nodeData.AddedCounter);
                 continue;
             }
 
@@ -757,12 +803,14 @@ namespace Eagle
                 {
                     Node& createdNode = GraphNodeFactory::SpawnVarNode(*this, nodeData.Name, GetPinType(var->GetType()));
                     ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
+                    HandleAdditionalPinsCreation(&createdNode, nodeData.AddedCounter);
                 }
             }
             else if (nodeData.Type == GraphNodeType::PoseCache)
             {
                 Node& createdNode = GraphNodeFactory::SpawnCachePoseNode(*this, nodeData.Name);
                 ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
+                HandleAdditionalPinsCreation(&createdNode, nodeData.AddedCounter);
             }
             else if (nodeData.Type == GraphNodeType::PoseCacheGetter)
             {
@@ -771,6 +819,7 @@ namespace Eagle
                 const Node* cached = nullptr;
                 Node& createdNode = GraphNodeFactory::SpawnCachePoseGetterNode(*this, cached);
                 ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
+                HandleAdditionalPinsCreation(&createdNode, nodeData.AddedCounter);
 
                 auto& data = poseCacheGetterData.emplace_back();
                 data.Owner = m_ID;
@@ -791,6 +840,7 @@ namespace Eagle
                         ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
                         ed::SetGroupSize(createdNode.ID, createdNode.Size);
                         createdNode.UserData = nodeData.UserData;
+                        HandleAdditionalPinsCreation(&createdNode, nodeData.AddedCounter);
 
                         // Set default values
                         const size_t inputPinsCount = createdNode.InputPins.size();
@@ -1378,6 +1428,15 @@ namespace Eagle
                     Ref<GraphVariableFloat> value = Cast<GraphVariableFloat>(input.DefaultValue);
                     ImGui::PushItemWidth(50.f);
                     if (ImGui::DragFloat("##v", &value->Value, 0.01f))
+                        m_Editor.OnGraphChanged();
+                    ImGui::PopItemWidth();
+                    ImGui::Spring(0);
+                }
+                else if (input.Type == PinType::Int)
+                {
+                    Ref<GraphVariableInt> value = Cast<GraphVariableInt>(input.DefaultValue);
+                    ImGui::PushItemWidth(50.f);
+                    if (ImGui::DragInt("##v", &value->Value))
                         m_Editor.OnGraphChanged();
                     ImGui::PopItemWidth();
                     ImGui::Spring(0);

@@ -484,6 +484,12 @@ namespace Eagle
 										bEntityChanged |= UI::Property(name, boolVar->Value);
 										break;
 									}
+									case GraphVariableType::Int:
+									{
+										auto intVar = Cast<GraphVariableInt>(var);
+										bEntityChanged |= UI::PropertyDrag(name, intVar->Value);
+										break;
+									}
 									case GraphVariableType::Float:
 									{
 										auto floatVar = Cast<GraphVariableFloat>(var);

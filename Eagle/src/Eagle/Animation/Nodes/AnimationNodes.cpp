@@ -41,11 +41,12 @@ namespace Eagle
 		{
 			using VariableType =
 				std::conditional_t<std::is_same<bool, T>::value, GraphVariableBool,
+				std::conditional_t<std::is_same<int, T>::value, GraphVariableInt,
 				std::conditional_t<std::is_same<float, T>::value, GraphVariableFloat,
 				std::conditional_t<std::is_same<Ref<AssetAnimation>, T>::value, GraphVariableAnimation,
 				std::conditional_t<std::is_same<std::string, T>::value, GraphVariableString,
 				std::conditional_t<std::is_same<glm::vec4, T>::value, GraphVariableVec4,
-				void>>>>>;
+				void>>>>>>;
 
 			if (variable)
 			{
@@ -403,7 +404,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeSelectPoseByBool::Update(Timestep ts)
+	const SkeletalPose& AnimationGraphNodeBlendPoseByBool::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -412,20 +413,136 @@ namespace Eagle
 		m_Pose.Reset();
 
 		bool bValue = false;
-		Utils::GetValue(m_Inputs[2], m_Variables[2], ts, &bValue);
+		Utils::GetValue(m_Inputs[0], m_Variables[0], ts, &bValue);
 
-		if (bValue == false)
+		if (bValue != bPrevValue)
 		{
-			if (m_Inputs[0])
-				m_Pose = m_Inputs[0]->Update(ts);
+			bTransitioning = true;
+			m_CurrentTransitionTime = 0.f;
+		}
+
+		float transitionTime = 0.f;
+		if (bTransitioning)
+		{
+			if (bValue == false)
+				Utils::GetValue(m_Inputs[2], m_Variables[2], ts, &transitionTime); // False pose blend time
+			else
+				Utils::GetValue(m_Inputs[4], m_Variables[4], ts, &transitionTime); // True pose blend time
+
+			transitionTime = glm::max(transitionTime, 0.f);
+			if (transitionTime < 0.001f)
+				bTransitioning = false;
+		}
+
+		const SkeletalPose* falsePose = nullptr;
+		const SkeletalPose* truePose = nullptr;
+
+		if ((bTransitioning || !bValue) && m_Inputs[1])
+			falsePose = &m_Inputs[1]->Update(ts);
+
+		if ((bTransitioning || bValue) && m_Inputs[3])
+			truePose = &m_Inputs[3]->Update(ts);
+
+		if (bTransitioning)
+		{
+			const float weight = glm::clamp(m_CurrentTransitionTime / transitionTime, 0.f, 1.f);
+			m_CurrentTransitionTime += ts;
+
+			AnimationSystem::BlendPoses(falsePose ? *falsePose : SkeletalPose{}, truePose ? *truePose : SkeletalPose{}, m_Skeletal->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
+			if (m_CurrentTransitionTime >= transitionTime)
+			{
+				// Finished transitioning
+				bTransitioning = false;
+			}
 		}
 		else
 		{
-			if (m_Inputs[1])
-				m_Pose = m_Inputs[1]->Update(ts);
+			if (falsePose)
+				m_Pose = *falsePose;
+			else if (truePose)
+				m_Pose = *truePose;
 		}
 
 		m_CalculatedOnFrame = currentFrame;
+		bPrevValue = bValue;
+
+		return m_Pose;
+	}
+
+	const SkeletalPose& AnimationGraphNodeBlendPoseByInt::Update(Timestep ts)
+	{
+		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
+		if (currentFrame <= m_CalculatedOnFrame)
+			return m_Pose;
+
+		m_Pose.Reset();
+
+		int value = 0;
+		if (Utils::GetValueFromVariable(m_Variables[0], &value))
+			value = glm::max(value, 0);
+
+		if (value != m_PrevValue)
+		{
+			bTransitioning = true;
+			m_CurrentTransitionTime = 0.f;
+			m_ValueBeforeTransition = m_PrevValue;
+		}
+
+		// Order is defined by `SpawnBlendPoseByIntNode()`.
+		// First one is always the value, and then poses are enumerated: value; pose 0; pose 0 transition time; pose 1; pose 1 transition time; etc...
+		// That's why we apply `* 2 + 1/2` to move to correct index
+		const uint32_t prevPoseValue = m_ValueBeforeTransition;
+		const uint32_t prevPoseIndex = prevPoseValue * 2 + 1;
+		const uint32_t prevPoseTransitionTimeIndex = prevPoseValue * 2 + 2;
+
+		const uint32_t currentPoseIndex = value * 2 + 1;
+		const uint32_t currentPoseTransitionTimeIndex = value * 2 + 2;
+
+		const bool bValidIndex = currentPoseTransitionTimeIndex < uint32_t(m_Inputs.size());
+
+		float transitionTime = 0.f;
+		if (bTransitioning && bValidIndex)
+		{
+			const uint32_t& idx = currentPoseTransitionTimeIndex;
+			Utils::GetValue(m_Inputs[idx], m_Variables[idx], ts, &transitionTime);
+			transitionTime = glm::max(transitionTime, 0.f);
+			if (transitionTime < 0.001f)
+				bTransitioning = false;
+		}
+
+		const SkeletalPose* prevPose = nullptr;
+		const SkeletalPose* currentPose = nullptr;
+
+		const bool bValidPrevIndex = prevPoseTransitionTimeIndex < uint32_t(m_Inputs.size());
+		if (bTransitioning && bValidPrevIndex && m_Inputs[prevPoseIndex])
+		{
+			prevPose = &m_Inputs[prevPoseIndex]->Update(ts);
+		}
+
+		if (bValidIndex && m_Inputs[currentPoseIndex])
+		{
+			currentPose = &m_Inputs[currentPoseIndex]->Update(ts);
+		}
+
+		if (bTransitioning)
+		{
+			const float weight = glm::clamp(m_CurrentTransitionTime / transitionTime, 0.f, 1.f);
+			m_CurrentTransitionTime += ts;
+
+			AnimationSystem::BlendPoses(prevPose ? *prevPose : SkeletalPose{}, currentPose ? *currentPose : SkeletalPose{}, m_Skeletal->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
+			if (m_CurrentTransitionTime >= transitionTime)
+			{
+				// Finished transitioning
+				bTransitioning = false;
+			}
+		}
+		else if (currentPose)
+		{
+			m_Pose = *currentPose;
+		}
+
+		m_CalculatedOnFrame = currentFrame;
+		m_PrevValue = value;
 
 		return m_Pose;
 	}

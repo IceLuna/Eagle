@@ -218,20 +218,43 @@ namespace Eagle
 		static constexpr size_t s_Inputs = 2;
 	};
 
-	class AnimationGraphNodeSelectPoseByBool : public AnimationGraphNode
+	class AnimationGraphNodeBlendPoseByBool : public AnimationGraphNode
 	{
 	public:
-		AnimationGraphNodeSelectPoseByBool(const Weak<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
+		AnimationGraphNodeBlendPoseByBool(const Weak<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
 
 		const SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
-			return AnimationGraphNode::CloneNode<AnimationGraphNodeSelectPoseByBool>(newGraph);
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeBlendPoseByBool>(newGraph);
 		}
 
 	private:
-		static constexpr size_t s_Inputs = 3;
+		float m_CurrentTransitionTime = 0.f;
+		bool bTransitioning = false;
+		bool bPrevValue = false;
+		static constexpr size_t s_Inputs = 5;
+	};
+
+	class AnimationGraphNodeBlendPoseByInt : public AnimationGraphNode
+	{
+	public:
+		AnimationGraphNodeBlendPoseByInt(const Weak<AnimationGraph>& graph, uint32_t numInputs = s_Inputs) : AnimationGraphNode(graph, numInputs) {}
+
+		const SkeletalPose& Update(Timestep ts) override;
+
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		{
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeBlendPoseByInt>(newGraph, uint32_t(m_Inputs.size()));
+		}
+
+	private:
+		int m_ValueBeforeTransition = 0;
+		int m_PrevValue = 0;
+		float m_CurrentTransitionTime = 0.f;
+		bool bTransitioning = false;
+		static constexpr size_t s_Inputs = 5; // Initially we have 5 inputs. Can be increased
 	};
 
 	class AnimationGraphNodeCachePose : public AnimationGraphNode
