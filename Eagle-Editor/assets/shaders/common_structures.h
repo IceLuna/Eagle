@@ -14,30 +14,44 @@ using vec4 = glm::vec4;
 
 #endif
 
-const uint IsRawValueMask         = 0x8000;
-const uint MaterialIndexMask      = 0xFFFF; // 16 bits per index
+const uint IsRawValueMask          = 0x2000;
+const uint MaterialIndexMask       = 0x3FFF; // 14 bits per index
+const uint TextureChannelIndexMask = 0x3; // 0b11 (two bits)
 
 // Pack 1
-const uint AlbedoIndexOffset      = 0;
-const uint MetalnessIndexOffset   = 16;
-const uint AlbedoIndexMask        = MaterialIndexMask << AlbedoIndexOffset;
-const uint MetalnessIndexMask     = MaterialIndexMask << MetalnessIndexOffset;
+const uint AlbedoIndexOffset               = 0;
+const uint MetalnessIndexOffset            = 14;
+const uint MetalnessTextureChannelOffset   = 28;
+const uint RoughnessTextureChannelOffset   = 30;
+
+const uint AlbedoIndexMask                 = MaterialIndexMask       << AlbedoIndexOffset;
+const uint MetalnessIndexMask              = MaterialIndexMask       << MetalnessIndexOffset;
+const uint MetalnessTextureChannelMask     = TextureChannelIndexMask << MetalnessTextureChannelOffset;
+const uint RoughnessTextureChannelMask     = TextureChannelIndexMask << RoughnessTextureChannelOffset;
 
 // Pack 2
-const uint NormalIndexOffset      = 0;
-const uint RoughnessIndexOffset   = 16;
-const uint NormalIndexMask        = MaterialIndexMask << NormalIndexOffset;
-const uint RoughnessIndexMask     = MaterialIndexMask << RoughnessIndexOffset;
+const uint NormalIndexOffset               = 0;
+const uint RoughnessIndexOffset            = 14;
+const uint AOTextureChannelOffset          = 28;
+const uint OpacityTextureChannelOffset     = 30;
+
+const uint NormalIndexMask                 = MaterialIndexMask       << NormalIndexOffset;
+const uint RoughnessIndexMask              = MaterialIndexMask       << RoughnessIndexOffset;
+const uint AOTextureChannelMask            = TextureChannelIndexMask << AOTextureChannelOffset;
+const uint OpacityTextureChannelMask       = TextureChannelIndexMask << OpacityTextureChannelOffset;
 
 // Pack 3
-const uint AOIndexOffset          = 0;
-const uint EmissiveIndexOffset    = 16;
-const uint AOIndexMask            = MaterialIndexMask << AOIndexOffset;
-const uint EmissiveIndexMask      = MaterialIndexMask << EmissiveIndexOffset;
+const uint AOIndexOffset                   = 0;
+const uint EmissiveIndexOffset             = 14;
+const uint OpacityMaskTextureChannelOffset = 28;
+
+const uint AOIndexMask                     = MaterialIndexMask       << AOIndexOffset;
+const uint EmissiveIndexMask               = MaterialIndexMask       << EmissiveIndexOffset;
+const uint OpacityMaskTextureChannelMask   = TextureChannelIndexMask << OpacityMaskTextureChannelOffset;
 
 // Pack 4
 const uint OpacityIndexOffset     = 0;
-const uint OpacityMaskIndexOffset = 16;
+const uint OpacityMaskIndexOffset = 14;
 const uint OpacityIndexMask       = MaterialIndexMask << OpacityIndexOffset;
 const uint OpacityMaskIndexMask   = MaterialIndexMask << OpacityMaskIndexOffset;
 
@@ -51,20 +65,27 @@ struct CPUMaterial
 	// Packed indices. 16bits for each index.
 	// Highest bit of the index is used to indicate that the index points into the buffer of raw values (not textures)
 	//
-	// [0-15]  bits Albedo Index
-	// [16-31] bits Metalness Index
+	// [0-13]  bits Albedo Index
+	// [14-27] bits Metalness Index
+	// [28-29] bits Metalness Texture Channel
+	// [30-31] bits Roughness Texture Channel
 	uint PackedIndices;
 
-	// [0-15]  bits Normal Index
-	// [16-31] bits Roughness Index
+	// [0-13]  bits Normal Index
+	// [14-27] bits Roughness Index
+	// [28-29] bits AO Texture Channel
+	// [30-31] bits Opacity Texture Channel
 	uint PackedIndices2;
 
-	// [0-15]  bits AO Index
-	// [16-31] bits Emissive Index
+	// [0-13]  bits AO Index
+	// [14-27] bits Emissive Index
+	// [28-29] bits Opacity Mask Texture Channel
+	// [30-31] bits Unused
 	uint PackedIndices3;
 	
-	// [0-15]  bits Opacity Index
-	// [16-31] bits Opacity Mask Index
+	// [0-13]  bits Opacity Index
+	// [14-27] bits Opacity Mask Index
+	// [28-31] bits Unused
 	uint PackedIndices4;
 
 #ifdef __cplusplus

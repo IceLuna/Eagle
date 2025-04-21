@@ -5,6 +5,11 @@
         Opaque, Translucent, Masked
     }
 
+    public enum TextureChannel
+    {
+        R = 0, G = 1, B = 2, A = 3
+    }
+
     public class Material
     {
         public AssetTexture2D AlbedoAsset;
@@ -15,6 +20,12 @@
         public AssetTexture2D EmissiveAsset;
         public AssetTexture2D OpacityAsset;
         public AssetTexture2D OpacityMaskAsset;
+
+        public TextureChannel MetalnessTextureChannel = TextureChannel.R;
+        public TextureChannel RoughnessTextureChannel = TextureChannel.R;
+        public TextureChannel AOTextureChannel = TextureChannel.R;
+        public TextureChannel OpacityTextureChannel = TextureChannel.R;
+        public TextureChannel OpacityMaskTextureChannel = TextureChannel.R;
 
         public Color3 Albedo = new Color3(0.0f);
         public float Metalness = 0.0f;

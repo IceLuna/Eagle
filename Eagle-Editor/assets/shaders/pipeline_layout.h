@@ -42,7 +42,7 @@ uint FetchMaterialNormalTextureIndex(uint index)
 ShaderMaterial FetchMaterial(uint index, inout vec2 uv)
 {
 	ShaderMaterial result;
-	CPUMaterial material = g_Materials[index];
+	const CPUMaterial material = g_Materials[index];
 
 	result.TilingFactor = material.TilingFactor;
 	uv *= material.TilingFactor;
@@ -57,30 +57,72 @@ ShaderMaterial FetchMaterial(uint index, inout vec2 uv)
 			ReadTexture(albedoIndex, uv).rgb;
 	}
 	else
+	{
 		result.Albedo = vec3(0.f);
+	}
 
 	uint metalnessIndex = Material_GetIndex(material.PackedIndices, MetalnessIndexMask, MetalnessIndexOffset, bRawValue);
 	if (metalnessIndex != EG_INVALID_INDEX)
-		result.Metalness = bRawValue ? g_MaterialRawValues[nonuniformEXT(metalnessIndex)] : ReadTexture(metalnessIndex, uv).x;
+	{
+		if (bRawValue)
+		{
+			result.Metalness = g_MaterialRawValues[nonuniformEXT(metalnessIndex)];
+		}
+		else
+		{
+			bool bUnused;
+			const uint channel = Material_GetIndex(material.PackedIndices, MetalnessTextureChannelMask, MetalnessTextureChannelOffset, bUnused);
+			const vec4 val = ReadTexture(metalnessIndex, uv);
+			result.Metalness = val[channel];
+		}
+	}
 	else
+	{
 		result.Metalness = 0.f;
+	}
 
 	result.NormalTextureIndex = Material_GetIndex(material.PackedIndices2, NormalIndexMask, NormalIndexOffset, bRawValue);
 
 	uint roughnessIndex = Material_GetIndex(material.PackedIndices2, RoughnessIndexMask, RoughnessIndexOffset, bRawValue);
 	if (roughnessIndex != EG_INVALID_INDEX)
 	{
-		result.Roughness = bRawValue ? g_MaterialRawValues[nonuniformEXT(roughnessIndex)] : ReadTexture(roughnessIndex, uv).x;
+		if (bRawValue)
+		{
+			result.Roughness = g_MaterialRawValues[nonuniformEXT(roughnessIndex)];
+		}
+		else
+		{
+			bool bUnused;
+			const uint channel = Material_GetIndex(material.PackedIndices, RoughnessTextureChannelMask, RoughnessTextureChannelOffset, bUnused);
+			const vec4 val = ReadTexture(roughnessIndex, uv);
+			result.Roughness = val[channel];
+		}
 		result.Roughness = max(result.Roughness, EG_MIN_ROUGHNESS);
 	}
 	else
+	{
 		result.Roughness = EG_DEFAULT_ROUGHNESS;
+	}
 
 	uint aoIndex = Material_GetIndex(material.PackedIndices3, AOIndexMask, AOIndexOffset, bRawValue);
 	if (aoIndex != EG_INVALID_INDEX)
-		result.AO = bRawValue ? g_MaterialRawValues[nonuniformEXT(aoIndex)] : ReadTexture(aoIndex, uv).x;
+	{
+		if (bRawValue)
+		{
+			result.AO = g_MaterialRawValues[nonuniformEXT(aoIndex)];
+		}
+		else
+		{
+			bool bUnused;
+			const uint channel = Material_GetIndex(material.PackedIndices2, AOTextureChannelMask, AOTextureChannelOffset, bUnused);
+			const vec4 val = ReadTexture(aoIndex, uv);
+			result.AO = val[channel];
+		}
+	}
 	else
+	{
 		result.AO = EG_DEFAULT_AO;
+	}
 
 	uint emissiveIndex = Material_GetIndex(material.PackedIndices3, EmissiveIndexMask, EmissiveIndexOffset, bRawValue);
 	if (emissiveIndex != EG_INVALID_INDEX)
@@ -90,19 +132,49 @@ ShaderMaterial FetchMaterial(uint index, inout vec2 uv)
 			ReadTexture(emissiveIndex, uv).rgb;
 	}
 	else
+	{
 		result.Emissive = vec3(0.f);
+	}
 
 	uint opacityIndex = Material_GetIndex(material.PackedIndices4, OpacityIndexMask, OpacityIndexOffset, bRawValue);
 	if (opacityIndex != EG_INVALID_INDEX)
-		result.Opacity = bRawValue ? g_MaterialRawValues[nonuniformEXT(opacityIndex)] : ReadTexture(opacityIndex, uv).x;
+	{
+		if (bRawValue)
+		{
+			result.Opacity = g_MaterialRawValues[nonuniformEXT(opacityIndex)];
+		}
+		else
+		{
+			bool bUnused;
+			const uint channel = Material_GetIndex(material.PackedIndices2, OpacityTextureChannelMask, OpacityTextureChannelOffset, bUnused);
+			const vec4 val = ReadTexture(opacityIndex, uv);
+			result.Opacity = val[channel];
+		}
+	}
 	else
+	{
 		result.Opacity = 0.5f;
+	}
 
 	uint opacityMaskIndex = Material_GetIndex(material.PackedIndices4, OpacityMaskIndexMask, OpacityMaskIndexOffset, bRawValue);
 	if (opacityMaskIndex != EG_INVALID_INDEX)
-		result.OpacityMask = bRawValue ? g_MaterialRawValues[nonuniformEXT(opacityMaskIndex)] : ReadTexture(opacityMaskIndex, uv).x;
+	{
+		if (bRawValue)
+		{
+			result.OpacityMask = g_MaterialRawValues[nonuniformEXT(opacityMaskIndex)];
+		}
+		else
+		{
+			bool bUnused;
+			const uint channel = Material_GetIndex(material.PackedIndices3, OpacityMaskTextureChannelMask, OpacityMaskTextureChannelOffset, bUnused);
+			const vec4 val = ReadTexture(opacityMaskIndex, uv);
+			result.OpacityMask = val[channel];
+		}
+	}
 	else
+	{
 		result.OpacityMask = 1.f;
+	}
 
 	result.Albedo *= material.TintColor.rgb;
 	result.Emissive *= material.EmissiveIntensity;

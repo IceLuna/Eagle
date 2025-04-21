@@ -15,6 +15,11 @@ namespace Eagle
 		};
 		static const uint32_t MaxBlendModes = (uint32_t)magic_enum::enum_count<BlendMode>();
 
+		enum class TextureChannel
+		{
+			R = 0, G = 1, B = 2, A = 3
+		};
+
 		virtual ~Material() = default;
 
 		void SetAlbedoAsset(const Ref<AssetTexture2D>& asset)      { if (m_AlbedoAsset == asset)      return; m_AlbedoAsset = asset;      OnMaterialChanged(); }
@@ -25,6 +30,13 @@ namespace Eagle
 		void SetEmissiveAsset(const Ref<AssetTexture2D>& asset)    { if (m_EmissiveAsset == asset)    return; m_EmissiveAsset = asset;    OnMaterialChanged(); }
 		void SetOpacityAsset(const Ref<AssetTexture2D>& asset)     { if (m_OpacityAsset == asset)     return; m_OpacityAsset = asset;     OnMaterialChanged(); }
 		void SetOpacityMaskAsset(const Ref<AssetTexture2D>& asset) { if (m_OpacityMaskAsset == asset) return; m_OpacityMaskAsset = asset; OnMaterialChanged(); }
+
+		// Can be used to select a channel to use for a texture read
+		void SetMetalnessTextureChannel(TextureChannel channel)   { if (m_MetalnessTextureChannel == channel)   return; m_MetalnessTextureChannel = channel;   OnMaterialChanged(); }
+		void SetRoughnessTextureChannel(TextureChannel channel)   { if (m_RoughnessTextureChannel == channel)   return; m_RoughnessTextureChannel = channel;   OnMaterialChanged(); }
+		void SetAOTextureChannel(TextureChannel channel)          { if (m_AOTextureChannel == channel)          return; m_AOTextureChannel = channel;          OnMaterialChanged(); }
+		void SetOpacityTextureChannel(TextureChannel channel)     { if (m_OpacityTextureChannel == channel)     return; m_OpacityTextureChannel = channel;     OnMaterialChanged(); }
+		void SetOpacityMaskTextureChannel(TextureChannel channel) { if (m_OpacityMaskTextureChannel == channel) return; m_OpacityMaskTextureChannel = channel; OnMaterialChanged(); }
 
 		void SetAlbedo(const glm::vec3& value)   { m_Albedo.first      = value;                       if (m_Albedo.second)      OnMaterialChanged(); }
 		void SetMetalness(float value)           { m_Metalness.first   = glm::clamp(value, 0.f, 1.f); if (m_Metalness.second)   OnMaterialChanged(); }
@@ -62,6 +74,12 @@ namespace Eagle
 		const Ref<AssetTexture2D>& GetEmissiveAsset() const { return m_EmissiveAsset; }
 		const Ref<AssetTexture2D>& GetOpacityAsset() const { return m_OpacityAsset; }
 		const Ref<AssetTexture2D>& GetOpacityMaskAsset() const { return m_OpacityMaskAsset; }
+
+		TextureChannel GetMetalnessTextureChannel() const { return m_MetalnessTextureChannel; }
+		TextureChannel GetRoughnessTextureChannel() const { return m_RoughnessTextureChannel; }
+		TextureChannel GetAOTextureChannel() const { return m_AOTextureChannel; }
+		TextureChannel GetOpacityTextureChannel() const { return m_OpacityTextureChannel; }
+		TextureChannel GetOpacityMaskTextureChannel() const { return m_OpacityMaskTextureChannel; }
 
 		glm::vec3 GetAlbedo() const { return m_Albedo.first; }
 		float GetMetalness() const { return m_Metalness.first; }
@@ -108,6 +126,13 @@ namespace Eagle
 		Ref<AssetTexture2D> m_EmissiveAsset;
 		Ref<AssetTexture2D> m_OpacityAsset;
 		Ref<AssetTexture2D> m_OpacityMaskAsset;
+
+		// Can be used to select a channel to use for a texture read
+		TextureChannel m_MetalnessTextureChannel   = TextureChannel::R;
+		TextureChannel m_RoughnessTextureChannel   = TextureChannel::R;
+		TextureChannel m_AOTextureChannel          = TextureChannel::R;
+		TextureChannel m_OpacityTextureChannel     = TextureChannel::R;
+		TextureChannel m_OpacityMaskTextureChannel = TextureChannel::R;
 
 		// Bool indicates if raw values should be used instead of an asset
 		std::pair<glm::vec3, bool> m_Albedo      = { glm::vec3(0.f), true };

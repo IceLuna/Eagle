@@ -43,6 +43,7 @@ namespace Eagle
 		static const char* s_BlendModeHelpMsg = "Translucent materials do not cast shadows!\nUse translucent materials with caution cause rendering them can be expensive";
 		static const char* s_OpacityHelpMsg = "Controls the translucency of the material. 0 - fully transparent, 1 - fully opaque. Default is 0.5";
 		static const char* s_OpacityMaskHelpMsg = "When in Masked mode, a material is either completely visible or completely invisible.\nValues below 0.5 are invisible";
+		static const char* s_TextureChannelHelpMsg = "Can be used to select the texture channel to read from";
 
 		const auto& material = m_Asset->GetMaterial();
 		bool bChanged = false;
@@ -119,6 +120,13 @@ namespace Eagle
 				material->SetRawMetalnessUsed(!bUseTexture);
 				bChanged = true;
 			}
+
+			Material::TextureChannel textureChannel = material->GetMetalnessTextureChannel();
+			if (UI::RadioButtonsEnum("Texture Channel", textureChannel, s_TextureChannelHelpMsg))
+			{
+				material->SetMetalnessTextureChannel(textureChannel);
+				bChanged = true;
+			}
 			
 			UI::EndPropertyGrid();
 		}
@@ -164,6 +172,13 @@ namespace Eagle
 				bChanged = true;
 			}
 
+			Material::TextureChannel textureChannel = material->GetRoughnessTextureChannel();
+			if (UI::RadioButtonsEnum("Texture Channel", textureChannel, s_TextureChannelHelpMsg))
+			{
+				material->SetRoughnessTextureChannel(textureChannel);
+				bChanged = true;
+			}
+
 			UI::EndPropertyGrid();
 		}
 
@@ -190,6 +205,13 @@ namespace Eagle
 			if (UI::Property("Use Texture", bUseTexture))
 			{
 				material->SetRawAOUsed(!bUseTexture);
+				bChanged = true;
+			}
+
+			Material::TextureChannel textureChannel = material->GetAOTextureChannel();
+			if (UI::RadioButtonsEnum("Texture Channel", textureChannel, s_TextureChannelHelpMsg))
+			{
+				material->SetAOTextureChannel(textureChannel);
 				bChanged = true;
 			}
 			
@@ -257,6 +279,13 @@ namespace Eagle
 					material->SetRawOpacityUsed(!bUseTexture);
 					bChanged = true;
 				}
+
+				Material::TextureChannel textureChannel = material->GetOpacityTextureChannel();
+				if (UI::RadioButtonsEnum("Texture Channel", textureChannel, s_TextureChannelHelpMsg))
+				{
+					material->SetOpacityTextureChannel(textureChannel);
+					bChanged = true;
+				}
 				
 				UI::EndPropertyGrid();
 			}
@@ -295,6 +324,13 @@ namespace Eagle
 				if (UI::Property("Use Texture", bUseTexture))
 				{
 					material->SetRawOpacityMaskUsed(!bUseTexture);
+					bChanged = true;
+				}
+
+				Material::TextureChannel textureChannel = material->GetOpacityMaskTextureChannel();
+				if (UI::RadioButtonsEnum("Texture Channel", textureChannel, s_TextureChannelHelpMsg))
+				{
+					material->SetOpacityMaskTextureChannel(textureChannel);
 					bChanged = true;
 				}
 

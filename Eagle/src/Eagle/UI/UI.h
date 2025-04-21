@@ -416,6 +416,45 @@ namespace Eagle::UI
 		return bModified;
 	}
 
+	template <typename Enum>
+	bool RadioButtonsEnum(const std::string_view label, Enum& current, const std::string_view helpMessage = "")
+	{
+		bool bModified = false;
+		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		ImGui::Text(label.data());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+		ImGui::PushID(GetIDBuffer());
+
+		constexpr auto& entries = magic_enum::enum_entries<Enum>();
+		constexpr size_t numEntries = entries.size();
+		int currentInt = int(current);
+		for (size_t i = 0; i < numEntries; ++i)
+		{
+			const auto& entry = entries[i];
+
+			if (ImGui::RadioButton(entry.second.data(), &currentInt, int(entry.first)))
+			{
+				current = (Enum)currentInt;
+				bModified = true;
+			}
+
+			if (i != (numEntries - 1))
+				ImGui::SameLine();
+		}
+
+		ImGui::PopID();
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+		return bModified;
+	}
+
 	bool Button(const std::string_view label, const std::string_view buttonText, const ImVec2& size = ImVec2(0, 0));
 
 	void Tooltip(const std::string_view tooltip, float treshHold = EG_HOVER_THRESHOLD);

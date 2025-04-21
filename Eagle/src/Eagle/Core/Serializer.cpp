@@ -723,6 +723,7 @@ namespace Eagle
 			out << YAML::Key << "MetalnessTexture" << YAML::Value << textureAsset->GetGUID();
 		out << YAML::Key << "Metalness" << YAML::Value << material->GetMetalness();
 		out << YAML::Key << "IsRawMetalnessUsed" << YAML::Value << material->IsRawMetalnessUsed();
+		out << YAML::Key << "MetalnessTextureChannel" << YAML::Value << Utils::GetEnumName(material->GetMetalnessTextureChannel());
 
 		if (const auto& textureAsset = material->GetNormalAsset())
 			out << YAML::Key << "NormalTexture" << YAML::Value << textureAsset->GetGUID();
@@ -731,11 +732,13 @@ namespace Eagle
 			out << YAML::Key << "RoughnessTexture" << YAML::Value << textureAsset->GetGUID();
 		out << YAML::Key << "Roughness" << YAML::Value << material->GetRoughness();
 		out << YAML::Key << "IsRawRoughnessUsed" << YAML::Value << material->IsRawRoughnessUsed();
+		out << YAML::Key << "RoughnessTextureChannel" << YAML::Value << Utils::GetEnumName(material->GetRoughnessTextureChannel());
 
 		if (const auto& textureAsset = material->GetAOAsset())
 			out << YAML::Key << "AOTexture" << YAML::Value << textureAsset->GetGUID();
 		out << YAML::Key << "AO" << YAML::Value << material->GetAO();
 		out << YAML::Key << "IsRawAOUsed" << YAML::Value << material->IsRawAOUsed();
+		out << YAML::Key << "AOTextureChannel" << YAML::Value << Utils::GetEnumName(material->GetAOTextureChannel());
 
 		if (const auto& textureAsset = material->GetEmissiveAsset())
 			out << YAML::Key << "EmissiveTexture" << YAML::Value << textureAsset->GetGUID();
@@ -746,11 +749,13 @@ namespace Eagle
 			out << YAML::Key << "OpacityTexture" << YAML::Value << textureAsset->GetGUID();
 		out << YAML::Key << "Opacity" << YAML::Value << material->GetOpacity();
 		out << YAML::Key << "IsRawOpacityUsed" << YAML::Value << material->IsRawOpacityUsed();
+		out << YAML::Key << "OpacityTextureChannel" << YAML::Value << Utils::GetEnumName(material->GetOpacityTextureChannel());
 
 		if (const auto& textureAsset = material->GetOpacityMaskAsset())
 			out << YAML::Key << "OpacityMaskTexture" << YAML::Value << textureAsset->GetGUID();
 		out << YAML::Key << "OpacityMask" << YAML::Value << material->GetOpacityMask();
 		out << YAML::Key << "IsRawOpacityMaskUsed" << YAML::Value << material->IsRawOpacityMaskUsed();
+		out << YAML::Key << "OpacityMaskTextureChannel" << YAML::Value << Utils::GetEnumName(material->GetOpacityMaskTextureChannel());
 
 		out << YAML::Key << "TintColor" << YAML::Value << material->GetTintColor();
 		out << YAML::Key << "EmissiveIntensity" << YAML::Value << material->GetEmissiveIntensity();
@@ -3260,6 +3265,11 @@ namespace Eagle
 			material->SetMetalness(node.as<float>());
 			material->SetRawMetalnessUsed(baseNode["IsRawMetalnessUsed"].as<bool>());
 		}
+		if (auto node = baseNode["MetalnessTextureChannel"])
+		{
+			const Material::TextureChannel channel = Utils::GetEnumFromName<Material::TextureChannel>(node.as<std::string>());
+			material->SetMetalnessTextureChannel(channel);
+		}
 
 		material->SetNormalAsset(GetAsset<AssetTexture2D>(baseNode["NormalTexture"]));
 
@@ -3269,12 +3279,22 @@ namespace Eagle
 			material->SetRoughness(node.as<float>());
 			material->SetRawRoughnessUsed(baseNode["IsRawRoughnessUsed"].as<bool>());
 		}
+		if (auto node = baseNode["RoughnessTextureChannel"])
+		{
+			const Material::TextureChannel channel = Utils::GetEnumFromName<Material::TextureChannel>(node.as<std::string>());
+			material->SetRoughnessTextureChannel(channel);
+		}
 
 		material->SetAOAsset(GetAsset<AssetTexture2D>(baseNode["AOTexture"]));
 		if (auto node = baseNode["AO"])
 		{
 			material->SetAO(node.as<float>());
 			material->SetRawAOUsed(baseNode["IsRawAOUsed"].as<bool>());
+		}
+		if (auto node = baseNode["AOTextureChannel"])
+		{
+			const Material::TextureChannel channel = Utils::GetEnumFromName<Material::TextureChannel>(node.as<std::string>());
+			material->SetAOTextureChannel(channel);
 		}
 
 		material->SetEmissiveAsset(GetAsset<AssetTexture2D>(baseNode["EmissiveTexture"]));
@@ -3290,12 +3310,22 @@ namespace Eagle
 			material->SetOpacity(node.as<float>());
 			material->SetRawOpacityUsed(baseNode["IsRawOpacityUsed"].as<bool>());
 		}
+		if (auto node = baseNode["OpacityTextureChannel"])
+		{
+			const Material::TextureChannel channel = Utils::GetEnumFromName<Material::TextureChannel>(node.as<std::string>());
+			material->SetOpacityTextureChannel(channel);
+		}
 
 		material->SetOpacityMaskAsset(GetAsset<AssetTexture2D>(baseNode["OpacityMaskTexture"]));
 		if (auto node = baseNode["OpacityMask"])
 		{
 			material->SetOpacityMask(node.as<float>());
 			material->SetRawOpacityMaskUsed(baseNode["IsRawOpacityMaskUsed"].as<bool>());
+		}
+		if (auto node = baseNode["OpacityMaskTextureChannel"])
+		{
+			const Material::TextureChannel channel = Utils::GetEnumFromName<Material::TextureChannel>(node.as<std::string>());
+			material->SetOpacityMaskTextureChannel(channel);
 		}
 
 

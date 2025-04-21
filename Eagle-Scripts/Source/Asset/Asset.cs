@@ -307,7 +307,8 @@ namespace Eagle
                 out GUID albedoTexture, out GUID metalnessTexture, out GUID normalTexture, out GUID roughnessTexture, out GUID aoTexture, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
                 out Color3 albedo, out float metalness, out float roughness, out float ao, out Color3 emissive, out float opacity, out float opacityMask,
                 out bool bUseAlbedoTexture, out bool bUseMetalnessTexture, out bool bUseRoughnessTexture, out bool bUseAOTexture, out bool bUseEmissiveTexture, out bool bUseOpacityTexture, out bool bUseOpacityMaskTexture,
-                out Color4 tint, out Color3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
+                out Color4 tint, out Color3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode,
+                out TextureChannel metalnessTextureChannel, out TextureChannel roughnessTextureChannel, out TextureChannel aoTextureChannel, out TextureChannel opacityTextureChannel, out TextureChannel opacityMaskTextureChannel);
 
             result.AlbedoAsset = new AssetTexture2D(albedoTexture);
             result.MetalnessAsset = new AssetTexture2D(metalnessTexture);
@@ -317,6 +318,12 @@ namespace Eagle
             result.EmissiveAsset = new AssetTexture2D(emissiveTexture);
             result.OpacityAsset = new AssetTexture2D(opacityTexture);
             result.OpacityMaskAsset = new AssetTexture2D(opacityMaskTexture);
+
+            result.MetalnessTextureChannel = metalnessTextureChannel;
+            result.RoughnessTextureChannel = roughnessTextureChannel;
+            result.AOTextureChannel = aoTextureChannel;
+            result.OpacityTextureChannel = opacityTextureChannel;
+            result.OpacityMaskTextureChannel = opacityMaskTextureChannel;
 
             result.Albedo = albedo;
             result.Metalness = metalness;
@@ -359,7 +366,8 @@ namespace Eagle
                 albedoID, metalnessID, normalID, roughnessID, aoID, emissiveID, opacityID, opacityMaskID,
                 ref value.Albedo, value.Metalness, value.Roughness, value.AO, ref value.Emissive, value.Opacity, value.OpacityMask,
                 value.bUseAlbedoTexture, value.bUseMetalnessTexture, value.bUseRoughnessTexture, value.bUseAOTexture, value.bUseEmissiveTexture, value.bUseOpacityTexture, value.bUseOpacityMaskTexture,
-                ref value.TintColor, ref value.EmissiveIntensity, value.TilingFactor, value.BlendMode);
+                ref value.TintColor, ref value.EmissiveIntensity, value.TilingFactor, value.BlendMode,
+                value.MetalnessTextureChannel, value.RoughnessTextureChannel, value.AOTextureChannel, value.OpacityTextureChannel, value.OpacityMaskTextureChannel);
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -367,14 +375,16 @@ namespace Eagle
             out GUID albedoTexture, out GUID metalnessTexture, out GUID normalTexture, out GUID roughnessTexture, out GUID aoTexture, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
             out Color3 albedo, out float metalness, out float roughness, out float ao, out Color3 emissive, out float opacity, out float opacityMask,
             out bool bUseAlbedoTexture, out bool bUseMetalnessTexture, out bool bUseRoughnessTexture, out bool bUseAOTexture, out bool bUseEmissiveTexture, out bool bUseOpacityTexture, out bool bUseOpacityMaskTexture,
-            out Color4 tint, out Color3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
+            out Color4 tint, out Color3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode,
+            out TextureChannel metalnessTextureChannel, out TextureChannel roughnessTextureChannel, out TextureChannel aoTextureChannel, out TextureChannel opacityTextureChannel, out TextureChannel opacityMaskTextureChannel);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetMaterial_Native(in GUID assetID,
             in GUID albedoTexture, in GUID metalnessTexture, in GUID normalTexture, in GUID roughnessTexture, in GUID aoTexture, in GUID emissiveTexture, in GUID opacityTexture, in GUID opacityMaskTexture,
             ref Color3 albedo, float metalness, float roughness, float ao, ref Color3 emissive, float opacity, float opacityMask,
             bool bUseAlbedoTexture, bool bUseMetalnessTexture, bool bUseRoughnessTexture, bool bUseAOTexture, bool bUseEmissiveTexture, bool bUseOpacityTexture, bool bUseOpacityMaskTexture,
-            ref Color4 tint, ref Color3 emissiveIntensity, float tilingFactor, MaterialBlendMode blendMode);
+            ref Color4 tint, ref Color3 emissiveIntensity, float tilingFactor, MaterialBlendMode blendMode,
+            TextureChannel metalnessTextureChannel, TextureChannel roughnessTextureChannel, TextureChannel aoTextureChannel, TextureChannel opacityTextureChannel, TextureChannel opacityMaskTextureChannel);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern GUID Create_Native();

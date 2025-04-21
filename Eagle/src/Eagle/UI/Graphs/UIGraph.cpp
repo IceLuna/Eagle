@@ -761,7 +761,7 @@ namespace Eagle
         return result;
     }
 
-    static void HandlePinsData(Node* node, const GraphNodeSerializationData& nodeData)
+    static void HandlePinsData(Node* node, const GraphNodeSerializationData& nodeData, int& maxID)
     {
         if (!node)
             return;
@@ -788,6 +788,8 @@ namespace Eagle
                 {
                     node->InputPins[i].ID = nodeData.InputPins[i].PinID;
                     node->InputPins[i].DefaultValue = nodeData.InputPins[i].DefaultValue;
+                    if (int(nodeData.InputPins[i].PinID) > maxID)
+                        maxID = int(nodeData.InputPins[i].PinID);
                 }
             }
         }
@@ -803,6 +805,8 @@ namespace Eagle
                 for (size_t i = 0; i < outputPinsCount; ++i)
                 {
                     node->OutputPins[i].ID = nodeData.OutputPins[i];
+                    if (int(nodeData.OutputPins[i]) > maxID)
+                        maxID = int(nodeData.OutputPins[i]);
                 }
             }
         }
@@ -828,7 +832,7 @@ namespace Eagle
             {
                 ed::SetNodePosition(nodeID, ImVec2(nodeData.Position.x, nodeData.Position.y));
                 Node* node = GetOutputNode();
-                HandlePinsData(node, nodeData);
+                HandlePinsData(node, nodeData, maxNodeID);
                 continue;
             }
 
@@ -840,14 +844,14 @@ namespace Eagle
                 {
                     Node& createdNode = GraphNodeFactory::SpawnVarNode(*this, nodeData.Name, GetPinType(var->GetType()));
                     ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
-                    HandlePinsData(&createdNode, nodeData);
+                    HandlePinsData(&createdNode, nodeData, maxNodeID);
                 }
             }
             else if (nodeData.Type == GraphNodeType::PoseCache)
             {
                 Node& createdNode = GraphNodeFactory::SpawnCachePoseNode(*this, nodeData.Name);
                 ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
-                HandlePinsData(&createdNode, nodeData);
+                HandlePinsData(&createdNode, nodeData, maxNodeID);
             }
             else if (nodeData.Type == GraphNodeType::PoseCacheGetter)
             {
@@ -856,7 +860,7 @@ namespace Eagle
                 const Node* cached = nullptr;
                 Node& createdNode = GraphNodeFactory::SpawnCachePoseGetterNode(*this, cached);
                 ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
-                HandlePinsData(&createdNode, nodeData);
+                HandlePinsData(&createdNode, nodeData, maxNodeID);
 
                 auto& data = poseCacheGetterData.emplace_back();
                 data.Owner = m_ID;
@@ -877,7 +881,7 @@ namespace Eagle
                         ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
                         ed::SetGroupSize(createdNode.ID, createdNode.Size);
                         createdNode.UserData = nodeData.UserData;
-                        HandlePinsData(&createdNode, nodeData);
+                        HandlePinsData(&createdNode, nodeData, maxNodeID);
 
                         if (createdNode.Graph)
                         {

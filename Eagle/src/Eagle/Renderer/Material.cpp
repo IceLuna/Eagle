@@ -24,6 +24,11 @@ namespace Eagle
 		, m_EmissiveAsset(other->m_EmissiveAsset)
 		, m_OpacityAsset(other->m_OpacityAsset)
 		, m_OpacityMaskAsset(other->m_OpacityMaskAsset)
+		, m_MetalnessTextureChannel(other->m_MetalnessTextureChannel)
+		, m_RoughnessTextureChannel(other->m_RoughnessTextureChannel)
+		, m_AOTextureChannel(other->m_AOTextureChannel)
+		, m_OpacityTextureChannel(other->m_OpacityTextureChannel)
+		, m_OpacityMaskTextureChannel(other->m_OpacityMaskTextureChannel)
 		, m_TintColor(other->m_TintColor)
 		, m_EmissiveIntensity(other->m_EmissiveIntensity)
 		, m_TilingFactor(other->m_TilingFactor)
@@ -150,20 +155,30 @@ CPUMaterial CPUMaterial::Convert(const Eagle::Ref<Eagle::Material>& material, st
 		opacityMaskIndex = MaterialSystem::OneRawIndex;
 	}
 	
+	const uint32_t metalnessTextureChannel = (uint32_t)material->GetMetalnessTextureChannel();
+	const uint32_t roughnessTextureChannel = (uint32_t)material->GetRoughnessTextureChannel();
+	const uint32_t aoTextureChannel = (uint32_t)material->GetAOTextureChannel();
+	const uint32_t opacityTextureChannel = (uint32_t)material->GetOpacityTextureChannel();
+	const uint32_t opacityMaskTextureChannel = (uint32_t)material->GetOpacityMaskTextureChannel();
 
 	result.PackedIndices = result.PackedIndices2 = result.PackedIndices3 = result.PackedIndices4 = 0u;
 	
 	// Pack 1
 	result.PackedIndices   = ( albedoIndex    & MaterialIndexMask) | (material->IsRawAlbedoUsed()    ? IsRawValueMask : 0u);
 	result.PackedIndices  |= ((metalnessIndex & MaterialIndexMask) | (material->IsRawMetalnessUsed() ? IsRawValueMask : 0u)) << MetalnessIndexOffset;
+	result.PackedIndices  |= (metalnessTextureChannel & TextureChannelIndexMask) << MetalnessTextureChannelOffset;
+	result.PackedIndices  |= (roughnessTextureChannel & TextureChannelIndexMask) << RoughnessTextureChannelOffset;
 
 	// Pack 2
 	result.PackedIndices2  = ( normalIndex    & MaterialIndexMask);
 	result.PackedIndices2 |= ((roughnessIndex & MaterialIndexMask) | (material->IsRawRoughnessUsed() ? IsRawValueMask : 0u)) << RoughnessIndexOffset;
+	result.PackedIndices2 |= (aoTextureChannel      & TextureChannelIndexMask) << AOTextureChannelOffset;
+	result.PackedIndices2 |= (opacityTextureChannel & TextureChannelIndexMask) << OpacityTextureChannelOffset;
 
 	// Pack 3
 	result.PackedIndices3  = ( aoIndex        & MaterialIndexMask) | (material->IsRawAOUsed()        ? IsRawValueMask : 0u);
 	result.PackedIndices3 |= ((emissiveIndex  & MaterialIndexMask) | (material->IsRawEmissiveUsed()  ? IsRawValueMask : 0u)) << EmissiveIndexOffset;
+	result.PackedIndices3 |= (opacityMaskTextureChannel & TextureChannelIndexMask) << OpacityMaskTextureChannelOffset;
 
 	// Pack 4
 	result.PackedIndices4  = ( opacityIndex     & MaterialIndexMask) | (bUseRawOpacity     ? IsRawValueMask : 0u);
