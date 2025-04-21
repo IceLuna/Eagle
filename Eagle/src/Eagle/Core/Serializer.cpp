@@ -53,13 +53,11 @@ namespace Eagle
 		return true;
 	}
 
-	static void SerializeGraphVar(YAML::Emitter& out, const Ref<GraphVariable>& var, int index = -1)
+	static void SerializeGraphVar(YAML::Emitter& out, const Ref<GraphVariable>& var)
 	{
 		GraphVariableType varType = var->GetType();
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(varType);
 		out << YAML::Key << "bShowInUI" << YAML::Value << var->bShowInUI;
-		if (index != -1)
-			out << YAML::Key << "Index" << YAML::Value << index;
 
 		if (var->HasValue())
 		{
@@ -90,12 +88,9 @@ namespace Eagle
 		}
 	}
 
-	static Ref<GraphVariable> DeserializeGraphVar(const YAML::Node& varNode, int* outIndex = nullptr)
+	static Ref<GraphVariable> DeserializeGraphVar(const YAML::Node& varNode)
 	{
 		GraphVariableType varType = Utils::GetEnumFromName<GraphVariableType>(varNode["Type"].as<std::string>());
-		if (outIndex)
-			*outIndex = varNode["Index"].as<int>();
-
 		auto valueNode = varNode["Value"];
 		Ref<GraphVariable> result;
 
@@ -158,19 +153,31 @@ namespace Eagle
 			if (node.UserData.empty() == false)
 				out << YAML::Key << "UserData" << YAML::Value << node.UserData;
 
-			if (node.Type == GraphNodeType::Node)
 			{
-				out << YAML::Key << "DefaultValues" << YAML::Value << YAML::BeginSeq;
-				int index = 0;
-				for (const auto& var : node.DefaultValues)
+				out << YAML::Key << "InputPins" << YAML::Value << YAML::BeginSeq;
+				for (const auto& pin : node.InputPins)
 				{
-					if (var)
+					out << YAML::BeginMap;
+					out << YAML::Key << "ID" << YAML::Value << pin.PinID;
+					if (pin.DefaultValue)
 					{
-						out << YAML::BeginMap;
-						SerializeGraphVar(out, var, index);
+						out << YAML::Key << "DefaultValue" << YAML::Value << YAML::BeginMap;
+						SerializeGraphVar(out, pin.DefaultValue);
 						out << YAML::EndMap;
 					}
-					index++;
+					out << YAML::EndMap;
+				}
+				out << YAML::EndSeq;
+			}
+
+			// Output Pins
+			{
+				out << YAML::Key << "OutputPins" << YAML::Value << YAML::BeginSeq;
+				for (const auto& pinID : node.OutputPins)
+				{
+					out << YAML::BeginMap;
+					out << YAML::Key << "ID" << YAML::Value << pinID;
+					out << YAML::EndMap;
 				}
 				out << YAML::EndSeq;
 			}
@@ -234,16 +241,25 @@ namespace Eagle
 			if (auto userDataNode = nodeNode["UserData"])
 				nodeData.UserData = userDataNode.as<std::string>();
 
-			if (nodeData.Type == GraphNodeType::Node)
 			{
-				const auto defaultValuesNode = nodeNode["DefaultValues"];
-				for (const auto& defaultValNode : defaultValuesNode)
+				const auto inputPinsNode = nodeNode["InputPins"];
+				nodeData.InputPins.reserve(inputPinsNode.size());
+				for (const auto& inputPinNode : inputPinsNode)
 				{
-					int index = 0;
-					Ref<GraphVariable> var = DeserializeGraphVar(defaultValNode, &index);
-					if (size_t(index) >= nodeData.DefaultValues.size())
-						nodeData.DefaultValues.resize(index + 1);
-					nodeData.DefaultValues[index] = var;
+					auto& pinData = nodeData.InputPins.emplace_back();
+					pinData.PinID = inputPinNode["ID"].as<uint32_t>();
+					if (auto defaultValNode = inputPinNode["DefaultValue"])
+						pinData.DefaultValue = DeserializeGraphVar(defaultValNode);
+				}
+			}
+
+			{
+				const auto outputPinsNode = nodeNode["OutputPins"];
+				nodeData.OutputPins.reserve(outputPinsNode.size());
+				for (const auto& outputPinNode : outputPinsNode)
+				{
+					auto& pinID = nodeData.OutputPins.emplace_back();
+					pinID = outputPinNode["ID"].as<uint32_t>();
 				}
 			}
 

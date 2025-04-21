@@ -716,9 +716,21 @@ namespace Eagle
             nodeData.UserData = node.UserData;
             nodeData.AddedCounter = node.GetAddedCounter();
 
-            // Inputs default values
+            // Input pins data
+            nodeData.InputPins.reserve(node.InputPins.size());
             for (const auto& inputPin : node.InputPins)
-                nodeData.DefaultValues.emplace_back(inputPin.DefaultValue);
+            {
+                auto& pinData = nodeData.InputPins.emplace_back();
+                pinData.PinID = (uint32_t)inputPin.ID.Get();
+                pinData.DefaultValue = inputPin.DefaultValue;
+            }
+            // Output pins data
+            nodeData.OutputPins.reserve(node.OutputPins.size());
+            for (const auto& outputPin : node.OutputPins)
+            {
+                auto& pinData = nodeData.OutputPins.emplace_back();
+                pinData = (uint32_t)outputPin.ID.Get();
+            }
 
             // Outputs
             {
@@ -749,17 +761,49 @@ namespace Eagle
         return result;
     }
 
-    static void HandleAdditionalPinsCreation(Node* node, uint32_t addCounter)
+    static void HandlePinsData(Node* node, const GraphNodeSerializationData& nodeData)
     {
         if (!node)
             return;
 
         if (node->HasAddPinsCallback())
         {
+            uint32_t addCounter = nodeData.AddedCounter;
             while (addCounter > 0)
             {
                 node->OnAddPins();
                 --addCounter;
+            }
+        }
+
+        // Restore input pins data
+        {
+            EG_CORE_ASSERT(node->InputPins.size() == nodeData.InputPins.size());
+
+            const size_t defaultValuesCount = nodeData.InputPins.size();
+            const size_t inputPinsCount = node->InputPins.size();
+            if (inputPinsCount == nodeData.InputPins.size()) // Should always match, but this check is here just in case
+            {
+                for (size_t i = 0; i < inputPinsCount; ++i)
+                {
+                    node->InputPins[i].ID = nodeData.InputPins[i].PinID;
+                    node->InputPins[i].DefaultValue = nodeData.InputPins[i].DefaultValue;
+                }
+            }
+        }
+
+        // Restore output pins data
+        {
+            EG_CORE_ASSERT(node->OutputPins.size() == nodeData.OutputPins.size());
+
+            const size_t defaultValuesCount = nodeData.OutputPins.size();
+            const size_t outputPinsCount = node->OutputPins.size();
+            if (outputPinsCount == nodeData.OutputPins.size()) // Should always match, but this check is here just in case
+            {
+                for (size_t i = 0; i < outputPinsCount; ++i)
+                {
+                    node->OutputPins[i].ID = nodeData.OutputPins[i];
+                }
             }
         }
     }
@@ -784,14 +828,7 @@ namespace Eagle
             {
                 ed::SetNodePosition(nodeID, ImVec2(nodeData.Position.x, nodeData.Position.y));
                 Node* node = GetOutputNode();
-                const size_t defaultValuesCount = nodeData.DefaultValues.size();
-                const size_t inputPinsCount = node->InputPins.size();
-                if (inputPinsCount == nodeData.DefaultValues.size()) // Should always match, but this check is here just in case
-                {
-                    for (size_t i = 0; i < inputPinsCount; ++i)
-                        node->InputPins[i].DefaultValue = nodeData.DefaultValues[i];
-                }
-                HandleAdditionalPinsCreation(node, nodeData.AddedCounter);
+                HandlePinsData(node, nodeData);
                 continue;
             }
 
@@ -803,14 +840,14 @@ namespace Eagle
                 {
                     Node& createdNode = GraphNodeFactory::SpawnVarNode(*this, nodeData.Name, GetPinType(var->GetType()));
                     ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
-                    HandleAdditionalPinsCreation(&createdNode, nodeData.AddedCounter);
+                    HandlePinsData(&createdNode, nodeData);
                 }
             }
             else if (nodeData.Type == GraphNodeType::PoseCache)
             {
                 Node& createdNode = GraphNodeFactory::SpawnCachePoseNode(*this, nodeData.Name);
                 ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
-                HandleAdditionalPinsCreation(&createdNode, nodeData.AddedCounter);
+                HandlePinsData(&createdNode, nodeData);
             }
             else if (nodeData.Type == GraphNodeType::PoseCacheGetter)
             {
@@ -819,7 +856,7 @@ namespace Eagle
                 const Node* cached = nullptr;
                 Node& createdNode = GraphNodeFactory::SpawnCachePoseGetterNode(*this, cached);
                 ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
-                HandleAdditionalPinsCreation(&createdNode, nodeData.AddedCounter);
+                HandlePinsData(&createdNode, nodeData);
 
                 auto& data = poseCacheGetterData.emplace_back();
                 data.Owner = m_ID;
@@ -840,15 +877,7 @@ namespace Eagle
                         ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
                         ed::SetGroupSize(createdNode.ID, createdNode.Size);
                         createdNode.UserData = nodeData.UserData;
-                        HandleAdditionalPinsCreation(&createdNode, nodeData.AddedCounter);
-
-                        // Set default values
-                        const size_t inputPinsCount = createdNode.InputPins.size();
-                        if (inputPinsCount == nodeData.DefaultValues.size()) // Should always match, but this check is here just in case
-                        {
-                            for (size_t i = 0; i < inputPinsCount; ++i)
-                                createdNode.InputPins[i].DefaultValue = nodeData.DefaultValues[i];
-                        }
+                        HandlePinsData(&createdNode, nodeData);
 
                         if (createdNode.Graph)
                         {
@@ -2007,21 +2036,25 @@ namespace Eagle
 
     void UIGraph::OnLinkCreated(const Link& link)
     {
-        Pin* startPin = FindPin(link.StartPinID);
-        Pin* endPin = FindPin(link.EndPinID);
+        const Pin* startPinPtr = FindPin(link.StartPinID);
+        const Pin* endPinPtr = FindPin(link.EndPinID);
 
-        if (startPin && endPin)
+        if (startPinPtr && endPinPtr)
         {
+            // Copy to avoid ptr invalidation when pushing back to `InputsPerPin` and `OutputsPerPin`
+            const Pin startPin = *startPinPtr;
+            const Pin endPin = *endPinPtr;
+
             PinConnectionData inputData;
-            inputData.NodeID = startPin->NodeID;
-            inputData.PinIndex = startPin->Index;
+            inputData.NodeID = startPin.NodeID;
+            inputData.PinIndex = startPin.Index;
 
             PinConnectionData outputData;
-            outputData.NodeID = endPin->NodeID;
-            outputData.PinIndex = endPin->Index;
+            outputData.NodeID = endPin.NodeID;
+            outputData.PinIndex = endPin.Index;
 
-            FindNode(startPin->NodeID)->OutputsPerPin[startPin->Index].push_back(outputData);
-            FindNode(endPin->NodeID)->InputsPerPin[endPin->Index].push_back(inputData);
+            FindNode(startPin.NodeID)->OutputsPerPin[startPin.Index].push_back(outputData);
+            FindNode(endPin.NodeID)->InputsPerPin[endPin.Index].push_back(inputData);
 
             m_Editor.OnGraphChanged();
         }
@@ -2029,24 +2062,28 @@ namespace Eagle
 
     void UIGraph::OnLinkDeleted(const Link& link)
     {
-        Pin* startPin = FindPin(link.StartPinID);
-        Pin* endPin = FindPin(link.EndPinID);
+        const Pin* startPinPtr = FindPin(link.StartPinID);
+        const Pin* endPinPtr = FindPin(link.EndPinID);
 
-        if (startPin && endPin)
+        if (startPinPtr && endPinPtr)
         {
-            auto& inputs = FindNode(endPin->NodeID)->InputsPerPin[endPin->Index];
-            auto& outputs = FindNode(startPin->NodeID)->OutputsPerPin[startPin->Index];
+            // Copy to avoid ptr invalidation during changes in `inputs` and `outputs`
+            const Pin startPin = *startPinPtr;
+            const Pin endPin = *endPinPtr;
+
+            auto& inputs = FindNode(endPin.NodeID)->InputsPerPin[endPin.Index];
+            auto& outputs = FindNode(startPin.NodeID)->OutputsPerPin[startPin.Index];
 
             // Erase input
             {
-                auto it = std::find_if(inputs.begin(), inputs.end(), [id = startPin->NodeID](const PinConnectionData& data) { return data.NodeID == id; });
+                auto it = std::find_if(inputs.begin(), inputs.end(), [id = startPin.NodeID](const PinConnectionData& data) { return data.NodeID == id; });
                 if (it != inputs.end())
                     inputs.erase(it);
             }
 
             // Erase output
             {
-                auto it = std::find_if(outputs.begin(), outputs.end(), [id = endPin->NodeID](const PinConnectionData& data) { return data.NodeID == id; });
+                auto it = std::find_if(outputs.begin(), outputs.end(), [id = endPin.NodeID](const PinConnectionData& data) { return data.NodeID == id; });
                 if (it != outputs.end())
                     outputs.erase(it);
             }

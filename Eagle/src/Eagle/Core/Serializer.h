@@ -52,6 +52,12 @@ namespace Eagle
 		Node, Variable, PoseCache, PoseCacheGetter,
 	};
 
+	struct InputPinData
+	{
+		Ref<GraphVariable> DefaultValue;
+		uint32_t PinID = 0u;
+	};
+
 	struct GraphNodeSerializationData
 	{
 		GUID OwnerID; // ID of GraphSerializationData
@@ -64,7 +70,8 @@ namespace Eagle
 		GraphNodeType Type = GraphNodeType::Node;
 		uint32_t AddedCounter = 0u; // Required for serialization so that we know how many times to call "AddPinsCallback" during deserialization
 		std::vector<GraphConnectionData> OutputConnections;
-		std::vector<Ref<GraphVariable>> DefaultValues;
+		std::vector<InputPinData> InputPins;
+		std::vector<uint32_t> OutputPins; // PinID
 
 		std::string UserData; // Used by nodes such as "Comment" to save comment
 	};
