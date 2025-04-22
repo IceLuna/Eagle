@@ -20,6 +20,10 @@ namespace Eagle
 		if (assetType == AssetType::Texture2D)
 		{
 			m_2DSettings.bNormalMap = Utils::IsNormalMap(path);
+			if (m_2DSettings.bNormalMap)
+			{
+				m_2DSettings.FilterMode = FilterMode::Point;
+			}
 		}
 
 		int comp = 1;

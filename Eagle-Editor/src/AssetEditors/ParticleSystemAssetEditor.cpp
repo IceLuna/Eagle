@@ -106,7 +106,7 @@ namespace Eagle
 
 			bChanged |= UI::InputText("Name", emitter.Name);
 
-			ImGui::Separator();
+			UI::TextWithSeparator("Emitter Transformation");
 			{
 				auto& transform = emitter.RelativeTransform;
 				glm::quat quat = transform.Rotation.GetQuat();

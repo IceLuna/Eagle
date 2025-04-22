@@ -58,7 +58,7 @@ namespace Eagle
 		WideCharToMultiByte(65001 /* UTF8 */, 0, wPathString.c_str(), -1, cpath, 2048, NULL, NULL);
 		int width, height, channels;
 		stbi_info(cpath, &width, &height, &channels);
-		if (channels != 3)
+		if (channels < 3)
 			return false;
 
 		const uint32_t desiredChannels = 3;

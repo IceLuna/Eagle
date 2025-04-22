@@ -312,7 +312,7 @@ uint EmitterFlagsToParticleFlags(uint flags)
 	if (HasFlag(flags, Emitter_AdditiveBlending_Mask))
 		result |= Particle_Additive_Mask;
 	if (HasFlag(flags, Emitter_BlendAnimation_Mask))
-		result |= Emitter_BlendAnimation_Mask;
+		result |= Particle_BlendAnimation_Mask;
 
 	return result;
 }

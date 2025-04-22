@@ -206,11 +206,11 @@ void main()
     {
         const float nextLifetime = particle.CurrentLifetime + g_DeltaTime;
         const float animationFPS = emitter.AnimationSpeed * float(emitter.AnimationImagesNum.x * emitter.AnimationImagesNum.y) / particle.Lifetime;
-        const float lifetimeMod = particle.Lifetime - uint(particle.Lifetime / animationFPS) * animationFPS;
-        animationLerp = lifetimeMod / animationFPS;
-
         // Don't update anim if about to die
         uint AdvanceAnimationCount = nextLifetime >= particle.Lifetime ? 0u : uint(nextLifetime * animationFPS) - uint(particle.CurrentLifetime * animationFPS);
+        const float currentLifetime = AdvanceAnimationCount > 0 ? nextLifetime : particle.CurrentLifetime;
+        animationLerp = fract(currentLifetime * animationFPS);
+
         while (AdvanceAnimationCount > 0) // TODO: Advance at once
         {
             Particle_AdvanceAnimation(particle.AnimationSpriteCoord, u16vec2(emitter.AnimationImagesNum));
