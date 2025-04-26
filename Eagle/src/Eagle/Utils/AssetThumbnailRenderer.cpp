@@ -158,7 +158,13 @@ namespace Eagle
 		AABB aabb;
 		for (const auto& emitter : assetCopy->GetEmitters())
 		{
-			aabb.Grow(emitter.VisibilityAABB);
+			// AABB is relative to emitters center. So we need to convert to world space to correctly account for emitters transformation
+			const glm::mat4 emitterTr = Math::ToTransformMatrix(emitter.RelativeTransform);
+			AABB wsAABB = emitter.VisibilityAABB;
+			wsAABB.Min = emitterTr * glm::vec4(wsAABB.Min, 1.f);
+			wsAABB.Max = emitterTr * glm::vec4(wsAABB.Max, 1.f);
+
+			aabb.Grow(wsAABB);
 		}
 
 		const glm::vec3 center = aabb.Center();

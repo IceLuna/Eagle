@@ -132,6 +132,7 @@ struct Emitter
 	uint LoopIteration; // Current loop iteration. When reaches LoopCount, it won't spawn any particles
 };
 
+// TODO: Is it even worth it? 92 bytes (packed) vs 124 bytes (unpacked)
 struct PackedParticle
 {
 	vec2 Size;
@@ -151,6 +152,10 @@ struct PackedParticle
 	uint Emitter_Texture_Indices; // Low 12 bits for texture index, rest is for emitter index. Texture index is stored here to avoid an addition read from emitters buffer just to get this index
 	uint AnimationImagesNum; // Used to calculate SpriteSize, which is used to calculate UV1 from UV0 (uv1 = uv0 + spriteSize)
 	uint AnimationSpriteCoord; // High 16 bits - x, rest - y
+
+	vec2 SizeScale;
+	float RotationZOffset;
+	uint Padding0;
 };
 
 struct MeshVertex
@@ -194,6 +199,9 @@ struct Particle
 	uint TextureIndex;
 	u16vec2 AnimationSpriteCoord;
 	float16_t AnimationLerp;
+
+	vec2 SizeScale;
+	float RotationZOffset;
 };
 
 void Particle_CalculateAnimationUV(u16vec2 coord, u16vec2 animationImagesNum, out vec2 uv0, out vec2 uv1)
@@ -241,6 +249,9 @@ PackedParticle Particle_Pack(Particle particle, u16vec2 animationImagesNum)
 	packed.AnimationImagesNum = packUint2x16(animationImagesNum);
 	packed.AnimationSpriteCoord = packUint2x16(particle.AnimationSpriteCoord);
 
+	packed.SizeScale = particle.SizeScale;
+	packed.RotationZOffset = particle.RotationZOffset;
+
 	return packed;
 }
 
@@ -264,6 +275,9 @@ Particle Particle_Unpack(PackedParticle packed)
 	particle.VelocityCoef = packed.VelocityCoef;
 	particle.Bounciness = unpackedf16.x;
 	particle.Color.a = unpackedf16.y;
+
+	particle.SizeScale = packed.SizeScale;
+	particle.RotationZOffset = packed.RotationZOffset;
 
 	unpackedf16 = unpackFloat2x16(packed.RotationZ_AnimationLerp);
 	particle.RotationZ = unpackedf16.x;

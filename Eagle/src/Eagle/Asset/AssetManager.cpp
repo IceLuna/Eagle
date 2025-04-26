@@ -4,6 +4,7 @@
 #include "Eagle/Core/Project.h"
 #include "Eagle/Core/Serializer.h"
 #include "Eagle/Core/SceneSerializer.h"
+#include "Eagle/Core/ThreadPool.h"
 #include "Eagle/Utils/Compressor.h"
 
 namespace Eagle
@@ -48,13 +49,15 @@ namespace Eagle
 		
 		AssetEntity::s_EntityAssetsScene = MakeRef<Scene>();
 
-		std::array<std::vector<Path>, 5> delayedAssets;
-		for (auto& assets : delayedAssets)
+		// Defines the order for assets loading
+		// All `assetsToLoadQueue[0]` will be loaded first, then [1] and so on.
+		std::array<std::vector<Path>, 6> assetsToLoadQueue;
+		for (auto& assets : assetsToLoadQueue)
 			assets.reserve(25);
 
 		const Path contentPath = Project::GetContentPath();
 		const Path& projectPath = Project::GetProjectPath();
-		// TODO: Multithread
+
 		for (auto& dirEntry : std::filesystem::recursive_directory_iterator(contentPath))
 		{
 			if (dirEntry.is_directory())
@@ -71,46 +74,58 @@ namespace Eagle
 			// Audio: we can't load audios unless all sound groups are loaded since audios refer to them
 			if (type == AssetType::Material || type == AssetType::Audio)
 			{
-				delayedAssets[0].emplace_back(std::move(assetPath));
+				assetsToLoadQueue[1].emplace_back(std::move(assetPath));
 				continue;
 			}
 			// Static & Skeletal meshes: we can't load graphs unless all materials are loaded since meshes refer to them
 			else if (type == AssetType::StaticMesh || type == AssetType::SkeletalMesh)
 			{
-				delayedAssets[1].emplace_back(std::move(assetPath));
+				assetsToLoadQueue[2].emplace_back(std::move(assetPath));
 				continue;
 			}
 			// Animation: we can't load animations unless all skeletal meshes are loaded since animations refer to them
 			// Particle System: we can't load particles unless all skeletal meshes are loaded since particle systems might refer to them
 			else if (type == AssetType::Animation || type == AssetType::ParticleSystem)
 			{
-				delayedAssets[2].emplace_back(std::move(assetPath));
+				assetsToLoadQueue[3].emplace_back(std::move(assetPath));
 				continue;
 			}
 			// Animation Graph: we can't load graphs unless all skeletal meshes & animations are loaded since graphs refer to them
 			else if (type == AssetType::AnimationGraph)
 			{
-				delayedAssets[3].emplace_back(std::move(assetPath));
+				assetsToLoadQueue[4].emplace_back(std::move(assetPath));
 				continue;
 			}
 			// Entity: we can't load entities unless all assets are loaded since entities might refer to anything
 			else if (type == AssetType::Entity)
 			{
-				delayedAssets[4].emplace_back(std::move(assetPath));
+				assetsToLoadQueue[5].emplace_back(std::move(assetPath));
 				continue;
 			}
 
-			EG_CORE_INFO("Loading asset: {}", assetPath.u8string());
-			Register(Asset::Create(assetPath));
+			assetsToLoadQueue[0].emplace_back(std::move(assetPath));
 		}
 
-		for (const auto& assets : delayedAssets)
+		std::mutex mutex;
+		constexpr bool bEnableAsyncLoading = true;
+		const uint32_t threadCount = bEnableAsyncLoading ? std::thread::hardware_concurrency() : 1u;
+		ThreadPool threadPool("AssetManager", threadCount, false);
+
+		auto loadAssetFunc = [&mutex](const Path& assetPath)
+		{
+			EG_CORE_INFO("Loading asset: {}", assetPath.u8string());
+			Ref<Asset> asset = Asset::Create(assetPath);
+			std::scoped_lock lock(mutex);
+			Register(asset);
+		};
+
+		for (const auto& assets : assetsToLoadQueue)
 		{
 			for (const auto& assetPath : assets)
 			{
-				EG_CORE_INFO("Loading asset: {}", assetPath.u8string());
-				Register(Asset::Create(assetPath));
+				threadPool->push_task(loadAssetFunc, assetPath);
 			}
+			threadPool->wait_for_tasks();
 		}
 
 		s_Skybox = AssetTextureCube::Create(Application::GetCorePath() / "assets/textures/IBL.egasset");

@@ -26,6 +26,15 @@ namespace Eagle
 		void RemoveAllParticleSystems();
 		void UpdateTransforms(const std::unordered_set<const ParticleSystemComponent*>& systems);
 
+		// We need to apply scale.XY and rotation.Z only, so instead of decompositing it on GPU side, we'll send it there
+		struct DecompositedTransform
+		{
+			float ScaleX = 0.f;
+			float ScaleY = 0.f;
+			float RotationZ = 0.f; // Radians
+			float Padding0 = 0.f;
+		};
+
 	private:
 		bool AddEmitter(const ParticleEmitter& emitter, const GUID& systemID, const glm::mat4& transform);
 		bool RemoveEmitter(const ParticleEmitter& emitter, const GUID& systemID, bool bForceImmediateRemoval = false);
@@ -112,9 +121,11 @@ namespace Eagle
 		std::vector<DeadEmitterData> m_DeadEmitters;
 
 		std::vector<glm::mat4> m_Transforms;
+		std::vector<DecompositedTransform> m_DecompositedTransforms;
 		std::vector<uint32_t> m_FreeTransformSlots; // Free slots inside of `m_Transforms`
 
 		Ref<Buffer> m_TransformsBuffer;
+		Ref<Buffer> m_DecompositedTransformsBuffer;
 		Ref<Buffer> m_ParticlesBuffer;
 		Ref<Buffer> m_EmittersSpawnCountBuffer;
 		Ref<Buffer> m_EmittersBuffer;

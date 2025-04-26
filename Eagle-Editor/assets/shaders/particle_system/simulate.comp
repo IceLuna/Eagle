@@ -219,9 +219,9 @@ void main()
     }
 
     const float lifeAlpha = particle.CurrentLifetime / particle.Lifetime;
-    const float rotationZ = mix(emitter.RotationZStart, emitter.RotationZEnd, lifeAlpha);
+    const float rotationZ = mix(emitter.RotationZStart, emitter.RotationZEnd, lifeAlpha) - particle.RotationZOffset;
 
-    particle.Size = mix(emitter.SizeStart.xy, emitter.SizeEnd.xy, lifeAlpha);
+    particle.Size = mix(emitter.SizeStart.xy, emitter.SizeEnd.xy, lifeAlpha) * particle.SizeScale;
     particle.CurrentLifetime += g_DeltaTime;
     particle.Position += particle.Velocity * particle.VelocityCoef * g_DeltaTime;
     particle.Flags = EmitterFlagsToParticleFlags(emitter.Flags);

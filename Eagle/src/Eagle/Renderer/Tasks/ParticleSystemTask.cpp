@@ -110,6 +110,18 @@ namespace Eagle
 			outData.WasExplode = emitter.bExplode ? 1u : 0u;
 			outData.LoopIteration = 0u;
 		}
+	
+		static ParticleSystemTask::DecompositedTransform Decompose(const glm::mat4& mat)
+		{
+			const Transform tr = Math::DecomposeTransformMatrix(mat);
+
+			ParticleSystemTask::DecompositedTransform decomposited;
+			decomposited.ScaleX = tr.Scale3D.x;
+			decomposited.ScaleY = tr.Scale3D.y;
+			decomposited.RotationZ = tr.Rotation.EulerAngles().z;
+
+			return decomposited;
+		}
 	}
 
 	ParticleSystemTask::ParticleSystemTask(SceneRenderer& renderer)
@@ -381,13 +393,24 @@ namespace Eagle
 		// Step 6
 		if (bUpdateTransforms)
 		{
-			const size_t size = m_Transforms.size() * sizeof(glm::mat4);
-			if (size > m_TransformsBuffer->GetSize())
 			{
-				const size_t newSize = (size * 12) / 10; // Resize policy: increase by 20%
-				m_TransformsBuffer->Resize(newSize);
+				const size_t size = m_Transforms.size() * sizeof(glm::mat4);
+				if (size > m_TransformsBuffer->GetSize())
+				{
+					const size_t newSize = (size * 12) / 10; // Resize policy: increase by 20%
+					m_TransformsBuffer->Resize(newSize);
+				}
+				cmd->Write(m_TransformsBuffer, m_Transforms.data(), size, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
 			}
-			cmd->Write(m_TransformsBuffer, m_Transforms.data(), size, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			{
+				const size_t size = m_DecompositedTransforms.size() * sizeof(DecompositedTransform);
+				if (size > m_DecompositedTransformsBuffer->GetSize())
+				{
+					const size_t newSize = (size * 12) / 10; // Resize policy: increase by 20%
+					m_DecompositedTransformsBuffer->Resize(newSize);
+				}
+				cmd->Write(m_DecompositedTransformsBuffer, m_DecompositedTransforms.data(), size, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			}
 			bUpdateTransforms = false;
 		}
 		
@@ -491,6 +514,7 @@ namespace Eagle
 		m_Emit->SetBuffer(m_TransformsBuffer, 0, 6);
 		m_Emit->SetBuffer(m_MeshVertexBuffer, 0, 7);
 		m_Emit->SetBuffer(m_MeshIndexBuffer, 0, 8);
+		m_Emit->SetBuffer(m_DecompositedTransformsBuffer, 0, 9);
 
 		cmd->DispatchIndirect(m_Emit, m_DispatchArgs, 0, &pushData);
 
@@ -722,6 +746,7 @@ namespace Eagle
 		{
 			transformIndex = (uint32_t)m_Transforms.size();
 			m_Transforms.emplace_back();
+			m_DecompositedTransforms.emplace_back();
 		}
 		else
 		{
@@ -729,6 +754,7 @@ namespace Eagle
 			m_FreeTransformSlots.pop_back();
 		}
 		m_Transforms[transformIndex] = transform * Math::ToTransformMatrix(emitter.RelativeTransform);
+		m_DecompositedTransforms[transformIndex] = Utils::Decompose(m_Transforms[transformIndex]);
 		auto& emitters = m_SystemToEmittersMapping[systemID];
 		emitters[emitter] = EmitterData{ s_InvalidEmitterIndex, transformIndex }; // Emitter index will be set later
 		AddEmitterMeshData(emitter);
@@ -888,6 +914,7 @@ namespace Eagle
 							// New emitter is found in the old list, so update its state
 							thisRef->m_EmittersToUpdate.emplace_back(emitter, EmitterData{ emitterIndex, transformIndex });
 							thisRef->m_Transforms[transformIndex] = transform * Math::ToTransformMatrix(emitter.RelativeTransform);
+							thisRef->m_DecompositedTransforms[transformIndex] = Utils::Decompose(thisRef->m_Transforms[transformIndex]);
 						}
 					}
 				}
@@ -999,6 +1026,7 @@ namespace Eagle
 					{
 						const uint32_t transformIndex = it->second.TransformIndex;
 						thisRef->m_Transforms[transformIndex] = transform;
+						thisRef->m_DecompositedTransforms[transformIndex] = Utils::Decompose(transform);
 						thisRef->bUpdateTransforms = true;
 					}
 				}
@@ -1031,6 +1059,10 @@ namespace Eagle
 			specs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 			specs.Size = m_MaxEmitters * sizeof(glm::mat4);
 			m_TransformsBuffer = Buffer::Create(specs, "ParticleSystem_Transforms");
+
+			specs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+			specs.Size = m_MaxEmitters * sizeof(DecompositedTransform);
+			m_DecompositedTransformsBuffer = Buffer::Create(specs, "ParticleSystem_DecompositedTransforms");
 
 			specs.Size = m_MaxEmitters * sizeof(uint32_t);
 			m_EmittersSpawnCountBuffer = Buffer::Create(specs, "ParticleSystem_EmittersSpawnCount");

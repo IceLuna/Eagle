@@ -1,6 +1,13 @@
 #include "particle_system/common.h"
 #include "utils.h"
 
+struct DecompositedTransform
+{
+	vec2 Scale;
+	float RotationZ; // Radians
+	float Padding0;
+};
+
 layout(binding = 0) buffer PS_Data
 {
     ParticleSystemData g_Data;
@@ -44,6 +51,11 @@ layout(binding = 7) readonly buffer MeshVerticesBuffer
 layout(binding = 8) readonly buffer MeshIndicesBuffer
 {
     uint g_Indices[];
+};
+
+layout(binding = 9) readonly buffer DecompositedTransformsBuffer
+{
+    DecompositedTransform g_DecompositedTransforms[];
 };
 
 layout(push_constant) uniform PushConstants
@@ -192,6 +204,10 @@ void main()
     particle.TextureIndex = emitter.TextureIndex;
     particle.AnimationSpriteCoord = u16vec2(0);
     particle.AnimationLerp = float16_t(0.f);
+
+    DecompositedTransform decompositedTr = g_DecompositedTransforms[emitter.TransformIndex];
+    particle.SizeScale = decompositedTr.Scale;
+    particle.RotationZOffset = decompositedTr.RotationZ;
 
     g_Particles[particleIndex] = Particle_Pack(particle, u16vec2(emitter.AnimationImagesNum));
     PushAlive(particleIndex);
