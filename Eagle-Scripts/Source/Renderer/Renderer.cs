@@ -240,7 +240,8 @@ namespace Eagle
 		public bool bAlphaBlending;
 		public bool bAdditive;
         public bool bBlendAnimation;
-	}
+		public bool bFaceDirection; // When set to true, particles will face the velocity direction
+    }
 
     public static class Renderer
     {

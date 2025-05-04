@@ -77,7 +77,7 @@ namespace Eagle
 				assetsToLoadQueue[1].emplace_back(std::move(assetPath));
 				continue;
 			}
-			// Static & Skeletal meshes: we can't load graphs unless all materials are loaded since meshes refer to them
+			// Static & Skeletal meshes: we can't load meshes unless all materials are loaded since meshes refer to them
 			else if (type == AssetType::StaticMesh || type == AssetType::SkeletalMesh)
 			{
 				assetsToLoadQueue[2].emplace_back(std::move(assetPath));

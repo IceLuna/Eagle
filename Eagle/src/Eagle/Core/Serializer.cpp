@@ -931,6 +931,7 @@ namespace Eagle
 			out << YAML::Key << "bAlphaBlending" << YAML::Value << emitter.bAlphaBlending;
 			out << YAML::Key << "bAdditive" << YAML::Value << emitter.bAdditive;
 			out << YAML::Key << "bBlendAnimation" << YAML::Value << emitter.bBlendAnimation;
+			out << YAML::Key << "bFaceDirection" << YAML::Value << emitter.bFaceDirection;
 
 			out << YAML::EndMap;
 		}
@@ -3617,6 +3618,8 @@ namespace Eagle
 				emitter.bAdditive = n.as<bool>();
 			if (auto n = node["bBlendAnimation"])
 				emitter.bBlendAnimation = n.as<bool>();
+			if (auto n = node["bFaceDirection"])
+				emitter.bFaceDirection = n.as<bool>();
 		}
 
 		class LocalAssetParticleSystem : public AssetParticleSystem

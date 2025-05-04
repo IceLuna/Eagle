@@ -86,6 +86,7 @@ namespace Eagle
 		bool bAlphaBlending = true;
 		bool bAdditive = false;
 		bool bBlendAnimation = true;
+		bool bFaceDirection = false; // When set to true, particles will face the velocity direction
 
 		bool operator== (const ParticleEmitter& other) const
 		{

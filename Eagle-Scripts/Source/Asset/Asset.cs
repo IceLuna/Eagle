@@ -748,7 +748,7 @@ namespace Eagle
                     out emitters[i].NormalVelocityFactor, out emitters[i].EmissionShape, out emitters[i].SphereRadius, out emitters[i].BoxMin, out emitters[i].BoxMax,
                     out emitters[i].RingRadius, out emitters[i].RingThickness, out meshID, out emitters[i].CollisionMode, out emitters[i].AnimationImagesNum,
                     out emitters[i].AnimationSpeed, out emitters[i].bDestroyImmediately, out emitters[i].bEmit, out emitters[i].bExplode, out emitters[i].bApplyGravity, out emitters[i].bAlphaBlending,
-                    out emitters[i].bAdditive, out emitters[i].bBlendAnimation);
+                    out emitters[i].bAdditive, out emitters[i].bBlendAnimation, out emitters[i].bFaceDirection);
 
                 emitters[i].TextureAsset = new AssetTexture2D(textureID);
                 emitters[i].MeshAsset = new AssetStaticMesh(meshID);
@@ -782,7 +782,7 @@ namespace Eagle
                         emitters[i].NormalVelocityFactor, emitters[i].EmissionShape, ref emitters[i].SphereRadius, ref emitters[i].BoxMin, ref emitters[i].BoxMax,
                         ref emitters[i].RingRadius, ref emitters[i].RingThickness, meshID, emitters[i].CollisionMode, ref emitters[i].AnimationImagesNum,
                         emitters[i].AnimationSpeed, emitters[i].bDestroyImmediately, emitters[i].bEmit, emitters[i].bExplode, emitters[i].bApplyGravity, emitters[i].bAlphaBlending,
-                        emitters[i].bAdditive, emitters[i].bBlendAnimation);
+                        emitters[i].bAdditive, emitters[i].bBlendAnimation, emitters[i].bFaceDirection);
                 }
 
                 SetEmitters_Finish_Native(m_GUID, data);
@@ -814,7 +814,7 @@ namespace Eagle
             float normalVelocityFactor, EmitterEmissionShapeType emissionShape, ref Vector3 sphereRadius, ref Vector3 boxMin, ref Vector3 boxMax,
             ref Vector3 ringRadius, ref Vector3 ringThickness, GUID meshAsset, EmitterCollisionModeType collisionMode, ref UVector2 animationImagesNum,
             float animationSpeed, bool bDestroyImmediately, bool bEmit, bool bExplode, bool bApplyGravity, bool bAlphaBlending,
-            bool bAdditive, bool bBlendAnimation);
+            bool bAdditive, bool bBlendAnimation, bool bFaceDirection);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern string GetEmitter_Native(GUID id, uint index,
@@ -826,6 +826,6 @@ namespace Eagle
             out float normalVelocityFactor, out EmitterEmissionShapeType emissionShape, out Vector3 sphereRadius, out Vector3 boxMin, out Vector3 boxMax,
             out Vector3 ringRadius, out Vector3 ringThickness, out GUID meshAsset, out EmitterCollisionModeType collisionMode, out UVector2 animationImagesNum,
             out float animationSpeed, out bool bDestroyImmediately, out bool bEmit, out bool bExplode, out bool bApplyGravity, out bool bAlphaBlending,
-            out bool bAdditive, out bool bBlendAnimation);
+            out bool bAdditive, out bool bBlendAnimation, out bool bFaceDirection);
     }
 }

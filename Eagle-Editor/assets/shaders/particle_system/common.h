@@ -49,9 +49,11 @@ const uint Emitter_Enabled_Mask            = 1 << 3;
 const uint Emitter_AdditiveBlending_Mask   = 1 << 4;
 const uint Emitter_BlendAnimation_Mask     = 1 << 5;
 const uint Emitter_DestroyImmediately_Mask = 1 << 6;
+const uint Emitter_FaceDirection_Mask      = 1 << 7;
 
 const uint Particle_Additive_Mask = 1 << 0;
 const uint Particle_BlendAnimation_Mask = 1 << 1;
+const uint Particle_FaceDirection_Mask  = 1 << 2;
 
 const uint Particle_TextureIndex_Bits = 12; // 12 bits
 const uint Particle_TextureIndex_Mask = (1 << Particle_TextureIndex_Bits) - 1u; // 0xFFF (12 bits)
@@ -327,6 +329,8 @@ uint EmitterFlagsToParticleFlags(uint flags)
 		result |= Particle_Additive_Mask;
 	if (HasFlag(flags, Emitter_BlendAnimation_Mask))
 		result |= Particle_BlendAnimation_Mask;
+	if (HasFlag(flags, Emitter_FaceDirection_Mask))
+		result |= Particle_FaceDirection_Mask;
 
 	return result;
 }

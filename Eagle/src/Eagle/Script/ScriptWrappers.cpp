@@ -8410,7 +8410,7 @@ namespace Eagle
 		const AABB* visibilityAABB, uint32_t loopCount, uint32_t numParticles, float numParticlesRatio, float radialAcceleration, float tangentialAcceleration,
 		float normalVelocityFactor, ParticleEmitter::EmissionShapeType emissionShape, const glm::vec3* sphereRadius, const glm::vec3* boxMin, const glm::vec3* boxMax,
 		const glm::vec3* ringRadius, const glm::vec3* ringThickness, GUID mesh, ParticleEmitter::CollisionModeType collisionMode, const glm::uvec2* animationImagesNum,
-		float animationSpeed, bool bDestroyImmediately, bool bEmit, bool bExplode, bool bApplyGravity, bool bAlphaBlending, bool bAdditive, bool bBlendAnimation)
+		float animationSpeed, bool bDestroyImmediately, bool bEmit, bool bExplode, bool bApplyGravity, bool bAlphaBlending, bool bAdditive, bool bBlendAnimation, bool bFaceDirection)
 	{
 		std::vector<ParticleEmitter>* emitters = (std::vector<ParticleEmitter>*)data;
 		EG_CORE_ASSERT(emitters->size() >= index);
@@ -8463,6 +8463,7 @@ namespace Eagle
 		emitter.bAlphaBlending = bAlphaBlending;
 		emitter.bAdditive = bAdditive;
 		emitter.bBlendAnimation = bBlendAnimation;
+		emitter.bFaceDirection = bFaceDirection;
 
 		if (texture.IsNull())
 		{
@@ -8525,7 +8526,7 @@ namespace Eagle
 		Transform* relativeTransform, AABB* visibilityAABB, uint32_t* loopCount, uint32_t* numParticles, float* numParticlesRatio, float* radialAcceleration,
 		float* tangentialAcceleration, float* normalVelocityFactor, ParticleEmitter::EmissionShapeType* emissionShape, glm::vec3* sphereRadius, glm::vec3* boxMin,
 		glm::vec3* boxMax, glm::vec3* ringRadius, glm::vec3* ringThickness, GUID* meshAsset, ParticleEmitter::CollisionModeType* collisionMode, glm::uvec2* animationImagesNum,
-		float* animationSpeed, bool* bDestroyImmediately, bool* bEmit, bool* bExplode, bool* bApplyGravity, bool* bAlphaBlending, bool* bAdditive, bool* bBlendAnimation)
+		float* animationSpeed, bool* bDestroyImmediately, bool* bEmit, bool* bExplode, bool* bApplyGravity, bool* bAlphaBlending, bool* bAdditive, bool* bBlendAnimation, bool* bFaceDirection)
 	{
 		Ref<Asset> asset;
 		AssetManager::Get(assetID, &asset);
@@ -8592,6 +8593,7 @@ namespace Eagle
 			*bAlphaBlending = emitter.bAlphaBlending;
 			*bAdditive = emitter.bAdditive;
 			*bBlendAnimation = emitter.bBlendAnimation;
+			*bFaceDirection = emitter.bFaceDirection;
 
 			return mono_string_new(mono_domain_get(), emitter.Name.c_str());
 		}

@@ -56,6 +56,7 @@ namespace Eagle
 			flags |= emitter.bAdditive ? Emitter_AdditiveBlending_Mask : 0;
 			flags |= emitter.bBlendAnimation ? Emitter_BlendAnimation_Mask : 0;
 			flags |= emitter.bDestroyImmediately ? Emitter_DestroyImmediately_Mask : 0;
+			flags |= emitter.bFaceDirection ? Emitter_FaceDirection_Mask : 0;
 
 			return flags;
 		}
@@ -1159,7 +1160,9 @@ namespace Eagle
 			state.FragmentShader = Shader::Create("particle_system/particle.frag", ShaderType::Fragment, transparentDefines);
 			state.ColorAttachments.push_back(colorAttachment);
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Front;
+			// Note: Culling is disabled for "Facing Velocity" particles to render correctly.
+			// TODO: Can we create a separate pipeline for such particles?
+			// state.CullMode = CullMode::Front;
 
 			if (m_BillboardRenderTranslucent)
 				m_BillboardRenderTranslucent->SetState(state);

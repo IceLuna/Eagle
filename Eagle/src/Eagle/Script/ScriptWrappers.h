@@ -706,7 +706,7 @@ namespace Eagle::Script
 		float normalVelocityFactor, ParticleEmitter::EmissionShapeType emissionShape, const glm::vec3* sphereRadius, const glm::vec3* boxMin, const glm::vec3* boxMax,
 		const glm::vec3* ringRadius, const glm::vec3* ringThickness, GUID meshAsset, ParticleEmitter::CollisionModeType collisionMode, const glm::uvec2* animationImagesNum,
 		float animationSpeed, bool bDestroyImmediately, bool bEmit, bool bExplode, bool bApplyGravity, bool bAlphaBlending,
-		bool bAdditive, bool bBlendAnimation);
+		bool bAdditive, bool bBlendAnimation, bool bFaceDirection);
 
 	MonoString* Eagle_AssetParticleSystem_GetEmitter(GUID assetID, uint32_t index,
 		GUID* texture, glm::vec4* colorStart, glm::vec4* colorEnd, glm::vec3* velocityMin, glm::vec3* velocityMax,
@@ -717,7 +717,7 @@ namespace Eagle::Script
 		float* normalVelocityFactor, ParticleEmitter::EmissionShapeType* emissionShape, glm::vec3* sphereRadius, glm::vec3* boxMin, glm::vec3* boxMax,
 		glm::vec3* ringRadius, glm::vec3* ringThickness, GUID* meshAsset, ParticleEmitter::CollisionModeType* collisionMode, glm::uvec2* animationImagesNum,
 		float* animationSpeed, bool* bDestroyImmediately, bool* bEmit, bool* bExplode, bool* bApplyGravity, bool* bAlphaBlending,
-		bool* bAdditive, bool* bBlendAnimation);
+		bool* bAdditive, bool* bBlendAnimation, bool* bFaceDirection);
 
 	// Math
 	glm::quat Eagle_Quat_Mul(const glm::quat& left, const glm::quat& right);

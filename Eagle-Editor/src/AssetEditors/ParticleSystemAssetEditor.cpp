@@ -171,6 +171,7 @@ namespace Eagle
 			bChanged |= UI::Property("Emit", emitter.bEmit);
 			bChanged |= UI::Property("Explode", emitter.bExplode, "If set to true, all particles will be emitted at once. Otherwise, they're emitted sequentially throughout the lifetime");
 			bChanged |= UI::Property("Apply Gravity", emitter.bApplyGravity);
+			bChanged |= UI::Property("Face Direction", emitter.bFaceDirection, "When set to true, particles will face the velocity direction");
 			bChanged |= UI::Property("Alpha Blending", emitter.bAlphaBlending);
 			if (!emitter.bAlphaBlending)
 				UI::PushItemDisabled();

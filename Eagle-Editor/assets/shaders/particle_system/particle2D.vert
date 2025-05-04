@@ -48,6 +48,30 @@ layout(location = 2) flat out uint o_TextureIndex;
 layout(location = 3) flat out uint o_Flags;
 layout(location = 4) out float o_AnimationLerp;
 
+vec3 RotateTowardsVelocity(Particle particle, vec3 quadPos)
+{
+    const float speed = length(particle.Velocity);
+    if (speed < 0.001f)
+    {
+        return quadPos;
+    }
+
+    const vec3 forward = particle.Velocity / speed; // Normalize `particle.Velocity`
+
+    vec3 worldUp = vec3(0.0, 1.0, 0.0);
+    if (abs(dot(forward, worldUp)) > 0.99)
+    {
+        worldUp = vec3(1.0, 0.0, 0.0); // Prevent gimbal lock when aligned
+    }
+
+    // Build an orthonormal basis from forward vector
+    const vec3 right = normalize(cross(worldUp, forward));
+    const vec3 up = cross(forward, right);
+
+    const mat3 rotation = mat3(up, forward, right);
+    return rotation * quadPos;
+}
+
 void main()
 {
 #ifdef EG_PARTICLE_BACK_TO_FRONT
@@ -72,8 +96,17 @@ void main()
     quadPos.xy = rotMat * quadPos.xy;
     quadPos.xy *= particle.Size.xy;
 
-    vec4 position = g_View * vec4(particle.Position, 1.0);
-    position.xyz += quadPos;
+    vec4 position = vec4(particle.Position, 1.0);
+    if (HasFlag(particle.Flags, Particle_FaceDirection_Mask))
+    {
+        position.xyz += RotateTowardsVelocity(particle, quadPos);
+        position = g_View * position;
+    }
+    else
+    {
+        position = g_View * position;
+        position.xyz += quadPos;
+    }
 
     gl_Position = g_Proj * position;
 }
