@@ -32,7 +32,7 @@ namespace Eagle
 		// Called right before ImGui::End() of viewport to allow custom widgets
 		virtual void OnViewportEnd() {}
 
-		bool DrawGuizmo(Transform& transform, int ID, bool bEnabled);
+		bool DrawGuizmo(Transform& transform, bool bEnabled);
 		int GetGuizmoType() const { return m_GuizmoType; }
 
 		void SetSimulationEnabled(bool bEnabled);

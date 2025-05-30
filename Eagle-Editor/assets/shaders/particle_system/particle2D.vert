@@ -50,13 +50,14 @@ layout(location = 4) out float o_AnimationLerp;
 
 vec3 RotateTowardsVelocity(Particle particle, vec3 quadPos)
 {
-    const float speed = length(particle.Velocity);
+    const vec3 velocity = particle.Velocity * particle.VelocityCoef;
+    const float speed = length(velocity);
     if (speed < 0.001f)
     {
         return quadPos;
     }
 
-    const vec3 forward = particle.Velocity / speed; // Normalize `particle.Velocity`
+    const vec3 forward = velocity / speed; // Normalize `particle.Velocity`
 
     vec3 worldUp = vec3(0.0, 1.0, 0.0);
     if (abs(dot(forward, worldUp)) > 0.99)

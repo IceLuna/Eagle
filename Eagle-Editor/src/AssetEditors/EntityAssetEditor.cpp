@@ -79,8 +79,7 @@ namespace Eagle
 		if (bRelative)
 			transform.Rotation = selectedComponent->GetRelativeTransform().Rotation;
 
-		const int id = int(m_Asset->GetEntity()->GetID());
-		if (DrawGuizmo(transform, id, true))
+		if (DrawGuizmo(transform, true))
 		{
 			if (bRelative)
 				selectedComponent->SetRelativeTransform(transform);

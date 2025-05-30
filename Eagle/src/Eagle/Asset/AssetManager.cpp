@@ -6,6 +6,7 @@
 #include "Eagle/Core/SceneSerializer.h"
 #include "Eagle/Core/ThreadPool.h"
 #include "Eagle/Utils/Compressor.h"
+#include "Eagle/Script/ScriptEngine.h"
 
 namespace Eagle
 {
@@ -51,12 +52,22 @@ namespace Eagle
 
 		// Defines the order for assets loading
 		// All `assetsToLoadQueue[0]` will be loaded first, then [1] and so on.
-		std::array<std::vector<Path>, 6> assetsToLoadQueue;
+		std::array<std::vector<Path>, 5> assetsToLoadQueue;
+		std::vector<Path> entityAssetsToLoad; // Entity assets need to be created in a single thread (mono related issues)
+		entityAssetsToLoad.reserve(25);
 		for (auto& assets : assetsToLoadQueue)
 			assets.reserve(25);
 
 		const Path contentPath = Project::GetContentPath();
 		const Path& projectPath = Project::GetProjectPath();
+
+		const auto& project = Project::GetProjectInfo();
+		if (!ScriptEngine::LoadAppAssembly(Project::GetBinariesPath() / (project.Name + ".dll")))
+		{
+			const std::string error = std::string("Open VS solution (") +
+				(project.BasePath / (project.Name + ".sln")).u8string() + " or \"File > Open VS Solution\") and compile the project.\nIf the solution is not there, try to generate it \"File > Generate VS Solution\"";
+			EG_CORE_WARN(error);
+		}
 
 		for (auto& dirEntry : std::filesystem::recursive_directory_iterator(contentPath))
 		{
@@ -99,7 +110,7 @@ namespace Eagle
 			// Entity: we can't load entities unless all assets are loaded since entities might refer to anything
 			else if (type == AssetType::Entity)
 			{
-				assetsToLoadQueue[5].emplace_back(std::move(assetPath));
+				entityAssetsToLoad.emplace_back(std::move(assetPath));
 				continue;
 			}
 
@@ -128,6 +139,12 @@ namespace Eagle
 			threadPool->wait_for_tasks();
 		}
 
+		for (const auto& assetPath : entityAssetsToLoad)
+		{
+			EG_CORE_INFO("Loading asset: {}", assetPath.u8string());
+			Register(Asset::Create(assetPath));
+		}
+
 		s_Skybox = AssetTextureCube::Create(Application::GetCorePath() / "assets/textures/IBL.egasset");
 		s_Sphere = AssetStaticMesh::Create(Application::GetCorePath() / "assets/meshes/Sphere.egasset");
 		s_Cube = AssetStaticMesh::Create(Application::GetCorePath() / "assets/meshes/Cube.egasset");
@@ -138,6 +155,14 @@ namespace Eagle
 		s_bGame = Application::Get().IsGame();
 		if (!s_bGame || !baseNode)
 			return;
+
+		const auto& projectInfo = Project::GetProjectInfo();
+		const Path gameScripts = projectInfo.BasePath / (projectInfo.Name + ".dll");
+		if (!ScriptEngine::LoadAppAssembly(gameScripts))
+		{
+			EG_CORE_CRITICAL("Failed to load game assembly! Path: {}", gameScripts.u8string());
+			std::exit(-1);
+		}
 
 		for (auto& baseAssetNode : baseNode)
 		{

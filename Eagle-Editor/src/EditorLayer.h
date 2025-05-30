@@ -43,6 +43,7 @@ namespace Eagle
 	private:
 		bool OnKeyPressed(KeyPressedEvent& e);
 		
+		void CheckAppAssembly();
 		void LoadAppAssembly();
 		void ReloadScriptsIfNecessary();
 		void HandleResize();

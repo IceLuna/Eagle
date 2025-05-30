@@ -15,14 +15,6 @@ namespace Eagle
 		auto& window = Application::Get().GetWindow();
 		
 		const auto& projectInfo = Project::GetProjectInfo();
-
-		const Path gameScripts = projectInfo.BasePath / (projectInfo.Name + ".dll");
-		if (!ScriptEngine::LoadAppAssembly(gameScripts))
-		{
-			EG_CORE_CRITICAL("Failed to load game assembly! Path: {}", gameScripts.u8string());
-			std::exit(-1);
-		}
-
 		const auto& startScene = projectInfo.GameStartupScene;
 		if (startScene)
 		{
@@ -54,6 +46,7 @@ namespace Eagle
 		Scene::SetCurrentScene(m_CurrentScene);
 		if (m_CurrentScene != m_DummyScene)
 		{
+			// TODO: Why is it needed?
 			ScriptEngine::LoadAppAssembly(Project::GetProjectInfo().Name + ".dll");
 			m_CurrentScene->OnRuntimeStart();
 		}

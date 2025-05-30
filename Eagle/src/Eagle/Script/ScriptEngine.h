@@ -105,6 +105,7 @@ namespace Eagle
 		static bool IsEntityModuleValid(const Entity& entity);
 
 		static bool LoadAppAssembly(const Path& path);
+		static bool IsValidAppAssembly();
 
 		static const std::vector<std::string>& GetScriptsNames();
 

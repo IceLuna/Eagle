@@ -153,7 +153,7 @@ namespace Eagle
 
 		m_ImGuiLayer = Application::Get().GetImGuiLayer();
 
-		LoadAppAssembly();
+		CheckAppAssembly();
 
 		m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
 
@@ -438,6 +438,17 @@ namespace Eagle
 				(project.BasePath / (project.Name + ".sln")).u8string() + " or \"File > Open VS Solution\") and compile the project.\nIf the solution is not there, try to generate it \"File > Generate VS Solution\"";
 			m_ImGuiLayer->AddMessage(error);
 			EG_CORE_WARN(error);
+		}
+	}
+
+	void EditorLayer::CheckAppAssembly()
+	{
+		if (!ScriptEngine::IsValidAppAssembly())
+		{
+			const auto& project = Project::GetProjectInfo();
+			const std::string error = std::string("Open VS solution (") +
+				(project.BasePath / (project.Name + ".sln")).u8string() + " or \"File > Open VS Solution\") and compile the project.\nIf the solution is not there, try to generate it \"File > Generate VS Solution\"";
+			m_ImGuiLayer->AddMessage(error);
 		}
 	}
 
@@ -818,7 +829,7 @@ namespace Eagle
 			const float snapValues[3] = { m_SnappingValues[snappingIndex], m_SnappingValues[snappingIndex], m_SnappingValues[snappingIndex] };
 			const bool bSnap = Input::IsKeyPressed(Key::LeftShift);
 
-			ImGuizmo::SetID(int(selectedEntity.GetID()));
+			ImGuizmo::SetID(int(uint64_t(m_CurrentScene.get())));
 
 			glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
 			ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,

@@ -437,7 +437,7 @@ namespace Eagle
 
 		if (!ModuleExists(moduleName))
 		{
-			//EG_CORE_ERROR("[ScriptEngine] Invalid module name '{0}'!", moduleName);
+			EG_CORE_ERROR("[ScriptEngine] Invalid module name '{0}'!", moduleName);
 			return;
 		}
 
@@ -631,6 +631,11 @@ namespace Eagle
 		}
 
 		return true;
+	}
+
+	bool ScriptEngine::IsValidAppAssembly()
+	{
+		return s_AppAssembly != nullptr;
 	}
 
 	const std::vector<std::string>& ScriptEngine::GetScriptsNames()

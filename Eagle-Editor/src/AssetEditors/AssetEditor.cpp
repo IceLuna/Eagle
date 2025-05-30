@@ -104,7 +104,7 @@ namespace Eagle
 		ImGui::End();
 	}
 
-	bool AssetEditor::DrawGuizmo(Transform& transform, int ID, bool bEnabled)
+	bool AssetEditor::DrawGuizmo(Transform& transform, bool bEnabled)
 	{
 		if (!m_CurrentScene || m_GuizmoType == -1)
 			return false;
@@ -128,8 +128,7 @@ namespace Eagle
 		else if (m_GuizmoType == ImGuizmo::OPERATION::SCALE)
 			snappingIndex = 2;
 
-		//Snapping
-		ImGuizmo::SetID(ID);
+		ImGuizmo::SetID(int(uint64_t(m_CurrentScene.get())));
 
 		glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
 

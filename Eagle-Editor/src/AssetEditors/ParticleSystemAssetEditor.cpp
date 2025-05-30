@@ -275,7 +275,6 @@ namespace Eagle
 			return;
 
 		auto& emitter = m_Emitters[m_SelectedEmitterIndex];
-		const int id = int(emitter.ID.GetHash());
-		bGuizmoChanged = DrawGuizmo(emitter.RelativeTransform, id, true);
+		bGuizmoChanged = DrawGuizmo(emitter.RelativeTransform, true);
 	}
 }

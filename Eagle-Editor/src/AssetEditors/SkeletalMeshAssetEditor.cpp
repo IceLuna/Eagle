@@ -398,15 +398,18 @@ namespace Eagle
 			}
 		}
 
+		auto& skeletalComp = m_Entity.GetComponent<SkeletalMeshComponent>();
 		UI::TextWithSeparator("Preview Settings");
 		if (EditorResources::DrawAssetSelection("Animation", m_PreviewAnimation))
 		{
-			m_Entity.GetComponent<SkeletalMeshComponent>().SetAnimationAsset(m_PreviewAnimation);
+			skeletalComp.SetAnimationAsset(m_PreviewAnimation);
 			if (!m_PreviewAnimation)
 			{
 				m_Entity.SetWorldLocation({});
 			}
 		}
+		UI::PropertyDrag("Animation Playback Speed", skeletalComp.ClipPlaybackSpeed, 0.1f);
+
 		UI::Property("Visualize bones", scene->bDrawBones);
 		UI::Property("Visualize bone direction", bVisualizeBoneDirection);
 		UI::EndPropertyGrid();
@@ -423,10 +426,9 @@ namespace Eagle
 
 				if (m_OpenedTab == OpenedTabType::Ragdoll)
 				{
-					auto& comp = m_Entity.GetComponent<SkeletalMeshComponent>();
-					comp.SetRagdollEnabled(false);
-					comp.SetRagdollEnabled(true);
-					comp.SetShowRagdollCollision(true);
+					skeletalComp.SetRagdollEnabled(false);
+					skeletalComp.SetRagdollEnabled(true);
+					skeletalComp.SetShowRagdollCollision(true);
 				}
 			}
 
@@ -567,7 +569,18 @@ namespace Eagle
 						boneTransform.Rotation = quat;
 						bTransformChanged = true;
 					}
-					bTransformChanged |= UI::DrawVec3Control("Scale", boneTransform.Scale3D, glm::vec3{ 1.f });
+					if (UI::DrawVec3Control("Scale", boneTransform.Scale3D, glm::vec3{ 1.f }))
+					{
+						constexpr float epsilon = 0.00001f;
+						const glm::bvec3 bZero = glm::epsilonEqual(boneTransform.Scale3D, glm::vec3(0), epsilon);
+						for (glm::length_t i = 0; i < bZero.length(); ++i)
+						{
+							if (bZero[i])
+								boneTransform.Scale3D[i] = epsilon;
+						}
+
+						bTransformChanged = true;
+					}
 
 					if (bTransformChanged)
 					{
@@ -670,7 +683,17 @@ namespace Eagle
 						boneTransform.Rotation = quat;
 						bTransformChanged = true;
 					}
-					bTransformChanged |= UI::DrawVec3Control("Scale", boneTransform.Scale3D, glm::vec3{ 1.f });
+					if (UI::DrawVec3Control("Scale", boneTransform.Scale3D, glm::vec3{ 1.f }))
+					{
+						constexpr float epsilon = 0.00001f;
+						const glm::bvec3 bZero = glm::epsilonEqual(boneTransform.Scale3D, glm::vec3(0), epsilon);
+						for (glm::length_t i = 0; i < bZero.length(); ++i)
+						{
+							if (bZero[i])
+								boneTransform.Scale3D[i] = epsilon;
+						}
+						bTransformChanged = true;
+					}
 
 					if (bTransformChanged)
 					{
@@ -717,13 +740,11 @@ namespace Eagle
 	
 	void SkeletalMeshAssetEditor::UpdateGuizmo()
 	{
-		const int id = int(m_Entity.GetID());
-
 		if (m_OpenedTab == OpenedTabType::Skeletal && m_SelectedBone)
 		{
 			const bool bEnableModification = m_SelectedBone->bVirtualBone;
 			Transform boneTransform = Math::DecomposeTransformMatrix(Math::ToTransformMatrix(GetBoneWorldTransform(m_SelectedBoneName)));
-			if (DrawGuizmo(boneTransform, id, bEnableModification))
+			if (DrawGuizmo(boneTransform, bEnableModification))
 			{
 				// We need to remove parent's transform
 				const glm::mat4 parentTr = Math::ToTransformMatrix(GetBoneWorldTransform(m_SelectedBoneParentName));
@@ -738,7 +759,7 @@ namespace Eagle
 			Transform boneTransform = m_SelectedRagdollBone->Settings.UserOffset;
 			const glm::vec3 origOffsetLocation = boneTransform.Location;
 			boneTransform.Location = worldLocation; // We wanna draw guizmo in WS
-			if (DrawGuizmo(boneTransform, id, bEnableModification))
+			if (DrawGuizmo(boneTransform, bEnableModification))
 			{
 				const glm::vec3 diff = boneTransform.Location - worldLocation;
 				boneTransform.Location = origOffsetLocation + diff; // Back to local
