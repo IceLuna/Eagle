@@ -35,6 +35,8 @@ namespace Eagle
 		void DeletePlane();
 		void OnSimulateRagdollChanged();
 
+		void OnBoneNodeDeletion(const BoneNode& node);
+
 		enum class OpenedTabType
 		{
 			Skeletal, Ragdoll
@@ -51,6 +53,14 @@ namespace Eagle
 		std::string m_SelectedRagdollBoneName;
 		SkeletalRagdollBones* m_SelectedRagdollBone = nullptr;
 
+		struct AttachedMeshData
+		{
+			Ref<AssetBaseMesh> Mesh;
+			Entity Entity;
+		};
+		// Key - bone name; value - attached mesh
+		std::unordered_map<std::string, AttachedMeshData> m_AttachedToBonesMeshes;
+
 		OpenedTabType m_OpenedTab = OpenedTabType::Ragdoll;
 		Entity m_Entity;
 		GUID m_PlaneEntityGUID;
@@ -59,5 +69,6 @@ namespace Eagle
 		float m_Swing = 45.f;
 		bool bGuizmoChanged = false;
 		bool bSimulate = false;
+		bool bVisualizeBoneDirection = false;
 	};
 }

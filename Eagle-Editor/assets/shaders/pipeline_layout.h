@@ -53,7 +53,7 @@ ShaderMaterial FetchMaterial(uint index, inout vec2 uv)
 	if (albedoIndex != EG_INVALID_INDEX)
 	{
 		result.Albedo = bRawValue ?
-			vec3(g_MaterialRawValues[nonuniformEXT(albedoIndex)], g_MaterialRawValues[nonuniformEXT(albedoIndex + 1)], g_MaterialRawValues[nonuniformEXT(albedoIndex + 2)]) :
+			vec3(g_MaterialRawValues[albedoIndex], g_MaterialRawValues[albedoIndex + 1], g_MaterialRawValues[albedoIndex + 2]) :
 			ReadTexture(albedoIndex, uv).rgb;
 	}
 	else
@@ -66,7 +66,7 @@ ShaderMaterial FetchMaterial(uint index, inout vec2 uv)
 	{
 		if (bRawValue)
 		{
-			result.Metalness = g_MaterialRawValues[nonuniformEXT(metalnessIndex)];
+			result.Metalness = g_MaterialRawValues[metalnessIndex];
 		}
 		else
 		{
@@ -88,7 +88,7 @@ ShaderMaterial FetchMaterial(uint index, inout vec2 uv)
 	{
 		if (bRawValue)
 		{
-			result.Roughness = g_MaterialRawValues[nonuniformEXT(roughnessIndex)];
+			result.Roughness = g_MaterialRawValues[roughnessIndex];
 		}
 		else
 		{
@@ -109,7 +109,7 @@ ShaderMaterial FetchMaterial(uint index, inout vec2 uv)
 	{
 		if (bRawValue)
 		{
-			result.AO = g_MaterialRawValues[nonuniformEXT(aoIndex)];
+			result.AO = g_MaterialRawValues[aoIndex];
 		}
 		else
 		{
@@ -128,7 +128,7 @@ ShaderMaterial FetchMaterial(uint index, inout vec2 uv)
 	if (emissiveIndex != EG_INVALID_INDEX)
 	{
 		result.Emissive = bRawValue ?
-			vec3(g_MaterialRawValues[nonuniformEXT(emissiveIndex)], g_MaterialRawValues[nonuniformEXT(emissiveIndex + 1)], g_MaterialRawValues[nonuniformEXT(emissiveIndex + 2)]) :
+			vec3(g_MaterialRawValues[emissiveIndex], g_MaterialRawValues[emissiveIndex + 1], g_MaterialRawValues[emissiveIndex + 2]) :
 			ReadTexture(emissiveIndex, uv).rgb;
 	}
 	else
@@ -141,7 +141,7 @@ ShaderMaterial FetchMaterial(uint index, inout vec2 uv)
 	{
 		if (bRawValue)
 		{
-			result.Opacity = g_MaterialRawValues[nonuniformEXT(opacityIndex)];
+			result.Opacity = g_MaterialRawValues[opacityIndex];
 		}
 		else
 		{
@@ -161,7 +161,7 @@ ShaderMaterial FetchMaterial(uint index, inout vec2 uv)
 	{
 		if (bRawValue)
 		{
-			result.OpacityMask = g_MaterialRawValues[nonuniformEXT(opacityMaskIndex)];
+			result.OpacityMask = g_MaterialRawValues[opacityMaskIndex];
 		}
 		else
 		{

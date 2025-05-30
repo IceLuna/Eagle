@@ -1088,23 +1088,11 @@ namespace Eagle
 				auto& dir = dirLightsView.get<DirectionalLightComponent>(entity);
 				if (dir.bVisualizeDirection)
 				{
-					const auto& location = dir.GetWorldTransform().Location;
-					const auto forward = dir.GetForwardVector();
-					const auto up = dir.GetUpVector();
+					const glm::vec3& location = dir.GetWorldTransform().Location;
+					const glm::vec3 forward = dir.GetForwardVector();
+					const glm::vec3 endLocation = location + forward * 0.2f;
 
-					const auto endLocation = location + forward * 0.2f;
-
-					// Drawing an arrow
-					RendererLine line;
-					line.Start.Location = location;
-					line.End.Location = endLocation;
-					m_DebugLinesToDraw.push_back(line);
-
-					line.Start.Location = location + forward * 0.15f + up * 0.05f;
-					m_DebugLinesToDraw.push_back(line);
-
-					line.Start.Location = location + forward * 0.15f + up * -0.05f;
-					m_DebugLinesToDraw.push_back(line);
+					DrawArrow(location, endLocation, dir.GetUpVector());
 				}
 			}
 
@@ -1627,6 +1615,22 @@ namespace Eagle
 		}
 
 		return Entity::Null;
+	}
+
+	void Scene::DrawArrow(const glm::vec3& start, const glm::vec3& end, const glm::vec3& up)
+	{
+		const glm::vec3 dir = glm::normalize(end - start);
+
+		RendererLine line;
+		line.Start.Location = start;
+		line.End.Location = end;
+		m_UserDebugLines.push_back(line);
+
+		line.Start.Location = start + dir * 0.15f + up * 0.05f;
+		m_UserDebugLines.push_back(line);
+
+		line.Start.Location = start + dir * 0.15f + up * -0.05f;
+		m_UserDebugLines.push_back(line);
 	}
 
 	SceneSoundData Scene::SpawnSound2D(const Ref<AssetAudio>& audio, const SoundSettings& settings)

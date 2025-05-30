@@ -73,17 +73,17 @@ namespace Eagle
 
 		glm::vec3 GetForwardVector() const
 		{
-			return glm::rotate(GetWorldRotation().GetQuat(), glm::vec3(0.f, 0.f, -1.f));
+			return Math::GetForwardVector(GetWorldRotation());
 		}
 
 		glm::vec3 GetUpVector() const
 		{
-			return glm::rotate(GetWorldRotation().GetQuat(), glm::vec3(0.f, 1.f, 0.f));
+			return Math::GetUpVector(GetWorldRotation());
 		}
 
 		glm::vec3 GetRightVector() const
 		{
-			return glm::rotate(GetWorldRotation().GetQuat(), glm::vec3(1.f, 0.f, 0.f));
+			return Math::GetRightVector(GetWorldRotation());
 		}
 
 		const std::vector<Entity>& GetChildren() const;

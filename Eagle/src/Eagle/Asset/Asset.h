@@ -338,7 +338,14 @@ namespace Eagle
 		AssetTextureCubeFormat m_Format;
 	};
 
-	class AssetStaticMesh : public Asset
+	class AssetBaseMesh : public Asset
+	{
+	protected:
+		AssetBaseMesh(const Path& path, const Path& pathToRaw, AssetType type, GUID guid, const DataBuffer& rawData)
+			: Asset(path, pathToRaw, type, guid, rawData) {}
+	};
+
+	class AssetStaticMesh : public AssetBaseMesh
 	{
 	public:
 		const Ref<StaticMesh>& GetMesh() const { return m_Mesh; }
@@ -363,13 +370,13 @@ namespace Eagle
 
 	protected:
 		AssetStaticMesh(const Path& path, const Path& pathToRaw, GUID guid, const Ref<StaticMesh>& mesh)
-			: Asset(path, pathToRaw, AssetType::StaticMesh, guid, {}), m_Mesh(mesh) {}
+			: AssetBaseMesh(path, pathToRaw, AssetType::StaticMesh, guid, {}), m_Mesh(mesh) {}
 
 	private:
 		Ref<StaticMesh> m_Mesh;
 	};
 
-	class AssetSkeletalMesh : public Asset
+	class AssetSkeletalMesh : public AssetBaseMesh
 	{
 	public:
 		const Ref<SkeletalMesh>& GetMesh() const { return m_Mesh; }
@@ -394,7 +401,7 @@ namespace Eagle
 
 	protected:
 		AssetSkeletalMesh(const Path& path, const Path& pathToRaw, GUID guid, const Ref<SkeletalMesh>& mesh)
-			: Asset(path, pathToRaw, AssetType::SkeletalMesh, guid, {}), m_Mesh(mesh) {}
+			: AssetBaseMesh(path, pathToRaw, AssetType::SkeletalMesh, guid, {}), m_Mesh(mesh) {}
 
 	private:
 		Ref<SkeletalMesh> m_Mesh;
@@ -711,19 +718,8 @@ namespace Eagle
 	class AssetParticleSystem : public Asset
 	{
 	public:
-		void SetEmitters(const std::vector<ParticleEmitter>& emitters)
-		{
-			m_Emitters = emitters;
-			SetDirty(true);
-			OnModified();
-		}
-
-		void SetEmitters(std::vector<ParticleEmitter>&& emitters)
-		{
-			m_Emitters = std::move(emitters);
-			SetDirty(true);
-			OnModified();
-		}
+		void SetEmitters(const std::vector<ParticleEmitter>& emitters);
+		void SetEmitters(std::vector<ParticleEmitter>&& emitters);
 
 		const std::vector<ParticleEmitter>& GetEmitters() const { return m_Emitters; }
 

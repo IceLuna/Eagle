@@ -224,7 +224,7 @@ void Particle_AdvanceAnimation(inout u16vec2 coord, u16vec2 animationImagesNum)
 		coord.y += uint16_t(1u);
 		const bool exceededHeight = coord.y >= animationImagesNum.y;
 		if (exceededHeight)
-			coord.y = uint16_t(0u);
+			coord.y = animationImagesNum.y - uint16_t(1u);
 	}
 }
 

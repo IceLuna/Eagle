@@ -72,7 +72,7 @@ namespace Eagle
 			outData.ColorStart = emitter.ColorStart;
 			outData.ColorEnd = emitter.ColorEnd;
 			outData.VelocityMin = emitter.VelocityMin;
-			outData.VelocityMax= emitter.VelocityMax;
+			outData.VelocityMax = emitter.VelocityMax;
 			outData.VelocityCoefStart = emitter.VelocityCoefStart;
 			outData.VelocityCoefEnd = emitter.VelocityCoefEnd;
 			outData.NumParticles = uint32_t(float(emitter.NumParticles) * emitter.NumParticlesRatio);
@@ -104,11 +104,20 @@ namespace Eagle
 			outData.IndexCount = indexCount;
 			outData.NormalVelocityFactor = emitter.NormalVelocityFactor;
 
-			const float spawnInterval = emitter.bExplode ? outData.LifetimeMax : outData.LifetimeMax / float(outData.NumParticles);
-			outData.DeltaTime = spawnInterval; // Needed so it spawns particles on the first update
+			if (outData.NumParticles == 0u)
+			{
+				// Disable emitter
+				outData.Flags = outData.Flags & (~Emitter_Enabled_Mask);
+			}
+
+			// Needed so it spawns particles on the first update
+			{
+				const float spawnInterval = emitter.bExplode ? outData.LifetimeMax : outData.LifetimeMax / float(outData.NumParticles);
+				outData.DeltaTime = spawnInterval;
+				outData.WasExplode = emitter.bExplode ? 1u : 0u;
+			}
 			outData.IsVisible = 0u;
 			outData.SpawnedSoFar = 0u;
-			outData.WasExplode = emitter.bExplode ? 1u : 0u;
 			outData.LoopIteration = 0u;
 		}
 	

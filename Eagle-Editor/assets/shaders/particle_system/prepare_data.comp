@@ -105,9 +105,9 @@ void main()
 
             if ((emitter.SpawnedSoFar + count) > emitter.NumParticles)
             {
-                // Don't spawn this frame to avoid overflow
-                count = 0;
-                spawnTriggersCount = 0;
+                // Avoid overflow, just spawn the rest
+                count = emitter.NumParticles - emitter.SpawnedSoFar;
+                spawnTriggersCount = 1;
                 emitter.SpawnedSoFar = 0u;
                 if (emitter.LoopCount != 0)
                     emitter.LoopIteration += 1;

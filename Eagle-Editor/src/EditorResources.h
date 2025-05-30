@@ -17,17 +17,17 @@ namespace Eagle
 		static const Ref<Image> GetAssetPreview(const Ref<Asset>& asset);
 
 		template <typename Type>
-		static bool DrawAssetSelection(std::string_view label, Ref<Type>& asset, std::string_view helpMessage = "")
+		static bool DrawAssetSelection(std::string_view label, Ref<Type>& asset, std::string_view helpMessage = "", float maxItemWidth = -1.f)
 		{
 			bool bResult = false;
 			bool bOpenPreview = false;
 			if constexpr (std::is_same<Type, AssetTexture2D>::value || std::is_same<Type, AssetTextureCube>::value)
 			{
-				bResult = UI::DrawAssetSelection(label, asset, helpMessage, -1.f, nullptr, &bOpenPreview);
+				bResult = UI::DrawAssetSelection(label, asset, helpMessage, maxItemWidth, nullptr, &bOpenPreview);
 			}
 			else
 			{
-				bResult = UI::DrawAssetSelection(label, asset, helpMessage, -1.f, GetAssetPreview(asset), &bOpenPreview);
+				bResult = UI::DrawAssetSelection(label, asset, helpMessage, maxItemWidth, GetAssetPreview(asset), &bOpenPreview);
 			}
 
 			if (bOpenPreview && asset)

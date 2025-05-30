@@ -36,7 +36,7 @@ namespace Eagle::UI
 	{
 		const ImVec2 previewSize = ImVec2(32.f, 32.f);
 		bool bResult = false;
-		constexpr bool bRenderablePreview = ThumbnailCache::IsRenderableAssetType(Type::GetAssetType_Static());
+		constexpr bool bRenderablePreview = std::is_same<Type, AssetBaseMesh>::value ? true : ThumbnailCache::IsRenderableAssetType(Type::GetAssetType_Static());
 
 		if constexpr (std::is_same<Type, AssetTexture2D>::value || std::is_same<Type, AssetTextureCube>::value)
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + previewSize.y * 0.5f - ImGui::CalcTextSize(label.data()).y * 0.5f); // Place text in the middle
@@ -154,6 +154,11 @@ namespace Eagle::UI
 				{
 					processAssetDrop(val);
 				});
+			}
+			else if constexpr (std::is_same<Type, AssetBaseMesh>::value)
+			{
+				processAssetDrop(AssetType::StaticMesh);
+				processAssetDrop(AssetType::SkeletalMesh);
 			}
 			else
 			{

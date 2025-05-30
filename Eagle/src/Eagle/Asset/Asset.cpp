@@ -590,6 +590,30 @@ namespace Eagle
 		YAML::Node data = YAML::LoadFile(path.string());
 		return Serializer::DeserializeAssetAnimationGraph(data, path);
 	}
+
+	void AssetParticleSystem::SetEmitters(const std::vector<ParticleEmitter>& emitters)
+	{
+		m_Emitters = emitters;
+		for (auto& emitter : m_Emitters)
+		{
+			emitter.AnimationImagesNum = glm::max(glm::uvec2(1u), emitter.AnimationImagesNum);
+		}
+
+		SetDirty(true);
+		OnModified();
+	}
+
+	void AssetParticleSystem::SetEmitters(std::vector<ParticleEmitter>&& emitters)
+	{
+		m_Emitters = std::move(emitters);
+		for (auto& emitter : m_Emitters)
+		{
+			emitter.AnimationImagesNum = glm::max(glm::uvec2(1u), emitter.AnimationImagesNum);
+		}
+
+		SetDirty(true);
+		OnModified();
+	}
 	
 	Ref<AssetParticleSystem> AssetParticleSystem::Create(const Path& path)
 	{

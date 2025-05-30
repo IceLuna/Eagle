@@ -137,6 +137,9 @@ namespace Eagle
 			m_UserAABBs.emplace_back(aabb, transform);
 		}
 
+		// Needs to be called every frame
+		void DrawArrow(const glm::vec3& start, const glm::vec3& end, const glm::vec3& up);
+
 		SceneSoundData SpawnSound2D(const Ref<AssetAudio>& audio, const SoundSettings& settings);
 		SceneSoundData SpawnSound3D(const Ref<AssetAudio>& audio, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, const SoundSettings& settings = {});
 		Ref<Sound> GetSpawnedSound(GUID id) const;
@@ -267,6 +270,8 @@ namespace Eagle
 		void RemoveParticleSystem(const ParticleSystemComponent* system);
 		void UpdateParticleSystem(const ParticleSystemComponent* system);
 
+		void DestroyPendingEntities();
+
 	private:
 		static void OnSceneOpened(const Ref<Scene>& scene);
 
@@ -281,7 +286,6 @@ namespace Eagle
 
 		void CollectParticleSystems(const std::unordered_set<GUID>& input); // Pushes data from `input` into `m_TempParticleSystems`
 		void GatherLightsInfo();
-		void DestroyPendingEntities();
 		void UpdateScripts(Timestep ts);
 		void RenderScene(Timestep ts, bool bRender, bool bRuntime, bool bForceAnimationsUpdate);
 		CameraComponent* FindOrCreateRuntimeCamera();

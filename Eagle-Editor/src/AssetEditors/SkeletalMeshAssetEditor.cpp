@@ -61,6 +61,142 @@ namespace Eagle
 		return node;
 	}
 
+	static bool DrawMeshSelection(Ref<AssetBaseMesh>& modifyingAsset)
+	{
+		const ImVec2 previewSize = ImVec2(32.f, 32.f);
+		Ref<Eagle::Image> preview = EditorResources::GetAssetPreview(modifyingAsset);
+		bool bResult = false;
+
+		if (preview)
+		{
+			const ImVec2 p = ImGui::GetCursorScreenPos();
+			ImGui::SetCursorScreenPos(p);
+
+			UI::Image(preview, previewSize);
+
+			ImGui::SameLine();
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		}
+
+		const std::string assetName = modifyingAsset ? modifyingAsset->GetPath().stem().u8string() : "None";
+		bool bBeginCombo = ImGui::BeginCombo("##", assetName.c_str(), 0);
+
+		if (bBeginCombo)
+		{
+			const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
+			const int nonePosition = 0;
+			int currentItemIdx = nonePosition;
+			// Initially find currently selected asset to scroll to it.
+			if (modifyingAsset)
+			{
+				uint32_t i = noneOffset;
+				const auto& allAssets = AssetManager::GetAssets();
+				for (const auto& [unused, asset] : allAssets)
+				{
+					if (asset == modifyingAsset)
+					{
+						currentItemIdx = i;
+						break;
+					}
+					if (const auto& castedAsset = Cast<AssetBaseMesh>(asset))
+						i++;
+				}
+			}
+		
+			// Draw none
+			{
+				const bool bSelected = (currentItemIdx == nonePosition);
+				if (ImGui::Selectable("None", bSelected))
+					currentItemIdx = nonePosition;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				if (ImGui::IsItemClicked())
+				{
+					currentItemIdx = nonePosition;
+					modifyingAsset.reset();
+					bResult = true;
+				}
+			}
+		
+			//Drawing all existing asset
+			const auto& allAssets = AssetManager::GetAssets();
+			uint32_t i = noneOffset;
+			for (const auto& [path, asset] : allAssets)
+			{
+				const auto castedAsset = Cast<AssetBaseMesh>(asset);
+				if (!castedAsset)
+					continue;
+
+				const bool bSelected = currentItemIdx == i;
+				ImGui::PushID((void*)asset->GetGUID().GetHash());
+
+				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowItemOverlap, { 0.0f, previewSize.y });
+				bSelectableTriggered |= ImGui::IsItemClicked();
+
+				{
+					ImGui::SameLine();
+					Ref<Eagle::Image> preview = ThumbnailCache::Get(asset);
+					if (!preview)
+					{
+						if (ThumbnailCache::IsRenderableAssetType(asset->GetAssetType()))
+						{
+							if (ThumbnailCache::Render(asset, ThumbnailCache::GetThumbnailSize()))
+							{
+								preview = ThumbnailCache::Get(asset);
+							}
+						}
+					}
+					UI::Image(preview ? preview : Texture2D::NoneIconTexture->GetImage(), previewSize);
+				}
+
+				ImGui::SameLine();
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + previewSize.y * 0.25f);
+				ImGui::Text("%s", path.stem().u8string().c_str());
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				if (bSelectableTriggered)
+				{
+					currentItemIdx = i;
+
+					modifyingAsset = castedAsset;
+					bResult = true;
+				}
+				++i;
+				ImGui::PopID();
+			}
+			ImGui::EndCombo();
+		}
+
+		return bResult;
+	}
+
+	static Entity SpawnMeshVisualization(const Ref<AssetBaseMesh>& mesh, const std::string& name, const Ref<Scene>& scene)
+	{
+		Entity e = scene->CreateEntity(name);
+		if (mesh->GetAssetType() == AssetType::StaticMesh)
+		{
+			auto& comp = e.AddComponent<StaticMeshComponent>();
+			comp.SetMeshAsset(Cast<AssetStaticMesh>(mesh));
+		}
+		else if (mesh->GetAssetType() == AssetType::SkeletalMesh)
+		{
+			auto& comp = e.AddComponent<SkeletalMeshComponent>();
+			comp.SetMeshAsset(Cast<AssetSkeletalMesh>(mesh));
+		}
+		else
+		{
+			EG_CORE_ASSERT(false);
+		}
+
+		return e;
+	}
+
 	// Returns true if it changed
 	bool SkeletalMeshAssetEditor::DrawSkeletalTree(const SkeletalMeshInfo& skeletalInfo, BoneNode& node, size_t baseHash, bool* outDelete, const glm::mat4& baseTransform, const std::string& parentName)
 	{
@@ -91,6 +227,34 @@ namespace Eagle
 				bone.bVirtualBone = true;
 				bChanged = true;
 			}
+
+			if (ImGui::BeginMenu("Attach Mesh (visualization only)"))
+			{
+				auto it = m_AttachedToBonesMeshes.find(node.Name);
+				Ref<AssetBaseMesh> mesh = it != m_AttachedToBonesMeshes.end() ? it->second.Mesh : nullptr;
+
+				if (DrawMeshSelection(mesh))
+				{
+					auto& scene = GetCurrentScene();
+					if (it != m_AttachedToBonesMeshes.end())
+					{
+						scene->DestroyEntity(it->second.Entity);
+					}
+
+					if (mesh)
+					{
+						Entity e = SpawnMeshVisualization(mesh, node.Name, scene);
+						m_AttachedToBonesMeshes[node.Name] = { mesh, e };
+					}
+					else
+					{
+						m_AttachedToBonesMeshes.erase(node.Name);
+					}
+				}
+
+				ImGui::EndMenu();
+			}
+
 			if (node.bVirtualBone)
 			{
 				ImGui::Separator();
@@ -120,7 +284,10 @@ namespace Eagle
 				bChanged |= DrawSkeletalTree(skeletalInfo, child, baseHash, &bDelete, worldTr, node.Name);
 
 				if (bDelete)
+				{
+					OnBoneNodeDeletion(child);
 					it = node.Children.erase(it);
+				}
 				else
 					++it;
 			}
@@ -241,6 +408,7 @@ namespace Eagle
 			}
 		}
 		UI::Property("Visualize bones", scene->bDrawBones);
+		UI::Property("Visualize bone direction", bVisualizeBoneDirection);
 		UI::EndPropertyGrid();
 
 		{
@@ -285,6 +453,30 @@ namespace Eagle
 
 		ImGui::End();
 
+		if (bVisualizeBoneDirection)
+		{
+			if (m_OpenedTab == OpenedTabType::Skeletal && m_SelectedBone)
+			{
+				Transform transform = GetBoneWorldTransform(m_SelectedBoneName);
+				scene->DrawArrow(transform.Location, transform.Location + Math::GetForwardVector(transform.Rotation) * 0.2f, Math::GetUpVector(transform.Rotation));
+			}
+			else if (m_OpenedTab == OpenedTabType::Ragdoll && m_SelectedRagdollBone)
+			{
+				Transform transform = GetSelectedRagdollBoneWorldTransform() + m_SelectedRagdollBone->Settings.UserOffset;
+				scene->DrawArrow(transform.Location, transform.Location + Math::GetForwardVector(transform.Rotation) * 0.2f, Math::GetUpVector(transform.Rotation));
+			}
+		}
+
+		// Set preview mesh transform to bone transform
+		if (m_OpenedTab == OpenedTabType::Skeletal)
+		{
+			for (auto& [boneName, data] : m_AttachedToBonesMeshes)
+			{
+				Transform boneTr = GetBoneWorldTransform(boneName);
+				data.Entity.SetWorldTransform(boneTr);
+			}
+		}
+
 		const bool bUpdateAnimation = m_PreviewAnimation.operator bool();
 		DrawViewport(bUpdateAnimation, windowName);
 		bChanged |= bGuizmoChanged;
@@ -308,6 +500,13 @@ namespace Eagle
 			m_Entity.GetComponent<SkeletalMeshComponent>().SetRagdollEnabled(false);
 			SetSimulationEnabled(false);
 			DeletePlane();
+
+			// Spawn visualizing meshes
+			auto& scene = GetCurrentScene();
+			for (auto& [name, data] : m_AttachedToBonesMeshes)
+			{
+				data.Entity = SpawnMeshVisualization(data.Mesh, name, scene);
+			}
 		}
 		m_OpenedTab = OpenedTabType::Skeletal;
 
@@ -398,6 +597,15 @@ namespace Eagle
 
 		if (m_OpenedTab != OpenedTabType::Ragdoll)
 		{
+			// Destroy visualizing meshes
+			auto& scene = GetCurrentScene();
+			for (auto& [_, data] : m_AttachedToBonesMeshes)
+			{
+				scene->DestroyEntity(data.Entity);
+				data.Entity = Entity::Null;
+			}
+			scene->DestroyPendingEntities();
+
 			auto& comp = m_Entity.GetComponent<SkeletalMeshComponent>();
 			comp.SetRagdollEnabled(true);
 			comp.SetShowRagdollCollision(true);
@@ -615,5 +823,17 @@ namespace Eagle
 	{
 		m_Asset->OnModified(); // Reset ragdoll
 		SetSimulationEnabled(bSimulate);
+	}
+	
+	void SkeletalMeshAssetEditor::OnBoneNodeDeletion(const BoneNode& node)
+	{
+		if (auto itAttachedMesh = m_AttachedToBonesMeshes.find(node.Name); itAttachedMesh != m_AttachedToBonesMeshes.end())
+		{
+			GetCurrentScene()->DestroyEntity(itAttachedMesh->second.Entity);
+			m_AttachedToBonesMeshes.erase(itAttachedMesh);
+		}
+
+		for (const auto& child : node.Children)
+			OnBoneNodeDeletion(child);
 	}
 }

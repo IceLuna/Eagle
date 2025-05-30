@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Eagle/Camera/Camera.h"
-#include "Eagle/Math/Transform.h"
+#include "Eagle/Math/Math.h"
 
 namespace Eagle
 {
@@ -29,9 +29,9 @@ namespace Eagle
 		const glm::mat4& GetViewMatrix() const { return m_ViewMatrix; }
 		glm::mat4 GetViewProjection() const { return m_Projection * m_ViewMatrix; }
 
-		glm::vec3 GetForwardVector() const { return glm::rotate(GetRotation().GetQuat(), glm::vec3(0.f, 0.f, -1.f)); }
-		glm::vec3 GetUpVector() const { return glm::rotate(GetRotation().GetQuat(), glm::vec3(0.f, 1.f, 0.f)); }
-		glm::vec3 GetRightVector() const { return glm::rotate(GetRotation().GetQuat(), glm::vec3(1.f, 0.f, 0.f)); }
+		glm::vec3 GetForwardVector() const { return Math::GetForwardVector(GetRotation()); }
+		glm::vec3 GetUpVector() const { return Math::GetUpVector(GetRotation()); }
+		glm::vec3 GetRightVector() const { return Math::GetRightVector(GetRotation()); }
 
 		const Transform& GetTransform() const { return m_Transform; }
 		const glm::vec3& GetLocation() const { return m_Transform.Location; };

@@ -41,4 +41,19 @@ namespace Eagle::Math
 		else
 			return glm::ortho(left, right, bottom, top, nearPlane, farPlane);
 	}
+
+	static inline glm::vec3 GetForwardVector(const Rotator& rotation)
+	{
+		return glm::rotate(rotation.GetQuat(), glm::vec3(0.f, 0.f, -1.f));
+	}
+
+	static inline glm::vec3 GetUpVector(const Rotator& rotation)
+	{
+		return glm::rotate(rotation.GetQuat(), glm::vec3(0.f, 1.f, 0.f));
+	}
+
+	static inline glm::vec3 GetRightVector(const Rotator& rotation)
+	{
+		return glm::rotate(rotation.GetQuat(), glm::vec3(1.f, 0.f, 0.f));
+	}
 }
