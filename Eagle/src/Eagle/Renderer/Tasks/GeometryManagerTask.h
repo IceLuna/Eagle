@@ -128,7 +128,7 @@ namespace Eagle
 			glm::uvec4 Data = glm::uvec4(0u); // .x = TransformIndex; .y = MaterialIndex; .z = ObjectID; w = AnimTransformIndex
 			struct
 			{
-				uint32_t PackedTransformIndex; // The highest is a flag whether a mesh receives decals
+				uint32_t PackedTransformIndex; // The highest bit is a flag whether a mesh receives decals or not
 				uint32_t MaterialIndex;
 				uint32_t ObjectID;
 				uint32_t AnimTransformIndex;

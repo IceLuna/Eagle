@@ -247,6 +247,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::IsDebugLinesDepthTestEnabled_Native", Eagle::Script::Eagle_Renderer_IsDebugLinesDepthTestEnabled);
 		mono_add_internal_call("Eagle.Renderer::DrawLine_Native", Eagle::Script::Eagle_Renderer_DrawLine);
 		mono_add_internal_call("Eagle.Renderer::DrawTriangle_Native", Eagle::Script::Eagle_Renderer_DrawTriangle);
+		mono_add_internal_call("Eagle.Renderer::DrawArrow_Native", Eagle::Script::Eagle_Renderer_DrawArrow);
 		mono_add_internal_call("Eagle.Renderer::DrawAABB_Native", Eagle::Script::Eagle_Renderer_DrawAABB);
 
 		// Log
@@ -810,6 +811,11 @@ namespace Eagle
 		mono_add_internal_call("Eagle.AssetParticleSystem::Create_Native", Eagle::Script::Eagle_AssetParticleSystem_Create);
 
 		// Math
+		mono_add_internal_call("Eagle.Mathf::GetForwardVector_Native", Eagle::Script::Eagle_Math_GetForwardVector);
+		mono_add_internal_call("Eagle.Mathf::GetUpVector_Native", Eagle::Script::Eagle_Math_GetUpVector);
+		mono_add_internal_call("Eagle.Mathf::GetRightVector_Native", Eagle::Script::Eagle_Math_GetRightVector);
+
+		// Quat
 		mono_add_internal_call("Eagle.Quat::Mul_Native", Eagle::Script::Eagle_Quat_Mul);
 		mono_add_internal_call("Eagle.Quat::EulerAngles_Native", Eagle::Script::Eagle_Quat_EulerAngles);
 		mono_add_internal_call("Eagle.Quat::FromEulerAngles_Native", Eagle::Script::Eagle_Quat_FromEulerAngles);

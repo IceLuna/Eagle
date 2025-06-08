@@ -38,6 +38,24 @@ namespace Eagle
 
 			return false;
 		}
+
+		// True if found
+		static bool HasBone(const BoneNode& node, const std::string_view targetBoneName)
+		{
+			const std::string& nodeName = node.Name;
+			if (nodeName == targetBoneName)
+			{
+				return true;
+			}
+
+			for (const auto& child : node.Children)
+			{
+				if (HasBone(child, targetBoneName))
+					return true;
+			}
+
+			return false;
+		}
 	}
 
 	void RigidBodyComponent::SetMass(float mass)
@@ -775,6 +793,15 @@ namespace Eagle
 	{
 		SceneComponent::SetRelativeTransform(relativeTransform);
 		Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnTransformChanged);
+	}
+
+	bool SkeletalMeshComponent::HasBone(const std::string_view boneName) const
+	{
+		const auto& asset = GetMeshAsset();
+		if (!asset)
+			return false;
+
+		return Utils::HasBone(asset->GetMesh()->GetSkeletalMeshInfo().RootBone, boneName);
 	}
 
 	Transform SkeletalMeshComponent::GetBoneWorldTransform(const std::string_view boneName)

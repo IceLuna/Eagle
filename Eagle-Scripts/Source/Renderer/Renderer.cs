@@ -257,6 +257,11 @@ namespace Eagle
                 ref triangle.V2.Location, ref triangle.V2.Color);
         }
 
+        public static void DrawArrow(Vector3 start, Vector3 end, Vector3 up)
+        {
+            DrawArrow_Native(ref start, ref end, ref up);
+        }
+
         public static void DrawAABB(AABB aabb, Transform worldTransform)
         {
             DrawAABB_Native(ref aabb, ref worldTransform);
@@ -614,6 +619,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void DrawTriangle_Native(ref Vector3 LocationV0, ref Color3 ColorV0, ref Vector3 LocationV1, ref Color3 ColorV1, ref Vector3 LocationV2, ref Color3 ColorV2);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void DrawArrow_Native(ref Vector3 start, ref Vector3 end, ref Vector3 up);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void DrawAABB_Native(ref AABB aabb, ref Transform worldTransform);

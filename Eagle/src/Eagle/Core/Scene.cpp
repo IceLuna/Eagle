@@ -439,6 +439,15 @@ namespace Eagle
 
 		CopyComponents(source, result);
 
+		if (bIsPlaying && result.HasComponent<ScriptComponent>())
+		{
+			if (ScriptEngine::ModuleExists(result.GetComponent<ScriptComponent>().ModuleName))
+			{
+				ScriptEngine::InstantiateEntityClass(result);
+				ScriptEngine::OnCreateEntity(result);
+			}
+		}
+
 		return result;
 	}
 
@@ -681,15 +690,18 @@ namespace Eagle
 		DestroyPendingEntities();
 
 		m_EditorCamera.OnUpdate(ts, bCanUpdateEditorCamera);
+
+		GatherSkeletalMeshes();
+		UpdateAnimations(ts, !bForceAnimationsUpdate, false);
 		m_PhysicsScene->Simulate(ts, false);
 		UpdateNavMesh(ts);
-		RenderScene(ts, bRender, false, bForceAnimationsUpdate);
+		if (bRender)
+			RenderScene(ts, false);
 	}
 
 	void Scene::OnUpdateRuntime(Timestep ts, bool bRender, bool bForceAnimationsUpdate)
 	{	
 		DestroyPendingEntities();
-		UpdateScripts(ts);
 
 		m_RuntimeCamera = FindOrCreateRuntimeCamera();
 		if (!m_RuntimeCamera->FixedAspectRatio)
@@ -698,13 +710,16 @@ namespace Eagle
 				m_RuntimeCamera->Camera.SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 		}
 
-		// TODO: Why negative forward?
-		AudioEngine::SetListenerData(m_RuntimeCamera->GetWorldTransform().Location, -m_RuntimeCamera->GetForwardVector(), m_RuntimeCamera->GetUpVector());
-
+		GatherSkeletalMeshes();
+		UpdateAnimations(ts, false, true);
+		UpdateScripts(ts);
 		m_PhysicsScene->Simulate(ts, true);
 		UpdateNavMesh(ts);
 		SyncCrowdAgents();
-		RenderScene(ts, bRender, true, bForceAnimationsUpdate);
+		// TODO: Why negative forward?
+		AudioEngine::SetListenerData(m_RuntimeCamera->GetWorldTransform().Location, -m_RuntimeCamera->GetForwardVector(), m_RuntimeCamera->GetUpVector());
+		if (bRender)
+			RenderScene(ts, true);
 	}
 
 	void Scene::UpdateNavMesh(Timestep ts)
@@ -801,6 +816,27 @@ namespace Eagle
 		}
 	}
 
+	void Scene::GatherSkeletalMeshes()
+	{
+		if (bForceSkeletalMeshUpdateNextFrame)
+		{
+			m_DirtyFlags.bSkeletalMeshesDirty = true;
+			bForceSkeletalMeshUpdateNextFrame = false;
+		}
+		if (m_DirtyFlags.bSkeletalMeshesDirty)
+		{
+			// TODO: Maybe update the list in callbacks? 
+			m_SkeletalMeshes.clear();
+			auto view = m_Registry.view<SkeletalMeshComponent>();
+			for (auto entity : view)
+			{
+				auto& mesh = view.get<SkeletalMeshComponent>(entity);
+				if (mesh.GetMeshAsset())
+					m_SkeletalMeshes.push_back(&mesh);
+			}
+		}
+	}
+
 	void Scene::DestroyPendingEntities()
 	{
 		EG_CPU_TIMING_SCOPED("Scene. Destroy Pending Entities");
@@ -831,6 +867,9 @@ namespace Eagle
 	{
 		EG_CPU_TIMING_SCOPED("Scene. Run Scripts");
 
+		const bool bDirtyBefore = m_DirtyFlags.bSkeletalMeshesDirty;
+		m_DirtyFlags.bSkeletalMeshesDirty = false;
+
 		// C++ scripts
 		{
 			auto view = m_Registry.view<NativeScriptComponent>();
@@ -851,6 +890,22 @@ namespace Eagle
 				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
 					ScriptEngine::OnUpdateEntity(e, ts);
 			}
+		}
+
+		bForceSkeletalMeshUpdateNextFrame = m_DirtyFlags.bSkeletalMeshesDirty;
+		m_DirtyFlags.bSkeletalMeshesDirty = bDirtyBefore;
+	}
+
+	void Scene::UpdateAnimations(Timestep ts, bool bUseBasePose, bool bApplyRootMotion)
+	{
+		EG_CPU_TIMING_SCOPED("Scene. Update animations");
+		if (bUseBasePose)
+		{
+			m_AnimationTransforms = AnimationSystem::UpdateBasePose(m_SkeletalMeshes, ts);
+		}
+		else
+		{
+			m_AnimationTransforms = AnimationSystem::Update(m_SkeletalMeshes, ts, bApplyRootMotion);
 		}
 	}
 
@@ -897,19 +952,8 @@ namespace Eagle
 		return camera;
 	}
 
-	void Scene::RenderScene(Timestep ts, bool bRender, bool bRuntime, bool bForceAnimationsUpdate)
+	void Scene::RenderScene(Timestep ts, bool bRuntime)
 	{
-		if (!bRender)
-		{
-			if (bRuntime || bForceAnimationsUpdate)
-			{
-				EG_CPU_TIMING_SCOPED("Scene. Just tick animations");
-				AnimationSystem::Update(m_SkeletalMeshes, ts, bRuntime);
-			}
-
-			return;
-		}
-
 		EG_CPU_TIMING_SCOPED("Scene. Update Scene");
 
 		GatherLightsInfo();
@@ -922,18 +966,6 @@ namespace Eagle
 			{
 				auto& mesh = view.get<StaticMeshComponent>(entity);
 				m_Meshes.push_back(&mesh);
-			}
-		}
-		if (m_DirtyFlags.bSkeletalMeshesDirty)
-		{
-			// TODO: Maybe update the list in callbacks? 
-			auto view = m_Registry.view<SkeletalMeshComponent>();
-			m_SkeletalMeshes.clear();
-			for (auto entity : view)
-			{
-				auto& mesh = view.get<SkeletalMeshComponent>(entity);
-				if (mesh.GetMeshAsset())
-					m_SkeletalMeshes.push_back(&mesh);
 			}
 		}
 		if (m_DirtyFlags.bSpritesDirty)
@@ -956,11 +988,6 @@ namespace Eagle
 				m_Decals.push_back(&decal);
 			}
 		}
-
-		if (bRuntime || bForceAnimationsUpdate)
-			m_AnimationTransforms = AnimationSystem::Update(m_SkeletalMeshes, ts, bRuntime);
-		else
-			m_AnimationTransforms = AnimationSystem::UpdateBasePose(m_SkeletalMeshes, ts);
 
 		// If meshes are dirty, there's not point in updating specific transforms
 		// Since meshes are going to be fully updated anyway

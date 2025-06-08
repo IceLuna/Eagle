@@ -464,8 +464,8 @@ namespace Eagle
 
 		// Upload anim transforms
 		{
-			EG_GPU_TIMING_SCOPED(cmd, "3D Skeletal Meshes. Process and upload animations");
-			EG_CPU_TIMING_SCOPED("3D Skeletal Meshes. Process and upload animations");
+			EG_GPU_TIMING_SCOPED(cmd, "Skeletal Meshes. Process and upload animations");
+			EG_CPU_TIMING_SCOPED("Skeletal Meshes. Process and upload animations");
 
 			const auto& finalAnimTransforms = m_Renderer.GetMeshesAnimationTransforms();
 			for (auto& [meshKey, meshData] : m_SkeletalMeshes)

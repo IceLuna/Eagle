@@ -69,7 +69,7 @@ void main()
         if (emitter.LoopCount == 0)
             emitter.LoopIteration = 0u;
 
-        if (HasFlag(emitter.Flags, Emitter_Enabled_Mask) == false || (emitter.LoopCount != 0 && emitter.LoopIteration == emitter.LoopCount))
+        if (HasFlag(emitter.Flags, Emitter_Enabled_Mask) == false || (emitter.LoopCount != 0 && emitter.LoopIteration >= emitter.LoopCount))
         {
             g_EmittersSpawnCount[i] = 0;
             continue;

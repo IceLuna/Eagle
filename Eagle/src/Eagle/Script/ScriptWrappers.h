@@ -563,6 +563,7 @@ namespace Eagle::Script
 
 	void Eagle_Renderer_DrawLine(const glm::vec3* startColor, const glm::vec3* endColor, const glm::vec3* start, const glm::vec3* end);
 	void Eagle_Renderer_DrawTriangle(const glm::vec3* v0Location, const glm::vec3* v0Color, const glm::vec3* v1Location, const glm::vec3* v1Color, const glm::vec3* v2Location, const glm::vec3* v2Color);
+	void Eagle_Renderer_DrawArrow(const glm::vec3* start, const glm::vec3* end, const glm::vec3* up);
 	void Eagle_Renderer_DrawAABB(const AABB* aabb, const Transform* transform);
 
 	// Project
@@ -720,6 +721,11 @@ namespace Eagle::Script
 		bool* bAdditive, bool* bBlendAnimation, bool* bFaceDirection);
 
 	// Math
+	glm::vec3 Eagle_Math_GetForwardVector(const Rotator* rotator);
+	glm::vec3 Eagle_Math_GetUpVector(const Rotator* rotator);
+	glm::vec3 Eagle_Math_GetRightVector(const Rotator* rotator);
+
+	// Quat
 	glm::quat Eagle_Quat_Mul(const glm::quat& left, const glm::quat& right);
 	glm::vec3 Eagle_Quat_EulerAngles(const glm::quat* q);
 	glm::quat Eagle_Quat_FromEulerAngles(const glm::vec3* rads);

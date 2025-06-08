@@ -634,6 +634,7 @@ namespace Eagle
 			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnMaterialChanged);
 		}
 
+		bool HasBone(const std::string_view boneName) const;
 		Transform GetBoneWorldTransform(const std::string_view boneName);
 		glm::vec3 GetBoneWorldLocation(const std::string_view boneName);
 		Rotator GetBoneWorldRotation(const std::string_view boneName);

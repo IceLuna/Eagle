@@ -477,7 +477,7 @@ namespace Eagle
 			return scene->CreateFromEntityAsset(entityAsset).GetGUID();
 		}
 		
-		EG_CORE_ERROR("[ScriptEngine] Couldn't set paused. It's not a SoundGroup asset");
+		EG_CORE_ERROR("[ScriptEngine] Couldn't spawn entity. It's not an Entity asset");
 		return GUID(0, 0);
 	}
 
@@ -6870,6 +6870,11 @@ namespace Eagle
 		Scene::GetCurrentScene()->DrawDebugTriangle(triangle);
 	}
 
+	void Script::Eagle_Renderer_DrawArrow(const glm::vec3* start, const glm::vec3* end, const glm::vec3* up)
+	{
+		Scene::GetCurrentScene()->DrawArrow(*start, *end, *up);
+	}
+
 	void Script::Eagle_Renderer_DrawAABB(const AABB* aabb, const Transform* transform)
 	{
 		Scene::GetCurrentScene()->DrawAABB(*aabb, *transform);
@@ -8373,7 +8378,6 @@ namespace Eagle
 	void* Script::Eagle_AssetParticleSystem_SetEmitters_Prepare(uint32_t count)
 	{
 		std::vector<ParticleEmitter>* emitters = new std::vector<ParticleEmitter>(count);
-		EG_CORE_INFO("Count {}", emitters->size());
 		return emitters;
 	}
 
@@ -8603,6 +8607,21 @@ namespace Eagle
 	}
 	
 	//--------------Math--------------
+	glm::vec3 Script::Eagle_Math_GetForwardVector(const Rotator* rotator)
+	{
+		return Math::GetForwardVector(*rotator);
+	}
+
+	glm::vec3 Script::Eagle_Math_GetUpVector(const Rotator* rotator)
+	{
+		return Math::GetUpVector(*rotator);
+	}
+
+	glm::vec3 Script::Eagle_Math_GetRightVector(const Rotator* rotator)
+	{
+		return Math::GetRightVector(*rotator);
+	}
+
 	glm::quat Script::Eagle_Quat_Mul(const glm::quat& left, const glm::quat& right)
 	{
 		return left * right;

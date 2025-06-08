@@ -2491,8 +2491,8 @@ namespace Eagle
             return new AssetParticleSystem(assetID);
         }
 
-        void Spawn() { Spawn_Native(Parent.ID); }
-        void Destroy() { Destroy_Native(Parent.ID); }
+        public void Spawn() { Spawn_Native(Parent.ID); }
+        public void Destroy() { Destroy_Native(Parent.ID); }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetAsset_Native(GUID entityID, GUID assetGUID);

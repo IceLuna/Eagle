@@ -286,8 +286,10 @@ namespace Eagle
 
 		void CollectParticleSystems(const std::unordered_set<GUID>& input); // Pushes data from `input` into `m_TempParticleSystems`
 		void GatherLightsInfo();
+		void GatherSkeletalMeshes();
 		void UpdateScripts(Timestep ts);
-		void RenderScene(Timestep ts, bool bRender, bool bRuntime, bool bForceAnimationsUpdate);
+		void UpdateAnimations(Timestep ts, bool bUseBasePose, bool bApplyRootMotion);
+		void RenderScene(Timestep ts, bool bRuntime);
 		CameraComponent* FindOrCreateRuntimeCamera();
 		void ConnectSignals();
 
@@ -571,6 +573,16 @@ namespace Eagle
 		bool bIsPlaying = false;
 
 		DirtyFlags m_DirtyFlags;
+
+		// Dirty fix but here's the problem it fixes:
+		// 1. In order for `GetBoneWorldTransform()` to return the most up-to-date info for scripts, we need to update animations before running scripts.
+		// 2. In order to update animations, we need to gather all skeletal meshes.
+		// So, we Gather Skeletals -> Update Anims -> Run scrips.
+		// But the problem is that scripts might spawn/delete skeletal meshes, which will invalidate gathered skeletal mesh info.
+		// And there'll be a mismatch between gathered skeletal mesh data and animation data.
+		// So here's the fix: if scripts invalidated skeletal meshes data, we just ignore it for the current frame, and force it to be updated on the next one.
+		// This way we keep animation data and skeletal data in sync.
+		bool bForceSkeletalMeshUpdateNextFrame = false;
 
 		// Debug data
 		std::vector<RendererLine> m_UserDebugLines;

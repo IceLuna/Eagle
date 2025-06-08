@@ -722,7 +722,7 @@ namespace Eagle
                 newAsset.SetEmitters(asset.GetEmitters());
             }
 
-            return null;
+            return newAsset;
         }
 
         public uint GetEmittersCount()

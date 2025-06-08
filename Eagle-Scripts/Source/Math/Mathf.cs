@@ -1,10 +1,26 @@
 ﻿
 using System;
+using System.Runtime.CompilerServices;
 
 namespace Eagle
 {
     public static class Mathf
     {
+        public static Vector3 GetForwardVector(Rotator rotator)
+        {
+            return GetForwardVector_Native(ref rotator);
+        }
+
+        public static Vector3 GetUpVector(Rotator rotator)
+        {
+            return GetUpVector_Native(ref rotator);
+        }
+
+        public static Vector3 GetRightVector(Rotator rotator)
+        {
+            return GetRightVector_Native(ref rotator);
+        }
+
         public static float Clamp(float value, float min, float max)
         {
             if (value < min)
@@ -247,5 +263,15 @@ namespace Eagle
         public static Vector2 Sign(Vector2 v) => new Vector2(Math.Sign(v.X), Math.Sign(v.Y));
         public static Vector3 Sign(Vector3 v) => new Vector3(Math.Sign(v.X), Math.Sign(v.Y), Math.Sign(v.Z));
         public static Vector4 Sign(Vector4 v) => new Vector4(Math.Sign(v.X), Math.Sign(v.Y), Math.Sign(v.Z), Math.Sign(v.W));
+
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern Vector3 GetForwardVector_Native(ref Rotator rotator);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern Vector3 GetUpVector_Native(ref Rotator rotator);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern Vector3 GetRightVector_Native(ref Rotator rotator);
     }
 }
