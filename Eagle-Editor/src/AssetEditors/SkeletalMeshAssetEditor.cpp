@@ -744,7 +744,7 @@ namespace Eagle
 		{
 			const bool bEnableModification = m_SelectedBone->bVirtualBone;
 			Transform boneTransform = Math::DecomposeTransformMatrix(Math::ToTransformMatrix(GetBoneWorldTransform(m_SelectedBoneName)));
-			if (DrawGuizmo(boneTransform, bEnableModification))
+			if (DrawGuizmo(boneTransform, bEnableModification, false))
 			{
 				// We need to remove parent's transform
 				const glm::mat4 parentTr = Math::ToTransformMatrix(GetBoneWorldTransform(m_SelectedBoneParentName));
@@ -759,7 +759,7 @@ namespace Eagle
 			Transform boneTransform = m_SelectedRagdollBone->Settings.UserOffset;
 			const glm::vec3 origOffsetLocation = boneTransform.Location;
 			boneTransform.Location = worldLocation; // We wanna draw guizmo in WS
-			if (DrawGuizmo(boneTransform, bEnableModification))
+			if (DrawGuizmo(boneTransform, bEnableModification, false))
 			{
 				const glm::vec3 diff = boneTransform.Location - worldLocation;
 				boneTransform.Location = origOffsetLocation + diff; // Back to local

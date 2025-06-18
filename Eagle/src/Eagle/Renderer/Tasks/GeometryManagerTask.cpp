@@ -572,7 +572,7 @@ namespace Eagle
 			transformsBufferSpecs.Size = m_TextTransformsBuffer->GetSize();
 			m_TextPrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Text_PrevTransformsBuffer");
 
-			m_AnimationPrevTransformsBuffers.resize(m_AnimationTransformsBuffers.size());
+			m_AnimationPrevTransformsBuffers.resize(m_AnimationTransformsBuffers.size(), Buffer::Dummy);
 		}
 	}
 

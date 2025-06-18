@@ -104,7 +104,7 @@ namespace Eagle
 		ImGui::End();
 	}
 
-	bool AssetEditor::DrawGuizmo(Transform& transform, bool bEnabled)
+	bool AssetEditor::DrawGuizmo(Transform& transform, bool bEnabled, bool bWorld)
 	{
 		if (!m_CurrentScene || m_GuizmoType == -1)
 			return false;
@@ -139,7 +139,7 @@ namespace Eagle
 
 		ImGuizmo::Enable(bEnabled);
 		ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,
-			ImGuizmo::WORLD, glm::value_ptr(transformMatrix), nullptr, bSnap ? snapValues : nullptr);
+			bWorld ? ImGuizmo::WORLD : ImGuizmo::LOCAL, glm::value_ptr(transformMatrix), nullptr, bSnap ? snapValues : nullptr);
 		ImGuizmo::Enable(bWasEnabled); // Restore state
 
 		if (ImGuizmo::IsUsing())

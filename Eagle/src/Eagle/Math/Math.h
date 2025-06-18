@@ -56,4 +56,16 @@ namespace Eagle::Math
 	{
 		return glm::rotate(rotation.GetQuat(), glm::vec3(1.f, 0.f, 0.f));
 	}
+
+	static bool IsNearlyZero(const glm::vec3& v, float tolerance = 0.0001f)
+	{
+		return
+			glm::abs(v.x) <= tolerance
+			&& glm::abs(v.y) <= tolerance
+			&& glm::abs(v.z) <= tolerance;
+	}
+
+	// Returns degree of the angle between Velocity and rotation's forward vector
+	// The range of return will be from[-180, 180].
+	float CalculateDirection(const glm::vec3& velocity, const Rotator& rotation);
 }

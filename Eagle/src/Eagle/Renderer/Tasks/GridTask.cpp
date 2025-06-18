@@ -14,7 +14,6 @@ namespace Eagle
 	GridTask::GridTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
-		bJitter = m_Renderer.GetOptions().InternalState.bJitter;
 		InitPipeline();
 	}
 
@@ -40,9 +39,6 @@ namespace Eagle
 			* glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f))
 			* glm::scale(glm::mat4(1.0f), glm::vec3(scale));
 		const glm::mat4 mvp = m_Renderer.GetViewProjection() * transform;
-
-		if (bJitter)
-			m_Pipeline->SetBuffer(m_Renderer.GetJitter(), 0, 0);
 
 		cmd->BeginGraphics(m_Pipeline);
 		cmd->SetGraphicsRootConstants(&mvp, &pushData);
@@ -74,14 +70,10 @@ namespace Eagle
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.DepthCompareOp = CompareOperation::GreaterEqual;
 
-		ShaderDefines defines;
-		if (bJitter)
-			defines["EG_JITTER"] = "";
-
 		PipelineGraphicsState state;
 		state.ColorAttachments.push_back(attachment);
 		state.DepthStencilAttachment = depthAttachment;
-		state.VertexShader = Shader::Create("grid_quad.vert", ShaderType::Vertex, defines);
+		state.VertexShader = Shader::Create("grid_quad.vert", ShaderType::Vertex);
 		state.FragmentShader = Shader::Create("grid.frag", ShaderType::Fragment);
 
 		if (m_Pipeline)

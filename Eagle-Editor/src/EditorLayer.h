@@ -60,7 +60,8 @@ namespace Eagle
 
 		void UpdateEditorTitle(const Ref<AssetScene>& scene);
 
-		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync, bool bRenderOnlyWhenFocused, bool bDrawNavMesh, Key stopSimulationKey, bool bUpdateAnimationsInEditor);
+		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync, bool bRenderOnlyWhenFocused,
+			bool bDrawNavMesh, Key stopSimulationKey, bool bUpdateAnimationsInEditor, int guizmoMode);
 		void SetCurrentScene(const Ref<Scene>& scene);
 
 		void UpdateGuizmo();
@@ -130,6 +131,7 @@ namespace Eagle
 		GUID m_OpenedSceneCallbackID;
 
 		int m_GuizmoType = 7; // TRANSLATE;
+		int m_GuizmoMode = 1; // ImGuizmo::WORLD;
 		ImGuiLayer::Style m_EditorStyle = ImGuiLayer::Style::Default;
 		EditorState m_EditorState = EditorState::Edit;
 		bool bRenderOnlyWhenFocused = true;

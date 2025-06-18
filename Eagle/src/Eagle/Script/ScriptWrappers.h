@@ -724,6 +724,7 @@ namespace Eagle::Script
 	glm::vec3 Eagle_Math_GetForwardVector(const Rotator* rotator);
 	glm::vec3 Eagle_Math_GetUpVector(const Rotator* rotator);
 	glm::vec3 Eagle_Math_GetRightVector(const Rotator* rotator);
+	float Eagle_Math_CalculateDirection(const glm::vec3* velocity, const Rotator* rotator);
 
 	// Quat
 	glm::quat Eagle_Quat_Mul(const glm::quat& left, const glm::quat& right);

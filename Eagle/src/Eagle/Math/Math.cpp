@@ -96,4 +96,45 @@ namespace Eagle::Math
 			* rotation
 			* glm::scale(glm::mat4(1.0f), transform.Scale3D);
 	}
+
+	static glm::vec3 GetSafeNormal2D(glm::vec3 v, float tolerance = 0.001f, const glm::vec3& resultIfZero = glm::vec3(0))
+	{
+		// Ignore up direction (Y)
+		const float squareSum = v.x * v.x + v.z * v.z;
+
+		if (squareSum == 1.0)
+		{
+			return glm::vec3(v.x, 0.f, v.z);
+		}
+		else if (squareSum < tolerance)
+		{
+			return resultIfZero;
+		}
+
+		const float scale = glm::inversesqrt(squareSum);
+		return glm::vec3(v.x * scale, 0.f, v.z * scale);
+	}
+
+	float CalculateDirection(const glm::vec3& velocity, const Rotator& rotation)
+	{
+		if (IsNearlyZero(velocity))
+			return 0.f;
+
+		const glm::vec3 forwardVector = GetForwardVector(rotation);
+		const glm::vec3 rightVector = GetRightVector(rotation);
+		const glm::vec3 normVelocity = GetSafeNormal2D(velocity);
+
+		// Clamp is required since it can return smth like `1.00001` in which case `acos` fails
+		const float forwardCosAngle = glm::clamp(glm::dot(forwardVector, normVelocity), -1.f, 1.f);
+		float forwardDeltaDegree = glm::degrees(glm::acos(forwardCosAngle));
+
+		// depending on where right vector is, flip it
+		const float rightCosAngle = glm::dot(rightVector, normVelocity);
+		if (rightCosAngle < 0.f)
+		{
+			forwardDeltaDegree *= -1.f;
+		}
+
+		return forwardDeltaDegree;
+	}
 }

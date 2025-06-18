@@ -21,6 +21,13 @@ namespace Eagle
             return GetRightVector_Native(ref rotator);
         }
 
+        // Returns degree of the angle between Velocity and rotation's forward vector
+        // The range of return will be from[-180, 180].
+        public static float CalculateDirection(Vector3 velocity, Rotator rotator)
+        {
+            return CalculateDirection_Native(ref velocity, ref rotator);
+        }
+
         public static float Clamp(float value, float min, float max)
         {
             if (value < min)
@@ -273,5 +280,8 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern Vector3 GetRightVector_Native(ref Rotator rotator);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float CalculateDirection_Native(ref Vector3 velocity, ref Rotator rotator);
     }
 }

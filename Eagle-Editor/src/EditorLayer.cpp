@@ -156,6 +156,7 @@ namespace Eagle
 		CheckAppAssembly();
 
 		m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
+		m_GuizmoMode = ImGuizmo::MODE::WORLD;
 
 		m_WindowTitle = "Eagle Editor";
 		m_OpenedSceneCallbackID = Scene::AddOnSceneOpenedCallback([this](const Ref<Scene>& scene)
@@ -720,7 +721,7 @@ namespace Eagle
 	}
 
 	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync,
-		bool bRenderOnlyWhenFocused, bool bDrawNavMesh, Key stopSimulationKey, bool bUpdateAnimationsInEditor)
+		bool bRenderOnlyWhenFocused, bool bDrawNavMesh, Key stopSimulationKey, bool bUpdateAnimationsInEditor, int guizmoMode)
 	{
 		// Scene creation needs to go through this way of setting it up since we need to get Ref<Scene> immediately
 		m_EditorScene = MakeRef<Scene>("Editor Scene");
@@ -747,6 +748,7 @@ namespace Eagle
 		this->bRenderOnlyWhenFocused = bRenderOnlyWhenFocused;
 		this->bUpdateAnimationsInEditor = bUpdateAnimationsInEditor;
 		this->bDrawNavMesh = bDrawNavMesh;
+		m_GuizmoMode = guizmoMode;
 		m_StopSimulationKey = stopSimulationKey;
 
 		if ((int)windowSize.x > 0 && (int)windowSize.y > 0)
@@ -833,7 +835,7 @@ namespace Eagle
 
 			glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
 			ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,
-				ImGuizmo::WORLD, glm::value_ptr(transformMatrix), nullptr, bSnap ? snapValues : nullptr);
+				(ImGuizmo::MODE)m_GuizmoMode, glm::value_ptr(transformMatrix), nullptr, bSnap ? snapValues : nullptr);
 
 			if (ImGuizmo::IsUsing())
 			{
@@ -1814,6 +1816,7 @@ namespace Eagle
 	{
 		constexpr uint64_t treeID = 95242191ull;
 		glm::vec3 tempSnappingValues = m_SnappingValues;
+		ImGuizmo::MODE guizmoMode = (ImGuizmo::MODE)m_GuizmoMode;
 		ImGui::Begin("Editor Preferences");
 
 		constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
@@ -1849,6 +1852,10 @@ namespace Eagle
 		{
 			UI::BeginPropertyGrid("EditorPreferences");
 
+			if (UI::ComboEnum("Guizmo Mode", guizmoMode))
+			{
+				m_GuizmoMode = guizmoMode;
+			}
 			UI::Property("Eco Rendering", bRenderOnlyWhenFocused, "If checked, the scene won't be rendered if the window is not in focus");
 			UI::Property("Update Animations", bUpdateAnimationsInEditor, "If checked, animations will be updated in the editor mode");
 			UI::Property("Draw Editor Miscellaneous", m_bDrawEditorMisc);

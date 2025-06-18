@@ -5,6 +5,7 @@
 
 #include "EditorSerializer.h"
 #include "EditorLayer.h"
+#include <ImGuizmo/ImGuizmo.h>
 
 namespace Eagle
 {
@@ -38,6 +39,7 @@ namespace Eagle
 		out << YAML::Key << "DrawNavMesh" << YAML::Value << m_Editor->bDrawNavMesh;
 		out << YAML::Key << "StopSimulationKey" << YAML::Value << Utils::GetEnumName(m_Editor->m_StopSimulationKey);
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
+		out << YAML::Key << "GuizmoMode" << YAML::Value << Utils::GetEnumName((ImGuizmo::MODE)m_Editor->m_GuizmoMode);
 
 		Serializer::SerializeRendererSettings(out, rendererOptions);
 
@@ -69,6 +71,7 @@ namespace Eagle
 		bool bUpdateAnimationsInEditor = m_Editor->bUpdateAnimationsInEditor;
 		bool bDrawNavMesh = m_Editor->bDrawNavMesh;
 		Key stopSimulationKey = m_Editor->m_StopSimulationKey;
+		int guizmoMode = ImGuizmo::MODE::WORLD;
 
 		if (auto openedScenePathNode = data["EditorStartupScene"])
 		{
@@ -102,10 +105,12 @@ namespace Eagle
 			stopSimulationKey = Utils::GetEnumFromName<Eagle::Key>(node.as<std::string>());
 		if (auto VSyncNode = data["VSync"])
 			bVSync = VSyncNode.as<bool>();
+		if (auto node = data["GuizmoMode"])
+			guizmoMode = Utils::GetEnumFromName<ImGuizmo::MODE>(node.as<std::string>());
 		
 		Serializer::DeserializeRendererSettings(data, settings);
 
-		m_Editor->OnDeserialized(windowSize, windowPos, settings, bWindowMaximized, bVSync, bRenderOnlyWhenFocused, bDrawNavMesh, stopSimulationKey, bUpdateAnimationsInEditor);
+		m_Editor->OnDeserialized(windowSize, windowPos, settings, bWindowMaximized, bVSync, bRenderOnlyWhenFocused, bDrawNavMesh, stopSimulationKey, bUpdateAnimationsInEditor, guizmoMode);
 		return true;
 	}
 }

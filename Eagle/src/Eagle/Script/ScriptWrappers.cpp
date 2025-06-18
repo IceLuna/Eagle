@@ -8622,6 +8622,11 @@ namespace Eagle
 		return Math::GetRightVector(*rotator);
 	}
 
+	float Script::Eagle_Math_CalculateDirection(const glm::vec3* velocity, const Rotator* rotator)
+	{
+		return Math::CalculateDirection(*velocity, *rotator);
+	}
+
 	glm::quat Script::Eagle_Quat_Mul(const glm::quat& left, const glm::quat& right)
 	{
 		return left * right;

@@ -712,10 +712,10 @@ namespace Eagle
 
 		GatherSkeletalMeshes();
 		UpdateAnimations(ts, false, true);
-		UpdateScripts(ts);
-		m_PhysicsScene->Simulate(ts, true);
 		UpdateNavMesh(ts);
 		SyncCrowdAgents();
+		m_PhysicsScene->Simulate(ts, true);
+		UpdateScripts(ts);
 		// TODO: Why negative forward?
 		AudioEngine::SetListenerData(m_RuntimeCamera->GetWorldTransform().Location, -m_RuntimeCamera->GetForwardVector(), m_RuntimeCamera->GetUpVector());
 		if (bRender)

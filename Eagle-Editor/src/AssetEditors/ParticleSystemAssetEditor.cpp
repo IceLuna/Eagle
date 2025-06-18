@@ -275,6 +275,6 @@ namespace Eagle
 			return;
 
 		auto& emitter = m_Emitters[m_SelectedEmitterIndex];
-		bGuizmoChanged = DrawGuizmo(emitter.RelativeTransform, true);
+		bGuizmoChanged = DrawGuizmo(emitter.RelativeTransform, true, false);
 	}
 }
