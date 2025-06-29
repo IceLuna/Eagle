@@ -26,6 +26,7 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 IncludeDir = {}
 IncludeDir["GLFW"] = "Eagle/vendor/GLFW/include"
 IncludeDir["ImGui"] = "Eagle/vendor/imgui"
+IncludeDir["ImPlot"] = "Eagle/vendor/ImPlot"
 IncludeDir["ImGuiNodeEditor"] = "Eagle/vendor/imgui-node-editor"
 IncludeDir["glm"] = "Eagle/vendor/glm"
 IncludeDir["stb_image"] = "Eagle/vendor/stb_image"
@@ -110,6 +111,7 @@ group "Dependecies"
 	include "Eagle/vendor/GLFW"
 	include "Eagle/vendor/imgui"
 	include "Eagle/vendor/imgui-node-editor"
+	include "Eagle/vendor/ImPlot"
 	include "Eagle/vendor/yaml-cpp"
 	include "Eagle/vendor/msdf-atlas-gen"
 	group "Dependecies/RecastNavigation"
@@ -159,6 +161,7 @@ project "Eagle"
 		"%{prj.name}/vendor/argparse/include",
 		"%{IncludeDir.GLFW}",
 		"%{IncludeDir.ImGui}",
+		"%{IncludeDir.ImPlot}",
 		"%{IncludeDir.ImGuiNodeEditor}",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.stb_image}",
@@ -207,6 +210,7 @@ project "Eagle"
 	{
 		"GLFW",
 		"ImGui",
+		"ImPlot",
 		"ImGuiNodeEditor",
 		"yaml-cpp",
 		"MSDF-Atlas",
@@ -375,6 +379,7 @@ project "Eagle-Editor"
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.ImGui}",
+		"%{IncludeDir.ImPlot}",
 		"%{IncludeDir.ImGuiNodeEditor}",
 		"%{IncludeDir.ThreadPool}",
 		"%{IncludeDir.MagicEnum}",
@@ -516,6 +521,7 @@ project "Eagle-Game"
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.ImGui}",
+		"%{IncludeDir.ImPlot}",
 		"%{IncludeDir.ImGuiNodeEditor}",
 		"%{IncludeDir.ThreadPool}",
 		"%{IncludeDir.MagicEnum}",

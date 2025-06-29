@@ -65,6 +65,7 @@ namespace Eagle
         Variable,
         PoseCache,
         PoseCacheGetter,
+        BlendSpace,
         StateMachine,
         StateMachineState,
         Tree,

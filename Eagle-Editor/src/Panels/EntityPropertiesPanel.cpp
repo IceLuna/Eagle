@@ -1374,6 +1374,7 @@ namespace Eagle
 								AssetField_Case(AssetAnimation);
 								AssetField_Case(AssetAnimationGraph);
 								AssetField_Case(AssetParticleSystem);
+								AssetField_Case(AssetAnimationBlendSpace);
 							}
 						}
 					}

@@ -5,6 +5,7 @@
 namespace Eagle
 {
 	class AnimationStateMachineGraph;
+	class AssetAnimationBlendSpace;
 
 	class AnimationGraphNode : public GraphNode
 	{
@@ -271,6 +272,29 @@ namespace Eagle
 
 	private:
 		static constexpr size_t s_Inputs = 1;
+	};
+
+	class AnimationGraphNodeBlendSpace : public AnimationGraphNode
+	{
+	public:
+		AnimationGraphNodeBlendSpace(const Weak<AnimationGraph>& graph, const Ref<AssetAnimationBlendSpace>& asset)
+			: AnimationGraphNode(graph, s_Inputs)
+			, m_BlendSpace(asset)
+		{}
+
+		const SkeletalPose& Update(Timestep ts) override;
+
+		const Ref<AssetAnimationBlendSpace>& GetBlendSpaceAsset() const { return m_BlendSpace; }
+
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		{
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeBlendSpace>(newGraph, m_BlendSpace);
+		}
+
+	private:
+		Ref<AssetAnimationBlendSpace> m_BlendSpace;
+		double CurrentTime = 0.0;
+		static constexpr size_t s_Inputs = 2;
 	};
 
 	// Base class for such nodes as: less, and, etc..

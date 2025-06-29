@@ -15,6 +15,7 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <ImGuizmo.h>
+#include <implot.h>
 #include <magic_enum.hpp>
 
 namespace Eagle
@@ -335,6 +336,7 @@ namespace Eagle
 
 		//ImGui::ShowStyleEditor();
 		//ImGui::ShowDemoWindow();
+		//ImPlot::ShowDemoWindow();
 	}
 
 	const EditorLayer* EditorLayer::Get()
@@ -1060,7 +1062,6 @@ namespace Eagle
 					const std::string_view threadName = Application::Get().GetThreadName(threadID);
 					ImGui::PushID(threadName.data());
 					ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-					float lineHeight = (GImGui->Font->FontSize * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
 					ImGui::Separator();
 					bool treeOpened = ImGui::TreeNodeEx("CPU Timings", flags, threadName.data());
 					ImGui::PopStyleVar();

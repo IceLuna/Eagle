@@ -6,6 +6,7 @@
 #include "Eagle/Renderer/RendererUtils.h"
 #include "Eagle/Renderer/ParticleEmitter.h"
 #include "Eagle/Physics/PhysicsMaterial.h"
+#include "Eagle/Utils/DelaunayTriangulation.h"
 
 namespace YAML
 {
@@ -25,7 +26,21 @@ namespace Eagle
 	class Entity;
 	class Scene;
 	class AnimationGraph;
+	class AssetAnimation;
 	struct SkeletalMeshAnimation;
+
+	struct BlendSpaceVertex
+	{
+		Ref<AssetAnimation> Animation;
+		Delaunay::Vertex Vertex;
+	};
+
+	struct BlendSpaceAxisSettings
+	{
+		std::string Name = "Axis";
+		double Min = 0.f;
+		double Max = 1.f;
+	};
 
 	enum class AssetType
 	{
@@ -44,6 +59,7 @@ namespace Eagle
 		Animation,
 		AnimationGraph,
 		ParticleSystem,
+		AnimationBlendSpace,
 	};
 
 	enum class AssetTexture2DFormat
@@ -164,6 +180,8 @@ namespace Eagle
 			return "ANIMATION_GRAPH_CELL";
 		case AssetType::ParticleSystem:
 			return "PARTICLE_SYSTEM_CELL";
+		case AssetType::AnimationBlendSpace:
+			return "ANIMATION_BLENDSPACE_CELL";
 		default:
 			EG_CORE_ASSERT(false);
 			return "INVALID_CELL";
@@ -749,5 +767,79 @@ namespace Eagle
 
 	private:
 		std::vector<ParticleEmitter> m_Emitters;
+	};
+
+	class AssetAnimationBlendSpace : public Asset
+	{
+	public:
+		AssetAnimationBlendSpace& operator=(Asset&& other) noexcept override
+		{
+			if (this == &other)
+				return *this;
+
+			Asset::operator=(std::move(other));
+
+			AssetAnimationBlendSpace&& asset = (AssetAnimationBlendSpace&&)other;
+			m_SkeletalMesh = std::move(asset.m_SkeletalMesh);
+			m_PointsData = std::move(asset.m_PointsData);
+			m_Triangulation = std::move(asset.m_Triangulation);
+			m_Horizontal = std::move(asset.m_Horizontal);
+			m_Vertical = std::move(asset.m_Vertical);
+
+			return *this;
+		}
+
+		const Ref<AssetSkeletalMesh>& GetSkeletalMesh() const { return m_SkeletalMesh; }
+
+		void SetPointsData(const std::vector<BlendSpaceVertex>& pointsData);
+		const std::vector<BlendSpaceVertex>& GetPointsData() const { return m_PointsData; }
+
+		const std::vector<Delaunay::Triangle>& GetTriangulation() const { return m_Triangulation; }
+
+		void SetAxes(const BlendSpaceAxisSettings& horAxis, const BlendSpaceAxisSettings& verAxis)
+		{
+			m_Horizontal = horAxis;
+			m_Vertical = verAxis;
+			SetPointsData(m_PointsData);
+		}
+
+		void SetHorizontalAxis(const BlendSpaceAxisSettings& horAxis)
+		{
+			m_Horizontal = horAxis;
+			SetPointsData(m_PointsData);
+		}
+		const BlendSpaceAxisSettings& GetHorizontalAxis() const { return m_Horizontal; }
+
+		void SetVerticalAxis(const BlendSpaceAxisSettings& verAxis)
+		{
+			m_Vertical = verAxis;
+			SetPointsData(m_PointsData);
+		}
+		const BlendSpaceAxisSettings& GetVerticalAxis() const { return m_Vertical; }
+
+		// @path. Path to an `.egasset` file
+		static Ref<AssetAnimationBlendSpace> Create(const Path& path);
+
+		static constexpr AssetType GetAssetType_Static() { return AssetType::AnimationBlendSpace; }
+
+	protected:
+		AssetAnimationBlendSpace(const Path& path, GUID guid, const Ref<AssetSkeletalMesh>& skeletal, const BlendSpaceAxisSettings& horAxis, const BlendSpaceAxisSettings& verAxis, const std::vector<BlendSpaceVertex>& points)
+			: Asset(path, {}, AssetType::AnimationBlendSpace, guid, {})
+			, m_SkeletalMesh(skeletal)
+			, m_Horizontal(horAxis)
+			, m_Vertical(verAxis)
+		{
+			SetPointsData(points);
+		}
+
+		void Triangulate();
+
+	private:
+		Ref<AssetSkeletalMesh> m_SkeletalMesh;
+		std::vector<BlendSpaceVertex> m_PointsData;
+		std::vector<Delaunay::Triangle> m_Triangulation;
+
+		BlendSpaceAxisSettings m_Horizontal;
+		BlendSpaceAxisSettings m_Vertical;
 	};
 }

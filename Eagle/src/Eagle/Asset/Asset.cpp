@@ -308,6 +308,7 @@ namespace Eagle
 			case AssetType::Animation: return AssetAnimation::Create(path);
 			case AssetType::AnimationGraph: return AssetAnimationGraph::Create(path);
 			case AssetType::ParticleSystem: return AssetParticleSystem::Create(path);
+			case AssetType::AnimationBlendSpace: return AssetAnimationBlendSpace::Create(path);
 		}
 
 		EG_CORE_ASSERT(!"Unknown type");
@@ -649,5 +650,40 @@ namespace Eagle
 		};
 
 		return MakeRef<LocalAssetParticleSystem>(asset->GetPath(), asset->GetGUID(), asset->GetEmitters());
+	}
+
+	void AssetAnimationBlendSpace::SetPointsData(const std::vector<BlendSpaceVertex>& pointsData)
+	{
+		m_PointsData = pointsData;
+
+		for (auto& pointData : m_PointsData)
+		{
+			pointData.Vertex.Coord.x = glm::clamp(pointData.Vertex.Coord.x, m_Horizontal.Min, m_Horizontal.Max);
+			pointData.Vertex.Coord.y = glm::clamp(pointData.Vertex.Coord.y, m_Vertical.Min, m_Vertical.Max);
+		}
+		Triangulate();
+	}
+
+	void AssetAnimationBlendSpace::Triangulate()
+	{
+		std::vector<Delaunay::Vertex> vertices(m_PointsData.size());
+		for (size_t i = 0; i < m_PointsData.size(); ++i)
+		{
+			vertices[i] = m_PointsData[i].Vertex;
+			vertices[i].UserData = &m_PointsData[i].Animation;
+		}
+		m_Triangulation = Delaunay::Triangulate(vertices);
+	}
+
+	Ref<AssetAnimationBlendSpace> AssetAnimationBlendSpace::Create(const Path& path)
+	{
+		if (!std::filesystem::exists(path))
+		{
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path.u8string());
+			return {};
+		}
+
+		YAML::Node data = YAML::LoadFile(path.string());
+		return Serializer::DeserializeAssetAnimationBlendSpace(data, path);
 	}
 }

@@ -693,8 +693,8 @@ namespace Eagle
 
 		GatherSkeletalMeshes();
 		UpdateAnimations(ts, !bForceAnimationsUpdate, false);
-		m_PhysicsScene->Simulate(ts, false);
 		UpdateNavMesh(ts);
+		m_PhysicsScene->Simulate(ts, false);
 		if (bRender)
 			RenderScene(ts, false);
 	}

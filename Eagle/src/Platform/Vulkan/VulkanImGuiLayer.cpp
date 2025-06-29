@@ -13,6 +13,7 @@
 #include <backends/imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 #include <ImGuizmo.h>
+#include <implot.h>
 
 namespace Eagle
 {
@@ -23,6 +24,8 @@ namespace Eagle
 	{
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
+		ImPlot::CreateContext();
+
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  //Enagle Keyboard controls 
 		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; //Enable Gamepad controls
@@ -155,6 +158,7 @@ namespace Eagle
 			VK_CHECK(vkDeviceWaitIdle(device));
 			ImGui_ImplVulkan_Shutdown();
 			ImGui_ImplGlfw_Shutdown();
+			ImPlot::DestroyContext();
 			ImGui::DestroyContext();
 
 			vkDestroyDescriptorPool(device, pool, nullptr);

@@ -923,6 +923,26 @@ namespace Eagle::UI
 		return result;
 	}
 
+	bool InputDouble(const std::string_view label, double& value, double step, double stepFast, const std::string_view helpMessage)
+	{
+		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		ImGui::Text(label.data());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+
+		bool result = ImGui::InputDouble(s_IDBuffer, &value, step, stepFast);
+
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+		return result;
+	}
+
 	bool InputText(const std::string_view label, std::string& value, ImGuiInputTextFlags flags, const std::string_view helpMessage)
 	{
 		const bool bChanged = ImGui::InputText(label.data(), value.data(), value.length() + 1, flags | ImGuiInputTextFlags_CallbackResize, UI::TextResizeCallback, &value);

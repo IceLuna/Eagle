@@ -149,6 +149,8 @@ namespace Eagle
 			out << YAML::Key << "CachedOwnerID" << YAML::Value << node.CachedOwnerID;
 			out << YAML::Key << "CachedNodeID" << YAML::Value << node.CachedNodeID;
 			out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(node.Type);
+			if (node.Type == GraphNodeType::BlendSpace && node.BlendSpace)
+				out << YAML::Key << "BlendSpace" << YAML::Value << node.BlendSpace->GetGUID();
 			out << YAML::Key << "AddedCounter" << YAML::Value << node.AddedCounter;
 			if (node.UserData.empty() == false)
 				out << YAML::Key << "UserData" << YAML::Value << node.UserData;
@@ -236,6 +238,8 @@ namespace Eagle
 				nodeData.CachedNodeID = cachedNode.as<uint32_t>();
 			if (auto typeNode = nodeNode["Type"])
 				nodeData.Type = Utils::GetEnumFromName<GraphNodeType>(typeNode.as<std::string>());
+			if (auto bsNode = nodeNode["BlendSpace"])
+				nodeData.BlendSpace = GetAsset<AssetAnimationBlendSpace>(bsNode);
 			if (auto counterNode = nodeNode["AddedCounter"])
 				nodeData.AddedCounter = counterNode.as<uint32_t>();
 			if (auto userDataNode = nodeNode["UserData"])
@@ -408,6 +412,9 @@ namespace Eagle
 				break;
 			case AssetType::ParticleSystem:
 				SerializeAssetParticleSystem(out, Cast<AssetParticleSystem>(asset));
+				break;
+			case AssetType::AnimationBlendSpace:
+				SerializeAssetAnimationBlendSpace(out, Cast<AssetAnimationBlendSpace>(asset));
 				break;
 			default:
 				EG_CORE_ASSERT(false);
@@ -933,6 +940,43 @@ namespace Eagle
 			out << YAML::Key << "bBlendAnimation" << YAML::Value << emitter.bBlendAnimation;
 			out << YAML::Key << "bFaceDirection" << YAML::Value << emitter.bFaceDirection;
 
+			out << YAML::EndMap;
+		}
+		out << YAML::EndSeq;
+
+		out << YAML::EndMap;
+	}
+
+	void Serializer::SerializeAssetAnimationBlendSpace(YAML::Emitter& out, const Ref<AssetAnimationBlendSpace>& asset)
+	{
+		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::AnimationBlendSpace);
+		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
+		out << YAML::Key << "SkeletalMesh" << YAML::Value << asset->GetSkeletalMesh()->GetGUID();
+
+		const auto& horAxis = asset->GetHorizontalAxis();
+		out << YAML::Key << "HorizontalAxis" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "Name" << YAML::Value << horAxis.Name;
+		out << YAML::Key << "Min" << YAML::Value << horAxis.Min;
+		out << YAML::Key << "Max" << YAML::Value << horAxis.Max;
+		out << YAML::EndMap;
+
+		const auto& verAxis = asset->GetVerticalAxis();
+		out << YAML::Key << "VerticalAxis" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "Name" << YAML::Value << verAxis.Name;
+		out << YAML::Key << "Min" << YAML::Value << verAxis.Min;
+		out << YAML::Key << "Max" << YAML::Value << verAxis.Max;
+		out << YAML::EndMap;
+
+		const auto& points = asset->GetPointsData();
+		out << YAML::Key << "Points" << YAML::Value << YAML::BeginSeq;
+		for (const auto& point : points)
+		{
+			out << YAML::BeginMap;
+			if (point.Animation)
+				out << YAML::Key << "Animation" << YAML::Value << point.Animation->GetGUID();
+			out << YAML::Key << "Coord" << YAML::Value << point.Vertex.Coord;
 			out << YAML::EndMap;
 		}
 		out << YAML::EndSeq;
@@ -2657,6 +2701,8 @@ namespace Eagle
 			return DeserializeAssetAnimationGraph(baseNode, pathToAsset);
 		case AssetType::ParticleSystem:
 			return DeserializeAssetParticleSystem(baseNode, pathToAsset);
+		case AssetType::AnimationBlendSpace:
+			return DeserializeAssetAnimationBlendSpace(baseNode, pathToAsset);
 		default:
 			EG_CORE_ASSERT(false);
 			EG_CORE_ERROR("Failed to serialize an asset. Unknown asset.");
@@ -3632,6 +3678,62 @@ namespace Eagle
 		return MakeRef<LocalAssetParticleSystem>(pathToAsset, guid, emitters);
 	}
 
+	Ref<AssetAnimationBlendSpace> Serializer::DeserializeAssetAnimationBlendSpace(const YAML::Node& baseNode, const Path& pathToAsset)
+	{
+		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::AnimationBlendSpace))
+			return {};
+
+		GUID guid = baseNode["GUID"].as<GUID>();
+
+		auto mesh = GetAsset<AssetSkeletalMesh>(baseNode["SkeletalMesh"]);
+		if (!mesh)
+		{
+			EG_CORE_ERROR("Failed to deserialize animation blend space at {}. Skeletal mesh wasn't found", pathToAsset.u8string());
+			return {};
+		}
+
+		BlendSpaceAxisSettings horAxis;
+		{
+			auto horNode = baseNode["HorizontalAxis"];
+			horAxis.Name = horNode["Name"].as<std::string>();
+			horAxis.Min = horNode["Min"].as<float>();
+			horAxis.Max = horNode["Max"].as<float>();
+		}
+
+		BlendSpaceAxisSettings verAxis;
+		{
+			auto verNode = baseNode["VerticalAxis"];
+			verAxis.Name = verNode["Name"].as<std::string>();
+			verAxis.Min = verNode["Min"].as<float>();
+			verAxis.Max = verNode["Max"].as<float>();
+		}
+
+		std::vector<BlendSpaceVertex> points;
+		auto pointNodes = baseNode["Points"];
+		if (pointNodes)
+		{
+			points.reserve(pointNodes.size());
+			for (auto node : pointNodes)
+			{
+				auto& point = points.emplace_back();
+				point.Animation = GetAsset<AssetAnimation>(node["Animation"]);
+				point.Vertex.Coord = node["Coord"].as<glm::dvec2>();
+			}
+		}
+
+		class LocalAssetAnimationBlendSpace : public AssetAnimationBlendSpace
+		{
+		public:
+			LocalAssetAnimationBlendSpace(const Path& path, GUID guid, const Ref<AssetSkeletalMesh>& skeletal, const BlendSpaceAxisSettings& horAxis, const BlendSpaceAxisSettings& verAxis, const std::vector<BlendSpaceVertex>& pointsData)
+				: AssetAnimationBlendSpace(path, guid, skeletal, horAxis, verAxis, pointsData) {
+			}
+		};
+
+		auto result = MakeRef<LocalAssetAnimationBlendSpace>(pathToAsset, guid, mesh, horAxis, verAxis, points);
+
+		return result;
+	}
+
 	AssetType Serializer::GetAssetType(const Path& pathToAsset)
 	{
 		YAML::Node baseNode = YAML::LoadFile(pathToAsset.string());
@@ -3705,6 +3807,7 @@ namespace Eagle
 			case FieldType::AssetAnimation:
 			case FieldType::AssetAnimationGraph:
 			case FieldType::AssetParticleSystem:
+			case FieldType::AssetAnimationBlendSpace:
 				SerializeField<GUID>(out, field);
 				break;
 		}
@@ -3777,6 +3880,7 @@ namespace Eagle
 					case FieldType::AssetAnimation:
 					case FieldType::AssetAnimationGraph:
 					case FieldType::AssetParticleSystem:
+					case FieldType::AssetAnimationBlendSpace:
 						SetStoredValue<GUID>(node, field);
 						break;
 				}
@@ -3815,6 +3919,7 @@ namespace Eagle
 			case FieldType::AssetAnimation:
 			case FieldType::AssetAnimationGraph:
 			case FieldType::AssetParticleSystem:
+			case FieldType::AssetAnimationBlendSpace:
 				return true;
 			default: return false;
 		}

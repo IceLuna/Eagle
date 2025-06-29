@@ -380,6 +380,39 @@ namespace Eagle
 		return outputFilename;
 	}
 
+	Path AssetImporter::CreateAnimationBlendSpace(const Path& saveTo, const Ref<AssetSkeletalMesh>& skeletal, const std::string& filename)
+	{
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::AnimationBlendSpace);
+		out << YAML::Key << "GUID" << YAML::Value << GUID{};
+		out << YAML::Key << "SkeletalMesh" << YAML::Value << skeletal->GetGUID();
+
+		out << YAML::Key << "HorizontalAxis" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "Name" << YAML::Value << "X";
+		out << YAML::Key << "Min" << YAML::Value << 0.f;
+		out << YAML::Key << "Max" << YAML::Value << 1.f;
+		out << YAML::EndMap;
+
+		out << YAML::Key << "VerticalAxis" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "Name" << YAML::Value << "Y";
+		out << YAML::Key << "Min" << YAML::Value << 0.f;
+		out << YAML::Key << "Max" << YAML::Value << 1.f;
+		out << YAML::EndMap;
+
+		out << YAML::EndMap;
+
+		const Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, filename);
+		std::ofstream fout(outputFilename);
+		fout << out.c_str();
+		fout.close();
+
+		AssetManager::Register(Asset::Create(outputFilename));
+
+		return outputFilename;
+	}
+
 	AssetType AssetImporter::GetAssetTypeByExtension(const Path& filepath)
 	{
 		if (!filepath.has_extension())

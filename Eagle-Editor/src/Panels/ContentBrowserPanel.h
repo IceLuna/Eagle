@@ -100,9 +100,11 @@ namespace Eagle
 		TextureImporterPanel m_TextureImporter;
 		MeshImporterPanel m_MeshImporter;
 		AnimationGraphImporterPanel m_AnimationGraphImporter;
+		AnimationBlendSpaceImporterPanel m_AnimationBlendSpaceImporter;
 		bool m_DrawTextureImporter = false;
 		bool m_DrawMeshImporter = false;
 		bool m_DrawAnimationGraphImporter = false;
+		bool m_DrawAnimationBlendSpaceImporter = false;
 
 		float m_ColumnWidth = 1.f;
 

@@ -129,5 +129,24 @@ namespace Eagle
 
 			return result;
 		}
+
+		static Transform Blend(const Transform& tr1, const Transform& tr2, const Transform& tr3, const glm::vec3& buv)
+		{
+			Transform result;
+			result.Location = tr1.Location * buv.x + tr2.Location * buv.y + tr3.Location * buv.z;
+			result.Scale3D = tr1.Scale3D * buv.x + tr2.Scale3D * buv.y + tr3.Scale3D * buv.z;
+
+			glm::quat q1 = tr1.Rotation.GetQuat();
+			glm::quat q2 = tr2.Rotation.GetQuat();
+			glm::quat q3 = tr3.Rotation.GetQuat();
+			// Ensure all quaternions point in same hemisphere (dot > 0)
+			if (glm::dot(q1, q2) < 0)
+				q2 = -q2;
+			if (glm::dot(q1, q3) < 0)
+				q3 = -q3;
+
+			result.Rotation = glm::normalize(buv.x * q1 + buv.y * q2 + buv.z * q3);
+			return result;
+		}
 	};
 }

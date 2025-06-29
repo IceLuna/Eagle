@@ -149,7 +149,7 @@ namespace Eagle
 
 	const Ref<AnimationStateMachineGraph>& AnimationGraphStateMachineEntry::GetStateMachine() const
 	{
-		// TODO: I don't like creating a ref each time. Improve it. Here two refs are created: first from `m_Graph.lock()`; second from `GetRootGraph()`
+		// TODO: I don't like creating a ref each time. Improve it. Here two refs are created: first from `m_Graph.lock()`; second possibly from `GetStateMachine()`
 		return m_Graph.lock()->GetStateMachine(m_StateMachineIndex);
 	}
 
@@ -266,11 +266,6 @@ namespace Eagle
 		const auto& skeletal = GetSkeletal();
 		AnimationSystem::BlendPoses(pose0 ? *pose0 : SkeletalPose{}, pose1 ? *pose1 : SkeletalPose{}, skeletal->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
 
-		if (pose0)
-			m_Pose.EventsToTrigger = pose0->GetEventsToTrigger();
-		if (pose1)
-			m_Pose.EventsToTrigger.insert(m_Pose.EventsToTrigger.end(), pose1->GetEventsToTrigger().begin(), pose1->GetEventsToTrigger().end());
-
 		m_CalculatedOnFrame = currentFrame;
 
 		return m_Pose;
@@ -365,9 +360,6 @@ namespace Eagle
 				const auto& pose0 = input0->Update(ts);
 				const auto& pose1 = input1->Update(ts);
 				AnimationSystem::ApplyAdditive(pose0, pose1, skeletal->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
-
-				m_Pose.EventsToTrigger = pose0.GetEventsToTrigger();
-				m_Pose.EventsToTrigger.insert(m_Pose.EventsToTrigger.end(), pose1.GetEventsToTrigger().begin(), pose1.GetEventsToTrigger().end());
 			}
 		}
 
@@ -393,9 +385,6 @@ namespace Eagle
 				const auto& pose0 = input0->Update(ts);
 				const auto& pose1 = input1->Update(ts);
 				AnimationSystem::CalculateAdditivePose(pose0, pose1, skeletal->GetSkeletalMeshInfo().RootBone, &m_Pose);
-
-				m_Pose.EventsToTrigger = pose0.GetEventsToTrigger();
-				m_Pose.EventsToTrigger.insert(m_Pose.EventsToTrigger.end(), pose1.GetEventsToTrigger().begin(), pose1.GetEventsToTrigger().end());
 			}
 		}
 
@@ -990,6 +979,25 @@ namespace Eagle
 			m_Pose.Reset();
 
 		m_CalculatedOnFrame = currentFrame;
+
+		return m_Pose;
+	}
+	
+	const SkeletalPose& AnimationGraphNodeBlendSpace::Update(Timestep ts)
+	{
+		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
+		if (currentFrame <= m_CalculatedOnFrame)
+			return m_Pose;
+
+		float x = 0, y = 0;
+		Utils::GetValue(m_Inputs[0], m_Variables[0], ts, &x);
+		Utils::GetValue(m_Inputs[1], m_Variables[1], ts, &y);
+
+		m_Pose.Reset();
+		AnimationSystem::CalculateBlendSpacePose(m_BlendSpace, x, y, CurrentTime, &m_Pose);
+
+		m_CalculatedOnFrame = currentFrame;
+		CurrentTime += ts;
 
 		return m_Pose;
 	}

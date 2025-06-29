@@ -5,6 +5,7 @@
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/UI/UI.h"
 #include "Eagle/UI/Editors/GraphEditor.h"
+#include "Eagle/UI/Editors/AnimationGraphEditor.h"
 #include "Eagle/UI/Graphs/GraphVariables.h"
 #include "Eagle/UI/Graphs/UIAnimationStateMachineGraph.h"
 #include "Eagle/Animation/Nodes/AnimationNodes.h"
@@ -120,6 +121,7 @@ namespace Eagle
             case NodeType::Variable: return GraphNodeType::Variable;
             case NodeType::PoseCache: return GraphNodeType::PoseCache;
             case NodeType::PoseCacheGetter: return GraphNodeType::PoseCacheGetter;
+            case NodeType::BlendSpace: return GraphNodeType::BlendSpace;
             default: return GraphNodeType::Node;
         }
     }
@@ -403,7 +405,8 @@ namespace Eagle
         for (auto& [_, node] : m_GraphData.Nodes)
         {
             if (node.Type != NodeType::Blueprint && node.Type != NodeType::Simple && node.Type != NodeType::Variable &&
-                node.Type != NodeType::PoseCache && node.Type != NodeType::PoseCacheGetter && node.Type != NodeType::StateMachine)
+                node.Type != NodeType::PoseCache && node.Type != NodeType::PoseCacheGetter && node.Type != NodeType::StateMachine &&
+                node.Type != NodeType::BlendSpace)
                 continue;
 
             HandleBPNode(builder, node, m_NewLinkPin);
@@ -670,6 +673,32 @@ namespace Eagle
                         ImGui::PopID();
                     }
                 }
+
+                // Draw all blend spaces
+                const auto& allAssets = AssetManager::GetAssets();
+                {
+                    bool bAtLeastOne = false;
+                    const auto& graphAsset = ((AnimationGraphEditor&)m_Editor).GetGraphAsset();
+                    const auto& skeletalAsset = graphAsset->GetGraph()->GetSkeletalAsset();
+                    for (const auto& [path, asset] : allAssets)
+                    {
+                        const auto bs = Cast<AssetAnimationBlendSpace>(asset);
+                        if (!bs)
+                            continue;
+
+                        if (!bAtLeastOne)
+                        {
+                            bAtLeastOne = true;
+                            UI::TextWithSeparator("Blend Spaces");
+                        }
+
+                        const std::string name = bs->GetPath().stem().u8string();
+                        if (ImGui::MenuItem(name.c_str()))
+                        {
+                            node = &GraphNodeFactory::SpawnBlendSpaceNode(*this, name, bs);
+                        }
+                    }
+                }
             }
 
             if (node)
@@ -715,6 +744,10 @@ namespace Eagle
             nodeData.CachedNodeID = (uint32_t)node.CachedNode.NodeID.Get();
             nodeData.UserData = node.UserData;
             nodeData.AddedCounter = node.GetAddedCounter();
+            if (nodeData.Type == GraphNodeType::BlendSpace)
+            {
+                nodeData.BlendSpace = Cast<AnimationGraphNodeBlendSpace>(node.GraphNode)->GetBlendSpaceAsset();
+            }
 
             // Input pins data
             nodeData.InputPins.reserve(node.InputPins.size());
@@ -901,6 +934,16 @@ namespace Eagle
                         break;
                     }
                 }
+            }
+            else if (nodeData.Type == GraphNodeType::BlendSpace)
+            {
+                const auto& bs = nodeData.BlendSpace;
+                Node& createdNode = GraphNodeFactory::SpawnBlendSpaceNode(*this, nodeData.Name, bs);
+                createdNode.Size = ImVec2(nodeData.Size.x, nodeData.Size.y);
+                ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
+                ed::SetGroupSize(createdNode.ID, createdNode.Size);
+                createdNode.UserData = nodeData.UserData;
+                HandlePinsData(&createdNode, nodeData, maxNodeID);
             }
 
             if (m_GraphData.NextId > maxNodeID)
@@ -1428,7 +1471,23 @@ namespace Eagle
             DrawPinIcon(input, IsPinLinked(input.ID), (int)(alpha * 255));
             nodeStartWidth = ImGui::GetCursorScreenPos().x;
             ImGui::Spring(0);
-            if (!input.Name.empty())
+            if (node.Type == NodeType::BlendSpace)
+            {
+                Ref<AnimationGraphNodeBlendSpace> bsNode = Cast<AnimationGraphNodeBlendSpace>(node.GraphNode);
+                const auto& bs = bsNode->GetBlendSpaceAsset();
+                const std::string* name = nullptr;
+                if (input.Index == 0)
+                    name = &bs->GetHorizontalAxis().Name;
+                else if (input.Index == 1)
+                    name = &bs->GetVerticalAxis().Name;
+
+                if (name)
+                {
+                    ImGui::TextUnformatted(name->c_str());
+                    ImGui::Spring(0);
+                }
+            }
+            else if (!input.Name.empty())
             {
                 ImGui::TextUnformatted(input.Name.c_str());
                 ImGui::Spring(0);

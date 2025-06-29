@@ -73,6 +73,7 @@ namespace Eagle
 		static Path CreateScene(const Path& saveTo, const std::string& filename = "NewScene");
 		static Path CreateAnimationGraph(const Path& saveTo, const Ref<AssetSkeletalMesh>& skeletal, const std::string& filename = "NewAnimationGraph");
 		static Path CreateParticleSystem(const Path& saveTo, const std::string& filename = "NewParticleSystem");
+		static Path CreateAnimationBlendSpace(const Path& saveTo, const Ref<AssetSkeletalMesh>& skeletal, const std::string& filename = "NewAnimationBlendSpace");
 
 		static AssetType GetAssetTypeByExtension(const Path& filepath);
 

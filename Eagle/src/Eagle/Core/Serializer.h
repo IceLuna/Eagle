@@ -35,6 +35,7 @@ namespace Eagle
 	class AssetAnimation;
 	class AssetAnimationGraph;
 	class AssetParticleSystem;
+	class AssetAnimationBlendSpace;
 
 	enum class AssetType;
 	struct SceneRendererSettings;
@@ -49,7 +50,7 @@ namespace Eagle
 
 	enum class GraphNodeType
 	{
-		Node, Variable, PoseCache, PoseCacheGetter,
+		Node, Variable, PoseCache, PoseCacheGetter, BlendSpace
 	};
 
 	struct InputPinData
@@ -68,6 +69,7 @@ namespace Eagle
 		GUID CachedOwnerID; // ID of GraphSerializationData
 		uint32_t CachedNodeID = 0;
 		GraphNodeType Type = GraphNodeType::Node;
+		Ref<AssetAnimationBlendSpace> BlendSpace; // Used if it's a blend space node
 		uint32_t AddedCounter = 0u; // Required for serialization so that we know how many times to call "AddPinsCallback" during deserialization
 		std::vector<GraphConnectionData> OutputConnections;
 		std::vector<InputPinData> InputPins;
@@ -130,6 +132,7 @@ namespace Eagle
 		static void SerializeAssetAnimation(YAML::Emitter& out, const Ref<AssetAnimation>& asset);
 		static void SerializeAssetAnimationGraph(YAML::Emitter& out, const Ref<AssetAnimationGraph>& asset);
 		static void SerializeAssetParticleSystem(YAML::Emitter& out, const Ref<AssetParticleSystem>& asset);
+		static void SerializeAssetAnimationBlendSpace(YAML::Emitter& out, const Ref<AssetAnimationBlendSpace>& asset);
 
 		static Ref<Asset> DeserializeAsset(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
 		static Ref<AssetTexture2D> DeserializeAssetTexture2D(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
@@ -145,6 +148,7 @@ namespace Eagle
 		static Ref<AssetAnimation> DeserializeAssetAnimation(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
 		static Ref<AssetAnimationGraph> DeserializeAssetAnimationGraph(const YAML::Node& baseNode, const Path& pathToAsset);
 		static Ref<AssetParticleSystem> DeserializeAssetParticleSystem(const YAML::Node& baseNode, const Path& pathToAsset);
+		static Ref<AssetAnimationBlendSpace> DeserializeAssetAnimationBlendSpace(const YAML::Node& baseNode, const Path& pathToAsset);
 
 		static AssetType GetAssetType(const Path& pathToAsset);
 		

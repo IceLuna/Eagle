@@ -36,6 +36,7 @@ namespace Eagle
         Animation,
         AnimationGraph,
         ParticleSystem,
+        AnimationBlendSpace,
     };
 
     public enum AssetTexture2DFormat
@@ -103,6 +104,7 @@ namespace Eagle
                     case AssetType.Animation: return new AssetAnimation(guid);
                     case AssetType.AnimationGraph: return new AssetAnimationGraph(guid);
                     case AssetType.ParticleSystem: return new AssetParticleSystem(guid);
+                    case AssetType.AnimationBlendSpace: return new AssetAnimationBlendSpace(guid);
                     default: return null;
                 }
             }
@@ -827,5 +829,12 @@ namespace Eagle
             out Vector3 ringRadius, out Vector3 ringThickness, out GUID meshAsset, out EmitterCollisionModeType collisionMode, out UVector2 animationImagesNum,
             out float animationSpeed, out bool bDestroyImmediately, out bool bEmit, out bool bExplode, out bool bApplyGravity, out bool bAlphaBlending,
             out bool bAdditive, out bool bBlendAnimation, out bool bFaceDirection);
+    }
+
+    public class AssetAnimationBlendSpace : Asset
+    {
+        internal AssetAnimationBlendSpace(GUID guid) : base(AssetType.AnimationBlendSpace, guid)
+        {
+        }
     }
 }

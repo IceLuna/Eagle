@@ -56,4 +56,20 @@ namespace Eagle
 
 		Path m_Path;
 	};
+
+	class AnimationBlendSpaceImporterPanel
+	{
+	public:
+		AnimationBlendSpaceImporterPanel() = default;
+		AnimationBlendSpaceImporterPanel(const Path& path) : m_Path(path) {}
+
+		// @importTo. Destination folder
+		// Returns true on success (if asset was created)
+		bool OnImGuiRender(const Path& importTo, bool* pOpen);
+
+	private:
+		Ref<AssetSkeletalMesh> m_Mesh;
+
+		Path m_Path;
+	};
 }

@@ -25,6 +25,7 @@
 #include "../AssetEditors/SkeletalMeshAssetEditor.h"
 #include "../AssetEditors/ParticleSystemAssetEditor.h"
 #include "../AssetEditors/FontAssetEditor.h"
+#include "../AssetEditors/AnimationBlendSpaceAssetEditor.h"
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
@@ -96,6 +97,9 @@ namespace Eagle
 			return true;
 		case AssetType::ParticleSystem:
 			borderColor = ImVec4(0.5f, 0.5f, 0.5f, 1.f); // TODO: fix color
+			return true;
+		case AssetType::AnimationBlendSpace:
+			borderColor = ImVec4(0.9f, 0.5f, 0.5f, 1.f); // TODO: fix color
 			return true;
 		}
 		return false;
@@ -189,6 +193,11 @@ namespace Eagle
 			{
 				m_AnimationGraphImporter = AnimationGraphImporterPanel(m_CurrentDirectoryRelative);
 				m_DrawAnimationGraphImporter = true;
+			}
+			if (ImGui::MenuItem("Create Animation Blend Space"))
+			{
+				m_AnimationBlendSpaceImporter = AnimationBlendSpaceImporterPanel(m_CurrentDirectoryRelative);
+				m_DrawAnimationBlendSpaceImporter = true;
 			}
 
 			if (ImGui::MenuItem("Create Folder"))
@@ -385,6 +394,9 @@ namespace Eagle
 		if (m_DrawAnimationGraphImporter)
 			m_RefreshBrowser |= m_AnimationGraphImporter.OnImGuiRender(m_CurrentDirectoryRelative, &m_DrawAnimationGraphImporter);
 
+		if (m_DrawAnimationBlendSpaceImporter)
+			m_RefreshBrowser |= m_AnimationBlendSpaceImporter.OnImGuiRender(m_CurrentDirectoryRelative, &m_DrawAnimationBlendSpaceImporter);
+
 		ImGui::End();
 	}
 
@@ -545,6 +557,14 @@ namespace Eagle
 				m_DrawAnimationGraphImporter = true;
 			}
 
+			// TODO: Fix Icon
+			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::AnimationBlendSpace), "Animation Blend Space", thumbnailSize, thumbnailSize.x))
+			{
+				m_AnimationBlendSpaceImporter = AnimationBlendSpaceImporterPanel(m_CurrentDirectoryRelative);
+				m_DrawAddPanel = false;
+				m_DrawAnimationBlendSpaceImporter = true;
+			}
+
 			if (bCreatedAsset)
 			{
 				// Close popup and refresh content browser
@@ -701,6 +721,9 @@ namespace Eagle
 			break;
 		case AssetType::ParticleSystem:
 			AddAssetEditor<ParticleSystemAssetEditor, AssetParticleSystem>(asset);
+			break;
+		case AssetType::AnimationBlendSpace:
+			AddAssetEditor<AnimationBlendSpaceAssetEditor, AssetAnimationBlendSpace>(asset);
 			break;
 		}
 	}
@@ -974,8 +997,7 @@ namespace Eagle
 	void ContentBrowserPanel::DrawPopupMenu(const Path& path, int timesCalledForASinglePath)
 	{
 		static bool bDoneOnce = false;
-		std::string pathString = path.u8string();
-		pathString += std::to_string(timesCalledForASinglePath); // TODO: can improve?
+		const std::string pathString = path.u8string();
 		if (ImGui::BeginPopupContextItem(pathString.c_str()))
 		{
 			if (!bDoneOnce)

@@ -259,6 +259,29 @@ namespace Eagle
             for (auto& child : node.Children)
                 BlendPoses_Internal(pose1, pose2, child, blendAlpha, outPose);
         }
+        
+        static void BlendPoses_Internal(const SkeletalPose& pose1, const SkeletalPose& pose2, const SkeletalPose& pose3, const BoneNode& node, const glm::vec3& buv, SkeletalPose* outPose)
+        {
+            const std::string& nodeName = node.Name;
+
+            auto it1 = pose1.Bones.find(nodeName);
+            auto it2 = pose2.Bones.find(nodeName);
+            auto it3 = pose3.Bones.find(nodeName);
+            const bool bValid1 = it1 != pose1.Bones.end();
+            const bool bValid2 = it2 != pose2.Bones.end();
+            const bool bValid3 = it3 != pose3.Bones.end();
+
+            const Transform defaultTr = {};
+            const Transform& bone1Tr = bValid1 ? it1->second : defaultTr;
+            const Transform& bone2Tr = bValid2 ? it2->second : defaultTr;
+            const Transform& bone3Tr = bValid3 ? it3->second : defaultTr;
+
+            if (bValid1 || bValid2 || bValid3)
+                outPose->Bones[nodeName] = Transform::Blend(bone1Tr, bone2Tr, bone3Tr, buv);
+
+            for (auto& child : node.Children)
+                BlendPoses_Internal(pose1, pose2, pose3, child, buv, outPose);
+        }
     
         static void FilterBone_Internal(const SkeletalPose& pose, BoneNode& node, const std::string& boneName, bool bIgnoreParentLocation, bool bIgnoreParentRotation, bool bIgnoreParentScale, SkeletalPose* outPose, bool bProcess = false)
         {
@@ -414,6 +437,37 @@ namespace Eagle
             for (auto& child : node.Children)
                 FinalizePose_Internal(pose, child, globalTransformation, skeletal, &node);
         }
+
+        static double WrapAnimationTime(double duration, double currentTime, bool bLoop)
+        {
+            if (currentTime > duration)
+                currentTime = bLoop ? currentTime - (glm::floor(currentTime / duration) * duration) : duration;
+            else if (currentTime < 0.f) // Animation is playing in reverse
+                currentTime = bLoop ? glm::abs(currentTime - (glm::floor(currentTime / duration) * duration)) : 0.f;
+
+            return currentTime;
+        }
+
+        static float WrapAnimationTime(float duration, float currentTime, bool bLoop)
+        {
+            return (float)WrapAnimationTime(double(duration), double(currentTime), bLoop);
+        }
+
+        static void CalculateBlendSpaceVertexAnimation(const Delaunay::Vertex& v, const SkeletalMeshInfo& skeletal, double currentTimeSeconds, const glm::mat4& parentTransform, SkeletalPose* outPose)
+        {
+            Ref<AssetAnimation>* anim = (Ref<AssetAnimation>*)v.UserData;
+            if (anim && (*anim))
+            {
+                const SkeletalMeshAnimation* meshAnim = (*anim)->GetAnimation().get();
+                double currentTime = currentTimeSeconds * meshAnim->TicksPerSecond;
+                currentTime = WrapAnimationTime(double(meshAnim->Duration), currentTime, true);
+                AnimationSystem::AnimationClip(skeletal, meshAnim, skeletal.RootBone, float(currentTime), outPose);
+            }
+            else
+            {
+                AnimationSystem::FinalizePose(*outPose, skeletal.RootBone, parentTransform, skeletal);
+            }
+        }
     }
 
     ThreadPool AnimationSystem::s_ThreadPool("AnimationSystem", std::thread::hardware_concurrency() - 1u, false);
@@ -440,11 +494,7 @@ namespace Eagle
     float AnimationSystem::StepForwardAnimTime(const SkeletalMeshAnimation* animation, float currentTime, float ts, bool bLoop)
     {
         currentTime += animation->TicksPerSecond * ts;
-        if (currentTime > animation->Duration)
-            currentTime = bLoop ? (currentTime / glm::floor(currentTime / animation->Duration)) - animation->Duration : animation->Duration;
-        else if (currentTime < 0.f) // Animation is playing in reverse. When looping: Current = Duration - Current - Floor(Current/Duration) * Duration, but since `CurrentTime` is negative, signs are adjusted
-            currentTime = bLoop ? animation->Duration + currentTime + (glm::floor(-currentTime / animation->Duration) * animation->Duration) : 0.f;
-
+        currentTime = Utils::WrapAnimationTime(animation->Duration, currentTime, bLoop);
         return currentTime;
     }
 
@@ -700,10 +750,64 @@ namespace Eagle
         mesh->Parent.SetWorldTransform(worldTransform + rootMotion);
     }
 
+    void AnimationSystem::CalculateBlendSpacePose(const Ref<AssetAnimationBlendSpace>& blendSpace, float x, float y, double currentTimeSeconds, SkeletalPose* resultPose)
+    {
+        const auto& skeletalInfo = blendSpace->GetSkeletalMesh()->GetMesh()->GetSkeletalMeshInfo();
+        const auto& triangulation = blendSpace->GetTriangulation();
+        if (triangulation.empty())
+        {
+            AnimationSystem::FinalizePose(*resultPose, skeletalInfo.RootBone, glm::mat4(1), skeletalInfo);
+            return;
+        }
+
+        const auto& horAxis = blendSpace->GetHorizontalAxis();
+        const auto& verAxis = blendSpace->GetVerticalAxis();
+        x = glm::clamp(x, float(horAxis.Min), float(horAxis.Max));
+        y = glm::clamp(y, float(verAxis.Min), float(verAxis.Max));
+
+        const Delaunay::Vertex sampleV{ double(x), double(y) };
+        for (const auto& tr : triangulation)
+        {
+            const glm::dvec3 buv = tr.CalculateBarycentric(sampleV);
+            if (tr.InTriangle(buv))
+            {
+                const glm::mat4 rootTransform = glm::mat4(1.f);
+
+                SkeletalPose pose1, pose2, pose3;
+                Utils::CalculateBlendSpaceVertexAnimation(tr.V[0], skeletalInfo, currentTimeSeconds, rootTransform, &pose1);
+                Utils::CalculateBlendSpaceVertexAnimation(tr.V[1], skeletalInfo, currentTimeSeconds, rootTransform, &pose2);
+                Utils::CalculateBlendSpaceVertexAnimation(tr.V[2], skeletalInfo, currentTimeSeconds, rootTransform, &pose3);
+
+                const glm::vec3 buvf = glm::vec3(buv);
+                Utils::BlendPoses_Internal(pose1, pose2, pose3, skeletalInfo.RootBone, buvf, resultPose);
+
+                if (pose1.HasRootMotion() || pose2.HasRootMotion() || pose3.HasRootMotion())
+                {
+                    const auto& pose1RM = pose1.GetRootMotion();
+                    const auto& pose2RM = pose2.GetRootMotion();
+                    const auto& pose3RM = pose3.GetRootMotion();
+
+                    Transform rootMotion = Transform::Blend(pose1RM, pose2RM, pose3RM, buvf);
+                    resultPose->TotalRootMotion = Transform::Blend(pose1.TotalRootMotion, pose2.TotalRootMotion, pose3.TotalRootMotion, buvf);
+                    resultPose->TimeTillAnimationLoops = glm::min(pose1.TimeTillAnimationLoops, glm::min(pose2.TimeTillAnimationLoops, pose3.TimeTillAnimationLoops));
+                }
+
+                resultPose->EventsToTrigger = pose1.GetEventsToTrigger();
+                resultPose->EventsToTrigger.insert(resultPose->EventsToTrigger.end(), pose2.GetEventsToTrigger().begin(), pose2.GetEventsToTrigger().end());
+                resultPose->EventsToTrigger.insert(resultPose->EventsToTrigger.end(), pose3.GetEventsToTrigger().begin(), pose3.GetEventsToTrigger().end());
+
+                break;
+            }
+        }
+    }
+
     void AnimationSystem::CalculateAdditivePose(const SkeletalPose& refPose, const SkeletalPose& sourcePose, const BoneNode& node, SkeletalPose* resultPose)
     {
         Utils::CalculateAdditivePose_Internal(refPose, sourcePose, node, resultPose);
         resultPose->TimeTillAnimationLoops = sourcePose.TimeTillAnimationLoops; // We're probably interested in the source pose, not reference
+
+        resultPose->EventsToTrigger = refPose.GetEventsToTrigger();
+        resultPose->EventsToTrigger.insert(resultPose->EventsToTrigger.end(), sourcePose.GetEventsToTrigger().begin(), sourcePose.GetEventsToTrigger().end());
     }
 
     void AnimationSystem::ApplyAdditive(const SkeletalPose& targetPose, const SkeletalPose& additivePose, const BoneNode& node, float blendAlpha, SkeletalPose* resultPose)
@@ -721,6 +825,9 @@ namespace Eagle
             resultPose->TotalRootMotion = targetPose.TotalRootMotion;
         }
         resultPose->TimeTillAnimationLoops = glm::min(targetPose.TimeTillAnimationLoops, additivePose.TimeTillAnimationLoops);
+
+        resultPose->EventsToTrigger = targetPose.GetEventsToTrigger();
+        resultPose->EventsToTrigger.insert(resultPose->EventsToTrigger.end(), additivePose.GetEventsToTrigger().begin(), additivePose.GetEventsToTrigger().end());
     }
 
     void AnimationSystem::BlendPoses(const SkeletalPose& pose1, const SkeletalPose& pose2, const BoneNode& node, float blendAlpha, SkeletalPose* outPose)
@@ -765,6 +872,9 @@ namespace Eagle
             outPose->TotalRootMotion = pose2.TotalRootMotion;
         }
         outPose->TimeTillAnimationLoops = glm::min(pose1.TimeTillAnimationLoops, pose2.TimeTillAnimationLoops);
+
+        outPose->EventsToTrigger = pose1.GetEventsToTrigger();
+        outPose->EventsToTrigger.insert(outPose->EventsToTrigger.end(), pose2.GetEventsToTrigger().begin(), pose2.GetEventsToTrigger().end());
     }
 
     void AnimationSystem::AnimationClip(const SkeletalMeshInfo& skeletal, const SkeletalMeshAnimation* animation, const BoneNode& node, float currentTime, SkeletalPose* outPose)

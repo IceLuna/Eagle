@@ -84,6 +84,8 @@ namespace Eagle
 			return s_AnimationGraphIcon;
 		case AssetType::ParticleSystem:
 			return s_ParticleSystemIcon;
+		case AssetType::AnimationBlendSpace:
+			return s_UnknownIcon; // TODO:
 		default:
 			return s_UnknownIcon;
 		}

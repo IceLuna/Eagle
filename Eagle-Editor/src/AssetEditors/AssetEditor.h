@@ -39,6 +39,9 @@ namespace Eagle
 
 		const Ref<Scene>& GetCurrentScene() const { return m_CurrentScene; }
 
+	protected:
+		virtual void HandleFirstWindowRender(std::string_view windowName, std::string_view parentName);
+
 	private:
 		void AddSkybox();
 		bool OnKeyPressed(KeyPressedEvent& e);

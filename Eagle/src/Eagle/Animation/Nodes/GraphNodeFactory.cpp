@@ -588,6 +588,25 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         return node;
     }
 
+    Node& GraphNodeFactory::SpawnBlendSpaceNode(UIGraph& graph, const std::string_view name, const Ref<AssetAnimationBlendSpace>& bs)
+    {
+        const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
+
+        auto& node = graph.AddNode(name, ImColor(128, 195, 248));
+        node.InputPins.emplace_back(graph.GetNextId(), "X", PinType::Float, MakeRef<GraphVariableFloat>(0.f));
+        node.InputPins.emplace_back(graph.GetNextId(), "Y", PinType::Float, MakeRef<GraphVariableFloat>(0.f));
+
+        node.OutputPins.emplace_back(graph.GetNextId(), "Output pose", PinType::Pose);
+        node.Type = NodeType::BlendSpace;
+
+        node.GraphNode = MakeRef<AnimationGraphNodeBlendSpace>(graphAsset->GetGraph(), bs);
+
+        graph.BuildNode(node);
+        graph.OnNodeAdded(node);
+
+        return node;
+    }
+
     Node& GraphNodeFactory::SpawnAndNode(UIGraph& graph, const std::string_view name)
     {
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();

@@ -52,7 +52,7 @@ namespace Eagle
 
 		// Defines the order for assets loading
 		// All `assetsToLoadQueue[0]` will be loaded first, then [1] and so on.
-		std::array<std::vector<Path>, 5> assetsToLoadQueue;
+		std::array<std::vector<Path>, 6> assetsToLoadQueue;
 		std::vector<Path> entityAssetsToLoad; // Entity assets need to be created in a single thread (mono related issues)
 		entityAssetsToLoad.reserve(25);
 		for (auto& assets : assetsToLoadQueue)
@@ -101,10 +101,16 @@ namespace Eagle
 				assetsToLoadQueue[3].emplace_back(std::move(assetPath));
 				continue;
 			}
+			// Animation BlendSpace: we can't load them unless all skeletal meshes & animations are loaded since blend spaces refer to them
+			else if (type == AssetType::AnimationBlendSpace)
+			{
+				assetsToLoadQueue[4].emplace_back(std::move(assetPath));
+				continue;
+			}
 			// Animation Graph: we can't load graphs unless all skeletal meshes & animations are loaded since graphs refer to them
 			else if (type == AssetType::AnimationGraph)
 			{
-				assetsToLoadQueue[4].emplace_back(std::move(assetPath));
+				assetsToLoadQueue[5].emplace_back(std::move(assetPath));
 				continue;
 			}
 			// Entity: we can't load entities unless all assets are loaded since entities might refer to anything

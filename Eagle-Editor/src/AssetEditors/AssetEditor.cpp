@@ -53,22 +53,7 @@ namespace Eagle
 
 		const std::string windowName = GetAsset()->GetPath().u8string() + "_Viewport";
 		bViewportVisible = ImGui::Begin(windowName.c_str());
-		const bool bFirstUseEver = (ImGui::GetCurrentWindow()->SetWindowDockAllowFlags & ImGuiCond_FirstUseEver) == ImGuiCond_FirstUseEver;
-
-		if (bFirstUseEver && !parentName.empty())
-		{
-			ImGuiID parent_node = ImGui::DockBuilderAddNode();
-			ImGui::DockBuilderSetNodePos(parent_node, ImGui::GetWindowPos());
-			ImGui::DockBuilderSetNodeSize(parent_node, ImGui::GetWindowSize());
-			ImGuiID nodeA;
-			ImGuiID nodeB;
-			ImGui::DockBuilderSplitNode(parent_node, ImGuiDir_Right, 0.5f, &nodeB, &nodeA);
-
-			ImGui::DockBuilderDockWindow(parentName.data(), nodeA);
-			ImGui::DockBuilderDockWindow(windowName.c_str(), nodeB);
-
-			ImGui::SetWindowSize(ImVec2(720.f * 2.f, 560.f));
-		}
+		HandleFirstWindowRender(windowName, parentName);
 
 		if (bViewportVisible)
 		{
@@ -176,6 +161,32 @@ namespace Eagle
 			m_CurrentScene = m_Scene;
 		}
 		m_CurrentScene->SetEverythingDirty();
+	}
+
+	void AssetEditor::HandleFirstWindowRender(std::string_view windowName, std::string_view parentName)
+	{
+		const bool bFirstUseEver = (ImGui::GetCurrentWindow()->SetWindowDockAllowFlags & ImGuiCond_FirstUseEver) == ImGuiCond_FirstUseEver;
+
+		if (bFirstUseEver && !parentName.empty())
+		{
+			ImGuiID parent_node = ImGui::DockBuilderAddNode();
+			ImGui::DockBuilderSetNodePos(parent_node, ImGui::GetWindowPos());
+			ImGui::DockBuilderSetNodeSize(parent_node, ImGui::GetWindowSize());
+			ImGuiID nodeDetails; // Main window
+			ImGuiID nodeViewport;
+			ImGui::DockBuilderSplitNode(parent_node, ImGuiDir_Left, 0.5f, &nodeViewport, &nodeDetails);
+
+			ImGui::DockBuilderDockWindow(parentName.data(), nodeDetails);
+			ImGui::DockBuilderDockWindow(windowName.data(), nodeViewport);
+
+			// Disable tab bar for the viewport
+			if (ImGuiDockNode* dock = ImGui::DockContextFindNodeByID(GImGui, nodeViewport))
+			{
+				dock->SetLocalFlags(ImGuiDockNodeFlags_NoTabBar);
+			}
+
+			ImGui::SetWindowSize(ImVec2(720.f * 2.f, 560.f));
+		}
 	}
 
 	void AssetEditor::AddSkybox()
