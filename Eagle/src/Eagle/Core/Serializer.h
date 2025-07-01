@@ -63,7 +63,7 @@ namespace Eagle
 	{
 		GUID OwnerID; // ID of GraphSerializationData
 		std::string Name;
-		glm::vec2 Position;
+		glm::vec2 Position = glm::vec2(0);
 		glm::vec2 Size = glm::vec2{0.f};
 		uint32_t NodeID = 0;
 		GUID CachedOwnerID; // ID of GraphSerializationData

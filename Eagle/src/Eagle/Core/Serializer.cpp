@@ -954,6 +954,7 @@ namespace Eagle
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::AnimationBlendSpace);
 		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
 		out << YAML::Key << "SkeletalMesh" << YAML::Value << asset->GetSkeletalMesh()->GetGUID();
+		out << YAML::Key << "EventsTriggerMode" << YAML::Value << Utils::GetEnumName(asset->GetEventsTriggerMode());
 
 		const auto& horAxis = asset->GetHorizontalAxis();
 		out << YAML::Key << "HorizontalAxis" << YAML::Value << YAML::BeginMap;
@@ -977,6 +978,7 @@ namespace Eagle
 			if (point.Animation)
 				out << YAML::Key << "Animation" << YAML::Value << point.Animation->GetGUID();
 			out << YAML::Key << "Coord" << YAML::Value << point.Vertex.Coord;
+			out << YAML::Key << "AnimSpeed" << YAML::Value << point.AnimSpeed;
 			out << YAML::EndMap;
 		}
 		out << YAML::EndSeq;
@@ -3692,6 +3694,10 @@ namespace Eagle
 			return {};
 		}
 
+		BlendSpaceEventsTriggerMode mode = BlendSpaceEventsTriggerMode::HighestWeightedAnimation;
+		if (auto modeNode = baseNode["EventsTriggerMode"])
+			mode = Utils::GetEnumFromName<BlendSpaceEventsTriggerMode>(modeNode.as<std::string>());
+
 		BlendSpaceAxisSettings horAxis;
 		{
 			auto horNode = baseNode["HorizontalAxis"];
@@ -3718,18 +3724,21 @@ namespace Eagle
 				auto& point = points.emplace_back();
 				point.Animation = GetAsset<AssetAnimation>(node["Animation"]);
 				point.Vertex.Coord = node["Coord"].as<glm::dvec2>();
+				if (auto speedNode = node["AnimSpeed"])
+					point.AnimSpeed = speedNode.as<float>();
 			}
 		}
 
 		class LocalAssetAnimationBlendSpace : public AssetAnimationBlendSpace
 		{
 		public:
-			LocalAssetAnimationBlendSpace(const Path& path, GUID guid, const Ref<AssetSkeletalMesh>& skeletal, const BlendSpaceAxisSettings& horAxis, const BlendSpaceAxisSettings& verAxis, const std::vector<BlendSpaceVertex>& pointsData)
-				: AssetAnimationBlendSpace(path, guid, skeletal, horAxis, verAxis, pointsData) {
+			LocalAssetAnimationBlendSpace(const Path& path, GUID guid, const Ref<AssetSkeletalMesh>& skeletal, const BlendSpaceAxisSettings& horAxis, const BlendSpaceAxisSettings& verAxis,
+				const std::vector<BlendSpaceVertex>& pointsData, BlendSpaceEventsTriggerMode mode)
+				: AssetAnimationBlendSpace(path, guid, skeletal, horAxis, verAxis, pointsData, mode) {
 			}
 		};
 
-		auto result = MakeRef<LocalAssetAnimationBlendSpace>(pathToAsset, guid, mesh, horAxis, verAxis, points);
+		auto result = MakeRef<LocalAssetAnimationBlendSpace>(pathToAsset, guid, mesh, horAxis, verAxis, points, mode);
 
 		return result;
 	}

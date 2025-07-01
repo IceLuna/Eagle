@@ -670,7 +670,7 @@ namespace Eagle
 		for (size_t i = 0; i < m_PointsData.size(); ++i)
 		{
 			vertices[i] = m_PointsData[i].Vertex;
-			vertices[i].UserData = &m_PointsData[i].Animation;
+			vertices[i].UserData = &m_PointsData[i];
 		}
 		m_Triangulation = Delaunay::Triangulate(vertices);
 	}

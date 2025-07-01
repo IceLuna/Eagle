@@ -140,7 +140,6 @@ namespace Eagle::Delaunay
         if (glm::abs(G) < 1e-6)
         {
             // Collinear - find extremes and use the midpoint
-
             const double minx = glm::min(V[0].Coord.x, glm::min(V[1].Coord.x, V[2].Coord.x));
             const double miny = glm::min(V[0].Coord.y, glm::min(V[1].Coord.y, V[2].Coord.y));
             const double maxx = glm::max(V[0].Coord.x, glm::max(V[1].Coord.x, V[2].Coord.x));
@@ -197,8 +196,8 @@ namespace Eagle::Delaunay
         return buv;
     }
 
-	std::vector<Triangle> Triangulate(const std::vector<Vertex>& vertices)
-	{
+    std::vector<Triangle> Triangulate(const std::vector<Vertex>& vertices)
+    {
         std::vector<Triangle> triangles;
         triangles.reserve(20);
 
@@ -227,5 +226,5 @@ namespace Eagle::Delaunay
         );
 
         return triangles;
-	}
+    }
 }

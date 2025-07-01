@@ -428,7 +428,7 @@ namespace Eagle
         GUID m_ID;
 
         GraphData m_GraphData;
-        GraphEditor& m_Editor; // Owner of this UI graph
+        GraphEditor& m_Editor; // Owner of this UI graph. TODO: Storing ref is sus
         const float m_TouchTime = 1.0f;
 
         std::vector<ed::NodeId> m_NodesWithGraph; // Nodes that have UIGraph

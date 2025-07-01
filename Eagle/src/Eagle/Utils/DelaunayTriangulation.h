@@ -6,16 +6,16 @@ namespace Eagle::Delaunay
 {
 	struct Vertex
 	{
-        Vertex() = default;
-        Vertex(double x, double y) : Coord(x, y) {}
+		Vertex() = default;
+		Vertex(double x, double y) : Coord(x, y) {}
 
-        bool operator== (const Vertex& other) const
-        {
-            return Coord == other.Coord;
-        }
+		bool operator== (const Vertex& other) const
+		{
+			return Coord == other.Coord;
+		}
 
-		glm::dvec2 Coord = glm::dvec2(0.0);
-		const void* UserData = nullptr; // Can be used to associate some data with the point
+        glm::dvec2 Coord = glm::dvec2(0.0);
+        const void* UserData = nullptr; // Can be used to associate some data with the point
 	};
 
 	struct Triangle
@@ -30,12 +30,12 @@ namespace Eagle::Delaunay
 
 		void CalculateCircumcircle();
 
-        bool InCircumcircle(const Vertex& v) const
-        {
-            const glm::dvec2 dxy = Center.Coord - v.Coord;
-            const double distSquared = glm::dot(dxy, dxy);
-            return distSquared <= RadiusSquared;
-        }
+		bool InCircumcircle(const Vertex& v) const
+		{
+			const glm::dvec2 dxy = Center.Coord - v.Coord;
+			const double distSquared = glm::dot(dxy, dxy);
+			return distSquared <= RadiusSquared;
+		}
 
 		bool InTriangle(const Vertex& v) const;
 		bool InTriangle(const glm::dvec3& buv) const;
@@ -47,5 +47,5 @@ namespace Eagle::Delaunay
 		double RadiusSquared = 0.0;
 	};
 
-    std::vector<Triangle> Triangulate(const std::vector<Vertex>& vertices);
+	std::vector<Triangle> Triangulate(const std::vector<Vertex>& vertices);
 }

@@ -6,7 +6,7 @@
 #include "Eagle/Renderer/RendererUtils.h"
 #include "Eagle/Renderer/ParticleEmitter.h"
 #include "Eagle/Physics/PhysicsMaterial.h"
-#include "Eagle/Utils/DelaunayTriangulation.h"
+#include "Eagle/Animation/BlendSpaceUtils.h"
 
 namespace YAML
 {
@@ -28,19 +28,6 @@ namespace Eagle
 	class AnimationGraph;
 	class AssetAnimation;
 	struct SkeletalMeshAnimation;
-
-	struct BlendSpaceVertex
-	{
-		Ref<AssetAnimation> Animation;
-		Delaunay::Vertex Vertex;
-	};
-
-	struct BlendSpaceAxisSettings
-	{
-		std::string Name = "Axis";
-		double Min = 0.f;
-		double Max = 1.f;
-	};
 
 	enum class AssetType
 	{
@@ -817,15 +804,20 @@ namespace Eagle
 		}
 		const BlendSpaceAxisSettings& GetVerticalAxis() const { return m_Vertical; }
 
+		void SetEventsTriggerMode(BlendSpaceEventsTriggerMode mode) { m_EventsTriggerMode = mode; }
+		BlendSpaceEventsTriggerMode GetEventsTriggerMode() const { return m_EventsTriggerMode; }
+
 		// @path. Path to an `.egasset` file
 		static Ref<AssetAnimationBlendSpace> Create(const Path& path);
 
 		static constexpr AssetType GetAssetType_Static() { return AssetType::AnimationBlendSpace; }
 
 	protected:
-		AssetAnimationBlendSpace(const Path& path, GUID guid, const Ref<AssetSkeletalMesh>& skeletal, const BlendSpaceAxisSettings& horAxis, const BlendSpaceAxisSettings& verAxis, const std::vector<BlendSpaceVertex>& points)
+		AssetAnimationBlendSpace(const Path& path, GUID guid, const Ref<AssetSkeletalMesh>& skeletal, const BlendSpaceAxisSettings& horAxis, const BlendSpaceAxisSettings& verAxis,
+			const std::vector<BlendSpaceVertex>& points, BlendSpaceEventsTriggerMode mode)
 			: Asset(path, {}, AssetType::AnimationBlendSpace, guid, {})
 			, m_SkeletalMesh(skeletal)
+			, m_EventsTriggerMode(mode)
 			, m_Horizontal(horAxis)
 			, m_Vertical(verAxis)
 		{
@@ -838,6 +830,7 @@ namespace Eagle
 		Ref<AssetSkeletalMesh> m_SkeletalMesh;
 		std::vector<BlendSpaceVertex> m_PointsData;
 		std::vector<Delaunay::Triangle> m_Triangulation;
+		BlendSpaceEventsTriggerMode m_EventsTriggerMode = BlendSpaceEventsTriggerMode::HighestWeightedAnimation;
 
 		BlendSpaceAxisSettings m_Horizontal;
 		BlendSpaceAxisSettings m_Vertical;

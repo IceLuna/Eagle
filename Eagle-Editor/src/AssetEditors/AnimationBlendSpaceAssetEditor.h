@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AssetEditor.h"
+#include "Eagle/Core/Entity.h"
 #include "Eagle/Utils/DelaunayTriangulation.h"
 
 #include <glm/glm.hpp>
@@ -8,6 +9,7 @@
 namespace Eagle
 {
 	class AssetAnimationBlendSpace;
+	class AssetAnimationGraph;
 
 	class AnimationBlendSpaceAssetEditor : public AssetEditor
 	{
@@ -27,11 +29,17 @@ namespace Eagle
 		bool DrawAxisTreeNode(const char* name, BlendSpaceAxisSettings& axis);
 		bool DrawAddPointTreeNode();
 		bool DrawAllPointsTreeNode();
+		void DrawVisualizationData();
 
 		void RemovePoint(size_t idx);
 
+		void CreateAnimGraphForViewport();
+
 	private:
 		Ref<AssetAnimationBlendSpace> m_Asset;
+		Ref<AssetAnimationGraph> m_AnimGraph;
+		Entity m_Entity;
+
 		std::string m_DetailsWindowName;
 		std::string m_PlotWindowName;
 

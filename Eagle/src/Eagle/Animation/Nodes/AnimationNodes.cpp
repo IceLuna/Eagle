@@ -994,9 +994,10 @@ namespace Eagle
 		Utils::GetValue(m_Inputs[1], m_Variables[1], ts, &y);
 
 		m_Pose.Reset();
-		AnimationSystem::CalculateBlendSpacePose(m_BlendSpace, x, y, CurrentTime, &m_Pose);
+		AnimationSystem::CalculateBlendSpacePose(m_BlendSpace, x, y, PrevTime, CurrentTime, &m_Pose);
 
 		m_CalculatedOnFrame = currentFrame;
+		PrevTime = CurrentTime;
 		CurrentTime += ts;
 
 		return m_Pose;

@@ -294,6 +294,7 @@ namespace Eagle
 	private:
 		Ref<AssetAnimationBlendSpace> m_BlendSpace;
 		double CurrentTime = 0.0;
+		double PrevTime = 0.0;
 		static constexpr size_t s_Inputs = 2;
 	};
 

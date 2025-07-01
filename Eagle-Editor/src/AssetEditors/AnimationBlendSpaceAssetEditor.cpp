@@ -5,6 +5,7 @@
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/UI/UI.h"
 #include "Eagle/Input/Input.h"
+#include "Eagle/Components/Components.h"
 
 #include <imgui.h>
 #include <imgui/imgui_internal.h>
@@ -12,6 +13,9 @@
 
 namespace Eagle
 {
+	static const std::string s_XVarName = "X";
+	static const std::string s_YVarName = "Y";
+
 	AnimationBlendSpaceAssetEditor::AnimationBlendSpaceAssetEditor(const Ref<AssetAnimationBlendSpace>& asset)
 		: AssetEditor(true, true)
 		, m_Asset(asset)
@@ -22,6 +26,29 @@ namespace Eagle
 		m_Horizontal = m_Asset->GetHorizontalAxis();
 		m_Vertical = m_Asset->GetVerticalAxis();
 		m_PointsData = m_Asset->GetPointsData();
+
+		CreateAnimGraphForViewport();
+
+		// Setup scene
+		{
+			const auto& skAsset = m_Asset->GetSkeletalMesh();
+			const auto& scene = GetCurrentScene();
+			m_Entity = scene->CreateEntity();
+			auto& comp = m_Entity.AddComponent<SkeletalMeshComponent>();
+			comp.AnimType = SkeletalMeshComponent::AnimationType::Graph;
+			comp.SetMeshAsset(skAsset);
+			comp.SetAnimationGraphAsset(m_AnimGraph);
+
+			auto& camera = scene->GetEditorCamera();
+			camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
+			camera.LookAt(glm::vec3(0, 0, 0));
+			const glm::vec3 cameraDir = camera.GetForwardVector();
+
+			const auto& aabb = skAsset->GetMesh()->GetAABB();
+			const glm::vec3 center = aabb.Center();
+			camera.SetLocation(center - cameraDir * aabb.MaxSide() * 2.f); // Move back
+			camera.LookAt(center);
+		}
 	}
 
 	void AnimationBlendSpaceAssetEditor::OnImGuiRender(bool* pOpen)
@@ -52,9 +79,20 @@ namespace Eagle
 		UI::BeginPropertyGrid("AnimationBlendSpaceDetails");
 		UI::Text("Name", m_Asset->GetPath().stem().u8string());
 		UI::Text("Type", "Animation Blend Space");
-		UI::EndPropertyGrid();
 
 		ImGui::Separator();
+
+		BlendSpaceEventsTriggerMode mode = m_Asset->GetEventsTriggerMode();
+		if (UI::ComboEnum("Events Trigger Mode", mode))
+		{
+			m_Asset->SetEventsTriggerMode(mode);
+			bChanged = true;
+		}
+
+		UI::EndPropertyGrid();
+		ImGui::Separator();
+
+		DrawVisualizationData();
 
 		if (DrawAxisTreeNode("Horizontal Axis", m_Horizontal))
 		{
@@ -102,8 +140,9 @@ namespace Eagle
 			pointData.Vertex.Coord.y = glm::clamp(pointData.Vertex.Coord.y, m_Vertical.Min, m_Vertical.Max);
 		}
 
-		const ImPlotFlags plotDefaultFlags = ImPlotFlags_NoTitle | ImPlotFlags_NoLegend | ImPlotFlags_NoMenus | ImPlotFlags_NoMouseText;
-		const ImPlotFlags plotFlags = plotDefaultFlags | (Input::IsKeyPressed(Key::LeftControl) ? ImPlotFlags_Crosshairs : 0);
+		const bool bVisualization = Input::IsKeyPressed(Key::LeftControl);
+		const ImPlotFlags plotDefaultFlags = ImPlotFlags_NoTitle | ImPlotFlags_NoLegend | ImPlotFlags_NoMenus;
+		const ImPlotFlags plotFlags = plotDefaultFlags | (bVisualization ? ImPlotFlags_Crosshairs : ImPlotFlags_NoMouseText);
 
 		const ImVec2 plotStartPos = ImGui::GetCursorScreenPos();
 		const ImVec2 plotEndPos = plotStartPos + ImGui::GetContentRegionAvail();
@@ -208,6 +247,14 @@ namespace Eagle
 				}
 			}
 
+			if (bVisualization)
+			{
+				ImPlotPoint coords = ImPlot::GetPlotMousePos();
+				auto& graph = m_Entity.GetComponent<SkeletalMeshComponent>().GetAnimationGraph();
+				Cast<GraphVariableFloat>(graph->GetVariable(s_XVarName))->Value = float(coords.x);
+				Cast<GraphVariableFloat>(graph->GetVariable(s_YVarName))->Value = float(coords.y);
+			}
+
 			ImPlot::EndPlot();
 		}
 
@@ -259,6 +306,7 @@ namespace Eagle
 			EditorResources::DrawAssetSelection("Animation", m_CurrentlyAddingPoint.Animation);
 			UI::InputDouble(m_Horizontal.Name.c_str(), m_CurrentlyAddingPoint.Vertex.Coord.x);
 			UI::InputDouble(m_Vertical.Name.c_str(), m_CurrentlyAddingPoint.Vertex.Coord.y);
+			UI::InputFloat("Anim Speed", m_CurrentlyAddingPoint.AnimSpeed);
 
 			m_CurrentlyAddingPoint.Vertex.Coord.x = glm::clamp(m_CurrentlyAddingPoint.Vertex.Coord.x, m_Horizontal.Min, m_Horizontal.Max);
 			m_CurrentlyAddingPoint.Vertex.Coord.y = glm::clamp(m_CurrentlyAddingPoint.Vertex.Coord.y, m_Vertical.Min, m_Vertical.Max);
@@ -343,6 +391,7 @@ namespace Eagle
 					bChanged |= EditorResources::DrawAssetSelection("Animation", pointData.Animation);
 					bChanged |= UI::InputDouble(m_Horizontal.Name, pointData.Vertex.Coord.x);
 					bChanged |= UI::InputDouble(m_Vertical.Name, pointData.Vertex.Coord.y);
+					bChanged |= UI::InputFloat("Anim Speed", pointData.AnimSpeed);
 
 					UI::EndPropertyGrid();
 
@@ -366,6 +415,34 @@ namespace Eagle
 		return bChanged;
 	}
 
+	void AnimationBlendSpaceAssetEditor::DrawVisualizationData()
+	{
+		constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+		bool treeOpened = ImGui::TreeNodeEx("Visualization", flags);
+		ImGui::PopStyleVar();
+		if (treeOpened)
+		{
+			UI::BeginPropertyGrid("Visualization");
+
+			auto& graph = m_Entity.GetComponent<SkeletalMeshComponent>().GetAnimationGraph();
+
+			auto xVar = Cast<GraphVariableFloat>(graph->GetVariable(s_XVarName));
+			auto yVar = Cast<GraphVariableFloat>(graph->GetVariable(s_YVarName));
+
+			UI::InputFloat(m_Horizontal.Name, xVar->Value, 0.f, 0.f, "You can also hold CTRL and move mouse on the plot");
+			UI::InputFloat(m_Vertical.Name, yVar->Value, 0.f, 0.f, "You can also hold CTRL and move mouse on the plot");
+
+			xVar->Value = (float)glm::clamp(double(xVar->Value), m_Horizontal.Min, m_Horizontal.Max);
+			yVar->Value = (float)glm::clamp(double(yVar->Value), m_Vertical.Min, m_Vertical.Max);
+
+			UI::EndPropertyGrid();
+			ImGui::TreePop();
+		}
+	}
+
 	void AnimationBlendSpaceAssetEditor::RemovePoint(size_t idx)
 	{
 		if (idx == s_InvalidIndex)
@@ -383,6 +460,112 @@ namespace Eagle
 			}
 		}
 		m_PointsData.erase(m_PointsData.begin() + idx);
+	}
+
+	void AnimationBlendSpaceAssetEditor::CreateAnimGraphForViewport()
+	{
+		class LocalAssetAnimationGraph : public AssetAnimationGraph
+		{
+		public:
+			LocalAssetAnimationGraph(const Ref<AssetSkeletalMesh>& sk, const GraphEditorSerializationData& data)
+				: AssetAnimationGraph("", GUID{}, MakeRef<AnimationGraph>(sk), data) {
+			}
+		};
+
+		GraphEditorSerializationData data{};
+
+		// Create two vars in the graph
+		{
+			data.Variables.reserve(2);
+			auto& xVar = data.Variables.emplace_back();
+			xVar.Name = s_XVarName;
+			xVar.Value = MakeRef<GraphVariableFloat>(float(m_Horizontal.Min));
+			auto& yVar = data.Variables.emplace_back();
+			yVar.Name = s_YVarName;
+			yVar.Value = MakeRef<GraphVariableFloat>(float(m_Vertical.Min));
+		}
+
+		constexpr uint32_t outputNodeID = 1;
+		constexpr uint32_t blendSpaceNodeID = 2;
+		uint32_t nodeID = blendSpaceNodeID + 1; // Rest node IDs
+
+		auto& nodes = data.Graph.Nodes;
+		nodes.reserve(4); // Output, blend space, and two vars
+		// Output node
+		{
+			auto& outputNode = nodes.emplace_back();
+			outputNode.OwnerID = data.Graph.ID;
+			outputNode.Name = "Output Pose";
+			outputNode.NodeID = outputNodeID;
+			outputNode.CachedOwnerID = GUID(0, 0);
+			outputNode.CachedNodeID = 0;
+			outputNode.Type = GraphNodeType::Node;
+
+			auto& inputPin = outputNode.InputPins.emplace_back();
+			inputPin.PinID = nodeID++;
+		}
+
+		// BlendSpace node
+		{
+			auto& bsNode = nodes.emplace_back();
+			bsNode.OwnerID = data.Graph.ID;
+			bsNode.Name = m_Asset->GetPath().stem().u8string();
+			bsNode.NodeID = blendSpaceNodeID;
+			bsNode.CachedOwnerID = GUID(0, 0);
+			bsNode.CachedNodeID = 0;
+			bsNode.Type = GraphNodeType::BlendSpace;
+			bsNode.BlendSpace = m_Asset;
+
+			bsNode.InputPins.resize(2);
+			for (auto& input : bsNode.InputPins)
+				input.PinID = nodeID++;
+
+			bsNode.OutputPins.push_back(nodeID++);
+
+			// Connect to output
+			auto& connection = bsNode.OutputConnections.emplace_back();
+			connection.NodeID = outputNodeID;
+			connection.PinIndex = 0;
+		}
+
+		// X var
+		{
+			auto& varNode = nodes.emplace_back();
+			varNode.OwnerID = data.Graph.ID;
+			varNode.Name = s_XVarName;
+			varNode.NodeID = nodeID++;
+			varNode.CachedOwnerID = GUID(0, 0);
+			varNode.CachedNodeID = 0;
+			varNode.Type = GraphNodeType::Variable;
+
+			varNode.OutputPins.push_back(nodeID++);
+
+			// Connect to output
+			auto& connection = varNode.OutputConnections.emplace_back();
+			connection.NodeID = blendSpaceNodeID;
+			connection.PinIndex = 0;
+		}
+
+		// Y var
+		{
+			auto& varNode = nodes.emplace_back();
+			varNode.OwnerID = data.Graph.ID;
+			varNode.Name = s_YVarName;
+			varNode.NodeID = nodeID++;
+			varNode.CachedOwnerID = GUID(0, 0);
+			varNode.CachedNodeID = 0;
+			varNode.Type = GraphNodeType::Variable;
+
+			varNode.OutputPins.push_back(nodeID++);
+
+			// Connect to output
+			auto& connection = varNode.OutputConnections.emplace_back();
+			connection.NodeID = blendSpaceNodeID;
+			connection.PinIndex = 1;
+		}
+
+		m_AnimGraph = MakeRef<LocalAssetAnimationGraph>(m_Asset->GetSkeletalMesh(), data);
+		m_AnimGraph->Compile();
 	}
 
 	void AnimationBlendSpaceAssetEditor::HandleFirstWindowRender(std::string_view windowName, std::string_view parentName)
