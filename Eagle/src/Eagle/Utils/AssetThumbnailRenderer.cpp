@@ -105,7 +105,7 @@ namespace Eagle
 		camera.LookAt(glm::vec3(0, 0, 0));
 		const glm::vec3 cameraDir = camera.GetForwardVector();
 
-		// TODO: Calculate entity AABB
+		// TODO v0.7: Calculate entity AABB
 		
 		//const auto& aabb = sphere->GetMesh()->GetAABB();
 		//const glm::vec3 center = aabb.Center();

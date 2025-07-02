@@ -388,6 +388,8 @@ namespace Eagle
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::AnimationBlendSpace);
 		out << YAML::Key << "GUID" << YAML::Value << GUID{};
 		out << YAML::Key << "SkeletalMesh" << YAML::Value << skeletal->GetGUID();
+		out << YAML::Key << "EventsTriggerMode" << YAML::Value << Utils::GetEnumName(BlendSpaceEventsTriggerMode::HighestWeightedAnimation);
+		out << YAML::Key << "BlendTime" << YAML::Value << 0.1f;
 
 		out << YAML::Key << "HorizontalAxis" << YAML::Value << YAML::BeginMap;
 		out << YAML::Key << "Name" << YAML::Value << "X";

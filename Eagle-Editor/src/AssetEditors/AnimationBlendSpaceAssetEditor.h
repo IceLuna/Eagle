@@ -52,5 +52,6 @@ namespace Eagle
 		BlendSpaceAxisSettings m_Vertical;
 		bool bAxisLimitsChanged = false;
 		bool bDrawTriangulation = true;
+		bool m_bPlotHovered = false;
 	};
 }

@@ -207,7 +207,7 @@ namespace Eagle
 			if (renderer->m_MotionBlurTask)
 				renderer->m_MotionBlurTask->RecordCommandBuffer(cmd);
 
-			// TODO: Particle reflections in SSR pass?
+			// TODO v0.7: Particle reflections in SSR pass?
 			// TODO: Should this be after `TransparencyTask`?
 			renderer->m_ParticleTask->RecordCommandBuffer(cmd);
 			

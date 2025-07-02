@@ -955,6 +955,7 @@ namespace Eagle
 		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
 		out << YAML::Key << "SkeletalMesh" << YAML::Value << asset->GetSkeletalMesh()->GetGUID();
 		out << YAML::Key << "EventsTriggerMode" << YAML::Value << Utils::GetEnumName(asset->GetEventsTriggerMode());
+		out << YAML::Key << "BlendTime" << YAML::Value << asset->GetBlendTime();
 
 		const auto& horAxis = asset->GetHorizontalAxis();
 		out << YAML::Key << "HorizontalAxis" << YAML::Value << YAML::BeginMap;
@@ -3698,6 +3699,10 @@ namespace Eagle
 		if (auto modeNode = baseNode["EventsTriggerMode"])
 			mode = Utils::GetEnumFromName<BlendSpaceEventsTriggerMode>(modeNode.as<std::string>());
 
+		float blendTime = 0.1f;
+		if (auto blendNode = baseNode["BlendTime"])
+			blendTime = blendNode.as<float>();
+
 		BlendSpaceAxisSettings horAxis;
 		{
 			auto horNode = baseNode["HorizontalAxis"];
@@ -3739,6 +3744,7 @@ namespace Eagle
 		};
 
 		auto result = MakeRef<LocalAssetAnimationBlendSpace>(pathToAsset, guid, mesh, horAxis, verAxis, points, mode);
+		result->SetBlendTime(blendTime);
 
 		return result;
 	}

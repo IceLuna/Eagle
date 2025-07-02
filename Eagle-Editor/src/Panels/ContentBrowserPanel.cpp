@@ -57,49 +57,49 @@ namespace Eagle
 		switch (type)
 		{
 		case AssetType::Texture2D:
-			borderColor = ImVec4(0.85f, 0.075f, 0.075f, 1.f);
+			borderColor = ImVec4(0.75f, 0.25f, 0.25f, 1.f);
 			return true;
 		case AssetType::TextureCube:
-			borderColor = ImVec4(0.85f, 0.075f, 0.075f, 1.f);
+			borderColor = ImVec4(0.75f, 0.25f, 0.25f, 1.f);
 			return true;
 		case AssetType::StaticMesh:
 			borderColor = ImVec4(0.5f, 0.5f, 0.85f, 1.f);
 			return true;
 		case AssetType::SkeletalMesh:
-			borderColor = ImVec4(0.75f, 0.15f, 0.75f, 1.f);
+			borderColor = ImVec4(0.945f, 0.64f, 0.945f, 1.f);
 			return true;
 		case AssetType::Audio:
-			borderColor = ImVec4(0.65f, 0.65f, 0.15f, 1.f);
+			borderColor = ImVec4(0.0f, 0.68f, 1.0f, 1.f);
 			return true;
 		case AssetType::SoundGroup:
-			borderColor = ImVec4(0.95f, 0.95f, 0.15f, 1.f);
+			borderColor = ImVec4(1.0, 0.68f, 0.0f, 1.f);
 			return true;
 		case AssetType::Font:
-			borderColor = ImVec4(0.5f, 0.5f, 0.5f, 1.f); // TODO:
+			borderColor = ImVec4(0.5f, 0.5f, 0.25f, 1.f);
 			return true;
 		case AssetType::Material:
 			borderColor = ImVec4(0.01f, 0.85f, 0.01f, 1.f);
 			return true;
 		case AssetType::PhysicsMaterial:
-			borderColor = ImVec4(0.5f, 0.5f, 0.5f, 1.f); // TODO:
+			borderColor = ImVec4(0.78f, 0.75f, 0.5f, 1.f);
 			return true;
 		case AssetType::Entity:
-			borderColor = ImVec4(0.25f, 0.25f, 1.f, 1.f);
+			borderColor = ImVec4(0.25f, 0.5f, 1.f, 1.f);
 			return true;
 		case AssetType::Scene:
-			borderColor = ImVec4(0.95f, 0.95f, 0.15f, 1.f); // TODO: it's the same as sound group. Figure it out
+			borderColor = ImVec4(1.0f, 0.611f, 0.0f, 1.f);
 			return true;
 		case AssetType::Animation:
-			borderColor = ImVec4(0.95f, 0.95f, 0.15f, 1.f); // TODO: it's the same as sound group. Figure it out
+			borderColor = ImVec4(0.313f, 0.482f, 0.282f, 1.f);
 			return true;
 		case AssetType::AnimationGraph:
-			borderColor = ImVec4(0.95f, 0.55f, 0.15f, 1.f);
+			borderColor = ImVec4(0.784f, 0.455f, 0.0f, 1.f);
 			return true;
 		case AssetType::ParticleSystem:
-			borderColor = ImVec4(0.5f, 0.5f, 0.5f, 1.f); // TODO: fix color
+			borderColor = ImVec4(0.0f, 1.0f, 1.0f, 1.f);
 			return true;
 		case AssetType::AnimationBlendSpace:
-			borderColor = ImVec4(0.9f, 0.5f, 0.5f, 1.f); // TODO: fix color
+			borderColor = ImVec4(1.0f, 0.658f, 0.435f, 1.f);
 			return true;
 		}
 		return false;
@@ -557,7 +557,6 @@ namespace Eagle
 				m_DrawAnimationGraphImporter = true;
 			}
 
-			// TODO: Fix Icon
 			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::AnimationBlendSpace), "Animation Blend Space", thumbnailSize, thumbnailSize.x))
 			{
 				m_AnimationBlendSpaceImporter = AnimationBlendSpaceImporterPanel(m_CurrentDirectoryRelative);

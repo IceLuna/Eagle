@@ -16,6 +16,7 @@ namespace Eagle
 	Ref<Texture2D> EditorResources::s_SceneIcon;
 	Ref<Texture2D> EditorResources::s_AnimationIcon;
 	Ref<Texture2D> EditorResources::s_AnimationGraphIcon;
+	Ref<Texture2D> EditorResources::s_AnimationBlendSpaceIcon;
 	Ref<Texture2D> EditorResources::s_ParticleSystemIcon;
 	Ref<Texture2D> EditorResources::s_MaterialIcon;
 	Ref<Texture2D> EditorResources::s_UnknownIcon;
@@ -32,6 +33,7 @@ namespace Eagle
 		s_SceneIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/sceneicon.png");
 		s_AnimationIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/animationicon.png");
 		s_AnimationGraphIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/animationgraphicon.png");
+		s_AnimationBlendSpaceIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/animationblendspaceicon.png");
 		s_ParticleSystemIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/particlesystemicon.png");
 		s_MaterialIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/material.png");
 		s_UnknownIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/unknownicon.png");
@@ -49,6 +51,7 @@ namespace Eagle
 		s_SceneIcon.reset();
 		s_AnimationIcon.reset();
 		s_AnimationGraphIcon.reset();
+		s_AnimationBlendSpaceIcon.reset();
 		s_ParticleSystemIcon.reset();
 		s_MaterialIcon.reset();
 		s_UnknownIcon.reset();
@@ -85,7 +88,7 @@ namespace Eagle
 		case AssetType::ParticleSystem:
 			return s_ParticleSystemIcon;
 		case AssetType::AnimationBlendSpace:
-			return s_UnknownIcon; // TODO:
+			return s_AnimationBlendSpaceIcon;
 		default:
 			return s_UnknownIcon;
 		}

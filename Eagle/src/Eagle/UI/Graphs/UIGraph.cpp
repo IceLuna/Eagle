@@ -1554,7 +1554,7 @@ namespace Eagle
                 }
                 else if (input.Type == PinType::Object)
                 {
-                    // TODO: Fix drop-menu
+                    // TODO v0.7: Fix drop-menu
                     Ref<GraphVariableAnimation> value = Cast<GraphVariableAnimation>(input.DefaultValue);
                     float maxWidth = 75.f;
                     if (value->Value)

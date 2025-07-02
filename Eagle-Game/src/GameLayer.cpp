@@ -46,7 +46,7 @@ namespace Eagle
 		Scene::SetCurrentScene(m_CurrentScene);
 		if (m_CurrentScene != m_DummyScene)
 		{
-			// TODO: Why is it needed?
+			// TODO v0.7: Why is it needed?
 			ScriptEngine::LoadAppAssembly(Project::GetProjectInfo().Name + ".dll");
 			m_CurrentScene->OnRuntimeStart();
 		}

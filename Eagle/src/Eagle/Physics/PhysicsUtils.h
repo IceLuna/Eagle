@@ -82,7 +82,7 @@ namespace Eagle
 		}
 
 	private:
-		const uint64_t CollisionGroupMask = uint64_t(-1); // TODO: Fix when collision groups are introduced
+		const uint64_t CollisionGroupMask = uint64_t(-1); // TODO v0.7: Fix when collision groups are introduced
 		physx::PxQueryHitType::Enum m_hitType = physx::PxQueryHitType::eBLOCK;
 	};
 

@@ -295,6 +295,13 @@ namespace Eagle
 		Ref<AssetAnimationBlendSpace> m_BlendSpace;
 		double CurrentTime = 0.0;
 		double PrevTime = 0.0;
+		float m_PrevX = std::numeric_limits<float>::infinity();
+		float m_PrevY = std::numeric_limits<float>::infinity();
+		float m_XBeforeTransition = 0.f;
+		float m_YBeforeTransition = 0.f;
+
+		float m_CurrentTransitionTime = 0.f;
+		bool bBlending = false;
 		static constexpr size_t s_Inputs = 2;
 	};
 

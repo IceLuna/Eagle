@@ -33,7 +33,7 @@ namespace Eagle
     {
         using namespace physx;
 
-        // TODO: Expose
+        // TODO v0.7: Expose
         static physx::PxFilterData s_FilterData(1, 1, 0, 0);
         auto& physics = PhysXInternal::GetPhysics();
         const auto it = currentPose.Bones.find(bone.Name);

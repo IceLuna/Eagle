@@ -993,12 +993,43 @@ namespace Eagle
 		Utils::GetValue(m_Inputs[0], m_Variables[0], ts, &x);
 		Utils::GetValue(m_Inputs[1], m_Variables[1], ts, &y);
 
+		if (m_PrevX == std::numeric_limits<float>::infinity())
+			m_PrevX = x;
+		if (m_PrevY == std::numeric_limits<float>::infinity())
+			m_PrevY = y;
+
+		const float blendTime = m_BlendSpace->GetBlendTime();
+		if (blendTime > 0.f && (m_PrevX != x || m_PrevY != y))
+		{
+			bBlending = true;
+			m_CurrentTransitionTime = 0.f;
+			m_XBeforeTransition = m_PrevX;
+			m_YBeforeTransition = m_PrevY;
+		}
+
+		m_PrevX = x;
+		m_PrevY = y;
+
+		if (bBlending)
+		{
+			const float alpha = m_CurrentTransitionTime / blendTime;
+			x = glm::mix(m_XBeforeTransition, x, alpha);
+			y = glm::mix(m_YBeforeTransition, y, alpha);
+		}
+
 		m_Pose.Reset();
 		AnimationSystem::CalculateBlendSpacePose(m_BlendSpace, x, y, PrevTime, CurrentTime, &m_Pose);
 
 		m_CalculatedOnFrame = currentFrame;
 		PrevTime = CurrentTime;
 		CurrentTime += ts;
+		m_CurrentTransitionTime += ts;
+
+		if (bBlending && m_CurrentTransitionTime > blendTime)
+		{
+			m_CurrentTransitionTime = 0.f;
+			bBlending = false;
+		}
 
 		return m_Pose;
 	}

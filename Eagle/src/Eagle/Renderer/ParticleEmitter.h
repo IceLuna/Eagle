@@ -71,7 +71,7 @@ namespace Eagle
 		glm::vec3 RingRadius = glm::vec3(0.5f);
 		glm::vec3 RingThickness = glm::vec3(0.1f);
 		// Mesh emission shape
-		Ref<AssetStaticMesh> MeshAsset; // TODO: Add support for animated skeletal meshes
+		Ref<AssetStaticMesh> MeshAsset; // TODO v0.7?: Add support for animated skeletal meshes
 
 		CollisionModeType CollisionMode = CollisionModeType::None;
 

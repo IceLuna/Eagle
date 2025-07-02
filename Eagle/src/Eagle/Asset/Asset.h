@@ -770,6 +770,8 @@ namespace Eagle
 			m_SkeletalMesh = std::move(asset.m_SkeletalMesh);
 			m_PointsData = std::move(asset.m_PointsData);
 			m_Triangulation = std::move(asset.m_Triangulation);
+			m_EventsTriggerMode = std::move(asset.m_EventsTriggerMode);
+			m_BlendTime = std::move(asset.m_BlendTime);
 			m_Horizontal = std::move(asset.m_Horizontal);
 			m_Vertical = std::move(asset.m_Vertical);
 
@@ -807,6 +809,10 @@ namespace Eagle
 		void SetEventsTriggerMode(BlendSpaceEventsTriggerMode mode) { m_EventsTriggerMode = mode; }
 		BlendSpaceEventsTriggerMode GetEventsTriggerMode() const { return m_EventsTriggerMode; }
 
+		// The time it takes to transition to new X/Y values
+		void SetBlendTime(float blendTime) { m_BlendTime = blendTime; }
+		float GetBlendTime() const { return m_BlendTime; }
+
 		// @path. Path to an `.egasset` file
 		static Ref<AssetAnimationBlendSpace> Create(const Path& path);
 
@@ -831,6 +837,7 @@ namespace Eagle
 		std::vector<BlendSpaceVertex> m_PointsData;
 		std::vector<Delaunay::Triangle> m_Triangulation;
 		BlendSpaceEventsTriggerMode m_EventsTriggerMode = BlendSpaceEventsTriggerMode::HighestWeightedAnimation;
+		float m_BlendTime = 0.1f;
 
 		BlendSpaceAxisSettings m_Horizontal;
 		BlendSpaceAxisSettings m_Vertical;

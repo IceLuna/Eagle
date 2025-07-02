@@ -21,7 +21,7 @@
 
 #include <codecvt>
 
-// TODO: Test this functionality on heavy scenes and check if it's faster than uploading the whole buffer at once
+// TODO v0.7: Test this functionality on heavy scenes and check if it's faster than uploading the whole buffer at once
 #define EG_UPLOAD_ONLY_REQUIRED_TRANSFORMS 1
 
 namespace Eagle

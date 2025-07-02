@@ -89,6 +89,13 @@ namespace Eagle
 			bChanged = true;
 		}
 
+		float blendTime = m_Asset->GetBlendTime();
+		if (UI::PropertyDrag("Blend Time", blendTime, 0.05f, 0, 0, "The time it takes to transition to new X/Y values"))
+		{
+			m_Asset->SetBlendTime(blendTime);
+			bChanged = true;
+		}
+
 		UI::EndPropertyGrid();
 		ImGui::Separator();
 
@@ -140,7 +147,7 @@ namespace Eagle
 			pointData.Vertex.Coord.y = glm::clamp(pointData.Vertex.Coord.y, m_Vertical.Min, m_Vertical.Max);
 		}
 
-		const bool bVisualization = Input::IsKeyPressed(Key::LeftControl);
+		const bool bVisualization = m_bPlotHovered && Input::IsKeyPressed(Key::LeftControl);
 		const ImPlotFlags plotDefaultFlags = ImPlotFlags_NoTitle | ImPlotFlags_NoLegend | ImPlotFlags_NoMenus;
 		const ImPlotFlags plotFlags = plotDefaultFlags | (bVisualization ? ImPlotFlags_Crosshairs : ImPlotFlags_NoMouseText);
 
@@ -255,6 +262,7 @@ namespace Eagle
 				Cast<GraphVariableFloat>(graph->GetVariable(s_YVarName))->Value = float(coords.y);
 			}
 
+			m_bPlotHovered = ImPlot::IsPlotHovered();
 			ImPlot::EndPlot();
 		}
 
