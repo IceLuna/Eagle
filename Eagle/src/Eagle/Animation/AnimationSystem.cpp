@@ -443,21 +443,6 @@ namespace Eagle
                 FinalizePose_Internal(pose, child, globalTransformation, skeletal, &node);
         }
 
-        static double WrapAnimationTime(double duration, double currentTime, bool bLoop)
-        {
-            if (currentTime > duration)
-                currentTime = bLoop ? currentTime - (glm::floor(currentTime / duration) * duration) : duration;
-            else if (currentTime < 0.f) // Animation is playing in reverse
-                currentTime = bLoop ? glm::abs(currentTime - (glm::floor(currentTime / duration) * duration)) : 0.f;
-
-            return currentTime;
-        }
-
-        static float WrapAnimationTime(float duration, float currentTime, bool bLoop)
-        {
-            return (float)WrapAnimationTime(double(duration), double(currentTime), bLoop);
-        }
-
         static void CalculateBlendSpaceVertexAnimation(const Delaunay::Vertex& v, const SkeletalMeshInfo& skeletal, double prevTimeSeconds, double currentTimeSeconds, bool bGatherAnimEvents, const glm::mat4& parentTransform, SkeletalPose* outPose)
         {
             BlendSpaceVertex* bsVertex = (BlendSpaceVertex*)v.UserData;
@@ -465,11 +450,32 @@ namespace Eagle
             {
                 const SkeletalMeshAnimation* meshAnim = bsVertex->Animation->GetAnimation().get();
                 const float ticksPerSecond = bsVertex->AnimSpeed * meshAnim->TicksPerSecond;
-                const double currentTime = WrapAnimationTime(double(meshAnim->Duration), currentTimeSeconds * ticksPerSecond, true);
+                const double currentTime = AnimationSystem::WrapAnimationTime(double(meshAnim->Duration), currentTimeSeconds * ticksPerSecond, true);
                 AnimationSystem::AnimationClip(skeletal, meshAnim, skeletal.RootBone, float(currentTime), outPose);
                 if (bGatherAnimEvents)
                 {
-                    const double prevTime = WrapAnimationTime(double(meshAnim->Duration), prevTimeSeconds * ticksPerSecond, true);
+                    const double prevTime = AnimationSystem::WrapAnimationTime(double(meshAnim->Duration), prevTimeSeconds * ticksPerSecond, true);
+                    AnimationSystem::GetEventsToTrigger(meshAnim, float(prevTime), float(currentTime), bsVertex->AnimSpeed, bsVertex->AnimSpeed, &outPose->EventsToTrigger);
+                }
+            }
+            else
+            {
+                AnimationSystem::FinalizePose(*outPose, skeletal.RootBone, parentTransform, skeletal);
+            }
+        }
+
+        // Same as above, but the time isn't provided as seconds, but in ticks as alpha (in [0; 1] range of the duration)
+        static void CalculateBlendSpaceVertexAnimation_TimeInTicksAlpha(const Delaunay::Vertex& v, const SkeletalMeshInfo& skeletal, double prevTime, double currentTime, bool bGatherAnimEvents, const glm::mat4& parentTransform, SkeletalPose* outPose)
+        {
+            BlendSpaceVertex* bsVertex = (BlendSpaceVertex*)v.UserData;
+            if (bsVertex && (bsVertex->Animation))
+            {
+                const SkeletalMeshAnimation* meshAnim = bsVertex->Animation->GetAnimation().get();
+                currentTime *= meshAnim->Duration;
+                AnimationSystem::AnimationClip(skeletal, meshAnim, skeletal.RootBone, float(currentTime), outPose);
+                if (bGatherAnimEvents)
+                {
+                    prevTime *= meshAnim->Duration;
                     AnimationSystem::GetEventsToTrigger(meshAnim, float(prevTime), float(currentTime), bsVertex->AnimSpeed, bsVertex->AnimSpeed, &outPose->EventsToTrigger);
                 }
             }
@@ -504,7 +510,7 @@ namespace Eagle
     float AnimationSystem::StepForwardAnimTime(const SkeletalMeshAnimation* animation, float currentTime, float ts, bool bLoop)
     {
         currentTime += animation->TicksPerSecond * ts;
-        currentTime = Utils::WrapAnimationTime(animation->Duration, currentTime, bLoop);
+        currentTime = WrapAnimationTime(animation->Duration, currentTime, bLoop);
         return currentTime;
     }
 
@@ -760,14 +766,109 @@ namespace Eagle
         mesh->Parent.SetWorldTransform(worldTransform + rootMotion);
     }
 
-    void AnimationSystem::CalculateBlendSpacePose(const Ref<AssetAnimationBlendSpace>& blendSpace, float x, float y, double prevTimeSeconds, double currentTimeSeconds, SkeletalPose* resultPose)
+    const BlendSpaceVertex* AnimationSystem::CalculateBlendSpacePose(const Ref<AssetAnimationBlendSpace>& blendSpace, float x, float y, double prevTimeSeconds, double currentTimeSeconds, SkeletalPose* resultPose)
     {
         const auto& skeletalInfo = blendSpace->GetSkeletalMesh()->GetMesh()->GetSkeletalMeshInfo();
+
+        Delaunay::Triangle tr;
+        glm::dvec3 buv;
+        if (!FindBlendSpaceSampleTriangle(blendSpace, x, y, &tr, &buv))
+        {
+            AnimationSystem::FinalizePose(*resultPose, skeletalInfo.RootBone, glm::mat4(1), skeletalInfo);
+            return nullptr;
+        }
+
+        return CalculateBlendSpacePose(blendSpace, tr, buv, prevTimeSeconds, currentTimeSeconds, resultPose);
+    }
+
+    const BlendSpaceVertex* AnimationSystem::CalculateBlendSpacePose(const Ref<AssetAnimationBlendSpace>& blendSpace, const Delaunay::Triangle& tr, const glm::dvec3& buv, double prevTimeSeconds, double currentTimeSeconds, SkeletalPose* resultPose)
+    {
+        const auto& skeletalInfo = blendSpace->GetSkeletalMesh()->GetMesh()->GetSkeletalMeshInfo();
+        const bool bSync = blendSpace->IsSyncEnabled();
+        const BlendSpaceVertex* highestWeightedVertex = nullptr;
+
+        const glm::mat4 rootTransform = glm::mat4(1.f);
+
+        const uint32_t highestWeightedAnimIdx =
+            buv[0] > buv[1] && buv[0] > buv[2] ? 0 :
+            buv[1] > buv[0] && buv[1] > buv[2] ? 1 : 2;
+        highestWeightedVertex = (BlendSpaceVertex*)tr.V[highestWeightedAnimIdx].UserData;
+
+        const BlendSpaceEventsTriggerMode animMode = blendSpace->GetEventsTriggerMode();
+        bool bGatherEvents[3] = { false, false, false };
+        if (animMode != BlendSpaceEventsTriggerMode::None)
+        {
+            switch (animMode)
+            {
+            case BlendSpaceEventsTriggerMode::HighestWeightedAnimation:
+                bGatherEvents[highestWeightedAnimIdx] = true;
+                break;
+            case BlendSpaceEventsTriggerMode::AllAnimations:
+                bGatherEvents[0] = bGatherEvents[1] = bGatherEvents[2] = true;
+                break;
+            }
+        }
+
+        SkeletalPose poses[3];
+        if (bSync)
+        {
+            // In [0; 1] range
+            double highestWeightedCurrentTimeAlpha = 0.0;
+            double highestWeightedPrevTimeAlpha = 0.0;
+            {
+                if (highestWeightedVertex && (highestWeightedVertex->Animation))
+                {
+                    const SkeletalMeshAnimation* meshAnim = highestWeightedVertex->Animation->GetAnimation().get();
+                    const float ticksPerSecond = meshAnim->TicksPerSecond; // Don't apply animation speed here. It's managed in `AnimationGraphNodeBlendSpace`
+
+                    const double currentTime = WrapAnimationTime(double(meshAnim->Duration), currentTimeSeconds * ticksPerSecond, true);
+                    const double prevTime = WrapAnimationTime(double(meshAnim->Duration), prevTimeSeconds * ticksPerSecond, true);
+
+                    highestWeightedCurrentTimeAlpha = currentTime / meshAnim->Duration;
+                    highestWeightedPrevTimeAlpha = prevTime / meshAnim->Duration;
+                }
+            }
+
+            for (uint32_t i = 0; i < 3; ++i)
+            {
+                Utils::CalculateBlendSpaceVertexAnimation_TimeInTicksAlpha(tr.V[i], skeletalInfo, highestWeightedPrevTimeAlpha, highestWeightedCurrentTimeAlpha, bGatherEvents[i], rootTransform, &poses[i]);
+            }
+        }
+        else
+        {
+            for (uint32_t i = 0; i < 3; ++i)
+            {
+                Utils::CalculateBlendSpaceVertexAnimation(tr.V[i], skeletalInfo, prevTimeSeconds, currentTimeSeconds, bGatherEvents[i], rootTransform, &poses[i]);
+            }
+        }
+
+        const glm::vec3 buvf = glm::vec3(buv);
+        Utils::BlendPoses_Internal(poses[0], poses[1], poses[2], skeletalInfo.RootBone, buvf, resultPose);
+
+        if (poses[0].HasRootMotion() || poses[1].HasRootMotion() || poses[2].HasRootMotion())
+        {
+            const auto& pose1RM = poses[0].GetRootMotion();
+            const auto& pose2RM = poses[1].GetRootMotion();
+            const auto& pose3RM = poses[2].GetRootMotion();
+
+            Transform rootMotion = Transform::Blend(pose1RM, pose2RM, pose3RM, buvf);
+            resultPose->TotalRootMotion = Transform::Blend(poses[0].TotalRootMotion, poses[1].TotalRootMotion, poses[2].TotalRootMotion, buvf);
+            resultPose->TimeTillAnimationLoops = glm::min(poses[0].TimeTillAnimationLoops, glm::min(poses[1].TimeTillAnimationLoops, poses[2].TimeTillAnimationLoops));
+        }
+
+        resultPose->EventsToTrigger = poses[0].GetEventsToTrigger();
+        resultPose->EventsToTrigger.insert(resultPose->EventsToTrigger.end(), poses[1].GetEventsToTrigger().begin(), poses[1].GetEventsToTrigger().end());
+        resultPose->EventsToTrigger.insert(resultPose->EventsToTrigger.end(), poses[2].GetEventsToTrigger().begin(), poses[2].GetEventsToTrigger().end());
+
+        return highestWeightedVertex;
+    }
+
+    bool AnimationSystem::FindBlendSpaceSampleTriangle(const Ref<AssetAnimationBlendSpace>& blendSpace, float x, float y, Delaunay::Triangle* outTriangle, glm::dvec3* outBUV)
+    {
         const auto& triangulation = blendSpace->GetTriangulation();
         if (triangulation.empty())
         {
-            AnimationSystem::FinalizePose(*resultPose, skeletalInfo.RootBone, glm::mat4(1), skeletalInfo);
-            return;
+            return false;
         }
 
         const auto& horAxis = blendSpace->GetHorizontalAxis();
@@ -785,54 +886,13 @@ namespace Eagle
             const glm::dvec3 buv = tr.CalculateBarycentric(sampleV);
             if (tr.InTriangle(buv))
             {
-                const glm::mat4 rootTransform = glm::mat4(1.f);
-
-                const BlendSpaceEventsTriggerMode animMode = blendSpace->GetEventsTriggerMode();
-                bool bGatherEvents[3] = { false, false, false };
-                if (animMode != BlendSpaceEventsTriggerMode::None)
-                {
-                    switch (animMode)
-                    {
-                    case BlendSpaceEventsTriggerMode::HighestWeightedAnimation:
-                    {
-                        const uint32_t idx =
-                            buv[0] > buv[1] && buv[0] > buv[2] ? 0 :
-                            buv[1] > buv[0] && buv[1] > buv[2] ? 1 : 2;
-                        bGatherEvents[idx] = true;
-                        break;
-                    }
-                    case BlendSpaceEventsTriggerMode::AllAnimations:
-                        bGatherEvents[0] = bGatherEvents[1] = bGatherEvents[2] = true;
-                        break;
-                    }
-                }
-
-                SkeletalPose poses[3];
-                Utils::CalculateBlendSpaceVertexAnimation(tr.V[0], skeletalInfo, prevTimeSeconds, currentTimeSeconds, bGatherEvents[0], rootTransform, &poses[0]);
-                Utils::CalculateBlendSpaceVertexAnimation(tr.V[1], skeletalInfo, prevTimeSeconds, currentTimeSeconds, bGatherEvents[1], rootTransform, &poses[1]);
-                Utils::CalculateBlendSpaceVertexAnimation(tr.V[2], skeletalInfo, prevTimeSeconds, currentTimeSeconds, bGatherEvents[2], rootTransform, &poses[2]);
-
-                const glm::vec3 buvf = glm::vec3(buv);
-                Utils::BlendPoses_Internal(poses[0], poses[1], poses[2], skeletalInfo.RootBone, buvf, resultPose);
-
-                if (poses[0].HasRootMotion() || poses[1].HasRootMotion() || poses[2].HasRootMotion())
-                {
-                    const auto& pose1RM = poses[0].GetRootMotion();
-                    const auto& pose2RM = poses[1].GetRootMotion();
-                    const auto& pose3RM = poses[2].GetRootMotion();
-
-                    Transform rootMotion = Transform::Blend(pose1RM, pose2RM, pose3RM, buvf);
-                    resultPose->TotalRootMotion = Transform::Blend(poses[0].TotalRootMotion, poses[1].TotalRootMotion, poses[2].TotalRootMotion, buvf);
-                    resultPose->TimeTillAnimationLoops = glm::min(poses[0].TimeTillAnimationLoops, glm::min(poses[1].TimeTillAnimationLoops, poses[2].TimeTillAnimationLoops));
-                }
-
-                resultPose->EventsToTrigger = poses[0].GetEventsToTrigger();
-                resultPose->EventsToTrigger.insert(resultPose->EventsToTrigger.end(), poses[1].GetEventsToTrigger().begin(), poses[1].GetEventsToTrigger().end());
-                resultPose->EventsToTrigger.insert(resultPose->EventsToTrigger.end(), poses[2].GetEventsToTrigger().begin(), poses[2].GetEventsToTrigger().end());
-
-                break;
+                *outTriangle = tr;
+                *outBUV = buv;
+                return true;
             }
         }
+
+        return false;
     }
 
     void AnimationSystem::CalculateAdditivePose(const SkeletalPose& refPose, const SkeletalPose& sourcePose, const BoneNode& node, SkeletalPose* resultPose)
@@ -986,5 +1046,20 @@ namespace Eagle
 
         for (auto& child : node.Children)
             FinalizePoseRagdoll(pose, child, globalTransformation, skeletal, outTransforms);
+    }
+
+    double AnimationSystem::WrapAnimationTime(double duration, double currentTime, bool bLoop)
+    {
+        if (currentTime > duration)
+            currentTime = bLoop ? currentTime - (glm::floor(currentTime / duration) * duration) : duration;
+        else if (currentTime < 0.f) // Animation is playing in reverse
+            currentTime = bLoop ? glm::abs(currentTime - (glm::floor(currentTime / duration) * duration)) : 0.f;
+
+        return currentTime;
+    }
+
+    float AnimationSystem::WrapAnimationTime(float duration, float currentTime, bool bLoop)
+    {
+        return (float)WrapAnimationTime(double(duration), double(currentTime), bLoop);
     }
 }

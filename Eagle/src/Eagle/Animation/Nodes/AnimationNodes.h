@@ -6,6 +6,7 @@ namespace Eagle
 {
 	class AnimationStateMachineGraph;
 	class AssetAnimationBlendSpace;
+	struct BlendSpaceVertex;
 
 	class AnimationGraphNode : public GraphNode
 	{
@@ -299,6 +300,7 @@ namespace Eagle
 		float m_PrevY = std::numeric_limits<float>::infinity();
 		float m_XBeforeTransition = 0.f;
 		float m_YBeforeTransition = 0.f;
+		const BlendSpaceVertex* m_PrevHighestWeighted = nullptr;
 
 		float m_CurrentTransitionTime = 0.f;
 		bool bBlending = false;

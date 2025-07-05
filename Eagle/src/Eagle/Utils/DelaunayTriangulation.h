@@ -20,6 +20,8 @@ namespace Eagle::Delaunay
 
 	struct Triangle
 	{
+		Triangle() = default;
+
 		Triangle(const Vertex& a, const Vertex& b, const Vertex& c)
 		{
 			V[0] = a;

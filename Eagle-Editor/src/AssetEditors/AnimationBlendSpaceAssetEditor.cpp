@@ -13,6 +13,10 @@
 
 namespace Eagle
 {
+	static constexpr char* s_SyncHelpMsg = "When animations have different durations, they might blend in a weird way.\n"
+		"To help to fix it, enable sync. When it's enabled, highest weighted animation will lead others.\n"
+		"Meaning, if it's at 25% of its duration, other animations will also be at 25% of their durations. When it resets to 0 (loops back), other animations also reset to 0.";
+
 	static const std::string s_XVarName = "X";
 	static const std::string s_YVarName = "Y";
 
@@ -93,6 +97,13 @@ namespace Eagle
 		if (UI::PropertyDrag("Blend Time", blendTime, 0.05f, 0, 0, "The time it takes to transition to new X/Y values"))
 		{
 			m_Asset->SetBlendTime(blendTime);
+			bChanged = true;
+		}
+
+		bool bSync = m_Asset->IsSyncEnabled();
+		if (UI::Property("Sync Animations", bSync, s_SyncHelpMsg))
+		{
+			m_Asset->SetSyncEnabled(bSync);
 			bChanged = true;
 		}
 
@@ -312,9 +323,10 @@ namespace Eagle
 			UI::BeginPropertyGrid("Add Point");
 
 			EditorResources::DrawAssetSelection("Animation", m_CurrentlyAddingPoint.Animation);
+			UI::InputFloat("Animation Speed", m_CurrentlyAddingPoint.AnimSpeed);
+			UI::TextWithSeparator("X/Y inputs");
 			UI::InputDouble(m_Horizontal.Name.c_str(), m_CurrentlyAddingPoint.Vertex.Coord.x);
 			UI::InputDouble(m_Vertical.Name.c_str(), m_CurrentlyAddingPoint.Vertex.Coord.y);
-			UI::InputFloat("Anim Speed", m_CurrentlyAddingPoint.AnimSpeed);
 
 			m_CurrentlyAddingPoint.Vertex.Coord.x = glm::clamp(m_CurrentlyAddingPoint.Vertex.Coord.x, m_Horizontal.Min, m_Horizontal.Max);
 			m_CurrentlyAddingPoint.Vertex.Coord.y = glm::clamp(m_CurrentlyAddingPoint.Vertex.Coord.y, m_Vertical.Min, m_Vertical.Max);
@@ -397,9 +409,10 @@ namespace Eagle
 					UI::BeginPropertyGrid("All Points");
 
 					bChanged |= EditorResources::DrawAssetSelection("Animation", pointData.Animation);
+					bChanged |= UI::InputFloat("Animation Speed", pointData.AnimSpeed);
+					UI::TextWithSeparator("X/Y inputs");
 					bChanged |= UI::InputDouble(m_Horizontal.Name, pointData.Vertex.Coord.x);
 					bChanged |= UI::InputDouble(m_Vertical.Name, pointData.Vertex.Coord.y);
-					bChanged |= UI::InputFloat("Anim Speed", pointData.AnimSpeed);
 
 					UI::EndPropertyGrid();
 

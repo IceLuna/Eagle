@@ -13,6 +13,12 @@ namespace Eagle
 	struct SkeletalMeshInfo;
 	struct AnimationEvent;
 	class AssetAnimationBlendSpace;
+	struct BlendSpaceVertex;
+
+	namespace Delaunay
+	{
+		struct Triangle;
+	}
 	
 	class AnimationSystem
 	{
@@ -26,7 +32,14 @@ namespace Eagle
 		[[nodiscard]] static Transform CalculateRootMotion(const SkeletalMeshAnimation* animation, float currentTime, float prevTime, float playbackSpeed, Timestep ts, Transform* outTotalRootMotion);
 		static void ApplyRootMotion(SkeletalMeshComponent* mesh, const Transform& totalRootMotion, Transform rootMotion);
 
-		static void CalculateBlendSpacePose(const Ref<AssetAnimationBlendSpace>& blendSpace, float x, float y, double prevTimeSeconds, double currentTimeSeconds, SkeletalPose* resultPose);
+		// Returns highest weighted vertex
+		static const BlendSpaceVertex* CalculateBlendSpacePose(const Ref<AssetAnimationBlendSpace>& blendSpace, float x, float y, double prevTimeSeconds, double currentTimeSeconds, SkeletalPose* resultPose);
+		static const BlendSpaceVertex* CalculateBlendSpacePose(const Ref<AssetAnimationBlendSpace>& blendSpace, const Delaunay::Triangle& tr, const glm::dvec3& buv, double prevTimeSeconds, double currentTimeSeconds, SkeletalPose* resultPose);
+
+		// Finds triangle that should be used for interpolation.
+		// Returns true on success.
+		static bool FindBlendSpaceSampleTriangle(const Ref<AssetAnimationBlendSpace>& blendSpace, float x, float y, Delaunay::Triangle* outTriangle, glm::dvec3* outBUV);
+
 		static void CalculateAdditivePose(const SkeletalPose& refPose, const SkeletalPose& sourcePose, const BoneNode& node, SkeletalPose* resultPose);
 		static void ApplyAdditive(const SkeletalPose& targetPose, const SkeletalPose& additivePose, const BoneNode& node, float blendAlpha, SkeletalPose* resultPose);
 		static void BlendPoses(const SkeletalPose& pose1, const SkeletalPose& pose2, const BoneNode& node, float blendAlpha, SkeletalPose* outPose);
@@ -38,6 +51,8 @@ namespace Eagle
 
 		// Returns new currentTime
 		static float StepForwardAnimTime(const SkeletalMeshAnimation* animation, float currentTime, float ts, bool bLoop);
+		static double WrapAnimationTime(double duration, double currentTime, bool bLoop);
+		static float WrapAnimationTime(float duration, float currentTime, bool bLoop);
 
 		// Returns true if `currentTime` is valid value for the animation
 		static bool IsValidTime(const SkeletalMeshAnimation* animation, float currentTime);

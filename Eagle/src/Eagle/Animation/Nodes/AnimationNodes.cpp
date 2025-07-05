@@ -1018,11 +1018,55 @@ namespace Eagle
 		}
 
 		m_Pose.Reset();
-		AnimationSystem::CalculateBlendSpacePose(m_BlendSpace, x, y, PrevTime, CurrentTime, &m_Pose);
+		const bool bSyncEnabled = m_BlendSpace->IsSyncEnabled();
+		if (bSyncEnabled)
+		{
+			Delaunay::Triangle tr;
+			glm::dvec3 buv;
+			if (AnimationSystem::FindBlendSpaceSampleTriangle(m_BlendSpace, x, y, &tr, &buv))
+			{
+				const uint32_t highestWeightedAnimIdx =
+					buv[0] > buv[1] && buv[0] > buv[2] ? 0 :
+					buv[1] > buv[0] && buv[1] > buv[2] ? 1 : 2;
+				const BlendSpaceVertex* highestWeighted = (BlendSpaceVertex*)tr.V[highestWeightedAnimIdx].UserData;
+
+				// If sync is enabled, we can't just calculate the final pose.
+				// First, we need to check if highest weighted animation has changed.
+				// If so, we need to recalculate `CurrentTime` and `PrevTime` according to new heighest weighed animation duration (otherwise it would flicker).
+				// For example, if `CurrentTime` is 1.5s (50% of 3s animation) and we notice that the animation has changed,
+				// We need to recalculate it to be 50% of the new animation (if it's 1.5s, then `CurrentTime` must be 0.75s). That's what we do here.
+				if (m_PrevHighestWeighted != highestWeighted && m_PrevHighestWeighted)
+				{
+					const SkeletalMeshAnimation* curMeshAnim = highestWeighted->Animation->GetAnimation().get();
+					const SkeletalMeshAnimation* prevMeshAnim = m_PrevHighestWeighted->Animation->GetAnimation().get();
+
+					// Convert: to Ticks and then to [0; 1] range
+					CurrentTime = AnimationSystem::WrapAnimationTime(double(prevMeshAnim->Duration), CurrentTime * prevMeshAnim->TicksPerSecond, true);
+					CurrentTime = CurrentTime / prevMeshAnim->Duration;
+
+					// Convert: to Ticks and then to [0; 1] range
+					PrevTime = AnimationSystem::WrapAnimationTime(double(prevMeshAnim->Duration), PrevTime * prevMeshAnim->TicksPerSecond, true);
+					PrevTime = PrevTime / prevMeshAnim->Duration;
+
+					const double durationInSeconds = double(curMeshAnim->Duration) / curMeshAnim->TicksPerSecond;
+					CurrentTime *= durationInSeconds;
+					PrevTime *= durationInSeconds;
+				}
+				AnimationSystem::CalculateBlendSpacePose(m_BlendSpace, tr, buv, PrevTime, CurrentTime, &m_Pose);
+				m_PrevHighestWeighted = highestWeighted;
+				PrevTime = CurrentTime;
+				CurrentTime += ts * highestWeighted->AnimSpeed;
+			}
+		}
+		else
+		{
+			AnimationSystem::CalculateBlendSpacePose(m_BlendSpace, x, y, PrevTime, CurrentTime, &m_Pose);
+			m_PrevHighestWeighted = nullptr;
+			PrevTime = CurrentTime;
+			CurrentTime += ts;
+		}
 
 		m_CalculatedOnFrame = currentFrame;
-		PrevTime = CurrentTime;
-		CurrentTime += ts;
 		m_CurrentTransitionTime += ts;
 
 		if (bBlending && m_CurrentTransitionTime > blendTime)

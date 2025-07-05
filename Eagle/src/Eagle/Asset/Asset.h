@@ -774,6 +774,7 @@ namespace Eagle
 			m_BlendTime = std::move(asset.m_BlendTime);
 			m_Horizontal = std::move(asset.m_Horizontal);
 			m_Vertical = std::move(asset.m_Vertical);
+			bSync = std::move(asset.bSync);
 
 			return *this;
 		}
@@ -813,6 +814,13 @@ namespace Eagle
 		void SetBlendTime(float blendTime) { m_BlendTime = blendTime; }
 		float GetBlendTime() const { return m_BlendTime; }
 
+		// When animations have different durations, they might blend in a weird way.
+		// To help to fix it, enable sync. When it's enabled, highest weighted animation will lead others.
+		// Meaning, if it's at 25% of its duration, other animations will also be at 25% of their durations.
+		// When it resets to 0 (loops back), other animations also reset to 0. 
+		void SetSyncEnabled(bool bEnabled) { bSync = bEnabled; }
+		bool IsSyncEnabled() const { return bSync; }
+
 		// @path. Path to an `.egasset` file
 		static Ref<AssetAnimationBlendSpace> Create(const Path& path);
 
@@ -838,6 +846,7 @@ namespace Eagle
 		std::vector<Delaunay::Triangle> m_Triangulation;
 		BlendSpaceEventsTriggerMode m_EventsTriggerMode = BlendSpaceEventsTriggerMode::HighestWeightedAnimation;
 		float m_BlendTime = 0.1f;
+		bool bSync = true;
 
 		BlendSpaceAxisSettings m_Horizontal;
 		BlendSpaceAxisSettings m_Vertical;
