@@ -36,6 +36,9 @@ namespace Eagle
 		static const BlendSpaceVertex* CalculateBlendSpacePose(const Ref<AssetAnimationBlendSpace>& blendSpace, float x, float y, double prevTimeSeconds, double currentTimeSeconds, SkeletalPose* resultPose);
 		static const BlendSpaceVertex* CalculateBlendSpacePose(const Ref<AssetAnimationBlendSpace>& blendSpace, const Delaunay::Triangle& tr, const glm::dvec3& buv, double prevTimeSeconds, double currentTimeSeconds, SkeletalPose* resultPose);
 
+		// Clamps X/Y input to axes extremums
+		static void ClampBlendSpaceInputs(const Ref<AssetAnimationBlendSpace>& blendSpace, float& x, float& y);
+
 		// Finds triangle that should be used for interpolation.
 		// Returns true on success.
 		static bool FindBlendSpaceSampleTriangle(const Ref<AssetAnimationBlendSpace>& blendSpace, float x, float y, Delaunay::Triangle* outTriangle, glm::dvec3* outBUV);

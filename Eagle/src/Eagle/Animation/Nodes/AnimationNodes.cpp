@@ -993,28 +993,59 @@ namespace Eagle
 		Utils::GetValue(m_Inputs[0], m_Variables[0], ts, &x);
 		Utils::GetValue(m_Inputs[1], m_Variables[1], ts, &y);
 
-		if (m_PrevX == std::numeric_limits<float>::infinity())
-			m_PrevX = x;
-		if (m_PrevY == std::numeric_limits<float>::infinity())
-			m_PrevY = y;
+		AnimationSystem::ClampBlendSpaceInputs(m_BlendSpace, x, y);
+
+		if (m_PrevInputX == std::numeric_limits<float>::infinity())
+			m_PrevInputX = x;
+		if (m_PrevInputY == std::numeric_limits<float>::infinity())
+			m_PrevInputY = y;
 
 		const float blendTime = m_BlendSpace->GetBlendTime();
-		if (blendTime > 0.f && (m_PrevX != x || m_PrevY != y))
+		if (blendTime > 0.f && (m_PrevInputX != x || m_PrevInputY != y))
 		{
-			bBlending = true;
-			m_CurrentTransitionTime = 0.f;
-			m_XBeforeTransition = m_PrevX;
-			m_YBeforeTransition = m_PrevY;
+			if (bBlending)
+			{
+				// If we're already blending, reset to prev frame's blend values
+				m_XBeforeTransition = m_PrevX;
+				m_YBeforeTransition = m_PrevY;
+				CalculateDistanceToBlend(x, y, m_PrevX, m_PrevY);
+
+				// Advance animation a bitr. We can't reset it to 0, because it'll basically result in using prev frames state.
+				// Which means, animation won't advance while inputs are changing.
+				m_CurrentTransitionTime = ts;
+			}
+			else
+			{
+				m_XBeforeTransition = m_PrevInputX;
+				m_YBeforeTransition = m_PrevInputY;
+				CalculateDistanceToBlend(x, y, m_PrevInputX, m_PrevInputY);
+				bBlending = true;
+				m_CurrentTransitionTime = 0.f;
+			}
 		}
 
-		m_PrevX = x;
-		m_PrevY = y;
+		m_PrevInputX = x;
+		m_PrevInputY = y;
 
 		if (bBlending)
 		{
+			const auto& hor = m_BlendSpace->GetHorizontalAxis();
+			const auto& ver = m_BlendSpace->GetVerticalAxis();
+
 			const float alpha = m_CurrentTransitionTime / blendTime;
-			x = glm::mix(m_XBeforeTransition, x, alpha);
-			y = glm::mix(m_YBeforeTransition, y, alpha);
+			x = m_XBeforeTransition + glm::mix(0.f, m_XDistanceToBlend, alpha);
+			y = m_YBeforeTransition + glm::mix(0.f, m_YDistanceToBlend, alpha);
+
+			// Flip to the other side, if it rolled over
+			if (x < hor.Min)
+				x = float(hor.Max + (x - hor.Min));
+			else if (x > hor.Max)
+				x = float(hor.Min + (x - hor.Max));
+			
+			if (y < ver.Min)
+				y = float(ver.Max + (y - ver.Min));
+			else if (y > ver.Max)
+				y = float(ver.Min + (y - ver.Max));
 		}
 
 		m_Pose.Reset();
@@ -1068,6 +1099,8 @@ namespace Eagle
 
 		m_CalculatedOnFrame = currentFrame;
 		m_CurrentTransitionTime += ts;
+		m_PrevX = x;
+		m_PrevY = y;
 
 		if (bBlending && m_CurrentTransitionTime > blendTime)
 		{
@@ -1076,5 +1109,34 @@ namespace Eagle
 		}
 
 		return m_Pose;
+	}
+	
+	void AnimationGraphNodeBlendSpace::CalculateDistanceToBlend(float x, float y, float prevX, float prevY)
+	{
+		const auto& hor = m_BlendSpace->GetHorizontalAxis();
+		const auto& ver = m_BlendSpace->GetVerticalAxis();
+		const bool bShortestBlend = m_BlendSpace->IsShortestBlendPathEnabled();
+
+		const float distanceX = x - prevX;
+		const float distanceY = y - prevY;
+		if (bShortestBlend)
+		{
+			const float minX = glm::min(prevX, x);
+			const float maxX = glm::max(prevX, x);
+			const float altDistanceX = (x < prevX ? 1.f : -1.f) * ((float(hor.Max) - maxX) + (minX - float(hor.Min)));
+
+			const float minY = glm::min(prevY, y);
+			const float maxY = glm::max(prevY, y);
+			const float altDistanceY = (y < prevY ? 1.f : -1.f) * ((float(ver.Max) - maxY) + (minY - float(ver.Min)));
+
+			// Choose the shortest path
+			m_XDistanceToBlend = glm::abs(distanceX) > glm::abs(altDistanceX) ? altDistanceX : distanceX;
+			m_YDistanceToBlend = glm::abs(distanceY) > glm::abs(altDistanceY) ? altDistanceY : distanceY;
+		}
+		else
+		{
+			m_XDistanceToBlend = distanceX;
+			m_YDistanceToBlend = distanceY;
+		}
 	}
 }

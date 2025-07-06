@@ -13,9 +13,13 @@
 
 namespace Eagle
 {
-	static constexpr char* s_SyncHelpMsg = "When animations have different durations, they might blend in a weird way.\n"
-		"To help to fix it, enable sync. When it's enabled, highest weighted animation will lead others.\n"
+	static constexpr char* s_SyncHelpMsg = "When animations have different durations, they might blend in a weird way. "
+		"To help to fix it, enable sync. When it's enabled, highest weighted animation will lead others. "
 		"Meaning, if it's at 25% of its duration, other animations will also be at 25% of their durations. When it resets to 0 (loops back), other animations also reset to 0.";
+
+	static constexpr char* s_ShortestBlendPathHelpMsg = "When enabled, the system will blend using the shortest path to the target. "
+		"For example, if X-axis is [-100; 100], and input has changed from `-99` to `99`, instead of blending all the way from `-99` to `99`, "
+		"it'll blend from `-99` to `-100`, flip over to `100` and blend from `100` to `99`. So, the blend length is only `2` units, instead of `198`";
 
 	static const std::string s_XVarName = "X";
 	static const std::string s_YVarName = "Y";
@@ -97,6 +101,13 @@ namespace Eagle
 		if (UI::PropertyDrag("Blend Time", blendTime, 0.05f, 0, 0, "The time it takes to transition to new X/Y values"))
 		{
 			m_Asset->SetBlendTime(blendTime);
+			bChanged = true;
+		}
+
+		bool bUseShortestBlendPath = m_Asset->IsShortestBlendPathEnabled();
+		if (UI::Property("Uses shortest blend path", bUseShortestBlendPath, s_ShortestBlendPathHelpMsg))
+		{
+			m_Asset->SetUseShortestBlendPath(bUseShortestBlendPath);
 			bChanged = true;
 		}
 

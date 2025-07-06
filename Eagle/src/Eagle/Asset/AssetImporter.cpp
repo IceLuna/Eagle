@@ -391,6 +391,7 @@ namespace Eagle
 		out << YAML::Key << "EventsTriggerMode" << YAML::Value << Utils::GetEnumName(BlendSpaceEventsTriggerMode::HighestWeightedAnimation);
 		out << YAML::Key << "BlendTime" << YAML::Value << 0.1f;
 		out << YAML::Key << "SyncEnabled" << YAML::Value << true;
+		out << YAML::Key << "UseShortestBlendPath" << YAML::Value << true;
 
 		out << YAML::Key << "HorizontalAxis" << YAML::Value << YAML::BeginMap;
 		out << YAML::Key << "Name" << YAML::Value << "X";

@@ -957,6 +957,7 @@ namespace Eagle
 		out << YAML::Key << "EventsTriggerMode" << YAML::Value << Utils::GetEnumName(asset->GetEventsTriggerMode());
 		out << YAML::Key << "BlendTime" << YAML::Value << asset->GetBlendTime();
 		out << YAML::Key << "SyncEnabled" << YAML::Value << asset->IsSyncEnabled();
+		out << YAML::Key << "UseShortestBlendPath" << YAML::Value << asset->IsShortestBlendPathEnabled();
 
 		const auto& horAxis = asset->GetHorizontalAxis();
 		out << YAML::Key << "HorizontalAxis" << YAML::Value << YAML::BeginMap;
@@ -3708,6 +3709,10 @@ namespace Eagle
 		if (auto syncNode = baseNode["SyncEnabled"])
 			bSyncEnabled = syncNode.as<bool>();
 
+		bool bUseShortestBlendPath = true;
+		if (auto blendPathNode = baseNode["UseShortestBlendPath"])
+			bUseShortestBlendPath = blendPathNode.as<bool>();
+
 		BlendSpaceAxisSettings horAxis;
 		{
 			auto horNode = baseNode["HorizontalAxis"];
@@ -3751,6 +3756,7 @@ namespace Eagle
 		auto result = MakeRef<LocalAssetAnimationBlendSpace>(pathToAsset, guid, mesh, horAxis, verAxis, points, mode);
 		result->SetBlendTime(blendTime);
 		result->SetSyncEnabled(bSyncEnabled);
+		result->SetUseShortestBlendPath(bUseShortestBlendPath);
 
 		return result;
 	}

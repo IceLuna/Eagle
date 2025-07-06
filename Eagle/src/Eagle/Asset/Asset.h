@@ -821,6 +821,12 @@ namespace Eagle
 		void SetSyncEnabled(bool bEnabled) { bSync = bEnabled; }
 		bool IsSyncEnabled() const { return bSync; }
 
+		// When enabled, the system will blend using the shortest path to the target.
+		// For example, if X-axis is [-100; 100], and input has changed from `-99` to `99`, instead of blending all the way from `-99` to `99`,
+		// it'll blend from `-99` to `-100`, flip over to `100` and blend from `100` to `99`. So, the blend length is only `2` units, instead of `198`.
+		void SetUseShortestBlendPath(bool bEnabled) { bUseShortestBlendPath = bEnabled; }
+		bool IsShortestBlendPathEnabled() const { return bUseShortestBlendPath; }
+
 		// @path. Path to an `.egasset` file
 		static Ref<AssetAnimationBlendSpace> Create(const Path& path);
 
@@ -846,6 +852,7 @@ namespace Eagle
 		std::vector<Delaunay::Triangle> m_Triangulation;
 		BlendSpaceEventsTriggerMode m_EventsTriggerMode = BlendSpaceEventsTriggerMode::HighestWeightedAnimation;
 		float m_BlendTime = 0.1f;
+		bool bUseShortestBlendPath = true;
 		bool bSync = true;
 
 		BlendSpaceAxisSettings m_Horizontal;

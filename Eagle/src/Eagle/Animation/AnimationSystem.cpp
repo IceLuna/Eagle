@@ -37,7 +37,7 @@ namespace Eagle
             
             auto it = std::lower_bound(positions.begin() + 1, positions.end(), animationTime, [](const KeyPosition& key, float animationTime)
             {
-                return key.TimeStamp <= animationTime;
+                return key.TimeStamp < animationTime;
             });
             EG_CORE_ASSERT(it != positions.end());
             return it - positions.begin() - 1;
@@ -49,7 +49,7 @@ namespace Eagle
         {
             auto it = std::lower_bound(rotations.begin() + 1, rotations.end(), animationTime, [](const KeyRotation& key, float animationTime)
             {
-                return key.TimeStamp <= animationTime;
+                return key.TimeStamp < animationTime;
             });
             EG_CORE_ASSERT(it != rotations.end());
             return it - rotations.begin() - 1;
@@ -61,7 +61,7 @@ namespace Eagle
         {
             auto it = std::lower_bound(scales.begin() + 1, scales.end(), animationTime, [](const KeyScale& key, float animationTime)
             {
-                return key.TimeStamp <= animationTime;
+                return key.TimeStamp < animationTime;
             });
             EG_CORE_ASSERT(it != scales.end());
             return it - scales.begin() - 1;
@@ -863,14 +863,8 @@ namespace Eagle
         return highestWeightedVertex;
     }
 
-    bool AnimationSystem::FindBlendSpaceSampleTriangle(const Ref<AssetAnimationBlendSpace>& blendSpace, float x, float y, Delaunay::Triangle* outTriangle, glm::dvec3* outBUV)
+    void AnimationSystem::ClampBlendSpaceInputs(const Ref<AssetAnimationBlendSpace>& blendSpace, float& x, float& y)
     {
-        const auto& triangulation = blendSpace->GetTriangulation();
-        if (triangulation.empty())
-        {
-            return false;
-        }
-
         const auto& horAxis = blendSpace->GetHorizontalAxis();
         const auto& verAxis = blendSpace->GetVerticalAxis();
 
@@ -879,6 +873,17 @@ namespace Eagle
         const double offset = 0.0001f;
         x = glm::clamp(x, float(horAxis.Min + offset), float(horAxis.Max - offset));
         y = glm::clamp(y, float(verAxis.Min + offset), float(verAxis.Max - offset));
+    }
+
+    bool AnimationSystem::FindBlendSpaceSampleTriangle(const Ref<AssetAnimationBlendSpace>& blendSpace, float x, float y, Delaunay::Triangle* outTriangle, glm::dvec3* outBUV)
+    {
+        const auto& triangulation = blendSpace->GetTriangulation();
+        if (triangulation.empty())
+        {
+            return false;
+        }
+
+        ClampBlendSpaceInputs(blendSpace, x, y);
 
         const Delaunay::Vertex sampleV{ double(x), double(y) };
         for (const auto& tr : triangulation)

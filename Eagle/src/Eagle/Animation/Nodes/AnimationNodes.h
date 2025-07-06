@@ -293,14 +293,22 @@ namespace Eagle
 		}
 
 	private:
+		void CalculateDistanceToBlend(float x, float y, float prevX, float prevY);
+
+	private:
 		Ref<AssetAnimationBlendSpace> m_BlendSpace;
 		double CurrentTime = 0.0;
 		double PrevTime = 0.0;
-		float m_PrevX = std::numeric_limits<float>::infinity();
-		float m_PrevY = std::numeric_limits<float>::infinity();
+		float m_PrevInputX = std::numeric_limits<float>::infinity();
+		float m_PrevInputY = std::numeric_limits<float>::infinity();
+		float m_PrevX = 0.f;
+		float m_PrevY = 0.f;
 		float m_XBeforeTransition = 0.f;
 		float m_YBeforeTransition = 0.f;
 		const BlendSpaceVertex* m_PrevHighestWeighted = nullptr;
+
+		float m_XDistanceToBlend = 0.f;
+		float m_YDistanceToBlend = 0.f;
 
 		float m_CurrentTransitionTime = 0.f;
 		bool bBlending = false;
