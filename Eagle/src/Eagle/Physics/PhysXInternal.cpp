@@ -33,11 +33,11 @@ namespace Eagle
 
 		PhysXDebugger::Init();
 
-		#ifdef EG_DEBUG
+#ifndef EG_RELEASE
 			bool bTrackMemoryAllocs = true;
-		#else
+#else
 			bool bTrackMemoryAllocs = false;
-		#endif
+#endif
 
 		s_PhysXData->Physics = PxCreatePhysics(PX_PHYSICS_VERSION, *s_PhysXData->Foundation, scale, bTrackMemoryAllocs, PhysXDebugger::GetDebugger());
 		EG_CORE_ASSERT(s_PhysXData->Physics, "Failed to create Physics");
@@ -45,7 +45,7 @@ namespace Eagle
 		bool bExtensionsLoaded = PxInitExtensions(*s_PhysXData->Physics, PhysXDebugger::GetDebugger());
 		EG_CORE_ASSERT(bExtensionsLoaded, "Failed to init Extensions");
 
-		s_PhysXData->CPUDispatcher = physx::PxDefaultCpuDispatcherCreate(1);
+		s_PhysXData->CPUDispatcher = physx::PxDefaultCpuDispatcherCreate(1); // TODO v0.7: Increase it and test perf
 		
 		PhysXCookingFactory::Init();
 

@@ -212,7 +212,7 @@ namespace Eagle
 			m_Timestep = currentFrameTime - m_LastFrameTime;
 			m_LastFrameTime = currentFrameTime;
 
-#ifndef EG_DIST
+#ifndef EG_RELEASE
 			//If timestep is too big that probably means that we were debugging. In that case, reset timestep to 60fps value
 			if (m_Timestep > 1.f)
 				m_Timestep = 0.016f;

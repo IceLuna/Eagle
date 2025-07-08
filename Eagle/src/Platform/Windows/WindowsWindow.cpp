@@ -31,7 +31,7 @@ namespace Eagle
 		EG_CORE_INFO("Creating window {0}", m_Props.Title);
 		m_WindowData.Props = &m_Props;
 
-#ifdef EG_DIST
+#ifdef EG_RELEASE
 		::ShowWindow(::GetConsoleWindow(), SW_HIDE);
 #else
 		::ShowWindow(::GetConsoleWindow(), SW_RESTORE);

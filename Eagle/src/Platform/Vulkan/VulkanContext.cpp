@@ -8,7 +8,7 @@
 
 namespace Eagle
 {
-#ifndef EG_DIST
+#ifndef EG_RELEASE
 	static constexpr bool s_EnableValidation = true;
 #else
 	static constexpr bool s_EnableValidation = false;

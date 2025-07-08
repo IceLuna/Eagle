@@ -6,11 +6,11 @@ namespace Eagle
 {
 	struct PhysXDebuggerData
 	{
-		physx::PxPvd* Debugger;
-		physx::PxPvdTransport* Transport;
+		physx::PxPvd* Debugger = nullptr;
+		physx::PxPvdTransport* Transport = nullptr;
 	};
 
-#ifdef EG_DEBUG
+#ifndef EG_RELEASE
 	static PhysXDebuggerData* s_DebuggerData = nullptr;
 	
 	void PhysXDebugger::Init()
@@ -49,7 +49,7 @@ namespace Eagle
 	{
 		return s_DebuggerData->Debugger->isConnected();
 	}
-	
+
 	void PhysXDebugger::StopDebugging()
 	{
 		if (!IsDebugging())

@@ -62,6 +62,9 @@ namespace Eagle
 		QueryHits CollectCollidersWithinVolume(const AABB& volume);
 		OverlapGeometryData AppendColliderGeometry(const AABB& aabb, const QueryHits& overlapHits);
 
+		void StartDebugging();
+		void StopDebugging();
+
 	private:
 		void CreateRegions();
 

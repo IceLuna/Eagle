@@ -44,11 +44,6 @@ namespace Eagle
         //m_Scene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LIMITS, 1.0f);
 
         CreateRegions();
-
-        #ifdef EG_DEBUG
-        if (settings.DebugOnPlay && !PhysXDebugger::IsDebugging())
-            PhysXDebugger::StartDebugging(Project::GetSavedPath() / "PhysXDebugInfo", settings.DebugType == DebugType::Live);
-        #endif
     }
     
     void PhysicsScene::ConstructFromScene(Scene* scene)
@@ -208,7 +203,7 @@ namespace Eagle
     {
         const PhysicsSettings& settings = m_Settings;
 
-        if (settings.BroadphaseAlgorithm == BroadphaseType::AutomaticBoxPrune)
+        if (settings.BroadphaseAlgorithm != BroadphaseType::MultiBoxPrune)
             return;
         
         std::vector<physx::PxBounds3> regionBounds((uint64_t)settings.WorldBoundsSubdivisions * settings.WorldBoundsSubdivisions);
@@ -266,10 +261,7 @@ namespace Eagle
     {
         if (m_Scene)
         {
-        #ifdef EG_DEBUG
-            if (m_Settings.DebugOnPlay && PhysXDebugger::IsDebugging())
-                PhysXDebugger::StopDebugging();
-        #endif
+            StopDebugging();
             while(m_Actors.size())
                 RemovePhysicsActor(m_Actors.begin()->second);
 
@@ -392,5 +384,21 @@ namespace Eagle
         const physx::PxQueryFilterData queryData(PhysXUtils::GetPxQueryFlags(request.Type));
 
         m_Scene->overlap(box, pose, callback, queryData, &filterCallback);
+    }
+
+    void PhysicsScene::StartDebugging()
+    {
+#ifndef EG_RELEASE
+        if (m_Settings.DebugOnPlay && !PhysXDebugger::IsDebugging())
+            PhysXDebugger::StartDebugging(Project::GetSavedPath() / "PhysXDebugInfo", m_Settings.DebugType == DebugType::Live);
+#endif
+    }
+
+    void PhysicsScene::StopDebugging()
+    {
+#ifndef EG_RELEASE
+        if (m_Settings.DebugOnPlay && PhysXDebugger::IsDebugging())
+            PhysXDebugger::StopDebugging();
+#endif
     }
 }

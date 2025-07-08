@@ -5,8 +5,8 @@ workspace "Eagle"
 	configurations
 	{
 		"Debug",
-		"Release",
-		"Dist"
+		"ReleaseWithDebug",
+		"Release"
 	}
 
 	flags
@@ -53,6 +53,7 @@ LibDir = {}
 LibDir["assimp"] = "%{wks.location}/Eagle/vendor/assimp/lib"
 LibDir["VulkanSDK"] = "%{VULKAN_SDK}/Lib"
 LibDir["PhysXDebug"] = "%{wks.location}/Eagle/vendor/PhysX/lib/Debug/"
+LibDir["PhysXReleaseWithDebug"] = "%{wks.location}/Eagle/vendor/PhysX/lib/Release_PVD/"
 LibDir["PhysXRelease"] = "%{wks.location}/Eagle/vendor/PhysX/lib/Release/"
 LibDir["fmodDebug"] = "%{wks.location}/Eagle/vendor/fmod/lib/Debug"
 LibDir["fmodRelease"] = "%{wks.location}/Eagle/vendor/fmod/lib/Release"
@@ -74,6 +75,15 @@ LibFiles["PhysXExtensionsDebug"] = "%{LibDir.PhysXDebug}/PhysXExtensions_static_
 LibFiles["PhysXFoundationDebug"] = "%{LibDir.PhysXDebug}/PhysXFoundation_static_64.lib"
 LibFiles["PhysXPvdSDKDebug"] = "%{LibDir.PhysXDebug}/PhysXPvdSDK_static_64.lib"
 LibFiles["PhysXVehicleDebug"] = "%{LibDir.PhysXDebug}/PhysXVehicle_static_64.lib"
+
+LibFiles["PhysXPhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}/PhysX_static_64.lib"
+LibFiles["PhysXCharacterKinematicPhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}PhysXCharacterKinematic_static_64.lib"
+LibFiles["PhysXCommonPhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}/PhysXCommon_static_64.lib"
+LibFiles["PhysXCookingPhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}/PhysXCooking_static_64.lib"
+LibFiles["PhysXExtensionsPhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}/PhysXExtensions_static_64.lib"
+LibFiles["PhysXFoundationPhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}/PhysXFoundation_static_64.lib"
+LibFiles["PhysXPvdSDKPhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}/PhysXPvdSDK_static_64.lib"
+LibFiles["PhysXVehiclePhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}/PhysXVehicle_static_64.lib"
 
 LibFiles["PhysXRelease"] = "%{LibDir.PhysXRelease}/PhysX_static_64.lib"
 LibFiles["PhysXCharacterKinematicRelease"] = "%{LibDir.PhysXRelease}PhysXCharacterKinematic_static_64.lib"
@@ -270,27 +280,27 @@ project "Eagle"
 			"%{LibFiles.KTXUtilsDebug}"
 		}
 
-	filter "configurations:Release"
+	filter "configurations:ReleaseWithDebug"
 		defines 
 		{
-			"EG_RELEASE",
+			"EG_RELEASE_WITH_DEBUG",
 			"NDEBUG"
 		}
 		libdirs
 		{
-			"%{LibDir.PhysXRelease}",
+			"%{LibDir.PhysXPhysXReleaseWithDebug}",
 			"%{LibDir.fmodRelease}"
 		}
 		links
 		{
-			"%{LibFiles.PhysXRelease}",
-			"%{LibFiles.PhysXCharacterKinematicRelease}",
-			"%{LibFiles.PhysXCommonRelease}",
-			"%{LibFiles.PhysXCookingRelease}", 
-			"%{LibFiles.PhysXExtensionsRelease}",
-			"%{LibFiles.PhysXFoundationRelease}",
-			"%{LibFiles.PhysXPvdSDKRelease}",
-			"%{LibFiles.PhysXVehicleRelease}",
+			"%{LibFiles.PhysXPhysXReleaseWithDebug}",
+			"%{LibFiles.PhysXCharacterKinematicPhysXReleaseWithDebug}",
+			"%{LibFiles.PhysXCommonPhysXReleaseWithDebug}",
+			"%{LibFiles.PhysXCookingPhysXReleaseWithDebug}", 
+			"%{LibFiles.PhysXExtensionsPhysXReleaseWithDebug}",
+			"%{LibFiles.PhysXFoundationPhysXReleaseWithDebug}",
+			"%{LibFiles.PhysXPvdSDKPhysXReleaseWithDebug}",
+			"%{LibFiles.PhysXVehiclePhysXReleaseWithDebug}",
 			"%{LibFiles.fmodRelease}",
 			"%{LibFiles.monoRelease}",
 			"%{LibFiles.zstdRelease}",
@@ -310,10 +320,10 @@ project "Eagle"
 		optimize "Speed"
 		symbols "on"
 
-	filter "configurations:Dist"
+	filter "configurations:Release"
 		defines 
 		{
-			"EG_DIST",
+			"EG_RELEASE",
 			"NDEBUG"
 		}
 		libdirs
@@ -433,10 +443,10 @@ project "Eagle-Editor"
 			'{COPY} "%{VULKAN_SDK}/Bin/shaderc_sharedd.dll" "."'
 		}
 
-	filter "configurations:Release"
+	filter "configurations:ReleaseWithDebug"
 		defines 
 		{
-			"EG_RELEASE",
+			"EG_RELEASE_WITH_DEBUG",
 			"NDEBUG"
 		}
 		buildoptions
@@ -453,10 +463,10 @@ project "Eagle-Editor"
 			'{COPY} "../Eagle/vendor/fmod/lib/Release/fmod.dll" "."'
 		}
 
-	filter "configurations:Dist"
+	filter "configurations:Release"
 		defines 
 		{
-			"EG_DIST",
+			"EG_RELEASE",
 			"NDEBUG"
 		}
 		buildoptions
@@ -563,10 +573,10 @@ project "Eagle-Game"
 		runtime "Debug"
 		symbols "on"
 
-	filter "configurations:Release"
+	filter "configurations:ReleaseWithDebug"
 		defines 
 		{
-			"EG_RELEASE",
+			"EG_RELEASE_WITH_DEBUG",
 			"NDEBUG"
 		}
 		buildoptions
@@ -577,10 +587,10 @@ project "Eagle-Game"
 		optimize "Speed"
 		symbols "on"
 
-	filter "configurations:Dist"
+	filter "configurations:Release"
 		defines 
 		{
-			"EG_DIST",
+			"EG_RELEASE",
 			"NDEBUG"
 		}
 		buildoptions

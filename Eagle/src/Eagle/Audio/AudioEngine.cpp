@@ -69,7 +69,8 @@ namespace Eagle
 
 	void AudioEngine::SetListenerData(const glm::vec3& position, const glm::vec3& forward, const glm::vec3& up)
 	{
-		s_CoreData.System->set3DListenerAttributes(0, (FMOD_VECTOR*)&position.x, nullptr, (FMOD_VECTOR*)&forward.x, (FMOD_VECTOR*)&up.x);
+		const glm::vec3 invForward = -forward; // Required to correctly match direction in FMOD
+		s_CoreData.System->set3DListenerAttributes(0, (FMOD_VECTOR*)&position.x, nullptr, (FMOD_VECTOR*)&invForward.x, (FMOD_VECTOR*)&up.x);
 	}
 	
 	FMOD::System* AudioEngine::GetSystem()

@@ -23,7 +23,7 @@
 #define EG_CONCAT(a, b) EG_CONCAT_INNER(a, b)
 #define EG_CONCAT_INNER(a, b) a ## b
 
-#ifndef EG_DIST
+#ifndef EG_RELEASE
 	#if defined(EG_PLATFORM_WINDOWS)
 		#define EG_DEBUGBREAK() __debugbreak()
 	#elif defined(EG_PLATFORM_LINUX)

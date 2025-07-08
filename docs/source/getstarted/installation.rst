@@ -33,10 +33,10 @@ Steps to build the engine:
 	
 	It is recommended to restart your PC after installing `Vulkan SDK`. If you didn't restart PC and face any issues, try restarting it and regenerating VS solution.
 	
-The solution has three configurations: `Debug`; `Release`; `Dist`.
+The solution has three configurations: `Debug`; `ReleaseWithDebug`; `Release`.
 In `Debug` configuration, all optimizations are disabled, and some Eagle Engine debug tools are enabled. For example, you can use `PhysX Visual Debugger <https://developer.nvidia.com/physx-visual-debugger>`_ to debug physics.
-In `Release` configuration, all optimizations are enabled, but `Vulkan` validation layers are still not disabled which will affect the performance.
-`Dist` configuration is the same as `Release`, but the default OS console will be hidden and `Vulkan` validation layers are disabled. So if you want to measure the performance, use `Dist` builds.
+`ReleaseWithDebug` configuration is the same as `Debug` but all optimizations are enabled.
+`Release` configuration disables debugging tools and enables all optimizations. Also, the default OS console will be hidden. So, if you want to measure the performance, use `Release` builds.
 
 .. note::
 	

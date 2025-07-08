@@ -47,7 +47,7 @@ namespace Eagle
 		std::vector<spdlog::sink_ptr> logSinks;
 		logSinks.emplace_back(CreateFileLogger());
 
-#ifndef EG_DIST
+#ifndef EG_RELEASE
 		logSinks.emplace_back(CreateConsoleLogger());
 #endif
 		if (!Application::Get().IsGame())

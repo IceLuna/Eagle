@@ -1126,104 +1126,114 @@ namespace Eagle
 
 	void EditorLayer::DrawSceneSettings()
 	{
+		constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+
 		auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
 		bool bChanged = false;
 
 		ImGui::PushID("SceneSettings");
 		ImGui::Begin("Scene Settings");
-		
-		UI::BeginPropertyGrid("CommonSceneSettings");
 
-		glm::vec3 gravity = m_CurrentScene->GetGravity();
-		if (UI::PropertyDrag("Gravity", gravity, 0.1f, 0, 0))
 		{
-			m_CurrentScene->SetGravity(gravity);
-			bChanged = true;
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx("Physics Settings", flags);
+			ImGui::PopStyleVar();
+			if (treeOpened)
+			{
+				UI::BeginPropertyGrid("PhysicsSceneSettings");
+
+				glm::vec3 gravity = m_CurrentScene->GetGravity();
+				if (UI::PropertyDrag("Gravity", gravity, 0.1f, 0, 0))
+				{
+					m_CurrentScene->SetGravity(gravity);
+					bChanged = true;
+				}
+
+				UI::EndPropertyGrid();
+				ImGui::TreePop();
+			}
 		}
 
-		UI::EndPropertyGrid();
-
-		constexpr uint64_t treeID1 = 95292191ull;
-
-		const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
-
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-		ImGui::Separator();
-		bool treeOpened = ImGui::TreeNodeEx((void*)treeID1, flags, "Skybox Settings");
-		ImGui::PopStyleVar();
-		if (treeOpened)
 		{
-			UI::BeginPropertyGrid("IBLSceneSettings");
-
-			auto cubemap = m_CurrentScene->GetSkybox();
-			if (EditorResources::DrawAssetSelection("IBL", cubemap))
-			{
-				m_CurrentScene->SetSkybox(cubemap);
-				bChanged = true;
-			}
-			
-			float iblIntensity = m_CurrentScene->GetSkyboxIntensity();
-			if (UI::PropertyDrag("IBL Lighting Intensity", iblIntensity, 0.1f))
-			{
-				m_CurrentScene->SetSkyboxIntensity(iblIntensity);
-				bChanged = true;
-			}
-
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-
-			auto skySettings = m_CurrentScene->GetSkySettings();
-			bool bChangedSky = false;
-			int cumulusLayers = skySettings.CumulusLayers;
-
-			bChangedSky |= UI::PropertyDrag("Sky Sun Position", skySettings.SunPos, 0.01f);
-			bChangedSky |= UI::PropertyDrag("Sky Intensity", skySettings.SkyIntensity, 0.1f);
-			bChangedSky |= UI::PropertyDrag("Sky Scattering", skySettings.Scattering, 0.01f, 0.001f, 0.999f);
-
-			bChangedSky |= UI::Property("Cirrus Clouds", skySettings.bEnableCirrusClouds);
-			bChangedSky |= UI::Property("Cumulus Clouds", skySettings.bEnableCumulusClouds);
-
-			bChangedSky |= UI::PropertyColor("Clouds Color", skySettings.CloudsColor);
-			bChangedSky |= UI::PropertyDrag("Clouds Intensity", skySettings.CloudsIntensity, 0.1f);
-
-			bChangedSky |= UI::PropertyDrag("Cirrus Clouds Amount", skySettings.Cirrus, 0.01f);
-			bChangedSky |= UI::PropertyDrag("Cumulus Clouds Amount", skySettings.Cumulus, 0.01f);
-			if (UI::PropertyDrag("Cumulus Clouds Layers", cumulusLayers, 1.f, 1, INT_MAX))
+			bool treeOpened = ImGui::TreeNodeEx("Skybox Settings", flags);
+			ImGui::PopStyleVar();
+			if (treeOpened)
 			{
-				skySettings.CumulusLayers = uint32_t(cumulusLayers);
-				bChangedSky = true;
-			}
+				UI::BeginPropertyGrid("IBLSceneSettings");
 
-			if (bChangedSky)
-			{
-				m_CurrentScene->SetSkybox(skySettings);
-				bChanged = true;
-			}
+				auto cubemap = m_CurrentScene->GetSkybox();
+				if (EditorResources::DrawAssetSelection("IBL", cubemap))
+				{
+					m_CurrentScene->SetSkybox(cubemap);
+					bChanged = true;
+				}
 
-			ImGui::Separator();
-			bool bUseSkyAsBackground = m_CurrentScene->GetUseSkyAsBackground();
-			if (UI::Property("Sky as background", bUseSkyAsBackground, s_SkyHelpMsg))
-			{
-				m_CurrentScene->SetUseSkyAsBackground(bUseSkyAsBackground);
-				bChanged = true;
-			}
+				float iblIntensity = m_CurrentScene->GetSkyboxIntensity();
+				if (UI::PropertyDrag("IBL Lighting Intensity", iblIntensity, 0.1f))
+				{
+					m_CurrentScene->SetSkyboxIntensity(iblIntensity);
+					bChanged = true;
+				}
 
-			bool bRenderSkybox = m_CurrentScene->IsRenderSkyboxEnabled();
-			if (UI::Property("Render Skybox", bRenderSkybox, "If disabled, IBL will still light the scene"))
-			{
-				m_CurrentScene->SetRenderSkybox(bRenderSkybox);
-				bChanged = true;
-			}
+				ImGui::Separator();
 
-			bool bEnableSkybox = m_CurrentScene->IsSkyboxEnabled();
-			if (UI::Property("Enable Skybox", bEnableSkybox, s_SkyboxEnableHelpMsg))
-			{
-				m_CurrentScene->SetSkyboxEnabled(bEnableSkybox);
-				bChanged = true;
-			}
+				auto skySettings = m_CurrentScene->GetSkySettings();
+				bool bChangedSky = false;
+				int cumulusLayers = skySettings.CumulusLayers;
 
-			UI::EndPropertyGrid();
-			ImGui::TreePop();
+				bChangedSky |= UI::PropertyDrag("Sky Sun Position", skySettings.SunPos, 0.01f);
+				bChangedSky |= UI::PropertyDrag("Sky Intensity", skySettings.SkyIntensity, 0.1f);
+				bChangedSky |= UI::PropertyDrag("Sky Scattering", skySettings.Scattering, 0.01f, 0.001f, 0.999f);
+
+				bChangedSky |= UI::Property("Cirrus Clouds", skySettings.bEnableCirrusClouds);
+				bChangedSky |= UI::Property("Cumulus Clouds", skySettings.bEnableCumulusClouds);
+
+				bChangedSky |= UI::PropertyColor("Clouds Color", skySettings.CloudsColor);
+				bChangedSky |= UI::PropertyDrag("Clouds Intensity", skySettings.CloudsIntensity, 0.1f);
+
+				bChangedSky |= UI::PropertyDrag("Cirrus Clouds Amount", skySettings.Cirrus, 0.01f);
+				bChangedSky |= UI::PropertyDrag("Cumulus Clouds Amount", skySettings.Cumulus, 0.01f);
+				if (UI::PropertyDrag("Cumulus Clouds Layers", cumulusLayers, 1.f, 1, INT_MAX))
+				{
+					skySettings.CumulusLayers = uint32_t(cumulusLayers);
+					bChangedSky = true;
+				}
+
+				if (bChangedSky)
+				{
+					m_CurrentScene->SetSkybox(skySettings);
+					bChanged = true;
+				}
+
+				ImGui::Separator();
+				bool bUseSkyAsBackground = m_CurrentScene->GetUseSkyAsBackground();
+				if (UI::Property("Sky as background", bUseSkyAsBackground, s_SkyHelpMsg))
+				{
+					m_CurrentScene->SetUseSkyAsBackground(bUseSkyAsBackground);
+					bChanged = true;
+				}
+
+				bool bRenderSkybox = m_CurrentScene->IsRenderSkyboxEnabled();
+				if (UI::Property("Render Skybox", bRenderSkybox, "If disabled, IBL will still light the scene"))
+				{
+					m_CurrentScene->SetRenderSkybox(bRenderSkybox);
+					bChanged = true;
+				}
+
+				bool bEnableSkybox = m_CurrentScene->IsSkyboxEnabled();
+				if (UI::Property("Enable Skybox", bEnableSkybox, s_SkyboxEnableHelpMsg))
+				{
+					m_CurrentScene->SetSkyboxEnabled(bEnableSkybox);
+					bChanged = true;
+				}
+
+				UI::EndPropertyGrid();
+				ImGui::TreePop();
+			}
 		}
 
 		ImGui::End();

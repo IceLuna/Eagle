@@ -26,8 +26,7 @@ workspace "%{ProjectName}"
 	configurations 
 	{ 
 		"Debug", 
-		"Release",
-		"Dist"
+		"Release"
 	}
 
 	outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
@@ -68,10 +67,6 @@ project "%{ProjectName}"
         optimize "Speed"
 
     filter { "system:windows", "configurations:Release" }
-        runtime "Release"
-        optimize "Speed"
-
-    filter { "system:windows", "configurations:Dist" }
         runtime "Release"
         optimize "Speed"
 

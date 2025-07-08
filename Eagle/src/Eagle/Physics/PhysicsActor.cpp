@@ -570,8 +570,8 @@ namespace Eagle
 		}
 
 		m_RigidActor->userData = &m_Payload;
-#ifdef EG_DEBUG
-		const auto& name = m_Entity.GetComponent<EntitySceneNameComponent>().Name;
+#ifndef EG_RELEASE
+		const auto& name = m_Entity.GetName();
 		m_RigidActor->setName(name.c_str());
 #endif
 	}

@@ -294,7 +294,11 @@ namespace Eagle
 		SetSkybox(m_Sky);
 		ConnectSignals();
 
-		m_RuntimePhysicsScene = MakeRef<PhysicsScene>(PhysicsSettings());
+		{
+			PhysicsSettings physicsSettings{};
+			physicsSettings.DebugOnPlay = true;
+			m_RuntimePhysicsScene = MakeRef<PhysicsScene>(physicsSettings);
+		}
 		if (bRuntime)
 		{
 			m_PhysicsScene = m_RuntimePhysicsScene;
@@ -716,8 +720,7 @@ namespace Eagle
 		SyncCrowdAgents();
 		m_PhysicsScene->Simulate(ts, true);
 		UpdateScripts(ts);
-		// TODO v0.7: Why negative forward?
-		AudioEngine::SetListenerData(m_RuntimeCamera->GetWorldTransform().Location, -m_RuntimeCamera->GetForwardVector(), m_RuntimeCamera->GetUpVector());
+		AudioEngine::SetListenerData(m_RuntimeCamera->GetWorldTransform().Location, m_RuntimeCamera->GetForwardVector(), m_RuntimeCamera->GetUpVector());
 		if (bRender)
 			RenderScene(ts, true);
 	}
@@ -1449,6 +1452,7 @@ namespace Eagle
 		EG_CORE_TRACE("Runtime started");
 
 		bIsPlaying = true;
+		m_PhysicsScene->StartDebugging();
 
 		// Update Audio
 		{
@@ -1518,6 +1522,7 @@ namespace Eagle
 		}
 
 		bIsPlaying = false;
+		m_PhysicsScene->StopDebugging();
 		m_PhysicsScene->Reset();
 	}
 
