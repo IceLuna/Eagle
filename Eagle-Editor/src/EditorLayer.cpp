@@ -33,6 +33,8 @@ namespace Eagle
 	static const char* s_SkyboxEnableHelpMsg = "Affects Sky and IBL";
 	static const char* s_TransparencyLayersHelpMsg = "More layers - better quality. But be careful when increasing this value since it requires a lot of memory. "
 		"Memory consumption: `width * height * layers * 12` bytes";
+	static const char* s_PhysicsDebugTypeHelpMsg = "When `Live` is selected, the data will be sent directly to PhysX Visual Debugger at runtime. Otherwise, it'll be saved to a file which can be opened later. "
+		"The file is saved into `Saved` folder inside your project";
 
 	static std::mutex s_DeferredCallsMutex;
 	
@@ -1144,12 +1146,39 @@ namespace Eagle
 			{
 				UI::BeginPropertyGrid("PhysicsSceneSettings");
 
+				const bool bSimulating = m_EditorState != EditorState::Edit;
 				glm::vec3 gravity = m_CurrentScene->GetGravity();
-				if (UI::PropertyDrag("Gravity", gravity, 0.1f, 0, 0))
+				uint32_t updateRate = m_CurrentScene->GetPhysicsUpdateRate();
+				bool bDebugOnPlay = m_CurrentScene->IsPhysicsDebugOnPlayEnabled();
+				DebugType debugType = m_CurrentScene->GetPhysicsDebugType();
+
+				if (UI::PropertyDrag("Gravity", gravity, 0.1f))
 				{
 					m_CurrentScene->SetGravity(gravity);
 					bChanged = true;
 				}
+				if (UI::PropertyDrag("Update Rate", updateRate, 15, 30, 360, "Defines physics update rate (fps)"))
+				{
+					m_CurrentScene->SetPhysicsUpdateRate(updateRate);
+					bChanged = true;
+				}
+
+				if (bSimulating)
+					UI::PushItemDisabled();
+
+				if (UI::Property("Debug on Play", bDebugOnPlay, "If enabled, debugging session will start when game simulation starts. You need to use PhysX Visual Debugger"))
+				{
+					m_CurrentScene->SetPhysicsDebugOnPlay(bDebugOnPlay);
+					bChanged = true;
+				}
+				if (UI::ComboEnum("Debug Type", debugType, s_PhysicsDebugTypeHelpMsg))
+				{
+					m_CurrentScene->SetPhysicsDebugType(debugType);
+					bChanged = true;
+				}
+
+				if (bSimulating)
+					UI::PopItemDisabled();
 
 				UI::EndPropertyGrid();
 				ImGui::TreePop();

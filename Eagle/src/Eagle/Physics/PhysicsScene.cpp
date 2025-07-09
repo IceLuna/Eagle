@@ -19,7 +19,6 @@ namespace Eagle
 
     PhysicsScene::PhysicsScene(const PhysicsSettings& settings)
     : m_Settings(settings)
-    , m_SubstepSize(settings.FixedTimeStep)
     {
         physx::PxSceneDesc sceneDesc(PhysXInternal::GetPhysics().getTolerancesScale());
         sceneDesc.dynamicTreeRebuildRateHint *= 10;
@@ -30,7 +29,7 @@ namespace Eagle
         sceneDesc.gravity = PhysXUtils::ToPhysXVector(settings.Gravity);
         sceneDesc.broadPhaseType = PhysXUtils::ToPhysXBroadphaseType(settings.BroadphaseAlgorithm);
         sceneDesc.cpuDispatcher = PhysXInternal::GetCPUDispatcher();
-        sceneDesc.filterShader = m_Settings.EditorScene ? (physx::PxSimulationFilterShader)PhysXInternal::EditorFilterShader :(physx::PxSimulationFilterShader)PhysXInternal::FilterShader;
+        sceneDesc.filterShader = m_Settings.bEditorScene ? (physx::PxSimulationFilterShader)PhysXInternal::EditorFilterShader :(physx::PxSimulationFilterShader)PhysXInternal::FilterShader;
         sceneDesc.simulationEventCallback = &s_ContactListener;
         sceneDesc.frictionType = PhysXUtils::ToPhysXFrictionType(settings.FrictionModel);
 
@@ -40,10 +39,12 @@ namespace Eagle
         EG_CORE_ASSERT(m_Scene, "Invalid scene");
         m_Scene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE, 1.f);
         m_Scene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES, 1.f);
+        m_Scene->userData = this;
         //m_Scene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LOCAL_FRAMES, 0.01f);
         //m_Scene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LIMITS, 1.0f);
 
         CreateRegions();
+        SetUpdateRate(m_Settings.UpdateRate);
     }
     
     void PhysicsScene::ConstructFromScene(Scene* scene)
@@ -152,6 +153,12 @@ namespace Eagle
         m_Actors.erase(physicsActor->GetEntity().GetGUID());
     }
     
+    void PhysicsScene::SetUpdateRate(uint32_t updateRate)
+    {
+        m_Settings.UpdateRate = glm::clamp(updateRate, PhysicsSettings::s_MinUpdateRate, PhysicsSettings::s_MaxUpdateRate);
+        m_SubstepSize = 1.f / m_Settings.UpdateRate;
+    }
+
     bool PhysicsScene::Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, RaycastHit* outHit) const
     {
         physx::PxRaycastBuffer hitInfo;
@@ -192,7 +199,7 @@ namespace Eagle
     {
         return OverlapGeometry(origin, physx::PxSphereGeometry(radius), buffer, count);
     }
-    
+
     OverlapGeometryData PhysicsScene::CollectGeometry(const AABB& aabb)
     {
         QueryHits results = CollectCollidersWithinVolume(aabb);
@@ -203,6 +210,12 @@ namespace Eagle
     {
         const PhysicsSettings& settings = m_Settings;
 
+        for (uint32_t handle : m_BroadPhaseRegionHandles)
+        {
+            m_Scene->removeBroadPhaseRegion(handle);
+        }
+        m_BroadPhaseRegionHandles.clear();
+
         if (settings.BroadphaseAlgorithm != BroadphaseType::MultiBoxPrune)
             return;
         
@@ -210,12 +223,13 @@ namespace Eagle
         physx::PxBounds3 globalBounds(PhysXUtils::ToPhysXVector(settings.WorldAABB.Min), PhysXUtils::ToPhysXVector(settings.WorldAABB.Max));
         uint32_t regionCount = physx::PxBroadPhaseExt::createRegionsFromWorldBounds(regionBounds.data(), globalBounds, settings.WorldBoundsSubdivisions);
         regionCount = glm::min(uint32_t(regionBounds.size()), regionCount);
+        m_BroadPhaseRegionHandles.resize(regionCount);
 
         for (uint32_t i = 0; i < regionCount; ++i)
         {
             physx::PxBroadPhaseRegion region;
             region.bounds = regionBounds[i];
-            m_Scene->addBroadPhaseRegion(region);
+            m_BroadPhaseRegionHandles[i] = m_Scene->addBroadPhaseRegion(region, true);
         }
     }
     
@@ -262,6 +276,13 @@ namespace Eagle
         if (m_Scene)
         {
             StopDebugging();
+            
+            for (uint32_t handle : m_BroadPhaseRegionHandles)
+            {
+                m_Scene->removeBroadPhaseRegion(handle);
+            }
+            m_BroadPhaseRegionHandles.clear();
+
             while(m_Actors.size())
                 RemovePhysicsActor(m_Actors.begin()->second);
 
@@ -389,16 +410,22 @@ namespace Eagle
     void PhysicsScene::StartDebugging()
     {
 #ifndef EG_RELEASE
-        if (m_Settings.DebugOnPlay && !PhysXDebugger::IsDebugging())
-            PhysXDebugger::StartDebugging(Project::GetSavedPath() / "PhysXDebugInfo", m_Settings.DebugType == DebugType::Live);
+        if (m_Settings.bDebugOnPlay && !PhysXDebugger::IsDebugging())
+        {
+            bStartedDebugSession = true;
+            PhysXDebugger::StartDebugging(Project::GetPhysicsDebugInfoPath(), m_Settings.DebugType == DebugType::Live);
+        }
 #endif
     }
 
     void PhysicsScene::StopDebugging()
     {
 #ifndef EG_RELEASE
-        if (m_Settings.DebugOnPlay && PhysXDebugger::IsDebugging())
+        if (bStartedDebugSession && PhysXDebugger::IsDebugging())
+        {
             PhysXDebugger::StopDebugging();
+            bStartedDebugSession = false;
+        }
 #endif
     }
 }

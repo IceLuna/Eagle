@@ -85,8 +85,6 @@ namespace Eagle
 		void RemoveAllColliders();
 		void Release();
 
-		float GetSimulationTimeStep() const { return m_Settings.FixedTimeStep; }
-
 		void SynchronizeTransform();
 		void SetSimulationData();
 

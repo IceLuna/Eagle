@@ -41,6 +41,11 @@ namespace Eagle
 
 		glm::vec3 GetGravity() const { return PhysXUtils::FromPhysXVector(m_Scene->getGravity()); }
 		void SetGravity(const glm::vec3& gravity) { m_Scene->setGravity(PhysXUtils::ToPhysXVector(gravity)); }
+		void SetUpdateRate(uint32_t updateRate);
+		void SetDebugOnPlay(bool bEnable) { m_Settings.bDebugOnPlay = bEnable; }
+		void SetDebugType(DebugType type) { m_Settings.DebugType = type; }
+
+		float GetSimulationTimeStep() const { return m_SubstepSize; }
 
 		bool Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, RaycastHit* outHit) const;
 		bool OverlapBox(const glm::vec3& origin, const glm::vec3& halfSize, std::array<physx::PxOverlapHit, EG_OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const;
@@ -83,10 +88,13 @@ namespace Eagle
 		std::unordered_map<GUID, Ref<PhysicsActor>> m_Actors;
 		std::unordered_map<GUID, Ref<PhysicsRagdollActor>> m_RagdollActors;
 		std::vector<physx::PxOverlapHit> m_OverlapBuffer;
+		std::vector<uint32_t> m_BroadPhaseRegionHandles;
 
-		float m_SubstepSize;
+		float m_SubstepSize = 1.f;
 		float m_Accumulator = 0.f;
 		uint32_t m_NumSubsteps = 0;
 		const uint32_t s_MaxSubsteps = 16;
+
+		bool bStartedDebugSession = false;
 	};
 }

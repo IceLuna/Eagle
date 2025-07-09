@@ -73,6 +73,9 @@ namespace Eagle
 		out << YAML::Key << "Rotation" << YAML::Value << transform.Rotation;
 		out << YAML::EndMap; //Editor Camera
 		out << YAML::Key << "Gravity" << YAML::Value << m_Scene->GetGravity();
+		out << YAML::Key << "PhysicsUpdateRate" << YAML::Value << m_Scene->GetPhysicsUpdateRate();
+		out << YAML::Key << "PhysicsDebugOnPlay" << YAML::Value << m_Scene->IsPhysicsDebugOnPlayEnabled();
+		out << YAML::Key << "PhysicsDebugType" << YAML::Value << Utils::GetEnumName(m_Scene->GetPhysicsDebugType());
 
 		// Save EntityID that has a valid nav mesh. It'll be used during deserialization to build the nav mesh after a scene has been loaded
 		{
@@ -187,6 +190,18 @@ namespace Eagle
 		if (auto node = data["Gravity"])
 		{
 			m_Scene->SetGravity(node.as<glm::vec3>());
+		}
+		if (auto node = data["PhysicsUpdateRate"])
+		{
+			m_Scene->SetPhysicsUpdateRate(node.as<uint32_t>());
+		}
+		if (auto node = data["PhysicsDebugOnPlay"])
+		{
+			m_Scene->SetPhysicsDebugOnPlay(node.as<bool>());
+		}
+		if (auto node = data["PhysicsDebugType"])
+		{
+			m_Scene->SetPhysicsDebugType(Utils::GetEnumFromName<DebugType>(node.as<std::string>()));
 		}
 
 		if (auto node = data["NavMesh"])

@@ -27,16 +27,19 @@ namespace Eagle
 
 	struct PhysicsSettings
 	{
-		float FixedTimeStep = 1.f / 120.f; // 120 fps
+		constexpr static uint32_t s_MinUpdateRate = 30u;
+		constexpr static uint32_t s_MaxUpdateRate = 360u;
+		
+		uint32_t UpdateRate = 120u; // 120 fps
 		glm::vec3 Gravity = { 0.f, -9.81f, 0.f };
 		BroadphaseType BroadphaseAlgorithm = BroadphaseType::AutomaticBoxPrune;
-		AABB WorldAABB = AABB(glm::vec3(-1000.f), glm::vec3(1000.f)); // TODO v0.7: Expose
+		AABB WorldAABB = AABB(glm::vec3(-1000.f), glm::vec3(1000.f));
 		uint32_t WorldBoundsSubdivisions = 2;
 		FrictionType FrictionModel = FrictionType::Patch;
 		uint32_t SolverIterations = 8;
 		uint32_t SolverVelocityIterations = 2;
-		bool DebugOnPlay = false;
-		bool EditorScene = false;
+		bool bDebugOnPlay = false;
+		bool bEditorScene = false;
 		DebugType DebugType = DebugType::Live;
 	};
 }

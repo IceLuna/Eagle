@@ -4,6 +4,7 @@
 #include "Eagle/Core/Timestep.h"
 #include "Eagle/Camera/EditorCamera.h"
 #include "Eagle/Audio/Sound3D.h"
+#include "Eagle/Physics/PhysicsSettings.h"
 #include "GUID.h"
 #include "Notifications.h"
 
@@ -160,7 +161,16 @@ namespace Eagle
 		void SetGUID(GUID guid) { m_GUID = guid; }
 
 		void SetGravity(const glm::vec3& gravity);
-		const glm::vec3& GetGravity() const { return m_Gravity; }
+		const glm::vec3& GetGravity() const { return m_RuntimePhysicsSettings.Gravity; }
+
+		void SetPhysicsUpdateRate(uint32_t updateRate);
+		uint32_t GetPhysicsUpdateRate() const { return m_RuntimePhysicsSettings.UpdateRate; }
+
+		void SetPhysicsDebugOnPlay(bool bEnable);
+		bool IsPhysicsDebugOnPlayEnabled() const { return m_RuntimePhysicsSettings.bDebugOnPlay; }
+
+		void SetPhysicsDebugType(DebugType type);
+		DebugType GetPhysicsDebugType() const { return m_RuntimePhysicsSettings.DebugType; }
 
 		template <typename... T>
 		auto GetAllEntitiesWith()
@@ -517,6 +527,7 @@ namespace Eagle
 		static Ref<Scene> s_CurrentScene;
 		Ref<PhysicsScene> m_PhysicsScene;
 		Ref<PhysicsScene> m_RuntimePhysicsScene;
+		PhysicsSettings m_RuntimePhysicsSettings{};
 		EditorCamera m_EditorCamera;
 		uint32_t m_ViewportWidth = 1;
 		uint32_t m_ViewportHeight = 1;
@@ -604,7 +615,6 @@ namespace Eagle
 		bool m_ReverbDebugBoxesDirty = true;
 
 		GUID m_GUID;
-		glm::vec3 m_Gravity = glm::vec3(0, -9.81f, 0.f);
 
 		Ref<AINavigation::Mesh> m_CurrentNavMesh;
 

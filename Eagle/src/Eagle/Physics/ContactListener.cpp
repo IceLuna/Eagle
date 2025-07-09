@@ -2,6 +2,7 @@
 #include "ContactListener.h"
 #include "PhysicsActor.h"
 #include "PhysicsRagdollActor.h"
+#include "PhysicsScene.h"
 #include "Eagle/Script/ScriptEngine.h"
 
 namespace Eagle
@@ -71,7 +72,6 @@ namespace Eagle
 
 		Entity entityA;
 		Entity entityB;
-		float simulationTimeStepA;
 
 		// Actor A
 		{
@@ -80,13 +80,11 @@ namespace Eagle
 			{
 				const PhysicsRagdollActor* actor = (PhysicsRagdollActor*)payload->Ptr;
 				entityA = actor->GetEntity();
-				simulationTimeStepA = actor->GetSimulationTimeStep();
 			}
 			else
 			{
 				const PhysicsActor* actor = (PhysicsActor*)payload->Ptr;
 				entityA = actor->GetEntity();
-				simulationTimeStepA = actor->GetSimulationTimeStep();
 			}
 		}
 		
@@ -117,9 +115,11 @@ namespace Eagle
 			PxU32 nbContacts = pairs[0].extractContacts(&contact, 1);
 			if (nbContacts > 0)
 			{
+				const float simulationTimeStep = ((PhysicsScene*)(pairHeader.actors[0]->getScene()->userData))->GetSimulationTimeStep();
+
 				collisionInfo.Position = PhysXUtils::FromPhysXVector(contact.position);
 				collisionInfo.Impulse = PhysXUtils::FromPhysXVector(contact.impulse);
-				collisionInfo.Force = collisionInfo.Impulse * simulationTimeStepA;
+				collisionInfo.Force = collisionInfo.Impulse * simulationTimeStep;
 				collisionInfo.Normal = PhysXUtils::FromPhysXVector(contact.normal);
 			}
 		}

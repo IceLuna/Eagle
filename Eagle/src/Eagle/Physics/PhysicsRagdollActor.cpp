@@ -86,7 +86,6 @@ namespace Eagle
                 physicsBoneData.OriginalBodyTrInv = glm::inverse(Math::ToTransformMatrix(PhysXUtils::FromPhysXTransform(parentBody->getGlobalPose())));
                 physicsBoneData.bValidBone = bValidBone;
                 parentBody->userData = &payload;
-                parentBody->setSolverIterationCounts(settings.SolverIterations, settings.SolverVelocityIterations);
             }
 
             // Setup collider

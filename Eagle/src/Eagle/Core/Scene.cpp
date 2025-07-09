@@ -294,11 +294,7 @@ namespace Eagle
 		SetSkybox(m_Sky);
 		ConnectSignals();
 
-		{
-			PhysicsSettings physicsSettings{};
-			physicsSettings.DebugOnPlay = true;
-			m_RuntimePhysicsScene = MakeRef<PhysicsScene>(physicsSettings);
-		}
+		m_RuntimePhysicsScene = MakeRef<PhysicsScene>(m_RuntimePhysicsSettings);
 		if (bRuntime)
 		{
 			m_PhysicsScene = m_RuntimePhysicsScene;
@@ -306,12 +302,12 @@ namespace Eagle
 		else
 		{
 			PhysicsSettings editorSettings;
-			editorSettings.FixedTimeStep = 1 / 30.f;
+			editorSettings.UpdateRate = 30u;
 			editorSettings.SolverIterations = 1;
 			editorSettings.SolverVelocityIterations = 1;
 			editorSettings.Gravity = glm::vec3{ 0.f };
-			editorSettings.DebugOnPlay = false;
-			editorSettings.EditorScene = true;
+			editorSettings.bDebugOnPlay = false;
+			editorSettings.bEditorScene = true;
 			m_PhysicsScene = MakeRef<PhysicsScene>(editorSettings);
 		}
 	}
@@ -325,7 +321,7 @@ namespace Eagle
 	, m_ViewportWidth(other->m_ViewportWidth)
 	, m_ViewportHeight(other->m_ViewportHeight)
 	, m_DebugName(debugName)
-	, m_Gravity(other->m_Gravity)
+	, m_RuntimePhysicsSettings(other->m_RuntimePhysicsSettings)
 	, bDrawMiscellaneous(other->bDrawMiscellaneous)
 	, bDrawNavMesh(other->bDrawNavMesh)
 	, bDrawBones(other->bDrawBones)
@@ -1401,7 +1397,7 @@ namespace Eagle
 		m_SceneRenderer->SetImages2D(m_Images2D, m_DirtyFlags.bImage2DDirty);
 		m_SceneRenderer->SetIsRuntime(bIsPlaying);
 		m_SceneRenderer->SetMeshesAnimationTransforms(std::move(m_AnimationTransforms));
-		m_SceneRenderer->SetGravity(m_Gravity);
+		m_SceneRenderer->SetGravity(m_RuntimePhysicsSettings.Gravity);
 		m_SceneRenderer->SetDecals(m_Decals, m_DirtyFlags.bDecalsDirty);
 
 		const bool bDrawEditorHelpers = !bIsPlaying && bDrawMiscellaneous;
@@ -1452,7 +1448,6 @@ namespace Eagle
 		EG_CORE_TRACE("Runtime started");
 
 		bIsPlaying = true;
-		m_PhysicsScene->StartDebugging();
 
 		// Update Audio
 		{
@@ -1488,7 +1483,11 @@ namespace Eagle
 			}
 		}
 
-		m_PhysicsScene->SetGravity(m_Gravity);
+		m_PhysicsScene->SetGravity(m_RuntimePhysicsSettings.Gravity);
+		m_PhysicsScene->SetUpdateRate(m_RuntimePhysicsSettings.UpdateRate);
+		m_PhysicsScene->SetDebugOnPlay(m_RuntimePhysicsSettings.bDebugOnPlay);
+		m_PhysicsScene->SetDebugType(m_RuntimePhysicsSettings.DebugType);
+		m_PhysicsScene->StartDebugging();
 	}
 
 	void Scene::OnRuntimeStop()
@@ -1711,9 +1710,30 @@ namespace Eagle
 
 	void Scene::SetGravity(const glm::vec3& gravity)
 	{
-		m_Gravity = gravity;
+		m_RuntimePhysicsSettings.Gravity = gravity;
 		if (m_PhysicsScene && m_PhysicsScene == m_RuntimePhysicsScene)
-			m_PhysicsScene->SetGravity(m_Gravity);
+			m_PhysicsScene->SetGravity(m_RuntimePhysicsSettings.Gravity);
+	}
+
+	void Scene::SetPhysicsUpdateRate(uint32_t updateRate)
+	{
+		m_RuntimePhysicsSettings.UpdateRate = glm::clamp(updateRate, PhysicsSettings::s_MinUpdateRate, PhysicsSettings::s_MaxUpdateRate);
+		if (m_PhysicsScene && m_PhysicsScene == m_RuntimePhysicsScene)
+			m_PhysicsScene->SetUpdateRate(m_RuntimePhysicsSettings.UpdateRate);
+	}
+
+	void Scene::SetPhysicsDebugOnPlay(bool bEnable)
+	{
+		m_RuntimePhysicsSettings.bDebugOnPlay = bEnable;
+		if (m_PhysicsScene && m_PhysicsScene == m_RuntimePhysicsScene)
+			m_PhysicsScene->SetDebugOnPlay(bEnable);
+	}
+
+	void Scene::SetPhysicsDebugType(DebugType type)
+	{
+		m_RuntimePhysicsSettings.DebugType = type;
+		if (m_PhysicsScene && m_PhysicsScene == m_RuntimePhysicsScene)
+			m_PhysicsScene->SetDebugType(type);
 	}
 
 	CameraComponent* Scene::GetRuntimeCamera()

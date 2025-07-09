@@ -16,7 +16,6 @@ namespace Eagle
 		PhysicsRagdollActor(Entity entity, physx::PxScene* scene, const PhysicsSettings& settings);
 		~PhysicsRagdollActor();
 
-		float GetSimulationTimeStep() const { return m_Settings.FixedTimeStep; }
 		const Entity& GetEntity() const { return m_Entity; }
 
 		void SynchronizeTransform();

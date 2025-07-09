@@ -44,6 +44,7 @@ namespace Eagle
 		static Path GetCachePath() { return GetProjectPath() / "Cache"; }
 		static Path GetRendererCachePath() { return GetCachePath() / "Renderer"; }
 		static Path GetSavedPath() { return GetProjectPath() / "Saved"; }
+		static Path GetPhysicsDebugInfoPath() { return Project::GetSavedPath() / "PhysXDebugInfo"; }
 
 		static const char* GetExtension() { return ".egproj"; }
 
