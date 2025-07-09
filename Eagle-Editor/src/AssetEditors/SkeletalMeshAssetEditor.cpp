@@ -7,6 +7,13 @@
 
 namespace Eagle
 {
+	static const char* s_PositionSolverIterationsHelpMsg = "The solver iteration count determines how accurately joints and contacts are resolved. "
+		"If you are having trouble with jointed bodies oscillating and behaving erratically, then "
+		"setting a higher position iteration count may improve their stability.";
+	static const char* s_VelocitySolverIterationsHelpMsg = "If intersecting bodies are being depenetrated too violently, increase the number of velocity "
+		"iterations.More velocity iterations will drive the relative exit velocity of the intersecting "
+		"objects closer to the correct value given the restitution.";
+
 	static bool HasBoneWithName(const BoneNode& node, const std::string& name)
 	{
 		if (node.Name == name)
@@ -649,6 +656,16 @@ namespace Eagle
 					bool bRagdollChanged = false;
 					UI::BeginPropertyGrid("Details");
 					UI::Text("Name", m_SelectedRagdollBoneName);
+					if (UI::PropertyDrag("Position Solver Iterations", m_SelectedRagdollBone->Settings.PositionSolverIterations, 1, PhysicsSettings::MinPositionSolverIterations, PhysicsSettings::MaxPositionSolverIterations, s_PositionSolverIterationsHelpMsg))
+					{
+						m_SelectedRagdollBone->Settings.PositionSolverIterations = glm::clamp(m_SelectedRagdollBone->Settings.PositionSolverIterations, PhysicsSettings::MinPositionSolverIterations, PhysicsSettings::MaxPositionSolverIterations);
+						bRagdollChanged = true;
+					}
+					if (UI::PropertyDrag("Velocity Solver Iterations", m_SelectedRagdollBone->Settings.VelocitySolverIterations, 1, PhysicsSettings::MinVelocitySolverIterations, PhysicsSettings::MaxVelocitySolverIterations, s_VelocitySolverIterationsHelpMsg))
+					{
+						m_SelectedRagdollBone->Settings.VelocitySolverIterations = glm::clamp(m_SelectedRagdollBone->Settings.VelocitySolverIterations, PhysicsSettings::MinVelocitySolverIterations, PhysicsSettings::MaxVelocitySolverIterations);
+						bRagdollChanged = true;
+					}
 					if (UI::PropertyDrag("Mass", m_SelectedRagdollBone->Settings.Mass, 0.5f))
 					{
 						m_SelectedRagdollBone->Settings.Mass = glm::max(0.f, m_SelectedRagdollBone->Settings.Mass);

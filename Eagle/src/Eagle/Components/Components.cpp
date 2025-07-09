@@ -58,6 +58,20 @@ namespace Eagle
 		}
 	}
 
+	void RigidBodyComponent::SetPositionSolverIterations(uint32_t iterations)
+	{
+		PositionSolverIterations = std::clamp(iterations, PhysicsSettings::MinPositionSolverIterations, PhysicsSettings::MaxPositionSolverIterations);
+		if (const auto& actor = Parent.GetPhysicsActor())
+			actor->SetPositionSolverIterations(PositionSolverIterations);
+	}
+
+	void RigidBodyComponent::SetVelocitySolverIterations(uint32_t iterations)
+	{
+		VelocitySolverIterations = std::clamp(iterations, PhysicsSettings::MinVelocitySolverIterations, PhysicsSettings::MaxVelocitySolverIterations);
+		if (const auto& actor = Parent.GetPhysicsActor())
+			actor->SetVelocitySolverIterations(VelocitySolverIterations);
+	}
+
 	void RigidBodyComponent::SetMass(float mass)
 	{
 		Mass = std::max(0.f, mass);

@@ -303,6 +303,8 @@ namespace Eagle
 		out << YAML::BeginMap;
 		out << YAML::Key << "Name" << YAML::Value << node.Name;
 		out << YAML::Key << "Offset" << YAML::Value << Math::ToTransformMatrix(node.Settings.UserOffset);
+		out << YAML::Key << "PositionSolverIterations" << YAML::Value << node.Settings.PositionSolverIterations;
+		out << YAML::Key << "VelocitySolverIterations" << YAML::Value << node.Settings.VelocitySolverIterations;
 		out << YAML::Key << "LinearDamping" << YAML::Value << node.Settings.LinearDamping;
 		out << YAML::Key << "AngularDamping" << YAML::Value << node.Settings.AngularDamping;
 		out << YAML::Key << "bEnableSimulation" << YAML::Value << node.Settings.bEnableSimulation;
@@ -1298,6 +1300,8 @@ namespace Eagle
 
 			out << YAML::Key << "BodyType" << YAML::Value << Utils::GetEnumName(rigidBodyComponent.BodyType);
 			out << YAML::Key << "CollisionDetectionType" << YAML::Value << Utils::GetEnumName(rigidBodyComponent.CollisionDetection);
+			out << YAML::Key << "PositionSolverIterations" << YAML::Value << rigidBodyComponent.GetPositionSolverIterations();
+			out << YAML::Key << "VelocitySolverIterations" << YAML::Value << rigidBodyComponent.GetVelocitySolverIterations();
 			out << YAML::Key << "Mass" << YAML::Value << rigidBodyComponent.GetMass();
 			out << YAML::Key << "LinearDamping" << YAML::Value << rigidBodyComponent.GetLinearDamping();
 			out << YAML::Key << "AngularDamping" << YAML::Value << rigidBodyComponent.GetAngularDamping();
@@ -1907,6 +1911,10 @@ namespace Eagle
 
 			rigidBodyComponent.BodyType = Utils::GetEnumFromName<PhysicsBodyType>(rigidBodyComponentNode["BodyType"].as<std::string>());
 			rigidBodyComponent.CollisionDetection = Utils::GetEnumFromName<CollisionDetectionType>(rigidBodyComponentNode["CollisionDetectionType"].as<std::string>());
+			if (auto node = rigidBodyComponentNode["PositionSolverIterations"])
+				rigidBodyComponent.SetPositionSolverIterations(node.as<uint32_t>());
+			if (auto node = rigidBodyComponentNode["VelocitySolverIterations"])
+				rigidBodyComponent.SetVelocitySolverIterations(node.as<uint32_t>());
 			rigidBodyComponent.SetMass(rigidBodyComponentNode["Mass"].as<float>());
 			rigidBodyComponent.SetLinearDamping(rigidBodyComponentNode["LinearDamping"].as<float>());
 			rigidBodyComponent.SetAngularDamping(rigidBodyComponentNode["AngularDamping"].as<float>());
@@ -3098,6 +3106,10 @@ namespace Eagle
 			{
 				auto& data = ragdollPerBoneData[dataNode["Name"].as<std::string>()];
 				data.UserOffset = Math::DecomposeTransformMatrix(dataNode["Offset"].as<glm::mat4>());
+				if (auto iterationsNode = dataNode["PositionSolverIterations"])
+					data.PositionSolverIterations = iterationsNode.as<uint32_t>();
+				if (auto iterationsNode = dataNode["VelocitySolverIterations"])
+					data.VelocitySolverIterations = iterationsNode.as<uint32_t>();
 				data.LinearDamping = dataNode["LinearDamping"].as<float>();
 				data.AngularDamping = dataNode["AngularDamping"].as<float>();
 				if (auto simulateNode = dataNode["bEnableSimulation"])

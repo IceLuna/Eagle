@@ -87,6 +87,8 @@ namespace Eagle
 		{
 			Transform UserOffset;
 			Ref<AssetPhysicsMaterial> Material;
+			uint32_t PositionSolverIterations = 4;
+			uint32_t VelocitySolverIterations = 1;
 			float LinearDamping = 0.f;
 			float Mass = 1.f;
 			float AngularDamping = 0.05f;

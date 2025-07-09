@@ -42,6 +42,12 @@ namespace Eagle
 	static const char* s_FFTTypeHelpMsg = "Used in spectrum analysis to reduce leakage/transient signals interfering with the analysis.\n"
 		"This is a problem with analysis of continuous signals that only have a small portion of the signal sample (the fft window size).\n"
 		"Windowing the signal with a curve or triangle tapers the sides of the fft window to help alleviate this problem.";
+	static const char* s_PositionSolverIterationsHelpMsg = "The solver iteration count determines how accurately joints and contacts are resolved. "
+		"If you are having trouble with jointed bodies oscillating and behaving erratically, then "
+		"setting a higher position iteration count may improve their stability.";
+	static const char* s_VelocitySolverIterationsHelpMsg = "If intersecting bodies are being depenetrated too violently, increase the number of velocity "
+		"iterations.More velocity iterations will drive the relative exit velocity of the intersecting "
+		"objects closer to the correct value given the restitution.";
 
 #define AssetField_Case(type) \
 	case FieldType::type:\
@@ -1401,6 +1407,8 @@ namespace Eagle
 						
 					if (rigidBody.BodyType == PhysicsBodyType::Dynamic)
 					{
+						uint32_t positionSolverIterations = rigidBody.GetPositionSolverIterations();
+						uint32_t velocitySolverIterations = rigidBody.GetVelocitySolverIterations();
 						float mass = rigidBody.GetMass();
 						float linearDamping = rigidBody.GetLinearDamping();
 						float angularDamping = rigidBody.GetAngularDamping();
@@ -1421,6 +1429,18 @@ namespace Eagle
 							
 						if (bRuntime)
 							UI::PopItemDisabled();
+							
+						if (UI::PropertyDrag("Position Solver Iterations", positionSolverIterations, 1, PhysicsSettings::MinPositionSolverIterations, PhysicsSettings::MaxPositionSolverIterations, s_PositionSolverIterationsHelpMsg))
+						{
+							rigidBody.SetPositionSolverIterations(positionSolverIterations);
+							bEntityChanged = true;
+						}
+							
+						if (UI::PropertyDrag("Velocity Solver Iterations", velocitySolverIterations, 1, PhysicsSettings::MinVelocitySolverIterations, PhysicsSettings::MaxVelocitySolverIterations, s_VelocitySolverIterationsHelpMsg))
+						{
+							rigidBody.SetVelocitySolverIterations(velocitySolverIterations);
+							bEntityChanged = true;
+						}
 							
 						if (UI::PropertyDrag("Mass", mass, 0.1f))
 						{

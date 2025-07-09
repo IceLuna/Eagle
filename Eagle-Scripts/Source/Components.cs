@@ -2002,6 +2002,20 @@ namespace Eagle
         
         public PhysicsBodyType GetBodyType() { return GetBodyType_Native(Parent.ID); }
 
+        /*
+            The solver iteration count determines how accurately joints and contacts are resolved.
+            If you are having trouble with jointed bodies oscillating and behaving erratically, then
+            setting a higher position iteration count may improve their stability. Range: [1, 255]
+
+            If intersecting bodies are being depenetrated too violently, increase the number of velocity
+            iterations.More velocity iterations will drive the relative exit velocity of the intersecting
+            objects closer to the correct value given the restitution. Range: [0, 255]
+        */
+        public void SetPositionSolverIterations(uint iterations) { SetPositionSolverIterations_Native(Parent.ID, iterations); }
+        public void SetVelocitySolverIterations(uint iterations) { SetVelocitySolverIterations_Native(Parent.ID, iterations); }
+        public uint GetPositionSolverIterations() { return GetPositionSolverIterations_Native(Parent.ID); }
+        public uint GetVelocitySolverIterations() { return GetVelocitySolverIterations_Native(Parent.ID); }
+
         public void SetMass(float mass) { SetMass_Native(Parent.ID, mass); }
         
         public float GetMass() { return GetMass_Native(Parent.ID); }
@@ -2142,6 +2156,18 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern PhysicsBodyType GetBodyType_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetPositionSolverIterations_Native(in GUID entityID, uint value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetVelocitySolverIterations_Native(in GUID entityID, uint value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint GetPositionSolverIterations_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint GetVelocitySolverIterations_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetMass_Native(in GUID entityID, float mass);

@@ -303,8 +303,6 @@ namespace Eagle
 		{
 			PhysicsSettings editorSettings;
 			editorSettings.UpdateRate = 30u;
-			editorSettings.SolverIterations = 1;
-			editorSettings.SolverVelocityIterations = 1;
 			editorSettings.Gravity = glm::vec3{ 0.f };
 			editorSettings.bDebugOnPlay = false;
 			editorSettings.bEditorScene = true;

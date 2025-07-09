@@ -3382,6 +3382,52 @@ namespace Eagle
 		}
 	}
 
+	void Script::Eagle_RigidBodyComponent_SetPositionSolverIterations(GUID entityID, uint32_t iterations)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<RigidBodyComponent>().SetPositionSolverIterations(iterations);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set position solver iterations. Entity is null");
+	}
+
+	void Script::Eagle_RigidBodyComponent_SetVelocitySolverIterations(GUID entityID, uint32_t iterations)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<RigidBodyComponent>().SetVelocitySolverIterations(iterations);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set velocity solver iterations. Entity is null");
+	}
+
+	uint32_t Script::Eagle_RigidBodyComponent_GetPositionSolverIterations(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<RigidBodyComponent>().GetPositionSolverIterations();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get position solver iterations. Entity is null");
+			return 0u;
+		}
+	}
+
+	uint32_t Script::Eagle_RigidBodyComponent_GetVelocitySolverIterations(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<RigidBodyComponent>().GetVelocitySolverIterations();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get velocity solver iterations. Entity is null");
+			return 0u;
+		}
+	}
+
 	void Script::Eagle_RigidBodyComponent_SetMass(GUID entityID, float mass)
 	{
 		auto& scene = Scene::GetCurrentScene();

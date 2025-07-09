@@ -135,7 +135,7 @@ namespace Eagle
         if (!bHasRigidBody)
             entity.AddComponent<RigidBodyComponent>();
 
-        Ref<PhysicsActor> actor = MakeRef<PhysicsActor>(entity, m_Settings);
+        Ref<PhysicsActor> actor = MakeRef<PhysicsActor>(entity);
         m_Actors[entity.GetGUID()] = actor;
         m_Scene->addActor(*actor->GetPhysXActor());
 
@@ -261,7 +261,7 @@ namespace Eagle
             return {};
         }
 
-        Ref<PhysicsRagdollActor> result = MakeRef<PhysicsRagdollActor>(skeletalComp.Parent, m_Scene, m_Settings);
+        Ref<PhysicsRagdollActor> result = MakeRef<PhysicsRagdollActor>(skeletalComp.Parent, m_Scene);
         m_RagdollActors[skeletalComp.Parent.GetGUID()] = result;
         return result;
     }

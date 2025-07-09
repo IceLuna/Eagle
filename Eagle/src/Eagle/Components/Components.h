@@ -1028,6 +1028,20 @@ namespace Eagle
 		RigidBodyComponent(const Entity& entity) : Component(entity) {}
 		COMPONENT_DEFAULTS(RigidBodyComponent);
 
+		/*
+			The solver iteration count determines how accurately joints and contacts are resolved.
+			If you are having trouble with jointed bodies oscillating and behaving erratically, then
+			setting a higher position iteration count may improve their stability. Range: [1, 255]
+
+			If intersecting bodies are being depenetrated too violently, increase the number of velocity
+			iterations.More velocity iterations will drive the relative exit velocity of the intersecting
+			objects closer to the correct value given the restitution. Range: [0, 255]
+		*/
+		void SetPositionSolverIterations(uint32_t iterations);
+		void SetVelocitySolverIterations(uint32_t iterations);
+		uint32_t GetPositionSolverIterations() const { return PositionSolverIterations; }
+		uint32_t GetVelocitySolverIterations() const { return VelocitySolverIterations; }
+
 		void SetMass(float mass);
 		float GetMass() const { return Mass; }
 
@@ -1063,6 +1077,8 @@ namespace Eagle
 		PhysicsBodyType BodyType = PhysicsBodyType::Static;
 		CollisionDetectionType CollisionDetection = CollisionDetectionType::Discrete;
 	protected:
+		uint32_t PositionSolverIterations = 4; // [1; 255]
+		uint32_t VelocitySolverIterations = 1; // [0; 255]
 		float Mass = 1.f;
 		float LinearDamping = 0.01f;
 		float AngularDamping = 0.05f;

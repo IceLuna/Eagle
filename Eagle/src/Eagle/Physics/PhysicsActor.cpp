@@ -8,9 +8,8 @@
 
 namespace Eagle
 {
-	PhysicsActor::PhysicsActor(const Entity& entity, const PhysicsSettings& settings)
-	: m_Settings(settings)
-	, m_Entity(entity)
+	PhysicsActor::PhysicsActor(const Entity& entity)
+	: m_Entity(entity)
 	{
 		const auto& rigidBody = m_Entity.GetComponent<RigidBodyComponent>();
 		m_BodyType = rigidBody.BodyType;
@@ -66,6 +65,60 @@ namespace Eagle
 	{
 		if (IsDynamic())
 			m_RigidActor->is<physx::PxRigidDynamic>()->putToSleep();
+	}
+
+	void PhysicsActor::SetPositionSolverIterations(uint32_t iterations)
+	{
+		if (!IsDynamic())
+		{
+			// Cannot set solver iterations of non-dynamic actor
+			return;
+		}
+		iterations = glm::clamp(iterations, PhysicsSettings::MinPositionSolverIterations, PhysicsSettings::MaxPositionSolverIterations);
+
+		physx::PxRigidDynamic* actor = m_RigidActor->is<physx::PxRigidDynamic>();
+		EG_CORE_ASSERT(actor, "No actor");
+		actor->setSolverIterationCounts(iterations, GetVelocitySolverIterations());
+	}
+
+	uint32_t PhysicsActor::GetPositionSolverIterations() const
+	{
+		//TODO: check if we can always return 'RigidBodyComponent.GetSolverIterations'
+		if (IsDynamic())
+		{
+			uint32_t iterations = 4, unused;
+			m_RigidActor->is<physx::PxRigidDynamic>()->getSolverIterationCounts(iterations, unused);
+			return iterations;
+		}
+
+		return m_Entity.GetComponent<RigidBodyComponent>().GetPositionSolverIterations();
+	}
+
+	void PhysicsActor::SetVelocitySolverIterations(uint32_t iterations)
+	{
+		if (!IsDynamic())
+		{
+			// Cannot set solver iterations of non-dynamic actor
+			return;
+		}
+		iterations = glm::clamp(iterations, PhysicsSettings::MinVelocitySolverIterations, PhysicsSettings::MaxVelocitySolverIterations);
+
+		physx::PxRigidDynamic* actor = m_RigidActor->is<physx::PxRigidDynamic>();
+		EG_CORE_ASSERT(actor, "No actor");
+		actor->setSolverIterationCounts(GetPositionSolverIterations(), iterations);
+	}
+
+	uint32_t PhysicsActor::GetVelocitySolverIterations() const
+	{
+		//TODO: check if we can always return 'RigidBodyComponent.GetVelocitySolverIterations'
+		if (IsDynamic())
+		{
+			uint32_t iterations = 1, unused;
+			m_RigidActor->is<physx::PxRigidDynamic>()->getSolverIterationCounts(unused, iterations);
+			return iterations;
+		}
+
+		return m_Entity.GetComponent<RigidBodyComponent>().GetVelocitySolverIterations();
 	}
 	
 	float PhysicsActor::GetMass() const
@@ -561,8 +614,9 @@ namespace Eagle
 			SetGravityEnabled(rigidBody.IsGravityEnabled());
 			SetMaxLinearVelocity(rigidBody.GetMaxLinearVelocity());
 			SetMaxAngularVelocity(rigidBody.GetMaxAngularVelocity());
+			SetPositionSolverIterations(rigidBody.GetPositionSolverIterations());
+			SetVelocitySolverIterations(rigidBody.GetVelocitySolverIterations());
 
-			m_RigidActor->is<physx::PxRigidDynamic>()->setSolverIterationCounts(m_Settings.SolverIterations, m_Settings.SolverVelocityIterations);
 			m_RigidActor->is<physx::PxRigidDynamic>()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, rigidBody.CollisionDetection == CollisionDetectionType::Continuous);
 			m_RigidActor->is<physx::PxRigidDynamic>()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_SPECULATIVE_CCD, rigidBody.CollisionDetection == CollisionDetectionType::ContinuousSpeculative);
 

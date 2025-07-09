@@ -269,6 +269,10 @@ namespace Eagle::Script
 	//RigidBodyComponent
 	void Eagle_RigidBodyComponent_SetBodyType(GUID entityID, PhysicsBodyType type);
 	PhysicsBodyType Eagle_RigidBodyComponent_GetBodyType(GUID entityID);
+	void Eagle_RigidBodyComponent_SetPositionSolverIterations(GUID entityID, uint32_t iterations);
+	void Eagle_RigidBodyComponent_SetVelocitySolverIterations(GUID entityID, uint32_t iterations);
+	uint32_t Eagle_RigidBodyComponent_GetPositionSolverIterations(GUID entityID);
+	uint32_t Eagle_RigidBodyComponent_GetVelocitySolverIterations(GUID entityID);
 	void Eagle_RigidBodyComponent_SetMass(GUID entityID, float mass);
 	float Eagle_RigidBodyComponent_GetMass(GUID entityID);
 	void Eagle_RigidBodyComponent_SetLinearDamping(GUID entityID, float linearDamping);

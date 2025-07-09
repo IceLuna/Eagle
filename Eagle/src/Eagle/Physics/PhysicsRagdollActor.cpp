@@ -28,7 +28,7 @@ namespace Eagle
 
     // TODO: group args
     static void CreateArticulationChain(const SkeletalRagdollBones& bone, const SkeletalPose& currentPose, const BonesMap& boneMap, physx::PxScene* scene, PhysicsRagdollActor::BoneData& physicsBoneData, PhysicsActorPayload& payload,
-        const PhysicsSettings& settings, const glm::mat4& worldTransform, const glm::mat4& compWorldTrInv, float twist, float swing, const physx::PxVec3& linearVelocity,
+        const glm::mat4& worldTransform, const glm::mat4& compWorldTrInv, float twist, float swing, const physx::PxVec3& linearVelocity,
         const physx::PxVec3& angularVelocity, std::unordered_map<std::string, physx::PxRigidDynamic*>& ragdollBonesMap, physx::PxRigidDynamic*& parentBody)
     {
         using namespace physx;
@@ -72,7 +72,7 @@ namespace Eagle
             const PxQuat q = bAnyNan ? PxQuat(PxIdentity) : PhysXUtils::ToPhysXQuat(Math::DecomposeTransformMatrix(lookAt).Rotation.GetQuat());
 
             PxRigidDynamic* body = physics.createRigidDynamic(PxTransform(PhysXUtils::ToPhysXVector(bodyLocation), q));
-            body->setSolverIterationCounts(settings.SolverIterations, settings.SolverVelocityIterations);
+            body->setSolverIterationCounts(bone.Settings.PositionSolverIterations, bone.Settings.VelocitySolverIterations);
             body->userData = &payload;
             scene->addActor(*body);
             if (!parentBody)
@@ -139,7 +139,7 @@ namespace Eagle
             ragdollBonesMap[bone.Name] = body;
 
             for (const auto& child : bone.Children)
-                CreateArticulationChain(child, currentPose, boneMap, scene, childData, payload, settings, worldTransform, compWorldTrInv, twist, swing, linearVelocity, angularVelocity, ragdollBonesMap, body);
+                CreateArticulationChain(child, currentPose, boneMap, scene, childData, payload, worldTransform, compWorldTrInv, twist, swing, linearVelocity, angularVelocity, ragdollBonesMap, body);
         }
     }
 
@@ -196,8 +196,8 @@ namespace Eagle
             SetShowCollision_Internal(child, bShow);
     }
 
-    PhysicsRagdollActor::PhysicsRagdollActor(Entity entity, physx::PxScene* scene, const PhysicsSettings& settings)
-		: m_Entity(entity), m_Scene(scene), m_Settings(settings)
+    PhysicsRagdollActor::PhysicsRagdollActor(Entity entity, physx::PxScene* scene)
+		: m_Entity(entity), m_Scene(scene)
 	{
         if (!m_Entity.HasComponent<SkeletalMeshComponent>())
         {
@@ -243,7 +243,7 @@ namespace Eagle
         }
 
         m_ParentBody = nullptr;
-		CreateArticulationChain(mesh->GetRagdollRoot(), skeletalComp.LastPose, meshInfo.BoneInfoMap, m_Scene, m_Root, m_Payload, m_Settings, worldTransform, m_OriginalTransformInv,
+		CreateArticulationChain(mesh->GetRagdollRoot(), skeletalComp.LastPose, meshInfo.BoneInfoMap, m_Scene, m_Root, m_Payload, worldTransform, m_OriginalTransformInv,
             glm::radians(twist), glm::radians(swing), linearVelocity, angularVelocity, m_BonesMap, m_ParentBody);
 	}
 

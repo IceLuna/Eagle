@@ -480,6 +480,10 @@ namespace Eagle
 		//RigidBodyComponent
 		mono_add_internal_call("Eagle.RigidBodyComponent::SetBodyType_Native", Eagle::Script::Eagle_RigidBodyComponent_SetBodyType);
 		mono_add_internal_call("Eagle.RigidBodyComponent::GetBodyType_Native", Eagle::Script::Eagle_RigidBodyComponent_GetBodyType);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetPositionSolverIterations_Native", Eagle::Script::Eagle_RigidBodyComponent_SetPositionSolverIterations);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetVelocitySolverIterations_Native", Eagle::Script::Eagle_RigidBodyComponent_SetVelocitySolverIterations);
+		mono_add_internal_call("Eagle.RigidBodyComponent::GetPositionSolverIterations_Native", Eagle::Script::Eagle_RigidBodyComponent_GetPositionSolverIterations);
+		mono_add_internal_call("Eagle.RigidBodyComponent::GetVelocitySolverIterations_Native", Eagle::Script::Eagle_RigidBodyComponent_GetVelocitySolverIterations);
 		mono_add_internal_call("Eagle.RigidBodyComponent::SetMass_Native", Eagle::Script::Eagle_RigidBodyComponent_SetMass);
 		mono_add_internal_call("Eagle.RigidBodyComponent::GetMass_Native", Eagle::Script::Eagle_RigidBodyComponent_GetMass);
 		mono_add_internal_call("Eagle.RigidBodyComponent::SetLinearDamping_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLinearDamping);

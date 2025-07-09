@@ -11,7 +11,7 @@ namespace Eagle
 	class PhysicsActor
 	{
 	public:
-		PhysicsActor(const Entity& entity, const PhysicsSettings& settings);
+		PhysicsActor(const Entity& entity);
 		~PhysicsActor();
 
 		glm::vec3 GetLocation() const { return PhysXUtils::FromPhysXVector(m_RigidActor->getGlobalPose().p); }
@@ -26,6 +26,12 @@ namespace Eagle
 
 		void WakeUp();
 		void PutToSleep();
+
+		void SetPositionSolverIterations(uint32_t iterations);
+		uint32_t GetPositionSolverIterations() const;
+
+		void SetVelocitySolverIterations(uint32_t iterations);
+		uint32_t GetVelocitySolverIterations() const;
 
 		float GetMass() const;
 		void SetMass(float mass);
@@ -100,7 +106,6 @@ namespace Eagle
 		void CreateRigidActor();
 
 	private:
-		PhysicsSettings m_Settings;
 		physx::PxFilterData m_FilterData;
 		PhysicsBodyType m_BodyType;
 		physx::PxRigidActor* m_RigidActor = nullptr;

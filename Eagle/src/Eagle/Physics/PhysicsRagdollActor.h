@@ -13,7 +13,7 @@ namespace Eagle
 	class PhysicsRagdollActor
 	{
 	public:
-		PhysicsRagdollActor(Entity entity, physx::PxScene* scene, const PhysicsSettings& settings);
+		PhysicsRagdollActor(Entity entity, physx::PxScene* scene);
 		~PhysicsRagdollActor();
 
 		const Entity& GetEntity() const { return m_Entity; }
@@ -57,7 +57,6 @@ namespace Eagle
 	private:
 		Entity m_Entity;
 		physx::PxScene* m_Scene = nullptr;
-		PhysicsSettings m_Settings;
 		glm::mat4 m_OriginalTransformInv = glm::mat4(1.f);
 		bool m_bDirtyTransform = true;
 		bool m_bShowCollision = false;
