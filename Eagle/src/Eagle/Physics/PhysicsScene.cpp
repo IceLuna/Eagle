@@ -68,17 +68,10 @@ namespace Eagle
 
         for (uint32_t i = 0; i < nActiveActors; ++i)
         {
-            PhysicsActorPayload* payload = (PhysicsActorPayload*)activeActors[i]->userData;
-            if (payload->bRagdoll)
+            if (activeActors[i]->userData)
             {
-                PhysicsRagdollActor* ragdoll = (PhysicsRagdollActor*)payload->Ptr;
-                // `SynchronizeTransform()` call is postponed. It'll be called by `AnimationSystem` in a multithreaded manner
-                ragdoll->MarkTransformDirty();
-            }
-            else
-            {
-                PhysicsActor* activeActor = (PhysicsActor*)payload->Ptr;
-                activeActor->SynchronizeTransform();
+                PhysicsActorBase* actor = (PhysicsActorBase*)activeActors[i]->userData;
+                actor->SceneRequestToSyncTransforms();
             }
         }
     }
@@ -161,20 +154,15 @@ namespace Eagle
 
     bool PhysicsScene::Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, RaycastHit* outHit) const
     {
+        // TODO v0.7: Ask a user how many hits they need
         physx::PxRaycastBuffer hitInfo;
         bool bResult = m_Scene->raycast(PhysXUtils::ToPhysXVector(origin), PhysXUtils::ToPhysXVector(dir), maxDistance, hitInfo);
 
         if (bResult)
         {
-            const PhysicsActorPayload* payload = (PhysicsActorPayload*)hitInfo.block.actor->userData;
-            if (payload->bRagdoll)
+            if (hitInfo.block.actor->userData)
             {
-                const PhysicsRagdollActor* actor = (PhysicsRagdollActor*)payload->Ptr;
-                outHit->HitEntity = actor->GetEntity();
-            }
-            else
-            {
-                const PhysicsActor* actor = (PhysicsActor*)payload->Ptr;
+                const PhysicsActorBase* actor = (PhysicsActorBase*)hitInfo.block.actor->userData;
                 outHit->HitEntity = actor->GetEntity();
             }
             outHit->Position = PhysXUtils::FromPhysXVector(hitInfo.block.position);

@@ -105,12 +105,30 @@ namespace Eagle
 		camera.LookAt(glm::vec3(0, 0, 0));
 		const glm::vec3 cameraDir = camera.GetForwardVector();
 
-		// TODO v0.7: Calculate entity AABB
+		AABB aabb;
+		if (entity.HasComponent<StaticMeshComponent>())
+		{
+			const auto& comp = entity.GetComponent<StaticMeshComponent>();
+			if (const auto& asset = comp.GetMeshAsset())
+				aabb.Grow(asset->GetMesh()->GetAABB());
+		}
+		if (entity.HasComponent<SkeletalMeshComponent>())
+		{
+			const auto& comp = entity.GetComponent<SkeletalMeshComponent>();
+			if (const auto& asset = comp.GetMeshAsset())
+				aabb.Grow(asset->GetMesh()->GetAABB());
+		}
+		if (entity.HasComponent<SpriteComponent>())
+		{
+			const auto& comp = entity.GetComponent<SpriteComponent>();
+			const auto& transform = comp.GetWorldTransform();
+			const glm::vec3 halfScale = transform.Scale3D * 0.5f;
+			aabb.Grow(AABB{transform.Location - halfScale, transform.Location + halfScale});
+		}
 		
-		//const auto& aabb = sphere->GetMesh()->GetAABB();
-		//const glm::vec3 center = aabb.Center();
-		//camera.SetLocation(center - cameraDir * aabb.MaxSide() * 1.5f); // Move back
-		//camera.LookAt(center);
+		const glm::vec3 center = aabb.Center();
+		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 1.5f); // Move back
+		camera.LookAt(center);
 	}
 
 	void AssetThumbnailRenderer::SetupScene(const Ref<AssetAnimation>& asset)

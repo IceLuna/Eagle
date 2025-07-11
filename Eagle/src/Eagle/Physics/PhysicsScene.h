@@ -7,7 +7,7 @@
 #include <PhysX/PxPhysicsAPI.h>
 #include <glm/glm.hpp>
 
-#define EG_OVERLAP_MAX_COLLIDERS 10
+#define EG_OVERLAP_MAX_COLLIDERS 10 // TODO v0.7: I think there's no need to it
 
 namespace Eagle
 {

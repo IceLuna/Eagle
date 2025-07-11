@@ -9,15 +9,13 @@
 namespace Eagle
 {
 	PhysicsActor::PhysicsActor(const Entity& entity)
-	: m_Entity(entity)
+	: PhysicsActorBase(entity)
 	{
 		const auto& rigidBody = m_Entity.GetComponent<RigidBodyComponent>();
 		m_BodyType = rigidBody.BodyType;
 		m_FilterData.word0 = 1; // word0 = own ID
 		m_FilterData.word1 = 1; // word1 = ID mask to filter pairs that trigger a contact callback;
 		m_FilterData.word2 = (uint32_t)rigidBody.CollisionDetection;
-		m_Payload.Ptr = this;
-		m_Payload.bRagdoll = false;
 		CreateRigidActor();
 	}
 	
@@ -623,7 +621,7 @@ namespace Eagle
 			SetMass(rigidBody.GetMass());
 		}
 
-		m_RigidActor->userData = &m_Payload;
+		m_RigidActor->userData = this;
 #ifndef EG_RELEASE
 		const auto& name = m_Entity.GetName();
 		m_RigidActor->setName(name.c_str());

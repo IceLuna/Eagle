@@ -15,7 +15,38 @@ namespace Eagle
 	EntityAssetEditor::EntityAssetEditor(const Ref<AssetEntity>& asset, const EditorLayer& editorLayer)
 		: AssetEditor(true), m_Asset(asset), m_EditorLayer(editorLayer)
 	{
-		m_Entity = GetCurrentScene()->CreateFromEntityAsset(m_Asset);
+		const auto& scene = GetCurrentScene();
+		m_Entity = scene->CreateFromEntityAsset(m_Asset);
+
+		auto& camera = scene->GetEditorCamera();
+		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
+		camera.LookAt(glm::vec3(0, 0, 0));
+		const glm::vec3 cameraDir = camera.GetForwardVector();
+
+		AABB aabb;
+		if (m_Entity.HasComponent<StaticMeshComponent>())
+		{
+			const auto& comp = m_Entity.GetComponent<StaticMeshComponent>();
+			if (const auto& asset = comp.GetMeshAsset())
+				aabb.Grow(asset->GetMesh()->GetAABB());
+		}
+		if (m_Entity.HasComponent<SkeletalMeshComponent>())
+		{
+			const auto& comp = m_Entity.GetComponent<SkeletalMeshComponent>();
+			if (const auto& asset = comp.GetMeshAsset())
+				aabb.Grow(asset->GetMesh()->GetAABB());
+		}
+		if (m_Entity.HasComponent<SpriteComponent>())
+		{
+			const auto& comp = m_Entity.GetComponent<SpriteComponent>();
+			const auto& transform = comp.GetWorldTransform();
+			const glm::vec3 halfScale = transform.Scale3D * 0.5f;
+			aabb.Grow(AABB{ transform.Location - halfScale, transform.Location + halfScale });
+		}
+
+		const glm::vec3 center = aabb.Center();
+		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 1.5f); // Move back
+		camera.LookAt(center);
 	}
 
 	void EntityAssetEditor::OnImGuiRender(bool* pOpen)

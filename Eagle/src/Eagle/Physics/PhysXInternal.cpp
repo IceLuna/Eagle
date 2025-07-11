@@ -34,9 +34,9 @@ namespace Eagle
 		PhysXDebugger::Init();
 
 #ifndef EG_RELEASE
-			bool bTrackMemoryAllocs = true;
+		bool bTrackMemoryAllocs = true;
 #else
-			bool bTrackMemoryAllocs = false;
+		bool bTrackMemoryAllocs = false;
 #endif
 
 		s_PhysXData->Physics = PxCreatePhysics(PX_PHYSICS_VERSION, *s_PhysXData->Foundation, scale, bTrackMemoryAllocs, PhysXDebugger::GetDebugger());

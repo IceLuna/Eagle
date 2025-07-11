@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PhysicsEngine.h"
+#include "PhysicsActorBase.h"
 #include "Eagle/Core/Entity.h"
 
 #include <PhysX/PxPhysicsAPI.h>
@@ -10,13 +11,17 @@ namespace Eagle
 	struct BoneNode;
 	struct SkeletalPose;
 
-	class PhysicsRagdollActor
+	class PhysicsRagdollActor : public PhysicsActorBase
 	{
 	public:
 		PhysicsRagdollActor(Entity entity, physx::PxScene* scene);
 		~PhysicsRagdollActor();
 
-		const Entity& GetEntity() const { return m_Entity; }
+		void SceneRequestToSyncTransforms() override
+		{
+			// `SynchronizeTransform()` call is postponed. It'll be called by `AnimationSystem` in a multithreaded manner
+			MarkTransformDirty();
+		}
 
 		void SynchronizeTransform();
 		bool DoesNeedSync() const { return m_bDirtyTransform; }
@@ -25,7 +30,6 @@ namespace Eagle
 		bool IsCollisionShown() const { return m_bShowCollision; }
 		void SetShowCollision(bool bShowCollision);
 		Transform GetBoneWorldTransform(const std::string& boneName) const;
-		const physx::PxRigidActor* GetPhysXActor() const { return m_Root.Body; }
 
 		// Update all bones
 		void SetLinearVelocity(const glm::vec3& velocity);
@@ -55,7 +59,6 @@ namespace Eagle
 		};
 
 	private:
-		Entity m_Entity;
 		physx::PxScene* m_Scene = nullptr;
 		glm::mat4 m_OriginalTransformInv = glm::mat4(1.f);
 		bool m_bDirtyTransform = true;
@@ -63,7 +66,5 @@ namespace Eagle
 
 		BoneData m_Root;
 		std::unordered_map<std::string, physx::PxRigidDynamic*> m_BonesMap;
-		physx::PxRigidDynamic* m_ParentBody = nullptr;
-		PhysicsActorPayload m_Payload;
 	};
 }

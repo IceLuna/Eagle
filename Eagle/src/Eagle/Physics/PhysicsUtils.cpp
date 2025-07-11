@@ -449,16 +449,9 @@ namespace Eagle
 		SceneQueryHit hit;
 		if (pxHit.actor && pxHit.actor->userData)
 		{
-			const PhysicsActorPayload* payload = (PhysicsActorPayload*)pxHit.actor->userData;
-			if (payload->bRagdoll)
+			if (pxHit.actor->userData)
 			{
-				const PhysicsRagdollActor* actor = (PhysicsRagdollActor*)payload->Ptr;
-				hit.EntityID = actor->GetEntity();
-				hit.Body = actor->GetPhysXActor();
-			}
-			else
-			{
-				const PhysicsActor* actor = (PhysicsActor*)payload->Ptr;
+				const PhysicsActorBase* actor = (PhysicsActorBase*)pxHit.actor->userData;
 				hit.EntityID = actor->GetEntity();
 				hit.Body = actor->GetPhysXActor();
 			}

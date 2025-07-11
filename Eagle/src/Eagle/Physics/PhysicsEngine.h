@@ -57,12 +57,6 @@ namespace Eagle
 		}
 	};
 
-	struct PhysicsActorPayload
-	{
-		void* Ptr = nullptr; // Either `PhysicsActor*` or `PhysicsRagdollActor*`
-		bool bRagdoll = false;
-	};
-
 	class PhysicsEngine
 	{
 	public:

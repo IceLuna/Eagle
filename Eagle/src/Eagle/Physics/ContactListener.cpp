@@ -19,15 +19,9 @@ namespace Eagle
 			physx::PxActor& physxActor = *actors[i];
 
 			Entity entity;
-			const PhysicsActorPayload* payload = (PhysicsActorPayload*)physxActor.userData;
-			if (payload->bRagdoll)
+			if (physxActor.userData)
 			{
-				const PhysicsRagdollActor* actor = (PhysicsRagdollActor*)payload->Ptr;
-				entity = actor->GetEntity();
-			}
-			else
-			{
-				const PhysicsActor* actor = (PhysicsActor*)payload->Ptr;
+				const PhysicsActorBase* actor = (PhysicsActorBase*)physxActor.userData;
 				entity = actor->GetEntity();
 			}
 			//EG_CORE_INFO("[Physics Engine] Physics Actor is waking up. Name {0}", entity.GetComponent<EntitySceneNameComponent>().Name);
@@ -43,15 +37,9 @@ namespace Eagle
 			physx::PxActor& physxActor = *actors[i];
 
 			Entity entity;
-			const PhysicsActorPayload* payload = (PhysicsActorPayload*)physxActor.userData;
-			if (payload->bRagdoll)
+			if (physxActor.userData)
 			{
-				const PhysicsRagdollActor* actor = (PhysicsRagdollActor*)payload->Ptr;
-				entity = actor->GetEntity();
-			}
-			else
-			{
-				const PhysicsActor* actor = (PhysicsActor*)payload->Ptr;
+				const PhysicsActorBase* actor = (PhysicsActorBase*)physxActor.userData;
 				entity = actor->GetEntity();
 			}
 			//EG_CORE_INFO("[Physics Engine] Physics Actor is going to sleep. Name {0}", entity.GetComponent<EntitySceneNameComponent>().Name);
@@ -74,33 +62,17 @@ namespace Eagle
 		Entity entityB;
 
 		// Actor A
+		if (void* userData = pairHeader.actors[0]->userData)
 		{
-			const PhysicsActorPayload* payload = (PhysicsActorPayload*)pairHeader.actors[0]->userData;
-			if (payload->bRagdoll)
-			{
-				const PhysicsRagdollActor* actor = (PhysicsRagdollActor*)payload->Ptr;
-				entityA = actor->GetEntity();
-			}
-			else
-			{
-				const PhysicsActor* actor = (PhysicsActor*)payload->Ptr;
-				entityA = actor->GetEntity();
-			}
+			const PhysicsActorBase* actor = (PhysicsActorBase*)userData;
+			entityA = actor->GetEntity();
 		}
 		
 		// Actor B
+		if (void* userData = pairHeader.actors[1]->userData)
 		{
-			const PhysicsActorPayload* payload = (PhysicsActorPayload*)pairHeader.actors[1]->userData;
-			if (payload->bRagdoll)
-			{
-				const PhysicsRagdollActor* actor = (PhysicsRagdollActor*)payload->Ptr;
-				entityB = actor->GetEntity();
-			}
-			else
-			{
-				const PhysicsActor* actor = (PhysicsActor*)payload->Ptr;
-				entityB = actor->GetEntity();
-			}
+			const PhysicsActorBase* actor = (PhysicsActorBase*)userData;
+			entityA = actor->GetEntity();
 		}
 
 		bool bActorAHasScript = ScriptEngine::IsEntityModuleValid(entityA);
@@ -157,39 +129,17 @@ namespace Eagle
 			Entity otherEntity;
 
 			// Actor A
+			if (void* userData = pairs[i].triggerActor->userData)
 			{
-				const PhysicsActorPayload* payload = (PhysicsActorPayload*)pairs[i].triggerActor->userData;
-				if (payload == nullptr)
-					continue;
-
-				if (payload->bRagdoll)
-				{
-					const PhysicsRagdollActor* actor = (PhysicsRagdollActor*)payload->Ptr;
-					triggerEntity = actor->GetEntity();
-				}
-				else
-				{
-					const PhysicsActor* actor = (PhysicsActor*)payload->Ptr;
-					triggerEntity = actor->GetEntity();
-				}
+				const PhysicsActorBase* actor = (PhysicsActorBase*)userData;
+				triggerEntity = actor->GetEntity();
 			}
 
 			// Actor B
+			if (void* userData = pairs[i].otherActor->userData)
 			{
-				const PhysicsActorPayload* payload = (PhysicsActorPayload*)pairs[i].otherActor->userData;
-				if (payload == nullptr)
-					continue;
-
-				if (payload->bRagdoll)
-				{
-					const PhysicsRagdollActor* actor = (PhysicsRagdollActor*)payload->Ptr;
-					otherEntity = actor->GetEntity();
-				}
-				else
-				{
-					const PhysicsActor* actor = (PhysicsActor*)payload->Ptr;
-					otherEntity = actor->GetEntity();
-				}
+				const PhysicsActorBase* actor = (PhysicsActorBase*)userData;
+				otherEntity = actor->GetEntity();
 			}
 
 			bool bTriggerHasScript = ScriptEngine::IsEntityModuleValid(triggerEntity);

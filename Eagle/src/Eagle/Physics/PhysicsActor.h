@@ -4,15 +4,18 @@
 #include "PhysicsEngine.h"
 #include "PhysicsUtils.h"
 #include "PhysicsShapes.h"
+#include "PhysicsActorBase.h"
 #include <PhysX/PxPhysicsAPI.h>
 
 namespace Eagle
 {
-	class PhysicsActor
+	class PhysicsActor : public PhysicsActorBase
 	{
 	public:
 		PhysicsActor(const Entity& entity);
 		~PhysicsActor();
+
+		void SceneRequestToSyncTransforms() override { SynchronizeTransform(); }
 
 		glm::vec3 GetLocation() const { return PhysXUtils::FromPhysXVector(m_RigidActor->getGlobalPose().p); }
 		void SetLocation(const glm::vec3& location, bool autowake = true);
@@ -76,11 +79,6 @@ namespace Eagle
 
 		void OnFixedUpdate(Timestep fixedDeltaTime);
 
-		const Entity& GetEntity() const { return m_Entity; }
-		Entity& GetEntity() { return m_Entity; }
-		const physx::PxRigidActor* GetPhysXActor() const { return m_RigidActor; }
-		physx::PxRigidActor* GetPhysXActor() { return m_RigidActor; }
-
 		Ref<BoxColliderShape> AddCollider(BoxColliderComponent& collider);
 		Ref<SphereColliderShape> AddCollider(SphereColliderComponent& collider);
 		Ref<CapsuleColliderShape> AddCollider(CapsuleColliderComponent& collider);
@@ -108,10 +106,7 @@ namespace Eagle
 	private:
 		physx::PxFilterData m_FilterData;
 		PhysicsBodyType m_BodyType;
-		physx::PxRigidActor* m_RigidActor = nullptr;
-		Entity m_Entity;
 		ActorLockFlag m_LockFlags = ActorLockFlag::None;
 		std::set<Ref<ColliderShape>> m_Colliders;
-		PhysicsActorPayload m_Payload;
 	};
 }
