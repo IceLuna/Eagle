@@ -1,7 +1,7 @@
 #pragma once
 
+#include "PhysicsEngine.h"
 #include "Eagle/Core/Entity.h"
-#include "PhysicsSettings.h"
 #include "Eagle/Math/Transform.h"
 
 #include <PhysX/PxPhysicsAPI.h>
@@ -68,7 +68,7 @@ namespace Eagle
 	{
 	public:
 		PhysXQueryFilterCallback() = default;
-		PhysXQueryFilterCallback(physx::PxQueryHitType::Enum hitType) : m_hitType(hitType) {}
+		PhysXQueryFilterCallback(physx::PxQueryHitType::Enum hitType, CollisionGroup group) : m_hitType(hitType), m_CollisionGroupMask(uint32_t(group)) {}
 
 		// Performs game specific entity filtering
 		physx::PxQueryHitType::Enum preFilter(
@@ -82,7 +82,7 @@ namespace Eagle
 		}
 
 	private:
-		const uint64_t CollisionGroupMask = uint64_t(-1); // TODO v0.7: Fix when collision groups are introduced
+		const uint32_t m_CollisionGroupMask = uint32_t(-1);
 		physx::PxQueryHitType::Enum m_hitType = physx::PxQueryHitType::eBLOCK;
 	};
 
@@ -111,6 +111,7 @@ namespace Eagle
 		static physx::PxFrictionType::Enum ToPhysXFrictionType(FrictionType type);
 
 		static physx::PxQueryFlags GetPxQueryFlags(const QueryType& queryType);
+		static physx::PxFilterData GetPxFilterData(CollisionGroup group, CollisionGroup interactingGroup, CollisionDetectionType collisionDetection);
 
 		static void GetBoxGeometry(const physx::PxBoxGeometry& geometry, std::vector<glm::vec3>& vertices, std::vector<uint32_t>& indices);
 		static void GetCapsuleGeometry(const physx::PxCapsuleGeometry& geometry, std::vector<glm::vec3>& vertices, std::vector<uint32_t>& indices, const uint32_t stacks, const uint32_t slices);

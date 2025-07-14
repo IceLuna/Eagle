@@ -14,6 +14,7 @@
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Utils/Compressor.h"
 #include "Eagle/Utils/AssimpImporter.h"
+#include "Eagle/Core/Project.h"
 
 #include <stb_image.h>
 
@@ -581,6 +582,16 @@ namespace Eagle
 		out << YAML::Key << "MinRagdollBoneSize" << YAML::Value << mesh->GetMinRagdollBoneSize();
 		out << YAML::Key << "MaxRagdollTwist" << YAML::Value << mesh->GetRagdollMaxTwist();
 		out << YAML::Key << "MaxRagdollSwing" << YAML::Value << mesh->GetRagdollMaxSwing();
+		{
+			const auto& collisionGroupGUIDs = Project::GetProjectInfo().CollisionGroupGUIDs;
+			out << YAML::Key << "CollisionGroupGUIDs" << YAML::Value << YAML::BeginSeq;
+			for (const auto& guid : collisionGroupGUIDs)
+				out << guid;
+			out << YAML::EndSeq;
+		}
+		out << YAML::Key << "CollisionDetectionType" << YAML::Value << Utils::GetEnumName(mesh->GetCollisionDetectionType());
+		out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(mesh->GetCollisionGroup());
+		out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(mesh->GetInteractingCollisionGroup());
 
 		const auto& ragdollData = mesh->GetRagdollRoot();
 		if (!ragdollData.Name.empty())
@@ -808,12 +819,23 @@ namespace Eagle
 
 	void Serializer::SerializeAssetEntity(YAML::Emitter& out, const Ref<AssetEntity>& asset)
 	{
+		Entity entity = *asset->GetEntity().get();
+
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Entity);
 		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
 
-		Serializer::SerializeEntity(out, *asset->GetEntity().get());
+		if (entity.HasAny<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, MeshColliderComponent>())
+		{
+			const auto& collisionGroupGUIDs = Project::GetProjectInfo().CollisionGroupGUIDs;
+			out << YAML::Key << "CollisionGroupGUIDs" << YAML::Value << YAML::BeginSeq;
+			for (const auto& guid : collisionGroupGUIDs)
+				out << guid;
+			out << YAML::EndSeq;
+		}
+
+		Serializer::SerializeEntity(out, entity);
 
 		out << YAML::EndMap;
 	}
@@ -1299,7 +1321,7 @@ namespace Eagle
 			out << YAML::BeginMap; //RigidBodyComponent
 
 			out << YAML::Key << "BodyType" << YAML::Value << Utils::GetEnumName(rigidBodyComponent.BodyType);
-			out << YAML::Key << "CollisionDetectionType" << YAML::Value << Utils::GetEnumName(rigidBodyComponent.CollisionDetection);
+			out << YAML::Key << "CollisionDetectionType" << YAML::Value << Utils::GetEnumName(rigidBodyComponent.GetCollisionDetectionType());
 			out << YAML::Key << "PositionSolverIterations" << YAML::Value << rigidBodyComponent.GetPositionSolverIterations();
 			out << YAML::Key << "VelocitySolverIterations" << YAML::Value << rigidBodyComponent.GetVelocitySolverIterations();
 			out << YAML::Key << "Mass" << YAML::Value << rigidBodyComponent.GetMass();
@@ -1331,6 +1353,8 @@ namespace Eagle
 			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
 			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
 			out << YAML::Key << "DoesAffectNavMeshBuild" << YAML::Value << collider.DoesAffectNavMeshBuild();
+			out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(collider.GetCollisionGroup());
+			out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(collider.GetInteractingCollisionGroup());
 			out << YAML::EndMap; //BoxColliderComponent
 		}
 
@@ -1351,6 +1375,8 @@ namespace Eagle
 			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
 			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
 			out << YAML::Key << "DoesAffectNavMeshBuild" << YAML::Value << collider.DoesAffectNavMeshBuild();
+			out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(collider.GetCollisionGroup());
+			out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(collider.GetInteractingCollisionGroup());
 			out << YAML::EndMap; //SphereColliderComponent
 		}
 
@@ -1372,6 +1398,8 @@ namespace Eagle
 			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
 			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
 			out << YAML::Key << "DoesAffectNavMeshBuild" << YAML::Value << collider.DoesAffectNavMeshBuild();
+			out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(collider.GetCollisionGroup());
+			out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(collider.GetInteractingCollisionGroup());
 			out << YAML::EndMap; //CapsuleColliderComponent
 		}
 
@@ -1396,6 +1424,8 @@ namespace Eagle
 			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
 			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
 			out << YAML::Key << "DoesAffectNavMeshBuild" << YAML::Value << collider.DoesAffectNavMeshBuild();
+			out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(collider.GetCollisionGroup());
+			out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(collider.GetInteractingCollisionGroup());
 			out << YAML::EndMap; //MeshColliderComponent
 		}
 
@@ -1635,7 +1665,7 @@ namespace Eagle
 		}
 	}
 
-	void Serializer::DeserializeEntity(Entity deserializedEntity, const YAML::Node& entityNode)
+	void Serializer::DeserializeEntity(Entity deserializedEntity, const YAML::Node& entityNode, uint32_t collisionGroupValidMasks)
 	{
 		if (auto node = entityNode["Asset"])
 		{
@@ -1910,7 +1940,7 @@ namespace Eagle
 			auto& rigidBodyComponent = deserializedEntity.AddComponent<RigidBodyComponent>();
 
 			rigidBodyComponent.BodyType = Utils::GetEnumFromName<PhysicsBodyType>(rigidBodyComponentNode["BodyType"].as<std::string>());
-			rigidBodyComponent.CollisionDetection = Utils::GetEnumFromName<CollisionDetectionType>(rigidBodyComponentNode["CollisionDetectionType"].as<std::string>());
+			rigidBodyComponent.SetCollisionDetectionType(Utils::GetEnumFromName<CollisionDetectionType>(rigidBodyComponentNode["CollisionDetectionType"].as<std::string>()));
 			if (auto node = rigidBodyComponentNode["PositionSolverIterations"])
 				rigidBodyComponent.SetPositionSolverIterations(node.as<uint32_t>());
 			if (auto node = rigidBodyComponentNode["VelocitySolverIterations"])
@@ -1941,6 +1971,10 @@ namespace Eagle
 				collider.SetIsObstacle(node.as<bool>());
 			if (auto node = boxColliderNode["DoesAffectNavMeshBuild"])
 				collider.SetAffectsNavMeshBuild(node.as<bool>());
+			if (auto node = boxColliderNode["CollisionGroupMask"])
+				collider.SetCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
+			if (auto node = boxColliderNode["InteractingCollisionGroupMask"])
+				collider.SetInteractingCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
 		}
 
 		if (auto sphereColliderNode = entityNode["SphereColliderComponent"])
@@ -1959,6 +1993,10 @@ namespace Eagle
 				collider.SetIsObstacle(node.as<bool>());
 			if (auto node = sphereColliderNode["DoesAffectNavMeshBuild"])
 				collider.SetAffectsNavMeshBuild(node.as<bool>());
+			if (auto node = sphereColliderNode["CollisionGroupMask"])
+				collider.SetCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
+			if (auto node = sphereColliderNode["InteractingCollisionGroupMask"])
+				collider.SetInteractingCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
 		}
 
 		if (auto capsuleColliderNode = entityNode["CapsuleColliderComponent"])
@@ -1978,6 +2016,10 @@ namespace Eagle
 				collider.SetIsObstacle(node.as<bool>());
 			if (auto node = capsuleColliderNode["DoesAffectNavMeshBuild"])
 				collider.SetAffectsNavMeshBuild(node.as<bool>());
+			if (auto node = capsuleColliderNode["CollisionGroupMask"])
+				collider.SetCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
+			if (auto node = capsuleColliderNode["InteractingCollisionGroupMask"])
+				collider.SetInteractingCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
 		}
 
 		if (auto meshColliderNode = entityNode["MeshColliderComponent"])
@@ -2000,6 +2042,10 @@ namespace Eagle
 				collider.SetIsObstacle(node.as<bool>());
 			if (auto node = meshColliderNode["DoesAffectNavMeshBuild"])
 				collider.SetAffectsNavMeshBuild(node.as<bool>());
+			if (auto node = meshColliderNode["CollisionGroupMask"])
+				collider.SetCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
+			if (auto node = meshColliderNode["InteractingCollisionGroupMask"])
+				collider.SetInteractingCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
 		}
 
 		if (auto audioNode = entityNode["AudioComponent"])
@@ -3091,12 +3137,41 @@ namespace Eagle
 		float minRagdollBoneSize = 0.1f;
 		float maxRagdollTwist = 22.5f;
 		float maxRagdollSwing = 45.0f;
+		CollisionDetectionType collisionDetectionType = CollisionDetectionType::Discrete;
+		CollisionGroup collisionGroup = CollisionGroup::Object;
+		CollisionGroup interactingCollisionGroup = CollisionGroup::Object;
+		uint32_t collisionGroupValidMasks = 0xFFFFFFFF;
+
 		if (auto node = baseNode["MinRagdollBoneSize"])
 			minRagdollBoneSize = node.as<float>();
 		if (auto node = baseNode["MaxRagdollTwist"])
 			maxRagdollTwist = node.as<float>();
 		if (auto node = baseNode["MaxRagdollSwing"])
 			maxRagdollSwing = node.as<float>();
+		if (auto node = baseNode["CollisionDetectionType"])
+			collisionDetectionType = Utils::GetEnumFromName<CollisionDetectionType>(node.as<std::string>());
+		if (auto groupsNode = baseNode["CollisionGroupGUIDs"])
+		{
+			std::vector<GUID64> collisionGroupGUIDs;
+			collisionGroupGUIDs.reserve(groupsNode.size());
+			for (const auto& groupNode : groupsNode)
+			{
+				collisionGroupGUIDs.emplace_back(groupNode.as<GUID64>());
+			}
+
+			const auto& currentGUIDs = Project::GetProjectInfo().CollisionGroupGUIDs;
+			const size_t count = collisionGroupGUIDs.size();
+			EG_CORE_ASSERT(count == currentGUIDs.size());
+			for (size_t i = 0; i < count; ++i)
+			{
+				if (collisionGroupGUIDs[i] != currentGUIDs[i]) // Collision group has changed since the scene was saved, invalidate the mask
+					collisionGroupValidMasks &= ~(1 << i);
+			}
+		}
+		if (auto node = baseNode["CollisionGroupMask"])
+			collisionGroup = CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks);
+		if (auto node = baseNode["InteractingCollisionGroupMask"])
+			interactingCollisionGroup = CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks);
 
 		std::unordered_map<std::string, SkeletalRagdollBones::UserSettings> ragdollPerBoneData;
 		if (auto node = baseNode["RagdollBonesData"])
@@ -3177,10 +3252,13 @@ namespace Eagle
 			}
 		}
 
-		Ref<SkeletalMesh> skeletalMesh = SkeletalMesh::Create(vertices, indicesPerMaterial, skeletalInfo, aabb, ragdollPerBoneData, minRagdollBoneSize, maxRagdollTwist, maxRagdollSwing);
+		Ref<SkeletalMesh> skeletalMesh = SkeletalMesh::Create(vertices, indicesPerMaterial, skeletalInfo, aabb, ragdollPerBoneData,
+			minRagdollBoneSize, maxRagdollTwist, maxRagdollSwing, collisionDetectionType, collisionGroup, interactingCollisionGroup);
 		if (materialsNode)
+		{
 			for (const auto& matNode : materialsNode)
 				skeletalMesh->SetMaterialAsset(matNode["Index"].as<uint32_t>(), GetAsset<AssetMaterial>(matNode["Material"]));
+		}
 
 		return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, skeletalMesh);
 	}
@@ -3479,8 +3557,28 @@ namespace Eagle
 			return {};
 
 		GUID guid = baseNode["GUID"].as<GUID>();
+		uint32_t collisionGroupValidMasks = 0xFFFFFFFF;
+		if (auto groupsNode = baseNode["CollisionGroupGUIDs"])
+		{
+			std::vector<GUID64> collisionGroupGUIDs;
+			collisionGroupGUIDs.reserve(groupsNode.size());
+			for (const auto& groupNode : groupsNode)
+			{
+				collisionGroupGUIDs.emplace_back(groupNode.as<GUID64>());
+			}
+
+			const auto& currentGUIDs = Project::GetProjectInfo().CollisionGroupGUIDs;
+			const size_t count = collisionGroupGUIDs.size();
+			EG_CORE_ASSERT(count == currentGUIDs.size());
+			for (size_t i = 0; i < count; ++i)
+			{
+				if (collisionGroupGUIDs[i] != currentGUIDs[i]) // Collision group has changed since the scene was saved, invalidate the mask
+					collisionGroupValidMasks &= ~(1 << i);
+			}
+		}
+
 		Entity entity = AssetEntity::CreateEntity(guid);
-		Serializer::DeserializeEntity(entity, baseNode);
+		Serializer::DeserializeEntity(entity, baseNode, collisionGroupValidMasks);
 
 		class LocalAssetEntity: public AssetEntity
 		{

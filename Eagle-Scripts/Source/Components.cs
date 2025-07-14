@@ -18,6 +18,19 @@ namespace Eagle
         Dynamic
     }
 
+    public enum CollisionDetectionType
+    {
+        Discrete,
+		Continuous,
+		ContinuousSpeculative
+    }
+
+    public enum CollisionGroup
+    {
+        Object = 1 << 0,
+		Projectile = 1 << 1,
+	};
+
     public enum ForceMode
     {
         Force = 0,
@@ -2002,6 +2015,10 @@ namespace Eagle
         
         public PhysicsBodyType GetBodyType() { return GetBodyType_Native(Parent.ID); }
 
+        public void SetCollisionDetectionType(CollisionDetectionType type) { SetCollisionDetectionType_Native(Parent.ID, type); }
+
+        public CollisionDetectionType GetCollisionDetectionType() { return GetCollisionDetectionType_Native(Parent.ID); }
+
         /*
             The solver iteration count determines how accurately joints and contacts are resolved.
             If you are having trouble with jointed bodies oscillating and behaving erratically, then
@@ -2158,6 +2175,12 @@ namespace Eagle
         internal static extern PhysicsBodyType GetBodyType_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetCollisionDetectionType_Native(in GUID entityID, CollisionDetectionType type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern CollisionDetectionType GetCollisionDetectionType_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetPositionSolverIterations_Native(in GUID entityID, uint value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -2273,6 +2296,14 @@ namespace Eagle
             m_Type = typeof(BaseColliderComponent);
         }
 
+        // Collision groups it belongs to. It can belong to different groups (use XOR to combine groups)
+        public void SetCollisionGroup(CollisionGroup groups) { SetCollisionGroup_Native(Parent.ID, m_Type, groups); }
+		public CollisionGroup GetCollisionGroup() { return GetCollisionGroup_Native(Parent.ID, m_Type); }
+
+		// Collision groups it can interact with
+		public void SetInteractingCollisionGroup(CollisionGroup groups) { SetInteractingCollisionGroup_Native(Parent.ID, m_Type, groups); }
+		public CollisionGroup GetInteractingCollisionGroup() { return GetInteractingCollisionGroup_Native(Parent.ID, m_Type); }
+
         public void SetIsTrigger(bool bTrigger) { SetIsTrigger_Native(Parent.ID, m_Type, bTrigger); }
         
         public bool IsTrigger() { return IsTrigger_Native(Parent.ID, m_Type); }
@@ -2313,6 +2344,18 @@ namespace Eagle
         {
             return IsObstacle_Native(Parent.ID, m_Type);
         }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetCollisionGroup_Native(in GUID entityID, Type type, CollisionGroup groups);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern CollisionGroup GetCollisionGroup_Native(in GUID entityID, Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetInteractingCollisionGroup_Native(in GUID entityID, Type type, CollisionGroup groups);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern CollisionGroup GetInteractingCollisionGroup_Native(in GUID entityID, Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetIsTrigger_Native(in GUID entityID, Type type, bool bTrigger);

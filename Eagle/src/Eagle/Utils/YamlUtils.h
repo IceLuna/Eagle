@@ -89,6 +89,13 @@ namespace Eagle
 		out << YAML::BeginSeq << guid.GetHigh() << guid.GetLow() << YAML::EndSeq;
 		return out;
 	}
+
+	inline YAML::Emitter& operator<<(YAML::Emitter& out, const Eagle::GUID64& guid)
+	{
+		out << YAML::Flow;
+		out << YAML::BeginSeq << guid.GetID() << YAML::EndSeq;
+		return out;
+	}
 }
 
 namespace YAML
@@ -383,6 +390,26 @@ namespace YAML
 				return false;
 
 			rhs = Eagle::GUID(node[0].as<uint64_t>(), node[1].as<uint64_t>());
+			return true;
+		}
+	};
+
+	template<>
+	struct convert<Eagle::GUID64>
+	{
+		static Node encode(const Eagle::GUID64& rhs)
+		{
+			Node node;
+			node.push_back(rhs.GetID());
+			return node;
+		}
+
+		static bool decode(const Node& node, Eagle::GUID64& rhs)
+		{
+			if (!node.IsSequence() || node.size() != 1)
+				return false;
+
+			rhs = Eagle::GUID64(node[0].as<uint64_t>());
 			return true;
 		}
 	};

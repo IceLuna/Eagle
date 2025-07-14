@@ -126,9 +126,12 @@ namespace Eagle
 			aabb.Grow(AABB{transform.Location - halfScale, transform.Location + halfScale});
 		}
 		
-		const glm::vec3 center = aabb.Center();
-		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 1.5f); // Move back
-		camera.LookAt(center);
+		if (aabb.IsValid())
+		{
+			const glm::vec3 center = aabb.Center();
+			camera.SetLocation(center - cameraDir * aabb.MaxSide() * 1.5f); // Move back
+			camera.LookAt(center);
+		}
 	}
 
 	void AssetThumbnailRenderer::SetupScene(const Ref<AssetAnimation>& asset)

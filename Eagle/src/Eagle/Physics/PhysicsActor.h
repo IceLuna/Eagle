@@ -30,6 +30,9 @@ namespace Eagle
 		void WakeUp();
 		void PutToSleep();
 
+		void SetCollisionDetectionType(CollisionDetectionType type);
+		CollisionDetectionType GetCollisionDetectionType() const { return m_CollisionDetection; }
+
 		void SetPositionSolverIterations(uint32_t iterations);
 		uint32_t GetPositionSolverIterations() const;
 
@@ -83,14 +86,12 @@ namespace Eagle
 		Ref<SphereColliderShape> AddCollider(SphereColliderComponent& collider);
 		Ref<CapsuleColliderShape> AddCollider(CapsuleColliderComponent& collider);
 		std::array<Ref<MeshShape>, 2> AddCollider(MeshColliderComponent& collider);
-		const physx::PxFilterData& GetFilterData() const { return m_FilterData; }
 
 		bool RemoveCollider(const Ref<ColliderShape>& shape);
 		void RemoveAllColliders();
 		void Release();
 
 		void SynchronizeTransform();
-		void SetSimulationData();
 
 	private:
 		template <typename T>
@@ -104,9 +105,9 @@ namespace Eagle
 		void CreateRigidActor();
 
 	private:
-		physx::PxFilterData m_FilterData;
 		PhysicsBodyType m_BodyType;
 		ActorLockFlag m_LockFlags = ActorLockFlag::None;
+		CollisionDetectionType m_CollisionDetection = CollisionDetectionType::Discrete;
 		std::set<Ref<ColliderShape>> m_Colliders;
 	};
 }

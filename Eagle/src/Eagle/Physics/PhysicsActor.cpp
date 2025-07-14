@@ -13,9 +13,6 @@ namespace Eagle
 	{
 		const auto& rigidBody = m_Entity.GetComponent<RigidBodyComponent>();
 		m_BodyType = rigidBody.BodyType;
-		m_FilterData.word0 = 1; // word0 = own ID
-		m_FilterData.word1 = 1; // word1 = ID mask to filter pairs that trigger a contact callback;
-		m_FilterData.word2 = (uint32_t)rigidBody.CollisionDetection;
 		CreateRigidActor();
 	}
 	
@@ -63,6 +60,25 @@ namespace Eagle
 	{
 		if (IsDynamic())
 			m_RigidActor->is<physx::PxRigidDynamic>()->putToSleep();
+	}
+
+	void PhysicsActor::SetCollisionDetectionType(CollisionDetectionType type)
+	{
+		m_CollisionDetection = type;
+		if (!IsDynamic())
+		{
+			// Cannot set collision detection type for non-dynamic actor
+			return;
+		}
+
+		physx::PxRigidDynamic* actor = m_RigidActor->is<physx::PxRigidDynamic>();
+		actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, m_CollisionDetection == CollisionDetectionType::Continuous);
+		actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_SPECULATIVE_CCD, m_CollisionDetection == CollisionDetectionType::ContinuousSpeculative);
+
+		for (auto& shape : m_Colliders)
+		{
+			shape->UpdateFilterData();
+		}
 	}
 
 	void PhysicsActor::SetPositionSolverIterations(uint32_t iterations)
@@ -438,12 +454,6 @@ namespace Eagle
 
 		actor->setKinematicTarget(transform);
 	}
-
-	void PhysicsActor::SetSimulationData()
-	{
-		for (auto& collider : m_Colliders)
-			collider->SetFilterData(m_FilterData);
-	}
 	
 	bool PhysicsActor::IsKinematic() const
 	{
@@ -614,10 +624,7 @@ namespace Eagle
 			SetMaxAngularVelocity(rigidBody.GetMaxAngularVelocity());
 			SetPositionSolverIterations(rigidBody.GetPositionSolverIterations());
 			SetVelocitySolverIterations(rigidBody.GetVelocitySolverIterations());
-
-			m_RigidActor->is<physx::PxRigidDynamic>()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, rigidBody.CollisionDetection == CollisionDetectionType::Continuous);
-			m_RigidActor->is<physx::PxRigidDynamic>()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_SPECULATIVE_CCD, rigidBody.CollisionDetection == CollisionDetectionType::ContinuousSpeculative);
-
+			SetCollisionDetectionType(rigidBody.GetCollisionDetectionType());
 			SetMass(rigidBody.GetMass());
 		}
 

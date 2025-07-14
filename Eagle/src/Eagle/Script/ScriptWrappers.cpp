@@ -41,6 +41,10 @@ namespace Eagle
 	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetIsVolumetricLightFunctions;
 
 	//BaseColliderComponent
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, CollisionGroup)>> m_SetCollisionGroupsFunctions;
+	extern std::unordered_map<MonoType*, std::function<CollisionGroup(Entity&)>> m_GetCollisionGroupsFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, CollisionGroup)>> m_SetInteractingCollisionGroupsFunctions;
+	extern std::unordered_map<MonoType*, std::function<CollisionGroup(Entity&)>> m_GetInteractingCollisionGroupsFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsTriggerFunctions;
 	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsTriggerFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetCollisionVisibleFunctions;
@@ -3382,6 +3386,29 @@ namespace Eagle
 		}
 	}
 
+	void Script::Eagle_RigidBodyComponent_SetCollisionDetectionType(GUID entityID, CollisionDetectionType type)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<RigidBodyComponent>().SetCollisionDetectionType(type);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set collision detection type. Entity is null");
+	}
+
+	CollisionDetectionType Script::Eagle_RigidBodyComponent_GetCollisionDetectionType(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<RigidBodyComponent>().GetCollisionDetectionType();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get collision detection type. Entity is null");
+			return CollisionDetectionType::Discrete;
+		}
+	}
+
 	void Script::Eagle_RigidBodyComponent_SetPositionSolverIterations(GUID entityID, uint32_t iterations)
 	{
 		auto& scene = Scene::GetCurrentScene();
@@ -4019,6 +4046,60 @@ namespace Eagle
 	}
 
 	//--------------BaseColliderComponent--------------
+	void Script::Eagle_BaseColliderComponent_SetCollisionGroup(GUID entityID, void* type, CollisionGroup groups)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			m_SetCollisionGroupsFunctions[monoType](entity, groups);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetCollisionGroup'. Entity is null");
+	}
+
+	CollisionGroup Script::Eagle_BaseColliderComponent_GetCollisionGroup(GUID entityID, void* type)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			return m_GetCollisionGroupsFunctions[monoType](entity);
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetCollisionGroup'. Entity is null");
+			return CollisionGroup::Object;
+		}
+	}
+
+	void Script::Eagle_BaseColliderComponent_SetInteractingCollisionGroup(GUID entityID, void* type, CollisionGroup groups)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			m_SetInteractingCollisionGroupsFunctions[monoType](entity, groups);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetInteractingCollisionGroup'. Entity is null");
+	}
+
+	CollisionGroup Script::Eagle_BaseColliderComponent_GetInteractingCollisionGroup(GUID entityID, void* type)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			return m_GetInteractingCollisionGroupsFunctions[monoType](entity);
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetInteractingCollisionGroup'. Entity is null");
+			return CollisionGroup::Object;
+		}
+	}
+
 	void Script::Eagle_BaseColliderComponent_SetIsTrigger(GUID entityID, void* type, bool bTrigger)
 	{
 		auto& scene = Scene::GetCurrentScene();

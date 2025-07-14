@@ -9,9 +9,89 @@
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Utils/YamlUtils.h"
 #include "Eagle/Utils/Compressor.h"
+#include "Eagle/Physics/PhysicsEngine.h"
+
+#include <magic_enum_utility.hpp>
+#include <glm/gtc/integer.hpp>
 
 namespace Eagle
 {
+	constexpr uint32_t s_MaxCollisionGroups = sizeof(uint32_t) * 8;
+
+	static void OnCollisionGroupsChanged(const ProjectInfo& info)
+	{
+		AssetEntity::InvalidateCollisionGroups(info.AllCollisionGroupsMask);
+
+		// Invalidate skeletal meshes (ragdolls)
+		const auto& assets = AssetManager::GetAssets();
+		for (const auto& [_, asset] : assets)
+		{
+			if (asset->GetAssetType() != AssetType::SkeletalMesh)
+				continue;
+
+			auto skeletalAsset = Cast<AssetSkeletalMesh>(asset);
+			const auto& mesh = skeletalAsset->GetMesh();
+
+			const uint32_t collisionGroup = uint32_t(mesh->GetCollisionGroup()) & info.AllCollisionGroupsMask;
+			const uint32_t interactingCollisionGroup = uint32_t(mesh->GetCollisionGroup()) & info.AllCollisionGroupsMask;
+
+			mesh->SetCollisionGroup(CollisionGroup(collisionGroup));
+			mesh->SetInteractingCollisionGroup(CollisionGroup(interactingCollisionGroup));
+			mesh->RegenerateRagdollData(mesh->GetMinRagdollBoneSize());
+		}
+	}
+
+	static void LoadCollisionGroups(YAML::Node& groupsNode, ProjectInfo& info)
+	{
+		info.UserCollisionGroups.clear();
+		info.AllCollisionGroups.clear();
+		info.AllCollisionGroupsMask = 0u;
+		info.CollisionGroupGUIDs.clear();
+
+		info.CollisionGroupGUIDs.reserve(s_MaxCollisionGroups);
+		info.AllCollisionGroups.reserve(s_MaxCollisionGroups);
+		magic_enum::enum_for_each<CollisionGroup>([&info](CollisionGroup group)
+		{
+			uint32_t mask = uint32_t(group);
+			info.AllCollisionGroups.push_back(std::make_pair(Utils::GetEnumName(group), mask));
+			const size_t index = info.CollisionGroupGUIDs.size() + 1;
+			info.CollisionGroupGUIDs.emplace_back(index);
+
+			EG_CORE_ASSERT((info.AllCollisionGroupsMask & mask) == 0);
+			info.AllCollisionGroupsMask |= mask;
+		});
+		info.CollisionGroupGUIDs.resize(s_MaxCollisionGroups, GUID64(0));
+
+		if (!groupsNode)
+			return;
+
+		info.UserCollisionGroups.reserve(groupsNode.size());
+		for (const auto& groupNode : groupsNode)
+		{
+			CollisionGroupInfo group;
+			group.first = groupNode["Name"].as<std::string>();
+			group.second = groupNode["Mask"].as<uint32_t>();
+			GUID64 guid = groupNode["GUID"].as<GUID64>();
+			Project::AddUserCollisionGroup(group, guid);
+		}
+		OnCollisionGroupsChanged(info);
+	}
+
+	static void SaveCollisionGroups(YAML::Emitter& out, const ProjectInfo& info)
+	{
+		out << YAML::Key << "CollisionGroups" << YAML::Value;
+		out << YAML::BeginSeq;
+		for (const auto& groups : info.UserCollisionGroups)
+		{
+			out << YAML::BeginMap;
+			out << YAML::Key << "Name" << YAML::Value << groups.first;
+			out << YAML::Key << "Mask" << YAML::Value << groups.second;
+			out << YAML::Key << "GUID" << YAML::Value << Project::GetCollisionGroupGUIDByMask(groups.second);
+			out << YAML::EndMap;
+		}
+		out << YAML::EndSeq;
+	}
+
 	ProjectInfo Project::s_Info = {};
 	
 	bool Project::Create(const ProjectInfo& info)
@@ -195,6 +275,8 @@ namespace Eagle
 		if (s_Info.GameStartupScene)
 			out << YAML::Key << "StartupScene" << YAML::Value << s_Info.GameStartupScene->GetGUID();
 
+		SaveCollisionGroups(out, s_Info);
+
 		AssetManager::BuildAssetPack(out);
 		out << YAML::EndMap;
 
@@ -268,6 +350,8 @@ namespace Eagle
 			if (AssetManager::Get(startupSceneNode.as<GUID>(), &asset))
 				s_Info.GameStartupScene = Cast<AssetScene>(asset);
 		}
+
+		LoadCollisionGroups(baseNode["CollisionGroups"], s_Info);
 	}
 
 	void Project::Save()
@@ -287,6 +371,8 @@ namespace Eagle
 		if (info.GameStartupScene)
 			out << YAML::Key << "Game Startup Scene" << YAML::Value << info.GameStartupScene->GetGUID();
 
+		SaveCollisionGroups(out, info);
+
 		out << YAML::EndMap;
 
 		std::ofstream fout(info.BasePath / (info.Name + GetExtension()));
@@ -297,6 +383,116 @@ namespace Eagle
 	void Project::OnProjectOpenProcessed()
 	{
 		Load(GetProjectFilePath(), &s_Info); // Required to correctly load `StartupScene`. Previously, it was not loaded because AssetManager wasn't initialized
+	}
+
+	void Project::AddUserCollisionGroup(const CollisionGroupInfo& group, const GUID64& guid)
+	{
+		if ((s_Info.AllCollisionGroupsMask & 0xFFFFFFFF) == 0xFFFFFFFF)
+		{
+			constexpr uint32_t builtinGroupsCount = (uint32_t)magic_enum::enum_count<CollisionGroup>();
+			constexpr uint32_t maxUserGroups = s_MaxCollisionGroups - builtinGroupsCount;
+
+			EG_CORE_ERROR("Failed to add a new user collision group `{}`. The engine only supports {} groups, and {} of them are built-in. Which means the engine only supports {} user collision groups",
+				group.first, s_MaxCollisionGroups, builtinGroupsCount, maxUserGroups);
+			return;
+		}
+
+		const uint32_t& mask = group.second;
+		if ((s_Info.AllCollisionGroupsMask & mask) == 0)
+		{
+			s_Info.AllCollisionGroupsMask |= mask;
+			s_Info.AllCollisionGroups.push_back(group);
+			s_Info.UserCollisionGroups.push_back(group);
+			const uint32_t index = glm::log2(mask);
+			s_Info.CollisionGroupGUIDs[index] = guid;
+			OnCollisionGroupsChanged(s_Info);
+		}
+		else
+		{
+			EG_CORE_ERROR("Failed to add a new user collision group. Group with its mask already exists! Mask: {}", mask);
+			EG_CORE_ASSERT(!"Mask collision");
+		}
+	}
+
+	void Project::AddUserCollisionGroup(const std::string& name)
+	{
+		constexpr uint32_t builtinGroupsCount = (uint32_t)magic_enum::enum_count<CollisionGroup>();
+		constexpr uint32_t maxUserGroups = s_MaxCollisionGroups - builtinGroupsCount;
+
+		if ((s_Info.AllCollisionGroupsMask & 0xFFFFFFFF) == 0xFFFFFFFF)
+		{
+			EG_CORE_ERROR("Failed to add a new user collision group. The engine only supports {} groups, and {} of them are built-in. Which means the engine only supports {} user collision groups",
+				s_MaxCollisionGroups, builtinGroupsCount, maxUserGroups);
+			return;
+		}
+
+		// Find first unused bit
+		const CollisionGroup lastBuiltin = magic_enum::enum_value<CollisionGroup>(builtinGroupsCount - 1); // Get by index
+		uint32_t mask = (uint32_t)lastBuiltin << 1; // Skip all built in masks
+		while (true)
+		{
+			if ((s_Info.AllCollisionGroupsMask & mask) == 0u)
+			{
+				break;
+			}
+			mask <<= 1;
+		}
+
+		CollisionGroupInfo newGroup;
+		newGroup.first = name;
+		newGroup.second = mask;
+		AddUserCollisionGroup(newGroup, GUID64{});
+	}
+
+	void Project::RemoveUserCollisionGroup(uint32_t mask)
+	{
+		auto eraseGroupFunc = [](std::vector<CollisionGroupInfo>& groups, uint32_t mask)
+		{
+			auto it = std::find_if(groups.begin(), groups.end(), [mask](const CollisionGroupInfo& group)
+			{
+				return group.second == mask;
+			});
+			if (it != groups.end())
+				groups.erase(it);
+		};
+
+		eraseGroupFunc(s_Info.AllCollisionGroups, mask);
+		eraseGroupFunc(s_Info.UserCollisionGroups, mask);
+		s_Info.AllCollisionGroupsMask &= (~mask);
+
+		const uint32_t index = glm::log2(mask);
+		s_Info.CollisionGroupGUIDs[index] = GUID64(0);
+		OnCollisionGroupsChanged(s_Info);
+	}
+
+	void Project::RenameUserCollisionGroup(uint32_t mask, const std::string& newName)
+	{
+		auto renameGroupFunc = [](std::vector<CollisionGroupInfo>& groups, uint32_t mask, const std::string& newName)
+		{
+			auto it = std::find_if(groups.begin(), groups.end(), [mask](const CollisionGroupInfo& group)
+			{
+				return group.second == mask;
+			});
+			if (it != groups.end())
+				it->first = newName;
+		};
+
+		renameGroupFunc(s_Info.AllCollisionGroups, mask, newName);
+		renameGroupFunc(s_Info.UserCollisionGroups, mask, newName);
+	}
+
+	bool Project::CanAddUserCollisionGroup()
+	{
+		return s_Info.AllCollisionGroups.size() < s_MaxCollisionGroups;
+	}
+
+	GUID64 Project::GetCollisionGroupGUIDByMask(uint32_t mask)
+	{
+		if ((s_Info.AllCollisionGroupsMask & mask) == 0u)
+			return GUID64(0);
+
+		const uint32_t index = glm::log2(mask);
+		return s_Info.CollisionGroupGUIDs[index];
 	}
 
 	bool Project::Load(const Path& filepath, ProjectInfo* outInfo)
@@ -323,6 +519,7 @@ namespace Eagle
 			if (AssetManager::Get(guid, &asset))
 				(*outInfo).GameStartupScene = Cast<AssetScene>(asset);
 		}
+		LoadCollisionGroups(data["CollisionGroups"], *outInfo);
 
 		return true;
 	}

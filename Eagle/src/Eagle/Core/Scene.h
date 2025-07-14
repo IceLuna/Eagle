@@ -171,6 +171,8 @@ namespace Eagle
 
 		void SetPhysicsDebugType(DebugType type);
 		DebugType GetPhysicsDebugType() const { return m_RuntimePhysicsSettings.DebugType; }
+		
+		void InvalidateCollisionGroups(uint32_t validMasks);
 
 		template <typename... T>
 		auto GetAllEntitiesWith()

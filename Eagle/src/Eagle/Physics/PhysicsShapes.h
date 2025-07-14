@@ -2,6 +2,7 @@
 
 #include "Eagle/Core/Entity.h"
 #include "Eagle/Math/AABB.h"
+#include "PhysicsEngine.h"
 #include "PhysicsUtils.h"
 
 #include <PhysX/PxPhysicsAPI.h>
@@ -39,7 +40,15 @@ namespace Eagle
 		void SetRelativeLocationAndRotation(const Transform& transform);
 		void SetShowCollision(bool bShowCollision);
 
-		void SetFilterData(const physx::PxFilterData& filterData) { m_Shape->setSimulationFilterData(filterData); };
+		// Collision groups it belongs to. It can belong to different groups (use XOR to combine groups)
+		void SetCollisionGroup(CollisionGroup group);
+		CollisionGroup GetCollisionGroup() const { return m_CollisionGroup; }
+
+		// Collision groups it can interact with
+		void SetInteractingCollisionGroup(CollisionGroup groups);
+		CollisionGroup GetInteractingCollisionGroup() const { return m_InteractingCollisionGroup; }
+
+		void UpdateFilterData();
 
 		Transform GetGlobalTransform() const { return PhysXUtils::FromPhysXTransform(m_Shape->getActor()->getGlobalPose()); }
 		Transform GetLocalTransform() const { return PhysXUtils::FromPhysXTransform(m_Shape->getLocalPose()); }
@@ -57,6 +66,8 @@ namespace Eagle
 		physx::PxShape* m_Shape = nullptr; // Note: it's not released manually since it's created as an Exclusive Shape
 		glm::vec3 m_ColliderScale = glm::vec3{ 1.f };
 		ColliderType m_Type;
+		CollisionGroup m_CollisionGroup = CollisionGroup::Object;
+		CollisionGroup m_InteractingCollisionGroup = CollisionGroup::Object;
 	};
 	
 	class BoxColliderShape : public ColliderShape

@@ -72,7 +72,7 @@ namespace Eagle
 		if (void* userData = pairHeader.actors[1]->userData)
 		{
 			const PhysicsActorBase* actor = (PhysicsActorBase*)userData;
-			entityA = actor->GetEntity();
+			entityB = actor->GetEntity();
 		}
 
 		bool bActorAHasScript = ScriptEngine::IsEntityModuleValid(entityA);

@@ -4,6 +4,7 @@
 
 namespace Eagle
 {
+	// 128bit GUID
 	class GUID
 	{
 	public:
@@ -48,6 +49,42 @@ namespace Eagle
 		uint64_t m_Higher64;
 		uint64_t m_Lower64;
 	};
+
+	// 64bit GUID
+	class GUID64
+	{
+	public:
+		GUID64() : m_ID(Random::UInt64()) {}
+		GUID64(uint64_t id) : m_ID(id) {}
+		GUID64(const GUID64& guid) = default;
+
+		bool operator< (const GUID64& other) const
+		{
+			return m_ID < other.m_ID;
+		}
+
+		bool operator==(const GUID64& other) const
+		{
+			return m_ID == other.m_ID;
+		}
+
+		bool operator!=(const GUID64& other) const
+		{
+			return !(*this == other);
+		}
+
+		std::size_t GetHash() const
+		{
+			return std::hash<uint64_t>()(m_ID);
+		}
+
+		bool IsNull() const { return m_ID == 0; }
+
+		uint64_t GetID() const { return m_ID; }
+
+	private:
+		uint64_t m_ID;
+	};
 }
 
 namespace std 
@@ -56,6 +93,15 @@ namespace std
 	struct hash<Eagle::GUID>
 	{
 		std::size_t operator()(const Eagle::GUID& guid) const
+		{
+			return guid.GetHash();
+		}
+	};
+
+	template <>
+	struct hash<Eagle::GUID64>
+	{
+		std::size_t operator()(const Eagle::GUID64& guid) const
 		{
 			return guid.GetHash();
 		}

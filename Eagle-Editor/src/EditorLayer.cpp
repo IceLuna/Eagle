@@ -1828,9 +1828,13 @@ namespace Eagle
 		const auto& projectInfo = Project::GetProjectInfo();
 		Ref<AssetScene> startupScene = projectInfo.GameStartupScene;
 		glm::uvec3 version = projectInfo.Version;
+		const bool bRuntime = m_EditorState != EditorState::Edit;
+
+		if (bRuntime)
+			UI::PushItemDisabled();
 
 		ImGui::Begin("Project Settings");
-		UI::BeginPropertyGrid("RendererSettingsPanel");
+		UI::BeginPropertyGrid("ProjectSettingsPanel");
 
 		bool bChanged = false;
 		if (EditorResources::DrawAssetSelection("Game startup scene", startupScene, "If 'None' is selected, an empty scene will be opened"))
@@ -1845,10 +1849,72 @@ namespace Eagle
 			bChanged = true;
 		}
 
+		UI::EndPropertyGrid();
+
+		// Physics Collision groups
+		{
+			constexpr ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+				| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			ImGui::Separator();
+			const bool treeOpened = ImGui::TreeNodeEx("Collision Groups", treeFlags);
+			ImGui::PopStyleVar();
+
+			if (treeOpened)
+			{
+				UI::BeginPropertyGrid("ProjectSettingsPanel");
+
+				auto userGroups = Project::GetUserCollisionGroups();
+
+				for (auto it = userGroups.begin(); it != userGroups.end(); ++it)
+				{
+					auto& name = it->first;
+					auto& mask = it->second;
+
+					ImGui::PushID(mask);
+					if (ImGui::Button("Delete"))
+					{
+						Project::RemoveUserCollisionGroup(mask);
+						m_CurrentScene->InvalidateCollisionGroups(Project::GetValidCollisionGroupsMask());
+						m_OpenedSceneAsset->SetDirty(true);
+						bChanged = true;
+					}
+					ImGui::SameLine();
+					ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3.f);
+					if (UI::PropertyText("Name", name))
+					{
+						Project::RenameUserCollisionGroup(mask, name);
+						bChanged = true;
+					}
+					ImGui::PopID();
+				}
+
+				UI::EndPropertyGrid();
+				ImGui::Separator();
+
+				const bool bCanAdd = Project::CanAddUserCollisionGroup();
+				if (!bCanAdd)
+					UI::PushItemDisabled();
+				if (ImGui::Button("Add", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
+				{
+					Project::AddUserCollisionGroup("New Group");
+					m_CurrentScene->InvalidateCollisionGroups(Project::GetValidCollisionGroupsMask());
+					m_OpenedSceneAsset->SetDirty(true);
+					bChanged = true;
+				}
+				if (!bCanAdd)
+					UI::PopItemDisabled();
+
+				ImGui::TreePop();
+			}
+		}
+
+		if (bRuntime)
+			UI::PopItemDisabled();
+
 		if (bChanged)
 			Project::Save();
 
-		UI::EndPropertyGrid();
 		ImGui::End();
 	}
 	

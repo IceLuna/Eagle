@@ -226,6 +226,18 @@ namespace Eagle
 				line.End.Location = trMat * glm::vec4(line.End.Location, 1.f);
 			}
 		}
+
+		template <typename Comp>
+		void InvalidateCollisionGroups(entt::registry& registry, uint32_t validMasks)
+		{
+			auto view = registry.view<Comp>();
+			for (auto entityID : view)
+			{
+				auto& comp = view.get<Comp>(entityID);
+				comp.SetCollisionGroup(CollisionGroup(uint32_t(comp.GetCollisionGroup()) & validMasks));
+				comp.SetInteractingCollisionGroup(CollisionGroup(uint32_t(comp.GetInteractingCollisionGroup()) & validMasks));
+			}
+		}
 	}
 
 	Ref<Scene> Scene::s_CurrentScene;
@@ -1732,6 +1744,14 @@ namespace Eagle
 		m_RuntimePhysicsSettings.DebugType = type;
 		if (m_PhysicsScene && m_PhysicsScene == m_RuntimePhysicsScene)
 			m_PhysicsScene->SetDebugType(type);
+	}
+
+	void Scene::InvalidateCollisionGroups(uint32_t validMasks)
+	{
+		Utils::InvalidateCollisionGroups<BoxColliderComponent>(m_Registry, validMasks);
+		Utils::InvalidateCollisionGroups<SphereColliderComponent>(m_Registry, validMasks);
+		Utils::InvalidateCollisionGroups<CapsuleColliderComponent>(m_Registry, validMasks);
+		Utils::InvalidateCollisionGroups<MeshColliderComponent>(m_Registry, validMasks);
 	}
 
 	CameraComponent* Scene::GetRuntimeCamera()

@@ -37,6 +37,10 @@ namespace Eagle
 	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetIsVolumetricLightFunctions;
 
 	//BaseColliderComponent
+	std::unordered_map<MonoType*, std::function<void(Entity&, CollisionGroup)>> m_SetCollisionGroupsFunctions;
+	std::unordered_map<MonoType*, std::function<CollisionGroup(Entity&)>> m_GetCollisionGroupsFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&, CollisionGroup)>> m_SetInteractingCollisionGroupsFunctions;
+	std::unordered_map<MonoType*, std::function<CollisionGroup(Entity&)>> m_GetInteractingCollisionGroupsFunctions;
 	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsTriggerFunctions;
 	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsTriggerFunctions;
 	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetCollisionVisibleFunctions;
@@ -97,6 +101,10 @@ namespace Eagle
 			}\
 			if constexpr (std::is_base_of<BaseColliderComponent, Type>::value)\
 			{\
+				m_SetCollisionGroupsFunctions[type] = [](Entity& entity, CollisionGroup groups) { ((BaseColliderComponent&)entity.GetComponent<Type>()).SetCollisionGroup(groups); };\
+				m_GetCollisionGroupsFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).GetCollisionGroup(); };\
+				m_SetInteractingCollisionGroupsFunctions[type] = [](Entity& entity, CollisionGroup groups) { ((BaseColliderComponent&)entity.GetComponent<Type>()).SetInteractingCollisionGroup(groups); };\
+				m_GetInteractingCollisionGroupsFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).GetInteractingCollisionGroup(); };\
 				m_SetIsTriggerFunctions[type] = [](Entity& entity, bool bTrigger) { ((BaseColliderComponent&)entity.GetComponent<Type>()).SetIsTrigger(bTrigger); };\
 				m_IsTriggerFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).IsTrigger(); };\
 				m_SetCollisionVisibleFunctions[type] = [](Entity& entity, bool bVisible) { ((BaseColliderComponent&)entity.GetComponent<Type>()).SetShowCollision(bVisible); };\
@@ -480,6 +488,8 @@ namespace Eagle
 		//RigidBodyComponent
 		mono_add_internal_call("Eagle.RigidBodyComponent::SetBodyType_Native", Eagle::Script::Eagle_RigidBodyComponent_SetBodyType);
 		mono_add_internal_call("Eagle.RigidBodyComponent::GetBodyType_Native", Eagle::Script::Eagle_RigidBodyComponent_GetBodyType);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetCollisionDetectionType_Native", Eagle::Script::Eagle_RigidBodyComponent_SetCollisionDetectionType);
+		mono_add_internal_call("Eagle.RigidBodyComponent::GetCollisionDetectionType_Native", Eagle::Script::Eagle_RigidBodyComponent_GetCollisionDetectionType);
 		mono_add_internal_call("Eagle.RigidBodyComponent::SetPositionSolverIterations_Native", Eagle::Script::Eagle_RigidBodyComponent_SetPositionSolverIterations);
 		mono_add_internal_call("Eagle.RigidBodyComponent::SetVelocitySolverIterations_Native", Eagle::Script::Eagle_RigidBodyComponent_SetVelocitySolverIterations);
 		mono_add_internal_call("Eagle.RigidBodyComponent::GetPositionSolverIterations_Native", Eagle::Script::Eagle_RigidBodyComponent_GetPositionSolverIterations);
@@ -518,6 +528,10 @@ namespace Eagle
 		mono_add_internal_call("Eagle.RigidBodyComponent::SetLockFlag_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLockFlag);
 
 		//BaseColliderComponent
+		mono_add_internal_call("Eagle.BaseColliderComponent::SetCollisionGroup_Native", Eagle::Script::Eagle_BaseColliderComponent_SetCollisionGroup);
+		mono_add_internal_call("Eagle.BaseColliderComponent::GetCollisionGroup_Native", Eagle::Script::Eagle_BaseColliderComponent_GetCollisionGroup);
+		mono_add_internal_call("Eagle.BaseColliderComponent::SetInteractingCollisionGroup_Native", Eagle::Script::Eagle_BaseColliderComponent_SetInteractingCollisionGroup);
+		mono_add_internal_call("Eagle.BaseColliderComponent::GetInteractingCollisionGroup_Native", Eagle::Script::Eagle_BaseColliderComponent_GetInteractingCollisionGroup);
 		mono_add_internal_call("Eagle.BaseColliderComponent::SetIsTrigger_Native", Eagle::Script::Eagle_BaseColliderComponent_SetIsTrigger);
 		mono_add_internal_call("Eagle.BaseColliderComponent::IsTrigger_Native", Eagle::Script::Eagle_BaseColliderComponent_IsTrigger);
 		mono_add_internal_call("Eagle.BaseColliderComponent::SetCollisionVisible_Native", Eagle::Script::Eagle_BaseColliderComponent_SetCollisionVisible);

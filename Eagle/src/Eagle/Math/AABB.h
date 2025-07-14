@@ -56,6 +56,11 @@ namespace Eagle
 			return Min == other.Min && Max == other.Max;
 		}
 
+		constexpr bool IsValid() const
+		{
+			return Min != glm::vec3(std::numeric_limits<float>::max()) && Max != glm::vec3(std::numeric_limits<float>::lowest());
+		}
+
 		static bool Overlap(const AABB& a, const AABB& b)
 		{
 			return (a.Min.x <= b.Max.x && a.Max.x >= b.Min.x) &&

@@ -26,6 +26,7 @@ namespace Eagle::UI
 	static uint64_t s_ID = 0;
 	static char s_IDBuffer[s_IDBufferSize];
 	static const VkImageLayout s_VulkanImageLayout = ImageLayoutToVulkan(ImageReadAccess::PixelShaderRead);
+	static constexpr char* s_HelpMarker = "(?)";
 
 	int TextResizeCallback(ImGuiInputTextCallbackData* data)
 	{
@@ -903,6 +904,31 @@ namespace Eagle::UI
 		return bModified;
 	}
 
+	bool PropertyBitMask(const std::string_view label, uint32_t& value, const std::vector<std::pair<std::string, uint32_t>>& masks, const std::string_view helpMessage)
+	{
+		bool bModified = false;
+
+		ImGui::PushID(label.data());
+		for (const auto& maskInfo : masks)
+		{
+			const auto& name = maskInfo.first;
+			const auto& mask = maskInfo.second;
+
+			bool bChecked = mask & value;
+			if (UI::Property(name, bChecked))
+			{
+				if (bChecked) // If it was checked, add the mask
+					value |= mask;
+				else // Otherwise, remove it
+					value &= ~mask;
+				bModified = true;
+			}
+		}
+		ImGui::PopID();
+
+		return bModified;
+	}
+
 	bool InputFloat(const std::string_view label, float& value, float step, float stepFast, const std::string_view helpMessage)
 	{
 		UpdateIDBuffer(label);
@@ -1143,13 +1169,12 @@ namespace Eagle::UI
 		}
 	}
 
-	void TextWithSeparator(const std::string_view text, float thickness)
+	void TextWithSeparator(const std::string_view text, float thickness, const std::string_view helpMessage)
 	{
 		const int columns = ImGui::GetColumnsCount();
 		ImGui::Columns(1);
 
 		auto* window = ImGui::GetCurrentWindow();
-		const ImVec2 size = ImGui::CalcTextSize(text.data());
 		const auto& style = ImGui::GetStyle();
 		
 		ImVec4 textColor = style.Colors[ImGuiCol_Text];
@@ -1162,6 +1187,13 @@ namespace Eagle::UI
 		ImGui::PopStyleColor();
 
 		const float paddingX = style.FramePadding.x;
+		ImVec2 size = ImGui::CalcTextSize(text.data());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+			size.x += ImGui::CalcTextSize(s_HelpMarker).x + paddingX;
+		}
 
 		ImGui::SameLine();
 		ImGui::SetCursorPosX(0.0f);
@@ -1235,7 +1267,7 @@ namespace Eagle::UI
 		}
 
 		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 1.f);
-		ImGui::TextDisabled("(?)");
+		ImGui::TextDisabled(s_HelpMarker);
 		if (ImGui::IsItemHovered())
 		{
 			ImGui::BeginTooltip();

@@ -4,6 +4,7 @@
 #include "Eagle/Renderer/RendererUtils.h"
 #include "Eagle/Math/AABB.h"
 #include "Eagle/Math/Transform.h"
+#include "Eagle/Physics/PhysicsEngine.h"
 
 #include <vector>
 #include <glm/glm.hpp>
@@ -106,7 +107,8 @@ namespace Eagle
 	protected:
 		SkeletalMesh() = default;
 		SkeletalMesh(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
-			const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollPerBoneSettings = {}, float minRagdollBoneSize = 0.1f, float maxRagdollTwist = 22.5f, float maxRagdollSwing = 45.f);
+			const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollPerBoneSettings = {}, float minRagdollBoneSize = 0.1f, float maxRagdollTwist = 22.5f, float maxRagdollSwing = 45.f,
+			CollisionDetectionType collisionDetection = CollisionDetectionType::Discrete, CollisionGroup collisionGroup = CollisionGroup::Object, CollisionGroup interactingCollisionGroup = CollisionGroup::Object);
 		SkeletalMesh(const SkeletalMesh& other);
 
 	public:
@@ -153,16 +155,24 @@ namespace Eagle
 		void RegenerateRagdollData(float minBoneSize);
 		void SetRagdollMaxTwist(float twist) { m_MaxRagdollTwist = twist; }
 		void SetRagdollMaxSwing(float swing) { m_MaxRagdollSwing = swing; }
+		void SetCollisionDetectionType(CollisionDetectionType type) { m_CollisionDetection = type; }
+		void SetCollisionGroup(CollisionGroup groups) { m_CollisionGroup = groups; }
+		void SetInteractingCollisionGroup(CollisionGroup groups) { m_InteractingCollisionGroup = groups; }
+
 		const SkeletalRagdollBones& GetRagdollRoot() const { return m_RagdollRoot; }
 		SkeletalRagdollBones& GetRagdollRoot() { return m_RagdollRoot; }
 		float GetMinRagdollBoneSize() const { return m_MinRagdollBoneSize; }
 		float GetRagdollMaxTwist() const { return m_MaxRagdollTwist; }
 		float GetRagdollMaxSwing() const { return m_MaxRagdollSwing; }
+		CollisionDetectionType GetCollisionDetectionType() const { return m_CollisionDetection; }
+		CollisionGroup GetCollisionGroup() const { return m_CollisionGroup; }
+		CollisionGroup GetInteractingCollisionGroup() const { return m_InteractingCollisionGroup; }
 
 	public:
 		// @ragdollOffsets. Can be used to override `UserOffset` inside `SkeletalRagdollBones`. std::string is a bone name which `UserOffset` needs to be overwritten
 		static Ref<SkeletalMesh> Create(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& m_IndicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
-			const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollPerBoneSettings = {}, float minRagdollBoneSize = 0.1f, float maxRagdollTwist = 22.5f, float maxRagdollSwing = 45.f);
+			const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollPerBoneSettings = {}, float minRagdollBoneSize = 0.1f, float maxRagdollTwist = 22.5f, float maxRagdollSwing = 45.f,
+			CollisionDetectionType collisionDetection = CollisionDetectionType::Discrete, CollisionGroup collisionGroup = CollisionGroup::Object, CollisionGroup interactingCollisionGroup = CollisionGroup::Object);
 		static Ref<SkeletalMesh> Create(const Ref<SkeletalMesh>& other);
 
 	private:
@@ -172,9 +182,14 @@ namespace Eagle
 		AABB m_AABB;
 		uint32_t m_MaterialSlots;
 		std::vector<Ref<AssetMaterial>> m_Materials;
+		
+		// Ragdoll data
 		SkeletalRagdollBones m_RagdollRoot;
 		float m_MinRagdollBoneSize = 0.1f;
 		float m_MaxRagdollTwist = 22.5f;
 		float m_MaxRagdollSwing = 45.0f;
+		CollisionDetectionType m_CollisionDetection = CollisionDetectionType::Discrete;
+		CollisionGroup m_CollisionGroup = CollisionGroup::Object;
+		CollisionGroup m_InteractingCollisionGroup = CollisionGroup::Object;
 	};
 }

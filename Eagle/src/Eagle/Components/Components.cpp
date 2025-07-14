@@ -58,6 +58,13 @@ namespace Eagle
 		}
 	}
 
+	void RigidBodyComponent::SetCollisionDetectionType(CollisionDetectionType type)
+	{
+		m_CollisionDetection = type;
+		if (const auto& actor = Parent.GetPhysicsActor())
+			actor->SetCollisionDetectionType(m_CollisionDetection);
+	}
+
 	void RigidBodyComponent::SetPositionSolverIterations(uint32_t iterations)
 	{
 		PositionSolverIterations = std::clamp(iterations, PhysicsSettings::MinPositionSolverIterations, PhysicsSettings::MaxPositionSolverIterations);
@@ -186,6 +193,8 @@ namespace Eagle
 		SetShowCollision(other.bShowCollision);
 		SetAffectsNavMeshBuild(other.bAffectsNavMeshBuild);
 		SetIsObstacle(other.IsObstacle());
+		SetCollisionGroup(other.m_CollisionGroup);
+		SetInteractingCollisionGroup(other.m_InteractingCollisionGroup);
 
 		return *this;
 	}
@@ -264,7 +273,6 @@ namespace Eagle
 			actor = Parent.GetScene()->GetPhysicsScene()->CreatePhysicsActor(Parent);
 			m_Shape = actor->AddCollider(*this);
 		}
-		m_Shape->SetFilterData(actor->GetFilterData());
 	}
 
 	void BoxColliderComponent::OnRemoved(Entity entity)
@@ -276,6 +284,18 @@ namespace Eagle
 			actor->RemoveCollider(m_Shape);
 			m_Shape.reset();
 		}
+	}
+
+	void BoxColliderComponent::SetCollisionGroup(CollisionGroup group)
+	{
+		m_CollisionGroup = group;
+		m_Shape->SetCollisionGroup(m_CollisionGroup);
+	}
+
+	void BoxColliderComponent::SetInteractingCollisionGroup(CollisionGroup group)
+	{
+		m_InteractingCollisionGroup = group;
+		m_Shape->SetInteractingCollisionGroup(m_InteractingCollisionGroup);
 	}
 	
 	void BoxColliderComponent::SetSize(const glm::vec3& size)
@@ -358,6 +378,18 @@ namespace Eagle
 		this->bShowCollision = bShowCollision;
 		m_Shape->SetShowCollision(bShowCollision);
 	}
+
+	void SphereColliderComponent::SetCollisionGroup(CollisionGroup group)
+	{
+		m_CollisionGroup = group;
+		m_Shape->SetCollisionGroup(m_CollisionGroup);
+	}
+
+	void SphereColliderComponent::SetInteractingCollisionGroup(CollisionGroup group)
+	{
+		m_InteractingCollisionGroup = group;
+		m_Shape->SetInteractingCollisionGroup(m_InteractingCollisionGroup);
+	}
 	
 	void SphereColliderComponent::OnInit(Entity entity)
 	{
@@ -369,7 +401,6 @@ namespace Eagle
 			actor = Parent.GetScene()->GetPhysicsScene()->CreatePhysicsActor(Parent);
 			m_Shape = actor->AddCollider(*this);
 		}
-		m_Shape->SetFilterData(actor->GetFilterData());
 	}
 
 	void SphereColliderComponent::OnRemoved(Entity entity)
@@ -424,6 +455,18 @@ namespace Eagle
 		this->bShowCollision = bShowCollision;
 		m_Shape->SetShowCollision(bShowCollision);
 	}
+
+	void CapsuleColliderComponent::SetCollisionGroup(CollisionGroup group)
+	{
+		m_CollisionGroup = group;
+		m_Shape->SetCollisionGroup(m_CollisionGroup);
+	}
+
+	void CapsuleColliderComponent::SetInteractingCollisionGroup(CollisionGroup group)
+	{
+		m_InteractingCollisionGroup = group;
+		m_Shape->SetInteractingCollisionGroup(m_InteractingCollisionGroup);
+	}
 	
 	void CapsuleColliderComponent::SetHeightAndRadius(float height, float radius)
 	{
@@ -445,7 +488,6 @@ namespace Eagle
 			actor = Parent.GetScene()->GetPhysicsScene()->CreatePhysicsActor(Parent);
 			m_Shape = actor->AddCollider(*this);
 		}
-		m_Shape->SetFilterData(actor->GetFilterData());
 	}
 
 	void CapsuleColliderComponent::CreateObstacle()
@@ -547,6 +589,26 @@ namespace Eagle
 		if (m_Shapes[0]) // No need to enable it for the backside
 			m_Shapes[0]->SetShowCollision(bShowCollision);
 	}
+
+	void MeshColliderComponent::SetCollisionGroup(CollisionGroup group)
+	{
+		m_CollisionGroup = group;
+		for (auto& shape : m_Shapes)
+		{
+			if (shape)
+				shape->SetCollisionGroup(m_CollisionGroup);
+		}
+	}
+
+	void MeshColliderComponent::SetInteractingCollisionGroup(CollisionGroup group)
+	{
+		m_InteractingCollisionGroup = group;
+		for (auto& shape : m_Shapes)
+		{
+			if (shape)
+				shape->SetInteractingCollisionGroup(m_InteractingCollisionGroup);
+		}
+	}
 	
 	void MeshColliderComponent::SetCollisionMeshAsset(const Ref<AssetStaticMesh>& meshAsset)
 	{
@@ -575,10 +637,6 @@ namespace Eagle
 					shape.reset();
 			}
 		}
-
-		for (auto& shape : m_Shapes)
-			if (shape)
-				shape->SetFilterData(actor->GetFilterData());
 
 		SetShowCollision(bShowCollision);
 		SetIsTrigger(bTrigger);

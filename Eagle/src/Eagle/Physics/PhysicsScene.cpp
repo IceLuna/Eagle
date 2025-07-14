@@ -122,7 +122,6 @@ namespace Eagle
     
     Ref<PhysicsActor> PhysicsScene::CreatePhysicsActor(Entity& entity)
     {
-        static const Ref<PhysicsActor> s_InvalidActor;
         const bool bHasRigidBody = entity.HasComponent<RigidBodyComponent>();
 
         if (!bHasRigidBody)
@@ -132,8 +131,6 @@ namespace Eagle
         m_Actors[entity.GetGUID()] = actor;
         m_Scene->addActor(*actor->GetPhysXActor());
 
-        actor->SetSimulationData();
-        
         return actor;
     }
     
@@ -378,7 +375,7 @@ namespace Eagle
         return geometry;
     }
     
-    void PhysicsScene::QueryScene(const BoxOverlapRequest& request)
+    void PhysicsScene::QueryScene(const BoxOverlapRequest& request, CollisionGroup collisionGroup)
     {
         QueryHits hits;
         m_OverlapBuffer.resize(64);
@@ -389,7 +386,7 @@ namespace Eagle
         const physx::PxTransform pose = PhysXUtils::ToPhysXTranform(request.Pose);
 
         UnboundedOverlapCallback callback(request.OverlapHitCallback, m_OverlapBuffer, hits);
-        PhysXQueryFilterCallback filterCallback(physx::PxQueryHitType::eTOUCH);
+        PhysXQueryFilterCallback filterCallback(physx::PxQueryHitType::eTOUCH, collisionGroup);
         const physx::PxQueryFilterData queryData(PhysXUtils::GetPxQueryFlags(request.Type));
 
         m_Scene->overlap(box, pose, callback, queryData, &filterCallback);

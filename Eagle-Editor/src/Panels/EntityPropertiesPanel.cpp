@@ -48,6 +48,8 @@ namespace Eagle
 	static const char* s_VelocitySolverIterationsHelpMsg = "If intersecting bodies are being depenetrated too violently, increase the number of velocity "
 		"iterations.More velocity iterations will drive the relative exit velocity of the intersecting "
 		"objects closer to the correct value given the restitution.";
+	static const char* s_CollisionDetectionTypeHelpMsg = "When continuous collision detection (or CCD) is turned on, the affected rigid bodies will not go through other objects at high velocities (a problem also known as tunnelling). "
+		"A cheaper but less robust approach is called speculative CCD";
 
 #define AssetField_Case(type) \
 	case FieldType::type:\
@@ -343,9 +345,9 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					UI::TextWithSeparator("Materials");
-
 					const uint32_t materialsCount = smComponent.GetMaterialsSlotsCount();
+					if (materialsCount > 0)
+						UI::TextWithSeparator("Materials");
 					for (uint32_t i = 0; i < materialsCount; ++i)
 					{
 						auto materialAsset = smComponent.GetMaterialAsset(i);
@@ -390,9 +392,9 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					ImGui::Separator();
-
 					const uint32_t materialsCount = smComponent.GetMaterialsSlotsCount();
+					if (materialsCount > 0)
+						UI::TextWithSeparator("Materials");
 					for (uint32_t i = 0; i < materialsCount; ++i)
 					{
 						auto materialAsset = smComponent.GetMaterialAsset(i);
@@ -1407,6 +1409,7 @@ namespace Eagle
 						
 					if (rigidBody.BodyType == PhysicsBodyType::Dynamic)
 					{
+						CollisionDetectionType collisionDetection = rigidBody.GetCollisionDetectionType();
 						uint32_t positionSolverIterations = rigidBody.GetPositionSolverIterations();
 						uint32_t velocitySolverIterations = rigidBody.GetVelocitySolverIterations();
 						float mass = rigidBody.GetMass();
@@ -1423,9 +1426,11 @@ namespace Eagle
 						if (bRuntime)
 							UI::PushItemDisabled();
 							
-						bEntityChanged |= UI::ComboEnum<CollisionDetectionType>("Collision Detection", rigidBody.CollisionDetection,
-							"When continuous collision detection (or CCD) is turned on, the affected rigid bodies will not go through other objects at high velocities (a problem also known as tunnelling)."
-							"A cheaper but less robust approach is called speculative CCD");
+						if (UI::ComboEnum<CollisionDetectionType>("Collision Detection", collisionDetection, s_CollisionDetectionTypeHelpMsg))
+						{
+							rigidBody.SetCollisionDetectionType(collisionDetection);
+							bEntityChanged = true;
+						}
 							
 						if (bRuntime)
 							UI::PopItemDisabled();
@@ -1517,6 +1522,9 @@ namespace Eagle
 					bool bShowCollision = collider.IsCollisionVisible();
 					bool bObstacle = collider.IsObstacle();
 					bool bAffectsNavMesh = collider.DoesAffectNavMeshBuild();
+					uint32_t collisionGroup = (uint32_t)collider.GetCollisionGroup();
+					uint32_t interactingCollisionGroup = (uint32_t)collider.GetInteractingCollisionGroup();
+					const auto& collisionGroups = Project::GetAllCollisionGroups();
 
 					if (EditorResources::DrawAssetSelection("Physics Material", materialAsset))
 					{
@@ -1554,6 +1562,21 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
+					constexpr float thickness = 2.5f;
+					UI::TextWithSeparator("Collision Groups", thickness, "Collision groups it belongs to");
+					if (UI::PropertyBitMask("Collision Groups", collisionGroup, collisionGroups))
+					{
+						collider.SetCollisionGroup(CollisionGroup(collisionGroup));
+						bEntityChanged = true;
+					}
+
+					UI::TextWithSeparator("Interacting Collision Groups", thickness, "Collision groups it can interact with");
+					if (UI::PropertyBitMask("Interacting Collision Groups", interactingCollisionGroup, collisionGroups))
+					{
+						collider.SetInteractingCollisionGroup(CollisionGroup(interactingCollisionGroup));
+						bEntityChanged = true;
+					}
+
 					UI::EndPropertyGrid();
 				});
 				break;
@@ -1572,6 +1595,9 @@ namespace Eagle
 					bool bShowCollision = collider.IsCollisionVisible();
 					bool bObstacle = collider.IsObstacle();
 					bool bAffectsNavMesh = collider.DoesAffectNavMeshBuild();
+					uint32_t collisionGroup = (uint32_t)collider.GetCollisionGroup();
+					uint32_t interactingCollisionGroup = (uint32_t)collider.GetInteractingCollisionGroup();
+					const auto& collisionGroups = Project::GetAllCollisionGroups();
 
 					if (EditorResources::DrawAssetSelection("Physics Material", materialAsset))
 					{
@@ -1608,6 +1634,21 @@ namespace Eagle
 						collider.SetShowCollision(bShowCollision);
 						bEntityChanged = true;
 					}
+
+					constexpr float thickness = 2.5f;
+					UI::TextWithSeparator("Collision Groups", thickness, "Collision groups it belongs to");
+					if (UI::PropertyBitMask("Collision Groups", collisionGroup, collisionGroups))
+					{
+						collider.SetCollisionGroup(CollisionGroup(collisionGroup));
+						bEntityChanged = true;
+					}
+
+					UI::TextWithSeparator("Interacting Collision Groups", thickness, "Collision groups it can interact with");
+					if (UI::PropertyBitMask("Interacting Collision Groups", interactingCollisionGroup, collisionGroups))
+					{
+						collider.SetInteractingCollisionGroup(CollisionGroup(interactingCollisionGroup));
+						bEntityChanged = true;
+					}
 						
 					UI::EndPropertyGrid();
 				});
@@ -1628,6 +1669,9 @@ namespace Eagle
 					bool bShowCollision = collider.IsCollisionVisible();
 					bool bObstacle = collider.IsObstacle();
 					bool bAffectsNavMesh = collider.DoesAffectNavMeshBuild();
+					uint32_t collisionGroup = (uint32_t)collider.GetCollisionGroup();
+					uint32_t interactingCollisionGroup = (uint32_t)collider.GetInteractingCollisionGroup();
+					const auto& collisionGroups = Project::GetAllCollisionGroups();
 
 					if (EditorResources::DrawAssetSelection("Physics Material", materialAsset))
 					{
@@ -1671,6 +1715,21 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
+					constexpr float thickness = 2.5f;
+					UI::TextWithSeparator("Collision Groups", thickness, "Collision groups it belongs to");
+					if (UI::PropertyBitMask("Collision Groups", collisionGroup, collisionGroups))
+					{
+						collider.SetCollisionGroup(CollisionGroup(collisionGroup));
+						bEntityChanged = true;
+					}
+
+					UI::TextWithSeparator("Interacting Collision Groups", thickness, "Collision groups it can interact with");
+					if (UI::PropertyBitMask("Interacting Collision Groups", interactingCollisionGroup, collisionGroups))
+					{
+						collider.SetInteractingCollisionGroup(CollisionGroup(interactingCollisionGroup));
+						bEntityChanged = true;
+					}
+
 					UI::EndPropertyGrid();
 				});
 				break;
@@ -1690,6 +1749,9 @@ namespace Eagle
 					bool bConvex = collider.IsConvex();
 					bool bTwoSided = collider.IsTwoSided();
 					bool bAffectsNavMesh = collider.DoesAffectNavMeshBuild();
+					uint32_t collisionGroup = (uint32_t)collider.GetCollisionGroup();
+					uint32_t interactingCollisionGroup = (uint32_t)collider.GetInteractingCollisionGroup();
+					const auto& collisionGroups = Project::GetAllCollisionGroups();
 
 					if (EditorResources::DrawAssetSelection("Collision Mesh", collisionMesh, "Must be set. Set the mesh that will be used to generate collision data for it"))
 					{
@@ -1730,6 +1792,21 @@ namespace Eagle
 					if (UI::Property("Affects NavMesh", bAffectsNavMesh, s_AffectsNavMeshHelpMsg))
 					{
 						collider.SetAffectsNavMeshBuild(bAffectsNavMesh);
+						bEntityChanged = true;
+					}
+
+					constexpr float thickness = 2.5f;
+					UI::TextWithSeparator("Collision Groups", thickness, "Collision groups it belongs to");
+					if (UI::PropertyBitMask("Collision Groups", collisionGroup, collisionGroups))
+					{
+						collider.SetCollisionGroup(CollisionGroup(collisionGroup));
+						bEntityChanged = true;
+					}
+
+					UI::TextWithSeparator("Interacting Collision Groups", thickness, "Collision groups it can interact with");
+					if (UI::PropertyBitMask("Interacting Collision Groups", interactingCollisionGroup, collisionGroups))
+					{
+						collider.SetInteractingCollisionGroup(CollisionGroup(interactingCollisionGroup));
 						bEntityChanged = true;
 					}
 

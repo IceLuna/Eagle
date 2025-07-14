@@ -67,6 +67,9 @@ namespace Eagle
 		float m_MinRagdollBoneSize = 0.1f;
 		float m_Twist = 22.5f;
 		float m_Swing = 45.f;
+		CollisionDetectionType m_CollisionDetection = CollisionDetectionType::Discrete;
+		uint32_t m_CollisionGroup = 0;
+		uint32_t m_InteractingCollisionGroup = 0;
 		bool bGuizmoChanged = false;
 		bool bSimulate = false;
 		bool bVisualizeBoneDirection = false;

@@ -1028,6 +1028,9 @@ namespace Eagle
 		RigidBodyComponent(const Entity& entity) : Component(entity) {}
 		COMPONENT_DEFAULTS(RigidBodyComponent);
 
+		void SetCollisionDetectionType(CollisionDetectionType type);
+		CollisionDetectionType GetCollisionDetectionType() const { return m_CollisionDetection; }
+
 		/*
 			The solver iteration count determines how accurately joints and contacts are resolved.
 			If you are having trouble with jointed bodies oscillating and behaving erratically, then
@@ -1074,9 +1077,9 @@ namespace Eagle
 		ActorLockFlag GetLockFlags() const { return m_LockFlags; }
 
 	public:
-		PhysicsBodyType BodyType = PhysicsBodyType::Static;
-		CollisionDetectionType CollisionDetection = CollisionDetectionType::Discrete;
+		PhysicsBodyType BodyType = PhysicsBodyType::Static; // Note: Can't be changed in runtime.
 	protected:
+		CollisionDetectionType m_CollisionDetection = CollisionDetectionType::Discrete;
 		uint32_t PositionSolverIterations = 4; // [1; 255]
 		uint32_t VelocitySolverIterations = 1; // [0; 255]
 		float Mass = 1.f;
@@ -1111,6 +1114,14 @@ namespace Eagle
 		bool IsObstacle() const { return bObstacle; }
 		void SetIsObstacle(bool bValue);
 
+		// Collision groups it belongs to. It can belong to different groups (use XOR to combine groups)
+		virtual void SetCollisionGroup(CollisionGroup groups) = 0;
+		CollisionGroup GetCollisionGroup() const { return m_CollisionGroup; }
+
+		// Collision groups it can interact with
+		virtual void SetInteractingCollisionGroup(CollisionGroup groups) = 0;
+		CollisionGroup GetInteractingCollisionGroup() const { return m_InteractingCollisionGroup; }
+
 	protected:
 		BaseColliderComponent(const Entity& entity) : SceneComponent(entity){}
 		BaseColliderComponent& operator=(const BaseColliderComponent& other);
@@ -1125,6 +1136,8 @@ namespace Eagle
 
 	protected:
 		Ref<AssetPhysicsMaterial> m_MaterialAsset;
+		CollisionGroup m_CollisionGroup = CollisionGroup::Object;
+		CollisionGroup m_InteractingCollisionGroup = CollisionGroup::Object;
 		dtObstacleRef m_ObstacleID = 0u;
 		bool bTrigger = false;
 		bool bShowCollision = false;
@@ -1144,6 +1157,8 @@ namespace Eagle
 		virtual void SetIsTrigger(bool bTrigger) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
 		virtual void OnRemoved(Entity entity) override;
+		virtual void SetCollisionGroup(CollisionGroup groups) override;
+		virtual void SetInteractingCollisionGroup(CollisionGroup groups) override;
 
 		void SetSize(const glm::vec3& size);
 		const glm::vec3& GetSize() const { return m_Size; }
@@ -1175,6 +1190,8 @@ namespace Eagle
 
 		virtual void SetIsTrigger(bool bTrigger) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
+		virtual void SetCollisionGroup(CollisionGroup groups) override;
+		virtual void SetInteractingCollisionGroup(CollisionGroup groups) override;
 
 		virtual void OnRemoved(Entity entity) override;
 
@@ -1202,6 +1219,8 @@ namespace Eagle
 
 		virtual void SetIsTrigger(bool bTrigger) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
+		virtual void SetCollisionGroup(CollisionGroup groups) override;
+		virtual void SetInteractingCollisionGroup(CollisionGroup groups) override;
 
 		void SetHeight(float height)
 		{
@@ -1244,6 +1263,8 @@ namespace Eagle
 
 		virtual void SetIsTrigger(bool bTrigger) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
+		virtual void SetCollisionGroup(CollisionGroup groups) override;
+		virtual void SetInteractingCollisionGroup(CollisionGroup groups) override;
 
 		void SetCollisionMeshAsset(const Ref<AssetStaticMesh>& meshAsset);
 		const Ref<AssetStaticMesh>& GetCollisionMeshAsset() const { return m_CollisionMeshAsset; }

@@ -18,7 +18,7 @@ namespace Eagle
 
 	private:
 		void SerializeEntity(YAML::Emitter& out, Entity& entity);
-		void DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode);
+		void DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode, uint32_t collisionGroupValidMasks);
 
 		void SerializeSkybox(YAML::Emitter& out);
 		void DeserializeSkybox(YAML::Node& node);

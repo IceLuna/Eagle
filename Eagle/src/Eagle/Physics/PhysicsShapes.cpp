@@ -36,6 +36,18 @@ namespace Eagle
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eVISUALIZATION, bShowCollision);
 	}
 	
+	void ColliderShape::SetCollisionGroup(CollisionGroup group)
+	{
+		m_CollisionGroup = group;
+		UpdateFilterData();
+	}
+	
+	void ColliderShape::SetInteractingCollisionGroup(CollisionGroup group)
+	{
+		m_InteractingCollisionGroup = group;
+		UpdateFilterData();
+	}
+
 	BoxColliderShape::BoxColliderShape(const BoxColliderComponent& component, PhysicsActor& actor)
 	: ColliderShape(ColliderType::Box)
 	{
@@ -72,6 +84,13 @@ namespace Eagle
 		{
 			PhysXUtils::GetBoxGeometry(geometry, vertices, indices);
 		}
+	}
+
+	void ColliderShape::UpdateFilterData()
+	{
+		CollisionDetectionType collisionDetection = ((PhysicsActor*)m_Shape->getActor()->userData)->GetCollisionDetectionType();
+		physx::PxFilterData filterData = PhysXUtils::GetPxFilterData(m_CollisionGroup, m_InteractingCollisionGroup, collisionDetection);
+		m_Shape->setSimulationFilterData(filterData);
 	}
 	
 	SphereColliderShape::SphereColliderShape(const SphereColliderComponent& component, PhysicsActor& actor)

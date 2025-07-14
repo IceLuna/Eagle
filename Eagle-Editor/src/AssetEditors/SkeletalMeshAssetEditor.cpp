@@ -4,6 +4,7 @@
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/UI/UI.h"
 #include "Eagle/Components/Components.h"
+#include "Eagle/Core/Project.h"
 
 namespace Eagle
 {
@@ -13,6 +14,8 @@ namespace Eagle
 	static const char* s_VelocitySolverIterationsHelpMsg = "If intersecting bodies are being depenetrated too violently, increase the number of velocity "
 		"iterations.More velocity iterations will drive the relative exit velocity of the intersecting "
 		"objects closer to the correct value given the restitution.";
+	static const char* s_CollisionDetectionTypeHelpMsg = "When continuous collision detection (or CCD) is turned on, the affected rigid bodies will not go through other objects at high velocities (a problem also known as tunnelling). "
+		"A cheaper but less robust approach is called speculative CCD";
 
 	static bool HasBoneWithName(const BoneNode& node, const std::string& name)
 	{
@@ -342,6 +345,9 @@ namespace Eagle
 		m_MinRagdollBoneSize = mesh->GetMinRagdollBoneSize();
 		m_Twist = mesh->GetRagdollMaxTwist();
 		m_Swing = mesh->GetRagdollMaxSwing();
+		m_CollisionDetection = mesh->GetCollisionDetectionType();
+		m_CollisionGroup = (uint32_t)mesh->GetCollisionGroup();
+		m_InteractingCollisionGroup = (uint32_t)mesh->GetInteractingCollisionGroup();
 
 		const auto& scene = GetCurrentScene();
 
@@ -728,11 +734,23 @@ namespace Eagle
 
 		ImGui::Separator();
 
+		constexpr float thickness = 2.5f;
+		const auto& collisionGroups = Project::GetAllCollisionGroups();
+		bool bRegenerate = false; // TODO v0.7 Should always do it on change?
+
 		UI::BeginPropertyGrid("Ragdoll props");
 		if (UI::PropertyDrag("Min ragdoll bone size", m_MinRagdollBoneSize, 0.05f, 0.01f))
 			m_MinRagdollBoneSize = glm::max(m_MinRagdollBoneSize, 0.05f);
 		UI::PropertyDrag("Max Twist angle", m_Twist, 1.f, 0.01f, 180.f);
 		UI::PropertyDrag("Max Swing angle", m_Swing, 1.f, 0.01f, 180.f);
+		bRegenerate |= UI::ComboEnum<CollisionDetectionType>("Collision Detection", m_CollisionDetection, s_CollisionDetectionTypeHelpMsg);
+
+		UI::TextWithSeparator("Collision Groups", thickness, "Collision groups it belongs to");
+		bRegenerate |= UI::PropertyBitMask("Collision Groups", m_CollisionGroup, collisionGroups);
+
+		UI::TextWithSeparator("Interacting Collision Groups", thickness, "Collision groups it can interact with");
+		bRegenerate |= UI::PropertyBitMask("Interacting Collision Groups", m_InteractingCollisionGroup, collisionGroups);
+
 		UI::EndPropertyGrid();
 
 		ImGui::Separator();
@@ -742,11 +760,14 @@ namespace Eagle
 		}
 
 		ImGui::Separator();
-		if (ImGui::Button("Regenerate"))
+		if (ImGui::Button("Regenerate") || bRegenerate)
 		{
 			auto& mesh = m_Asset->GetMesh();
 			mesh->SetRagdollMaxTwist(m_Twist);
 			mesh->SetRagdollMaxSwing(m_Swing);
+			mesh->SetCollisionDetectionType(m_CollisionDetection);
+			mesh->SetCollisionGroup(CollisionGroup(m_CollisionGroup));
+			mesh->SetInteractingCollisionGroup(CollisionGroup(m_InteractingCollisionGroup));
 			mesh->RegenerateRagdollData(m_MinRagdollBoneSize);
 			bChanged = true;
 		}

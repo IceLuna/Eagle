@@ -15,11 +15,27 @@
 #include "Eagle/Audio/SoundGroup.h"
 #include "Eagle/Utils/Utils.h"
 #include "Eagle/Utils/YamlUtils.h"
+#include "Eagle/Components/Components.h"
 
 #include <stb_image.h>
 
 namespace Eagle
 {
+	namespace Utils
+	{
+		template <typename Comp>
+		void InvalidateCollisionGroups(const Ref<Scene>& scene, uint32_t validMasks)
+		{
+			auto view = scene->GetAllEntitiesWith<Comp>();
+			for (auto entityID : view)
+			{
+				auto& comp = view.get<Comp>(entityID);
+				comp.SetCollisionGroup(CollisionGroup(uint32_t(comp.GetCollisionGroup()) & validMasks));
+				comp.SetInteractingCollisionGroup(CollisionGroup(uint32_t(comp.GetInteractingCollisionGroup()) & validMasks));
+			}
+		}
+	}
+
 	Ref<Scene> AssetEntity::s_EntityAssetsScene;
 
 	Asset::Asset(const Path& path, const Path& pathToRaw, AssetType type, GUID guid, const DataBuffer& rawData)
@@ -517,6 +533,17 @@ namespace Eagle
 
 		YAML::Node data = YAML::LoadFile(path.string());
 		return Serializer::DeserializeAssetSoundGroup(data, path);
+	}
+
+	void AssetEntity::InvalidateCollisionGroups(uint32_t validMasks)
+	{
+		if (!s_EntityAssetsScene)
+			return;
+
+		Utils::InvalidateCollisionGroups<BoxColliderComponent>(s_EntityAssetsScene, validMasks);
+		Utils::InvalidateCollisionGroups<SphereColliderComponent>(s_EntityAssetsScene, validMasks);
+		Utils::InvalidateCollisionGroups<CapsuleColliderComponent>(s_EntityAssetsScene, validMasks);
+		Utils::InvalidateCollisionGroups<MeshColliderComponent>(s_EntityAssetsScene, validMasks);
 	}
 	
 	Ref<AssetEntity> AssetEntity::Create(const Path& path)

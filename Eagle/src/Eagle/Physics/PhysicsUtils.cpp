@@ -101,6 +101,16 @@ namespace Eagle
 		return queryFlags;
 	}
 
+	physx::PxFilterData PhysXUtils::GetPxFilterData(CollisionGroup group, CollisionGroup interactingGroup, CollisionDetectionType collisionDetection)
+	{
+		physx::PxFilterData filterData;
+		filterData.word0 = uint32_t(group);
+		filterData.word1 = uint32_t(interactingGroup);
+		filterData.word2 = uint32_t(collisionDetection);
+		filterData.word3 = 0u;
+		return filterData;
+	}
+
 	void PhysXUtils::GetBoxGeometry(const physx::PxBoxGeometry& geometry, std::vector<glm::vec3>& vertices, std::vector<uint32_t>& indices)
 	{
 		constexpr size_t numVertices = 8;
@@ -494,7 +504,7 @@ namespace Eagle
 		auto shapeFilterData = pxShape->getQueryFilterData();
 
 		const uint64_t mask = Combine(shapeFilterData.word0, shapeFilterData.word1);
-		if ((CollisionGroupMask & mask) == mask)
+		if ((m_CollisionGroupMask & mask) == mask)
 			return m_hitType;
 
 		return physx::PxQueryHitType::eNONE;

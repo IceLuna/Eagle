@@ -269,6 +269,8 @@ namespace Eagle::Script
 	//RigidBodyComponent
 	void Eagle_RigidBodyComponent_SetBodyType(GUID entityID, PhysicsBodyType type);
 	PhysicsBodyType Eagle_RigidBodyComponent_GetBodyType(GUID entityID);
+	void Eagle_RigidBodyComponent_SetCollisionDetectionType(GUID entityID, CollisionDetectionType type);
+	CollisionDetectionType Eagle_RigidBodyComponent_GetCollisionDetectionType(GUID entityID);
 	void Eagle_RigidBodyComponent_SetPositionSolverIterations(GUID entityID, uint32_t iterations);
 	void Eagle_RigidBodyComponent_SetVelocitySolverIterations(GUID entityID, uint32_t iterations);
 	uint32_t Eagle_RigidBodyComponent_GetPositionSolverIterations(GUID entityID);
@@ -308,6 +310,10 @@ namespace Eagle::Script
 	void Eagle_RigidBodyComponent_SetLockFlag(GUID entityID, ActorLockFlag flag, bool value);
 
 	//BaseColliderComponent
+	void Eagle_BaseColliderComponent_SetCollisionGroup(GUID entityID, void* type, CollisionGroup groups);
+	CollisionGroup Eagle_BaseColliderComponent_GetCollisionGroup(GUID entityID, void* type);
+	void Eagle_BaseColliderComponent_SetInteractingCollisionGroup(GUID entityID, void* type, CollisionGroup groups);
+	CollisionGroup Eagle_BaseColliderComponent_GetInteractingCollisionGroup(GUID entityID, void* type);
 	void Eagle_BaseColliderComponent_SetIsTrigger(GUID entityID, void* type, bool bTrigger);
 	bool Eagle_BaseColliderComponent_IsTrigger(GUID entityID, void* type);
 	void Eagle_BaseColliderComponent_SetCollisionVisible(GUID entityID, void* type, bool bShow);

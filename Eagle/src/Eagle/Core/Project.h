@@ -1,8 +1,13 @@
 #pragma once
 
+#include "Eagle/Core/GUID.h"
+
 namespace Eagle
 {
 	class AssetScene;
+
+	// Name, Mask
+	using CollisionGroupInfo = std::pair<std::string, uint32_t>;
 
 	struct ProjectInfo
 	{
@@ -10,6 +15,10 @@ namespace Eagle
 		std::string Name;
 		glm::uvec3 Version = glm::uvec3(1, 0, 0); // Major, minor, patch
 		Ref<AssetScene> GameStartupScene;
+		std::vector<CollisionGroupInfo> UserCollisionGroups;
+		std::vector<CollisionGroupInfo> AllCollisionGroups;
+		uint32_t AllCollisionGroupsMask = 0u; // It's a XOR of all collision groups. Can be used to check if as certain mask is valid within a project. (Used to reset a mask if it was removed)
+		std::vector<GUID64> CollisionGroupGUIDs; // GUIDs of all collision groups. Used to identify if groups were changed
 	};
 
 	class Project
@@ -33,6 +42,16 @@ namespace Eagle
 		static void SetVersion(const glm::uvec3& version) { s_Info.Version = version; }
 
 		static const ProjectInfo& GetProjectInfo() { return s_Info; }
+
+		static const uint32_t GetValidCollisionGroupsMask() { return s_Info.AllCollisionGroupsMask; }
+		static const std::vector<CollisionGroupInfo>& GetAllCollisionGroups() { return s_Info.AllCollisionGroups; }
+		static const std::vector<CollisionGroupInfo>& GetUserCollisionGroups() { return s_Info.UserCollisionGroups; }
+		static void AddUserCollisionGroup(const CollisionGroupInfo& group, const GUID64& guid);
+		static void AddUserCollisionGroup(const std::string& name);
+		static void RemoveUserCollisionGroup(uint32_t mask);
+		static void RenameUserCollisionGroup(uint32_t mask, const std::string& newName);
+		static bool CanAddUserCollisionGroup();
+		static GUID64 GetCollisionGroupGUIDByMask(uint32_t mask);
 
 		static const Path& GetProjectPath() { return s_Info.BasePath; }
 		static const Path GetProjectFilePath() { return s_Info.BasePath / (s_Info.Name + Project::GetExtension()); }

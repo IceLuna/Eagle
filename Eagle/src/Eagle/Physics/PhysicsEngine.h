@@ -34,6 +34,13 @@ namespace Eagle
 	};
 	DECLARE_FLAGS(ActorLockFlag);
 
+	enum class CollisionGroup : uint32_t
+	{
+		Object = BIT(0),
+		Projectile = BIT(1),
+	};
+	DECLARE_FLAGS(CollisionGroup);
+
 	struct CollisionInfo
 	{
 		glm::vec3 Position = glm::vec3(0.f);

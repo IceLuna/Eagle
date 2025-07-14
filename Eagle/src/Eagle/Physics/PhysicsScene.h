@@ -80,7 +80,7 @@ namespace Eagle
 		void Destroy();
 
 		bool OverlapGeometry(const glm::vec3& origin, const physx::PxGeometry& geometry, std::array<physx::PxOverlapHit, EG_OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const;
-		void QueryScene(const BoxOverlapRequest& request);
+		void QueryScene(const BoxOverlapRequest& request, CollisionGroup collisionGroup = CollisionGroup(0xFFFFFFFF));
 
 	private:
 		PhysicsSettings m_Settings;

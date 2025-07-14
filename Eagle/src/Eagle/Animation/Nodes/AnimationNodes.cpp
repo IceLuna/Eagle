@@ -1068,20 +1068,23 @@ namespace Eagle
 				// We need to recalculate it to be 50% of the new animation (if it's 1.5s, then `CurrentTime` must be 0.75s). That's what we do here.
 				if (m_PrevHighestWeighted != highestWeighted && m_PrevHighestWeighted)
 				{
-					const SkeletalMeshAnimation* curMeshAnim = highestWeighted->Animation->GetAnimation().get();
-					const SkeletalMeshAnimation* prevMeshAnim = m_PrevHighestWeighted->Animation->GetAnimation().get();
+					if (highestWeighted->Animation && m_PrevHighestWeighted->Animation)
+					{
+						const SkeletalMeshAnimation* curMeshAnim = highestWeighted->Animation->GetAnimation().get();
+						const SkeletalMeshAnimation* prevMeshAnim = m_PrevHighestWeighted->Animation->GetAnimation().get();
 
-					// Convert: to Ticks and then to [0; 1] range
-					CurrentTime = AnimationSystem::WrapAnimationTime(double(prevMeshAnim->Duration), CurrentTime * prevMeshAnim->TicksPerSecond, true);
-					CurrentTime = CurrentTime / prevMeshAnim->Duration;
+						// Convert: to Ticks and then to [0; 1] range
+						CurrentTime = AnimationSystem::WrapAnimationTime(double(prevMeshAnim->Duration), CurrentTime * prevMeshAnim->TicksPerSecond, true);
+						CurrentTime = CurrentTime / prevMeshAnim->Duration;
 
-					// Convert: to Ticks and then to [0; 1] range
-					PrevTime = AnimationSystem::WrapAnimationTime(double(prevMeshAnim->Duration), PrevTime * prevMeshAnim->TicksPerSecond, true);
-					PrevTime = PrevTime / prevMeshAnim->Duration;
+						// Convert: to Ticks and then to [0; 1] range
+						PrevTime = AnimationSystem::WrapAnimationTime(double(prevMeshAnim->Duration), PrevTime * prevMeshAnim->TicksPerSecond, true);
+						PrevTime = PrevTime / prevMeshAnim->Duration;
 
-					const double durationInSeconds = double(curMeshAnim->Duration) / curMeshAnim->TicksPerSecond;
-					CurrentTime *= durationInSeconds;
-					PrevTime *= durationInSeconds;
+						const double durationInSeconds = double(curMeshAnim->Duration) / curMeshAnim->TicksPerSecond;
+						CurrentTime *= durationInSeconds;
+						PrevTime *= durationInSeconds;
+					}
 				}
 				AnimationSystem::CalculateBlendSpacePose(m_BlendSpace, tr, buv, PrevTime, CurrentTime, &m_Pose);
 				m_PrevHighestWeighted = highestWeighted;

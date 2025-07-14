@@ -80,7 +80,8 @@ namespace Eagle
 	}
 
     SkeletalMesh::SkeletalMesh(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
-        const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollPerBoneSettings, float minRagdollBoneSize, float maxRagdollTwist, float maxRagdollSwing)
+        const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollPerBoneSettings, float minRagdollBoneSize, float maxRagdollTwist, float maxRagdollSwing,
+        CollisionDetectionType collisionDetection, CollisionGroup collisionGroup, CollisionGroup interactingCollisionGroup)
         : m_Vertices(vertices)
         , m_IndicesPerMaterial(indicesPerMaterial)
         , m_Skeletal(skeletal)
@@ -90,6 +91,9 @@ namespace Eagle
         , m_MinRagdollBoneSize(minRagdollBoneSize)
         , m_MaxRagdollTwist(maxRagdollTwist)
         , m_MaxRagdollSwing(maxRagdollSwing)
+        , m_CollisionDetection(collisionDetection)
+        , m_CollisionGroup(collisionGroup)
+        , m_InteractingCollisionGroup(interactingCollisionGroup)
     {
         RegenerateRagdollData(m_MinRagdollBoneSize);
         Utils::SetUserSettings(m_RagdollRoot, ragdollPerBoneSettings);
@@ -120,17 +124,19 @@ namespace Eagle
     }
 
     Ref<SkeletalMesh> SkeletalMesh::Create(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
-        const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollPerBoneSettings, float minRagdollBoneSize, float maxRagdollTwist, float maxRagdollSwing)
+        const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollPerBoneSettings, float minRagdollBoneSize, float maxRagdollTwist, float maxRagdollSwing,
+        CollisionDetectionType collisionDetection, CollisionGroup collisionGroup, CollisionGroup interactingCollisionGroup)
 	{
 		class LocalSkeletalMesh : public SkeletalMesh
 		{
 		public:
 			LocalSkeletalMesh(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
-                const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollSettings, float minRagdollBoneSize, float maxRagdollTwist, float maxRagdollSwing)
-				: SkeletalMesh(vertices, indicesPerMaterial, skeletal, aabb, ragdollSettings, minRagdollBoneSize, maxRagdollTwist, maxRagdollSwing) {}
+                const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollSettings, float minRagdollBoneSize, float maxRagdollTwist, float maxRagdollSwing,
+                CollisionDetectionType collisionDetection, CollisionGroup collisionGroup, CollisionGroup interactingCollisionGroup)
+				: SkeletalMesh(vertices, indicesPerMaterial, skeletal, aabb, ragdollSettings, minRagdollBoneSize, maxRagdollTwist, maxRagdollSwing, collisionDetection, collisionGroup, interactingCollisionGroup) {}
 		};
 
-		return MakeRef<LocalSkeletalMesh>(vertices, indicesPerMaterial, skeletal, aabb, ragdollPerBoneSettings, minRagdollBoneSize, maxRagdollTwist, maxRagdollSwing);
+		return MakeRef<LocalSkeletalMesh>(vertices, indicesPerMaterial, skeletal, aabb, ragdollPerBoneSettings, minRagdollBoneSize, maxRagdollTwist, maxRagdollSwing, collisionDetection, collisionGroup, interactingCollisionGroup);
 	}
 
 	Ref<SkeletalMesh> SkeletalMesh::Create(const Ref<SkeletalMesh>& other)

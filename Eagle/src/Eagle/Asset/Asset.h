@@ -608,6 +608,9 @@ namespace Eagle
 			return *this;
 		}
 
+		// Invalidates collision groups of all asset entities
+		static void InvalidateCollisionGroups(uint32_t validMasks);
+
 		// @path. Path to an `.egasset` file
 		static Ref<AssetEntity> Create(const Path& path);
 

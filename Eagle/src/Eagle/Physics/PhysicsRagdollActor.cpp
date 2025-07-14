@@ -28,13 +28,11 @@ namespace Eagle
 
     // TODO: group args
     static void CreateArticulationChain(const SkeletalRagdollBones& bone, const SkeletalPose& currentPose, const BonesMap& boneMap, physx::PxScene* scene, PhysicsRagdollActor::BoneData& physicsBoneData, void* userData,
-        const glm::mat4& worldTransform, const glm::mat4& compWorldTrInv, float twist, float swing, const physx::PxVec3& linearVelocity,
+        const glm::mat4& worldTransform, const glm::mat4& compWorldTrInv, float twist, float swing, const physx::PxFilterData& filterData, const physx::PxVec3& linearVelocity,
         const physx::PxVec3& angularVelocity, std::unordered_map<std::string, physx::PxRigidDynamic*>& ragdollBonesMap, physx::PxRigidDynamic* parentBody = nullptr)
     {
         using namespace physx;
 
-        // TODO v0.7: Expose
-        static physx::PxFilterData s_FilterData(1, 1, 0, 0);
         auto& physics = PhysXInternal::GetPhysics();
         const auto it = currentPose.Bones.find(bone.Name);
 
@@ -99,7 +97,7 @@ namespace Eagle
                 body->setActorFlag(PxActorFlag::eDISABLE_SIMULATION, true); // Disable simulation
             }
             shape->setFlag(physx::PxShapeFlag::Enum::eVISUALIZATION, false);
-            shape->setSimulationFilterData(s_FilterData);
+            shape->setSimulationFilterData(filterData);
             PxTransform local(PhysXUtils::ToPhysXQuat(glm::quat_cast(rot)));
             shape->setLocalPose(local);
             body->attachShape(*shape);
@@ -139,7 +137,7 @@ namespace Eagle
             ragdollBonesMap[bone.Name] = body;
 
             for (const auto& child : bone.Children)
-                CreateArticulationChain(child, currentPose, boneMap, scene, childData, userData, worldTransform, compWorldTrInv, twist, swing, linearVelocity, angularVelocity, ragdollBonesMap, body);
+                CreateArticulationChain(child, currentPose, boneMap, scene, childData, userData, worldTransform, compWorldTrInv, twist, swing, filterData, linearVelocity, angularVelocity, ragdollBonesMap, body);
         }
     }
 
@@ -220,6 +218,7 @@ namespace Eagle
         const float swing = mesh->GetRagdollMaxSwing();
 		auto& rootNode = meshInfo.RootBone;
         void* userData = this;
+        const physx::PxFilterData filterData = PhysXUtils::GetPxFilterData(mesh->GetCollisionGroup(), mesh->GetInteractingCollisionGroup(), mesh->GetCollisionDetectionType());
 
         const glm::mat4 worldTransform = Math::ToTransformMatrix(skeletalComp.GetWorldTransform());
         m_OriginalTransformInv = glm::inverse(worldTransform);
@@ -242,7 +241,7 @@ namespace Eagle
         }
 
 		CreateArticulationChain(mesh->GetRagdollRoot(), skeletalComp.LastPose, meshInfo.BoneInfoMap, m_Scene, m_Root, userData, worldTransform, m_OriginalTransformInv,
-            glm::radians(twist), glm::radians(swing), linearVelocity, angularVelocity, m_BonesMap);
+            glm::radians(twist), glm::radians(swing), filterData, linearVelocity, angularVelocity, m_BonesMap);
         m_RigidActor = m_Root.Body;
 	}
 
