@@ -78,11 +78,7 @@ namespace Eagle
 		out << YAML::Key << "PhysicsDebugOnPlay" << YAML::Value << m_Scene->IsPhysicsDebugOnPlayEnabled();
 		out << YAML::Key << "PhysicsDebugType" << YAML::Value << Utils::GetEnumName(m_Scene->GetPhysicsDebugType());
 
-		const auto& collisionGroupGUIDs = Project::GetProjectInfo().CollisionGroupGUIDs;
-		out << YAML::Key << "CollisionGroupGUIDs" << YAML::Value << YAML::BeginSeq;
-		for (const auto& guid : collisionGroupGUIDs)
-			out << guid;
-		out << YAML::EndSeq;
+		Serializer::SerializeProjectCollisionGroupGUIDs(out);
 
 		// Save EntityID that has a valid nav mesh. It'll be used during deserialization to build the nav mesh after a scene has been loaded
 		{
@@ -164,7 +160,6 @@ namespace Eagle
 			return false;
 
 		GUID navMeshEntityGUID = GUID(0, 0);
-		uint32_t collisionGroupValidMasks = 0xFFFFFFFF;
 
 		if (auto editorCameraNode = data["EditorCamera"])
 		{
@@ -211,24 +206,8 @@ namespace Eagle
 		{
 			m_Scene->SetPhysicsDebugType(Utils::GetEnumFromName<DebugType>(node.as<std::string>()));
 		}
-		if (auto groupsNode = data["CollisionGroupGUIDs"])
-		{
-			std::vector<GUID64> collisionGroupGUIDs;
-			collisionGroupGUIDs.reserve(groupsNode.size());
-			for (const auto& groupNode : groupsNode)
-			{
-				collisionGroupGUIDs.emplace_back(groupNode.as<GUID64>());
-			}
 
-			const auto& currentGUIDs = Project::GetProjectInfo().CollisionGroupGUIDs;
-			const size_t count = collisionGroupGUIDs.size();
-			EG_CORE_ASSERT(count == currentGUIDs.size());
-			for (size_t i = 0; i < count; ++i)
-			{
-				if (collisionGroupGUIDs[i] != currentGUIDs[i]) // Collision group has changed since the scene was saved, invalidate the mask
-					collisionGroupValidMasks &= ~(1 << i);
-			}
-		}
+		const uint32_t collisionGroupValidMasks = Serializer::DeserializeProjectCollisionGroupGUIDs(data);
 
 		if (auto node = data["NavMesh"])
 		{

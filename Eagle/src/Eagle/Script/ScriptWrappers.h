@@ -588,7 +588,7 @@ namespace Eagle::Script
 	// Scene
 	void Eagle_Scene_OpenScene(GUID assetID);
 	void Eagle_Scene_QuitGame();
-	bool Eagle_Scene_Raycast(const glm::vec3* origin, const glm::vec3* dir, float maxDistance, GUID* outHitEntity, glm::vec3* outPosition, glm::vec3* outNormal, float* outDistance);
+	bool Eagle_Scene_Raycast(const glm::vec3* origin, const glm::vec3* dir, float maxDistance, PhysicsQueryType query, GUID* outHitEntity, glm::vec3* outPosition, glm::vec3* outNormal, float* outDistance);
 	void Eagle_Scene_SetGravity(const glm::vec3* gravity);
 	void Eagle_Scene_GetGravity(glm::vec3* gravity);
 	MonoArray* Eagle_Scene_GetAllEntitiesWithComponent(void* type);

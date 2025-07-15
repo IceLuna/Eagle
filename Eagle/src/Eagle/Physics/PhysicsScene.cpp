@@ -149,11 +149,12 @@ namespace Eagle
         m_SubstepSize = 1.f / m_Settings.UpdateRate;
     }
 
-    bool PhysicsScene::Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, RaycastHit* outHit) const
+    bool PhysicsScene::Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, PhysicsQueryType query, RaycastHit* outHit) const
     {
-        // TODO v0.7: Ask a user how many hits they need
-        physx::PxRaycastBuffer hitInfo;
-        bool bResult = m_Scene->raycast(PhysXUtils::ToPhysXVector(origin), PhysXUtils::ToPhysXVector(dir), maxDistance, hitInfo);
+        using namespace physx;
+        PxRaycastBuffer hitInfo;
+        bool bResult = m_Scene->raycast(PhysXUtils::ToPhysXVector(origin), PhysXUtils::ToPhysXVector(dir), maxDistance, hitInfo,
+            PxHitFlag::ePOSITION | PxHitFlag::eNORMAL, PhysXUtils::GetPxQueryFilterData(query));
 
         if (bResult)
         {
@@ -170,17 +171,17 @@ namespace Eagle
         return bResult;
     }
     
-    bool PhysicsScene::OverlapBox(const glm::vec3& origin, const glm::vec3& halfSize, std::array<physx::PxOverlapHit, EG_OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const
+    bool PhysicsScene::OverlapBox(const glm::vec3& origin, const glm::vec3& halfSize, physx::PxOverlapHit& buffer, uint32_t& count) const
     {
         return OverlapGeometry(origin, physx::PxBoxGeometry(halfSize.x, halfSize.y, halfSize.z), buffer, count);
     }
     
-    bool PhysicsScene::OverlapCapsule(const glm::vec3& origin, float radius, float halfHeight, std::array<physx::PxOverlapHit, EG_OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const
+    bool PhysicsScene::OverlapCapsule(const glm::vec3& origin, float radius, float halfHeight, physx::PxOverlapHit& buffer, uint32_t& count) const
     {
         return OverlapGeometry(origin, physx::PxCapsuleGeometry(radius, halfHeight), buffer, count);
     }
     
-    bool PhysicsScene::OverlapSphere(const glm::vec3& origin, float radius, std::array<physx::PxOverlapHit, EG_OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const
+    bool PhysicsScene::OverlapSphere(const glm::vec3& origin, float radius, physx::PxOverlapHit& buffer, uint32_t& count) const
     {
         return OverlapGeometry(origin, physx::PxSphereGeometry(radius), buffer, count);
     }
@@ -278,16 +279,16 @@ namespace Eagle
         }
     }
     
-    bool PhysicsScene::OverlapGeometry(const glm::vec3& origin, const physx::PxGeometry& geometry, std::array<physx::PxOverlapHit, EG_OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const
+    bool PhysicsScene::OverlapGeometry(const glm::vec3& origin, const physx::PxGeometry& geometry, physx::PxOverlapHit& buffer, uint32_t& count) const
     {
-        physx::PxOverlapBuffer buf(buffer.data(), EG_OVERLAP_MAX_COLLIDERS);
+        physx::PxOverlapBuffer buf(&buffer, 1);
         physx::PxTransform pose = PhysXUtils::ToPhysXTranform(origin);
 
         bool bResult = m_Scene->overlap(geometry, pose, buf);
 
         if (bResult)
         {
-            memcpy(buffer.data(), buf.touches, buf.nbTouches * sizeof(physx::PxOverlapHit));
+            memcpy(&buffer, buf.touches, buf.nbTouches * sizeof(physx::PxOverlapHit));
             count = buf.nbTouches;
         }
 

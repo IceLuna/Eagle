@@ -41,6 +41,14 @@ namespace Eagle
 	};
 	DECLARE_FLAGS(CollisionGroup);
 
+	enum class PhysicsQueryType
+	{
+		Static  = BIT(0),
+		Dynamic = BIT(1),
+		AnyHit  = BIT(2),
+	};
+	DECLARE_FLAGS(PhysicsQueryType);
+
 	struct CollisionInfo
 	{
 		glm::vec3 Position = glm::vec3(0.f);

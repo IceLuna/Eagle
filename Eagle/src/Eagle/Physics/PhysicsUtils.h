@@ -112,6 +112,7 @@ namespace Eagle
 
 		static physx::PxQueryFlags GetPxQueryFlags(const QueryType& queryType);
 		static physx::PxFilterData GetPxFilterData(CollisionGroup group, CollisionGroup interactingGroup, CollisionDetectionType collisionDetection);
+		static physx::PxQueryFilterData GetPxQueryFilterData(PhysicsQueryType type);
 
 		static void GetBoxGeometry(const physx::PxBoxGeometry& geometry, std::vector<glm::vec3>& vertices, std::vector<uint32_t>& indices);
 		static void GetCapsuleGeometry(const physx::PxCapsuleGeometry& geometry, std::vector<glm::vec3>& vertices, std::vector<uint32_t>& indices, const uint32_t stacks, const uint32_t slices);

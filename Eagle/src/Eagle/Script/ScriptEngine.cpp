@@ -734,21 +734,23 @@ namespace Eagle
 
 	MonoAssembly* ScriptEngine::LoadAssembly(const Path& assemblyPath)
 	{
-		const std::string u8path = assemblyPath.u8string();
-		MonoAssembly* assembly = LoadAssemblyFromFile(u8path.c_str());
+		MonoAssembly* assembly = LoadAssemblyFromFile(assemblyPath);
 
 		if (assembly)
-			EG_CORE_INFO("[ScriptEngine] Successfully loaded assembly at {0}!", u8path);
+			EG_CORE_INFO("[ScriptEngine] Successfully loaded assembly at {0}!", assemblyPath.u8string());
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't load assembly at {0}!", u8path);
+			EG_CORE_ERROR("[ScriptEngine] Couldn't load assembly at {0}!", assemblyPath.u8string());
 
 		return assembly;
 	}
 
-	MonoAssembly* ScriptEngine::LoadAssemblyFromFile(const char* assemblyPath)
+	MonoAssembly* ScriptEngine::LoadAssemblyFromFile(const Path& assemblyPath)
 	{
-		if (!assemblyPath)
+		if (!std::filesystem::exists(assemblyPath))
+		{
+			EG_CORE_WARN("[ScriptEngine] Failed to load C# assembly. File doesn't exist: {}", assemblyPath.u8string());
 			return nullptr;
+		}
 
 		ScopedDataBuffer assemblyData(Eagle::FileSystem::Read(assemblyPath));
 		MonoImageOpenStatus status;
@@ -774,7 +776,7 @@ namespace Eagle
 			}
 		}
 
-		MonoAssembly* assemb = mono_assembly_load_from_full(image, assemblyPath, &status, 0);
+		MonoAssembly* assemb = mono_assembly_load_from_full(image, assemblyPath.u8string().c_str(), &status, 0);
 		mono_image_close(image);
 		return assemb;
 	}

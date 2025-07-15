@@ -124,6 +124,7 @@ namespace Eagle
 		bool bVisualizeCascades = false;
 		bool bStutterlessShaders = false;
 		bool bFog = false;
+		bool bObjectPickingEnabled = false;
 
 		constexpr static size_t s_FormatSize = GetImageFormatBPP(ImageFormat::R32_UInt) / 8u;
 		constexpr static size_t s_Uints = 3ull; // 3 uints. One of the - for storing depth; Rest - for storing color

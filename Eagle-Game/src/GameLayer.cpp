@@ -12,6 +12,8 @@ namespace Eagle
 {
 	void GameLayer::OnAttach()
 	{
+		ScriptEngine::LoadAppAssembly(Project::GetProjectInfo().Name + ".dll");
+
 		auto& window = Application::Get().GetWindow();
 		
 		const auto& projectInfo = Project::GetProjectInfo();
@@ -46,8 +48,6 @@ namespace Eagle
 		Scene::SetCurrentScene(m_CurrentScene);
 		if (m_CurrentScene != m_DummyScene)
 		{
-			// TODO v0.7: Why is it needed?
-			ScriptEngine::LoadAppAssembly(Project::GetProjectInfo().Name + ".dll");
 			m_CurrentScene->OnRuntimeStart();
 		}
 

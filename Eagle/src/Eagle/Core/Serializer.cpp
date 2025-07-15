@@ -582,13 +582,7 @@ namespace Eagle
 		out << YAML::Key << "MinRagdollBoneSize" << YAML::Value << mesh->GetMinRagdollBoneSize();
 		out << YAML::Key << "MaxRagdollTwist" << YAML::Value << mesh->GetRagdollMaxTwist();
 		out << YAML::Key << "MaxRagdollSwing" << YAML::Value << mesh->GetRagdollMaxSwing();
-		{
-			const auto& collisionGroupGUIDs = Project::GetProjectInfo().CollisionGroupGUIDs;
-			out << YAML::Key << "CollisionGroupGUIDs" << YAML::Value << YAML::BeginSeq;
-			for (const auto& guid : collisionGroupGUIDs)
-				out << guid;
-			out << YAML::EndSeq;
-		}
+		Serializer::SerializeProjectCollisionGroupGUIDs(out);
 		out << YAML::Key << "CollisionDetectionType" << YAML::Value << Utils::GetEnumName(mesh->GetCollisionDetectionType());
 		out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(mesh->GetCollisionGroup());
 		out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(mesh->GetInteractingCollisionGroup());
@@ -828,11 +822,7 @@ namespace Eagle
 
 		if (entity.HasAny<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, MeshColliderComponent>())
 		{
-			const auto& collisionGroupGUIDs = Project::GetProjectInfo().CollisionGroupGUIDs;
-			out << YAML::Key << "CollisionGroupGUIDs" << YAML::Value << YAML::BeginSeq;
-			for (const auto& guid : collisionGroupGUIDs)
-				out << guid;
-			out << YAML::EndSeq;
+			Serializer::SerializeProjectCollisionGroupGUIDs(out);
 		}
 
 		Serializer::SerializeEntity(out, entity);
@@ -2467,6 +2457,15 @@ namespace Eagle
 		out << YAML::EndMap;
 	}
 
+	void Serializer::SerializeProjectCollisionGroupGUIDs(YAML::Emitter& out)
+	{
+		const auto& collisionGroupGUIDs = Project::GetProjectInfo().CollisionGroupGUIDs;
+		out << YAML::Key << "CollisionGroupGUIDs" << YAML::Value << YAML::BeginSeq;
+		for (const auto& guid : collisionGroupGUIDs)
+			out << guid;
+		out << YAML::EndSeq;
+	}
+
 	void Serializer::DeserializeRelativeTransform(YAML::Node& node, Transform& relativeTransform)
 	{
 		if (auto n = node["RelativeLocation"])
@@ -2719,6 +2718,33 @@ namespace Eagle
 				animation.Bones.emplace(std::move(name), std::move(animData));
 			}
 		}
+	}
+
+	uint32_t Serializer::DeserializeProjectCollisionGroupGUIDs(const YAML::Node& node)
+	{
+		uint32_t collisionGroupValidMasks = 0xFFFFFFFF;
+
+		auto groupsNode = node["CollisionGroupGUIDs"];
+		if (!groupsNode)
+			return collisionGroupValidMasks;
+
+		std::vector<GUID64> collisionGroupGUIDs;
+		collisionGroupGUIDs.reserve(groupsNode.size());
+		for (const auto& groupNode : groupsNode)
+		{
+			collisionGroupGUIDs.emplace_back(groupNode.as<GUID64>());
+		}
+
+		const auto& currentGUIDs = Project::GetProjectInfo().CollisionGroupGUIDs;
+		const size_t count = collisionGroupGUIDs.size();
+		EG_CORE_ASSERT(count == currentGUIDs.size());
+		for (size_t i = 0; i < count; ++i)
+		{
+			if (collisionGroupGUIDs[i] != currentGUIDs[i]) // Collision group has changed since the scene was saved, invalidate the mask
+				collisionGroupValidMasks &= ~(1 << i);
+		}
+
+		return collisionGroupValidMasks;
 	}
 
 	Ref<Asset> Serializer::DeserializeAsset(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
@@ -3140,7 +3166,6 @@ namespace Eagle
 		CollisionDetectionType collisionDetectionType = CollisionDetectionType::Discrete;
 		CollisionGroup collisionGroup = CollisionGroup::Object;
 		CollisionGroup interactingCollisionGroup = CollisionGroup::Object;
-		uint32_t collisionGroupValidMasks = 0xFFFFFFFF;
 
 		if (auto node = baseNode["MinRagdollBoneSize"])
 			minRagdollBoneSize = node.as<float>();
@@ -3150,24 +3175,9 @@ namespace Eagle
 			maxRagdollSwing = node.as<float>();
 		if (auto node = baseNode["CollisionDetectionType"])
 			collisionDetectionType = Utils::GetEnumFromName<CollisionDetectionType>(node.as<std::string>());
-		if (auto groupsNode = baseNode["CollisionGroupGUIDs"])
-		{
-			std::vector<GUID64> collisionGroupGUIDs;
-			collisionGroupGUIDs.reserve(groupsNode.size());
-			for (const auto& groupNode : groupsNode)
-			{
-				collisionGroupGUIDs.emplace_back(groupNode.as<GUID64>());
-			}
 
-			const auto& currentGUIDs = Project::GetProjectInfo().CollisionGroupGUIDs;
-			const size_t count = collisionGroupGUIDs.size();
-			EG_CORE_ASSERT(count == currentGUIDs.size());
-			for (size_t i = 0; i < count; ++i)
-			{
-				if (collisionGroupGUIDs[i] != currentGUIDs[i]) // Collision group has changed since the scene was saved, invalidate the mask
-					collisionGroupValidMasks &= ~(1 << i);
-			}
-		}
+		const uint32_t collisionGroupValidMasks = Serializer::DeserializeProjectCollisionGroupGUIDs(baseNode);
+
 		if (auto node = baseNode["CollisionGroupMask"])
 			collisionGroup = CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks);
 		if (auto node = baseNode["InteractingCollisionGroupMask"])
@@ -3557,25 +3567,8 @@ namespace Eagle
 			return {};
 
 		GUID guid = baseNode["GUID"].as<GUID>();
-		uint32_t collisionGroupValidMasks = 0xFFFFFFFF;
-		if (auto groupsNode = baseNode["CollisionGroupGUIDs"])
-		{
-			std::vector<GUID64> collisionGroupGUIDs;
-			collisionGroupGUIDs.reserve(groupsNode.size());
-			for (const auto& groupNode : groupsNode)
-			{
-				collisionGroupGUIDs.emplace_back(groupNode.as<GUID64>());
-			}
 
-			const auto& currentGUIDs = Project::GetProjectInfo().CollisionGroupGUIDs;
-			const size_t count = collisionGroupGUIDs.size();
-			EG_CORE_ASSERT(count == currentGUIDs.size());
-			for (size_t i = 0; i < count; ++i)
-			{
-				if (collisionGroupGUIDs[i] != currentGUIDs[i]) // Collision group has changed since the scene was saved, invalidate the mask
-					collisionGroupValidMasks &= ~(1 << i);
-			}
-		}
+		const uint32_t collisionGroupValidMasks = Serializer::DeserializeProjectCollisionGroupGUIDs(baseNode);
 
 		Entity entity = AssetEntity::CreateEntity(guid);
 		Serializer::DeserializeEntity(entity, baseNode, collisionGroupValidMasks);

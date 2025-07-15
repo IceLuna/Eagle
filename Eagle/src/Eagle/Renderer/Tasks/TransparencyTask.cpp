@@ -55,18 +55,20 @@ namespace Eagle
 	TransparencyTask::TransparencyTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
-		m_Layers = m_Renderer.GetOptions_RT().TransparencyLayers;
+		const auto& options = m_Renderer.GetOptions();
+
+		m_Layers = options.TransparencyLayers;
 		const std::string layersString = std::to_string(m_Layers);
 
 		auto& defines = m_ShaderDefines;
 		defines["EG_OIT_LAYERS"] = layersString;
 
-		const auto& options = m_Renderer.GetOptions();
 		SetVisualizeCascades(options.bVisualizeCascades);
 		SetSoftShadowsEnabled(options.bEnableSoftShadows);
 		SetCSMSmoothTransitionEnabled(options.bEnableCSMSmoothTransition);
 		SetStutterlessEnabled(options.bStutterlessShaders);
 		SetFogEnabled(options.FogSettings.bEnable);
+		bObjectPickingEnabled = options.bEnableObjectPicking;
 
 		m_TransparencyColorShader     = Shader::Create("transparency/transparency_color.frag", ShaderType::Fragment, defines);
 		m_TransparencyDepthShader     = Shader::Create("transparency/transparency.frag", ShaderType::Fragment, { {"EG_DEPTH_PASS",     ""}, {"EG_OIT_LAYERS", layersString} });
@@ -225,6 +227,7 @@ namespace Eagle
 		bReloadShader |= SetSoftShadowsEnabled(settings.bEnableSoftShadows);
 		bReloadShader |= SetCSMSmoothTransitionEnabled(settings.bEnableCSMSmoothTransition);
 		bReloadShader |= SetFogEnabled(settings.FogSettings.bEnable);
+		bObjectPickingEnabled = settings.bEnableObjectPicking;
 
 		const bool bReloadPipeline = SetStutterlessEnabled(settings.bStutterlessShaders);
 
@@ -589,6 +592,10 @@ namespace Eagle
 
 	void TransparencyTask::RenderEntityIDs(const Ref<CommandBuffer>& cmd)
 	{
+		const bool bRender = bObjectPickingEnabled || !m_Renderer.IsRuntime();
+		if (!bRender)
+			return;
+
 		const glm::mat4& viewProj = m_Renderer.GetViewProjection();
 
 		// Meshes

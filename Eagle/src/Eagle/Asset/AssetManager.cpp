@@ -162,14 +162,6 @@ namespace Eagle
 		if (!s_bGame || !baseNode)
 			return;
 
-		const auto& projectInfo = Project::GetProjectInfo();
-		const Path gameScripts = projectInfo.BasePath / (projectInfo.Name + ".dll");
-		if (!ScriptEngine::LoadAppAssembly(gameScripts))
-		{
-			EG_CORE_CRITICAL("Failed to load game assembly! Path: {}", gameScripts.u8string());
-			std::exit(-1);
-		}
-
 		for (auto& baseAssetNode : baseNode)
 		{
 			const Path path = baseAssetNode["Path"].as<std::string>();

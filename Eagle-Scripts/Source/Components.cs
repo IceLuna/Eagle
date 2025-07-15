@@ -18,6 +18,15 @@ namespace Eagle
         Dynamic
     }
 
+    public enum PhysicsQueryType
+    {
+        Static  = 1 << 0, // Traverse static body types
+        Dynamic = 1 << 1, // Traverse dynamic body types
+        AnyHit  = 1 << 2, // Abort traversal as soon as any hit is found
+
+        Default = Static | Dynamic
+    }
+
     public enum CollisionDetectionType
     {
         Discrete,

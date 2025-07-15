@@ -7,6 +7,21 @@
 
 namespace Eagle
 {
+	static physx::PxQueryFlags ToPxQueryFlags(PhysicsQueryType type)
+	{
+		using namespace physx;
+		PxQueryFlags result{};
+
+		if (HasFlags(type, PhysicsQueryType::Static))
+			result |= PxQueryFlag::eSTATIC;
+		if (HasFlags(type, PhysicsQueryType::Dynamic))
+			result |= PxQueryFlag::eDYNAMIC;
+		if (HasFlags(type, PhysicsQueryType::AnyHit))
+			result |= PxQueryFlag::eANY_HIT;
+
+		return result;
+	}
+
 	CookingResult PhysXUtils::FromPhysXCookingResult(physx::PxConvexMeshCookingResult::Enum cookingResult)
 	{
 		switch (cookingResult)
@@ -109,6 +124,13 @@ namespace Eagle
 		filterData.word2 = uint32_t(collisionDetection);
 		filterData.word3 = 0u;
 		return filterData;
+	}
+
+	physx::PxQueryFilterData PhysXUtils::GetPxQueryFilterData(PhysicsQueryType type)
+	{
+		physx::PxQueryFilterData result;
+		result.flags = ToPxQueryFlags(type);
+		return result;
 	}
 
 	void PhysXUtils::GetBoxGeometry(const physx::PxBoxGeometry& geometry, std::vector<glm::vec3>& vertices, std::vector<uint32_t>& indices)

@@ -110,6 +110,7 @@ namespace Eagle
 		static void SerializeRelativeTransform(YAML::Emitter& out, const Transform& relativeTransform);
 		static void SerializeRendererSettings(YAML::Emitter& out, const SceneRendererSettings& settings);
 		static void SerializeAnimation(YAML::Emitter& out, const SkeletalMeshAnimation& anim);
+		static void SerializeProjectCollisionGroupGUIDs(YAML::Emitter& out);
 		
 		static void ReadBoneNode(const YAML::Node& baseNode, BoneNode& node);
 		static void DeserializeReverb(YAML::Node& reverbNode, ReverbComponent& reverb);
@@ -117,6 +118,7 @@ namespace Eagle
 		static void DeserializeRelativeTransform(YAML::Node& node, Transform& relativeTransform);
 		static void DeserializeRendererSettings(YAML::Node& node, SceneRendererSettings& settings);
 		static void DeserializeAnimation(const YAML::Node& node, SkeletalMeshAnimation& animation);
+		static uint32_t DeserializeProjectCollisionGroupGUIDs(const YAML::Node& node);
 
 		static void SerializeAsset(YAML::Emitter& out, const Ref<Asset>& asset);
 		static void SerializeAssetTexture2D(YAML::Emitter& out, const Ref<AssetTexture2D>& asset);

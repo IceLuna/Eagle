@@ -7,8 +7,6 @@
 #include <PhysX/PxPhysicsAPI.h>
 #include <glm/glm.hpp>
 
-#define EG_OVERLAP_MAX_COLLIDERS 10 // TODO v0.7: I think there's no need to it
-
 namespace Eagle
 {
 	struct RaycastHit
@@ -47,10 +45,10 @@ namespace Eagle
 
 		float GetSimulationTimeStep() const { return m_SubstepSize; }
 
-		bool Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, RaycastHit* outHit) const;
-		bool OverlapBox(const glm::vec3& origin, const glm::vec3& halfSize, std::array<physx::PxOverlapHit, EG_OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const;
-		bool OverlapCapsule(const glm::vec3& origin, float radius, float halfHeight, std::array<physx::PxOverlapHit, EG_OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const;
-		bool OverlapSphere(const glm::vec3& origin, float radius, std::array<physx::PxOverlapHit, EG_OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const;
+		bool Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, PhysicsQueryType query, RaycastHit* outHit) const;
+		bool OverlapBox(const glm::vec3& origin, const glm::vec3& halfSize, physx::PxOverlapHit& buffer, uint32_t& count) const;
+		bool OverlapCapsule(const glm::vec3& origin, float radius, float halfHeight, physx::PxOverlapHit& buffer, uint32_t& count) const;
+		bool OverlapSphere(const glm::vec3& origin, float radius, physx::PxOverlapHit& buffer, uint32_t& count) const;
 
 		bool IsValid() const { return m_Scene != nullptr; }
 
@@ -79,7 +77,7 @@ namespace Eagle
 
 		void Destroy();
 
-		bool OverlapGeometry(const glm::vec3& origin, const physx::PxGeometry& geometry, std::array<physx::PxOverlapHit, EG_OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const;
+		bool OverlapGeometry(const glm::vec3& origin, const physx::PxGeometry& geometry, physx::PxOverlapHit& buffer, uint32_t& count) const;
 		void QueryScene(const BoxOverlapRequest& request, CollisionGroup collisionGroup = CollisionGroup(0xFFFFFFFF));
 
 	private:
