@@ -296,7 +296,7 @@ namespace Eagle
 		void UpdateNavMesh(Timestep ts);
 		void SyncCrowdAgents();
 
-		void CollectParticleSystems(const std::unordered_set<GUID>& input); // Pushes data from `input` into `m_TempParticleSystems`
+		void CollectParticleSystems(const std::unordered_set<uint32_t>& input); // Pushes data from `input` into `m_TempParticleSystems`
 		void GatherLightsInfo();
 		void GatherSkeletalMeshes();
 		void UpdateScripts(Timestep ts);
@@ -481,13 +481,13 @@ namespace Eagle
 			{
 				if (notification == Notification::OnStateChanged)
 				{
-					m_ParticlesToUpdate.emplace(component.Parent.GetGUID());
+					m_ParticlesToUpdate.emplace(component.Parent.GetID());
 				}
 				else if (notification == Notification::OnTransformChanged)
 				{
-					auto it = m_ParticlesToUpdate.find(component.Parent.GetGUID());
+					auto it = m_ParticlesToUpdate.find(component.Parent.GetID());
 					if (it == m_ParticlesToUpdate.end()) // No need to update transform separately if it's already waiting for an update
-						m_DirtyTransformParticles.emplace(component.Parent.GetGUID());
+						m_DirtyTransformParticles.emplace(component.Parent.GetID());
 				}
 			}
 
@@ -554,13 +554,13 @@ namespace Eagle
 		std::unordered_set<const TextComponent*> m_DirtyTransformTexts;
 		std::unordered_set<const DecalComponent*> m_DirtyTransformDecals;
 
-		// GUID of Entities. Can't store Entity (forward declaration)
-		std::unordered_set<GUID> m_ParticlesToAdd;
-		std::unordered_set<GUID> m_ParticlesToUpdate;
-		std::unordered_set<GUID> m_DirtyTransformParticles;
+		// entt::entity. Can't store Entity (forward declaration)
+		std::unordered_set<uint32_t> m_ParticlesToAdd;
+		std::unordered_set<uint32_t> m_ParticlesToUpdate;
+		std::unordered_set<uint32_t> m_DirtyTransformParticles;
 
 		std::unordered_set<GUID> m_ParticlesToRemove; // GUIDs of ParticleSystemComponent: system->Parent.GetGUID(). It's done like that because we can't store a pointer to a dead component
-		std::unordered_set<const ParticleSystemComponent*> m_TempParticleSystems; // Used to update and to avoid reallocation
+		std::unordered_set<const ParticleSystemComponent*> m_TempParticleSystems; // Used to update and to avoid reallocation of this data structure
 
 		std::unordered_map<GUID, Entity> m_AliveEntities;
 		std::vector<const PointLightComponent*> m_PointLights;

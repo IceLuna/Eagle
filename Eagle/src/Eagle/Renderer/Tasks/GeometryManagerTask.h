@@ -188,7 +188,7 @@ namespace Eagle
 
 	struct MeshDatas
 	{
-		std::vector<MeshData> Datas;
+		std::vector<MeshData> Instances;
 		std::vector<uint32_t> MaterialSlots; // Material slots to use
 	};
 
@@ -200,7 +200,7 @@ namespace Eagle
 
 	struct SkeletalMeshDatas
 	{
-		std::vector<SkeletalMeshData> Datas;
+		std::vector<SkeletalMeshData> Instances;
 		std::vector<uint32_t> MaterialSlots; // Material slots to use
 	};
 

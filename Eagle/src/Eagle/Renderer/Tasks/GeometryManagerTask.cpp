@@ -471,7 +471,7 @@ namespace Eagle
 			for (auto& [meshKey, meshData] : m_SkeletalMeshes)
 			{
 				const auto& mesh = meshKey.Mesh;
-				for (auto& data : meshData.Datas)
+				for (auto& data : meshData.Instances)
 				{
 					// It doesn't matter which index we take, since `AnimTransformIndex` and `ObjectID` are going to be the same
 					const auto& instanceData = data.InstanceDatas[0];
@@ -604,7 +604,7 @@ namespace Eagle
 			const uint32_t materialsCount = comp->GetMaterialsSlotsCount();
 			const uint32_t meshID = comp->Parent.GetID();
 			auto& instanceData = tempMeshes[{staticMesh, meshAsset->GetGUID(), comp->DoesCastShadows()}];
-			auto& meshData = instanceData.Datas.emplace_back();
+			auto& meshData = instanceData.Instances.emplace_back();
 			for (uint32_t i = 0; i < materialsCount; ++i)
 			{
 				const bool bReceivesDecals = comp->DoesReceiveDecals();
@@ -678,7 +678,7 @@ namespace Eagle
 		m_MaskedMeshes.clear();
 
 		for (auto& [mesh, datas] : m_Meshes)
-			for (auto& data : datas.Datas)
+			for (auto& data : datas.Instances)
 			{
 				const size_t materialsCount = data.Materials.size();
 				for (size_t i = 0; i < materialsCount; ++i)
@@ -708,21 +708,21 @@ namespace Eagle
 							case Material::BlendMode::Opaque:
 							{
 								auto& meshes = m_OpaqueMeshes[mesh];
-								meshes.Datas.push_back(data);
+								meshes.Instances.push_back(data);
 								meshes.MaterialSlots = std::move(datasPerBlendMode[i].MaterialSlots);
 								break;
 							}
 							case Material::BlendMode::Translucent:
 							{
 								auto& meshes = m_TranslucentMeshes[mesh];
-								meshes.Datas.push_back(data);
+								meshes.Instances.push_back(data);
 								meshes.MaterialSlots = std::move(datasPerBlendMode[i].MaterialSlots);
 								break;
 							}
 							case Material::BlendMode::Masked:
 							{
 								auto& meshes = m_MaskedMeshes[mesh];
-								meshes.Datas.push_back(data);
+								meshes.Instances.push_back(data);
 								meshes.MaterialSlots = std::move(datasPerBlendMode[i].MaterialSlots);
 								break;
 							}
@@ -751,7 +751,7 @@ namespace Eagle
 			currentVertexSize += meshKey.Mesh->GetVerticesCount() * sizeof(Vertex);
 			for (uint32_t i = 0; i < materialsCount; ++i)
 				currentIndexSize += meshKey.Mesh->GetIndicesCount(i) * sizeof(Index);
-			meshesCount += datas.Datas.size() * materialsCount;
+			meshesCount += datas.Instances.size() * materialsCount;
 		}
 		const size_t currentInstanceVertexSize = meshesCount * sizeof(PerInstanceData);
 
@@ -785,7 +785,7 @@ namespace Eagle
 			// Append instance data in the pattern of `Structure of Arrays`.
 			// For example, [0, 0, 0, 1, 1, 1] rather than [0, 1, 0, 1, 0, 1]
 			for (uint32_t i = 0; i < materialsCount; ++i)
-				for (auto& data : datas.Datas)
+				for (auto& data : datas.Instances)
 					meshData.InstanceVertices.push_back(data.InstanceDatas[i]);
 		}
 
@@ -824,8 +824,8 @@ namespace Eagle
 
 			const uint32_t materialsCount = comp->GetMaterialsSlotsCount();
 			const uint32_t meshID = comp->Parent.GetID();
-			auto& instanceData = tempMeshes[{skeletalMesh, meshAsset->GetGUID(), comp->DoesCastShadows()}];
-			auto& meshData = instanceData.Datas.emplace_back();
+			auto& instancesData = tempMeshes[{skeletalMesh, meshAsset->GetGUID(), comp->DoesCastShadows()}];
+			auto& meshData = instancesData.Instances.emplace_back();
 			for (uint32_t i = 0; i < materialsCount; ++i)
 			{
 				const bool bReceivesDecals = comp->DoesReceiveDecals();
@@ -900,7 +900,7 @@ namespace Eagle
 		uint32_t animationsCount = 0u;
 
 		for (auto& [mesh, datas] : m_SkeletalMeshes)
-			for (auto& data : datas.Datas)
+			for (auto& data : datas.Instances)
 			{
 				const size_t materialsCount = data.Materials.size();
 				for (size_t i = 0; i < materialsCount; ++i)
@@ -934,21 +934,21 @@ namespace Eagle
 							case Material::BlendMode::Opaque:
 							{
 								auto& meshes = m_OpaqueSkeletalMeshes[mesh];
-								meshes.Datas.push_back(data);
+								meshes.Instances.push_back(data);
 								meshes.MaterialSlots = std::move(datasPerBlendMode[i].MaterialSlots);
 								break;
 							}
 							case Material::BlendMode::Translucent:
 							{
 								auto& meshes = m_TranslucentSkeletalMeshes[mesh];
-								meshes.Datas.push_back(data);
+								meshes.Instances.push_back(data);
 								meshes.MaterialSlots = std::move(datasPerBlendMode[i].MaterialSlots);
 								break;
 							}
 							case Material::BlendMode::Masked:
 							{
 								auto& meshes = m_MaskedSkeletalMeshes[mesh];
-								meshes.Datas.push_back(data);
+								meshes.Instances.push_back(data);
 								meshes.MaterialSlots = std::move(datasPerBlendMode[i].MaterialSlots);
 								break;
 							}
@@ -998,7 +998,7 @@ namespace Eagle
 			currentVertexSize += meshKey.Mesh->GetVerticesCount() * sizeof(SkeletalVertex);
 			for (uint32_t i = 0; i < materialsCount; ++i)
 				currentIndexSize += meshKey.Mesh->GetIndicesCount(i) * sizeof(Index);
-			meshesCount += datas.Datas.size() * materialsCount;
+			meshesCount += datas.Instances.size() * materialsCount;
 		}
 		const size_t currentInstanceVertexSize = meshesCount * sizeof(SkeletalPerInstanceData);
 
@@ -1032,16 +1032,13 @@ namespace Eagle
 			// Append instance data in the pattern of `Structure of Arrays`.
 			// For example, [0, 0, 0, 1, 1, 1] rather than [0, 1, 0, 1, 0, 1]
 			for (uint32_t i = 0; i < materialsCount; ++i)
-				for (auto& data : datas.Datas)
+				for (auto& data : datas.Instances)
 					meshData.InstanceVertices.push_back(data.InstanceDatas[i]);
 		}
 
 		cmd->Write(vb, meshData.Vertices.data(), meshData.Vertices.size() * sizeof(SkeletalVertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
 		cmd->Write(ivb, meshData.InstanceVertices.data(), currentInstanceVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
 		cmd->Write(ib, meshData.Indices.data(), meshData.Indices.size() * sizeof(Index), 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
-		cmd->Barrier(vb);
-		cmd->Barrier(ivb);
-		cmd->Barrier(ib);
 	}
 
 	// ---------- Sprites ----------

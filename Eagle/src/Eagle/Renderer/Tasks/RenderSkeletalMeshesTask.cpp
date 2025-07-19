@@ -174,7 +174,7 @@ namespace Eagle
 		for (auto& [meshKey, datas] : meshes)
 		{
 			const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-			const uint32_t instanceCount = (uint32_t)datas.Datas.size();
+			const uint32_t instanceCount = (uint32_t)datas.Instances.size();
 
 			stats.Vertices += verticesCount;
 
@@ -243,7 +243,7 @@ namespace Eagle
 		for (auto& [meshKey, datas] : meshes)
 		{
 			const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-			const uint32_t instanceCount = (uint32_t)datas.Datas.size();
+			const uint32_t instanceCount = (uint32_t)datas.Instances.size();
 
 			stats.Vertices += verticesCount;
 

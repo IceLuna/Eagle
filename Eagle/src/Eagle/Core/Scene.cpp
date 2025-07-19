@@ -758,15 +758,17 @@ namespace Eagle
 		}
 	}
 
-	void Scene::CollectParticleSystems(const std::unordered_set<GUID>& input)
+	void Scene::CollectParticleSystems(const std::unordered_set<uint32_t>& entities)
 	{
+		static_assert(std::is_same<uint32_t, EntityIDType>::value);
+
 		m_TempParticleSystems.clear();
-		for (const auto& guid : input)
+		for (const auto& entityID : entities)
 		{
-			Entity entity = GetEntityByGUID(guid);
-			if (entity && entity.HasComponent<ParticleSystemComponent>())
+			entt::entity entity = (entt::entity)entityID;
+			if (m_Registry.valid(entity) && m_Registry.all_of<ParticleSystemComponent>(entity))
 			{
-				m_TempParticleSystems.emplace(&entity.GetComponent<ParticleSystemComponent>());
+				m_TempParticleSystems.emplace(&m_Registry.get<ParticleSystemComponent>(entity));
 			}
 		}
 	}
@@ -1761,7 +1763,7 @@ namespace Eagle
 
 	void Scene::AddParticleSystem(const ParticleSystemComponent* system)
 	{
-		m_ParticlesToAdd.emplace(system->Parent.GetGUID());
+		m_ParticlesToAdd.emplace(system->Parent.GetID());
 	}
 
 	void Scene::RemoveParticleSystem(const ParticleSystemComponent* system)
@@ -1771,8 +1773,8 @@ namespace Eagle
 
 	void Scene::UpdateParticleSystem(const ParticleSystemComponent* system)
 	{
-		m_ParticlesToUpdate.emplace(system->Parent.GetGUID());
-		m_DirtyTransformParticles.erase(system->Parent.GetGUID()); // No need to update transform separately
+		m_ParticlesToUpdate.emplace(system->Parent.GetID());
+		m_DirtyTransformParticles.erase(system->Parent.GetID()); // No need to update transform separately
 	}
 
 	void Scene::OnStaticMeshComponentRemoved(entt::registry& r, entt::entity e)
