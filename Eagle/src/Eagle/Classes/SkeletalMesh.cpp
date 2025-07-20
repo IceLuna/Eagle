@@ -101,11 +101,11 @@ namespace Eagle
             float totalWeight = 0.f;
             for (uint32_t i = 0; i < EG_MAX_BONES_PER_VERTEX; ++i)
             {
-                totalWeight += vertex.Weights[i];
+                totalWeight += Utils::ToFloat32(vertex.Weights[i]);
             }
             for (uint32_t i = 0; i < EG_MAX_BONES_PER_VERTEX; ++i)
             {
-                vertex.Weights[i] /= totalWeight;
+                vertex.Weights[i] = Utils::ToFloat16(Utils::ToFloat32(vertex.Weights[i]) / totalWeight);
             }
         }
         RegenerateRagdollData(m_MinRagdollBoneSize);

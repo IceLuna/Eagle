@@ -273,14 +273,12 @@ namespace Eagle
 
 				auto& vertex = vertices[vertexID];
 				{
-					static_assert(std::is_same<glm::vec4, decltype(SkeletalVertex::Weights)>::value);
-
 					bool bInserted = false;
 					for (int i = 0; i < EG_MAX_BONES_PER_VERTEX; ++i)
 					{
-						if (vertex.Weights[i] == 0.f)
+						if (Utils::ToFloat32(vertex.Weights[i]) == 0.f)
 						{
-							vertex.Weights[i] = weight;
+							vertex.Weights[i] = Utils::ToFloat16(weight);
 							vertex.BoneID[i] = boneID;
 							bInserted = true;
 							break;
@@ -293,18 +291,19 @@ namespace Eagle
 						// Find the least influential bone to replace it
 						for (int i = 0; i < EG_MAX_BONES_PER_VERTEX; ++i)
 						{
-							if (vertex.Weights[i] < weight)
+							float vertexWeight32 = Utils::ToFloat32(vertex.Weights[i]);
+							if (vertexWeight32 < weight)
 							{
-								if (vertex.Weights[i] < minWeight)
+								if (vertexWeight32 < minWeight)
 								{
 									leastInfluentialBoneIndex = 1;
-									minWeight = vertex.Weights[i];
+									minWeight = vertexWeight32;
 								}
 							}
 						}
 						if (leastInfluentialBoneIndex != -1)
 						{
-							vertex.Weights[leastInfluentialBoneIndex] = weight;
+							vertex.Weights[leastInfluentialBoneIndex] = Utils::ToFloat16(weight);
 							vertex.BoneID[leastInfluentialBoneIndex] = boneID;
 							bInserted = true;
 						}

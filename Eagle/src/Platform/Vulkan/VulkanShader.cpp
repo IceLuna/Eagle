@@ -65,7 +65,7 @@ namespace Eagle
 				case 4: return VK_FORMAT_R32G32B32A32_SFLOAT;
 				}
 			}
-			if (type.basetype == spirv_cross::SPIRType::Int)
+			else if (type.basetype == spirv_cross::SPIRType::Int)
 			{
 				switch (type.vecsize)
 				{
@@ -75,7 +75,7 @@ namespace Eagle
 				case 4: return VK_FORMAT_R32G32B32A32_SINT;
 				}
 			}
-			if (type.basetype == spirv_cross::SPIRType::UInt)
+			else if (type.basetype == spirv_cross::SPIRType::UInt)
 			{
 				switch (type.vecsize)
 				{
@@ -85,7 +85,7 @@ namespace Eagle
 				case 4: return VK_FORMAT_R32G32B32A32_UINT;
 				}
 			}
-			if (type.basetype == spirv_cross::SPIRType::Half)
+			else if (type.basetype == spirv_cross::SPIRType::Half)
 			{
 				switch (type.vecsize)
 				{
@@ -93,6 +93,16 @@ namespace Eagle
 				case 2: return VK_FORMAT_R16G16_SFLOAT;
 				case 3: return VK_FORMAT_R16G16B16_SFLOAT;
 				case 4: return VK_FORMAT_R16G16B16A16_SFLOAT;
+				}
+			}
+			else if (type.basetype == spirv_cross::SPIRType::UShort)
+			{
+				switch (type.vecsize)
+				{
+				case 1: return VK_FORMAT_R16_UINT;
+				case 2: return VK_FORMAT_R16G16_UINT;
+				case 3: return VK_FORMAT_R16G16B16_UINT;
+				case 4: return VK_FORMAT_R16G16B16A16_UINT;
 				}
 			}
 			EG_CORE_ASSERT(!"Unknown type");

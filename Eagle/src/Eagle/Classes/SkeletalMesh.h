@@ -19,8 +19,8 @@ namespace Eagle
 		glm::vec3 Normal;
 		glm::vec3 Tangent;
 		glm::vec2 TexCoords;
-		glm::vec4 Weights = glm::vec4{ 0.f }; // EG_MAX_BONES_PER_VERTEX
-		glm::uvec4 BoneID = glm::uvec4{ 0u };
+		uint16_t Weights[EG_MAX_BONES_PER_VERTEX]; // float16
+		uint16_t BoneID[EG_MAX_BONES_PER_VERTEX];
 
 		bool operator==(const SkeletalVertex& other) const
 		{
@@ -43,7 +43,6 @@ namespace Eagle
 			return !((*this) == other);
 		}
 	};
-	static_assert(EG_MAX_BONES_PER_VERTEX == decltype(SkeletalVertex::Weights)::length());
 
 	struct BoneNode
 	{

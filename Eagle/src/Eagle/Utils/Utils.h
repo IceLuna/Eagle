@@ -35,6 +35,11 @@ namespace Eagle::Utils
 		return glm::detail::toFloat16(value);
 	}
 
+	static float ToFloat32(uint16_t value)
+	{
+		return glm::detail::toFloat32(value);
+	}
+
 	// Function to convert float32 to unsigned float10
 	static uint16_t ToFloat10(float value)
 	{
