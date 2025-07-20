@@ -35,7 +35,7 @@ layout(location = 1) flat out uint o_MaterialIndex;
 
 void main()
 {
-    const uint transformIndex = a_PerInstanceData.x & (EG_RECEIVES_DECALS_MASK - 1); // Get all but the highest bit
+    const uint transformIndex = a_PerInstanceData.x & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
     const vec4 worldPos = g_Transforms[transformIndex] * vec4(a_Position, 1.0);
 #ifdef EG_POINT_LIGHT_PASS
     gl_Position = g_ViewProjections[gl_ViewIndex] * worldPos;

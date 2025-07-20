@@ -48,7 +48,7 @@ void main()
     const mat4 model = g_Transforms[transformIndex];
     gl_Position = g_ViewProjection * model * totalPosition;
     
-    o_WorldPos = vec3(model * boneTransform * totalPosition);
+    o_WorldPos = vec3(model * totalPosition);
     
     const uint normalTextureIndex = FetchMaterialNormalTextureIndex(materialIndex);
     if (normalTextureIndex != EG_INVALID_INDEX)

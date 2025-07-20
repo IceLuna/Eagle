@@ -35,7 +35,7 @@ layout(location = 1) flat out uint o_MaterialIndex;
 
 void main()
 {
-    const uint transformIndex = a_TransformIndex & (EG_RECEIVES_DECALS_MASK - 1); // Get all but the highest bit
+    const uint transformIndex = a_TransformIndex & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
     const uint vertexID = gl_VertexIndex % 4u;
     const mat4 model = g_Transforms[transformIndex];
     const vec4 worldPos = model * vec4(s_QuadVertexPosition[vertexID], 1.f);

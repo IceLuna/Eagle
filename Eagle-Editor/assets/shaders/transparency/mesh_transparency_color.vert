@@ -22,7 +22,7 @@ layout(location = 4) out mat3 o_TBN;
 
 void main()
 {
-    const uint transformIndex = a_PerInstanceData.x & (EG_RECEIVES_DECALS_MASK - 1); // Get all but the highest bit
+    const uint transformIndex = a_PerInstanceData.x & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
     const uint materialIndex = a_PerInstanceData.y;
 
     const mat4 model = g_Transforms[transformIndex];

@@ -44,7 +44,7 @@ layout(location = 9) out vec3 o_PrevPos;
 
 void main()
 {
-    const uint transformIndex = a_PerInstanceData.x & (EG_RECEIVES_DECALS_MASK - 1); // Get all but the highest bit
+    const uint transformIndex = a_PerInstanceData.x & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
     const uint materialIndex = a_PerInstanceData.y;
     const uint objectID = a_PerInstanceData.z;
     o_ReceivesDecals = (a_PerInstanceData.x & EG_RECEIVES_DECALS_MASK) == EG_RECEIVES_DECALS_MASK ? 1u : 0u;
