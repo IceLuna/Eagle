@@ -104,6 +104,27 @@ namespace Eagle::UI
 		return s_IDBuffer;
 	}
 
+	const Ref<Eagle::Image> GetAssetPreview(const Ref<Asset>& asset)
+	{
+		if (!asset)
+			return Texture2D::NoneIconTexture->GetImage();
+
+		Ref<Eagle::Image> preview;
+		if (ThumbnailCache::IsRenderableAssetType(asset->GetAssetType()))
+		{
+			preview = ThumbnailCache::Get(asset);
+			if (!preview)
+			{
+				if (ThumbnailCache::Render(asset, ThumbnailCache::GetThumbnailSize()))
+				{
+					preview = ThumbnailCache::Get(asset);
+				}
+			}
+		}
+
+		return preview;
+	}
+
 	bool DrawVec3Control(const std::string_view label, glm::vec3& values, const glm::vec3& resetValues /* = glm::vec3{ 0.f }*/, float columnWidth /*= 100.f*/, bool bReturnOnEnter /* = false */)
 	{
 		bool bValueChanged = false;
@@ -927,6 +948,61 @@ namespace Eagle::UI
 		ImGui::PopID();
 
 		return bModified;
+	}
+
+	bool DrawGraphVariables(const Ref<AnimationGraph>& graph)
+	{
+		bool bChanged = false;
+
+		for (auto& [name, var] : graph->GetVariables())
+		{
+			if (!var->bShowInUI)
+				continue;
+
+			switch (var->GetType())
+			{
+			case GraphVariableType::Bool:
+			{
+				auto boolVar = Cast<GraphVariableBool>(var);
+				bChanged |= UI::Property(name, boolVar->Value);
+				break;
+			}
+			case GraphVariableType::Int:
+			{
+				auto intVar = Cast<GraphVariableInt>(var);
+				bChanged |= UI::PropertyDrag(name, intVar->Value);
+				break;
+			}
+			case GraphVariableType::Float:
+			{
+				auto floatVar = Cast<GraphVariableFloat>(var);
+				bChanged |= UI::PropertyDrag(name, floatVar->Value, 0.1f);
+				break;
+			}
+			case GraphVariableType::Animation:
+			{
+				auto animVar = Cast<GraphVariableAnimation>(var);
+				bChanged |= UI::DrawAssetSelection(name, animVar->Value, "", -1.f, GetAssetPreview(animVar->Value));
+				break;
+			}
+			case GraphVariableType::String:
+			{
+				auto animVar = Cast<GraphVariableString>(var);
+				bChanged |= UI::PropertyText(name, animVar->Value);
+				break;
+			}
+			case GraphVariableType::Vec4:
+			{
+				auto animVar = Cast<GraphVariableVec4>(var);
+				bChanged |= UI::PropertyDrag(name, animVar->Value, 0.05f);
+				break;
+			}
+			default:
+				EG_CORE_ASSERT(false);
+			}
+		}
+
+		return bChanged;
 	}
 
 	bool InputFloat(const std::string_view label, float& value, float step, float stepFast, const std::string_view helpMessage)

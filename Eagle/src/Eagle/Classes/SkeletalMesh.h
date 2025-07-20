@@ -9,8 +9,6 @@
 #include <vector>
 #include <glm/glm.hpp>
 
-#define EG_MAX_BONES_PER_VERTEX 4
-
 namespace Eagle
 {
 	class AssetPhysicsMaterial;

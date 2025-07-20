@@ -96,23 +96,7 @@ namespace Eagle
 	
 	const Ref<Image> EditorResources::GetAssetPreview(const Ref<Asset>& asset)
 	{
-		if (!asset)
-			return Texture2D::NoneIconTexture->GetImage();
-
-		Ref<Image> preview;
-		if (ThumbnailCache::IsRenderableAssetType(asset->GetAssetType()))
-		{
-			preview = ThumbnailCache::Get(asset);
-			if (!preview)
-			{
-				if (ThumbnailCache::Render(asset, ThumbnailCache::GetThumbnailSize()))
-				{
-					preview = ThumbnailCache::Get(asset);
-				}
-			}
-		}
-
-		if (preview)
+		if (Ref<Image> preview = UI::GetAssetPreview(asset))
 			return preview;
 
 		return EditorResources::GetAssetIconTexture(asset->GetAssetType())->GetImage();

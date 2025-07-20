@@ -489,6 +489,7 @@ namespace Eagle
     ThreadPool AnimationSystem::s_ThreadPool("AnimationSystem", std::thread::hardware_concurrency() - 1u, false);
 
     std::unordered_map<uint32_t, std::vector<glm::mat4>> AnimationSystem::s_Transforms;
+    std::unordered_map<GUID, std::unordered_map<GUID, std::vector<glm::mat4>>> AnimationSystem::s_EmittersTransforms;
 
     void AnimationSystem::Update(const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* animation, float currentTime, std::vector<glm::mat4>* outTransforms, SkeletalPose* outPose)
     {
@@ -583,7 +584,7 @@ namespace Eagle
                     return;
                 }
 
-                if (mesh->AnimType == SkeletalMeshComponent::AnimationType::Clip)
+                if (mesh->AnimType == AnimationType::Clip)
                 {
                     const auto& animAsset = mesh->GetAnimationAsset();
                     const SkeletalMeshAnimation* animation = animAsset ? animAsset->GetAnimation().get() : nullptr;
@@ -636,11 +637,12 @@ namespace Eagle
 
             if (mesh->LastPose.EventsToTrigger.size() > 0)
             {
+                // TODO v0.7: Why can't we call it here?
                 Application::Get().CallNextFrame([mesh]()
                 {
                     const auto& events = mesh->LastPose.GetEventsToTrigger();
                     for (const auto& event : events)
-                        mesh->TriggerAnimationEvent(event.Name, event.Time);
+                        mesh->Parent.TriggerAnimationEvent(event.Name, event.Time);
                 });
             }
         }
@@ -701,6 +703,108 @@ namespace Eagle
         return s_Transforms;
     }
     
+    std::unordered_map<GUID, std::unordered_map<GUID, std::vector<glm::mat4>>> AnimationSystem::Update(const std::vector<ParticleSystemComponent*>& systems, float ts)
+    {
+        if (systems.empty())
+            return {};
+
+        EG_CPU_TIMING_SCOPED("Animation System. Update Particle System animations");
+
+        s_ThreadPool->wait_for_tasks();
+
+        s_EmittersTransforms.clear();
+        s_EmittersTransforms.reserve(systems.size());
+
+        for (auto& system : systems)
+        {
+            const auto& asset = system->GetAsset();
+            if (!asset)
+                continue;
+
+            auto& perEmitterTransforms = s_EmittersTransforms[system->GetSystemID()];
+            const auto& emitters = asset->GetEmitters();
+            const size_t emittersCount = emitters.size();
+
+            // Allocate enough memory for all emitters to avoid reallocations during multi-threaded calculations
+            for (size_t i = 0; i < emittersCount; ++i)
+            {
+                const auto& emitter = emitters[i];
+                if (emitter.IsSkeletalMeshUsed())
+                    perEmitterTransforms.emplace(emitter.ID, std::vector<glm::mat4>{});
+            }
+        }
+
+        for (auto& system : systems)
+        {
+            const auto& asset = system->GetAsset();
+            if (!asset)
+                continue;
+
+            const auto& emitters = asset->GetEmitters();
+            const size_t emittersCount = emitters.size();
+            auto& perEmitterTransforms = s_EmittersTransforms[system->GetSystemID()];
+
+            for (size_t i = 0; i < emittersCount; ++i)
+            {
+                const auto& emitter = emitters[i];
+                if (!emitter.IsSkeletalMeshUsed())
+                    continue;
+
+                auto& transforms = perEmitterTransforms.at(emitter.ID);
+
+                s_ThreadPool->push_task([system, &emitter, &transforms, i, ts]()
+                {
+                    const auto& skeletalMesh = Cast<AssetSkeletalMesh>(emitter.MeshAsset)->GetMesh();
+                    auto& animData = system->PerEmitterAnimData[i];
+
+                    const auto& animAsset = emitter.MeshAnimationAsset;
+                    const SkeletalMeshAnimation* animation = animAsset ? animAsset->GetAnimation().get() : nullptr;
+                    Update(skeletalMesh, animation, animData.CurrentClipPlayTime, &transforms, &animData.LastPose);
+                    if (animation)
+                    {
+                        if (emitter.bTriggerAnimationEvents)
+                            AnimationSystem::GetEventsToTrigger(animation, animData.PrevClipPlayTime, animData.CurrentClipPlayTime, animData.PrevClipPlaybackSpeed, emitter.ClipPlaybackSpeed, &(animData.LastPose.EventsToTrigger));
+
+                        animData.PrevClipPlayTime = animData.CurrentClipPlayTime;
+                        animData.CurrentClipPlayTime = StepForwardAnimTime(animation, animData.CurrentClipPlayTime, ts * emitter.ClipPlaybackSpeed, emitter.bClipLooping);
+                        animData.PrevClipPlaybackSpeed = emitter.ClipPlaybackSpeed;
+                    }
+                });
+            }
+        }
+
+        s_ThreadPool->wait_for_tasks();
+
+        for (auto& system : systems)
+        {
+            const auto& asset = system->GetAsset();
+            if (!asset)
+                continue;
+
+            const auto& emitters = asset->GetEmitters();
+            const size_t emittersCount = emitters.size();
+            for (size_t i = 0; i < emittersCount; ++i)
+            {
+                const auto& emitter = emitters[i];
+                if (!emitter.bTriggerAnimationEvents)
+                    continue;
+
+                const auto& animData = system->PerEmitterAnimData[i];
+                if (animData.LastPose.EventsToTrigger.size() > 0)
+                {
+                    Application::Get().CallNextFrame([lastPose = animData.LastPose, system]()
+                    {
+                        const auto& events = lastPose.GetEventsToTrigger();
+                        for (const auto& event : events)
+                            system->Parent.TriggerAnimationEvent(event.Name, event.Time);
+                    });
+                }
+            }
+        }
+
+        return s_EmittersTransforms;
+    }
+
     Transform AnimationSystem::CalculateRootMotion(const SkeletalMeshAnimation* animation, float currentTime, float prevTime, float playbackSpeed, Timestep ts, Transform* outTotalRootMotion)
     {
         if (!animation || !animation->HasRootMotion())

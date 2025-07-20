@@ -82,25 +82,25 @@ namespace Eagle
 
 		static void Reset();
 
-		static void InstantiateEntityClass(Entity& entity);
-		static EntityInstanceData& GetEntityInstanceData(Entity& entity);
+		static void InstantiateEntityClass(Entity entity);
+		static EntityInstanceData& GetEntityInstanceData(const Entity& entity);
 		static MonoObject* GetEntityMonoObject(Entity entity);
 		static MonoObject* GetEntityMonoObject(GUID entityID);
 
-		static void OnCreateEntity(Entity& entity);
-		static void OnUpdateEntity(Entity& entity, Timestep ts);
-		static void OnEventEntity(Entity& entity, void* eventObj);
-		static void OnAnimationEventEntity(Entity& entity, const std::string& eventName, float time);
-		static void OnPhysicsUpdateEntity(Entity& entity, Timestep ts);
-		static void OnDestroyEntity(Entity& entity);
+		static void OnCreateEntity(const Entity& entity);
+		static void OnUpdateEntity(const Entity& entity, Timestep ts);
+		static void OnEventEntity(const Entity& entity, void* eventObj);
+		static void OnAnimationEventEntity(const Entity& entity, const std::string& eventName, float time);
+		static void OnPhysicsUpdateEntity(const Entity& entity, Timestep ts);
+		static void OnDestroyEntity(const Entity& entity);
 
-		static void OnCollisionBegin(Entity& entity, const Entity& other, const CollisionInfo& collisionInfo);
-		static void OnCollisionEnd(Entity& entity, const Entity& other, const CollisionInfo& collisionInfo);
-		static void OnTriggerBegin(Entity& entity, const Entity& other);
-		static void OnTriggerEnd(Entity& entity, const Entity& other);
+		static void OnCollisionBegin(const Entity& entity, const Entity& other, const CollisionInfo& collisionInfo);
+		static void OnCollisionEnd(const Entity& entity, const Entity& other, const CollisionInfo& collisionInfo);
+		static void OnTriggerBegin(const Entity& entity, const Entity& other);
+		static void OnTriggerEnd(const Entity& entity, const Entity& other);
 
-		static void InitEntityScript(Entity& entity);
-		static void RemoveEntityScript(Entity& entity);
+		static void InitEntityScript(Entity entity);
+		static void RemoveEntityScript(const Entity& entity);
 		static bool ModuleExists(const std::string& moduleName);
 		static bool IsEntityModuleValid(const Entity& entity);
 

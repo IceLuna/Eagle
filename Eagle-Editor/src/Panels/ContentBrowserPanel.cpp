@@ -180,15 +180,15 @@ namespace Eagle
 			ImGui::Separator();
 
 			if (ImGui::MenuItem("Create Entity"))
-				AssetImporter::CreateEntity(m_CurrentDirectoryRelative);
+				m_SelectedFile = AssetImporter::CreateEntity(m_CurrentDirectoryRelative);
 			if (ImGui::MenuItem("Create Material"))
-				AssetImporter::CreateMaterial(m_CurrentDirectoryRelative);
+				m_SelectedFile = AssetImporter::CreateMaterial(m_CurrentDirectoryRelative);
 			if (ImGui::MenuItem("Create Physics Material"))
-				AssetImporter::CreatePhysicsMaterial(m_CurrentDirectoryRelative);
+				m_SelectedFile = AssetImporter::CreatePhysicsMaterial(m_CurrentDirectoryRelative);
 			if (ImGui::MenuItem("Create Sound Group"))
-				AssetImporter::CreateSoundGroup(m_CurrentDirectoryRelative);
+				m_SelectedFile = AssetImporter::CreateSoundGroup(m_CurrentDirectoryRelative);
 			if (ImGui::MenuItem("Create Particle System"))
-				AssetImporter::CreateParticleSystem(m_CurrentDirectoryRelative);
+				m_SelectedFile = AssetImporter::CreateParticleSystem(m_CurrentDirectoryRelative);
 			if (ImGui::MenuItem("Create Animation Graph"))
 			{
 				m_AnimationGraphImporter = AnimationGraphImporterPanel(m_CurrentDirectoryRelative);

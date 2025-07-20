@@ -43,17 +43,32 @@ layout(binding = 6) readonly buffer TransformsBuffer
     mat4 g_Transforms[];
 };
 
-layout(binding = 7) readonly buffer MeshVerticesBuffer
+layout(binding = 7) readonly buffer StaticMeshVerticesBuffer
 {
-    MeshVertex g_Vertices[];
+    StaticMeshVertex g_StaticVertices[];
 };
 
-layout(binding = 8) readonly buffer MeshIndicesBuffer
+layout(binding = 8) readonly buffer StaticMeshIndicesBuffer
 {
-    uint g_Indices[];
+    uint g_StaticIndices[];
 };
 
-layout(binding = 9) readonly buffer DecompositedTransformsBuffer
+layout(binding = 9) readonly buffer SkeletalMeshVerticesBuffer
+{
+    SkeletalMeshVertex g_SkeletalVertices[];
+};
+
+layout(binding = 10) readonly buffer SkeletalMeshIndicesBuffer
+{
+    uint g_SkeletalIndices[];
+};
+
+layout(binding = 11) readonly buffer SkeletalMeshAnimations
+{
+    mat4 g_Animations[];
+};
+
+layout(binding = 12) readonly buffer DecompositedTransformsBuffer
 {
     DecompositedTransform g_DecompositedTransforms[];
 };
@@ -98,21 +113,21 @@ uint GetEmitterIndex(uint id)
     }
 }
 
-void GetPosAndNormalOnMesh(Emitter emitter, inout Random random, inout vec3 pos, inout vec3 normal)
+void GetPosAndNormalOnStaticMesh(Emitter emitter, inout Random random, inout vec3 pos, inout vec3 normal)
 {
     // random triangle on emitter surface
 	const uint triangleCount = emitter.IndexCount / 3;
 	const uint tri = Random_NextUint(random, triangleCount);
 
 	// load indices of triangle from index buffer
-	uint i0 = g_Indices[emitter.IndexOffset + tri * 3 + 0];
-	uint i1 = g_Indices[emitter.IndexOffset + tri * 3 + 1];
-	uint i2 = g_Indices[emitter.IndexOffset + tri * 3 + 2];
+	uint i0 = g_StaticIndices[emitter.IndexOffset + tri * 3 + 0];
+	uint i1 = g_StaticIndices[emitter.IndexOffset + tri * 3 + 1];
+	uint i2 = g_StaticIndices[emitter.IndexOffset + tri * 3 + 2];
 
 	// load vertices of triangle from vertex buffer
-    MeshVertex v0 = g_Vertices[emitter.VertexOffset + i0];
-    MeshVertex v1 = g_Vertices[emitter.VertexOffset + i1];
-    MeshVertex v2 = g_Vertices[emitter.VertexOffset + i2];
+    StaticMeshVertex v0 = g_StaticVertices[emitter.VertexOffset + i0];
+    StaticMeshVertex v1 = g_StaticVertices[emitter.VertexOffset + i1];
+    StaticMeshVertex v2 = g_StaticVertices[emitter.VertexOffset + i2];
 
     // random barycentric coords
     vec2 buv = Random_NextFloat2(random);
@@ -125,6 +140,53 @@ void GetPosAndNormalOnMesh(Emitter emitter, inout Random random, inout vec3 pos,
     // compute final surface position on triangle from barycentric coords:
 	pos = BarycentricInterp(v0.Position, v1.Position, v2.Position, buv);
 	normal = normalize(BarycentricInterp(Particle_UnpackNormal(v0.Normal), Particle_UnpackNormal(v1.Normal), Particle_UnpackNormal(v2.Normal), buv));
+}
+
+void GetPosAndNormalOnSkeletalMesh(Emitter emitter, inout Random random, inout vec3 pos, inout vec3 normal)
+{
+    // random triangle on emitter surface
+	const uint triangleCount = emitter.IndexCount / 3;
+	const uint tri = Random_NextUint(random, triangleCount);
+
+	// load indices of triangle from index buffer
+	uint i0 = g_SkeletalIndices[emitter.IndexOffset + tri * 3 + 0];
+	uint i1 = g_SkeletalIndices[emitter.IndexOffset + tri * 3 + 1];
+	uint i2 = g_SkeletalIndices[emitter.IndexOffset + tri * 3 + 2];
+
+	// load vertices of triangle from vertex buffer
+    SkeletalMeshVertex vertices[3];
+    vertices[0] = g_SkeletalVertices[emitter.VertexOffset + i0];
+    vertices[1] = g_SkeletalVertices[emitter.VertexOffset + i1];
+    vertices[2] = g_SkeletalVertices[emitter.VertexOffset + i2];
+    vec3 normals[3];
+
+    for (uint vI = 0; vI < 3; vI++)
+    {
+        mat4 boneTransform = mat4(0.f);
+        for (uint i = 0; i < 4; ++i)
+        {
+            float animWeight = vertices[vI].Weights[i];
+            if (animWeight > 0.f)
+            {
+                uint boneID = vertices[vI].BoneIDs[i];
+                boneTransform += g_Animations[emitter.AnimationOffset + boneID] * animWeight;
+            }
+        }
+        vertices[vI].Position = vec3(boneTransform * vec4(vertices[vI].Position, 1.0));
+        normals[vI] = mat3(boneTransform) * Particle_UnpackNormal(vertices[vI].Normal);
+    }
+
+    // random barycentric coords
+    vec2 buv = Random_NextFloat2(random);
+	if (buv.x + buv.y > 1.f)
+	{
+		buv.x = 1.f - buv.x;
+		buv.y = 1.f - buv.y;
+	}
+	
+    // compute final surface position on triangle from barycentric coords:
+	pos = BarycentricInterp(vertices[0].Position, vertices[1].Position, vertices[2].Position, buv);
+	normal = normalize(BarycentricInterp(normals[0], normals[1], normals[2], buv));
 }
 
 void Emitter_GetParticlePositionAndNormal(Emitter emitter, inout Random random, out vec3 position, out vec3 normal)
@@ -149,7 +211,10 @@ void Emitter_GetParticlePositionAndNormal(Emitter emitter, inout Random random, 
 			position = Random_PointInRing(random, emitter.RingRadius, emitter.RingThickness);
 			break;
 		case EmissionShapeType_Mesh:
-			GetPosAndNormalOnMesh(emitter, random, position, normal);
+            if (emitter.AnimationOffset != -1)
+			    GetPosAndNormalOnSkeletalMesh(emitter, random, position, normal);
+            else
+			    GetPosAndNormalOnStaticMesh(emitter, random, position, normal);
 			break;
 	}
 }

@@ -120,9 +120,9 @@ struct Emitter
 
 	// TODO: Pack it somewhere
 	float BouncinessMax;
+	uint AnimationOffset; // Used to retrieve animation data when skeletal mesh animation is used
 	uint Padding0;
 	uint Padding1;
-	uint Padding2;
 
 	// This is internal data. Keep it at the end because during update only the data before it is being updated
 	vec3 WorldPos; // First
@@ -160,13 +160,21 @@ struct PackedParticle
 	uint Padding0;
 };
 
-struct MeshVertex
+#ifndef __cplusplus
+
+struct StaticMeshVertex
 {
 	vec3 Position;
 	uint Normal;
 };
 
-#ifndef __cplusplus
+struct SkeletalMeshVertex
+{
+	vec3 Position;
+	uint Normal;
+	f16vec4 Weights;
+	u16vec4 BoneIDs;
+};
 
 struct DrawArgs
 {

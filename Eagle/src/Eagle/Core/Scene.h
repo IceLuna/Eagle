@@ -304,6 +304,7 @@ namespace Eagle
 		void RenderScene(Timestep ts, bool bRuntime);
 		CameraComponent* FindOrCreateRuntimeCamera();
 		void ConnectSignals();
+		void RegisterSkeletalParticleIfCan(const ParticleSystemComponent* system);
 
 		void OnStaticMeshComponentRemoved(entt::registry& r, entt::entity e);
 		void OnSkeletalMeshComponentRemoved(entt::registry& r, entt::entity e);
@@ -537,6 +538,8 @@ namespace Eagle
 
 		// Key - mesh ID (entity ID)
 		std::unordered_map<uint32_t, std::vector<glm::mat4>> m_AnimationTransforms;
+		// Key - system ID; Value - transforms per emitter
+		std::unordered_map<GUID, std::unordered_map<GUID, std::vector<glm::mat4>>> m_SkeletalParticlesAnimationTransforms;
 
 		// Skybox
 		Ref<AssetTextureCube> m_Cubemap;
@@ -557,6 +560,7 @@ namespace Eagle
 		// entt::entity. Can't store Entity (forward declaration)
 		std::unordered_set<uint32_t> m_ParticlesToAdd;
 		std::unordered_set<uint32_t> m_ParticlesToUpdate;
+		std::unordered_set<uint32_t> m_SkeletalParticles; // Particles that use animated mesh
 		std::unordered_set<uint32_t> m_DirtyTransformParticles;
 
 		std::unordered_set<GUID> m_ParticlesToRemove; // GUIDs of ParticleSystemComponent: system->Parent.GetGUID(). It's done like that because we can't store a pointer to a dead component

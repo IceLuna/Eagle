@@ -19,7 +19,7 @@ namespace Eagle
 		m_Component = &entity.AddComponent<SkeletalMeshComponent>();
 		m_Component->SetMeshAsset(skeletalMeshAsset);
 		m_Component->SetAnimationAsset(m_Asset);
-		m_Component->AnimType = SkeletalMeshComponent::AnimationType::Clip;
+		m_Component->AnimType = AnimationType::Clip;
 		m_Component->SetRootMotionLockFlag(bInPlace ? RootMotionLockFlag::Position : RootMotionLockFlag::None);
 
 		auto& camera = scene->GetEditorCamera();

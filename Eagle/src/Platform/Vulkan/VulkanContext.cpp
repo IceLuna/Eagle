@@ -253,6 +253,9 @@ namespace Eagle
 		EG_CORE_ASSERT(m_PhysicalDevice == nullptr);
 		m_PhysicalDevice = VulkanPhysicalDevice::Select(surface, bRequireSurface);
 
+		VkPhysicalDevice16BitStorageFeatures storageFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES };
+		storageFeatures.storageBuffer16BitAccess = VK_TRUE;
+
 		VkPhysicalDeviceVulkan12Features deviceFeatures12 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
 		deviceFeatures12.descriptorIndexing = VK_TRUE;
 		deviceFeatures12.runtimeDescriptorArray = VK_TRUE;
@@ -266,6 +269,7 @@ namespace Eagle
 #ifdef EG_GPU_TIMINGS
 		deviceFeatures12.hostQueryReset = VK_TRUE;
 #endif
+		deviceFeatures12.pNext = &storageFeatures;
 
 		const auto& supportedFeatures = m_PhysicalDevice->GetSupportedFeatures();
 		const bool bSupportsAnisotropy = supportedFeatures.bAnisotropy;

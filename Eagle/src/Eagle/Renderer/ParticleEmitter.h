@@ -3,12 +3,14 @@
 #include "Eagle/Math/AABB.h"
 #include "Eagle/Math/Transform.h"
 #include "Eagle/Core/GUID.h"
+#include "Eagle/Animation/Animation.h"
 #include <glm/glm.hpp>
 
 namespace Eagle
 {
 	class AssetTexture2D;
-	class AssetStaticMesh;
+	class AssetBaseMesh;
+	class AssetAnimation;
 
 	struct ParticleEmitter
 	{
@@ -70,8 +72,13 @@ namespace Eagle
 		// Ring emission shape
 		glm::vec3 RingRadius = glm::vec3(0.5f);
 		glm::vec3 RingThickness = glm::vec3(0.1f);
+
 		// Mesh emission shape
-		Ref<AssetStaticMesh> MeshAsset; // TODO v0.7?: Add support for animated skeletal meshes
+		Ref<AssetBaseMesh> MeshAsset;
+		Ref<AssetAnimation> MeshAnimationAsset;
+		float ClipPlaybackSpeed = 1.f;
+		bool bClipLooping = true;
+		bool bTriggerAnimationEvents = false;
 
 		CollisionModeType CollisionMode = CollisionModeType::None;
 
@@ -92,6 +99,8 @@ namespace Eagle
 		{
 			return ID == other.ID; // Note: we're not checking for other params. If we do, then the `unordered_map` lookup will fail since it check for the equality of the key as well
 		}
+
+		bool IsSkeletalMeshUsed() const;
 	};
 }
 

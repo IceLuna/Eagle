@@ -140,8 +140,8 @@ namespace Eagle::Script
 	uint32_t Eagle_SkeletalMeshComponent_GetMaterialsSlotsCount(GUID entityID);
 	void Eagle_SkeletalMeshComponent_SetCastsShadows(GUID entityID, bool value);
 	bool Eagle_SkeletalMeshComponent_DoesCastShadows(GUID entityID);
-	SkeletalMeshComponent::AnimationType Eagle_SkeletalMeshComponent_GetAnimType(GUID entityID);
-	void Eagle_SkeletalMeshComponent_SetAnimType(GUID entityID, SkeletalMeshComponent::AnimationType value);
+	AnimationType Eagle_SkeletalMeshComponent_GetAnimType(GUID entityID);
+	void Eagle_SkeletalMeshComponent_SetAnimType(GUID entityID, AnimationType value);
 	void Eagle_SkeletalMeshComponent_SetReceivesDecals(GUID entityID, bool value);
 	bool Eagle_SkeletalMeshComponent_DoesReceiveDecals(GUID entityID);
 	bool Eagle_SkeletalMeshComponent_IsRootMotionLockFlagSet(GUID entityID, RootMotionLockFlag value);

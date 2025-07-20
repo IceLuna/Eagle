@@ -8,6 +8,7 @@ namespace Eagle
 	struct SkeletalMeshAnimation;
 	class SkeletalMesh;
 	class SkeletalMeshComponent;
+	class ParticleSystemComponent;
 	struct SkeletalPose;
 	struct BoneNode;
 	struct SkeletalMeshInfo;
@@ -25,6 +26,7 @@ namespace Eagle
 	public:
 		static std::unordered_map<uint32_t, std::vector<glm::mat4>> Update(const std::vector<SkeletalMeshComponent*>& meshes, float ts, bool bApplyRootMotion);
 		static std::unordered_map<uint32_t, std::vector<glm::mat4>> UpdateBasePose(const std::vector<SkeletalMeshComponent*>& meshes, float ts);
+		static std::unordered_map<GUID, std::unordered_map<GUID, std::vector<glm::mat4>>> Update(const std::vector<ParticleSystemComponent*>& systems, float ts);
 
 		// @currentTime - current time of animation to calculate
 		static void Update(const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* animation, float currentTime, std::vector<glm::mat4>* outTransforms, SkeletalPose* outPose);
@@ -67,5 +69,6 @@ namespace Eagle
 
 		// uint32_t = EntityID
 		static std::unordered_map<uint32_t, std::vector<glm::mat4>> s_Transforms;
+		static std::unordered_map<GUID, std::unordered_map<GUID, std::vector<glm::mat4>>> s_EmittersTransforms; // SystemID -> Emitter ID -> Its transforms
 	};
 }

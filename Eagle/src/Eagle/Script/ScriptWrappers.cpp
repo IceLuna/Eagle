@@ -1761,7 +1761,7 @@ namespace Eagle
 		return entity.GetComponent<SkeletalMeshComponent>().GetRootMotionLockFlags();
 	}
 
-	SkeletalMeshComponent::AnimationType Script::Eagle_SkeletalMeshComponent_GetAnimType(GUID entityID)
+	AnimationType Script::Eagle_SkeletalMeshComponent_GetAnimType(GUID entityID)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1774,7 +1774,7 @@ namespace Eagle
 		return entity.GetComponent<SkeletalMeshComponent>().AnimType;
 	}
 
-	void Script::Eagle_SkeletalMeshComponent_SetAnimType(GUID entityID, SkeletalMeshComponent::AnimationType value)
+	void Script::Eagle_SkeletalMeshComponent_SetAnimType(GUID entityID, AnimationType value)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);

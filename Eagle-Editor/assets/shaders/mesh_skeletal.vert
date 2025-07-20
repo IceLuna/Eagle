@@ -79,8 +79,9 @@ void main()
     totalPosition = boneTransform * vec4(a_Position, 1.0);
 
     gl_Position = g_ViewProjection * model * totalPosition;
-    const mat3 normalModel = mat3(transpose(inverse(model * boneTransform)));
-    const vec3 worldNormal = normalize(normalModel * a_Normal);
+    const vec3 normal = mat3(boneTransform) * a_Normal;
+    const mat3 normalModel = transpose(inverse(mat3(model)));
+    const vec3 worldNormal = normalize(normalModel * normal);
 
     const uint normalTextureIndex = FetchMaterialNormalTextureIndex(materialIndex);
     if (normalTextureIndex != EG_INVALID_INDEX)

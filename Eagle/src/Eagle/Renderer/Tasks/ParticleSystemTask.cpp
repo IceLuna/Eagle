@@ -61,10 +61,9 @@ namespace Eagle
 			return flags;
 		}
 
-		static void ToGPUEmitter(const ParticleEmitter& emitter, uint32_t transformIndex, uint32_t vertexOffset,
-			uint32_t indexOffset, uint32_t indexCount, Emitter& outData)
+		static void ToGPUEmitter(const ParticleEmitter& emitter, const ParticleSystemTask::EmitterData& emitterData, const ParticleSystemTask::MeshEmitterData& meshEmitterData, Emitter& outData)
 		{
-			outData.TransformIndex = transformIndex;
+			outData.TransformIndex = emitterData.TransformIndex;
 			outData.AABBMin = emitter.VisibilityAABB.Min;
 			outData.AABBMax = emitter.VisibilityAABB.Max;
 			outData.CollisionType = uint32_t(emitter.CollisionMode);
@@ -99,10 +98,11 @@ namespace Eagle
 			outData.TextureIndex = emitter.Texture ? TextureSystem::AddTexture(emitter.Texture->GetTexture()) : 0u;
 			outData.AnimationImagesNum = emitter.AnimationImagesNum;
 			outData.AnimationSpeed = emitter.AnimationSpeed;
-			outData.VertexOffset = vertexOffset;
-			outData.IndexOffset = indexOffset;
-			outData.IndexCount = indexCount;
+			outData.VertexOffset = meshEmitterData.VertexOffset;
+			outData.IndexOffset = meshEmitterData.IndexOffset;
+			outData.IndexCount = meshEmitterData.IndexCount;
 			outData.NormalVelocityFactor = emitter.NormalVelocityFactor;
+			outData.AnimationOffset = emitterData.AnimationOffset;
 
 			if (outData.NumParticles == 0u)
 			{
@@ -132,6 +132,70 @@ namespace Eagle
 
 			return decomposited;
 		}
+	
+		template <typename MeshType, typename ParticleVertex>
+		static void RebuildMeshData(const Ref<CommandBuffer>& cmd, std::unordered_map<Ref<MeshType>, ParticleSystemTask::MeshEmitterData>& meshDataMapping,
+			std::vector<ParticleVertex>& vertices, std::vector<Index>& indices, Ref<Buffer>& vertexBuffer, Ref<Buffer>& indexBuffer)
+		{
+			vertices.clear();
+			indices.clear();
+
+			// Go through all emitter meshes and collect mesh data
+			for (auto& [mesh, data] : meshDataMapping)
+			{
+				const auto& meshVertices = mesh->GetVertices();
+
+				data.VertexOffset = (uint32_t)vertices.size();
+				data.IndexOffset = (uint32_t)indices.size();
+				data.IndexCount = 0u;
+
+				for (const auto& vertex : meshVertices)
+				{
+					auto& newVertex = vertices.emplace_back();
+					newVertex.Position = vertex.Position;
+					newVertex.Normal = Utils::PackNormal(vertex.Normal);
+					if constexpr (std::is_same<ParticleSystemTask::ParticleSkeletalMeshVertex, ParticleVertex>::value)
+					{
+						for (uint32_t i = 0; i < EG_MAX_BONES_PER_VERTEX; ++i)
+						{
+							newVertex.Weights[i] = Utils::ToFloat16(vertex.Weights[i]);
+							newVertex.BoneIDs[i] = uint16_t(vertex.BoneID[i]);
+						}
+					}
+				}
+
+				const uint32_t indicesBuffersCount = mesh->GetMaterialSlotsCount();
+				for (uint32_t i = 0; i < indicesBuffersCount; ++i)
+				{
+					const auto& meshIndices = mesh->GetIndices(i);
+					data.IndexCount += (uint32_t)meshIndices.size();
+					for (const auto& index : meshIndices)
+					{
+						indices.emplace_back(index);
+					}
+				}
+			}
+
+			// Upload mesh data to GPU
+			{
+				const size_t verticesSize = vertices.size() * sizeof(ParticleVertex);
+				const size_t indicesSize = indices.size() * sizeof(Index);
+
+				if (vertexBuffer->GetSize() < verticesSize)
+				{
+					vertexBuffer->Resize(verticesSize * 3u / 2u);
+				}
+				if (indexBuffer->GetSize() < indicesSize)
+				{
+					indexBuffer->Resize(indicesSize * 3u / 2u);
+				}
+
+				if (verticesSize > 0)
+					cmd->Write(vertexBuffer, vertices.data(), verticesSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+				if (indicesSize > 0)
+					cmd->Write(indexBuffer, indices.data(), indicesSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			}
+		}
 	}
 
 	ParticleSystemTask::ParticleSystemTask(SceneRenderer& renderer)
@@ -139,8 +203,10 @@ namespace Eagle
 		, m_SortTranslucent(m_MaxParticles, true, true)
 	{
 		m_Size = m_Renderer.GetViewportSize();
-		m_MeshVertices.reserve(1024u);
-		m_MeshIndices.reserve(1024u);
+		m_StaticMeshVertices.reserve(1024u);
+		m_StaticMeshIndices.reserve(1024u);
+		m_SkeletalMeshVertices.reserve(1024u);
+		m_SkeletalMeshIndices.reserve(1024u);
 		bSortOpaque = m_Renderer.GetOptions().bSortOpaqueParticles;
 
 		InitSortOpaqueResources();
@@ -200,66 +266,26 @@ namespace Eagle
 		// 3. Process emitters that need to be added
 		// 4. Process emitters that need to be removed. Needs to be executed after Step 3 because an emitter might require one more update
 		// 5. Process emitters that need to be updated
-		// 6. Update transforms if required
-		// 7. Check if GPU Particles buffer is big enough and allocate enough memory if required
+		// 6. Upload animation data to GPU
+		// 7. Update transforms if required
+		// 8. Check if GPU Particles buffer is big enough and allocate enough memory if required
 
 		EG_GPU_TIMING_SCOPED(cmd, "Particle System. Update");
 		EG_CPU_TIMING_SCOPED("Particle System. Update");
 		bool bEmittersChangedOrAdded = false;
 
 		// Step 1
-		if (bRebuildMeshData)
+		if (bRebuildStaticMeshData || bRebuildSkeletalMeshData)
 		{
-			bRebuildMeshData = false;
-			m_MeshVertices.clear();
-			m_MeshIndices.clear();
-
-			// Go through all emitter meshes and collect mesh data
-			for (auto& [mesh, data] : m_MeshDataMapping)
+			if (bRebuildStaticMeshData)
 			{
-				const auto& vertices = mesh->GetVertices();
-
-				data.VertexOffset = (uint32_t)m_MeshVertices.size();
-				data.IndexOffset = (uint32_t)m_MeshIndices.size();
-				data.IndexCount = 0u;
-
-				for (const auto& vertex : vertices)
-				{
-					auto& newVertex = m_MeshVertices.emplace_back();
-					newVertex.Position = vertex.Position;
-					newVertex.Normal = Utils::PackNormal(vertex.Normal);
-				}
-
-				const uint32_t indicesBuffersCount = mesh->GetMaterialSlotsCount();
-				for (uint32_t i = 0; i < indicesBuffersCount; ++i)
-				{
-					const auto& indices = mesh->GetIndices(i);
-					data.IndexCount += (uint32_t)indices.size();
-					for (const auto& index : indices)
-					{
-						m_MeshIndices.emplace_back(index);
-					}
-				}
+				Utils::RebuildMeshData(cmd, m_StaticMeshDataMapping, m_StaticMeshVertices, m_StaticMeshIndices, m_StaticMeshVertexBuffer, m_StaticMeshIndexBuffer);
+				bRebuildStaticMeshData = false;
 			}
-		
-			// Upload mesh data to GPU
+			if (bRebuildSkeletalMeshData)
 			{
-				const size_t verticesSize = m_MeshVertices.size() * sizeof(ParticleMeshVertex);
-				const size_t indicesSize = m_MeshIndices.size() * sizeof(Index);
-
-				if (m_MeshVertexBuffer->GetSize() < verticesSize)
-				{
-					m_MeshVertexBuffer->Resize(verticesSize * 3u / 2u);
-				}
-				if (m_MeshIndexBuffer->GetSize() < indicesSize)
-				{
-					m_MeshIndexBuffer->Resize(indicesSize * 3u / 2u);
-				}
-
-				if (verticesSize > 0)
-					cmd->Write(m_MeshVertexBuffer, m_MeshVertices.data(), verticesSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-				if (indicesSize > 0)
-					cmd->Write(m_MeshIndexBuffer, m_MeshIndices.data(), indicesSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+				Utils::RebuildMeshData(cmd, m_SkeletalMeshDataMapping, m_SkeletalMeshVertices, m_SkeletalMeshIndices, m_SkeletalMeshVertexBuffer, m_SkeletalMeshIndexBuffer);
+				bRebuildSkeletalMeshData = false;
 			}
 		}
 
@@ -293,24 +319,15 @@ namespace Eagle
 		{
 			cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::StorageBuffer, BufferLayoutType::CopyDest);
 
-			const uint32_t count = (uint32_t)m_EmittersToAdd.size();
-			for (uint32_t i = 0; i < count; ++i)
+			const size_t count = m_EmittersToAdd.size();
+			for (size_t i = 0; i < count; ++i)
 			{
 				const auto& emitterToAdd = m_EmittersToAdd[i].Emitter;
 				auto& itEmitters = m_SystemToEmittersMapping.at(m_EmittersToAdd[i].SystemID);
-				auto& it = itEmitters.at(emitterToAdd);
-				const uint32_t transformIndex = it.TransformIndex;
+				auto& emitterData = itEmitters.at(emitterToAdd);
 
-				MeshEmitterData meshEmitterData{};
-				if (emitterToAdd.EmissionShape == ParticleEmitter::EmissionShapeType::Mesh && emitterToAdd.MeshAsset)
-				{
-					auto it = m_MeshDataMapping.find(emitterToAdd.MeshAsset->GetMesh());
-					EG_CORE_ASSERT(it != m_MeshDataMapping.end());
-					meshEmitterData = it->second;
-				}
 				Emitter emitter;
-				Utils::ToGPUEmitter(emitterToAdd, transformIndex, meshEmitterData.VertexOffset,
-					meshEmitterData.IndexOffset, meshEmitterData.IndexCount, emitter);
+				Utils::ToGPUEmitter(emitterToAdd, emitterData, GetEmitterMeshData(emitterToAdd), emitter);
 
 				uint32_t insertIndex = m_NumEmitters;
 				for (auto it = m_DeadEmitters.begin(); it != m_DeadEmitters.end(); ++it) // Find the first available slot
@@ -336,7 +353,7 @@ namespace Eagle
 				const size_t offset = insertIndex * sizeof(Emitter);
 				cmd->WriteTransitionless(m_EmittersBuffer, &emitter, sizeof(Emitter), offset);
 
-				it.EmitterIndex = insertIndex;
+				emitterData.EmitterIndex = insertIndex;
 			}
 			cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::CopyDest, BufferLayoutType::StorageBuffer);
 
@@ -376,16 +393,8 @@ namespace Eagle
 
 			for (const auto& [emitter, emitterData] : m_EmittersToUpdate)
 			{
-				MeshEmitterData meshEmitterData{};
-				if (emitter.EmissionShape == ParticleEmitter::EmissionShapeType::Mesh && emitter.MeshAsset)
-				{
-					auto it = m_MeshDataMapping.find(emitter.MeshAsset->GetMesh());
-					EG_CORE_ASSERT(it != m_MeshDataMapping.end());
-					meshEmitterData = it->second;
-				}
 				Emitter gpuEmitter;
-				Utils::ToGPUEmitter(emitter, emitterData.TransformIndex, meshEmitterData.VertexOffset,
-					meshEmitterData.IndexOffset, meshEmitterData.IndexCount, gpuEmitter);
+				Utils::ToGPUEmitter(emitter, emitterData, GetEmitterMeshData(emitter), gpuEmitter);
 
 				const size_t sizeToUpdate = offsetof(Emitter, WorldPos); // We're updating the data before the 'WorldPos' because everything after is an internal state
 				const size_t offset = emitterData.EmitterIndex * sizeof(Emitter);
@@ -401,6 +410,9 @@ namespace Eagle
 		}
 
 		// Step 6
+		UpdateSkeletalAnimations(cmd);
+
+		// Step 7
 		if (bUpdateTransforms)
 		{
 			{
@@ -424,7 +436,7 @@ namespace Eagle
 			bUpdateTransforms = false;
 		}
 		
-		// Step 7
+		// Step 8
 		if (bEmittersChangedOrAdded)
 		{
 			uint32_t maxParticles = 0;
@@ -436,6 +448,54 @@ namespace Eagle
 			{
 				SetMaxParticles(cmd, maxParticles);
 			}
+		}
+	}
+
+	void ParticleSystemTask::UpdateSkeletalAnimations(const Ref<CommandBuffer>& cmd)
+	{
+		EG_GPU_TIMING_SCOPED(cmd, "Particle System. Update skeletam mesh animations");
+		EG_CPU_TIMING_SCOPED("Particle System. Update skeletam mesh animations");
+
+		ParticleEmitter dummy;
+
+		const auto& systemTransforms = m_Renderer.GetSkeletalParticleAnimationTransforms();
+		m_AnimationTransforms.clear();
+
+		cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::StorageBuffer, BufferLayoutType::CopyDest);
+		for (const auto& [systemID, perEmitterTransforms] : systemTransforms)
+		{
+			auto it = m_SystemToEmittersMapping.find(systemID);
+			if (it == m_SystemToEmittersMapping.end())
+				continue;
+
+			auto& emittersData = it->second;
+			for (const auto& [emitterID, transforms] : perEmitterTransforms)
+			{
+				dummy.ID = emitterID;
+				auto it = emittersData.find(dummy);
+				if (it == emittersData.end())
+					continue;
+
+				auto& emitterData = it->second;
+				emitterData.AnimationOffset = uint32_t(m_AnimationTransforms.size());
+				m_AnimationTransforms.insert(m_AnimationTransforms.end(), transforms.begin(), transforms.end());
+
+				// We need to update animation offset because animation or skeletal mesh can change any time (which will invalidate offsets of other emitters)
+				const size_t offset = emitterData.EmitterIndex * sizeof(Emitter) + offsetof(Emitter, AnimationOffset);
+				cmd->WriteTransitionless(m_EmittersBuffer, &emitterData.AnimationOffset, sizeof(emitterData.AnimationOffset), offset);
+			}
+		}
+		cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::CopyDest, BufferLayoutType::StorageBuffer);
+
+		if (!m_AnimationTransforms.empty())
+		{
+			const size_t size = m_AnimationTransforms.size() * sizeof(glm::mat4);
+			if (size > m_AnimationTransformsBuffer->GetSize())
+			{
+				const size_t newSize = (size * 12) / 10; // Resize policy: increase by 20%
+				m_AnimationTransformsBuffer->Resize(newSize);
+			}
+			cmd->Write(m_AnimationTransformsBuffer, m_AnimationTransforms.data(), size, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
 		}
 	}
 
@@ -522,9 +582,12 @@ namespace Eagle
 		m_Emit->SetBuffer(m_AliveIndices[m_PingPong], 0, 4);
 		m_Emit->SetBuffer(m_EmittersSpawnCountBuffer, 0, 5);
 		m_Emit->SetBuffer(m_TransformsBuffer, 0, 6);
-		m_Emit->SetBuffer(m_MeshVertexBuffer, 0, 7);
-		m_Emit->SetBuffer(m_MeshIndexBuffer, 0, 8);
-		m_Emit->SetBuffer(m_DecompositedTransformsBuffer, 0, 9);
+		m_Emit->SetBuffer(m_StaticMeshVertexBuffer, 0, 7);
+		m_Emit->SetBuffer(m_StaticMeshIndexBuffer, 0, 8);
+		m_Emit->SetBuffer(m_SkeletalMeshVertexBuffer, 0, 9);
+		m_Emit->SetBuffer(m_SkeletalMeshIndexBuffer, 0, 10);
+		m_Emit->SetBuffer(m_AnimationTransformsBuffer, 0, 11);
+		m_Emit->SetBuffer(m_DecompositedTransformsBuffer, 0, 12);
 
 		cmd->DispatchIndirect(m_Emit, m_DispatchArgs, 0, &pushData);
 
@@ -702,37 +765,98 @@ namespace Eagle
 
 	void ParticleSystemTask::AddEmitterMeshData(const ParticleEmitter& emitter)
 	{
-		if (emitter.EmissionShape == ParticleEmitter::EmissionShapeType::Mesh && emitter.MeshAsset)
+		if (emitter.EmissionShape != ParticleEmitter::EmissionShapeType::Mesh || !emitter.MeshAsset)
+			return;
+
+		const AssetType meshType = emitter.MeshAsset->GetAssetType();
+		const bool bStaticMesh = meshType == AssetType::StaticMesh;
+		if (bStaticMesh)
 		{
-			const auto& mesh = emitter.MeshAsset->GetMesh();
-			auto it = m_MeshDataMapping.find(mesh);
-			if (it != m_MeshDataMapping.end())
+			auto mesh = Cast<AssetStaticMesh>(emitter.MeshAsset)->GetMesh();
+			auto it = m_StaticMeshDataMapping.find(mesh);
+			if (it != m_StaticMeshDataMapping.end())
 			{
 				it->second.UsageCounter++;
 			}
 			else
 			{
-				m_MeshDataMapping.emplace(mesh, MeshEmitterData{});
-				bRebuildMeshData = true;
+				m_StaticMeshDataMapping.emplace(std::move(mesh), MeshEmitterData{});
+				bRebuildStaticMeshData = true;
+			}
+		}
+		else
+		{
+			auto mesh = Cast<AssetSkeletalMesh>(emitter.MeshAsset)->GetMesh();
+			auto it = m_SkeletalMeshDataMapping.find(mesh);
+			if (it != m_SkeletalMeshDataMapping.end())
+			{
+				it->second.UsageCounter++;
+			}
+			else
+			{
+				m_SkeletalMeshDataMapping.emplace(std::move(mesh), MeshEmitterData{});
+				bRebuildSkeletalMeshData = true;
 			}
 		}
 	}
 
 	void ParticleSystemTask::RemoveEmitterMeshData(const ParticleEmitter& emitter)
 	{
-		if (emitter.EmissionShape == ParticleEmitter::EmissionShapeType::Mesh && emitter.MeshAsset)
+		if (emitter.EmissionShape != ParticleEmitter::EmissionShapeType::Mesh || !emitter.MeshAsset)
+			return;
+
+		const AssetType meshType = emitter.MeshAsset->GetAssetType();
+		const bool bStaticMesh = meshType == AssetType::StaticMesh;
+		if (bStaticMesh)
 		{
-			const auto& mesh = emitter.MeshAsset->GetMesh();
-			auto it = m_MeshDataMapping.find(mesh);
-			if (it != m_MeshDataMapping.end())
+			auto mesh = Cast<AssetStaticMesh>(emitter.MeshAsset)->GetMesh();
+			auto it = m_StaticMeshDataMapping.find(mesh);
+			if (it != m_StaticMeshDataMapping.end())
 			{
 				it->second.UsageCounter--;
 				if (it->second.UsageCounter == 0)
 				{
-					m_MeshDataMapping.erase(it);
-					bRebuildMeshData = true;
+					m_StaticMeshDataMapping.erase(it);
+					bRebuildStaticMeshData = true;
 				}
 			}
+		}
+		else
+		{
+			auto mesh = Cast<AssetSkeletalMesh>(emitter.MeshAsset)->GetMesh();
+			auto it = m_SkeletalMeshDataMapping.find(mesh);
+			if (it != m_SkeletalMeshDataMapping.end())
+			{
+				it->second.UsageCounter--;
+				if (it->second.UsageCounter == 0)
+				{
+					m_SkeletalMeshDataMapping.erase(it);
+					bRebuildSkeletalMeshData = true;
+				}
+			}
+		}
+	}
+
+	ParticleSystemTask::MeshEmitterData ParticleSystemTask::GetEmitterMeshData(const ParticleEmitter& emitter)
+	{
+		if (emitter.EmissionShape != ParticleEmitter::EmissionShapeType::Mesh || !emitter.MeshAsset)
+			return {};
+
+		const AssetType meshType = emitter.MeshAsset->GetAssetType();
+		const bool bStaticMesh = meshType == AssetType::StaticMesh;
+		if (bStaticMesh)
+		{
+			auto mesh = Cast<AssetStaticMesh>(emitter.MeshAsset)->GetMesh();
+			auto it = m_StaticMeshDataMapping.find(mesh);
+			EG_CORE_ASSERT(it != m_StaticMeshDataMapping.end());
+			return it->second;
+		}
+		else
+		{
+			auto mesh = Cast<AssetSkeletalMesh>(emitter.MeshAsset)->GetMesh();
+			auto it = m_SkeletalMeshDataMapping.find(mesh);
+			EG_CORE_ASSERT(it != m_SkeletalMeshDataMapping.end());
+			return it->second;
 		}
 	}
 
@@ -766,7 +890,7 @@ namespace Eagle
 		m_Transforms[transformIndex] = transform * Math::ToTransformMatrix(emitter.RelativeTransform);
 		m_DecompositedTransforms[transformIndex] = Utils::Decompose(m_Transforms[transformIndex]);
 		auto& emitters = m_SystemToEmittersMapping[systemID];
-		emitters[emitter] = EmitterData{ s_InvalidEmitterIndex, transformIndex }; // Emitter index will be set later
+		emitters[emitter] = EmitterData{ s_InvalidEmitterIndex, transformIndex, s_InvalidEmitterIndex }; // Emitter index will be set later
 		AddEmitterMeshData(emitter);
 
 		return true;
@@ -903,8 +1027,7 @@ namespace Eagle
 						auto it = existingEmitters.find(emitter);
 						const auto& existingEmitter = it->first;
 						{
-							const uint32_t emitterIndex = it->second.EmitterIndex;
-							const uint32_t transformIndex = it->second.TransformIndex;
+							const EmitterData emitterData = it->second;
 
 							// Check if should rebuild emitter mesh data
 							const bool bMeshEmitter = existingEmitter.EmissionShape == ParticleEmitter::EmissionShapeType::Mesh;
@@ -919,12 +1042,12 @@ namespace Eagle
 
 							// Update key
 							existingEmitters.erase(it);
-							existingEmitters.emplace(emitter, EmitterData{ emitterIndex, transformIndex });
+							existingEmitters.emplace(emitter, emitterData);
 
 							// New emitter is found in the old list, so update its state
-							thisRef->m_EmittersToUpdate.emplace_back(emitter, EmitterData{ emitterIndex, transformIndex });
-							thisRef->m_Transforms[transformIndex] = transform * Math::ToTransformMatrix(emitter.RelativeTransform);
-							thisRef->m_DecompositedTransforms[transformIndex] = Utils::Decompose(thisRef->m_Transforms[transformIndex]);
+							thisRef->m_EmittersToUpdate.emplace_back(emitter, emitterData);
+							thisRef->m_Transforms[emitterData.TransformIndex] = transform * Math::ToTransformMatrix(emitter.RelativeTransform);
+							thisRef->m_DecompositedTransforms[emitterData.TransformIndex] = Utils::Decompose(thisRef->m_Transforms[emitterData.TransformIndex]);
 						}
 					}
 				}
@@ -1069,6 +1192,7 @@ namespace Eagle
 			specs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 			specs.Size = m_MaxEmitters * sizeof(glm::mat4);
 			m_TransformsBuffer = Buffer::Create(specs, "ParticleSystem_Transforms");
+			m_AnimationTransformsBuffer = Buffer::Create(specs, "ParticleSystem_AnimationTransforms");
 
 			specs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 			specs.Size = m_MaxEmitters * sizeof(DecompositedTransform);
@@ -1102,8 +1226,10 @@ namespace Eagle
 			BufferSpecifications specs{};
 			specs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 			specs.Size = 1024u;
-			m_MeshVertexBuffer = Buffer::Create(specs, "ParticleSystem_MeshVertices");
-			m_MeshIndexBuffer = Buffer::Create(specs, "ParticleSystem_MeshIndices");
+			m_StaticMeshVertexBuffer = Buffer::Create(specs, "ParticleSystem_StaticMeshVertices");
+			m_StaticMeshIndexBuffer = Buffer::Create(specs, "ParticleSystem_StaticMeshIndices");
+			m_SkeletalMeshVertexBuffer = Buffer::Create(specs, "ParticleSystem_SkeletalMeshVertices");
+			m_SkeletalMeshIndexBuffer = Buffer::Create(specs, "ParticleSystem_SkeletalMeshIndices");
 		}
 
 		RenderManager::Submit([dataBuffer = m_SystemData, deadIndices = m_DeadIndices, maxParticles = m_MaxParticles](const Ref<CommandBuffer>& cmd) mutable

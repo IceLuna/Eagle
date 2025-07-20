@@ -918,6 +918,16 @@ namespace Eagle
 		{
 			m_AnimationTransforms = AnimationSystem::Update(m_SkeletalMeshes, ts, bApplyRootMotion);
 		}
+
+		std::vector<ParticleSystemComponent*> systems;
+		systems.reserve(m_SkeletalParticles.size());
+		for (const auto& entityID : m_SkeletalParticles)
+		{
+			entt::entity entity = (entt::entity)entityID;
+			EG_CORE_ASSERT(m_Registry.valid(entity) && m_Registry.all_of<ParticleSystemComponent>(entity));
+			systems.push_back(&m_Registry.get<ParticleSystemComponent>(entity));
+		}
+		m_SkeletalParticlesAnimationTransforms = AnimationSystem::Update(systems, ts);
 	}
 
 	CameraComponent* Scene::FindOrCreateRuntimeCamera()
@@ -1352,6 +1362,7 @@ namespace Eagle
 			m_ParticlesToRemove.clear();
 			m_ParticlesToUpdate.clear();
 			m_TempParticleSystems.clear();
+			m_SkeletalParticles.clear();
 
 			m_SceneRenderer->RemoveAllParticleSystems();
 
@@ -1362,6 +1373,7 @@ namespace Eagle
 				if (ps.bAutospawn)
 				{
 					m_TempParticleSystems.insert(&ps);
+					RegisterSkeletalParticleIfCan(&ps);
 				}
 			}
 			m_SceneRenderer->AddParticleSystems(m_TempParticleSystems);
@@ -1409,6 +1421,7 @@ namespace Eagle
 		m_SceneRenderer->SetImages2D(m_Images2D, m_DirtyFlags.bImage2DDirty);
 		m_SceneRenderer->SetIsRuntime(bIsPlaying);
 		m_SceneRenderer->SetMeshesAnimationTransforms(std::move(m_AnimationTransforms));
+		m_SceneRenderer->SetSkeletalParticleAnimationTransforms(std::move(m_SkeletalParticlesAnimationTransforms));
 		m_SceneRenderer->SetGravity(m_RuntimePhysicsSettings.Gravity);
 		m_SceneRenderer->SetDecals(m_Decals, m_DirtyFlags.bDecalsDirty);
 
@@ -1764,17 +1777,22 @@ namespace Eagle
 	void Scene::AddParticleSystem(const ParticleSystemComponent* system)
 	{
 		m_ParticlesToAdd.emplace(system->Parent.GetID());
+		RegisterSkeletalParticleIfCan(system);
 	}
 
 	void Scene::RemoveParticleSystem(const ParticleSystemComponent* system)
 	{
 		m_ParticlesToRemove.emplace(system->GetSystemID());
+		m_SkeletalParticles.erase(system->Parent.GetID());
 	}
 
 	void Scene::UpdateParticleSystem(const ParticleSystemComponent* system)
 	{
 		m_ParticlesToUpdate.emplace(system->Parent.GetID());
 		m_DirtyTransformParticles.erase(system->Parent.GetID()); // No need to update transform separately
+
+		m_SkeletalParticles.erase(system->Parent.GetID());
+		RegisterSkeletalParticleIfCan(system);
 	}
 
 	void Scene::OnStaticMeshComponentRemoved(entt::registry& r, entt::entity e)
@@ -1942,6 +1960,19 @@ namespace Eagle
 		m_Registry.on_destroy<CapsuleColliderComponent>().connect<&Scene::OnCapsuleColliderRemoved>(*this);
 		m_Registry.on_construct<NavigationCrowdAgentComponent>().connect<&Scene::OnCrowdAgentAdded>(*this);
 		m_Registry.on_destroy<NavigationCrowdAgentComponent>().connect<&Scene::OnCrowdAgentRemoved>(*this);
+	}
+
+	void Scene::RegisterSkeletalParticleIfCan(const ParticleSystemComponent* system)
+	{
+		const auto& emitters = system->GetAsset()->GetEmitters();
+		for (const auto& emitter : emitters)
+		{
+			if (emitter.IsSkeletalMeshUsed())
+			{
+				m_SkeletalParticles.emplace(system->Parent.GetID());
+				break;
+			}
+		}
 	}
 
 	void Scene::CopyComponents(Entity source, Entity dest)

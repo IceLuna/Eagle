@@ -35,6 +35,35 @@ namespace Eagle
 			float Padding0 = 0.f;
 		};
 
+		struct EmitterData
+		{
+			uint32_t EmitterIndex = s_InvalidEmitterIndex; // index of the emitter inside of `m_EmittersBuffer`
+			uint32_t TransformIndex = s_InvalidEmitterIndex; // index of the emitter inside of `m_Transforms`
+			uint32_t AnimationOffset = s_InvalidEmitterIndex;
+		};
+
+		struct MeshEmitterData
+		{
+			uint32_t VertexOffset = 0u;
+			uint32_t IndexOffset = 0u;
+			uint32_t IndexCount = 0u;
+			uint32_t UsageCounter = 1u; // If it reaches 0, mesh is removed from the mapping and mesh buffers are rebuilt
+		};
+
+		struct ParticleStaticMeshVertex
+		{
+			glm::vec3 Position = glm::vec3(0);
+			uint32_t Normal = 0; // Packed. Used to set initial velocity.
+		};
+
+		struct ParticleSkeletalMeshVertex
+		{
+			glm::vec3 Position = glm::vec3(0);
+			uint32_t Normal = 0; // Packed. Used to set initial velocity.
+			uint16_t Weights[EG_MAX_BONES_PER_VERTEX]; // f16vec4
+			uint16_t BoneIDs[EG_MAX_BONES_PER_VERTEX]; // u16vec4
+		};
+
 	private:
 		bool AddEmitter(const ParticleEmitter& emitter, const GUID& systemID, const glm::mat4& transform);
 		bool RemoveEmitter(const ParticleEmitter& emitter, const GUID& systemID, bool bForceImmediateRemoval = false);
@@ -44,6 +73,7 @@ namespace Eagle
 		void InitSortOpaqueResources();
 
 		void Update(const Ref<CommandBuffer>& cmd);
+		void UpdateSkeletalAnimations(const Ref<CommandBuffer>& cmd);
 		void PreparePass(const Ref<CommandBuffer>& cmd);
 		void EmitPass(const Ref<CommandBuffer>& cmd);
 		void SimulatePass(const Ref<CommandBuffer>& cmd);
@@ -53,6 +83,7 @@ namespace Eagle
 
 		void AddEmitterMeshData(const ParticleEmitter& emitter);
 		void RemoveEmitterMeshData(const ParticleEmitter& emitter);
+		MeshEmitterData GetEmitterMeshData(const ParticleEmitter& emitter);
 
 	private:
 		struct ParticleSystemData
@@ -94,26 +125,6 @@ namespace Eagle
 			}
 		};
 
-		struct EmitterData
-		{
-			uint32_t EmitterIndex = s_InvalidEmitterIndex; // index of the emitter inside of `m_EmittersBuffer`
-			uint32_t TransformIndex = s_InvalidEmitterIndex; // index of the emitter inside of `m_Transforms`
-		};
-
-		struct ParticleMeshVertex
-		{
-			glm::vec3 Position = glm::vec3(0);
-			uint32_t Normal = 0; // Packed. Used to set initial velocity.
-		};
-
-		struct MeshEmitterData
-		{
-			uint32_t VertexOffset = 0u;
-			uint32_t IndexOffset = 0u;
-			uint32_t IndexCount = 0u;
-			uint32_t UsageCounter = 1u; // If it reaches 0, mesh is removed from the mapping and mesh buffers are rebuilt
-		};
-
 		std::unordered_map<GUID, std::unordered_map<ParticleEmitter, EmitterData>> m_SystemToEmittersMapping; // Key - Particle system; Value - its emitters
 		std::vector<AddingEmitterData> m_EmittersToAdd;
 		std::vector<std::pair<ParticleEmitter, EmitterData>> m_EmittersToUpdate;
@@ -141,12 +152,21 @@ namespace Eagle
 		Ref<Buffer> m_TranslucentDistancesBuffer;
 
 		// For mesh emitters. TODO: Remove this when a bindless(global) mesh buffers are introduced, so that we don't have to duplicate it here
-		std::vector<ParticleMeshVertex> m_MeshVertices;
-		std::vector<Index> m_MeshIndices;
-		Ref<Buffer> m_MeshVertexBuffer;
-		Ref<Buffer> m_MeshIndexBuffer;
-		std::unordered_map<Ref<StaticMesh>, MeshEmitterData> m_MeshDataMapping; // To avoid duplicating meshes in the memory
-		bool bRebuildMeshData = false;
+		std::vector<ParticleStaticMeshVertex> m_StaticMeshVertices;
+		std::vector<Index> m_StaticMeshIndices;
+		Ref<Buffer> m_StaticMeshVertexBuffer;
+		Ref<Buffer> m_StaticMeshIndexBuffer;
+		std::unordered_map<Ref<StaticMesh>, MeshEmitterData> m_StaticMeshDataMapping; // To avoid duplicating meshes in the memory
+		bool bRebuildStaticMeshData = false;
+
+		std::unordered_map<Ref<SkeletalMesh>, MeshEmitterData> m_SkeletalMeshDataMapping; // To avoid duplicating meshes in the memory
+		std::vector<ParticleSkeletalMeshVertex> m_SkeletalMeshVertices;
+		std::vector<Index> m_SkeletalMeshIndices;
+		Ref<Buffer> m_SkeletalMeshVertexBuffer;
+		Ref<Buffer> m_SkeletalMeshIndexBuffer;
+		std::vector<glm::mat4> m_AnimationTransforms;
+		Ref<Buffer> m_AnimationTransformsBuffer;
+		bool bRebuildSkeletalMeshData = false;
 
 		Ref<PipelineCompute> m_UpdateMaxParticles;
 		Ref<PipelineCompute> m_PrepareData;

@@ -95,6 +95,19 @@ namespace Eagle
         , m_CollisionGroup(collisionGroup)
         , m_InteractingCollisionGroup(interactingCollisionGroup)
     {
+        // Normalize bone weights
+        for (auto& vertex : m_Vertices)
+        {
+            float totalWeight = 0.f;
+            for (uint32_t i = 0; i < EG_MAX_BONES_PER_VERTEX; ++i)
+            {
+                totalWeight += vertex.Weights[i];
+            }
+            for (uint32_t i = 0; i < EG_MAX_BONES_PER_VERTEX; ++i)
+            {
+                vertex.Weights[i] /= totalWeight;
+            }
+        }
         RegenerateRagdollData(m_MinRagdollBoneSize);
         Utils::SetUserSettings(m_RagdollRoot, ragdollPerBoneSettings);
     }

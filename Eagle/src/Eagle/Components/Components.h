@@ -640,8 +640,6 @@ namespace Eagle
 		Rotator GetBoneWorldRotation(const std::string_view boneName);
 		glm::vec3 GetBoneWorldScale(const std::string_view boneName);
 
-		void TriggerAnimationEvent(const std::string& name, float time);
-
 		bool IsRootMotionLockFlagSet(RootMotionLockFlag flag) const { return HasFlags(m_RootMotionLockFlags, flag); }
 		void SetRootMotionLockFlag(RootMotionLockFlag flag, bool value) { value ? (m_RootMotionLockFlags |= flag) : (m_RootMotionLockFlags &= ~flag); }
 		void SetRootMotionLockFlag(RootMotionLockFlag flag) { m_RootMotionLockFlags = flag; }
@@ -678,11 +676,7 @@ namespace Eagle
 		float PrevClipPlaybackSpeed = 1.f;
 		bool bClipLooping = true;
 
-		enum class AnimationType
-		{
-			Clip,
-			Graph
-		} AnimType = AnimationType::Clip;
+		AnimationType AnimType = AnimationType::Clip;
 
 	private:
 		Ref<AssetSkeletalMesh> m_MeshAsset;
@@ -1837,6 +1831,18 @@ namespace Eagle
 		void Update();
 
 		const GUID& GetSystemID() const { return m_SystemID; }
+
+		struct AnimData
+		{
+			SkeletalPose LastPose; // The final pose that was calculated during the last animation update
+			float CurrentClipPlayTime = 0.f;
+			float PrevClipPlayTime = 0.f;
+			float PrevClipPlaybackSpeed = 1.f;
+		};
+		std::vector<AnimData> PerEmitterAnimData;
+
+	private:
+		void UpdatePerEmitterAnimData();
 
 	private:
 		Ref<AssetParticleSystem> m_Asset;

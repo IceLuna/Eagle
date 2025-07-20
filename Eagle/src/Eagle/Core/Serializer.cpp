@@ -943,6 +943,12 @@ namespace Eagle
 			out << YAML::Key << "RingThickness" << YAML::Value << emitter.RingThickness;
 			if (emitter.MeshAsset)
 				out << YAML::Key << "Mesh" << YAML::Value << emitter.MeshAsset->GetGUID();
+			if (const auto& animAsset = emitter.MeshAnimationAsset)
+				out << YAML::Key << "AnimationClip" << YAML::Value << animAsset->GetGUID();
+			out << YAML::Key << "ClipPlaybackSpeed" << emitter.ClipPlaybackSpeed;
+			out << YAML::Key << "ClipLooping" << emitter.bClipLooping;
+			out << YAML::Key << "TriggerAnimationEvents" << emitter.bTriggerAnimationEvents;
+
 			out << YAML::Key << "CollisionMode" << YAML::Value << Utils::GetEnumName(emitter.CollisionMode);
 
 			out << YAML::Key << "bDestroyImmediately" << YAML::Value << emitter.bDestroyImmediately;
@@ -1789,7 +1795,7 @@ namespace Eagle
 				for (const auto& matNode : materialsNode)
 					smComponent.SetMaterialAsset(matNode["Index"].as<uint32_t>(), GetAsset<AssetMaterial>(matNode["Material"]));
 			if (auto animationNode = skeletalMeshComponentNode["AnimationType"])
-				smComponent.AnimType = Utils::GetEnumFromName<SkeletalMeshComponent::AnimationType>(animationNode.as<std::string>());
+				smComponent.AnimType = Utils::GetEnumFromName<AnimationType>(animationNode.as<std::string>());
 			if (auto animationNode = skeletalMeshComponentNode["AnimationClip"])
 				smComponent.SetAnimationAsset(GetAsset<AssetAnimation>(animationNode));
 			if (auto animationNode = skeletalMeshComponentNode["AnimationGraph"])
@@ -3761,7 +3767,17 @@ namespace Eagle
 			if (auto n = node["RingThickness"])
 				emitter.RingThickness = n.as<glm::vec3>();
 			if (auto n = node["Mesh"])
-				emitter.MeshAsset = GetAsset<AssetStaticMesh>(n);
+				emitter.MeshAsset = GetAsset<AssetBaseMesh>(n);
+
+			if (auto animationNode = node["AnimationClip"])
+				emitter.MeshAnimationAsset = GetAsset<AssetAnimation>(animationNode);
+			if (auto nodeSpeed = node["ClipPlaybackSpeed"])
+				emitter.ClipPlaybackSpeed = nodeSpeed.as<float>();
+			if (auto nodeLooping = node["ClipLooping"])
+				emitter.bClipLooping = nodeLooping.as<bool>();
+			if (auto nodeAnimEvents = node["TriggerAnimationEvents"])
+				emitter.bTriggerAnimationEvents = nodeAnimEvents.as<bool>();
+
 			emitter.CollisionMode = Utils::GetEnumFromName<ParticleEmitter::CollisionModeType>(node["CollisionMode"].as<std::string>());
 			if (auto n = node["bDestroyImmediately"])
 				emitter.bDestroyImmediately = n.as<bool>();

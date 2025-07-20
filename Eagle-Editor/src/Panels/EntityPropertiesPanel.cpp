@@ -426,7 +426,7 @@ namespace Eagle
 					}
 					
 					bool bEndGrid = true;
-					if (smComponent.AnimType == SkeletalMeshComponent::AnimationType::Clip)
+					if (smComponent.AnimType == AnimationType::Clip)
 					{
 						auto animAsset = smComponent.GetAnimationAsset();
 						if (EditorResources::DrawAssetSelection("Animation Clip", animAsset))
@@ -478,54 +478,7 @@ namespace Eagle
 							{
 								UI::BeginPropertyGrid("Graph_Variables");
 
-								auto& graph = smComponent.GetAnimationGraph();
-								for (auto& [name, var] : graph->GetVariables())
-								{
-									if (!var->bShowInUI)
-										continue;
-
-									switch (var->GetType())
-									{
-									case GraphVariableType::Bool:
-									{
-										auto boolVar = Cast<GraphVariableBool>(var);
-										bEntityChanged |= UI::Property(name, boolVar->Value);
-										break;
-									}
-									case GraphVariableType::Int:
-									{
-										auto intVar = Cast<GraphVariableInt>(var);
-										bEntityChanged |= UI::PropertyDrag(name, intVar->Value);
-										break;
-									}
-									case GraphVariableType::Float:
-									{
-										auto floatVar = Cast<GraphVariableFloat>(var);
-										bEntityChanged |= UI::PropertyDrag(name, floatVar->Value, 0.1f);
-										break;
-									}
-									case GraphVariableType::Animation:
-									{
-										auto animVar = Cast<GraphVariableAnimation>(var);
-										bEntityChanged |= EditorResources::DrawAssetSelection(name, animVar->Value);
-										break;
-									}
-									case GraphVariableType::String:
-									{
-										auto animVar = Cast<GraphVariableString>(var);
-										bEntityChanged |= UI::PropertyText(name, animVar->Value);
-										break;
-									}
-									case GraphVariableType::Vec4:
-									{
-										auto animVar = Cast<GraphVariableVec4>(var);
-										bEntityChanged |= UI::PropertyDrag(name, animVar->Value, 0.05f);
-										break;
-									}
-									default:
-										EG_CORE_ASSERT(false);
-									}
-								}
+								bEntityChanged |= UI::DrawGraphVariables(smComponent.GetAnimationGraph());
 
 								UI::EndPropertyGrid();
 								ImGui::TreePop();

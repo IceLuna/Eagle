@@ -7,6 +7,12 @@ namespace Eagle
 {
     struct SkeletalMeshInfo;
 
+    enum class AnimationType
+    {
+        Clip,
+        Graph
+    };
+
     struct KeyPosition
     {
         glm::vec3 Location = glm::vec3(0.f);

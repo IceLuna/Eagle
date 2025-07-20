@@ -277,7 +277,7 @@ namespace Eagle
 		s_EntityInstanceDataMap.clear();
 	}
 
-	void ScriptEngine::InstantiateEntityClass(Entity& entity)
+	void ScriptEngine::InstantiateEntityClass(Entity entity)
 	{
 		GUID guid = entity.GetComponent<IDComponent>().ID;
 		auto& scriptComponent = entity.GetComponent<ScriptComponent>();
@@ -295,7 +295,7 @@ namespace Eagle
 		}
 	}
 
-	void ScriptEngine::OnCreateEntity(Entity& entity)
+	void ScriptEngine::OnCreateEntity(const Entity& entity)
 	{
 		typedef void (*OnCreateFunc)(MonoObject*, MonoObject**);
 
@@ -309,7 +309,7 @@ namespace Eagle
 		}
 	}
 
-	void ScriptEngine::OnUpdateEntity(Entity& entity, Timestep ts)
+	void ScriptEngine::OnUpdateEntity(const Entity& entity, Timestep ts)
 	{
 		typedef void (*UpdateFunc)(MonoObject*, float, MonoObject**);
 
@@ -323,7 +323,7 @@ namespace Eagle
 		}
 	}
 
-	void ScriptEngine::OnEventEntity(Entity& entity, void* eventObj)
+	void ScriptEngine::OnEventEntity(const Entity& entity, void* eventObj)
 	{
 		typedef void (*OnEventFunc)(MonoObject*, void*, MonoObject**);
 
@@ -337,7 +337,7 @@ namespace Eagle
 		}
 	}
 
-	void ScriptEngine::OnAnimationEventEntity(Entity& entity, const std::string& eventName, float time)
+	void ScriptEngine::OnAnimationEventEntity(const Entity& entity, const std::string& eventName, float time)
 	{
 		typedef void (*OnAnimationEventFunc)(MonoObject*, MonoString*, float, MonoObject**);
 
@@ -351,7 +351,7 @@ namespace Eagle
 		}
 	}
 
-	void ScriptEngine::OnPhysicsUpdateEntity(Entity& entity, Timestep ts)
+	void ScriptEngine::OnPhysicsUpdateEntity(const Entity& entity, Timestep ts)
 	{
 		typedef void (*PhysicsUpdateFunc)(MonoObject*, float, MonoObject**);
 
@@ -365,7 +365,7 @@ namespace Eagle
 		}
 	}
 
-	void ScriptEngine::OnDestroyEntity(Entity& entity)
+	void ScriptEngine::OnDestroyEntity(const Entity& entity)
 	{
 		typedef void (*OnDestroyFunc)(MonoObject*, MonoObject**);
 
@@ -379,7 +379,7 @@ namespace Eagle
 		}
 	}
 
-	void ScriptEngine::OnCollisionBegin(Entity& entity, const Entity& other, const CollisionInfo& collisionInfo)
+	void ScriptEngine::OnCollisionBegin(const Entity& entity, const Entity& other, const CollisionInfo& collisionInfo)
 	{
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnCollisionBeginMethod)
@@ -390,7 +390,7 @@ namespace Eagle
 		}
 	}
 
-	void ScriptEngine::OnCollisionEnd(Entity& entity, const Entity& other, const CollisionInfo& collisionInfo)
+	void ScriptEngine::OnCollisionEnd(const Entity& entity, const Entity& other, const CollisionInfo& collisionInfo)
 	{
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnCollisionEndMethod)
@@ -401,7 +401,7 @@ namespace Eagle
 		}
 	}
 
-	void ScriptEngine::OnTriggerBegin(Entity& entity, const Entity& other)
+	void ScriptEngine::OnTriggerBegin(const Entity& entity, const Entity& other)
 	{
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnTriggerBeginMethod)
@@ -412,7 +412,7 @@ namespace Eagle
 		}
 	}
 
-	void ScriptEngine::OnTriggerEnd(Entity& entity, const Entity& other)
+	void ScriptEngine::OnTriggerEnd(const Entity& entity, const Entity& other)
 	{
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnTriggerEndMethod)
@@ -423,7 +423,7 @@ namespace Eagle
 		}
 	}
 
-	void ScriptEngine::InitEntityScript(Entity& entity)
+	void ScriptEngine::InitEntityScript(Entity entity)
 	{
 		EG_CORE_ASSERT(entity.HasComponent<ScriptComponent>(), "Entity doesn't have a Script Component");
 
@@ -540,7 +540,7 @@ namespace Eagle
 		}
 	}
 
-	void ScriptEngine::RemoveEntityScript(Entity& entity)
+	void ScriptEngine::RemoveEntityScript(const Entity& entity)
 	{
 		const GUID& entityGUID = entity.GetGUID();
 		auto it = s_EntityInstanceDataMap.find(entityGUID);
@@ -867,7 +867,7 @@ namespace Eagle
 		return result ? std::string(mono_string_to_utf8(result)) : "";
 	}
 
-	EntityInstanceData& ScriptEngine::GetEntityInstanceData(Entity& entity)
+	EntityInstanceData& ScriptEngine::GetEntityInstanceData(const Entity& entity)
 	{
 		const GUID& entityGUID = entity.GetGUID();
 		auto it = s_EntityInstanceDataMap.find(entityGUID);

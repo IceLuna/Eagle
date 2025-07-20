@@ -1,6 +1,7 @@
 #include "egpch.h"
 #include "Component.h"
 
+#include "Eagle/Animation/AnimationSystem.h"
 #include "Eagle/Physics/PhysicsActor.h"
 #include "Eagle/Physics/PhysicsRagdollActor.h"
 #include "Eagle/Physics/PhysicsShapes.h"
@@ -902,15 +903,6 @@ namespace Eagle
 		return GetBoneWorldTransform(boneName).Scale3D;
 	}
 
-	void SkeletalMeshComponent::TriggerAnimationEvent(const std::string& name, float time)
-	{
-		if (Parent.HasComponent<ScriptComponent>() == false)
-			return;
-
-		if (ScriptEngine::ModuleExists(Parent.GetComponent<ScriptComponent>().ModuleName))
-			ScriptEngine::OnAnimationEventEntity(Parent, name, time);
-	}
-
 	void SkeletalMeshComponent::SetRagdollEnabled(bool bEnabled)
 	{
 		if (bEnabled == m_bRagdollEnabled)
@@ -1053,6 +1045,7 @@ namespace Eagle
 		SceneComponent::operator=(other);
 
 		bAutospawn = other.bAutospawn;
+		PerEmitterAnimData = other.PerEmitterAnimData;
 		SetAsset(other.m_Asset);
 
 		return *this;
@@ -1091,6 +1084,7 @@ namespace Eagle
 	{
 		if (!bSpawned && m_Asset)
 		{
+			UpdatePerEmitterAnimData();
 			Parent.GetScene()->AddParticleSystem(this);
 			bSpawned = true;
 			m_Asset->AddOnAssetModifiedCallback(m_SystemID, [entity = Parent]() mutable
@@ -1112,8 +1106,43 @@ namespace Eagle
 	
 	void ParticleSystemComponent::Update()
 	{
+		UpdatePerEmitterAnimData();
 		if (bSpawned)
 			Parent.GetScene()->UpdateParticleSystem(this);
+	}
+
+	void ParticleSystemComponent::UpdatePerEmitterAnimData()
+	{
+		const auto& emitters = m_Asset->GetEmitters();
+		const size_t emittersCount = emitters.size();
+		PerEmitterAnimData.resize(emittersCount);
+		for (size_t i = 0; i < emittersCount; ++i)
+		{
+			const auto& emitter = emitters[i];
+			auto& data = PerEmitterAnimData[i];
+
+			if (!emitter.IsSkeletalMeshUsed())
+			{
+				data.CurrentClipPlayTime = 0.f;
+				data.PrevClipPlayTime = 0.f;
+			}
+			else
+			{
+				const auto& animAsset = emitter.MeshAnimationAsset;
+				const SkeletalMeshAnimation* animation = animAsset ? animAsset->GetAnimation().get() : nullptr;
+				if (animation)
+				{
+					// Make sure we don't go out of bounds if animation was changed
+					data.CurrentClipPlayTime = AnimationSystem::WrapAnimationTime(animation->Duration, data.CurrentClipPlayTime, emitter.bClipLooping);
+					data.PrevClipPlayTime = AnimationSystem::WrapAnimationTime(animation->Duration, data.PrevClipPlayTime, emitter.bClipLooping);
+				}
+				else
+				{
+					data.CurrentClipPlayTime = 0.f;
+					data.PrevClipPlayTime = 0.f;
+				}
+			}
+		}
 	}
 	
 	NavigationMeshComponent& NavigationMeshComponent::operator=(const NavigationMeshComponent& other)

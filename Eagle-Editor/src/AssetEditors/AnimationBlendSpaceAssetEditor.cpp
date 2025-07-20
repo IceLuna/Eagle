@@ -43,7 +43,7 @@ namespace Eagle
 			const auto& scene = GetCurrentScene();
 			m_Entity = scene->CreateEntity();
 			auto& comp = m_Entity.AddComponent<SkeletalMeshComponent>();
-			comp.AnimType = SkeletalMeshComponent::AnimationType::Graph;
+			comp.AnimType = AnimationType::Graph;
 			comp.SetMeshAsset(skAsset);
 			comp.SetAnimationGraphAsset(m_AnimGraph);
 

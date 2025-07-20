@@ -144,6 +144,10 @@ namespace Eagle
 		void SetMeshesAnimationTransforms(std::unordered_map<uint32_t, std::vector<glm::mat4>>&& transforms) { m_AnimationTransforms = std::move(transforms); }
 		const std::unordered_map<uint32_t, std::vector<glm::mat4>>& GetMeshesAnimationTransforms() const { return m_AnimationTransforms; }
 
+		// Key - system ID; Value - transforms per emitter
+		void SetSkeletalParticleAnimationTransforms(std::unordered_map<GUID, std::unordered_map<GUID, std::vector<glm::mat4>>>&& transforms) { m_SkeletalParticlesAnimationTransforms = std::move(transforms); }
+		const auto& GetSkeletalParticleAnimationTransforms() const { return m_SkeletalParticlesAnimationTransforms; }
+
 		// ----------- Getters from other tasks -----------
 		// TODO: Implement a proper Render graph with input-output connections between tasks
 		const auto& GetAllMeshes() const { return m_GeometryManagerTask->GetAllMeshes(); }
@@ -325,6 +329,7 @@ namespace Eagle
 		bool m_bRenderSkybox = true;
 
 		std::unordered_map<uint32_t, std::vector<glm::mat4>> m_AnimationTransforms;
+		std::unordered_map<GUID, std::unordered_map<GUID, std::vector<glm::mat4>>> m_SkeletalParticlesAnimationTransforms;
 
 		SkySettings m_Sky;
 		glm::mat4 m_View = glm::mat4(1.f);

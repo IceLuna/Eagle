@@ -4,6 +4,8 @@
 #include <glm/glm.hpp>
 #include <array>
 
+#define EG_MAX_BONES_PER_VERTEX 4
+
 namespace Eagle
 {
     using Index = uint32_t;
