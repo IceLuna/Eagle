@@ -1102,6 +1102,7 @@ namespace Eagle
 			bSpawned = false;
 			m_Asset->RemoveOnAssetModifiedCallback(m_SystemID);
 		}
+		PerEmitterAnimData.clear();
 	}
 	
 	void ParticleSystemComponent::Update()

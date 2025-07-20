@@ -756,18 +756,31 @@ namespace Eagle
                 {
                     const auto& skeletalMesh = Cast<AssetSkeletalMesh>(emitter.MeshAsset)->GetMesh();
                     auto& animData = system->PerEmitterAnimData[i];
-
-                    const auto& animAsset = emitter.MeshAnimationAsset;
-                    const SkeletalMeshAnimation* animation = animAsset ? animAsset->GetAnimation().get() : nullptr;
-                    Update(skeletalMesh, animation, animData.CurrentClipPlayTime, &transforms, &animData.LastPose);
-                    if (animation)
+                    if (animData.SrcOfLastPose && animData.SrcOfLastPose.HasComponent<SkeletalMeshComponent>())
                     {
-                        if (emitter.bTriggerAnimationEvents)
-                            AnimationSystem::GetEventsToTrigger(animation, animData.PrevClipPlayTime, animData.CurrentClipPlayTime, animData.PrevClipPlaybackSpeed, emitter.ClipPlaybackSpeed, &(animData.LastPose.EventsToTrigger));
+                        const auto& skComp = animData.SrcOfLastPose.GetComponent<SkeletalMeshComponent>();
+                        animData.LastPose = skComp.LastPose;
 
-                        animData.PrevClipPlayTime = animData.CurrentClipPlayTime;
-                        animData.CurrentClipPlayTime = StepForwardAnimTime(animation, animData.CurrentClipPlayTime, ts * emitter.ClipPlaybackSpeed, emitter.bClipLooping);
-                        animData.PrevClipPlaybackSpeed = emitter.ClipPlaybackSpeed;
+                        const auto& skeletalInfo = skeletalMesh->GetSkeletalMeshInfo();
+                        FinalizePose(animData.LastPose, skeletalInfo.RootBone, glm::mat4(1.f), skeletalInfo, transforms);
+
+                        animData.SrcOfLastPose = Entity::Null;
+                    }
+                    else
+                    {
+
+                        const auto& animAsset = emitter.MeshAnimationAsset;
+                        const SkeletalMeshAnimation* animation = animAsset ? animAsset->GetAnimation().get() : nullptr;
+                        Update(skeletalMesh, animation, animData.CurrentClipPlayTime, &transforms, &animData.LastPose);
+                        if (animation)
+                        {
+                            if (emitter.bTriggerAnimationEvents)
+                                AnimationSystem::GetEventsToTrigger(animation, animData.PrevClipPlayTime, animData.CurrentClipPlayTime, animData.PrevClipPlaybackSpeed, emitter.ClipPlaybackSpeed, &(animData.LastPose.EventsToTrigger));
+
+                            animData.PrevClipPlayTime = animData.CurrentClipPlayTime;
+                            animData.CurrentClipPlayTime = StepForwardAnimTime(animation, animData.CurrentClipPlayTime, ts * emitter.ClipPlaybackSpeed, emitter.bClipLooping);
+                            animData.PrevClipPlaybackSpeed = emitter.ClipPlaybackSpeed;
+                        }
                     }
                 });
             }

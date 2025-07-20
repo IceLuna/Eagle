@@ -468,6 +468,7 @@ namespace Eagle::Script
 	void Eagle_ParticleSystemComponent_Destroy(GUID entityID);
 	void Eagle_ParticleSystemComponent_SetAsset(GUID entityID, GUID assetGUID);
 	GUID Eagle_ParticleSystemComponent_GetAsset(GUID entityID);
+	void Eagle_ParticleSystemComponent_DuplicatePose(GUID entityID, uint32_t emitterIndex, GUID compEntityID);
 
 	// Decal Component
 	void Eagle_DecalComponent_SetMaterial(GUID entityID, GUID assetID);

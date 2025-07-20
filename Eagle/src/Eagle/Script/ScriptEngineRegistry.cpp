@@ -665,6 +665,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.ParticleSystemComponent::Destroy_Native", Eagle::Script::Eagle_ParticleSystemComponent_Destroy);
 		mono_add_internal_call("Eagle.ParticleSystemComponent::SetAsset_Native", Eagle::Script::Eagle_ParticleSystemComponent_SetAsset);
 		mono_add_internal_call("Eagle.ParticleSystemComponent::GetAsset_Native", Eagle::Script::Eagle_ParticleSystemComponent_GetAsset);
+		mono_add_internal_call("Eagle.ParticleSystemComponent::DuplicatePose_Native", Eagle::Script::Eagle_ParticleSystemComponent_DuplicatePose);
 
 		// Decal Component
 		mono_add_internal_call("Eagle.DecalComponent::SetMaterial_Native", Eagle::Script::Eagle_DecalComponent_SetMaterial);

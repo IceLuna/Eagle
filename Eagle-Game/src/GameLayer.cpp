@@ -55,6 +55,8 @@ namespace Eagle
 		{
 			if (m_CurrentScene && (m_DummyScene != m_CurrentScene))
 				m_CurrentScene->OnRuntimeStop();
+
+			AssetManager::ResetRuntimeAsset();
 			m_CurrentScene = scene;
 			Scene::SetCurrentScene(m_CurrentScene);
 

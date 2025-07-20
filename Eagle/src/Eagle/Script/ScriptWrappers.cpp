@@ -5884,6 +5884,45 @@ namespace Eagle
 		return asset ? asset->GetGUID() : GUID(0, 0);
 	}
 
+	void Script::Eagle_ParticleSystemComponent_DuplicatePose(GUID entityID, uint32_t emitterIndex, GUID compEntityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call ParticleSystemComponent `DuplicatePose`. Entity is null");
+			return;
+		}
+
+		Entity skeletalEntity = scene->GetEntityByGUID(compEntityID);
+		if (!skeletalEntity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call ParticleSystemComponent `DuplicatePose`. Failed to get Entity of SkeletalMeshComponent");
+			return;
+		}
+
+		if (!skeletalEntity.HasComponent<SkeletalMeshComponent>())
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call ParticleSystemComponent `DuplicatePose`. SkeletalMeshComponent of entity is invalid: {}", skeletalEntity.GetName());
+			return;
+		}
+
+		auto& ps = entity.GetComponent<ParticleSystemComponent>();
+		if (emitterIndex >= ps.PerEmitterAnimData.size())
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call ParticleSystemComponent `DuplicatePose`. Emitter index is out of bounds! Index: {}; Emitters count: {}", emitterIndex, ps.PerEmitterAnimData.size());
+			return;
+		}
+
+		const auto& emitter = ps.GetAsset()->GetEmitters()[emitterIndex];
+		if (emitter.MeshAsset != skeletalEntity.GetComponent<SkeletalMeshComponent>().GetMeshAsset())
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call ParticleSystemComponent `DuplicatePose`. Source `Skeletal Mesh Component` and `Emitter` use different skeletal mesh assets! They must match.");
+			return;
+		}
+		ps.PerEmitterAnimData[emitterIndex].SrcOfLastPose = skeletalEntity;
+	}
+
 	//--------------Decal Component--------------
 	void Script::Eagle_DecalComponent_SetMaterial(GUID entityID, GUID assetID)
 	{

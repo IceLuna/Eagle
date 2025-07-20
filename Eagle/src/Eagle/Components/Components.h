@@ -1838,6 +1838,7 @@ namespace Eagle
 			float CurrentClipPlayTime = 0.f;
 			float PrevClipPlayTime = 0.f;
 			float PrevClipPlaybackSpeed = 1.f;
+			Entity SrcOfLastPose = Entity::Null; // If valid, its skeletal mesh component last pose will be used instead
 		};
 		std::vector<AnimData> PerEmitterAnimData;
 

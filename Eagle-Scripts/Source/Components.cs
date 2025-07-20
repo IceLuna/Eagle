@@ -2569,6 +2569,16 @@ namespace Eagle
             return new AssetParticleSystem(assetID);
         }
 
+        // Needs to be called every frame.
+        // Forces emitter to copy animation pose of the skeletal component.
+        // Can be used to replicate animation
+        // @emitterIndex. Emitter index inside `GetAsset().GetEmitters()`
+        // @comp. Component to replicate anim from
+        public void DuplicatePose(uint emitterIndex, Entity src)
+        {
+            DuplicatePose_Native(Parent.ID, emitterIndex, src.ID);
+        }
+
         public void Spawn() { Spawn_Native(Parent.ID); }
         public void Destroy() { Destroy_Native(Parent.ID); }
 
@@ -2583,6 +2593,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void Destroy_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void DuplicatePose_Native(GUID entityID, uint emitterIndex, GUID compEntityID);
     }
 
     public class DecalComponent : SceneComponent
