@@ -17,16 +17,11 @@ namespace Eagle
 			return m_Entity.GetComponent<T>();
 		}
 
-	protected:
 		virtual void OnCreate() {}
 		virtual void OnDestroy() {}
 		virtual void OnUpdate(Timestep ts) {}
 		virtual void OnEvent(Event& e) {}
 
-	protected:
-		Entity m_Entity;
-
-		friend class Scene;
-		friend class NativeScriptComponent;
+		Entity Parent;
 	};
 }

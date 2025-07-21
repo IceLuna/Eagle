@@ -1374,5 +1374,6 @@ namespace Eagle
 			Instance->OnDestroy();
 			Instance.reset();
 		}
+		m_TypeHash = 0;
 	}
 }

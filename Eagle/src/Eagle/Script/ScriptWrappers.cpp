@@ -9,6 +9,7 @@
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Utils/Utils.h"
+#include "Eagle/Classes/PSAutoDestroyScript.h"
 
 #include <mono/jit/jit.h>
 
@@ -456,33 +457,6 @@ namespace Eagle
 		}
 
 		return false;
-	}
-
-	GUID Script::Eagle_Entity_SpawnEntity(MonoString* monoName)
-	{
-		auto& scene = Scene::GetCurrentScene();
-		const std::string name = mono_string_to_utf8(monoName);
-		return scene->CreateEntity(name).GetGUID();
-	}
-
-	GUID Script::Eagle_Entity_SpawnEntityFromAsset(GUID assetID)
-	{
-		Ref<Asset> asset;
-		AssetManager::Get(assetID, &asset);
-		if (!asset)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't spawn entity. Couldn't find an Entity asset");
-			return GUID(0, 0);
-		}
-
-		if (Ref<AssetEntity> entityAsset = Cast<AssetEntity>(asset))
-		{
-			auto& scene = Scene::GetCurrentScene();
-			return scene->CreateFromEntityAsset(entityAsset).GetGUID();
-		}
-		
-		EG_CORE_ERROR("[ScriptEngine] Couldn't spawn entity. It's not an Entity asset");
-		return GUID(0, 0);
 	}
 
 	//-------------- Entity Transforms --------------
@@ -5867,6 +5841,16 @@ namespace Eagle
 		}
 
 		component.SetAsset(psAsset);
+
+		// Check if we need to notify particle system auto destruction script
+		if (entity.HasComponent<NativeScriptComponent>())
+		{
+			auto& scriptComp = entity.GetComponent<NativeScriptComponent>();
+			if (PSAutoDestroyScript* script = scriptComp.As<PSAutoDestroyScript>())
+			{
+				script->OnAssetChanged();
+			}
+		}
 	}
 
 	GUID Script::Eagle_ParticleSystemComponent_GetAsset(GUID entityID)
@@ -7215,6 +7199,67 @@ namespace Eagle
 		}
 
 		return result;
+	}
+
+	GUID Script::Eagle_Scene_SpawnEntity(MonoString* monoName)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		const std::string name = mono_string_to_utf8(monoName);
+		return scene->CreateEntity(name).GetGUID();
+	}
+
+	GUID Script::Eagle_Scene_SpawnEntityFromAsset(GUID assetID)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't spawn entity. Couldn't find an Entity asset");
+			return GUID(0, 0);
+		}
+
+		if (Ref<AssetEntity> entityAsset = Cast<AssetEntity>(asset))
+		{
+			auto& scene = Scene::GetCurrentScene();
+			return scene->CreateFromEntityAsset(entityAsset).GetGUID();
+		}
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't spawn entity. It's not an Entity asset");
+		return GUID(0, 0);
+	}
+
+	GUID Script::Eagle_Scene_SpawnParticleSystem(MonoString* monoName, const Transform* transform, GUID assetID, bool bAutoDestroy)
+	{
+		Ref<AssetParticleSystem> psAsset;
+		if (!assetID.IsNull())
+		{
+			Ref<Asset> asset;
+			AssetManager::Get(assetID, &asset);
+			if (!asset)
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't spawn particle system. Couldn't find a Particle System asset");
+				return GUID(0, 0);
+			}
+
+			psAsset = Cast<AssetParticleSystem>(asset);
+			if (!psAsset)
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't spawn particle system. Provided asset is not a Particle System asset");
+				return GUID(0, 0);
+			}
+		}
+
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->CreateEntity(mono_string_to_utf8(monoName));
+		entity.SetWorldTransform(*transform);
+		auto& ps = entity.AddComponent<ParticleSystemComponent>();
+		ps.bAutospawn = true;
+		ps.SetAsset(psAsset);
+
+		if (bAutoDestroy)
+			entity.AddComponent<NativeScriptComponent>().Bind<PSAutoDestroyScript>();
+
+		return entity.GetGUID();
 	}
 
 	//-------------- Navigation --------------

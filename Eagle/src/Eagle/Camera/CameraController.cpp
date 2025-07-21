@@ -10,9 +10,9 @@ namespace Eagle
 {
 	void CameraController::OnUpdate(Timestep ts)
 	{
-		if (m_Entity.HasComponent<CameraComponent>())
+		if (Parent.HasComponent<CameraComponent>())
 		{
-			auto& cameraComponent = m_Entity.GetComponent<CameraComponent>();
+			auto& cameraComponent = Parent.GetComponent<CameraComponent>();
 			if (cameraComponent.Primary)
 			{
 				if (Input::IsMouseButtonPressed(Mouse::ButtonRight))

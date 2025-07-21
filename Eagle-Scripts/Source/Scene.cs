@@ -42,6 +42,26 @@ namespace Eagle
             return GetAllEntitiesWithComponent_Native(typeof(T));
         }
 
+        public static Entity SpawnEntity(string name = "")
+        {
+            return new Entity(SpawnEntity_Native(name));
+        }
+
+        public static Entity SpawnEntity(AssetEntity asset)
+        {
+            return new Entity(SpawnEntityFromAsset_Native(asset.GetGUID()));
+        }
+
+        // Spawns an entity that has a particle system component
+        // @ps. Can be null if you plan to provide it manually immediately after entity creation. Otherwise, entity will be destroyed at the end of the frame
+        // @bAutoDestroy. When particle system has finished, entity is automatically destroyed.
+        //     For this to work all emitters must be finite (no endless loop counts). Entity is destroyed when all emitters finish
+        //     Note: the timer is reset when you call `SetAsset()` on particle system component of this entity, or `SetEmitters()` on paticle system asset that's used by the component
+        public static Entity SpawnParticleSystem(Transform worldTransform, AssetParticleSystem ps, bool bAutoDestroy, string name = "C# Particle System")
+        {
+            return new Entity(SpawnParticleSystem_Native(name, ref worldTransform, ps == null ? GUID.Null() : ps.GetGUID(), bAutoDestroy));
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void OpenScene_Native(GUID assetID);
 
@@ -59,5 +79,14 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern Entity[] GetAllEntitiesWithComponent_Native(Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID SpawnEntity_Native(string name);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID SpawnEntityFromAsset_Native(GUID assetID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID SpawnParticleSystem_Native(string name, ref Transform tr, GUID ps, bool bAutoDestroy);
     }
 }

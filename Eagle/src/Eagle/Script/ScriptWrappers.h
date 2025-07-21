@@ -33,8 +33,6 @@ namespace Eagle::Script
 	GUID Eagle_Entity_GetChildrenByName(GUID entityID, MonoString* name);
 	bool Eagle_Entity_IsMouseHovered(GUID entity);
 	bool Eagle_Entity_IsMouseHoveredByCoord(GUID entity, const glm::vec2* pos);
-	GUID Eagle_Entity_SpawnEntity(MonoString* monoName);
-	GUID Eagle_Entity_SpawnEntityFromAsset(GUID assetID);
 
 	void Eagle_Entity_GetWorldTransform(GUID entityID, Transform* outTransform);
 	void Eagle_Entity_GetWorldLocation(GUID entityID, glm::vec3* outLocation);
@@ -593,6 +591,9 @@ namespace Eagle::Script
 	void Eagle_Scene_SetGravity(const glm::vec3* gravity);
 	void Eagle_Scene_GetGravity(glm::vec3* gravity);
 	MonoArray* Eagle_Scene_GetAllEntitiesWithComponent(void* type);
+	GUID Eagle_Scene_SpawnEntity(MonoString* monoName);
+	GUID Eagle_Scene_SpawnEntityFromAsset(GUID assetID);
+	GUID Eagle_Scene_SpawnParticleSystem(MonoString* monoName, const Transform* transform, GUID assetID, bool bAutoDestroy);
 
 	// Navigation
 	MonoArray* Eagle_Navigation_FindStraightPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys);

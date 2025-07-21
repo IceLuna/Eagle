@@ -1319,10 +1319,11 @@ namespace Eagle
 
 		NativeScriptComponent(NativeScriptComponent&& other) noexcept 
 		: Instance(std::move(other.Instance)), 
-		InitScript(other.InitScript)
+		InitScript(other.InitScript), m_TypeHash(other.m_TypeHash)
 		{
 			other.Instance = nullptr; 
-			other.InitScript = nullptr; 
+			other.InitScript = nullptr;
+			other.m_TypeHash = 0;
 		}
 
 		NativeScriptComponent& operator=(const NativeScriptComponent& other)
@@ -1331,6 +1332,7 @@ namespace Eagle
 				return *this;
 
 			InitScript = other.InitScript;
+			m_TypeHash = other.m_TypeHash;
 			return *this;
 		}
 
@@ -1338,9 +1340,11 @@ namespace Eagle
 		{ 
 			Instance = std::move(other.Instance);
 			InitScript = other.InitScript;
+			m_TypeHash = other.m_TypeHash;
 
 			other.Instance = nullptr;
 			other.InitScript = nullptr;
+			other.m_TypeHash = 0;
 
 			return *this;
 		}
@@ -1353,7 +1357,26 @@ namespace Eagle
 		void Bind()
 		{
 			Destroy();
+			m_TypeHash = typeid(T).hash_code();
 			InitScript = [](NativeScriptComponent* comp) { comp->Instance = MakeScope<T>(); };
+		}
+
+		template<typename T>
+		bool Is() const
+		{
+			return m_TypeHash == typeid(T).hash_code();
+		}
+
+		template<typename T>
+		T* As()
+		{
+			return Is<T>() ? (T*)Instance.get() : nullptr;
+		}
+
+		template<typename T>
+		const T* As() const
+		{
+			return Is<T>() ? (T*)Instance.get() : nullptr;
 		}
 
 	protected:
@@ -1363,7 +1386,7 @@ namespace Eagle
 			if (!Instance && InitScript)
 			{
 				InitScript(this);
-				Instance->m_Entity = entity;
+				Instance->Parent = entity;
 				Instance->OnCreate();
 			}
 		}
@@ -1371,6 +1394,7 @@ namespace Eagle
 	protected:
 		Scope<ScriptableEntity> Instance = nullptr;
 		void(*InitScript)(NativeScriptComponent*) = nullptr;
+		size_t m_TypeHash = 0;
 	};
 
 	class AudioComponent : public SceneComponent
