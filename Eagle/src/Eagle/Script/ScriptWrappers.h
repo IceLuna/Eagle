@@ -574,6 +574,7 @@ namespace Eagle::Script
 	void Eagle_Renderer_DrawTriangle(const glm::vec3* v0Location, const glm::vec3* v0Color, const glm::vec3* v1Location, const glm::vec3* v1Color, const glm::vec3* v2Location, const glm::vec3* v2Color);
 	void Eagle_Renderer_DrawArrow(const glm::vec3* start, const glm::vec3* end, const glm::vec3* up);
 	void Eagle_Renderer_DrawAABB(const AABB* aabb, const Transform* transform);
+	void Eagle_Renderer_DrawCone(const glm::vec3* location, const glm::vec3* direction, float distance, float angleRad);
 
 	// Project
 	MonoString* Eagle_Project_GetProjectPath();
@@ -587,7 +588,7 @@ namespace Eagle::Script
 	// Scene
 	void Eagle_Scene_OpenScene(GUID assetID);
 	void Eagle_Scene_QuitGame();
-	bool Eagle_Scene_Raycast(const glm::vec3* origin, const glm::vec3* dir, float maxDistance, PhysicsQueryType query, GUID* outHitEntity, glm::vec3* outPosition, glm::vec3* outNormal, float* outDistance);
+	bool Eagle_Scene_Raycast(const glm::vec3* origin, const glm::vec3* dir, float maxDistance, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore, GUID* outHitEntity, glm::vec3* outPosition, glm::vec3* outNormal, float* outDistance);
 	void Eagle_Scene_SetGravity(const glm::vec3* gravity);
 	void Eagle_Scene_GetGravity(glm::vec3* gravity);
 	MonoArray* Eagle_Scene_GetAllEntitiesWithComponent(void* type);

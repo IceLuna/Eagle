@@ -140,6 +140,7 @@ namespace Eagle
 
 		// Needs to be called every frame
 		void DrawArrow(const glm::vec3& start, const glm::vec3& end, const glm::vec3& up);
+		void DrawCone(const glm::vec3& location, const glm::vec3& direction, float distance, float angleRad);
 
 		SceneSoundData SpawnSound2D(const Ref<AssetAudio>& audio, const SoundSettings& settings);
 		SceneSoundData SpawnSound3D(const Ref<AssetAudio>& audio, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, const SoundSettings& settings = {});

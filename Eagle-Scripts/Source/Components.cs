@@ -34,11 +34,12 @@ namespace Eagle
 		ContinuousSpeculative
     }
 
-    public enum CollisionGroup
+    public enum CollisionGroup : uint
     {
         Object = 1 << 0,
 		Projectile = 1 << 1,
-	};
+        Any = 0xFFFFFFFF,
+    };
 
     public enum ForceMode
     {

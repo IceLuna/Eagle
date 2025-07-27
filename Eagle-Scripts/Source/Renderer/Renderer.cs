@@ -267,6 +267,11 @@ namespace Eagle
             DrawAABB_Native(ref aabb, ref worldTransform);
         }
 
+        public static void DrawCone(Vector3 location, Vector3 direction, float distance, float angleRad)
+        {
+            DrawCone_Native(ref location, ref direction, distance, angleRad);
+        }
+
         public const uint CascadesCount = 4u;
 
         public static void SetFogSettings(FogSettings value)
@@ -625,6 +630,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void DrawAABB_Native(ref AABB aabb, ref Transform worldTransform);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void DrawCone_Native(ref Vector3 location, ref Vector3 direction, float distance, float angleRad);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetFogSettings_Native(ref Color3 color, float minDistance, float maxDistance, float density, FogEquation equation, bool bEnabled);

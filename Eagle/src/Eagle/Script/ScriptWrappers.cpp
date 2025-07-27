@@ -7029,6 +7029,11 @@ namespace Eagle
 	{
 		Scene::GetCurrentScene()->DrawAABB(*aabb, *transform);
 	}
+
+	void Script::Eagle_Renderer_DrawCone(const glm::vec3* location, const glm::vec3* direction, float distance, float angleRad)
+	{
+		Scene::GetCurrentScene()->DrawCone(*location, *direction, distance, angleRad);
+	}
 	
 	void Script::Eagle_Renderer_SetObjectPickingEnabled(bool value)
 	{
@@ -7149,11 +7154,29 @@ namespace Eagle
 		Application::Get().OnEvent(e);
 	}
 
-	bool Script::Eagle_Scene_Raycast(const glm::vec3* origin, const glm::vec3* dir, float maxDistance, PhysicsQueryType query, GUID* outHitEntity, glm::vec3* outPosition, glm::vec3* outNormal, float* outDistance)
+	bool Script::Eagle_Scene_Raycast(const glm::vec3* origin, const glm::vec3* dir, float maxDistance, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore,
+		GUID* outHitEntity, glm::vec3* outPosition, glm::vec3* outNormal, float* outDistance)
 	{
-		const auto& physicsScene = Scene::GetCurrentScene()->GetPhysicsScene();
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& physicsScene = scene->GetPhysicsScene();
+		std::set<Entity> entitiesToIgnore;
+
+		if (monoEntitiesToIgnore)
+		{
+			const uint32_t length = (uint32_t)mono_array_length(monoEntitiesToIgnore);
+			for (uint32_t i = 0; i < length; ++i)
+			{
+				GUID entityGUID = mono_array_get(monoEntitiesToIgnore, GUID, i);
+				Entity entity = scene->GetEntityByGUID(entityGUID);
+				if (entity)
+				{
+					entitiesToIgnore.emplace(entity);
+				}
+			}
+		}
+
 		RaycastHit hit{};
-		const bool bHit = physicsScene->Raycast(*origin, *dir, maxDistance, query, &hit);
+		const bool bHit = physicsScene->Raycast(*origin, *dir, maxDistance, query, collisionGroup, &hit, entitiesToIgnore);
 
 		*outHitEntity = hit.HitEntity ? hit.HitEntity.GetGUID() : GUID(0, 0);
 		*outPosition = hit.Position;

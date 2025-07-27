@@ -175,6 +175,11 @@ namespace Eagle
 		{
 			return !(*this == other);
 		}
+
+		bool operator< (const Entity& other) const
+		{
+			return m_Entity < other.m_Entity;
+		}
 	
 	public:
 		static Entity Null;

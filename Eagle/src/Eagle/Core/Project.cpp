@@ -135,6 +135,14 @@ namespace Eagle
 		fs::copy(Application::GetCorePath() / "assets/meshes/Cube.egasset", contentPath / "Cube.egasset");
 		fs::copy(Application::GetCorePath() / "assets/meshes/Sphere.egasset", contentPath / "Sphere.egasset");
 
+		// Git ignore
+		{
+			std::ofstream fout(info.BasePath / ".gitignore");
+			fout << "Binaries/*\n";
+			fout << "Cache/*\n";
+			fout << "Saved/*\n";
+		}
+
 		Save(info);
 
 		GenerateSolution(info);
@@ -387,7 +395,7 @@ namespace Eagle
 
 	void Project::AddUserCollisionGroup(const CollisionGroupInfo& group, const GUID64& guid)
 	{
-		if ((s_Info.AllCollisionGroupsMask & 0xFFFFFFFF) == 0xFFFFFFFF)
+		if ((s_Info.AllCollisionGroupsMask & s_CollisionGroupAny) == s_CollisionGroupAny)
 		{
 			constexpr uint32_t builtinGroupsCount = (uint32_t)magic_enum::enum_count<CollisionGroup>();
 			constexpr uint32_t maxUserGroups = s_MaxCollisionGroups - builtinGroupsCount;
@@ -419,7 +427,7 @@ namespace Eagle
 		constexpr uint32_t builtinGroupsCount = (uint32_t)magic_enum::enum_count<CollisionGroup>();
 		constexpr uint32_t maxUserGroups = s_MaxCollisionGroups - builtinGroupsCount;
 
-		if ((s_Info.AllCollisionGroupsMask & 0xFFFFFFFF) == 0xFFFFFFFF)
+		if ((s_Info.AllCollisionGroupsMask & s_CollisionGroupAny) == s_CollisionGroupAny)
 		{
 			EG_CORE_ERROR("Failed to add a new user collision group. The engine only supports {} groups, and {} of them are built-in. Which means the engine only supports {} user collision groups",
 				s_MaxCollisionGroups, builtinGroupsCount, maxUserGroups);

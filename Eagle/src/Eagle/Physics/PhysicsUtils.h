@@ -35,17 +35,10 @@ namespace Eagle
 	};
 	using QueryHits = std::vector<SceneQueryHit>;
 
-	enum class QueryType : uint8_t
-	{
-		Static,
-		Dynamic,
-		StaticAndDynamic,
-	};
-
 	using UnboundedOverlapHitCallback = std::function<bool(std::optional<SceneQueryHit>&&)>;
 	struct BoxOverlapRequest
 	{
-		QueryType Type = QueryType::StaticAndDynamic;
+		PhysicsQueryType Type = PhysicsQueryType::Static | PhysicsQueryType::Dynamic;
 		Transform Pose{};
 		glm::vec3 Dimension = glm::vec3(0.5f);
 		UnboundedOverlapHitCallback OverlapHitCallback = nullptr; // When not nullptr the request will perform an unbounded overlap query.
@@ -68,7 +61,11 @@ namespace Eagle
 	{
 	public:
 		PhysXQueryFilterCallback() = default;
-		PhysXQueryFilterCallback(physx::PxQueryHitType::Enum hitType, CollisionGroup group) : m_hitType(hitType), m_CollisionGroupMask(uint32_t(group)) {}
+		PhysXQueryFilterCallback(physx::PxQueryHitType::Enum hitType, CollisionGroup group, const std::set<Entity>* entitiesToIgnore = nullptr)
+			: m_HitType(hitType)
+			, m_CollisionGroupMask(uint32_t(group))
+			, m_IgnoredEntities(entitiesToIgnore)
+		{}
 
 		// Performs game specific entity filtering
 		physx::PxQueryHitType::Enum preFilter(
@@ -83,7 +80,8 @@ namespace Eagle
 
 	private:
 		const uint32_t m_CollisionGroupMask = uint32_t(-1);
-		physx::PxQueryHitType::Enum m_hitType = physx::PxQueryHitType::eBLOCK;
+		physx::PxQueryHitType::Enum m_HitType = physx::PxQueryHitType::eBLOCK;
+		const std::set<Entity>* m_IgnoredEntities;
 	};
 
 	class PhysXUtils
@@ -110,7 +108,6 @@ namespace Eagle
 		static physx::PxBroadPhaseType::Enum ToPhysXBroadphaseType(BroadphaseType type);
 		static physx::PxFrictionType::Enum ToPhysXFrictionType(FrictionType type);
 
-		static physx::PxQueryFlags GetPxQueryFlags(const QueryType& queryType);
 		static physx::PxFilterData GetPxFilterData(CollisionGroup group, CollisionGroup interactingGroup, CollisionDetectionType collisionDetection);
 		static physx::PxQueryFilterData GetPxQueryFilterData(PhysicsQueryType type);
 

@@ -1689,6 +1689,32 @@ namespace Eagle
 		m_UserDebugLines.push_back(line);
 	}
 
+	void Scene::DrawCone(const glm::vec3& location, const glm::vec3& direction, float distance, float angleRad)
+	{
+		const glm::vec3 center = location + direction * distance;
+		//const glm::quat quat = light->GetWorldTransform().Rotation.GetQuat();
+		const glm::quat quat = glm::quat(1.f, 0.f, 0.f, 0.f);
+		const float radius = distance * glm::tan(angleRad);
+
+		for (uint32_t i = 0; i < Utils::s_SphereLinesCount; ++i)
+		{
+			const float angle1 = (float(i) / Utils::s_SphereLinesCount) * Utils::s_2PI;
+			const float angle2 = (float(i + 1) / Utils::s_SphereLinesCount) * Utils::s_2PI;
+			const float cosAngle1 = glm::cos(angle1);
+			const float cosAngle2 = glm::cos(angle2);
+			const float sinAngle1 = glm::sin(angle1);
+			const float sinAngle2 = glm::sin(angle2);
+
+			auto& innerCircleLine = m_UserDebugLines.emplace_back();
+			innerCircleLine.Start.Location = center + glm::rotate(quat, radius * glm::vec3(cosAngle1, sinAngle1, 0.f));
+			innerCircleLine.End.Location = center + glm::rotate(quat, radius * glm::vec3(cosAngle2, sinAngle2, 0.f));
+
+			auto& toInnerLine = m_UserDebugLines.emplace_back();
+			toInnerLine.Start.Location = location;
+			toInnerLine.End.Location = innerCircleLine.Start.Location;
+		}
+	}
+
 	SceneSoundData Scene::SpawnSound2D(const Ref<AssetAudio>& audio, const SoundSettings& settings)
 	{
 		SceneSoundData result;

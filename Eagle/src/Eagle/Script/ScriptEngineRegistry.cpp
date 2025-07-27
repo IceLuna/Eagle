@@ -255,6 +255,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::DrawTriangle_Native", Eagle::Script::Eagle_Renderer_DrawTriangle);
 		mono_add_internal_call("Eagle.Renderer::DrawArrow_Native", Eagle::Script::Eagle_Renderer_DrawArrow);
 		mono_add_internal_call("Eagle.Renderer::DrawAABB_Native", Eagle::Script::Eagle_Renderer_DrawAABB);
+		mono_add_internal_call("Eagle.Renderer::DrawCone_Native", Eagle::Script::Eagle_Renderer_DrawCone);
 
 		// Log
 		mono_add_internal_call("Eagle.Log::Trace", Eagle::Script::Eagle_Log_Trace);

@@ -10,7 +10,7 @@ namespace Eagle
 	static physx::PxQueryFlags ToPxQueryFlags(PhysicsQueryType type)
 	{
 		using namespace physx;
-		PxQueryFlags result{};
+		PxQueryFlags result = physx::PxQueryFlag::ePREFILTER;
 
 		if (HasFlags(type, PhysicsQueryType::Static))
 			result |= PxQueryFlag::eSTATIC;
@@ -93,27 +93,6 @@ namespace Eagle
 			case FrictionType::TwoDirectional:	return physx::PxFrictionType::Enum::eTWO_DIRECTIONAL;
 			default: return physx::PxFrictionType::Enum::eONE_DIRECTIONAL;
 		}
-	}
-
-	physx::PxQueryFlags PhysXUtils::GetPxQueryFlags(const QueryType& queryType)
-	{
-		physx::PxQueryFlags queryFlags = physx::PxQueryFlag::ePREFILTER;
-		switch (queryType)
-		{
-		case QueryType::StaticAndDynamic:
-			queryFlags |= physx::PxQueryFlag::eSTATIC | physx::PxQueryFlag::eDYNAMIC;
-			break;
-		case QueryType::Dynamic:
-			queryFlags |= physx::PxQueryFlag::eDYNAMIC;
-			break;
-		case QueryType::Static:
-			queryFlags |= physx::PxQueryFlag::eSTATIC;
-			break;
-		default:
-			EG_CORE_ASSERT(false, "Unknown PhysX query flags");
-			break;
-		}
-		return queryFlags;
 	}
 
 	physx::PxFilterData PhysXUtils::GetPxFilterData(CollisionGroup group, CollisionGroup interactingGroup, CollisionDetectionType collisionDetection)
@@ -523,11 +502,16 @@ namespace Eagle
 	
 	physx::PxQueryHitType::Enum PhysXQueryFilterCallback::preFilter(const physx::PxFilterData& queryFilterData, const physx::PxShape* pxShape, const physx::PxRigidActor* actor, physx::PxHitFlags& queryTypes)
 	{
-		auto shapeFilterData = pxShape->getQueryFilterData();
+		if (m_IgnoredEntities && actor->userData)
+		{
+			PhysicsActor* myActor = (PhysicsActor*)actor->userData;
+			if (m_IgnoredEntities->count(myActor->GetEntity()))
+				return physx::PxQueryHitType::eNONE;
+		}
 
-		const uint64_t mask = Combine(shapeFilterData.word0, shapeFilterData.word1);
-		if ((m_CollisionGroupMask & mask) == mask)
-			return m_hitType;
+		auto shapeFilterData = pxShape->getSimulationFilterData();
+		if (m_CollisionGroupMask & shapeFilterData.word0)
+			return m_HitType;
 
 		return physx::PxQueryHitType::eNONE;
 	}

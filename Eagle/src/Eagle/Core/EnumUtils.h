@@ -29,6 +29,12 @@ typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type operator&(
     return static_cast<EnumType>(static_cast<UnderlyingType>(lhs) & static_cast<UnderlyingType>(rhs));
 }
 
+template <typename EnumType, typename UnderlyingType = std::underlying_type<EnumType>::type>
+typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type operator&(UnderlyingType lhs, EnumType rhs)
+{
+    return static_cast<EnumType>(static_cast<UnderlyingType>(lhs) & static_cast<UnderlyingType>(rhs));
+}
+
 template <typename EnumType>
 typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type operator^(EnumType lhs, EnumType rhs) {
     using UnderlyingType = typename std::underlying_type<EnumType>::type;

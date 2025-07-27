@@ -149,12 +149,15 @@ namespace Eagle
         m_SubstepSize = 1.f / m_Settings.UpdateRate;
     }
 
-    bool PhysicsScene::Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, PhysicsQueryType query, RaycastHit* outHit) const
+    bool PhysicsScene::Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, PhysicsQueryType query, CollisionGroup collisionGroup, RaycastHit* outHit, const std::set<Entity>& ignoreList) const
     {
         using namespace physx;
+        const PxHitFlags hitFlags = PxHitFlag::ePOSITION | PxHitFlag::eNORMAL;
         PxRaycastBuffer hitInfo;
-        bool bResult = m_Scene->raycast(PhysXUtils::ToPhysXVector(origin), PhysXUtils::ToPhysXVector(dir), maxDistance, hitInfo,
-            PxHitFlag::ePOSITION | PxHitFlag::eNORMAL, PhysXUtils::GetPxQueryFilterData(query));
+        
+        PhysXQueryFilterCallback filterCallback(physx::PxQueryHitType::eBLOCK, collisionGroup, ignoreList.empty() ? nullptr : &ignoreList);
+        bool bResult = m_Scene->raycast(PhysXUtils::ToPhysXVector(origin), PhysXUtils::ToPhysXVector(dir), maxDistance, hitInfo, hitFlags,
+            PhysXUtils::GetPxQueryFilterData(query), &filterCallback);
 
         if (bResult)
         {
@@ -314,7 +317,7 @@ namespace Eagle
         BoxOverlapRequest request;
         request.Dimension = volume.Extents();
         request.Pose = Transform(volume.Center());
-        request.Type = QueryType::Static;
+        request.Type = PhysicsQueryType::Static;
         request.OverlapHitCallback = unboundedOverlapHitCallback;
 
         // results are in outHits
@@ -388,7 +391,7 @@ namespace Eagle
 
         UnboundedOverlapCallback callback(request.OverlapHitCallback, m_OverlapBuffer, hits);
         PhysXQueryFilterCallback filterCallback(physx::PxQueryHitType::eTOUCH, collisionGroup);
-        const physx::PxQueryFilterData queryData(PhysXUtils::GetPxQueryFlags(request.Type));
+        const physx::PxQueryFilterData queryData = PhysXUtils::GetPxQueryFilterData(request.Type);
 
         m_Scene->overlap(box, pose, callback, queryData, &filterCallback);
     }

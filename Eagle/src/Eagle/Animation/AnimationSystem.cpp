@@ -39,7 +39,6 @@ namespace Eagle
             {
                 return key.TimeStamp < animationTime;
             });
-            EG_CORE_ASSERT(it != positions.end());
             return it - positions.begin() - 1;
         }
 
@@ -51,7 +50,6 @@ namespace Eagle
             {
                 return key.TimeStamp < animationTime;
             });
-            EG_CORE_ASSERT(it != rotations.end());
             return it - rotations.begin() - 1;
         }
 
@@ -63,7 +61,6 @@ namespace Eagle
             {
                 return key.TimeStamp < animationTime;
             });
-            EG_CORE_ASSERT(it != scales.end());
             return it - scales.begin() - 1;
         }
 

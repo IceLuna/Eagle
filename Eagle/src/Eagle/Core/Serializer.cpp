@@ -2728,7 +2728,7 @@ namespace Eagle
 
 	uint32_t Serializer::DeserializeProjectCollisionGroupGUIDs(const YAML::Node& node)
 	{
-		uint32_t collisionGroupValidMasks = 0xFFFFFFFF;
+		uint32_t collisionGroupValidMasks = uint32_t(s_CollisionGroupAny);
 
 		auto groupsNode = node["CollisionGroupGUIDs"];
 		if (!groupsNode)

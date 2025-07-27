@@ -288,9 +288,14 @@ namespace Eagle
                 m_TriggerEndCallbacks.Invoke(this, new Entity(id));
         }
 
-        public override string ToString()
+        public string GetName()
         {
             return GetEntityName_Native(ID);
+        }
+
+        public override string ToString()
+        {
+            return GetName();
         }
 
         public Entity GetChildrenByName(string name)

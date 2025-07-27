@@ -45,7 +45,7 @@ namespace Eagle
 
 		float GetSimulationTimeStep() const { return m_SubstepSize; }
 
-		bool Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, PhysicsQueryType query, RaycastHit* outHit) const;
+		bool Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, PhysicsQueryType query, CollisionGroup collisionGroup, RaycastHit* outHit, const std::set<Entity>& ignoreList = {}) const;
 		bool OverlapBox(const glm::vec3& origin, const glm::vec3& halfSize, physx::PxOverlapHit& buffer, uint32_t& count) const;
 		bool OverlapCapsule(const glm::vec3& origin, float radius, float halfHeight, physx::PxOverlapHit& buffer, uint32_t& count) const;
 		bool OverlapSphere(const glm::vec3& origin, float radius, physx::PxOverlapHit& buffer, uint32_t& count) const;
@@ -78,7 +78,7 @@ namespace Eagle
 		void Destroy();
 
 		bool OverlapGeometry(const glm::vec3& origin, const physx::PxGeometry& geometry, physx::PxOverlapHit& buffer, uint32_t& count) const;
-		void QueryScene(const BoxOverlapRequest& request, CollisionGroup collisionGroup = CollisionGroup(0xFFFFFFFF));
+		void QueryScene(const BoxOverlapRequest& request, CollisionGroup collisionGroup = s_CollisionGroupAny);
 
 	private:
 		PhysicsSettings m_Settings;

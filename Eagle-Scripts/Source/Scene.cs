@@ -17,11 +17,22 @@ namespace Eagle
 
         public static void QuitGame() { QuitGame_Native(); }
 
-        public static bool Raycast(Vector3 origin, Vector3 dir, float maxDistance, out RaycastHit outHit, PhysicsQueryType query = PhysicsQueryType.Default)
+        public static bool Raycast(Vector3 origin, Vector3 dir, float maxDistance, out RaycastHit outHit, PhysicsQueryType query = PhysicsQueryType.Default, CollisionGroup collisionGroup = CollisionGroup.Any, Entity[] entitiesToIgnore = null)
         {
             GUID guid = GUID.Null();
             outHit = new RaycastHit();
-            bool bHit = Raycast_Native(ref origin, ref dir, maxDistance, query, out guid, out outHit.Position, out outHit.Normal, out outHit.Distance);
+
+            GUID[] entityGUIDsToIgnore = null;
+            if (entitiesToIgnore != null)
+            {
+                entityGUIDsToIgnore = new GUID[entitiesToIgnore.Length];
+                for (int i = 0; i < entitiesToIgnore.Length; ++i)
+                {
+                    entityGUIDsToIgnore[i] = entitiesToIgnore[i].ID;
+                }
+            }
+
+            bool bHit = Raycast_Native(ref origin, ref dir, maxDistance, query, collisionGroup, entityGUIDsToIgnore, out guid, out outHit.Position, out outHit.Normal, out outHit.Distance);
             outHit.HitEntity = new Entity(guid);
             return bHit;
         }
@@ -69,7 +80,7 @@ namespace Eagle
         private static extern void QuitGame_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern bool Raycast_Native(ref Vector3 origin, ref Vector3 dir, float maxDistance, PhysicsQueryType query, out GUID hitEntity, out Vector3 position, out Vector3 normal, out float distance);
+        private static extern bool Raycast_Native(ref Vector3 origin, ref Vector3 dir, float maxDistance, PhysicsQueryType query, CollisionGroup group, GUID[] entitiesToIgnore, out GUID hitEntity, out Vector3 position, out Vector3 normal, out float distance);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetGravity_Native(ref Vector3 gravity);
