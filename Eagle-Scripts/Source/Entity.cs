@@ -303,6 +303,21 @@ namespace Eagle
             return new Entity(GetChildrenByName_Native(ID, name));
         }
 
+        public override bool Equals(object obj) => obj is Entity other && ID == other.ID;
+
+        public static bool operator ==(Entity obj1, Entity obj2)
+        {
+            if (ReferenceEquals(obj1, null))
+            {
+                return ReferenceEquals(obj2, null);
+            }
+            return obj1.Equals(obj2); // Delegate to Equals method
+        }
+
+        public static bool operator !=(Entity left, Entity right) => !(left == right);
+
+        public override int GetHashCode() => ID.GetHashCode();
+
         // C++ Method Implementations
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern GUID GetParent_Native(in GUID entityID);

@@ -2020,7 +2020,6 @@ namespace Eagle
 
     public class RigidBodyComponent : Component
     {
-        // Needs to be called before colliders are added. Otherwise, doesn't have an effect.
         public void SetBodyType(PhysicsBodyType bodyType) { SetBodyType_Native(Parent.ID, bodyType); }
         
         public PhysicsBodyType GetBodyType() { return GetBodyType_Native(Parent.ID); }

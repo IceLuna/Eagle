@@ -1352,15 +1352,15 @@ namespace Eagle
 				{
 					UI::BeginPropertyGrid("RigidBodyComponent");
 
-					if (bRuntime)
-						UI::PushItemDisabled();
+					PhysicsBodyType bodyType = rigidBody.GetBodyType();
 
-					bEntityChanged |= UI::ComboEnum<PhysicsBodyType>("Body type", rigidBody.BodyType);
-
-					if (bRuntime)
-						UI::PopItemDisabled();
+					if (UI::ComboEnum<PhysicsBodyType>("Body type", bodyType))
+					{
+						rigidBody.SetBodyType(bodyType);
+						bEntityChanged = true;
+					}
 						
-					if (rigidBody.BodyType == PhysicsBodyType::Dynamic)
+					if (bodyType == PhysicsBodyType::Dynamic)
 					{
 						CollisionDetectionType collisionDetection = rigidBody.GetCollisionDetectionType();
 						uint32_t positionSolverIterations = rigidBody.GetPositionSolverIterations();
@@ -2080,9 +2080,9 @@ namespace Eagle
 						settings.CellSize = glm::max(settings.CellSize, 0.005f);
 						bChanged = true;
 					}
-					if (UI::PropertyDrag("Cell Height", settings.CellHeight, 0.05f, 0, 0, "The y-axis cell size to use for fields"))
+					if (UI::PropertyDrag("Cell Height", settings.CellHeight, 0.01f, 0, 0, "The y-axis cell size to use for fields"))
 					{
-						settings.CellHeight = glm::max(settings.CellHeight, 0.005f);
+						settings.CellHeight = glm::max(settings.CellHeight, 0.001f);
 						bChanged = true;
 					}
 

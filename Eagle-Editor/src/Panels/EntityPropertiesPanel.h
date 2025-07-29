@@ -139,7 +139,8 @@ namespace Eagle
 		template <typename T>
 		void DrawAddComponentMenuItem(const char* name, const char* typeName)
 		{
-			if (!m_Entity) return;
+			if (!m_Entity)
+				return;
 
 			const bool bDisable = m_Entity.HasComponent<T>() == true;
 			if (bDisable)
@@ -148,6 +149,12 @@ namespace Eagle
 			if (ImGui::MenuItem(name))
 			{
 				bEntityChanged = true;
+
+				if (std::is_same<T, NavigationMeshComponent>::value)
+				{
+					if (!m_Entity.GetScene()->GetAllEntitiesWith<NavigationMeshComponent>().empty())
+						Application::Get().GetImGuiLayer()->AddMessage("Currently scenes only support one active Navigation Mesh");
+				}
 
 				m_Entity.AddComponent<T>();
 				EG_CORE_TRACE("Added '{}' to {}", typeName, m_Entity.GetName());

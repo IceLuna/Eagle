@@ -53,8 +53,7 @@ namespace Eagle
 		{
 			m_Sphere1 = scene->CreateEntity("PhysicsMaterialAssetEditor_Sphere1");
 
-			auto& rigidBody = m_Sphere1.AddComponent<RigidBodyComponent>();
-			rigidBody.BodyType = PhysicsBodyType::Dynamic;
+			auto& rigidBody = m_Sphere1.AddComponent<RigidBodyComponent>(PhysicsBodyType::Dynamic);
 			rigidBody.SetEnableGravity(true);
 
 			m_Sphere1.AddComponent<SphereColliderComponent>().SetPhysicsMaterialAsset(asset);
@@ -66,8 +65,7 @@ namespace Eagle
 		{
 			m_Sphere2 = scene->CreateEntity("PhysicsMaterialAssetEditor_Sphere2");
 
-			auto& rigidBody = m_Sphere2.AddComponent<RigidBodyComponent>();
-			rigidBody.BodyType = PhysicsBodyType::Dynamic;
+			auto& rigidBody = m_Sphere2.AddComponent<RigidBodyComponent>(PhysicsBodyType::Dynamic);
 			rigidBody.SetEnableGravity(true);
 
 			m_Sphere2.AddComponent<SphereColliderComponent>().SetPhysicsMaterialAsset(asset);

@@ -3342,7 +3342,7 @@ namespace Eagle
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<RigidBodyComponent>().BodyType = type;
+			entity.GetComponent<RigidBodyComponent>().SetBodyType(type);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set physics body type. Entity is null");
 	}
@@ -3352,7 +3352,7 @@ namespace Eagle
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			return entity.GetComponent<RigidBodyComponent>().BodyType;
+			return entity.GetComponent<RigidBodyComponent>().GetBodyType();
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get physics body type. Entity is null");

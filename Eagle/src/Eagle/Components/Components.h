@@ -1019,8 +1019,11 @@ namespace Eagle
 	class RigidBodyComponent : public Component
 	{
 	public:
-		RigidBodyComponent(const Entity& entity) : Component(entity) {}
+		RigidBodyComponent(const Entity& entity, PhysicsBodyType bodyType = PhysicsBodyType::Static) : Component(entity), m_BodyType(bodyType) {}
 		COMPONENT_DEFAULTS(RigidBodyComponent);
+
+		void SetBodyType(PhysicsBodyType type);
+		PhysicsBodyType GetBodyType() const { return m_BodyType; }
 
 		void SetCollisionDetectionType(CollisionDetectionType type);
 		CollisionDetectionType GetCollisionDetectionType() const { return m_CollisionDetection; }
@@ -1070,9 +1073,8 @@ namespace Eagle
 		void SetLockFlag(ActorLockFlag flag);
 		ActorLockFlag GetLockFlags() const { return m_LockFlags; }
 
-	public:
-		PhysicsBodyType BodyType = PhysicsBodyType::Static; // Note: Can't be changed in runtime.
 	protected:
+		PhysicsBodyType m_BodyType = PhysicsBodyType::Static;
 		CollisionDetectionType m_CollisionDetection = CollisionDetectionType::Discrete;
 		uint32_t PositionSolverIterations = 4; // [1; 255]
 		uint32_t VelocitySolverIterations = 1; // [0; 255]
@@ -1142,15 +1144,17 @@ namespace Eagle
 	class BoxColliderComponent : public BaseColliderComponent
 	{
 	public:
-		BoxColliderComponent(const Entity& entity) : BaseColliderComponent(entity) { OnInit(Parent); }
+		BoxColliderComponent(const Entity& entity) : BaseColliderComponent(entity) { OnInit(); }
 		BoxColliderComponent& operator=(const BoxColliderComponent& other);
 		BoxColliderComponent(const BoxColliderComponent&) = delete;
 		BoxColliderComponent(BoxColliderComponent&&) noexcept = default;
 		BoxColliderComponent& operator=(BoxColliderComponent&&) noexcept = default;
 
+		void OnInit();
+
 		virtual void SetIsTrigger(bool bTrigger) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
-		virtual void OnRemoved(Entity entity) override;
+		virtual void OnRemoved() override;
 		virtual void SetCollisionGroup(CollisionGroup groups) override;
 		virtual void SetInteractingCollisionGroup(CollisionGroup groups) override;
 
@@ -1160,7 +1164,6 @@ namespace Eagle
 		const Ref<BoxColliderShape>& GetShape() const { return m_Shape; }
 	
 	protected:
-		void OnInit(Entity entity);
 		void UpdatePhysicsTransform() override;
 		void UpdatePhysicsMaterials() override;
 		void CreateObstacle() override;
@@ -1173,11 +1176,13 @@ namespace Eagle
 	class SphereColliderComponent : public BaseColliderComponent
 	{
 	public:
-		SphereColliderComponent(const Entity& entity) : BaseColliderComponent(entity) { OnInit(Parent); }
+		SphereColliderComponent(const Entity& entity) : BaseColliderComponent(entity) { OnInit(); }
 		SphereColliderComponent& operator=(const SphereColliderComponent& other);
 		SphereColliderComponent(const SphereColliderComponent&) = delete;
 		SphereColliderComponent(SphereColliderComponent&&) noexcept = default;
 		SphereColliderComponent& operator=(SphereColliderComponent&&) noexcept = default;
+
+		void OnInit();
 
 		void SetRadius(float radius);
 		float GetRadius() const { return m_Radius; }
@@ -1187,12 +1192,11 @@ namespace Eagle
 		virtual void SetCollisionGroup(CollisionGroup groups) override;
 		virtual void SetInteractingCollisionGroup(CollisionGroup groups) override;
 
-		virtual void OnRemoved(Entity entity) override;
+		virtual void OnRemoved() override;
 
 		const Ref<SphereColliderShape>& GetShape() const { return m_Shape; }
 	
 	protected:
-		void OnInit(Entity entity);
 		void UpdatePhysicsTransform() override;
 		void UpdatePhysicsMaterials() override;
 		void CreateObstacle() override;
@@ -1205,11 +1209,13 @@ namespace Eagle
 	class CapsuleColliderComponent : public BaseColliderComponent
 	{
 	public:
-		CapsuleColliderComponent(const Entity& entity) : BaseColliderComponent(entity) { OnInit(Parent); }
+		CapsuleColliderComponent(const Entity& entity) : BaseColliderComponent(entity) { OnInit(); }
 		CapsuleColliderComponent& operator=(const CapsuleColliderComponent& other);
 		CapsuleColliderComponent(const CapsuleColliderComponent&) = delete;
 		CapsuleColliderComponent(CapsuleColliderComponent&&) noexcept = default;
 		CapsuleColliderComponent& operator=(CapsuleColliderComponent&&) noexcept = default;
+
+		void OnInit();
 
 		virtual void SetIsTrigger(bool bTrigger) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
@@ -1230,14 +1236,13 @@ namespace Eagle
 
 		void SetHeightAndRadius(float height, float radius);
 
-		virtual void OnRemoved(Entity entity) override;
+		virtual void OnRemoved() override;
 
 		const Ref<CapsuleColliderShape>& GetShape() const { return m_Shape; }
 
 	protected:
 		void UpdatePhysicsTransform() override;
 		void UpdatePhysicsMaterials() override;
-		void OnInit(Entity entity);
 		void CreateObstacle() override;
 
 	protected:
@@ -1249,11 +1254,13 @@ namespace Eagle
 	class MeshColliderComponent : public BaseColliderComponent
 	{
 	public:
-		MeshColliderComponent(const Entity& entity) : BaseColliderComponent(entity) { OnInit(Parent); }
+		MeshColliderComponent(const Entity& entity) : BaseColliderComponent(entity) { OnInit(); }
 		MeshColliderComponent& operator=(const MeshColliderComponent& other);
 		MeshColliderComponent(const MeshColliderComponent&) = delete;
 		MeshColliderComponent(MeshColliderComponent&&) noexcept = default;
 		MeshColliderComponent& operator=(MeshColliderComponent&&) noexcept = default;
+
+		void OnInit();
 
 		virtual void SetIsTrigger(bool bTrigger) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
@@ -1279,12 +1286,11 @@ namespace Eagle
 				SetCollisionMeshAsset(m_CollisionMeshAsset);
 		}
 
-		virtual void OnRemoved(Entity entity) override;
+		virtual void OnRemoved() override;
 
 		const Ref<MeshShape>& GetShape() const { return m_Shapes[0]; }
 
 	protected:
-		void OnInit(Entity entity);
 		void UpdatePhysicsTransform() override;
 		void UpdatePhysicsMaterials() override;
 		void CreateObstacle() override;
@@ -1734,7 +1740,7 @@ namespace Eagle
 	class ReverbComponent : public SceneComponent
 	{
 	public:
-		ReverbComponent(const Entity& entity) : SceneComponent(entity) { OnInit(Parent); }
+		ReverbComponent(const Entity& entity) : SceneComponent(entity) { OnInit(); }
 		ReverbComponent& operator=(const ReverbComponent& other)
 		{
 			if (this == &other)
@@ -1812,7 +1818,7 @@ namespace Eagle
 		bool IsVisualizeRadiusEnabled() const { return m_bVisualize; }
 
 	private:
-		void OnInit(Entity entity)
+		void OnInit()
 		{
 			m_Reverb->SetPosition(WorldTransform.Location);
 		}

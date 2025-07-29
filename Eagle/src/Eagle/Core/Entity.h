@@ -148,7 +148,7 @@ namespace Eagle
 		{
 			EG_CORE_ASSERT(HasComponent<T>(), "Entity does not have component!");
 			if constexpr (std::is_base_of<Component, T>::value)
-				GetComponent<T>().OnRemoved(*this);
+				GetComponent<T>().OnRemoved();
 			m_Scene->m_Registry.remove<T>(m_Entity);
 		}
 

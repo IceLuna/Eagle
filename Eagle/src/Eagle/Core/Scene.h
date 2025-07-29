@@ -228,6 +228,7 @@ namespace Eagle
 		// Currently, scene can only have on NavMesh. So all other NavMeshes are destroyed.
 		// Can pass a nullptr to remove all nav meshes & update obstacles properly
 		void BuildNavMesh(NavigationMeshComponent* navMesh);
+		void RebuildNavMesh(); // Uses current one if available
 		const Ref<AINavigation::Mesh>& GetNavMesh() const { return m_CurrentNavMesh; }
 		void BuildCrowd(const AINavigation::CrowdSettings& settings); // Builds crowd system for the current nav mesh
 		
@@ -624,6 +625,7 @@ namespace Eagle
 		GUID m_GUID;
 
 		Ref<AINavigation::Mesh> m_CurrentNavMesh;
+		GUID m_CurrentNavMeshEntityGUID = GUID(0, 0);
 
 		friend class Entity;
 		friend class SceneSerializer;

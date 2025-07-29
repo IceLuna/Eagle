@@ -341,6 +341,7 @@ namespace Eagle
 	, m_bSkyboxEnabled(other->m_bSkyboxEnabled)
 	, m_bRenderSkybox(other->m_bRenderSkybox)
 	, m_bUseSkyAsBackground(other->m_bUseSkyAsBackground)
+	, m_CurrentNavMeshEntityGUID(other->m_CurrentNavMeshEntityGUID)
 	{
 		// Reuse renderer so that we don't allocate additional GPU resources
 		m_SceneRenderer = other->m_SceneRenderer;
@@ -638,6 +639,11 @@ namespace Eagle
 		{
 			navMesh->Build();
 			m_CurrentNavMesh = navMesh->GetNavMesh();
+			m_CurrentNavMeshEntityGUID = navMesh->Parent.GetGUID();
+		}
+		else
+		{
+			m_CurrentNavMeshEntityGUID = GUID(0, 0);
 		}
 
 		// Go through all agents and create them back
@@ -650,6 +656,23 @@ namespace Eagle
 		// Go through all colliders and generate obstacles back
 		for (BaseColliderComponent* collider : obstacleColliders)
 			collider->SetIsObstacle(true);
+	}
+
+	void Scene::RebuildNavMesh()
+	{
+		if (m_CurrentNavMeshEntityGUID.IsNull())
+			return;
+
+		Entity entity = GetEntityByGUID(m_CurrentNavMeshEntityGUID);
+		if (!entity)
+			return;
+
+		if (!entity.HasComponent<NavigationMeshComponent>())
+			return;
+
+		auto& comp = entity.GetComponent<NavigationMeshComponent>();
+		if (comp.bAutoRebuild)
+			BuildNavMesh(&comp);
 	}
 
 	void Scene::BuildCrowd(const AINavigation::CrowdSettings& settings)
@@ -861,7 +884,7 @@ namespace Eagle
 				m_PhysicsScene->RemovePhysicsActor(actor);
 
 			auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
-			std::vector<Entity> children = ownershipComponent.Children; // Copy
+			std::vector<Entity> children = ownershipComponent.Children; // Copy, otherwise it'll be modified when we iterate over it
 			Entity myParent = ownershipComponent.EntityParent;
 			entity.SetParent(Entity::Null);
 

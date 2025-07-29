@@ -20,7 +20,16 @@ namespace Eagle
 
         public override string ToString()
         {
-            return $"{m_Higher64} {m_Lower64}";
+            return $"GUID[{m_Higher64}, {m_Lower64}]";
         }
+
+        public override bool Equals(object obj) => obj is GUID other && this.Equals(other);
+
+        public bool Equals(GUID right) => m_Higher64 == right.m_Higher64 && m_Lower64 == right.m_Lower64;
+
+        public static bool operator ==(GUID left, GUID right) => left.Equals(right);
+        public static bool operator !=(GUID left, GUID right) => !(left == right);
+
+        public override int GetHashCode() => (m_Higher64, m_Lower64).GetHashCode();
     }
 }

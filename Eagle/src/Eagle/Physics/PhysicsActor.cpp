@@ -12,7 +12,7 @@ namespace Eagle
 	: PhysicsActorBase(entity)
 	{
 		const auto& rigidBody = m_Entity.GetComponent<RigidBodyComponent>();
-		m_BodyType = rigidBody.BodyType;
+		m_BodyType = rigidBody.GetBodyType();
 		CreateRigidActor();
 	}
 	

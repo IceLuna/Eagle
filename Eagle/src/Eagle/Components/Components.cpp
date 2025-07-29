@@ -59,6 +59,38 @@ namespace Eagle
 		}
 	}
 
+	void RigidBodyComponent::SetBodyType(PhysicsBodyType type)
+	{
+		m_BodyType = type;
+
+		if (const auto& actor = Parent.GetPhysicsActor())
+		{
+			if (Parent.HasComponent<BoxColliderComponent>())
+				Parent.GetComponent<BoxColliderComponent>().OnRemoved();
+			if (Parent.HasComponent<SphereColliderComponent>())
+				Parent.GetComponent<SphereColliderComponent>().OnRemoved();
+			if (Parent.HasComponent<CapsuleColliderComponent>())
+				Parent.GetComponent<CapsuleColliderComponent>().OnRemoved();
+			if (Parent.HasComponent<MeshColliderComponent>())
+				Parent.GetComponent<MeshColliderComponent>().OnRemoved();
+
+			Parent.GetScene()->GetPhysicsScene()->RemovePhysicsActor(actor);
+			
+			// Recreate actor and colliders
+			Parent.GetScene()->GetPhysicsScene()->CreatePhysicsActor(Parent);
+			if (Parent.HasComponent<BoxColliderComponent>())
+				Parent.GetComponent<BoxColliderComponent>().OnInit();
+			if (Parent.HasComponent<SphereColliderComponent>())
+				Parent.GetComponent<SphereColliderComponent>().OnInit();
+			if (Parent.HasComponent<CapsuleColliderComponent>())
+				Parent.GetComponent<CapsuleColliderComponent>().OnInit();
+			if (Parent.HasComponent<MeshColliderComponent>())
+				Parent.GetComponent<MeshColliderComponent>().OnInit();
+
+			Parent.GetScene()->RebuildNavMesh();
+		}
+	}
+
 	void RigidBodyComponent::SetCollisionDetectionType(CollisionDetectionType type)
 	{
 		m_CollisionDetection = type;
@@ -264,7 +296,7 @@ namespace Eagle
 		m_Shape->SetShowCollision(bShowCollision);
 	}
 	
-	void BoxColliderComponent::OnInit(Entity entity)
+	void BoxColliderComponent::OnInit()
 	{
 		auto actor = Parent.GetPhysicsActor();
 		if (actor)
@@ -276,9 +308,9 @@ namespace Eagle
 		}
 	}
 
-	void BoxColliderComponent::OnRemoved(Entity entity)
+	void BoxColliderComponent::OnRemoved()
 	{
-		BaseColliderComponent::OnRemoved(entity);
+		BaseColliderComponent::OnRemoved();
 		const auto& actor = Parent.GetPhysicsActor();
 		if (actor)
 		{
@@ -392,7 +424,7 @@ namespace Eagle
 		m_Shape->SetInteractingCollisionGroup(m_InteractingCollisionGroup);
 	}
 	
-	void SphereColliderComponent::OnInit(Entity entity)
+	void SphereColliderComponent::OnInit()
 	{
 		auto actor = Parent.GetPhysicsActor();
 		if (actor)
@@ -404,9 +436,9 @@ namespace Eagle
 		}
 	}
 
-	void SphereColliderComponent::OnRemoved(Entity entity)
+	void SphereColliderComponent::OnRemoved()
 	{
-		BaseColliderComponent::OnRemoved(entity);
+		BaseColliderComponent::OnRemoved();
 		const auto& actor = Parent.GetPhysicsActor();
 		if (actor)
 		{
@@ -479,7 +511,7 @@ namespace Eagle
 			CreateObstacle();
 	}
 	
-	void CapsuleColliderComponent::OnInit(Entity entity)
+	void CapsuleColliderComponent::OnInit()
 	{
 		auto actor = Parent.GetPhysicsActor();
 		if (actor)
@@ -516,9 +548,9 @@ namespace Eagle
 		m_ObstacleID = navMesh->AddCylinderObstacle(WorldTransform.Location, radius, height);
 	}
 
-	void CapsuleColliderComponent::OnRemoved(Entity entity)
+	void CapsuleColliderComponent::OnRemoved()
 	{
-		BaseColliderComponent::OnRemoved(entity);
+		BaseColliderComponent::OnRemoved();
 		const auto& actor = Parent.GetPhysicsActor();
 		if (actor)
 		{
@@ -643,7 +675,7 @@ namespace Eagle
 		SetIsTrigger(bTrigger);
 	}
 	
-	void MeshColliderComponent::OnInit(Entity entity)
+	void MeshColliderComponent::OnInit()
 	{
 		if (Parent && Parent.HasComponent<StaticMeshComponent>())
 		{
@@ -655,9 +687,9 @@ namespace Eagle
 		SetCollisionMeshAsset(m_CollisionMeshAsset);
 	}
 
-	void MeshColliderComponent::OnRemoved(Entity entity)
+	void MeshColliderComponent::OnRemoved()
 	{
-		BaseColliderComponent::OnRemoved(entity);
+		BaseColliderComponent::OnRemoved();
 		const auto& actor = Parent.GetPhysicsActor();
 		if (actor)
 		{

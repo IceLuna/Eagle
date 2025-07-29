@@ -1316,7 +1316,7 @@ namespace Eagle
 			out << YAML::Key << "RigidBodyComponent";
 			out << YAML::BeginMap; //RigidBodyComponent
 
-			out << YAML::Key << "BodyType" << YAML::Value << Utils::GetEnumName(rigidBodyComponent.BodyType);
+			out << YAML::Key << "BodyType" << YAML::Value << Utils::GetEnumName(rigidBodyComponent.GetBodyType());
 			out << YAML::Key << "CollisionDetectionType" << YAML::Value << Utils::GetEnumName(rigidBodyComponent.GetCollisionDetectionType());
 			out << YAML::Key << "PositionSolverIterations" << YAML::Value << rigidBodyComponent.GetPositionSolverIterations();
 			out << YAML::Key << "VelocitySolverIterations" << YAML::Value << rigidBodyComponent.GetVelocitySolverIterations();
@@ -1933,9 +1933,10 @@ namespace Eagle
 
 		if (auto rigidBodyComponentNode = entityNode["RigidBodyComponent"])
 		{
-			auto& rigidBodyComponent = deserializedEntity.AddComponent<RigidBodyComponent>();
+			PhysicsBodyType bodyType = Utils::GetEnumFromName<PhysicsBodyType>(rigidBodyComponentNode["BodyType"].as<std::string>());
+			auto& rigidBodyComponent = deserializedEntity.AddComponent<RigidBodyComponent>(bodyType);
 
-			rigidBodyComponent.BodyType = Utils::GetEnumFromName<PhysicsBodyType>(rigidBodyComponentNode["BodyType"].as<std::string>());
+
 			rigidBodyComponent.SetCollisionDetectionType(Utils::GetEnumFromName<CollisionDetectionType>(rigidBodyComponentNode["CollisionDetectionType"].as<std::string>()));
 			if (auto node = rigidBodyComponentNode["PositionSolverIterations"])
 				rigidBodyComponent.SetPositionSolverIterations(node.as<uint32_t>());

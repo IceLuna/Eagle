@@ -24,7 +24,7 @@ namespace Eagle
 		virtual ~Component();
 
 		// Not called if entity has been destroyed.
-		virtual void OnRemoved(Entity entity) {}
+		virtual void OnRemoved() {}
 
 	public:
 		Entity Parent;
