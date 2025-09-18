@@ -17,7 +17,6 @@ namespace Eagle
 		bool Deserialize(YAML::Node& baseNode);
 
 	private:
-		void SerializeEntity(YAML::Emitter& out, Entity& entity);
 		void DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode, uint32_t collisionGroupValidMasks);
 
 		void SerializeSkybox(YAML::Emitter& out);
@@ -25,11 +24,5 @@ namespace Eagle
 
 	private:
 		Ref<Scene> m_Scene;
-		
-		//uint32_t - Entity's ID in *.eagle; Real entity ID; 
-		std::unordered_map<uint32_t, Entity> m_AllEntities;
-
-		//uint32_t - entity that has an parent, uint32_t - parent id
-		std::unordered_map<uint32_t, uint32_t> m_Childs;
 	};
 }

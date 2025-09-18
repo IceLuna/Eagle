@@ -379,7 +379,6 @@ namespace Eagle
 				auto& dead = m_DeadEmitters.emplace_back();
 				dead.Data = removingData;
 				dead.TimeTillDead = emitter.bDestroyImmediately ? 0.f : emitter.LifetimeMax;
-				dead.TimeOfDeath = std::chrono::high_resolution_clock::now();
 			}
 			cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::CopyDest, BufferLayoutType::StorageBuffer);
 

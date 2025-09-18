@@ -574,7 +574,7 @@ namespace Eagle::Script
 	void Eagle_Renderer_DrawTriangle(const glm::vec3* v0Location, const glm::vec3* v0Color, const glm::vec3* v1Location, const glm::vec3* v1Color, const glm::vec3* v2Location, const glm::vec3* v2Color);
 	void Eagle_Renderer_DrawArrow(const glm::vec3* start, const glm::vec3* end, const glm::vec3* up);
 	void Eagle_Renderer_DrawAABB(const AABB* aabb, const Transform* transform);
-	void Eagle_Renderer_DrawCone(const glm::vec3* location, const glm::vec3* direction, float distance, float angleRad);
+	void Eagle_Renderer_DrawCone(const glm::vec3* location, const glm::quat* rotation, float distance, float angleRad);
 
 	// Project
 	MonoString* Eagle_Project_GetProjectPath();
@@ -738,6 +738,9 @@ namespace Eagle::Script
 	glm::vec3 Eagle_Math_GetUpVector(const Rotator* rotator);
 	glm::vec3 Eagle_Math_GetRightVector(const Rotator* rotator);
 	float Eagle_Math_CalculateDirection(const glm::vec3* velocity, const Rotator* rotator);
+	glm::quat Eagle_Math_SlerpQuat(const glm::quat* x, const glm::quat* y, float alpha);
+	glm::quat Eagle_Math_LookAt(const glm::vec3* dir);
+	glm::quat Eagle_Math_LookAtY(const glm::vec3* dir);
 
 	// Quat
 	glm::quat Eagle_Quat_Mul(const glm::quat& left, const glm::quat& right);

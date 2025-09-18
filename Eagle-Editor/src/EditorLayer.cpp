@@ -139,8 +139,7 @@ namespace Eagle
 
 	EditorLayer::EditorLayer()
 		: Layer("EditorLayer")
-		, m_SceneHierarchyPanel(*this)
-		, m_EditorSerializer(this)
+		, m_SceneHierarchyPanel()
 		, m_ContentBrowserPanel(*this)
 		, m_Window(Application::Get().GetWindow())
 	{
@@ -190,10 +189,10 @@ namespace Eagle
 
 		// If failed to deserialize, create EditorDefault.ini & open a new scene
 		const Path editorIni = Project::GetConfigPath() / "EditorDefault.ini";
-		if (m_EditorSerializer.Deserialize(editorIni) == false)
+		if (EditorSerializer::Deserialize(this, editorIni) == false)
 		{
-			m_EditorSerializer.Serialize(editorIni);
-			m_EditorSerializer.Deserialize(editorIni);
+			EditorSerializer::Serialize(this, editorIni);
+			EditorSerializer::Deserialize(this, editorIni);
 		}
 	
 		SoundSettings soundSettings;
@@ -206,7 +205,7 @@ namespace Eagle
 
 	void EditorLayer::OnDetach()
 	{
-		m_EditorSerializer.Serialize(Project::GetConfigPath() / "EditorDefault.ini");
+		EditorSerializer::Serialize(this, Project::GetConfigPath() / "EditorDefault.ini");
 		Scene::SetCurrentScene(nullptr);
 		Scene::RemoveOnSceneOpenedCallback(m_OpenedSceneCallbackID);
 		EditorResources::Release();
@@ -238,7 +237,7 @@ namespace Eagle
 
 	void EditorLayer::OnEvent(Eagle::Event& e)
 	{
-		m_SceneHierarchyPanel.OnEvent(e);
+		m_SceneHierarchyPanel.OnEvent(e, IsViewportFocused());
 		if (e.Handled)
 			return;
 
@@ -306,7 +305,7 @@ namespace Eagle
 		if (!m_bFullScreen)
 		{
 			DrawSimulatePanel();
-			if (m_SceneHierarchyPanel.OnImGuiRender())
+			if (m_SceneHierarchyPanel.OnImGuiRender(m_EditorState == EditorState::Play))
 			{
 				if (m_EditorState == EditorState::Edit && m_OpenedSceneAsset)
 					m_OpenedSceneAsset->SetDirty(true);

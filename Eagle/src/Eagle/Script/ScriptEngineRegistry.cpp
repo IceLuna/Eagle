@@ -836,6 +836,9 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Mathf::GetUpVector_Native", Eagle::Script::Eagle_Math_GetUpVector);
 		mono_add_internal_call("Eagle.Mathf::GetRightVector_Native", Eagle::Script::Eagle_Math_GetRightVector);
 		mono_add_internal_call("Eagle.Mathf::CalculateDirection_Native", Eagle::Script::Eagle_Math_CalculateDirection);
+		mono_add_internal_call("Eagle.Mathf::SlerpQuat_Native", Eagle::Script::Eagle_Math_SlerpQuat);
+		mono_add_internal_call("Eagle.Mathf::LookAt_Native", Eagle::Script::Eagle_Math_LookAt);
+		mono_add_internal_call("Eagle.Mathf::LookAtY_Native", Eagle::Script::Eagle_Math_LookAtY);
 
 		// Quat
 		mono_add_internal_call("Eagle.Quat::Mul_Native", Eagle::Script::Eagle_Quat_Mul);

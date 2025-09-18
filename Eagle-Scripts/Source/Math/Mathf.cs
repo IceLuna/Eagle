@@ -135,6 +135,21 @@ namespace Eagle
             return (float)Math.Sqrt(Dot(v, v));
         }
 
+        public static float Length2(Vector2 v)
+        {
+            return (float)Dot(v, v);
+        }
+
+        public static float Length2(Vector3 v)
+        {
+            return (float)Dot(v, v);
+        }
+
+        public static float Length2(Vector4 v)
+        {
+            return (float)Dot(v, v);
+        }
+
         public static Vector2 Normalize(Vector2 v)
         {
             float len = Length(v);
@@ -175,6 +190,29 @@ namespace Eagle
         public static Vector4 Lerp(Vector4 x, Vector4 y, float alpha)
         {
             return x * (1f - alpha) + y * alpha;
+        }
+
+        public static Quat Slerp(Quat x, Quat y, float alpha)
+        {
+            return SlerpQuat_Native(ref x, ref y, alpha);
+        }
+
+        public static Rotator Slerp(Rotator x, Rotator y, float alpha)
+        {
+            return SlerpQuat_Native(ref x.Rotation, ref y.Rotation, alpha);
+        }
+
+        // @dir. Desired forward direction.Needs to be normalized.
+        public static Rotator LookAt(Vector3 dir)
+        {
+            return LookAt_Native(ref dir);
+        }
+
+        // Calculates LookAt rotator around Y axis
+        // @dir. Desired forward direction.Needs to be normalized.
+        public static Rotator LookAtY(Vector3 dir)
+        {
+            return LookAtY_Native(ref dir);
         }
 
         public static float Step(float edge, float x) => x < edge ? 0.0f : 1.0f;
@@ -283,5 +321,14 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float CalculateDirection_Native(ref Vector3 velocity, ref Rotator rotator);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern Quat SlerpQuat_Native(ref Quat x, ref Quat y, float alpha);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern Quat LookAt_Native(ref Vector3 dir);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern Quat LookAtY_Native(ref Vector3 dir);
     }
 }

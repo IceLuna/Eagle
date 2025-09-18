@@ -4,6 +4,7 @@
 #include "Eagle/Renderer/VidWrappers/PipelineCompute.h"
 #include "Eagle/Renderer/ParticleEmitter.h"
 #include "Eagle/Renderer/Tasks/SortTask.h"
+#include "Eagle/Utils/Timer.h"
 
 namespace Eagle
 {
@@ -110,14 +111,13 @@ namespace Eagle
 
 		struct DeadEmitterData
 		{
-			std::chrono::high_resolution_clock::time_point TimeOfDeath;
+			Timer TimeOfDeath;
 			RemovingEmitterData Data;
 			float TimeTillDead = 0.f; // In seconds
 
 			bool IsDead() const
 			{
-				const auto now = std::chrono::high_resolution_clock::now();
-				const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - TimeOfDeath).count() / 1000.f; // To seconds
+				const auto duration = TimeOfDeath.GetDuration() / 1000.f; // To seconds
 				if (duration >= TimeTillDead)
 					return true;
 

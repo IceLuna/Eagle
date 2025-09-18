@@ -320,6 +320,18 @@ namespace Eagle
 			SerializeRagdollBonesData(out, child);
 	}
 
+	// Returns all entities starting from the root (root is included)
+	static void GetAllEntities(Entity root, std::vector<Entity>* outEntities)
+	{
+		outEntities->push_back(root);
+
+		const auto& children = root.GetChildren();
+		for (const auto& child : children)
+		{
+			GetAllEntities(child, outEntities);
+		}
+	}
+
 	void Serializer::EmitBoneNode(YAML::Emitter& out, const BoneNode& node)
 	{
 		out << YAML::BeginMap;
@@ -813,19 +825,25 @@ namespace Eagle
 
 	void Serializer::SerializeAssetEntity(YAML::Emitter& out, const Ref<AssetEntity>& asset)
 	{
-		Entity entity = *asset->GetEntity().get();
+		Entity rootEntity = *asset->GetEntity().get();
 
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Entity);
 		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
 
-		if (entity.HasAny<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, MeshColliderComponent>())
-		{
-			Serializer::SerializeProjectCollisionGroupGUIDs(out);
-		}
+		Serializer::SerializeProjectCollisionGroupGUIDs(out);
 
-		Serializer::SerializeEntity(out, entity);
+		std::vector<Entity> entities;
+		entities.reserve(10);
+		GetAllEntities(rootEntity, &entities);
+
+		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
+		for (const auto& entity : entities)
+		{
+			Serializer::SerializeEntity(out, entity);
+		}
+		out << YAML::EndSeq;
 
 		out << YAML::EndMap;
 	}
@@ -1020,6 +1038,11 @@ namespace Eagle
 
 	void Serializer::SerializeEntity(YAML::Emitter& out, Entity entity)
 	{
+		out << YAML::BeginMap; //Entity
+
+		out << YAML::Key << "EntityID" << YAML::Value << entity.GetID();
+		out << YAML::Key << "GUID" << YAML::Value << entity.GetGUID();
+
 		if (entity.HasComponent<EntityAssetComponent>())
 		{
 			const auto& component = entity.GetComponent<EntityAssetComponent>();
@@ -1659,10 +1682,24 @@ namespace Eagle
 
 			out << YAML::EndMap; // NavigationMeshComponent
 		}
+	
+		out << YAML::EndMap; //Entity
 	}
 
-	void Serializer::DeserializeEntity(Entity deserializedEntity, const YAML::Node& entityNode, uint32_t collisionGroupValidMasks)
+	Entity Serializer::DeserializeEntity(const Ref<Scene>& scene, const YAML::Node& entityNode, uint32_t collisionGroupValidMasks, uint32_t* outEntityID, int* outParentID)
 	{
+		*outEntityID = entityNode["EntityID"].as<uint32_t>();
+		GUID guid(0, 0);
+		if (auto node = entityNode["GUID"])
+			guid = node.as<GUID>();
+		else
+			guid = GUID{}; // Generate a new one
+
+		if (outParentID)
+			*outParentID = -1;
+
+		Entity deserializedEntity = scene->CreateEntityWithGUID(guid);
+
 		if (auto node = entityNode["Asset"])
 		{
 			if (deserializedEntity.HasComponent<EntityAssetComponent>() == false)
@@ -1679,6 +1716,8 @@ namespace Eagle
 			
 			auto& sceneNameComponent = deserializedEntity.GetComponent<EntitySceneNameComponent>();
 			sceneNameComponent.Name = sceneNameComponentNode["Name"].as<std::string>();
+			if (outParentID)
+				*outParentID = sceneNameComponentNode["Parent"].as<int>();
 		}
 
 		if (auto transformComponentNode = entityNode["TransformComponent"])
@@ -2256,6 +2295,8 @@ namespace Eagle
 
 			component.SetSettings(settings);
 		}
+	
+		return deserializedEntity;
 	}
 
 	void Serializer::SerializeRelativeTransform(YAML::Emitter& out, const Transform& relativeTransform)
@@ -3575,10 +3616,46 @@ namespace Eagle
 
 		GUID guid = baseNode["GUID"].as<GUID>();
 
-		const uint32_t collisionGroupValidMasks = Serializer::DeserializeProjectCollisionGroupGUIDs(baseNode);
+		Entity rootEntity;
+		const auto& scene = AssetEntity::GetScene();
+		if (auto entitiesNode = baseNode["Entities"])
+		{
+			//uint32_t - Entity's ID in *.eagle; Real entity ID; 
+			std::unordered_map<uint32_t, Entity> allEntities;
 
-		Entity entity = AssetEntity::CreateEntity(guid);
-		Serializer::DeserializeEntity(entity, baseNode, collisionGroupValidMasks);
+			//uint32_t - entity that has an parent, uint32_t - parent id
+			std::unordered_map<uint32_t, uint32_t> childs;
+
+			const uint32_t collisionGroupValidMasks = Serializer::DeserializeProjectCollisionGroupGUIDs(baseNode);
+			for (auto& entityNode : entitiesNode)
+			{
+				uint32_t id;
+				int parentID = -1;
+				Entity deserializedEntity = Serializer::DeserializeEntity(scene, entityNode, collisionGroupValidMasks, &id, &parentID);
+
+				allEntities[id] = deserializedEntity;
+				if (parentID != -1)
+				{
+					childs[deserializedEntity.GetID()] = parentID;
+				}
+				else
+				{
+					EG_CORE_ASSERT(!rootEntity);
+					rootEntity = deserializedEntity;
+				}
+			}
+
+			for (const auto& element : childs)
+			{
+				Entity& parent = allEntities[element.second];
+				Entity child((entt::entity)element.first, scene.get());
+				child.SetParent(parent);
+			}
+		}
+		else
+		{
+			rootEntity = AssetEntity::CreateEntity(guid);
+		}
 
 		class LocalAssetEntity: public AssetEntity
 		{
@@ -3587,7 +3664,7 @@ namespace Eagle
 				: AssetEntity(path, guid, entity) {}
 		};
 
-		return MakeRef<LocalAssetEntity>(pathToAsset, guid, MakeRef<Entity>(entity));
+		return MakeRef<LocalAssetEntity>(pathToAsset, guid, MakeRef<Entity>(rootEntity));
 	}
 
 	Ref<AssetAnimation> Serializer::DeserializeAssetAnimation(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)

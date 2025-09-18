@@ -560,7 +560,7 @@ namespace Eagle
 	
 	Entity AssetEntity::CreateEntity(GUID guid)
 	{
-		return s_EntityAssetsScene->CreateEntityWithGUID(guid);
+		return s_EntityAssetsScene->CreateEntityWithGUID(guid, "Root Entity");
 	}
 	
 	Ref<AssetScene> AssetScene::Create(const Path& path)

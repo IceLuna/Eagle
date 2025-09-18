@@ -7030,9 +7030,9 @@ namespace Eagle
 		Scene::GetCurrentScene()->DrawAABB(*aabb, *transform);
 	}
 
-	void Script::Eagle_Renderer_DrawCone(const glm::vec3* location, const glm::vec3* direction, float distance, float angleRad)
+	void Script::Eagle_Renderer_DrawCone(const glm::vec3* location, const glm::quat* rotation, float distance, float angleRad)
 	{
-		Scene::GetCurrentScene()->DrawCone(*location, *direction, distance, angleRad);
+		Scene::GetCurrentScene()->DrawCone(*location, *rotation, distance, angleRad);
 	}
 	
 	void Script::Eagle_Renderer_SetObjectPickingEnabled(bool value)
@@ -8859,6 +8859,34 @@ namespace Eagle
 	float Script::Eagle_Math_CalculateDirection(const glm::vec3* velocity, const Rotator* rotator)
 	{
 		return Math::CalculateDirection(*velocity, *rotator);
+	}
+
+	glm::quat Script::Eagle_Math_SlerpQuat(const glm::quat* x, const glm::quat* y, float alpha)
+	{
+		return glm::slerp(*x, *y, alpha);
+	}
+
+	glm::quat Script::Eagle_Math_LookAt(const glm::vec3* dir)
+	{
+		return glm::quatLookAt(*dir, glm::vec3(0, 1, 0));
+	}
+
+	glm::quat Script::Eagle_Math_LookAtY(const glm::vec3* dir)
+	{
+		const glm::vec3 up(0, 1, 0);
+
+		glm::vec3 dirTemp = *dir;
+		dirTemp.y = 0.0f;
+
+		const float len2 = glm::length2(dirTemp);
+		// Handle degenerate case: if dir is zero (target is directly above/below)
+		if (len2 < 1e-6f)
+			return Rotator::Unit().GetQuat();
+
+		dirTemp = dirTemp * glm::inversesqrt(len2); // Normalize
+
+		constexpr glm::vec3 forward(0, 0, -1);
+		return glm::rotation(forward, dirTemp);
 	}
 
 	glm::quat Script::Eagle_Quat_Mul(const glm::quat& left, const glm::quat& right)

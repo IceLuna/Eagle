@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glm/glm.hpp>
+#include "Eagle/Math/Math.h"
 
 namespace Eagle
 {
@@ -26,6 +26,49 @@ namespace Eagle
 		{
 			Min = glm::min(Min, p);
 			Max = glm::max(Max, p);
+		}
+
+		void Transform(const Eagle::Transform& transform)
+		{
+#if 0 // Apply rotation
+			// All 8 corners of the original AABB
+			glm::vec3 corners[8] =
+			{
+				{ box.Min.x, box.Min.y, box.Min.z },
+				{ box.Max.x, box.Min.y, box.Min.z },
+				{ box.Min.x, box.Max.y, box.Min.z },
+				{ box.Max.x, box.Max.y, box.Min.z },
+				{ box.Min.x, box.Min.y, box.Max.z },
+				{ box.Max.x, box.Min.y, box.Max.z },
+				{ box.Min.x, box.Max.y, box.Max.z },
+				{ box.Max.x, box.Max.y, box.Max.z }
+			};
+
+			AABB result;
+
+			// Transform all corners and expand new AABB
+			for (int i = 0; i < 8; i++)
+			{
+				glm::vec3 transformed = glm::vec3(transform * glm::vec4(corners[i], 1.0f));
+				result.Min = glm::min(result.Min, transformed);
+				result.Max = glm::max(result.Max, transformed);
+			}
+
+			return result;
+#else
+			// Discarding rotation
+			Eagle::Transform temp(transform.Location, Rotator{}, transform.Scale3D);
+			const glm::mat4 tr = Math::ToTransformMatrix(temp);
+			Min = tr * glm::vec4(Min, 1.f);
+			Max = tr * glm::vec4(Max, 1.f);
+#endif
+		}
+
+		static AABB Transformed(const AABB& aabb, const Eagle::Transform& transform)
+		{
+			AABB result = aabb;
+			result.Transform(transform);
+			return result;
 		}
 
 		constexpr bool Contains(const glm::vec3& p) const

@@ -8,13 +8,11 @@ namespace Eagle
 
 	class EditorSerializer
 	{
-	public:
-		EditorSerializer(EditorLayer* editor) : m_Editor(editor) {}
-
-		bool Serialize(const Path& filepath);
-		bool Deserialize(const Path& filepath);
-
 	private:
-		EditorLayer* m_Editor;
+		EditorSerializer() = default;
+
+	public:
+		static bool Serialize(EditorLayer* editor, const Path& filepath);
+		static bool Deserialize(EditorLayer* editor, const Path& filepath);
 	};
 }

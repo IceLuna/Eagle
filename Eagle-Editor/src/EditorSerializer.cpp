@@ -9,13 +9,13 @@
 
 namespace Eagle
 {
-	bool EditorSerializer::Serialize(const Path& filepath)
+	bool EditorSerializer::Serialize(EditorLayer* editor, const Path& filepath)
 	{
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 
-		const glm::vec3& snapValues = m_Editor->m_SnappingValues;
-		int guizmoType = m_Editor->m_GuizmoType;
+		const glm::vec3& snapValues = editor->m_SnappingValues;
+		int guizmoType = editor->m_GuizmoType;
 
 		const Window& window = Application::Get().GetWindow();
 		glm::vec2 windowSize = window.GetWindowSize();
@@ -23,23 +23,23 @@ namespace Eagle
 		glm::vec2 windowPos = window.GetWindowPos();
 		bool bVSync = window.IsVSync();
 		
-		const auto rendererOptions = m_Editor->GetEditorState() == EditorState::Play ? m_Editor->m_BeforeSimulationData.RendererSettings :
-			m_Editor->m_CurrentScene ? m_Editor->m_CurrentScene->GetSceneRenderer()->GetOptions() : SceneRendererSettings{};
+		const auto rendererOptions = editor->GetEditorState() == EditorState::Play ? editor->m_BeforeSimulationData.RendererSettings :
+			editor->m_CurrentScene ? editor->m_CurrentScene->GetSceneRenderer()->GetOptions() : SceneRendererSettings{};
 
-		if (m_Editor->m_OpenedSceneAsset)
-			out << YAML::Key << "EditorStartupScene" << YAML::Value << m_Editor->m_OpenedSceneAsset->GetGUID();
+		if (editor->m_OpenedSceneAsset)
+			out << YAML::Key << "EditorStartupScene" << YAML::Value << editor->m_OpenedSceneAsset->GetGUID();
 		out << YAML::Key << "WindowSize" << YAML::Value << windowSize;
 		out << YAML::Key << "WindowMaximized" << YAML::Value << bWindowMaximized;
 		out << YAML::Key << "WindowPos" << YAML::Value << windowPos;
 		out << YAML::Key << "SnapValues" << YAML::Value << snapValues;
 		out << YAML::Key << "GuizmoType" << YAML::Value << guizmoType;
-		out << YAML::Key << "Style" << YAML::Value << Utils::GetEnumName(m_Editor->m_EditorStyle);
-		out << YAML::Key << "EcoRendering" << YAML::Value << m_Editor->bRenderOnlyWhenFocused;
-		out << YAML::Key << "bUpdateAnimationsInEditor" << YAML::Value << m_Editor->bUpdateAnimationsInEditor;
-		out << YAML::Key << "DrawNavMesh" << YAML::Value << m_Editor->bDrawNavMesh;
-		out << YAML::Key << "StopSimulationKey" << YAML::Value << Utils::GetEnumName(m_Editor->m_StopSimulationKey);
+		out << YAML::Key << "Style" << YAML::Value << Utils::GetEnumName(editor->m_EditorStyle);
+		out << YAML::Key << "EcoRendering" << YAML::Value << editor->bRenderOnlyWhenFocused;
+		out << YAML::Key << "bUpdateAnimationsInEditor" << YAML::Value << editor->bUpdateAnimationsInEditor;
+		out << YAML::Key << "DrawNavMesh" << YAML::Value << editor->bDrawNavMesh;
+		out << YAML::Key << "StopSimulationKey" << YAML::Value << Utils::GetEnumName(editor->m_StopSimulationKey);
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
-		out << YAML::Key << "GuizmoMode" << YAML::Value << Utils::GetEnumName((ImGuizmo::MODE)m_Editor->m_GuizmoMode);
+		out << YAML::Key << "GuizmoMode" << YAML::Value << Utils::GetEnumName((ImGuizmo::MODE)editor->m_GuizmoMode);
 
 		Serializer::SerializeRendererSettings(out, rendererOptions);
 
@@ -55,7 +55,7 @@ namespace Eagle
 		return true;
 	}
 
-	bool EditorSerializer::Deserialize(const Path& filepath)
+	bool EditorSerializer::Deserialize(EditorLayer* editor, const Path& filepath)
 	{
 		glm::vec2 windowSize = glm::vec2{ -1, -1 };
 		glm::vec2 windowPos = glm::vec2{ -1, -1 };
@@ -67,10 +67,10 @@ namespace Eagle
 
 		YAML::Node data = YAML::LoadFile(filepath.string());
 		bool bVSync = true;
-		bool bRenderOnlyWhenFocused = m_Editor->bRenderOnlyWhenFocused;
-		bool bUpdateAnimationsInEditor = m_Editor->bUpdateAnimationsInEditor;
-		bool bDrawNavMesh = m_Editor->bDrawNavMesh;
-		Key stopSimulationKey = m_Editor->m_StopSimulationKey;
+		bool bRenderOnlyWhenFocused = editor->bRenderOnlyWhenFocused;
+		bool bUpdateAnimationsInEditor = editor->bUpdateAnimationsInEditor;
+		bool bDrawNavMesh = editor->bDrawNavMesh;
+		Key stopSimulationKey = editor->m_StopSimulationKey;
 		int guizmoMode = ImGuizmo::MODE::WORLD;
 
 		if (auto openedScenePathNode = data["EditorStartupScene"])
@@ -80,7 +80,7 @@ namespace Eagle
 			if (AssetManager::Get(sceneGUID, &asset))
 			{
 				if (Ref<AssetScene> sceneAsset = Cast<AssetScene>(asset))
-					m_Editor->m_OpenedSceneAsset = sceneAsset;
+					editor->m_OpenedSceneAsset = sceneAsset;
 			}
 		}
 		if (auto windowSizeNode = data["WindowSize"])
@@ -90,11 +90,11 @@ namespace Eagle
 		if (auto windowPosNode = data["WindowPos"])
 			windowPos = windowPosNode.as<glm::vec2>();
 		if (auto snapValuesNode = data["SnapValues"])
-			m_Editor->m_SnappingValues = snapValuesNode.as<glm::vec3>();
+			editor->m_SnappingValues = snapValuesNode.as<glm::vec3>();
 		if (auto GuizmoTypeNode = data["GuizmoType"])
-			m_Editor->m_GuizmoType = std::max(0, GuizmoTypeNode.as<int>());
+			editor->m_GuizmoType = std::max(0, GuizmoTypeNode.as<int>());
 		if (auto styleNode = data["Style"])
-			m_Editor->m_EditorStyle = Utils::GetEnumFromName<ImGuiLayer::Style>(styleNode.as<std::string>());
+			editor->m_EditorStyle = Utils::GetEnumFromName<ImGuiLayer::Style>(styleNode.as<std::string>());
 		if (auto node = data["EcoRendering"])
 			bRenderOnlyWhenFocused = node.as<bool>();
 		if (auto node = data["bUpdateAnimationsInEditor"])
@@ -110,7 +110,7 @@ namespace Eagle
 		
 		Serializer::DeserializeRendererSettings(data, settings);
 
-		m_Editor->OnDeserialized(windowSize, windowPos, settings, bWindowMaximized, bVSync, bRenderOnlyWhenFocused, bDrawNavMesh, stopSimulationKey, bUpdateAnimationsInEditor, guizmoMode);
+		editor->OnDeserialized(windowSize, windowPos, settings, bWindowMaximized, bVSync, bRenderOnlyWhenFocused, bDrawNavMesh, stopSimulationKey, bUpdateAnimationsInEditor, guizmoMode);
 		return true;
 	}
 }

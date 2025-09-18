@@ -435,16 +435,21 @@ namespace Eagle
 		return entity;
 	}
 
-	Entity Scene::CreateFromEntity(const Entity& source)
+	Entity Scene::CreateFromEntity(const Entity& source, bool bCopyGUID)
 	{
-		Entity result = CreateEntity(source.GetComponent<EntitySceneNameComponent>().Name);
+		const GUID guid = bCopyGUID ? source.GetComponent<IDComponent>().ID : GUID{};
+		Entity result = CreateEntityWithGUID(guid, source.GetComponent<EntitySceneNameComponent>().Name);
 		EntityCopyComponent<TransformComponent>(source, result); //Copying TransformComponent to set childrens transform correctly
 
 		// Recreating Ownership component
 		const auto& srcChildren = source.GetChildren();
 		for (auto& child : srcChildren)
 		{
-			Entity myChild = CreateFromEntity(child);
+			// Don't copy entities that are about to be destroyed
+			if (child.GetScene()->IsPendingDestroy(child))
+				continue;
+
+			Entity myChild = CreateFromEntity(child, bCopyGUID);
 			myChild.SetParent(result);
 		}
 
@@ -462,7 +467,7 @@ namespace Eagle
 		return result;
 	}
 
-	void Scene::DestroyEntity(Entity entity)
+	void Scene::DestroyEntity(Entity entity, bool bDestroyChildren)
 	{
 		if (!entity)
 			return;
@@ -480,9 +485,36 @@ namespace Eagle
 					ScriptEngine::OnDestroyEntity(entity);
 		}
 
-		m_EntitiesToDestroy.push_back(entity);
+		m_EntitiesToDestroy.emplace_back(entity, bDestroyChildren);
 
 		// EG_CORE_TRACE("Destroyed Entity: {}", entity.GetComponent<EntitySceneNameComponent>().Name);
+	}
+
+	void Scene::DestroyEntityImmediately(Entity entity, bool bDestroyChildren)
+	{
+		ScriptEngine::RemoveEntityScript(entity);
+		auto& actor = entity.GetPhysicsActor();
+		if (actor)
+			m_PhysicsScene->RemovePhysicsActor(actor);
+
+		auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
+		std::vector<Entity> children = ownershipComponent.Children; // Copy, otherwise it'll be modified when we iterate over it
+		Entity myParent = ownershipComponent.EntityParent;
+		entity.SetParent(Entity::Null);
+
+		if (bDestroyChildren)
+		{
+			for (size_t i = 0; i < children.size(); ++i)
+				DestroyEntityImmediately(children[i], bDestroyChildren);
+		}
+		else
+		{
+			for (size_t i = 0; i < children.size(); ++i)
+				children[i].SetParent(myParent);
+		}
+
+		m_AliveEntities.erase(entity.GetGUID());
+		m_Registry.destroy(entity.GetEnttID());
 	}
 
 	void Scene::OnUpdate(Timestep ts, bool bRender, bool bForceAnimationsUpdate)
@@ -876,25 +908,20 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Scene. Destroy Pending Entities");
 
 		//Remove entities when a new frame begins
-		for (auto& entity : m_EntitiesToDestroy)
+		for (auto& [entity, bDestroyChildren] : m_EntitiesToDestroy)
 		{
-			ScriptEngine::RemoveEntityScript(entity);
-			auto& actor = entity.GetPhysicsActor();
-			if (actor)
-				m_PhysicsScene->RemovePhysicsActor(actor);
-
-			auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
-			std::vector<Entity> children = ownershipComponent.Children; // Copy, otherwise it'll be modified when we iterate over it
-			Entity myParent = ownershipComponent.EntityParent;
-			entity.SetParent(Entity::Null);
-
-			for (size_t i = 0; i < children.size(); ++i)
-				children[i].SetParent(myParent);
-
-			m_AliveEntities.erase(entity.GetGUID());
-			m_Registry.destroy(entity.GetEnttID());
+			DestroyEntityImmediately(entity, bDestroyChildren);
 		}
 		m_EntitiesToDestroy.clear();
+	}
+
+	bool Scene::IsPendingDestroy(Entity entity) const
+	{
+		auto it = std::find_if(m_EntitiesToDestroy.begin(), m_EntitiesToDestroy.end(), [entity](const std::pair<Entity, bool>& val)
+		{
+			return val.first == entity;
+		});
+		return it != m_EntitiesToDestroy.end();
 	}
 
 	void Scene::UpdateScripts(Timestep ts)
@@ -1573,9 +1600,9 @@ namespace Eagle
 		m_PhysicsScene->Reset();
 	}
 
-	Entity Scene::CreateFromEntityAsset(const Ref<AssetEntity>& asset)
+	Entity Scene::CreateFromEntityAsset(const Ref<AssetEntity>& asset, bool bCopyGUID)
 	{
-		Entity createdEntity = CreateFromEntity(*asset->GetEntity().get());
+		Entity createdEntity = CreateFromEntity(*asset->GetEntity().get(), bCopyGUID);
 		createdEntity.AddComponent<EntityAssetComponent>().AssetGUID = asset->GetGUID();
 
 		return createdEntity;
@@ -1587,15 +1614,17 @@ namespace Eagle
 		const GUID assetID = asset->GetGUID();
 		const Entity assetEntity = *asset->GetEntity().get();
 
-		// TODO: do we need to recreate ownership component?
 		for (auto& e : view)
 		{
 			const auto& id = m_Registry.get<EntityAssetComponent>(e).AssetGUID;
 			if (id == assetID)
 			{
 				Entity thisEntity = Entity(e, this);
-				CopyComponents(assetEntity, thisEntity);
-				thisEntity.SetWorldTransform(thisEntity.GetWorldTransform()); // Forcing components to update
+				Transform transform = thisEntity.GetWorldTransform();
+				DestroyEntity(thisEntity, true);
+
+				Entity newEntity = CreateFromEntityAsset(asset);
+				newEntity.SetWorldTransform(transform);
 			}
 		}
 	}
@@ -1712,11 +1741,11 @@ namespace Eagle
 		m_UserDebugLines.push_back(line);
 	}
 
-	void Scene::DrawCone(const glm::vec3& location, const glm::vec3& direction, float distance, float angleRad)
+	void Scene::DrawCone(const glm::vec3& location, const glm::quat& rotation, float distance, float angleRad)
 	{
+		const glm::vec3 direction = Math::GetForwardVector(rotation);
 		const glm::vec3 center = location + direction * distance;
-		//const glm::quat quat = light->GetWorldTransform().Rotation.GetQuat();
-		const glm::quat quat = glm::quat(1.f, 0.f, 0.f, 0.f);
+		const glm::quat& quat = rotation;
 		const float radius = distance * glm::tan(angleRad);
 
 		for (uint32_t i = 0; i < Utils::s_SphereLinesCount; ++i)

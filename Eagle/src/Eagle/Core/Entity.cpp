@@ -130,6 +130,12 @@ namespace Eagle
 		}
 
 		NotifyAllChildren(Notification::OnParentTransformChanged);
+
+#if EG_DEBUG
+		EG_CORE_ASSERT(!glm::any(glm::isnan(transformComponent.WorldTransform.Location)));
+		EG_CORE_ASSERT(!glm::any(glm::isnan(transformComponent.WorldTransform.Rotation.GetQuat())));
+		EG_CORE_ASSERT(!glm::any(glm::isnan(transformComponent.WorldTransform.Scale3D)));
+#endif
 	}
 
 	void Entity::SetWorldLocation(const glm::vec3& worldLocation, bool bTeleportPhysics)
@@ -281,7 +287,16 @@ namespace Eagle
 	bool Entity::IsParentOf(const Entity& entity) const
 	{
 		EG_CORE_ASSERT(m_Scene, "Invalid Entity");
-		return entity.GetParent() == (*this);
+		if (entity.GetParent() == (*this))
+			return true;
+
+		const auto& children = GetChildren();
+		for (auto& child : children)
+		{
+			if (child.IsParentOf(entity))
+				return true;
+		}
+		return false;
 	}
 
 	bool Entity::IsValid() const

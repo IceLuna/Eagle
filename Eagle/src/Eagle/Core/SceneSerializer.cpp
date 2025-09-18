@@ -116,7 +116,7 @@ namespace Eagle
 
 		for (auto it = entities.rbegin(); it != entities.rend(); ++it)
 		{
-			SerializeEntity(out, *it);
+			Serializer::SerializeEntity(out, *it);
 		}
 
 		out << YAML::EndSeq;
@@ -218,12 +218,28 @@ namespace Eagle
 
 		if (auto entities = data["Entities"])
 		{
-			for (auto& entityNode : entities)
-				DeserializeEntity(m_Scene, entityNode, collisionGroupValidMasks);
+			//uint32_t - Entity's ID in *.eagle; Real entity ID; 
+			std::unordered_map<uint32_t, Entity> allEntities;
 
-			for (std::pair<uint32_t, uint32_t> element : m_Childs)
+			//uint32_t - entity that has an parent, uint32_t - parent id
+			std::unordered_map<uint32_t, uint32_t> childs;
+
+			for (auto& entityNode : entities)
 			{
-				Entity& parent = m_AllEntities[element.second];
+				uint32_t id;
+				int parentID = -1;
+				Entity deserializedEntity = Serializer::DeserializeEntity(m_Scene, entityNode, collisionGroupValidMasks, &id, &parentID);
+
+				allEntities[id] = deserializedEntity;
+				if (parentID != -1)
+				{
+					childs[deserializedEntity.GetID()] = parentID;
+				}
+			}
+
+			for (const auto& element : childs)
+			{
+				Entity& parent = allEntities[element.second];
 				Entity child((entt::entity)element.first, m_Scene.get());
 				child.SetParent(parent);
 			}
@@ -237,19 +253,6 @@ namespace Eagle
 		}
 
 		return true;
-	}
-
-	void SceneSerializer::SerializeEntity(YAML::Emitter& out, Entity& entity)
-	{
-		uint32_t entityID = entity.GetID();
-
-		out << YAML::BeginMap; //Entity
-
-		out << YAML::Key << "EntityID" << YAML::Value << entityID;
-		out << YAML::Key << "GUID" << YAML::Value << entity.GetGUID();
-		Serializer::SerializeEntity(out, entity);
-		
-		out << YAML::EndMap; //Entity
 	}
 
 	void SceneSerializer::SerializeSkybox(YAML::Emitter& out)
@@ -284,30 +287,7 @@ namespace Eagle
 
 	void SceneSerializer::DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode, uint32_t collisionGroupValidMasks)
 	{
-		const uint32_t id = entityNode["EntityID"].as<uint32_t>();
-		GUID guid(0, 0);
-		if (auto node = entityNode["GUID"])
-			guid = node.as<GUID>();
-		else
-			guid = GUID{}; // Generate a new one
 
-		std::string name;
-		int parentID = -1;
-		if (auto sceneNameComponentNode = entityNode["EntitySceneParams"])
-		{
-			name = sceneNameComponentNode["Name"].as<std::string>();
-			parentID = sceneNameComponentNode["Parent"].as<int>();
-		}
-
-		Entity deserializedEntity = scene->CreateEntityWithGUID(guid, name);
-		m_AllEntities[id] = deserializedEntity;
-
-		if (parentID != -1)
-		{
-			m_Childs[deserializedEntity.GetID()] = parentID;
-		}
-
-		Serializer::DeserializeEntity(deserializedEntity, entityNode, collisionGroupValidMasks);
 	}
 
 	void SceneSerializer::DeserializeSkybox(YAML::Node& node)

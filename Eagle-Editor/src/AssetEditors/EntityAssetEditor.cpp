@@ -9,14 +9,14 @@
 
 namespace Eagle
 {
-	static glm::vec3 notUsed1;
-	static glm::vec4 notUsed2;
+	static const char* s_ReloadHelpMsg = "The scene needs to be re-saved to save reloaded assets.\n"
+		"Warning: if an entity is passed to C# scripts through UI, it will be invalidated since entities are basically recreated. So, update your C# script components if required";
 
 	EntityAssetEditor::EntityAssetEditor(const Ref<AssetEntity>& asset, const EditorLayer& editorLayer)
 		: AssetEditor(true), m_Asset(asset), m_EditorLayer(editorLayer)
 	{
 		const auto& scene = GetCurrentScene();
-		m_Entity = scene->CreateFromEntityAsset(m_Asset);
+		m_Entity = scene->CreateFromEntityAsset(m_Asset, true);
 
 		auto& camera = scene->GetEditorCamera();
 		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
@@ -28,13 +28,13 @@ namespace Eagle
 		{
 			const auto& comp = m_Entity.GetComponent<StaticMeshComponent>();
 			if (const auto& asset = comp.GetMeshAsset())
-				aabb.Grow(asset->GetMesh()->GetAABB());
+				aabb.Grow(AABB::Transformed(asset->GetMesh()->GetAABB(), comp.GetWorldTransform()));
 		}
 		if (m_Entity.HasComponent<SkeletalMeshComponent>())
 		{
 			const auto& comp = m_Entity.GetComponent<SkeletalMeshComponent>();
 			if (const auto& asset = comp.GetMeshAsset())
-				aabb.Grow(asset->GetMesh()->GetAABB());
+				aabb.Grow(AABB::Transformed(asset->GetMesh()->GetAABB(), comp.GetWorldTransform()));
 		}
 		if (m_Entity.HasComponent<SpriteComponent>())
 		{
@@ -50,6 +50,9 @@ namespace Eagle
 			camera.SetLocation(center - cameraDir * aabb.MaxSide() * 1.5f); // Move back
 			camera.LookAt(center);
 		}
+
+		m_SceneHierarchy.SetContext(scene, asset->GetGUID().GetHigh());
+		m_WindowName = m_Asset->GetPath().u8string();
 	}
 
 	void EntityAssetEditor::OnImGuiRender(bool* pOpen)
@@ -58,16 +61,12 @@ namespace Eagle
 		constexpr bool bVolumetricsEnabled = true;
 		constexpr bool bDrawTransform = false;
 
-		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
-		const std::string windowName = m_Asset->GetPath().u8string();
-		if (ImGui::Begin(windowName.c_str(), pOpen))
+		ImGui::SetNextWindowSize(ImVec2(720.f, 160.f), ImGuiCond_FirstUseEver);
+		if (ImGui::Begin(m_WindowName.c_str(), pOpen))
 		{
-			const bool bEntityChanged = m_EntityProperties.OnImGuiRender(*m_Asset->GetEntity().get(), bRuntime, bVolumetricsEnabled, bDrawTransform);
+			const bool bEntityChanged = m_SceneHierarchy.OnImGuiRender(bRuntime, true, &bVolumetricsEnabled);
 			if (bEntityChanged)
 				OnEntityChanged();
-
-			ImGui::Separator();
-			ImGui::Separator();
 
 			{
 				if (ImGui::Button("Save asset"))
@@ -85,7 +84,7 @@ namespace Eagle
 					scene->ReloadEntitiesCreatedFromAsset(m_Asset);
 				}
 				ImGui::SameLine();
-				UI::HelpMarker("The scene needs to be saved to store reloaded assets");
+				UI::HelpMarker(s_ReloadHelpMsg);
 
 				if (bDisableReload)
 					UI::PopItemDisabled();
@@ -96,29 +95,60 @@ namespace Eagle
 		}
 		ImGui::End(); // Entity Editor
 
-		DrawViewport(false, windowName);
+		DrawViewport(false, m_WindowName);
+	}
+
+	void EntityAssetEditor::OnEvent(Event& e)
+	{
+		AssetEditor::OnEvent(e);
+
+		if (e.Handled)
+			return;
+
+		m_SceneHierarchy.OnEvent(e, bViewportFocused);
 	}
 
 	void EntityAssetEditor::UpdateGuizmo()
 	{
-		SceneComponent* selectedComponent = m_EntityProperties.GetSelectedComponent();
-		if (!selectedComponent || m_GuizmoType == -1)
+		Entity selectedEntity = m_SceneHierarchy.GetSelectedEntity();
+		SceneComponent* selectedComponent = m_SceneHierarchy.GetSelectedComponent();
+		if (selectedComponent)
+		{
+			const auto selectedType = m_SceneHierarchy.GetSelectedComponentType();
+			if (selectedType == SelectedComponent::Decal)
+			{
+				const AABB aabb(glm::vec3(-0.5f), glm::vec3(0.5f));
+				GetCurrentScene()->DrawAABB(aabb, selectedComponent->GetWorldTransform());
+			}
+		}
+
+		if (!selectedEntity || (m_GuizmoType == -1))
 			return;
 
-		Transform transform = selectedComponent->GetWorldTransform();
-		const bool bRelative = m_GuizmoType == ImGuizmo::OPERATION::ROTATE;
+		Transform transform;
+		bool bRelative = false; // Only used for rotations
+		if (selectedComponent)
+		{
+			transform = selectedComponent->GetWorldTransform();
+			bRelative = m_GuizmoType == ImGuizmo::OPERATION::ROTATE;
+		}
+		else
+		{
+			transform = selectedEntity.GetWorldTransform();
+			bRelative = selectedEntity.HasParent() && (m_GuizmoType == ImGuizmo::OPERATION::ROTATE);
+		}
 
 		// If relative, we only get relative rotation, since other params need to be in world coords.
 		// Otherwise, for example, guizmo will be renderer in the position if we used relative location
 		if (bRelative)
-			transform.Rotation = selectedComponent->GetRelativeTransform().Rotation;
+			transform.Rotation = (selectedComponent ? selectedComponent->GetRelativeTransform() : selectedEntity.GetRelativeTransform()).Rotation;
 
-		if (DrawGuizmo(transform, true))
+		if (DrawGuizmo(transform, true, !bRelative))
 		{
-			if (bRelative)
-				selectedComponent->SetRelativeTransform(transform);
+			if (selectedComponent)
+				bRelative ? selectedComponent->SetRelativeTransform(transform) : selectedComponent->SetWorldTransform(transform);
 			else
-				selectedComponent->SetWorldTransform(transform);
+				bRelative ? selectedEntity.SetRelativeTransform(transform) : selectedEntity.SetWorldTransform(transform);
 			OnEntityChanged();
 		}
 	}
@@ -126,10 +156,57 @@ namespace Eagle
 	void EntityAssetEditor::OnEntityChanged()
 	{
 		const auto& scene = GetCurrentScene();
+		scene->DestroyPendingEntities();
+
+		GUID selectedEntityGUID = m_SceneHierarchy.GetSelectedEntity() ? m_SceneHierarchy.GetSelectedEntity().GetGUID() : GUID(0, 0);
+		SelectedComponent selectedComp = m_SceneHierarchy.GetSelectedComponentType();
+
+		const auto& assetEntity = m_Asset->GetEntity();
+		const auto& assetEntityScene = assetEntity->GetScene();
+		assetEntityScene->DestroyEntityImmediately(*assetEntity.get(), true);
+		*assetEntity = assetEntityScene->CreateFromEntity(m_Entity, true);
 
 		m_Asset->SetDirty(true);
 		m_Asset->OnModified();
-		scene->DestroyEntity(m_Entity);
-		m_Entity = scene->CreateFromEntityAsset(m_Asset);
+		scene->DestroyEntityImmediately(m_Entity, true);
+		m_Entity = scene->CreateFromEntityAsset(m_Asset, true);
+
+		m_SceneHierarchy.SetEntitySelected(selectedEntityGUID.IsNull() ? Entity::Null : scene->GetEntityByGUID(selectedEntityGUID), selectedComp);
+	}
+	
+	void EntityAssetEditor::HandleFirstWindowRender(std::string_view windowName, std::string_view parentName)
+	{
+		const bool bFirstUseEver = (ImGui::GetCurrentWindow()->SetWindowDockAllowFlags & ImGuiCond_FirstUseEver) == ImGuiCond_FirstUseEver;
+
+		if (bFirstUseEver && !parentName.empty())
+		{
+			ImGuiID parent_node = ImGui::DockBuilderAddNode();
+			ImGui::DockBuilderSetNodePos(parent_node, ImGui::GetWindowPos());
+			ImGui::DockBuilderSetNodeSize(parent_node, ImGui::GetWindowSize());
+			ImGuiID nodeDetails; // Main window
+			ImGuiID nodeViewport;
+			ImGui::DockBuilderSplitNode(parent_node, ImGuiDir_Left, 0.5f, &nodeDetails, &nodeViewport);
+
+			ImGui::DockBuilderDockWindow(parentName.data(), nodeDetails);
+			ImGui::DockBuilderDockWindow(windowName.data(), nodeViewport);
+
+			ImGuiID nodeSceneHierarchy;
+			ImGui::DockBuilderSplitNode(nodeDetails, ImGuiDir_Up, 0.5f, &nodeDetails, &nodeSceneHierarchy);
+			ImGui::DockBuilderDockWindow(parentName.data(), nodeDetails);
+			ImGui::DockBuilderDockWindow(m_SceneHierarchy.GetSceneHierarchyWindowName().c_str(), nodeSceneHierarchy);
+
+			ImGuiID nodeEntityProperties;
+			ImGui::DockBuilderSplitNode(nodeSceneHierarchy, ImGuiDir_Up, 0.5f, &nodeSceneHierarchy, &nodeEntityProperties);
+			ImGui::DockBuilderDockWindow(m_SceneHierarchy.GetSceneHierarchyWindowName().c_str(), nodeSceneHierarchy);
+			ImGui::DockBuilderDockWindow(m_SceneHierarchy.GetPropertiesWindowName().c_str(), nodeEntityProperties);
+
+			// Disable tab bar for the viewport
+			if (ImGuiDockNode* dock = ImGui::DockContextFindNodeByID(GImGui, nodeViewport))
+			{
+				dock->SetLocalFlags(ImGuiDockNodeFlags_NoTabBar);
+			}
+
+			ImGui::SetWindowSize(ImVec2(720.f * 2.f, 560.f));
+		}
 	}
 }

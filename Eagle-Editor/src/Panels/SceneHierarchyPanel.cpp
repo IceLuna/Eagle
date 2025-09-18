@@ -13,25 +13,25 @@
 
 namespace Eagle
 {
-	SceneHierarchyPanel::SceneHierarchyPanel(const EditorLayer& editor) : m_Editor(editor)
-	{}
-
-	SceneHierarchyPanel::SceneHierarchyPanel(const EditorLayer& editor, const Ref<Scene>& scene) : m_Editor(editor)
+	SceneHierarchyPanel::SceneHierarchyPanel(const Ref<Scene>& scene)
 	{
 		SetContext(scene);
 	}
 
-	void SceneHierarchyPanel::SetContext(const Ref<Scene>& scene)
+	void SceneHierarchyPanel::SetContext(const Ref<Scene>& scene, uint64_t uniqueID)
 	{
 		ClearSelection();
 		m_Scene = scene;
 		m_Properties = {};
+
+		m_SceneHierarchyWindowName = uniqueID == 0u ? "Scene Hierarchy" : "Scene Hierarchy##" + std::to_string(uniqueID);
+		m_PropertiesWindowName = uniqueID == 0u ? "Properties" : "Properties##" + std::to_string(uniqueID);
 	}
 
 	void SceneHierarchyPanel::ClearSelection()
 	{
 		m_SelectedEntity = Entity::Null;
-		m_Properties.SetSelectedComponent(SelectedComponent::None);
+		m_Properties.SetEntitySelected(Entity::Null, SelectedComponent::None);
 	}
 
 	void SceneHierarchyPanel::SetEntitySelected(Entity entity, SelectedComponent component)
@@ -41,24 +41,25 @@ namespace Eagle
 		if (entity)
 		{
 			m_SelectedEntity = entity;
-			m_Properties.SetSelectedComponent(component);
+			m_Properties.SetEntitySelected(entity, component);
 			m_ScrollToSelected = true;
 		}
 	}
 
-	bool SceneHierarchyPanel::OnImGuiRender()
+	bool SceneHierarchyPanel::OnImGuiRender(bool bScenePlaying, bool bAllowOnlySingleRoot, const bool* bVolumetricsEnabledOverride)
 	{
 		EG_CPU_TIMING_SCOPED("Scene Hierarchy Panel");
 
+		m_AllowOnlySingleRoot = bAllowOnlySingleRoot;
 		bool bChanged = false;
 		bChanged |= DrawSceneHierarchy();
 		
-		ImGui::Begin("Properties");
+		ImGui::Begin(m_PropertiesWindowName.c_str());
 		m_PropertiesHovered = ImGui::IsWindowHovered();
 		if (m_SelectedEntity)
 		{
-			const bool bRuntime = (m_Editor.GetEditorState() == EditorState::Play);
-			const bool bVolumetricsEnabled = m_Scene->GetSceneRenderer()->GetOptions().VolumetricSettings.bEnable;
+			const bool bRuntime = bScenePlaying;
+			const bool bVolumetricsEnabled = bVolumetricsEnabledOverride ? *bVolumetricsEnabledOverride : m_Scene->GetSceneRenderer()->GetOptions().VolumetricSettings.bEnable;
 
 			bChanged |= m_Properties.OnImGuiRender(m_SelectedEntity, bRuntime, bVolumetricsEnabled);
 		}
@@ -69,12 +70,13 @@ namespace Eagle
 	bool SceneHierarchyPanel::DrawSceneHierarchy()
 	{
 		bool bChanged = false;
+		m_RootEntity = Entity::Null;
 
-		ImGui::Begin("Scene Hierarchy");
+		ImGui::Begin(m_SceneHierarchyWindowName.c_str());
 		m_SceneHierarchyHovered = ImGui::IsWindowHovered();
 		m_SceneHierarchyFocused = ImGui::IsWindowFocused();
 		//TODO: Replace to "Drop on empty space"
-		if (ImGui::BeginDragDropTarget())
+		if (!m_AllowOnlySingleRoot && ImGui::BeginDragDropTarget())
 		{
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIERARCHY_ENTITY_CELL"))
 			{
@@ -104,9 +106,13 @@ namespace Eagle
 		{
 			if (ImGui::MenuItem("Create Entity"))
 			{
-				m_Scene->CreateEntity("Empty Entity");
+				Entity newEntity = m_Scene->CreateEntity("New Entity");
+				if (m_AllowOnlySingleRoot)
+				{
+					newEntity.SetParent(m_RootEntity);
+				}
+				SetEntitySelected(newEntity);
 				bChanged = true;
-				EG_CORE_TRACE("Created Entity");
 			}
 
 			ImGui::EndPopup();
@@ -117,27 +123,16 @@ namespace Eagle
 		return bChanged;
 	}
 
-	static bool isRelativeOf(const Entity& parent, const Entity& child)
-	{
-		bool bResult = false;
-		bResult = parent.IsParentOf(child);
-		if (bResult)
-			return true;
-
-		auto& children = parent.GetChildren();
-		for (auto& myChild : children)
-		{
-			bResult = isRelativeOf(myChild, child);
-			if (bResult)
-				return true;
-		}
-		return false;
-	}
-
 	bool SceneHierarchyPanel::DrawEntityNode(Entity& entity)
 	{
 		if (entity.HasParent()) //For drawing children use DrawChilds
 			return false;
+
+		if (m_AllowOnlySingleRoot)
+		{
+			EG_CORE_ASSERT(!m_RootEntity);
+			m_RootEntity = entity;
+		}
 
 		bool bChanged = false;
 		const auto& entityName = entity.GetComponent<EntitySceneNameComponent>().Name;
@@ -145,7 +140,7 @@ namespace Eagle
 		//If selected child of this entity, open tree node
 		if (m_SelectedEntity && m_SelectedEntity != entity)
 		{
-			if (isRelativeOf(entity, m_SelectedEntity))
+			if (entity.IsParentOf(m_SelectedEntity))
 				ImGui::SetNextItemOpen(true);
 		}
 		if (m_SelectedEntity == entity && m_ScrollToSelected)
@@ -177,26 +172,30 @@ namespace Eagle
 		std::string popupID = std::to_string(entity.GetID());
 		if (ImGui::BeginPopupContextItem(popupID.c_str()))
 		{
+			const bool bCanDelete = !m_AllowOnlySingleRoot || entity.HasParent(); // Can't delete the root entity
 			if (ImGui::MenuItem("Create Entity"))
 			{
-				Entity newEntity = m_Scene->CreateEntity("Empty Entity");
+				Entity newEntity = m_Scene->CreateEntity("New Entity");
 				newEntity.SetWorldTransform(entity.GetWorldTransform());
 				newEntity.SetParent(entity);
+				SetEntitySelected(newEntity);
 				bChanged = true;
-				EG_CORE_TRACE("Created Entity");
 			}
-			ImGui::Separator();
-			if (ImGui::MenuItem("Delete Entity"))
+			if (bCanDelete)
 			{
-				if (m_SelectedEntity == entity)
-					ClearSelection();
-				m_Scene->DestroyEntity(entity);
-				bChanged = true;
+				ImGui::Separator();
+				if (ImGui::MenuItem("Delete Entity"))
+				{
+					if (m_SelectedEntity == entity)
+						ClearSelection();
+					m_Scene->DestroyEntity(entity);
+					bChanged = true;
+				}
 			}
 			ImGui::EndPopup();
 		}
 
-		if (ImGui::BeginDragDropSource())
+		if (!m_AllowOnlySingleRoot && ImGui::BeginDragDropSource())
 		{
 			uint32_t selectedEntityID = m_SelectedEntity.GetID();
 			const auto& selectedEntityName = entity.GetComponent<EntitySceneNameComponent>().Name;
@@ -214,7 +213,7 @@ namespace Eagle
 				uint32_t payload_n = *(uint32_t*)payload->Data;
 
 				Entity droppedEntity((entt::entity)payload_n, m_Scene.get());
-				if (droppedEntity.GetParent() != entity)
+				if (!droppedEntity.IsParentOf(entity) && droppedEntity.GetParent() != entity)
 				{
 					droppedEntity.SetParent(entity);
 					bChanged = true;
@@ -247,7 +246,7 @@ namespace Eagle
 
 			//If selected child of this entity, open tree node
 			if (m_SelectedEntity && m_SelectedEntity != child)
-				if (isRelativeOf(child, m_SelectedEntity))
+				if (child.IsParentOf(m_SelectedEntity))
 					ImGui::SetNextItemOpen(true);
 			if (m_SelectedEntity == child && m_ScrollToSelected)
 			{
@@ -279,10 +278,10 @@ namespace Eagle
 			{
 				if (ImGui::MenuItem("Create Entity"))
 				{
-					Entity newEntity = m_Scene->CreateEntity("Empty Entity");
-					newEntity.SetWorldTransform(child .GetWorldTransform());
+					Entity newEntity = m_Scene->CreateEntity("New Entity");
+					newEntity.SetWorldTransform(child.GetWorldTransform());
 					newEntity.SetParent(child);
-					EG_CORE_TRACE("Created Entity");
+					SetEntitySelected(newEntity);
 					bChanged = true;
 				}
 				if (ImGui::MenuItem("Detach from parent"))
@@ -321,7 +320,7 @@ namespace Eagle
 
 					Entity droppedEntity((entt::entity)payload_n, m_Scene.get());
 					
-					if (droppedEntity.GetParent() != child)
+					if (!droppedEntity.IsParentOf(child) && droppedEntity.GetParent() != child)
 					{
 						droppedEntity.SetParent(child);
 						bChanged = true;
@@ -341,23 +340,25 @@ namespace Eagle
 		return bChanged;
 	}
 
-	void SceneHierarchyPanel::OnEvent(Event& e)
+	void SceneHierarchyPanel::OnEvent(Event& e, bool bViewportFocused)
 	{
 		if (e.GetEventType() == EventType::KeyPressed)
 		{
 			KeyPressedEvent& keyEvent = (KeyPressedEvent&)e;
-			bool bLeftControlPressed = Input::IsKeyPressed(Key::LeftControl);
+			const bool bAllowAction = m_SelectedEntity && (!m_AllowOnlySingleRoot || m_SelectedEntity.HasParent());
 
-			if (!m_PropertiesHovered && (m_Editor.IsViewportFocused() || m_SceneHierarchyFocused) && m_SelectedEntity)
+			if (bAllowAction && !m_PropertiesHovered && (bViewportFocused || m_SceneHierarchyFocused))
 			{
 				if (keyEvent.GetKey() == Key::Delete)
 				{
 					m_Scene->DestroyEntity(m_SelectedEntity);
 					ClearSelection();
 				}
-				else if (bLeftControlPressed && (keyEvent.GetKey() == Key::D) && !m_Scene->IsPlaying())
+				else if (Input::IsKeyPressed(Key::LeftControl) && (keyEvent.GetKey() == Key::D) && !m_Scene->IsPlaying())
 				{
-					m_SelectedEntity = m_Scene->CreateFromEntity(m_SelectedEntity);
+					Entity newEntity = m_Scene->CreateFromEntity(m_SelectedEntity);
+					newEntity.SetParent(m_SelectedEntity.GetParent());
+					m_SelectedEntity = newEntity;
 				}
 			}
 		}

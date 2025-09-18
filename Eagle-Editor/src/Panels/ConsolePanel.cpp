@@ -38,12 +38,13 @@ namespace Eagle
 
     static bool GetLogColor(spdlog::level::level_enum level, ImVec4* outColor)
     {
+        constexpr float scale = 0.9f;
         switch (level)
         {
-            case spdlog::level::info: *outColor = ImVec4(0, 1, 0, 1);     return true;
-            case spdlog::level::warn: *outColor = ImVec4(1, 1, 0, 1);     return true;
-            case spdlog::level::err: *outColor = ImVec4(1, 0, 0, 1);      return true;
-            case spdlog::level::critical: *outColor = ImVec4(1, 0, 0, 1); return true;
+            case spdlog::level::info: *outColor = ImVec4(0, scale, 0, 1);     return true;
+            case spdlog::level::warn: *outColor = ImVec4(scale, scale, 0, 1); return true;
+            case spdlog::level::err: *outColor = ImVec4(scale, 0, 0, 1);      return true;
+            case spdlog::level::critical: *outColor = ImVec4(scale, 0, 0, 1); return true;
             default: return false;
         }
     }

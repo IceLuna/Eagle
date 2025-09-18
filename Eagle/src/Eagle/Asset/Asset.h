@@ -615,6 +615,7 @@ namespace Eagle
 		static Ref<AssetEntity> Create(const Path& path);
 
 		static Entity CreateEntity(GUID guid);
+		static const Ref<Scene>& GetScene() { return s_EntityAssetsScene; } // For internal deserialization use
 
 		static constexpr AssetType GetAssetType_Static() { return AssetType::Entity; }
 

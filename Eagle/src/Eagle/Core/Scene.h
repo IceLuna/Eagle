@@ -100,9 +100,13 @@ namespace Eagle
 
 		Entity CreateEntity(const std::string& name = std::string());
 		Entity CreateEntityWithGUID(GUID guid, const std::string& name = std::string());
-		Entity CreateFromEntity(const Entity& source);
-		Entity CreateFromEntityAsset(const Ref<AssetEntity>& asset);
-		void DestroyEntity(Entity entity);
+		Entity CreateFromEntity(const Entity& source, bool bCopyGUID = false);
+		Entity CreateFromEntityAsset(const Ref<AssetEntity>& asset, bool bCopyGUID = false);
+		void DestroyEntity(Entity entity, bool bDestroyChildren = false);
+
+		// Note: Carefule when using it since it will invalidate `entity`.
+		// @bDestroyChildren. If set to true, child entities will also be removed from the scene and invalidated
+		void DestroyEntityImmediately(Entity entity, bool bDestroyChildren = false);
 
 		void ReloadEntitiesCreatedFromAsset(const Ref<AssetEntity>& asset);
 
@@ -140,7 +144,7 @@ namespace Eagle
 
 		// Needs to be called every frame
 		void DrawArrow(const glm::vec3& start, const glm::vec3& end, const glm::vec3& up);
-		void DrawCone(const glm::vec3& location, const glm::vec3& direction, float distance, float angleRad);
+		void DrawCone(const glm::vec3& location, const glm::quat& rotation, float distance, float angleRad);
 
 		SceneSoundData SpawnSound2D(const Ref<AssetAudio>& audio, const SoundSettings& settings);
 		SceneSoundData SpawnSound3D(const Ref<AssetAudio>& audio, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, const SoundSettings& settings = {});
@@ -285,6 +289,7 @@ namespace Eagle
 		void UpdateParticleSystem(const ParticleSystemComponent* system);
 
 		void DestroyPendingEntities();
+		bool IsPendingDestroy(Entity entity) const;
 
 	private:
 		static void OnSceneOpened(const Ref<Scene>& scene);
@@ -572,7 +577,7 @@ namespace Eagle
 		std::vector<const PointLightComponent*> m_PointLights;
 		std::vector<const SpotLightComponent*> m_SpotLights;
 		DirectionalLightComponent* m_DirectionalLight = nullptr;
-		std::vector<Entity> m_EntitiesToDestroy;
+		std::vector<std::pair<Entity, bool>> m_EntitiesToDestroy; // 1st - Entity to destroy; 2nd - whether to destroy its children
 		entt::registry m_Registry;
 		CameraComponent* m_RuntimeCamera = nullptr;
 

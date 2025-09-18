@@ -6,6 +6,7 @@
 #include "Eagle/Core/SceneSerializer.h"
 #include "Eagle/Core/ThreadPool.h"
 #include "Eagle/Utils/Compressor.h"
+#include "Eagle/Utils/Timer.h"
 #include "Eagle/Script/ScriptEngine.h"
 
 namespace Eagle
@@ -139,12 +140,14 @@ namespace Eagle
 
 		auto loadAssetFunc = [&mutex](const Path& assetPath)
 		{
-			EG_CORE_INFO("Loading asset: {}", assetPath.u8string());
+			Timer timer;
 			Ref<Asset> asset = Asset::Create(assetPath);
+			EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetDuration() / 1000.f, assetPath.u8string());
 			std::scoped_lock lock(mutex);
 			Register(asset);
 		};
 
+		Timer globalTimer;
 		for (const auto& assets : assetsToLoadQueue)
 		{
 			if (assets.bAsync)
@@ -166,9 +169,12 @@ namespace Eagle
 
 		for (const auto& assetPath : entityAssetsToLoad)
 		{
-			EG_CORE_INFO("Loading asset: {}", assetPath.u8string());
+			Timer timer;
 			Register(Asset::Create(assetPath));
+			EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetDuration() / 1000.f, assetPath.u8string());
 		}
+
+		EG_CORE_INFO("Took {}s to load all project assets using {} threads", globalTimer.GetDuration() / 1000.f, threadCount);
 
 		s_Skybox = AssetTextureCube::Create(Application::GetCorePath() / "assets/textures/IBL.egasset");
 		s_Sphere = AssetStaticMesh::Create(Application::GetCorePath() / "assets/meshes/Sphere.egasset");
@@ -258,13 +264,14 @@ namespace Eagle
 					EG_CORE_ERROR("Failed to load an asset. It's not an Eagle asset: {}", path.u8string());
 					return false;
 				}
-				EG_CORE_INFO("Loading asset: {}", path.u8string());
-				
+
+				Timer timer;
 				assetType = Utils::GetEnumFromName<AssetType>(typeNode.as<std::string>());
 				if (assetType == AssetType::Scene)
 					*outAsset = AssetScene::Create(path, assetNode);
 				else
 					*outAsset = Serializer::DeserializeAsset(assetNode, path, false);
+				EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetDuration() / 1000.f, path.u8string());
 
 				Register(*outAsset);
 				return true;
@@ -308,13 +315,14 @@ namespace Eagle
 					EG_CORE_ERROR("Failed to load an asset. It's not an eagle asset");
 					return false;
 				}
-				EG_CORE_INFO("Loading asset: {}", assetNodeData.AssetPath.u8string());
 
+				Timer timer;
 				assetType = Utils::GetEnumFromName<AssetType>(typeNode.as<std::string>());
 				if (assetType == AssetType::Scene)
 					*outAsset = AssetScene::Create(assetNodeData.AssetPath, assetNodeData.Node);
 				else
 					*outAsset = Serializer::DeserializeAsset(assetNodeData.Node, assetNodeData.AssetPath, false);
+				EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetDuration() / 1000.f, assetNodeData.AssetPath.u8string());
 
 				Register(*outAsset);
 				return true;

@@ -38,8 +38,8 @@ namespace Eagle
 		EntityPropertiesPanel() = default;
 
 		// Returns true if something was changed
-		bool OnImGuiRender(Entity entity, bool bRuntime, bool bVolumetricsEnabled, bool bDrawWorldTransform = true);
-		void SetSelectedComponent(SelectedComponent selectedComponent) { m_SelectedComponent = selectedComponent; }
+		bool OnImGuiRender(Entity entity, bool bRuntime, bool bVolumetricsEnabled);
+		void SetEntitySelected(Entity entity, SelectedComponent selectedComponent);
 		SelectedComponent GetSelectedComponentType() const { return m_SelectedComponent; }
 		SceneComponent* GetSelectedComponent();
 
@@ -181,7 +181,6 @@ namespace Eagle
 		SelectedComponent m_SelectedComponent = SelectedComponent::None;
 		bool bRuntime = false;
 		bool bVolumetricsEnabled = false;
-		bool bDrawWorldTransform = true;
 		bool bEntityChanged = false;
 	};
 }

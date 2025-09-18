@@ -74,17 +74,22 @@ namespace Eagle
 	}
 
 
-	bool EntityPropertiesPanel::OnImGuiRender(Entity entity, bool bRuntime, bool bVolumetricsEnabled, bool bDrawWorldTransform)
+	bool EntityPropertiesPanel::OnImGuiRender(Entity entity, bool bRuntime, bool bVolumetricsEnabled)
 	{
 		this->bRuntime = bRuntime;
 		this->bVolumetricsEnabled = bVolumetricsEnabled;
-		this->bDrawWorldTransform = bDrawWorldTransform;
 		m_Entity = entity;
 		bEntityChanged = false;
 
 		DrawComponents(entity);
 
 		return bEntityChanged;
+	}
+
+	void EntityPropertiesPanel::SetEntitySelected(Entity entity, SelectedComponent selectedComponent)
+	{
+		m_Entity = entity;
+		m_SelectedComponent = selectedComponent;
 	}
 
 	SceneComponent* EntityPropertiesPanel::GetSelectedComponent()
@@ -120,15 +125,12 @@ namespace Eagle
 	void EntityPropertiesPanel::DrawComponents(Entity& entity)
 	{
 		auto& entityName = entity.GetComponent<EntitySceneNameComponent>().Name;
-		char buffer[256];
-		memset(buffer, 0, sizeof(buffer));
-		strncpy_s(buffer, entityName.c_str(), sizeof(buffer));
 
-		ImGui::PushID(int(entity.GetID()));
-		if (ImGui::InputText("##Name", buffer, sizeof(buffer)))
+		ImGui::PushID((void*)entity.GetGUID().GetHash());
+		if (UI::InputText("##Name", entityName))
 		{
 			//TODO: Add Check for empty input
-			entityName = std::string(buffer);
+			bEntityChanged = true;
 		}
 		ImGui::PopID();
 		
@@ -2223,21 +2225,18 @@ namespace Eagle
 		else
 			transform = entity.GetWorldTransform();
 
-		if (bDrawWorldTransform || bUseRelativeTransform)
+		DrawComponent<TransformComponent>(bUseRelativeTransform ? "Transform (relative)" : "Transform", entity, [&transform, &bValueChanged](auto& transformComponent)
 		{
-			DrawComponent<TransformComponent>(bUseRelativeTransform ? "Transform (relative)" : "Transform", entity, [&transform, &bValueChanged](auto& transformComponent)
-			{
-				glm::quat quat = transform.Rotation.GetQuat();
+			glm::quat quat = transform.Rotation.GetQuat();
 
-				bValueChanged |= UI::DrawVec3Control("Location", transform.Location, glm::vec3{ 0.f });
-				if (UI::DrawQuatControl("Rotation (Quat)", quat))
-				{
-				    transform.Rotation = quat;
-				    bValueChanged = true;
-				}
-				bValueChanged |= UI::DrawVec3Control("Scale", transform.Scale3D, glm::vec3{ 1.f });
-			}, false);
-		}
+			bValueChanged |= UI::DrawVec3Control("Location", transform.Location, glm::vec3{ 0.f });
+			if (UI::DrawQuatControl("Rotation (Quat)", quat))
+			{
+				transform.Rotation = quat;
+				bValueChanged = true;
+			}
+			bValueChanged |= UI::DrawVec3Control("Scale", transform.Scale3D, glm::vec3{ 1.f });
+		}, false);
 
 		if (bValueChanged)
 		{

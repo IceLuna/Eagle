@@ -110,13 +110,13 @@ namespace Eagle
 		{
 			const auto& comp = entity.GetComponent<StaticMeshComponent>();
 			if (const auto& asset = comp.GetMeshAsset())
-				aabb.Grow(asset->GetMesh()->GetAABB());
+				aabb.Grow(AABB::Transformed(asset->GetMesh()->GetAABB(), comp.GetWorldTransform()));
 		}
 		if (entity.HasComponent<SkeletalMeshComponent>())
 		{
 			const auto& comp = entity.GetComponent<SkeletalMeshComponent>();
 			if (const auto& asset = comp.GetMeshAsset())
-				aabb.Grow(asset->GetMesh()->GetAABB());
+				aabb.Grow(AABB::Transformed(asset->GetMesh()->GetAABB(), comp.GetWorldTransform()));
 		}
 		if (entity.HasComponent<SpriteComponent>())
 		{
@@ -180,12 +180,7 @@ namespace Eagle
 		for (const auto& emitter : assetCopy->GetEmitters())
 		{
 			// AABB is relative to emitters center. So we need to convert to world space to correctly account for emitters transformation
-			const glm::mat4 emitterTr = Math::ToTransformMatrix(emitter.RelativeTransform);
-			AABB wsAABB = emitter.VisibilityAABB;
-			wsAABB.Min = emitterTr * glm::vec4(wsAABB.Min, 1.f);
-			wsAABB.Max = emitterTr * glm::vec4(wsAABB.Max, 1.f);
-
-			aabb.Grow(wsAABB);
+			aabb.Grow(AABB::Transformed(emitter.VisibilityAABB, emitter.RelativeTransform));
 		}
 
 		const glm::vec3 center = aabb.Center();

@@ -114,7 +114,9 @@ namespace Eagle
 		
 		static void ReadBoneNode(const YAML::Node& baseNode, BoneNode& node);
 		static void DeserializeReverb(YAML::Node& reverbNode, ReverbComponent& reverb);
-		static void DeserializeEntity(Entity entity, const YAML::Node& entityNode, uint32_t collisionGroupValidMasks); // Doesn't handle parents
+		// @outEntityID. Entity ID of the entity that was created
+		// @outParentID. Its parent ID
+		[[nodiscard]] static Entity DeserializeEntity(const Ref<Scene>& scene, const YAML::Node& entityNode, uint32_t collisionGroupValidMasks, uint32_t* outEntityID, int* outParentID = nullptr); // Doesn't handle parents
 		static void DeserializeRelativeTransform(YAML::Node& node, Transform& relativeTransform);
 		static void DeserializeRendererSettings(YAML::Node& node, SceneRendererSettings& settings);
 		static void DeserializeAnimation(const YAML::Node& node, SkeletalMeshAnimation& animation);
