@@ -25,7 +25,8 @@ namespace Eagle
 	namespace FileSystem
 	{
 		bool Write(const Path& path, const DataBuffer& buffer);
-		[[nodiscard]] DataBuffer Read(const Path& path);
+		inline bool Write(const Path& path, const ScopedDataBuffer& buffer) { return Write(path, buffer.GetDataBuffer()); }
+		[[nodiscard]] ScopedDataBuffer Read(const Path& path);
 		[[nodiscard]] std::string ReadText(const Path& path);
 
 		// Returns absolute path

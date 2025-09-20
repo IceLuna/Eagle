@@ -89,6 +89,9 @@ namespace Eagle
 		ScopedDataBuffer& operator=(const ScopedDataBuffer&) = delete;
 		ScopedDataBuffer& operator=(ScopedDataBuffer&& other) noexcept
 		{
+			if (this == &other)
+				return *this;
+
 			m_Buffer.Release();
 			m_Buffer = other.m_Buffer;
 
@@ -98,6 +101,9 @@ namespace Eagle
 		}
 		ScopedDataBuffer& operator=(DataBuffer&& other) noexcept
 		{
+			if (&m_Buffer == &other)
+				return *this;
+
 			m_Buffer.Release();
 			m_Buffer = other;
 

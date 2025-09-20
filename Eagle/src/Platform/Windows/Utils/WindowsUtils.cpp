@@ -136,7 +136,7 @@ namespace Eagle
 			return true;
 		}
 	
-		DataBuffer Read(const Path& path)
+		ScopedDataBuffer Read(const Path& path)
 		{
 			if (std::filesystem::exists(path) == false)
 			{
@@ -150,9 +150,9 @@ namespace Eagle
 			size_t size = end - stream.tellg();
 			EG_CORE_ASSERT(size != 0, "Empty file");
 
-			DataBuffer buffer;
+			ScopedDataBuffer buffer;
 			buffer.Allocate(size);
-			stream.read((char*)buffer.Data, buffer.Size);
+			stream.read((char*)buffer.Data(), buffer.Size());
 
 			return buffer;
 		}

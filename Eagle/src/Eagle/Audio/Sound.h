@@ -77,10 +77,10 @@ namespace Eagle
 		void Stop();
 		bool IsPlaying() const;
 
-		static Ref<Audio> Create(const DataBuffer& buffer, float volume = 1.f);
+		static Ref<Audio> Create(const ScopedDataBuffer& buffer, float volume = 1.f);
 
 	protected:
-		Audio(const DataBuffer& buffer, float volume = 1.f);
+		Audio(const ScopedDataBuffer& buffer, float volume = 1.f);
 
 	private:
 		FMOD::Sound* m_Sound = nullptr;

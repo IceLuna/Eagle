@@ -329,7 +329,7 @@ namespace Eagle
 	void Project::OpenGameBuild(const Path& filepath)
 	{
 		const Path& assetPack = filepath;
-		ScopedDataBuffer data = ScopedDataBuffer(FileSystem::Read(assetPack));
+		ScopedDataBuffer data = FileSystem::Read(assetPack);
 		if (!data)
 		{
 			EG_CORE_CRITICAL("Failed to load the asset pack: {}", assetPack.u8string());

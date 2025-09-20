@@ -442,7 +442,7 @@ namespace Eagle
 		const auto& texture = asset->GetTexture();
 		const ScopedDataBuffer& buffer = asset->GetRawData();
 		const size_t origDataSize = buffer.Size(); // Required for decompression
-		ScopedDataBuffer compressed(Compressor::Compress(DataBuffer{ (void*)buffer.Data(), buffer.Size() }));
+		ScopedDataBuffer compressed(Compressor::Compress(buffer));
 		const bool bCompressed = asset->IsCompressed();
 		const ScopedDataBuffer& ktxData = asset->GetKTXData();
 
@@ -477,7 +477,7 @@ namespace Eagle
 		const auto& textureCube = asset->GetTexture();
 		const ScopedDataBuffer& buffer = asset->GetRawData();
 		const size_t origDataSize = buffer.Size(); // Required for decompression
-		ScopedDataBuffer compressed(Compressor::Compress(DataBuffer{ (void*)buffer.Data(), buffer.Size() }));
+		ScopedDataBuffer compressed(Compressor::Compress(buffer));
 
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
@@ -690,7 +690,7 @@ namespace Eagle
 	{
 		const ScopedDataBuffer& buffer = asset->GetRawData();
 		const size_t origDataSize = buffer.Size(); // Required for decompression
-		ScopedDataBuffer compressed(Compressor::Compress(DataBuffer{ (void*)buffer.Data(), buffer.Size() }));
+		ScopedDataBuffer compressed(Compressor::Compress(buffer));
 
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
@@ -715,7 +715,7 @@ namespace Eagle
 	{
 		const ScopedDataBuffer& buffer = asset->GetRawData();
 		const size_t origDataSize = buffer.Size(); // Required for decompression
-		ScopedDataBuffer compressed(Compressor::Compress(DataBuffer{ (void*)buffer.Data(), buffer.Size() }));
+		ScopedDataBuffer compressed(Compressor::Compress(buffer));
 
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
@@ -3385,12 +3385,11 @@ namespace Eagle
 				: AssetAudio(path, pathToRaw, guid, rawData, audio, soundGroup) {}
 		};
 
-		DataBuffer buffer = DataBuffer(binary.Data(), binary.Size());
-		Ref<Audio> audio = Audio::Create(buffer);
+		Ref<Audio> audio = Audio::Create(binary);
 		audio->SetVolume(volume);
 		audio->SetPitch(pitch);
 		audio->SetPan(pan);
-		return MakeRef<LocalAssetAudio>(pathToAsset, pathToRaw, guid, buffer, audio, soundGroup);
+		return MakeRef<LocalAssetAudio>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(), audio, soundGroup);
 	}
 
 	Ref<AssetFont> Serializer::DeserializeAssetFont(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)

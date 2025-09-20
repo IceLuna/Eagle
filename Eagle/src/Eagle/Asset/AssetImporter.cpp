@@ -463,7 +463,7 @@ namespace Eagle
 		const auto& textureSettings = settings.Texture2DSettings;
 		ScopedDataBuffer buffer(FileSystem::Read(pathToRaw));
 		const size_t origDataSize = buffer.Size(); // Required for decompression
-		ScopedDataBuffer compressed(Compressor::Compress(DataBuffer{ buffer.Data(), buffer.Size() }));
+		ScopedDataBuffer compressed(Compressor::Compress(buffer));
 
 		const void* compressedTextureHandle = nullptr;
 		bool bCompressTexture = textureSettings.bCompress;
@@ -542,7 +542,7 @@ namespace Eagle
 	{
 		ScopedDataBuffer buffer(FileSystem::Read(pathToRaw));
 		const size_t origDataSize = buffer.Size(); // Required for decompression
-		ScopedDataBuffer compressed( Compressor::Compress(DataBuffer{ buffer.Data(), buffer.Size() }) );
+		ScopedDataBuffer compressed( Compressor::Compress(buffer) );
 
 		YAML::Emitter out;
 		out << YAML::BeginMap;
@@ -625,7 +625,7 @@ namespace Eagle
 	{
 		ScopedDataBuffer buffer(FileSystem::Read(pathToRaw));
 		const size_t origDataSize = buffer.Size(); // Required for decompression
-		ScopedDataBuffer compressed(Compressor::Compress(DataBuffer{ buffer.Data(), buffer.Size() }));
+		ScopedDataBuffer compressed(Compressor::Compress(buffer));
 
 		YAML::Emitter out;
 		out << YAML::BeginMap;
@@ -653,7 +653,7 @@ namespace Eagle
 	{
 		ScopedDataBuffer buffer(FileSystem::Read(pathToRaw));
 		const size_t origDataSize = buffer.Size(); // Required for decompression
-		ScopedDataBuffer compressed(Compressor::Compress(DataBuffer{ buffer.Data(), buffer.Size() }));
+		ScopedDataBuffer compressed(Compressor::Compress(buffer));
 
 		YAML::Emitter out;
 		out << YAML::BeginMap;

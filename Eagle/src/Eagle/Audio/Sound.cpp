@@ -31,11 +31,11 @@ namespace Eagle
 		}
 	}
 
-	Audio::Audio(const DataBuffer& buffer, float volume)
+	Audio::Audio(const ScopedDataBuffer& buffer, float volume)
 		: m_SoundGroup(SoundGroup::GetMasterGroup())
 		, m_Volume(volume)
 	{
-		AudioEngine::CreateSoundFromBuffer(buffer, FMOD_DEFAULT, &m_Sound);
+		AudioEngine::CreateSoundFromBuffer(buffer.GetDataBuffer(), FMOD_DEFAULT, &m_Sound);
 	}
 
 	Audio::~Audio()
@@ -113,12 +113,12 @@ namespace Eagle
 		return bPlaying;
 	}
 
-	Ref<Audio> Audio::Create(const DataBuffer& buffer, float volume)
+	Ref<Audio> Audio::Create(const ScopedDataBuffer& buffer, float volume)
 	{
 		class LocalAudio : public Audio
 		{
 		public:
-			LocalAudio(const DataBuffer& buffer, float volume) : Audio(buffer, volume) {}
+			LocalAudio(const ScopedDataBuffer& buffer, float volume) : Audio(buffer, volume) {}
 		};
 
 		return MakeRef<LocalAudio>(buffer, volume);
