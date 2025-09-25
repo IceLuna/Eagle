@@ -646,8 +646,7 @@ namespace Eagle
 				}
 				
 				m_EditorScene->SetGUID(sceneAsset->GetGUID());
-				SceneSerializer serializer(m_EditorScene);
-				serializer.Serialize(assetPath);
+				SceneSerializer::Serialize(m_EditorScene, assetPath);
 
 				m_OpenedSceneAsset = sceneAsset;
 				UpdateEditorTitle(m_OpenedSceneAsset);
@@ -659,8 +658,7 @@ namespace Eagle
 		}
 		else
 		{
-			SceneSerializer serializer(m_EditorScene);
-			if (serializer.Serialize(m_OpenedSceneAsset->GetPath()))
+			if (SceneSerializer::Serialize(m_EditorScene, m_OpenedSceneAsset->GetPath()))
 				m_OpenedSceneAsset->SetDirty(false);
 		}
 		return true;
@@ -696,8 +694,7 @@ namespace Eagle
 			}
 
 			m_EditorScene->SetGUID(sceneAsset->GetGUID());
-			SceneSerializer serializer(m_EditorScene);
-			serializer.Serialize(assetPath);
+			SceneSerializer::Serialize(m_EditorScene, assetPath);
 
 			m_OpenedSceneAsset = sceneAsset;
 			UpdateEditorTitle(m_OpenedSceneAsset);
@@ -733,8 +730,7 @@ namespace Eagle
 		{
 			EG_CORE_TRACE("Loading scene '{0}'", m_OpenedSceneAsset->GetPath().u8string());
 
-			SceneSerializer ser(m_EditorScene);
-			if (ser.Deserialize(m_OpenedSceneAsset->GetPath()))
+			if (SceneSerializer::Deserialize(m_EditorScene, m_OpenedSceneAsset->GetPath()))
 				EG_CORE_TRACE("Loaded scene '{0}'", m_OpenedSceneAsset->GetPath().u8string());
 			UpdateEditorTitle(m_OpenedSceneAsset);
 		}
@@ -2084,6 +2080,7 @@ namespace Eagle
 		ImGui::End();
 	}
 
+	// TODO: Make this show up before building the project
 	void EditorLayer::DrawDirtyAssetsPopup()
 	{
 		if (m_ShowDirtyAssetMessage)
