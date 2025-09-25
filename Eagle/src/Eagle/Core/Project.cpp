@@ -219,9 +219,15 @@ namespace Eagle
 	
 	void Project::Build(const Path& outputFolder)
 	{
+		const Path gameExeFile = Application::GetCorePath() / "Eagle-Game.exe";
+		if (!std::filesystem::exists(gameExeFile))
+		{
+			Application::Get().GetImGuiLayer()->AddMessage("Failed to build the game. Game executable is missing. Please, build the `Eagle-Game` project!");
+			return;
+		}
+
 		YAML::Emitter shaderPackOut;
-		bool bFailed = false;
-		std::thread buildThread([&outputFolder, &shaderPackOut, &bFailed]()
+		std::thread buildThread([&outputFolder, &shaderPackOut, &gameExeFile]()
 		{
 			shaderPackOut << YAML::BeginMap;
 			ShaderManager::BuildShaderPack(shaderPackOut);
@@ -253,14 +259,7 @@ namespace Eagle
 				const fs::copy_options folderCopyOptions = fs::copy_options::overwrite_existing | fs::copy_options::recursive;
 				const fs::copy_options fileCopyOptions = fs::copy_options::overwrite_existing;
 
-				const Path gameExeFile = Application::GetCorePath() / "Eagle-Game.exe";
 				const Path projectScriptsFilename = s_Info.Name + ".dll";
-				if (!fs::exists(gameExeFile))
-				{
-					Application::Get().GetImGuiLayer()->AddMessage("Failed to build the game. Game executable is missing. Please, build the `Eagle-Game` project!");
-					bFailed = true;
-					return;
-				}
 				fs::copy(gameExeFile, outputFolder / (s_Info.Name + ".exe"), fileCopyOptions);
 				fs::copy(Application::GetCorePath() / "Eagle-Scripts.dll", outputFolder / "Eagle-Scripts.dll", fileCopyOptions);
 				fs::copy(Project::GetBinariesPath() / projectScriptsFilename, outputFolder / projectScriptsFilename, fileCopyOptions);
@@ -297,10 +296,6 @@ namespace Eagle
 		std::string yamlStr = out.c_str();
 		yamlStr += '\n';
 		buildThread.join();
-		if (bFailed)
-		{
-			return;
-		}
 		yamlStr += shaderPackOut.c_str();
 
 		// Compress and save

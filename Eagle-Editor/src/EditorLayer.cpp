@@ -237,7 +237,12 @@ namespace Eagle
 
 	void EditorLayer::OnEvent(Eagle::Event& e)
 	{
-		m_SceneHierarchyPanel.OnEvent(e, IsViewportFocused());
+		if (m_SceneHierarchyPanel.OnEvent(e, IsViewportFocused()))
+		{
+			if (m_EditorState == EditorState::Edit && m_OpenedSceneAsset)
+				m_OpenedSceneAsset->SetDirty(true);
+		}
+
 		if (e.Handled)
 			return;
 
@@ -312,7 +317,7 @@ namespace Eagle
 			}
 			m_ContentBrowserPanel.OnImGuiRender();
 			m_ConsolePanel.OnImGuiRender();
-			DrawDirtyAssetsPopup();
+			HandleDirtyAssetsPopup();
 		}
 
 		if (m_ShowSaveScenePopupForNewScene)
@@ -894,9 +899,13 @@ namespace Eagle
 					}
 					else
 					{
-						const Path projectFolder = FileDialog::OpenFolder();
-						if (!projectFolder.empty())
-							Project::Build(projectFolder);
+						PrepareDirtyAssets(DirtyAssetsReason::ProjectBuild);
+						if (!m_ShowDirtyAssetMessage) // No unsaved assets, build.
+						{
+							const Path projectFolder = FileDialog::OpenFolder();
+							if (!projectFolder.empty())
+								Project::Build(projectFolder);
+						}
 					}
 				}
 				ImGui::Separator();
@@ -2080,9 +2089,10 @@ namespace Eagle
 		ImGui::End();
 	}
 
-	// TODO: Make this show up before building the project
-	void EditorLayer::DrawDirtyAssetsPopup()
+	UI::ButtonType EditorLayer::DrawDirtyAssetsPopup(std::string_view yesButtonText, std::string_view noButtonText)
 	{
+		UI::ButtonType result = UI::ButtonType::None;
+
 		if (m_ShowDirtyAssetMessage)
 		{
 			ImGui::OpenPopup("Unsaved assets");
@@ -2117,49 +2127,101 @@ namespace Eagle
 			ImGui::EndChild();
 			ImGui::Separator();
 
-			bool bPressedAnyButton = false;
-
-			if (ImGui::Button("Save"))
+			if (ImGui::Button(yesButtonText.data()))
 			{
-				const size_t size = m_DirtyAssets.size();
-				for (size_t i = 0; i < size; ++i)
-				{
-					const bool bSave = m_DirtyAssetsChecked[i];
-					if (bSave == false)
-						continue;
-
-					const auto& asset = m_DirtyAssets[i];
-					if (asset->GetAssetType() == AssetType::Scene)
-					{
-						if (m_OpenedSceneAsset == asset)
-						{
-							SaveScene();
-							asset->SetDirty(false);
-						}
-					}
-					else
-						Asset::Save(asset);
-				}
-				bPressedAnyButton = true;
+				result = UI::ButtonType::Yes;
 			}
 
 			ImGui::SameLine();
 
-			bPressedAnyButton |= ImGui::Button("Ignore and exit");
-
-			if (bPressedAnyButton)
+			if (ImGui::Button(noButtonText.data()))
 			{
-				m_ShowDirtyAssetMessage = false;
-				if (m_CloseEngineRequested)
-					Application::Get().SetShouldClose(true);
-				else
-					OpenProjectSelector();
-
-				m_CloseEngineRequested = false;
+				result = UI::ButtonType::No;
 			}
 
 			ImGui::EndPopup();
 		}
+
+		return result;
+	}
+
+	void EditorLayer::HandleDirtyAssetsPopup()
+	{
+		std::string_view yesBtnText;
+		std::string_view noBtnText;
+
+		if (m_DirtyAssetsReason == DirtyAssetsReason::ProjectClose)
+		{
+			yesBtnText = "Save and exit";
+			noBtnText = "Ignore and exit";
+		}
+		else if (m_DirtyAssetsReason == DirtyAssetsReason::ProjectBuild)
+		{
+			yesBtnText = "Save and build";
+			noBtnText = "Ignore and build";
+		}
+
+		UI::ButtonType button = DrawDirtyAssetsPopup(yesBtnText, noBtnText);
+		if (button == UI::ButtonType::None)
+			return;
+
+		m_ShowDirtyAssetMessage = false;
+
+		if (button == UI::ButtonType::Yes)
+		{
+			SaveDirtyAssets();
+		}
+
+		if (m_DirtyAssetsReason == DirtyAssetsReason::ProjectClose)
+		{
+			if (m_CloseEngineRequested)
+				Application::Get().SetShouldClose(true);
+			else
+				OpenProjectSelector();
+
+			m_CloseEngineRequested = false;
+		}
+
+		if (m_DirtyAssetsReason == DirtyAssetsReason::ProjectBuild)
+		{
+			const Path projectFolder = FileDialog::OpenFolder();
+			if (!projectFolder.empty())
+				Project::Build(projectFolder);
+		}
+
+		m_DirtyAssetsReason = DirtyAssetsReason::None;
+	}
+
+	void EditorLayer::SaveDirtyAssets()
+	{
+		const size_t size = m_DirtyAssets.size();
+		for (size_t i = 0; i < size; ++i)
+		{
+			const bool bSave = m_DirtyAssetsChecked[i];
+			if (bSave == false)
+				continue;
+
+			const auto& asset = m_DirtyAssets[i];
+			if (asset->GetAssetType() == AssetType::Scene)
+			{
+				if (m_OpenedSceneAsset == asset)
+				{
+					SaveScene();
+					asset->SetDirty(false);
+				}
+			}
+			else
+				Asset::Save(asset);
+		}
+	}
+
+	void EditorLayer::PrepareDirtyAssets(DirtyAssetsReason reason)
+	{
+		m_DirtyAssetsChecked.clear();
+		m_DirtyAssets = AssetManager::GetDirtyAssets();
+		m_DirtyAssetsChecked.resize(m_DirtyAssets.size(), true);
+		m_ShowDirtyAssetMessage = m_DirtyAssets.empty() == false;
+		m_DirtyAssetsReason = reason;
 	}
 
 	void EditorLayer::OpenProjectSelector()
@@ -2255,11 +2317,8 @@ namespace Eagle
 
 	void EditorLayer::HandleCloseRequest(bool bCloseEngine)
 	{
-		m_DirtyAssetsChecked.clear();
 		m_CloseEngineRequested = bCloseEngine;
-		m_DirtyAssets = AssetManager::GetDirtyAssets();
-		m_DirtyAssetsChecked.resize(m_DirtyAssets.size(), true);
-		m_ShowDirtyAssetMessage = m_DirtyAssets.empty() == false;
+		PrepareDirtyAssets(DirtyAssetsReason::ProjectClose);
 		if (!m_ShowDirtyAssetMessage)
 		{
 			if (m_CloseEngineRequested)

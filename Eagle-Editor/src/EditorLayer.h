@@ -16,6 +16,11 @@ namespace Eagle
 		Edit, Play, Pause, SimulatePhysics
 	};
 
+	enum class DirtyAssetsReason
+	{
+		None, ProjectClose, ProjectBuild
+	};
+
 	class EditorLayer : public Layer
 	{
 	public:
@@ -73,7 +78,11 @@ namespace Eagle
 		void DrawStats();
 		void DrawViewport();
 		void DrawSimulatePanel();
-		void DrawDirtyAssetsPopup();
+		UI::ButtonType DrawDirtyAssetsPopup(std::string_view yesButtonText, std::string_view noButtonText);
+		void HandleDirtyAssetsPopup();
+		
+		void SaveDirtyAssets();
+		void PrepareDirtyAssets(DirtyAssetsReason reason);
 
 		// Closes the editor
 		void OpenProjectSelector();
@@ -166,6 +175,7 @@ namespace Eagle
 		bool m_ShowDirtyAssetMessage = false;
 		std::vector<Ref<Asset>> m_DirtyAssets;
 		std::vector<bool> m_DirtyAssetsChecked;
+		DirtyAssetsReason m_DirtyAssetsReason = DirtyAssetsReason::None;
 
 		friend class EditorSerializer;
 	};

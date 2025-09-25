@@ -105,7 +105,9 @@ namespace Eagle
 		if (e.Handled)
 			return;
 
-		m_SceneHierarchy.OnEvent(e, bViewportFocused);
+		const bool bEntityChanged = m_SceneHierarchy.OnEvent(e, bViewportFocused);
+		if (bEntityChanged)
+			OnEntityChanged();
 	}
 
 	void EntityAssetEditor::UpdateGuizmo()

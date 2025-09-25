@@ -340,8 +340,10 @@ namespace Eagle
 		return bChanged;
 	}
 
-	void SceneHierarchyPanel::OnEvent(Event& e, bool bViewportFocused)
+	bool SceneHierarchyPanel::OnEvent(Event& e, bool bViewportFocused)
 	{
+		bool bChanged = false;
+
 		if (e.GetEventType() == EventType::KeyPressed)
 		{
 			KeyPressedEvent& keyEvent = (KeyPressedEvent&)e;
@@ -353,14 +355,18 @@ namespace Eagle
 				{
 					m_Scene->DestroyEntity(m_SelectedEntity);
 					ClearSelection();
+					bChanged = true;
 				}
 				else if (Input::IsKeyPressed(Key::LeftControl) && (keyEvent.GetKey() == Key::D) && !m_Scene->IsPlaying())
 				{
 					Entity newEntity = m_Scene->CreateFromEntity(m_SelectedEntity);
 					newEntity.SetParent(m_SelectedEntity.GetParent());
 					m_SelectedEntity = newEntity;
+					bChanged = true;
 				}
 			}
 		}
+
+		return bChanged;
 	}
 }

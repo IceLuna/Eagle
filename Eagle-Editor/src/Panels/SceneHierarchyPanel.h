@@ -20,7 +20,7 @@ namespace Eagle
 		void SetContext(const Ref<Scene>& scene, uint64_t uniqueID = 0);
 		void ClearSelection();
 
-		void OnEvent(Event& e, bool bViewportFocused);
+		bool OnEvent(Event& e, bool bViewportFocused);
 
 		Entity GetSelectedEntity() const { return m_SelectedEntity; }
 		void SetEntitySelected(Entity entity, SelectedComponent component = SelectedComponent::None);
