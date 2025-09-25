@@ -10,6 +10,10 @@ namespace Eagle
 	{
 	public:
 		DataBuffer() = default;
+		DataBuffer(size_t size)
+		{
+			Allocate(size);
+		}
 
 		DataBuffer(void* data, size_t size) : Data(data), Size(size) {}
 
@@ -25,12 +29,34 @@ namespace Eagle
 		{
 			delete[] Data;
 			Data = nullptr;
-			
+			Size = size;
+
 			if (size == 0)
 				return;
 			
-			Size = size;
 			Data = new uint8_t[Size];
+		}
+
+		// Copies data from the old data
+		void Resize(size_t newSize)
+		{
+			if (newSize == 0)
+			{
+				delete[] Data;
+				Data = nullptr;
+				Size = newSize;
+				return;
+			}
+
+			void* newData = new uint8_t[newSize];
+			if (Data)
+			{
+				memcpy(newData, Data, std::min(newSize, Size));
+				delete[] Data;
+			}
+
+			Data = newData;
+			Size = newSize;
 		}
 
 		void Release()
@@ -44,15 +70,16 @@ namespace Eagle
 		T& Read(size_t offset = 0)
 		{
 			EG_CORE_ASSERT(offset <= Size, "Overflow");
-			return *((T*)((uint8_t*)Data) + offset);
+			uint8_t* offseted = ((uint8_t*)Data) + offset;
+			return *((T*)offseted);
 		}
 
-		[[nodiscard]] uint8_t* ReadBytes(size_t size, size_t offset)
+		template<typename T>
+		const T& Read(size_t offset = 0) const
 		{
-			EG_CORE_ASSERT(size + offset <= Size, "Overflow");
-			uint8_t* buffer = new uint8_t[size];
-			memcpy(buffer, (uint8_t*)Data + offset, size);
-			return buffer;
+			EG_CORE_ASSERT(offset <= Size, "Overflow");
+			const uint8_t* offseted = ((uint8_t*)Data) + offset;
+			return *((T*)offseted);
 		}
 
 		void Write(const void* data, size_t size, size_t offset = 0)
@@ -75,6 +102,7 @@ namespace Eagle
 	{
 	public:
 		ScopedDataBuffer() = default;
+		ScopedDataBuffer(size_t size) : m_Buffer(size) {}
 		explicit ScopedDataBuffer(DataBuffer buffer) : m_Buffer(buffer) {}
 		~ScopedDataBuffer() { m_Buffer.Release(); }
 
@@ -117,6 +145,11 @@ namespace Eagle
 			m_Buffer.Allocate(size);
 		}
 
+		void Resize(size_t newSize)
+		{
+			m_Buffer.Resize(newSize);
+		}
+
 		DataBuffer& GetDataBuffer() { return m_Buffer; }
 		const DataBuffer& GetDataBuffer() const { return m_Buffer; }
 
@@ -126,9 +159,10 @@ namespace Eagle
 			return m_Buffer.Read<T>(offset);
 		}
 
-		[[nodiscard]] uint8_t* ReadBytes(size_t size, size_t offset)
+		template<typename T>
+		const T& Read(size_t offset = 0) const
 		{
-			return m_Buffer.ReadBytes(size, offset);
+			return m_Buffer.Read<T>(offset);
 		}
 
 		void Write(const void* data, size_t size, size_t offset = 0) { m_Buffer.Write(data, size, offset); }

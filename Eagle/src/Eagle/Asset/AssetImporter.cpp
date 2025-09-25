@@ -4,6 +4,7 @@
 
 #include "Eagle/Core/DataBuffer.h"
 #include "Eagle/Core/Serializer.h"
+#include "Eagle/Core/SceneSerializer.h"
 #include "Eagle/Classes/StaticMesh.h"
 #include "Eagle/Classes/SkeletalMesh.h"
 #include "Eagle/Animation/Animation.h"
@@ -20,138 +21,6 @@
 
 namespace Eagle
 {
-	namespace Utils
-	{
-		template<typename MeshType> // Either `StaticMesh` or `SkeletalMesh`
-		static void SerializeMesh(const Ref<MeshType>& mesh, const Path& pathToRaw, const Path& outputFilename)
-		{
-			constexpr bool bStatic = std::is_same<MeshType, StaticMesh>::value;
-			constexpr bool bSkeletal = std::is_same<MeshType, SkeletalMesh>::value;
-			if constexpr (!(bStatic || bSkeletal))
-				static_assert(false, "Invalid type. Should be `StaticMesh` or `SkeletalMesh`");
-
-			constexpr AssetType type = bStatic ? AssetType::StaticMesh : AssetType::SkeletalMesh;
-			DataBuffer verticesBuffer = { (void*)mesh->GetVerticesData(), mesh->GetVerticesCount() * (bStatic ? sizeof(Vertex) : sizeof(SkeletalVertex)) };
-			const size_t origVerticesDataSize = verticesBuffer.Size; // Required for decompression
-			ScopedDataBuffer compressedVertices(Compressor::Compress(verticesBuffer));
-
-			YAML::Emitter out;
-			out << YAML::BeginMap;
-			out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-			out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(type);
-			out << YAML::Key << "GUID" << YAML::Value << GUID{};
-			out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
-
-			// AABB
-			{
-				const auto& aabb = mesh->GetAABB();
-				out << YAML::Key << "AABB" << YAML::Value << YAML::BeginMap;
-				out << YAML::Key << "Min" << YAML::Value << aabb.Min;
-				out << YAML::Key << "Max" << YAML::Value << aabb.Max;
-				out << YAML::EndMap;
-			}
-
-			if (const uint32_t materialsCount = mesh->GetMaterialSlotsCount())
-			{
-				bool bAnyValid = false;
-				for (uint32_t i = 0; i < materialsCount; ++i)
-					if (const auto& materialAsset = mesh->GetMaterialAsset(i))
-					{
-						bAnyValid = true;
-						break;
-					}
-
-				if (bAnyValid)
-				{
-					out << YAML::Key << "Materials" << YAML::Value << YAML::BeginSeq;
-					for (uint32_t i = 0; i < materialsCount; ++i)
-					{
-						if (const auto& materialAsset = mesh->GetMaterialAsset(i))
-						{
-							out << YAML::BeginMap;
-							out << YAML::Key << "Index" << YAML::Value << i;
-							out << YAML::Key << "Material" << YAML::Value << materialAsset->GetGUID();
-							out << YAML::EndMap;
-						}
-					}
-					out << YAML::EndSeq;
-				}
-			}
-
-			if constexpr (bSkeletal)
-			{
-				const auto& skeletalInfo = mesh->GetSkeletalMeshInfo();
-				out << YAML::Key << "InverseTransform" << YAML::Value << skeletalInfo.InverseTransform;
-				out << YAML::Key << "CoordCorrection" << YAML::Value << skeletalInfo.CoordCorrection;
-
-				out << YAML::Key << "Skeletal" << YAML::Value;
-				Serializer::EmitBoneNode(out, skeletalInfo.RootBone);
-
-				out << YAML::Key << "BoneInfoMap";
-				{
-					out << YAML::Value << YAML::BeginSeq;
-
-					const auto& bones = skeletalInfo.BoneInfoMap;
-					for (auto& [name, data] : bones)
-					{
-						out << YAML::BeginMap;
-						out << YAML::Key << "Name" << YAML::Value << name;
-						out << YAML::Key << "Matrix" << YAML::Value << data.Offset;
-						out << YAML::Key << "ID" << YAML::Value << data.BoneID;
-						out << YAML::EndMap;
-					}
-
-					out << YAML::EndSeq;
-				}
-			}
-
-			out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-			out << YAML::Key << "SizeVertices" << YAML::Value << origVerticesDataSize;
-			out << YAML::Key << "Vertices" << YAML::Value << YAML::Binary((uint8_t*)compressedVertices.Data(), compressedVertices.Size());
-
-			// Indices per material
-			const uint32_t materialSlots = mesh->GetMaterialSlotsCount();
-			out << YAML::Key << "IndicesPerMaterial" << YAML::Value << YAML::BeginSeq;
-			for (uint32_t i = 0; i < materialSlots; ++i)
-			{
-				DataBuffer indicesBuffer{ (void*)mesh->GetIndicesData(i), mesh->GetIndicesCount(i) * sizeof(Index) };
-				const size_t origIndicesDataSize = indicesBuffer.Size; // Required for decompression
-				ScopedDataBuffer compressedIndices(Compressor::Compress(indicesBuffer));
-
-				out << YAML::BeginMap;
-				out << YAML::Key << "SizeIndices" << YAML::Value << origIndicesDataSize;
-				out << YAML::Key << "Indices" << YAML::Value << YAML::Binary((uint8_t*)compressedIndices.Data(), compressedIndices.Size());
-				out << YAML::EndMap;
-			}
-			out << YAML::EndSeq;
-
-			out << YAML::EndMap;
-			out << YAML::EndMap;
-
-			std::ofstream fout(outputFilename);
-			fout << out.c_str();
-			fout.close();
-		};
-	
-		static void SerializeAnimation(const SkeletalMeshAnimation& animation, const Ref<AssetSkeletalMesh>& skeletal, const Path& pathToRaw, const Path& outputFilename, uint32_t animIndex)
-		{
-			YAML::Emitter out;
-			out << YAML::BeginMap;
-			out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-			out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Animation);
-			out << YAML::Key << "GUID" << YAML::Value << GUID{};
-			out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
-			out << YAML::Key << "Index" << YAML::Value << animIndex;
-			out << YAML::Key << "Skeletal" << YAML::Value << skeletal->GetGUID();
-			Serializer::SerializeAnimation(out, animation);
-			out << YAML::EndMap;
-
-			std::ofstream fout(outputFilename);
-			fout << out.c_str();
-			fout.close();
-		}
-	}
-
 	bool AssetImporter::Import(const Path& pathToRaw, const Path& saveTo, AssetType type, const AssetImportSettings& settings)
 	{
 		if (!std::filesystem::exists(pathToRaw) || std::filesystem::is_directory(pathToRaw))
@@ -211,7 +80,9 @@ namespace Eagle
 				for (const auto& anim : animations)
 				{
 					Path output = Utils::GetUniqueAssetFilepath(saveTo, filename);
-					Utils::SerializeAnimation(anim, skeletal, pathToRaw, output, animIndex++);
+					auto data = Serializer::SerializeAssetAnimationFromData(GUID{}, pathToRaw, animIndex++, anim, skeletal);
+					FileSystem::Write(output, data);
+
 					AssetManager::Register(Asset::Create(output));
 				}
 			}
@@ -244,98 +115,48 @@ namespace Eagle
 
 	Path AssetImporter::CreateMaterial(const Path& saveTo, const std::string& filename)
 	{
-		YAML::Emitter out;
-		out << YAML::BeginMap;
-		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Material);
-		out << YAML::Key << "GUID" << YAML::Value << GUID{};
-		out << YAML::EndMap;
-
 		const Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, filename);
-		std::ofstream fout(outputFilename);
-		fout << out.c_str();
-		fout.close();
-
-		AssetManager::Register(Asset::Create(outputFilename));
+		ScopedDataBuffer data = Serializer::SerializeAssetMaterial(nullptr);
+		FileSystem::Write(outputFilename, data);
+		AssetManager::Register(Asset::Create(data, outputFilename));
 
 		return outputFilename;
 	}
 
 	Path AssetImporter::CreatePhysicsMaterial(const Path& saveTo, const std::string& filename)
 	{
-		YAML::Emitter out;
-		out << YAML::BeginMap;
-		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::PhysicsMaterial);
-		out << YAML::Key << "GUID" << YAML::Value << GUID{};
-		out << YAML::EndMap;
-
 		const Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, filename);
-		std::ofstream fout(outputFilename);
-		fout << out.c_str();
-		fout.close();
-
-		AssetManager::Register(Asset::Create(outputFilename));
+		ScopedDataBuffer data = Serializer::SerializeAssetPhysicsMaterial(nullptr);
+		FileSystem::Write(outputFilename, data);
+		AssetManager::Register(Asset::Create(data, outputFilename));
 
 		return outputFilename;
 	}
 
 	Path AssetImporter::CreateSoundGroup(const Path& saveTo, const std::string& filename)
 	{
-		YAML::Emitter out;
-		out << YAML::BeginMap;
-		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::SoundGroup);
-		out << YAML::Key << "GUID" << YAML::Value << GUID{};
-		out << YAML::Key << "Volume" << YAML::Value << 1.f;
-		out << YAML::Key << "Pitch" << YAML::Value << 1.f;
-		out << YAML::Key << "IsPaused" << YAML::Value << false;
-		out << YAML::Key << "IsMuted" << YAML::Value << false;
-		out << YAML::EndMap;
-
 		const Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, filename);
-		std::ofstream fout(outputFilename);
-		fout << out.c_str();
-		fout.close();
-
-		AssetManager::Register(Asset::Create(outputFilename));
+		ScopedDataBuffer data = Serializer::SerializeAssetSoundGroup(nullptr);
+		FileSystem::Write(outputFilename, data);
+		AssetManager::Register(Asset::Create(data, outputFilename));
 
 		return outputFilename;
 	}
 
 	Path AssetImporter::CreateEntity(const Path& saveTo, const std::string& filename)
 	{
-		YAML::Emitter out;
-		out << YAML::BeginMap;
-		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Entity);
-		out << YAML::Key << "GUID" << YAML::Value << GUID{};
-		out << YAML::EndMap;
-
 		const Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, filename);
-		std::ofstream fout(outputFilename);
-		fout << out.c_str();
-		fout.close();
-
-		AssetManager::Register(Asset::Create(outputFilename));
+		ScopedDataBuffer data = Serializer::SerializeAssetEntity(nullptr);
+		FileSystem::Write(outputFilename, data);
+		AssetManager::Register(Asset::Create(data, outputFilename));
 
 		return outputFilename;
 	}
 
 	Path AssetImporter::CreateScene(const Path& saveTo, const std::string& filename)
 	{
-		YAML::Emitter out;
-		out << YAML::BeginMap;
-		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Scene);
-		out << YAML::Key << "GUID" << YAML::Value << GUID{};
-		out << YAML::EndMap;
-
 		const Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, filename);
-		std::ofstream fout(outputFilename);
-		fout << out.c_str();
-		fout.close();
-
+		SceneSerializer::Serialize(nullptr, outputFilename);
 		AssetManager::Register(Asset::Create(outputFilename));
 
 		return outputFilename;
@@ -343,76 +164,31 @@ namespace Eagle
 
 	Path AssetImporter::CreateAnimationGraph(const Path& saveTo, const Ref<AssetSkeletalMesh>& skeletal, const std::string& filename)
 	{
-		YAML::Emitter out;
-		out << YAML::BeginMap;
-		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::AnimationGraph);
-		out << YAML::Key << "GUID" << YAML::Value << GUID{};
-		out << YAML::Key << "SkeletalMesh" << YAML::Value << skeletal->GetGUID();
-		out << YAML::EndMap;
-
 		const Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, filename);
-		std::ofstream fout(outputFilename);
-		fout << out.c_str();
-		fout.close();
-
-		AssetManager::Register(Asset::Create(outputFilename));
+		ScopedDataBuffer data = Serializer::SerializeAssetAnimationGraph(nullptr, skeletal);
+		FileSystem::Write(outputFilename, data);
+		AssetManager::Register(Asset::Create(data, outputFilename));
 
 		return outputFilename;
 	}
 
 	Path AssetImporter::CreateParticleSystem(const Path& saveTo, const std::string& filename)
 	{
-		YAML::Emitter out;
-		out << YAML::BeginMap;
-		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::ParticleSystem);
-		out << YAML::Key << "GUID" << YAML::Value << GUID{};
-		out << YAML::EndMap;
-
 		const Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, filename);
-		std::ofstream fout(outputFilename);
-		fout << out.c_str();
-		fout.close();
+		ScopedDataBuffer data = Serializer::SerializeAssetParticleSystem(nullptr);
+		FileSystem::Write(outputFilename, data);
 
-		AssetManager::Register(Asset::Create(outputFilename));
+		AssetManager::Register(Asset::Create(data, outputFilename));
 
 		return outputFilename;
 	}
 
 	Path AssetImporter::CreateAnimationBlendSpace(const Path& saveTo, const Ref<AssetSkeletalMesh>& skeletal, const std::string& filename)
 	{
-		YAML::Emitter out;
-		out << YAML::BeginMap;
-		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::AnimationBlendSpace);
-		out << YAML::Key << "GUID" << YAML::Value << GUID{};
-		out << YAML::Key << "SkeletalMesh" << YAML::Value << skeletal->GetGUID();
-		out << YAML::Key << "EventsTriggerMode" << YAML::Value << Utils::GetEnumName(BlendSpaceEventsTriggerMode::HighestWeightedAnimation);
-		out << YAML::Key << "BlendTime" << YAML::Value << 0.1f;
-		out << YAML::Key << "SyncEnabled" << YAML::Value << true;
-		out << YAML::Key << "UseShortestBlendPath" << YAML::Value << true;
-
-		out << YAML::Key << "HorizontalAxis" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "Name" << YAML::Value << "X";
-		out << YAML::Key << "Min" << YAML::Value << 0.f;
-		out << YAML::Key << "Max" << YAML::Value << 1.f;
-		out << YAML::EndMap;
-
-		out << YAML::Key << "VerticalAxis" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "Name" << YAML::Value << "Y";
-		out << YAML::Key << "Min" << YAML::Value << 0.f;
-		out << YAML::Key << "Max" << YAML::Value << 1.f;
-		out << YAML::EndMap;
-
-		out << YAML::EndMap;
-
 		const Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, filename);
-		std::ofstream fout(outputFilename);
-		fout << out.c_str();
-		fout.close();
-
-		AssetManager::Register(Asset::Create(outputFilename));
+		ScopedDataBuffer data = Serializer::SerializeAssetAnimationBlendSpace(nullptr, skeletal);
+		FileSystem::Write(outputFilename, data);
+		AssetManager::Register(Asset::Create(data, outputFilename));
 
 		return outputFilename;
 	}
@@ -428,7 +204,6 @@ namespace Eagle
 			{ ".jpg",   AssetType::Texture2D },
 			{ ".tga",   AssetType::Texture2D },
 			{ ".hdr",   AssetType::TextureCube },
-			{ ".eagle", AssetType::Scene },
 			{ ".fbx",   AssetType::StaticMesh },
 			{ ".gltf",  AssetType::StaticMesh },
 			{ ".blend", AssetType::StaticMesh },
@@ -463,13 +238,11 @@ namespace Eagle
 		const auto& textureSettings = settings.Texture2DSettings;
 		ScopedDataBuffer buffer(FileSystem::Read(pathToRaw));
 		const size_t origDataSize = buffer.Size(); // Required for decompression
-		ScopedDataBuffer compressed(Compressor::Compress(buffer));
 
 		const void* compressedTextureHandle = nullptr;
 		bool bCompressTexture = textureSettings.bCompress;
 
-		const void* ktxData = nullptr;
-		size_t ktxDataSize = 0ull;
+		DataBuffer ktxData;
 
 		if (bCompressTexture)
 		{
@@ -488,11 +261,7 @@ namespace Eagle
 				textureSettings.MipsCount, textureSettings.bNormalMap, textureSettings.bNeedAlpha);
 
 			if (compressedTextureHandle)
-			{
-				DataBuffer compressedTextureData = TextureCompressor::GetKTX2Data(compressedTextureHandle);
-				ktxData = compressedTextureData.Data;
-				ktxDataSize = compressedTextureData.Size;
-			}
+				ktxData = TextureCompressor::GetKTX2Data(compressedTextureHandle);
 			else
 				bCompressTexture = false; // Failed to compress
 
@@ -502,35 +271,10 @@ namespace Eagle
 		int width, height, channels;
 		stbi_info_from_memory((uint8_t*)buffer.Data(), (int)buffer.Size(), &width, &height, &channels);
 
-		YAML::Emitter out;
-		out << YAML::BeginMap;
-		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Texture2D);
-		out << YAML::Key << "GUID" << YAML::Value << GUID{};
-		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
-		out << YAML::Key << "FilterMode" << YAML::Value << Utils::GetEnumName(textureSettings.FilterMode);
-		out << YAML::Key << "AddressMode" << YAML::Value << Utils::GetEnumName(textureSettings.AddressMode);
-		out << YAML::Key << "Anisotropy" << YAML::Value << textureSettings.Anisotropy;
-		out << YAML::Key << "MipsCount" << YAML::Value << textureSettings.MipsCount;
-		out << YAML::Key << "Width" << YAML::Value << width;
-		out << YAML::Key << "Height" << YAML::Value << height;
-		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(textureSettings.ImportFormat);
-		out << YAML::Key << "IsCompressed" << YAML::Value << bCompressTexture;
-		out << YAML::Key << "IsNormalMap" << YAML::Value << textureSettings.bNormalMap;
-		out << YAML::Key << "NeedAlpha" << YAML::Value << textureSettings.bNeedAlpha;
-
-		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "Size" << YAML::Value << origDataSize;
-		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
-		if (bCompressTexture)
-			out << YAML::Key << "KTXData" << YAML::Value << YAML::Binary((uint8_t*)ktxData, ktxDataSize);
-		out << YAML::EndMap;
-
-		out << YAML::EndMap;
-
-		std::ofstream fout(outputFilename);
-		fout << out.c_str();
-		fout.close();
+		auto data = Serializer::SerializeAssetTexture2DFromData(buffer.GetDataBuffer(), ktxData, GUID{}, pathToRaw,
+				textureSettings.FilterMode, textureSettings.AddressMode, textureSettings.Anisotropy, textureSettings.MipsCount,
+				width, height, textureSettings.ImportFormat, bCompressTexture, textureSettings.bNormalMap, textureSettings.bNeedAlpha);
+		FileSystem::Write(outputFilename, data);
 
 		if (compressedTextureHandle)
 			TextureCompressor::Destroy(compressedTextureHandle);
@@ -541,28 +285,11 @@ namespace Eagle
 	bool AssetImporter::ImportTextureCube(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings)
 	{
 		ScopedDataBuffer buffer(FileSystem::Read(pathToRaw));
-		const size_t origDataSize = buffer.Size(); // Required for decompression
-		ScopedDataBuffer compressed( Compressor::Compress(buffer) );
+		const auto& textureSettings = settings.TextureCubeSettings;
 
-		YAML::Emitter out;
-		out << YAML::BeginMap;
-		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::TextureCube);
-		out << YAML::Key << "GUID" << YAML::Value << GUID{};
-		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
-		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(settings.TextureCubeSettings.ImportFormat);
-		out << YAML::Key << "LayerSize" << YAML::Value << settings.TextureCubeSettings.LayerSize;
-		out << YAML::Key << "PrefilterSize" << YAML::Value << settings.TextureCubeSettings.PrefilterSize;
-
-		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "Size" << YAML::Value << origDataSize;
-		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
-		out << YAML::EndMap;
-		
-		out << YAML::EndMap;
-
-		std::ofstream fout(outputFilename);
-		fout << out.c_str();
+		auto data = Serializer::SerializeAssetTextureCubeFromData(buffer.GetDataBuffer(), GUID{}, pathToRaw,
+			textureSettings.ImportFormat, textureSettings.LayerSize, textureSettings.PrefilterSize);
+		FileSystem::Write(outputFilename, data);
 
 		return true;
 	}
@@ -589,7 +316,8 @@ namespace Eagle
 			}
 		}
 
-		Utils::SerializeMesh(importedMeshData.Mesh, pathToRaw, outputFilename);
+		auto data = Serializer::SerializeAssetStaticMeshFromMesh(importedMeshData.Mesh, GUID{}, pathToRaw);
+		FileSystem::Write(outputFilename, data);
 
 		return true;
 	}
@@ -616,7 +344,8 @@ namespace Eagle
 			}
 		}
 
-		Utils::SerializeMesh(importedMeshData.Mesh, pathToRaw, outputFilename);
+		auto data = Serializer::SerializeAssetSkeletalMeshFromMesh(importedMeshData.Mesh, GUID{}, pathToRaw);
+		FileSystem::Write(outputFilename, data);
 
 		return true;
 	}
@@ -624,27 +353,8 @@ namespace Eagle
 	bool AssetImporter::ImportAudio(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings)
 	{
 		ScopedDataBuffer buffer(FileSystem::Read(pathToRaw));
-		const size_t origDataSize = buffer.Size(); // Required for decompression
-		ScopedDataBuffer compressed(Compressor::Compress(buffer));
-
-		YAML::Emitter out;
-		out << YAML::BeginMap;
-		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Audio);
-		out << YAML::Key << "GUID" << YAML::Value << GUID{};
-		out << YAML::Key << "Volume" << YAML::Value << 1.f;
-		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
-
-		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "Size" << YAML::Value << origDataSize;
-		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
-		out << YAML::EndMap;
-
-		out << YAML::EndMap;
-
-		std::ofstream fout(outputFilename);
-		fout << out.c_str();
-		fout.close();
+		auto data = Serializer::SerializeAssetAudioFromData(buffer.GetDataBuffer(), GUID{}, pathToRaw, 1.f, 1.f, 0.f, nullptr);
+		FileSystem::Write(outputFilename, data);
 
 		return true;
 	}
@@ -652,26 +362,9 @@ namespace Eagle
 	bool AssetImporter::ImportFont(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings)
 	{
 		ScopedDataBuffer buffer(FileSystem::Read(pathToRaw));
-		const size_t origDataSize = buffer.Size(); // Required for decompression
-		ScopedDataBuffer compressed(Compressor::Compress(buffer));
 
-		YAML::Emitter out;
-		out << YAML::BeginMap;
-		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Font);
-		out << YAML::Key << "GUID" << YAML::Value << GUID{};
-		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
-
-		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "Size" << YAML::Value << origDataSize;
-		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
-		out << YAML::EndMap;
-
-		out << YAML::EndMap;
-
-		std::ofstream fout(outputFilename);
-		fout << out.c_str();
-		fout.close();
+		auto data = Serializer::SerializeAssetFontFromData(buffer.GetDataBuffer(), GUID{}, pathToRaw);
+		FileSystem::Write(outputFilename, data);
 
 		return true;
 	}
@@ -691,7 +384,9 @@ namespace Eagle
 		for (const auto& anim : animations)
 		{
 			Path output = Utils::GetUniqueAssetFilepath(saveTo, filename);
-			Utils::SerializeAnimation(anim, skeletal, pathToRaw, output, animIndex++);
+
+			auto data = Serializer::SerializeAssetAnimationFromData(GUID{}, pathToRaw, animIndex++, anim, skeletal);
+			FileSystem::Write(output, data);
 		}
 
 		return true;

@@ -7,22 +7,22 @@ namespace Eagle
 {
 	class SceneSerializer
 	{
+	private:
+		SceneSerializer() = default;
+
 	public:
-		SceneSerializer(const Ref<Scene>& scene);
+		static bool Serialize(const Ref<Scene>& scene, const Path& filepath);
+		static bool Serialize(const Ref<Scene>& scene, YAML::Emitter& out);
 
-		bool Serialize(const Path& filepath);
-		bool Serialize(YAML::Emitter& out);
+		static bool Deserialize(const Ref<Scene>& scene, const Path& filepath);
+		static bool Deserialize(const Ref<Scene>& scene, const DataBuffer& data);
+		static bool Deserialize(const Ref<Scene>& scene, YAML::Node& baseNode);
 
-		bool Deserialize(const Path& filepath);
-		bool Deserialize(YAML::Node& baseNode);
-
-	private:
-		void DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode, uint32_t collisionGroupValidMasks);
-
-		void SerializeSkybox(YAML::Emitter& out);
-		void DeserializeSkybox(YAML::Node& node);
+		// Just saves a scene with a given yaml description
+		static bool SerializeWithYaml(const Path& filepath, const std::string& yaml);
 
 	private:
-		Ref<Scene> m_Scene;
+		static void SerializeSkybox(const Ref<Scene>& scene, YAML::Emitter& out);
+		static void DeserializeSkybox(const Ref<Scene>& scene, YAML::Node& node);
 	};
 }

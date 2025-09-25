@@ -45,7 +45,7 @@ namespace Eagle
 		s_CookingData = nullptr;
 	}
 
-	CookingResult PhysXCookingFactory::CookMesh(const Ref<AssetStaticMesh>& collisionMesh, bool bConvex, bool bFlip, bool bInvalidateOld, MeshColliderData& outData)
+	CookingResult PhysXCookingFactory::CookMesh(const Ref<AssetStaticMesh>& collisionMesh, bool bConvex, bool bFlip, ScopedDataBuffer* outData)
 	{
 		if (!collisionMesh || !collisionMesh->GetMesh())
 		{
@@ -64,12 +64,6 @@ namespace Eagle
 		}
 
 		const Path filepath = Project::GetCachePath() / "PhysX" / filename;
-		if (bInvalidateOld)
-		{
-			bool removedCached = std::filesystem::remove(filepath);
-			if (!removedCached)
-				EG_CORE_ERROR("[Physics Engine] Couldn't delete cached collider data: '{0}'", filepath.u8string());
-		}
 
 		CookingResult result = CookingResult::Failure;
 		if (!std::filesystem::exists(filepath))
@@ -78,12 +72,7 @@ namespace Eagle
 
 			if (result == CookingResult::Success)
 			{
-				uint32_t bufferSize = sizeof(uint32_t) + outData.Size;
-				ScopedDataBuffer colliderBuffer;
-				colliderBuffer.Allocate(bufferSize);
-				colliderBuffer.Write((const void*)&outData.Size, sizeof(uint32_t));
-				colliderBuffer.Write(outData.Data, outData.Size, sizeof(uint32_t));
-				bool bSuccessWrite = FileSystem::Write(filepath, colliderBuffer.GetDataBuffer());
+				bool bSuccessWrite = FileSystem::Write(filepath, *outData);
 
 				if (!bSuccessWrite)
 					EG_CORE_ERROR("[Physics Engine] Failed to write collider to '{0}'", filepath.u8string());
@@ -91,12 +80,9 @@ namespace Eagle
 		}
 		else
 		{
-			ScopedDataBuffer colliderBuffer(FileSystem::Read(filepath));
-			if (colliderBuffer.Size() > 0)
+			*outData = FileSystem::Read(filepath);
+			if (outData->Size() > 0)
 			{
-				outData.Size = colliderBuffer.Read<uint32_t>();
-				outData.Data = colliderBuffer.ReadBytes(outData.Size, sizeof(uint32_t));
-
 				result = CookingResult::Success;
 			}
 		}
@@ -104,7 +90,7 @@ namespace Eagle
 		return result;
 	}
 
-	CookingResult PhysXCookingFactory::CookConvexMesh(const Ref<AssetStaticMesh>& meshAsset, MeshColliderData& outData)
+	CookingResult PhysXCookingFactory::CookConvexMesh(const Ref<AssetStaticMesh>& meshAsset, ScopedDataBuffer* outData)
 	{
 		const auto& mesh = meshAsset->GetMesh();
 		const auto& vertices = mesh->GetVertices();
@@ -140,14 +126,13 @@ namespace Eagle
 			return PhysXUtils::FromPhysXCookingResult(result);
 		}
 
-		outData.Size = buf.getSize();
-		outData.Data = new uint8_t[outData.Size];
-		memcpy(outData.Data, buf.getData(), outData.Size);
+		outData->Allocate(buf.getSize());
+		memcpy(outData->Data(), buf.getData(), outData->Size());
 
 		return CookingResult::Success;
 	}
 
-	CookingResult PhysXCookingFactory::CookTriangleMesh(const Ref<AssetStaticMesh>& meshAsset, bool bFlipNormals, MeshColliderData& outData)
+	CookingResult PhysXCookingFactory::CookTriangleMesh(const Ref<AssetStaticMesh>& meshAsset, bool bFlipNormals, ScopedDataBuffer* outData)
 	{
 		const auto& mesh = meshAsset->GetMesh();
 		const auto& vertices = mesh->GetVertices();
@@ -193,9 +178,8 @@ namespace Eagle
 			return PhysXUtils::FromPhysXCookingResult(result);
 		}
 
-		outData.Size = buf.getSize();
-		outData.Data = new uint8_t[outData.Size];
-		memcpy(outData.Data, buf.getData(), outData.Size);
+		outData->Allocate(buf.getSize());
+		memcpy(outData->Data(), buf.getData(), outData->Size());
 
 		return CookingResult::Success;
 	}	

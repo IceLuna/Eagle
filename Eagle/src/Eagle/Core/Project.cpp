@@ -9,6 +9,7 @@
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Utils/YamlUtils.h"
 #include "Eagle/Utils/Compressor.h"
+#include "Eagle/Utils/SerializerUtils.h"
 #include "Eagle/Physics/PhysicsEngine.h"
 
 #include <magic_enum_utility.hpp>
@@ -275,6 +276,10 @@ namespace Eagle
 			}
 		});
 
+		size_t totalSize = sizeof(AssetHeader);
+		const ScopedDataBuffer assetPack = AssetManager::BuildAssetPack();
+		const size_t assetPackOffset = Utils::AddSize(assetPack, &totalSize);
+
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Name" << YAML::Value << s_Info.Name;
@@ -283,34 +288,40 @@ namespace Eagle
 		if (s_Info.GameStartupScene)
 			out << YAML::Key << "StartupScene" << YAML::Value << s_Info.GameStartupScene->GetGUID();
 
-		SaveCollisionGroups(out, s_Info);
+		out << YAML::Key << "AssetPackSize" << assetPack.Size();
+		out << YAML::Key << "AssetPackOffset" << assetPackOffset;
 
-		AssetManager::BuildAssetPack(out);
+		SaveCollisionGroups(out, s_Info);
 		out << YAML::EndMap;
 
-		std::string serializedData = out.c_str();
-		serializedData += '\n';
+		std::string yamlStr = out.c_str();
+		yamlStr += '\n';
 		buildThread.join();
 		if (bFailed)
 		{
 			return;
 		}
-		serializedData += shaderPackOut.c_str();
+		yamlStr += shaderPackOut.c_str();
 
 		// Compress and save
 		{
-			DataBuffer packData(serializedData.data(), serializedData.size());
+			AssetHeader header = Utils::CreateHeader(yamlStr, &totalSize);
+			ScopedDataBuffer build(totalSize);
 
-			ScopedDataBuffer compressedPack = ScopedDataBuffer(Compressor::Compress(packData));
-			const size_t compressedSize = compressedPack.Size();
+			size_t offset = 0;
+			Utils::WriteToBuffer(build, &header, sizeof(header), &offset);
+			Utils::WriteToBuffer(build, assetPack, &offset);
+			Utils::WriteStringToBuffer(build, yamlStr, &offset);
 
-			ScopedDataBuffer outputData;
-			outputData.Allocate(compressedPack.Size() + sizeof(size_t)); // We append buffer's size at the beginning, so we need room for it
-			outputData.Write(&compressedSize, sizeof(size_t));
-			outputData.Write(compressedPack.Data(), compressedSize, sizeof(size_t));
+			const size_t origSize = build.Size();
+			ScopedDataBuffer compressed = Compressor::Compress(build);
+
+			ScopedDataBuffer outputData(compressed.Size() + sizeof(size_t)); // We append buffer's size at the beginning, so we need room for it
+			outputData.Write(&origSize, sizeof(size_t));
+			outputData.Write(compressed.Data(), compressed.Size(), sizeof(size_t));
 
 			const Path outputFilename = outputFolder / "Data" / (s_Info.Name + AssetManager::GetAssetPackExtension());
-			FileSystem::Write(outputFilename, DataBuffer(outputData.Data(), outputData.Size()));
+			FileSystem::Write(outputFilename, outputData.GetDataBuffer());
 
 #if 0 // Check if compressed correctly
 			{
@@ -328,38 +339,49 @@ namespace Eagle
 	
 	void Project::OpenGameBuild(const Path& filepath)
 	{
-		const Path& assetPack = filepath;
-		ScopedDataBuffer data = FileSystem::Read(assetPack);
-		if (!data)
+		const Path& assetPackPath = filepath;
+		ScopedDataBuffer compressedData = FileSystem::Read(assetPackPath);
+		if (!compressedData)
 		{
-			EG_CORE_CRITICAL("Failed to load the asset pack: {}", assetPack.u8string());
+			EG_CORE_CRITICAL("Failed to load the asset pack: {}", assetPackPath.u8string());
 			exit(-1);
 		}
 
-		const size_t compressedSize2 = data.Read<size_t>();
-		DataBuffer compressedData2((uint8_t*)data.Data() + sizeof(size_t), data.Size() - sizeof(size_t));
+		const size_t origSize = compressedData.Read<size_t>();
+		DataBuffer compressedDataWithOffset((uint8_t*)compressedData.Data() + sizeof(size_t), compressedData.Size() - sizeof(size_t));
 
-		ScopedDataBuffer decompressedData = ScopedDataBuffer(Compressor::Decompress(compressedData2, compressedSize2));
-		std::string packData;
-		packData.resize(decompressedData.Size());
-		memcpy(packData.data(), decompressedData.Data(), decompressedData.Size());
+		ScopedDataBuffer data = Compressor::Decompress(compressedDataWithOffset, origSize);
 
-		YAML::Node baseNode = YAML::Load(packData);
+		YAML::Node baseNode;
+		Utils::ReadYAML(data, &baseNode);
+
+		const size_t assetPackSize = baseNode["AssetPackSize"].as<size_t>();
+		const size_t assetPackOffset = baseNode["AssetPackOffset"].as<size_t>();
 
 		s_Info.Name = baseNode["Name"].as<std::string>();
 		s_Info.Version = baseNode["Version"].as<glm::uvec3>();
 		s_Info.BasePath = Application::GetCorePath();
 
-		AssetManager::InitGame(baseNode["Assets"]);
 		ShaderManager::InitGame(baseNode["Shaders"]);
+		GUID startupSceneGUID = GUID(0, 0);
 		if (auto startupSceneNode = baseNode["StartupScene"])
 		{
-			Ref<Asset> asset;
-			if (AssetManager::Get(startupSceneNode.as<GUID>(), &asset))
-				s_Info.GameStartupScene = Cast<AssetScene>(asset);
+			startupSceneGUID = startupSceneNode.as<GUID>();
 		}
 
 		LoadCollisionGroups(baseNode["CollisionGroups"], s_Info);
+
+		DataBuffer assetPack(assetPackSize);
+		Utils::ReadBinary(data.GetDataBuffer(), assetPackSize, assetPackOffset, &assetPack);
+		Application::Get().CallNextFrame([assetPack, startupSceneGUID]() mutable
+		{
+			AssetManager::InitGame(assetPack);
+			assetPack.Release();
+
+			Ref<Asset> asset;
+			if (AssetManager::Get(startupSceneGUID, &asset))
+				s_Info.GameStartupScene = Cast<AssetScene>(asset);
+		});
 	}
 
 	void Project::Save()

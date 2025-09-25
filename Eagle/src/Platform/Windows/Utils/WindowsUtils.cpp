@@ -150,8 +150,7 @@ namespace Eagle
 			size_t size = end - stream.tellg();
 			EG_CORE_ASSERT(size != 0, "Empty file");
 
-			ScopedDataBuffer buffer;
-			buffer.Allocate(size);
+			ScopedDataBuffer buffer(size);
 			stream.read((char*)buffer.Data(), buffer.Size());
 
 			return buffer;

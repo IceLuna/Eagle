@@ -207,8 +207,8 @@ namespace Eagle
 		const auto& materialAsset = component.GetPhysicsMaterialAsset();
 		physx::PxMaterial* material = GetMaterial_Internal(materialAsset);
 
-		MeshColliderData colliderData;
-		CookingResult cookingResult = PhysXCookingFactory::CookMesh(component.GetCollisionMeshAsset(), component.IsConvex(), false, false, colliderData);
+		ScopedDataBuffer colliderData;
+		CookingResult cookingResult = PhysXCookingFactory::CookMesh(component.GetCollisionMeshAsset(), component.IsConvex(), false, &colliderData);
 
 		if (cookingResult != CookingResult::Success)
 		{
@@ -220,7 +220,7 @@ namespace Eagle
 		m_ColliderScale = component.GetWorldTransform().Scale3D;
 		bool bTrigger = component.IsTrigger();
 
-		physx::PxDefaultMemoryInputData input(colliderData.Data, colliderData.Size);
+		physx::PxDefaultMemoryInputData input((physx::PxU8*)colliderData.Data(), (physx::PxU32)colliderData.Size());
 		m_ConvexMesh = PhysXInternal::GetPhysics().createConvexMesh(input);
 		physx::PxConvexMeshGeometry convexGeometry = physx::PxConvexMeshGeometry(m_ConvexMesh,
 													 physx::PxMeshScale(PhysXUtils::ToPhysXVector(m_ColliderScale)));
@@ -237,7 +237,6 @@ namespace Eagle
 		SetInteractingCollisionGroup(component.GetInteractingCollisionGroup());
 
 		m_Shape->userData = this;
-		delete[] colliderData.Data;
 	}
 
 	void ConvexMeshShape::SetScale(const glm::vec3& scale)
@@ -276,8 +275,8 @@ namespace Eagle
 		const auto& materialAsset = component.GetPhysicsMaterialAsset();
 		physx::PxMaterial* material = GetMaterial_Internal(materialAsset);
 
-		MeshColliderData colliderData;
-		CookingResult cookingResult = PhysXCookingFactory::CookMesh(component.GetCollisionMeshAsset(), component.IsConvex(), bFlip, false, colliderData);
+		ScopedDataBuffer colliderData;
+		CookingResult cookingResult = PhysXCookingFactory::CookMesh(component.GetCollisionMeshAsset(), component.IsConvex(), bFlip, &colliderData);
 
 		if (cookingResult != CookingResult::Success)
 		{
@@ -289,7 +288,7 @@ namespace Eagle
 		m_ColliderScale = component.GetWorldTransform().Scale3D;
 		bool bTrigger = component.IsTrigger();
 
-		physx::PxDefaultMemoryInputData input(colliderData.Data, colliderData.Size);
+		physx::PxDefaultMemoryInputData input((physx::PxU8*)colliderData.Data(), (physx::PxU32)colliderData.Size());
 		m_TriMesh = PhysXInternal::GetPhysics().createTriangleMesh(input);
 		physx::PxTriangleMeshGeometry triGeometry = physx::PxTriangleMeshGeometry(m_TriMesh,
 			physx::PxMeshScale(PhysXUtils::ToPhysXVector(m_ColliderScale)));
@@ -304,7 +303,6 @@ namespace Eagle
 		SetInteractingCollisionGroup(component.GetInteractingCollisionGroup());
 
 		m_Shape->userData = this;
-		delete[] colliderData.Data;
 	}
 
 	void TriangleMeshShape::SetScale(const glm::vec3& scale)

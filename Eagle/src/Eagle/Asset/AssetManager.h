@@ -18,7 +18,7 @@ namespace Eagle
 	{
 	public:
 		static void Init();
-		static void InitGame(const YAML::Node& assetNode);
+		static void InitGame(const DataBuffer& assetPack);
 		static void Reset();
 		static void ResetGameAssets();
 		static void ResetRuntimeAsset();
@@ -27,7 +27,7 @@ namespace Eagle
 		static void AddRuntimeAsset(const Ref<Asset>& asset); // Created by C#
 		static bool Get(const Path& path, Ref<Asset>* outAsset);
 		static bool Get(const GUID& guid, Ref<Asset>* outAsset);
-		static bool GetRuntimeAssetNode(const Path& path, YAML::Node* outNode);
+		static bool GetRuntimeAssetData(const Path& path, Ref<ScopedDataBuffer>* outData);
 		static std::vector<Ref<Asset>> GetDirtyAssets();
 
 		static void OnModified(const Ref<Asset>& asset);
@@ -50,7 +50,7 @@ namespace Eagle
 
 		static const AssetsMap& GetAssets() { return s_Assets; }
 
-		static bool BuildAssetPack(YAML::Emitter& out);
+		static ScopedDataBuffer BuildAssetPack();
 
 		static const char* GetAssetPackExtension() { return ".egpack"; }
 

@@ -860,7 +860,7 @@ namespace Eagle
 		const glm::vec3 planeLocation = glm::vec3(center.x, aabb.Min.y, center.z); // Place the plane under the mesh
 
 		constexpr static glm::vec3 planeScale = glm::vec3(100.f, 0.05f, 100.f);
-		const glm::vec3 extent = aabb.Extents() * 0.5f;
+		const glm::vec3 extent = glm::abs(aabb.Extents()) * 0.5f;
 		const glm::vec3 meshScale = glm::vec3(extent.x, 1.f, extent.z); // To make the floor bigger than the mesh
 		Transform tr;
 		tr.Location = planeLocation;

@@ -6,11 +6,21 @@ namespace Eagle
 {
 	struct AABB
 	{
+		glm::vec3 Min = glm::vec3(std::numeric_limits<float>::max());
+		glm::vec3 Max = glm::vec3(std::numeric_limits<float>::lowest());
+
 		constexpr AABB() = default;
 		constexpr AABB(const glm::vec3& min, const glm::vec3& max) : Min(min), Max(max) {}
 
-		glm::vec3 Min = glm::vec3(std::numeric_limits<float>::max());
-		glm::vec3 Max = glm::vec3(std::numeric_limits<float>::lowest());
+		constexpr bool operator== (const AABB& other) const
+		{
+			return Min == other.Min && Max == other.Max;
+		}
+
+		constexpr bool operator!= (const AABB& other) const
+		{
+			return !(*this == other);
+		}
 
 		constexpr glm::vec3 Center() const { return (Min + Max) * 0.5f; }
 		constexpr glm::vec3 Extents() const { return Max - Min; }
@@ -92,11 +102,6 @@ namespace Eagle
 		{
 			const glm::vec3 extents = Extents();
 			return glm::max(extents.x, glm::max(extents.y, extents.z));
-		}
-
-		constexpr bool operator== (const AABB& other) const
-		{
-			return Min == other.Min && Max == other.Max;
 		}
 
 		constexpr bool IsValid() const

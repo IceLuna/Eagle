@@ -391,20 +391,20 @@ namespace Eagle
 		m_DOFTask->OnResize(m_Size);
 		m_ParticleTask->OnResize(m_Size);
 
-		if (m_Options.BloomSettings.bEnable)
+		if (m_BloomTask)
 			m_BloomTask->OnResize(m_Size);
 
-		if (m_Options.VolumetricSettings.bEnable)
+		if (m_VolumetricTask)
 			m_VolumetricTask->OnResize(m_Size);
-		if (m_Options.FogSettings.bEnable)
+		if (m_FogTask)
 			m_FogTask->OnResize(m_Size);
 
-		if (m_Options.AO == AmbientOcclusion::SSAO)
+		if (m_SSAOTask)
 			m_SSAOTask->OnResize(m_Size);
-		else if (m_Options.AO == AmbientOcclusion::GTAO)
+		else if (m_GTAOTask)
 			m_GTAOTask->OnResize(m_Size);
 
-		if (m_Options.AA == AAMethod::TAA)
+		if (m_TAATask)
 			m_TAATask->OnResize(m_Size);
 
 		if (m_MotionBlurTask)

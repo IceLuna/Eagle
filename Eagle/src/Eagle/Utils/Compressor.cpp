@@ -8,8 +8,7 @@ namespace Eagle::Compressor
 	ScopedDataBuffer Compress(DataBuffer data)
 	{
 		const size_t compressedSize = ZSTD_compressBound(data.Size);
-		ScopedDataBuffer result;
-		result.Allocate(compressedSize);
+		ScopedDataBuffer result(compressedSize);
 
 		const size_t actualSize = ZSTD_compress(result.Data(), result.Size(), data.Data, data.Size, 10);
 		if (ZSTD_isError(actualSize))
@@ -48,8 +47,7 @@ namespace Eagle::Compressor
 		if (size == ZSTD_CONTENTSIZE_UNKNOWN)
 			size = originalSize;
 
-		ScopedDataBuffer decompressed;
-		decompressed.Allocate(size);
+		ScopedDataBuffer decompressed(size);
 
 		const size_t error = ZSTD_decompress(decompressed.Data(), decompressed.Size(), data.Data, data.Size);
 		if (ZSTD_isError(error))

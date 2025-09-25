@@ -49,7 +49,7 @@ namespace Eagle
 		const QueueFamilyIndices& GetFamilyIndices() const { return m_FamilyIndices; }
 		VkPhysicalDevice GetVulkanPhysicalDevice() const { return m_PhysicalDevice; }
 		bool RequiresPresentQueue() const { return m_RequiresPresentQueue; }
-		const std::vector<const char*> GetDeviceExtensions() const { return m_DeviceExtensions; }
+		const std::vector<const char*>& GetDeviceExtensions() const { return m_DeviceExtensions; }
 		SwapchainSupportDetails QuerySwapchainSupportDetails(VkSurfaceKHR surface) const;
 		const DeviceSupportedFeatures& GetSupportedFeatures() const { return m_SupportedFeatures; }
 		ImageFormat GetDepthFormat() const { return m_DepthFormat; }

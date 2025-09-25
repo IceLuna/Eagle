@@ -9,6 +9,7 @@
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsMaterial.h"
 #include "Eagle/Core/Project.h"
+#include "Eagle/Utils/SerializerUtils.h"
 
 namespace Eagle
 {
@@ -25,37 +26,46 @@ namespace Eagle
 		return result;
 	}
 
-	SceneSerializer::SceneSerializer(const Ref<Scene>& scene) : m_Scene(scene)
-	{}
-
-	bool SceneSerializer::Serialize(const Path& filepath)
+	bool SceneSerializer::Serialize(const Ref<Scene>& scene, const Path& filepath)
 	{
 		EG_CORE_TRACE("Saving Scene at '{0}'", std::filesystem::absolute(filepath).u8string());
 
 		YAML::Emitter out;
-		if (Serialize(out))
+		if (Serialize(scene, out))
 		{
-			std::ofstream fout(filepath);
-			fout << out.c_str();
-			return true;
+			size_t totalSize = sizeof(AssetHeader);
+			const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+			ScopedDataBuffer buffer(totalSize);
+
+			size_t offset = 0;
+			Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
+			Utils::WriteYaml(buffer, out, &offset);
+
+			return FileSystem::Write(filepath, buffer);
 		}
 
 		return false;
 	}
 
-	bool SceneSerializer::Serialize(YAML::Emitter& out)
+	bool SceneSerializer::Serialize(const Ref<Scene>& scene, YAML::Emitter& out)
 	{
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Scene);
-		out << YAML::Key << "GUID" << YAML::Value << m_Scene->GetGUID();
+		out << YAML::Key << "GUID" << YAML::Value << (scene ? scene->GetGUID() : GUID{});
+
+		if (!scene)
+		{
+			out << YAML::EndMap;
+			return true;
+		}
 
 		out << YAML::Key << "Scene" << YAML::Value;
 		out << YAML::BeginMap;
 
 		//Editor camera
-		const auto& transform = m_Scene->m_EditorCamera.GetTransform();
-		const auto& camera = m_Scene->m_EditorCamera;
+		const auto& transform = scene->m_EditorCamera.GetTransform();
+		const auto& camera = scene->m_EditorCamera;
 		
 		out << YAML::Key << "EditorCamera"	<< YAML::BeginMap;
 		out << YAML::Key << "ProjectionMode" << YAML::Value << Utils::GetEnumName(camera.GetProjectionMode());
@@ -73,22 +83,22 @@ namespace Eagle
 		out << YAML::Key << "Location" << YAML::Value << transform.Location;
 		out << YAML::Key << "Rotation" << YAML::Value << transform.Rotation;
 		out << YAML::EndMap; //Editor Camera
-		out << YAML::Key << "Gravity" << YAML::Value << m_Scene->GetGravity();
-		out << YAML::Key << "PhysicsUpdateRate" << YAML::Value << m_Scene->GetPhysicsUpdateRate();
-		out << YAML::Key << "PhysicsDebugOnPlay" << YAML::Value << m_Scene->IsPhysicsDebugOnPlayEnabled();
-		out << YAML::Key << "PhysicsDebugType" << YAML::Value << Utils::GetEnumName(m_Scene->GetPhysicsDebugType());
+		out << YAML::Key << "Gravity" << YAML::Value << scene->GetGravity();
+		out << YAML::Key << "PhysicsUpdateRate" << YAML::Value << scene->GetPhysicsUpdateRate();
+		out << YAML::Key << "PhysicsDebugOnPlay" << YAML::Value << scene->IsPhysicsDebugOnPlayEnabled();
+		out << YAML::Key << "PhysicsDebugType" << YAML::Value << Utils::GetEnumName(scene->GetPhysicsDebugType());
 
 		Serializer::SerializeProjectCollisionGroupGUIDs(out);
 
 		// Save EntityID that has a valid nav mesh. It'll be used during deserialization to build the nav mesh after a scene has been loaded
 		{
 			GUID navMeshEntity = GUID(0, 0);
-			if (m_Scene->GetNavMesh())
+			if (scene->GetNavMesh())
 			{
-				auto view = m_Scene->GetAllEntitiesWith<NavigationMeshComponent>();
+				auto view = scene->GetAllEntitiesWith<NavigationMeshComponent>();
 				for (auto& e : view)
 				{
-					Entity entity(e, m_Scene.get());
+					Entity entity(e, scene.get());
 					const auto& component = entity.GetComponent<NavigationMeshComponent>();
 					if (component.GetNavMesh())
 					{
@@ -103,15 +113,15 @@ namespace Eagle
 			}
 		}
 
-		SerializeSkybox(out);
+		SerializeSkybox(scene, out);
 
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
 		std::vector<Entity> entities;
-		entities.reserve(m_Scene->m_Registry.alive());
+		entities.reserve(scene->m_Registry.alive());
 
-		m_Scene->m_Registry.each([&entities, this](auto entityID)
+		scene->m_Registry.each([&entities, &scene](auto entityID)
 		{
-			entities.emplace_back(entityID, m_Scene.get());
+			entities.emplace_back(entityID, scene.get());
 		});
 
 		for (auto it = entities.rbegin(); it != entities.rend(); ++it)
@@ -126,25 +136,38 @@ namespace Eagle
 		return true;
 	}
 
-	bool SceneSerializer::Deserialize(const Path& filepath)
+	bool SceneSerializer::Deserialize(const Ref<Scene>& scene, const Path& filepath)
 	{
-		if (!std::filesystem::exists(filepath))
+		const ScopedDataBuffer data = FileSystem::Read(filepath);
+		if (data.Size() == 0)
 		{
-			EG_CORE_ERROR("Can't load scene {0}. File doesn't exist!", std::filesystem::absolute(filepath).u8string());
+			EG_CORE_ERROR("Failed to deserialize a scene: {}", filepath.u8string());
 			return false;
 		}
-		YAML::Node baseNode = YAML::LoadFile(filepath.string());
 
-		if (Deserialize(baseNode) == false)
+		return Deserialize(scene, data.GetDataBuffer());
+	}
+
+	bool SceneSerializer::Deserialize(const Ref<Scene>& scene, const DataBuffer& data)
+	{
+		if (data.Size == 0)
 		{
-			EG_CORE_ERROR("Can't load scene {0}. Invalid asset!", std::filesystem::absolute(filepath).u8string());
+			return false;
+		}
+
+		YAML::Node baseNode;
+		Utils::ReadYAML(data, &baseNode);
+
+		if (Deserialize(scene, baseNode) == false)
+		{
+			EG_CORE_ERROR("Can't load the scene. Invalid asset!");
 			return false;
 		}
 
 		return true;
 	}
 
-	bool SceneSerializer::Deserialize(YAML::Node& baseNode)
+	bool SceneSerializer::Deserialize(const Ref<Scene>& scene, YAML::Node& baseNode)
 	{
 		AssetType assetType = AssetType::None;
 		if (auto node = baseNode["Type"])
@@ -153,7 +176,7 @@ namespace Eagle
 		if (assetType != AssetType::Scene)
 			return false;
 
-		m_Scene->SetGUID(baseNode["GUID"].as<GUID>());
+		scene->SetGUID(baseNode["GUID"].as<GUID>());
 
 		YAML::Node data = baseNode["Scene"];
 		if (!data)
@@ -163,7 +186,7 @@ namespace Eagle
 
 		if (auto editorCameraNode = data["EditorCamera"])
 		{
-			auto& camera = m_Scene->m_EditorCamera;
+			auto& camera = scene->m_EditorCamera;
 
 			camera.SetProjectionMode(Utils::GetEnumFromName<CameraProjectionMode>(editorCameraNode["ProjectionMode"].as<std::string>()));
 
@@ -192,19 +215,19 @@ namespace Eagle
 		}
 		if (auto node = data["Gravity"])
 		{
-			m_Scene->SetGravity(node.as<glm::vec3>());
+			scene->SetGravity(node.as<glm::vec3>());
 		}
 		if (auto node = data["PhysicsUpdateRate"])
 		{
-			m_Scene->SetPhysicsUpdateRate(node.as<uint32_t>());
+			scene->SetPhysicsUpdateRate(node.as<uint32_t>());
 		}
 		if (auto node = data["PhysicsDebugOnPlay"])
 		{
-			m_Scene->SetPhysicsDebugOnPlay(node.as<bool>());
+			scene->SetPhysicsDebugOnPlay(node.as<bool>());
 		}
 		if (auto node = data["PhysicsDebugType"])
 		{
-			m_Scene->SetPhysicsDebugType(Utils::GetEnumFromName<DebugType>(node.as<std::string>()));
+			scene->SetPhysicsDebugType(Utils::GetEnumFromName<DebugType>(node.as<std::string>()));
 		}
 
 		const uint32_t collisionGroupValidMasks = Serializer::DeserializeProjectCollisionGroupGUIDs(data);
@@ -214,11 +237,11 @@ namespace Eagle
 			navMeshEntityGUID = node.as<GUID>();
 		}
 
-		DeserializeSkybox(data);
+		DeserializeSkybox(scene, data);
 
 		if (auto entities = data["Entities"])
 		{
-			//uint32_t - Entity's ID in *.eagle; Real entity ID; 
+			//uint32_t - Entity's ID in the asset; Real entity ID; 
 			std::unordered_map<uint32_t, Entity> allEntities;
 
 			//uint32_t - entity that has an parent, uint32_t - parent id
@@ -228,7 +251,7 @@ namespace Eagle
 			{
 				uint32_t id;
 				int parentID = -1;
-				Entity deserializedEntity = Serializer::DeserializeEntity(m_Scene, entityNode, collisionGroupValidMasks, &id, &parentID);
+				Entity deserializedEntity = Serializer::DeserializeEntity(scene, entityNode, collisionGroupValidMasks, &id, &parentID);
 
 				allEntities[id] = deserializedEntity;
 				if (parentID != -1)
@@ -240,31 +263,44 @@ namespace Eagle
 			for (const auto& element : childs)
 			{
 				Entity& parent = allEntities[element.second];
-				Entity child((entt::entity)element.first, m_Scene.get());
+				Entity child((entt::entity)element.first, scene.get());
 				child.SetParent(parent);
 			}
 		}
 
 		if (!navMeshEntityGUID.IsNull())
 		{
-			Entity entity = m_Scene->GetEntityByGUID(navMeshEntityGUID);
+			Entity entity = scene->GetEntityByGUID(navMeshEntityGUID);
 			EG_CORE_ASSERT(entity && entity.HasComponent<NavigationMeshComponent>());
-			m_Scene->BuildNavMesh(&entity.GetComponent<NavigationMeshComponent>());
+			scene->BuildNavMesh(&entity.GetComponent<NavigationMeshComponent>());
 		}
 
 		return true;
 	}
 
-	void SceneSerializer::SerializeSkybox(YAML::Emitter& out)
+	bool SceneSerializer::SerializeWithYaml(const Path& filepath, const std::string& yaml)
+	{
+		size_t totalSize = sizeof(AssetHeader);
+		const AssetHeader header = Utils::CreateHeader(yaml, &totalSize);
+		ScopedDataBuffer buffer(totalSize);
+
+		size_t offset = 0;
+		Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
+		Utils::WriteStringToBuffer(buffer, yaml.c_str(), yaml.size(), &offset);
+
+		return FileSystem::Write(filepath, buffer);
+	}
+
+	void SceneSerializer::SerializeSkybox(const Ref<Scene>& scene, YAML::Emitter& out)
 	{
 		out << YAML::Key << "Skybox" << YAML::BeginMap;
 		{
-			if (const Ref<AssetTextureCube>& ibl = m_Scene->GetSkybox())
+			if (const Ref<AssetTextureCube>& ibl = scene->GetSkybox())
 				out << YAML::Key << "IBL" << YAML::Value << ibl->GetGUID();
-			out << YAML::Key << "Intensity" << YAML::Value << m_Scene->GetSkyboxIntensity();
+			out << YAML::Key << "Intensity" << YAML::Value << scene->GetSkyboxIntensity();
 
 			{
-				const auto& sky = m_Scene->GetSkySettings();
+				const auto& sky = scene->GetSkySettings();
 				out << YAML::Key << "Sky" << YAML::BeginMap;
 				out << YAML::Key << "SunPos" << YAML::Value << sky.SunPos;
 				out << YAML::Key << "SkyIntensity" << YAML::Value << sky.SkyIntensity;
@@ -279,18 +315,13 @@ namespace Eagle
 				out << YAML::EndMap;
 			}
 		}
-		out << YAML::Key << "bUseSky" << YAML::Value << m_Scene->GetUseSkyAsBackground();
-		out << YAML::Key << "bRenderSkybox" << YAML::Value << m_Scene->IsRenderSkyboxEnabled();
-		out << YAML::Key << "bEnabled" << YAML::Value << m_Scene->IsSkyboxEnabled();
+		out << YAML::Key << "bUseSky" << YAML::Value << scene->GetUseSkyAsBackground();
+		out << YAML::Key << "bRenderSkybox" << YAML::Value << scene->IsRenderSkyboxEnabled();
+		out << YAML::Key << "bEnabled" << YAML::Value << scene->IsSkyboxEnabled();
 		out << YAML::EndMap;
 	}
 
-	void SceneSerializer::DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode, uint32_t collisionGroupValidMasks)
-	{
-
-	}
-
-	void SceneSerializer::DeserializeSkybox(YAML::Node& node)
+	void SceneSerializer::DeserializeSkybox(const Ref<Scene>& scene, YAML::Node& node)
 	{
 		auto skyboxNode = node["Skybox"];
 		if (!skyboxNode)
@@ -305,8 +336,8 @@ namespace Eagle
 		if (auto intensityNode = skyboxNode["Intensity"])
 			skyboxIntensity = intensityNode.as<float>();
 
-		m_Scene->SetSkybox(skybox);
-		m_Scene->SetSkyboxIntensity(skyboxIntensity);
+		scene->SetSkybox(skybox);
+		scene->SetSkyboxIntensity(skyboxIntensity);
 
 		SkySettings sky{};
 		if (auto skyNode = skyboxNode["Sky"])
@@ -322,17 +353,17 @@ namespace Eagle
 			sky.bEnableCirrusClouds = skyNode["bEnableCirrusClouds"].as<bool>();
 			sky.bEnableCumulusClouds = skyNode["bEnableCumulusClouds"].as<bool>();
 		}
-		m_Scene->SetSkybox(sky);
-		m_Scene->SetUseSkyAsBackground(skyboxNode["bUseSky"].as<bool>());
+		scene->SetSkybox(sky);
+		scene->SetUseSkyAsBackground(skyboxNode["bUseSky"].as<bool>());
 
 		bool bRenderSkybox = true;
 		if (auto node = skyboxNode["bRenderSkybox"])
 			bRenderSkybox = node.as<bool>();
-		m_Scene->SetRenderSkybox(bRenderSkybox);
+		scene->SetRenderSkybox(bRenderSkybox);
 
 		bool bSkyboxEnabled = true;
 		if (auto node = skyboxNode["bEnabled"])
 			bSkyboxEnabled = node.as<bool>();
-		m_Scene->SetSkyboxEnabled(bSkyboxEnabled);
+		scene->SetSkyboxEnabled(bSkyboxEnabled);
 	}
 }

@@ -60,6 +60,7 @@ namespace Eagle
 		bool PopLayer(const Ref<Layer>& layer);
 
 		void CallNextFrame(const std::function<void()>& func);
+		void CallNextFrame(std::function<void()>&& func);
 
 		Ref<ImGuiLayer>& GetImGuiLayer() { return m_ImGuiLayer; }
 

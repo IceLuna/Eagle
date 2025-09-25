@@ -121,10 +121,11 @@ namespace Eagle::Utils
 	}
 
 	template<typename Enum>
-	Enum GetEnumFromName(const std::string& name)
+	Enum GetEnumFromName(const std::string_view& name)
 	{
 		auto value = magic_enum::enum_cast<Enum>(name);
-		if (value.has_value()) {
+		if (value.has_value())
+		{
 			return value.value();
 		}
 

@@ -14,6 +14,8 @@
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Utils/Compressor.h"
 #include "Eagle/Utils/AssimpImporter.h"
+#include "Eagle/Utils/SerializerUtils.h"
+#include "Eagle/Utils/Timer.h"
 #include "Eagle/Core/Project.h"
 
 #include <stb_image.h>
@@ -385,129 +387,184 @@ namespace Eagle
 		}
 	}
 
-	void Serializer::SerializeAsset(YAML::Emitter& out, const Ref<Asset>& asset)
+	ScopedDataBuffer Serializer::SerializeAsset(const Ref<Asset>& asset)
 	{
 		switch (asset->GetAssetType())
 		{
 			case AssetType::Texture2D:
-				SerializeAssetTexture2D(out, Cast<AssetTexture2D>(asset));
-				break;
+				return SerializeAssetTexture2D(Cast<AssetTexture2D>(asset));
 			case AssetType::TextureCube:
-				SerializeAssetTextureCube(out, Cast<AssetTextureCube>(asset));
-				break;
+				return SerializeAssetTextureCube(Cast<AssetTextureCube>(asset));
 			case AssetType::StaticMesh:
-				SerializeAssetStaticMesh(out, Cast<AssetStaticMesh>(asset));
-				break;
+				return SerializeAssetStaticMesh(Cast<AssetStaticMesh>(asset));
 			case AssetType::SkeletalMesh:
-				SerializeAssetSkeletalMesh(out, Cast<AssetSkeletalMesh>(asset));
-				break;
+				return SerializeAssetSkeletalMesh(Cast<AssetSkeletalMesh>(asset));
 			case AssetType::Audio:
-				SerializeAssetAudio(out, Cast<AssetAudio>(asset));
-				break;
+				return SerializeAssetAudio(Cast<AssetAudio>(asset));
 			case AssetType::Font:
-				SerializeAssetFont(out, Cast<AssetFont>(asset));
-				break;
+				return SerializeAssetFont(Cast<AssetFont>(asset));
 			case AssetType::Material:
-				SerializeAssetMaterial(out, Cast<AssetMaterial>(asset));
-				break;
+				return SerializeAssetMaterial(Cast<AssetMaterial>(asset));
 			case AssetType::PhysicsMaterial:
-				SerializeAssetPhysicsMaterial(out, Cast<AssetPhysicsMaterial>(asset));
-				break;
+				return SerializeAssetPhysicsMaterial(Cast<AssetPhysicsMaterial>(asset));
 			case AssetType::SoundGroup:
-				SerializeAssetSoundGroup(out, Cast<AssetSoundGroup>(asset));
-				break;
+				return SerializeAssetSoundGroup(Cast<AssetSoundGroup>(asset));
 			case AssetType::Entity:
-				SerializeAssetEntity(out, Cast<AssetEntity>(asset));
-				break;
+				return SerializeAssetEntity(Cast<AssetEntity>(asset));
 			case AssetType::Animation:
-				SerializeAssetAnimation(out, Cast<AssetAnimation>(asset));
-				break;
+				return SerializeAssetAnimation(Cast<AssetAnimation>(asset));
 			case AssetType::AnimationGraph:
-				SerializeAssetAnimationGraph(out, Cast<AssetAnimationGraph>(asset));
-				break;
+				return SerializeAssetAnimationGraph(Cast<AssetAnimationGraph>(asset));
 			case AssetType::ParticleSystem:
-				SerializeAssetParticleSystem(out, Cast<AssetParticleSystem>(asset));
-				break;
+				return SerializeAssetParticleSystem(Cast<AssetParticleSystem>(asset));
 			case AssetType::AnimationBlendSpace:
-				SerializeAssetAnimationBlendSpace(out, Cast<AssetAnimationBlendSpace>(asset));
-				break;
+				return SerializeAssetAnimationBlendSpace(Cast<AssetAnimationBlendSpace>(asset));
 			default:
 				EG_CORE_ASSERT(false);
 				EG_CORE_ERROR("Failed to serialize an asset. Unknown asset.");
+				return {};
 		}
 	}
 
-	void Serializer::SerializeAssetTexture2D(YAML::Emitter& out, const Ref<AssetTexture2D>& asset)
+	ScopedDataBuffer Serializer::SerializeAssetTexture2DFromData(const DataBuffer& textureData, const DataBuffer& ktxData, const GUID& guid, const Path& pathToRaw,
+		FilterMode filterMode, AddressMode addressMode, float anisotropy, uint32_t mipsCount, uint32_t width, uint32_t height,
+		AssetTexture2DFormat format, bool bCompressed, bool bNormalMap, bool bNeedsAlpha)
 	{
-		const auto& texture = asset->GetTexture();
-		const ScopedDataBuffer& buffer = asset->GetRawData();
-		const size_t origDataSize = buffer.Size(); // Required for decompression
-		ScopedDataBuffer compressed(Compressor::Compress(buffer));
-		const bool bCompressed = asset->IsCompressed();
-		const ScopedDataBuffer& ktxData = asset->GetKTXData();
+		size_t totalSize = sizeof(AssetHeader);
 
+		const size_t origDataSize = textureData.Size; // Required for decompression
+		ScopedDataBuffer compressed(Compressor::Compress(textureData));
+
+		const size_t textureDataOffset = Utils::AddSize(compressed, &totalSize);
+		const size_t ktxTextureDataOffset = Utils::AddSize(ktxData, &totalSize);
+
+		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Texture2D);
-		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
-		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
-		out << YAML::Key << "FilterMode" << YAML::Value << Utils::GetEnumName(texture->GetFilterMode());
-		out << YAML::Key << "AddressMode" << YAML::Value << Utils::GetEnumName(texture->GetAddressMode());
-		out << YAML::Key << "Anisotropy" << YAML::Value << texture->GetAnisotropy();
-		out << YAML::Key << "MipsCount" << YAML::Value << texture->GetMipsCount();
-		out << YAML::Key << "Width" << YAML::Value << texture->GetWidth();
-		out << YAML::Key << "Height" << YAML::Value << texture->GetHeight();
-		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(asset->GetFormat());
+		out << YAML::Key << "GUID" << YAML::Value << guid;
+		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
+		out << YAML::Key << "FilterMode" << YAML::Value << Utils::GetEnumName(filterMode);
+		out << YAML::Key << "AddressMode" << YAML::Value << Utils::GetEnumName(addressMode);
+		out << YAML::Key << "Anisotropy" << YAML::Value << anisotropy;
+		out << YAML::Key << "MipsCount" << YAML::Value << mipsCount;
+		out << YAML::Key << "Width" << YAML::Value << width;
+		out << YAML::Key << "Height" << YAML::Value << height;
+		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(format);
 		out << YAML::Key << "IsCompressed" << YAML::Value << bCompressed;
-		out << YAML::Key << "IsNormalMap" << YAML::Value << asset->IsNormalMap();
-		out << YAML::Key << "NeedAlpha" << YAML::Value << asset->DoesNeedAlpha();
+		out << YAML::Key << "IsNormalMap" << YAML::Value << bNormalMap;
+		out << YAML::Key << "NeedAlpha" << YAML::Value << bNeedsAlpha;
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "Size" << YAML::Value << origDataSize;
-		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
+		out << YAML::Key << "OrigSize" << YAML::Value << origDataSize;
+		out << YAML::Key << "Size" << YAML::Value << compressed.Size();
+		out << YAML::Key << "Offset" << YAML::Value << textureDataOffset;
 		if (bCompressed)
-			out << YAML::Key << "KTXData" << YAML::Value << YAML::Binary((uint8_t*)ktxData.Data(), ktxData.Size());
+		{
+			out << YAML::Key << "KTXSize" << YAML::Value << ktxData.Size;
+			out << YAML::Key << "KTXOffset" << YAML::Value << ktxTextureDataOffset;
+		}
 		out << YAML::EndMap;
 
 		out << YAML::EndMap;
+
+		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		ScopedDataBuffer buffer(totalSize);
+
+		size_t offset = 0;
+		Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
+		Utils::WriteToBuffer(buffer, compressed, &offset);
+		Utils::WriteToBuffer(buffer, ktxData, &offset);
+		Utils::WriteYaml(buffer, out, &offset);
+
+		return buffer;
 	}
 
-	void Serializer::SerializeAssetTextureCube(YAML::Emitter& out, const Ref<AssetTextureCube>& asset)
+	ScopedDataBuffer Serializer::SerializeAssetTexture2D(const Ref<AssetTexture2D>& asset)
 	{
-		const auto& textureCube = asset->GetTexture();
-		const ScopedDataBuffer& buffer = asset->GetRawData();
-		const size_t origDataSize = buffer.Size(); // Required for decompression
-		ScopedDataBuffer compressed(Compressor::Compress(buffer));
+		const auto& texture = asset->GetTexture();
 
+		return SerializeAssetTexture2DFromData(asset->GetRawData().GetDataBuffer(), asset->GetKTXData().GetDataBuffer(), asset->GetGUID(), asset->GetPathToRaw(),
+			texture->GetFilterMode(), texture->GetAddressMode(), texture->GetAnisotropy(), texture->GetMipsCount(), texture->GetWidth(), texture->GetHeight(),
+			asset->GetFormat(), asset->IsCompressed(), asset->IsNormalMap(), asset->DoesNeedAlpha());
+	}
+
+	ScopedDataBuffer Serializer::SerializeAssetTextureCubeFromData(const DataBuffer& textureData, const GUID& guid, const Path& pathToRaw, AssetTextureCubeFormat format, uint32_t layerSize, uint32_t prefilterSize)
+	{
+		size_t totalSize = sizeof(AssetHeader);
+
+		const size_t origDataSize = textureData.Size; // Required for decompression
+		ScopedDataBuffer compressed(Compressor::Compress(textureData));
+
+		const size_t textureDataOffset = Utils::AddSize(compressed, &totalSize);
+
+		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::TextureCube);
-		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
-		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
-		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(asset->GetFormat());
-		out << YAML::Key << "LayerSize" << YAML::Value << textureCube->GetSize().x;
-		out << YAML::Key << "PrefilterSize" << YAML::Value << textureCube->GetPrefilterSize();
+		out << YAML::Key << "GUID" << YAML::Value << guid;
+		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
+		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(format);
+		out << YAML::Key << "LayerSize" << YAML::Value << layerSize;
+		out << YAML::Key << "PrefilterSize" << YAML::Value << prefilterSize;
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "Size" << YAML::Value << origDataSize;
-		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
+		out << YAML::Key << "OrigSize" << YAML::Value << origDataSize;
+		out << YAML::Key << "Size" << YAML::Value << compressed.Size();
+		out << YAML::Key << "Offset" << YAML::Value << textureDataOffset;
 		out << YAML::EndMap;
 
 		out << YAML::EndMap;
+
+		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		ScopedDataBuffer buffer(totalSize);
+
+		size_t offset = 0;
+		Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
+		Utils::WriteToBuffer(buffer, compressed, &offset);
+		Utils::WriteYaml(buffer, out, &offset);
+
+		return buffer;
 	}
 
-	void Serializer::SerializeAssetStaticMesh(YAML::Emitter& out, const Ref<AssetStaticMesh>& asset)
+	ScopedDataBuffer Serializer::SerializeAssetTextureCube(const Ref<AssetTextureCube>& asset)
 	{
-		const auto& mesh = asset->GetMesh();
+		const auto& textureCube = asset->GetTexture();
+		return SerializeAssetTextureCubeFromData(asset->GetRawData().GetDataBuffer(), asset->GetGUID(), asset->GetPathToRaw(),
+			asset->GetFormat(), textureCube->GetSize().x, textureCube->GetPrefilterSize());
+	}
+
+	ScopedDataBuffer Serializer::SerializeAssetStaticMeshFromMesh(const Ref<StaticMesh>& mesh, const GUID& guid, const Path& pathToRaw)
+	{
+		size_t totalSize = sizeof(AssetHeader);
+
 		DataBuffer verticesBuffer{ (void*)mesh->GetVerticesData(), mesh->GetVerticesCount() * sizeof(Vertex) };
 		const size_t origVerticesDataSize = verticesBuffer.Size; // Required for decompression
 		ScopedDataBuffer compressedVertices(Compressor::Compress(verticesBuffer));
 
+		const uint32_t materialSlots = mesh->GetMaterialSlotsCount();
+		std::vector<ScopedDataBuffer> compressedIndices(materialSlots);
+		std::vector<size_t> origIndicesDataSizes(materialSlots);
+		for (uint32_t i = 0; i < materialSlots; ++i)
+		{
+			DataBuffer indicesBuffer{ (void*)mesh->GetIndicesData(i), mesh->GetIndicesCount(i) * sizeof(Index) };
+			origIndicesDataSizes[i] = indicesBuffer.Size; // Required for decompression
+			compressedIndices[i] = Compressor::Compress(indicesBuffer);
+		}
+
+		const size_t verticesOffset = Utils::AddSize(compressedVertices, &totalSize);
+		std::vector<size_t> indicesOffsets(materialSlots);
+		for (uint32_t i = 0; i < materialSlots; ++i)
+		{
+			indicesOffsets[i] = Utils::AddSize(compressedIndices[i], &totalSize);
+		}
+
+		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::StaticMesh);
-		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
-		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
+		out << YAML::Key << "GUID" << YAML::Value << guid;
+		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
 
 		// AABB
 		{
@@ -518,20 +575,22 @@ namespace Eagle
 			out << YAML::EndMap;
 		}
 
-		if (const uint32_t materialsCount = mesh->GetMaterialSlotsCount())
+		if (const uint32_t materialSlots = mesh->GetMaterialSlotsCount())
 		{
 			bool bAnyValid = false;
-			for (uint32_t i = 0; i < materialsCount; ++i)
+			for (uint32_t i = 0; i < materialSlots; ++i)
+			{
 				if (const auto& materialAsset = mesh->GetMaterialAsset(i))
 				{
 					bAnyValid = true;
 					break;
 				}
+			}
 
 			if (bAnyValid)
 			{
 				out << YAML::Key << "Materials" << YAML::Value << YAML::BeginSeq;
-				for (uint32_t i = 0; i < materialsCount; ++i)
+				for (uint32_t i = 0; i < materialSlots; ++i)
 				{
 					if (const auto& materialAsset = mesh->GetMaterialAsset(i))
 					{
@@ -546,41 +605,76 @@ namespace Eagle
 		}
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "SizeVertices" << YAML::Value << origVerticesDataSize;
-		out << YAML::Key << "Vertices" << YAML::Value << YAML::Binary((uint8_t*)compressedVertices.Data(), compressedVertices.Size());
+		out << YAML::Key << "VerticesOrigSize" << YAML::Value << origVerticesDataSize;
+		out << YAML::Key << "VerticesSize" << YAML::Value << compressedVertices.Size();
+		out << YAML::Key << "VerticesOffset" << YAML::Value << verticesOffset;
 
 		// Indices per material
-		const uint32_t materialSlots = mesh->GetMaterialSlotsCount();
 		out << YAML::Key << "IndicesPerMaterial" << YAML::Value << YAML::BeginSeq;
 		for (uint32_t i = 0; i < materialSlots; ++i)
 		{
-			DataBuffer indicesBuffer{ (void*)mesh->GetIndicesData(i), mesh->GetIndicesCount(i) * sizeof(Index) };
-			const size_t origIndicesDataSize = indicesBuffer.Size; // Required for decompression
-			ScopedDataBuffer compressedIndices(Compressor::Compress(indicesBuffer));
-
 			out << YAML::BeginMap;
-			out << YAML::Key << "SizeIndices" << YAML::Value << origIndicesDataSize;
-			out << YAML::Key << "Indices" << YAML::Value << YAML::Binary((uint8_t*)compressedIndices.Data(), compressedIndices.Size());
+			out << YAML::Key << "IndicesOrigSize" << YAML::Value << origIndicesDataSizes[i];
+			out << YAML::Key << "IndicesSize" << YAML::Value << compressedIndices[i].Size();
+			out << YAML::Key << "IndicesOffset" << YAML::Value << indicesOffsets[i];
 			out << YAML::EndMap;
 		}
 		out << YAML::EndSeq;
 
 		out << YAML::EndMap;
 		out << YAML::EndMap;
+
+		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		ScopedDataBuffer buffer(totalSize);
+
+		size_t offset = 0;
+		Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
+		Utils::WriteToBuffer(buffer, compressedVertices, &offset);
+		for (uint32_t i = 0; i < materialSlots; ++i)
+		{
+			Utils::WriteToBuffer(buffer, compressedIndices[i], &offset);
+		}
+		Utils::WriteYaml(buffer, out, &offset);
+
+		return buffer;
 	}
 
-	void Serializer::SerializeAssetSkeletalMesh(YAML::Emitter& out, const Ref<AssetSkeletalMesh>& asset)
+	ScopedDataBuffer Serializer::SerializeAssetStaticMesh(const Ref<AssetStaticMesh>& asset)
 	{
-		const auto& mesh = asset->GetMesh();
+		return SerializeAssetStaticMeshFromMesh(asset->GetMesh(), asset->GetGUID(), asset->GetPathToRaw());
+	}
+
+	ScopedDataBuffer Serializer::SerializeAssetSkeletalMeshFromMesh(const Ref<SkeletalMesh>& mesh, const GUID& guid, const Path& pathToRaw)
+	{
+		size_t totalSize = sizeof(AssetHeader);
+
 		DataBuffer verticesBuffer{ (void*)mesh->GetVerticesData(), mesh->GetVerticesCount() * sizeof(SkeletalVertex) };
 		const size_t origVerticesDataSize = verticesBuffer.Size; // Required for decompression
 		ScopedDataBuffer compressedVertices(Compressor::Compress(verticesBuffer));
 
+		const uint32_t materialSlots = mesh->GetMaterialSlotsCount();
+		std::vector<ScopedDataBuffer> compressedIndices(materialSlots);
+		std::vector<size_t> origIndicesDataSizes(materialSlots);
+		for (uint32_t i = 0; i < materialSlots; ++i)
+		{
+			DataBuffer indicesBuffer{ (void*)mesh->GetIndicesData(i), mesh->GetIndicesCount(i) * sizeof(Index) };
+			origIndicesDataSizes[i] = indicesBuffer.Size; // Required for decompression
+			compressedIndices[i] = Compressor::Compress(indicesBuffer);
+		}
+
+		const size_t verticesOffset = Utils::AddSize(compressedVertices, &totalSize);
+		std::vector<size_t> indicesOffsets(materialSlots);
+		for (uint32_t i = 0; i < materialSlots; ++i)
+		{
+			indicesOffsets[i] = Utils::AddSize(compressedIndices[i], &totalSize);
+		}
+
+		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::SkeletalMesh);
-		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
-		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
+		out << YAML::Key << "GUID" << YAML::Value << guid;
+		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
 
 		// AABB
 		{
@@ -607,10 +701,10 @@ namespace Eagle
 			out << YAML::EndSeq;
 		}
 
-		if (const uint32_t materialsCount = mesh->GetMaterialSlotsCount())
+		if (materialSlots > 0)
 		{
 			bool bAnyValid = false;
-			for (uint32_t i = 0; i < materialsCount; ++i)
+			for (uint32_t i = 0; i < materialSlots; ++i)
 				if (const auto& materialAsset = mesh->GetMaterialAsset(i))
 				{
 					bAnyValid = true;
@@ -620,7 +714,7 @@ namespace Eagle
 			if (bAnyValid)
 			{
 				out << YAML::Key << "Materials" << YAML::Value << YAML::BeginSeq;
-				for (uint32_t i = 0; i < materialsCount; ++i)
+				for (uint32_t i = 0; i < materialSlots; ++i)
 				{
 					if (const auto& materialAsset = mesh->GetMaterialAsset(i))
 					{
@@ -662,369 +756,668 @@ namespace Eagle
 		}
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "SizeVertices" << YAML::Value << origVerticesDataSize;
-		out << YAML::Key << "Vertices" << YAML::Value << YAML::Binary((uint8_t*)compressedVertices.Data(), compressedVertices.Size());
+		out << YAML::Key << "VerticesOrigSize" << YAML::Value << origVerticesDataSize;
+		out << YAML::Key << "VerticesSize" << YAML::Value << compressedVertices.Size();
+		out << YAML::Key << "VerticesOffset" << YAML::Value << verticesOffset;
 
 		// Indices per material
-		const uint32_t materialSlots = mesh->GetMaterialSlotsCount();
 		out << YAML::Key << "IndicesPerMaterial" << YAML::Value << YAML::BeginSeq;
 		for (uint32_t i = 0; i < materialSlots; ++i)
 		{
-			DataBuffer indicesBuffer{ (void*)mesh->GetIndicesData(i), mesh->GetIndicesCount(i) * sizeof(Index) };
-			const size_t origIndicesDataSize = indicesBuffer.Size; // Required for decompression
-			ScopedDataBuffer compressedIndices(Compressor::Compress(indicesBuffer));
-
 			out << YAML::BeginMap;
-			out << YAML::Key << "SizeIndices" << YAML::Value << origIndicesDataSize;
-			out << YAML::Key << "Indices" << YAML::Value << YAML::Binary((uint8_t*)compressedIndices.Data(), compressedIndices.Size());
+			out << YAML::Key << "IndicesOrigSize" << YAML::Value << origIndicesDataSizes[i];
+			out << YAML::Key << "IndicesSize" << YAML::Value << compressedIndices[i].Size();
+			out << YAML::Key << "IndicesOffset" << YAML::Value << indicesOffsets[i];
 			out << YAML::EndMap;
 		}
 		out << YAML::EndSeq;
 
 		out << YAML::EndMap;
-
 		out << YAML::EndMap;
+
+		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		ScopedDataBuffer buffer(totalSize);
+
+		size_t offset = 0;
+		Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
+		Utils::WriteToBuffer(buffer, compressedVertices, &offset);
+		for (uint32_t i = 0; i < materialSlots; ++i)
+		{
+			Utils::WriteToBuffer(buffer, compressedIndices[i], &offset);
+		}
+		Utils::WriteYaml(buffer, out, &offset);
+
+		return buffer;
 	}
 
-	void Serializer::SerializeAssetAudio(YAML::Emitter& out, const Ref<AssetAudio>& asset)
+	ScopedDataBuffer Serializer::SerializeAssetSkeletalMesh(const Ref<AssetSkeletalMesh>& asset)
 	{
-		const ScopedDataBuffer& buffer = asset->GetRawData();
-		const size_t origDataSize = buffer.Size(); // Required for decompression
-		ScopedDataBuffer compressed(Compressor::Compress(buffer));
+		return SerializeAssetSkeletalMeshFromMesh(asset->GetMesh(), asset->GetGUID(), asset->GetPathToRaw());
+	}
 
+	ScopedDataBuffer Serializer::SerializeAssetAudioFromData(const DataBuffer& audioData, const GUID& guid, const Path& pathToRaw,
+		float volume, float pitch, float pan, const Ref<AssetSoundGroup>& soundGroup)
+	{
+		size_t totalSize = sizeof(AssetHeader);
+
+		const size_t origDataSize = audioData.Size; // Required for decompression
+		ScopedDataBuffer compressed(Compressor::Compress(audioData));
+
+		const size_t dataOffset = Utils::AddSize(compressed, &totalSize);
+
+		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Audio);
-		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
-		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
-		out << YAML::Key << "Volume" << YAML::Value << asset->GetAudio()->GetVolume();
-		out << YAML::Key << "Pitch" << YAML::Value << asset->GetAudio()->GetPitch();
-		out << YAML::Key << "Pan" << YAML::Value << asset->GetAudio()->GetPan();
-		if (const auto& soundGroup = asset->GetSoundGroupAsset())
+		out << YAML::Key << "GUID" << YAML::Value << guid;
+		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
+		out << YAML::Key << "Volume" << YAML::Value << volume;
+		out << YAML::Key << "Pitch" << YAML::Value << pitch;
+		out << YAML::Key << "Pan" << YAML::Value << pan;
+		if (soundGroup)
 			out << YAML::Key << "SoundGroup" << YAML::Value << soundGroup->GetGUID();
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "Size" << YAML::Value << origDataSize;
-		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
+		out << YAML::Key << "OrigSize" << YAML::Value << origDataSize;
+		out << YAML::Key << "Size" << YAML::Value << compressed.Size();
+		out << YAML::Key << "Offset" << YAML::Value << dataOffset;
 		out << YAML::EndMap;
 
 		out << YAML::EndMap;
+
+		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		ScopedDataBuffer buffer(totalSize);
+
+		size_t offset = 0;
+		Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
+		Utils::WriteToBuffer(buffer, compressed, &offset);
+		Utils::WriteYaml(buffer, out, &offset);
+
+		return buffer;
 	}
 
-	void Serializer::SerializeAssetFont(YAML::Emitter& out, const Ref<AssetFont>& asset)
+	ScopedDataBuffer Serializer::SerializeAssetAudio(const Ref<AssetAudio>& asset)
 	{
-		const ScopedDataBuffer& buffer = asset->GetRawData();
-		const size_t origDataSize = buffer.Size(); // Required for decompression
-		ScopedDataBuffer compressed(Compressor::Compress(buffer));
+		const auto& audio = asset->GetAudio();
+		return SerializeAssetAudioFromData(asset->GetRawData().GetDataBuffer(), asset->GetGUID(), asset->GetPathToRaw(),
+			audio->GetVolume(), audio->GetPitch(), audio->GetPan(), asset->GetSoundGroupAsset());
+	}
 
+	ScopedDataBuffer Serializer::SerializeAssetFontFromData(const DataBuffer& fontData, const GUID& guid, const Path& pathToRaw)
+	{
+		size_t totalSize = sizeof(AssetHeader);
+
+		const size_t origDataSize = fontData.Size; // Required for decompression
+		ScopedDataBuffer compressed(Compressor::Compress(fontData));
+
+		const size_t dataOffset = Utils::AddSize(compressed, &totalSize);
+
+		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Font);
-		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
-		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
+		out << YAML::Key << "GUID" << YAML::Value << guid;
+		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "Size" << YAML::Value << origDataSize;
-		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
+		out << YAML::Key << "OrigSize" << YAML::Value << origDataSize;
+		out << YAML::Key << "Size" << YAML::Value << compressed.Size();
+		out << YAML::Key << "Offset" << YAML::Value << dataOffset;
 		out << YAML::EndMap;
 
 		out << YAML::EndMap;
+
+		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		ScopedDataBuffer buffer(totalSize);
+
+		size_t offset = 0;
+		Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
+		Utils::WriteToBuffer(buffer, compressed, &offset);
+		Utils::WriteYaml(buffer, out, &offset);
+
+		return buffer;
 	}
 
-	void Serializer::SerializeAssetMaterial(YAML::Emitter& out, const Ref<AssetMaterial>& asset)
+	ScopedDataBuffer Serializer::SerializeAssetFont(const Ref<AssetFont>& asset)
 	{
-		const auto& material = asset->GetMaterial();
+		return SerializeAssetFontFromData(asset->GetRawData().GetDataBuffer(), asset->GetGUID(), asset->GetPathToRaw());
+	}
 
+	ScopedDataBuffer Serializer::SerializeAssetMaterial(const Ref<AssetMaterial>& asset)
+	{
+		size_t totalSize = sizeof(AssetHeader);
+
+		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Material);
-		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
+		out << YAML::Key << "GUID" << YAML::Value << (asset ? asset->GetGUID() : GUID{});
+		
+		if (asset)
+		{
+			const auto& material = asset->GetMaterial();
+			if (const auto& textureAsset = material->GetAlbedoAsset())
+				out << YAML::Key << "AlbedoTexture" << YAML::Value << textureAsset->GetGUID();
+			out << YAML::Key << "Albedo" << YAML::Value << material->GetAlbedo();
+			out << YAML::Key << "IsRawAlbedoUsed" << YAML::Value << material->IsRawAlbedoUsed();
 
-		if (const auto& textureAsset = material->GetAlbedoAsset())
-			out << YAML::Key << "AlbedoTexture" << YAML::Value << textureAsset->GetGUID();
-		out << YAML::Key << "Albedo" << YAML::Value << material->GetAlbedo();
-		out << YAML::Key << "IsRawAlbedoUsed" << YAML::Value << material->IsRawAlbedoUsed();
+			if (const auto& textureAsset = material->GetMetalnessAsset())
+				out << YAML::Key << "MetalnessTexture" << YAML::Value << textureAsset->GetGUID();
+			out << YAML::Key << "Metalness" << YAML::Value << material->GetMetalness();
+			out << YAML::Key << "IsRawMetalnessUsed" << YAML::Value << material->IsRawMetalnessUsed();
+			out << YAML::Key << "MetalnessTextureChannel" << YAML::Value << Utils::GetEnumName(material->GetMetalnessTextureChannel());
 
-		if (const auto& textureAsset = material->GetMetalnessAsset())
-			out << YAML::Key << "MetalnessTexture" << YAML::Value << textureAsset->GetGUID();
-		out << YAML::Key << "Metalness" << YAML::Value << material->GetMetalness();
-		out << YAML::Key << "IsRawMetalnessUsed" << YAML::Value << material->IsRawMetalnessUsed();
-		out << YAML::Key << "MetalnessTextureChannel" << YAML::Value << Utils::GetEnumName(material->GetMetalnessTextureChannel());
+			if (const auto& textureAsset = material->GetNormalAsset())
+				out << YAML::Key << "NormalTexture" << YAML::Value << textureAsset->GetGUID();
 
-		if (const auto& textureAsset = material->GetNormalAsset())
-			out << YAML::Key << "NormalTexture" << YAML::Value << textureAsset->GetGUID();
+			if (const auto& textureAsset = material->GetRoughnessAsset())
+				out << YAML::Key << "RoughnessTexture" << YAML::Value << textureAsset->GetGUID();
+			out << YAML::Key << "Roughness" << YAML::Value << material->GetRoughness();
+			out << YAML::Key << "IsRawRoughnessUsed" << YAML::Value << material->IsRawRoughnessUsed();
+			out << YAML::Key << "RoughnessTextureChannel" << YAML::Value << Utils::GetEnumName(material->GetRoughnessTextureChannel());
 
-		if (const auto& textureAsset = material->GetRoughnessAsset())
-			out << YAML::Key << "RoughnessTexture" << YAML::Value << textureAsset->GetGUID();
-		out << YAML::Key << "Roughness" << YAML::Value << material->GetRoughness();
-		out << YAML::Key << "IsRawRoughnessUsed" << YAML::Value << material->IsRawRoughnessUsed();
-		out << YAML::Key << "RoughnessTextureChannel" << YAML::Value << Utils::GetEnumName(material->GetRoughnessTextureChannel());
+			if (const auto& textureAsset = material->GetAOAsset())
+				out << YAML::Key << "AOTexture" << YAML::Value << textureAsset->GetGUID();
+			out << YAML::Key << "AO" << YAML::Value << material->GetAO();
+			out << YAML::Key << "IsRawAOUsed" << YAML::Value << material->IsRawAOUsed();
+			out << YAML::Key << "AOTextureChannel" << YAML::Value << Utils::GetEnumName(material->GetAOTextureChannel());
 
-		if (const auto& textureAsset = material->GetAOAsset())
-			out << YAML::Key << "AOTexture" << YAML::Value << textureAsset->GetGUID();
-		out << YAML::Key << "AO" << YAML::Value << material->GetAO();
-		out << YAML::Key << "IsRawAOUsed" << YAML::Value << material->IsRawAOUsed();
-		out << YAML::Key << "AOTextureChannel" << YAML::Value << Utils::GetEnumName(material->GetAOTextureChannel());
+			if (const auto& textureAsset = material->GetEmissiveAsset())
+				out << YAML::Key << "EmissiveTexture" << YAML::Value << textureAsset->GetGUID();
+			out << YAML::Key << "Emissive" << YAML::Value << material->GetEmissive();
+			out << YAML::Key << "IsRawEmissiveUsed" << YAML::Value << material->IsRawEmissiveUsed();
 
-		if (const auto& textureAsset = material->GetEmissiveAsset())
-			out << YAML::Key << "EmissiveTexture" << YAML::Value << textureAsset->GetGUID();
-		out << YAML::Key << "Emissive" << YAML::Value << material->GetEmissive();
-		out << YAML::Key << "IsRawEmissiveUsed" << YAML::Value << material->IsRawEmissiveUsed();
+			if (const auto& textureAsset = material->GetOpacityAsset())
+				out << YAML::Key << "OpacityTexture" << YAML::Value << textureAsset->GetGUID();
+			out << YAML::Key << "Opacity" << YAML::Value << material->GetOpacity();
+			out << YAML::Key << "IsRawOpacityUsed" << YAML::Value << material->IsRawOpacityUsed();
+			out << YAML::Key << "OpacityTextureChannel" << YAML::Value << Utils::GetEnumName(material->GetOpacityTextureChannel());
 
-		if (const auto& textureAsset = material->GetOpacityAsset())
-			out << YAML::Key << "OpacityTexture" << YAML::Value << textureAsset->GetGUID();
-		out << YAML::Key << "Opacity" << YAML::Value << material->GetOpacity();
-		out << YAML::Key << "IsRawOpacityUsed" << YAML::Value << material->IsRawOpacityUsed();
-		out << YAML::Key << "OpacityTextureChannel" << YAML::Value << Utils::GetEnumName(material->GetOpacityTextureChannel());
+			if (const auto& textureAsset = material->GetOpacityMaskAsset())
+				out << YAML::Key << "OpacityMaskTexture" << YAML::Value << textureAsset->GetGUID();
+			out << YAML::Key << "OpacityMask" << YAML::Value << material->GetOpacityMask();
+			out << YAML::Key << "IsRawOpacityMaskUsed" << YAML::Value << material->IsRawOpacityMaskUsed();
+			out << YAML::Key << "OpacityMaskTextureChannel" << YAML::Value << Utils::GetEnumName(material->GetOpacityMaskTextureChannel());
 
-		if (const auto& textureAsset = material->GetOpacityMaskAsset())
-			out << YAML::Key << "OpacityMaskTexture" << YAML::Value << textureAsset->GetGUID();
-		out << YAML::Key << "OpacityMask" << YAML::Value << material->GetOpacityMask();
-		out << YAML::Key << "IsRawOpacityMaskUsed" << YAML::Value << material->IsRawOpacityMaskUsed();
-		out << YAML::Key << "OpacityMaskTextureChannel" << YAML::Value << Utils::GetEnumName(material->GetOpacityMaskTextureChannel());
-
-		out << YAML::Key << "TintColor" << YAML::Value << material->GetTintColor();
-		out << YAML::Key << "EmissiveIntensity" << YAML::Value << material->GetEmissiveIntensity();
-		out << YAML::Key << "TilingFactor" << YAML::Value << material->GetTilingFactor();
-		out << YAML::Key << "BlendMode" << YAML::Value << Utils::GetEnumName(material->GetBlendMode());
+			out << YAML::Key << "TintColor" << YAML::Value << material->GetTintColor();
+			out << YAML::Key << "EmissiveIntensity" << YAML::Value << material->GetEmissiveIntensity();
+			out << YAML::Key << "TilingFactor" << YAML::Value << material->GetTilingFactor();
+			out << YAML::Key << "BlendMode" << YAML::Value << Utils::GetEnumName(material->GetBlendMode());
+		}
+		
 		out << YAML::EndMap;
+
+		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		ScopedDataBuffer buffer(totalSize);
+
+		size_t offset = 0;
+		Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
+		Utils::WriteYaml(buffer, out, &offset);
+
+		return buffer;
 	}
 
-	void Serializer::SerializeAssetPhysicsMaterial(YAML::Emitter& out, const Ref<AssetPhysicsMaterial>& asset)
+	ScopedDataBuffer Serializer::SerializeAssetPhysicsMaterial(const Ref<AssetPhysicsMaterial>& asset)
 	{
-		const auto& material = asset->GetMaterial();
+		size_t totalSize = sizeof(AssetHeader);
 
+		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::PhysicsMaterial);
-		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
+		out << YAML::Key << "GUID" << YAML::Value << (asset ? asset->GetGUID() : GUID{});
 
-		out << YAML::Key << "StaticFriction" << YAML::Value << material->GetStaticFriction();
-		out << YAML::Key << "DynamicFriction" << YAML::Value << material->GetDynamicFriction();
-		out << YAML::Key << "Bounciness" << YAML::Value << material->GetBounciness();
+		if (asset)
+		{
+			const auto& material = asset->GetMaterial();
+			out << YAML::Key << "StaticFriction" << YAML::Value << material->GetStaticFriction();
+			out << YAML::Key << "DynamicFriction" << YAML::Value << material->GetDynamicFriction();
+			out << YAML::Key << "Bounciness" << YAML::Value << material->GetBounciness();
+		}
 
 		out << YAML::EndMap;
+
+		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		ScopedDataBuffer buffer(totalSize);
+
+		size_t offset = 0;
+		Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
+		Utils::WriteYaml(buffer, out, &offset);
+
+		return buffer;
 	}
 
-	void Serializer::SerializeAssetSoundGroup(YAML::Emitter& out, const Ref<AssetSoundGroup>& asset)
+	ScopedDataBuffer Serializer::SerializeAssetSoundGroup(const Ref<AssetSoundGroup>& asset)
 	{
-		const auto& soundGroup = asset->GetSoundGroup();
+		size_t totalSize = sizeof(AssetHeader);
 
+		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::SoundGroup);
-		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
+		out << YAML::Key << "GUID" << YAML::Value << (asset ? asset->GetGUID() : GUID{});
 
-		out << YAML::Key << "Volume" << YAML::Value << soundGroup->GetVolume();
-		out << YAML::Key << "Pitch" << YAML::Value << soundGroup->GetPitch();
-		out << YAML::Key << "IsPaused" << YAML::Value << soundGroup->IsPaused();
-		out << YAML::Key << "IsMuted" << YAML::Value << soundGroup->IsMuted();
+		if (asset)
+		{
+			const auto& soundGroup = asset->GetSoundGroup();
+			out << YAML::Key << "Volume" << YAML::Value << soundGroup->GetVolume();
+			out << YAML::Key << "Pitch" << YAML::Value << soundGroup->GetPitch();
+			out << YAML::Key << "IsPaused" << YAML::Value << soundGroup->IsPaused();
+			out << YAML::Key << "IsMuted" << YAML::Value << soundGroup->IsMuted();
+		}
+		else
+		{
+			out << YAML::Key << "Volume" << YAML::Value << 1.f;
+			out << YAML::Key << "Pitch" << YAML::Value << 1.f;
+			out << YAML::Key << "IsPaused" << YAML::Value << false;
+			out << YAML::Key << "IsMuted" << YAML::Value << false;
+		}
 
 		out << YAML::EndMap;
+
+		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		ScopedDataBuffer buffer(totalSize);
+
+		size_t offset = 0;
+		Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
+		Utils::WriteYaml(buffer, out, &offset);
+
+		return buffer;
 	}
 
-	void Serializer::SerializeAssetEntity(YAML::Emitter& out, const Ref<AssetEntity>& asset)
+	ScopedDataBuffer Serializer::SerializeAssetEntity(const Ref<AssetEntity>& asset)
 	{
-		Entity rootEntity = *asset->GetEntity().get();
+		size_t totalSize = sizeof(AssetHeader);
 
+		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Entity);
-		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
+		out << YAML::Key << "GUID" << YAML::Value << (asset ? asset->GetGUID() : GUID{});
 
 		Serializer::SerializeProjectCollisionGroupGUIDs(out);
 
-		std::vector<Entity> entities;
-		entities.reserve(10);
-		GetAllEntities(rootEntity, &entities);
-
-		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
-		for (const auto& entity : entities)
+		if (asset)
 		{
-			Serializer::SerializeEntity(out, entity);
-		}
-		out << YAML::EndSeq;
+			Entity rootEntity = *asset->GetEntity().get();
+			std::vector<Entity> entities;
+			entities.reserve(10);
+			GetAllEntities(rootEntity, &entities);
 
-		out << YAML::EndMap;
-	}
-
-	void Serializer::SerializeAssetAnimation(YAML::Emitter& out, const Ref<AssetAnimation>& asset)
-	{
-		out << YAML::BeginMap;
-		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(asset->GetAssetType());
-		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
-		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
-		out << YAML::Key << "Index" << YAML::Value << asset->GetAnimationIndex();
-		out << YAML::Key << "Skeletal" << YAML::Value << asset->GetSkeletal()->GetGUID();
-		Serializer::SerializeAnimation(out, *asset->GetAnimation().get());
-		out << YAML::EndMap;
-	}
-
-	void Serializer::SerializeAssetAnimationGraph(YAML::Emitter& out, const Ref<AssetAnimationGraph>& asset)
-	{
-		const auto& graph = asset->GetGraph();
-
-		out << YAML::BeginMap;
-		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::AnimationGraph);
-		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
-
-		if (const auto& asset = graph->GetSkeletalAsset())
-			out << YAML::Key << "SkeletalMesh" << YAML::Value << asset->GetGUID();
-
-		const auto& editorGraphData = asset->GetSerializationData();
-
-		// Variables
-		{
-			out << YAML::Key << "Variables" << YAML::Value << YAML::BeginSeq;
-
-			for (const auto& var : editorGraphData.Variables)
+			out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
+			for (const auto& entity : entities)
 			{
-				out << YAML::BeginMap;
-				out << YAML::Key << "Name" << YAML::Value << var.Name;
-				SerializeGraphVar(out, var.Value);
-
-				out << YAML::EndMap;
+				Serializer::SerializeEntity(out, entity);
 			}
-
 			out << YAML::EndSeq;
 		}
 
-		out << YAML::Key << "Graph" << YAML::Value << YAML::BeginMap;
-		SerializeGraph(out, editorGraphData.Graph);
 		out << YAML::EndMap;
 
-		out << YAML::EndMap;
+		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		ScopedDataBuffer buffer(totalSize);
+
+		size_t offset = 0;
+		Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
+		Utils::WriteYaml(buffer, out, &offset);
+
+		return buffer;
 	}
 
-	void Serializer::SerializeAssetParticleSystem(YAML::Emitter& out, const Ref<AssetParticleSystem>& asset)
+	ScopedDataBuffer Serializer::SerializeAssetAnimationFromData(const GUID& guid, const Path& pathToRaw, uint32_t animIndex, const SkeletalMeshAnimation& anim, const Ref<AssetSkeletalMesh>& skeletal)
 	{
-		const auto& emitters = asset->GetEmitters();
+		size_t totalSize = sizeof(AssetHeader);
 
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Animation);
+		out << YAML::Key << "GUID" << YAML::Value << guid;
+		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
+		out << YAML::Key << "Index" << YAML::Value << animIndex;
+		out << YAML::Key << "Skeletal" << YAML::Value << skeletal->GetGUID();
+
+		const auto& bones = anim.Bones;
+		const bool bHasRootMotion = anim.HasRootMotion();
+
+		// Serialize animation
+		ScopedDataBuffer bonesBinary;
+		size_t bonesOffset = 0;
+		{
+			out << YAML::Key << "Animation" << YAML::Value << YAML::BeginMap;
+
+			out << YAML::Key << "Duration" << YAML::Value << anim.Duration;
+			out << YAML::Key << "TicksPerSecond" << YAML::Value << anim.TicksPerSecond;
+			out << YAML::Key << "bInPlace" << YAML::Value << anim.bInPlace;
+
+			if (bHasRootMotion)
+			{
+				out << YAML::Key << "RootMotion";
+				{
+					const size_t rmLocationOffset = Utils::AddSize(anim.RootMotion.Locations, &totalSize);
+					const size_t rmRotationOffset = Utils::AddSize(anim.RootMotion.Rotations, &totalSize);
+					const size_t rmScaleOffset = Utils::AddSize(anim.RootMotion.Scales, &totalSize);
+
+					out << YAML::Value;
+					out << YAML::BeginMap;
+
+					out << YAML::Key << "LocationsSize" << YAML::Value << anim.RootMotion.Locations.size() * sizeof(KeyPosition);
+					out << YAML::Key << "LocationsOffset" << YAML::Value << rmLocationOffset;
+
+					out << YAML::Key << "RotationsSize" << YAML::Value << anim.RootMotion.Rotations.size() * sizeof(KeyRotation);
+					out << YAML::Key << "RotationsOffset" << YAML::Value << rmRotationOffset;
+
+					out << YAML::Key << "ScalesSize" << YAML::Value << anim.RootMotion.Scales.size() * sizeof(KeyScale);
+					out << YAML::Key << "ScalesOffset" << YAML::Value << rmScaleOffset;
+
+					out << YAML::EndMap;
+				}
+			}
+
+			// Events
+			if (anim.Events.size() > 0)
+			{
+				out << YAML::Key << "Events" << YAML::Value << YAML::BeginSeq;
+
+				for (const auto& event : anim.Events)
+				{
+					out << YAML::BeginMap;
+
+					out << YAML::Key << "Name" << YAML::Value << event.Name;
+					out << YAML::Key << "Time" << YAML::Value << event.Time;
+
+					out << YAML::EndMap;
+				}
+
+				out << YAML::EndSeq;
+			}
+
+			{
+				size_t bonesSize = 0;
+				for (const auto& [name, data] : bones)
+				{
+					Utils::AddSize(sizeof(size_t), &bonesSize); // Name size
+					Utils::AddSize(name, &bonesSize); // Name
+
+					Utils::AddSize(sizeof(size_t), &bonesSize); // Keys size
+					Utils::AddSize(data.Locations.size() * sizeof(KeyPosition), &bonesSize);
+
+					Utils::AddSize(sizeof(size_t), &bonesSize); // Keys size
+					Utils::AddSize(data.Rotations.size() * sizeof(KeyRotation), &bonesSize);
+
+					Utils::AddSize(sizeof(size_t), &bonesSize); // Keys size
+					Utils::AddSize(data.Scales.size() * sizeof(KeyScale), &bonesSize);
+
+					Utils::AddSize(sizeof(uint32_t), &bonesSize); // BoneID
+				}
+
+				size_t offset = 0;
+				bonesBinary.Allocate(bonesSize);
+				for (const auto& [name, data] : bones)
+				{
+					Utils::WriteToBuffer(bonesBinary, name.size() + 1, &offset);
+					Utils::WriteStringToBuffer(bonesBinary, name, &offset);
+
+					Utils::WriteToBuffer(bonesBinary, data.Locations.size() * sizeof(KeyPosition), &offset);
+					Utils::WriteToBuffer(bonesBinary, data.Locations, &offset);
+
+					Utils::WriteToBuffer(bonesBinary, data.Rotations.size() * sizeof(KeyRotation), &offset);
+					Utils::WriteToBuffer(bonesBinary, data.Rotations, &offset);
+
+					Utils::WriteToBuffer(bonesBinary, data.Scales.size() * sizeof(KeyScale), &offset);
+					Utils::WriteToBuffer(bonesBinary, data.Scales, &offset);
+
+					Utils::WriteToBuffer(bonesBinary, data.BoneID, &offset);
+				}
+				EG_CORE_ASSERT(offset == bonesSize);
+
+				bonesOffset = Utils::AddSize(bonesBinary, &totalSize);
+			}
+
+			out << YAML::Key << "BonesSize" << YAML::Value << bonesBinary.Size();
+			out << YAML::Key << "BonesOffset" << YAML::Value << bonesOffset;
+
+			out << YAML::EndMap;
+		}
+
+		out << YAML::EndMap;
+
+		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		ScopedDataBuffer buffer(totalSize);
+
+		size_t offset = 0;
+		Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
+		if (bHasRootMotion)
+		{
+			Utils::WriteToBuffer(buffer, anim.RootMotion.Locations, &offset);
+			Utils::WriteToBuffer(buffer, anim.RootMotion.Rotations, &offset);
+			Utils::WriteToBuffer(buffer, anim.RootMotion.Scales, &offset);
+		}
+		Utils::WriteToBuffer(buffer, bonesBinary, &offset);
+
+		Utils::WriteYaml(buffer, out, &offset);
+
+		return buffer;
+	}
+
+	ScopedDataBuffer Serializer::SerializeAssetAnimation(const Ref<AssetAnimation>& asset)
+	{
+		return SerializeAssetAnimationFromData(asset->GetGUID(), asset->GetPathToRaw(), asset->GetAnimationIndex(), *asset->GetAnimation().get(), asset->GetSkeletal());
+	}
+
+	ScopedDataBuffer Serializer::SerializeAssetAnimationGraph(const Ref<AssetAnimationGraph>& asset, const Ref<AssetSkeletalMesh>& meshAsset)
+	{
+		size_t totalSize = sizeof(AssetHeader);
+
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::AnimationGraph);
+		out << YAML::Key << "GUID" << YAML::Value << (asset ? asset->GetGUID() : GUID{});
+		if (!asset)
+			out << YAML::Key << "SkeletalMesh" << YAML::Value << meshAsset->GetGUID();
+
+		if (asset)
+		{
+			const auto& graph = asset->GetGraph();
+
+			if (const auto& asset = graph->GetSkeletalAsset())
+				out << YAML::Key << "SkeletalMesh" << YAML::Value << asset->GetGUID();
+
+			const auto& editorGraphData = asset->GetSerializationData();
+
+			// Variables
+			{
+				out << YAML::Key << "Variables" << YAML::Value << YAML::BeginSeq;
+
+				for (const auto& var : editorGraphData.Variables)
+				{
+					out << YAML::BeginMap;
+					out << YAML::Key << "Name" << YAML::Value << var.Name;
+					SerializeGraphVar(out, var.Value);
+
+					out << YAML::EndMap;
+				}
+
+				out << YAML::EndSeq;
+			}
+
+			out << YAML::Key << "Graph" << YAML::Value << YAML::BeginMap;
+			SerializeGraph(out, editorGraphData.Graph);
+			out << YAML::EndMap;
+		}
+
+		out << YAML::EndMap;
+
+		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		ScopedDataBuffer buffer(totalSize);
+
+		size_t offset = 0;
+		Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
+		Utils::WriteYaml(buffer, out, &offset);
+
+		return buffer;
+	}
+
+	ScopedDataBuffer Serializer::SerializeAssetParticleSystem(const Ref<AssetParticleSystem>& asset)
+	{
+		size_t totalSize = sizeof(AssetHeader);
+
+		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::ParticleSystem);
-		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
+		out << YAML::Key << "GUID" << YAML::Value << (asset ? asset->GetGUID() : GUID{});
 
-		out << YAML::Key << "Emitters";
-		out << YAML::BeginSeq;
-		for (const auto& emitter : emitters)
+		if (asset)
 		{
-			out << YAML::BeginMap;
-			out << YAML::Key << "Name" << YAML::Value << emitter.Name;
-			if (const auto& asset = emitter.Texture)
-				out << YAML::Key << "Texture" << YAML::Value << asset->GetGUID();
-			out << YAML::Key << "ColorStart" << YAML::Value << emitter.ColorStart;
-			out << YAML::Key << "ColorEnd" << YAML::Value << emitter.ColorEnd;
+			out << YAML::Key << "Emitters";
+			out << YAML::BeginSeq;
+			const auto& emitters = asset->GetEmitters();
+			for (const auto& emitter : emitters)
+			{
+				out << YAML::BeginMap;
+				out << YAML::Key << "Name" << YAML::Value << emitter.Name;
+				if (const auto& asset = emitter.Texture)
+					out << YAML::Key << "Texture" << YAML::Value << asset->GetGUID();
+				out << YAML::Key << "ColorStart" << YAML::Value << emitter.ColorStart;
+				out << YAML::Key << "ColorEnd" << YAML::Value << emitter.ColorEnd;
 
-			out << YAML::Key << "VelocityMin" << YAML::Value << emitter.VelocityMin;
-			out << YAML::Key << "VelocityMax" << YAML::Value << emitter.VelocityMax;
+				out << YAML::Key << "VelocityMin" << YAML::Value << emitter.VelocityMin;
+				out << YAML::Key << "VelocityMax" << YAML::Value << emitter.VelocityMax;
 
-			out << YAML::Key << "VelocityCoefStart" << YAML::Value << emitter.VelocityCoefStart;
-			out << YAML::Key << "VelocityCoefEnd" << YAML::Value << emitter.VelocityCoefEnd;
+				out << YAML::Key << "VelocityCoefStart" << YAML::Value << emitter.VelocityCoefStart;
+				out << YAML::Key << "VelocityCoefEnd" << YAML::Value << emitter.VelocityCoefEnd;
 
-			out << YAML::Key << "RotationZStart" << YAML::Value << emitter.RotationZStart;
-			out << YAML::Key << "RotationZEnd" << YAML::Value << emitter.RotationZEnd;
+				out << YAML::Key << "RotationZStart" << YAML::Value << emitter.RotationZStart;
+				out << YAML::Key << "RotationZEnd" << YAML::Value << emitter.RotationZEnd;
 
-			out << YAML::Key << "SizeStart" << YAML::Value << emitter.SizeStart;
-			out << YAML::Key << "SizeEnd" << YAML::Value << emitter.SizeEnd;
-			out << YAML::Key << "ColliderSizeRatio" << YAML::Value << emitter.ColliderSizeRatio;
+				out << YAML::Key << "SizeStart" << YAML::Value << emitter.SizeStart;
+				out << YAML::Key << "SizeEnd" << YAML::Value << emitter.SizeEnd;
+				out << YAML::Key << "ColliderSizeRatio" << YAML::Value << emitter.ColliderSizeRatio;
 
-			out << YAML::Key << "LifetimeMin" << YAML::Value << emitter.LifetimeMin;
-			out << YAML::Key << "LifetimeMax" << YAML::Value << emitter.LifetimeMax;
+				out << YAML::Key << "LifetimeMin" << YAML::Value << emitter.LifetimeMin;
+				out << YAML::Key << "LifetimeMax" << YAML::Value << emitter.LifetimeMax;
 
-			out << YAML::Key << "BouncinessMin" << YAML::Value << emitter.BouncinessMin;
-			out << YAML::Key << "BouncinessMax" << YAML::Value << emitter.BouncinessMax;
+				out << YAML::Key << "BouncinessMin" << YAML::Value << emitter.BouncinessMin;
+				out << YAML::Key << "BouncinessMax" << YAML::Value << emitter.BouncinessMax;
 
-			out << YAML::Key << "AnimationImagesNum" << YAML::Value << emitter.AnimationImagesNum;
-			out << YAML::Key << "AnimationSpeed" << YAML::Value << emitter.AnimationSpeed;
+				out << YAML::Key << "AnimationImagesNum" << YAML::Value << emitter.AnimationImagesNum;
+				out << YAML::Key << "AnimationSpeed" << YAML::Value << emitter.AnimationSpeed;
 
-			out << YAML::Key << "ID" << YAML::Value << emitter.ID;
-			out << YAML::Key << "RelativeLocation" << YAML::Value << emitter.RelativeTransform.Location;
-			out << YAML::Key << "RelativeRotation" << YAML::Value << emitter.RelativeTransform.Rotation;
-			out << YAML::Key << "VisibilityAABBMin" << YAML::Value << emitter.VisibilityAABB.Min;
-			out << YAML::Key << "VisibilityAABBMax" << YAML::Value << emitter.VisibilityAABB.Max;
-			out << YAML::Key << "LoopCount" << YAML::Value << emitter.LoopCount;
-			out << YAML::Key << "NumParticles" << YAML::Value << emitter.NumParticles;
-			out << YAML::Key << "NumParticlesRatio" << YAML::Value << emitter.NumParticlesRatio;
-			out << YAML::Key << "FastForwardTo" << YAML::Value << emitter.FastForwardTo;
-			out << YAML::Key << "RadialAcceleration" << YAML::Value << emitter.RadialAcceleration;
-			out << YAML::Key << "TangentialAcceleration" << YAML::Value << emitter.TangentialAcceleration;
-			out << YAML::Key << "NormalVelocityFactor" << YAML::Value << emitter.NormalVelocityFactor;
+				out << YAML::Key << "ID" << YAML::Value << emitter.ID;
+				out << YAML::Key << "RelativeLocation" << YAML::Value << emitter.RelativeTransform.Location;
+				out << YAML::Key << "RelativeRotation" << YAML::Value << emitter.RelativeTransform.Rotation;
+				out << YAML::Key << "VisibilityAABBMin" << YAML::Value << emitter.VisibilityAABB.Min;
+				out << YAML::Key << "VisibilityAABBMax" << YAML::Value << emitter.VisibilityAABB.Max;
+				out << YAML::Key << "LoopCount" << YAML::Value << emitter.LoopCount;
+				out << YAML::Key << "NumParticles" << YAML::Value << emitter.NumParticles;
+				out << YAML::Key << "NumParticlesRatio" << YAML::Value << emitter.NumParticlesRatio;
+				out << YAML::Key << "FastForwardTo" << YAML::Value << emitter.FastForwardTo;
+				out << YAML::Key << "RadialAcceleration" << YAML::Value << emitter.RadialAcceleration;
+				out << YAML::Key << "TangentialAcceleration" << YAML::Value << emitter.TangentialAcceleration;
+				out << YAML::Key << "NormalVelocityFactor" << YAML::Value << emitter.NormalVelocityFactor;
 
-			out << YAML::Key << "EmissionShape" << YAML::Value << Utils::GetEnumName(emitter.EmissionShape);
-			out << YAML::Key << "SphereRadius" << YAML::Value << emitter.SphereRadius;
-			out << YAML::Key << "BoxMin" << YAML::Value << emitter.BoxMin;
-			out << YAML::Key << "BoxMax" << YAML::Value << emitter.BoxMax;
-			out << YAML::Key << "RingRadius" << YAML::Value << emitter.RingRadius;
-			out << YAML::Key << "RingThickness" << YAML::Value << emitter.RingThickness;
-			if (emitter.MeshAsset)
-				out << YAML::Key << "Mesh" << YAML::Value << emitter.MeshAsset->GetGUID();
-			if (const auto& animAsset = emitter.MeshAnimationAsset)
-				out << YAML::Key << "AnimationClip" << YAML::Value << animAsset->GetGUID();
-			out << YAML::Key << "ClipPlaybackSpeed" << emitter.ClipPlaybackSpeed;
-			out << YAML::Key << "ClipLooping" << emitter.bClipLooping;
-			out << YAML::Key << "TriggerAnimationEvents" << emitter.bTriggerAnimationEvents;
+				out << YAML::Key << "EmissionShape" << YAML::Value << Utils::GetEnumName(emitter.EmissionShape);
+				out << YAML::Key << "SphereRadius" << YAML::Value << emitter.SphereRadius;
+				out << YAML::Key << "BoxMin" << YAML::Value << emitter.BoxMin;
+				out << YAML::Key << "BoxMax" << YAML::Value << emitter.BoxMax;
+				out << YAML::Key << "RingRadius" << YAML::Value << emitter.RingRadius;
+				out << YAML::Key << "RingThickness" << YAML::Value << emitter.RingThickness;
+				if (emitter.MeshAsset)
+					out << YAML::Key << "Mesh" << YAML::Value << emitter.MeshAsset->GetGUID();
+				if (const auto& animAsset = emitter.MeshAnimationAsset)
+					out << YAML::Key << "AnimationClip" << YAML::Value << animAsset->GetGUID();
+				out << YAML::Key << "ClipPlaybackSpeed" << emitter.ClipPlaybackSpeed;
+				out << YAML::Key << "ClipLooping" << emitter.bClipLooping;
+				out << YAML::Key << "TriggerAnimationEvents" << emitter.bTriggerAnimationEvents;
 
-			out << YAML::Key << "CollisionMode" << YAML::Value << Utils::GetEnumName(emitter.CollisionMode);
+				out << YAML::Key << "CollisionMode" << YAML::Value << Utils::GetEnumName(emitter.CollisionMode);
 
-			out << YAML::Key << "bDestroyImmediately" << YAML::Value << emitter.bDestroyImmediately;
-			out << YAML::Key << "bEmit" << YAML::Value << emitter.bEmit;
-			out << YAML::Key << "bExplode" << YAML::Value << emitter.bExplode;
-			out << YAML::Key << "bApplyGravity" << YAML::Value << emitter.bApplyGravity;
-			out << YAML::Key << "bAlphaBlending" << YAML::Value << emitter.bAlphaBlending;
-			out << YAML::Key << "bAdditive" << YAML::Value << emitter.bAdditive;
-			out << YAML::Key << "bBlendAnimation" << YAML::Value << emitter.bBlendAnimation;
-			out << YAML::Key << "bFaceDirection" << YAML::Value << emitter.bFaceDirection;
+				out << YAML::Key << "bDestroyImmediately" << YAML::Value << emitter.bDestroyImmediately;
+				out << YAML::Key << "bEmit" << YAML::Value << emitter.bEmit;
+				out << YAML::Key << "bExplode" << YAML::Value << emitter.bExplode;
+				out << YAML::Key << "bApplyGravity" << YAML::Value << emitter.bApplyGravity;
+				out << YAML::Key << "bAlphaBlending" << YAML::Value << emitter.bAlphaBlending;
+				out << YAML::Key << "bAdditive" << YAML::Value << emitter.bAdditive;
+				out << YAML::Key << "bBlendAnimation" << YAML::Value << emitter.bBlendAnimation;
+				out << YAML::Key << "bFaceDirection" << YAML::Value << emitter.bFaceDirection;
 
-			out << YAML::EndMap;
+				out << YAML::EndMap;
+			}
+			out << YAML::EndSeq;
 		}
-		out << YAML::EndSeq;
 
 		out << YAML::EndMap;
+
+		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		ScopedDataBuffer buffer(totalSize);
+
+		size_t offset = 0;
+		Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
+		Utils::WriteYaml(buffer, out, &offset);
+
+		return buffer;
 	}
 
-	void Serializer::SerializeAssetAnimationBlendSpace(YAML::Emitter& out, const Ref<AssetAnimationBlendSpace>& asset)
+	ScopedDataBuffer Serializer::SerializeAssetAnimationBlendSpace(const Ref<AssetAnimationBlendSpace>& asset, const Ref<AssetSkeletalMesh>& meshAsset)
 	{
+		size_t totalSize = sizeof(AssetHeader);
+
+		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::AnimationBlendSpace);
-		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
-		out << YAML::Key << "SkeletalMesh" << YAML::Value << asset->GetSkeletalMesh()->GetGUID();
-		out << YAML::Key << "EventsTriggerMode" << YAML::Value << Utils::GetEnumName(asset->GetEventsTriggerMode());
-		out << YAML::Key << "BlendTime" << YAML::Value << asset->GetBlendTime();
-		out << YAML::Key << "SyncEnabled" << YAML::Value << asset->IsSyncEnabled();
-		out << YAML::Key << "UseShortestBlendPath" << YAML::Value << asset->IsShortestBlendPathEnabled();
+		out << YAML::Key << "GUID" << YAML::Value << (asset ? asset->GetGUID() : GUID{});
+		if (!asset)
+			out << YAML::Key << "SkeletalMesh" << YAML::Value << meshAsset->GetGUID();
 
-		const auto& horAxis = asset->GetHorizontalAxis();
-		out << YAML::Key << "HorizontalAxis" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "Name" << YAML::Value << horAxis.Name;
-		out << YAML::Key << "Min" << YAML::Value << horAxis.Min;
-		out << YAML::Key << "Max" << YAML::Value << horAxis.Max;
-		out << YAML::EndMap;
-
-		const auto& verAxis = asset->GetVerticalAxis();
-		out << YAML::Key << "VerticalAxis" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "Name" << YAML::Value << verAxis.Name;
-		out << YAML::Key << "Min" << YAML::Value << verAxis.Min;
-		out << YAML::Key << "Max" << YAML::Value << verAxis.Max;
-		out << YAML::EndMap;
-
-		const auto& points = asset->GetPointsData();
-		out << YAML::Key << "Points" << YAML::Value << YAML::BeginSeq;
-		for (const auto& point : points)
+		if (asset)
 		{
-			out << YAML::BeginMap;
-			if (point.Animation)
-				out << YAML::Key << "Animation" << YAML::Value << point.Animation->GetGUID();
-			out << YAML::Key << "Coord" << YAML::Value << point.Vertex.Coord;
-			out << YAML::Key << "AnimSpeed" << YAML::Value << point.AnimSpeed;
+			out << YAML::Key << "SkeletalMesh" << YAML::Value << asset->GetSkeletalMesh()->GetGUID();
+			out << YAML::Key << "EventsTriggerMode" << YAML::Value << Utils::GetEnumName(asset->GetEventsTriggerMode());
+			out << YAML::Key << "BlendTime" << YAML::Value << asset->GetBlendTime();
+			out << YAML::Key << "SyncEnabled" << YAML::Value << asset->IsSyncEnabled();
+			out << YAML::Key << "UseShortestBlendPath" << YAML::Value << asset->IsShortestBlendPathEnabled();
+
+			const auto& horAxis = asset->GetHorizontalAxis();
+			out << YAML::Key << "HorizontalAxis" << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Name" << YAML::Value << horAxis.Name;
+			out << YAML::Key << "Min" << YAML::Value << horAxis.Min;
+			out << YAML::Key << "Max" << YAML::Value << horAxis.Max;
 			out << YAML::EndMap;
+
+			const auto& verAxis = asset->GetVerticalAxis();
+			out << YAML::Key << "VerticalAxis" << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Name" << YAML::Value << verAxis.Name;
+			out << YAML::Key << "Min" << YAML::Value << verAxis.Min;
+			out << YAML::Key << "Max" << YAML::Value << verAxis.Max;
+			out << YAML::EndMap;
+
+			const auto& points = asset->GetPointsData();
+			out << YAML::Key << "Points" << YAML::Value << YAML::BeginSeq;
+			for (const auto& point : points)
+			{
+				out << YAML::BeginMap;
+				if (point.Animation)
+					out << YAML::Key << "Animation" << YAML::Value << point.Animation->GetGUID();
+				out << YAML::Key << "Coord" << YAML::Value << point.Vertex.Coord;
+				out << YAML::Key << "AnimSpeed" << YAML::Value << point.AnimSpeed;
+				out << YAML::EndMap;
+			}
+			out << YAML::EndSeq;
 		}
-		out << YAML::EndSeq;
 
 		out << YAML::EndMap;
+
+		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		ScopedDataBuffer buffer(totalSize);
+
+		size_t offset = 0;
+		Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
+		Utils::WriteYaml(buffer, out, &offset);
+
+		return buffer;
 	}
 
 	void Serializer::DeserializeReverb(YAML::Node& reverbNode, ReverbComponent& reverb)
@@ -2442,69 +2835,6 @@ namespace Eagle
 		out << YAML::EndMap;
 	}
 
-	void Serializer::SerializeAnimation(YAML::Emitter& out, const SkeletalMeshAnimation& anim)
-	{
-		out << YAML::Key << "Animation" << YAML::Value << YAML::BeginMap;
-
-		out << YAML::Key << "Duration" << YAML::Value << anim.Duration;
-		out << YAML::Key << "TicksPerSecond" << YAML::Value << anim.TicksPerSecond;
-		out << YAML::Key << "bInPlace" << YAML::Value << anim.bInPlace;
-
-		if (anim.HasRootMotion())
-		{
-			out << YAML::Key << "RootMotion";
-			{
-				out << YAML::Value;
-				out << YAML::BeginMap;
-
-				out << YAML::Key << "Locations" << YAML::Value << YAML::Binary((uint8_t*)anim.RootMotion.Locations.data(), anim.RootMotion.Locations.size() * sizeof(KeyPosition));
-				out << YAML::Key << "Rotations" << YAML::Value << YAML::Binary((uint8_t*)anim.RootMotion.Rotations.data(), anim.RootMotion.Rotations.size() * sizeof(KeyRotation));
-				out << YAML::Key << "Scales" << YAML::Value << YAML::Binary((uint8_t*)anim.RootMotion.Scales.data(), anim.RootMotion.Scales.size() * sizeof(KeyScale));
-
-				out << YAML::EndMap;
-			}
-		}
-
-		// Events
-		if (anim.Events.size() > 0)
-		{
-			out << YAML::Key << "Events" << YAML::Value << YAML::BeginSeq;
-
-			for (const auto& event : anim.Events)
-			{
-				out << YAML::BeginMap;
-
-				out << YAML::Key << "Name" << YAML::Value << event.Name;
-				out << YAML::Key << "Time" << YAML::Value << event.Time;
-
-				out << YAML::EndMap;
-			}
-
-			out << YAML::EndSeq;
-		}
-
-		out << YAML::Key << "Bones";
-		{
-			out << YAML::Value << YAML::BeginSeq;
-
-			const auto& bones = anim.Bones;
-			for (auto& [name, data] : bones)
-			{
-				out << YAML::BeginMap;
-				out << YAML::Key << "Name" << YAML::Value << name;
-				out << YAML::Key << "Locations" << YAML::Value << YAML::Binary((uint8_t*)data.Locations.data(), data.Locations.size() * sizeof(KeyPosition));
-				out << YAML::Key << "Rotations" << YAML::Value << YAML::Binary((uint8_t*)data.Rotations.data(), data.Rotations.size() * sizeof(KeyRotation));
-				out << YAML::Key << "Scales" << YAML::Value << YAML::Binary((uint8_t*)data.Scales.data(), data.Scales.size() * sizeof(KeyScale));
-				out << YAML::Key << "ID" << YAML::Value << data.BoneID;
-				out << YAML::EndMap;
-			}
-
-			out << YAML::EndSeq;
-		}
-
-		out << YAML::EndMap;
-	}
-
 	void Serializer::SerializeProjectCollisionGroupGUIDs(YAML::Emitter& out)
 	{
 		const auto& collisionGroupGUIDs = Project::GetProjectInfo().CollisionGroupGUIDs;
@@ -2675,99 +3005,6 @@ namespace Eagle
 		}
 	}
 
-	void Serializer::DeserializeAnimation(const YAML::Node& node, SkeletalMeshAnimation& animation)
-	{
-		const auto baseNode = node["Animation"];
-		if (!baseNode)
-		{
-			EG_CORE_ERROR("Failed to deserialize animation");
-			return;
-		}
-
-		animation.Duration = baseNode["Duration"].as<float>();
-		animation.TicksPerSecond = baseNode["TicksPerSecond"].as<float>();
-		if (auto inPlaceNode = baseNode["bInPlace"])
-			animation.bInPlace = inPlaceNode.as<bool>();
-
-		// Root Motion
-		if (auto rootMotionNode = baseNode["RootMotion"])
-		{
-			// Locations
-			{
-				YAML::Binary binary = rootMotionNode["Locations"].as<YAML::Binary>();
-				size_t binaryCount = binary.size() / sizeof(KeyPosition);
-				animation.RootMotion.Locations.resize(binaryCount);
-				memcpy(animation.RootMotion.Locations.data(), binary.data(), binary.size());
-			}
-
-			// Rotations
-			{
-				YAML::Binary binary = rootMotionNode["Rotations"].as<YAML::Binary>();
-				size_t binaryCount = binary.size() / sizeof(KeyRotation);
-				animation.RootMotion.Rotations.resize(binaryCount);
-				memcpy(animation.RootMotion.Rotations.data(), binary.data(), binary.size());
-			}
-
-			// Scales
-			{
-				YAML::Binary binary = rootMotionNode["Scales"].as<YAML::Binary>();
-				size_t binaryCount = binary.size() / sizeof(KeyScale);
-				animation.RootMotion.Scales.resize(binaryCount);
-				memcpy(animation.RootMotion.Scales.data(), binary.data(), binary.size());
-			}
-		}
-
-		// Events
-		if (auto eventsNode = baseNode["Events"])
-		{
-			for (const auto& eventNode : eventsNode)
-			{
-				auto& event = animation.Events.emplace_back();
-				event.Name = eventNode["Name"].as<std::string>();
-				event.Time = eventNode["Time"].as<float>();
-			}
-		}
-
-		// Bones
-		{
-			animation.Bones.clear();
-			auto boneNodes = baseNode["Bones"];
-			for (const auto& boneNode : boneNodes)
-			{
-				BoneAnimation animData;
-				std::string name = boneNode["Name"].as<std::string>();
-
-				// Locations
-				{
-					YAML::Binary binary = boneNode["Locations"].as<YAML::Binary>();
-					size_t binaryCount = binary.size() / sizeof(KeyPosition);
-					animData.Locations.resize(binaryCount);
-					memcpy(animData.Locations.data(), binary.data(), binary.size());
-				}
-
-				// Rotations
-				{
-					YAML::Binary binary = boneNode["Rotations"].as<YAML::Binary>();
-					size_t binaryCount = binary.size() / sizeof(KeyRotation);
-					animData.Rotations.resize(binaryCount);
-					memcpy(animData.Rotations.data(), binary.data(), binary.size());
-				}
-
-				// Scales
-				{
-					YAML::Binary binary = boneNode["Scales"].as<YAML::Binary>();
-					size_t binaryCount = binary.size() / sizeof(KeyScale);
-					animData.Scales.resize(binaryCount);
-					memcpy(animData.Scales.data(), binary.data(), binary.size());
-				}
-
-				animData.BoneID = boneNode["ID"].as<uint32_t>();
-
-				animation.Bones.emplace(std::move(name), std::move(animData));
-			}
-		}
-	}
-
 	uint32_t Serializer::DeserializeProjectCollisionGroupGUIDs(const YAML::Node& node)
 	{
 		uint32_t collisionGroupValidMasks = uint32_t(s_CollisionGroupAny);
@@ -2795,47 +3032,48 @@ namespace Eagle
 		return collisionGroupValidMasks;
 	}
 
-	Ref<Asset> Serializer::DeserializeAsset(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
+	Ref<Asset> Serializer::DeserializeAsset(const Path& pathToAsset, bool bReloadRaw)
 	{
-		AssetType assetType;
-		auto typeNode = baseNode["Type"];
-		if (!typeNode)
-		{
-			EG_CORE_ERROR("Failed to load an asset. It's not an eagle asset");
-			return {};
-		}
-		assetType = Utils::GetEnumFromName<AssetType>(typeNode.as<std::string>());
-		
+		ScopedDataBuffer data = FileSystem::Read(pathToAsset);
+		return DeserializeAsset(data.GetDataBuffer(), pathToAsset, bReloadRaw);
+	}
+
+	Ref<Asset> Serializer::DeserializeAsset(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw)
+	{
+		const AssetType assetType = GetAssetType(data);
+
 		switch (assetType)
 		{
 		case AssetType::Texture2D:
-			return DeserializeAssetTexture2D(baseNode, pathToAsset, bReloadRaw);
+			return DeserializeAssetTexture2D(data, pathToAsset, bReloadRaw);
 		case AssetType::TextureCube:
-			return DeserializeAssetTextureCube(baseNode, pathToAsset, bReloadRaw);
+			return DeserializeAssetTextureCube(data, pathToAsset, bReloadRaw);
 		case AssetType::StaticMesh:
-			return DeserializeAssetStaticMesh(baseNode, pathToAsset, bReloadRaw);
+			return DeserializeAssetStaticMesh(data, pathToAsset, bReloadRaw);
 		case AssetType::SkeletalMesh:
-			return DeserializeAssetSkeletalMesh(baseNode, pathToAsset, bReloadRaw);
+			return DeserializeAssetSkeletalMesh(data, pathToAsset, bReloadRaw);
 		case AssetType::Audio:
-			return DeserializeAssetAudio(baseNode, pathToAsset, bReloadRaw);
+			return DeserializeAssetAudio(data, pathToAsset, bReloadRaw);
 		case AssetType::Font:
-			return DeserializeAssetFont(baseNode, pathToAsset, bReloadRaw);
+			return DeserializeAssetFont(data, pathToAsset, bReloadRaw);
 		case AssetType::Material:
-			return DeserializeAssetMaterial(baseNode, pathToAsset);
+			return DeserializeAssetMaterial(data, pathToAsset);
 		case AssetType::PhysicsMaterial:
-			return DeserializeAssetPhysicsMaterial(baseNode, pathToAsset);
+			return DeserializeAssetPhysicsMaterial(data, pathToAsset);
 		case AssetType::SoundGroup:
-			return DeserializeAssetSoundGroup(baseNode, pathToAsset);
+			return DeserializeAssetSoundGroup(data, pathToAsset);
 		case AssetType::Entity:
-			return DeserializeAssetEntity(baseNode, pathToAsset);
+			return DeserializeAssetEntity(data, pathToAsset);
+		case AssetType::Scene:
+			return DeserializeAssetScene(data, pathToAsset);
 		case AssetType::Animation:
-			return DeserializeAssetAnimation(baseNode, pathToAsset, bReloadRaw);
+			return DeserializeAssetAnimation(data, pathToAsset, bReloadRaw);
 		case AssetType::AnimationGraph:
-			return DeserializeAssetAnimationGraph(baseNode, pathToAsset);
+			return DeserializeAssetAnimationGraph(data, pathToAsset);
 		case AssetType::ParticleSystem:
-			return DeserializeAssetParticleSystem(baseNode, pathToAsset);
+			return DeserializeAssetParticleSystem(data, pathToAsset);
 		case AssetType::AnimationBlendSpace:
-			return DeserializeAssetAnimationBlendSpace(baseNode, pathToAsset);
+			return DeserializeAssetAnimationBlendSpace(data, pathToAsset);
 		default:
 			EG_CORE_ASSERT(false);
 			EG_CORE_ERROR("Failed to serialize an asset. Unknown asset.");
@@ -2843,8 +3081,11 @@ namespace Eagle
 		}
 	}
 
-	Ref<AssetTexture2D> Serializer::DeserializeAssetTexture2D(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
+	Ref<AssetTexture2D> Serializer::DeserializeAssetTexture2D(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw)
 	{
+		YAML::Node baseNode;
+		Utils::ReadYAML(data, &baseNode);
+
 		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::Texture2D))
 			return {};
 		
@@ -2876,8 +3117,8 @@ namespace Eagle
 		const bool bNeedAlpha = baseNode["NeedAlpha"].as<bool>();
 		const bool bCompressedTexture = baseNode["IsCompressed"].as<bool>();
 
-		YAML::Binary yamlBinary;
 		ScopedDataBuffer binary;
+		ScopedDataBuffer ktxBinary;
 		DataBuffer ktxData;
 
 		// Reload the data from disk
@@ -2890,14 +3131,17 @@ namespace Eagle
 		}
 		else if (auto baseDataNode = baseNode["Data"])
 		{
-			size_t origSize = baseDataNode["Size"].as<size_t>();
+			const size_t origSize = baseDataNode["OrigSize"].as<size_t>();
+			const size_t dataSize = baseDataNode["Size"].as<size_t>();
+			const size_t dataOffset = baseDataNode["Offset"].as<size_t>();
 
-			yamlBinary = baseDataNode["Data"].as<YAML::Binary>();
-			binary = Compressor::Decompress(DataBuffer{ (void*)yamlBinary.data(), yamlBinary.size() }, origSize);
-			if (auto ktxNode = baseDataNode["KTXData"])
+			Utils::ReadCompressedBinary(data, dataSize, dataOffset, origSize, &binary);
+
+			if (auto ktxSizeNode = baseDataNode["KTXSize"])
 			{
-				yamlBinary = ktxNode.as<YAML::Binary>();
-				ktxData = DataBuffer((void*)yamlBinary.data(), yamlBinary.size());
+				const size_t ktxDataSize = ktxSizeNode.as<size_t>();
+				const size_t ktxDataOffset = baseDataNode["KTXOffset"].as<size_t>();
+				Utils::ReadBinary(data, ktxDataSize, ktxDataOffset, &ktxBinary);
 			}
 		}
 		else
@@ -2924,9 +3168,9 @@ namespace Eagle
 				compressedTextureHandle = TextureCompressor::Compress(DataBuffer(stbiImageData, textureMemSize), glm::uvec2(width, height),
 					specs.MipsCount, bNormalMap, bNeedAlpha);
 			}
-			else if (ktxData)
+			else if (ktxBinary)
 			{
-				compressedTextureHandle = TextureCompressor::CreateFromCompressed(ktxData, bNeedAlpha);
+				compressedTextureHandle = TextureCompressor::CreateFromCompressed(ktxBinary.GetDataBuffer(), bNeedAlpha);
 			}
 
 			// Required to update it in case of `bReloadRaw` was true
@@ -2980,7 +3224,7 @@ namespace Eagle
 		};
 
 		Ref<AssetTexture2D> asset = MakeRef<LocalAssetTexture2D>(pathToAsset, pathToRaw, guid,
-			DataBuffer(binary.Data(), binary.Size()), ktxData, texture, assetFormat, bCompressedTexture, bNormalMap, bNeedAlpha);
+			binary.GetDataBuffer(), ktxData, texture, assetFormat, bCompressedTexture, bNormalMap, bNeedAlpha);
 
 		if (stbiImageData)
 			stbi_image_free(stbiImageData);
@@ -2990,8 +3234,11 @@ namespace Eagle
 		return asset;
 	}
 
-	Ref<AssetTextureCube> Serializer::DeserializeAssetTextureCube(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
+	Ref<AssetTextureCube> Serializer::DeserializeAssetTextureCube(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw)
 	{
+		YAML::Node baseNode;
+		Utils::ReadYAML(data, &baseNode);
+
 		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::TextureCube))
 			return {}; // Failed
 
@@ -3012,8 +3259,6 @@ namespace Eagle
 			prefilterSize = prefilterNode.as<uint32_t>();
 
 		ScopedDataBuffer binary;
-		YAML::Binary yamlBinary;
-
 		if (bReloadRaw)
 		{
 			binary = FileSystem::Read(pathToRaw);
@@ -3022,10 +3267,10 @@ namespace Eagle
 		{
 			if (auto baseDataNode = baseNode["Data"])
 			{
-				const size_t origSize = baseDataNode["Size"].as<size_t>();
-
-				yamlBinary = baseDataNode["Data"].as<YAML::Binary>();
-				binary = Compressor::Decompress(DataBuffer{ (void*)yamlBinary.data(), yamlBinary.size() }, origSize);
+				const size_t origSize = baseDataNode["OrigSize"].as<size_t>();
+				const size_t dataSize = baseDataNode["Size"].as<size_t>();
+				const size_t dataOffset = baseDataNode["Offset"].as<size_t>();
+				Utils::ReadCompressedBinary(data, dataSize, dataOffset, origSize, &binary);
 			}
 		}
 
@@ -3081,8 +3326,11 @@ namespace Eagle
 		return asset;
 	}
 
-	Ref<AssetStaticMesh> Serializer::DeserializeAssetStaticMesh(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
+	Ref<AssetStaticMesh> Serializer::DeserializeAssetStaticMesh(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw)
 	{
+		YAML::Node baseNode;
+		Utils::ReadYAML(data, &baseNode);
+
 		class LocalAssetMesh : public AssetStaticMesh
 		{
 		public:
@@ -3130,16 +3378,12 @@ namespace Eagle
 
 		if (auto baseDataNode = baseNode["Data"])
 		{
-			const size_t origVerticesSize = baseDataNode["SizeVertices"].as<size_t>();
-
 			// Vertices
 			{
-				YAML::Binary yamlBinaryVertices = baseDataNode["Vertices"].as<YAML::Binary>();
-				ScopedDataBuffer decompressedBinaryVertices{ Compressor::Decompress(DataBuffer{ (void*)yamlBinaryVertices.data(), yamlBinaryVertices.size() }, origVerticesSize) };
-
-				const size_t verticesCount = decompressedBinaryVertices.Size() / sizeof(Vertex);
-				vertices.resize(verticesCount);
-				memcpy(vertices.data(), decompressedBinaryVertices.Data(), decompressedBinaryVertices.Size());
+				const size_t origVerticesSize = baseDataNode["VerticesOrigSize"].as<size_t>();
+				const size_t verticesSize = baseDataNode["VerticesSize"].as<size_t>();
+				const size_t verticesOffset = baseDataNode["VerticesOffset"].as<size_t>();
+				Utils::ReadCompressedBinary(data, verticesSize, verticesOffset, origVerticesSize, &vertices);
 			}
 
 			// Indices
@@ -3147,14 +3391,12 @@ namespace Eagle
 				auto indicesPerMaterialNode = baseDataNode["IndicesPerMaterial"];
 				for (const auto& node : indicesPerMaterialNode)
 				{
-					const size_t origIndicesSize = node["SizeIndices"].as<size_t>();
-					YAML::Binary yamlBinaryIndices = node["Indices"].as<YAML::Binary>();
-					ScopedDataBuffer decompressedBinaryIndices{ Compressor::Decompress(DataBuffer{ (void*)yamlBinaryIndices.data(), yamlBinaryIndices.size() }, origIndicesSize) };
+					const size_t origIndicesSize = node["IndicesOrigSize"].as<size_t>();
+					const size_t indicesSize = node["IndicesSize"].as<size_t>();
+					const size_t indicesOffset = node["IndicesOffset"].as<size_t>();
 
-					const size_t indicesCount = decompressedBinaryIndices.Size() / sizeof(Index);
 					auto& indices = indicesPerMaterial.emplace_back();
-					indices.resize(indicesCount);
-					memcpy(indices.data(), decompressedBinaryIndices.Data(), decompressedBinaryIndices.Size());
+					Utils::ReadCompressedBinary(data, indicesSize, indicesOffset, origIndicesSize, &indices);
 				}
 			}
 		}
@@ -3167,7 +3409,7 @@ namespace Eagle
 		return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, staticMesh);
 	}
 	
-	Ref<AssetSkeletalMesh> Serializer::DeserializeAssetSkeletalMesh(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
+	Ref<AssetSkeletalMesh> Serializer::DeserializeAssetSkeletalMesh(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw)
 	{
 		class LocalAssetMesh : public AssetSkeletalMesh
 		{
@@ -3175,6 +3417,9 @@ namespace Eagle
 			LocalAssetMesh(const Path& path, const Path& pathToRaw, GUID guid, const Ref<SkeletalMesh>& mesh)
 				: AssetSkeletalMesh(path, pathToRaw, guid, mesh) {}
 		};
+
+		YAML::Node baseNode;
+		Utils::ReadYAML(data, &baseNode);
 
 		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::SkeletalMesh))
 			return {};
@@ -3255,8 +3500,6 @@ namespace Eagle
 			}
 		}
 
-		auto materialsNode = baseNode["Materials"];
-
 		SkeletalMeshInfo skeletalInfo;
 		skeletalInfo.InverseTransform = baseNode["InverseTransform"].as<glm::mat4>();
 		if (auto node = baseNode["CoordCorrection"])
@@ -3281,16 +3524,12 @@ namespace Eagle
 
 		if (auto baseDataNode = baseNode["Data"])
 		{
-			const size_t origVerticesSize = baseDataNode["SizeVertices"].as<size_t>();
-
 			// Vertices
 			{
-				YAML::Binary yamlBinaryVertices = baseDataNode["Vertices"].as<YAML::Binary>();
-				ScopedDataBuffer decompressedBinaryVertices{ Compressor::Decompress(DataBuffer{ (void*)yamlBinaryVertices.data(), yamlBinaryVertices.size() }, origVerticesSize) };
-
-				const size_t verticesCount = decompressedBinaryVertices.Size() / sizeof(SkeletalVertex);
-				vertices.resize(verticesCount);
-				memcpy(vertices.data(), decompressedBinaryVertices.Data(), decompressedBinaryVertices.Size());
+				const size_t origVerticesSize = baseDataNode["VerticesOrigSize"].as<size_t>();
+				const size_t verticesSize = baseDataNode["VerticesSize"].as<size_t>();
+				const size_t verticesOffset = baseDataNode["VerticesOffset"].as<size_t>();
+				Utils::ReadCompressedBinary(data, verticesSize, verticesOffset, origVerticesSize, &vertices);
 			}
 
 			// Indices
@@ -3298,21 +3537,19 @@ namespace Eagle
 				auto indicesPerMaterialNode = baseDataNode["IndicesPerMaterial"];
 				for (const auto& node : indicesPerMaterialNode)
 				{
-					const size_t origIndicesSize = node["SizeIndices"].as<size_t>();
-					YAML::Binary yamlBinaryIndices = node["Indices"].as<YAML::Binary>();
-					ScopedDataBuffer decompressedBinaryIndices{ Compressor::Decompress(DataBuffer{ (void*)yamlBinaryIndices.data(), yamlBinaryIndices.size() }, origIndicesSize) };
+					const size_t origIndicesSize = node["IndicesOrigSize"].as<size_t>();
+					const size_t indicesSize = node["IndicesSize"].as<size_t>();
+					const size_t indicesOffset = node["IndicesOffset"].as<size_t>();
 
-					const size_t indicesCount = decompressedBinaryIndices.Size() / sizeof(Index);
 					auto& indices = indicesPerMaterial.emplace_back();
-					indices.resize(indicesCount);
-					memcpy(indices.data(), decompressedBinaryIndices.Data(), decompressedBinaryIndices.Size());
+					Utils::ReadCompressedBinary(data, indicesSize, indicesOffset, origIndicesSize, &indices);
 				}
 			}
 		}
 
 		Ref<SkeletalMesh> skeletalMesh = SkeletalMesh::Create(vertices, indicesPerMaterial, skeletalInfo, aabb, ragdollPerBoneData,
 			minRagdollBoneSize, maxRagdollTwist, maxRagdollSwing, collisionDetectionType, collisionGroup, interactingCollisionGroup);
-		if (materialsNode)
+		if (auto materialsNode = baseNode["Materials"])
 		{
 			for (const auto& matNode : materialsNode)
 				skeletalMesh->SetMaterialAsset(matNode["Index"].as<uint32_t>(), GetAsset<AssetMaterial>(matNode["Material"]));
@@ -3321,8 +3558,11 @@ namespace Eagle
 		return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, skeletalMesh);
 	}
 
-	Ref<AssetAudio> Serializer::DeserializeAssetAudio(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
+	Ref<AssetAudio> Serializer::DeserializeAssetAudio(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw)
 	{
+		YAML::Node baseNode;
+		Utils::ReadYAML(data, &baseNode);
+
 		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::Audio))
 			return {};
 
@@ -3362,14 +3602,10 @@ namespace Eagle
 		{
 			if (auto baseDataNode = baseNode["Data"])
 			{
-				const size_t origSize = baseDataNode["Size"].as<size_t>();
-				bool bCompressed = true;
-
-				YAML::Binary yamlBinary = baseDataNode["Data"].as<YAML::Binary>();
-				if (bCompressed)
-				{
-					binary = Compressor::Decompress(DataBuffer{ (void*)yamlBinary.data(), yamlBinary.size() }, origSize);
-				}
+				const size_t origSize = baseDataNode["OrigSize"].as<size_t>();
+				const size_t dataSize = baseDataNode["Size"].as<size_t>();
+				const size_t dataOffset = baseDataNode["Offset"].as<size_t>();
+				Utils::ReadCompressedBinary(data, dataSize, dataOffset, origSize, &binary);
 			}
 			if (!binary)
 			{
@@ -3392,8 +3628,11 @@ namespace Eagle
 		return MakeRef<LocalAssetAudio>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(), audio, soundGroup);
 	}
 
-	Ref<AssetFont> Serializer::DeserializeAssetFont(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
+	Ref<AssetFont> Serializer::DeserializeAssetFont(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw)
 	{
+		YAML::Node baseNode;
+		Utils::ReadYAML(data, &baseNode);
+
 		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::Font))
 			return {};
 
@@ -3422,9 +3661,10 @@ namespace Eagle
 		{
 			if (auto baseDataNode = baseNode["Data"])
 			{
-				const size_t origSize = baseDataNode["Size"].as<size_t>();
-				YAML::Binary yamlBinary = baseDataNode["Data"].as<YAML::Binary>();
-				binary = Compressor::Decompress(DataBuffer{ (void*)yamlBinary.data(), yamlBinary.size() }, origSize);
+				const size_t origSize = baseDataNode["OrigSize"].as<size_t>();
+				const size_t dataSize = baseDataNode["Size"].as<size_t>();
+				const size_t dataOffset = baseDataNode["Offset"].as<size_t>();
+				Utils::ReadCompressedBinary(data, dataSize, dataOffset, origSize, &binary);
 			}
 			if (!binary)
 			{
@@ -3443,8 +3683,11 @@ namespace Eagle
 		return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(), Font::Create(binary.GetDataBuffer(), pathToAsset.stem().u8string()));
 	}
 
-	Ref<AssetMaterial> Serializer::DeserializeAssetMaterial(const YAML::Node& baseNode, const Path& pathToAsset)
+	Ref<AssetMaterial> Serializer::DeserializeAssetMaterial(const DataBuffer& data, const Path& pathToAsset)
 	{
+		YAML::Node baseNode;
+		Utils::ReadYAML(data, &baseNode);
+
 		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::Material))
 			return {};
 
@@ -3528,7 +3771,6 @@ namespace Eagle
 			material->SetOpacityMaskTextureChannel(channel);
 		}
 
-
 		if (auto node = baseNode["TintColor"])
 			material->SetTintColor(node.as<glm::vec4>());
 
@@ -3551,8 +3793,11 @@ namespace Eagle
 		return MakeRef<LocalAssetMaterial>(pathToAsset, guid, material);
 	}
 
-	Ref<AssetPhysicsMaterial> Serializer::DeserializeAssetPhysicsMaterial(const YAML::Node& baseNode, const Path& pathToAsset)
+	Ref<AssetPhysicsMaterial> Serializer::DeserializeAssetPhysicsMaterial(const DataBuffer& data, const Path& pathToAsset)
 	{
+		YAML::Node baseNode;
+		Utils::ReadYAML(data, &baseNode);
+
 		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::PhysicsMaterial))
 			return {};
 
@@ -3581,8 +3826,11 @@ namespace Eagle
 		return MakeRef<LocalAssetPhysicsMaterial>(pathToAsset, guid, PhysicsMaterial::Create(staticFriction, dynamicFriction, bounciness));
 	}
 
-	Ref<AssetSoundGroup> Serializer::DeserializeAssetSoundGroup(const YAML::Node& baseNode, const Path& pathToAsset)
+	Ref<AssetSoundGroup> Serializer::DeserializeAssetSoundGroup(const DataBuffer& data, const Path& pathToAsset)
 	{
+		YAML::Node baseNode;
+		Utils::ReadYAML(data, &baseNode);
+
 		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::SoundGroup))
 			return {};
 
@@ -3608,8 +3856,11 @@ namespace Eagle
 		return MakeRef<LocalAssetSoundGroup>(pathToAsset, guid, soundGroup);
 	}
 
-	Ref<AssetEntity> Serializer::DeserializeAssetEntity(const YAML::Node& baseNode, const Path& pathToAsset)
+	Ref<AssetEntity> Serializer::DeserializeAssetEntity(const DataBuffer& data, const Path& pathToAsset)
 	{
+		YAML::Node baseNode;
+		Utils::ReadYAML(data, &baseNode);
+
 		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::Entity))
 			return {};
 
@@ -3619,7 +3870,7 @@ namespace Eagle
 		const auto& scene = AssetEntity::GetScene();
 		if (auto entitiesNode = baseNode["Entities"])
 		{
-			//uint32_t - Entity's ID in *.eagle; Real entity ID; 
+			//uint32_t - Entity's ID in the asset; Real entity ID; 
 			std::unordered_map<uint32_t, Entity> allEntities;
 
 			//uint32_t - entity that has an parent, uint32_t - parent id
@@ -3666,7 +3917,7 @@ namespace Eagle
 		return MakeRef<LocalAssetEntity>(pathToAsset, guid, MakeRef<Entity>(rootEntity));
 	}
 
-	Ref<AssetAnimation> Serializer::DeserializeAssetAnimation(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
+	Ref<AssetAnimation> Serializer::DeserializeAssetAnimation(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw)
 	{
 		class LocalAssetAnimation : public AssetAnimation
 		{
@@ -3674,6 +3925,9 @@ namespace Eagle
 			LocalAssetAnimation(const Path& path, const Path& pathToRaw, GUID guid, const Ref<SkeletalMeshAnimation>& anim, const Ref<AssetSkeletalMesh>& skeletal, uint32_t index)
 				: AssetAnimation(path, pathToRaw, guid, anim, skeletal, index) {}
 		};
+
+		YAML::Node baseNode;
+		Utils::ReadYAML(data, &baseNode);
 
 		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::Animation))
 			return {};
@@ -3689,6 +3943,11 @@ namespace Eagle
 
 		const uint32_t animIndex = baseNode["Index"].as<uint32_t>();
 		Ref<AssetSkeletalMesh> skeletal = GetAsset<AssetSkeletalMesh>(baseNode["Skeletal"]);
+		if (!skeletal)
+		{
+			EG_CORE_ERROR("Failed to load {}. Its skeletal mesh wasn't found!", pathToAsset.u8string());
+			return {};
+		}
 
 		const GUID guid = baseNode["GUID"].as<GUID>();
 		if (bReloadRaw)
@@ -3708,13 +3967,109 @@ namespace Eagle
 		}
 
 		SkeletalMeshAnimation animation;
-		Serializer::DeserializeAnimation(baseNode, animation);
+		// Deserialize animation
+		{
+			const auto baseAnimNode = baseNode["Animation"];
+			if (!baseAnimNode)
+			{
+				EG_CORE_ERROR("Failed to deserialize animation");
+				return {};
+			}
+
+			animation.Duration = baseAnimNode["Duration"].as<float>();
+			animation.TicksPerSecond = baseAnimNode["TicksPerSecond"].as<float>();
+			if (auto inPlaceNode = baseAnimNode["bInPlace"])
+				animation.bInPlace = inPlaceNode.as<bool>();
+
+			// Root Motion
+			if (auto rootMotionNode = baseAnimNode["RootMotion"])
+			{
+				// Locations
+				{
+					const size_t size = rootMotionNode["LocationsSize"].as<size_t>();
+					const size_t offset = rootMotionNode["LocationsOffset"].as<size_t>();
+					Utils::ReadBinary(data, size, offset, &animation.RootMotion.Locations);
+				}
+
+				// Rotations
+				{
+					const size_t size = rootMotionNode["RotationsSize"].as<size_t>();
+					const size_t offset = rootMotionNode["RotationsOffset"].as<size_t>();
+					Utils::ReadBinary(data, size, offset, &animation.RootMotion.Rotations);
+				}
+
+				// Scales
+				{
+					const size_t size = rootMotionNode["ScalesSize"].as<size_t>();
+					const size_t offset = rootMotionNode["ScalesOffset"].as<size_t>();
+					Utils::ReadBinary(data, size, offset, &animation.RootMotion.Scales);
+				}
+			}
+
+			// Events
+			if (auto eventsNode = baseAnimNode["Events"])
+			{
+				for (const auto& eventNode : eventsNode)
+				{
+					auto& event = animation.Events.emplace_back();
+					event.Name = eventNode["Name"].as<std::string>();
+					event.Time = eventNode["Time"].as<float>();
+				}
+			}
+
+			// Bones
+			{
+				animation.Bones.clear();
+				const size_t bonesDataSize = baseAnimNode["BonesSize"].as<size_t>();
+				const size_t bonesDataOffset = baseAnimNode["BonesOffset"].as<size_t>();
+				ScopedDataBuffer bonesData;
+				Utils::ReadBinary(data, bonesDataSize, bonesDataOffset, &bonesData);
+				
+				size_t offset = 0;
+				while (offset < bonesDataSize)
+				{
+					BoneAnimation animData;
+				
+					const size_t nameSize = bonesData.Read<size_t>(offset);
+					offset += sizeof(size_t);
+					std::vector<char> boneNameVec(nameSize, 0);
+				
+					Utils::ReadBinary(bonesData.GetDataBuffer(), nameSize, offset, &boneNameVec);
+					offset += nameSize;
+					std::string_view boneName = boneNameVec.data();
+				
+					const size_t locationsSize = bonesData.Read<size_t>(offset);
+					offset += sizeof(size_t);
+					Utils::ReadBinary(bonesData.GetDataBuffer(), locationsSize, offset, &animData.Locations);
+					offset += locationsSize;
+				
+					const size_t rotationsSize = bonesData.Read<size_t>(offset);
+					offset += sizeof(size_t);
+					Utils::ReadBinary(bonesData.GetDataBuffer(), rotationsSize, offset, &animData.Rotations);
+					offset += rotationsSize;
+				
+					const size_t scalesSize = bonesData.Read<size_t>(offset);
+					offset += sizeof(size_t);
+					Utils::ReadBinary(bonesData.GetDataBuffer(), scalesSize, offset, &animData.Scales);
+					offset += scalesSize;
+				
+					animData.BoneID = bonesData.Read<uint32_t>(offset);
+					offset += sizeof(uint32_t);
+				
+					animation.Bones.emplace(boneName, std::move(animData));
+				}
+				EG_CORE_ASSERT(offset == bonesDataSize);
+			}
+		}
 
 		return MakeRef<LocalAssetAnimation>(pathToAsset, pathToRaw, guid, MakeRef<SkeletalMeshAnimation>(std::move(animation)), skeletal, animIndex);
 	}
 
-	Ref<AssetAnimationGraph> Serializer::DeserializeAssetAnimationGraph(const YAML::Node& baseNode, const Path& pathToAsset)
+	Ref<AssetAnimationGraph> Serializer::DeserializeAssetAnimationGraph(const DataBuffer& data, const Path& pathToAsset)
 	{
+		YAML::Node baseNode;
+		Utils::ReadYAML(data, &baseNode);
+
 		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::AnimationGraph))
 			return {};
 
@@ -3769,8 +4124,11 @@ namespace Eagle
 		return result;
 	}
 
-	Ref<AssetParticleSystem> Serializer::DeserializeAssetParticleSystem(const YAML::Node& baseNode, const Path& pathToAsset)
+	Ref<AssetParticleSystem> Serializer::DeserializeAssetParticleSystem(const DataBuffer& data, const Path& pathToAsset)
 	{
+		YAML::Node baseNode;
+		Utils::ReadYAML(data, &baseNode);
+
 		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::ParticleSystem))
 			return {};
 
@@ -3880,8 +4238,11 @@ namespace Eagle
 		return MakeRef<LocalAssetParticleSystem>(pathToAsset, guid, emitters);
 	}
 
-	Ref<AssetAnimationBlendSpace> Serializer::DeserializeAssetAnimationBlendSpace(const YAML::Node& baseNode, const Path& pathToAsset)
+	Ref<AssetAnimationBlendSpace> Serializer::DeserializeAssetAnimationBlendSpace(const DataBuffer& data, const Path& pathToAsset)
 	{
+		YAML::Node baseNode;
+		Utils::ReadYAML(data, &baseNode);
+
 		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::AnimationBlendSpace))
 			return {};
 
@@ -3911,16 +4272,16 @@ namespace Eagle
 			bUseShortestBlendPath = blendPathNode.as<bool>();
 
 		BlendSpaceAxisSettings horAxis;
+		if (auto horNode = baseNode["HorizontalAxis"])
 		{
-			auto horNode = baseNode["HorizontalAxis"];
 			horAxis.Name = horNode["Name"].as<std::string>();
 			horAxis.Min = horNode["Min"].as<float>();
 			horAxis.Max = horNode["Max"].as<float>();
 		}
 
 		BlendSpaceAxisSettings verAxis;
+		if (auto verNode = baseNode["VerticalAxis"])
 		{
-			auto verNode = baseNode["VerticalAxis"];
 			verAxis.Name = verNode["Name"].as<std::string>();
 			verAxis.Min = verNode["Min"].as<float>();
 			verAxis.Max = verNode["Max"].as<float>();
@@ -3958,9 +4319,33 @@ namespace Eagle
 		return result;
 	}
 
-	AssetType Serializer::GetAssetType(const Path& pathToAsset)
+	Ref<AssetScene> Serializer::DeserializeAssetScene(const DataBuffer& data, const Path& pathToAsset)
 	{
-		YAML::Node baseNode = YAML::LoadFile(pathToAsset.string());
+		class LocalAssetScene : public AssetScene
+		{
+		public:
+			LocalAssetScene(const Path& path, GUID guid)
+				: AssetScene(path, guid) {
+			}
+		};
+
+		YAML::Node baseNode;
+		Utils::ReadYAML(data, &baseNode);
+
+		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::Scene))
+			return {};
+
+		return MakeRef<LocalAssetScene>(pathToAsset, baseNode["GUID"].as<GUID>());
+	}
+
+	AssetType Serializer::GetAssetType(const DataBuffer& assetData)
+	{
+		Timer timer;
+		AssetType actualType = AssetType::None;
+
+#if 0
+		YAML::Node baseNode;
+		Utils::ReadYAML(assetData, &baseNode);
 
 		if (!baseNode)
 		{
@@ -3968,11 +4353,31 @@ namespace Eagle
 			return AssetType::None;
 		}
 
-		AssetType actualType = AssetType::None;
 		if (auto node = baseNode["Type"])
 			actualType = Utils::GetEnumFromName<AssetType>(node.as<std::string>());
+#else
+		// This approach is much faster since we avoid parsing the whole YAML hierarchy
+		// But this is less safer
+		std::string_view yaml = Utils::ReadYAMLAsCString(assetData);
+
+		constexpr char searchKey[] = "Type: ";
+		const size_t pos = yaml.find(searchKey);
+		if (pos != std::string::npos)
+		{
+			const size_t endLinePos = yaml.find_first_of('\n', pos);
+			constexpr size_t keySize = sizeof(searchKey) - 1; // -1 to remove '\0'
+			std::string_view type = yaml.substr(pos + keySize, endLinePos - pos - keySize);
+			actualType = Utils::GetEnumFromName<AssetType>(type);
+		}
+#endif
 
 		return actualType;
+	}
+
+	AssetType Serializer::GetAssetType(const Path& pathToAsset)
+	{
+		ScopedDataBuffer data = FileSystem::Read(pathToAsset);
+		return GetAssetType(data.GetDataBuffer());
 	}
 
 	template<typename T>

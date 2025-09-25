@@ -535,13 +535,12 @@ namespace Eagle
 			Ref<Scene> scene = MakeRef<Scene>(path.u8string(), (bReuseCurrentSceneRenderer && s_CurrentScene) ? s_CurrentScene->GetSceneRenderer() : nullptr, bRuntime);
 			if (Application::Get().IsGame())
 			{
-				YAML::Node sceneNode;
-				if (AssetManager::GetRuntimeAssetNode(path, &sceneNode))
+				Ref<ScopedDataBuffer> sceneData;
+				if (AssetManager::GetRuntimeAssetData(path, &sceneData))
 				{
 					AssetManager::ResetGameAssets();
 					AssetManager::ResetRuntimeAsset();
-					SceneSerializer serializer(scene);
-					serializer.Deserialize(sceneNode);
+					SceneSerializer::Deserialize(scene, sceneData->GetDataBuffer());
 					OnSceneOpened(scene);
 				}
 				else
@@ -551,8 +550,7 @@ namespace Eagle
 			{
 				if (std::filesystem::exists(path))
 				{
-					SceneSerializer serializer(scene);
-					serializer.Deserialize(path);
+					SceneSerializer::Deserialize(scene, path);
 				}
 				AssetManager::ResetRuntimeAsset();
 				OnSceneOpened(scene);

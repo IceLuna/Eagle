@@ -53,6 +53,15 @@ namespace Eagle
 		EG_CORE_INFO("Creating Application!");
 		TextureCompressor::Init();
 
+		RendererContext::SetAPI(RendererAPIType::Vulkan);
+		m_RendererContext = RendererContext::Create();
+		m_Window = Window::Create(m_WindowProps);
+		m_Window->SetEventCallback(EG_BIND_FN(OnEvent));
+
+		PhysicsEngine::Init();
+		AudioEngine::Init();
+		ScriptEngine::Init(m_CorePath / "Eagle-Scripts.dll");
+
 		if (m_Game)
 		{
 			const Path dataPath = "Data/";
@@ -72,20 +81,14 @@ namespace Eagle
 			}
 		}
 		else
+		{
 			ShaderManager::Init();
-
-		RendererContext::SetAPI(RendererAPIType::Vulkan);
-		m_RendererContext = RendererContext::Create();
-		m_Window = Window::Create(m_WindowProps);
-		m_Window->SetEventCallback(EG_BIND_FN(OnEvent));
+		}
 
 		RenderManager::Init();
+
 		m_ImGuiLayer = ImGuiLayer::Create();
 		PushLayer(m_ImGuiLayer);
-
-		PhysicsEngine::Init();
-		AudioEngine::Init();
-		ScriptEngine::Init(m_CorePath / "Eagle-Scripts.dll");
 
 		ProcessCmdCommands(props.argc, props.argv);
 		ProcessNextFrameFuncs();
@@ -292,6 +295,14 @@ namespace Eagle
 			func();
 		else
 			m_NextFrameFuncs.push_back(func);
+	}
+
+	void Application::CallNextFrame(std::function<void()>&& func)
+	{
+		if (bProcessingNextFrameFuncs)
+			func();
+		else
+			m_NextFrameFuncs.emplace_back(std::move(func));
 	}
 
 	void Application::AddThread(const ThreadPool& threadPool)

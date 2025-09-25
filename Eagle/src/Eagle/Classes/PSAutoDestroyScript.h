@@ -6,6 +6,7 @@ namespace Eagle
 {
 	class Asset;
 
+	// Responsible for destroying particle systems that are marked as `AutoDestroy` when spawning through C#
 	class PSAutoDestroyScript : public ScriptableEntity
 	{
 	public:

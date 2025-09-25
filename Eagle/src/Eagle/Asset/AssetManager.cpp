@@ -7,6 +7,7 @@
 #include "Eagle/Core/ThreadPool.h"
 #include "Eagle/Utils/Compressor.h"
 #include "Eagle/Utils/Timer.h"
+#include "Eagle/Utils/SerializerUtils.h"
 #include "Eagle/Script/ScriptEngine.h"
 
 namespace Eagle
@@ -27,20 +28,13 @@ namespace Eagle
 	Ref<AssetStaticMesh> AssetManager::s_Sphere;
 	Ref<AssetStaticMesh> AssetManager::s_Cube;
 
-	// Just to store path along side with the node when we use GUID as a key.
-	struct NodeData
-	{
-		YAML::Node Node;
-		Path AssetPath;
-	};
-
 	// There's no point in loading all assets at the beggining.
 	// We should load assets as needed and try to unload them when scenes change.
-	// So here we are creating a map, where Path is a path to an asset and YAML::Node is a node that contains asset data.
+	// So here we are creating a map, where Path is a path to an asset and ScopedDataBuffer is a buffer that contains asset data.
 	// Using this approach will allow us to quickly load assets since there's no need to parse the asset pack.
 	// And when an asset is requested, we should check if it's loaded already (s_Assets)
-	static std::unordered_map<Path, YAML::Node> s_AssetPackAssets;
-	static std::unordered_map<GUID, NodeData> s_AssetPackAssetsByGUID;
+	static std::unordered_map<Path, Ref<ScopedDataBuffer>> s_AssetPackAssets;
+	static std::unordered_map<GUID, std::pair<Path, Ref<ScopedDataBuffer>>> s_AssetPackAssetsByGUID;
 	static bool s_bGame = false;
 
 	void AssetManager::Init()
@@ -59,9 +53,7 @@ namespace Eagle
 
 		// Defines the order for assets loading
 		// All `assetsToLoadQueue[0]` will be loaded first, then [1] and so on.
-		std::array<AssetsQueue, 6> assetsToLoadQueue;
-		std::vector<Path> entityAssetsToLoad; // Entity assets need to be created in a single thread (mono related issues)
-		entityAssetsToLoad.reserve(25);
+		std::array<AssetsQueue, 7> assetsToLoadQueue;
 		for (auto& assets : assetsToLoadQueue)
 			assets.Paths.reserve(25);
 
@@ -76,6 +68,7 @@ namespace Eagle
 			EG_CORE_WARN(error);
 		}
 
+		Timer globalTimer;
 		for (auto& dirEntry : std::filesystem::recursive_directory_iterator(contentPath))
 		{
 			if (dirEntry.is_directory())
@@ -126,35 +119,45 @@ namespace Eagle
 			// Entity: we can't load entities unless all assets are loaded since entities might refer to anything
 			else if (type == AssetType::Entity)
 			{
-				entityAssetsToLoad.emplace_back(std::move(assetPath));
+				// Entity assets need to be created in a single thread (mono related issues)
+				assetsToLoadQueue[6].Paths.emplace_back(std::move(assetPath));
+				assetsToLoadQueue[6].bAsync = false;
 				continue;
 			}
 
 			assetsToLoadQueue[0].Paths.emplace_back(std::move(assetPath));
 		}
+		EG_CORE_INFO("Took {}s to traverse directories and find assets", globalTimer.GetDuration() / 1000.f);
 
 		std::mutex mutex;
 		constexpr bool bEnableAsyncLoading = true;
 		const uint32_t threadCount = bEnableAsyncLoading ? std::thread::hardware_concurrency() : 1u;
 		ThreadPool threadPool("AssetManager", threadCount, false);
 
-		auto loadAssetFunc = [&mutex](const Path& assetPath)
+		auto loadAssetFunc = [&mutex](const Path& assetPath, bool bUseMutex)
 		{
 			Timer timer;
 			Ref<Asset> asset = Asset::Create(assetPath);
 			EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetDuration() / 1000.f, assetPath.u8string());
-			std::scoped_lock lock(mutex);
-			Register(asset);
+			if (bUseMutex)
+			{
+				std::scoped_lock lock(mutex);
+				Register(asset);
+			}
+			else
+			{
+				Register(asset);
+			}
 		};
 
-		Timer globalTimer;
+		globalTimer.Restart();
 		for (const auto& assets : assetsToLoadQueue)
 		{
 			if (assets.bAsync)
 			{
 				for (const auto& assetPath : assets.Paths)
 				{
-					threadPool->push_task(loadAssetFunc, assetPath);
+					threadPool->push_task(loadAssetFunc, assetPath, true);
 				}
 				threadPool->wait_for_tasks();
 			}
@@ -162,39 +165,43 @@ namespace Eagle
 			{
 				for (const auto& assetPath : assets.Paths)
 				{
-					loadAssetFunc(assetPath);
+					loadAssetFunc(assetPath, false);
 				}
 			}
 		}
 
-		for (const auto& assetPath : entityAssetsToLoad)
-		{
-			Timer timer;
-			Register(Asset::Create(assetPath));
-			EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetDuration() / 1000.f, assetPath.u8string());
-		}
-
 		EG_CORE_INFO("Took {}s to load all project assets using {} threads", globalTimer.GetDuration() / 1000.f, threadCount);
 
-		s_Skybox = AssetTextureCube::Create(Application::GetCorePath() / "assets/textures/IBL.egasset");
-		s_Sphere = AssetStaticMesh::Create(Application::GetCorePath() / "assets/meshes/Sphere.egasset");
-		s_Cube = AssetStaticMesh::Create(Application::GetCorePath() / "assets/meshes/Cube.egasset");
+		s_Skybox = Cast<AssetTextureCube>(Asset::Create(Application::GetCorePath() / "assets/textures/IBL.egasset"));
+		s_Sphere = Cast<AssetStaticMesh>(Asset::Create(Application::GetCorePath() / "assets/meshes/Sphere.egasset"));
+		s_Cube = Cast<AssetStaticMesh>(Asset::Create(Application::GetCorePath() / "assets/meshes/Cube.egasset"));
 	}
 
-	void AssetManager::InitGame(const YAML::Node& baseNode)
+	void AssetManager::InitGame(const DataBuffer& assetPack)
 	{
 		s_bGame = Application::Get().IsGame();
-		if (!s_bGame || !baseNode)
+		if (!s_bGame || assetPack.Size == 0)
 			return;
 
-		for (auto& baseAssetNode : baseNode)
-		{
-			const Path path = baseAssetNode["Path"].as<std::string>();
-			auto assetNode = baseAssetNode["Asset"];
-			const GUID assetGUID = assetNode["GUID"].as<GUID>();
+		AssetEntity::s_EntityAssetsScene = MakeRef<Scene>();
 
-			s_AssetPackAssets.emplace(path, assetNode);
-			s_AssetPackAssetsByGUID.emplace(assetGUID, NodeData{ assetNode, path });
+		YAML::Node baseNode;
+		Utils::ReadYAML(assetPack, &baseNode);
+
+		auto assetsNodes = baseNode["Assets"];
+
+		for (auto& assetNode : assetsNodes)
+		{
+			const Path path = assetNode["Path"].as<std::string>();
+			const GUID assetGUID = assetNode["GUID"].as<GUID>();
+			const size_t dataSize = assetNode["DataSize"].as<size_t>();
+			const size_t dataOffset = assetNode["DataOffset"].as<size_t>();
+
+			Ref<ScopedDataBuffer> assetData = MakeRef<ScopedDataBuffer>();
+			Utils::ReadBinary(assetPack, dataSize, dataOffset, assetData.get());
+
+			s_AssetPackAssets.emplace(path, assetData);
+			s_AssetPackAssetsByGUID.emplace(assetGUID, std::pair{ std::move(path), std::move(assetData) });
 		}
 	}
 
@@ -255,22 +262,9 @@ namespace Eagle
 			auto it = s_AssetPackAssets.find(path);
 			if (it != s_AssetPackAssets.end())
 			{
-				const auto& assetNode = it->second;
-
-				AssetType assetType = AssetType::None;
-				auto typeNode = assetNode["Type"];
-				if (!typeNode)
-				{
-					EG_CORE_ERROR("Failed to load an asset. It's not an Eagle asset: {}", path.u8string());
-					return false;
-				}
-
 				Timer timer;
-				assetType = Utils::GetEnumFromName<AssetType>(typeNode.as<std::string>());
-				if (assetType == AssetType::Scene)
-					*outAsset = AssetScene::Create(path, assetNode);
-				else
-					*outAsset = Serializer::DeserializeAsset(assetNode, path, false);
+				const auto& assetData = it->second;
+				*outAsset = Serializer::DeserializeAsset(assetData->GetDataBuffer(), path, false);
 				EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetDuration() / 1000.f, path.u8string());
 
 				Register(*outAsset);
@@ -306,23 +300,13 @@ namespace Eagle
 			auto it = s_AssetPackAssetsByGUID.find(guid);
 			if (it != s_AssetPackAssetsByGUID.end())
 			{
-				const NodeData& assetNodeData = it->second;
-
-				AssetType assetType = AssetType::None;
-				auto typeNode = assetNodeData.Node["Type"];
-				if (!typeNode)
-				{
-					EG_CORE_ERROR("Failed to load an asset. It's not an eagle asset");
-					return false;
-				}
+				const std::pair<Path, Ref<ScopedDataBuffer>>& assetInfo = it->second;
+				const auto& assetPath = assetInfo.first;
+				const auto& assetData = assetInfo.second;
 
 				Timer timer;
-				assetType = Utils::GetEnumFromName<AssetType>(typeNode.as<std::string>());
-				if (assetType == AssetType::Scene)
-					*outAsset = AssetScene::Create(assetNodeData.AssetPath, assetNodeData.Node);
-				else
-					*outAsset = Serializer::DeserializeAsset(assetNodeData.Node, assetNodeData.AssetPath, false);
-				EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetDuration() / 1000.f, assetNodeData.AssetPath.u8string());
+				*outAsset = Serializer::DeserializeAsset(assetData->GetDataBuffer(), assetPath, false);
+				EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetDuration() / 1000.f, assetPath.u8string());
 
 				Register(*outAsset);
 				return true;
@@ -332,7 +316,7 @@ namespace Eagle
 		return false;
 	}
 
-	bool AssetManager::GetRuntimeAssetNode(const Path& path, YAML::Node* outNode)
+	bool AssetManager::GetRuntimeAssetData(const Path& path, Ref<ScopedDataBuffer>* outData)
 	{
 		if (!s_bGame)
 			return false;
@@ -340,7 +324,7 @@ namespace Eagle
 		auto it = s_AssetPackAssets.find(path);
 		if (it != s_AssetPackAssets.end())
 		{
-			*outNode = it->second;
+			*outData = it->second;
 			return true;
 		}
 
@@ -413,24 +397,32 @@ namespace Eagle
 		if (asset->GetAssetType() == AssetType::Scene)
 		{
 			GUID newGUID{};
-			std::string sceneDesc = FileSystem::ReadText(filepath);
+			ScopedDataBuffer data = FileSystem::Read(filepath);
+			std::string sceneDesc = Utils::ReadYAMLToString(data);
 
 			// Update GUID
 			constexpr char searchKey[] = "GUID:";
 			size_t pos = sceneDesc.find(searchKey);
-			size_t endLinePos = sceneDesc.find_first_of('\n', pos);
 			if (pos != std::string::npos)
 			{
+				size_t endLinePos = sceneDesc.find_first_of('\n', pos);
 				constexpr size_t keySize = sizeof(searchKey) - 1; // -1 to remove '\0'
 				sceneDesc.erase(pos + keySize, endLinePos - pos - keySize);
 				std::string guidStr = " [" + std::to_string(newGUID.GetHigh()) + ", " + std::to_string(newGUID.GetLow()) + ']';
 				sceneDesc.insert(pos + keySize, guidStr);
-			}
 
-			std::ofstream fout(filepath);
-			fout << sceneDesc;
-			fout.close();
-			Register(Asset::Create(filepath));
+				if (!SceneSerializer::SerializeWithYaml(filepath, sceneDesc))
+				{
+					EG_CORE_ERROR("Failed to write to: {}", filepath.u8string());
+					return false;
+				}
+				Register(Asset::Create(filepath));
+			}
+			else
+			{
+				EG_CORE_ERROR("Failed to duplicate a scene. Couldn't find its GUID. {}", assetPath.u8string());
+				return false;
+			}
 		}
 		else
 		{
@@ -468,32 +460,47 @@ namespace Eagle
 		}
 	}
 	
-	bool AssetManager::BuildAssetPack(YAML::Emitter& out)
+	ScopedDataBuffer AssetManager::BuildAssetPack()
 	{
-		out << YAML::Key << "Assets" << YAML::Value << YAML::BeginSeq;
+		std::vector<ScopedDataBuffer> serializedDatas;
+		serializedDatas.reserve(s_Assets.size());
 
+		size_t totalSize = sizeof(AssetHeader);
+
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		out << YAML::Key << "Assets" << YAML::Value << YAML::BeginSeq;
 		for (const auto& [path, asset] : s_Assets)
 		{
+			if (std::filesystem::exists(path) == false)
+				continue;
+
+			const auto& data = serializedDatas.emplace_back(FileSystem::Read(path));
+			const size_t offset = Utils::AddSize(data, &totalSize);
+
 			out << YAML::BeginMap;
+
 			out << YAML::Key << "Path" << YAML::Value << path.string();
-			out << YAML::Key << "Asset" << YAML::Value;
-			if (asset->GetAssetType() == AssetType::Scene)
-			{
-				Ref<Scene> scene = MakeRef<Scene>();
-				SceneSerializer serializer(scene);
-				// First, we need to deserialize a scene to fill it up
-				serializer.Deserialize(path);
-				// Then the scene is serialized
-				serializer.Serialize(out);
-			}
-			else
-			{
-				Serializer::SerializeAsset(out, asset);
-			}
+			out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
+			out << YAML::Key << "DataSize" << YAML::Value << data.Size();
+			out << YAML::Key << "DataOffset" << YAML::Value << offset;
+
 			out << YAML::EndMap;
 		}
 		out << YAML::EndSeq;
+		out << YAML::EndMap;
 
-		return true;
+		AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		ScopedDataBuffer totalData(totalSize);
+		
+		size_t offset = 0;
+		Utils::WriteToBuffer(totalData, &header, sizeof(header), &offset);
+		for (const auto& data : serializedDatas)
+		{
+			Utils::WriteToBuffer(totalData, data, &offset);
+		}
+		Utils::WriteYaml(totalData, out, &offset);
+
+		return totalData;
 	}
 }

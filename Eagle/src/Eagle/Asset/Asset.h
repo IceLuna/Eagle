@@ -219,6 +219,11 @@ namespace Eagle
 		// @path. Path to an `.egasset` file
 		static Ref<Asset> Create(const Path& path);
 
+		// Same as above, but uses `data` instead of reading it from `path`.
+		// Here `path` is used just as a metadata
+		static Ref<Asset> Create(const DataBuffer& data, const Path& path);
+		static Ref<Asset> Create(const ScopedDataBuffer& data, const Path& path) { return Asset::Create(data.GetDataBuffer(), path); }
+
 		static void Save(const Ref<Asset>& asset);
 
 		// @bReloadRawData. When set to true, raw data will be reloaded (for example, from the original .png file)
@@ -277,9 +282,6 @@ namespace Eagle
 			return *this;
 		}
 
-		// @path. Path to an `.egasset` file
-		static Ref<AssetTexture2D> Create(const Path& path);
-
 		static constexpr AssetType GetAssetType_Static() { return AssetType::Texture2D; }
 
 	protected:
@@ -329,9 +331,6 @@ namespace Eagle
 			return *this;
 		}
 
-		// @path. Path to an `.egasset` file
-		static Ref<AssetTextureCube> Create(const Path& path);
-
 		static constexpr AssetType GetAssetType_Static() { return AssetType::TextureCube; }
 
 	protected:
@@ -368,9 +367,6 @@ namespace Eagle
 			return *this;
 		}
 
-		// @path. Path to an `.egasset` file
-		static Ref<AssetStaticMesh> Create(const Path& path);
-
 		static constexpr AssetType GetAssetType_Static() { return AssetType::StaticMesh; }
 
 	protected:
@@ -399,9 +395,6 @@ namespace Eagle
 			return *this;
 		}
 
-		// @path. Path to an `.egasset` file
-		static Ref<AssetSkeletalMesh> Create(const Path& path);
-
 		static constexpr AssetType GetAssetType_Static() { return AssetType::SkeletalMesh; }
 
 	protected:
@@ -429,9 +422,6 @@ namespace Eagle
 
 			return *this;
 		}
-
-		// @path. Path to an `.egasset` file
-		static Ref<AssetSoundGroup> Create(const Path& path);
 
 		static constexpr AssetType GetAssetType_Static() { return AssetType::SoundGroup; }
 
@@ -465,9 +455,6 @@ namespace Eagle
 			return *this;
 		}
 
-		// @path. Path to an `.egasset` file
-		static Ref<AssetAudio> Create(const Path& path);
-
 		static constexpr AssetType GetAssetType_Static() { return AssetType::Audio; }
 
 	protected:
@@ -499,9 +486,6 @@ namespace Eagle
 
 			return *this;
 		}
-
-		// @path. Path to an `.egasset` file
-		static Ref<AssetFont> Create(const Path& path);
 
 		static constexpr AssetType GetAssetType_Static() { return AssetType::Font; }
 
@@ -537,8 +521,6 @@ namespace Eagle
 			return *this;
 		}
 
-		// @path. Path to an `.egasset` file
-		static Ref<AssetMaterial> Create(const Path& path);
 		static Ref<AssetMaterial> Create(const Ref<Material>& material); // Used to create runtime simulation assets using C#
 
 		static constexpr AssetType GetAssetType_Static() { return AssetType::Material; }
@@ -576,8 +558,6 @@ namespace Eagle
 			return *this;
 		}
 
-		// @path. Path to an `.egasset` file
-		static Ref<AssetPhysicsMaterial> Create(const Path& path);
 		static Ref<AssetPhysicsMaterial> Create(const Ref<PhysicsMaterial>& material); // Used to create runtime simulation assets using C#
 
 		static constexpr AssetType GetAssetType_Static() { return AssetType::PhysicsMaterial; }
@@ -611,9 +591,6 @@ namespace Eagle
 		// Invalidates collision groups of all asset entities
 		static void InvalidateCollisionGroups(uint32_t validMasks);
 
-		// @path. Path to an `.egasset` file
-		static Ref<AssetEntity> Create(const Path& path);
-
 		static Entity CreateEntity(GUID guid);
 		static const Ref<Scene>& GetScene() { return s_EntityAssetsScene; } // For internal deserialization use
 
@@ -633,17 +610,11 @@ namespace Eagle
 	class AssetScene : public Asset
 	{
 	public:
-		// @path. Path to an `.egasset` file
-		static Ref<AssetScene> Create(const Path& path);
-		static Ref<AssetScene> Create(const Path& path, const YAML::Node& data);
-
 		static constexpr AssetType GetAssetType_Static() { return AssetType::Scene; }
 
 	protected:
 		AssetScene(const Path& path, GUID guid)
 			: Asset(path, {}, AssetType::Scene, guid, {}) {}
-
-		friend class AssetManager;
 	};
 
 	class AssetAnimation : public Asset
@@ -667,9 +638,6 @@ namespace Eagle
 
 			return *this;
 		}
-
-		// @path. Path to an `.egasset` file
-		static Ref<AssetAnimation> Create(const Path& path);
 
 		static constexpr AssetType GetAssetType_Static() { return AssetType::Animation; }
 
@@ -711,9 +679,6 @@ namespace Eagle
 			return *this;
 		}
 
-		// @path. Path to an `.egasset` file
-		static Ref<AssetAnimationGraph> Create(const Path& path);
-
 		static constexpr AssetType GetAssetType_Static() { return AssetType::AnimationGraph; }
 
 	protected:
@@ -745,8 +710,6 @@ namespace Eagle
 			return *this;
 		}
 
-		// @path. Path to an `.egasset` file
-		static Ref<AssetParticleSystem> Create(const Path& path);
 		static Ref<AssetParticleSystem> Create(); // Used to create runtime simulation assets using C#
 		static Ref<AssetParticleSystem> Copy(const Ref<AssetParticleSystem>& asset);
 
@@ -830,9 +793,6 @@ namespace Eagle
 		// it'll blend from `-99` to `-100`, flip over to `100` and blend from `100` to `99`. So, the blend length is only `2` units, instead of `198`.
 		void SetUseShortestBlendPath(bool bEnabled) { bUseShortestBlendPath = bEnabled; }
 		bool IsShortestBlendPathEnabled() const { return bUseShortestBlendPath; }
-
-		// @path. Path to an `.egasset` file
-		static Ref<AssetAnimationBlendSpace> Create(const Path& path);
 
 		static constexpr AssetType GetAssetType_Static() { return AssetType::AnimationBlendSpace; }
 

@@ -22,11 +22,10 @@ namespace Eagle
 		{
 			const auto& scenePath = startScene->GetPath();
 			Ref<Scene> scene = MakeRef<Scene>(scenePath.filename().u8string(), nullptr, true);
-			YAML::Node sceneNode;
-			if (AssetManager::GetRuntimeAssetNode(scenePath, &sceneNode))
+			Ref<ScopedDataBuffer> sceneData;
+			if (AssetManager::GetRuntimeAssetData(scenePath, &sceneData))
 			{
-				SceneSerializer serializer(scene);
-				serializer.Deserialize(sceneNode);
+				SceneSerializer::Deserialize(scene, sceneData->GetDataBuffer());
 			}
 			m_CurrentScene = std::move(scene);
 		}

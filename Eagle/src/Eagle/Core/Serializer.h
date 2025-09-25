@@ -36,8 +36,11 @@ namespace Eagle
 	class AssetAnimationGraph;
 	class AssetParticleSystem;
 	class AssetAnimationBlendSpace;
+	class AssetScene;
 
 	enum class AssetType;
+	enum class AssetTexture2DFormat;
+	enum class AssetTextureCubeFormat;
 	struct SceneRendererSettings;
 	struct BoneNode;
 	struct SkeletalMeshAnimation;
@@ -109,7 +112,6 @@ namespace Eagle
 		static void SerializeEntity(YAML::Emitter& out, Entity entity);
 		static void SerializeRelativeTransform(YAML::Emitter& out, const Transform& relativeTransform);
 		static void SerializeRendererSettings(YAML::Emitter& out, const SceneRendererSettings& settings);
-		static void SerializeAnimation(YAML::Emitter& out, const SkeletalMeshAnimation& anim);
 		static void SerializeProjectCollisionGroupGUIDs(YAML::Emitter& out);
 		
 		static void ReadBoneNode(const YAML::Node& baseNode, BoneNode& node);
@@ -119,41 +121,57 @@ namespace Eagle
 		[[nodiscard]] static Entity DeserializeEntity(const Ref<Scene>& scene, const YAML::Node& entityNode, uint32_t collisionGroupValidMasks, uint32_t* outEntityID, int* outParentID = nullptr); // Doesn't handle parents
 		static void DeserializeRelativeTransform(YAML::Node& node, Transform& relativeTransform);
 		static void DeserializeRendererSettings(YAML::Node& node, SceneRendererSettings& settings);
-		static void DeserializeAnimation(const YAML::Node& node, SkeletalMeshAnimation& animation);
 		static uint32_t DeserializeProjectCollisionGroupGUIDs(const YAML::Node& node);
 
-		static void SerializeAsset(YAML::Emitter& out, const Ref<Asset>& asset);
-		static void SerializeAssetTexture2D(YAML::Emitter& out, const Ref<AssetTexture2D>& asset);
-		static void SerializeAssetTextureCube(YAML::Emitter& out, const Ref<AssetTextureCube>& asset);
-		static void SerializeAssetStaticMesh(YAML::Emitter& out, const Ref<AssetStaticMesh>& asset);
-		static void SerializeAssetSkeletalMesh(YAML::Emitter& out, const Ref<AssetSkeletalMesh>& asset);
-		static void SerializeAssetAudio(YAML::Emitter& out, const Ref<AssetAudio>& asset);
-		static void SerializeAssetFont(YAML::Emitter& out, const Ref<AssetFont>& asset);
-		static void SerializeAssetMaterial(YAML::Emitter& out, const Ref<AssetMaterial>& asset);
-		static void SerializeAssetPhysicsMaterial(YAML::Emitter& out, const Ref<AssetPhysicsMaterial>& asset);
-		static void SerializeAssetSoundGroup(YAML::Emitter& out, const Ref<AssetSoundGroup>& asset);
-		static void SerializeAssetEntity(YAML::Emitter& out, const Ref<AssetEntity>& asset);
-		static void SerializeAssetAnimation(YAML::Emitter& out, const Ref<AssetAnimation>& asset);
-		static void SerializeAssetAnimationGraph(YAML::Emitter& out, const Ref<AssetAnimationGraph>& asset);
-		static void SerializeAssetParticleSystem(YAML::Emitter& out, const Ref<AssetParticleSystem>& asset);
-		static void SerializeAssetAnimationBlendSpace(YAML::Emitter& out, const Ref<AssetAnimationBlendSpace>& asset);
+		// Nullptr can be passed to create an empty asset
+		static ScopedDataBuffer SerializeAsset(const Ref<Asset>& asset);
+		static ScopedDataBuffer SerializeAssetTexture2D(const Ref<AssetTexture2D>& asset);
+		static ScopedDataBuffer SerializeAssetTextureCube(const Ref<AssetTextureCube>& asset);
+		static ScopedDataBuffer SerializeAssetStaticMesh(const Ref<AssetStaticMesh>& asset);
+		static ScopedDataBuffer SerializeAssetSkeletalMesh(const Ref<AssetSkeletalMesh>& asset);
+		static ScopedDataBuffer SerializeAssetAudio(const Ref<AssetAudio>& asset);
+		static ScopedDataBuffer SerializeAssetFont(const Ref<AssetFont>& asset);
+		static ScopedDataBuffer SerializeAssetMaterial(const Ref<AssetMaterial>& asset);
+		static ScopedDataBuffer SerializeAssetPhysicsMaterial(const Ref<AssetPhysicsMaterial>& asset);
+		static ScopedDataBuffer SerializeAssetSoundGroup(const Ref<AssetSoundGroup>& asset);
+		static ScopedDataBuffer SerializeAssetEntity(const Ref<AssetEntity>& asset);
+		static ScopedDataBuffer SerializeAssetAnimation(const Ref<AssetAnimation>& asset);
+		static ScopedDataBuffer SerializeAssetAnimationGraph(const Ref<AssetAnimationGraph>& asset, const Ref<AssetSkeletalMesh>& meshAsset = nullptr); // `meshAsset` is used if asset is nullptr
+		static ScopedDataBuffer SerializeAssetParticleSystem(const Ref<AssetParticleSystem>& asset);
+		static ScopedDataBuffer SerializeAssetAnimationBlendSpace(const Ref<AssetAnimationBlendSpace>& asset, const Ref<AssetSkeletalMesh>& meshAsset = nullptr); // `meshAsset` is used if asset is nullptr
 
-		static Ref<Asset> DeserializeAsset(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
-		static Ref<AssetTexture2D> DeserializeAssetTexture2D(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
-		static Ref<AssetTextureCube> DeserializeAssetTextureCube(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
-		static Ref<AssetStaticMesh> DeserializeAssetStaticMesh(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
-		static Ref<AssetSkeletalMesh> DeserializeAssetSkeletalMesh(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
-		static Ref<AssetAudio> DeserializeAssetAudio(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
-		static Ref<AssetFont> DeserializeAssetFont(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
-		static Ref<AssetMaterial> DeserializeAssetMaterial(const YAML::Node& baseNode, const Path& pathToAsset);
-		static Ref<AssetPhysicsMaterial> DeserializeAssetPhysicsMaterial(const YAML::Node& baseNode, const Path& pathToAsset);
-		static Ref<AssetSoundGroup> DeserializeAssetSoundGroup(const YAML::Node& baseNode, const Path& pathToAsset);
-		static Ref<AssetEntity> DeserializeAssetEntity(const YAML::Node& baseNode, const Path& pathToAsset);
-		static Ref<AssetAnimation> DeserializeAssetAnimation(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
-		static Ref<AssetAnimationGraph> DeserializeAssetAnimationGraph(const YAML::Node& baseNode, const Path& pathToAsset);
-		static Ref<AssetParticleSystem> DeserializeAssetParticleSystem(const YAML::Node& baseNode, const Path& pathToAsset);
-		static Ref<AssetAnimationBlendSpace> DeserializeAssetAnimationBlendSpace(const YAML::Node& baseNode, const Path& pathToAsset);
+		static ScopedDataBuffer SerializeAssetTexture2DFromData(const DataBuffer& textureData, const DataBuffer& ktxData, const GUID& guid, const Path& pathToRaw,
+			FilterMode filterMode, AddressMode addressMode, float anisotropy, uint32_t mipsCount, uint32_t width, uint32_t height, AssetTexture2DFormat format,
+			bool bCompressed, bool bNormalMap, bool bNeedsAlpha);
+		static ScopedDataBuffer SerializeAssetTextureCubeFromData(const DataBuffer& textureData, const GUID& guid, const Path& pathToRaw,
+			AssetTextureCubeFormat format, uint32_t layerSize, uint32_t prefilterSize);
+		static ScopedDataBuffer SerializeAssetStaticMeshFromMesh(const Ref<StaticMesh>& mesh, const GUID& guid, const Path& pathToRaw);
+		static ScopedDataBuffer SerializeAssetSkeletalMeshFromMesh(const Ref<SkeletalMesh>& mesh, const GUID& guid, const Path& pathToRaw);
+		static ScopedDataBuffer SerializeAssetAudioFromData(const DataBuffer& audioData, const GUID& guid, const Path& pathToRaw,
+			float volume, float pitch, float pan, const Ref<AssetSoundGroup>& soundGroup);
+		static ScopedDataBuffer SerializeAssetFontFromData(const DataBuffer& fontData, const GUID& guid, const Path& pathToRaw);
+		static ScopedDataBuffer SerializeAssetAnimationFromData(const GUID& guid, const Path& pathToRaw, uint32_t animIndex,
+			const SkeletalMeshAnimation& anim, const Ref<AssetSkeletalMesh>& skeletal);
 
+		static Ref<Asset> DeserializeAsset(const Path& pathToAsset, bool bReloadRaw = false);
+		static Ref<Asset> DeserializeAsset(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw = false);
+		static Ref<AssetTexture2D> DeserializeAssetTexture2D(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw = false);
+		static Ref<AssetTextureCube> DeserializeAssetTextureCube(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw = false);
+		static Ref<AssetStaticMesh> DeserializeAssetStaticMesh(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw = false);
+		static Ref<AssetSkeletalMesh> DeserializeAssetSkeletalMesh(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw = false);
+		static Ref<AssetAudio> DeserializeAssetAudio(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw = false);
+		static Ref<AssetFont> DeserializeAssetFont(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw = false);
+		static Ref<AssetMaterial> DeserializeAssetMaterial(const DataBuffer& data, const Path& pathToAsset);
+		static Ref<AssetPhysicsMaterial> DeserializeAssetPhysicsMaterial(const DataBuffer& data, const Path& pathToAsset);
+		static Ref<AssetSoundGroup> DeserializeAssetSoundGroup(const DataBuffer& data, const Path& pathToAsset);
+		static Ref<AssetEntity> DeserializeAssetEntity(const DataBuffer& data, const Path& pathToAsset);
+		static Ref<AssetAnimation> DeserializeAssetAnimation(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw = false);
+		static Ref<AssetAnimationGraph> DeserializeAssetAnimationGraph(const DataBuffer& data, const Path& pathToAsset);
+		static Ref<AssetParticleSystem> DeserializeAssetParticleSystem(const DataBuffer& data, const Path& pathToAsset);
+		static Ref<AssetAnimationBlendSpace> DeserializeAssetAnimationBlendSpace(const DataBuffer& data, const Path& pathToAsset);
+		static Ref<AssetScene> DeserializeAssetScene(const DataBuffer& data, const Path& pathToAsset);
+
+		static AssetType GetAssetType(const DataBuffer& assetData);
 		static AssetType GetAssetType(const Path& pathToAsset);
 		
 		static void SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field);

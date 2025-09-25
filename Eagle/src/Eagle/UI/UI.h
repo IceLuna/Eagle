@@ -139,10 +139,9 @@ namespace Eagle::UI
 					const wchar_t* payload_n = (const wchar_t*)payload->Data;
 					Path filepath = Path(payload_n);
 					Ref<Asset> asset;
-
 					if (AssetManager::Get(filepath, &asset) == false)
 					{
-						asset = Type::Create(filepath);
+						asset = Asset::Create(filepath);
 						AssetManager::Register(asset);
 					}
 					bResult = asset != modifyingAsset;
