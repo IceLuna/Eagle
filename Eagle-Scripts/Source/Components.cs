@@ -2532,8 +2532,15 @@ namespace Eagle
         }
 
         // Call this method to correctly retrieve script instance.
-        // For example, if you have a script `public class MyScript : Entity`, using `ScriptComponent.Parent` won't work.
-        // You need to call `ScriptComponent.GetInstance()` to get script instance that you can cast to `MyScript`
+        // For example, if you have a script `public class MyScript : Entity`, you can call this to get the correct Entity ref.
+        // You need to call `ScriptComponent.GetInstance()` to get script instance that you can cast to `MyScript`.
+        // Probably, you'll never need this function because all `Entity` object should already by correct instances.
+        // I think the only scenario you'll need this if you do:
+        //      Entity entity = Scene.CreateEntity("MyEntity");
+        //      entity.AddComponent<ScriptComponent>().SetScript(typeof(MyScript));
+        // because initial `entity` instance was create without knowing anything about `MyScript`,
+        // which means now you'll need to update the ref:
+        //      entity = entity.GetComponent<ScriptComponent>().GetInstance() as MyScript;
         public Entity GetInstance()
         {
             return GetInstance_Native(Parent.ID);

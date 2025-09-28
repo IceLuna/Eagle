@@ -16,6 +16,7 @@
 namespace Eagle 
 {
 	extern std::unordered_map<MonoType*, std::function<void(Entity&)>> m_AddComponentFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&)>> m_RemoveComponentFunctions;
 	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_HasComponentFunctions;
 
 	//SceneComponents
@@ -224,20 +225,20 @@ namespace Eagle::Script::Utils
 namespace Eagle
 {
 	//--------------Entity--------------
-	GUID Script::Eagle_Entity_GetParent(GUID entityID)
+	MonoObject* Script::Eagle_Entity_GetParent(GUID entityID)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get parent. Entity is null");
-			return {0, 0};
+			return nullptr;
 		}
 
 		if (Entity& parent = entity.GetParent())
-			return parent.GetGUID();
+			return ScriptEngine::GetEntityMonoObject(parent);
 
-		return {0, 0};
+		return nullptr;
 	}
 
 	void Script::Eagle_Entity_SetParent(GUID entityID, GUID parentID)
@@ -307,6 +308,20 @@ namespace Eagle
 		}
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't add component to Entity. Entity is null");
+	}
+
+	void Script::Eagle_Entity_RemoveComponent(GUID entityID, void* type)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+		{
+			MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+			m_RemoveComponentFunctions[monoType](entity);
+		}
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't remove component from an Entity. Entity is null");
 	}
 
 	bool Script::Eagle_Entity_HasComponent(GUID entityID, void* type)
@@ -382,7 +397,7 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get up vector of Entity. Entity is null");
 	}
 
-	GUID Script::Eagle_Entity_GetChildrenByName(GUID entityID, MonoString* monoName)
+	MonoObject* Script::Eagle_Entity_GetChildrenByName(GUID entityID, MonoString* monoName)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -395,15 +410,15 @@ namespace Eagle
 
 		const auto& children = entity.GetChildren();
 		if (children.empty())
-			return { 0, 0 };
+			return nullptr;
 
 		const std::string name = mono_string_to_utf8(monoName);
 
 		for (auto& child : children)
 			if (child.GetName() == name)
-				return child.GetGUID();
+				return ScriptEngine::GetEntityMonoObject(child);
 
-		return { 0, 0 };
+		return nullptr;
 	}
 
 	bool Script::Eagle_Entity_IsMouseHovered(GUID entityID)
@@ -7155,7 +7170,7 @@ namespace Eagle
 	}
 
 	bool Script::Eagle_Scene_Raycast(const glm::vec3* origin, const glm::vec3* dir, float maxDistance, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore,
-		GUID* outHitEntity, glm::vec3* outPosition, glm::vec3* outNormal, float* outDistance)
+		MonoObject** outHitEntity, glm::vec3* outPosition, glm::vec3* outNormal, float* outDistance)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		const auto& physicsScene = scene->GetPhysicsScene();
@@ -7178,7 +7193,7 @@ namespace Eagle
 		RaycastHit hit{};
 		const bool bHit = physicsScene->Raycast(*origin, *dir, maxDistance, query, collisionGroup, &hit, entitiesToIgnore);
 
-		*outHitEntity = hit.HitEntity ? hit.HitEntity.GetGUID() : GUID(0, 0);
+		*outHitEntity = hit.HitEntity ? ScriptEngine::GetEntityMonoObject(hit.HitEntity) : nullptr;
 		*outPosition = hit.Position;
 		*outNormal = hit.Normal;
 		*outDistance = hit.Distance;
@@ -7212,12 +7227,7 @@ namespace Eagle
 		size_t index = 0;
 		for (auto& entity : entities)
 		{
-			GUID guid = entity.GetGUID();
-			void* data[] =
-			{
-				&guid
-			};
-			MonoObject* obj = ScriptEngine::Construct("Eagle.Entity:.ctor(Eagle.GUID)", true, data);
+			MonoObject* obj = ScriptEngine::GetEntityMonoObject(entity);
 			mono_array_set(result, MonoObject*, index++, obj);
 		}
 
@@ -7231,24 +7241,24 @@ namespace Eagle
 		return scene->CreateEntity(name).GetGUID();
 	}
 
-	GUID Script::Eagle_Scene_SpawnEntityFromAsset(GUID assetID)
+	MonoObject* Script::Eagle_Scene_SpawnEntityFromAsset(GUID assetID)
 	{
 		Ref<Asset> asset;
 		AssetManager::Get(assetID, &asset);
 		if (!asset)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't spawn entity. Couldn't find an Entity asset");
-			return GUID(0, 0);
+			return nullptr;
 		}
 
 		if (Ref<AssetEntity> entityAsset = Cast<AssetEntity>(asset))
 		{
 			auto& scene = Scene::GetCurrentScene();
-			return scene->CreateFromEntityAsset(entityAsset).GetGUID();
+			return ScriptEngine::GetEntityMonoObject(scene->CreateFromEntityAsset(entityAsset));
 		}
 
 		EG_CORE_ERROR("[ScriptEngine] Couldn't spawn entity. It's not an Entity asset");
-		return GUID(0, 0);
+		return nullptr;
 	}
 
 	GUID Script::Eagle_Scene_SpawnParticleSystem(MonoString* monoName, const Transform* transform, GUID assetID, bool bAutoDestroy)

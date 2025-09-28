@@ -57,7 +57,6 @@ namespace Eagle
 		EntityScriptClass* ScriptClass = nullptr;
 		uint32_t Handle = 0u;
 		MonoObject* GetMonoInstance();
-		bool IsRuntimeAvailable() const { return Handle != 0; }
 	};
 
 	struct EntityInstanceData
@@ -116,6 +115,7 @@ namespace Eagle
 		static MonoImage* GetAssemblyImage(MonoAssembly* assembly);
 
 		static MonoObject* CallMethod(MonoObject* object, MonoMethod* method, void** params = nullptr);
+		static MonoObject* InstantiateEntityUnmanaged(GUID entityID); // Can be GarbageCollected. ScriptEngine just creates it and forgets aboit it
 		static uint32_t Instantiate(EntityScriptClass& scriptClass);
 		static std::string GetStringProperty(const std::string& propertyName, MonoClass* classType, MonoObject* object);
 

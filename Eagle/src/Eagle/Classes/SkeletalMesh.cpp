@@ -26,12 +26,13 @@ namespace Eagle
         }
 
         // Merges bone-colliders based on `minBoneSize`
-        static SkeletalRagdollBones MergeBones(float minBoneSize, const BonesMap& boneMap, const BoneNode& node, const SkeletalPose& currentPose, const glm::mat4& baseTransform = glm::mat4(1.f))
+        static SkeletalRagdollBones MergeBones(float minBoneSize, const BonesMap& boneMap, const BoneNode& node, const glm::mat4& baseTransform = glm::mat4(1.f))
         {
             SkeletalRagdollBones data;
             if (node.bVirtualBone)
                 return data;
 
+#if 0 // We dont need to account for the curret pose here
             if (auto it = currentPose.Bones.find(node.Name); it != currentPose.Bones.end())
             {
                 const auto& bone = it->second;
@@ -39,7 +40,10 @@ namespace Eagle
                 data.LocalTransform = baseTransform * boneTransform;
             }
             else
+#endif
+            {
                 data.LocalTransform = baseTransform * node.Transformation;
+            }
 
             const glm::vec3 parentLocation = Math::DecomposeTransformMatrix(data.LocalTransform).Location;
             data.AABB.Grow(parentLocation);
@@ -48,10 +52,10 @@ namespace Eagle
             const bool bCanMergeToCurrent = boneMap.find(node.Name) != boneMap.end();
             for (const auto& child : node.Children)
             {
-                if (IsIKBone(child.Name))
+                if (child.bVirtualBone || IsIKBone(child.Name))
                     continue;
 
-                SkeletalRagdollBones childData = MergeBones(minBoneSize, boneMap, child, currentPose, data.LocalTransform);
+                SkeletalRagdollBones childData = MergeBones(minBoneSize, boneMap, child, data.LocalTransform);
                 const glm::vec3 childPos = Math::DecomposeTransformMatrix(childData.LocalTransform).Location;
                 data.AABB.Grow(childPos);
 
@@ -62,10 +66,20 @@ namespace Eagle
                     data.AABB.Grow(childData.AABB);
                 }
                 else
-                    data.Children.emplace_back(childData); // It's big enough
+                {
+                    data.Children.emplace_back(std::move(childData)); // It's big enough
+                }
             }
 
             return data;
+        }
+
+        static void PrepareAABB(SkeletalRagdollBones& bone)
+        {
+            // Transform AABB back to local space so that it can be transformed to any `SkeletalPose`
+            bone.AABB.Transform(glm::inverse(bone.LocalTransform));
+            for (auto& child : bone.Children)
+                PrepareAABB(child);
         }
 
         static void SetUserSettings(SkeletalRagdollBones& node, const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollPerBoneSettings)
@@ -128,12 +142,8 @@ namespace Eagle
     void SkeletalMesh::RegenerateRagdollData(float minBoneSize)
     {
         m_MinRagdollBoneSize = minBoneSize;
-
-        // Fill it with base pose data
-        const glm::mat4 rootTransform = glm::mat4(1.f);
-        SkeletalPose basePose;
-        AnimationSystem::FinalizePose(basePose, m_Skeletal.RootBone, rootTransform, m_Skeletal);
-        m_RagdollRoot = Utils::MergeBones(m_MinRagdollBoneSize, m_Skeletal.BoneInfoMap, m_Skeletal.RootBone, basePose);
+        m_RagdollRoot = Utils::MergeBones(m_MinRagdollBoneSize, m_Skeletal.BoneInfoMap, m_Skeletal.RootBone);
+        Utils::PrepareAABB(m_RagdollRoot);
     }
 
     Ref<SkeletalMesh> SkeletalMesh::Create(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,

@@ -249,9 +249,8 @@ namespace Eagle
 		std::string namespaceName;
 		std::string className;
 
-		if (fullName.find(".") != std::string::npos)
+		if (const size_t firstDot = fullName.find("."); firstDot != std::string::npos)
 		{
-			const size_t firstDot = fullName.find_first_of('.');
 			namespaceName = fullName.substr(0, firstDot);
 			className = fullName.substr(firstDot + 1, (fullName.find_first_of(':') - firstDot) - 1);
 		}
@@ -384,8 +383,7 @@ namespace Eagle
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnCollisionBeginMethod)
 		{
-			GUID otherEntityGUID = other.GetGUID();
-			const void* params[] = { &otherEntityGUID, &collisionInfo.Position[0], &collisionInfo.Normal[0], &collisionInfo.Impulse[0], &collisionInfo.Force[0]};
+			const void* params[] = { GetEntityMonoObject(other), &collisionInfo.Position[0], &collisionInfo.Normal[0], &collisionInfo.Impulse[0], &collisionInfo.Force[0]};
 			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnCollisionBeginMethod, (void**)params);
 		}
 	}
@@ -395,8 +393,7 @@ namespace Eagle
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnCollisionEndMethod)
 		{
-			GUID otherEntityGUID = other.GetGUID();
-			const void* params[] = { &otherEntityGUID, &collisionInfo.Position[0], &collisionInfo.Normal[0], &collisionInfo.Impulse[0], &collisionInfo.Force[0] };
+			const void* params[] = { GetEntityMonoObject(other), &collisionInfo.Position[0], &collisionInfo.Normal[0], &collisionInfo.Impulse[0], &collisionInfo.Force[0]};
 			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnCollisionEndMethod, (void**)params);
 		}
 	}
@@ -406,8 +403,7 @@ namespace Eagle
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnTriggerBeginMethod)
 		{
-			GUID otherEntityGUID = other.GetGUID();
-			void* params[] = { &otherEntityGUID };
+			void* params[] = { GetEntityMonoObject(other) };
 			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnTriggerBeginMethod, params);
 		}
 	}
@@ -417,8 +413,7 @@ namespace Eagle
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnTriggerEndMethod)
 		{
-			GUID otherEntityGUID = other.GetGUID();
-			void* params[] = { &otherEntityGUID };
+			void* params[] = { GetEntityMonoObject(other) };
 			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnTriggerEndMethod, params);
 		}
 	}
@@ -470,15 +465,17 @@ namespace Eagle
 		void* param[] = { &entityGUID };
 		CallMethod(entityInstance.GetMonoInstance(), scriptClass.Constructor, param);
 
+		MonoClass* klass = scriptClass.Class;
+		do
 		{
 			MonoClassField* iter = nullptr;
 			void* ptr = nullptr;
 
-			while ((iter = mono_class_get_fields(scriptClass.Class, &ptr)) != nullptr)
+			while ((iter = mono_class_get_fields(klass, &ptr)) != nullptr)
 			{
 				const char* fieldName = mono_field_get_name(iter);
 				uint32_t fieldFlags = mono_field_get_flags(iter);
-				if ((fieldFlags & MONO_FIELD_ATTR_PUBLIC) == 0)
+				if ((fieldFlags & MONO_FIELD_ATTR_PUBLIC) != MONO_FIELD_ATTR_PUBLIC)
 					continue;
 
 				MonoType* monoFieldType = mono_field_get_type(iter);
@@ -525,9 +522,20 @@ namespace Eagle
 				publicField.EnumFields = fieldType == FieldType::Enum ? GetEnumFields(monoFieldType) : ScriptEnumFields{};
 
 				entityPublicFields[fieldName] = std::move(publicField);
-				//EG_CORE_INFO("[ScriptEngine] Script '{0}' - Field type '{1}', Field Name '{2}'", scriptClass.FullName, typeName, fieldName);
+				//EG_CORE_INFO("[ScriptEngine] Script '{0}' - Field type '{1}', Field Name '{2}', Flags: {3}", scriptClass.FullName, typeName, fieldName, fieldFlags);
 			}
-		}
+		
+			// Iterate over parent scripts classes
+			klass = mono_class_get_parent(klass);
+			if (klass)
+			{
+				if (s_EntityClass == klass || !mono_class_is_subclass_of(klass, s_EntityClass, true))
+				{
+					// Not an entity class, terminate
+					klass = nullptr;
+				}
+			}
+		} while (klass);
 
 		{
 			MonoProperty* iter = nullptr;
@@ -833,6 +841,33 @@ namespace Eagle
 		return nullptr;
 	}
 
+	MonoObject* ScriptEngine::InstantiateEntityUnmanaged(GUID entityID)
+	{
+		MonoObject* instance = mono_object_new(s_CurrentMonoDomain, GetEntityClass());
+		if (!instance)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't Instantiate an Entity");
+			return nullptr;
+		}
+		
+		void* parameters[] =
+		{
+			&entityID
+		};
+
+		MonoMethodDesc* desc = mono_method_desc_new("Eagle.Entity:.ctor(Eagle.GUID)", true);
+		EG_CORE_ASSERT(desc);
+		MonoMethod* constructor = mono_method_desc_search_in_class(desc, GetEntityClass());
+		EG_CORE_ASSERT(constructor);
+
+		MonoObject* exception = nullptr;
+		mono_runtime_invoke(constructor, instance, parameters, &exception);
+		HandleException(exception);
+		mono_method_desc_free(desc);
+
+		return instance;
+	}
+
 	uint32_t ScriptEngine::Instantiate(EntityScriptClass& scriptClass)
 	{
 		MonoObject* instance = mono_object_new(s_CurrentMonoDomain, scriptClass.Class);
@@ -886,7 +921,7 @@ namespace Eagle
 	{
 		auto it = s_EntityInstanceDataMap.find(entityID);
 		if (it == s_EntityInstanceDataMap.end())
-			return nullptr;
+			return InstantiateEntityUnmanaged(entityID);
 
 		return s_EntityInstanceDataMap[entityID].Instance.GetMonoInstance();
 	}

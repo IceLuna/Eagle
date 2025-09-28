@@ -19,18 +19,19 @@ namespace Eagle::AINavigation
 namespace Eagle::Script
 {
 	//Entity
-	GUID Eagle_Entity_GetParent(GUID entityID);
+	MonoObject* Eagle_Entity_GetParent(GUID entityID);
 	void Eagle_Entity_SetParent(GUID entityID, GUID parentID);
 	MonoArray* Eagle_Entity_GetChildren(GUID entityID);
 	void Eagle_Entity_DestroyEntity(GUID entityID);
 	void Eagle_Entity_AddComponent(GUID entityID, void* type);
+	void Eagle_Entity_RemoveComponent(GUID entityID, void* type);
 	bool Eagle_Entity_HasComponent(GUID entityID, void* type);
 	bool Eagle_Entity_IsValid(GUID entityID);
 	MonoString* Eagle_Entity_GetEntityName(GUID entityID);
 	void Eagle_Entity_GetForwardVector(GUID entityID, glm::vec3* result);
 	void Eagle_Entity_GetRightVector(GUID entityID, glm::vec3* result);
 	void Eagle_Entity_GetUpVector(GUID entityID, glm::vec3* result);
-	GUID Eagle_Entity_GetChildrenByName(GUID entityID, MonoString* name);
+	MonoObject* Eagle_Entity_GetChildrenByName(GUID entityID, MonoString* name);
 	bool Eagle_Entity_IsMouseHovered(GUID entity);
 	bool Eagle_Entity_IsMouseHoveredByCoord(GUID entity, const glm::vec2* pos);
 
@@ -588,12 +589,12 @@ namespace Eagle::Script
 	// Scene
 	void Eagle_Scene_OpenScene(GUID assetID);
 	void Eagle_Scene_QuitGame();
-	bool Eagle_Scene_Raycast(const glm::vec3* origin, const glm::vec3* dir, float maxDistance, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore, GUID* outHitEntity, glm::vec3* outPosition, glm::vec3* outNormal, float* outDistance);
+	bool Eagle_Scene_Raycast(const glm::vec3* origin, const glm::vec3* dir, float maxDistance, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore, MonoObject** outHitEntity, glm::vec3* outPosition, glm::vec3* outNormal, float* outDistance);
 	void Eagle_Scene_SetGravity(const glm::vec3* gravity);
 	void Eagle_Scene_GetGravity(glm::vec3* gravity);
 	MonoArray* Eagle_Scene_GetAllEntitiesWithComponent(void* type);
 	GUID Eagle_Scene_SpawnEntity(MonoString* monoName);
-	GUID Eagle_Scene_SpawnEntityFromAsset(GUID assetID);
+	MonoObject* Eagle_Scene_SpawnEntityFromAsset(GUID assetID);
 	GUID Eagle_Scene_SpawnParticleSystem(MonoString* monoName, const Transform* transform, GUID assetID, bool bAutoDestroy);
 
 	// Navigation

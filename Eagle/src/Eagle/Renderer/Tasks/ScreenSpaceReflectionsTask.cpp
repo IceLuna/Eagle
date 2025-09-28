@@ -154,8 +154,6 @@ namespace Eagle
 		{
 			auto& depth = m_Renderer.GetGBuffer().Depth;
 			std::vector<BufferImageCopy> copyRegion(1);
-			copyRegion[0].BufferRowLength = m_Size.x;
-			copyRegion[0].BufferImageHeight = m_Size.y;
 			copyRegion[0].ImageExtent = glm::uvec3(m_Size, 1u);
 
 			const ImageLayout srcOldLayout = depth->GetLayout();

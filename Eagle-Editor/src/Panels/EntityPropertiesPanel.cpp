@@ -122,8 +122,47 @@ namespace Eagle
 		return nullptr;
 	}
 
+	bool EntityPropertiesPanel::HasSelectedComponent() const
+	{
+		if (!m_Entity)
+			return false;
+
+		switch (m_SelectedComponent)
+		{
+			case SelectedComponent::None: return false;
+			case SelectedComponent::Sprite: return m_Entity.HasComponent<SpriteComponent>();
+			case SelectedComponent::StaticMesh: return m_Entity.HasComponent<StaticMeshComponent>();
+			case SelectedComponent::SkeletalMesh: return m_Entity.HasComponent<SkeletalMeshComponent>();
+			case SelectedComponent::Billboard: return m_Entity.HasComponent<BillboardComponent>();
+			case SelectedComponent::Text3D: return m_Entity.HasComponent<TextComponent>();
+			case SelectedComponent::Camera: return m_Entity.HasComponent<CameraComponent>();
+			case SelectedComponent::PointLight: return m_Entity.HasComponent<PointLightComponent>();
+			case SelectedComponent::DirectionalLight: return m_Entity.HasComponent<DirectionalLightComponent>();
+			case SelectedComponent::SpotLight: return m_Entity.HasComponent<SpotLightComponent>();
+			case SelectedComponent::Script: return m_Entity.HasComponent<ScriptComponent>();
+			case SelectedComponent::RigidBody: return m_Entity.HasComponent<RigidBodyComponent>();
+			case SelectedComponent::BoxCollider: return m_Entity.HasComponent<BoxColliderComponent>();
+			case SelectedComponent::SphereCollider: return m_Entity.HasComponent<SphereColliderComponent>();
+			case SelectedComponent::CapsuleCollider: return m_Entity.HasComponent<CapsuleColliderComponent>();
+			case SelectedComponent::MeshCollider: return m_Entity.HasComponent<MeshColliderComponent>();
+			case SelectedComponent::AudioComponent: return m_Entity.HasComponent<AudioComponent>();
+			case SelectedComponent::ReverbComponent: return m_Entity.HasComponent<ReverbComponent>();
+			case SelectedComponent::Text2D: return m_Entity.HasComponent<Text2DComponent>();
+			case SelectedComponent::Image2D: return m_Entity.HasComponent<Image2DComponent>();
+			case SelectedComponent::ParticleSystem: return m_Entity.HasComponent<ParticleSystemComponent>();
+			case SelectedComponent::Decal: return m_Entity.HasComponent<DecalComponent>();
+			case SelectedComponent::NavigationMeshComponent: return m_Entity.HasComponent<NavigationMeshComponent>();
+			case SelectedComponent::NavigationCrowdAgentComponent: return m_Entity.HasComponent<NavigationCrowdAgentComponent>();
+		}
+		return false;
+	}
+
 	void EntityPropertiesPanel::DrawComponents(Entity& entity)
 	{
+		if (!HasSelectedComponent())
+		{
+			m_SelectedComponent = SelectedComponent::None;
+		}
 		auto& entityName = entity.GetComponent<EntitySceneNameComponent>().Name;
 
 		ImGui::PushID((void*)entity.GetGUID().GetHash());
@@ -873,7 +912,7 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					if (UI::PropertyDrag("Attenuation Radius", radius, 0.1f, 0.f, 0.f, s_AttenuationRadiusHelpMsg))
+					if (UI::PropertyDrag("Attenuation Radius", radius, 0.05f, 0.f, 0.f, s_AttenuationRadiusHelpMsg))
 					{
 						pointLight.SetRadius(radius);
 						bEntityChanged = true;
@@ -1560,7 +1599,7 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					if (UI::PropertyDrag("Radius", radius, 0.5f))
+					if (UI::PropertyDrag("Radius", radius, 0.05f))
 					{
 						collider.SetRadius(radius);
 						bEntityChanged = true;

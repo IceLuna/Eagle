@@ -32,8 +32,7 @@ namespace Eagle
                 }
             }
 
-            bool bHit = Raycast_Native(ref origin, ref dir, maxDistance, query, collisionGroup, entityGUIDsToIgnore, out guid, out outHit.Position, out outHit.Normal, out outHit.Distance);
-            outHit.HitEntity = new Entity(guid);
+            bool bHit = Raycast_Native(ref origin, ref dir, maxDistance, query, collisionGroup, entityGUIDsToIgnore, out outHit.HitEntity, out outHit.Position, out outHit.Normal, out outHit.Distance);
             return bHit;
         }
 
@@ -60,7 +59,7 @@ namespace Eagle
 
         public static Entity SpawnEntity(AssetEntity asset)
         {
-            return new Entity(SpawnEntityFromAsset_Native(asset.GetGUID()));
+            return SpawnEntityFromAsset_Native(asset.GetGUID());
         }
 
         // Spawns an entity that has a particle system component
@@ -80,7 +79,7 @@ namespace Eagle
         private static extern void QuitGame_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern bool Raycast_Native(ref Vector3 origin, ref Vector3 dir, float maxDistance, PhysicsQueryType query, CollisionGroup group, GUID[] entitiesToIgnore, out GUID hitEntity, out Vector3 position, out Vector3 normal, out float distance);
+        private static extern bool Raycast_Native(ref Vector3 origin, ref Vector3 dir, float maxDistance, PhysicsQueryType query, CollisionGroup group, GUID[] entitiesToIgnore, out Entity hitEntity, out Vector3 position, out Vector3 normal, out float distance);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetGravity_Native(ref Vector3 gravity);
@@ -95,7 +94,7 @@ namespace Eagle
         internal static extern GUID SpawnEntity_Native(string name);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern GUID SpawnEntityFromAsset_Native(GUID assetID);
+        internal static extern Entity SpawnEntityFromAsset_Native(GUID assetID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern GUID SpawnParticleSystem_Native(string name, ref Transform tr, GUID ps, bool bAutoDestroy);

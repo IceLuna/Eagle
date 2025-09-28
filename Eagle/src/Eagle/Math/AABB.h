@@ -40,18 +40,22 @@ namespace Eagle
 
 		void Transform(const Eagle::Transform& transform)
 		{
-#if 0 // Apply rotation
+			Transform(Math::ToTransformMatrix(transform));
+		}
+
+		void Transform(const glm::mat4& transform)
+		{
 			// All 8 corners of the original AABB
 			glm::vec3 corners[8] =
 			{
-				{ box.Min.x, box.Min.y, box.Min.z },
-				{ box.Max.x, box.Min.y, box.Min.z },
-				{ box.Min.x, box.Max.y, box.Min.z },
-				{ box.Max.x, box.Max.y, box.Min.z },
-				{ box.Min.x, box.Min.y, box.Max.z },
-				{ box.Max.x, box.Min.y, box.Max.z },
-				{ box.Min.x, box.Max.y, box.Max.z },
-				{ box.Max.x, box.Max.y, box.Max.z }
+				{ Min.x, Min.y, Min.z },
+				{ Max.x, Min.y, Min.z },
+				{ Min.x, Max.y, Min.z },
+				{ Max.x, Max.y, Min.z },
+				{ Min.x, Min.y, Max.z },
+				{ Max.x, Min.y, Max.z },
+				{ Min.x, Max.y, Max.z },
+				{ Max.x, Max.y, Max.z }
 			};
 
 			AABB result;
@@ -64,17 +68,18 @@ namespace Eagle
 				result.Max = glm::max(result.Max, transformed);
 			}
 
-			return result;
-#else
-			// Discarding rotation
-			Eagle::Transform temp(transform.Location, Rotator{}, transform.Scale3D);
-			const glm::mat4 tr = Math::ToTransformMatrix(temp);
-			Min = tr * glm::vec4(Min, 1.f);
-			Max = tr * glm::vec4(Max, 1.f);
-#endif
+			Min = result.Min;
+			Max = result.Max;
 		}
 
 		static AABB Transformed(const AABB& aabb, const Eagle::Transform& transform)
+		{
+			AABB result = aabb;
+			result.Transform(transform);
+			return result;
+		}
+
+		static AABB Transformed(const AABB& aabb, const glm::mat4& transform)
 		{
 			AABB result = aabb;
 			result.Transform(transform);

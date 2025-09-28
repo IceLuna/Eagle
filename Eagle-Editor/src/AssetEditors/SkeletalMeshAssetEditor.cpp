@@ -423,6 +423,23 @@ namespace Eagle
 		}
 		UI::PropertyDrag("Animation Playback Speed", skeletalComp.ClipPlaybackSpeed, 0.1f);
 
+		{
+			const bool bHasAnim = m_PreviewAnimation.operator bool();
+			float current = bHasAnim ? skeletalComp.CurrentClipPlayTime : 0.f;
+			const float duration = bHasAnim ? m_PreviewAnimation->GetAnimation()->Duration : 1.f;
+			if (!bHasAnim)
+				UI::PushItemDisabled();
+
+			if (UI::PropertySlider("Animation Position", current, 0.f, duration))
+			{
+				skeletalComp.CurrentClipPlayTime = glm::clamp(current, 0.f, m_PreviewAnimation->GetAnimation()->Duration);
+				skeletalComp.PrevClipPlayTime = skeletalComp.CurrentClipPlayTime;
+			}
+
+			if (!bHasAnim)
+				UI::PopItemDisabled();
+		}
+
 		UI::Property("Visualize bones", scene->bDrawBones);
 		UI::Property("Visualize bone direction", bVisualizeBoneDirection);
 		UI::EndPropertyGrid();

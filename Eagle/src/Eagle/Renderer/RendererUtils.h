@@ -405,15 +405,15 @@ namespace Eagle
         size_t BufferOffset = 0;
 
         /**
-         * Buffer row length, in texels. Used to interpret the buffer as an image.\n
-         * If value is 0, image rows should be tightly packed.\n
+         * Buffer row length, in texels. Used to interpret the buffer as an image.
+         * If value is 0, image rows should be tightly packed.
          * If value is non-zero, it specifies the width of image buffer is interpreted as.
          */
         uint32_t BufferRowLength = 0;
 
         /**
-         * Buffer image height, in texels. Used to interpret the buffer as an image.\n
-         * If value is 0, image 2D layers should be tightly packed.\n
+         * Buffer image height, in texels. Used to interpret the buffer as an image.
+         * If value is 0, image 2D layers should be tightly packed.
          * If value is non-zero, it specifies the height of 2D layer image buffer is interpreted as.
          * Must be 0 for non-3D images.
          */

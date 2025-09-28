@@ -635,10 +635,10 @@ namespace Eagle
 		}
 
 		bool HasBone(const std::string_view boneName) const;
-		Transform GetBoneWorldTransform(const std::string_view boneName);
-		glm::vec3 GetBoneWorldLocation(const std::string_view boneName);
-		Rotator GetBoneWorldRotation(const std::string_view boneName);
-		glm::vec3 GetBoneWorldScale(const std::string_view boneName);
+		Transform GetBoneWorldTransform(const std::string_view boneName) const;
+		glm::vec3 GetBoneWorldLocation(const std::string_view boneName) const;
+		Rotator GetBoneWorldRotation(const std::string_view boneName) const;
+		glm::vec3 GetBoneWorldScale(const std::string_view boneName) const;
 
 		bool IsRootMotionLockFlagSet(RootMotionLockFlag flag) const { return HasFlags(m_RootMotionLockFlags, flag); }
 		void SetRootMotionLockFlag(RootMotionLockFlag flag, bool value) { value ? (m_RootMotionLockFlags |= flag) : (m_RootMotionLockFlags &= ~flag); }
@@ -679,6 +679,7 @@ namespace Eagle
 		AnimationType AnimType = AnimationType::Clip;
 
 	private:
+		SkeletalPose m_PreRagdollLastPose; // Pose the mesh had before ragdoll was enabled
 		Ref<AssetSkeletalMesh> m_MeshAsset;
 		std::vector<Ref<AssetMaterial>> m_MaterialAssets;
 		Ref<AssetAnimation> m_AnimAsset;

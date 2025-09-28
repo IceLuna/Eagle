@@ -15,9 +15,8 @@ namespace Eagle
 		// True if found
 		static bool GetBoneWorldTransform(const SkeletalPose& pose, const BoneNode& node, bool bRagdoll, const glm::mat4& parentTransform, const std::string_view targetBoneName, Transform* outTransform)
 		{
-			const std::string& nodeName = node.Name;
 			glm::mat4 globalTransformation;
-			if (auto it = pose.Bones.find(nodeName); it != pose.Bones.end())
+			if (auto it = pose.Bones.find(node.Name); it != pose.Bones.end())
 			{
 				const auto& bone = it->second;
 				const glm::mat4 boneTransform = Math::ToTransformMatrix(bone);
@@ -27,7 +26,7 @@ namespace Eagle
 			else
 				globalTransformation = parentTransform * node.Transformation;
 
-			if (nodeName == targetBoneName)
+			if (node.Name == targetBoneName)
 			{
 				*outTransform = Math::DecomposeTransformMatrix(globalTransformation);
 				return true;
@@ -751,6 +750,7 @@ namespace Eagle
 		PrevClipPlaybackSpeed = other.PrevClipPlaybackSpeed;
 		bClipLooping = other.bClipLooping;
 		AnimType = other.AnimType;
+		LastPose = other.LastPose;
 
 		if (m_MeshAsset)
 		{
@@ -909,7 +909,7 @@ namespace Eagle
 		return Utils::HasBone(asset->GetMesh()->GetSkeletalMeshInfo().RootBone, boneName);
 	}
 
-	Transform SkeletalMeshComponent::GetBoneWorldTransform(const std::string_view boneName)
+	Transform SkeletalMeshComponent::GetBoneWorldTransform(const std::string_view boneName) const
 	{
 		const auto& asset = GetMeshAsset();
 		if (!asset)
@@ -920,17 +920,17 @@ namespace Eagle
 		return result;
 	}
 
-	glm::vec3 SkeletalMeshComponent::GetBoneWorldLocation(const std::string_view boneName)
+	glm::vec3 SkeletalMeshComponent::GetBoneWorldLocation(const std::string_view boneName) const
 	{
 		return GetBoneWorldTransform(boneName).Location;
 	}
 
-	Rotator SkeletalMeshComponent::GetBoneWorldRotation(const std::string_view boneName)
+	Rotator SkeletalMeshComponent::GetBoneWorldRotation(const std::string_view boneName) const
 	{
 		return GetBoneWorldTransform(boneName).Rotation;
 	}
 
-	glm::vec3 SkeletalMeshComponent::GetBoneWorldScale(const std::string_view boneName)
+	glm::vec3 SkeletalMeshComponent::GetBoneWorldScale(const std::string_view boneName) const
 	{
 		return GetBoneWorldTransform(boneName).Scale3D;
 	}
@@ -942,6 +942,7 @@ namespace Eagle
 
 		if (bEnabled)
 		{
+			m_PreRagdollLastPose = LastPose;
 			m_RagdollActor = Parent.GetScene()->GetPhysicsScene()->CreateRagdoll(*this);
 			m_bRagdollEnabled = m_RagdollActor.operator bool();
 		}
@@ -950,6 +951,7 @@ namespace Eagle
 			Parent.GetScene()->GetPhysicsScene()->ReleaseRagdoll(*this);
 			m_RagdollActor.reset();
 			m_bRagdollEnabled = bEnabled;
+			LastPose = m_PreRagdollLastPose;
 		}
 	}
 

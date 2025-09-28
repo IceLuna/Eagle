@@ -36,9 +36,12 @@ namespace Eagle
 
         public virtual void OnAnimationEvent(string eventName, float time) { }
 
+        // Returns actual damage that was taken
+        public virtual float TakeDamage(float damage) { return damage; }
+
         public Entity Parent
         {
-            get => new Entity(GetParent_Native(ID));
+            get => GetParent_Native(ID);
             set => SetParent_Native(ID, value.ID);
         }
 
@@ -159,6 +162,11 @@ namespace Eagle
             return component;
         }
 
+        public void RemoveComponent<T>() where T : Component, new()
+        {
+            RemoveComponent_Native(ID, typeof(T));
+        }
+
         public bool HasComponent<T>() where T : Component, new()
         {
             return HasComponent_Native(ID, typeof(T));
@@ -250,7 +258,7 @@ namespace Eagle
             m_TriggerEndCallbacks -= callback;
         }
 
-        private void OnCollisionBegin(GUID id, Vector3 position, Vector3 normal, Vector3 impulse, Vector3 force)
+        private void OnCollisionBegin(Entity otherEntity, Vector3 position, Vector3 normal, Vector3 impulse, Vector3 force)
         {
             if (m_CollisionBeginCallbacks != null)
             {
@@ -259,11 +267,11 @@ namespace Eagle
                 collisionInfo.Normal = normal;
                 collisionInfo.Impulse = impulse;
                 collisionInfo.Force = force;
-                m_CollisionBeginCallbacks.Invoke(this, new Entity(id), collisionInfo);
+                m_CollisionBeginCallbacks.Invoke(this, otherEntity, collisionInfo);
             }
         }
 
-        private void OnCollisionEnd(GUID id, Vector3 position, Vector3 normal, Vector3 impulse, Vector3 force)
+        private void OnCollisionEnd(Entity otherEntity, Vector3 position, Vector3 normal, Vector3 impulse, Vector3 force)
         {
             if (m_CollisionEndCallbacks != null)
             {
@@ -272,20 +280,20 @@ namespace Eagle
                 collisionInfo.Normal = normal;
                 collisionInfo.Impulse = impulse;
                 collisionInfo.Force = force;
-                m_CollisionEndCallbacks.Invoke(this, new Entity(id), collisionInfo);
+                m_CollisionEndCallbacks.Invoke(this, otherEntity, collisionInfo);
             }
         }
 
-        private void OnTriggerBegin(GUID id)
+        private void OnTriggerBegin(Entity otherEntity)
         {
             if (m_TriggerBeginCallbacks != null)
-                m_TriggerBeginCallbacks.Invoke(this, new Entity(id));
+                m_TriggerBeginCallbacks.Invoke(this, otherEntity);
         }
 
-        private void OnTriggerEnd(GUID id)
+        private void OnTriggerEnd(Entity otherEntity)
         {
             if (m_TriggerEndCallbacks != null)
-                m_TriggerEndCallbacks.Invoke(this, new Entity(id));
+                m_TriggerEndCallbacks.Invoke(this, otherEntity);
         }
 
         public string GetName()
@@ -300,7 +308,7 @@ namespace Eagle
 
         public Entity GetChildrenByName(string name)
         {
-            return new Entity(GetChildrenByName_Native(ID, name));
+            return GetChildrenByName_Native(ID, name);
         }
 
         public override bool Equals(object obj) => obj is Entity other && ID == other.ID;
@@ -320,7 +328,7 @@ namespace Eagle
 
         // C++ Method Implementations
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern GUID GetParent_Native(in GUID entityID);
+        internal static extern Entity GetParent_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetParent_Native(in GUID entityID, GUID parentID);
@@ -330,6 +338,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void AddComponent_Native(in GUID entityID, Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void RemoveComponent_Native(in GUID entityID, Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool HasComponent_Native(in GUID entityID, Type type);
@@ -353,7 +364,7 @@ namespace Eagle
         internal static extern void GetUpVector_Native(in GUID entityID, out Vector3 result);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern GUID GetChildrenByName_Native(in GUID entityID, string name);
+        internal static extern Entity GetChildrenByName_Native(in GUID entityID, string name);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsMouseHovered_Native(GUID entityID);

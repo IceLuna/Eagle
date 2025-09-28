@@ -44,6 +44,8 @@ namespace Eagle
 		SceneComponent* GetSelectedComponent();
 
 	private:
+		bool HasSelectedComponent() const;
+
 		void DrawComponents(Entity& entity);
 
 		template <typename T, typename UIFunction>

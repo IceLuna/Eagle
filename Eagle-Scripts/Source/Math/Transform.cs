@@ -22,5 +22,15 @@ namespace Eagle
         public Vector3 Location;
         public Rotator Rotation;
         public Vector3 Scale;
+
+        public static Transform Unit()
+        {
+            Transform result = new Transform();
+            result.Location = new Vector3(0);
+            result.Rotation = Quat.Unit();
+            result.Scale = new Vector3(1);
+
+            return result;
+        }
     }
 }

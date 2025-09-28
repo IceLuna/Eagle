@@ -39,7 +39,7 @@ namespace Eagle
 
 		enum class OpenedTabType
 		{
-			Skeletal, Ragdoll
+			Unknown, Skeletal, Ragdoll
 		};
 
 	private:
@@ -61,7 +61,7 @@ namespace Eagle
 		// Key - bone name; value - attached mesh
 		std::unordered_map<std::string, AttachedMeshData> m_AttachedToBonesMeshes;
 
-		OpenedTabType m_OpenedTab = OpenedTabType::Ragdoll;
+		OpenedTabType m_OpenedTab = OpenedTabType::Unknown;
 		Entity m_Entity;
 		GUID m_PlaneEntityGUID;
 		float m_MinRagdollBoneSize = 0.1f;

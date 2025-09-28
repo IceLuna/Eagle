@@ -11,6 +11,7 @@
 namespace Eagle
 {
 	std::unordered_map<MonoType*, std::function<void(Entity&)>> m_AddComponentFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&)>> m_RemoveComponentFunctions;
 	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_HasComponentFunctions;
 
 	//SceneComponents
@@ -64,6 +65,7 @@ namespace Eagle
 		{\
 			m_HasComponentFunctions[type] = [](Entity& entity) { return entity.HasComponent<Type>(); };\
 			m_AddComponentFunctions[type] = [](Entity& entity) { entity.AddComponent<Type>(); };\
+			m_RemoveComponentFunctions[type] = [](Entity& entity) { entity.RemoveComponent<Type>(); };\
 			m_GetAllEntitiesWith[type] = [](const Ref<Scene>& scene) { return scene->GetAllEntitiesWith_Vector<Type>(); };\
 			\
 			if constexpr (std::is_base_of<SceneComponent, Type>::value)\
@@ -159,6 +161,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Entity::GetChildren_Native", Eagle::Script::Eagle_Entity_GetChildren);
 		mono_add_internal_call("Eagle.Entity::DestroyEntity_Native", Eagle::Script::Eagle_Entity_DestroyEntity);
 		mono_add_internal_call("Eagle.Entity::AddComponent_Native", Eagle::Script::Eagle_Entity_AddComponent);
+		mono_add_internal_call("Eagle.Entity::RemoveComponent_Native", Eagle::Script::Eagle_Entity_RemoveComponent);
 		mono_add_internal_call("Eagle.Entity::HasComponent_Native", Eagle::Script::Eagle_Entity_HasComponent);
 		mono_add_internal_call("Eagle.Entity::IsValid_Native", Eagle::Script::Eagle_Entity_IsValid);
 		mono_add_internal_call("Eagle.Entity::GetEntityName_Native", Eagle::Script::Eagle_Entity_GetEntityName);

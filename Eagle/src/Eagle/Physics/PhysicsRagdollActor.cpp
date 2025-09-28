@@ -27,23 +27,22 @@ namespace Eagle
     }
 
     // TODO: group args
-    static void CreateArticulationChain(const SkeletalRagdollBones& bone, const SkeletalPose& currentPose, const BonesMap& boneMap, physx::PxScene* scene, PhysicsRagdollActor::BoneData& physicsBoneData, void* userData,
+    static void CreateArticulationChain(const SkeletalRagdollBones& bone, const std::unordered_map<std::string_view, glm::mat4>& boneTransforms, const BonesMap& boneMap, physx::PxScene* scene, PhysicsRagdollActor::BoneData& physicsBoneData, void* userData,
         const glm::mat4& worldTransform, const glm::mat4& compWorldTrInv, float twist, float swing, const physx::PxFilterData& filterData, const physx::PxVec3& linearVelocity,
         const physx::PxVec3& angularVelocity, std::unordered_map<std::string, physx::PxRigidDynamic*>& ragdollBonesMap, physx::PxRigidDynamic* parentBody = nullptr)
     {
         using namespace physx;
 
         auto& physics = PhysXInternal::GetPhysics();
-        const auto it = currentPose.Bones.find(bone.Name);
 
         auto itParentBoneMap = boneMap.find(bone.Name);
         const bool bValidBone = itParentBoneMap != boneMap.end();
         const glm::mat4 boneOffset = bValidBone ? itParentBoneMap->second.Offset : glm::mat4(1.f);
 
-        const glm::mat4 boneWorldTransform = worldTransform * bone.LocalTransform;
+        const glm::mat4& boneWorldTransform = boneTransforms.at(bone.Name);
         const PxTransform transform = PhysXUtils::ToPhysXTranform(boneWorldTransform);
 
-        const glm::vec3 locationOffset = bone.Settings.UserOffset.Location;
+        const glm::vec3& locationOffset = bone.Settings.UserOffset.Location;
         glm::vec3 parentPos = PhysXUtils::FromPhysXVector(transform.p) + locationOffset;
         const PxTransform jointTransform{ transform.p, PhysXUtils::ToPhysXQuat(glm::quat_cast(boneOffset)) };
 
@@ -52,7 +51,8 @@ namespace Eagle
             constexpr float minRadius = 0.005f;
             constexpr float maxRadius = 0.05f;
 
-            const glm::vec3 aabbWorld = glm::vec3(worldTransform * glm::vec4(bone.AABB.Center(), 1.f)) + locationOffset;
+            const glm::vec3 center = AABB::Transformed(bone.AABB, boneWorldTransform).Center();
+            const glm::vec3 aabbWorld = center + locationOffset;
             glm::vec3 childPos = parentPos + (aabbWorld - parentPos) * 2.f;
 
             const float len = glm::length(parentPos - childPos) * 0.95f; // shorten to reduce overlap
@@ -137,7 +137,7 @@ namespace Eagle
             ragdollBonesMap[bone.Name] = body;
 
             for (const auto& child : bone.Children)
-                CreateArticulationChain(child, currentPose, boneMap, scene, childData, userData, worldTransform, compWorldTrInv, twist, swing, filterData, linearVelocity, angularVelocity, ragdollBonesMap, body);
+                CreateArticulationChain(child, boneTransforms, boneMap, scene, childData, userData, worldTransform, compWorldTrInv, twist, swing, filterData, linearVelocity, angularVelocity, ragdollBonesMap, body);
         }
     }
 
@@ -194,6 +194,24 @@ namespace Eagle
             SetShowCollision_Internal(child, bShow);
     }
 
+    static void GatherTransforms(const SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, std::unordered_map<std::string_view, glm::mat4>& boneTransforms)
+    {
+        glm::mat4 globalTransformation;
+        if (auto it = pose.Bones.find(node.Name); it != pose.Bones.end())
+        {
+            const auto& bone = it->second;
+            const glm::mat4 boneTransform = Math::ToTransformMatrix(bone);
+            globalTransformation = parentTransform * boneTransform;
+        }
+        else
+            globalTransformation = parentTransform * node.Transformation;
+
+        boneTransforms[node.Name] = globalTransformation;
+
+        for (auto& child : node.Children)
+            GatherTransforms(pose, child, globalTransformation, boneTransforms);
+    }
+
     PhysicsRagdollActor::PhysicsRagdollActor(Entity entity, physx::PxScene* scene)
 		: PhysicsActorBase(entity), m_Scene(scene)
 	{
@@ -222,12 +240,6 @@ namespace Eagle
 
         const glm::mat4 worldTransform = Math::ToTransformMatrix(skeletalComp.GetWorldTransform());
         m_OriginalTransformInv = glm::inverse(worldTransform);
-        if (skeletalComp.LastPose.Bones.empty())
-        {
-            // If LastPose is empty, fill it with base pose data
-            const glm::mat4 rootTransform = glm::mat4(1.f);
-            AnimationSystem::FinalizePose(skeletalComp.LastPose, rootNode, rootTransform, meshInfo);
-        }
 
         physx::PxVec3 linearVelocity(0.f);
         physx::PxVec3 angularVelocity(0.f);
@@ -240,18 +252,15 @@ namespace Eagle
             }
         }
 
-		CreateArticulationChain(mesh->GetRagdollRoot(), skeletalComp.LastPose, meshInfo.BoneInfoMap, m_Scene, m_Root, userData, worldTransform, m_OriginalTransformInv,
+        std::unordered_map<std::string_view, glm::mat4> boneTransforms;
+        GatherTransforms(skeletalComp.LastPose, meshInfo.RootBone, worldTransform, boneTransforms);
+		CreateArticulationChain(mesh->GetRagdollRoot(), boneTransforms, meshInfo.BoneInfoMap, m_Scene, m_Root, userData, worldTransform, m_OriginalTransformInv,
             glm::radians(twist), glm::radians(swing), filterData, linearVelocity, angularVelocity, m_BonesMap);
         m_RigidActor = m_Root.Body;
 	}
 
     PhysicsRagdollActor::~PhysicsRagdollActor()
     {
-        const bool bExists = m_Root.Body != nullptr;
-        if (bExists && m_Entity.HasComponent<SkeletalMeshComponent>())
-        {
-            m_Entity.GetComponent<SkeletalMeshComponent>().LastPose.Reset();
-        }
         Release(m_Root);
     }
     
