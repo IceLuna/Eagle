@@ -9,16 +9,16 @@
 
 namespace Eagle
 {
-    static physx::PxShape* CreateShape(physx::PxPhysics& physics, SkeletalRagdollBones::UserSettings::ShapeType type, const glm::vec3& scale, float radius, float halfHeight, const physx::PxMaterial* material)
+    static physx::PxShape* CreateShape(physx::PxPhysics& physics, SkeletalRagdollBone::UserSettings::ShapeType type, const glm::vec3& scale, float radius, float halfHeight, const physx::PxMaterial* material)
     {
         using namespace physx;
         switch (type)
         {
-            case SkeletalRagdollBones::UserSettings::ShapeType::Box:
+            case SkeletalRagdollBone::UserSettings::ShapeType::Box:
                 return physics.createShape(PxBoxGeometry(halfHeight * scale.x, halfHeight * scale.y, halfHeight * scale.z), *material, true);
-            case SkeletalRagdollBones::UserSettings::ShapeType::Sphere:
+            case SkeletalRagdollBone::UserSettings::ShapeType::Sphere:
                 return physics.createShape(PxSphereGeometry(radius * scale.x), *material, true);
-            case SkeletalRagdollBones::UserSettings::ShapeType::Capsule:
+            case SkeletalRagdollBone::UserSettings::ShapeType::Capsule:
                 return physics.createShape(PxCapsuleGeometry(radius * scale.x, halfHeight * scale.y), *material, true);
             default:
                 EG_CORE_ASSERT(false);
@@ -27,7 +27,7 @@ namespace Eagle
     }
 
     // TODO: group args
-    static void CreateArticulationChain(const SkeletalRagdollBones& bone, const std::unordered_map<std::string_view, glm::mat4>& boneTransforms, const BonesMap& boneMap, physx::PxScene* scene, PhysicsRagdollActor::BoneData& physicsBoneData, void* userData,
+    static void CreateArticulationChain(const SkeletalRagdollBone& bone, const std::unordered_map<std::string_view, glm::mat4>& boneTransforms, const BonesMap& boneMap, physx::PxScene* scene, PhysicsRagdollActor::BoneData& physicsBoneData, void* userData,
         const glm::mat4& worldTransform, const glm::mat4& compWorldTrInv, float twist, float swing, const physx::PxFilterData& filterData, const physx::PxVec3& linearVelocity,
         const physx::PxVec3& angularVelocity, std::unordered_map<std::string, physx::PxRigidDynamic*>& ragdollBonesMap, physx::PxRigidDynamic* parentBody = nullptr)
     {

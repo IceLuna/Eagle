@@ -308,7 +308,7 @@ namespace Eagle
 		return bChanged;
 	}
 
-	bool SkeletalMeshAssetEditor::DrawRagdollTree(SkeletalRagdollBones& node, size_t baseHash)
+	bool SkeletalMeshAssetEditor::DrawRagdollTree(SkeletalRagdollBone& node, size_t baseHash)
 	{
 		size_t hash = std::hash<std::string>()(node.Name);
 		HashCombine(hash, baseHash);
@@ -786,6 +786,14 @@ namespace Eagle
 			mesh->SetCollisionGroup(CollisionGroup(m_CollisionGroup));
 			mesh->SetInteractingCollisionGroup(CollisionGroup(m_InteractingCollisionGroup));
 			mesh->RegenerateRagdollData(m_MinRagdollBoneSize);
+			bChanged = true;
+		}
+
+		ImGui::SameLine();
+
+		if (ImGui::Button("Reset user settings"))
+		{
+			m_Asset->GetMesh()->ResetUserRagdollSettings();
 			bChanged = true;
 		}
 

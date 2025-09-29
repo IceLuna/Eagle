@@ -26,9 +26,9 @@ namespace Eagle
         }
 
         // Merges bone-colliders based on `minBoneSize`
-        static SkeletalRagdollBones MergeBones(float minBoneSize, const BonesMap& boneMap, const BoneNode& node, const glm::mat4& baseTransform = glm::mat4(1.f))
+        static SkeletalRagdollBone MergeBones(float minBoneSize, const BonesMap& boneMap, const BoneNode& node, const glm::mat4& baseTransform = glm::mat4(1.f))
         {
-            SkeletalRagdollBones data;
+            SkeletalRagdollBone data;
             if (node.bVirtualBone)
                 return data;
 
@@ -55,7 +55,7 @@ namespace Eagle
                 if (child.bVirtualBone || IsIKBone(child.Name))
                     continue;
 
-                SkeletalRagdollBones childData = MergeBones(minBoneSize, boneMap, child, data.LocalTransform);
+                SkeletalRagdollBone childData = MergeBones(minBoneSize, boneMap, child, data.LocalTransform);
                 const glm::vec3 childPos = Math::DecomposeTransformMatrix(childData.LocalTransform).Location;
                 data.AABB.Grow(childPos);
 
@@ -74,7 +74,7 @@ namespace Eagle
             return data;
         }
 
-        static void PrepareAABB(SkeletalRagdollBones& bone)
+        static void PrepareAABB(SkeletalRagdollBone& bone)
         {
             // Transform AABB back to local space so that it can be transformed to any `SkeletalPose`
             bone.AABB.Transform(glm::inverse(bone.LocalTransform));
@@ -82,7 +82,7 @@ namespace Eagle
                 PrepareAABB(child);
         }
 
-        static void SetUserSettings(SkeletalRagdollBones& node, const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollPerBoneSettings)
+        static void SetUserSettings(SkeletalRagdollBone& node, const std::unordered_map<std::string, SkeletalRagdollBone::UserSettings>& ragdollPerBoneSettings)
         {
             auto it = ragdollPerBoneSettings.find(node.Name);
             if (it != ragdollPerBoneSettings.end())
@@ -91,10 +91,25 @@ namespace Eagle
             for (auto& child : node.Children)
                 SetUserSettings(child, ragdollPerBoneSettings);
         }
+
+        static void GetUserSettings(const SkeletalRagdollBone& node, std::unordered_map<std::string, SkeletalRagdollBone::UserSettings>& ragdollPerBoneSettings)
+        {
+            ragdollPerBoneSettings[node.Name] = node.Settings;
+
+            for (const auto& child : node.Children)
+                GetUserSettings(child, ragdollPerBoneSettings);
+        }
+
+        static void ResetUserSettings(SkeletalRagdollBone& node)
+        {
+            node.Settings = {};
+            for (auto& child : node.Children)
+                ResetUserSettings(child);
+        }
 	}
 
     SkeletalMesh::SkeletalMesh(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
-        const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollPerBoneSettings, float minRagdollBoneSize, float maxRagdollTwist, float maxRagdollSwing,
+        const std::unordered_map<std::string, SkeletalRagdollBone::UserSettings>& ragdollPerBoneSettings, float minRagdollBoneSize, float maxRagdollTwist, float maxRagdollSwing,
         CollisionDetectionType collisionDetection, CollisionGroup collisionGroup, CollisionGroup interactingCollisionGroup)
         : m_Vertices(vertices)
         , m_IndicesPerMaterial(indicesPerMaterial)
@@ -113,16 +128,19 @@ namespace Eagle
         for (auto& vertex : m_Vertices)
         {
             float totalWeight = 0.f;
+            float weigthsF32[EG_MAX_BONES_PER_VERTEX];
             for (uint32_t i = 0; i < EG_MAX_BONES_PER_VERTEX; ++i)
             {
-                totalWeight += Utils::ToFloat32(vertex.Weights[i]);
+                weigthsF32[i] = Utils::ToFloat32(vertex.Weights[i]);
+                totalWeight += weigthsF32[i];
             }
             for (uint32_t i = 0; i < EG_MAX_BONES_PER_VERTEX; ++i)
             {
-                vertex.Weights[i] = Utils::ToFloat16(Utils::ToFloat32(vertex.Weights[i]) / totalWeight);
+                vertex.Weights[i] = Utils::ToFloat16(weigthsF32[i] / totalWeight);
             }
         }
-        RegenerateRagdollData(m_MinRagdollBoneSize);
+        m_RagdollRoot = Utils::MergeBones(m_MinRagdollBoneSize, m_Skeletal.BoneInfoMap, m_Skeletal.RootBone);
+        Utils::PrepareAABB(m_RagdollRoot);
         Utils::SetUserSettings(m_RagdollRoot, ragdollPerBoneSettings);
     }
 
@@ -142,19 +160,29 @@ namespace Eagle
     void SkeletalMesh::RegenerateRagdollData(float minBoneSize)
     {
         m_MinRagdollBoneSize = minBoneSize;
+
+        std::unordered_map<std::string, SkeletalRagdollBone::UserSettings> ragdollPerBoneSettings;
+        Utils::GetUserSettings(m_RagdollRoot, ragdollPerBoneSettings);
+
         m_RagdollRoot = Utils::MergeBones(m_MinRagdollBoneSize, m_Skeletal.BoneInfoMap, m_Skeletal.RootBone);
         Utils::PrepareAABB(m_RagdollRoot);
+        Utils::SetUserSettings(m_RagdollRoot, ragdollPerBoneSettings);
+    }
+
+    void SkeletalMesh::ResetUserRagdollSettings()
+    {
+        Utils::ResetUserSettings(m_RagdollRoot);
     }
 
     Ref<SkeletalMesh> SkeletalMesh::Create(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
-        const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollPerBoneSettings, float minRagdollBoneSize, float maxRagdollTwist, float maxRagdollSwing,
+        const std::unordered_map<std::string, SkeletalRagdollBone::UserSettings>& ragdollPerBoneSettings, float minRagdollBoneSize, float maxRagdollTwist, float maxRagdollSwing,
         CollisionDetectionType collisionDetection, CollisionGroup collisionGroup, CollisionGroup interactingCollisionGroup)
 	{
 		class LocalSkeletalMesh : public SkeletalMesh
 		{
 		public:
 			LocalSkeletalMesh(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
-                const std::unordered_map<std::string, SkeletalRagdollBones::UserSettings>& ragdollSettings, float minRagdollBoneSize, float maxRagdollTwist, float maxRagdollSwing,
+                const std::unordered_map<std::string, SkeletalRagdollBone::UserSettings>& ragdollSettings, float minRagdollBoneSize, float maxRagdollTwist, float maxRagdollSwing,
                 CollisionDetectionType collisionDetection, CollisionGroup collisionGroup, CollisionGroup interactingCollisionGroup)
 				: SkeletalMesh(vertices, indicesPerMaterial, skeletal, aabb, ragdollSettings, minRagdollBoneSize, maxRagdollTwist, maxRagdollSwing, collisionDetection, collisionGroup, interactingCollisionGroup) {}
 		};

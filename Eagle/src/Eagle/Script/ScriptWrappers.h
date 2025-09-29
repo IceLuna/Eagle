@@ -552,6 +552,7 @@ namespace Eagle::Script
 	bool Eagle_Renderer_GetStutterlessShaders();
 	void Eagle_Renderer_SetTranslucentShadowsEnabled(bool value);
 	bool Eagle_Renderer_GetTranslucentShadowsEnabled();
+	void Eagle_Renderer_GetCameraTransform(Transform* outTransform);
 	void Eagle_Renderer_GetViewportSize(glm::vec2* outSize);
 	void Eagle_Renderer_SetRenderSkyboxEnabled(bool value);
 	bool Eagle_Renderer_IsRenderSkyboxEnabled();
@@ -742,6 +743,7 @@ namespace Eagle::Script
 	glm::quat Eagle_Math_SlerpQuat(const glm::quat* x, const glm::quat* y, float alpha);
 	glm::quat Eagle_Math_LookAt(const glm::vec3* dir);
 	glm::quat Eagle_Math_LookAtY(const glm::vec3* dir);
+	glm::vec3 Eagle_Math_GetDirectionToPixel(const glm::vec2* pixelCoord);
 
 	// Quat
 	glm::quat Eagle_Quat_Mul(const glm::quat& left, const glm::quat& right);

@@ -301,7 +301,7 @@ namespace Eagle
 		return false;
 	}
 
-	static void SerializeRagdollBonesData(YAML::Emitter& out, const SkeletalRagdollBones& node)
+	static void SerializeRagdollBonesData(YAML::Emitter& out, const SkeletalRagdollBone& node)
 	{
 		out << YAML::BeginMap;
 		out << YAML::Key << "Name" << YAML::Value << node.Name;
@@ -3476,7 +3476,7 @@ namespace Eagle
 		if (auto node = baseNode["InteractingCollisionGroupMask"])
 			interactingCollisionGroup = CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks);
 
-		std::unordered_map<std::string, SkeletalRagdollBones::UserSettings> ragdollPerBoneData;
+		std::unordered_map<std::string, SkeletalRagdollBone::UserSettings> ragdollPerBoneData;
 		if (auto node = baseNode["RagdollBonesData"])
 		{
 			ragdollPerBoneData.reserve(node.size());
@@ -3496,7 +3496,7 @@ namespace Eagle
 					data.bEnableCollision = collisionNode.as<bool>();
 				data.Mass = dataNode["Mass"].as<float>();
 				data.Material = GetAsset<AssetPhysicsMaterial>(dataNode["Material"]);
-				data.Shape = Utils::GetEnumFromName<SkeletalRagdollBones::UserSettings::ShapeType>(dataNode["Shape"].as<std::string>());
+				data.Shape = Utils::GetEnumFromName<SkeletalRagdollBone::UserSettings::ShapeType>(dataNode["Shape"].as<std::string>());
 			}
 		}
 

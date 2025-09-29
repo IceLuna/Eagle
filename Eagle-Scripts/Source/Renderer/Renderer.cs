@@ -492,6 +492,13 @@ namespace Eagle
             return result;
         }
 
+        // Returns active camera transform
+        public static Transform GetCameraTransform()
+        {
+            GetCameraTransform_Native(out Transform result);
+            return result;
+        }
+
         public static Vector2 GetViewportSize()
         {
             GetViewportSize_Native(out Vector2 result);
@@ -831,6 +838,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetScreenSpaceReflectionsSettings_Native(float roughnessThreshold, uint samplesPerQuad, uint maxIters, bool bEnabled);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetCameraTransform_Native(out Transform transform);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void GetViewportSize_Native(out Vector2 size);

@@ -21,6 +21,13 @@ namespace Eagle
             return GetRightVector_Native(ref rotator);
         }
 
+        // Returns direction from a camera to a pixel (range: [0; 0] to [viewport width; viewport height]
+        // For example, it can be used to raycast towards the center for aiming.
+        public static Vector3 GetDirectionToPixel(Vector2 pixelCoord)
+        {
+            return GetDirectionToPixel_Native(ref pixelCoord);
+        }
+
         // Returns degree of the angle between Velocity and rotation's forward vector
         // The range of return will be from[-180, 180].
         public static float CalculateDirection(Vector3 velocity, Rotator rotator)
@@ -318,6 +325,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern Vector3 GetRightVector_Native(ref Rotator rotator);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern Vector3 GetDirectionToPixel_Native(ref Vector2 pixelCoord);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float CalculateDirection_Native(ref Vector3 velocity, ref Rotator rotator);

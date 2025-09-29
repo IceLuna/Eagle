@@ -23,7 +23,7 @@ namespace Eagle
 
 	private:
 		bool DrawSkeletalTree(const SkeletalMeshInfo& skeletalInfo, BoneNode& node, size_t baseHash, bool* outDelete = nullptr, const glm::mat4& baseTransform = glm::mat4(1.f), const std::string& parentName = "");
-		bool DrawRagdollTree(SkeletalRagdollBones& node, size_t baseHash);
+		bool DrawRagdollTree(SkeletalRagdollBone& node, size_t baseHash);
 		bool DrawSkeletalTab(const Ref<SkeletalMesh>& mesh, size_t& assetHash);
 		bool DrawRagdollTab(const Ref<SkeletalMesh>& mesh, size_t& assetHash);
 		void UpdateGuizmo();
@@ -51,7 +51,7 @@ namespace Eagle
 		BoneNode* m_SelectedBone = nullptr;
 
 		std::string m_SelectedRagdollBoneName;
-		SkeletalRagdollBones* m_SelectedRagdollBone = nullptr;
+		SkeletalRagdollBone* m_SelectedRagdollBone = nullptr;
 
 		struct AttachedMeshData
 		{

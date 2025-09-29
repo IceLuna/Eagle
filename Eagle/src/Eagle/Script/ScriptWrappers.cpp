@@ -301,13 +301,22 @@ namespace Eagle
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+		const bool bAlreadyHasIt = m_HasComponentFunctions[monoType](entity);
+		if (bAlreadyHasIt)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't add component to Entity. This component already exists!");
+			return;
+		}
+
 		if (entity)
 		{
-			MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 			m_AddComponentFunctions[monoType](entity);
 		}
 		else
+		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't add component to Entity. Entity is null");
+		}
 	}
 
 	void Script::Eagle_Entity_RemoveComponent(GUID entityID, void* type)
@@ -315,13 +324,22 @@ namespace Eagle
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+		const bool bAlreadyHasIt = m_HasComponentFunctions[monoType](entity);
+		if (!bAlreadyHasIt)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't remove component to Entity. This component doesn't exist!");
+			return;
+		}
+
 		if (entity)
 		{
-			MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 			m_RemoveComponentFunctions[monoType](entity);
 		}
 		else
+		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't remove component from an Entity. Entity is null");
+		}
 	}
 
 	bool Script::Eagle_Entity_HasComponent(GUID entityID, void* type)
@@ -6965,6 +6983,11 @@ namespace Eagle
 		return options.bTranslucentShadows;
 	}
 
+	void Script::Eagle_Renderer_GetCameraTransform(Transform* outTransform)
+	{
+		*outTransform = Scene::GetCurrentScene()->GetRuntimeCamera()->GetWorldTransform();
+	}
+
 	void Script::Eagle_Renderer_GetViewportSize(glm::vec2* outSize)
 	{
 		*outSize = glm::vec2(Scene::GetCurrentScene()->GetSceneRenderer()->GetViewportSize());
@@ -8878,12 +8901,16 @@ namespace Eagle
 
 	glm::quat Script::Eagle_Math_LookAt(const glm::vec3* dir)
 	{
-		return glm::quatLookAt(*dir, glm::vec3(0, 1, 0));
+		constexpr glm::vec3 up = glm::vec3(0, 1, 0);
+		constexpr glm::vec3 right = glm::vec3(1, 0, 0);
+
+		// If dir is nearly parallel to up, pick a different up vector
+		const glm::vec3 axis = glm::abs(glm::dot(*dir, up)) > 0.999f ? right : up;
+		return glm::quatLookAt(*dir, axis);
 	}
 
 	glm::quat Script::Eagle_Math_LookAtY(const glm::vec3* dir)
 	{
-		const glm::vec3 up(0, 1, 0);
 
 		glm::vec3 dirTemp = *dir;
 		dirTemp.y = 0.0f;
@@ -8897,6 +8924,21 @@ namespace Eagle
 
 		constexpr glm::vec3 forward(0, 0, -1);
 		return glm::rotation(forward, dirTemp);
+	}
+
+	glm::vec3 Script::Eagle_Math_GetDirectionToPixel(const glm::vec2* pixelCoord)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& renderer = scene->GetSceneRenderer();
+		const glm::vec2 size = renderer->GetViewportSize();
+
+		const glm::vec2 uv = glm::clamp(*pixelCoord / size, glm::vec2(0), glm::vec2(1));
+		const glm::vec3 ndc = glm::vec3(uv * 2.f - 1.f, 0.f);
+		const CameraComponent* camera = scene->GetRuntimeCamera();
+
+		glm::vec4 worldPos = glm::inverse(camera->GetViewProjection()) * glm::vec4(ndc, 1.f);
+		worldPos /= worldPos.w;
+		return glm::normalize(glm::vec3(worldPos) - camera->GetWorldTransform().Location);
 	}
 
 	glm::quat Script::Eagle_Quat_Mul(const glm::quat& left, const glm::quat& right)

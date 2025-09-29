@@ -1127,23 +1127,25 @@ namespace Eagle
 						const float sinAngle1 = glm::sin(angle1);
 						const float sinAngle2 = glm::sin(angle2);
 
+						const glm::vec3 innerStart = center + glm::rotate(quat, innerRadius * glm::vec3(cosAngle1, sinAngle1, 0.f));
 						auto& innerCircleLine = m_DebugSpotLines.emplace_back();
-						innerCircleLine.Start.Location = center + glm::rotate(quat, innerRadius * glm::vec3(cosAngle1, sinAngle1, 0.f));
+						innerCircleLine.Start.Location = innerStart;
 						innerCircleLine.End.Location = center + glm::rotate(quat, innerRadius * glm::vec3(cosAngle2, sinAngle2, 0.f));
 
 						auto& toInnerLine = m_DebugSpotLines.emplace_back();
 						toInnerLine.Start.Location = location;
-						toInnerLine.End.Location = innerCircleLine.Start.Location;
+						toInnerLine.End.Location = innerStart;
 
+						const glm::vec3 outerStart = center + glm::rotate(quat, outerRadius * glm::vec3(cosAngle1, sinAngle1, 0.f));
 						auto& outerCircleLine = m_DebugSpotLines.emplace_back();
-						outerCircleLine.Start.Location = center + glm::rotate(quat, outerRadius * glm::vec3(cosAngle1, sinAngle1, 0.f));
+						outerCircleLine.Start.Location = outerStart;
 						outerCircleLine.End.Location = center + glm::rotate(quat, outerRadius * glm::vec3(cosAngle2, sinAngle2, 0.f));
 						outerCircleLine.Start.Color = glm::vec3(0.75, 0.75f, 0.f);
 						outerCircleLine.End.Color = glm::vec3(0.75, 0.75f, 0.f);
 
 						auto& toOuterLine = m_DebugSpotLines.emplace_back();
 						toOuterLine.Start.Location = location;
-						toOuterLine.End.Location = outerCircleLine.Start.Location;
+						toOuterLine.End.Location = outerStart;
 						toOuterLine.Start.Color = glm::vec3(0.75, 0.75f, 0.f);
 						toOuterLine.End.Color = glm::vec3(0.75, 0.75f, 0.f);
 					}
@@ -1755,13 +1757,14 @@ namespace Eagle
 			const float sinAngle1 = glm::sin(angle1);
 			const float sinAngle2 = glm::sin(angle2);
 
+			const glm::vec3 start = center + glm::rotate(quat, radius * glm::vec3(cosAngle1, sinAngle1, 0.f));
 			auto& innerCircleLine = m_UserDebugLines.emplace_back();
-			innerCircleLine.Start.Location = center + glm::rotate(quat, radius * glm::vec3(cosAngle1, sinAngle1, 0.f));
+			innerCircleLine.Start.Location = start;
 			innerCircleLine.End.Location = center + glm::rotate(quat, radius * glm::vec3(cosAngle2, sinAngle2, 0.f));
 
 			auto& toInnerLine = m_UserDebugLines.emplace_back();
 			toInnerLine.Start.Location = location;
-			toInnerLine.End.Location = innerCircleLine.Start.Location;
+			toInnerLine.End.Location = start;
 		}
 	}
 

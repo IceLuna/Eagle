@@ -199,22 +199,25 @@ namespace Eagle
 
 		for (auto& image : images)
 		{
-			const auto& textureAsset = image->GetTextureAsset();
-			if (!textureAsset)
-				continue;
-
-			const auto& texture = textureAsset->GetTexture();
-			if (!texture)
-				continue;
-
 			auto& data = datas.emplace_back();
-			data.Texture = texture;
 			data.Tint = image->GetTint();
 			data.Pos = image->GetPosition();
 			data.Scale = image->GetScale();
 			data.Rotation = image->GetRotation();
 			data.EntityID = image->Parent.GetID();
 			data.Opacity = image->GetOpacity();
+
+			if (const auto& textureAsset = image->GetTextureAsset())
+			{
+				const auto& texture = textureAsset->GetTexture();
+				EG_CORE_ASSERT(texture);
+				data.Texture = texture;
+			}
+			else
+			{
+				data.Texture = Texture2D::WhiteTexture; // Use white texture so that a user can just use tint to render a color
+			}
+
 		}
 
 		RenderManager::Submit([components = std::move(datas), task = shared_from_this()](const Ref<CommandBuffer>&)

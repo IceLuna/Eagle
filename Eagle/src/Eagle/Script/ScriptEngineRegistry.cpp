@@ -237,6 +237,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::GetStutterlessShaders_Native", Eagle::Script::Eagle_Renderer_GetStutterlessShaders);
 		mono_add_internal_call("Eagle.Renderer::SetTranslucentShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_SetTranslucentShadowsEnabled);
 		mono_add_internal_call("Eagle.Renderer::GetTranslucentShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_GetTranslucentShadowsEnabled);
+		mono_add_internal_call("Eagle.Renderer::GetCameraTransform_Native", Eagle::Script::Eagle_Renderer_GetCameraTransform);
 		mono_add_internal_call("Eagle.Renderer::GetViewportSize_Native", Eagle::Script::Eagle_Renderer_GetViewportSize);
 		mono_add_internal_call("Eagle.Renderer::SetRenderSkyboxEnabled_Native", Eagle::Script::Eagle_Renderer_SetRenderSkyboxEnabled);
 		mono_add_internal_call("Eagle.Renderer::IsRenderSkyboxEnabled_Native", Eagle::Script::Eagle_Renderer_IsRenderSkyboxEnabled);
@@ -838,6 +839,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Mathf::GetForwardVector_Native", Eagle::Script::Eagle_Math_GetForwardVector);
 		mono_add_internal_call("Eagle.Mathf::GetUpVector_Native", Eagle::Script::Eagle_Math_GetUpVector);
 		mono_add_internal_call("Eagle.Mathf::GetRightVector_Native", Eagle::Script::Eagle_Math_GetRightVector);
+		mono_add_internal_call("Eagle.Mathf::GetDirectionToPixel_Native", Eagle::Script::Eagle_Math_GetDirectionToPixel);
 		mono_add_internal_call("Eagle.Mathf::CalculateDirection_Native", Eagle::Script::Eagle_Math_CalculateDirection);
 		mono_add_internal_call("Eagle.Mathf::SlerpQuat_Native", Eagle::Script::Eagle_Math_SlerpQuat);
 		mono_add_internal_call("Eagle.Mathf::LookAt_Native", Eagle::Script::Eagle_Math_LookAt);
