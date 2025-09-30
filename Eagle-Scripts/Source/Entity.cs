@@ -17,6 +17,7 @@ namespace Eagle
         private Action<Entity, Entity, CollisionInfo> m_CollisionEndCallbacks;
         private Action<Entity, Entity> m_TriggerBeginCallbacks;
         private Action<Entity, Entity> m_TriggerEndCallbacks;
+        protected Action<Entity, float> m_OnTookDamageCallbacks; // Entity - entity that took damage; float - the damage it actually took
 
         public GUID ID { get; private set; }
 
@@ -37,7 +38,12 @@ namespace Eagle
         public virtual void OnAnimationEvent(string eventName, float time) { }
 
         // Returns actual damage that was taken
-        public virtual float TakeDamage(float damage) { return damage; }
+        public virtual float TakeDamage(float damage)
+        {
+            if (m_OnTookDamageCallbacks != null)
+                m_OnTookDamageCallbacks.Invoke(this, damage);
+            return damage;
+        }
 
         public Entity Parent
         {
@@ -256,6 +262,16 @@ namespace Eagle
         public void RemoveTriggerEndCallback(Action<Entity, Entity> callback)
         {
             m_TriggerEndCallbacks -= callback;
+        }
+
+        public void AddOnTookDamageCallback(Action<Entity, float> callback)
+        {
+            m_OnTookDamageCallbacks += callback;
+        }
+
+        public void RemoveOnTookDamageCallback(Action<Entity, float> callback)
+        {
+            m_OnTookDamageCallbacks -= callback;
         }
 
         private void OnCollisionBegin(Entity otherEntity, Vector3 position, Vector3 normal, Vector3 impulse, Vector3 force)

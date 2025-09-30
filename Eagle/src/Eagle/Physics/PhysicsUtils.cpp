@@ -494,11 +494,6 @@ namespace Eagle
 		}
 		return true;
 	}
-
-	inline uint64_t Combine(uint32_t word0, uint32_t word1)
-	{
-		return (uint64_t(word0) << 32) | word1;
-	}
 	
 	physx::PxQueryHitType::Enum PhysXQueryFilterCallback::preFilter(const physx::PxFilterData& queryFilterData, const physx::PxShape* pxShape, const physx::PxRigidActor* actor, physx::PxHitFlags& queryTypes)
 	{
@@ -510,7 +505,7 @@ namespace Eagle
 		}
 
 		auto shapeFilterData = pxShape->getSimulationFilterData();
-		if (m_CollisionGroupMask & shapeFilterData.word0)
+		if ((m_CollisionGroupMask & shapeFilterData.word0) || (m_CollisionGroupMask & shapeFilterData.word1))
 			return m_HitType;
 
 		return physx::PxQueryHitType::eNONE;

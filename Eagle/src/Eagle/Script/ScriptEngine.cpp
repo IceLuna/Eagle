@@ -160,6 +160,12 @@ namespace Eagle
 		return result;
 	}
 
+	static bool IsPublicClass(MonoClass* klass)
+	{
+		const uint32_t visibility = mono_class_get_flags(klass) & MONO_TYPE_ATTR_VISIBILITY_MASK;
+		return visibility == MONO_TYPE_ATTR_PUBLIC || visibility == MONO_TYPE_ATTR_NESTED_PUBLIC;
+	}
+
 	void ScriptEngine::Init(const Path& assemblyPath)
 	{
 		// Enabling debugging if it's not a game
@@ -470,6 +476,9 @@ namespace Eagle
 		{
 			MonoClassField* iter = nullptr;
 			void* ptr = nullptr;
+
+			if (!IsPublicClass(klass))
+				break;
 
 			while ((iter = mono_class_get_fields(klass, &ptr)) != nullptr)
 			{
@@ -899,7 +908,7 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] {0}: {1}. Stack Trace: {2}", typeName, message, stackTrace);
 		}
 
-		return result ? std::string(mono_string_to_utf8(result)) : "";
+		return result ? std::string(MonoStringHandler(result).c_str()) : "";
 	}
 
 	EntityInstanceData& ScriptEngine::GetEntityInstanceData(const Entity& entity)
@@ -948,5 +957,15 @@ namespace Eagle
 	{
 		EG_CORE_ASSERT(Handle, "Entity has not been instantiated!"); 
 		return mono_gchandle_get_target(Handle);
+	}
+	
+	MonoStringHandler::MonoStringHandler(MonoString* monoStr)
+	{
+		m_Str = mono_string_to_utf8(monoStr);
+	}
+	
+	MonoStringHandler::~MonoStringHandler()
+	{
+		mono_free(m_Str);
 	}
 }

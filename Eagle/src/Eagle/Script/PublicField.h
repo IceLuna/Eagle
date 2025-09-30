@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Eagle/Core/DataBuffer.h"
+
 extern "C" 
 {
 	typedef struct _MonoObject MonoObject;
@@ -70,11 +72,11 @@ namespace Eagle
 		PublicField() = default;
 		PublicField(const std::string& name, const std::string& typeName, FieldType type, bool isReadOnly = false);
 		PublicField(const PublicField& other);
-		PublicField(PublicField&& other) noexcept;
+		PublicField(PublicField&& other) noexcept = default;
 		~PublicField();
 
 		PublicField& operator= (const PublicField& other);
-		PublicField& operator= (PublicField&& other) noexcept;
+		PublicField& operator= (PublicField&& other) noexcept = default;
 
 		void CopyStoredValueFromRuntime(EntityInstance& entityInstance);
 		void CopyStoredValueToRuntime(EntityInstance& entityInstance);
@@ -96,13 +98,13 @@ namespace Eagle
 		template <>
 		void SetStoredValue(const std::string& value)
 		{
-			(*(std::string*)(m_StoredValueBuffer)).assign(value);
+			GetDataAsString().assign(value);
 		}
 
 		template<>
 		const std::string& GetStoredValue() const
 		{
-			return *(std::string*)m_StoredValueBuffer;
+			return GetDataAsString();
 		}
 
 		template <typename T>
@@ -142,7 +144,7 @@ namespace Eagle
 			case FieldType::Int: return 4;
 			case FieldType::UnsignedInt: return 4;
 			case FieldType::Float: return 4;
-			case FieldType::String: return 8;
+			case FieldType::String: return sizeof(std::string);
 			case FieldType::Vec2: return 4 * 2;
 			case FieldType::Vec3: return 4 * 3;
 			case FieldType::Vec4: return 4 * 4;
@@ -176,8 +178,7 @@ namespace Eagle
 	private:
 		void GetStoredValue_Internal(void* outValue) const
 		{
-			uint32_t size = GetFieldSize(Type);
-			memcpy(outValue, m_StoredValueBuffer, size);
+			memcpy(outValue, m_StoredValueBuffer.Data(), m_StoredValueBuffer.Size());
 		}
 
 		void SetStoredValue_Internal(const void* value)
@@ -185,8 +186,7 @@ namespace Eagle
 			if (IsReadOnly)
 				return;
 
-			uint32_t size = GetFieldSize(Type);
-			memcpy(m_StoredValueBuffer, value, size);
+			m_StoredValueBuffer.Write(value, m_StoredValueBuffer.Size());
 		}
 
 		void SetRuntimeValue_Internal(EntityInstance& entityInstance, void* value);
@@ -194,18 +194,34 @@ namespace Eagle
 		void GetRuntimeValue_Internal(EntityInstance& entityInstance, void* outValue) const;
 		void GetRuntimeValue_Internal(EntityInstance& entityInstance, std::string& outValue) const;
 
-		uint8_t* AllocateBuffer(FieldType type)
+		void AllocateBuffer(FieldType type)
 		{
 			uint32_t size = GetFieldSize(type);
-			uint8_t* buffer = new uint8_t[size];
-			memset(buffer, 0, size);
-			return buffer;
+			m_StoredValueBuffer.Allocate(size);
+			if (type == FieldType::String)
+			{
+				new (m_StoredValueBuffer.Data()) std::string();
+			}
+			else
+			{
+				memset(m_StoredValueBuffer.Data(), 0, size);
+			}
+		}
+
+		std::string& GetDataAsString()
+		{
+			return *(std::string*)(m_StoredValueBuffer.Data());
+		}
+
+		const std::string& GetDataAsString() const
+		{
+			return *(std::string*)(m_StoredValueBuffer.Data());
 		}
 
 	private:
 		MonoClassField* m_MonoClassField = nullptr;
 		MonoProperty* m_MonoProperty = nullptr;
-		uint8_t* m_StoredValueBuffer = nullptr;
+		ScopedDataBuffer m_StoredValueBuffer;
 
 		friend class ScriptEngine;
 	};

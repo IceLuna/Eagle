@@ -105,7 +105,7 @@ namespace Eagle
 		SkeletalMesh() = default;
 		SkeletalMesh(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
 			const std::unordered_map<std::string, SkeletalRagdollBone::UserSettings>& ragdollPerBoneSettings = {}, float minRagdollBoneSize = 0.1f, float maxRagdollTwist = 22.5f, float maxRagdollSwing = 45.f,
-			CollisionDetectionType collisionDetection = CollisionDetectionType::Discrete, CollisionGroup collisionGroup = CollisionGroup::Object, CollisionGroup interactingCollisionGroup = CollisionGroup::Object);
+			CollisionDetectionType collisionDetection = CollisionDetectionType::Discrete, CollisionGroup collisionGroup = s_DefaultCollisionGroup, CollisionGroup interactingCollisionGroup = s_DefaultCollisionGroup);
 		SkeletalMesh(const SkeletalMesh& other);
 
 	public:
@@ -171,7 +171,7 @@ namespace Eagle
 		// @ragdollOffsets. Can be used to override `UserOffset` inside `SkeletalRagdollBone`. std::string is a bone name which `UserOffset` needs to be overwritten
 		static Ref<SkeletalMesh> Create(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& m_IndicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
 			const std::unordered_map<std::string, SkeletalRagdollBone::UserSettings>& ragdollPerBoneSettings = {}, float minRagdollBoneSize = 0.1f, float maxRagdollTwist = 22.5f, float maxRagdollSwing = 45.f,
-			CollisionDetectionType collisionDetection = CollisionDetectionType::Discrete, CollisionGroup collisionGroup = CollisionGroup::Object, CollisionGroup interactingCollisionGroup = CollisionGroup::Object);
+			CollisionDetectionType collisionDetection = CollisionDetectionType::Discrete, CollisionGroup collisionGroup = s_DefaultCollisionGroup, CollisionGroup interactingCollisionGroup = s_DefaultCollisionGroup);
 		static Ref<SkeletalMesh> Create(const Ref<SkeletalMesh>& other);
 
 	private:
@@ -188,7 +188,7 @@ namespace Eagle
 		float m_MaxRagdollTwist = 22.5f;
 		float m_MaxRagdollSwing = 45.0f;
 		CollisionDetectionType m_CollisionDetection = CollisionDetectionType::Discrete;
-		CollisionGroup m_CollisionGroup = CollisionGroup::Object;
-		CollisionGroup m_InteractingCollisionGroup = CollisionGroup::Object;
+		CollisionGroup m_CollisionGroup = s_DefaultCollisionGroup;
+		CollisionGroup m_InteractingCollisionGroup = s_DefaultCollisionGroup;
 	};
 }

@@ -3457,8 +3457,8 @@ namespace Eagle
 		float maxRagdollTwist = 22.5f;
 		float maxRagdollSwing = 45.0f;
 		CollisionDetectionType collisionDetectionType = CollisionDetectionType::Discrete;
-		CollisionGroup collisionGroup = CollisionGroup::Object;
-		CollisionGroup interactingCollisionGroup = CollisionGroup::Object;
+		CollisionGroup collisionGroup = s_DefaultCollisionGroup;
+		CollisionGroup interactingCollisionGroup = s_DefaultCollisionGroup;
 
 		if (auto node = baseNode["MinRagdollBoneSize"])
 			minRagdollBoneSize = node.as<float>();

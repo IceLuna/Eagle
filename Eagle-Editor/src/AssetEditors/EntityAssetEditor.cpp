@@ -69,6 +69,14 @@ namespace Eagle
 				OnEntityChanged();
 
 			{
+				UI::TextWithSeparator("Visualization settings");
+
+				UI::BeginPropertyGrid("EntityDetails");
+				UI::Property("Update animations", m_UpdateAnims);
+				UI::EndPropertyGrid();
+
+				ImGui::Separator();
+
 				if (ImGui::Button("Save asset"))
 					Asset::Save(m_Asset);
 
@@ -82,6 +90,8 @@ namespace Eagle
 				{
 					auto& scene = Scene::GetCurrentScene();
 					scene->ReloadEntitiesCreatedFromAsset(m_Asset);
+					if (auto& sceneAsset = m_EditorLayer.GetOpenedSceneAsset())
+						sceneAsset->SetDirty(true);
 				}
 				ImGui::SameLine();
 				UI::HelpMarker(s_ReloadHelpMsg);
@@ -95,7 +105,7 @@ namespace Eagle
 		}
 		ImGui::End(); // Entity Editor
 
-		DrawViewport(false, m_WindowName);
+		DrawViewport(m_UpdateAnims, m_WindowName);
 	}
 
 	void EntityAssetEditor::OnEvent(Event& e)

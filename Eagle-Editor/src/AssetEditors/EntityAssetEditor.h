@@ -32,6 +32,7 @@ namespace Eagle
 		Ref<AssetEntity> m_Asset;
 		SceneHierarchyPanel m_SceneHierarchy;
 		std::string m_WindowName;
+		bool m_UpdateAnims = true;
 
 		Entity m_Entity;
 	};

@@ -1133,8 +1133,8 @@ namespace Eagle
 
 	protected:
 		Ref<AssetPhysicsMaterial> m_MaterialAsset;
-		CollisionGroup m_CollisionGroup = CollisionGroup::Object;
-		CollisionGroup m_InteractingCollisionGroup = CollisionGroup::Object;
+		CollisionGroup m_CollisionGroup = s_DefaultCollisionGroup;
+		CollisionGroup m_InteractingCollisionGroup = s_DefaultCollisionGroup;
 		dtObstacleRef m_ObstacleID = 0u;
 		bool bTrigger = false;
 		bool bShowCollision = false;

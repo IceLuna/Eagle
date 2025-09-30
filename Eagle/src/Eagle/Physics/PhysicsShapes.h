@@ -66,8 +66,8 @@ namespace Eagle
 		physx::PxShape* m_Shape = nullptr; // Note: it's not released manually since it's created as an Exclusive Shape
 		glm::vec3 m_ColliderScale = glm::vec3{ 1.f };
 		ColliderType m_Type;
-		CollisionGroup m_CollisionGroup = CollisionGroup::Object;
-		CollisionGroup m_InteractingCollisionGroup = CollisionGroup::Object;
+		CollisionGroup m_CollisionGroup = s_DefaultCollisionGroup;
+		CollisionGroup m_InteractingCollisionGroup = s_DefaultCollisionGroup;
 	};
 	
 	class BoxColliderShape : public ColliderShape

@@ -94,6 +94,8 @@ namespace Eagle
 		if (!m_CurrentScene || m_GuizmoType == -1)
 			return false;
 		
+		ImGuizmo::SetID(int(uint64_t(m_CurrentScene.get())));
+
 		bool bChanged = false;
 		const bool bWasEnabled = ImGuizmo::IsEnabled();
 
@@ -112,8 +114,6 @@ namespace Eagle
 			snappingIndex = 1;
 		else if (m_GuizmoType == ImGuizmo::OPERATION::SCALE)
 			snappingIndex = 2;
-
-		ImGuizmo::SetID(int(uint64_t(m_CurrentScene.get())));
 
 		glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
 

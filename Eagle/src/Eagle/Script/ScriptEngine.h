@@ -9,6 +9,7 @@ extern "C"
 	typedef struct _MonoMethod MonoMethod;
 	typedef struct _MonoImage MonoImage;
 	typedef struct _MonoAssembly MonoAssembly;
+	typedef struct _MonoString MonoString;
 }
 
 namespace Eagle
@@ -62,6 +63,23 @@ namespace Eagle
 	struct EntityInstanceData
 	{
 		EntityInstance Instance;
+	};
+
+	struct MonoStringHandler
+	{
+		MonoStringHandler(MonoString* monoStr);
+		~MonoStringHandler();
+
+		MonoStringHandler(const MonoStringHandler&) = delete;
+		MonoStringHandler(MonoStringHandler&&) = delete;
+		MonoStringHandler& operator= (const MonoStringHandler&) = delete;
+		MonoStringHandler& operator= (MonoStringHandler&&) = delete;
+
+		char* c_str() { return m_Str; }
+		const char* c_str() const { return m_Str; }
+
+	private:
+		char* m_Str = nullptr;
 	};
 
 	class ScriptEngine

@@ -49,7 +49,7 @@ namespace Eagle
 		void DrawComponents(Entity& entity);
 
 		template <typename T, typename UIFunction>
-		void DrawComponent(const std::string& name, Entity& entity, UIFunction function, bool canRemove = true)
+		void DrawComponent(const std::string& name, Entity& entity, UIFunction&& function, bool canRemove = true)
 		{
 			if (entity.HasComponent<T>())
 			{

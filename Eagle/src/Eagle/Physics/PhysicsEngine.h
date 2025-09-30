@@ -39,8 +39,9 @@ namespace Eagle
 		Object = BIT(0),
 		Projectile = BIT(1),
 	};
-	static constexpr CollisionGroup s_CollisionGroupAny = CollisionGroup(0xFFFFFFFF);
 	DECLARE_FLAGS(CollisionGroup);
+	static constexpr CollisionGroup s_DefaultCollisionGroup = CollisionGroup::Object | CollisionGroup::Projectile;
+	static constexpr CollisionGroup s_CollisionGroupAny = CollisionGroup(0xFFFFFFFF);
 
 	enum class PhysicsQueryType
 	{

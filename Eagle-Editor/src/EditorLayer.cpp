@@ -792,6 +792,7 @@ namespace Eagle
 
 		if (selectedEntity && (m_GuizmoType != -1))
 		{
+			ImGuizmo::SetID(int(uint64_t(m_CurrentScene.get())));
 			//ImGuizmo::SetOrthographic(false); //TODO: Set to true when using Orthographic
 			ImGuizmo::SetDrawlist();
 
@@ -834,8 +835,6 @@ namespace Eagle
 			//Snapping
 			const float snapValues[3] = { m_SnappingValues[snappingIndex], m_SnappingValues[snappingIndex], m_SnappingValues[snappingIndex] };
 			const bool bSnap = Input::IsKeyPressed(Key::LeftShift);
-
-			ImGuizmo::SetID(int(uint64_t(m_CurrentScene.get())));
 
 			glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
 			ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,

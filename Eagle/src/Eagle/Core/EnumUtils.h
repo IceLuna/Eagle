@@ -16,33 +16,33 @@ struct IsEnumFlags<EnumType>         \
 };    
 
 template <typename EnumType>
-typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type operator|(EnumType lhs, EnumType rhs)
+constexpr typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type operator|(EnumType lhs, EnumType rhs)
 {
     using UnderlyingType = typename std::underlying_type<EnumType>::type;
     return static_cast<EnumType>(static_cast<UnderlyingType>(lhs) | static_cast<UnderlyingType>(rhs));
 }
 
 template <typename EnumType>
-typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type operator&(EnumType lhs, EnumType rhs)
+constexpr typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type operator&(EnumType lhs, EnumType rhs)
 {
     using UnderlyingType = typename std::underlying_type<EnumType>::type;
     return static_cast<EnumType>(static_cast<UnderlyingType>(lhs) & static_cast<UnderlyingType>(rhs));
 }
 
 template <typename EnumType, typename UnderlyingType = std::underlying_type<EnumType>::type>
-typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type operator&(UnderlyingType lhs, EnumType rhs)
+constexpr typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type operator&(UnderlyingType lhs, EnumType rhs)
 {
     return static_cast<EnumType>(static_cast<UnderlyingType>(lhs) & static_cast<UnderlyingType>(rhs));
 }
 
 template <typename EnumType>
-typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type operator^(EnumType lhs, EnumType rhs) {
+constexpr typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type operator^(EnumType lhs, EnumType rhs) {
     using UnderlyingType = typename std::underlying_type<EnumType>::type;
     return static_cast<EnumType>(static_cast<UnderlyingType>(lhs) ^ static_cast<UnderlyingType>(rhs));
 }
 
 template <typename EnumType>
-typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type& operator|=(EnumType& lhs, EnumType rhs)
+constexpr typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type& operator|=(EnumType& lhs, EnumType rhs)
 {
     using UnderlyingType = typename std::underlying_type<EnumType>::type;
     lhs = static_cast<EnumType>(static_cast<UnderlyingType>(lhs) | static_cast<UnderlyingType>(rhs));
@@ -50,7 +50,7 @@ typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type& operator|
 }
 
 template <typename EnumType>
-typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type& operator&=(EnumType& lhs, EnumType rhs)
+constexpr typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type& operator&=(EnumType& lhs, EnumType rhs)
 {
     using UnderlyingType = typename std::underlying_type<EnumType>::type;
     lhs = static_cast<EnumType>(static_cast<UnderlyingType>(lhs) & static_cast<UnderlyingType>(rhs));
@@ -58,19 +58,22 @@ typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type& operator&
 }
 
 template <typename EnumType>
-typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type& operator^=(EnumType& lhs, EnumType rhs) {
+constexpr typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type& operator^=(EnumType& lhs, EnumType rhs)
+{
     using UnderlyingType = typename std::underlying_type<EnumType>::type;
     lhs = static_cast<EnumType>(static_cast<UnderlyingType>(lhs) ^ static_cast<UnderlyingType>(rhs));
     return lhs;
 }
 
 template <typename EnumType>
-typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type operator~(EnumType rhs) {
+constexpr typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type operator~(EnumType rhs)
+{
     using UnderlyingType = typename std::underlying_type<EnumType>::type;
     return static_cast<EnumType>(~static_cast<UnderlyingType>(rhs));
 }
 
 template <typename EnumType>
-typename std::enable_if<IsEnumFlags<EnumType>::value, bool>::type HasFlags(EnumType lhs, EnumType rhs) {
+constexpr typename std::enable_if<IsEnumFlags<EnumType>::value, bool>::type HasFlags(EnumType lhs, EnumType rhs)
+{
     return (lhs & rhs) == rhs;
 }

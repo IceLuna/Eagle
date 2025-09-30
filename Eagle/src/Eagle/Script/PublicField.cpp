@@ -7,13 +7,13 @@
 
 namespace Eagle
 {
-	static std::unordered_map<std::string, std::string> s_PublicFieldStringValues;
+	// If fails, please make sure `m_StoredValueBuffer` uses correct alignment when allocating `std::string`
+	static_assert(alignof(std::string) <= alignof(std::max_align_t));
 
 	PublicField::PublicField(const std::string& name, const std::string& typeName, FieldType type, bool isReadOnly)
 	: Name(name), TypeName(typeName), Type(type), IsReadOnly(isReadOnly)
 	{
-		if (Type != FieldType::String)
-			m_StoredValueBuffer = AllocateBuffer(Type);
+		AllocateBuffer(Type);
 	}
 
 	PublicField::PublicField(const PublicField& other)
@@ -22,32 +22,23 @@ namespace Eagle
 		, m_MonoClassField(other.m_MonoClassField)
 		, m_MonoProperty(other.m_MonoProperty)
 	{
+		AllocateBuffer(Type);
 		if (Type != FieldType::String)
 		{
-			m_StoredValueBuffer = AllocateBuffer(Type);
-			memcpy(m_StoredValueBuffer, other.m_StoredValueBuffer, GetFieldSize(Type));
+			m_StoredValueBuffer.Write(other.m_StoredValueBuffer.Data(), other.m_StoredValueBuffer.Size());
 		}
 		else
 		{
-			m_StoredValueBuffer = other.m_StoredValueBuffer;
+			GetDataAsString() = other.GetDataAsString();
 		}
-	}
-
-	PublicField::PublicField(PublicField&& other) noexcept
-		: Name(std::move(other.Name)), TypeName(std::move(other.TypeName))
-		, Type(std::move(other.Type)), EnumFields(std::move(other.EnumFields))
-		, IsReadOnly(std::move(other.IsReadOnly))
-		, m_MonoClassField(std::move(other.m_MonoClassField))
-		, m_MonoProperty(std::move(other.m_MonoProperty))
-	{
-		m_StoredValueBuffer = other.m_StoredValueBuffer;
-		other.m_StoredValueBuffer = nullptr;
 	}
 
 	PublicField::~PublicField()
 	{
-		if (Type != FieldType::String)
-			delete[] m_StoredValueBuffer;
+		if (Type == FieldType::String && m_StoredValueBuffer.Size() > 0)
+		{
+			GetDataAsString().~basic_string();
+		}
 	}
 
 	PublicField& PublicField::operator=(const PublicField& other)
@@ -62,32 +53,16 @@ namespace Eagle
 			m_MonoProperty = other.m_MonoProperty;
 			EnumFields = other.EnumFields;
 
+			AllocateBuffer(Type);
 			if (Type != FieldType::String)
 			{
-				m_StoredValueBuffer = AllocateBuffer(Type);
-				memcpy(m_StoredValueBuffer, other.m_StoredValueBuffer, GetFieldSize(Type));
+				m_StoredValueBuffer.Write(other.m_StoredValueBuffer.Data(), other.m_StoredValueBuffer.Size());
 			}
 			else
 			{
-				m_StoredValueBuffer = other.m_StoredValueBuffer;
+				GetDataAsString() = other.GetDataAsString();
 			}
 		}
-
-		return *this;
-	}
-
-	PublicField& PublicField::operator=(PublicField&& other) noexcept
-	{
-		Name = std::move(other.Name);
-		TypeName = std::move(other.TypeName);
-		Type = std::move(other.Type);
-		IsReadOnly = std::move(other.IsReadOnly);
-		m_MonoClassField = std::move(other.m_MonoClassField);
-		m_MonoProperty = std::move(other.m_MonoProperty);
-		EnumFields = std::move(other.EnumFields);
-
-		m_StoredValueBuffer = other.m_StoredValueBuffer;
-		other.m_StoredValueBuffer = nullptr;
 
 		return *this;
 	}
@@ -102,21 +77,17 @@ namespace Eagle
 			if (m_MonoProperty)
 			{
 				MonoString* str = (MonoString*)mono_property_get_value(m_MonoProperty, monoInstance, nullptr, nullptr);
-				auto& stringValue = s_PublicFieldStringValues[Name];
-				stringValue = mono_string_to_utf8(str);
-				m_StoredValueBuffer = (uint8_t*)(&stringValue);
+				GetDataAsString() = MonoStringHandler(str).c_str();
 			}
 			else
 			{
 				MonoString* str;
 				mono_field_get_value(monoInstance, m_MonoClassField, &str);
-				auto& stringValue = s_PublicFieldStringValues[Name];
+				auto& stringValue = GetDataAsString();
 				if (str)
-					stringValue = mono_string_to_utf8(str);
+					stringValue = MonoStringHandler(str).c_str();
 				else
 					stringValue.clear();
-
-				m_StoredValueBuffer = (uint8_t*)(&stringValue);
 			}
 		}
 		else
@@ -124,11 +95,11 @@ namespace Eagle
 			if (m_MonoProperty)
 			{
 				MonoObject* result = mono_property_get_value(m_MonoProperty, monoInstance, nullptr, nullptr);
-				memcpy(m_StoredValueBuffer, mono_object_unbox(result), GetFieldSize(Type));
+				m_StoredValueBuffer.Write(mono_object_unbox(result), m_StoredValueBuffer.Size());
 			}
 			else
 			{
-				mono_field_get_value(monoInstance, m_MonoClassField, m_StoredValueBuffer);
+				mono_field_get_value(monoInstance, m_MonoClassField, m_StoredValueBuffer.Data());
 			}
 		}
 	}
@@ -151,7 +122,7 @@ namespace Eagle
 		}
 		else if (Type == FieldType::String)
 		{
-			SetRuntimeValue_Internal(entityInstance, *((std::string*)m_StoredValueBuffer));
+			SetRuntimeValue_Internal(entityInstance, GetDataAsString());
 		}
 		else if (Type == FieldType::Entity || IsAssetType(Type))
 		{
@@ -164,14 +135,14 @@ namespace Eagle
 			}
 			else
 			{
-				void* params[] = { m_StoredValueBuffer };
+				void* params[] = { m_StoredValueBuffer.Data()};
 				MonoObject* obj = ScriptEngine::Construct(TypeName + ":.ctor(Eagle.GUID)", true, params);
 				mono_field_set_value(monoInstance, m_MonoClassField, obj);
 			}
 		}
 		else
 		{
-			SetRuntimeValue_Internal(entityInstance, m_StoredValueBuffer);
+			SetRuntimeValue_Internal(entityInstance, m_StoredValueBuffer.Data());
 		}
 	}
 
@@ -301,7 +272,7 @@ namespace Eagle
 		else
 			mono_field_get_value(monoInstance, m_MonoClassField, &monoString);
 
-		outValue = mono_string_to_utf8(monoString);
+		outValue = MonoStringHandler(monoString).c_str();
 	}
 
 }

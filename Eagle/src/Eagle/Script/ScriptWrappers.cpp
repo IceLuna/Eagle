@@ -430,7 +430,7 @@ namespace Eagle
 		if (children.empty())
 			return nullptr;
 
-		const std::string name = mono_string_to_utf8(monoName);
+		const std::string name = MonoStringHandler(monoName).c_str();
 
 		for (auto& child : children)
 			if (child.GetName() == name)
@@ -1889,7 +1889,7 @@ namespace Eagle
 			return;
 		}
 
-		const std::string name = mono_string_to_utf8(monoName);
+		const std::string name = MonoStringHandler(monoName).c_str();
 		auto& var = graph->GetVariable(name);
 		if (!var)
 		{
@@ -1924,7 +1924,7 @@ namespace Eagle
 			return;
 		}
 
-		const std::string name = mono_string_to_utf8(monoName);
+		const std::string name = MonoStringHandler(monoName).c_str();
 		auto& var = graph->GetVariable(name);
 		if (!var)
 		{
@@ -1959,7 +1959,7 @@ namespace Eagle
 			return;
 		}
 
-		const std::string name = mono_string_to_utf8(monoName);
+		const std::string name = MonoStringHandler(monoName).c_str();
 		auto& var = graph->GetVariable(name);
 		if (!var)
 		{
@@ -1994,7 +1994,7 @@ namespace Eagle
 			return;
 		}
 
-		const std::string name = mono_string_to_utf8(monoName);
+		const std::string name = MonoStringHandler(monoName).c_str();
 		auto& var = graph->GetVariable(name);
 		if (!var)
 		{
@@ -2048,7 +2048,7 @@ namespace Eagle
 			return;
 		}
 
-		const std::string name = mono_string_to_utf8(monoName);
+		const std::string name = MonoStringHandler(monoName).c_str();
 		auto& var = graph->GetVariable(name);
 		if (!var)
 		{
@@ -2063,7 +2063,7 @@ namespace Eagle
 			return;
 		}
 
-		Cast<GraphVariableString>(var)->Value = mono_string_to_utf8(monoValue);
+		Cast<GraphVariableString>(var)->Value = MonoStringHandler(monoValue).c_str();
 	}
 
 	void Script::Eagle_SkeletalMeshComponent_SetAnimGraphVariableVec4(GUID entityID, MonoString* monoName, const glm::vec4* value)
@@ -2083,7 +2083,7 @@ namespace Eagle
 			return;
 		}
 
-		const std::string name = mono_string_to_utf8(monoName);
+		const std::string name = MonoStringHandler(monoName).c_str();
 		auto& var = graph->GetVariable(name);
 		if (!var)
 		{
@@ -2118,7 +2118,7 @@ namespace Eagle
 			return false;
 		}
 
-		const std::string name = mono_string_to_utf8(monoName);
+		const std::string name = MonoStringHandler(monoName).c_str();
 		auto& var = graph->GetVariable(name);
 		if (!var)
 		{
@@ -2153,7 +2153,7 @@ namespace Eagle
 			return 0;
 		}
 
-		const std::string name = mono_string_to_utf8(monoName);
+		const std::string name = MonoStringHandler(monoName).c_str();
 		auto& var = graph->GetVariable(name);
 		if (!var)
 		{
@@ -2188,7 +2188,7 @@ namespace Eagle
 			return 0.f;
 		}
 
-		const std::string name = mono_string_to_utf8(monoName);
+		const std::string name = MonoStringHandler(monoName).c_str();
 		auto& var = graph->GetVariable(name);
 		if (!var)
 		{
@@ -2223,7 +2223,7 @@ namespace Eagle
 			return GUID(0, 0);
 		}
 
-		const std::string name = mono_string_to_utf8(monoName);
+		const std::string name = MonoStringHandler(monoName).c_str();
 		auto& var = graph->GetVariable(name);
 		if (!var)
 		{
@@ -2260,7 +2260,7 @@ namespace Eagle
 			return nullptr;
 		}
 
-		const std::string name = mono_string_to_utf8(monoName);
+		const std::string name = MonoStringHandler(monoName).c_str();
 		auto& var = graph->GetVariable(name);
 		if (!var)
 		{
@@ -2295,7 +2295,7 @@ namespace Eagle
 			return;
 		}
 
-		const std::string name = mono_string_to_utf8(monoName);
+		const std::string name = MonoStringHandler(monoName).c_str();
 		auto& var = graph->GetVariable(name);
 		if (!var)
 		{
@@ -2349,7 +2349,7 @@ namespace Eagle
 			return;
 		}
 
-		*result = entity.GetComponent<SkeletalMeshComponent>().GetRagdollBoneWorldTransform(mono_string_to_utf8(monoName));
+		*result = entity.GetComponent<SkeletalMeshComponent>().GetRagdollBoneWorldTransform(MonoStringHandler(monoName).c_str());
 	}
 
 	void Script::Eagle_SkeletalMeshComponent_GetBoneWorldTransform(GUID entityID, MonoString* monoName, Transform* result)
@@ -2362,7 +2362,7 @@ namespace Eagle
 			return;
 		}
 
-		*result = entity.GetComponent<SkeletalMeshComponent>().GetBoneWorldTransform(mono_string_to_utf8(monoName));
+		*result = entity.GetComponent<SkeletalMeshComponent>().GetBoneWorldTransform(MonoStringHandler(monoName).c_str());
 	}
 
 	void Script::Eagle_SkeletalMeshComponent_GetBoneWorldLocation(GUID entityID, MonoString* monoName, glm::vec3* result)
@@ -2375,7 +2375,7 @@ namespace Eagle
 			return;
 		}
 
-		*result = entity.GetComponent<SkeletalMeshComponent>().GetBoneWorldLocation(mono_string_to_utf8(monoName));
+		*result = entity.GetComponent<SkeletalMeshComponent>().GetBoneWorldLocation(MonoStringHandler(monoName).c_str());
 	}
 
 	void Script::Eagle_SkeletalMeshComponent_GetBoneWorldRotation(GUID entityID, MonoString* monoName, Rotator* result)
@@ -2388,7 +2388,7 @@ namespace Eagle
 			return;
 		}
 
-		*result = entity.GetComponent<SkeletalMeshComponent>().GetBoneWorldRotation(mono_string_to_utf8(monoName));
+		*result = entity.GetComponent<SkeletalMeshComponent>().GetBoneWorldRotation(MonoStringHandler(monoName).c_str());
 	}
 
 	void Script::Eagle_SkeletalMeshComponent_GetBoneWorldScale(GUID entityID, MonoString* monoName, glm::vec3* result)
@@ -2401,7 +2401,7 @@ namespace Eagle
 			return;
 		}
 
-		*result = entity.GetComponent<SkeletalMeshComponent>().GetBoneWorldScale(mono_string_to_utf8(monoName));
+		*result = entity.GetComponent<SkeletalMeshComponent>().GetBoneWorldScale(MonoStringHandler(monoName).c_str());
 	}
 
 	void Script::Eagle_SkeletalMeshComponent_SetRagdollLinearVelocity(GUID entityID, const glm::vec3* velocity)
@@ -2440,7 +2440,7 @@ namespace Eagle
 			return;
 		}
 
-		entity.GetComponent<SkeletalMeshComponent>().SetRagdollBoneLinearVelocity(mono_string_to_utf8(boneName), *velocity);
+		entity.GetComponent<SkeletalMeshComponent>().SetRagdollBoneLinearVelocity(MonoStringHandler(boneName).c_str(), *velocity);
 	}
 
 	void Script::Eagle_SkeletalMeshComponent_SetRagdollBoneAngularVelocity(GUID entityID, MonoString* boneName, const glm::vec3* velocity)
@@ -2453,7 +2453,7 @@ namespace Eagle
 			return;
 		}
 
-		entity.GetComponent<SkeletalMeshComponent>().SetRagdollBoneAngularVelocity(mono_string_to_utf8(boneName), *velocity);
+		entity.GetComponent<SkeletalMeshComponent>().SetRagdollBoneAngularVelocity(MonoStringHandler(boneName).c_str(), *velocity);
 	}
 
 	void Script::Eagle_SkeletalMeshComponent_GetRagdollBoneLinearVelocity(GUID entityID, MonoString* boneName, glm::vec3* outVelocity)
@@ -2466,7 +2466,7 @@ namespace Eagle
 			return;
 		}
 
-		*outVelocity = entity.GetComponent<SkeletalMeshComponent>().GetRagdollBoneLinearVelocity(mono_string_to_utf8(boneName));
+		*outVelocity = entity.GetComponent<SkeletalMeshComponent>().GetRagdollBoneLinearVelocity(MonoStringHandler(boneName).c_str());
 	}
 
 	void Script::Eagle_SkeletalMeshComponent_GetRagdollBoneAngularVelocity(GUID entityID, MonoString* boneName, glm::vec3* outVelocity)
@@ -2479,7 +2479,7 @@ namespace Eagle
 			return;
 		}
 
-		*outVelocity = entity.GetComponent<SkeletalMeshComponent>().GetRagdollBoneAngularVelocity(mono_string_to_utf8(boneName));
+		*outVelocity = entity.GetComponent<SkeletalMeshComponent>().GetRagdollBoneAngularVelocity(MonoStringHandler(boneName).c_str());
 	}
 
 	void Script::Eagle_SkeletalMeshComponent_PutRagdollToSleep(GUID entityID)
@@ -4076,7 +4076,7 @@ namespace Eagle
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetCollisionGroup'. Entity is null");
-			return CollisionGroup::Object;
+			return s_DefaultCollisionGroup;
 		}
 	}
 
@@ -4103,7 +4103,7 @@ namespace Eagle
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetInteractingCollisionGroup'. Entity is null");
-			return CollisionGroup::Object;
+			return s_DefaultCollisionGroup;
 		}
 	}
 
@@ -4802,7 +4802,7 @@ namespace Eagle
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<TextComponent>().SetText(mono_string_to_utf8(value));
+			entity.GetComponent<TextComponent>().SetText(MonoStringHandler(value).c_str());
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set Text of Text Component. Entity is null");
 	}
@@ -5132,7 +5132,7 @@ namespace Eagle
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<Text2DComponent>().SetText(mono_string_to_utf8(value));
+			entity.GetComponent<Text2DComponent>().SetText(MonoStringHandler(value).c_str());
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set text of Text2D Component. Entity is null");
 	}
@@ -7260,7 +7260,7 @@ namespace Eagle
 	GUID Script::Eagle_Scene_SpawnEntity(MonoString* monoName)
 	{
 		auto& scene = Scene::GetCurrentScene();
-		const std::string name = mono_string_to_utf8(monoName);
+		const std::string name = MonoStringHandler(monoName).c_str();
 		return scene->CreateEntity(name).GetGUID();
 	}
 
@@ -7306,7 +7306,7 @@ namespace Eagle
 		}
 
 		const auto& scene = Scene::GetCurrentScene();
-		Entity entity = scene->CreateEntity(mono_string_to_utf8(monoName));
+		Entity entity = scene->CreateEntity(MonoStringHandler(monoName).c_str());
 		entity.SetWorldTransform(*transform);
 		auto& ps = entity.AddComponent<ParticleSystemComponent>();
 		ps.bAutospawn = true;
@@ -7447,7 +7447,7 @@ namespace Eagle
 	void Script::Eagle_Log_Trace(MonoString* message)
 	{
 		if (message)
-			EG_TRACE(mono_string_to_utf8(message));
+			EG_TRACE(MonoStringHandler(message).c_str());
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't log the message. It's null");
 	}
@@ -7455,7 +7455,7 @@ namespace Eagle
 	void Script::Eagle_Log_Info(MonoString* message)
 	{
 		if (message)
-			EG_INFO(mono_string_to_utf8(message));
+			EG_INFO(MonoStringHandler(message).c_str());
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't log the message. It's null");
 	}
@@ -7463,7 +7463,7 @@ namespace Eagle
 	void Script::Eagle_Log_Warn(MonoString* message)
 	{
 		if (message)
-			EG_WARN(mono_string_to_utf8(message));
+			EG_WARN(MonoStringHandler(message).c_str());
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't log the message. It's null");
 	}
@@ -7471,7 +7471,7 @@ namespace Eagle
 	void Script::Eagle_Log_Error(MonoString* message)
 	{
 		if (message)
-			EG_ERROR(mono_string_to_utf8(message));
+			EG_ERROR(MonoStringHandler(message).c_str());
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't log the message. It's null");
 	}
@@ -7479,7 +7479,7 @@ namespace Eagle
 	void Script::Eagle_Log_Critical(MonoString* message)
 	{
 		if (message)
-			EG_CRITICAL(mono_string_to_utf8(message));
+			EG_CRITICAL(MonoStringHandler(message).c_str());
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't log the message. It's null");
 	}
@@ -7487,7 +7487,7 @@ namespace Eagle
 	//--------------Asset--------------
 	bool Script::Eagle_Asset_Get(MonoString* path, AssetType* outType, GUID* outGUID)
 	{
-		Path filepath = mono_string_to_utf8(path);
+		Path filepath = MonoStringHandler(path).c_str();
 		Ref<Asset> asset;
 		if (AssetManager::Get(filepath, &asset))
 		{
@@ -8551,7 +8551,7 @@ namespace Eagle
 		}
 
 		auto& event = animationAsset->GetAnimation()->Events.emplace_back();
-		event.Name = mono_string_to_utf8(name);
+		event.Name = MonoStringHandler(name).c_str();
 		event.Time = time;
 	}
 
@@ -8571,7 +8571,7 @@ namespace Eagle
 			return false;
 		}
 
-		const std::string name = mono_string_to_utf8(monoName);
+		const std::string name = MonoStringHandler(monoName).c_str();
 
 		auto& events = animationAsset->GetAnimation()->Events;
 		auto it = std::find_if(events.begin(), events.end(), [&name](const AnimationEvent& a) { return a.Name == name; });
@@ -8600,7 +8600,7 @@ namespace Eagle
 			return false;
 		}
 
-		const std::string name = mono_string_to_utf8(monoName);
+		const std::string name = MonoStringHandler(monoName).c_str();
 
 		const auto& events = animationAsset->GetAnimation()->Events;
 		auto it = std::find_if(events.begin(), events.end(), [&name](const AnimationEvent& a) { return a.Name == name; });
@@ -8705,7 +8705,7 @@ namespace Eagle
 		emitter.LifetimeMax = lifetimeMax;
 		emitter.BouncinessMin = bouncinessMin;
 		emitter.BouncinessMax = bouncinessMax;
-		emitter.Name = mono_string_to_utf8(name);
+		emitter.Name = MonoStringHandler(name).c_str();
 		emitter.RelativeTransform = *relativeTransform;
 
 		emitter.VisibilityAABB = *visibilityAABB;
