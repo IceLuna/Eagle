@@ -34,7 +34,7 @@ namespace Eagle
 			const auto& mesh = skeletalAsset->GetMesh();
 
 			const uint32_t collisionGroup = uint32_t(mesh->GetCollisionGroup()) & info.AllCollisionGroupsMask;
-			const uint32_t interactingCollisionGroup = uint32_t(mesh->GetCollisionGroup()) & info.AllCollisionGroupsMask;
+			const uint32_t interactingCollisionGroup = uint32_t(mesh->GetInteractingCollisionGroup()) & info.AllCollisionGroupsMask;
 
 			mesh->SetCollisionGroup(CollisionGroup(collisionGroup));
 			mesh->SetInteractingCollisionGroup(CollisionGroup(interactingCollisionGroup));

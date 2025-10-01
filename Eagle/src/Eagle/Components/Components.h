@@ -1134,7 +1134,7 @@ namespace Eagle
 	protected:
 		Ref<AssetPhysicsMaterial> m_MaterialAsset;
 		CollisionGroup m_CollisionGroup = s_DefaultCollisionGroup;
-		CollisionGroup m_InteractingCollisionGroup = s_DefaultCollisionGroup;
+		CollisionGroup m_InteractingCollisionGroup = s_DefaultInteractingCollisionGroup;
 		dtObstacleRef m_ObstacleID = 0u;
 		bool bTrigger = false;
 		bool bShowCollision = false;
@@ -1268,8 +1268,8 @@ namespace Eagle
 		virtual void SetCollisionGroup(CollisionGroup groups) override;
 		virtual void SetInteractingCollisionGroup(CollisionGroup groups) override;
 
-		void SetCollisionMeshAsset(const Ref<AssetStaticMesh>& meshAsset);
-		const Ref<AssetStaticMesh>& GetCollisionMeshAsset() const { return m_CollisionMeshAsset; }
+		void SetCollisionMeshAsset(const Ref<AssetBaseMesh>& meshAsset);
+		const Ref<AssetBaseMesh>& GetCollisionMeshAsset() const { return m_CollisionMeshAsset; }
 
 		bool IsConvex() const { return bConvex; }
 		void SetIsConvex(bool bConvex)
@@ -1298,7 +1298,7 @@ namespace Eagle
 
 	protected:
 		std::array<Ref<MeshShape>, 2> m_Shapes; // [0] - front side, [1] - backside. If two-sided collision is enabled, backside will be a valid shape
-		Ref<AssetStaticMesh> m_CollisionMeshAsset;
+		Ref<AssetBaseMesh> m_CollisionMeshAsset;
 		bool bConvex = true;
 		bool bTwoSided = false; // Only affects triangle mesh colliders
 	};

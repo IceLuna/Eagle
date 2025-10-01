@@ -1737,7 +1737,7 @@ namespace Eagle
 					UI::BeginPropertyGrid("MeshColliderComponent");
 
 					Ref<AssetPhysicsMaterial> materialAsset = collider.GetPhysicsMaterialAsset();
-					Ref<AssetStaticMesh> collisionMesh = collider.GetCollisionMeshAsset();
+					Ref<AssetBaseMesh> collisionMesh = collider.GetCollisionMeshAsset();
 					bool bTrigger = collider.IsTrigger();
 					bool bShowCollision = collider.IsCollisionVisible();
 					bool bConvex = collider.IsConvex();

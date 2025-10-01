@@ -5,10 +5,7 @@
 
 namespace Eagle
 {
-	class AssetStaticMesh;
-
-	class MeshColliderComponent;
-	class StaticMesh;
+	class AssetBaseMesh;
 
 	class PhysXCookingFactory
 	{
@@ -16,10 +13,6 @@ namespace Eagle
 		static void Init();
 		static void Shutdown();
 
-		static CookingResult CookMesh(const Ref<AssetStaticMesh>& collisionMeshAsset, bool bConvex, bool bFlipNormals, ScopedDataBuffer* outData);
-
-	private:
-		static CookingResult CookConvexMesh(const Ref<AssetStaticMesh>& meshAsset, ScopedDataBuffer* outData);
-		static CookingResult CookTriangleMesh(const Ref<AssetStaticMesh>& meshAsset, bool bFlip, ScopedDataBuffer* outData);
+		static CookingResult CookMesh(const Ref<AssetBaseMesh>& collisionMeshAsset, bool bConvex, bool bFlipNormals, ScopedDataBuffer* outData);
 	};
 }

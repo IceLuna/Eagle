@@ -67,7 +67,7 @@ namespace Eagle
 		glm::vec3 m_ColliderScale = glm::vec3{ 1.f };
 		ColliderType m_Type;
 		CollisionGroup m_CollisionGroup = s_DefaultCollisionGroup;
-		CollisionGroup m_InteractingCollisionGroup = s_DefaultCollisionGroup;
+		CollisionGroup m_InteractingCollisionGroup = s_DefaultInteractingCollisionGroup;
 	};
 	
 	class BoxColliderShape : public ColliderShape
@@ -111,7 +111,11 @@ namespace Eagle
 	{
 	public:
 		ConvexMeshShape(const MeshColliderComponent& component, PhysicsActor& actor);
-		~ConvexMeshShape() { m_ConvexMesh->release(); };
+		~ConvexMeshShape()
+		{
+			if (m_ConvexMesh)
+				m_ConvexMesh->release();
+		};
 
 		virtual bool IsValid() const override { return bValid; }
 		virtual void SetScale(const glm::vec3& scale) override;
@@ -126,7 +130,11 @@ namespace Eagle
 	{
 	public:
 		TriangleMeshShape(const MeshColliderComponent& component, bool bFlip, PhysicsActor& actor);
-		~TriangleMeshShape() { m_TriMesh->release(); };
+		~TriangleMeshShape()
+		{
+			if (m_TriMesh)
+				m_TriMesh->release();
+		};
 
 		virtual bool IsValid() const override { return bValid; }
 		virtual void SetScale(const glm::vec3& scale) override;
@@ -137,5 +145,4 @@ namespace Eagle
 		physx::PxTriangleMesh* m_TriMesh = nullptr;
 		bool bValid = true;
 	};
-
 }

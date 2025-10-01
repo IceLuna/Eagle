@@ -175,9 +175,12 @@ namespace Eagle::Script
 	void Eagle_SkeletalMeshComponent_GetBoneWorldLocation(GUID entityID, MonoString* monoName, glm::vec3* result);
 	void Eagle_SkeletalMeshComponent_GetBoneWorldRotation(GUID entityID, MonoString* monoName, Rotator* result);
 	void Eagle_SkeletalMeshComponent_GetBoneWorldScale(GUID entityID, MonoString* monoName, glm::vec3* result);
+	void Eagle_SkeletalMeshComponent_SetRagdollCollisionVisible(GUID entityID, bool bVisible);
 
 	void Eagle_SkeletalMeshComponent_SetRagdollLinearVelocity(GUID entityID, const glm::vec3* velocity);
 	void Eagle_SkeletalMeshComponent_SetRagdollAngularVelocity(GUID entityID, const glm::vec3* velocity);
+	void Eagle_SkeletalMeshComponent_AddRagdollForce(GUID entityID, const glm::vec3* force, ForceMode forceMode);
+	void Eagle_SkeletalMeshComponent_AddRagdollTorque(GUID entityID, const glm::vec3* force, ForceMode forceMode);
 	void Eagle_SkeletalMeshComponent_SetRagdollBoneLinearVelocity(GUID entityID, MonoString* boneName, const glm::vec3* velocity);
 	void Eagle_SkeletalMeshComponent_SetRagdollBoneAngularVelocity(GUID entityID, MonoString* boneName, const glm::vec3* velocity);
 	void Eagle_SkeletalMeshComponent_GetRagdollBoneLinearVelocity(GUID entityID, MonoString* boneName, glm::vec3* outVelocity);

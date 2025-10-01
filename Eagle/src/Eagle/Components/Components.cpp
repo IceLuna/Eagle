@@ -13,15 +13,14 @@ namespace Eagle
 	namespace Utils
 	{
 		// True if found
-		static bool GetBoneWorldTransform(const SkeletalPose& pose, const BoneNode& node, bool bRagdoll, const glm::mat4& parentTransform, const std::string_view targetBoneName, Transform* outTransform)
+		static bool GetBoneWorldTransform(const SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const std::string_view targetBoneName, Transform* outTransform)
 		{
 			glm::mat4 globalTransformation;
 			if (auto it = pose.Bones.find(node.Name); it != pose.Bones.end())
 			{
 				const auto& bone = it->second;
 				const glm::mat4 boneTransform = Math::ToTransformMatrix(bone);
-				// If a ragdoll, then it's already a global transform
-				globalTransformation = bRagdoll ? boneTransform : parentTransform * boneTransform;
+				globalTransformation = parentTransform * boneTransform;
 			}
 			else
 				globalTransformation = parentTransform * node.Transformation;
@@ -33,7 +32,33 @@ namespace Eagle
 			}
 
 			for (auto& child : node.Children)
-				if (GetBoneWorldTransform(pose, child, bRagdoll, globalTransformation, targetBoneName, outTransform))
+				if (GetBoneWorldTransform(pose, child, globalTransformation, targetBoneName, outTransform))
+					return true;
+
+			return false;
+		}
+
+		static bool GetBoneWorldTransform_Ragdoll(const SkeletalPose& pose, const BoneNode& node, const glm::mat4& worldTransform, const glm::mat4& parentTransform, const std::string_view targetBoneName, Transform* outTransform)
+		{
+			glm::mat4 globalTransformation;
+			if (auto it = pose.Bones.find(node.Name); it != pose.Bones.end())
+			{
+				const auto& bone = it->second;
+				const glm::mat4 boneTransform = Math::ToTransformMatrix(bone);
+				// If a ragdoll, then it's already a global transform
+				globalTransformation = boneTransform;
+			}
+			else
+				globalTransformation = parentTransform * node.Transformation;
+
+			if (node.Name == targetBoneName)
+			{
+				*outTransform = Math::DecomposeTransformMatrix(worldTransform * globalTransformation);
+				return true;
+			}
+
+			for (auto& child : node.Children)
+				if (GetBoneWorldTransform_Ragdoll(pose, child, worldTransform, globalTransformation, targetBoneName, outTransform))
 					return true;
 
 			return false;
@@ -642,7 +667,7 @@ namespace Eagle
 		}
 	}
 	
-	void MeshColliderComponent::SetCollisionMeshAsset(const Ref<AssetStaticMesh>& meshAsset)
+	void MeshColliderComponent::SetCollisionMeshAsset(const Ref<AssetBaseMesh>& meshAsset)
 	{
 		m_CollisionMeshAsset = meshAsset;
 
@@ -676,11 +701,20 @@ namespace Eagle
 	
 	void MeshColliderComponent::OnInit()
 	{
-		if (Parent && Parent.HasComponent<StaticMeshComponent>())
+		if (!m_CollisionMeshAsset && Parent)
 		{
-			auto& comp = Parent.GetComponent<StaticMeshComponent>();
-			m_CollisionMeshAsset = comp.GetMeshAsset();
-			SetRelativeTransform(comp.GetRelativeTransform());
+			if (Parent.HasComponent<StaticMeshComponent>())
+			{
+				auto& comp = Parent.GetComponent<StaticMeshComponent>();
+				m_CollisionMeshAsset = comp.GetMeshAsset();
+				SetRelativeTransform(comp.GetRelativeTransform());
+			}
+			else if (Parent.HasComponent<SkeletalMeshComponent>())
+			{
+				auto& comp = Parent.GetComponent<SkeletalMeshComponent>();
+				m_CollisionMeshAsset = comp.GetMeshAsset();
+				SetRelativeTransform(comp.GetRelativeTransform());
+			}
 		}
 		
 		SetCollisionMeshAsset(m_CollisionMeshAsset);
@@ -693,11 +727,13 @@ namespace Eagle
 		if (actor)
 		{
 			for (auto& shape : m_Shapes)
+			{
 				if (shape)
 				{
 					actor->RemoveCollider(shape);
 					shape.reset();
-				}	
+				}
+			}
 		}
 	}
 	
@@ -915,8 +951,16 @@ namespace Eagle
 		if (!asset)
 			return {};
 
+		const glm::mat4 worldTr = Math::ToTransformMatrix(GetWorldTransform());
 		Transform result;
-		Utils::GetBoneWorldTransform(LastPose, asset->GetMesh()->GetSkeletalMeshInfo().RootBone, IsRagdollEnabled(), Math::ToTransformMatrix(GetWorldTransform()), boneName, &result);
+		if (IsRagdollEnabled())
+		{
+			Utils::GetBoneWorldTransform_Ragdoll(LastPose, asset->GetMesh()->GetSkeletalMeshInfo().RootBone, worldTr, worldTr, boneName, &result);
+		}
+		else
+		{
+			Utils::GetBoneWorldTransform(LastPose, asset->GetMesh()->GetSkeletalMeshInfo().RootBone, worldTr, boneName, &result);
+		}
 		return result;
 	}
 

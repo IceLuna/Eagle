@@ -546,12 +546,6 @@ namespace Eagle
 		}
 		else
 		{
-			if (IsDynamic() && !IsKinematic())
-			{
-				EG_CORE_ERROR("[Physics Engine] Can't have a non-convex MeshColliderComponent for a non-kinematic dynamic RigidBody Component. Entity: '{0}'", m_Entity.GetName());
-				return {};
-			}
-
 			std::array<Ref<MeshShape>, 2> resultShapes;
 			auto shapeFront = MakeRef<TriangleMeshShape>(collider, false, *this);
 			if (shapeFront->IsValid())

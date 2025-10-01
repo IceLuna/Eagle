@@ -293,7 +293,7 @@ namespace Eagle
 
     void PhysicsRagdollActor::SetLinearVelocity(const glm::vec3& velocity)
     {
-        auto pxVel = PhysXUtils::ToPhysXVector(velocity);
+        const auto pxVel = PhysXUtils::ToPhysXVector(velocity);
         m_Root.Body->setLinearVelocity(pxVel);
         for (auto& [_, body] : m_BonesMap)
         {
@@ -303,11 +303,31 @@ namespace Eagle
 
     void PhysicsRagdollActor::SetAngularVelocity(const glm::vec3& velocity)
     {
-        auto pxVel = PhysXUtils::ToPhysXVector(velocity);
+        const auto pxVel = PhysXUtils::ToPhysXVector(velocity);
         m_Root.Body->setAngularVelocity(pxVel);
         for (auto& [_, body] : m_BonesMap)
         {
             body->setAngularVelocity(pxVel);
+        }
+    }
+
+    void PhysicsRagdollActor::AddForce(const glm::vec3& force, ForceMode forceMode)
+    {
+        const auto pxForce = PhysXUtils::ToPhysXVector(force);
+        m_Root.Body->addForce(pxForce, (physx::PxForceMode::Enum)forceMode);
+        for (auto& [_, body] : m_BonesMap)
+        {
+            body->addForce(pxForce, (physx::PxForceMode::Enum)forceMode);
+        }
+    }
+
+    void PhysicsRagdollActor::AddTorque(const glm::vec3& torque, ForceMode forceMode)
+    {
+        const auto pxTorque = PhysXUtils::ToPhysXVector(torque);
+        m_Root.Body->addTorque(pxTorque, (physx::PxForceMode::Enum)forceMode);
+        for (auto& [_, body] : m_BonesMap)
+        {
+            body->addTorque(pxTorque, (physx::PxForceMode::Enum)forceMode);
         }
     }
     

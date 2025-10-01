@@ -2,6 +2,7 @@
 #include "ScriptWrappers.h"
 #include "ScriptEngine.h"
 #include "Eagle/Physics/PhysicsActor.h"
+#include "Eagle/Physics/PhysicsRagdollActor.h"
 #include "Eagle/Physics/PhysicsScene.h"
 #include "Eagle/Audio/AudioEngine.h"
 #include "Eagle/Audio/SoundGroup.h"
@@ -2404,6 +2405,19 @@ namespace Eagle
 		*result = entity.GetComponent<SkeletalMeshComponent>().GetBoneWorldScale(MonoStringHandler(monoName).c_str());
 	}
 
+	void Script::Eagle_SkeletalMeshComponent_SetRagdollCollisionVisible(GUID entityID, bool bVisible)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetRagdollCollisionVisible' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<SkeletalMeshComponent>().SetShowRagdollCollision(bVisible);
+	}
+
 	void Script::Eagle_SkeletalMeshComponent_SetRagdollLinearVelocity(GUID entityID, const glm::vec3* velocity)
 	{
 		const auto& scene = Scene::GetCurrentScene();
@@ -2428,6 +2442,45 @@ namespace Eagle
 		}
 
 		entity.GetComponent<SkeletalMeshComponent>().SetRagdollAngularVelocity(*velocity);
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_AddRagdollForce(GUID entityID, const glm::vec3* force, ForceMode forceMode)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'AddRagdollForce' for skeletal mesh. Entity is null");
+			return;
+		}
+		if (auto& ragdoll = entity.GetComponent<SkeletalMeshComponent>().GetRagdollActor())
+		{
+			ragdoll->AddForce(*force, forceMode);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'AddRagdollForce' for skeletal mesh. There's no ragdoll");
+		}
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_AddRagdollTorque(GUID entityID, const glm::vec3* force, ForceMode forceMode)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'AddRagdollTorque' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		if (auto& ragdoll = entity.GetComponent<SkeletalMeshComponent>().GetRagdollActor())
+		{
+			ragdoll->AddTorque(*force, forceMode);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'AddRagdollForce' for skeletal mesh. There's no ragdoll");
+		}
 	}
 
 	void Script::Eagle_SkeletalMeshComponent_SetRagdollBoneLinearVelocity(GUID entityID, MonoString* boneName, const glm::vec3* velocity)
@@ -4103,7 +4156,7 @@ namespace Eagle
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetInteractingCollisionGroup'. Entity is null");
-			return s_DefaultCollisionGroup;
+			return s_DefaultInteractingCollisionGroup;
 		}
 	}
 

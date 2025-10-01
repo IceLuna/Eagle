@@ -34,6 +34,8 @@ namespace Eagle
 		// Update all bones
 		void SetLinearVelocity(const glm::vec3& velocity);
 		void SetAngularVelocity(const glm::vec3& velocity);
+		void AddForce(const glm::vec3& force, ForceMode forceMode);
+		void AddTorque(const glm::vec3& torque, ForceMode forceMode);
 
 		void SetBoneLinearVelocity(const std::string& boneName, const glm::vec3& velocity);
 		glm::vec3 GetBoneLinearVelocity(const std::string& boneName) const;
