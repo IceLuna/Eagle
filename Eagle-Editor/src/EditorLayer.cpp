@@ -480,6 +480,7 @@ namespace Eagle
 	{
 		if (m_NewViewportSize != m_CurrentViewportSize)
 		{
+			EG_CORE_TRACE("Viewport was resized: {}x{}", m_NewViewportSize.x, m_NewViewportSize.y);
 			m_CurrentViewportSize = m_NewViewportSize;
 			m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 			if (m_SimulationScene)
@@ -2260,11 +2261,11 @@ namespace Eagle
 			m_BeforeSimulationData.bRenderSkybox = m_EditorScene->IsRenderSkyboxEnabled();
 		}
 
+		EG_CORE_TRACE("Editor Play pressed");
 		m_SimulationScene = MakeRef<Scene>(m_EditorScene, "Simulation Scene");
 		SetCurrentScene(m_SimulationScene);
 		m_SimulationScene->OnRuntimeStart();
 		m_PlaySound->Play();
-		EG_CORE_TRACE("Editor Play pressed");
 	}
 
 	void EditorLayer::StopPlayingScene()
@@ -2272,6 +2273,7 @@ namespace Eagle
 		if (m_EditorState == EditorState::Edit)
 			return;
 
+		EG_CORE_TRACE("Editor Stop pressed");
 		m_SimulationScene->OnRuntimeStop();
 		m_EditorState = EditorState::Edit;
 		m_SimulationScene.reset();
@@ -2290,8 +2292,6 @@ namespace Eagle
 			m_CurrentScene->SetRenderSkybox(m_BeforeSimulationData.bRenderSkybox);
 		}
 		Input::SetShowMouse(true); // Just in case restore the mouse state.
-
-		EG_CORE_TRACE("Editor Stop pressed");
 	}
 
 	void EditorLayer::HandleOnSimulationButton()

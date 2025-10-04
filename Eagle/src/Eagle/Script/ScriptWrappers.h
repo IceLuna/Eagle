@@ -180,11 +180,13 @@ namespace Eagle::Script
 	void Eagle_SkeletalMeshComponent_SetRagdollLinearVelocity(GUID entityID, const glm::vec3* velocity);
 	void Eagle_SkeletalMeshComponent_SetRagdollAngularVelocity(GUID entityID, const glm::vec3* velocity);
 	void Eagle_SkeletalMeshComponent_AddRagdollForce(GUID entityID, const glm::vec3* force, ForceMode forceMode);
-	void Eagle_SkeletalMeshComponent_AddRagdollTorque(GUID entityID, const glm::vec3* force, ForceMode forceMode);
+	void Eagle_SkeletalMeshComponent_AddRagdollTorque(GUID entityID, const glm::vec3* torque, ForceMode forceMode);
 	void Eagle_SkeletalMeshComponent_SetRagdollBoneLinearVelocity(GUID entityID, MonoString* boneName, const glm::vec3* velocity);
 	void Eagle_SkeletalMeshComponent_SetRagdollBoneAngularVelocity(GUID entityID, MonoString* boneName, const glm::vec3* velocity);
 	void Eagle_SkeletalMeshComponent_GetRagdollBoneLinearVelocity(GUID entityID, MonoString* boneName, glm::vec3* outVelocity);
 	void Eagle_SkeletalMeshComponent_GetRagdollBoneAngularVelocity(GUID entityID, MonoString* boneName, glm::vec3* outVelocity);
+	void Eagle_SkeletalMeshComponent_AddRagdollBoneForce(GUID entityID, MonoString* boneName, const glm::vec3* force, ForceMode forceMode);
+	void Eagle_SkeletalMeshComponent_AddRagdollBoneTorque(GUID entityID, MonoString* boneName, const glm::vec3* torque, ForceMode forceMode);
 	void Eagle_SkeletalMeshComponent_PutRagdollToSleep(GUID entityID);
 	void Eagle_SkeletalMeshComponent_WakeUpRagdoll(GUID entityID);
 

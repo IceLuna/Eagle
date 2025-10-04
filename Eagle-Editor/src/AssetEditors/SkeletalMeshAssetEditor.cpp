@@ -207,6 +207,57 @@ namespace Eagle
 		return e;
 	}
 
+	// Returns true if component is valid
+	template <typename ColliderType, typename It>
+	static bool DrawColliderCheckbox(const char* label, const std::string& boneName, const Ref<Scene>& scene, It& it, std::unordered_map<std::string, AttachedColliderData>& map)
+	{
+		const bool bValid = it != map.end();
+		bool bHasCollider = bValid && it->second.Entity.HasComponent<ColliderType>();
+
+		if (ImGui::Checkbox(label, &bHasCollider))
+		{
+			if (!bValid)
+			{
+				Entity e = scene->CreateEntity();
+				it = map.insert(std::make_pair(boneName, AttachedColliderData{e})).first;
+			}
+
+			if (bHasCollider)
+			{
+				auto& comp = it->second.Entity.AddComponent<ColliderType>();
+				comp.SetShowCollision(true);
+				comp.SetCollisionGroup(s_CollisionGroupNone);
+				comp.SetInteractingCollisionGroup(s_CollisionGroupNone);
+			}
+			else
+			{
+				it->second.Entity.RemoveComponent<ColliderType>();
+			}
+		}
+
+		if (bValid)
+		{
+			if constexpr (std::is_same_v<ColliderType, BoxColliderComponent>)
+			{
+				it->second.bHasBox = bHasCollider;
+			}
+			else if constexpr (std::is_same_v<ColliderType, SphereColliderComponent>)
+			{
+				it->second.bHasSphere = bHasCollider;
+			}
+			else if constexpr (std::is_same_v<ColliderType, CapsuleColliderComponent>)
+			{
+				it->second.bHasCapsule = bHasCollider;
+			}
+			else
+			{
+				static_assert(false); // Unknown type
+			}
+		}
+
+		return bHasCollider;
+	}
+
 	// Returns true if it changed
 	bool SkeletalMeshAssetEditor::DrawSkeletalTree(const SkeletalMeshInfo& skeletalInfo, BoneNode& node, size_t baseHash, bool* outDelete, const glm::mat4& baseTransform, const std::string& parentName)
 	{
@@ -249,6 +300,7 @@ namespace Eagle
 					if (it != m_AttachedToBonesMeshes.end())
 					{
 						scene->DestroyEntity(it->second.Entity);
+						m_AttachedToBonesMeshes.erase(it);
 					}
 
 					if (mesh)
@@ -256,12 +308,26 @@ namespace Eagle
 						Entity e = SpawnMeshVisualization(mesh, node.Name, scene);
 						m_AttachedToBonesMeshes[node.Name] = { mesh, e };
 					}
-					else
-					{
-						m_AttachedToBonesMeshes.erase(node.Name);
-					}
 				}
 
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Attach primitive (visualization only)"))
+			{
+				auto& scene = GetCurrentScene();
+				auto it = m_AttachedToBonesColliders.find(node.Name);
+				const bool bValid = it != m_AttachedToBonesColliders.end();
+				const bool bHasBox = DrawColliderCheckbox<BoxColliderComponent>("Box", node.Name, scene, it, m_AttachedToBonesColliders);
+				const bool bHasSphere = DrawColliderCheckbox<SphereColliderComponent>("Sphere", node.Name, scene, it, m_AttachedToBonesColliders);
+				const bool bHasCapsule = DrawColliderCheckbox<CapsuleColliderComponent>("Capsule", node.Name, scene, it, m_AttachedToBonesColliders);
+
+				if (bValid && !bHasBox && !bHasSphere && !bHasCapsule)
+				{
+					// No colliders, so delete the entity
+					scene->DestroyEntity(it->second.Entity);
+					m_AttachedToBonesColliders.erase(it);
+				}
 				ImGui::EndMenu();
 			}
 
@@ -368,7 +434,7 @@ namespace Eagle
 
 		auto& sceneRenderer = scene->GetSceneRenderer();
 		auto settings = sceneRenderer->GetOptions();
-		settings.bEnableDebugLinesDepthTest = false;
+		settings.bEnableDebugLinesDepthTest = bEnableDebugLinesDepthTest;
 		sceneRenderer->SetOptions(settings);
 		OnSimulateRagdollChanged();
 	}
@@ -440,8 +506,19 @@ namespace Eagle
 				UI::PopItemDisabled();
 		}
 
+		if (UI::Property("Visualize ragdoll bones", bVisualizeRagdollBones))
+		{
+			skeletalComp.SetShowRagdollCollision(bVisualizeRagdollBones);
+		}
 		UI::Property("Visualize bones", scene->bDrawBones);
 		UI::Property("Visualize bone direction", bVisualizeBoneDirection);
+		if (UI::Property("Debug lines depth test", bEnableDebugLinesDepthTest, "If disabled, debug lines will be drawn over everything"))
+		{
+			auto& sceneRenderer = scene->GetSceneRenderer();
+			auto settings = sceneRenderer->GetOptions();
+			settings.bEnableDebugLinesDepthTest = bEnableDebugLinesDepthTest;
+			sceneRenderer->SetOptions(settings);
+		}
 		UI::EndPropertyGrid();
 
 		{
@@ -458,7 +535,7 @@ namespace Eagle
 				{
 					skeletalComp.SetRagdollEnabled(false);
 					skeletalComp.SetRagdollEnabled(true);
-					skeletalComp.SetShowRagdollCollision(true);
+					skeletalComp.SetShowRagdollCollision(bVisualizeRagdollBones);
 				}
 			}
 
@@ -500,12 +577,35 @@ namespace Eagle
 		}
 
 		// Set preview mesh transform to bone transform
-		if (m_OpenedTab == OpenedTabType::Skeletal)
 		{
-			for (auto& [boneName, data] : m_AttachedToBonesMeshes)
+			if (bSimulate && m_OpenedTab == OpenedTabType::Ragdoll)
 			{
-				Transform boneTr = GetBoneWorldTransform(boneName);
-				data.Entity.SetWorldTransform(boneTr);
+				const auto& scene = GetCurrentScene();
+				for (auto& [boneName, data] : m_AttachedToBonesMeshes)
+				{
+					Transform boneTr = GetBoneWorldTransform(boneName);
+					Entity runtimeEntity = scene->GetEntityByGUID(data.Entity.GetGUID());
+					runtimeEntity.SetWorldTransform(boneTr);
+				}
+				for (auto& [boneName, data] : m_AttachedToBonesColliders)
+				{
+					Transform boneTr = GetBoneWorldTransform(boneName);
+					Entity runtimeEntity = scene->GetEntityByGUID(data.Entity.GetGUID());
+					runtimeEntity.SetWorldTransform(boneTr);
+				}
+			}
+			else
+			{
+				for (auto& [boneName, data] : m_AttachedToBonesMeshes)
+				{
+					Transform boneTr = GetBoneWorldTransform(boneName);
+					data.Entity.SetWorldTransform(boneTr);
+				}
+				for (auto& [boneName, data] : m_AttachedToBonesColliders)
+				{
+					Transform boneTr = GetBoneWorldTransform(boneName);
+					data.Entity.SetWorldTransform(boneTr);
+				}
 			}
 		}
 
@@ -532,13 +632,6 @@ namespace Eagle
 			m_Entity.GetComponent<SkeletalMeshComponent>().SetRagdollEnabled(false);
 			SetSimulationEnabled(false);
 			DeletePlane();
-
-			// Spawn visualizing meshes
-			auto& scene = GetCurrentScene();
-			for (auto& [name, data] : m_AttachedToBonesMeshes)
-			{
-				data.Entity = SpawnMeshVisualization(data.Mesh, name, scene);
-			}
 		}
 		m_OpenedTab = OpenedTabType::Skeletal;
 
@@ -640,18 +733,9 @@ namespace Eagle
 
 		if (m_OpenedTab != OpenedTabType::Ragdoll)
 		{
-			// Destroy visualizing meshes
-			auto& scene = GetCurrentScene();
-			for (auto& [_, data] : m_AttachedToBonesMeshes)
-			{
-				scene->DestroyEntity(data.Entity);
-				data.Entity = Entity::Null;
-			}
-			scene->DestroyPendingEntities();
-
 			auto& comp = m_Entity.GetComponent<SkeletalMeshComponent>();
 			comp.SetRagdollEnabled(true);
-			comp.SetShowRagdollCollision(true);
+			comp.SetShowRagdollCollision(bVisualizeRagdollBones);
 			SetSimulationEnabled(bSimulate);
 			CreatePlane();
 		}
@@ -911,10 +995,15 @@ namespace Eagle
 	
 	void SkeletalMeshAssetEditor::OnBoneNodeDeletion(const BoneNode& node)
 	{
-		if (auto itAttachedMesh = m_AttachedToBonesMeshes.find(node.Name); itAttachedMesh != m_AttachedToBonesMeshes.end())
+		if (auto it = m_AttachedToBonesMeshes.find(node.Name); it != m_AttachedToBonesMeshes.end())
 		{
-			GetCurrentScene()->DestroyEntity(itAttachedMesh->second.Entity);
-			m_AttachedToBonesMeshes.erase(itAttachedMesh);
+			GetCurrentScene()->DestroyEntity(it->second.Entity);
+			m_AttachedToBonesMeshes.erase(it);
+		}
+		if (auto it = m_AttachedToBonesColliders.find(node.Name); it != m_AttachedToBonesColliders.end())
+		{
+			GetCurrentScene()->DestroyEntity(it->second.Entity);
+			m_AttachedToBonesColliders.erase(it);
 		}
 
 		for (const auto& child : node.Children)

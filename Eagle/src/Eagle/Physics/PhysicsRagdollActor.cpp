@@ -356,6 +356,18 @@ namespace Eagle
             return PhysXUtils::FromPhysXVector(it->second->getAngularVelocity());
         return glm::vec3(0);
     }
+
+    void PhysicsRagdollActor::AddBoneForce(const std::string& boneName, const glm::vec3& force, ForceMode forceMode)
+    {
+        if (auto it = m_BonesMap.find(boneName); it != m_BonesMap.end())
+            it->second->addForce(PhysXUtils::ToPhysXVector(force), (physx::PxForceMode::Enum)forceMode);
+    }
+
+    void PhysicsRagdollActor::AddBoneTorque(const std::string& boneName, const glm::vec3& torque, ForceMode forceMode)
+    {
+        if (auto it = m_BonesMap.find(boneName); it != m_BonesMap.end())
+            it->second->addTorque(PhysXUtils::ToPhysXVector(torque), (physx::PxForceMode::Enum)forceMode);
+    }
     
     void PhysicsRagdollActor::PutToSleep()
     {

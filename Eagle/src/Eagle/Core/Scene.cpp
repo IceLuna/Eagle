@@ -1520,8 +1520,6 @@ namespace Eagle
 
 	void Scene::OnRuntimeStart()
 	{
-		EG_CORE_TRACE("Runtime started");
-
 		bIsPlaying = true;
 
 		// Update Audio
@@ -1567,8 +1565,6 @@ namespace Eagle
 
 	void Scene::OnRuntimeStop()
 	{
-		EG_CORE_TRACE("Runtime stopped");
-
 		{
 			auto view = m_Registry.view<NativeScriptComponent>();
 			for (auto& e : view)

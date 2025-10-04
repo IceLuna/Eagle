@@ -40,6 +40,7 @@ namespace Eagle
 		Projectile = BIT(1),
 	};
 	DECLARE_FLAGS(CollisionGroup);
+	static constexpr CollisionGroup s_CollisionGroupNone = (CollisionGroup)0;
 	static constexpr CollisionGroup s_DefaultCollisionGroup = CollisionGroup::Object;
 	static constexpr CollisionGroup s_DefaultInteractingCollisionGroup = CollisionGroup::Object | CollisionGroup::Projectile;
 	static constexpr CollisionGroup s_CollisionGroupAny = CollisionGroup(0xFFFFFFFF);

@@ -12,6 +12,20 @@ namespace Eagle
 	struct SkeletalMeshInfo;
 	struct BoneNode;
 
+	struct AttachedMeshData
+	{
+		Ref<AssetBaseMesh> Mesh;
+		Entity Entity;
+	};
+
+	struct AttachedColliderData
+	{
+		Entity Entity;
+		bool bHasBox = false;
+		bool bHasSphere = false;
+		bool bHasCapsule = false;
+	};
+
 	class SkeletalMeshAssetEditor : public AssetEditor
 	{
 	public:
@@ -53,13 +67,9 @@ namespace Eagle
 		std::string m_SelectedRagdollBoneName;
 		SkeletalRagdollBone* m_SelectedRagdollBone = nullptr;
 
-		struct AttachedMeshData
-		{
-			Ref<AssetBaseMesh> Mesh;
-			Entity Entity;
-		};
 		// Key - bone name; value - attached mesh
 		std::unordered_map<std::string, AttachedMeshData> m_AttachedToBonesMeshes;
+		std::unordered_map<std::string, AttachedColliderData> m_AttachedToBonesColliders;
 
 		OpenedTabType m_OpenedTab = OpenedTabType::Unknown;
 		Entity m_Entity;
@@ -72,6 +82,8 @@ namespace Eagle
 		uint32_t m_InteractingCollisionGroup = 0;
 		bool bGuizmoChanged = false;
 		bool bSimulate = false;
+		bool bVisualizeRagdollBones = true;
 		bool bVisualizeBoneDirection = false;
+		bool bEnableDebugLinesDepthTest = false;
 	};
 }

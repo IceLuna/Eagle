@@ -408,6 +408,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetRagdollBoneAngularVelocity_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetRagdollBoneAngularVelocity);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetRagdollBoneLinearVelocity_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetRagdollBoneLinearVelocity);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetRagdollBoneAngularVelocity_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetRagdollBoneAngularVelocity);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::AddRagdollBoneForce_Native", Eagle::Script::Eagle_SkeletalMeshComponent_AddRagdollBoneForce);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::AddRagdollBoneTorque_Native", Eagle::Script::Eagle_SkeletalMeshComponent_AddRagdollBoneTorque);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::PutRagdollToSleep_Native", Eagle::Script::Eagle_SkeletalMeshComponent_PutRagdollToSleep);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::WakeUpRagdoll_Native", Eagle::Script::Eagle_SkeletalMeshComponent_WakeUpRagdoll);
 

@@ -798,14 +798,14 @@ namespace Eagle
             SetRagdollAngularVelocity_Native(Parent.ID, ref velocity);
         }
 
-        public void AddRagdollForce(in Vector3 force, ForceMode forceMode)
+        public void AddRagdollForce(Vector3 force, ForceMode forceMode)
         {
-            AddRagdollForce_Native(Parent.ID, in force, forceMode);
+            AddRagdollForce_Native(Parent.ID, ref force, forceMode);
         }
 
-        public void AddRagdollTorque(in Vector3 torque, ForceMode forceMode)
+        public void AddRagdollTorque(Vector3 torque, ForceMode forceMode)
         {
-            AddRagdollTorque_Native(Parent.ID, in torque, forceMode);
+            AddRagdollTorque_Native(Parent.ID, ref torque, forceMode);
         }
 
         // Update specific bones
@@ -829,6 +829,16 @@ namespace Eagle
         {
             GetRagdollBoneAngularVelocity_Native(Parent.ID, boneName, out Vector3 velocity);
             return velocity;
+        }
+
+        public void AddRagdollBoneForce(string boneName, Vector3 force, ForceMode forceMode)
+        {
+            AddRagdollBoneForce_Native(Parent.ID, boneName, ref force, forceMode);
+        }
+
+        public void AddRagdollBoneTorque(string boneName, Vector3 torque, ForceMode forceMode)
+        {
+            AddRagdollBoneTorque_Native(Parent.ID, boneName, ref torque, forceMode);
         }
 
         public void PutRagdollToSleep()
@@ -1108,10 +1118,10 @@ namespace Eagle
         internal static extern void SetRagdollAngularVelocity_Native(in GUID entityID, ref Vector3 velocity);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void AddRagdollForce_Native(in GUID entityID, in Vector3 force, ForceMode forceMode);
+        internal static extern void AddRagdollForce_Native(in GUID entityID, ref Vector3 force, ForceMode forceMode);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void AddRagdollTorque_Native(in GUID entityID, in Vector3 force, ForceMode forceMode);
+        internal static extern void AddRagdollTorque_Native(in GUID entityID, ref Vector3 force, ForceMode forceMode);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetRagdollBoneLinearVelocity_Native(in GUID entityID, string boneName, ref Vector3 velocity);
@@ -1124,6 +1134,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetRagdollBoneAngularVelocity_Native(in GUID entityID, string boneName, out Vector3 velocity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void AddRagdollBoneForce_Native(in GUID entityID, string boneName, ref Vector3 force, ForceMode forceMode);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void AddRagdollBoneTorque_Native(in GUID entityID, string boneName, ref Vector3 force, ForceMode forceMode);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void PutRagdollToSleep_Native(in GUID entityID);

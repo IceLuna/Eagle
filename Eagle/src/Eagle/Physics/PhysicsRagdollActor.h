@@ -43,6 +43,9 @@ namespace Eagle
 		void SetBoneAngularVelocity(const std::string& boneName, const glm::vec3& velocity);
 		glm::vec3 GetBoneAngularVelocity(const std::string& boneName) const;
 
+		void AddBoneForce(const std::string& boneName, const glm::vec3& force, ForceMode forceMode);
+		void AddBoneTorque(const std::string& boneName, const glm::vec3& torque, ForceMode forceMode);
+
 		void PutToSleep();
 		void WakeUp();
 

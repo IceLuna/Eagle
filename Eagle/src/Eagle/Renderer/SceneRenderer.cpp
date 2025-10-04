@@ -360,7 +360,6 @@ namespace Eagle
 			return;
 
 		m_Size = size;
-		EG_CORE_TRACE("Viewport was resized: {}x{}", m_Size.x, m_Size.y);
 
 		RenderManager::Wait();
 		RenderManager::SetImmediateDeletionMode(true);

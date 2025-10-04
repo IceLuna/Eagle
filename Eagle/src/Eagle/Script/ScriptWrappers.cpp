@@ -2463,7 +2463,7 @@ namespace Eagle
 		}
 	}
 
-	void Script::Eagle_SkeletalMeshComponent_AddRagdollTorque(GUID entityID, const glm::vec3* force, ForceMode forceMode)
+	void Script::Eagle_SkeletalMeshComponent_AddRagdollTorque(GUID entityID, const glm::vec3* torque, ForceMode forceMode)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2475,11 +2475,11 @@ namespace Eagle
 
 		if (auto& ragdoll = entity.GetComponent<SkeletalMeshComponent>().GetRagdollActor())
 		{
-			ragdoll->AddTorque(*force, forceMode);
+			ragdoll->AddTorque(*torque, forceMode);
 		}
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'AddRagdollForce' for skeletal mesh. There's no ragdoll");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'AddRagdollTorque' for skeletal mesh. There's no ragdoll");
 		}
 	}
 
@@ -2533,6 +2533,46 @@ namespace Eagle
 		}
 
 		*outVelocity = entity.GetComponent<SkeletalMeshComponent>().GetRagdollBoneAngularVelocity(MonoStringHandler(boneName).c_str());
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_AddRagdollBoneForce(GUID entityID, MonoString* boneName, const glm::vec3* force, ForceMode forceMode)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'AddRagdollBoneForce' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		if (auto& ragdoll = entity.GetComponent<SkeletalMeshComponent>().GetRagdollActor())
+		{
+			ragdoll->AddBoneForce(MonoStringHandler(boneName).c_str(), *force, forceMode);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'AddRagdollBoneForce' for skeletal mesh. There's no ragdoll");
+		}
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_AddRagdollBoneTorque(GUID entityID, MonoString* boneName, const glm::vec3* torque, ForceMode forceMode)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'AddRagdollBoneTorque' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		if (auto& ragdoll = entity.GetComponent<SkeletalMeshComponent>().GetRagdollActor())
+		{
+			ragdoll->AddBoneTorque(MonoStringHandler(boneName).c_str(), *torque, forceMode);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'AddRagdollBoneTorque' for skeletal mesh. There's no ragdoll");
+		}
 	}
 
 	void Script::Eagle_SkeletalMeshComponent_PutRagdollToSleep(GUID entityID)
