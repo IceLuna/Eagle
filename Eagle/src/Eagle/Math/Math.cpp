@@ -84,17 +84,17 @@ namespace Eagle::Math
 		static glm::vec3 notUsed1;
 		static glm::vec4 notUsed2;
 		Transform result;
-		glm::decompose(transformMatrix, result.Scale3D, result.Rotation.GetQuat(), result.Location, notUsed1, notUsed2);
+		const bool bSuccess = glm::decompose(transformMatrix, result.Scale3D, result.Rotation.GetQuat(), result.Location, notUsed1, notUsed2);
+		EG_CORE_ASSERT(bSuccess);
 		return result;
 	}
 
 	glm::mat4 ToTransformMatrix(const Transform& transform)
 	{
-		// TODO: Optimize by passing required matrices instead of `glm::mat4(1.0f)`
-		glm::mat4 rotation = GetRotationMatrix(transform.Rotation);
-		return glm::translate(glm::mat4(1.0f), transform.Location)
-			* rotation
-			* glm::scale(glm::mat4(1.0f), transform.Scale3D);
+		glm::mat4 result = glm::translate(glm::mat4(1), transform.Location);
+		result *= transform.Rotation.ToMat4();
+		result = glm::scale(result, transform.Scale3D);
+		return result;
 	}
 
 	static glm::vec3 GetSafeNormal2D(glm::vec3 v, float tolerance = 0.001f, const glm::vec3& resultIfZero = glm::vec3(0))

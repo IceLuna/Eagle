@@ -104,8 +104,7 @@ namespace Eagle
 		physx::PxMaterial* material = GetMaterial_Internal(materialAsset);
 
 		const auto& scale = component.GetWorldTransform().Scale3D;
-		const float largestAxis = glm::max(scale.x, glm::max(scale.y, scale.z));
-		const float radius = largestAxis * component.GetRadius();
+		const float radius = scale.x * component.GetRadius();
 		m_ColliderScale = glm::vec3(radius);
 		bool bTrigger = component.IsTrigger();
 
@@ -152,7 +151,7 @@ namespace Eagle
 		physx::PxMaterial* material = GetMaterial_Internal(materialAsset);
 
 		const auto& scale = component.GetWorldTransform().Scale3D;
-		const float radius = glm::max(scale.x, scale.z) * component.GetRadius();
+		const float radius = scale.x * component.GetRadius();
 		const float height = scale.y * component.GetHeight();
 		m_ColliderScale = glm::vec3(radius, height, 1.f);
 		bool bTrigger = component.IsTrigger();

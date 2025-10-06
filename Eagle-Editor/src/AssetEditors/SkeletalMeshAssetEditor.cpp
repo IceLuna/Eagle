@@ -694,7 +694,7 @@ namespace Eagle
 					}
 					if (UI::DrawVec3Control("Scale", boneTransform.Scale3D, glm::vec3{ 1.f }))
 					{
-						constexpr float epsilon = 0.00001f;
+						constexpr float epsilon = 0.0001f;
 						const glm::bvec3 bZero = glm::epsilonEqual(boneTransform.Scale3D, glm::vec3(0), epsilon);
 						for (glm::length_t i = 0; i < bZero.length(); ++i)
 						{
