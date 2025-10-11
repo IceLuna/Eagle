@@ -362,6 +362,7 @@ namespace Eagle
 		}
 
 		SceneAddAndCopyComponent<TransformComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<TagComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<OwnershipComponent>(this, m_Registry, other->m_Registry, createdEntities);
 
 		SceneAddAndCopyComponent<NativeScriptComponent>(this, m_Registry, other->m_Registry, createdEntities);
@@ -428,6 +429,7 @@ namespace Eagle
 		entity.AddComponent<IDComponent>(guid);
 		entity.AddComponent<EntitySceneNameComponent>(sceneName);
 		entity.AddComponent<TransformComponent>();
+		entity.AddComponent<TagComponent>();
 		entity.AddComponent<OwnershipComponent>();
 
 		m_AliveEntities[guid] = entity;
@@ -2052,6 +2054,7 @@ namespace Eagle
 
 	void Scene::CopyComponents(Entity source, Entity dest)
 	{
+		EntityCopyComponent<TagComponent>(source, dest);
 		EntityCopyComponent<NativeScriptComponent>(source, dest);
 		EntityCopyComponent<ScriptComponent>(source, dest);
 		EntityCopyComponent<PointLightComponent>(source, dest);

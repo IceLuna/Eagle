@@ -1475,6 +1475,16 @@ namespace Eagle
 			out << YAML::EndMap; //TransformComponent
 		}
 
+		if (entity.HasComponent<TagComponent>())
+		{
+			out << YAML::Key << "TagComponent";
+			out << YAML::BeginMap; //TagComponent
+
+			out << YAML::Key << "Tag" << YAML::Value << entity.GetComponent<TagComponent>().Tag;
+
+			out << YAML::EndMap; //TagComponent
+		}
+
 		if (entity.HasComponent<CameraComponent>())
 		{
 			auto& cameraComponent = entity.GetComponent<CameraComponent>();
@@ -2123,6 +2133,11 @@ namespace Eagle
 			worldTransform.Scale3D = transformComponentNode["WorldScale"].as<glm::vec3>();
 
 			deserializedEntity.SetWorldTransform(worldTransform);
+		}
+
+		if (auto tagComponentNode = entityNode["TagComponent"])
+		{
+			deserializedEntity.GetComponent<TagComponent>().Tag = tagComponentNode["Tag"].as<std::string>();
 		}
 
 		if (auto cameraComponentNode = entityNode["CameraComponent"])

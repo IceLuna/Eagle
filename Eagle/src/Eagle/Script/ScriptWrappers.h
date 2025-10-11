@@ -53,6 +53,9 @@ namespace Eagle::Script
 	void Eagle_Entity_SetRelativeRotation(GUID entityID, const Rotator* inRotation);
 	void Eagle_Entity_SetRelativeScale(GUID entityID, const glm::vec3* inScale);
 
+	void Eagle_Entity_SetTag(GUID entityID, MonoString* monoTag);
+	MonoString* Eagle_Entity_GetTag(GUID entityID);
+
 	//Input
 	bool Eagle_Input_IsMouseButtonPressed(Mouse button);
 	bool Eagle_Input_IsKeyPressed(Key keyCode);

@@ -285,6 +285,12 @@ namespace Eagle
 		if (m_SelectedComponent == SelectedComponent::None && entity.HasComponent<TransformComponent>())
 		{
 			DrawEntityTransformNode(entity);
+			DrawComponent<TagComponent>("Tag", entity, [this](auto& component)
+			{
+				UI::BeginPropertyGrid("TagComponent");
+				bEntityChanged |= UI::PropertyText("Tag", component.Tag);
+				UI::EndPropertyGrid();
+			}, false);
 		}
 		switch (m_SelectedComponent)
 		{

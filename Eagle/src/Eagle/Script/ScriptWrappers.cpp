@@ -654,6 +654,35 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set relative scale. Entity is null");
 	}
 
+	void Script::Eagle_Entity_SetTag(GUID entityID, MonoString* monoTag)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			entity.GetComponent<TagComponent>().Tag = MonoStringHandler(monoTag).c_str();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set entity tag. Entity is null");
+		}
+	}
+
+	MonoString* Script::Eagle_Entity_GetTag(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return mono_string_new(mono_domain_get(), entity.GetComponent<TagComponent>().Tag.c_str());
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get entity tag. Entity is null");
+			return nullptr;
+		}
+	}
+
 	//-------------- Scene Component --------------
 	void Script::Eagle_SceneComponent_GetWorldTransform(GUID entityID, void* type, Transform* outTransform)
 	{

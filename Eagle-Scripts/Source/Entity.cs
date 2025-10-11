@@ -163,6 +163,18 @@ namespace Eagle
             }
         }
 
+        public string Tag
+        {
+            get
+            {
+                return GetTag_Native(ID);
+            }
+            set
+            {
+                SetTag_Native(ID, value);
+            }
+        }
+
         public T AddComponent<T>() where T : Component, new()
         {
             AddComponent_Native(ID, typeof(T));
@@ -440,5 +452,11 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetRelativeScale_Native(in GUID entityID, ref Vector3 inScale);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetTag_Native(in GUID entityID, string tag);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern string GetTag_Native(in GUID entityID);
     }
 }

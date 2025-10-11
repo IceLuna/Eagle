@@ -109,6 +109,12 @@ namespace Eagle
 		Transform RelativeTransform;
 	};
 
+	class TagComponent
+	{
+	public:
+		std::string Tag;
+	};
+
 	class LightComponent : public SceneComponent
 	{
 	public:
