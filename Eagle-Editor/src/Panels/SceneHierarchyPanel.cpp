@@ -191,6 +191,13 @@ namespace Eagle
 					m_Scene->DestroyEntity(entity);
 					bChanged = true;
 				}
+				if (ImGui::MenuItem("Delete Entity and its Children"))
+				{
+					if (m_SelectedEntity == entity)
+						ClearSelection();
+					m_Scene->DestroyEntity(entity, true);
+					bChanged = true;
+				}
 			}
 			ImGui::EndPopup();
 		}
@@ -297,6 +304,13 @@ namespace Eagle
 					m_Scene->DestroyEntity(child);
 					bChanged = true;
 				}
+				if (ImGui::MenuItem("Delete Entity and its Children"))
+				{
+					if (m_SelectedEntity == child)
+						ClearSelection();
+					m_Scene->DestroyEntity(child, true);
+					bChanged = true;
+				}
 
 				ImGui::EndPopup();
 			}
@@ -348,12 +362,14 @@ namespace Eagle
 		{
 			KeyPressedEvent& keyEvent = (KeyPressedEvent&)e;
 			const bool bAllowAction = m_SelectedEntity && (!m_AllowOnlySingleRoot || m_SelectedEntity.HasParent());
+			const bool bShift = Input::IsKeyPressed(Key::LeftShift) || Input::IsKeyPressed(Key::RightShift);
 
 			if (bAllowAction && !m_PropertiesHovered && (bViewportFocused || m_SceneHierarchyFocused))
 			{
 				if (keyEvent.GetKey() == Key::Delete)
 				{
-					m_Scene->DestroyEntity(m_SelectedEntity);
+					const bool bDeleteChildren = bShift;
+					m_Scene->DestroyEntity(m_SelectedEntity, bDeleteChildren);
 					ClearSelection();
 					bChanged = true;
 				}

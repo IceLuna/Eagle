@@ -103,6 +103,32 @@ namespace Eagle
             return FindSmoothPath_Native(ref start, ref end, maxPolys, maxSmooth);
         }
 
+        // Needs to be called every frame. Returns true when finished
+        public static bool MoveToTarget(Entity entity, Vector3 targetLocation, float acceptanceDistance, float ts, float moveSpeed, float rotationSpeed)
+        {
+            Vector3 location = entity.WorldLocation;
+
+            if (Mathf.Length2(targetLocation - location) <= (acceptanceDistance * acceptanceDistance))
+                return true;
+
+            Vector3[] path = Navigation.FindSmoothPath(location, targetLocation);
+            if (path.Length == 0)
+                return true;
+
+            Vector3 target = path[0];
+            if (Mathf.Length2(target - location) < 0.01f && path.Length > 1)
+            {
+                target = path[1];
+            }
+
+            float currentSpeed = moveSpeed * ts;
+            Vector3 dir = Mathf.Normalize(target - location);
+            entity.WorldLocation = location + dir * currentSpeed;
+            entity.WorldRotation = Mathf.Slerp(entity.WorldRotation, Mathf.LookAtY(dir), ts * rotationSpeed);
+
+            return false;
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool FindDistanceToWall_Native(ref Vector3 pos, float maxRadius, out Vector3 outHitPos, out Vector3 outHitNormal, out float outHitDistance);
 
