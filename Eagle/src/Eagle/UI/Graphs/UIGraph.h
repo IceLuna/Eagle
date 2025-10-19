@@ -3,6 +3,7 @@
 #include "Eagle/Core/Serializer.h"
 #include "Eagle/UI/Graphs/GraphVariables.h"
 #include "Eagle/Animation/Nodes/GraphNodeFactory.h"
+#include "Eagle/Script/ScriptEngine.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -68,6 +69,8 @@ namespace Eagle
         BlendSpace,
         StateMachine,
         StateMachineState,
+        BehaviorTask,
+        BehaviorComposite,
         Tree,
         Comment,
         Houdini
@@ -114,6 +117,8 @@ namespace Eagle
     };
 
     class AnimationGraphNode;
+    // TODO: Simplify this node structure.
+    // Split it into multiple structs: BaseNode, AnimationGraphNode, BehaviorTreeNode, etc...
     struct Node
     {
         UIGraph* Owner = nullptr; // Graph that created this Node
@@ -127,6 +132,7 @@ namespace Eagle
         Ref<AnimationGraphNode> GraphNode; // Used if a node is a function (for example, addition)
         Ref<UIGraph> Graph; // Used if a node is a graph (for example, state machine graph)
         CachedNodeData CachedNode; // Used if a node is a "PoseCacheGetter".
+        ImVec2 PrevPosition = ImVec2(0, 0);
 
         std::vector<std::vector<PinConnectionData>> InputsPerPin;
         std::vector<std::vector<PinConnectionData>> OutputsPerPin; // One pin-output can be used as an input for multiple nodes.
@@ -134,6 +140,9 @@ namespace Eagle
         std::string UserData; // User provided data such as: node name; string, or comment
         bool bDeletable = true;
         bool bEditing = false; // Can be used to indicate that it's in "editing" state (for example, it'll be `true` while renaming a node)
+
+        AIBehaviorNode BehaviorNodeData;
+        std::string BehaviorNodeIndex;
 
         Node(UIGraph* owner, ed::NodeId id, const std::string_view name, ImColor color = ImColor(255, 255, 255), bool bDeletable = true) :
             Owner(owner), ID(id), Name(name), Color(color), bDeletable(bDeletable), Type(NodeType::Blueprint), Size(0, 0)
@@ -362,6 +371,23 @@ namespace Eagle
             return link;
         }
 
+        void RemovePinLinks(ed::PinId pin)
+        {
+            for (auto it = m_GraphData.Links.begin(); it != m_GraphData.Links.end(); )
+            {
+                const auto& link = it->second;
+                if (link.StartPinID == pin || link.EndPinID == pin)
+                {
+                    OnLinkDeleted(link);
+                    it = m_GraphData.Links.erase(it);
+                }
+                else
+                {
+                    ++it;
+                }
+            }
+        }
+
         virtual void OnVariableDeleted(const std::string& var);
         virtual void OnVariableRenamed(const std::string& varName, const std::string& newName);
         virtual void OnNodeAdded(Node& node);
@@ -376,6 +402,7 @@ namespace Eagle
     protected:
         virtual void HandleBPNode(util::BlueprintNodeBuilder& builder, Node& node, Pin* newLinkPin);
         virtual void HandleStateNode(Node& node, Pin* newLinkPin);
+        virtual void HandleBehaviorNode(Node& node, Pin* newLinkPin);
         virtual void HandleCommentNode(Node& node, Pin* newLinkPin);
         virtual void HandleNodeCreation(Node& node, ImVec2 pos, Pin* newNodeLinkPin);
         virtual void HandleCreatingDeletion();
@@ -392,6 +419,7 @@ namespace Eagle
 
         // If false, existing links will be disconnected
         virtual bool AllowMultipleLinksToInput() const { return false; }
+        virtual bool AllowRenaming() const { return true; }
 
         void ChangeVariableType(const std::string& varName, GraphVariableType newType);
         void DeleteNode(const Node* node);

@@ -62,10 +62,6 @@ namespace Eagle
 		}
 	}
 
-	AssetAnimationGraph::AssetAnimationGraph(const Path& path, GUID guid, const Ref<AnimationGraph>& graph, const GraphEditorSerializationData& data)
-		: Asset(path, {}, AssetType::AnimationGraph, guid, {}), m_Graph(graph), m_Data(data)
-	{}
-
 	void AssetAnimationGraph::Compile()
 	{
 		AnimationGraphEditor editor{ Cast<AssetAnimationGraph>(shared_from_this()) };
@@ -479,5 +475,29 @@ namespace Eagle
 			vertices[i].UserData = &m_PointsData[i];
 		}
 		m_Triangulation = Delaunay::Triangulate(vertices);
+	}
+
+	static bool GetBehaviorClassNodeData_Internal(const AIBehaviorNode& node, const GUID& id, AIBehaviorNode* outData)
+	{
+		if (node.Data.ID == id)
+		{
+			*outData = node;
+			return true;
+		}
+
+		for (const auto& child : node.Children)
+		{
+			if (GetBehaviorClassNodeData_Internal(child, id, outData))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	bool AssetBehaviorGraph::GetClassNodeData(const GUID& id, AIBehaviorNode* outData) const
+	{
+		return GetBehaviorClassNodeData_Internal(m_Root, id, outData);
 	}
 }

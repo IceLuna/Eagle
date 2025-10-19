@@ -1,5 +1,5 @@
 #include "egpch.h"
-#include "AINavigationDebugDraw.h"
+#include "NavigationDebugDraw.h"
 
 namespace Eagle::AINavigation
 {

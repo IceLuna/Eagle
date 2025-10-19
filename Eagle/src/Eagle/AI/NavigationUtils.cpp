@@ -1,5 +1,5 @@
 #include "egpch.h"
-#include "AINavigationUtils.h"
+#include "NavigationUtils.h"
 
 #include <DetourCommon.h>
 

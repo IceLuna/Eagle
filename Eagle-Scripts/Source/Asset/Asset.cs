@@ -37,6 +37,7 @@ namespace Eagle
         AnimationGraph,
         ParticleSystem,
         AnimationBlendSpace,
+        BehaviorGraph,
     };
 
     public enum AssetTexture2DFormat
@@ -105,6 +106,7 @@ namespace Eagle
                     case AssetType.AnimationGraph: return new AssetAnimationGraph(guid);
                     case AssetType.ParticleSystem: return new AssetParticleSystem(guid);
                     case AssetType.AnimationBlendSpace: return new AssetAnimationBlendSpace(guid);
+                    case AssetType.BehaviorGraph: return new AssetBehaviorGraph(guid);
                     default: return null;
                 }
             }
@@ -836,5 +838,21 @@ namespace Eagle
         internal AssetAnimationBlendSpace(GUID guid) : base(AssetType.AnimationBlendSpace, guid)
         {
         }
+    }
+
+    public class AssetBehaviorGraph : Asset
+    {
+        internal AssetBehaviorGraph(GUID guid) : base(AssetType.BehaviorGraph, guid)
+        {
+        }
+
+        public AITaskManager CreateTaskManager()
+        {
+            CreateTaskManager_Native(m_GUID, out AITaskManager manager);
+            return manager;
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern AITaskManager CreateTaskManager_Native(GUID id, out AITaskManager manager);
     }
 }

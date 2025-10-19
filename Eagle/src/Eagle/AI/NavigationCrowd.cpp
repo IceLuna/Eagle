@@ -1,6 +1,6 @@
 #include "egpch.h"
-#include "AINavigationCrowd.h"
-#include "AINavigationUtils.h"
+#include "NavigationCrowd.h"
+#include "NavigationUtils.h"
 
 namespace Eagle::AINavigation
 {

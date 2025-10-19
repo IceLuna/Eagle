@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Eagle.AI
+namespace Eagle
 {
     // Handles AI tasks execution
     public class AITaskManager

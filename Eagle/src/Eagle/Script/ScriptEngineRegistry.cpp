@@ -842,6 +842,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.AssetParticleSystem::GetEmitter_Native", Eagle::Script::Eagle_AssetParticleSystem_GetEmitter);
 		mono_add_internal_call("Eagle.AssetParticleSystem::Create_Native", Eagle::Script::Eagle_AssetParticleSystem_Create);
 
+		mono_add_internal_call("Eagle.AssetBehaviorGraph::CreateTaskManager_Native", Eagle::Script::Eagle_AssetBehaviorGraph_CreateTaskManager);
+
 		// Math
 		mono_add_internal_call("Eagle.Mathf::GetForwardVector_Native", Eagle::Script::Eagle_Math_GetForwardVector);
 		mono_add_internal_call("Eagle.Mathf::GetUpVector_Native", Eagle::Script::Eagle_Math_GetUpVector);

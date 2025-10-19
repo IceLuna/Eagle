@@ -58,7 +58,7 @@ namespace Eagle
         // Other
         {
             auto& otherCategory = m_NodeFactory["Other"];
-            otherCategory["New State Machine"] = &GraphNodeFactory::SpawnStateMachine;
+            otherCategory["New State Machine"] = &GraphNodeFactory::SpawnAnimationStateMachine;
         }
     }
 }

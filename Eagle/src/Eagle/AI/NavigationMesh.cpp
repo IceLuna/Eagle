@@ -1,5 +1,5 @@
 #include "egpch.h"
-#include "AINavigationMesh.h"
+#include "NavigationMesh.h"
 #include "DetourDebugDraw.h"
 #include "RecastDebugDraw.h"
 #include "DetourCommon.h"

@@ -245,6 +245,8 @@ project "Eagle"
 		flags { "NoPCH"	}
 	filter "files:Eagle/src/Eagle/Script/ScriptEngineRegistry.cpp"
 		buildoptions { "/bigobj" }
+	filter "files:Eagle/src/Eagle/Core/Serializer.cpp"
+		buildoptions { "/bigobj" }
 
 	filter "system:windows"
 		systemversion "latest"

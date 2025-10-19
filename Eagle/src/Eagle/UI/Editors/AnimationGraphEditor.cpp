@@ -4,7 +4,7 @@
 #include "Eagle/Core/Application.h"
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/UI/UI.h"
-#include "Eagle/UI/Graphs/UIAnimationGraph.h"
+#include "Eagle/UI/Graphs/Animations/UIAnimationGraph.h"
 
 namespace Eagle
 {

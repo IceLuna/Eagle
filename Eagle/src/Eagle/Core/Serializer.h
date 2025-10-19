@@ -12,7 +12,6 @@ namespace Eagle
 	class Material;
 	class PhysicsMaterial;
 	class PublicField;
-	class ScriptComponent;
 	class ReverbComponent;
 	class StaticMesh;
 	class Sound;
@@ -37,6 +36,7 @@ namespace Eagle
 	class AssetParticleSystem;
 	class AssetAnimationBlendSpace;
 	class AssetScene;
+	class AssetBehaviorGraph;
 
 	enum class AssetType;
 	enum class AssetTexture2DFormat;
@@ -53,7 +53,7 @@ namespace Eagle
 
 	enum class GraphNodeType
 	{
-		Node, Variable, PoseCache, PoseCacheGetter, BlendSpace
+		Node, Variable, PoseCache, PoseCacheGetter, BlendSpace, AIBehaviorNode
 	};
 
 	struct InputPinData
@@ -72,13 +72,15 @@ namespace Eagle
 		GUID CachedOwnerID; // ID of GraphSerializationData
 		uint32_t CachedNodeID = 0;
 		GraphNodeType Type = GraphNodeType::Node;
-		Ref<AssetAnimationBlendSpace> BlendSpace; // Used if it's a blend space node
 		uint32_t AddedCounter = 0u; // Required for serialization so that we know how many times to call "AddPinsCallback" during deserialization
 		std::vector<GraphConnectionData> OutputConnections;
 		std::vector<InputPinData> InputPins;
 		std::vector<uint32_t> OutputPins; // PinID
 
 		std::string UserData; // Used by nodes such as "Comment" to save comment
+
+		Ref<AssetAnimationBlendSpace> BlendSpace; // Used if it's a blend space node
+		GUID AIBehaviorNodeClassID = GUID(0, 0); // Used if it's a behavior graph node
 	};
 
 	struct GraphVariableSerializationData
@@ -139,6 +141,7 @@ namespace Eagle
 		static ScopedDataBuffer SerializeAssetAnimationGraph(const Ref<AssetAnimationGraph>& asset, const Ref<AssetSkeletalMesh>& meshAsset = nullptr); // `meshAsset` is used if asset is nullptr
 		static ScopedDataBuffer SerializeAssetParticleSystem(const Ref<AssetParticleSystem>& asset);
 		static ScopedDataBuffer SerializeAssetAnimationBlendSpace(const Ref<AssetAnimationBlendSpace>& asset, const Ref<AssetSkeletalMesh>& meshAsset = nullptr); // `meshAsset` is used if asset is nullptr
+		static ScopedDataBuffer SerializeAssetBehaviorGraph(const Ref<AssetBehaviorGraph>& asset);
 
 		static ScopedDataBuffer SerializeAssetTexture2DFromData(const DataBuffer& textureData, const DataBuffer& ktxData, const GUID& guid, const Path& pathToRaw,
 			FilterMode filterMode, AddressMode addressMode, float anisotropy, uint32_t mipsCount, uint32_t width, uint32_t height, AssetTexture2DFormat format,
@@ -170,12 +173,13 @@ namespace Eagle
 		static Ref<AssetParticleSystem> DeserializeAssetParticleSystem(const DataBuffer& data, const Path& pathToAsset);
 		static Ref<AssetAnimationBlendSpace> DeserializeAssetAnimationBlendSpace(const DataBuffer& data, const Path& pathToAsset);
 		static Ref<AssetScene> DeserializeAssetScene(const DataBuffer& data, const Path& pathToAsset);
+		static Ref<AssetBehaviorGraph> DeserializeAssetBehaviorGraph(const DataBuffer& data, const Path& pathToAsset);
 
 		static AssetType GetAssetType(const DataBuffer& assetData);
 		static AssetType GetAssetType(const Path& pathToAsset);
 		
 		static void SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field);
-		static void DeserializePublicFieldValues(YAML::Node& publicFieldsNode, ScriptComponent& scriptComponent);
+		static void DeserializePublicFieldValues(YAML::Node& publicFieldsNode, std::map<std::string, PublicField>& publicFields);
 		static bool HasSerializableType(const PublicField& field);
 	};
 }

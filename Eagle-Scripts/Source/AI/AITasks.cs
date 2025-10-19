@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Eagle.AI
+namespace Eagle
 {
     public class AITask : AINode
     { }
 
-    public class AITaskGoToPoint : AINode
+    public class AITaskGoToPoint : AITask
     {
         public string Owner;
         public string Target;
@@ -43,7 +43,7 @@ namespace Eagle.AI
         private float m_RotationSpeed = 3.5f;
     }
 
-    public class AITaskGoToEntity : AINode
+    public class AITaskGoToEntity : AITask
     {
         public string Owner;
         public string TargetEntity;
@@ -83,7 +83,7 @@ namespace Eagle.AI
         private float m_RotationSpeed = 3.5f;
     }
 
-    public class AITaskGoToRandomPoint : AINode
+    public class AITaskGoToRandomPoint : AITask
     {
         public string Owner;
         public string Radius;

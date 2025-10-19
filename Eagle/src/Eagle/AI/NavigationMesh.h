@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Eagle/AINavigation/AINavigationUtils.h"
-#include "Eagle/AINavigation/AINavigationCrowd.h"
+#include "Eagle/AI/NavigationUtils.h"
+#include "Eagle/AI/NavigationCrowd.h"
 #include "Eagle/Math/AABB.h"
 #include "Eagle/Core/DataBuffer.h"
 #include "Eagle/Core/Timestep.h"

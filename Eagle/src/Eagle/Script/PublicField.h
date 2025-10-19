@@ -16,8 +16,6 @@ extern "C"
 
 namespace Eagle
 {
-	struct EntityInstance;
-
 	// `Enum value` -> it's name
 	using ScriptEnumFields = std::map<int, std::string>;
 
@@ -28,7 +26,7 @@ namespace Eagle
 		Bool, Color3, Color4, Enum, Entity,
 		Asset, AssetTexture2D, AssetTextureCube, AssetStaticMesh, AssetSkeletalMesh, AssetAudio, AssetSoundGroup,
 		AssetFont, AssetMaterial, AssetPhysicsMaterial, AssetEntity, AssetScene, AssetAnimation, AssetAnimationGraph,
-		AssetParticleSystem, AssetAnimationBlendSpace,
+		AssetParticleSystem, AssetAnimationBlendSpace, AssetBehaviorGraph,
 	};
 
 	inline bool IsAssetType(FieldType type)
@@ -51,6 +49,7 @@ namespace Eagle
 			case FieldType::AssetAnimationGraph:
 			case FieldType::AssetParticleSystem:
 			case FieldType::AssetAnimationBlendSpace:
+			case FieldType::AssetBehaviorGraph:
 				return true;
 			default:
 				return false;
@@ -60,9 +59,10 @@ namespace Eagle
 	class PublicField
 	{
 	public:
-		std::string Name;
+		std::string UIName;
 		std::string TypeName;
-		FieldType Type;
+		std::string ToolTip;
+		FieldType Type = FieldType::None;
 		
 		// If `Type` is `Enum` then this can be used to fetch valid `names - values`
 		ScriptEnumFields EnumFields;
@@ -70,7 +70,8 @@ namespace Eagle
 		bool IsReadOnly = false;
 
 		PublicField() = default;
-		PublicField(const std::string& name, const std::string& typeName, FieldType type, bool isReadOnly = false);
+		PublicField(const std::string& name, const std::string& typeName, const std::string& toolTip, FieldType type, bool isReadOnly = false);
+		PublicField(std::string&& name, std::string&& typeName, std::string&& toolTip, FieldType type, bool isReadOnly = false);
 		PublicField(const PublicField& other);
 		PublicField(PublicField&& other) noexcept = default;
 		~PublicField();
@@ -78,8 +79,10 @@ namespace Eagle
 		PublicField& operator= (const PublicField& other);
 		PublicField& operator= (PublicField&& other) noexcept = default;
 
-		void CopyStoredValueFromRuntime(EntityInstance& entityInstance);
-		void CopyStoredValueToRuntime(EntityInstance& entityInstance);
+		bool operator< (const PublicField& other) const { return UIName < other.UIName; }
+
+		void CopyStoredValueFromRuntime(MonoObject* instance);
+		void CopyStoredValueToRuntime(MonoObject* instance) const;
 
 		template<typename T>
 		T GetStoredValue() const
@@ -108,32 +111,32 @@ namespace Eagle
 		}
 
 		template <typename T>
-		T GetRuntimeValue(EntityInstance& entityInstance) const
+		T GetRuntimeValue(MonoObject* instance) const
 		{
 			T value;
-			GetRuntimeValue_Internal(entityInstance, &value);
+			GetRuntimeValue_Internal(instance, &value);
 			return value;
 		}
 
 		template <>
-		std::string GetRuntimeValue(EntityInstance& entityInstance) const
+		std::string GetRuntimeValue(MonoObject* instance) const
 		{
 			std::string value;
-			GetRuntimeValue_Internal(entityInstance, value);
+			GetRuntimeValue_Internal(instance, value);
 			return value;
 		}
 
 		template <typename T>
-		void SetRuntimeValue(EntityInstance& entityInstance, const T& value)
+		void SetRuntimeValue(MonoObject* instance, const T& value) const
 		{
 			if constexpr (std::is_same<std::string, T>::value)
 			{
-				SetRuntimeValue_Internal(entityInstance, value);
+				SetRuntimeValue_Internal(instance, value);
 			}
 			else
 			{
 				void* ptr = (void*)&value; // Removing const because for some reason `mono` accepts non-const-ptr
-				SetRuntimeValue_Internal(entityInstance, ptr);
+				SetRuntimeValue_Internal(instance, ptr);
 			}
 		}
 
@@ -169,6 +172,7 @@ namespace Eagle
 			case FieldType::AssetAnimationGraph:
 			case FieldType::AssetParticleSystem:
 			case FieldType::AssetAnimationBlendSpace:
+			case FieldType::AssetBehaviorGraph:
 				return sizeof(GUID);
 			}
 			EG_CORE_ASSERT(false, "Unknown type size");
@@ -189,10 +193,10 @@ namespace Eagle
 			m_StoredValueBuffer.Write(value, m_StoredValueBuffer.Size());
 		}
 
-		void SetRuntimeValue_Internal(EntityInstance& entityInstance, void* value);
-		void SetRuntimeValue_Internal(EntityInstance& entityInstance, const std::string& value);
-		void GetRuntimeValue_Internal(EntityInstance& entityInstance, void* outValue) const;
-		void GetRuntimeValue_Internal(EntityInstance& entityInstance, std::string& outValue) const;
+		void SetRuntimeValue_Internal(MonoObject* instance, void* value) const;
+		void SetRuntimeValue_Internal(MonoObject* instance, const std::string& value) const;
+		void GetRuntimeValue_Internal(MonoObject* instance, void* outValue) const;
+		void GetRuntimeValue_Internal(MonoObject* instance, std::string& outValue) const;
 
 		void AllocateBuffer(FieldType type)
 		{
@@ -224,5 +228,17 @@ namespace Eagle
 		ScopedDataBuffer m_StoredValueBuffer;
 
 		friend class ScriptEngine;
+	};
+}
+
+namespace std
+{
+	template <>
+	struct hash<Eagle::PublicField>
+	{
+		std::size_t operator()(const Eagle::PublicField& field) const
+		{
+			return std::hash<std::string>()(field.UIName);
+		}
 	};
 }

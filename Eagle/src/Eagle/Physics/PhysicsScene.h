@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Eagle/AINavigation/AINavigationUtils.h"
+#include "Eagle/AI/NavigationUtils.h"
 #include "Eagle/Core/GUID.h"
 #include "PhysicsActor.h"
 

@@ -536,10 +536,9 @@ namespace Eagle
 		if (vertexRootConstants)
 		{
 			auto& ranges = vs->GetPushConstantRanges();
-			auto& fsRanges = fs->GetPushConstantRanges();
 			EG_CORE_ASSERT(ranges.size());
 
-			uint32_t fsRangeSize = fragmentRootConstants ? fsRanges[0].Size : 0;
+			uint32_t fsRangeSize = fragmentRootConstants && fs ? fs->GetPushConstantRanges()[0].Size : 0;
 			VkPushConstantRange range;
 			range.offset = ranges[0].Offset;
 			range.size = (vertexRootConstants == fragmentRootConstants) ? std::max(ranges[0].Size, fsRangeSize) : ranges[0].Size;

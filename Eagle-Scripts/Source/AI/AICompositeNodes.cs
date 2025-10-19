@@ -1,16 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
-namespace Eagle.AI
+namespace Eagle
 {
     // Such as sequence, selector
     public class AICompositeNode : AINode
     {
-        public override void Reset()
+        public override void OnEnd(AINodeStatus status)
         {
-            base.Reset();
+            base.OnEnd(status);
             foreach (var child in m_Children)
-                child.Reset();
+                child.OnEnd(status);
         }
 
         public T AddChild<T>() where T : AINode, new()
@@ -18,6 +19,16 @@ namespace Eagle.AI
             T child = new T();
             child.SetBlackboard(m_Blackboard);
             m_Children.Add(child);
+
+            return child;
+        }
+
+        internal AINode AddChild_Interop(Type type)
+        {
+            AINode child = Activator.CreateInstance(type) as AINode;
+            child.SetBlackboard(m_Blackboard);
+            m_Children.Add(child);
+
             return child;
         }
 
@@ -75,9 +86,9 @@ namespace Eagle.AI
             return AINodeStatus.Failed;
         }
 
-        public override void Reset()
+        public override void OnEnd(AINodeStatus status)
         {
-            base.Reset();
+            base.OnEnd(status);
             m_Current = 0;
         }
 
@@ -120,9 +131,9 @@ namespace Eagle.AI
             return AINodeStatus.Failed;
         }
 
-        public override void Reset()
+        public override void OnEnd(AINodeStatus status)
         {
-            base.Reset();
+            base.OnEnd(status);
             m_Current = 0;
         }
 

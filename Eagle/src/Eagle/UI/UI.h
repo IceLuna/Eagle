@@ -4,6 +4,7 @@
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Utils/ThumbnailCache.h"
+#include "Eagle/Script/PublicField.h"
 #include "imgui.h"
 #include "magic_enum.hpp"
 #include "magic_enum_utility.hpp"
@@ -346,6 +347,9 @@ namespace Eagle::UI
 	bool PropertyText(const std::string_view label, std::string& value, const std::string_view helpMessage = "", ImGuiInputTextFlags flags = 0);
 	bool PropertyTextMultiline(const std::string_view label, std::string& value, const std::string_view helpMessage = "");
 	bool PropertyText(const std::string_view label, std::vector<std::string>& values, const std::string_view helpMessage = "");
+	// @instance. Can be nullptr if `bRuntime` is false
+	// @entity. If entity is not provided, Entity field types won't be processed
+	bool Property(PublicField& field, MonoObject* instance = nullptr, bool bRuntime = false, Entity entity = Entity::Null);
 
 	bool Text(const std::string_view label, const std::string_view text, const std::string_view helpMessage = "");
 	bool TextLink(const std::string_view text, const std::string_view url);
@@ -385,7 +389,7 @@ namespace Eagle::UI
 	bool Combo(const std::string_view label, uint32_t currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string_view helpMessage = "");
 	bool Combo(const std::string_view label, uint32_t currentSelection, const std::vector<std::string>& options, size_t optionsSize, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string_view helpMessage = "");
 	bool ComboWithNone(const std::string_view label, int currentSelectionIndex, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string_view helpMessage = "");
-	bool Combo(const std::string_view label, int currentValue, const ScriptEnumFields& fields, int& outSelectedValue);
+	bool Combo(const std::string_view label, int currentValue, const ScriptEnumFields& fields, int& outSelectedValue, const std::string_view helpMessage = "");
 
 	template <typename Enum>
 	bool ComboEnum(const std::string_view label, Enum& current, const std::string_view helpMessage = "")

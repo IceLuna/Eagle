@@ -1,6 +1,6 @@
 #pragma once
 
-#include "UIGraph.h"
+#include "Eagle/UI/Graphs/UIGraph.h"
 
 namespace Eagle
 {

@@ -8994,6 +8994,29 @@ namespace Eagle
 		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetEmitter()`. It's not a ParticleSystem asset");
 		return mono_string_new(mono_domain_get(), "");
 	}
+
+	void Script::Eagle_AssetBehaviorGraph_CreateTaskManager(GUID assetID, MonoObject** outTaskManager)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `CreateTaskManager()`. Couldn't find a AssetBehaviorGraph asset");
+			*outTaskManager = nullptr;
+			return;
+		}
+
+		if (Ref<AssetBehaviorGraph> bg = Cast<AssetBehaviorGraph>(asset))
+		{
+			Scope<MonoInstance> taskManager = ScriptEngine::InstantiateBehaviorGraph(bg->GetRoot());
+			*outTaskManager = taskManager->GetInstance();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `CreateTaskManager()`. It's not an AssetBehaviorGraph asset");
+			*outTaskManager = nullptr;
+		}
+	}
 	
 	//--------------Math--------------
 	glm::vec3 Script::Eagle_Math_GetForwardVector(const Rotator* rotator)

@@ -26,6 +26,7 @@
 #include "../AssetEditors/ParticleSystemAssetEditor.h"
 #include "../AssetEditors/FontAssetEditor.h"
 #include "../AssetEditors/AnimationBlendSpaceAssetEditor.h"
+#include "../AssetEditors/BehaviorGraphAssetEditor.h"
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
@@ -100,6 +101,9 @@ namespace Eagle
 			return true;
 		case AssetType::AnimationBlendSpace:
 			borderColor = ImVec4(1.0f, 0.658f, 0.435f, 1.f);
+			return true;
+		case AssetType::BehaviorGraph:
+			borderColor = ImVec4(1.0f, 0.435f, 0.658f, 1.f);
 			return true;
 		}
 		return false;
@@ -198,6 +202,10 @@ namespace Eagle
 			{
 				m_AnimationBlendSpaceImporter = AnimationBlendSpaceImporterPanel(m_CurrentDirectoryRelative);
 				m_DrawAnimationBlendSpaceImporter = true;
+			}
+			if (ImGui::MenuItem("Create Behavior Graph"))
+			{
+				m_SelectedFile = AssetImporter::CreateBehaviorGraph(m_CurrentDirectoryRelative);
 			}
 
 			if (ImGui::MenuItem("Create Folder"))
@@ -564,6 +572,12 @@ namespace Eagle
 				m_DrawAnimationBlendSpaceImporter = true;
 			}
 
+			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::BehaviorGraph), "Behavior Graph", thumbnailSize, thumbnailSize.x))
+			{
+				AssetImporter::CreateBehaviorGraph(m_CurrentDirectoryRelative);
+				bCreatedAsset = true;
+			}
+
 			if (bCreatedAsset)
 			{
 				// Close popup and refresh content browser
@@ -723,6 +737,9 @@ namespace Eagle
 			break;
 		case AssetType::AnimationBlendSpace:
 			AddAssetEditor<AnimationBlendSpaceAssetEditor, AssetAnimationBlendSpace>(asset);
+			break;
+		case AssetType::BehaviorGraph:
+			AddAssetEditor<BehaviorGraphAssetEditor, AssetBehaviorGraph>(asset);
 			break;
 		}
 	}

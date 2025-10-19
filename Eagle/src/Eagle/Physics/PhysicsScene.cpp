@@ -7,7 +7,7 @@
 #include "ContactListener.h"
 #include "PhysicsRagdollActor.h"
 
-#include "Eagle/AINavigation/AINavigationUtils.h"
+#include "Eagle/AI/NavigationUtils.h"
 #include "Eagle/Core/Project.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Debug/CPUTimings.h"

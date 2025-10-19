@@ -18,7 +18,7 @@
 #include "Eagle/Classes/Font.h"
 #include "Eagle/Renderer/Material.h"
 #include "Eagle/Renderer/ParticleEmitter.h"
-#include "Eagle/AINavigation/AINavigationMesh.h"
+#include "Eagle/AI/NavigationMesh.h"
 
 // If new component class is created, other changes are required:
 // 1) Add new line into Scene's copy constructor;
@@ -1316,7 +1316,7 @@ namespace Eagle
 		ScriptComponent(const std::string& moduleName) : ModuleName(moduleName) {}
 
 	public:
-		std::unordered_map<std::string, PublicField> PublicFields;
+		std::map<std::string, PublicField> PublicFields;
 		std::string ModuleName;
 	};
 

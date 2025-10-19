@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Eagle.AI
+namespace Eagle
 {
     // Data storage for tasks to share
     public class AIBlackboard

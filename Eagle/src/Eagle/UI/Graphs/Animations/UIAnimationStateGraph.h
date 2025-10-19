@@ -1,23 +1,22 @@
 #pragma once
 
-#include "UIGraph.h"
+#include "Eagle/UI/Graphs/UIGraph.h"
 
 namespace Eagle
 {
-	class UIAnimationStateTransitionGraph : public UIGraph
+	class UIAnimationStateGraph : public UIGraph
 	{
 	public:
-		UIAnimationStateTransitionGraph(GraphEditor& editor, const std::string_view name);
+		UIAnimationStateGraph(GraphEditor& editor, const std::string_view name);
 
 		Node* GetOutputNode() override { return FindNode(m_OutputNodeId); };
 		ax::NodeEditor::NodeId GetOutputNodeID() override { return m_OutputNodeId; };
 
 	protected:
 		void SetupInitialNodes();
+		void SetupNodeFactory();
 
 	private:
 		ax::NodeEditor::NodeId m_OutputNodeId;
-
-		friend class UIAnimationStateMachineGraph; // To call `Deserialize_Internal`
 	};
 }

@@ -7,6 +7,7 @@
 #include "Eagle/Renderer/ParticleEmitter.h"
 #include "Eagle/Physics/PhysicsMaterial.h"
 #include "Eagle/Animation/BlendSpaceUtils.h"
+#include "Eagle/AI/BehaviorGraph.h"
 
 namespace YAML
 {
@@ -47,6 +48,7 @@ namespace Eagle
 		AnimationGraph,
 		ParticleSystem,
 		AnimationBlendSpace,
+		BehaviorGraph,
 	};
 
 	enum class AssetTexture2DFormat
@@ -169,6 +171,8 @@ namespace Eagle
 			return "PARTICLE_SYSTEM_CELL";
 		case AssetType::AnimationBlendSpace:
 			return "ANIMATION_BLENDSPACE_CELL";
+		case AssetType::BehaviorGraph:
+			return "BEHAVIOR_GRAPH_CELL";
 		default:
 			EG_CORE_ASSERT(false);
 			return "INVALID_CELL";
@@ -682,7 +686,8 @@ namespace Eagle
 		static constexpr AssetType GetAssetType_Static() { return AssetType::AnimationGraph; }
 
 	protected:
-		AssetAnimationGraph(const Path& path, GUID guid, const Ref<AnimationGraph>& graph, const GraphEditorSerializationData& data);
+		AssetAnimationGraph(const Path& path, GUID guid, const Ref<AnimationGraph>& graph, const GraphEditorSerializationData& data)
+			: Asset(path, {}, AssetType::AnimationGraph, guid, {}), m_Graph(graph), m_Data(data) {}
 
 	private:
 		Ref<AnimationGraph> m_Graph;
@@ -821,5 +826,56 @@ namespace Eagle
 
 		BlendSpaceAxisSettings m_Horizontal;
 		BlendSpaceAxisSettings m_Vertical;
+	};
+
+	class AssetBehaviorGraph : public Asset
+	{
+	public:
+		AssetBehaviorGraph& operator=(Asset&& other) noexcept override
+		{
+			if (this == &other)
+				return *this;
+
+			Asset::operator=(std::move(other));
+
+			AssetBehaviorGraph&& asset = (AssetBehaviorGraph&&)other;
+			m_Root = std::move(asset.m_Root);
+
+			return *this;
+		}
+
+		void SetSerializationData(const GraphEditorSerializationData& data)
+		{
+			m_Data = data;
+			SetDirty(true);
+		}
+
+		const GraphEditorSerializationData& GetSerializationData() const { return m_Data; }
+
+		void SetRoot(const AIBehaviorNode& root)
+		{
+			m_Root = root;
+			SetDirty(true);
+		}
+
+		void SetRoot(AIBehaviorNode&& root)
+		{
+			m_Root = std::move(root);
+			SetDirty(true);
+		}
+
+		const AIBehaviorNode& GetRoot() const { return m_Root; }
+
+		bool GetClassNodeData(const GUID& id, AIBehaviorNode* outData) const;
+
+		static constexpr AssetType GetAssetType_Static() { return AssetType::BehaviorGraph; }
+
+	protected:
+		AssetBehaviorGraph(const Path& path, GUID guid, AIBehaviorNode&& root, GraphEditorSerializationData&& data)
+			: Asset(path, {}, AssetType::BehaviorGraph, guid, {}), m_Root(std::move(root)), m_Data(std::move(data)) {}
+
+	private:
+		AIBehaviorNode m_Root;
+		GraphEditorSerializationData m_Data;
 	};
 }

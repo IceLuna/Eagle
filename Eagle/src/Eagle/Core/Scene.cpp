@@ -15,7 +15,7 @@
 #include "Eagle/Audio/Sound2D.h"
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Asset/AssetManager.h"
-#include "Eagle/AINavigation/AINavigationDebugDraw.h"
+#include "Eagle/AI/NavigationDebugDraw.h"
 
 namespace Eagle
 {

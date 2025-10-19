@@ -37,10 +37,7 @@ namespace Eagle
     GraphEditor::GraphEditor(const std::string_view name)
         : m_Name(name)
     {
-        // Init textures
         m_HeaderTexture = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/BlueprintBackground.png");
-        m_SaveTexture = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/ic_save_white_24dp.png");
-        m_RestoreTexture = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/ic_restore_white_24dp.png");
 
         // Init editor
         m_Config.UserPointer = this;
@@ -66,8 +63,6 @@ namespace Eagle
     void GraphEditor::OnImGuiRender(bool* pOpen)
     {
         m_HeaderBackground = UI::GetTextureID(m_HeaderTexture);
-        m_SaveIcon = UI::GetTextureID(m_SaveTexture);
-        m_RestoreIcon = UI::GetTextureID(m_RestoreTexture);
 
         // Required to not mark asset as dirty.
         // Because when drawing a graph for the first time, save events will be triggered
@@ -86,13 +81,7 @@ namespace Eagle
         if (ImGui::Begin(m_Name.c_str(), pOpen))
         {
             m_bGraphFocused = ImGui::IsWindowFocused();
-            static float leftPaneWidth = 400.0f;
-            static float rightPaneWidth = 800.0f;
-            Splitter(true, 4.0f, &leftPaneWidth, &rightPaneWidth, 50.0f, 50.0f);
-
-            ShowLeftPane(leftPaneWidth - 4.0f);
-
-            ImGui::SameLine(0.0f, 12.0f);
+            RenderLeftPanel();
 
             auto& currentGraph = m_Graphs.back();
             if (bIgnoreChanges)
@@ -108,29 +97,27 @@ namespace Eagle
         m_bIgnoreChangedEvent = false;
     }
 	
-	void GraphEditor::ShowLeftPane(float paneWidth)
+	void GraphEditor::RenderLeftPanel()
 	{
+        Splitter(true, 4.0f, &m_LeftPanelWidth, &m_RightPanelWidth, 50.0f, 50.0f);
+        float panelWidth = m_LeftPanelWidth - 4.0f;
+
         auto& io = ImGui::GetIO();
 
-        ImGui::BeginChild("Selection", ImVec2(paneWidth, 0));
+        ImGui::BeginChild("Selection", ImVec2(panelWidth, 0));
 
-        paneWidth = ImGui::GetContentRegionAvail().x;
+        panelWidth = ImGui::GetContentRegionAvail().x;
 
-        ImGui::BeginHorizontal("Style Editor", ImVec2(paneWidth, 0));
+        ImGui::BeginHorizontal("Style Editor", ImVec2(panelWidth, 0));
         ImGui::Spring(0.0f, 0.0f);
         if (ImGui::Button("Zoom to Content"))
             ed::NavigateToContent();
         ImGui::Spring();
         ImGui::EndHorizontal();
 
-        int saveIconWidth = (int)m_SaveTexture->GetWidth();
-        int saveIconHeight = (int)m_SaveTexture->GetHeight();
-        int restoreIconWidth = (int)m_RestoreTexture->GetWidth();
-        int restoreIconHeight = (int)m_RestoreTexture->GetHeight();
-
         ImGui::GetWindowDrawList()->AddRectFilled(
             ImGui::GetCursorScreenPos(),
-            ImGui::GetCursorScreenPos() + ImVec2(paneWidth, ImGui::GetTextLineHeight() * 1.35f),
+            ImGui::GetCursorScreenPos() + ImVec2(panelWidth, ImGui::GetTextLineHeight() * 1.35f),
             ImColor(ImGui::GetStyle().Colors[ImGuiCol_HeaderActive]), ImGui::GetTextLineHeight() * 0.25f);
         ImGui::Spacing(); ImGui::SameLine();
 
@@ -351,6 +338,8 @@ namespace Eagle
         }
 
         ImGui::EndChild();
+
+        ImGui::SameLine(0.0f, 12.0f);
 	}
 
     void GraphEditor::OnEvent(Event& e)

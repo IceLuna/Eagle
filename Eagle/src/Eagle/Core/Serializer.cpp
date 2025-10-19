@@ -157,6 +157,8 @@ namespace Eagle
 			out << YAML::Key << "AddedCounter" << YAML::Value << node.AddedCounter;
 			if (node.UserData.empty() == false)
 				out << YAML::Key << "UserData" << YAML::Value << node.UserData;
+			if (node.Type == GraphNodeType::AIBehaviorNode)
+				out << YAML::Key << "AIBehaviorNodeClassID" << YAML::Value << node.AIBehaviorNodeClassID;
 
 			{
 				out << YAML::Key << "InputPins" << YAML::Value << YAML::BeginSeq;
@@ -247,6 +249,8 @@ namespace Eagle
 				nodeData.AddedCounter = counterNode.as<uint32_t>();
 			if (auto userDataNode = nodeNode["UserData"])
 				nodeData.UserData = userDataNode.as<std::string>();
+			if (auto node = nodeNode["AIBehaviorNodeClassID"])
+				nodeData.AIBehaviorNodeClassID = node.as<GUID>();
 
 			{
 				const auto inputPinsNode = nodeNode["InputPins"];
@@ -284,6 +288,89 @@ namespace Eagle
 			for (const auto& subgraphNode : subgraphsNode)
 			{
 				DeserializeGraph(subgraphNode, data.Subgraphs.emplace_back());
+			}
+		}
+	}
+
+	static void SerializeScriptFields(YAML::Emitter& out, const std::map<std::string, PublicField>& fields)
+	{
+		out << YAML::Key << "PublicFields";
+		out << YAML::BeginMap;
+		for (const auto& [_, field] : fields)
+		{
+			if (Serializer::HasSerializableType(field))
+				Serializer::SerializePublicFieldValue(out, field);
+		}
+		out << YAML::EndMap;
+	}
+
+	static void SerializeAIBehaviorNode(YAML::Emitter& out, const AIBehaviorNode& node)
+	{
+		out << YAML::Key << "FullName" << YAML::Value << node.Data.FullName;
+		out << YAML::Key << "ID" << YAML::Value << node.Data.ID;
+
+		if (!node.Data.Fields.empty())
+		{
+			SerializeScriptFields(out, node.Data.Fields);
+		}
+
+		if (!node.AttachedDecorators.empty())
+		{
+			out << YAML::Key << "Decorators" << YAML::Value << YAML::BeginSeq;
+			for (const auto& decorator : node.AttachedDecorators)
+			{
+				out << YAML::BeginMap;
+				out << YAML::Key << "FullName" << YAML::Value << decorator.FullName;
+				if (!decorator.Fields.empty())
+				{
+					SerializeScriptFields(out, decorator.Fields);
+				}
+				out << YAML::EndMap;
+			}
+			out << YAML::EndSeq;
+		}
+
+		if (!node.Children.empty())
+		{
+			out << YAML::Key << "Children" << YAML::Value << YAML::BeginSeq;
+			for (const auto& child : node.Children)
+			{
+				out << YAML::BeginMap;
+				SerializeAIBehaviorNode(out, child);
+				out << YAML::EndMap;
+			}
+			out << YAML::EndSeq;
+		}
+	}
+
+	static void DeserializeAIBehaviorNode(const YAML::Node& yamlNode, AIBehaviorNode& node)
+	{
+		const std::string fullName = yamlNode["FullName"].as<std::string>();
+		node.Data = ScriptEngine::GetAIClassData(fullName);
+		node.Data.ID = yamlNode["ID"].as<GUID>();
+
+		if (auto publicFieldsNode = yamlNode["PublicFields"])
+			Serializer::DeserializePublicFieldValues(publicFieldsNode, node.Data.Fields);
+
+		if (auto decoratorsNode = yamlNode["Decorators"])
+		{
+			for (auto decoratorNode : decoratorsNode)
+			{
+				const std::string fullName = decoratorNode["FullName"].as<std::string>();
+				auto& decorator = node.AttachedDecorators.emplace_back();
+				decorator = ScriptEngine::GetAIClassData(fullName);
+
+				if (auto publicFieldsNode = decoratorNode["PublicFields"])
+					Serializer::DeserializePublicFieldValues(publicFieldsNode, decorator.Fields);
+			}
+		}
+
+		if (auto childrenNode = yamlNode["Children"])
+		{
+			for (auto childNode : childrenNode)
+			{
+				auto& child = node.Children.emplace_back();
+				DeserializeAIBehaviorNode(childNode, child);
 			}
 		}
 	}
@@ -419,6 +506,8 @@ namespace Eagle
 				return SerializeAssetParticleSystem(Cast<AssetParticleSystem>(asset));
 			case AssetType::AnimationBlendSpace:
 				return SerializeAssetAnimationBlendSpace(Cast<AssetAnimationBlendSpace>(asset));
+			case AssetType::BehaviorGraph:
+				return SerializeAssetBehaviorGraph(Cast<AssetBehaviorGraph>(asset));
 			default:
 				EG_CORE_ASSERT(false);
 				EG_CORE_ERROR("Failed to serialize an asset. Unknown asset.");
@@ -1420,6 +1509,44 @@ namespace Eagle
 		return buffer;
 	}
 
+	ScopedDataBuffer Serializer::SerializeAssetBehaviorGraph(const Ref<AssetBehaviorGraph>& asset)
+	{
+		size_t totalSize = sizeof(AssetHeader);
+
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::BehaviorGraph);
+		out << YAML::Key << "GUID" << YAML::Value << (asset ? asset->GetGUID() : GUID{});
+
+		if (asset)
+		{
+			const auto& root = asset->GetRoot();
+			if (!root.Data.FullName.empty())
+			{
+				out << YAML::Key << "Nodes" << YAML::Value << YAML::BeginMap;
+				SerializeAIBehaviorNode(out, root);
+				out << YAML::EndMap;
+			}
+
+			const auto& editorGraphData = asset->GetSerializationData();
+			out << YAML::Key << "Graph" << YAML::Value << YAML::BeginMap;
+			SerializeGraph(out, editorGraphData.Graph);
+			out << YAML::EndMap;
+		}
+
+		out << YAML::EndMap;
+
+		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		ScopedDataBuffer buffer(totalSize);
+
+		size_t offset = 0;
+		Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
+		Utils::WriteYaml(buffer, out, &offset);
+
+		return buffer;
+	}
+
 	void Serializer::DeserializeReverb(YAML::Node& reverbNode, ReverbComponent& reverb)
 	{
 		float minDistance = reverbNode["MinDistance"].as<float>();
@@ -1721,16 +1848,7 @@ namespace Eagle
 
 			out << YAML::Key << "ModuleName" << YAML::Value << scriptComponent.ModuleName;
 
-			//Public Fields
-			out << YAML::Key << "PublicFields";
-			out << YAML::BeginMap;
-			for (auto& it : scriptComponent.PublicFields)
-			{
-				PublicField& field = it.second;
-				if (Serializer::HasSerializableType(field))
-					Serializer::SerializePublicFieldValue(out, field);
-			}
-			out << YAML::EndMap;
+			SerializeScriptFields(out, scriptComponent.PublicFields);
 
 			out << YAML::EndMap;
 		}
@@ -2375,7 +2493,7 @@ namespace Eagle
 
 			auto publicFieldsNode = scriptComponentNode["PublicFields"];
 			if (publicFieldsNode)
-				Serializer::DeserializePublicFieldValues(publicFieldsNode, scriptComponent);
+				Serializer::DeserializePublicFieldValues(publicFieldsNode, scriptComponent.PublicFields);
 		}
 
 		if (auto rigidBodyComponentNode = entityNode["RigidBodyComponent"])
@@ -3089,6 +3207,8 @@ namespace Eagle
 			return DeserializeAssetParticleSystem(data, pathToAsset);
 		case AssetType::AnimationBlendSpace:
 			return DeserializeAssetAnimationBlendSpace(data, pathToAsset);
+		case AssetType::BehaviorGraph:
+			return DeserializeAssetBehaviorGraph(data, pathToAsset);
 		default:
 			EG_CORE_ASSERT(false);
 			EG_CORE_ERROR("Failed to serialize an asset. Unknown asset.");
@@ -4353,11 +4473,38 @@ namespace Eagle
 		return MakeRef<LocalAssetScene>(pathToAsset, baseNode["GUID"].as<GUID>());
 	}
 
+	Ref<AssetBehaviorGraph> Serializer::DeserializeAssetBehaviorGraph(const DataBuffer& data, const Path& pathToAsset)
+	{
+		YAML::Node baseNode;
+		Utils::ReadYAML(data, &baseNode);
+
+		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::BehaviorGraph))
+			return {};
+
+		GUID guid = baseNode["GUID"].as<GUID>();
+
+		AIBehaviorNode rootNode;
+		if (auto node = baseNode["Nodes"])
+			DeserializeAIBehaviorNode(node, rootNode);
+
+		GraphEditorSerializationData graphEditorData;
+		if (auto graphNode = baseNode["Graph"])
+			DeserializeGraph(graphNode, graphEditorData.Graph);
+
+		class LocalAssetBehaviorGraph : public AssetBehaviorGraph
+		{
+		public:
+			LocalAssetBehaviorGraph(const Path& path, GUID guid, AIBehaviorNode&& root, GraphEditorSerializationData&& data)
+				: AssetBehaviorGraph(path, guid, std::move(root), std::move(data)) {
+			}
+		};
+
+		return MakeRef<LocalAssetBehaviorGraph>(pathToAsset, guid, std::move(rootNode), std::move(graphEditorData));
+	}
+
 	AssetType Serializer::GetAssetType(const DataBuffer& assetData)
 	{
-		Timer timer;
 		AssetType actualType = AssetType::None;
-
 #if 0
 		YAML::Node baseNode;
 		Utils::ReadYAML(assetData, &baseNode);
@@ -4403,7 +4550,7 @@ namespace Eagle
 
 	void Serializer::SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field)
 	{
-		out << YAML::Key << field.Name;
+		out << YAML::Key << field.UIName;
 		switch (field.Type)
 		{
 			case FieldType::Int:
@@ -4452,6 +4599,7 @@ namespace Eagle
 			case FieldType::AssetAnimationGraph:
 			case FieldType::AssetParticleSystem:
 			case FieldType::AssetAnimationBlendSpace:
+			case FieldType::AssetBehaviorGraph:
 				SerializeField<GUID>(out, field);
 				break;
 		}
@@ -4464,9 +4612,8 @@ namespace Eagle
 		field.SetStoredValue<T>(value);
 	}
 
-	void Serializer::DeserializePublicFieldValues(YAML::Node& publicFieldsNode, ScriptComponent& scriptComponent)
+	void Serializer::DeserializePublicFieldValues(YAML::Node& publicFieldsNode, std::map<std::string, PublicField>& publicFields)
 	{
-		auto& publicFields = scriptComponent.PublicFields;
 		for (auto& it : publicFieldsNode)
 		{
 			std::string fieldName = it.first.as<std::string>();
@@ -4525,6 +4672,7 @@ namespace Eagle
 					case FieldType::AssetAnimationGraph:
 					case FieldType::AssetParticleSystem:
 					case FieldType::AssetAnimationBlendSpace:
+					case FieldType::AssetBehaviorGraph:
 						SetStoredValue<GUID>(node, field);
 						break;
 				}
@@ -4564,6 +4712,7 @@ namespace Eagle
 			case FieldType::AssetAnimationGraph:
 			case FieldType::AssetParticleSystem:
 			case FieldType::AssetAnimationBlendSpace:
+			case FieldType::AssetBehaviorGraph:
 				return true;
 			default: return false;
 		}

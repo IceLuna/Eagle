@@ -4,6 +4,7 @@ namespace Eagle
 {
     class UIGraph;
     struct Node;
+    struct AIBehaviorNode;
     enum class PinType;
     class AssetAnimationBlendSpace;
 
@@ -78,10 +79,15 @@ namespace Eagle
         static Node& SpawnMapRangeNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnEulerToQuatNode(UIGraph& graph, const std::string_view name);
         
-        // State Machine
-        static Node& SpawnStateMachine(UIGraph& graph, const std::string_view name);
-        static Node& SpawnState(UIGraph& graph, const std::string_view name); // State of a state machine
-        static Node& SpawnEntryStateNode(UIGraph& graph);
+        // Animation State Machine
+        static Node& SpawnAnimationStateMachine(UIGraph& graph, const std::string_view name);
+        static Node& SpawnAnimationState(UIGraph& graph, const std::string_view name); // State of a state machine
+        static Node& SpawnAnimationEntryStateNode(UIGraph& graph);
+
+        // Behavior graph
+        static Node& SpawnBehaviorTaskNode(UIGraph& graph, const AIBehaviorNode& data);
+        static Node& SpawnBehaviorCompositeNode(UIGraph& graph, const AIBehaviorNode& data);
+        static Node& SpawnBehaviorRootNode(UIGraph& graph);
 
         // Other
         static Node& SpawnComment(UIGraph& graph, const std::string_view name);

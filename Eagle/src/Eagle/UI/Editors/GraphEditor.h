@@ -15,11 +15,11 @@ namespace Eagle
         virtual ~GraphEditor();
 
         virtual void OnImGuiRender(bool* pOpen = nullptr);
-        virtual void ShowLeftPane(float paneWidth);
+        virtual void RenderLeftPanel();
 
         virtual void OnEvent(Event& e);
 
-        virtual void Compile() = 0;
+        virtual void Compile() {}
 
         virtual GraphEditorSerializationData Save();
 
@@ -119,7 +119,7 @@ namespace Eagle
             return GraphVariableType::Bool;
         }
 
-        virtual void OnGraphChanged() = 0;
+        virtual void OnGraphChanged() {}
         virtual void OnAddGraphPre() = 0;
         virtual void OnAddGraphPost() = 0;
 
@@ -139,12 +139,7 @@ namespace Eagle
         std::vector<CachedNodeData>& GetPoseCacheNodes() { return m_PoseCacheNodes; }
 
         const Ref<Texture2D>& GetHeaderTexture() const { return m_HeaderTexture; }
-        const Ref<Texture2D>& GetSaveTexture() const { return m_SaveTexture; }
-        const Ref<Texture2D>& GetRestoreTexture() const { return m_RestoreTexture; }
-
         ImTextureID GetHeaderTextureID() const { return m_HeaderBackground; }
-        ImTextureID GetSaveTextureID() const { return m_SaveIcon; }
-        ImTextureID GetRestoreTextureID() const { return m_RestoreIcon; }
 
         static const char* GetVarDragDropTag() { return "EDITOR_GRAPH_VAR_TAG"; }
 
@@ -171,12 +166,8 @@ namespace Eagle
         std::string m_SelectedVar;
         std::string m_RenamingVarTemp;
 
-        Ref<Texture2D>       m_HeaderTexture;
-        Ref<Texture2D>       m_SaveTexture;
-        Ref<Texture2D>       m_RestoreTexture;
-        ImTextureID          m_HeaderBackground = nullptr;
-        ImTextureID          m_SaveIcon = nullptr;
-        ImTextureID          m_RestoreIcon = nullptr;
+        Ref<Texture2D> m_HeaderTexture;
+        ImTextureID m_HeaderBackground = nullptr;
 
         std::vector<Ref<UIGraph>> m_History; // For back/forward navigation
 
@@ -184,6 +175,8 @@ namespace Eagle
 
         std::vector<CachedNodeData> m_PoseCacheNodes;
 
+        float m_LeftPanelWidth = 400.f;
+        float m_RightPanelWidth = 800.f;
         bool m_bIgnoreChangedEvent = true;
         bool m_bGraphFocused = false;
     };

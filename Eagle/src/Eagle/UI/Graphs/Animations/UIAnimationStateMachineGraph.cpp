@@ -290,13 +290,13 @@ namespace Eagle
 
     void UIAnimationStateMachineGraph::SetupInitialNodes()
     {
-        m_EntryNodeId = GraphNodeFactory::SpawnEntryStateNode(*this).ID;
+        m_EntryNodeId = GraphNodeFactory::SpawnAnimationEntryStateNode(*this).ID;
     }
 
     void UIAnimationStateMachineGraph::SetupNodeFactory()
     {
         auto& category = m_NodeFactory["State Machine"];
-        category["New State"] = &GraphNodeFactory::SpawnState;
+        category["New State"] = &GraphNodeFactory::SpawnAnimationState;
         category["Comment"] = &GraphNodeFactory::SpawnComment;
     }
 
@@ -312,7 +312,6 @@ namespace Eagle
         Node* startNode = FindNode(startPin.NodeID);
         Node* endNode = FindNode(endPin.NodeID);
 
-
         // Check if a user tries to connect nodes again but using other input-output pins
         {
             const auto& outputs = endNode->OutputsPerPin[0];
@@ -321,8 +320,6 @@ namespace Eagle
                 if (output.NodeID == startNode->ID)
                 {
                     bReject = true;
-                    ShowLabel("x Connection between the states already exist!", ImColor(45, 32, 32, 180));
-                    ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
                     break;
                 }
             }
@@ -336,11 +333,15 @@ namespace Eagle
                 if (output.NodeID == endNode->ID)
                 {
                     bReject = true;
-                    ShowLabel("x Connection between the states already exist!", ImColor(45, 32, 32, 180));
-                    ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
                     break;
                 }
             }
+        }
+
+        if (bReject)
+        {
+            ShowLabel("x Connection between the states already exist!", ImColor(45, 32, 32, 180));
+            ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
         }
 
         return bReject;

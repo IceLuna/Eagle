@@ -743,6 +743,9 @@ namespace Eagle::Script
 		float* animationSpeed, bool* bDestroyImmediately, bool* bEmit, bool* bExplode, bool* bApplyGravity, bool* bAlphaBlending,
 		bool* bAdditive, bool* bBlendAnimation, bool* bFaceDirection);
 
+	// AssetBehaviorGraph
+	void Eagle_AssetBehaviorGraph_CreateTaskManager(GUID assetID, MonoObject** outTaskManager);
+
 	// Math
 	glm::vec3 Eagle_Math_GetForwardVector(const Rotator* rotator);
 	glm::vec3 Eagle_Math_GetUpVector(const Rotator* rotator);

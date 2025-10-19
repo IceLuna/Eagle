@@ -1,12 +1,12 @@
 #include "egpch.h"
 #include "GraphNodeFactory.h"
-#include "Eagle/UI/Graphs/UIGraph.h"
-#include "Eagle/UI/Graphs/UIAnimationStateMachineGraph.h"
-#include "Eagle/UI/Graphs/UIAnimationStateGraph.h"
+#include "Eagle/UI/Graphs/Animations/UIAnimationStateMachineGraph.h"
+#include "Eagle/UI/Graphs/Animations/UIAnimationStateGraph.h"
 
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/Animation/Nodes/AnimationNodes.h"
 #include "Eagle/UI/Editors/AnimationGraphEditor.h"
+#include "Eagle/AI/BehaviorGraph.h"
 
 namespace Eagle
 {
@@ -359,7 +359,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         return node;
     }
 
-    Node& GraphNodeFactory::SpawnEntryStateNode(UIGraph& graph)
+    Node& GraphNodeFactory::SpawnAnimationEntryStateNode(UIGraph& graph)
     {
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
@@ -1034,6 +1034,50 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         return node;
     }
 
+    Node& GraphNodeFactory::SpawnBehaviorTaskNode(UIGraph& graph, const AIBehaviorNode& data)
+    {
+        auto& node = graph.AddNode(data.Data.Name);
+        node.Type = NodeType::BehaviorTask;
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::StateFlow);
+        node.Color = ImColor(128, 128, 128, 200);
+        node.BehaviorNodeData = data;
+        node.BehaviorNodeData.Data.ID = GUID{}; // Generate a new ID for it
+
+        graph.BuildNode(node);
+        graph.OnNodeAdded(node);
+
+        return node;
+    }
+
+    Node& GraphNodeFactory::SpawnBehaviorCompositeNode(UIGraph& graph, const AIBehaviorNode& data)
+    {
+        auto& node = graph.AddNode(data.Data.Name);
+        node.Type = NodeType::BehaviorComposite;
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::StateFlow);
+        node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::StateFlow);
+        node.Color = ImColor(128, 128, 128, 200);
+        node.BehaviorNodeData = data;
+        node.BehaviorNodeData.Data.ID = GUID{}; // Generate a new ID for it
+
+        graph.BuildNode(node);
+        graph.OnNodeAdded(node);
+
+        return node;
+    }
+
+    Node& GraphNodeFactory::SpawnBehaviorRootNode(UIGraph& graph)
+    {
+        const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
+
+        auto& node = graph.AddNode("Root", ImColor(128, 195, 248), false);
+        node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Flow);
+
+        graph.BuildNode(node);
+        graph.OnNodeAdded(node);
+
+        return node;
+    }
+
     Node& GraphNodeFactory::SpawnComment(UIGraph& graph, const std::string_view name)
     {
         auto& node = graph.AddNode(name);
@@ -1046,7 +1090,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         return node;
     }
 
-    Node& GraphNodeFactory::SpawnStateMachine(UIGraph& graph, const std::string_view name)
+    Node& GraphNodeFactory::SpawnAnimationStateMachine(UIGraph& graph, const std::string_view name)
     {
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Pose);
@@ -1061,13 +1105,14 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         return node;
     }
 
-    Node& GraphNodeFactory::SpawnState(UIGraph& graph, const std::string_view name)
+    Node& GraphNodeFactory::SpawnAnimationState(UIGraph& graph, const std::string_view name)
     {
         auto& node = graph.AddNode(name);
         node.Type = NodeType::StateMachineState;
         node.InputPins.emplace_back(graph.GetNextId(), "", PinType::StateFlow);
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::StateFlow);
         node.UserData = name;
+        node.Color = ImColor(128, 128, 128, 200);
 
         node.Graph = MakeRef<UIAnimationStateGraph>(graph.GetEditor(), name);
 

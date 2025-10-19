@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 
-namespace Eagle.AI
+namespace Eagle
 {
     public enum AINodeStatus
     {
@@ -18,11 +18,6 @@ namespace Eagle.AI
 
         // Called once after the task is finished/aborted
         public virtual void OnEnd(AINodeStatus status) {}
-
-        public virtual void Reset()
-        {
-            ResetDecorators();
-        }
 
         protected void ResetDecorators()
         {
@@ -50,7 +45,7 @@ namespace Eagle.AI
             return m_LastStatus;
         }
 
-        public T AddDecorator<T>() where T : AITaskDecorator, new()
+        public T AddDecorator<T>() where T : AINodeDecorator, new()
         {
             T decorator = new T();
             decorator.SetBlackboard(m_Blackboard);
@@ -58,7 +53,15 @@ namespace Eagle.AI
             return decorator;
         }
 
-        public bool RemoveDecorator(AITaskDecorator decorator)
+        internal AINodeDecorator AddDecorator_Interop(Type type)
+        {
+            AINodeDecorator decorator = Activator.CreateInstance(type) as AINodeDecorator;
+            decorator.SetBlackboard(m_Blackboard);
+            m_Decorators.Add(decorator);
+            return decorator;
+        }
+
+        public bool RemoveDecorator(AINodeDecorator decorator)
         {
             return m_Decorators.Remove(decorator);
         }
@@ -88,7 +91,7 @@ namespace Eagle.AI
             return true;
         }
 
-        protected List<AITaskDecorator> m_Decorators = new List<AITaskDecorator>();
+        protected List<AINodeDecorator> m_Decorators = new List<AINodeDecorator>();
         protected AIBlackboard m_Blackboard = null;
         private AINodeStatus m_LastStatus = AINodeStatus.Succeeded;
     }

@@ -1,9 +1,9 @@
 ﻿using System;
 
-namespace Eagle.AI
+namespace Eagle
 {
-    // Allows to run checks before/when a task is running
-    public class AITaskDecorator
+    // Allows to run checks before/when a node is running
+    public class AINodeDecorator
     {
         // The task should continue execution only if `Succeeded` is returned.
         // The task should fail if `Failed` is returned.
@@ -23,7 +23,7 @@ namespace Eagle.AI
         protected AIBlackboard m_Blackboard = null;
     }
 
-    public class AITaskDecoratorDelay : AITaskDecorator
+    public class AINodeDecoratorDelay : AINodeDecorator
     {
         public string Delay;
 
@@ -44,11 +44,17 @@ namespace Eagle.AI
         private float m_Time = 0f;
     }
 
-    public class AITaskDecoratorBlackboardValueSet : AITaskDecorator
+    public class AINodeDecoratorBlackboardIsValueSet : AINodeDecorator
     {
         public string Key;
-        public bool bCheckIfSet = true; // If false, it'll do the opposite: check if the key is not set
-        public bool bAbortIfChanged = true; // If false, the task will continue to run even if the check fails.
+
+        [UIName("Check if set")]
+        [ToolTip("If false, it'll do the opposite: check if the key is not set")]
+        public bool bCheckIfSet = true;
+
+        [UIName("Abort if changed")]
+        [ToolTip("If false, the task won't abort its execution if the value changes")]
+        public bool bAbortIfChanged = true;
 
         public override AINodeStatus Update(float ts)
         {
