@@ -1979,7 +1979,7 @@ namespace Eagle
                 {
                     ImGui::TextUnformatted((std::to_string(i++) + ") ").c_str());
                     ImGui::SameLine();
-                    ImGui::TextUnformatted(decorator.Name.c_str());
+                    ImGui::TextUnformatted(decorator.ClassData.UIName.c_str());
                 }
             }
         }

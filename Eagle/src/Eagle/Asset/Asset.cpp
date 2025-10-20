@@ -500,4 +500,14 @@ namespace Eagle
 	{
 		return GetBehaviorClassNodeData_Internal(m_Root, id, outData);
 	}
+
+	void AssetBehaviorGraph::RegisterCallback()
+	{
+		ScriptEngine::RemoveOnAppAssemblyReloadedCallback(m_GUID);
+
+		ScriptEngine::AddOnAppAssemblyReloadedCallback(m_GUID, [this]()
+		{
+			ScriptEngine::UpdateAIBehaviorNodePublicFields(m_Root);
+		});
+	}
 }

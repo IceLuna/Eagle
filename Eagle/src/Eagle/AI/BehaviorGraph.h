@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Eagle/Script/PublicField.h"
+#include "Eagle/Script/ScriptUtils.h"
 
 #include <string>
 #include <map>
@@ -10,25 +10,21 @@ namespace Eagle
 	// Represents the data of an AI class from C# (AITask, AINodeDecorator, AICompositeNode)
 	struct AIBehaviorClassData
 	{
+		ScriptClass ClassData;
+
 		enum class ClassType
 		{
 			Unknown, Task, Composite, Decorator
 		} Type = ClassType::Unknown;
-
 
 		// We somehow need to associate UI node with the this behavior node.
 		// We can't use name, or fields, because different nodes can have the same data.
 		// This ID is genereted by the UI Behavior Graph when the node is created
 		GUID ID = GUID(0, 0);
 
-		std::string FullName; // Namespace.Name
-		std::string Name;
-		std::map<std::string, PublicField> Fields;
-		bool bUserClass = false; // Controlled by ScriptEngine. Should not be modified by other code
-
 		bool operator== (const AIBehaviorClassData& other) const
 		{
-			return FullName == other.FullName;
+			return ClassData == other.ClassData;
 		}
 
 		bool operator!= (const AIBehaviorClassData& other) const

@@ -1103,31 +1103,15 @@ namespace Eagle
 					if (bRuntime)
 						UI::PushItemDisabled();
 
-					EntityInstance& entityInstance = ScriptEngine::GetEntityInstance(entity);
 					bool bModuleExists = ScriptEngine::ModuleExists(scriptComponent.ModuleName);
-					const auto& scriptClasses = ScriptEngine::GetScriptsNames();
-					int newSelection = 0;
-					int currentSelection = -1;
-					for (int i = 0; i < scriptClasses.size(); ++i)
-					{
-						if (scriptComponent.ModuleName == scriptClasses[i])
-						{
-							currentSelection = i;
-							break;
-						}
-					}
+					const auto& scriptClasses = ScriptEngine::GetEntityClasses();
 
 					if (!bModuleExists)
 						UI::PushFrameBGColor({150.f, 0.f, 0.f, 255.f});
 
-					if(UI::ComboWithNone("Script Class", currentSelection, scriptClasses, newSelection))
+					if(UI::ComboWithNone("Script Class", scriptComponent.ModuleName, scriptClasses))
 					{
-						if (newSelection == -1)
-							scriptComponent.ModuleName = "";
-						else
-							scriptComponent.ModuleName = scriptClasses[newSelection];
-
-						ScriptEngine::InitEntityScript(entity);
+						ScriptEngine::UpdateEntityPublicFields(entity);
 						bEntityChanged = true;
 					}
 						
@@ -1140,10 +1124,11 @@ namespace Eagle
 					ImGui::Separator();
 					if (ScriptEngine::ModuleExists(scriptComponent.ModuleName))
 					{
+						EntityInstance* entityInstance = ScriptEngine::GetEntityInstance(entity);
 						for (auto& [_, field] : scriptComponent.PublicFields)
 						{
 							// Don't mark as changed during runtime
-							bEntityChanged |= UI::Property(field, entityInstance.GetMonoInstance(), bRuntime, entity) && !bRuntime;
+							bEntityChanged |= UI::Property(field, entityInstance ? entityInstance->GetMonoInstance() : nullptr, bRuntime, entity) && !bRuntime;
 						}
 					}
 

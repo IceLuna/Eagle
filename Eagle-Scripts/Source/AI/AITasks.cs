@@ -6,11 +6,19 @@ namespace Eagle
     public class AITask : AINode
     { }
 
+    [UIName("Go to Point")]
     public class AITaskGoToPoint : AITask
     {
+        [Tooltip("Entity that should be moved")]
         public string Owner;
+
+        [UIName("Point to go to")]
         public string Target;
+
+        [UIName("Move speed")]
         public string MoveSpeed;
+
+        [UIName("Rotation speed")]
         public string RotationSpeed;
 
         public override void OnBegin()
@@ -43,11 +51,20 @@ namespace Eagle
         private float m_RotationSpeed = 3.5f;
     }
 
+    [UIName("Go to Entity")]
     public class AITaskGoToEntity : AITask
     {
+        [Tooltip("Entity that should be moved")]
         public string Owner;
+
+        [UIName("Target Entity")]
+        [Tooltip("Entity to go to")]
         public string TargetEntity;
+
+        [UIName("Move speed")]
         public string MoveSpeed;
+
+        [UIName("Rotation speed")]
         public string RotationSpeed;
 
         public override void OnBegin()
@@ -83,13 +100,22 @@ namespace Eagle
         private float m_RotationSpeed = 3.5f;
     }
 
+    [UIName("Go to a random point")]
     public class AITaskGoToRandomPoint : AITask
     {
+        [Tooltip("Entity that should be moved")]
         public string Owner;
+
+        [UIName("Radius")]
+        [Tooltip("A random point within this radius will be selected")]
         public string Radius;
+
+        [UIName("Move speed")]
         public string MoveSpeed;
+
+        [UIName("Rotation speed")]
         public string RotationSpeed;
-     
+
         public override void OnBegin()
         {
             if (m_Blackboard.TryGetValue(Owner, out Entity entity))

@@ -23,6 +23,7 @@ namespace Eagle
         protected AIBlackboard m_Blackboard = null;
     }
 
+    [UIName("Delay")]
     public class AINodeDecoratorDelay : AINodeDecorator
     {
         public string Delay;
@@ -44,16 +45,17 @@ namespace Eagle
         private float m_Time = 0f;
     }
 
-    public class AINodeDecoratorBlackboardIsValueSet : AINodeDecorator
+    [UIName("Is Blackboard Value Set")]
+    public class AINodeDecoratorIsBlackboardValueSet : AINodeDecorator
     {
         public string Key;
 
         [UIName("Check if set")]
-        [ToolTip("If false, it'll do the opposite: check if the key is not set")]
+        [Tooltip("If false, it'll do the opposite: check if the key is not set")]
         public bool bCheckIfSet = true;
 
         [UIName("Abort if changed")]
-        [ToolTip("If false, the task won't abort its execution if the value changes")]
+        [Tooltip("If false, the task won't abort its execution if the value changes")]
         public bool bAbortIfChanged = true;
 
         public override AINodeStatus Update(float ts)

@@ -5901,8 +5901,8 @@ namespace Eagle
 		}
 
 		sc.ModuleName = std::move(moduleName);
-		ScriptEngine::InstantiateEntityClass(entity);
-		ScriptEngine::OnCreateEntity(entity);
+		if (ScriptEngine::InstantiateEntityClass(entity))
+			ScriptEngine::OnCreateEntity(entity);
 	}
 
 	MonoReflectionType* Script::Eagle_ScriptComponent_GetScriptType(GUID entityID)

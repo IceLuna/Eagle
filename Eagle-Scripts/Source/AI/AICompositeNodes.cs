@@ -50,7 +50,8 @@ namespace Eagle
         protected List<AINode> m_Children = new List<AINode>();
     }
 
-    // Sequence succeeds when all children succeed, fails on first failure
+    [UIName("Sequence")]
+    [Tooltip("Sequence succeeds when all children succeed, fails on first failure")]
     public class AISequenceNode : AICompositeNode
     {
         protected override AINodeStatus Update(float ts)
@@ -95,7 +96,8 @@ namespace Eagle
         private int m_Current = 0;
     }
 
-    // Selector succeeds on first child success, fails if all fail
+    [UIName("Selector")]
+    [Tooltip("Selector succeeds on first child success, fails if all fail")]
     public class AISelectorNode : AICompositeNode
     {
         protected override AINodeStatus Update(float ts)

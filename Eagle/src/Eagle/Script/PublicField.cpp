@@ -10,33 +10,26 @@ namespace Eagle
 	// If fails, please make sure `m_StoredValueBuffer` uses correct alignment when allocating `std::string`
 	static_assert(alignof(std::string) <= alignof(std::max_align_t));
 
-	PublicField::PublicField(const std::string& name, const std::string& typeName, const std::string& toolTip, FieldType type, bool isReadOnly)
-	: UIName(name), TypeName(typeName), ToolTip(toolTip), Type(type), IsReadOnly(isReadOnly)
+	PublicField::PublicField(const std::string& name, const std::string& typeName, const std::string& tooltip, FieldType type, bool isReadOnly)
+	: UIName(name), TypeName(typeName), Tooltip(tooltip), Type(type), IsReadOnly(isReadOnly)
 	{
 		AllocateBuffer(Type);
 	}
 
-	PublicField::PublicField(std::string&& name, std::string&& typeName, std::string&& toolTip, FieldType type, bool isReadOnly)
-		: UIName(std::move(name)), TypeName(std::move(typeName)), ToolTip(std::move(toolTip)), Type(type), IsReadOnly(isReadOnly)
+	PublicField::PublicField(std::string&& name, std::string&& typeName, std::string&& tooltip, FieldType type, bool isReadOnly)
+		: UIName(std::move(name)), TypeName(std::move(typeName)), Tooltip(std::move(tooltip)), Type(type), IsReadOnly(isReadOnly)
 	{
 		AllocateBuffer(Type);
 	}
 
 	PublicField::PublicField(const PublicField& other)
-		: UIName(other.UIName), TypeName(other.TypeName), ToolTip(other.ToolTip), Type(other.Type), IsReadOnly(other.IsReadOnly)
+		: UIName(other.UIName), TypeName(other.TypeName), Tooltip(other.Tooltip), Type(other.Type), IsReadOnly(other.IsReadOnly)
 		, EnumFields(other.EnumFields)
 		, m_MonoClassField(other.m_MonoClassField)
 		, m_MonoProperty(other.m_MonoProperty)
 	{
 		AllocateBuffer(Type);
-		if (Type != FieldType::String)
-		{
-			m_StoredValueBuffer.Write(other.m_StoredValueBuffer.Data(), other.m_StoredValueBuffer.Size());
-		}
-		else
-		{
-			GetDataAsString() = other.GetDataAsString();
-		}
+		CopyStoredValue(other);
 	}
 
 	PublicField::~PublicField()
@@ -53,7 +46,7 @@ namespace Eagle
 		{
 			UIName = other.UIName;
 			TypeName = other.TypeName;
-			ToolTip = other.ToolTip;
+			Tooltip = other.Tooltip;
 			Type = other.Type;
 			IsReadOnly = other.IsReadOnly;
 			m_MonoClassField = other.m_MonoClassField;
@@ -61,14 +54,7 @@ namespace Eagle
 			EnumFields = other.EnumFields;
 
 			AllocateBuffer(Type);
-			if (Type != FieldType::String)
-			{
-				m_StoredValueBuffer.Write(other.m_StoredValueBuffer.Data(), other.m_StoredValueBuffer.Size());
-			}
-			else
-			{
-				GetDataAsString() = other.GetDataAsString();
-			}
+			CopyStoredValue(other);
 		}
 
 		return *this;
@@ -156,6 +142,39 @@ namespace Eagle
 		else
 		{
 			SetRuntimeValue_Internal(instance, (void*)m_StoredValueBuffer.Data());
+		}
+	}
+
+	bool PublicField::CopyStoredValue(const PublicField& other)
+	{
+		if (Type != other.Type)
+			return false;
+
+		EG_CORE_ASSERT(m_StoredValueBuffer.Size() == other.m_StoredValueBuffer.Size());
+		if (Type == FieldType::String)
+		{
+			GetDataAsString() = other.GetDataAsString();
+		}
+		else
+		{
+			m_StoredValueBuffer.Write(other.m_StoredValueBuffer.Data(), other.m_StoredValueBuffer.Size());
+		}
+		return true;
+	}
+
+	bool PublicField::IsStoredValueEqual(const PublicField& other)
+	{
+		if (Type != other.Type)
+			return false;
+
+		EG_CORE_ASSERT(m_StoredValueBuffer.Size() == other.m_StoredValueBuffer.Size());
+		if (Type == FieldType::String)
+		{
+			return GetDataAsString() == other.GetDataAsString();
+		}
+		else
+		{
+			return memcmp(m_StoredValueBuffer.Data(), other.m_StoredValueBuffer.Data(), m_StoredValueBuffer.Size()) == 0;
 		}
 	}
 

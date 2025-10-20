@@ -61,7 +61,7 @@ namespace Eagle
 	public:
 		std::string UIName;
 		std::string TypeName;
-		std::string ToolTip;
+		std::string Tooltip;
 		FieldType Type = FieldType::None;
 		
 		// If `Type` is `Enum` then this can be used to fetch valid `names - values`
@@ -83,6 +83,10 @@ namespace Eagle
 
 		void CopyStoredValueFromRuntime(MonoObject* instance);
 		void CopyStoredValueToRuntime(MonoObject* instance) const;
+
+		// Returns false if failed
+		bool CopyStoredValue(const PublicField& other);
+		bool IsStoredValueEqual(const PublicField& other);
 
 		template<typename T>
 		T GetStoredValue() const

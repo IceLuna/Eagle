@@ -11,11 +11,16 @@ namespace Eagle
     {
         for (const auto& data : classes)
         {
-            if (ImGui::MenuItem(data.Name.c_str()))
+            if (ImGui::MenuItem(data.ClassData.UIName.c_str()))
             {
                 AIBehaviorNode nodeData;
                 nodeData.Data = data;
                 *node = &func(graph, nodeData);
+            }
+            if (!data.ClassData.Tooltip.empty())
+            {
+                ImGui::SameLine();
+                UI::HelpMarker(data.ClassData.Tooltip);
             }
         }
     }
@@ -31,10 +36,15 @@ namespace Eagle
             if (bAlreadyAdded)
                 UI::PushItemDisabled();
 
-            if (ImGui::MenuItem(decorator.Name.c_str()))
+            if (ImGui::MenuItem(decorator.ClassData.UIName.c_str()))
             {
                 attachedDecorators.push_back(decorator);
                 bChanged = true;
+            }
+            if (!decorator.ClassData.Tooltip.empty())
+            {
+                ImGui::SameLine();
+                UI::HelpMarker(decorator.ClassData.Tooltip);
             }
 
             if (bAlreadyAdded)
@@ -47,7 +57,7 @@ namespace Eagle
     // Returns true if valid
     static bool IsNodeValid(const AIBehaviorClasses& coreClasses, const AIBehaviorClasses& userClasses, const Eagle::Node& node, bool bShowMessage)
     {
-        const auto& classes = node.BehaviorNodeData.Data.bUserClass ? userClasses : coreClasses;
+        const auto& classes = node.BehaviorNodeData.Data.ClassData.bUserClass ? userClasses : coreClasses;
         const std::vector<AIBehaviorClassData>& classesData = node.Type == NodeType::BehaviorTask ? classes.Tasks : classes.Composites;
 
         bool bValid = true;
@@ -59,7 +69,7 @@ namespace Eagle
         {
             for (const auto& decorator : node.BehaviorNodeData.AttachedDecorators)
             {
-                const auto& decoratorClasses = decorator.bUserClass ? userClasses : coreClasses;
+                const auto& decoratorClasses = decorator.ClassData.bUserClass ? userClasses : coreClasses;
                 const auto& decorators = decoratorClasses.Decorators;
 
                 if (std::find(decorators.begin(), decorators.end(), decorator) == decorators.end())
@@ -272,7 +282,7 @@ namespace Eagle
                         {
                             for (auto it = attachedDecorators.begin(); it != attachedDecorators.end();)
                             {
-                                const char* label = it->Name.empty() ? "Invalid" : it->Name.c_str();
+                                const char* label = it->ClassData.UIName.empty() ? "Invalid" : it->ClassData.UIName.c_str();
                                 ImGui::PushID(&(*it));
 
                                 if (ImGui::MenuItem(label))
@@ -411,15 +421,18 @@ namespace Eagle
         const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
             | ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
 
+        auto& nodeData = m_Selected->BehaviorNodeData;
+
         {
             UI::TextWithSeparator("Node Properties");
             UI::BeginPropertyGrid("BehaviorGraphNodes");
 
-            UI::Text("Name", m_Selected->GetName());
-            if (!m_Selected->BehaviorNodeData.Data.Fields.empty())
+            UI::Text("Full name", nodeData.Data.ClassData.FullName, nodeData.Data.ClassData.Tooltip);
+            UI::Text("UI Name", nodeData.Data.ClassData.UIName);
+            if (!nodeData.Data.ClassData.Fields.empty())
             {
                 ImGui::Separator();
-                for (auto& [_, field] : m_Selected->BehaviorNodeData.Data.Fields)
+                for (auto& [_, field] : nodeData.Data.ClassData.Fields)
                 {
                     m_bRebuild |= UI::Property(field);
 
@@ -434,21 +447,21 @@ namespace Eagle
         }
 
         UI::TextWithSeparator("Attached Decorators");
-        if (m_Selected->BehaviorNodeData.AttachedDecorators.empty())
+        if (nodeData.AttachedDecorators.empty())
             ImGui::TextDisabled("No decorators");
 
-        for (auto& decorator : m_Selected->BehaviorNodeData.AttachedDecorators)
+        for (auto& decorator : nodeData.AttachedDecorators)
         {
-            if (decorator.Name.empty())
+            if (decorator.ClassData.UIName.empty())
                 continue;
 
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-            bool treeOpened = ImGui::TreeNodeEx(decorator.Name.c_str(), flags);
+            bool treeOpened = ImGui::TreeNodeEx(decorator.ClassData.UIName.c_str(), flags);
             ImGui::PopStyleVar();
             if (treeOpened)
             {
                 UI::BeginPropertyGrid("DecoratorFields");
-                for (auto& [_, field] : decorator.Fields)
+                for (auto& [_, field] : decorator.ClassData.Fields)
                 {
                     m_bRebuild |= UI::Property(field);
                 }
@@ -549,7 +562,7 @@ namespace Eagle
 
     static void Print(const AIBehaviorNode& node)
     {
-        EG_CORE_INFO("{} : {}", node.Data.FullName, node.OrderIndex);
+        EG_CORE_INFO("{} : {}", node.Data.ClassData.FullName, node.OrderIndex);
         for (const auto& child : node.Children)
             Print(child);
     }

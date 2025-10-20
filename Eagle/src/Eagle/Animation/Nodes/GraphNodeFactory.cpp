@@ -1036,7 +1036,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
 
     Node& GraphNodeFactory::SpawnBehaviorTaskNode(UIGraph& graph, const AIBehaviorNode& data)
     {
-        auto& node = graph.AddNode(data.Data.Name);
+        auto& node = graph.AddNode(data.Data.ClassData.UIName);
         node.Type = NodeType::BehaviorTask;
         node.InputPins.emplace_back(graph.GetNextId(), "", PinType::StateFlow);
         node.Color = ImColor(128, 128, 128, 200);
@@ -1051,7 +1051,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
 
     Node& GraphNodeFactory::SpawnBehaviorCompositeNode(UIGraph& graph, const AIBehaviorNode& data)
     {
-        auto& node = graph.AddNode(data.Data.Name);
+        auto& node = graph.AddNode(data.Data.ClassData.UIName);
         node.Type = NodeType::BehaviorComposite;
         node.InputPins.emplace_back(graph.GetNextId(), "", PinType::StateFlow);
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::StateFlow);

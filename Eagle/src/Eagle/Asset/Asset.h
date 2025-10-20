@@ -840,6 +840,7 @@ namespace Eagle
 
 			AssetBehaviorGraph&& asset = (AssetBehaviorGraph&&)other;
 			m_Root = std::move(asset.m_Root);
+			RegisterCallback();
 
 			return *this;
 		}
@@ -872,7 +873,12 @@ namespace Eagle
 
 	protected:
 		AssetBehaviorGraph(const Path& path, GUID guid, AIBehaviorNode&& root, GraphEditorSerializationData&& data)
-			: Asset(path, {}, AssetType::BehaviorGraph, guid, {}), m_Root(std::move(root)), m_Data(std::move(data)) {}
+			: Asset(path, {}, AssetType::BehaviorGraph, guid, {}), m_Root(std::move(root)), m_Data(std::move(data))
+		{
+			RegisterCallback();
+		}
+
+		void RegisterCallback();
 
 	private:
 		AIBehaviorNode m_Root;

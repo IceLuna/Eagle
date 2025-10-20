@@ -38,7 +38,7 @@ namespace Eagle
 	static MonoClass* s_Vector3Class = nullptr;
 
 	static MonoClass* s_AttrUINameClass = nullptr;
-	static MonoClass* s_AttrToolTipClass = nullptr;
+	static MonoClass* s_AttrTooltipClass = nullptr;
 
 	static MonoClass* s_AITaskClass = nullptr;
 	static MonoClass* s_AIDecoratorClass = nullptr;
@@ -49,12 +49,10 @@ namespace Eagle
 	static MonoMethod* s_AICompositeAddChildMethod = nullptr;
 	static MonoMethod* s_AINodeAddDecoratorMethod = nullptr;
 
+	std::map<std::string, EntityScriptClass> ScriptEngine::s_EntityClasses;
 	std::unordered_map<GUID, EntityInstance> ScriptEngine::s_EntityInstanceDataMap;
-	std::vector<std::string> ScriptEngine::s_AvailableModuleNames;
-	std::map<std::string, MonoClass*> ScriptEngine::s_CoreAIClasses; // Fullname to MonoClass mapping
-	std::map<std::string, MonoClass*> ScriptEngine::s_AllAIClasses; // Fullname to MonoClass mapping
-	AIBehaviorClasses ScriptEngine::s_AvailableCoreAIClasses;
-	AIBehaviorClasses ScriptEngine::s_AvailableUserAIClasses;
+	AIBehaviorClasses ScriptEngine::s_CoreAIClasses;
+	AIBehaviorClasses ScriptEngine::s_UserAIClasses;
 	std::unordered_map<GUID, std::function<void()>> ScriptEngine::s_AppAssemblyReloadedCallbacks;
 
 	static std::unordered_map<MonoClass*, FieldType> s_BuiltInEagleTypes;
@@ -87,7 +85,7 @@ namespace Eagle
 
 #if 0 // print all members of a class
 			{
-				MonoClass* klass = ScriptEngine::GetCoreClass("Eagle", "Asset");
+				MonoClass* klass = mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Asset");
 				void* iter = NULL;
 				MonoClassField* property;
 				while (property = mono_class_get_fields(klass, &iter))
@@ -182,48 +180,60 @@ namespace Eagle
 		return visibility == MONO_TYPE_ATTR_PUBLIC || visibility == MONO_TYPE_ATTR_NESTED_PUBLIC;
 	}
 
-	// Helper to get string property value from attribute
-	static std::string GetAttributeStringProperty(MonoObject* attribute, const char* propertyName)
+	static void GetAttributes(MonoCustomAttrInfo* attrs, std::string* outName, std::string* outTooltip)
 	{
-		if (!attribute)
-			return {};
-
-		MonoClass* attrClass = mono_object_get_class(attribute);
-		MonoProperty* prop = mono_class_get_property_from_name(attrClass, propertyName);
-		if (!prop)
-			return {};
-
-		MonoObject* result = mono_property_get_value(prop, attribute, nullptr, nullptr);
-		if (!result)
-			return {};
-
-		std::string str = MonoStringHandler((MonoString*)result).c_str();
-		return str;
-	}
-
-	void ScriptEngine::LoadAIClassPublicFields(std::vector<AIBehaviorClassData>& classes)
-	{
-		for (auto& klass : classes)
+		for (int i = 0; i < attrs->num_attrs; ++i)
 		{
-			auto it = s_AllAIClasses.find(klass.FullName);
-			if (it == s_AllAIClasses.end())
-			{
-				EG_CORE_ERROR("Failed to load public field of an AI class. Unknown class: {}", klass.FullName);
-				continue;
-			}
-			MonoClass* monoClass = it->second;
+			MonoClass* attrClass = mono_method_get_class(attrs->attrs[i].ctor);
 
-			Scope<MonoInstance> instance = MonoInstance::Create(monoClass, klass.FullName);
-			if (!instance->IsValid())
+			if (attrClass == s_AttrUINameClass)
 			{
-				EG_CORE_ERROR("Failed to instantiate {}", klass.FullName);
-				continue;
+				MonoObject* attrObj = mono_custom_attrs_get_attr(attrs, attrClass);
+				std::string name = ScriptEngine::GetStringProperty("Name", attrClass, attrObj);
+				if (!name.empty())
+				{
+					*outName = std::move(name);
+				}
 			}
-			ScriptEngine::ParsePublicFields(monoClass, instance->GetInstance(), klass.Fields, {});
+			else if (attrClass == s_AttrTooltipClass)
+			{
+				MonoObject* attrObj = mono_custom_attrs_get_attr(attrs, attrClass);
+				std::string text = ScriptEngine::GetStringProperty("Text", attrClass, attrObj);
+				if (!text.empty())
+				{
+					*outTooltip = std::move(text);
+				}
+			}
 		}
 	}
 
-	void ScriptEngine::ParsePublicFields(MonoClass* klass, MonoObject* instance, std::map<std::string, PublicField>& publicFields, std::map<std::string, PublicField>&& oldPublicFields)
+	static void GetClassAttributes(MonoClass* klass, std::string* outName, const char* nameFallback, std::string* outTooltip)
+	{
+		*outName = nameFallback;
+
+		MonoCustomAttrInfo* attrs = mono_custom_attrs_from_class(klass);
+		if (!attrs)
+			return;
+
+		GetAttributes(attrs, outName, outTooltip);
+		
+		mono_custom_attrs_free(attrs);
+	}
+
+	std::map<std::string, PublicField> ScriptEngine::LoadClassPublicFields(MonoClass* monoClass, std::string_view debugName)
+	{
+		Scope<MonoInstance> instance = MonoInstance::Create(monoClass, debugName);
+		if (!instance->IsValid())
+		{
+			return {};
+		}
+
+		std::map<std::string, PublicField> result;
+		ScriptEngine::ParsePublicFields(monoClass, instance->GetInstance(), result);
+		return result;
+	}
+
+	void ScriptEngine::ParsePublicFields(MonoClass* klass, MonoObject* instance, std::map<std::string, PublicField>& publicFields)
 	{
 		do
 		{
@@ -245,62 +255,20 @@ namespace Eagle
 				if (fieldType == FieldType::None) // Not supported
 					continue;
 
-				std::string toolTip;
+				std::string tooltip;
 				// Get custom attributes for the field
 				if (MonoCustomAttrInfo* attrs = mono_custom_attrs_from_field(klass, iter))
 				{
-					for (int i = 0; i < attrs->num_attrs; ++i)
-					{
-						MonoClass* attrClass = mono_method_get_class(attrs->attrs[i].ctor);
-
-						if (attrClass == s_AttrUINameClass)
-						{
-							MonoObject* attrObj = mono_custom_attrs_get_attr(attrs, attrClass);
-							fieldName = GetAttributeStringProperty(attrObj, "Name");
-						}
-						else if (attrClass == s_AttrToolTipClass)
-						{
-							MonoObject* attrObj = mono_custom_attrs_get_attr(attrs, attrClass);
-							toolTip = GetAttributeStringProperty(attrObj, "Text");
-						}
-					}
+					GetAttributes(attrs, &fieldName, &tooltip);
 					mono_custom_attrs_free(attrs);
-				}
-
-				const char* typeName = mono_type_get_name(monoFieldType);
-
-				auto oldField = oldPublicFields.find(fieldName);
-				if ((oldField != oldPublicFields.end()) && (oldField->second.TypeName == typeName))
-				{
-					PublicField& field = publicFields.emplace(fieldName, std::move(oldField->second)).first->second;
-					field.m_MonoClassField = iter;
-					field.EnumFields = fieldType == FieldType::Enum ? GetEnumFields(monoFieldType) : ScriptEnumFields{};
-
-					// Check if the current enum value is still valid. If not, change it
-					if (fieldType == FieldType::Enum && field.EnumFields.size())
-					{
-						const int storedValue = field.GetStoredValue<int>();
-						bool bValid = false;
-						for (auto& [value, name] : field.EnumFields)
-						{
-							if (storedValue == value)
-							{
-								bValid = true;
-								break;
-							}
-						}
-						// It has changed
-						if (!bValid)
-							field.SetStoredValue<int>(field.EnumFields.begin()->first);
-					}
-					continue;
 				}
 
 				if (fieldType == FieldType::ClassReference)
 					continue;
 
+				const char* typeName = mono_type_get_name(monoFieldType);
 				PublicField& publicField = publicFields[fieldName];
-				publicField = PublicField(std::move(fieldName), std::move(typeName), std::move(toolTip), fieldType);
+				publicField = PublicField(std::move(fieldName), std::move(typeName), std::move(tooltip), fieldType);
 				publicField.m_MonoClassField = iter;
 				publicField.CopyStoredValueFromRuntime(instance);
 				publicField.EnumFields = fieldType == FieldType::Enum ? GetEnumFields(monoFieldType) : ScriptEnumFields{};
@@ -323,17 +291,13 @@ namespace Eagle
 
 	AIBehaviorClassData ScriptEngine::GetAIClassData(const std::string& fullName)
 	{
-		auto it = s_AllAIClasses.find(fullName);
-		if (it == s_AllAIClasses.end())
-			return {};
-
 		AIBehaviorClassData result;
 
 		auto findFunc = [&fullName, &result](const std::vector<AIBehaviorClassData>& classes) -> bool
 		{
 			auto it = std::find_if(classes.begin(), classes.end(), [&fullName](const AIBehaviorClassData& data)
 			{
-				return data.FullName == fullName;
+				return data.ClassData.FullName == fullName;
 			});
 
 			if (it == classes.end())
@@ -343,17 +307,17 @@ namespace Eagle
 			return true;
 		};
 
-		if (findFunc(s_AvailableUserAIClasses.Tasks))
+		if (findFunc(s_UserAIClasses.Tasks))
 			return result;
-		if (findFunc(s_AvailableUserAIClasses.Composites))
+		if (findFunc(s_UserAIClasses.Composites))
 			return result;
-		if (findFunc(s_AvailableUserAIClasses.Decorators))
+		if (findFunc(s_UserAIClasses.Decorators))
 			return result;
-		if (findFunc(s_AvailableCoreAIClasses.Tasks))
+		if (findFunc(s_CoreAIClasses.Tasks))
 			return result;
-		if (findFunc(s_AvailableCoreAIClasses.Composites))
+		if (findFunc(s_CoreAIClasses.Composites))
 			return result;
-		if (findFunc(s_AvailableCoreAIClasses.Decorators))
+		if (findFunc(s_CoreAIClasses.Decorators))
 			return result;
 
 		return result;
@@ -387,12 +351,10 @@ namespace Eagle
 
 	void ScriptEngine::Shutdown()
 	{
+		s_EntityClasses.clear();
 		s_EntityInstanceDataMap.clear();
-		s_AvailableModuleNames.clear();
-		s_CoreAIClasses.clear();
-		s_AllAIClasses.clear();
-		s_AvailableCoreAIClasses.Clear();
-		s_AvailableUserAIClasses.Clear();
+		s_CoreAIClasses.Clear();
+		s_UserAIClasses.Clear();
 		s_AppAssemblyReloadedCallbacks.clear();
 
 		// These function calls are disabled because mono_jit_cleanup() might crash for some reason
@@ -402,33 +364,6 @@ namespace Eagle
 		
 		s_RootDomain = nullptr;
 		s_CurrentMonoDomain = nullptr;
-	}
-
-	MonoClass* ScriptEngine::GetClass(MonoImage* image, const EntityScriptClass& scriptClass)
-	{
-		MonoClass* monoClass = mono_class_from_name(image, scriptClass.NamespaceName.c_str(), scriptClass.ClassName.c_str());
-		if (!monoClass)
-			EG_CORE_ERROR("[ScriptEngine]::GetCoreClass. Couldn't find class {0}.{1}", scriptClass.NamespaceName, scriptClass.ClassName);
-
-		return monoClass;
-	}
-
-	MonoClass* ScriptEngine::GetCoreClass(const std::string& namespaceName, const std::string& className)
-	{
-		static std::unordered_map<std::string, MonoClass*> classes;
-		const std::string fullName = namespaceName.empty() ? className : (namespaceName + "." + className);
-		
-		auto it = classes.find(fullName);
-		if (it != classes.end())
-			return it->second;
-
-		MonoClass* monoClass = mono_class_from_name(s_CoreAssemblyImage, namespaceName.c_str(), className.c_str());
-		if (!monoClass)
-			EG_CORE_ERROR("[ScriptEngine]::GetCoreClass. Couldn't find class {0}.{1}", namespaceName, className);
-		else
-			classes[std::move(fullName)] = monoClass;
-
-		return monoClass;
 	}
 
 	MonoClass* ScriptEngine::GetEntityClass()
@@ -480,32 +415,35 @@ namespace Eagle
 		s_EntityInstanceDataMap.clear();
 	}
 
-	void ScriptEngine::InstantiateEntityClass(Entity entity)
+	bool ScriptEngine::InstantiateEntityClass(Entity entity)
 	{
-		GUID guid = entity.GetComponent<IDComponent>().ID;
-		auto& scriptComponent = entity.GetComponent<ScriptComponent>();
-		EntityInstance& entityInstance = GetEntityInstance(entity);
-		entityInstance.Instance = MonoInstance::Create(entityInstance.ScriptClass.Class, entityInstance.ScriptClass.FullName);
+		EntityInstance* entityInstance = CreateEntityInstance(entity);
+		if (entityInstance == nullptr)
+			return false;
 
+		GUID guid = entity.GetGUID();
 		void* param[] = { &guid };
-		CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass.Constructor, param);
+		CallMethod(entityInstance->GetMonoInstance(), entityInstance->Methods.Constructor, param);
 
+		auto& scriptComponent = entity.GetComponent<ScriptComponent>();
 		for (auto& it : scriptComponent.PublicFields)
 		{
-			it.second.CopyStoredValueToRuntime(entityInstance.GetMonoInstance());
+			it.second.CopyStoredValueToRuntime(entityInstance->GetMonoInstance());
 		}
+
+		return true;
 	}
 
 	void ScriptEngine::OnCreateEntity(const Entity& entity)
 	{
 		typedef void (*OnCreateFunc)(MonoObject*, MonoObject**);
 
-		EntityInstance& entityInstance = GetEntityInstance(entity);
-		if (entityInstance.ScriptClass.OnCreateMethod)
+		EntityInstance* entityInstance = GetEntityInstance(entity);
+		if (entityInstance && entityInstance->Methods.OnCreateMethod)
 		{
-			OnCreateFunc function = (OnCreateFunc)entityInstance.ScriptClass.OnCreateMethod.Thunk;
+			OnCreateFunc function = (OnCreateFunc)entityInstance->Methods.OnCreateMethod.Thunk;
 			MonoObject* exception = nullptr;
-			function(entityInstance.GetMonoInstance(), &exception);
+			function(entityInstance->GetMonoInstance(), &exception);
 			HandleException(exception);
 		}
 	}
@@ -514,12 +452,12 @@ namespace Eagle
 	{
 		typedef void (*UpdateFunc)(MonoObject*, float, MonoObject**);
 
-		EntityInstance& entityInstance = GetEntityInstance(entity);
-		if (entityInstance.ScriptClass.OnUpdateMethod)
+		EntityInstance* entityInstance = GetEntityInstance(entity);
+		if (entityInstance && entityInstance->Methods.OnUpdateMethod)
 		{
-			UpdateFunc function = (UpdateFunc)entityInstance.ScriptClass.OnUpdateMethod.Thunk;
+			UpdateFunc function = (UpdateFunc)entityInstance->Methods.OnUpdateMethod.Thunk;
 			MonoObject* exception = nullptr;
-			function(entityInstance.GetMonoInstance(), ts, &exception);
+			function(entityInstance->GetMonoInstance(), ts, &exception);
 			HandleException(exception);
 		}
 	}
@@ -528,12 +466,12 @@ namespace Eagle
 	{
 		typedef void (*OnEventFunc)(MonoObject*, void*, MonoObject**);
 
-		EntityInstance& entityInstance = GetEntityInstance(entity);
-		if (entityInstance.ScriptClass.OnEventMethod)
+		EntityInstance* entityInstance = GetEntityInstance(entity);
+		if (entityInstance && entityInstance->Methods.OnEventMethod)
 		{
-			OnEventFunc function = (OnEventFunc)entityInstance.ScriptClass.OnEventMethod.Thunk;
+			OnEventFunc function = (OnEventFunc)entityInstance->Methods.OnEventMethod.Thunk;
 			MonoObject* exception = nullptr;
-			function(entityInstance.GetMonoInstance(), eventObj, &exception);
+			function(entityInstance->GetMonoInstance(), eventObj, &exception);
 			HandleException(exception);
 		}
 	}
@@ -542,12 +480,12 @@ namespace Eagle
 	{
 		typedef void (*OnAnimationEventFunc)(MonoObject*, MonoString*, float, MonoObject**);
 
-		EntityInstance& entityInstance = GetEntityInstance(entity);
-		if (entityInstance.ScriptClass.OnAnimationEventMethod)
+		EntityInstance* entityInstance = GetEntityInstance(entity);
+		if (entityInstance && entityInstance->Methods.OnAnimationEventMethod)
 		{
-			OnAnimationEventFunc function = (OnAnimationEventFunc)entityInstance.ScriptClass.OnAnimationEventMethod.Thunk;
+			OnAnimationEventFunc function = (OnAnimationEventFunc)entityInstance->Methods.OnAnimationEventMethod.Thunk;
 			MonoObject* exception = nullptr;
-			function(entityInstance.GetMonoInstance(), mono_string_new(mono_domain_get(), eventName.c_str()), time, &exception);
+			function(entityInstance->GetMonoInstance(), mono_string_new(mono_domain_get(), eventName.c_str()), time, &exception);
 			HandleException(exception);
 		}
 	}
@@ -556,12 +494,12 @@ namespace Eagle
 	{
 		typedef void (*PhysicsUpdateFunc)(MonoObject*, float, MonoObject**);
 
-		EntityInstance& entityInstance = GetEntityInstance(entity);
-		if (entityInstance.ScriptClass.OnPhysicsUpdateMethod)
+		EntityInstance* entityInstance = GetEntityInstance(entity);
+		if (entityInstance && entityInstance->Methods.OnPhysicsUpdateMethod)
 		{
-			PhysicsUpdateFunc function = (PhysicsUpdateFunc)entityInstance.ScriptClass.OnPhysicsUpdateMethod.Thunk;
+			PhysicsUpdateFunc function = (PhysicsUpdateFunc)entityInstance->Methods.OnPhysicsUpdateMethod.Thunk;
 			MonoObject* exception = nullptr;
-			function(entityInstance.GetMonoInstance(), ts, &exception);
+			function(entityInstance->GetMonoInstance(), ts, &exception);
 			HandleException(exception);
 		}
 	}
@@ -570,57 +508,89 @@ namespace Eagle
 	{
 		typedef void (*OnDestroyFunc)(MonoObject*, MonoObject**);
 
-		EntityInstance& entityInstance = GetEntityInstance(entity);
-		if (entityInstance.ScriptClass.OnDestroyMethod)
+		EntityInstance* entityInstance = GetEntityInstance(entity);
+		if (entityInstance && entityInstance->Methods.OnDestroyMethod)
 		{
-			OnDestroyFunc function = (OnDestroyFunc)entityInstance.ScriptClass.OnDestroyMethod.Thunk;
+			OnDestroyFunc function = (OnDestroyFunc)entityInstance->Methods.OnDestroyMethod.Thunk;
 			MonoObject* exception = nullptr;
-			function(entityInstance.GetMonoInstance(), &exception);
+			function(entityInstance->GetMonoInstance(), &exception);
 			HandleException(exception);
 		}
 	}
 
 	void ScriptEngine::OnCollisionBegin(const Entity& entity, const Entity& other, const CollisionInfo& collisionInfo)
 	{
-		EntityInstance& entityInstance = GetEntityInstance(entity);
-		if (entityInstance.ScriptClass.OnCollisionBeginMethod)
+		EntityInstance* entityInstance = GetEntityInstance(entity);
+		if (entityInstance && entityInstance->Methods.OnCollisionBeginMethod)
 		{
 			const void* params[] = { GetEntityMonoObject(other), &collisionInfo.Position[0], &collisionInfo.Normal[0], &collisionInfo.Impulse[0], &collisionInfo.Force[0]};
-			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass.OnCollisionBeginMethod, (void**)params);
+			CallMethod(entityInstance->GetMonoInstance(), entityInstance->Methods.OnCollisionBeginMethod, (void**)params);
 		}
 	}
 
 	void ScriptEngine::OnCollisionEnd(const Entity& entity, const Entity& other, const CollisionInfo& collisionInfo)
 	{
-		EntityInstance& entityInstance = GetEntityInstance(entity);
-		if (entityInstance.ScriptClass.OnCollisionEndMethod)
+		EntityInstance* entityInstance = GetEntityInstance(entity);
+		if (entityInstance && entityInstance->Methods.OnCollisionEndMethod)
 		{
 			const void* params[] = { GetEntityMonoObject(other), &collisionInfo.Position[0], &collisionInfo.Normal[0], &collisionInfo.Impulse[0], &collisionInfo.Force[0]};
-			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass.OnCollisionEndMethod, (void**)params);
+			CallMethod(entityInstance->GetMonoInstance(), entityInstance->Methods.OnCollisionEndMethod, (void**)params);
 		}
 	}
 
 	void ScriptEngine::OnTriggerBegin(const Entity& entity, const Entity& other)
 	{
-		EntityInstance& entityInstance = GetEntityInstance(entity);
-		if (entityInstance.ScriptClass.OnTriggerBeginMethod)
+		EntityInstance* entityInstance = GetEntityInstance(entity);
+		if (entityInstance && entityInstance->Methods.OnTriggerBeginMethod)
 		{
 			void* params[] = { GetEntityMonoObject(other) };
-			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass.OnTriggerBeginMethod, params);
+			CallMethod(entityInstance->GetMonoInstance(), entityInstance->Methods.OnTriggerBeginMethod, params);
 		}
 	}
 
 	void ScriptEngine::OnTriggerEnd(const Entity& entity, const Entity& other)
 	{
-		EntityInstance& entityInstance = GetEntityInstance(entity);
-		if (entityInstance.ScriptClass.OnTriggerEndMethod)
+		EntityInstance* entityInstance = GetEntityInstance(entity);
+		if (entityInstance && entityInstance->Methods.OnTriggerEndMethod)
 		{
 			void* params[] = { GetEntityMonoObject(other) };
-			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass.OnTriggerEndMethod, params);
+			CallMethod(entityInstance->GetMonoInstance(), entityInstance->Methods.OnTriggerEndMethod, params);
 		}
 	}
 
-	void ScriptEngine::InitEntityScript(Entity entity)
+	void ScriptEngine::TryToRestoreOldValues(std::map<std::string, PublicField>& publicFields, const std::map<std::string, PublicField>& oldValues)
+	{
+		for (auto& [fieldName, field] : publicFields)
+		{
+			auto oldField = oldValues.find(fieldName);
+			if ((oldField != oldValues.end()) && (oldField->second.Type == field.Type))
+			{
+				field.CopyStoredValue(oldField->second);
+				// Check if the current enum value is still valid. If not, change it
+				if (field.Type == FieldType::Enum)
+				{
+					if (field.EnumFields.size())
+					{
+						const int storedValue = field.GetStoredValue<int>();
+						bool bValid = false;
+						for (auto& [value, name] : field.EnumFields)
+						{
+							if (storedValue == value)
+							{
+								bValid = true;
+								break;
+							}
+						}
+
+						if (!bValid)
+							field.SetStoredValue<int>(field.EnumFields.empty() ? 0 : field.EnumFields.begin()->first);
+					}
+				}
+			}
+		}
+	}
+
+	bool ScriptEngine::InitEntityScript(Entity entity)
 	{
 		EG_CORE_ASSERT(entity.HasComponent<ScriptComponent>(), "Entity doesn't have a Script Component");
 
@@ -630,42 +600,70 @@ namespace Eagle
 		auto oldPublicFields = std::move(entityPublicFields);
 		entityPublicFields.clear();
 		if (moduleName.empty())
-			return;
+		{
+			RemoveEntityScript(entity);
+			return false;
+		}
 
-		if (!ModuleExists(moduleName))
+		auto itClassData = s_EntityClasses.find(moduleName);
+		if (itClassData == s_EntityClasses.end())
 		{
 			EG_CORE_ERROR("[ScriptEngine] Invalid module name '{0}'!", moduleName);
-			return;
+			RemoveEntityScript(entity);
+			return false;
 		}
 
-		GUID entityGUID = entity.GetComponent<IDComponent>().ID;
+		const auto& entityClassData = itClassData->second;
+		MonoClass* monoClass = entityClassData.ClassData.Class;
+
+		GUID entityGUID = entity.GetGUID();
 		EntityInstance& entityInstance = s_EntityInstanceDataMap[entityGUID];
-
-		EntityScriptClass& scriptClass = entityInstance.ScriptClass;
-		scriptClass.FullName = moduleName;
-		if (moduleName.find('.'))
-		{
-			const size_t lastDotPos = moduleName.find_last_of('.');
-			scriptClass.NamespaceName = moduleName.substr(0, lastDotPos);
-			scriptClass.ClassName = moduleName.substr(lastDotPos + 1);
-		}
-		else
-		{
-			scriptClass.ClassName = moduleName;
-		}
-
-		scriptClass.Class = GetClass(s_AppAssemblyImage, scriptClass);
-		scriptClass.InitClassMethods(s_AppAssemblyImage);
+		entityInstance.Methods = entityClassData.Methods;
 
 		// Default construct an instance of the script class
 		// We then use this to set initial values for any public fields that are
 		// not already in the fieldMap
-		entityInstance.Instance = MonoInstance::Create(scriptClass.Class, scriptClass.FullName);
+		entityInstance.Instance = MonoInstance::Create(monoClass, entityClassData.ClassData.FullName);
+		EG_CORE_ASSERT(entityInstance.Instance->IsValid());
 
 		void* param[] = { &entityGUID };
-		CallMethod(entityInstance.GetMonoInstance(), scriptClass.Constructor, param);
+		CallMethod(entityInstance.GetMonoInstance(), entityInstance.Methods.Constructor, param);
+		entityPublicFields = entityClassData.ClassData.Fields;
 
-		ParsePublicFields(scriptClass.Class, entityInstance.GetMonoInstance(), entityPublicFields, std::move(oldPublicFields));
+		// Restore old values if possible
+		TryToRestoreOldValues(entityPublicFields, oldPublicFields);
+
+		return true;
+	}
+
+	void ScriptEngine::UpdateEntityPublicFields(Entity entity)
+	{
+		EG_CORE_ASSERT(entity.HasComponent<ScriptComponent>(), "Entity doesn't have a Script Component");
+
+		auto& scriptComponent = entity.GetComponent<ScriptComponent>();
+		const std::string& moduleName = scriptComponent.ModuleName;
+		auto& entityPublicFields = scriptComponent.PublicFields;
+		auto oldPublicFields = std::move(entityPublicFields);
+		entityPublicFields.clear();
+		if (moduleName.empty())
+		{
+			RemoveEntityScript(entity);
+			return;
+		}
+
+		auto itClassData = s_EntityClasses.find(moduleName);
+		if (itClassData == s_EntityClasses.end())
+		{
+			EG_CORE_ERROR("[ScriptEngine] Invalid module name '{0}'!", moduleName);
+			RemoveEntityScript(entity);
+			return;
+		}
+
+		const auto& entityClassData = itClassData->second;
+		entityPublicFields = entityClassData.ClassData.Fields;
+
+		// Restore old values if possible
+		TryToRestoreOldValues(entityPublicFields, oldPublicFields);
 	}
 
 	void ScriptEngine::RemoveEntityScript(const Entity& entity)
@@ -678,30 +676,9 @@ namespace Eagle
 		s_EntityInstanceDataMap.erase(it);
 	}
 
-	// TODO: Optimize. We should be able to reuse `s_AvailableModuleNames`
 	bool ScriptEngine::ModuleExists(const std::string& moduleName)
 	{
-		if (!s_AppAssemblyImage)
-			return false;
-
-		std::string namespaceName, className;
-		if (moduleName.find('.') != std::string::npos)
-		{
-			const size_t lastDotPos = moduleName.find_last_of('.');
-			namespaceName = moduleName.substr(0, lastDotPos);
-			className = moduleName.substr(lastDotPos + 1);
-		}
-		else
-		{
-			className = moduleName;
-		}
-
-		MonoClass* monoClass = mono_class_from_name(s_AppAssemblyImage, namespaceName.c_str(), className.c_str());
-		if (!monoClass)
-			return false;
-
-		bool bEntitySubclass = mono_class_is_subclass_of(monoClass, s_EntityClass, false);
-		return bEntitySubclass;
+		return s_EntityClasses.find(moduleName) != s_EntityClasses.end();
 	}
 
 	bool ScriptEngine::IsEntityModuleValid(const Entity& entity)
@@ -747,7 +724,7 @@ namespace Eagle
 				{
 					if (entity.HasComponent<ScriptComponent>())
 					{
-						InitEntityScript(entity);
+						UpdateEntityPublicFields(entity);
 						++it;
 					}
 					else
@@ -771,10 +748,9 @@ namespace Eagle
 
 	void ScriptEngine::LoadListOfAppAssemblyClasses()
 	{
-		s_AvailableModuleNames.clear();
-		s_AvailableUserAIClasses.Clear();
-		s_AllAIClasses.clear();
-		s_AllAIClasses.insert(s_CoreAIClasses.begin(), s_CoreAIClasses.end());
+		s_UserAIClasses.Clear();
+		s_EntityClasses.clear();
+		s_EntityInstanceDataMap.clear();
 
 		const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(s_AppAssemblyImage, MONO_TABLE_TYPEDEF);
 		int32_t numTypes = mono_table_info_get_rows(typeDefinitionsTable);
@@ -801,48 +777,53 @@ namespace Eagle
 
 				if (mono_class_is_subclass_of(monoClass, s_EntityClass, false))
 				{
-					s_AvailableModuleNames.emplace_back(std::move(fullName));
+					EntityScriptClass data;
+					data.ClassData.Class = monoClass;
+					data.ClassData.FullName = fullName;
+					GetClassAttributes(monoClass, &data.ClassData.UIName, className, &data.ClassData.Tooltip);
+					data.ClassData.bUserClass = true;
+					data.ClassData.Fields = LoadClassPublicFields(monoClass, data.ClassData.FullName);
+					data.InitClassMethods();
+
+					s_EntityClasses[std::move(fullName)] = std::move(data);
 				}
 				else if (mono_class_is_subclass_of(monoClass, s_AITaskClass, false))
 				{
-					s_AllAIClasses[fullName] = monoClass;
-					auto& data = s_AvailableUserAIClasses.Tasks.emplace_back();
-					data.FullName = std::move(fullName);
-					data.Name = className;
+					auto& data = s_UserAIClasses.Tasks.emplace_back();
+					data.ClassData.Class = monoClass;
+					data.ClassData.FullName = std::move(fullName);
+					GetClassAttributes(monoClass, &data.ClassData.UIName, className, &data.ClassData.Tooltip);
+					data.ClassData.bUserClass = true;
+					data.ClassData.Fields = LoadClassPublicFields(monoClass, data.ClassData.FullName);
 					data.Type = AIBehaviorClassData::ClassType::Task;
-					data.bUserClass = true;
 				}
 				else if (mono_class_is_subclass_of(monoClass, s_AIDecoratorClass, false))
 				{
-					s_AllAIClasses[fullName] = monoClass;
-					auto& data = s_AvailableUserAIClasses.Decorators.emplace_back();
-					data.FullName = std::move(fullName);
-					data.Name = className;
+					auto& data = s_UserAIClasses.Decorators.emplace_back();
+					data.ClassData.Class = monoClass;
+					data.ClassData.FullName = std::move(fullName);
+					GetClassAttributes(monoClass, &data.ClassData.UIName, className, &data.ClassData.Tooltip);
+					data.ClassData.bUserClass = true;
+					data.ClassData.Fields = LoadClassPublicFields(monoClass, data.ClassData.FullName);
 					data.Type = AIBehaviorClassData::ClassType::Decorator;
-					data.bUserClass = true;
 				}
 				else if (mono_class_is_subclass_of(monoClass, s_AICompositeClass, false))
 				{
-					s_AllAIClasses[fullName] = monoClass;
-					auto& data = s_AvailableUserAIClasses.Composites.emplace_back();
-					data.FullName = std::move(fullName);
-					data.Name = className;
+					auto& data = s_UserAIClasses.Composites.emplace_back();
+					data.ClassData.Class = monoClass;
+					data.ClassData.FullName = std::move(fullName);
+					GetClassAttributes(monoClass, &data.ClassData.UIName, className, &data.ClassData.Tooltip);
+					data.ClassData.bUserClass = true;
+					data.ClassData.Fields = LoadClassPublicFields(monoClass, data.ClassData.FullName);
 					data.Type = AIBehaviorClassData::ClassType::Composite;
-					data.bUserClass = true;
 				}
 			}
 		}
-
-		LoadAIClassPublicFields(s_AvailableUserAIClasses.Tasks);
-		LoadAIClassPublicFields(s_AvailableUserAIClasses.Decorators);
-		LoadAIClassPublicFields(s_AvailableUserAIClasses.Composites);
 	}
 
 	void ScriptEngine::LoadListOfCoreAIClasses()
 	{
-		s_AvailableCoreAIClasses.Clear();
-		s_CoreAIClasses.clear();
-		s_AllAIClasses.clear();
+		s_CoreAIClasses.Clear();
 
 		const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(s_CoreAssemblyImage, MONO_TABLE_TYPEDEF);
 		int32_t numTypes = mono_table_info_get_rows(typeDefinitionsTable);
@@ -869,100 +850,137 @@ namespace Eagle
 
 				if (monoClass != s_AITaskClass && mono_class_is_subclass_of(monoClass, s_AITaskClass, false))
 				{
-					s_CoreAIClasses[fullName] = monoClass;
-					auto& data = s_AvailableCoreAIClasses.Tasks.emplace_back();
-					data.FullName = std::move(fullName);
-					data.Name = className;
+					auto& data = s_CoreAIClasses.Tasks.emplace_back();
+					data.ClassData.Class = monoClass;
+					data.ClassData.FullName = std::move(fullName);
+					GetClassAttributes(monoClass, &data.ClassData.UIName, className, &data.ClassData.Tooltip);
+					data.ClassData.bUserClass = false;
+					data.ClassData.Fields = LoadClassPublicFields(monoClass, data.ClassData.FullName);
 					data.Type = AIBehaviorClassData::ClassType::Task;
-					data.bUserClass = false;
 				}
 				else if (monoClass != s_AIDecoratorClass && mono_class_is_subclass_of(monoClass, s_AIDecoratorClass, false))
 				{
-					s_CoreAIClasses[fullName] = monoClass;
-					auto& data = s_AvailableCoreAIClasses.Decorators.emplace_back();
-					data.FullName = std::move(fullName);
-					data.Name = className;
+					auto& data = s_CoreAIClasses.Decorators.emplace_back();
+					data.ClassData.Class = monoClass;
+					data.ClassData.FullName = std::move(fullName);
+					GetClassAttributes(monoClass, &data.ClassData.UIName, className, &data.ClassData.Tooltip);
+					data.ClassData.bUserClass = false;
+					data.ClassData.Fields = LoadClassPublicFields(monoClass, data.ClassData.FullName);
 					data.Type = AIBehaviorClassData::ClassType::Decorator;
-					data.bUserClass = false;
 				}
 				else if (monoClass != s_AICompositeClass && mono_class_is_subclass_of(monoClass, s_AICompositeClass, false))
 				{
-					s_CoreAIClasses[fullName] = monoClass;
-					auto& data = s_AvailableCoreAIClasses.Composites.emplace_back();
-					data.FullName = std::move(fullName);
-					data.Name = className;
+					auto& data = s_CoreAIClasses.Composites.emplace_back();
+					data.ClassData.Class = monoClass;
+					data.ClassData.FullName = std::move(fullName);
+					GetClassAttributes(monoClass, &data.ClassData.UIName, className, &data.ClassData.Tooltip);
+					data.ClassData.bUserClass = false;
+					data.ClassData.Fields = LoadClassPublicFields(monoClass, data.ClassData.FullName);
 					data.Type = AIBehaviorClassData::ClassType::Composite;
-					data.bUserClass = false;
 				}
 			}
 		}
-		
-		s_AllAIClasses.insert(s_CoreAIClasses.begin(), s_CoreAIClasses.end());
-		LoadAIClassPublicFields(s_AvailableCoreAIClasses.Tasks);
-		LoadAIClassPublicFields(s_AvailableCoreAIClasses.Decorators);
-		LoadAIClassPublicFields(s_AvailableCoreAIClasses.Composites);
 	}
 
-	static void AddDecorators(const std::map<std::string, MonoClass*>& monoClasses, const AIBehaviorNode& node, MonoObject* instance)
+	MonoClass* ScriptEngine::GetAIMonoClass(const AIBehaviorClassData& classData)
+	{
+		MonoClass* monoClass = nullptr;
+		const bool bUserClass = classData.ClassData.bUserClass;
+
+		switch (classData.Type)
+		{
+		case AIBehaviorClassData::ClassType::Task:
+		{
+			const auto& classes = bUserClass ? s_UserAIClasses.Tasks : s_CoreAIClasses.Tasks;
+			auto it = std::find(classes.begin(), classes.end(), classData);
+			if (it != classes.end())
+			{
+				monoClass = it->ClassData.Class;
+			}
+			break;
+		}
+		case AIBehaviorClassData::ClassType::Composite:
+		{
+			const auto& classes = bUserClass ? s_UserAIClasses.Composites : s_CoreAIClasses.Composites;
+			auto it = std::find(classes.begin(), classes.end(), classData);
+			if (it != classes.end())
+			{
+				monoClass = it->ClassData.Class;
+			}
+			break;
+		}
+		case AIBehaviorClassData::ClassType::Decorator:
+		{
+			const auto& classes = bUserClass ? s_UserAIClasses.Decorators : s_CoreAIClasses.Decorators;
+			auto it = std::find(classes.begin(), classes.end(), classData);
+			if (it != classes.end())
+			{
+				monoClass = it->ClassData.Class;
+			}
+			break;
+		}
+		}
+
+		return monoClass;
+	}
+
+	void ScriptEngine::AddDecorators(const AIBehaviorNode& node, MonoObject* instance)
 	{
 		for (auto& decorator : node.AttachedDecorators)
 		{
-			auto it = monoClasses.find(decorator.FullName);
-			if (it == monoClasses.end())
+			MonoClass* monoClass = GetAIMonoClass(decorator);
+			if (monoClass == nullptr)
 			{
-				EG_CORE_ERROR("Failed to instantiate AI decorator. Unknown class: {}", decorator.FullName);
+				EG_CORE_ERROR("Failed to instantiate AI decorator. Unknown class: {}", decorator.ClassData.FullName);
 				continue;
 			}
 
-			MonoClass* monoClass = it->second;
 			MonoReflectionType* reflectionType = mono_type_get_object(mono_domain_get(), mono_class_get_type(monoClass));
 			void* params[] = { reflectionType };
 			MonoObject* decoratorObj = ScriptEngine::CallMethod(instance, s_AINodeAddDecoratorMethod, params);
 			if (decoratorObj)
 			{
-				for (auto& [_, field] : decorator.Fields)
+				for (auto& [_, field] : decorator.ClassData.Fields)
 				{
 					field.CopyStoredValueToRuntime(decoratorObj);
 				}
-				EG_CORE_TRACE("Decorator : {}", mono_class_get_name(mono_object_get_class(decoratorObj)));
+				//EG_CORE_TRACE("Decorator : {}", mono_class_get_name(mono_object_get_class(decoratorObj)));
 			}
 			else
 			{
-				EG_CORE_ERROR("Failed to instantiate AI decorator: {}", decorator.FullName);
+				EG_CORE_ERROR("Failed to instantiate AI decorator: {}", decorator.ClassData.FullName);
 				continue;
 			}
 		}
 	}
 
-	static void InstantiateAINode(const std::map<std::string, MonoClass*>& monoClasses, const AIBehaviorNode& node, Scope<MonoInstance>* outRootInstance, MonoObject* parentInstance = nullptr)
+	void ScriptEngine::InstantiateAINode(const AIBehaviorNode& node, Scope<MonoInstance>* outRootInstance, MonoObject* parentInstance)
 	{
-		auto it = monoClasses.find(node.Data.FullName);
-		if (it == monoClasses.end())
+		MonoClass* monoClass = GetAIMonoClass(node.Data);
+		if (monoClass == nullptr)
 		{
-			EG_CORE_ERROR("Failed to instantiate AI class. Unknown class: {}", node.Data.FullName);
+			EG_CORE_ERROR("Failed to instantiate AI class. Unknown class: {}", node.Data.ClassData.FullName);
 			return;
 		}
 
-		MonoClass* monoClass = it->second;
 		const bool bCompositeNode = node.Data.Type == AIBehaviorClassData::ClassType::Composite;
-
 		if (parentInstance == nullptr)
 		{
-			Scope<MonoInstance> instance = MonoInstance::Create(monoClass, node.Data.FullName);
+			Scope<MonoInstance> instance = MonoInstance::Create(monoClass, node.Data.ClassData.FullName);
 			if (MonoObject* monoInstance = instance->GetInstance())
 			{
-				for (auto& [_, field] : node.Data.Fields)
+				for (auto& [_, field] : node.Data.ClassData.Fields)
 				{
 					field.CopyStoredValueToRuntime(monoInstance);
 				}
-				EG_CORE_INFO(bCompositeNode ? "Composite Node: {}" : "Task: {}", mono_class_get_name(mono_object_get_class(monoInstance)));
-				AddDecorators(monoClasses, node, monoInstance);
+				//EG_CORE_INFO(bCompositeNode ? "Composite Node: {}" : "Task: {}", mono_class_get_name(mono_object_get_class(monoInstance)));
+				AddDecorators(node, monoInstance);
 
 				if (bCompositeNode)
 				{
 					for (auto& child : node.Children)
 					{
-						InstantiateAINode(monoClasses, child, outRootInstance, monoInstance);
+						InstantiateAINode(child, outRootInstance, monoInstance);
 					}
 				}
 			}
@@ -978,16 +996,16 @@ namespace Eagle
 			MonoObject* compositeNode = ScriptEngine::CallMethod(parentInstance, s_AICompositeAddChildMethod, params);
 			if (compositeNode)
 			{
-				for (auto& [_, field] : node.Data.Fields)
+				for (auto& [_, field] : node.Data.ClassData.Fields)
 				{
 					field.CopyStoredValueToRuntime(compositeNode);
 				}
-				EG_CORE_INFO("Composite Node: {}", mono_class_get_name(mono_object_get_class(compositeNode)));
-				AddDecorators(monoClasses, node, compositeNode);
+				//EG_CORE_INFO("Composite Node: {}", mono_class_get_name(mono_object_get_class(compositeNode)));
+				AddDecorators(node, compositeNode);
 
 				for (auto& child : node.Children)
 				{
-					InstantiateAINode(monoClasses, child, outRootInstance, compositeNode);
+					InstantiateAINode(child, outRootInstance, compositeNode);
 				}
 			}
 		}
@@ -1006,12 +1024,12 @@ namespace Eagle
 			MonoObject* task = ScriptEngine::CallMethod(parentInstance, s_AICompositeAddChildMethod, params);
 			if (task)
 			{
-				for (auto& [_, field] : node.Data.Fields)
+				for (auto& [_, field] : node.Data.ClassData.Fields)
 				{
 					field.CopyStoredValueToRuntime(task);
 				}
-				EG_CORE_INFO("Task: {}", mono_class_get_name(mono_object_get_class(task)));
-				AddDecorators(monoClasses, node, task);
+				//EG_CORE_INFO("Task: {}", mono_class_get_name(mono_object_get_class(task)));
+				AddDecorators(node, task);
 			}
 			return;
 		}
@@ -1029,7 +1047,7 @@ namespace Eagle
 		MonoObject* taskManager = taskManagerInstance->GetInstance();
 
 		Scope<MonoInstance> resultRoot;
-		InstantiateAINode(s_AllAIClasses, root, &resultRoot);
+		InstantiateAINode(root, &resultRoot);
 		if (resultRoot && resultRoot->IsValid())
 		{
 			void* params[] = { resultRoot->GetInstance() };
@@ -1037,6 +1055,64 @@ namespace Eagle
 		}
 
 		return taskManagerInstance;
+	}
+
+	void ScriptEngine::UpdateAIClassPublicFields(AIBehaviorClassData& classData)
+	{
+		const bool bUserClass = classData.ClassData.bUserClass;
+		switch (classData.Type)
+		{
+			case AIBehaviorClassData::ClassType::Task:
+			{
+				const auto& classes = bUserClass ? s_UserAIClasses.Tasks : s_CoreAIClasses.Tasks;
+				auto it = std::find(classes.begin(), classes.end(), classData);
+				if (it != classes.end())
+				{
+					auto oldPublicFields = std::move(classData.ClassData.Fields);
+					classData.ClassData = it->ClassData;
+					TryToRestoreOldValues(classData.ClassData.Fields, oldPublicFields);
+				}
+				break;
+			}
+			case AIBehaviorClassData::ClassType::Composite:
+			{
+				const auto& classes = bUserClass ? s_UserAIClasses.Composites : s_CoreAIClasses.Composites;
+				auto it = std::find(classes.begin(), classes.end(), classData);
+				if (it != classes.end())
+				{
+					auto oldPublicFields = std::move(classData.ClassData.Fields);
+					classData.ClassData = it->ClassData;
+					TryToRestoreOldValues(classData.ClassData.Fields, oldPublicFields);
+				}
+				break;
+			}
+			case AIBehaviorClassData::ClassType::Decorator:
+			{
+				const auto& classes = bUserClass ? s_UserAIClasses.Decorators : s_CoreAIClasses.Decorators;
+				auto it = std::find(classes.begin(), classes.end(), classData);
+				if (it != classes.end())
+				{
+					auto oldPublicFields = std::move(classData.ClassData.Fields);
+					classData.ClassData = it->ClassData;
+					TryToRestoreOldValues(classData.ClassData.Fields, oldPublicFields);
+				}
+				break;
+			}
+		}
+	}
+
+	void ScriptEngine::UpdateAIBehaviorNodePublicFields(AIBehaviorNode& node)
+	{
+		UpdateAIClassPublicFields(node.Data);
+		for (auto& decorator : node.AttachedDecorators)
+		{
+			UpdateAIClassPublicFields(decorator);
+		}
+
+		for (auto& child : node.Children)
+		{
+			UpdateAIBehaviorNodePublicFields(child);
+		}
 	}
 
 	bool ScriptEngine::LoadCoreAssembly(const Path& assemblyPath)
@@ -1071,7 +1147,7 @@ namespace Eagle
 		s_AICompositeClass = mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AICompositeNode");
 		s_AITaskManagerClass = mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AITaskManager");
 		s_AttrUINameClass = mono_class_from_name(s_CoreAssemblyImage, "Eagle", "UINameAttribute");
-		s_AttrToolTipClass = mono_class_from_name(s_CoreAssemblyImage, "Eagle", "ToolTipAttribute");
+		s_AttrTooltipClass = mono_class_from_name(s_CoreAssemblyImage, "Eagle", "TooltipAttribute");
 
 		s_BuiltInEagleTypes.clear();
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector2")]                  = FieldType::Vec2;
@@ -1282,14 +1358,31 @@ namespace Eagle
 		return result ? std::string(MonoStringHandler(result).c_str()) : "";
 	}
 
-	EntityInstance& ScriptEngine::GetEntityInstance(const Entity& entity)
+	EntityInstance* ScriptEngine::CreateEntityInstance(const Entity& entity)
+	{
+		const GUID& entityGUID = entity.GetGUID();
+		auto it = s_EntityInstanceDataMap.find(entityGUID);
+		if (it != s_EntityInstanceDataMap.end())
+			return &(it->second);
+
+		if (InitEntityScript(entity))
+		{
+			return &s_EntityInstanceDataMap[entityGUID];
+		}
+		else
+		{
+			return nullptr;
+		}
+	}
+
+	EntityInstance* ScriptEngine::GetEntityInstance(const Entity& entity)
 	{
 		const GUID& entityGUID = entity.GetGUID();
 		auto it = s_EntityInstanceDataMap.find(entityGUID);
 		if (it == s_EntityInstanceDataMap.end())
-			InitEntityScript(entity);
+			return nullptr;
 
-		return s_EntityInstanceDataMap[entityGUID];
+		return &it->second;
 	}
 
 	MonoObject* ScriptEngine::GetEntityMonoObject(Entity entity)
@@ -1306,29 +1399,19 @@ namespace Eagle
 		return s_EntityInstanceDataMap[entityID].GetMonoInstance();
 	}
 	
-	void EntityScriptClass::InitClassMethods(MonoImage* image)
+	void EntityScriptClass::InitClassMethods()
 	{
-		Constructor				= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:.ctor(GUID)");
-		OnCreateMethod			= ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnCreate()");
-		OnDestroyMethod			= ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnDestroy()");
-		OnUpdateMethod			= ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnUpdate(single)");
-		OnEventMethod           = ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnEvent(Event)");
-		OnPhysicsUpdateMethod	= ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnPhysicsUpdate(single)");
-		OnAnimationEventMethod  = ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnAnimationEvent(string)");
+		Methods.Constructor				= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:.ctor(GUID)");
+		Methods.OnCreateMethod			= ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData.FullName + ":OnCreate()");
+		Methods.OnDestroyMethod			= ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData.FullName + ":OnDestroy()");
+		Methods.OnUpdateMethod			= ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData.FullName + ":OnUpdate(single)");
+		Methods.OnEventMethod           = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData.FullName + ":OnEvent(Event)");
+		Methods.OnPhysicsUpdateMethod	= ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData.FullName + ":OnPhysicsUpdate(single)");
+		Methods.OnAnimationEventMethod  = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData.FullName + ":OnAnimationEvent(string)");
 
-		OnCollisionBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionBegin(GUID,Vector3,Vector3,Vector3,Vector3)");
-		OnCollisionEndMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionEnd(GUID,Vector3,Vector3,Vector3,Vector3)");
-		OnTriggerBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnTriggerBegin(GUID)");
-		OnTriggerEndMethod		= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnTriggerEnd(GUID)");
-	}
-	
-	MonoStringHandler::MonoStringHandler(MonoString* monoStr)
-	{
-		m_Str = mono_string_to_utf8(monoStr);
-	}
-	
-	MonoStringHandler::~MonoStringHandler()
-	{
-		mono_free(m_Str);
+		Methods.OnCollisionBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionBegin(GUID,Vector3,Vector3,Vector3,Vector3)");
+		Methods.OnCollisionEndMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionEnd(GUID,Vector3,Vector3,Vector3,Vector3)");
+		Methods.OnTriggerBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnTriggerBegin(GUID)");
+		Methods.OnTriggerEndMethod		= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnTriggerEnd(GUID)");
 	}
 }

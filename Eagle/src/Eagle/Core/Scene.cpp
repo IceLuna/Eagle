@@ -459,9 +459,8 @@ namespace Eagle
 
 		if (bIsPlaying && result.HasComponent<ScriptComponent>())
 		{
-			if (ScriptEngine::ModuleExists(result.GetComponent<ScriptComponent>().ModuleName))
+			if (!result.GetComponent<ScriptComponent>().ModuleName.empty() && ScriptEngine::InstantiateEntityClass(result))
 			{
-				ScriptEngine::InstantiateEntityClass(result);
 				ScriptEngine::OnCreateEntity(result);
 			}
 		}

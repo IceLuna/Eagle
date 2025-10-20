@@ -306,12 +306,12 @@ namespace Eagle
 
 	static void SerializeAIBehaviorNode(YAML::Emitter& out, const AIBehaviorNode& node)
 	{
-		out << YAML::Key << "FullName" << YAML::Value << node.Data.FullName;
+		out << YAML::Key << "FullName" << YAML::Value << node.Data.ClassData.FullName;
 		out << YAML::Key << "ID" << YAML::Value << node.Data.ID;
 
-		if (!node.Data.Fields.empty())
+		if (!node.Data.ClassData.Fields.empty())
 		{
-			SerializeScriptFields(out, node.Data.Fields);
+			SerializeScriptFields(out, node.Data.ClassData.Fields);
 		}
 
 		if (!node.AttachedDecorators.empty())
@@ -320,10 +320,10 @@ namespace Eagle
 			for (const auto& decorator : node.AttachedDecorators)
 			{
 				out << YAML::BeginMap;
-				out << YAML::Key << "FullName" << YAML::Value << decorator.FullName;
-				if (!decorator.Fields.empty())
+				out << YAML::Key << "FullName" << YAML::Value << decorator.ClassData.FullName;
+				if (!decorator.ClassData.Fields.empty())
 				{
-					SerializeScriptFields(out, decorator.Fields);
+					SerializeScriptFields(out, decorator.ClassData.Fields);
 				}
 				out << YAML::EndMap;
 			}
@@ -350,7 +350,7 @@ namespace Eagle
 		node.Data.ID = yamlNode["ID"].as<GUID>();
 
 		if (auto publicFieldsNode = yamlNode["PublicFields"])
-			Serializer::DeserializePublicFieldValues(publicFieldsNode, node.Data.Fields);
+			Serializer::DeserializePublicFieldValues(publicFieldsNode, node.Data.ClassData.Fields);
 
 		if (auto decoratorsNode = yamlNode["Decorators"])
 		{
@@ -361,7 +361,7 @@ namespace Eagle
 				decorator = ScriptEngine::GetAIClassData(fullName);
 
 				if (auto publicFieldsNode = decoratorNode["PublicFields"])
-					Serializer::DeserializePublicFieldValues(publicFieldsNode, decorator.Fields);
+					Serializer::DeserializePublicFieldValues(publicFieldsNode, decorator.ClassData.Fields);
 			}
 		}
 
@@ -1522,7 +1522,7 @@ namespace Eagle
 		if (asset)
 		{
 			const auto& root = asset->GetRoot();
-			if (!root.Data.FullName.empty())
+			if (!root.Data.ClassData.FullName.empty())
 			{
 				out << YAML::Key << "Nodes" << YAML::Value << YAML::BeginMap;
 				SerializeAIBehaviorNode(out, root);
@@ -2489,7 +2489,7 @@ namespace Eagle
 			auto& scriptComponent = deserializedEntity.AddComponent<ScriptComponent>();
 
 			scriptComponent.ModuleName = scriptComponentNode["ModuleName"].as<std::string>();
-			ScriptEngine::InitEntityScript(deserializedEntity);
+			ScriptEngine::UpdateEntityPublicFields(deserializedEntity);
 
 			auto publicFieldsNode = scriptComponentNode["PublicFields"];
 			if (publicFieldsNode)

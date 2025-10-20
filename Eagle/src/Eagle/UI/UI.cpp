@@ -583,7 +583,7 @@ namespace Eagle::UI
 			case FieldType::UnsignedInt:
 			{
 				int value = bRuntime ? field.GetRuntimeValue<int>(instance) : field.GetStoredValue<int>();
-				if (UI::PropertyDrag(field.UIName.c_str(), value, 1, 0, 0, field.ToolTip))
+				if (UI::PropertyDrag(field.UIName.c_str(), value, 1, 0, 0, field.Tooltip))
 				{
 					bRuntime ? field.SetRuntimeValue(instance, value) : field.SetStoredValue(value);
 					bChanged = true;
@@ -593,7 +593,7 @@ namespace Eagle::UI
 			case FieldType::Float:
 			{
 				float value = bRuntime ? field.GetRuntimeValue<float>(instance) : field.GetStoredValue<float>();
-				if (UI::PropertyDrag(field.UIName.c_str(), value, 1, 0, 0, field.ToolTip))
+				if (UI::PropertyDrag(field.UIName.c_str(), value, 1, 0, 0, field.Tooltip))
 				{
 					bRuntime ? field.SetRuntimeValue(instance, value) : field.SetStoredValue(value);
 					bChanged = true;
@@ -603,7 +603,7 @@ namespace Eagle::UI
 			case FieldType::String:
 			{
 				std::string value = bRuntime ? field.GetRuntimeValue<std::string>(instance) : field.GetStoredValue<const std::string&>();
-				if (UI::PropertyText(field.UIName.c_str(), value, field.ToolTip))
+				if (UI::PropertyText(field.UIName.c_str(), value, field.Tooltip))
 				{
 					bRuntime ? field.SetRuntimeValue<std::string>(instance, value) : field.SetStoredValue<std::string>(value);
 					bChanged = true;
@@ -613,7 +613,7 @@ namespace Eagle::UI
 			case FieldType::Vec2:
 			{
 				glm::vec2 value = bRuntime ? field.GetRuntimeValue<glm::vec2>(instance) : field.GetStoredValue<glm::vec2>();
-				if (UI::PropertyDrag(field.UIName.c_str(), value, 1, 0, 0, field.ToolTip))
+				if (UI::PropertyDrag(field.UIName.c_str(), value, 1, 0, 0, field.Tooltip))
 				{
 					bRuntime ? field.SetRuntimeValue(instance, value) : field.SetStoredValue(value);
 					bChanged = true;
@@ -623,7 +623,7 @@ namespace Eagle::UI
 			case FieldType::Vec3:
 			{
 				glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(instance) : field.GetStoredValue<glm::vec3>();
-				if (UI::PropertyDrag(field.UIName.c_str(), value, 1, 0, 0, field.ToolTip))
+				if (UI::PropertyDrag(field.UIName.c_str(), value, 1, 0, 0, field.Tooltip))
 				{
 					bRuntime ? field.SetRuntimeValue(instance, value) : field.SetStoredValue(value);
 					bChanged = true;
@@ -633,7 +633,7 @@ namespace Eagle::UI
 			case FieldType::Vec4:
 			{
 				glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(instance) : field.GetStoredValue<glm::vec4>();
-				if (UI::PropertyDrag(field.UIName.c_str(), value, 1, 0, 0, field.ToolTip))
+				if (UI::PropertyDrag(field.UIName.c_str(), value, 1, 0, 0, field.Tooltip))
 				{
 					bRuntime ? field.SetRuntimeValue(instance, value) : field.SetStoredValue(value);
 					bChanged = true;
@@ -643,7 +643,7 @@ namespace Eagle::UI
 			case FieldType::Bool:
 			{
 				bool value = bRuntime ? field.GetRuntimeValue<bool>(instance) : field.GetStoredValue<bool>();
-				if (UI::Property(field.UIName.c_str(), value, field.ToolTip))
+				if (UI::Property(field.UIName.c_str(), value, field.Tooltip))
 				{
 					bRuntime ? field.SetRuntimeValue(instance, value) : field.SetStoredValue(value);
 					bChanged = true;
@@ -653,7 +653,7 @@ namespace Eagle::UI
 			case FieldType::Color3:
 			{
 				glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(instance) : field.GetStoredValue<glm::vec3>();
-				if (UI::PropertyColor(field.UIName.c_str(), value, true, field.ToolTip))
+				if (UI::PropertyColor(field.UIName.c_str(), value, true, field.Tooltip))
 				{
 					bRuntime ? field.SetRuntimeValue(instance, value) : field.SetStoredValue(value);
 					bChanged = true;
@@ -663,7 +663,7 @@ namespace Eagle::UI
 			case FieldType::Color4:
 			{
 				glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(instance) : field.GetStoredValue<glm::vec4>();
-				if (UI::PropertyColor(field.UIName.c_str(), value, true, field.ToolTip))
+				if (UI::PropertyColor(field.UIName.c_str(), value, true, field.Tooltip))
 				{
 					bRuntime ? field.SetRuntimeValue(instance, value) : field.SetStoredValue(value);
 					bChanged = true;
@@ -673,7 +673,7 @@ namespace Eagle::UI
 			case FieldType::Enum:
 			{
 				int value = bRuntime ? field.GetRuntimeValue<int>(instance) : field.GetStoredValue<int>();
-				if (UI::Combo(field.UIName, value, field.EnumFields, value, field.ToolTip))
+				if (UI::Combo(field.UIName, value, field.EnumFields, value, field.Tooltip))
 				{
 					bRuntime ? field.SetRuntimeValue(instance, value) : field.SetStoredValue(value);
 					bChanged = true;
@@ -714,7 +714,7 @@ namespace Eagle::UI
 						i++;
 					}
 
-					const bool bComboChanged = UI::ComboWithNone(field.UIName.c_str(), currentSelection, names, currentSelection, {}, field.ToolTip);
+					const bool bComboChanged = UI::ComboWithNone(field.UIName.c_str(), currentSelection, names, currentSelection, {}, field.Tooltip);
 					const bool bInvalidEntity = currentSelection == -1 && value != GUID(0, 0); // Can happen if an entity was removed from the scene
 					if (bComboChanged || bInvalidEntity)
 					{
@@ -734,7 +734,7 @@ namespace Eagle::UI
 				Ref<type> castedAsset;\
 				if (AssetManager::Get(value, &asset))\
 					castedAsset = Cast<type>(asset);\
-				if (DrawAssetSelection(field.UIName, castedAsset, field.ToolTip, -1.f, GetAssetPreview(castedAsset)))\
+				if (DrawAssetSelection(field.UIName, castedAsset, field.Tooltip, -1.f, GetAssetPreview(castedAsset)))\
 				{\
 					value = castedAsset ? castedAsset->GetGUID() : GUID(0, 0);\
 					bRuntime ? field.SetRuntimeValue(instance, value) : field.SetStoredValue(value);\
@@ -1369,6 +1369,60 @@ namespace Eagle::UI
 		if (currentSelectionIndex < tooltipsSize)
 			if (!tooltips[currentSelectionIndex].empty())
 				Tooltip(tooltips[currentSelectionIndex]);
+
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+		return bModified;
+	}
+
+	bool ComboWithNone(const std::string_view label, std::string& moduleName, const std::map<std::string, EntityScriptClass>& entityClasses)
+	{
+		const bool bNoneSelected = moduleName.empty() || !ScriptEngine::ModuleExists(moduleName);
+		const char* currentName = bNoneSelected ? "None" : moduleName.c_str();
+
+		bool bModified = false;
+		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		ImGui::Text(label.data());
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+
+		if (ImGui::BeginCombo(s_IDBuffer, currentName))
+		{
+			// None
+			{
+				ImGui::PushID(-1);
+				if (ImGui::Selectable("None", bNoneSelected))
+				{
+					moduleName = "";
+					bModified = true;
+				}
+
+				if (bNoneSelected)
+					ImGui::SetItemDefaultFocus();
+				ImGui::PopID();
+			}
+			
+			int i = 0;
+			for (const auto& [name, _] : entityClasses)
+			{
+				const bool isSelected = name == moduleName;
+				ImGui::PushID(i++);
+
+				if (ImGui::Selectable(name.c_str(), isSelected))
+				{
+					moduleName = name;
+					bModified = true;
+				}
+
+				if (isSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+				ImGui::PopID();
+			}
+			ImGui::EndCombo();
+		}
 
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();

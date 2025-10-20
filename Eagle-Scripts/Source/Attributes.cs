@@ -3,7 +3,7 @@
 namespace Eagle
 {
     // Can be used to override the name that should be displayed in UI
-    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, Inherited = true)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Field | AttributeTargets.Property, Inherited = true)]
     public class UINameAttribute : Attribute
     {
         public string Name { get; }
@@ -15,12 +15,12 @@ namespace Eagle
     }
 
     // If specified, help marker will appear near the field in UI
-    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, Inherited = true)]
-    public class ToolTipAttribute : Attribute
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Field | AttributeTargets.Property, Inherited = true)]
+    public class TooltipAttribute : Attribute
     {
         public string Text { get; }
 
-        public ToolTipAttribute(string text)
+        public TooltipAttribute(string text)
         {
             Text = text;
         }
