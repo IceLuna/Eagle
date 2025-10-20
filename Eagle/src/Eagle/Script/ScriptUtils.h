@@ -113,10 +113,10 @@ namespace Eagle
 		MonoStringHandler& operator= (const MonoStringHandler&) = delete;
 		MonoStringHandler& operator= (MonoStringHandler&&) = delete;
 
-		char* c_str() { return m_Str; }
 		const char* c_str() const { return m_Str; }
 
 	private:
-		char* m_Str = nullptr;
+		const char* m_Str = nullptr;
+		bool bSetByMono = true;
 	};
 }

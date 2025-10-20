@@ -16,13 +16,18 @@ extern "C"
 
 namespace Eagle
 {
-	// `Enum value` -> it's name
-	using ScriptEnumFields = std::map<int, std::string>;
+	struct ScriptEnumData
+	{
+		std::string Name;
+		std::string Tooltip;
+	};
+	// `Enum value` -> its data
+	using ScriptEnumFields = std::map<int, ScriptEnumData>;
 
 	//Add new type to Scene Serializer
 	enum class FieldType : uint32_t
 	{
-		None, Int, UnsignedInt, Float, String, Vec2, Vec3, Vec4, ClassReference,
+		None, Int, UnsignedInt, Float, String, Vec2, Vec3, Vec4,
 		Bool, Color3, Color4, Enum, Entity,
 		Asset, AssetTexture2D, AssetTextureCube, AssetStaticMesh, AssetSkeletalMesh, AssetAudio, AssetSoundGroup,
 		AssetFont, AssetMaterial, AssetPhysicsMaterial, AssetEntity, AssetScene, AssetAnimation, AssetAnimationGraph,
@@ -67,11 +72,9 @@ namespace Eagle
 		// If `Type` is `Enum` then this can be used to fetch valid `names - values`
 		ScriptEnumFields EnumFields;
 
-		bool IsReadOnly = false;
-
 		PublicField() = default;
-		PublicField(const std::string& name, const std::string& typeName, const std::string& toolTip, FieldType type, bool isReadOnly = false);
-		PublicField(std::string&& name, std::string&& typeName, std::string&& toolTip, FieldType type, bool isReadOnly = false);
+		PublicField(const std::string& name, const std::string& typeName, const std::string& toolTip, FieldType type);
+		PublicField(std::string&& name, std::string&& typeName, std::string&& toolTip, FieldType type);
 		PublicField(const PublicField& other);
 		PublicField(PublicField&& other) noexcept = default;
 		~PublicField();
@@ -191,9 +194,6 @@ namespace Eagle
 
 		void SetStoredValue_Internal(const void* value)
 		{
-			if (IsReadOnly)
-				return;
-
 			m_StoredValueBuffer.Write(value, m_StoredValueBuffer.Size());
 		}
 

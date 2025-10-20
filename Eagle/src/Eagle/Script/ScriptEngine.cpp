@@ -120,7 +120,7 @@ namespace Eagle
 					if (it != s_BuiltInEagleTypes.end())
 						return it->second;
 				}
-				return FieldType::ClassReference;
+				return FieldType::None;
 			}
 			case MONO_TYPE_VALUETYPE:
 			{
@@ -142,19 +142,46 @@ namespace Eagle
 		return FieldType::None;
 	}
 
+	static void GetAttributes(MonoCustomAttrInfo* attrs, std::string* outName, std::string* outTooltip)
+	{
+		for (int i = 0; i < attrs->num_attrs; ++i)
+		{
+			MonoClass* attrClass = mono_method_get_class(attrs->attrs[i].ctor);
+
+			if (outName && attrClass == s_AttrUINameClass)
+			{
+				MonoObject* attrObj = mono_custom_attrs_get_attr(attrs, attrClass);
+				std::string name = ScriptEngine::GetStringProperty("Name", attrClass, attrObj);
+				if (!name.empty())
+				{
+					*outName = std::move(name);
+				}
+			}
+			else if (outTooltip && attrClass == s_AttrTooltipClass)
+			{
+				MonoObject* attrObj = mono_custom_attrs_get_attr(attrs, attrClass);
+				std::string text = ScriptEngine::GetStringProperty("Text", attrClass, attrObj);
+				if (!text.empty())
+				{
+					*outTooltip = std::move(text);
+				}
+			}
+		}
+	}
+
 	static ScriptEnumFields GetEnumFields(MonoType* enumType)
 	{
 		ScriptEnumFields result;
 
-		MonoClass* testClass = mono_type_get_class(enumType);
-		if (testClass && mono_class_is_enum(testClass))
+		MonoClass* enumClass = mono_type_get_class(enumType);
+		if (enumClass && mono_class_is_enum(enumClass))
 		{
 			MonoClassField* iter = nullptr;
 			void* ptr = nullptr;
 
-			MonoVTable* classVTable = mono_class_vtable(s_RootDomain, testClass);
+			MonoVTable* classVTable = mono_class_vtable(s_RootDomain, enumClass);
 			bool bSkipFirst = true;
-			while (iter = mono_class_get_fields(testClass, &ptr), iter != nullptr)
+			while (iter = mono_class_get_fields(enumClass, &ptr), iter != nullptr)
 			{
 				// Skip first since it contains irrelevant data
 				if (bSkipFirst)
@@ -165,9 +192,15 @@ namespace Eagle
 
 				int value;
 				mono_field_static_get_value(classVTable, iter, &value);
-				const char* fieldName = mono_field_get_name(iter);
 
-				result[value] = fieldName;
+				auto& data = result[value];
+				data.Name = mono_field_get_name(iter);
+
+				if (MonoCustomAttrInfo* attrs = mono_custom_attrs_from_field(enumClass, iter))
+				{
+					GetAttributes(attrs, &data.Name, &data.Tooltip);
+					mono_custom_attrs_free(attrs);
+				}
 			}
 		}
 
@@ -180,31 +213,10 @@ namespace Eagle
 		return visibility == MONO_TYPE_ATTR_PUBLIC || visibility == MONO_TYPE_ATTR_NESTED_PUBLIC;
 	}
 
-	static void GetAttributes(MonoCustomAttrInfo* attrs, std::string* outName, std::string* outTooltip)
+	static bool IsPublicMethod(MonoMethod* method)
 	{
-		for (int i = 0; i < attrs->num_attrs; ++i)
-		{
-			MonoClass* attrClass = mono_method_get_class(attrs->attrs[i].ctor);
-
-			if (attrClass == s_AttrUINameClass)
-			{
-				MonoObject* attrObj = mono_custom_attrs_get_attr(attrs, attrClass);
-				std::string name = ScriptEngine::GetStringProperty("Name", attrClass, attrObj);
-				if (!name.empty())
-				{
-					*outName = std::move(name);
-				}
-			}
-			else if (attrClass == s_AttrTooltipClass)
-			{
-				MonoObject* attrObj = mono_custom_attrs_get_attr(attrs, attrClass);
-				std::string text = ScriptEngine::GetStringProperty("Text", attrClass, attrObj);
-				if (!text.empty())
-				{
-					*outTooltip = std::move(text);
-				}
-			}
-		}
+		const uint32_t visibility = mono_method_get_flags(method, NULL) & MONO_METHOD_ATTR_ACCESS_MASK;
+		return visibility == MONO_METHOD_ATTR_PUBLIC;
 	}
 
 	static void GetClassAttributes(MonoClass* klass, std::string* outName, const char* nameFallback, std::string* outTooltip)
@@ -237,43 +249,87 @@ namespace Eagle
 	{
 		do
 		{
-			MonoClassField* iter = nullptr;
-			void* ptr = nullptr;
-
 			if (!IsPublicClass(klass))
 				break;
 
-			while ((iter = mono_class_get_fields(klass, &ptr)) != nullptr)
+			MonoClassField* fieldIter = nullptr;
+			void* fieldPtr = nullptr;
+
+			// Parse fields
+			while ((fieldIter = mono_class_get_fields(klass, &fieldPtr)) != nullptr)
 			{
-				std::string fieldName = mono_field_get_name(iter);
-				uint32_t fieldFlags = mono_field_get_flags(iter);
+				std::string fieldName = mono_field_get_name(fieldIter);
+				uint32_t fieldFlags = mono_field_get_flags(fieldIter);
 				if ((fieldFlags & MONO_FIELD_ATTR_PUBLIC) != MONO_FIELD_ATTR_PUBLIC)
 					continue;
 
-				MonoType* monoFieldType = mono_field_get_type(iter);
+				MonoType* monoFieldType = mono_field_get_type(fieldIter);
 				FieldType fieldType = MonoTypeToFieldType(monoFieldType);
 				if (fieldType == FieldType::None) // Not supported
 					continue;
 
 				std::string tooltip;
 				// Get custom attributes for the field
-				if (MonoCustomAttrInfo* attrs = mono_custom_attrs_from_field(klass, iter))
+				if (MonoCustomAttrInfo* attrs = mono_custom_attrs_from_field(klass, fieldIter))
 				{
 					GetAttributes(attrs, &fieldName, &tooltip);
 					mono_custom_attrs_free(attrs);
 				}
 
-				if (fieldType == FieldType::ClassReference)
-					continue;
-
 				const char* typeName = mono_type_get_name(monoFieldType);
 				PublicField& publicField = publicFields[fieldName];
 				publicField = PublicField(std::move(fieldName), std::move(typeName), std::move(tooltip), fieldType);
-				publicField.m_MonoClassField = iter;
-				publicField.CopyStoredValueFromRuntime(instance);
+				publicField.m_MonoClassField = fieldIter;
 				publicField.EnumFields = fieldType == FieldType::Enum ? GetEnumFields(monoFieldType) : ScriptEnumFields{};
+				publicField.CopyStoredValueFromRuntime(instance);
 
 				//EG_CORE_INFO("[ScriptEngine] Script '{0}' - Field type '{1}', Field Name '{2}', Flags: {3}", scriptClass.FullName, typeName, fieldName, fieldFlags);
+			}
+
+			// Parse properties
+			MonoProperty* propertyIter = nullptr;
+			void* propertyPtr = nullptr;
+
+			while ((propertyIter = mono_class_get_properties(klass, &propertyPtr)) != nullptr)
+			{
+				MonoMethod* setter = mono_property_get_set_method(propertyIter);
+				MonoMethod* getter = mono_property_get_get_method(propertyIter);
+				if (!setter || !getter)
+					continue;
+
+				if (!IsPublicMethod(setter))
+					continue;
+
+				std::string fieldName = mono_property_get_name(propertyIter);
+				MonoType* propertyType = nullptr;
+				if (MonoMethodSignature* signature = mono_method_signature(getter))
+				{
+					propertyType = mono_signature_get_return_type(signature);
+				}
+				if (!propertyType)
+				{
+					EG_CORE_ERROR("Failed to get the propety type of a C# property: {}", fieldName);
+					continue;
+				}
+
+				FieldType fieldType = MonoTypeToFieldType(propertyType);
+				if (fieldType == FieldType::None) // Not supported
+					continue;
+
+				std::string tooltip;
+				// Get custom attributes for the property
+				if (MonoCustomAttrInfo* attrs = mono_custom_attrs_from_property(klass, propertyIter))
+				{
+					GetAttributes(attrs, &fieldName, &tooltip);
+					mono_custom_attrs_free(attrs);
+				}
+
+				const char* typeName = mono_type_get_name(propertyType);
+				PublicField& publicField = publicFields[fieldName];
+				publicField = PublicField(std::move(fieldName), std::move(typeName), std::move(tooltip), fieldType);
+				publicField.m_MonoProperty = propertyIter;
+				publicField.EnumFields = fieldType == FieldType::Enum ? GetEnumFields(propertyType) : ScriptEnumFields{};
+				publicField.CopyStoredValueFromRuntime(instance);
 			}
 
 			// Iterate over parent scripts classes
@@ -573,7 +629,7 @@ namespace Eagle
 					{
 						const int storedValue = field.GetStoredValue<int>();
 						bool bValid = false;
-						for (auto& [value, name] : field.EnumFields)
+						for (auto& [value, _] : field.EnumFields)
 						{
 							if (storedValue == value)
 							{
@@ -713,25 +769,14 @@ namespace Eagle
 
 		LoadListOfAppAssemblyClasses();
 
-		if (s_EntityInstanceDataMap.size())
+		// Update entity public fields
+		if (const Ref<Scene>& currentScene = Scene::GetCurrentScene())
 		{
-			const Ref<Scene>& currentScene = Scene::GetCurrentScene();
-
-			for (auto it = s_EntityInstanceDataMap.begin(); it != s_EntityInstanceDataMap.end();)
+			auto view = currentScene->GetAllEntitiesWith<ScriptComponent>();
+			for (auto entityID : view)
 			{
-				Entity entity = currentScene->GetEntityByGUID(it->first);
-				if (entity.IsValid())
-				{
-					if (entity.HasComponent<ScriptComponent>())
-					{
-						UpdateEntityPublicFields(entity);
-						++it;
-					}
-					else
-						it = s_EntityInstanceDataMap.erase(it);
-				}
-				else
-					it = s_EntityInstanceDataMap.erase(it);
+				Entity entity{ entityID, currentScene.get()};
+				UpdateEntityPublicFields(entity);
 			}
 		}
 

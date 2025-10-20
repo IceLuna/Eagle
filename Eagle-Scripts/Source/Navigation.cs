@@ -15,8 +15,8 @@ namespace Eagle
         Failed,
         Valid,
         Requesting,
-        WaitingForQueue,
-        WaitingForPath,
+        [UIName("Waiting for queue")] WaitingForQueue,
+        [UIName("Waiting for path")] WaitingForPath,
         Velocity,
     };
 

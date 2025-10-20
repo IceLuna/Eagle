@@ -3,9 +3,16 @@
     public enum EventType
     {
         None = 0,
-		WindowClosed, WindowResized, WindowFocused,
-		KeyPressed, KeyReleased, KeyTyped,
-		MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled
+        [UIName("Window closed")] WindowClosed,
+        [UIName("Window resized")] WindowResized,
+        [UIName("Window focused")] WindowFocused,
+        [UIName("Key pressed")] KeyPressed,
+        [UIName("Key released")] KeyReleased,
+        [UIName("Key typed")] KeyTyped,
+        [UIName("Mouse button pressed")] MouseButtonPressed,
+        [UIName("Mouse button released")] MouseButtonReleased,
+        [UIName("Mouse moved")] MouseMoved,
+        [UIName("Mouse scrolled")] MouseScrolled
     }
 
     public enum EventCategory
@@ -15,7 +22,7 @@
         Input = 1 << 1,
         Keyboard = 1 << 2,
         Mouse = 1 << 3,
-        MouseButton = 1 << 4,
+        [UIName("Mouse button")] MouseButton = 1 << 4,
     }
 
     public abstract class Event

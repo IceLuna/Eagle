@@ -88,6 +88,11 @@ namespace Eagle
 			memcpy((uint8_t*)Data + offset, data, size);
 		}
 
+		void SetToZero()
+		{
+			memset(Data, 0, Size);
+		}
+
 		operator bool() const
 		{
 			return Data;
@@ -166,6 +171,7 @@ namespace Eagle
 		}
 
 		void Write(const void* data, size_t size, size_t offset = 0) { m_Buffer.Write(data, size, offset); }
+		void SetToZero() { m_Buffer.SetToZero(); }
 
 		void Release() { m_Buffer.Release(); }
 

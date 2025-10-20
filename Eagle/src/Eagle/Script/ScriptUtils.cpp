@@ -57,10 +57,16 @@ namespace Eagle
 	MonoStringHandler::MonoStringHandler(MonoString* monoStr)
 	{
 		m_Str = mono_string_to_utf8(monoStr);
+		bSetByMono = m_Str != nullptr;
+		if (!bSetByMono)
+		{
+			m_Str = "";
+		}
 	}
 
 	MonoStringHandler::~MonoStringHandler()
 	{
-		mono_free(m_Str);
+		if (bSetByMono)
+			mono_free((void*)m_Str);
 	}
 }

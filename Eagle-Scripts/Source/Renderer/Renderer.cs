@@ -26,7 +26,7 @@ namespace Eagle
     {
         Linear = 0,
         Exponential = 1,
-        Exponential2 = 2, // Square exponential
+        [UIName("Exponential squared")] Exponential2 = 2,
     }
 
     public enum AmbientOcclusion
@@ -168,12 +168,12 @@ namespace Eagle
 
     public enum EmitterEmissionShapeType
     {
-        Point, Sphere, SphereSurface, Box, Ring, Mesh
+        Point, Sphere, [UIName("Sphere surface")] SphereSurface, Box, Ring, Mesh
     }
 
     public enum EmitterCollisionModeType
     {
-        None, DestroyOnHit, Bounce,
+        None, [UIName("Destroy on hit")] DestroyOnHit, Bounce,
 	}
 
     public struct ParticleEmitter

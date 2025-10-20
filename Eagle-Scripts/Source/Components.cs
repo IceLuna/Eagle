@@ -20,10 +20,15 @@ namespace Eagle
 
     public enum PhysicsQueryType
     {
-        Static  = 1 << 0, // Traverse static body types
-        Dynamic = 1 << 1, // Traverse dynamic body types
-        AnyHit  = 1 << 2, // Abort traversal as soon as any hit is found
+        [Tooltip("Traverse static body types")]
+        Static = 1 << 0,
+        [Tooltip("Traverse dynamic body types")]
+        Dynamic = 1 << 1,
+        [UIName("Any hit")]
+        [Tooltip("Abort traversal as soon as any hit is found")]
+        AnyHit  = 1 << 2,
 
+        [UIName("Static & Dynamic")]
         Default = Static | Dynamic
     }
 
@@ -31,7 +36,7 @@ namespace Eagle
     {
         Discrete,
 		Continuous,
-		ContinuousSpeculative
+        [UIName("Continuous Speculative")] ContinuousSpeculative
     }
 
     public enum CollisionGroup : uint
@@ -45,7 +50,7 @@ namespace Eagle
     {
         Force = 0,
         Impulse,
-        VelocityChange,
+        [UIName("Velocity change")] VelocityChange,
         Acceleration
     }
 

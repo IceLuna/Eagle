@@ -15,8 +15,8 @@ namespace Eagle
         Wrap,
         Mirror,
         Clamp,
-        ClampToOpaqueBlack,
-        ClampToOpaqueWhite
+        [UIName("Clamp to opaque black")] ClampToOpaqueBlack,
+        [UIName("Clamp to opaque white")] ClampToOpaqueWhite
     };
 
     public enum AssetType

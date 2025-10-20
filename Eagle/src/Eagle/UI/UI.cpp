@@ -1404,7 +1404,7 @@ namespace Eagle::UI
 			}
 			
 			int i = 0;
-			for (const auto& [name, _] : entityClasses)
+			for (const auto& [name, data] : entityClasses)
 			{
 				const bool isSelected = name == moduleName;
 				ImGui::PushID(i++);
@@ -1413,6 +1413,12 @@ namespace Eagle::UI
 				{
 					moduleName = name;
 					bModified = true;
+				}
+
+				if (!data.ClassData.Tooltip.empty())
+				{
+					ImGui::SameLine();
+					UI::HelpMarker(data.ClassData.Tooltip);
 				}
 
 				if (isSelected)
@@ -1432,10 +1438,10 @@ namespace Eagle::UI
 	bool Combo(const std::string_view label, int currentValue, const ScriptEnumFields& fields, int& outSelectedValue, const std::string_view helpMessage)
 	{
 		std::string_view currentString;
-		for (auto& [value, name] : fields)
+		for (auto& [value, data] : fields)
 		{
 			if (value == currentValue)
-				currentString = name;
+				currentString = data.Name;
 		}
 
 		bool bModified = false;
@@ -1452,14 +1458,20 @@ namespace Eagle::UI
 
 		if (ImGui::BeginCombo(s_IDBuffer, currentString.data()))
 		{
-			for (auto& [value, name] : fields)
+			for (auto& [value, data] : fields)
 			{
 				bool isSelected = (currentValue == value);
 
-				if (ImGui::Selectable(name.c_str(), isSelected))
+				if (ImGui::Selectable(data.Name.c_str(), isSelected))
 				{
 					bModified = true;
 					outSelectedValue = value;
+				}
+
+				if (!data.Tooltip.empty())
+				{
+					ImGui::SameLine();
+					UI::HelpMarker(data.Tooltip);
 				}
 
 				if (isSelected)

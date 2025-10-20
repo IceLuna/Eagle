@@ -11,7 +11,7 @@ namespace Eagle
 		Hamming,
 		Hanning,
 		Blackman,
-		BlackmanHarris
+        [UIName("Blackman Harris")] BlackmanHarris
     }
 
     //@ Volume. 0 = silent, 1 = full. Negative level inverts the signal. Values larger than 1 amplify the signal.
@@ -58,15 +58,38 @@ namespace Eagle
 
     public enum RollOffModel
     {
-        Linear, Inverse, LinearSquare, InverseTapered,
-        Default = Inverse
+        Linear,
+        Inverse,
+        LinearSquare,
+        [UIName("Inverse Tapered")] InverseTapered,
+        [UIName("Inverse")] Default = Inverse
     }
 
     public enum ReverbPreset
     {
-        Generic, PaddedCell, Room, Bathroom, LivingRoom, StoneRoom, Auditorium, ConcertHall,
-        Cave, Arena, Hangar, CarpettedHallway, Hallway, StoneCorridor, Alley, Forest, City, Mountains,
-        Quarry, Plain, ParkingLot, SewerPipe, UnderWater
+        Generic,
+        [UIName("Padded cell")] PaddedCell,
+        Room,
+        Bathroom,
+        [UIName("Living room")] LivingRoom,
+        [UIName("Stone room")] StoneRoom,
+        Auditorium,
+        [UIName("Concert hall")] ConcertHall,
+        Cave,
+        Arena,
+        Hangar,
+        [UIName("Carpetted hallway")] CarpettedHallway,
+        Hallway,
+        [UIName("Stone corridor")] StoneCorridor,
+        Alley,
+        Forest,
+        City,
+        Mountains,
+        Quarry,
+        Plain,
+        [UIName("Parking lot")] ParkingLot,
+        SewerPipe,
+        [UIName("Under water")] UnderWater
     };
 
     abstract public class Sound
