@@ -53,7 +53,7 @@ namespace Eagle
 
 		// Defines the order for assets loading
 		// All `assetsToLoadQueue[0]` will be loaded first, then [1] and so on.
-		std::array<AssetsQueue, 8> assetsToLoadQueue;
+		std::array<AssetsQueue, 7> assetsToLoadQueue;
 		for (auto& assets : assetsToLoadQueue)
 			assets.Paths.reserve(25);
 
@@ -116,23 +116,18 @@ namespace Eagle
 				assetsToLoadQueue[5].bAsync = false;
 				continue;
 			}
-			// TODO v0.7: Collision with entity assets: both entity and behavior graph can refer to any other asset
-			// Which means we now have loading order issue. Somehow handle it.
-			// BehaviorGraph: might refer to any asset.
-			else if (type == AssetType::BehaviorGraph)
-			{
-				assetsToLoadQueue[6].Paths.emplace_back(std::move(assetPath));
-				continue;
-			}
 			// Entity: we can't load entities unless all assets are loaded since entities might refer to anything
 			else if (type == AssetType::Entity)
 			{
 				// Entity assets need to be created in a single thread (mono related issues)
-				assetsToLoadQueue[7].Paths.emplace_back(std::move(assetPath));
-				assetsToLoadQueue[7].bAsync = false;
+				assetsToLoadQueue[6].Paths.emplace_back(std::move(assetPath));
+				assetsToLoadQueue[6].bAsync = false;
 				continue;
 			}
 
+			// Note: BehaviorGraph might refer to any asset via its C# public fields.
+			// But it's ok since PublicField doesn't require Asset to be loaded.
+			// It just stores an asset GUID
 			assetsToLoadQueue[0].Paths.emplace_back(std::move(assetPath));
 		}
 		EG_CORE_INFO("Took {}s to traverse directories and find assets", globalTimer.GetDuration() / 1000.f);

@@ -594,7 +594,10 @@ namespace Eagle
         }
 
         if (root->OutputsPerPin.empty() || root->OutputsPerPin[0].empty())
+        {
+            m_Asset->SetRoot({});
             return;
+        }
 
         auto oldEditor = ed::GetCurrentEditor();
         ed::SetCurrentEditor(m_GraphData.Editor);

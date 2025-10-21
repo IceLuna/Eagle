@@ -10,7 +10,7 @@ namespace Eagle
         : GraphEditor(name), m_Asset(asset)
     {
         m_Graph = MakeRef<UIBehaviorGraph>(*this, name);
-        AddGraph_Internal(m_Graph);
+        m_Graphs.emplace_back(m_Graph);
 
         OnAddGraphPre();
         Deserialize();

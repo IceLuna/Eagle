@@ -756,7 +756,8 @@ namespace Eagle
             }
             else if (nodeData.Type == GraphNodeType::AIBehaviorNode)
             {
-                nodeData.AIBehaviorNodeClassID = node.BehaviorNodeData.Data.ID;
+                nodeData.BehaviorClassData = node.BehaviorNodeData.Data;
+                nodeData.AttachedDecorators = node.BehaviorNodeData.AttachedDecorators;
             }
 
             // Input pins data
@@ -960,7 +961,12 @@ namespace Eagle
                 if (const auto& bg = ((UIBehaviorGraph*)this)->GetBehaviorGraphAsset())
                 {
                     AIBehaviorNode behaviorNodeData;
-                    bg->GetClassNodeData(nodeData.AIBehaviorNodeClassID, &behaviorNodeData);
+                    if (!bg->GetClassNodeData(nodeData.BehaviorClassData.ID, &behaviorNodeData))
+                    {
+                        // Failed because it's not used by the asset. Use fallback data
+                        behaviorNodeData.Data = nodeData.BehaviorClassData;
+                        behaviorNodeData.AttachedDecorators = nodeData.AttachedDecorators;
+                    }
 
                     Node* createdNode = nullptr;
                     const bool bTaskNode = behaviorNodeData.Data.Type == AIBehaviorClassData::ClassType::Task;
@@ -1089,7 +1095,7 @@ namespace Eagle
         {
             if (CanSpawnVariables())
             {
-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(GraphEditor::GetVarDragDropTag()))
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(m_Editor.GetVarDragDropTag()))
                 {
                     const std::string varName = (const char*)payload->Data;
                     auto var = m_Editor.GetVariable(varName);

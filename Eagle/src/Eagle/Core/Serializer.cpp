@@ -56,6 +56,89 @@ namespace Eagle
 		return true;
 	}
 
+	static void SerializeScriptFields(YAML::Emitter& out, const std::map<std::string, PublicField>& fields)
+	{
+		out << YAML::Key << "PublicFields";
+		out << YAML::BeginMap;
+		for (const auto& [_, field] : fields)
+		{
+			if (Serializer::HasSerializableType(field))
+				Serializer::SerializePublicFieldValue(out, field);
+		}
+		out << YAML::EndMap;
+	}
+
+	static void SerializeAIBehaviorNode(YAML::Emitter& out, const AIBehaviorNode& node)
+	{
+		out << YAML::Key << "FullName" << YAML::Value << node.Data.ClassData.FullName;
+		out << YAML::Key << "ID" << YAML::Value << node.Data.ID;
+
+		if (!node.Data.ClassData.Fields.empty())
+		{
+			SerializeScriptFields(out, node.Data.ClassData.Fields);
+		}
+
+		if (!node.AttachedDecorators.empty())
+		{
+			out << YAML::Key << "Decorators" << YAML::Value << YAML::BeginSeq;
+			for (const auto& decorator : node.AttachedDecorators)
+			{
+				out << YAML::BeginMap;
+				out << YAML::Key << "FullName" << YAML::Value << decorator.ClassData.FullName;
+				if (!decorator.ClassData.Fields.empty())
+				{
+					SerializeScriptFields(out, decorator.ClassData.Fields);
+				}
+				out << YAML::EndMap;
+			}
+			out << YAML::EndSeq;
+		}
+
+		if (!node.Children.empty())
+		{
+			out << YAML::Key << "Children" << YAML::Value << YAML::BeginSeq;
+			for (const auto& child : node.Children)
+			{
+				out << YAML::BeginMap;
+				SerializeAIBehaviorNode(out, child);
+				out << YAML::EndMap;
+			}
+			out << YAML::EndSeq;
+		}
+	}
+
+	static void DeserializeAIBehaviorNode(const YAML::Node& yamlNode, AIBehaviorNode& node)
+	{
+		const std::string fullName = yamlNode["FullName"].as<std::string>();
+		node.Data = ScriptEngine::GetAIClassData(fullName);
+		node.Data.ID = yamlNode["ID"].as<GUID>();
+
+		if (auto publicFieldsNode = yamlNode["PublicFields"])
+			Serializer::DeserializePublicFieldValues(publicFieldsNode, node.Data.ClassData.Fields);
+
+		if (auto decoratorsNode = yamlNode["Decorators"])
+		{
+			for (auto decoratorNode : decoratorsNode)
+			{
+				const std::string fullName = decoratorNode["FullName"].as<std::string>();
+				auto& decorator = node.AttachedDecorators.emplace_back();
+				decorator = ScriptEngine::GetAIClassData(fullName);
+
+				if (auto publicFieldsNode = decoratorNode["PublicFields"])
+					Serializer::DeserializePublicFieldValues(publicFieldsNode, decorator.ClassData.Fields);
+			}
+		}
+
+		if (auto childrenNode = yamlNode["Children"])
+		{
+			for (auto childNode : childrenNode)
+			{
+				auto& child = node.Children.emplace_back();
+				DeserializeAIBehaviorNode(childNode, child);
+			}
+		}
+	}
+
 	static void SerializeGraphVar(YAML::Emitter& out, const Ref<GraphVariable>& var)
 	{
 		GraphVariableType varType = var->GetType();
@@ -158,7 +241,15 @@ namespace Eagle
 			if (node.UserData.empty() == false)
 				out << YAML::Key << "UserData" << YAML::Value << node.UserData;
 			if (node.Type == GraphNodeType::AIBehaviorNode)
-				out << YAML::Key << "AIBehaviorNodeClassID" << YAML::Value << node.AIBehaviorNodeClassID;
+			{
+				AIBehaviorNode behaviorNode;
+				behaviorNode.Data = node.BehaviorClassData;
+				behaviorNode.AttachedDecorators = node.AttachedDecorators;
+
+				out << YAML::Key << "BehaviorNodeData" << YAML::Value << YAML::BeginMap;
+				SerializeAIBehaviorNode(out, behaviorNode);
+				out << YAML::EndMap;
+			}
 
 			{
 				out << YAML::Key << "InputPins" << YAML::Value << YAML::BeginSeq;
@@ -249,8 +340,13 @@ namespace Eagle
 				nodeData.AddedCounter = counterNode.as<uint32_t>();
 			if (auto userDataNode = nodeNode["UserData"])
 				nodeData.UserData = userDataNode.as<std::string>();
-			if (auto node = nodeNode["AIBehaviorNodeClassID"])
-				nodeData.AIBehaviorNodeClassID = node.as<GUID>();
+			if (auto node = nodeNode["BehaviorNodeData"])
+			{
+				AIBehaviorNode behaviorNode;
+				DeserializeAIBehaviorNode(node, behaviorNode);
+				nodeData.BehaviorClassData = std::move(behaviorNode.Data);
+				nodeData.AttachedDecorators = std::move(behaviorNode.AttachedDecorators);
+			}
 
 			{
 				const auto inputPinsNode = nodeNode["InputPins"];
@@ -288,89 +384,6 @@ namespace Eagle
 			for (const auto& subgraphNode : subgraphsNode)
 			{
 				DeserializeGraph(subgraphNode, data.Subgraphs.emplace_back());
-			}
-		}
-	}
-
-	static void SerializeScriptFields(YAML::Emitter& out, const std::map<std::string, PublicField>& fields)
-	{
-		out << YAML::Key << "PublicFields";
-		out << YAML::BeginMap;
-		for (const auto& [_, field] : fields)
-		{
-			if (Serializer::HasSerializableType(field))
-				Serializer::SerializePublicFieldValue(out, field);
-		}
-		out << YAML::EndMap;
-	}
-
-	static void SerializeAIBehaviorNode(YAML::Emitter& out, const AIBehaviorNode& node)
-	{
-		out << YAML::Key << "FullName" << YAML::Value << node.Data.ClassData.FullName;
-		out << YAML::Key << "ID" << YAML::Value << node.Data.ID;
-
-		if (!node.Data.ClassData.Fields.empty())
-		{
-			SerializeScriptFields(out, node.Data.ClassData.Fields);
-		}
-
-		if (!node.AttachedDecorators.empty())
-		{
-			out << YAML::Key << "Decorators" << YAML::Value << YAML::BeginSeq;
-			for (const auto& decorator : node.AttachedDecorators)
-			{
-				out << YAML::BeginMap;
-				out << YAML::Key << "FullName" << YAML::Value << decorator.ClassData.FullName;
-				if (!decorator.ClassData.Fields.empty())
-				{
-					SerializeScriptFields(out, decorator.ClassData.Fields);
-				}
-				out << YAML::EndMap;
-			}
-			out << YAML::EndSeq;
-		}
-
-		if (!node.Children.empty())
-		{
-			out << YAML::Key << "Children" << YAML::Value << YAML::BeginSeq;
-			for (const auto& child : node.Children)
-			{
-				out << YAML::BeginMap;
-				SerializeAIBehaviorNode(out, child);
-				out << YAML::EndMap;
-			}
-			out << YAML::EndSeq;
-		}
-	}
-
-	static void DeserializeAIBehaviorNode(const YAML::Node& yamlNode, AIBehaviorNode& node)
-	{
-		const std::string fullName = yamlNode["FullName"].as<std::string>();
-		node.Data = ScriptEngine::GetAIClassData(fullName);
-		node.Data.ID = yamlNode["ID"].as<GUID>();
-
-		if (auto publicFieldsNode = yamlNode["PublicFields"])
-			Serializer::DeserializePublicFieldValues(publicFieldsNode, node.Data.ClassData.Fields);
-
-		if (auto decoratorsNode = yamlNode["Decorators"])
-		{
-			for (auto decoratorNode : decoratorsNode)
-			{
-				const std::string fullName = decoratorNode["FullName"].as<std::string>();
-				auto& decorator = node.AttachedDecorators.emplace_back();
-				decorator = ScriptEngine::GetAIClassData(fullName);
-
-				if (auto publicFieldsNode = decoratorNode["PublicFields"])
-					Serializer::DeserializePublicFieldValues(publicFieldsNode, decorator.ClassData.Fields);
-			}
-		}
-
-		if (auto childrenNode = yamlNode["Children"])
-		{
-			for (auto childNode : childrenNode)
-			{
-				auto& child = node.Children.emplace_back();
-				DeserializeAIBehaviorNode(childNode, child);
 			}
 		}
 	}

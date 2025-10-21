@@ -11,8 +11,7 @@ namespace Eagle
 	AnimationGraphEditor::AnimationGraphEditor(const Ref<AssetAnimationGraph>& graph, const std::string& name)
         : GraphEditor(name), m_Graph(graph)
 	{
-        Ref<UIAnimationGraph> animGraph = MakeRef<UIAnimationGraph>(*this, name);
-        AddGraph_Internal(animGraph);
+        m_Graphs.emplace_back(MakeRef<UIAnimationGraph>(*this, name));
 
         OnAddGraphPre();
         Deserialize();

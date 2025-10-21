@@ -141,15 +141,7 @@ namespace Eagle
         const Ref<Texture2D>& GetHeaderTexture() const { return m_HeaderTexture; }
         ImTextureID GetHeaderTextureID() const { return m_HeaderBackground; }
 
-        static const char* GetVarDragDropTag() { return "EDITOR_GRAPH_VAR_TAG"; }
-
-    protected:
-        void AddGraph_Internal(const Ref<UIGraph>& graph)
-        {
-            OnAddGraphPre();
-            m_Graphs.emplace_back(graph);
-            OnAddGraphPost();
-        }
+        const char* GetVarDragDropTag() { return m_VarDragDropTag.c_str(); }
 
     protected:
         ed::Config m_Config;
@@ -174,6 +166,8 @@ namespace Eagle
         VariablesMap m_Variables;
 
         std::vector<CachedNodeData> m_PoseCacheNodes;
+        // Generate a unique tag to prevent being able to drag&drop between different editors
+        std::string m_VarDragDropTag = std::to_string(Random::UInt64());
 
         float m_LeftPanelWidth = 400.f;
         float m_RightPanelWidth = 800.f;

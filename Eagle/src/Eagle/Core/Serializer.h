@@ -6,6 +6,7 @@
 #include "Eagle/Animation/AnimationGraph.h"
 #include "Eagle/Utils/Utils.h"
 #include "Eagle/Utils/YamlUtils.h"
+#include "Eagle/AI/BehaviorGraph.h"
 
 namespace Eagle
 {
@@ -80,7 +81,10 @@ namespace Eagle
 		std::string UserData; // Used by nodes such as "Comment" to save comment
 
 		Ref<AssetAnimationBlendSpace> BlendSpace; // Used if it's a blend space node
-		GUID AIBehaviorNodeClassID = GUID(0, 0); // Used if it's a behavior graph node
+
+		// These are used if it's a behavior graph node
+		AIBehaviorClassData BehaviorClassData;
+		std::vector<AIBehaviorClassData> AttachedDecorators;
 	};
 
 	struct GraphVariableSerializationData
