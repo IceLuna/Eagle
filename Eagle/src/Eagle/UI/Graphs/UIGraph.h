@@ -402,7 +402,6 @@ namespace Eagle
     protected:
         virtual void HandleBPNode(util::BlueprintNodeBuilder& builder, Node& node, Pin* newLinkPin);
         virtual void HandleStateNode(Node& node, Pin* newLinkPin);
-        virtual void HandleBehaviorNode(Node& node, Pin* newLinkPin);
         virtual void HandleCommentNode(Node& node, Pin* newLinkPin);
         virtual void HandleNodeCreation(Node& node, ImVec2 pos, Pin* newNodeLinkPin);
         virtual void HandleCreatingDeletion();
@@ -430,6 +429,9 @@ namespace Eagle
         // For example, if a ref was used, calling `RenameGraph(node.GetName(), newName)` would result in a bug, since `node.GetName()` would change at some point
         // And other graphs would get an updated `graphName` instead of an old one.
         virtual bool RenameGraph(std::string graphName, const std::string& newName);
+
+        // Handles renaming
+        virtual void OnNodeRenamingFinished(Node& node, const std::string& newName);
 
         virtual void OnLinkCreated(const Link& link);
         virtual void OnLinkDeleted(const Link& link);

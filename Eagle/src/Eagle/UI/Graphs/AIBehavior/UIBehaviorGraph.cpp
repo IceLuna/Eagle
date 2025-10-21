@@ -428,7 +428,8 @@ namespace Eagle
             UI::BeginPropertyGrid("BehaviorGraphNodes");
 
             UI::Text("Full name", nodeData.Data.ClassData.FullName, nodeData.Data.ClassData.Tooltip);
-            UI::Text("UI Name", nodeData.Data.ClassData.UIName);
+            if (UI::PropertyText("UI Name", m_Selected->GetName()))
+                m_Asset->SetDirty(true);
             if (!nodeData.Data.ClassData.Fields.empty())
             {
                 ImGui::Separator();
@@ -469,6 +470,12 @@ namespace Eagle
                 ImGui::TreePop();
             }
         }
+    }
+
+    void UIBehaviorGraph::OnNodeRenamingFinished(Node& node, const std::string& newName)
+    {
+        node.SetName(newName);
+        m_Asset->SetDirty(true);
     }
 
     void UIBehaviorGraph::CheckIfNodesAreValid()

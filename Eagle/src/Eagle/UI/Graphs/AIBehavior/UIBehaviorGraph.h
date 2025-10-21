@@ -33,11 +33,12 @@ namespace Eagle
 		bool ProcessNewLinkRejection(const Pin& startPin, const Pin& endPin) override;
 		bool CanSpawnVariables() const override { return false; }
 		bool AllowMultipleLinksToInput() const override { return false; }
-		bool AllowRenaming() const override { return false; }
 		void DrawNodeContextPopup() override;
 		void OnAppAssemblyReloaded();
 		void RenderLeftPanel();
 		void HandleSelectedNode();
+
+		void OnNodeRenamingFinished(Node& node, const std::string& newName) override;
 
 		bool AreConnected_DeepSearch(const Node* startNode, const Node* endNode) const;
 		void RebuildBehaviorTree_Internal(Node* root, AIBehaviorNode& nodeData, size_t& index);

@@ -420,13 +420,9 @@ namespace Eagle
                 node.Type == NodeType::PoseCache || node.Type == NodeType::PoseCacheGetter || node.Type == NodeType::StateMachine ||
                 node.Type == NodeType::BlendSpace;
 
-            if (node.Type == NodeType::StateMachineState)
+            if (node.Type == NodeType::StateMachineState || node.Type == NodeType::BehaviorTask || node.Type == NodeType::BehaviorComposite)
             {
                 HandleStateNode(node, m_NewLinkPin);
-            }
-            else if (node.Type == NodeType::BehaviorTask || node.Type == NodeType::BehaviorComposite)
-            {
-                HandleBehaviorNode(node, m_NewLinkPin);
             }
             else if (node.Type == NodeType::Comment)
             {
@@ -976,6 +972,7 @@ namespace Eagle
                     {
                         createdNode = &GraphNodeFactory::SpawnBehaviorCompositeNode(*this, behaviorNodeData);
                     }
+                    createdNode->SetName(nodeData.Name);
 
                     createdNode->Size = ImVec2(nodeData.Size.x, nodeData.Size.y);
                     ed::SetNodePosition(createdNode->ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
@@ -1639,20 +1636,7 @@ namespace Eagle
                     node.bEditing = false;
                     if (m_RenamingNodeTemp != node.GetName())
                     {
-                        if (node.Type == NodeType::Variable)
-                        {
-                            if (RenameVariable(node.GetName(), m_RenamingNodeTemp) == false)
-                                Application::Get().GetImGuiLayer()->AddMessage("Failed to rename the variable! This name already exists!");
-                        }
-                        else if (node.Type == NodeType::PoseCache)
-                        {
-                            node.SetName(m_RenamingNodeTemp);
-                        }
-                        else if (node.Graph)
-                        {
-                            if (RenameGraph(node.GetName(), m_RenamingNodeTemp) == false)
-                                Application::Get().GetImGuiLayer()->AddMessage("Failed to rename the graph! This name already exists!");
-                        }
+                        OnNodeRenamingFinished(node, m_RenamingNodeTemp);
                     }
                 }
             }
@@ -1814,173 +1798,37 @@ namespace Eagle
                 node.bEditing = false;
                 if (m_RenamingNodeTemp != node.GetName())
                 {
-                    if (node.Graph)
-                    {
-                        if (RenameGraph(node.GetName(), m_RenamingNodeTemp) == false)
-                            Application::Get().GetImGuiLayer()->AddMessage("Failed to rename the graph! This name already exists!");
-                    }
+                    OnNodeRenamingFinished(node, m_RenamingNodeTemp);
                 }
             }
         }
         else
-            ImGui::TextUnformatted(node.GetName().c_str());
-
-        ImGui::Spring(1);
-        ImGui::EndVertical();
-        auto contentRect = ImGui_GetItemRect();
-
-        ImGui::Spring(1, padding);
-        ImGui::EndHorizontal();
-
-        ImGui::BeginHorizontal("outputs");
-        ImGui::Spring(0, padding * 2);
-
-        ImRect outputsRect;
-        int outputAlpha = 200;
-        if (!node.OutputPins.empty())
         {
-            auto& pin = node.OutputPins[0];
-            ImGui::Dummy(ImVec2(0, padding));
-            ImGui::Spring(1, 0);
-            outputsRect = ImGui_GetItemRect();
-
-            ed::PushStyleVar(ed::StyleVar_PinArrowSize, 10.0f);
-            ed::PushStyleVar(ed::StyleVar_PinArrowWidth, 10.0f);
-            ed::PushStyleVar(ed::StyleVar_PinCorners, ImDrawFlags_RoundCornersTop);
-            ed::BeginPin(pin.ID, ed::PinKind::Output);
-            ed::PinPivotRect(outputsRect.GetTL(), outputsRect.GetBR());
-            ed::PinRect(outputsRect.GetTL(), outputsRect.GetBR());
-            ed::EndPin();
-            ed::PopStyleVar(3);
-
-            if (newLinkPin && !CanCreateLink(newLinkPin, &pin) && &pin != newLinkPin)
-                outputAlpha = (int)(255 * ImGui::GetStyle().Alpha * (48.0f / 255.0f));
-        }
-        else
-            ImGui::Dummy(ImVec2(0, padding));
-
-        ImGui::Spring(0, padding * 2);
-        ImGui::EndHorizontal();
-
-        ImGui::EndVertical();
-
-        if (bDoubleClicked && ImGui::IsItemClicked())
-        {
-            if (node.Graph)
-                m_Editor.AddGraph(node.Graph);
-        }
-
-        ed::EndNode();
-        ed::PopStyleVar(7);
-        ed::PopStyleColor(4);
-
-        auto drawList = ed::GetNodeBackgroundDrawList(node.ID);
-
-        const auto    topRoundCornersFlags = ImDrawFlags_RoundCornersTop;
-        const auto bottomRoundCornersFlags = ImDrawFlags_RoundCornersBottom;
-
-        drawList->AddRectFilled(inputsRect.GetTL() + ImVec2(0, 1), inputsRect.GetBR(),
-            IM_COL32((int)(255 * pinBackground.x), (int)(255 * pinBackground.y), (int)(255 * pinBackground.z), inputAlpha), 4.0f, bottomRoundCornersFlags);
-        //ImGui::PushStyleVar(ImGuiStyleVar_AntiAliasFringeScale, 1.0f);
-        drawList->AddRect(inputsRect.GetTL() + ImVec2(0, 1), inputsRect.GetBR(),
-            IM_COL32((int)(255 * pinBackground.x), (int)(255 * pinBackground.y), (int)(255 * pinBackground.z), inputAlpha), 4.0f, bottomRoundCornersFlags);
-        //ImGui::PopStyleVar();
-        drawList->AddRectFilled(outputsRect.GetTL(), outputsRect.GetBR() - ImVec2(0, 1),
-            IM_COL32((int)(255 * pinBackground.x), (int)(255 * pinBackground.y), (int)(255 * pinBackground.z), outputAlpha), 4.0f, topRoundCornersFlags);
-        //ImGui::PushStyleVar(ImGuiStyleVar_AntiAliasFringeScale, 1.0f);
-        drawList->AddRect(outputsRect.GetTL(), outputsRect.GetBR() - ImVec2(0, 1),
-            IM_COL32((int)(255 * pinBackground.x), (int)(255 * pinBackground.y), (int)(255 * pinBackground.z), outputAlpha), 4.0f, topRoundCornersFlags);
-        //ImGui::PopStyleVar();
-        drawList->AddRectFilled(contentRect.GetTL(), contentRect.GetBR(), IM_COL32(24, 64, 128, 200), 0.0f);
-        //ImGui::PushStyleVar(ImGuiStyleVar_AntiAliasFringeScale, 1.0f);
-        drawList->AddRect(
-            contentRect.GetTL(),
-            contentRect.GetBR(),
-            IM_COL32(48, 128, 255, 100), 0.0f);
-        //ImGui::PopStyleVar();
-    }
-
-    void UIGraph::HandleBehaviorNode(Node& node, Pin* newLinkPin)
-    {
-        const bool bDoubleClicked = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
-
-        const float rounding = 5.0f;
-        const float padding = 12.0f;
-
-        const auto pinBackground = ed::GetStyle().Colors[ed::StyleColor_NodeBg];
-
-        ed::PushStyleColor(ed::StyleColor_NodeBg, node.Color);
-        ed::PushStyleColor(ed::StyleColor_NodeBorder, ImColor(32, 32, 32, 200));
-        ed::PushStyleColor(ed::StyleColor_PinRect, ImColor(60, 180, 255, 150));
-        ed::PushStyleColor(ed::StyleColor_PinRectBorder, ImColor(60, 180, 255, 150));
-
-        ed::PushStyleVar(ed::StyleVar_NodePadding, ImVec4(0, 0, 0, 0));
-        ed::PushStyleVar(ed::StyleVar_NodeRounding, rounding);
-        ed::PushStyleVar(ed::StyleVar_SourceDirection, ImVec2(0.0f, 1.0f));
-        ed::PushStyleVar(ed::StyleVar_TargetDirection, ImVec2(0.0f, -1.0f));
-        ed::PushStyleVar(ed::StyleVar_LinkStrength, 0.0f);
-        ed::PushStyleVar(ed::StyleVar_PinBorderWidth, 1.0f);
-        ed::PushStyleVar(ed::StyleVar_PinRadius, 5.0f);
-        ed::BeginNode(node.ID);
-
-        ImGui::BeginVertical(node.ID.AsPointer());
-        ImGui::BeginHorizontal("inputs");
-        ImGui::Spring(0, padding * 2);
-
-        ImRect inputsRect;
-        int inputAlpha = 200;
-        if (!node.InputPins.empty())
-        {
-            auto& pin = node.InputPins[0];
-            ImGui::Dummy(ImVec2(0, padding));
-            ImGui::Spring(1, 0);
-            inputsRect = ImGui_GetItemRect();
-
-            ed::PushStyleVar(ed::StyleVar_PinArrowSize, 10.0f);
-            ed::PushStyleVar(ed::StyleVar_PinArrowWidth, 10.0f);
-            ed::PushStyleVar(ed::StyleVar_PinCorners, ImDrawFlags_RoundCornersBottom);
-            ed::BeginPin(pin.ID, ed::PinKind::Input);
-            ed::PinPivotRect(inputsRect.GetTL(), inputsRect.GetBR());
-            ed::PinRect(inputsRect.GetTL(), inputsRect.GetBR());
-            ed::EndPin();
-            ed::PopStyleVar(3);
-
-            if (newLinkPin && !CanCreateLink(newLinkPin, &pin) && &pin != newLinkPin)
-                inputAlpha = (int)(255 * ImGui::GetStyle().Alpha * (48.0f / 255.0f));
-        }
-        else
-            ImGui::Dummy(ImVec2(0, padding));
-
-        ImGui::Spring(0, padding * 2);
-        ImGui::EndHorizontal();
-
-        ImGui::BeginHorizontal("content_frame");
-        ImGui::Spring(1, padding);
-
-        ImGui::BeginVertical("content", ImVec2(0.0f, 0.0f));
-        ImGui::Dummy(ImVec2(160, 0));
-        ImGui::Spring(1);
-
-        ImGui::PushItemWidth(node.Size.x - 25.f);
-        {
-            const auto& name = node.GetName();
-            if (node.BehaviorNodeIndex.empty())
-                ImGui::TextUnformatted(name.c_str());
-            else
-                ImGui::TextUnformatted((name + node.BehaviorNodeIndex).c_str());
-
-            if (!node.BehaviorNodeData.AttachedDecorators.empty())
+            if (node.Type == NodeType::BehaviorTask || node.Type == NodeType::BehaviorComposite)
             {
-                LayoutSeparator(2.f);
-                ImGui::TextUnformatted("Decorators:");
+                const auto& name = node.GetName();
+                if (node.BehaviorNodeIndex.empty())
+                    ImGui::TextUnformatted(name.c_str());
+                else
+                    ImGui::TextUnformatted((name + node.BehaviorNodeIndex).c_str());
 
-                size_t i = 1;
-                for (auto& decorator : node.BehaviorNodeData.AttachedDecorators)
+                if (!node.BehaviorNodeData.AttachedDecorators.empty())
                 {
-                    ImGui::TextUnformatted((std::to_string(i++) + ") ").c_str());
-                    ImGui::SameLine();
-                    ImGui::TextUnformatted(decorator.ClassData.UIName.c_str());
+                    LayoutSeparator(2.f);
+                    ImGui::TextUnformatted("Decorators:");
+
+                    size_t i = 1;
+                    for (auto& decorator : node.BehaviorNodeData.AttachedDecorators)
+                    {
+                        ImGui::TextUnformatted((std::to_string(i++) + ") ").c_str());
+                        ImGui::SameLine();
+                        ImGui::TextUnformatted(decorator.ClassData.UIName.c_str());
+                    }
                 }
+            }
+            else
+            {
+                ImGui::TextUnformatted(node.GetName().c_str());
             }
         }
 
@@ -2276,6 +2124,24 @@ namespace Eagle
         }
 
         return true;
+    }
+
+    void UIGraph::OnNodeRenamingFinished(Node& node, const std::string& newName)
+    {
+        if (node.Type == NodeType::Variable)
+        {
+            if (RenameVariable(node.GetName(), newName) == false)
+                Application::Get().GetImGuiLayer()->AddMessage("Failed to rename the variable! This name already exists!");
+        }
+        else if (node.Type == NodeType::PoseCache)
+        {
+            node.SetName(newName);
+        }
+        else if (node.Graph)
+        {
+            if (RenameGraph(node.GetName(), newName) == false)
+                Application::Get().GetImGuiLayer()->AddMessage("Failed to rename the graph! This name already exists!");
+        }
     }
 
     void UIGraph::OnLinkCreated(const Link& link)
