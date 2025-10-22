@@ -183,7 +183,7 @@ namespace Eagle
 		static AssetType GetAssetType(const Path& pathToAsset);
 		
 		static void SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field);
-		static void DeserializePublicFieldValues(YAML::Node& publicFieldsNode, std::map<std::string, PublicField>& publicFields);
+		static void DeserializePublicFieldValues(YAML::Node& publicFieldsNode, std::vector<PublicField>& publicFields);
 		static bool HasSerializableType(const PublicField& field);
 	};
 }

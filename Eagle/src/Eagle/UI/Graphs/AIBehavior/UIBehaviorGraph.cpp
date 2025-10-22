@@ -11,6 +11,8 @@ namespace Eagle
     {
         for (const auto& data : classes)
         {
+            ImGui::PushID(data.ClassData.FullName.c_str());
+
             if (ImGui::MenuItem(data.ClassData.UIName.c_str()))
             {
                 AIBehaviorNode nodeData;
@@ -22,6 +24,8 @@ namespace Eagle
                 ImGui::SameLine();
                 UI::HelpMarker(data.ClassData.Tooltip);
             }
+
+            ImGui::PopID();
         }
     }
 
@@ -36,6 +40,8 @@ namespace Eagle
             if (bAlreadyAdded)
                 UI::PushItemDisabled();
 
+            ImGui::PushID(decorator.ClassData.FullName.c_str());
+
             if (ImGui::MenuItem(decorator.ClassData.UIName.c_str()))
             {
                 attachedDecorators.push_back(decorator);
@@ -46,6 +52,8 @@ namespace Eagle
                 ImGui::SameLine();
                 UI::HelpMarker(decorator.ClassData.Tooltip);
             }
+
+            ImGui::PopID();
 
             if (bAlreadyAdded)
                 UI::PopItemDisabled();
@@ -433,7 +441,7 @@ namespace Eagle
             if (!nodeData.Data.ClassData.Fields.empty())
             {
                 ImGui::Separator();
-                for (auto& [_, field] : nodeData.Data.ClassData.Fields)
+                for (auto& field : nodeData.Data.ClassData.Fields)
                 {
                     m_bRebuild |= UI::Property(field);
 
@@ -456,19 +464,23 @@ namespace Eagle
             if (decorator.ClassData.UIName.empty())
                 continue;
 
+            ImGui::PushID(decorator.ClassData.FullName.c_str());
+
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
             bool treeOpened = ImGui::TreeNodeEx(decorator.ClassData.UIName.c_str(), flags);
             ImGui::PopStyleVar();
             if (treeOpened)
             {
                 UI::BeginPropertyGrid("DecoratorFields");
-                for (auto& [_, field] : decorator.ClassData.Fields)
+                for (auto& field : decorator.ClassData.Fields)
                 {
                     m_bRebuild |= UI::Property(field);
                 }
                 UI::EndPropertyGrid();
                 ImGui::TreePop();
             }
+
+            ImGui::PopID();
         }
     }
 

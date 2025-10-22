@@ -56,11 +56,11 @@ namespace Eagle
 		return true;
 	}
 
-	static void SerializeScriptFields(YAML::Emitter& out, const std::map<std::string, PublicField>& fields)
+	static void SerializeScriptFields(YAML::Emitter& out, const std::vector<PublicField>& fields)
 	{
 		out << YAML::Key << "PublicFields";
 		out << YAML::BeginMap;
-		for (const auto& [_, field] : fields)
+		for (const auto& field : fields)
 		{
 			if (Serializer::HasSerializableType(field))
 				Serializer::SerializePublicFieldValue(out, field);
@@ -4563,7 +4563,7 @@ namespace Eagle
 
 	void Serializer::SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field)
 	{
-		out << YAML::Key << field.UIName;
+		out << YAML::Key << field.FullName;
 		switch (field.Type)
 		{
 			case FieldType::Int:
@@ -4625,17 +4625,21 @@ namespace Eagle
 		field.SetStoredValue<T>(value);
 	}
 
-	void Serializer::DeserializePublicFieldValues(YAML::Node& publicFieldsNode, std::map<std::string, PublicField>& publicFields)
+	void Serializer::DeserializePublicFieldValues(YAML::Node& publicFieldsNode, std::vector<PublicField>& publicFields)
 	{
 		for (auto& it : publicFieldsNode)
 		{
-			std::string fieldName = it.first.as<std::string>();
+			std::string fullName = it.first.as<std::string>();
 			FieldType fieldType = Utils::GetEnumFromName<FieldType>(it.second[0].as<std::string>());
 
-			auto& fieldIt = publicFields.find(fieldName);
-			if ((fieldIt != publicFields.end()) && (fieldType == fieldIt->second.Type))
+			auto fieldIt = std::find_if(publicFields.begin(), publicFields.end(), [&fullName](const PublicField& field)
 			{
-				PublicField& field = fieldIt->second;
+				return fullName == field.FullName;
+			});
+
+			if ((fieldIt != publicFields.end()) && (fieldType == fieldIt->Type))
+			{
+				PublicField& field = *fieldIt;
 				auto& node = it.second[1];
 				switch (fieldType)
 				{

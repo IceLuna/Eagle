@@ -64,6 +64,7 @@ namespace Eagle
 	class PublicField
 	{
 	public:
+		std::string FullName;
 		std::string UIName;
 		std::string TypeName;
 		std::string Tooltip;
@@ -73,8 +74,8 @@ namespace Eagle
 		ScriptEnumFields EnumFields;
 
 		PublicField() = default;
-		PublicField(const std::string& name, const std::string& typeName, const std::string& toolTip, FieldType type);
-		PublicField(std::string&& name, std::string&& typeName, std::string&& toolTip, FieldType type);
+		PublicField(const std::string& fullName, const std::string& uiName, const std::string& typeName, const std::string& toolTip, FieldType type);
+		PublicField(std::string&& fullName, std::string&& uiName, std::string&& typeName, std::string&& toolTip, FieldType type);
 		PublicField(const PublicField& other);
 		PublicField(PublicField&& other) noexcept = default;
 		~PublicField();

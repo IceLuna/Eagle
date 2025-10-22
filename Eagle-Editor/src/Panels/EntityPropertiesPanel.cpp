@@ -1125,7 +1125,7 @@ namespace Eagle
 					if (ScriptEngine::ModuleExists(scriptComponent.ModuleName))
 					{
 						EntityInstance* entityInstance = ScriptEngine::GetEntityInstance(entity);
-						for (auto& [_, field] : scriptComponent.PublicFields)
+						for (auto& field : scriptComponent.PublicFields)
 						{
 							// Don't mark as changed during runtime
 							bEntityChanged |= UI::Property(field, entityInstance ? entityInstance->GetMonoInstance() : nullptr, bRuntime, entity) && !bRuntime;

@@ -1316,7 +1316,7 @@ namespace Eagle
 		ScriptComponent(const std::string& moduleName) : ModuleName(moduleName) {}
 
 	public:
-		std::map<std::string, PublicField> PublicFields;
+		std::vector<PublicField> PublicFields;
 		std::string ModuleName;
 	};
 

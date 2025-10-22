@@ -232,7 +232,7 @@ namespace Eagle
 		mono_custom_attrs_free(attrs);
 	}
 
-	std::map<std::string, PublicField> ScriptEngine::LoadClassPublicFields(MonoClass* monoClass, std::string_view debugName)
+	std::vector<PublicField> ScriptEngine::LoadClassPublicFields(MonoClass* monoClass, std::string_view debugName)
 	{
 		Scope<MonoInstance> instance = MonoInstance::Create(monoClass, debugName);
 		if (!instance->IsValid())
@@ -240,17 +240,26 @@ namespace Eagle
 			return {};
 		}
 
-		std::map<std::string, PublicField> result;
+		std::vector<PublicField> result;
 		ScriptEngine::ParsePublicFields(monoClass, instance->GetInstance(), result);
 		return result;
 	}
 
-	void ScriptEngine::ParsePublicFields(MonoClass* klass, MonoObject* instance, std::map<std::string, PublicField>& publicFields)
+	void ScriptEngine::ParsePublicFields(MonoClass* klass, MonoObject* instance, std::vector<PublicField>& publicFields)
 	{
-		do
+		if (!klass)
+			return;
+
+		// Don't parse built in types
+		if (s_BuiltInEagleTypes.find(klass) != s_BuiltInEagleTypes.end())
+			return;
+
+		if (!IsPublicClass(klass))
+			return;
+
 		{
-			if (!IsPublicClass(klass))
-				break;
+			// Iterate over parent scripts classes
+			ParsePublicFields(mono_class_get_parent(klass), instance, publicFields);
 
 			MonoClassField* fieldIter = nullptr;
 			void* fieldPtr = nullptr;
@@ -258,7 +267,6 @@ namespace Eagle
 			// Parse fields
 			while ((fieldIter = mono_class_get_fields(klass, &fieldPtr)) != nullptr)
 			{
-				std::string fieldName = mono_field_get_name(fieldIter);
 				uint32_t fieldFlags = mono_field_get_flags(fieldIter);
 				if ((fieldFlags & MONO_FIELD_ATTR_PUBLIC) != MONO_FIELD_ATTR_PUBLIC)
 					continue;
@@ -268,17 +276,18 @@ namespace Eagle
 				if (fieldType == FieldType::None) // Not supported
 					continue;
 
+				std::string fullName = mono_field_get_name(fieldIter);
+				std::string uiName = fullName;
 				std::string tooltip;
 				// Get custom attributes for the field
 				if (MonoCustomAttrInfo* attrs = mono_custom_attrs_from_field(klass, fieldIter))
 				{
-					GetAttributes(attrs, &fieldName, &tooltip);
+					GetAttributes(attrs, &uiName, &tooltip);
 					mono_custom_attrs_free(attrs);
 				}
 
 				const char* typeName = mono_type_get_name(monoFieldType);
-				PublicField& publicField = publicFields[fieldName];
-				publicField = PublicField(std::move(fieldName), std::move(typeName), std::move(tooltip), fieldType);
+				PublicField& publicField = publicFields.emplace_back(std::move(fullName), std::move(uiName), typeName, std::move(tooltip), fieldType);
 				publicField.m_MonoClassField = fieldIter;
 				publicField.EnumFields = fieldType == FieldType::Enum ? GetEnumFields(monoFieldType) : ScriptEnumFields{};
 				publicField.CopyStoredValueFromRuntime(instance);
@@ -300,7 +309,7 @@ namespace Eagle
 				if (!IsPublicMethod(setter))
 					continue;
 
-				std::string fieldName = mono_property_get_name(propertyIter);
+				std::string fullName = mono_property_get_name(propertyIter);
 				MonoType* propertyType = nullptr;
 				if (MonoMethodSignature* signature = mono_method_signature(getter))
 				{
@@ -308,7 +317,7 @@ namespace Eagle
 				}
 				if (!propertyType)
 				{
-					EG_CORE_ERROR("Failed to get the propety type of a C# property: {}", fieldName);
+					EG_CORE_ERROR("Failed to get the propety type of a C# property: {}", fullName);
 					continue;
 				}
 
@@ -316,33 +325,22 @@ namespace Eagle
 				if (fieldType == FieldType::None) // Not supported
 					continue;
 
+				std::string uiName = fullName;
 				std::string tooltip;
 				// Get custom attributes for the property
 				if (MonoCustomAttrInfo* attrs = mono_custom_attrs_from_property(klass, propertyIter))
 				{
-					GetAttributes(attrs, &fieldName, &tooltip);
+					GetAttributes(attrs, &uiName, &tooltip);
 					mono_custom_attrs_free(attrs);
 				}
 
 				const char* typeName = mono_type_get_name(propertyType);
-				PublicField& publicField = publicFields[fieldName];
-				publicField = PublicField(std::move(fieldName), std::move(typeName), std::move(tooltip), fieldType);
+				PublicField& publicField = publicFields.emplace_back(std::move(fullName), std::move(uiName), typeName, std::move(tooltip), fieldType);
 				publicField.m_MonoProperty = propertyIter;
 				publicField.EnumFields = fieldType == FieldType::Enum ? GetEnumFields(propertyType) : ScriptEnumFields{};
 				publicField.CopyStoredValueFromRuntime(instance);
 			}
-
-			// Iterate over parent scripts classes
-			klass = mono_class_get_parent(klass);
-			if (klass)
-			{
-				if (s_EntityClass == klass || !mono_class_is_subclass_of(klass, s_EntityClass, true))
-				{
-					// Not an entity class, terminate
-					klass = nullptr;
-				}
-			}
-		} while (klass);
+		}
 	}
 
 	AIBehaviorClassData ScriptEngine::GetAIClassData(const std::string& fullName)
@@ -482,9 +480,9 @@ namespace Eagle
 		CallMethod(entityInstance->GetMonoInstance(), entityInstance->Methods.Constructor, param);
 
 		auto& scriptComponent = entity.GetComponent<ScriptComponent>();
-		for (auto& it : scriptComponent.PublicFields)
+		for (auto& field : scriptComponent.PublicFields)
 		{
-			it.second.CopyStoredValueToRuntime(entityInstance->GetMonoInstance());
+			field.CopyStoredValueToRuntime(entityInstance->GetMonoInstance());
 		}
 
 		return true;
@@ -614,14 +612,18 @@ namespace Eagle
 		}
 	}
 
-	void ScriptEngine::TryToRestoreOldValues(std::map<std::string, PublicField>& publicFields, const std::map<std::string, PublicField>& oldValues)
+	void ScriptEngine::TryToRestoreOldValues(std::vector<PublicField>& publicFields, const std::vector<PublicField>& oldValues)
 	{
-		for (auto& [fieldName, field] : publicFields)
+		for (auto& field : publicFields)
 		{
-			auto oldField = oldValues.find(fieldName);
-			if ((oldField != oldValues.end()) && (oldField->second.Type == field.Type))
+			auto oldField = std::find_if(oldValues.begin(), oldValues.end(), [&field](const PublicField& v)
 			{
-				field.CopyStoredValue(oldField->second);
+				return field.FullName == v.FullName;
+			});
+
+			if ((oldField != oldValues.end()) && (oldField->Type == field.Type))
+			{
+				field.CopyStoredValue(*oldField);
 				// Check if the current enum value is still valid. If not, change it
 				if (field.Type == FieldType::Enum)
 				{
@@ -985,7 +987,7 @@ namespace Eagle
 			MonoObject* decoratorObj = ScriptEngine::CallMethod(instance, s_AINodeAddDecoratorMethod, params);
 			if (decoratorObj)
 			{
-				for (auto& [_, field] : decorator.ClassData.Fields)
+				for (auto& field : decorator.ClassData.Fields)
 				{
 					field.CopyStoredValueToRuntime(decoratorObj);
 				}
@@ -1014,7 +1016,7 @@ namespace Eagle
 			Scope<MonoInstance> instance = MonoInstance::Create(monoClass, node.Data.ClassData.FullName);
 			if (MonoObject* monoInstance = instance->GetInstance())
 			{
-				for (auto& [_, field] : node.Data.ClassData.Fields)
+				for (auto& field : node.Data.ClassData.Fields)
 				{
 					field.CopyStoredValueToRuntime(monoInstance);
 				}
@@ -1041,7 +1043,7 @@ namespace Eagle
 			MonoObject* compositeNode = ScriptEngine::CallMethod(parentInstance, s_AICompositeAddChildMethod, params);
 			if (compositeNode)
 			{
-				for (auto& [_, field] : node.Data.ClassData.Fields)
+				for (auto& field : node.Data.ClassData.Fields)
 				{
 					field.CopyStoredValueToRuntime(compositeNode);
 				}
@@ -1069,7 +1071,7 @@ namespace Eagle
 			MonoObject* task = ScriptEngine::CallMethod(parentInstance, s_AICompositeAddChildMethod, params);
 			if (task)
 			{
-				for (auto& [_, field] : node.Data.ClassData.Fields)
+				for (auto& field : node.Data.ClassData.Fields)
 				{
 					field.CopyStoredValueToRuntime(task);
 				}
@@ -1219,6 +1221,10 @@ namespace Eagle
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetParticleSystem")]      = FieldType::AssetParticleSystem;
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetAnimationBlendSpace")] = FieldType::AssetAnimationBlendSpace;
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetBehaviorGraph")]       = FieldType::AssetBehaviorGraph;
+		s_BuiltInEagleTypes[s_AITaskClass]                                                                  = FieldType::None;
+		s_BuiltInEagleTypes[s_AIDecoratorClass]                                                             = FieldType::None;
+		s_BuiltInEagleTypes[s_AICompositeClass]                                                             = FieldType::None;
+		s_BuiltInEagleTypes[s_AITaskManagerClass]                                                           = FieldType::None;
 
 		s_AITaskManagerSetRootMethod = ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.AITaskManager:SetRoot(AINode)");
 		s_AICompositeAddChildMethod = ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.AICompositeNode:AddChild_Interop(Type)");

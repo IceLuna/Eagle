@@ -145,4 +145,76 @@ namespace Eagle
         protected float m_MoveSpeed = 1f;
         protected float m_RotationSpeed = 3.5f;
     }
+
+    [UIName("Play Sound")]
+    [Tooltip("Failes, if no audio is provided. Succeeds immeditely when sound is spawned")]
+    public class AITaskPlaySound : AITask
+    {
+        public AssetAudio Audio = null;
+
+        [UIName("Audio Blackboard Key")]
+        [Tooltip("If specified, an audio from the blackboard will be used")]
+        public string AudioBlackboardKey = "";
+
+        public float Volume = 1.0f;
+        public float Pan = 0.0f;
+        public float Pitch = 1.0f;
+        [UIName("Loop Count")]
+        public int LoopCount = -1;
+
+        [UIName("Spawn as 3D")]
+        public bool b3D = false;
+
+        [UIName("Position")]
+        [Tooltip("Blackboard key of the 3D position. Used only if it's a 3D sound")]
+        public string Position = "";
+
+        [UIName("Rolloff Model")]
+        [Tooltip("Used only if it's a 3D sound")]
+        public RollOffModel RollOff = RollOffModel.Default;
+
+        public override void OnBegin()
+        {
+            if (AudioBlackboardKey != null && AudioBlackboardKey.Length > 0)
+            {
+                m_Blackboard.TryGetValue(AudioBlackboardKey, out m_AudioToUse);
+            }
+            else
+            {
+                m_AudioToUse = Audio;
+            }
+
+            if (b3D)
+            {
+                m_Blackboard.TryGetValue(Position, out m_AudioToUse);
+            }
+        }
+
+        protected override AINodeStatus Update(float ts)
+        {
+            if (m_AudioToUse == null)
+                return AINodeStatus.Failed;
+
+            SoundSettings settings = new SoundSettings(Volume);
+            settings.Pan = Pan;
+            settings.Pitch = Pitch;
+            settings.LoopCount = LoopCount;
+
+            Sound fireSound;
+            if (b3D)
+            {
+                fireSound = new Sound3D(m_AudioToUse, m_Position, RollOff, settings);
+            }
+            else
+            {
+                fireSound = new Sound2D(m_AudioToUse, settings);
+            }
+            fireSound.Play();
+
+            return AINodeStatus.Succeeded;
+        }
+
+        protected AssetAudio m_AudioToUse = null;
+        protected Vector3 m_Position;
+    }
 }

@@ -65,7 +65,7 @@ namespace Eagle
 
 		static bool LoadAppAssembly(const Path& path);
 		static bool IsValidAppAssembly();
-		static void ParsePublicFields(MonoClass* klass, MonoObject* instance, std::map<std::string, PublicField>& publicFields);
+		static void ParsePublicFields(MonoClass* klass, MonoObject* instance, std::vector<PublicField>& publicFields);
 
 		static const std::map<std::string, EntityScriptClass>& GetEntityClasses() { return s_EntityClasses; }
 		static const AIBehaviorClasses& GetCoreAIClasses() { return s_CoreAIClasses; }
@@ -110,8 +110,8 @@ namespace Eagle
 
 		static void LoadListOfAppAssemblyClasses();
 		static void LoadListOfCoreAIClasses();
-		static std::map<std::string, PublicField> LoadClassPublicFields(MonoClass* monoClass, std::string_view debugName);
-		static void TryToRestoreOldValues(std::map<std::string, PublicField>& publicFields, const std::map<std::string, PublicField>& oldValues);
+		static std::vector<PublicField> LoadClassPublicFields(MonoClass* monoClass, std::string_view debugName);
+		static void TryToRestoreOldValues(std::vector<PublicField>& publicFields, const std::vector<PublicField>& oldValues);
 		static void UpdateAIClassPublicFields(AIBehaviorClassData& classData);
 
 	private:

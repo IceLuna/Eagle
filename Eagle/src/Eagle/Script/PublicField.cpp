@@ -10,20 +10,21 @@ namespace Eagle
 	// If fails, please make sure `m_StoredValueBuffer` uses correct alignment when allocating `std::string`
 	static_assert(alignof(std::string) <= alignof(std::max_align_t));
 
-	PublicField::PublicField(const std::string& name, const std::string& typeName, const std::string& tooltip, FieldType type)
-	: UIName(name), TypeName(typeName), Tooltip(tooltip), Type(type)
+	PublicField::PublicField(const std::string& fullName, const std::string& name, const std::string& typeName, const std::string& tooltip, FieldType type)
+	: FullName(fullName), UIName(name), TypeName(typeName), Tooltip(tooltip), Type(type)
 	{
 		AllocateBuffer(Type);
 	}
 
-	PublicField::PublicField(std::string&& name, std::string&& typeName, std::string&& tooltip, FieldType type)
-		: UIName(std::move(name)), TypeName(std::move(typeName)), Tooltip(std::move(tooltip)), Type(type)
+	PublicField::PublicField(std::string&& fullName, std::string&& name, std::string&& typeName, std::string&& tooltip, FieldType type)
+		: FullName(std::move(fullName)), UIName(std::move(name)), TypeName(std::move(typeName)), Tooltip(std::move(tooltip)), Type(type)
 	{
 		AllocateBuffer(Type);
 	}
 
 	PublicField::PublicField(const PublicField& other)
-		: UIName(other.UIName), TypeName(other.TypeName), Tooltip(other.Tooltip), Type(other.Type)
+		: FullName(other.FullName), UIName(other.UIName), TypeName(other.TypeName)
+		, Tooltip(other.Tooltip), Type(other.Type)
 		, EnumFields(other.EnumFields)
 		, m_MonoClassField(other.m_MonoClassField)
 		, m_MonoProperty(other.m_MonoProperty)
@@ -44,6 +45,7 @@ namespace Eagle
 	{
 		if (&other != this)
 		{
+			FullName = other.FullName;
 			UIName = other.UIName;
 			TypeName = other.TypeName;
 			Tooltip = other.Tooltip;

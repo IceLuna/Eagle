@@ -577,6 +577,8 @@ namespace Eagle::UI
 			return false;
 		}
 		bool bChanged = false;
+		ImGui::PushID(field.FullName.c_str());
+
 		switch (field.Type)
 		{
 			case FieldType::Int:
@@ -764,6 +766,7 @@ namespace Eagle::UI
 #undef AssetField_Case
 		}
 	
+		ImGui::PopID();
 		return bChanged;
 	}
 

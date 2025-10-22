@@ -71,7 +71,7 @@ namespace Eagle
 		std::string FullName; // Namespace.Name
 		std::string UIName;
 		std::string Tooltip;
-		std::map<std::string, PublicField> Fields;
+		std::vector<PublicField> Fields;
 		bool bUserClass = false; // Controlled by ScriptEngine. Should not be modified by other code
 
 		bool operator== (const ScriptClass& other) const
