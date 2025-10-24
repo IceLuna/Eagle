@@ -62,10 +62,7 @@ namespace Eagle
             if (m_Current >=  m_Children.Count)
                 return AINodeStatus.Succeeded;
 
-            if (!CanRun(ts, out AINodeStatus status))
-                return status;
-
-            status = m_Children[m_Current].Run(ts);
+            AINodeStatus status = m_Children[m_Current].Run(ts);
             switch (status)
             {
                 case AINodeStatus.Failed:
@@ -108,10 +105,7 @@ namespace Eagle
             if (m_Current >= m_Children.Count)
                 return AINodeStatus.Succeeded;
 
-            if (!CanRun(ts, out AINodeStatus status))
-                return status;
-
-            status = m_Children[m_Current].Run(ts);
+            AINodeStatus status = m_Children[m_Current].Run(ts);
             switch (status)
             {
                 case AINodeStatus.Failed:

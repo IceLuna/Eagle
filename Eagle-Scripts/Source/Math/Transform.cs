@@ -8,6 +8,20 @@ namespace Eagle
     {
         public Quat Rotation;
 
+        public override bool Equals(object obj) => obj is Rotator other && this.Equals(other);
+
+        public bool Equals(Rotator right, float epsilon)
+        {
+            return Rotation.Equals(right.Rotation, epsilon);
+        }
+
+        public bool Equals(Rotator right) => Rotation == right.Rotation;
+
+        public static bool operator ==(Rotator left, Rotator right) => left.Equals(right);
+        public static bool operator !=(Rotator left, Rotator right) => !(left == right);
+
+        public override int GetHashCode() => Rotation.GetHashCode();
+
         public static implicit operator Rotator(Quat value)
         {
             Rotator rotator = new Rotator();

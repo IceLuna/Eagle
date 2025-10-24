@@ -19,16 +19,18 @@ namespace Eagle
 	{
 		Path OpenFile(const wchar_t* filter, const Path& initialDir)
 		{
+			constexpr DWORD bufferSize = 512;
+
 			OPENFILENAMEW ofn;
-			WCHAR szFile[256] = { 0 };
+			WCHAR szFile[bufferSize] = { 0 };
 			ZeroMemory(&ofn, sizeof(OPENFILENAME));
 			ofn.lStructSize = sizeof(OPENFILENAME);
 			ofn.hwndOwner = (HWND)Application::Get().GetWindow().GetNativeWindow();
 			ofn.lpstrFile = szFile;
-			ofn.nMaxFile = sizeof(szFile);
+			ofn.nMaxFile = bufferSize;
 			ofn.lpstrFilter = filter;
 			ofn.nFilterIndex = 1;
-			ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+			ofn.Flags = OFN_EXPLORER | OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
 			std::wstring initialDirStr;
 			if (!initialDir.empty())
@@ -42,6 +44,53 @@ namespace Eagle
 				return Path(ofn.lpstrFile);
 			}
 			return Path();
+		}
+
+		std::vector<Path> OpenFileMultiselect(const wchar_t* filter, const Path& initialDir)
+		{
+			constexpr DWORD bufferSize = 65536;
+
+			OPENFILENAMEW ofn;
+			WCHAR szFile[bufferSize] = { 0 };
+			ZeroMemory(&ofn, sizeof(OPENFILENAME));
+			ofn.lStructSize = sizeof(OPENFILENAME);
+			ofn.hwndOwner = (HWND)Application::Get().GetWindow().GetNativeWindow();
+			ofn.lpstrFile = szFile;
+			ofn.nMaxFile = bufferSize;
+			ofn.lpstrFilter = filter;
+			ofn.nFilterIndex = 1;
+			ofn.Flags = OFN_EXPLORER | OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR | OFN_ALLOWMULTISELECT;
+
+			std::wstring initialDirStr;
+			if (!initialDir.empty())
+			{
+				initialDirStr = initialDir.wstring();
+				ofn.lpstrInitialDir = initialDirStr.c_str();
+			}
+
+			if (GetOpenFileNameW(&ofn) == TRUE)
+			{
+				std::wstring directory = szFile;
+				wchar_t* p = szFile + directory.length() + 1;
+				if (*p == 0)
+				{
+					// Just one file
+					return { directory };
+				}
+
+				std::vector<Path> paths;
+				paths.reserve(4);
+				while (*p)
+				{
+					std::wstring filename = p;
+					std::wstring fullPath = directory + L"\\" + filename;
+					paths.emplace_back(fullPath);
+					p += filename.length() + 1;
+				}
+
+				return paths;
+			}
+			return {};
 		}
 
 		Path SaveFile(const wchar_t* filter, const Path& initialDir)

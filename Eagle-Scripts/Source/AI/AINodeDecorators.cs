@@ -93,4 +93,36 @@ namespace Eagle
         private bool m_DidRun = false;
         private object m_PrevValue = null;
     }
+
+    [UIName("Random Chance")]
+    [Tooltip("Succeeds with a random chance")]
+    public class AINodeDecoratorRandomChance : AINodeDecorator
+    {
+        [Tooltip("Percent to succeed")]
+        public int Chance = 50;
+
+        public override AINodeStatus Update(float ts)
+        {
+            if (m_DidRun)
+            {
+                return m_Status;
+            }
+
+            m_DidRun = true;
+
+            float rand = (float)m_Random.NextDouble();
+            m_Status = rand < (Chance / 100.0f) ? AINodeStatus.Succeeded : AINodeStatus.Failed;
+
+            return m_Status;
+        }
+
+        public override void Reset()
+        {
+            m_DidRun = false;
+        }
+
+        static private Random m_Random = new Random();
+        private AINodeStatus m_Status = AINodeStatus.Succeeded;
+        private bool m_DidRun = false;
+    }
 }

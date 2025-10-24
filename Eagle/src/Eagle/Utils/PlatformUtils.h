@@ -18,6 +18,7 @@ namespace Eagle
 
 		//Returns empty string if failed
 		Path OpenFile(const wchar_t* filter, const Path& initialDir = "");
+		std::vector<Path> OpenFileMultiselect(const wchar_t* filter, const Path& initialDir = "");
 		Path SaveFile(const wchar_t* filter, const Path& initialDir = "");
 		Path OpenFolder();
 	};

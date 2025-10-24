@@ -49,12 +49,14 @@ This kind of transitional blend works well when the two clips/poses are unrelate
             logicalCategory[">="] = &GraphNodeFactory::SpawnGreaterEqNode;
             logicalCategory["=="] = &GraphNodeFactory::SpawnEqualNode;
             logicalCategory["!="] = &GraphNodeFactory::SpawnNotEqualNode;
+            logicalCategory["Is AnimVar valid"] = &GraphNodeFactory::SpawnAnimVarIsValidNode;
         }
 
         // Other
         {
             auto& otherCategory = factory["Other"];
             otherCategory["Comment"] = &GraphNodeFactory::SpawnComment;
+            otherCategory["Int to Float"] = &GraphNodeFactory::SpawnIntToFloat;
         }
     }
 
@@ -283,6 +285,23 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         auto& node = graph.AddNode(name.c_str(), ImColor(128, 195, 248));
         node.OutputPins.emplace_back(graph.GetNextId(), "", type);
         node.Type = NodeType::Variable;
+
+        graph.BuildNode(node);
+        graph.OnNodeAdded(node);
+
+        return node;
+    }
+
+    Node& GraphNodeFactory::SpawnIntToFloat(UIGraph& graph, const std::string_view name)
+    {
+        const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
+
+        auto& node = graph.AddNode(name, ImColor(128, 195, 248));
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Int);
+        node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Float);
+        node.Type = NodeType::Simple;
+
+        node.GraphNode = MakeRef<AnimationGraphNodeIntToFloat>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);
@@ -779,6 +798,23 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         node.Type = NodeType::Simple;
 
         node.GraphNode = MakeRef<AnimationGraphNodeNotEqual>(graphAsset->GetGraph());
+
+        graph.BuildNode(node);
+        graph.OnNodeAdded(node);
+
+        return node;
+    }
+
+    Node& GraphNodeFactory::SpawnAnimVarIsValidNode(UIGraph& graph, const std::string_view name)
+    {
+        const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
+
+        auto& node = graph.AddNode(name, ImColor(128, 195, 248));
+        node.InputPins.emplace_back(graph.GetNextId(), "Animation", PinType::Object, MakeRef<GraphVariableAnimation>());
+        node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Bool);
+        node.Type = NodeType::Simple;
+
+        node.GraphNode = MakeRef<AnimationGraphNodeAnimVarIsValid>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);

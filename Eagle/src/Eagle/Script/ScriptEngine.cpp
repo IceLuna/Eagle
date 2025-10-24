@@ -179,7 +179,7 @@ namespace Eagle
 			MonoClassField* iter = nullptr;
 			void* ptr = nullptr;
 
-			MonoVTable* classVTable = mono_class_vtable(s_RootDomain, enumClass);
+			MonoVTable* classVTable = mono_class_vtable(mono_domain_get(), enumClass);
 			bool bSkipFirst = true;
 			while (iter = mono_class_get_fields(enumClass, &ptr), iter != nullptr)
 			{

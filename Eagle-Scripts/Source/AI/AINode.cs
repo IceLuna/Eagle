@@ -33,8 +33,11 @@ namespace Eagle
             {
                 OnBegin();
             }
-            
-            m_LastStatus = Update(ts);
+
+            if (CanRun(ts, out m_LastStatus))
+            {
+                m_LastStatus = Update(ts);
+            }
             
             if (m_LastStatus != AINodeStatus.Running)
             {
@@ -78,7 +81,7 @@ namespace Eagle
         protected virtual void OnBlackboardChanged() {}
 
         // Checks decorators
-        protected bool CanRun(float ts, out AINodeStatus status)
+        private bool CanRun(float ts, out AINodeStatus status)
         {
             status = AINodeStatus.Succeeded;
             foreach (var decorator in m_Decorators)

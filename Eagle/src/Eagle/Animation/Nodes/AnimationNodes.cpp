@@ -404,24 +404,24 @@ namespace Eagle
 		bool bValue = false;
 		Utils::GetValue(m_Inputs[0], m_Variables[0], ts, &bValue);
 
-		if (bValue != bPrevValue)
-		{
-			bTransitioning = true;
-			m_CurrentTransitionTime = 0.f;
-		}
-
 		float transitionTime = 0.f;
-		if (bTransitioning)
 		{
 			if (bValue == false)
 				Utils::GetValue(m_Inputs[2], m_Variables[2], ts, &transitionTime); // False pose blend time
 			else
 				Utils::GetValue(m_Inputs[4], m_Variables[4], ts, &transitionTime); // True pose blend time
-
-			transitionTime = glm::max(transitionTime, 0.f);
-			if (transitionTime < 0.001f)
-				bTransitioning = false;
 		}
+
+		if (bValue != bPrevValue)
+		{
+			if (!bTransitioning)
+				m_CurrentTransitionTime = bValue ? 0.f : transitionTime;
+			bTransitioning = true;
+		}
+
+		transitionTime = glm::max(transitionTime, 0.f);
+		if (transitionTime < 0.001f)
+			bTransitioning = false;
 
 		const SkeletalPose* falsePose = nullptr;
 		const SkeletalPose* truePose = nullptr;
@@ -435,10 +435,10 @@ namespace Eagle
 		if (bTransitioning)
 		{
 			const float weight = glm::clamp(m_CurrentTransitionTime / transitionTime, 0.f, 1.f);
-			m_CurrentTransitionTime += ts;
+			m_CurrentTransitionTime = bValue ? m_CurrentTransitionTime + ts : m_CurrentTransitionTime - ts;
 
 			AnimationSystem::BlendPoses(falsePose ? *falsePose : SkeletalPose{}, truePose ? *truePose : SkeletalPose{}, m_Skeletal->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
-			if (m_CurrentTransitionTime >= transitionTime)
+			if (m_CurrentTransitionTime >= transitionTime || m_CurrentTransitionTime <= 0.f)
 			{
 				// Finished transitioning
 				bTransitioning = false;
@@ -712,6 +712,22 @@ namespace Eagle
 		Utils::GetValue(m_Inputs[1], m_Variables[1], ts, &value2);
 
 		Result = value1 != value2;
+
+		m_CalculatedOnFrame = currentFrame;
+
+		return m_Pose;
+	}
+
+	const SkeletalPose& AnimationGraphNodeAnimVarIsValid::Update(Timestep ts)
+	{
+		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
+		if (currentFrame <= m_CalculatedOnFrame)
+			return m_Pose;
+
+		Ref<AssetAnimation> value;
+		Utils::GetValueFromVariable(m_Variables[0], &value);
+
+		Result = value.operator bool();
 
 		m_CalculatedOnFrame = currentFrame;
 
@@ -1141,5 +1157,21 @@ namespace Eagle
 			m_XDistanceToBlend = distanceX;
 			m_YDistanceToBlend = distanceY;
 		}
+	}
+	
+	const SkeletalPose& AnimationGraphNodeIntToFloat::Update(Timestep ts)
+	{
+		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
+		if (currentFrame <= m_CalculatedOnFrame)
+			return m_Pose;
+
+		int value = 0;
+		Utils::GetValueFromVariable(m_Variables[0], &value);
+
+		Result = float(value);
+
+		m_CalculatedOnFrame = currentFrame;
+
+		return m_Pose;
 	}
 }

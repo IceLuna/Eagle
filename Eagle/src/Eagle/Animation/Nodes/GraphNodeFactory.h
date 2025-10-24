@@ -62,6 +62,7 @@ namespace Eagle
         static Node& SpawnGreaterEqNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnEqualNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnNotEqualNode(UIGraph& graph, const std::string_view name);
+        static Node& SpawnAnimVarIsValidNode(UIGraph& graph, const std::string_view name);
 
         // Math
         static Node& SpawnAddNode(UIGraph& graph, const std::string_view name);
@@ -92,6 +93,7 @@ namespace Eagle
         // Other
         static Node& SpawnComment(UIGraph& graph, const std::string_view name);
         static Node& SpawnVarNode(UIGraph& graph, const std::string& name, const PinType& type);
+        static Node& SpawnIntToFloat(UIGraph& graph, const std::string_view name);
 
         // @cache. Can be nullptr, but only in some cases. Currently, only during deserialization.
         // Because we might not have all `CachePose` nodes created, so we temporarily set it to nullptr, and at the end of deserialization, assign correct values

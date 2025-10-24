@@ -495,6 +495,22 @@ namespace Eagle
 		static constexpr size_t s_Inputs = 2;
 	};
 
+	class AnimationGraphNodeAnimVarIsValid : public AnimationGraphNodeBool
+	{
+	public:
+		AnimationGraphNodeAnimVarIsValid(const Weak<AnimationGraph>& graph) : AnimationGraphNodeBool(graph, s_Inputs) {}
+
+		const SkeletalPose& Update(Timestep ts) override;
+
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		{
+			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeAnimVarIsValid>(newGraph);
+		}
+
+	private:
+		static constexpr size_t s_Inputs = 1;
+	};
+
 	// Base class for such math nodes as: add, multiply, etc...
 	class AnimationGraphNodeFloat : public AnimationGraphNode
 	{
@@ -721,6 +737,22 @@ namespace Eagle
 
 	private:
 		static constexpr size_t s_Inputs = 5;
+	};
+
+	class AnimationGraphNodeIntToFloat : public AnimationGraphNodeFloat
+	{
+	public:
+		AnimationGraphNodeIntToFloat(const Weak<AnimationGraph>& graph) : AnimationGraphNodeFloat(graph, s_Inputs) {}
+
+		const SkeletalPose& Update(Timestep ts) override;
+
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		{
+			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeIntToFloat>(newGraph);
+		}
+
+	private:
+		static constexpr size_t s_Inputs = 1;
 	};
 
 	// Base class for such nodes that return Vec4

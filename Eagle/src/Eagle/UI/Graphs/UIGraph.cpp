@@ -822,19 +822,17 @@ namespace Eagle
 
         // Restore input pins data
         {
+            // Can fail if new inputs are added
             EG_CORE_ASSERT(node->InputPins.size() == nodeData.InputPins.size());
 
             const size_t defaultValuesCount = nodeData.InputPins.size();
-            const size_t inputPinsCount = node->InputPins.size();
-            if (inputPinsCount == nodeData.InputPins.size()) // Should always match, but this check is here just in case
+            const size_t inputPinsCount = std::min(node->InputPins.size(), nodeData.InputPins.size());
+            for (size_t i = 0; i < inputPinsCount; ++i)
             {
-                for (size_t i = 0; i < inputPinsCount; ++i)
-                {
-                    node->InputPins[i].ID = nodeData.InputPins[i].PinID;
-                    node->InputPins[i].DefaultValue = nodeData.InputPins[i].DefaultValue;
-                    if (int(nodeData.InputPins[i].PinID) > maxID)
-                        maxID = int(nodeData.InputPins[i].PinID);
-                }
+                node->InputPins[i].ID = nodeData.InputPins[i].PinID;
+                node->InputPins[i].DefaultValue = nodeData.InputPins[i].DefaultValue;
+                if (int(nodeData.InputPins[i].PinID) > maxID)
+                    maxID = int(nodeData.InputPins[i].PinID);
             }
         }
 

@@ -6,6 +6,49 @@ namespace Eagle
     public class AITask : AINode
     { }
 
+    [UIName("Look at Entity")]
+    public class AITaskLookAtEntity : AITask
+    {
+        [Tooltip("Entity that should be moved")]
+        public string Owner;
+
+        [UIName("Target Entity")]
+        [Tooltip("Entity to look at")]
+        public string TargetEntity;
+
+        [UIName("Rotation speed")]
+        public string RotationSpeed;
+
+        public float Epsilon = 0.050f;
+
+        public override void OnBegin()
+        {
+            m_Blackboard.TryGetValue(Owner, out m_Owner);
+            m_Blackboard.TryGetValue(TargetEntity, out m_TargetEntity);
+            m_Blackboard.TryGetValue(RotationSpeed, out m_RotationSpeed);
+        }
+
+        protected override AINodeStatus Update(float ts)
+        {
+            if (m_Owner == null || m_TargetEntity == null)
+                return AINodeStatus.Failed;
+
+            Vector3 location = m_Owner.WorldLocation;
+            Vector3 target = m_TargetEntity.WorldLocation;
+
+            Vector3 dir = Mathf.Normalize(target - location);
+            Rotator targetRot = Mathf.LookAtY(dir);
+            Rotator result = Mathf.Slerp(m_Owner.WorldRotation, targetRot, ts * m_RotationSpeed);
+            m_Owner.WorldRotation = result;
+
+            return targetRot.Equals(result, Epsilon) ? AINodeStatus.Succeeded : AINodeStatus.Running;
+        }
+
+        private Entity m_TargetEntity = null;
+        private Entity m_Owner = null;
+        private float m_RotationSpeed = 3.5f;
+    }
+
     [UIName("Go to Point")]
     public class AITaskGoToPoint : AITask
     {
@@ -23,23 +66,16 @@ namespace Eagle
 
         public override void OnBegin()
         {
-            if (m_Blackboard.TryGetValue(Owner, out Entity entity))
-                m_Owner = entity;
-            if (m_Blackboard.TryGetValue(Target, out Vector3 target))
-                m_Target = target;
-            if (m_Blackboard.TryGetValue(MoveSpeed, out float moveSpeed))
-                m_MoveSpeed = moveSpeed;
-            if (m_Blackboard.TryGetValue(RotationSpeed, out float rotationSpeed))
-                m_RotationSpeed = rotationSpeed;
+            m_Blackboard.TryGetValue(Owner, out m_Owner);
+            m_Blackboard.TryGetValue(Target, out m_Target);
+            m_Blackboard.TryGetValue(MoveSpeed, out m_MoveSpeed);
+            m_Blackboard.TryGetValue(RotationSpeed, out m_RotationSpeed);
         }
 
         protected override AINodeStatus Update(float ts)
         {
             if (m_Owner == null)
                 return AINodeStatus.Failed;
-
-            if (!CanRun(ts, out AINodeStatus status))
-                return status;
 
             bool bFinished = Navigation.MoveToTarget(m_Owner, m_Target, 0.2f, ts, m_MoveSpeed, m_RotationSpeed);
             return bFinished ? AINodeStatus.Succeeded : AINodeStatus.Running;
@@ -69,14 +105,10 @@ namespace Eagle
 
         public override void OnBegin()
         {
-            if (m_Blackboard.TryGetValue(Owner, out Entity ownerEntity))
-                m_Owner = ownerEntity;
-            if (m_Blackboard.TryGetValue(TargetEntity, out Entity targetEntity))
-                m_TargetEntity = targetEntity;
-            if (m_Blackboard.TryGetValue(MoveSpeed, out float moveSpeed))
-                m_MoveSpeed = moveSpeed;
-            if (m_Blackboard.TryGetValue(RotationSpeed, out float rotationSpeed))
-                m_RotationSpeed = rotationSpeed;
+            m_Blackboard.TryGetValue(Owner, out m_Owner);
+            m_Blackboard.TryGetValue(TargetEntity, out m_TargetEntity);
+            m_Blackboard.TryGetValue(MoveSpeed, out m_MoveSpeed);
+            m_Blackboard.TryGetValue(RotationSpeed, out m_RotationSpeed);
         }
 
         protected override AINodeStatus Update(float ts)
@@ -86,9 +118,6 @@ namespace Eagle
 
             if (m_TargetEntity == null)
                 return AINodeStatus.Failed;
-
-            if (!CanRun(ts, out AINodeStatus status))
-                return status;
 
             bool bFinished = Navigation.MoveToTarget(m_Owner, m_TargetEntity.WorldLocation, 0.2f, ts, m_MoveSpeed, m_RotationSpeed);
             return bFinished ? AINodeStatus.Succeeded : AINodeStatus.Running;
@@ -118,23 +147,18 @@ namespace Eagle
 
         public override void OnBegin()
         {
-            if (m_Blackboard.TryGetValue(Owner, out Entity entity))
-                m_Owner = entity;
-            if (m_Blackboard.TryGetValue(Radius, out float radius))
-                Navigation.FindRandomPointInCircle(entity.WorldLocation, radius, out m_Target);
-            if (m_Blackboard.TryGetValue(MoveSpeed, out float moveSpeed))
-                m_MoveSpeed = moveSpeed;
-            if (m_Blackboard.TryGetValue(RotationSpeed, out float rotationSpeed))
-                m_RotationSpeed = rotationSpeed;
+            m_Blackboard.TryGetValue(Owner, out m_Owner);
+            m_Blackboard.TryGetValue(MoveSpeed, out m_MoveSpeed);
+            m_Blackboard.TryGetValue(RotationSpeed, out m_RotationSpeed);
+
+            if (m_Owner != null && m_Blackboard.TryGetValue(Radius, out float radius))
+                Navigation.FindRandomPointInCircle(m_Owner.WorldLocation, radius, out m_Target);
         }
 
         protected override AINodeStatus Update(float ts)
         {
             if (m_Owner == null)
                 return AINodeStatus.Failed;
-
-            if (!CanRun(ts, out AINodeStatus status))
-                return status;
 
             bool bFinished = Navigation.MoveToTarget(m_Owner, m_Target, 0.2f, ts, m_MoveSpeed, m_RotationSpeed);
             return bFinished ? AINodeStatus.Succeeded : AINodeStatus.Running;
@@ -216,5 +240,42 @@ namespace Eagle
 
         protected AssetAudio m_AudioToUse = null;
         protected Vector3 m_Position;
+    }
+
+    [UIName("Wait")]
+    public class AITaskWait : AITask
+    {
+        public float Delay = 1.0f;
+
+        [UIName("Delay Blackboard Key")]
+        [Tooltip("If specified, a delay from the blackboard will be used")]
+        public string DelayBlackboardKey = "";
+
+        public override void OnBegin()
+        {
+            if (DelayBlackboardKey != null && DelayBlackboardKey.Length > 0)
+            {
+                m_Blackboard.TryGetValue(DelayBlackboardKey, out m_Delay);
+            }
+            else
+            {
+                m_Delay = Delay;
+            }
+        }
+
+        public override void OnEnd(AINodeStatus status)
+        {
+            base.OnEnd(status);
+            m_Time = 0.0f;
+        }
+
+        protected override AINodeStatus Update(float ts)
+        {
+            m_Time += ts;
+            return m_Time >= m_Delay ? AINodeStatus.Succeeded : AINodeStatus.Running;
+        }
+
+        private float m_Time = 0.0f;
+        private float m_Delay = 1.0f;
     }
 }

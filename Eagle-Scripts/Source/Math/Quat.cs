@@ -88,6 +88,15 @@ namespace Eagle
 
         public bool Equals(Quat right) => X == right.X && Y == right.Y && Z == right.Z && W == right.W;
 
+        public bool Equals(Quat right, float epsilon)
+        {
+            return
+                Mathf.Abs(X - right.X) < epsilon &&
+                Mathf.Abs(Y - right.Y) < epsilon &&
+                Mathf.Abs(Z - right.Z) < epsilon &&
+                Mathf.Abs(W - right.W) < epsilon;
+        }
+
         public static bool operator ==(Quat left, Quat right) => left.Equals(right);
         public static bool operator !=(Quat left, Quat right) => !(left == right);
 
