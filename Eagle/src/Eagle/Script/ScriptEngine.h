@@ -92,6 +92,7 @@ namespace Eagle
 		// Returns AITaskManager
 		static Scope<MonoInstance> InstantiateBehaviorGraph(const AIBehaviorNode& root);
 		static void UpdateAIBehaviorNodePublicFields(AIBehaviorNode& node);
+		static void UpdateAIClassPublicFields(AIBehaviorClassData& classData);
 
 	private:
 		static bool LoadCoreAssembly(const Path& assemblyPath);
@@ -112,7 +113,6 @@ namespace Eagle
 		static void LoadListOfCoreAIClasses();
 		static std::vector<PublicField> LoadClassPublicFields(MonoClass* monoClass, std::string_view debugName);
 		static void TryToRestoreOldValues(std::vector<PublicField>& publicFields, const std::vector<PublicField>& oldValues);
-		static void UpdateAIClassPublicFields(AIBehaviorClassData& classData);
 
 	private:
 		static std::map<std::string, EntityScriptClass> s_EntityClasses; // FullName -> Data

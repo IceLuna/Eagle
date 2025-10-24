@@ -26,7 +26,7 @@ namespace Eagle
 
 		void RebuildBehaviorTree();
 		void SetBuildsDisabled(bool bDisable) { m_bDisableBuilds = bDisable; }
-		void CheckIfNodesAreValid();
+		void ValidateNodes();
 
 	protected:
 		void SetupInitialNodes();
@@ -51,6 +51,9 @@ namespace Eagle
 		ax::NodeEditor::NodeId m_EntryNodeId;
 		GUID m_AppAssemblyReloadedCallback = GUID(0, 0);
 		Node* m_Selected = nullptr;
+
+		ImVec2 m_MoveUpTextSize = ImVec2(0, 0);
+		ImVec2 m_MoveDownTextSize = ImVec2(0, 0);
 
 		float m_LeftPanelWidth = 400.f;
 		float m_RightPanelWidth = 800.f;

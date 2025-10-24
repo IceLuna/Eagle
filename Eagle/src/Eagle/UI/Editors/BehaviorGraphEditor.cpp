@@ -40,7 +40,7 @@ namespace Eagle
     void BehaviorGraphEditor::OnAddGraphPost()
     {
         m_Graph->SetBuildsDisabled(false);
-        m_Graph->CheckIfNodesAreValid();
+        m_Graph->ValidateNodes();
         m_Graph->RebuildBehaviorTree();
         if (!m_GraphIsDirty) // Creation of nodes makes it dirty, so reset it to false if it wasn't dirty
             m_Asset->SetDirty(false);

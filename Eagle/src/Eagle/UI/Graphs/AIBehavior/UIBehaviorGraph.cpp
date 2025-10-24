@@ -6,6 +6,9 @@
 
 namespace Eagle
 {
+    static const char* s_MoveUpText = "Move Up";
+    static const char* s_MoveDownText = "Move Down";
+
     template<typename Func>
     static void DrawClassNodeItems(UIGraph& graph, const std::vector<AIBehaviorClassData>& classes, Func&& func, Node** node)
     {
@@ -94,6 +97,15 @@ namespace Eagle
         return bValid;
     }
 
+    static void UpdateNodeData(Eagle::Node& node)
+    {
+        ScriptEngine::UpdateAIClassPublicFields(node.BehaviorNodeData.Data);
+        for (auto& decorator : node.BehaviorNodeData.AttachedDecorators)
+        {
+            ScriptEngine::UpdateAIClassPublicFields(decorator);
+        }
+    }
+
     static bool Splitter(bool split_vertically, float thickness, float* size1, float* size2, float min_size1, float min_size2, float splitter_long_axis_size = -1.0f)
     {
         using namespace ImGui;
@@ -111,6 +123,9 @@ namespace Eagle
     {
         SetupInitialNodes();
         SetupNodeFactory();
+
+        m_MoveUpTextSize = ImGui::CalcTextSize(s_MoveUpText);
+        m_MoveDownTextSize = ImGui::CalcTextSize(s_MoveDownText);
 
         m_AppAssemblyReloadedCallback = ScriptEngine::AddOnAppAssemblyReloadedCallback([this]()
         {
@@ -321,7 +336,7 @@ namespace Eagle
 
     void UIBehaviorGraph::OnAppAssemblyReloaded()
     {
-        CheckIfNodesAreValid();
+        ValidateNodes();
     }
 
     void UIBehaviorGraph::DrawLinks()
@@ -367,7 +382,7 @@ namespace Eagle
             // Check if invalid nodes became valid
             if (!m_bNodesValid)
             {
-                CheckIfNodesAreValid();
+                ValidateNodes();
             }
         }
     }
@@ -459,8 +474,15 @@ namespace Eagle
         if (nodeData.AttachedDecorators.empty())
             ImGui::TextDisabled("No decorators");
 
-        for (auto& decorator : nodeData.AttachedDecorators)
+        const float paddingX = ImGui::GetStyle().FramePadding.x;
+        constexpr size_t s_InvalidIdx = size_t(-1);
+        size_t indexToMoveUp = s_InvalidIdx;
+        size_t indexToMoveDown = s_InvalidIdx;
+
+        const size_t decoratorsCount = nodeData.AttachedDecorators.size();
+        for (size_t i = 0; i < decoratorsCount; ++i)
         {
+            auto& decorator = nodeData.AttachedDecorators[i];
             if (decorator.ClassData.UIName.empty())
                 continue;
 
@@ -469,6 +491,31 @@ namespace Eagle
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
             bool treeOpened = ImGui::TreeNodeEx(decorator.ClassData.UIName.c_str(), flags);
             ImGui::PopStyleVar();
+
+            const float offset = ImGui::GetContentRegionAvail().x - m_MoveUpTextSize.x - m_MoveDownTextSize.x - paddingX;
+
+            ImGui::SameLine(offset);
+            {
+                const bool bCanMoveUp = i > 0;
+                const bool bCanMoveDown = i < (decoratorsCount - 1);
+
+                if (!bCanMoveUp)
+                    UI::PushItemDisabled();
+                if (ImGui::Button(s_MoveUpText))
+                    indexToMoveUp = i;
+                if (!bCanMoveUp)
+                    UI::PopItemDisabled();
+
+                ImGui::SameLine();
+
+                if (!bCanMoveDown)
+                    UI::PushItemDisabled();
+                if (ImGui::Button(s_MoveDownText))
+                    indexToMoveDown = i;
+                if (!bCanMoveDown)
+                    UI::PopItemDisabled();
+            }
+
             if (treeOpened)
             {
                 UI::BeginPropertyGrid("DecoratorFields");
@@ -482,6 +529,17 @@ namespace Eagle
 
             ImGui::PopID();
         }
+
+        if (indexToMoveUp != s_InvalidIdx)
+        {
+            std::swap(nodeData.AttachedDecorators[indexToMoveUp], nodeData.AttachedDecorators[indexToMoveUp - 1]);
+            m_bRebuild = true;
+        }
+        else if (indexToMoveDown != s_InvalidIdx)
+        {
+            std::swap(nodeData.AttachedDecorators[indexToMoveDown], nodeData.AttachedDecorators[indexToMoveDown + 1]);
+            m_bRebuild = true;
+        }
     }
 
     void UIBehaviorGraph::OnNodeRenamingFinished(Node& node, const std::string& newName)
@@ -490,7 +548,7 @@ namespace Eagle
         m_Asset->SetDirty(true);
     }
 
-    void UIBehaviorGraph::CheckIfNodesAreValid()
+    void UIBehaviorGraph::ValidateNodes()
     {
         constexpr ImColor defaultColor = ImColor(128, 128, 128, 200);
         constexpr ImColor invalidColor = ImColor(128, 20, 20);
@@ -514,6 +572,8 @@ namespace Eagle
                 node.Color = invalidColor;
                 continue;
             }
+
+            UpdateNodeData(node);
 
             node.Color = defaultColor;
         }
