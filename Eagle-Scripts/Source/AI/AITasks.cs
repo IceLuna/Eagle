@@ -64,6 +64,9 @@ namespace Eagle
         [UIName("Rotation speed")]
         public string RotationSpeed;
 
+        [UIName("Acceptance Distance")]
+        public float AcceptanceDistance = 0.5f;
+
         public override void OnBegin()
         {
             m_Blackboard.TryGetValue(Owner, out m_Owner);
@@ -77,7 +80,7 @@ namespace Eagle
             if (m_Owner == null)
                 return AINodeStatus.Failed;
 
-            bool bFinished = Navigation.MoveToTarget(m_Owner, m_Target, 0.2f, ts, m_MoveSpeed, m_RotationSpeed);
+            bool bFinished = Navigation.MoveToTarget(m_Owner, m_Target, AcceptanceDistance, ts, m_MoveSpeed, m_RotationSpeed);
             return bFinished ? AINodeStatus.Succeeded : AINodeStatus.Running;
         }
 
@@ -103,6 +106,9 @@ namespace Eagle
         [UIName("Rotation speed")]
         public string RotationSpeed;
 
+        [UIName("Acceptance Distance")]
+        public float AcceptanceDistance = 0.5f;
+
         public override void OnBegin()
         {
             m_Blackboard.TryGetValue(Owner, out m_Owner);
@@ -116,7 +122,7 @@ namespace Eagle
             if (m_Owner == null || m_TargetEntity == null)
                 return AINodeStatus.Failed;
 
-            bool bFinished = Navigation.MoveToTarget(m_Owner, m_TargetEntity.WorldLocation, 0.2f, ts, m_MoveSpeed, m_RotationSpeed);
+            bool bFinished = Navigation.MoveToTarget(m_Owner, m_TargetEntity.WorldLocation, AcceptanceDistance, ts, m_MoveSpeed, m_RotationSpeed);
             return bFinished ? AINodeStatus.Succeeded : AINodeStatus.Running;
         }
 
@@ -142,6 +148,9 @@ namespace Eagle
         [UIName("Rotation speed")]
         public string RotationSpeed;
 
+        [UIName("Acceptance Distance")]
+        public float AcceptanceDistance = 0.5f;
+
         public override void OnBegin()
         {
             m_Blackboard.TryGetValue(Owner, out m_Owner);
@@ -157,7 +166,7 @@ namespace Eagle
             if (m_Owner == null)
                 return AINodeStatus.Failed;
 
-            bool bFinished = Navigation.MoveToTarget(m_Owner, m_Target, 0.2f, ts, m_MoveSpeed, m_RotationSpeed);
+            bool bFinished = Navigation.MoveToTarget(m_Owner, m_Target, AcceptanceDistance, ts, m_MoveSpeed, m_RotationSpeed);
             return bFinished ? AINodeStatus.Succeeded : AINodeStatus.Running;
         }
 

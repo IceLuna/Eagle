@@ -482,8 +482,7 @@ namespace Eagle
 			}
 
 			if (entity.HasComponent<ScriptComponent>())
-				if (ScriptEngine::ModuleExists(entity.GetComponent<ScriptComponent>().ModuleName))
-					ScriptEngine::OnDestroyEntity(entity);
+				ScriptEngine::OnDestroyEntity(entity);
 		}
 
 		m_EntitiesToDestroy.emplace_back(entity, bDestroyChildren);
@@ -947,9 +946,21 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				Entity e = { entity, this };
-				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
-					ScriptEngine::OnUpdateEntity(e, ts);
+				ScriptEngine::OnUpdateEntity(e, ts);
 			}
+		}
+
+		// C# animation events
+		{
+			for (const auto& [entityID, events] : m_AnimationsToTrigger)
+			{
+				for (const auto& event : events)
+				{
+					Entity entity((entt::entity)entityID, this);
+					entity.TriggerAnimationEvent(event.Name, event.Time);
+				}
+			}
+			m_AnimationsToTrigger.clear();
 		}
 
 		bForceSkeletalMeshUpdateNextFrame = m_DirtyFlags.bSkeletalMeshesDirty;
@@ -959,24 +970,25 @@ namespace Eagle
 	void Scene::UpdateAnimations(Timestep ts, bool bUseBasePose, bool bApplyRootMotion)
 	{
 		EG_CPU_TIMING_SCOPED("Scene. Update animations");
+
+		m_AnimationsToTrigger.clear();
 		if (bUseBasePose)
 		{
 			m_AnimationTransforms = AnimationSystem::UpdateBasePose(m_SkeletalMeshes, ts);
 		}
 		else
 		{
-			m_AnimationTransforms = AnimationSystem::Update(m_SkeletalMeshes, ts, bApplyRootMotion);
+			m_AnimationTransforms = AnimationSystem::Update(m_SkeletalMeshes, ts, bApplyRootMotion, &m_AnimationsToTrigger);
 		}
 
-		std::vector<ParticleSystemComponent*> systems;
-		systems.reserve(m_SkeletalParticles.size());
+		m_SystemsToUpdateAnims.clear();
 		for (const auto& entityID : m_SkeletalParticles)
 		{
 			entt::entity entity = (entt::entity)entityID;
 			EG_CORE_ASSERT(m_Registry.valid(entity) && m_Registry.all_of<ParticleSystemComponent>(entity));
-			systems.push_back(&m_Registry.get<ParticleSystemComponent>(entity));
+			m_SystemsToUpdateAnims.push_back(&m_Registry.get<ParticleSystemComponent>(entity));
 		}
-		m_SkeletalParticlesAnimationTransforms = AnimationSystem::Update(systems, ts);
+		m_SkeletalParticlesAnimationTransforms = AnimationSystem::Update(m_SystemsToUpdateAnims, ts, &m_AnimationsToTrigger);
 	}
 
 	CameraComponent* Scene::FindOrCreateRuntimeCamera()
@@ -1543,8 +1555,7 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				Entity e = { entity, this };
-				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
-					ScriptEngine::InstantiateEntityClass(e);
+				ScriptEngine::InstantiateEntityClass(e);
 			}
 
 			// When all entities were instantiated,
@@ -1552,8 +1563,7 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				Entity e = { entity, this };
-				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
-					ScriptEngine::OnCreateEntity(e);
+				ScriptEngine::OnCreateEntity(e);
 			}
 		}
 
@@ -1579,16 +1589,14 @@ namespace Eagle
 			for (auto& e : view)
 			{
 				auto& sc = m_Registry.get<ScriptComponent>(e);
-				if (ScriptEngine::ModuleExists(sc.ModuleName))
-					ScriptEngine::OnDestroyEntity(Entity{e, this});
+				ScriptEngine::OnDestroyEntity(Entity{e, this});
 			}
 
 			// Destroy script instances
 			for (auto entity : view)
 			{
 				Entity e = { entity, this };
-				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
-					ScriptEngine::RemoveEntityScript(e);
+				ScriptEngine::RemoveEntityScript(e);
 			}
 		}
 
@@ -1648,8 +1656,7 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				Entity e = { entity, this };
-				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
-					ScriptEngine::OnEventEntity(e, eventObject);
+				ScriptEngine::OnEventEntity(e, eventObject);
 			}
 		}
 	}
@@ -1689,8 +1696,7 @@ namespace Eagle
 				for (auto entity : view)
 				{
 					Entity e = { entity, this };
-					if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
-						ScriptEngine::OnDestroyEntity(e);
+					ScriptEngine::OnDestroyEntity(e);
 				}
 			}
 		}

@@ -76,13 +76,12 @@ namespace Eagle
 		}
 	}
 
-	void Entity::TriggerAnimationEvent(const std::string& name, float time)
+	void Entity::TriggerAnimationEvent(const std::string& name, float time) const
 	{
 		if (HasComponent<ScriptComponent>() == false)
 			return;
 
-		if (ScriptEngine::ModuleExists(GetComponent<ScriptComponent>().ModuleName))
-			ScriptEngine::OnAnimationEventEntity(*this, name, time);
+		ScriptEngine::OnAnimationEventEntity(*this, name, time);
 	}
 
 	const std::vector<Entity>& Entity::GetChildren() const

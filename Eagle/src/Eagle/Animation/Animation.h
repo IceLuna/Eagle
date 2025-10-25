@@ -46,6 +46,12 @@ namespace Eagle
         float Time = 0.f; // A value between [0; Duration] when an event should be triggered
     };
 
+    struct AnimationEventData
+    {
+        uint32_t EntityID;
+        std::vector<AnimationEvent> Events;
+    };
+
     // string - bone name
     using BonesAnimMap = std::unordered_map<std::string, BoneAnimation>;
     struct SkeletalMeshAnimation
@@ -74,7 +80,7 @@ namespace Eagle
         // In such cases, we can just get the pointer to an existing data.
         // For example, `Animation Clip` is connected to `Filter Bones`. The `EventsToTrigger` will remain the same after `Filter Bones` is executed.
         // So, `Filter Bones` pose will get a pointer to `EventsToTrigger` of `Animation Clip` node.
-        const std::vector<AnimationEvent>* EventsToTrigger_Pointer = nullptr;
+        std::vector<AnimationEvent>* EventsToTrigger_Pointer = nullptr;
 
         float TimeTillAnimationLoops = FLT_MAX;
         bool bWasFiltered = false;
@@ -100,6 +106,7 @@ namespace Eagle
         const Transform& GetRootMotion() const { return m_RootMotion; }
         bool HasRootMotion() const { return bHasRootMotion; }
 
+        std::vector<AnimationEvent>& GetEventsToTrigger() { return EventsToTrigger_Pointer ? *EventsToTrigger_Pointer : EventsToTrigger; }
         const std::vector<AnimationEvent>& GetEventsToTrigger() const { return EventsToTrigger_Pointer ? *EventsToTrigger_Pointer : EventsToTrigger; }
 
     private:

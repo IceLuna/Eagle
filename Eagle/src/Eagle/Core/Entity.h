@@ -86,7 +86,7 @@ namespace Eagle
 			return Math::GetRightVector(GetWorldRotation());
 		}
 
-		void TriggerAnimationEvent(const std::string& name, float time);
+		void TriggerAnimationEvent(const std::string& name, float time) const;
 
 		const std::vector<Entity>& GetChildren() const;
 		bool HasParent() const;

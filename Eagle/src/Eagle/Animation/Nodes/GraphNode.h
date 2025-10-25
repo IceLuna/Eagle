@@ -22,7 +22,7 @@ namespace Eagle
 
 		virtual ~GraphNode() = default;
 
-		virtual const SkeletalPose& Update(Timestep ts) = 0;
+		virtual SkeletalPose& Update(Timestep ts) = 0;
 		virtual Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const = 0;
 
 		void SetInput(const Ref<GraphNode>& node, size_t index)

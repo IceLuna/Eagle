@@ -1458,7 +1458,7 @@ namespace Eagle
 		Methods.OnUpdateMethod			= ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData.FullName + ":OnUpdate(single)");
 		Methods.OnEventMethod           = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData.FullName + ":OnEvent(Event)");
 		Methods.OnPhysicsUpdateMethod	= ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData.FullName + ":OnPhysicsUpdate(single)");
-		Methods.OnAnimationEventMethod  = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData.FullName + ":OnAnimationEvent(string)");
+		Methods.OnAnimationEventMethod  = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData.FullName + ":OnAnimationEvent(string,single)");
 
 		Methods.OnCollisionBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionBegin(GUID,Vector3,Vector3,Vector3,Vector3)");
 		Methods.OnCollisionEndMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionEnd(GUID,Vector3,Vector3,Vector3,Vector3)");

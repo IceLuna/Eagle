@@ -5,6 +5,7 @@
 #include "Eagle/Camera/EditorCamera.h"
 #include "Eagle/Audio/Sound3D.h"
 #include "Eagle/Physics/PhysicsSettings.h"
+#include "Eagle/Animation/Animation.h"
 #include "GUID.h"
 #include "Notifications.h"
 
@@ -557,6 +558,9 @@ namespace Eagle
 		bool m_bUseSkyAsBackground = true;
 
 		std::unordered_map<GUID, Ref<Sound>> m_SpawnedSounds;
+
+		std::vector<AnimationEventData> m_AnimationsToTrigger;
+		std::vector<ParticleSystemComponent*> m_SystemsToUpdateAnims;
 
 		std::unordered_set<const StaticMeshComponent*> m_DirtyTransformStaticMeshes;
 		std::unordered_set<const SkeletalMeshComponent*> m_DirtyTransformSkeletalMeshes;

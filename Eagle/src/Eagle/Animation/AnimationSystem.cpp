@@ -488,6 +488,8 @@ namespace Eagle
     std::unordered_map<uint32_t, std::vector<glm::mat4>> AnimationSystem::s_Transforms;
     std::unordered_map<GUID, std::unordered_map<GUID, std::vector<glm::mat4>>> AnimationSystem::s_EmittersTransforms;
 
+    static_assert(std::is_same<decltype(AnimationEventData::EntityID), EntityIDType>::value);
+
     void AnimationSystem::Update(const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* animation, float currentTime, std::vector<glm::mat4>* outTransforms, SkeletalPose* outPose)
     {
         outTransforms->clear();
@@ -539,7 +541,7 @@ namespace Eagle
         }
     }
     
-    std::unordered_map<uint32_t, std::vector<glm::mat4>> AnimationSystem::Update(const std::vector<SkeletalMeshComponent*>& meshes, float ts, bool bApplyRootMotion)
+    std::unordered_map<uint32_t, std::vector<glm::mat4>> AnimationSystem::Update(const std::vector<SkeletalMeshComponent*>& meshes, float ts, bool bApplyRootMotion, std::vector<AnimationEventData>* outEventsToTrigger)
     {
         EG_CPU_TIMING_SCOPED("Animation System. Update");
 
@@ -632,15 +634,15 @@ namespace Eagle
             if (bApplyRootMotion && mesh->LastPose.HasRootMotion())
                 ApplyRootMotion(mesh, mesh->LastPose.TotalRootMotion, mesh->LastPose.GetRootMotion());
 
-            if (mesh->LastPose.EventsToTrigger.size() > 0)
+            if (outEventsToTrigger)
             {
-                // TODO v0.7: Why can't we call it here?
-                Application::Get().CallNextFrame([mesh]()
+                auto& events = mesh->LastPose.GetEventsToTrigger();
+                if (!events.empty())
                 {
-                    const auto& events = mesh->LastPose.GetEventsToTrigger();
-                    for (const auto& event : events)
-                        mesh->Parent.TriggerAnimationEvent(event.Name, event.Time);
-                });
+                    auto& data = outEventsToTrigger->emplace_back();
+                    data.EntityID = mesh->Parent.GetID();
+                    data.Events = std::move(events);
+                }
             }
         }
 
@@ -700,7 +702,7 @@ namespace Eagle
         return s_Transforms;
     }
     
-    std::unordered_map<GUID, std::unordered_map<GUID, std::vector<glm::mat4>>> AnimationSystem::Update(const std::vector<ParticleSystemComponent*>& systems, float ts)
+    std::unordered_map<GUID, std::unordered_map<GUID, std::vector<glm::mat4>>> AnimationSystem::Update(const std::vector<ParticleSystemComponent*>& systems, float ts, std::vector<AnimationEventData>* outEventsToTrigger)
     {
         if (systems.empty())
             return {};
@@ -785,29 +787,30 @@ namespace Eagle
 
         s_ThreadPool->wait_for_tasks();
 
-        for (auto& system : systems)
+        if (outEventsToTrigger)
         {
-            const auto& asset = system->GetAsset();
-            if (!asset)
-                continue;
-
-            const auto& emitters = asset->GetEmitters();
-            const size_t emittersCount = emitters.size();
-            for (size_t i = 0; i < emittersCount; ++i)
+            for (auto& system : systems)
             {
-                const auto& emitter = emitters[i];
-                if (!emitter.bTriggerAnimationEvents)
+                const auto& asset = system->GetAsset();
+                if (!asset)
                     continue;
 
-                const auto& animData = system->PerEmitterAnimData[i];
-                if (animData.LastPose.EventsToTrigger.size() > 0)
+                const auto& emitters = asset->GetEmitters();
+                const size_t emittersCount = emitters.size();
+                for (size_t i = 0; i < emittersCount; ++i)
                 {
-                    Application::Get().CallNextFrame([lastPose = animData.LastPose, system]()
+                    const auto& emitter = emitters[i];
+                    if (!emitter.bTriggerAnimationEvents)
+                        continue;
+
+                    auto& pose = system->PerEmitterAnimData[i].LastPose;
+                    auto& events = pose.GetEventsToTrigger();
+                    if (!events.empty())
                     {
-                        const auto& events = lastPose.GetEventsToTrigger();
-                        for (const auto& event : events)
-                            system->Parent.TriggerAnimationEvent(event.Name, event.Time);
-                    });
+                        auto& data = outEventsToTrigger->emplace_back();
+                        data.EntityID = system->Parent.GetID();
+                        data.Events = std::move(events);
+                    }
                 }
             }
         }

@@ -80,7 +80,7 @@ namespace Eagle
 	{
 	}
 
-	const SkeletalPose& AnimationGraphNodeOutput::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeOutput::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -96,7 +96,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeStateOutput::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeStateOutput::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -111,7 +111,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeTransitionOutput::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeTransitionOutput::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -131,7 +131,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphStateMachineEntry::Update(Timestep ts)
+	SkeletalPose& AnimationGraphStateMachineEntry::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -160,7 +160,7 @@ namespace Eagle
 		return clone;
 	}
 
-	const SkeletalPose& AnimationGraphNodeClip::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeClip::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -242,7 +242,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeBlend::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeBlend::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -271,7 +271,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeFilterBones::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeFilterBones::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -291,7 +291,7 @@ namespace Eagle
 			bool bIgnoreParentScale = true;
 			Utils::GetValue(m_Inputs[4], m_Variables[4], ts, &bIgnoreParentScale);
 
-			const auto& pose = input->Update(ts);
+			auto& pose = input->Update(ts);
 			AnimationSystem::FilterPose(pose, skeletal->GetSkeletalMeshInfo().RootBone, boneName, bIgnoreParentLocation, bIgnoreParentRotation, bIgnoreParentScale, &m_Pose);
 			m_Pose.EventsToTrigger_Pointer = &(pose.GetEventsToTrigger());
 		}
@@ -301,7 +301,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeTransformBone::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeTransformBone::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -339,7 +339,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeAdditiveBlend::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeAdditiveBlend::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -368,7 +368,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeCalculateAdditive::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeCalculateAdditive::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -393,7 +393,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeBlendPoseByBool::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeBlendPoseByBool::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -458,7 +458,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeBlendPoseByInt::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeBlendPoseByInt::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -536,7 +536,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeAnd::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeAnd::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -558,7 +558,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeOr::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeOr::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -576,7 +576,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeXor::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeXor::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -594,7 +594,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeNot::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeNot::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -610,7 +610,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeLess::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeLess::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -628,7 +628,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeLessEqual::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeLessEqual::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -646,7 +646,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeGreater::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeGreater::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -664,7 +664,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeGreaterEqual::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeGreaterEqual::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -682,7 +682,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeEqual::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeEqual::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -700,7 +700,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeNotEqual::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeNotEqual::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -718,7 +718,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeAnimVarIsValid::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeAnimVarIsValid::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -734,7 +734,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeAdd::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeAdd::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -752,7 +752,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeSub::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeSub::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -770,7 +770,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeMul::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeMul::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -788,7 +788,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeDiv::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeDiv::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -806,7 +806,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeSqrt::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeSqrt::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -822,7 +822,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeAbs::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeAbs::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -838,7 +838,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeSin::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeSin::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -854,7 +854,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeCos::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeCos::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -870,7 +870,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeASin::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeASin::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -886,7 +886,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeACos::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeACos::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -902,7 +902,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeToRad::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeToRad::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -918,7 +918,7 @@ namespace Eagle
 		return m_Pose;
 	}
 
-	const SkeletalPose& AnimationGraphNodeToDeg::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeToDeg::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -934,7 +934,7 @@ namespace Eagle
 		return m_Pose;
 	}
 	
-	const SkeletalPose& AnimationGraphNodeMapRange::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeMapRange::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -961,7 +961,7 @@ namespace Eagle
 		return m_Pose;
 	}
 	
-	const SkeletalPose& AnimationGraphNodeEulerToQuat::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeEulerToQuat::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -983,7 +983,7 @@ namespace Eagle
 		return m_Pose;
 	}
 	
-	const SkeletalPose& AnimationGraphNodeCachePose::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeCachePose::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -999,7 +999,7 @@ namespace Eagle
 		return m_Pose;
 	}
 	
-	const SkeletalPose& AnimationGraphNodeBlendSpace::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeBlendSpace::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
@@ -1159,7 +1159,7 @@ namespace Eagle
 		}
 	}
 	
-	const SkeletalPose& AnimationGraphNodeIntToFloat::Update(Timestep ts)
+	SkeletalPose& AnimationGraphNodeIntToFloat::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)

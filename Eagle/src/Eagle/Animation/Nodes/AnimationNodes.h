@@ -35,7 +35,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeOutput(const Weak<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -51,7 +51,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeStateOutput(const Weak<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -68,7 +68,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeTransitionOutput(const Weak<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		bool ShouldTransition() const { return m_bTransition; }
 		float GetTransitionTime() const { return m_TransitionTime; }
@@ -98,7 +98,7 @@ namespace Eagle
 	public:
 		AnimationGraphStateMachineEntry(const Weak<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		void SetStateMachineIndex(uint32_t index) { m_StateMachineIndex = index; }
 		const Ref<AnimationStateMachineGraph>& GetStateMachine() const;
@@ -116,7 +116,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeClip(const Weak<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -150,7 +150,7 @@ namespace Eagle
 			return AnimationGraphNode::CloneNode<AnimationGraphNodeBlend>(newGraph);
 		}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 	private:
 		static constexpr size_t s_Inputs = 3;
@@ -166,7 +166,7 @@ namespace Eagle
 			return AnimationGraphNode::CloneNode<AnimationGraphNodeFilterBones>(newGraph);
 		}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 	private:
 		static constexpr size_t s_Inputs = 5;
@@ -182,7 +182,7 @@ namespace Eagle
 			return AnimationGraphNode::CloneNode<AnimationGraphNodeTransformBone>(newGraph);
 		}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 	private:
 		static constexpr size_t s_Inputs = 3;
@@ -193,7 +193,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeAdditiveBlend(const Weak<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -209,7 +209,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeCalculateAdditive(const Weak<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -225,7 +225,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeBlendPoseByBool(const Weak<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -244,7 +244,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeBlendPoseByInt(const Weak<AnimationGraph>& graph, uint32_t numInputs = s_Inputs) : AnimationGraphNode(graph, numInputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -264,7 +264,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeCachePose(const Weak<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -283,7 +283,7 @@ namespace Eagle
 			, m_BlendSpace(asset)
 		{}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		const Ref<AssetAnimationBlendSpace>& GetBlendSpaceAsset() const { return m_BlendSpace; }
 
@@ -340,7 +340,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeAnd(const Weak<AnimationGraph>& graph) : AnimationGraphNodeBool(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -356,7 +356,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeOr(const Weak<AnimationGraph>& graph) : AnimationGraphNodeBool(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -372,7 +372,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeXor(const Weak<AnimationGraph>& graph) : AnimationGraphNodeBool(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -388,7 +388,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeNot(const Weak<AnimationGraph>& graph) : AnimationGraphNodeBool(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -404,7 +404,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeLess(const Weak<AnimationGraph>& graph) : AnimationGraphNodeBool(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -420,7 +420,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeLessEqual(const Weak<AnimationGraph>& graph) : AnimationGraphNodeBool(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -436,7 +436,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeGreater(const Weak<AnimationGraph>& graph) : AnimationGraphNodeBool(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -452,7 +452,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeGreaterEqual(const Weak<AnimationGraph>& graph) : AnimationGraphNodeBool(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -468,7 +468,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeEqual(const Weak<AnimationGraph>& graph) : AnimationGraphNodeBool(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -484,7 +484,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeNotEqual(const Weak<AnimationGraph>& graph) : AnimationGraphNodeBool(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -500,7 +500,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeAnimVarIsValid(const Weak<AnimationGraph>& graph) : AnimationGraphNodeBool(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -536,7 +536,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeAdd(const Weak<AnimationGraph>& graph) : AnimationGraphNodeFloat(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -552,7 +552,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeSub(const Weak<AnimationGraph>& graph) : AnimationGraphNodeFloat(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -568,7 +568,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeMul(const Weak<AnimationGraph>& graph) : AnimationGraphNodeFloat(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -584,7 +584,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeDiv(const Weak<AnimationGraph>& graph) : AnimationGraphNodeFloat(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -600,7 +600,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeSqrt(const Weak<AnimationGraph>& graph) : AnimationGraphNodeFloat(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -616,7 +616,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeAbs(const Weak<AnimationGraph>& graph) : AnimationGraphNodeFloat(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -632,7 +632,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeSin(const Weak<AnimationGraph>& graph) : AnimationGraphNodeFloat(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -648,7 +648,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeCos(const Weak<AnimationGraph>& graph) : AnimationGraphNodeFloat(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -664,7 +664,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeASin(const Weak<AnimationGraph>& graph) : AnimationGraphNodeFloat(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -680,7 +680,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeACos(const Weak<AnimationGraph>& graph) : AnimationGraphNodeFloat(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -696,7 +696,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeToRad(const Weak<AnimationGraph>& graph) : AnimationGraphNodeFloat(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -712,7 +712,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeToDeg(const Weak<AnimationGraph>& graph) : AnimationGraphNodeFloat(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -728,7 +728,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeMapRange(const Weak<AnimationGraph>& graph) : AnimationGraphNodeFloat(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -744,7 +744,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeIntToFloat(const Weak<AnimationGraph>& graph) : AnimationGraphNodeFloat(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
@@ -780,7 +780,7 @@ namespace Eagle
 	public:
 		AnimationGraphNodeEulerToQuat(const Weak<AnimationGraph>& graph) : AnimationGraphNodeVec4(graph, s_Inputs) {}
 
-		const SkeletalPose& Update(Timestep ts) override;
+		SkeletalPose& Update(Timestep ts) override;
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
