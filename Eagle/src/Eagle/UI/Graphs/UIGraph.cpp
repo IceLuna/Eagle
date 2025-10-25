@@ -1930,7 +1930,7 @@ namespace Eagle
         ImGui::PushItemWidth(node.Size.x - 25.f);
         if (node.bEditing)
         {
-            constexpr ImGuiInputTextFlags inputFlags = ImGuiInputTextFlags_CallbackResize | ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue;
+            constexpr ImGuiInputTextFlags inputFlags = ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue;
 
             ImGui::SetKeyboardFocusHere(0);
             if (UI::InputText("##graph_comment", node.UserData, inputFlags))

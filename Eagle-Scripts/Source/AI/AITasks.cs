@@ -113,10 +113,7 @@ namespace Eagle
 
         protected override AINodeStatus Update(float ts)
         {
-            if (m_Owner == null)
-                return AINodeStatus.Failed;
-
-            if (m_TargetEntity == null)
+            if (m_Owner == null || m_TargetEntity == null)
                 return AINodeStatus.Failed;
 
             bool bFinished = Navigation.MoveToTarget(m_Owner, m_TargetEntity.WorldLocation, 0.2f, ts, m_MoveSpeed, m_RotationSpeed);

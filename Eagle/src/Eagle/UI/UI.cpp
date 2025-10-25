@@ -1151,61 +1151,6 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool DrawGraphVariables(const Ref<AnimationGraph>& graph)
-	{
-		bool bChanged = false;
-
-		for (auto& [name, var] : graph->GetVariables())
-		{
-			if (!var->bShowInUI)
-				continue;
-
-			switch (var->GetType())
-			{
-			case GraphVariableType::Bool:
-			{
-				auto boolVar = Cast<GraphVariableBool>(var);
-				bChanged |= UI::Property(name, boolVar->Value);
-				break;
-			}
-			case GraphVariableType::Int:
-			{
-				auto intVar = Cast<GraphVariableInt>(var);
-				bChanged |= UI::PropertyDrag(name, intVar->Value);
-				break;
-			}
-			case GraphVariableType::Float:
-			{
-				auto floatVar = Cast<GraphVariableFloat>(var);
-				bChanged |= UI::PropertyDrag(name, floatVar->Value, 0.1f);
-				break;
-			}
-			case GraphVariableType::Animation:
-			{
-				auto animVar = Cast<GraphVariableAnimation>(var);
-				bChanged |= UI::DrawAssetSelection(name, animVar->Value, "", -1.f, GetAssetPreview(animVar->Value));
-				break;
-			}
-			case GraphVariableType::String:
-			{
-				auto animVar = Cast<GraphVariableString>(var);
-				bChanged |= UI::PropertyText(name, animVar->Value);
-				break;
-			}
-			case GraphVariableType::Vec4:
-			{
-				auto animVar = Cast<GraphVariableVec4>(var);
-				bChanged |= UI::PropertyDrag(name, animVar->Value, 0.05f);
-				break;
-			}
-			default:
-				EG_CORE_ASSERT(false);
-			}
-		}
-
-		return bChanged;
-	}
-
 	bool InputFloat(const std::string_view label, float& value, float step, float stepFast, const std::string_view helpMessage)
 	{
 		UpdateIDBuffer(label);
@@ -1249,6 +1194,19 @@ namespace Eagle::UI
 	bool InputText(const std::string_view label, std::string& value, ImGuiInputTextFlags flags, const std::string_view helpMessage)
 	{
 		const bool bChanged = ImGui::InputText(label.data(), value.data(), value.length() + 1, flags | ImGuiInputTextFlags_CallbackResize, UI::TextResizeCallback, &value);
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		return bChanged;
+	}
+
+	bool InputTextMultiline(const std::string_view label, std::string& value, ImGuiInputTextFlags flags, const std::string_view helpMessage)
+	{
+		constexpr ImGuiInputTextFlags defaultFlags = ImGuiInputTextFlags_CtrlEnterForNewLine | ImGuiInputTextFlags_CallbackResize | ImGuiInputTextFlags_AllowTabInput;
+
+		const bool bChanged = ImGui::InputTextMultiline(label.data(), value.data(), value.length() + 1, ImVec2(0, 0), defaultFlags | ImGuiInputTextFlags_CallbackResize, UI::TextResizeCallback, &value);
 		if (helpMessage.size())
 		{
 			ImGui::SameLine();

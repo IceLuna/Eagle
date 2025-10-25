@@ -12,11 +12,6 @@ namespace Eagle
 		class LocalMonoInstance : public MonoInstance {};
 		Scope<MonoInstance> res = MakeScope<LocalMonoInstance>();
 		res->m_Handle = ScriptEngine::Instantiate(klass, debugName);
-		res->m_Instance = nullptr;
-		if (res->m_Handle != 0)
-		{
-			res->m_Instance = ScriptEngine::GetHandleInstance(res->m_Handle);
-		}
 
 		return res;
 	}
@@ -27,17 +22,19 @@ namespace Eagle
 		{
 			ScriptEngine::FreeHandle(m_Handle);
 			m_Handle = 0;
-			m_Instance = nullptr;
 		}
+	}
+
+	MonoObject* MonoInstance::GetInstance() const
+	{
+		return m_Handle == 0u ? nullptr : ScriptEngine::GetHandleInstance(m_Handle);
 	}
 
 	MonoInstance::MonoInstance(MonoInstance&& other) noexcept
 	{
 		m_Handle = other.m_Handle;
-		m_Instance = other.m_Instance;
 
 		other.m_Handle = 0;
-		other.m_Instance = nullptr;
 	}
 
 	MonoInstance& MonoInstance::operator=(MonoInstance&& other) noexcept
@@ -45,11 +42,9 @@ namespace Eagle
 		if (this == &other)
 			return *this;
 
-		m_Handle = other.m_Handle;
-		m_Instance = other.m_Instance;
+		m_Handle = std::move(other.m_Handle);
 
 		other.m_Handle = 0;
-		other.m_Instance = nullptr;
 
 		return *this;
 	}

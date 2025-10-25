@@ -377,11 +377,10 @@ namespace Eagle::UI
 
 	bool PropertyBitMask(const std::string_view label, uint32_t& value, const std::vector<std::pair<std::string, uint32_t>>& masks, const std::string_view helpMessage = "");
 
-	bool DrawGraphVariables(const Ref<AnimationGraph>& graph);
-
 	bool InputFloat(const std::string_view label, float& value, float step = 0.f, float stepFast = 0.f, const std::string_view helpMessage = "");
 	bool InputDouble(const std::string_view label, double& value, double step = 0.f, double stepFast = 0.f, const std::string_view helpMessage = "");
 	bool InputText(const std::string_view label, std::string& value, ImGuiInputTextFlags flags = ImGuiInputTextFlags_None, const std::string_view helpMessage = "");
+	bool InputTextMultiline(const std::string_view label, std::string& value, ImGuiInputTextFlags flags = ImGuiInputTextFlags_None, const std::string_view helpMessage = "");
 	
 	//Returns true if selection changed.
 	//outSelectedIndex - index of the selected option

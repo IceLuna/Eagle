@@ -48,7 +48,8 @@ namespace Eagle
 	public:
 		~MonoInstance();
 
-		MonoObject* GetInstance() const { return m_Instance; }
+		// Note: Don't cache this pointer. It might become invalid if Garbage Collector decides to move it around
+		MonoObject* GetInstance() const;
 		bool IsValid() const { return m_Handle != 0; }
 
 		static Scope<MonoInstance> Create(MonoClass* klass, std::string_view debugName);
@@ -62,7 +63,6 @@ namespace Eagle
 		MonoInstance& operator=(MonoInstance&& other) noexcept;
 
 		uint32_t m_Handle = 0u;
-		MonoObject* m_Instance = nullptr;
 	};
 
 	struct ScriptClass

@@ -44,6 +44,7 @@ namespace Eagle
 
 		[[nodiscard]] static uint32_t Instantiate(MonoClass* klass, std::string_view debugName);
 		static void FreeHandle(uint32_t handle);
+		// Note: Don't cache this pointer. It might become invalid if Garbage Collector decides to move it around
 		static MonoObject* GetHandleInstance(uint32_t handle);
 
 		static void OnCreateEntity(const Entity& entity);
