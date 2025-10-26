@@ -19,6 +19,10 @@ namespace Eagle
             { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, numDescriptors },
             { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, numDescriptors },
             { VK_DESCRIPTOR_TYPE_SAMPLER, numDescriptors },
+            { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, numDescriptors },
+            { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, numDescriptors },
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, numDescriptors },
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, numDescriptors },
             { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, numDescriptors }
         };
 

@@ -33,7 +33,7 @@ namespace Eagle
 	struct AssetImportAnimationSettings
 	{
 		Ref<AssetSkeletalMesh> Skeletal;
-		bool bRootMotion = false;
+		RootMotionMode RootMotionType = RootMotionMode::Disabled;
 	};
 
 	struct AssetImportSettings

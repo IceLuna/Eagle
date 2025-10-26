@@ -58,6 +58,13 @@ namespace Eagle
 		Default = R11G11B10
     };
 
+    public enum RootMotionMode
+    {
+        Disabled,
+        [Tooltip("Use base pose root bone transform")] BasePose,
+        [Tooltip("Use root bone transform of the first animation frame")] AnimFirstFrame
+    };
+
     // Note that changing assets affects the whole asset, meaning it will affect the editor
     public class Asset
     {
@@ -661,7 +668,7 @@ namespace Eagle
         {
         }
 
-        public void SetRootMotionEnabled(bool bEnabled) { SetRootMotionEnabled_Native(m_GUID, bEnabled); }
+        public void SetRootMotionMode(RootMotionMode mode) { SetRootMotionMode_Native(m_GUID, mode); }
 
         // Duration in ticks
         public float GetDuration() { return GetDuration_Native(m_GUID); }
@@ -679,7 +686,7 @@ namespace Eagle
         public bool HasAnimationEvent(string name) { return HasAnimationEvent_Native(m_GUID, name); }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetRootMotionEnabled_Native(GUID id, bool value);
+        internal static extern void SetRootMotionMode_Native(GUID id, RootMotionMode mode);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetDuration_Native(GUID id);

@@ -8595,7 +8595,7 @@ namespace Eagle
 	}
 
 	//--------------AssetAnimation--------------
-	void Script::Eagle_AssetAnimation_SetRootMotionEnabled(GUID id, bool value)
+	void Script::Eagle_AssetAnimation_SetRootMotionMode(GUID id, RootMotionMode mode)
 	{
 		Ref<Asset> asset;
 		if (!AssetManager::Get(id, &asset))
@@ -8612,8 +8612,8 @@ namespace Eagle
 		}
 
 		const auto& skeletalInfo = animationAsset->GetSkeletal()->GetMesh()->GetSkeletalMeshInfo();
-		if (value)
-			animationAsset->GetAnimation()->ExtractRootMotion(skeletalInfo);
+		if (mode != RootMotionMode::Disabled)
+			animationAsset->GetAnimation()->ExtractRootMotion(skeletalInfo, mode);
 		else
 			animationAsset->GetAnimation()->RemoveRootMotion(skeletalInfo);
 	}

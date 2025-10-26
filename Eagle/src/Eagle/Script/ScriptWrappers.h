@@ -707,7 +707,7 @@ namespace Eagle::Script
 	bool Eagle_AssetSoundGroup_IsMuted(GUID assetID);
 
 	// AssetAnimation
-	void Eagle_AssetAnimation_SetRootMotionEnabled(GUID id, bool value);
+	void Eagle_AssetAnimation_SetRootMotionMode(GUID id, RootMotionMode mode);
 	float Eagle_AssetAnimation_GetDuration(GUID id);
 	float Eagle_AssetAnimation_GetTicksPerSecond(GUID id);
 	void Eagle_AssetAnimation_AddAnimationEvent(GUID id, MonoString* name, float time);

@@ -2106,7 +2106,7 @@ namespace Eagle
 
 		if (ImGui::BeginPopupModal("Unsaved assets", &m_ShowDirtyAssetMessage))
 		{
-			ImGui::Text("You have unsaved assets:");
+			ImGui::Text("You have unsaved assets. Select assets to save:");
 
 			ImGui::Separator();
 

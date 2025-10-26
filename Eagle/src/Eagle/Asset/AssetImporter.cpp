@@ -73,7 +73,7 @@ namespace Eagle
 			if (settings.MeshSettings.bImportAnimations && bSkeletal)
 			{
 				Ref<AssetSkeletalMesh> skeletal = Cast<AssetSkeletalMesh>(asset);
-				std::vector<SkeletalMeshAnimation> animations = Utils::ImportAnimations(pathToRaw, skeletal->GetMesh(), settings.AnimationSettings.bRootMotion);
+				std::vector<SkeletalMeshAnimation> animations = Utils::ImportAnimations(pathToRaw, skeletal->GetMesh(), settings.AnimationSettings.RootMotionType);
 
 				std::string filename = outputFilename.stem().u8string() + "_Anim";
 				uint32_t animIndex = 0;
@@ -383,7 +383,7 @@ namespace Eagle
 	bool AssetImporter::ImportAnimation(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportAnimationSettings& settings)
 	{
 		const auto& skeletal = settings.Skeletal;
-		std::vector<SkeletalMeshAnimation> animations = Utils::ImportAnimations(pathToRaw, skeletal->GetMesh(), settings.bRootMotion);
+		std::vector<SkeletalMeshAnimation> animations = Utils::ImportAnimations(pathToRaw, skeletal->GetMesh(), settings.RootMotionType);
 		if (animations.empty())
 		{
 			EG_CORE_ERROR("Failed to import an animation. No animations in file '{0}'", pathToRaw.u8string());

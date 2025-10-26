@@ -53,12 +53,12 @@ namespace Eagle
 
 		bChanged|= UI::Property("In Place", animation->bInPlace);
 
-		bool bExtractRootMotion = animation->HasRootMotion();
-		if (UI::Property("Extract Root Motion", bExtractRootMotion))
+		RootMotionMode rootMotionMode = animation->RootMotionType;
+		if (UI::ComboEnum("Root Motion Mode", rootMotionMode))
 		{
 			const auto& skeletalInfo = m_Asset->GetSkeletal()->GetMesh()->GetSkeletalMeshInfo();
-			if (bExtractRootMotion)
-				bChanged |= animation->ExtractRootMotion(skeletalInfo);
+			if (rootMotionMode != RootMotionMode::Disabled)
+				bChanged |= animation->ExtractRootMotion(skeletalInfo, rootMotionMode);
 			else
 				bChanged |= animation->RemoveRootMotion(skeletalInfo);
 		}

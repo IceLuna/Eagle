@@ -826,7 +826,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.AssetSoundGroup::IsMuted_Native", Eagle::Script::Eagle_AssetSoundGroup_IsMuted);
 
 		// AssetAnimation
-		mono_add_internal_call("Eagle.AssetAnimation::SetRootMotionEnabled_Native", Eagle::Script::Eagle_AssetAnimation_SetRootMotionEnabled);
+		mono_add_internal_call("Eagle.AssetAnimation::SetRootMotionMode_Native", Eagle::Script::Eagle_AssetAnimation_SetRootMotionMode);
 		mono_add_internal_call("Eagle.AssetAnimation::GetDuration_Native", Eagle::Script::Eagle_AssetAnimation_GetDuration);
 		mono_add_internal_call("Eagle.AssetAnimation::GetTicksPerSecond_Native", Eagle::Script::Eagle_AssetAnimation_GetTicksPerSecond);
 		mono_add_internal_call("Eagle.AssetAnimation::AddAnimationEvent_Native", Eagle::Script::Eagle_AssetAnimation_AddAnimationEvent);

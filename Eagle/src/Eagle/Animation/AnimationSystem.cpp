@@ -1103,7 +1103,7 @@ namespace Eagle
 
             const auto& bone = it->second;
             auto& tr = outPose->Bones[nodeName];
-            tr.Location = (animation->bInPlace && bRoot) ? glm::vec3(0) : Utils::InterpolatePositionRaw(bone, currentTime);
+            tr.Location = (animation->bInPlace && bRoot) ? bone.Locations[0].Location : Utils::InterpolatePositionRaw(bone, currentTime);
             tr.Rotation = Utils::InterpolateRotationRaw(bone, currentTime);
             tr.Scale3D = Utils::InterpolateScalingRaw(bone, currentTime);
         }

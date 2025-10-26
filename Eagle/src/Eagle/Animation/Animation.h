@@ -13,6 +13,11 @@ namespace Eagle
         Graph
     };
 
+    enum class RootMotionMode
+    {
+        Disabled, BasePose, AnimFirstFrame
+    };
+
     struct KeyPosition
     {
         glm::vec3 Location = glm::vec3(0.f);
@@ -59,14 +64,16 @@ namespace Eagle
         BonesAnimMap Bones;
         BoneAnimation RootMotion;
         std::vector<AnimationEvent> Events;
+        std::vector<glm::vec3> PreRootMotionLocations;
+        RootMotionMode RootMotionType = RootMotionMode::Disabled;
 
         float Duration = 0.f;
         float TicksPerSecond = 0.f;
         bool bInPlace = false;
 
-        bool HasRootMotion() const { return RootMotion.Locations.size() > 0; }
+        bool HasRootMotion() const { return RootMotionType != RootMotionMode::Disabled && RootMotion.Locations.size() > 0; }
 
-        bool ExtractRootMotion(const SkeletalMeshInfo& skeletalInfo);
+        bool ExtractRootMotion(const SkeletalMeshInfo& skeletalInfo, RootMotionMode mode);
         bool RemoveRootMotion(const SkeletalMeshInfo& skeletalInfo);
     };
 

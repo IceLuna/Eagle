@@ -388,17 +388,19 @@ namespace Eagle
 		}
 	}
 
-	static bool HasRootMotion(const YAML::Node& node)
+	static RootMotionMode GetRootMotionMode(const YAML::Node& node)
 	{
 		const auto baseNode = node["Animation"];
 		if (!baseNode)
-			return false;
+			return RootMotionMode::Disabled;
 
-		// Root Motion
-		if (auto rootMotionNode = baseNode["RootMotion"])
-			return true;
+		RootMotionMode mode = RootMotionMode::Disabled;
+		if (auto rootMotionModeNode = baseNode["RootMotionMode"])
+		{
+			mode = Utils::GetEnumFromName<RootMotionMode>(rootMotionModeNode.as<std::string>());
+		}
 
-		return false;
+		return mode;
 	}
 
 	static void SerializeRagdollBonesData(YAML::Emitter& out, const SkeletalRagdollBone& node)
@@ -1194,11 +1196,13 @@ namespace Eagle
 
 			if (bHasRootMotion)
 			{
+				out << YAML::Key << "RootMotionMode" << YAML::Value << Utils::GetEnumName(anim.RootMotionType);
 				out << YAML::Key << "RootMotion";
 				{
 					const size_t rmLocationOffset = Utils::AddSize(anim.RootMotion.Locations, &totalSize);
 					const size_t rmRotationOffset = Utils::AddSize(anim.RootMotion.Rotations, &totalSize);
 					const size_t rmScaleOffset = Utils::AddSize(anim.RootMotion.Scales, &totalSize);
+					const size_t preRMLocationsOffset = Utils::AddSize(anim.PreRootMotionLocations, &totalSize);
 
 					out << YAML::Value;
 					out << YAML::BeginMap;
@@ -1211,6 +1215,9 @@ namespace Eagle
 
 					out << YAML::Key << "ScalesSize" << YAML::Value << anim.RootMotion.Scales.size() * sizeof(KeyScale);
 					out << YAML::Key << "ScalesOffset" << YAML::Value << rmScaleOffset;
+
+					out << YAML::Key << "PreRMLocationsSize" << YAML::Value << anim.PreRootMotionLocations.size() * sizeof(glm::vec3);
+					out << YAML::Key << "PreRMLocationsOffset" << YAML::Value << preRMLocationsOffset;
 
 					out << YAML::EndMap;
 				}
@@ -1294,6 +1301,7 @@ namespace Eagle
 			Utils::WriteToBuffer(buffer, anim.RootMotion.Locations, &offset);
 			Utils::WriteToBuffer(buffer, anim.RootMotion.Rotations, &offset);
 			Utils::WriteToBuffer(buffer, anim.RootMotion.Scales, &offset);
+			Utils::WriteToBuffer(buffer, anim.PreRootMotionLocations, &offset);
 		}
 		Utils::WriteToBuffer(buffer, bonesBinary, &offset);
 
@@ -4100,8 +4108,7 @@ namespace Eagle
 		const GUID guid = baseNode["GUID"].as<GUID>();
 		if (bReloadRaw)
 		{
-			const bool bImportRootMotion = HasRootMotion(baseNode);
-			std::vector<SkeletalMeshAnimation> animations = Utils::ImportAnimations(pathToRaw, skeletal->GetMesh(), bImportRootMotion);
+			std::vector<SkeletalMeshAnimation> animations = Utils::ImportAnimations(pathToRaw, skeletal->GetMesh(), GetRootMotionMode(baseNode));
 			if (animations.size() < animIndex)
 			{
 				const std::string errorMessage = "Failed to reload an animation asset. The asset was initially imported at index " + 
@@ -4132,6 +4139,11 @@ namespace Eagle
 			// Root Motion
 			if (auto rootMotionNode = baseAnimNode["RootMotion"])
 			{
+				if (auto rootMotionModeNode = baseAnimNode["RootMotionMode"])
+				{
+					animation.RootMotionType = Utils::GetEnumFromName<RootMotionMode>(rootMotionModeNode.as<std::string>());
+				}
+
 				// Locations
 				{
 					const size_t size = rootMotionNode["LocationsSize"].as<size_t>();
@@ -4151,6 +4163,13 @@ namespace Eagle
 					const size_t size = rootMotionNode["ScalesSize"].as<size_t>();
 					const size_t offset = rootMotionNode["ScalesOffset"].as<size_t>();
 					Utils::ReadBinary(data, size, offset, &animation.RootMotion.Scales);
+				}
+
+				// Pre RM locations
+				{
+					const size_t size = rootMotionNode["PreRMLocationsSize"].as<size_t>();
+					const size_t offset = rootMotionNode["PreRMLocationsOffset"].as<size_t>();
+					Utils::ReadBinary(data, size, offset, &animation.PreRootMotionLocations);
 				}
 			}
 

@@ -348,7 +348,7 @@ namespace Eagle
 		}
 	}
 
-	static std::vector<SkeletalMeshAnimation> ProcessAnimations(const aiScene* scene, const SkeletalMeshInfo& skeletalInfo, bool bRootMotion)
+	static std::vector<SkeletalMeshAnimation> ProcessAnimations(const aiScene* scene, const SkeletalMeshInfo& skeletalInfo, const RootMotionMode& rootMotionMode)
 	{
 		const auto& meshBoneInfoMap = skeletalInfo.BoneInfoMap;
 		const uint32_t animationsCount = scene->mNumAnimations;
@@ -467,8 +467,8 @@ namespace Eagle
 				}
 			}
 
-			if (bRootMotion)
-				animation.ExtractRootMotion(skeletalInfo);
+			if (rootMotionMode != RootMotionMode::Disabled)
+				animation.ExtractRootMotion(skeletalInfo, rootMotionMode);
 		}
 
 		return animations;
@@ -661,7 +661,7 @@ namespace Eagle
 			return {};
 	}
 
-	std::vector<SkeletalMeshAnimation> Utils::ImportAnimations(const Path& path, const Ref<SkeletalMesh>& skeletal, bool bRootMotion)
+	std::vector<SkeletalMeshAnimation> Utils::ImportAnimations(const Path& path, const Ref<SkeletalMesh>& skeletal, const RootMotionMode& rootMotionMode)
 	{
 		Assimp::Importer importer;
 		importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1.0f);
@@ -680,7 +680,7 @@ namespace Eagle
 			return {};
 		}
 
-		return ProcessAnimations(scene, skeletal->GetSkeletalMeshInfo(), bRootMotion);
+		return ProcessAnimations(scene, skeletal->GetSkeletalMeshInfo(), rootMotionMode);
 	}
 
 	static Ref<AssetTexture2D> CreateAssetFromTexture(const Ref<Texture2D>& texture, const Path& saveTo)

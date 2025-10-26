@@ -780,8 +780,10 @@ namespace Eagle
 		}
 		m_bCastsShadows = other.m_bCastsShadows;
 		m_bReceivesDecals = other.m_bReceivesDecals;
-		CurrentClipPlayTime = other.CurrentClipPlayTime;
-		PrevClipPlayTime = other.PrevClipPlayTime;
+		// Reset to 0. Otherwise if a root motion animation is playing in the editor and we press play,
+		// the simulation will start from the wrong location
+		CurrentClipPlayTime = 0.f;
+		PrevClipPlayTime = 0.f;
 		ClipPlaybackSpeed = other.ClipPlaybackSpeed;
 		PrevClipPlaybackSpeed = other.PrevClipPlaybackSpeed;
 		bClipLooping = other.bClipLooping;

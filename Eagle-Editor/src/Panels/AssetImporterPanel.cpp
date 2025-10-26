@@ -9,6 +9,10 @@
 
 namespace Eagle
 {
+	static constexpr char* s_RootMotionHelpMsg = "Animation root motion will be used to drive the transformation of an entity\n"
+		"Base Pose: use base pose root bone transform\n"
+		"AnimFirstFrame: use root bone transform of the first animation frame";
+
 	static ImVec2 s_DefaultWindowSize = ImVec2(720.f, 256.f);
 
 	TextureImporterPanel::TextureImporterPanel(const Path& path)
@@ -170,7 +174,7 @@ namespace Eagle
 			if (!settings.bImportAnimations)
 				UI::PushItemDisabled();
 
-			UI::Property("Extract Root Motion", m_Settings.AnimationSettings.bRootMotion, "Animation root motion will be used to drive the transformation of an entity");
+			UI::ComboEnum("Root Motion Mode", m_Settings.AnimationSettings.RootMotionType, s_RootMotionHelpMsg);
 
 			if (!settings.bImportAnimations)
 				UI::PopItemDisabled();
