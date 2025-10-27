@@ -93,6 +93,12 @@ namespace Eagle
 			memset(Data, 0, Size);
 		}
 
+		void WriteZero(size_t size, size_t offset = 0)
+		{
+			EG_CORE_ASSERT(size + offset <= Size, "Overflow");
+			memset((uint8_t*)Data + offset, 0, size);
+		}
+
 		operator bool() const
 		{
 			return Data;
@@ -172,6 +178,7 @@ namespace Eagle
 
 		void Write(const void* data, size_t size, size_t offset = 0) { m_Buffer.Write(data, size, offset); }
 		void SetToZero() { m_Buffer.SetToZero(); }
+		void WriteZero(size_t size, size_t offset = 0) { m_Buffer.WriteZero(size, offset); }
 
 		void Release() { m_Buffer.Release(); }
 

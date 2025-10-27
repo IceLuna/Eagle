@@ -95,6 +95,9 @@ namespace Eagle
 		static void UpdateAIBehaviorNodePublicFields(AIBehaviorNode& node);
 		static void UpdateAIClassPublicFields(AIBehaviorClassData& classData);
 
+		static size_t GetMonoArrayLength(MonoObject* instance, MonoClassField* field);
+		static size_t GetMonoArrayLength(MonoObject* instance, MonoProperty* property);
+
 	private:
 		static bool LoadCoreAssembly(const Path& assemblyPath);
 		static MonoAssembly* LoadAssembly(const Path& assemblyPath);

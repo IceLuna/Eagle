@@ -121,10 +121,13 @@ namespace Eagle
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
 			auto clone = AnimationGraphNode::CloneNode<AnimationGraphNodeClip>(newGraph);
-			clone->CurrentTime = CurrentTime;
 			clone->m_LastAnim = m_LastAnim;
-			clone->m_PrevTime = m_PrevTime;
 			clone->m_PrevSpeed = m_PrevSpeed;
+
+			// Reset to 0. Otherwise if a root motion animation is playing in the editor and we press play,
+			// the simulation will start from the wrong location
+			clone->CurrentTime = 0.f;
+			clone->m_PrevTime = 0.f;
 
 			return clone;
 		}

@@ -101,6 +101,11 @@ namespace Eagle
 		}
 	}
 
+	static bool IsArray(MonoType* type)
+	{
+		return mono_type_get_type(type) == MONO_TYPE_SZARRAY;
+	}
+
 	static FieldType MonoTypeToFieldType(MonoType* monoType)
 	{
 		int type = mono_type_get_type(monoType);
@@ -140,6 +145,32 @@ namespace Eagle
 			}
 		}
 		return FieldType::None;
+	}
+
+	static FieldType MonoTypeToFieldType(MonoType* type, bool* outIsArray, const char** outTypeName)
+	{
+		*outIsArray = IsArray(type);
+
+		FieldType fieldType = FieldType::None;
+		if (*outIsArray)
+		{
+			if (MonoClass* fieldClass = mono_class_from_mono_type(type))
+			{
+				if (MonoClass* elementClass = mono_class_get_element_class(fieldClass))
+				{
+					MonoType* elementType = mono_class_get_type(elementClass);
+					fieldType = MonoTypeToFieldType(elementType);
+					*outTypeName = mono_type_get_name(elementType);
+				}
+			}
+		}
+		else
+		{
+			fieldType = MonoTypeToFieldType(type);
+			*outTypeName = mono_type_get_name(type);
+		}
+
+		return fieldType;
 	}
 
 	static void GetAttributes(MonoCustomAttrInfo* attrs, std::string* outName, std::string* outTooltip)
@@ -261,84 +292,93 @@ namespace Eagle
 			// Iterate over parent scripts classes
 			ParsePublicFields(mono_class_get_parent(klass), instance, publicFields);
 
-			MonoClassField* fieldIter = nullptr;
-			void* fieldPtr = nullptr;
-
 			// Parse fields
-			while ((fieldIter = mono_class_get_fields(klass, &fieldPtr)) != nullptr)
 			{
-				uint32_t fieldFlags = mono_field_get_flags(fieldIter);
-				if ((fieldFlags & MONO_FIELD_ATTR_PUBLIC) != MONO_FIELD_ATTR_PUBLIC)
-					continue;
+				MonoClassField* fieldIter = nullptr;
+				void* fieldPtr = nullptr;
 
-				MonoType* monoFieldType = mono_field_get_type(fieldIter);
-				FieldType fieldType = MonoTypeToFieldType(monoFieldType);
-				if (fieldType == FieldType::None) // Not supported
-					continue;
-
-				std::string fullName = mono_field_get_name(fieldIter);
-				std::string uiName = fullName;
-				std::string tooltip;
-				// Get custom attributes for the field
-				if (MonoCustomAttrInfo* attrs = mono_custom_attrs_from_field(klass, fieldIter))
+				// Parse fields
+				while ((fieldIter = mono_class_get_fields(klass, &fieldPtr)) != nullptr)
 				{
-					GetAttributes(attrs, &uiName, &tooltip);
-					mono_custom_attrs_free(attrs);
+					uint32_t fieldFlags = mono_field_get_flags(fieldIter);
+					if ((fieldFlags & MONO_FIELD_ATTR_PUBLIC) != MONO_FIELD_ATTR_PUBLIC)
+						continue;
+
+					bool bArray = false;
+					const char* typeName = nullptr;
+					MonoType* monoFieldType = mono_field_get_type(fieldIter);
+					FieldType fieldType = MonoTypeToFieldType(monoFieldType, &bArray, &typeName);
+					if (fieldType == FieldType::None) // Not supported
+						continue;
+
+					std::string fullName = mono_field_get_name(fieldIter);
+					std::string uiName = fullName;
+					std::string tooltip;
+					// Get custom attributes for the field
+					if (MonoCustomAttrInfo* attrs = mono_custom_attrs_from_field(klass, fieldIter))
+					{
+						GetAttributes(attrs, &uiName, &tooltip);
+						mono_custom_attrs_free(attrs);
+					}
+
+					const size_t arrayLength = bArray ? ScriptEngine::GetMonoArrayLength(instance, fieldIter) : 1;
+					PublicField& publicField = publicFields.emplace_back(std::move(fullName), std::move(uiName), typeName, std::move(tooltip), fieldType, bArray, arrayLength);
+					publicField.m_MonoClassField = fieldIter;
+					publicField.EnumFields = fieldType == FieldType::Enum ? GetEnumFields(monoFieldType) : ScriptEnumFields{};
+					publicField.CopyStoredValueFromRuntime(instance);
+
+					//EG_CORE_INFO("[ScriptEngine] Script '{0}' - Field type '{1}', Field Name '{2}', Flags: {3}", scriptClass.FullName, typeName, fieldName, fieldFlags);
 				}
-
-				const char* typeName = mono_type_get_name(monoFieldType);
-				PublicField& publicField = publicFields.emplace_back(std::move(fullName), std::move(uiName), typeName, std::move(tooltip), fieldType);
-				publicField.m_MonoClassField = fieldIter;
-				publicField.EnumFields = fieldType == FieldType::Enum ? GetEnumFields(monoFieldType) : ScriptEnumFields{};
-				publicField.CopyStoredValueFromRuntime(instance);
-
-				//EG_CORE_INFO("[ScriptEngine] Script '{0}' - Field type '{1}', Field Name '{2}', Flags: {3}", scriptClass.FullName, typeName, fieldName, fieldFlags);
 			}
 
 			// Parse properties
-			MonoProperty* propertyIter = nullptr;
-			void* propertyPtr = nullptr;
-
-			while ((propertyIter = mono_class_get_properties(klass, &propertyPtr)) != nullptr)
 			{
-				MonoMethod* setter = mono_property_get_set_method(propertyIter);
-				MonoMethod* getter = mono_property_get_get_method(propertyIter);
-				if (!setter || !getter)
-					continue;
+				MonoProperty* propertyIter = nullptr;
+				void* propertyPtr = nullptr;
 
-				if (!IsPublicMethod(setter))
-					continue;
-
-				std::string fullName = mono_property_get_name(propertyIter);
-				MonoType* propertyType = nullptr;
-				if (MonoMethodSignature* signature = mono_method_signature(getter))
+				while ((propertyIter = mono_class_get_properties(klass, &propertyPtr)) != nullptr)
 				{
-					propertyType = mono_signature_get_return_type(signature);
-				}
-				if (!propertyType)
-				{
-					EG_CORE_ERROR("Failed to get the propety type of a C# property: {}", fullName);
-					continue;
-				}
+					MonoMethod* setter = mono_property_get_set_method(propertyIter);
+					MonoMethod* getter = mono_property_get_get_method(propertyIter);
+					if (!setter || !getter)
+						continue;
 
-				FieldType fieldType = MonoTypeToFieldType(propertyType);
-				if (fieldType == FieldType::None) // Not supported
-					continue;
+					if (!IsPublicMethod(setter))
+						continue;
 
-				std::string uiName = fullName;
-				std::string tooltip;
-				// Get custom attributes for the property
-				if (MonoCustomAttrInfo* attrs = mono_custom_attrs_from_property(klass, propertyIter))
-				{
-					GetAttributes(attrs, &uiName, &tooltip);
-					mono_custom_attrs_free(attrs);
+					std::string fullName = mono_property_get_name(propertyIter);
+					MonoType* propertyType = nullptr;
+					if (MonoMethodSignature* signature = mono_method_signature(getter))
+					{
+						propertyType = mono_signature_get_return_type(signature);
+					}
+					if (!propertyType)
+					{
+						EG_CORE_ERROR("Failed to get the propety type of a C# property: {}", fullName);
+						continue;
+					}
+
+					bool bArray = false;
+					const char* typeName = nullptr;
+					FieldType fieldType = MonoTypeToFieldType(propertyType, &bArray, &typeName);
+					if (fieldType == FieldType::None) // Not supported
+						continue;
+
+					std::string uiName = fullName;
+					std::string tooltip;
+					// Get custom attributes for the property
+					if (MonoCustomAttrInfo* attrs = mono_custom_attrs_from_property(klass, propertyIter))
+					{
+						GetAttributes(attrs, &uiName, &tooltip);
+						mono_custom_attrs_free(attrs);
+					}
+
+					const size_t arrayLength = bArray ? GetMonoArrayLength(instance, propertyIter) : 1;
+					PublicField& publicField = publicFields.emplace_back(std::move(fullName), std::move(uiName), typeName, std::move(tooltip), fieldType, bArray, arrayLength);
+					publicField.m_MonoProperty = propertyIter;
+					publicField.EnumFields = fieldType == FieldType::Enum ? GetEnumFields(propertyType) : ScriptEnumFields{};
+					publicField.CopyStoredValueFromRuntime(instance);
 				}
-
-				const char* typeName = mono_type_get_name(propertyType);
-				PublicField& publicField = publicFields.emplace_back(std::move(fullName), std::move(uiName), typeName, std::move(tooltip), fieldType);
-				publicField.m_MonoProperty = propertyIter;
-				publicField.EnumFields = fieldType == FieldType::Enum ? GetEnumFields(propertyType) : ScriptEnumFields{};
-				publicField.CopyStoredValueFromRuntime(instance);
 			}
 		}
 	}
@@ -1146,6 +1186,27 @@ namespace Eagle
 				break;
 			}
 		}
+	}
+
+	size_t ScriptEngine::GetMonoArrayLength(MonoObject* instance, MonoClassField* field)
+	{
+		size_t length = 0;
+		MonoArray* array = nullptr;
+		mono_field_get_value(instance, field, &array);
+		if (array)
+			length = mono_array_length(array);
+
+		return length;
+	}
+
+	size_t ScriptEngine::GetMonoArrayLength(MonoObject* instance, MonoProperty* property)
+	{
+		size_t length = 0;
+		MonoArray* array = (MonoArray*)mono_property_get_value(property, instance, nullptr, nullptr);
+		if (array)
+			length = mono_array_length(array);
+
+		return length;
 	}
 
 	void ScriptEngine::UpdateAIBehaviorNodePublicFields(AIBehaviorNode& node)

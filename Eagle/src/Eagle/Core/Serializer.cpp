@@ -4577,7 +4577,18 @@ namespace Eagle
 	template<typename T>
 	void SerializeField(YAML::Emitter& out, const PublicField& field)
 	{
-		out << YAML::Value << YAML::BeginSeq << Utils::GetEnumName(field.Type) << field.GetStoredValue<T>() << YAML::EndSeq;
+		out << YAML::Value << YAML::BeginMap;
+		
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(field.Type);
+		out << YAML::Key << "ArrayLength" << YAML::Value << field.ArrayLength;
+		out << YAML::Key << "Values" << YAML::Value << YAML::BeginSeq;
+		for (size_t i = 0; i < field.ArrayLength; ++i)
+		{
+			out << field.GetStoredValue<T>(i);
+		}
+		out << YAML::EndSeq;
+
+		out << YAML::EndMap;
 	}
 
 	void Serializer::SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field)
@@ -4638,10 +4649,13 @@ namespace Eagle
 	}
 
 	template<typename T>
-	void SetStoredValue(YAML::Node& node, PublicField& field)
+	static void SetStoredValue(YAML::Node& node, PublicField& field, size_t idx)
 	{
-		T value = node.as<T>();
-		field.SetStoredValue<T>(value);
+		if (idx < field.ArrayLength)
+		{
+			T value = node.as<T>();
+			field.SetStoredValue<T>(value, idx);
+		}
 	}
 
 	void Serializer::DeserializePublicFieldValues(YAML::Node& publicFieldsNode, std::vector<PublicField>& publicFields)
@@ -4649,7 +4663,7 @@ namespace Eagle
 		for (auto& it : publicFieldsNode)
 		{
 			std::string fullName = it.first.as<std::string>();
-			FieldType fieldType = Utils::GetEnumFromName<FieldType>(it.second[0].as<std::string>());
+			FieldType fieldType = Utils::GetEnumFromName<FieldType>(it.second["Type"].as<std::string>());
 
 			auto fieldIt = std::find_if(publicFields.begin(), publicFields.end(), [&fullName](const PublicField& field)
 			{
@@ -4658,59 +4672,66 @@ namespace Eagle
 
 			if ((fieldIt != publicFields.end()) && (fieldType == fieldIt->Type))
 			{
+				// Can differ from the actual `ArrayLength` if scripts were changed
+				const size_t savedArrayLength = it.second["ArrayLength"].as<size_t>();
+
 				PublicField& field = *fieldIt;
-				auto& node = it.second[1];
-				switch (fieldType)
+				auto valuesNode = it.second["Values"];
+				for (size_t i = 0; i < savedArrayLength; ++i)
 				{
-					case FieldType::Int:
-						SetStoredValue<int>(node, field);
-						break;
-					case FieldType::UnsignedInt:
-						SetStoredValue<unsigned int>(node, field);
-						break;
-					case FieldType::Float:
-						SetStoredValue<float>(node, field);
-						break;
-					case FieldType::String:
-						SetStoredValue<std::string>(node, field);
-						break;
-					case FieldType::Vec2:
-						SetStoredValue<glm::vec2>(node, field);
-						break;
-					case FieldType::Vec3:
-					case FieldType::Color3:
-						SetStoredValue<glm::vec3>(node, field);
-						break;
-					case FieldType::Vec4:
-					case FieldType::Color4:
-						SetStoredValue<glm::vec4>(node, field);
-						break;
-					case FieldType::Bool:
-						SetStoredValue<bool>(node, field);
-						break;
-					case FieldType::Enum:
-						SetStoredValue<int>(node, field);
-						break;
-					case FieldType::Entity:
-					case FieldType::Asset:
-					case FieldType::AssetTexture2D:
-					case FieldType::AssetTextureCube:
-					case FieldType::AssetStaticMesh:
-					case FieldType::AssetSkeletalMesh:
-					case FieldType::AssetAudio:
-					case FieldType::AssetSoundGroup:
-					case FieldType::AssetFont:
-					case FieldType::AssetMaterial:
-					case FieldType::AssetPhysicsMaterial:
-					case FieldType::AssetEntity:
-					case FieldType::AssetScene:
-					case FieldType::AssetAnimation:
-					case FieldType::AssetAnimationGraph:
-					case FieldType::AssetParticleSystem:
-					case FieldType::AssetAnimationBlendSpace:
-					case FieldType::AssetBehaviorGraph:
-						SetStoredValue<GUID>(node, field);
-						break;
+					auto& node = valuesNode[i];
+					switch (fieldType)
+					{
+						case FieldType::Int:
+							SetStoredValue<int>(node, field, i);
+							break;
+						case FieldType::UnsignedInt:
+							SetStoredValue<unsigned int>(node, field, i);
+							break;
+						case FieldType::Float:
+							SetStoredValue<float>(node, field, i);
+							break;
+						case FieldType::String:
+							SetStoredValue<std::string>(node, field, i);
+							break;
+						case FieldType::Vec2:
+							SetStoredValue<glm::vec2>(node, field, i);
+							break;
+						case FieldType::Vec3:
+						case FieldType::Color3:
+							SetStoredValue<glm::vec3>(node, field, i);
+							break;
+						case FieldType::Vec4:
+						case FieldType::Color4:
+							SetStoredValue<glm::vec4>(node, field, i);
+							break;
+						case FieldType::Bool:
+							SetStoredValue<bool>(node, field, i);
+							break;
+						case FieldType::Enum:
+							SetStoredValue<int>(node, field, i);
+							break;
+						case FieldType::Entity:
+						case FieldType::Asset:
+						case FieldType::AssetTexture2D:
+						case FieldType::AssetTextureCube:
+						case FieldType::AssetStaticMesh:
+						case FieldType::AssetSkeletalMesh:
+						case FieldType::AssetAudio:
+						case FieldType::AssetSoundGroup:
+						case FieldType::AssetFont:
+						case FieldType::AssetMaterial:
+						case FieldType::AssetPhysicsMaterial:
+						case FieldType::AssetEntity:
+						case FieldType::AssetScene:
+						case FieldType::AssetAnimation:
+						case FieldType::AssetAnimationGraph:
+						case FieldType::AssetParticleSystem:
+						case FieldType::AssetAnimationBlendSpace:
+						case FieldType::AssetBehaviorGraph:
+							SetStoredValue<GUID>(node, field, i);
+							break;
+					}
 				}
 			}
 		}

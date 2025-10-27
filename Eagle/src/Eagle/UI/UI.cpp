@@ -28,6 +28,198 @@ namespace Eagle::UI
 	static const VkImageLayout s_VulkanImageLayout = ImageLayoutToVulkan(ImageReadAccess::PixelShaderRead);
 	static constexpr char* s_HelpMarker = "(?)";
 
+	bool HandlePublicField(std::string_view label, PublicField& field, MonoObject* instance, size_t i, bool bRuntime, Entity entity)
+	{
+		bool bChanged = false;
+		switch (field.Type)
+		{
+			case FieldType::Int:
+			case FieldType::UnsignedInt:
+			{
+				int value = bRuntime ? field.GetRuntimeValue<int>(instance, i) : field.GetStoredValue<int>(i);
+				if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
+				{
+					bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);
+					bChanged = true;
+				}
+				break;
+			}
+			case FieldType::Float:
+			{
+				float value = bRuntime ? field.GetRuntimeValue<float>(instance, i) : field.GetStoredValue<float>(i);
+				if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
+				{
+					bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);
+					bChanged = true;
+				}
+				break;
+			}
+			case FieldType::String:
+			{
+				std::string value = bRuntime ? field.GetRuntimeValue<std::string>(instance, i) : field.GetStoredValue<std::string>(i);
+				if (UI::PropertyText(label.data(), value, field.Tooltip))
+				{
+					bRuntime ? field.SetRuntimeValue<std::string>(instance, value, i) : field.SetStoredValue(value, i);
+					bChanged = true;
+				}
+				break;
+			}
+			case FieldType::Vec2:
+			{
+				glm::vec2 value = bRuntime ? field.GetRuntimeValue<glm::vec2>(instance, i) : field.GetStoredValue<glm::vec2>(i);
+				if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
+				{
+					bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);
+					bChanged = true;
+				}
+				break;
+			}
+			case FieldType::Vec3:
+			{
+				glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(instance, i) : field.GetStoredValue<glm::vec3>(i);
+				if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
+				{
+					bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);
+					bChanged = true;
+				}
+				break;
+			}
+			case FieldType::Vec4:
+			{
+				glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(instance, i) : field.GetStoredValue<glm::vec4>(i);
+				if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
+				{
+					bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);
+					bChanged = true;
+				}
+				break;
+			}
+			case FieldType::Bool:
+			{
+				bool value = bRuntime ? field.GetRuntimeValue<bool>(instance, i) : field.GetStoredValue<bool>(i);
+				if (UI::Property(label.data(), value, field.Tooltip))
+				{
+					bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);
+					bChanged = true;
+				}
+				break;
+			}
+			case FieldType::Color3:
+			{
+				glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(instance, i) : field.GetStoredValue<glm::vec3>(i);
+				if (UI::PropertyColor(label.data(), value, true, field.Tooltip))
+				{
+					bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);
+					bChanged = true;
+				}
+				break;
+			}
+			case FieldType::Color4:
+			{
+				glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(instance, i) : field.GetStoredValue<glm::vec4>(i);
+				if (UI::PropertyColor(label.data(), value, true, field.Tooltip))
+				{
+					bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);
+					bChanged = true;
+				}
+				break;
+			}
+			case FieldType::Enum:
+			{
+				int value = bRuntime ? field.GetRuntimeValue<int>(instance, i) : field.GetStoredValue<int>(i);
+				if (UI::Combo(label.data(), value, field.EnumFields, value, field.Tooltip))
+				{
+					bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);
+					bChanged = true;
+				}
+				break;
+			}
+			case FieldType::Entity:
+			{
+				if (entity)
+				{
+					const auto& scene = entity.GetScene();
+					GUID value = bRuntime ? field.GetRuntimeValue<GUID>(instance, i) : field.GetStoredValue<GUID>(i);
+					Entity userEntity = scene->GetEntityByGUID(value);
+					const bool bValid = userEntity.IsValid();
+					int currentSelection = -1;
+					int i = 0;
+
+					const auto entities = scene->GetAllEntitiesWith<IDComponent, EntitySceneNameComponent>();
+					std::vector<std::string> names;
+					std::vector<GUID> ids;
+					names.reserve(entities.size_hint());
+					ids.reserve(entities.size_hint());
+
+					for (auto& [sceneEntity, idComp, nameComp] : entities.each())
+					{
+						if (sceneEntity == entity.GetEnttID())
+							continue; // Don't show itself
+
+						const auto& ID = idComp.ID;
+						const auto& name = nameComp.Name;
+						ids.emplace_back(ID);
+						names.emplace_back(name);
+
+						if (bValid && (ID == value))
+						{
+							currentSelection = i;
+						}
+						i++;
+					}
+
+					const bool bComboChanged = UI::ComboWithNone(label.data(), currentSelection, names, currentSelection, {}, field.Tooltip);
+					const bool bInvalidEntity = currentSelection == -1 && value != GUID(0, 0); // Can happen if an entity was removed from the scene
+					if (bComboChanged || bInvalidEntity)
+					{
+						value = currentSelection == -1 ? GUID(0, 0) : ids[currentSelection];
+						bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);
+						bChanged = true;
+					}
+				}
+				break;
+			}
+
+#define AssetField_Case(type) \
+				case FieldType::type:\
+				{\
+					GUID value = bRuntime ? field.GetRuntimeValue<GUID>(instance, i) : field.GetStoredValue<GUID>(i);\
+					Ref<Asset> asset;\
+					Ref<type> castedAsset;\
+					if (AssetManager::Get(value, &asset))\
+						castedAsset = Cast<type>(asset);\
+					if (UI::DrawAssetSelection(label.data(), castedAsset, field.Tooltip, -1.f, GetAssetPreview(castedAsset)))\
+					{\
+						value = castedAsset ? castedAsset->GetGUID() : GUID(0, 0);\
+						bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);\
+						bChanged = true;\
+					}\
+					break;\
+				}
+
+			AssetField_Case(Asset);
+			AssetField_Case(AssetTexture2D);
+			AssetField_Case(AssetTextureCube);
+			AssetField_Case(AssetStaticMesh);
+			AssetField_Case(AssetSkeletalMesh);
+			AssetField_Case(AssetAudio);
+			AssetField_Case(AssetSoundGroup);
+			AssetField_Case(AssetFont);
+			AssetField_Case(AssetMaterial);
+			AssetField_Case(AssetPhysicsMaterial);
+			AssetField_Case(AssetEntity);
+			AssetField_Case(AssetScene);
+			AssetField_Case(AssetAnimation);
+			AssetField_Case(AssetAnimationGraph);
+			AssetField_Case(AssetParticleSystem);
+			AssetField_Case(AssetAnimationBlendSpace);
+			AssetField_Case(AssetBehaviorGraph);
+#undef AssetField_Case
+		}
+
+		return bChanged;
+	}
+
 	int TextResizeCallback(ImGuiInputTextCallbackData* data)
 	{
 		if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
@@ -579,193 +771,50 @@ namespace Eagle::UI
 		bool bChanged = false;
 		ImGui::PushID(field.FullName.c_str());
 
-		switch (field.Type)
+		if (field.bArray)
 		{
-			case FieldType::Int:
-			case FieldType::UnsignedInt:
-			{
-				int value = bRuntime ? field.GetRuntimeValue<int>(instance) : field.GetStoredValue<int>();
-				if (UI::PropertyDrag(field.UIName.c_str(), value, 1, 0, 0, field.Tooltip))
-				{
-					bRuntime ? field.SetRuntimeValue(instance, value) : field.SetStoredValue(value);
-					bChanged = true;
-				}
-				break;
-			}
-			case FieldType::Float:
-			{
-				float value = bRuntime ? field.GetRuntimeValue<float>(instance) : field.GetStoredValue<float>();
-				if (UI::PropertyDrag(field.UIName.c_str(), value, 1, 0, 0, field.Tooltip))
-				{
-					bRuntime ? field.SetRuntimeValue(instance, value) : field.SetStoredValue(value);
-					bChanged = true;
-				}
-				break;
-			}
-			case FieldType::String:
-			{
-				std::string value = bRuntime ? field.GetRuntimeValue<std::string>(instance) : field.GetStoredValue<const std::string&>();
-				if (UI::PropertyText(field.UIName.c_str(), value, field.Tooltip))
-				{
-					bRuntime ? field.SetRuntimeValue<std::string>(instance, value) : field.SetStoredValue<std::string>(value);
-					bChanged = true;
-				}
-				break;
-			}
-			case FieldType::Vec2:
-			{
-				glm::vec2 value = bRuntime ? field.GetRuntimeValue<glm::vec2>(instance) : field.GetStoredValue<glm::vec2>();
-				if (UI::PropertyDrag(field.UIName.c_str(), value, 1, 0, 0, field.Tooltip))
-				{
-					bRuntime ? field.SetRuntimeValue(instance, value) : field.SetStoredValue(value);
-					bChanged = true;
-				}
-				break;
-			}
-			case FieldType::Vec3:
-			{
-				glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(instance) : field.GetStoredValue<glm::vec3>();
-				if (UI::PropertyDrag(field.UIName.c_str(), value, 1, 0, 0, field.Tooltip))
-				{
-					bRuntime ? field.SetRuntimeValue(instance, value) : field.SetStoredValue(value);
-					bChanged = true;
-				}
-				break;
-			}
-			case FieldType::Vec4:
-			{
-				glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(instance) : field.GetStoredValue<glm::vec4>();
-				if (UI::PropertyDrag(field.UIName.c_str(), value, 1, 0, 0, field.Tooltip))
-				{
-					bRuntime ? field.SetRuntimeValue(instance, value) : field.SetStoredValue(value);
-					bChanged = true;
-				}
-				break;
-			}
-			case FieldType::Bool:
-			{
-				bool value = bRuntime ? field.GetRuntimeValue<bool>(instance) : field.GetStoredValue<bool>();
-				if (UI::Property(field.UIName.c_str(), value, field.Tooltip))
-				{
-					bRuntime ? field.SetRuntimeValue(instance, value) : field.SetStoredValue(value);
-					bChanged = true;
-				}
-				break;
-			}
-			case FieldType::Color3:
-			{
-				glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(instance) : field.GetStoredValue<glm::vec3>();
-				if (UI::PropertyColor(field.UIName.c_str(), value, true, field.Tooltip))
-				{
-					bRuntime ? field.SetRuntimeValue(instance, value) : field.SetStoredValue(value);
-					bChanged = true;
-				}
-				break;
-			}
-			case FieldType::Color4:
-			{
-				glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(instance) : field.GetStoredValue<glm::vec4>();
-				if (UI::PropertyColor(field.UIName.c_str(), value, true, field.Tooltip))
-				{
-					bRuntime ? field.SetRuntimeValue(instance, value) : field.SetStoredValue(value);
-					bChanged = true;
-				}
-				break;
-			}
-			case FieldType::Enum:
-			{
-				int value = bRuntime ? field.GetRuntimeValue<int>(instance) : field.GetStoredValue<int>();
-				if (UI::Combo(field.UIName, value, field.EnumFields, value, field.Tooltip))
-				{
-					bRuntime ? field.SetRuntimeValue(instance, value) : field.SetStoredValue(value);
-					bChanged = true;
-				}
-				break;
-			}
-			case FieldType::Entity:
-			{
-				if (entity)
-				{
-					const auto& scene = entity.GetScene();
-					GUID value = bRuntime ? field.GetRuntimeValue<GUID>(instance) : field.GetStoredValue<GUID>();
-					Entity userEntity = scene->GetEntityByGUID(value);
-					const bool bValid = userEntity.IsValid();
-					int currentSelection = -1;
-					int i = 0;
+			constexpr ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
 
-					const auto entities = scene->GetAllEntitiesWith<IDComponent, EntitySceneNameComponent>();
-					std::vector<std::string> names;
-					std::vector<GUID> ids;
-					names.reserve(entities.size_hint());
-					ids.reserve(entities.size_hint());
+			const size_t arrayLength = bRuntime ? field.GetRuntimeArrayLength(instance) : field.ArrayLength;
+			const std::string elementsStr = "Array elements: " + std::to_string(arrayLength);
 
-					for (auto& [sceneEntity, idComp, nameComp] : entities.each())
-					{
-						if (sceneEntity == entity.GetEnttID())
-							continue; // Don't show itself
-
-						const auto& ID = idComp.ID;
-						const auto& name = nameComp.Name;
-						ids.emplace_back(ID);
-						names.emplace_back(name);
-
-						if (bValid && (ID == value))
-						{
-							currentSelection = i;
-						}
-						i++;
-					}
-
-					const bool bComboChanged = UI::ComboWithNone(field.UIName.c_str(), currentSelection, names, currentSelection, {}, field.Tooltip);
-					const bool bInvalidEntity = currentSelection == -1 && value != GUID(0, 0); // Can happen if an entity was removed from the scene
-					if (bComboChanged || bInvalidEntity)
-					{
-						value = currentSelection == -1 ? GUID(0, 0) : ids[currentSelection];
-						bRuntime ? field.SetRuntimeValue(instance, value) : field.SetStoredValue(value);
-						bChanged = true;
-					}
-				}
-				break;
+			// Calculate `collapser arrow width` offset
+			// in order to move a tree to the left so that children names are all aligned vertically
+			float treeOffsetX = 0.f;
+			{
+				ImGuiContext& g = *GImGui;
+				const ImGuiStyle& style = g.Style;
+				const bool display_frame = (treeFlags & ImGuiTreeNodeFlags_Framed) != 0;
+				ImGuiWindow* window = ImGui::GetCurrentWindow();
+				const ImVec2 padding = (display_frame || (treeFlags & ImGuiTreeNodeFlags_FramePadding)) ? style.FramePadding : ImVec2(style.FramePadding.x, ImMin(window->DC.CurrLineTextBaseOffset, style.FramePadding.y));
+				treeOffsetX = g.FontSize + (display_frame ? padding.x * 3 : padding.x * 2);
 			}
 
-#define AssetField_Case(type) \
-			case FieldType::type:\
-			{\
-				GUID value = bRuntime ? field.GetRuntimeValue<GUID>(instance) : field.GetStoredValue<GUID>();\
-				Ref<Asset> asset;\
-				Ref<type> castedAsset;\
-				if (AssetManager::Get(value, &asset))\
-					castedAsset = Cast<type>(asset);\
-				if (DrawAssetSelection(field.UIName, castedAsset, field.Tooltip, -1.f, GetAssetPreview(castedAsset)))\
-				{\
-					value = castedAsset ? castedAsset->GetGUID() : GUID(0, 0);\
-					bRuntime ? field.SetRuntimeValue(instance, value) : field.SetStoredValue(value);\
-					bChanged = true;\
-				}\
-				break;\
+			ImGui::SetCursorPosX(ImGui::GetCursorPosX() - treeOffsetX * 0.5f + 5.f);
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+			bool entityTreeOpened = ImGui::TreeNodeEx(field.UIName.data(), treeFlags, field.UIName.data());
+			ImGui::NextColumn();
+			ImGui::PushItemWidth(-1);
+			ImGui::Text(elementsStr.c_str());
+			ImGui::PopItemWidth();
+			ImGui::NextColumn();
+
+			if (entityTreeOpened)
+			{
+				for (size_t i = 0; i < arrayLength; ++i)
+				{
+					ImGui::PushID(int(i));
+					bChanged |= HandlePublicField(std::to_string(i), field, instance, i, bRuntime, entity);
+					ImGui::PopID();
+				}
+				ImGui::TreePop();
 			}
-
-			AssetField_Case(Asset);
-			AssetField_Case(AssetTexture2D);
-			AssetField_Case(AssetTextureCube);
-			AssetField_Case(AssetStaticMesh);
-			AssetField_Case(AssetSkeletalMesh);
-			AssetField_Case(AssetAudio);
-			AssetField_Case(AssetSoundGroup);
-			AssetField_Case(AssetFont);
-			AssetField_Case(AssetMaterial);
-			AssetField_Case(AssetPhysicsMaterial);
-			AssetField_Case(AssetEntity);
-			AssetField_Case(AssetScene);
-			AssetField_Case(AssetAnimation);
-			AssetField_Case(AssetAnimationGraph);
-			AssetField_Case(AssetParticleSystem);
-			AssetField_Case(AssetAnimationBlendSpace);
-			AssetField_Case(AssetBehaviorGraph);
-
-#undef AssetField_Case
 		}
-	
+		else
+		{
+			bChanged |= HandlePublicField(field.UIName, field, instance, 0, bRuntime, entity);
+		}
+
 		ImGui::PopID();
 		return bChanged;
 	}
