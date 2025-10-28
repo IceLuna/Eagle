@@ -533,8 +533,7 @@ namespace Eagle
 			outputNode.CachedNodeID = 0;
 			outputNode.Type = GraphNodeType::Node;
 
-			auto& inputPin = outputNode.InputPins.emplace_back();
-			inputPin.PinID = nodeID++;
+			outputNode.InputPins.emplace_back();
 		}
 
 		// BlendSpace node
@@ -549,10 +548,8 @@ namespace Eagle
 			bsNode.BlendSpace = m_Asset;
 
 			bsNode.InputPins.resize(2);
-			for (auto& input : bsNode.InputPins)
-				input.PinID = nodeID++;
-
-			bsNode.OutputPins.push_back(nodeID++);
+			for (size_t i = 0; i < bsNode.InputPins.size(); ++i)
+				bsNode.InputPins[i].Index = (uint32_t)i;
 
 			// Connect to output
 			auto& connection = bsNode.OutputConnections.emplace_back();
@@ -570,8 +567,6 @@ namespace Eagle
 			varNode.CachedNodeID = 0;
 			varNode.Type = GraphNodeType::Variable;
 
-			varNode.OutputPins.push_back(nodeID++);
-
 			// Connect to output
 			auto& connection = varNode.OutputConnections.emplace_back();
 			connection.NodeID = blendSpaceNodeID;
@@ -587,8 +582,6 @@ namespace Eagle
 			varNode.CachedOwnerID = GUID(0, 0);
 			varNode.CachedNodeID = 0;
 			varNode.Type = GraphNodeType::Variable;
-
-			varNode.OutputPins.push_back(nodeID++);
 
 			// Connect to output
 			auto& connection = varNode.OutputConnections.emplace_back();

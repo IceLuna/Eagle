@@ -232,7 +232,9 @@ namespace Eagle
         ax::NodeEditor::Detail::EditorContext* Editor = nullptr;
         std::string Name;
 
-        int NextId = 1;
+        int NextNodeId = 1;
+        int NextPinId = 1;
+        int NextLinkId = 1;
         const int PinIconSize = 24;
 
         std::unordered_map<ax::NodeEditor::NodeId, Node> Nodes;
@@ -304,20 +306,25 @@ namespace Eagle
 
         virtual void DrawPinIcon(const Pin& pin, bool connected, int alpha);
 
-        int GetNextId()
+        int GetNextNodeId()
         {
-            return m_GraphData.NextId++;
+            return m_GraphData.NextNodeId++;
+        }
+
+        ed::LinkId GetNextLinkId()
+        {
+            return ed::LinkId(m_GraphData.NextLinkId++);
+        }
+
+        int GetNextPinId()
+        {
+            return m_GraphData.NextPinId++;
         }
 
         void SetName(const std::string_view name) { m_GraphData.Name = name; }
         const std::string& GetName() const { return m_GraphData.Name; }
 
         const GraphData& GetGraphData() const { return m_GraphData; }
-
-        ed::LinkId GetNextLinkId()
-        {
-            return ed::LinkId(GetNextId());
-        }
 
         void TouchNode(ed::NodeId id)
         {
@@ -355,7 +362,7 @@ namespace Eagle
 
         Node& AddNode(const std::string_view name, ImColor color = ImColor(255, 255, 255), bool bDeletable = true)
         {
-            ed::NodeId id = GetNextId();
+            ed::NodeId id = GetNextNodeId();
             auto inserted = m_GraphData.Nodes.emplace(id, Node{ this, id, name, color, bDeletable });
             auto& it = inserted.first;
             return it->second;
@@ -363,7 +370,7 @@ namespace Eagle
 
         Link& AddLink(const Pin* startPin, const Pin* endPin)
         {
-            ed::LinkId id = GetNextId();
+            ed::LinkId id = GetNextLinkId();
             auto inserted = m_GraphData.Links.emplace(id, Link{ id, startPin->ID, endPin->ID });
             auto& link = inserted.first->second;
             link.Color = GetIconColor(startPin->Type);

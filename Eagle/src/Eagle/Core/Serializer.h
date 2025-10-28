@@ -60,7 +60,7 @@ namespace Eagle
 	struct InputPinData
 	{
 		Ref<GraphVariable> DefaultValue;
-		uint32_t PinID = 0u;
+		uint32_t Index = 0u; // Index inside `Node::InputPins` or `Node::OutputPins`
 	};
 
 	struct GraphNodeSerializationData
@@ -76,7 +76,6 @@ namespace Eagle
 		uint32_t AddedCounter = 0u; // Required for serialization so that we know how many times to call "AddPinsCallback" during deserialization
 		std::vector<GraphConnectionData> OutputConnections;
 		std::vector<InputPinData> InputPins;
-		std::vector<uint32_t> OutputPins; // PinID
 
 		std::string UserData; // Used by nodes such as "Comment" to save comment
 
