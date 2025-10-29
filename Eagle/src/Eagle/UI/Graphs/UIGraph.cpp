@@ -554,6 +554,9 @@ namespace Eagle
 
     void UIGraph::DrawCreateNewNodePopup()
     {
+        constexpr ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_SpanAvailWidth;
+        constexpr ImGuiTreeNodeFlags defaultOpenTreeFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
+
         if (ImGui::BeginPopup("Create New Node"))
         {
             auto newNodePostion = m_CreateNodeOpenPopupPos;
@@ -595,16 +598,20 @@ namespace Eagle
                 }
             }
 
+            const ImGuiTreeNodeFlags flags = m_NodeFactory.size() == 1 ? defaultOpenTreeFlags : treeFlags;
             for (const auto& [category, factory] : m_NodeFactory)
             {
-                UI::TextWithSeparator(category);
-                for (const auto& [name, func] : factory)
+                if (ImGui::TreeNodeEx(category.c_str(), flags))
                 {
-                    if (ImGui::MenuItem(name.c_str()))
+                    for (const auto& [name, func] : factory)
                     {
-                        Node& createdNode = (*func)(*this, name);
-                        node = &createdNode;
+                        if (ImGui::MenuItem(name.c_str()))
+                        {
+                            Node& createdNode = (*func)(*this, name);
+                            node = &createdNode;
+                        }
                     }
+                    ImGui::TreePop();
                 }
             }
 
@@ -649,34 +656,38 @@ namespace Eagle
                 const auto& variables = m_Editor.GetVariables();
                 if (variables.size())
                 {
-                    UI::TextWithSeparator("Variables");
-
-                    for (const auto& [name, var] : variables)
+                    if (ImGui::TreeNodeEx("Variables", treeFlags))
                     {
-                        if (ImGui::MenuItem(name.c_str()))
+                        for (const auto& [name, var] : variables)
                         {
-                            node = &GraphNodeFactory::SpawnVarNode(*this, name, GetPinType(var->GetType()));
+                            if (ImGui::MenuItem(name.c_str()))
+                            {
+                                node = &GraphNodeFactory::SpawnVarNode(*this, name, GetPinType(var->GetType()));
+                            }
                         }
+                        ImGui::TreePop();
                     }
                 }
 
                 const auto& poseCacheNodes = m_Editor.GetPoseCacheNodes();
                 if (!poseCacheNodes.empty())
                 {
-                    UI::TextWithSeparator("Caches");
-
-                    for (const auto& [owner, nodeID] : poseCacheNodes)
+                    if (ImGui::TreeNodeEx("Caches", treeFlags))
                     {
-                        Node* cacheNode = owner->FindNode(nodeID);
-                        if (!cacheNode)
-                            continue;
-
-                        ImGui::PushID(cacheNode);
-                        if (ImGui::MenuItem(cacheNode->Name.c_str()))
+                        for (const auto& [owner, nodeID] : poseCacheNodes)
                         {
-                            node = &GraphNodeFactory::SpawnCachePoseGetterNode(*this, cacheNode);
+                            Node* cacheNode = owner->FindNode(nodeID);
+                            if (!cacheNode)
+                                continue;
+
+                            ImGui::PushID(cacheNode);
+                            if (ImGui::MenuItem(cacheNode->Name.c_str()))
+                            {
+                                node = &GraphNodeFactory::SpawnCachePoseGetterNode(*this, cacheNode);
+                            }
+                            ImGui::PopID();
                         }
-                        ImGui::PopID();
+                        ImGui::TreePop();
                     }
                 }
 
@@ -684,6 +695,7 @@ namespace Eagle
                 const auto& allAssets = AssetManager::GetAssets();
                 {
                     bool bAtLeastOne = false;
+                    bool bTreeOpened = false;
                     const auto& graphAsset = ((AnimationGraphEditor&)m_Editor).GetGraphAsset();
                     const auto& skeletalAsset = graphAsset->GetGraph()->GetSkeletalAsset();
                     for (const auto& [path, asset] : allAssets)
@@ -695,14 +707,21 @@ namespace Eagle
                         if (!bAtLeastOne)
                         {
                             bAtLeastOne = true;
-                            UI::TextWithSeparator("Blend Spaces");
+                            bTreeOpened = ImGui::TreeNodeEx("Blend Spaces", treeFlags);
                         }
 
-                        const std::string name = bs->GetPath().stem().u8string();
-                        if (ImGui::MenuItem(name.c_str()))
+                        if (bTreeOpened)
                         {
-                            node = &GraphNodeFactory::SpawnBlendSpaceNode(*this, name, bs);
+                            const std::string name = bs->GetPath().stem().u8string();
+                            if (ImGui::MenuItem(name.c_str()))
+                            {
+                                node = &GraphNodeFactory::SpawnBlendSpaceNode(*this, name, bs);
+                            }
                         }
+                    }
+                    if (bTreeOpened)
+                    {
+                        ImGui::TreePop();
                     }
                 }
             }

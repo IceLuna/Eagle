@@ -13,6 +13,9 @@ namespace Eagle
     static const char* s_FrozenTransitionHelpMsg = "If set to false, frozen transition will be used: clip A is frozen while clip B gradually takes over the movement.\
 This kind of transitional blend works well when the two clips/poses are unrelated and smooth transition looks unnatural";
     static const char* s_AutoTransitionHelpMsg = "When enabled, it'll auto transition. Transition will start when `Transition Time` seconds are left to play. Transition time will be whatever time is left to play";
+    static const char* s_SelectRandomAnimationHelpMsg = "If enabled, randomly selected animation will remain while this node is active. "
+        "Otherwise, when an animation ends, another one will be selected.\n"
+        "Note: New animation is always selected the first time this node runs after being idle.";
 
     void GraphNodeFactory::FillCommonNodes(std::unordered_map<std::string, NodeFactoryMap>& factory)
     {
@@ -72,6 +75,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         animationsCategory["Filter Bones"] = &GraphNodeFactory::SpawnAnimFilterBones;
         animationsCategory["Transform Bone"] = &GraphNodeFactory::SpawnAnimTransformBone;
         animationsCategory["Cache Pose"] = &GraphNodeFactory::SpawnCachePoseNode;
+        animationsCategory["Select Random Anim"] = &GraphNodeFactory::SpawnSelectRandomAnimationNode;
     }
 
     Node& GraphNodeFactory::SpawnInputActionNode(UIGraph& graph)
@@ -619,6 +623,53 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         node.Type = NodeType::BlendSpace;
 
         node.GraphNode = MakeRef<AnimationGraphNodeBlendSpace>(graphAsset->GetGraph(), bs);
+
+        graph.BuildNode(node);
+        graph.OnNodeAdded(node);
+
+        return node;
+    }
+
+    Node& GraphNodeFactory::SpawnSelectRandomAnimationNode(UIGraph& graph, const std::string_view name)
+    {
+        const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
+
+        auto& node = graph.AddNode(name, ImColor(128, 195, 248));
+        node.InputPins.emplace_back(graph.GetNextPinId(), "Loop", PinType::Bool, MakeRef<GraphVariableBool>(false), s_SelectRandomAnimationHelpMsg);
+        node.InputPins.emplace_back(graph.GetNextPinId(), "Animation 0", PinType::Object, MakeRef<GraphVariableAnimation>());
+
+        node.OutputPins.emplace_back(graph.GetNextPinId(), "", PinType::Object);
+        node.Type = NodeType::Blueprint;
+
+        node.SetAddPinsCallback([](Node& node)
+        {
+            UIGraph& graph = *node.Owner;
+
+            const size_t animIndex = node.InputPins.size() - 1; // Deduct `Loop` inputs
+            const std::string animName = "Animation " + std::to_string(animIndex);
+            node.InputPins.emplace_back(graph.GetNextPinId(), animName, PinType::Object, MakeRef<GraphVariableAnimation>());
+            node.GraphNode->AddInput();
+
+            graph.BuildNode(node);
+        });
+
+        node.SetRemovePinsCallback([](Node& node)
+            {
+                UIGraph& graph = *node.Owner;
+
+                node.InputPins.pop_back();
+                node.GraphNode->PopInput();
+
+                graph.BuildNode(node);
+            });
+
+        node.SetCanRemovePinsCallback([](const Node& node)
+            {
+                const size_t animsCount = node.InputPins.size() - 1; // Deduct `Loop` inputs
+                return animsCount > 1; // Should have at least one animation input
+            });
+
+        node.GraphNode = MakeRef<AnimationGraphNodeSelectRandomAnimation>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);

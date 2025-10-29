@@ -390,7 +390,7 @@ namespace Eagle
 				ImGui::PushID(int(i));
 
 				const ImGuiTreeNodeFlags flags = (m_SelectedPointIdx == i ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow
-					| ImGuiTreeNodeFlags_SpanAvailWidth;
+					| ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 
 				auto& pointData = m_PointsData[i];
 

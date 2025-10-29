@@ -793,4 +793,45 @@ namespace Eagle
 	private:
 		static constexpr size_t s_Inputs = 5;
 	};
+
+	// Base class for such nodes that return an animation reference
+	class AnimationGraphNodeAnimation : public AnimationGraphNode
+	{
+	public:
+		AnimationGraphNodeAnimation(const Weak<AnimationGraph>& graph, size_t numInputs) : AnimationGraphNode(graph, numInputs) {}
+
+	protected:
+		template<typename T, class... Args>
+		Ref<T> CloneNode(Args&&... args) const
+		{
+			Ref<T> clone = AnimationGraphNode::CloneNode<T>(std::forward<Args>(args)...);
+			clone->Result = Result;
+
+			return clone;
+		}
+
+	public:
+		Ref<AssetAnimation> Result;
+	};
+
+	class AnimationGraphNodeSelectRandomAnimation : public AnimationGraphNodeAnimation
+	{
+	public:
+		AnimationGraphNodeSelectRandomAnimation(const Weak<AnimationGraph>& graph, size_t numInputs = s_Inputs) : AnimationGraphNodeAnimation(graph, numInputs) {}
+
+		SkeletalPose& Update(Timestep ts) override;
+
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		{
+			return AnimationGraphNodeAnimation::CloneNode<AnimationGraphNodeSelectRandomAnimation>(newGraph, uint32_t(m_Inputs.size()));
+		}
+
+		void SelectRandomAnimation(Timestep ts);
+
+	private:
+		float m_Timer = 0.0f;
+		float m_SelectedAnimationDuration = 0.0f;
+
+		static constexpr size_t s_Inputs = 2; // Initial number of inputs
+	};
 }

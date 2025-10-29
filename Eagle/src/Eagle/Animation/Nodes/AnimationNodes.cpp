@@ -20,7 +20,8 @@ namespace Eagle
 				std::conditional_t<std::is_same<bool, T>::value, AnimationGraphNodeBool,
 				std::conditional_t<std::is_same<float, T>::value, AnimationGraphNodeFloat,
 				std::conditional_t<std::is_same<glm::vec4, T>::value, AnimationGraphNodeVec4,
-				void>>>;
+				std::conditional_t<std::is_same<Ref<AssetAnimation>, T>::value, AnimationGraphNodeAnimation,
+				void>>>>;
 
 			if (input)
 			{
@@ -179,7 +180,7 @@ namespace Eagle
 
 		// Anim
 		Ref<AssetAnimation> animationAsset;
-		if (Utils::GetValueFromVariable(m_Variables[0], &animationAsset) && animationAsset)
+		if (Utils::GetValue(m_Inputs[0], m_Variables[0], ts, &animationAsset) && animationAsset)
 			animation = animationAsset->GetAnimation().get();
 		
 		Utils::GetValue(m_Inputs[1], m_Variables[1], ts, &speed);
@@ -725,7 +726,7 @@ namespace Eagle
 			return m_Pose;
 
 		Ref<AssetAnimation> value;
-		Utils::GetValueFromVariable(m_Variables[0], &value);
+		Utils::GetValue(m_Inputs[0], m_Variables[0], ts, &value);
 
 		Result = value.operator bool();
 
@@ -1173,5 +1174,50 @@ namespace Eagle
 		m_CalculatedOnFrame = currentFrame;
 
 		return m_Pose;
+	}
+	
+	SkeletalPose& AnimationGraphNodeSelectRandomAnimation::Update(Timestep ts)
+	{
+		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
+		if (currentFrame <= m_CalculatedOnFrame)
+			return m_Pose;
+
+		// Used to detect if the animation clip was unused. If so, new animation is selected
+		if (currentFrame - m_CalculatedOnFrame > 1)
+		{
+			SelectRandomAnimation(ts);
+		}
+
+		bool bLoop = false;
+		Utils::GetValue(m_Inputs[0], m_Variables[0], ts, &bLoop);
+
+		if (!bLoop && m_Timer > m_SelectedAnimationDuration)
+		{
+			SelectRandomAnimation(ts);
+		}
+
+		m_Timer += ts;
+		m_CalculatedOnFrame = currentFrame;
+
+		return m_Pose;
+	}
+	
+	void AnimationGraphNodeSelectRandomAnimation::SelectRandomAnimation(Timestep ts)
+	{
+		constexpr uint32_t offset = 1; // Deduct 'Loop' input
+
+		m_Timer = 0.0f;
+		m_SelectedAnimationDuration = 0.0f;
+
+		Result.reset();
+		const uint32_t animCount = uint32_t(m_Inputs.size()) - offset;
+		const uint32_t animIndex = Random::UInt(0, animCount) + offset;
+
+		Utils::GetValue(m_Inputs[animIndex], m_Variables[animIndex], ts, &Result);
+		if (Result)
+		{
+			const auto& anim = Result->GetAnimation();
+			m_SelectedAnimationDuration = anim->Duration / anim->TicksPerSecond;
+		}
 	}
 }

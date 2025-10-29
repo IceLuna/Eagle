@@ -10,25 +10,30 @@ namespace Eagle
     static const char* s_MoveDownText = "Move Down";
 
     template<typename Func>
-    static void DrawClassNodeItems(UIGraph& graph, const std::vector<AIBehaviorClassData>& classes, Func&& func, Node** node)
+    static void DrawClassNodeItems(UIGraph& graph, std::string_view label, const std::vector<AIBehaviorClassData>& classes, Func&& func, Node** node)
     {
-        for (const auto& data : classes)
+        constexpr ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_SpanAvailWidth;
+        if (ImGui::TreeNodeEx(label.data(), treeFlags))
         {
-            ImGui::PushID(data.ClassData.FullName.c_str());
-
-            if (ImGui::MenuItem(data.ClassData.UIName.c_str()))
+            for (const auto& data : classes)
             {
-                AIBehaviorNode nodeData;
-                nodeData.Data = data;
-                *node = &func(graph, nodeData);
-            }
-            if (!data.ClassData.Tooltip.empty())
-            {
-                ImGui::SameLine();
-                UI::HelpMarker(data.ClassData.Tooltip);
-            }
+                ImGui::PushID(data.ClassData.FullName.c_str());
 
-            ImGui::PopID();
+                if (ImGui::MenuItem(data.ClassData.UIName.c_str()))
+                {
+                    AIBehaviorNode nodeData;
+                    nodeData.Data = data;
+                    *node = &func(graph, nodeData);
+                }
+                if (!data.ClassData.Tooltip.empty())
+                {
+                    ImGui::SameLine();
+                    UI::HelpMarker(data.ClassData.Tooltip);
+                }
+
+                ImGui::PopID();
+            }
+            ImGui::TreePop();
         }
     }
 
@@ -153,11 +158,8 @@ namespace Eagle
             // Core classes
             {
                 const auto& classes = ScriptEngine::GetCoreAIClasses();
-                UI::TextWithSeparator("Core Tasks");
-                DrawClassNodeItems(*this, classes.Tasks, GraphNodeFactory::SpawnBehaviorTaskNode, &node);
-
-                UI::TextWithSeparator("Core Composite Nodes");
-                DrawClassNodeItems(*this, classes.Composites, GraphNodeFactory::SpawnBehaviorCompositeNode, &node);
+                DrawClassNodeItems(*this, "Core Tasks", classes.Tasks, GraphNodeFactory::SpawnBehaviorTaskNode, &node);
+                DrawClassNodeItems(*this, "Core Composite Nodes", classes.Composites, GraphNodeFactory::SpawnBehaviorCompositeNode, &node);
             }
 
             // User classes
@@ -165,14 +167,12 @@ namespace Eagle
                 const auto& classes = ScriptEngine::GetUserAIClasses();
                 if (!classes.Tasks.empty())
                 {
-                    UI::TextWithSeparator("User Tasks");
-                    DrawClassNodeItems(*this, classes.Tasks, GraphNodeFactory::SpawnBehaviorTaskNode, &node);
+                    DrawClassNodeItems(*this, "User Tasks", classes.Tasks, GraphNodeFactory::SpawnBehaviorTaskNode, &node);
                 }
 
                 if (!classes.Composites.empty())
                 {
-                    UI::TextWithSeparator("User Composite Nodes");
-                    DrawClassNodeItems(*this, classes.Composites, GraphNodeFactory::SpawnBehaviorCompositeNode, &node);
+                    DrawClassNodeItems(*this, "User Composite Nodes", classes.Composites, GraphNodeFactory::SpawnBehaviorCompositeNode, &node);
                 }
             }
 

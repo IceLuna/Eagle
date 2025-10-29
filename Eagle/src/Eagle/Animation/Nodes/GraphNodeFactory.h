@@ -50,6 +50,7 @@ namespace Eagle
         static Node& SpawnAnimTransformBone(UIGraph& graph, const std::string_view name);
         static Node& SpawnCachePoseNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnBlendSpaceNode(UIGraph& graph, const std::string_view name, const Ref<AssetAnimationBlendSpace>& bs);
+        static Node& SpawnSelectRandomAnimationNode(UIGraph& graph, const std::string_view name);
 
         // Logical
         static Node& SpawnAndNode(UIGraph& graph, const std::string_view name);

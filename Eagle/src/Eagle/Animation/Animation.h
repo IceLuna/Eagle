@@ -67,7 +67,7 @@ namespace Eagle
         std::vector<glm::vec3> PreRootMotionLocations;
         RootMotionMode RootMotionType = RootMotionMode::Disabled;
 
-        float Duration = 0.f;
+        float Duration = 0.f; // In ticks
         float TicksPerSecond = 0.f;
         bool bInPlace = false;
 
