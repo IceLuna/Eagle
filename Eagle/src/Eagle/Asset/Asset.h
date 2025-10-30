@@ -8,6 +8,7 @@
 #include "Eagle/Physics/PhysicsMaterial.h"
 #include "Eagle/Animation/BlendSpaceUtils.h"
 #include "Eagle/AI/BehaviorGraph.h"
+#include "Eagle/Utils/DelaunayTriangulation.h"
 
 namespace YAML
 {

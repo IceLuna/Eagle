@@ -14,8 +14,13 @@ namespace Eagle::Delaunay
 			return Coord == other.Coord;
 		}
 
+		bool operator== (const glm::dvec2& coord) const
+		{
+			return Coord == coord;
+		}
+
         glm::dvec2 Coord = glm::dvec2(0.0);
-        const void* UserData = nullptr; // Can be used to associate some data with the point
+        const void* UserData = nullptr; // Can be used to associate some data with the point. Blendspace stores `BlendSpaceVertex`
 	};
 
 	struct Triangle

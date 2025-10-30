@@ -16,6 +16,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
     static const char* s_SelectRandomAnimationHelpMsg = "If enabled, randomly selected animation will remain while this node is active. "
         "Otherwise, when an animation ends, another one will be selected.\n"
         "Note: New animation is always selected the first time this node runs after being idle.";
+    static const char* s_BlendSpaceIndexHelpMsg = "An index of the blendspace point. You can check an index in the blendspace editor under `All Points` next to its name. "
+        "For example, if it's the first point in the list, it'll have an index `0`";
 
     void GraphNodeFactory::FillCommonNodes(std::unordered_map<std::string, NodeFactoryMap>& factory)
     {
@@ -623,6 +625,42 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         node.Type = NodeType::BlendSpace;
 
         node.GraphNode = MakeRef<AnimationGraphNodeBlendSpace>(graphAsset->GetGraph(), bs);
+
+        node.SetAddPinsCallback([](Node& node)
+        {
+            UIGraph& graph = *node.Owner;
+
+            const size_t index = node.InputPins.size() - 2; // Deduct `X/Y` inputs
+            const std::string indexStr = '(' + std::to_string(index) + ')';
+            const std::string indexName = "Point Index to Override " + indexStr;
+            const std::string animName = "Animation Override " + indexStr;
+
+            node.InputPins.emplace_back(graph.GetNextPinId(), indexName, PinType::Int, MakeRef<GraphVariableInt>(0), s_BlendSpaceIndexHelpMsg);
+            node.InputPins.emplace_back(graph.GetNextPinId(), animName, PinType::Object, MakeRef<GraphVariableAnimation>(), "This animation will be used instead of the animation of the point");
+
+            node.GraphNode->AddInput();
+            node.GraphNode->AddInput();
+
+            graph.BuildNode(node);
+        });
+
+        node.SetRemovePinsCallback([](Node& node)
+        {
+            UIGraph& graph = *node.Owner;
+
+            node.InputPins.pop_back();
+            node.InputPins.pop_back();
+            node.GraphNode->PopInput();
+            node.GraphNode->PopInput();
+
+            graph.BuildNode(node);
+        });
+
+        node.SetCanRemovePinsCallback([](const Node& node)
+        {
+            const size_t extraInputsCount = node.InputPins.size() - 2; // Deduct `X/Y` inputs
+            return extraInputsCount > 0;
+        });
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);

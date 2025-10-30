@@ -1,6 +1,8 @@
 #pragma once
 
 #include "GraphNode.h"
+#include "Eagle/Utils/DelaunayTriangulation.h"
+#include "Eagle/Animation/BlendSpaceUtils.h"
 
 namespace Eagle
 {
@@ -281,8 +283,8 @@ namespace Eagle
 	class AnimationGraphNodeBlendSpace : public AnimationGraphNode
 	{
 	public:
-		AnimationGraphNodeBlendSpace(const Weak<AnimationGraph>& graph, const Ref<AssetAnimationBlendSpace>& asset)
-			: AnimationGraphNode(graph, s_Inputs)
+		AnimationGraphNodeBlendSpace(const Weak<AnimationGraph>& graph, const Ref<AssetAnimationBlendSpace>& asset, uint32_t numInputs = s_Inputs)
+			: AnimationGraphNode(graph, numInputs)
 			, m_BlendSpace(asset)
 		{}
 
@@ -292,11 +294,12 @@ namespace Eagle
 
 		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
 		{
-			return AnimationGraphNode::CloneNode<AnimationGraphNodeBlendSpace>(newGraph, m_BlendSpace);
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeBlendSpace>(newGraph, m_BlendSpace, uint32_t(m_Inputs.size()));
 		}
 
 	private:
 		void CalculateDistanceToBlend(float x, float y, float prevX, float prevY);
+		void OverrideAnimationsIfRequired(Delaunay::Triangle& tr, const glm::dvec3& buv, Timestep ts);
 
 	private:
 		Ref<AssetAnimationBlendSpace> m_BlendSpace;
@@ -309,13 +312,14 @@ namespace Eagle
 		float m_XBeforeTransition = 0.f;
 		float m_YBeforeTransition = 0.f;
 		const BlendSpaceVertex* m_PrevHighestWeighted = nullptr;
+		std::vector<BlendSpaceVertex> m_VertexStorage; // Since we pass pointer to it, we store it here it keep them alive
 
 		float m_XDistanceToBlend = 0.f;
 		float m_YDistanceToBlend = 0.f;
 
 		float m_CurrentTransitionTime = 0.f;
 		bool bBlending = false;
-		static constexpr size_t s_Inputs = 2;
+		static constexpr size_t s_Inputs = 2; // Initially we have 2 inputs. Can be increased
 	};
 
 	// Base class for such nodes as: less, and, etc..

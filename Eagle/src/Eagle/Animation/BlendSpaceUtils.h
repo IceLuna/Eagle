@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Eagle/Core/Core.h"
-#include "Eagle/Utils/DelaunayTriangulation.h"
 
 #include <string>
 
@@ -19,8 +18,9 @@ namespace Eagle
 	struct BlendSpaceVertex
 	{
 		Ref<AssetAnimation> Animation;
-		Delaunay::Vertex Vertex;
+		glm::dvec2 Coord = glm::dvec2(0.0);
 		float AnimSpeed = 1.f;
+		uint32_t Index = 0; // For internal use. Vertex index into `std::vector<BlendSpaceVertex>` inside `AssetAnimationBlendSpace`
 	};
 
 	struct BlendSpaceAxisSettings

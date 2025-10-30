@@ -1502,6 +1502,8 @@ namespace Eagle
             DrawPinIcon(input, IsPinLinked(input.ID), (int)(alpha * 255));
             nodeStartWidth = ImGui::GetCursorScreenPos().x;
             ImGui::Spring(0);
+
+            std::string_view inputName = input.Name;
             if (node.Type == NodeType::BlendSpace)
             {
                 Ref<AnimationGraphNodeBlendSpace> bsNode = Cast<AnimationGraphNodeBlendSpace>(node.GraphNode);
@@ -1514,11 +1516,10 @@ namespace Eagle
 
                 if (name)
                 {
-                    ImGui::TextUnformatted(name->c_str());
-                    ImGui::Spring(0);
+                    inputName = *name;
                 }
             }
-            else if (!input.Name.empty())
+            if (!inputName.empty())
             {
                 ImGui::TextUnformatted(input.Name.c_str());
                 ImGui::Spring(0);

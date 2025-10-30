@@ -891,7 +891,8 @@ namespace Eagle
 				{
 					Project::GenerateSolution(Project::GetProjectInfo());
 				}
-				if (ImGui::MenuItem("Build project"))
+				ImGui::Separator();
+				if (ImGui::MenuItem("Build the game"))
 				{
 					if (!Project::GetProjectInfo().GameStartupScene)
 					{

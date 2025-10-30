@@ -1067,11 +1067,12 @@ namespace Eagle
 
 		m_Pose.Reset();
 		const bool bSyncEnabled = m_BlendSpace->IsSyncEnabled();
-		if (bSyncEnabled)
+		Delaunay::Triangle tr;
+		glm::dvec3 buv;
+		if (AnimationSystem::FindBlendSpaceSampleTriangle(m_BlendSpace, x, y, &tr, &buv))
 		{
-			Delaunay::Triangle tr;
-			glm::dvec3 buv;
-			if (AnimationSystem::FindBlendSpaceSampleTriangle(m_BlendSpace, x, y, &tr, &buv))
+			OverrideAnimationsIfRequired(tr, buv, ts);
+			if (bSyncEnabled)
 			{
 				const uint32_t highestWeightedAnimIdx =
 					buv[0] > buv[1] && buv[0] > buv[2] ? 0 :
@@ -1108,13 +1109,18 @@ namespace Eagle
 				PrevTime = CurrentTime;
 				CurrentTime += ts * highestWeighted->AnimSpeed;
 			}
+			else
+			{
+				AnimationSystem::CalculateBlendSpacePose(m_BlendSpace, tr, buv, PrevTime, CurrentTime, &m_Pose);
+				m_PrevHighestWeighted = nullptr;
+				PrevTime = CurrentTime;
+				CurrentTime += ts;
+			}
 		}
 		else
 		{
-			AnimationSystem::CalculateBlendSpacePose(m_BlendSpace, x, y, PrevTime, CurrentTime, &m_Pose);
-			m_PrevHighestWeighted = nullptr;
-			PrevTime = CurrentTime;
-			CurrentTime += ts;
+			const auto& skeletalInfo = m_BlendSpace->GetSkeletalMesh()->GetMesh()->GetSkeletalMeshInfo();
+			AnimationSystem::FinalizePose(m_Pose, skeletalInfo.RootBone, glm::mat4(1), skeletalInfo);
 		}
 
 		m_CalculatedOnFrame = currentFrame;
@@ -1157,6 +1163,44 @@ namespace Eagle
 		{
 			m_XDistanceToBlend = distanceX;
 			m_YDistanceToBlend = distanceY;
+		}
+	}
+
+	void AnimationGraphNodeBlendSpace::OverrideAnimationsIfRequired(Delaunay::Triangle& tr, const glm::dvec3& buv, Timestep ts)
+	{
+		constexpr size_t offset = 2; // Deduct 'X/Y' inputs
+		const size_t inputsCount = m_Inputs.size();
+		const size_t extraInputsCount = inputsCount - offset;
+		if (extraInputsCount == 0)
+			return;
+
+		const size_t overridesCount = extraInputsCount / 2; // Divide by two since each override has two inputs: index and animation.
+		
+		// To avoid reallocations and dead pointers, allocate enought memory.
+		// Multiply by `3` for each vertex in the triangle just in case if it's a degenerate triangle and has the same vertices
+		const size_t requiredStorageSize = overridesCount * 3;
+		if (m_VertexStorage.size() < requiredStorageSize)
+			m_VertexStorage.resize(requiredStorageSize);
+		size_t storageIdx = 0;
+
+		for (size_t i = offset; i < inputsCount; i += 2)
+		{
+			int overrideIndex;
+			Utils::GetValueFromVariable(m_Variables[i], &overrideIndex);
+
+			for (uint32_t vI = 0; vI < 3; ++vI)
+			{
+				const BlendSpaceVertex* vertex = (const BlendSpaceVertex*)tr.V[vI].UserData;
+				if (vertex->Index == uint32_t(overrideIndex) && buv[vI] > 0.001f)
+				{
+					// Copy the original vertex but replace the animation
+					auto& storageVertex = m_VertexStorage[storageIdx++];
+					storageVertex = *vertex;
+					Utils::GetValue(m_Inputs[i + 1], m_Variables[i + 1], ts, &storageVertex.Animation);
+
+					tr.V[vI].UserData = &storageVertex;
+				}
+			}
 		}
 	}
 	

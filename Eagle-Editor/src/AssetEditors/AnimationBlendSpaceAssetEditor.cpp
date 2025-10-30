@@ -160,13 +160,13 @@ namespace Eagle
 			ImGui::SameLine();
 			const float availWidth = ImGui::GetContentRegionAvail().x;
 			ImGui::PushItemWidth(availWidth * 0.25f);
-			bChanged |= ImGui::InputDouble(m_Horizontal.Name.c_str(), &pointData.Vertex.Coord.x);
+			bChanged |= ImGui::InputDouble(m_Horizontal.Name.c_str(), &pointData.Coord.x);
 			ImGui::SameLine();
-			bChanged |= ImGui::InputDouble(m_Vertical.Name.c_str(), &pointData.Vertex.Coord.y);
+			bChanged |= ImGui::InputDouble(m_Vertical.Name.c_str(), &pointData.Coord.y);
 			ImGui::PopItemWidth();
 
-			pointData.Vertex.Coord.x = glm::clamp(pointData.Vertex.Coord.x, m_Horizontal.Min, m_Horizontal.Max);
-			pointData.Vertex.Coord.y = glm::clamp(pointData.Vertex.Coord.y, m_Vertical.Min, m_Vertical.Max);
+			pointData.Coord.x = glm::clamp(pointData.Coord.x, m_Horizontal.Min, m_Horizontal.Max);
+			pointData.Coord.y = glm::clamp(pointData.Coord.y, m_Vertical.Min, m_Vertical.Max);
 		}
 
 		const bool bVisualization = m_bPlotHovered && Input::IsKeyPressed(Key::LeftControl);
@@ -203,7 +203,7 @@ namespace Eagle
 				bool bHovered = false;
 				bool bHeld = false;
 
-				bChanged |= ImPlot::DragPoint(int(i), &pointData.Vertex.Coord.x, &pointData.Vertex.Coord.y, m_SelectedPointIdx == i ? selectedColor : defaultColor, 4, ImPlotDragToolFlags_Clamp, &bClicked, &bHovered, &bHeld);
+				bChanged |= ImPlot::DragPoint(int(i), &pointData.Coord.x, &pointData.Coord.y, m_SelectedPointIdx == i ? selectedColor : defaultColor, 4, ImPlotDragToolFlags_Clamp, &bClicked, &bHovered, &bHeld);
 				if (bHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 				{
 					bClicked = true;
@@ -225,8 +225,8 @@ namespace Eagle
 				}
 
 				// Clamp again after dragging to enforce limits
-				pointData.Vertex.Coord.x = ImClamp(pointData.Vertex.Coord.x, double(m_Horizontal.Min), double(m_Horizontal.Max));
-				pointData.Vertex.Coord.y = ImClamp(pointData.Vertex.Coord.y, double(m_Vertical.Min), double(m_Vertical.Max));
+				pointData.Coord.x = ImClamp(pointData.Coord.x, double(m_Horizontal.Min), double(m_Horizontal.Max));
+				pointData.Coord.y = ImClamp(pointData.Coord.y, double(m_Vertical.Min), double(m_Vertical.Max));
 
 				ImGui::PopID();
 			}
@@ -257,7 +257,7 @@ namespace Eagle
 				for (const auto& tri : triangulation)
 				{
 					const bool bSelected = m_SelectedPointIdx == s_InvalidIndex ? false
-						: tri.V[0] == pointsData[m_SelectedPointIdx].Vertex || tri.V[1] == pointsData[m_SelectedPointIdx].Vertex || tri.V[2] == pointsData[m_SelectedPointIdx].Vertex;
+						: tri.V[0] == pointsData[m_SelectedPointIdx].Coord || tri.V[1] == pointsData[m_SelectedPointIdx].Coord || tri.V[2] == pointsData[m_SelectedPointIdx].Coord;
 					const float lineWidth = bSelected ? 3.f : 0.5f;
 					glm::dvec2 points[2];
 
@@ -336,11 +336,11 @@ namespace Eagle
 			EditorResources::DrawAssetSelection("Animation", m_CurrentlyAddingPoint.Animation);
 			UI::InputFloat("Animation Speed", m_CurrentlyAddingPoint.AnimSpeed);
 			UI::TextWithSeparator("X/Y inputs");
-			UI::InputDouble(m_Horizontal.Name.c_str(), m_CurrentlyAddingPoint.Vertex.Coord.x);
-			UI::InputDouble(m_Vertical.Name.c_str(), m_CurrentlyAddingPoint.Vertex.Coord.y);
+			UI::InputDouble(m_Horizontal.Name.c_str(), m_CurrentlyAddingPoint.Coord.x);
+			UI::InputDouble(m_Vertical.Name.c_str(), m_CurrentlyAddingPoint.Coord.y);
 
-			m_CurrentlyAddingPoint.Vertex.Coord.x = glm::clamp(m_CurrentlyAddingPoint.Vertex.Coord.x, m_Horizontal.Min, m_Horizontal.Max);
-			m_CurrentlyAddingPoint.Vertex.Coord.y = glm::clamp(m_CurrentlyAddingPoint.Vertex.Coord.y, m_Vertical.Min, m_Vertical.Max);
+			m_CurrentlyAddingPoint.Coord.x = glm::clamp(m_CurrentlyAddingPoint.Coord.x, m_Horizontal.Min, m_Horizontal.Max);
+			m_CurrentlyAddingPoint.Coord.y = glm::clamp(m_CurrentlyAddingPoint.Coord.y, m_Vertical.Min, m_Vertical.Max);
 
 			UI::EndPropertyGrid();
 			ImGui::Separator();
@@ -422,13 +422,13 @@ namespace Eagle
 					bChanged |= EditorResources::DrawAssetSelection("Animation", pointData.Animation);
 					bChanged |= UI::InputFloat("Animation Speed", pointData.AnimSpeed);
 					UI::TextWithSeparator("X/Y inputs");
-					bChanged |= UI::InputDouble(m_Horizontal.Name, pointData.Vertex.Coord.x);
-					bChanged |= UI::InputDouble(m_Vertical.Name, pointData.Vertex.Coord.y);
+					bChanged |= UI::InputDouble(m_Horizontal.Name, pointData.Coord.x);
+					bChanged |= UI::InputDouble(m_Vertical.Name, pointData.Coord.y);
 
 					UI::EndPropertyGrid();
 
-					pointData.Vertex.Coord.x = glm::clamp(pointData.Vertex.Coord.x, m_Horizontal.Min, m_Horizontal.Max);
-					pointData.Vertex.Coord.y = glm::clamp(pointData.Vertex.Coord.y, m_Vertical.Min, m_Vertical.Max);
+					pointData.Coord.x = glm::clamp(pointData.Coord.x, m_Horizontal.Min, m_Horizontal.Max);
+					pointData.Coord.y = glm::clamp(pointData.Coord.y, m_Vertical.Min, m_Vertical.Max);
 					ImGui::TreePop();
 				}
 

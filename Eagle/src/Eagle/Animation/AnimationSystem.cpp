@@ -8,6 +8,7 @@
 #include "Eagle/Math/Math.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Physics/PhysicsRagdollActor.h"
+#include "Eagle/Utils/DelaunayTriangulation.h"
 
 namespace Eagle
 {

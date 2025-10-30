@@ -1489,7 +1489,7 @@ namespace Eagle
 				out << YAML::BeginMap;
 				if (point.Animation)
 					out << YAML::Key << "Animation" << YAML::Value << point.Animation->GetGUID();
-				out << YAML::Key << "Coord" << YAML::Value << point.Vertex.Coord;
+				out << YAML::Key << "Coord" << YAML::Value << point.Coord;
 				out << YAML::Key << "AnimSpeed" << YAML::Value << point.AnimSpeed;
 				out << YAML::EndMap;
 			}
@@ -4441,7 +4441,7 @@ namespace Eagle
 			{
 				auto& point = points.emplace_back();
 				point.Animation = GetAsset<AssetAnimation>(node["Animation"]);
-				point.Vertex.Coord = node["Coord"].as<glm::dvec2>();
+				point.Coord = node["Coord"].as<glm::dvec2>();
 				if (auto speedNode = node["AnimSpeed"])
 					point.AnimSpeed = speedNode.as<float>();
 			}

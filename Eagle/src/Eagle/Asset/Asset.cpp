@@ -460,8 +460,8 @@ namespace Eagle
 
 		for (auto& pointData : m_PointsData)
 		{
-			pointData.Vertex.Coord.x = glm::clamp(pointData.Vertex.Coord.x, m_Horizontal.Min, m_Horizontal.Max);
-			pointData.Vertex.Coord.y = glm::clamp(pointData.Vertex.Coord.y, m_Vertical.Min, m_Vertical.Max);
+			pointData.Coord.x = glm::clamp(pointData.Coord.x, m_Horizontal.Min, m_Horizontal.Max);
+			pointData.Coord.y = glm::clamp(pointData.Coord.y, m_Vertical.Min, m_Vertical.Max);
 		}
 		Triangulate();
 	}
@@ -471,8 +471,11 @@ namespace Eagle
 		std::vector<Delaunay::Vertex> vertices(m_PointsData.size());
 		for (size_t i = 0; i < m_PointsData.size(); ++i)
 		{
-			vertices[i] = m_PointsData[i].Vertex;
-			vertices[i].UserData = &m_PointsData[i];
+			auto& point = m_PointsData[i];
+
+			point.Index = uint32_t(i);
+			vertices[i].Coord = point.Coord;
+			vertices[i].UserData = &point;
 		}
 		m_Triangulation = Delaunay::Triangulate(vertices);
 	}
