@@ -10,7 +10,7 @@ namespace Eagle
 		UIAnimationStateGraph(GraphEditor& editor, const std::string_view name);
 
 		Node* GetOutputNode() override { return FindNode(m_OutputNodeId); };
-		ax::NodeEditor::NodeId GetOutputNodeID() override { return m_OutputNodeId; };
+		ax::NodeEditor::NodeId GetOutputNodeID() const override { return m_OutputNodeId; };
 
 	protected:
 		void SetupInitialNodes();

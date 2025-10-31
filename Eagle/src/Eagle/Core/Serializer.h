@@ -48,7 +48,7 @@ namespace Eagle
 
 	struct GraphConnectionData
 	{
-		uint32_t NodeID = uint32_t(-1); // NodeID the pin is connected to
+		GUID NodeID = GUID(0, 0); // NodeID the pin is connected to
 		uint32_t PinIndex = uint32_t(-1); // PinIndex the pin is connected to
 	};
 
@@ -69,13 +69,14 @@ namespace Eagle
 		std::string Name;
 		glm::vec2 Position = glm::vec2(0);
 		glm::vec2 Size = glm::vec2{0.f};
-		uint32_t NodeID = 0;
-		GUID CachedOwnerID; // ID of GraphSerializationData
-		uint32_t CachedNodeID = 0;
+		GUID NodeID = GUID(0, 0);
+		GUID CachedOwnerID = GUID(0, 0); // ID of GraphSerializationData
+		GUID CachedNodeID = GUID(0, 0);
 		GraphNodeType Type = GraphNodeType::Node;
 		uint32_t AddedCounter = 0u; // Required for serialization so that we know how many times to call "AddPinsCallback" during deserialization
 		std::vector<GraphConnectionData> OutputConnections;
 		std::vector<InputPinData> InputPins;
+		bool bOutputNode = false;
 
 		std::string UserData; // Used by nodes such as "Comment" to save comment
 

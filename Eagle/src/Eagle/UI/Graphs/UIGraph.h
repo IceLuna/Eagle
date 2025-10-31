@@ -123,6 +123,7 @@ namespace Eagle
     {
         UIGraph* Owner = nullptr; // Graph that created this Node
         ed::NodeId ID;
+        GUID UUID{}; // `ID` above is affected by all graph elements (links, pins). But this is used to uniquely identify the node no matter what
         std::string Name; // Node's name, which can be used for node factory. So user provided names are not stored here, but rather in "UserData"
         std::vector<Pin> InputPins;
         std::vector<Pin> OutputPins;
@@ -232,9 +233,7 @@ namespace Eagle
         ax::NodeEditor::Detail::EditorContext* Editor = nullptr;
         std::string Name;
 
-        int NextNodeId = 1;
-        int NextPinId = 1;
-        int NextLinkId = 1;
+        int NextId = 1;
         const int PinIconSize = 24;
 
         std::unordered_map<ax::NodeEditor::NodeId, Node> Nodes;
@@ -306,19 +305,14 @@ namespace Eagle
 
         virtual void DrawPinIcon(const Pin& pin, bool connected, int alpha);
 
-        int GetNextNodeId()
+        int GetNextId()
         {
-            return m_GraphData.NextNodeId++;
+            return m_GraphData.NextId++;
         }
 
         ed::LinkId GetNextLinkId()
         {
-            return ed::LinkId(m_GraphData.NextLinkId++);
-        }
-
-        int GetNextPinId()
-        {
-            return m_GraphData.NextPinId++;
+            return ed::LinkId(m_GraphData.NextId++);
         }
 
         void SetName(const std::string_view name) { m_GraphData.Name = name; }
@@ -351,6 +345,7 @@ namespace Eagle
         }
 
         Node* FindNode(ed::NodeId id);
+        Node* FindNodeByGUID(const GUID& id);
         const Node* FindNode(ed::NodeId id) const;
         Link* FindLink(ed::LinkId id);
         Pin* FindPin(ed::PinId id);
@@ -362,7 +357,7 @@ namespace Eagle
 
         Node& AddNode(const std::string_view name, ImColor color = ImColor(255, 255, 255), bool bDeletable = true)
         {
-            ed::NodeId id = GetNextNodeId();
+            ed::NodeId id = GetNextId();
             auto inserted = m_GraphData.Nodes.emplace(id, Node{ this, id, name, color, bDeletable });
             auto& it = inserted.first;
             return it->second;
@@ -401,7 +396,7 @@ namespace Eagle
         virtual void OnNodeDeleted(const Node& node);
 
         virtual Node* GetOutputNode() { return nullptr; };
-        virtual ax::NodeEditor::NodeId GetOutputNodeID() { return {}; };
+        virtual ax::NodeEditor::NodeId GetOutputNodeID() const { return {}; };
 
         void SetID(GUID id) { m_ID = id; }
         GUID GetID() const { return m_ID; }
@@ -448,8 +443,8 @@ namespace Eagle
         struct PoseCacheGetterDeserializationData
         {
             GUID Owner = GUID(0, 0);
-            ed::NodeId ID;
-            ed::NodeId CacheNodeID;
+            GUID ID = GUID(0, 0);
+            GUID CacheNodeID = GUID(0, 0);
             GUID CacheNodeOwner = GUID(0, 0);
         };
 

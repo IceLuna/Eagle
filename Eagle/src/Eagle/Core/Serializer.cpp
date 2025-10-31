@@ -232,6 +232,7 @@ namespace Eagle
 			out << YAML::Key << "Position" << YAML::Value << node.Position;
 			out << YAML::Key << "Size" << YAML::Value << node.Size;
 			out << YAML::Key << "NodeID" << YAML::Value << node.NodeID;
+			out << YAML::Key << "IsOutputNode" << YAML::Value << node.bOutputNode;
 			out << YAML::Key << "CachedOwnerID" << YAML::Value << node.CachedOwnerID;
 			out << YAML::Key << "CachedNodeID" << YAML::Value << node.CachedNodeID;
 			out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(node.Type);
@@ -315,11 +316,13 @@ namespace Eagle
 			nodeData.Position = nodeNode["Position"].as<glm::vec2>();
 			if (auto sizeNode = nodeNode["Size"])
 				nodeData.Size = sizeNode.as<glm::vec2>();
-			nodeData.NodeID = nodeNode["NodeID"].as<uint32_t>();
+			nodeData.NodeID = nodeNode["NodeID"].as<GUID>();
+			if (auto isOutputNode = nodeNode["IsOutputNode"])
+				nodeData.bOutputNode = isOutputNode.as<bool>();
 			if (auto cachedNode = nodeNode["CachedOwnerID"])
 				nodeData.CachedOwnerID = cachedNode.as<GUID>();
 			if (auto cachedNode = nodeNode["CachedNodeID"])
-				nodeData.CachedNodeID = cachedNode.as<uint32_t>();
+				nodeData.CachedNodeID = cachedNode.as<GUID>();
 			if (auto typeNode = nodeNode["Type"])
 				nodeData.Type = Utils::GetEnumFromName<GraphNodeType>(typeNode.as<std::string>());
 			if (auto bsNode = nodeNode["BlendSpace"])
@@ -352,7 +355,7 @@ namespace Eagle
 			for (const auto& connectionNode : connectionsNode)
 			{
 				GraphConnectionData& connectionData = nodeData.OutputConnections.emplace_back();
-				connectionData.NodeID = connectionNode["NodeID"].as<uint32_t>();
+				connectionData.NodeID = connectionNode["NodeID"].as<GUID>();
 				connectionData.PinIndex = connectionNode["PinIndex"].as<uint32_t>();
 			}
 		}

@@ -19,7 +19,7 @@ namespace Eagle
 		void DrawLinks() override;
 
 		Node* GetOutputNode() override { return FindNode(m_EntryNodeId); };
-		ax::NodeEditor::NodeId GetOutputNodeID() override { return m_EntryNodeId; };
+		ax::NodeEditor::NodeId GetOutputNodeID() const override { return m_EntryNodeId; };
 
 		void OnNodeAdded(Node& node) override;
 		void OnNodeDeleted(const Node& node) override;

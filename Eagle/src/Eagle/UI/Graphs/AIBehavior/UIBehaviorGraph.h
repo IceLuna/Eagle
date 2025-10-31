@@ -20,7 +20,7 @@ namespace Eagle
 		void OnImGuiRender(bool* pOpen = nullptr) override;
 
 		Node* GetOutputNode() override { return FindNode(m_EntryNodeId); };
-		ax::NodeEditor::NodeId GetOutputNodeID() override { return m_EntryNodeId; };
+		ax::NodeEditor::NodeId GetOutputNodeID() const override { return m_EntryNodeId; };
 
 		void DrawCreateNewNodePopup() override;
 

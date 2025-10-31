@@ -764,11 +764,16 @@ namespace Eagle
             nodeData.Type = NodeTypeToGraphNodeType(node.Type);
             nodeData.Position = glm::vec2(pos.x, pos.y);
             nodeData.Size = glm::vec2(size.x, size.y);
-            nodeData.NodeID = (uint32_t)node.ID.Get();
-            nodeData.CachedOwnerID = node.CachedNode.Owner ? node.CachedNode.Owner->m_ID : GUID(0, 0);
-            nodeData.CachedNodeID = (uint32_t)node.CachedNode.NodeID.Get();
+            nodeData.NodeID = node.UUID;
+            if (node.CachedNode.Owner)
+            {
+                const Node* cachedNode = node.CachedNode.Owner->FindNode(node.CachedNode.NodeID);
+                nodeData.CachedOwnerID = node.CachedNode.Owner->m_ID;
+                nodeData.CachedNodeID = cachedNode ? cachedNode->UUID : GUID(0, 0);
+            }
             nodeData.UserData = node.UserData;
             nodeData.AddedCounter = node.GetAddedCounter();
+            nodeData.bOutputNode = node.ID == GetOutputNodeID();
             if (nodeData.Type == GraphNodeType::BlendSpace)
             {
                 nodeData.BlendSpace = Cast<AnimationGraphNodeBlendSpace>(node.GraphNode)->GetBlendSpaceAsset();
@@ -803,7 +808,7 @@ namespace Eagle
                             continue;
 
                         GraphConnectionData connectionData;
-                        connectionData.NodeID = (uint32_t)connectedTo->ID.Get();
+                        connectionData.NodeID = connectedTo->UUID;
                         connectionData.PinIndex = outputData.PinIndex;
                         nodeData.OutputConnections.push_back(connectionData);
                     }
@@ -821,6 +826,8 @@ namespace Eagle
     {
         if (!node)
             return;
+
+        node->UUID = nodeData.NodeID;
 
         if (node->HasAddPinsCallback())
         {
@@ -862,18 +869,15 @@ namespace Eagle
         m_ID = data.ID;
 
         // Create nodes
-        int maxNodeID = m_GraphData.NextNodeId;
         for (const auto& nodeData : data.Nodes)
         {
-            if (auto nodeID = GetOutputNodeID(); nodeID.Get() == nodeData.NodeID) // Special case for the base node
+            if (auto nodeID = GetOutputNodeID(); nodeData.bOutputNode && nodeID)
             {
                 ed::SetNodePosition(nodeID, ImVec2(nodeData.Position.x, nodeData.Position.y));
                 Node* node = GetOutputNode();
                 HandlePinsData(node, nodeData);
                 continue;
             }
-
-            m_GraphData.NextNodeId = int(nodeData.NodeID); // So that the node is created with the required ID
 
             if (nodeData.Type == GraphNodeType::Variable)
             {
@@ -901,7 +905,7 @@ namespace Eagle
 
                 auto& data = poseCacheGetterData.emplace_back();
                 data.Owner = m_ID;
-                data.ID = createdNode.ID;
+                data.ID = createdNode.UUID;
                 data.CacheNodeID = nodeData.CachedNodeID;
                 data.CacheNodeOwner = nodeData.CachedOwnerID;
             }
@@ -980,21 +984,16 @@ namespace Eagle
                     HandlePinsData(createdNode, nodeData);
                 }
             }
-
-            if (m_GraphData.NextNodeId > maxNodeID)
-                maxNodeID = m_GraphData.NextNodeId; // Save the max node ID so that we can set `m_NextId` to it after all nodes are created
         }
-
-        m_GraphData.NextNodeId = maxNodeID;
 
         // Link nodes
         for (const auto& nodeData : data.Nodes)
         {
             for (const auto& connection : nodeData.OutputConnections)
             {
-                if (Node* connectToNode = FindNode(connection.NodeID))
+                if (Node* connectToNode = FindNodeByGUID(connection.NodeID))
                 {
-                    Node* currentNode = FindNode(nodeData.NodeID);
+                    Node* currentNode = FindNodeByGUID(nodeData.NodeID);
                     if (currentNode)
                     {
                         const Pin* startPin = &currentNode->OutputPins[0];
@@ -1039,11 +1038,11 @@ namespace Eagle
             if (!cacheOwner)
                 continue;
 
-            const Node* cacheNode = cacheOwner->FindNode(data.CacheNodeID);
+            const Node* cacheNode = cacheOwner->FindNodeByGUID(data.CacheNodeID);
             if (!cacheNode)
                 continue;
 
-            Node* cacheGetterNode = getterOwner->FindNode(data.ID);
+            Node* cacheGetterNode = getterOwner->FindNodeByGUID(data.ID);
             if (!cacheGetterNode)
                 continue;
 
@@ -1237,6 +1236,17 @@ namespace Eagle
     {
         auto it = m_GraphData.Nodes.find(id);
         return it != m_GraphData.Nodes.end() ? &(it->second) : nullptr;
+    }
+
+    Node* UIGraph::FindNodeByGUID(const GUID& id)
+    {
+        for (auto& [_, node] : m_GraphData.Nodes)
+        {
+            if (node.UUID == id)
+                return &node;
+        }
+
+        return nullptr;
     }
 
     const Node* UIGraph::FindNode(ed::NodeId id) const

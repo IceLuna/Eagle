@@ -517,9 +517,9 @@ namespace Eagle
 			yVar.Value = MakeRef<GraphVariableFloat>(float(m_Vertical.Min));
 		}
 
-		constexpr uint32_t outputNodeID = 1;
-		constexpr uint32_t blendSpaceNodeID = 2;
-		uint32_t nodeID = blendSpaceNodeID + 1; // Rest node IDs
+		uint64_t nodeID = 1;
+		const GUID outputNodeID = GUID(0, nodeID++);
+		const GUID blendSpaceNodeID = GUID(0, nodeID++);
 
 		auto& nodes = data.Graph.Nodes;
 		nodes.reserve(4); // Output, blend space, and two vars
@@ -529,9 +529,8 @@ namespace Eagle
 			outputNode.OwnerID = data.Graph.ID;
 			outputNode.Name = "Output Pose";
 			outputNode.NodeID = outputNodeID;
-			outputNode.CachedOwnerID = GUID(0, 0);
-			outputNode.CachedNodeID = 0;
 			outputNode.Type = GraphNodeType::Node;
+			outputNode.bOutputNode = true;
 
 			outputNode.InputPins.emplace_back();
 		}
@@ -542,8 +541,6 @@ namespace Eagle
 			bsNode.OwnerID = data.Graph.ID;
 			bsNode.Name = m_Asset->GetPath().stem().u8string();
 			bsNode.NodeID = blendSpaceNodeID;
-			bsNode.CachedOwnerID = GUID(0, 0);
-			bsNode.CachedNodeID = 0;
 			bsNode.Type = GraphNodeType::BlendSpace;
 			bsNode.BlendSpace = m_Asset;
 
@@ -562,9 +559,7 @@ namespace Eagle
 			auto& varNode = nodes.emplace_back();
 			varNode.OwnerID = data.Graph.ID;
 			varNode.Name = s_XVarName;
-			varNode.NodeID = nodeID++;
-			varNode.CachedOwnerID = GUID(0, 0);
-			varNode.CachedNodeID = 0;
+			varNode.NodeID = GUID(0, nodeID++);
 			varNode.Type = GraphNodeType::Variable;
 
 			// Connect to output
@@ -578,9 +573,7 @@ namespace Eagle
 			auto& varNode = nodes.emplace_back();
 			varNode.OwnerID = data.Graph.ID;
 			varNode.Name = s_YVarName;
-			varNode.NodeID = nodeID++;
-			varNode.CachedOwnerID = GUID(0, 0);
-			varNode.CachedNodeID = 0;
+			varNode.NodeID = GUID(0, nodeID++);
 			varNode.Type = GraphNodeType::Variable;
 
 			// Connect to output
