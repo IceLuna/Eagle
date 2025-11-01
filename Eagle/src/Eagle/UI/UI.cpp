@@ -333,7 +333,7 @@ namespace Eagle::UI
 		ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0.f, 0.f });
 
-		float lineHeight = (GImGui->Font->FontSize * boldFont->Scale) + GImGui->Style.FramePadding.y * 2.f;
+		float lineHeight = (GImGui->FontBaked->Size * boldFont->Scale) + GImGui->Style.FramePadding.y * 2.f;
 		ImVec2 buttonSize = { lineHeight + 3.f, lineHeight };
 
 		//X
@@ -441,7 +441,7 @@ namespace Eagle::UI
 		ImGui::PushMultiItemsWidths(4, ImGui::CalcItemWidth());
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0.f, 0.f });
 
-		float lineHeight = (GImGui->Font->FontSize * boldFont->Scale) + GImGui->Style.FramePadding.y * 2.f;
+		float lineHeight = (GImGui->FontBaked->Size * boldFont->Scale) + GImGui->Style.FramePadding.y * 2.f;
 		ImVec2 buttonSize = { lineHeight + 3.f, lineHeight };
 
 		//X
@@ -1835,9 +1835,9 @@ namespace Eagle::UI
 			VkSampler vkSampler = (VkSampler)texture->GetSampler()->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
 
-			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			const ImTextureRef textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
 			ImGuiID id = (ImGuiID)texture->GetGUID().GetHash();
-			return ImGui::ImageButtonRotatedEx(id, textureID, size, angleRad, uv0, uv1, bg_col, tint_col);
+			return ImGui::ImageButtonRotatedEx(id, textureID.GetTexID(), size, angleRad, uv0, uv1, bg_col, tint_col);
 		}
 		return false;
 	}
@@ -2007,8 +2007,8 @@ namespace Eagle::UI
 			VkSampler vkSampler = (VkSampler)texture->GetSampler()->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
 
-			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
-			return textureID;
+			const ImTextureRef textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			return textureID.GetTexID();
 		}
 		return 0;
 	}

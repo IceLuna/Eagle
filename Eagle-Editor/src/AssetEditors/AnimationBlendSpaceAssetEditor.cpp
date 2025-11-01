@@ -296,7 +296,7 @@ namespace Eagle
 	bool AnimationBlendSpaceAssetEditor::DrawAxisTreeNode(const char* name, BlendSpaceAxisSettings& axis)
 	{
 		constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
 
 		bool bChanged = false;
 
@@ -322,7 +322,7 @@ namespace Eagle
 	bool AnimationBlendSpaceAssetEditor::DrawAddPointTreeNode()
 	{
 		constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
 
 		bool bChanged = false;
 
@@ -360,7 +360,7 @@ namespace Eagle
 	bool AnimationBlendSpaceAssetEditor::DrawAllPointsTreeNode()
 	{
 		constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
 
 		bool bChanged = false;
 
@@ -450,7 +450,7 @@ namespace Eagle
 	void AnimationBlendSpaceAssetEditor::DrawVisualizationData()
 	{
 		constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
 
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 		bool treeOpened = ImGui::TreeNodeEx("Visualization", flags);

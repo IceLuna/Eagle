@@ -74,7 +74,7 @@ namespace Eagle
 				| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
 
 			const ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
-			const float lineHeight = (ImGui::GetFont()->FontSize * ImGui::GetFont()->Scale) + ImGui::GetStyle().FramePadding.y * 2.f;
+			const float lineHeight = (ImGui::GetFontBaked()->Size * ImGui::GetFont()->Scale) + ImGui::GetStyle().FramePadding.y * 2.f;
 
 			const bool bOpened = ImGui::TreeNodeEx((void*)(assetHash + hashOffset++), treeFlags, "Events");
 

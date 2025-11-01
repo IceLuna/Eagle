@@ -760,6 +760,9 @@ namespace Eagle
 		constexpr ImVec2 thumbnailSize = ImVec2(ThumbnailCache::GetThumbnailSize().x, ThumbnailCache::GetThumbnailSize().y);
 		bool bHoveredAnyItem = false;
 
+		if (ImGui::GetCurrentWindowRead()->DC.CurrentColumns == nullptr)
+			return;
+
 		ImGui::PushID("DIRECTORIES_FILL");
 		for (auto& dir : directories)
 		{

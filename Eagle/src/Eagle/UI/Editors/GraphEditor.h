@@ -139,7 +139,7 @@ namespace Eagle
         std::vector<CachedNodeData>& GetPoseCacheNodes() { return m_PoseCacheNodes; }
 
         const Ref<Texture2D>& GetHeaderTexture() const { return m_HeaderTexture; }
-        ImTextureID GetHeaderTextureID() const { return m_HeaderBackground; }
+        ImTextureRef GetHeaderTextureID() const { return m_HeaderBackground; }
 
         const char* GetVarDragDropTag() { return m_VarDragDropTag.c_str(); }
 
@@ -159,7 +159,7 @@ namespace Eagle
         std::string m_RenamingVarTemp;
 
         Ref<Texture2D> m_HeaderTexture;
-        ImTextureID m_HeaderBackground = nullptr;
+        ImTextureRef m_HeaderBackground = nullptr;
 
         std::vector<Ref<UIGraph>> m_History; // For back/forward navigation
 

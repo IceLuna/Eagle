@@ -143,7 +143,7 @@ namespace Eagle
 				const bool bSelected = currentItemIdx == i;
 				ImGui::PushID((void*)asset->GetGUID().GetHash());
 
-				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowItemOverlap, { 0.0f, previewSize.y });
+				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowOverlap, { 0.0f, previewSize.y });
 				bSelectableTriggered |= ImGui::IsItemClicked();
 
 				{

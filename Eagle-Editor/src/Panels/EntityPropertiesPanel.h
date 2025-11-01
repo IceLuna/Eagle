@@ -56,12 +56,12 @@ namespace Eagle
 				ImGui::PushID(int(typeid(T).hash_code()));
 
 				const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-					| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+					| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
 
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
 				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-				float lineHeight = (GImGui->Font->FontSize * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
+				float lineHeight = (GImGui->FontBaked->Size * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
 				ImGui::Separator();
 				bool treeOpened = ImGui::TreeNodeEx((void*)typeid(T).hash_code(), flags, name.c_str());
 
