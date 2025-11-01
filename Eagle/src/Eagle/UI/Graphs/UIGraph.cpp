@@ -1699,6 +1699,7 @@ namespace Eagle
             builder.EndOutput();
         }
 
+#if 0 // Displays slider (duration and current pos) under the animation clip node. Currently, unused
         if (auto clipNode = Cast<AnimationGraphNodeClip>(node.GraphNode))
         {
             float currentTime = 0.f;
@@ -1722,6 +1723,7 @@ namespace Eagle
             UI::PopItemDisabled();
             ImGui::PopItemWidth();
         }
+#endif
 
         builder.End();
     }

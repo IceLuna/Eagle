@@ -532,7 +532,9 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         {
             UIGraph& graph = *node.Owner;
 
+            graph.RemovePinLinks(node.InputPins.back().ID);
             node.InputPins.pop_back();
+            graph.RemovePinLinks(node.InputPins.back().ID);
             node.InputPins.pop_back();
             node.GraphNode->PopInput();
             node.GraphNode->PopInput();
@@ -648,7 +650,9 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         {
             UIGraph& graph = *node.Owner;
 
+            graph.RemovePinLinks(node.InputPins.back().ID);
             node.InputPins.pop_back();
+            graph.RemovePinLinks(node.InputPins.back().ID);
             node.InputPins.pop_back();
             node.GraphNode->PopInput();
             node.GraphNode->PopInput();
@@ -695,6 +699,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
             {
                 UIGraph& graph = *node.Owner;
 
+                graph.RemovePinLinks(node.InputPins.back().ID);
                 node.InputPins.pop_back();
                 node.GraphNode->PopInput();
 

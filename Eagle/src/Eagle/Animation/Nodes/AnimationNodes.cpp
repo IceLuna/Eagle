@@ -1227,7 +1227,7 @@ namespace Eagle
 			return m_Pose;
 
 		// Used to detect if the animation clip was unused. If so, new animation is selected
-		if (currentFrame - m_CalculatedOnFrame > 1)
+		if (!Result || (currentFrame - m_CalculatedOnFrame > 1))
 		{
 			SelectRandomAnimation(ts);
 		}
