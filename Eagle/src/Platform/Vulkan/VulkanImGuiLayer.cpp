@@ -32,6 +32,8 @@ namespace Eagle
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;	   //Enable Docking
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;	   //Enable Multi-Viewport
 		io.ConfigWindowsMoveFromTitleBarOnly = true;
+		io.ConfigDebugHighlightIdConflicts = false;
+		io.ConfigDebugHighlightIdConflictsShowItemPicker = false;
 
 		m_IniPath = (Application::GetCorePath() / "imgui.ini").u8string();
 		const Path boldFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Bold.ttf";

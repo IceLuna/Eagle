@@ -1596,7 +1596,7 @@ namespace Eagle
                 }
                 else if (input.Type == PinType::Object)
                 {
-                    // TODO v0.7: Fix drop-menu
+                    GImGui->DisablePopupPosClamp = true; // Fixes BeginCombo having wrong position
                     Ref<GraphVariableAnimation> value = Cast<GraphVariableAnimation>(input.DefaultValue);
                     float maxWidth = 75.f;
                     if (value->Value)
@@ -1604,6 +1604,7 @@ namespace Eagle
                     if (UI::DrawAssetSelection("", value->Value, "", maxWidth))
                         m_Editor.OnGraphChanged();
                     ImGui::Spring(0);
+                    GImGui->DisablePopupPosClamp = false;
                 }
             }
 
