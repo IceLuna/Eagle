@@ -463,7 +463,7 @@ namespace Eagle
 			if (pxHit.actor->userData)
 			{
 				const PhysicsActorBase* actor = (PhysicsActorBase*)pxHit.actor->userData;
-				hit.EntityID = actor->GetEntity();
+				hit.HitEntity = actor->GetEntity();
 				hit.Body = actor->GetPhysXActor();
 			}
 
@@ -475,22 +475,17 @@ namespace Eagle
 		return hit;
 	}
 
-	UnboundedOverlapCallback::UnboundedOverlapCallback(const UnboundedOverlapHitCallback& hitCallback, std::vector<physx::PxOverlapHit>& hitBuffer, QueryHits& hits)
-		: m_hitCallback(hitCallback), m_results(hits), physx::PxHitCallback<physx::PxOverlapHit>(hitBuffer.data(), static_cast<physx::PxU32>(hitBuffer.size()))
-	{
-
-	}
+	UnboundedOverlap::UnboundedOverlap(QueryHits& hits)
+		: m_Results(hits), physx::PxHitCallback<physx::PxOverlapHit>(&m_Hit, 1)
+	{}
 	
-	physx::PxAgain UnboundedOverlapCallback::processTouches(const physx::PxOverlapHit* buffer, physx::PxU32 numHits)
+	physx::PxAgain UnboundedOverlap::processTouches(const physx::PxOverlapHit* buffer, physx::PxU32 numHits)
 	{
 		for (auto it = buffer; it != buffer + numHits; ++it)
 		{
 			const SceneQueryHit hit = GetHitFromPxOverlapHit(*it);
-			if (hit.IsValid() && !m_hitCallback(std::optional<SceneQueryHit>(hit)))
-			{
-				return false;
-			}
-			m_results.emplace_back(hit);
+			if (hit.IsValid())
+				m_Results.emplace_back(hit);
 		}
 		return true;
 	}
@@ -500,7 +495,7 @@ namespace Eagle
 		if (m_IgnoredEntities && actor->userData)
 		{
 			PhysicsActor* myActor = (PhysicsActor*)actor->userData;
-			if (m_IgnoredEntities->count(myActor->GetEntity()))
+			if (m_IgnoredEntities->count(myActor->GetEntity().GetGUID()))
 				return physx::PxQueryHitType::eNONE;
 		}
 

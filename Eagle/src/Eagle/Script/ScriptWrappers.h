@@ -180,15 +180,19 @@ namespace Eagle::Script
 	void Eagle_SkeletalMeshComponent_GetBoneWorldScale(GUID entityID, MonoString* monoName, glm::vec3* result);
 	void Eagle_SkeletalMeshComponent_SetRagdollCollisionVisible(GUID entityID, bool bVisible);
 
-	void Eagle_SkeletalMeshComponent_SetRagdollLinearVelocity(GUID entityID, const glm::vec3* velocity);
-	void Eagle_SkeletalMeshComponent_SetRagdollAngularVelocity(GUID entityID, const glm::vec3* velocity);
-	void Eagle_SkeletalMeshComponent_AddRagdollForce(GUID entityID, const glm::vec3* force, ForceMode forceMode);
-	void Eagle_SkeletalMeshComponent_AddRagdollTorque(GUID entityID, const glm::vec3* torque, ForceMode forceMode);
+	void Eagle_SkeletalMeshComponent_GetRagdollLinearVelocity(GUID entityID, glm::vec3* result);
+	void Eagle_SkeletalMeshComponent_GetRagdollAngularVelocity(GUID entityID, glm::vec3* result);
+	void Eagle_SkeletalMeshComponent_SetRagdollLinearVelocity(GUID entityID, const glm::vec3* velocity, bool bApplyToRootOnly);
+	void Eagle_SkeletalMeshComponent_SetRagdollAngularVelocity(GUID entityID, const glm::vec3* velocity, bool bApplyToRootOnly);
+	void Eagle_SkeletalMeshComponent_AddRagdollForce(GUID entityID, const glm::vec3* force, ForceMode forceMode, bool bApplyToRootOnly);
+	void Eagle_SkeletalMeshComponent_AddRagdollForceAtLocation(GUID entityID, const glm::vec3* location, const glm::vec3* force, ForceMode forceMode, bool bApplyToRootOnly);
+	void Eagle_SkeletalMeshComponent_AddRagdollTorque(GUID entityID, const glm::vec3* torque, ForceMode forceMode, bool bApplyToRootOnly);
 	void Eagle_SkeletalMeshComponent_SetRagdollBoneLinearVelocity(GUID entityID, MonoString* boneName, const glm::vec3* velocity);
 	void Eagle_SkeletalMeshComponent_SetRagdollBoneAngularVelocity(GUID entityID, MonoString* boneName, const glm::vec3* velocity);
 	void Eagle_SkeletalMeshComponent_GetRagdollBoneLinearVelocity(GUID entityID, MonoString* boneName, glm::vec3* outVelocity);
 	void Eagle_SkeletalMeshComponent_GetRagdollBoneAngularVelocity(GUID entityID, MonoString* boneName, glm::vec3* outVelocity);
 	void Eagle_SkeletalMeshComponent_AddRagdollBoneForce(GUID entityID, MonoString* boneName, const glm::vec3* force, ForceMode forceMode);
+	void Eagle_SkeletalMeshComponent_AddRagdollBoneForceAtLocation(GUID entityID, MonoString* boneName, const glm::vec3* location, const glm::vec3* force, ForceMode forceMode);
 	void Eagle_SkeletalMeshComponent_AddRagdollBoneTorque(GUID entityID, MonoString* boneName, const glm::vec3* torque, ForceMode forceMode);
 	void Eagle_SkeletalMeshComponent_PutRagdollToSleep(GUID entityID);
 	void Eagle_SkeletalMeshComponent_WakeUpRagdoll(GUID entityID);
@@ -296,6 +300,7 @@ namespace Eagle::Script
 	void Eagle_RigidBodyComponent_WakeUp(GUID entityID);
 	void Eagle_RigidBodyComponent_PutToSleep(GUID entityID);
 	void Eagle_RigidBodyComponent_AddForce(GUID entityID, const glm::vec3* force, ForceMode forceMode);
+	void Eagle_RigidBodyComponent_AddForceAtLocation(GUID entityID, const glm::vec3* location, const glm::vec3* force, ForceMode forceMode);
 	void Eagle_RigidBodyComponent_AddTorque(GUID entityID, const glm::vec3* force, ForceMode forceMode);
 	void Eagle_RigidBodyComponent_GetLinearVelocity(GUID entityID, glm::vec3* result);
 	void Eagle_RigidBodyComponent_SetLinearVelocity(GUID entityID, const glm::vec3* velocity);
@@ -599,6 +604,9 @@ namespace Eagle::Script
 	void Eagle_Scene_OpenScene(GUID assetID);
 	void Eagle_Scene_QuitGame();
 	bool Eagle_Scene_Raycast(const glm::vec3* origin, const glm::vec3* dir, float maxDistance, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore, MonoObject** outHitEntity, glm::vec3* outPosition, glm::vec3* outNormal, float* outDistance);
+	MonoArray* Eagle_Scene_OverlapBox(const Transform* transform, const glm::vec3* boxHalfSize, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore);
+	MonoArray* Eagle_Scene_OverlapCapsule(const Transform* transform, float radius, float halfHeight, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore);
+	MonoArray* Eagle_Scene_OverlapSphere(const Transform* transform, float radius, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore);
 	void Eagle_Scene_SetGravity(const glm::vec3* gravity);
 	void Eagle_Scene_GetGravity(glm::vec3* gravity);
 	MonoArray* Eagle_Scene_GetAllEntitiesWithComponent(void* type);

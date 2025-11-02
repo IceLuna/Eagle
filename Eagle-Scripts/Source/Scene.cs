@@ -19,21 +19,26 @@ namespace Eagle
 
         public static bool Raycast(Vector3 origin, Vector3 dir, float maxDistance, out RaycastHit outHit, PhysicsQueryType query = PhysicsQueryType.Default, CollisionGroup collisionGroup = CollisionGroup.Any, Entity[] entitiesToIgnore = null)
         {
-            GUID guid = GUID.Null();
-            outHit = new RaycastHit();
+            GUID[] entityGUIDsToIgnore = GetEntityGUIDs(entitiesToIgnore);
+            return Raycast_Native(ref origin, ref dir, maxDistance, query, collisionGroup, entityGUIDsToIgnore, out outHit.HitEntity, out outHit.Position, out outHit.Normal, out outHit.Distance);
+        }
 
-            GUID[] entityGUIDsToIgnore = null;
-            if (entitiesToIgnore != null)
-            {
-                entityGUIDsToIgnore = new GUID[entitiesToIgnore.Length];
-                for (int i = 0; i < entitiesToIgnore.Length; ++i)
-                {
-                    entityGUIDsToIgnore[i] = entitiesToIgnore[i].ID;
-                }
-            }
+        public static Entity[] OverlapBox(Transform transform, Vector3 boxHalfSize, PhysicsQueryType query = PhysicsQueryType.Default, CollisionGroup collisionGroup = CollisionGroup.Any, Entity[] entitiesToIgnore = null)
+        {
+            GUID[] entityGUIDsToIgnore = GetEntityGUIDs(entitiesToIgnore);
+            return OverlapBox_Native(ref transform, ref boxHalfSize, query, collisionGroup, entityGUIDsToIgnore);
+        }
 
-            bool bHit = Raycast_Native(ref origin, ref dir, maxDistance, query, collisionGroup, entityGUIDsToIgnore, out outHit.HitEntity, out outHit.Position, out outHit.Normal, out outHit.Distance);
-            return bHit;
+        public static Entity[] OverlapCapsule(Transform transform, float radius, float halfHeight, PhysicsQueryType query = PhysicsQueryType.Default, CollisionGroup collisionGroup = CollisionGroup.Any, Entity[] entitiesToIgnore = null)
+        {
+            GUID[] entityGUIDsToIgnore = GetEntityGUIDs(entitiesToIgnore);
+            return OverlapCapsule_Native(ref transform, radius, halfHeight, query, collisionGroup, entityGUIDsToIgnore);
+        }
+
+        public static Entity[] OverlapSphere(Transform transform, float radius, PhysicsQueryType query = PhysicsQueryType.Default, CollisionGroup collisionGroup = CollisionGroup.Any, Entity[] entitiesToIgnore = null)
+        {
+            GUID[] entityGUIDsToIgnore = GetEntityGUIDs(entitiesToIgnore);
+            return OverlapSphere_Native(ref transform, radius, query, collisionGroup, entityGUIDsToIgnore);
         }
 
         public static void SetGravity(Vector3 gravity)
@@ -72,6 +77,21 @@ namespace Eagle
             return new Entity(SpawnParticleSystem_Native(name, ref worldTransform, ps == null ? GUID.Null() : ps.GetGUID(), bAutoDestroy));
         }
 
+        private static GUID[] GetEntityGUIDs(Entity[] entitiesToIgnore)
+        {
+            GUID[] entityGUIDs= null;
+            if (entitiesToIgnore != null)
+            {
+                entityGUIDs = new GUID[entitiesToIgnore.Length];
+                for (int i = 0; i < entitiesToIgnore.Length; ++i)
+                {
+                    entityGUIDs[i] = entitiesToIgnore[i].ID;
+                }
+            }
+
+            return entityGUIDs;
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void OpenScene_Native(GUID assetID);
 
@@ -80,6 +100,15 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern bool Raycast_Native(ref Vector3 origin, ref Vector3 dir, float maxDistance, PhysicsQueryType query, CollisionGroup group, GUID[] entitiesToIgnore, out Entity hitEntity, out Vector3 position, out Vector3 normal, out float distance);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern Entity[] OverlapBox_Native(ref Transform transform, ref Vector3 boxHalfSize, PhysicsQueryType query, CollisionGroup collisionGroup, GUID[] entitiesToIgnore);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern Entity[] OverlapCapsule_Native(ref Transform transform, float radius, float halfHeight, PhysicsQueryType query, CollisionGroup collisionGroup, GUID[] entitiesToIgnore);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern Entity[] OverlapSphere_Native(ref Transform transform, float radius, PhysicsQueryType query, CollisionGroup collisionGroup, GUID[] entitiesToIgnore);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetGravity_Native(ref Vector3 gravity);

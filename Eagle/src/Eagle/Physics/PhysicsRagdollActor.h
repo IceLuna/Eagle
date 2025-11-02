@@ -31,11 +31,16 @@ namespace Eagle
 		void SetShowCollision(bool bShowCollision);
 		Transform GetBoneWorldTransform(const std::string& boneName) const;
 
-		// Update all bones
-		void SetLinearVelocity(const glm::vec3& velocity);
-		void SetAngularVelocity(const glm::vec3& velocity);
-		void AddForce(const glm::vec3& force, ForceMode forceMode);
-		void AddTorque(const glm::vec3& torque, ForceMode forceMode);
+		// @bApplyToRootOnly. If false, then all updates all ragdoll bones
+		void SetLinearVelocity(const glm::vec3& velocity, bool bApplyToRootOnly);
+		void SetAngularVelocity(const glm::vec3& velocity, bool bApplyToRootOnly);
+		void AddForce(const glm::vec3& force, ForceMode forceMode, bool bApplyToRootOnly);
+		void AddForceAtLocation(const glm::vec3& location, const glm::vec3& force, ForceMode forceMode, bool bApplyToRootOnly);
+		void AddTorque(const glm::vec3& torque, ForceMode forceMode, bool bApplyToRootOnly);
+
+		// Return velocity of the root bone
+		glm::vec3 GetLinearVelocity() const;
+		glm::vec3 GetAngularVelocity() const;
 
 		void SetBoneLinearVelocity(const std::string& boneName, const glm::vec3& velocity);
 		glm::vec3 GetBoneLinearVelocity(const std::string& boneName) const;
@@ -44,6 +49,7 @@ namespace Eagle
 		glm::vec3 GetBoneAngularVelocity(const std::string& boneName) const;
 
 		void AddBoneForce(const std::string& boneName, const glm::vec3& force, ForceMode forceMode);
+		void AddBoneForceAtLocation(const std::string& boneName, const glm::vec3& location, const glm::vec3& force, ForceMode forceMode);
 		void AddBoneTorque(const std::string& boneName, const glm::vec3& torque, ForceMode forceMode);
 
 		void PutToSleep();

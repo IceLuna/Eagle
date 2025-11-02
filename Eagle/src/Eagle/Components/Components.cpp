@@ -1027,22 +1027,22 @@ namespace Eagle
 		return {};
 	}
 
-	void SkeletalMeshComponent::SetRagdollLinearVelocity(const glm::vec3& velocity)
+	void SkeletalMeshComponent::SetRagdollLinearVelocity(const glm::vec3& velocity, bool bApplyToRootOnly)
 	{
 		if (m_RagdollActor)
 		{
-			m_RagdollActor->SetLinearVelocity(velocity);
+			m_RagdollActor->SetLinearVelocity(velocity, bApplyToRootOnly);
 			return;
 		}
 
 		EG_CORE_ERROR("Failed to call SkeletalMeshComponent::SetRagdollLinearVelocity. Ragdoll is null");
 	}
 
-	void SkeletalMeshComponent::SetRagdollAngularVelocity(const glm::vec3& velocity)
+	void SkeletalMeshComponent::SetRagdollAngularVelocity(const glm::vec3& velocity, bool bApplyToRootOnly)
 	{
 		if (m_RagdollActor)
 		{
-			m_RagdollActor->SetAngularVelocity(velocity);
+			m_RagdollActor->SetAngularVelocity(velocity, bApplyToRootOnly);
 			return;
 		}
 
@@ -1283,21 +1283,21 @@ namespace Eagle
 			switch (overlap.Shape->GetType())
 			{
 			case ColliderType::Box:
-				EG_CORE_ASSERT(overlap.EntityID.HasComponent<BoxColliderComponent>());
-				collider = &overlap.EntityID.GetComponent<BoxColliderComponent>();
+				EG_CORE_ASSERT(overlap.HitEntity.HasComponent<BoxColliderComponent>());
+				collider = &overlap.HitEntity.GetComponent<BoxColliderComponent>();
 				break;
 			case ColliderType::Sphere:
-				EG_CORE_ASSERT(overlap.EntityID.HasComponent<SphereColliderComponent>());
-				collider = &overlap.EntityID.GetComponent<SphereColliderComponent>();
+				EG_CORE_ASSERT(overlap.HitEntity.HasComponent<SphereColliderComponent>());
+				collider = &overlap.HitEntity.GetComponent<SphereColliderComponent>();
 				break;
 			case ColliderType::Capsule:
-				EG_CORE_ASSERT(overlap.EntityID.HasComponent<CapsuleColliderComponent>());
-				collider = &overlap.EntityID.GetComponent<CapsuleColliderComponent>();
+				EG_CORE_ASSERT(overlap.HitEntity.HasComponent<CapsuleColliderComponent>());
+				collider = &overlap.HitEntity.GetComponent<CapsuleColliderComponent>();
 				break;
 			case ColliderType::ConvexMesh:
 			case ColliderType::TriangleMesh:
-				EG_CORE_ASSERT(overlap.EntityID.HasComponent<MeshColliderComponent>());
-				collider = &overlap.EntityID.GetComponent<MeshColliderComponent>();
+				EG_CORE_ASSERT(overlap.HitEntity.HasComponent<MeshColliderComponent>());
+				collider = &overlap.HitEntity.GetComponent<MeshColliderComponent>();
 				break;
 			}
 

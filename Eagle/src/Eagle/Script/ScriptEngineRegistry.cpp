@@ -402,15 +402,19 @@ namespace Eagle
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetBoneWorldScale_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetBoneWorldScale);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetRagdollCollisionVisible_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetRagdollCollisionVisible);
 
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetRagdollLinearVelocity_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetRagdollLinearVelocity);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetRagdollAngularVelocity_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetRagdollAngularVelocity);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetRagdollLinearVelocity_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetRagdollLinearVelocity);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetRagdollAngularVelocity_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetRagdollAngularVelocity);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::AddRagdollForce_Native", Eagle::Script::Eagle_SkeletalMeshComponent_AddRagdollForce);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::AddRagdollForceAtLocation_Native", Eagle::Script::Eagle_SkeletalMeshComponent_AddRagdollForceAtLocation);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::AddRagdollTorque_Native", Eagle::Script::Eagle_SkeletalMeshComponent_AddRagdollTorque);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetRagdollBoneLinearVelocity_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetRagdollBoneLinearVelocity);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetRagdollBoneAngularVelocity_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetRagdollBoneAngularVelocity);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetRagdollBoneLinearVelocity_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetRagdollBoneLinearVelocity);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetRagdollBoneAngularVelocity_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetRagdollBoneAngularVelocity);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::AddRagdollBoneForce_Native", Eagle::Script::Eagle_SkeletalMeshComponent_AddRagdollBoneForce);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::AddRagdollBoneForceAtLocation_Native", Eagle::Script::Eagle_SkeletalMeshComponent_AddRagdollBoneForceAtLocation);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::AddRagdollBoneTorque_Native", Eagle::Script::Eagle_SkeletalMeshComponent_AddRagdollBoneTorque);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::PutRagdollToSleep_Native", Eagle::Script::Eagle_SkeletalMeshComponent_PutRagdollToSleep);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::WakeUpRagdoll_Native", Eagle::Script::Eagle_SkeletalMeshComponent_WakeUpRagdoll);
@@ -517,6 +521,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.RigidBodyComponent::WakeUp_Native", Eagle::Script::Eagle_RigidBodyComponent_WakeUp);
 		mono_add_internal_call("Eagle.RigidBodyComponent::PutToSleep_Native", Eagle::Script::Eagle_RigidBodyComponent_PutToSleep);
 		mono_add_internal_call("Eagle.RigidBodyComponent::AddForce_Native", Eagle::Script::Eagle_RigidBodyComponent_AddForce);
+		mono_add_internal_call("Eagle.RigidBodyComponent::AddForceAtLocation_Native", Eagle::Script::Eagle_RigidBodyComponent_AddForceAtLocation);
 		mono_add_internal_call("Eagle.RigidBodyComponent::AddTorque_Native", Eagle::Script::Eagle_RigidBodyComponent_AddTorque);
 		mono_add_internal_call("Eagle.RigidBodyComponent::GetLinearVelocity_Native", Eagle::Script::Eagle_RigidBodyComponent_GetLinearVelocity);
 		mono_add_internal_call("Eagle.RigidBodyComponent::SetLinearVelocity_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLinearVelocity);
@@ -733,6 +738,9 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Scene::OpenScene_Native", Eagle::Script::Eagle_Scene_OpenScene);
 		mono_add_internal_call("Eagle.Scene::QuitGame_Native", Eagle::Script::Eagle_Scene_QuitGame);
 		mono_add_internal_call("Eagle.Scene::Raycast_Native", Eagle::Script::Eagle_Scene_Raycast);
+		mono_add_internal_call("Eagle.Scene::OverlapBox_Native", Eagle::Script::Eagle_Scene_OverlapBox);
+		mono_add_internal_call("Eagle.Scene::OverlapCapsule_Native", Eagle::Script::Eagle_Scene_OverlapCapsule);
+		mono_add_internal_call("Eagle.Scene::OverlapSphere_Native", Eagle::Script::Eagle_Scene_OverlapSphere);
 		mono_add_internal_call("Eagle.Scene::SetGravity_Native", Eagle::Script::Eagle_Scene_SetGravity);
 		mono_add_internal_call("Eagle.Scene::GetGravity_Native", Eagle::Script::Eagle_Scene_GetGravity);
 		mono_add_internal_call("Eagle.Scene::GetAllEntitiesWithComponent_Native", Eagle::Script::Eagle_Scene_GetAllEntitiesWithComponent);

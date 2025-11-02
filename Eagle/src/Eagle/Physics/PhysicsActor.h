@@ -43,6 +43,7 @@ namespace Eagle
 		void SetMass(float mass);
 
 		void AddForce(const glm::vec3& force, ForceMode forceMode);
+		void AddForceAtLocation(const glm::vec3& location, const glm::vec3& force, ForceMode forceMode);
 		void AddTorque(const glm::vec3& torque, ForceMode forceMode);
 
 		glm::vec3 GetLinearVelocity() const;

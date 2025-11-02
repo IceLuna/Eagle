@@ -2447,7 +2447,45 @@ namespace Eagle
 		entity.GetComponent<SkeletalMeshComponent>().SetShowRagdollCollision(bVisible);
 	}
 
-	void Script::Eagle_SkeletalMeshComponent_SetRagdollLinearVelocity(GUID entityID, const glm::vec3* velocity)
+	void Script::Eagle_SkeletalMeshComponent_GetRagdollLinearVelocity(GUID entityID, glm::vec3* result)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetRagdollLinearVelocity' for skeletal mesh. Entity is null");
+			return;
+		}
+		if (auto& ragdoll = entity.GetComponent<SkeletalMeshComponent>().GetRagdollActor())
+		{
+			*result = ragdoll->GetLinearVelocity();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetRagdollLinearVelocity' for skeletal mesh. There's no ragdoll");
+		}
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_GetRagdollAngularVelocity(GUID entityID, glm::vec3* result)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetRagdollAngularVelocity' for skeletal mesh. Entity is null");
+			return;
+		}
+		if (auto& ragdoll = entity.GetComponent<SkeletalMeshComponent>().GetRagdollActor())
+		{
+			*result = ragdoll->GetAngularVelocity();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetRagdollAngularVelocity' for skeletal mesh. There's no ragdoll");
+		}
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_SetRagdollLinearVelocity(GUID entityID, const glm::vec3* velocity, bool bApplyToRootOnly)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2457,10 +2495,10 @@ namespace Eagle
 			return;
 		}
 
-		entity.GetComponent<SkeletalMeshComponent>().SetRagdollLinearVelocity(*velocity);
+		entity.GetComponent<SkeletalMeshComponent>().SetRagdollLinearVelocity(*velocity, bApplyToRootOnly);
 	}
 
-	void Script::Eagle_SkeletalMeshComponent_SetRagdollAngularVelocity(GUID entityID, const glm::vec3* velocity)
+	void Script::Eagle_SkeletalMeshComponent_SetRagdollAngularVelocity(GUID entityID, const glm::vec3* velocity, bool bApplyToRootOnly)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2470,10 +2508,10 @@ namespace Eagle
 			return;
 		}
 
-		entity.GetComponent<SkeletalMeshComponent>().SetRagdollAngularVelocity(*velocity);
+		entity.GetComponent<SkeletalMeshComponent>().SetRagdollAngularVelocity(*velocity, bApplyToRootOnly);
 	}
 
-	void Script::Eagle_SkeletalMeshComponent_AddRagdollForce(GUID entityID, const glm::vec3* force, ForceMode forceMode)
+	void Script::Eagle_SkeletalMeshComponent_AddRagdollForce(GUID entityID, const glm::vec3* force, ForceMode forceMode, bool bApplyToRootOnly)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2484,7 +2522,7 @@ namespace Eagle
 		}
 		if (auto& ragdoll = entity.GetComponent<SkeletalMeshComponent>().GetRagdollActor())
 		{
-			ragdoll->AddForce(*force, forceMode);
+			ragdoll->AddForce(*force, forceMode, bApplyToRootOnly);
 		}
 		else
 		{
@@ -2492,7 +2530,26 @@ namespace Eagle
 		}
 	}
 
-	void Script::Eagle_SkeletalMeshComponent_AddRagdollTorque(GUID entityID, const glm::vec3* torque, ForceMode forceMode)
+	void Script::Eagle_SkeletalMeshComponent_AddRagdollForceAtLocation(GUID entityID, const glm::vec3* location, const glm::vec3* force, ForceMode forceMode, bool bApplyToRootOnly)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'AddRagdollForceAtLocation' for skeletal mesh. Entity is null");
+			return;
+		}
+		if (auto& ragdoll = entity.GetComponent<SkeletalMeshComponent>().GetRagdollActor())
+		{
+			ragdoll->AddForceAtLocation(*location, *force, forceMode, bApplyToRootOnly);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'AddRagdollForceAtLocation' for skeletal mesh. There's no ragdoll");
+		}
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_AddRagdollTorque(GUID entityID, const glm::vec3* torque, ForceMode forceMode, bool bApplyToRootOnly)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2504,7 +2561,7 @@ namespace Eagle
 
 		if (auto& ragdoll = entity.GetComponent<SkeletalMeshComponent>().GetRagdollActor())
 		{
-			ragdoll->AddTorque(*torque, forceMode);
+			ragdoll->AddTorque(*torque, forceMode, bApplyToRootOnly);
 		}
 		else
 		{
@@ -2581,6 +2638,26 @@ namespace Eagle
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'AddRagdollBoneForce' for skeletal mesh. There's no ragdoll");
+		}
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_AddRagdollBoneForceAtLocation(GUID entityID, MonoString* boneName, const glm::vec3* location, const glm::vec3* force, ForceMode forceMode)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'AddRagdollBoneForceAtLocation' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		if (auto& ragdoll = entity.GetComponent<SkeletalMeshComponent>().GetRagdollActor())
+		{
+			ragdoll->AddBoneForceAtLocation(MonoStringHandler(boneName).c_str(), *location, *force, forceMode);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'AddRagdollBoneForceAtLocation' for skeletal mesh. There's no ragdoll");
 		}
 	}
 
@@ -3753,10 +3830,34 @@ namespace Eagle
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
-			auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			auto& physicsActor = entity.GetPhysicsActor();
 			if (physicsActor)
 			{
 				return physicsActor->AddForce(*force, forceMode);
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't add force to Entity. It's not a physics actor: {}", entity.GetName());
+				return;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't add force to Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_AddForceAtLocation(GUID entityID, const glm::vec3* location, const glm::vec3* force, ForceMode forceMode)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			auto& physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				return physicsActor->AddForceAtLocation(*location, *force, forceMode);
 			}
 			else
 			{
@@ -7319,24 +7420,26 @@ namespace Eagle
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		const auto& physicsScene = scene->GetPhysicsScene();
-		std::set<Entity> entitiesToIgnore;
+
+		RaycastHit hit{};
+		bool bHit = false;
 
 		if (monoEntitiesToIgnore)
 		{
+			std::set<GUID> entitiesToIgnore;
 			const uint32_t length = (uint32_t)mono_array_length(monoEntitiesToIgnore);
 			for (uint32_t i = 0; i < length; ++i)
 			{
 				GUID entityGUID = mono_array_get(monoEntitiesToIgnore, GUID, i);
-				Entity entity = scene->GetEntityByGUID(entityGUID);
-				if (entity)
-				{
-					entitiesToIgnore.emplace(entity);
-				}
+				entitiesToIgnore.emplace(entityGUID);
 			}
+			bHit = physicsScene->Raycast(*origin, *dir, maxDistance, query, collisionGroup, &hit, &entitiesToIgnore);
+		}
+		else
+		{
+			bHit = physicsScene->Raycast(*origin, *dir, maxDistance, query, collisionGroup, &hit);
 		}
 
-		RaycastHit hit{};
-		const bool bHit = physicsScene->Raycast(*origin, *dir, maxDistance, query, collisionGroup, &hit, entitiesToIgnore);
 
 		*outHitEntity = hit.HitEntity ? ScriptEngine::GetEntityMonoObject(hit.HitEntity) : nullptr;
 		*outPosition = hit.Position;
@@ -7344,6 +7447,105 @@ namespace Eagle
 		*outDistance = hit.Distance;
 
 		return bHit;
+	}
+
+	MonoArray* Script::Eagle_Scene_OverlapBox(const Transform* transform, const glm::vec3* boxHalfSize, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& physicsScene = scene->GetPhysicsScene();
+
+		QueryHits hits;
+		if (monoEntitiesToIgnore)
+		{
+			std::set<GUID> entitiesToIgnore;
+			const uint32_t length = (uint32_t)mono_array_length(monoEntitiesToIgnore);
+			for (uint32_t i = 0; i < length; ++i)
+			{
+				GUID entityGUID = mono_array_get(monoEntitiesToIgnore, GUID, i);
+				entitiesToIgnore.emplace(entityGUID);
+			}
+			hits = physicsScene->OverlapBox(*transform, *boxHalfSize, query, collisionGroup, &entitiesToIgnore);
+		}
+		else
+		{
+			hits = physicsScene->OverlapBox(*transform, *boxHalfSize, query, collisionGroup);
+		}
+
+		MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetEntityClass(), hits.size());
+		size_t index = 0;
+		for (auto& hit : hits)
+		{
+			MonoObject* obj = ScriptEngine::GetEntityMonoObject(hit.HitEntity);
+			mono_array_set(result, MonoObject*, index++, obj);
+		}
+
+		return result;
+	}
+
+	MonoArray* Script::Eagle_Scene_OverlapCapsule(const Transform* transform, float radius, float halfHeight, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& physicsScene = scene->GetPhysicsScene();
+
+		QueryHits hits;
+		if (monoEntitiesToIgnore)
+		{
+			std::set<GUID> entitiesToIgnore;
+			const uint32_t length = (uint32_t)mono_array_length(monoEntitiesToIgnore);
+			for (uint32_t i = 0; i < length; ++i)
+			{
+				GUID entityGUID = mono_array_get(monoEntitiesToIgnore, GUID, i);
+				entitiesToIgnore.emplace(entityGUID);
+			}
+			hits = physicsScene->OverlapCapsule(*transform, radius, halfHeight, query, collisionGroup, &entitiesToIgnore);
+		}
+		else
+		{
+			hits = physicsScene->OverlapCapsule(*transform, radius, halfHeight, query, collisionGroup);
+		}
+
+		MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetEntityClass(), hits.size());
+		size_t index = 0;
+		for (auto& hit : hits)
+		{
+			MonoObject* obj = ScriptEngine::GetEntityMonoObject(hit.HitEntity);
+			mono_array_set(result, MonoObject*, index++, obj);
+		}
+
+		return result;
+	}
+
+	MonoArray* Script::Eagle_Scene_OverlapSphere(const Transform* transform, float radius, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& physicsScene = scene->GetPhysicsScene();
+
+		QueryHits hits;
+		if (monoEntitiesToIgnore)
+		{
+			std::set<GUID> entitiesToIgnore;
+			const uint32_t length = (uint32_t)mono_array_length(monoEntitiesToIgnore);
+			for (uint32_t i = 0; i < length; ++i)
+			{
+				GUID entityGUID = mono_array_get(monoEntitiesToIgnore, GUID, i);
+				entitiesToIgnore.emplace(entityGUID);
+			}
+			hits = physicsScene->OverlapSphere(*transform, radius, query, collisionGroup, &entitiesToIgnore);
+		}
+		else
+		{
+			hits = physicsScene->OverlapSphere(*transform, radius, query, collisionGroup);
+		}
+
+		MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetEntityClass(), hits.size());
+		size_t index = 0;
+		for (auto& hit : hits)
+		{
+			MonoObject* obj = ScriptEngine::GetEntityMonoObject(hit.HitEntity);
+			mono_array_set(result, MonoObject*, index++, obj);
+		}
+
+		return result;
 	}
 
 	void Script::Eagle_Scene_SetGravity(const glm::vec3* gravity)

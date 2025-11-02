@@ -23,37 +23,30 @@ namespace Eagle
 
 	struct SceneQueryHit
 	{
-		// The Entity Id of the body that was hit.
-		Entity EntityID;
+		// The Entity of the body that was hit.
+		Entity HitEntity;
 
 		// The shape on the body that was hit.
 		ColliderShape* Shape = nullptr;
 		
 		const physx::PxRigidActor* Body = nullptr;
 
-		bool IsValid() const { return EntityID; }
+		bool IsValid() const { return HitEntity; }
 	};
 	using QueryHits = std::vector<SceneQueryHit>;
 
-	using UnboundedOverlapHitCallback = std::function<bool(std::optional<SceneQueryHit>&&)>;
-	struct BoxOverlapRequest
-	{
-		PhysicsQueryType Type = PhysicsQueryType::Static | PhysicsQueryType::Dynamic;
-		Transform Pose{};
-		glm::vec3 Dimension = glm::vec3(0.5f);
-		UnboundedOverlapHitCallback OverlapHitCallback = nullptr; // When not nullptr the request will perform an unbounded overlap query.
-	};
-
 	// Callback used to process unbounded overlap scene queries.
-	struct UnboundedOverlapCallback : public physx::PxHitCallback<physx::PxOverlapHit>
+	struct UnboundedOverlap : public physx::PxHitCallback<physx::PxOverlapHit>
 	{
+		UnboundedOverlap(QueryHits& hits);
+		
 		// physx::PxHitCallback<physx::PxOverlapHit> ...
 		physx::PxAgain processTouches(const physx::PxOverlapHit* buffer, physx::PxU32 numHits) override;
 
-		const UnboundedOverlapHitCallback& m_hitCallback;
-		QueryHits& m_results;
+		QueryHits& m_Results;
 
-		UnboundedOverlapCallback(const UnboundedOverlapHitCallback& hitCallback, std::vector<physx::PxOverlapHit>& hitBuffer, QueryHits& hits);
+	private:
+		physx::PxOverlapHit m_Hit{};
 	};
 
 	// Helper class, responsible for filtering invalid collision candidates prior to more expensive narrow phase checks
@@ -61,10 +54,10 @@ namespace Eagle
 	{
 	public:
 		PhysXQueryFilterCallback() = default;
-		PhysXQueryFilterCallback(physx::PxQueryHitType::Enum hitType, CollisionGroup group, const std::set<Entity>* entitiesToIgnore = nullptr)
+		PhysXQueryFilterCallback(physx::PxQueryHitType::Enum hitType, CollisionGroup group, const std::set<GUID>* entitiesToIgnore = nullptr)
 			: m_HitType(hitType)
 			, m_CollisionGroupMask(uint32_t(group))
-			, m_IgnoredEntities(entitiesToIgnore)
+			, m_IgnoredEntities((entitiesToIgnore && !entitiesToIgnore->empty()) ? entitiesToIgnore : nullptr)
 		{}
 
 		// Performs game specific entity filtering
@@ -81,7 +74,7 @@ namespace Eagle
 	private:
 		const uint32_t m_CollisionGroupMask = uint32_t(-1);
 		physx::PxQueryHitType::Enum m_HitType = physx::PxQueryHitType::eBLOCK;
-		const std::set<Entity>* m_IgnoredEntities;
+		const std::set<GUID>* m_IgnoredEntities;
 	};
 
 	class PhysXUtils

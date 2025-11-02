@@ -149,13 +149,13 @@ namespace Eagle
         m_SubstepSize = 1.f / m_Settings.UpdateRate;
     }
 
-    bool PhysicsScene::Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, PhysicsQueryType query, CollisionGroup collisionGroup, RaycastHit* outHit, const std::set<Entity>& ignoreList) const
+    bool PhysicsScene::Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, PhysicsQueryType query, CollisionGroup collisionGroup, RaycastHit* outHit, const std::set<GUID>* entitiesToIgnore) const
     {
         using namespace physx;
         const PxHitFlags hitFlags = PxHitFlag::ePOSITION | PxHitFlag::eNORMAL;
         PxRaycastBuffer hitInfo;
         
-        PhysXQueryFilterCallback filterCallback(physx::PxQueryHitType::eBLOCK, collisionGroup, ignoreList.empty() ? nullptr : &ignoreList);
+        PhysXQueryFilterCallback filterCallback(PxQueryHitType::eBLOCK, collisionGroup, entitiesToIgnore);
         bool bResult = m_Scene->raycast(PhysXUtils::ToPhysXVector(origin), PhysXUtils::ToPhysXVector(dir), maxDistance, hitInfo, hitFlags,
             PhysXUtils::GetPxQueryFilterData(query), &filterCallback);
 
@@ -174,19 +174,22 @@ namespace Eagle
         return bResult;
     }
     
-    bool PhysicsScene::OverlapBox(const glm::vec3& origin, const glm::vec3& halfSize, physx::PxOverlapHit& buffer, uint32_t& count) const
+    QueryHits PhysicsScene::OverlapBox(const Transform& transform, const glm::vec3& boxHalfSize, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore) const
     {
-        return OverlapGeometry(origin, physx::PxBoxGeometry(halfSize.x, halfSize.y, halfSize.z), buffer, count);
+        physx::PxBoxGeometry geometry(boxHalfSize.x, boxHalfSize.y, boxHalfSize.z);
+        return OverlapScene(geometry, PhysXUtils::ToPhysXTranform(transform), queryType, collisionGroup, entitiesToIgnore);
     }
-    
-    bool PhysicsScene::OverlapCapsule(const glm::vec3& origin, float radius, float halfHeight, physx::PxOverlapHit& buffer, uint32_t& count) const
+
+    QueryHits PhysicsScene::OverlapCapsule(const Transform& transform, float radius, float halfHeight, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore) const
     {
-        return OverlapGeometry(origin, physx::PxCapsuleGeometry(radius, halfHeight), buffer, count);
+        physx::PxCapsuleGeometry geometry(radius, halfHeight);
+        return OverlapScene(geometry, PhysXUtils::ToPhysXTranform(transform), queryType, collisionGroup, entitiesToIgnore);
     }
-    
-    bool PhysicsScene::OverlapSphere(const glm::vec3& origin, float radius, physx::PxOverlapHit& buffer, uint32_t& count) const
+
+    QueryHits PhysicsScene::OverlapSphere(const Transform& transform, float radius, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore) const
     {
-        return OverlapGeometry(origin, physx::PxSphereGeometry(radius), buffer, count);
+        physx::PxSphereGeometry geometry(radius);
+        return OverlapScene(geometry, PhysXUtils::ToPhysXTranform(transform), queryType, collisionGroup, entitiesToIgnore);
     }
 
     OverlapGeometryData PhysicsScene::CollectGeometry(const AABB& aabb)
@@ -282,47 +285,14 @@ namespace Eagle
         }
     }
     
-    bool PhysicsScene::OverlapGeometry(const glm::vec3& origin, const physx::PxGeometry& geometry, physx::PxOverlapHit& buffer, uint32_t& count) const
-    {
-        physx::PxOverlapBuffer buf(&buffer, 1);
-        physx::PxTransform pose = PhysXUtils::ToPhysXTranform(origin);
-
-        bool bResult = m_Scene->overlap(geometry, pose, buf);
-
-        if (bResult)
-        {
-            memcpy(&buffer, buf.touches, buf.nbTouches * sizeof(physx::PxOverlapHit));
-            count = buf.nbTouches;
-        }
-
-        return bResult;
-    }
-    
     QueryHits PhysicsScene::CollectCollidersWithinVolume(const AABB& volume)
     {
-        QueryHits hits;
-
-        UnboundedOverlapHitCallback unboundedOverlapHitCallback =
-            [&hits](std::optional<SceneQueryHit>&& hit)
-            {
-                if (hit && hit->IsValid())
-                {
-                    const SceneQueryHit& sceneQueryHit = *hit;
-                    hits.push_back(sceneQueryHit);
-                }
-
-                return true;
-            };
-
-        BoxOverlapRequest request;
-        request.Dimension = volume.Extents();
-        request.Pose = Transform(volume.Center());
-        request.Type = PhysicsQueryType::Static;
-        request.OverlapHitCallback = unboundedOverlapHitCallback;
+        Transform pose = volume.Center();
+        const glm::vec3 halfExtent = pose.Scale3D * volume.Extents() * 0.5f;
+        physx::PxBoxGeometry box = physx::PxBoxGeometry(PhysXUtils::ToPhysXVector(halfExtent));
 
         // results are in outHits
-        QueryScene(request);
-        return hits;
+        return OverlapScene(box, PhysXUtils::ToPhysXTranform(pose), PhysicsQueryType::Static, s_CollisionGroupAny);
     }
 
     OverlapGeometryData PhysicsScene::AppendColliderGeometry(const AABB& aabb, const QueryHits& overlapHits)
@@ -379,21 +349,15 @@ namespace Eagle
         return geometry;
     }
     
-    void PhysicsScene::QueryScene(const BoxOverlapRequest& request, CollisionGroup collisionGroup)
+    QueryHits PhysicsScene::OverlapScene(const physx::PxGeometry& geometry, const physx::PxTransform& pose, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore) const
     {
-        QueryHits hits;
-        m_OverlapBuffer.resize(64);
+        m_QueryHits.clear();
+        UnboundedOverlap callback(m_QueryHits);
+        PhysXQueryFilterCallback filterCallback(physx::PxQueryHitType::eTOUCH, collisionGroup, entitiesToIgnore);
+        const physx::PxQueryFilterData queryData = PhysXUtils::GetPxQueryFilterData(queryType);
+        m_Scene->overlap(geometry, pose, callback, queryData, &filterCallback);
 
-        // Prepare overlap data
-        const glm::vec3 halfExtent = request.Pose.Scale3D * request.Dimension * 0.5f;
-        physx::PxBoxGeometry box = physx::PxBoxGeometry(PhysXUtils::ToPhysXVector(halfExtent));
-        const physx::PxTransform pose = PhysXUtils::ToPhysXTranform(request.Pose);
-
-        UnboundedOverlapCallback callback(request.OverlapHitCallback, m_OverlapBuffer, hits);
-        PhysXQueryFilterCallback filterCallback(physx::PxQueryHitType::eTOUCH, collisionGroup);
-        const physx::PxQueryFilterData queryData = PhysXUtils::GetPxQueryFilterData(request.Type);
-
-        m_Scene->overlap(box, pose, callback, queryData, &filterCallback);
+        return m_QueryHits;
     }
 
     void PhysicsScene::StartDebugging()

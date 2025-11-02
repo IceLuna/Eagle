@@ -291,46 +291,73 @@ namespace Eagle
         return {};
     }
 
-    void PhysicsRagdollActor::SetLinearVelocity(const glm::vec3& velocity)
+    void PhysicsRagdollActor::SetLinearVelocity(const glm::vec3& velocity, bool bApplyToRootOnly)
     {
         const auto pxVel = PhysXUtils::ToPhysXVector(velocity);
         m_Root.Body->setLinearVelocity(pxVel);
-        for (auto& [_, body] : m_BonesMap)
+        if (!bApplyToRootOnly)
         {
-            body->setLinearVelocity(pxVel);
+            for (auto& [_, body] : m_BonesMap)
+                body->setLinearVelocity(pxVel);
         }
     }
 
-    void PhysicsRagdollActor::SetAngularVelocity(const glm::vec3& velocity)
+    void PhysicsRagdollActor::SetAngularVelocity(const glm::vec3& velocity, bool bApplyToRootOnly)
     {
         const auto pxVel = PhysXUtils::ToPhysXVector(velocity);
         m_Root.Body->setAngularVelocity(pxVel);
-        for (auto& [_, body] : m_BonesMap)
+        if (!bApplyToRootOnly)
         {
-            body->setAngularVelocity(pxVel);
+            for (auto& [_, body] : m_BonesMap)
+                body->setAngularVelocity(pxVel);
         }
     }
 
-    void PhysicsRagdollActor::AddForce(const glm::vec3& force, ForceMode forceMode)
+    void PhysicsRagdollActor::AddForce(const glm::vec3& force, ForceMode forceMode, bool bApplyToRootOnly)
     {
         const auto pxForce = PhysXUtils::ToPhysXVector(force);
         m_Root.Body->addForce(pxForce, (physx::PxForceMode::Enum)forceMode);
-        for (auto& [_, body] : m_BonesMap)
+        if (!bApplyToRootOnly)
         {
-            body->addForce(pxForce, (physx::PxForceMode::Enum)forceMode);
+            for (auto& [_, body] : m_BonesMap)
+                body->addForce(pxForce, (physx::PxForceMode::Enum)forceMode);
         }
     }
 
-    void PhysicsRagdollActor::AddTorque(const glm::vec3& torque, ForceMode forceMode)
+    void PhysicsRagdollActor::AddForceAtLocation(const glm::vec3& location, const glm::vec3& force, ForceMode forceMode, bool bApplyToRootOnly)
+    {
+        const auto pxLocation = PhysXUtils::ToPhysXVector(location);
+        const auto pxForce = PhysXUtils::ToPhysXVector(force);
+
+        physx::PxRigidBodyExt::addForceAtPos(*m_Root.Body, pxForce, pxLocation, (physx::PxForceMode::Enum)forceMode);
+        if (!bApplyToRootOnly)
+        {
+            for (auto& [_, body] : m_BonesMap)
+                physx::PxRigidBodyExt::addForceAtPos(*body, pxForce, pxLocation, (physx::PxForceMode::Enum)forceMode);
+        }
+    }
+
+    void PhysicsRagdollActor::AddTorque(const glm::vec3& torque, ForceMode forceMode, bool bApplyToRootOnly)
     {
         const auto pxTorque = PhysXUtils::ToPhysXVector(torque);
         m_Root.Body->addTorque(pxTorque, (physx::PxForceMode::Enum)forceMode);
-        for (auto& [_, body] : m_BonesMap)
+        if (!bApplyToRootOnly)
         {
-            body->addTorque(pxTorque, (physx::PxForceMode::Enum)forceMode);
+            for (auto& [_, body] : m_BonesMap)
+                body->addTorque(pxTorque, (physx::PxForceMode::Enum)forceMode);
         }
     }
     
+    glm::vec3 PhysicsRagdollActor::GetLinearVelocity() const
+    {
+        return PhysXUtils::FromPhysXVector(m_Root.Body->getLinearVelocity());
+    }
+    
+    glm::vec3 PhysicsRagdollActor::GetAngularVelocity() const
+    {
+        return PhysXUtils::FromPhysXVector(m_Root.Body->getAngularVelocity());
+    }
+
     void PhysicsRagdollActor::SetBoneLinearVelocity(const std::string& boneName, const glm::vec3& velocity)
     {
         if (auto it = m_BonesMap.find(boneName); it != m_BonesMap.end())
@@ -361,6 +388,12 @@ namespace Eagle
     {
         if (auto it = m_BonesMap.find(boneName); it != m_BonesMap.end())
             it->second->addForce(PhysXUtils::ToPhysXVector(force), (physx::PxForceMode::Enum)forceMode);
+    }
+
+    void PhysicsRagdollActor::AddBoneForceAtLocation(const std::string& boneName, const glm::vec3& location, const glm::vec3& force, ForceMode forceMode)
+    {
+        if (auto it = m_BonesMap.find(boneName); it != m_BonesMap.end())
+            physx::PxRigidBodyExt::addForceAtPos(*(it->second), PhysXUtils::ToPhysXVector(force), PhysXUtils::ToPhysXVector(location), (physx::PxForceMode::Enum)forceMode);
     }
 
     void PhysicsRagdollActor::AddBoneTorque(const std::string& boneName, const glm::vec3& torque, ForceMode forceMode)

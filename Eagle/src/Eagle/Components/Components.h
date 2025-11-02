@@ -661,8 +661,8 @@ namespace Eagle
 		Transform GetRagdollBoneWorldTransform(const std::string& name) const;
 
 		// Update all bones
-		void SetRagdollLinearVelocity(const glm::vec3& velocity);
-		void SetRagdollAngularVelocity(const glm::vec3& velocity);
+		void SetRagdollLinearVelocity(const glm::vec3& velocity, bool bApplyToRootOnly);
+		void SetRagdollAngularVelocity(const glm::vec3& velocity, bool bApplyToRootOnly);
 
 		void SetRagdollBoneLinearVelocity(const std::string& boneName, const glm::vec3& velocity);
 		void SetRagdollBoneAngularVelocity(const std::string& boneName, const glm::vec3& velocity);

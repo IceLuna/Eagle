@@ -45,10 +45,10 @@ namespace Eagle
 
 		float GetSimulationTimeStep() const { return m_SubstepSize; }
 
-		bool Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, PhysicsQueryType query, CollisionGroup collisionGroup, RaycastHit* outHit, const std::set<Entity>& ignoreList = {}) const;
-		bool OverlapBox(const glm::vec3& origin, const glm::vec3& halfSize, physx::PxOverlapHit& buffer, uint32_t& count) const;
-		bool OverlapCapsule(const glm::vec3& origin, float radius, float halfHeight, physx::PxOverlapHit& buffer, uint32_t& count) const;
-		bool OverlapSphere(const glm::vec3& origin, float radius, physx::PxOverlapHit& buffer, uint32_t& count) const;
+		bool Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, PhysicsQueryType query, CollisionGroup collisionGroup, RaycastHit* outHit, const std::set<GUID>* entitiesToIgnore = nullptr) const;
+		QueryHits OverlapBox(const Transform& transform, const glm::vec3& boxHalfSize, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore = nullptr) const;
+		QueryHits OverlapCapsule(const Transform& transform, float radius, float halfHeight, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore = nullptr) const;
+		QueryHits OverlapSphere(const Transform& transform, float radius, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore = nullptr) const;
 
 		bool IsValid() const { return m_Scene != nullptr; }
 
@@ -77,15 +77,14 @@ namespace Eagle
 
 		void Destroy();
 
-		bool OverlapGeometry(const glm::vec3& origin, const physx::PxGeometry& geometry, physx::PxOverlapHit& buffer, uint32_t& count) const;
-		void QueryScene(const BoxOverlapRequest& request, CollisionGroup collisionGroup = s_CollisionGroupAny);
+		QueryHits OverlapScene(const physx::PxGeometry& geometry, const physx::PxTransform& pose, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore = nullptr) const;
 
 	private:
 		PhysicsSettings m_Settings;
 		physx::PxScene* m_Scene = nullptr;
 		std::unordered_map<GUID, Ref<PhysicsActor>> m_Actors;
 		std::unordered_map<GUID, Ref<PhysicsRagdollActor>> m_RagdollActors;
-		std::vector<physx::PxOverlapHit> m_OverlapBuffer;
+		mutable QueryHits m_QueryHits; // Exists just to avoid allocations on every query
 		std::vector<uint32_t> m_BroadPhaseRegionHandles;
 
 		float m_SubstepSize = 1.f;

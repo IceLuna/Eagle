@@ -171,6 +171,25 @@ namespace Eagle
 		EG_CORE_ASSERT(actor, "No actor");
 		actor->addForce(PhysXUtils::ToPhysXVector(force), (physx::PxForceMode::Enum)forceMode);
 	}
+
+	void PhysicsActor::AddForceAtLocation(const glm::vec3& location, const glm::vec3& force, ForceMode forceMode)
+	{
+		if (!IsDynamic())
+		{
+			EG_CORE_WARN("[PhysicsEngine] Cannot add force to non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
+			return;
+		}
+		else if (m_Entity.GetComponent<RigidBodyComponent>().IsKinematic())
+		{
+			EG_CORE_WARN("[PhysicsEngine] Cannot add force to Kinamatic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
+			return;
+		}
+
+		physx::PxRigidDynamic* actor = m_RigidActor->is<physx::PxRigidDynamic>();
+		EG_CORE_ASSERT(actor, "No actor");
+
+		physx::PxRigidBodyExt::addForceAtPos(*actor, PhysXUtils::ToPhysXVector(force), PhysXUtils::ToPhysXVector(location), (physx::PxForceMode::Enum)forceMode);
+	}
 	
 	void PhysicsActor::AddTorque(const glm::vec3& torque, ForceMode forceMode)
 	{

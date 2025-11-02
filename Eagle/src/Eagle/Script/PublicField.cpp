@@ -257,15 +257,15 @@ namespace Eagle
 		if (Type != other.Type)
 			return false;
 
-		EG_CORE_ASSERT(m_StoredValueBuffer.Size() == other.m_StoredValueBuffer.Size());
+		const size_t arrayLength = std::min(ArrayLength, other.ArrayLength);
 		if (Type == FieldType::String)
 		{
-			for (size_t i = 0; i < ArrayLength; ++i)
+			for (size_t i = 0; i < arrayLength; ++i)
 				GetDataAsString(i) = other.GetDataAsString(i);
 		}
 		else
 		{
-			m_StoredValueBuffer.Write(other.m_StoredValueBuffer.Data(), other.m_StoredValueBuffer.Size());
+			m_StoredValueBuffer.Write(other.m_StoredValueBuffer.Data(), arrayLength * m_FieldSize);
 		}
 		return true;
 	}
