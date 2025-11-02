@@ -489,6 +489,21 @@ namespace Eagle
 		}
 		return true;
 	}
+
+	UniqueUnboundedOverlap::UniqueUnboundedOverlap(UniqueQueryHits& hits)
+		: m_Results(hits), physx::PxHitCallback<physx::PxOverlapHit>(&m_Hit, 1)
+	{}
+
+	physx::PxAgain UniqueUnboundedOverlap::processTouches(const physx::PxOverlapHit* buffer, physx::PxU32 numHits)
+	{
+		for (auto it = buffer; it != buffer + numHits; ++it)
+		{
+			const SceneQueryHit hit = GetHitFromPxOverlapHit(*it);
+			if (hit.IsValid())
+				m_Results.emplace(hit);
+		}
+		return true;
+	}
 	
 	physx::PxQueryHitType::Enum PhysXQueryFilterCallback::preFilter(const physx::PxFilterData& queryFilterData, const physx::PxShape* pxShape, const physx::PxRigidActor* actor, physx::PxHitFlags& queryTypes)
 	{

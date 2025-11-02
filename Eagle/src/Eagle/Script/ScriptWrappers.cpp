@@ -7454,7 +7454,7 @@ namespace Eagle
 		const auto& scene = Scene::GetCurrentScene();
 		const auto& physicsScene = scene->GetPhysicsScene();
 
-		QueryHits hits;
+		UniqueQueryHits hits;
 		if (monoEntitiesToIgnore)
 		{
 			std::set<GUID> entitiesToIgnore;
@@ -7487,7 +7487,7 @@ namespace Eagle
 		const auto& scene = Scene::GetCurrentScene();
 		const auto& physicsScene = scene->GetPhysicsScene();
 
-		QueryHits hits;
+		UniqueQueryHits hits;
 		if (monoEntitiesToIgnore)
 		{
 			std::set<GUID> entitiesToIgnore;
@@ -7520,7 +7520,7 @@ namespace Eagle
 		const auto& scene = Scene::GetCurrentScene();
 		const auto& physicsScene = scene->GetPhysicsScene();
 
-		QueryHits hits;
+		UniqueQueryHits hits;
 		if (monoEntitiesToIgnore)
 		{
 			std::set<GUID> entitiesToIgnore;

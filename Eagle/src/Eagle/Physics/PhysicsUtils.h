@@ -32,8 +32,14 @@ namespace Eagle
 		const physx::PxRigidActor* Body = nullptr;
 
 		bool IsValid() const { return HitEntity; }
+
+		bool operator< (const SceneQueryHit& other) const
+		{
+			return HitEntity < other.HitEntity;
+		}
 	};
 	using QueryHits = std::vector<SceneQueryHit>;
+	using UniqueQueryHits = std::set<SceneQueryHit>;
 
 	// Callback used to process unbounded overlap scene queries.
 	struct UnboundedOverlap : public physx::PxHitCallback<physx::PxOverlapHit>
@@ -44,6 +50,20 @@ namespace Eagle
 		physx::PxAgain processTouches(const physx::PxOverlapHit* buffer, physx::PxU32 numHits) override;
 
 		QueryHits& m_Results;
+
+	private:
+		physx::PxOverlapHit m_Hit{};
+	};
+
+	// Callback used to process unbounded overlap scene queries.
+	struct UniqueUnboundedOverlap : public physx::PxHitCallback<physx::PxOverlapHit>
+	{
+		UniqueUnboundedOverlap(UniqueQueryHits& hits);
+		
+		// physx::PxHitCallback<physx::PxOverlapHit> ...
+		physx::PxAgain processTouches(const physx::PxOverlapHit* buffer, physx::PxU32 numHits) override;
+
+		UniqueQueryHits& m_Results;
 
 	private:
 		physx::PxOverlapHit m_Hit{};

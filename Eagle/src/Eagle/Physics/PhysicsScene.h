@@ -46,9 +46,11 @@ namespace Eagle
 		float GetSimulationTimeStep() const { return m_SubstepSize; }
 
 		bool Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, PhysicsQueryType query, CollisionGroup collisionGroup, RaycastHit* outHit, const std::set<GUID>* entitiesToIgnore = nullptr) const;
-		QueryHits OverlapBox(const Transform& transform, const glm::vec3& boxHalfSize, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore = nullptr) const;
-		QueryHits OverlapCapsule(const Transform& transform, float radius, float halfHeight, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore = nullptr) const;
-		QueryHits OverlapSphere(const Transform& transform, float radius, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore = nullptr) const;
+
+		// These don't return the same entity multiple times per each collider
+		UniqueQueryHits OverlapBox(const Transform& transform, const glm::vec3& boxHalfSize, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore = nullptr) const;
+		UniqueQueryHits OverlapCapsule(const Transform& transform, float radius, float halfHeight, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore = nullptr) const;
+		UniqueQueryHits OverlapSphere(const Transform& transform, float radius, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore = nullptr) const;
 
 		bool IsValid() const { return m_Scene != nullptr; }
 
@@ -61,7 +63,6 @@ namespace Eagle
 		const physx::PxRenderBuffer& GetRenderBuffer() const { return m_Scene->getRenderBuffer(); }
 		const PhysicsSettings& GetSettings() const { return m_Settings; }
 
-		OverlapGeometryData CollectGeometry(const AABB& aabb);
 		QueryHits CollectCollidersWithinVolume(const AABB& volume);
 		OverlapGeometryData AppendColliderGeometry(const AABB& aabb, const QueryHits& overlapHits);
 
@@ -78,6 +79,8 @@ namespace Eagle
 		void Destroy();
 
 		QueryHits OverlapScene(const physx::PxGeometry& geometry, const physx::PxTransform& pose, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore = nullptr) const;
+		// Result doesn't contain the same entity per each collider
+		UniqueQueryHits OverlapScene_Unique(const physx::PxGeometry& geometry, const physx::PxTransform& pose, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore = nullptr) const;
 
 	private:
 		PhysicsSettings m_Settings;
@@ -85,6 +88,7 @@ namespace Eagle
 		std::unordered_map<GUID, Ref<PhysicsActor>> m_Actors;
 		std::unordered_map<GUID, Ref<PhysicsRagdollActor>> m_RagdollActors;
 		mutable QueryHits m_QueryHits; // Exists just to avoid allocations on every query
+		mutable UniqueQueryHits m_UniqueQueryHits; // Exists just to avoid allocations on every query
 		std::vector<uint32_t> m_BroadPhaseRegionHandles;
 
 		float m_SubstepSize = 1.f;

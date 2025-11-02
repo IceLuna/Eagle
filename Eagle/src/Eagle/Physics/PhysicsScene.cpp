@@ -174,28 +174,22 @@ namespace Eagle
         return bResult;
     }
     
-    QueryHits PhysicsScene::OverlapBox(const Transform& transform, const glm::vec3& boxHalfSize, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore) const
+    UniqueQueryHits PhysicsScene::OverlapBox(const Transform& transform, const glm::vec3& boxHalfSize, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore) const
     {
         physx::PxBoxGeometry geometry(boxHalfSize.x, boxHalfSize.y, boxHalfSize.z);
-        return OverlapScene(geometry, PhysXUtils::ToPhysXTranform(transform), queryType, collisionGroup, entitiesToIgnore);
+        return OverlapScene_Unique(geometry, PhysXUtils::ToPhysXTranform(transform), queryType, collisionGroup, entitiesToIgnore);
     }
 
-    QueryHits PhysicsScene::OverlapCapsule(const Transform& transform, float radius, float halfHeight, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore) const
+    UniqueQueryHits PhysicsScene::OverlapCapsule(const Transform& transform, float radius, float halfHeight, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore) const
     {
         physx::PxCapsuleGeometry geometry(radius, halfHeight);
-        return OverlapScene(geometry, PhysXUtils::ToPhysXTranform(transform), queryType, collisionGroup, entitiesToIgnore);
+        return OverlapScene_Unique(geometry, PhysXUtils::ToPhysXTranform(transform), queryType, collisionGroup, entitiesToIgnore);
     }
 
-    QueryHits PhysicsScene::OverlapSphere(const Transform& transform, float radius, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore) const
+    UniqueQueryHits PhysicsScene::OverlapSphere(const Transform& transform, float radius, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore) const
     {
         physx::PxSphereGeometry geometry(radius);
-        return OverlapScene(geometry, PhysXUtils::ToPhysXTranform(transform), queryType, collisionGroup, entitiesToIgnore);
-    }
-
-    OverlapGeometryData PhysicsScene::CollectGeometry(const AABB& aabb)
-    {
-        QueryHits results = CollectCollidersWithinVolume(aabb);
-        return AppendColliderGeometry(aabb, results);
+        return OverlapScene_Unique(geometry, PhysXUtils::ToPhysXTranform(transform), queryType, collisionGroup, entitiesToIgnore);
     }
 
     void PhysicsScene::CreateRegions()
@@ -290,8 +284,6 @@ namespace Eagle
         Transform pose = volume.Center();
         const glm::vec3 halfExtent = pose.Scale3D * volume.Extents() * 0.5f;
         physx::PxBoxGeometry box = physx::PxBoxGeometry(PhysXUtils::ToPhysXVector(halfExtent));
-
-        // results are in outHits
         return OverlapScene(box, PhysXUtils::ToPhysXTranform(pose), PhysicsQueryType::Static, s_CollisionGroupAny);
     }
 
@@ -358,6 +350,17 @@ namespace Eagle
         m_Scene->overlap(geometry, pose, callback, queryData, &filterCallback);
 
         return m_QueryHits;
+    }
+
+    UniqueQueryHits PhysicsScene::OverlapScene_Unique(const physx::PxGeometry& geometry, const physx::PxTransform& pose, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore) const
+    {
+        m_UniqueQueryHits.clear();
+        UniqueUnboundedOverlap callback(m_UniqueQueryHits);
+        PhysXQueryFilterCallback filterCallback(physx::PxQueryHitType::eTOUCH, collisionGroup, entitiesToIgnore);
+        const physx::PxQueryFilterData queryData = PhysXUtils::GetPxQueryFilterData(queryType);
+        m_Scene->overlap(geometry, pose, callback, queryData, &filterCallback);
+
+        return m_UniqueQueryHits;
     }
 
     void PhysicsScene::StartDebugging()

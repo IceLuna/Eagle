@@ -178,7 +178,9 @@ namespace Eagle
 
 		bool operator< (const Entity& other) const
 		{
-			return m_Entity < other.m_Entity;
+			if (m_Entity != other.m_Entity)
+				return m_Entity < other.m_Entity;
+			return m_Scene < other.m_Scene;
 		}
 	
 	public:
