@@ -35,6 +35,8 @@ namespace Eagle
 		bool DrawGuizmo(Transform& transform, bool bEnabled, bool bWorld = true);
 		int GetGuizmoType() const { return m_GuizmoType; }
 
+		void DrawOGuizmo();
+
 		void SetSimulationEnabled(bool bEnabled);
 
 		const Ref<Scene>& GetCurrentScene() const { return m_CurrentScene; }

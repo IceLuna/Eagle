@@ -9,6 +9,7 @@
 #include "Eagle/Components/Components.h"
 #include "Eagle/Camera/CameraController.h"
 #include "../EditorLayer.h"
+#include "../ImOGuizmo.h"
 
 #include <imgui/imgui_internal.h>
 #include <ImGuizmo/ImGuizmo.h>
@@ -83,6 +84,7 @@ namespace Eagle
 			bViewportHovered = ImGui::IsWindowHovered();
 			bViewportFocused = ImGui::IsWindowFocused();
 			HandleCameraFocus();
+			DrawOGuizmo();
 		}
 
 		OnViewportEnd();
@@ -141,6 +143,28 @@ namespace Eagle
 			bChanged = true;
 		}
 		return bChanged;
+	}
+
+	void AssetEditor::DrawOGuizmo()
+	{
+		if (!m_CurrentScene)
+			return;
+
+		auto& editorCamera = m_CurrentScene->GetEditorCamera();
+		glm::mat4 cameraProjection = editorCamera.GetProjection();
+		glm::mat4 cameraViewMatrix = editorCamera.GetViewMatrix();
+		cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
+
+		const float shortestSide = glm::min(m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
+
+		const float size = shortestSide * 0.1f; // Size is ~100 per 1000pixels
+		const float halfSize = size * 0.5f;
+		const float x = m_ViewportBounds[0].x + halfSize;
+		const float y = m_ViewportBounds[1].y - size * 1.5f;
+		if (ImOGuizmo::Render(x, y, size, glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection)))
+		{
+			editorCamera.SetTransform(Math::DecomposeTransformMatrix(glm::inverse(cameraViewMatrix)));
+		}
 	}
 
 	void AssetEditor::SetSimulationEnabled(bool bEnabled)

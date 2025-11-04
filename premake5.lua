@@ -33,6 +33,7 @@ IncludeDir["stb_image"] = "Eagle/vendor/stb_image"
 IncludeDir["entt"] = "Eagle/vendor/entt/include"
 IncludeDir["yaml_cpp"] = "Eagle/vendor/yaml-cpp/include"
 IncludeDir["ImGuizmo"] = "Eagle/vendor/ImGuizmo"
+IncludeDir["imoguizmo"] = "Eagle/vendor/imoguizmo"
 IncludeDir["assimp"] = "Eagle/vendor/assimp/include"
 IncludeDir["mono"] = "Eagle/vendor/mono/include"
 IncludeDir["PhysX"] = "Eagle/vendor/PhysX/include"
@@ -157,6 +158,8 @@ project "Eagle"
 		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.h",
 		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.cpp",
 
+		"%{prj.name}/vendor/imoguizmo/imoguizmo.hpp",
+
         "%{prj.name}/vendor/imgui/imgui_impl_vulkan.h",
 		"%{prj.name}/vendor/imgui/imgui_impl_vulkan.cpp",
 
@@ -178,6 +181,7 @@ project "Eagle"
 		"%{IncludeDir.entt}",
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.ImGuizmo}",
+		"%{IncludeDir.imoguizmo}",
 		"%{IncludeDir.assimp}",
 		"%{IncludeDir.mono}",
 		"%{IncludeDir.PhysX}",
@@ -388,6 +392,7 @@ project "Eagle-Editor"
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.entt}",
 		"%{IncludeDir.ImGuizmo}",
+		"%{IncludeDir.imoguizmo}",
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.ImGui}",
@@ -530,6 +535,7 @@ project "Eagle-Game"
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.entt}",
 		"%{IncludeDir.ImGuizmo}",
+		"%{IncludeDir.imoguizmo}",
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.ImGui}",

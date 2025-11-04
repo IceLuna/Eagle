@@ -9,6 +9,7 @@
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Debug/CPUTimings.h"
+#include "ImOGuizmo.h"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
@@ -727,7 +728,7 @@ namespace Eagle
 	}
 
 	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync,
-		bool bRenderOnlyWhenFocused, bool bDrawNavMesh, Key stopSimulationKey, bool bUpdateAnimationsInEditor, int guizmoMode)
+		bool bRenderOnlyWhenFocused, bool bDrawNavMesh, bool bDrawAxisGuizmo, Key stopSimulationKey, bool bUpdateAnimationsInEditor, int guizmoMode)
 	{
 		// Scene creation needs to go through this way of setting it up since we need to get Ref<Scene> immediately
 		m_EditorScene = MakeRef<Scene>("Editor Scene");
@@ -753,6 +754,7 @@ namespace Eagle
 		this->bRenderOnlyWhenFocused = bRenderOnlyWhenFocused;
 		this->bUpdateAnimationsInEditor = bUpdateAnimationsInEditor;
 		this->bDrawNavMesh = bDrawNavMesh;
+		this->bDrawAxisGuizmo = bDrawAxisGuizmo;
 		m_GuizmoMode = guizmoMode;
 		m_StopSimulationKey = stopSimulationKey;
 
@@ -864,6 +866,26 @@ namespace Eagle
 					bRelative ? selectedComponent->SetRelativeTransform(finalTransform) : selectedComponent->SetWorldTransform(finalTransform);
 				else
 					bRelative ? selectedEntity.SetRelativeTransform(finalTransform) : selectedEntity.SetWorldTransform(finalTransform);
+			}
+		}
+
+		// ImOGuizmo
+		if (m_EditorState == EditorState::Edit && bDrawAxisGuizmo)
+		{
+			auto& editorCamera = m_EditorScene->GetEditorCamera();
+			glm::mat4 cameraProjection = editorCamera.GetProjection();
+			glm::mat4 cameraViewMatrix = editorCamera.GetViewMatrix();
+			cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
+
+			const float shortestSide = glm::min(m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
+			const float size = shortestSide * 0.1f; // Size is ~100 per 1000pixels
+			const float halfSize = size * 0.5f;
+
+			const float x = m_ViewportBounds[0].x + halfSize;
+			const float y = m_ViewportBounds[1].y - size * 1.5f;
+			if (ImOGuizmo::Render(x, y, size, glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection)))
+			{
+				editorCamera.SetTransform(Math::DecomposeTransformMatrix(glm::inverse(cameraViewMatrix)));
 			}
 		}
 	}
@@ -2055,9 +2077,8 @@ namespace Eagle
 			UI::BeginPropertyGrid("EditorPreferences");
 
 			if (UI::ComboEnum("Guizmo Mode", guizmoMode))
-			{
 				m_GuizmoMode = guizmoMode;
-			}
+			UI::Property("Draw Axis Guizmo", bDrawAxisGuizmo);
 			UI::Property("Eco Rendering", bRenderOnlyWhenFocused, "If checked, the scene won't be rendered if the window is not in focus");
 			UI::Property("Update Animations", bUpdateAnimationsInEditor, "If checked, animations will be updated in the editor mode");
 			UI::Property("Draw Editor Miscellaneous", m_bDrawEditorMisc);
