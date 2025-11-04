@@ -162,8 +162,8 @@ namespace Eagle
         const std::string& GetName() const { return Graph ? UserData : Name; }
         std::string& GetName() { return Graph ? UserData : Name; }
 
-        bool CanAddPins() const { return m_CanAddPinsCallback ? m_CanAddPinsCallback(*this) : true; }
-        bool CanRemovePins() const { return m_CanRemovePinsCallback ? m_CanRemovePinsCallback(*this) : true; }
+        bool CanAddPins() const { return m_CanAddPinsCallback ? m_CanAddPinsCallback(*this) : false; }
+        bool CanRemovePins() const { return m_CanRemovePinsCallback ? m_CanRemovePinsCallback(*this) : false; }
 
         bool HasAddPinsCallback() const { return m_AddPinsCallback.operator bool(); }
         bool HasRemovePinsCallback() const { return m_RemovePinsCallback.operator bool(); }

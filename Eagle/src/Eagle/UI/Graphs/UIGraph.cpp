@@ -1618,6 +1618,28 @@ namespace Eagle
             cursorPosUnderInputs = ImGui::GetCursorPos();
         }
 
+        const bool bCanAddPins = node.CanAddPins();
+        if (bCanAddPins)
+        {
+            if (ImGui::Button("Add Pins"))
+                node.OnAddPins();
+        }
+        if (node.HasRemovePinsCallback())
+        {
+            if (bCanAddPins)
+                ImGui::SameLine();
+
+            const bool bDisable = !node.CanRemovePins();
+            if (bDisable)
+                UI::PushItemDisabled();
+
+            if (ImGui::Button("Remove Pins"))
+                node.OnRemovePins();
+
+            if (bDisable)
+                UI::PopItemDisabled();
+        }
+
         if (isSimple)
         {
             const std::string& name = node.GetName();

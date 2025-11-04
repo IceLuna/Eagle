@@ -542,6 +542,11 @@ This kind of transitional blend works well when the two clips/poses are unrelate
             graph.BuildNode(node);
         });
 
+        node.SetCanAddPinsCallback([](const Node& node)
+        {
+            return true;
+        });
+
         node.SetCanRemovePinsCallback([](const Node& node)
         {
             const uint32_t poseIndex = ((uint32_t)node.InputPins.size() - 1) / 2;
@@ -660,6 +665,11 @@ This kind of transitional blend works well when the two clips/poses are unrelate
             graph.BuildNode(node);
         });
 
+        node.SetCanAddPinsCallback([](const Node& node)
+        {
+            return true;
+        });
+
         node.SetCanRemovePinsCallback([](const Node& node)
         {
             const size_t extraInputsCount = node.InputPins.size() - 2; // Deduct `X/Y` inputs
@@ -696,21 +706,26 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         });
 
         node.SetRemovePinsCallback([](Node& node)
-            {
-                UIGraph& graph = *node.Owner;
+        {
+            UIGraph& graph = *node.Owner;
 
-                graph.RemovePinLinks(node.InputPins.back().ID);
-                node.InputPins.pop_back();
-                node.GraphNode->PopInput();
+            graph.RemovePinLinks(node.InputPins.back().ID);
+            node.InputPins.pop_back();
+            node.GraphNode->PopInput();
 
-                graph.BuildNode(node);
-            });
+            graph.BuildNode(node);
+        });
+
+        node.SetCanAddPinsCallback([](const Node& node)
+        {
+            return true;
+        });
 
         node.SetCanRemovePinsCallback([](const Node& node)
-            {
-                const size_t animsCount = node.InputPins.size() - 1; // Deduct `Loop` inputs
-                return animsCount > 1; // Should have at least one animation input
-            });
+        {
+            const size_t animsCount = node.InputPins.size() - 1; // Deduct `Loop` inputs
+            return animsCount > 1; // Should have at least one animation input
+        });
 
         node.GraphNode = MakeRef<AnimationGraphNodeSelectRandomAnimation>(graphAsset->GetGraph());
 

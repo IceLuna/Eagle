@@ -1822,6 +1822,97 @@ namespace Eagle
 			}
 		}
 
+		// Chromatic Aberration
+		{
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx("Chromatic Aberration", treeFlags);
+			ImGui::PopStyleVar();
+
+			if (treeOpened)
+			{
+				UI::BeginPropertyGrid("ChromaticAbSettings");
+
+				if (UI::Property("Enable", options.Lens.bEnableChromaticAberration))
+				{
+					EG_CORE_TRACE("Changed Chromatic Aberration state to: {}", options.Lens.bEnableChromaticAberration);
+					bSettingsChanged = true;
+				}
+				if (UI::PropertyDrag("Intensity", options.Lens.ChromaticIntensity, 0.01f))
+				{
+					EG_CORE_TRACE("Changed Chromatic Aberration Intensity to: {}", options.Lens.ChromaticIntensity);
+					bSettingsChanged = true;
+				}
+				ImGui::TreePop();
+
+				UI::EndPropertyGrid();
+			}
+		}
+
+		// Vignette
+		{
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx("Vignette", treeFlags);
+			ImGui::PopStyleVar();
+
+			if (treeOpened)
+			{
+				UI::BeginPropertyGrid("VignetteSettings");
+
+				if (UI::Property("Enable", options.Lens.bEnableVignette))
+				{
+					EG_CORE_TRACE("Changed Vignette state to: {}", options.Lens.bEnableVignette);
+					bSettingsChanged = true;
+				}
+				if (UI::PropertyDrag("Intensity", options.Lens.VignetteIntensity, 0.01f, 0.f, 2.5f))
+				{
+					EG_CORE_TRACE("Changed Vignette Intensity to: {}", options.Lens.VignetteIntensity);
+					bSettingsChanged = true;
+				}
+				ImGui::TreePop();
+
+				UI::EndPropertyGrid();
+			}
+		}
+
+		// Film Grain
+		{
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx("Film Grain", treeFlags);
+			ImGui::PopStyleVar();
+
+			if (treeOpened)
+			{
+				UI::BeginPropertyGrid("FilmGrainSettings");
+
+				if (UI::Property("Enable", options.Lens.bEnableFilmGrain))
+				{
+					EG_CORE_TRACE("Changed Film Grain state to: {}", options.Lens.bEnableFilmGrain);
+					bSettingsChanged = true;
+				}
+				if (UI::PropertyDrag("Scale", options.Lens.FilmGrainScale, 0.01f))
+				{
+					EG_CORE_TRACE("Changed Film Grain Scale to: {}", options.Lens.FilmGrainScale);
+					bSettingsChanged = true;
+				}
+				if (UI::PropertyDrag("Amount", options.Lens.FilmGrainAmount, 0.01f))
+				{
+					EG_CORE_TRACE("Changed Film Grain Amount to: {}", options.Lens.FilmGrainAmount);
+					bSettingsChanged = true;
+				}
+				if (UI::PropertyDrag("Seed Update Rate", options.Lens.FilmGrainSeedUpdateRate, 0.005f, 0.0f, 0.0f, "Seed will update every X seconds"))
+				{
+					EG_CORE_TRACE("Changed Film Grain Rate to: {}", options.Lens.FilmGrainSeedUpdateRate);
+					bSettingsChanged = true;
+				}
+				ImGui::TreePop();
+
+				UI::EndPropertyGrid();
+			}
+		}
+
 		if (bSettingsChanged)
 			sceneRenderer->SetOptions(options);
 

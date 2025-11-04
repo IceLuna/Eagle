@@ -166,6 +166,18 @@ namespace Eagle
         public bool bEnabled;
     }
 
+    public struct LensSettings
+    {
+        public bool bEnableChromaticAberration;
+        public bool bEnableVignette;
+        public bool bEnableFilmGrain;
+        public float ChromaticIntensity;
+        public float VignetteIntensity;
+        public float FilmGrainScale;
+        public float FilmGrainAmount;
+        public float FilmGrainSeedUpdateRate; // every FilmGrainSeedUpdateRate seconds
+    };
+
     public enum EmitterEmissionShapeType
     {
         Point, Sphere, [UIName("Sphere surface")] SphereSurface, Box, Ring, Mesh
@@ -490,6 +502,18 @@ namespace Eagle
             ScreenSpaceReflectionsSettings result = new ScreenSpaceReflectionsSettings();
             GetScreenSpaceReflectionsSettings_Native(out result.RoughnessThreshold, out result.SamplesPerQuad, out result.MaxTraversalIterations, out result.bEnabled);
             return result;
+        }
+
+        public static void SetLensSettings(LensSettings value)
+        {
+            SetLensSettings_Native(value.bEnableChromaticAberration, value.bEnableVignette, value.bEnableFilmGrain, value.ChromaticIntensity, value.VignetteIntensity, value.FilmGrainScale, value.FilmGrainAmount, value.FilmGrainSeedUpdateRate);
+        }
+
+        public static LensSettings GetLensSettings()
+        {
+            LensSettings value = new LensSettings();
+            GetLensSettings_Native(out value.bEnableChromaticAberration, out value.bEnableVignette, out value.bEnableFilmGrain, out value.ChromaticIntensity, out value.VignetteIntensity, out value.FilmGrainScale, out value.FilmGrainAmount, out value.FilmGrainSeedUpdateRate);
+            return value;
         }
 
         // Returns active camera transform
@@ -825,6 +849,9 @@ namespace Eagle
         private static extern void GetScreenSpaceReflectionsSettings_Native(out float roughnessThreshold, out uint samplesPerQuad, out uint maxIters, out bool bEnabled);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetLensSettings_Native(out bool bChromaticAberration, out bool bVignette, out bool bFilmGrain, out float chromaticIntensity, out float vignetteIntensity, out float filmGrainScale, out float filmGrainAmount, out float filmGrainSeedUpdateRate);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetShadowMapsSettings_Native(uint pointLightSize, uint spotLightSize, uint[] dirLightSizes);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -838,6 +865,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetScreenSpaceReflectionsSettings_Native(float roughnessThreshold, uint samplesPerQuad, uint maxIters, bool bEnabled);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetLensSettings_Native(bool bChromaticAberration, bool bVignette, bool bFilmGrain, float chromaticIntensity, float vignetteIntensity, float filmGrainScale, float filmGrainAmount, float filmGrainSeedUpdateRate);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void GetCameraTransform_Native(out Transform transform);

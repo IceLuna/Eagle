@@ -1,0 +1,133 @@
+#include "defines.h"
+
+#define FFX_GPU 1
+#define FFX_GLSL 1
+//#define FFX_HALF 1
+#include "lens/ffx_core.h"
+
+layout(push_constant) uniform PushData
+{
+    ivec2 g_Size;
+    float g_ChromaticIntensity;
+	float g_VignetteIntensity;
+	float g_GrainScale;
+	float g_GrainAmount;
+    uint g_GrainSeed;
+};
+
+layout(binding = 0) uniform sampler2D g_Color;
+layout(binding = 1, rgba8) uniform writeonly image2D g_Output;
+
+FfxFloat32 FfxLensSampleR(FfxFloat32x2 fPxPos)
+{
+#ifdef EG_CHROMATIC_ABERRATION
+    return texture(g_Color, fPxPos).r;
+#else
+    return 0.0f;
+#endif
+}
+
+FfxFloat32 FfxLensSampleG(FfxFloat32x2 fPxPos)
+{
+#ifdef EG_CHROMATIC_ABERRATION
+    return texture(g_Color, fPxPos).g;
+#else
+    return 0.0f;
+#endif
+}
+
+FfxFloat32 FfxLensSampleB(FfxFloat32x2 fPxPos)
+{
+#ifdef EG_CHROMATIC_ABERRATION
+    return texture(g_Color, fPxPos).b;
+#else
+    return 0.0f;
+#endif
+}
+
+FfxFloat32 GrainScale()
+{
+#ifdef EG_FILM_GRAIN
+    return g_GrainScale;
+#else
+    return 0.0f;
+#endif
+}
+
+FfxFloat32 GrainAmount()
+{
+#ifdef EG_FILM_GRAIN
+    return g_GrainAmount;
+#else
+    return 0.0f;
+#endif
+}
+
+FfxUInt32 GrainSeed()
+{
+#ifdef EG_FILM_GRAIN
+    return g_GrainSeed;
+#else
+    return 0;
+#endif
+}
+
+FfxUInt32x2 Center()
+{
+    return g_Size / 2u;
+}
+
+FfxFloat32 Vignette()
+{
+#ifdef EG_VIGNETTE
+    return g_VignetteIntensity;
+#else
+    return 0.0f;
+#endif
+}
+
+FfxFloat32 ChromAb()
+{
+#ifdef EG_CHROMATIC_ABERRATION
+    return g_ChromaticIntensity;
+#else
+    return 0.0f;
+#endif
+}
+
+void StoreLensOutput(FfxInt32x2 iPxPos, FfxFloat32x3 fColor)
+{
+    imageStore(g_Output, iPxPos, vec4(fColor, 1.0f));
+}
+
+#include "lens/ffx_lens.h"
+
+// 64x1x1 is expected by FFX
+layout(local_size_x = 64, local_size_y = 1) in;
+
+void main()
+{
+    const uint lid = gl_LocalInvocationID.x;
+    const uvec2 wgid = gl_WorkGroupID.xy;
+
+    FfxInt32x2 pixelCoords = FfxInt32x2(ffxRemapForWaveReduction(lid) + FfxUInt32x2(wgid.x << 3u, wgid.y << 3u));
+    if (pixelCoords.x >= int(g_Size.x) || pixelCoords.y >= int(g_Size.y))
+        return;
+
+    FfxInt32x2 center = FfxInt32x2(Center());
+
+#ifdef EG_CHROMATIC_ABERRATION
+    FfxFloat32x2 RGMag = FfxLensGetRGMag(g_ChromaticIntensity);
+    FfxFloat32x3 color = FfxLensSampleWithChromaticAberration(pixelCoords, center, RGMag.r, RGMag.g);
+#else
+    FfxFloat32x3 color = texelFetch(g_Color, pixelCoords, 0).rgb;
+#endif
+#ifdef EG_VIGNETTE
+    FfxLensApplyVignette(pixelCoords, center, color, g_VignetteIntensity);
+#endif
+#ifdef EG_FILM_GRAIN
+    FfxLensApplyFilmGrain(pixelCoords, color, g_GrainScale, g_GrainAmount, g_GrainSeed);
+#endif
+
+    StoreLensOutput(pixelCoords, color);
+}

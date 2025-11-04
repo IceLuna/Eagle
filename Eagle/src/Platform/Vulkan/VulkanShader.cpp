@@ -412,13 +412,16 @@ namespace Eagle
 		// Reflect push constants
 		if (!resources.push_constant_buffers.empty())
 		{
-			auto ranges = glsl.get_active_buffer_ranges(resources.push_constant_buffers.front().id);
+			const auto& push_constant = resources.push_constant_buffers.front();
 
 			PushConstantRange& pushConstantRange = m_PushConstantRanges.emplace_back();
 			pushConstantRange.ShaderStage = m_ShaderType;
 
-			for (auto& range : ranges)
-				pushConstantRange.Size = std::max(pushConstantRange.Size, uint32_t(range.offset + range.range));
+			const spirv_cross::SPIRType& type =
+				glsl.get_type(resources.push_constant_buffers.front().base_type_id);
+			pushConstantRange.Size = std::uint32_t(glsl.get_declared_struct_size(type));
+			pushConstantRange.Offset =
+				glsl.get_decoration(resources.push_constant_buffers.front().id, spv::DecorationOffset);
 		}
 	}
 

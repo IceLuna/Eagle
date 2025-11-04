@@ -843,6 +843,38 @@ namespace Eagle
         }
     };
 
+    struct LensSettings
+    {
+        bool bEnableChromaticAberration = false;
+        bool bEnableVignette = false;
+        bool bEnableFilmGrain = false;
+        float ChromaticIntensity = 0.4f;
+        float VignetteIntensity = 0.3f;
+        float FilmGrainScale = 0.01f;
+        float FilmGrainAmount = 0.25f;
+        float FilmGrainSeedUpdateRate = 0.02f; // every FilmGrainSeedUpdateRate seconds
+
+        bool operator== (const LensSettings& other) const
+        {
+            bool bEqual =
+                bEnableChromaticAberration == other.bEnableChromaticAberration &&
+                bEnableVignette == other.bEnableVignette &&
+                bEnableFilmGrain == other.bEnableFilmGrain &&
+                ChromaticIntensity == other.ChromaticIntensity &&
+                VignetteIntensity == other.VignetteIntensity &&
+                FilmGrainScale == other.FilmGrainScale &&
+                FilmGrainAmount == other.FilmGrainAmount &&
+                FilmGrainSeedUpdateRate == other.FilmGrainSeedUpdateRate;
+
+            return bEqual;
+        }
+
+        bool operator!= (const LensSettings& other) const
+        {
+            return !((*this) == other);
+        }
+    };
+
     struct SceneRendererSettings
     {
         BloomSettings BloomSettings;
@@ -857,6 +889,7 @@ namespace Eagle
         MotionBlurSettings MotionBlur;
         AutoExposureSettings AutoExposure;
         ScreenSpaceReflectionsSettings ScreenSpaceReflections;
+        LensSettings Lens;
         float Gamma = 2.2f;
         float Exposure = 1.f;
         float LineWidth = 2.5f;
@@ -903,6 +936,7 @@ namespace Eagle
                 bEnableDebugLinesDepthTest == other.bEnableDebugLinesDepthTest &&
                 AutoExposure == other.AutoExposure &&
                 ScreenSpaceReflections == other.ScreenSpaceReflections &&
+                Lens == other.Lens &&
                 SSAOSettings == other.SSAOSettings &&
                 GTAOSettings == other.GTAOSettings &&
                 GridScale == other.GridScale &&

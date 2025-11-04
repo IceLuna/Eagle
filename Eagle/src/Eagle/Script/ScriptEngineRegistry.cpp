@@ -230,11 +230,13 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::GetMotionBlurSettings_Native", Eagle::Script::Eagle_Renderer_GetMotionBlurSettings);
 		mono_add_internal_call("Eagle.Renderer::GetAutoExposureSettings_Native", Eagle::Script::Eagle_Renderer_GetAutoExposureSettings);
 		mono_add_internal_call("Eagle.Renderer::GetScreenSpaceReflectionsSettings_Native", Eagle::Script::Eagle_Renderer_GetScreenSpaceReflectionsSettings);
+		mono_add_internal_call("Eagle.Renderer::GetLensSettings_Native", Eagle::Script::Eagle_Renderer_GetLensSettings);
 		mono_add_internal_call("Eagle.Renderer::SetShadowMapsSettings_Native", Eagle::Script::Eagle_Renderer_SetShadowMapsSettings);
 		mono_add_internal_call("Eagle.Renderer::SetDepthOfFieldSettings_Native", Eagle::Script::Eagle_Renderer_SetDepthOfFieldSettings);
 		mono_add_internal_call("Eagle.Renderer::SetMotionBlurSettings_Native", Eagle::Script::Eagle_Renderer_SetMotionBlurSettings);
 		mono_add_internal_call("Eagle.Renderer::SetAutoExposureSettings_Native", Eagle::Script::Eagle_Renderer_SetAutoExposureSettings);
 		mono_add_internal_call("Eagle.Renderer::SetScreenSpaceReflectionsSettings_Native", Eagle::Script::Eagle_Renderer_SetScreenSpaceReflectionsSettings);
+		mono_add_internal_call("Eagle.Renderer::SetLensSettings_Native", Eagle::Script::Eagle_Renderer_SetLensSettings);
 		mono_add_internal_call("Eagle.Renderer::SetStutterlessShaders_Native", Eagle::Script::Eagle_Renderer_SetStutterlessShaders);
 		mono_add_internal_call("Eagle.Renderer::GetStutterlessShaders_Native", Eagle::Script::Eagle_Renderer_GetStutterlessShaders);
 		mono_add_internal_call("Eagle.Renderer::SetTranslucentShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_SetTranslucentShadowsEnabled);

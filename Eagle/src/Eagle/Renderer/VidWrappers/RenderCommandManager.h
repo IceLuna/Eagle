@@ -91,7 +91,7 @@ namespace Eagle
 
 		virtual void SetGraphicsRootConstants(const void* vertexRootConstants, const void* fragmentRootConstants) = 0;
 
-		void StorageImageBarrier(Ref<Image>& image) { TransitionLayout(image, ImageLayoutType::StorageImage, ImageLayoutType::StorageImage); }
+		void StorageImageBarrier(const Ref<Image>& image) { TransitionLayout(image, ImageLayoutType::StorageImage, ImageLayoutType::StorageImage); }
 		virtual void TransitionLayout(const Ref<Image>& image, ImageLayout oldLayout, ImageLayout newLayout) = 0;
 		virtual void TransitionLayout(const Ref<Image>& image, const ImageView& imageView, ImageLayout oldLayout, ImageLayout newLayout) = 0;
 		virtual void ClearColorImage(Ref<Image>& image, const glm::vec4& color, ImageLayout layout, ImageLayout newLayout) = 0;

@@ -12,7 +12,7 @@ layout(push_constant) uniform PushData
 };
 
 layout(binding = 0, r11f_g11f_b10f) uniform readonly image2D g_Color;
-layout(binding = 1, rgba8) uniform writeonly image2D g_Output;
+layout(binding = 1, OUTPUT_FORMAT) uniform writeonly image2D g_Output;
 layout(binding = 2) readonly buffer Exposure
 {
     float g_Exposure;

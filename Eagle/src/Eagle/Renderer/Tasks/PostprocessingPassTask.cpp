@@ -14,16 +14,28 @@ namespace Eagle
 		: RendererTask(renderer)
 		, m_Input(input)
 	{
-		bAutoExposure = m_Renderer.GetOptions().AutoExposure.bEnable;
+		const auto& options = m_Renderer.GetOptions();
+		const auto& lens = options.Lens;
+		bAutoExposure = options.AutoExposure.bEnable;
+		bChromaticAberration = lens.bEnableChromaticAberration;
+		bVignette = lens.bEnableVignette;
+		bFilmGrain = lens.bEnableFilmGrain;
 
-		InitPipeline();
+		InitTonemappingPipeline();
 		InitAutoexposureResources();
+		InitLensPipeline();
 
 		BufferSpecifications specs{};
 		specs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 		specs.Layout = BufferLayoutType::StorageBuffer;
 		specs.Size = sizeof(float) * 2; // Exposure and Average Luminance
 		m_Exposure = Buffer::Create(specs, "Exposure");
+
+		ImageSpecifications imageSpecs{};
+		imageSpecs.Size = glm::uvec3(m_Renderer.GetViewportSize(), 1u);
+		imageSpecs.Format = ImageFormat::R11G11B10_Float;
+		imageSpecs.Usage = ImageUsage::Storage | ImageUsage::Sampled;
+		m_Intermediate = Image::Create(imageSpecs, "Postprocessing_Intermediate");
 
 		RenderManager::Submit([exposure = m_Exposure](Ref<CommandBuffer>& cmd) mutable
 		{
@@ -37,35 +49,70 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Postprocessing Pass");
 
 		const auto& options = m_Renderer.GetOptions_RT();
+		const bool bLensEnabled = m_LensPipeline.operator bool();
 
 		const ImageLayout inputOldLayout = m_Input->GetLayout();
 		cmd->TransitionLayout(m_Input, inputOldLayout, ImageLayoutType::StorageImage);
+		cmd->TransitionLayout(m_Intermediate, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
 
 		if (bAutoExposure)
 			AutoExposurePass(cmd);
 		else
 			cmd->Write(m_Exposure, &options.Exposure, sizeof(float), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
 
-		ApplyPass(cmd);
+		auto& output = m_Renderer.GetOutput();
+		auto& intermediate = bLensEnabled ? m_Intermediate : output;
 
+		cmd->TransitionLayout(output, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
+		TonemappingPass(cmd, intermediate);
+		if (bLensEnabled)
+		{
+			cmd->TransitionLayout(intermediate, ImageLayoutType::StorageImage, ImageReadAccess::NonPixelShaderRead);
+			LensPass(cmd, intermediate, output);
+		}
+
+		cmd->TransitionLayout(output, ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
 		cmd->TransitionLayout(m_Input, ImageLayoutType::StorageImage, inputOldLayout);
 	}
 
 	void PostprocessingPassTask::InitWithOptions(const SceneRendererSettings& settings)
 	{
-		if (bAutoExposure == settings.AutoExposure.bEnable)
+		const auto& lens = settings.Lens;
+
+		if (bAutoExposure == settings.AutoExposure.bEnable &&
+			bChromaticAberration == lens.bEnableChromaticAberration &&
+			bVignette == lens.bEnableVignette &&
+			bFilmGrain == lens.bEnableFilmGrain)
+		{
 			return;
-		
+		}
+
 		bAutoExposure = settings.AutoExposure.bEnable;
+		bChromaticAberration = lens.bEnableChromaticAberration;
+		bVignette = lens.bEnableVignette;
+		bFilmGrain = lens.bEnableFilmGrain;
+
 		InitAutoexposureResources();
+		InitLensPipeline();
+		InitTonemappingPipeline();
+	}
+
+	void PostprocessingPassTask::OnResize(const glm::uvec2 size)
+	{
+		m_Intermediate->Resize(glm::uvec3(size, 1u));
 	}
 	
-	void PostprocessingPassTask::InitPipeline()
+	void PostprocessingPassTask::InitTonemappingPipeline()
 	{
-		PipelineComputeState state;
-		state.ComputeShader = Shader::Create("postprocessing/postprocessing.comp", ShaderType::Compute);
+		// If lens is enabled, tonemapping will write to an intermediate texture
+		const bool bUsesLens = ShouldUseLens();
+		ShaderDefines defines;
+		defines["OUTPUT_FORMAT"] = bUsesLens ? "r11f_g11f_b10f" : "rgba8";
 
-		m_Pipeline = PipelineCompute::Create(state);
+		PipelineComputeState state;
+		state.ComputeShader = Shader::Create("postprocessing/postprocessing.comp", ShaderType::Compute, defines);
+
+		m_TonemappingPipeline = PipelineCompute::Create(state);
 	}
 
 	void PostprocessingPassTask::InitAutoexposureResources()
@@ -92,6 +139,27 @@ namespace Eagle
 
 		state.ComputeShader = Shader::Create("postprocessing/autoexposure_average.comp", ShaderType::Compute);
 		m_AveragePipeline = PipelineCompute::Create(state);
+	}
+
+	void PostprocessingPassTask::InitLensPipeline()
+	{
+		if (!ShouldUseLens())
+		{
+			m_LensPipeline.reset();
+			return;
+		}
+
+		ShaderDefines defines;
+		if (bChromaticAberration)
+			defines["EG_CHROMATIC_ABERRATION"] = "";
+		if (bVignette)
+			defines["EG_VIGNETTE"] = "";
+		if (bFilmGrain)
+			defines["EG_FILM_GRAIN"] = "";
+
+		PipelineComputeState state{};
+		state.ComputeShader = Shader::Create("lens/lens.comp", ShaderType::Compute, defines);
+		m_LensPipeline = PipelineCompute::Create(state);
 	}
 
 	void PostprocessingPassTask::AutoExposurePass(const Ref<CommandBuffer>& cmd)
@@ -163,13 +231,12 @@ namespace Eagle
 		}
 	}
 	
-	void PostprocessingPassTask::ApplyPass(const Ref<CommandBuffer>& cmd)
+	void PostprocessingPassTask::TonemappingPass(const Ref<CommandBuffer>& cmd, const Ref<Image>& output)
 	{
 		EG_GPU_TIMING_SCOPED(cmd, "Postprocessing. Apply");
 		EG_CPU_TIMING_SCOPED("Postprocessing. Apply");
 
 		const auto& options = m_Renderer.GetOptions_RT();
-		auto& output = m_Renderer.GetOutput();
 
 		struct PushData
 		{
@@ -191,12 +258,59 @@ namespace Eagle
 		pushData.WhitePoint = options.FilmicTonemappingParams.WhitePoint;
 		pushData.TonemappingMethod = (uint32_t)options.Tonemapping;
 
-		m_Pipeline->SetImage(m_Input, 0, 0);
-		m_Pipeline->SetImage(output, 0, 1);
-		m_Pipeline->SetBuffer(m_Exposure, 0, 2);
+		m_TonemappingPipeline->SetImage(m_Input, 0, 0);
+		m_TonemappingPipeline->SetImage(output, 0, 1);
+		m_TonemappingPipeline->SetBuffer(m_Exposure, 0, 2);
 
-		cmd->TransitionLayout(output, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
-		cmd->Dispatch(m_Pipeline, numGroups.x, numGroups.y, 1, &pushData);
-		cmd->TransitionLayout(output, ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
+		cmd->Dispatch(m_TonemappingPipeline, numGroups.x, numGroups.y, 1, &pushData);
+	}
+	
+	void PostprocessingPassTask::LensPass(const Ref<CommandBuffer>& cmd, const Ref<Image>& input, const Ref<Image>& output)
+	{
+		EG_GPU_TIMING_SCOPED(cmd, "Postprocessing. Lens Pass");
+		EG_CPU_TIMING_SCOPED("Postprocessing. Lens Pass");
+
+		const auto& lens = m_Renderer.GetOptions_RT().Lens;
+		const Timestep ts = Application::Get().GetTimestep();
+
+		struct PushData
+		{
+			glm::uvec2 Size;
+			float ChromaticIntensity;
+			float VignetteIntensity;
+			float FilmGrainScale;
+			float FilmGrainAmount;
+			uint32_t GrainSeed;
+		} pushData;
+		static_assert(sizeof(PushData) <= 128);
+
+		// Note: TileSize of 8 is expected by FFX
+		constexpr uint32_t tileSize = 8;
+		const glm::uvec2 size = output->GetSize();
+		glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
+
+		pushData.Size = size;
+		pushData.ChromaticIntensity = lens.ChromaticIntensity;
+		pushData.VignetteIntensity = lens.VignetteIntensity;
+		pushData.FilmGrainScale = lens.FilmGrainScale;
+		pushData.FilmGrainAmount = lens.FilmGrainAmount;
+		pushData.GrainSeed = CalcGrainSeed(ts, lens.FilmGrainSeedUpdateRate);
+
+		m_LensPipeline->SetImageSampler(input, Sampler::BilinearSamplerClamp, 0, 0);
+		m_LensPipeline->SetImage(output, 0, 1);
+
+		cmd->Dispatch(m_LensPipeline, numGroups.x, numGroups.y, 1, &pushData);
+	}
+
+	uint32_t PostprocessingPassTask::CalcGrainSeed(Timestep deltaTime, float seedUpdateRate)
+	{
+		// Update seed for grain at fixed time intervals
+		m_SeedTimer += deltaTime;
+		if (m_SeedTimer >= seedUpdateRate)
+		{
+			++m_FilmSeed;
+			m_SeedTimer = 0.0;
+		}
+		return m_FilmSeed;
 	}
 }

@@ -7089,6 +7089,22 @@ namespace Eagle
 		*bEnabled = settings.bEnable;
 	}
 
+	void Script::Eagle_Renderer_GetLensSettings(bool* bChromaticAberration, bool* bVignette, bool* bFilmGrain, float* chromaticIntensity, float* vignetteIntensity, float* filmGrainScale, float* filmGrainAmount, float* filmGrainSeedUpdateRate)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& settings = sceneRenderer->GetOptions().Lens;
+
+		*bChromaticAberration = settings.bEnableChromaticAberration;
+		*bVignette = settings.bEnableVignette;
+		*bFilmGrain = settings.bEnableFilmGrain;
+		*chromaticIntensity = settings.ChromaticIntensity;
+		*vignetteIntensity = settings.VignetteIntensity;
+		*filmGrainScale = settings.FilmGrainScale;
+		*filmGrainAmount = settings.FilmGrainAmount;
+		*filmGrainSeedUpdateRate = settings.FilmGrainSeedUpdateRate;
+	}
+
 	void Script::Eagle_Renderer_SetShadowMapsSettings(uint32_t pointLightSize, uint32_t spotLightSize, MonoArray* dirLightSizes)
 	{
 		const auto& scene = Scene::GetCurrentScene();
@@ -7164,6 +7180,24 @@ namespace Eagle
 		settings.ScreenSpaceReflections.SamplesPerQuad = samplesPerQuad;
 		settings.ScreenSpaceReflections.MaxTraversalIterations = maxIters;
 		settings.ScreenSpaceReflections.bEnable = bEnabled;
+
+		sceneRenderer->SetOptions(settings);
+	}
+
+	void Script::Eagle_Renderer_SetLensSettings(bool bChromaticAberration, bool bVignette, bool bFilmGrain, float chromaticIntensity, float vignetteIntensity, float filmGrainScale, float filmGrainAmount, float filmGrainSeedUpdateRate)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+
+		auto settings = sceneRenderer->GetOptions();
+		settings.Lens.bEnableChromaticAberration = bChromaticAberration;
+		settings.Lens.bEnableVignette = bVignette;
+		settings.Lens.bEnableFilmGrain = bFilmGrain;
+		settings.Lens.ChromaticIntensity = chromaticIntensity;
+		settings.Lens.VignetteIntensity = vignetteIntensity;
+		settings.Lens.FilmGrainScale = filmGrainScale;
+		settings.Lens.FilmGrainAmount = filmGrainAmount;
+		settings.Lens.FilmGrainSeedUpdateRate = filmGrainSeedUpdateRate;
 
 		sceneRenderer->SetOptions(settings);
 	}
