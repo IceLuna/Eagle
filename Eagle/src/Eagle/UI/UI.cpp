@@ -28,7 +28,7 @@ namespace Eagle::UI
 	static const VkImageLayout s_VulkanImageLayout = ImageLayoutToVulkan(ImageReadAccess::PixelShaderRead);
 	static constexpr char* s_HelpMarker = "(?)";
 
-	bool HandlePublicField(std::string_view label, PublicField& field, MonoObject* instance, size_t i, bool bRuntime, Entity entity)
+	bool HandlePublicField(std::string_view label, PublicField& field, MonoObject* instance, size_t fieldIndex, bool bRuntime, Entity entity)
 	{
 		bool bChanged = false;
 		switch (field.Type)
@@ -36,100 +36,100 @@ namespace Eagle::UI
 			case FieldType::Int:
 			case FieldType::UnsignedInt:
 			{
-				int value = bRuntime ? field.GetRuntimeValue<int>(instance, i) : field.GetStoredValue<int>(i);
+				int value = bRuntime ? field.GetRuntimeValue<int>(instance, fieldIndex) : field.GetStoredValue<int>(fieldIndex);
 				if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
 				{
-					bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);
+					bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 					bChanged = true;
 				}
 				break;
 			}
 			case FieldType::Float:
 			{
-				float value = bRuntime ? field.GetRuntimeValue<float>(instance, i) : field.GetStoredValue<float>(i);
+				float value = bRuntime ? field.GetRuntimeValue<float>(instance, fieldIndex) : field.GetStoredValue<float>(fieldIndex);
 				if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
 				{
-					bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);
+					bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 					bChanged = true;
 				}
 				break;
 			}
 			case FieldType::String:
 			{
-				std::string value = bRuntime ? field.GetRuntimeValue<std::string>(instance, i) : field.GetStoredValue<std::string>(i);
+				std::string value = bRuntime ? field.GetRuntimeValue<std::string>(instance, fieldIndex) : field.GetStoredValue<std::string>(fieldIndex);
 				if (UI::PropertyText(label.data(), value, field.Tooltip))
 				{
-					bRuntime ? field.SetRuntimeValue<std::string>(instance, value, i) : field.SetStoredValue(value, i);
+					bRuntime ? field.SetRuntimeValue<std::string>(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 					bChanged = true;
 				}
 				break;
 			}
 			case FieldType::Vec2:
 			{
-				glm::vec2 value = bRuntime ? field.GetRuntimeValue<glm::vec2>(instance, i) : field.GetStoredValue<glm::vec2>(i);
+				glm::vec2 value = bRuntime ? field.GetRuntimeValue<glm::vec2>(instance, fieldIndex) : field.GetStoredValue<glm::vec2>(fieldIndex);
 				if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
 				{
-					bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);
+					bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 					bChanged = true;
 				}
 				break;
 			}
 			case FieldType::Vec3:
 			{
-				glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(instance, i) : field.GetStoredValue<glm::vec3>(i);
+				glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(instance, fieldIndex) : field.GetStoredValue<glm::vec3>(fieldIndex);
 				if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
 				{
-					bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);
+					bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 					bChanged = true;
 				}
 				break;
 			}
 			case FieldType::Vec4:
 			{
-				glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(instance, i) : field.GetStoredValue<glm::vec4>(i);
+				glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(instance, fieldIndex) : field.GetStoredValue<glm::vec4>(fieldIndex);
 				if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
 				{
-					bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);
+					bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 					bChanged = true;
 				}
 				break;
 			}
 			case FieldType::Bool:
 			{
-				bool value = bRuntime ? field.GetRuntimeValue<bool>(instance, i) : field.GetStoredValue<bool>(i);
+				bool value = bRuntime ? field.GetRuntimeValue<bool>(instance, fieldIndex) : field.GetStoredValue<bool>(fieldIndex);
 				if (UI::Property(label.data(), value, field.Tooltip))
 				{
-					bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);
+					bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 					bChanged = true;
 				}
 				break;
 			}
 			case FieldType::Color3:
 			{
-				glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(instance, i) : field.GetStoredValue<glm::vec3>(i);
+				glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(instance, fieldIndex) : field.GetStoredValue<glm::vec3>(fieldIndex);
 				if (UI::PropertyColor(label.data(), value, true, field.Tooltip))
 				{
-					bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);
+					bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 					bChanged = true;
 				}
 				break;
 			}
 			case FieldType::Color4:
 			{
-				glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(instance, i) : field.GetStoredValue<glm::vec4>(i);
+				glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(instance, fieldIndex) : field.GetStoredValue<glm::vec4>(fieldIndex);
 				if (UI::PropertyColor(label.data(), value, true, field.Tooltip))
 				{
-					bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);
+					bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 					bChanged = true;
 				}
 				break;
 			}
 			case FieldType::Enum:
 			{
-				int value = bRuntime ? field.GetRuntimeValue<int>(instance, i) : field.GetStoredValue<int>(i);
+				int value = bRuntime ? field.GetRuntimeValue<int>(instance, fieldIndex) : field.GetStoredValue<int>(fieldIndex);
 				if (UI::Combo(label.data(), value, field.EnumFields, value, field.Tooltip))
 				{
-					bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);
+					bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 					bChanged = true;
 				}
 				break;
@@ -139,7 +139,7 @@ namespace Eagle::UI
 				if (entity)
 				{
 					const auto& scene = entity.GetScene();
-					GUID value = bRuntime ? field.GetRuntimeValue<GUID>(instance, i) : field.GetStoredValue<GUID>(i);
+					GUID value = bRuntime ? field.GetRuntimeValue<GUID>(instance, fieldIndex) : field.GetStoredValue<GUID>(fieldIndex);
 					Entity userEntity = scene->GetEntityByGUID(value);
 					const bool bValid = userEntity.IsValid();
 					int currentSelection = -1;
@@ -173,7 +173,7 @@ namespace Eagle::UI
 					if (bComboChanged || bInvalidEntity)
 					{
 						value = currentSelection == -1 ? GUID(0, 0) : ids[currentSelection];
-						bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);
+						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 						bChanged = true;
 					}
 				}
@@ -183,7 +183,7 @@ namespace Eagle::UI
 #define AssetField_Case(type) \
 				case FieldType::type:\
 				{\
-					GUID value = bRuntime ? field.GetRuntimeValue<GUID>(instance, i) : field.GetStoredValue<GUID>(i);\
+					GUID value = bRuntime ? field.GetRuntimeValue<GUID>(instance, fieldIndex) : field.GetStoredValue<GUID>(fieldIndex);\
 					Ref<Asset> asset;\
 					Ref<type> castedAsset;\
 					if (AssetManager::Get(value, &asset))\
@@ -191,7 +191,7 @@ namespace Eagle::UI
 					if (UI::DrawAssetSelection(label.data(), castedAsset, field.Tooltip, -1.f, GetAssetPreview(castedAsset)))\
 					{\
 						value = castedAsset ? castedAsset->GetGUID() : GUID(0, 0);\
-						bRuntime ? field.SetRuntimeValue(instance, value, i) : field.SetStoredValue(value, i);\
+						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);\
 						bChanged = true;\
 					}\
 					break;\
