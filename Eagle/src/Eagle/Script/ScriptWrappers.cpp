@@ -50,6 +50,8 @@ namespace Eagle
 	extern std::unordered_map<MonoType*, std::function<CollisionGroup(Entity&)>> m_GetInteractingCollisionGroupsFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsTriggerFunctions;
 	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsTriggerFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetCollisionEnabledFunctions;
+	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsCollisionEnabledFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetCollisionVisibleFunctions;
 	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsCollisionVisibleFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, const Ref<AssetPhysicsMaterial>&)>> m_SetPhysicsMaterialFunctions;
@@ -4353,6 +4355,33 @@ namespace Eagle
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsTrigger'. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_BaseColliderComponent_SetCollisionEnabled(GUID entityID, void* type, bool bEnabled)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			m_SetCollisionEnabledFunctions[monoType](entity, bEnabled);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetCollisionEnabled'. Entity is null");
+	}
+
+	bool Script::Eagle_BaseColliderComponent_IsCollisionEnabled(GUID entityID, void* type)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			return m_IsCollisionEnabledFunctions[monoType](entity);
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsCollisionEnabled'. Entity is null");
 			return false;
 		}
 	}

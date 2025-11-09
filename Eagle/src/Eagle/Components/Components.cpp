@@ -252,6 +252,7 @@ namespace Eagle
 		SetIsObstacle(other.IsObstacle());
 		SetCollisionGroup(other.m_CollisionGroup);
 		SetInteractingCollisionGroup(other.m_InteractingCollisionGroup);
+		SetCollisionEnabled(other.IsCollisionEnabled());
 
 		return *this;
 	}
@@ -354,6 +355,12 @@ namespace Eagle
 		m_InteractingCollisionGroup = group;
 		m_Shape->SetInteractingCollisionGroup(m_InteractingCollisionGroup);
 	}
+
+	void BoxColliderComponent::SetCollisionEnabled(bool bEnabled)
+	{
+		bCollisionEnabled = bEnabled;
+		m_Shape->SetCollisionEnabled(bEnabled);
+	}
 	
 	void BoxColliderComponent::SetSize(const glm::vec3& size)
 	{
@@ -447,6 +454,12 @@ namespace Eagle
 		m_InteractingCollisionGroup = group;
 		m_Shape->SetInteractingCollisionGroup(m_InteractingCollisionGroup);
 	}
+
+	void SphereColliderComponent::SetCollisionEnabled(bool bEnabled)
+	{
+		bCollisionEnabled = bEnabled;
+		m_Shape->SetCollisionEnabled(bEnabled);
+	}
 	
 	void SphereColliderComponent::OnInit()
 	{
@@ -523,6 +536,12 @@ namespace Eagle
 	{
 		m_InteractingCollisionGroup = group;
 		m_Shape->SetInteractingCollisionGroup(m_InteractingCollisionGroup);
+	}
+
+	void CapsuleColliderComponent::SetCollisionEnabled(bool bEnabled)
+	{
+		bCollisionEnabled = bEnabled;
+		m_Shape->SetCollisionEnabled(bEnabled);
 	}
 	
 	void CapsuleColliderComponent::SetHeightAndRadius(float height, float radius)
@@ -664,6 +683,16 @@ namespace Eagle
 		{
 			if (shape)
 				shape->SetInteractingCollisionGroup(m_InteractingCollisionGroup);
+		}
+	}
+
+	void MeshColliderComponent::SetCollisionEnabled(bool bEnabled)
+	{
+		bCollisionEnabled = bEnabled;
+		for (auto& shape : m_Shapes)
+		{
+			if (shape)
+				shape->SetCollisionEnabled(bEnabled);
 		}
 	}
 	

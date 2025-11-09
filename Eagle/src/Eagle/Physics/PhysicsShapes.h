@@ -34,11 +34,12 @@ namespace Eagle
 		virtual ~ColliderShape() = default;
 
 		void SetPhysicsMaterial(const Ref<AssetPhysicsMaterial>& materialAsset);
-		bool IsTrigger() const { return m_Shape->getFlags() & physx::PxShapeFlag::Enum::eTRIGGER_SHAPE; }
+		bool IsTrigger() const { return m_IsTrigger; }
 		void SetIsTrigger(bool bTrigger);
 		virtual bool IsValid() const { return true; }
 		void SetRelativeLocationAndRotation(const Transform& transform);
 		void SetShowCollision(bool bShowCollision);
+		void SetCollisionEnabled(bool bEnabled);
 
 		// Collision groups it belongs to. It can belong to different groups (use XOR to combine groups)
 		void SetCollisionGroup(CollisionGroup group);
@@ -68,6 +69,7 @@ namespace Eagle
 		ColliderType m_Type;
 		CollisionGroup m_CollisionGroup = s_DefaultCollisionGroup;
 		CollisionGroup m_InteractingCollisionGroup = s_DefaultInteractingCollisionGroup;
+		bool m_IsTrigger = false;
 	};
 	
 	class BoxColliderShape : public ColliderShape

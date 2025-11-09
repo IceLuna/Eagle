@@ -44,6 +44,8 @@ namespace Eagle
 	std::unordered_map<MonoType*, std::function<CollisionGroup(Entity&)>> m_GetInteractingCollisionGroupsFunctions;
 	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsTriggerFunctions;
 	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsTriggerFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetCollisionEnabledFunctions;
+	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsCollisionEnabledFunctions;
 	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetCollisionVisibleFunctions;
 	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsCollisionVisibleFunctions;
 	std::unordered_map<MonoType*, std::function<void(Entity&, const Ref<AssetPhysicsMaterial>&)>> m_SetPhysicsMaterialFunctions;
@@ -108,7 +110,9 @@ namespace Eagle
 				m_SetInteractingCollisionGroupsFunctions[type] = [](Entity& entity, CollisionGroup groups) { ((BaseColliderComponent&)entity.GetComponent<Type>()).SetInteractingCollisionGroup(groups); };\
 				m_GetInteractingCollisionGroupsFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).GetInteractingCollisionGroup(); };\
 				m_SetIsTriggerFunctions[type] = [](Entity& entity, bool bTrigger) { ((BaseColliderComponent&)entity.GetComponent<Type>()).SetIsTrigger(bTrigger); };\
+				m_SetCollisionEnabledFunctions[type] = [](Entity& entity, bool bEnabled) { ((BaseColliderComponent&)entity.GetComponent<Type>()).SetCollisionEnabled(bEnabled); };\
 				m_IsTriggerFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).IsTrigger(); };\
+				m_IsCollisionEnabledFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).IsCollisionEnabled(); };\
 				m_SetCollisionVisibleFunctions[type] = [](Entity& entity, bool bVisible) { ((BaseColliderComponent&)entity.GetComponent<Type>()).SetShowCollision(bVisible); };\
 				m_IsCollisionVisibleFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).IsCollisionVisible(); };\
 				m_SetPhysicsMaterialFunctions[type] = [](Entity& entity, const Ref<AssetPhysicsMaterial>& asset) { ((BaseColliderComponent&)entity.GetComponent<Type>()).SetPhysicsMaterialAsset(asset); };\
@@ -551,6 +555,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.BaseColliderComponent::GetInteractingCollisionGroup_Native", Eagle::Script::Eagle_BaseColliderComponent_GetInteractingCollisionGroup);
 		mono_add_internal_call("Eagle.BaseColliderComponent::SetIsTrigger_Native", Eagle::Script::Eagle_BaseColliderComponent_SetIsTrigger);
 		mono_add_internal_call("Eagle.BaseColliderComponent::IsTrigger_Native", Eagle::Script::Eagle_BaseColliderComponent_IsTrigger);
+		mono_add_internal_call("Eagle.BaseColliderComponent::SetCollisionEnabled_Native", Eagle::Script::Eagle_BaseColliderComponent_SetCollisionEnabled);
+		mono_add_internal_call("Eagle.BaseColliderComponent::IsCollisionEnabled_Native", Eagle::Script::Eagle_BaseColliderComponent_IsCollisionEnabled);
 		mono_add_internal_call("Eagle.BaseColliderComponent::SetCollisionVisible_Native", Eagle::Script::Eagle_BaseColliderComponent_SetCollisionVisible);
 		mono_add_internal_call("Eagle.BaseColliderComponent::IsCollisionVisible_Native", Eagle::Script::Eagle_BaseColliderComponent_IsCollisionVisible);
 		mono_add_internal_call("Eagle.BaseColliderComponent::SetPhysicsMaterial_Native", Eagle::Script::Eagle_BaseColliderComponent_SetPhysicsMaterial);

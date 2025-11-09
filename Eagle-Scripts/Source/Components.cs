@@ -1686,7 +1686,7 @@ namespace Eagle
             set { SetOpacity_Native(Parent.ID, value); }
         }
 
-        public bool IsVisible
+        public bool bVisible
         {
             get { return IsVisible_Native(Parent.ID); }
             set { SetIsVisible_Native(Parent.ID, value); }
@@ -2406,7 +2406,11 @@ namespace Eagle
         public void SetIsTrigger(bool bTrigger) { SetIsTrigger_Native(Parent.ID, m_Type, bTrigger); }
         
         public bool IsTrigger() { return IsTrigger_Native(Parent.ID, m_Type); }
-        
+
+        public void SetCollisionEnabled(bool bEnabled) { SetCollisionEnabled_Native(Parent.ID, m_Type, bEnabled); }
+
+        public bool IsCollisionEnabled() { return IsCollisionEnabled_Native(Parent.ID, m_Type); }
+
         public AssetPhysicsMaterial GetPhysicsMaterial()
         {
             GUID assetID = GetPhysicsMaterial_Native(Parent.ID, m_Type);
@@ -2461,6 +2465,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsTrigger_Native(in GUID entityID, Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetCollisionEnabled_Native(in GUID entityID, Type type, bool bEnabled);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsCollisionEnabled_Native(in GUID entityID, Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetCollisionVisible_Native(in GUID entityID, Type type, bool bShow);

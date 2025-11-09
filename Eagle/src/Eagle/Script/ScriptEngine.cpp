@@ -61,6 +61,7 @@ namespace Eagle
 
 	static void PrintAssemblyTypes(MonoAssembly* assembly)
 	{
+#if 0 // Enable to print the data
 		MonoImage* image = mono_assembly_get_image(assembly);
 		const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(image, MONO_TABLE_TYPEDEF);
 		int32_t numTypes = mono_table_info_get_rows(typeDefinitionsTable);
@@ -99,6 +100,7 @@ namespace Eagle
 
 			printf("%s.%s\n", nameSpace, name);
 		}
+#endif
 	}
 
 	static bool IsArray(MonoType* type)
@@ -1293,7 +1295,7 @@ namespace Eagle
 
 		LoadListOfCoreAIClasses();
 
-		//PrintAssemblyTypes(s_CoreAssembly);
+		PrintAssemblyTypes(s_CoreAssembly);
 
 		return true;
 	}
@@ -1521,9 +1523,9 @@ namespace Eagle
 		Methods.OnPhysicsUpdateMethod	= ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData.FullName + ":OnPhysicsUpdate(single)");
 		Methods.OnAnimationEventMethod  = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData.FullName + ":OnAnimationEvent(string,single)");
 
-		Methods.OnCollisionBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionBegin(GUID,Vector3,Vector3,Vector3,Vector3)");
-		Methods.OnCollisionEndMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionEnd(GUID,Vector3,Vector3,Vector3,Vector3)");
-		Methods.OnTriggerBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnTriggerBegin(GUID)");
-		Methods.OnTriggerEndMethod		= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnTriggerEnd(GUID)");
+		Methods.OnCollisionBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionBegin(Entity,Vector3,Vector3,Vector3,Vector3)");
+		Methods.OnCollisionEndMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionEnd(Entity,Vector3,Vector3,Vector3,Vector3)");
+		Methods.OnTriggerBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnTriggerBegin(Entity)");
+		Methods.OnTriggerEndMethod		= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnTriggerEnd(Entity)");
 	}
 }

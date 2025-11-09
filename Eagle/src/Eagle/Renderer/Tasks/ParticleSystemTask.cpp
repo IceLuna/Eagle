@@ -1026,7 +1026,8 @@ namespace Eagle
 						auto it = existingEmitters.find(emitter);
 						const auto& existingEmitter = it->first;
 						{
-							const EmitterData emitterData = it->second;
+							EmitterData emitterData = it->second;
+							emitterData.AnimationOffset = s_InvalidEmitterIndex; // Reset it in case mesh is changed from SK to SM
 
 							// Check if should rebuild emitter mesh data
 							const bool bMeshEmitter = existingEmitter.EmissionShape == ParticleEmitter::EmissionShapeType::Mesh;

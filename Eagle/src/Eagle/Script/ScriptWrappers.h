@@ -328,6 +328,8 @@ namespace Eagle::Script
 	CollisionGroup Eagle_BaseColliderComponent_GetInteractingCollisionGroup(GUID entityID, void* type);
 	void Eagle_BaseColliderComponent_SetIsTrigger(GUID entityID, void* type, bool bTrigger);
 	bool Eagle_BaseColliderComponent_IsTrigger(GUID entityID, void* type);
+	void Eagle_BaseColliderComponent_SetCollisionEnabled(GUID entityID, void* type, bool bEnabled);
+	bool Eagle_BaseColliderComponent_IsCollisionEnabled(GUID entityID, void* type);
 	void Eagle_BaseColliderComponent_SetCollisionVisible(GUID entityID, void* type, bool bShow);
 	bool Eagle_BaseColliderComponent_IsCollisionVisible(GUID entityID, void* type);
 	GUID Eagle_BaseColliderComponent_GetPhysicsMaterial(GUID entityID, void* type);

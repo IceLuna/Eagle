@@ -1111,6 +1111,9 @@ namespace Eagle
 		bool IsCollisionVisible() const { return bShowCollision; }
 		virtual void SetShowCollision(bool bShowCollision) = 0;
 
+		bool IsCollisionEnabled() const { return bCollisionEnabled; }
+		virtual void SetCollisionEnabled(bool bEnabled) = 0;
+
 		void SetAffectsNavMeshBuild(bool bAffects) { bAffectsNavMeshBuild = bAffects; }
 		bool DoesAffectNavMeshBuild() const { return bAffectsNavMeshBuild; }
 
@@ -1146,6 +1149,7 @@ namespace Eagle
 		bool bShowCollision = false;
 		bool bAffectsNavMeshBuild = true; // If set to false, collider won't be used during the nav mesh build process
 		bool bObstacle = false; // Can be used for NavMesh to dynamically block the path. Not supported by mesh colliders
+		bool bCollisionEnabled = true;
 	};
 
 	class BoxColliderComponent : public BaseColliderComponent
@@ -1159,11 +1163,12 @@ namespace Eagle
 
 		void OnInit();
 
-		virtual void SetIsTrigger(bool bTrigger) override;
-		virtual void SetShowCollision(bool bShowCollision) override;
-		virtual void OnRemoved() override;
-		virtual void SetCollisionGroup(CollisionGroup groups) override;
-		virtual void SetInteractingCollisionGroup(CollisionGroup groups) override;
+		void SetIsTrigger(bool bTrigger) override;
+		void SetShowCollision(bool bShowCollision) override;
+		void OnRemoved() override;
+		void SetCollisionGroup(CollisionGroup groups) override;
+		void SetInteractingCollisionGroup(CollisionGroup groups) override;
+		void SetCollisionEnabled(bool bEnabled) override;
 
 		void SetSize(const glm::vec3& size);
 		const glm::vec3& GetSize() const { return m_Size; }
@@ -1194,10 +1199,11 @@ namespace Eagle
 		void SetRadius(float radius);
 		float GetRadius() const { return m_Radius; }
 
-		virtual void SetIsTrigger(bool bTrigger) override;
-		virtual void SetShowCollision(bool bShowCollision) override;
-		virtual void SetCollisionGroup(CollisionGroup groups) override;
-		virtual void SetInteractingCollisionGroup(CollisionGroup groups) override;
+		void SetIsTrigger(bool bTrigger) override;
+		void SetShowCollision(bool bShowCollision) override;
+		void SetCollisionGroup(CollisionGroup groups) override;
+		void SetInteractingCollisionGroup(CollisionGroup groups) override;
+		void SetCollisionEnabled(bool bEnabled) override;
 
 		virtual void OnRemoved() override;
 
@@ -1224,10 +1230,11 @@ namespace Eagle
 
 		void OnInit();
 
-		virtual void SetIsTrigger(bool bTrigger) override;
-		virtual void SetShowCollision(bool bShowCollision) override;
-		virtual void SetCollisionGroup(CollisionGroup groups) override;
-		virtual void SetInteractingCollisionGroup(CollisionGroup groups) override;
+		void SetIsTrigger(bool bTrigger) override;
+		void SetShowCollision(bool bShowCollision) override;
+		void SetCollisionGroup(CollisionGroup groups) override;
+		void SetInteractingCollisionGroup(CollisionGroup groups) override;
+		void SetCollisionEnabled(bool bEnabled) override;
 
 		void SetHeight(float height)
 		{
@@ -1269,10 +1276,11 @@ namespace Eagle
 
 		void OnInit();
 
-		virtual void SetIsTrigger(bool bTrigger) override;
-		virtual void SetShowCollision(bool bShowCollision) override;
-		virtual void SetCollisionGroup(CollisionGroup groups) override;
-		virtual void SetInteractingCollisionGroup(CollisionGroup groups) override;
+		void SetIsTrigger(bool bTrigger) override;
+		void SetShowCollision(bool bShowCollision) override;
+		void SetCollisionGroup(CollisionGroup groups) override;
+		void SetInteractingCollisionGroup(CollisionGroup groups) override;
+		void SetCollisionEnabled(bool bEnabled) override;
 
 		void SetCollisionMeshAsset(const Ref<AssetBaseMesh>& meshAsset);
 		const Ref<AssetBaseMesh>& GetCollisionMeshAsset() const { return m_CollisionMeshAsset; }

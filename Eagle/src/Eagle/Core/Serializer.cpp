@@ -1891,6 +1891,7 @@ namespace Eagle
 				out << YAML::Key << "PhysicsMaterial" << YAML::Value << asset->GetGUID();
 
 			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
+			out << YAML::Key << "IsCollisionEnabled" << YAML::Value << collider.IsCollisionEnabled();
 			out << YAML::Key << "Size" << YAML::Value << collider.GetSize();
 			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
 			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
@@ -1913,6 +1914,7 @@ namespace Eagle
 				out << YAML::Key << "PhysicsMaterial" << YAML::Value << asset->GetGUID();
 
 			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
+			out << YAML::Key << "IsCollisionEnabled" << YAML::Value << collider.IsCollisionEnabled();
 			out << YAML::Key << "Radius" << YAML::Value << collider.GetRadius();
 			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
 			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
@@ -1935,6 +1937,7 @@ namespace Eagle
 				out << YAML::Key << "PhysicsMaterial" << YAML::Value << asset->GetGUID();
 
 			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
+			out << YAML::Key << "IsCollisionEnabled" << YAML::Value << collider.IsCollisionEnabled();
 			out << YAML::Key << "Radius" << YAML::Value << collider.GetRadius();
 			out << YAML::Key << "Height" << YAML::Value << collider.GetHeight();
 			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
@@ -1961,6 +1964,7 @@ namespace Eagle
 				out << YAML::Key << "PhysicsMaterial" << YAML::Value << asset->GetGUID();
 
 			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
+			out << YAML::Key << "IsCollisionEnabled" << YAML::Value << collider.IsCollisionEnabled();
 			out << YAML::Key << "IsConvex" << YAML::Value << collider.IsConvex();
 			out << YAML::Key << "IsTwoSided" << YAML::Value << collider.IsTwoSided();
 			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
@@ -2529,6 +2533,8 @@ namespace Eagle
 
 			collider.SetPhysicsMaterialAsset(GetAsset<AssetPhysicsMaterial>(boxColliderNode["PhysicsMaterial"]));
 			collider.SetIsTrigger(boxColliderNode["IsTrigger"].as<bool>());
+			if (auto node = boxColliderNode["IsCollisionEnabled"])
+				collider.SetCollisionEnabled(node.as<bool>());
 			collider.SetSize(boxColliderNode["Size"].as<glm::vec3>());
 			collider.SetShowCollision(boxColliderNode["IsCollisionVisible"].as<bool>());
 			if (auto node = boxColliderNode["IsObstacle"])
@@ -2551,6 +2557,8 @@ namespace Eagle
 
 			collider.SetPhysicsMaterialAsset(GetAsset<AssetPhysicsMaterial>(sphereColliderNode["PhysicsMaterial"]));
 			collider.SetIsTrigger(sphereColliderNode["IsTrigger"].as<bool>());
+			if (auto node = sphereColliderNode["IsCollisionEnabled"])
+				collider.SetCollisionEnabled(node.as<bool>());
 			collider.SetRadius(sphereColliderNode["Radius"].as<float>());
 			collider.SetShowCollision(sphereColliderNode["IsCollisionVisible"].as<bool>());
 			if (auto node = sphereColliderNode["IsObstacle"])
@@ -2573,6 +2581,8 @@ namespace Eagle
 
 			collider.SetPhysicsMaterialAsset(GetAsset<AssetPhysicsMaterial>(capsuleColliderNode["PhysicsMaterial"]));
 			collider.SetIsTrigger(capsuleColliderNode["IsTrigger"].as<bool>());
+			if (auto node = capsuleColliderNode["IsCollisionEnabled"])
+				collider.SetCollisionEnabled(node.as<bool>());
 			collider.SetRadius(capsuleColliderNode["Radius"].as<float>());
 			collider.SetHeight(capsuleColliderNode["Height"].as<float>());
 			collider.SetShowCollision(capsuleColliderNode["IsCollisionVisible"].as<bool>());
@@ -2596,6 +2606,8 @@ namespace Eagle
 
 			collider.SetPhysicsMaterialAsset(GetAsset<AssetPhysicsMaterial>(meshColliderNode["PhysicsMaterial"]));
 			collider.SetIsTrigger(meshColliderNode["IsTrigger"].as<bool>());
+			if (auto node = meshColliderNode["IsCollisionEnabled"])
+				collider.SetCollisionEnabled(node.as<bool>());
 			collider.SetShowCollision(meshColliderNode["IsCollisionVisible"].as<bool>());
 			collider.SetIsConvex(meshColliderNode["IsConvex"].as<bool>());
 			if (auto node = meshColliderNode["IsTwoSided"])

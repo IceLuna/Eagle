@@ -22,6 +22,7 @@ namespace Eagle
 
 	void ColliderShape::SetIsTrigger(bool bTrigger)
 	{
+		m_IsTrigger = bTrigger;
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !bTrigger);
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, bTrigger);
 	}
@@ -34,6 +35,15 @@ namespace Eagle
 	void ColliderShape::SetShowCollision(bool bShowCollision)
 	{
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eVISUALIZATION, bShowCollision);
+	}
+
+	void ColliderShape::SetCollisionEnabled(bool bEnabled)
+	{
+		using namespace physx;
+
+		PxShapeFlag::Enum flag = m_IsTrigger ? PxShapeFlag::Enum::eTRIGGER_SHAPE : PxShapeFlag::Enum::eSIMULATION_SHAPE;
+		m_Shape->setFlag(flag, bEnabled);
+		m_Shape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, bEnabled);
 	}
 	
 	void ColliderShape::SetCollisionGroup(CollisionGroup group)
@@ -61,19 +71,17 @@ namespace Eagle
 		auto& physics = PhysXInternal::GetPhysics();
 		const auto& materialAsset = component.GetPhysicsMaterialAsset();
 		physx::PxMaterial* material = GetMaterial_Internal(materialAsset);
-		bool bTrigger = component.IsTrigger();
 
 		m_ColliderScale = component.GetWorldTransform().Scale3D * component.GetSize();
 		physx::PxBoxGeometry geometry = physx::PxBoxGeometry(m_ColliderScale.x * 0.5f, m_ColliderScale.y * 0.5f, m_ColliderScale.z * 0.5f);
 		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), geometry, *material);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !bTrigger);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, bTrigger);
 		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(component.GetRelativeTransform()));
 		m_Shape->userData = this;
 		SetShowCollision(component.IsCollisionVisible());
 		SetIsTrigger(component.IsTrigger());
 		SetCollisionGroup(component.GetCollisionGroup());
 		SetInteractingCollisionGroup(component.GetInteractingCollisionGroup());
+		SetCollisionEnabled(component.IsCollisionEnabled());
 	}
 
 	void BoxColliderShape::SetSize(const glm::vec3& size)
@@ -106,18 +114,16 @@ namespace Eagle
 		const auto& scale = component.GetWorldTransform().Scale3D;
 		const float radius = scale.x * component.GetRadius();
 		m_ColliderScale = glm::vec3(radius);
-		bool bTrigger = component.IsTrigger();
 
 		physx::PxSphereGeometry geometry = physx::PxSphereGeometry(radius);
 		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), geometry, *material);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !bTrigger);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, bTrigger);
 		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(component.GetRelativeTransform()));
 		m_Shape->userData = this;
 		SetShowCollision(component.IsCollisionVisible());
 		SetIsTrigger(component.IsTrigger());
 		SetCollisionGroup(component.GetCollisionGroup());
 		SetInteractingCollisionGroup(component.GetInteractingCollisionGroup());
+		SetCollisionEnabled(component.IsCollisionEnabled());
 	}
 
 	void SphereColliderShape::SetRadius(float radius)
@@ -154,12 +160,9 @@ namespace Eagle
 		const float radius = scale.x * component.GetRadius();
 		const float height = scale.y * component.GetHeight();
 		m_ColliderScale = glm::vec3(radius, height, 1.f);
-		bool bTrigger = component.IsTrigger();
 
 		physx::PxCapsuleGeometry geometry = physx::PxCapsuleGeometry(radius, height * 0.5f);
 		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), geometry, *material);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !bTrigger);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, bTrigger);
 		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(component.GetRelativeTransform()));
 		m_Shape->userData = this;
 
@@ -167,6 +170,7 @@ namespace Eagle
 		SetIsTrigger(component.IsTrigger());
 		SetCollisionGroup(component.GetCollisionGroup());
 		SetInteractingCollisionGroup(component.GetInteractingCollisionGroup());
+		SetCollisionEnabled(component.IsCollisionEnabled());
 	}
 
 	void CapsuleColliderShape::SetHeightAndRadius(float height, float radius)
@@ -217,7 +221,6 @@ namespace Eagle
 		}
 
 		m_ColliderScale = component.GetWorldTransform().Scale3D;
-		bool bTrigger = component.IsTrigger();
 
 		physx::PxDefaultMemoryInputData input((physx::PxU8*)colliderData.Data(), (physx::PxU32)colliderData.Size());
 		m_ConvexMesh = PhysXInternal::GetPhysics().createConvexMesh(input);
@@ -227,13 +230,12 @@ namespace Eagle
 		convexGeometry.meshFlags = physx::PxConvexMeshGeometryFlag::Enum::eTIGHT_BOUNDS;
 
 		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), convexGeometry, *material);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !bTrigger);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, bTrigger);
 		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(component.GetRelativeTransform()));
 		SetShowCollision(component.IsCollisionVisible());
 		SetIsTrigger(component.IsTrigger());
 		SetCollisionGroup(component.GetCollisionGroup());
 		SetInteractingCollisionGroup(component.GetInteractingCollisionGroup());
+		SetCollisionEnabled(component.IsCollisionEnabled());
 
 		m_Shape->userData = this;
 	}
@@ -285,7 +287,6 @@ namespace Eagle
 		}
 
 		m_ColliderScale = component.GetWorldTransform().Scale3D;
-		bool bTrigger = component.IsTrigger();
 
 		physx::PxDefaultMemoryInputData input((physx::PxU8*)colliderData.Data(), (physx::PxU32)colliderData.Size());
 		m_TriMesh = PhysXInternal::GetPhysics().createTriangleMesh(input);
@@ -293,13 +294,12 @@ namespace Eagle
 			physx::PxMeshScale(PhysXUtils::ToPhysXVector(m_ColliderScale)));
 
 		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), triGeometry, *material);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !bTrigger);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, bTrigger);
 		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(component.GetRelativeTransform()));
 		SetShowCollision(component.IsCollisionVisible());
 		SetIsTrigger(component.IsTrigger());
 		SetCollisionGroup(component.GetCollisionGroup());
 		SetInteractingCollisionGroup(component.GetInteractingCollisionGroup());
+		SetCollisionEnabled(component.IsCollisionEnabled());
 
 		m_Shape->userData = this;
 	}

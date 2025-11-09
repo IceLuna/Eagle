@@ -457,14 +457,6 @@ namespace Eagle
 
 		CopyComponents(source, result);
 
-		if (bIsPlaying && result.HasComponent<ScriptComponent>())
-		{
-			if (!result.GetComponent<ScriptComponent>().ModuleName.empty() && ScriptEngine::InstantiateEntityClass(result))
-			{
-				ScriptEngine::OnCreateEntity(result);
-			}
-		}
-
 		return result;
 	}
 
@@ -2084,5 +2076,23 @@ namespace Eagle
 		EntityCopyComponent<DecalComponent>(source, dest);
 		EntityCopyComponent<NavigationCrowdAgentComponent>(source, dest);
 		EntityCopyComponent<NavigationMeshComponent>(source, dest);
+
+		if (bIsPlaying)
+		{
+			if (dest.HasComponent<AudioComponent>())
+			{
+				auto& comp = dest.GetComponent<AudioComponent>();
+				if (comp.bAutoplay)
+					comp.Play();
+			}
+
+			if (dest.HasComponent<ScriptComponent>())
+			{
+				if (!dest.GetComponent<ScriptComponent>().ModuleName.empty() && ScriptEngine::InstantiateEntityClass(dest))
+				{
+					ScriptEngine::OnCreateEntity(dest);
+				}
+			}
+		}
 	}
 }

@@ -1319,6 +1319,7 @@ namespace Eagle
 					Ref<AssetPhysicsMaterial> materialAsset = collider.GetPhysicsMaterialAsset();
 					glm::vec3 size = collider.GetSize();
 					bool bTrigger = collider.IsTrigger();
+					bool bCollisionEnabled = collider.IsCollisionEnabled();
 					bool bShowCollision = collider.IsCollisionVisible();
 					bool bObstacle = collider.IsObstacle();
 					bool bAffectsNavMesh = collider.DoesAffectNavMeshBuild();
@@ -1341,6 +1342,12 @@ namespace Eagle
 					if (UI::Property("Is Trigger", bTrigger, s_TriggerHelpMsg))
 					{
 						collider.SetIsTrigger(bTrigger);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Collision Enabled", bCollisionEnabled))
+					{
+						collider.SetCollisionEnabled(bCollisionEnabled);
 						bEntityChanged = true;
 					}
 
@@ -1392,6 +1399,7 @@ namespace Eagle
 					Ref<AssetPhysicsMaterial> materialAsset = collider.GetPhysicsMaterialAsset();
 					float radius = collider.GetRadius();
 					bool bTrigger = collider.IsTrigger();
+					bool bCollisionEnabled = collider.IsCollisionEnabled();
 					bool bShowCollision = collider.IsCollisionVisible();
 					bool bObstacle = collider.IsObstacle();
 					bool bAffectsNavMesh = collider.DoesAffectNavMeshBuild();
@@ -1408,6 +1416,12 @@ namespace Eagle
 					if (UI::PropertyDrag("Radius", radius, 0.05f))
 					{
 						collider.SetRadius(radius);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Collision Enabled", bCollisionEnabled))
+					{
+						collider.SetCollisionEnabled(bCollisionEnabled);
 						bEntityChanged = true;
 					}
 						
@@ -1466,6 +1480,7 @@ namespace Eagle
 					float height = collider.GetHeight();
 					float radius = collider.GetRadius();
 					bool bTrigger = collider.IsTrigger();
+					bool bCollisionEnabled = collider.IsCollisionEnabled();
 					bool bShowCollision = collider.IsCollisionVisible();
 					bool bObstacle = collider.IsObstacle();
 					bool bAffectsNavMesh = collider.DoesAffectNavMeshBuild();
@@ -1494,6 +1509,12 @@ namespace Eagle
 					if (UI::Property("Is Trigger", bTrigger, s_TriggerHelpMsg))
 					{
 						collider.SetIsTrigger(bTrigger);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Collision Enabled", bCollisionEnabled))
+					{
+						collider.SetCollisionEnabled(bCollisionEnabled);
 						bEntityChanged = true;
 					}
 
@@ -1545,6 +1566,7 @@ namespace Eagle
 					Ref<AssetPhysicsMaterial> materialAsset = collider.GetPhysicsMaterialAsset();
 					Ref<AssetBaseMesh> collisionMesh = collider.GetCollisionMeshAsset();
 					bool bTrigger = collider.IsTrigger();
+					bool bCollisionEnabled = collider.IsCollisionEnabled();
 					bool bShowCollision = collider.IsCollisionVisible();
 					bool bConvex = collider.IsConvex();
 					bool bTwoSided = collider.IsTwoSided();
@@ -1568,6 +1590,12 @@ namespace Eagle
 					if (UI::Property("Is Trigger", bTrigger, s_TriggerHelpMsg))
 					{
 						collider.SetIsTrigger(bTrigger);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Collision Enabled", bCollisionEnabled))
+					{
+						collider.SetCollisionEnabled(bCollisionEnabled);
 						bEntityChanged = true;
 					}
 
@@ -1691,6 +1719,12 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
+					if (UI::Property("Is Looping", bLooping))
+					{
+						audio.SetLooping(bLooping);
+						bEntityChanged = true;
+					}
+
 					if (UI::PropertyDrag("Min Distance", minDistance, 1.f, 0.f, maxDistance, "The minimum distance is the point at which the sound starts attenuating."
 						" If the listener is any closer to the source than the minimum distance, the sound will play at full volume."))
 					{
@@ -1702,12 +1736,6 @@ namespace Eagle
 						" attenuating and its volume remains constant (a volume which is not necessarily zero)"))
 					{
 						audio.SetMaxDistance(maxDistance);
-						bEntityChanged = true;
-					}
-
-					if (UI::Property("Is Looping", bLooping))
-					{
-						audio.SetLooping(bLooping);
 						bEntityChanged = true;
 					}
 						
