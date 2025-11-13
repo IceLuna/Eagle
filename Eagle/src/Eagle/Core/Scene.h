@@ -99,6 +99,11 @@ namespace Eagle
 		Scene(const Ref<Scene>& other, const std::string& debugName);
 		~Scene();
 
+		// Use copy constructor
+		Scene(Scene&& other) = delete;
+		Scene& operator=(const Scene& other) = delete;
+		Scene& operator=(Scene&& other) = delete;
+
 		Entity CreateEntity(const std::string& name = std::string());
 		Entity CreateEntityWithGUID(GUID guid, const std::string& name = std::string());
 		Entity CreateFromEntity(const Entity& source, bool bCopyGUID = false);
@@ -303,6 +308,7 @@ namespace Eagle
 		void OnUpdateRuntime(Timestep ts, bool bRender, bool bForceAnimationsUpdate);
 		void UpdateNavMesh(Timestep ts);
 		void SyncCrowdAgents();
+		void SetupOnAppAssemblyReloadedCallback();
 
 		void CollectParticleSystems(const std::unordered_set<uint32_t>& input); // Pushes data from `input` into `m_TempParticleSystems`
 		void GatherLightsInfo();

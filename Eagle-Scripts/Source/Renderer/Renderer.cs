@@ -180,12 +180,18 @@ namespace Eagle
 
     public enum EmitterEmissionShapeType
     {
-        Point, Sphere, [UIName("Sphere surface")] SphereSurface, Box, Ring, Mesh
+        Point,
+        Sphere,
+        [UIName("Sphere Surface")] SphereSurface,
+        Box,
+        [UIName("Box Surface")] BoxSurface,
+        Ring,
+        Mesh,
     }
 
     public enum EmitterCollisionModeType
     {
-        None, [UIName("Destroy on hit")] DestroyOnHit, Bounce,
+        None, [UIName("Destroy on Hit")] DestroyOnHit, Bounce,
 	}
 
     public struct ParticleEmitter

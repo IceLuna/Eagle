@@ -100,7 +100,7 @@ namespace Eagle
 				ImGui::EndPopup();
 			}
 
-			if (!opened && !bChanged)
+			if (!opened)
 				continue;
 
 			bool bEmitterChanged = false;
@@ -131,12 +131,13 @@ namespace Eagle
 				ImGui::TreePop();
 			}
 
-			if (ImGui::TreeNodeEx("Spawn controls", defaultTreeFlags | ImGuiTreeNodeFlags_DefaultOpen))
+			if (ImGui::TreeNodeEx("Basic", defaultTreeFlags | ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				UI::BeginPropertyGrid("ParticleSystemAssetEditor");
 				bEmitterChanged |= UI::PropertyDrag("Visibility AABB Min", emitter.VisibilityAABB.Min, 0.1f, 0, 0, "If AABB is not visible by the camera, the particle system is not rendered. For optimization reasons, keep AABB as small as possible");
 				bEmitterChanged |= UI::PropertyDrag("Visibility AABB Max", emitter.VisibilityAABB.Max, 0.1f, 0, 0, "If AABB is not visible by the camera, the particle system is not rendered. For optimization reasons, keep AABB as small as possible");
 
+				bEmitterChanged |= EditorResources::DrawAssetSelection("Texture", emitter.Texture);
 				bEmitterChanged |= UI::PropertyDrag("Loop Count", emitter.LoopCount, 1.f, 0, 0, "0 will loop forever");
 				bEmitterChanged |= UI::PropertyDrag("Particles Amount", emitter.NumParticles);
 				if (UI::PropertyDrag("Particles Amount Ratio", emitter.NumParticlesRatio, 0.1f, 0, 0, "Can be used to control `Particles Amount`"))
@@ -152,23 +153,18 @@ namespace Eagle
 			if (ImGui::TreeNodeEx("Animation", defaultTreeFlags))
 			{
 				UI::BeginPropertyGrid("ParticleSystemAssetEditor");
-				bEmitterChanged |= EditorResources::DrawAssetSelection("Texture", emitter.Texture);
-				bEmitterChanged |= UI::PropertyDrag("Hor. frames number", emitter.AnimationImagesNum.x, 1.f, 1u, UINT_MAX, "The number of columns in the sprite sheet");
-				bEmitterChanged |= UI::PropertyDrag("Ver. frames number", emitter.AnimationImagesNum.y, 1.f, 1u, UINT_MAX, "The number of rows in the sprite sheet");
+				bEmitterChanged |= UI::PropertyDrag("Hor. frames number", emitter.AnimationImagesNum.x, 1.f, 1u, UINT_MAX, "The number of columns in the sprite sheet (texture)");
+				bEmitterChanged |= UI::PropertyDrag("Ver. frames number", emitter.AnimationImagesNum.y, 1.f, 1u, UINT_MAX, "The number of rows in the sprite sheet (texture)");
 				bEmitterChanged |= UI::PropertyDrag("Animation Speed", emitter.AnimationSpeed, 0.05f);
 				bEmitterChanged |= UI::Property("Blend Animation", emitter.bBlendAnimation);
 				
-				UI::EndPropertyGrid();
-				ImGui::TreePop();
-			}
+				UI::TextWithSeparator("Mesh Animation Settings");
+				{
+					bEmitterChanged |= EditorResources::DrawAssetSelection("Mesh Animation Clip", emitter.MeshAnimationAsset, "Used only with skeletal meshes");
+					bEmitterChanged |= UI::PropertyDrag("Playback Speed", emitter.ClipPlaybackSpeed, 0.1f);
+					bEmitterChanged |= UI::Property("Is Looping", emitter.bClipLooping);
+				}
 
-			if (ImGui::TreeNodeEx("Mesh Animation Settings", defaultTreeFlags))
-			{
-				UI::BeginPropertyGrid("ParticleSystemAssetEditor");
-				bEmitterChanged |= EditorResources::DrawAssetSelection("Mesh Animation Clip", emitter.MeshAnimationAsset, "Used only with skeletal meshes");
-				bEmitterChanged |= UI::PropertyDrag("Playback Speed", emitter.ClipPlaybackSpeed, 0.1f);
-				bEmitterChanged |= UI::Property("Is Looping", emitter.bClipLooping);
-				
 				UI::EndPropertyGrid();
 				ImGui::TreePop();
 			}

@@ -283,6 +283,7 @@ namespace Eagle
 	{
 		m_RuntimePhysicsScene = MakeRef<PhysicsScene>(PhysicsSettings());
 		m_PhysicsScene = m_RuntimePhysicsScene;
+		SetupOnAppAssemblyReloadedCallback();
 	}
 
 	Scene::Scene(const std::string& debugName, const Ref<SceneRenderer>& sceneRenderer, bool bRuntime)
@@ -320,6 +321,7 @@ namespace Eagle
 			editorSettings.bEditorScene = true;
 			m_PhysicsScene = MakeRef<PhysicsScene>(editorSettings);
 		}
+		SetupOnAppAssemblyReloadedCallback();
 	}
 
 	Scene::Scene(const Ref<Scene>& other, const std::string& debugName)
@@ -398,6 +400,7 @@ namespace Eagle
 		}
 
 		ConnectSignals();
+		SetupOnAppAssemblyReloadedCallback();
 		m_DirtyFlags.SetEverythingDirty(true);
 	}
 
@@ -415,6 +418,8 @@ namespace Eagle
 		m_RuntimePhysicsScene.reset();
 		m_Registry.clear();
 		m_SpawnedSounds.clear();
+
+		ScriptEngine::RemoveOnAppAssemblyReloadedCallback(m_GUID);
 	}
 
 	Entity Scene::CreateEntity(const std::string& name)
@@ -801,6 +806,20 @@ namespace Eagle
 				entity.SetWorldLocation(location);
 			}
 		}
+	}
+
+	void Scene::SetupOnAppAssemblyReloadedCallback()
+	{
+		ScriptEngine::AddOnAppAssemblyReloadedCallback(m_GUID, [this]()
+		{
+			// Update entity public fields
+			auto view = GetAllEntitiesWith<ScriptComponent>();
+			for (auto entityID : view)
+			{
+				Entity entity{ entityID, this };
+				ScriptEngine::UpdateEntityPublicFields(entity);
+			}
+		});
 	}
 
 	void Scene::CollectParticleSystems(const std::unordered_set<uint32_t>& entities)

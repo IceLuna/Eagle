@@ -25,8 +25,9 @@ const uint EmissionShapeType_Point = 0;
 const uint EmissionShapeType_Sphere = 1;
 const uint EmissionShapeType_SphereSurface = 2;
 const uint EmissionShapeType_Box = 3;
-const uint EmissionShapeType_Ring = 4;
-const uint EmissionShapeType_Mesh = 5;
+const uint EmissionShapeType_BoxSurface = 4;
+const uint EmissionShapeType_Ring = 5;
+const uint EmissionShapeType_Mesh = 6;
 
 #endif
 
@@ -54,9 +55,6 @@ const uint Emitter_FaceDirection_Mask      = 1 << 7;
 const uint Particle_Additive_Mask = 1 << 0;
 const uint Particle_BlendAnimation_Mask = 1 << 1;
 const uint Particle_FaceDirection_Mask  = 1 << 2;
-
-const uint Particle_TextureIndex_Bits = 12; // 12 bits
-const uint Particle_TextureIndex_Mask = (1 << Particle_TextureIndex_Bits) - 1u; // 0xFFF (12 bits)
 
 bool HasFlag(uint flags, uint mask)
 {
@@ -134,7 +132,7 @@ struct Emitter
 	uint LoopIteration; // Current loop iteration. When reaches LoopCount, it won't spawn any particles
 };
 
-// TODO: Is it even worth it? 92 bytes (packed) vs 124 bytes (unpacked)
+// TODO: Is it even worth it? 92+4padding bytes (packed) vs 122 bytes (unpacked). Unpacked will probably require more, since then it'd need to be aligned correctly
 struct PackedParticle
 {
 	vec2 Size;
@@ -151,7 +149,8 @@ struct PackedParticle
 	uint Bounciness_Opacity; // packHalf2x16
 
 	uint RotationZ_AnimationLerp; // packHalf2x16
-	uint Emitter_Texture_Indices; // Low 12 bits for texture index, rest is for emitter index. Texture index is stored here to avoid an addition read from emitters buffer just to get this index
+	uint16_t TextureIndex; // Texture index is stored here to avoid an addition read from emitters buffer just to get this index
+	uint16_t EmitterIndex;
 	uint AnimationImagesNum; // Used to calculate SpriteSize, which is used to calculate UV1 from UV0 (uv1 = uv0 + spriteSize)
 	uint AnimationSpriteCoord; // High 16 bits - x, rest - y
 
@@ -198,15 +197,16 @@ struct Particle
 	float16_t RotationZ;
 
 	vec3 VelocityCoef;
-	uint EmitterIndex;
+	uint16_t EmitterIndex;
+	uint16_t TextureIndex;
+
+	f16vec4 Color; // RGBA
 
 	vec2 AnimationUV0;
 	vec2 AnimationUV1;
 	vec2 NextAnimationUV0; // Used for lerping
 	vec2 NextAnimationUV1; // Used for lerping
 
-	f16vec4 Color; // RGBA
-	uint TextureIndex;
 	u16vec2 AnimationSpriteCoord;
 	float16_t AnimationLerp;
 
@@ -254,7 +254,8 @@ PackedParticle Particle_Pack(Particle particle, u16vec2 animationImagesNum)
 	packed.Bounciness_Opacity = packFloat2x16(f16vec2(particle.Bounciness, particle.Color.a));
 
 	packed.RotationZ_AnimationLerp = packFloat2x16(f16vec2(particle.RotationZ, particle.AnimationLerp));
-	packed.Emitter_Texture_Indices = (particle.EmitterIndex << Particle_TextureIndex_Bits) | (particle.TextureIndex & Particle_TextureIndex_Mask);
+	packed.EmitterIndex = particle.EmitterIndex;
+	packed.TextureIndex = particle.TextureIndex;
 
 	packed.AnimationImagesNum = packUint2x16(animationImagesNum);
 	packed.AnimationSpriteCoord = packUint2x16(particle.AnimationSpriteCoord);
@@ -292,8 +293,8 @@ Particle Particle_Unpack(PackedParticle packed)
 	unpackedf16 = unpackFloat2x16(packed.RotationZ_AnimationLerp);
 	particle.RotationZ = unpackedf16.x;
 	particle.AnimationLerp = unpackedf16.y;
-	particle.TextureIndex = packed.Emitter_Texture_Indices & Particle_TextureIndex_Mask;
-	particle.EmitterIndex = packed.Emitter_Texture_Indices >> Particle_TextureIndex_Bits;
+	particle.TextureIndex = packed.TextureIndex;
+	particle.EmitterIndex = packed.EmitterIndex;
 
 	if (particle.TextureIndex != EG_INVALID_INDEX)
 	{

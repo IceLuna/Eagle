@@ -637,10 +637,11 @@ namespace Eagle
 		m_Simulate->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 9);
 		m_Simulate->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 10);
 		m_Simulate->SetBuffer(m_Renderer.GetCameraBuffer(), 0, 11);
-		m_Simulate->SetBuffer(m_OpaqueIndicesToRender, 0, 12);
+		m_Simulate->SetBuffer(m_TransformsBuffer, 0, 12);
+		m_Simulate->SetBuffer(m_OpaqueIndicesToRender, 0, 13);
 		if (bSortOpaque)
 		{
-			m_Simulate->SetBuffer(m_OpaqueDistancesBuffer, 0, 13);
+			m_Simulate->SetBuffer(m_OpaqueDistancesBuffer, 0, 14);
 		}
 
 		const ImageLayout oldDepthLayout = gbuffer.Depth->GetLayout();

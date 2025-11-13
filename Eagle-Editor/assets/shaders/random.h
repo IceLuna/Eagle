@@ -100,23 +100,31 @@ vec3 Random_PointOnSphere(inout Random random, vec3 radius)
     return vec3(x, y, z);
 }
 
-vec3 Random_PointInRing(inout Random random, vec3 ringRadius, vec3 thickness)
+vec3 Random_PointInRing(inout Random random, vec3 ringRadius, vec3 thickness, out vec3 normal)
 {
     // Step 1: Generate a random point within the circular cross-section of the tube
-    vec3 r_inner = sqrt(Random_NextFloat3(random) * thickness * thickness); // Random radius within the tube
-    float theta_inner = Random_NextFloat(random) * 2 * EG_PI; // Random angle within the tube
+    const vec3 r_inner = sqrt(Random_NextFloat3(random) * thickness * thickness); // Random radius within the tube
+    const float theta_inner = Random_NextFloat(random) * 2 * EG_PI; // Random angle within the tube
+    const float cos_inner = cos(theta_inner);
+    const float sin_inner = sin(theta_inner);
 
     // Convert to Cartesian coordinates within the tube cross - section
-    vec3 x_inner = r_inner * cos(theta_inner);
-    vec3 y_inner = r_inner * sin(theta_inner);
+    const vec3 x_inner = r_inner * cos_inner;
+    const vec3 y_inner = r_inner * sin_inner;
 
     // Step 2: Generate a random angle around the major circle of the torus
-    float theta_outer = Random_NextFloat(random) * 2 * EG_PI;
+    const float theta_outer = Random_NextFloat(random) * 2 * EG_PI;
+    const float cos_outer = cos(theta_outer);
+    const float sin_outer = sin(theta_outer);
 
     // Step 3: Convert to 3D Cartesian coordinates
-    float x = (ringRadius.x + x_inner.x) * cos(theta_outer);
-    float y = (ringRadius.y + x_inner.y) * sin(theta_outer);
-    float z = y_inner.x * ringRadius.z * 10.f;
+    const float x = (ringRadius.x + x_inner.x) * cos_outer;
+    const float y = (ringRadius.y + x_inner.y) * sin_outer;
+    const float z = y_inner.x * ringRadius.z * 10.f;
+
+    normal.x = cos_inner * cos_outer;
+    normal.y = cos_inner * sin_outer;
+    normal.z = sin_inner;
 
     return vec3(x, y, z);
 }

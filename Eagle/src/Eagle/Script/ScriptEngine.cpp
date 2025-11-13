@@ -813,17 +813,6 @@ namespace Eagle
 
 		LoadListOfAppAssemblyClasses();
 
-		// Update entity public fields
-		if (const Ref<Scene>& currentScene = Scene::GetCurrentScene())
-		{
-			auto view = currentScene->GetAllEntitiesWith<ScriptComponent>();
-			for (auto entityID : view)
-			{
-				Entity entity{ entityID, currentScene.get()};
-				UpdateEntityPublicFields(entity);
-			}
-		}
-
 		for (const auto& [_, callback] : s_AppAssemblyReloadedCallbacks)
 			callback();
 

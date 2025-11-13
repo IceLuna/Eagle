@@ -54,13 +54,18 @@ layout(binding = 11) uniform CameraView
 	mat4 g_CameraView;
 };
 
-layout(binding = 12) buffer IndicesToRenderOpaqueBuffer
+layout(binding = 12) readonly buffer TransformsBuffer
+{
+    mat4 g_Transforms[];
+};
+
+layout(binding = 13) buffer IndicesToRenderOpaqueBuffer
 {
     uint g_IndicesToRenderOpaque[];
 };
 
 #ifdef EG_SORT_OPAQUE
-layout(binding = 13) buffer DistancesOpaqueBuffer
+layout(binding = 14) buffer DistancesOpaqueBuffer
 {
     float g_DistancesOpaque[];
 };
@@ -220,15 +225,17 @@ void main()
 
     const float lifeAlpha = particle.CurrentLifetime / particle.Lifetime;
     const float rotationZ = mix(emitter.RotationZStart, emitter.RotationZEnd, lifeAlpha) - particle.RotationZOffset;
+    const mat4 emitterTr = g_Transforms[emitter.TransformIndex];
+    const vec3 velocity = mat3(emitterTr) * (particle.Velocity * particle.VelocityCoef);
 
     particle.Size = mix(emitter.SizeStart.xy, emitter.SizeEnd.xy, lifeAlpha) * particle.SizeScale;
     particle.CurrentLifetime += g_DeltaTime;
-    particle.Position += particle.Velocity * particle.VelocityCoef * g_DeltaTime;
+    particle.Position += velocity * g_DeltaTime;
     particle.Flags = EmitterFlagsToParticleFlags(emitter.Flags);
     particle.RotationZ = float16_t(rotationZ);
     particle.VelocityCoef = mix(emitter.VelocityCoefStart, emitter.VelocityCoefEnd, lifeAlpha);
     particle.Color = f16vec4(mix(emitter.ColorStart, emitter.ColorEnd, lifeAlpha));
-    particle.TextureIndex = emitter.TextureIndex;
+    particle.TextureIndex = uint16_t(emitter.TextureIndex);
     particle.AnimationLerp = float16_t(animationLerp);
 
     g_Particles[particleIndex] = Particle_Pack(particle, u16vec2(emitter.AnimationImagesNum));

@@ -16,7 +16,7 @@ namespace Eagle
 	{
 		enum class EmissionShapeType
 		{
-			Point, Sphere, SphereSurface, Box, Ring, Mesh
+			Point, Sphere, SphereSurface, Box, BoxSurface, Ring, Mesh
 		};
 
 		enum class CollisionModeType

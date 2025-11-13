@@ -103,6 +103,7 @@ bool PopDead(out uint particleIndex)
     return true;
 }
 
+// TODO: Improve
 uint GetEmitterIndex(uint id)
 {
     for (uint i = 0; i < g_NumEmitters; ++i)
@@ -111,6 +112,29 @@ uint GetEmitterIndex(uint id)
             return i;
         id -= g_EmittersSpawnCount[i];
     }
+}
+
+vec3 NormalTowardClosestFace(vec3 point, vec3 aabbMin, vec3 aabbMax)
+{
+    // Distance to each face
+    float dxMin = point.x - aabbMin.x;
+    float dxMax = aabbMax.x - point.x;
+    float dyMin = point.y - aabbMin.y;
+    float dyMax = aabbMax.y - point.y;
+    float dzMin = point.z - aabbMin.z;
+    float dzMax = aabbMax.z - point.z;
+
+    // Find the smallest distance
+    float minDist = dxMin;
+    vec3 normal = vec3(-1, 0, 0);
+
+    if (dxMax < minDist) { minDist = dxMax; normal = vec3(1,  0,  0); }
+    if (dyMin < minDist) { minDist = dyMin; normal = vec3(0, -1,  0); }
+    if (dyMax < minDist) { minDist = dyMax; normal = vec3(0,  1,  0); }
+    if (dzMin < minDist) { minDist = dzMin; normal = vec3(0,  0, -1); }
+    if (dzMax < minDist) { minDist = dzMax; normal = vec3(0,  0,  1); }
+
+    return normal;
 }
 
 void GetPosAndNormalOnStaticMesh(Emitter emitter, inout Random random, inout vec3 pos, inout vec3 normal)
@@ -205,10 +229,60 @@ void Emitter_GetParticlePositionAndNormal(Emitter emitter, inout Random random, 
             normal = normalize(position);
 			break;
 		case EmissionShapeType_Box:
-			position = mix(emitter.BoxMin, emitter.BoxMax, Random_NextFloat3(random));
+        {
+            position = mix(emitter.BoxMin, emitter.BoxMax, Random_NextFloat3(random));
+            normal = NormalTowardClosestFace(position, emitter.BoxMin, emitter.BoxMax);
+            break;
+        }
+		case EmissionShapeType_BoxSurface:
+        {
+            float dx = emitter.BoxMax.x - emitter.BoxMin.x;
+            float dy = emitter.BoxMax.y - emitter.BoxMin.y;
+            float dz = emitter.BoxMax.z - emitter.BoxMin.z;
+
+            // Areas of the 3 face pairs
+            float areaXY = dx * dy;
+            float areaXZ = dx * dz;
+            float areaYZ = dy * dz;
+
+            // Choose face weighted by area
+            float totalArea = 2.0f * (areaXY + areaXZ + areaYZ);
+            float pick = Random_NextFloat(random) * totalArea;
+
+            if (pick < areaXY * 2)
+            {
+                // Z faces
+                bool positive = (pick < areaXY);
+                float x = emitter.BoxMin.x + Random_NextFloat(random) * dx;
+                float y = emitter.BoxMin.y + Random_NextFloat(random) * dy;
+                float z = positive ? emitter.BoxMax.z : emitter.BoxMin.z;
+                position = vec3(x, y, z);
+                normal = vec3(0, 0, positive ? 1 : -1);
+            }
+            else if (pick < (areaXY * 2 + areaXZ * 2))
+            {
+                // Y faces
+                bool positive = (pick < areaXY * 2 + areaXZ);
+                float x = emitter.BoxMin.x + Random_NextFloat(random) * dx;
+                float y = positive ? emitter.BoxMax.y : emitter.BoxMin.y;
+                float z = emitter.BoxMin.z + Random_NextFloat(random) * dz;
+                position = vec3(x, y, z);
+                normal = vec3(0, positive ? 1 : -1, 0);
+            }
+            else
+            {
+                // X faces
+                bool positive = (pick < areaXY * 2 + areaXZ * 2 + areaYZ);
+                float x = positive ? emitter.BoxMax.x : emitter.BoxMin.x;
+                float y = emitter.BoxMin.y + Random_NextFloat(random) * dy;
+                float z = emitter.BoxMin.z + Random_NextFloat(random) * dz;
+                position = vec3(x, y, z);
+                normal = vec3(positive ? 1 : -1, 0, 0);
+            }
 			break;
+        }
 		case EmissionShapeType_Ring:
-			position = Random_PointInRing(random, emitter.RingRadius, emitter.RingThickness);
+			position = Random_PointInRing(random, emitter.RingRadius, emitter.RingThickness, normal);
 			break;
 		case EmissionShapeType_Mesh:
             if (emitter.AnimationOffset != -1)
@@ -241,11 +315,6 @@ void main()
     vec3 position, normal;
     Emitter_GetParticlePositionAndNormal(emitter, random, position, normal);
     position = vec3(worldTr * vec4(position, 1.f));
-    if (NOT_ZERO(normal) && emitter.NormalVelocityFactor != 0.f)
-    {
-        const mat3 normalModel = mat3(transpose(inverse(worldTr)));
-        normal = normalize(normalModel * normal);
-    }
 
     const float bounciness = mix(emitter.BouncinessMin, emitter.BouncinessMax, Random_NextFloat(random));
     const float opacity = emitter.ColorStart.a;
@@ -263,10 +332,10 @@ void main()
     particle.RotationZ = float16_t(emitter.RotationZStart);
 
     particle.VelocityCoef = emitter.VelocityCoefStart;
-    particle.EmitterIndex = emitterIndex;
+    particle.EmitterIndex = uint16_t(emitterIndex);
 
     particle.Color = f16vec4(emitter.ColorStart);
-    particle.TextureIndex = emitter.TextureIndex;
+    particle.TextureIndex = uint16_t(emitter.TextureIndex);
     particle.AnimationSpriteCoord = u16vec2(0);
     particle.AnimationLerp = float16_t(0.f);
 
