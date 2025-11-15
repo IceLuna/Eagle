@@ -9065,7 +9065,7 @@ namespace Eagle
 		const glm::vec3* velocityMin, const glm::vec3* velocityMax, const glm::vec3* velocityCoefStart, const glm::vec3* velocityCoefEnd,
 		float rotationZStart, float rotationZEnd, const glm::vec2* sizeStart, const glm::vec2* sizeEnd, const glm::vec2* colliderSizeRatio,
 		float lifetimeMin, float lifetimeMax, float bouncinessMin, float bouncinessMax, MonoString* name, const Transform* relativeTransform,
-		const AABB* visibilityAABB, uint32_t loopCount, uint32_t numParticles, float numParticlesRatio, float radialAcceleration, float tangentialAcceleration,
+		const AABB* visibilityAABB, uint32_t loopCount, float loopDuration, uint32_t spawnRate, float radialAcceleration, float tangentialAcceleration,
 		float normalVelocityFactor, ParticleEmitter::EmissionShapeType emissionShape, const glm::vec3* sphereRadius, const glm::vec3* boxMin, const glm::vec3* boxMax,
 		const glm::vec3* ringRadius, const glm::vec3* ringThickness, GUID mesh, ParticleEmitter::CollisionModeType collisionMode, const glm::uvec2* animationImagesNum,
 		float animationSpeed, bool bDestroyImmediately, bool bEmit, bool bExplode, bool bApplyGravity, bool bAlphaBlending, bool bAdditive, bool bBlendAnimation, bool bFaceDirection)
@@ -9097,8 +9097,8 @@ namespace Eagle
 
 		emitter.VisibilityAABB = *visibilityAABB;
 		emitter.LoopCount = loopCount;
-		emitter.NumParticles = numParticles;
-		emitter.NumParticlesRatio = numParticlesRatio;
+		emitter.LoopDuration = loopDuration;
+		emitter.SpawnRate = spawnRate;
 		emitter.RadialAcceleration = radialAcceleration;
 		emitter.TangentialAcceleration = tangentialAcceleration;
 
@@ -9181,7 +9181,7 @@ namespace Eagle
 	MonoString* Script::Eagle_AssetParticleSystem_GetEmitter(GUID assetID, uint32_t index, GUID* texture, glm::vec4* colorStart, glm::vec4* colorEnd,
 		glm::vec3* velocityMin, glm::vec3* velocityMax, glm::vec3* velocityCoefStart, glm::vec3* velocityCoefEnd, float* rotationZStart, float* rotationZEnd,
 		glm::vec2* sizeStart, glm::vec2* sizeEnd, glm::vec2* colliderSizeRatio, float* lifetimeMin, float* lifetimeMax, float* bouncinessMin, float* bouncinessMax,
-		Transform* relativeTransform, AABB* visibilityAABB, uint32_t* loopCount, uint32_t* numParticles, float* numParticlesRatio, float* radialAcceleration,
+		Transform* relativeTransform, AABB* visibilityAABB, uint32_t* loopCount, float* loopDuration, uint32_t* spawnRate, float* radialAcceleration,
 		float* tangentialAcceleration, float* normalVelocityFactor, ParticleEmitter::EmissionShapeType* emissionShape, glm::vec3* sphereRadius, glm::vec3* boxMin,
 		glm::vec3* boxMax, glm::vec3* ringRadius, glm::vec3* ringThickness, GUID* meshAsset, ParticleEmitter::CollisionModeType* collisionMode, glm::uvec2* animationImagesNum,
 		float* animationSpeed, bool* bDestroyImmediately, bool* bEmit, bool* bExplode, bool* bApplyGravity, bool* bAlphaBlending, bool* bAdditive, bool* bBlendAnimation, bool* bFaceDirection)
@@ -9226,8 +9226,8 @@ namespace Eagle
 			*relativeTransform = emitter.RelativeTransform;
 			*visibilityAABB = emitter.VisibilityAABB;
 			*loopCount = emitter.LoopCount;
-			*numParticles = emitter.NumParticles;
-			*numParticlesRatio = emitter.NumParticlesRatio;
+			*loopDuration = emitter.LoopDuration;
+			*spawnRate = emitter.SpawnRate;
 			*radialAcceleration = emitter.RadialAcceleration;
 
 			*tangentialAcceleration = emitter.TangentialAcceleration;

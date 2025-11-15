@@ -74,7 +74,8 @@ namespace Eagle
 			outData.VelocityMax = emitter.VelocityMax;
 			outData.VelocityCoefStart = emitter.VelocityCoefStart;
 			outData.VelocityCoefEnd = emitter.VelocityCoefEnd;
-			outData.NumParticles = uint32_t(float(emitter.NumParticles) * emitter.NumParticlesRatio);
+			outData.SpawnRate = emitter.SpawnRate;
+			outData.LoopDuration = emitter.LoopDuration;
 			outData.RotationZStart = glm::radians(emitter.RotationZStart);
 			outData.RotationZEnd = glm::radians(emitter.RotationZEnd);
 			outData.LoopCount = emitter.LoopCount;
@@ -103,21 +104,22 @@ namespace Eagle
 			outData.IndexCount = meshEmitterData.IndexCount;
 			outData.NormalVelocityFactor = emitter.NormalVelocityFactor;
 			outData.AnimationOffset = emitterData.AnimationOffset;
+			outData.InternalFlags = 0u;
 
-			if (outData.NumParticles == 0u)
+			// Disable emitter if it's useless
+			if (outData.SpawnRate == 0u || outData.LoopDuration <= 0.f)
 			{
-				// Disable emitter
 				outData.Flags = outData.Flags & (~Emitter_Enabled_Mask);
 			}
 
 			// Needed so it spawns particles on the first update
 			{
-				const float spawnInterval = emitter.bExplode ? outData.LifetimeMax : outData.LifetimeMax / float(outData.NumParticles);
-				outData.DeltaTime = spawnInterval;
-				outData.WasExplode = emitter.bExplode ? 1u : 0u;
+				const float spawnInterval = emitter.bExplode ? outData.LoopDuration : 1.f / float(outData.SpawnRate);
+				outData.SpawnIntervalTimer = spawnInterval;
+				Emitter_SetWasExplode(outData, emitter.bExplode);
 			}
-			outData.IsVisible = 0u;
-			outData.SpawnedSoFar = 0u;
+			Emitter_SetIsVisible(outData, false);
+			outData.DeltaTime = 0.f;
 			outData.LoopIteration = 0u;
 		}
 	
@@ -441,7 +443,7 @@ namespace Eagle
 			uint32_t maxParticles = 0;
 			for (const auto& [_, emitters] : m_SystemToEmittersMapping)
 				for (const auto& [emitter, _] : emitters)
-					maxParticles += uint32_t(float(emitter.NumParticles) * emitter.NumParticlesRatio);
+					maxParticles += (uint32_t)std::ceil(emitter.SpawnRate * emitter.LifetimeMax);
 
 			if (maxParticles > m_MaxParticles)
 			{
@@ -510,6 +512,7 @@ namespace Eagle
 			uint32_t PostSimIndex;
 			uint32_t NumEmitters;
 			float DeltaTime;
+			uint32_t MaxParticles;
 			struct CullingFrustum
 			{
 				float near_right;
@@ -523,6 +526,7 @@ namespace Eagle
 		pushData.PostSimIndex = 1u - m_PingPong;
 		pushData.NumEmitters = m_NumEmitters;
 		pushData.DeltaTime = Application::Get().GetTimestep();
+		pushData.MaxParticles = m_MaxParticles;
 
 		const float tanFov = std::tan(0.5f * m_Renderer.GetFOV());
 		const float nearPlane = m_Renderer.GetZNear();
@@ -547,6 +551,8 @@ namespace Eagle
 		cmd->TransitionLayout(m_DrawArgs, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
 		cmd->TransitionLayout(m_DispatchArgs, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
 
+		// Note: this pipeline is designed with num groups of (1, 1, 1) in mind.
+		// If this ever changes, the shader logic needs to be revisited. At least handling of available slots
 		cmd->Dispatch(m_PrepareData, 1, 1, 1, &pushData);
 
 		cmd->Barrier(m_SystemData);

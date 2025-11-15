@@ -139,12 +139,8 @@ namespace Eagle
 
 				bEmitterChanged |= EditorResources::DrawAssetSelection("Texture", emitter.Texture);
 				bEmitterChanged |= UI::PropertyDrag("Loop Count", emitter.LoopCount, 1.f, 0, 0, "0 will loop forever");
-				bEmitterChanged |= UI::PropertyDrag("Particles Amount", emitter.NumParticles);
-				if (UI::PropertyDrag("Particles Amount Ratio", emitter.NumParticlesRatio, 0.1f, 0, 0, "Can be used to control `Particles Amount`"))
-				{
-					emitter.NumParticlesRatio = std::max(0.f, emitter.NumParticlesRatio);
-					bEmitterChanged = true;
-				}
+				bEmitterChanged |= UI::PropertyDrag("Loop Duration", emitter.LoopDuration, 0.1f);
+				bEmitterChanged |= UI::PropertyDrag("Spawn Rate", emitter.SpawnRate, 1, 0, 0, "How many particles to spawn in a second. If `Explode` flag is set, this amount of particles will be spawned immediately.");
 
 				UI::EndPropertyGrid();
 				ImGui::TreePop();
@@ -245,16 +241,12 @@ namespace Eagle
 				if (UI::PropertyDrag("Lifetime Min", emitter.LifetimeMin, 0.1f, 0.f, FLT_MAX, "In seconds"))
 				{
 					emitter.LifetimeMin = glm::max(0.f, emitter.LifetimeMin);
-					if (emitter.LifetimeMin > emitter.LifetimeMax)
-						emitter.LifetimeMax = emitter.LifetimeMin;
 					bEmitterChanged = true;
 				}
 
 				if (UI::PropertyDrag("Lifetime Max", emitter.LifetimeMax, 0.1f, 0.f, FLT_MAX, "In seconds"))
 				{
 					emitter.LifetimeMax = glm::max(0.f, emitter.LifetimeMax);
-					if (emitter.LifetimeMax < emitter.LifetimeMin)
-						emitter.LifetimeMin = emitter.LifetimeMax;
 					bEmitterChanged = true;
 				}
 

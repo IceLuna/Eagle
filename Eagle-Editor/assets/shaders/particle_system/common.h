@@ -52,9 +52,26 @@ const uint Emitter_BlendAnimation_Mask     = 1 << 5;
 const uint Emitter_DestroyImmediately_Mask = 1 << 6;
 const uint Emitter_FaceDirection_Mask      = 1 << 7;
 
+const uint Emitter_Internal_IsVisible_Mask  = 1 << 0;
+const uint Emitter_Internal_WasExplode_Mask = 1 << 1; // Used to handle `bExplode` correctly
+
 const uint Particle_Additive_Mask = 1 << 0;
 const uint Particle_BlendAnimation_Mask = 1 << 1;
 const uint Particle_FaceDirection_Mask  = 1 << 2;
+
+uint SetFlag(uint flags, uint mask, bool bSet)
+{
+	if (bSet)
+	{
+		flags |= mask;
+	}
+	else
+	{
+		flags &= (~mask);
+	}
+
+	return flags;
+}
 
 bool HasFlag(uint flags, uint mask)
 {
@@ -76,14 +93,14 @@ struct Emitter
 	float RotationZStart;
 
 	vec3 VelocityMax;
-	uint NumParticles;
+	uint SpawnRate; // Particles per second
 
 	vec2 SizeStart;
 	vec2 SizeEnd;
 
 	vec2 ColliderSizeRatio;
-	float RotationZEnd;
-	float RadialAcceleration;
+	uint LoopCount;
+	float LoopDuration;
 
 	vec3 RingRadius;
 	float BouncinessMin;
@@ -104,7 +121,7 @@ struct Emitter
 	uint Flags;
 
 	vec3 VelocityCoefEnd;
-	uint LoopCount;
+	float RotationZEnd;
 
 	uvec2 AnimationImagesNum;
 	float AnimationSpeed;
@@ -119,18 +136,46 @@ struct Emitter
 	// TODO: Pack it somewhere
 	float BouncinessMax;
 	uint AnimationOffset; // Used to retrieve animation data when skeletal mesh animation is used
+	float RadialAcceleration;
 	uint Padding0;
-	uint Padding1;
 
 	// This is internal data. Keep it at the end because during update only the data before it is being updated
 	vec3 WorldPos; // First
 	float DeltaTime;
 
-	uint IsVisible;
-	uint SpawnedSoFar; // Used for `OneShot` emitters
-	uint WasExplode; // Used to handle `bExplode` correctly
+	float SpawnIntervalTimer;
 	uint LoopIteration; // Current loop iteration. When reaches LoopCount, it won't spawn any particles
+	uint InternalFlags;
+	uint Padding1;
 };
+
+#ifdef __cplusplus
+void Emitter_SetIsVisible(Emitter& emitter, bool bVisible)
+#else
+void Emitter_SetIsVisible(inout Emitter emitter, bool bVisible)
+#endif
+{
+	emitter.InternalFlags = SetFlag(emitter.InternalFlags, Emitter_Internal_IsVisible_Mask, bVisible);
+}
+
+bool Emitter_IsVisible(Emitter emitter)
+{
+	return HasFlag(emitter.InternalFlags, Emitter_Internal_IsVisible_Mask);
+}
+
+#ifdef __cplusplus
+void Emitter_SetWasExplode(Emitter& emitter, bool bWasExplode)
+#else
+void Emitter_SetWasExplode(inout Emitter emitter, bool bWasExplode)
+#endif
+{
+	emitter.InternalFlags = SetFlag(emitter.InternalFlags, Emitter_Internal_WasExplode_Mask, bWasExplode);
+}
+
+bool Emitter_WasExplode(Emitter emitter)
+{
+	return HasFlag(emitter.InternalFlags, Emitter_Internal_WasExplode_Mask);
+}
 
 // TODO: Is it even worth it? 92+4padding bytes (packed) vs 122 bytes (unpacked). Unpacked will probably require more, since then it'd need to be aligned correctly
 struct PackedParticle

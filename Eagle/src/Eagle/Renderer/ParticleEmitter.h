@@ -56,8 +56,8 @@ namespace Eagle
 		Transform RelativeTransform; // Relative to the particle system
 		AABB VisibilityAABB = AABB(glm::vec3(-1.f), glm::vec3(1.f)); // If not visible by the camera, it's not rendered to improve perf
 		uint32_t LoopCount = 0u; // 0 - infinity
-		uint32_t NumParticles = 1;
-		float NumParticlesRatio = 1.f; // Can be used to control `NumParticles`
+		float LoopDuration = 1.f;
+		uint32_t SpawnRate = 1; // How many particles to spawn in a second
 		float FastForwardTo = 0.f; // TODO: Allows to fast-forward the simulation to make it look like it was running for `FastForwardTo` seconds
 		float RadialAcceleration = 0.f; // If it's negative, particles will move towards the center of the emitter. If positive, they move away from the center
 		float TangentialAcceleration = 0.f; // Particles will move away from the center of the emitter in a spiral way.

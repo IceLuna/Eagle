@@ -1402,8 +1402,8 @@ namespace Eagle
 				out << YAML::Key << "VisibilityAABBMin" << YAML::Value << emitter.VisibilityAABB.Min;
 				out << YAML::Key << "VisibilityAABBMax" << YAML::Value << emitter.VisibilityAABB.Max;
 				out << YAML::Key << "LoopCount" << YAML::Value << emitter.LoopCount;
-				out << YAML::Key << "NumParticles" << YAML::Value << emitter.NumParticles;
-				out << YAML::Key << "NumParticlesRatio" << YAML::Value << emitter.NumParticlesRatio;
+				out << YAML::Key << "LoopDuration" << YAML::Value << emitter.LoopDuration;
+				out << YAML::Key << "SpawnRate" << YAML::Value << emitter.SpawnRate;
 				out << YAML::Key << "FastForwardTo" << YAML::Value << emitter.FastForwardTo;
 				out << YAML::Key << "RadialAcceleration" << YAML::Value << emitter.RadialAcceleration;
 				out << YAML::Key << "TangentialAcceleration" << YAML::Value << emitter.TangentialAcceleration;
@@ -4343,8 +4343,10 @@ namespace Eagle
 			emitter.VisibilityAABB.Max = node["VisibilityAABBMax"].as<glm::vec3>();
 			if (auto n = node["LoopCount"])
 				emitter.LoopCount = n.as<uint32_t>();
-			emitter.NumParticles = node["NumParticles"].as<uint32_t>();
-			emitter.NumParticlesRatio = node["NumParticlesRatio"].as<float>();
+			if (auto n = node["LoopDuration"])
+				emitter.LoopDuration = n.as<float>();
+			if (auto n = node["SpawnRate"])
+				emitter.SpawnRate = n.as<uint32_t>();
 			emitter.FastForwardTo = node["FastForwardTo"].as<float>();
 			emitter.RadialAcceleration = node["RadialAcceleration"].as<float>();
 			emitter.TangentialAcceleration = node["TangentialAcceleration"].as<float>();

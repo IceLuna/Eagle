@@ -241,7 +241,7 @@ void main()
     g_Particles[particleIndex] = Particle_Pack(particle, u16vec2(emitter.AnimationImagesNum));
     PushAlive(particleIndex);
 
-    if (emitter.IsVisible == 1)
+    if (Emitter_IsVisible(emitter))
     {
         const vec4 viewPos = g_CameraView * vec4(particle.Position, 1.0);
         if (HasFlag(emitter.Flags, Emitter_AlphaBlending_Mask))

@@ -227,8 +227,8 @@ namespace Eagle
 		public Transform RelativeTransform; // Relative to the particle system
 		public AABB VisibilityAABB; // If not visible by the camera, it's not rendered to improve perf
 		public uint LoopCount; // 0 - infinity
-		public uint NumParticles;
-		public float NumParticlesRatio; // Can be used to control `NumParticles`
+		public float LoopDuration;
+        public uint SpawnRate; // How many particles to spawn in a second
 		public float RadialAcceleration; // If it's negative, particles will move towards the center of the emitter. If positive, they move away from the center
 		public float TangentialAcceleration; // Particles will move away from the center of the emitter in a spiral way.
         public float NormalVelocityFactor; // If not 0, particle's initial velocity will be affected by `EmissionShapeType` normal direction

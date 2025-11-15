@@ -1188,10 +1188,8 @@ namespace Eagle::UI
 			bool bChecked = mask & value;
 			if (UI::Property(name, bChecked))
 			{
-				if (bChecked) // If it was checked, add the mask
-					value |= mask;
-				else // Otherwise, remove it
-					value &= ~mask;
+				// If it was checked, add the mask, otherwise remove it
+				SetFlag(value, mask, bChecked);
 				bModified = true;
 			}
 		}

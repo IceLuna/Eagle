@@ -73,6 +73,19 @@ constexpr typename std::enable_if<IsEnumFlags<EnumType>::value, EnumType>::type 
 }
 
 template <typename EnumType>
+constexpr void SetFlag(EnumType& lhs, EnumType flag, bool bSet)
+{
+    if (bSet)
+    {
+        lhs |= flag;
+    }
+    else
+    {
+        lhs &= (~flag);
+    }
+}
+
+template <typename EnumType>
 constexpr typename std::enable_if<IsEnumFlags<EnumType>::value, bool>::type HasFlags(EnumType lhs, EnumType rhs)
 {
     return (lhs & rhs) == rhs;

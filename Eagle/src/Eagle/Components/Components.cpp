@@ -193,11 +193,7 @@ namespace Eagle
 
 	void RigidBodyComponent::SetLockFlag(ActorLockFlag flag, bool value)
 	{
-		if (value)
-			m_LockFlags |= flag;
-		else
-			m_LockFlags &= ~flag;
-
+		SetFlag(m_LockFlags, flag, value);
 		if (const auto& actor = Parent.GetPhysicsActor())
 			actor->SetLockFlag(m_LockFlags);
 	}

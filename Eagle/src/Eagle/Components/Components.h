@@ -647,7 +647,7 @@ namespace Eagle
 		glm::vec3 GetBoneWorldScale(const std::string_view boneName) const;
 
 		bool IsRootMotionLockFlagSet(RootMotionLockFlag flag) const { return HasFlags(m_RootMotionLockFlags, flag); }
-		void SetRootMotionLockFlag(RootMotionLockFlag flag, bool value) { value ? (m_RootMotionLockFlags |= flag) : (m_RootMotionLockFlags &= ~flag); }
+		void SetRootMotionLockFlag(RootMotionLockFlag flag, bool value) { SetFlag(m_RootMotionLockFlags, flag, value); }
 		void SetRootMotionLockFlag(RootMotionLockFlag flag) { m_RootMotionLockFlags = flag; }
 		RootMotionLockFlag GetRootMotionLockFlags() const { return m_RootMotionLockFlags; }
 
