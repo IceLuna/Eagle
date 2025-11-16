@@ -51,145 +51,221 @@ namespace Eagle
 		f * (-DeltaUV2.x * Edge1.z + DeltaUV1.x * Edge2.z),
 		0.f);
 
-	static void UploadIndexBuffer(const Ref<CommandBuffer>& cmd, Ref<Buffer>& buffer)
+	namespace Utils
 	{
-		const size_t ibSize = buffer->GetSize();
-		uint32_t offset = 0;
-		std::vector<Index> indices(ibSize / sizeof(Index));
-		for (size_t i = 0; i < indices.size();)
+		static void UploadIndexBuffer(const Ref<CommandBuffer>& cmd, Ref<Buffer>& buffer)
 		{
-			indices[i + 0] = offset + 0;
-			indices[i + 1] = offset + 1;
-			indices[i + 2] = offset + 2;
-
-			indices[i + 3] = offset + 2;
-			indices[i + 4] = offset + 3;
-			indices[i + 5] = offset + 0;
-
-			offset += 4;
-			i += 6;
-
-			if (i >= indices.size())
-				break;
-
-			indices[i + 0] = offset + 2;
-			indices[i + 1] = offset + 1;
-			indices[i + 2] = offset + 0;
-
-			indices[i + 3] = offset + 0;
-			indices[i + 4] = offset + 3;
-			indices[i + 5] = offset + 2;
-
-			offset += 4;
-			i += 6;
-		}
-
-		cmd->Write(buffer, indices.data(), ibSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
-		cmd->TransitionLayout(buffer, BufferReadAccess::Index, BufferReadAccess::Index);
-	}
-
-	static void UploadIndexBufferOneSided(const Ref<CommandBuffer>& cmd, Ref<Buffer>& buffer)
-	{
-		const size_t& ibSize = buffer->GetSize();
-		uint32_t offset = 0;
-		std::vector<Index> indices(ibSize / sizeof(Index));
-		for (size_t i = 0; i < indices.size(); i += 6)
-		{
-			indices[i + 0] = offset + 0;
-			indices[i + 1] = offset + 1;
-			indices[i + 2] = offset + 2;
-
-			indices[i + 3] = offset + 2;
-			indices[i + 4] = offset + 3;
-			indices[i + 5] = offset + 0;
-
-			offset += 4;
-		}
-
-		cmd->Write(buffer, indices.data(), ibSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
-		cmd->TransitionLayout(buffer, BufferReadAccess::Index, BufferReadAccess::Index);
-	}
-
-	static void UploadTransforms(const Ref<CommandBuffer>& cmd, const std::vector<glm::mat4>& transforms, Ref<Buffer>& transformsBuffer, Ref<Buffer>& prevTransformsBuffer,
-		std::vector<uint64_t>& specificIndices, bool* bUploadTransforms, bool* bUploadSpecificTransforms, bool bMotionRequired, bool bTransformBufferGarbage, const char* debugName)
-	{
-		EG_GPU_TIMING_SCOPED(cmd, debugName);
-		EG_CPU_TIMING_SCOPED(debugName);
-
-		auto& gpuBuffer = transformsBuffer;
-		auto& prevGpuBuffer = prevTransformsBuffer;
-
-		if (!(*bUploadTransforms) && !(*bUploadSpecificTransforms))
-		{
-			if (bMotionRequired)
-				cmd->CopyBuffer(gpuBuffer, prevGpuBuffer, 0, 0, gpuBuffer->GetSize());
-
-			return;
-		}
-
-		if (transforms.empty())
-		{
-			*bUploadTransforms = false;
-			*bUploadSpecificTransforms = false;
-			specificIndices.clear();
-			return;
-		}
-
-#if EG_UPLOAD_ONLY_REQUIRED_TRANSFORMS
-		if (*bUploadTransforms)
-#else
-		if (*bUploadTransforms || *bUploadSpecificTransforms)
-#endif
-		{
-			const size_t currentBufferSize = transforms.size() * sizeof(glm::mat4);
-			if (currentBufferSize > gpuBuffer->GetSize())
+			const size_t ibSize = buffer->GetSize();
+			uint32_t offset = 0;
+			std::vector<Index> indices(ibSize / sizeof(Index));
+			for (size_t i = 0; i < indices.size();)
 			{
-				size_t newSize = (currentBufferSize * 3) / 2;
-				gpuBuffer->Resize(newSize);
-				bTransformBufferGarbage = true;
-				if (prevGpuBuffer)
-					prevGpuBuffer->Resize(newSize);
+				indices[i + 0] = offset + 0;
+				indices[i + 1] = offset + 1;
+				indices[i + 2] = offset + 2;
+
+				indices[i + 3] = offset + 2;
+				indices[i + 4] = offset + 3;
+				indices[i + 5] = offset + 0;
+
+				offset += 4;
+				i += 6;
+
+				if (i >= indices.size())
+					break;
+
+				indices[i + 0] = offset + 2;
+				indices[i + 1] = offset + 1;
+				indices[i + 2] = offset + 0;
+
+				indices[i + 3] = offset + 0;
+				indices[i + 4] = offset + 3;
+				indices[i + 5] = offset + 2;
+
+				offset += 4;
+				i += 6;
 			}
 
-			if (bMotionRequired && !bTransformBufferGarbage) // Copy old transforms but not if it's garbage
-				cmd->CopyBuffer(gpuBuffer, prevGpuBuffer, 0, 0, gpuBuffer->GetSize());
-
-			cmd->Write(gpuBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-			cmd->StorageBufferBarrier(gpuBuffer);
-
-			if (bMotionRequired && bTransformBufferGarbage)
-				cmd->CopyBuffer(gpuBuffer, prevGpuBuffer, 0, 0, gpuBuffer->GetSize());
+			cmd->Write(buffer, indices.data(), ibSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
+			cmd->TransitionLayout(buffer, BufferReadAccess::Index, BufferReadAccess::Index);
 		}
-#if EG_UPLOAD_ONLY_REQUIRED_TRANSFORMS
-		else
+
+		static void UploadIndexBufferOneSided(const Ref<CommandBuffer>& cmd, Ref<Buffer>& buffer)
 		{
-			// If uploading specific transforms, copy data to "Prev Transforms" and the update current transforms buffer
-			if (*bUploadSpecificTransforms)
+			const size_t& ibSize = buffer->GetSize();
+			uint32_t offset = 0;
+			std::vector<Index> indices(ibSize / sizeof(Index));
+			for (size_t i = 0; i < indices.size(); i += 6)
 			{
-				constexpr size_t uploadSize = sizeof(glm::mat4);
+				indices[i + 0] = offset + 0;
+				indices[i + 1] = offset + 1;
+				indices[i + 2] = offset + 2;
+
+				indices[i + 3] = offset + 2;
+				indices[i + 4] = offset + 3;
+				indices[i + 5] = offset + 0;
+
+				offset += 4;
+			}
+
+			cmd->Write(buffer, indices.data(), ibSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
+			cmd->TransitionLayout(buffer, BufferReadAccess::Index, BufferReadAccess::Index);
+		}
+
+		static void UploadTransforms(const Ref<CommandBuffer>& cmd, const std::vector<glm::mat4>& transforms, Ref<Buffer>& transformsBuffer, Ref<Buffer>& prevTransformsBuffer,
+			std::vector<uint64_t>& specificIndices, bool* bUploadTransforms, bool* bUploadSpecificTransforms, bool bMotionRequired, bool bTransformBufferGarbage, const char* debugName)
+		{
+			EG_GPU_TIMING_SCOPED(cmd, debugName);
+			EG_CPU_TIMING_SCOPED(debugName);
+
+			auto& gpuBuffer = transformsBuffer;
+			auto& prevGpuBuffer = prevTransformsBuffer;
+
+			if (!(*bUploadTransforms) && !(*bUploadSpecificTransforms))
+			{
 				if (bMotionRequired)
+					cmd->CopyBuffer(gpuBuffer, prevGpuBuffer, 0, 0, gpuBuffer->GetSize());
+
+				return;
+			}
+
+			if (transforms.empty())
+			{
+				*bUploadTransforms = false;
+				*bUploadSpecificTransforms = false;
+				specificIndices.clear();
+				return;
+			}
+
+#if EG_UPLOAD_ONLY_REQUIRED_TRANSFORMS
+			if (*bUploadTransforms)
+#else
+			if (*bUploadTransforms || *bUploadSpecificTransforms)
+#endif
+			{
+				const size_t currentBufferSize = transforms.size() * sizeof(glm::mat4);
+				if (currentBufferSize > gpuBuffer->GetSize())
 				{
-					// Update prev buffer
+					size_t newSize = (currentBufferSize * 3) / 2;
+					gpuBuffer->Resize(newSize);
+					bTransformBufferGarbage = true;
+					if (prevGpuBuffer)
+						prevGpuBuffer->Resize(newSize);
+				}
+
+				if (bMotionRequired && !bTransformBufferGarbage) // Copy old transforms but not if it's garbage
+					cmd->CopyBuffer(gpuBuffer, prevGpuBuffer, 0, 0, gpuBuffer->GetSize());
+
+				cmd->Write(gpuBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+				cmd->StorageBufferBarrier(gpuBuffer);
+
+				if (bMotionRequired && bTransformBufferGarbage)
+					cmd->CopyBuffer(gpuBuffer, prevGpuBuffer, 0, 0, gpuBuffer->GetSize());
+			}
+#if EG_UPLOAD_ONLY_REQUIRED_TRANSFORMS
+			else
+			{
+				// If uploading specific transforms, copy data to "Prev Transforms" and the update current transforms buffer
+				if (*bUploadSpecificTransforms)
+				{
+					constexpr size_t uploadSize = sizeof(glm::mat4);
+					if (bMotionRequired)
+					{
+						// Update prev buffer
+						for (auto& index : specificIndices)
+						{
+							const size_t offset = index * uploadSize;
+							cmd->CopyBuffer(gpuBuffer, prevGpuBuffer, offset, offset, uploadSize);
+						}
+					}
+
+					// Update current buffer
 					for (auto& index : specificIndices)
 					{
 						const size_t offset = index * uploadSize;
-						cmd->CopyBuffer(gpuBuffer, prevGpuBuffer, offset, offset, uploadSize);
+						cmd->Write(gpuBuffer, &transforms[index], uploadSize, offset, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
 					}
 				}
-
-				// Update current buffer
-				for (auto& index : specificIndices)
-				{
-					const size_t offset = index * uploadSize;
-					cmd->Write(gpuBuffer, &transforms[index], uploadSize, offset, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
-				}
 			}
-		}
 #endif
 
-		*bUploadTransforms = false;
-		*bUploadSpecificTransforms = false;
-		specificIndices.clear();
+			* bUploadTransforms = false;
+			*bUploadSpecificTransforms = false;
+			specificIndices.clear();
+		}
+
+		template<typename GeometryDataType, typename MeshesType>
+		static void UploadMeshes(const Ref<CommandBuffer>& cmd, GeometryDataType& meshData, const MeshesType& meshes)
+		{
+			if (meshes.empty())
+				return;
+
+			using VertexType =
+				std::conditional_t<std::is_same<SkeletalMeshGeometryData, GeometryDataType>::value, SkeletalVertex,
+				std::conditional_t<std::is_same<MeshGeometryData, GeometryDataType>::value, Vertex,
+				void>>;
+
+			using PerInstanceType =
+				std::conditional_t<std::is_same<SkeletalMeshGeometryData, GeometryDataType>::value, SkeletalPerInstanceData,
+				std::conditional_t<std::is_same<MeshGeometryData, GeometryDataType>::value, PerInstanceData,
+				void>>;
+
+			auto& vb = meshData.VertexBuffer;
+			auto& ivb = meshData.InstanceBuffer;
+			auto& ib = meshData.IndexBuffer;
+
+			// Reserving enough space to hold Vertex & Index data
+			size_t currentVertexSize = 0;
+			size_t currentIndexSize = 0;
+			size_t meshesCount = 0;
+			for (auto& [meshKey, datas] : meshes)
+			{
+				const uint32_t materialsCount = meshKey.Mesh->GetMaterialSlotsCount();
+				currentVertexSize += meshKey.Mesh->GetVerticesCount() * sizeof(VertexType);
+				for (uint32_t i = 0; i < materialsCount; ++i)
+					currentIndexSize += meshKey.Mesh->GetIndicesCount(i) * sizeof(Index);
+				meshesCount += datas.Instances.size() * materialsCount;
+			}
+			const size_t currentInstanceVertexSize = meshesCount * sizeof(PerInstanceType);
+
+			if (currentVertexSize > vb->GetSize())
+				vb->Resize((currentVertexSize * 3) / 2);
+			if (currentInstanceVertexSize > ivb->GetSize())
+				ivb->Resize((currentInstanceVertexSize * 3) / 2);
+			if (currentIndexSize > ib->GetSize())
+				ib->Resize((currentIndexSize * 3) / 2);
+
+			meshData.Vertices.clear();
+			meshData.Indices.clear();
+			meshData.InstanceVertices.clear();
+			meshData.Vertices.reserve(currentVertexSize / sizeof(VertexType));
+			meshData.InstanceVertices.reserve(currentInstanceVertexSize / sizeof(PerInstanceType));
+			meshData.Indices.reserve(currentIndexSize / sizeof(Index));
+
+			for (auto& [meshKey, datas] : meshes)
+			{
+				const uint32_t materialsCount = meshKey.Mesh->GetMaterialSlotsCount();
+				const auto& meshVertices = meshKey.Mesh->GetVertices();
+				meshData.Vertices.insert(meshData.Vertices.end(), meshVertices.begin(), meshVertices.end());
+
+				for (uint32_t i = 0; i < materialsCount; ++i)
+				{
+					const auto& meshIndices = meshKey.Mesh->GetIndices(i);
+					meshData.Indices.insert(meshData.Indices.end(), meshIndices.begin(), meshIndices.end());
+				}
+
+				// Iterate over every mesh in the batch.
+				// Append instance data in the pattern of `Structure of Arrays`.
+				// For example, [0, 0, 0, 1, 1, 1] rather than [0, 1, 0, 1, 0, 1]
+				for (uint32_t i = 0; i < materialsCount; ++i)
+					for (auto& data : datas.Instances)
+						meshData.InstanceVertices.push_back(data.InstanceDatas[i]);
+			}
+
+			cmd->Write(vb, meshData.Vertices.data(), meshData.Vertices.size() * sizeof(VertexType), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+			cmd->Write(ivb, meshData.InstanceVertices.data(), currentInstanceVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+			cmd->Write(ib, meshData.Indices.data(), meshData.Indices.size() * sizeof(Index), 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
+		}
 	}
 
 	GeometryManagerTask::GeometryManagerTask(SceneRenderer& renderer)
@@ -364,7 +440,7 @@ namespace Eagle
 				}
 			}
 			const bool bTransformBufferGarbage = bUploadMeshes;
-			UploadTransforms(cmd, m_MeshTransforms, m_MeshesTransformsBuffer, m_MeshesPrevTransformsBuffer, m_MeshUploadSpecificTransforms,
+			Utils::UploadTransforms(cmd, m_MeshTransforms, m_MeshesTransformsBuffer, m_MeshesPrevTransformsBuffer, m_MeshUploadSpecificTransforms,
 				&bUploadMeshTransforms, &bUploadMeshSpecificTransforms, bMotionRequired, bTransformBufferGarbage, "Static Meshes. Upload Transforms buffer");
 
 			bUploadMeshes = false;
@@ -387,7 +463,7 @@ namespace Eagle
 				}
 			}
 			const bool bTransformBufferGarbage = bUploadSkeletalMeshes;
-			UploadTransforms(cmd, m_SkeletalMeshTransforms, m_SkeletalMeshesTransformsBuffer, m_SkeletalMeshesPrevTransformsBuffer, m_SkeletalMeshUploadSpecificTransforms,
+			Utils::UploadTransforms(cmd, m_SkeletalMeshTransforms, m_SkeletalMeshesTransformsBuffer, m_SkeletalMeshesPrevTransformsBuffer, m_SkeletalMeshUploadSpecificTransforms,
 				&bUploadSkeletalMeshTransforms, &bUploadSkeletalMeshSpecificTransforms, bMotionRequired, bTransformBufferGarbage, "Skeletal Meshes. Upload Transforms buffer");
 
 			UploadAnimationTransforms(cmd, bTransformBufferGarbage);
@@ -416,7 +492,7 @@ namespace Eagle
 				}
 			}
 			const bool bTransformBufferGarbage = bUploadSprites;
-			UploadTransforms(cmd, m_SpriteTransforms, m_SpritesTransformsBuffer, m_SpritesPrevTransformsBuffer, m_SpriteUploadSpecificTransforms,
+			Utils::UploadTransforms(cmd, m_SpriteTransforms, m_SpritesTransformsBuffer, m_SpritesPrevTransformsBuffer, m_SpriteUploadSpecificTransforms,
 				&bUploadSpritesTransforms, &bUploadSpritesSpecificTransforms, bMotionRequired, bTransformBufferGarbage, "Sprites. Upload Transforms buffer");
 			
 			bUploadSprites = false;
@@ -449,7 +525,7 @@ namespace Eagle
 				}
 			}
 			const bool bTransformBufferGarbage = bUploadTextQuads;
-			UploadTransforms(cmd, m_TextTransforms, m_TextTransformsBuffer, m_TextPrevTransformsBuffer, m_TextUploadSpecificTransforms,
+			Utils::UploadTransforms(cmd, m_TextTransforms, m_TextTransformsBuffer, m_TextPrevTransformsBuffer, m_TextUploadSpecificTransforms,
 				&bUploadTextTransforms, &bUploadTextSpecificTransforms, bMotionRequired, bTransformBufferGarbage, "Texts. Upload Transforms buffer");
 
 			bUploadTextQuads = false;
@@ -737,64 +813,7 @@ namespace Eagle
 		if (meshes.empty())
 			return;
 
-		auto& vb  = meshData.VertexBuffer;
-		auto& ivb = meshData.InstanceBuffer;
-		auto& ib  = meshData.IndexBuffer;
-
-		// Reserving enough space to hold Vertex & Index data
-		size_t currentVertexSize = 0;
-		size_t currentIndexSize = 0;
-		size_t meshesCount = 0;
-		for (auto& [meshKey, datas] : meshes)
-		{
-			const uint32_t materialsCount = meshKey.Mesh->GetMaterialSlotsCount();
-			currentVertexSize += meshKey.Mesh->GetVerticesCount() * sizeof(Vertex);
-			for (uint32_t i = 0; i < materialsCount; ++i)
-				currentIndexSize += meshKey.Mesh->GetIndicesCount(i) * sizeof(Index);
-			meshesCount += datas.Instances.size() * materialsCount;
-		}
-		const size_t currentInstanceVertexSize = meshesCount * sizeof(PerInstanceData);
-
-		if (currentVertexSize > vb->GetSize())
-			vb->Resize((currentVertexSize * 3) / 2);
-		if (currentInstanceVertexSize > ivb->GetSize())
-			ivb->Resize((currentInstanceVertexSize * 3) / 2);
-		if (currentIndexSize > ib->GetSize())
-			ib->Resize((currentIndexSize * 3) / 2);
-
-		meshData.Vertices.clear();
-		meshData.Indices.clear();
-		meshData.InstanceVertices.clear();
-		meshData.Vertices.reserve(currentVertexSize / sizeof(Vertex));
-		meshData.InstanceVertices.reserve(currentInstanceVertexSize / sizeof(PerInstanceData));
-		meshData.Indices.reserve(currentIndexSize / sizeof(Index));
-
-		for (auto& [meshKey, datas] : meshes)
-		{
-			const uint32_t materialsCount = meshKey.Mesh->GetMaterialSlotsCount();
-			const auto& meshVertices = meshKey.Mesh->GetVertices();
-			meshData.Vertices.insert(meshData.Vertices.end(), meshVertices.begin(), meshVertices.end());
-
-			for (uint32_t i = 0; i < materialsCount; ++i)
-			{
-				const auto& meshIndices = meshKey.Mesh->GetIndices(i);
-				meshData.Indices.insert(meshData.Indices.end(), meshIndices.begin(), meshIndices.end());
-			}
-
-			// Iterate over every mesh in the batch.
-			// Append instance data in the pattern of `Structure of Arrays`.
-			// For example, [0, 0, 0, 1, 1, 1] rather than [0, 1, 0, 1, 0, 1]
-			for (uint32_t i = 0; i < materialsCount; ++i)
-				for (auto& data : datas.Instances)
-					meshData.InstanceVertices.push_back(data.InstanceDatas[i]);
-		}
-
-		cmd->Write(vb, meshData.Vertices.data(), meshData.Vertices.size() * sizeof(Vertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
-		cmd->Write(ivb, meshData.InstanceVertices.data(), currentInstanceVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
-		cmd->Write(ib, meshData.Indices.data(), meshData.Indices.size() * sizeof(Index), 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
-		cmd->Barrier(vb);
-		cmd->Barrier(ivb);
-		cmd->Barrier(ib);
+		Utils::UploadMeshes(cmd, meshData, meshes);
 	}
 
 	// ---------- Skeletal Meshes ----------
@@ -984,61 +1003,7 @@ namespace Eagle
 		if (meshes.empty())
 			return;
 
-		auto& vb = meshData.VertexBuffer;
-		auto& ivb = meshData.InstanceBuffer;
-		auto& ib = meshData.IndexBuffer;
-
-		// Reserving enough space to hold Vertex & Index data
-		size_t currentVertexSize = 0;
-		size_t currentIndexSize = 0;
-		size_t meshesCount = 0;
-		for (auto& [meshKey, datas] : meshes)
-		{
-			const uint32_t materialsCount = meshKey.Mesh->GetMaterialSlotsCount();
-			currentVertexSize += meshKey.Mesh->GetVerticesCount() * sizeof(SkeletalVertex);
-			for (uint32_t i = 0; i < materialsCount; ++i)
-				currentIndexSize += meshKey.Mesh->GetIndicesCount(i) * sizeof(Index);
-			meshesCount += datas.Instances.size() * materialsCount;
-		}
-		const size_t currentInstanceVertexSize = meshesCount * sizeof(SkeletalPerInstanceData);
-
-		if (currentVertexSize > vb->GetSize())
-			vb->Resize((currentVertexSize * 3) / 2);
-		if (currentInstanceVertexSize > ivb->GetSize())
-			ivb->Resize((currentInstanceVertexSize * 3) / 2);
-		if (currentIndexSize > ib->GetSize())
-			ib->Resize((currentIndexSize * 3) / 2);
-
-		meshData.Vertices.clear();
-		meshData.Indices.clear();
-		meshData.InstanceVertices.clear();
-		meshData.Vertices.reserve(currentVertexSize/ sizeof(SkeletalVertex));
-		meshData.InstanceVertices.reserve(currentInstanceVertexSize / sizeof(SkeletalPerInstanceData));
-		meshData.Indices.reserve(currentIndexSize / sizeof(Index));
-
-		for (auto& [meshKey, datas] : meshes)
-		{
-			const uint32_t materialsCount = meshKey.Mesh->GetMaterialSlotsCount();
-			const auto& meshVertices = meshKey.Mesh->GetVertices();
-			meshData.Vertices.insert(meshData.Vertices.end(), meshVertices.begin(), meshVertices.end());
-
-			for (uint32_t i = 0; i < materialsCount; ++i)
-			{
-				const auto& meshIndices = meshKey.Mesh->GetIndices(i);
-				meshData.Indices.insert(meshData.Indices.end(), meshIndices.begin(), meshIndices.end());
-			}
-
-			// Iterate over every mesh in the batch.
-			// Append instance data in the pattern of `Structure of Arrays`.
-			// For example, [0, 0, 0, 1, 1, 1] rather than [0, 1, 0, 1, 0, 1]
-			for (uint32_t i = 0; i < materialsCount; ++i)
-				for (auto& data : datas.Instances)
-					meshData.InstanceVertices.push_back(data.InstanceDatas[i]);
-		}
-
-		cmd->Write(vb, meshData.Vertices.data(), meshData.Vertices.size() * sizeof(SkeletalVertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
-		cmd->Write(ivb, meshData.InstanceVertices.data(), currentInstanceVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
-		cmd->Write(ib, meshData.Indices.data(), meshData.Indices.size() * sizeof(Index), 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
+		Utils::UploadMeshes(cmd, meshData, meshes);
 	}
 
 	// ---------- Sprites ----------
@@ -1118,7 +1083,7 @@ namespace Eagle
 			newSize += alignment - (newSize % alignment);
 
 			ib->Resize(newSize);
-			UploadIndexBuffer(cmd, ib);
+			Utils::UploadIndexBuffer(cmd, ib);
 		}
 
 		cmd->Write(vb, spritesData.QuadVertices.data(), currentVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
@@ -1804,7 +1769,7 @@ namespace Eagle
 			newSize += alignment - (newSize % alignment);
 
 			ib->Resize(newSize);
-			UploadIndexBuffer(cmd, ib);
+			Utils::UploadIndexBuffer(cmd, ib);
 		}
 
 		cmd->Write(vb, quads.data(), currentVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
@@ -1840,7 +1805,7 @@ namespace Eagle
 			newSize += alignment - (newSize % alignment);
 
 			ib->Resize(newSize);
-			UploadIndexBufferOneSided(cmd, ib);
+			Utils::UploadIndexBufferOneSided(cmd, ib);
 		}
 
 		cmd->Write(vb, quads.data(), currentVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);

@@ -36,20 +36,20 @@ namespace Eagle
 				const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
 				const uint32_t instanceCount = (uint32_t)datas.Instances.size();
 
-				stats.Vertices += verticesCount;
-
-				const auto& slotsToRender = datas.MaterialSlots;
-				for (const uint32_t matSlot : slotsToRender)
+				if (meshKey.bCastsShadows)
 				{
-					const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices(matSlot).size();
-					const uint32_t indicesOffset = (uint32_t)meshKey.Mesh->GetIndicesOffset(matSlot);
-					if (meshKey.bCastsShadows)
+					stats.Vertices += verticesCount;
+					const auto& slotsToRender = datas.MaterialSlots;
+					for (const uint32_t matSlot : slotsToRender)
 					{
+						const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices(matSlot).size();
+						const uint32_t indicesOffset = (uint32_t)meshKey.Mesh->GetIndicesOffset(matSlot);
 						cmd->DrawIndexedInstanced(meshesData.VertexBuffer, meshesData.IndexBuffer, indicesCount, firstIndex + indicesOffset, vertexOffset, instanceCount, firstInstance + instanceCount * matSlot, meshesData.InstanceBuffer);
 						stats.Indeces += indicesCount;
 						++stats.DrawCalls;
 					}
 				}
+				
 				firstInstance += instanceCount * meshKey.Mesh->GetMaterialSlotsCount();
 				firstIndex += (uint32_t)meshKey.Mesh->GetTotalIndicesCount();
 

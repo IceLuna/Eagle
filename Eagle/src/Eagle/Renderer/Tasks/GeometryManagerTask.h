@@ -225,27 +225,18 @@ namespace Eagle
 		// ------- Meshes -------
 		void SetMeshes(const std::vector<const StaticMeshComponent*>& meshes, bool bDirty);
 		void SetTransforms(const std::unordered_set<const StaticMeshComponent*>& meshes);
-		void SortMeshes();
-		void UploadMeshes(const Ref<CommandBuffer>& cmd, MeshGeometryData& data, const std::unordered_map<MeshKey, MeshDatas>& meshes);
 
 		// ------- Skeletal Meshes -------
 		void SetSkeletalMeshes(const std::vector<SkeletalMeshComponent*>& meshes, bool bDirty);
 		void SetTransforms(const std::unordered_set<const SkeletalMeshComponent*>& meshes);
-		void SortSkeletalMeshes();
-		void UploadSkeletalMeshes(const Ref<CommandBuffer>& cmd, SkeletalMeshGeometryData& data, const std::unordered_map<SkeletalMeshKey, SkeletalMeshDatas>& meshes);
 
 		// ------- Sprites -------
 		void SetSprites(const std::vector<const SpriteComponent*>& sprites, bool bDirty);
 		void SetTransforms(const std::unordered_set<const SpriteComponent*>& sprites);
-		void SortSprites();
-		void UploadSprites(const Ref<CommandBuffer>& cmd, SpriteGeometryData& spritesData);
 
 		// ------- Texts -------
 		void SetTexts(const std::vector<const TextComponent*>& texts, bool bDirty);
 		void SetTransforms(const std::unordered_set<const TextComponent*>& texts);
-		void SortLitTexts();
-		void UploadTexts(const Ref<CommandBuffer>& cmd, LitTextGeometryData& textsData);
-		void UploadTexts(const Ref<CommandBuffer>& cmd, UnlitTextGeometryData& textsData);
 
 		// Mesh getters
 		const std::unordered_map<MeshKey, MeshDatas>& GetAllMeshes() const { return m_Meshes; }
@@ -299,11 +290,24 @@ namespace Eagle
 		const std::vector<Ref<Texture2D>>& GetAtlases() const { return m_Atlases; }
 
 	private:
-		// ------- Sprites -------
-		static void AddQuad(std::vector<QuadVertex>& vertices, const SpriteData& sprite, const glm::mat4& transform, uint32_t transformIndex);
+		// ------- Meshes -------
+		void SortMeshes();
+		void UploadMeshes(const Ref<CommandBuffer>& cmd, MeshGeometryData& data, const std::unordered_map<MeshKey, MeshDatas>& meshes);
 
-		// General function that is being called
+		// ------- Skeletal Meshes -------
+		void SortSkeletalMeshes();
+		void UploadSkeletalMeshes(const Ref<CommandBuffer>& cmd, SkeletalMeshGeometryData& data, const std::unordered_map<SkeletalMeshKey, SkeletalMeshDatas>& meshes);
+
+		// ------- Sprites -------
+		void SortSprites();
+		void UploadSprites(const Ref<CommandBuffer>& cmd, SpriteGeometryData& spritesData);
+		static void AddQuad(std::vector<QuadVertex>& vertices, const SpriteData& sprite, const glm::mat4& transform, uint32_t transformIndex);
 		static void AddQuad(std::vector<QuadVertex>& vertices, const glm::mat4& transform, const Ref<Material>& material, uint32_t transformIndex, const glm::vec2 UVs[4], int entityID = -1);
+
+		// ------- Texts -------
+		void SortLitTexts();
+		void UploadTexts(const Ref<CommandBuffer>& cmd, LitTextGeometryData& textsData);
+		void UploadTexts(const Ref<CommandBuffer>& cmd, UnlitTextGeometryData& textsData);
 
 		void UploadAnimationTransforms(const Ref<CommandBuffer>& cmd, bool bTransformsGarbage);
 
