@@ -71,8 +71,7 @@ void main()
     {
         if (a_Weights[i] > 0.f)
         {
-            const uint meshAnimIndex = a_PerInstanceData.w;
-            boneTransform += g_MeshAnimation[nonuniformEXT(meshAnimIndex)].Transforms[a_BoneIDs[i]] * a_Weights[i];
+            boneTransform += g_MeshAnimation[nonuniformEXT(transformIndex)].Transforms[a_BoneIDs[i]] * a_Weights[i];
         }
     }
 
@@ -108,8 +107,7 @@ void main()
         {
             if (a_Weights[i] > 0.f)
             {
-                const uint meshAnimIndex = a_PerInstanceData.w;
-                prevBoneTransform += g_PrevMeshAnimation[nonuniformEXT(meshAnimIndex)].Transforms[a_BoneIDs[i]] * a_Weights[i];
+                prevBoneTransform += g_PrevMeshAnimation[nonuniformEXT(transformIndex)].Transforms[a_BoneIDs[i]] * a_Weights[i];
             }
         }
 

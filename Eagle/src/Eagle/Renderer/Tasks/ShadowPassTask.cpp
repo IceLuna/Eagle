@@ -28,32 +28,28 @@ namespace Eagle
 		template<typename MeshData, typename MeshGeometryData>
 		static void RenderMeshes(const Ref<CommandBuffer>& cmd, const MeshData& meshes, const MeshGeometryData& meshesData, SceneRenderer::Statistics& stats)
 		{
-			uint32_t firstIndex = 0;
-			uint32_t firstInstance = 0;
-			uint32_t vertexOffset = 0;
-			for (auto& [meshKey, datas] : meshes)
+			const auto& buffers = meshesData;
+			for (const auto& data : meshes)
 			{
-				const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-				const uint32_t instanceCount = (uint32_t)datas.Instances.size();
+				const uint32_t verticesCount = data.VerticesCount;
+				const uint32_t vertexOffset = data.VertexOffset;
 
-				if (meshKey.bCastsShadows)
+				stats.Vertices += verticesCount;
+
+				for (const auto& matRenderData : data.PerMaterialData)
 				{
-					stats.Vertices += verticesCount;
-					const auto& slotsToRender = datas.MaterialSlots;
-					for (const uint32_t matSlot : slotsToRender)
+					const uint32_t indicesCount = matRenderData.IndexCount;
+					const uint32_t firstIndex = matRenderData.FirstIndex;
+					const uint32_t instanceCount = matRenderData.InstanceCount;
+					const uint32_t firstInstance = matRenderData.FirstInstance;
+					if (instanceCount > 0)
 					{
-						const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices(matSlot).size();
-						const uint32_t indicesOffset = (uint32_t)meshKey.Mesh->GetIndicesOffset(matSlot);
-						cmd->DrawIndexedInstanced(meshesData.VertexBuffer, meshesData.IndexBuffer, indicesCount, firstIndex + indicesOffset, vertexOffset, instanceCount, firstInstance + instanceCount * matSlot, meshesData.InstanceBuffer);
+						cmd->DrawIndexedInstanced(buffers.VertexBuffer, buffers.IndexBuffer, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, buffers.InstanceBuffer);
+
 						stats.Indeces += indicesCount;
 						++stats.DrawCalls;
 					}
 				}
-				
-				firstInstance += instanceCount * meshKey.Mesh->GetMaterialSlotsCount();
-				firstIndex += (uint32_t)meshKey.Mesh->GetTotalIndicesCount();
-
-				vertexOffset += verticesCount;
 			}
 		}
 	}
@@ -597,14 +593,14 @@ namespace Eagle
 
 	void ShadowPassTask::ShadowPassOpacityMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetOpaqueMeshes();
+		auto& meshes = m_Renderer.GetStaticMeshesDrawData().ShadowCastingOpaque;
 		if (meshes.empty())
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Opacity Meshes shadow pass");
 		EG_CPU_TIMING_SCOPED("Opacity Meshes shadow pass");
 
-		const auto& meshesData = m_Renderer.GetOpaqueMeshesData();
+		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
 		const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
@@ -626,7 +622,7 @@ namespace Eagle
 
 				cmd->BeginGraphics(m_OpacityMDLPipeline, m_DLFramebuffers[i]);
 				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-				Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+				Utils::RenderMeshes(cmd, meshes, buffers, stats);
 				cmd->EndGraphics();
 			}
 		}
@@ -660,7 +656,7 @@ namespace Eagle
 						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
-						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+						Utils::RenderMeshes(cmd, meshes, buffers, stats);
 						cmd->EndGraphics();
 						++i;
 					}
@@ -691,7 +687,7 @@ namespace Eagle
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+						Utils::RenderMeshes(cmd, meshes, buffers, stats);
 						cmd->EndGraphics();
 						++spotLightsCount;
 					}
@@ -702,14 +698,14 @@ namespace Eagle
 
 	void ShadowPassTask::ShadowPassTranslucentMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetTranslucentMeshes();
+		auto& meshes = m_Renderer.GetStaticMeshesDrawData().ShadowCastingTranslucent;
 		if (meshes.empty())
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Translucent Meshes shadow pass");
 		EG_CPU_TIMING_SCOPED("Translucent Meshes shadow pass");
 
-		const auto& meshesData = m_Renderer.GetTranslucentMeshesData();
+		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
 		const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
@@ -754,7 +750,7 @@ namespace Eagle
 
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
 				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-				Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+				Utils::RenderMeshes(cmd, meshes, buffers, stats);
 				cmd->EndGraphics();
 			}
 			bDidDrawDLC = true;
@@ -803,7 +799,7 @@ namespace Eagle
 						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
-						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+						Utils::RenderMeshes(cmd, meshes, buffers, stats);
 						cmd->EndGraphics();
 						++pointLightsCount;
 					}
@@ -847,7 +843,7 @@ namespace Eagle
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+						Utils::RenderMeshes(cmd, meshes, buffers, stats);
 						cmd->EndGraphics();
 						++spotLightsCount;
 					}
@@ -858,14 +854,14 @@ namespace Eagle
 	
 	void ShadowPassTask::ShadowPassMaskedMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetMaskedMeshes();
+		auto& meshes = m_Renderer.GetStaticMeshesDrawData().ShadowCastingMasked;
 		if (meshes.empty())
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Masked Meshes shadow pass");
 		EG_CPU_TIMING_SCOPED("Masked Meshes shadow pass");
 
-		const auto& meshesData = m_Renderer.GetMaskedMeshesData();
+		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
 		const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
@@ -902,7 +898,7 @@ namespace Eagle
 
 				cmd->BeginGraphics(pipeline, m_DLFramebuffers[i]);
 				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-				Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+				Utils::RenderMeshes(cmd, meshes, buffers, stats);
 				cmd->EndGraphics();
 			}
 			bDidDrawDL = true;
@@ -949,7 +945,7 @@ namespace Eagle
 						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
-						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+						Utils::RenderMeshes(cmd, meshes, buffers, stats);
 						cmd->EndGraphics();
 						++i;
 					}
@@ -992,7 +988,7 @@ namespace Eagle
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+						Utils::RenderMeshes(cmd, meshes, buffers, stats);
 						cmd->EndGraphics();
 						++spotLightsCount;
 					}
@@ -1003,14 +999,14 @@ namespace Eagle
 	
 	void ShadowPassTask::ShadowPassOpacitySkeletalMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetOpaqueSkeletalMeshes();
+		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().ShadowCastingOpaque;
 		if (meshes.empty())
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Opacity Skeletal Meshes shadow pass");
 		EG_CPU_TIMING_SCOPED("Opacity Skeletal Meshes shadow pass");
 
-		const auto& meshesData = m_Renderer.GetOpaqueSkeletalMeshesData();
+		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
 		const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
 		const auto& animTransformsBuffers = m_Renderer.GetAnimationTransformsBuffers();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
@@ -1035,7 +1031,7 @@ namespace Eagle
 
 				cmd->BeginGraphics(pipeline, m_DLFramebuffers[i]);
 				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-				Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+				Utils::RenderMeshes(cmd, meshes, buffers, stats);
 				cmd->EndGraphics();
 			}
 			bDidDrawDL = true;
@@ -1071,7 +1067,7 @@ namespace Eagle
 						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
-						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+						Utils::RenderMeshes(cmd, meshes, buffers, stats);
 						cmd->EndGraphics();
 						++i;
 					}
@@ -1103,7 +1099,7 @@ namespace Eagle
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+						Utils::RenderMeshes(cmd, meshes, buffers, stats);
 						cmd->EndGraphics();
 						++spotLightsCount;
 					}
@@ -1114,14 +1110,14 @@ namespace Eagle
 
 	void ShadowPassTask::ShadowPassTranslucentSkeletalMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetTranslucentSkeletalMeshes();
+		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().Translucent;
 		if (meshes.empty())
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Translucent Skeletal Meshes shadow pass");
 		EG_CPU_TIMING_SCOPED("Translucent Skeletal Meshes shadow pass");
 
-		const auto& meshesData = m_Renderer.GetTranslucentSkeletalMeshesData();
+		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
 		const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
 		const auto& animTransformsBuffers = m_Renderer.GetAnimationTransformsBuffers();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
@@ -1172,7 +1168,7 @@ namespace Eagle
 
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
 				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-				Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+				Utils::RenderMeshes(cmd, meshes, buffers, stats);
 				cmd->EndGraphics();
 			}
 			bDidDrawDLC = true;
@@ -1226,7 +1222,7 @@ namespace Eagle
 						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
-						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+						Utils::RenderMeshes(cmd, meshes, buffers, stats);
 						cmd->EndGraphics();
 						++pointLightsCount;
 					}
@@ -1275,7 +1271,7 @@ namespace Eagle
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+						Utils::RenderMeshes(cmd, meshes, buffers, stats);
 						cmd->EndGraphics();
 						++spotLightsCount;
 					}
@@ -1286,14 +1282,14 @@ namespace Eagle
 	
 	void ShadowPassTask::ShadowPassMaskedSkeletalMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetMaskedSkeletalMeshes();
+		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().Masked;
 		if (meshes.empty())
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Masked Skeletal Meshes shadow pass");
 		EG_CPU_TIMING_SCOPED("Masked Skeletal Meshes shadow pass");
 
-		const auto& meshesData = m_Renderer.GetMaskedSkeletalMeshesData();
+		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
 		const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
 		const auto& animTransformsBuffers = m_Renderer.GetAnimationTransformsBuffers();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
@@ -1332,7 +1328,7 @@ namespace Eagle
 
 				cmd->BeginGraphics(pipeline, m_DLFramebuffers[i]);
 				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-				Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+				Utils::RenderMeshes(cmd, meshes, buffers, stats);
 				cmd->EndGraphics();
 			}
 			bDidDrawDL = true;
@@ -1380,7 +1376,7 @@ namespace Eagle
 						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
-						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+						Utils::RenderMeshes(cmd, meshes, buffers, stats);
 						cmd->EndGraphics();
 						++i;
 					}
@@ -1424,7 +1420,7 @@ namespace Eagle
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-						Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+						Utils::RenderMeshes(cmd, meshes, buffers, stats);
 						cmd->EndGraphics();
 						++spotLightsCount;
 					}

@@ -150,15 +150,11 @@ namespace Eagle
 
 		// ----------- Getters from other tasks -----------
 		// TODO: Implement a proper Render graph with input-output connections between tasks
-		const auto& GetAllMeshes() const { return m_GeometryManagerTask->GetAllMeshes(); }
-		const auto& GetOpaqueMeshes() const { return m_GeometryManagerTask->GetOpaqueMeshes(); }
-		const auto& GetMaskedMeshes() const { return m_GeometryManagerTask->GetMaskedMeshes(); }
-		const auto& GetTranslucentMeshes() const { return m_GeometryManagerTask->GetTranslucentMeshes(); }
+		const auto& GetStaticMeshesDrawData() const { return m_GeometryManagerTask->GetStaticMeshesDrawData(); }
+		const auto& GetStaticMeshesBuffers() const { return m_GeometryManagerTask->GetStaticMeshesBuffers(); }
 
-		const auto& GetAllSkeletalMeshes() const { return m_GeometryManagerTask->GetAllSkeletalMeshes(); }
-		const auto& GetOpaqueSkeletalMeshes() const { return m_GeometryManagerTask->GetOpaqueSkeletalMeshes(); }
-		const auto& GetMaskedSkeletalMeshes() const { return m_GeometryManagerTask->GetMaskedSkeletalMeshes(); }
-		const auto& GetTranslucentSkeletalMeshes() const { return m_GeometryManagerTask->GetTranslucentSkeletalMeshes(); }
+		const auto& GetSkeletalMeshesDrawData() const { return m_GeometryManagerTask->GetSkeletalMeshesDrawData(); }
+		const auto& GetSkeletalMeshesBuffers() const { return m_GeometryManagerTask->GetSkeletalMeshesBuffers(); }
 
 		const auto& GetPointLights() const { return m_LightsManagerTask->GetPointLights(); }
 		const auto& GetSpotLights() const { return m_LightsManagerTask->GetSpotLights(); }
@@ -169,15 +165,9 @@ namespace Eagle
 		const Ref<Buffer>& GetSpotLightsBuffer() const { return m_LightsManagerTask->GetSpotLightsBuffer(); }
 		const Ref<Buffer>& GetDirectionalLightBuffer() const { return m_LightsManagerTask->GetDirectionalLightBuffer(); }
 
-		const auto& GetOpaqueMeshesData() const { return m_GeometryManagerTask->GetOpaqueMeshesData(); }
-		const auto& GetMaskedMeshesData() const { return m_GeometryManagerTask->GetMaskedMeshesData(); }
-		const auto& GetTranslucentMeshesData() const { return m_GeometryManagerTask->GetTranslucentMeshesData(); }
 		const Ref<Buffer>& GetMeshTransformsBuffer() const { return m_GeometryManagerTask->GetMeshesTransformBuffer(); }
 		const Ref<Buffer>& GetMeshPrevTransformsBuffer() const { return m_GeometryManagerTask->GetMeshesPrevTransformBuffer(); }
 
-		const auto& GetOpaqueSkeletalMeshesData() const { return m_GeometryManagerTask->GetOpaqueSkeletalMeshesData(); }
-		const auto& GetMaskedSkeletalMeshesData() const { return m_GeometryManagerTask->GetMaskedSkeletalMeshesData(); }
-		const auto& GetTranslucentSkeletalMeshesData() const { return m_GeometryManagerTask->GetTranslucentSkeletalMeshesData(); }
 		const Ref<Buffer>& GetSkeletalMeshTransformsBuffer() const { return m_GeometryManagerTask->GetSkeletalMeshesTransformBuffer(); }
 		const Ref<Buffer>& GetSkeletalMeshPrevTransformsBuffer() const { return m_GeometryManagerTask->GetSkeletalMeshesPrevTransformBuffer(); }
 		const std::vector<std::vector<glm::mat4>>& GetAnimationTransforms() const { return m_GeometryManagerTask->GetAnimationTransforms(); }

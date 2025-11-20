@@ -13,7 +13,9 @@ namespace Eagle
 		{
 			Opaque, Translucent, Masked
 		};
-		static const uint32_t MaxBlendModes = (uint32_t)magic_enum::enum_count<BlendMode>();
+		// It's outside instead of being a part of `BlendMode` enum is to avoid it showing up in UI.
+		// TODO: Fix it when reflection is introduced
+		static constexpr uint32_t MaxBlendModes = (uint32_t)magic_enum::enum_count<BlendMode>();
 
 		enum class TextureChannel
 		{
@@ -63,7 +65,7 @@ namespace Eagle
 				return;
 
 			m_BlendMode = blendMode;
-			OnMaterialChanged();
+			OnMaterialChanged(true);
 		}
 
 		const Ref<AssetTexture2D>& GetAlbedoAsset() const { return m_AlbedoAsset; }
@@ -115,7 +117,7 @@ namespace Eagle
 		Material& operator= (const Material&) = delete;
 		Material& operator= (Material&&) = delete;
 
-		void OnMaterialChanged();
+		void OnMaterialChanged(bool bBlendModeChanged = false);
 
 	private:
 		Ref<AssetTexture2D> m_AlbedoAsset;

@@ -194,77 +194,233 @@ namespace Eagle
 			specificIndices.clear();
 		}
 
-		template<typename GeometryDataType, typename MeshesType>
-		static void UploadMeshes(const Ref<CommandBuffer>& cmd, GeometryDataType& meshData, const MeshesType& meshes)
+		static std::vector<MeshDrawData>& GetDrawData(MeshesDrawLists& data, Material::BlendMode blendMode, bool bShadowCastingOnly)
 		{
-			if (meshes.empty())
-				return;
+			auto& opaque      = bShadowCastingOnly ? data.ShadowCastingOpaque      : data.Opaque;
+			auto& translucent = bShadowCastingOnly ? data.ShadowCastingTranslucent : data.Translucent;
+			auto& masked      = bShadowCastingOnly ? data.ShadowCastingMasked      : data.Masked;
 
-			using VertexType =
-				std::conditional_t<std::is_same<SkeletalMeshGeometryData, GeometryDataType>::value, SkeletalVertex,
-				std::conditional_t<std::is_same<MeshGeometryData, GeometryDataType>::value, Vertex,
-				void>>;
+			switch (blendMode)
+			{
+				case Material::BlendMode::Opaque: return opaque;
+				case Material::BlendMode::Translucent: return translucent;
+				case Material::BlendMode::Masked: return masked;
+				default:
+					EG_CORE_ASSERT(false);
+					return opaque;
+			}
+		}
 
-			using PerInstanceType =
-				std::conditional_t<std::is_same<SkeletalMeshGeometryData, GeometryDataType>::value, SkeletalPerInstanceData,
-				std::conditional_t<std::is_same<MeshGeometryData, GeometryDataType>::value, PerInstanceData,
-				void>>;
-
-			auto& vb = meshData.VertexBuffer;
-			auto& ivb = meshData.InstanceBuffer;
-			auto& ib = meshData.IndexBuffer;
+		template <typename VertexType, typename MeshesMapType>
+		static void UploadMeshes(const Ref<CommandBuffer>& cmd, MeshGeometryData<VertexType>& buffers, MeshesMapType& meshes)
+		{
+			auto& vb = buffers.VertexBuffer;
+			auto& ib = buffers.IndexBuffer;
 
 			// Reserving enough space to hold Vertex & Index data
 			size_t currentVertexSize = 0;
 			size_t currentIndexSize = 0;
+			uint32_t vertexOffset = 0;
 			size_t meshesCount = 0;
-			for (auto& [meshKey, datas] : meshes)
+			for (auto& [meshKey, instances] : meshes)
 			{
-				const uint32_t materialsCount = meshKey.Mesh->GetMaterialSlotsCount();
-				currentVertexSize += meshKey.Mesh->GetVerticesCount() * sizeof(VertexType);
-				for (uint32_t i = 0; i < materialsCount; ++i)
-					currentIndexSize += meshKey.Mesh->GetIndicesCount(i) * sizeof(Index);
-				meshesCount += datas.Instances.size() * materialsCount;
+				auto& mesh = meshKey.Mesh;
+				const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
+				const uint32_t verticesCount = (uint32_t)mesh->GetVerticesCount();
+
+				meshKey.VerticesCount = verticesCount;
+				meshKey.VerticesOffset = vertexOffset;
+
+				currentVertexSize += verticesCount * sizeof(VertexType);
+				currentIndexSize += mesh->GetTotalIndicesCount() * sizeof(Index);
+				meshesCount += instances.size() * materialsCount;
+				vertexOffset += verticesCount;
 			}
-			const size_t currentInstanceVertexSize = meshesCount * sizeof(PerInstanceType);
 
 			if (currentVertexSize > vb->GetSize())
 				vb->Resize((currentVertexSize * 3) / 2);
-			if (currentInstanceVertexSize > ivb->GetSize())
-				ivb->Resize((currentInstanceVertexSize * 3) / 2);
 			if (currentIndexSize > ib->GetSize())
 				ib->Resize((currentIndexSize * 3) / 2);
 
-			meshData.Vertices.clear();
-			meshData.Indices.clear();
-			meshData.InstanceVertices.clear();
-			meshData.Vertices.reserve(currentVertexSize / sizeof(VertexType));
-			meshData.InstanceVertices.reserve(currentInstanceVertexSize / sizeof(PerInstanceType));
-			meshData.Indices.reserve(currentIndexSize / sizeof(Index));
+			buffers.Vertices.clear();
+			buffers.Indices.clear();
+			buffers.Vertices.reserve(currentVertexSize / sizeof(VertexType));
+			buffers.Indices.reserve(currentIndexSize / sizeof(Index));
 
-			for (auto& [meshKey, datas] : meshes)
+			uint32_t firstIndex = 0u;
+			for (auto& [meshKey, instances] : meshes)
 			{
-				const uint32_t materialsCount = meshKey.Mesh->GetMaterialSlotsCount();
-				const auto& meshVertices = meshKey.Mesh->GetVertices();
-				meshData.Vertices.insert(meshData.Vertices.end(), meshVertices.begin(), meshVertices.end());
+				auto& mesh = meshKey.Mesh;
+				const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
+				const auto& meshVertices = mesh->GetVertices();
+				buffers.Vertices.insert(buffers.Vertices.end(), meshVertices.begin(), meshVertices.end());
 
+				meshKey.PerMaterialIndices.resize(materialsCount);
 				for (uint32_t i = 0; i < materialsCount; ++i)
 				{
-					const auto& meshIndices = meshKey.Mesh->GetIndices(i);
-					meshData.Indices.insert(meshData.Indices.end(), meshIndices.begin(), meshIndices.end());
+					const auto& meshIndices = mesh->GetIndices(i);
+					const uint32_t indicesCount = (uint32_t)meshIndices.size();
+					buffers.Indices.insert(buffers.Indices.end(), meshIndices.begin(), meshIndices.end());
+
+					auto& indicesData = meshKey.PerMaterialIndices[i];
+					indicesData.IndicesCount = indicesCount;
+					indicesData.FirstIndex = firstIndex;
+					firstIndex += indicesCount;
+				}
+			}
+
+			cmd->Write(vb, buffers.Vertices.data(), buffers.Vertices.size() * sizeof(VertexType), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+			cmd->Write(ib, buffers.Indices.data(), buffers.Indices.size() * sizeof(Index), 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
+		}
+
+		// Fill up ivb so that the same blend mode instances are adjacent in memory.
+		// Also, shadow casting instances of the blend mode come first.
+		// For example: Opaque_CastingShadow_#0, Opaque_CastingShadow_#1, Opaque_NotCastingShadow_#2, ..., Opaque_NotCastingShadow_#N
+		// This pattern allows us to build two draw lists: one for passes that care only about shadow casting meshes (Shadow pass),
+		// and the other list for passes that don't care about it (Base pass).
+		// So, with the above example, shadow pass draw list will have `Instance Count = 2`, but the base pass will have `Instance Count = N`.
+		template <typename MeshesMap, typename PerInstanceDapaType>
+		static void ProcessInstances(const MeshesMap& meshes, MeshesDrawLists* drawList, std::vector<PerInstanceDapaType>* ivb)
+		{
+			struct MeshCounters
+			{
+				std::array<uint32_t, Material::MaxBlendModes> Offset = { 0 };
+				std::array<uint32_t, Material::MaxBlendModes> ShadowCasting = { 0 };
+				std::array<uint32_t, Material::MaxBlendModes> NonShadowCasting = { 0 };
+			};
+
+			uint32_t totalInstances = 0u;
+			std::vector<MeshCounters> offsets;
+			offsets.reserve(meshes.size());
+			{
+				for (const auto& [meshKey, instances] : meshes)
+				{
+					MeshCounters& offset = offsets.emplace_back();
+					const auto& mesh = meshKey.Mesh;
+					const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
+					for (auto& instance : instances)
+					{
+						for (uint32_t i = 0; i < materialsCount; ++i)
+						{
+							const Material::BlendMode blendMode = instance.Materials[i] ? instance.Materials[i]->GetBlendMode() : Material::BlendMode::Opaque;
+							// Count instances
+							instance.bCastsShadows ? offset.ShadowCasting[uint32_t(blendMode)]++ : offset.NonShadowCasting[uint32_t(blendMode)]++;
+						}
+					}
+
+					totalInstances += materialsCount * uint32_t(instances.size());
+				}
+
+				uint32_t currentOffset = 0;
+				for (uint32_t i = 0; i < Material::MaxBlendModes; ++i)
+				{
+					for (auto& offset : offsets)
+					{
+						const uint32_t shadowCastingInstances = offset.ShadowCasting[i];
+						const uint32_t nonShadowCastingInstances = offset.NonShadowCasting[i];
+
+						offset.Offset[i] = currentOffset;
+						offset.ShadowCasting[i] = offset.Offset[i]; // Shadow casting go first
+						offset.NonShadowCasting[i] = offset.Offset[i] + shadowCastingInstances;
+
+						currentOffset += shadowCastingInstances + nonShadowCastingInstances;
+					}
+				}
+			}
+			ivb->resize(totalInstances);
+
+			constexpr uint32_t buckets = 2; // Separating shadow casting and non shadow casting instances
+			constexpr uint8_t shadowCastingIdx = 0;
+			constexpr uint8_t allInstancesIdx = 1;
+			uint32_t meshIdx = 0;
+			for (const auto& [meshKey, instances] : meshes)
+			{
+				const auto& mesh = meshKey.Mesh;
+				const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
+
+				// Bucket at `shadowCastingIdx` will contain draw data just for shadow casting instances.
+				// Bucket at `nonShadowCastingIdx` will contain draw data for all instances
+				std::array<bool, Material::MaxBlendModes> hasAnyInstances[buckets] = { { false }, { false } };
+				std::array<MeshDrawData, Material::MaxBlendModes> drawDatas[buckets] = { {}, {} };
+
+				for (uint32_t b = 0; b < buckets; ++b)
+				{
+					for (size_t i = 0; i < Material::MaxBlendModes; ++i)
+					{
+						drawDatas[b][i].VertexOffset = meshKey.VerticesOffset;
+						drawDatas[b][i].VerticesCount = meshKey.VerticesCount;
+						// Allocated as required.
+						// drawDatas[i].PerMaterialData.resize(materialsCount);
+					}
 				}
 
 				// Iterate over every mesh in the batch.
 				// Append instance data in the pattern of `Structure of Arrays`.
 				// For example, [0, 0, 0, 1, 1, 1] rather than [0, 1, 0, 1, 0, 1]
 				for (uint32_t i = 0; i < materialsCount; ++i)
-					for (auto& data : datas.Instances)
-						meshData.InstanceVertices.push_back(data.InstanceDatas[i]);
-			}
+				{
+					std::array<uint32_t, Material::MaxBlendModes> instancesPerBlendMode = { 0 };
+					for (auto& instance : instances)
+					{
+						const Material::BlendMode blendMode = instance.Materials[i] ? instance.Materials[i]->GetBlendMode() : Material::BlendMode::Opaque;
+						const uint32_t blendModeIdx = uint32_t(blendMode);
+						instancesPerBlendMode[blendModeIdx]++;
 
-			cmd->Write(vb, meshData.Vertices.data(), meshData.Vertices.size() * sizeof(VertexType), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
-			cmd->Write(ivb, meshData.InstanceVertices.data(), currentInstanceVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
-			cmd->Write(ib, meshData.Indices.data(), meshData.Indices.size() * sizeof(Index), 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
+						auto& allInstancesDrawData = drawDatas[allInstancesIdx][blendModeIdx];
+						if (allInstancesDrawData.PerMaterialData.size() != materialsCount)
+							allInstancesDrawData.PerMaterialData.resize(materialsCount);
+
+						auto& perMaterialData = allInstancesDrawData.PerMaterialData[i];
+						const uint32_t offset = offsets[meshIdx].Offset[blendModeIdx];
+						if (perMaterialData.InstanceCount == 0)
+						{
+							perMaterialData.IndexCount = meshKey.PerMaterialIndices[i].IndicesCount;
+							perMaterialData.FirstIndex = meshKey.PerMaterialIndices[i].FirstIndex;
+							perMaterialData.FirstInstance = offset;
+							hasAnyInstances[allInstancesIdx][blendModeIdx] = true;
+						}
+						if (instance.bCastsShadows)
+						{
+							auto& shadowCastingInstancesDrawData = drawDatas[shadowCastingIdx][blendModeIdx];
+
+							if (shadowCastingInstancesDrawData.PerMaterialData.size() != materialsCount)
+								shadowCastingInstancesDrawData.PerMaterialData.resize(materialsCount);
+							
+							auto& perMaterialData = shadowCastingInstancesDrawData.PerMaterialData[i];
+							if (perMaterialData.InstanceCount == 0)
+							{
+								perMaterialData.IndexCount = meshKey.PerMaterialIndices[i].IndicesCount;
+								perMaterialData.FirstIndex = meshKey.PerMaterialIndices[i].FirstIndex;
+								perMaterialData.FirstInstance = offset;
+								hasAnyInstances[shadowCastingIdx][blendModeIdx] = true;
+							}
+							perMaterialData.InstanceCount++;
+						}
+
+						uint32_t& insertionIdx = instance.bCastsShadows ? offsets[meshIdx].ShadowCasting[blendModeIdx] : offsets[meshIdx].NonShadowCasting[blendModeIdx];
+						(*ivb)[insertionIdx++] = instance.SubMeshData[i];
+						perMaterialData.InstanceCount++;
+					}
+
+					for (uint32_t blendMode = 0; blendMode < Material::MaxBlendModes; ++blendMode)
+					{
+						offsets[meshIdx].Offset[blendMode] += instancesPerBlendMode[blendMode];
+					}
+				}
+
+				for (uint32_t b = 0; b < buckets; ++b)
+				{
+					const bool bShadowCasting = b == shadowCastingIdx;
+					for (size_t i = 0; i < Material::MaxBlendModes; ++i)
+					{
+						if (hasAnyInstances[b][i])
+						{
+							Utils::GetDrawData(*drawList, Material::BlendMode(i), bShadowCasting).emplace_back(std::move(drawDatas[b][i]));
+						}
+					}
+				}
+				meshIdx++;
+			}
 		}
 	}
 
@@ -288,19 +444,10 @@ namespace Eagle
 			transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
 			transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst | BufferUsage::TransferSrc;
 
-			m_OpaqueMeshesData.VertexBuffer = Buffer::Create(vertexSpecs, "Meshes_VertexBuffer_Opaque");
-			m_OpaqueMeshesData.InstanceBuffer = Buffer::Create(vertexSpecs, "Meshes_InstanceVertexBuffer_Opaque");
-			m_OpaqueMeshesData.IndexBuffer = Buffer::Create(indexSpecs, "Meshes_IndexBuffer_Opaque");
-
-			m_TranslucentMeshesData.VertexBuffer = Buffer::Create(vertexSpecs, "Meshes_VertexBuffer_Translucent");
-			m_TranslucentMeshesData.InstanceBuffer = Buffer::Create(vertexSpecs, "Meshes_InstanceVertexBuffer_Translucent");
-			m_TranslucentMeshesData.IndexBuffer = Buffer::Create(indexSpecs, "Meshes_IndexBuffer_Translucent");
-
-			m_MaskedMeshesData.VertexBuffer = Buffer::Create(vertexSpecs, "Meshes_VertexBuffer_Masked");
-			m_MaskedMeshesData.InstanceBuffer = Buffer::Create(vertexSpecs, "Meshes_InstanceVertexBuffer_Masked");
-			m_MaskedMeshesData.IndexBuffer = Buffer::Create(indexSpecs, "Meshes_IndexBuffer_Masked");
-
-			m_MeshesTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Meshes_TransformsBuffer");
+			m_StaticMeshesBuffers.VertexBuffer = Buffer::Create(vertexSpecs, "StaticMeshes_VertexBuffer");
+			m_StaticMeshesBuffers.InstanceBuffer = Buffer::Create(vertexSpecs, "StaticMeshes_InstanceVertexBuffer");
+			m_StaticMeshesBuffers.IndexBuffer = Buffer::Create(indexSpecs, "StaticMeshes_IndexBuffer");
+			m_StaticMeshesBuffers.TransformsBuffer = Buffer::Create(transformsBufferSpecs, "StaticMeshes_TransformsBuffer");
 		}
 
 		// Create Skeletal Mesh buffers
@@ -320,19 +467,10 @@ namespace Eagle
 			transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
 			transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst | BufferUsage::TransferSrc;
 
-			m_OpaqueSkeletalMeshesData.VertexBuffer = Buffer::Create(vertexSpecs, "SkeletalMeshes_VertexBuffer_Opaque");
-			m_OpaqueSkeletalMeshesData.InstanceBuffer = Buffer::Create(vertexSpecs, "SkeletalMeshes_InstanceVertexBuffer_Opaque");
-			m_OpaqueSkeletalMeshesData.IndexBuffer = Buffer::Create(indexSpecs, "SkeletalMeshes_IndexBuffer_Opaque");
-
-			m_TranslucentSkeletalMeshesData.VertexBuffer = Buffer::Create(vertexSpecs, "SkeletalMeshes_VertexBuffer_Translucent");
-			m_TranslucentSkeletalMeshesData.InstanceBuffer = Buffer::Create(vertexSpecs, "SkeletalMeshes_InstanceVertexBuffer_Translucent");
-			m_TranslucentSkeletalMeshesData.IndexBuffer = Buffer::Create(indexSpecs, "SkeletalMeshes_IndexBuffer_Translucent");
-
-			m_MaskedSkeletalMeshesData.VertexBuffer = Buffer::Create(vertexSpecs, "SkeletalMeshes_VertexBuffer_Masked");
-			m_MaskedSkeletalMeshesData.InstanceBuffer = Buffer::Create(vertexSpecs, "SkeletalMeshes_InstanceVertexBuffer_Masked");
-			m_MaskedSkeletalMeshesData.IndexBuffer = Buffer::Create(indexSpecs, "SkeletalMeshes_IndexBuffer_Masked");
-
-			m_SkeletalMeshesTransformsBuffer = Buffer::Create(transformsBufferSpecs, "SkeletalMeshes_TransformsBuffer");
+			m_SkeletalMeshesBuffers.VertexBuffer = Buffer::Create(vertexSpecs, "SkeletalMeshes_VertexBuffer");
+			m_SkeletalMeshesBuffers.InstanceBuffer = Buffer::Create(vertexSpecs, "SkeletalMeshes_InstanceVertexBuffer");
+			m_SkeletalMeshesBuffers.IndexBuffer = Buffer::Create(indexSpecs, "SkeletalMeshes_IndexBuffer");
+			m_SkeletalMeshesBuffers.TransformsBuffer = Buffer::Create(transformsBufferSpecs, "SkeletalMeshes_TransformsBuffer");
 		}
 
 		// Create Sprite buffers
@@ -421,26 +559,22 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Process Geometry");
 		EG_CPU_TIMING_SCOPED("Process Geometry");
 
-		const bool bMaterialsChanged = MaterialSystem::HasChanged();
+		// If it changed, we need to re-sort meshes
+		const bool bBlendModeChanged = MaterialSystem::HasBlendModeChanged();
 
 		// Meshes
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Process Meshes");
 			EG_CPU_TIMING_SCOPED("Process Meshes");
 
-			if (bUploadMeshes || bMaterialsChanged)
+			if (bUploadMeshes || bBlendModeChanged)
 			{
-				SortMeshes();
-				{
-					EG_GPU_TIMING_SCOPED(cmd, "Static Meshes. Upload vertex & index buffers");
-					EG_CPU_TIMING_SCOPED("Static Meshes. Upload vertex & index buffers");
-					UploadMeshes(cmd, m_OpaqueMeshesData, m_OpaqueMeshes);
-					UploadMeshes(cmd, m_TranslucentMeshesData, m_TranslucentMeshes);
-					UploadMeshes(cmd, m_MaskedMeshesData, m_MaskedMeshes);
-				}
+				if (bUploadMeshes)
+					UploadStaticMeshes(cmd);
+				SortMeshes(cmd);
 			}
 			const bool bTransformBufferGarbage = bUploadMeshes;
-			Utils::UploadTransforms(cmd, m_MeshTransforms, m_MeshesTransformsBuffer, m_MeshesPrevTransformsBuffer, m_MeshUploadSpecificTransforms,
+			Utils::UploadTransforms(cmd, m_MeshTransforms, m_StaticMeshesBuffers.TransformsBuffer, m_StaticMeshesBuffers.PrevTransformsBuffer, m_MeshUploadSpecificTransforms,
 				&bUploadMeshTransforms, &bUploadMeshSpecificTransforms, bMotionRequired, bTransformBufferGarbage, "Static Meshes. Upload Transforms buffer");
 
 			bUploadMeshes = false;
@@ -451,19 +585,14 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "Process Skeletal Meshes");
 			EG_CPU_TIMING_SCOPED("Process Skeletal Meshes");
 
-			if (bUploadSkeletalMeshes || bMaterialsChanged)
+			if (bUploadSkeletalMeshes || bBlendModeChanged)
 			{
-				SortSkeletalMeshes();
-				{
-					EG_GPU_TIMING_SCOPED(cmd, "Skeletal Meshes. Upload vertex & index buffers");
-					EG_CPU_TIMING_SCOPED("Skeletal Meshes. Upload vertex & index buffers");
-					UploadSkeletalMeshes(cmd, m_OpaqueSkeletalMeshesData, m_OpaqueSkeletalMeshes);
-					UploadSkeletalMeshes(cmd, m_TranslucentSkeletalMeshesData, m_TranslucentSkeletalMeshes);
-					UploadSkeletalMeshes(cmd, m_MaskedSkeletalMeshesData, m_MaskedSkeletalMeshes);
-				}
+				if (bUploadSkeletalMeshes)
+					UploadSkeletalMeshes(cmd);
+				SortSkeletalMeshes(cmd);
 			}
 			const bool bTransformBufferGarbage = bUploadSkeletalMeshes;
-			Utils::UploadTransforms(cmd, m_SkeletalMeshTransforms, m_SkeletalMeshesTransformsBuffer, m_SkeletalMeshesPrevTransformsBuffer, m_SkeletalMeshUploadSpecificTransforms,
+			Utils::UploadTransforms(cmd, m_SkeletalMeshTransforms, m_SkeletalMeshesBuffers.TransformsBuffer, m_SkeletalMeshesBuffers.PrevTransformsBuffer, m_SkeletalMeshUploadSpecificTransforms,
 				&bUploadSkeletalMeshTransforms, &bUploadSkeletalMeshSpecificTransforms, bMotionRequired, bTransformBufferGarbage, "Skeletal Meshes. Upload Transforms buffer");
 
 			UploadAnimationTransforms(cmd, bTransformBufferGarbage);
@@ -476,7 +605,7 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "Process Sprites");
 			EG_CPU_TIMING_SCOPED("Process Sprites");
 
-			if (bUploadSprites || bMaterialsChanged)
+			if (bUploadSprites || bBlendModeChanged)
 			{
 				SortSprites();
 				{
@@ -503,7 +632,7 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "Process Texts");
 			EG_CPU_TIMING_SCOPED("Process Texts");
 
-			if (bUploadTextQuads || bMaterialsChanged)
+			if (bUploadTextQuads || bBlendModeChanged)
 			{
 				if (!bUploadTextQuads)
 					SortLitTexts(); // Required only when materials were changed. Because they're already sorted if `bUploadTextQuads` == true
@@ -544,21 +673,22 @@ namespace Eagle
 			EG_CPU_TIMING_SCOPED("Skeletal Meshes. Process and upload animations");
 
 			const auto& finalAnimTransforms = m_Renderer.GetMeshesAnimationTransforms();
-			for (auto& [meshKey, meshData] : m_SkeletalMeshes)
+			for (auto& [meshKey, instances] : m_SkeletalMeshes)
 			{
 				const auto& mesh = meshKey.Mesh;
-				for (auto& data : meshData.Instances)
+				for (auto& instance : instances)
 				{
-					// It doesn't matter which index we take, since `AnimTransformIndex` and `ObjectID` are going to be the same
-					const auto& instanceData = data.InstanceDatas[0];
-					auto& transforms = animTransforms[instanceData.AnimTransformIndex];
+					// It doesn't matter which submesh index we take, since `TransformIndex` and `ObjectID` are going to be the same
+					const auto& instanceData = instance.SubMeshData[0];
+					const uint32_t animIndex = instanceData.PackedTransformIndex & (~EG_RECEIVES_DECALS_MASK);
+					auto& transforms = animTransforms[animIndex];
 					auto it = finalAnimTransforms.find(instanceData.ObjectID);
 					EG_ASSERT(it != finalAnimTransforms.end());
 					transforms = it->second;
 
 					bool bGarbage = bTransformsGarbage;
 
-					auto& animTransformsBuffer = animTransformsBuffers[instanceData.AnimTransformIndex];
+					auto& animTransformsBuffer = animTransformsBuffers[animIndex];
 					const size_t currentBufferSize = transforms.size() * sizeof(glm::mat4);
 					if (!animTransformsBuffer || (animTransformsBuffer == Buffer::Dummy))
 					{
@@ -566,7 +696,7 @@ namespace Eagle
 						transformsBufferSpecs.Size = currentBufferSize;
 						transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
 						transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst | BufferUsage::TransferSrc;
-						animTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Meshes_AnimationTransformsBuffer_#" + std::to_string(instanceData.AnimTransformIndex));
+						animTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Meshes_AnimationTransformsBuffer_#" + std::to_string(animIndex));
 						bGarbage = true;
 					}
 					else if (currentBufferSize > animTransformsBuffer->GetSize())
@@ -579,14 +709,14 @@ namespace Eagle
 					Ref<Buffer>* prevAnimTransformsBuffer = nullptr;
 					if (bMotionRequired)
 					{
-						auto& prevAnimTransformsBufferRef = prevAnimTransformsBuffers[instanceData.AnimTransformIndex];
+						auto& prevAnimTransformsBufferRef = prevAnimTransformsBuffers[animIndex];
 						if (!prevAnimTransformsBufferRef || (prevAnimTransformsBufferRef == Buffer::Dummy))
 						{
 							BufferSpecifications transformsBufferSpecs;
 							transformsBufferSpecs.Size = currentBufferSize;
 							transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
 							transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
-							prevAnimTransformsBufferRef = Buffer::Create(transformsBufferSpecs, "Meshes_AnimationPrevTransformsBuffer_#" + std::to_string(instanceData.AnimTransformIndex));
+							prevAnimTransformsBufferRef = Buffer::Create(transformsBufferSpecs, "Meshes_AnimationPrevTransformsBuffer_#" + std::to_string(animIndex));
 							bGarbage = true;
 						}
 						else if (currentBufferSize > prevAnimTransformsBufferRef->GetSize())
@@ -625,8 +755,8 @@ namespace Eagle
 		bMotionRequired = settings.InternalState.bMotionBuffer;
 		if (!bMotionRequired)
 		{
-			m_MeshesPrevTransformsBuffer.reset();
-			m_SkeletalMeshesPrevTransformsBuffer.reset();
+			m_StaticMeshesBuffers.PrevTransformsBuffer.reset();
+			m_SkeletalMeshesBuffers.PrevTransformsBuffer.reset();
 			m_SpritesPrevTransformsBuffer.reset();
 			m_TextPrevTransformsBuffer.reset();
 			m_AnimationPrevTransformsBuffers.clear();
@@ -634,13 +764,13 @@ namespace Eagle
 		else
 		{
 			BufferSpecifications transformsBufferSpecs;
-			transformsBufferSpecs.Size = m_MeshesTransformsBuffer->GetSize();
+			transformsBufferSpecs.Size = m_StaticMeshesBuffers.TransformsBuffer->GetSize();
 			transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
 			transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
-			m_MeshesPrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Meshes_PrevTransformsBuffer");
+			m_StaticMeshesBuffers.PrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Meshes_PrevTransformsBuffer");
 
-			transformsBufferSpecs.Size = m_SkeletalMeshesTransformsBuffer->GetSize();
-			m_SkeletalMeshesPrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "SkeletalMeshes_PrevTransformsBuffer");
+			transformsBufferSpecs.Size = m_SkeletalMeshesBuffers.TransformsBuffer->GetSize();
+			m_SkeletalMeshesBuffers.PrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "SkeletalMeshes_PrevTransformsBuffer");
 
 			transformsBufferSpecs.Size = m_SpritesTransformsBuffer->GetSize();
 			m_SpritesPrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Sprites_PrevTransformsBuffer");
@@ -658,7 +788,7 @@ namespace Eagle
 		if (!bDirty)
 			return;
 
-		std::unordered_map<MeshKey, MeshDatas> tempMeshes;
+		StaticMeshesMap tempMeshes;
 		std::unordered_map<uint32_t, uint64_t> meshTransformIndices; // EntityID -> uint64_t (index to m_MeshTransforms)
 		std::vector<glm::mat4> tempMeshTransforms;
 
@@ -673,24 +803,28 @@ namespace Eagle
 			if (!meshAsset)
 				continue;
 
-			const Ref<Eagle::StaticMesh>& staticMesh = meshAsset->GetMesh();
+			const Ref<StaticMesh>& staticMesh = meshAsset->GetMesh();
 			if (!staticMesh || !staticMesh->IsValid())
 				continue;
 
+			const bool bCastsShadows = comp->DoesCastShadows();
+			const bool bReceivesDecals = comp->DoesReceiveDecals();
 			const uint32_t materialsCount = comp->GetMaterialsSlotsCount();
 			const uint32_t meshID = comp->Parent.GetID();
-			auto& instanceData = tempMeshes[{staticMesh, meshAsset->GetGUID(), comp->DoesCastShadows()}];
-			auto& meshData = instanceData.Instances.emplace_back();
+
+			auto& instances = tempMeshes[{ staticMesh }];
+			auto& instance = instances.emplace_back();
+			instance.SubMeshData.reserve(materialsCount);
+			instance.bCastsShadows = bCastsShadows;
+
 			for (uint32_t i = 0; i < materialsCount; ++i)
 			{
-				const bool bReceivesDecals = comp->DoesReceiveDecals();
-
 				const auto& materialAsset = comp->GetMaterialAsset(i);
-				meshData.Materials.push_back(materialAsset ? materialAsset->GetMaterial() : nullptr);
-				auto& meshInstanceData = meshData.InstanceDatas.emplace_back();
-				meshInstanceData.PackedTransformIndex = meshIndex | (bReceivesDecals ? (1 << 31) : 0u);
-				meshInstanceData.ObjectID = meshID;
-				// meshInstanceData.MaterialIndex is set later during the update
+				instance.Materials.push_back(materialAsset ? materialAsset->GetMaterial() : nullptr);
+				auto& subInstanceData = instance.SubMeshData.emplace_back();
+				subInstanceData.PackedTransformIndex = meshIndex | (bReceivesDecals ? EG_RECEIVES_DECALS_MASK : 0u);
+				subInstanceData.ObjectID = meshID;
+				subInstanceData.MaterialIndex = MaterialSystem::GetMaterialIndex(instance.Materials[i]);
 			}
 
 			tempMeshTransforms.push_back(Math::ToTransformMatrix(comp->GetWorldTransform()));
@@ -703,7 +837,7 @@ namespace Eagle
 			transformIndices = std::move(meshTransformIndices)](Ref<CommandBuffer>&) mutable
 			{
 				auto thisRef = Cast<GeometryManagerTask>(task);
-				thisRef->m_Meshes = std::move(meshes);
+				thisRef->m_StaticMeshes = std::move(meshes);
 				thisRef->m_MeshTransforms = std::move(transforms);
 				thisRef->m_MeshTransformIndices = std::move(transformIndices);
 
@@ -745,75 +879,38 @@ namespace Eagle
 		});
 	}
 	
-	void GeometryManagerTask::SortMeshes()
+	void GeometryManagerTask::SortMeshes(const Ref<CommandBuffer>& cmd)
 	{
 		EG_CPU_TIMING_SCOPED("Sort static meshes based on Blend Mode");
+		EG_GPU_TIMING_SCOPED(cmd, "Static Meshes. Upload instance vertex buffer");
 
-		m_OpaqueMeshes.clear();
-		m_TranslucentMeshes.clear();
-		m_MaskedMeshes.clear();
+		auto& ivbData = m_StaticMeshesBuffers.InstanceVertices;
+		ivbData.clear();
+		m_StaticMeshesDrawData.Clear();
 
-		for (auto& [mesh, datas] : m_Meshes)
-			for (auto& data : datas.Instances)
-			{
-				const size_t materialsCount = data.Materials.size();
-				for (size_t i = 0; i < materialsCount; ++i)
-					data.InstanceDatas[i].MaterialIndex = MaterialSystem::GetMaterialIndex(data.Materials[i]);
+		Utils::ProcessInstances(m_StaticMeshes, &m_StaticMeshesDrawData, &ivbData);
 
-				struct MeshDataPerBlendMode
-				{
-					MeshData Data;
-					std::vector<uint32_t> MaterialSlots;
-				};
-				std::array<MeshDataPerBlendMode, Material::MaxBlendModes> datasPerBlendMode;
-				for (size_t i = 0; i < materialsCount; ++i)
-				{
-					const Material::BlendMode blendMode = data.Materials[i] ? data.Materials[i]->GetBlendMode() : Material::BlendMode::Opaque;
-					auto& perBlendData = datasPerBlendMode[uint32_t(blendMode)];
-					perBlendData.Data.InstanceDatas.push_back(data.InstanceDatas[i]);
-					perBlendData.MaterialSlots.push_back(uint32_t(i));
-				}
+		if (!ivbData.empty())
+		{
+			const size_t currentInstanceVertexSize = ivbData.size() * sizeof(PerInstanceData);
 
-				for (uint32_t i = 0; i < Material::MaxBlendModes; ++i)
-				{
-					const Material::BlendMode blendMode = Material::BlendMode(i);
-					if (datasPerBlendMode[i].Data.InstanceDatas.size())
-					{
-						switch (blendMode)
-						{
-							case Material::BlendMode::Opaque:
-							{
-								auto& meshes = m_OpaqueMeshes[mesh];
-								meshes.Instances.push_back(data);
-								meshes.MaterialSlots = std::move(datasPerBlendMode[i].MaterialSlots);
-								break;
-							}
-							case Material::BlendMode::Translucent:
-							{
-								auto& meshes = m_TranslucentMeshes[mesh];
-								meshes.Instances.push_back(data);
-								meshes.MaterialSlots = std::move(datasPerBlendMode[i].MaterialSlots);
-								break;
-							}
-							case Material::BlendMode::Masked:
-							{
-								auto& meshes = m_MaskedMeshes[mesh];
-								meshes.Instances.push_back(data);
-								meshes.MaterialSlots = std::move(datasPerBlendMode[i].MaterialSlots);
-								break;
-							}
-						}
-					}
-				}
-			}
+			auto& ivb = m_StaticMeshesBuffers.InstanceBuffer;
+			if (currentInstanceVertexSize > ivb->GetSize())
+				ivb->Resize((currentInstanceVertexSize * 3) / 2);
+
+			cmd->Write(ivb, ivbData.data(), currentInstanceVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+		}
 	}
 
-	void GeometryManagerTask::UploadMeshes(const Ref<CommandBuffer>& cmd, MeshGeometryData& meshData, const std::unordered_map<MeshKey, MeshDatas>& meshes)
+	void GeometryManagerTask::UploadStaticMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		if (meshes.empty())
+		if (m_StaticMeshes.empty())
 			return;
 
-		Utils::UploadMeshes(cmd, meshData, meshes);
+		EG_GPU_TIMING_SCOPED(cmd, "Static Meshes. Upload vertex & index buffers");
+		EG_CPU_TIMING_SCOPED("Static Meshes. Upload vertex & index buffers");
+
+		Utils::UploadMeshes(cmd, m_StaticMeshesBuffers, m_StaticMeshes);
 	}
 
 	// ---------- Skeletal Meshes ----------
@@ -822,7 +919,7 @@ namespace Eagle
 		if (!bDirty)
 			return;
 
-		std::unordered_map<SkeletalMeshKey, SkeletalMeshDatas> tempMeshes;
+		SkeletalMeshesMap tempMeshes;
 		std::unordered_map<uint32_t, uint64_t> meshTransformIndices; // EntityID -> uint64_t (index to m_SkeletalMeshTransforms)
 		std::vector<glm::mat4> tempMeshTransforms;
 
@@ -841,20 +938,24 @@ namespace Eagle
 			if (!skeletalMesh || !skeletalMesh->IsValid())
 				continue;
 
+			const bool bCastsShadows = comp->DoesCastShadows();
+			const bool bReceivesDecals = comp->DoesReceiveDecals();
 			const uint32_t materialsCount = comp->GetMaterialsSlotsCount();
 			const uint32_t meshID = comp->Parent.GetID();
-			auto& instancesData = tempMeshes[{skeletalMesh, meshAsset->GetGUID(), comp->DoesCastShadows()}];
-			auto& meshData = instancesData.Instances.emplace_back();
+
+			auto& instances = tempMeshes[{ skeletalMesh }];
+			auto& instance = instances.emplace_back();
+			instance.SubMeshData.reserve(materialsCount);
+			instance.bCastsShadows = bCastsShadows;
+
 			for (uint32_t i = 0; i < materialsCount; ++i)
 			{
-				const bool bReceivesDecals = comp->DoesReceiveDecals();
 				const auto& materialAsset = comp->GetMaterialAsset(i);
-				meshData.Materials.push_back(materialAsset ? materialAsset->GetMaterial() : nullptr);
-				auto& instanceData = meshData.InstanceDatas.emplace_back();
-				instanceData.PackedTransformIndex = meshIndex | (bReceivesDecals ? (1 << 31) : 0u);
-				instanceData.ObjectID = meshID;
-				// instanceData.MaterialIndex is set later during the update
-				// instanceData.AnimTransformIndex is set later during the update
+				instance.Materials.push_back(materialAsset ? materialAsset->GetMaterial() : nullptr);
+				auto& subInstanceData = instance.SubMeshData.emplace_back();
+				subInstanceData.PackedTransformIndex = meshIndex | (bReceivesDecals ? EG_RECEIVES_DECALS_MASK : 0u);
+				subInstanceData.ObjectID = meshID;
+				subInstanceData.MaterialIndex = MaterialSystem::GetMaterialIndex(instance.Materials[i]);
 			}
 
 			tempMeshTransforms.push_back(Math::ToTransformMatrix(comp->GetWorldTransform()));
@@ -909,73 +1010,31 @@ namespace Eagle
 		});
 	}
 
-	void GeometryManagerTask::SortSkeletalMeshes()
+	void GeometryManagerTask::SortSkeletalMeshes(const Ref<CommandBuffer>& cmd)
 	{
 		EG_CPU_TIMING_SCOPED("Sort skeletal meshes based on Blend Mode");
 
-		m_OpaqueSkeletalMeshes.clear();
-		m_TranslucentSkeletalMeshes.clear();
-		m_MaskedSkeletalMeshes.clear();
-		uint32_t animationsCount = 0u;
+		EG_CPU_TIMING_SCOPED("Sort skeletal meshes based on Blend Mode");
+		EG_GPU_TIMING_SCOPED(cmd, "Skeletal Meshes. Upload instance vertex buffer");
 
-		for (auto& [mesh, datas] : m_SkeletalMeshes)
-			for (auto& data : datas.Instances)
-			{
-				const size_t materialsCount = data.Materials.size();
-				for (size_t i = 0; i < materialsCount; ++i)
-				{
-					data.InstanceDatas[i].AnimTransformIndex = animationsCount;
-					data.InstanceDatas[i].MaterialIndex = MaterialSystem::GetMaterialIndex(data.Materials[i]);
-				}
-				animationsCount++;
+		auto& ivbData = m_SkeletalMeshesBuffers.InstanceVertices;
+		ivbData.clear();
+		m_SkeletalMeshesDrawData.Clear();
 
-				struct MeshDataPerBlendMode
-				{
-					SkeletalMeshData Data;
-					std::vector<uint32_t> MaterialSlots;
-				};
-				std::array<MeshDataPerBlendMode, Material::MaxBlendModes> datasPerBlendMode;
-				for (size_t i = 0; i < materialsCount; ++i)
-				{
-					const Material::BlendMode blendMode = data.Materials[i] ? data.Materials[i]->GetBlendMode() : Material::BlendMode::Opaque;
-					auto& perBlendData = datasPerBlendMode[uint32_t(blendMode)];
-					perBlendData.Data.InstanceDatas.push_back(data.InstanceDatas[i]);
-					perBlendData.MaterialSlots.push_back(uint32_t(i));
-				}
+		Utils::ProcessInstances(m_SkeletalMeshes, &m_SkeletalMeshesDrawData, &ivbData);
 
-				for (uint32_t i = 0; i < Material::MaxBlendModes; ++i)
-				{
-					const Material::BlendMode blendMode = Material::BlendMode(i);
-					if (datasPerBlendMode[i].Data.InstanceDatas.size())
-					{
-						switch (blendMode)
-						{
-							case Material::BlendMode::Opaque:
-							{
-								auto& meshes = m_OpaqueSkeletalMeshes[mesh];
-								meshes.Instances.push_back(data);
-								meshes.MaterialSlots = std::move(datasPerBlendMode[i].MaterialSlots);
-								break;
-							}
-							case Material::BlendMode::Translucent:
-							{
-								auto& meshes = m_TranslucentSkeletalMeshes[mesh];
-								meshes.Instances.push_back(data);
-								meshes.MaterialSlots = std::move(datasPerBlendMode[i].MaterialSlots);
-								break;
-							}
-							case Material::BlendMode::Masked:
-							{
-								auto& meshes = m_MaskedSkeletalMeshes[mesh];
-								meshes.Instances.push_back(data);
-								meshes.MaterialSlots = std::move(datasPerBlendMode[i].MaterialSlots);
-								break;
-							}
-						}
-					}
-				}
-			}
+		if (!ivbData.empty())
+		{
+			const size_t currentInstanceVertexSize = ivbData.size() * sizeof(PerInstanceData);
 
+			auto& ivb = m_SkeletalMeshesBuffers.InstanceBuffer;
+			if (currentInstanceVertexSize > ivb->GetSize())
+				ivb->Resize((currentInstanceVertexSize * 3) / 2);
+
+			cmd->Write(ivb, ivbData.data(), currentInstanceVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+		}
+
+		const uint32_t animationsCount = (uint32_t)m_SkeletalMeshTransforms.size();
 		m_AnimationTransforms.resize(animationsCount);
 		if (m_AnimationTransformsBuffers.size() < animationsCount)
 		{
@@ -998,12 +1057,15 @@ namespace Eagle
 			m_AnimationPrevTransformsBuffers.clear();
 	}
 
-	void GeometryManagerTask::UploadSkeletalMeshes(const Ref<CommandBuffer>& cmd, SkeletalMeshGeometryData& meshData, const std::unordered_map<SkeletalMeshKey, SkeletalMeshDatas>& meshes)
+	void GeometryManagerTask::UploadSkeletalMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		if (meshes.empty())
+		if (m_SkeletalMeshes.empty())
 			return;
 
-		Utils::UploadMeshes(cmd, meshData, meshes);
+		EG_GPU_TIMING_SCOPED(cmd, "Skeletal Meshes. Upload vertex & index buffers");
+		EG_CPU_TIMING_SCOPED("Skeletal Meshes. Upload vertex & index buffers");
+
+		Utils::UploadMeshes(cmd, m_SkeletalMeshesBuffers, m_SkeletalMeshes);
 	}
 
 	// ---------- Sprites ----------

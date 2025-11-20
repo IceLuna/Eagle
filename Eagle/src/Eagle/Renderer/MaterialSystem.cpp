@@ -18,6 +18,7 @@ namespace Eagle
 	std::unordered_map<Ref<Material>, uint32_t> MaterialSystem::s_UsedMaterialsMap;
 	bool MaterialSystem::s_Dirty = true;
 	bool MaterialSystem::s_Changed = true;
+	bool MaterialSystem::s_BlendModeChanged = true;
 
 	static std::vector<CPUMaterial> s_CPUMaterials;
 	static std::vector<float> s_CPURawMaterials;
@@ -94,6 +95,7 @@ namespace Eagle
 			// This way the value is saved till the end of the frame.
 			// So if materials were changed, `s_Changed` won't reset until the next frame
 			s_Changed = false;
+			s_BlendModeChanged = false;
 			return;
 		}
 
@@ -158,7 +160,7 @@ namespace Eagle
 	uint32_t MaterialSystem::GetMaterialIndex(const Ref<Material>& material)
 	{
 		if (!material)
-			return 0u;
+			return s_DummyMaterialIndex;
 
 		std::scoped_lock lock(s_Mutex);
 		
@@ -175,10 +177,10 @@ namespace Eagle
 	{
 		std::scoped_lock lock(s_Mutex);
 		
-		s_Dirty = s_Changed = true;
+		s_Dirty = s_Changed = s_BlendModeChanged = true;
 	}
 
-	void MaterialSystem::OnMaterialChanged(const Ref<Material>& material)
+	void MaterialSystem::OnMaterialChanged(const Ref<Material>& material, bool bBlendModeChanged)
 	{
 		if (!material)
 			return;
@@ -187,6 +189,9 @@ namespace Eagle
 
 		auto it = s_UsedMaterialsMap.find(material);
 		if (it != s_UsedMaterialsMap.end())
+		{
 			SetDirty_Internal();
+			s_BlendModeChanged |= bBlendModeChanged;
+		}
 	}
 }

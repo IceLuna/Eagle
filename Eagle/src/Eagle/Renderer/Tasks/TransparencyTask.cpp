@@ -22,30 +22,28 @@ namespace Eagle
 		template<typename MeshData, typename MeshGeometryData>
 		static void RenderMeshes(const Ref<CommandBuffer>& cmd, const MeshData& meshes, const MeshGeometryData& meshesData, SceneRenderer::Statistics& stats)
 		{
-			uint32_t firstIndex = 0;
-			uint32_t firstInstance = 0;
-			uint32_t vertexOffset = 0;
-			for (auto& [meshKey, datas] : meshes)
+			const auto& buffers = meshesData;
+			for (const auto& data : meshes)
 			{
-				const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-				const uint32_t instanceCount = (uint32_t)datas.Instances.size();
+				const uint32_t verticesCount = data.VerticesCount;
+				const uint32_t vertexOffset = data.VertexOffset;
 
 				stats.Vertices += verticesCount;
 
-				const auto& slotsToRender = datas.MaterialSlots;
-				for (const uint32_t matSlot : slotsToRender)
+				for (const auto& matRenderData : data.PerMaterialData)
 				{
-					const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices(matSlot).size();
-					const uint32_t indicesOffset = (uint32_t)meshKey.Mesh->GetIndicesOffset(matSlot);
-					cmd->DrawIndexedInstanced(meshesData.VertexBuffer, meshesData.IndexBuffer, indicesCount, firstIndex + indicesOffset, vertexOffset, instanceCount, firstInstance + instanceCount * matSlot, meshesData.InstanceBuffer);
+					const uint32_t indicesCount = matRenderData.IndexCount;
+					const uint32_t firstIndex = matRenderData.FirstIndex;
+					const uint32_t instanceCount = matRenderData.InstanceCount;
+					const uint32_t firstInstance = matRenderData.FirstInstance;
+					if (instanceCount > 0)
+					{
+						cmd->DrawIndexedInstanced(buffers.VertexBuffer, buffers.IndexBuffer, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, buffers.InstanceBuffer);
 
-					stats.Indeces += indicesCount;
-					++stats.DrawCalls;
+						stats.Indeces += indicesCount;
+						++stats.DrawCalls;
+					}
 				}
-				firstInstance += instanceCount * meshKey.Mesh->GetMaterialSlotsCount();
-				firstIndex += (uint32_t)meshKey.Mesh->GetTotalIndicesCount();
-
-				vertexOffset += verticesCount;
 			}
 		}
 	}
@@ -88,8 +86,8 @@ namespace Eagle
 	
 	void TransparencyTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& meshes = m_Renderer.GetTranslucentMeshes();
-		const auto& skeletalMeshes = m_Renderer.GetTranslucentSkeletalMeshes();
+		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().Translucent;
+		const auto& skeletalMeshes = m_Renderer.GetSkeletalMeshesDrawData().Translucent;
 		const auto& spritesData = m_Renderer.GetTranslucentSpritesData();
 		const auto& spritesNoShadowData = m_Renderer.GetTranslucentNotCastingShadowSpriteData();
 		const auto& textsData = m_Renderer.GetTranslucentLitTextData();
@@ -272,7 +270,7 @@ namespace Eagle
 
 	void TransparencyTask::RenderMeshesDepth(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetTranslucentMeshes();
+		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().Translucent;
 
 		if (meshes.empty())
 			return;
@@ -280,7 +278,7 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Meshes. Depth");
 		EG_CPU_TIMING_SCOPED("Transparency. Meshes. Depth");
 
-		const auto& meshesData = m_Renderer.GetTranslucentMeshesData();
+		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
 		const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
 		const glm::mat4& viewProj = m_Renderer.GetViewProjection();
 		const glm::uvec2 viewportSize = m_Renderer.GetViewportSize();
@@ -291,13 +289,13 @@ namespace Eagle
 		auto& stats = m_Renderer.GetStats();
 		cmd->BeginGraphics(m_MeshesDepthPipeline);
 		cmd->SetGraphicsRootConstants(&viewProj[0][0], &viewportSize);
-		Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+		Utils::RenderMeshes(cmd, meshes, buffers, stats);
 		cmd->EndGraphics();
 	}
 
 	void TransparencyTask::RenderSkeletalMeshesDepth(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetTranslucentSkeletalMeshes();
+		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().Translucent;
 
 		if (meshes.empty())
 			return;
@@ -305,7 +303,7 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Skeletal Meshes. Depth");
 		EG_CPU_TIMING_SCOPED("Transparency. Skeletal Meshes. Depth");
 
-		const auto& meshesData = m_Renderer.GetTranslucentSkeletalMeshesData();
+		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
 		const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
 		const glm::mat4& viewProj = m_Renderer.GetViewProjection();
 		const glm::uvec2 viewportSize = m_Renderer.GetViewportSize();
@@ -317,7 +315,7 @@ namespace Eagle
 		auto& stats = m_Renderer.GetStats();
 		cmd->BeginGraphics(m_SkeletalMeshesDepthPipeline);
 		cmd->SetGraphicsRootConstants(&viewProj[0][0], &viewportSize);
-		Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+		Utils::RenderMeshes(cmd, meshes, buffers, stats);
 		cmd->EndGraphics();
 	}
 
@@ -375,7 +373,7 @@ namespace Eagle
 	
 	void TransparencyTask::RenderMeshesColor(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetTranslucentMeshes();
+		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().Translucent;
 
 		if (meshes.empty())
 			return;
@@ -383,7 +381,7 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Meshes. Color");
 		EG_CPU_TIMING_SCOPED("Transparency. Meshes. Color");
 
-		const auto& meshesData = m_Renderer.GetTranslucentMeshesData();
+		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
 
 		const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
 		const glm::mat4& viewProj = m_Renderer.GetViewProjection();
@@ -418,13 +416,13 @@ namespace Eagle
 		auto& stats = m_Renderer.GetStats();
 		cmd->BeginGraphics(m_MeshesColorPipeline);
 		cmd->SetGraphicsRootConstants(&viewProj[0][0], &m_ColorPushData);
-		Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+		Utils::RenderMeshes(cmd, meshes, buffers, stats);
 		cmd->EndGraphics();
 	}
 	
 	void TransparencyTask::RenderSkeletalMeshesColor(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetTranslucentSkeletalMeshes();
+		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().Translucent;
 
 		if (meshes.empty())
 			return;
@@ -432,7 +430,7 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Skeletal Meshes. Color");
 		EG_CPU_TIMING_SCOPED("Transparency. Skeletal Meshes. Color");
 
-		const auto& meshesData = m_Renderer.GetTranslucentSkeletalMeshesData();
+		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
 		const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
 		const glm::mat4& viewProj = m_Renderer.GetViewProjection();
 
@@ -467,7 +465,7 @@ namespace Eagle
 		auto& stats = m_Renderer.GetStats();
 		cmd->BeginGraphics(m_SkeletalMeshesColorPipeline);
 		cmd->SetGraphicsRootConstants(&viewProj[0][0], &m_ColorPushData);
-		Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+		Utils::RenderMeshes(cmd, meshes, buffers, stats);
 		cmd->EndGraphics();
 	}
 
@@ -600,7 +598,7 @@ namespace Eagle
 
 		// Meshes
 		{
-			auto& meshes = m_Renderer.GetTranslucentMeshes();
+			const auto& meshes = m_Renderer.GetStaticMeshesDrawData().Translucent;
 			if (!meshes.empty())
 			{
 				EG_GPU_TIMING_SCOPED(cmd, "Transparency. Meshes Entity IDs");
@@ -609,19 +607,19 @@ namespace Eagle
 				const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
 				m_MeshesEntityIDPipeline->SetBuffer(transformsBuffer, 0, 0);
 
-				const auto& meshesData = m_Renderer.GetTranslucentMeshesData();
+				const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
 				auto& stats = m_Renderer.GetStats();
 
 				cmd->BeginGraphics(m_MeshesEntityIDPipeline);
 				cmd->SetGraphicsRootConstants(&viewProj[0][0], nullptr);
-				Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+				Utils::RenderMeshes(cmd, meshes, buffers, stats);
 				cmd->EndGraphics();
 			}
 		}
 
 		// Skeletal Meshes
 		{
-			auto& meshes = m_Renderer.GetTranslucentSkeletalMeshes();
+			auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().Translucent;
 			if (!meshes.empty())
 			{
 				EG_GPU_TIMING_SCOPED(cmd, "Transparency. Skeletal Meshes Entity IDs");
@@ -631,12 +629,12 @@ namespace Eagle
 				m_SkeletalMeshesEntityIDPipeline->SetBuffer(transformsBuffer, 0, 0);
 				m_SkeletalMeshesEntityIDPipeline->SetBufferArray(m_Renderer.GetAnimationTransformsBuffers(), 5, 0);
 
-				const auto& meshesData = m_Renderer.GetTranslucentSkeletalMeshesData();
+				const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
 				auto& stats = m_Renderer.GetStats();
 
 				cmd->BeginGraphics(m_SkeletalMeshesEntityIDPipeline);
 				cmd->SetGraphicsRootConstants(&viewProj[0][0], nullptr);
-				Utils::RenderMeshes(cmd, meshes, meshesData, stats);
+				Utils::RenderMeshes(cmd, meshes, buffers, stats);
 				cmd->EndGraphics();
 			}
 		}

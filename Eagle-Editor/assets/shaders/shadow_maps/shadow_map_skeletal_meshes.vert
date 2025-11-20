@@ -42,20 +42,20 @@ layout(location = 1) flat out uint o_MaterialIndex;
 
 void main()
 {
+    const uint transformIndex = a_PerInstanceData.x & (EG_RECEIVES_DECALS_MASK - 1); // Get all but the highest bit
+
     vec4 totalPosition = vec4(a_Position, 1.0);
     mat4 boneTransform = mat4(0.f);
     for (uint i = 0; i < 4; ++i)
     {
         if (a_Weights[i] > 0.f)
         {
-            const uint meshAnimIndex = a_PerInstanceData.w;
-            boneTransform += g_MeshAnimation[nonuniformEXT(meshAnimIndex)].Transforms[a_BoneIDs[i]] * a_Weights[i];
+            boneTransform += g_MeshAnimation[nonuniformEXT(transformIndex)].Transforms[a_BoneIDs[i]] * a_Weights[i];
         }
     }
 
     totalPosition = boneTransform * vec4(a_Position, 1.0);
 
-    const uint transformIndex = a_PerInstanceData.x & (EG_RECEIVES_DECALS_MASK - 1); // Get all but the highest bit
     const vec4 worldPos = g_Transforms[transformIndex] * totalPosition;
 #ifdef EG_POINT_LIGHT_PASS
     gl_Position = g_ViewProjections[gl_ViewIndex] * worldPos;

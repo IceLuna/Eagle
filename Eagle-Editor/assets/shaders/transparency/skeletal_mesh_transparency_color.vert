@@ -29,20 +29,20 @@ layout(location = 4) out mat3 o_TBN;
 
 void main()
 {
+    const uint transformIndex = a_PerInstanceData.x & (EG_RECEIVES_DECALS_MASK - 1); // Get all but the highest bit
+
     vec4 totalPosition = vec4(a_Position, 1.0);
     mat4 boneTransform = mat4(0.f);
     for (uint i = 0; i < 4; ++i)
     {
         if (a_Weights[i] > 0.f)
         {
-            const uint meshAnimIndex = a_PerInstanceData.w;
-            boneTransform += g_MeshAnimation[nonuniformEXT(meshAnimIndex)].Transforms[a_BoneIDs[i]] * a_Weights[i];
+            boneTransform += g_MeshAnimation[nonuniformEXT(transformIndex)].Transforms[a_BoneIDs[i]] * a_Weights[i];
         }
     }
 
     totalPosition = boneTransform * vec4(a_Position, 1.0);
 
-    const uint transformIndex = a_PerInstanceData.x & (EG_RECEIVES_DECALS_MASK - 1); // Get all but the highest bit
     const uint materialIndex = a_PerInstanceData.y;
 
     const mat4 model = g_Transforms[transformIndex];

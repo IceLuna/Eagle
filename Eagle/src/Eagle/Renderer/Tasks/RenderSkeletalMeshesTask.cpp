@@ -24,10 +24,6 @@ namespace Eagle
 
 	void RenderSkeletalMeshesTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetAllSkeletalMeshes();
-		if (meshes.empty())
-			return;
-
 		RenderOpaque(cmd);
 		RenderMasked(cmd);
 	}
@@ -130,6 +126,10 @@ namespace Eagle
 
 	void RenderSkeletalMeshesTask::RenderOpaque(const Ref<CommandBuffer>& cmd)
 	{
+		const auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().Opaque;
+		if (meshes.empty())
+			return;
+
 		EG_GPU_TIMING_SCOPED(cmd, "Render Opaque Skeletal Meshes");
 		EG_CPU_TIMING_SCOPED("Render Opaque Skeletal Meshes");
 
@@ -169,29 +169,28 @@ namespace Eagle
 		uint32_t firstIndex = 0;
 		uint32_t firstInstance = 0;
 		uint32_t vertexOffset = 0;
-		const auto& meshes = m_Renderer.GetOpaqueSkeletalMeshes();
-		const auto& meshesData = m_Renderer.GetOpaqueSkeletalMeshesData();
-		for (auto& [meshKey, datas] : meshes)
+		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
+		for (const auto& data : meshes)
 		{
-			const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-			const uint32_t instanceCount = (uint32_t)datas.Instances.size();
+			const uint32_t verticesCount = data.VerticesCount;
+			const uint32_t vertexOffset = data.VertexOffset;
 
 			stats.Vertices += verticesCount;
 
-			const auto& slotsToRender = datas.MaterialSlots;
-			for (const uint32_t matSlot : slotsToRender)
+			for (const auto& matRenderData : data.PerMaterialData)
 			{
-				const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices(matSlot).size();
-				const uint32_t indicesOffset = (uint32_t)meshKey.Mesh->GetIndicesOffset(matSlot);
-				cmd->DrawIndexedInstanced(meshesData.VertexBuffer, meshesData.IndexBuffer, indicesCount, firstIndex + indicesOffset, vertexOffset, instanceCount, firstInstance + instanceCount * matSlot, meshesData.InstanceBuffer);
+				const uint32_t indicesCount = matRenderData.IndexCount;
+				const uint32_t firstIndex = matRenderData.FirstIndex;
+				const uint32_t instanceCount = matRenderData.InstanceCount;
+				const uint32_t firstInstance = matRenderData.FirstInstance;
+				if (instanceCount > 0)
+				{
+					cmd->DrawIndexedInstanced(buffers.VertexBuffer, buffers.IndexBuffer, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, buffers.InstanceBuffer);
 
-				stats.Indeces += indicesCount;
-				++stats.DrawCalls;
+					stats.Indeces += indicesCount;
+					++stats.DrawCalls;
+				}
 			}
-			firstInstance += instanceCount * meshKey.Mesh->GetMaterialSlotsCount();
-			firstIndex += (uint32_t)meshKey.Mesh->GetTotalIndicesCount();
-
-			vertexOffset += verticesCount;
 		}
 
 		cmd->EndGraphics();
@@ -199,6 +198,10 @@ namespace Eagle
 
 	void RenderSkeletalMeshesTask::RenderMasked(const Ref<CommandBuffer>& cmd)
 	{
+		const auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().Masked;
+		if (meshes.empty())
+			return;
+
 		EG_GPU_TIMING_SCOPED(cmd, "Render Masked Skeletal Meshes");
 		EG_CPU_TIMING_SCOPED("Render Masked Skeletal Meshes");
 
@@ -238,29 +241,28 @@ namespace Eagle
 		uint32_t firstIndex = 0;
 		uint32_t firstInstance = 0;
 		uint32_t vertexOffset = 0;
-		const auto& meshes = m_Renderer.GetMaskedSkeletalMeshes();
-		const auto& meshesData = m_Renderer.GetMaskedSkeletalMeshesData();
-		for (auto& [meshKey, datas] : meshes)
+		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
+		for (const auto& data : meshes)
 		{
-			const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
-			const uint32_t instanceCount = (uint32_t)datas.Instances.size();
+			const uint32_t verticesCount = data.VerticesCount;
+			const uint32_t vertexOffset = data.VertexOffset;
 
 			stats.Vertices += verticesCount;
 
-			const auto& slotsToRender = datas.MaterialSlots;
-			for (const uint32_t matSlot : slotsToRender)
+			for (const auto& matRenderData : data.PerMaterialData)
 			{
-				const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices(matSlot).size();
-				const uint32_t indicesOffset = (uint32_t)meshKey.Mesh->GetIndicesOffset(matSlot);
-				cmd->DrawIndexedInstanced(meshesData.VertexBuffer, meshesData.IndexBuffer, indicesCount, firstIndex + indicesOffset, vertexOffset, instanceCount, firstInstance + instanceCount * matSlot, meshesData.InstanceBuffer);
+				const uint32_t indicesCount = matRenderData.IndexCount;
+				const uint32_t firstIndex = matRenderData.FirstIndex;
+				const uint32_t instanceCount = matRenderData.InstanceCount;
+				const uint32_t firstInstance = matRenderData.FirstInstance;
+				if (instanceCount > 0)
+				{
+					cmd->DrawIndexedInstanced(buffers.VertexBuffer, buffers.IndexBuffer, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, buffers.InstanceBuffer);
 
-				stats.Indeces += indicesCount;
-				++stats.DrawCalls;
+					stats.Indeces += indicesCount;
+					++stats.DrawCalls;
+				}
 			}
-			firstInstance += instanceCount * meshKey.Mesh->GetMaterialSlotsCount();
-			firstIndex += (uint32_t)meshKey.Mesh->GetTotalIndicesCount();
-
-			vertexOffset += verticesCount;
 		}
 
 		cmd->EndGraphics();

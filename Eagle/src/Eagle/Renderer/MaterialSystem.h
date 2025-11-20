@@ -18,7 +18,7 @@ namespace Eagle
 		static void Update(const Ref<CommandBuffer>& cmd);
 
 		static uint32_t GetMaterialIndex(const Ref<Material>& material);
-		static bool HasChanged() { return s_Changed; }
+		static bool HasBlendModeChanged() { return s_BlendModeChanged; }
 
 		static const Ref<Buffer>& GetMaterialsBuffer() { return s_MaterialsBuffer; }
 		static const Ref<Buffer>& GetMaterialsRawBuffer() { return s_MaterialsRawBuffer; }
@@ -30,7 +30,7 @@ namespace Eagle
 		static const uint32_t OneRawIndex = 1u;
 
 	private:
-		static void OnMaterialChanged(const Ref<Material>& material);
+		static void OnMaterialChanged(const Ref<Material>& material, bool bBlendModeChanged = false);
 		static void SetDirty_Internal()
 		{
 			s_Dirty = s_Changed = true;
@@ -47,6 +47,7 @@ namespace Eagle
 		// If true, materials were changed or new ones were added.
 		// The difference is that this flag is reset at the beginning of the next frame. So that every other system can see that materials have changed.
 		static bool s_Changed;
+		static bool s_BlendModeChanged;
 
 		friend class Material;
 	};
