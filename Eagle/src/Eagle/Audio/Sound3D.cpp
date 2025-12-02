@@ -44,21 +44,27 @@ namespace Eagle
 		m_SoundData.Position = position;
 		m_SoundData.RollOff = rollOff;
 	}
+
+	void Sound3D::UpdatePlayMode()
+	{
+		if (!m_Channel)
+			return;
+
+
+		// Vectors need to be updated as well since changing the mode can reset the to defaults for some reason
+		FMOD_VECTOR position = ToFMODVector(m_SoundData.Position);
+		FMOD_VECTOR velocity = ToFMODVector(m_SoundData.Velocity);
+		FMOD_MODE playMode = ToFMODPlayMode(m_Settings, m_SoundData.RollOff);
+
+		m_Channel->setMode(playMode);
+		m_Channel->set3DAttributes(&position, &velocity);
+		m_Channel->set3DMinMaxDistance(m_SoundData.MinDistance, m_SoundData.MaxDistance);
+	}
 	
 	void Sound3D::Play()
 	{
 		Sound::Play();
-
-		if (m_Channel)
-		{
-			FMOD_VECTOR position = ToFMODVector(m_SoundData.Position);
-			FMOD_VECTOR velocity = ToFMODVector(m_SoundData.Velocity);
-			FMOD_MODE playMode = ToFMODPlayMode(m_Settings, m_SoundData.RollOff);
-
-			m_Channel->set3DAttributes(&position, &velocity);
-			m_Channel->set3DMinMaxDistance(m_SoundData.MinDistance, m_SoundData.MaxDistance);
-			m_Channel->setMode(playMode);
-		}
+		UpdatePlayMode();
 	}
 
 	void Sound3D::SetWorldPosition(const glm::vec3& position)
@@ -106,25 +112,19 @@ namespace Eagle
 	void Sound3D::SetRollOffModel(RollOffModel rollOff)
 	{
 		m_SoundData.RollOff = rollOff;
-		auto playMode = ToFMODPlayMode(m_Settings, rollOff);
-		if (m_Channel)
-			m_Channel->setMode(playMode);
+		UpdatePlayMode();
 	}
 	
 	void Sound3D::SetLooping(bool bLooping)
 	{
 		m_Settings.IsLooping = bLooping;
-		auto playMode = ToFMODPlayMode(m_Settings, m_SoundData.RollOff);
-		if (m_Channel)
-			m_Channel->setMode(playMode);
+		UpdatePlayMode();
 	}
 	
 	void Sound3D::SetStreaming(bool bStreaming)
 	{
 		m_Settings.IsStreaming = bStreaming;
-		auto playMode = ToFMODPlayMode(m_Settings, m_SoundData.RollOff);
-		if (m_Channel)
-			m_Channel->setMode(playMode);
+		UpdatePlayMode();
 	}
 	
 	Ref<Sound3D> Sound3D::Create(const Ref<Audio>& audio, const glm::vec3& position, RollOffModel rollOff, const SoundSettings& settings)

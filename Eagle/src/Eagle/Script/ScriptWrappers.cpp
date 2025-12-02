@@ -9336,6 +9336,12 @@ namespace Eagle
 		return glm::rotation(forward, dirTemp);
 	}
 
+	glm::quat Script::Eagle_Math_UpAt(const glm::vec3* dir)
+	{
+		glm::vec3 up(0.0f, 1.0f, 0.0f);
+		return glm::rotation(up, *dir);
+	}
+
 	glm::vec3 Script::Eagle_Math_GetDirectionToPixel(const glm::vec2* pixelCoord)
 	{
 		const auto& scene = Scene::GetCurrentScene();

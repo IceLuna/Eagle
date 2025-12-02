@@ -32,6 +32,7 @@ namespace Eagle
 
 		int comp = 1;
 		stbi_info(m_Path.u8string().c_str(), &m_Width, &m_Height, &comp);
+		m_2DSettings.bNeedAlpha = !m_2DSettings.bNormalMap && comp == 4;
 	}
 
 	bool TextureImporterPanel::OnImGuiRender(const Path& importTo, bool* pOpen)

@@ -456,6 +456,13 @@ namespace Eagle
 
 	void AssetAnimationBlendSpace::SetPointsData(const std::vector<BlendSpaceVertex>& pointsData)
 	{
+		SetPointsData_Internal(pointsData);
+		SetDirty(true);
+		OnModified();
+	}
+
+	void AssetAnimationBlendSpace::SetPointsData_Internal(const std::vector<BlendSpaceVertex>& pointsData)
+	{
 		m_PointsData = pointsData;
 
 		for (auto& pointData : m_PointsData)

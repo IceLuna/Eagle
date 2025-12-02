@@ -103,6 +103,17 @@ namespace Eagle
 #endif
 	}
 
+	static std::string ToFullName(const char* nameSpace, const char* className)
+	{
+		std::string fullName;
+		if (strlen(nameSpace) != 0)
+			fullName = fmt::format("{}.{}", nameSpace, className);
+		else
+			fullName = className;
+
+		return fullName;
+	}
+
 	static bool IsArray(MonoType* type)
 	{
 		return mono_type_get_type(type) == MONO_TYPE_SZARRAY;
@@ -847,12 +858,7 @@ namespace Eagle
 
 			if (IsPublicClass(monoClass))
 			{
-				std::string fullName;
-				if (strlen(nameSpace) != 0)
-					fullName = fmt::format("{}.{}", nameSpace, className);
-				else
-					fullName = className;
-
+				const std::string fullName = ToFullName(nameSpace, className);
 				if (mono_class_is_subclass_of(monoClass, s_EntityClass, false))
 				{
 					EntityScriptClass data;
@@ -920,12 +926,7 @@ namespace Eagle
 
 			if (IsPublicClass(monoClass))
 			{
-				std::string fullName;
-				if (strlen(nameSpace) != 0)
-					fullName = fmt::format("{}.{}", nameSpace, className);
-				else
-					fullName = className;
-
+				const std::string fullName = ToFullName(nameSpace, className);
 				if (monoClass != s_AITaskClass && mono_class_is_subclass_of(monoClass, s_AITaskClass, false))
 				{
 					auto& data = s_CoreAIClasses.Tasks.emplace_back();
@@ -1347,12 +1348,21 @@ namespace Eagle
 		return method;
 	}
 
-	UnmanagedMethod ScriptEngine::GetMethodUnmanaged(MonoImage* image, const std::string& methodDesc)
+	UnmanagedMethod ScriptEngine::GetMethodUnmanaged(MonoImage* image, const ScriptClass& classData, const std::string& methodDesc, bool bCheckParents)
 	{
 		UnmanagedMethod result;
-		result.Method = ScriptEngine::GetMethod(image, methodDesc);
+		result.Method = ScriptEngine::GetMethod(image, classData.FullName + methodDesc);
 		if (result.Method)
+		{
 			result.Thunk = mono_method_get_unmanaged_thunk(result.Method);
+		}
+		else if (MonoClass* parent = mono_class_get_parent(classData.Class); bCheckParents && parent && parent != s_EntityClass)
+		{
+			ScriptClass parentClassData;
+			parentClassData.Class = parent;
+			parentClassData.FullName = ToFullName(mono_class_get_namespace(parent), mono_class_get_name(parent));
+			result = GetMethodUnmanaged(image, parentClassData, methodDesc);
+		}
 
 		return result;
 	}
@@ -1504,13 +1514,15 @@ namespace Eagle
 	
 	void EntityScriptClass::InitClassMethods()
 	{
+		constexpr bool bCheckParentClasses = true;
+
 		Methods.Constructor				= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:.ctor(GUID)");
-		Methods.OnCreateMethod			= ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData.FullName + ":OnCreate()");
-		Methods.OnDestroyMethod			= ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData.FullName + ":OnDestroy()");
-		Methods.OnUpdateMethod			= ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData.FullName + ":OnUpdate(single)");
-		Methods.OnEventMethod           = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData.FullName + ":OnEvent(Event)");
-		Methods.OnPhysicsUpdateMethod	= ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData.FullName + ":OnPhysicsUpdate(single)");
-		Methods.OnAnimationEventMethod  = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData.FullName + ":OnAnimationEvent(string,single)");
+		Methods.OnCreateMethod			= ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnCreate()", bCheckParentClasses);
+		Methods.OnDestroyMethod			= ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnDestroy()", bCheckParentClasses);
+		Methods.OnUpdateMethod			= ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnUpdate(single)", bCheckParentClasses);
+		Methods.OnEventMethod           = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnEvent(Event)", bCheckParentClasses);
+		Methods.OnPhysicsUpdateMethod	= ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnPhysicsUpdate(single)", bCheckParentClasses);
+		Methods.OnAnimationEventMethod  = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnAnimationEvent(string,single)", bCheckParentClasses);
 
 		Methods.OnCollisionBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionBegin(Entity,Vector3,Vector3,Vector3,Vector3)");
 		Methods.OnCollisionEndMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionEnd(Entity,Vector3,Vector3,Vector3,Vector3)");

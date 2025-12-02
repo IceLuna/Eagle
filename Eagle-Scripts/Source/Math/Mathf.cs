@@ -209,10 +209,16 @@ namespace Eagle
             return SlerpQuat_Native(ref x.Rotation, ref y.Rotation, alpha);
         }
 
-        // @dir. Desired forward direction.Needs to be normalized.
+        // @dir. Desired forward direction. Input needs to be normalized.
         public static Rotator LookAt(Vector3 dir)
         {
             return LookAt_Native(ref dir);
+        }
+
+        // @dir. Desired up direction. Input needs to be normalized.
+        public static Rotator UpAt(Vector3 dir)
+        {
+            return UpAt_Native(ref dir);
         }
 
         // Calculates LookAt rotator around Y axis
@@ -340,5 +346,8 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern Quat LookAtY_Native(ref Vector3 dir);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern Quat UpAt_Native(ref Vector3 dir);
     }
 }

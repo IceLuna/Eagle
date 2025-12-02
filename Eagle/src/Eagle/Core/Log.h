@@ -45,6 +45,8 @@ namespace Eagle
 
 	public:
 		static void Init();
+		static void Destroy();
+
 		inline static Ref<spdlog::logger>& GetCoreLogger() { return s_CoreLogger; }
 		inline static Ref<spdlog::logger>& GetClientLogger() { return s_ClientLogger; }
 

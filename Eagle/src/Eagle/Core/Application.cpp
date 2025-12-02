@@ -111,7 +111,7 @@ namespace Eagle
 		PhysicsEngine::Shutdown();
 		RenderManager::Shutdown();
 		TextureCompressor::Shutdown();
-		Log::ClearLogHistory();
+		Log::Destroy();
 		s_Instance = nullptr;
 	}
 

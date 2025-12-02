@@ -869,6 +869,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Mathf::SlerpQuat_Native", Eagle::Script::Eagle_Math_SlerpQuat);
 		mono_add_internal_call("Eagle.Mathf::LookAt_Native", Eagle::Script::Eagle_Math_LookAt);
 		mono_add_internal_call("Eagle.Mathf::LookAtY_Native", Eagle::Script::Eagle_Math_LookAtY);
+		mono_add_internal_call("Eagle.Mathf::UpAt_Native", Eagle::Script::Eagle_Math_UpAt);
 
 		// Quat
 		mono_add_internal_call("Eagle.Quat::Mul_Native", Eagle::Script::Eagle_Quat_Mul);

@@ -120,15 +120,15 @@ namespace Eagle
 		for (uint32_t i = 0; i < m_ImageData.size(); ++i)
 			dataPerMips[i] = DataBuffer::Copy(m_ImageData[i].Data(), m_ImageData[i].Size());
 
-		RenderManager::Submit([textureRef = shared_from_this(), imageData = std::move(dataPerMips), bGenerateMips, bAutogenerateMips](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([textureRef = shared_from_this(), image = m_Image, imageData = std::move(dataPerMips), bGenerateMips, bAutogenerateMips](Ref<CommandBuffer>& cmd) mutable
 		{
-			cmd->Write(textureRef->m_Image, imageData[0].Data(), imageData[0].Size(), ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			cmd->Write(image, imageData[0].Data(), imageData[0].Size(), ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
 			if (bGenerateMips)
 			{
 				if (bAutogenerateMips)
-					cmd->GenerateMips(textureRef->m_Image, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
+					cmd->GenerateMips(image, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
 				else
-					cmd->GenerateMips(textureRef->m_Image, imageData, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
+					cmd->GenerateMips(image, imageData, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
 			}
 			textureRef->m_bIsLoaded = true;
 		});

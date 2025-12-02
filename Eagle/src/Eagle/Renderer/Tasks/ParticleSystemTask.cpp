@@ -105,6 +105,7 @@ namespace Eagle
 			outData.NormalVelocityFactor = emitter.NormalVelocityFactor;
 			outData.AnimationOffset = emitterData.AnimationOffset;
 			outData.InternalFlags = 0u;
+			outData.LoopIteration = 0u;
 
 			// Disable emitter if it's useless
 			if (outData.SpawnRate == 0u || outData.LoopDuration <= 0.f)
@@ -119,8 +120,7 @@ namespace Eagle
 				Emitter_SetWasExplode(outData, emitter.bExplode);
 			}
 			Emitter_SetIsVisible(outData, false);
-			outData.DeltaTime = 0.f;
-			outData.LoopIteration = 0u;
+			outData.DeltaTime = emitter.bExplode ? outData.LoopDuration : 0.f;
 		}
 	
 		static ParticleSystemTask::DecompositedTransform Decompose(const glm::mat4& mat)
@@ -325,8 +325,11 @@ namespace Eagle
 			for (size_t i = 0; i < count; ++i)
 			{
 				const auto& emitterToAdd = m_EmittersToAdd[i].Emitter;
-				auto& itEmitters = m_SystemToEmittersMapping.at(m_EmittersToAdd[i].SystemID);
-				auto& emitterData = itEmitters.at(emitterToAdd);
+				auto itEmitters = m_SystemToEmittersMapping.find(m_EmittersToAdd[i].SystemID);
+				if (itEmitters == m_SystemToEmittersMapping.end())
+					continue;
+
+				auto& emitterData = itEmitters->second.at(emitterToAdd);
 
 				Emitter emitter;
 				Utils::ToGPUEmitter(emitterToAdd, emitterData, GetEmitterMeshData(emitterToAdd), emitter);
@@ -1007,7 +1010,7 @@ namespace Eagle
 				auto itSystem = thisRef->m_SystemToEmittersMapping.find(systemID);
 				if (itSystem == thisRef->m_SystemToEmittersMapping.end())
 				{
-					EG_CORE_ASSERT(false, "Trying to update non-existing system");
+					// Trying to update non-existing system
 					continue;
 				}
 				auto systemEmitters = itSystem->second; // Intentional copy because `AddEmitter` and `RemoveEmitter` functions modify it

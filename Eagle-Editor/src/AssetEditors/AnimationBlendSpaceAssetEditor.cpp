@@ -71,9 +71,6 @@ namespace Eagle
 		if (bChanged)
 		{
 			m_Asset->SetPointsData(m_PointsData);
-
-			m_Asset->SetDirty(true);
-			m_Asset->OnModified();
 		}
 	}
 

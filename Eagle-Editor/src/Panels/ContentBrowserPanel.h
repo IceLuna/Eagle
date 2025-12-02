@@ -116,6 +116,7 @@ namespace Eagle
 
 		bool m_ShowSaveScenePopup = false;
 
+		std::string m_PopupInput;
 		bool m_bShowInputName = false;
 		bool m_ShowDeleteConfirmation = false;
 		std::string m_DeleteConfirmationMessage;

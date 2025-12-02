@@ -766,6 +766,7 @@ namespace Eagle::Script
 	glm::quat Eagle_Math_SlerpQuat(const glm::quat* x, const glm::quat* y, float alpha);
 	glm::quat Eagle_Math_LookAt(const glm::vec3* dir);
 	glm::quat Eagle_Math_LookAtY(const glm::vec3* dir);
+	glm::quat Eagle_Math_UpAt(const glm::vec3* dir);
 	glm::vec3 Eagle_Math_GetDirectionToPixel(const glm::vec2* pixelCoord);
 
 	// Quat

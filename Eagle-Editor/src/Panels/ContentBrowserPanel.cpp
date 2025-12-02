@@ -233,27 +233,26 @@ namespace Eagle
 		}
 		if (m_bShowInputName)
 		{
-			static std::string input;
 			const char* hint = m_InputState == InputNameState::NewFolder ? "Folder name" :
 				m_InputState == InputNameState::AssetRename ? "New asset name" : "";
-			UI::ButtonType pressedButton = UI::InputPopup("Eagle Editor", hint, input);
+			UI::ButtonType pressedButton = UI::InputPopup("Eagle Editor", hint, m_PopupInput);
 			if (pressedButton != UI::ButtonType::None)
 			{
 				if (pressedButton == UI::ButtonType::OK)
 				{
 					if (m_InputState == InputNameState::NewFolder)
 					{
-						const size_t size = input.size() + 1;
+						const size_t size = m_PopupInput.size() + 1;
 						const char* buf_end = NULL;
 						ImWchar* wData = new ImWchar[size];
-						ImTextStrFromUtf8(wData, int(size), input.c_str(), NULL, &buf_end);
+						ImTextStrFromUtf8(wData, int(size), m_PopupInput.c_str(), NULL, &buf_end);
 						Path newPath = m_CurrentDirectory / Path((const char16_t*)wData);
 						delete[] wData;
 						std::filesystem::create_directory(newPath);
 					}
 					else if (m_InputState == InputNameState::AssetRename)
 					{
-						const Path newFilepath = m_CurrentDirectoryRelative / (input + Asset::GetExtension());
+						const Path newFilepath = m_CurrentDirectoryRelative / (m_PopupInput + Asset::GetExtension());
 						if (std::filesystem::exists(newFilepath))
 						{
 							Application::Get().GetImGuiLayer()->AddMessage("Rename failed. File already exists");
@@ -264,7 +263,7 @@ namespace Eagle
 						m_AssetToRename.reset();
 					}
 				}
-				input = "";
+				m_PopupInput.clear();
 				m_bShowInputName = false;
 				m_InputState = InputNameState::None;
 				m_RefreshBrowser = true;
@@ -1117,6 +1116,7 @@ namespace Eagle
 		m_bShowInputName = true;
 		m_InputState = InputNameState::AssetRename;
 		m_AssetToRename = asset;
+		m_PopupInput = asset ? asset->GetPath().filename().stem().u8string() : "";
 	}
 
 	void ContentBrowserPanel::OnDeleteAsset(const Ref<Asset>& asset)

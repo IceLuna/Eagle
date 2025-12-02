@@ -53,6 +53,8 @@ namespace Eagle
 	protected:
 		Sound3D(const Ref<Audio>& audio, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, const SoundSettings& settings = {});
 
+		void UpdatePlayMode();
+
 	public:
 		static Ref<Sound3D> Create(const Ref<Audio>& audio, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, const SoundSettings& settings = {});
 		

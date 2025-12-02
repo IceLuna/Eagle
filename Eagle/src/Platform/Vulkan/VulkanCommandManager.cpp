@@ -1021,7 +1021,7 @@ namespace Eagle
 		Ref<VulkanImage> vulkanImage = Cast<VulkanImage>(image);
 		const glm::uvec2 baseMipSize = image->GetSize();
 		VkImage vkImage = (VkImage)image->GetHandle();
-		const uint32_t mipCount = image->GetMipsCount();
+		const uint32_t mipCount = (uint32_t)dataPerMip.size();
 		const uint32_t layersCount = image->GetLayersCount();
 		VkImageAspectFlags aspectMask = vulkanImage->GetDefaultAspectMask();
 

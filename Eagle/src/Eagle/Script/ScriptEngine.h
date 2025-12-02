@@ -29,7 +29,7 @@ namespace Eagle
 		static MonoClass* GetAssetClass();
 		static MonoClass* GetVector3Class();
 		static MonoMethod* GetMethod(MonoImage* image, const std::string& methodDesc);
-		static UnmanagedMethod GetMethodUnmanaged(MonoImage* image, const std::string& methodDesc);
+		static UnmanagedMethod GetMethodUnmanaged(MonoImage* image, const ScriptClass& classData, const std::string& methodDesc, bool bCheckParents = false);
 		static MonoObject* Construct(const std::string& fullName, bool callConstructor, void** parameters);
 		static MonoObject* CallMethod(MonoObject* object, MonoMethod* method, void** params = nullptr);
 		static std::string GetStringProperty(const std::string& propertyName, MonoClass* classType, MonoObject* object);

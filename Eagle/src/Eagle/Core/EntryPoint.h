@@ -13,7 +13,6 @@ int main(int argc, char** argv)
 
 	EG_CORE_INFO("Shutting down Application!");
 	app.reset();
-	EG_CORE_INFO("Successfully shut down the app!");
 
 	return 0;
 }

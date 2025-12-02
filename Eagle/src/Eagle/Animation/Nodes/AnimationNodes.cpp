@@ -1000,6 +1000,21 @@ namespace Eagle
 		return m_Pose;
 	}
 	
+	AnimationGraphNodeBlendSpace::AnimationGraphNodeBlendSpace(const Weak<AnimationGraph>& graph, const Ref<AssetAnimationBlendSpace>& asset, uint32_t numInputs)
+		: AnimationGraphNode(graph, numInputs)
+		, m_BlendSpace(asset)
+	{
+		m_BlendSpace->AddOnAssetModifiedCallback(m_ID, [this]()
+		{
+			m_PrevHighestWeighted = nullptr;
+		});
+	}
+
+	AnimationGraphNodeBlendSpace::~AnimationGraphNodeBlendSpace()
+	{
+		m_BlendSpace->RemoveOnAssetModifiedCallback(m_ID);
+	}
+
 	SkeletalPose& AnimationGraphNodeBlendSpace::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();

@@ -583,7 +583,7 @@ namespace Eagle
 	void RenderManager::BeginFrame()
 	{
 		{
-			// Here we're waiting to the frame to be executed (waiting for fence)
+			// Here we're waiting for the frame to be executed (waiting for fence)
 			// Then we're waiting for all the submissions to finish. Otherwise we'll be lagging behind since frames are being queued up
 			// If we're won't wait for all the submission to finish, it's kinda like we're creating our own VSync where we can be behind for up to `FramesInFlight` frames
 			EG_CPU_TIMING_SCOPED("Waiting For GPU");

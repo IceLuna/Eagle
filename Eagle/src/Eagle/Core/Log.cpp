@@ -67,6 +67,14 @@ namespace Eagle
 
 	}
 
+	void Log::Destroy()
+	{
+		ClearLogHistory();
+		s_CoreLogger.reset();
+		s_ClientLogger.reset();
+		spdlog::drop_all();
+	}
+
 	std::vector<Log::LogMessage> Log::GetLogHistory()
 	{
 		std::vector<Log::LogMessage> result;

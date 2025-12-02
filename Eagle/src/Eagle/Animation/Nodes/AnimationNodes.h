@@ -3,6 +3,7 @@
 #include "GraphNode.h"
 #include "Eagle/Utils/DelaunayTriangulation.h"
 #include "Eagle/Animation/BlendSpaceUtils.h"
+#include "Eagle/Core/GUID.h"
 
 namespace Eagle
 {
@@ -283,10 +284,8 @@ namespace Eagle
 	class AnimationGraphNodeBlendSpace : public AnimationGraphNode
 	{
 	public:
-		AnimationGraphNodeBlendSpace(const Weak<AnimationGraph>& graph, const Ref<AssetAnimationBlendSpace>& asset, uint32_t numInputs = s_Inputs)
-			: AnimationGraphNode(graph, numInputs)
-			, m_BlendSpace(asset)
-		{}
+		AnimationGraphNodeBlendSpace(const Weak<AnimationGraph>& graph, const Ref<AssetAnimationBlendSpace>& asset, uint32_t numInputs = s_Inputs);
+		~AnimationGraphNodeBlendSpace();
 
 		SkeletalPose& Update(Timestep ts) override;
 
@@ -303,6 +302,7 @@ namespace Eagle
 
 	private:
 		Ref<AssetAnimationBlendSpace> m_BlendSpace;
+		GUID m_ID{};
 		double CurrentTime = 0.0;
 		double PrevTime = 0.0;
 		float m_PrevInputX = std::numeric_limits<float>::infinity();

@@ -811,10 +811,12 @@ namespace Eagle
 			, m_Horizontal(horAxis)
 			, m_Vertical(verAxis)
 		{
-			SetPointsData(points);
+			SetPointsData_Internal(points);
 		}
 
 		void Triangulate();
+
+		void SetPointsData_Internal(const std::vector<BlendSpaceVertex>& pointsData);
 
 	private:
 		Ref<AssetSkeletalMesh> m_SkeletalMesh;

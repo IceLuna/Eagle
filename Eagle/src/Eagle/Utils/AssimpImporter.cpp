@@ -619,7 +619,7 @@ namespace Eagle
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 		{
-			EG_CORE_ERROR("Failed to load Skeletal Mesh. {0} ({1})", importer.GetErrorString(), path.u8string());
+			EG_CORE_ERROR("Failed to import Skeletal Mesh. {0} ({1})", importer.GetErrorString(), path.u8string());
 			return {};
 		}
 
@@ -627,6 +627,11 @@ namespace Eagle
 		BonesMap bones;
 		std::vector<Utils::SkeletalMeshImportData> importedMeshes;
 		ProcessNode(scene->mRootNode, scene, importedMeshes, bones, coordCorrection);
+		if (bones.empty())
+		{
+			EG_CORE_ERROR("Failed to import Skeletal Mesh. It has no bones ({})", path.u8string());
+			return {};
+		}
 		if (importedMeshes.size() > 1)
 		{
 			importedMeshes[0] = MergeMeshes<Utils::SkeletalMeshImportData, SkeletalVertex>(importedMeshes);
@@ -710,7 +715,7 @@ namespace Eagle
 			return {};
 
 		const Path filename = Path(aiTexturePath.C_Str()).filename();
-		const Path texturePath = path.parent_path() / filename;
+		Path texturePath = path.parent_path() / filename;
 
 		Ref<AssetTexture2D> assetTexture;
 		if (hasTexture)
@@ -744,6 +749,10 @@ namespace Eagle
 			}
 			else
 			{
+				if (!std::filesystem::exists(texturePath))
+				{
+					texturePath = texturePath.parent_path() / "textures" / texturePath.filename();
+				}
 				if (AssetImporter::Import(texturePath, saveTo, AssetType::Texture2D, {}))
 				{
 					Path outputFilename = saveTo / (texturePath.stem().u8string() + Asset::GetExtension());
