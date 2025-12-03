@@ -357,6 +357,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.StaticMeshComponent::DoesCastShadows_Native", Eagle::Script::Eagle_StaticMeshComponent_DoesCastShadows);
 		mono_add_internal_call("Eagle.StaticMeshComponent::SetReceivesDecals_Native", Eagle::Script::Eagle_StaticMeshComponent_SetReceivesDecals);
 		mono_add_internal_call("Eagle.StaticMeshComponent::DoesReceiveDecals_Native", Eagle::Script::Eagle_StaticMeshComponent_DoesReceiveDecals);
+		mono_add_internal_call("Eagle.StaticMeshComponent::SetVisible_Native", Eagle::Script::Eagle_StaticMeshComponent_SetVisible);
+		mono_add_internal_call("Eagle.StaticMeshComponent::IsVisible_Native", Eagle::Script::Eagle_StaticMeshComponent_IsVisible);
 
 		//SkeletalMeshComponent
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetMesh_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetMesh);
@@ -372,6 +374,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetAnimType_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetAnimType);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetReceivesDecals_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetReceivesDecals);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::DoesReceiveDecals_Native", Eagle::Script::Eagle_SkeletalMeshComponent_DoesReceiveDecals);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetVisible_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetVisible);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::IsVisible_Native", Eagle::Script::Eagle_SkeletalMeshComponent_IsVisible);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetAnimationGraph_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetAnimationGraph);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetAnimationGraph_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetAnimationGraph);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::IsRootMotionLockFlagSet_Native", Eagle::Script::Eagle_SkeletalMeshComponent_IsRootMotionLockFlagSet);
@@ -638,6 +642,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.TextComponent::GetMaterial_Native", Eagle::Script::Eagle_TextComponent_GetMaterial);
 		mono_add_internal_call("Eagle.TextComponent::SetReceivesDecals_Native", Eagle::Script::Eagle_TextComponent_SetReceivesDecals);
 		mono_add_internal_call("Eagle.TextComponent::DoesReceiveDecals_Native", Eagle::Script::Eagle_TextComponent_DoesReceiveDecals);
+		mono_add_internal_call("Eagle.TextComponent::SetVisible_Native", Eagle::Script::Eagle_TextComponent_SetVisible);
+		mono_add_internal_call("Eagle.TextComponent::IsVisible_Native", Eagle::Script::Eagle_TextComponent_IsVisible);
 
 		// Text2D Component
 		mono_add_internal_call("Eagle.Text2DComponent::GetText_Native", Eagle::Script::Eagle_Text2DComponent_GetText);
@@ -682,6 +688,8 @@ namespace Eagle
 		// Billboard Component
 		mono_add_internal_call("Eagle.BillboardComponent::SetTexture_Native", Eagle::Script::Eagle_BillboardComponent_SetTexture);
 		mono_add_internal_call("Eagle.BillboardComponent::GetTexture_Native", Eagle::Script::Eagle_BillboardComponent_GetTexture);
+		mono_add_internal_call("Eagle.BillboardComponent::SetVisible_Native", Eagle::Script::Eagle_BillboardComponent_SetVisible);
+		mono_add_internal_call("Eagle.BillboardComponent::IsVisible_Native", Eagle::Script::Eagle_BillboardComponent_IsVisible);
 
 		// Particle System Component
 		mono_add_internal_call("Eagle.ParticleSystemComponent::Spawn_Native", Eagle::Script::Eagle_ParticleSystemComponent_Spawn);
@@ -697,6 +705,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.DecalComponent::IsAdjustAspectRatioEnabled_Native", Eagle::Script::Eagle_DecalComponent_IsAdjustAspectRatioEnabled);
 		mono_add_internal_call("Eagle.DecalComponent::SetSortPriority_Native", Eagle::Script::Eagle_DecalComponent_SetSortPriority);
 		mono_add_internal_call("Eagle.DecalComponent::GetSortPriority_Native", Eagle::Script::Eagle_DecalComponent_GetSortPriority);
+		mono_add_internal_call("Eagle.DecalComponent::SetVisible_Native", Eagle::Script::Eagle_DecalComponent_SetVisible);
+		mono_add_internal_call("Eagle.DecalComponent::IsVisible_Native", Eagle::Script::Eagle_DecalComponent_IsVisible);
 
 		// NavigationMesh Component
 		mono_add_internal_call("Eagle.NavigationMeshComponent::Build_Native", Eagle::Script::Eagle_NavigationMeshComponent_Build);
@@ -733,6 +743,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.SpriteComponent::DoesCastShadows_Native", Eagle::Script::Eagle_SpriteComponent_DoesCastShadows);
 		mono_add_internal_call("Eagle.SpriteComponent::SetReceivesDecals_Native", Eagle::Script::Eagle_SpriteComponent_SetReceivesDecals);
 		mono_add_internal_call("Eagle.SpriteComponent::DoesReceiveDecals_Native", Eagle::Script::Eagle_SpriteComponent_DoesReceiveDecals);
+		mono_add_internal_call("Eagle.SpriteComponent::SetVisible_Native", Eagle::Script::Eagle_SpriteComponent_SetVisible);
+		mono_add_internal_call("Eagle.SpriteComponent::IsVisible_Native", Eagle::Script::Eagle_SpriteComponent_IsVisible);
 
 		// Project
 		mono_add_internal_call("Eagle.Project::GetProjectPath_Native", Eagle::Script::Eagle_Project_GetProjectPath);

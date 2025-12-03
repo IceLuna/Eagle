@@ -331,11 +331,18 @@ namespace Eagle
 				DrawComponentTransformNode(entity, entity.GetComponent<SpriteComponent>());
 				DrawComponent<SpriteComponent>("Sprite", entity, [&entity, this](SpriteComponent& sprite)
 				{
-					bool bAtlas = sprite.IsAtlas();
-					UI::BeginPropertyGrid("SpriteComponent");
-
 					bool bCastsShadows = sprite.DoesCastShadows();
 					bool bReceivesDecals = sprite.DoesReceiveDecals();
+					bool bAtlas = sprite.IsAtlas();
+					bool bVisible = sprite.IsVisible();
+
+					UI::BeginPropertyGrid("SpriteComponent");
+
+					if (UI::Property("Is Visible", bVisible))
+					{
+						sprite.SetVisible(bVisible);
+						bEntityChanged = true;
+					}
 
 					if (UI::Property("Casts shadows", bCastsShadows, s_CastsShadowsHelpMsg))
 					{
@@ -405,10 +412,17 @@ namespace Eagle
 					bool bReceivesDecals = smComponent.DoesReceiveDecals();
 					Ref<AssetStaticMesh> staticMesh = smComponent.GetMeshAsset();
 					bool bCastsShadows = smComponent.DoesCastShadows();
+					bool bVisible = smComponent.IsVisible();
 
 					if (EditorResources::DrawAssetSelection("Static Mesh", staticMesh))
 					{
 						smComponent.SetMeshAsset(staticMesh);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Is Visible", bVisible))
+					{
+						smComponent.SetVisible(bVisible);
 						bEntityChanged = true;
 					}
 
@@ -447,15 +461,23 @@ namespace Eagle
 				DrawComponentTransformNode(entity, entity.GetComponent<SkeletalMeshComponent>());
 				DrawComponent<SkeletalMeshComponent>("Skeletal Mesh", entity, [&entity, this](SkeletalMeshComponent& smComponent)
 				{
-					UI::BeginPropertyGrid("SkeletalMeshComponent");
 					Ref<AssetSkeletalMesh> skeletalMesh = smComponent.GetMeshAsset();
 					bool bCastsShadows = smComponent.DoesCastShadows();
 					bool bReceivesDecals = smComponent.DoesReceiveDecals();
 					bool bRagdollEnabled = smComponent.IsRagdollEnabled();
+					bool bVisible = smComponent.IsVisible();
+
+					UI::BeginPropertyGrid("SkeletalMeshComponent");
 
 					if (EditorResources::DrawAssetSelection("Skeletal Mesh", skeletalMesh))
 					{
 						smComponent.SetMeshAsset(skeletalMesh);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Is Visible", bVisible))
+					{
+						smComponent.SetVisible(bVisible);
 						bEntityChanged = true;
 					}
 
@@ -574,11 +596,12 @@ namespace Eagle
 			case SelectedComponent::Billboard:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<BillboardComponent>());
-				DrawComponent<BillboardComponent>("Billboard", entity, [&entity, this](auto& billboard)
+				DrawComponent<BillboardComponent>("Billboard", entity, [&entity, this](BillboardComponent& billboard)
 				{
 					UI::BeginPropertyGrid("BillboardComponent");
 
 					bEntityChanged |= EditorResources::DrawAssetSelection("Texture", billboard.TextureAsset);
+					bEntityChanged |= UI::Property("Is Visible", billboard.bVisible);
 
 					UI::EndPropertyGrid();
 				});
@@ -597,6 +620,7 @@ namespace Eagle
 					bool bLit = component.IsLit();
 					bool bCastsShadows = component.DoesCastShadows();
 					bool bReceivesDecals = component.DoesReceiveDecals();
+					bool bVisible = component.IsVisible();
 					Ref<AssetFont> asset = component.GetFontAsset();
 					Ref<AssetMaterial> materialAsset = component.GetMaterialAsset();
 
@@ -611,6 +635,12 @@ namespace Eagle
 					if (UI::PropertyTextMultiline("Text", text))
 					{
 						component.SetText(text);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Is Visible", bVisible))
+					{
+						component.SetVisible(bVisible);
 						bEntityChanged = true;
 					}
 
@@ -1862,6 +1892,7 @@ namespace Eagle
 					auto materialAsset = decal.GetMaterialAsset();
 					uint32_t sortPriority = decal.GetSortPriority();
 					bool bAdjustAspectRatio = decal.IsAdjustAspectRatioEnabled();
+					bool bVisible = decal.IsVisible();
 
 					if (EditorResources::DrawAssetSelection("Material", materialAsset, "Material data will be blended with the underlying material based on 'Opacity'"))
 					{
@@ -1876,6 +1907,11 @@ namespace Eagle
 					if (UI::Property("Adjust Aspect Ratio", bAdjustAspectRatio, "Aspect Ratio will be adjusted according to Albedo texture"))
 					{
 						decal.SetAdjustAspectRatioEnabled(bAdjustAspectRatio);
+						bEntityChanged = true;
+					}
+					if (UI::Property("Is Visible", bVisible))
+					{
+						decal.SetVisible(bVisible);
 						bEntityChanged = true;
 					}
 

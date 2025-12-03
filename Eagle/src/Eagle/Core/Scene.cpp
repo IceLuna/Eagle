@@ -906,7 +906,7 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& mesh = view.get<SkeletalMeshComponent>(entity);
-				if (mesh.GetMeshAsset())
+				if (mesh.GetMeshAsset() && mesh.IsVisible())
 					m_SkeletalMeshes.push_back(&mesh);
 			}
 		}
@@ -1058,7 +1058,8 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& mesh = view.get<StaticMeshComponent>(entity);
-				m_Meshes.push_back(&mesh);
+				if (mesh.GetMeshAsset() && mesh.IsVisible())
+					m_Meshes.push_back(&mesh);
 			}
 		}
 		if (m_DirtyFlags.bSpritesDirty)
@@ -1068,7 +1069,8 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& sprite = view.get<SpriteComponent>(entity);
-				m_Sprites.push_back(&sprite);
+				if (sprite.IsVisible())
+					m_Sprites.push_back(&sprite);
 			}
 		}
 		if (m_DirtyFlags.bDecalsDirty)
@@ -1078,7 +1080,8 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& decal = view.get<DecalComponent>(entity);
-				m_Decals.push_back(&decal);
+				if (decal.IsVisible())
+					m_Decals.push_back(&decal);
 			}
 		}
 
@@ -1110,7 +1113,8 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& billboard = view.get<BillboardComponent>(entity);
-				m_Billboards.push_back(&billboard);
+				if (billboard.bVisible)
+					m_Billboards.push_back(&billboard);
 			}
 		}
 
@@ -1396,7 +1400,8 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& text = view.get<TextComponent>(entity);
-				m_Texts.push_back(&text);
+				if (text.IsVisible())
+					m_Texts.push_back(&text);
 			}
 		}
 

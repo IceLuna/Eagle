@@ -805,6 +805,7 @@ namespace Eagle
 		}
 		m_bCastsShadows = other.m_bCastsShadows;
 		m_bReceivesDecals = other.m_bReceivesDecals;
+		m_bVisible = other.m_bVisible;
 		// Reset to 0. Otherwise if a root motion animation is playing in the editor and we press play,
 		// the simulation will start from the wrong location
 		CurrentClipPlayTime = 0.f;

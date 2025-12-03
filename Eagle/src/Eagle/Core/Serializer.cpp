@@ -1658,6 +1658,7 @@ namespace Eagle
 			out << YAML::Key << "bAtlas" << YAML::Value << spriteComponent.IsAtlas();
 			out << YAML::Key << "bCastsShadows" << YAML::Value << spriteComponent.DoesCastShadows();
 			out << YAML::Key << "bReceivesDecals" << YAML::Value << spriteComponent.DoesReceiveDecals();
+			out << YAML::Key << "IsVisible" << YAML::Value << spriteComponent.IsVisible();
 			out << YAML::Key << "AtlasSpriteCoords" << YAML::Value << spriteComponent.GetAtlasSpriteCoords();
 			out << YAML::Key << "AtlasSpriteSize" << YAML::Value << spriteComponent.GetAtlasSpriteSize();
 			out << YAML::Key << "AtlasSpriteSizeCoef" << YAML::Value << spriteComponent.GetAtlasSpriteSizeCoef();
@@ -1677,6 +1678,7 @@ namespace Eagle
 			SerializeRelativeTransform(out, component.GetRelativeTransform());
 			if (component.TextureAsset)
 				out << YAML::Key << "Texture" << YAML::Value << component.TextureAsset->GetGUID();
+			out << YAML::Key << "IsVisible" << YAML::Value << component.bVisible;
 
 			out << YAML::EndMap; //BillboardComponent
 		}
@@ -1690,6 +1692,7 @@ namespace Eagle
 
 			out << YAML::Key << "bCastsShadows" << YAML::Value << smComponent.DoesCastShadows();
 			out << YAML::Key << "bReceivesDecals" << YAML::Value << smComponent.DoesReceiveDecals();
+			out << YAML::Key << "IsVisible" << YAML::Value << smComponent.IsVisible();
 
 			SerializeRelativeTransform(out, smComponent.GetRelativeTransform());
 
@@ -1722,6 +1725,7 @@ namespace Eagle
 
 			out << YAML::Key << "bCastsShadows" << YAML::Value << smComponent.DoesCastShadows();
 			out << YAML::Key << "bReceivesDecals" << YAML::Value << smComponent.DoesReceiveDecals();
+			out << YAML::Key << "IsVisible" << YAML::Value << smComponent.IsVisible();
 
 			SerializeRelativeTransform(out, smComponent.GetRelativeTransform());
 
@@ -2038,6 +2042,7 @@ namespace Eagle
 			out << YAML::Key << "IsLit" << YAML::Value << text.IsLit();
 			out << YAML::Key << "bCastsShadows" << YAML::Value << text.DoesCastShadows();
 			out << YAML::Key << "bReceivesDecals" << YAML::Value << text.DoesReceiveDecals();
+			out << YAML::Key << "IsVisible" << YAML::Value << text.IsVisible();
 			out << YAML::Key << "LineSpacing" << YAML::Value << text.GetLineSpacing();
 			out << YAML::Key << "Kerning" << YAML::Value << text.GetKerning();
 			out << YAML::Key << "MaxWidth" << YAML::Value << text.GetMaxWidth();
@@ -2115,7 +2120,8 @@ namespace Eagle
 			out << YAML::Key << "AdjustAspectRatio" << YAML::Value << decal.IsAdjustAspectRatioEnabled();
 			if (const auto& asset = decal.GetMaterialAsset())
 				out << YAML::Key << "Material" << YAML::Value << asset->GetGUID();
-			
+			out << YAML::Key << "IsVisible" << YAML::Value << decal.IsVisible();
+
 			out << YAML::EndMap; //DecalComponent
 		}
 
@@ -2312,6 +2318,8 @@ namespace Eagle
 				spriteComponent.SetCastsShadows(node.as<bool>());
 			if (auto node = spriteComponentNode["bReceivesDecals"])
 				spriteComponent.SetReceivesDecals(node.as<bool>());
+			if (auto node = spriteComponentNode["IsVisible"])
+				spriteComponent.SetVisible(node.as<bool>());
 			if (auto node = spriteComponentNode["AtlasSpriteCoords"])
 				spriteComponent.SetAtlasSpriteCoords(node.as<glm::vec2>());
 			if (auto node = spriteComponentNode["AtlasSpriteSize"])
@@ -2327,6 +2335,8 @@ namespace Eagle
 
 			DeserializeRelativeTransform(billboardComponentNode, relativeTransform);
 			billboardComponent.TextureAsset = GetAsset<AssetTexture2D>(billboardComponentNode["Texture"]);
+			if (auto node = billboardComponentNode["IsVisible"])
+				billboardComponent.bVisible = node.as<bool>();
 
 			billboardComponent.SetRelativeTransform(relativeTransform);
 		}
@@ -2337,6 +2347,8 @@ namespace Eagle
 			smComponent.SetCastsShadows(staticMeshComponentNode["bCastsShadows"].as<bool>());
 			if (auto node = staticMeshComponentNode["bReceivesDecals"])
 				smComponent.SetReceivesDecals(node.as<bool>());
+			if (auto node = staticMeshComponentNode["IsVisible"])
+				smComponent.SetVisible(node.as<bool>());
 
 			Transform relativeTransform;
 			DeserializeRelativeTransform(staticMeshComponentNode, relativeTransform);
@@ -2355,6 +2367,8 @@ namespace Eagle
 			smComponent.SetCastsShadows(skeletalMeshComponentNode["bCastsShadows"].as<bool>());
 			if (auto node = skeletalMeshComponentNode["bReceivesDecals"])
 				smComponent.SetReceivesDecals(node.as<bool>());
+			if (auto node = skeletalMeshComponentNode["IsVisible"])
+				smComponent.SetVisible(node.as<bool>());
 
 			Transform relativeTransform;
 			DeserializeRelativeTransform(skeletalMeshComponentNode, relativeTransform);
@@ -2702,6 +2716,8 @@ namespace Eagle
 				text.SetCastsShadows(node.as<bool>());
 			if (auto node = textNode["bReceivesDecals"])
 				text.SetReceivesDecals(node.as<bool>());
+			if (auto node = textNode["IsVisible"])
+				text.SetVisible(node.as<bool>());
 			text.SetLineSpacing(textNode["LineSpacing"].as<float>());
 			text.SetKerning(textNode["Kerning"].as<float>());
 			text.SetMaxWidth(textNode["MaxWidth"].as<float>());
@@ -2760,6 +2776,8 @@ namespace Eagle
 			if (auto node = decalNode["AdjustAspectRatio"])
 				decal.SetAdjustAspectRatioEnabled(node.as<bool>());
 			decal.SetMaterialAsset(GetAsset<AssetMaterial>(decalNode["Material"]));
+			if (auto node = decalNode["IsVisible"])
+				decal.SetVisible(node.as<bool>());
 		}
 
 		if (auto componentNode = entityNode["NavigationMeshComponent"])

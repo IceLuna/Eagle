@@ -641,6 +641,12 @@ namespace Eagle
             set { SetReceivesDecals_Native(Parent.ID, value); }
         }
 
+        public bool bVisible
+        {
+            get { return IsVisible_Native(Parent.ID); }
+            set { SetVisible_Native(Parent.ID, value); }
+        }
+
         public AssetMaterial GetMaterialAsset(uint index)
         {
             GetMaterial_Native(Parent.ID, index, out GUID assetID);
@@ -685,6 +691,12 @@ namespace Eagle
         internal static extern bool DoesReceiveDecals_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetVisible_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsVisible_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern uint GetMaterialsSlotsCount_Native(in GUID entityID);
     }
 
@@ -721,6 +733,12 @@ namespace Eagle
         {
             get { return DoesReceiveDecals_Native(Parent.ID); }
             set { SetReceivesDecals_Native(Parent.ID, value); }
+        }
+
+        public bool bVisible
+        {
+            get { return IsVisible_Native(Parent.ID); }
+            set { SetVisible_Native(Parent.ID, value); }
         }
 
         public AssetMaterial GetMaterialAsset(uint index)
@@ -1039,6 +1057,12 @@ namespace Eagle
         internal static extern bool DoesReceiveDecals_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetVisible_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsVisible_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetMesh_Native(in GUID entityID, GUID meshGUID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -1273,6 +1297,12 @@ namespace Eagle
             set { SetReceivesDecals_Native(Parent.ID, value); }
         }
 
+        public bool bVisible
+        {
+            get { return IsVisible_Native(Parent.ID); }
+            set { SetVisible_Native(Parent.ID, value); }
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetMaterial_Native(in GUID entityID, out GUID assetID);
 
@@ -1314,6 +1344,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool DoesReceiveDecals_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetVisible_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsVisible_Native(in GUID entityID);
     }
 
     public class BillboardComponent : SceneComponent
@@ -1339,11 +1375,23 @@ namespace Eagle
             }
         }
 
+        public bool bVisible
+        {
+            get { return IsVisible_Native(Parent.ID); }
+            set { SetVisible_Native(Parent.ID, value); }
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetTexture_Native(in GUID entityID, in GUID textureID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern GUID GetTexture_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetVisible_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsVisible_Native(in GUID entityID);
     }
 
     public class TextComponent : SceneComponent
@@ -1427,6 +1475,12 @@ namespace Eagle
             set { SetReceivesDecals_Native(Parent.ID, value); }
         }
 
+        public bool bVisible
+        {
+            get { return IsVisible_Native(Parent.ID); }
+            set { SetVisible_Native(Parent.ID, value); }
+        }
+
         public bool bLit
         {
             get { return GetIsLit_Native(Parent.ID); }
@@ -1486,6 +1540,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool DoesReceiveDecals_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetVisible_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsVisible_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetMaterial_Native(in GUID entityID, out GUID assetID);
@@ -1565,7 +1625,7 @@ namespace Eagle
             set { SetOpacity_Native(Parent.ID, value); }
         }
 
-        public bool IsVisible
+        public bool bVisible
         {
             get { return IsVisible_Native(Parent.ID); }
             set { SetIsVisible_Native(Parent.ID, value); }
@@ -2752,6 +2812,12 @@ namespace Eagle
             }
         }
 
+        public bool bVisible
+        {
+            get { return IsVisible_Native(Parent.ID); }
+            set { SetVisible_Native(Parent.ID, value); }
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetMaterial_Native(in GUID entityID, in GUID assetID);
 
@@ -2769,6 +2835,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern uint GetSortPriority_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetVisible_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsVisible_Native(in GUID entityID);
     }
 
     public class NavigationMeshComponent : SceneComponent

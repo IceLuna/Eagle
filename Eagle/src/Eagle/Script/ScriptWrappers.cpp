@@ -1437,7 +1437,10 @@ namespace Eagle
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
+		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetCastsShadows' for static mesh. Entity is null");
+			return;
+		}
 
 		entity.GetComponent<StaticMeshComponent>().SetCastsShadows(value);
 	}
@@ -1460,7 +1463,10 @@ namespace Eagle
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
+		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetReceivesDecals' for static mesh. Entity is null");
+			return;
+		}
 
 		entity.GetComponent<StaticMeshComponent>().SetReceivesDecals(value);
 	}
@@ -1476,6 +1482,32 @@ namespace Eagle
 		}
 
 		return entity.GetComponent<StaticMeshComponent>().DoesReceiveDecals();
+	}
+
+	void Script::Eagle_StaticMeshComponent_SetVisible(GUID entityID, bool value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetVisible' for static mesh. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<StaticMeshComponent>().SetVisible(value);
+	}
+
+	bool Script::Eagle_StaticMeshComponent_IsVisible(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsVisible' for static mesh. Entity is null");
+			return false;
+		}
+
+		return entity.GetComponent<StaticMeshComponent>().IsVisible();
 	}
 	
 	//--------------SkeletalMesh Component--------------
@@ -1730,7 +1762,10 @@ namespace Eagle
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
+		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetReceivesDecals' for skeletal mesh. Entity is null");
+			return;
+		}
 
 		entity.GetComponent<SkeletalMeshComponent>().SetReceivesDecals(value);
 	}
@@ -1746,6 +1781,32 @@ namespace Eagle
 		}
 
 		return entity.GetComponent<SkeletalMeshComponent>().DoesReceiveDecals();
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_SetVisible(GUID entityID, bool value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetVisible' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<SkeletalMeshComponent>().SetVisible(value);
+	}
+
+	bool Script::Eagle_SkeletalMeshComponent_IsVisible(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsVisible' for skeletal mesh. Entity is null");
+			return false;
+		}
+
+		return entity.GetComponent<SkeletalMeshComponent>().IsVisible();
 	}
 
 	bool Script::Eagle_SkeletalMeshComponent_IsRootMotionLockFlagSet(GUID entityID, RootMotionLockFlag value)
@@ -5207,6 +5268,29 @@ namespace Eagle
 		}
 	}
 
+	void Script::Eagle_TextComponent_SetVisible(GUID entityID, bool value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetVisible(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetVisible` of Text Component. Entity is null");
+	}
+
+	bool Script::Eagle_TextComponent_IsVisible(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<TextComponent>().IsVisible();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsVisible` of Text Component. Entity is null");
+			return false;
+		}
+	}
+
 	void Script::Eagle_TextComponent_SetReceivesDecals(GUID entityID, bool value)
 	{
 		auto& scene = Scene::GetCurrentScene();
@@ -5797,6 +5881,29 @@ namespace Eagle
 		return component.TextureAsset ? component.TextureAsset->GetGUID() : GUID(0, 0);
 	}
 
+	void Script::Eagle_BillboardComponent_SetVisible(GUID entityID, bool value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<BillboardComponent>().bVisible = value;
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set `IsVisible` of Billboard Component. Entity is null");
+	}
+
+	bool Script::Eagle_BillboardComponent_IsVisible(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsVisible` of billboard component. Entity is null");
+			return false;
+		}
+
+		return entity.GetComponent<BillboardComponent>().bVisible;
+	}
+
 	//--------------Sprite Component--------------
 	void Script::Eagle_SpriteComponent_GetMaterial(GUID entityID, GUID* outAssetID)
 	{
@@ -5983,6 +6090,29 @@ namespace Eagle
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call `DoesReceiveDecals` of Sprite Component. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_SpriteComponent_SetVisible(GUID entityID, bool value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<SpriteComponent>().SetVisible(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetVisible` of Sprite Component. Entity is null");
+	}
+
+	bool Script::Eagle_SpriteComponent_IsVisible(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<SpriteComponent>().IsVisible();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsVisible` of Sprite Component. Entity is null");
 			return false;
 		}
 	}
@@ -6296,6 +6426,29 @@ namespace Eagle
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get `SortPriority` of Decal Component. Entity is null");
 			return 0u;
+		}
+	}
+
+	void Script::Eagle_DecalComponent_SetVisible(GUID entityID, bool value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<DecalComponent>().SetVisible(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetVisible` of Decal Component. Entity is null");
+	}
+
+	bool Script::Eagle_DecalComponent_IsVisible(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<DecalComponent>().IsVisible();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsVisible` of Decal Component. Entity is null");
+			return false;
 		}
 	}
 

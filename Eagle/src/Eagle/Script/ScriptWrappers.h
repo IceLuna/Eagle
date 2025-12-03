@@ -18,7 +18,7 @@ namespace Eagle::AINavigation
 
 namespace Eagle::Script
 {
-	//Entity
+	// Entity
 	MonoObject* Eagle_Entity_GetParent(GUID entityID);
 	void Eagle_Entity_SetParent(GUID entityID, GUID parentID);
 	MonoArray* Eagle_Entity_GetChildren(GUID entityID);
@@ -56,7 +56,7 @@ namespace Eagle::Script
 	void Eagle_Entity_SetTag(GUID entityID, MonoString* monoTag);
 	MonoString* Eagle_Entity_GetTag(GUID entityID);
 
-	//Input
+	// Input
 	bool Eagle_Input_IsMouseButtonPressed(Mouse button);
 	bool Eagle_Input_IsKeyPressed(Key keyCode);
 	void Eagle_Input_GetMousePosition(glm::vec2* outPosition);
@@ -66,7 +66,7 @@ namespace Eagle::Script
 	void Eagle_Input_SetMousePosition(const glm::vec2* position);
 	void Eagle_Input_SetMousePositionInViewport(const glm::vec2* position);
 
-	//SceneComponent
+	// SceneComponent
 	void Eagle_SceneComponent_GetWorldTransform(GUID entityID, void* type, Transform* outTransform);
 	void Eagle_SceneComponent_GetWorldLocation(GUID entityID, void* type, glm::vec3* outLocation);
 	void Eagle_SceneComponent_GetWorldRotation(GUID entityID, void* type, Rotator* outRotation);
@@ -89,7 +89,7 @@ namespace Eagle::Script
 	void Eagle_SceneComponent_GetRightVector(GUID entityID, void* type, glm::vec3* outVector);
 	void Eagle_SceneComponent_GetUpVector(GUID entityID, void* type, glm::vec3* outVector);
 
-	//LightComponent
+	// LightComponent
 	void Eagle_LightComponent_GetLightColor(GUID entityID, void* type, glm::vec3* outLightColor);
 	bool Eagle_LightComponent_GetAffectsWorld(GUID entityID, void* type);
 	void Eagle_LightComponent_SetLightColor(GUID entityID, void* type, glm::vec3* inLightColor);
@@ -103,11 +103,11 @@ namespace Eagle::Script
 	bool Eagle_LightComponent_GetIsVolumetricLight(GUID entityID, void* type);
 	void Eagle_LightComponent_SetIsVolumetricLight(GUID entityID, void* type, bool value);
 
-	//PointLight Component
+	// PointLight Component
 	float Eagle_PointLightComponent_GetRadius(GUID entityID);
 	void Eagle_PointLightComponent_SetRadius(GUID entityID, float inRadius);
 
-	//SpotLight Component
+	// SpotLight Component
 	float Eagle_SpotLightComponent_GetInnerCutoffAngle(GUID entityID);
 	float Eagle_SpotLightComponent_GetOuterCutoffAngle(GUID entityID);
 	float Eagle_SpotLightComponent_GetDistance(GUID entityID);
@@ -119,7 +119,7 @@ namespace Eagle::Script
 	void Eagle_DirectionalLightComponent_GetAmbient(GUID entityID, glm::vec3* outAmbient);
 	void Eagle_DirectionalLightComponent_SetAmbient(GUID entityID, glm::vec3* inAmbient);
 
-	//StaticMeshComponent
+	// StaticMeshComponent
 	void Eagle_StaticMeshComponent_SetMesh(GUID entityID, GUID guid);
 	GUID Eagle_StaticMeshComponent_GetMesh(GUID entityID);
 	void Eagle_StaticMeshComponent_GetMaterial(GUID entityID, uint32_t index, GUID* outAssetID);
@@ -129,6 +129,8 @@ namespace Eagle::Script
 	bool Eagle_StaticMeshComponent_DoesCastShadows(GUID entityID);
 	void Eagle_StaticMeshComponent_SetReceivesDecals(GUID entityID, bool value);
 	bool Eagle_StaticMeshComponent_DoesReceiveDecals(GUID entityID);
+	void Eagle_StaticMeshComponent_SetVisible(GUID entityID, bool value);
+	bool Eagle_StaticMeshComponent_IsVisible(GUID entityID);
 
 	// SkeletalMeshComponent
 	void Eagle_SkeletalMeshComponent_SetMesh(GUID entityID, GUID guid);
@@ -146,6 +148,8 @@ namespace Eagle::Script
 	void Eagle_SkeletalMeshComponent_SetAnimType(GUID entityID, AnimationType value);
 	void Eagle_SkeletalMeshComponent_SetReceivesDecals(GUID entityID, bool value);
 	bool Eagle_SkeletalMeshComponent_DoesReceiveDecals(GUID entityID);
+	void Eagle_SkeletalMeshComponent_SetVisible(GUID entityID, bool value);
+	bool Eagle_SkeletalMeshComponent_IsVisible(GUID entityID);
 	bool Eagle_SkeletalMeshComponent_IsRootMotionLockFlagSet(GUID entityID, RootMotionLockFlag value);
 	void Eagle_SkeletalMeshComponent_SetRootMotionLockFlagBool(GUID entityID, RootMotionLockFlag flag, bool value);
 	void Eagle_SkeletalMeshComponent_SetRootMotionLockFlag(GUID entityID, RootMotionLockFlag value);
@@ -216,10 +220,10 @@ namespace Eagle::Script
 	float Eagle_Sound_GetSampleRate(GUID id);
 	int Eagle_Sound_GetChannelsCount(GUID id);
 
-	//Sound2D
+	// Sound2D
 	GUID Eagle_Sound2D_Create(GUID assetID, const SoundSettings* settings);
 
-	//Sound3D
+	// Sound3D
 	GUID Eagle_Sound3D_Create(GUID assetID, const glm::vec3* position, RollOffModel rolloff, const SoundSettings* settings);
 	void Eagle_Sound3D_SetMinDistance(GUID id, float min);
 	void Eagle_Sound3D_SetMaxDistance(GUID id, float max);
@@ -233,7 +237,7 @@ namespace Eagle::Script
 	void Eagle_Sound3D_GetVelocity(GUID id, glm::vec3* outVelocity);
 	RollOffModel Eagle_Sound3D_GetRollOffModel(GUID id);
 
-	//AudioComponent
+	// AudioComponent
 	void Eagle_AudioComponent_SetMinDistance(GUID entityID, float minDistance);
 	void Eagle_AudioComponent_SetMaxDistance(GUID entityID, float maxDistance);
 	void Eagle_AudioComponent_SetMinMaxDistance(GUID entityID, float minDistance, float maxDistance);
@@ -277,7 +281,7 @@ namespace Eagle::Script
 	float Eagle_AudioComponent_GetPan(GUID entityID);
 	int Eagle_AudioComponent_GetChannelsCount(GUID id);
 
-	//RigidBodyComponent
+	// RigidBodyComponent
 	void Eagle_RigidBodyComponent_SetBodyType(GUID entityID, PhysicsBodyType type);
 	PhysicsBodyType Eagle_RigidBodyComponent_GetBodyType(GUID entityID);
 	void Eagle_RigidBodyComponent_SetCollisionDetectionType(GUID entityID, CollisionDetectionType type);
@@ -321,7 +325,7 @@ namespace Eagle::Script
 	void Eagle_RigidBodyComponent_SetKinematicTargetRotation(GUID entityID, const Rotator* rotation);
 	void Eagle_RigidBodyComponent_SetLockFlag(GUID entityID, ActorLockFlag flag, bool value);
 
-	//BaseColliderComponent
+	// BaseColliderComponent
 	void Eagle_BaseColliderComponent_SetCollisionGroup(GUID entityID, void* type, CollisionGroup groups);
 	CollisionGroup Eagle_BaseColliderComponent_GetCollisionGroup(GUID entityID, void* type);
 	void Eagle_BaseColliderComponent_SetInteractingCollisionGroup(GUID entityID, void* type, CollisionGroup groups);
@@ -339,21 +343,21 @@ namespace Eagle::Script
 	void Eagle_BaseColliderComponent_SetIsObstacle(GUID entityID, void* type, bool bObstacle);
 	bool Eagle_BaseColliderComponent_IsObstacle(GUID entityID, void* type);
 
-	//BoxColliderComponent
+	// BoxColliderComponent
 	void Eagle_BoxColliderComponent_SetSize(GUID entityID, const glm::vec3* size);
 	void Eagle_BoxColliderComponent_GetSize(GUID entityID, glm::vec3* outSize);
 
-	//SphereColliderComponent
+	// SphereColliderComponent
 	void  Eagle_SphereColliderComponent_SetRadius(GUID entityID, float val);
 	float Eagle_SphereColliderComponent_GetRadius(GUID entityID);
 
-	//CapsuleColliderComponent
+	// CapsuleColliderComponent
 	void  Eagle_CapsuleColliderComponent_SetRadius(GUID entityID, float val);
 	float Eagle_CapsuleColliderComponent_GetRadius(GUID entityID);
 	void  Eagle_CapsuleColliderComponent_SetHeight(GUID entityID, float val);
 	float Eagle_CapsuleColliderComponent_GetHeight(GUID entityID);
 
-	//MeshColliderComponent
+	// MeshColliderComponent
 	void Eagle_MeshColliderComponent_SetIsConvex(GUID entityID, bool val);
 	bool Eagle_MeshColliderComponent_IsConvex(GUID entityID);
 	void Eagle_MeshColliderComponent_SetIsTwoSided(GUID entityID, bool val);
@@ -411,6 +415,8 @@ namespace Eagle::Script
 	void Eagle_TextComponent_SetMaterial(GUID entityID, GUID assetID);
 	void Eagle_TextComponent_SetReceivesDecals(GUID entityID, bool value);
 	bool Eagle_TextComponent_DoesReceiveDecals(GUID entityID);
+	void Eagle_TextComponent_SetVisible(GUID entityID, bool value);
+	bool Eagle_TextComponent_IsVisible(GUID entityID);
 
 	// Text2D Component
 	MonoString* Eagle_Text2DComponent_GetText(GUID entityID);
@@ -455,6 +461,8 @@ namespace Eagle::Script
 	// Billboard Component
 	void Eagle_BillboardComponent_SetTexture(GUID entityID, GUID textureID);
 	GUID Eagle_BillboardComponent_GetTexture(GUID entityID);
+	void Eagle_BillboardComponent_SetVisible(GUID entityID, bool value);
+	bool Eagle_BillboardComponent_IsVisible(GUID entityID);
 
 	// Sprite component
 	void Eagle_SpriteComponent_GetMaterial(GUID entityID, GUID* outAssetID);
@@ -471,6 +479,8 @@ namespace Eagle::Script
 	bool Eagle_SpriteComponent_DoesCastShadows(GUID entityID);
 	void Eagle_SpriteComponent_SetReceivesDecals(GUID entityID, bool value);
 	bool Eagle_SpriteComponent_DoesReceiveDecals(GUID entityID);
+	void Eagle_SpriteComponent_SetVisible(GUID entityID, bool value);
+	bool Eagle_SpriteComponent_IsVisible(GUID entityID);
 
 	// Script Component
 	void Eagle_ScriptComponent_SetScript(GUID entityID, void* type);
@@ -491,6 +501,8 @@ namespace Eagle::Script
 	bool Eagle_DecalComponent_IsAdjustAspectRatioEnabled(GUID entityID);
 	void Eagle_DecalComponent_SetSortPriority(GUID entityID, uint32_t value);
 	uint32_t Eagle_DecalComponent_GetSortPriority(GUID entityID);
+	void Eagle_DecalComponent_SetVisible(GUID entityID, bool value);
+	bool Eagle_DecalComponent_IsVisible(GUID entityID);
 
 	// NavigationMeshComponent
 	void Eagle_NavigationMeshComponent_Build(GUID entityID);

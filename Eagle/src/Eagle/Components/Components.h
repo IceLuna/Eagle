@@ -416,6 +416,7 @@ namespace Eagle
 			bAtlas = other.bAtlas;
 			m_bCastsShadows = other.m_bCastsShadows;
 			m_bReceivesDecals = other.m_bReceivesDecals;
+			m_bVisible = other.m_bVisible;
 			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
 
 			return *this;
@@ -488,6 +489,13 @@ namespace Eagle
 		}
 		bool DoesReceiveDecals() const { return m_bReceivesDecals; }
 
+		void SetVisible(bool bVisible)
+		{
+			m_bVisible = bVisible;
+			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
+		}
+		bool IsVisible() const { return m_bVisible; }
+
 	private:
 		Ref<AssetMaterial> m_MaterialAsset;
 		
@@ -499,6 +507,7 @@ namespace Eagle
 		bool bAtlas = false;
 		bool m_bCastsShadows = true;
 		bool m_bReceivesDecals = true;
+		bool m_bVisible = true;
 	};
 
 	class StaticMeshComponent : public SceneComponent
@@ -520,6 +529,7 @@ namespace Eagle
 			m_MaterialAssets = other.m_MaterialAssets;
 			m_bCastsShadows = other.m_bCastsShadows;
 			m_bReceivesDecals = other.m_bReceivesDecals;
+			m_bVisible = other.m_bVisible;
 
 			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnStateChanged);
 			return *this;
@@ -579,11 +589,19 @@ namespace Eagle
 		}
 		bool DoesReceiveDecals() const { return m_bReceivesDecals; }
 
+		void SetVisible(bool bVisible)
+		{
+			m_bVisible = bVisible;
+			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnStateChanged);
+		}
+		bool IsVisible() const { return m_bVisible; }
+
 	private:
 		Ref<AssetStaticMesh> m_MeshAsset;
 		std::vector<Ref<AssetMaterial>> m_MaterialAssets;
 		bool m_bCastsShadows = true;
 		bool m_bReceivesDecals = true;
+		bool m_bVisible = true;
 	};
 
 	class SkeletalMeshComponent : public SceneComponent
@@ -629,6 +647,13 @@ namespace Eagle
 			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnStateChanged);
 		}
 		bool DoesReceiveDecals() const { return m_bReceivesDecals; }
+
+		void SetVisible(bool bVisible)
+		{
+			m_bVisible = bVisible;
+			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnStateChanged);
+		}
+		bool IsVisible() const { return m_bVisible; }
 
 		uint32_t GetMaterialsSlotsCount() const { return (uint32_t)m_MaterialAssets.size(); }
 		const Ref<AssetMaterial>& GetMaterialAsset(uint32_t index) const { return m_MaterialAssets[index]; }
@@ -696,6 +721,7 @@ namespace Eagle
 		RootMotionLockFlag m_RootMotionLockFlags = RootMotionLockFlag::None;
 		bool m_bCastsShadows = true;
 		bool m_bReceivesDecals = true;
+		bool m_bVisible = true;
 		bool m_bRagdollEnabled = false;
 	};
 
@@ -706,6 +732,7 @@ namespace Eagle
 		COMPONENT_DEFAULTS(BillboardComponent);
 
 		Ref<AssetTexture2D> TextureAsset;
+		bool bVisible = true;
 	};
 
 	class Image2DComponent : public Component
@@ -863,6 +890,13 @@ namespace Eagle
 		}
 		bool DoesReceiveDecals() const { return m_bReceivesDecals; }
 
+		void SetVisible(bool bVisible)
+		{
+			m_bVisible = bVisible;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+		bool IsVisible() const { return m_bVisible; }
+
 	private:
 		std::string m_Text = "Hello, World!";
 		Ref<AssetFont> m_FontAsset;
@@ -876,6 +910,7 @@ namespace Eagle
 		bool m_bLit = false;
 		bool m_bCastsShadows = false;
 		bool m_bReceivesDecals = true;
+		bool m_bVisible = true;
 	};
 
 	class Text2DComponent : public Component
@@ -1934,6 +1969,13 @@ namespace Eagle
 			m_AdjustAspectRatio = bAdjustAspectRatio;
 			Parent.SignalComponentChanged<DecalComponent>(Notification::OnStateChanged);
 		}
+		
+		void SetVisible(bool bVisible)
+		{
+			m_bVisible = bVisible;
+			Parent.SignalComponentChanged<DecalComponent>(Notification::OnStateChanged);
+		}
+		bool IsVisible() const { return m_bVisible; }
 
 		const Ref<AssetMaterial>& GetMaterialAsset() const { return m_MaterialAsset; }
 		uint32_t GetSortPriority() const { return m_SortPriority; }
@@ -1943,6 +1985,7 @@ namespace Eagle
 		Ref<AssetMaterial> m_MaterialAsset;
 		uint32_t m_SortPriority = 0u;
 		bool m_AdjustAspectRatio = true;
+		bool m_bVisible = true;
 	};
 
 	class NavigationMeshComponent : public SceneComponent
