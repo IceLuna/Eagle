@@ -49,8 +49,6 @@ namespace Eagle
 		m_CPUTimingsInUse.reserve(4);
 		m_Threads[std::this_thread::get_id()] = "Main Thread";
 
-		Log::Init();
-		EG_CORE_INFO("Creating Application!");
 		TextureCompressor::Init();
 
 		RendererContext::SetAPI(RendererAPIType::Vulkan);
@@ -111,7 +109,6 @@ namespace Eagle
 		PhysicsEngine::Shutdown();
 		RenderManager::Shutdown();
 		TextureCompressor::Shutdown();
-		Log::Destroy();
 		s_Instance = nullptr;
 	}
 

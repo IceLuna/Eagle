@@ -9,6 +9,8 @@
 
 namespace Eagle
 {
+	// TODO: Should compress Normal, Tangent, and use fp16 for UVs?
+	// The size will go down from 44bytes to 24bytes, but will it noticably affect the quality?
 	struct Vertex
 	{
 		glm::vec3 Position;

@@ -74,6 +74,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         animationsCategory["Calculate Additive"] = &GraphNodeFactory::SpawnAnimCalculateAdditiveNode;
         animationsCategory["Blend Pose by Bool"] = &GraphNodeFactory::SpawnBlendPoseByBoolNode;
         animationsCategory["Blend Pose by Int"] = &GraphNodeFactory::SpawnBlendPoseByIntNode;
+        animationsCategory["Select Pose by Bool"] = &GraphNodeFactory::SpawnSelectPoseByBoolNode;
+        animationsCategory["Select Pose by Int"] = &GraphNodeFactory::SpawnSelectPoseByIntNode;
         animationsCategory["Filter Bones"] = &GraphNodeFactory::SpawnAnimFilterBones;
         animationsCategory["Transform Bone"] = &GraphNodeFactory::SpawnAnimTransformBone;
         animationsCategory["Cache Pose"] = &GraphNodeFactory::SpawnCachePoseNode;
@@ -554,6 +556,80 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         });
 
         node.GraphNode = MakeRef<AnimationGraphNodeBlendPoseByInt>(graphAsset->GetGraph());
+
+        graph.BuildNode(node);
+        graph.OnNodeAdded(node);
+
+        return node;
+    }
+
+    Node& GraphNodeFactory::SpawnSelectPoseByBoolNode(UIGraph& graph, const std::string_view name)
+    {
+        const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
+
+        auto& node = graph.AddNode(name, ImColor(128, 195, 248));
+        node.InputPins.emplace_back(graph.GetNextId(), "Condition", PinType::Bool, MakeRef<GraphVariableBool>(true));
+        node.InputPins.emplace_back(graph.GetNextId(), "False pose", PinType::Pose);
+        node.InputPins.emplace_back(graph.GetNextId(), "True pose", PinType::Pose);
+
+        node.OutputPins.emplace_back(graph.GetNextId(), "Output pose", PinType::Pose);
+        node.Type = NodeType::Blueprint;
+
+        node.GraphNode = MakeRef<AnimationGraphNodeSelectPoseByBool>(graphAsset->GetGraph());
+
+        graph.BuildNode(node);
+        graph.OnNodeAdded(node);
+
+        return node;
+    }
+
+    Node& GraphNodeFactory::SpawnSelectPoseByIntNode(UIGraph& graph, const std::string_view name)
+    {
+        const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
+
+        auto& node = graph.AddNode(name, ImColor(128, 195, 248));
+        node.InputPins.emplace_back(graph.GetNextId(), "Active Pose index", PinType::Int, MakeRef<GraphVariableInt>(0));
+        node.InputPins.emplace_back(graph.GetNextId(), "Pose 0", PinType::Pose);
+        node.InputPins.emplace_back(graph.GetNextId(), "Pose 1", PinType::Pose);
+
+        node.OutputPins.emplace_back(graph.GetNextId(), "Output pose", PinType::Pose);
+        node.Type = NodeType::Blueprint;
+
+        node.SetAddPinsCallback([](Node& node)
+        {
+            UIGraph& graph = *node.Owner;
+
+            const uint32_t poseIndex = (uint32_t)node.InputPins.size() - 1;
+            const std::string poseName = "Pose " + std::to_string(poseIndex);
+            node.InputPins.emplace_back(graph.GetNextId(), poseName, PinType::Pose);
+            node.GraphNode->AddInput();
+
+            graph.BuildNode(node);
+        });
+
+        node.SetRemovePinsCallback([](Node& node)
+        {
+            UIGraph& graph = *node.Owner;
+
+            graph.RemovePinLinks(node.InputPins.back().ID);
+            node.InputPins.pop_back();
+            node.GraphNode->PopInput();
+
+            graph.BuildNode(node);
+        });
+
+        node.SetCanAddPinsCallback([](const Node& node)
+        {
+            return true;
+        });
+
+        node.SetCanRemovePinsCallback([](const Node& node)
+        {
+            const uint32_t poseIndex = (uint32_t)node.InputPins.size() - 1;
+            return poseIndex > 2; // Can't have less than two poses
+        });
+
+        node.GraphNode = MakeRef<AnimationGraphNodeSelectPoseByInt>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);

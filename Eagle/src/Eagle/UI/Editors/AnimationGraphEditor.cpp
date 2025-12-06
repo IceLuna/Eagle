@@ -39,8 +39,7 @@ namespace Eagle
         graph->Reset();
 
         VariablesMap usedVars;
-        auto& graphToCompile = m_Graphs[0];
-        Ref<GraphNode> result = graphToCompile->Compile(usedVars);
+        Ref<GraphNode> result = m_Graphs[0]->Compile(usedVars);
         graph->SetVariables(std::move(usedVars));
 
         // We clone it so that changing node in the editor doesn't affect the final component without compilation

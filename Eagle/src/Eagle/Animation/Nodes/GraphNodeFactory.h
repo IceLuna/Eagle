@@ -46,6 +46,8 @@ namespace Eagle
         static Node& SpawnAnimClipNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnBlendPoseByBoolNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnBlendPoseByIntNode(UIGraph& graph, const std::string_view name);
+        static Node& SpawnSelectPoseByBoolNode(UIGraph& graph, const std::string_view name);
+        static Node& SpawnSelectPoseByIntNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnAnimFilterBones(UIGraph& graph, const std::string_view name);
         static Node& SpawnAnimTransformBone(UIGraph& graph, const std::string_view name);
         static Node& SpawnCachePoseNode(UIGraph& graph, const std::string_view name);

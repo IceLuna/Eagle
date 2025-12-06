@@ -314,22 +314,22 @@ namespace Eagle
     
         static bool CheckEvent_Forward(float eventTime, float prevTime, float curTime)
         {
-            return eventTime > prevTime && eventTime <= curTime;
+            return eventTime >= prevTime && eventTime <= curTime;
         }
 
         static bool CheckEvent_ForwardLoopedOver(float eventTime, float prevTime, float curTime)
         {
-            return eventTime > prevTime || eventTime <= curTime;
+            return eventTime >= prevTime || eventTime <= curTime;
         }
 
         static bool CheckEvent_Backward(float eventTime, float prevTime, float curTime)
         {
-            return eventTime < prevTime && eventTime >= curTime;
+            return eventTime <= prevTime && eventTime >= curTime;
         }
 
         static bool CheckEvent_BackwardLoopedOver(float eventTime, float prevTime, float curTime)
         {
-            return eventTime < prevTime || eventTime >= curTime;
+            return eventTime <= prevTime || eventTime >= curTime;
         }
 
         // @parentNode. We need to use parent nodes base transformation that's not affected by any other animation.

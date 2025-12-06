@@ -242,6 +242,7 @@ namespace Eagle
 		float m_CurrentTransitionTime = 0.f;
 		bool bTransitioning = false;
 		bool bPrevValue = false;
+		bool bPrevValueValid = false;
 		static constexpr size_t s_Inputs = 5;
 	};
 
@@ -259,10 +260,42 @@ namespace Eagle
 
 	private:
 		int m_ValueBeforeTransition = 0;
-		int m_PrevValue = 0;
+		int m_PrevValue = -1;
 		float m_CurrentTransitionTime = 0.f;
 		bool bTransitioning = false;
 		static constexpr size_t s_Inputs = 5; // Initially we have 5 inputs. Can be increased
+	};
+
+	class AnimationGraphNodeSelectPoseByBool : public AnimationGraphNode
+	{
+	public:
+		AnimationGraphNodeSelectPoseByBool(const Weak<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
+
+		SkeletalPose& Update(Timestep ts) override;
+
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		{
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeSelectPoseByBool>(newGraph);
+		}
+
+	private:
+		static constexpr size_t s_Inputs = 3;
+	};
+
+	class AnimationGraphNodeSelectPoseByInt : public AnimationGraphNode
+	{
+	public:
+		AnimationGraphNodeSelectPoseByInt(const Weak<AnimationGraph>& graph, uint32_t numInputs = s_Inputs) : AnimationGraphNode(graph, numInputs) {}
+
+		SkeletalPose& Update(Timestep ts) override;
+
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		{
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeSelectPoseByInt>(newGraph, uint32_t(m_Inputs.size()));
+		}
+
+	private:
+		static constexpr size_t s_Inputs = 3; // Initially we have 3 inputs. Can be increased
 	};
 
 	class AnimationGraphNodeCachePose : public AnimationGraphNode

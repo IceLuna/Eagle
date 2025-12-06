@@ -80,6 +80,8 @@ namespace Eagle
 		void AddCPUTiming(const CPUTiming* timing);
 		CPUTimingsContainer GetCPUTimings() const;
 
+		const WindowProperties& GetWindowProps() const { return m_WindowProps; }
+
 	protected:
 		virtual bool OnWindowClose(WindowCloseEvent& e);
 		virtual bool OnWindowResize(WindowResizeEvent& e);

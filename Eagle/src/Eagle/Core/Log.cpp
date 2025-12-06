@@ -1,7 +1,6 @@
 #include "egpch.h"
 
 #include "Log.h"
-#include "Application.h"
 
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include <spdlog/sinks/basic_file_sink.h>
@@ -35,7 +34,7 @@ namespace Eagle
 		return sink;
 	}
 
-	static auto CreateEditorLogger()
+	static auto CreateCallbackLogger()
 	{
 		auto sink = MakeRef<spdlog::sinks::callback_sink_mt>(LoggerCallback);
 		sink->set_pattern("[%T.%e] %n: %v");
@@ -50,8 +49,7 @@ namespace Eagle
 #ifndef EG_RELEASE
 		logSinks.emplace_back(CreateConsoleLogger());
 #endif
-		if (!Application::Get().IsGame())
-			logSinks.emplace_back(CreateEditorLogger());
+		logSinks.emplace_back(CreateCallbackLogger());
 
 		s_CoreLogger = MakeRef<spdlog::logger>("EAGLE", begin(logSinks), end(logSinks));
 		spdlog::register_logger(s_CoreLogger);
