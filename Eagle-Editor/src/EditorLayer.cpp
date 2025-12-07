@@ -236,7 +236,7 @@ namespace Eagle
 		m_CurrentScene->OnUpdate(ts, !m_ViewportHidden && bShouldRenderBasedOnFocus, bUpdateAnimationsInEditor);
 	}
 
-	void EditorLayer::OnEvent(Eagle::Event& e)
+	void EditorLayer::OnEvent(Event& e)
 	{
 		if (m_SceneHierarchyPanel.OnEvent(e, IsViewportFocused()))
 		{
@@ -244,16 +244,11 @@ namespace Eagle
 				m_OpenedSceneAsset->SetDirty(true);
 		}
 
-		if (e.Handled)
-			return;
-
 		m_ContentBrowserPanel.OnEvent(e);
-		if (e.Handled)
-			return;
 
 		if (!m_ViewportHidden)
 		{
-			if (m_EditorState == EditorState::Edit)
+			if (m_EditorState == EditorState::Edit && IsViewportFocused() && IsViewportHovered())
 				m_EditorScene->OnEventEditor(e);
 			else if (m_EditorState == EditorState::Play)
 				m_SimulationScene->OnEventRuntime(e);
@@ -263,7 +258,6 @@ namespace Eagle
 			m_WindowFocused = ((WindowFocusedEvent&)e).IsFocused();
 		else if (e.GetEventType() == EventType::WindowClose)
 		{
-			e.Handled = true;
 			WindowCloseEvent& closeEvent = (WindowCloseEvent&)e;
 			if (closeEvent.IsQuitGame() && m_EditorState == EditorState::Play)
 			{
@@ -281,9 +275,8 @@ namespace Eagle
 			}
 		}
 
-		EventDispatcher dispatcher(e);
-		dispatcher.Dispatch<KeyPressedEvent>(EG_BIND_FN(EditorLayer::OnKeyPressed));
-		dispatcher.Dispatch<MouseButtonPressedEvent>(EG_BIND_FN(EditorLayer::HandleEntitySelection));
+		Event::Dispatch<KeyPressedEvent>(e, EG_BIND_FN(EditorLayer::OnKeyPressed));
+		Event::Dispatch<MouseButtonPressedEvent>(e, EG_BIND_FN(EditorLayer::HandleEntitySelection));
 	}
 
 	void EditorLayer::OnImGuiRender()
@@ -319,6 +312,12 @@ namespace Eagle
 			m_ContentBrowserPanel.OnImGuiRender();
 			m_ConsolePanel.OnImGuiRender();
 			HandleDirtyAssetsPopup();
+
+			if (m_bFirstContentBrowserRender)
+			{
+				ImGui::SetWindowFocus(m_ContentBrowserPanel.GetWindowName());
+				m_bFirstContentBrowserRender = false;
+			}
 		}
 
 		if (m_ShowSaveScenePopupForNewScene)
@@ -360,6 +359,7 @@ namespace Eagle
 		if (e.GetRepeatCount() > 0)
 			return false;
 
+		bool bHandled = false;
 		const bool control = Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl);
 		const bool leftShift = Input::IsKeyPressed(Key::LeftShift);
 		const bool rightShift = Input::IsKeyPressed(Key::RightShift);
@@ -374,28 +374,44 @@ namespace Eagle
 				{
 					ShaderManager::ReloadAllShaders();
 				});
+				bHandled = true;
 				break;
 
 			case Key::N:
 				if (control)
+				{
 					m_ShowSaveScenePopupForNewScene = true;
+					bHandled = true;
+				}
 				break;
 
 			case Key::S:
 				if (control && shift)
+				{
 					SaveSceneAs();
+					bHandled = true;
+				}
 				else if (control)
+				{
 					SaveScene();
+					bHandled = true;
+				}
 				break;
 
 			case Key::G:
 				if (m_ViewportFocused)
+				{
 					m_bDrawEditorMisc = !m_bDrawEditorMisc;
+					bHandled = true;
+				}
 				break;
 
 			case Key::P:
 				if (leftAlt)
+				{
 					HandleOnSimulationButton();
+					bHandled = true;
+				}
 				break;
 
 			case Key::F11:
@@ -403,15 +419,22 @@ namespace Eagle
 				if (leftShift)
 				{
 					ToggleWindowFullscreenState();
+					bHandled = true;
 				}
 				else
+				{
 					m_bFullScreen = !m_bFullScreen;
+					bHandled = true;
+				}
 				break;
 			}
 		}
 
 		if (pressedKey == m_StopSimulationKey && m_EditorState == EditorState::Play)
+		{
 			HandleOnSimulationButton();
+			bHandled = true;
+		}
 
 		//Gizmos
 		if (m_ViewportHovered && !ImGuizmo::IsUsing())
@@ -420,23 +443,24 @@ namespace Eagle
 			{
 			case Key::Q:
 				m_GuizmoType = -1;
+				bHandled = true;
 				break;
-
 			case Key::W:
 				m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
+				bHandled = true;
 				break;
-
 			case Key::E:
 				m_GuizmoType = ImGuizmo::OPERATION::ROTATE;
+				bHandled = true;
 				break;
-
 			case Key::R:
 				m_GuizmoType = ImGuizmo::OPERATION::SCALE;
+				bHandled = true;
 				break;
 			}
 		}
 
-		return false;
+		return bHandled;
 	}
 
 	void EditorLayer::LoadAppAssembly()

@@ -233,11 +233,10 @@ namespace Eagle
 	
 	void AssetEditor::OnEvent(Event& e)
 	{
-		if (bViewportVisible)
+		if (bViewportVisible && bViewportFocused && bViewportHovered)
 			m_CurrentScene->OnEventEditor(e);
 
-		EventDispatcher dispatcher(e);
-		dispatcher.Dispatch<KeyPressedEvent>(EG_BIND_FN(AssetEditor::OnKeyPressed));
+		Event::Dispatch<KeyPressedEvent>(e, EG_BIND_FN(AssetEditor::OnKeyPressed));
 	}
 
 	bool AssetEditor::OnKeyPressed(KeyPressedEvent& e)

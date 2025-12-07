@@ -33,6 +33,8 @@ namespace Eagle
 
 		static ContentBrowserPanel& Get(); // Not a good idea™
 
+		const char* GetWindowName() const { return "Content Browser"; }
+
 	private:
 		void DrawContent(const std::vector<Path>& directories, const std::vector<Path>& files, bool bHintFullPath = false);
 		void DrawPathHistory();
@@ -60,6 +62,9 @@ namespace Eagle
 		void OnDirectoryOpened(const Path& previousPath);
 
 		void SelectFile(const Path& path);
+
+		bool OnKeyPressed(KeyPressedEvent& e);
+		bool OnMousePressedEvent(MouseButtonPressedEvent& e);
 
 	private:
 		template<typename EditorType, typename AssetType, class... Args>

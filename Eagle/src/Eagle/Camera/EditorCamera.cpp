@@ -27,9 +27,9 @@ namespace Eagle
 			float offsetX = m_MouseX - Input::GetMouseX();
 			float offsetY = m_MouseY - Input::GetMouseY();
 
-			// There's a GLFW bug when mouse pos jumps on second frame after we hide the mouse.
-			// So, here we're ignoring mouse delta on first two frames
-			if (m_NumberOfFramesMoving++ < 2)
+			// There's a GLFW bug when mouse pos can jump during first couple of frames after we hide the mouse.
+			// So, here we're ignoring mouse delta for a short period of time
+			if (m_NumberOfFramesMoving++ < 3)
 				offsetX = offsetY = 0.f;
 
 			if (Input::IsMouseVisible())
@@ -122,8 +122,7 @@ namespace Eagle
 
 	void EditorCamera::OnEvent(Event& e)
 	{
-		EventDispatcher dispatcher(e);
-		dispatcher.Dispatch<MouseScrolledEvent>(EG_BIND_FN(EditorCamera::OnMouseScrolled));
+		Event::Dispatch<MouseScrolledEvent>(e, EG_BIND_FN(EditorCamera::OnMouseScrolled));
 	}
 
 	void EditorCamera::RecalculateView()
@@ -157,6 +156,7 @@ namespace Eagle
 		{
 			m_MoveSpeed += e.GetYOffset() * 0.25f;
 			m_MoveSpeed = std::max(0.1f, m_MoveSpeed);
+			return true;
 		}
 		
 		return false;

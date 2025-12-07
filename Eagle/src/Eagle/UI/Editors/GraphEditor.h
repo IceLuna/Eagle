@@ -143,6 +143,8 @@ namespace Eagle
 
         const char* GetVarDragDropTag() { return m_VarDragDropTag.c_str(); }
 
+        bool OnMousePressedEvent(MouseButtonPressedEvent& e);
+
     protected:
         ed::Config m_Config;
         std::string m_Name = "Graph Editor";

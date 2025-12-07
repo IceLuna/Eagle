@@ -112,9 +112,6 @@ namespace Eagle
 	{
 		AssetEditor::OnEvent(e);
 
-		if (e.Handled)
-			return;
-
 		const bool bEntityChanged = m_SceneHierarchy.OnEvent(e, bViewportFocused);
 		if (bEntityChanged)
 			OnEntityChanged();

@@ -58,27 +58,18 @@ namespace Eagle
 			return (GetCategoryFlags() & category) == category;
 		}
 
-	};
-
-	class EventDispatcher
-	{
-	public:
-		EventDispatcher(Event& event) : m_Event(event) {}
-
-		//F will be deduced by the compiler
-		template<typename T, typename F>
-		bool Dispatch(const F& func)
+		// If event wasn't handled and it belong to `EventType`, calls `HandlerFunc`.
+		// Returns true if this dispatch handled event
+		template<typename EventType, typename HandlerFunc, class... Args>
+		static bool Dispatch(Event& event, const HandlerFunc& func, Args&&... args)
 		{
-			if (m_Event.GetEventType() == T::GetStaticType())
+			if (!event.Handled && event.GetEventType() == EventType::GetStaticType())
 			{
-				m_Event.Handled |= func(static_cast<T&>(m_Event));
+				event.Handled |= func((EventType&)event, std::forward<Args>(args)...);
 				return true;
 			}
 			return false;
 		}
-
-	private:
-		Event& m_Event;
 	};
 
 	inline std::ostream& operator<< (std::ostream& os, const Event& e)

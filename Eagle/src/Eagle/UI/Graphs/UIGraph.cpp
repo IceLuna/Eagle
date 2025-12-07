@@ -168,27 +168,29 @@ namespace Eagle
         ed::Detail::EditorContext* editorBefore = ed::GetCurrentEditor();
         ed::SetCurrentEditor(m_GraphData.Editor);
 
-        if (e.GetEventType() == EventType::KeyPressed)
-        {
-            KeyPressedEvent& keyPressed = (KeyPressedEvent&)e;
-            if (AllowRenaming() && keyPressed.GetKey() == Key::F2)
-            {
-                int selectedCount = ed::GetSelectedObjectCount();
-                if (selectedCount == 1)
-                {
-                    ed::NodeId selectedNodeID;
-                    ed::GetSelectedNodes(&selectedNodeID, selectedCount);
-                    if (Node* node = FindNode(selectedNodeID))
-                    {
-                        OnStartedRenamingNode(node);
-                        e.Handled = true;
-                    }
-                }
+        Event::Dispatch<KeyPressedEvent>(e, EG_BIND_FN(UIGraph::OnKeyPressed));
 
+        ed::SetCurrentEditor(editorBefore);
+    }
+
+    bool UIGraph::OnKeyPressed(KeyPressedEvent& e)
+    {
+        if (AllowRenaming() && e.GetKey() == Key::F2)
+        {
+            int selectedCount = ed::GetSelectedObjectCount();
+            if (selectedCount == 1)
+            {
+                ed::NodeId selectedNodeID;
+                ed::GetSelectedNodes(&selectedNodeID, selectedCount);
+                if (Node* node = FindNode(selectedNodeID))
+                {
+                    OnStartedRenamingNode(node);
+                    return true;
+                }
             }
         }
 
-        ed::SetCurrentEditor(editorBefore);
+        return false;
     }
 
     void UIGraph::OnImGuiRender(bool* pOpen)

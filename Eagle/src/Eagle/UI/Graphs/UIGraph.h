@@ -402,6 +402,8 @@ namespace Eagle
         GUID GetID() const { return m_ID; }
 
     protected:
+        bool OnKeyPressed(KeyPressedEvent& e);
+
         virtual void HandleBPNode(util::BlueprintNodeBuilder& builder, Node& node, Pin* newLinkPin);
         virtual void HandleStateNode(Node& node, Pin* newLinkPin);
         virtual void HandleCommentNode(Node& node, Pin* newLinkPin);

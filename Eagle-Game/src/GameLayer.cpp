@@ -94,8 +94,7 @@ namespace Eagle
 			}
 		}
 
-		EventDispatcher dispatcher(e);
-		dispatcher.Dispatch<KeyPressedEvent>(EG_BIND_FN(GameLayer::OnKeyPressed));
+		Event::Dispatch<KeyPressedEvent>(e, EG_BIND_FN(GameLayer::OnKeyPressed));
 
 		m_CurrentScene->OnEventRuntime(e);
 	}

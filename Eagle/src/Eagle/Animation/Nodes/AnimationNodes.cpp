@@ -474,7 +474,10 @@ namespace Eagle
 
 		// Used to detect if the node was unused. If so, CurrentTime is reset to 0
 		if (currentFrame - m_CalculatedOnFrame > 1)
+		{
 			m_PrevValue = -1;
+			bTransitioning = false;
+		}
 
 		m_Pose.Reset();
 

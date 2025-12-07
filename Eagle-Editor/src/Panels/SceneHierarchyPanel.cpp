@@ -356,33 +356,32 @@ namespace Eagle
 
 	bool SceneHierarchyPanel::OnEvent(Event& e, bool bViewportFocused)
 	{
-		bool bChanged = false;
+		return Event::Dispatch<KeyPressedEvent>(e, EG_BIND_FN(SceneHierarchyPanel::OnKeyPressed), bViewportFocused);
+	}
 
-		if (e.GetEventType() == EventType::KeyPressed)
+	bool SceneHierarchyPanel::OnKeyPressed(KeyPressedEvent& e, bool bViewportFocused)
+	{
+		const bool bAllowAction = m_SelectedEntity && (!m_AllowOnlySingleRoot || m_SelectedEntity.HasParent());
+		const bool bShift = Input::IsKeyPressed(Key::LeftShift) || Input::IsKeyPressed(Key::RightShift);
+
+		if (bAllowAction && !m_PropertiesHovered && (bViewportFocused || m_SceneHierarchyFocused))
 		{
-			KeyPressedEvent& keyEvent = (KeyPressedEvent&)e;
-			const bool bAllowAction = m_SelectedEntity && (!m_AllowOnlySingleRoot || m_SelectedEntity.HasParent());
-			const bool bShift = Input::IsKeyPressed(Key::LeftShift) || Input::IsKeyPressed(Key::RightShift);
-
-			if (bAllowAction && !m_PropertiesHovered && (bViewportFocused || m_SceneHierarchyFocused))
+			if (e.GetKey() == Key::Delete)
 			{
-				if (keyEvent.GetKey() == Key::Delete)
-				{
-					const bool bDeleteChildren = bShift;
-					m_Scene->DestroyEntity(m_SelectedEntity, bDeleteChildren);
-					ClearSelection();
-					bChanged = true;
-				}
-				else if (Input::IsKeyPressed(Key::LeftControl) && (keyEvent.GetKey() == Key::D) && !m_Scene->IsPlaying())
-				{
-					Entity newEntity = m_Scene->CreateFromEntity(m_SelectedEntity);
-					newEntity.SetParent(m_SelectedEntity.GetParent());
-					m_SelectedEntity = newEntity;
-					bChanged = true;
-				}
+				const bool bDeleteChildren = bShift;
+				m_Scene->DestroyEntity(m_SelectedEntity, bDeleteChildren);
+				ClearSelection();
+				return true;
+			}
+			else if (Input::IsKeyPressed(Key::LeftControl) && (e.GetKey() == Key::D) && !m_Scene->IsPlaying())
+			{
+				Entity newEntity = m_Scene->CreateFromEntity(m_SelectedEntity);
+				newEntity.SetParent(m_SelectedEntity.GetParent());
+				m_SelectedEntity = newEntity;
+				return true;
 			}
 		}
 
-		return bChanged;
+		return false;
 	}
 }

@@ -169,7 +169,7 @@ namespace Eagle
 	{
 		EG_CPU_TIMING_SCOPED("Content Browser");
 
-		ImGui::Begin("Content Browser");
+		ImGui::Begin(GetWindowName());
 		ImGui::PushID("Content Browser");
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 		ImGui::InputTextWithHint("##search", "Search...", searchBuffer, searchBufferSize);
@@ -603,86 +603,8 @@ namespace Eagle
 		if (!m_ContentBrowserHovered)
 			return;
 
-		bool bHandled = false;
-		if (e.GetEventType() == EventType::MouseButtonPressed)
-		{
-			MouseButtonEvent& mbEvent = (MouseButtonEvent&)e;
-			Mouse button = mbEvent.GetMouseCode();
-			if (button == Mouse::Button3)
-			{
-				GoBack();
-				bHandled = true;
-			}
-			else if (button == Mouse::Button4)
-			{
-				GoForward();
-				bHandled = true;
-			}
-		}
-
-		if (e.GetEventType() == EventType::KeyPressed)
-		{
-			KeyPressedEvent& keyEvent = (KeyPressedEvent&)e;
-			const Key pressedKey = keyEvent.GetKey();
-			const bool control = Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl);
-
-			if (!std::filesystem::is_directory(m_SelectedFile))
-			{
-				Ref<Asset> asset;
-				if (AssetManager::Get(m_SelectedFile, &asset))
-				{
-					//Shortcuts
-					if (keyEvent.GetRepeatCount() > 0)
-						return;
-
-					switch (pressedKey)
-					{
-					case Key::S:
-						if (control)
-						{
-							OnSaveAsset(asset);
-							bHandled = true;
-						}
-						break;
-					case Key::X:
-						if (control)
-						{
-							OnCutAsset(m_SelectedFile);
-							bHandled = true;
-						}
-						break;
-					case Key::C:
-						if (control)
-						{
-							OnCopyAsset(m_SelectedFile);
-							bHandled = true;
-						}
-						break;
-					case Key::F2:
-						OnRenameAsset(asset);
-						bHandled = true;
-						break;
-					case Key::Delete:
-						OnDeleteAsset(asset);
-						bHandled = true;
-						break;
-					case Key::W:
-						DuplicateAsset(asset);
-						bHandled = true;
-						break;
-					}
-				}
-			}
-			
-			if (pressedKey == Key::V && control)
-			{
-				OnPasteAsset(m_CopiedPath, m_CurrentDirectoryRelative, m_bCopy);
-				m_CopiedPath.clear();
-				bHandled = true;
-			}
-		}
-	
-		e.Handled |= bHandled;
+		Event::Dispatch<MouseButtonPressedEvent>(e, EG_BIND_FN(ContentBrowserPanel::OnMousePressedEvent));
+		Event::Dispatch<KeyPressedEvent>(e, EG_BIND_FN(ContentBrowserPanel::OnKeyPressed));
 	}
 
 	void ContentBrowserPanel::OpenAssetEditor(const Ref<Asset>& asset)
@@ -1171,5 +1093,87 @@ namespace Eagle
 		m_SelectedFile = path;
 		m_CurrentDirectory = path.parent_path();
 		m_CurrentDirectoryRelative = std::filesystem::relative(m_CurrentDirectory, m_ProjectPath);
+	}
+
+	bool ContentBrowserPanel::OnKeyPressed(KeyPressedEvent& e)
+	{
+		KeyPressedEvent& keyEvent = (KeyPressedEvent&)e;
+		const Key pressedKey = keyEvent.GetKey();
+		const bool control = Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl);
+		bool bHandled = false;
+
+		if (!std::filesystem::is_directory(m_SelectedFile))
+		{
+			Ref<Asset> asset;
+			if (AssetManager::Get(m_SelectedFile, &asset))
+			{
+				//Shortcuts
+				if (keyEvent.GetRepeatCount() > 0)
+					return false;
+
+				switch (pressedKey)
+				{
+				case Key::S:
+					if (control)
+					{
+						OnSaveAsset(asset);
+						bHandled = true;
+					}
+					break;
+				case Key::X:
+					if (control)
+					{
+						OnCutAsset(m_SelectedFile);
+						bHandled = true;
+					}
+					break;
+				case Key::C:
+					if (control)
+					{
+						OnCopyAsset(m_SelectedFile);
+						bHandled = true;
+					}
+					break;
+				case Key::F2:
+					OnRenameAsset(asset);
+					bHandled = true;
+					break;
+				case Key::Delete:
+					OnDeleteAsset(asset);
+					bHandled = true;
+					break;
+				case Key::W:
+					DuplicateAsset(asset);
+					bHandled = true;
+					break;
+				}
+			}
+		}
+
+		if (pressedKey == Key::V && control)
+		{
+			OnPasteAsset(m_CopiedPath, m_CurrentDirectoryRelative, m_bCopy);
+			m_CopiedPath.clear();
+			bHandled = true;
+		}
+
+		return bHandled;
+	}
+
+	bool ContentBrowserPanel::OnMousePressedEvent(MouseButtonPressedEvent& e)
+	{
+		Mouse button = e.GetMouseCode();
+		if (button == Mouse::Button3)
+		{
+			GoBack();
+			return true;
+		}
+		else if (button == Mouse::Button4)
+		{
+			GoForward();
+			return true;
+		}
+
+		return false;
 	}
 }
