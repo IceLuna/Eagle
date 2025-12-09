@@ -42,5 +42,6 @@ namespace Eagle
 		bool bUseSmoothTransition = true; // If false, Frozen transition is used
 
 		SkeletalPose m_Pose; // Pose that was calculated by the node during the latest update
+		size_t m_CalculatedOnFrame = 0;
 	};
 }

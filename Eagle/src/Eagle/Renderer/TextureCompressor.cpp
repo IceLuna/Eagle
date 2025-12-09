@@ -11,6 +11,7 @@
 
 namespace Eagle
 {
+	static std::mutex s_Mutex;
 	static std::unordered_map<const void*, basisu::vector<uint8_t>> s_KTX2Data;
 
 	void TextureCompressor::Init()
@@ -113,6 +114,7 @@ namespace Eagle
 			ktx2Data.resize(compressed.Size);
 			memcpy(ktx2Data.data(), compressed.Data, compressed.Size);
 
+			std::scoped_lock lock(s_Mutex);
 			s_KTX2Data[texture] = std::move(ktx2Data);
 		}
 
@@ -155,6 +157,7 @@ namespace Eagle
 
 	void TextureCompressor::Destroy(const void* compressedHandle)
 	{
+		std::scoped_lock lock(s_Mutex);
 		s_KTX2Data.erase(compressedHandle);
 		ktxTexture_Destroy((ktxTexture*)compressedHandle);
 	}
@@ -167,6 +170,7 @@ namespace Eagle
 
 	DataBuffer TextureCompressor::GetKTX2Data(const void* compressedHandle)
 	{
+		std::scoped_lock lock(s_Mutex);
 		auto it = s_KTX2Data.find(compressedHandle);
 		if (it != s_KTX2Data.end())
 		{

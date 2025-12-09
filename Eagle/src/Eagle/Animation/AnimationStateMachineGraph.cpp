@@ -5,6 +5,7 @@
 
 #include "Eagle/Animation/Nodes/GraphNode.h"
 #include "Eagle/Classes/SkeletalMesh.h"
+#include "Eagle/Renderer/RenderManager.h"
 
 namespace Eagle
 {
@@ -57,10 +58,21 @@ namespace Eagle
 
 	const SkeletalPose& AnimationStateMachineGraph::Update(Timestep ts)
 	{
+		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
+		if (currentFrame <= m_CalculatedOnFrame)
+			return m_Pose;
+
 		if (!m_CurrentState)
 		{
 			m_Pose.Reset();
 			return m_Pose;
+		}
+
+		// Used to detect if the node was unused. If so, reset it
+		if (currentFrame - m_CalculatedOnFrame > 1)
+		{
+			if (m_States.empty() == false)
+				m_CurrentState = m_States[0];
 		}
 
 		// If we're transitioning and frozen transition is used, don't update the pose

@@ -26,6 +26,8 @@ namespace Eagle
 {
 	std::mutex g_ImGuiMutex;
 	static std::mutex g_TimingsMutex;
+	static std::mutex s_SubmitMutex;
+	static std::mutex s_SubmitFreeMutex;
 
 	struct RendererData
 	{
@@ -689,6 +691,16 @@ namespace Eagle
 			(*data->ImGuiLayer)->Render(cmd);
 		}
 		cmd->EndGraphics();
+	}
+
+	std::mutex& RenderManager::GetSubmitMutex()
+	{
+		return s_SubmitMutex;
+	}
+
+	std::mutex& RenderManager::GetSubmitFreeMutex()
+	{
+		return s_SubmitFreeMutex;
 	}
 
 	RenderCommandQueue& RenderManager::GetRenderCommandQueue()

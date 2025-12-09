@@ -1053,6 +1053,15 @@ namespace Eagle
 		return {};
 	}
 
+	Transform SkeletalMeshComponent::GetRagdollRootBoneWorldTransform() const
+	{
+		if (m_RagdollActor)
+			return m_RagdollActor->GetRootBoneWorldTransform();
+
+		EG_CORE_ERROR("Failed to call SkeletalMeshComponent::GetRagdollRootBoneWorldTransform. Ragdoll is null");
+		return {};
+	}
+
 	void SkeletalMeshComponent::SetRagdollLinearVelocity(const glm::vec3& velocity, bool bApplyToRootOnly)
 	{
 		if (m_RagdollActor)

@@ -405,6 +405,7 @@ namespace Eagle
 
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetRagdollEnabled_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetRagdollEnabled);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::IsRagdollEnabled_Native", Eagle::Script::Eagle_SkeletalMeshComponent_IsRagdollEnabled);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetRagdollRootBoneWorldTransform_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetRagdollRootBoneWorldTransform);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetRagdollBoneWorldTransform_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetRagdollBoneWorldTransform);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetBoneWorldTransform_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetBoneWorldTransform);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetBoneWorldLocation_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetBoneWorldLocation);

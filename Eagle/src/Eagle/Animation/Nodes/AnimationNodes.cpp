@@ -154,9 +154,9 @@ namespace Eagle
 		return m_Graph.lock()->GetStateMachine(m_StateMachineIndex);
 	}
 
-	Ref<GraphNode> AnimationGraphStateMachineEntry::Clone(const Weak<AnimationGraph>& newGraph) const
+	Ref<GraphNode> AnimationGraphStateMachineEntry::Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes) const
 	{
-		auto clone = AnimationGraphNode::CloneNode<AnimationGraphStateMachineEntry>(newGraph);
+		auto clone = AnimationGraphNode::CloneNode<AnimationGraphStateMachineEntry>(createdNodes, newGraph);
 		clone->m_StateMachineIndex = m_StateMachineIndex;
 		return clone;
 	}

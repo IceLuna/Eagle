@@ -23,7 +23,11 @@ namespace Eagle
 		virtual ~GraphNode() = default;
 
 		virtual SkeletalPose& Update(Timestep ts) = 0;
-		virtual Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const = 0;
+
+		// @createdNodes. Map of nodes that were created during cloning. It's used to prevent the same node being cloned multiple times.
+		// For example, let's consider a situation: we have node `A` with 2 inputs, and node `B` is connected to both `A` inputs.
+		// We want to create node `B` just once and set it to both inputs of `A`, and that's what `createdNodes` allows us to do.
+		virtual Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const = 0;
 
 		void SetInput(const Ref<GraphNode>& node, size_t index)
 		{
@@ -73,7 +77,7 @@ namespace Eagle
 
 	protected:
 		template<typename T, class... Args>
-		Ref<T> CloneNode(Args&&... args) const
+		Ref<T> CloneNode(std::map<const GraphNode*, Ref<GraphNode>>& createdNodes, Args&&... args) const
 		{
 			Ref<T> clone = MakeRef<T>(std::forward<Args>(args)...);
 			clone->m_CalculatedOnFrame = m_CalculatedOnFrame;
@@ -81,7 +85,7 @@ namespace Eagle
 
 			for (size_t i = 0; i < m_Inputs.size(); ++i)
 			{
-				clone->m_Inputs[i] = m_Inputs[i] ? m_Inputs[i]->Clone(clone->m_Graph) : nullptr;
+				clone->m_Inputs[i] = m_Inputs[i] ? m_Inputs[i]->Clone(clone->m_Graph, createdNodes) : nullptr;
 				// Vars are copied as is because otherwise each node would have its own copy of a variable
 				// Making it impossible/hard to make a variable-change affect every node
 				clone->m_Variables[i] = m_Variables[i];

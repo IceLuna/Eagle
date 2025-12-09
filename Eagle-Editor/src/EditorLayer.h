@@ -47,6 +47,7 @@ namespace Eagle
 
 	private:
 		bool OnKeyPressed(KeyPressedEvent& e);
+		bool OnWindowClose(WindowCloseEvent& e);
 		
 		void CheckAppAssembly();
 		void LoadAppAssembly();

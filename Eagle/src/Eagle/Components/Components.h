@@ -684,6 +684,7 @@ namespace Eagle
 		bool IsRagdollCollisionShown() const;
 		void SetShowRagdollCollision(bool bShow);
 		Transform GetRagdollBoneWorldTransform(const std::string& name) const;
+		Transform GetRagdollRootBoneWorldTransform() const;
 
 		// Update all bones
 		void SetRagdollLinearVelocity(const glm::vec3& velocity, bool bApplyToRootOnly);

@@ -803,6 +803,13 @@ namespace Eagle
             return IsRagdollEnabled_Native(Parent.ID);
         }
 
+        public Transform GetRagdollRootBoneWorldTransform()
+        {
+            Transform result;
+            GetRagdollRootBoneWorldTransform_Native(Parent.ID, out result);
+            return result;
+        }
+
         public Transform GetRagdollBoneWorldTransform(string name)
         {
             Transform result;
@@ -1160,6 +1167,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetAnimType_Native(in GUID entityID, AnimationType value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetRagdollRootBoneWorldTransform_Native(in GUID entityID, out Transform result);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetRagdollBoneWorldTransform_Native(in GUID entityID, string name, out Transform result);

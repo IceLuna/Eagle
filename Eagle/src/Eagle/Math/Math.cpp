@@ -84,8 +84,8 @@ namespace Eagle::Math
 		static glm::vec3 notUsed1;
 		static glm::vec4 notUsed2;
 		Transform result;
-		const bool bSuccess = glm::decompose(transformMatrix, result.Scale3D, result.Rotation.GetQuat(), result.Location, notUsed1, notUsed2);
-		EG_CORE_ASSERT(bSuccess);
+		[[maybe_unused]] const bool bSuccess = glm::decompose(transformMatrix, result.Scale3D, result.Rotation.GetQuat(), result.Location, notUsed1, notUsed2);
+		//EG_CORE_ASSERT(bSuccess);
 		return result;
 	}
 

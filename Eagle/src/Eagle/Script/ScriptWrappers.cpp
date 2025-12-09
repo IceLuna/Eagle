@@ -2445,6 +2445,19 @@ namespace Eagle
 		*result = entity.GetComponent<SkeletalMeshComponent>().GetRagdollBoneWorldTransform(MonoStringHandler(monoName).c_str());
 	}
 
+	void Script::Eagle_SkeletalMeshComponent_GetRagdollRootBoneWorldTransform(GUID entityID, Transform* result)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetRagdollRootBoneWorldTransform' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		*result = entity.GetComponent<SkeletalMeshComponent>().GetRagdollRootBoneWorldTransform();
+	}
+
 	void Script::Eagle_SkeletalMeshComponent_GetBoneWorldTransform(GUID entityID, MonoString* monoName, Transform* result)
 	{
 		const auto& scene = Scene::GetCurrentScene();

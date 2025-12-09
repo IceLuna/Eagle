@@ -103,6 +103,8 @@ namespace Eagle
 				return;
 			}
 
+			std::scoped_lock lock(GetSubmitMutex());
+
 			auto renderCmd = [](void* ptr)
 			{
 				auto f = (FuncT*)ptr;
@@ -121,6 +123,8 @@ namespace Eagle
 				func();
 				return;
 			}
+
+			std::scoped_lock lock(GetSubmitFreeMutex());
 
 			auto renderCmd = [](void* ptr)
 			{
@@ -176,6 +180,9 @@ namespace Eagle
 
 		static void PresentEditor(Ref<CommandBuffer>& cmd, const PresentPushData& pushData);
 		static void PresentGame(Ref<CommandBuffer>& cmd, const PresentPushData& pushData);
+
+		static std::mutex& GetSubmitMutex();
+		static std::mutex& GetSubmitFreeMutex();
 
 		static bool bImmediateDeletionMode;
 	};

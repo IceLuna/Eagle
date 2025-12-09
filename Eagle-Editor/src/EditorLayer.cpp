@@ -256,25 +256,8 @@ namespace Eagle
 
 		if (e.GetEventType() == EventType::WindowFocused)
 			m_WindowFocused = ((WindowFocusedEvent&)e).IsFocused();
-		else if (e.GetEventType() == EventType::WindowClose)
-		{
-			WindowCloseEvent& closeEvent = (WindowCloseEvent&)e;
-			if (closeEvent.IsQuitGame() && m_EditorState == EditorState::Play)
-			{
-				// Quit game was requested from C# scripts.
-				// But since we're in the editor, we just need to stop the simulation.
-				// But do it when the next frame starts to avoid corrupting the current frame logic
-				Submit([this]()
-				{
-					StopPlayingScene();
-				});
-			}
-			else
-			{
-				HandleCloseRequest(true);
-			}
-		}
 
+		Event::Dispatch<WindowCloseEvent>(e, EG_BIND_FN(EditorLayer::OnWindowClose));
 		Event::Dispatch<KeyPressedEvent>(e, EG_BIND_FN(EditorLayer::OnKeyPressed));
 		Event::Dispatch<MouseButtonPressedEvent>(e, EG_BIND_FN(EditorLayer::HandleEntitySelection));
 	}
@@ -461,6 +444,26 @@ namespace Eagle
 		}
 
 		return bHandled;
+	}
+
+	bool EditorLayer::OnWindowClose(WindowCloseEvent& e)
+	{
+		if (e.IsQuitGame() && m_EditorState == EditorState::Play)
+		{
+			// Quit game was requested from C# scripts.
+			// But since we're in the editor, we just need to stop the simulation.
+			// But do it when the next frame starts to avoid corrupting the current frame logic
+			Submit([this]()
+			{
+				StopPlayingScene();
+			});
+		}
+		else
+		{
+			HandleCloseRequest(true);
+		}
+
+		return true;
 	}
 
 	void EditorLayer::LoadAppAssembly()
@@ -2357,7 +2360,7 @@ namespace Eagle
 		m_DirtyAssetsChecked.clear();
 		m_DirtyAssets = AssetManager::GetDirtyAssets();
 		m_DirtyAssetsChecked.resize(m_DirtyAssets.size(), true);
-		m_ShowDirtyAssetMessage = m_DirtyAssets.empty() == false;
+		m_ShowDirtyAssetMessage = !m_DirtyAssets.empty();
 		m_DirtyAssetsReason = reason;
 	}
 

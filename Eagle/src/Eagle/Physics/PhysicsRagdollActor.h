@@ -30,6 +30,7 @@ namespace Eagle
 		bool IsCollisionShown() const { return m_bShowCollision; }
 		void SetShowCollision(bool bShowCollision);
 		Transform GetBoneWorldTransform(const std::string& boneName) const;
+		Transform GetRootBoneWorldTransform() const;
 
 		// @bApplyToRootOnly. If false, then all updates all ragdoll bones
 		void SetLinearVelocity(const glm::vec3& velocity, bool bApplyToRootOnly);

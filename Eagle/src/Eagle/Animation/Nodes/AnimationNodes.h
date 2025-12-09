@@ -21,10 +21,15 @@ namespace Eagle
 	protected:
 		// A helper function
 		template<typename T, class... Args>
-		Ref<T> CloneNode(Args&&... args) const
+		Ref<T> CloneNode(std::map<const GraphNode*, Ref<GraphNode>>& createdNodes, Args&&... args) const
 		{
-			Ref<T> clone = GraphNode::CloneNode<T>(std::forward<Args>(args)...);
+			auto it = createdNodes.find(this);
+			if (it != createdNodes.end())
+				return Cast<T>(it->second);
+
+			Ref<T> clone = GraphNode::CloneNode<T>(createdNodes, std::forward<Args>(args)...);
 			clone->m_Skeletal = m_Skeletal;
+			createdNodes[this] = clone;
 
 			return clone;
 		}
@@ -40,9 +45,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNode::CloneNode<AnimationGraphNodeOutput>(newGraph);
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeOutput>(createdNodes, newGraph);
 		}
 
 	private:
@@ -56,9 +61,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNode::CloneNode<AnimationGraphNodeStateOutput>(newGraph);
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeStateOutput>(createdNodes, newGraph);
 		}
 
 	private:
@@ -78,9 +83,9 @@ namespace Eagle
 		bool ShouldUseSmoothTransition() const { return m_bUseSmoothTransition; }
 		bool ShouldAutoTransition() const { return m_bAutoTransition; }
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			auto clone = AnimationGraphNode::CloneNode<AnimationGraphNodeTransitionOutput>(newGraph);
+			auto clone = AnimationGraphNode::CloneNode<AnimationGraphNodeTransitionOutput>(createdNodes, newGraph);
 			clone->m_TransitionTime = m_TransitionTime;
 			clone->m_bTransition = m_bTransition;
 			clone->m_bUseSmoothTransition = m_bUseSmoothTransition;
@@ -106,7 +111,7 @@ namespace Eagle
 		void SetStateMachineIndex(uint32_t index) { m_StateMachineIndex = index; }
 		const Ref<AnimationStateMachineGraph>& GetStateMachine() const;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override;
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override;
 
 	private:
 		uint32_t m_StateMachineIndex = ~0u;
@@ -121,9 +126,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			auto clone = AnimationGraphNode::CloneNode<AnimationGraphNodeClip>(newGraph);
+			auto clone = AnimationGraphNode::CloneNode<AnimationGraphNodeClip>(createdNodes, newGraph);
 			clone->m_LastAnim = m_LastAnim;
 			clone->m_PrevSpeed = m_PrevSpeed;
 
@@ -151,9 +156,9 @@ namespace Eagle
 	public:
 		AnimationGraphNodeBlend(const Weak<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNode::CloneNode<AnimationGraphNodeBlend>(newGraph);
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeBlend>(createdNodes, newGraph);
 		}
 
 		SkeletalPose& Update(Timestep ts) override;
@@ -167,9 +172,9 @@ namespace Eagle
 	public:
 		AnimationGraphNodeFilterBones(const Weak<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNode::CloneNode<AnimationGraphNodeFilterBones>(newGraph);
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeFilterBones>(createdNodes, newGraph);
 		}
 
 		SkeletalPose& Update(Timestep ts) override;
@@ -183,9 +188,9 @@ namespace Eagle
 	public:
 		AnimationGraphNodeTransformBone(const Weak<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNode::CloneNode<AnimationGraphNodeTransformBone>(newGraph);
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeTransformBone>(createdNodes, newGraph);
 		}
 
 		SkeletalPose& Update(Timestep ts) override;
@@ -201,9 +206,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNode::CloneNode<AnimationGraphNodeAdditiveBlend>(newGraph);
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeAdditiveBlend>(createdNodes, newGraph);
 		}
 
 	private:
@@ -217,9 +222,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNode::CloneNode<AnimationGraphNodeCalculateAdditive>(newGraph);
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeCalculateAdditive>(createdNodes, newGraph);
 		}
 
 	private:
@@ -233,9 +238,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNode::CloneNode<AnimationGraphNodeBlendPoseByBool>(newGraph);
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeBlendPoseByBool>(createdNodes, newGraph);
 		}
 
 	private:
@@ -253,9 +258,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNode::CloneNode<AnimationGraphNodeBlendPoseByInt>(newGraph, uint32_t(m_Inputs.size()));
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeBlendPoseByInt>(createdNodes, newGraph, uint32_t(m_Inputs.size()));
 		}
 
 	private:
@@ -273,9 +278,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNode::CloneNode<AnimationGraphNodeSelectPoseByBool>(newGraph);
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeSelectPoseByBool>(createdNodes, newGraph);
 		}
 
 	private:
@@ -289,9 +294,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNode::CloneNode<AnimationGraphNodeSelectPoseByInt>(newGraph, uint32_t(m_Inputs.size()));
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeSelectPoseByInt>(createdNodes, newGraph, uint32_t(m_Inputs.size()));
 		}
 
 	private:
@@ -305,9 +310,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNode::CloneNode<AnimationGraphNodeCachePose>(newGraph);
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeCachePose>(createdNodes, newGraph);
 		}
 
 	private:
@@ -324,9 +329,9 @@ namespace Eagle
 
 		const Ref<AssetAnimationBlendSpace>& GetBlendSpaceAsset() const { return m_BlendSpace; }
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNode::CloneNode<AnimationGraphNodeBlendSpace>(newGraph, m_BlendSpace, uint32_t(m_Inputs.size()));
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeBlendSpace>(createdNodes, newGraph, m_BlendSpace, uint32_t(m_Inputs.size()));
 		}
 
 	private:
@@ -363,9 +368,9 @@ namespace Eagle
 
 	protected:
 		template<typename T, class... Args>
-		Ref<T> CloneNode(Args&&... args) const
+		Ref<T> CloneNode(std::map<const GraphNode*, Ref<GraphNode>>& createdNodes, Args&&... args) const
 		{
-			Ref<T> clone = AnimationGraphNode::CloneNode<T>(std::forward<Args>(args)...);
+			Ref<T> clone = AnimationGraphNode::CloneNode<T>(createdNodes, std::forward<Args>(args)...);
 			clone->Result = Result;
 
 			return clone;
@@ -382,9 +387,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeAnd>(newGraph);
+			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeAnd>(createdNodes, newGraph);
 		}
 
 	private:
@@ -398,9 +403,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeOr>(newGraph);
+			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeOr>(createdNodes, newGraph);
 		}
 
 	private:
@@ -414,9 +419,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeXor>(newGraph);
+			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeXor>(createdNodes, newGraph);
 		}
 
 	private:
@@ -430,9 +435,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeNot>(newGraph);
+			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeNot>(createdNodes, newGraph);
 		}
 
 	private:
@@ -446,9 +451,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeLess>(newGraph);
+			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeLess>(createdNodes, newGraph);
 		}
 
 	private:
@@ -462,9 +467,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeLessEqual>(newGraph);
+			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeLessEqual>(createdNodes, newGraph);
 		}
 
 	private:
@@ -478,9 +483,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeGreater>(newGraph);
+			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeGreater>(createdNodes, newGraph);
 		}
 
 	private:
@@ -494,9 +499,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeGreaterEqual>(newGraph);
+			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeGreaterEqual>(createdNodes, newGraph);
 		}
 
 	private:
@@ -510,9 +515,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeEqual>(newGraph);
+			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeEqual>(createdNodes, newGraph);
 		}
 
 	private:
@@ -526,9 +531,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeNotEqual>(newGraph);
+			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeNotEqual>(createdNodes, newGraph);
 		}
 
 	private:
@@ -542,9 +547,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeAnimVarIsValid>(newGraph);
+			return AnimationGraphNodeBool::CloneNode<AnimationGraphNodeAnimVarIsValid>(createdNodes, newGraph);
 		}
 
 	private:
@@ -559,9 +564,9 @@ namespace Eagle
 
 	protected:
 		template<typename T, class... Args>
-		Ref<T> CloneNode(Args&&... args) const
+		Ref<T> CloneNode(std::map<const GraphNode*, Ref<GraphNode>>& createdNodes, Args&&... args) const
 		{
-			Ref<T> clone = AnimationGraphNode::CloneNode<T>(std::forward<Args>(args)...);
+			Ref<T> clone = AnimationGraphNode::CloneNode<T>(createdNodes, std::forward<Args>(args)...);
 			clone->Result = Result;
 
 			return clone;
@@ -578,9 +583,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeAdd>(newGraph);
+			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeAdd>(createdNodes, newGraph);
 		}
 
 	private:
@@ -594,9 +599,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeSub>(newGraph);
+			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeSub>(createdNodes, newGraph);
 		}
 
 	private:
@@ -610,9 +615,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeMul>(newGraph);
+			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeMul>(createdNodes, newGraph);
 		}
 
 	private:
@@ -626,9 +631,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeDiv>(newGraph);
+			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeDiv>(createdNodes, newGraph);
 		}
 
 	private:
@@ -642,9 +647,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeSqrt>(newGraph);
+			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeSqrt>(createdNodes, newGraph);
 		}
 
 	private:
@@ -658,9 +663,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeAbs>(newGraph);
+			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeAbs>(createdNodes, newGraph);
 		}
 
 	private:
@@ -674,9 +679,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeSin>(newGraph);
+			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeSin>(createdNodes, newGraph);
 		}
 
 	private:
@@ -690,9 +695,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeCos>(newGraph);
+			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeCos>(createdNodes, newGraph);
 		}
 
 	private:
@@ -706,9 +711,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeASin>(newGraph);
+			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeASin>(createdNodes, newGraph);
 		}
 
 	private:
@@ -722,9 +727,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeACos>(newGraph);
+			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeACos>(createdNodes, newGraph);
 		}
 
 	private:
@@ -738,9 +743,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeToRad>(newGraph);
+			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeToRad>(createdNodes, newGraph);
 		}
 
 	private:
@@ -754,9 +759,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeToDeg>(newGraph);
+			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeToDeg>(createdNodes, newGraph);
 		}
 
 	private:
@@ -770,9 +775,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeMapRange>(newGraph);
+			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeMapRange>(createdNodes, newGraph);
 		}
 
 	private:
@@ -786,9 +791,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeIntToFloat>(newGraph);
+			return AnimationGraphNodeFloat::CloneNode<AnimationGraphNodeIntToFloat>(createdNodes, newGraph);
 		}
 
 	private:
@@ -803,9 +808,9 @@ namespace Eagle
 
 	protected:
 		template<typename T, class... Args>
-		Ref<T> CloneNode(Args&&... args) const
+		Ref<T> CloneNode(std::map<const GraphNode*, Ref<GraphNode>>& createdNodes, Args&&... args) const
 		{
-			Ref<T> clone = AnimationGraphNode::CloneNode<T>(std::forward<Args>(args)...);
+			Ref<T> clone = AnimationGraphNode::CloneNode<T>(createdNodes, std::forward<Args>(args)...);
 			clone->Result = Result;
 
 			return clone;
@@ -822,9 +827,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeVec4::CloneNode<AnimationGraphNodeEulerToQuat>(newGraph);
+			return AnimationGraphNodeVec4::CloneNode<AnimationGraphNodeEulerToQuat>(createdNodes, newGraph);
 		}
 
 	private:
@@ -839,9 +844,9 @@ namespace Eagle
 
 	protected:
 		template<typename T, class... Args>
-		Ref<T> CloneNode(Args&&... args) const
+		Ref<T> CloneNode(std::map<const GraphNode*, Ref<GraphNode>>& createdNodes, Args&&... args) const
 		{
-			Ref<T> clone = AnimationGraphNode::CloneNode<T>(std::forward<Args>(args)...);
+			Ref<T> clone = AnimationGraphNode::CloneNode<T>(createdNodes, std::forward<Args>(args)...);
 			clone->Result = Result;
 
 			return clone;
@@ -858,9 +863,9 @@ namespace Eagle
 
 		SkeletalPose& Update(Timestep ts) override;
 
-		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const override
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const override
 		{
-			return AnimationGraphNodeAnimation::CloneNode<AnimationGraphNodeSelectRandomAnimation>(newGraph, uint32_t(m_Inputs.size()));
+			return AnimationGraphNodeAnimation::CloneNode<AnimationGraphNodeSelectRandomAnimation>(createdNodes, newGraph, uint32_t(m_Inputs.size()));
 		}
 
 		void SelectRandomAnimation(Timestep ts);

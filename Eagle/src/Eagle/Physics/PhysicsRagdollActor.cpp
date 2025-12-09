@@ -291,6 +291,11 @@ namespace Eagle
         return {};
     }
 
+    Transform PhysicsRagdollActor::GetRootBoneWorldTransform() const
+    {
+        return PhysXUtils::FromPhysXTransform(m_Root.Body->getGlobalPose());
+    }
+
     void PhysicsRagdollActor::SetLinearVelocity(const glm::vec3& velocity, bool bApplyToRootOnly)
     {
         const auto pxVel = PhysXUtils::ToPhysXVector(velocity);

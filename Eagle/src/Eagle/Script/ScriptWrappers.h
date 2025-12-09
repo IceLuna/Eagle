@@ -178,6 +178,7 @@ namespace Eagle::Script
 	void Eagle_SkeletalMeshComponent_SetRagdollEnabled(GUID entityID, bool bEnabled);
 	bool Eagle_SkeletalMeshComponent_IsRagdollEnabled(GUID entityID);
 	void Eagle_SkeletalMeshComponent_GetRagdollBoneWorldTransform(GUID entityID, MonoString* monoName, Transform* result);
+	void Eagle_SkeletalMeshComponent_GetRagdollRootBoneWorldTransform(GUID entityID, Transform* result);
 	void Eagle_SkeletalMeshComponent_GetBoneWorldTransform(GUID entityID, MonoString* monoName, Transform* result);
 	void Eagle_SkeletalMeshComponent_GetBoneWorldLocation(GUID entityID, MonoString* monoName, glm::vec3* result);
 	void Eagle_SkeletalMeshComponent_GetBoneWorldRotation(GUID entityID, MonoString* monoName, Rotator* result);
