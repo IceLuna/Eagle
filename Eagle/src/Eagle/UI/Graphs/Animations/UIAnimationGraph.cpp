@@ -54,11 +54,5 @@ namespace Eagle
     {
         GraphNodeFactory::FillAnimationNodes(m_NodeFactory);
         UIGraph::SetupNodeFactory();
-
-        // Other
-        {
-            auto& otherCategory = m_NodeFactory["Other"];
-            otherCategory["New State Machine"] = &GraphNodeFactory::SpawnAnimationStateMachine;
-        }
     }
 }

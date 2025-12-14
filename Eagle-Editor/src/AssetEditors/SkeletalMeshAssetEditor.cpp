@@ -925,7 +925,7 @@ namespace Eagle
 		{
 			const auto& scene = GetCurrentScene();
 			auto view = scene->GetAllEntitiesWith<SkeletalMeshComponent>();
-			auto entt = view[0];
+			auto entt = view.front();
 			entity = Entity(entt, scene.get());
 		}
 		else
@@ -945,7 +945,7 @@ namespace Eagle
 		{
 			const auto& scene = GetCurrentScene();
 			auto view = scene->GetAllEntitiesWith<SkeletalMeshComponent>();
-			auto entt = view[0];
+			auto entt = view.front();
 			Entity entity = Entity(entt, scene.get());
 			return entity.GetComponent<SkeletalMeshComponent>().GetBoneWorldTransform(name);
 		}

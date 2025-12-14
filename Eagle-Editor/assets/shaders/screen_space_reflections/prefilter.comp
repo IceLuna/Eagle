@@ -10,7 +10,7 @@ layout(binding = 5) uniform sampler2D g_Normal;
 layout(binding = 6) uniform sampler2D g_Depth;
 layout(binding = 7, r32ui) uniform uimageBuffer g_DenoiserTileList;
 
-layout(binding = 8, r11f_g11f_b10f) uniform writeonly image2D g_OutRadiance;
+layout(binding = 8, rgba16f) uniform writeonly image2D g_OutRadiance;
 layout(binding = 9, r16f) uniform writeonly image2D g_OutVariance;
 
 layout(push_constant) uniform PushConstants

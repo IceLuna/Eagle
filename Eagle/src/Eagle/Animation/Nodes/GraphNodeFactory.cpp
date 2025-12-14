@@ -80,6 +80,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         animationsCategory["Transform Bone"] = &GraphNodeFactory::SpawnAnimTransformBone;
         animationsCategory["Cache Pose"] = &GraphNodeFactory::SpawnCachePoseNode;
         animationsCategory["Select Random Anim"] = &GraphNodeFactory::SpawnSelectRandomAnimationNode;
+        animationsCategory["New State Machine"] = &GraphNodeFactory::SpawnAnimationStateMachine;
     }
 
     Node& GraphNodeFactory::SpawnInputActionNode(UIGraph& graph)

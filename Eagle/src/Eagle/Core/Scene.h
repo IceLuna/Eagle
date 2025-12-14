@@ -209,12 +209,16 @@ namespace Eagle
 		template<typename Func>
 		void OnEach(Func func)
 		{
-			const auto myFunc = [&func, this](entt::entity e)
+			for (auto [entt] : m_Registry.storage<entt::entity>().each())
 			{
-				Entity entity(e, this);
+				Entity entity(entt, this);
 				func(entity);
-			};
-			m_Registry.each(myFunc);
+			}
+		}
+
+		size_t GetEntitiesCount() const
+		{
+			return m_Registry.storage<entt::entity>()->size();
 		}
 
 		// Skybox
@@ -643,7 +647,5 @@ namespace Eagle
 		GUID m_CurrentNavMeshEntityGUID = GUID(0, 0);
 
 		friend class Entity;
-		friend class SceneSerializer;
-		friend class SceneHierarchyPanel;
 	};
 }

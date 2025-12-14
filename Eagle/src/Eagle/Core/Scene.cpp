@@ -354,7 +354,7 @@ namespace Eagle
 		SetSkybox(m_Sky);
 
 		std::unordered_map<entt::entity, entt::entity> createdEntities;
-		createdEntities.reserve(other->m_Registry.size());
+		createdEntities.reserve(other->GetEntitiesCount());
 		for (auto entt : other->m_Registry.view<TransformComponent>())
 		{
 			const std::string& sceneName = other->m_Registry.get<EntitySceneNameComponent>(entt).Name;

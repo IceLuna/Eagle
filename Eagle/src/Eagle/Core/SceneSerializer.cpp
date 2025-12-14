@@ -64,8 +64,8 @@ namespace Eagle
 		out << YAML::BeginMap;
 
 		//Editor camera
-		const auto& transform = scene->m_EditorCamera.GetTransform();
-		const auto& camera = scene->m_EditorCamera;
+		const auto& camera = scene->GetEditorCamera();
+		const auto& transform = camera.GetTransform();
 		
 		out << YAML::Key << "EditorCamera"	<< YAML::BeginMap;
 		out << YAML::Key << "ProjectionMode" << YAML::Value << Utils::GetEnumName(camera.GetProjectionMode());
@@ -116,18 +116,11 @@ namespace Eagle
 		SerializeSkybox(scene, out);
 
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
-		std::vector<Entity> entities;
-		entities.reserve(scene->m_Registry.alive());
 
-		scene->m_Registry.each([&entities, &scene](auto entityID)
+		scene->OnEach([&out](const Entity& entity)
 		{
-			entities.emplace_back(entityID, scene.get());
+			Serializer::SerializeEntity(out, entity);
 		});
-
-		for (auto it = entities.rbegin(); it != entities.rend(); ++it)
-		{
-			Serializer::SerializeEntity(out, *it);
-		}
 
 		out << YAML::EndSeq;
 		out << YAML::EndMap;
@@ -186,7 +179,7 @@ namespace Eagle
 
 		if (auto editorCameraNode = data["EditorCamera"])
 		{
-			auto& camera = scene->m_EditorCamera;
+			auto& camera = scene->GetEditorCamera();
 
 			camera.SetProjectionMode(Utils::GetEnumFromName<CameraProjectionMode>(editorCameraNode["ProjectionMode"].as<std::string>()));
 
