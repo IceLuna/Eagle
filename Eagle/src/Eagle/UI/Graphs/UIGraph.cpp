@@ -758,6 +758,7 @@ namespace Eagle
             if (node.Graph)
                 result.Subgraphs.emplace_back(node.Graph->Serialize());
 
+            EG_CORE_ASSERT(ed::HasNode(node.ID));
             ImVec2 pos = ed::GetNodePosition(node.ID);
             ImVec2 size = ed::GetNodeSize(node.ID);
             GraphNodeSerializationData nodeData;

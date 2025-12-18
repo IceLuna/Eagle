@@ -333,7 +333,7 @@ namespace Eagle
 			std::ofstream out(cacheFilePath, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
 			out.write((const char*)m_Binary.data(), m_Binary.size() * sizeof(uint32_t));
 			out.close();
-			EG_RENDERER_TRACE("Compilation took {} ms", timer.GetDuration());
+			EG_RENDERER_TRACE("Compilation took {} ms", timer.GetMilliseconds());
 		}
 
 		return bReloaded;

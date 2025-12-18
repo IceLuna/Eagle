@@ -21,9 +21,9 @@ namespace Eagle
 		void OnResize(glm::uvec2 size) override;
 		void InitWithOptions(const SceneRendererSettings& settings);
 
-		void AddParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems);
-		void UpdateParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems);
-		void RemoveParticleSystems(const std::unordered_set<GUID>& systems);
+		void AddParticleSystem(const ParticleSystemComponent& system);
+		void UpdateParticleSystem(const ParticleSystemComponent& system);
+		void RemoveParticleSystem(const ParticleSystemComponent& system);
 		void RemoveAllParticleSystems();
 		void UpdateTransforms(const std::unordered_set<const ParticleSystemComponent*>& systems);
 
@@ -41,6 +41,11 @@ namespace Eagle
 			uint32_t EmitterIndex = s_InvalidEmitterIndex; // index of the emitter inside of `m_EmittersBuffer`
 			uint32_t TransformIndex = s_InvalidEmitterIndex; // index of the emitter inside of `m_Transforms`
 			uint32_t AnimationOffset = s_InvalidEmitterIndex;
+
+			bool IsEmitterIndexValid() const
+			{
+				return EmitterIndex != s_InvalidEmitterIndex;
+			}
 		};
 
 		struct MeshEmitterData
@@ -86,6 +91,23 @@ namespace Eagle
 		void RemoveEmitterMeshData(const ParticleEmitter& emitter);
 		MeshEmitterData GetEmitterMeshData(const ParticleEmitter& emitter);
 
+		struct ModifyRequest
+		{
+			ParticleEmitter Emitter;
+			GUID SystemID = GUID(0, 0);
+			EmitterData Indices{};
+			bool bDestroyImmediately = false;
+
+			enum class RequestType
+			{
+				Add, Update, Remove
+			} Type;
+		};
+
+		void HandleEmitter_Add_RT(const Ref<CommandBuffer>& cmd, const ModifyRequest& data);
+		void HandleEmitter_Update_RT(const Ref<CommandBuffer>& cmd, const ModifyRequest& data);
+		void HandleEmitter_Remove_RT(const Ref<CommandBuffer>& cmd, const ModifyRequest& data);
+
 	private:
 		struct ParticleSystemData
 		{
@@ -97,27 +119,16 @@ namespace Eagle
 			ParticleSystemData(uint32_t deadCount) : DeadCount(deadCount) {}
 		};
 
-		struct AddingEmitterData
-		{
-			ParticleEmitter Emitter;
-			GUID SystemID;
-		};
-
-		struct RemovingEmitterData
-		{
-			uint32_t EmitterIndex = 0; // index of the emitter inside of `m_EmittersBuffer`
-			uint32_t TransformIndex = 0;
-		};
-
 		struct DeadEmitterData
 		{
 			Timer TimeOfDeath;
-			RemovingEmitterData Data;
+			uint32_t EmitterIndex = 0; // index of the emitter inside of `m_EmittersBuffer`
+			uint32_t TransformIndex = 0;
 			float TimeTillDead = 0.f; // In seconds
 
 			bool IsDead() const
 			{
-				const auto duration = TimeOfDeath.GetDuration() / 1000.f; // To seconds
+				const double duration = TimeOfDeath.GetSeconds();
 				if (duration >= TimeTillDead)
 					return true;
 
@@ -126,9 +137,7 @@ namespace Eagle
 		};
 
 		std::unordered_map<GUID, std::unordered_map<ParticleEmitter, EmitterData>> m_SystemToEmittersMapping; // Key - Particle system; Value - its emitters
-		std::vector<AddingEmitterData> m_EmittersToAdd;
-		std::vector<std::pair<ParticleEmitter, EmitterData>> m_EmittersToUpdate;
-		std::vector<std::pair<ParticleEmitter, RemovingEmitterData>> m_EmittersToRemove;
+		std::vector<ModifyRequest> m_ModifyRequestQueue;
 		std::vector<DeadEmitterData> m_DeadEmitters;
 
 		std::vector<glm::mat4> m_Transforms;

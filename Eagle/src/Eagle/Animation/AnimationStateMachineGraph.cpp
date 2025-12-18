@@ -110,6 +110,7 @@ namespace Eagle
 			}
 		}
 
+		m_CalculatedOnFrame = currentFrame;
 		return m_Pose;
 	}
 	

@@ -360,6 +360,7 @@ namespace Eagle
             ed::NodeId id = GetNextId();
             auto inserted = m_GraphData.Nodes.emplace(id, Node{ this, id, name, color, bDeletable });
             auto& it = inserted.first;
+            m_GraphData.Editor->CreateNode(id);
             return it->second;
         }
 

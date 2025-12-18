@@ -286,19 +286,19 @@ namespace Eagle
 		return specs;
 	}
 
-	void SceneRenderer::AddParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems)
+	void SceneRenderer::AddParticleSystem(const ParticleSystemComponent& system)
 	{
-		m_ParticleTask->AddParticleSystems(systems);
+		m_ParticleTask->AddParticleSystem(system);
 	}
 
-	void SceneRenderer::UpdateParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems)
+	void SceneRenderer::UpdateParticleSystem(const ParticleSystemComponent& system)
 	{
-		m_ParticleTask->UpdateParticleSystems(systems);
+		m_ParticleTask->UpdateParticleSystem(system);
 	}
 
-	void SceneRenderer::RemoveParticleSystems(const std::unordered_set<GUID>& systems)
+	void SceneRenderer::RemoveParticleSystem(const ParticleSystemComponent& system)
 	{
-		m_ParticleTask->RemoveParticleSystems(systems);
+		m_ParticleTask->RemoveParticleSystem(system);
 	}
 
 	void SceneRenderer::UpdateParticleTransforms(const std::unordered_set<const ParticleSystemComponent*>& systems)

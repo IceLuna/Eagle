@@ -822,21 +822,6 @@ namespace Eagle
 		});
 	}
 
-	void Scene::CollectParticleSystems(const std::unordered_set<uint32_t>& entities)
-	{
-		static_assert(std::is_same<uint32_t, EntityIDType>::value);
-
-		m_TempParticleSystems.clear();
-		for (const auto& entityID : entities)
-		{
-			entt::entity entity = (entt::entity)entityID;
-			if (m_Registry.valid(entity) && m_Registry.all_of<ParticleSystemComponent>(entity))
-			{
-				m_TempParticleSystems.emplace(&m_Registry.get<ParticleSystemComponent>(entity));
-			}
-		}
-	}
-
 	void Scene::GatherLightsInfo()
 	{
 		EG_CPU_TIMING_SCOPED("Scene. Gather Lights Info");
@@ -1437,10 +1422,6 @@ namespace Eagle
 		if (m_DirtyFlags.bRecreateParticleSystems)
 		{
 			m_DirtyTransformParticles.clear();
-			m_ParticlesToAdd.clear();
-			m_ParticlesToRemove.clear();
-			m_ParticlesToUpdate.clear();
-			m_TempParticleSystems.clear();
 			m_SkeletalParticles.clear();
 
 			m_SceneRenderer->RemoveAllParticleSystems();
@@ -1451,37 +1432,29 @@ namespace Eagle
 				auto& ps = view.get<ParticleSystemComponent>(entity);
 				if (ps.bAutospawn)
 				{
-					m_TempParticleSystems.insert(&ps);
-					RegisterSkeletalParticleIfCan(&ps);
+					RegisterSkeletalParticleIfCan(ps);
+					m_SceneRenderer->AddParticleSystem(ps);
 				}
 			}
-			m_SceneRenderer->AddParticleSystems(m_TempParticleSystems);
-			m_TempParticleSystems.clear();
 		}
 		else
 		{
-			if (m_DirtyTransformParticles.size())
+			if (!m_DirtyTransformParticles.empty())
 			{
-				CollectParticleSystems(m_DirtyTransformParticles);
+				static_assert(std::is_same<uint32_t, EntityIDType>::value);
+
+				m_TempParticleSystems.clear();
+				for (const auto& entityID : m_DirtyTransformParticles)
+				{
+					entt::entity entity = (entt::entity)entityID;
+					if (m_Registry.valid(entity) && m_Registry.all_of<ParticleSystemComponent>(entity))
+					{
+						m_TempParticleSystems.emplace(&m_Registry.get<ParticleSystemComponent>(entity));
+					}
+				}
+
 				m_SceneRenderer->UpdateParticleTransforms(m_TempParticleSystems);
 				m_DirtyTransformParticles.clear();
-			}
-			if (m_ParticlesToAdd.size())
-			{
-				CollectParticleSystems(m_ParticlesToAdd);
-				m_SceneRenderer->AddParticleSystems(m_TempParticleSystems);
-				m_ParticlesToAdd.clear();
-			}
-			if (m_ParticlesToRemove.size())
-			{
-				m_SceneRenderer->RemoveParticleSystems(m_ParticlesToRemove);
-				m_ParticlesToRemove.clear();
-			}
-			if (m_ParticlesToUpdate.size())
-			{
-				CollectParticleSystems(m_ParticlesToUpdate);
-				m_SceneRenderer->UpdateParticleSystems(m_TempParticleSystems);
-				m_ParticlesToUpdate.clear();
 			}
 		}
 
@@ -1872,25 +1845,24 @@ namespace Eagle
 		return m_RuntimeCamera;
 	}
 
-	void Scene::AddParticleSystem(const ParticleSystemComponent* system)
+	void Scene::AddParticleSystem(const ParticleSystemComponent& system)
 	{
-		m_ParticlesToAdd.emplace(system->Parent.GetID());
 		RegisterSkeletalParticleIfCan(system);
+		m_SceneRenderer->AddParticleSystem(system);
 	}
 
-	void Scene::RemoveParticleSystem(const ParticleSystemComponent* system)
+	void Scene::RemoveParticleSystem(const ParticleSystemComponent& system)
 	{
-		m_ParticlesToRemove.emplace(system->GetSystemID());
-		m_SkeletalParticles.erase(system->Parent.GetID());
+		m_SkeletalParticles.erase(system.Parent.GetID());
+		m_SceneRenderer->RemoveParticleSystem(system);
 	}
 
-	void Scene::UpdateParticleSystem(const ParticleSystemComponent* system)
+	void Scene::UpdateParticleSystem(const ParticleSystemComponent& system)
 	{
-		m_ParticlesToUpdate.emplace(system->Parent.GetID());
-		m_DirtyTransformParticles.erase(system->Parent.GetID()); // No need to update transform separately
-
-		m_SkeletalParticles.erase(system->Parent.GetID());
+		m_DirtyTransformParticles.erase(system.Parent.GetID()); // No need to update transform separately
+		m_SkeletalParticles.erase(system.Parent.GetID());
 		RegisterSkeletalParticleIfCan(system);
+		m_SceneRenderer->UpdateParticleSystem(system);
 	}
 
 	void Scene::OnStaticMeshComponentRemoved(entt::registry& r, entt::entity e)
@@ -2060,14 +2032,14 @@ namespace Eagle
 		m_Registry.on_destroy<NavigationCrowdAgentComponent>().connect<&Scene::OnCrowdAgentRemoved>(*this);
 	}
 
-	void Scene::RegisterSkeletalParticleIfCan(const ParticleSystemComponent* system)
+	void Scene::RegisterSkeletalParticleIfCan(const ParticleSystemComponent& system)
 	{
-		const auto& emitters = system->GetAsset()->GetEmitters();
+		const auto& emitters = system.GetAsset()->GetEmitters();
 		for (const auto& emitter : emitters)
 		{
 			if (emitter.IsSkeletalMeshUsed())
 			{
-				m_SkeletalParticles.emplace(system->Parent.GetID());
+				m_SkeletalParticles.emplace(system.Parent.GetID());
 				break;
 			}
 		}

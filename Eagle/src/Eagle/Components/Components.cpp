@@ -1200,7 +1200,7 @@ namespace Eagle
 		if (!bSpawned && m_Asset)
 		{
 			UpdatePerEmitterAnimData();
-			Parent.GetScene()->AddParticleSystem(this);
+			Parent.GetScene()->AddParticleSystem(*this);
 			bSpawned = true;
 			m_Asset->AddOnAssetModifiedCallback(m_SystemID, [entity = Parent]() mutable
 			{
@@ -1213,7 +1213,7 @@ namespace Eagle
 	{
 		if (bSpawned)
 		{
-			Parent.GetScene()->RemoveParticleSystem(this);
+			Parent.GetScene()->RemoveParticleSystem(*this);
 			bSpawned = false;
 			m_Asset->RemoveOnAssetModifiedCallback(m_SystemID);
 		}
@@ -1224,7 +1224,7 @@ namespace Eagle
 	{
 		UpdatePerEmitterAnimData();
 		if (bSpawned)
-			Parent.GetScene()->UpdateParticleSystem(this);
+			Parent.GetScene()->UpdateParticleSystem(*this);
 	}
 
 	void ParticleSystemComponent::UpdatePerEmitterAnimData()

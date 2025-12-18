@@ -37,7 +37,7 @@ namespace Eagle
 		Ref<PipelineCompute> m_Pipeline;
 		Ref<PipelineCompute> m_BlurPipeline;
 
-		std::vector<glm::vec3> m_Samples;
+		std::vector<glm::vec4> m_Samples;
 		uint32_t m_SamplesCount = 2u;
 		Ref<Buffer> m_SamplesBuffer;
 		Ref<Image> m_ResultImage;

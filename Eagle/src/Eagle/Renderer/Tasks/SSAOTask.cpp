@@ -30,7 +30,7 @@ namespace Eagle
 		const uint32_t samples = settings.GetNumberOfSamples();
 
 		BufferSpecifications bufferSpecs;
-		bufferSpecs.Size = samples * sizeof(glm::vec3);
+		bufferSpecs.Size = samples * sizeof(glm::vec4);
 		bufferSpecs.Layout = BufferLayoutType::StorageBuffer;
 		bufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 		m_SamplesBuffer = Buffer::Create(bufferSpecs, "SSAO_Samples");
@@ -76,7 +76,7 @@ namespace Eagle
 
 		if (bKernelsDirty)
 		{
-			const size_t newBufferSize = samples * sizeof(glm::vec3);
+			const size_t newBufferSize = samples * sizeof(glm::vec4);
 
 			// Resize if needed
 			m_SamplesBuffer->Resize(newBufferSize);
@@ -202,7 +202,7 @@ namespace Eagle
 			float scale = float(i) / float(m_SamplesCount);
 			scale = glm::mix(0.1f, 1.f, scale * scale);
 
-			m_Samples[i] = (sample * scale);
+			m_Samples[i] = glm::vec4(sample * scale, 0);
 		}
 
 		bKernelsDirty = true;

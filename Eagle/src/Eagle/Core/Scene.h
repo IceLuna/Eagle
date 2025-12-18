@@ -294,9 +294,9 @@ namespace Eagle
 			m_DirtyFlags.SetEverythingDirty(true);
 		}
 
-		void AddParticleSystem(const ParticleSystemComponent* system);
-		void RemoveParticleSystem(const ParticleSystemComponent* system);
-		void UpdateParticleSystem(const ParticleSystemComponent* system);
+		void AddParticleSystem(const ParticleSystemComponent& system);
+		void RemoveParticleSystem(const ParticleSystemComponent& system);
+		void UpdateParticleSystem(const ParticleSystemComponent& system);
 
 		void DestroyPendingEntities();
 		bool IsPendingDestroy(Entity entity) const;
@@ -314,7 +314,6 @@ namespace Eagle
 		void SyncCrowdAgents();
 		void SetupOnAppAssemblyReloadedCallback();
 
-		void CollectParticleSystems(const std::unordered_set<uint32_t>& input); // Pushes data from `input` into `m_TempParticleSystems`
 		void GatherLightsInfo();
 		void GatherSkeletalMeshes();
 		void UpdateScripts(Timestep ts);
@@ -322,7 +321,7 @@ namespace Eagle
 		void RenderScene(Timestep ts, bool bRuntime);
 		CameraComponent* FindOrCreateRuntimeCamera();
 		void ConnectSignals();
-		void RegisterSkeletalParticleIfCan(const ParticleSystemComponent* system);
+		void RegisterSkeletalParticleIfCan(const ParticleSystemComponent& system);
 
 		void OnStaticMeshComponentRemoved(entt::registry& r, entt::entity e);
 		void OnSkeletalMeshComponentRemoved(entt::registry& r, entt::entity e);
@@ -498,15 +497,9 @@ namespace Eagle
 
 			if constexpr (std::is_base_of<ParticleSystemComponent, T>::value)
 			{
-				if (notification == Notification::OnStateChanged)
+				if (notification == Notification::OnTransformChanged)
 				{
-					m_ParticlesToUpdate.emplace(component.Parent.GetID());
-				}
-				else if (notification == Notification::OnTransformChanged)
-				{
-					auto it = m_ParticlesToUpdate.find(component.Parent.GetID());
-					if (it == m_ParticlesToUpdate.end()) // No need to update transform separately if it's already waiting for an update
-						m_DirtyTransformParticles.emplace(component.Parent.GetID());
+					m_DirtyTransformParticles.emplace(component.Parent.GetID());
 				}
 			}
 
@@ -579,12 +572,9 @@ namespace Eagle
 		std::unordered_set<const DecalComponent*> m_DirtyTransformDecals;
 
 		// entt::entity. Can't store Entity (forward declaration)
-		std::unordered_set<uint32_t> m_ParticlesToAdd;
-		std::unordered_set<uint32_t> m_ParticlesToUpdate;
 		std::unordered_set<uint32_t> m_SkeletalParticles; // Particles that use animated mesh
 		std::unordered_set<uint32_t> m_DirtyTransformParticles;
 
-		std::unordered_set<GUID> m_ParticlesToRemove; // GUIDs of ParticleSystemComponent: system->Parent.GetGUID(). It's done like that because we can't store a pointer to a dead component
 		std::unordered_set<const ParticleSystemComponent*> m_TempParticleSystems; // Used to update and to avoid reallocation of this data structure
 
 		std::unordered_map<GUID, Entity> m_AliveEntities;

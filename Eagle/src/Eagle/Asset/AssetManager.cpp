@@ -130,7 +130,7 @@ namespace Eagle
 			// It just stores an asset GUID
 			assetsToLoadQueue[0].Paths.emplace_back(std::move(assetPath));
 		}
-		EG_CORE_INFO("Took {}s to traverse directories and find assets", globalTimer.GetDuration() / 1000.f);
+		EG_CORE_INFO("Took {}s to traverse directories and find assets", globalTimer.GetSeconds());
 
 		std::mutex mutex;
 		constexpr bool bEnableAsyncLoading = true;
@@ -141,7 +141,7 @@ namespace Eagle
 		{
 			Timer timer;
 			Ref<Asset> asset = Asset::Create(assetPath);
-			EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetDuration() / 1000.f, assetPath.u8string());
+			EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetSeconds(), assetPath.u8string());
 			if (bUseMutex)
 			{
 				std::scoped_lock lock(mutex);
@@ -173,7 +173,7 @@ namespace Eagle
 			}
 		}
 
-		EG_CORE_INFO("Took {}s to load all project assets using {} threads", globalTimer.GetDuration() / 1000.f, threadCount);
+		EG_CORE_INFO("Took {}s to load all project assets using {} threads", globalTimer.GetSeconds(), threadCount);
 
 		s_Skybox = Cast<AssetTextureCube>(Asset::Create(Application::GetCorePath() / "assets/textures/IBL.egasset"));
 		s_Sphere = Cast<AssetStaticMesh>(Asset::Create(Application::GetCorePath() / "assets/meshes/Sphere.egasset"));
@@ -268,7 +268,7 @@ namespace Eagle
 				Timer timer;
 				const auto& assetData = it->second;
 				*outAsset = Serializer::DeserializeAsset(assetData->GetDataBuffer(), path, false);
-				EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetDuration() / 1000.f, path.u8string());
+				EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetSeconds(), path.u8string());
 
 				Register(*outAsset);
 				return true;
@@ -309,7 +309,7 @@ namespace Eagle
 
 				Timer timer;
 				*outAsset = Serializer::DeserializeAsset(assetData->GetDataBuffer(), assetPath, false);
-				EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetDuration() / 1000.f, assetPath.u8string());
+				EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetSeconds(), assetPath.u8string());
 
 				Register(*outAsset);
 				return true;

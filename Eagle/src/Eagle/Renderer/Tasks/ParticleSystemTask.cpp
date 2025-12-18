@@ -261,20 +261,113 @@ namespace Eagle
 		InitSortOpaqueResources();
 	}
 
+	void ParticleSystemTask::HandleEmitter_Add_RT(const Ref<CommandBuffer>& cmd, const ModifyRequest& data)
+	{
+		const auto& emitterToAdd = data.Emitter;
+		auto itEmitters = m_SystemToEmittersMapping.find(data.SystemID);
+		if (itEmitters == m_SystemToEmittersMapping.end())
+			return;
+
+		auto& emitterData = itEmitters->second.at(emitterToAdd);
+		emitterData = data.Indices;
+
+		Emitter emitter;
+		Utils::ToGPUEmitter(emitterToAdd, emitterData, GetEmitterMeshData(emitterToAdd), emitter);
+
+		uint32_t insertIndex = m_NumEmitters;
+		for (auto it = m_DeadEmitters.begin(); it != m_DeadEmitters.end(); ++it) // Find the first available slot
+		{
+			const auto& deadEmitter = *it;
+			if (deadEmitter.IsDead())
+			{
+				const uint32_t emitterIndex = deadEmitter.EmitterIndex;
+				m_FreeTransformSlots.push_back(deadEmitter.TransformIndex);
+				m_DeadEmitters.erase(it);
+
+				if (emitterIndex != s_InvalidEmitterIndex)
+				{
+					insertIndex = emitterIndex;
+					break;
+				}
+			}
+		}
+
+		if (insertIndex == m_NumEmitters)
+			m_NumEmitters++; // There were no free slots
+
+		const size_t offset = insertIndex * sizeof(Emitter);
+		cmd->WriteTransitionless(m_EmittersBuffer, &emitter, sizeof(Emitter), offset);
+
+		emitterData.EmitterIndex = insertIndex;
+	}
+
+	void ParticleSystemTask::HandleEmitter_Update_RT(const Ref<CommandBuffer>& cmd, const ModifyRequest& data)
+	{
+		const auto& emitterToUpdate = data.Emitter;
+		auto itEmitters = m_SystemToEmittersMapping.find(data.SystemID);
+		if (itEmitters == m_SystemToEmittersMapping.end())
+			return;
+
+		const auto& emitterData = itEmitters->second.at(emitterToUpdate);
+
+		Emitter gpuEmitter;
+		Utils::ToGPUEmitter(data.Emitter, emitterData, GetEmitterMeshData(data.Emitter), gpuEmitter);
+
+		const size_t sizeToUpdate = offsetof(Emitter, WorldPos); // We're updating the data before the 'WorldPos' because everything after is an internal state
+		const size_t offset = emitterData.EmitterIndex * sizeof(Emitter);
+		cmd->WriteTransitionless(m_EmittersBuffer, &gpuEmitter, sizeToUpdate, offset);
+	}
+
+	void ParticleSystemTask::HandleEmitter_Remove_RT(const Ref<CommandBuffer>& cmd, const ModifyRequest& data)
+	{
+		const auto& emitterToRemove = data.Emitter;
+
+		EmitterData emitterData;
+		if (data.Indices.IsEmitterIndexValid())
+		{
+			emitterData = data.Indices;
+		}
+		else
+		{
+			// Try to retrieve it
+			auto itEmitters = m_SystemToEmittersMapping.find(data.SystemID);
+			if (itEmitters == m_SystemToEmittersMapping.end())
+			{
+				EG_CORE_ASSERT(false);
+				return;
+			}
+
+			emitterData = itEmitters->second.at(emitterToRemove);
+		}
+		EG_CORE_ASSERT(emitterData.IsEmitterIndexValid());
+
+		// Unless `bDestroyImmediately` is set, removal is postponed.
+		// We disable it to let all particles to finish simulation, and only then we remove it.
+		ParticleEmitter disabledEmitter = data.Emitter;
+		disabledEmitter.bEmit = false;
+
+		const uint32_t flags = Utils::PackEmitterFlags(disabledEmitter);
+		const size_t offset = emitterData.EmitterIndex * sizeof(Emitter) + offsetof(Emitter, Flags);
+		cmd->WriteTransitionless(m_EmittersBuffer, &flags, sizeof(uint32_t), offset);
+
+		auto& dead = m_DeadEmitters.emplace_back();
+		dead.EmitterIndex = emitterData.EmitterIndex;
+		dead.TransformIndex = emitterData.TransformIndex;
+		dead.TimeTillDead = data.Emitter.bDestroyImmediately ? 0.f : data.Emitter.LifetimeMax;
+	}
+
 	void ParticleSystemTask::Update(const Ref<CommandBuffer>& cmd)
 	{
 		// 1. Update mesh data
 		// 2. Check if GPU Emitters buffer is big enough and allocate enough memory if required
-		// 3. Process emitters that need to be added
-		// 4. Process emitters that need to be removed. Needs to be executed after Step 3 because an emitter might require one more update
-		// 5. Process emitters that need to be updated
-		// 6. Upload animation data to GPU
-		// 7. Update transforms if required
-		// 8. Check if GPU Particles buffer is big enough and allocate enough memory if required
+		// 3. Process emitters that need to be added/removed/updated
+		// 4. Upload animation data to GPU
+		// 5. Update transforms if required
+		// 6. Check if GPU Particles buffer is big enough and allocate enough memory if required
 
 		EG_GPU_TIMING_SCOPED(cmd, "Particle System. Update");
 		EG_CPU_TIMING_SCOPED("Particle System. Update");
-		bool bEmittersChangedOrAdded = false;
+		bool bRecalculateMaxParticles = false;
 
 		// Step 1
 		if (bRebuildStaticMeshData || bRebuildSkeletalMeshData)
@@ -293,7 +386,12 @@ namespace Eagle
 
 		// Step 2
 		{
-			const size_t numEmittersAfterUpdate = m_NumEmitters + m_EmittersToAdd.size();
+			size_t numEmittersAfterUpdate = m_NumEmitters;
+			for (const auto& request : m_ModifyRequestQueue)
+			{
+				if (request.Type == ModifyRequest::RequestType::Add)
+					numEmittersAfterUpdate++;
+			}
 			size_t currentSize = m_EmittersBuffer->GetSize();
 			size_t newSize = numEmittersAfterUpdate * sizeof(Emitter);
 			if (newSize > currentSize)
@@ -317,106 +415,40 @@ namespace Eagle
 		}
 
 		// Step 3
-		if (m_EmittersToAdd.size())
+		if (!m_ModifyRequestQueue.empty())
 		{
 			cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::StorageBuffer, BufferLayoutType::CopyDest);
 
-			const size_t count = m_EmittersToAdd.size();
-			for (size_t i = 0; i < count; ++i)
+			for (const auto& request : m_ModifyRequestQueue)
 			{
-				const auto& emitterToAdd = m_EmittersToAdd[i].Emitter;
-				auto itEmitters = m_SystemToEmittersMapping.find(m_EmittersToAdd[i].SystemID);
-				if (itEmitters == m_SystemToEmittersMapping.end())
-					continue;
-
-				auto& emitterData = itEmitters->second.at(emitterToAdd);
-
-				Emitter emitter;
-				Utils::ToGPUEmitter(emitterToAdd, emitterData, GetEmitterMeshData(emitterToAdd), emitter);
-
-				uint32_t insertIndex = m_NumEmitters;
-				for (auto it = m_DeadEmitters.begin(); it != m_DeadEmitters.end(); ++it) // Find the first available slot
+				switch (request.Type)
 				{
-					const auto& deadEmitter = *it;
-					if (deadEmitter.IsDead())
-					{
-						const uint32_t emitterIndex = deadEmitter.Data.EmitterIndex;
-						m_FreeTransformSlots.push_back(deadEmitter.Data.TransformIndex);
-						m_DeadEmitters.erase(it);
-
-						if (emitterIndex != s_InvalidEmitterIndex)
-						{
-							insertIndex = emitterIndex;
-							break;
-						}
-					}
+				case ModifyRequest::RequestType::Add:
+					HandleEmitter_Add_RT(cmd, request);
+					bUpdateTransforms = true;
+					bRecalculateMaxParticles = true;
+					break;
+				case ModifyRequest::RequestType::Update:
+					HandleEmitter_Update_RT(cmd, request);
+					bUpdateTransforms = true;
+					bRecalculateMaxParticles = true;
+					break;
+				case ModifyRequest::RequestType::Remove:
+					HandleEmitter_Remove_RT(cmd, request);
+					break;
+				default:
+					EG_CORE_ASSERT(false);
 				}
-				
-				if (insertIndex == m_NumEmitters)
-					m_NumEmitters++; // There were no free slots
-
-				const size_t offset = insertIndex * sizeof(Emitter);
-				cmd->WriteTransitionless(m_EmittersBuffer, &emitter, sizeof(Emitter), offset);
-
-				emitterData.EmitterIndex = insertIndex;
 			}
+			m_ModifyRequestQueue.clear();
+
 			cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::CopyDest, BufferLayoutType::StorageBuffer);
-
-			m_EmittersToAdd.clear();
-
-			bUpdateTransforms = true;
-			bEmittersChangedOrAdded = true;
 		}
 
 		// Step 4
-		if (m_EmittersToRemove.size())
-		{
-			cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::StorageBuffer, BufferLayoutType::CopyDest);
-			for (const auto& [emitter, removingData] : m_EmittersToRemove)
-			{
-				ParticleEmitter disabledEmitter = emitter;
-				disabledEmitter.bEmit = false;
-
-				const uint32_t flags = Utils::PackEmitterFlags(disabledEmitter);
-				const size_t offset = removingData.EmitterIndex * sizeof(Emitter) + offsetof(Emitter, Flags);
-				cmd->WriteTransitionless(m_EmittersBuffer, &flags, sizeof(uint32_t), offset);
-
-				auto& dead = m_DeadEmitters.emplace_back();
-				dead.Data = removingData;
-				dead.TimeTillDead = emitter.bDestroyImmediately ? 0.f : emitter.LifetimeMax;
-			}
-			cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::CopyDest, BufferLayoutType::StorageBuffer);
-
-			m_EmittersToRemove.clear();
-		}
-
-		// Step 5
-		if (m_EmittersToUpdate.size())
-		{
-			cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::StorageBuffer, BufferLayoutType::CopyDest);
-
-			for (const auto& [emitter, emitterData] : m_EmittersToUpdate)
-			{
-				Emitter gpuEmitter;
-				Utils::ToGPUEmitter(emitter, emitterData, GetEmitterMeshData(emitter), gpuEmitter);
-
-				const size_t sizeToUpdate = offsetof(Emitter, WorldPos); // We're updating the data before the 'WorldPos' because everything after is an internal state
-				const size_t offset = emitterData.EmitterIndex * sizeof(Emitter);
-				cmd->WriteTransitionless(m_EmittersBuffer, &gpuEmitter, sizeToUpdate, offset);
-			}
-
-			cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::CopyDest, BufferLayoutType::StorageBuffer);
-
-			m_EmittersToUpdate.clear();
-
-			bUpdateTransforms = true;
-			bEmittersChangedOrAdded = true;
-		}
-
-		// Step 6
 		UpdateSkeletalAnimations(cmd);
 
-		// Step 7
+		// Step 5
 		if (bUpdateTransforms)
 		{
 			{
@@ -440,8 +472,8 @@ namespace Eagle
 			bUpdateTransforms = false;
 		}
 		
-		// Step 8
-		if (bEmittersChangedOrAdded)
+		// Step 6
+		if (bRecalculateMaxParticles)
 		{
 			uint32_t maxParticles = 0;
 			for (const auto& [_, emitters] : m_SystemToEmittersMapping)
@@ -876,13 +908,10 @@ namespace Eagle
 			const auto& emitters = it->second;
 			if (emitters.find(emitter) != emitters.end())
 			{
-				// Trying to add already existing emitter
-				EG_CORE_ASSERT(false); // Shouldn't really happen
-				return false; // Already exists
+				EG_CORE_WARN("Trying to add already existing emitter");
+				return false;
 			}
 		}
-
-		m_EmittersToAdd.emplace_back(AddingEmitterData{ emitter, systemID });
 
 		uint32_t transformIndex = 0;
 		if (m_FreeTransformSlots.empty())
@@ -896,10 +925,17 @@ namespace Eagle
 			transformIndex = m_FreeTransformSlots.back();
 			m_FreeTransformSlots.pop_back();
 		}
+
+		auto& request = m_ModifyRequestQueue.emplace_back();
+		request.Emitter = emitter;
+		request.SystemID = systemID;
+		request.Type = ModifyRequest::RequestType::Add;
+		request.Indices = EmitterData{ s_InvalidEmitterIndex, transformIndex, s_InvalidEmitterIndex }; // Emitter index will be set later
+
 		m_Transforms[transformIndex] = transform * Math::ToTransformMatrix(emitter.RelativeTransform);
 		m_DecompositedTransforms[transformIndex] = Utils::Decompose(m_Transforms[transformIndex]);
 		auto& emitters = m_SystemToEmittersMapping[systemID];
-		emitters[emitter] = EmitterData{ s_InvalidEmitterIndex, transformIndex, s_InvalidEmitterIndex }; // Emitter index will be set later
+		emitters[emitter] = request.Indices;
 		AddEmitterMeshData(emitter);
 
 		return true;
@@ -910,7 +946,7 @@ namespace Eagle
 		auto itSystem = m_SystemToEmittersMapping.find(systemID);
 		if (itSystem == m_SystemToEmittersMapping.end())
 		{
-			EG_CORE_ASSERT(false, "Non-existing system");
+			EG_CORE_WARN("Trying to remove non-existing emitter");
 			return false; // Not found
 		}
 
@@ -922,11 +958,12 @@ namespace Eagle
 			return false; // Not found
 		}
 
-		auto& data = m_EmittersToRemove.emplace_back();
-		data.first = emitter;
-		data.second.EmitterIndex = it->second.EmitterIndex;
-		data.second.TransformIndex = it->second.TransformIndex;
-		data.first.bDestroyImmediately |= bForceImmediateRemoval;
+		auto& request = m_ModifyRequestQueue.emplace_back();
+		request.Emitter = emitter;
+		request.SystemID = systemID;
+		request.Type = ModifyRequest::RequestType::Remove;
+		request.bDestroyImmediately |= bForceImmediateRemoval;
+		request.Indices = it->second;
 		RemoveEmitterMeshData(emitter);
 
 		emitters.erase(it);
@@ -934,7 +971,7 @@ namespace Eagle
 		return true;
 	}
 
-	void ParticleSystemTask::AddParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems)
+	void ParticleSystemTask::AddParticleSystem(const ParticleSystemComponent& system)
 	{
 		struct SystemUpdateData
 		{
@@ -942,42 +979,35 @@ namespace Eagle
 			glm::mat4 Transformation;
 			GUID SystemID;
 		};
-		std::vector<SystemUpdateData> updateData;
-		updateData.reserve(systems.size());
-		for (const auto& system : systems)
-		{
-			const auto& asset = system->GetAsset();
-			if (!asset)
-				continue;
 
-			auto& data = updateData.emplace_back();
-			data.Emitters = asset->GetEmitters();
-			data.Transformation = Math::ToTransformMatrix(system->GetWorldTransform());
-			data.SystemID = system->GetSystemID();
-		}
-
-		if (updateData.empty())
+		const auto& asset = system.GetAsset();
+		if (!asset)
 			return;
 
-		RenderManager::Submit([task = shared_from_this(), updateData = std::move(updateData)](const Ref<CommandBuffer>&)
+		SystemUpdateData data{};
+		data.Emitters = asset->GetEmitters();
+		data.Transformation = Math::ToTransformMatrix(system.GetWorldTransform());
+		data.SystemID = system.GetSystemID();
+
+		RenderManager::Submit([task = shared_from_this(), updateData = std::move(data)](const Ref<CommandBuffer>&)
 		{
 			auto thisRef = Cast<ParticleSystemTask>(task);
-			for (const auto& [emitters, transform, systemID] : updateData)
+			const auto& emitters = updateData.Emitters;
+			if (emitters.empty())
 			{
-				if (emitters.empty())
-				{
-					thisRef->m_SystemToEmittersMapping.emplace(systemID, std::unordered_map<ParticleEmitter, EmitterData>{});
-					continue;
-				}
+				thisRef->m_SystemToEmittersMapping.emplace(updateData.SystemID, std::unordered_map<ParticleEmitter, EmitterData>{});
+			}
+			else
+			{
 				for (const auto& emitter : emitters)
 				{
-					thisRef->AddEmitter(emitter, systemID, transform);
+					thisRef->AddEmitter(emitter, updateData.SystemID, updateData.Transformation);
 				}
 			}
 		});
 	}
 
-	void ParticleSystemTask::UpdateParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems)
+	void ParticleSystemTask::UpdateParticleSystem(const ParticleSystemComponent& system)
 	{
 		struct SystemUpdateData
 		{
@@ -985,118 +1015,102 @@ namespace Eagle
 			glm::mat4 Transformation;
 			GUID SystemID;
 		};
-		std::vector<SystemUpdateData> updateData;
-		updateData.reserve(systems.size());
-		for (const auto& system : systems)
-		{
-			const auto& asset = system->GetAsset();
-			if (!asset)
-				continue;
 
-			auto& data = updateData.emplace_back();
-			data.Emitters = asset->GetEmitters();
-			data.Transformation = Math::ToTransformMatrix(system->GetWorldTransform());
-			data.SystemID = system->GetSystemID();
-		}
-
-		if (updateData.empty())
+		const auto& asset = system.GetAsset();
+		if (!asset)
 			return;
 
-		RenderManager::Submit([task = shared_from_this(), updateData = std::move(updateData)](const Ref<CommandBuffer>&)
+		SystemUpdateData data{};
+		data.Emitters = asset->GetEmitters();
+		data.Transformation = Math::ToTransformMatrix(system.GetWorldTransform());
+		data.SystemID = system.GetSystemID();
+
+		RenderManager::Submit([task = shared_from_this(), updateData = std::move(data)](const Ref<CommandBuffer>&)
 		{
 			auto thisRef = Cast<ParticleSystemTask>(task);
-			for (const auto& [emitters, transform, systemID] : updateData)
+			
+			auto itSystem = thisRef->m_SystemToEmittersMapping.find(updateData.SystemID);
+			if (itSystem == thisRef->m_SystemToEmittersMapping.end())
 			{
-				auto itSystem = thisRef->m_SystemToEmittersMapping.find(systemID);
-				if (itSystem == thisRef->m_SystemToEmittersMapping.end())
-				{
-					// Trying to update non-existing system
-					continue;
-				}
-				auto systemEmitters = itSystem->second; // Intentional copy because `AddEmitter` and `RemoveEmitter` functions modify it
+				// Trying to update non-existing system
+				return;
+			}
 
-				// Remove emitters if not found in the new list
-				for (const auto& [existingEmitter, _] : systemEmitters)
-				{
-					auto it2 = std::find(emitters.begin(), emitters.end(), existingEmitter);
-					if (it2 == emitters.end()) // Old emitter isn't found in the new list, so remove it
-						thisRef->RemoveEmitter(existingEmitter, systemID);
-				}
+			const auto& emitters = updateData.Emitters;
+			auto systemEmitters = itSystem->second; // Intentional copy because `AddEmitter` and `RemoveEmitter` functions modify it
 
-				// Update or create emitters
-				for (const auto& emitter : emitters)
+			// Remove emitters if not found in the new list
+			for (const auto& [existingEmitter, _] : systemEmitters)
+			{
+				auto it2 = std::find(emitters.begin(), emitters.end(), existingEmitter);
+				if (it2 == emitters.end()) // Old emitter isn't found in the new list, so remove it
+					thisRef->RemoveEmitter(existingEmitter, updateData.SystemID);
+			}
+
+			// Update or create emitters
+			for (const auto& emitter : emitters)
+			{
+				if (systemEmitters.find(emitter) == systemEmitters.end())
 				{
-					if (systemEmitters.find(emitter) == systemEmitters.end())
+					thisRef->AddEmitter(emitter, updateData.SystemID, updateData.Transformation); // New emitter isn't found in the old list, so add it
+				}
+				else
+				{
+					auto& existingEmitters = itSystem->second;
+					auto it = existingEmitters.find(emitter);
+					const auto& existingEmitter = it->first;
 					{
-						thisRef->AddEmitter(emitter, systemID, transform); // New emitter isn't found in the old list, so add it
-					}
-					else
-					{
-						auto& existingEmitters = itSystem->second;
-						auto it = existingEmitters.find(emitter);
-						const auto& existingEmitter = it->first;
+						EmitterData emitterData = it->second;
+						emitterData.AnimationOffset = s_InvalidEmitterIndex; // Reset it in case mesh is changed from SK to SM
+
+						// Check if should rebuild emitter mesh data
+						const bool bMeshEmitter = existingEmitter.EmissionShape == ParticleEmitter::EmissionShapeType::Mesh;
+						const bool bMeshEmitterChanged = (existingEmitter.EmissionShape != emitter.EmissionShape) ||
+							(bMeshEmitter && existingEmitter.MeshAsset != emitter.MeshAsset);
+
+						if (bMeshEmitterChanged)
 						{
-							EmitterData emitterData = it->second;
-							emitterData.AnimationOffset = s_InvalidEmitterIndex; // Reset it in case mesh is changed from SK to SM
-
-							// Check if should rebuild emitter mesh data
-							const bool bMeshEmitter = existingEmitter.EmissionShape == ParticleEmitter::EmissionShapeType::Mesh;
-							const bool bMeshEmitterChanged = (existingEmitter.EmissionShape != emitter.EmissionShape) ||
-								(bMeshEmitter && existingEmitter.MeshAsset != emitter.MeshAsset);
-
-							if (bMeshEmitterChanged)
-							{
-								thisRef->RemoveEmitterMeshData(existingEmitter);
-								thisRef->AddEmitterMeshData(emitter);
-							}
-
-							// Update key
-							existingEmitters.erase(it);
-							existingEmitters.emplace(emitter, emitterData);
-
-							// New emitter is found in the old list, so update its state
-							thisRef->m_EmittersToUpdate.emplace_back(emitter, emitterData);
-							thisRef->m_Transforms[emitterData.TransformIndex] = transform * Math::ToTransformMatrix(emitter.RelativeTransform);
-							thisRef->m_DecompositedTransforms[emitterData.TransformIndex] = Utils::Decompose(thisRef->m_Transforms[emitterData.TransformIndex]);
+							thisRef->RemoveEmitterMeshData(existingEmitter);
+							thisRef->AddEmitterMeshData(emitter);
 						}
+
+						// Update key
+						existingEmitters.erase(it);
+						existingEmitters.emplace(emitter, emitterData);
+
+						// New emitter is found in the old list, so update its state
+						auto& request = thisRef->m_ModifyRequestQueue.emplace_back();
+						request.Emitter = emitter;
+						request.SystemID = updateData.SystemID;
+						request.Type = ModifyRequest::RequestType::Update;
+
+						thisRef->m_Transforms[emitterData.TransformIndex] = updateData.Transformation * Math::ToTransformMatrix(emitter.RelativeTransform);
+						thisRef->m_DecompositedTransforms[emitterData.TransformIndex] = Utils::Decompose(thisRef->m_Transforms[emitterData.TransformIndex]);
 					}
 				}
 			}
 		});
 	}
 
-	void ParticleSystemTask::RemoveParticleSystems(const std::unordered_set<GUID>& systems)
+	void ParticleSystemTask::RemoveParticleSystem(const ParticleSystemComponent& system)
 	{
-		std::vector<GUID> removeData;
-		removeData.reserve(systems.size());
-		for (const auto& systemID : systems)
-		{
-			removeData.push_back(systemID);
-		}
-
-		if (removeData.empty())
-			return;
-
-		RenderManager::Submit([task = shared_from_this(), removeData = std::move(removeData)](const Ref<CommandBuffer>&)
+		RenderManager::Submit([task = shared_from_this(), systemID = system.GetSystemID()](const Ref<CommandBuffer>&)
 		{
 			auto thisRef = Cast<ParticleSystemTask>(task);
-			for (const auto& systemID : removeData)
-			{
-				auto it = thisRef->m_SystemToEmittersMapping.find(systemID);
-				if (it == thisRef->m_SystemToEmittersMapping.end())
-					continue;
+			auto it = thisRef->m_SystemToEmittersMapping.find(systemID);
+			if (it == thisRef->m_SystemToEmittersMapping.end())
+				return;
 
-				const auto& emitters = it->second;
-				if (!emitters.empty())
+			const auto& emitters = it->second;
+			if (!emitters.empty())
+			{
+				auto copyEmitters = emitters;
+				for (const auto& [emitter, _] : copyEmitters)
 				{
-					auto copyEmitters = emitters;
-					for (const auto& [emitter, _] : copyEmitters)
-					{
-						thisRef->RemoveEmitter(emitter, systemID);
-					}
+					thisRef->RemoveEmitter(emitter, systemID);
 				}
-				thisRef->m_SystemToEmittersMapping.erase(systemID);
 			}
+			thisRef->m_SystemToEmittersMapping.erase(systemID);
 		});
 	}
 

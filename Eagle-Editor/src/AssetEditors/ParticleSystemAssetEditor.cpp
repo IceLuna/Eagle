@@ -14,9 +14,8 @@ namespace Eagle
 		EG_CORE_ASSERT(m_Asset);
 		const auto& scene = GetCurrentScene();
 
-		Entity entity = scene->CreateEntity("ParticleSystemAssetEditor");
-		auto& component = entity.AddComponent<ParticleSystemComponent>();
-		component.SetAsset(asset);
+		m_Entity = scene->CreateEntity("ParticleSystemAssetEditor");
+		m_Entity.AddComponent<ParticleSystemComponent>().SetAsset(asset);
 
 		m_Emitters = m_Asset->GetEmitters();
 
@@ -37,6 +36,7 @@ namespace Eagle
 		}
 		camera.SetLocation(center - cameraDir * length * 2.5f); // Move back
 		camera.LookAt(center);
+		RecalculateLifetime();
 	}
 
 	void ParticleSystemAssetEditor::OnImGuiRender(bool* pOpen)
@@ -296,12 +296,17 @@ namespace Eagle
 		if (bChanged)
 		{
 			m_Asset->SetEmitters(m_Emitters);
-		}
-
-		if (bChanged)
-		{
+			RecalculateLifetime();
 			m_Asset->SetDirty(true);
 			m_Asset->OnModified();
+		}
+
+		if (m_Timer.GetSeconds() >= m_Lifetime)
+		{
+			m_Timer.Restart();
+			auto& ps = m_Entity.GetComponent<ParticleSystemComponent>();
+			ps.Destroy();
+			ps.Spawn();
 		}
 
 		ImGui::Separator();
@@ -312,6 +317,24 @@ namespace Eagle
 		ImGui::End();
 
 		DrawViewport(false, windowName);
+	}
+
+	void ParticleSystemAssetEditor::RecalculateLifetime()
+	{
+		m_Lifetime = m_Emitters.empty() ? FLT_MAX : 0.f;
+		for (const auto& emitter : m_Emitters)
+		{
+			if (emitter.LoopCount == 0)
+			{
+				m_Lifetime = FLT_MAX;
+				break;
+			}
+
+			const float currentLifetime = emitter.LoopCount * emitter.LifetimeMax;
+			m_Lifetime = glm::max(currentLifetime, m_Lifetime);
+		}
+
+		m_Timer.Restart();
 	}
 	
 	void ParticleSystemAssetEditor::UpdateGuizmo()

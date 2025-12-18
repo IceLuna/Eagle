@@ -86,9 +86,9 @@ namespace Eagle
 		void SetTexts2D(const std::vector<const Text2DComponent*>& texts, bool bDirty) { m_Text2DTask->SetTexts(texts, bDirty); }
 		void SetImages2D(const std::vector<const Image2DComponent*>& images, bool bDirty) { m_Images2DTask->SetImages(images, bDirty); }
 		void SetDecals(const std::vector<const DecalComponent*>& decals, bool bDirty) { m_RenderDecalsTask->SetDecals(decals, bDirty); }
-		void AddParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems);
-		void UpdateParticleSystems(const std::unordered_set<const ParticleSystemComponent*>& systems);
-		void RemoveParticleSystems(const std::unordered_set<GUID>& systems); // GUIDs of ParticleSystemComponent: system->Parent.GetGUID(). It's done like that because we can't store a pointer to a dead component
+		void AddParticleSystem(const ParticleSystemComponent& system);
+		void UpdateParticleSystem(const ParticleSystemComponent& system);
+		void RemoveParticleSystem(const ParticleSystemComponent& system);
 		void UpdateParticleTransforms(const std::unordered_set<const ParticleSystemComponent*>& systems);
 		void RemoveAllParticleSystems();
 		//--------------------------------------------------------------------------------------
