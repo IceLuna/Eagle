@@ -240,7 +240,6 @@ namespace Eagle
         std::vector<ax::NodeEditor::NodeId> NodesPendingDeletion;
 
         std::unordered_map<ed::LinkId, Link> Links;
-        std::map<ed::NodeId, float, NodeIdLess> NodeTouchTime;
     };
 
     static ImColor GetIconColor(PinType type)
@@ -320,30 +319,6 @@ namespace Eagle
 
         const GraphData& GetGraphData() const { return m_GraphData; }
 
-        void TouchNode(ed::NodeId id)
-        {
-            m_GraphData.NodeTouchTime[id] = m_TouchTime;
-        }
-
-        float GetTouchProgress(ed::NodeId id)
-        {
-            auto it = m_GraphData.NodeTouchTime.find(id);
-            if (it != m_GraphData.NodeTouchTime.end() && it->second > 0.0f)
-                return (m_TouchTime - it->second) / m_TouchTime;
-            else
-                return 0.0f;
-        }
-
-        void UpdateTouch()
-        {
-            const auto deltaTime = ImGui::GetIO().DeltaTime;
-            for (auto& entry : m_GraphData.NodeTouchTime)
-            {
-                if (entry.second > 0.0f)
-                    entry.second -= deltaTime;
-            }
-        }
-
         Node* FindNode(ed::NodeId id);
         Node* FindNodeByGUID(const GUID& id);
         const Node* FindNode(ed::NodeId id) const;
@@ -391,6 +366,7 @@ namespace Eagle
             }
         }
 
+        virtual void OnVariableTypeChanged(const std::string& varName, GraphVariableType newType);
         virtual void OnVariableDeleted(const std::string& var);
         virtual void OnVariableRenamed(const std::string& varName, const std::string& newName);
         virtual void OnNodeAdded(Node& node);
@@ -409,7 +385,7 @@ namespace Eagle
         virtual void HandleStateNode(Node& node, Pin* newLinkPin);
         virtual void HandleCommentNode(Node& node, Pin* newLinkPin);
         virtual void HandleNodeCreation(Node& node, ImVec2 pos, Pin* newNodeLinkPin);
-        virtual void HandleCreatingDeletion();
+        virtual void HandleCreationDeletion();
         virtual void HandleDragDrop();
         virtual void HandleIfPopupShouldOpen();
 

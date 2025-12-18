@@ -382,6 +382,13 @@ namespace Eagle
         if (RemoveVariable(varName))
         {
             bool bSuccess = CreateVariable(CreateAnimGraphVariableFromType(newType), varName);
+            if (bSuccess)
+            {
+                for (auto& graph : m_Graphs)
+                {
+                    graph->OnVariableTypeChanged(varName, newType);
+                }
+            }
             return bSuccess;
         }
         return false;

@@ -63,14 +63,15 @@ namespace Eagle
     {
         switch (type)
         {
-        case PinType::Flow:
-        case PinType::StateFlow:
-        case PinType::Pose:
-        case PinType::Function:
-        case PinType::Delegate: return false;
+        case PinType::Bool:
+        case PinType::Int:
+        case PinType::Float:
+        case PinType::Vec4:
+        case PinType::String:
+        case PinType::Object: return true;
         }
 
-        return true;
+        return false;
     }
 
     static Ref<GraphVariable> ProcessVariable(const Ref<GraphVariable>& var, const std::string& varName, bool bCloneVars, VariablesMap& outVariables)
@@ -215,12 +216,11 @@ namespace Eagle
 
         ProcessPendingDeletion();
         HandleDragDrop();
-        UpdateTouch();
 
         m_CursorTopLeft = ImGui::GetCursorScreenPos();
         DrawNodes();
         DrawLinks();
-        HandleCreatingDeletion();
+        HandleCreationDeletion();
         HandleIfPopupShouldOpen();
 
         // Draw popups
@@ -1132,7 +1132,7 @@ namespace Eagle
         ed::Resume();
     }
 
-    void UIGraph::HandleCreatingDeletion()
+    void UIGraph::HandleCreationDeletion()
     {
         if (m_CreateNewNode)
         {
@@ -1337,6 +1337,43 @@ namespace Eagle
     {
         for (auto& [_, node] : m_GraphData.Nodes)
             BuildNode(node);
+    }
+
+    void UIGraph::OnVariableTypeChanged(const std::string& varName, GraphVariableType newType)
+    {
+        auto it = m_VarToNodesMapping.find(varName);
+        if (it != m_VarToNodesMapping.end())
+        {
+            const auto& nodes = it->second;
+            for (const auto& nodeID : nodes)
+            {
+                Node* node = FindNode(nodeID);
+                if (!node)
+                    continue;
+
+                for (auto& output : node->OutputPins)
+                {
+                    output.Type = GetPinType(newType);
+                }
+
+                // Disconnect existing links
+                while (true)
+                {
+                    auto it = std::find_if(m_GraphData.Links.begin(), m_GraphData.Links.end(), [pinID = node->OutputPins[0].ID](const auto& link) { return link.second.StartPinID == pinID; });
+                    if (it == m_GraphData.Links.end())
+                        break;
+
+                    OnLinkDeleted(it->second);
+                    m_GraphData.Links.erase(it);
+                }
+            }
+        }
+
+        for (auto& nodeID : m_NodesWithGraph)
+        {
+            if (Node* node = FindNode(nodeID))
+                node->Graph->OnVariableTypeChanged(varName, newType);
+        }
     }
 
     void UIGraph::OnVariableDeleted(const std::string& var)
