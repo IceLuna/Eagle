@@ -8,37 +8,67 @@ namespace Eagle
 	{
 	public:
 		TextureImporterPanel() = default;
-		TextureImporterPanel(const Path& path);
+		TextureImporterPanel(const std::vector<Path>& paths);
 
 		// @importTo. Destination folder
 		// Returns true on success (if asset was created)
 		bool OnImGuiRender(const Path& importTo, bool* pOpen);
 
 	private:
-		AssetImportTexture2DSettings m_2DSettings;
-		AssetImportTextureCubeSettings m_CubeSettings;
+		// @bOverride. Can be set to nullptr to not display it
+		void Render2DSettings(const std::string& path, AssetImportTexture2DSettings& settings, glm::ivec2 size, bool bDrawingCommon, bool* bOverride = nullptr);
+		void RenderCubeSettings(const std::string& path, AssetImportTextureCubeSettings& settings, glm::ivec2 size, bool* bOverride = nullptr);
 
-		Path m_Path;
-		int m_Width = -1;
-		int m_Height = -1;
-		bool bCube = false;
+	private:
+		struct Texture2DData
+		{
+			AssetImportTexture2DSettings Settings;
+			std::string AssetPath;
+			glm::ivec2 Size = glm::ivec2(0);
+			bool bOverride = false;
+		};
+		struct TextureCubeData
+		{
+			AssetImportTextureCubeSettings Settings;
+			std::string AssetPath;
+			glm::ivec2 Size = glm::ivec2(0);
+			bool bOverride = false;
+		};
+
+		AssetImportTexture2DSettings m_Common2DSettings;
+		AssetImportTextureCubeSettings m_CommonCubeSettings;
+
+		std::string m_WindowName;
+		std::vector<Texture2DData> m_2DTextures;
+		std::vector<TextureCubeData> m_CubeTextures;
 	};
 
 	class MeshImporterPanel
 	{
 	public:
 		MeshImporterPanel() = default;
-		MeshImporterPanel(const Path& path) : m_Path(path) {}
+		MeshImporterPanel(const std::vector<Path>& paths);
 
 		// @importTo. Destination folder
 		// Returns true on success (if asset was created)
 		bool OnImGuiRender(const Path& importTo, bool* pOpen);
 
 	private:
-		AssetImportSettings m_Settings;
-		bool bSkeletal = false;
+		// @bOverride. Can be set to nullptr to not display it
+		void RenderSettings(const std::string& path, AssetImportSettings& settings, bool& bSkeletal, bool* bOverride = nullptr);
 
-		Path m_Path;
+	private:
+		struct MeshData
+		{
+			AssetImportSettings Settings;
+			std::string AssetPath;
+			bool bSkeletal = false;
+			bool bOverride = false;
+		};
+
+		AssetImportSettings m_CommonSettings;
+		std::vector<MeshData> m_Meshes;
+		bool m_AsSkeletal = false;
 	};
 
 	class AnimationGraphImporterPanel

@@ -437,25 +437,45 @@ namespace Eagle
 	{
 		bool bCreatedAsset = false;
 
-		Path path = FileDialog::OpenFile(FileDialog::IMPORT_FILTER);
-		if (!path.empty())
+		std::vector<Path> paths = FileDialog::OpenFileMultiselect(FileDialog::IMPORT_FILTER);
+		if (!paths.empty())
 		{
-			const AssetType assetType = AssetImporter::GetAssetTypeByExtension(path);
-			if (assetType == AssetType::Texture2D || assetType == AssetType::TextureCube)
+			std::vector<Path> textures;
+			std::vector<Path> meshes;
+			std::vector<Path> others;
+			for (auto& path : paths)
 			{
-				m_TextureImporter = TextureImporterPanel(path);
+				const AssetType assetType = AssetImporter::GetAssetTypeByExtension(path);
+				if (assetType == AssetType::Texture2D || assetType == AssetType::TextureCube)
+				{
+					textures.emplace_back(std::move(path));
+				}
+				else if (assetType == AssetType::StaticMesh || assetType == AssetType::SkeletalMesh)
+				{
+					meshes.emplace_back(std::move(path));
+				}
+				else
+				{
+					others.emplace_back(std::move(path));
+				}
+			}
+
+			if (!textures.empty())
+			{
+				m_TextureImporter = TextureImporterPanel(textures);
 				m_DrawAddPanel = false;
 				m_DrawTextureImporter = true;
 			}
-			else if (assetType == AssetType::StaticMesh || assetType == AssetType::SkeletalMesh)
+			if (!meshes.empty())
 			{
-				m_MeshImporter = MeshImporterPanel(path);
+				m_MeshImporter = MeshImporterPanel(meshes);
 				m_DrawAddPanel = false;
 				m_DrawMeshImporter = true;
 			}
-			else
+
+			if (!others.empty())
 			{
-				AssetImporter::Import(path, m_CurrentDirectoryRelative, assetType, {});
+				AssetImporter::Import(others, m_CurrentDirectoryRelative);
 				bCreatedAsset = true;
 			}
 		}

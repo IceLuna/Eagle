@@ -106,6 +106,8 @@ namespace Eagle
 		MeshImporterPanel m_MeshImporter;
 		AnimationGraphImporterPanel m_AnimationGraphImporter;
 		AnimationBlendSpaceImporterPanel m_AnimationBlendSpaceImporter;
+
+		// TODO: Improve it. We can a unique ptr to allocated importers and check if they're valid
 		bool m_DrawTextureImporter = false;
 		bool m_DrawMeshImporter = false;
 		bool m_DrawAnimationGraphImporter = false;

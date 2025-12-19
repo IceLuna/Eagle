@@ -15,29 +15,86 @@ namespace Eagle
 
 	static ImVec2 s_DefaultWindowSize = ImVec2(720.f, 256.f);
 
-	TextureImporterPanel::TextureImporterPanel(const Path& path)
-		: m_Path(path)
+	template <typename Func>
+	static void FancyTreeNode(const char* label, Func&& func)
 	{
-		const AssetType assetType = AssetImporter::GetAssetTypeByExtension(path);
-		EG_CORE_ASSERT(assetType == AssetType::Texture2D || assetType == AssetType::TextureCube)
-		bCube = assetType == AssetType::TextureCube;
-		if (assetType == AssetType::Texture2D)
+		constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
+
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+		ImGui::Separator();
+		bool treeOpened = ImGui::TreeNodeEx(label, flags);
+		ImGui::PopStyleVar();
+
+		if (treeOpened)
 		{
-			m_2DSettings.bNormalMap = Utils::IsNormalMap(path);
-			if (m_2DSettings.bNormalMap)
+			func();
+			ImGui::TreePop();
+			ImGui::Separator();
+		}
+	}
+
+	TextureImporterPanel::TextureImporterPanel(const std::vector<Path>& paths)
+	{
+		// Not pre-allocating memory for cube textures. Assumption is that there won't be much of them
+		m_2DTextures.reserve(paths.size());
+
+		for (const auto& path : paths)
+		{
+			const AssetType assetType = AssetImporter::GetAssetTypeByExtension(path);
+			EG_CORE_ASSERT(assetType == AssetType::Texture2D || assetType == AssetType::TextureCube);
+			if (assetType == AssetType::Texture2D)
 			{
-				m_2DSettings.FilterMode = FilterMode::Point;
+				auto& data = m_2DTextures.emplace_back();
+				data.AssetPath = path.u8string();
+
+				auto& settings = data.Settings;
+				settings.bNormalMap = Utils::IsNormalMap(path);
+				if (settings.bNormalMap)
+				{
+					settings.FilterMode = FilterMode::Point;
+				}
+
+				int comp = 1;
+				stbi_info(path.u8string().c_str(), &data.Size.x, &data.Size.y, &comp);
+				settings.bNeedAlpha = !settings.bNormalMap && comp == 4;
+			}
+			else if (assetType == AssetType::TextureCube)
+			{
+				auto& data = m_CubeTextures.emplace_back();
+				data.AssetPath = path.u8string();
+
+				auto& settings = data.Settings;
+
+				int comp = 1;
+				stbi_info(path.u8string().c_str(), &data.Size.x, &data.Size.y, &comp);
 			}
 		}
 
-		int comp = 1;
-		stbi_info(m_Path.u8string().c_str(), &m_Width, &m_Height, &comp);
-		m_2DSettings.bNeedAlpha = !m_2DSettings.bNormalMap && comp == 4;
+		if (!m_2DTextures.empty() && !m_CubeTextures.empty())
+		{
+			m_WindowName = "Import 2D and Cube textures";
+		}
+		else if (!m_2DTextures.empty())
+		{
+			m_WindowName = "Importing 2D textures";
+		}
+		else if (!m_CubeTextures.empty())
+		{
+			m_WindowName = "Importing Cube textures";
+		}
+		else
+		{
+			EG_CORE_ASSERT(false);
+		}
 	}
 
 	bool TextureImporterPanel::OnImGuiRender(const Path& importTo, bool* pOpen)
 	{
-		const char* windowName = bCube ? "Import cube texture" : "Import 2D texture";
+		if (m_WindowName.empty())
+			return false;
+
+		const char* windowName = m_WindowName.c_str();
 
 		const bool bAnyPopupPresent = ImGui::IsPopupOpen(windowName, ImGuiPopupFlags_AnyPopup);
 		const bool bThisOpened = ImGui::IsPopupOpen(windowName);
@@ -58,45 +115,56 @@ namespace Eagle
 
 		if (ImGui::BeginPopupModal(windowName, pOpen))
 		{
-			UI::BeginPropertyGrid("TextureImporter");
-
-			UI::Text("Path", m_Path.u8string());
-			UI::Text("Size", std::to_string(m_Width) + 'x' + std::to_string(m_Height));
-
-			ImGui::Separator();
-
-			if (bCube)
+			if (!m_2DTextures.empty())
 			{
-				UI::ComboEnum("Format", m_CubeSettings.ImportFormat);
-				if (UI::PropertyDrag("Layer Size", m_CubeSettings.LayerSize, 16.f, 32, 0, "Resolution of a cube side"))
-					m_CubeSettings.LayerSize = glm::clamp(m_CubeSettings.LayerSize, 16u, 4096u);
-				if (UI::PropertyDrag("Prefilter Size", m_CubeSettings.PrefilterSize, 16.f, 32, 0, "The quality of IBL reflection"))
-					m_CubeSettings.PrefilterSize = glm::clamp(m_CubeSettings.PrefilterSize, 16u, 4096u);
-			}
-			else
-			{
-				constexpr int minMips = 1;
-				const int maxMips = (int)CalculateMipCount(uint32_t(m_Width), uint32_t(m_Height));
-				int mips = int(m_2DSettings.MipsCount);
-
-				UI::ComboEnum("Format", m_2DSettings.ImportFormat, "Compression only supports RGBA8 format!");
-				UI::ComboEnum("Filter mode", m_2DSettings.FilterMode);
-				UI::ComboEnum("Address mode", m_2DSettings.AddressMode);
-				UI::PropertySlider("Anisotropy", m_2DSettings.Anisotropy, 1.f, 16.f, "The final max value will be limited by the hardware capabilities");
-				if (UI::PropertySlider("Mips", mips, minMips, maxMips))
-					m_2DSettings.MipsCount = uint32_t(glm::clamp(mips, minMips, maxMips));
-				UI::Property("Compress", m_2DSettings.bCompress, "If set to true, the engine will try to compress the image. Compression only supports RGBA8 format!");
-				UI::Property("Is Normal Map", m_2DSettings.bNormalMap, "Set to true, if the importing image is a normal map. Currently, it only affects the result if the compression is enabled");
-				UI::Property("Import alpha-channel", m_2DSettings.bNeedAlpha, "Set to true, if the alpha channel should be imported. Currently, it only affects the result if the compression is enabled");
-
-				if (m_2DSettings.bCompress && m_2DSettings.ImportFormat != AssetTexture2DFormat::RGBA8)
+				FancyTreeNode("Common 2D settings", [this]()
 				{
-					Application::Get().GetImGuiLayer()->AddMessage("Compressed textures only support RGBA8 format");
-					m_2DSettings.ImportFormat = AssetTexture2DFormat::RGBA8;
-				}
+					Render2DSettings("", m_Common2DSettings, {-1, -1}, true);
+				});
 			}
-			
-			UI::EndPropertyGrid();
+			if (!m_CubeTextures.empty())
+			{
+				FancyTreeNode("Common Cube settings", [this]()
+				{
+					RenderCubeSettings("", m_CommonCubeSettings, {-1, -1});
+				});
+			}
+
+			if (!m_2DTextures.empty())
+			{
+				FancyTreeNode("2D settings overrides", [this]()
+				{
+					for (auto& texture : m_2DTextures)
+					{
+						constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
+							ImGuiTreeNodeFlags_SpanAvailWidth;
+
+						if (ImGui::TreeNodeEx(&texture, flags, texture.AssetPath.c_str()))
+						{
+							Render2DSettings(texture.AssetPath, texture.Settings, texture.Size, false, &texture.bOverride);
+							ImGui::TreePop();
+						}
+					}
+				});
+			}
+
+			if (!m_CubeTextures.empty())
+			{
+				FancyTreeNode("Cube settings overrides", [this]()
+				{
+					for (auto& texture : m_CubeTextures)
+					{
+						constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
+							ImGuiTreeNodeFlags_SpanAvailWidth;
+
+						if (ImGui::TreeNodeEx(&texture, flags, texture.AssetPath.c_str()))
+						{
+							RenderCubeSettings(texture.AssetPath, texture.Settings, texture.Size, &texture.bOverride);
+							ImGui::TreePop();
+						}
+					}
+				});
+			}
 
 			ImGui::Separator();
 			if (ImGui::Button("Cancel"))
@@ -104,11 +172,32 @@ namespace Eagle
 			ImGui::SameLine();
 			if (ImGui::Button("Import"))
 			{
-				AssetImportSettings settings;
-				settings.Texture2DSettings = m_2DSettings;
-				settings.TextureCubeSettings = m_CubeSettings;
-				if (!AssetImporter::Import(m_Path, importTo, bCube ? AssetType::TextureCube : AssetType::Texture2D , settings))
-					Application::Get().GetImGuiLayer()->AddMessage("Import failed. See logs for more details");
+				bool bAnyFailed = false;
+				for (const auto& texture : m_2DTextures)
+				{
+					AssetImportSettings settings;
+					settings.Texture2DSettings = texture.bOverride ? texture.Settings : m_Common2DSettings;
+					settings.Texture2DSettings.bNormalMap = texture.Settings.bNormalMap; // It's always per texture
+
+					// Limit max mips count
+					if (!texture.bOverride)
+					{
+						const int maxMips = (int)CalculateMipCount(uint32_t(texture.Size.x), uint32_t(texture.Size.y));
+						settings.Texture2DSettings.MipsCount = glm::min(uint32_t(maxMips), m_Common2DSettings.MipsCount);
+					}
+
+					bAnyFailed |= !AssetImporter::Import(texture.AssetPath, importTo, AssetType::Texture2D, settings);
+				}
+				for (const auto& texture : m_CubeTextures)
+				{
+					AssetImportSettings settings;
+					settings.TextureCubeSettings = texture.bOverride ? texture.Settings : m_CommonCubeSettings;
+
+					bAnyFailed |= !AssetImporter::Import(texture.AssetPath, importTo, AssetType::TextureCube, settings);
+				}
+
+				if (bAnyFailed)
+					Application::Get().GetImGuiLayer()->AddMessage("At least one texture import failed. See logs for more details");
 
 				*pOpen = false;
 				bResult = true;
@@ -119,8 +208,114 @@ namespace Eagle
 		return bResult;
 	}
 
+	void TextureImporterPanel::Render2DSettings(const std::string& path, AssetImportTexture2DSettings& settings, glm::ivec2 size, bool bDrawingCommon, bool* bOverride)
+	{
+		UI::BeginPropertyGrid("TextureImporter");
+
+		if (!path.empty())
+			UI::Text("Path", path);
+		if (size.x > 0 && size.y > 0)
+			UI::Text("Size", std::to_string(size.x) + 'x' + std::to_string(size.y));
+		ImGui::Separator();
+
+		if (bOverride)
+		{
+			UI::Property("Override", *bOverride, "Enable if you need to override import settings for this texture");
+
+			if ((*bOverride) == false)
+			{
+				UI::PushItemDisabled();
+			}
+		}
+
+		constexpr int minMips = 1;
+		const int maxMips = (int)CalculateMipCount(uint32_t(size.x), uint32_t(size.y));
+		int mips = int(settings.MipsCount);
+
+		UI::ComboEnum("Format", settings.ImportFormat, "Compression only supports RGBA8 format!");
+		UI::ComboEnum("Filter mode", settings.FilterMode);
+		UI::ComboEnum("Address mode", settings.AddressMode);
+		UI::PropertySlider("Anisotropy", settings.Anisotropy, 1.f, 16.f, "The final max value will be limited by the hardware capabilities");
+		if (!bDrawingCommon)
+		{
+			if (UI::PropertySlider("Mips", mips, minMips, maxMips))
+				settings.MipsCount = uint32_t(glm::clamp(mips, minMips, maxMips));
+		}
+		else // We're rendering common settings, so display an input field
+		{
+			if (UI::PropertyDrag("Max Mips", settings.MipsCount))
+				settings.MipsCount = glm::max(1u, settings.MipsCount);
+		}
+		UI::Property("Compress", settings.bCompress, "If set to true, the engine will try to compress the image. Compression only supports RGBA8 format!");
+		if (!bDrawingCommon)
+			UI::Property("Is Normal Map", settings.bNormalMap, "Set to true, if the importing image is a normal map. Currently, it only affects the result if the compression is enabled");
+		UI::Property("Import alpha-channel", settings.bNeedAlpha, "Set to true, if the alpha channel should be imported. Currently, it only affects the result if the compression is enabled");
+
+		if (settings.bCompress && settings.ImportFormat != AssetTexture2DFormat::RGBA8)
+		{
+			Application::Get().GetImGuiLayer()->AddMessage("Compressed textures only support RGBA8 format");
+			settings.ImportFormat = AssetTexture2DFormat::RGBA8;
+		}
+
+		if (bOverride && ((*bOverride) == false))
+		{
+			UI::PopItemDisabled();
+		}
+
+		UI::EndPropertyGrid();
+	}
+
+	void TextureImporterPanel::RenderCubeSettings(const std::string& path, AssetImportTextureCubeSettings& settings, glm::ivec2 size, bool* bOverride)
+	{
+		UI::BeginPropertyGrid("TextureImporter");
+
+		if (!path.empty())
+			UI::Text("Path", path);
+		if (size.x > 0 && size.y > 0)
+			UI::Text("Size", std::to_string(size.x) + 'x' + std::to_string(size.y));
+		ImGui::Separator();
+
+		if (bOverride)
+		{
+			UI::Property("Override", *bOverride, "Enable if you need to override import settings for this texture");
+
+			if ((*bOverride) == false)
+			{
+				UI::PushItemDisabled();
+			}
+		}
+
+		UI::ComboEnum("Format", settings.ImportFormat);
+		if (UI::PropertyDrag("Layer Size", settings.LayerSize, 16.f, 32, 0, "Resolution of a cube side"))
+			settings.LayerSize = glm::clamp(settings.LayerSize, 16u, 4096u);
+		if (UI::PropertyDrag("Prefilter Size", settings.PrefilterSize, 16.f, 32, 0, "The quality of IBL reflection"))
+			settings.PrefilterSize = glm::clamp(settings.PrefilterSize, 16u, 4096u);
+
+		if (bOverride && ((*bOverride) == false))
+		{
+			UI::PopItemDisabled();
+		}
+
+		UI::EndPropertyGrid();
+	}
+
+	MeshImporterPanel::MeshImporterPanel(const std::vector<Path>& paths)
+	{
+		for (const auto& path : paths)
+		{
+			const AssetType assetType = AssetImporter::GetAssetTypeByExtension(path);
+			EG_CORE_ASSERT(assetType == AssetType::StaticMesh || assetType == AssetType::StaticMesh);
+
+			auto& data = m_Meshes.emplace_back();
+			data.AssetPath = path.u8string();
+		}
+	}
+
 	bool MeshImporterPanel::OnImGuiRender(const Path& importTo, bool* pOpen)
 	{
+		if (m_Meshes.empty())
+			return false;
+
 		const char* windowName = "Import a mesh";
 
 		const bool bAnyPopupPresent = ImGui::IsPopupOpen(windowName, ImGuiPopupFlags_AnyPopup);
@@ -142,60 +337,25 @@ namespace Eagle
 
 		if (ImGui::BeginPopupModal(windowName, pOpen))
 		{
-			auto& settings = m_Settings.MeshSettings;
-
-			UI::BeginPropertyGrid("MeshImporter");
-
-			UI::Text("Path", m_Path.u8string());
-
-			ImGui::Separator();
-
-			UI::Property("As Skeletal", bSkeletal, "Try to import as a skeletal mesh. If a mesh doesn't have bones, it'll be imported as a static mesh");
-			ImGui::Separator();
-
-			if (m_Settings.bOnlyImportAnimations && bSkeletal)
-				UI::PushItemDisabled();
-
-			if (!bSkeletal)
-				UI::PushItemDisabled();
-			UI::Property("Import animations", settings.bImportAnimations, "Animation assets will be imported if the mesh contains any");
-			if (!bSkeletal)
-				UI::PopItemDisabled();
-
-			UI::Property("Import materials", settings.bImportMaterials, "Material assets will be imported if the mesh contains any");
-
-			if (m_Settings.bOnlyImportAnimations && bSkeletal)
-				UI::PopItemDisabled();
-
-			ImGui::Separator();
-
-			if (!bSkeletal)
-				UI::PushItemDisabled();
-
-			if (!settings.bImportAnimations)
-				UI::PushItemDisabled();
-
-			UI::ComboEnum("Root Motion Mode", m_Settings.AnimationSettings.RootMotionType, s_RootMotionHelpMsg);
-
-			if (!settings.bImportAnimations)
-				UI::PopItemDisabled();
-
-			UI::Property("Import animations only", m_Settings.bOnlyImportAnimations, "Set this flag if you want only animations to be imported for the reference skeletal mesh asset)");
-
+			FancyTreeNode("Common Mesh settings", [this]()
 			{
-				if (!bSkeletal || !m_Settings.bOnlyImportAnimations)
-					UI::PushItemDisabled();
+				RenderSettings("", m_CommonSettings, m_AsSkeletal);
+			});
 
-				EditorResources::DrawAssetSelection("Skeletal", m_Settings.AnimationSettings.Skeletal, "Select skeletal asset to be used for the animation");
+			FancyTreeNode("Mesh settings overrides", [this]()
+			{
+				for (auto& mesh : m_Meshes)
+				{
+					constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
+						ImGuiTreeNodeFlags_SpanAvailWidth;
 
-				if (!bSkeletal || !m_Settings.bOnlyImportAnimations)
-					UI::PopItemDisabled();
-			}
-
-			if (!bSkeletal)
-				UI::PopItemDisabled();
-
-			UI::EndPropertyGrid();
+					if (ImGui::TreeNodeEx(&mesh, flags, mesh.AssetPath.c_str()))
+					{
+						RenderSettings(mesh.AssetPath, mesh.Settings, mesh.bSkeletal, &mesh.bOverride);
+						ImGui::TreePop();
+					}
+				}
+			});
 
 			ImGui::Separator();
 			if (ImGui::Button("Cancel"))
@@ -203,18 +363,35 @@ namespace Eagle
 			ImGui::SameLine();
 
 			// Always can create if not a skeletal. Can't create if importing only animations and a skeletal is not selected
-			const bool bCanCreate = !bSkeletal || !m_Settings.bOnlyImportAnimations || m_Settings.AnimationSettings.Skeletal;
+			const bool bCanCreate = !m_AsSkeletal || !m_CommonSettings.bOnlyImportAnimations || m_CommonSettings.AnimationSettings.Skeletal;
 			if (!bCanCreate)
 				UI::PushItemDisabled();
 
 			if (ImGui::Button("Import"))
 			{
-				const AssetType type = bSkeletal ? 
-										m_Settings.bOnlyImportAnimations ? AssetType::Animation : AssetType::SkeletalMesh
-									: AssetType::StaticMesh;
+				bool bAnyFailed = false;
+				for (const auto& mesh : m_Meshes)
+				{
+					const AssetImportSettings settings = mesh.bOverride ? mesh.Settings : m_CommonSettings;
+					const bool bSkeletal = mesh.bOverride ? mesh.bSkeletal : m_AsSkeletal;
 
-				if (!AssetImporter::Import(m_Path, importTo, type, m_Settings))
-					Application::Get().GetImGuiLayer()->AddMessage("Import failed. See logs for more details");
+					const bool bCanCreate = !bSkeletal || !settings.bOnlyImportAnimations || settings.AnimationSettings.Skeletal;
+					if (!bCanCreate)
+					{
+						EG_CORE_ERROR("Failed to import {}: `Import Animations Only` is set but skeletal mesh is not selected for them to use!");
+						bAnyFailed = true;
+						continue;
+					}
+
+					const AssetType type = bSkeletal ?
+						settings.bOnlyImportAnimations ? AssetType::Animation : AssetType::SkeletalMesh
+						: AssetType::StaticMesh;
+
+					bAnyFailed |= !AssetImporter::Import(mesh.AssetPath, importTo, type, settings);
+				}
+
+				if (bAnyFailed)
+					Application::Get().GetImGuiLayer()->AddMessage("At least one mesh failed to import. See logs for more details");
 
 				*pOpen = false;
 				bResult = true;
@@ -227,6 +404,80 @@ namespace Eagle
 		}
 
 		return bResult;
+	}
+
+	void MeshImporterPanel::RenderSettings(const std::string& path, AssetImportSettings& settings, bool& bSkeletal, bool* bOverride)
+	{
+		auto& meshSettings = settings.MeshSettings;
+
+		UI::BeginPropertyGrid("MeshImporter");
+
+		if (!path.empty())
+			UI::Text("Path", path);
+
+		ImGui::Separator();
+
+		if (bOverride)
+		{
+			UI::Property("Override", *bOverride, "Enable if you need to override import settings for this mesh");
+
+			if ((*bOverride) == false)
+			{
+				UI::PushItemDisabled();
+			}
+		}
+
+		UI::Property("As Skeletal", bSkeletal, "Try to import as a skeletal mesh. If a mesh doesn't have bones, it'll be imported as a static mesh");
+		ImGui::Separator();
+
+		if (settings.bOnlyImportAnimations && bSkeletal)
+			UI::PushItemDisabled();
+
+		if (!bSkeletal)
+			UI::PushItemDisabled();
+		UI::Property("Import animations", meshSettings.bImportAnimations, "Animation assets will be imported if the mesh contains any");
+		if (!bSkeletal)
+			UI::PopItemDisabled();
+
+		UI::Property("Import materials", meshSettings.bImportMaterials, "Material assets will be imported if the mesh contains any");
+
+		if (settings.bOnlyImportAnimations && bSkeletal)
+			UI::PopItemDisabled();
+
+		ImGui::Separator();
+
+		if (!bSkeletal)
+			UI::PushItemDisabled();
+
+		if (!meshSettings.bImportAnimations)
+			UI::PushItemDisabled();
+
+		UI::ComboEnum("Root Motion Mode", settings.AnimationSettings.RootMotionType, s_RootMotionHelpMsg);
+
+		if (!meshSettings.bImportAnimations)
+			UI::PopItemDisabled();
+
+		UI::Property("Import animations only", settings.bOnlyImportAnimations, "Set this flag if you want only animations to be imported for the reference skeletal mesh asset)");
+
+		{
+			if (!bSkeletal || !settings.bOnlyImportAnimations)
+				UI::PushItemDisabled();
+
+			EditorResources::DrawAssetSelection("Skeletal", settings.AnimationSettings.Skeletal, "Select skeletal asset to be used for the animation");
+
+			if (!bSkeletal || !settings.bOnlyImportAnimations)
+				UI::PopItemDisabled();
+		}
+
+		if (!bSkeletal)
+			UI::PopItemDisabled();
+
+		if (bOverride && ((*bOverride) == false))
+		{
+			UI::PopItemDisabled();
+		}
+
+		UI::EndPropertyGrid();
 	}
 	
 	bool AnimationGraphImporterPanel::OnImGuiRender(const Path& importTo, bool* pOpen)

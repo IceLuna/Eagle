@@ -56,6 +56,11 @@ namespace Eagle
 		// @saveTo - folder to save an imported asset to (must be somewhere within projects content folder)
 		static bool Import(const Path& pathToRaw, const Path& saveTo, AssetType type, const AssetImportSettings& settings);
 
+		// Can be used to import multiple assets at once
+		// @pathsToRaw - paths to raw assets (such as `png`, `.fbx`, etc...)
+		// @saveTo - folder to save an imported asset to (must be somewhere within projects content folder)
+		static void Import(const std::vector<Path>& pathsToRaw, const Path& saveTo);
+
 		// Returns true, if an eagle asset was successfully created.
 		// Creates an AssetTexture2D from an existing texture2D
 		// @outputFilename. Final filepath to create and save to (must be egasset extension)

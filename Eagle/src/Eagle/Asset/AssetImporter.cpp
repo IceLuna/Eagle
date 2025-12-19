@@ -91,6 +91,26 @@ namespace Eagle
 		return bSuccess;
 	}
 
+	void AssetImporter::Import(const std::vector<Path>& pathsToRaw, const Path& saveTo)
+	{
+		if (pathsToRaw.empty())
+			return;
+
+		if (pathsToRaw.size() == 1)
+			EG_CORE_INFO("Importing an asset...");
+		else
+			EG_CORE_INFO("Importing {} assets at once: ", pathsToRaw.size());
+
+		AssetImportSettings settings;
+		size_t counter = 0;
+		for (const auto& path : pathsToRaw)
+		{
+			EG_CORE_TRACE("\tProgress: importing {}/{}: {}", ++counter, pathsToRaw.size(), path.u8string());
+			Import(path, saveTo, GetAssetTypeByExtension(path), settings);
+		}
+		EG_CORE_INFO("Done");
+	}
+
 	bool AssetImporter::CreateFromTexture2D(const Ref<Texture2D>& texture, const Path& outputFilename)
 	{
 		if (std::filesystem::exists(outputFilename))
