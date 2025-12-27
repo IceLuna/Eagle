@@ -609,8 +609,8 @@ namespace Eagle
 			StagingManager::NextFrame();
 
 			auto& fence = s_RendererData->Fences[frameIndex];
-			auto& semaphore = s_RendererData->Semaphores[frameIndex];
 			auto& imageAcquireSemaphore = s_RendererData->Swapchain->AcquireImage(&s_RendererData->SwapchainImageIndex);
+			auto& semaphore = s_RendererData->Semaphores[s_RendererData->SwapchainImageIndex];
 			const bool bSwapchainValid = s_RendererData->Swapchain->IsValid();
 			fence->Reset();
 
@@ -642,6 +642,7 @@ namespace Eagle
 				s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, fence, imageAcquireSemaphore.get(), semaphoreCount, semaphore.get(), semaphoreCount);
 				if (bSwapchainValid)
 				{
+					// TODO v0.7: is it needed?
 					std::scoped_lock lock(g_ImGuiMutex); // Required. Otherwise new ImGui windows will cause crash
 					s_RendererData->Swapchain->Present(semaphore);
 				}
