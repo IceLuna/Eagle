@@ -196,24 +196,22 @@ namespace Eagle
 	
 	void Project::GenerateSolution(const ProjectInfo& info)
 	{
-		const std::string vs2019 = "vs2019";
-		const std::string vs2022 = "vs2022";
-		const std::string eagleDir = Application::GetCorePath().parent_path().u8string();
+		const std::string vsVersions[] = { "vs2026", "vs2022", "vs2019" };
+
+		const std::string eagleDir = std::filesystem::absolute(Application::GetCorePath().parent_path()).u8string();
+		EG_CORE_WARN(eagleDir);
 		std::string args = std::string(" --file=" + eagleDir + "/premake5_project.lua ") + "--projectname=" + info.Name
 			+ " --projectdir=" + info.BasePath.u8string() + " --eagledir=" + eagleDir;
-		
-		const int result = Utils::Execute(eagleDir + "/vendor/premake/premake5.exe", vs2022 + args);
-		if (result == 0)
-			EG_CORE_INFO("Successfully generated VS 2022 solution files: {}", info.BasePath.u8string());
-		else
+
+		for (const auto& version : vsVersions)
 		{
-			EG_CORE_ERROR("Failed to generate VS 2022 solution files: {}", info.BasePath.u8string());
-			EG_CORE_INFO("Trying with VS 2019...");
-			const int result = Utils::Execute("..\\vendor\\premake\\premake5.exe", vs2019 + args);
+			const int result = Utils::Execute(eagleDir + "/vendor/premake/premake5.exe", version + args);
 			if (result == 0)
-				EG_CORE_INFO("Successfully generated VS 2019 solution files: {}", info.BasePath.u8string());
-			else
-				EG_CORE_ERROR("Failed to generate VS 2019 solution files: {}", info.BasePath.u8string());
+			{
+				EG_CORE_INFO("Successfully generated {} solution files: {}", version, info.BasePath.u8string());
+				break;
+			}
+			EG_CORE_ERROR("Failed to generate {} solution files: {}", version, info.BasePath.u8string());
 		}
 	}
 	

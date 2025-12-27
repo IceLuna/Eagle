@@ -4,6 +4,7 @@
 #include <glm/glm.hpp>
 #include <array>
 
+// If changed, vertex shaders for skeletal meshes should also be updated
 #define EG_MAX_BONES_PER_VERTEX 4
 
 namespace Eagle

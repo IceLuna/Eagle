@@ -255,7 +255,6 @@ namespace Eagle
 
 		VkPhysicalDevice16BitStorageFeatures storageFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES };
 		storageFeatures.storageBuffer16BitAccess = VK_TRUE;
-		storageFeatures.storageInputOutput16 = VK_TRUE;
 
 		VkPhysicalDeviceVulkan12Features deviceFeatures12 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
 		deviceFeatures12.descriptorIndexing = VK_TRUE;

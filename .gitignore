@@ -16,6 +16,7 @@ Eagle-Editor/Eagle-Scripts.dll
 
 # Files
 *.sln
+*.slnx
 *.pdb
 *.csproj
 *.user

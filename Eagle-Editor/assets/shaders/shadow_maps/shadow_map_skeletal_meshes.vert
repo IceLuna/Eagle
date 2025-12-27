@@ -48,9 +48,10 @@ void main()
     mat4 boneTransform = mat4(0.f);
     for (uint i = 0; i < 4; ++i)
     {
-        if (a_Weights[i] > 0.f)
+        const float weight = GetWeight(i);
+        if (weight > 0.f)
         {
-            boneTransform += g_MeshAnimation[nonuniformEXT(transformIndex)].Transforms[a_BoneIDs[i]] * a_Weights[i];
+            boneTransform += g_MeshAnimation[nonuniformEXT(transformIndex)].Transforms[GetBoneID(i)] * weight;
         }
     }
 

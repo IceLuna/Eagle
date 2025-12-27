@@ -59,7 +59,7 @@ project "%{ProjectName}"
 
 	postbuildcommands 
 	{
-		"%{EagleDir}" .. "/Eagle-Editor/BuildEvent.exe"
+		"\"%{EagleDir}" .. "/Eagle-Editor/BuildEvent.exe\""
 	}
 
 	filter { "system:windows", "configurations:Debug" }

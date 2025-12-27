@@ -1,17 +1,13 @@
 workspace "Eagle"
 	architecture "x64"
 	startproject "Eagle-Editor"
+	multiprocessorcompile ("On")
 
 	configurations
 	{
 		"Debug",
 		"ReleaseWithDebug",
 		"Release"
-	}
-
-	flags
-	{
-		"MultiProcessorCompile"
 	}
 
 VULKAN_SDK = os.getenv("VULKAN_SDK")
@@ -142,7 +138,7 @@ project "Eagle"
 	pchheader "egpch.h"
 	pchsource "Eagle/src/egpch.cpp"
 
-	flags { "FatalWarnings" }
+	fatalwarnings("All")
 
 	files
 	{
@@ -375,7 +371,7 @@ project "Eagle-Editor"
 	targetdir ("%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
-	flags { "FatalWarnings" }
+	fatalwarnings("All")
 
 	files
 	{
@@ -518,7 +514,7 @@ project "Eagle-Game"
 	targetdir ("Eagle-Editor")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 	
-	flags { "FatalWarnings" }
+	fatalwarnings("All")
 
 	files
 	{
