@@ -494,7 +494,7 @@ namespace Eagle
 
 		ParticleEmitter dummy;
 
-		const auto& systemTransforms = m_Renderer.GetSkeletalParticleAnimationTransforms();
+		const auto& systemTransforms = m_Renderer.GetSkeletalParticleAnimationTransforms_RT();
 		m_AnimationTransforms.clear();
 
 		cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::StorageBuffer, BufferLayoutType::CopyDest);

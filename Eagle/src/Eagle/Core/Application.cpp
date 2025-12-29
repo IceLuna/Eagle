@@ -22,6 +22,7 @@
 namespace Eagle
 {
 	extern std::mutex g_ImGuiMutex;
+	static std::mutex s_TimingsMutex;
 
 #ifdef EG_CPU_TIMINGS
 	struct {
@@ -173,11 +174,9 @@ namespace Eagle
 		});
 	}
 
-	static std::mutex s_TimingsMutex;
-
 	void Application::Run()
 	{
-		float m_LastFrameTime = (float)glfwGetTime();
+		double lastFrameTime = glfwGetTime();
 		while (m_Running)
 		{
 #ifdef EG_CPU_TIMINGS
@@ -208,9 +207,9 @@ namespace Eagle
 #endif
 			EG_CPU_TIMING_SCOPED("Whole frame");
 			m_Time = glfwGetTime();
-			const float currentFrameTime = (float)m_Time;
-			m_Timestep = currentFrameTime - m_LastFrameTime;
-			m_LastFrameTime = currentFrameTime;
+			const double currentFrameTime = m_Time;
+			m_Timestep = float(currentFrameTime - lastFrameTime);
+			lastFrameTime = currentFrameTime;
 
 #ifndef EG_RELEASE
 			//If timestep is too big that probably means that we were debugging. In that case, reset timestep to 60fps value

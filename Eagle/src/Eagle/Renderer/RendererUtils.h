@@ -902,7 +902,7 @@ namespace Eagle
         bool bEnableCSMSmoothTransition = true;
         bool bVisualizeCascades = false;
         bool bStutterlessShaders = true;
-        bool bEnableObjectPicking = true;
+        bool bEnableObjectPicking = false;
         bool bEnable2DObjectPicking = false;
         bool bSortOpaqueParticles = false;
         bool bEnableDebugLinesDepthTest = true;

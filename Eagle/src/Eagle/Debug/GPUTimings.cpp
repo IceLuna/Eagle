@@ -10,6 +10,8 @@
 
 namespace Eagle
 {
+	extern std::mutex g_TimingsMutex;
+
 	Ref<RHIGPUTiming> RHIGPUTiming::Create(const std::string_view name)
 	{
 		Ref <RHIGPUTiming> result;
@@ -74,13 +76,13 @@ namespace Eagle
 		m_Cmd->BeginMarker(m_Name);
 #endif
 
-		if (s_TimingsStack.empty())
 		{
-			m_GPUTiming->SetParent(nullptr);
-		}
-		else
-		{
-			RHIGPUTiming* parent = s_TimingsStack.back();
+			RHIGPUTiming* parent = nullptr;
+			if (!s_TimingsStack.empty())
+			{
+				parent = s_TimingsStack.back();
+			}
+			std::scoped_lock lock(g_TimingsMutex);
 			m_GPUTiming->SetParent(parent);
 		}
 		s_TimingsStack.push_back(m_GPUTiming.get());

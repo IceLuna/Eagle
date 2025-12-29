@@ -672,7 +672,7 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "Skeletal Meshes. Process and upload animations");
 			EG_CPU_TIMING_SCOPED("Skeletal Meshes. Process and upload animations");
 
-			const auto& finalAnimTransforms = m_Renderer.GetMeshesAnimationTransforms();
+			const auto& finalAnimTransforms = m_Renderer.GetMeshesAnimationTransforms_RT();
 			for (auto& [meshKey, instances] : m_SkeletalMeshes)
 			{
 				const auto& mesh = meshKey.Mesh;

@@ -25,7 +25,7 @@
 namespace Eagle
 {
 	std::mutex g_ImGuiMutex;
-	static std::mutex g_TimingsMutex;
+	std::mutex g_TimingsMutex;
 	static std::mutex s_SubmitMutex;
 	static std::mutex s_SubmitFreeMutex;
 
@@ -67,7 +67,6 @@ namespace Eagle
 		Ref<Image> BRDFLUTImage;
 		Ref<TextureCube> DummyIBL;
 
-		GPUTimingsContainer GPUTimings; // Sorted
 #ifdef EG_GPU_TIMINGS
 		std::unordered_map<std::string_view, Ref<RHIGPUTiming>> RHIGPUTimings;
 		std::unordered_map<std::string_view, Weak<RHIGPUTiming>> RHIGPUTimingsParentless; // Timings that do not have parents
@@ -146,7 +145,8 @@ namespace Eagle
 		data.Timing = timing->GetTiming();
 
 		const auto& children = timing->GetChildren();
-		for (auto& child : children)
+		data.Children.reserve(children.size());
+		for (const auto& child : children)
 		{
 			auto& childData = data.Children.emplace_back();
 			childData.Name = child->GetName();
@@ -156,8 +156,8 @@ namespace Eagle
 		const size_t childsCount = children.size();
 		for (size_t i = 0; i < childsCount; ++i)
 		{
-			auto& child = children[i];
-			for (auto& childsChild : child->GetChildren())
+			const auto& child = children[i];
+			for (const auto& childsChild : child->GetChildren())
 				data.Children[i].Children.push_back(ProcessTimingChildren(childsChild));
 			std::sort(data.Children[i].Children.begin(), data.Children[i].Children.end(), s_CustomGPUTimingsLess);
 		}
@@ -166,10 +166,10 @@ namespace Eagle
 		return data;
 	}
 
-	static void SortGPUTimings()
+	static GPUTimingsContainer SortGPUTimings()
 	{
+		GPUTimingsContainer timings;
 #ifdef EG_GPU_TIMINGS
-		s_RendererData->GPUTimings.clear();
 		for (auto it = s_RendererData->RHIGPUTimingsParentless.begin(); it != s_RendererData->RHIGPUTimingsParentless.end();)
 		{
 			if (it->second.expired())
@@ -179,12 +179,14 @@ namespace Eagle
 			}
 
 			Ref<RHIGPUTiming> timing = it->second.lock();
-			auto& lastTiming = s_RendererData->GPUTimings.emplace_back(ProcessTimingChildren(timing.get()));
+			auto& lastTiming = timings.emplace_back(ProcessTimingChildren(timing.get()));
 			++it;
 		}
 
-		std::sort(s_RendererData->GPUTimings.begin(), s_RendererData->GPUTimings.end(), s_CustomGPUTimingsLess);
+		std::sort(timings.begin(), timings.end(), s_CustomGPUTimingsLess);
 #endif
+
+		return timings;
 	}
 
 	static void InitHaltonSequence()
@@ -514,7 +516,6 @@ namespace Eagle
 			timing->SetParent(nullptr);
 		s_RendererData->RHIGPUTimings.clear();
 #endif
-		s_RendererData->GPUTimings.clear();
 		s_ShaderDependencies.clear();
 
 		StagingManager::ReleaseBuffers();
@@ -584,16 +585,14 @@ namespace Eagle
 
 	void RenderManager::BeginFrame()
 	{
+		// Waiting for the previous execution to finish
+		auto& fence = s_RendererData->Fences[s_RendererData->CurrentFrameIndex];
+		const auto& task = s_RendererData->ThreadPoolTasks[s_RendererData->CurrentFrameIndex];
 		{
-			// Here we're waiting for the frame to be executed (waiting for fence)
-			// Then we're waiting for all the submissions to finish. Otherwise we'll be lagging behind since frames are being queued up
-			// If we're won't wait for all the submission to finish, it's kinda like we're creating our own VSync where we can be behind for up to `FramesInFlight` frames
-			EG_CPU_TIMING_SCOPED("Waiting For GPU");
-			auto& fence = s_RendererData->Fences[s_RendererData->CurrentFrameIndex];
+			EG_CPU_TIMING_SCOPED("Waiting for GPU");
+			if (task.valid())
+				task.wait();
 			fence->Wait();
-			for(auto& task : s_RendererData->ThreadPoolTasks)
-				if (task.valid())
-					task.wait();
 		}
 
 		s_RendererData->ImGuiLayer = &Application::Get().GetImGuiLayer();
@@ -895,8 +894,7 @@ namespace Eagle
 		GPUTimingsContainer result;
 		{
 			std::scoped_lock lock(g_TimingsMutex);
-			SortGPUTimings();
-			result = s_RendererData->GPUTimings;
+			result = SortGPUTimings();
 		}
 		return result;
 	}
@@ -904,6 +902,7 @@ namespace Eagle
 #ifdef EG_GPU_TIMINGS
 	void RenderManager::RegisterGPUTiming(Ref<RHIGPUTiming>& timing, std::string_view name)
 	{
+		std::scoped_lock lock(g_TimingsMutex);
 		s_RendererData->RHIGPUTimings[name] = timing;
 	}
 

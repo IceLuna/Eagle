@@ -417,6 +417,22 @@ namespace Eagle
 		StagingManager::ReleaseBuffers();
 	}
 
+	void SceneRenderer::SetMeshesAnimationTransforms(std::unordered_map<uint32_t, std::vector<glm::mat4>>&& transforms)
+	{
+		RenderManager::Submit([renderer = shared_from_this(), transforms = std::move(transforms)](const Ref<CommandBuffer>&)
+		{
+			renderer->m_AnimationTransforms = std::move(transforms);
+		});
+	}
+
+	void SceneRenderer::SetSkeletalParticleAnimationTransforms(std::unordered_map<GUID, std::unordered_map<GUID, std::vector<glm::mat4>>>&& transforms)
+	{
+		RenderManager::Submit([renderer = shared_from_this(), transforms = std::move(transforms)](const Ref<CommandBuffer>&)
+		{
+			renderer->m_SkeletalParticlesAnimationTransforms = std::move(transforms);
+		});
+	}
+
 	void SceneRenderer::InitWithOptions()
 	{
 		auto& options = m_Options_RT;

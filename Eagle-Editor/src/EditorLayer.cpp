@@ -521,7 +521,7 @@ namespace Eagle
 		if (m_EditorState == EditorState::Play || e.GetMouseCode() != Mouse::ButtonLeft)
 			return false;
 
-		//Entity Selection
+		// Entity Selection
 		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
 		bool bUsingImGuizmo = selectedEntity && (ImGuizmo::IsUsing() || ImGuizmo::IsOver());
 		if (m_ViewportHovered && !bUsingImGuizmo && Input::IsMouseButtonPressed(Mouse::ButtonLeft))
@@ -538,7 +538,7 @@ namespace Eagle
 				uint8_t* mapped = (uint8_t*)image->Map();
 				mapped += imageLayout.Offset;
 				mapped += imageLayout.RowPitch * mouse.y;
-				memcpy(&data, ((uint32_t*)mapped) + mouse.x, sizeof(int));
+				memcpy(&data, ((uint32_t*)mapped) + mouse.x, sizeof(int32_t));
 				image->Unmap();
 				m_SceneHierarchyPanel.SetEntitySelected(data == -1 ? Entity::Null : Entity{ (entt::entity)data, m_CurrentScene.get() });
 				return true;
@@ -2152,8 +2152,12 @@ namespace Eagle
 				ImGui::TreePop();
 			}
 
-			ImGui::Text("Frame Time: %.6fms", m_Ts * 1000.f);
-			ImGui::Text("FPS: %d", int(1.f / m_Ts));
+			ImGui::Text("Frame time: %.3fms (%d fps)", m_Ts * 1000.f, int(1.f / m_Ts));
+			if (auto timings = RenderManager::GetTimings(); !timings.empty())
+			{
+				const auto& wholeFrame = *timings.begin();
+				ImGui::Text("Render time: %.3fms", wholeFrame.Timing);
+			}
 			ImGui::PopID();
 		}
 		ImGui::End(); //Stats

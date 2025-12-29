@@ -141,12 +141,12 @@ namespace Eagle
 		float GetAspectRatio() const { return float(m_Size.x) / float(m_Size.y); }
 
 		// Key -> Mesh ID (entity ID)
-		void SetMeshesAnimationTransforms(std::unordered_map<uint32_t, std::vector<glm::mat4>>&& transforms) { m_AnimationTransforms = std::move(transforms); }
-		const std::unordered_map<uint32_t, std::vector<glm::mat4>>& GetMeshesAnimationTransforms() const { return m_AnimationTransforms; }
+		void SetMeshesAnimationTransforms(std::unordered_map<uint32_t, std::vector<glm::mat4>>&& transforms);
+		const std::unordered_map<uint32_t, std::vector<glm::mat4>>& GetMeshesAnimationTransforms_RT() const { return m_AnimationTransforms; }
 
 		// Key - system ID; Value - transforms per emitter
-		void SetSkeletalParticleAnimationTransforms(std::unordered_map<GUID, std::unordered_map<GUID, std::vector<glm::mat4>>>&& transforms) { m_SkeletalParticlesAnimationTransforms = std::move(transforms); }
-		const auto& GetSkeletalParticleAnimationTransforms() const { return m_SkeletalParticlesAnimationTransforms; }
+		void SetSkeletalParticleAnimationTransforms(std::unordered_map<GUID, std::unordered_map<GUID, std::vector<glm::mat4>>>&& transforms);
+		const auto& GetSkeletalParticleAnimationTransforms_RT() const { return m_SkeletalParticlesAnimationTransforms; }
 
 		// ----------- Getters from other tasks -----------
 		// TODO: Implement a proper Render graph with input-output connections between tasks
