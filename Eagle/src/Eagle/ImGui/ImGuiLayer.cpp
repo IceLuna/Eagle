@@ -3,6 +3,7 @@
 #include "ImGuiLayer.h"
 #include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/UI/UI.h"
+#include "Eagle/Input/Input.h"
 #include "Platform/Vulkan/VulkanImGuiLayer.h"
 
 namespace Eagle
@@ -25,6 +26,19 @@ namespace Eagle
 			m_PopupMessages.pop_back();
 
 		ImGui::PopID();
+	}
+
+	void ImGuiLayer::OnUpdate(Timestep ts)
+	{
+		const bool bEnableMouseInput = Input::IsMouseVisible();
+		if (bEnableMouseInput)
+		{
+			ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
+		}
+		else
+		{
+			ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouse;
+		}
 	}
 
 	void ImGuiLayer::AddMessage(const std::string& message)

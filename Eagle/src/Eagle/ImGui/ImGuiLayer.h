@@ -30,6 +30,7 @@ namespace Eagle
 		virtual void EndFrame() = 0;
 		virtual void UpdatePlatform() = 0;
 		void OnImGuiRender() override;
+		void OnUpdate(Timestep ts) override;
 
 		void AddMessage(const std::string& message);
 
