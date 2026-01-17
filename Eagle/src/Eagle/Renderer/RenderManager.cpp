@@ -567,8 +567,13 @@ namespace Eagle
 	void RenderManager::Wait()
 	{
 		for (auto& task : s_RendererData->ThreadPoolTasks)
+		{
 			if (task.valid())
+			{
 				task.wait();
+				task = {};
+			}
+		}
 		Application::Get().GetRenderContext()->WaitIdle();
 	}
 
@@ -587,11 +592,14 @@ namespace Eagle
 	{
 		// Waiting for the previous execution to finish
 		auto& fence = s_RendererData->Fences[s_RendererData->CurrentFrameIndex];
-		const auto& task = s_RendererData->ThreadPoolTasks[s_RendererData->CurrentFrameIndex];
+		auto& task = s_RendererData->ThreadPoolTasks[s_RendererData->CurrentFrameIndex];
 		{
 			EG_CPU_TIMING_SCOPED("Waiting for GPU");
 			if (task.valid())
+			{
 				task.wait();
+				task = {};
+			}
 			fence->Wait();
 		}
 
@@ -641,8 +649,6 @@ namespace Eagle
 				s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, fence, imageAcquireSemaphore.get(), semaphoreCount, semaphore.get(), semaphoreCount);
 				if (bSwapchainValid)
 				{
-					// TODO v0.7: is it needed?
-					std::scoped_lock lock(g_ImGuiMutex); // Required. Otherwise new ImGui windows will cause crash
 					s_RendererData->Swapchain->Present(semaphore);
 				}
 			}

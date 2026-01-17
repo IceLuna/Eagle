@@ -222,6 +222,10 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Particle System");
 
 		Update(cmd);
+
+		if (m_SystemToEmittersMapping.empty())
+			return;
+
 		PreparePass(cmd);
 		EmitPass(cmd);
 		SimulatePass(cmd);
@@ -489,13 +493,14 @@ namespace Eagle
 
 	void ParticleSystemTask::UpdateSkeletalAnimations(const Ref<CommandBuffer>& cmd)
 	{
-		EG_GPU_TIMING_SCOPED(cmd, "Particle System. Update skeletam mesh animations");
-		EG_CPU_TIMING_SCOPED("Particle System. Update skeletam mesh animations");
-
-		ParticleEmitter dummy;
-
 		const auto& systemTransforms = m_Renderer.GetSkeletalParticleAnimationTransforms_RT();
 		m_AnimationTransforms.clear();
+
+		if (systemTransforms.empty())
+			return;
+
+		EG_GPU_TIMING_SCOPED(cmd, "Particle System. Update skeletam mesh animations");
+		EG_CPU_TIMING_SCOPED("Particle System. Update skeletam mesh animations");
 
 		cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::StorageBuffer, BufferLayoutType::CopyDest);
 		for (const auto& [systemID, perEmitterTransforms] : systemTransforms)
@@ -507,6 +512,7 @@ namespace Eagle
 			auto& emittersData = it->second;
 			for (const auto& [emitterID, transforms] : perEmitterTransforms)
 			{
+				ParticleEmitter dummy;
 				dummy.ID = emitterID;
 				auto it = emittersData.find(dummy);
 				if (it == emittersData.end())

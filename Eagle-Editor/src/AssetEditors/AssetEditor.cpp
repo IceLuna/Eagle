@@ -45,6 +45,15 @@ namespace Eagle
 		m_Renderer.reset();
 	}
 
+	void AssetEditor::OnUpdate()
+	{
+		if (!m_CurrentScene)
+			return;
+
+		if (m_CurrentScene->GetSceneRenderer()->GetViewportSize() != m_ViewportSize)
+			m_CurrentScene->OnViewportResize(m_ViewportSize.x, m_ViewportSize.y);
+	}
+
 	void AssetEditor::DrawViewport(bool bForceAnimUpdate, const std::string_view parentName)
 	{
 		if (!m_CurrentScene)
@@ -69,9 +78,7 @@ namespace Eagle
 
 			auto& renderer = m_CurrentScene->GetSceneRenderer();
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
-			auto viewportSize = glm::uvec2(viewportPanelSize.x, viewportPanelSize.y);
-			if (renderer->GetViewportSize() != viewportSize)
-				m_CurrentScene->OnViewportResize(viewportSize.x, viewportSize.y);
+			m_ViewportSize = glm::uvec2(viewportPanelSize.x, viewportPanelSize.y);
 
 			m_CurrentScene->OnUpdate(Application::Get().GetTimestep(), true, bForceAnimUpdate);
 			const auto& render = renderer->GetOutput();

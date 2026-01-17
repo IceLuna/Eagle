@@ -165,6 +165,14 @@ namespace Eagle
 		s_Instance = nullptr;
 	}
 
+	void ContentBrowserPanel::OnUpdate()
+	{
+		for (auto& [_, editor] : m_AssetEditors)
+		{
+			editor->OnUpdate();
+		}
+	}
+
 	void ContentBrowserPanel::OnImGuiRender()
 	{
 		EG_CPU_TIMING_SCOPED("Content Browser");

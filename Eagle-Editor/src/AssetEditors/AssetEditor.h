@@ -18,6 +18,8 @@ namespace Eagle
 
 		virtual ~AssetEditor();
 
+		void OnUpdate();
+
 		// pOpen - In case X button is clicked, this flag will be set to false.
 		// pOpen - if nullptr set, windows will not have X button 
 		virtual void OnImGuiRender(bool* pOpen) {}
@@ -60,6 +62,7 @@ namespace Eagle
 		Ref<AssetTextureCube> m_Skybox;
 		glm::vec2 m_ViewportBounds[2] = { glm::vec2(), glm::vec2() };
 		int m_GuizmoType = 7; // TRANSLATE;
+		glm::uvec2 m_ViewportSize = glm::uvec2(1u);
 
 		bool bViewportVisible = false;
 		bool bViewportFocused = false;
