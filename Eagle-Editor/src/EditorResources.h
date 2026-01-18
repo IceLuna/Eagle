@@ -38,6 +38,8 @@ namespace Eagle
 			return bResult;
 		}
 
+		static bool DrawGraphVariables(const Ref<AnimationGraph>& graph);
+
 	private:
 		static void OpenAssetEditor(const Ref<Asset>& asset);
 

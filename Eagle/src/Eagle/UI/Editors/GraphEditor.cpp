@@ -110,10 +110,15 @@ namespace Eagle
 
         ImGui::BeginHorizontal("Style Editor", ImVec2(panelWidth, 0));
         ImGui::Spring(0.0f, 0.0f);
+        if (ImGui::Button("Compile"))
+            Compile();
+        if (ImGui::Button("Save"))
+            Save();
         if (ImGui::Button("Zoom to Content"))
             ed::NavigateToContent();
         ImGui::Spring();
         ImGui::EndHorizontal();
+        ImGui::Separator();
 
         ImGui::GetWindowDrawList()->AddRectFilled(
             ImGui::GetCursorScreenPos(),
@@ -142,199 +147,33 @@ namespace Eagle
             }
         }
 
-        if (ImGui::Button("Compile"))
-            Compile();
-        ImGui::SameLine();
-        if (ImGui::Button("Save"))
-            Save();
-
-        // Variables
+        if (m_RenderPreviewPanelCallback)
         {
-            const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-                | ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
+            float unused = 0;
 
-            constexpr uint64_t treeID1 = 95392191ull;
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
             ImGui::Separator();
-            bool treeOpened = ImGui::TreeNodeEx((void*)treeID1, flags, "Variables");
-            ImGui::PopStyleVar();
-            if (treeOpened)
-            {
-                if (ImGui::Button("Create variable"))
-                {
-                    const std::string name = CreateNewVar<GraphVariableBool>(nullptr);
-                    SelectVariable(name);
-                    OnGraphChanged();
-                }
-                ImGui::Separator();
-                ImGui::Separator();
+            m_RenderPreviewPanelCallback(panelWidth, m_PreviewPanelHeight);
 
-                const auto variables = GetVariables();
-                if (!variables.empty())
-                {
-                    UI::BeginPropertyGrid("AnimationGraphVars");
-
-                    UI::Text("Name", "Type");
-                    ImGui::Separator();
-
-                    for (const auto& [name, var] : variables)
-                    {
-                        ImGui::PushID(name.c_str());
-                        GraphVariableType type = var->GetType();
-
-                        ImGui::SetNextItemAllowOverlap();
-                        ImVec2 curPos = ImGui::GetCursorPos();
-                        if (ImGui::Selectable("##var_select", m_SelectedVar == name, 0, ImVec2(ImGui::GetColumnWidth(), 25)))
-                            SelectVariable(name);
-
-                        if (ImGui::BeginPopupContextItem(name.c_str(), ImGuiPopupFlags_MouseButtonRight))
-                        {
-                            SelectVariable(name);
-
-                            if (ImGui::MenuItem("Delete"))
-                            {
-                                if (RemoveVariable(name))
-                                {
-                                    // It's ok to update only the first one since it'll pass the event to its subgraphs as well
-                                    m_Graphs[0]->OnVariableDeleted(name);
-                                }
-                            }
-
-                            ImGui::EndPopup();
-                        }
-
-                        //Handling Drag Event.
-                        {
-                            if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
-                            {
-                                ImGui::SetDragDropPayload(GetVarDragDropTag(), name.c_str(), (name.size() + 1) * sizeof(char));
-                                ImGui::Text(name.c_str());
-
-                                ImGui::EndDragDropSource();
-                            }
-                        }
-
-                        ImGui::SetCursorPos(curPos);
-
-                        if (UI::ComboEnum(name, type))
-                            ChangeVariableType(name, type);
-
-                        ImGui::PopID();
-                    }
-
-                    UI::EndPropertyGrid();
-                }
-                ImGui::TreePop();
-            }
+            Splitter(false, 4.0f, &unused, &m_PreviewPanelHeight, 50.0f, 50.0f);
+            ImGui::Spacing();
+            ImGui::Spacing();
         }
 
-        // Selected var
+        if (ImGui::BeginTabBar("MyTabBar", ImGuiTabBarFlags_None))
         {
-            auto var = GetVariable(m_SelectedVar);
-            bool bRename = false;
-            const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-                | ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
-
-            constexpr uint64_t treeID1 = 95392151ull;
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-            ImGui::Separator();
-            bool treeOpened = ImGui::TreeNodeEx((void*)treeID1, flags, "Details");
-            ImGui::PopStyleVar();
-            if (treeOpened)
+            if (ImGui::BeginTabItem("Variables"))
             {
-                if (var)
-                {
-                    GraphVariableType type = var->GetType();
-                    UI::BeginPropertyGrid("AnimationGraphVars");
-
-                    if (UI::PropertyText("Name", m_RenamingVarTemp, "", ImGuiInputTextFlags_EnterReturnsTrue))
-                        bRename = true;
-
-                    // Lost focus, accept input
-                    if (!ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && (m_SelectedVar != m_RenamingVarTemp))
-                        bRename = true;
-
-                    if (UI::ComboEnum("Type", type))
-                    {
-                        const bool bShowInUI = var->bShowInUI;
-                        ChangeVariableType(m_SelectedVar, type);
-                        var = GetVariable(m_SelectedVar);
-                        var->bShowInUI = bShowInUI;
-                        OnGraphChanged();
-                    }
-
-                    // Value
-                    {
-                        switch (type)
-                        {
-                        case GraphVariableType::Bool:
-                        {
-                            auto valueVar = Cast<GraphVariableBool>(var);
-                            if (UI::Property("Value", valueVar->Value))
-                                OnGraphChanged();
-                            break;
-                        }
-                        case GraphVariableType::Float:
-                        {
-                            auto valueVar = Cast<GraphVariableFloat>(var);
-                            if (UI::PropertyDrag("Value", valueVar->Value))
-                                OnGraphChanged();
-                            break;
-                        }
-                        case GraphVariableType::Int:
-                        {
-                            auto valueVar = Cast<GraphVariableInt>(var);
-                            if (UI::PropertyDrag("Value", valueVar->Value))
-                                OnGraphChanged();
-                            break;
-                        }
-                        case GraphVariableType::Animation:
-                        {
-                            auto valueVar = Cast<GraphVariableAnimation>(var);
-                            if (UI::DrawAssetSelection("Value", valueVar->Value))
-                                OnGraphChanged();
-                            break;
-                        }
-                        case GraphVariableType::String:
-                        {
-                            auto valueVar = Cast<GraphVariableString>(var);
-                            if (UI::PropertyText("Value", valueVar->Value))
-                                OnGraphChanged();
-                            break;
-                        }
-                        case GraphVariableType::Vec4:
-                        {
-                            auto valueVar = Cast<GraphVariableVec4>(var);
-                            if (UI::PropertyDrag("Value", valueVar->Value, 0.05f))
-                                OnGraphChanged();
-                            break;
-                        }
-                        }
-                    }
-
-                    if (UI::Property("Show in UI", var->bShowInUI))
-                    {
-                        OnGraphChanged();
-                    }
-
-                    UI::EndPropertyGrid();
-                }
-                ImGui::TreePop();
+                RenderVariablesUI();
+                RenderSelectedVariableDetails();
+                ImGui::EndTabItem();
             }
-
-            if (bRename)
+            if (ImGui::BeginTabItem("Preview Variables"))
             {
-                if (RenameVariable(m_SelectedVar, m_RenamingVarTemp))
-                {
-                    m_SelectedVar = m_RenamingVarTemp;
-                    OnGraphChanged();
-                }
-                else
-                {
-                    Application::Get().GetImGuiLayer()->AddMessage("Failed to rename a variable. A variable with that name already exist!");
-                    m_RenamingVarTemp = m_SelectedVar;
-                }
+                if (m_RenderPreviewVarsCallback)
+                    m_RenderPreviewVarsCallback();
+                ImGui::EndTabItem();
             }
+            ImGui::EndTabBar();
         }
 
         ImGui::EndChild();
@@ -375,6 +214,174 @@ namespace Eagle
         }
 
         return false;
+    }
+
+    void GraphEditor::RenderVariablesUI()
+    {
+        if (ImGui::Button("Create variable"))
+        {
+            const std::string name = CreateNewVar<GraphVariableBool>(nullptr);
+            SelectVariable(name);
+            OnGraphChanged();
+        }
+        ImGui::Separator();
+
+        const auto variables = GetVariables();
+        if (!variables.empty())
+        {
+            UI::BeginPropertyGrid("AnimationGraphVars");
+
+            UI::Text("Name", "Type");
+            ImGui::Separator();
+
+            for (const auto& [name, var] : variables)
+            {
+                ImGui::PushID(name.c_str());
+                GraphVariableType type = var->GetType();
+
+                ImGui::SetNextItemAllowOverlap();
+                ImVec2 curPos = ImGui::GetCursorPos();
+                if (ImGui::Selectable("##var_select", m_SelectedVar == name, 0, ImVec2(ImGui::GetColumnWidth(), 25)))
+                    SelectVariable(name);
+
+                if (ImGui::BeginPopupContextItem(name.c_str(), ImGuiPopupFlags_MouseButtonRight))
+                {
+                    SelectVariable(name);
+
+                    if (ImGui::MenuItem("Delete"))
+                    {
+                        if (RemoveVariable(name))
+                        {
+                            // It's ok to update only the first one since it'll pass the event to its subgraphs as well
+                            m_Graphs[0]->OnVariableDeleted(name);
+                        }
+                    }
+
+                    ImGui::EndPopup();
+                }
+
+                //Handling Drag Event.
+                {
+                    if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+                    {
+                        ImGui::SetDragDropPayload(GetVarDragDropTag(), name.c_str(), (name.size() + 1) * sizeof(char));
+                        ImGui::Text(name.c_str());
+
+                        ImGui::EndDragDropSource();
+                    }
+                }
+
+                ImGui::SetCursorPos(curPos);
+
+                if (UI::ComboEnum(name, type))
+                    ChangeVariableType(name, type);
+
+                ImGui::PopID();
+            }
+
+            UI::EndPropertyGrid();
+        }
+    }
+
+    void GraphEditor::RenderSelectedVariableDetails()
+    {
+        // Selected var
+        auto var = GetVariable(m_SelectedVar);
+        if (!var)
+            return;
+
+        bool bRename = false;
+        UI::TextWithSeparator("Details");
+        {
+            GraphVariableType type = var->GetType();
+            UI::BeginPropertyGrid("AnimationGraphVars");
+
+            if (UI::PropertyText("Name", m_RenamingVarTemp, "", ImGuiInputTextFlags_EnterReturnsTrue))
+                bRename = true;
+
+            // Lost focus, accept input
+            if (!ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && (m_SelectedVar != m_RenamingVarTemp))
+                bRename = true;
+
+            if (UI::ComboEnum("Type", type))
+            {
+                const bool bShowInUI = var->bShowInUI;
+                ChangeVariableType(m_SelectedVar, type);
+                var = GetVariable(m_SelectedVar);
+                var->bShowInUI = bShowInUI;
+                OnGraphChanged();
+            }
+
+            // Value
+            {
+                switch (type)
+                {
+                case GraphVariableType::Bool:
+                {
+                    auto valueVar = Cast<GraphVariableBool>(var);
+                    if (UI::Property("Value", valueVar->Value))
+                        OnGraphChanged();
+                    break;
+                }
+                case GraphVariableType::Float:
+                {
+                    auto valueVar = Cast<GraphVariableFloat>(var);
+                    if (UI::PropertyDrag("Value", valueVar->Value))
+                        OnGraphChanged();
+                    break;
+                }
+                case GraphVariableType::Int:
+                {
+                    auto valueVar = Cast<GraphVariableInt>(var);
+                    if (UI::PropertyDrag("Value", valueVar->Value))
+                        OnGraphChanged();
+                    break;
+                }
+                case GraphVariableType::Animation:
+                {
+                    auto valueVar = Cast<GraphVariableAnimation>(var);
+                    if (UI::DrawAssetSelection("Value", valueVar->Value))
+                        OnGraphChanged();
+                    break;
+                }
+                case GraphVariableType::String:
+                {
+                    auto valueVar = Cast<GraphVariableString>(var);
+                    if (UI::PropertyText("Value", valueVar->Value))
+                        OnGraphChanged();
+                    break;
+                }
+                case GraphVariableType::Vec4:
+                {
+                    auto valueVar = Cast<GraphVariableVec4>(var);
+                    if (UI::PropertyDrag("Value", valueVar->Value, 0.05f))
+                        OnGraphChanged();
+                    break;
+                }
+                }
+            }
+
+            if (UI::Property("Show in UI", var->bShowInUI))
+            {
+                OnGraphChanged();
+            }
+
+            UI::EndPropertyGrid();
+        }
+
+        if (bRename)
+        {
+            if (RenameVariable(m_SelectedVar, m_RenamingVarTemp))
+            {
+                m_SelectedVar = m_RenamingVarTemp;
+                OnGraphChanged();
+            }
+            else
+            {
+                Application::Get().GetImGuiLayer()->AddMessage("Failed to rename a variable. A variable with that name already exist!");
+                m_RenamingVarTemp = m_SelectedVar;
+            }
+        }
     }
 
     bool GraphEditor::ChangeVariableType(const std::string& varName, GraphVariableType newType)

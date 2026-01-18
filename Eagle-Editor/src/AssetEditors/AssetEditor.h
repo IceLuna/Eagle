@@ -46,11 +46,11 @@ namespace Eagle
 	protected:
 		virtual void HandleFirstWindowRender(std::string_view windowName, std::string_view parentName);
 
+		void HandleCameraFocus();
+
 	private:
 		void AddSkybox();
 		bool OnKeyPressed(KeyPressedEvent& e);
-
-		void HandleCameraFocus();
 
 	private:
 		Ref<Scene> m_Scene;

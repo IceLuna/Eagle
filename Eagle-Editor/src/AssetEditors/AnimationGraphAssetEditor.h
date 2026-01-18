@@ -23,5 +23,6 @@ namespace Eagle
 	private:
 		Ref<AssetAnimationGraph> m_Asset;
 		Scope<AnimationGraphEditor> m_Graph;
+		Entity m_Entity;
 	};
 }

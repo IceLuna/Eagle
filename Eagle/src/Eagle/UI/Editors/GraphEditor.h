@@ -145,6 +145,20 @@ namespace Eagle
 
         bool OnMousePressedEvent(MouseButtonPressedEvent& e);
 
+        void SetRenderPreviewPanelCallback(const std::function<void(float, float)>& func)
+        {
+            m_RenderPreviewPanelCallback = func;
+        }
+
+        void SetRenderPreviewVarsCallback(const std::function<void()>& func)
+        {
+            m_RenderPreviewVarsCallback = func;
+        }
+
+    private:
+        void RenderVariablesUI();
+        void RenderSelectedVariableDetails();
+
     protected:
         ed::Config m_Config;
         std::string m_Name = "Graph Editor";
@@ -171,8 +185,12 @@ namespace Eagle
         // Generate a unique tag to prevent being able to drag&drop between different editors
         std::string m_VarDragDropTag = std::to_string(Random::UInt64());
 
+        std::function<void(float, float)> m_RenderPreviewPanelCallback;
+        std::function<void()> m_RenderPreviewVarsCallback;
+
         float m_LeftPanelWidth = 400.f;
         float m_RightPanelWidth = 800.f;
+        float m_PreviewPanelHeight = 500.f;
         bool m_bIgnoreChangedEvent = true;
         bool m_bGraphFocused = false;
     };
