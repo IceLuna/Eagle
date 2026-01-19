@@ -27,6 +27,7 @@ namespace Eagle
 		static void AddRuntimeAsset(const Ref<Asset>& asset); // Created by C#
 		static bool Get(const Path& path, Ref<Asset>* outAsset);
 		static bool Get(const GUID& guid, Ref<Asset>* outAsset);
+		static bool Exists(const Path& path);
 		static bool GetRuntimeAssetData(const Path& path, Ref<ScopedDataBuffer>* outData);
 		static std::vector<Ref<Asset>> GetDirtyAssets();
 

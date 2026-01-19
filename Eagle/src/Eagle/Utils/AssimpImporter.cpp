@@ -47,6 +47,21 @@ namespace Eagle
 		return glm::quat(pOrientation.w, pOrientation.x, pOrientation.y, pOrientation.z);
 	}
 
+	static bool StartsWith(std::string_view src, std::string_view pattern)
+	{
+		if (src.size() < pattern.size())
+			return false;
+
+		const size_t size = pattern.size();
+		for (size_t i = 0; i < size; ++i)
+		{
+			if (src[i] != pattern[i])
+				return false;
+		}
+
+		return true;
+	}
+
 	// This function can be used to rotate the mesh into engines coord system.
 	// Otherwise, some meshes may be laying on the floor because of diff in coord system
 	static glm::mat4 GetCorrectionMatrix(const aiScene* scene)
@@ -329,6 +344,17 @@ namespace Eagle
 	template <typename MeshImportData>
 	static void ProcessNode(aiNode* node, const aiScene* scene, std::vector<MeshImportData>& meshes, BonesMap& bones, const glm::mat4& coordCorrection, const glm::mat4& tr = glm::mat4(1.f))
 	{
+		// These meshes represent some extra data that shouldn't be imported/rendered. For example, collision meshes.
+		// TODO: Add support for collision meshes during import
+		static const std::vector<const char*> prefixes = {
+			"UCX_", "UBX_", "USP_", "UCP_",
+			"SOCKET_",
+			"COL_", "Collision_",
+			"PHYS_", "Physics_",
+			"NAV_", "NavMesh_",
+			"TRIGGER_", "HELPER_"
+		};
+
 		glm::mat4 nodeTransform = tr * ToGLM(node->mTransformation);
 		// process each mesh located at the current node
 		for (unsigned int i = 0; i < node->mNumMeshes; i++)
@@ -336,6 +362,21 @@ namespace Eagle
 			// the node object only contains indices to index the actual objects in the scene. 
 			// the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
 			aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+
+			std::string_view name = mesh->mName.C_Str();
+			bool bHelperMesh = false;
+			for (const auto& p : prefixes)
+			{
+				if (StartsWith(name, p))
+				{
+					bHelperMesh = true;
+					break;
+				}
+			}
+
+			if (bHelperMesh)
+				continue;
+
 			if constexpr (std::is_same<MeshImportData, Utils::StaticMeshImportData>::value)
 				meshes.push_back(ProcessStaticMesh(mesh, scene, coordCorrection, nodeTransform));
 			else
@@ -753,7 +794,22 @@ namespace Eagle
 				{
 					texturePath = texturePath.parent_path() / "textures" / texturePath.filename();
 				}
-				if (AssetImporter::Import(texturePath, saveTo, AssetType::Texture2D, {}))
+
+				AssetImportSettings importSettings{};
+				{
+					auto& settings = importSettings.Texture2DSettings;
+					settings.bNormalMap = Utils::IsNormalMap(texturePath);
+					if (settings.bNormalMap)
+					{
+						settings.FilterMode = FilterMode::Point;
+					}
+
+					int comp = 1;
+					int unused = 0;
+					stbi_info(texturePath.u8string().c_str(), &unused, &unused, &comp);
+					settings.bNeedAlpha = !settings.bNormalMap && comp == 4;
+				}
+				if (AssetImporter::Import(texturePath, saveTo, AssetType::Texture2D, importSettings))
 				{
 					Path outputFilename = saveTo / (texturePath.stem().u8string() + Asset::GetExtension());
 					assetTexture = Cast<AssetTexture2D>(Asset::Create(outputFilename));
@@ -893,20 +949,11 @@ namespace Eagle
 				}
 			}
 
-			const Path materialFilename = AssetImporter::CreateMaterial(saveTo, aiMaterial->GetName().C_Str());
-			Ref<Asset> asset;
-			Ref<AssetMaterial> materialAsset;
-			if (AssetManager::Get(materialFilename, &asset))
-				materialAsset = Cast<AssetMaterial>(asset);
-
-			if (!materialAsset)
-				EG_CORE_ERROR("Failed to create a material asset: {}", materialFilename.u8string());
-			else
-			{
-				materialAsset->SetMaterial(material);
-				Asset::Save(materialAsset);
-			}
-
+			// We create a material, but don't save it to disk yet.
+			// It should be saved by the called if necessary
+			const Path materialFilename = Utils::GetUniqueAssetFilepath(saveTo, aiMaterial->GetName().C_Str());
+			Ref<AssetMaterial> materialAsset = Cast<AssetMaterial>(Asset::Create(Serializer::SerializeAssetMaterial(nullptr), materialFilename));
+			materialAsset->SetMaterial(material);
 			materialAssets.emplace_back(std::move(materialAsset));
 		}
 

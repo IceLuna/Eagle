@@ -91,7 +91,7 @@ namespace Eagle
 		auto vulkanDevice = device->GetVulkanDevice();
 
 		// Create Descriptor Pool
-		constexpr uint32_t poolSize = 1000;
+		constexpr uint32_t poolSize = 2048;
 		VkDescriptorPoolSize poolSizes[] =
 		{
 			{ VK_DESCRIPTOR_TYPE_SAMPLER, poolSize },

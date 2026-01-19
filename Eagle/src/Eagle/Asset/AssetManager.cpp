@@ -319,6 +319,27 @@ namespace Eagle
 		return false;
 	}
 
+	bool AssetManager::Exists(const Path& path)
+	{
+		auto it = s_Assets.find(path);
+		if (it != s_Assets.end())
+		{
+			return true;
+		}
+
+		// Check asset pack
+		if (s_bGame)
+		{
+			auto it = s_AssetPackAssets.find(path);
+			if (it != s_AssetPackAssets.end())
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	bool AssetManager::GetRuntimeAssetData(const Path& path, Ref<ScopedDataBuffer>* outData)
 	{
 		if (!s_bGame)

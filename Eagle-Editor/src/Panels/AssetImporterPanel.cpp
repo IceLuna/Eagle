@@ -13,17 +13,17 @@ namespace Eagle
 		"Base Pose: use base pose root bone transform\n"
 		"AnimFirstFrame: use root bone transform of the first animation frame";
 
-	static ImVec2 s_DefaultWindowSize = ImVec2(720.f, 256.f);
+	static ImVec2 s_DefaultWindowSize = ImVec2(720.f, 450.f);
 
 	template <typename Func>
-	static void FancyTreeNode(const char* label, Func&& func)
+	static void FancyTreeNode(const char* label, bool bDefaultOpen, Func&& func)
 	{
 		constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
 			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
 
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 		ImGui::Separator();
-		bool treeOpened = ImGui::TreeNodeEx(label, flags);
+		const bool treeOpened = ImGui::TreeNodeEx(label, flags | (bDefaultOpen ? ImGuiTreeNodeFlags_DefaultOpen : 0));
 		ImGui::PopStyleVar();
 
 		if (treeOpened)
@@ -117,14 +117,14 @@ namespace Eagle
 		{
 			if (!m_2DTextures.empty())
 			{
-				FancyTreeNode("Common 2D settings", [this]()
+				FancyTreeNode("Common 2D settings", true, [this]()
 				{
 					Render2DSettings("", m_Common2DSettings, {-1, -1}, true);
 				});
 			}
 			if (!m_CubeTextures.empty())
 			{
-				FancyTreeNode("Common Cube settings", [this]()
+				FancyTreeNode("Common Cube settings", true, [this]()
 				{
 					RenderCubeSettings("", m_CommonCubeSettings, {-1, -1});
 				});
@@ -132,7 +132,7 @@ namespace Eagle
 
 			if (!m_2DTextures.empty())
 			{
-				FancyTreeNode("2D settings overrides", [this]()
+				FancyTreeNode("2D settings overrides", false, [this]()
 				{
 					for (auto& texture : m_2DTextures)
 					{
@@ -150,7 +150,7 @@ namespace Eagle
 
 			if (!m_CubeTextures.empty())
 			{
-				FancyTreeNode("Cube settings overrides", [this]()
+				FancyTreeNode("Cube settings overrides", false, [this]()
 				{
 					for (auto& texture : m_CubeTextures)
 					{
@@ -337,12 +337,12 @@ namespace Eagle
 
 		if (ImGui::BeginPopupModal(windowName, pOpen))
 		{
-			FancyTreeNode("Common Mesh settings", [this]()
+			FancyTreeNode("Import settings", true, [this]()
 			{
 				RenderSettings("", m_CommonSettings, m_AsSkeletal);
 			});
 
-			FancyTreeNode("Mesh settings overrides", [this]()
+			FancyTreeNode("Per-mesh import settings overrides", false, [this]()
 			{
 				for (auto& mesh : m_Meshes)
 				{

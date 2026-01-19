@@ -6,10 +6,13 @@
 
 namespace Eagle
 {
-	GUID ThumbnailCache::s_AssetModifiedCallbackID;
-	Scope<AssetThumbnailRenderer> ThumbnailCache::s_AssetThumbnailRenderer;
-	std::unordered_map<Ref<Asset>, Ref<Image>> ThumbnailCache::s_ThumbnailCache;
-	bool ThumbnailCache::s_RenderingThumbnail = false;
+	static GUID s_AssetModifiedCallbackID;
+	static Scope<AssetThumbnailRenderer> s_AssetThumbnailRenderer;
+	static std::unordered_map<Ref<Asset>, Ref<Image>> s_ThumbnailCache;
+	static bool s_RenderingThumbnail = false;
+
+	// Contains frame number it was rendered. We need to wait FramesInFlight frames for it to be ready
+	static std::unordered_map<Ref<Asset>, std::pair<Ref<Image>, uint64_t>> s_PendingThumbnails;
 
 	void ThumbnailCache::Init()
 	{
@@ -37,6 +40,23 @@ namespace Eagle
 	void ThumbnailCache::NextFrame()
 	{
 		s_RenderingThumbnail = false;
+
+		for (auto it = s_PendingThumbnails.begin(); it != s_PendingThumbnails.end(); )
+		{
+			const auto& pair = it->second;
+			const auto& frameNumber = pair.second;
+			if ((RenderManager::GetFrameNumber_CPU() - frameNumber) >= RendererConfig::FramesInFlight)
+			{
+				const auto& asset = it->first;
+				const auto& image = pair.first;
+				s_ThumbnailCache.emplace(asset, image);
+				it = s_PendingThumbnails.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
 	}
 
 	bool ThumbnailCache::Render(const Ref<Asset>& asset, glm::uvec2 size)
@@ -73,7 +93,7 @@ namespace Eagle
 		}
 
 		s_RenderingThumbnail = true;
-		s_ThumbnailCache.emplace(asset, s_AssetThumbnailRenderer->GetImage());
+		s_PendingThumbnails.emplace(asset, std::pair{ s_AssetThumbnailRenderer->GetImage(), RenderManager::GetFrameNumber_CPU() });
 
 		return true;
 	}

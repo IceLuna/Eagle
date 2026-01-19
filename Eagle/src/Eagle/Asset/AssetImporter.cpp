@@ -343,7 +343,15 @@ namespace Eagle
 				if (materialIndex >= importedMaterials.size())
 					continue;
 
-				importedMeshData.Mesh->SetMaterialAsset(materialIndex, importedMaterials[materialIndex]);
+				const auto& material = importedMaterials[materialIndex];
+				importedMeshData.Mesh->SetMaterialAsset(materialIndex, material);
+
+				// The asset is used, register & save it if required
+				if (!AssetManager::Exists(material->GetPath()))
+				{
+					AssetManager::Register(material);
+					Asset::Save(material);
+				}
 			}
 		}
 
@@ -371,7 +379,15 @@ namespace Eagle
 				if (materialIndex >= importedMaterials.size())
 					continue;
 
-				importedMeshData.Mesh->SetMaterialAsset(materialIndex, importedMaterials[materialIndex]);
+				const auto& material = importedMaterials[materialIndex];
+				importedMeshData.Mesh->SetMaterialAsset(materialIndex, material);
+
+				// The asset is used, register & save it if required
+				if (!AssetManager::Exists(material->GetPath()))
+				{
+					AssetManager::Register(material);
+					Asset::Save(material);
+				}
 			}
 		}
 
