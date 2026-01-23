@@ -17,7 +17,7 @@ namespace Eagle
 	void ThumbnailCache::Init()
 	{
 		s_RenderingThumbnail = false;
-		s_AssetThumbnailRenderer = MakeScope<AssetThumbnailRenderer>();
+		s_AssetThumbnailRenderer = MakeScope<AssetThumbnailRenderer>(GetThumbnailSize());
 
 		AssetManager::AddOnAssetModifiedCallback(s_AssetModifiedCallbackID, [](const Ref<Asset>& asset)
 		{
@@ -60,7 +60,7 @@ namespace Eagle
 		}
 	}
 
-	bool ThumbnailCache::Render(const Ref<Asset>& asset, glm::uvec2 size)
+	bool ThumbnailCache::Render(const Ref<Asset>& asset)
 	{
 		if (!asset)
 			return false;
@@ -71,22 +71,22 @@ namespace Eagle
 		switch (asset->GetAssetType())
 		{
 		case Eagle::AssetType::StaticMesh:
-			s_AssetThumbnailRenderer->Render(Cast<AssetStaticMesh>(asset), size);
+			s_AssetThumbnailRenderer->Render(Cast<AssetStaticMesh>(asset));
 			break;
 		case Eagle::AssetType::SkeletalMesh:
-			s_AssetThumbnailRenderer->Render(Cast<AssetSkeletalMesh>(asset), size);
+			s_AssetThumbnailRenderer->Render(Cast<AssetSkeletalMesh>(asset));
 			break;
 		case Eagle::AssetType::Material:
-			s_AssetThumbnailRenderer->Render(Cast<AssetMaterial>(asset), size);
+			s_AssetThumbnailRenderer->Render(Cast<AssetMaterial>(asset));
 			break;
 		case Eagle::AssetType::Entity:
-			s_AssetThumbnailRenderer->Render(Cast<AssetEntity>(asset), size);
+			s_AssetThumbnailRenderer->Render(Cast<AssetEntity>(asset));
 			break;
 		case Eagle::AssetType::Animation:
-			s_AssetThumbnailRenderer->Render(Cast<AssetAnimation>(asset), size);
+			s_AssetThumbnailRenderer->Render(Cast<AssetAnimation>(asset));
 			break;
 		case Eagle::AssetType::ParticleSystem:
-			s_AssetThumbnailRenderer->Render(Cast<AssetParticleSystem>(asset), size);
+			s_AssetThumbnailRenderer->Render(Cast<AssetParticleSystem>(asset));
 			break;
 		default:
 			EG_CORE_ASSERT(!"Unsupported asset type");

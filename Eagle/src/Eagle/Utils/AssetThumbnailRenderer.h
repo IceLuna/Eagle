@@ -20,14 +20,14 @@ namespace Eagle
 	class AssetThumbnailRenderer
 	{
 	public:
-		AssetThumbnailRenderer();
+		AssetThumbnailRenderer(glm::uvec2 size);
 		virtual ~AssetThumbnailRenderer() {}
 
 		// It's supposed to be called only once and the result (GetImage()) to be reused
 		template <typename T>
-		void Render(const Ref<T>& asset, glm::uvec2 size, bool bNeedSkybox = true)
+		void Render(const Ref<T>& asset, bool bNeedSkybox = true)
 		{
-			Prepare(size, bNeedSkybox);
+			Prepare(bNeedSkybox);
 			SetupScene(asset);
 			Render();
 		}
@@ -51,7 +51,7 @@ namespace Eagle
 		}
 
 	protected:
-		void Prepare(glm::uvec2 size, bool bNeedSkyboxLighting = true);
+		void Prepare(bool bNeedSkyboxLighting = true);
 		void Render();
 		void SetupScene(const Ref<AssetStaticMesh>& asset);
 		void SetupScene(const Ref<AssetSkeletalMesh>& asset);

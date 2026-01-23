@@ -78,8 +78,6 @@ namespace Eagle
 				it->second->SetInFocus();
 		}
 
-		bool RenderThumbnail(const Ref<Asset>& asset);
-
 	private:
 		Ref<AssetScene> m_SceneToOpen;
 		

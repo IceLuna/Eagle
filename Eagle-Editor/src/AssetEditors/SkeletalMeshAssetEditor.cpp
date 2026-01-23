@@ -153,7 +153,7 @@ namespace Eagle
 					{
 						if (ThumbnailCache::IsRenderableAssetType(asset->GetAssetType()))
 						{
-							if (ThumbnailCache::Render(asset, ThumbnailCache::GetThumbnailSize()))
+							if (ThumbnailCache::Render(asset))
 							{
 								preview = ThumbnailCache::Get(asset);
 							}

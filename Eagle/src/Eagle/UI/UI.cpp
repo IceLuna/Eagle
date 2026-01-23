@@ -307,7 +307,7 @@ namespace Eagle::UI
 			preview = ThumbnailCache::Get(asset);
 			if (!preview)
 			{
-				if (ThumbnailCache::Render(asset, ThumbnailCache::GetThumbnailSize()))
+				if (ThumbnailCache::Render(asset))
 				{
 					preview = ThumbnailCache::Get(asset);
 				}

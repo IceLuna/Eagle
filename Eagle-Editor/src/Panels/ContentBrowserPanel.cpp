@@ -690,12 +690,6 @@ namespace Eagle
 		return *s_Instance;
 	}
 
-	bool ContentBrowserPanel::RenderThumbnail(const Ref<Asset>& asset)
-	{
-		constexpr glm::uvec2 thumbnailRenderSize = glm::uvec2(ThumbnailCache::GetThumbnailSize());
-		return ThumbnailCache::Render(asset, thumbnailRenderSize);
-	}
-
 	void ContentBrowserPanel::DrawContent(const std::vector<Path>& directories, const std::vector<Path>& files, bool bHintFullPath /* = false */)
 	{
 		constexpr ImVec2 thumbnailSize = ImVec2(ThumbnailCache::GetThumbnailSize().x, ThumbnailCache::GetThumbnailSize().y);
@@ -772,7 +766,7 @@ namespace Eagle
 				image = ThumbnailCache::Get(asset);
 				if (!image)
 				{
-					if (RenderThumbnail(asset))
+					if (ThumbnailCache::Render(asset))
 					{
 						image = ThumbnailCache::Get(asset);
 					}
