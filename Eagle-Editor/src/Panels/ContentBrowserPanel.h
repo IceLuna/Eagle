@@ -81,9 +81,6 @@ namespace Eagle
 		bool RenderThumbnail(const Ref<Asset>& asset);
 
 	private:
-		static constexpr int searchBufferSize = 512;
-		static char searchBuffer[searchBufferSize];
-
 		Ref<AssetScene> m_SceneToOpen;
 		
 		std::unordered_map<Ref<Asset>, Ref<AssetEditor>> m_AssetEditors;
@@ -124,6 +121,7 @@ namespace Eagle
 
 		bool m_ShowSaveScenePopup = false;
 
+		std::string m_Search;
 		std::string m_PopupInput;
 		bool m_bShowInputName = false;
 		bool m_ShowDeleteConfirmation = false;

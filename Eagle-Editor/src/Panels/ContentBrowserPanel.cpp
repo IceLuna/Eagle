@@ -33,7 +33,6 @@
 
 namespace Eagle
 {
-	char ContentBrowserPanel::searchBuffer[searchBufferSize];
 	static ContentBrowserPanel* s_Instance = nullptr;
 
 	static const char* s_ImportTooltip = "Import a texture, mesh, animation, audio, or font";
@@ -180,7 +179,7 @@ namespace Eagle
 		ImGui::Begin(GetWindowName());
 		ImGui::PushID("Content Browser");
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-		ImGui::InputTextWithHint("##search", "Search...", searchBuffer, searchBufferSize);
+		const bool bSearchInputChanged = UI::InputTextWithHint("##search", m_Search, "Search...");
 
 		if (ImGui::BeginPopupContextWindow("ContentBrowserPopup", ImGuiPopupFlags_MouseButtonRight))
 		{
@@ -342,31 +341,24 @@ namespace Eagle
 			ImGui::SetColumnWidth(0, m_ColumnWidth);
 		}
 
-		const char* buf_end = NULL;
-		ImWchar wData[searchBufferSize];
-		ImTextStrFromUtf8(wData, searchBufferSize, searchBuffer, NULL, &buf_end);
-		std::u16string tempu16((const char16_t*)wData);
-		Path temp = tempu16;
-		std::string search = temp.u8string();
-		if (search.length())
+		if (!m_Search.empty())
 		{
 			static std::vector<Path> directoriesTempEmpty; // empty dirs not to display dirs
-			if (m_ContentBrowserHovered)
+			if (bSearchInputChanged)
 			{
 				m_SearchFiles.clear();
-				GetSearchingContent(search, m_SearchFiles);
+				GetSearchingContent(m_Search, m_SearchFiles);
 			}
 			DrawContent(directoriesTempEmpty, m_SearchFiles, true);
 		}
 		else
 		{
+			if (m_ContentBrowserHovered || m_RefreshBrowser)
+			{
+				m_RefreshBrowser = false;
+				RefreshContentInfo();
+			}
 			DrawContent(m_Directories, m_Files);
-		}
-
-		if (m_ContentBrowserHovered || m_RefreshBrowser)
-		{
-			m_RefreshBrowser = false;
-			RefreshContentInfo();
 		}
 
 		ImGui::Columns(1);
@@ -952,7 +944,7 @@ namespace Eagle
 				continue;
 
 			const Path path = dirEntry.path();
-			const std::string filename = path.filename().u8string();
+			const std::string filename = path.stem().u8string();
 
 			std::size_t pos = Utils::FindSubstringI(filename, search);
 			if (pos != std::string::npos)
@@ -1117,7 +1109,7 @@ namespace Eagle
 
 	void ContentBrowserPanel::SelectFile(const Path& path)
 	{
-		searchBuffer[0] = '\0';
+		m_Search.clear();
 		m_SelectedFile = path;
 		m_CurrentDirectory = path.parent_path();
 		m_CurrentDirectoryRelative = std::filesystem::relative(m_CurrentDirectory, m_ProjectPath);

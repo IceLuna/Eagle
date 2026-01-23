@@ -34,6 +34,7 @@ namespace Eagle
 		AssetManager::RemoveOnAssetModifiedCallback(s_AssetModifiedCallbackID);
 		s_AssetThumbnailRenderer.reset();
 		s_ThumbnailCache.clear();
+		s_PendingThumbnails.clear();
 		s_RenderingThumbnail = false;
 	}
 
@@ -88,7 +89,7 @@ namespace Eagle
 			s_AssetThumbnailRenderer->Render(Cast<AssetParticleSystem>(asset), size);
 			break;
 		default:
-			EG_CORE_ASSERT(!"Unknown asset type");
+			EG_CORE_ASSERT(!"Unsupported asset type");
 			return false;
 		}
 

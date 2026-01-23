@@ -178,6 +178,10 @@ namespace Eagle
 					AssetImportSettings settings;
 					settings.Texture2DSettings = texture.bOverride ? texture.Settings : m_Common2DSettings;
 					settings.Texture2DSettings.bNormalMap = texture.Settings.bNormalMap; // It's always per texture
+					if (settings.Texture2DSettings.bNormalMap)
+					{
+						settings.Texture2DSettings.FilterMode = texture.Settings.FilterMode;
+					}
 
 					// Limit max mips count
 					if (!texture.bOverride)

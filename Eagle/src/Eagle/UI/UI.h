@@ -380,6 +380,7 @@ namespace Eagle::UI
 	bool InputFloat(const std::string_view label, float& value, float step = 0.f, float stepFast = 0.f, const std::string_view helpMessage = "");
 	bool InputDouble(const std::string_view label, double& value, double step = 0.f, double stepFast = 0.f, const std::string_view helpMessage = "");
 	bool InputText(const std::string_view label, std::string& value, ImGuiInputTextFlags flags = ImGuiInputTextFlags_None, const std::string_view helpMessage = "");
+	bool InputTextWithHint(const std::string_view label, std::string& value, std::string_view hint, ImGuiInputTextFlags flags = ImGuiInputTextFlags_None, const std::string_view helpMessage = "");
 	bool InputTextMultiline(const std::string_view label, std::string& value, ImGuiInputTextFlags flags = ImGuiInputTextFlags_None, const std::string_view helpMessage = "");
 	
 	//Returns true if selection changed.

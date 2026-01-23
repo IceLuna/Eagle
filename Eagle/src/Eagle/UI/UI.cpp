@@ -1249,6 +1249,17 @@ namespace Eagle::UI
 		return bChanged;
 	}
 
+	bool InputTextWithHint(const std::string_view label, std::string& value, std::string_view hint, ImGuiInputTextFlags flags, const std::string_view helpMessage)
+	{
+		const bool bChanged = ImGui::InputTextWithHint(label.data(), hint.data(), value.data(), value.length() + 1, flags | ImGuiInputTextFlags_CallbackResize, UI::TextResizeCallback, &value);
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		return bChanged;
+	}
+
 	bool InputTextMultiline(const std::string_view label, std::string& value, ImGuiInputTextFlags flags, const std::string_view helpMessage)
 	{
 		constexpr ImGuiInputTextFlags defaultFlags = ImGuiInputTextFlags_CtrlEnterForNewLine | ImGuiInputTextFlags_CallbackResize | ImGuiInputTextFlags_AllowTabInput;
