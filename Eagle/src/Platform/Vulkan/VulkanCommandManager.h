@@ -53,7 +53,7 @@ namespace Eagle
 		void Begin() override;
 		void End() override;
 
-		void* GetHandle() override { return m_CommandBuffer; }
+		const void* GetHandle() const override { return m_CommandBuffer; }
 		bool IsSecondary() const override { return !m_bIsPrimary; }
 
 		void Dispatch(Ref<PipelineCompute>& pipeline, uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ, const void* pushConstants = nullptr) override;

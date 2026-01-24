@@ -453,9 +453,9 @@ namespace Eagle
 		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
 		const std::string windowName = m_Asset->GetPath().u8string();
 		ImGui::Begin(windowName.c_str(), pOpen);
-		UI::BeginPropertyGrid("SkeletalMeshDetails");
-
 		UI::TextWithSeparator("Data");
+
+		UI::BeginPropertyGrid("SkeletalMeshDetails");
 		UI::Text("Name", m_Asset->GetPath().stem().u8string());
 		UI::Text("Type", "Skeletal Mesh");
 		UI::Text("Vertices", std::to_string(verticesCount));

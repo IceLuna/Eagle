@@ -44,6 +44,7 @@ namespace Eagle
 		void RefreshContentInfo();
 		bool HandleImport();
 		void HandleDragDropOnFolder(const Path& destinationFolder);
+		void CloseInputField();
 
 		void GetSearchingContent(const std::string& search, std::vector<Path>& outFiles);
 

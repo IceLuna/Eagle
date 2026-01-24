@@ -11,7 +11,7 @@ namespace Eagle
 	static std::unordered_map<Ref<Asset>, Ref<Image>> s_ThumbnailCache;
 	static bool s_RenderingThumbnail = false;
 
-	// Contains frame number it was rendered. We need to wait FramesInFlight frames for it to be ready
+	// Contains the frame number it was rendered on. We need to wait `FramesInFlight` frames for it to be ready
 	static std::unordered_map<Ref<Asset>, std::pair<Ref<Image>, uint64_t>> s_PendingThumbnails;
 
 	void ThumbnailCache::Init()
@@ -46,7 +46,7 @@ namespace Eagle
 		{
 			const auto& pair = it->second;
 			const auto& frameNumber = pair.second;
-			if ((RenderManager::GetFrameNumber_CPU() - frameNumber) >= RendererConfig::FramesInFlight)
+			if ((RenderManager::GetFrameNumber_CPU() - frameNumber) > RendererConfig::FramesInFlight)
 			{
 				const auto& asset = it->first;
 				const auto& image = pair.first;

@@ -43,7 +43,7 @@ namespace Eagle
 		static glm::vec2 GetMousePos();
 
 	protected:
-		virtual void Render(Ref<CommandBuffer>& cmd) = 0;
+		virtual void Render(const Ref<CommandBuffer>& cmd) = 0;
 
 		friend class RenderManager;
 

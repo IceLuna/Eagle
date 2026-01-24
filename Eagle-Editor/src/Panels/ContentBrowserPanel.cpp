@@ -108,18 +108,25 @@ namespace Eagle
 		return false;
 	}
 
-	static void OnPasteAsset(const Path& path, const Path& destinationFolder, bool bCopy)
+	static Path OnPasteAsset(const Path& path, const Path& destinationFolder, bool bCopy)
 	{
+		if (path.empty())
+			return {};
+
+		Path newFilepath;
+		bool bFailed = false;
+
 		Ref<Asset> assetToCopy;
 		AssetManager::Get(path, &assetToCopy);
 		if (assetToCopy)
 		{
 			const std::string newName = path.stem().u8string() + (bCopy ? "_Copy" : "") + Asset::GetExtension();
-			const Path newFilepath = destinationFolder / newName;
+			newFilepath = destinationFolder / newName;
 			if (std::filesystem::exists(newFilepath))
 			{
 				Application::Get().GetImGuiLayer()->AddMessage("Paste failed. File already exists");
 				EG_CORE_ERROR("Paste failed. File already exists: {}", newFilepath.u8string());
+				bFailed = true;
 			}
 			else
 			{
@@ -128,6 +135,7 @@ namespace Eagle
 					if (!AssetManager::Duplicate(assetToCopy, newFilepath))
 					{
 						Application::Get().GetImGuiLayer()->AddMessage("Copy failed. See logs for more details");
+						bFailed = true;
 					}
 				}
 				else
@@ -135,6 +143,7 @@ namespace Eagle
 					if (!AssetManager::Rename(assetToCopy, newFilepath))
 					{
 						Application::Get().GetImGuiLayer()->AddMessage("Move failed. See logs for more details");
+						bFailed = true;
 					}
 				}
 			}
@@ -143,7 +152,10 @@ namespace Eagle
 		{
 			Application::Get().GetImGuiLayer()->AddMessage("Failed to paste an asset. Didn't find an asset");
 			EG_CORE_ERROR("Failed to paste an asset. Didn't find an asset at: {}", path.u8string());
+			bFailed = true;
 		}
+
+		return bFailed ? Path{} : newFilepath;
 	}
 
 	ContentBrowserPanel::ContentBrowserPanel(EditorLayer& editorLayer)
@@ -229,7 +241,10 @@ namespace Eagle
 
 			if (ImGui::MenuItem("Paste"))
 			{
-				OnPasteAsset(m_CopiedPath, m_CurrentDirectoryRelative, m_bCopy);
+				if (Path path = OnPasteAsset(m_CopiedPath, m_CurrentDirectoryRelative, m_bCopy); !path.empty())
+				{
+					m_SelectedFile = path;
+				}
 				m_CopiedPath.clear();
 			}
 
@@ -255,7 +270,8 @@ namespace Eagle
 						ImTextStrFromUtf8(wData, int(size), m_PopupInput.c_str(), NULL, &buf_end);
 						Path newPath = m_CurrentDirectory / Path((const char16_t*)wData);
 						delete[] wData;
-						std::filesystem::create_directory(newPath);
+						if (std::filesystem::create_directory(newPath))
+							m_SelectedFile = std::filesystem::relative(newPath, m_ProjectPath);
 					}
 					else if (m_InputState == InputNameState::AssetRename)
 					{
@@ -265,15 +281,15 @@ namespace Eagle
 							Application::Get().GetImGuiLayer()->AddMessage("Rename failed. File already exists");
 							EG_CORE_ERROR("Rename failed. File already exists: {}", newFilepath.u8string());
 						}
-						else
-							AssetManager::Rename(m_AssetToRename, newFilepath);
+						else if (AssetManager::Rename(m_AssetToRename, newFilepath))
+						{
+							m_SelectedFile = newFilepath;
+						}
 						m_AssetToRename.reset();
 					}
+					m_RefreshBrowser = true;
 				}
-				m_PopupInput.clear();
-				m_bShowInputName = false;
-				m_InputState = InputNameState::None;
-				m_RefreshBrowser = true;
+				CloseInputField();
 			}
 		}
 		if (m_ShowDeleteConfirmation)
@@ -286,7 +302,6 @@ namespace Eagle
 					{
 						AssetManager::Delete(m_AssetToDelete);
 						m_AssetToDelete.reset();
-						m_RefreshBrowser = true;
 					}
 					else if (!m_FolderToDelete.empty())
 					{
@@ -306,6 +321,7 @@ namespace Eagle
 						std::filesystem::remove_all(m_FolderToDelete); // Delete folder & its content
 						m_FolderToDelete.clear();
 					}
+					m_RefreshBrowser = true;
 				}
 				m_ShowDeleteConfirmation = false;
 			}
@@ -344,7 +360,7 @@ namespace Eagle
 		if (!m_Search.empty())
 		{
 			static std::vector<Path> directoriesTempEmpty; // empty dirs not to display dirs
-			if (bSearchInputChanged)
+			if (bSearchInputChanged || m_RefreshBrowser)
 			{
 				m_SearchFiles.clear();
 				GetSearchingContent(m_Search, m_SearchFiles);
@@ -355,11 +371,11 @@ namespace Eagle
 		{
 			if (m_ContentBrowserHovered || m_RefreshBrowser)
 			{
-				m_RefreshBrowser = false;
 				RefreshContentInfo();
 			}
 			DrawContent(m_Directories, m_Files);
 		}
+		m_RefreshBrowser = false;
 
 		ImGui::Columns(1);
 		ImGui::PopID();
@@ -488,7 +504,7 @@ namespace Eagle
 		if (!ImGui::BeginDragDropTarget())
 			return;
 
-		magic_enum::enum_for_each<AssetType>([&destinationFolder](AssetType assetType)
+		magic_enum::enum_for_each<AssetType>([&destinationFolder, this](AssetType assetType)
 		{
 			if (assetType == AssetType::None)
 				return;
@@ -498,11 +514,20 @@ namespace Eagle
 				const wchar_t* payload_n = (const wchar_t*)payload->Data;
 				Path filepath(payload_n);
 
-				OnPasteAsset(filepath, destinationFolder, false);
+				if (Path path = OnPasteAsset(filepath, destinationFolder, false); !path.empty())
+					m_SelectedFile = path;
 			}
 		});
 
 		ImGui::EndDragDropTarget();
+	}
+
+	void ContentBrowserPanel::CloseInputField()
+	{
+		m_PopupInput.clear();
+		m_bShowInputName = false;
+		m_InputState = InputNameState::None;
+		m_RefreshBrowser = true;
 	}
 
 	void ContentBrowserPanel::HandleAssetEditors()
@@ -618,6 +643,19 @@ namespace Eagle
 			editor->OnEvent(e);
 			if (e.Handled)
 				return;
+		}
+
+		if (e.GetEventType() == EventType::KeyPressed)
+		{
+			KeyPressedEvent& key = (KeyPressedEvent&)e;
+			if (key.GetKey() == Key::Escape)
+			{
+				if (m_InputState != InputNameState::None)
+				{
+					CloseInputField();
+					e.Handled |= true;
+				}
+			}
 		}
 
 		if (!m_ContentBrowserHovered)
@@ -1020,6 +1058,7 @@ namespace Eagle
 			m_CurrentDirectory = backPath;
 			m_CurrentDirectoryRelative = std::filesystem::relative(m_CurrentDirectory, m_ProjectPath);
 			m_BackHistory.pop_back();
+			m_RefreshBrowser = true;
 		}
 	}
 
@@ -1032,6 +1071,7 @@ namespace Eagle
 			m_CurrentDirectory = forwardPath;
 			m_CurrentDirectoryRelative = std::filesystem::relative(m_CurrentDirectory, m_ProjectPath);
 			m_ForwardHistory.pop_back();
+			m_RefreshBrowser = true;
 		}
 	}
 
@@ -1099,6 +1139,7 @@ namespace Eagle
 	{
 		m_BackHistory.push_back(previousPath);
 		m_ForwardHistory.clear();
+		m_RefreshBrowser = true;
 	}
 
 	void ContentBrowserPanel::SelectFile(const Path& path)
@@ -1163,10 +1204,25 @@ namespace Eagle
 				}
 			}
 		}
+		else
+		{
+			// Shortcuts
+			if (keyEvent.GetRepeatCount() == 0)
+			{
+				switch (pressedKey)
+				{
+				case Key::Delete:
+					OnDeleteFolder(m_SelectedFile);
+					bHandled = true;
+					break;
+				}
+			}
+		}
 
 		if (pressedKey == Key::V && control)
 		{
-			OnPasteAsset(m_CopiedPath, m_CurrentDirectoryRelative, m_bCopy);
+			if (Path path = OnPasteAsset(m_CopiedPath, m_CurrentDirectoryRelative, m_bCopy); !path.empty())
+				m_SelectedFile = path;
 			m_CopiedPath.clear();
 			bHandled = true;
 		}

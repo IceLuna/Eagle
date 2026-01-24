@@ -65,7 +65,7 @@ namespace Eagle
 		CommandBuffer& operator=(const CommandBuffer&) = delete;
 		CommandBuffer& operator=(CommandBuffer&& other) = delete;
 
-		virtual void* GetHandle() = 0;
+		virtual const void* GetHandle() const = 0;
 		virtual bool IsSecondary() const = 0;
 
 		virtual void Begin() = 0;

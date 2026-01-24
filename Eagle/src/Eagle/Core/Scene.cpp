@@ -291,15 +291,13 @@ namespace Eagle
 	{
 		if (sceneRenderer)
 		{
-			glm::uvec2 size = sceneRenderer->GetViewportSize();
 			m_SceneRenderer = sceneRenderer;
-			m_ViewportWidth = size.x;
-			m_ViewportHeight = size.y;
 		}
 		else
 		{
 			m_SceneRenderer = MakeRef<SceneRenderer>(glm::uvec2{ m_ViewportWidth, m_ViewportHeight });
 		}
+		OnViewportResize(m_SceneRenderer->GetViewportSize().x, m_SceneRenderer->GetViewportSize().y);
 		SetUseSkyAsBackground(m_bUseSkyAsBackground);
 		SetRenderSkybox(m_bRenderSkybox);
 		SetSkyboxEnabled(m_bSkyboxEnabled);
@@ -347,6 +345,7 @@ namespace Eagle
 	{
 		// Reuse renderer so that we don't allocate additional GPU resources
 		m_SceneRenderer = other->m_SceneRenderer;
+		OnViewportResize(m_SceneRenderer->GetViewportSize().x, m_SceneRenderer->GetViewportSize().y);
 		SetUseSkyAsBackground(m_bUseSkyAsBackground);
 		SetRenderSkybox(m_bRenderSkybox);
 		SetSkyboxEnabled(m_bSkyboxEnabled);
@@ -1430,7 +1429,7 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& ps = view.get<ParticleSystemComponent>(entity);
-				if (ps.bAutospawn)
+				if (ps.GetAsset() && ps.bAutospawn)
 				{
 					RegisterSkeletalParticleIfCan(ps);
 					m_SceneRenderer->AddParticleSystem(ps);

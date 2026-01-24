@@ -14,7 +14,7 @@ namespace Eagle
 		void EndFrame() override;
 
 	private:
-		void Render(Ref<CommandBuffer>& cmd) override;
+		void Render(const Ref<CommandBuffer>& cmd) override;
 		void UpdatePlatform() override;
 
 	private:

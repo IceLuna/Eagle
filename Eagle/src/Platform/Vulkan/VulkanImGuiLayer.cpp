@@ -184,7 +184,7 @@ namespace Eagle
 		ImGui::Render();
 	}
 
-	void VulkanImGuiLayer::Render(Ref<CommandBuffer>& cmd)
+	void VulkanImGuiLayer::Render(const Ref<CommandBuffer>& cmd)
 	{
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), (VkCommandBuffer)cmd->GetHandle());
 	}

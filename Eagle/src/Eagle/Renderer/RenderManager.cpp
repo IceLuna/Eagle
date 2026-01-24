@@ -82,7 +82,7 @@ namespace Eagle
 		uint64_t FrameNumber = 0;
 		uint64_t FrameNumber_CPU = 0;
 
-		void (*PresentFunc)(Ref<CommandBuffer>&, const PresentPushData&) = nullptr;
+		void (*PresentFunc)(const Ref<CommandBuffer>&, const PresentPushData&) = nullptr;
 	};
 
 	struct ShaderDependencies
@@ -662,7 +662,7 @@ namespace Eagle
 		s_RendererData->CurrentFrameIndex = (s_RendererData->CurrentFrameIndex + 1) % RendererConfig::FramesInFlight;
 	}
 
-	void RenderManager::PresentEditor(Ref<CommandBuffer>& cmd, const PresentPushData& pushData)
+	void RenderManager::PresentEditor(const Ref<CommandBuffer>& cmd, const PresentPushData& pushData)
 	{
 		EG_GPU_TIMING_SCOPED(cmd, "Present+ImGui");
 
@@ -676,7 +676,7 @@ namespace Eagle
 		cmd->EndGraphics();
 	}
 
-	void RenderManager::PresentGame(Ref<CommandBuffer>& cmd, const PresentPushData& pushData)
+	void RenderManager::PresentGame(const Ref<CommandBuffer>& cmd, const PresentPushData& pushData)
 	{
 		EG_GPU_TIMING_SCOPED(cmd, "Present");
 
