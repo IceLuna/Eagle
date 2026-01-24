@@ -22,6 +22,63 @@ namespace Eagle
         return nullptr;
     }
 
+    // Copy from ImGui::SplitterBehavior, but adjusted handling of X/Y offsets to fix the bug here.
+    static bool SplitterBehavior(const ImRect& bb, ImGuiID id, ImGuiAxis axis, float* size1, float* size2, float min_size1, float min_size2, float hover_extend = 0.0f, float hover_visibility_delay = 0.0f, ImU32 bg_col = 0)
+    {
+        ImGuiContext& g = *GImGui;
+        ImGuiWindow* window = g.CurrentWindow;
+
+        if (!ImGui::ItemAdd(bb, id, NULL, ImGuiItemFlags_NoNav))
+            return false;
+
+        // FIXME: AFAIK the only leftover reason for passing ImGuiButtonFlags_AllowOverlap here is
+        // to allow caller of SplitterBehavior() to call SetItemAllowOverlap() after the item.
+        // Nowadays we would instead want to use SetNextItemAllowOverlap() before the item.
+        ImGuiButtonFlags button_flags = ImGuiButtonFlags_FlattenChildren;
+#ifndef IMGUI_DISABLE_OBSOLETE_FUNCTIONS
+        button_flags |= ImGuiButtonFlags_AllowOverlap;
+#endif
+
+        bool hovered, held;
+        ImRect bb_interact = bb;
+        bb_interact.Expand(axis == ImGuiAxis_Y ? ImVec2(0.0f, hover_extend) : ImVec2(hover_extend, 0.0f));
+        ImGui::ButtonBehavior(bb_interact, id, &hovered, &held, button_flags);
+        if (hovered)
+            g.LastItemData.StatusFlags |= ImGuiItemStatusFlags_HoveredRect; // for IsItemHovered(), because bb_interact is larger than bb
+
+        if (held || (hovered && g.HoveredIdPreviousFrame == id && g.HoveredIdTimer >= hover_visibility_delay))
+            ImGui::SetMouseCursor(axis == ImGuiAxis_Y ? ImGuiMouseCursor_ResizeNS : ImGuiMouseCursor_ResizeEW);
+
+        ImRect bb_render = bb;
+        if (held)
+        {
+            float mouse_delta = (g.IO.MousePos - g.ActiveIdClickOffset - bb_interact.Min)[axis];
+            float* size = axis == ImGuiAxis_X ? size1 : size2;
+            const float min_size = axis == ImGuiAxis_X ? min_size1 : min_size2;
+
+            // Minimum pane size
+            float size_maximum_delta = ImMax(0.0f, *size - min_size);
+            if (mouse_delta < -size_maximum_delta)
+                mouse_delta = -size_maximum_delta;
+
+            // Apply resize
+            if (mouse_delta != 0.0f)
+            {
+                *size = ImMax(*size + mouse_delta, min_size);
+                bb_render.Translate((axis == ImGuiAxis_X) ? ImVec2(mouse_delta, 0.0f) : ImVec2(0.0f, mouse_delta));
+                ImGui::MarkItemEdited(id);
+            }
+        }
+
+        // Render at new position
+        if (bg_col & IM_COL32_A_MASK)
+            window->DrawList->AddRectFilled(bb_render.Min, bb_render.Max, bg_col, 0.0f);
+        const ImU32 col = ImGui::GetColorU32(held ? ImGuiCol_SeparatorActive : (hovered && g.HoveredIdTimer >= hover_visibility_delay) ? ImGuiCol_SeparatorHovered : ImGuiCol_Separator);
+        window->DrawList->AddRectFilled(bb_render.Min, bb_render.Max, col, 0.0f);
+
+        return held;
+    }
+
     static bool Splitter(bool split_vertically, float thickness, float* size1, float* size2, float min_size1, float min_size2, float splitter_long_axis_size = -1.0f)
     {
         using namespace ImGui;
