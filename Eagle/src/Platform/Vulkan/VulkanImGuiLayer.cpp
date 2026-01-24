@@ -10,15 +10,84 @@
 #include "VulkanPipelineCache.h"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <backends/imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 #include <ImGuizmo.h>
 #include <implot.h>
 
+struct ImDrawDataSnapshotEntry
+{
+	ImDrawList* SrcCopy = NULL;     // Drawlist owned by main context
+	ImDrawList* OurCopy = NULL;     // Our copy
+};
+
+struct ImDrawDataSnapshot
+{
+	// Members
+	ImDrawData                      DrawData;
+	ImPool<ImDrawDataSnapshotEntry> Cache;
+
+	// Functions
+	~ImDrawDataSnapshot() { Clear(); }
+	void                            Clear();
+	void                            SnapUsingSwap(ImDrawData* src, uint32_t frameIndex); // Efficient snapshot by swapping data, meaning "src" is unusable.
+
+	// Internals
+	ImGuiID                         GetDrawListID(ImDrawList* src_list, uint32_t frameIndex) { return ImHashData(&src_list, sizeof(src_list), frameIndex); }     // Hash pointer
+	ImDrawDataSnapshotEntry* GetOrAddEntry(ImDrawList* src_list, uint32_t frameIndex) { return Cache.GetOrAddByKey(GetDrawListID(src_list, frameIndex)); }
+};
+
+//-----------------------------------------------------------------------------
+// ImDrawDataSnapshot - IMPLEMENTATION
+//-----------------------------------------------------------------------------
+
+inline void ImDrawDataSnapshot::Clear()
+{
+	for (int n = 0; n < Cache.GetMapSize(); n++)
+		if (ImDrawDataSnapshotEntry* entry = Cache.TryGetMapData(n))
+			IM_DELETE(entry->OurCopy);
+	Cache.Clear();
+	DrawData.Clear();
+}
+
+inline void ImDrawDataSnapshot::SnapUsingSwap(ImDrawData* src, uint32_t frameIndex)
+{
+	ImDrawData* dst = &DrawData;
+	IM_ASSERT(src != dst && src->Valid);
+
+	// Copy all fields except CmdLists[]
+	ImVector<ImDrawList*> backup_draw_list;
+	backup_draw_list.swap(src->CmdLists);
+	IM_ASSERT(src->CmdLists.Data == NULL);
+	*dst = *src;
+	backup_draw_list.swap(src->CmdLists);
+
+	// Swap and mark as used
+	for (ImDrawList* src_list : src->CmdLists)
+	{
+		ImDrawDataSnapshotEntry* entry = GetOrAddEntry(src_list, frameIndex);
+		if (entry->OurCopy == NULL)
+		{
+			entry->SrcCopy = src_list;
+			entry->OurCopy = IM_NEW(ImDrawList)(src_list->_Data);
+		}
+		IM_ASSERT(entry->SrcCopy == src_list);
+		entry->SrcCopy->CmdBuffer.swap(entry->OurCopy->CmdBuffer); // Cheap swap
+		entry->SrcCopy->IdxBuffer.swap(entry->OurCopy->IdxBuffer);
+		entry->SrcCopy->VtxBuffer.swap(entry->OurCopy->VtxBuffer);
+		entry->SrcCopy->CmdBuffer.reserve(entry->OurCopy->CmdBuffer.Capacity); // Preserve bigger size to avoid reallocs for two consecutive frames
+		entry->SrcCopy->IdxBuffer.reserve(entry->OurCopy->IdxBuffer.Capacity);
+		entry->SrcCopy->VtxBuffer.reserve(entry->OurCopy->VtxBuffer.Capacity);
+		dst->CmdLists.push_back(entry->OurCopy);
+	}
+};
+
 namespace Eagle
 {
 	static constexpr uint32_t s_AdditionalPools = 1;
 	static uint32_t s_FrameIndex = 0;
+	static ImDrawDataSnapshot s_Snapshots[RendererConfig::FramesInFlight] = {};
 
 	void VulkanImGuiLayer::OnAttach()
 	{
@@ -152,6 +221,9 @@ namespace Eagle
 	
 	void VulkanImGuiLayer::OnDetach()
 	{
+		for (auto& snapshot : s_Snapshots)
+			snapshot.Clear();
+
 		VkDescriptorPool pool = (VkDescriptorPool)m_DescriptorPool;
 
 		{
@@ -182,11 +254,16 @@ namespace Eagle
 	void VulkanImGuiLayer::EndFrame()
 	{
 		ImGui::Render();
+		auto& snapshot = s_Snapshots[RenderManager::GetCurrentFrameIndex_CPU()];
+		ImGui::GetDrawData();
+		snapshot.Clear();
+		snapshot.SnapUsingSwap(ImGui::GetDrawData(), RenderManager::GetCurrentFrameIndex_CPU());
 	}
 
 	void VulkanImGuiLayer::Render(const Ref<CommandBuffer>& cmd)
 	{
-		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), (VkCommandBuffer)cmd->GetHandle());
+		auto& snapshot = s_Snapshots[RenderManager::GetCurrentFrameIndex()];
+		ImGui_ImplVulkan_RenderDrawData(&snapshot.DrawData, (VkCommandBuffer)cmd->GetHandle());
 	}
 
 	void VulkanImGuiLayer::UpdatePlatform()

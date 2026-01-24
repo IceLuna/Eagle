@@ -161,7 +161,8 @@ namespace Eagle
 		static RenderCommandQueue& GetResourceReleaseQueue(uint32_t index);
 
 		static const RendererCapabilities& GetCapabilities();
-		static uint32_t GetCurrentFrameIndex();
+		static uint32_t GetCurrentFrameIndex(); // Render Thread
+		static uint32_t GetCurrentFrameIndex_CPU();
 		static uint32_t GetCurrentReleaseFrameIndex();
 		static Ref<DescriptorManager>& GetDescriptorSetManager();
 		static Ref<PipelineGraphics> CreateIBLPipeline(const Ref<Image>& attachment);

@@ -24,7 +24,6 @@
 
 namespace Eagle
 {
-	std::mutex g_ImGuiMutex;
 	std::mutex g_TimingsMutex;
 	static std::mutex s_SubmitMutex;
 	static std::mutex s_SubmitFreeMutex;
@@ -669,10 +668,7 @@ namespace Eagle
 		const auto& data = s_RendererData;
 		cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[data->SwapchainImageIndex]);
 		cmd->SetGraphicsRootConstants(&pushData, nullptr);
-		{
-			std::scoped_lock lock(g_ImGuiMutex);
-			(*data->ImGuiLayer)->Render(cmd);
-		}
+		(*data->ImGuiLayer)->Render(cmd);
 		cmd->EndGraphics();
 	}
 
@@ -692,10 +688,7 @@ namespace Eagle
 			cmd->Draw(6, 0);
 		}
 
-		{
-			std::scoped_lock lock(g_ImGuiMutex);
-			(*data->ImGuiLayer)->Render(cmd);
-		}
+		(*data->ImGuiLayer)->Render(cmd);
 		cmd->EndGraphics();
 	}
 
@@ -809,6 +802,11 @@ namespace Eagle
 	uint32_t RenderManager::GetCurrentFrameIndex()
 	{
 		return s_RendererData->CurrentRenderingFrameIndex;
+	}
+
+	uint32_t RenderManager::GetCurrentFrameIndex_CPU()
+	{
+		return s_RendererData->CurrentFrameIndex;
 	}
 
 	uint32_t RenderManager::GetCurrentReleaseFrameIndex()

@@ -20,8 +20,10 @@ namespace Eagle
 			if (!currentScene)
 				return;
 
-			m_ViewportSize = glm::uvec2(w, h);
 			auto& renderer = currentScene->GetSceneRenderer();
+			auto viewportSize = glm::uvec2(w, h);
+			if (renderer->GetViewportSize() != viewportSize)
+				currentScene->OnViewportResize(viewportSize.x, viewportSize.y);
 			currentScene->OnUpdate(Application::Get().GetTimestep(), true, true);
 
 			const auto& render = renderer->GetOutput();

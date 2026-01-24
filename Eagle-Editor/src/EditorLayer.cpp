@@ -234,8 +234,6 @@ namespace Eagle
 		ReloadScriptsIfNecessary();
 		HandleResize();
 		m_CurrentScene->OnUpdate(ts, !m_ViewportHidden && bShouldRenderBasedOnFocus, bUpdateAnimationsInEditor);
-
-		m_ContentBrowserPanel.OnUpdate();
 	}
 
 	void EditorLayer::OnEvent(Event& e)
@@ -551,24 +549,21 @@ namespace Eagle
 
 	void EditorLayer::ToggleWindowFullscreenState()
 	{
-		Submit([this]()
+		Window& window = Application::Get().GetWindow();
+		bool bFullscreen = window.IsFullscreen();
+		if (!bFullscreen)
 		{
-			Window& window = Application::Get().GetWindow();
-			bool bFullscreen = window.IsFullscreen();
-			if (!bFullscreen)
-			{
-				m_WindowPosBeforeFS = window.GetWindowPos();
-				m_WindowSizeBeforeFS = window.GetWindowSize();
-			}
-			RenderManager::Wait();
-			window.SetFullscreen(!window.IsFullscreen());
-			bFullscreen = window.IsFullscreen();
-			if (!bFullscreen)
-			{
-				window.SetWindowPos(int(m_WindowPosBeforeFS.x), int(m_WindowPosBeforeFS.y));
-				window.SetWindowSize(int(m_WindowSizeBeforeFS.x), int(m_WindowSizeBeforeFS.y));
-			}
-		});
+			m_WindowPosBeforeFS = window.GetWindowPos();
+			m_WindowSizeBeforeFS = window.GetWindowSize();
+		}
+		RenderManager::Wait();
+		window.SetFullscreen(!window.IsFullscreen());
+		bFullscreen = window.IsFullscreen();
+		if (!bFullscreen)
+		{
+			window.SetWindowPos(int(m_WindowPosBeforeFS.x), int(m_WindowPosBeforeFS.y));
+			window.SetWindowSize(int(m_WindowSizeBeforeFS.x), int(m_WindowSizeBeforeFS.y));
+		}
 	}
 
 	void EditorLayer::HandleEntityDragDrop()

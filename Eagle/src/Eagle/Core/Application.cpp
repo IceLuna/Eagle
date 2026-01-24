@@ -21,7 +21,6 @@
 
 namespace Eagle
 {
-	extern std::mutex g_ImGuiMutex;
 	static std::mutex s_TimingsMutex;
 
 #ifdef EG_CPU_TIMINGS
@@ -230,8 +229,6 @@ namespace Eagle
 
 				// ImGui
 				{
-					std::scoped_lock lock(g_ImGuiMutex);
-
 					m_ImGuiLayer->BeginFrame();
 					for (auto& layer : m_LayerStack)
 						layer->OnImGuiRender();

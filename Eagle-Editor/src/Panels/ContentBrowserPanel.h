@@ -25,7 +25,6 @@ namespace Eagle
 		ContentBrowserPanel(EditorLayer& editorLayer);
 		~ContentBrowserPanel();
 
-		void OnUpdate();
 		void OnImGuiRender();
 
 		void OnEvent(Event& e);
