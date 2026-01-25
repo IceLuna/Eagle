@@ -12,11 +12,13 @@ namespace Eagle
 	static constexpr char* s_RootMotionHelpMsg = "Animation root motion will be used to drive the transformation of an entity\n"
 		"Base Pose: use base pose root bone transform\n"
 		"AnimFirstFrame: use root bone transform of the first animation frame";
+	static constexpr char* s_2DCommonSettingsHelpMsg = "`Is Normal Map` and `Import Alpha channel` aren't present in common settings. "
+		"You can control them via per texture settings. Also when it's imported as a normal map, common `Filter Mode` setting is overridden by textures settings";
 
 	static ImVec2 s_DefaultWindowSize = ImVec2(720.f, 450.f);
 
 	template <typename Func>
-	static void FancyTreeNode(const char* label, bool bDefaultOpen, Func&& func)
+	static void FancyTreeNode(const char* label, bool bDefaultOpen, Func&& func, const char* helpMsg = nullptr)
 	{
 		constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
 			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
@@ -25,6 +27,11 @@ namespace Eagle
 		ImGui::Separator();
 		const bool treeOpened = ImGui::TreeNodeEx(label, flags | (bDefaultOpen ? ImGuiTreeNodeFlags_DefaultOpen : 0));
 		ImGui::PopStyleVar();
+		if (helpMsg)
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMsg);
+		}
 
 		if (treeOpened)
 		{
@@ -120,7 +127,7 @@ namespace Eagle
 				FancyTreeNode("Common 2D settings", true, [this]()
 				{
 					Render2DSettings("", m_Common2DSettings, {-1, -1}, true);
-				});
+				}, s_2DCommonSettingsHelpMsg);
 			}
 			if (!m_CubeTextures.empty())
 			{
@@ -136,9 +143,7 @@ namespace Eagle
 				{
 					for (auto& texture : m_2DTextures)
 					{
-						constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
-							ImGuiTreeNodeFlags_SpanAvailWidth;
-
+						constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
 						if (ImGui::TreeNodeEx(&texture, flags, texture.AssetPath.c_str()))
 						{
 							Render2DSettings(texture.AssetPath, texture.Settings, texture.Size, false, &texture.bOverride);
@@ -252,8 +257,10 @@ namespace Eagle
 		}
 		UI::Property("Compress", settings.bCompress, "If set to true, the engine will try to compress the image. Compression only supports RGBA8 format!");
 		if (!bDrawingCommon)
+		{
 			UI::Property("Is Normal Map", settings.bNormalMap, "Set to true, if the importing image is a normal map. Currently, it only affects the result if the compression is enabled");
-		UI::Property("Import alpha-channel", settings.bNeedAlpha, "Set to true, if the alpha channel should be imported. Currently, it only affects the result if the compression is enabled");
+			UI::Property("Import alpha channel", settings.bNeedAlpha, "Set to true, if the alpha channel should be imported. Currently, it only affects the result if the compression is enabled");
+		}
 
 		if (settings.bCompress && settings.ImportFormat != AssetTexture2DFormat::RGBA8)
 		{

@@ -225,20 +225,17 @@ namespace Eagle
 			snapshot.Clear();
 
 		VkDescriptorPool pool = (VkDescriptorPool)m_DescriptorPool;
+		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 
-		{
-			VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
+		VK_CHECK(vkDeviceWaitIdle(device));
+		ImGui_ImplVulkan_Shutdown();
+		ImGui_ImplGlfw_Shutdown();
+		ImPlot::DestroyContext();
+		ImGui::DestroyContext();
 
-			VK_CHECK(vkDeviceWaitIdle(device));
-			ImGui_ImplVulkan_Shutdown();
-			ImGui_ImplGlfw_Shutdown();
-			ImPlot::DestroyContext();
-			ImGui::DestroyContext();
-
-			vkDestroyDescriptorPool(device, pool, nullptr);
-			for (auto& pool : m_Pools)
-				vkDestroyDescriptorPool(device, (VkDescriptorPool)pool, nullptr);
-		}
+		vkDestroyDescriptorPool(device, pool, nullptr);
+		for (auto& pool : m_Pools)
+			vkDestroyDescriptorPool(device, (VkDescriptorPool)pool, nullptr);
 	}
 	
 	void VulkanImGuiLayer::BeginFrame()
@@ -254,10 +251,10 @@ namespace Eagle
 	void VulkanImGuiLayer::EndFrame()
 	{
 		ImGui::Render();
-		auto& snapshot = s_Snapshots[RenderManager::GetCurrentFrameIndex_CPU()];
-		ImGui::GetDrawData();
-		snapshot.Clear();
-		snapshot.SnapUsingSwap(ImGui::GetDrawData(), RenderManager::GetCurrentFrameIndex_CPU());
+
+		const uint32_t frameIndex = RenderManager::GetCurrentFrameIndex_CPU();
+		auto& snapshot = s_Snapshots[frameIndex];
+		snapshot.SnapUsingSwap(ImGui::GetDrawData(), frameIndex);
 	}
 
 	void VulkanImGuiLayer::Render(const Ref<CommandBuffer>& cmd)
