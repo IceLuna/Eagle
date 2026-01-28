@@ -180,7 +180,7 @@ namespace Eagle
 	{
 		EG_CPU_TIMING_SCOPED("Content Browser");
 
-		ImGui::Begin(GetWindowName());
+		ImGui::Begin(GetWindowName(), nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 		ImGui::PushID("Content Browser");
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 		const bool bSearchInputChanged = UI::InputTextWithHint("##search", m_Search, "Search...");
@@ -322,9 +322,9 @@ namespace Eagle
 		ImVec2 size = ImGui::GetContentRegionAvail();
 		m_ColumnWidth = ThumbnailCache::GetThumbnailSize().x + GImGui->Style.FramePadding.x * 2.f + 1.f;
 		const int columns = int(size[0] / m_ColumnWidth);
-		m_ContentBrowserHovered = ImGui::IsWindowHovered();
+		m_ContentBrowserHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows);
 
-		//Drawing Path-History buttons on top.
+		// Drawing Path-History buttons on top.
 		ImGui::Separator();
 		{
 			{
@@ -343,12 +343,6 @@ namespace Eagle
 		}
 		ImGui::Separator();
 
-		if (columns > 1)
-		{
-			ImGui::Columns(columns, nullptr, false);
-			ImGui::SetColumnWidth(0, m_ColumnWidth);
-		}
-
 		if (!m_Search.empty())
 		{
 			static std::vector<Path> directoriesTempEmpty; // empty dirs not to display dirs
@@ -357,7 +351,7 @@ namespace Eagle
 				m_SearchFiles.clear();
 				GetSearchingContent(m_Search, m_SearchFiles);
 			}
-			DrawContent(directoriesTempEmpty, m_SearchFiles, true);
+			DrawContent(directoriesTempEmpty, m_SearchFiles, columns, true);
 		}
 		else
 		{
@@ -365,11 +359,10 @@ namespace Eagle
 			{
 				RefreshContentInfo();
 			}
-			DrawContent(m_Directories, m_Files);
+			DrawContent(m_Directories, m_Files, columns);
 		}
 		m_RefreshBrowser = false;
 
-		ImGui::Columns(1);
 		ImGui::PopID();
 
 		m_ShowSaveScenePopup = m_ShowSaveScenePopup && m_EditorLayer.GetEditorState() == EditorState::Edit;
@@ -720,13 +713,18 @@ namespace Eagle
 		return *s_Instance;
 	}
 
-	void ContentBrowserPanel::DrawContent(const std::vector<Path>& directories, const std::vector<Path>& files, bool bHintFullPath /* = false */)
+	void ContentBrowserPanel::DrawContent(const std::vector<Path>& directories, const std::vector<Path>& files, int32_t columns, bool bHintFullPath /* = false */)
 	{
 		constexpr ImVec2 thumbnailSize = ImVec2(ThumbnailCache::GetThumbnailSize().x, ThumbnailCache::GetThumbnailSize().y);
 		bool bHoveredAnyItem = false;
 
-		if (ImGui::GetCurrentWindowRead()->DC.CurrentColumns == nullptr)
-			return;
+		ImGui::BeginChild("##scrollable_cb");
+
+		if (columns > 1)
+		{
+			ImGui::Columns(columns, nullptr, false);
+			ImGui::SetColumnWidth(0, m_ColumnWidth);
+		}
 
 		ImGui::PushID("DIRECTORIES_FILL");
 		for (auto& dir : directories)
@@ -886,6 +884,10 @@ namespace Eagle
 		{
 			m_SelectedFile.clear();
 		}
+
+		ImGui::Columns(1);
+
+		ImGui::EndChild();
 	}
 
 	void ContentBrowserPanel::DrawPathHistory()

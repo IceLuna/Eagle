@@ -159,9 +159,7 @@ namespace Eagle
 				{
 					for (auto& texture : m_CubeTextures)
 					{
-						constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
-							ImGuiTreeNodeFlags_SpanAvailWidth;
-
+						constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
 						if (ImGui::TreeNodeEx(&texture, flags, texture.AssetPath.c_str()))
 						{
 							RenderCubeSettings(texture.AssetPath, texture.Settings, texture.Size, &texture.bOverride);

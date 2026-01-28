@@ -36,7 +36,7 @@ namespace Eagle
 		const char* GetWindowName() const { return "Content Browser"; }
 
 	private:
-		void DrawContent(const std::vector<Path>& directories, const std::vector<Path>& files, bool bHintFullPath = false);
+		void DrawContent(const std::vector<Path>& directories, const std::vector<Path>& files, int32_t columns, bool bHintFullPath = false);
 		void DrawPathHistory();
 		void HandleAddPanel();
 		void HandleAssetEditors();

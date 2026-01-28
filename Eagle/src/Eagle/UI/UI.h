@@ -126,7 +126,9 @@ namespace Eagle::UI
 		if (bApplyMaxWidth)
 			ImGui::PushItemWidth(maxItemWidth);
 
-		bool bBeginCombo = ImGui::BeginCombo("##", assetName.c_str(), 0);
+		static std::string search;
+		static bool bJustOpened = true;
+		bool bBeginCombo = ImGui::BeginCombo("##", assetName.c_str(), ImGuiComboFlags_HeightLarge);
 
 		//Drop event
 		if (ImGui::BeginDragDropTarget())
@@ -193,6 +195,17 @@ namespace Eagle::UI
 				}
 			}
 
+			if (bJustOpened)
+			{
+				bJustOpened = false;
+				ImGui::SetKeyboardFocusHere();
+			}
+			UI::InputTextWithHint("##search", search, "Search");
+			ImGui::Separator();
+
+			const float listHeight = ImGui::GetTextLineHeightWithSpacing() * 8.0f;
+			ImGui::BeginChild("##scrollable", ImVec2(0, listHeight));
+
 			// Draw none
 			{
 				const bool bSelected = (currentItemIdx == nonePosition);
@@ -211,7 +224,7 @@ namespace Eagle::UI
 				}
 			}
 
-			//Drawing all existing asset
+			// Drawing all existing asset
 			const auto& allAssets = AssetManager::GetAssets();
 			uint32_t i = noneOffset;
 			for (const auto& [path, asset] : allAssets)
@@ -219,6 +232,16 @@ namespace Eagle::UI
 				const auto castedAsset = Cast<Type>(asset);
 				if (!castedAsset)
 					continue;
+
+				if (!search.empty())
+				{
+					const std::string filename = path.stem().u8string();
+					std::size_t pos = Utils::FindSubstringI(filename, search);
+					if (pos == std::string::npos)
+					{
+						continue;
+					}
+				}
 
 				const bool bSelected = currentItemIdx == i;
 				ImGui::PushID((void*)asset->GetGUID().GetHash());
@@ -314,7 +337,14 @@ namespace Eagle::UI
 				++i;
 				ImGui::PopID();
 			}
+			
+			ImGui::EndChild();
 			ImGui::EndCombo();
+		}
+		else
+		{
+			search.clear();
+			bJustOpened = true;
 		}
 
 		if (bApplyMaxWidth)

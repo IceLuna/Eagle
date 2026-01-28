@@ -11,7 +11,7 @@ namespace YAML
 
 namespace Eagle
 {
-	using AssetsMap = std::unordered_map<Path, Ref<Asset>>;
+	using AssetsMap = std::map<Path, Ref<Asset>>;
 	using AssetsMapByGUID = std::unordered_map<GUID, Ref<Asset>>;
 
 	class AssetManager

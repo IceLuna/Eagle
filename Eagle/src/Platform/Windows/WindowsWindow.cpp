@@ -41,7 +41,9 @@ namespace Eagle
 		{
 			int success = glfwInit();
 			EG_CORE_ASSERT(success, "Could not initialize GLFW!");
+#ifndef EG_RELEASE
 			glfwSetErrorCallback(GLFWErrorCallback);
+#endif
 			s_GLFWInitialized = true;
 		}
 
