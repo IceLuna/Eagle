@@ -1429,7 +1429,7 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& ps = view.get<ParticleSystemComponent>(entity);
-				if (ps.GetAsset() && ps.bAutospawn)
+				if (ps.bAutospawn)
 				{
 					RegisterSkeletalParticleIfCan(ps);
 					m_SceneRenderer->AddParticleSystem(ps);
@@ -2033,7 +2033,11 @@ namespace Eagle
 
 	void Scene::RegisterSkeletalParticleIfCan(const ParticleSystemComponent& system)
 	{
-		const auto& emitters = system.GetAsset()->GetEmitters();
+		const auto& asset = system.GetAsset();
+		if (!asset)
+			return;
+
+		const auto& emitters = asset->GetEmitters();
 		for (const auto& emitter : emitters)
 		{
 			if (emitter.IsSkeletalMeshUsed())

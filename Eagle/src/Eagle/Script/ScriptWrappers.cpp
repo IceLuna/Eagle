@@ -455,12 +455,11 @@ namespace Eagle
 		auto& sceneRenderer = scene->GetSceneRenderer();
 		if (!sceneRenderer->GetOptions().bEnableObjectPicking)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call IsMouseHovered. Object picking is disabled");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call IsMouseHovered. Object picking is disabled in the project settings");
 			return false;
 		}
 
 		Entity entity = scene->GetEntityByGUID(entityID);
-
 		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call IsMouseHovered. Entity is null");
@@ -469,7 +468,6 @@ namespace Eagle
 
 		// TODO: Check if works
 		const glm::vec2 viewportSize = scene->ViewportBounds[1] - scene->ViewportBounds[0];
-
 		const int mouseX = int(pos->x);
 		const int mouseY = int(pos->y);
 
