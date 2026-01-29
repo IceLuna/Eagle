@@ -799,10 +799,6 @@ namespace Eagle
 				{
 					auto& settings = importSettings.Texture2DSettings;
 					settings.bNormalMap = Utils::IsNormalMap(texturePath);
-					if (settings.bNormalMap)
-					{
-						settings.FilterMode = FilterMode::Point;
-					}
 
 					int comp = 1;
 					int unused = 0;

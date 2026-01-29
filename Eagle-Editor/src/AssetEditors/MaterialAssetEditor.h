@@ -19,5 +19,6 @@ namespace Eagle
 	private:
 		Ref<AssetMaterial> m_Asset;
 		Ref<AssetStaticMesh> m_Sphere;
+		std::string m_WindowName;
 	};
 }

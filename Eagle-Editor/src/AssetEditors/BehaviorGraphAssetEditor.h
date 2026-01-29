@@ -22,6 +22,7 @@ namespace Eagle
 
 	private:
 		Ref<AssetBehaviorGraph> m_Asset;
+		std::string m_WindowName;
 		Scope<BehaviorGraphEditor> m_Graph;
 	};
 }

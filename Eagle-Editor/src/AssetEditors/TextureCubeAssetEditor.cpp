@@ -14,6 +14,8 @@ namespace Eagle
 		const auto& texture = m_Asset->GetTexture();
 		m_LayersSize = (int)texture->GetSize().x;
 		m_PrefilterSize = (int)texture->GetPrefilterSize();
+		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
+		m_ViewportWindowName = "##" + std::to_string(m_Asset->GetGUID().GetHash());
 	}
 
 	void TextureCubeAssetEditor::OnImGuiRender(bool* pOpen)
@@ -21,9 +23,8 @@ namespace Eagle
 		const Ref<TextureCube>& textureCube = m_Asset->GetTexture();
 		const Ref<Texture2D>& textureToView = textureCube->GetTexture2D();
 
-		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
-		const std::string parentName = m_Asset->GetPath().u8string();
-		bool bHidden = !ImGui::Begin(parentName.c_str(), pOpen);
+		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
+		bool bHidden = !ImGui::Begin(m_ViewportWindowName.c_str());
 		bDetailsVisible = (!bHidden) || (bHidden && !bDetailsDocked);
 		ImVec2 availSize = ImGui::GetContentRegionAvail();
 		glm::vec2 visualizeImageSize = textureToView->GetSize();
@@ -35,6 +36,9 @@ namespace Eagle
 											 : glm::vec2{ availSize[0], visualizeImageSize[1] * availSize[0] / visualizeImageSize[0] };
 
 		UI::Image(Cast<Texture2D>(textureToView), { visualizeImageSize[0], visualizeImageSize[1] });
+
+		ImGui::End();
+
 		if (bDetailsVisible)
 		{
 			const glm::ivec2 textureSize = glm::ivec2(textureToView->GetSize());
@@ -43,12 +47,11 @@ namespace Eagle
 			auto assetFormat = m_Asset->GetFormat();
 			bool bChanged = false;
 
-			ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
-			const std::string windowName = "Details: " + m_Asset->GetPath().u8string();
-			ImGui::Begin(windowName.c_str());
+			ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
+			ImGui::Begin(m_WindowName.c_str(), pOpen);
 
 			const bool bFirstUseEver = (ImGui::GetCurrentWindow()->SetWindowDockAllowFlags & ImGuiCond_FirstUseEver) == ImGuiCond_FirstUseEver;
-			if (bFirstUseEver && !parentName.empty())
+			if (bFirstUseEver && !m_ViewportWindowName.empty())
 			{
 				ImGuiID parent_node = ImGui::DockBuilderAddNode();
 				ImGui::DockBuilderSetNodePos(parent_node, ImGui::GetWindowPos());
@@ -57,10 +60,17 @@ namespace Eagle
 				ImGuiID nodeB;
 				ImGui::DockBuilderSplitNode(parent_node, ImGuiDir_Right, 0.5f, &nodeB, &nodeA);
 
-				ImGui::DockBuilderDockWindow(parentName.data(), nodeA);
-				ImGui::DockBuilderDockWindow(windowName.c_str(), nodeB);
+				ImGui::DockBuilderDockWindow(m_ViewportWindowName.data(), nodeA);
+				ImGui::DockBuilderDockWindow(m_WindowName.c_str(), nodeB);
 
-				ImGui::SetWindowSize(ImVec2(720.f * 2.f, 560.f));
+				// Disable tab bar for the viewport
+				if (ImGuiDockNode* dock = ImGui::DockContextFindNodeByID(GImGui, nodeA))
+				{
+					dock->SetLocalFlags(ImGuiDockNodeFlags_NoTabBar);
+				}
+
+				const auto defaultSize = AssetEditor::GetDefaultWindowSize();
+				ImGui::SetWindowSize(ImVec2(defaultSize.x * 1.5f, defaultSize.y));
 			}
 
 			bDetailsDocked = ImGui::IsWindowDocked();
@@ -167,7 +177,5 @@ namespace Eagle
 
 			ImGui::End();
 		}
-
-		ImGui::End();
 	}
 }

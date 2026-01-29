@@ -22,6 +22,7 @@ namespace Eagle
 
 	private:
 		Ref<AssetAnimationGraph> m_Asset;
+		std::string m_WindowName;
 		Scope<AnimationGraphEditor> m_Graph;
 		Entity m_Entity;
 	};

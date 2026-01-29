@@ -26,6 +26,8 @@ namespace Eagle
 		const glm::vec3 center = aabb.Center();
 		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 2.f); // Move back
 		camera.LookAt(center);
+
+		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
 	}
 
 	void StaticMeshAssetEditor::OnImGuiRender(bool* pOpen)
@@ -37,9 +39,8 @@ namespace Eagle
 			indicesCount += mesh->GetIndicesCount(i);
 		bool bChanged = false;
 
-		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
-		const std::string windowName = m_Asset->GetPath().u8string();
-		ImGui::Begin(windowName.c_str(), pOpen);
+		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
+		ImGui::Begin(m_WindowName.c_str(), pOpen);
 		UI::BeginPropertyGrid("StaticMeshDetails");
 
 		UI::TextWithSeparator("Data");
@@ -79,6 +80,6 @@ namespace Eagle
 
 		ImGui::End();
 
-		DrawViewport(false, windowName);
+		DrawViewport(false, m_WindowName);
 	}
 }

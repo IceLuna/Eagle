@@ -17,6 +17,9 @@ namespace Eagle
 
 	private:
 		Ref<AssetTextureCube> m_Asset;
+		std::string m_WindowName;
+		std::string m_ViewportWindowName;
+
 		int m_LayersSize = 0;
 		int m_PrefilterSize = 0;
 		bool bDetailsDocked = false;

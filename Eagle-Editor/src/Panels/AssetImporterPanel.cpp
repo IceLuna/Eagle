@@ -13,7 +13,7 @@ namespace Eagle
 		"Base Pose: use base pose root bone transform\n"
 		"AnimFirstFrame: use root bone transform of the first animation frame";
 	static constexpr char* s_2DCommonSettingsHelpMsg = "`Is Normal Map` and `Import Alpha channel` aren't present in common settings. "
-		"You can control them via per texture settings. Also when it's imported as a normal map, common `Filter Mode` setting is overridden by textures settings";
+		"You can control them via per texture settings";
 
 	static ImVec2 s_DefaultWindowSize = ImVec2(720.f, 450.f);
 
@@ -57,10 +57,6 @@ namespace Eagle
 
 				auto& settings = data.Settings;
 				settings.bNormalMap = Utils::IsNormalMap(path);
-				if (settings.bNormalMap)
-				{
-					settings.FilterMode = FilterMode::Point;
-				}
 
 				int comp = 1;
 				stbi_info(path.u8string().c_str(), &data.Size.x, &data.Size.y, &comp);
@@ -181,10 +177,6 @@ namespace Eagle
 					AssetImportSettings settings;
 					settings.Texture2DSettings = texture.bOverride ? texture.Settings : m_Common2DSettings;
 					settings.Texture2DSettings.bNormalMap = texture.Settings.bNormalMap; // It's always per texture
-					if (settings.Texture2DSettings.bNormalMap)
-					{
-						settings.Texture2DSettings.FilterMode = texture.Settings.FilterMode;
-					}
 
 					// Limit max mips count
 					if (!texture.bOverride)

@@ -17,6 +17,8 @@ namespace Eagle
 
 	private:
 		Ref<AssetTexture2D> m_Asset;
+		std::string m_ViewportWindowName;
+		std::string m_WindowName;
 		std::vector<std::string> m_MipNames;
 		int m_SelectedMip = 0;
 		int m_GenerateMipsCount = 0;

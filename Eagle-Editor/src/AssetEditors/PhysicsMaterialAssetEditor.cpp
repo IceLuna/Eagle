@@ -91,6 +91,8 @@ namespace Eagle
 		constexpr glm::vec3 center = aabb.Center();
 		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 2.5f); // Move back
 		camera.LookAt(center);
+
+		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
 	}
 
 	void PhysicsMaterialAssetEditor::OnImGuiRender(bool* pOpen)
@@ -100,9 +102,8 @@ namespace Eagle
 
 		auto& material = m_Asset->GetMaterial();
 
-		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
-		const std::string windowName = m_Asset->GetPath().u8string();
-		ImGui::Begin(windowName.c_str(), pOpen);
+		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
+		ImGui::Begin(m_WindowName.c_str(), pOpen);
 		UI::BeginPropertyGrid("PhysicsMaterialDetails");
 
 		UI::Text("Name", m_Asset->GetPath().stem().u8string());
@@ -171,7 +172,7 @@ namespace Eagle
 
 		ImGui::End();
 
-		DrawViewport(false, windowName);
+		DrawViewport(false, m_WindowName);
 	}
 	
 	void PhysicsMaterialAssetEditor::ResetScene()

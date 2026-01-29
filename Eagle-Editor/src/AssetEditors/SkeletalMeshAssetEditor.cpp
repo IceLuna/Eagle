@@ -89,9 +89,7 @@ namespace Eagle
 		}
 
 		const std::string assetName = modifyingAsset ? modifyingAsset->GetPath().stem().u8string() : "None";
-		bool bBeginCombo = ImGui::BeginCombo("##", assetName.c_str(), 0);
-
-		if (bBeginCombo)
+		if (ImGui::BeginCombo("##", assetName.c_str()))
 		{
 			const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
 			const int nonePosition = 0;
@@ -176,6 +174,7 @@ namespace Eagle
 
 					modifyingAsset = castedAsset;
 					bResult = true;
+					ImGui::CloseCurrentPopup();
 				}
 				++i;
 				ImGui::PopID();
@@ -437,6 +436,8 @@ namespace Eagle
 		settings.bEnableDebugLinesDepthTest = bEnableDebugLinesDepthTest;
 		sceneRenderer->SetOptions(settings);
 		OnSimulateRagdollChanged();
+
+		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
 	}
 
 	void SkeletalMeshAssetEditor::OnImGuiRender(bool* pOpen)
@@ -450,9 +451,8 @@ namespace Eagle
 			indicesCount += mesh->GetIndicesCount(i);
 		bool bChanged = false;
 
-		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
-		const std::string windowName = m_Asset->GetPath().u8string();
-		ImGui::Begin(windowName.c_str(), pOpen);
+		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
+		ImGui::Begin(m_WindowName.c_str(), pOpen);
 		UI::TextWithSeparator("Data");
 
 		UI::BeginPropertyGrid("SkeletalMeshDetails");
@@ -610,7 +610,7 @@ namespace Eagle
 		}
 
 		const bool bUpdateAnimation = m_PreviewAnimation.operator bool();
-		DrawViewport(bUpdateAnimation, windowName);
+		DrawViewport(bUpdateAnimation, m_WindowName);
 		bChanged |= bGuizmoChanged;
 		bGuizmoChanged = false;
 

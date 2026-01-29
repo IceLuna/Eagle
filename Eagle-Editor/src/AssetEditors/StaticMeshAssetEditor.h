@@ -20,5 +20,6 @@ namespace Eagle
 	private:
 		Ref<AssetStaticMesh> m_Asset;
 		StaticMeshComponent* m_Component = nullptr; // Not owning
+		std::string m_WindowName;
 	};
 }

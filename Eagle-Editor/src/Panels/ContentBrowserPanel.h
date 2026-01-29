@@ -47,7 +47,8 @@ namespace Eagle
 
 		void GetSearchingContent(const std::string& search, std::vector<Path>& outFiles);
 
-		void DrawPopupMenu(const Path& path, int timesCalledForASinglePath = 0);
+		void DrawItemPopupMenu(const Path& path, int timesCalledForASinglePath = 0);
+		void DrawContentBrowserPopupMenu();
 
 		void GoBack();
 		void GoForward();

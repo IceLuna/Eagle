@@ -185,66 +185,6 @@ namespace Eagle
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 		const bool bSearchInputChanged = UI::InputTextWithHint("##search", m_Search, "Search...");
 
-		if (ImGui::BeginPopupContextWindow("ContentBrowserPopup", ImGuiPopupFlags_MouseButtonRight))
-		{
-			if (ImGui::MenuItem("Import..."))
-			{
-				if (HandleImport())
-					m_RefreshBrowser = true;
-			}
-			ImGui::Separator();
-
-			if (ImGui::MenuItem("Create Entity"))
-				m_SelectedFile = AssetImporter::CreateEntity(m_CurrentDirectoryRelative);
-			if (ImGui::MenuItem("Create Material"))
-				m_SelectedFile = AssetImporter::CreateMaterial(m_CurrentDirectoryRelative);
-			if (ImGui::MenuItem("Create Physics Material"))
-				m_SelectedFile = AssetImporter::CreatePhysicsMaterial(m_CurrentDirectoryRelative);
-			if (ImGui::MenuItem("Create Sound Group"))
-				m_SelectedFile = AssetImporter::CreateSoundGroup(m_CurrentDirectoryRelative);
-			if (ImGui::MenuItem("Create Particle System"))
-				m_SelectedFile = AssetImporter::CreateParticleSystem(m_CurrentDirectoryRelative);
-			if (ImGui::MenuItem("Create Animation Graph"))
-			{
-				m_AnimationGraphImporter = AnimationGraphImporterPanel(m_CurrentDirectoryRelative);
-				m_DrawAnimationGraphImporter = true;
-			}
-			if (ImGui::MenuItem("Create Animation Blend Space"))
-			{
-				m_AnimationBlendSpaceImporter = AnimationBlendSpaceImporterPanel(m_CurrentDirectoryRelative);
-				m_DrawAnimationBlendSpaceImporter = true;
-			}
-			if (ImGui::MenuItem("Create Behavior Graph"))
-			{
-				m_SelectedFile = AssetImporter::CreateBehaviorGraph(m_CurrentDirectoryRelative);
-			}
-
-			if (ImGui::MenuItem("Create Folder"))
-			{
-				m_bShowInputName = true;
-				m_InputState = InputNameState::NewFolder;
-			}
-
-			ImGui::Separator();
-
-			const bool bDisablePaste = m_CopiedPath.empty();
-			if (bDisablePaste)
-				UI::PushItemDisabled();
-
-			if (ImGui::MenuItem("Paste"))
-			{
-				if (Path path = OnPasteAsset(m_CopiedPath, m_CurrentDirectoryRelative, m_bCopy); !path.empty())
-				{
-					m_SelectedFile = path;
-				}
-				m_CopiedPath.clear();
-			}
-
-			if (bDisablePaste)
-				UI::PopItemDisabled();
-
-			ImGui::EndPopup();
-		}
 		if (m_bShowInputName)
 		{
 			const char* hint = m_InputState == InputNameState::NewFolder ? "Folder name" :
@@ -720,6 +660,8 @@ namespace Eagle
 
 		ImGui::BeginChild("##scrollable_cb");
 
+		DrawContentBrowserPopupMenu();
+
 		if (columns > 1)
 		{
 			ImGui::Columns(columns, nullptr, false);
@@ -744,7 +686,7 @@ namespace Eagle
 					UI::PopButtonSelectedStyleColors();
 			}
 			
-			DrawPopupMenu(path);
+			DrawItemPopupMenu(path);
 			HandleDragDropOnFolder(path);
 
 			bHoveredAnyItem |= ImGui::IsItemHovered();
@@ -838,7 +780,7 @@ namespace Eagle
 				constexpr ImVec2 asteriskDrawOffset = ImVec2(36.f, 36.f);
 				UI::AddImage(m_AsteriskIcon, p + thumbnailSize - asteriskDrawOffset, p + thumbnailSize, ImVec2(0, 0), ImVec2(1, 1), color);
 			}
-			DrawPopupMenu(path);
+			DrawItemPopupMenu(path);
 
 			//Handling Drag Event.
 			{
@@ -980,7 +922,7 @@ namespace Eagle
 		}
 	}
 
-	void ContentBrowserPanel::DrawPopupMenu(const Path& path, int timesCalledForASinglePath)
+	void ContentBrowserPanel::DrawItemPopupMenu(const Path& path, int timesCalledForASinglePath)
 	{
 		static bool bDoneOnce = false;
 		const std::string pathString = path.u8string();
@@ -1041,6 +983,70 @@ namespace Eagle
 		}
 		else
 			bDoneOnce = false;
+	}
+
+	void ContentBrowserPanel::DrawContentBrowserPopupMenu()
+	{
+		if (ImGui::BeginPopupContextWindow("ContentBrowserPopup", ImGuiPopupFlags_MouseButtonRight))
+		{
+			if (ImGui::MenuItem("Import..."))
+			{
+				if (HandleImport())
+					m_RefreshBrowser = true;
+			}
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("Create Entity"))
+				m_SelectedFile = AssetImporter::CreateEntity(m_CurrentDirectoryRelative);
+			if (ImGui::MenuItem("Create Material"))
+				m_SelectedFile = AssetImporter::CreateMaterial(m_CurrentDirectoryRelative);
+			if (ImGui::MenuItem("Create Physics Material"))
+				m_SelectedFile = AssetImporter::CreatePhysicsMaterial(m_CurrentDirectoryRelative);
+			if (ImGui::MenuItem("Create Sound Group"))
+				m_SelectedFile = AssetImporter::CreateSoundGroup(m_CurrentDirectoryRelative);
+			if (ImGui::MenuItem("Create Particle System"))
+				m_SelectedFile = AssetImporter::CreateParticleSystem(m_CurrentDirectoryRelative);
+			if (ImGui::MenuItem("Create Animation Graph"))
+			{
+				m_AnimationGraphImporter = AnimationGraphImporterPanel(m_CurrentDirectoryRelative);
+				m_DrawAnimationGraphImporter = true;
+			}
+			if (ImGui::MenuItem("Create Animation Blend Space"))
+			{
+				m_AnimationBlendSpaceImporter = AnimationBlendSpaceImporterPanel(m_CurrentDirectoryRelative);
+				m_DrawAnimationBlendSpaceImporter = true;
+			}
+			if (ImGui::MenuItem("Create Behavior Graph"))
+			{
+				m_SelectedFile = AssetImporter::CreateBehaviorGraph(m_CurrentDirectoryRelative);
+			}
+
+			if (ImGui::MenuItem("Create Folder"))
+			{
+				m_bShowInputName = true;
+				m_InputState = InputNameState::NewFolder;
+			}
+
+			ImGui::Separator();
+
+			const bool bDisablePaste = m_CopiedPath.empty();
+			if (bDisablePaste)
+				UI::PushItemDisabled();
+
+			if (ImGui::MenuItem("Paste"))
+			{
+				if (Path path = OnPasteAsset(m_CopiedPath, m_CurrentDirectoryRelative, m_bCopy); !path.empty())
+				{
+					m_SelectedFile = path;
+				}
+				m_CopiedPath.clear();
+			}
+
+			if (bDisablePaste)
+				UI::PopItemDisabled();
+
+			ImGui::EndPopup();
+		}
 	}
 
 	void ContentBrowserPanel::GoBack()

@@ -6,13 +6,19 @@
 
 namespace Eagle
 {
+	AudioAssetEditor::AudioAssetEditor(const Ref<AssetAudio>& asset)
+		: m_Asset(asset)
+	{
+		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
+	}
+
 	void Eagle::AudioAssetEditor::OnImGuiRender(bool* pOpen)
 	{
 		const auto& audio = m_Asset->GetAudio();
 		bool bChanged = false;
 
-		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
-		bool bHidden = !ImGui::Begin(m_Asset->GetPath().u8string().c_str(), pOpen);
+		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
+		bool bHidden = !ImGui::Begin(m_WindowName.c_str(), pOpen);
 		UI::BeginPropertyGrid("AudioDetails");
 
 		UI::Text("Name", m_Asset->GetPath().stem().u8string());

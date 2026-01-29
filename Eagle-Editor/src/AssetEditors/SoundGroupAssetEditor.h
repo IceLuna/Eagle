@@ -9,7 +9,7 @@ namespace Eagle
 	class SoundGroupAssetEditor : public AssetEditor
 	{
 	public:
-		SoundGroupAssetEditor(const Ref<AssetSoundGroup>& asset) : m_Asset(asset) {}
+		SoundGroupAssetEditor(const Ref<AssetSoundGroup>& asset);
 
 		void OnImGuiRender(bool* pOpen) override;
 
@@ -17,5 +17,6 @@ namespace Eagle
 
 	private:
 		Ref<AssetSoundGroup> m_Asset;
+		std::string m_WindowName;
 	};
 }

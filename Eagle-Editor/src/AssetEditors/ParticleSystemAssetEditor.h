@@ -31,6 +31,7 @@ namespace Eagle
 		std::vector<ParticleEmitter> m_Emitters;
 		size_t m_SelectedEmitterIndex = s_InvalidIndex;
 		Entity m_Entity;
+		std::string m_WindowName;
 		Timer m_Timer;
 		float m_Lifetime = FLT_MAX;
 		bool bGuizmoChanged = false;

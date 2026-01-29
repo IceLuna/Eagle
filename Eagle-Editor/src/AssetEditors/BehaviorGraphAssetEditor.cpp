@@ -6,7 +6,9 @@
 namespace Eagle
 {
 	BehaviorGraphAssetEditor::BehaviorGraphAssetEditor(const Ref<AssetBehaviorGraph>& asset)
-		: m_Asset(asset), m_Graph(MakeScope<BehaviorGraphEditor>(m_Asset, m_Asset->GetPath().u8string()))
+		: m_Asset(asset)
+		, m_WindowName(AssetEditor::GetAssetWindowName(m_Asset))
+		, m_Graph(MakeScope<BehaviorGraphEditor>(m_Asset, m_WindowName))
 	{
 	}
 

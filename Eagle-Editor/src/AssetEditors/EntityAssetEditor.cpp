@@ -52,7 +52,7 @@ namespace Eagle
 		}
 
 		m_SceneHierarchy.SetContext(scene, asset->GetGUID().GetHigh());
-		m_WindowName = m_Asset->GetPath().u8string();
+		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
 	}
 
 	void EntityAssetEditor::OnImGuiRender(bool* pOpen)
@@ -200,7 +200,7 @@ namespace Eagle
 			ImGui::DockBuilderDockWindow(windowName.data(), nodeViewport);
 
 			ImGuiID nodeSceneHierarchy;
-			ImGui::DockBuilderSplitNode(nodeDetails, ImGuiDir_Up, 0.5f, &nodeDetails, &nodeSceneHierarchy);
+			ImGui::DockBuilderSplitNode(nodeDetails, ImGuiDir_Up, 0.2f, &nodeDetails, &nodeSceneHierarchy);
 			ImGui::DockBuilderDockWindow(parentName.data(), nodeDetails);
 			ImGui::DockBuilderDockWindow(m_SceneHierarchy.GetSceneHierarchyWindowName().c_str(), nodeSceneHierarchy);
 

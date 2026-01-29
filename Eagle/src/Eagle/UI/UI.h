@@ -221,6 +221,7 @@ namespace Eagle::UI
 					currentItemIdx = nonePosition;
 					modifyingAsset.reset();
 					bResult = true;
+					ImGui::CloseCurrentPopup();
 				}
 			}
 
@@ -333,6 +334,7 @@ namespace Eagle::UI
 
 					modifyingAsset = castedAsset;
 					bResult = true;
+					ImGui::CloseCurrentPopup();
 				}
 				++i;
 				ImGui::PopID();

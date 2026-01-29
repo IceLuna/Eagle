@@ -134,7 +134,7 @@ namespace Eagle
 
         // Editor
         m_bGraphFocused = false;
-        ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(920.f, 760.f), ImGuiCond_FirstUseEver);
         if (ImGui::Begin(m_Name.c_str(), pOpen))
         {
             m_bGraphFocused = ImGui::IsWindowFocused();

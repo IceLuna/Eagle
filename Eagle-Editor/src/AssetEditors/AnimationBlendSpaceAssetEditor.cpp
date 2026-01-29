@@ -28,7 +28,7 @@ namespace Eagle
 		: AssetEditor(true, true)
 		, m_Asset(asset)
 	{
-		m_DetailsWindowName = m_Asset->GetPath().u8string();
+		m_DetailsWindowName = AssetEditor::GetAssetWindowName(m_Asset);
 		m_PlotWindowName = m_Asset->GetPath().u8string() + "_Plot";
 
 		m_Horizontal = m_Asset->GetHorizontalAxis();
@@ -78,7 +78,7 @@ namespace Eagle
 	{
 		bool bChanged = false;
 
-		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
 		ImGui::Begin(m_DetailsWindowName.c_str(), pOpen);
 
 		UI::BeginPropertyGrid("AnimationBlendSpaceDetails");
@@ -147,8 +147,8 @@ namespace Eagle
 	{
 		bool bChanged = false;
 
-		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
-		ImGui::Begin(m_PlotWindowName.c_str(), nullptr);
+		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
+		ImGui::Begin(m_PlotWindowName.c_str());
 
 		ImGui::Checkbox("Draw Triangulation", &bDrawTriangulation);
 		if (m_SelectedPointIdx != s_InvalidIndex)

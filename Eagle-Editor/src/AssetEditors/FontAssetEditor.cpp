@@ -20,6 +20,8 @@ namespace Eagle
 		m_Component->SetPosition({ -0.9f, -0.9f });
 		m_Component->SetScale(glm::vec2(0.1f));
 		m_Component->SetMaxWidth(20.f);
+
+		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
 	}
 
 	void FontAssetEditor::OnImGuiRender(bool* pOpen)
@@ -28,9 +30,8 @@ namespace Eagle
 		glm::vec2 scale = m_Component->GetScale();
 		float maxWidth = m_Component->GetMaxWidth();
 
-		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
-		const std::string windowName = m_Asset->GetPath().u8string();
-		ImGui::Begin(windowName.c_str(), pOpen);
+		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
+		ImGui::Begin(m_WindowName.c_str(), pOpen);
 
 		UI::TextWithSeparator("Data");
 
@@ -54,6 +55,6 @@ namespace Eagle
 
 		ImGui::End();
 
-		DrawViewport(false, windowName);
+		DrawViewport(false, m_WindowName);
 	}
 }

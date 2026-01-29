@@ -12,7 +12,8 @@ namespace Eagle
 	AnimationGraphAssetEditor::AnimationGraphAssetEditor(const Ref<AssetAnimationGraph>& asset)
 		: AssetEditor(true, true)
 		, m_Asset(asset)
-		, m_Graph(MakeScope<AnimationGraphEditor>(m_Asset, m_Asset->GetPath().u8string()))
+		, m_WindowName(AssetEditor::GetAssetWindowName(m_Asset))
+		, m_Graph(MakeScope<AnimationGraphEditor>(m_Asset, m_WindowName))
 	{
 		m_Graph->SetRenderPreviewPanelCallback([this](float w, float h)
 		{

@@ -59,6 +59,7 @@ namespace Eagle
 	private:
 		Ref<AssetSkeletalMesh> m_Asset;
 		Ref<AssetAnimation> m_PreviewAnimation;
+		std::string m_WindowName;
 
 		std::string m_SelectedBoneName;
 		std::string m_SelectedBoneParentName;

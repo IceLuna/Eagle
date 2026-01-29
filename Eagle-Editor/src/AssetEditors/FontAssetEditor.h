@@ -21,5 +21,6 @@ namespace Eagle
 		Ref<AssetFont> m_Asset;
 		Text2DComponent* m_Component = nullptr; // Not owning
 		std::string m_Text = "The quick brown fox jumps over the lazy dog\n0123456789";
+		std::string m_WindowName;
 	};
 }
