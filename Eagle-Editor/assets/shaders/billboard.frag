@@ -17,7 +17,7 @@ layout(location = 4) in vec3 i_PrevPos;
 
 void main()
 {
-    const vec4 color = ReadTexture(i_TextureIndex, i_TexCoords);
+    const vec4 color = ReadTexture_sRGB(i_TextureIndex, i_TexCoords);
 
     // Alpha mask
     if (color.a < 0.9f)

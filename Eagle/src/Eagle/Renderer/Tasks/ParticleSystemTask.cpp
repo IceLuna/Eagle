@@ -733,8 +733,11 @@ namespace Eagle
 		const bool bTexturesDirty = texturesChangedFrame >= m_TexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()];
 		if (bTexturesDirty)
 		{
-			m_BillboardRender->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), 1, 0);
-			m_BillboardRenderTranslucent->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), 1, 0);
+			const auto& images = TextureSystem::GetImages();
+			const auto& samplers = TextureSystem::GetSamplers();
+
+			m_BillboardRender->SetImageSamplerArray(images, samplers, EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+			m_BillboardRenderTranslucent->SetImageSamplerArray(images, samplers, EG_TEXTURES_SET, EG_BINDING_TEXTURES);
 			m_TexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()] = texturesChangedFrame + 1;
 		}
 

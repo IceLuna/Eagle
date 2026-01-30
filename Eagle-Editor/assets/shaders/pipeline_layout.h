@@ -14,6 +14,13 @@ vec4 ReadTexture(uint index, vec2 uv)
 {
 	return texture(g_Textures[nonuniformEXT(index)], uv);
 }
+
+vec4 ReadTexture_sRGB(uint index, vec2 uv)
+{
+	vec4 color = texture(g_Textures[nonuniformEXT(index)], uv);
+	color.xyz = Color_SRGBToLinear(color.xyz);
+	return color;
+}
 #endif
 
 #ifndef EG_NO_MATERIALS
@@ -54,7 +61,7 @@ ShaderMaterial FetchMaterial(uint index, inout vec2 uv)
 	{
 		result.Albedo = bRawValue ?
 			vec3(g_MaterialRawValues[albedoIndex], g_MaterialRawValues[albedoIndex + 1], g_MaterialRawValues[albedoIndex + 2]) :
-			ReadTexture(albedoIndex, uv).rgb;
+			ReadTexture_sRGB(albedoIndex, uv).rgb;
 	}
 	else
 	{
@@ -129,7 +136,7 @@ ShaderMaterial FetchMaterial(uint index, inout vec2 uv)
 	{
 		result.Emissive = bRawValue ?
 			vec3(g_MaterialRawValues[emissiveIndex], g_MaterialRawValues[emissiveIndex + 1], g_MaterialRawValues[emissiveIndex + 2]) :
-			ReadTexture(emissiveIndex, uv).rgb;
+			ReadTexture_sRGB(emissiveIndex, uv).rgb;
 	}
 	else
 	{

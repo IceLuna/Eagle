@@ -1,7 +1,8 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 #include "particle_system/common.h"
 
-layout(set = 1, binding = 0) uniform sampler2D g_Textures[];
+#define EG_NO_MATERIALS
+#include "pipeline_layout.h"
 
 // Inputs
 layout(location = 0) in vec4 i_Color;
@@ -20,13 +21,13 @@ void main()
 	{
 		if (HasFlag(i_Flags, Particle_BlendAnimation_Mask))
 		{
-			const vec4 color0 = texture(g_Textures[nonuniformEXT(i_TextureIndex)], i_UVs.xy);
-			const vec4 color1 = texture(g_Textures[nonuniformEXT(i_TextureIndex)], i_UVs.zw);
+			const vec4 color0 = ReadTexture_sRGB(i_TextureIndex, i_UVs.xy);
+			const vec4 color1 = ReadTexture_sRGB(i_TextureIndex, i_UVs.zw);
 			color *= mix(color0, color1, i_AnimationLerp);
 		}
 		else
 		{
-			color *= texture(g_Textures[nonuniformEXT(i_TextureIndex)], i_UVs.xy);
+			color *= ReadTexture_sRGB(i_TextureIndex, i_UVs.xy);
 		}
 	}
 #ifdef EG_BLEND

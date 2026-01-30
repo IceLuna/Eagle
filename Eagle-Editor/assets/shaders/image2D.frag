@@ -1,6 +1,7 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 
 #include "defines.h"
+#include "utils.h"
 
 layout(location = 0) in vec4 i_Tint;
 layout(location = 1) in vec2 i_TexCoords;
@@ -19,6 +20,7 @@ layout(binding = 0) uniform sampler2D g_Textures[];
 void main()
 {
 	vec4 color = texture(g_Textures[nonuniformEXT(i_TextureIndex)], i_TexCoords);
+	color.rgb = Color_SRGBToLinear(color.rgb);
 	color *= i_Tint;
 
 	if (IS_ZERO(color.a))

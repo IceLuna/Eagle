@@ -488,6 +488,29 @@ vec3 UnpackR11G11B10_F32(uint packed)
     return vec3(UnpackR11G11B10_F16(packed));
 }
 
+vec3 Color_LinearToSRGB(vec3 color)
+{
+    const float gamma = 2.2;
+    const float invGamma = 1.0 / gamma;
+    const float t = 0.0031308;
+
+    vec3 x = color * 12.92;
+    vec3 y = 1.055 * pow(clamp(color, vec3(0), vec3(1)), vec3(invGamma)) - 0.055;
+
+    return vec3(color.r < t ? x.r : y.r, color.g < t ? x.g : y.g, color.b < t ? x.b : y.b);
+}
+
+vec3 Color_SRGBToLinear(vec3 color)
+{
+    const float gamma = 2.2;
+    const float t = 0.04045;
+
+    vec3 x = color / 12.92;
+    vec3 y = pow(max(vec3(0), (color + 0.055) / 1.055), vec3(gamma));
+
+    return vec3(color.r <= t ? x.r : y.r, color.g <= t ? x.g : y.g, color.b <= t ? x.b : y.b);
+}
+
 #define EG_SUBGROUP_ATOMIC_INCREMENT(data, bActive, outputIndex) \
 { \
     const uvec4 activeLanes = subgroupBallot(bActive); \

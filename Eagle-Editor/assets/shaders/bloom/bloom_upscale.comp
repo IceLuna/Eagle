@@ -21,6 +21,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include "utils.h"
+
 layout(binding = 0) uniform sampler2D g_Input;
 layout(binding = 1, r11f_g11f_b10f) uniform image2D g_Outputs[16];
 layout(binding = 2) uniform sampler2D g_Dirt;
@@ -100,8 +102,10 @@ void main()
     {
         if (g_UseDirt > 0)
         {
-            vec2  uv  = (vec2(pixelCoords) + vec2(0.5, 0.5)) * g_TexelSize;
-            result += texture(g_Dirt, uv) * g_DirtIntensity * bloom * g_BloomIntensity;
+            vec2 uv  = (vec2(pixelCoords) + vec2(0.5)) * g_TexelSize;
+            vec4 dirt = texture(g_Dirt, uv);
+            dirt.xyz = Color_SRGBToLinear(dirt.xyz);
+            result += dirt * g_DirtIntensity * bloom * g_BloomIntensity;
         }
     }
 

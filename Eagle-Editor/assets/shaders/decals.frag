@@ -53,17 +53,14 @@ void main()
 	vec2 decalUV = ndcPos.xy * 0.5f + 0.5f;
 	const ShaderMaterial material = FetchMaterial(i_MaterialIndex, decalUV);
 	if (material.OpacityMask < EG_OPACITY_MASK_THRESHOLD || IS_ZERO(material.Opacity))
-	{
 		discard;
-		return;
-	}
 
 	const float metalness = material.Metalness;
 	const float roughness = material.Roughness;
 	const float ao = material.AO;
 
 	outAlbedo = vec4(material.Albedo, material.Opacity);
-	outEmissive = vec4(material.Emissive, material.Opacity);
-	outMaterialData = vec4(metalness, ao, roughness, material.Opacity);
+	outEmissive = vec4(material.Emissive, material.Opacity); // Blending based on opacity
+	outMaterialData = vec4(metalness, ao, roughness, material.Opacity); // Blending based on opacity
 	outObjectID = int(i_EntityID);
 }
