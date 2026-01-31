@@ -138,7 +138,7 @@ namespace Eagle
 			UI::BeginPropertyGrid("MaterialDetails_Normal");
 			
 			temp = material->GetNormalAsset();
-			if (EditorResources::DrawAssetSelection("Normal", temp, "Currently, decals ignore this input"))
+			if (EditorResources::DrawAssetSelection("Normal", temp))
 			{
 				material->SetNormalAsset(temp);
 				bChanged = true;

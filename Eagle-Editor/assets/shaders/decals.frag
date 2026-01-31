@@ -14,6 +14,9 @@ layout(location = 0) out vec4 outAlbedo;
 layout(location = 1) out vec4 outEmissive;
 layout(location = 2) out vec4 outMaterialData;
 layout(location = 3) out int  outObjectID;
+#ifdef DECAL_NORMALS
+layout(location = 4) out vec4 outGeometryShadingNormals;
+#endif
 
 layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX) readonly buffer TransformsBuffer
 {
@@ -33,6 +36,27 @@ vec2 ComputeUV(vec4 localPos)
 	vec2 uv = localPos.xy * 0.5 + 0.5;
 	uv.y = 1 - uv.y;
 	return uv;
+}
+
+mat3 ComputeTBN(vec3 worldPos, vec2 uv, out vec3 normal)
+{
+    vec3 dp1 = dFdx(worldPos);
+    vec3 dp2 = dFdy(worldPos);
+
+    vec2 duv1 = dFdx(uv);
+    vec2 duv2 = dFdy(uv);
+
+    vec3 T = dp1 * duv2.y - dp2 * duv1.y;
+    vec3 B = dp2 * duv1.x - dp1 * duv2.x;
+
+    float invMax = inversesqrt(max(dot(T,T), dot(B,B)));
+
+    T *= invMax;
+    B *= invMax;
+
+    normal = -normalize(cross(T, B));
+
+    return mat3(T, B, normal);
 }
 
 void main()
@@ -72,4 +96,16 @@ void main()
 	outEmissive = vec4(material.Emissive, material.Opacity); // Blending based on opacity
 	outMaterialData = vec4(metalness, ao, roughness, material.Opacity); // Blending based on opacity
 	outObjectID = int(i_EntityID);
+
+#ifdef DECAL_NORMALS
+	{
+		vec3 shadingNormal = ReadTexture(material.NormalTextureIndex, decalUV).rgb;
+		shadingNormal = normalize(shadingNormal * 2.0 - 1.0);
+
+		vec3 geometryNormal;
+		shadingNormal = normalize(ComputeTBN(worldPos, decalUV, geometryNormal) * shadingNormal);
+
+		outGeometryShadingNormals = vec4(EncodeNormal(geometryNormal), EncodeNormal(shadingNormal));
+	}
+#endif
 }

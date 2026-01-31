@@ -60,7 +60,7 @@ namespace Eagle
 
 	RenderDecalsTask::~RenderDecalsTask()
 	{
-		for (auto& [_, material] : m_MaterialsToAdjustTo)
+		for (auto& [_, material] : m_Materials)
 		{
 			material->RemoveOnModifiedCallback(m_CallbackID);
 		}
@@ -79,7 +79,7 @@ namespace Eagle
 
 	void RenderDecalsTask::Upload(const Ref<CommandBuffer>& cmd)
 	{
-		if (!bUpload && !bUploadTransforms && !bUpdateMaterials)
+		if (!bUpload && !bUploadTransforms)
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Decals. Upload");
@@ -96,20 +96,32 @@ namespace Eagle
 			cmd->Write(m_TransformsBuffer, m_Transforms.data(), m_Transforms.size() * sizeof(glm::mat4), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
 		}
 
-		if (bUpload || bUpdateMaterials)
+		if (bUpload)
 		{
-			if (bUpdateMaterials)
+			m_NoNormalsDecalsCount = 0;
+			m_WithNormalsDecalsCount = 0;
+
+			for (auto& decal : m_Decals)
 			{
-				for (auto& decal : m_Decals)
-				{
-					auto it = m_MaterialsToAdjustTo.find(decal.MaterialIndex);
-					if (it != m_MaterialsToAdjustTo.end())
-					{
-						const auto& material = it->second;
-						decal.AspectRatio = GetAspectRatio(material);
-					}
-				}
+				const auto& material = m_Materials.at(decal.MaterialIndex);
+				decal.AspectRatio = GetAspectRatio(material);
+				if (material->GetNormalAsset())
+					m_WithNormalsDecalsCount++;
+				else
+					m_NoNormalsDecalsCount++;
 			}
+
+			// Decals without normals come first
+			std::sort(m_Decals.begin(), m_Decals.end(), [this](const DecalData& a, const DecalData& b)
+			{
+				const auto& material1 = m_Materials.at(a.MaterialIndex);
+				const auto& material2 = m_Materials.at(b.MaterialIndex);
+
+				const bool bHasNormals1 = material1->GetNormalAsset().operator bool();
+				const bool bHasNormals2 = material2->GetNormalAsset().operator bool();
+
+				return bHasNormals1 < bHasNormals2;
+			});
 
 			const size_t currentInstancesSize = m_Decals.size() * sizeof(DecalData);
 			if (currentInstancesSize > m_InstanceBuffer->GetSize())
@@ -118,23 +130,19 @@ namespace Eagle
 				m_InstanceBuffer->Resize(newSize);
 			}
 			cmd->Write(m_InstanceBuffer, m_Decals.data(), m_Decals.size() * sizeof(DecalData), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
-
-			if (bUpload)
-			{
-				// We do it just once
-				for (auto& [_, material] : m_MaterialsToAdjustTo)
-				{
-					material->AddOnModifiedCallback(m_CallbackID, [this]()
-					{
-						bUpdateMaterials = true;
-					});
-				}
-			}
 		}
 
 		bUpload = false;
 		bUploadTransforms = false;
-		bUpdateMaterials = false;
+	}
+
+	void RenderDecalsTask::BindDescriptors(const Ref<PipelineGraphics>& pipeline, const GBuffer& gbuffer)
+	{
+		pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+		pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
+		pipeline->SetBuffer(m_TransformsBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
+		pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSampler, 3, 0);
+		pipeline->SetImageSampler(gbuffer.Flags, Sampler::PointSampler, 3, 1);
 	}
 
 	void RenderDecalsTask::Render(const Ref<CommandBuffer>& cmd)
@@ -142,35 +150,59 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Decals. Render");
 		EG_CPU_TIMING_SCOPED("Decals. Render");
 		
-		auto& gbuffer = m_Renderer.GetGBuffer();
-		auto& depth = gbuffer.Depth;
+		const auto& gbuffer = m_Renderer.GetGBuffer();
+		const auto& depth = gbuffer.Depth;
 		const auto oldLayout = depth->GetLayout();
 
 		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
 		const bool bTexturesDirty = texturesChangedFrame >= m_TexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()];
 		if (bTexturesDirty)
 		{
-			m_Pipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+			const auto& images = TextureSystem::GetImages();
+			const auto& samplers = TextureSystem::GetSamplers();
+			m_Pipeline->SetImageSamplerArray(images, samplers, EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+			m_WithNormalsPipeline->SetImageSamplerArray(images, samplers, EG_TEXTURES_SET, EG_BINDING_TEXTURES);
 			m_TexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()] = texturesChangedFrame + 1;
 		}
-		m_Pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
-		m_Pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
-		m_Pipeline->SetBuffer(m_TransformsBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
-		m_Pipeline->SetImageSampler(depth, Sampler::PointSampler, 3, 0);
-		m_Pipeline->SetImageSampler(gbuffer.Flags, Sampler::PointSampler, 3, 1);
+		BindDescriptors(m_Pipeline, gbuffer);
+		BindDescriptors(m_WithNormalsPipeline, gbuffer);
 
 		const glm::mat4& vp = m_Renderer.GetViewProjection();
 		const glm::mat4& invVP = m_Renderer.GetInverseViewProjection();
-		const uint32_t instanceCount = (uint32_t)m_Decals.size();
 
 		cmd->TransitionLayout(depth, oldLayout, ImageReadAccess::PixelShaderRead);
 
-		cmd->BeginGraphics(m_Pipeline);
-		cmd->SetGraphicsRootConstants(&vp, &invVP);
-		cmd->DrawInstanced(m_InstanceBuffer, 36, instanceCount, 0, 0);
-		cmd->EndGraphics();
+		// Without normals
+		if (const uint32_t instanceCount = m_NoNormalsDecalsCount)
+		{
+			cmd->BeginGraphics(m_Pipeline);
+			cmd->SetGraphicsRootConstants(&vp, &invVP);
+			cmd->DrawInstanced(m_InstanceBuffer, 36, instanceCount, 0, 0);
+			cmd->EndGraphics();
+		}
+
+		// With normals
+		if (const uint32_t instanceCount = m_WithNormalsDecalsCount)
+		{
+			const uint32_t instanceOffset = m_NoNormalsDecalsCount;
+			cmd->BeginGraphics(m_WithNormalsPipeline);
+			cmd->SetGraphicsRootConstants(&vp, &invVP);
+			cmd->DrawInstanced(m_InstanceBuffer, 36, instanceCount, 0, instanceOffset);
+			cmd->EndGraphics();
+		}
 
 		cmd->TransitionLayout(depth, ImageReadAccess::PixelShaderRead, oldLayout);
+	}
+
+	void RenderDecalsTask::AddMaterialCallbacks()
+	{
+		for (auto& [_, material] : m_Materials)
+		{
+			material->AddOnModifiedCallback(m_CallbackID, [this]()
+			{
+				bUpload = true;
+			});
+		}
 	}
 
 	void RenderDecalsTask::SetDecals(const std::vector<const DecalComponent*>& decals, bool bDirty)
@@ -187,7 +219,7 @@ namespace Eagle
 		std::unordered_map<uint32_t, uint64_t> decalsTransformsMapping; // key - entity ID; value - index into m_Transforms
 		std::vector<UpdateData> decalsData;
 		std::vector<glm::mat4> decalTransforms;
-		std::map<uint32_t, Ref<Material>> decalAdjustableMaterials; // Key - Material index
+		std::map<uint32_t, Ref<Material>> decalMaterials; // Key - Material index
 		decalsData.reserve(decals.size());
 		decalTransforms.reserve(decals.size());
 
@@ -217,8 +249,8 @@ namespace Eagle
 				if (decalComp->IsAdjustAspectRatioEnabled())
 				{
 					data.AspectRatio = GetAspectRatio(material);
-					decalAdjustableMaterials[data.MaterialIndex] = material;
 				}
+				decalMaterials[data.MaterialIndex] = material;
 			}
 		}
 
@@ -228,7 +260,7 @@ namespace Eagle
 		});
 
 		RenderManager::Submit([task = shared_from_this(), decals = std::move(decalsData), transforms = std::move(decalTransforms),
-			transformsMapping = std::move(decalsTransformsMapping), adjustableMaterials = std::move(decalAdjustableMaterials)](Ref<CommandBuffer>& cmd) mutable
+			transformsMapping = std::move(decalsTransformsMapping), materials = std::move(decalMaterials)](Ref<CommandBuffer>& cmd) mutable
 		{
 			auto thisRef = Cast<RenderDecalsTask>(task);
 			thisRef->m_Decals.clear();
@@ -239,11 +271,12 @@ namespace Eagle
 			thisRef->bUpload = true;
 			thisRef->bUploadTransforms = true;
 
-			for (auto& [_, material] : thisRef->m_MaterialsToAdjustTo)
+			for (auto& [_, material] : thisRef->m_Materials)
 			{
 				material->RemoveOnModifiedCallback(thisRef->m_CallbackID);
 			}
-			thisRef->m_MaterialsToAdjustTo = std::move(adjustableMaterials);
+			thisRef->m_Materials = std::move(materials);
+			thisRef->AddMaterialCallbacks();
 		});
 	}
 
@@ -321,6 +354,12 @@ namespace Eagle
 		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		objectIDAttachment.Image = gbuffer.ObjectID;
 
+		ColorAttachment geometry_shading_NormalsAttachment;
+		geometry_shading_NormalsAttachment.ClearOperation = ClearOperation::Load;
+		geometry_shading_NormalsAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+		geometry_shading_NormalsAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		geometry_shading_NormalsAttachment.Image = gbuffer.Geometry_Shading_Normals;
+
 		PipelineGraphicsState state;
 		state.VertexShader = Shader::Create("decals.vert", ShaderType::Vertex);
 		state.FragmentShader = Shader::Create("decals.frag", ShaderType::Fragment);
@@ -335,5 +374,12 @@ namespace Eagle
 			m_Pipeline->SetState(state);
 		else
 			m_Pipeline = PipelineGraphics::Create(state);
+
+		state.FragmentShader = Shader::Create("decals.frag", ShaderType::Fragment, { { "DECAL_NORMALS", "" } });
+		state.ColorAttachments.push_back(geometry_shading_NormalsAttachment);
+		if (m_WithNormalsPipeline)
+			m_WithNormalsPipeline->SetState(state);
+		else
+			m_WithNormalsPipeline = PipelineGraphics::Create(state);
 	}
 }
