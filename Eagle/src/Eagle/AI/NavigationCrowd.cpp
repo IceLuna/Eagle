@@ -115,6 +115,12 @@ namespace Eagle::AINavigation
 
 	int Crowd::AddAgent(const glm::vec3& pos, const AgentSettings& settings)
 	{
+		if (!m_Crowd)
+		{
+			EG_CORE_ERROR("Failed to add a crowd agent. Crowd System isn't initialized");
+			return -1;
+		}
+
 		dtCrowdAgentParams ap = AgentSettingsToDetour(settings);
 		int idx = m_Crowd->addAgent(&pos.x, &ap);
 		if (idx != -1)
@@ -128,16 +134,34 @@ namespace Eagle::AINavigation
 	
 	void Crowd::RemoveAgent(int agentIndex)
 	{
+		if (!m_Crowd)
+		{
+			EG_CORE_ERROR("Failed to remove a crowd agent. Crowd System isn't initialized");
+			return;
+		}
+
 		m_Crowd->removeAgent(agentIndex);
 	}
 
 	int Crowd::GetAgentCount() const
 	{
+		if (!m_Crowd)
+		{
+			EG_CORE_ERROR("Failed to get crowd agent count. Crowd System isn't initialized");
+			return 0;
+		}
+
 		return m_Crowd->getAgentCount();
 	}
 
 	bool Crowd::GetAgentLocation(int agentIndex, glm::vec3* outLocation) const
 	{
+		if (!m_Crowd)
+		{
+			EG_CORE_ERROR("Failed to get crowd agent location. Crowd System isn't initialized");
+			return false;
+		}
+
 		const dtCrowdAgent* ag = m_Crowd->getAgent(agentIndex);
 		if (ag && ag->active)
 		{
@@ -150,6 +174,12 @@ namespace Eagle::AINavigation
 
 	bool Crowd::GetAgentVelocity(int agentIndex, glm::vec3* outVelocity) const
 	{
+		if (!m_Crowd)
+		{
+			EG_CORE_ERROR("Failed to get crowd agent velocity. Crowd System isn't initialized");
+			return false;
+		}
+
 		const dtCrowdAgent* ag = m_Crowd->getAgent(agentIndex);
 		if (ag && ag->active)
 		{
@@ -162,6 +192,12 @@ namespace Eagle::AINavigation
 
 	MoveRequestState Crowd::GetAgentTargetState(int agentIndex) const
 	{
+		if (!m_Crowd)
+		{
+			EG_CORE_ERROR("Failed to get crowd agent target state. Crowd System isn't initialized");
+			return MoveRequestState::DT_CROWDAGENT_TARGET_NONE;
+		}
+
 		const dtCrowdAgent* ag = m_Crowd->getAgent(agentIndex);
 		if (ag && ag->active)
 		{
@@ -173,6 +209,12 @@ namespace Eagle::AINavigation
 	
 	void Crowd::SetMoveTarget(int agentIndex, const glm::vec3& pos)
 	{
+		if (!m_Crowd)
+		{
+			EG_CORE_ERROR("Failed to set crowd agent move target. Crowd System isn't initialized");
+			return;
+		}
+
 		const float searchHalfExtent[3] = { 2, 4, 2 };
 		dtPolyRef targetRef;
 		glm::vec3 targetPos;
@@ -185,6 +227,12 @@ namespace Eagle::AINavigation
 	
 	void Crowd::SetMoveTarget(const glm::vec3& pos)
 	{
+		if (!m_Crowd)
+		{
+			EG_CORE_ERROR("Failed to set crowd agents move target. Crowd System isn't initialized");
+			return;
+		}
+
 		const float searchHalfExtent[3] = { 2, 4, 2 };
 		m_NavQuery->findNearestPoly(&pos.x, searchHalfExtent, &m_Filter, &m_TargetRef, &m_TargetPos.x);
 
@@ -200,6 +248,12 @@ namespace Eagle::AINavigation
 
 	void Crowd::ResetMoveTarget(int agentIndex)
 	{
+		if (!m_Crowd)
+		{
+			EG_CORE_ERROR("Failed to reset crowd agent move target. Crowd System isn't initialized");
+			return;
+		}
+
 		const dtCrowdAgent* ag = m_Crowd->getAgent(agentIndex);
 		if (!ag || !ag->active)
 			return;
@@ -209,6 +263,12 @@ namespace Eagle::AINavigation
 
 	void Crowd::ResetMoveTarget()
 	{
+		if (!m_Crowd)
+		{
+			EG_CORE_ERROR("Failed to reset crowd agents move target. Crowd System isn't initialized");
+			return;
+		}
+
 		m_TargetRef = 0u;
 
 		for (int i = 0; i < m_Crowd->getAgentCount(); ++i)
@@ -223,6 +283,12 @@ namespace Eagle::AINavigation
 	
 	void Crowd::UpdateAgentSettings(int agentIndex, const AgentSettings& settings)
 	{
+		if (!m_Crowd)
+		{
+			EG_CORE_ERROR("Failed to update crowd agent settings. Crowd System isn't initialized");
+			return;
+		}
+
 		const dtCrowdAgent* ag = m_Crowd->getAgent(agentIndex);
 		if (!ag || !ag->active)
 			return;
@@ -233,6 +299,12 @@ namespace Eagle::AINavigation
 	
 	void Crowd::Update(Timestep ts)
 	{
+		if (!m_Crowd)
+		{
+			EG_CORE_ERROR("Failed to update crowd system. It's not initialized");
+			return;
+		}
+
 		m_Crowd->update(ts, nullptr);
 	}
 }

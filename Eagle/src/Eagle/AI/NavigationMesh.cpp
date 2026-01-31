@@ -22,6 +22,13 @@ namespace Eagle::AINavigation
 		return v;
 	}
 
+	static void CalcGridSize(const float* minBounds, const float* maxBounds, const float cellSize, int* sizeX, int* sizeZ)
+	{
+		rcCalcGridSize(minBounds, maxBounds, cellSize, sizeX, sizeZ);
+		*sizeX = glm::abs(*sizeX);
+		*sizeZ = glm::abs(*sizeZ);
+	}
+
 	static uint32_t log2(uint32_t v)
 	{
 		uint32_t r = (v > 0xffff) << 4; v >>= r;
@@ -124,7 +131,7 @@ namespace Eagle::AINavigation
 		const float* bmax = glm::value_ptr(m_Settings.AABB.Max);
 
 		int gw = 0, gh = 0;
-		rcCalcGridSize(bmin, bmax, m_Settings.CellSize, &gw, &gh);
+		CalcGridSize(bmin, bmax, m_Settings.CellSize, &gw, &gh);
 		const int ts = (int)m_Settings.TileSize;
 		const int tw = (gw + ts - 1) / ts;
 		const int th = (gh + ts - 1) / ts;
@@ -491,13 +498,14 @@ namespace Eagle::AINavigation
 			cfg.detailSampleMaxError = m_Settings.CellHeight * DetailSampleMaxError;
 			rcVcopy(cfg.bmin, bmin);
 			rcVcopy(cfg.bmax, bmax);
-			rcCalcGridSize(cfg.bmin, cfg.bmax, cfg.cs, &cfg.width, &cfg.height);
+			CalcGridSize(cfg.bmin, cfg.bmax, cfg.cs, &cfg.width, &cfg.height);
 		}
 
 		// Tile cache params.
 		{
 			int gw = 0, gh = 0;
-			rcCalcGridSize(bmin, bmax, m_Settings.CellSize, &gw, &gh);
+			CalcGridSize(bmin, bmax, m_Settings.CellSize, &gw, &gh);
+
 			const int ts = (int)m_Settings.TileSize;
 			const int tw = (gw + ts - 1) / ts;
 			const int th = (gh + ts - 1) / ts;
@@ -552,7 +560,7 @@ namespace Eagle::AINavigation
 		const float* bmax = m_Config.bmax;
 
 		int gw = 0, gh = 0;
-		rcCalcGridSize(bmin, bmax, m_Settings.CellSize, &gw, &gh);
+		CalcGridSize(bmin, bmax, m_Settings.CellSize, &gw, &gh);
 		const int ts = (int)m_Settings.TileSize;
 		const int tw = (gw + ts - 1) / ts;
 		const int th = (gh + ts - 1) / ts;
@@ -616,7 +624,7 @@ namespace Eagle::AINavigation
 		tcfg.bmax[2] += tcfg.borderSize * tcfg.cs;
 
 		// Recalculate width/height for the potentially limited tcfg bmin/bmax
-		rcCalcGridSize(tcfg.bmin, tcfg.bmax, tcfg.cs, &tcfg.width, &tcfg.height);
+		CalcGridSize(tcfg.bmin, tcfg.bmax, tcfg.cs, &tcfg.width, &tcfg.height);
 		
 		// Allocate voxel height field where we rasterize our input data to.
 		rcFreeHeightField(m_Solid);
