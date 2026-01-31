@@ -53,6 +53,9 @@ namespace Eagle
 	{
 		auto thisMaterial = shared_from_this();
 		MaterialSystem::OnMaterialChanged(thisMaterial, bBlendModeChanged);
+
+		for (auto& [_, callback] : m_Callbacks)
+			callback();
 	}
 }
 

@@ -13,6 +13,8 @@ namespace Eagle
 	{
 	public:
 		RenderDecalsTask(SceneRenderer& renderer);
+		~RenderDecalsTask();
+
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(const glm::uvec2 size) { m_Pipeline->Resize(size); }
 
@@ -41,9 +43,13 @@ namespace Eagle
 		std::unordered_map<uint32_t, uint64_t> m_TransformsMapping; // key - entity ID; value - index into m_Transforms
 		bool bUpload = true;
 		bool bUploadTransforms = true;
+		bool bUpdateMaterials = false;
 
 		Ref<PipelineGraphics> m_Pipeline;
 		std::vector<DecalData> m_Decals;
+		// Keep track of material changes if a decal needs to update aspect ratio
+		std::map<uint32_t, Ref<Material>> m_MaterialsToAdjustTo; // Key - Material index
+		GUID m_CallbackID{};
 		uint64_t m_TexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 	};
 }

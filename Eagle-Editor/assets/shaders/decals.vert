@@ -72,9 +72,9 @@ layout(location = 4) flat out uint o_EntityID;
 
 void main()
 {
-    const mat4 decalVP = inverse(g_Transforms[a_TransformIndex]);
+    const mat4 decalTr = inverse(g_Transforms[a_TransformIndex]);
 
-    const vec4 worldPos = decalVP * vec4(s_Positions[gl_VertexIndex], 1.0);
+    const vec4 worldPos = decalTr * vec4(s_Positions[gl_VertexIndex], 1.0);
     gl_Position = g_ViewProj * worldPos;
 
     o_ClipPos = gl_Position;

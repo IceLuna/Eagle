@@ -28,20 +28,29 @@ layout(push_constant) uniform PushConstants
     layout(offset = 64) mat4 g_InvVP;
 };
 
+vec2 ComputeUV(vec4 localPos)
+{
+	vec2 uv = localPos.xy * 0.5 + 0.5;
+	uv.y = 1 - uv.y;
+	return uv;
+}
+
 void main()
 {
 	vec2 uv = (i_ClipPos.xy / i_ClipPos.w) * 0.5f + 0.5f;
 	const float depth = texture(g_Depth, uv).x;
+    if (depth == EG_DEPTH_FAR)
+		discard;
+
     const vec3 worldPos = WorldPosFromDepth(g_InvVP, uv, depth);
 
-	const mat4 decalVP = g_Transforms[i_TransformIndex];
-    vec4 ndcPos = decalVP * vec4(worldPos, 1.0);
-    ndcPos.xyz /= ndcPos.w;
-	ndcPos.xy *= i_AspectRatio;
+	const mat4 decalInvTr = g_Transforms[i_TransformIndex];
+    vec4 localPos = decalInvTr * vec4(worldPos, 1.0);
+	localPos.xy *= i_AspectRatio;
 
-    if (ndcPos.x < -1.0 || ndcPos.x > 1.0 ||
-		ndcPos.y < -1.0 || ndcPos.y > 1.0 ||
-		ndcPos.z < -1.0 || ndcPos.z > 1.f)
+    if (abs(localPos.x) > 1.0 ||
+		abs(localPos.y) > 1.0 ||
+		abs(localPos.z) > 1.f)
 	{
         discard;
 	}
@@ -50,7 +59,7 @@ void main()
 	if (receivesDecal < 0.1)
 		discard;
 
-	vec2 decalUV = ndcPos.xy * 0.5f + 0.5f;
+	vec2 decalUV = ComputeUV(localPos);
 	const ShaderMaterial material = FetchMaterial(i_MaterialIndex, decalUV);
 	if (material.OpacityMask < EG_OPACITY_MASK_THRESHOLD || IS_ZERO(material.Opacity))
 		discard;

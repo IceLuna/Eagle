@@ -104,6 +104,16 @@ namespace Eagle
 		float GetTilingFactor() const { return m_TilingFactor; }
 		BlendMode GetBlendMode() const { return m_BlendMode; }
 
+		void AddOnModifiedCallback(const GUID& id, const std::function<void()>& func)
+		{
+			m_Callbacks[id] = func;
+		}
+
+		void RemoveOnModifiedCallback(const GUID& id)
+		{
+			m_Callbacks.erase(id);
+		}
+
 		static Ref<Material> Create();
 		static Ref<Material> Create(const Ref<Material>& other);
 
@@ -120,6 +130,8 @@ namespace Eagle
 		void OnMaterialChanged(bool bBlendModeChanged = false);
 
 	private:
+		std::unordered_map<GUID, std::function<void()>> m_Callbacks;
+
 		Ref<AssetTexture2D> m_AlbedoAsset;
 		Ref<AssetTexture2D> m_NormalAsset;
 		Ref<AssetTexture2D> m_MetallnessAsset;

@@ -14,29 +14,33 @@
 
 namespace Eagle
 {
-	static glm::mat4 CalculateDecalVP(const DecalComponent* decalComp)
+	static glm::mat4 CalculateDecalInvTransform(const DecalComponent* decalComp)
 	{
-		constexpr float m_projector_size = 0.5f;
-		const auto& worldTr = decalComp->GetWorldTransform();
-		const glm::vec3 normal = glm::rotate(worldTr.Rotation.GetQuat(), glm::vec3(0, 0, -1));
-		const glm::vec3 projectorPos = worldTr.Location + normal;
-		const glm::vec3 projectorDir = -normal;
+		Transform transform = decalComp->GetWorldTransform();
+		transform.Scale3D *= 0.5f;
+		return glm::inverse(Math::ToTransformMatrix(transform)); // Inversing here to avoid doing it in the fragment shader
+	}
 
-		const glm::mat4 rotate = glm::rotate(glm::mat4(1.f), 0.f, projectorDir);
-		const glm::vec3 default_up = glm::vec3(0.0f, 1.0f, 0.0f);
-		const glm::vec3 rotated_axis = rotate * glm::vec4(default_up, 0.0f);
+	static glm::vec2 GetAspectRatio(const Ref<Material>& material)
+	{
+		glm::vec2 aspectRatio = glm::vec2(1);
 
-		// Scaling along Z. (far - near) * 2 = ScaleZ; => far = ScaleZ / 2 + near
-		const float nearZ = 1.f - (worldTr.Scale3D.z * 0.5f);
-		const float farZ = worldTr.Scale3D.z * 0.5f + nearZ;
+		if (const auto& albedo = material->GetAlbedoAsset())
+		{
+			const auto& size = albedo->GetTexture()->GetSize();
+			if (size.x > size.y)
+			{
+				aspectRatio.x = 1.0f;
+				aspectRatio.y = float(size.x) / float(size.y);
+			}
+			else
+			{
+				aspectRatio.x = float(size.y) / float(size.x);
+				aspectRatio.y = 1.0f;
+			}
+		}
 
-		const glm::mat4 view = glm::lookAt(projectorPos, worldTr.Location, glm::normalize(rotated_axis));
-		glm::mat4 proj = Math::Ortho(-m_projector_size, m_projector_size, -m_projector_size, m_projector_size, nearZ, farZ);
-		proj = proj * glm::scale(glm::mat4(1.f), 1.f / glm::vec3(worldTr.Scale3D.x, worldTr.Scale3D.y, 1.f)); // Z-scaling is applied above.
-		// Flipping for Vulkan
-		proj[1][1] *= -1.f;
-
-		return proj * view;
+		return aspectRatio;
 	}
 
 	RenderDecalsTask::RenderDecalsTask(SceneRenderer& renderer)
@@ -54,6 +58,14 @@ namespace Eagle
 		m_InstanceBuffer = Buffer::Create(specs, "Decals_Instances");
 	}
 
+	RenderDecalsTask::~RenderDecalsTask()
+	{
+		for (auto& [_, material] : m_MaterialsToAdjustTo)
+		{
+			material->RemoveOnModifiedCallback(m_CallbackID);
+		}
+	}
+
 	void RenderDecalsTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
 		if (m_Decals.empty())
@@ -67,7 +79,7 @@ namespace Eagle
 
 	void RenderDecalsTask::Upload(const Ref<CommandBuffer>& cmd)
 	{
-		if (!bUpload && !bUploadTransforms)
+		if (!bUpload && !bUploadTransforms && !bUpdateMaterials)
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Decals. Upload");
@@ -84,8 +96,21 @@ namespace Eagle
 			cmd->Write(m_TransformsBuffer, m_Transforms.data(), m_Transforms.size() * sizeof(glm::mat4), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
 		}
 
-		if (bUpload)
+		if (bUpload || bUpdateMaterials)
 		{
+			if (bUpdateMaterials)
+			{
+				for (auto& decal : m_Decals)
+				{
+					auto it = m_MaterialsToAdjustTo.find(decal.MaterialIndex);
+					if (it != m_MaterialsToAdjustTo.end())
+					{
+						const auto& material = it->second;
+						decal.AspectRatio = GetAspectRatio(material);
+					}
+				}
+			}
+
 			const size_t currentInstancesSize = m_Decals.size() * sizeof(DecalData);
 			if (currentInstancesSize > m_InstanceBuffer->GetSize())
 			{
@@ -93,10 +118,23 @@ namespace Eagle
 				m_InstanceBuffer->Resize(newSize);
 			}
 			cmd->Write(m_InstanceBuffer, m_Decals.data(), m_Decals.size() * sizeof(DecalData), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+
+			if (bUpload)
+			{
+				// We do it just once
+				for (auto& [_, material] : m_MaterialsToAdjustTo)
+				{
+					material->AddOnModifiedCallback(m_CallbackID, [this]()
+					{
+						bUpdateMaterials = true;
+					});
+				}
+			}
 		}
 
 		bUpload = false;
 		bUploadTransforms = false;
+		bUpdateMaterials = false;
 	}
 
 	void RenderDecalsTask::Render(const Ref<CommandBuffer>& cmd)
@@ -149,6 +187,7 @@ namespace Eagle
 		std::unordered_map<uint32_t, uint64_t> decalsTransformsMapping; // key - entity ID; value - index into m_Transforms
 		std::vector<UpdateData> decalsData;
 		std::vector<glm::mat4> decalTransforms;
+		std::map<uint32_t, Ref<Material>> decalAdjustableMaterials; // Key - Material index
 		decalsData.reserve(decals.size());
 		decalTransforms.reserve(decals.size());
 
@@ -159,7 +198,7 @@ namespace Eagle
 				continue;
 
 			const uint32_t entityID = decalComp->Parent.GetID();
-			decalTransforms.emplace_back() = CalculateDecalVP(decalComp);
+			decalTransforms.emplace_back() = CalculateDecalInvTransform(decalComp);
 			const uint32_t transformIndex = uint32_t(decalTransforms.size() - 1);
 			decalsTransformsMapping[entityID] = transformIndex;
 
@@ -175,19 +214,10 @@ namespace Eagle
 				data.TransformIndex = transformIndex;
 				data.AspectRatio = glm::vec2(1.f);
 				data.EntityID = entityID;
-				if (decalComp->IsAdjustAspectRatioEnabled() && albedo)
+				if (decalComp->IsAdjustAspectRatioEnabled())
 				{
-					const auto& size = albedo->GetTexture()->GetSize();
-					if (size.x > size.y)
-					{
-						data.AspectRatio.x = 1.0f;
-						data.AspectRatio.y = float(size.x) / float(size.y);
-					}
-					else
-					{
-						data.AspectRatio.x = float(size.y) / float(size.x);
-						data.AspectRatio.y = 1.0f;
-					}
+					data.AspectRatio = GetAspectRatio(material);
+					decalAdjustableMaterials[data.MaterialIndex] = material;
 				}
 			}
 		}
@@ -198,7 +228,7 @@ namespace Eagle
 		});
 
 		RenderManager::Submit([task = shared_from_this(), decals = std::move(decalsData), transforms = std::move(decalTransforms),
-			transformsMapping = std::move(decalsTransformsMapping)](Ref<CommandBuffer>& cmd) mutable
+			transformsMapping = std::move(decalsTransformsMapping), adjustableMaterials = std::move(decalAdjustableMaterials)](Ref<CommandBuffer>& cmd) mutable
 		{
 			auto thisRef = Cast<RenderDecalsTask>(task);
 			thisRef->m_Decals.clear();
@@ -208,6 +238,12 @@ namespace Eagle
 			thisRef->m_TransformsMapping = std::move(transformsMapping);
 			thisRef->bUpload = true;
 			thisRef->bUploadTransforms = true;
+
+			for (auto& [_, material] : thisRef->m_MaterialsToAdjustTo)
+			{
+				material->RemoveOnModifiedCallback(thisRef->m_CallbackID);
+			}
+			thisRef->m_MaterialsToAdjustTo = std::move(adjustableMaterials);
 		});
 	}
 
@@ -226,7 +262,7 @@ namespace Eagle
 		updateData.reserve(decals.size());
 
 		for (auto& decal : decals)
-			updateData.push_back({ CalculateDecalVP(decal), decal->Parent.GetID() });
+			updateData.push_back({ CalculateDecalInvTransform(decal), decal->Parent.GetID() });
 
 		RenderManager::Submit([task = shared_from_this(), data = std::move(updateData)](Ref<CommandBuffer>&)
 		{
