@@ -104,7 +104,25 @@ namespace Eagle
 		if (!asset)
 			return nullptr;
 
-		auto it = s_ThumbnailCache.find(asset);
-		return it != s_ThumbnailCache.end() ? it->second : nullptr;
+		if (!ThumbnailCache::IsRenderableAssetType(asset->GetAssetType()))
+			return nullptr;
+
+		// Check if it's ready
+		{
+			auto it = s_ThumbnailCache.find(asset);
+			if (it != s_ThumbnailCache.end())
+				return it->second;
+		}
+
+		// Check if it's pending
+		{
+			auto it = s_PendingThumbnails.find(asset);
+			if (it != s_PendingThumbnails.end())
+				return nullptr; // It's pending, temporarily return invalid one
+		}
+
+		// Try to render it and return null since it's an async request
+		Render(asset);
+		return nullptr;
 	}
 }

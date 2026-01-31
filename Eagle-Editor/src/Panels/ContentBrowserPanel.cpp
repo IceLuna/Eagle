@@ -734,13 +734,6 @@ namespace Eagle
 			else if (ThumbnailCache::IsRenderableAssetType(assetType))
 			{
 				image = ThumbnailCache::Get(asset);
-				if (!image)
-				{
-					if (ThumbnailCache::Render(asset))
-					{
-						image = ThumbnailCache::Get(asset);
-					}
-				}
 			}
 
 			if (!image)

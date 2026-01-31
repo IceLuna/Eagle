@@ -272,16 +272,6 @@ namespace Eagle::UI
 					{
 						ImGui::SameLine();
 						Ref<Eagle::Image> preview = ThumbnailCache::Get(asset);
-						if (!preview)
-						{
-							if (ThumbnailCache::IsRenderableAssetType(asset->GetAssetType()))
-							{
-								if (ThumbnailCache::Render(asset))
-								{
-									preview = ThumbnailCache::Get(asset);
-								}
-							}
-						}
 						UI::Image(preview ? preview : Texture2D::NoneIconTexture->GetImage(), previewSize);
 						bHasPreview = true;
 					}
@@ -305,16 +295,6 @@ namespace Eagle::UI
 				{
 					ImGui::SameLine();
 					Ref<Eagle::Image> preview = ThumbnailCache::Get(asset);
-					if (!preview)
-					{
-						if (ThumbnailCache::IsRenderableAssetType(asset->GetAssetType()))
-						{
-							if (ThumbnailCache::Render(asset))
-							{
-								preview = ThumbnailCache::Get(asset);
-							}
-						}
-					}
 					UI::Image(preview ? preview : Texture2D::NoneIconTexture->GetImage(), previewSize);
 					bHasPreview = true;
 				}

@@ -301,20 +301,7 @@ namespace Eagle::UI
 		if (!asset)
 			return Texture2D::NoneIconTexture->GetImage();
 
-		Ref<Eagle::Image> preview;
-		if (ThumbnailCache::IsRenderableAssetType(asset->GetAssetType()))
-		{
-			preview = ThumbnailCache::Get(asset);
-			if (!preview)
-			{
-				if (ThumbnailCache::Render(asset))
-				{
-					preview = ThumbnailCache::Get(asset);
-				}
-			}
-		}
-
-		return preview;
+		return ThumbnailCache::Get(asset);
 	}
 
 	bool DrawVec3Control(const std::string_view label, glm::vec3& values, const glm::vec3& resetValues /* = glm::vec3{ 0.f }*/, float columnWidth /*= 100.f*/, bool bReturnOnEnter /* = false */)
