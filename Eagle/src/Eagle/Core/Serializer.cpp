@@ -511,17 +511,30 @@ namespace Eagle
 		}
 	}
 
-	ScopedDataBuffer Serializer::SerializeAssetTexture2DFromData(const DataBuffer& textureData, const DataBuffer& ktxData, const GUID& guid, const Path& pathToRaw,
-		FilterMode filterMode, AddressMode addressMode, float anisotropy, uint32_t mipsCount, uint32_t width, uint32_t height,
-		AssetTexture2DFormat format, bool bCompressed, bool bNormalMap, bool bNeedsAlpha)
+	ScopedDataBuffer Serializer::SerializeAssetTexture2DFromData(const DataBuffer& textureData, const std::vector<ScopedDataBuffer>& compressedDataPerMip, ImageFormat compressedFormat,
+		const GUID& guid, const Path& pathToRaw, FilterMode filterMode, AddressMode addressMode, float anisotropy, uint32_t mipsCount, uint32_t width, uint32_t height,
+		AssetTexture2DFormat format, bool bCompressed, bool bNormalMap)
 	{
+		struct CompressedTextureDataInfo
+		{
+			size_t Size = 0;
+			size_t Offset = 0;
+		};
+
 		size_t totalSize = sizeof(AssetHeader);
 
 		const size_t origDataSize = textureData.Size; // Required for decompression
 		ScopedDataBuffer compressed(Compressor::Compress(textureData));
 
+		std::vector<CompressedTextureDataInfo> compressedInfo;
+		compressedInfo.reserve(compressedDataPerMip.size());
 		const size_t textureDataOffset = Utils::AddSize(compressed, &totalSize);
-		const size_t ktxTextureDataOffset = Utils::AddSize(ktxData, &totalSize);
+		for (const auto& data : compressedDataPerMip)
+		{
+			auto& info = compressedInfo.emplace_back();
+			info.Size = data.Size();
+			info.Offset = Utils::AddSize(data, &totalSize);
+		}
 
 		YAML::Emitter out;
 		out << YAML::BeginMap;
@@ -538,7 +551,6 @@ namespace Eagle
 		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(format);
 		out << YAML::Key << "IsCompressed" << YAML::Value << bCompressed;
 		out << YAML::Key << "IsNormalMap" << YAML::Value << bNormalMap;
-		out << YAML::Key << "NeedAlpha" << YAML::Value << bNeedsAlpha;
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
 		out << YAML::Key << "OrigSize" << YAML::Value << origDataSize;
@@ -546,8 +558,16 @@ namespace Eagle
 		out << YAML::Key << "Offset" << YAML::Value << textureDataOffset;
 		if (bCompressed)
 		{
-			out << YAML::Key << "KTXSize" << YAML::Value << ktxData.Size;
-			out << YAML::Key << "KTXOffset" << YAML::Value << ktxTextureDataOffset;
+			out << YAML::Key << "CompressedFormat" << YAML::Value << Utils::GetEnumName(compressedFormat);
+			out << YAML::Key << "Compressed" << YAML::Value << YAML::BeginSeq;
+			for (const auto& info : compressedInfo)
+			{
+				out << YAML::BeginMap;
+				out << YAML::Key << "Size" << YAML::Value << info.Size;
+				out << YAML::Key << "Offset" << YAML::Value << info.Offset;
+				out << YAML::EndMap;
+			}
+			out << YAML::EndSeq;
 		}
 		out << YAML::EndMap;
 
@@ -559,7 +579,10 @@ namespace Eagle
 		size_t offset = 0;
 		Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
 		Utils::WriteToBuffer(buffer, compressed, &offset);
-		Utils::WriteToBuffer(buffer, ktxData, &offset);
+		for (const auto& data : compressedDataPerMip)
+		{
+			Utils::WriteToBuffer(buffer, data, &offset);
+		}
 		Utils::WriteYaml(buffer, out, &offset);
 
 		return buffer;
@@ -569,9 +592,9 @@ namespace Eagle
 	{
 		const auto& texture = asset->GetTexture();
 
-		return SerializeAssetTexture2DFromData(asset->GetRawData().GetDataBuffer(), asset->GetKTXData().GetDataBuffer(), asset->GetGUID(), asset->GetPathToRaw(),
+		return SerializeAssetTexture2DFromData(asset->GetRawData().GetDataBuffer(), asset->GetCompressedDataPerMip(), texture->GetFormat(), asset->GetGUID(), asset->GetPathToRaw(),
 			texture->GetFilterMode(), texture->GetAddressMode(), texture->GetAnisotropy(), texture->GetMipsCount(), texture->GetWidth(), texture->GetHeight(),
-			asset->GetFormat(), asset->IsCompressed(), asset->IsNormalMap(), asset->DoesNeedAlpha());
+			asset->GetFormat(), asset->IsCompressed(), asset->IsNormalMap());
 	}
 
 	ScopedDataBuffer Serializer::SerializeAssetTextureCubeFromData(const DataBuffer& textureData, const GUID& guid, const Path& pathToRaw, AssetTextureCubeFormat format, uint32_t layerSize, uint32_t prefilterSize)
@@ -3281,12 +3304,11 @@ namespace Eagle
 		AssetTexture2DFormat assetFormat = Utils::GetEnumFromName<AssetTexture2DFormat>(baseNode["Format"].as<std::string>());
 
 		const bool bNormalMap = baseNode["IsNormalMap"].as<bool>();
-		const bool bNeedAlpha = baseNode["NeedAlpha"].as<bool>();
-		const bool bCompressedTexture = baseNode["IsCompressed"].as<bool>();
+		bool bCompressedTexture = baseNode["IsCompressed"].as<bool>();
 
 		ScopedDataBuffer binary;
-		ScopedDataBuffer ktxBinary;
-		DataBuffer ktxData;
+		ImageFormat compressedFormat = ImageFormat::Unknown;
+		std::vector<ScopedDataBuffer> compressedTextures;
 
 		// Reload the data from disk
 		// Or get the data from the asset file.
@@ -3295,6 +3317,11 @@ namespace Eagle
 		if (bReloadRaw)
 		{
 			binary = FileSystem::Read(pathToRaw);
+			if (!binary)
+			{
+				EG_CORE_ERROR("Failed to reload from raw texture 2D: {}", pathToAsset.u8string());
+				return {};
+			}
 		}
 		else if (auto baseDataNode = baseNode["Data"])
 		{
@@ -3304,11 +3331,20 @@ namespace Eagle
 
 			Utils::ReadCompressedBinary(data, dataSize, dataOffset, origSize, &binary);
 
-			if (auto ktxSizeNode = baseDataNode["KTXSize"])
+			if (auto node = baseDataNode["CompressedFormat"])
 			{
-				const size_t ktxDataSize = ktxSizeNode.as<size_t>();
-				const size_t ktxDataOffset = baseDataNode["KTXOffset"].as<size_t>();
-				Utils::ReadBinary(data, ktxDataSize, ktxDataOffset, &ktxBinary);
+				compressedFormat = Utils::GetEnumFromName<ImageFormat>(node.as<std::string>());
+			}
+			if (auto compressedNode = baseDataNode["Compressed"])
+			{
+				for (auto compressed : compressedNode)
+				{
+					const size_t size = compressed["Size"].as<size_t>();
+					const size_t offset = compressed["Offset"].as<size_t>();
+
+					auto& buffer = compressedTextures.emplace_back();
+					Utils::ReadBinary(data, size, offset, &buffer);
+				}
 			}
 		}
 		else
@@ -3316,87 +3352,57 @@ namespace Eagle
 			EG_CORE_ERROR("Failed to deserialize texture 2D: {}", pathToAsset.u8string());
 			return {};
 		}
-		
-		void* stbiImageData = nullptr;
-		void* compressedTextureHandle = nullptr;
-		bool bCompressionFailed = false;
 
+		TextureCompressor::Result compressedData{};
 		Ref<Texture2D> texture;
 		if (bCompressedTexture)
 		{
-			// If reload is requested, we load the image data and then compress it.
-			// Otherwise, we have a compressed data, so just load it.
-			if (bReloadRaw)
+			if (!compressedTextures.empty() && compressedFormat != ImageFormat::Unknown && TextureCompressor::IsCompressionFormatSupported(compressedFormat))
 			{
-				const int desiredChannels = 4;
-				stbiImageData = stbi_load_from_memory((uint8_t*)binary.Data(), (int)binary.Size(), &width, &height, &channels, desiredChannels);
-
-				const size_t textureMemSize = desiredChannels * width * height;
-				compressedTextureHandle = TextureCompressor::Compress(DataBuffer(stbiImageData, textureMemSize), glm::uvec2(width, height),
-					specs.MipsCount, bNormalMap, bNeedAlpha);
-			}
-			else if (ktxBinary)
-			{
-				compressedTextureHandle = TextureCompressor::CreateFromCompressed(ktxBinary.GetDataBuffer(), bNeedAlpha);
-			}
-
-			// Required to update it in case of `bReloadRaw` was true
-			if (compressedTextureHandle)
-				ktxData = TextureCompressor::GetKTX2Data(compressedTextureHandle);
-
-			if (compressedTextureHandle && TextureCompressor::IsCompressedSuccessfully(compressedTextureHandle))
-			{
-				const DataBuffer compressedImageData = TextureCompressor::GetImageData(compressedTextureHandle);
-				const ImageFormat imageFormat = TextureCompressor::GetFormat(compressedTextureHandle);
-
-				const uint32_t mipsCount = TextureCompressor::GetMipsCount(compressedTextureHandle);
-				std::vector<DataBuffer> dataPerMip(mipsCount);
-				for (uint32_t i = 0; i < mipsCount; ++i)
-					dataPerMip[i] = TextureCompressor::GetMipData(compressedTextureHandle, i);
-
-				texture = Texture2D::Create(pathToAsset.stem().u8string(), imageFormat, glm::uvec2(width, height), dataPerMip, specs);
+				texture = Texture2D::Create(pathToAsset.stem().u8string(), compressedFormat, glm::uvec2(width, height), compressedTextures, specs);
 			}
 			else
 			{
-				EG_CORE_ERROR("Failed to load the compressed texture. Falling back to loading raw data: {}", pathToAsset.u8string());
-				if (stbiImageData)
+				// Try to compress it on the current system
+				const uint32_t targetNumChannels = AssetTextureFormatToChannels(assetFormat, bCompressedTexture);
+				compressedData = TextureCompressor::Compress(binary.GetDataBuffer(), targetNumChannels, specs.MipsCount, bNormalMap);
+				if (compressedData)
 				{
-					stbi_image_free(stbiImageData);
-					stbiImageData = nullptr;
+					texture = Texture2D::Create(pathToAsset.stem().u8string(), compressedData.Format, glm::uvec2(width, height), compressedData.DataPerMip, specs);
 				}
-				bCompressionFailed = true; // fall back to loading raw data
+				else
+				{
+					EG_CORE_ERROR("Failed to load the compressed texture. Falling back to loading raw data: {}", pathToAsset.u8string());
+					bCompressedTexture = false;
+				}
 			}
 		}
 
-		// If non-compressed requested, or compression failed
-		if (!bCompressedTexture || bCompressionFailed)
+		// If non-compressed requested or compression failed, simply upload the raw data
+		if (!bCompressedTexture)
 		{
-			const int desiredChannels = AssetTextureFormatToChannels(assetFormat);
-			stbiImageData = stbi_load_from_memory((uint8_t*)binary.Data(), (int)binary.Size(), &width, &height, &channels, desiredChannels);
-			if (!stbiImageData)
+			const int desiredChannels = AssetTextureFormatToChannels(assetFormat, bCompressedTexture);
+			ScopedDataBuffer imageData = Utils::LoadTextureFromMemory(binary, &width, &height, &channels, desiredChannels);
+			if (!imageData)
 			{
-				EG_CORE_ERROR("Deserialization failed. stbi_load_from_memory failed: {}", pathToAsset.u8string());
+				EG_CORE_ERROR("Deserialization failed. `LoadTextureFromMemory` failed: {}", pathToAsset.u8string());
 				return {};
 			}
+
 			const ImageFormat imageFormat = AssetTextureFormatToImageFormat(assetFormat);
-			texture = Texture2D::Create(pathToAsset.stem().u8string(), imageFormat, glm::uvec2(width, height), stbiImageData, specs);
+			texture = Texture2D::Create(pathToAsset.stem().u8string(), imageFormat, glm::uvec2(width, height), imageData.Data(), specs);
 		}
 
 		class LocalAssetTexture2D : public AssetTexture2D
 		{
 		public:
-			LocalAssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const DataBuffer& ktxData, const Ref<Texture2D>& texture,
-				AssetTexture2DFormat format, bool bCompressed, bool bNormalMap, bool bNeedAlpha)
-				: AssetTexture2D(path, pathToRaw, guid, rawData, ktxData, texture, format, bCompressed, bNormalMap, bNeedAlpha) {}
+			LocalAssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, std::vector<ScopedDataBuffer>&& compressedDataPerMip,
+				const Ref<Texture2D>& texture, AssetTexture2DFormat format, bool bCompressed, bool bNormalMap)
+				: AssetTexture2D(path, pathToRaw, guid, rawData, std::move(compressedDataPerMip), texture, format, bCompressed, bNormalMap) {}
 		};
 
 		Ref<AssetTexture2D> asset = MakeRef<LocalAssetTexture2D>(pathToAsset, pathToRaw, guid,
-			binary.GetDataBuffer(), ktxData, texture, assetFormat, bCompressedTexture, bNormalMap, bNeedAlpha);
-
-		if (stbiImageData)
-			stbi_image_free(stbiImageData);
-		if (compressedTextureHandle)
-			TextureCompressor::Destroy(compressedTextureHandle);
+			binary.GetDataBuffer(), std::move(compressedData.DataPerMip), texture, assetFormat, bCompressedTexture, bNormalMap);
 
 		return asset;
 	}
@@ -3442,38 +3448,12 @@ namespace Eagle
 		}
 
 		int width, height, channels;
-		const int desiredChannels = AssetTextureFormatToChannels(assetFormat);
-		void* stbiImageData = stbi_loadf_from_memory((uint8_t*)binary.Data(), (int)binary.Size(), &width, &height, &channels, desiredChannels);
-
-		if (!stbiImageData)
+		const ImageFormat desiredFormat = AssetTextureFormatToImageFormat(assetFormat);
+		ScopedDataBuffer imageData = Utils::LoadHDRTextureFromMemory(binary, &width, &height, &channels, desiredFormat);
+		if (!imageData)
 		{
-			EG_CORE_ERROR("Import failed. stbi_loadf_from_memory failed: {} - {}", pathToAsset.u8string(), Utils::GetEnumName(assetFormat));
+			EG_CORE_ERROR("Import failed. LoadHDRTextureFromMemory failed: {} - {}", pathToAsset.u8string(), Utils::GetEnumName(assetFormat));
 			return {};
-		}
-		const ImageFormat imageFormat = AssetTextureFormatToImageFormat(assetFormat);
-		const bool bFloat16 = IsFloat16Format(assetFormat);
-		void* imageData = stbiImageData;
-		if (bFloat16)
-		{
-			const size_t pixels = size_t(width) * height * desiredChannels;
-			imageData = malloc(pixels * sizeof(uint16_t));
-			uint16_t* imageData16 = (uint16_t*)imageData;
-			float* stbiImageData32 = (float*)stbiImageData;
-
-			for (size_t i = 0; i < pixels; ++i)
-				imageData16[i] = Utils::ToFloat16(stbiImageData32[i]);
-		}
-		else if (assetFormat == AssetTextureCubeFormat::R11G11B10)
-		{
-			const size_t pixels = size_t(width) * height;
-			imageData = malloc(pixels * sizeof(uint32_t));
-			uint32_t* imageData32 = (uint32_t*)imageData;
-			float* stbiImageData32 = (float*)stbiImageData;
-			for (size_t i = 0; i < pixels; ++i)
-			{
-				glm::vec3 rgb = glm::vec3(stbiImageData32[i * 3], stbiImageData32[i * 3 + 1], stbiImageData32[i * 3 + 2]);
-				imageData32[i] = Utils::ToR11G11B10(rgb);
-			}
 		}
 
 		class LocalAssetTextureCube : public AssetTextureCube
@@ -3484,11 +3464,7 @@ namespace Eagle
 		};
 
 		Ref<AssetTextureCube> asset = MakeRef<LocalAssetTextureCube>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(),
-			TextureCube::Create(pathToAsset.stem().u8string(), imageFormat, imageData, glm::uvec2(width, height), layerSize, prefilterSize), assetFormat);
-
-		if (stbiImageData != imageData)
-			free(imageData);
-		stbi_image_free(stbiImageData);
+			TextureCube::Create(pathToAsset.stem().u8string(), desiredFormat, imageData.Data(), glm::uvec2(width, height), layerSize, prefilterSize), assetFormat);
 
 		return asset;
 	}

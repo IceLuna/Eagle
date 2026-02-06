@@ -8273,25 +8273,6 @@ namespace Eagle
 		textureAsset->SetIsNormalMap(value);
 	}
 
-	void Script::Eagle_AssetTexture2D_SetNeedsAlpha(GUID id, bool value)
-	{
-		Ref<Asset> asset;
-		if (!AssetManager::Get(id, &asset))
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetNeedsAlpha` for AssetTexture2D. Couldn't find an asset");
-			return;
-		}
-
-		Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
-		if (!textureAsset)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetNeedsAlpha` for AssetTexture2D. It's not a texture 2D asset");
-			return;
-		}
-
-		textureAsset->SetNeedsAlpha(value);
-	}
-
 	void Script::Eagle_AssetTexture2D_SetIsCompressed(GUID id, bool value)
 	{
 		Ref<Asset> asset;
@@ -8347,25 +8328,6 @@ namespace Eagle
 		}
 
 		return textureAsset->IsNormalMap();
-	}
-
-	bool Script::Eagle_AssetTexture2D_DoesNeedAlpha(GUID id)
-	{
-		Ref<Asset> asset;
-		if (!AssetManager::Get(id, &asset))
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `DoesNeedAlpha` of AssetTexture2D. Couldn't find an asset");
-			return false;
-		}
-
-		Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
-		if (!textureAsset)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `DoesNeedAlpha` of AssetTexture2D. It's not a texture 2D asset");
-			return false;
-		}
-
-		return textureAsset->DoesNeedAlpha();
 	}
 
 	bool Script::Eagle_AssetTexture2D_IsCompressed(GUID id)

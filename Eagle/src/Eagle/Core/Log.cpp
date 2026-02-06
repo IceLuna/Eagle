@@ -8,16 +8,42 @@
 
 namespace Eagle
 {
+	class my_callback_sink_mt : public spdlog::sinks::base_sink<std::mutex>
+	{
+	public:
+		using CallbackFunc = std::function<void(std::string&&, spdlog::level::level_enum)>;
+
+		explicit my_callback_sink_mt(CallbackFunc cb)
+			: m_Callback(std::move(cb)) {
+		}
+
+	protected:
+		void sink_it_(const spdlog::details::log_msg& msg) override
+		{
+			if (m_Callback)
+			{
+				spdlog::memory_buf_t formatted;
+				this->formatter_->format(msg, formatted);
+				m_Callback(std::string(formatted.data(), formatted.size()), msg.level);
+			}
+		}
+
+		void flush_() override {}
+
+	private:
+		CallbackFunc m_Callback;
+	};
+
 	std::shared_ptr<spdlog::logger> Log::s_CoreLogger;
 	std::shared_ptr<spdlog::logger> Log::s_ClientLogger;
 	std::mutex s_LogHistoryMutex;
 
 	static std::vector<Log::LogMessage> s_LogHistory;
 
-	void LoggerCallback(const spdlog::details::log_msg& msg)
+	static void LoggerCallback(std::string&& msg, spdlog::level::level_enum level)
 	{
 		std::scoped_lock lock(s_LogHistoryMutex);
-		s_LogHistory.push_back({ std::string(msg.payload.begin(), msg.payload.end()), msg.level });
+		s_LogHistory.emplace_back(std::move(msg), level);
 	}
 
 	static auto CreateConsoleLogger()
@@ -36,7 +62,7 @@ namespace Eagle
 
 	static auto CreateCallbackLogger()
 	{
-		auto sink = MakeRef<spdlog::sinks::callback_sink_mt>(LoggerCallback);
+		auto sink = MakeRef<my_callback_sink_mt>(LoggerCallback);
 		sink->set_pattern("[%T.%e] %n: %v");
 		return sink;
 	}

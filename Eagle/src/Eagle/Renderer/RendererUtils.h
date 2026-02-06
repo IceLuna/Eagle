@@ -106,7 +106,9 @@ namespace Eagle
         BC6H_UFloat16,
         BC6H_SFloat16,
         BC7_UNorm,
-        BC7_UNorm_SRGB
+        BC7_UNorm_SRGB,
+        ETC2_RGB_UNorm,
+        ETC2_RGBA_UNorm,
     };
 
     inline constexpr bool IsSRGBFormat(ImageFormat format)
@@ -1059,6 +1061,8 @@ namespace Eagle
             case ImageFormat::BC6H_SFloat16 :           return 8;
             case ImageFormat::BC7_UNorm :               return 8;
             case ImageFormat::BC7_UNorm_SRGB:           return 8;
+            case ImageFormat::ETC2_RGB_UNorm:           return 4;
+            case ImageFormat::ETC2_RGBA_UNorm:          return 8;
 	    }
         assert(!"Unknown format");
 	    return 0;
@@ -1082,7 +1086,10 @@ namespace Eagle
             case ImageFormat::BC6H_UFloat16 : 
             case ImageFormat::BC6H_SFloat16 : 
             case ImageFormat::BC7_UNorm :     
-            case ImageFormat::BC7_UNorm_SRGB: return true;
+            case ImageFormat::BC7_UNorm_SRGB:
+            case ImageFormat::ETC2_RGB_UNorm:
+            case ImageFormat::ETC2_RGBA_UNorm:
+                return true;
 	    }
 	    return false;
     }
@@ -1204,6 +1211,8 @@ namespace Eagle
         case ImageFormat::BC6H_SFloat16:           return 1;
         case ImageFormat::BC7_UNorm:               return 1;
         case ImageFormat::BC7_UNorm_SRGB:          return 1;
+        case ImageFormat::ETC2_RGB_UNorm:          return 1;
+        case ImageFormat::ETC2_RGBA_UNorm:         return 1;
         }
         assert(!"Unknown format");
         return 0;

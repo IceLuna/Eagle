@@ -17,10 +17,35 @@
 #include "Eagle/Core/Project.h"
 
 #include <stb_image.h>
-#include <stb_image_write.h>
 
 namespace Eagle
 {
+	// Returns an eagle asset file data
+	static ScopedDataBuffer CreateTexture2DAssetFromMemory(DataBuffer buffer, const Path& outputFilename, const AssetImportTexture2DSettings& settings)
+	{
+		TextureCompressor::Result compressedData{};
+		bool bCompressTexture = settings.bCompress;
+
+		if (bCompressTexture)
+		{
+			const uint32_t targetNumChannels = AssetTextureFormatToChannels(settings.ImportFormat, bCompressTexture);
+			compressedData = TextureCompressor::Compress(buffer, targetNumChannels, settings.MipsCount, settings.bNormalMap);
+			if (!compressedData)
+				bCompressTexture = false; // Failed to compress
+		}
+
+		int width, height, channels;
+		stbi_info_from_memory((uint8_t*)buffer.Data, (int)buffer.Size, &width, &height, &channels);
+
+		const Path pathToRaw = {}; // Empty since it doesn't come from a file
+		auto data = Serializer::SerializeAssetTexture2DFromData(buffer, compressedData.DataPerMip, compressedData.Format, GUID{}, pathToRaw,
+			settings.FilterMode, settings.AddressMode, settings.Anisotropy, settings.MipsCount,
+			width, height, settings.ImportFormat, bCompressTexture, settings.bNormalMap);
+		FileSystem::Write(outputFilename, data);
+
+		return data;
+	}
+
 	bool AssetImporter::Import(const Path& pathToRaw, const Path& saveTo, AssetType type, const AssetImportSettings& settings)
 	{
 		if (!std::filesystem::exists(pathToRaw) || std::filesystem::is_directory(pathToRaw))
@@ -111,26 +136,13 @@ namespace Eagle
 		EG_CORE_INFO("Done");
 	}
 
-	bool AssetImporter::CreateFromTexture2D(const Ref<Texture2D>& texture, const Path& outputFilename)
+	Ref<AssetTexture2D> AssetImporter::ImportTexture2DFromMemory(DataBuffer buffer, const Path& saveTo, const std::string& filename, const AssetImportTexture2DSettings& settings)
 	{
-		if (std::filesystem::exists(outputFilename))
-		{
-			EG_CORE_ERROR("Import failed. Asset already exists: {}", outputFilename.u8string());
-			return false;
-		}
-
-		// TODO: Test
-		const auto& data = texture->GetData();
-		const int width = (int)texture->GetWidth();
-		const int height = (int)texture->GetHeight();
-		const int comp = GetImageFormatChannels(texture->GetFormat());
-
-		const std::string& name = texture->GetImage()->GetDebugName();
-		const Path cache = Project::GetCachePath() / name;
-		const bool bSuccess = stbi_write_png(cache.string().c_str(), width, height, comp, data.Data(), width * comp);
-		if (bSuccess)
-			return AssetImporter::ImportTexture2D(cache, outputFilename, {});
-		return false;
+		const Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, filename);
+		ScopedDataBuffer assetData = CreateTexture2DAssetFromMemory(buffer, outputFilename, settings);
+		Ref<Asset> asset = Asset::Create(assetData, outputFilename);
+		AssetManager::Register(asset);
+		return Cast<AssetTexture2D>(asset);
 	}
 
 	Path AssetImporter::CreateMaterial(const Path& saveTo, const std::string& filename)
@@ -266,50 +278,8 @@ namespace Eagle
 	
 	bool AssetImporter::ImportTexture2D(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings)
 	{
-		const auto& textureSettings = settings.Texture2DSettings;
 		ScopedDataBuffer buffer(FileSystem::Read(pathToRaw));
-		const size_t origDataSize = buffer.Size(); // Required for decompression
-
-		const void* compressedTextureHandle = nullptr;
-		bool bCompressTexture = textureSettings.bCompress;
-
-		DataBuffer ktxData;
-
-		if (bCompressTexture)
-		{
-			constexpr int desiredChannels = 4;
-			int width, height, channels;
-
-			void* stbiImageData = stbi_load_from_memory((uint8_t*)buffer.Data(), (int)buffer.Size(), &width, &height, &channels, desiredChannels);
-			if (!stbiImageData)
-			{
-				EG_CORE_ERROR("Import failed. stbi_load_from_memory failed: {}", pathToRaw.u8string());
-				return false;
-			}
-
-			const size_t textureMemSize = desiredChannels * width * height;
-			compressedTextureHandle = TextureCompressor::Compress(DataBuffer(stbiImageData, textureMemSize), glm::uvec2(width, height),
-				textureSettings.MipsCount, textureSettings.bNormalMap, textureSettings.bNeedAlpha);
-
-			if (compressedTextureHandle)
-				ktxData = TextureCompressor::GetKTX2Data(compressedTextureHandle);
-			else
-				bCompressTexture = false; // Failed to compress
-
-			stbi_image_free(stbiImageData);
-		}
-
-		int width, height, channels;
-		stbi_info_from_memory((uint8_t*)buffer.Data(), (int)buffer.Size(), &width, &height, &channels);
-
-		auto data = Serializer::SerializeAssetTexture2DFromData(buffer.GetDataBuffer(), ktxData, GUID{}, pathToRaw,
-				textureSettings.FilterMode, textureSettings.AddressMode, textureSettings.Anisotropy, textureSettings.MipsCount,
-				width, height, textureSettings.ImportFormat, bCompressTexture, textureSettings.bNormalMap, textureSettings.bNeedAlpha);
-		FileSystem::Write(outputFilename, data);
-
-		if (compressedTextureHandle)
-			TextureCompressor::Destroy(compressedTextureHandle);
-
+		CreateTexture2DAssetFromMemory(buffer.GetDataBuffer(), outputFilename, settings.Texture2DSettings);
 		return true;
 	}
 	

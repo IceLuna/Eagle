@@ -72,7 +72,7 @@ namespace Eagle
 		GenerateIBL();
 	}
 
-	void VulkanTextureCube::SetData(const void* data, ImageFormat format)
+	void VulkanTextureCube::SetData(DataBuffer data, ImageFormat format)
 	{
 		m_Format = format;
 		m_Texture2D->SetData(data, format);

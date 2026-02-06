@@ -52,7 +52,7 @@ namespace Eagle
 
 		ImGui::Separator();
 
-		bChanged|= UI::Property("In Place", animation->bInPlace);
+		bChanged |= UI::Property("In Place", animation->bInPlace);
 
 		RootMotionMode rootMotionMode = animation->RootMotionType;
 		if (UI::ComboEnum("Root Motion Mode", rootMotionMode))

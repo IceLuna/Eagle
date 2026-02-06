@@ -19,8 +19,6 @@
 #include "Eagle/Utils/SerializerUtils.h"
 #include "Eagle/Components/Components.h"
 
-#include <stb_image.h>
-
 namespace Eagle
 {
 	namespace Utils
@@ -50,17 +48,15 @@ namespace Eagle
 		}
 	}
 
-	AssetTexture2D::AssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const DataBuffer& ktxData,
-		const Ref<Texture2D>& texture, AssetTexture2DFormat format, bool bCompressed, bool bNormalMap, bool bNeedAlpha)
-	: Asset(path, pathToRaw, AssetType::Texture2D, guid, rawData), m_Texture(texture),
-		m_Format(format), bCompressed(bCompressed), bNormalMap(bNormalMap), bNeedAlpha(bNeedAlpha)
-	{
-		if (ktxData.Size)
-		{
-			m_KtxData.Allocate(ktxData.Size);
-			m_KtxData.Write(ktxData.Data, ktxData.Size);
-		}
-	}
+	AssetTexture2D::AssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, std::vector<ScopedDataBuffer>&& compressedDataPerMip,
+		const Ref<Texture2D>& texture, AssetTexture2DFormat format, bool bCompressed, bool bNormalMap)
+	: Asset(path, pathToRaw, AssetType::Texture2D, guid, rawData)
+		, m_CompressedDataPerMip(std::move(compressedDataPerMip))
+		, m_Texture(texture)
+		, m_Format(format)
+		, bCompressed(bCompressed)
+		, bNormalMap(bNormalMap)
+	{}
 
 	void AssetAnimationGraph::Compile()
 	{
@@ -72,12 +68,18 @@ namespace Eagle
 	{
 		EG_CORE_ASSERT(m_Texture);
 
-		if (bCompressed == this->bCompressed && m_Texture->GetMipsCount() == mipsCount)
-			return;
-
-		// DONT update bCompressed state here: // this->bCompressed = bCompressed;
-		// It's done in `UpdateTextureData_Internal`
-		UpdateTextureData_Internal(bCompressed, mipsCount);
+		// If compression state didn't change and it's not compressed,
+		// we can just generate mips. Otherwise, we need to upload the new data
+		if (this->bCompressed == bCompressed && !bCompressed)
+		{
+			if (m_Texture->GetMipsCount() != mipsCount)
+				m_Texture->GenerateMips(mipsCount);
+		}
+		else
+		{
+			this->bCompressed = bCompressed;
+			UpdateTextureData_Internal(mipsCount);
+		}
 	}
 
 	void AssetTexture2D::SetIsNormalMap(bool bNormalMap)
@@ -89,125 +91,59 @@ namespace Eagle
 
 		this->bNormalMap = bNormalMap;
 		if (bCompressed) // Only affects compressed textures
-			UpdateTextureData_Internal(bCompressed, m_Texture->GetMipsCount());
-	}
-
-	void AssetTexture2D::SetNeedsAlpha(bool bNeedAlpha)
-	{
-		EG_CORE_ASSERT(m_Texture);
-
-		if (bNeedAlpha == this->bNeedAlpha)
-			return;
-
-		this->bNeedAlpha = bNeedAlpha;
-		if (bCompressed) // Only affects compressed textures
-			UpdateTextureData_Internal(bCompressed, m_Texture->GetMipsCount());
+			UpdateTextureData_Internal(m_Texture->GetMipsCount());
 	}
 
 	void AssetTexture2D::SetFormat(AssetTexture2DFormat format)
 	{
-		if (bCompressed || m_Format == format)
+		EG_CORE_ASSERT(m_Texture);
+
+		if (m_Format == format)
 			return;
 
 		m_Format = format;
-
-		const int desiredChannels = AssetTextureFormatToChannels(m_Format);
-		int width = 0, height = 0, channels = 0;
-
-		void* stbiImageData = stbi_load_from_memory((uint8_t*)m_RawData.Data(), (int)m_RawData.Size(), &width, &height, &channels, desiredChannels);
-		if (stbiImageData)
-		{
-			const ImageFormat imageFormat = AssetTextureFormatToImageFormat(m_Format);
-			m_Texture->SetData(stbiImageData, imageFormat);
-
-			stbi_image_free(stbiImageData);
-		}
-		else
-			EG_CORE_ERROR("Failed to change the format of Texture 2D: {}", GetPath().u8string());
+		UpdateTextureData_Internal(m_Texture->GetMipsCount());
 	}
 
-	void AssetTexture2D::UpdateTextureData_Internal(bool bCompressed, uint32_t mipsCount)
+	void AssetTexture2D::UpdateTextureData_Internal(uint32_t mipsCount)
 	{
-		// If it's a compressed format, try to load the image data, compress it, upload to the GPU and generate mips.
-		// If the generation of compressed data has failed because the hardware doesn't support it:
-		//	1) Save new KTX data that contains new mips, so that the asset stores that info for users that support it;
-		//	2) And fallback to automatic mips generation
+		// If it's a compressed format, load the image data, compress it, upload to the GPU and generate mips.
+		// If the generation of compressed data has failed because the hardware doesn't support it, fallback to regular format
 
-		const bool bCompressionChanged = this->bCompressed != bCompressed;
-		this->bCompressed = bCompressed;
-		bool bFailedToGenerateMips = false;
-
+		const auto& rawData = GetRawData();
 		if (bCompressed)
 		{
-			m_Format = AssetTexture2DFormat::RGBA8;
-
-			constexpr int desiredChannels = 4;
-			const auto& rawData = GetRawData();
-			int width = 0, height = 0, channels = 0;
-
-			void* stbiImageData = stbi_load_from_memory((uint8_t*)rawData.Data(), (int)rawData.Size(), &width, &height, &channels, desiredChannels);
-			if (stbiImageData)
+			const uint32_t targetNumChannels = AssetTextureFormatToChannels(m_Format, bCompressed);
+			auto compressedData = TextureCompressor::Compress(rawData.GetDataBuffer(), targetNumChannels, mipsCount, bNormalMap);
+			if (compressedData)
 			{
-				const glm::uvec2 baseTextureSize = m_Texture->GetSize();
-
-				const size_t textureMemSize = desiredChannels * width * height;
-				const void* compressedTextureHandle = TextureCompressor::Compress(DataBuffer(stbiImageData, textureMemSize),
-					baseTextureSize, mipsCount, bNormalMap, bNeedAlpha);
-
-				if (compressedTextureHandle)
-				{
-					SetKTXData(TextureCompressor::GetKTX2Data(compressedTextureHandle));
-
-					if (TextureCompressor::IsCompressedSuccessfully(compressedTextureHandle))
-					{
-						const ImageFormat imageFormat = TextureCompressor::GetFormat(compressedTextureHandle);
-						const uint32_t mipsCount = TextureCompressor::GetMipsCount(compressedTextureHandle);
-						std::vector<DataBuffer> dataPerMip(mipsCount);
-						for (uint32_t i = 0; i < mipsCount; ++i)
-							dataPerMip[i] = TextureCompressor::GetMipData(compressedTextureHandle, i);
-						m_Texture->GenerateMips(dataPerMip, imageFormat);
-					}
-					else
-						bFailedToGenerateMips = true;
-
-					TextureCompressor::Destroy(compressedTextureHandle);
-				}
-				else
-					EG_CORE_ERROR("Failed to generate compressed texture container: {}", GetPath().u8string());
-
-				stbi_image_free(stbiImageData);
+				m_Texture->SetData(compressedData.DataPerMip, compressedData.Format);
+				m_CompressedDataPerMip = std::move(compressedData.DataPerMip);
 			}
 			else
 			{
-				// Failed to load the image. Don't set `bFailedToGenerateMips` to `true` so that the asset data doesn't update.
-				EG_CORE_ERROR("Failed to load the image to compress the texture: {}", GetPath().u8string());
+				EG_CORE_ERROR("Failed to generate compressed texture: {}", GetPath().u8string());
+				bCompressed = false;
 			}
 		}
-		else
+
+		if (!bCompressed)
 		{
-			if (bCompressionChanged)
+			const int desiredChannels = AssetTextureFormatToChannels(m_Format, bCompressed);
+			int width = 0, height = 0, channels = 0;
+
+			m_CompressedDataPerMip.clear();
+			ScopedDataBuffer imageData = Utils::LoadTextureFromMemory(rawData, &width, &height, &channels, desiredChannels);
+			if (imageData)
 			{
-				const auto assetFormat = GetFormat();
-				const int desiredChannels = AssetTextureFormatToChannels(assetFormat);
-				int width = 0, height = 0, channels = 0;
-
-				void* stbiImageData = stbi_load_from_memory((uint8_t*)m_RawData.Data(), (int)m_RawData.Size(), &width, &height, &channels, desiredChannels);
-				if (stbiImageData)
-				{
-					SetKTXData(DataBuffer(nullptr, 0));
-
-					const ImageFormat imageFormat = AssetTextureFormatToImageFormat(assetFormat);
-					m_Texture->SetData(stbiImageData, imageFormat);
-
-					stbi_image_free(stbiImageData);
-				}
-				else
-					EG_CORE_ERROR("Failed to load the image: {}", GetPath().u8string());
+				const ImageFormat imageFormat = AssetTextureFormatToImageFormat(m_Format);
+				m_Texture->SetData(imageData.GetDataBuffer(), imageFormat);
 			}
-		}
+			else
+			{
+				EG_CORE_ERROR("Failed to load the image: {}", GetPath().u8string());
+			}
 
-		if (!bCompressed || bFailedToGenerateMips)
-		{
 			if (m_Texture->GetMipsCount() != mipsCount)
 				m_Texture->GenerateMips(mipsCount);
 		}
@@ -229,46 +165,15 @@ namespace Eagle
 			return false;
 
 		int width, height, channels;
-		const int desiredChannels = AssetTextureFormatToChannels(format);
-		void* stbiImageData = stbi_loadf_from_memory((uint8_t*)m_RawData.Data(), (int)m_RawData.Size(), &width, &height, &channels, desiredChannels);
-
-		if (!stbiImageData)
+		const ImageFormat desiredFormat = AssetTextureFormatToImageFormat(format);
+		ScopedDataBuffer imageData = Utils::LoadHDRTextureFromMemory(m_RawData, &width, &height, &channels, desiredFormat);
+		if (!imageData)
 		{
-			EG_CORE_ERROR("Failed to change format of TextureCube asset. stbi_loadf_from_memory failed: {}", Utils::GetEnumName(format));
+			EG_CORE_ERROR("Failed to change format of TextureCube asset. Failed to load the texture data from memory: {} - {}", m_Path.u8string(), Utils::GetEnumName(format));
 			return false;
 		}
 
-		const ImageFormat imageFormat = AssetTextureFormatToImageFormat(format);
-		const bool bFloat16 = IsFloat16Format(format);
-		void* imageData = stbiImageData;
-		if (bFloat16)
-		{
-			const size_t pixels = size_t(width) * height * desiredChannels;
-			imageData = malloc(pixels * sizeof(uint16_t));
-			uint16_t* imageData16 = (uint16_t*)imageData;
-			float* stbiImageData32 = (float*)stbiImageData;
-
-			for (size_t i = 0; i < pixels; ++i)
-				imageData16[i] = Utils::ToFloat16(stbiImageData32[i]);
-		}
-		else if (format == AssetTextureCubeFormat::R11G11B10)
-		{
-			const size_t pixels = size_t(width) * height;
-			imageData = malloc(pixels * sizeof(uint32_t));
-			uint32_t* imageData32 = (uint32_t*)imageData;
-			float* stbiImageData32 = (float*)stbiImageData;
-			for (size_t i = 0; i < pixels; ++i)
-			{
-				glm::vec3 rgb = glm::vec3(stbiImageData32[i * 3], stbiImageData32[i * 3 + 1], stbiImageData32[i * 3 + 2]);
-				imageData32[i] = Utils::ToR11G11B10(rgb);
-			}
-		}
-
-		m_Texture->SetData(imageData, imageFormat);
-
-		if (stbiImageData != imageData)
-			free(imageData);
-		stbi_image_free(stbiImageData);
+		m_Texture->SetData(imageData.GetDataBuffer(), desiredFormat);
 
 		m_Format = format;
 

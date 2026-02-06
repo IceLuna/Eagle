@@ -802,11 +802,9 @@ namespace Eagle
 		mono_add_internal_call("Eagle.AssetTexture2D::GetMipsCount_Native", Eagle::Script::Eagle_AssetTexture2D_GetMipsCount);
 		mono_add_internal_call("Eagle.AssetTexture2D::SetFormat_Native", Eagle::Script::Eagle_AssetTexture2D_SetFormat);
 		mono_add_internal_call("Eagle.AssetTexture2D::SetIsNormalMap_Native", Eagle::Script::Eagle_AssetTexture2D_SetIsNormalMap);
-		mono_add_internal_call("Eagle.AssetTexture2D::SetNeedsAlpha_Native", Eagle::Script::Eagle_AssetTexture2D_SetNeedsAlpha);
 		mono_add_internal_call("Eagle.AssetTexture2D::SetIsCompressed_Native", Eagle::Script::Eagle_AssetTexture2D_SetIsCompressed);
 		mono_add_internal_call("Eagle.AssetTexture2D::GetFormat_Native", Eagle::Script::Eagle_AssetTexture2D_GetFormat);
 		mono_add_internal_call("Eagle.AssetTexture2D::IsNormalMap_Native", Eagle::Script::Eagle_AssetTexture2D_IsNormalMap);
-		mono_add_internal_call("Eagle.AssetTexture2D::DoesNeedAlpha_Native", Eagle::Script::Eagle_AssetTexture2D_DoesNeedAlpha);
 		mono_add_internal_call("Eagle.AssetTexture2D::IsCompressed_Native", Eagle::Script::Eagle_AssetTexture2D_IsCompressed);
 
 		// AssetTextureCube

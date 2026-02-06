@@ -1032,15 +1032,6 @@ namespace Eagle
 		for (uint32_t i = 1; i < mipCount; ++i)
 		{
 			glm::uvec2 mipSize = baseMipSize >> i;
-			if (bCompressedFormat)
-			{
-				mipSize -= mipSize % compressedBlockSize;
-				if (glm::any(glm::equal(mipSize, glm::uvec2(0))))
-				{
-					// Size is too small to generate a mip for a block
-					break;
-				}
-			}
 
 			const auto& data = dataPerMip[i];
 			Ref<StagingBuffer> stagingBuffer = StagingManager::AcquireBuffer(data.Size(), false);
@@ -1051,7 +1042,7 @@ namespace Eagle
 
 			VkBufferImageCopy region = {};
 			region.bufferOffset = 0;
-			region.bufferRowLength = mipSize.x;
+			region.bufferRowLength = 0;
 			region.imageSubresource.aspectMask = aspectMask;
 			region.imageSubresource.mipLevel = i;
 			region.imageSubresource.layerCount = 1;

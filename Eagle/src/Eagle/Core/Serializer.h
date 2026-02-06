@@ -147,9 +147,9 @@ namespace Eagle
 		static ScopedDataBuffer SerializeAssetAnimationBlendSpace(const Ref<AssetAnimationBlendSpace>& asset, const Ref<AssetSkeletalMesh>& meshAsset = nullptr); // `meshAsset` is used if asset is nullptr
 		static ScopedDataBuffer SerializeAssetBehaviorGraph(const Ref<AssetBehaviorGraph>& asset);
 
-		static ScopedDataBuffer SerializeAssetTexture2DFromData(const DataBuffer& textureData, const DataBuffer& ktxData, const GUID& guid, const Path& pathToRaw,
-			FilterMode filterMode, AddressMode addressMode, float anisotropy, uint32_t mipsCount, uint32_t width, uint32_t height, AssetTexture2DFormat format,
-			bool bCompressed, bool bNormalMap, bool bNeedsAlpha);
+		static ScopedDataBuffer SerializeAssetTexture2DFromData(const DataBuffer& textureData, const std::vector<ScopedDataBuffer>& compressedDataPerMip, ImageFormat compressedFormat, const GUID& guid,
+			const Path& pathToRaw, FilterMode filterMode, AddressMode addressMode, float anisotropy, uint32_t mipsCount, uint32_t width, uint32_t height, AssetTexture2DFormat format,
+			bool bCompressed, bool bNormalMap);
 		static ScopedDataBuffer SerializeAssetTextureCubeFromData(const DataBuffer& textureData, const GUID& guid, const Path& pathToRaw,
 			AssetTextureCubeFormat format, uint32_t layerSize, uint32_t prefilterSize);
 		static ScopedDataBuffer SerializeAssetStaticMeshFromMesh(const Ref<StaticMesh>& mesh, const GUID& guid, const Path& pathToRaw);

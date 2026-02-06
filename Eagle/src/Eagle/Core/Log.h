@@ -41,6 +41,10 @@ namespace Eagle
 		{
 			std::string Message;
 			spdlog::level::level_enum Level = spdlog::level::level_enum::trace;
+
+			LogMessage() = default;
+			LogMessage(std::string&& msg, spdlog::level::level_enum level)
+				: Message(std::move(msg)), Level(level) {}
 		};
 
 	public:

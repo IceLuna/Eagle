@@ -25,6 +25,11 @@ namespace Eagle
 			return buffer;
 		}
 
+		static DataBuffer Copy(const DataBuffer& other)
+		{
+			return Copy(other.Data, other.Size);
+		}
+
 		void Allocate(size_t size)
 		{
 			delete[] Data;
@@ -123,6 +128,11 @@ namespace Eagle
 			m_Buffer = other.m_Buffer;
 
 			other.m_Buffer = {};
+		}
+
+		static ScopedDataBuffer Copy(const ScopedDataBuffer& other)
+		{
+			return ScopedDataBuffer(DataBuffer::Copy(other.Data(), other.Size()));
 		}
 
 		ScopedDataBuffer& operator=(const ScopedDataBuffer&) = delete;

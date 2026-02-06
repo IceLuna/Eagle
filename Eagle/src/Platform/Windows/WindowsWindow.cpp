@@ -118,16 +118,14 @@ namespace Eagle
 	{
 		int width, height, channels;
 		stbi_set_flip_vertically_on_load(0);
-		uint8_t* data = Utils::LoadTextureFromFile(iconPath, &width, &height, &channels, 0);
+		ScopedDataBuffer data = Utils::LoadTextureFromFile(iconPath, &width, &height, &channels, 0);
 		if (data)
 		{
 			GLFWimage images[1];
-			images[0].pixels = data;
+			images[0].pixels = (uint8_t*)data.Data();
 			images[0].width = width;
 			images[0].height = height;
 			glfwSetWindowIcon(m_Window, 1, images);
-
-			Utils::FreeTextureData(data);
 		}
 	}
 

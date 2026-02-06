@@ -23,8 +23,8 @@ layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX) readonly buffer Transf
     mat4 g_Transforms[];
 };
 
-layout(set = 3, binding = 0) uniform sampler2D g_Depth;
-layout(set = 3, binding = 1) uniform sampler2D g_Flags;
+layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX + 1) uniform sampler2D g_Depth;
+layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX + 2) uniform sampler2D g_Flags;
 
 layout(push_constant) uniform PushConstants
 {

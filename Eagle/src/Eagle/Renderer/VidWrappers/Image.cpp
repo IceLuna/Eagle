@@ -50,6 +50,6 @@ namespace Eagle
             size = glm::max(size, glm::uvec3(1));
         }
 
-        return memUsage;
+        return memUsage * (m_Specs.bIsCube ? 6u : 1u);
     }
 }

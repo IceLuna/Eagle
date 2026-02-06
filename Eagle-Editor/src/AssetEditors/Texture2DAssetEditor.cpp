@@ -53,7 +53,6 @@ namespace Eagle
 			const size_t gpuMemSize = textureToView->GetMemoryUsage();
 			bool bCompressed = m_Asset->IsCompressed();
 			bool bNormalMap = m_Asset->IsNormalMap();
-			bool bNeedAlpha = m_Asset->DoesNeedAlpha();
 			auto assetFormat = m_Asset->GetFormat();
 			bool bChanged = false;
 
@@ -102,30 +101,15 @@ namespace Eagle
 			else
 				UI::Text("GPU memory usage (MB)", std::to_string(gpuMemSize / 1024.f / 1024.f));
 
-			if (UI::ComboEnum("Format", assetFormat, "Compression only supports RGBA8 format!"))
+			if (UI::ComboEnum("Format", assetFormat))
 			{
-				// Only uncompressed textures can change format
-				if (bCompressed)
-				{
-					if (assetFormat != AssetTexture2DFormat::RGBA8)
-						Application::Get().GetImGuiLayer()->AddMessage("Compressed textures only support RGBA8 format");
-				}
-				else
-				{
-					m_Asset->SetFormat(assetFormat);
-					bChanged = true;
-				}
+				m_Asset->SetFormat(assetFormat);
+				bChanged = true;
 			}
 
 			if (UI::Property("Is Normal Map", bNormalMap, "Currently, it only affects the result if the compression is enabled"))
 			{
 				m_Asset->SetIsNormalMap(bNormalMap);
-				bChanged = true;
-			}
-
-			if (UI::Property("Import alpha", bNeedAlpha, "Currently, it only affects the result if the compression is enabled"))
-			{
-				m_Asset->SetNeedsAlpha(bNeedAlpha);
 				bChanged = true;
 			}
 
@@ -135,8 +119,7 @@ namespace Eagle
 				bChanged = true;
 			}
 
-			if (bCompressed)
-				UI::Text("Compression format", Utils::GetEnumName(textureToView->GetFormat()), "This format can change at runtime depending on the hardware capabilities");
+			UI::Text("GPU format", Utils::GetEnumName(textureToView->GetFormat()), "When compressed, this format can change at runtime depending on the hardware capabilities");
 			ImGui::Separator();
 			if (UI::PropertySlider("Anisotropy", anisotropy, 1.f, maxAnisotropy))
 			{

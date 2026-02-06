@@ -7,6 +7,8 @@
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Asset/AssetImporter.h"
 #include "Eagle/Asset/AssetManager.h"
+#include "Eagle/Renderer/TextureCompressor.h"
+#include "Eagle/Utils/PlatformUtils.h"
 
 #include <glm/gtx/quaternion.hpp>
 #include <assimp/Importer.hpp>
@@ -729,20 +731,20 @@ namespace Eagle
 		return ProcessAnimations(scene, skeletal->GetSkeletalMeshInfo(), rootMotionMode);
 	}
 
-	static Ref<AssetTexture2D> CreateAssetFromTexture(const Ref<Texture2D>& texture, const Path& saveTo)
+	static Ref<AssetTexture2D> CreateAssetFromEncoded(DataBuffer buffer, const Path& saveTo, const std::string& filename, bool bNormalMap)
 	{
-		if (!texture)
-			return {};
+		const Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, filename);
 
-		const Path outputFilename = saveTo / (texture->GetImage()->GetDebugName() + Asset::GetExtension());
-		const bool bSuccess = AssetImporter::CreateFromTexture2D(texture, outputFilename);
-		if (bSuccess)
-		{
-			Ref<AssetTexture2D> asset = Cast<AssetTexture2D>(Asset::Create(outputFilename));
-			AssetManager::Register(asset);
-			return asset;
-		}
-		return {};
+		int width, height, channels;
+		stbi_info_from_memory((uint8_t*)buffer.Data, (int)buffer.Size, &width, &height, &channels);
+
+		AssetImportSettings settings{};
+		auto& textureSettings = settings.Texture2DSettings;
+		textureSettings.bNormalMap = bNormalMap;
+		textureSettings.ImportFormat = ChannelsToAssetTexture2DFormat(channels);
+		textureSettings.MipsCount = CalculateMipCount(width, height);
+
+		return AssetImporter::ImportTexture2DFromMemory(buffer, saveTo, filename, textureSettings);
 	}
 
 	static Ref<AssetTexture2D> ProcessTextureInMaterial(const Path& path, const aiScene* scene, const aiMaterial* aiMat, const Path& saveTo, aiTextureType textureType, aiTextureType fallbackType = aiTextureType_UNKNOWN)
@@ -755,6 +757,7 @@ namespace Eagle
 		if (!hasTexture)
 			return {};
 
+		const bool bNormalMap = textureType == aiTextureType_NORMALS;
 		const Path filename = Path(aiTexturePath.C_Str()).filename();
 		Path texturePath = path.parent_path() / filename;
 
@@ -767,21 +770,20 @@ namespace Eagle
 				// aiTexture->mHeight can be zero, in this case `aiTexture->pcData` is not RGB values but compressed JPEG/PNG data
 				if (size.y == 0u)
 				{
-					int width, height, cpp;
-					void* stbiData = stbi_load_from_memory(reinterpret_cast<unsigned char*>(aiTexture->pcData), aiTexture->mWidth, &width, &height, &cpp, 4);
-					size = glm::uvec2(width, height);
-
 					const std::string textureName = texturePath.stem().u8string();
-					Ref<Texture2D> texture = Texture2D::Create(textureName, ImageFormat::R8G8B8A8_UNorm, size, stbiData, {});
-					assetTexture = CreateAssetFromTexture(texture, saveTo);
-
-					stbi_image_free(stbiData);
+					assetTexture = CreateAssetFromEncoded(DataBuffer(aiTexture->pcData, aiTexture->mWidth), saveTo, textureName, bNormalMap);
 				}
-				else if (size.x > 0 && size.y > 0)
+				else if (size.x > 0 && size.y > 0 && (strcmp(aiTexture->achFormatHint, "rgba8888") == 0))
 				{
+					constexpr uint32_t numChannels = 4;
+					constexpr size_t texelSize = sizeof(uint8_t) * numChannels; // RGBA8
+					const size_t memSize = size.x * size.y * texelSize;
+					DataBuffer decoded = { aiTexture->pcData, memSize };
+
+					// We need an encoded (png/jpg etc) image data for asset creation
+					const ScopedDataBuffer png = Utils::ToPNG(decoded, size, numChannels);
 					const std::string textureName = texturePath.stem().u8string();
-					Ref<Texture2D> texture = Texture2D::Create(textureName, ImageFormat::R8G8B8A8_UNorm, size, aiTexture->pcData, {});
-					assetTexture = CreateAssetFromTexture(texture, saveTo);
+					assetTexture = CreateAssetFromEncoded(png.GetDataBuffer(), saveTo, textureName, bNormalMap);
 				}
 				else
 				{
@@ -803,7 +805,7 @@ namespace Eagle
 					int comp = 1;
 					int unused = 0;
 					stbi_info(texturePath.u8string().c_str(), &unused, &unused, &comp);
-					settings.bNeedAlpha = !settings.bNormalMap && comp == 4;
+					settings.ImportFormat = ChannelsToAssetTexture2DFormat(comp);
 				}
 				if (AssetImporter::Import(texturePath, saveTo, AssetType::Texture2D, importSettings))
 				{

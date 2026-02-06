@@ -30,7 +30,7 @@ namespace Eagle
 		info.size = m_Specs.Size;
 		info.usage = BufferUsageToVulkan(m_Specs.Usage);
 
-		m_Allocation = VulkanAllocator::AllocateBuffer(&info, m_Specs.MemoryType, false, m_DebugName, &m_Buffer);
+		m_Allocation = VulkanAllocator::AllocateBuffer(&info, m_Specs.MemoryType, m_DebugName, &m_Buffer);
 
 		if (HasFlags(m_Specs.Usage, BufferUsage::StorageTexelBuffer) || HasFlags(m_Specs.Usage, BufferUsage::UniformTexelBuffer))
 		{

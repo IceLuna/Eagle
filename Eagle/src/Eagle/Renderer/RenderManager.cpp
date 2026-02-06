@@ -929,4 +929,19 @@ namespace Eagle
 		return s_RendererData->RHIGPUTimings;
 	}
 #endif
+
+	void Utils::DumpGPUInfo()
+	{
+		auto& caps = RenderManager::GetCapabilities();
+		EG_CORE_TRACE("GPU Info:");
+		EG_CORE_TRACE("  Vendor: {0}", caps.Vendor);
+		EG_CORE_TRACE("  Device: {0}", caps.Device);
+		EG_CORE_TRACE("  Driver Version: {0}", caps.DriverVersion);
+		EG_CORE_TRACE("  API Version: {0}", caps.ApiVersion);
+		EG_CORE_TRACE("  Max Anisotropy: {0}", caps.MaxAnisotropy);
+		EG_CORE_TRACE("  Texture Compression support");
+		EG_CORE_TRACE("    BC: {}", caps.bTextureCompressionBC);
+		EG_CORE_TRACE("    ETC: {}", caps.bTextureCompressionETC2);
+		EG_CORE_TRACE("    ASTC LDR: {}", caps.bTextureCompressionASTC_LDR);
+	}
 }

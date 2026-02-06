@@ -40,7 +40,10 @@ namespace Eagle
 		static void AddResourceDebugName(void* resourceID, const std::string& name, VkObjectType objectType)
 		{
 			auto& context = VulkanContext::Get();
-			context.m_ResourcesDebugNames[resourceID] = name;
+			{
+				std::scoped_lock lock(context.m_Mutex);
+				context.m_ResourcesDebugNames[resourceID] = name;
+			}
 
 			if (context.m_Functions.setDebugUtilsObjectNameEXT)
 			{
@@ -56,15 +59,19 @@ namespace Eagle
 		static void RemoveResourceDebugName(void* resourceID)
 		{
 			auto& context = VulkanContext::Get();
+			std::scoped_lock lock(context.m_Mutex);
 			context.m_ResourcesDebugNames.erase(resourceID);
 		}
 
 		static const std::string& GetResourceDebugName(void* resourceID)
 		{
-			static const std::string UNKNOWN_NAME = "UNKNOWN_NAME";
+			std::scoped_lock lock(Get().m_Mutex);
 			auto it = VulkanContext::Get().m_ResourcesDebugNames.find(resourceID);
 			if (it == VulkanContext::Get().m_ResourcesDebugNames.end())
-				return UNKNOWN_NAME;
+			{
+				static const std::string s_Unknown = "<Unknown Name>";
+				return s_Unknown;
+			}
 			return it->second;
 		}
 
@@ -76,6 +83,7 @@ namespace Eagle
 		VulkanFunctions m_Functions{};
 		Scope<VulkanPhysicalDevice> m_PhysicalDevice;
 		Scope<VulkanDevice> m_Device;
+		std::mutex m_Mutex;
 		static VkInstance s_VulkanInstance;
 		static VulkanContext* s_VulkanContext;
 	};

@@ -14,7 +14,6 @@ namespace Eagle
 		uint32_t MipsCount = 1;
 		bool bCompress = true;
 		bool bNormalMap = false;
-		bool bNeedAlpha = false;
 	};
 
 	struct AssetImportTextureCubeSettings
@@ -61,10 +60,11 @@ namespace Eagle
 		// @saveTo - folder to save an imported asset to (must be somewhere within projects content folder)
 		static void Import(const std::vector<Path>& pathsToRaw, const Path& saveTo);
 
-		// Returns true, if an eagle asset was successfully created.
-		// Creates an AssetTexture2D from an existing texture2D
-		// @outputFilename. Final filepath to create and save to (must be egasset extension)
-		static bool CreateFromTexture2D(const Ref<Texture2D>& texture, const Path& outputFilename);
+		// @buffer. Buffer of encoded image data (png/jpg etc)
+		// @saveTo. Folder to save to
+		// @filename. Desired filename. If the filename already exists, new one will be generated. Check it by calling `asset->GetPath()`
+		// @settings. Import settings
+		static Ref<AssetTexture2D> ImportTexture2DFromMemory(DataBuffer buffer, const Path& saveTo, const std::string& filename, const AssetImportTexture2DSettings& settings);
 
 		// Since materials are not really imported, this function will just generate a material asset.
 		// The final `filename` might be a bit different if the requested filename is already taken.

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Eagle/Core/Log.h"
+#include "Eagle/Core/DataBuffer.h"
+#include "Eagle/Renderer/RendererUtils.h"
 
 #include <map>
 #include <magic_enum.hpp>
@@ -109,10 +111,28 @@ namespace Eagle::Utils
 	bool IsNormalMap(const Path& path);
 	bool IsNormalMap(const uint8_t* data, uint32_t width, uint32_t height, uint32_t channels);
 
-	// @channels. Number of channels in a file.
+	// @width. Returns the width of the texture
+	// @height. Returns the height of the texture
+	// @channels. Returns number of channels in a file/buffer.
 	// @desiredNumChannels. Output data will contain `desiredNumChannels` channels. Can be set to 0 to avoid conversion
-	uint8_t* LoadTextureFromFile(const Path& path, int* width, int* height, int* channels, uint32_t desiredNumChannels);
-	void FreeTextureData(void* data);
+	ScopedDataBuffer LoadTextureFromFile(const Path& path, int* width, int* height, int* channels, uint32_t desiredNumChannels);
+	ScopedDataBuffer LoadTextureFromMemory(const DataBuffer& buffer, int* width, int* height, int* channels, uint32_t desiredNumChannels);
+	inline ScopedDataBuffer LoadTextureFromMemory(const ScopedDataBuffer& buffer, int* width, int* height, int* channels, uint32_t desiredNumChannels)
+	{
+		return LoadTextureFromMemory(buffer.GetDataBuffer(), width, height, channels, desiredNumChannels);
+	}
+
+	// @width. Returns the width of the texture
+	// @height. Returns the height of the texture
+	// @channels. Returns number of channels in a file/buffer.
+	// @desiredFormat. Desired format of the output(binary) value. Supported formats: RGBA32F, RGBA16F, R11G11B10_Float
+	ScopedDataBuffer LoadHDRTextureFromMemory(const DataBuffer& buffer, int* width, int* height, int* channels, ImageFormat desiredFormat = ImageFormat::R32G32B32A32_Float);
+	inline ScopedDataBuffer LoadHDRTextureFromMemory(const ScopedDataBuffer& buffer, int* width, int* height, int* channels, ImageFormat desiredFormat = ImageFormat::R32G32B32A32_Float)
+	{
+		return LoadHDRTextureFromMemory(buffer.GetDataBuffer(), width, height, channels, desiredFormat);
+	}
+
+	ScopedDataBuffer ToPNG(DataBuffer imageData, glm::uvec2 size, uint32_t numChannels);
 
 	template<typename Enum>
 	const char* GetEnumName(Enum value)

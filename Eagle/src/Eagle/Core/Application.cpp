@@ -49,12 +49,11 @@ namespace Eagle
 		m_CPUTimingsInUse.reserve(4);
 		m_Threads[std::this_thread::get_id()] = "Main Thread";
 
-		TextureCompressor::Init();
-
 		RendererContext::SetAPI(RendererAPIType::Vulkan);
 		m_RendererContext = RendererContext::Create();
 		m_Window = Window::Create(m_WindowProps);
 		m_Window->SetEventCallback(EG_BIND_FN(OnEvent));
+		TextureCompressor::Init();
 
 		PhysicsEngine::Init();
 		AudioEngine::Init();

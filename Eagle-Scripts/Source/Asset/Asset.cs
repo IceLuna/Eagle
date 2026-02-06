@@ -43,6 +43,7 @@ namespace Eagle
     public enum AssetTexture2DFormat
     {
         RGBA8,
+        RGB8,
 		RG8,
 		R8,
 
@@ -151,8 +152,6 @@ namespace Eagle
 
         public void SetIsNormalMap(bool bNormalMap) { SetIsNormalMap_Native(m_GUID, bNormalMap); }
 
-        public void SetNeedsAlpha(bool bNeedsAlpha) { SetNeedsAlpha_Native(m_GUID, bNeedsAlpha); }
-
         public void SetIsCompressed(bool bCompressed) { SetIsCompressed_Native(m_GUID, bCompressed); }
 
         public float GetAnisotropy() { return GetAnisotropy_Native(m_GUID); }
@@ -166,8 +165,6 @@ namespace Eagle
         public AssetTexture2DFormat GetFormat() { return GetFormat_Native(m_GUID); }
 
         public bool IsNormalMap() { return IsNormalMap_Native(m_GUID); }
-
-        public bool DoesNeedAlpha() { return DoesNeedAlpha_Native(m_GUID); }
 
         public bool IsCompressed() { return IsCompressed_Native(m_GUID); }
 
@@ -185,9 +182,6 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetIsNormalMap_Native(GUID id, bool value);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetNeedsAlpha_Native(GUID id, bool value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetIsCompressed_Native(GUID id, bool value);
@@ -212,9 +206,6 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsNormalMap_Native(GUID id);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool DoesNeedAlpha_Native(GUID id);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsCompressed_Native(GUID id);

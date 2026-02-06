@@ -5,8 +5,6 @@
 #include "Platform/Vulkan/VulkanTexture2D.h"
 #include "Platform/Vulkan/VulkanTextureCube.h"
 
-#include <stb_image.h>
-
 namespace Eagle
 {
 	Ref<Texture2D> Texture2D::DummyTexture;
@@ -29,7 +27,7 @@ namespace Eagle
 	Ref<Texture2D> Texture2D::Create(const Path& path, const Texture2DSpecifications& specs)
 	{
 		int width = 0, height = 0, channels = 0;
-		void* imageData = Utils::LoadTextureFromFile(path, &width, &height, &channels, 4);
+		ScopedDataBuffer imageData = Utils::LoadTextureFromFile(path, &width, &height, &channels, 4);
 		if (!imageData)
 		{
 			EG_CORE_ERROR("Failed to load a texture: {}", path.u8string());
@@ -43,7 +41,7 @@ namespace Eagle
 		{
 		case RendererAPIType::Vulkan:
 		{
-			auto texture2D = MakeRef<VulkanTexture2D>(imageFormat, glm::uvec2(width, height), imageData, specs, path.stem().u8string());
+			auto texture2D = MakeRef<VulkanTexture2D>(imageFormat, glm::uvec2(width, height), imageData.Data(), specs, path.stem().u8string());
 			texture2D->CreateImageFromData(true); // It's here because can't call `shared_from_this` inside of a constructor
 			result = texture2D;
 			break;
@@ -53,7 +51,6 @@ namespace Eagle
 			EG_CORE_ASSERT(false, "Unknown RendererAPI!");
 		}
 
-		Utils::FreeTextureData(imageData);
 		return result;
 	}
 
@@ -74,7 +71,7 @@ namespace Eagle
 		}
 	}
 
-	Ref<Texture2D> Texture2D::Create(const std::string& name, ImageFormat format, glm::uvec2 size, const std::vector<DataBuffer>& dataPerMip, const Texture2DSpecifications& properties)
+	Ref<Texture2D> Texture2D::Create(const std::string& name, ImageFormat format, glm::uvec2 size, const std::vector<ScopedDataBuffer>& dataPerMip, const Texture2DSpecifications& properties)
 	{
 		switch (RenderManager::GetAPI())
 		{

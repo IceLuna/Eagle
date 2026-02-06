@@ -41,9 +41,8 @@ IncludeDir["MSDF"] = "Eagle/vendor/msdf-atlas-gen/msdf-atlas-gen"
 IncludeDir["MSDFGen"] = "Eagle/vendor/msdf-atlas-gen/msdfgen"
 IncludeDir["MagicEnum"] = "Eagle/vendor/magic_enum/include"
 IncludeDir["zstd"] = "Eagle/vendor/zstd/include"
-IncludeDir["BasisUniversal"] = "Eagle/vendor/KTX-Software/basis_universal"
-IncludeDir["KTX"] = "Eagle/vendor/KTX-Software/include"
 IncludeDir["RecastNavigation"] = "Eagle/vendor/recastnavigation"
+IncludeDir["compressonator"] = "Eagle/vendor/compressonator/include"
 
 -- Lib dirs
 LibDir = {}
@@ -56,8 +55,6 @@ LibDir["fmodDebug"] = "%{wks.location}/Eagle/vendor/fmod/lib/Debug"
 LibDir["fmodRelease"] = "%{wks.location}/Eagle/vendor/fmod/lib/Release"
 LibDir["zstdDebug"] = "%{wks.location}/Eagle/vendor/zstd/lib/Debug"
 LibDir["zstdRelease"] = "%{wks.location}/Eagle/vendor/zstd/lib/Release"
-LibDir["KTXDebug"] = "%{wks.location}/Eagle/vendor/KTX-Software/libs/Debug"
-LibDir["KTXRelease"] = "%{wks.location}/Eagle/vendor/KTX-Software/libs/Release"
 
 -- Lib files
 LibFiles = {}
@@ -105,13 +102,9 @@ LibFiles["SPIRV_Cross_Release"] = "%{LibDir.VulkanSDK}/spirv-cross-core.lib"
 LibFiles["zstdDebug"] = "%{LibDir.zstdDebug}/zstd_static.lib"
 LibFiles["zstdRelease"] = "%{LibDir.zstdRelease}/zstd_static.lib"
 
-LibFiles["KTXDebug"] = "%{LibDir.KTXDebug}/ktx.lib"
-LibFiles["KTXReadDebug"] = "%{LibDir.KTXDebug}/ktx_read.lib"
-LibFiles["KTXUtilsDebug"] = "%{LibDir.KTXDebug}/objUtil.lib"
+LibFiles["compressonatorDebug"]   = "%{wks.location}/Eagle/vendor/compressonator/lib/Debug/Compressonator_MDd.lib"
+LibFiles["compressonatorRelease"] = "%{wks.location}/Eagle/vendor/compressonator/lib/Release/Compressonator_MD.lib"
 
-LibFiles["KTXRelease"] = "%{LibDir.KTXRelease}/ktx.lib"
-LibFiles["KTXReadRelease"] = "%{LibDir.KTXRelease}/ktx_read.lib"
-LibFiles["KTXUtilsRelease"] = "%{LibDir.KTXRelease}/objUtil.lib"
 --------------------------------------------------------------------------------------------------------------
 
 group "Dependecies"
@@ -189,13 +182,12 @@ project "Eagle"
 		"%{IncludeDir.MSDFGen}",
 		"%{IncludeDir.MagicEnum}",
 		"%{IncludeDir.zstd}",
-		"%{IncludeDir.BasisUniversal}",
-		"%{IncludeDir.KTX}",
 		"%{IncludeDir.RecastNavigation}/Detour/Include",
 		"%{IncludeDir.RecastNavigation}/DetourCrowd/Include",
 		"%{IncludeDir.RecastNavigation}/DetourTileCache/Include",
 		"%{IncludeDir.RecastNavigation}/Recast/Include",
 		"%{IncludeDir.RecastNavigation}/DebugUtils/Include",
+		"%{IncludeDir.compressonator}",
 	}
 
 	defines
@@ -273,13 +265,10 @@ project "Eagle"
 			"%{LibFiles.fmodDebug}",
 			"%{LibFiles.monoDebug}",
 			"%{LibFiles.zstdDebug}",
+			"%{LibFiles.compressonatorDebug}",
 
 			"%{LibFiles.ShaderC_Debug}",
 			"%{LibFiles.SPIRV_Cross_Debug}",
-
-			"%{LibFiles.KTXDebug}",
-			"%{LibFiles.KTXReadDebug}",
-			"%{LibFiles.KTXUtilsDebug}"
 		}
 
 	filter "configurations:ReleaseWithDebug"
@@ -306,13 +295,10 @@ project "Eagle"
 			"%{LibFiles.fmodRelease}",
 			"%{LibFiles.monoRelease}",
 			"%{LibFiles.zstdRelease}",
+			"%{LibFiles.compressonatorRelease}",
 
 			"%{LibFiles.ShaderC_Release}",
 			"%{LibFiles.SPIRV_Cross_Release}",
-
-			"%{LibFiles.KTXRelease}",
-			"%{LibFiles.KTXReadRelease}",
-			"%{LibFiles.KTXUtilsRelease}"
 		}
 		buildoptions
 		{
@@ -346,13 +332,10 @@ project "Eagle"
 			"%{LibFiles.fmodRelease}",
 			"%{LibFiles.monoRelease}",
 			"%{LibFiles.zstdRelease}",
+			"%{LibFiles.compressonatorRelease}",
 
 			"%{LibFiles.ShaderC_Release}",
 			"%{LibFiles.SPIRV_Cross_Release}",
-
-			"%{LibFiles.KTXRelease}",
-			"%{LibFiles.KTXReadRelease}",
-			"%{LibFiles.KTXUtilsRelease}"
 		}
 		buildoptions
 		{

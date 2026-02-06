@@ -71,14 +71,7 @@ namespace Eagle
 		info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		info.flags |= m_Specs.bIsCube ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
 
-		// This is a workaround for Vulkan Memory Allocator issue
-		// The problem here is when all MemoryType::kGpu memory is allocated, the Allocator begins to put images in memory of other MemoryTypes.
-		// It leads to Image and and mappable Buffers to be bound to the same VkDeviceMemory.
-		// When vmaMapMemory() is called, vkMapMemory() with called for VkDeviceMemory with size = VK_WHOLE_SIZE. 
-		// It could lead to device lost if VkImage is not in layout VK_IMAGE_LAYOUT_GENERAL.
-		// Workarounding the issue by allocating each VkImage in its own VkDeviceMemory, so that mapping buffers can't result in mapping memory bound to VkImage.
-		constexpr bool separateAllocation = true;
-		m_Allocation = VulkanAllocator::AllocateImage(&info, m_Specs.MemoryType, separateAllocation, m_DebugName, &m_Image);
+		m_Allocation = VulkanAllocator::AllocateImage(&info, m_Specs.MemoryType, m_DebugName, &m_Image);
 
 		if (!m_DebugName.empty())
 			VulkanContext::AddResourceDebugName(m_Image, m_DebugName, VK_OBJECT_TYPE_IMAGE);

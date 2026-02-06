@@ -2,226 +2,343 @@
 #include "TextureCompressor.h"
 #include "Eagle/Core/Application.h"
 
-#include "Platform/Vulkan/Vulkan.h"
-#include "Platform/Vulkan/VulkanUtils.h"
-
-#include <ktx.h>
-#include <ktxvulkan.h>
-#include <encoder/basisu_comp.h>
+#include <compressonator/compressonator.h>
+#include <compressonator/common.h>
 
 namespace Eagle
 {
-	static std::mutex s_Mutex;
-	static std::unordered_map<const void*, basisu::vector<uint8_t>> s_KTX2Data;
+	static CMP_FORMAT(*s_GetCompressionFormatFunc)(uint32_t, TextureCompressor::TextureType) = nullptr;
+	static ImageFormat(*s_FromCMPFormatFunc)(CMP_FORMAT) = nullptr;
+	static bool(*s_IsFormatSupportedFunc)(ImageFormat) = nullptr;
+
+	static TextureCompressor::TextureType ToTextureType(uint32_t numChannels, bool bNormalMap, bool bHDR)
+	{
+		using TT = TextureCompressor::TextureType;
+
+		if (bNormalMap)
+			return TT::NormalMap;
+		if (bHDR)
+			return TT::HDR;
+
+		return numChannels == 4 ? TT::RegularWithAlpha : TT::Regular;
+	}
+
+	static CMP_FORMAT ToCMPFormat(TextureCompressor::TextureType type)
+	{
+		if (type == TextureCompressor::TextureType::HDR)
+			return CMP_FORMAT_RGBA_16F;
+
+		return CMP_FORMAT_RGBA_8888;
+	}
+
+	static bool CreateCMPTexture(const DataBuffer& imageData, const glm::uvec2& size, TextureCompressor::TextureType type, CMP_MipSet* mipSet)
+	{
+		const CMP_ChannelFormat format = type == TextureCompressor::TextureType::HDR ? CF_16bit : CF_8bit;
+		const CMP_TextureDataType dataType = TDT_ARGB;
+
+		memset(mipSet, 0, sizeof(MipSet));
+		CMP_CMIPS CMips;
+		if (!CMips.AllocateMipSet(mipSet, format, dataType, TT_2D, size.x, size.y, 1))
+		{
+			return false; // CMP_ERR_MEM_ALLOC_FOR_MIPSET
+		}
+
+		mipSet->m_nMipLevels = 1;
+		mipSet->m_format = ToCMPFormat(type);
+
+		// TODO: Test HDR
+		if (!CMips.AllocateMipLevelData(CMips.GetMipLevel(mipSet, 0), size.x, size.y, format, dataType))
+		{
+			return false; // CMP_ERR_MEM_ALLOC_FOR_MIPSET
+		}
+
+		CMP_MipLevel* mipLevel = CMips.GetMipLevel(mipSet, 0, 0);
+		EG_CORE_ASSERT(mipLevel->m_dwLinearSize == imageData.Size);
+		memcpy(mipLevel->m_pbData, imageData.Data, mipLevel->m_dwLinearSize);
+
+		// Assign miplevel 0 to MipSetin pData ref
+		// both miplevel pData and mipset pData will point to the same location
+		// Typically mipset pData is assign a pointer to the current miplevel data been processed at run time
+		mipSet->pData = mipLevel->m_pbData;
+		mipSet->dwDataSize = mipLevel->m_dwLinearSize;
+		mipSet->dwHeight = mipLevel->m_nHeight;
+		mipSet->dwWidth = mipLevel->m_nWidth;
+
+		return true;
+	}
+
+	static CMP_FORMAT GetCompressionFormat_BC(uint32_t numChannels, TextureCompressor::TextureType type)
+	{
+		// TODO: What about BC7?
+		using TT = TextureCompressor::TextureType;
+
+		if (type == TT::HDR)
+			return CMP_FORMAT_BC6H;
+
+		if (type == TT::NormalMap)
+			return CMP_FORMAT_BC1;
+
+		switch (numChannels)
+		{
+		case 1:
+			return CMP_FORMAT_BC4;
+		case 2:
+			return CMP_FORMAT_BC5;
+		case 3:
+			return CMP_FORMAT_BC1;
+		case 4:
+			return type == TT::RegularWithAlpha ? CMP_FORMAT_BC3 : CMP_FORMAT_BC1;
+			// return CMP_FORMAT_BC7;
+		default:
+			EG_CORE_ASSERT(false);
+			return CMP_FORMAT_BC1;
+		}
+	}
+
+	static CMP_FORMAT GetCompressionFormat_ETC2(uint32_t numChannels, TextureCompressor::TextureType type)
+	{
+		using TT = TextureCompressor::TextureType;
+
+		if (type == TT::HDR)
+			return CMP_FORMAT_Unknown; // Unsupported
+
+		if (type == TT::NormalMap)
+			return CMP_FORMAT_ETC2_RGB;
+
+		switch (numChannels)
+		{
+		case 1:
+			return CMP_FORMAT_Unknown; // Unsupported
+		case 2:
+			return CMP_FORMAT_Unknown; // Unsupported
+		case 3:
+			return CMP_FORMAT_ETC2_RGB;
+		case 4:
+			return type == TT::RegularWithAlpha ? CMP_FORMAT_ETC2_RGBA : CMP_FORMAT_ETC2_RGB;
+		default:
+			EG_CORE_ASSERT(false);
+			return CMP_FORMAT_ETC2_RGB;
+		}
+	}
+
+	static ImageFormat FromCMPFormat_BC(CMP_FORMAT format)
+	{
+		switch (format)
+		{
+		case CMP_FORMAT_BC1:
+			return ImageFormat::BC1_RGB_UNorm;
+		case CMP_FORMAT_BC2:
+			return ImageFormat::BC2_UNorm;
+		case CMP_FORMAT_BC3:
+			return ImageFormat::BC3_UNorm;
+		case CMP_FORMAT_BC4:
+			return ImageFormat::BC4_UNorm;
+		case CMP_FORMAT_BC5:
+			return ImageFormat::BC5_UNorm;
+		case CMP_FORMAT_BC6H:
+			return ImageFormat::BC6H_UFloat16;
+		case CMP_FORMAT_BC7:
+			return ImageFormat::BC7_UNorm;
+		}
+
+		EG_CORE_ERROR("Unknown/Unsupported format: {}", Utils::GetEnumName(format));
+		return ImageFormat::Unknown;
+	}
+
+	static ImageFormat FromCMPFormat_ETC2(CMP_FORMAT format)
+	{
+		switch (format)
+		{
+		case CMP_FORMAT_BC1:
+			return ImageFormat::ETC2_RGB_UNorm;
+		case CMP_FORMAT_BC3:
+			return ImageFormat::ETC2_RGBA_UNorm;
+		}
+
+		EG_CORE_ERROR("Unknown/Unsupported format: {}", Utils::GetEnumName(format));
+		return ImageFormat::Unknown;
+	}
+
+	static bool IsFormatSupported_BC(ImageFormat format)
+	{
+		switch (format)
+		{
+		case ImageFormat::BC1_RGB_UNorm:
+		case ImageFormat::BC2_UNorm:
+		case ImageFormat::BC3_UNorm:
+		case ImageFormat::BC4_UNorm:
+		case ImageFormat::BC5_UNorm:
+		case ImageFormat::BC6H_UFloat16:
+		case ImageFormat::BC7_UNorm:
+			return true;
+		default:
+			return false;
+		}
+	}
+
+	static bool IsFormatSupported_ETC2(ImageFormat format)
+	{
+		switch (format)
+		{
+		case ImageFormat::ETC2_RGB_UNorm:
+		case ImageFormat::ETC2_RGBA_UNorm:
+			return true;
+		default:
+			return false;
+		}
+	}
 
 	void TextureCompressor::Init()
 	{
-		basisu::basisu_encoder_init();
+		// Do it just once for the lifetime of the executable
+		static bool bInitialized = false;
+		if (!bInitialized)
+		{
+			CMP_InitFramework();
+			bInitialized = true;
+		}
+
+		auto context = Application::Get().GetRenderContext();
+		if (!context)
+		{
+			EG_CORE_ERROR("[TextureCompressor] Failed to get render context");
+			return;
+		}
+
+		const auto& caps = context->GetCapabilities();
+		if (caps.bTextureCompressionBC)
+		{
+			s_GetCompressionFormatFunc = GetCompressionFormat_BC;
+			s_FromCMPFormatFunc = FromCMPFormat_BC;
+			s_IsFormatSupportedFunc = IsFormatSupported_BC;
+			EG_CORE_INFO("BC compression is enabled");
+		}
+		else if (caps.bTextureCompressionETC2)
+		{
+			s_GetCompressionFormatFunc = GetCompressionFormat_ETC2;
+			s_FromCMPFormatFunc = FromCMPFormat_ETC2;
+			s_IsFormatSupportedFunc = IsFormatSupported_ETC2;
+			EG_CORE_INFO("ETC2 compression is enabled. Note: currently, the engine only supports ETC2 compression of RGB8 and RGBA8 textures (LDR)");
+		}
+		else
+		{
+			s_GetCompressionFormatFunc = nullptr;
+			s_FromCMPFormatFunc = nullptr;
+			s_IsFormatSupportedFunc = nullptr;
+			EG_CORE_WARN("Texture compression is not supported by the current device: {}. Currently, only BC and ETC2 compression are supported by the engine", caps.Device);
+		}
 	}
 
 	void TextureCompressor::Shutdown()
 	{
-		basisu::basisu_encoder_deinit();
+		s_GetCompressionFormatFunc = nullptr;
+		s_FromCMPFormatFunc = nullptr;
 	}
 
-	void* TextureCompressor::Compress(DataBuffer imageData, glm::uvec2 size, uint32_t mipsCount, bool bNormalMap, bool bNeedAlpha)
+	bool TextureCompressor::IsCompressionFormatSupported(ImageFormat format)
 	{
-		ktxTexture2* texture = nullptr;
-
-		basisu::image img;
-		img.resize(size.x, size.y);
-		auto& pixels = img.get_pixels();
-		memcpy(pixels.data(), imageData.Data, imageData.Size);
-		const glm::uvec2 smallestMipSize = size >> (mipsCount - 1);
-
-		basisu::basis_compressor_params basisCompressorParams;
-
-		basisCompressorParams.m_read_source_images = false; // We are not loading the data from a disk
-		basisCompressorParams.m_source_images.push_back(img); // We are processing already loaded data
-		basisCompressorParams.m_perceptual = false; // No sRGB
-		basisCompressorParams.m_mip_srgb = false;
-		basisCompressorParams.m_mip_gen = mipsCount > 1;
-		basisCompressorParams.m_mip_smallest_dimension = (int)glm::max(smallestMipSize.x, smallestMipSize.y);
-
-		basisCompressorParams.m_uastc = true;
-
-		// uastc quality
-		{
-			using namespace basisu;
-			static_assert(TOTAL_PACK_UASTC_LEVELS == 5, "TOTAL_PACK_UASTC_LEVELS==5");
-			static const uint32_t s_level_flags[TOTAL_PACK_UASTC_LEVELS] = { cPackUASTCLevelFastest, cPackUASTCLevelFaster, cPackUASTCLevelDefault, cPackUASTCLevelSlower, cPackUASTCLevelVerySlow };
-
-			// Range is [0,4], default is 2, higher=slower but higher quality. 0=fastest/lowest quality, 3=slowest practical option, 4=impractically slow/highest achievable quality
-			constexpr int uastc_level = 3;
-			basisCompressorParams.m_pack_uastc_flags &= ~cPackUASTCLevelMask;
-			basisCompressorParams.m_pack_uastc_flags |= s_level_flags[uastc_level];
-		}
-
-		basisCompressorParams.m_rdo_uastc_multithreading = true;
-		basisCompressorParams.m_multithreading = true;
-		basisCompressorParams.m_status_output = false;
-
-		basisCompressorParams.m_create_ktx2_file = true;
-		basisCompressorParams.m_ktx2_uastc_supercompression = basist::KTX2_SS_ZSTANDARD;
-
-		basisCompressorParams.m_compression_level = 1;
-		basisCompressorParams.m_quality_level = basisu::BASISU_QUALITY_MAX;
-
-		basisCompressorParams.m_no_selector_rdo = bNormalMap;
-		basisCompressorParams.m_no_endpoint_rdo = bNormalMap;
-
-		basisCompressorParams.m_check_for_alpha = bNeedAlpha;
-
-		basisu::job_pool jpool(std::thread::hardware_concurrency());
-		basisCompressorParams.m_pJob_pool = &jpool;
-
-		basisu::basis_compressor basisCompressor;
-		if (basisCompressor.init(basisCompressorParams))
-		{
-			basisu::basis_compressor::error_code basisResult = basisCompressor.process();
-
-			if (basisResult == basisu::basis_compressor::cECSuccess)
-			{
-				const basisu::vector<uint8_t>& ktx2Data = basisCompressor.get_output_ktx2_file();
-
-				const DataBuffer data{ (void*)ktx2Data.data(), ktx2Data.size() };
-				texture = (ktxTexture2*)CreateFromCompressed(data, bNeedAlpha);
-			}
-			else
-			{
-				EG_CORE_ERROR("Failed to compress the texture. Basis_compressor has failed!");
-			}
-		}
-		else
-		{
-			EG_CORE_ERROR("Initialization of basis_compressor has failed!");
-		}
-
-		return texture;
+		return s_IsFormatSupportedFunc ? s_IsFormatSupportedFunc(format) : false;
 	}
 
-	void* TextureCompressor::CreateFromCompressed(DataBuffer compressed, bool bNeedAlpha)
+	TextureCompressor::Result TextureCompressor::Compress(DataBuffer imageData, uint32_t targetNumChannels, uint32_t mipsCount, bool bNormalMap, bool bHDR)
 	{
-		ktxTexture2* texture = nullptr;
+		if (!s_GetCompressionFormatFunc)
+			return {}; // Compression is not supported
 
-		KTX_error_code result = ktxTexture2_CreateFromMemory((const ktx_uint8_t*)compressed.Data, compressed.Size, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &texture);
-		if (result != KTX_SUCCESS)
-			return nullptr;
+		constexpr int desiredChannels = 4;
+		int width = 0, height = 0, channels = 0;
 
-		// Save ktx data
+		ScopedDataBuffer decodedData = Utils::LoadTextureFromMemory(imageData, &width, &height, &channels, desiredChannels);
+		if (!decodedData)
 		{
-			basisu::vector<uint8_t> ktx2Data;
-			ktx2Data.resize(compressed.Size);
-			memcpy(ktx2Data.data(), compressed.Data, compressed.Size);
-
-			std::scoped_lock lock(s_Mutex);
-			s_KTX2Data[texture] = std::move(ktx2Data);
-		}
-
-		if (ktxTexture2_NeedsTranscoding(texture))
-		{
-			ktx_texture_transcode_fmt_e tf = KTX_TTF_NOSELECTION;
-
-			const auto& caps = Application::Get().GetRenderContext()->GetCapabilities();
-			khr_df_model_e colorModel = ktxTexture2_GetColorModel_e(texture);
-
-			if (colorModel == KHR_DF_MODEL_UASTC && caps.bTextureCompressionASTC_LDR)
-				tf = KTX_TTF_ASTC_4x4_RGBA;
-			else if (colorModel == KHR_DF_MODEL_ETC1S && caps.bTextureCompressionETC2)
-				tf = KTX_TTF_ETC;
-			else if (caps.bTextureCompressionASTC_LDR)
-				tf = KTX_TTF_ASTC_4x4_RGBA;
-			else if (caps.bTextureCompressionETC2)
-			{
-				if (bNeedAlpha)
-					tf = KTX_TTF_ETC2_RGBA;
-				else
-					tf = KTX_TTF_ETC1_RGB;
-			}
-			else if (caps.bTextureCompressionBC)
-			{
-				if (bNeedAlpha)
-					tf = KTX_TTF_BC3_RGBA;
-				else
-					tf = KTX_TTF_BC1_RGB;
-			}
-
-			if (tf == KTX_TTF_NOSELECTION)
-				EG_CORE_ERROR("Texture compression is not supported by the GPU");
-			else if (result = ktxTexture2_TranscodeBasis(texture, tf, 0); result != KTX_SUCCESS)
-				EG_CORE_ERROR("Failed to transcode the texture");
-		}
-
-		return texture;
-	}
-
-	void TextureCompressor::Destroy(const void* compressedHandle)
-	{
-		std::scoped_lock lock(s_Mutex);
-		s_KTX2Data.erase(compressedHandle);
-		ktxTexture_Destroy((ktxTexture*)compressedHandle);
-	}
-
-	DataBuffer TextureCompressor::GetImageData(const void* compressedHandle)
-	{
-		const ktxTexture2* texture = (const ktxTexture2*)compressedHandle;
-		return DataBuffer(texture->pData, texture->dataSize);
-	}
-
-	DataBuffer TextureCompressor::GetKTX2Data(const void* compressedHandle)
-	{
-		std::scoped_lock lock(s_Mutex);
-		auto it = s_KTX2Data.find(compressedHandle);
-		if (it != s_KTX2Data.end())
-		{
-			return DataBuffer(it->second.data(), it->second.size());
-		}
-		else
-		{
-			EG_CORE_ERROR("Failed to get KTX2 data");
+			EG_CORE_ERROR("Failed to decode the image data (stbi_load_from_memory)");
 			return {};
 		}
+
+		return CompressDecoded(decodedData.GetDataBuffer(), glm::uvec2(width, height), targetNumChannels, mipsCount, bNormalMap, bHDR);
 	}
 	
-	ImageFormat TextureCompressor::GetFormat(const void* compressedHandle)
+	TextureCompressor::Result TextureCompressor::CompressDecoded(DataBuffer imageData, glm::uvec2 size, uint32_t targetNumChannels, uint32_t mipsCount, bool bNormalMap, bool bHDR)
 	{
-		const ktxTexture2* texture = (const ktxTexture2*)compressedHandle;
-		return VulkanToImageFormat((VkFormat)texture->vkFormat);
-	}
+		if (!s_GetCompressionFormatFunc)
+			return {}; // Compression is not supported
 
-	uint32_t TextureCompressor::GetMipsCount(const void* compressedHandle)
-	{
-		const ktxTexture2* texture = (const ktxTexture2*)compressedHandle;
-		return texture->numLevels;
-	}
+		const TextureType type = ToTextureType(targetNumChannels, bNormalMap, bHDR);
+		const CMP_FORMAT destFormat = s_GetCompressionFormatFunc(targetNumChannels, type);
+		if (destFormat == CMP_FORMAT_Unknown)
+		{
+			EG_CORE_ERROR("Failed to compress the texture. Desired compression format is not supported!");
+			return {};
+		}
 
-	bool TextureCompressor::IsCompressedSuccessfully(const void* compressedHandle)
-	{
-		ktxTexture2* texture = (ktxTexture2*)compressedHandle;
-		return ktxTexture2_NeedsTranscoding(texture) == false;
-	}
+		CMP_MipSet src;
+		if (!CreateCMPTexture(imageData, size, type, &src))
+		{
+			EG_CORE_ERROR("Failed to compress the texture");
+			return {};
+		}
 
-	static KTX_error_code IterateLevels(int miplevel, int face, int width, int height, int depth,
-		ktx_uint64_t faceLodSize, void* pixels, void* userdata)
-	{
-		uint64_t* data = (uint64_t*)userdata;
-		uint64_t requiredLevel = *data;
-		if (requiredLevel != uint64_t(miplevel))
-			return KTX_SUCCESS;
+		const bool bGenerateMips = mipsCount > 1;
+		if (bGenerateMips)
+		{
+			CMP_INT nMinSize = CMP_CalcMinMipSize(src.m_nHeight, src.m_nWidth, mipsCount);
+			if (CMP_GenerateMIPLevels(&src, nMinSize) != CMP_OK)
+			{
+				EG_CORE_ERROR("Failed to generate mips");
+				CMP_FreeMipSet(&src);
+				return {};
+			}
+		}
 
-		*data = uint64_t(pixels);
-		return KTX_SUCCESS;
-	}
-	
-	DataBuffer TextureCompressor::GetMipData(const void* compressedHandle, uint32_t level)
-	{
-		ktxTexture* texture = (ktxTexture*)compressedHandle;
-		const size_t size = ktxTexture_GetImageSize(texture, level);
 
-		// We write the requested level to `userdata`, and the functions writes back to it the memory address of the level
-		uint64_t userData = (uint64_t)level;
-		ktxTexture_IterateLevels(texture, IterateLevels, &userData);
+		const float quality = 0.8f; // TODO: Expose?
+		KernelOptions kernelOptions;
+		memset(&kernelOptions, 0, sizeof(KernelOptions));
+		kernelOptions.format = destFormat;
+		kernelOptions.fquality = quality;
+		kernelOptions.threads = 0;
 
-		return DataBuffer((void*)userData, size);
+		// kernelOptions.bc15 is valid for BC1 to BC5 formats
+		{
+			// Enable setting channel weights
+			kernelOptions.bc15.useChannelWeights = true;
+			kernelOptions.bc15.channelWeights[0] = 0.3086f;
+			kernelOptions.bc15.channelWeights[1] = 0.6094f;
+			kernelOptions.bc15.channelWeights[2] = 0.0820f;
+		}
+
+		CMP_MipSet dst;
+		memset(&dst, 0, sizeof(CMP_MipSet));
+
+		CMP_ERROR status = CMP_ProcessTexture(&src, &dst, kernelOptions, nullptr);
+		if (status != CMP_OK)
+		{
+			EG_CORE_ERROR("Failed to compress the texture");
+			CMP_FreeMipSet(&src);
+			CMP_FreeMipSet(&dst);
+			return {};
+		}
+
+		CMP_FreeMipSet(&src);
+
+		// Just in case if it generates less mips (is it even possible?)
+		mipsCount = dst.m_nMipLevels;
+
+		Result result{};
+		result.Format = s_FromCMPFormatFunc(dst.m_format);
+		result.DataPerMip.reserve(mipsCount);
+
+		for (uint32_t mip = 0; mip < mipsCount; ++mip)
+		{
+			CMP_MipLevel* mipData = nullptr;
+			CMP_GetMipLevel(&mipData, &dst, mip, 0);
+
+			auto& buffer = result.DataPerMip.emplace_back();
+			buffer = DataBuffer::Copy(mipData->m_pbData, mipData->m_dwLinearSize);
+		}
+
+		CMP_FreeMipSet(&dst);
+
+		return result;
 	}
 }

@@ -55,6 +55,7 @@ namespace Eagle
 	enum class AssetTexture2DFormat
 	{
 		RGBA8,
+		RGB8,
 		RG8,
 		R8,
 
@@ -70,12 +71,14 @@ namespace Eagle
 		Default = R11G11B10
 	};
 
-	static constexpr uint32_t AssetTextureFormatToChannels(AssetTexture2DFormat format)
+	static constexpr uint32_t AssetTextureFormatToChannels(AssetTexture2DFormat format, bool bCompressed)
 	{
 		using Format = AssetTexture2DFormat;
 		switch (format)
 		{
 			case Format::RGBA8: return 4u;
+			// Still 4 since VK doesn't support raw RGB8 textures. But when compressed, it matters
+			case Format::RGB8: return bCompressed ? 3u : 4u;
 			case Format::RG8: return 2u;
 			case Format::R8: return 1u;
 		}
@@ -84,12 +87,31 @@ namespace Eagle
 		return 4;
 	}
 
+	static constexpr AssetTexture2DFormat ChannelsToAssetTexture2DFormat(uint32_t channels)
+	{
+		switch (channels)
+		{
+		case 1:
+			return AssetTexture2DFormat::R8;
+		case 2:
+			return AssetTexture2DFormat::RG8;
+		case 3:
+			return AssetTexture2DFormat::RGB8;
+		case 4:
+			return AssetTexture2DFormat::RGBA8;
+		}
+
+		EG_CORE_ASSERT(!"Invalid format");
+		return AssetTexture2DFormat::RGBA8;
+	}
+
 	static constexpr ImageFormat AssetTextureFormatToImageFormat(AssetTexture2DFormat format)
 	{
 		using Format = AssetTexture2DFormat;
 		switch (format)
 		{
 		case Format::RGBA8: return ImageFormat::R8G8B8A8_UNorm;
+		case Format::RGB8: return ImageFormat::R8G8B8A8_UNorm;
 		case Format::RG8: return ImageFormat::R8G8_UNorm;
 		case Format::R8: return ImageFormat::R8_UNorm;
 		}
@@ -259,15 +281,13 @@ namespace Eagle
 		// Can be used to generate new mips: asset->SetIsCompressed(asset->IsCompressed(), newMipsCount);
 		void SetIsCompressed(bool bCompressed, uint32_t mipsCount);
 		void SetIsNormalMap(bool bNormalMap);
-		void SetNeedsAlpha(bool bNeedAlpha);
 		void SetFormat(AssetTexture2DFormat format);
 
-		const ScopedDataBuffer& GetKTXData() const { return m_KtxData; }
+		const std::vector<ScopedDataBuffer>& GetCompressedDataPerMip() const { return m_CompressedDataPerMip; }
 		const Ref<Texture2D>& GetTexture() const { return m_Texture; }
 		AssetTexture2DFormat GetFormat() const { return m_Format; }
 		bool IsCompressed() const { return bCompressed; }
 		bool IsNormalMap() const { return bNormalMap; }
-		bool DoesNeedAlpha() const { return bNeedAlpha; }
 
 		AssetTexture2D& operator=(Asset&& other) noexcept override
 		{
@@ -277,12 +297,11 @@ namespace Eagle
 			Asset::operator=(std::move(other));
 				
 			AssetTexture2D&& textureAsset = (AssetTexture2D&&)other;
-			m_KtxData = std::move(textureAsset.m_KtxData);
+			m_CompressedDataPerMip = std::move(textureAsset.m_CompressedDataPerMip);
 			m_Texture = std::move(textureAsset.m_Texture);
 			m_Format = std::move(textureAsset.m_Format);
 			bCompressed = std::move(textureAsset.bCompressed);
 			bNormalMap = std::move(textureAsset.bNormalMap);
-			bNeedAlpha = std::move(textureAsset.bNeedAlpha);
 
 			return *this;
 		}
@@ -290,26 +309,17 @@ namespace Eagle
 		static constexpr AssetType GetAssetType_Static() { return AssetType::Texture2D; }
 
 	protected:
-		AssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const DataBuffer& ktxData, const Ref<Texture2D>& texture,
-			AssetTexture2DFormat format, bool bCompressed, bool bNormalMap, bool bNeedAlpha);
+		AssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, std::vector<ScopedDataBuffer>&& compressedDataPerMip,
+			const Ref<Texture2D>& texture, AssetTexture2DFormat format, bool bCompressed, bool bNormalMap);
 
-		void SetKTXData(const DataBuffer& buffer)
-		{
-			if (buffer.Data)
-				m_KtxData = DataBuffer::Copy(buffer.Data, buffer.Size);
-			else
-				m_KtxData.Release();
-		}
-
-		void UpdateTextureData_Internal(bool bCompressed, uint32_t mipsCount);
+		void UpdateTextureData_Internal(uint32_t mipsCount);
 
 	private:
-		ScopedDataBuffer m_KtxData;
+		std::vector<ScopedDataBuffer> m_CompressedDataPerMip;
 		Ref<Texture2D> m_Texture;
 		AssetTexture2DFormat m_Format;
 		bool bCompressed = true;
 		bool bNormalMap = false;
-		bool bNeedAlpha = false;
 	};
 
 	class AssetTextureCube : public Asset

@@ -141,8 +141,8 @@ namespace Eagle
 		pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 		pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 		pipeline->SetBuffer(m_TransformsBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
-		pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSampler, 3, 0);
-		pipeline->SetImageSampler(gbuffer.Flags, Sampler::PointSampler, 3, 1);
+		pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSampler, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+		pipeline->SetImageSampler(gbuffer.Flags, Sampler::PointSampler, EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
 	}
 
 	void RenderDecalsTask::Render(const Ref<CommandBuffer>& cmd)

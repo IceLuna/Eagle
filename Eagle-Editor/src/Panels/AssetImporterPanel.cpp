@@ -60,7 +60,7 @@ namespace Eagle
 
 				int comp = 1;
 				stbi_info(path.u8string().c_str(), &data.Size.x, &data.Size.y, &comp);
-				settings.bNeedAlpha = !settings.bNormalMap && comp == 4;
+				settings.ImportFormat = ChannelsToAssetTexture2DFormat(comp);
 			}
 			else if (assetType == AssetType::TextureCube)
 			{
@@ -231,7 +231,7 @@ namespace Eagle
 		const int maxMips = (int)CalculateMipCount(uint32_t(size.x), uint32_t(size.y));
 		int mips = int(settings.MipsCount);
 
-		UI::ComboEnum("Format", settings.ImportFormat, "Compression only supports RGBA8 format!");
+		UI::ComboEnum("Format", settings.ImportFormat);
 		UI::ComboEnum("Filter mode", settings.FilterMode);
 		UI::ComboEnum("Address mode", settings.AddressMode);
 		UI::PropertySlider("Anisotropy", settings.Anisotropy, 1.f, 16.f, "The final max value will be limited by the hardware capabilities");
@@ -245,17 +245,10 @@ namespace Eagle
 			if (UI::PropertyDrag("Max Mips", settings.MipsCount))
 				settings.MipsCount = glm::max(1u, settings.MipsCount);
 		}
-		UI::Property("Compress", settings.bCompress, "If set to true, the engine will try to compress the image. Compression only supports RGBA8 format!");
+		UI::Property("Compress", settings.bCompress, "If set to true, the engine will try to compress the image");
 		if (!bDrawingCommon)
 		{
 			UI::Property("Is Normal Map", settings.bNormalMap, "Set to true, if the importing image is a normal map. Currently, it only affects the result if the compression is enabled");
-			UI::Property("Import alpha channel", settings.bNeedAlpha, "Set to true, if the alpha channel should be imported. Currently, it only affects the result if the compression is enabled");
-		}
-
-		if (settings.bCompress && settings.ImportFormat != AssetTexture2DFormat::RGBA8)
-		{
-			Application::Get().GetImGuiLayer()->AddMessage("Compressed textures only support RGBA8 format");
-			settings.ImportFormat = AssetTexture2DFormat::RGBA8;
 		}
 
 		if (bOverride && ((*bOverride) == false))

@@ -301,6 +301,8 @@ namespace Eagle
 		case ImageFormat::BC6H_SFloat16: return VK_FORMAT_BC6H_SFLOAT_BLOCK;
 		case ImageFormat::BC7_UNorm: return VK_FORMAT_BC7_UNORM_BLOCK;
 		case ImageFormat::BC7_UNorm_SRGB: return VK_FORMAT_BC7_SRGB_BLOCK;
+		case ImageFormat::ETC2_RGB_UNorm: return VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
+		case ImageFormat::ETC2_RGBA_UNorm: return VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
 		}
 		EG_CORE_ASSERT(!"Unknown format");
 		return VK_FORMAT_UNDEFINED;
@@ -387,6 +389,8 @@ namespace Eagle
 		case VK_FORMAT_BC6H_SFLOAT_BLOCK: return ImageFormat::BC6H_SFloat16;
 		case VK_FORMAT_BC7_UNORM_BLOCK: return ImageFormat::BC7_UNorm;
 		case VK_FORMAT_BC7_SRGB_BLOCK: return		 ImageFormat::BC7_UNorm_SRGB;
+		case VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK: return ImageFormat::ETC2_RGB_UNorm;
+		case VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK: return ImageFormat::ETC2_RGBA_UNorm;
 		}
 		EG_CORE_ASSERT(!"Unknown format");
 		return ImageFormat::Unknown;

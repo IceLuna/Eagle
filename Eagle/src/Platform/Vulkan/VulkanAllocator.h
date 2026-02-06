@@ -14,8 +14,8 @@ namespace Eagle
 		static void Init();
 		static void Shutdown();
 
-		[[nodiscard]] static VmaAllocation AllocateBuffer(const VkBufferCreateInfo* bufferCI, MemoryType usage, bool bSeparateAllocation, const std::string& debugName, VkBuffer* outBuffer);
-		[[nodiscard]] static VmaAllocation AllocateImage(const VkImageCreateInfo* imageCI, MemoryType usage, bool bSeparateAllocation, const std::string& debugName, VkImage* outImage);
+		[[nodiscard]] static VmaAllocation AllocateBuffer(const VkBufferCreateInfo* bufferCI, MemoryType usage, const std::string& debugName, VkBuffer* outBuffer);
+		[[nodiscard]] static VmaAllocation AllocateImage(const VkImageCreateInfo* imageCI, MemoryType usage, const std::string& debugName, VkImage* outImage);
 
 		static void DestroyImage(VkImage image, VmaAllocation allocation);
 		static void DestroyBuffer(VkBuffer buffer, VmaAllocation allocation);

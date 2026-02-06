@@ -18,8 +18,6 @@
 #include <imgui_internal.h>
 #include <imgui_impl_vulkan.h>
 
-#include <stb_image.h>
-
 namespace Eagle::UI
 {
 	static constexpr int s_IDBufferSize = 32;

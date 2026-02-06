@@ -34,7 +34,7 @@ namespace Eagle
     static VulkanAllocatorData* s_AllocatorData = nullptr;
 	static std::unordered_map<VmaAllocation, GPUResourceDebugData> s_Allocations;
 
-	static std::mutex s_Mutex; // TODO: Check if needed
+	static std::mutex s_Mutex;
 
 	void VulkanAllocator::Init()
 	{
@@ -68,12 +68,12 @@ namespace Eagle
 		s_AllocatorData = nullptr;
 	}
 
-	VmaAllocation VulkanAllocator::AllocateBuffer(const VkBufferCreateInfo* bufferCI, MemoryType usage, bool bSeparateAllocation, const std::string& debugName, VkBuffer* outBuffer)
+	VmaAllocation VulkanAllocator::AllocateBuffer(const VkBufferCreateInfo* bufferCI, MemoryType usage, const std::string& debugName, VkBuffer* outBuffer)
 	{
 		VmaAllocationCreateInfo ci{};
 		ci.usage = Utils::MemoryTypeToVmaUsage(usage);
-		ci.flags = bSeparateAllocation ? VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT : 0;
 
+		std::scoped_lock lock(s_Mutex);
 		VmaAllocation allocation;
 		vmaCreateBuffer(s_AllocatorData->Allocator, bufferCI, &ci, outBuffer, &allocation, nullptr);
 
@@ -81,65 +81,53 @@ namespace Eagle
 		vmaGetAllocationInfo(s_AllocatorData->Allocator, allocation, &allocationInfo);
 		s_AllocatorData->TotalAllocatedBytes += allocationInfo.size;
 
-		{
-			std::scoped_lock lock(s_Mutex);
-			s_Allocations[allocation] = { debugName, allocationInfo.size };
-		}
+		s_Allocations[allocation] = { debugName, allocationInfo.size };
 
 		return allocation;
 	}
 
-	VmaAllocation VulkanAllocator::AllocateImage(const VkImageCreateInfo* imageCI, MemoryType usage, bool bSeparateAllocation, const std::string& debugName, VkImage* outImage)
+	VmaAllocation VulkanAllocator::AllocateImage(const VkImageCreateInfo* imageCI, MemoryType usage, const std::string& debugName, VkImage* outImage)
 	{
 		VmaAllocationCreateInfo ci{};
 		ci.usage = Utils::MemoryTypeToVmaUsage(usage);
-		ci.flags = bSeparateAllocation ? VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT : 0;
 
+		std::scoped_lock lock(s_Mutex);
 		VmaAllocation allocation;
 		vmaCreateImage(s_AllocatorData->Allocator, imageCI, &ci, outImage, &allocation, nullptr);
 
 		VmaAllocationInfo allocationInfo{};
 		vmaGetAllocationInfo(s_AllocatorData->Allocator, allocation, &allocationInfo);
 		s_AllocatorData->TotalAllocatedBytes += allocationInfo.size;
-		
-		{
-			std::scoped_lock lock(s_Mutex);
-			s_Allocations[allocation] = { debugName, allocationInfo.size };
-		}
+		s_Allocations[allocation] = { debugName, allocationInfo.size };
 
 		return allocation;
 	}
 
 	void VulkanAllocator::DestroyImage(VkImage image, VmaAllocation allocation)
 	{
+		std::scoped_lock lock(s_Mutex);
 		VmaAllocationInfo allocationInfo{};
 		vmaGetAllocationInfo(s_AllocatorData->Allocator, allocation, &allocationInfo);
 		s_AllocatorData->TotalFreedBytes += allocationInfo.size;
 
 		vmaDestroyImage(s_AllocatorData->Allocator, image, allocation);
-
-		{
-			std::scoped_lock lock(s_Mutex);
-			s_Allocations.erase(allocation);
-		}
+		s_Allocations.erase(allocation);
 	}
 
 	void VulkanAllocator::DestroyBuffer(VkBuffer buffer, VmaAllocation allocation)
 	{
+		std::scoped_lock lock(s_Mutex);
 		VmaAllocationInfo allocationInfo{};
 		vmaGetAllocationInfo(s_AllocatorData->Allocator, allocation, &allocationInfo);
 		s_AllocatorData->TotalFreedBytes += allocationInfo.size;
 
 		vmaDestroyBuffer(s_AllocatorData->Allocator, buffer, allocation);
-
-		{
-			std::scoped_lock lock(s_Mutex);
-			s_Allocations.erase(allocation);
-		}
+		s_Allocations.erase(allocation);
 	}
 
 	bool VulkanAllocator::IsHostVisible(VmaAllocation allocation)
 	{
+		std::scoped_lock lock(s_Mutex);
 		VmaAllocationInfo allocationInfo = {};
 		vmaGetAllocationInfo(s_AllocatorData->Allocator, allocation, &allocationInfo);
 
