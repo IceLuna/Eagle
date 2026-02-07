@@ -24,14 +24,14 @@ namespace Eagle
 	static ScopedDataBuffer CreateTexture2DAssetFromMemory(DataBuffer buffer, const Path& outputFilename, const AssetImportTexture2DSettings& settings)
 	{
 		TextureCompressor::Result compressedData{};
-		bool bCompressTexture = settings.bCompress;
+		TextureCompressor::Quality compression = settings.Compression;
 
-		if (bCompressTexture)
+		if (compression != TextureCompressor::Quality::Disabled)
 		{
-			const uint32_t targetNumChannels = AssetTextureFormatToChannels(settings.ImportFormat, bCompressTexture);
-			compressedData = TextureCompressor::Compress(buffer, targetNumChannels, settings.MipsCount, settings.bNormalMap);
+			const uint32_t targetNumChannels = AssetTextureFormatToChannels(settings.ImportFormat, compression);
+			compressedData = TextureCompressor::Compress(buffer, targetNumChannels, settings.MipsCount, compression, settings.bNormalMap);
 			if (!compressedData)
-				bCompressTexture = false; // Failed to compress
+				compression = TextureCompressor::Quality::Disabled; // Failed to compress
 		}
 
 		int width, height, channels;
@@ -40,7 +40,7 @@ namespace Eagle
 		const Path pathToRaw = {}; // Empty since it doesn't come from a file
 		auto data = Serializer::SerializeAssetTexture2DFromData(buffer, compressedData.DataPerMip, compressedData.Format, GUID{}, pathToRaw,
 			settings.FilterMode, settings.AddressMode, settings.Anisotropy, settings.MipsCount,
-			width, height, settings.ImportFormat, bCompressTexture, settings.bNormalMap);
+			width, height, settings.ImportFormat, compression, settings.bNormalMap);
 		FileSystem::Write(outputFilename, data);
 
 		return data;

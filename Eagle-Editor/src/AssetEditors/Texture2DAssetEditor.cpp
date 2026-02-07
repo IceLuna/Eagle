@@ -9,6 +9,8 @@
 namespace Eagle
 {
 	static constexpr int s_MinMips = 1;
+	static constexpr char* s_CompressionHelpMsg = "If set to true, the engine will try to compress the image. "
+		"Most of the time, medium compression is good enough. But if you see some banding/blocks, choose a higher quality, especially for normal maps.";
 
 	Texture2DAssetEditor::Texture2DAssetEditor(const Ref<AssetTexture2D>& asset)
 		: m_Asset(asset)
@@ -51,7 +53,7 @@ namespace Eagle
 			AddressMode addressMode = textureToView->GetAddressMode();
 			const float maxAnisotropy = RenderManager::GetCapabilities().MaxAnisotropy;
 			const size_t gpuMemSize = textureToView->GetMemoryUsage();
-			bool bCompressed = m_Asset->IsCompressed();
+			TextureCompressor::Quality compression = m_Asset->GetCompressionQuality();
 			bool bNormalMap = m_Asset->IsNormalMap();
 			auto assetFormat = m_Asset->GetFormat();
 			bool bChanged = false;
@@ -113,9 +115,9 @@ namespace Eagle
 				bChanged = true;
 			}
 
-			if (UI::Property("Compressed", bCompressed, "If set to true, the engine will try to compress the image"))
+			if (UI::ComboEnum("Compression", compression, s_CompressionHelpMsg))
 			{
-				m_Asset->SetIsCompressed(bCompressed, textureToView->GetMipsCount());
+				m_Asset->SetCompression(compression, textureToView->GetMipsCount());
 				bChanged = true;
 			}
 
@@ -191,7 +193,7 @@ namespace Eagle
 
 				if (ImGui::Button("Generate"))
 				{
-					m_Asset->SetIsCompressed(m_Asset->IsCompressed(), uint32_t(m_GenerateMipsCount));
+					m_Asset->SetCompression(m_Asset->GetCompressionQuality(), uint32_t(m_GenerateMipsCount));
 					bChanged = true;
 				}
 			}

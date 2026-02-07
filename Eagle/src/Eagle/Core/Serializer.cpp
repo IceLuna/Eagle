@@ -513,7 +513,7 @@ namespace Eagle
 
 	ScopedDataBuffer Serializer::SerializeAssetTexture2DFromData(const DataBuffer& textureData, const std::vector<ScopedDataBuffer>& compressedDataPerMip, ImageFormat compressedFormat,
 		const GUID& guid, const Path& pathToRaw, FilterMode filterMode, AddressMode addressMode, float anisotropy, uint32_t mipsCount, uint32_t width, uint32_t height,
-		AssetTexture2DFormat format, bool bCompressed, bool bNormalMap)
+		AssetTexture2DFormat format, TextureCompressor::Quality compression, bool bNormalMap)
 	{
 		struct CompressedTextureDataInfo
 		{
@@ -549,14 +549,14 @@ namespace Eagle
 		out << YAML::Key << "Width" << YAML::Value << width;
 		out << YAML::Key << "Height" << YAML::Value << height;
 		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(format);
-		out << YAML::Key << "IsCompressed" << YAML::Value << bCompressed;
+		out << YAML::Key << "Compression" << YAML::Value << Utils::GetEnumName(compression);
 		out << YAML::Key << "IsNormalMap" << YAML::Value << bNormalMap;
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
 		out << YAML::Key << "OrigSize" << YAML::Value << origDataSize;
 		out << YAML::Key << "Size" << YAML::Value << compressed.Size();
 		out << YAML::Key << "Offset" << YAML::Value << textureDataOffset;
-		if (bCompressed)
+		if (compression != TextureCompressor::Quality::Disabled)
 		{
 			out << YAML::Key << "CompressedFormat" << YAML::Value << Utils::GetEnumName(compressedFormat);
 			out << YAML::Key << "Compressed" << YAML::Value << YAML::BeginSeq;
@@ -594,7 +594,7 @@ namespace Eagle
 
 		return SerializeAssetTexture2DFromData(asset->GetRawData().GetDataBuffer(), asset->GetCompressedDataPerMip(), texture->GetFormat(), asset->GetGUID(), asset->GetPathToRaw(),
 			texture->GetFilterMode(), texture->GetAddressMode(), texture->GetAnisotropy(), texture->GetMipsCount(), texture->GetWidth(), texture->GetHeight(),
-			asset->GetFormat(), asset->IsCompressed(), asset->IsNormalMap());
+			asset->GetFormat(), asset->GetCompressionQuality(), asset->IsNormalMap());
 	}
 
 	ScopedDataBuffer Serializer::SerializeAssetTextureCubeFromData(const DataBuffer& textureData, const GUID& guid, const Path& pathToRaw, AssetTextureCubeFormat format, uint32_t layerSize, uint32_t prefilterSize)
@@ -3304,7 +3304,9 @@ namespace Eagle
 		AssetTexture2DFormat assetFormat = Utils::GetEnumFromName<AssetTexture2DFormat>(baseNode["Format"].as<std::string>());
 
 		const bool bNormalMap = baseNode["IsNormalMap"].as<bool>();
-		bool bCompressedTexture = baseNode["IsCompressed"].as<bool>();
+		TextureCompressor::Quality compression = TextureCompressor::Quality::Disabled;
+		if (auto node = baseNode["Compression"])
+			compression = Utils::GetEnumFromName<TextureCompressor::Quality>(node.as<std::string>());
 
 		ScopedDataBuffer binary;
 		ImageFormat compressedFormat = ImageFormat::Unknown;
@@ -3355,7 +3357,7 @@ namespace Eagle
 
 		TextureCompressor::Result compressedData{};
 		Ref<Texture2D> texture;
-		if (bCompressedTexture)
+		if (compression != TextureCompressor::Quality::Disabled)
 		{
 			if (!compressedTextures.empty() && compressedFormat != ImageFormat::Unknown && TextureCompressor::IsCompressionFormatSupported(compressedFormat))
 			{
@@ -3364,8 +3366,8 @@ namespace Eagle
 			else
 			{
 				// Try to compress it on the current system
-				const uint32_t targetNumChannels = AssetTextureFormatToChannels(assetFormat, bCompressedTexture);
-				compressedData = TextureCompressor::Compress(binary.GetDataBuffer(), targetNumChannels, specs.MipsCount, bNormalMap);
+				const uint32_t targetNumChannels = AssetTextureFormatToChannels(assetFormat, compression);
+				compressedData = TextureCompressor::Compress(binary.GetDataBuffer(), targetNumChannels, specs.MipsCount, compression, bNormalMap);
 				if (compressedData)
 				{
 					texture = Texture2D::Create(pathToAsset.stem().u8string(), compressedData.Format, glm::uvec2(width, height), compressedData.DataPerMip, specs);
@@ -3373,15 +3375,15 @@ namespace Eagle
 				else
 				{
 					EG_CORE_ERROR("Failed to load the compressed texture. Falling back to loading raw data: {}", pathToAsset.u8string());
-					bCompressedTexture = false;
+					compression = TextureCompressor::Quality::Disabled;
 				}
 			}
 		}
 
 		// If non-compressed requested or compression failed, simply upload the raw data
-		if (!bCompressedTexture)
+		if (compression == TextureCompressor::Quality::Disabled)
 		{
-			const int desiredChannels = AssetTextureFormatToChannels(assetFormat, bCompressedTexture);
+			const int desiredChannels = AssetTextureFormatToChannels(assetFormat, compression);
 			ScopedDataBuffer imageData = Utils::LoadTextureFromMemory(binary, &width, &height, &channels, desiredChannels);
 			if (!imageData)
 			{
@@ -3397,12 +3399,12 @@ namespace Eagle
 		{
 		public:
 			LocalAssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, std::vector<ScopedDataBuffer>&& compressedDataPerMip,
-				const Ref<Texture2D>& texture, AssetTexture2DFormat format, bool bCompressed, bool bNormalMap)
-				: AssetTexture2D(path, pathToRaw, guid, rawData, std::move(compressedDataPerMip), texture, format, bCompressed, bNormalMap) {}
+				const Ref<Texture2D>& texture, AssetTexture2DFormat format, TextureCompressor::Quality compression, bool bNormalMap)
+				: AssetTexture2D(path, pathToRaw, guid, rawData, std::move(compressedDataPerMip), texture, format, compression, bNormalMap) {}
 		};
 
 		Ref<AssetTexture2D> asset = MakeRef<LocalAssetTexture2D>(pathToAsset, pathToRaw, guid,
-			binary.GetDataBuffer(), std::move(compressedData.DataPerMip), texture, assetFormat, bCompressedTexture, bNormalMap);
+			binary.GetDataBuffer(), std::move(compressedData.DataPerMip), texture, assetFormat, compression, bNormalMap);
 
 		return asset;
 	}

@@ -9,6 +9,7 @@
 #include "Eagle/Animation/BlendSpaceUtils.h"
 #include "Eagle/AI/BehaviorGraph.h"
 #include "Eagle/Utils/DelaunayTriangulation.h"
+#include "Eagle/Renderer/TextureCompressor.h"
 
 namespace YAML
 {
@@ -71,9 +72,11 @@ namespace Eagle
 		Default = R11G11B10
 	};
 
-	static constexpr uint32_t AssetTextureFormatToChannels(AssetTexture2DFormat format, bool bCompressed)
+	static constexpr uint32_t AssetTextureFormatToChannels(AssetTexture2DFormat format, TextureCompressor::Quality compression)
 	{
 		using Format = AssetTexture2DFormat;
+
+		const bool bCompressed = compression != TextureCompressor::Quality::Disabled;
 		switch (format)
 		{
 			case Format::RGBA8: return 4u;
@@ -279,14 +282,15 @@ namespace Eagle
 	{
 	public:
 		// Can be used to generate new mips: asset->SetIsCompressed(asset->IsCompressed(), newMipsCount);
-		void SetIsCompressed(bool bCompressed, uint32_t mipsCount);
+		void SetCompression(TextureCompressor::Quality compression, uint32_t mipsCount);
 		void SetIsNormalMap(bool bNormalMap);
 		void SetFormat(AssetTexture2DFormat format);
 
 		const std::vector<ScopedDataBuffer>& GetCompressedDataPerMip() const { return m_CompressedDataPerMip; }
 		const Ref<Texture2D>& GetTexture() const { return m_Texture; }
 		AssetTexture2DFormat GetFormat() const { return m_Format; }
-		bool IsCompressed() const { return bCompressed; }
+		TextureCompressor::Quality GetCompressionQuality() const { return m_Compression; }
+		bool IsCompressed() const { return m_Compression != TextureCompressor::Quality::Disabled; }
 		bool IsNormalMap() const { return bNormalMap; }
 
 		AssetTexture2D& operator=(Asset&& other) noexcept override
@@ -300,7 +304,7 @@ namespace Eagle
 			m_CompressedDataPerMip = std::move(textureAsset.m_CompressedDataPerMip);
 			m_Texture = std::move(textureAsset.m_Texture);
 			m_Format = std::move(textureAsset.m_Format);
-			bCompressed = std::move(textureAsset.bCompressed);
+			m_Compression = std::move(textureAsset.m_Compression);
 			bNormalMap = std::move(textureAsset.bNormalMap);
 
 			return *this;
@@ -310,7 +314,7 @@ namespace Eagle
 
 	protected:
 		AssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, std::vector<ScopedDataBuffer>&& compressedDataPerMip,
-			const Ref<Texture2D>& texture, AssetTexture2DFormat format, bool bCompressed, bool bNormalMap);
+			const Ref<Texture2D>& texture, AssetTexture2DFormat format, TextureCompressor::Quality compression, bool bNormalMap);
 
 		void UpdateTextureData_Internal(uint32_t mipsCount);
 
@@ -318,7 +322,7 @@ namespace Eagle
 		std::vector<ScopedDataBuffer> m_CompressedDataPerMip;
 		Ref<Texture2D> m_Texture;
 		AssetTexture2DFormat m_Format;
-		bool bCompressed = true;
+		TextureCompressor::Quality m_Compression = TextureCompressor::Quality::Medium;
 		bool bNormalMap = false;
 	};
 

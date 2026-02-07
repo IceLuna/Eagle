@@ -7,7 +7,7 @@
 
 namespace Eagle
 {
-	static CMP_FORMAT(*s_GetCompressionFormatFunc)(uint32_t, TextureCompressor::TextureType) = nullptr;
+	static CMP_FORMAT(*s_GetCompressionFormatFunc)(uint32_t, TextureCompressor::TextureType, TextureCompressor::Quality) = nullptr;
 	static ImageFormat(*s_FromCMPFormatFunc)(CMP_FORMAT) = nullptr;
 	static bool(*s_IsFormatSupportedFunc)(ImageFormat) = nullptr;
 
@@ -67,7 +67,7 @@ namespace Eagle
 		return true;
 	}
 
-	static CMP_FORMAT GetCompressionFormat_BC(uint32_t numChannels, TextureCompressor::TextureType type)
+	static CMP_FORMAT GetCompressionFormat_BC(uint32_t numChannels, TextureCompressor::TextureType type, TextureCompressor::Quality quality)
 	{
 		// TODO: What about BC7?
 		using TT = TextureCompressor::TextureType;
@@ -76,7 +76,7 @@ namespace Eagle
 			return CMP_FORMAT_BC6H;
 
 		if (type == TT::NormalMap)
-			return CMP_FORMAT_BC1;
+			return quality == TextureCompressor::Quality::High ? CMP_FORMAT_BC7 : CMP_FORMAT_BC1;
 
 		switch (numChannels)
 		{
@@ -85,17 +85,20 @@ namespace Eagle
 		case 2:
 			return CMP_FORMAT_BC5;
 		case 3:
+			if (quality == TextureCompressor::Quality::High)
+				return CMP_FORMAT_BC7;
 			return CMP_FORMAT_BC1;
 		case 4:
+			if (quality == TextureCompressor::Quality::High)
+				return CMP_FORMAT_BC7;
 			return type == TT::RegularWithAlpha ? CMP_FORMAT_BC3 : CMP_FORMAT_BC1;
-			// return CMP_FORMAT_BC7;
 		default:
 			EG_CORE_ASSERT(false);
 			return CMP_FORMAT_BC1;
 		}
 	}
 
-	static CMP_FORMAT GetCompressionFormat_ETC2(uint32_t numChannels, TextureCompressor::TextureType type)
+	static CMP_FORMAT GetCompressionFormat_ETC2(uint32_t numChannels, TextureCompressor::TextureType type, TextureCompressor::Quality quality)
 	{
 		using TT = TextureCompressor::TextureType;
 
@@ -240,7 +243,7 @@ namespace Eagle
 		return s_IsFormatSupportedFunc ? s_IsFormatSupportedFunc(format) : false;
 	}
 
-	TextureCompressor::Result TextureCompressor::Compress(DataBuffer imageData, uint32_t targetNumChannels, uint32_t mipsCount, bool bNormalMap, bool bHDR)
+	TextureCompressor::Result TextureCompressor::Compress(DataBuffer imageData, uint32_t targetNumChannels, uint32_t mipsCount, Quality quality, bool bNormalMap, bool bHDR)
 	{
 		if (!s_GetCompressionFormatFunc)
 			return {}; // Compression is not supported
@@ -255,16 +258,16 @@ namespace Eagle
 			return {};
 		}
 
-		return CompressDecoded(decodedData.GetDataBuffer(), glm::uvec2(width, height), targetNumChannels, mipsCount, bNormalMap, bHDR);
+		return CompressDecoded(decodedData.GetDataBuffer(), glm::uvec2(width, height), targetNumChannels, mipsCount, quality, bNormalMap, bHDR);
 	}
 	
-	TextureCompressor::Result TextureCompressor::CompressDecoded(DataBuffer imageData, glm::uvec2 size, uint32_t targetNumChannels, uint32_t mipsCount, bool bNormalMap, bool bHDR)
+	TextureCompressor::Result TextureCompressor::CompressDecoded(DataBuffer imageData, glm::uvec2 size, uint32_t targetNumChannels, uint32_t mipsCount, Quality compressionQuality, bool bNormalMap, bool bHDR)
 	{
-		if (!s_GetCompressionFormatFunc)
+		if (!s_GetCompressionFormatFunc || compressionQuality == Quality::Disabled)
 			return {}; // Compression is not supported
 
 		const TextureType type = ToTextureType(targetNumChannels, bNormalMap, bHDR);
-		const CMP_FORMAT destFormat = s_GetCompressionFormatFunc(targetNumChannels, type);
+		const CMP_FORMAT destFormat = s_GetCompressionFormatFunc(targetNumChannels, type, compressionQuality);
 		if (destFormat == CMP_FORMAT_Unknown)
 		{
 			EG_CORE_ERROR("Failed to compress the texture. Desired compression format is not supported!");

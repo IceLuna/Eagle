@@ -8273,7 +8273,7 @@ namespace Eagle
 		textureAsset->SetIsNormalMap(value);
 	}
 
-	void Script::Eagle_AssetTexture2D_SetIsCompressed(GUID id, bool value)
+	void Script::Eagle_AssetTexture2D_SetCompression(GUID id, TextureCompressor::Quality quality)
 	{
 		Ref<Asset> asset;
 		if (!AssetManager::Get(id, &asset))
@@ -8289,7 +8289,7 @@ namespace Eagle
 			return;
 		}
 
-		textureAsset->SetIsCompressed(value, textureAsset->GetTexture()->GetMipsCount());
+		textureAsset->SetCompression(quality, textureAsset->GetTexture()->GetMipsCount());
 	}
 
 	AssetTexture2DFormat Script::Eagle_AssetTexture2D_GetFormat(GUID id)
@@ -8330,23 +8330,23 @@ namespace Eagle
 		return textureAsset->IsNormalMap();
 	}
 
-	bool Script::Eagle_AssetTexture2D_IsCompressed(GUID id)
+	TextureCompressor::Quality Script::Eagle_AssetTexture2D_GetCompressionQuality(GUID id)
 	{
 		Ref<Asset> asset;
 		if (!AssetManager::Get(id, &asset))
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsCompressed` of AssetTexture2D. Couldn't find an asset");
-			return false;
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetCompressionQuality` of AssetTexture2D. Couldn't find an asset");
+			return TextureCompressor::Quality::Disabled;
 		}
 
 		Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
 		if (!textureAsset)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsCompressed` of AssetTexture2D. It's not a texture 2D asset");
-			return false;
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetCompressionQuality` of AssetTexture2D. It's not a texture 2D asset");
+			return TextureCompressor::Quality::Disabled;
 		}
 
-		return textureAsset->IsCompressed();
+		return textureAsset->GetCompressionQuality();
 	}
 
 	//--------------AssetTextureCube--------------

@@ -119,7 +119,7 @@ namespace Eagle
 			// Entity: we can't load entities unless all assets are loaded since entities might refer to anything
 			else if (type == AssetType::Entity)
 			{
-				// Entity assets need to be created in a single thread (mono related issues)
+				// Entity assets need to be created in a single thread (C# mono related issues)
 				assetsToLoadQueue[6].Paths.emplace_back(std::move(assetPath));
 				assetsToLoadQueue[6].bAsync = false;
 				continue;
@@ -173,7 +173,7 @@ namespace Eagle
 			}
 		}
 
-		EG_CORE_INFO("Took {}s to load all project assets using {} threads", globalTimer.GetSeconds(), threadCount);
+		EG_CORE_INFO("Took {}s to load all {} project assets using {} threads", globalTimer.GetSeconds(), s_Assets.size(), threadCount);
 
 		s_Skybox = Cast<AssetTextureCube>(Asset::Create(Application::GetCorePath() / "assets/textures/IBL.egasset"));
 		s_Sphere = Cast<AssetStaticMesh>(Asset::Create(Application::GetCorePath() / "assets/meshes/Sphere.egasset"));

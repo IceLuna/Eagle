@@ -1843,6 +1843,11 @@ namespace Eagle::UI
 
 	void AddImage(const Ref<Eagle::Image>& image, const ImVec2& min, const ImVec2& max, const ImVec2& uv0, const ImVec2& uv1, uint32_t col)
 	{
+		AddImage(image, Sampler::BilinearSampler, min, max, uv0, uv1, col);
+	}
+
+	void AddImage(const Ref<Eagle::Image>& image, const Ref<Eagle::Sampler>& sampler, const ImVec2& min, const ImVec2& max, const ImVec2& uv0, const ImVec2& uv1, uint32_t col)
+	{
 		if (!image)
 			return;
 
@@ -1850,7 +1855,7 @@ namespace Eagle::UI
 		{
 			constexpr uint32_t mip = 0;
 			ImageView imageView{ mip };
-			VkSampler vkSampler = (VkSampler)Sampler::BilinearSampler->GetHandle();
+			VkSampler vkSampler = (VkSampler)sampler->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle(imageView);
 
 			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
@@ -1880,6 +1885,11 @@ namespace Eagle::UI
 	}
 
 	bool ImageButtonWithText(const Ref<Eagle::Image>& image, const std::string_view text, ImVec2 size, bool bFillFrameDefault, float borderSize, float textHeightOffset, ImVec2 framePadding)
+	{
+		return ImageButtonWithText(image, Sampler::BilinearSampler, text, size, bFillFrameDefault, borderSize, textHeightOffset, framePadding);
+	}
+
+	bool ImageButtonWithText(const Ref<Eagle::Image>& image, const Ref<Eagle::Sampler>& sampler, const std::string_view text, ImVec2 size, bool bFillFrameDefault, float borderSize, float textHeightOffset, ImVec2 framePadding)
 	{
 		ImGuiContext& g = *GImGui;
 		const ImVec2 padding = g.Style.FramePadding;
@@ -1914,7 +1924,7 @@ namespace Eagle::UI
 		if (!bFillFrameDefault)
 			ImGui::PopStyleColor();
 
-		UI::AddImage(image, p + padding * 0.5f, p + size - padding * 0.5f);
+		UI::AddImage(image, sampler, p + padding * 0.5f, p + size - padding * 0.5f);
 
 		// Centering text
 		ImGui::SetCursorScreenPos(ImVec2(glm::max(p.x, p.x + 0.5f * (size.x - textSize.x)), p.y + size.y + itemSpacingHeight + textHeightOffset));

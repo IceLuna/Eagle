@@ -14,6 +14,8 @@ namespace Eagle
 		"AnimFirstFrame: use root bone transform of the first animation frame";
 	static constexpr char* s_2DCommonSettingsHelpMsg = "`Is Normal Map` and `Import Alpha channel` aren't present in common settings. "
 		"You can control them via per texture settings";
+	static constexpr char* s_CompressionHelpMsg = "If set to true, the engine will try to compress the image. "
+		"Most of the time, medium compression is good enough. But if you see some banding/blocks, choose a higher quality, especially for normal maps.";
 
 	static ImVec2 s_DefaultWindowSize = ImVec2(720.f, 450.f);
 
@@ -245,7 +247,7 @@ namespace Eagle
 			if (UI::PropertyDrag("Max Mips", settings.MipsCount))
 				settings.MipsCount = glm::max(1u, settings.MipsCount);
 		}
-		UI::Property("Compress", settings.bCompress, "If set to true, the engine will try to compress the image");
+		UI::ComboEnum("Compression", settings.Compression, s_CompressionHelpMsg);
 		if (!bDrawingCommon)
 		{
 			UI::Property("Is Normal Map", settings.bNormalMap, "Set to true, if the importing image is a normal map. Currently, it only affects the result if the compression is enabled");

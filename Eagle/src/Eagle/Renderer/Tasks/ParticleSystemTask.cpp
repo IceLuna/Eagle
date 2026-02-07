@@ -707,6 +707,8 @@ namespace Eagle
 		cmd->Barrier(m_TranslucentIndicesToRender);
 		cmd->Barrier(m_TranslucentDistancesBuffer);
 		cmd->Barrier(m_DrawArgs);
+		cmd->Barrier(m_AliveIndices[1 - m_PingPong]);
+		cmd->Barrier(m_DeadIndices);
 	}
 
 	void ParticleSystemTask::RenderPass(const Ref<CommandBuffer>& cmd)

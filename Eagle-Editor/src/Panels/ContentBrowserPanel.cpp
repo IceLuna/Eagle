@@ -725,12 +725,21 @@ namespace Eagle
 				continue; // Ignore non assets
 
 			Ref<Image> image;
+			Ref<Sampler> sampler = Sampler::BilinearSampler;
 			const AssetType assetType = asset->GetAssetType();
 
 			if (assetType == AssetType::Texture2D)
-				image = Cast<AssetTexture2D>(asset)->GetTexture()->GetImage();
+			{
+				const auto& texture = Cast<AssetTexture2D>(asset)->GetTexture();
+				image = texture->GetImage();
+				sampler = texture->GetSampler();
+			}
 			else if (assetType == AssetType::TextureCube)
-				image = Cast<AssetTextureCube>(asset)->GetTexture()->GetTexture2D()->GetImage();
+			{
+				const auto& texture = Cast<AssetTextureCube>(asset)->GetTexture()->GetTexture2D();
+				image = texture->GetImage();
+				sampler = texture->GetSampler();
+			}
 			else if (ThumbnailCache::IsRenderableAssetType(assetType))
 			{
 				image = ThumbnailCache::Get(asset);
@@ -752,7 +761,7 @@ namespace Eagle
 				if (bBorderColor)
 					ImGui::PushStyleColor(ImGuiCol_Border, borderColor);
 
-				UI::ImageButtonWithText(image, filename, thumbnailSize, bFillBg, 2.0f);
+				UI::ImageButtonWithText(image, sampler, filename, thumbnailSize, bFillBg, 2.0f);
 
 				if (bBorderColor)
 					ImGui::PopStyleColor();

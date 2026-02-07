@@ -7,6 +7,7 @@
 #include "Eagle/Utils/Utils.h"
 #include "Eagle/Utils/YamlUtils.h"
 #include "Eagle/AI/BehaviorGraph.h"
+#include "Eagle/Renderer/TextureCompressor.h"
 
 namespace Eagle
 {
@@ -149,7 +150,7 @@ namespace Eagle
 
 		static ScopedDataBuffer SerializeAssetTexture2DFromData(const DataBuffer& textureData, const std::vector<ScopedDataBuffer>& compressedDataPerMip, ImageFormat compressedFormat, const GUID& guid,
 			const Path& pathToRaw, FilterMode filterMode, AddressMode addressMode, float anisotropy, uint32_t mipsCount, uint32_t width, uint32_t height, AssetTexture2DFormat format,
-			bool bCompressed, bool bNormalMap);
+			TextureCompressor::Quality compression, bool bNormalMap);
 		static ScopedDataBuffer SerializeAssetTextureCubeFromData(const DataBuffer& textureData, const GUID& guid, const Path& pathToRaw,
 			AssetTextureCubeFormat format, uint32_t layerSize, uint32_t prefilterSize);
 		static ScopedDataBuffer SerializeAssetStaticMeshFromMesh(const Ref<StaticMesh>& mesh, const GUID& guid, const Path& pathToRaw);

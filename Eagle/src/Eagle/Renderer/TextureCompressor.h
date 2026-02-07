@@ -10,6 +10,13 @@ namespace Eagle
 	class TextureCompressor
 	{
 	public:
+		enum class Quality
+		{
+			Disabled,
+			Medium, // BC1, BC3
+			High, // BC7
+		};
+
 		struct Result
 		{
 			std::vector<ScopedDataBuffer> DataPerMip; // Contains compressed texture data ready to be uploaded to the GPU
@@ -44,11 +51,11 @@ namespace Eagle
 		// @mipsCount. Should be >= 1. The value of `1` represents the base level. So if it's 1, mips won't be generated
 		// @bNormalMap. Set to true, if it's a normal map
 		// @return. Compressed data per mip and the format
-		static Result Compress(DataBuffer imageData, uint32_t targetNumChannels, uint32_t mipsCount, bool bNormalMap, bool bHDR = false);
+		static Result Compress(DataBuffer imageData, uint32_t targetNumChannels, uint32_t mipsCount, Quality quality, bool bNormalMap, bool bHDR = false);
 
 		// Same, but.
 		// @imageData. Input texture data in RGBA8 format
 		// @size. Texture size
-		static Result CompressDecoded(DataBuffer imageData, glm::uvec2 size, uint32_t targetNumChannels, uint32_t mipsCount, bool bNormalMap, bool bHDR = false);
+		static Result CompressDecoded(DataBuffer imageData, glm::uvec2 size, uint32_t targetNumChannels, uint32_t mipsCount, Quality quality, bool bNormalMap, bool bHDR = false);
 	};
 }

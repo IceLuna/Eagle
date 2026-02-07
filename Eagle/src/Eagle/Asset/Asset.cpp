@@ -49,12 +49,12 @@ namespace Eagle
 	}
 
 	AssetTexture2D::AssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, std::vector<ScopedDataBuffer>&& compressedDataPerMip,
-		const Ref<Texture2D>& texture, AssetTexture2DFormat format, bool bCompressed, bool bNormalMap)
+		const Ref<Texture2D>& texture, AssetTexture2DFormat format, TextureCompressor::Quality compression, bool bNormalMap)
 	: Asset(path, pathToRaw, AssetType::Texture2D, guid, rawData)
 		, m_CompressedDataPerMip(std::move(compressedDataPerMip))
 		, m_Texture(texture)
 		, m_Format(format)
-		, bCompressed(bCompressed)
+		, m_Compression(compression)
 		, bNormalMap(bNormalMap)
 	{}
 
@@ -64,20 +64,20 @@ namespace Eagle
 		editor.Compile();
 	}
 
-	void AssetTexture2D::SetIsCompressed(bool bCompressed, uint32_t mipsCount)
+	void AssetTexture2D::SetCompression(TextureCompressor::Quality compression, uint32_t mipsCount)
 	{
 		EG_CORE_ASSERT(m_Texture);
 
 		// If compression state didn't change and it's not compressed,
 		// we can just generate mips. Otherwise, we need to upload the new data
-		if (this->bCompressed == bCompressed && !bCompressed)
+		if (m_Compression == compression && m_Compression == TextureCompressor::Quality::Disabled)
 		{
 			if (m_Texture->GetMipsCount() != mipsCount)
 				m_Texture->GenerateMips(mipsCount);
 		}
 		else
 		{
-			this->bCompressed = bCompressed;
+			m_Compression = compression;
 			UpdateTextureData_Internal(mipsCount);
 		}
 	}
@@ -90,7 +90,7 @@ namespace Eagle
 			return;
 
 		this->bNormalMap = bNormalMap;
-		if (bCompressed) // Only affects compressed textures
+		if (m_Compression != TextureCompressor::Quality::Disabled) // Only affects compressed textures
 			UpdateTextureData_Internal(m_Texture->GetMipsCount());
 	}
 
@@ -111,10 +111,10 @@ namespace Eagle
 		// If the generation of compressed data has failed because the hardware doesn't support it, fallback to regular format
 
 		const auto& rawData = GetRawData();
-		if (bCompressed)
+		if (m_Compression != TextureCompressor::Quality::Disabled)
 		{
-			const uint32_t targetNumChannels = AssetTextureFormatToChannels(m_Format, bCompressed);
-			auto compressedData = TextureCompressor::Compress(rawData.GetDataBuffer(), targetNumChannels, mipsCount, bNormalMap);
+			const uint32_t targetNumChannels = AssetTextureFormatToChannels(m_Format, m_Compression);
+			auto compressedData = TextureCompressor::Compress(rawData.GetDataBuffer(), targetNumChannels, mipsCount, m_Compression, bNormalMap);
 			if (compressedData)
 			{
 				m_Texture->SetData(compressedData.DataPerMip, compressedData.Format);
@@ -123,13 +123,13 @@ namespace Eagle
 			else
 			{
 				EG_CORE_ERROR("Failed to generate compressed texture: {}", GetPath().u8string());
-				bCompressed = false;
+				m_Compression = TextureCompressor::Quality::Disabled;
 			}
 		}
 
-		if (!bCompressed)
+		if (m_Compression == TextureCompressor::Quality::Disabled)
 		{
-			const int desiredChannels = AssetTextureFormatToChannels(m_Format, bCompressed);
+			const int desiredChannels = AssetTextureFormatToChannels(m_Format, m_Compression);
 			int width = 0, height = 0, channels = 0;
 
 			m_CompressedDataPerMip.clear();

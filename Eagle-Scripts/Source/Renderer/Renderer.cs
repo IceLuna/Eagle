@@ -50,6 +50,13 @@ namespace Eagle
         TAA
     };
 
+    public enum TextureCompressionQuality
+    {
+        Disabled,
+		Medium, // BC1, BC3
+		High,   // BC7
+	}
+
     public struct PhotoLinearTonemappingSettings
     {
         public float Sensitivity;

@@ -666,10 +666,10 @@ namespace Eagle::Script
 	uint32_t Eagle_AssetTexture2D_GetMipsCount(GUID id);
 	void Eagle_AssetTexture2D_SetFormat(GUID id, AssetTexture2DFormat value);
 	void Eagle_AssetTexture2D_SetIsNormalMap(GUID id, bool value);
-	void Eagle_AssetTexture2D_SetIsCompressed(GUID id, bool value);
+	void Eagle_AssetTexture2D_SetCompression(GUID id, TextureCompressor::Quality value);
 	AssetTexture2DFormat Eagle_AssetTexture2D_GetFormat(GUID id);
 	bool Eagle_AssetTexture2D_IsNormalMap(GUID id);
-	bool Eagle_AssetTexture2D_IsCompressed(GUID id);
+	TextureCompressor::Quality Eagle_AssetTexture2D_GetCompressionQuality(GUID id);
 
 	// AssetTextureCube
 	void Eagle_AssetTextureCube_SetLayerSize(GUID id, uint32_t value);

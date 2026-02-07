@@ -152,7 +152,7 @@ namespace Eagle
 
         public void SetIsNormalMap(bool bNormalMap) { SetIsNormalMap_Native(m_GUID, bNormalMap); }
 
-        public void SetIsCompressed(bool bCompressed) { SetIsCompressed_Native(m_GUID, bCompressed); }
+        public void SetCompression(TextureCompressionQuality compression) { SetCompression_Native(m_GUID, compression); }
 
         public float GetAnisotropy() { return GetAnisotropy_Native(m_GUID); }
 
@@ -166,7 +166,9 @@ namespace Eagle
 
         public bool IsNormalMap() { return IsNormalMap_Native(m_GUID); }
 
-        public bool IsCompressed() { return IsCompressed_Native(m_GUID); }
+        public TextureCompressionQuality GetCompressionQuality() { return GetCompressionQuality_Native(m_GUID); }
+
+        public bool IsCompressed() { return GetCompressionQuality() != TextureCompressionQuality.Disabled; }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetAnisotropy_Native(GUID id, float value);
@@ -184,7 +186,7 @@ namespace Eagle
         internal static extern void SetIsNormalMap_Native(GUID id, bool value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetIsCompressed_Native(GUID id, bool value);
+        internal static extern void SetCompression_Native(GUID id, TextureCompressionQuality value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern FilterMode GetFilterMode_Native(GUID id);
@@ -208,7 +210,7 @@ namespace Eagle
         internal static extern bool IsNormalMap_Native(GUID id);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool IsCompressed_Native(GUID id);
+        internal static extern TextureCompressionQuality GetCompressionQuality_Native(GUID id);
     }
 
     public class AssetTextureCube : Asset

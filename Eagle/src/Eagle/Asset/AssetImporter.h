@@ -12,7 +12,7 @@ namespace Eagle
 		AddressMode AddressMode = AddressMode::Wrap;
 		float Anisotropy = 1.f;
 		uint32_t MipsCount = 1;
-		bool bCompress = true;
+		TextureCompressor::Quality Compression = TextureCompressor::Quality::Medium;
 		bool bNormalMap = false;
 	};
 

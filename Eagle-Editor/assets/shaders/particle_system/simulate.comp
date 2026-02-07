@@ -21,7 +21,7 @@ layout(binding = 3) buffer DeadIndices
     uint g_DeadIndices[];
 };
 
-layout(binding = 4) buffer AliveIndicesPreSim
+layout(binding = 4) readonly buffer AliveIndicesPreSim
 {
     uint g_AliveIndicesPreSim[];
 };
