@@ -300,7 +300,7 @@ namespace Eagle
 			m_NumEmitters++; // There were no free slots
 
 		const size_t offset = insertIndex * sizeof(Emitter);
-		cmd->WriteTransitionless(m_EmittersBuffer, &emitter, sizeof(Emitter), offset);
+		cmd->Write(m_EmittersBuffer, &emitter, sizeof(Emitter), offset, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
 
 		emitterData.EmitterIndex = insertIndex;
 	}
@@ -319,7 +319,7 @@ namespace Eagle
 
 		const size_t sizeToUpdate = offsetof(Emitter, WorldPos); // We're updating the data before the 'WorldPos' because everything after is an internal state
 		const size_t offset = emitterData.EmitterIndex * sizeof(Emitter);
-		cmd->WriteTransitionless(m_EmittersBuffer, &gpuEmitter, sizeToUpdate, offset);
+		cmd->Write(m_EmittersBuffer, &gpuEmitter, sizeToUpdate, offset, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
 	}
 
 	void ParticleSystemTask::HandleEmitter_Remove_RT(const Ref<CommandBuffer>& cmd, const ModifyRequest& data)
@@ -352,7 +352,7 @@ namespace Eagle
 
 		const uint32_t flags = Utils::PackEmitterFlags(disabledEmitter);
 		const size_t offset = emitterData.EmitterIndex * sizeof(Emitter) + offsetof(Emitter, Flags);
-		cmd->WriteTransitionless(m_EmittersBuffer, &flags, sizeof(uint32_t), offset);
+		cmd->Write(m_EmittersBuffer, &flags, sizeof(uint32_t), offset, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
 
 		auto& dead = m_DeadEmitters.emplace_back();
 		dead.EmitterIndex = emitterData.EmitterIndex;
@@ -421,8 +421,6 @@ namespace Eagle
 		// Step 3
 		if (!m_ModifyRequestQueue.empty())
 		{
-			cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::StorageBuffer, BufferLayoutType::CopyDest);
-
 			for (const auto& request : m_ModifyRequestQueue)
 			{
 				switch (request.Type)
@@ -445,8 +443,6 @@ namespace Eagle
 				}
 			}
 			m_ModifyRequestQueue.clear();
-
-			cmd->TransitionLayout(m_EmittersBuffer, BufferLayoutType::CopyDest, BufferLayoutType::StorageBuffer);
 		}
 
 		// Step 4
@@ -482,7 +478,17 @@ namespace Eagle
 			uint32_t maxParticles = 0;
 			for (const auto& [_, emitters] : m_SystemToEmittersMapping)
 				for (const auto& [emitter, _] : emitters)
-					maxParticles += (uint32_t)std::ceil(emitter.SpawnRate * emitter.LifetimeMax);
+				{
+					if (emitter.bExplode)
+					{
+						float coef = emitter.LifetimeMax / emitter.LoopDuration;
+						if (coef <= 0 || std::isinf(coef) || std::isnan(coef))
+							coef = 1;
+						maxParticles += emitter.SpawnRate * (uint32_t)std::ceil(coef);
+					}
+					else
+						maxParticles += (uint32_t)std::ceil(emitter.SpawnRate * emitter.LifetimeMax);
+				}
 
 			if (maxParticles > m_MaxParticles)
 			{
