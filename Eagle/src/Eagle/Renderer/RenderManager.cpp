@@ -346,7 +346,7 @@ namespace Eagle
 		ImageSpecifications colorSpecs;
 		colorSpecs.Layout = ImageLayoutType::Unknown;
 		colorSpecs.Size = { 1, 1, 1 };
-		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferDst;
 
 		colorSpecs.Format = ImageFormat::R11G11B10_Float;
 		s_RendererData->DummyRGBA11FImage = Image::Create(colorSpecs, "DummyRGBA11F");
@@ -397,12 +397,12 @@ namespace Eagle
 
 		RenderManager::Submit([](Ref<CommandBuffer>& cmd)
 		{
-			cmd->TransitionLayout(s_RendererData->DummyDepthImage, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
-			cmd->TransitionLayout(s_RendererData->DummyCubeDepthImage, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
-			cmd->TransitionLayout(s_RendererData->DummyImage, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
-			cmd->TransitionLayout(s_RendererData->DummyImageCube, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
-			cmd->TransitionLayout(s_RendererData->DummyImageR16, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
-			cmd->TransitionLayout(s_RendererData->DummyImageR16Cube, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			cmd->ClearDepthStencilImage(s_RendererData->DummyDepthImage, 0, 0, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			cmd->ClearDepthStencilImage(s_RendererData->DummyCubeDepthImage, 0, 0, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			cmd->ClearColorImage(s_RendererData->DummyImage, glm::vec4(0), ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			cmd->ClearColorImage(s_RendererData->DummyImageCube, glm::vec4(0), ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			cmd->ClearColorImage(s_RendererData->DummyImageR16, glm::vec4(0), ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			cmd->ClearColorImage(s_RendererData->DummyImageR16Cube, glm::vec4(0), ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
 		});
 
 		// Render BRDF LUT

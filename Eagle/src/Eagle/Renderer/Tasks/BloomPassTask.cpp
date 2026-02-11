@@ -40,6 +40,7 @@ namespace Eagle
 		glm::uvec2 mipSize = inputSize >> 1u;
 
 		const auto& bloomSettings = m_Renderer.GetOptions_RT().BloomSettings;
+		uint32_t lastDownscaledMip = 0;
 
 		// Downscale
 		{
@@ -75,6 +76,7 @@ namespace Eagle
 				cmd->TransitionLayout(m_InputImage, m_MipViews[mip + 1], ImageLayoutType::StorageImage, ImageLayoutType::StorageImage);
 
 				mipSize >>= 1u;
+				lastDownscaledMip = mip + 1;
 			}
 		}
 
@@ -105,7 +107,7 @@ namespace Eagle
 			m_UpscalePipeline->SetImageArray(m_InputImage, m_MipViews, 0, 1);
 			m_UpscalePipeline->SetImageSampler(dirtTexture->GetImage(), m_DirtSampler, 0, 2);
 
-			for (uint32_t mip = mipCount - 1; mip >= 1 ; --mip)
+			for (uint32_t mip = lastDownscaledMip; mip >= 1 ; --mip)
 			{
 				mipSize.x = uint32_t(glm::max(1.0, glm::floor(float(inputSize.x) / glm::pow(2.0, mip - 1))));
 				mipSize.y = uint32_t(glm::max(1.0, glm::floor(float(inputSize.y) / glm::pow(2.0, mip - 1))));

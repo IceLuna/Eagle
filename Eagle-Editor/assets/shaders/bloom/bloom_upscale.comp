@@ -76,6 +76,9 @@ void main()
     memoryBarrierShared();
     barrier();
 
+    if (pixelCoords.x >= g_Size.x || pixelCoords.y >= g_Size.y)
+        return;
+
     // center texel
     uint smIdx = (gl_LocalInvocationID.x + FILTER_RADIUS) + (gl_LocalInvocationID.y + FILTER_RADIUS) * TILE_SIZE;
 

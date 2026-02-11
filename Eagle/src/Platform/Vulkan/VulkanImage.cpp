@@ -75,6 +75,8 @@ namespace Eagle
 
 		if (!m_DebugName.empty())
 			VulkanContext::AddResourceDebugName(m_Image, m_DebugName, VK_OBJECT_TYPE_IMAGE);
+
+		m_Revision++;
 	}
 
 	void VulkanImage::CreateImageView()

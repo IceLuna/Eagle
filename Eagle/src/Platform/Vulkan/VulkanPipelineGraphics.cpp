@@ -375,7 +375,7 @@ namespace Eagle
 
 			assert(renderTarget->HasUsage(ImageUsage::ColorAttachment));
 
-			uint32_t attachmentIndex = (uint32_t)attachmentDescs.size();
+			const uint32_t attachmentIndex = (uint32_t)attachmentDescs.size();
 			const VkAttachmentLoadOp loadOp = ClearOperationToVulkan(m_State.ColorAttachments[i].ClearOperation);
 
 			auto& desc = attachmentDescs.emplace_back();

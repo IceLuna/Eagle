@@ -21,21 +21,29 @@ namespace Eagle
 			void* SamplerHandle = nullptr;
 			bool bDepth = false;
 
+			// Revision is changed on each image recreation to update descriptors when an image is recreated.
+			// It should work without it because internal handles are updated, but for some reason RenderDoc is not happy without it.
+			// And it thinks textures are not bound to the pipeline. So, this exists purely to make RenderDoc happy and correctly display pass inputs
+			// RenderDoc version: 1.42
+			uint8_t Revision = 0;
+
 			ImageBinding() = default;
-			ImageBinding(const Ref<Eagle::Image>& image) : ImageHandle(image->GetHandle()), ImageViewHandle(image->GetImageViewHandle()) {}
-			ImageBinding(const Ref<Eagle::Image>& image, const ImageView& view) : ImageHandle(image->GetHandle()), ImageViewHandle(image->GetImageViewHandle(view)) {}
+			ImageBinding(const Ref<Eagle::Image>& image) : ImageHandle(image->GetHandle()), ImageViewHandle(image->GetImageViewHandle()), Revision(image->GetRevision()) {}
+			ImageBinding(const Ref<Eagle::Image>& image, const ImageView& view) : ImageHandle(image->GetHandle()), ImageViewHandle(image->GetImageViewHandle(view)), Revision(image->GetRevision()) {}
 			ImageBinding(const Ref<Eagle::Image>& image, const ImageView& view, const Ref<Eagle::Sampler>& sampler)
 				: ImageHandle(image->GetHandle())
 				, ImageViewHandle(image->GetImageViewHandle(view))
-				, SamplerHandle(sampler ? sampler->GetHandle() : nullptr) {}
+				, SamplerHandle(sampler ? sampler->GetHandle() : nullptr)
+				, Revision(image->GetRevision()){}
 			ImageBinding(const Ref<Eagle::Image>& image, const Ref<Eagle::Sampler>& sampler)
 				: ImageHandle(image->GetHandle())
 				, ImageViewHandle(image->GetImageViewHandle())
-				, SamplerHandle(sampler ? sampler->GetHandle() : nullptr) {}
+				, SamplerHandle(sampler ? sampler->GetHandle() : nullptr)
+				, Revision(image->GetRevision()) {}
 
 			bool operator!=(const ImageBinding& other) const
 			{
-				return ImageHandle != other.ImageHandle || ImageViewHandle != other.ImageViewHandle || SamplerHandle != other.SamplerHandle || bDepth != other.bDepth;
+				return ImageHandle != other.ImageHandle || ImageViewHandle != other.ImageViewHandle || SamplerHandle != other.SamplerHandle || bDepth != other.bDepth || Revision != other.Revision;
 			}
 
 			friend bool operator!=(const std::vector<ImageBinding>& left, const std::vector<ImageBinding>& right)

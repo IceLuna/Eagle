@@ -1,6 +1,6 @@
 #define VERTEX_COUNT 36
 
-vec3 positions[VERTEX_COUNT] = vec3[](
+const vec3 positions[VERTEX_COUNT] = vec3[](
     // back face
     vec3(-1.0f, -1.0f, -1.0f), // bottom-left
     vec3( 1.0f,  1.0f, -1.0f), // top-right

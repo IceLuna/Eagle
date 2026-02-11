@@ -33,6 +33,7 @@ namespace Eagle
         Image(const ImageSpecifications& specs, const std::string& debugName = "")
             : m_Specs(specs)
             , m_DebugName(debugName)
+            , m_Revision(0)
         {
             if (m_Specs.MipsCount == UINT_MAX)
                 bCalculateMipsCountInternally = true;
@@ -57,6 +58,8 @@ namespace Eagle
         const std::string& GetDebugName() const { return m_DebugName; }
 
         const ImageSpecifications& GetSpecs() const { return m_Specs; }
+
+        uint8_t GetRevision() const { return m_Revision; }
 
         virtual void Resize(const glm::uvec3& size) = 0;
         [[nodiscard]] virtual void* Map() = 0;
@@ -84,6 +87,11 @@ namespace Eagle
     protected:
         ImageSpecifications m_Specs;
         std::string m_DebugName;
+        // Revision is changed on each image recreation to update descriptors when an image is recreated.
+        // It should work without it because internal handles are updated, but for some reason RenderDoc is not happy without it.
+        // And it thinks textures are not bound to the pipeline. So, this exists purely to make RenderDoc happy and correctly display pass inputs
+        // RenderDoc version: 1.42
+        uint8_t m_Revision;
         bool bCalculateMipsCountInternally = false;
 
         friend class VulkanCommandManager;

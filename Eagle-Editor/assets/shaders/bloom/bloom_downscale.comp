@@ -69,6 +69,9 @@ void main()
     memoryBarrierShared();
     barrier();
 
+    if (pixelCoords.x >= g_Size.x || pixelCoords.y >= g_Size.y)
+        return;
+
     // Based on [Jimenez14] http://goo.gl/eomGso
     // Take 13 samples around current texel:
     // A - B - C

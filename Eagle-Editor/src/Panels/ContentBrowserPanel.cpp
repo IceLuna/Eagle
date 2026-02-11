@@ -261,7 +261,7 @@ namespace Eagle
 
 		ImVec2 size = ImGui::GetContentRegionAvail();
 		m_ColumnWidth = ThumbnailCache::GetThumbnailSize().x + GImGui->Style.FramePadding.x * 2.f + 1.f;
-		const int columns = int(size[0] / m_ColumnWidth);
+		const int columns = glm::max(1, int(size[0] / m_ColumnWidth));
 		m_ContentBrowserHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows);
 
 		// Drawing Path-History buttons on top.
@@ -708,8 +708,11 @@ namespace Eagle
 
 			bHoveredAnyItem |= ImGui::IsItemHovered();
 			UI::Tooltip(bHintFullPath ? pathString : filename);
-			ImGui::NextColumn();
-			ImGui::SetColumnWidth(-1, m_ColumnWidth);
+			if (columns > 1)
+			{
+				ImGui::NextColumn();
+				ImGui::SetColumnWidth(-1, m_ColumnWidth);
+			}
 		}
 		ImGui::PopID();
 
@@ -819,8 +822,11 @@ namespace Eagle
 				tooltip += bHintFullPath ? pathString : filename;
 				UI::Tooltip(tooltip);
 			}
-			ImGui::NextColumn();
-			ImGui::SetColumnWidth(-1, m_ColumnWidth);
+			if (columns > 1)
+			{
+				ImGui::NextColumn();
+				ImGui::SetColumnWidth(-1, m_ColumnWidth);
+			}
 		}
 		ImGui::PopID();
 
