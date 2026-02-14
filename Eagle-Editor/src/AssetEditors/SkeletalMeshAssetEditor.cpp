@@ -443,8 +443,8 @@ namespace Eagle
 
 		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
 		ImGui::Begin(m_WindowName.c_str(), pOpen);
-		UI::TextWithSeparator("Data");
 
+		UI::TextWithSeparator("Data");
 		UI::BeginPropertyGrid("SkeletalMeshDetails");
 		UI::Text("Name", m_Asset->GetPath().stem().u8string());
 		UI::Text("Type", "Skeletal Mesh");
@@ -452,85 +452,95 @@ namespace Eagle
 		UI::Text("Indices", std::to_string(indicesCount));
 		UI::Text("Vertices Mem Usage (Kb)", std::to_string(verticesCount * sizeof(SkeletalVertex) / 1024));
 		UI::Text("Indices Mem Usage (Kb)", std::to_string(indicesCount * sizeof(Index) / 1024));
-
-		UI::TextWithSeparator("Materials");
-
-		const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
-		for (uint32_t i = 0; i < materialsCount; ++i)
-		{
-			auto materialAsset = mesh->GetMaterialAsset(i);
-			if (EditorResources::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
-			{
-				mesh->SetMaterialAsset(i, materialAsset);
-				component.SetMaterialAsset(i, materialAsset);
-				bChanged = true;
-			}
-		}
-
-		auto& skeletalComp = m_Entity.GetComponent<SkeletalMeshComponent>();
-		UI::TextWithSeparator("Preview Settings");
-		if (EditorResources::DrawAssetSelection("Animation", m_PreviewAnimation))
-		{
-			skeletalComp.SetAnimationAsset(m_PreviewAnimation);
-			if (!m_PreviewAnimation)
-			{
-				m_Entity.SetWorldLocation({});
-			}
-		}
-		UI::PropertyDrag("Animation Playback Speed", skeletalComp.ClipPlaybackSpeed, 0.1f);
-
-		{
-			const bool bHasAnim = m_PreviewAnimation.operator bool();
-			float current = bHasAnim ? skeletalComp.CurrentClipPlayTime : 0.f;
-			const float duration = bHasAnim ? m_PreviewAnimation->GetAnimation()->Duration : 1.f;
-			if (!bHasAnim)
-				UI::PushItemDisabled();
-
-			if (UI::PropertySlider("Animation Position", current, 0.f, duration))
-			{
-				skeletalComp.CurrentClipPlayTime = glm::clamp(current, 0.f, m_PreviewAnimation->GetAnimation()->Duration);
-				skeletalComp.PrevClipPlayTime = skeletalComp.CurrentClipPlayTime;
-			}
-
-			if (!bHasAnim)
-				UI::PopItemDisabled();
-		}
-
-		if (UI::Property("Visualize ragdoll bones", bVisualizeRagdollBones))
-		{
-			skeletalComp.SetShowRagdollCollision(bVisualizeRagdollBones);
-		}
-		UI::Property("Visualize bones", scene->bDrawBones);
-		UI::Property("Visualize bone direction", bVisualizeBoneDirection);
-		if (UI::Property("Debug lines depth test", bEnableDebugLinesDepthTest, "If disabled, debug lines will be drawn over everything"))
-		{
-			auto& sceneRenderer = scene->GetSceneRenderer();
-			auto settings = sceneRenderer->GetOptions();
-			settings.bEnableDebugLinesDepthTest = bEnableDebugLinesDepthTest;
-			sceneRenderer->SetOptions(settings);
-		}
 		UI::EndPropertyGrid();
 
+		if (ImGui::TreeNodeEx("Materials", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
 		{
-			const bool bDisableRotation = bSimulate && m_OpenedTab == OpenedTabType::Ragdoll;
-			if (bDisableRotation)
-				UI::PushItemDisabled();
-
-			glm::quat quat = m_Entity.GetWorldRotation().GetQuat();
-			if (UI::DrawQuatControl("Mesh Rotation(Quat)", quat, glm::quat{ 1, 0, 0, 0 }, 140.f))
+			UI::BeginPropertyGrid("SkeletalMeshDetails");
+			const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
+			for (uint32_t i = 0; i < materialsCount; ++i)
 			{
-				m_Entity.SetWorldRotation(glm::quat(quat.w, quat.x, quat.y, quat.z));
-
-				if (m_OpenedTab == OpenedTabType::Ragdoll)
+				auto materialAsset = mesh->GetMaterialAsset(i);
+				if (EditorResources::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
 				{
-					skeletalComp.SetRagdollEnabled(false);
-					skeletalComp.SetRagdollEnabled(true);
-					skeletalComp.SetShowRagdollCollision(bVisualizeRagdollBones);
+					mesh->SetMaterialAsset(i, materialAsset);
+					component.SetMaterialAsset(i, materialAsset);
+					bChanged = true;
 				}
 			}
+			UI::EndPropertyGrid();
 
-			if (bDisableRotation)
-				UI::PopItemDisabled();
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNodeEx("Preview Settings", ImGuiTreeNodeFlags_Framed))
+		{
+			UI::BeginPropertyGrid("SkeletalMeshDetails");
+			if (EditorResources::DrawAssetSelection("Animation", m_PreviewAnimation))
+			{
+				component.SetAnimationAsset(m_PreviewAnimation);
+				if (!m_PreviewAnimation)
+				{
+					m_Entity.SetWorldLocation({});
+				}
+			}
+			UI::PropertyDrag("Animation Playback Speed", component.ClipPlaybackSpeed, 0.1f);
+
+			{
+				const bool bHasAnim = m_PreviewAnimation.operator bool();
+				float current = bHasAnim ? component.CurrentClipPlayTime : 0.f;
+				const float duration = bHasAnim ? m_PreviewAnimation->GetAnimation()->Duration : 1.f;
+				if (!bHasAnim)
+					UI::PushItemDisabled();
+
+				if (UI::PropertySlider("Animation Position", current, 0.f, duration))
+				{
+					component.CurrentClipPlayTime = glm::clamp(current, 0.f, m_PreviewAnimation->GetAnimation()->Duration);
+					component.PrevClipPlayTime = component.CurrentClipPlayTime;
+				}
+
+				if (!bHasAnim)
+					UI::PopItemDisabled();
+			}
+
+			if (UI::Property("Visualize ragdoll bones", bVisualizeRagdollBones))
+			{
+				component.SetShowRagdollCollision(bVisualizeRagdollBones);
+			}
+			UI::Property("Visualize bones", scene->bDrawBones);
+			UI::Property("Visualize bone direction", bVisualizeBoneDirection);
+			if (UI::Property("Debug lines depth test", bEnableDebugLinesDepthTest, "If disabled, debug lines will be drawn over everything"))
+			{
+				auto& sceneRenderer = scene->GetSceneRenderer();
+				auto settings = sceneRenderer->GetOptions();
+				settings.bEnableDebugLinesDepthTest = bEnableDebugLinesDepthTest;
+				sceneRenderer->SetOptions(settings);
+			}
+			UI::EndPropertyGrid();
+
+			{
+				const bool bDisableRotation = bSimulate && m_OpenedTab == OpenedTabType::Ragdoll;
+				if (bDisableRotation)
+					UI::PushItemDisabled();
+
+				glm::quat quat = m_Entity.GetWorldRotation().GetQuat();
+				if (UI::DrawQuatControl("Mesh Rotation(Quat)", quat, glm::quat{ 1, 0, 0, 0 }, 140.f))
+				{
+					m_Entity.SetWorldRotation(glm::quat(quat.w, quat.x, quat.y, quat.z));
+
+					if (m_OpenedTab == OpenedTabType::Ragdoll)
+					{
+						component.SetRagdollEnabled(false);
+						component.SetRagdollEnabled(true);
+						component.SetShowRagdollCollision(bVisualizeRagdollBones);
+					}
+				}
+
+				if (bDisableRotation)
+					UI::PopItemDisabled();
+			}
+
+			ImGui::TreePop();
 		}
 
 		size_t assetHash = m_Asset->GetGUID().GetHash();

@@ -261,16 +261,20 @@ namespace Eagle
 	{
 		auto& snapshot = s_Snapshots[RenderManager::GetCurrentFrameIndex()];
 		ImGui_ImplVulkan_RenderDrawData(&snapshot.DrawData, (VkCommandBuffer)cmd->GetHandle());
+
+		ImGuiIO& io = ImGui::GetIO();
+		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			ImGui::RenderPlatformWindowsDefault();
+		}
 	}
 
 	void VulkanImGuiLayer::UpdatePlatform()
 	{
-		ImGuiIO& io = ImGui::GetIO(); (void)io;
-		// Update and Render additional Platform Windows
+		ImGuiIO& io = ImGui::GetIO();
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
 			ImGui::UpdatePlatformWindows();
-			ImGui::RenderPlatformWindowsDefault();
 		}
 	}
 }

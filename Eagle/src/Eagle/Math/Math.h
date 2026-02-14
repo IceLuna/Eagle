@@ -68,4 +68,37 @@ namespace Eagle::Math
 	// Returns degree of the angle between Velocity and rotation's forward vector
 	// The range of return will be from[-180, 180].
 	float CalculateDirection(const glm::vec3& velocity, const Rotator& rotation);
+
+	inline glm::quat RotationAroundX(float degrees)
+	{
+		const float rad = glm::radians(degrees);
+		return glm::angleAxis(rad, glm::vec3(1.0f, 0.0f, 0.0f));
+	}
+
+	inline glm::quat RotationAroundY(float degrees)
+	{
+		const float rad = glm::radians(degrees);
+		return glm::angleAxis(rad, glm::vec3(0.0f, 1.0f, 0.0f));
+	}
+
+	inline glm::quat RotationAroundZ(float degrees)
+	{
+		const float rad = glm::radians(degrees);
+		return glm::angleAxis(rad, glm::vec3(0.0f, 0.0f, 1.0f));
+	}
+
+	inline glm::quat RotateAroundX(const glm::quat& q, float degrees)
+	{
+		return RotationAroundX(degrees) * q;
+	}
+
+	inline glm::quat RotateAroundY(const glm::quat& q, float degrees)
+	{
+		return RotationAroundY(degrees) * q;
+	}
+
+	inline glm::quat RotateAroundZ(const glm::quat& q, float degrees)
+	{
+		return RotationAroundZ(degrees) * q;
+	}
 }

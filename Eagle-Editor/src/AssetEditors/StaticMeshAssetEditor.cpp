@@ -41,8 +41,8 @@ namespace Eagle
 
 		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
 		ImGui::Begin(m_WindowName.c_str(), pOpen);
-		UI::BeginPropertyGrid("StaticMeshDetails");
 
+		UI::BeginPropertyGrid("StaticMeshDetails");
 		UI::TextWithSeparator("Data");
 		UI::Text("Name", m_Asset->GetPath().stem().u8string());
 		UI::Text("Type", "Static Mesh");
@@ -50,22 +50,26 @@ namespace Eagle
 		UI::Text("Indices", std::to_string(indicesCount));
 		UI::Text("Vertices Mem Usage (Kb)", std::to_string(verticesCount * sizeof(Vertex) / 1024));
 		UI::Text("Indices Mem Usage (Kb)", std::to_string(indicesCount * sizeof(Index) / 1024));
-
-		UI::TextWithSeparator("Materials");
-
-		const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
-		for (uint32_t i = 0; i < materialsCount; ++i)
-		{
-			auto materialAsset = mesh->GetMaterialAsset(i);
-			if (EditorResources::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
-			{
-				mesh->SetMaterialAsset(i, materialAsset);
-				m_Component->SetMaterialAsset(i, materialAsset);
-				bChanged = true;
-			}
-		}
-
 		UI::EndPropertyGrid();
+
+		if (ImGui::TreeNodeEx("Materials", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
+		{
+			UI::BeginPropertyGrid("StaticMeshDetails");
+			const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
+			for (uint32_t i = 0; i < materialsCount; ++i)
+			{
+				auto materialAsset = mesh->GetMaterialAsset(i);
+				if (EditorResources::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
+				{
+					mesh->SetMaterialAsset(i, materialAsset);
+					m_Component->SetMaterialAsset(i, materialAsset);
+					bChanged = true;
+				}
+			}
+			UI::EndPropertyGrid();
+
+			ImGui::TreePop();
+		}
 
 		if (bChanged)
 		{

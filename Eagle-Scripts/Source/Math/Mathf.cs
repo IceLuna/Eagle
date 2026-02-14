@@ -248,6 +248,39 @@ namespace Eagle
             return LookAtY_Native(ref dir);
         }
 
+        public static Rotator RotationAroundX(float degrees)
+	    {
+		    float rad = Radians(degrees);
+		    return AngleAxis(rad, new Vector3(1.0f, 0.0f, 0.0f));
+	    }
+
+	    public static Rotator RotationAroundY(float degrees)
+	    {
+		    float rad = Radians(degrees);
+		    return AngleAxis(rad, new Vector3(0.0f, 1.0f, 0.0f));
+	    }
+
+	    public static Rotator RotationAroundZ(float degrees)
+	    {
+		    float rad = Radians(degrees);
+		    return AngleAxis(rad, new Vector3(0.0f, 0.0f, 1.0f));
+	    }
+
+	    public static Rotator RotateAroundX(Rotator rotator, float degrees)
+	    {
+		    return RotationAroundX(degrees).Rotation * rotator.Rotation;
+	    }
+
+	    public static Rotator RotateAroundY(Rotator rotator, float degrees)
+	    {
+		    return RotationAroundY(degrees).Rotation * rotator.Rotation;
+	    }
+
+	    public static Rotator RotateAroundZ(Rotator rotator, float degrees)
+	    {
+		    return RotationAroundZ(degrees).Rotation * rotator.Rotation;
+	    }
+
         public static float Step(float edge, float x) => x < edge ? 0.0f : 1.0f;
 
         public static Vector2 Step(Vector2 edge, Vector2 x) => new Vector2(Step(edge.X, x.X), Step(edge.Y, x.Y));
