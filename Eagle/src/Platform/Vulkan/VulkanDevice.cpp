@@ -69,7 +69,10 @@ namespace Eagle
 
 				if ((queueFlags & VK_QUEUE_GRAPHICS_BIT) && (result.GraphicsFamily == -1))
 					if (queueProps.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+					{
 						result.GraphicsFamily = i;
+						result.GraphicsQueueCount = queueProps.queueCount;
+					}
 
 				if (surface != VK_NULL_HANDLE)
 					vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &supportsPresent);
@@ -287,12 +290,14 @@ namespace Eagle
 		constexpr float queuePriority = 1.f;
 		auto& queueFamilyIndices = physicalDevice->GetFamilyIndices();
 		const auto& deviceExtensions = physicalDevice->GetDeviceExtensions();
+		const uint32_t graphicsQueueCount = glm::min(s_GraphicsQueuesCount, queueFamilyIndices.GraphicsQueueCount);
+		std::vector<float> graphicsQueuePriorities(graphicsQueueCount, queuePriority);
 
 		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos(1);
 		queueCreateInfos[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		queueCreateInfos[0].queueCount = 1;
+		queueCreateInfos[0].queueCount = graphicsQueueCount;
 		queueCreateInfos[0].queueFamilyIndex = queueFamilyIndices.GraphicsFamily;
-		queueCreateInfos[0].pQueuePriorities = &queuePriority;
+		queueCreateInfos[0].pQueuePriorities = graphicsQueuePriorities.data();
 
 		const bool bPresentSameAsGraphics = queueFamilyIndices.GraphicsFamily == queueFamilyIndices.PresentFamily;
 		const bool bComputeSameAsGraphics = queueFamilyIndices.GraphicsFamily == queueFamilyIndices.ComputeFamily;
@@ -335,7 +340,15 @@ namespace Eagle
 		deviceCI.pNext = &physicalDeviceMultiviewFeatures;
 
 		VK_CHECK(vkCreateDevice(physicalDevice->GetVulkanPhysicalDevice(), &deviceCI, nullptr, &m_Device));
-		vkGetDeviceQueue(m_Device, queueFamilyIndices.GraphicsFamily, 0, &m_GraphicsQueue);
+		vkGetDeviceQueue(m_Device, queueFamilyIndices.GraphicsFamily, 0, &m_GraphicsQueues[0]);
+		for (uint32_t i = 1; i < graphicsQueueCount; ++i)
+		{
+			vkGetDeviceQueue(m_Device, queueFamilyIndices.GraphicsFamily, i, &m_GraphicsQueues[i]);
+			if (m_GraphicsQueues[i] == VK_NULL_HANDLE)
+			{
+				m_GraphicsQueues[i] = m_GraphicsQueues[0];
+			}
+		}
 		vkGetDeviceQueue(m_Device, queueFamilyIndices.ComputeFamily, 0, &m_ComputeQueue);
 		vkGetDeviceQueue(m_Device, queueFamilyIndices.TransferFamily, 0, &m_TransferQueue);
 		if (bRequiresPresentQueue)
@@ -343,7 +356,7 @@ namespace Eagle
 			if (!bPresentSameAsGraphics)
 				vkGetDeviceQueue(m_Device, queueFamilyIndices.PresentFamily, 0, &m_PresentQueue);
 			else
-				m_PresentQueue = m_GraphicsQueue;
+				m_PresentQueue = m_GraphicsQueues[0];
 		}
 	}
 

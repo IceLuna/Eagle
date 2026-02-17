@@ -200,7 +200,7 @@ namespace Eagle
 		initInfo.Instance = VulkanContext::GetInstance();
 		initInfo.PhysicalDevice = VulkanContext::GetDevice()->GetPhysicalDevice()->GetVulkanPhysicalDevice();
 		initInfo.Device = vulkanDevice;
-		initInfo.Queue = device->GetGraphicsQueue();
+		initInfo.Queue = device->GetGraphicsQueue(1);
 		initInfo.PipelineCache = VulkanPipelineCache::GetCache();
 		initInfo.DescriptorPool = pool;
 		initInfo.MinImageCount = RendererConfig::FramesInFlight;
@@ -261,12 +261,6 @@ namespace Eagle
 	{
 		auto& snapshot = s_Snapshots[RenderManager::GetCurrentFrameIndex()];
 		ImGui_ImplVulkan_RenderDrawData(&snapshot.DrawData, (VkCommandBuffer)cmd->GetHandle());
-
-		ImGuiIO& io = ImGui::GetIO();
-		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-		{
-			ImGui::RenderPlatformWindowsDefault();
-		}
 	}
 
 	void VulkanImGuiLayer::UpdatePlatform()
@@ -275,6 +269,7 @@ namespace Eagle
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
 			ImGui::UpdatePlatformWindows();
+			ImGui::RenderPlatformWindowsDefault();
 		}
 	}
 }

@@ -279,8 +279,8 @@ namespace Eagle
 		// This pattern allows us to build two draw lists: one for passes that care only about shadow casting meshes (Shadow pass),
 		// and the other list for passes that don't care about it (Base pass).
 		// So, with the above example, shadow pass draw list will have `Instance Count = 2`, but the base pass will have `Instance Count = N`.
-		template <typename MeshesMap, typename PerInstanceDapaType>
-		static void ProcessInstances(const MeshesMap& meshes, MeshesDrawLists* drawList, std::vector<PerInstanceDapaType>* ivb)
+		template <typename MeshesMap, typename PerInstanceDataType>
+		static void ProcessInstances(const MeshesMap& meshes, MeshesDrawLists* drawList, std::vector<PerInstanceDataType>* ivb)
 		{
 			struct MeshCounters
 			{
@@ -293,6 +293,7 @@ namespace Eagle
 			std::vector<MeshCounters> offsets;
 			offsets.reserve(meshes.size());
 			{
+				// First, count the instances by types so that we can calculate final offsets correctly
 				for (const auto& [meshKey, instances] : meshes)
 				{
 					MeshCounters& offset = offsets.emplace_back();
@@ -311,6 +312,7 @@ namespace Eagle
 					totalInstances += materialsCount * uint32_t(instances.size());
 				}
 
+				// Calculate the final offsets
 				uint32_t currentOffset = 0;
 				for (uint32_t i = 0; i < Material::MaxBlendModes; ++i)
 				{
@@ -1012,8 +1014,6 @@ namespace Eagle
 
 	void GeometryManagerTask::SortSkeletalMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		EG_CPU_TIMING_SCOPED("Sort skeletal meshes based on Blend Mode");
-
 		EG_CPU_TIMING_SCOPED("Sort skeletal meshes based on Blend Mode");
 		EG_GPU_TIMING_SCOPED(cmd, "Skeletal Meshes. Upload instance vertex buffer");
 

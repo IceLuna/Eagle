@@ -10,6 +10,12 @@ struct CPUMaterial;
 
 namespace Eagle
 {
+	struct MeshIndicesData
+	{
+		uint32_t IndicesCount = 0;
+		uint32_t FirstIndex = 0;
+	};
+
 	template <typename MeshType>
 	struct MeshKey
 	{
@@ -18,12 +24,7 @@ namespace Eagle
 		// Metadata to be reused when building a draw lists
 		mutable uint32_t VerticesCount = 0u;
 		mutable uint32_t VerticesOffset = 0u;
-		struct IndicesData
-		{
-			uint32_t IndicesCount = 0;
-			uint32_t FirstIndex = 0;
-		};
-		mutable std::vector<IndicesData> PerMaterialIndices;
+		mutable std::vector<MeshIndicesData> PerMaterialIndices;
 
 		bool operator==(const MeshKey<MeshType>& other) const
 		{
@@ -156,14 +157,14 @@ namespace Eagle
 		uint32_t VertexOffset = 0;
 		uint32_t VerticesCount = 0;
 
-		struct PerMaterialData
+		struct MaterialData
 		{
 			uint32_t FirstIndex = 0;
 			uint32_t IndexCount = 0;
 			uint32_t FirstInstance = 0;
 			uint32_t InstanceCount = 0;
 		};
-		std::vector<PerMaterialData> PerMaterialData;
+		std::vector<MaterialData> PerMaterialData;
 	};
 
 	struct MeshesDrawLists

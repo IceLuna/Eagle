@@ -1110,7 +1110,7 @@ namespace Eagle
 
 	void ShadowPassTask::ShadowPassTranslucentSkeletalMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().Translucent;
+		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().ShadowCastingTranslucent;
 		if (meshes.empty())
 			return;
 
@@ -1282,7 +1282,7 @@ namespace Eagle
 	
 	void ShadowPassTask::ShadowPassMaskedSkeletalMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().Masked;
+		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().ShadowCastingMasked;
 		if (meshes.empty())
 			return;
 

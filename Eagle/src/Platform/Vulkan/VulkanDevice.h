@@ -14,6 +14,8 @@ namespace Eagle
 		uint32_t TransferFamily = InvalidQueueIndex;
 		uint32_t PresentFamily = InvalidQueueIndex;
 
+		uint32_t GraphicsQueueCount = 0;
+
 		bool IsComplete(bool bRequirePresent) const
 		{
 			return (GraphicsFamily != InvalidQueueIndex) &&
@@ -85,7 +87,7 @@ namespace Eagle
 		void WaitIdle() const { vkDeviceWaitIdle(m_Device); }
 
 		const VulkanPhysicalDevice* GetPhysicalDevice() const { return m_PhysicalDevice; }
-		VkQueue GetGraphicsQueue() const { return m_GraphicsQueue; }
+		VkQueue GetGraphicsQueue(uint32_t index = 0) const { return m_GraphicsQueues[index]; }
 		VkQueue GetComputeQueue() const { return m_ComputeQueue; }
 		VkQueue GetTransferQueue() const { return m_TransferQueue; }
 		VkQueue GetPresentQueue() const { return m_PresentQueue; }
@@ -98,8 +100,10 @@ namespace Eagle
 		}
 
 	private:
+		static constexpr uint32_t s_GraphicsQueuesCount = 2;
+
 		VkDevice m_Device = VK_NULL_HANDLE;
-		VkQueue m_GraphicsQueue = VK_NULL_HANDLE;
+		VkQueue m_GraphicsQueues[s_GraphicsQueuesCount] = { VK_NULL_HANDLE };
 		VkQueue m_ComputeQueue = VK_NULL_HANDLE;
 		VkQueue m_TransferQueue = VK_NULL_HANDLE;
 		VkQueue m_PresentQueue = VK_NULL_HANDLE;
