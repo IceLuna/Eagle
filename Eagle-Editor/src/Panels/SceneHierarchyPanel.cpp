@@ -291,11 +291,23 @@ namespace Eagle
 					SetEntitySelected(newEntity);
 					bChanged = true;
 				}
+				const bool bDisableDetach = m_AllowOnlySingleRoot && child.GetParent() == m_RootEntity;
+				if (bDisableDetach)
+					UI::PushItemDisabled();
 				if (ImGui::MenuItem("Detach from parent"))
 				{
-					child.SetParent(Entity::Null);
+					if (m_AllowOnlySingleRoot)
+					{
+						child.SetParent(m_RootEntity);
+					}
+					else
+					{
+						child.SetParent(Entity::Null);
+					}
 					bChanged = true;
 				}
+				if (bDisableDetach)
+					UI::PopItemDisabled();
 				ImGui::Separator();
 				if (ImGui::MenuItem("Delete Entity"))
 				{

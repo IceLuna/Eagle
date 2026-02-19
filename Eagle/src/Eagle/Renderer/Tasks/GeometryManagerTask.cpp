@@ -732,8 +732,8 @@ namespace Eagle
 
 					if (bMotionRequired && !bGarbage)
 					{
-						EG_CORE_ASSERT(animTransformsBuffer->GetSize() == (*prevAnimTransformsBuffer)->GetSize());
-						cmd->CopyBuffer(animTransformsBuffer, *prevAnimTransformsBuffer, 0, 0, (*prevAnimTransformsBuffer)->GetSize());
+						EG_CORE_ASSERT(currentBufferSize <= (*prevAnimTransformsBuffer)->GetSize());
+						cmd->CopyBuffer(animTransformsBuffer, *prevAnimTransformsBuffer, 0, 0, currentBufferSize);
 					}
 
 					cmd->Write(animTransformsBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);

@@ -305,20 +305,28 @@ namespace Eagle
 
 		if (m_ShowSaveScenePopupForNewScene)
 		{
-			UI::ButtonType result = UI::ShowMessage("Eagle Editor", "Do you want to save the current scene?", UI::ButtonType::YesNoCancel);
-			if (result == UI::ButtonType::Yes)
+			if (!m_OpenedSceneAsset || m_OpenedSceneAsset->IsDirty())
 			{
-				if (SaveScene()) // Open a new scene only if the old scene was successfully saved
+				UI::ButtonType result = UI::ShowMessage("Eagle Editor", "Do you want to save the current scene?", UI::ButtonType::YesNoCancel);
+				if (result == UI::ButtonType::Yes)
+				{
+					if (SaveScene()) // Open a new scene only if the old scene was successfully saved
+						NewScene();
+					m_ShowSaveScenePopupForNewScene = false;
+				}
+				else if (result == UI::ButtonType::No)
+				{
 					NewScene();
-				m_ShowSaveScenePopupForNewScene = false;
+					m_ShowSaveScenePopupForNewScene = false;
+				}
+				else if (result == UI::ButtonType::Cancel)
+					m_ShowSaveScenePopupForNewScene = false;
 			}
-			else if (result == UI::ButtonType::No)
+			else
 			{
 				NewScene();
 				m_ShowSaveScenePopupForNewScene = false;
 			}
-			else if (result == UI::ButtonType::Cancel)
-				m_ShowSaveScenePopupForNewScene = false;
 		}
 
 		EndDocking();
@@ -1384,13 +1392,6 @@ namespace Eagle
 			EG_CORE_TRACE("Changed Line Width to: {}", options.LineWidth);
 		}
 
-		if (UI::PropertyDrag("Grad Scale", options.GridScale, 0.1f))
-		{
-			options.GridScale = glm::max(options.GridScale, 0.f);
-			bSettingsChanged = true;
-			EG_CORE_TRACE("Changed Grad Scale to: {}", options.GridScale);
-		}
-
 		int transparencyLayers = options.TransparencyLayers;
 		if (UI::PropertyDrag("Transparency Layers", transparencyLayers, 1.f, 1, 16, s_TransparencyLayersHelpMsg))
 		{
@@ -2102,7 +2103,17 @@ namespace Eagle
 		ImGui::Separator();
 
 		{
+			auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
+			SceneRendererSettings options = sceneRenderer->GetOptions();
+
 			UI::BeginPropertyGrid("EditorPreferences");
+
+			if (UI::PropertyDrag("Grid Scale", options.GridScale, 0.1f))
+			{
+				options.GridScale = glm::max(options.GridScale, 0.f);
+				sceneRenderer->SetOptions(options);
+				EG_CORE_TRACE("Changed Grid Scale to: {}", options.GridScale);
+			}
 
 			if (UI::ComboEnum("Guizmo Mode", guizmoMode))
 				m_GuizmoMode = guizmoMode;
@@ -2199,7 +2210,7 @@ namespace Eagle
 			{
 				if (ImGui::IsMouseReleased(1) || !m_ViewportFocused)
 					m_EditorScene->bCanUpdateEditorCamera = false;
-				else if (m_EditorScene->bCanUpdateEditorCamera || (m_ViewportHovered && ImGui::IsMouseClicked(1, true)))
+				else if (m_EditorScene->bCanUpdateEditorCamera || (m_ViewportHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right, true)))
 					m_EditorScene->bCanUpdateEditorCamera = true;
 			}
 		}

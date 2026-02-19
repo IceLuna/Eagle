@@ -59,6 +59,7 @@ namespace Eagle
 		Ref<Scene> m_CurrentScene;
 
 	protected:
+		std::string m_ViewportWindowName;
 		Ref<SceneRenderer> m_Renderer;
 		Ref<AssetTextureCube> m_Skybox;
 		glm::vec2 m_ViewportBounds[2] = { glm::vec2(), glm::vec2() };

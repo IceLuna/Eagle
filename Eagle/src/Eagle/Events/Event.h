@@ -66,7 +66,7 @@ namespace Eagle
 			if (!event.Handled && event.GetEventType() == EventType::GetStaticType())
 			{
 				event.Handled |= func((EventType&)event, std::forward<Args>(args)...);
-				return true;
+				return event.Handled;
 			}
 			return false;
 		}

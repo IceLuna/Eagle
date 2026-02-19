@@ -52,9 +52,10 @@ namespace Eagle
 
 		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
 
-		const std::string windowName = GetAsset()->GetPath().u8string() + "_Viewport";
-		bViewportVisible = ImGui::Begin(windowName.c_str());
-		HandleFirstWindowRender(windowName, parentName);
+		if (m_ViewportWindowName.empty())
+			m_ViewportWindowName = GetAsset()->GetPath().u8string() + "_Viewport";
+		bViewportVisible = ImGui::Begin(m_ViewportWindowName.c_str());
+		HandleFirstWindowRender(m_ViewportWindowName, parentName);
 
 		if (bViewportVisible)
 		{
@@ -227,7 +228,7 @@ namespace Eagle
 		if (!asset)
 			return;
 
-		if (ImGuiWindow* window = ImGui::FindWindowByName(asset->GetPath().u8string().c_str()))
+		if (ImGuiWindow* window = ImGui::FindWindowByName(m_ViewportWindowName.c_str()))
 			ImGui::FocusWindow(window);
 	}
 	

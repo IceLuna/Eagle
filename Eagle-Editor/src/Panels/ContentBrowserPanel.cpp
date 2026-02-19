@@ -203,7 +203,7 @@ namespace Eagle
 						Path newPath = m_CurrentDirectory / Path((const char16_t*)wData);
 						delete[] wData;
 						if (std::filesystem::create_directory(newPath))
-							m_SelectedFile = std::filesystem::relative(newPath, m_ProjectPath);
+							SetSelected(std::filesystem::relative(newPath, m_ProjectPath), true);
 					}
 					else if (m_InputState == InputNameState::AssetRename)
 					{
@@ -215,7 +215,7 @@ namespace Eagle
 						}
 						else if (AssetManager::Rename(m_AssetToRename, newFilepath))
 						{
-							m_SelectedFile = newFilepath;
+							SetSelected(newFilepath, true);
 						}
 						m_AssetToRename.reset();
 					}
@@ -309,24 +309,32 @@ namespace Eagle
 
 		if (m_ShowSaveScenePopup)
 		{
-			UI::ButtonType result = UI::ShowMessage("Eagle Editor", "Do you want to save the current scene?", UI::ButtonType::YesNoCancel);
-			if (result != UI::ButtonType::None)
+			if (const auto& openedScene = m_EditorLayer.GetOpenedSceneAsset(); !openedScene || openedScene->IsDirty())
 			{
-				if (result == UI::ButtonType::Yes)
+				UI::ButtonType result = UI::ShowMessage("Eagle Editor", "Do you want to save the current scene?", UI::ButtonType::YesNoCancel);
+				if (result != UI::ButtonType::None)
 				{
-					if (m_EditorLayer.SaveScene()) // Open a new scene only if the old scene was successfully saved
+					if (result == UI::ButtonType::Yes)
+					{
+						if (m_EditorLayer.SaveScene()) // Open a new scene only if the old scene was successfully saved
+							m_EditorLayer.OpenScene(m_SceneToOpen);
+						m_ShowSaveScenePopup = false;
+					}
+					else if (result == UI::ButtonType::No)
+					{
 						m_EditorLayer.OpenScene(m_SceneToOpen);
-					m_ShowSaveScenePopup = false;
-				}
-				else if (result == UI::ButtonType::No)
-				{
-					m_EditorLayer.OpenScene(m_SceneToOpen);
-					m_ShowSaveScenePopup = false;
-				}
-				else if (result == UI::ButtonType::Cancel)
-					m_ShowSaveScenePopup = false;
+						m_ShowSaveScenePopup = false;
+					}
+					else if (result == UI::ButtonType::Cancel)
+						m_ShowSaveScenePopup = false;
 
-				m_SceneToOpen.reset();
+					m_SceneToOpen.reset();
+				}
+			}
+			else
+			{
+				m_EditorLayer.OpenScene(m_SceneToOpen);
+				m_ShowSaveScenePopup = false;
 			}
 		}
 
@@ -440,7 +448,7 @@ namespace Eagle
 				Path filepath(payload_n);
 
 				if (Path path = OnPasteAsset(filepath, destinationFolder, false); !path.empty())
-					m_SelectedFile = path;
+					SetSelected(path, true);
 			}
 		});
 
@@ -676,11 +684,18 @@ namespace Eagle
 			std::string filename = path.filename().u8string();
 
 			{
-				const bool bFillBg = m_SelectedFile == path;
+				const bool bSelected = m_SelectedFile == path;
+				const bool bFillBg = bSelected;
 				if (bFillBg)
 					UI::PushButtonSelectedStyleColors();
 
 				UI::ImageButtonWithText(m_FolderIcon, filename, thumbnailSize, bFillBg);
+
+				if (bSelected && m_ScrollToSelected)
+				{
+					ImGui::SetScrollHereY(0);
+					m_ScrollToSelected = false;
+				}
 
 				if (bFillBg)
 					UI::PopButtonSelectedStyleColors();
@@ -697,12 +712,12 @@ namespace Eagle
 					auto prevDir = m_CurrentDirectory;
 					m_CurrentDirectory = path;
 					m_CurrentDirectoryRelative = std::filesystem::relative(m_CurrentDirectory, m_ProjectPath);
-					m_SelectedFile.clear();
+					SetSelected("", false);
 					OnDirectoryOpened(prevDir);
 				}
 				else
 				{
-					m_SelectedFile = path;
+					SetSelected(path, false);
 				}
 			}
 
@@ -755,7 +770,8 @@ namespace Eagle
 			ImVec2 p = ImGui::GetCursorScreenPos();
 
 			{
-				const bool bFillBg = m_SelectedFile == path;
+				const bool bSelected = m_SelectedFile == path;
+				const bool bFillBg = bSelected;
 				if (bFillBg)
 					UI::PushButtonSelectedStyleColors();
 
@@ -765,6 +781,12 @@ namespace Eagle
 					ImGui::PushStyleColor(ImGuiCol_Border, borderColor);
 
 				UI::ImageButtonWithText(image, sampler, filename, thumbnailSize, bFillBg, 2.0f);
+
+				if (bSelected && m_ScrollToSelected)
+				{
+					ImGui::SetScrollHereY(0);
+					m_ScrollToSelected = false;
+				}
 
 				if (bBorderColor)
 					ImGui::PopStyleColor();
@@ -806,7 +828,7 @@ namespace Eagle
 			if (bClicked)
 			{
 				if (!ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-					m_SelectedFile = path;
+					SetSelected(path, false);
 			}
 			bClicked = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && bClicked;
 
@@ -832,7 +854,7 @@ namespace Eagle
 
 		if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && !bHoveredAnyItem)
 		{
-			m_SelectedFile.clear();
+			SetSelected("", false);
 		}
 
 		ImGui::Columns(1);
@@ -890,7 +912,7 @@ namespace Eagle
 			temp /= filename;
 			if (ImGui::Button(filename.u8string().c_str()))
 			{
-				m_SelectedFile.clear();
+				SetSelected("", false);
 				auto prevPath = m_CurrentDirectory;
 				m_CurrentDirectory = temp;
 				m_CurrentDirectoryRelative = std::filesystem::relative(m_CurrentDirectory, m_ProjectPath);
@@ -938,7 +960,7 @@ namespace Eagle
 		{
 			if (!bDoneOnce)
 			{
-				m_SelectedFile = path;
+				SetSelected(path, false);
 				bDoneOnce = true;
 			}
 
@@ -956,7 +978,7 @@ namespace Eagle
 			else
 			{
 				if (ImGui::MenuItem("Show In Folder View"))
-					SelectFile(path);
+					NavigateToFile(path);
 
 				ImGui::Separator();
 
@@ -1005,15 +1027,15 @@ namespace Eagle
 			ImGui::Separator();
 
 			if (ImGui::MenuItem("Create Entity"))
-				m_SelectedFile = AssetImporter::CreateEntity(m_CurrentDirectoryRelative);
+				SetSelected(AssetImporter::CreateEntity(m_CurrentDirectoryRelative), true);
 			if (ImGui::MenuItem("Create Material"))
-				m_SelectedFile = AssetImporter::CreateMaterial(m_CurrentDirectoryRelative);
+				SetSelected(AssetImporter::CreateMaterial(m_CurrentDirectoryRelative), true);
 			if (ImGui::MenuItem("Create Physics Material"))
-				m_SelectedFile = AssetImporter::CreatePhysicsMaterial(m_CurrentDirectoryRelative);
+				SetSelected(AssetImporter::CreatePhysicsMaterial(m_CurrentDirectoryRelative), true);
 			if (ImGui::MenuItem("Create Sound Group"))
-				m_SelectedFile = AssetImporter::CreateSoundGroup(m_CurrentDirectoryRelative);
+				SetSelected(AssetImporter::CreateSoundGroup(m_CurrentDirectoryRelative), true);
 			if (ImGui::MenuItem("Create Particle System"))
-				m_SelectedFile = AssetImporter::CreateParticleSystem(m_CurrentDirectoryRelative);
+				SetSelected(AssetImporter::CreateParticleSystem(m_CurrentDirectoryRelative), true);
 			if (ImGui::MenuItem("Create Animation Graph"))
 			{
 				m_AnimationGraphImporter = AnimationGraphImporterPanel(m_CurrentDirectoryRelative);
@@ -1026,7 +1048,7 @@ namespace Eagle
 			}
 			if (ImGui::MenuItem("Create Behavior Graph"))
 			{
-				m_SelectedFile = AssetImporter::CreateBehaviorGraph(m_CurrentDirectoryRelative);
+				SetSelected(AssetImporter::CreateBehaviorGraph(m_CurrentDirectoryRelative), true);
 			}
 
 			if (ImGui::MenuItem("Create Folder"))
@@ -1045,7 +1067,7 @@ namespace Eagle
 			{
 				if (Path path = OnPasteAsset(m_CopiedPath, m_CurrentDirectoryRelative, m_bCopy); !path.empty())
 				{
-					m_SelectedFile = path;
+					SetSelected(path, true);
 				}
 				m_CopiedPath.clear();
 			}
@@ -1126,6 +1148,10 @@ namespace Eagle
 		{
 			Application::Get().GetImGuiLayer()->AddMessage("Duplicate failed. See logs for more details");
 		}
+		else
+		{
+			m_RefreshBrowser = true;
+		}
 	}
 
 	void ContentBrowserPanel::OnSaveAsset(const Ref<Asset>& asset)
@@ -1150,12 +1176,18 @@ namespace Eagle
 		m_RefreshBrowser = true;
 	}
 
-	void ContentBrowserPanel::SelectFile(const Path& path)
+	void ContentBrowserPanel::NavigateToFile(const Path& path)
 	{
 		m_Search.clear();
-		m_SelectedFile = path;
+		SetSelected(path, true);
 		m_CurrentDirectory = path.parent_path();
 		m_CurrentDirectoryRelative = std::filesystem::relative(m_CurrentDirectory, m_ProjectPath);
+	}
+
+	void ContentBrowserPanel::SetSelected(const Path& path, bool bScrollToIt)
+	{
+		m_SelectedFile = path;
+		m_ScrollToSelected = bScrollToIt;
 	}
 
 	bool ContentBrowserPanel::OnKeyPressed(KeyPressedEvent& e)

@@ -63,7 +63,8 @@ namespace Eagle
 
 		void OnDirectoryOpened(const Path& previousPath);
 
-		void SelectFile(const Path& path);
+		void NavigateToFile(const Path& path);
+		void SetSelected(const Path& path, bool bScrollToIt);
 
 		bool OnKeyPressed(KeyPressedEvent& e);
 		bool OnMousePressedEvent(MouseButtonPressedEvent& e);
@@ -134,5 +135,6 @@ namespace Eagle
 		bool m_ContentBrowserHovered = false;
 		bool m_DrawAddPanel = false;
 		bool m_RefreshBrowser = true;
+		bool m_ScrollToSelected = false;
 	};
 }

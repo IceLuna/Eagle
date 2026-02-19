@@ -532,7 +532,7 @@ namespace Eagle
 
 	public:
 		glm::vec2 ViewportBounds[2] = { glm::vec2(0.f) };
-		bool bCanUpdateEditorCamera = true;
+		bool bCanUpdateEditorCamera = false;
 		bool bDrawMiscellaneous = true;
 		bool bDrawNavMesh = false;
 		bool bDrawBones = false;

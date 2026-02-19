@@ -154,6 +154,12 @@ namespace Eagle
 
 		if (DrawGuizmo(transform, true, !bRelative))
 		{
+			if (bRelative && GetGuizmoType() == ImGuizmo::OPERATION::ROTATE)
+			{
+				Rotator newRotation = transform.Rotation;
+				transform = selectedComponent ? selectedComponent->GetRelativeTransform() : selectedEntity.GetRelativeTransform();
+				transform.Rotation = newRotation;
+			}
 			if (selectedComponent)
 				bRelative ? selectedComponent->SetRelativeTransform(transform) : selectedComponent->SetWorldTransform(transform);
 			else
@@ -164,12 +170,6 @@ namespace Eagle
 	
 	void EntityAssetEditor::OnEntityChanged()
 	{
-		const auto& scene = GetCurrentScene();
-		scene->DestroyPendingEntities();
-
-		GUID selectedEntityGUID = m_SceneHierarchy.GetSelectedEntity() ? m_SceneHierarchy.GetSelectedEntity().GetGUID() : GUID(0, 0);
-		SelectedComponent selectedComp = m_SceneHierarchy.GetSelectedComponentType();
-
 		const auto& assetEntity = m_Asset->GetEntity();
 		const auto& assetEntityScene = assetEntity->GetScene();
 		assetEntityScene->DestroyEntityImmediately(*assetEntity.get(), true);
@@ -177,10 +177,6 @@ namespace Eagle
 
 		m_Asset->SetDirty(true);
 		m_Asset->OnModified();
-		scene->DestroyEntityImmediately(m_Entity, true);
-		m_Entity = scene->CreateFromEntityAsset(m_Asset, true);
-
-		m_SceneHierarchy.SetEntitySelected(selectedEntityGUID.IsNull() ? Entity::Null : scene->GetEntityByGUID(selectedEntityGUID), selectedComp);
 	}
 	
 	void EntityAssetEditor::HandleFirstWindowRender(std::string_view windowName, std::string_view parentName)
