@@ -941,9 +941,19 @@ namespace Eagle
 				if (ImGui::MenuItem("Open VS Solution"))
 				{
 					const auto& projectInfo = Project::GetProjectInfo();
-					const Path solutionFile = projectInfo.BasePath / (projectInfo.Name + ".sln");
+					Path solutionFile = projectInfo.BasePath / (projectInfo.Name + ".sln");
 					if (std::filesystem::exists(solutionFile))
+					{
 						Utils::OpenInExplorer(solutionFile);
+					}
+					else
+					{
+						solutionFile = projectInfo.BasePath / (projectInfo.Name + ".slnx");
+						if (std::filesystem::exists(solutionFile))
+						{
+							Utils::OpenInExplorer(solutionFile);
+						}
+					}
 				}
 				if (ImGui::MenuItem("Generate VS Solution"))
 				{

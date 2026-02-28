@@ -129,6 +129,16 @@ namespace Eagle
 			return features12.shaderSampledImageArrayNonUniformIndexing;
 		}
 
+		static bool CheckForFloat16(VkPhysicalDevice physicalDevice)
+		{
+			VkPhysicalDeviceVulkan12Features features12 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
+			VkPhysicalDeviceFeatures2 features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+			features.pNext = &features12;
+			vkGetPhysicalDeviceFeatures2(physicalDevice, &features);
+			
+			return features12.shaderFloat16;
+		}
+
 		static bool DoesSupportBindlessTextures(VkPhysicalDevice physicalDevice)
 		{
 			VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT, nullptr };
@@ -279,6 +289,11 @@ namespace Eagle
 		VkFormatProperties props{};
 		vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice, ImageFormatToVulkan(format), &props);
 		return props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+	}
+
+	bool VulkanPhysicalDevice::IsFloat16Supported() const
+	{
+		return Utils::CheckForFloat16(m_PhysicalDevice);
 	}
 
 	/////////////////////

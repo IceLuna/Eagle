@@ -56,6 +56,7 @@ namespace Eagle
 		const DeviceSupportedFeatures& GetSupportedFeatures() const { return m_SupportedFeatures; }
 		ImageFormat GetDepthFormat() const { return m_DepthFormat; }
 		bool IsMipGenerationSupported(ImageFormat format) const;
+		bool IsFloat16Supported() const;
 
 		const VkPhysicalDeviceProperties& GetProperties() const { return m_Properties; }
 		const VkPhysicalDeviceDriverProperties& GetDriverProperties() const { return m_DriverProperties; }

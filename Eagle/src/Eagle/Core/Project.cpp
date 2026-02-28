@@ -199,7 +199,6 @@ namespace Eagle
 		const std::string vsVersions[] = { "vs2026", "vs2022", "vs2019" };
 
 		const std::string eagleDir = std::filesystem::absolute(Application::GetCorePath().parent_path()).u8string();
-		EG_CORE_WARN(eagleDir);
 		std::string args = std::string(" --file=" + eagleDir + "/premake5_project.lua ") + "--projectname=" + info.Name
 			+ " --projectdir=" + info.BasePath.u8string() + " --eagledir=" + eagleDir;
 

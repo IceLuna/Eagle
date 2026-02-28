@@ -265,11 +265,16 @@ namespace Eagle
 		deviceFeatures12.descriptorBindingPartiallyBound = VK_TRUE;
 		deviceFeatures12.imagelessFramebuffer = VK_TRUE;
 		deviceFeatures12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
-		deviceFeatures12.shaderFloat16 = VK_TRUE;
+		deviceFeatures12.shaderFloat16 = m_PhysicalDevice->IsFloat16Supported() ? VK_TRUE : VK_FALSE;
 #ifdef EG_GPU_TIMINGS
 		deviceFeatures12.hostQueryReset = VK_TRUE;
 #endif
 		deviceFeatures12.pNext = &storageFeatures;
+
+		if (!m_PhysicalDevice->IsFloat16Supported())
+		{
+			EG_CORE_WARN("Your GPU doesn't support float16. Some rendering features might work incorrectly or even result in crashes");
+		}
 
 		const auto& supportedFeatures = m_PhysicalDevice->GetSupportedFeatures();
 		const bool bSupportsAnisotropy = supportedFeatures.bAnisotropy;
