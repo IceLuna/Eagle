@@ -822,7 +822,7 @@ namespace Eagle
 		if (selectedComponent)
 		{
 			const auto selectedType = m_SceneHierarchyPanel.GetSelectedComponentType();
-			if (selectedType == SelectedComponent::Decal)
+			if (selectedType == SelectedComponent::DecalComponent)
 			{
 				const AABB aabb(glm::vec3(-0.5f), glm::vec3(0.5f));
 				m_CurrentScene->DrawAABB(aabb, selectedComponent->GetWorldTransform());

@@ -17,7 +17,7 @@ namespace Eagle
 	static const char* s_BlendModeHelpMsg = "Translucent materials do not cast shadows!\nUse translucent materials with caution cause rendering them can be expensive";
 	static const char* s_OpacityHelpMsg = "Controls the translucency of the material. 0 - fully transparent, 1 - fully opaque. Default is 0.5";
 	static const char* s_OpacityMaskHelpMsg = "When in Masked mode, a material is either completely visible or completely invisible.\nValues below 0.5 are invisible";
-	static const char* s_CastsShadowsHelpMsg = "Translucent materials don't cast shadows unless 'Translucent shadows' feature is enabled. Translucent materials do not cast shadows on other translucent materials!";
+	static const char* s_CastsShadowsHelpMsg = "Translucent materials don't cast shadows unless 'Translucent shadows' feature is enabled. Translucent materials don't cast shadows on other translucent materials!";
 	static const char* s_Text2DPosHelpMsg = "Normalized Device Coords. It's the position of the top left vertex of the first symbol\n"
 		"Text2D will try to be at the same position of the screen no matter the resolution. Also it'll try to occupy the same amount of space\n"
 		"(-1; -1) is the top left corner of the screen\n(0; 0) is the center\n(1; 1) is the bottom right corner of the screen";
@@ -77,23 +77,23 @@ namespace Eagle
 		switch (m_SelectedComponent)
 		{
 		case SelectedComponent::None: return nullptr;
-		case SelectedComponent::Sprite: return &m_Entity.GetComponent<SpriteComponent>();
-		case SelectedComponent::StaticMesh: return &m_Entity.GetComponent<StaticMeshComponent>();
-		case SelectedComponent::SkeletalMesh: return &m_Entity.GetComponent<SkeletalMeshComponent>();
-		case SelectedComponent::Billboard: return &m_Entity.GetComponent<BillboardComponent>();
-		case SelectedComponent::Text3D: return &m_Entity.GetComponent<TextComponent>();
-		case SelectedComponent::Camera: return &m_Entity.GetComponent<CameraComponent>();
-		case SelectedComponent::PointLight: return &m_Entity.GetComponent<PointLightComponent>();
-		case SelectedComponent::DirectionalLight: return &m_Entity.GetComponent<DirectionalLightComponent>();
-		case SelectedComponent::SpotLight: return &m_Entity.GetComponent<SpotLightComponent>();
-		case SelectedComponent::BoxCollider: return &m_Entity.GetComponent<BoxColliderComponent>();
-		case SelectedComponent::SphereCollider: return &m_Entity.GetComponent<SphereColliderComponent>();
-		case SelectedComponent::CapsuleCollider: return &m_Entity.GetComponent<CapsuleColliderComponent>();
-		case SelectedComponent::MeshCollider: return &m_Entity.GetComponent<MeshColliderComponent>();
+		case SelectedComponent::SpriteComponent: return &m_Entity.GetComponent<SpriteComponent>();
+		case SelectedComponent::StaticMeshComponent: return &m_Entity.GetComponent<StaticMeshComponent>();
+		case SelectedComponent::SkeletalMeshComponent: return &m_Entity.GetComponent<SkeletalMeshComponent>();
+		case SelectedComponent::BillboardComponent: return &m_Entity.GetComponent<BillboardComponent>();
+		case SelectedComponent::TextComponent: return &m_Entity.GetComponent<TextComponent>();
+		case SelectedComponent::CameraComponent: return &m_Entity.GetComponent<CameraComponent>();
+		case SelectedComponent::PointLightComponent: return &m_Entity.GetComponent<PointLightComponent>();
+		case SelectedComponent::DirectionalLightComponent: return &m_Entity.GetComponent<DirectionalLightComponent>();
+		case SelectedComponent::SpotLightComponent: return &m_Entity.GetComponent<SpotLightComponent>();
+		case SelectedComponent::BoxColliderComponent: return &m_Entity.GetComponent<BoxColliderComponent>();
+		case SelectedComponent::SphereColliderComponent: return &m_Entity.GetComponent<SphereColliderComponent>();
+		case SelectedComponent::CapsuleColliderComponent: return &m_Entity.GetComponent<CapsuleColliderComponent>();
+		case SelectedComponent::MeshColliderComponent: return &m_Entity.GetComponent<MeshColliderComponent>();
 		case SelectedComponent::AudioComponent: return &m_Entity.GetComponent<AudioComponent>();
 		case SelectedComponent::ReverbComponent: return &m_Entity.GetComponent<ReverbComponent>();
-		case SelectedComponent::ParticleSystem: return &m_Entity.GetComponent<ParticleSystemComponent>();
-		case SelectedComponent::Decal: return &m_Entity.GetComponent<DecalComponent>();
+		case SelectedComponent::ParticleSystemComponent: return &m_Entity.GetComponent<ParticleSystemComponent>();
+		case SelectedComponent::DecalComponent: return &m_Entity.GetComponent<DecalComponent>();
 		case SelectedComponent::NavigationMeshComponent: return &m_Entity.GetComponent<NavigationMeshComponent>();
 		}
 		return nullptr;
@@ -107,27 +107,27 @@ namespace Eagle
 		switch (m_SelectedComponent)
 		{
 			case SelectedComponent::None: return false;
-			case SelectedComponent::Sprite: return m_Entity.HasComponent<SpriteComponent>();
-			case SelectedComponent::StaticMesh: return m_Entity.HasComponent<StaticMeshComponent>();
-			case SelectedComponent::SkeletalMesh: return m_Entity.HasComponent<SkeletalMeshComponent>();
-			case SelectedComponent::Billboard: return m_Entity.HasComponent<BillboardComponent>();
-			case SelectedComponent::Text3D: return m_Entity.HasComponent<TextComponent>();
-			case SelectedComponent::Camera: return m_Entity.HasComponent<CameraComponent>();
-			case SelectedComponent::PointLight: return m_Entity.HasComponent<PointLightComponent>();
-			case SelectedComponent::DirectionalLight: return m_Entity.HasComponent<DirectionalLightComponent>();
-			case SelectedComponent::SpotLight: return m_Entity.HasComponent<SpotLightComponent>();
-			case SelectedComponent::Script: return m_Entity.HasComponent<ScriptComponent>();
-			case SelectedComponent::RigidBody: return m_Entity.HasComponent<RigidBodyComponent>();
-			case SelectedComponent::BoxCollider: return m_Entity.HasComponent<BoxColliderComponent>();
-			case SelectedComponent::SphereCollider: return m_Entity.HasComponent<SphereColliderComponent>();
-			case SelectedComponent::CapsuleCollider: return m_Entity.HasComponent<CapsuleColliderComponent>();
-			case SelectedComponent::MeshCollider: return m_Entity.HasComponent<MeshColliderComponent>();
+			case SelectedComponent::SpriteComponent: return m_Entity.HasComponent<SpriteComponent>();
+			case SelectedComponent::StaticMeshComponent: return m_Entity.HasComponent<StaticMeshComponent>();
+			case SelectedComponent::SkeletalMeshComponent: return m_Entity.HasComponent<SkeletalMeshComponent>();
+			case SelectedComponent::BillboardComponent: return m_Entity.HasComponent<BillboardComponent>();
+			case SelectedComponent::TextComponent: return m_Entity.HasComponent<TextComponent>();
+			case SelectedComponent::CameraComponent: return m_Entity.HasComponent<CameraComponent>();
+			case SelectedComponent::PointLightComponent: return m_Entity.HasComponent<PointLightComponent>();
+			case SelectedComponent::DirectionalLightComponent: return m_Entity.HasComponent<DirectionalLightComponent>();
+			case SelectedComponent::SpotLightComponent: return m_Entity.HasComponent<SpotLightComponent>();
+			case SelectedComponent::ScriptComponent: return m_Entity.HasComponent<ScriptComponent>();
+			case SelectedComponent::RigidBodyComponent: return m_Entity.HasComponent<RigidBodyComponent>();
+			case SelectedComponent::BoxColliderComponent: return m_Entity.HasComponent<BoxColliderComponent>();
+			case SelectedComponent::SphereColliderComponent: return m_Entity.HasComponent<SphereColliderComponent>();
+			case SelectedComponent::CapsuleColliderComponent: return m_Entity.HasComponent<CapsuleColliderComponent>();
+			case SelectedComponent::MeshColliderComponent: return m_Entity.HasComponent<MeshColliderComponent>();
 			case SelectedComponent::AudioComponent: return m_Entity.HasComponent<AudioComponent>();
 			case SelectedComponent::ReverbComponent: return m_Entity.HasComponent<ReverbComponent>();
-			case SelectedComponent::Text2D: return m_Entity.HasComponent<Text2DComponent>();
-			case SelectedComponent::Image2D: return m_Entity.HasComponent<Image2DComponent>();
-			case SelectedComponent::ParticleSystem: return m_Entity.HasComponent<ParticleSystemComponent>();
-			case SelectedComponent::Decal: return m_Entity.HasComponent<DecalComponent>();
+			case SelectedComponent::Text2DComponent: return m_Entity.HasComponent<Text2DComponent>();
+			case SelectedComponent::Image2DComponent: return m_Entity.HasComponent<Image2DComponent>();
+			case SelectedComponent::ParticleSystemComponent: return m_Entity.HasComponent<ParticleSystemComponent>();
+			case SelectedComponent::DecalComponent: return m_Entity.HasComponent<DecalComponent>();
 			case SelectedComponent::NavigationMeshComponent: return m_Entity.HasComponent<NavigationMeshComponent>();
 			case SelectedComponent::NavigationCrowdAgentComponent: return m_Entity.HasComponent<NavigationCrowdAgentComponent>();
 		}
@@ -158,7 +158,7 @@ namespace Eagle
 
 		if (ImGui::BeginPopup("AddComponent"))
 		{
-#define EG_ADD_COMPONENT_MENU_ITEM(type, name) DrawAddComponentMenuItem<type>(name, #type)
+#define EG_ADD_COMPONENT_MENU_ITEM(type, name) do { if (DrawAddComponentMenuItem<type>(name, #type)) { m_SelectedComponent = SelectedComponent::type; } } while (0)
 
 			UI::TextWithSeparator("Basic");
 			EG_ADD_COMPONENT_MENU_ITEM(ScriptComponent, "C# Script");
@@ -229,27 +229,27 @@ namespace Eagle
 			if(entityTreeOpened)
 			{
 #define EG_DRAW_COMPONENT_LINE(label, type, typeEnum) { if (DrawComponentLine<type>(label, entity, m_SelectedComponent == typeEnum)) m_SelectedComponent = typeEnum; }
-				EG_DRAW_COMPONENT_LINE("C# Script", ScriptComponent, SelectedComponent::Script);
+				EG_DRAW_COMPONENT_LINE("C# Script", ScriptComponent, SelectedComponent::ScriptComponent);
 				EG_DRAW_COMPONENT_LINE("Audio", AudioComponent, SelectedComponent::AudioComponent);
 				EG_DRAW_COMPONENT_LINE("Reverb", ReverbComponent, SelectedComponent::ReverbComponent);
-				EG_DRAW_COMPONENT_LINE("Rigid Body", RigidBodyComponent, SelectedComponent::RigidBody);
-				EG_DRAW_COMPONENT_LINE("Box Collider", BoxColliderComponent, SelectedComponent::BoxCollider);
-				EG_DRAW_COMPONENT_LINE("Sphere Collider", SphereColliderComponent, SelectedComponent::SphereCollider);
-				EG_DRAW_COMPONENT_LINE("Capsule Collider", CapsuleColliderComponent, SelectedComponent::CapsuleCollider);
-				EG_DRAW_COMPONENT_LINE("Mesh Collider", MeshColliderComponent, SelectedComponent::MeshCollider);
-				EG_DRAW_COMPONENT_LINE("Sprite", SpriteComponent, SelectedComponent::Sprite);
-				EG_DRAW_COMPONENT_LINE("Static Mesh", StaticMeshComponent, SelectedComponent::StaticMesh);
-				EG_DRAW_COMPONENT_LINE("Skeletal Mesh", SkeletalMeshComponent, SelectedComponent::SkeletalMesh);
-				EG_DRAW_COMPONENT_LINE("Billboard", BillboardComponent, SelectedComponent::Billboard);
-				EG_DRAW_COMPONENT_LINE("Text", TextComponent, SelectedComponent::Text3D);
-				EG_DRAW_COMPONENT_LINE("Text 2D", Text2DComponent, SelectedComponent::Text2D);
-				EG_DRAW_COMPONENT_LINE("Image 2D", Image2DComponent, SelectedComponent::Image2D);
-				EG_DRAW_COMPONENT_LINE("Camera", CameraComponent, SelectedComponent::Camera);
-				EG_DRAW_COMPONENT_LINE("Point Light", PointLightComponent, SelectedComponent::PointLight);
-				EG_DRAW_COMPONENT_LINE("Directional Light", DirectionalLightComponent, SelectedComponent::DirectionalLight);
-				EG_DRAW_COMPONENT_LINE("Spot Light", SpotLightComponent, SelectedComponent::SpotLight);
-				EG_DRAW_COMPONENT_LINE("Particle System", ParticleSystemComponent, SelectedComponent::ParticleSystem);
-				EG_DRAW_COMPONENT_LINE("Decal", DecalComponent, SelectedComponent::Decal);
+				EG_DRAW_COMPONENT_LINE("Rigid Body", RigidBodyComponent, SelectedComponent::RigidBodyComponent);
+				EG_DRAW_COMPONENT_LINE("Box Collider", BoxColliderComponent, SelectedComponent::BoxColliderComponent);
+				EG_DRAW_COMPONENT_LINE("Sphere Collider", SphereColliderComponent, SelectedComponent::SphereColliderComponent);
+				EG_DRAW_COMPONENT_LINE("Capsule Collider", CapsuleColliderComponent, SelectedComponent::CapsuleColliderComponent);
+				EG_DRAW_COMPONENT_LINE("Mesh Collider", MeshColliderComponent, SelectedComponent::MeshColliderComponent);
+				EG_DRAW_COMPONENT_LINE("Sprite", SpriteComponent, SelectedComponent::SpriteComponent);
+				EG_DRAW_COMPONENT_LINE("Static Mesh", StaticMeshComponent, SelectedComponent::StaticMeshComponent);
+				EG_DRAW_COMPONENT_LINE("Skeletal Mesh", SkeletalMeshComponent, SelectedComponent::SkeletalMeshComponent);
+				EG_DRAW_COMPONENT_LINE("Billboard", BillboardComponent, SelectedComponent::BillboardComponent);
+				EG_DRAW_COMPONENT_LINE("Text", TextComponent, SelectedComponent::TextComponent);
+				EG_DRAW_COMPONENT_LINE("Text 2D", Text2DComponent, SelectedComponent::Text2DComponent);
+				EG_DRAW_COMPONENT_LINE("Image 2D", Image2DComponent, SelectedComponent::Image2DComponent);
+				EG_DRAW_COMPONENT_LINE("Camera", CameraComponent, SelectedComponent::CameraComponent);
+				EG_DRAW_COMPONENT_LINE("Point Light", PointLightComponent, SelectedComponent::PointLightComponent);
+				EG_DRAW_COMPONENT_LINE("Directional Light", DirectionalLightComponent, SelectedComponent::DirectionalLightComponent);
+				EG_DRAW_COMPONENT_LINE("Spot Light", SpotLightComponent, SelectedComponent::SpotLightComponent);
+				EG_DRAW_COMPONENT_LINE("Particle System", ParticleSystemComponent, SelectedComponent::ParticleSystemComponent);
+				EG_DRAW_COMPONENT_LINE("Decal", DecalComponent, SelectedComponent::DecalComponent);
 				EG_DRAW_COMPONENT_LINE("Navigation Mesh", NavigationMeshComponent, SelectedComponent::NavigationMeshComponent);
 				EG_DRAW_COMPONENT_LINE("Navigation Crowd Agent", NavigationCrowdAgentComponent, SelectedComponent::NavigationCrowdAgentComponent);
 #undef EG_DRAW_COMPONENT_LINE
@@ -271,7 +271,7 @@ namespace Eagle
 		}
 		switch (m_SelectedComponent)
 		{
-			case SelectedComponent::Sprite:
+			case SelectedComponent::SpriteComponent:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<SpriteComponent>());
 				DrawComponent<SpriteComponent>("Sprite", entity, [&entity, this](SpriteComponent& sprite)
@@ -348,7 +348,7 @@ namespace Eagle
 				break;
 			}
 
-			case SelectedComponent::StaticMesh:
+			case SelectedComponent::StaticMeshComponent:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<StaticMeshComponent>());
 				DrawComponent<StaticMeshComponent>("Static Mesh", entity, [&entity, this](StaticMeshComponent& smComponent)
@@ -401,7 +401,7 @@ namespace Eagle
 				break;
 			}
 			
-			case SelectedComponent::SkeletalMesh:
+			case SelectedComponent::SkeletalMeshComponent:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<SkeletalMeshComponent>());
 				DrawComponent<SkeletalMeshComponent>("Skeletal Mesh", entity, [&entity, this](SkeletalMeshComponent& smComponent)
@@ -538,7 +538,7 @@ namespace Eagle
 				break;
 			}
 
-			case SelectedComponent::Billboard:
+			case SelectedComponent::BillboardComponent:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<BillboardComponent>());
 				DrawComponent<BillboardComponent>("Billboard", entity, [&entity, this](BillboardComponent& billboard)
@@ -553,7 +553,7 @@ namespace Eagle
 				break;
 			}
 
-			case SelectedComponent::Text3D:
+			case SelectedComponent::TextComponent:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<TextComponent>());
 				DrawComponent<TextComponent>("Text", entity, [&entity, this](TextComponent& component)
@@ -648,7 +648,7 @@ namespace Eagle
 				break;
 			}
 			
-			case SelectedComponent::Text2D:
+			case SelectedComponent::Text2DComponent:
 			{
 				DrawComponent<Text2DComponent>("Text 2D", entity, [&entity, this](Text2DComponent& component)
 				{
@@ -737,7 +737,7 @@ namespace Eagle
 				break;
 			}
 			
-			case SelectedComponent::Image2D:
+			case SelectedComponent::Image2DComponent:
 			{
 				DrawComponent<Image2DComponent>("Image 2D", entity, [&entity, this](Image2DComponent& component)
 				{
@@ -798,7 +798,7 @@ namespace Eagle
 				break;
 			}
 
-			case SelectedComponent::Camera:
+			case SelectedComponent::CameraComponent:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<CameraComponent>());
 				DrawComponent<CameraComponent>("Camera", entity, [&entity, this](CameraComponent& cameraComponent)
@@ -898,7 +898,7 @@ namespace Eagle
 				break;
 			}
 
-			case SelectedComponent::PointLight:
+			case SelectedComponent::PointLightComponent:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<PointLightComponent>());
 				DrawComponent<PointLightComponent>("Point Light", entity, [&entity, this](PointLightComponent& pointLight)
@@ -972,7 +972,7 @@ namespace Eagle
 				break;
 			}
 
-			case SelectedComponent::DirectionalLight:
+			case SelectedComponent::DirectionalLightComponent:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<DirectionalLightComponent>());
 				DrawComponent<DirectionalLightComponent>("Directional Light", entity, [&entity, this](DirectionalLightComponent& directionalLight)
@@ -1036,7 +1036,7 @@ namespace Eagle
 				break;
 			}
 
-			case SelectedComponent::SpotLight:
+			case SelectedComponent::SpotLightComponent:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<SpotLightComponent>());
 				DrawComponent<SpotLightComponent>("Spot Light", entity, [&entity, this](SpotLightComponent& spotLight)
@@ -1124,7 +1124,7 @@ namespace Eagle
 				break;
 			}
 		
-			case SelectedComponent::Script:
+			case SelectedComponent::ScriptComponent:
 			{
 				DrawComponent<ScriptComponent>("C# Script", entity, [&entity, this](ScriptComponent& scriptComponent)
 				{
@@ -1167,7 +1167,7 @@ namespace Eagle
 				break;
 			}
 		
-			case SelectedComponent::RigidBody:
+			case SelectedComponent::RigidBodyComponent:
 			{
 				bool bCanRemove = !entity.HasAny<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, MeshColliderComponent>();
 				DrawComponent<RigidBodyComponent>("Rigid Body", entity, [&entity, this](RigidBodyComponent& rigidBody)
@@ -1284,7 +1284,7 @@ namespace Eagle
 				break;
 			}
 
-			case SelectedComponent::BoxCollider:
+			case SelectedComponent::BoxColliderComponent:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<BoxColliderComponent>());
 				DrawComponent<BoxColliderComponent>("Box Collider", entity, [&entity, this](BoxColliderComponent& collider)
@@ -1364,7 +1364,7 @@ namespace Eagle
 				break;
 			}
 
-			case SelectedComponent::SphereCollider:
+			case SelectedComponent::SphereColliderComponent:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<SphereColliderComponent>());
 				DrawComponent<SphereColliderComponent>("Sphere Collider", entity, [&entity, this](SphereColliderComponent& collider)
@@ -1444,7 +1444,7 @@ namespace Eagle
 				break;
 			}
 
-			case SelectedComponent::CapsuleCollider:
+			case SelectedComponent::CapsuleColliderComponent:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<CapsuleColliderComponent>());
 				DrawComponent<CapsuleColliderComponent>("Capsule Collider", entity, [&entity, this](CapsuleColliderComponent& collider)
@@ -1531,7 +1531,7 @@ namespace Eagle
 				break;
 			}
 
-			case SelectedComponent::MeshCollider:
+			case SelectedComponent::MeshColliderComponent:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<MeshColliderComponent>());
 				DrawComponent<MeshColliderComponent>("Mesh Collider", entity, [&entity, this](MeshColliderComponent& collider)
@@ -1806,7 +1806,7 @@ namespace Eagle
 				break;
 			}
 		
-			case SelectedComponent::ParticleSystem:
+			case SelectedComponent::ParticleSystemComponent:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<ParticleSystemComponent>());
 				DrawComponent<ParticleSystemComponent>("Particle System", entity, [&entity, this](ParticleSystemComponent& system)
@@ -1827,7 +1827,7 @@ namespace Eagle
 				break;
 			}
 
-			case SelectedComponent::Decal:
+			case SelectedComponent::DecalComponent:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<DecalComponent>());
 				DrawComponent<DecalComponent>("Decal", entity, [&entity, this](DecalComponent& decal)

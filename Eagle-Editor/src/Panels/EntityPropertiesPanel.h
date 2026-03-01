@@ -7,27 +7,27 @@ namespace Eagle
 	enum class SelectedComponent
 	{
 		None,
-		Sprite,
-		StaticMesh,
-		SkeletalMesh,
-		Billboard,
-		Text3D,
-		Camera,
-		PointLight,
-		DirectionalLight,
-		SpotLight,
-		Script,
-		RigidBody,
-		BoxCollider,
-		SphereCollider,
-		CapsuleCollider,
-		MeshCollider,
+		SpriteComponent,
+		StaticMeshComponent,
+		SkeletalMeshComponent,
+		BillboardComponent,
+		TextComponent,
+		CameraComponent,
+		PointLightComponent,
+		DirectionalLightComponent,
+		SpotLightComponent,
+		ScriptComponent,
+		RigidBodyComponent,
+		BoxColliderComponent,
+		SphereColliderComponent,
+		CapsuleColliderComponent,
+		MeshColliderComponent,
 		AudioComponent,
 		ReverbComponent,
-		Text2D,
-		Image2D,
-		ParticleSystem,
-		Decal,
+		Text2DComponent,
+		Image2DComponent,
+		ParticleSystemComponent,
+		DecalComponent,
 		NavigationMeshComponent,
 		NavigationCrowdAgentComponent,
 	};
@@ -139,19 +139,18 @@ namespace Eagle
 		}
 
 		template <typename T>
-		void DrawAddComponentMenuItem(const char* name, const char* typeName)
+		bool DrawAddComponentMenuItem(const char* name, const char* typeName)
 		{
 			if (!m_Entity)
-				return;
+				return false;
 
 			const bool bDisable = m_Entity.HasComponent<T>() == true;
 			if (bDisable)
 				UI::PushItemDisabled();
 
+			bool bAdded = false;
 			if (ImGui::MenuItem(name))
 			{
-				bEntityChanged = true;
-
 				if (std::is_same<T, NavigationMeshComponent>::value)
 				{
 					if (!m_Entity.GetScene()->GetAllEntitiesWith<NavigationMeshComponent>().empty())
@@ -159,6 +158,7 @@ namespace Eagle
 				}
 
 				m_Entity.AddComponent<T>();
+				bAdded = true;
 				EG_CORE_TRACE("Added '{}' to {}", typeName, m_Entity.GetName());
 
 				ImGui::CloseCurrentPopup();
@@ -173,6 +173,9 @@ namespace Eagle
 				ImGui::SetCursorScreenPos(cursorPos);
 				UI::HelpMarker("Already exists");
 			}
+
+			bEntityChanged |= bAdded;
+			return bAdded;
 		}
 
 		void DrawEntityTransformNode(Entity& entity);
