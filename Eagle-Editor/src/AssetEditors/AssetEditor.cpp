@@ -327,4 +327,13 @@ namespace Eagle
 				m_Scene->bCanUpdateEditorCamera = false;
 		}
 	}
+
+	glm::ivec2 AssetEditor::GetMousePosWithinViewport() const
+	{
+		auto [mx, my] = ImGui::GetMousePos();
+		mx -= m_ViewportBounds[0].x;
+		my -= m_ViewportBounds[0].y;
+
+		return glm::ivec2(mx, my);
+	}
 }

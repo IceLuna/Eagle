@@ -45,7 +45,8 @@ namespace Eagle
 		virtual void HandleFirstWindowRender(std::string_view windowName, std::string_view parentName);
 
 		void HandleCameraFocus();
-		
+		glm::ivec2 GetMousePosWithinViewport() const;
+
 		static std::string GetAssetWindowName(const Ref<Asset>& asset);
 		static ImVec2 GetDefaultWindowSize() { return ImVec2(920.f, 760.f); }
 

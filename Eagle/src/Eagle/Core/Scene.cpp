@@ -1596,6 +1596,7 @@ namespace Eagle
 	Entity Scene::CreateFromEntityAsset(const Ref<AssetEntity>& asset, bool bCopyGUID)
 	{
 		Entity createdEntity = CreateFromEntity(*asset->GetEntity().get(), bCopyGUID);
+		createdEntity.SetName(asset->GetPath().stem().u8string());
 		createdEntity.AddComponent<EntityAssetComponent>().AssetGUID = asset->GetGUID();
 
 		return createdEntity;

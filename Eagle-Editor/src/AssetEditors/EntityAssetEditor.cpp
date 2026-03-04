@@ -64,15 +64,19 @@ namespace Eagle
 		ImGui::SetNextWindowSize(ImVec2(720.f, 160.f), ImGuiCond_FirstUseEver);
 		if (ImGui::Begin(m_WindowName.c_str(), pOpen))
 		{
+			const auto& scene = GetCurrentScene();
 			const bool bEntityChanged = m_SceneHierarchy.OnImGuiRender(bRuntime, true, &bVolumetricsEnabled);
 			if (bEntityChanged)
 				OnEntityChanged();
 
 			{
+				bool bEnableSkybox = scene->IsSkyboxEnabled();
 				UI::TextWithSeparator("Visualization settings");
 
 				UI::BeginPropertyGrid("EntityDetails");
 				UI::Property("Update animations", m_UpdateAnims);
+				if (UI::Property("Enable IBL", bEnableSkybox))
+					scene->SetSkyboxEnabled(bEnableSkybox);
 				UI::EndPropertyGrid();
 
 				ImGui::Separator();
@@ -88,8 +92,7 @@ namespace Eagle
 
 				if (ImGui::Button("Reload entities"))
 				{
-					auto& scene = Scene::GetCurrentScene();
-					scene->ReloadEntitiesCreatedFromAsset(m_Asset);
+					Scene::GetCurrentScene()->ReloadEntitiesCreatedFromAsset(m_Asset);
 					if (auto& sceneAsset = m_EditorLayer.GetOpenedSceneAsset())
 						sceneAsset->SetDirty(true);
 				}
@@ -111,10 +114,40 @@ namespace Eagle
 	void EntityAssetEditor::OnEvent(Event& e)
 	{
 		AssetEditor::OnEvent(e);
+		Event::Dispatch<MouseButtonPressedEvent>(e, EG_BIND_FN(EntityAssetEditor::HandleEntitySelection));
 
 		const bool bEntityChanged = m_SceneHierarchy.OnEvent(e, bViewportFocused);
 		if (bEntityChanged)
 			OnEntityChanged();
+	}
+
+	bool EntityAssetEditor::HandleEntitySelection(MouseButtonPressedEvent& e)
+	{
+		// Entity Selection
+		Entity selectedEntity = m_SceneHierarchy.GetSelectedEntity();
+		bool bUsingImGuizmo = selectedEntity && (ImGuizmo::IsUsing() || ImGuizmo::IsOver());
+		const auto& scene = GetCurrentScene();
+		if (bViewportHovered && !bUsingImGuizmo && Input::IsMouseButtonPressed(Mouse::ButtonLeft))
+		{
+			const glm::vec2 viewportSize = m_ViewportBounds[1] - m_ViewportBounds[0];
+			const glm::ivec2 mouse = GetMousePosWithinViewport();
+
+			if (mouse.x >= 0 && mouse.y >= 0 && mouse.x < (int)viewportSize.x && mouse.y < (int)viewportSize.y)
+			{
+				Ref<Image>& image = scene->GetSceneRenderer()->GetGBuffer().ObjectIDCopy;
+				int data = -1;
+
+				const ImageSubresourceLayout imageLayout = image->GetImageSubresourceLayout();
+				uint8_t* mapped = (uint8_t*)image->Map();
+				mapped += imageLayout.Offset;
+				mapped += imageLayout.RowPitch * mouse.y;
+				memcpy(&data, ((uint32_t*)mapped) + mouse.x, sizeof(int32_t));
+				image->Unmap();
+				m_SceneHierarchy.SetEntitySelected(data == -1 ? Entity::Null : Entity{ (entt::entity)data, scene.get() });
+				return true;
+			}
+		}
+		return false;
 	}
 
 	void EntityAssetEditor::UpdateGuizmo()

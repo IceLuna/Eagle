@@ -333,25 +333,6 @@ namespace Eagle
         }
 
         // @parentNode. We need to use parent nodes base transformation that's not affected by any other animation.
-        static glm::mat4 FilterTransform_Test(const glm::mat4& tr, const BoneNode& node, const BoneNode* parentNode)
-        {
-            if (!node.bIgnoreParentLocation && !node.bIgnoreParentRotation && !node.bIgnoreParentScale)
-                return tr; // Not ignoring anything
-
-            Transform transform = Math::DecomposeTransformMatrix(tr);
-            Transform baseTransform = parentNode ? Math::DecomposeTransformMatrix(parentNode->Transformation) : Transform{};
-
-            if (node.bIgnoreParentLocation)
-                transform.Location = baseTransform.Location;
-            if (node.bIgnoreParentRotation)
-                transform.Rotation = baseTransform.Rotation;
-            if (node.bIgnoreParentScale)
-                transform.Scale3D = baseTransform.Scale3D;
-
-            return Math::ToTransformMatrix(transform);
-        }
-
-        // @parentNode. We need to use parent nodes base transformation that's not affected by any other animation.
         static glm::mat4 FilterTransform(const SkeletalMeshInfo& skeletal, const glm::mat4& parentTr, const BoneNode& node, Transform& nodeBoneTr, const BoneNode* parentNode)
         {
             if (!node.bIgnoreParentLocation && !node.bIgnoreParentRotation && !node.bIgnoreParentScale)

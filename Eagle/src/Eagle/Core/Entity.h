@@ -99,6 +99,8 @@ namespace Eagle
 		entt::entity GetEnttID() const { return m_Entity; }
 		const Scene* GetScene() const { return m_Scene; }
 		Scene* GetScene() { return m_Scene; }
+
+		void SetName(const std::string& name);
 		const std::string& GetName() const;
 
 		const Ref<PhysicsActor>& GetPhysicsActor() const { return m_Scene->GetPhysicsActor(*this); }

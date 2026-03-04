@@ -6,9 +6,14 @@
 
 namespace Eagle
 {
+	struct CachedImage
+	{
+		Ref<Image> Render;
+		bool bOutdated = false;
+	};
 	static GUID s_AssetModifiedCallbackID;
 	static Scope<AssetThumbnailRenderer> s_AssetThumbnailRenderer;
-	static std::unordered_map<Ref<Asset>, Ref<Image>> s_ThumbnailCache;
+	static std::unordered_map<Ref<Asset>, CachedImage> s_ThumbnailCache;
 	static bool s_RenderingThumbnail = false;
 
 	// Contains the frame number it was rendered on. We need to wait `FramesInFlight` frames for it to be ready
@@ -24,7 +29,8 @@ namespace Eagle
 			auto it = s_ThumbnailCache.find(asset);
 			if (it != s_ThumbnailCache.end())
 			{
-				s_ThumbnailCache.erase(it);
+				auto& data = it->second;
+				data.bOutdated = true;
 			}
 		});
 	}
@@ -50,7 +56,7 @@ namespace Eagle
 			{
 				const auto& asset = it->first;
 				const auto& image = pair.first;
-				s_ThumbnailCache.emplace(asset, image);
+				s_ThumbnailCache[asset] = CachedImage{ image, false };
 				it = s_PendingThumbnails.erase(it);
 			}
 			else
@@ -107,22 +113,31 @@ namespace Eagle
 		if (!ThumbnailCache::IsRenderableAssetType(asset->GetAssetType()))
 			return nullptr;
 
+		// If the thumbnail is outdated, but keep it rendering till the fresh render replaces it
+		Ref<Image> placeholder;
+
 		// Check if it's ready
 		{
 			auto it = s_ThumbnailCache.find(asset);
 			if (it != s_ThumbnailCache.end())
-				return it->second;
+			{
+				const auto& data = it->second;
+				if (data.bOutdated)
+					placeholder = data.Render;
+				else
+					return data.Render;
+			}
 		}
 
 		// Check if it's pending
 		{
 			auto it = s_PendingThumbnails.find(asset);
 			if (it != s_PendingThumbnails.end())
-				return nullptr; // It's pending, temporarily return invalid one
+				return placeholder; // It's pending
 		}
 
 		// Try to render it and return null since it's an async request
 		Render(asset);
-		return nullptr;
+		return placeholder;
 	}
 }

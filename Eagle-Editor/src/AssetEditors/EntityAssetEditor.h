@@ -22,7 +22,7 @@ namespace Eagle
 		void UpdateGuizmo();
 		void OnViewportEnd() override { UpdateGuizmo(); }
 
-		bool OnKeyPressed(KeyPressedEvent& e);
+		bool HandleEntitySelection(MouseButtonPressedEvent& e);
 		void OnEntityChanged();
 
 		void HandleFirstWindowRender(std::string_view windowName, std::string_view parentName) override;

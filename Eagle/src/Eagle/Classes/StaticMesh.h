@@ -43,6 +43,7 @@ namespace Eagle
 			, m_AABB(aabb)
 			, m_MaterialSlots((uint32_t)m_IndicesPerMaterial.size())
 			, m_Materials(m_MaterialSlots)
+			, m_MaterialsCallbacks(m_MaterialSlots)
 		{
 		}
 
@@ -51,8 +52,17 @@ namespace Eagle
 			, m_IndicesPerMaterial(other.m_IndicesPerMaterial)
 			, m_AABB(other.m_AABB)
 			, m_MaterialSlots(other.m_MaterialSlots)
-			, m_Materials(other.m_Materials)
-		{}
+			, m_Materials(m_MaterialSlots)
+			, m_MaterialsCallbacks(m_MaterialSlots)
+		{
+			for (uint32_t i = 0; i < m_MaterialSlots; ++i)
+			{
+				SetMaterialAsset(i, other.m_Materials[i]);
+			}
+		}
+
+		StaticMesh(StaticMesh&& other) = delete;
+		~StaticMesh();
 
 	public:
 		const Index* GetIndicesData(uint32_t materialIndex) const { return m_IndicesPerMaterial[materialIndex].data(); }
@@ -85,16 +95,18 @@ namespace Eagle
 
 		uint32_t GetMaterialSlotsCount() const { return m_MaterialSlots; }
 
-		void SetMaterialAsset(uint32_t index, const Ref<AssetMaterial>& asset)
-		{
-			m_Materials[index] = asset;
-		}
-
+		void SetMaterialAsset(uint32_t index, const Ref<AssetMaterial>& material);
 		const Ref<AssetMaterial>& GetMaterialAsset(uint32_t index) { return m_Materials[index]; }
+
+		void AddOnMaterialPropertyModifiedCallback(const GUID& id, const std::function<void()>& func);
+		void RemoveOnMaterialPropertyModifiedCallback(const GUID& id);
 
 	public:
 		static Ref<StaticMesh> Create(const std::vector<Vertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const AABB& aabb);
 		static Ref<StaticMesh> Create(const Ref<StaticMesh>& other);
+
+	private:
+		void OnMaterialPropertyModified();
 
 	private:
 		std::vector<Vertex> m_Vertices;
@@ -102,5 +114,7 @@ namespace Eagle
 		AABB m_AABB;
 		uint32_t m_MaterialSlots;
 		std::vector<Ref<AssetMaterial>> m_Materials;
+		std::vector<GUID> m_MaterialsCallbacks;
+		std::unordered_map<GUID, std::function<void()>> m_Callbacks;
 	};
 }

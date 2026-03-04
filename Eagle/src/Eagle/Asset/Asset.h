@@ -381,7 +381,9 @@ namespace Eagle
 			Asset::operator=(std::move(other));
 
 			AssetStaticMesh&& meshAsset = (AssetStaticMesh&&)other;
+			meshAsset.m_Mesh->RemoveOnMaterialPropertyModifiedCallback(m_GUID);
 			m_Mesh = std::move(meshAsset.m_Mesh);
+			AddOnMaterialPropertyModifiedCallback();
 
 			return *this;
 		}
@@ -390,7 +392,12 @@ namespace Eagle
 
 	protected:
 		AssetStaticMesh(const Path& path, const Path& pathToRaw, GUID guid, const Ref<StaticMesh>& mesh)
-			: AssetBaseMesh(path, pathToRaw, AssetType::StaticMesh, guid, {}), m_Mesh(mesh) {}
+			: AssetBaseMesh(path, pathToRaw, AssetType::StaticMesh, guid, {}), m_Mesh(mesh)
+		{
+			AddOnMaterialPropertyModifiedCallback();
+		}
+
+		void AddOnMaterialPropertyModifiedCallback();
 
 	private:
 		Ref<StaticMesh> m_Mesh;
@@ -409,7 +416,9 @@ namespace Eagle
 			Asset::operator=(std::move(other));
 
 			AssetSkeletalMesh&& meshAsset = (AssetSkeletalMesh&&)other;
+			meshAsset.m_Mesh->RemoveOnMaterialPropertyModifiedCallback(m_GUID);
 			m_Mesh = std::move(meshAsset.m_Mesh);
+			AddOnMaterialPropertyModifiedCallback();
 
 			return *this;
 		}
@@ -418,7 +427,12 @@ namespace Eagle
 
 	protected:
 		AssetSkeletalMesh(const Path& path, const Path& pathToRaw, GUID guid, const Ref<SkeletalMesh>& mesh)
-			: AssetBaseMesh(path, pathToRaw, AssetType::SkeletalMesh, guid, {}), m_Mesh(mesh) {}
+			: AssetBaseMesh(path, pathToRaw, AssetType::SkeletalMesh, guid, {}), m_Mesh(mesh)
+		{
+			AddOnMaterialPropertyModifiedCallback();
+		}
+
+		void AddOnMaterialPropertyModifiedCallback();
 
 	private:
 		Ref<SkeletalMesh> m_Mesh;

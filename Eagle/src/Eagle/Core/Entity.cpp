@@ -308,6 +308,11 @@ namespace Eagle
 		return GetComponent<IDComponent>().ID;
 	}
 
+	void Entity::SetName(const std::string& name)
+	{
+		GetComponent<EntitySceneNameComponent>().Name = name;
+	}
+
 	const std::string& Entity::GetName() const
 	{
 		return GetComponent<EntitySceneNameComponent>().Name;

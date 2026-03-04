@@ -3,6 +3,7 @@
 #include "Eagle/Math/Math.h"
 #include "Eagle/Animation/Animation.h"
 #include "Eagle/Animation/AnimationSystem.h"
+#include "Eagle/Asset/Asset.h"
 
 namespace Eagle
 {
@@ -117,6 +118,7 @@ namespace Eagle
         , m_AABB(aabb)
         , m_MaterialSlots((uint32_t)m_IndicesPerMaterial.size())
         , m_Materials(m_MaterialSlots)
+        , m_MaterialsCallbacks(m_MaterialSlots)
         , m_MinRagdollBoneSize(minRagdollBoneSize)
         , m_MaxRagdollTwist(maxRagdollTwist)
         , m_MaxRagdollSwing(maxRagdollSwing)
@@ -150,12 +152,61 @@ namespace Eagle
         , m_Skeletal(other.m_Skeletal)
         , m_AABB(other.m_AABB)
         , m_MaterialSlots(other.m_MaterialSlots)
-        , m_Materials(other.m_Materials)
+        , m_Materials(m_MaterialSlots)
+        , m_MaterialsCallbacks(m_MaterialSlots)
         , m_RagdollRoot(other.m_RagdollRoot)
         , m_MinRagdollBoneSize(other.m_MinRagdollBoneSize)
         , m_MaxRagdollTwist(other.m_MaxRagdollTwist)
         , m_MaxRagdollSwing(other.m_MaxRagdollSwing)
-    {}
+    {
+        for (uint32_t i = 0; i < m_MaterialSlots; ++i)
+        {
+            SetMaterialAsset(i, other.m_Materials[i]);
+        }
+    }
+
+    SkeletalMesh::~SkeletalMesh()
+    {
+        for (uint32_t i = 0; i < m_MaterialSlots; ++i)
+        {
+            if (m_Materials[i])
+            {
+                m_Materials[i]->RemoveOnAssetModifiedCallback(m_MaterialsCallbacks[i]);
+            }
+        }
+    }
+
+    void SkeletalMesh::SetMaterialAsset(uint32_t index, const Ref<AssetMaterial>& material)
+    {
+        if (m_Materials[index])
+        {
+            m_Materials[index]->RemoveOnAssetModifiedCallback(m_MaterialsCallbacks[index]);
+        }
+        m_Materials[index] = material;
+        if (material)
+        {
+            material->AddOnAssetModifiedCallback(m_MaterialsCallbacks[index], [this]()
+            {
+                OnMaterialPropertyModified();
+            });
+        }
+    }
+
+    void SkeletalMesh::AddOnMaterialPropertyModifiedCallback(const GUID& id, const std::function<void()>& func)
+    {
+        m_Callbacks[id] = func;
+    }
+
+    void SkeletalMesh::RemoveOnMaterialPropertyModifiedCallback(const GUID& id)
+    {
+        m_Callbacks.erase(id);
+    }
+
+    void SkeletalMesh::OnMaterialPropertyModified()
+    {
+        for (auto& [_, func] : m_Callbacks)
+            func();
+    }
 
     void SkeletalMesh::RegenerateRagdollData(float minBoneSize)
     {

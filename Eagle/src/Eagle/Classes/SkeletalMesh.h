@@ -108,6 +108,9 @@ namespace Eagle
 			CollisionDetectionType collisionDetection = CollisionDetectionType::Discrete, CollisionGroup collisionGroup = s_DefaultCollisionGroup, CollisionGroup interactingCollisionGroup = s_DefaultInteractingCollisionGroup);
 		SkeletalMesh(const SkeletalMesh& other);
 
+		SkeletalMesh(SkeletalMesh&& other) = delete;
+		~SkeletalMesh();
+
 	public:
 		const Index* GetIndicesData(uint32_t materialIndex) const { return m_IndicesPerMaterial[materialIndex].data(); }
 		const std::vector<Index>& GetIndices(uint32_t materialIndex) const { return m_IndicesPerMaterial[materialIndex]; }
@@ -142,12 +145,11 @@ namespace Eagle
 		
 		uint32_t GetMaterialSlotsCount() const { return m_MaterialSlots; }
 
-		void SetMaterialAsset(uint32_t index, const Ref<AssetMaterial>& asset)
-		{
-			m_Materials[index] = asset;
-		}
-
+		void SetMaterialAsset(uint32_t index, const Ref<AssetMaterial>& asset);
 		const Ref<AssetMaterial>& GetMaterialAsset(uint32_t index) { return m_Materials[index]; }
+
+		void AddOnMaterialPropertyModifiedCallback(const GUID& id, const std::function<void()>& func);
+		void RemoveOnMaterialPropertyModifiedCallback(const GUID& id);
 
 		void RegenerateRagdollData(float minBoneSize);
 		void SetRagdollMaxTwist(float twist) { m_MaxRagdollTwist = twist; }
@@ -175,12 +177,17 @@ namespace Eagle
 		static Ref<SkeletalMesh> Create(const Ref<SkeletalMesh>& other);
 
 	private:
+		void OnMaterialPropertyModified();
+
+	private:
 		std::vector<SkeletalVertex> m_Vertices;
 		std::vector<std::vector<Index>> m_IndicesPerMaterial; // Indices of different materials are split. So, indices that correspond to `material slot = 0` is `m_IndicesPerMaterial[0]
 		SkeletalMeshInfo m_Skeletal;
 		AABB m_AABB;
 		uint32_t m_MaterialSlots;
 		std::vector<Ref<AssetMaterial>> m_Materials;
+		std::vector<GUID> m_MaterialsCallbacks;
+		std::unordered_map<GUID, std::function<void()>> m_Callbacks;
 		
 		// Ragdoll data
 		SkeletalRagdollBone m_RagdollRoot;

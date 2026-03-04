@@ -425,4 +425,20 @@ namespace Eagle
 			ScriptEngine::UpdateAIBehaviorNodePublicFields(m_Root);
 		});
 	}
+	
+	void AssetStaticMesh::AddOnMaterialPropertyModifiedCallback()
+	{
+		m_Mesh->AddOnMaterialPropertyModifiedCallback(m_GUID, [this]()
+		{
+			OnModified();
+		});
+	}
+	
+	void AssetSkeletalMesh::AddOnMaterialPropertyModifiedCallback()
+	{
+		m_Mesh->AddOnMaterialPropertyModifiedCallback(m_GUID, [this]()
+		{
+			OnModified();
+		});
+	}
 }
