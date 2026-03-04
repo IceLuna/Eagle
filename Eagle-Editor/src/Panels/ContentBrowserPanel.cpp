@@ -1024,34 +1024,44 @@ namespace Eagle
 				if (HandleImport())
 					m_RefreshBrowser = true;
 			}
+
+			if (ImGui::BeginMenu("Create"))
+			{
+				if (ImGui::MenuItem("Entity"))
+					SetSelected(AssetImporter::CreateEntity(m_CurrentDirectoryRelative), true);
+				if (ImGui::MenuItem("Material"))
+					SetSelected(AssetImporter::CreateMaterial(m_CurrentDirectoryRelative), true);
+				if (ImGui::MenuItem("Physics Material"))
+					SetSelected(AssetImporter::CreatePhysicsMaterial(m_CurrentDirectoryRelative), true);
+				if (ImGui::MenuItem("Sound Group"))
+					SetSelected(AssetImporter::CreateSoundGroup(m_CurrentDirectoryRelative), true);
+				if (ImGui::MenuItem("Particle System"))
+					SetSelected(AssetImporter::CreateParticleSystem(m_CurrentDirectoryRelative), true);
+				if (ImGui::MenuItem("Animation Graph"))
+				{
+					m_AnimationGraphImporter = AnimationGraphImporterPanel(m_CurrentDirectoryRelative);
+					m_DrawAnimationGraphImporter = true;
+				}
+				if (ImGui::MenuItem("Animation Blend Space"))
+				{
+					m_AnimationBlendSpaceImporter = AnimationBlendSpaceImporterPanel(m_CurrentDirectoryRelative);
+					m_DrawAnimationBlendSpaceImporter = true;
+				}
+				if (ImGui::MenuItem("Behavior Graph"))
+				{
+					SetSelected(AssetImporter::CreateBehaviorGraph(m_CurrentDirectoryRelative), true);
+				}
+				if (ImGui::MenuItem("Scene"))
+				{
+					SetSelected(AssetImporter::CreateScene(m_CurrentDirectoryRelative), true);
+				}
+
+				ImGui::EndMenu();
+			}
+
 			ImGui::Separator();
 
-			if (ImGui::MenuItem("Create Entity"))
-				SetSelected(AssetImporter::CreateEntity(m_CurrentDirectoryRelative), true);
-			if (ImGui::MenuItem("Create Material"))
-				SetSelected(AssetImporter::CreateMaterial(m_CurrentDirectoryRelative), true);
-			if (ImGui::MenuItem("Create Physics Material"))
-				SetSelected(AssetImporter::CreatePhysicsMaterial(m_CurrentDirectoryRelative), true);
-			if (ImGui::MenuItem("Create Sound Group"))
-				SetSelected(AssetImporter::CreateSoundGroup(m_CurrentDirectoryRelative), true);
-			if (ImGui::MenuItem("Create Particle System"))
-				SetSelected(AssetImporter::CreateParticleSystem(m_CurrentDirectoryRelative), true);
-			if (ImGui::MenuItem("Create Animation Graph"))
-			{
-				m_AnimationGraphImporter = AnimationGraphImporterPanel(m_CurrentDirectoryRelative);
-				m_DrawAnimationGraphImporter = true;
-			}
-			if (ImGui::MenuItem("Create Animation Blend Space"))
-			{
-				m_AnimationBlendSpaceImporter = AnimationBlendSpaceImporterPanel(m_CurrentDirectoryRelative);
-				m_DrawAnimationBlendSpaceImporter = true;
-			}
-			if (ImGui::MenuItem("Create Behavior Graph"))
-			{
-				SetSelected(AssetImporter::CreateBehaviorGraph(m_CurrentDirectoryRelative), true);
-			}
-
-			if (ImGui::MenuItem("Create Folder"))
+			if (ImGui::MenuItem("New Folder"))
 			{
 				m_bShowInputName = true;
 				m_InputState = InputNameState::NewFolder;
