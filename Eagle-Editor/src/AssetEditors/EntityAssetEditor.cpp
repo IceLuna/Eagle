@@ -161,6 +161,8 @@ namespace Eagle
 			{
 				const AABB aabb(glm::vec3(-0.5f), glm::vec3(0.5f));
 				GetCurrentScene()->DrawAABB(aabb, selectedComponent->GetWorldTransform());
+				const auto& start = selectedComponent->GetWorldTransform().Location;
+				GetCurrentScene()->DrawArrow(start, start + selectedComponent->GetForwardVector() * 0.25f, selectedComponent->GetUpVector());
 			}
 		}
 

@@ -431,6 +431,8 @@ namespace Eagle
 
 	void RenderManager::Finish()
 	{
+		EG_CORE_ASSERT(!IsRenderThread(), "Must be the main thread");
+
 		Wait();
 
 		s_RendererData->ThreadPool->wait_for_tasks();
@@ -774,8 +776,7 @@ namespace Eagle
 
 	void RenderManager::SubmitCommandBuffer(const Ref<CommandBuffer>& cmd, bool bBlock)
 	{
-		auto& pool = s_RendererData->ThreadPool;
-		pool->submit([&cmd, &bBlock]()
+		auto doSubmit = [&cmd, &bBlock]()
 		{
 			if (bBlock)
 			{
@@ -787,7 +788,17 @@ namespace Eagle
 			{
 				s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, nullptr, 0, nullptr, 0);
 			}
-		}).wait();
+		};
+
+		if (IsRenderThread())
+		{
+			doSubmit();
+		}
+		else
+		{
+			auto& pool = s_RendererData->ThreadPool;
+			pool->submit(doSubmit).wait();
+		}
 	}
 
 	RenderCommandQueue& RenderManager::GetResourceReleaseQueue(uint32_t index)
