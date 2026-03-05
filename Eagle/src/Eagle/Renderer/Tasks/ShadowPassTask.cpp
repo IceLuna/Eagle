@@ -1085,8 +1085,8 @@ namespace Eagle
 				pipeline->SetBuffer(transformsBuffer, 0, 0);
 				pipeline->SetBufferArray(animTransformsBuffers, 3, 0);
 				{
-					EG_GPU_TIMING_SCOPED(cmd, "Opacity Meshes: Spot Lights Shadow pass");
-					EG_CPU_TIMING_SCOPED("Opacity Meshes: Spot Lights Shadow pass");
+					EG_GPU_TIMING_SCOPED(cmd, "Opacity Skeletal Meshes: Spot Lights Shadow pass");
+					EG_CPU_TIMING_SCOPED("Opacity Skeletal Meshes: Spot Lights Shadow pass");
 
 					for (auto& index : m_SpotLightIndices)
 					{
@@ -1256,8 +1256,8 @@ namespace Eagle
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 
 				{
-					EG_GPU_TIMING_SCOPED(cmd, "Translucent Meshes: Spot Lights Shadow pass");
-					EG_CPU_TIMING_SCOPED("Translucent Meshes: Spot Lights Shadow pass");
+					EG_GPU_TIMING_SCOPED(cmd, "Translucent Skeletal Meshes: Spot Lights Shadow pass");
+					EG_CPU_TIMING_SCOPED("Translucent Skeletal Meshes: Spot Lights Shadow pass");
 
 					uint32_t spotLightsCount = 0;
 					for (auto& index : m_SpotLightIndices)

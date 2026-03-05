@@ -434,30 +434,33 @@ namespace Eagle
 		Wait();
 
 		s_RendererData->ThreadPool->wait_for_tasks();
-		auto& fence = s_RendererData->Fences[s_RendererData->CurrentFrameIndex];
-		fence->Reset();
-		auto& cmd = GetCurrentFrameCommandBuffer();
-		cmd->Begin();
-		for (uint32_t i = 0; i < RendererConfig::FramesInFlight; ++i)
-			s_CommandQueue[i].Execute();
-		cmd->End();
-		s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, fence, nullptr, 0, nullptr, 0);
-		fence->Wait();
+		s_RendererData->ThreadPool->submit([]()
+		{
+			auto& fence = s_RendererData->Fences[s_RendererData->CurrentFrameIndex];
+			fence->Reset();
+			auto& cmd = GetCurrentFrameCommandBuffer();
+			cmd->Begin();
+			for (uint32_t i = 0; i < RendererConfig::FramesInFlight; ++i)
+				s_CommandQueue[i].Execute();
+			cmd->End();
+			s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, fence, nullptr, 0, nullptr, 0);
+			fence->Wait();
+		}).wait();
 
 		Wait();
 	}
 
-	Ref<Image>& RenderManager::GetDummyDepthCubeImage()
+	const Ref<Image>& RenderManager::GetDummyDepthCubeImage()
 	{
 		return s_RendererData->DummyCubeDepthImage;
 	}
 
-	Ref<Image>& RenderManager::GetDummyDepthImage()
+	const Ref<Image>& RenderManager::GetDummyDepthImage()
 	{
 		return s_RendererData->DummyDepthImage;
 	}
 
-	Ref<TextureCube>& RenderManager::GetDummyIBL()
+	const Ref<TextureCube>& RenderManager::GetDummyIBL()
 	{
 		return s_RendererData->DummyIBL;
 	}
@@ -769,19 +772,22 @@ namespace Eagle
 		return s_RendererData->GraphicsCommandManager->AllocateSecondaryCommandbuffer(bBegin);
 	}
 
-	void RenderManager::SubmitCommandBuffer(Ref<CommandBuffer>& cmd, bool bBlock)
+	void RenderManager::SubmitCommandBuffer(const Ref<CommandBuffer>& cmd, bool bBlock)
 	{
-		if (bBlock)
+		auto& pool = s_RendererData->ThreadPool;
+		pool->submit([&cmd, &bBlock]()
 		{
-			Ref<Fence> waitFence = Fence::Create();
-			s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, waitFence, nullptr, 0, nullptr, 0);
-			waitFence->Wait();
-		}
-		else
-		{
-			s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, nullptr, 0, nullptr, 0);
-		}
-		
+			if (bBlock)
+			{
+				Ref<Fence> waitFence = Fence::Create();
+				s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, waitFence, nullptr, 0, nullptr, 0);
+				waitFence->Wait();
+			}
+			else
+			{
+				s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, nullptr, 0, nullptr, 0);
+			}
+		}).wait();
 	}
 
 	RenderCommandQueue& RenderManager::GetResourceReleaseQueue(uint32_t index)
@@ -904,13 +910,13 @@ namespace Eagle
 	}
 
 #ifdef EG_GPU_TIMINGS
-	void RenderManager::RegisterGPUTiming(Ref<RHIGPUTiming>& timing, std::string_view name)
+	void RenderManager::RegisterGPUTiming(const Ref<RHIGPUTiming>& timing, std::string_view name)
 	{
 		std::scoped_lock lock(g_TimingsMutex);
 		s_RendererData->RHIGPUTimings[name] = timing;
 	}
 
-	void RenderManager::RegisterGPUTimingParentless(Ref<RHIGPUTiming>& timing, std::string_view name)
+	void RenderManager::RegisterGPUTimingParentless(const Ref<RHIGPUTiming>& timing, std::string_view name)
 	{
 		std::scoped_lock lock(g_TimingsMutex);
 

@@ -69,11 +69,11 @@ namespace Eagle
 
 		[[nodiscard]] static Ref<CommandBuffer> AllocateCommandBuffer(bool bBegin);
 		[[nodiscard]] static Ref<CommandBuffer> AllocateSecondaryCommandBuffer(bool bBegin);
-		static void SubmitCommandBuffer(Ref<CommandBuffer>& cmd, bool bBlock);
+		static void SubmitCommandBuffer(const Ref<CommandBuffer>& cmd, bool bBlock);
 
-		static Ref<Image>& GetDummyDepthCubeImage();
-		static Ref<Image>& GetDummyDepthImage();
-		static Ref<TextureCube>& GetDummyIBL();
+		static const Ref<Image>& GetDummyDepthCubeImage();
+		static const Ref<Image>& GetDummyDepthImage();
+		static const Ref<TextureCube>& GetDummyIBL();
 		static const Ref<Image>& GetBRDFLUTImage();
 		static const Ref<Image>& GetDummyImage();
 		static const Ref<Image>& GetDummyImageCube();
@@ -89,8 +89,8 @@ namespace Eagle
 
 		static GPUTimingsContainer GetTimings();
 #ifdef EG_GPU_TIMINGS
-		static void RegisterGPUTiming(Ref<RHIGPUTiming>& timing, std::string_view name);
-		static void RegisterGPUTimingParentless(Ref<RHIGPUTiming>& timing, std::string_view name);
+		static void RegisterGPUTiming(const Ref<RHIGPUTiming>& timing, std::string_view name);
+		static void RegisterGPUTimingParentless(const Ref<RHIGPUTiming>& timing, std::string_view name);
 		static const std::unordered_map<std::string_view, Ref<RHIGPUTiming>>& GetRHITimings();
 #endif
 
