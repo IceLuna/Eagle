@@ -85,7 +85,7 @@ float DirLight_ShadowCalculation_Volumetric(sampler2D depthTexture, vec3 fragPos
 	float shadow = 0.f;
 	const float closestDepth = texture(depthTexture, uv).r;
 	if (currentDepth < closestDepth)
-		shadow += 1.f;
+		shadow = 1.f;
 	
 	return 1.f - shadow;
 }
@@ -103,7 +103,7 @@ float PointLight_ShadowCalculation_Volumetric(samplerCube depthTexture, vec3 lig
 	
 	float closestDepth = texture(depthTexture, lightToFrag).r;
 	if (currentDepth < closestDepth)
-		shadow += 1.f;
+		shadow = 1.f;
 	
 	return 1.f - shadow;
 }
@@ -119,7 +119,7 @@ float SpotLight_ShadowCalculation_Volumetric(sampler2D depthTexture, vec3 fragPo
 	float shadow = 0.f;
 	const float closestDepth = texture(depthTexture, uv).r;
 	if (currentDepth < closestDepth)
-		shadow += 1.f;
+		shadow = 1.f;
 	
 	return 1.f - shadow;
 }
@@ -175,7 +175,7 @@ vec3 SpotLight_ColoredShadowCalculation_Volumetric(sampler2D coloredTexture, sam
 	return texture(coloredTexture, projCoords).rgb;
 }
 
-vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2D depthTextures[EG_CASCADES_COUNT],
+vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2D depthTextures[EG_CASCADES_COUNT], float linearDepth,
 #ifdef EG_TRANSLUCENT_SHADOWS
 	sampler2D coloredTextures[EG_CASCADES_COUNT], sampler2D coloredDepthTextures[EG_CASCADES_COUNT],
 #endif
@@ -208,7 +208,7 @@ vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2D depthTextures
 #endif
 
 	bool bCastsShadows = light.bCastsShadows != 0;
-	for (uint i = 0; i < scatteringSamples && (currentT < g_Far); ++i)
+	for (uint i = 0; i < scatteringSamples && (currentT < linearDepth); ++i)
 	{
 		vec3 currentPos = cameraPos + camDir * currentT;
 
@@ -288,18 +288,10 @@ bool SphereIntersect(vec3 ro, vec3 rd, vec3 sphere, float radius2, out float t0,
 	t0 = -b - disc;
 	t1 = -b + disc;
 
-	t1 = min(t1, g_Far);
-	t0 = clamp(t0, 0.0, t1);
-
-	if (t0 == t1)
-	{
-		return false;
-	}
-
 	return true;
 }
 
-vec3 PointLight_Volumetric(in PointLight light, samplerCube shadowMap,
+vec3 PointLight_Volumetric(in PointLight light, samplerCube shadowMap, float linearDepth,
 #ifdef EG_TRANSLUCENT_SHADOWS
 	samplerCube coloredTexture, samplerCube coloredDepthTexture,
 #endif
@@ -326,7 +318,16 @@ vec3 PointLight_Volumetric(in PointLight light, samplerCube shadowMap,
 		return vec3(0);
 	}
 
-	if (t1 < g_Near || t0 > g_Far || t0 > scatteringZFar)
+	// Adjust sampling interval and origin
+	t1 = min(t1, linearDepth);
+	t0 = clamp(t0, 0.0, t1);
+
+	if (t0 == t1) // warn: can also be equal when t > radius!
+	{
+		return vec3(0);
+	}
+
+	if (t1 < g_Near || t0 > linearDepth || t0 > scatteringZFar)
 	{
 		return vec3(0);
 	}
@@ -341,7 +342,7 @@ vec3 PointLight_Volumetric(in PointLight light, samplerCube shadowMap,
 	float result = 0.f;
 #endif
 
-	for (uint i = 0; i < scatteringSamples && (currentT < g_Far); ++i)
+	for (uint i = 0; i < scatteringSamples && (currentT < linearDepth); ++i)
 	{
 		vec3 currentPos = cameraPos + camDir * currentT;
 
@@ -393,6 +394,8 @@ vec3 PointLight_Volumetric(in PointLight light, samplerCube shadowMap,
 // Based on: http://lousodrome.net/blog/light/2017/01/03/intersection-of-a-ray-and-a-cone/
 bool ConeIntersect(vec3 ro, vec3 rd, vec3 conePoint, vec3 axis, float h, float cosTheta, out float t0, out float t1)
 {
+	t0 = t1 = 0.0;
+
 	// looking for intersect ray and infinity cone
 	vec3 co = ro - conePoint;
 
@@ -453,14 +456,11 @@ bool ConeIntersect(vec3 ro, vec3 rd, vec3 conePoint, vec3 axis, float h, float c
 	float tv = bT0Valid ? t0 : t1;
 	t0 = min(tv, t2);
 	t1 = max(tv, t2);
-	t0 = clamp(t0, 0.0, t1);
 
-	if (t0 == t1)
-		return false;
 	return true;
 }
 
-vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap,
+vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap, float linearDepth,
 #ifdef EG_TRANSLUCENT_SHADOWS
 	sampler2D coloredTexture, sampler2D coloredDepthTexture,
 #endif
@@ -471,9 +471,7 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap,
 	if (!bVolumetricLight)
 		return vec3(0.f);
 
-	vec3 camToFrag = worldPos - cameraPos;
-	float camToFragLen = length(camToFrag);
-	const vec3 camDir = camToFrag / camToFragLen;
+	const vec3 camDir = normalize(worldPos - cameraPos);
 	float t0, t1;
 
 	if (!ConeIntersect(
@@ -488,7 +486,16 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap,
 		return vec3(0);
 	}
 
-	if (t1 < g_Near || t0 > g_Far || t0 > scatteringZFar)
+	// Adjust sampling interval and origin
+	t1 = min(t1, linearDepth);
+	t0 = clamp(t0, 0.0, t1);
+
+	if (t0 == t1)
+	{
+		return vec3(0);
+	}
+
+	if (t1 < g_Near || t0 > linearDepth || t0 > scatteringZFar)
 	{
 		return vec3(0);
 	}
@@ -510,7 +517,7 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap,
 	const float epsilon = innerCutOffCos - outerCutOffCos;
 	const vec3 normSpotDir = normalize(-light.Direction);
 	
-	for (uint i = 0; (i < scatteringSamples) && (currentT < g_Far); ++i)
+	for (uint i = 0; (i < scatteringSamples) && (currentT < linearDepth); ++i)
 	{
 		vec3 currentPos = cameraPos + camDir * currentT;
 

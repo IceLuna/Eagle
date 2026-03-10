@@ -88,6 +88,7 @@ void main()
     const vec2 uv = (pixelCoords + 0.5) * texelSize;
 
     const float depth = texture(g_DepthTexture, uv).x;
+    const float linearDepth = min(g_VolumetricMaxDistance, ToLinear(depth, g_Near, g_Far));
     const vec3 worldPos = WorldPosFromDepth(g_ViewProjInv, uv, depth);
 
     vec3 Lo = vec3(0.f);
@@ -106,7 +107,7 @@ void main()
 
         if (bCastsShadows)
         {
-            Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[nonuniformEXT(plShadowMapIndex)],
+            Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[nonuniformEXT(plShadowMapIndex)], linearDepth,
 #ifdef EG_TRANSLUCENT_SHADOWS
                 g_PointShadowMapsColored[nonuniformEXT(plShadowMapIndex)], g_PointShadowMapsColoredDepth[nonuniformEXT(plShadowMapIndex)],
 #endif
@@ -115,7 +116,7 @@ void main()
         }
         else
         {
-            Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[0],
+            Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[0], linearDepth,
 #ifdef EG_TRANSLUCENT_SHADOWS
                 g_PointShadowMapsColored[0], g_PointShadowMapsColoredDepth[0],
 #endif
@@ -135,7 +136,7 @@ void main()
 
         if (bCastsShadows)
         {
-            Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[nonuniformEXT(slShadowMapIndex)],
+            Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[nonuniformEXT(slShadowMapIndex)], linearDepth,
 #ifdef EG_TRANSLUCENT_SHADOWS
                 g_SpotShadowMapsColored[nonuniformEXT(slShadowMapIndex)], g_SpotShadowMapsColoredDepth[nonuniformEXT(slShadowMapIndex)],
 #endif
@@ -144,7 +145,7 @@ void main()
         }
         else
         {
-            Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[0],
+            Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[0], linearDepth,
 #ifdef EG_TRANSLUCENT_SHADOWS
                 g_SpotShadowMapsColored[0], g_SpotShadowMapsColoredDepth[0],
 #endif
@@ -155,7 +156,7 @@ void main()
     if (g_HasDirLight != 0)
     {
         const vec3 incoming = normalize(-g_DirectionalLight.Direction);
-        Lo += DirectionalLight_Volumetric(g_DirectionalLight, g_DirShadowMaps,
+        Lo += DirectionalLight_Volumetric(g_DirectionalLight, g_DirShadowMaps, linearDepth,
 #ifdef EG_TRANSLUCENT_SHADOWS
             g_DirShadowMapsColored, g_DirShadowMapsColoredDepth,
 #endif

@@ -2151,8 +2151,7 @@ namespace Eagle
 			const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
 				| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
 
-			bool renderer3DTreeOpened = ImGui::TreeNodeEx((void*)"Renderer3D", flags, "Renderer3D Stats");
-			if (renderer3DTreeOpened)
+			if (ImGui::TreeNodeEx("Renderer3D Stats", flags))
 			{
 				const auto& stats = m_CurrentScene->GetSceneRenderer()->GetStats();
 
@@ -2163,8 +2162,7 @@ namespace Eagle
 				ImGui::TreePop();
 			}
 
-			bool renderer2DTreeOpened = ImGui::TreeNodeEx((void*)"Renderer2D", flags, "Renderer2D Stats");
-			if (renderer2DTreeOpened)
+			if (ImGui::TreeNodeEx("Renderer2D Stats", flags))
 			{
 				const auto& stats = m_CurrentScene->GetSceneRenderer()->GetStats2D();
 
@@ -2172,6 +2170,16 @@ namespace Eagle
 				ImGui::Text("Quads: %d", stats.QuadCount);
 				ImGui::Text("Vertices: %d", stats.GetVertexCount());
 				ImGui::Text("Indices: %d", stats.GetIndexCount());
+
+				ImGui::TreePop();
+			}
+
+			if (ImGui::TreeNodeEx("Active Lights", flags))
+			{
+				ImGui::Text("Point Lights: %d", m_CurrentScene->GetPointLightsCount());
+				ImGui::Text("Spot Lights: %d", m_CurrentScene->GetSpotLightsCount());
+				ImGui::Text("Directional Lights: %d", m_CurrentScene->GetDirLightsCount());
+				ImGui::Text("IBL: %d", m_CurrentScene->HasIBL() ? 1 : 0);
 
 				ImGui::TreePop();
 			}

@@ -301,6 +301,11 @@ namespace Eagle
 		void DestroyPendingEntities();
 		bool IsPendingDestroy(Entity entity) const;
 
+		size_t GetPointLightsCount() const { return m_PointLights.size(); }
+		size_t GetSpotLightsCount() const { return m_SpotLights.size(); }
+		size_t GetDirLightsCount() const { return m_DirectionalLight ? 1 : 0; }
+		bool HasIBL() const { return m_Cubemap && IsSkyboxEnabled(); }
+
 	private:
 		static void OnSceneOpened(const Ref<Scene>& scene);
 
