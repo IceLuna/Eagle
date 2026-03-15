@@ -21,6 +21,7 @@ namespace Eagle
 	};
 	struct SoundSettings;
 	enum class RollOffModel;
+	class SoundGroup;
 
 	class AudioEngine
 	{
@@ -30,6 +31,8 @@ namespace Eagle
 
 		static void Update(Timestep ts);
 		static void SetListenerData(const glm::vec3& position, const glm::vec3& forward, const glm::vec3& up);
+
+		static const Ref<SoundGroup>& GetMasterSoundGroup();
 
 	private:
 		AudioEngine() = default;

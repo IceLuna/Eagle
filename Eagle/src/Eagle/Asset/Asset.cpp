@@ -280,7 +280,7 @@ namespace Eagle
 		if (m_SoundGroup)
 			m_Audio->SetSoundGroup(m_SoundGroup->GetSoundGroup());
 		else
-			m_Audio->SetSoundGroup(SoundGroup::GetMasterGroup());
+			m_Audio->SetSoundGroup(nullptr);
 	}
 
 	Ref<AssetPhysicsMaterial> AssetPhysicsMaterial::Create(const Ref<PhysicsMaterial>& material)

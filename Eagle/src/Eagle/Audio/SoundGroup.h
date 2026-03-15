@@ -36,7 +36,6 @@ namespace Eagle
 		bool IsMuted() const;
 
 		static Ref<SoundGroup> Create() { return MakeRef<SoundGroup>(); }
-		static Ref<SoundGroup> GetMasterGroup();
 
 	protected:
 		SoundGroup(FMOD::ChannelGroup* channelGroup);

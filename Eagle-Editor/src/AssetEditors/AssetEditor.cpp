@@ -82,7 +82,10 @@ namespace Eagle
 			if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
 				ImGui::SetWindowFocus();
 
-			bViewportHovered = ImGui::IsWindowHovered();
+			// When we're moving the camera, we hide the mouse and disable ImGui mouse inputs, and `IsWindowHovered` starts returning false
+			// which prevents us from changing the camera speed. So if the mouse is not visible, don't change the state
+			if (Input::IsMouseVisible())
+				bViewportHovered = ImGui::IsWindowHovered();
 			bViewportFocused = ImGui::IsWindowFocused();
 			HandleCameraFocus();
 			DrawOGuizmo();
@@ -97,7 +100,7 @@ namespace Eagle
 		if (!m_CurrentScene || m_GuizmoType == -1)
 			return false;
 		
-		ImGuizmo::SetID(int(uint64_t(m_CurrentScene.get())));
+		ImGuizmo::PushID(m_CurrentScene.get());
 
 		bool bChanged = false;
 		const bool bWasEnabled = ImGuizmo::IsEnabled();
@@ -143,6 +146,7 @@ namespace Eagle
 
 			bChanged = true;
 		}
+		ImGuizmo::PopID();
 		return bChanged;
 	}
 

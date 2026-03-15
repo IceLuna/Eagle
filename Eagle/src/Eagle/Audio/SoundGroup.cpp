@@ -80,25 +80,4 @@ namespace Eagle
 		m_ChannelGroup->getPitch(&value);
 		return value;
 	}
-	
-	Ref<SoundGroup> SoundGroup::GetMasterGroup()
-	{
-		class LocalSoundGroup : public SoundGroup
-		{
-		public:
-			LocalSoundGroup(FMOD::ChannelGroup* channelGroup)
-				: SoundGroup(channelGroup) {}
-		};
-
-		static Ref<SoundGroup> masterGroup;
-		if (!masterGroup)
-		{
-			FMOD::ChannelGroup* masterChannelGroup = nullptr;
-			AudioEngine::GetSystem()->getMasterChannelGroup(&masterChannelGroup);
-
-			masterGroup = MakeRef<LocalSoundGroup>(masterChannelGroup);
-		}
-
-		return masterGroup;
-	}
 }

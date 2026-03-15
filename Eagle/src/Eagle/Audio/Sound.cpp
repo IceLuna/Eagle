@@ -32,7 +32,7 @@ namespace Eagle
 	}
 
 	Audio::Audio(const ScopedDataBuffer& buffer, float volume)
-		: m_SoundGroup(SoundGroup::GetMasterGroup())
+		: m_SoundGroup(AudioEngine::GetMasterSoundGroup())
 		, m_Volume(volume)
 	{
 		AudioEngine::CreateSoundFromBuffer(buffer.GetDataBuffer(), FMOD_DEFAULT, &m_Sound);
@@ -49,7 +49,7 @@ namespace Eagle
 
 	void Audio::SetSoundGroup(const Ref<SoundGroup>& soundGroup)
 	{
-		m_SoundGroup = soundGroup;
+		m_SoundGroup = soundGroup ? soundGroup : AudioEngine::GetMasterSoundGroup();
 		if (m_Channel)
 			m_Channel->setChannelGroup(m_SoundGroup ? m_SoundGroup->GetFMODGroup() : nullptr);
 	}

@@ -59,6 +59,7 @@ namespace Eagle
 		const FMOD::Sound* GetFMODSound() const { return m_Sound; }
 		FMOD::Sound* GetFMODSound() { return m_Sound; }
 		
+		// If `soundGroup` is nullptr, master group is assigned
 		void SetSoundGroup(const Ref<SoundGroup>& soundGroup);
 		const Ref<SoundGroup>& GetSoundGroup() const { return m_SoundGroup; }
 

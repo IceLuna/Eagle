@@ -833,7 +833,7 @@ namespace Eagle
 
 		if (selectedEntity && (m_GuizmoType != -1))
 		{
-			ImGuizmo::SetID(int(uint64_t(m_CurrentScene.get())));
+			ImGuizmo::PushID(m_CurrentScene.get());
 			//ImGuizmo::SetOrthographic(false); //TODO: Set to true when using Orthographic
 			ImGuizmo::SetDrawlist();
 
@@ -905,6 +905,8 @@ namespace Eagle
 				else
 					bRelative ? selectedEntity.SetRelativeTransform(finalTransform) : selectedEntity.SetWorldTransform(finalTransform);
 			}
+
+			ImGuizmo::PopID();
 		}
 
 		// ImOGuizmo
@@ -2223,7 +2225,10 @@ namespace Eagle
 			if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
 				ImGui::SetWindowFocus();
 
-			m_ViewportHovered = ImGui::IsWindowHovered();
+			// When we're moving the camera, we hide the mouse and disable ImGui mouse inputs, and `IsWindowHovered` starts returning false
+			// which prevents us from changing the camera speed. So if the mouse is not visible, don't change the state
+			if (Input::IsMouseVisible())
+				m_ViewportHovered = ImGui::IsWindowHovered();
 			m_ViewportFocused = ImGui::IsWindowFocused();
 
 			if (m_EditorState == EditorState::Edit)

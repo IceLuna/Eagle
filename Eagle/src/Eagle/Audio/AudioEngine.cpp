@@ -7,6 +7,7 @@
 #include "fmod/fmod_common.h"
 #include "Sound2D.h"
 #include "Sound3D.h"
+#include "SoundGroup.h"
 
 namespace Eagle
 {
@@ -16,6 +17,7 @@ namespace Eagle
 	};
 
 	static AudioCoreData s_CoreData;
+	static Ref<SoundGroup> s_MasterGroup;
 
 	void AudioEngine::Init(const AudioEngineSettings& settings)
 	{
@@ -26,10 +28,26 @@ namespace Eagle
 			EG_CORE_CRITICAL("[AudioEngine] Failed to init Audio System. Error: {0}", FMOD_ErrorString(result));
 			EG_CORE_ASSERT(false, "Audio init failure");
 		}
+
+		// Init master group
+		{
+			class LocalSoundGroup : public SoundGroup
+			{
+			public:
+				LocalSoundGroup(FMOD::ChannelGroup* channelGroup)
+					: SoundGroup(channelGroup) {
+				}
+			};
+
+			FMOD::ChannelGroup* masterChannelGroup = nullptr;
+			AudioEngine::GetSystem()->getMasterChannelGroup(&masterChannelGroup);
+			s_MasterGroup = MakeRef<LocalSoundGroup>(masterChannelGroup);
+		}
 	}
 	
 	void AudioEngine::Shutdown()
 	{
+		s_MasterGroup.reset();
 		s_CoreData.System->release();
 		s_CoreData.System = nullptr;
 	}
@@ -71,6 +89,11 @@ namespace Eagle
 	{
 		const glm::vec3 invForward = -forward; // Required to correctly match direction in FMOD
 		s_CoreData.System->set3DListenerAttributes(0, (FMOD_VECTOR*)&position.x, nullptr, (FMOD_VECTOR*)&invForward.x, (FMOD_VECTOR*)&up.x);
+	}
+
+	const Ref<SoundGroup>& AudioEngine::GetMasterSoundGroup()
+	{
+		return s_MasterGroup;
 	}
 	
 	FMOD::System* AudioEngine::GetSystem()

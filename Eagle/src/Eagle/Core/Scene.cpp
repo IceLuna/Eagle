@@ -529,6 +529,10 @@ namespace Eagle
 			ScriptEngine::Reset();
 			RenderManager::Wait();
 			Ref<Scene> scene = MakeRef<Scene>(path.u8string(), (bReuseCurrentSceneRenderer && s_CurrentScene) ? s_CurrentScene->GetSceneRenderer() : nullptr, bRuntime);
+			scene->SetSkybox(SkySettings{});
+			scene->SetSkybox(nullptr);
+			scene->SetSkyboxIntensity(1.f);
+
 			if (Application::Get().IsGame())
 			{
 				Ref<ScopedDataBuffer> sceneData;
@@ -540,7 +544,7 @@ namespace Eagle
 					OnSceneOpened(scene);
 				}
 				else
-					EG_CORE_ERROR("Failed to open the scene: {}", path.u8string());
+					EG_CORE_ERROR("Failed to open the scene. The asset is not found: {}", path.u8string());
 			}
 			else
 			{
