@@ -24,19 +24,17 @@ namespace Eagle::Math
 		return worldSpacePos;
 	}
 
-	static glm::mat4 Perspective(float fov, float aspectRatio, float nearPlane, float farPlane)
+	static glm::mat4 Perspective(float fov, float aspectRatio, float nearPlane, float farPlane, bool bReversedZ = true)
 	{
-		constexpr bool bReversedZ = true;
-		if constexpr (bReversedZ)
+		if (bReversedZ)
 			return glm::perspective(fov, aspectRatio, farPlane, nearPlane);
 		else
 			return glm::perspective(fov, aspectRatio, nearPlane, farPlane);
 	}
 
-	static glm::mat4 Ortho(float left, float right, float bottom, float top, float nearPlane, float farPlane)
+	static glm::mat4 Ortho(float left, float right, float bottom, float top, float nearPlane, float farPlane, bool bReversedZ = true)
 	{
-		constexpr bool bReversedZ = true;
-		if constexpr (bReversedZ)
+		if (bReversedZ)
 			return glm::ortho(left, right, bottom, top, farPlane, nearPlane);
 		else
 			return glm::ortho(left, right, bottom, top, nearPlane, farPlane);

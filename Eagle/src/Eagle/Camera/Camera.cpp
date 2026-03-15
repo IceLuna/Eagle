@@ -40,6 +40,7 @@ namespace Eagle
 		if (m_ProjectionMode == CameraProjectionMode::Perspective)
 		{
 			m_Projection = Math::Perspective(m_PerspectiveVerticalFOV, m_AspectRatio, m_PerspectiveNear, m_PerspectiveFar);
+			m_UnreversedProjection = Math::Perspective(m_PerspectiveVerticalFOV, m_AspectRatio, m_PerspectiveNear, m_PerspectiveFar, false);
 
 			float cascadeSplits[EG_CASCADES_COUNT];
 
@@ -83,6 +84,7 @@ namespace Eagle
 			const float orthoTop = m_OrthographicSize * 0.5f;
 
 			m_Projection = Math::Ortho(orthoLeft, orthoRight, orthoBottom, orthoTop, m_OrthographicNear, m_OrthographicFar);
+			m_UnreversedProjection = Math::Ortho(orthoLeft, orthoRight, orthoBottom, orthoTop, m_OrthographicNear, m_OrthographicFar, false);
 
 			// Calculating cascade projections
 			{
@@ -100,6 +102,7 @@ namespace Eagle
 
 		// Flipping for Vulkan
 		m_Projection[1][1] *= -1.f;
+		m_UnreversedProjection[1][1] *= -1.f;
 		for (uint32_t i = 0; i < EG_CASCADES_COUNT; ++i)
 			m_CascadeProjections[i][1][1] *= -1.f;
 	}

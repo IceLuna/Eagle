@@ -843,7 +843,7 @@ namespace Eagle
 			const auto& editorCamera = m_EditorScene->GetEditorCamera();
 			const auto runtimeCamera = m_CurrentScene->GetRuntimeCamera();
 			const bool bEditing = m_EditorState == EditorState::Edit;
-			glm::mat4 cameraProjection = bEditing ? editorCamera.GetProjection() : runtimeCamera->Camera.GetProjection();
+			glm::mat4 cameraProjection = bEditing ? editorCamera.GetUnreversedProjection() : runtimeCamera->Camera.GetUnreversedProjection();
 			const glm::mat4& cameraViewMatrix = bEditing ? editorCamera.GetViewMatrix() : runtimeCamera->GetViewMatrix();
 			cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
 
@@ -913,7 +913,7 @@ namespace Eagle
 		if (m_EditorState == EditorState::Edit && bDrawAxisGuizmo)
 		{
 			auto& editorCamera = m_EditorScene->GetEditorCamera();
-			glm::mat4 cameraProjection = editorCamera.GetProjection();
+			glm::mat4 cameraProjection = editorCamera.GetUnreversedProjection();
 			glm::mat4 cameraViewMatrix = editorCamera.GetViewMatrix();
 			cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
 

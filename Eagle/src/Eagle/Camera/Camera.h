@@ -28,6 +28,8 @@ namespace Eagle
 		virtual ~Camera() = default;
 
 		const glm::mat4& GetProjection() const { return m_Projection; }
+		// Currently, required for ImGuizmo
+		const glm::mat4& GetUnreversedProjection() const { return m_UnreversedProjection; }
 		const glm::mat4& GetCascadeProjection(uint32_t cascadeIndex) const { EG_ASSERT(cascadeIndex < EG_CASCADES_COUNT); return m_CascadeProjections[cascadeIndex]; }
 
 		void SetOrthographic(float size, float nearClip, float farClip);
@@ -69,6 +71,7 @@ namespace Eagle
 
 	protected:
 		glm::mat4 m_Projection;
+		glm::mat4 m_UnreversedProjection;
 		glm::mat4 m_CascadeProjections[EG_CASCADES_COUNT];
 
 		CameraProjectionMode m_ProjectionMode = CameraProjectionMode::Perspective;
