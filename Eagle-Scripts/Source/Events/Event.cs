@@ -6,6 +6,7 @@
         [UIName("Window closed")] WindowClosed,
         [UIName("Window resized")] WindowResized,
         [UIName("Window focused")] WindowFocused,
+        [UIName("Window content scale")] WindowContentScale,
         [UIName("Key pressed")] KeyPressed,
         [UIName("Key released")] KeyReleased,
         [UIName("Key typed")] KeyTyped,

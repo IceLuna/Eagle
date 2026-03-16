@@ -74,4 +74,30 @@ namespace Eagle
 	private:
 		bool bFocused;
 	};
+
+	class WindowContentScaleEvent : public Event
+	{
+	public:
+		EVENT_CLASS_CATEGORY(EventCategory::Application)
+		EVENT_CLASS_TYPE(WindowContentScale, float, float)
+
+		WindowContentScaleEvent(float xscale, float yscale)
+			: m_ScaleX(xscale), m_ScaleY(yscale) {
+		}
+
+		float GetScaleX() const { return m_ScaleX; }
+		float GetScaleY() const { return m_ScaleY; }
+
+		std::string ToString() const override
+		{
+			std::stringstream ss;
+			ss << "WindowContentScaleEvent: " << m_ScaleX << ", " << m_ScaleY;
+			return ss.str();
+		}
+
+		std::array<void*, 2> GetData() override { return { &m_ScaleX, &m_ScaleY }; }
+
+	private:
+		float m_ScaleX, m_ScaleY;
+	};
 }

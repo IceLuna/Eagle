@@ -88,6 +88,45 @@ namespace Eagle
 	static constexpr uint32_t s_AdditionalPools = 1;
 	static uint32_t s_FrameIndex = 0;
 	static ImDrawDataSnapshot s_Snapshots[RendererConfig::FramesInFlight] = {};
+	static ImGuiStyle s_BaseStyle = {};
+
+	void UploadFonts()
+	{
+		// Use any command queue
+		Ref<CommandBuffer> commandBuffer = RenderManager::AllocateCommandBuffer(true);
+		ImGui_ImplVulkan_CreateFontsTexture((VkCommandBuffer)commandBuffer->GetHandle());
+		commandBuffer->End();
+		RenderManager::SubmitCommandBuffer(commandBuffer, true);
+		ImGui_ImplVulkan_DestroyFontUploadObjects();
+	}
+
+	void RebuildFonts()
+	{
+		ImGuiIO& io = ImGui::GetIO();
+
+		// Rebuild fonts
+		io.Fonts->Clear();
+		const Path boldFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Bold.ttf";
+		const Path regularFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Regular.ttf";
+		const float fontSize = 16.f * Window::s_HighDPIScaleFactor;
+
+		if (std::filesystem::exists(boldFont))
+		{
+			io.Fonts->AddFontFromFileTTF(boldFont.string().c_str(), fontSize, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
+		}
+		if (std::filesystem::exists(regularFont))
+		{
+			io.FontDefault = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), fontSize, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
+		}
+		io.Fonts->Build();
+
+		// Reset to the base style before scaling
+		ImGuiStyle& style = ImGui::GetStyle();
+		style = s_BaseStyle;
+		style.ScaleAllSizes(Window::s_HighDPIScaleFactor);
+
+		UploadFonts();
+	}
 
 	void VulkanImGuiLayer::OnAttach()
 	{
@@ -96,10 +135,12 @@ namespace Eagle
 		ImPlot::CreateContext();
 
 		ImGuiIO& io = ImGui::GetIO();
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  //Enagle Keyboard controls 
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  //Enable Keyboard controls 
 		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; //Enable Gamepad controls
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;	   //Enable Docking
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;	   //Enable Multi-Viewport
+		//io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;     // Re-rasterize fonts on DPI change
+		//io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports; // Scale the actual window size
 		io.ConfigWindowsMoveFromTitleBarOnly = true;
 		io.ConfigDebugHighlightIdConflicts = false;
 		io.ConfigDebugHighlightIdConflictsShowItemPicker = false;
@@ -107,21 +148,19 @@ namespace Eagle
 		m_IniPath = (Application::GetCorePath() / "imgui.ini").u8string();
 		const Path boldFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Bold.ttf";
 		const Path regularFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Regular.ttf";
+		const float fontSize = 16.f * Window::s_HighDPIScaleFactor;
 
 		io.IniFilename = m_IniPath.c_str();
 		if (std::filesystem::exists(boldFont))
 		{
-			io.Fonts->AddFontFromFileTTF(boldFont.string().c_str(), 32.f * Window::s_HighDPIScaleFactor, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
-			io.Fonts->Fonts[0]->Scale = 0.5f;
+			io.Fonts->AddFontFromFileTTF(boldFont.string().c_str(), fontSize, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
 		}
 		if (std::filesystem::exists(regularFont))
 		{
-			io.FontDefault = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), 32.f * Window::s_HighDPIScaleFactor, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
-			io.FontDefault->Scale = 0.5f;
+			io.FontDefault = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), fontSize, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
 		}
 
 		ImGuiStyle& style = ImGui::GetStyle();
-		style.ScaleAllSizes(Window::s_HighDPIScaleFactor);
 		style.TabRounding = 8.f;
 		style.FrameRounding = 8.f;
 		style.GrabRounding = 8.f;
@@ -151,6 +190,10 @@ namespace Eagle
 			style.Colors[ImGuizmo::SELECTION] = ImGui::ColorConvertU32ToFloat4(0xFF20AACC);
 			ImGuizmo::SetGizmoSizeClipSpace(0.15f);
 		}
+
+		// Base style has been initialized, save it before scaling
+		s_BaseStyle = style;
+		style.ScaleAllSizes(Window::s_HighDPIScaleFactor);
 
 		Application& app = Application::Get();
 		GLFWwindow* window = app.GetWindow().GetGLFWWindow();
@@ -208,15 +251,7 @@ namespace Eagle
 		initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 		ImGui_ImplVulkan_Init(&initInfo, (VkRenderPass)RenderManager::GetPresentRenderPassHandle());
 
-		// Upload Fonts
-		{
-			// Use any command queue
-			Ref<CommandBuffer> commandBuffer = RenderManager::AllocateCommandBuffer(true);
-			ImGui_ImplVulkan_CreateFontsTexture((VkCommandBuffer)commandBuffer->GetHandle());
-			commandBuffer->End();
-			RenderManager::SubmitCommandBuffer(commandBuffer, true);
-			ImGui_ImplVulkan_DestroyFontUploadObjects();
-		}
+		UploadFonts();
 	}
 	
 	void VulkanImGuiLayer::OnDetach()
@@ -255,6 +290,16 @@ namespace Eagle
 		const uint32_t frameIndex = RenderManager::GetCurrentFrameIndex_CPU();
 		auto& snapshot = s_Snapshots[frameIndex];
 		snapshot.SnapUsingSwap(ImGui::GetDrawData(), frameIndex);
+	}
+
+	void VulkanImGuiLayer::OnEvent(Event& e)
+	{
+		if (EventType::WindowContentScale == e.GetEventType())
+		{
+			WindowContentScaleEvent& scaleEvent = (WindowContentScaleEvent&)e;
+			EG_CORE_TRACE(scaleEvent.ToString());
+			RebuildFonts();
+		}
 	}
 
 	void VulkanImGuiLayer::Render(const Ref<CommandBuffer>& cmd)

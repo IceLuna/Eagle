@@ -13,6 +13,8 @@ namespace Eagle
 		void BeginFrame() override;
 		void EndFrame() override;
 
+		void OnEvent(Event& e) override;
+
 	private:
 		void Render(const Ref<CommandBuffer>& cmd) override;
 		void UpdatePlatform() override;
