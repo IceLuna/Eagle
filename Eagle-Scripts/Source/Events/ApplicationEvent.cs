@@ -76,4 +76,31 @@
             return EventCategory.Application;
         }
     }
+
+    public class WindowContentScaleEvent : Event
+    {
+        public readonly float ScaleX;
+        public readonly float ScaleY;
+
+        public WindowContentScaleEvent(float xScale, float yScale)
+        {
+            ScaleX = xScale;
+            ScaleY = yScale;
+        }
+
+        public override string ToString()
+        {
+            return $"WindowContentScaleEvent: {ScaleX} x {ScaleY}";
+        }
+
+        public override EventType GetEventType()
+        {
+            return EventType.WindowContentScale;
+        }
+
+        public override EventCategory GetCategoryFlags()
+        {
+            return EventCategory.Application;
+        }
+    }
 }

@@ -1642,6 +1642,7 @@ namespace Eagle
 
 		// C# scripts
 		{
+			// Create a single event object for all `OnEvent` invocations
 			std::array params = e.GetData();
 			void* eventObject = ScriptEngine::Construct(e.GetCSharpCtor(), true, params.data());
 

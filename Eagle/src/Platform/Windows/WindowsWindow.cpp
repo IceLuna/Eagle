@@ -19,7 +19,6 @@
 namespace Eagle
 {
 	static bool s_GLFWInitialized = false;
-	float Window::s_HighDPIScaleFactor = 1.0f;
 
 	static void GLFWErrorCallback(int error, const char* description)
 	{
@@ -30,6 +29,7 @@ namespace Eagle
 	{
 		EG_CORE_INFO("Creating window {0}", m_Props.Title);
 		m_WindowData.Props = &m_Props;
+		m_WindowData.DPIScale = &m_DPIScale;
 
 #ifdef EG_RELEASE
 		::ShowWindow(::GetConsoleWindow(), SW_HIDE);
@@ -59,7 +59,7 @@ namespace Eagle
 
 		if (xscale > 1.0f || yscale > 1.0f)
 		{
-			s_HighDPIScaleFactor = yscale;
+			m_DPIScale = glm::max(xscale, yscale);
 			//glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
 		}
 
@@ -298,7 +298,7 @@ namespace Eagle
 		{
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
-			s_HighDPIScaleFactor = yscale;
+			*data.DPIScale = glm::max(xscale, yscale);
 
 			WindowContentScaleEvent event(xscale, yscale);
 			data.EventCallback(event);

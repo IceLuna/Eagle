@@ -38,12 +38,13 @@ namespace Eagle
 
 		struct WindowData
 		{
-			WindowProperties* Props;
-			EventCallbackFn EventCallback;
+			WindowProperties* Props = nullptr;
+			float* DPIScale = nullptr;
+			EventCallbackFn EventCallback = nullptr;
 		};
 
 	private:
-		WindowData m_WindowData;
+		WindowData m_WindowData{};
 		Ref<VulkanSwapchain> m_Swapchain;
 	};
 }

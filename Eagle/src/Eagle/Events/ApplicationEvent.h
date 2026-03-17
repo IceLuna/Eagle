@@ -79,7 +79,7 @@ namespace Eagle
 	{
 	public:
 		EVENT_CLASS_CATEGORY(EventCategory::Application)
-		EVENT_CLASS_TYPE(WindowContentScale, float, float)
+		EVENT_CLASS_TYPE(WindowContentScale, single,single)
 
 		WindowContentScaleEvent(float xscale, float yscale)
 			: m_ScaleX(xscale), m_ScaleY(yscale) {

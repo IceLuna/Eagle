@@ -92,7 +92,10 @@ namespace Eagle
 
 	void UploadFonts()
 	{
-		// Use any command queue
+		// We can't release ImGui VK data while it's used
+		RenderManager::Wait();
+
+		ImGui_ImplVulkan_DestroyFontsTexture();
 		Ref<CommandBuffer> commandBuffer = RenderManager::AllocateCommandBuffer(true);
 		ImGui_ImplVulkan_CreateFontsTexture((VkCommandBuffer)commandBuffer->GetHandle());
 		commandBuffer->End();
@@ -108,7 +111,8 @@ namespace Eagle
 		io.Fonts->Clear();
 		const Path boldFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Bold.ttf";
 		const Path regularFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Regular.ttf";
-		const float fontSize = 16.f * Window::s_HighDPIScaleFactor;
+		const float dpiScale = Application::Get().GetWindow().GetDPIScale();
+		const float fontSize = 16.f * dpiScale;
 
 		if (std::filesystem::exists(boldFont))
 		{
@@ -123,7 +127,7 @@ namespace Eagle
 		// Reset to the base style before scaling
 		ImGuiStyle& style = ImGui::GetStyle();
 		style = s_BaseStyle;
-		style.ScaleAllSizes(Window::s_HighDPIScaleFactor);
+		style.ScaleAllSizes(dpiScale);
 
 		UploadFonts();
 	}
@@ -148,7 +152,8 @@ namespace Eagle
 		m_IniPath = (Application::GetCorePath() / "imgui.ini").u8string();
 		const Path boldFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Bold.ttf";
 		const Path regularFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Regular.ttf";
-		const float fontSize = 16.f * Window::s_HighDPIScaleFactor;
+		const float dpiScale = Application::Get().GetWindow().GetDPIScale();
+		const float fontSize = 16.f * dpiScale;
 
 		io.IniFilename = m_IniPath.c_str();
 		if (std::filesystem::exists(boldFont))
@@ -178,6 +183,7 @@ namespace Eagle
 		// ImGuizmo style
 		{
 			ImGuizmo::Style& style = ImGuizmo::GetStyle();
+			// TODO: Scale when DPI changes
 			style.RotationLineThickness = 6.f;
 			style.RotationOuterLineThickness = 6.f;
 			style.TranslationLineArrowSize = 12.f;
@@ -193,7 +199,7 @@ namespace Eagle
 
 		// Base style has been initialized, save it before scaling
 		s_BaseStyle = style;
-		style.ScaleAllSizes(Window::s_HighDPIScaleFactor);
+		style.ScaleAllSizes(dpiScale);
 
 		Application& app = Application::Get();
 		GLFWwindow* window = app.GetWindow().GetGLFWWindow();
