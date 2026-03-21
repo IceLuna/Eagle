@@ -34,6 +34,8 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Bloom Pass");
 		EG_CPU_TIMING_SCOPED("Bloom Pass");
 
+		auto& stats = m_Renderer.GetStats();
+
 		constexpr uint32_t tileSize = 8;
 		const uint32_t mipCount = m_InputImage->GetMipsCount();
 		const glm::uvec2 inputSize = m_InputImage->GetSize();
@@ -71,6 +73,7 @@ namespace Eagle
 				pushData.MipLevel = mip;
 				pushData.bUseThreshold = uint32_t(mip == 0);
 
+				++stats.Dispatches;
 				cmd->Dispatch(m_DownscalePipeline, numGroups.x, numGroups.y, 1, &pushData);
 				cmd->TransitionLayout(m_InputImage, m_MipViews[mip], ImageLayoutType::StorageImage, ImageLayoutType::StorageImage);
 				cmd->TransitionLayout(m_InputImage, m_MipViews[mip + 1], ImageLayoutType::StorageImage, ImageLayoutType::StorageImage);
@@ -120,6 +123,7 @@ namespace Eagle
 				pushData.TexelSize = glm::vec2(1.f / mipSize.x, 1.f / mipSize.y);
 				pushData.MipLevel = mip;
 
+				++stats.Dispatches;
 				cmd->Dispatch(m_UpscalePipeline, numGroups.x, numGroups.y, 1, &pushData);
 				cmd->TransitionLayout(m_InputImage, m_MipViews[mip], ImageLayoutType::StorageImage, ImageLayoutType::StorageImage);
 				cmd->TransitionLayout(m_InputImage, m_MipViews[mip - 1], ImageLayoutType::StorageImage, ImageLayoutType::StorageImage);

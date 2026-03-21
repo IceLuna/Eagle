@@ -116,6 +116,9 @@ namespace Eagle
 		cmd->Barrier(m_RayList);
 		cmd->Barrier(m_Radiance[m_PingPong]);
 		cmd->Barrier(m_Roughness);
+
+		auto& stats = m_Renderer.GetStats();
+		++stats.Dispatches;
 	}
 
 	void ScreenSpaceReflectionsTask::PrepareIndirectArgs(const Ref<CommandBuffer>& cmd)
@@ -132,6 +135,9 @@ namespace Eagle
 
 		cmd->Barrier(m_RayCounter);
 		cmd->TransitionLayout(m_IntersectionPassIndirectArgs, BufferLayoutType::StorageBuffer, BufferReadAccess::IndirectArgument);
+
+		auto& stats = m_Renderer.GetStats();
+		++stats.Dispatches;
 	}
 
 	void ScreenSpaceReflectionsTask::HZB(const Ref<CommandBuffer>& cmd)
@@ -172,6 +178,7 @@ namespace Eagle
 		m_HZBPipeline->SetImageSampler(m_HZB, m_HZBSampler, 0, 0);
 		m_HZBPipeline->SetImageArray(m_HZB, m_HZBMipViews, 0, 1);
 
+		auto& stats = m_Renderer.GetStats();
 		for (uint32_t mip = 1; mip < mipCount - 1; ++mip)
 		{
 			pushData.PrevMipLevel = mip - 1;
@@ -186,6 +193,7 @@ namespace Eagle
 			cmd->Dispatch(m_HZBPipeline, numGroups.x, numGroups.y, 1, &pushData);
 			cmd->TransitionLayout(m_HZB, m_HZBMipViews[mip - 1], ImageLayoutType::StorageImage, ImageLayoutType::StorageImage);
 			cmd->TransitionLayout(m_HZB, m_HZBMipViews[mip], ImageLayoutType::StorageImage, ImageLayoutType::StorageImage);
+			++stats.Dispatches;
 		}
 
 		cmd->TransitionLayout(m_HZB, ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
@@ -223,6 +231,9 @@ namespace Eagle
 
 		cmd->DispatchIndirect(m_IntersectionPipeline, m_IntersectionPassIndirectArgs, 0, &pushData);
 		cmd->TransitionLayout(m_Radiance[m_PingPong], ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
+
+		auto& stats = m_Renderer.GetStats();
+		++stats.Dispatches;
 	}
 
 	void ScreenSpaceReflectionsTask::Reproject(const Ref<CommandBuffer>& cmd)
@@ -281,6 +292,9 @@ namespace Eagle
 		cmd->TransitionLayout(m_AverageRadiance[m_PingPong], ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
 		cmd->TransitionLayout(m_Variance[m_PingPong], ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
 		cmd->TransitionLayout(m_Radiance[1 - m_PingPong], ImageReadAccess::PixelShaderRead, ImageLayoutType::StorageImage);
+
+		auto& stats = m_Renderer.GetStats();
+		++stats.Dispatches;
 	}
 
 	void ScreenSpaceReflectionsTask::Prefilter(const Ref<CommandBuffer>& cmd)
@@ -317,6 +331,9 @@ namespace Eagle
 
 		cmd->TransitionLayout(m_Radiance[1 - m_PingPong], ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
 		cmd->TransitionLayout(m_Variance[1 - m_PingPong], ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
+
+		auto& stats = m_Renderer.GetStats();
+		++stats.Dispatches;
 	}
 
 	void ScreenSpaceReflectionsTask::TemporalResolve(const Ref<CommandBuffer>& cmd)
@@ -350,6 +367,9 @@ namespace Eagle
 		cmd->DispatchIndirect(m_TemporalPipeline, m_IntersectionPassIndirectArgs, 12, &pushData);
 
 		cmd->Barrier(m_Radiance[m_PingPong]);
+
+		auto& stats = m_Renderer.GetStats();
+		++stats.Dispatches;
 	}
 
 	void ScreenSpaceReflectionsTask::Composite(const Ref<CommandBuffer>& cmd)
@@ -380,6 +400,9 @@ namespace Eagle
 		constexpr uint32_t tileSize = 8;
 		glm::uvec2 numGroups = { glm::ceil(m_Size.x / float(tileSize)), glm::ceil(m_Size.y / float(tileSize)) };
 		cmd->Dispatch(m_CompositePipeline, numGroups.x, numGroups.y, 1, &pushData);
+
+		auto& stats = m_Renderer.GetStats();
+		++stats.Dispatches;
 	}
 	
 	void ScreenSpaceReflectionsTask::InitPipeline()

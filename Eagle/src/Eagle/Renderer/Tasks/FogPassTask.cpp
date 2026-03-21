@@ -67,6 +67,9 @@ namespace Eagle
 		cmd->Dispatch(m_Pipeline, numGroups.x, numGroups.y, 1, &pushData);
 		cmd->TransitionLayout(m_Result, ImageLayoutType::StorageImage, inputOldLayout);
 		cmd->TransitionLayout(depth, ImageReadAccess::PixelShaderRead, oldDepthLayout);
+
+		auto& stats = m_Renderer.GetStats();
+		++stats.Dispatches;
 	}
 	
 	void FogPassTask::InitPipeline()

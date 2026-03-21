@@ -301,6 +301,9 @@ namespace Eagle
 		void DestroyPendingEntities();
 		bool IsPendingDestroy(Entity entity) const;
 
+		size_t GetSpritesCount() const { return m_Sprites.size(); }
+		size_t GetStaticMeshesCount() const { return m_Meshes.size(); }
+		size_t GetSkeletalMeshesCount() const { return m_SkeletalMeshes.size(); }
 		size_t GetPointLightsCount() const { return m_PointLights.size(); }
 		size_t GetSpotLightsCount() const { return m_SpotLights.size(); }
 		size_t GetDirLightsCount() const { return m_DirectionalLight ? 1 : 0; }

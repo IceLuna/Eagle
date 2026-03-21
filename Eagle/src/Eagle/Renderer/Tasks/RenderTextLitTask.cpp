@@ -28,7 +28,7 @@ namespace Eagle
 		InitPipeline();
 	}
 
-	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const LitTextGeometryData& data, const PushData& pushData, SceneRenderer::Statistics2D& stats)
+	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const LitTextGeometryData& data, const PushData& pushData, SceneRenderer::Statistics& stats)
 	{
 		if (data.QuadVertices.empty())
 			return;
@@ -39,7 +39,6 @@ namespace Eagle
 		cmd->DrawIndexed(data.VertexBuffer, data.IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 		++stats.DrawCalls;
-		stats.QuadCount += quadsCount;
 	}
 
 	void RenderTextLitTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
@@ -80,8 +79,8 @@ namespace Eagle
 		}
 		m_OpaquePipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 
-		Draw(cmd, m_OpaquePipeline, data, pushData, m_Renderer.GetStats2D());
-		Draw(cmd, m_OpaquePipeline, notCastingShadowsData, pushData, m_Renderer.GetStats2D());
+		Draw(cmd, m_OpaquePipeline, data, pushData, m_Renderer.GetStats());
+		Draw(cmd, m_OpaquePipeline, notCastingShadowsData, pushData, m_Renderer.GetStats());
 	}
 
 	void RenderTextLitTask::RenderMasked(const Ref<CommandBuffer>& cmd)
@@ -116,8 +115,8 @@ namespace Eagle
 		}
 		m_MaskedPipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 
-		Draw(cmd, m_MaskedPipeline, data, pushData, m_Renderer.GetStats2D());
-		Draw(cmd, m_MaskedPipeline, notCastingShadowsData, pushData, m_Renderer.GetStats2D());
+		Draw(cmd, m_MaskedPipeline, data, pushData, m_Renderer.GetStats());
+		Draw(cmd, m_MaskedPipeline, notCastingShadowsData, pushData, m_Renderer.GetStats());
 	}
 
 	void RenderTextLitTask::InitPipeline()

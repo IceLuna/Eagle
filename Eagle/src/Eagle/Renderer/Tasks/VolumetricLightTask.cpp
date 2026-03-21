@@ -38,6 +38,8 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Volumetric Light Pass");
 		EG_CPU_TIMING_SCOPED("Volumetric Light Pass");
 
+		auto& stats = m_Renderer.GetStats();
+
 		constexpr uint32_t tileSize = 8;
 		const glm::uvec2 size = m_ResultImage->GetSize();
 		const glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
@@ -127,6 +129,7 @@ namespace Eagle
 			cmd->TransitionLayout(m_VolumetricsImage, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
 			cmd->Dispatch(m_Pipeline, halfNumGroups.x, halfNumGroups.y, 1, &pushData);
 			cmd->TransitionLayout(m_VolumetricsImage, ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
+			++stats.Dispatches;
 		}
 		cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageLayoutType::DepthStencilWrite);
 
@@ -149,6 +152,7 @@ namespace Eagle
 			cmd->TransitionLayout(m_VolumetricsImageBlurred, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
 			cmd->Dispatch(m_GuassianPipeline, halfNumGroups.x, halfNumGroups.y, 1, &pushDataComp);
 			cmd->TransitionLayout(m_VolumetricsImageBlurred, ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
+			++stats.Dispatches;
 		}
 
 		pushDataComp.Size = size;
@@ -158,6 +162,7 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "Volumetric Composite");
 			EG_CPU_TIMING_SCOPED("Volumetric Composite");
 			cmd->Dispatch(m_CompositePipeline, numGroups.x, numGroups.y, 1, &pushDataComp);
+			++stats.Dispatches;
 		}
 
 		cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageReadAccess::PixelShaderRead);

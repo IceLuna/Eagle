@@ -73,6 +73,7 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "DOF. Tile min-max");
 		EG_CPU_TIMING_SCOPED("DOF. Tile min-max");
 
+		auto& stats = m_Renderer.GetStats();
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "DOF. Tile min-max. Horizontal");
 			EG_CPU_TIMING_SCOPED("DOF. Tile min-max. Horizontal");
@@ -94,6 +95,7 @@ namespace Eagle
 			const auto& size = m_PushData.PassSize;
 			glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
 			cmd->Dispatch(m_TileHorizontalPipeline, numGroups.x, numGroups.y, 1, &m_PushData);
+			++stats.Dispatches;
 		}
 
 		{
@@ -116,6 +118,7 @@ namespace Eagle
 			const auto& size = m_PushData.PassSize;
 			glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
 			cmd->Dispatch(m_TileVerticalPipeline, numGroups.x, numGroups.y, 1, &m_PushData);
+			++stats.Dispatches;
 		}
 	}
 
@@ -150,6 +153,9 @@ namespace Eagle
 		cmd->Barrier(m_ExpensiveTiles);
 
 		cmd->TransitionLayout(m_DispatchArgs, BufferLayoutType::StorageBuffer, BufferReadAccess::IndirectArgument);
+
+		auto& stats = m_Renderer.GetStats();
+		++stats.Dispatches;
 	}
 
 	void DOFTask::Presort(const Ref<CommandBuffer>& cmd)
@@ -183,19 +189,24 @@ namespace Eagle
 		cmd->TransitionLayout(m_Prefilter, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
 		cmd->Barrier(m_NeighborhoodMax);
 
+		auto& stats = m_Renderer.GetStats();
+
 		cmd->DispatchIndirect(m_PresortEarlyPipeline, m_DispatchArgs, offsetof(PostprocessTileStatistics, EarlyExit), &m_PushData);
+		++stats.Dispatches;
 		cmd->DispatchIndirect(m_PresortCheapPipeline, m_DispatchArgs, offsetof(PostprocessTileStatistics, Cheap), &m_PushData);
+		++stats.Dispatches;
 		cmd->DispatchIndirect(m_PresortExpensivePipeline, m_DispatchArgs, offsetof(PostprocessTileStatistics, Expensive), &m_PushData);
+		++stats.Dispatches;
 
 		cmd->TransitionLayout(color, ImageReadAccess::PixelShaderRead, inputOldLayout);
 	}
 
 	void DOFTask::MainPass(const Ref<CommandBuffer>& cmd)
 	{
+		// Half res pass
 		EG_GPU_TIMING_SCOPED(cmd, "DOF. Main Pass");
 		EG_CPU_TIMING_SCOPED("DOF. Main Pass");
 
-		// Half res pass
 
 		auto setDescriptors = [this](Ref<PipelineCompute>& pipeline, const Ref<Buffer>& tiles)
 		{
@@ -216,9 +227,13 @@ namespace Eagle
 		cmd->TransitionLayout(m_Main, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
 		cmd->TransitionLayout(m_AlphaTemp, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
 
+		auto& stats = m_Renderer.GetStats();
 		cmd->DispatchIndirect(m_MainEarlyPipeline, m_DispatchArgs, offsetof(PostprocessTileStatistics, EarlyExit), &m_PushData);
+		++stats.Dispatches;
 		cmd->DispatchIndirect(m_MainCheapPipeline, m_DispatchArgs, offsetof(PostprocessTileStatistics, Cheap), &m_PushData);
+		++stats.Dispatches;
 		cmd->DispatchIndirect(m_MainExpensivePipeline, m_DispatchArgs, offsetof(PostprocessTileStatistics, Expensive), &m_PushData);
+		++stats.Dispatches;
 	}
 
 	void DOFTask::PostFilterPass(const Ref<CommandBuffer>& cmd)
@@ -242,6 +257,9 @@ namespace Eagle
 		const auto& size = m_PushData.PassSize;
 		glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
 		cmd->Dispatch(m_PostFilterPipeline, numGroups.x, numGroups.y, 1, &m_PushData);
+
+		auto& stats = m_Renderer.GetStats();
+		++stats.Dispatches;
 	}
 
 	void DOFTask::UpsamplePass(const Ref<CommandBuffer>& cmd)
@@ -273,6 +291,9 @@ namespace Eagle
 		cmd->Dispatch(m_UpsamplePipeline, numGroups.x, numGroups.y, 1, &m_PushData);
 
 		cmd->TransitionLayout(color, ImageLayoutType::StorageImage, inputOldLayout);
+
+		auto& stats = m_Renderer.GetStats();
+		++stats.Dispatches;
 	}
 
 	void DOFTask::OnResize(glm::uvec2 size)

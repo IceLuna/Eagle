@@ -607,6 +607,9 @@ namespace Eagle
 		cmd->Barrier(m_EmittersBuffer);
 		cmd->Barrier(m_EmittersSpawnCountBuffer);
 		cmd->TransitionLayout(m_DispatchArgs, BufferLayoutType::StorageBuffer, BufferReadAccess::IndirectArgument);
+
+		auto& stats = m_Renderer.GetStats();
+		++stats.Dispatches;
 	}
 
 	void ParticleSystemTask::EmitPass(const Ref<CommandBuffer>& cmd)
@@ -647,6 +650,9 @@ namespace Eagle
 		cmd->Barrier(m_ParticlesBuffer);
 		cmd->Barrier(m_DeadIndices);
 		cmd->Barrier(m_AliveIndices[m_PingPong]);
+
+		auto& stats = m_Renderer.GetStats();
+		++stats.Dispatches;
 	}
 
 	void ParticleSystemTask::SimulatePass(const Ref<CommandBuffer>& cmd)
@@ -715,6 +721,9 @@ namespace Eagle
 		cmd->Barrier(m_DrawArgs);
 		cmd->Barrier(m_AliveIndices[1 - m_PingPong]);
 		cmd->Barrier(m_DeadIndices);
+
+		auto& stats = m_Renderer.GetStats();
+		++stats.Dispatches;
 	}
 
 	void ParticleSystemTask::RenderPass(const Ref<CommandBuffer>& cmd)
@@ -749,15 +758,19 @@ namespace Eagle
 			m_TexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()] = texturesChangedFrame + 1;
 		}
 
+		auto& stats = m_Renderer.GetStats();
+
 		cmd->BeginGraphics(m_BillboardRender);
 		cmd->SetGraphicsRootConstants(&pushData, nullptr);
 		cmd->DrawIndirect(m_DrawArgs, 0, 1, sizeof(DrawIndirectArgs));
 		cmd->EndGraphics();
+		++stats.DrawCalls;
 
 		cmd->BeginGraphics(m_BillboardRenderTranslucent);
 		cmd->SetGraphicsRootConstants(&pushData, nullptr);
 		cmd->DrawIndirect(m_DrawArgs, sizeof(DrawIndirectArgs), 1, sizeof(DrawIndirectArgs));
 		cmd->EndGraphics();
+		++stats.DrawCalls;
 	}
 
 	void ParticleSystemTask::SetMaxParticles(const Ref<CommandBuffer>& cmd, uint32_t maxParticles)

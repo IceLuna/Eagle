@@ -250,28 +250,15 @@ namespace Eagle
 		float GetShadowMaxDistance() const { return m_MaxShadowDistance; }
 
 	public:
-		//Stats
 		struct Statistics
 		{
 			uint64_t DrawCalls = 0;
-			uint64_t Vertices = 0;
-			uint64_t Indeces = 0;
-		};
-
-		struct Statistics2D
-		{
-			uint64_t DrawCalls = 0;
-			uint64_t QuadCount = 0;
-
-			inline uint64_t GetVertexCount() const { return QuadCount * 4; }
-			inline uint64_t GetIndexCount() const { return QuadCount * 6; }
+			uint64_t Dispatches = 0;
 		};
 
 		Statistics& GetStats() { return m_Stats[m_FrameIndex]; }
-		Statistics2D& GetStats2D() { return m_Stats2D[m_FrameIndex]; }
-
 		const Statistics& GetStats() const { return m_Stats[m_FrameIndex]; }
-		const Statistics2D& GetStats2D() const { return m_Stats2D[m_FrameIndex]; }
+		const Statistics& GetStats_MT() const { return m_Stats_MT; }
 
 	private:
 		void InitWithOptions();
@@ -355,6 +342,6 @@ namespace Eagle
 		bool m_bIsGame = false;
 
 		Statistics m_Stats[RendererConfig::FramesInFlight];
-		Statistics2D m_Stats2D[RendererConfig::FramesInFlight];
+		Statistics m_Stats_MT{};
 	};
 }

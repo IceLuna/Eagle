@@ -104,6 +104,7 @@ namespace Eagle
 
 		constexpr uint32_t s_TileSize = 8;
 		const glm::uvec2 numGroupds = { glm::ceil(viewportSize.x / float(s_TileSize)), glm::ceil(viewportSize.y / float(s_TileSize)) };
+		auto& stats = m_Renderer.GetStats();
 
 		// AO
 		{
@@ -136,6 +137,8 @@ namespace Eagle
 
 			cmd->TransitionLayout(m_SSAOPassImage, m_SSAOPassImage->GetLayout(), ImageReadAccess::PixelShaderRead);
 			cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageLayoutType::DepthStencilWrite);
+
+			++stats.Dispatches;
 		}
 
 		// Blur
@@ -157,6 +160,8 @@ namespace Eagle
 			cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageLayoutType::StorageImage);
 			cmd->Dispatch(m_BlurPipeline, numGroupds.x, numGroupds.y, 1, &blurPushData);
 			cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageReadAccess::PixelShaderRead);
+
+			++stats.Dispatches;
 		}
 	}
 	

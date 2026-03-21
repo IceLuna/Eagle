@@ -171,6 +171,7 @@ namespace Eagle
 		const glm::mat4& invVP = m_Renderer.GetInverseViewProjection();
 
 		cmd->TransitionLayout(depth, oldLayout, ImageReadAccess::PixelShaderRead);
+		auto& stats = m_Renderer.GetStats();
 
 		// Without normals
 		if (const uint32_t instanceCount = m_NoNormalsDecalsCount)
@@ -179,6 +180,7 @@ namespace Eagle
 			cmd->SetGraphicsRootConstants(&vp, &invVP);
 			cmd->DrawInstanced(m_InstanceBuffer, 36, instanceCount, 0, 0);
 			cmd->EndGraphics();
+			++stats.DrawCalls;
 		}
 
 		// With normals
@@ -189,6 +191,7 @@ namespace Eagle
 			cmd->SetGraphicsRootConstants(&vp, &invVP);
 			cmd->DrawInstanced(m_InstanceBuffer, 36, instanceCount, 0, instanceOffset);
 			cmd->EndGraphics();
+			++stats.DrawCalls;
 		}
 
 		cmd->TransitionLayout(depth, ImageReadAccess::PixelShaderRead, oldLayout);

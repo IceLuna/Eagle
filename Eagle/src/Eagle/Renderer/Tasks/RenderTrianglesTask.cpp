@@ -70,6 +70,9 @@ namespace Eagle
 		cmd->SetGraphicsRootConstants(&m_Renderer.GetViewProjection()[0][0], nullptr);
 		cmd->Draw(m_VertexBuffer, trianglesCount, 0);
 		cmd->EndGraphics();
+
+		auto& stats = m_Renderer.GetStats();
+		++stats.DrawCalls;
 	}
 
 	void RenderTrianglesTask::UploadVertexBuffer(const Ref<CommandBuffer>& cmd)

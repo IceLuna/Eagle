@@ -24,7 +24,7 @@ namespace Eagle
 		InitPipeline();
 	}
 
-	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const UnlitTextGeometryData& data, const void* pushData, SceneRenderer::Statistics2D& stats)
+	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const UnlitTextGeometryData& data, const void* pushData, SceneRenderer::Statistics& stats)
 	{
 		if (data.QuadVertices.empty())
 			return;
@@ -35,7 +35,6 @@ namespace Eagle
 		cmd->DrawIndexed(data.VertexBuffer, data.IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 		++stats.DrawCalls;
-		stats.QuadCount += quadsCount;
 	}
 
 	void RenderTextUnlitTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
@@ -54,8 +53,8 @@ namespace Eagle
 		if (bJitter)
 			m_Pipeline->SetBuffer(m_Renderer.GetJitter(), 2, 0);
 
-		Draw(cmd, m_Pipeline, data, &m_Renderer.GetViewProjection()[0][0], m_Renderer.GetStats2D());
-		Draw(cmd, m_Pipeline, notCastingShadowsData, &m_Renderer.GetViewProjection()[0][0], m_Renderer.GetStats2D());
+		Draw(cmd, m_Pipeline, data, &m_Renderer.GetViewProjection()[0][0], m_Renderer.GetStats());
+		Draw(cmd, m_Pipeline, notCastingShadowsData, &m_Renderer.GetViewProjection()[0][0], m_Renderer.GetStats());
 	}
 
 	void RenderTextUnlitTask::InitPipeline()

@@ -27,7 +27,7 @@ namespace Eagle
 		InitPipeline();
 	}
 
-	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const SpriteGeometryData& spritesData, const PushData& pushData, SceneRenderer::Statistics2D& stats)
+	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const SpriteGeometryData& spritesData, const PushData& pushData, SceneRenderer::Statistics& stats)
 	{
 		if (spritesData.QuadVertices.empty())
 			return;
@@ -38,7 +38,6 @@ namespace Eagle
 		cmd->DrawIndexed(spritesData.VertexBuffer, spritesData.IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 		++stats.DrawCalls;
-		stats.QuadCount += quadsCount;
 	}
 
 	void RenderSpritesTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
@@ -79,8 +78,8 @@ namespace Eagle
 		if (bJitter)
 			m_OpaquePipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
-		Draw(cmd, m_OpaquePipeline, spritesData, pushData, m_Renderer.GetStats2D());
-		Draw(cmd, m_OpaquePipeline, notCastingShadowspritesData, pushData, m_Renderer.GetStats2D());
+		Draw(cmd, m_OpaquePipeline, spritesData, pushData, m_Renderer.GetStats());
+		Draw(cmd, m_OpaquePipeline, notCastingShadowspritesData, pushData, m_Renderer.GetStats());
 	}
 
 	void RenderSpritesTask::RenderMasked(const Ref<CommandBuffer>& cmd)
@@ -115,8 +114,8 @@ namespace Eagle
 		if (bJitter)
 			m_MaskedPipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
-		Draw(cmd, m_MaskedPipeline, spritesData, pushData, m_Renderer.GetStats2D());
-		Draw(cmd, m_MaskedPipeline, notCastingShadowspritesData, pushData, m_Renderer.GetStats2D());
+		Draw(cmd, m_MaskedPipeline, spritesData, pushData, m_Renderer.GetStats());
+		Draw(cmd, m_MaskedPipeline, notCastingShadowspritesData, pushData, m_Renderer.GetStats());
 	}
 
 	void RenderSpritesTask::InitPipeline()

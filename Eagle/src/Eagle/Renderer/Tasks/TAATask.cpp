@@ -62,6 +62,9 @@ namespace Eagle
 		cmd->TransitionLayout(m_FinalImage, ImageLayoutType::StorageImage, oldLayout);
 		cmd->CopyImage(m_Result, ImageView{}, m_FinalImage, ImageView{}, glm::ivec3{0}, glm::ivec3{0}, m_FinalImage->GetSize());
 		cmd->CopyImage(m_Result, ImageView{}, m_HistoryImage, ImageView{}, glm::ivec3{0}, glm::ivec3{0}, m_FinalImage->GetSize());
+
+		auto& stats = m_Renderer.GetStats();
+		++stats.Dispatches;
 	}
 	
 	void TAATask::InitPipeline()

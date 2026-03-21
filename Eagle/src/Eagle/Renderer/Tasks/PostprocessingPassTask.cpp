@@ -263,6 +263,9 @@ namespace Eagle
 		m_TonemappingPipeline->SetBuffer(m_Exposure, 0, 2);
 
 		cmd->Dispatch(m_TonemappingPipeline, numGroups.x, numGroups.y, 1, &pushData);
+
+		auto& stats = m_Renderer.GetStats();
+		++stats.Dispatches;
 	}
 	
 	void PostprocessingPassTask::LensPass(const Ref<CommandBuffer>& cmd, const Ref<Image>& input, const Ref<Image>& output)
@@ -300,6 +303,9 @@ namespace Eagle
 		m_LensPipeline->SetImage(output, 0, 1);
 
 		cmd->Dispatch(m_LensPipeline, numGroups.x, numGroups.y, 1, &pushData);
+
+		auto& stats = m_Renderer.GetStats();
+		++stats.Dispatches;
 	}
 
 	uint32_t PostprocessingPassTask::CalcGrainSeed(Timestep deltaTime, float seedUpdateRate)

@@ -2153,38 +2153,7 @@ namespace Eagle
 			const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
 				| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
 
-			if (ImGui::TreeNodeEx("Renderer3D Stats", flags))
-			{
-				const auto& stats = m_CurrentScene->GetSceneRenderer()->GetStats();
-
-				ImGui::Text("Draw Calls: %d", stats.DrawCalls);
-				ImGui::Text("Vertices: %d", stats.Vertices);
-				ImGui::Text("Indices: %d", stats.Indeces);
-
-				ImGui::TreePop();
-			}
-
-			if (ImGui::TreeNodeEx("Renderer2D Stats", flags))
-			{
-				const auto& stats = m_CurrentScene->GetSceneRenderer()->GetStats2D();
-
-				ImGui::Text("Draw Calls: %d", stats.DrawCalls);
-				ImGui::Text("Quads: %d", stats.QuadCount);
-				ImGui::Text("Vertices: %d", stats.GetVertexCount());
-				ImGui::Text("Indices: %d", stats.GetIndexCount());
-
-				ImGui::TreePop();
-			}
-
-			if (ImGui::TreeNodeEx("Active Lights", flags))
-			{
-				ImGui::Text("Point Lights: %d", m_CurrentScene->GetPointLightsCount());
-				ImGui::Text("Spot Lights: %d", m_CurrentScene->GetSpotLightsCount());
-				ImGui::Text("Directional Lights: %d", m_CurrentScene->GetDirLightsCount());
-				ImGui::Text("IBL: %d", m_CurrentScene->HasIBL() ? 1 : 0);
-
-				ImGui::TreePop();
-			}
+			const auto& stats = m_CurrentScene->GetSceneRenderer()->GetStats_MT();
 
 			ImGui::Text("Frame time: %.3fms (%d fps)", m_Ts * 1000.f, int(1.f / m_Ts));
 			if (auto timings = RenderManager::GetTimings(); !timings.empty())
@@ -2192,6 +2161,20 @@ namespace Eagle
 				const auto& wholeFrame = *timings.begin();
 				ImGui::Text("Render time: %.3fms", wholeFrame.Timing);
 			}
+			ImGui::Separator();
+
+			ImGui::Text("Draw Calls: %d", stats.DrawCalls);
+			ImGui::Text("Compute Dispatches: %d", stats.Dispatches);
+			ImGui::Separator();
+			ImGui::Text("Static Meshes: %d", m_CurrentScene->GetStaticMeshesCount());
+			ImGui::Text("Skeletal Meshes: %d", m_CurrentScene->GetSkeletalMeshesCount());
+			ImGui::Text("Sprites: %d", m_CurrentScene->GetSpritesCount());
+			ImGui::Separator();
+			ImGui::Text("Point Lights: %d", m_CurrentScene->GetPointLightsCount());
+			ImGui::Text("Spot Lights: %d", m_CurrentScene->GetSpotLightsCount());
+			ImGui::Text("Directional Lights: %d", m_CurrentScene->GetDirLightsCount());
+			ImGui::Text("IBL: %d", m_CurrentScene->HasIBL() ? 1 : 0);
+
 			ImGui::PopID();
 		}
 		ImGui::End(); //Stats
