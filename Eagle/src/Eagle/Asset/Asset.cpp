@@ -411,6 +411,11 @@ namespace Eagle
 		return false;
 	}
 
+	AssetBehaviorGraph::~AssetBehaviorGraph()
+	{
+		ScriptEngine::RemoveOnAppAssemblyReloadedCallback(m_GUID);
+	}
+
 	bool AssetBehaviorGraph::GetClassNodeData(const GUID& id, AIBehaviorNode* outData) const
 	{
 		return GetBehaviorClassNodeData_Internal(m_Root, id, outData);

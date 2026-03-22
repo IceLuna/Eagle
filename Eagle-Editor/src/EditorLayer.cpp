@@ -2161,19 +2161,22 @@ namespace Eagle
 				const auto& wholeFrame = *timings.begin();
 				ImGui::Text("Render time: %.3fms", wholeFrame.Timing);
 			}
-			ImGui::Separator();
 
-			ImGui::Text("Draw Calls: %d", stats.DrawCalls);
-			ImGui::Text("Compute Dispatches: %d", stats.Dispatches);
-			ImGui::Separator();
-			ImGui::Text("Static Meshes: %d", m_CurrentScene->GetStaticMeshesCount());
-			ImGui::Text("Skeletal Meshes: %d", m_CurrentScene->GetSkeletalMeshesCount());
-			ImGui::Text("Sprites: %d", m_CurrentScene->GetSpritesCount());
-			ImGui::Separator();
-			ImGui::Text("Point Lights: %d", m_CurrentScene->GetPointLightsCount());
-			ImGui::Text("Spot Lights: %d", m_CurrentScene->GetSpotLightsCount());
-			ImGui::Text("Directional Lights: %d", m_CurrentScene->GetDirLightsCount());
-			ImGui::Text("IBL: %d", m_CurrentScene->HasIBL() ? 1 : 0);
+			if (ImGui::TreeNodeEx("Scene stats", flags))
+			{
+				ImGui::Text("Draw Calls: %d", stats.DrawCalls);
+				ImGui::Text("Compute Dispatches: %d", stats.Dispatches);
+				ImGui::Separator();
+				ImGui::Text("Static Meshes: %d", m_CurrentScene->GetStaticMeshesCount());
+				ImGui::Text("Skeletal Meshes: %d", m_CurrentScene->GetSkeletalMeshesCount());
+				ImGui::Text("Sprites: %d", m_CurrentScene->GetSpritesCount());
+				ImGui::Separator();
+				ImGui::Text("Point Lights: %d", m_CurrentScene->GetPointLightsCount());
+				ImGui::Text("Spot Lights: %d", m_CurrentScene->GetSpotLightsCount());
+				ImGui::Text("Directional Lights: %d", m_CurrentScene->GetDirLightsCount());
+				ImGui::Text("IBL: %d", m_CurrentScene->HasIBL() ? 1 : 0);
+				ImGui::TreePop();
+			}
 
 			ImGui::PopID();
 		}

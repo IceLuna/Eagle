@@ -21,6 +21,7 @@ namespace Eagle
 	{
 		if (bNeedRenderer)
 		{
+			// TODO: Basic renderer settings should be controled by the asset editors otherwise some effect won't be visible
 			SceneRendererSettings settings = SceneRendererSettings::GetBasicSettings();
 			m_Renderer = MakeRef<SceneRenderer>(glm::uvec2{ 1, 1 }, settings);
 			m_Scene = MakeRef<Scene>("AssetEditor", m_Renderer);

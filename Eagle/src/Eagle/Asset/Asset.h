@@ -862,6 +862,8 @@ namespace Eagle
 	class AssetBehaviorGraph : public Asset
 	{
 	public:
+		~AssetBehaviorGraph();
+
 		AssetBehaviorGraph& operator=(Asset&& other) noexcept override
 		{
 			if (this == &other)
