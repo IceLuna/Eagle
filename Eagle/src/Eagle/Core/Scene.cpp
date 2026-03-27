@@ -1602,7 +1602,14 @@ namespace Eagle
 	{
 		Entity createdEntity = CreateFromEntity(*asset->GetEntity().get(), bCopyGUID);
 		createdEntity.SetName(asset->GetPath().stem().u8string());
-		createdEntity.AddComponent<EntityAssetComponent>().AssetGUID = asset->GetGUID();
+		if (createdEntity.HasComponent<EntityAssetComponent>())
+		{
+			createdEntity.GetComponent<EntityAssetComponent>().AssetGUID = asset->GetGUID();
+		}
+		else
+		{
+			createdEntity.AddComponent<EntityAssetComponent>().AssetGUID = asset->GetGUID();
+		}
 
 		return createdEntity;
 	}

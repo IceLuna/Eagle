@@ -180,6 +180,7 @@ namespace Eagle
 		void OnMaterialPropertyModified();
 
 	private:
+		std::mutex m_Mutex;
 		std::vector<SkeletalVertex> m_Vertices;
 		std::vector<std::vector<Index>> m_IndicesPerMaterial; // Indices of different materials are split. So, indices that correspond to `material slot = 0` is `m_IndicesPerMaterial[0]
 		SkeletalMeshInfo m_Skeletal;

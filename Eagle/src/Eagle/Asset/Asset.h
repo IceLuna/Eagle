@@ -221,11 +221,13 @@ namespace Eagle
 
 		void AddOnAssetModifiedCallback(const GUID& id, const std::function<void()>& func)
 		{
+			std::scoped_lock lock(m_Mutex);
 			m_Callbacks[id] = func;
 		}
 
 		void RemoveOnAssetModifiedCallback(const GUID& id)
 		{
+			std::scoped_lock lock(m_Mutex);
 			m_Callbacks.erase(id);
 		}
 
@@ -267,6 +269,7 @@ namespace Eagle
 		Asset(const Path& path, const Path& pathToRaw, AssetType type, GUID guid, const DataBuffer& rawData);
 
 	protected:
+		std::mutex m_Mutex;
 		std::unordered_map<GUID, std::function<void()>> m_Callbacks;
 		Path m_Path;
 		Path m_PathToRaw;

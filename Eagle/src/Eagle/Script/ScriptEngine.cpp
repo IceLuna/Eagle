@@ -49,6 +49,8 @@ namespace Eagle
 	static MonoMethod* s_AICompositeAddChildMethod = nullptr;
 	static MonoMethod* s_AINodeAddDecoratorMethod = nullptr;
 
+	std::mutex ScriptEngine::s_Mutex;
+
 	std::map<std::string, EntityScriptClass> ScriptEngine::s_EntityClasses;
 	std::unordered_map<GUID, EntityInstance> ScriptEngine::s_EntityInstanceDataMap;
 	AIBehaviorClasses ScriptEngine::s_CoreAIClasses;

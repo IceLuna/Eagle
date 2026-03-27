@@ -106,11 +106,13 @@ namespace Eagle
 
 		void AddOnModifiedCallback(const GUID& id, const std::function<void()>& func)
 		{
+			std::scoped_lock lock(m_Mutex);
 			m_Callbacks[id] = func;
 		}
 
 		void RemoveOnModifiedCallback(const GUID& id)
 		{
+			std::scoped_lock lock(m_Mutex);
 			m_Callbacks.erase(id);
 		}
 
@@ -130,6 +132,7 @@ namespace Eagle
 		void OnMaterialChanged(bool bBlendModeChanged = false);
 
 	private:
+		std::mutex m_Mutex;
 		std::unordered_map<GUID, std::function<void()>> m_Callbacks;
 
 		Ref<AssetTexture2D> m_AlbedoAsset;

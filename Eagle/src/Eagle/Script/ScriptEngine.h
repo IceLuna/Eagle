@@ -76,17 +76,20 @@ namespace Eagle
 		[[nodiscard]] static GUID AddOnAppAssemblyReloadedCallback(const std::function<void()>& callback)
 		{
 			GUID id{};
+			std::scoped_lock lock(s_Mutex);
 			s_AppAssemblyReloadedCallbacks[id] = callback;
 			return id;
 		}
 
 		[[nodiscard]] static void AddOnAppAssemblyReloadedCallback(const GUID& id, const std::function<void()>& callback)
 		{
+			std::scoped_lock lock(s_Mutex);
 			s_AppAssemblyReloadedCallbacks[id] = callback;
 		}
 
 		static void RemoveOnAppAssemblyReloadedCallback(GUID id)
 		{
+			std::scoped_lock lock(s_Mutex);
 			s_AppAssemblyReloadedCallbacks.erase(id);
 		}
 
@@ -119,6 +122,8 @@ namespace Eagle
 		static void TryToRestoreOldValues(std::vector<PublicField>& publicFields, const std::vector<PublicField>& oldValues);
 
 	private:
+		static std::mutex s_Mutex;
+
 		static std::map<std::string, EntityScriptClass> s_EntityClasses; // FullName -> Data
 		static std::unordered_map<GUID, EntityInstance> s_EntityInstanceDataMap;
 

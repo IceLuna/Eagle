@@ -34,11 +34,13 @@ namespace Eagle
 
 	void StaticMesh::AddOnMaterialPropertyModifiedCallback(const GUID& id, const std::function<void()>& func)
 	{
+		std::scoped_lock lock(m_Mutex);
 		m_Callbacks[id] = func;
 	}
 
 	void StaticMesh::RemoveOnMaterialPropertyModifiedCallback(const GUID& id)
 	{
+		std::scoped_lock lock(m_Mutex);
 		m_Callbacks.erase(id);
 	}
 
