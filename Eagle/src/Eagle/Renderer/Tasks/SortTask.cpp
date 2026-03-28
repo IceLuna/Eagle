@@ -138,7 +138,7 @@ namespace Eagle
             }
             else
             {
-                cmd->Write(m_SortDataBuffer, &sortData, sizeof(sortData), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+                cmd->Write(m_SortDataBuffer, &sortData, sizeof(sortData), 0, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
             }
 
             cmd->Barrier(m_ScratchBuffer);

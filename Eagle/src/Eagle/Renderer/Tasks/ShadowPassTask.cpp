@@ -647,9 +647,7 @@ namespace Eagle
 						auto& pointLight = pointLights[index];
 						bDidDrawPL = true;
 
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						Utils::RenderMeshes(cmd, meshes, buffers, stats);
@@ -790,9 +788,7 @@ namespace Eagle
 						bDidDrawPLC = true;
 						const uint32_t& i = pointLightsCount;
 
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						Utils::RenderMeshes(cmd, meshes, buffers, stats);
@@ -936,9 +932,7 @@ namespace Eagle
 						auto& pointLight = pointLights[index];
 						bDidDrawPL = true;
 
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						Utils::RenderMeshes(cmd, meshes, buffers, stats);
@@ -1058,9 +1052,7 @@ namespace Eagle
 						auto& pointLight = pointLights[index];
 						bDidDrawPL = true;
 
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						Utils::RenderMeshes(cmd, meshes, buffers, stats);
@@ -1213,9 +1205,7 @@ namespace Eagle
 						bDidDrawPLC = true;
 						const uint32_t& i = pointLightsCount;
 
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						Utils::RenderMeshes(cmd, meshes, buffers, stats);
@@ -1367,9 +1357,7 @@ namespace Eagle
 						auto& pointLight = pointLights[index];
 						bDidDrawPL = true;
 
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						Utils::RenderMeshes(cmd, meshes, buffers, stats);
@@ -1490,9 +1478,7 @@ namespace Eagle
 				auto& pointLight = pointLights[index];
 				bDidDrawPL = true;
 
-				cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-				cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
@@ -1643,9 +1629,7 @@ namespace Eagle
 					bDidDrawPLC = true;
 					const uint32_t& i = pointLightsCount;
 
-					cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-					cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 					cmd->BeginGraphics(pipeline, framebuffers[i]);
 					cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
@@ -1796,9 +1780,7 @@ namespace Eagle
 
 				bDidDrawPL = true;
 
-				cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-				cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
@@ -1917,9 +1899,7 @@ namespace Eagle
 
 				bDidDrawPL = true;
 
-				cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-				cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
@@ -2071,9 +2051,7 @@ namespace Eagle
 					bDidDrawPLC = true;
 					const uint32_t& i = pointLightsCount;
 
-					cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-					cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 					cmd->BeginGraphics(pipeline, framebuffers[i]);
 					cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
@@ -2225,9 +2203,7 @@ namespace Eagle
 
 				bDidDrawPL = true;
 
-				cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-				cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
@@ -2346,9 +2322,7 @@ namespace Eagle
 
 				bDidDrawPL = true;
 
-				cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-				cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
