@@ -1715,7 +1715,7 @@ namespace Eagle::UI
 			VkSampler vkSampler = (VkSampler)Sampler::BilinearSampler->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
 
-			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout, image->GetRevision());
 			ImGui::Image(textureID, size, uv0, uv1, tint_col, border_col);
 		}
 	}
@@ -1734,7 +1734,7 @@ namespace Eagle::UI
 			VkSampler vkSampler = (VkSampler)texture->GetSampler()->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
 
-			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout, image->GetRevision());
 			ImGui::Image(textureID, size, uv0, uv1, tint_col, border_col);
 		}
 	}
@@ -1754,7 +1754,7 @@ namespace Eagle::UI
 			VkSampler vkSampler = (VkSampler)texture->GetSampler()->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle(imageView);
 
-			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout, image->GetRevision());
 			ImGui::Image(textureID, size, uv0, uv1, tint_col, border_col);
 		}
 	}
@@ -1771,7 +1771,7 @@ namespace Eagle::UI
 			VkSampler vkSampler = (VkSampler)Sampler::BilinearSampler->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle(imageView);
 
-			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout, image->GetRevision());
 			ImGui::Image(textureID, size, uv0, uv1, tint_col, border_col);
 		}
 	}
@@ -1786,7 +1786,7 @@ namespace Eagle::UI
 			VkSampler vkSampler = (VkSampler)Sampler::BilinearSampler->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
 
-			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout, image->GetRevision());
 			ImGuiID id = (ImGuiID)((((uint64_t)vkImageView) >> 32) ^ (uint64_t)vkImageView);
 
 			return ImGui::ImageButtonEx(id, textureID, size, uv0, uv1, bg_col, tint_col);
@@ -1808,7 +1808,7 @@ namespace Eagle::UI
 			VkSampler vkSampler = (VkSampler)texture->GetSampler()->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
 
-			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout, image->GetRevision());
 			ImGuiID id = (ImGuiID)texture->GetGUID().GetHash();
 			return ImGui::ImageButtonEx(id, textureID, size, uv0, uv1, bg_col, tint_col);
 		}
@@ -1829,7 +1829,7 @@ namespace Eagle::UI
 			VkSampler vkSampler = (VkSampler)texture->GetSampler()->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
 
-			const ImTextureRef textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			const ImTextureRef textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout, image->GetRevision());
 			ImGuiID id = (ImGuiID)texture->GetGUID().GetHash();
 			return ImGui::ImageButtonRotatedEx(id, textureID.GetTexID(), size, angleRad, uv0, uv1, bg_col, tint_col);
 		}
@@ -1858,7 +1858,7 @@ namespace Eagle::UI
 			VkSampler vkSampler = (VkSampler)sampler->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle(imageView);
 
-			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout, image->GetRevision());
 			ImGui::GetWindowDrawList()->AddImage(textureID, min, max, uv0, uv1, col);
 		}
 	}
@@ -1879,7 +1879,7 @@ namespace Eagle::UI
 			VkSampler vkSampler = (VkSampler)texture->GetSampler()->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle(imageView);
 
-			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout, image->GetRevision());
 			ImGui::GetWindowDrawList()->AddImage(textureID, min, max, uv0, uv1, col);
 		}
 	}
@@ -2011,7 +2011,7 @@ namespace Eagle::UI
 			VkSampler vkSampler = (VkSampler)texture->GetSampler()->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
 
-			const ImTextureRef textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			const ImTextureRef textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout, image->GetRevision());
 			return textureID.GetTexID();
 		}
 		return 0;
