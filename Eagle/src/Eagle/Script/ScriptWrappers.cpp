@@ -1360,6 +1360,7 @@ namespace Eagle
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
+		*outAssetID = GUID(0, 0);
 		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get static mesh component material. Entity is null");

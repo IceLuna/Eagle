@@ -172,6 +172,17 @@ namespace Eagle
 		std::string popupID = std::to_string(entity.GetID());
 		if (ImGui::BeginPopupContextItem(popupID.c_str()))
 		{
+			if (!m_AllowOnlySingleRoot)
+			{
+				if (ImGui::MenuItem("Create Entity Asset from this"))
+				{
+					auto& cb = ContentBrowserPanel::Get();
+					AssetEntity::Create(cb.GetCurrentRelativeDirectory(), entity.GetName(), entity);
+					cb.RefreshBrowserContent();
+				}
+				ImGui::Separator();
+			}
+
 			const bool bCanDelete = !m_AllowOnlySingleRoot || entity.HasParent(); // Can't delete the root entity
 			if (ImGui::MenuItem("Create Entity"))
 			{
@@ -283,6 +294,16 @@ namespace Eagle
 			std::string popupID = std::to_string(child.GetID());
 			if (ImGui::BeginPopupContextItem(popupID.c_str()))
 			{
+				if (!m_AllowOnlySingleRoot)
+				{
+					if (ImGui::MenuItem("Create Entity Asset from this"))
+					{
+						auto& cb = ContentBrowserPanel::Get();
+						AssetEntity::Create(cb.GetCurrentRelativeDirectory(), entity.GetName(), entity);
+						cb.RefreshBrowserContent();
+					}
+					ImGui::Separator();
+				}
 				if (ImGui::MenuItem("Create Entity"))
 				{
 					Entity newEntity = m_Scene->CreateEntity("New Entity");

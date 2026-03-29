@@ -123,8 +123,7 @@ namespace Eagle
 
 		const uint32_t quadsCount = (uint32_t)(m_Vertices.size() / 4);
 
-		auto& stats = m_Renderer.GetStats2D();
-		stats.QuadCount += quadsCount;
+		auto& stats = m_Renderer.GetStats();
 		++stats.DrawCalls;
 
 		struct PushData

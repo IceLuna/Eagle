@@ -139,7 +139,6 @@ namespace Eagle
 			renderer->m_Options_RT.InternalState.CascadesSmoothTransitionAlpha = cascadesSmoothTransitionAlpha;
 
 			renderer->m_Stats[renderer->m_FrameIndex] = Statistics();
-			renderer->m_Stats2D[renderer->m_FrameIndex] = Statistics2D();
 
 			renderer->m_PrevView = renderer->m_View;
 			renderer->m_PrevProjection = renderer->m_Projection;
@@ -263,6 +262,7 @@ namespace Eagle
 			if (renderer->m_bIsGame)
 				RenderManager::SetPresentImage(renderer->m_FinalImage);
 
+			renderer->m_Stats_MT = renderer->m_Stats[renderer->m_FrameIndex];
 			renderer->m_FrameIndex = (renderer->m_FrameIndex + 1) % RendererConfig::FramesInFlight;
 		});
 	}

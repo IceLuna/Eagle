@@ -221,11 +221,13 @@ namespace Eagle
 
 		void AddOnAssetModifiedCallback(const GUID& id, const std::function<void()>& func)
 		{
+			std::scoped_lock lock(m_Mutex);
 			m_Callbacks[id] = func;
 		}
 
 		void RemoveOnAssetModifiedCallback(const GUID& id)
 		{
+			std::scoped_lock lock(m_Mutex);
 			m_Callbacks.erase(id);
 		}
 
@@ -267,6 +269,7 @@ namespace Eagle
 		Asset(const Path& path, const Path& pathToRaw, AssetType type, GUID guid, const DataBuffer& rawData);
 
 	protected:
+		std::mutex m_Mutex;
 		std::unordered_map<GUID, std::function<void()>> m_Callbacks;
 		Path m_Path;
 		Path m_PathToRaw;
@@ -624,6 +627,9 @@ namespace Eagle
 		// Invalidates collision groups of all asset entities
 		static void InvalidateCollisionGroups(uint32_t validMasks);
 
+		// Creates an entity asset from a given entity
+		static Ref<AssetEntity> Create(const Path& saveTo, const std::string& filename, Entity entity);
+
 		static Entity CreateEntity(GUID guid);
 		static const Ref<Scene>& GetScene() { return s_EntityAssetsScene; } // For internal deserialization use
 
@@ -862,6 +868,8 @@ namespace Eagle
 	class AssetBehaviorGraph : public Asset
 	{
 	public:
+		~AssetBehaviorGraph();
+
 		AssetBehaviorGraph& operator=(Asset&& other) noexcept override
 		{
 			if (this == &other)

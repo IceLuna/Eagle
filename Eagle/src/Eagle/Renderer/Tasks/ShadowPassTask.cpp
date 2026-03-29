@@ -34,8 +34,6 @@ namespace Eagle
 				const uint32_t verticesCount = data.VerticesCount;
 				const uint32_t vertexOffset = data.VertexOffset;
 
-				stats.Vertices += verticesCount;
-
 				for (const auto& matRenderData : data.PerMaterialData)
 				{
 					const uint32_t indicesCount = matRenderData.IndexCount;
@@ -45,8 +43,6 @@ namespace Eagle
 					if (instanceCount > 0)
 					{
 						cmd->DrawIndexedInstanced(buffers.VertexBuffer, buffers.IndexBuffer, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, buffers.InstanceBuffer);
-
-						stats.Indeces += indicesCount;
 						++stats.DrawCalls;
 					}
 				}
@@ -651,9 +647,7 @@ namespace Eagle
 						auto& pointLight = pointLights[index];
 						bDidDrawPL = true;
 
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						Utils::RenderMeshes(cmd, meshes, buffers, stats);
@@ -794,9 +788,7 @@ namespace Eagle
 						bDidDrawPLC = true;
 						const uint32_t& i = pointLightsCount;
 
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						Utils::RenderMeshes(cmd, meshes, buffers, stats);
@@ -940,9 +932,7 @@ namespace Eagle
 						auto& pointLight = pointLights[index];
 						bDidDrawPL = true;
 
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						Utils::RenderMeshes(cmd, meshes, buffers, stats);
@@ -1062,9 +1052,7 @@ namespace Eagle
 						auto& pointLight = pointLights[index];
 						bDidDrawPL = true;
 
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						Utils::RenderMeshes(cmd, meshes, buffers, stats);
@@ -1217,9 +1205,7 @@ namespace Eagle
 						bDidDrawPLC = true;
 						const uint32_t& i = pointLightsCount;
 
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						Utils::RenderMeshes(cmd, meshes, buffers, stats);
@@ -1371,9 +1357,7 @@ namespace Eagle
 						auto& pointLight = pointLights[index];
 						bDidDrawPL = true;
 
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 						Utils::RenderMeshes(cmd, meshes, buffers, stats);
@@ -1447,7 +1431,7 @@ namespace Eagle
 
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
 		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
-		auto& stats = m_Renderer.GetStats2D();
+		auto& stats = m_Renderer.GetStats();
 
 		// For directional light
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
@@ -1463,7 +1447,6 @@ namespace Eagle
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
 				++stats.DrawCalls;
-				stats.QuadCount += quadsCount;
 				cmd->BeginGraphics(pipeline, m_DLFramebuffers[i]);
 				cmd->SetGraphicsRootConstants(&dirLight.ViewProj[i], nullptr);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
@@ -1495,15 +1478,12 @@ namespace Eagle
 				auto& pointLight = pointLights[index];
 				bDidDrawPL = true;
 
-				cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-				cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 				cmd->EndGraphics();
 				++stats.DrawCalls;
-				stats.QuadCount += quadsCount;
 				++i;
 			}
 		}
@@ -1534,7 +1514,6 @@ namespace Eagle
 				cmd->EndGraphics();
 				++spotLightsCount;
 				++stats.DrawCalls;
-				stats.QuadCount += quadsCount;
 			}
 		}
 	}
@@ -1557,7 +1536,7 @@ namespace Eagle
 
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
 		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
-		auto& stats = m_Renderer.GetStats2D();
+		auto& stats = m_Renderer.GetStats();
 
 		const uint32_t currentFrameIndex = RenderManager::GetCurrentFrameIndex();
 
@@ -1603,7 +1582,6 @@ namespace Eagle
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 				cmd->EndGraphics();
 				++stats.DrawCalls;
-				stats.QuadCount += quadsCount;
 			}
 			bDidDrawDLC = true;
 		}
@@ -1651,16 +1629,13 @@ namespace Eagle
 					bDidDrawPLC = true;
 					const uint32_t& i = pointLightsCount;
 
-					cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-					cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 					cmd->BeginGraphics(pipeline, framebuffers[i]);
 					cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 					cmd->EndGraphics();
 					++pointLightsCount;
 					++stats.DrawCalls;
-					stats.QuadCount += quadsCount;
 				}
 			}
 		}
@@ -1709,7 +1684,6 @@ namespace Eagle
 					cmd->EndGraphics();
 					++spotLightsCount;
 					++stats.DrawCalls;
-					stats.QuadCount += quadsCount;
 				}
 			}
 		}
@@ -1733,7 +1707,7 @@ namespace Eagle
 
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
 		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
-		auto& stats = m_Renderer.GetStats2D();
+		auto& stats = m_Renderer.GetStats();
 
 		const uint32_t currentFrameIndex = RenderManager::GetCurrentFrameIndex();
 
@@ -1762,7 +1736,6 @@ namespace Eagle
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
 				++stats.DrawCalls;
-				stats.QuadCount += quadsCount;
 				cmd->BeginGraphics(pipeline, m_DLFramebuffers[i]);
 				cmd->SetGraphicsRootConstants(&dirLight.ViewProj[i], nullptr);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
@@ -1807,15 +1780,12 @@ namespace Eagle
 
 				bDidDrawPL = true;
 
-				cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-				cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 				cmd->EndGraphics();
 				++stats.DrawCalls;
-				stats.QuadCount += quadsCount;
 				++i;
 			}
 			}
@@ -1857,7 +1827,6 @@ namespace Eagle
 				cmd->EndGraphics();
 				++spotLightsCount;
 				++stats.DrawCalls;
-				stats.QuadCount += quadsCount;
 			}
 		}
 	}
@@ -1880,7 +1849,7 @@ namespace Eagle
 
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
 		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
-		auto& stats = m_Renderer.GetStats2D();
+		auto& stats = m_Renderer.GetStats();
 
 		// For directional light
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
@@ -1897,7 +1866,6 @@ namespace Eagle
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
 				++stats.DrawCalls;
-				stats.QuadCount += quadsCount;
 				cmd->BeginGraphics(pipeline, m_DLFramebuffers[i]);
 				cmd->SetGraphicsRootConstants(&dirLight.ViewProj[i], nullptr);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
@@ -1931,15 +1899,12 @@ namespace Eagle
 
 				bDidDrawPL = true;
 
-				cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-				cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 				cmd->EndGraphics();
 				++stats.DrawCalls;
-				stats.QuadCount += quadsCount;
 				++i;
 			}
 		}
@@ -1970,7 +1935,6 @@ namespace Eagle
 				cmd->EndGraphics();
 				++spotLightsCount;
 				++stats.DrawCalls;
-				stats.QuadCount += quadsCount;
 			}
 		}
 	}
@@ -1993,7 +1957,7 @@ namespace Eagle
 
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
 		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
-		auto& stats = m_Renderer.GetStats2D();
+		auto& stats = m_Renderer.GetStats();
 
 		const uint32_t currentFrameIndex = RenderManager::GetCurrentFrameIndex();
 
@@ -2036,7 +2000,6 @@ namespace Eagle
 			for (uint32_t i = 0; i < framebuffers.size(); ++i)
 			{
 				++stats.DrawCalls;
-				stats.QuadCount += quadsCount;
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
 				cmd->SetGraphicsRootConstants(&dirLight.ViewProj[i], nullptr);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
@@ -2088,16 +2051,13 @@ namespace Eagle
 					bDidDrawPLC = true;
 					const uint32_t& i = pointLightsCount;
 
-					cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-					cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 					cmd->BeginGraphics(pipeline, framebuffers[i]);
 					cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 					cmd->EndGraphics();
 					++pointLightsCount;
 					++stats.DrawCalls;
-					stats.QuadCount += quadsCount;
 				}
 			}
 		}
@@ -2146,7 +2106,6 @@ namespace Eagle
 					cmd->EndGraphics();
 					++spotLightsCount;
 					++stats.DrawCalls;
-					stats.QuadCount += quadsCount;
 				}
 			}
 		}
@@ -2170,7 +2129,7 @@ namespace Eagle
 
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
 		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
-		auto& stats = m_Renderer.GetStats2D();
+		auto& stats = m_Renderer.GetStats();
 
 		const uint32_t currentFrameIndex = RenderManager::GetCurrentFrameIndex();
 
@@ -2200,7 +2159,6 @@ namespace Eagle
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
 				++stats.DrawCalls;
-				stats.QuadCount += quadsCount;
 				cmd->BeginGraphics(pipeline, m_DLFramebuffers[i]);
 				cmd->SetGraphicsRootConstants(&dirLight.ViewProj[i], nullptr);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
@@ -2245,15 +2203,12 @@ namespace Eagle
 
 				bDidDrawPL = true;
 
-				cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-				cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 				cmd->EndGraphics();
 				++stats.DrawCalls;
-				stats.QuadCount += quadsCount;
 				++i;
 			}
 		}
@@ -2295,7 +2250,6 @@ namespace Eagle
 				cmd->EndGraphics();
 				++spotLightsCount;
 				++stats.DrawCalls;
-				stats.QuadCount += quadsCount;
 			}
 		}
 	}
@@ -2318,7 +2272,7 @@ namespace Eagle
 
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
 		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
-		auto& stats = m_Renderer.GetStats2D();
+		auto& stats = m_Renderer.GetStats();
 
 		// For directional light
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
@@ -2339,7 +2293,6 @@ namespace Eagle
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 				cmd->EndGraphics();
 				++stats.DrawCalls;
-				stats.QuadCount += quadsCount;
 			}
 			bDidDrawDL = true;
 		}
@@ -2369,15 +2322,12 @@ namespace Eagle
 
 				bDidDrawPL = true;
 
-				cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-				cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 				cmd->EndGraphics();
 				++stats.DrawCalls;
-				stats.QuadCount += quadsCount;
 				++i;
 			}
 		}
@@ -2408,7 +2358,6 @@ namespace Eagle
 				cmd->EndGraphics();
 				++spotLightsCount;
 				++stats.DrawCalls;
-				stats.QuadCount += quadsCount;
 			}
 		}
 	}

@@ -73,6 +73,7 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("GTAO. Downsample");
 
 		auto& gBuffer = m_Renderer.GetGBuffer();
+		auto& stats = m_Renderer.GetStats();
 
 		// Inputs
 		m_DownsamplePipeline->SetImageSampler(gBuffer.Depth, Sampler::PointSampler, 0, 0);
@@ -81,6 +82,7 @@ namespace Eagle
 		cmd->BeginGraphics(m_DownsamplePipeline);
 		cmd->Draw(6, 0);
 		cmd->EndGraphics();
+		++stats.DrawCalls;
 	}
 
 	void GTAOTask::GTAO(const Ref<CommandBuffer>& cmd)
@@ -106,6 +108,7 @@ namespace Eagle
 		const auto& gtaoSettings = m_Renderer.GetOptions_RT().GTAOSettings;
 		const auto& view = m_Renderer.GetViewMatrix();
 		const uint64_t frameNumber = RenderManager::GetFrameNumber_RT();
+		auto& stats = m_Renderer.GetStats();
 
 		pushData.ProjInv = glm::inverse(m_Renderer.GetProjectionMatrix());
 		pushData.SizeX = int(m_HalfSize.x);
@@ -126,12 +129,16 @@ namespace Eagle
 		cmd->Dispatch(m_GTAOPipeline, m_HalfNumGroups.x, m_HalfNumGroups.y, 1, &pushData);
 
 		cmd->TransitionLayout(m_GTAOPassImage, m_GTAOPassImage->GetLayout(), ImageReadAccess::PixelShaderRead);
+
+		++stats.Dispatches;
 	}
 
 	void GTAOTask::Denoiser(const Ref<CommandBuffer>& cmd)
 	{
 		EG_GPU_TIMING_SCOPED(cmd, "GTAO. Denoiser");
 		EG_CPU_TIMING_SCOPED("GTAO. Denoiser");
+
+		auto& stats = m_Renderer.GetStats();
 
 		m_DenoiserPipeline->SetImageSampler(m_GTAOPassImage, Sampler::PointSamplerClamp, 0, 0);
 		m_DenoiserPipeline->SetImageSampler(m_DenoisedPrev, Sampler::PointSampler, 0, 1);
@@ -159,6 +166,8 @@ namespace Eagle
 		cmd->Dispatch(m_DenoiserPipeline, m_HalfNumGroups.x, m_HalfNumGroups.y, 1, &pushData);
 
 		cmd->TransitionLayout(m_Denoised, m_Denoised->GetLayout(), ImageReadAccess::PixelShaderRead);
+
+		++stats.Dispatches;
 	}
 
 	void GTAOTask::CopyToPrev(const Ref<CommandBuffer>& cmd)

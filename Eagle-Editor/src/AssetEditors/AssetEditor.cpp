@@ -21,6 +21,7 @@ namespace Eagle
 	{
 		if (bNeedRenderer)
 		{
+			// TODO: Basic renderer settings should be controled by the asset editors otherwise some effect won't be visible
 			SceneRendererSettings settings = SceneRendererSettings::GetBasicSettings();
 			m_Renderer = MakeRef<SceneRenderer>(glm::uvec2{ 1, 1 }, settings);
 			m_Scene = MakeRef<Scene>("AssetEditor", m_Renderer);
@@ -156,7 +157,7 @@ namespace Eagle
 			return;
 
 		auto& editorCamera = m_CurrentScene->GetEditorCamera();
-		glm::mat4 cameraProjection = editorCamera.GetUnreversedProjection();
+		glm::mat4 cameraProjection = editorCamera.GetProjection();
 		glm::mat4 cameraViewMatrix = editorCamera.GetViewMatrix();
 		cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
 

@@ -305,6 +305,29 @@ namespace Eagle
 		Utils::InvalidateCollisionGroups<CapsuleColliderComponent>(s_EntityAssetsScene, validMasks);
 		Utils::InvalidateCollisionGroups<MeshColliderComponent>(s_EntityAssetsScene, validMasks);
 	}
+
+	Ref<AssetEntity> AssetEntity::Create(const Path& saveTo, const std::string& filename, Entity entity)
+	{
+		class LocalAssetEntity : public AssetEntity
+		{
+		public:
+			LocalAssetEntity(const Path& path, GUID guid, const Ref<Entity>& entity)
+				: AssetEntity(path, guid, entity) {
+			}
+		};
+
+		const Path pathToAsset = Utils::GetUniqueAssetFilepath(saveTo, filename);
+		Entity newEntity = AssetEntity::GetScene()->CreateFromEntity(entity, false);
+		newEntity.SetParent(Entity::Null); // Removing the parent since it won't be in the asset
+		newEntity.SetWorldLocation(glm::vec3(0)); // Doesn't make sense to copy the location to the asset
+		const GUID& assetGUID = newEntity.GetGUID();
+
+		Ref<AssetEntity> result = MakeRef<LocalAssetEntity>(pathToAsset, assetGUID, MakeRef<Entity>(newEntity));
+		FileSystem::Write(pathToAsset, Serializer::SerializeAssetEntity(result));
+		AssetManager::Register(result);
+
+		return result;
+	}
 	
 	Entity AssetEntity::CreateEntity(GUID guid)
 	{
@@ -409,6 +432,11 @@ namespace Eagle
 		}
 
 		return false;
+	}
+
+	AssetBehaviorGraph::~AssetBehaviorGraph()
+	{
+		ScriptEngine::RemoveOnAppAssemblyReloadedCallback(m_GUID);
 	}
 
 	bool AssetBehaviorGraph::GetClassNodeData(const GUID& id, AIBehaviorNode* outData) const

@@ -109,6 +109,7 @@ namespace Eagle
 		void OnMaterialPropertyModified();
 
 	private:
+		std::mutex m_Mutex;
 		std::vector<Vertex> m_Vertices;
 		std::vector<std::vector<Index>> m_IndicesPerMaterial; // Indices per material. So, indices that correspond to `material slot = 0` is `m_IndicesPerMaterial[0]`
 		AABB m_AABB;

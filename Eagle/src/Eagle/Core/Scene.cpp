@@ -365,6 +365,7 @@ namespace Eagle
 		SceneAddAndCopyComponent<TransformComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<TagComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<OwnershipComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<EntityAssetComponent>(this, m_Registry, other->m_Registry, createdEntities);
 
 		SceneAddAndCopyComponent<NativeScriptComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<ScriptComponent>(this, m_Registry, other->m_Registry, createdEntities);
@@ -415,8 +416,8 @@ namespace Eagle
 		m_CurrentNavMesh.reset();
 		m_PhysicsScene.reset();
 		m_RuntimePhysicsScene.reset();
-		m_Registry.clear();
 		m_SpawnedSounds.clear();
+		m_Registry.clear();
 
 		ScriptEngine::RemoveOnAppAssemblyReloadedCallback(m_GUID);
 	}
@@ -1601,7 +1602,14 @@ namespace Eagle
 	{
 		Entity createdEntity = CreateFromEntity(*asset->GetEntity().get(), bCopyGUID);
 		createdEntity.SetName(asset->GetPath().stem().u8string());
-		createdEntity.AddComponent<EntityAssetComponent>().AssetGUID = asset->GetGUID();
+		if (createdEntity.HasComponent<EntityAssetComponent>())
+		{
+			createdEntity.GetComponent<EntityAssetComponent>().AssetGUID = asset->GetGUID();
+		}
+		else
+		{
+			createdEntity.AddComponent<EntityAssetComponent>().AssetGUID = asset->GetGUID();
+		}
 
 		return createdEntity;
 	}
@@ -1701,9 +1709,9 @@ namespace Eagle
 		DestroyScripts();
 
 		m_PhysicsScene->Reset();
-		m_Registry.clear();
 		m_CurrentNavMesh.reset();
 		m_SpawnedSounds.clear();
+		m_Registry.clear();
 	}
 
 	Entity Scene::GetPrimaryCameraEntity()
@@ -2056,6 +2064,7 @@ namespace Eagle
 
 	void Scene::CopyComponents(Entity source, Entity dest)
 	{
+		EntityCopyComponent<EntityAssetComponent>(source, dest);
 		EntityCopyComponent<TagComponent>(source, dest);
 		EntityCopyComponent<NativeScriptComponent>(source, dest);
 		EntityCopyComponent<ScriptComponent>(source, dest);

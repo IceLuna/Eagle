@@ -44,6 +44,9 @@ namespace Eagle
 		cmd->SetGraphicsRootConstants(&mvp, &pushData);
 		cmd->Draw(6, 0);
 		cmd->EndGraphics();
+
+		auto& stats = m_Renderer.GetStats();
+		++stats.DrawCalls;
 	}
 	
 	void GridTask::InitPipeline()

@@ -88,8 +88,6 @@ namespace Eagle
 					}
 				}
 
-				ImGui::PopID();
-
 				if (treeOpened)
 				{
 					T& component = entity.GetComponent<T>();
@@ -97,6 +95,8 @@ namespace Eagle
 
 					ImGui::TreePop();
 				}
+
+				ImGui::PopID();
 
 				if (bRemoveComponent)
 				{

@@ -126,9 +126,8 @@ namespace Eagle
 		cmd->DrawIndexed(m_VertexBuffer, m_IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 
-		auto& stats = m_Renderer.GetStats2D();
+		auto& stats = m_Renderer.GetStats();
 		++stats.DrawCalls;
-		stats.QuadCount += quadsCount;
 	}
 
 	void RenderImages2DTask::OnResize(glm::uvec2 size)

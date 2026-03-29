@@ -84,6 +84,9 @@ namespace Eagle
 		}
 		cmd->Draw(36, 0);
 		cmd->EndGraphics();
+
+		auto& stats = m_Renderer.GetStats();
+		++stats.DrawCalls;
 	}
 
 	void SkyboxPassTask::InitPipeline()

@@ -126,6 +126,9 @@ namespace Eagle
 		cmd->Dispatch(m_Pipeline, numGroups.x, numGroups.y, 1, &pushData);
 		cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageLayoutType::DepthStencilWrite);
 		cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageReadAccess::PixelShaderRead);
+
+		auto& stats = m_Renderer.GetStats();
+		++stats.Dispatches;
 	}
 
 	bool PBRPassTask::SetSoftShadowsEnabled(bool bEnable)

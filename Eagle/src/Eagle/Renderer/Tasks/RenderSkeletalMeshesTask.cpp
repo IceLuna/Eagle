@@ -175,8 +175,6 @@ namespace Eagle
 			const uint32_t verticesCount = data.VerticesCount;
 			const uint32_t vertexOffset = data.VertexOffset;
 
-			stats.Vertices += verticesCount;
-
 			for (const auto& matRenderData : data.PerMaterialData)
 			{
 				const uint32_t indicesCount = matRenderData.IndexCount;
@@ -186,8 +184,6 @@ namespace Eagle
 				if (instanceCount > 0)
 				{
 					cmd->DrawIndexedInstanced(buffers.VertexBuffer, buffers.IndexBuffer, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, buffers.InstanceBuffer);
-
-					stats.Indeces += indicesCount;
 					++stats.DrawCalls;
 				}
 			}
@@ -247,8 +243,6 @@ namespace Eagle
 			const uint32_t verticesCount = data.VerticesCount;
 			const uint32_t vertexOffset = data.VertexOffset;
 
-			stats.Vertices += verticesCount;
-
 			for (const auto& matRenderData : data.PerMaterialData)
 			{
 				const uint32_t indicesCount = matRenderData.IndexCount;
@@ -258,8 +252,6 @@ namespace Eagle
 				if (instanceCount > 0)
 				{
 					cmd->DrawIndexedInstanced(buffers.VertexBuffer, buffers.IndexBuffer, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, buffers.InstanceBuffer);
-
-					stats.Indeces += indicesCount;
 					++stats.DrawCalls;
 				}
 			}

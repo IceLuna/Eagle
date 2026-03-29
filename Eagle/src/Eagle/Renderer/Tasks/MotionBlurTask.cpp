@@ -62,6 +62,7 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Motion Blur. Tile min-max");
 		EG_CPU_TIMING_SCOPED("Motion Blur. Tile min-max");
 
+		auto& stats = m_Renderer.GetStats();
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Motion Blur. Tile min-max. Horizontal");
 			EG_CPU_TIMING_SCOPED("Motion Blur. Tile min-max. Horizontal");
@@ -83,6 +84,7 @@ namespace Eagle
 			const auto& size = m_PushData.PassSize;
 			glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
 			cmd->Dispatch(m_TileHorizontalPipeline, numGroups.x, numGroups.y, 1, &m_PushData);
+			++stats.Dispatches;
 		}
 
 		{
@@ -105,6 +107,7 @@ namespace Eagle
 			const auto& size = m_PushData.PassSize;
 			glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
 			cmd->Dispatch(m_TileVerticalPipeline, numGroups.x, numGroups.y, 1, &m_PushData);
+			++stats.Dispatches;
 		}
 	}
 
@@ -112,6 +115,8 @@ namespace Eagle
 	{
 		EG_GPU_TIMING_SCOPED(cmd, "Motion Blur. Neighborhood min-max");
 		EG_CPU_TIMING_SCOPED("Motion Blur. Neighborhood min-max");
+
+		auto& stats = m_Renderer.GetStats();
 
 		m_NeighborhoodPipeline->SetImage(m_TileMin, 0, 0);
 		m_NeighborhoodPipeline->SetImage(m_TileMax, 0, 1);
@@ -138,12 +143,15 @@ namespace Eagle
 		cmd->Barrier(m_ExpensiveTiles);
 
 		cmd->TransitionLayout(m_DispatchArgs, BufferLayoutType::StorageBuffer, BufferReadAccess::IndirectArgument);
+		++stats.Dispatches;
 	}
 
 	void MotionBlurTask::MainPass(const Ref<CommandBuffer>& cmd)
 	{
 		EG_GPU_TIMING_SCOPED(cmd, "Motion Blur. Main Pass");
 		EG_CPU_TIMING_SCOPED("Motion Blur. Main Pass");
+
+		auto& stats = m_Renderer.GetStats();
 
 		m_PushData.PassSize = m_Size;
 		m_PushData.Size = m_Size;
@@ -172,8 +180,11 @@ namespace Eagle
 		cmd->TransitionLayout(color, oldLayout, ImageLayoutType::StorageImage);
 
 		cmd->DispatchIndirect(m_MainEarlyPipeline, m_DispatchArgs, offsetof(PostprocessTileStatistics, EarlyExit), &m_PushData);
+		++stats.Dispatches;
 		cmd->DispatchIndirect(m_MainCheapPipeline, m_DispatchArgs, offsetof(PostprocessTileStatistics, Cheap), &m_PushData);
+		++stats.Dispatches;
 		cmd->DispatchIndirect(m_MainExpensivePipeline, m_DispatchArgs, offsetof(PostprocessTileStatistics, Expensive), &m_PushData);
+		++stats.Dispatches;
 
 		cmd->TransitionLayout(color, ImageLayoutType::StorageImage, oldLayout);
 	}

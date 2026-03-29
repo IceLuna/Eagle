@@ -136,19 +136,19 @@ namespace Eagle
 
 	void EntityPropertiesPanel::DrawComponents(Entity& entity)
 	{
+		ImGui::PushID((void*)entity.GetGUID().GetHash());
+
 		if (!HasSelectedComponent())
 		{
 			m_SelectedComponent = SelectedComponent::None;
 		}
 		auto& entityName = entity.GetComponent<EntitySceneNameComponent>().Name;
 
-		ImGui::PushID((void*)entity.GetGUID().GetHash());
 		if (UI::InputText("##Name", entityName))
 		{
 			//TODO: Add Check for empty input
 			bEntityChanged = true;
 		}
-		ImGui::PopID();
 		
 		ImGui::SameLine();
 		ImGui::PushItemWidth(-1);
@@ -1574,12 +1574,6 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					if (UI::Property("Is Collision Visible", bShowCollision))
-					{
-						collider.SetShowCollision(bShowCollision);
-						bEntityChanged = true;
-					}
-
 					if (UI::Property("Is Convex", bConvex, "Generates collision around the mesh.\nNon-convex mesh collider can be used only\nwith kinematic or static actors."))
 					{
 						collider.SetIsConvex(bConvex);
@@ -1595,6 +1589,12 @@ namespace Eagle
 					if (UI::Property("Affects NavMesh", bAffectsNavMesh, s_AffectsNavMeshHelpMsg))
 					{
 						collider.SetAffectsNavMeshBuild(bAffectsNavMesh);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Is Collision Visible", bShowCollision))
+					{
+						collider.SetShowCollision(bShowCollision);
 						bEntityChanged = true;
 					}
 
@@ -2063,6 +2063,8 @@ namespace Eagle
 				break;
 			}
 		}
+
+		ImGui::PopID();
 	}
 
 	void EntityPropertiesPanel::DrawEntityTransformNode(Entity& entity)
