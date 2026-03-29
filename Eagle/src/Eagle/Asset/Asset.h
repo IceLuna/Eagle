@@ -627,6 +627,9 @@ namespace Eagle
 		// Invalidates collision groups of all asset entities
 		static void InvalidateCollisionGroups(uint32_t validMasks);
 
+		// Creates an entity asset from a given entity
+		static Ref<AssetEntity> Create(const Path& saveTo, const std::string& filename, Entity entity);
+
 		static Entity CreateEntity(GUID guid);
 		static const Ref<Scene>& GetScene() { return s_EntityAssetsScene; } // For internal deserialization use
 
