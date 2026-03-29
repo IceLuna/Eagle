@@ -43,6 +43,7 @@ namespace Eagle
 	static glm::vec4 notUsed2;
 	static const EditorLayer* s_EditorLayer = nullptr;
 
+	static void ShowShortcutsWindow(bool* p_open = nullptr);
 	static void ShowHelpWindow(bool* p_open = nullptr);
 
 	static void DisplayTiming(const GPUTimingData& data, size_t i = 0)
@@ -1072,12 +1073,27 @@ namespace Eagle
 				ImGui::EndMenu();
 			}
 
+			static bool bShowShortcuts = false;
 			static bool bShowHelp = false;
-			if (ImGui::MenuItem("Help"))
-				bShowHelp = true;
+			if (ImGui::BeginMenu("Help"))
+			{
+				if (ImGui::MenuItem("Shortcuts"))
+					bShowShortcuts = true;
+
+				ImGui::Separator();
+
+				if (ImGui::MenuItem("About"))
+					bShowHelp = true;
+
+				ImGui::EndMenu();
+			}
+
+			if (bShowShortcuts)
+				ShowShortcutsWindow(&bShowShortcuts);
 
 			if (bShowHelp)
 				ShowHelpWindow(&bShowHelp);
+
 			ImGui::EndMenuBar();
 		}
 
@@ -2580,46 +2596,64 @@ namespace Eagle
 		ImGui::End(); //Docking
 	}
 
+	static void ShowShortcutsWindow(bool* p_open)
+	{
+		if (!ImGui::Begin("Shortcuts", p_open))
+		{
+			ImGui::End();
+			return;
+		}
+		ImGui::PushID("ShortcutsWindow");
+
+		ImGui::BulletText("F5. Reloads the shaders if there were any changes.");
+		ImGui::BulletText("Ctrl+N. Opens a new scene.");
+		ImGui::BulletText("Ctrl+S. Saves the scene.");
+		ImGui::BulletText("Ctrl+Shift+S. Opens up a dialogue to choose where to save the scene.");
+		ImGui::BulletText("G. Toggles visibility of editor specific rendered elements (such as grid).");
+		ImGui::BulletText("Alt+P. Toggles the simulation button.");
+		ImGui::BulletText("Esc. Stops the simulation.");
+		ImGui::BulletText("F11. Toggles viewport fullscreen mode.");
+		ImGui::BulletText("Shift+F11. Toggles window fullscreen mode.");
+		ImGui::BulletText("Q/W/E/R. Hidden/Location/Rotation/Scale gizmo modes.");
+
+		ImGui::PopID();
+		ImGui::End();
+	}
+
 	static void ShowHelpWindow(bool* p_open)
 	{
-		ImGui::Begin("Help", p_open);
-		ImGui::SetWindowFontScale(2.f);
-		ImGui::Text("Eagle Engine v%s", EG_VERSION);
-		ImGui::SetWindowFontScale(1.2f);
-		ImGui::Separator();
-		ImGui::SetWindowFontScale(1.5f);
-
-		ImGui::PushID("HelpWindow");
-		const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
-
-		ImGui::Text("For help, go to the");
-		ImGui::SameLine();
-		UI::TextLink("github repository", "https://github.com/iceluna/eagle");
-		ImGui::SameLine();
-		ImGui::Text("where you can read the documentation or open an issue.");
-		ImGui::Separator();
-
-		if (ImGui::TreeNodeEx("Shortcuts", flags, "Shortcuts"))
+		if (!ImGui::Begin("Help", p_open, ImGuiWindowFlags_AlwaysAutoResize))
 		{
-			ImGui::SetWindowFontScale(1.2f);
-			ImGui::BulletText("F5. Reloads the shaders if there were any changes.");
-			ImGui::BulletText("Ctrl+N. Opens a new scene.");
-			ImGui::BulletText("Ctrl+S. Saves the scene.");
-			ImGui::BulletText("Ctrl+Shift+S. Opens up a dialogue to choose where to save the scene.");
-			ImGui::BulletText("G. Toggles visibility of editor specific rendered elements (such as grid).");
-			ImGui::BulletText("Alt+P. Toggles the simulation button.");
-			ImGui::BulletText("Esc. Stops the simulation.");
-			ImGui::BulletText("F11. Toggles viewport fullscreen mode.");
-			ImGui::BulletText("Shift+F11. Toggles window fullscreen mode.");
-			ImGui::BulletText("Q/W/E/R. Hidden/Location/Rotation/Scale gizmo modes.");
-			ImGui::TreePop();
+			ImGui::End();
+			return;
+		}
+		ImGui::PushID("HelpWindow");
+
+		if (UI::PushFontHeader())
+		{
+			ImGui::Text("Eagle Engine v%s", EG_VERSION);
+			UI::PopFont();
 		}
 		ImGui::Separator();
 
+		const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
+
+		ImGui::TextLinkOpenURL("GitHub", "https://github.com/iceluna/eagle");
+		ImGui::SameLine();
+		ImGui::TextLinkOpenURL("Docs", "https://eagledocs.readthedocs.io/en/latest");
+		ImGui::SameLine();
+		ImGui::TextLinkOpenURL("Issues", "https://github.com/IceLuna/Eagle/issues");
+		ImGui::Separator();
+
+		ImGui::Text("By Shikali Shikhaliev.");
+		ImGui::Text("Eagle Engine is licensed under the Apache-2.0 License, see LICENSE for more information.");
+
 		if (ImGui::TreeNodeEx("Third party", flags, "Third party"))
 		{
-			ImGui::SetWindowFontScale(1.2f);
+			ImVec2 child_size = ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 13);
+			ImGui::BeginChild(ImGui::GetID("third_party_list"), child_size, 0);
+
 			UI::BulletLink("assimp", "https://github.com/assimp/assimp");
 			UI::BulletLink("EnTT", "https://github.com/skypjack/entt");
 			UI::BulletLink("FMOD. FMOD Studio. Firelight Technologies Pty Ltd", "https://www.fmod.com/");
@@ -2636,13 +2670,11 @@ namespace Eagle
 			UI::BulletLink("Thread pool", "https://github.com/bshoshany/thread-pool");
 			UI::BulletLink("Vulkan memory allocator", "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator");
 			UI::BulletLink("yaml-cpp", "https://github.com/jbeder/yaml-cpp");
+
+			ImGui::EndChild();
 			ImGui::TreePop();
 		}
-		ImGui::Separator();
 
-		ImGui::SetWindowFontScale(1.5f);
-		ImGui::Text("By Shikhali Shikhaliev.");
-		ImGui::Text("Eagle Engine is licensed under the Apache-2.0 License, see LICENSE for more information.");
 		ImGui::PopID();
 		ImGui::End();
 	}

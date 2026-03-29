@@ -14,7 +14,6 @@
 #include <backends/imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 #include <ImGuizmo.h>
-#include <implot.h>
 
 struct ImDrawDataSnapshotEntry
 {
@@ -86,11 +85,9 @@ inline void ImDrawDataSnapshot::SnapUsingSwap(ImDrawData* src, uint32_t frameInd
 namespace Eagle
 {
 	static constexpr uint32_t s_AdditionalPools = 1;
-	static uint32_t s_FrameIndex = 0;
 	static ImDrawDataSnapshot s_Snapshots[RendererConfig::FramesInFlight] = {};
-	static ImGuiStyle s_BaseStyle = {};
 
-	void UploadFonts()
+	void VulkanImGuiLayer::UploadFonts()
 	{
 		// We can't release ImGui VK data while it's used
 		RenderManager::Wait();
@@ -103,104 +100,8 @@ namespace Eagle
 		ImGui_ImplVulkan_DestroyFontUploadObjects();
 	}
 
-	void RebuildFonts()
-	{
-		ImGuiIO& io = ImGui::GetIO();
-
-		// Rebuild fonts
-		io.Fonts->Clear();
-		const Path boldFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Bold.ttf";
-		const Path regularFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Regular.ttf";
-		const float dpiScale = Application::Get().GetWindow().GetDPIScale();
-		const float fontSize = 16.f * dpiScale;
-
-		if (std::filesystem::exists(boldFont))
-		{
-			io.Fonts->AddFontFromFileTTF(boldFont.string().c_str(), fontSize, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
-		}
-		if (std::filesystem::exists(regularFont))
-		{
-			io.FontDefault = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), fontSize, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
-		}
-		io.Fonts->Build();
-
-		// Reset to the base style before scaling
-		ImGuiStyle& style = ImGui::GetStyle();
-		style = s_BaseStyle;
-		style.ScaleAllSizes(dpiScale);
-
-		UploadFonts();
-	}
-
 	void VulkanImGuiLayer::OnAttach()
 	{
-		IMGUI_CHECKVERSION();
-		ImGui::CreateContext();
-		ImPlot::CreateContext();
-
-		ImGuiIO& io = ImGui::GetIO();
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  //Enable Keyboard controls 
-		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; //Enable Gamepad controls
-		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;	   //Enable Docking
-		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;	   //Enable Multi-Viewport
-		//io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;     // Re-rasterize fonts on DPI change
-		//io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports; // Scale the actual window size
-		io.ConfigWindowsMoveFromTitleBarOnly = true;
-		io.ConfigDebugHighlightIdConflicts = false;
-		io.ConfigDebugHighlightIdConflictsShowItemPicker = false;
-
-		m_IniPath = (Application::GetCorePath() / "imgui.ini").u8string();
-		const Path boldFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Bold.ttf";
-		const Path regularFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Regular.ttf";
-		const float dpiScale = Application::Get().GetWindow().GetDPIScale();
-		const float fontSize = 16.f * dpiScale;
-
-		io.IniFilename = m_IniPath.c_str();
-		if (std::filesystem::exists(boldFont))
-		{
-			io.Fonts->AddFontFromFileTTF(boldFont.string().c_str(), fontSize, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
-		}
-		if (std::filesystem::exists(regularFont))
-		{
-			io.FontDefault = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), fontSize, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
-		}
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		style.TabRounding = 8.f;
-		style.FrameRounding = 8.f;
-		style.GrabRounding = 8.f;
-		style.WindowRounding = 8.f;
-		style.PopupRounding = 8.f;
-
-		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-		{
-			//style.WindowRounding = 0.f;
-			style.Colors[ImGuiCol_WindowBg].w = 1.f;
-		}
-
-		SetDarkThemeColors();
-
-		// ImGuizmo style
-		{
-			ImGuizmo::Style& style = ImGuizmo::GetStyle();
-			// TODO: Scale when DPI changes
-			style.RotationLineThickness = 6.f;
-			style.RotationOuterLineThickness = 6.f;
-			style.TranslationLineArrowSize = 12.f;
-			style.Colors[ImGuizmo::DIRECTION_X] = ImGui::ColorConvertU32ToFloat4(0xFF715ED8);
-			style.Colors[ImGuizmo::DIRECTION_Y] = ImGui::ColorConvertU32ToFloat4(0xFF25AA25);
-			style.Colors[ImGuizmo::DIRECTION_Z] = ImGui::ColorConvertU32ToFloat4(0xFFCC532C);
-			style.Colors[ImGuizmo::PLANE_X] = ImGui::ColorConvertU32ToFloat4(0xFF7A68D8);
-			style.Colors[ImGuizmo::PLANE_Y] = ImGui::ColorConvertU32ToFloat4(0xFF55AB55);
-			style.Colors[ImGuizmo::PLANE_Z] = ImGui::ColorConvertU32ToFloat4(0xFFD96742);
-			style.Colors[ImGuizmo::SELECTION] = ImGui::ColorConvertU32ToFloat4(0xFF20AACC);
-			ImGuizmo::SetGizmoSizeClipSpace(0.15f);
-		}
-
-		// Base style has been initialized, save it before scaling
-		s_BaseStyle = style;
-		style.ScaleAllSizes(dpiScale);
-
 		Application& app = Application::Get();
 		GLFWwindow* window = app.GetWindow().GetGLFWWindow();
 
@@ -271,8 +172,6 @@ namespace Eagle
 		VK_CHECK(vkDeviceWaitIdle(device));
 		ImGui_ImplVulkan_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
-		ImPlot::DestroyContext();
-		ImGui::DestroyContext();
 
 		vkDestroyDescriptorPool(device, pool, nullptr);
 		for (auto& pool : m_Pools)
@@ -281,12 +180,12 @@ namespace Eagle
 	
 	void VulkanImGuiLayer::BeginFrame()
 	{
-		ImGui_ImplVulkan_NewFrame((VkDescriptorPool)m_Pools[s_FrameIndex]);
+		ImGui_ImplVulkan_NewFrame((VkDescriptorPool)m_Pools[m_FrameIndex]);
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 		ImGuizmo::BeginFrame();
 
-		s_FrameIndex = (s_FrameIndex + 1) % (RendererConfig::FramesInFlight + s_AdditionalPools);
+		m_FrameIndex = (m_FrameIndex + 1) % (RendererConfig::FramesInFlight + s_AdditionalPools);
 	}
 	
 	void VulkanImGuiLayer::EndFrame()
@@ -296,16 +195,6 @@ namespace Eagle
 		const uint32_t frameIndex = RenderManager::GetCurrentFrameIndex_CPU();
 		auto& snapshot = s_Snapshots[frameIndex];
 		snapshot.SnapUsingSwap(ImGui::GetDrawData(), frameIndex);
-	}
-
-	void VulkanImGuiLayer::OnEvent(Event& e)
-	{
-		if (EventType::WindowContentScale == e.GetEventType())
-		{
-			WindowContentScaleEvent& scaleEvent = (WindowContentScaleEvent&)e;
-			EG_CORE_TRACE(scaleEvent.ToString());
-			RebuildFonts();
-		}
 	}
 
 	void VulkanImGuiLayer::Render(const Ref<CommandBuffer>& cmd)

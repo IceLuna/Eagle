@@ -20,202 +20,223 @@
 
 namespace Eagle::UI
 {
+	struct FontContext
+	{
+		ImFont* Regular{ nullptr };
+		ImFont* Bold{ nullptr };
+		ImFont* Header{ nullptr };
+	};
+
 	static constexpr int s_IDBufferSize = 32;
 	static uint64_t s_ID = 0;
 	static char s_IDBuffer[s_IDBufferSize];
 	static const VkImageLayout s_VulkanImageLayout = ImageLayoutToVulkan(ImageReadAccess::PixelShaderRead);
 	static constexpr char* s_HelpMarker = "(?)";
+	static FontContext Fonts{};
 
-	bool HandlePublicField(std::string_view label, PublicField& field, MonoObject* instance, size_t fieldIndex, bool bRuntime, Entity entity)
+	namespace
 	{
-		bool bChanged = false;
-		switch (field.Type)
+		bool PushFont(ImFont* font)
 		{
-			case FieldType::Int:
-			case FieldType::UnsignedInt:
+			if (font)
 			{
-				int value = bRuntime ? field.GetRuntimeValue<int>(instance, fieldIndex) : field.GetStoredValue<int>(fieldIndex);
-				if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
-				{
-					bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
-					bChanged = true;
-				}
-				break;
+				ImGui::PushFont(font);
+				return true;
 			}
-			case FieldType::Float:
-			{
-				float value = bRuntime ? field.GetRuntimeValue<float>(instance, fieldIndex) : field.GetStoredValue<float>(fieldIndex);
-				if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
-				{
-					bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
-					bChanged = true;
-				}
-				break;
-			}
-			case FieldType::String:
-			{
-				std::string value = bRuntime ? field.GetRuntimeValue<std::string>(instance, fieldIndex) : field.GetStoredValue<std::string>(fieldIndex);
-				if (UI::PropertyText(label.data(), value, field.Tooltip))
-				{
-					bRuntime ? field.SetRuntimeValue<std::string>(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
-					bChanged = true;
-				}
-				break;
-			}
-			case FieldType::Vec2:
-			{
-				glm::vec2 value = bRuntime ? field.GetRuntimeValue<glm::vec2>(instance, fieldIndex) : field.GetStoredValue<glm::vec2>(fieldIndex);
-				if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
-				{
-					bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
-					bChanged = true;
-				}
-				break;
-			}
-			case FieldType::Vec3:
-			{
-				glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(instance, fieldIndex) : field.GetStoredValue<glm::vec3>(fieldIndex);
-				if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
-				{
-					bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
-					bChanged = true;
-				}
-				break;
-			}
-			case FieldType::Vec4:
-			{
-				glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(instance, fieldIndex) : field.GetStoredValue<glm::vec4>(fieldIndex);
-				if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
-				{
-					bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
-					bChanged = true;
-				}
-				break;
-			}
-			case FieldType::Bool:
-			{
-				bool value = bRuntime ? field.GetRuntimeValue<bool>(instance, fieldIndex) : field.GetStoredValue<bool>(fieldIndex);
-				if (UI::Property(label.data(), value, field.Tooltip))
-				{
-					bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
-					bChanged = true;
-				}
-				break;
-			}
-			case FieldType::Color3:
-			{
-				glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(instance, fieldIndex) : field.GetStoredValue<glm::vec3>(fieldIndex);
-				if (UI::PropertyColor(label.data(), value, true, field.Tooltip))
-				{
-					bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
-					bChanged = true;
-				}
-				break;
-			}
-			case FieldType::Color4:
-			{
-				glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(instance, fieldIndex) : field.GetStoredValue<glm::vec4>(fieldIndex);
-				if (UI::PropertyColor(label.data(), value, true, field.Tooltip))
-				{
-					bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
-					bChanged = true;
-				}
-				break;
-			}
-			case FieldType::Enum:
-			{
-				int value = bRuntime ? field.GetRuntimeValue<int>(instance, fieldIndex) : field.GetStoredValue<int>(fieldIndex);
-				if (UI::Combo(label.data(), value, field.EnumFields, value, field.Tooltip))
-				{
-					bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
-					bChanged = true;
-				}
-				break;
-			}
-			case FieldType::Entity:
-			{
-				if (entity)
-				{
-					const auto& scene = entity.GetScene();
-					GUID value = bRuntime ? field.GetRuntimeValue<GUID>(instance, fieldIndex) : field.GetStoredValue<GUID>(fieldIndex);
-					Entity userEntity = scene->GetEntityByGUID(value);
-					const bool bValid = userEntity.IsValid();
-					int currentSelection = -1;
-					int i = 0;
+			return false;
+		}
 
-					const auto entities = scene->GetAllEntitiesWith<IDComponent, EntitySceneNameComponent>();
-					std::vector<std::string> names;
-					std::vector<GUID> ids;
-					names.reserve(entities.size_hint());
-					ids.reserve(entities.size_hint());
-
-					for (auto& [sceneEntity, idComp, nameComp] : entities.each())
+		bool HandlePublicField(std::string_view label, PublicField& field, MonoObject* instance, size_t fieldIndex, bool bRuntime, Entity entity)
+		{
+			bool bChanged = false;
+			switch (field.Type)
+			{
+				case FieldType::Int:
+				case FieldType::UnsignedInt:
+				{
+					int value = bRuntime ? field.GetRuntimeValue<int>(instance, fieldIndex) : field.GetStoredValue<int>(fieldIndex);
+					if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
 					{
-						if (sceneEntity == entity.GetEnttID())
-							continue; // Don't show itself
-
-						const auto& ID = idComp.ID;
-						const auto& name = nameComp.Name;
-						ids.emplace_back(ID);
-						names.emplace_back(name);
-
-						if (bValid && (ID == value))
-						{
-							currentSelection = i;
-						}
-						i++;
-					}
-
-					const bool bComboChanged = UI::ComboWithNone(label.data(), currentSelection, names, currentSelection, {}, field.Tooltip);
-					const bool bInvalidEntity = currentSelection == -1 && value != GUID(0, 0); // Can happen if an entity was removed from the scene
-					if (bComboChanged || bInvalidEntity)
-					{
-						value = currentSelection == -1 ? GUID(0, 0) : ids[currentSelection];
 						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 						bChanged = true;
 					}
+					break;
 				}
-				break;
+				case FieldType::Float:
+				{
+					float value = bRuntime ? field.GetRuntimeValue<float>(instance, fieldIndex) : field.GetStoredValue<float>(fieldIndex);
+					if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
+					{
+						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
+						bChanged = true;
+					}
+					break;
+				}
+				case FieldType::String:
+				{
+					std::string value = bRuntime ? field.GetRuntimeValue<std::string>(instance, fieldIndex) : field.GetStoredValue<std::string>(fieldIndex);
+					if (UI::PropertyText(label.data(), value, field.Tooltip))
+					{
+						bRuntime ? field.SetRuntimeValue<std::string>(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
+						bChanged = true;
+					}
+					break;
+				}
+				case FieldType::Vec2:
+				{
+					glm::vec2 value = bRuntime ? field.GetRuntimeValue<glm::vec2>(instance, fieldIndex) : field.GetStoredValue<glm::vec2>(fieldIndex);
+					if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
+					{
+						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
+						bChanged = true;
+					}
+					break;
+				}
+				case FieldType::Vec3:
+				{
+					glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(instance, fieldIndex) : field.GetStoredValue<glm::vec3>(fieldIndex);
+					if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
+					{
+						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
+						bChanged = true;
+					}
+					break;
+				}
+				case FieldType::Vec4:
+				{
+					glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(instance, fieldIndex) : field.GetStoredValue<glm::vec4>(fieldIndex);
+					if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
+					{
+						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
+						bChanged = true;
+					}
+					break;
+				}
+				case FieldType::Bool:
+				{
+					bool value = bRuntime ? field.GetRuntimeValue<bool>(instance, fieldIndex) : field.GetStoredValue<bool>(fieldIndex);
+					if (UI::Property(label.data(), value, field.Tooltip))
+					{
+						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
+						bChanged = true;
+					}
+					break;
+				}
+				case FieldType::Color3:
+				{
+					glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(instance, fieldIndex) : field.GetStoredValue<glm::vec3>(fieldIndex);
+					if (UI::PropertyColor(label.data(), value, true, field.Tooltip))
+					{
+						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
+						bChanged = true;
+					}
+					break;
+				}
+				case FieldType::Color4:
+				{
+					glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(instance, fieldIndex) : field.GetStoredValue<glm::vec4>(fieldIndex);
+					if (UI::PropertyColor(label.data(), value, true, field.Tooltip))
+					{
+						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
+						bChanged = true;
+					}
+					break;
+				}
+				case FieldType::Enum:
+				{
+					int value = bRuntime ? field.GetRuntimeValue<int>(instance, fieldIndex) : field.GetStoredValue<int>(fieldIndex);
+					if (UI::Combo(label.data(), value, field.EnumFields, value, field.Tooltip))
+					{
+						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
+						bChanged = true;
+					}
+					break;
+				}
+				case FieldType::Entity:
+				{
+					if (entity)
+					{
+						const auto& scene = entity.GetScene();
+						GUID value = bRuntime ? field.GetRuntimeValue<GUID>(instance, fieldIndex) : field.GetStoredValue<GUID>(fieldIndex);
+						Entity userEntity = scene->GetEntityByGUID(value);
+						const bool bValid = userEntity.IsValid();
+						int currentSelection = -1;
+						int i = 0;
+
+						const auto entities = scene->GetAllEntitiesWith<IDComponent, EntitySceneNameComponent>();
+						std::vector<std::string> names;
+						std::vector<GUID> ids;
+						names.reserve(entities.size_hint());
+						ids.reserve(entities.size_hint());
+
+						for (auto& [sceneEntity, idComp, nameComp] : entities.each())
+						{
+							if (sceneEntity == entity.GetEnttID())
+								continue; // Don't show itself
+
+							const auto& ID = idComp.ID;
+							const auto& name = nameComp.Name;
+							ids.emplace_back(ID);
+							names.emplace_back(name);
+
+							if (bValid && (ID == value))
+							{
+								currentSelection = i;
+							}
+							i++;
+						}
+
+						const bool bComboChanged = UI::ComboWithNone(label.data(), currentSelection, names, currentSelection, {}, field.Tooltip);
+						const bool bInvalidEntity = currentSelection == -1 && value != GUID(0, 0); // Can happen if an entity was removed from the scene
+						if (bComboChanged || bInvalidEntity)
+						{
+							value = currentSelection == -1 ? GUID(0, 0) : ids[currentSelection];
+							bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
+							bChanged = true;
+						}
+					}
+					break;
+				}
+
+	#define AssetField_Case(type) \
+					case FieldType::type:\
+					{\
+						GUID value = bRuntime ? field.GetRuntimeValue<GUID>(instance, fieldIndex) : field.GetStoredValue<GUID>(fieldIndex);\
+						Ref<Asset> asset;\
+						Ref<type> castedAsset;\
+						if (AssetManager::Get(value, &asset))\
+							castedAsset = Cast<type>(asset);\
+						if (UI::DrawAssetSelection(label.data(), castedAsset, field.Tooltip, -1.f, GetAssetPreview(castedAsset)))\
+						{\
+							value = castedAsset ? castedAsset->GetGUID() : GUID(0, 0);\
+							bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);\
+							bChanged = true;\
+						}\
+						break;\
+					}
+
+				AssetField_Case(Asset);
+				AssetField_Case(AssetTexture2D);
+				AssetField_Case(AssetTextureCube);
+				AssetField_Case(AssetStaticMesh);
+				AssetField_Case(AssetSkeletalMesh);
+				AssetField_Case(AssetAudio);
+				AssetField_Case(AssetSoundGroup);
+				AssetField_Case(AssetFont);
+				AssetField_Case(AssetMaterial);
+				AssetField_Case(AssetPhysicsMaterial);
+				AssetField_Case(AssetEntity);
+				AssetField_Case(AssetScene);
+				AssetField_Case(AssetAnimation);
+				AssetField_Case(AssetAnimationGraph);
+				AssetField_Case(AssetParticleSystem);
+				AssetField_Case(AssetAnimationBlendSpace);
+				AssetField_Case(AssetBehaviorGraph);
+	#undef AssetField_Case
 			}
 
-#define AssetField_Case(type) \
-				case FieldType::type:\
-				{\
-					GUID value = bRuntime ? field.GetRuntimeValue<GUID>(instance, fieldIndex) : field.GetStoredValue<GUID>(fieldIndex);\
-					Ref<Asset> asset;\
-					Ref<type> castedAsset;\
-					if (AssetManager::Get(value, &asset))\
-						castedAsset = Cast<type>(asset);\
-					if (UI::DrawAssetSelection(label.data(), castedAsset, field.Tooltip, -1.f, GetAssetPreview(castedAsset)))\
-					{\
-						value = castedAsset ? castedAsset->GetGUID() : GUID(0, 0);\
-						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);\
-						bChanged = true;\
-					}\
-					break;\
-				}
-
-			AssetField_Case(Asset);
-			AssetField_Case(AssetTexture2D);
-			AssetField_Case(AssetTextureCube);
-			AssetField_Case(AssetStaticMesh);
-			AssetField_Case(AssetSkeletalMesh);
-			AssetField_Case(AssetAudio);
-			AssetField_Case(AssetSoundGroup);
-			AssetField_Case(AssetFont);
-			AssetField_Case(AssetMaterial);
-			AssetField_Case(AssetPhysicsMaterial);
-			AssetField_Case(AssetEntity);
-			AssetField_Case(AssetScene);
-			AssetField_Case(AssetAnimation);
-			AssetField_Case(AssetAnimationGraph);
-			AssetField_Case(AssetParticleSystem);
-			AssetField_Case(AssetAnimationBlendSpace);
-			AssetField_Case(AssetBehaviorGraph);
-#undef AssetField_Case
+			return bChanged;
 		}
-
-		return bChanged;
 	}
 
 	int TextResizeCallback(ImGuiInputTextCallbackData* data)
@@ -302,11 +323,63 @@ namespace Eagle::UI
 		return ThumbnailCache::Get(asset);
 	}
 
+	void LoadFonts()
+	{
+		ImGuiIO& io = ImGui::GetIO();
+
+		const Path regularFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Regular.ttf";
+		const Path boldFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Bold.ttf";
+
+		if (!std::filesystem::exists(regularFont) || !std::filesystem::exists(boldFont))
+		{
+			EG_CORE_WARN("UI fonts not found. Falling back to default.");
+			io.Fonts->AddFontDefault();
+			io.FontDefault = nullptr;
+			return;
+		}
+
+		constexpr float baseFontSize = 17.f;
+		constexpr float baseHeaderSize = 24.f;
+
+		const float dpi = Application::Get().GetWindow().GetDPIScale();
+		const float fontSize = baseFontSize * dpi;
+		const float headerSize = baseHeaderSize * dpi;
+
+		const ImWchar* ranges = io.Fonts->GetGlyphRangesCyrillic();
+
+		UI::Fonts.Regular = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), fontSize, nullptr, ranges);
+		UI::Fonts.Header = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), headerSize, nullptr, ranges);
+		UI::Fonts.Bold = io.Fonts->AddFontFromFileTTF(boldFont.string().c_str(), fontSize, nullptr, ranges);
+
+		if (UI::Fonts.Regular)
+			io.FontDefault = UI::Fonts.Regular;
+	}
+
+	bool PushFontRegular()
+	{
+		return PushFont(Fonts.Regular);
+	}
+
+	bool PushFontHeader()
+	{
+		return PushFont(Fonts.Header);
+	}
+
+	bool PushFontBold()
+	{
+		return PushFont(Fonts.Bold);
+	}
+
+	void PopFont()
+	{
+		ImGui::PopFont();
+	}
+
 	bool DrawVec3Control(const std::string_view label, glm::vec3& values, const glm::vec3& resetValues /* = glm::vec3{ 0.f }*/, float columnWidth /*= 100.f*/, bool bReturnOnEnter /* = false */)
 	{
 		bool bValueChanged = false;
 		ImGuiIO& io = ImGui::GetIO();
-		auto boldFont = io.Fonts->Fonts[0];
+		ImFont* boldFont = Fonts.Bold ? Fonts.Bold : io.Fonts->Fonts[0];
 
 		ImGui::PushID(label.data());
 
@@ -414,7 +487,7 @@ namespace Eagle::UI
 	{
 		bool bValueChanged = false;
 		ImGuiIO& io = ImGui::GetIO();
-		auto boldFont = io.Fonts->Fonts[0];
+		ImFont* boldFont = Fonts.Bold ? Fonts.Bold : io.Fonts->Fonts[0];
 
 		ImGui::PushID(label.data());
 
@@ -825,24 +898,7 @@ namespace Eagle::UI
 
 	bool TextLink(const std::string_view text, const std::string_view url)
 	{
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{ 0.333f, 0.611f, 0.839f, 1.f });
-		ImGui::Text(text.data());
-		const bool bClicked = ImGui::IsItemClicked();
-		const bool bHovered = ImGui::IsItemHovered();
-		ImGui::PopStyleColor();
-
-		// Underline
-		{
-			ImVec2 min = ImGui::GetItemRectMin();
-			ImVec2 max = ImGui::GetItemRectMax();
-			min.y = max.y;
-			ImGui::GetWindowDrawList()->AddLine(min, max, bHovered ? 0xFFFF5C25 : 0xFFD69C55, 1.0f);
-		}
-
-		if (bClicked)
-			Utils::OpenLink(url);
-
-		return bClicked;
+		return ImGui::TextLinkOpenURL(text.data(), url.data());
 	}
 
 	bool BulletLink(const std::string_view text, const std::string_view url)

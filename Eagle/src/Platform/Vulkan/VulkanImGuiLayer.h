@@ -13,15 +13,14 @@ namespace Eagle
 		void BeginFrame() override;
 		void EndFrame() override;
 
-		void OnEvent(Event& e) override;
-
 	private:
 		void Render(const Ref<CommandBuffer>& cmd) override;
 		void UpdatePlatform() override;
+		void UploadFonts() override;
 
 	private:
 		void* m_DescriptorPool = nullptr; // Used to init resources during ImGui initialization.
 		std::vector<void*> m_Pools; // Per frame pools to init and reset our resources
-		std::string m_IniPath;
+		uint32_t m_FrameIndex = 0;
 	};
 }
