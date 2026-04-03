@@ -26,7 +26,7 @@ namespace Eagle
 	namespace Utils
 	{
 		template<typename MeshData, typename MeshGeometryData>
-		static void RenderMeshes(const Ref<CommandBuffer>& cmd, const MeshData& meshes, const MeshGeometryData& meshesData, SceneRenderer::Statistics& stats)
+		static void RenderMeshes(const Ref<CommandBuffer>& cmd, const MeshData& meshes, const MeshGeometryData& meshesData, RenderStats& stats)
 		{
 			const auto& buffers = meshesData;
 			for (const auto& data : meshes)

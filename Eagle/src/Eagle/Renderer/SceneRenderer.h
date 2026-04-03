@@ -250,21 +250,16 @@ namespace Eagle
 		float GetShadowMaxDistance() const { return m_MaxShadowDistance; }
 
 	public:
-		struct Statistics
-		{
-			uint64_t DrawCalls = 0;
-			uint64_t Dispatches = 0;
-		};
-
-		Statistics& GetStats() { return m_Stats[m_FrameIndex]; }
-		const Statistics& GetStats() const { return m_Stats[m_FrameIndex]; }
-		const Statistics& GetStats_MT() const { return m_Stats_MT; }
+		RenderStats& GetStats() { return m_Stats[m_FrameIndex]; }
+		const RenderStats& GetStats() const { return m_Stats[m_FrameIndex]; }
+		const RenderStats& GetStats_MT() const { return m_Stats_MT; }
 
 	private:
 		void InitWithOptions();
 
 	private:
 		Ref<GeometryManagerTask> m_GeometryManagerTask;
+		Ref<RendererTask> m_DepthPrepassTask;
 		Ref<RendererTask> m_RenderMeshesTask;
 		Ref<RendererTask> m_RenderSkeletalMeshesTask;
 		Ref<RendererTask> m_RenderSpritesTask;
@@ -341,7 +336,7 @@ namespace Eagle
 		bool m_bIsRuntime = false;
 		bool m_bIsGame = false;
 
-		Statistics m_Stats[RendererConfig::FramesInFlight];
-		Statistics m_Stats_MT{};
+		RenderStats m_Stats[RendererConfig::FramesInFlight];
+		RenderStats m_Stats_MT{};
 	};
 }

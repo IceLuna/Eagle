@@ -228,11 +228,14 @@ namespace Eagle
 			
 			if(entityTreeOpened)
 			{
+				const bool bCanRemoveRigidBody = !entity.HasAny<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, MeshColliderComponent>();
+
 #define EG_DRAW_COMPONENT_LINE(label, type, typeEnum) { if (DrawComponentLine<type>(label, entity, m_SelectedComponent == typeEnum)) m_SelectedComponent = typeEnum; }
+#define EG_DRAW_COMPONENT_LINE_EX(label, type, typeEnum, bCanRemove) { if (DrawComponentLine<type>(label, entity, m_SelectedComponent == typeEnum, bCanRemove)) m_SelectedComponent = typeEnum; }
 				EG_DRAW_COMPONENT_LINE("C# Script", ScriptComponent, SelectedComponent::ScriptComponent);
 				EG_DRAW_COMPONENT_LINE("Audio", AudioComponent, SelectedComponent::AudioComponent);
 				EG_DRAW_COMPONENT_LINE("Reverb", ReverbComponent, SelectedComponent::ReverbComponent);
-				EG_DRAW_COMPONENT_LINE("Rigid Body", RigidBodyComponent, SelectedComponent::RigidBodyComponent);
+				EG_DRAW_COMPONENT_LINE_EX("Rigid Body", RigidBodyComponent, SelectedComponent::RigidBodyComponent, bCanRemoveRigidBody);
 				EG_DRAW_COMPONENT_LINE("Box Collider", BoxColliderComponent, SelectedComponent::BoxColliderComponent);
 				EG_DRAW_COMPONENT_LINE("Sphere Collider", SphereColliderComponent, SelectedComponent::SphereColliderComponent);
 				EG_DRAW_COMPONENT_LINE("Capsule Collider", CapsuleColliderComponent, SelectedComponent::CapsuleColliderComponent);
@@ -253,6 +256,7 @@ namespace Eagle
 				EG_DRAW_COMPONENT_LINE("Navigation Mesh", NavigationMeshComponent, SelectedComponent::NavigationMeshComponent);
 				EG_DRAW_COMPONENT_LINE("Navigation Crowd Agent", NavigationCrowdAgentComponent, SelectedComponent::NavigationCrowdAgentComponent);
 #undef EG_DRAW_COMPONENT_LINE
+#undef EG_DRAW_COMPONENT_LINE_EX
 				ImGui::TreePop();
 			}
 

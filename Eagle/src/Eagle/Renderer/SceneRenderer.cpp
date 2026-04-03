@@ -5,6 +5,7 @@
 
 #include "VidWrappers/RenderCommandManager.h"
 
+#include "Tasks/DepthPrepassTask.h" 
 #include "Tasks/BloomPassTask.h" 
 #include "Tasks/SkyboxPassTask.h" 
 #include "Tasks/PostprocessingPassTask.h" 
@@ -76,6 +77,7 @@ namespace Eagle
 		m_GBuffer.Init({ m_Size, 1 });
 		m_GBuffer.InitOptional(m_Options.InternalState, glm::uvec3(m_Size, 1u));
 		// Create tasks
+		m_DepthPrepassTask = MakeRef<DepthPrepassTask>(*this);
 		m_RenderMeshesTask = MakeRef<RenderMeshesTask>(*this);
 		m_RenderSkeletalMeshesTask = MakeRef<RenderSkeletalMeshesTask>(*this);
 		m_RenderSpritesTask = MakeRef<RenderSpritesTask>(*this);
@@ -138,7 +140,7 @@ namespace Eagle
 			}
 			renderer->m_Options_RT.InternalState.CascadesSmoothTransitionAlpha = cascadesSmoothTransitionAlpha;
 
-			renderer->m_Stats[renderer->m_FrameIndex] = Statistics();
+			renderer->m_Stats[renderer->m_FrameIndex] = RenderStats();
 
 			renderer->m_PrevView = renderer->m_View;
 			renderer->m_PrevProjection = renderer->m_Projection;
@@ -175,6 +177,7 @@ namespace Eagle
 
 			renderer->m_LightsManagerTask->RecordCommandBuffer(cmd);
 			renderer->m_GeometryManagerTask->RecordCommandBuffer(cmd);
+			renderer->m_DepthPrepassTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderMeshesTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderSpritesTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderSkeletalMeshesTask->RecordCommandBuffer(cmd);
@@ -369,6 +372,7 @@ namespace Eagle
 		m_GBuffer.Resize({ m_Size, 1 });
 
 		// Tasks
+		m_DepthPrepassTask->OnResize(m_Size);
 		m_RenderMeshesTask->OnResize(m_Size);
 		m_RenderSkeletalMeshesTask->OnResize(m_Size);
 		m_RenderSpritesTask->OnResize(m_Size);
@@ -455,6 +459,7 @@ namespace Eagle
 		m_GBuffer.InitOptional(options.InternalState, glm::uvec3(m_Size, 1u));
 		m_PhotoLinearScale = CalculatePhotoLinearScale(options.PhotoLinearTonemappingParams, options.Gamma);
 		m_GeometryManagerTask->InitWithOptions(options);
+		m_DepthPrepassTask->InitWithOptions(options);
 		m_RenderMeshesTask->InitWithOptions(options);
 		m_RenderSkeletalMeshesTask->InitWithOptions(options);
 		m_RenderSpritesTask->InitWithOptions(options);
@@ -489,7 +494,7 @@ namespace Eagle
 		depthSpecs.Format = Application::Get().GetRenderContext()->GetDepthFormat();
 		depthSpecs.Layout = ImageLayoutType::DepthStencilWrite;
 		depthSpecs.Size = size;
-		depthSpecs.Usage = ImageUsage::DepthStencilAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc;
+		depthSpecs.Usage = ImageUsage::DepthStencilAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc | ImageUsage::TransferDst;
 		Depth = Image::Create(depthSpecs, "GBuffer_Depth");
 
 		ImageSpecifications colorSpecs;

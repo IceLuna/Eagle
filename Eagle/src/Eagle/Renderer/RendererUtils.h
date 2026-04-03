@@ -274,6 +274,12 @@ namespace Eagle
         }
     };
 
+    struct RenderStats
+    {
+        uint64_t DrawCalls = 0;
+        uint64_t Dispatches = 0;
+    };
+
     struct DispatchIndirectArgs
     {
         glm::uvec4 ThreadGroupCount = glm::uvec4(0); // It's `uvec4` because of padding issues on GPU side
@@ -899,6 +905,7 @@ namespace Eagle
         TonemappingMethod Tonemapping = TonemappingMethod::ACES;
         AmbientOcclusion AO = AmbientOcclusion::None;
         AAMethod AA = AAMethod::None;
+        bool bDepthPrepass = false;
         bool bTranslucentShadows = true;
         bool bEnableSoftShadows = true;
         bool bEnableCSMSmoothTransition = true;
@@ -928,6 +935,7 @@ namespace Eagle
                 Tonemapping == other.Tonemapping &&
                 AO == other.AO &&
                 AA == other.AA &&
+                bDepthPrepass == other.bDepthPrepass &&
                 bTranslucentShadows == other.bTranslucentShadows &&
                 bEnableSoftShadows == other.bEnableSoftShadows &&
                 bEnableCSMSmoothTransition == other.bEnableCSMSmoothTransition &&
@@ -953,6 +961,7 @@ namespace Eagle
         {
             SceneRendererSettings settings;
             settings.VolumetricSettings.bEnable = false;
+            settings.bDepthPrepass = false;
             settings.bTranslucentShadows = false;
             settings.bEnableCSMSmoothTransition = false;
             settings.bEnableObjectPicking = false;

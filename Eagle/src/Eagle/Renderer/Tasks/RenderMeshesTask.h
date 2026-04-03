@@ -3,6 +3,8 @@
 #include "RendererTask.h"
 #include "Eagle/Renderer/VidWrappers/PipelineGraphics.h"
 
+#include "GeometryManagerTask.h"
+
 namespace Eagle
 {
 	class RenderMeshesTask : public RendererTask
@@ -28,6 +30,13 @@ namespace Eagle
 
 			InitPipeline();
 		}
+
+		struct PushData
+		{
+			glm::mat4 ViewProj;
+			glm::mat4 PrevViewProj;
+		};
+		static void Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const std::vector<MeshDrawData>& meshes, const MeshGeometryData<Vertex>& buffers, const PushData& pushData, RenderStats& stats);
 
 		inline static const std::vector<PipelineGraphicsState::VertexInputAttribute> PerInstanceAttribs = { { 4u } }; // Locations of Per-Instance data in shader
 

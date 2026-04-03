@@ -608,6 +608,12 @@ namespace Eagle
             get { return GetSoftShadowsEnabled_Native(); }
         }
 
+        public static bool bDepthPrepass
+        {
+            set { SetDepthPrepassEnabled_Native(value); }
+            get { return GetDepthPrepassEnabled_Native(); }
+        }
+
         public static bool bTranslucentShadows
         {
             set { SetTranslucentShadowsEnabled_Native(value); }
@@ -761,6 +767,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern bool GetSoftShadowsEnabled_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetDepthPrepassEnabled_Native(bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern bool GetDepthPrepassEnabled_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetTranslucentShadowsEnabled_Native(bool value);

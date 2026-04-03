@@ -28,7 +28,7 @@ namespace Eagle
 		InitPipeline();
 	}
 
-	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const LitTextGeometryData& data, const PushData& pushData, SceneRenderer::Statistics& stats)
+	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const LitTextGeometryData& data, const PushData& pushData, RenderStats& stats)
 	{
 		if (data.QuadVertices.empty())
 			return;
@@ -166,7 +166,7 @@ namespace Eagle
 		depthAttachment.ClearOperation = ClearOperation::Load;
 		depthAttachment.bWriteDepth = true;
 		depthAttachment.DepthClearValue = 0.f;
-		depthAttachment.DepthCompareOp = CompareOperation::Greater;
+		depthAttachment.DepthCompareOp = CompareOperation::GreaterEqual;
 
 		ShaderDefines vertexDefines;
 		ShaderDefines fragmentDefines;

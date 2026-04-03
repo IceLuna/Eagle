@@ -7415,6 +7415,25 @@ namespace Eagle
 		return options.bStutterlessShaders;
 	}
 
+	void Script::Eagle_Renderer_SetDepthPrepassEnabled(bool value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.bDepthPrepass = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	bool Script::Eagle_Renderer_GetDepthPrepassEnabled()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.bDepthPrepass;
+	}
+
 	void Script::Eagle_Renderer_SetTranslucentShadowsEnabled(bool value)
 	{
 		const auto& scene = Scene::GetCurrentScene();

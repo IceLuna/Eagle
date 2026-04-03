@@ -24,7 +24,7 @@ namespace Eagle
 		InitPipeline();
 	}
 
-	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const UnlitTextGeometryData& data, const void* pushData, SceneRenderer::Statistics& stats)
+	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const UnlitTextGeometryData& data, const void* pushData, RenderStats& stats)
 	{
 		if (data.QuadVertices.empty())
 			return;
@@ -85,7 +85,7 @@ namespace Eagle
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.Image = m_Renderer.GetGBuffer().Depth;
 		depthAttachment.bWriteDepth = true;
-		depthAttachment.DepthCompareOp = CompareOperation::Greater;
+		depthAttachment.DepthCompareOp = CompareOperation::GreaterEqual;
 		depthAttachment.ClearOperation = ClearOperation::Load;
 
 		ShaderDefines defines;

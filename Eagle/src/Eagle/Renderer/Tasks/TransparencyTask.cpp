@@ -20,7 +20,7 @@ namespace Eagle
 	namespace Utils
 	{
 		template<typename MeshData, typename MeshGeometryData>
-		static void RenderMeshes(const Ref<CommandBuffer>& cmd, const MeshData& meshes, const MeshGeometryData& meshesData, SceneRenderer::Statistics& stats)
+		static void RenderMeshes(const Ref<CommandBuffer>& cmd, const MeshData& meshes, const MeshGeometryData& meshesData, RenderStats& stats)
 		{
 			const auto& buffers = meshesData;
 			for (const auto& data : meshes)
@@ -271,8 +271,8 @@ namespace Eagle
 		if (meshes.empty())
 			return;
 
-		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Meshes. Depth");
-		EG_CPU_TIMING_SCOPED("Transparency. Meshes. Depth");
+		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Static Meshes. Depth");
+		EG_CPU_TIMING_SCOPED("Transparency. Static Meshes. Depth");
 
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
 		const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
@@ -372,8 +372,8 @@ namespace Eagle
 		if (meshes.empty())
 			return;
 
-		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Meshes. Color");
-		EG_CPU_TIMING_SCOPED("Transparency. Meshes. Color");
+		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Static Meshes. Color");
+		EG_CPU_TIMING_SCOPED("Transparency. Static Meshes. Color");
 
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
 
@@ -593,8 +593,8 @@ namespace Eagle
 			const auto& meshes = m_Renderer.GetStaticMeshesDrawData().Translucent;
 			if (!meshes.empty())
 			{
-				EG_GPU_TIMING_SCOPED(cmd, "Transparency. Meshes Entity IDs");
-				EG_CPU_TIMING_SCOPED("Transparency. Meshes Entity IDs");
+				EG_GPU_TIMING_SCOPED(cmd, "Transparency. Static Meshes Entity IDs");
+				EG_CPU_TIMING_SCOPED("Transparency. Static Meshes Entity IDs");
 
 				const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
 				m_MeshesEntityIDPipeline->SetBuffer(transformsBuffer, 0, 0);

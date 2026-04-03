@@ -2907,6 +2907,7 @@ namespace Eagle
 		out << YAML::Key << "SoftShadows" << YAML::Value << settings.bEnableSoftShadows;
 		out << YAML::Key << "TranslucentShadows" << YAML::Value << settings.bTranslucentShadows;
 		out << YAML::Key << "ShadowsSmoothTransition" << YAML::Value << settings.bEnableCSMSmoothTransition;
+		out << YAML::Key << "DepthPrepass" << YAML::Value << settings.bDepthPrepass;
 		out << YAML::Key << "StutterlessShaders" << YAML::Value << settings.bStutterlessShaders;
 		out << YAML::Key << "EnableObjectPicking" << YAML::Value << settings.bEnableObjectPicking;
 		out << YAML::Key << "Enable2DObjectPicking" << YAML::Value << settings.bEnable2DObjectPicking;
@@ -3057,6 +3058,8 @@ namespace Eagle
 			settings.bTranslucentShadows = translucentShadows.as<bool>();
 		if (auto smoothShadows = data["ShadowsSmoothTransition"])
 			settings.bEnableCSMSmoothTransition = smoothShadows.as<bool>();
+		if (auto depthPrepass = data["DepthPrepass"])
+			settings.bDepthPrepass = depthPrepass.as<bool>();
 		if (auto stutterless = data["StutterlessShaders"])
 			settings.bStutterlessShaders = stutterless.as<bool>();
 		if (auto objectPicking = data["EnableObjectPicking"])

@@ -1375,6 +1375,12 @@ namespace Eagle
 
 		bSettingsChanged |= UI::ComboEnum<TonemappingMethod>("Tonemapping", options.Tonemapping);
 
+		if (UI::Property("Depth Prepass", options.bDepthPrepass, "Some objects will be pre-rendered into the depth buffer to reduce unnecessary fragment invocations during rendering"))
+		{
+			EG_CORE_TRACE("Changed Depth Prepass to: {}", options.bDepthPrepass);
+			bSettingsChanged = true;
+		}
+
 		if (UI::Property("Stutterless", options.bStutterlessShaders, s_StutterlessHelpMsg))
 		{
 			EG_CORE_TRACE("Changed Stutterless to: {}", options.bStutterlessShaders);

@@ -13,12 +13,6 @@
 
 namespace Eagle
 {
-	struct PushData
-	{
-		glm::mat4 ViewProj;
-		glm::mat4 PrevViewProj;
-	};
-
 	RenderSpritesTask::RenderSpritesTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
@@ -27,7 +21,7 @@ namespace Eagle
 		InitPipeline();
 	}
 
-	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const SpriteGeometryData& spritesData, const PushData& pushData, SceneRenderer::Statistics& stats)
+	void RenderSpritesTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const SpriteGeometryData& spritesData, const PushData& pushData, RenderStats& stats)
 	{
 		if (spritesData.QuadVertices.empty())
 			return;
@@ -165,7 +159,7 @@ namespace Eagle
 		depthAttachment.ClearOperation = ClearOperation::Load;
 		depthAttachment.bWriteDepth = true;
 		depthAttachment.DepthClearValue = 0.f;
-		depthAttachment.DepthCompareOp = CompareOperation::Greater;
+		depthAttachment.DepthCompareOp = CompareOperation::GreaterEqual;
 
 		ShaderDefines vertexDefines;
 		ShaderDefines fragmentDefines;

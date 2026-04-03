@@ -1,8 +1,10 @@
 #include "defines.h"
-#include "common_structures.h"
 #include "sprite_vertex_input_layout.h"
+
+#ifndef EG_DEPTH_ONLY
 #define EG_NO_TEXTURES
 #include "pipeline_layout.h"
+#endif
 
 layout(push_constant) uniform PushConstants
 {
@@ -33,6 +35,8 @@ layout(set = 1, binding = 0) uniform Jitter
 };
 #endif
 
+#ifndef EG_DEPTH_ONLY
+
 layout(location = 0) out mat3 o_TBN;
 layout(location = 3) out vec3 o_Normal;
 layout(location = 4) out vec2 o_TexCoords;
@@ -44,16 +48,18 @@ layout(location = 8) out vec3 o_CurPos;
 layout(location = 9) out vec3 o_PrevPos;
 #endif
 
+#endif // #ifndef EG_DEPTH_ONLY
+
 void main()
 {
-    const uint materialIndex  = a_MaterialIndex;
     const uint transformIndex = a_TransformIndex & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
-    o_ReceivesDecals = (a_TransformIndex & EG_RECEIVES_DECALS_MASK) == EG_RECEIVES_DECALS_MASK ? 1u : 0u;
-
     const mat4 model = g_Transforms[transformIndex];
-
     const uint vertexID = gl_VertexIndex % 4u;
     gl_Position = g_ViewProj * model * vec4(s_QuadVertexPosition[vertexID], 1.f);
+
+#ifndef EG_DEPTH_ONLY
+    const uint materialIndex  = a_MaterialIndex;
+    o_ReceivesDecals = (a_TransformIndex & EG_RECEIVES_DECALS_MASK) == EG_RECEIVES_DECALS_MASK ? 1u : 0u;
 
     const CPUMaterial material = g_Materials[materialIndex];
     bool unused;
@@ -76,6 +82,7 @@ void main()
     o_TexCoords = a_TexCoords * material.TilingFactor;
     o_MaterialIndex  = materialIndex;
     o_EntityID = a_EntityID;
+#endif // #ifndef EG_DEPTH_ONLY
 
 #ifdef EG_MOTION
     o_CurPos = gl_Position.xyw;

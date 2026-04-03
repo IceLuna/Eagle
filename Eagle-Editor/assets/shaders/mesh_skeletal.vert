@@ -1,6 +1,12 @@
+#extension GL_EXT_nonuniform_qualifier : enable
+
 #include "skeletal_mesh_vertex_input_layout.h"
+#include "defines.h"
+
+#ifndef EG_DEPTH_ONLY
 #define EG_NO_TEXTURES
 #include "pipeline_layout.h"
+#endif
 
 layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX)
 readonly buffer MeshTransformsBuffer
@@ -45,6 +51,8 @@ layout(set = 1, binding = 0) uniform Jitter
 };
 #endif
 
+#ifndef EG_DEPTH_ONLY
+
 layout(location = 0) out mat3 o_TBN;
 layout(location = 3) out vec3 o_Normal;
 layout(location = 4) out vec2 o_TexCoords;
@@ -56,16 +64,14 @@ layout(location = 8) out vec3 o_CurPos;
 layout(location = 9) out vec3 o_PrevPos;
 #endif
 
+#endif // #ifndef EG_DEPTH_ONLY
+
 void main()
 {
     const uint transformIndex = a_PerInstanceData.x & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
-    const uint materialIndex = a_PerInstanceData.y;
-    const uint objectID = a_PerInstanceData.z;
-    o_ReceivesDecals = (a_PerInstanceData.x & EG_RECEIVES_DECALS_MASK) == EG_RECEIVES_DECALS_MASK ? 1u : 0u;
-
     const mat4 model = g_Transforms[transformIndex];
+
     vec4 totalPosition = vec4(a_Position, 1.0);
-    
     mat4 boneTransform = mat4(0.f);
     for (uint i = 0; i < 4; ++i)
     {
@@ -75,10 +81,14 @@ void main()
             boneTransform += g_MeshAnimation[nonuniformEXT(transformIndex)].Transforms[GetBoneID(i)] * weight;
         }
     }
-
     totalPosition = boneTransform * vec4(a_Position, 1.0);
-
     gl_Position = g_ViewProjection * model * totalPosition;
+
+#ifndef EG_DEPTH_ONLY
+    const uint materialIndex = a_PerInstanceData.y;
+    const uint objectID = a_PerInstanceData.z;
+    o_ReceivesDecals = (a_PerInstanceData.x & EG_RECEIVES_DECALS_MASK) == EG_RECEIVES_DECALS_MASK ? 1u : 0u;
+
     const vec3 normal = mat3(boneTransform) * a_Normal;
     const mat3 normalModel = transpose(inverse(mat3(model)));
     const vec3 worldNormal = normalize(normalModel * normal);
@@ -96,6 +106,7 @@ void main()
     o_TexCoords = a_TexCoords;
     o_MaterialIndex = materialIndex;
     o_ObjectID = objectID;
+#endif // #ifndef EG_DEPTH_ONLY
 
 #ifdef EG_MOTION
     o_CurPos = gl_Position.xyw;

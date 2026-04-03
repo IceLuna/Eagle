@@ -80,13 +80,12 @@ namespace Eagle
 		objectIDAttachment.ClearColor = glm::vec4{ objectIDClearColor };
 
 		DepthStencilAttachment depthAttachment;
-		depthAttachment.InitialLayout = ImageLayoutType::Unknown;
+		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.Image = gbuffer.Depth;
 		depthAttachment.bWriteDepth = true;
-		depthAttachment.ClearOperation = ClearOperation::Clear;
-		depthAttachment.DepthClearValue = 0.f;
-		depthAttachment.DepthCompareOp = CompareOperation::Greater;
+		depthAttachment.ClearOperation = ClearOperation::Load;
+		depthAttachment.DepthCompareOp = CompareOperation::GreaterEqual;
 
 		ShaderDefines vertexDefines;
 		ShaderDefines fragmentDefines;
@@ -133,8 +132,6 @@ namespace Eagle
 			attachment.ClearOperation = ClearOperation::Load;
 			attachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 		}
-		state.DepthStencilAttachment.ClearOperation = ClearOperation::Load;
-		state.DepthStencilAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
 
 		fragmentDefines["EG_MASKED"] = "";
 		state.FragmentShader = Shader::Create("mesh.frag", ShaderType::Fragment, fragmentDefines);
@@ -145,10 +142,37 @@ namespace Eagle
 			m_MaskedPipeline = PipelineGraphics::Create(state);
 	}
 	
+	void RenderMeshesTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const std::vector<MeshDrawData>& meshes, const MeshGeometryData<Vertex>& buffers, const PushData& pushData, RenderStats& stats)
+	{
+		cmd->BeginGraphics(pipeline);
+		cmd->SetGraphicsRootConstants(&pushData, nullptr);
+
+		for (const auto& data : meshes)
+		{
+			const uint32_t verticesCount = data.VerticesCount;
+			const uint32_t vertexOffset = data.VertexOffset;
+
+			for (const auto& matRenderData : data.PerMaterialData)
+			{
+				const uint32_t indicesCount = matRenderData.IndexCount;
+				const uint32_t firstIndex = matRenderData.FirstIndex;
+				const uint32_t instanceCount = matRenderData.InstanceCount;
+				const uint32_t firstInstance = matRenderData.FirstInstance;
+				if (instanceCount > 0)
+				{
+					cmd->DrawIndexedInstanced(buffers.VertexBuffer, buffers.IndexBuffer, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, buffers.InstanceBuffer);
+					++stats.DrawCalls;
+				}
+			}
+		}
+
+		cmd->EndGraphics();
+	}
+
 	void RenderMeshesTask::RenderOpaque(const Ref<CommandBuffer>& cmd)
 	{
-		EG_GPU_TIMING_SCOPED(cmd, "Render Opaque Meshes");
-		EG_CPU_TIMING_SCOPED("Render Opaque Meshes");
+		EG_GPU_TIMING_SCOPED(cmd, "Render Opaque Static Meshes");
+		EG_CPU_TIMING_SCOPED("Render Opaque Static Meshes");
 
 		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
 		const bool bTexturesDirty = texturesChangedFrame >= m_OpaqueTexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()];
@@ -162,13 +186,8 @@ namespace Eagle
 		m_OpaquePipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 		m_OpaquePipeline->SetBuffer(m_Renderer.GetMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
 
-		struct PushData
-		{
-			glm::mat4 ViewProj;
-			glm::mat4 PrevViewProj;
-		} pushData;
+		PushData pushData;
 		pushData.ViewProj = m_Renderer.GetViewProjection();
-
 		if (bMotionRequired)
 		{
 			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
@@ -177,38 +196,16 @@ namespace Eagle
 		if (bJitter)
 			m_OpaquePipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
-		cmd->BeginGraphics(m_OpaquePipeline);
-		cmd->SetGraphicsRootConstants(&pushData, nullptr);
-
 		auto& stats = m_Renderer.GetStats();
 		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().Opaque;
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
-		for (const auto& data : meshes)
-		{
-			const uint32_t verticesCount = data.VerticesCount;
-			const uint32_t vertexOffset = data.VertexOffset;
-
-			for (const auto& matRenderData : data.PerMaterialData)
-			{
-				const uint32_t indicesCount = matRenderData.IndexCount;
-				const uint32_t firstIndex = matRenderData.FirstIndex;
-				const uint32_t instanceCount = matRenderData.InstanceCount;
-				const uint32_t firstInstance = matRenderData.FirstInstance;
-				if (instanceCount > 0)
-				{
-					cmd->DrawIndexedInstanced(buffers.VertexBuffer, buffers.IndexBuffer, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, buffers.InstanceBuffer);
-					++stats.DrawCalls;
-				}
-			}
-		}
-
-		cmd->EndGraphics();
+		Draw(cmd, m_OpaquePipeline, meshes, buffers, pushData, stats);
 	}
 
 	void RenderMeshesTask::RenderMasked(const Ref<CommandBuffer>& cmd)
 	{
-		EG_GPU_TIMING_SCOPED(cmd, "Render Masked Meshes");
-		EG_CPU_TIMING_SCOPED("Render Masked Meshes");
+		EG_GPU_TIMING_SCOPED(cmd, "Render Masked Static Meshes");
+		EG_CPU_TIMING_SCOPED("Render Masked Static Meshes");
 
 		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
 		const bool bTexturesDirty = texturesChangedFrame >= m_MaskedTexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()];
@@ -222,11 +219,7 @@ namespace Eagle
 		m_MaskedPipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 		m_MaskedPipeline->SetBuffer(m_Renderer.GetMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
 
-		struct PushData
-		{
-			glm::mat4 ViewProj;
-			glm::mat4 PrevViewProj;
-		} pushData;
+		PushData pushData;
 		pushData.ViewProj = m_Renderer.GetViewProjection();
 
 		if (bMotionRequired)
@@ -237,32 +230,9 @@ namespace Eagle
 		if (bJitter)
 			m_MaskedPipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
-		cmd->BeginGraphics(m_MaskedPipeline);
-		cmd->SetGraphicsRootConstants(&pushData, nullptr);
-
 		auto& stats = m_Renderer.GetStats();
-
 		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().Masked;
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
-		for (const auto& data : meshes)
-		{
-			const uint32_t verticesCount = data.VerticesCount;
-			const uint32_t vertexOffset = data.VertexOffset;
-
-			for (const auto& matRenderData : data.PerMaterialData)
-			{
-				const uint32_t indicesCount = matRenderData.IndexCount;
-				const uint32_t firstIndex = matRenderData.FirstIndex;
-				const uint32_t instanceCount = matRenderData.InstanceCount;
-				const uint32_t firstInstance = matRenderData.FirstInstance;
-				if (instanceCount > 0)
-				{
-					cmd->DrawIndexedInstanced(buffers.VertexBuffer, buffers.IndexBuffer, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, buffers.InstanceBuffer);
-					++stats.DrawCalls;
-				}
-			}
-		}
-
-		cmd->EndGraphics();
+		Draw(cmd, m_MaskedPipeline, meshes, buffers, pushData, stats);
 	}
 }

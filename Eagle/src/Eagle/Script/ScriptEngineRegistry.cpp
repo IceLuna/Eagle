@@ -243,6 +243,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::SetLensSettings_Native", Eagle::Script::Eagle_Renderer_SetLensSettings);
 		mono_add_internal_call("Eagle.Renderer::SetStutterlessShaders_Native", Eagle::Script::Eagle_Renderer_SetStutterlessShaders);
 		mono_add_internal_call("Eagle.Renderer::GetStutterlessShaders_Native", Eagle::Script::Eagle_Renderer_GetStutterlessShaders);
+		mono_add_internal_call("Eagle.Renderer::SetDepthPrepassEnabled_Native", Eagle::Script::Eagle_Renderer_SetDepthPrepassEnabled);
+		mono_add_internal_call("Eagle.Renderer::GetDepthPrepassEnabled_Native", Eagle::Script::Eagle_Renderer_GetDepthPrepassEnabled);
 		mono_add_internal_call("Eagle.Renderer::SetTranslucentShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_SetTranslucentShadowsEnabled);
 		mono_add_internal_call("Eagle.Renderer::GetTranslucentShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_GetTranslucentShadowsEnabled);
 		mono_add_internal_call("Eagle.Renderer::GetCameraTransform_Native", Eagle::Script::Eagle_Renderer_GetCameraTransform);

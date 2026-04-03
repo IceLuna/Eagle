@@ -108,7 +108,7 @@ namespace Eagle
 		depthAttachment.Image = m_Renderer.GetGBuffer().Depth;
 		depthAttachment.ClearOperation = ClearOperation::Load;
 		depthAttachment.bWriteDepth = true;
-		depthAttachment.DepthCompareOp = CompareOperation::Greater;
+		depthAttachment.DepthCompareOp = CompareOperation::GreaterEqual;
 
 		ShaderDefines defines;
 		if (bJitter)
