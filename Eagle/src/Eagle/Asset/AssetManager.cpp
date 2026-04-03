@@ -35,6 +35,7 @@ namespace Eagle
 	// And when an asset is requested, we should check if it's loaded already (s_Assets)
 	static std::unordered_map<Path, Ref<ScopedDataBuffer>> s_AssetPackAssets;
 	static std::unordered_map<GUID, std::pair<Path, Ref<ScopedDataBuffer>>> s_AssetPackAssetsByGUID;
+	static std::mutex s_Mutex;
 	static bool s_bGame = false;
 
 	void AssetManager::Init()
@@ -210,6 +211,8 @@ namespace Eagle
 
 	void AssetManager::Reset()
 	{
+		std::scoped_lock lock(s_Mutex);
+
 		AssetEntity::s_EntityAssetsScene.reset();
 		s_Callbacks.clear();
 		s_Assets.clear();
@@ -224,12 +227,15 @@ namespace Eagle
 
 	void AssetManager::ResetGameAssets()
 	{
+		std::scoped_lock lock(s_Mutex);
+
 		s_Assets.clear();
 		s_AssetsByGUID.clear();
 	}
 
 	void AssetManager::ResetRuntimeAsset()
 	{
+		std::scoped_lock lock(s_Mutex);
 		s_RuntimeAssets.clear();
 	}
 
@@ -237,6 +243,7 @@ namespace Eagle
 	{
 		if (asset)
 		{
+			std::scoped_lock lock(s_Mutex);
 			s_Assets.emplace(asset->GetPath(), asset);
 			s_AssetsByGUID.emplace(asset->GetGUID(), asset);
 		}
@@ -246,12 +253,15 @@ namespace Eagle
 	{
 		if (asset)
 		{
+			std::scoped_lock lock(s_Mutex);
 			s_RuntimeAssets.emplace(asset->GetGUID(), asset);
 		}
 	}
 	
 	bool AssetManager::Get(const Path& path, Ref<Asset>* outAsset)
 	{
+		std::scoped_lock lock(s_Mutex);
+
 		auto it = s_Assets.find(path);
 		if (it != s_Assets.end())
 		{
@@ -282,6 +292,8 @@ namespace Eagle
 	{
 		if (guid.IsNull())
 			return false;
+
+		std::scoped_lock lock(s_Mutex);
 
 		auto it = s_AssetsByGUID.find(guid);
 		if (it != s_AssetsByGUID.end())
@@ -321,6 +333,8 @@ namespace Eagle
 
 	bool AssetManager::Exists(const Path& path)
 	{
+		std::scoped_lock lock(s_Mutex);
+
 		auto it = s_Assets.find(path);
 		if (it != s_Assets.end())
 		{
@@ -345,6 +359,8 @@ namespace Eagle
 		if (!s_bGame)
 			return false;
 
+		std::scoped_lock lock(s_Mutex);
+
 		auto it = s_AssetPackAssets.find(path);
 		if (it != s_AssetPackAssets.end())
 		{
@@ -359,6 +375,7 @@ namespace Eagle
 	{
 		std::vector<Ref<Asset>> dirty;
 
+		std::scoped_lock lock(s_Mutex);
 		for (const auto& [unused, asset] : s_Assets)
 			if (asset->IsDirty())
 				dirty.push_back(asset);

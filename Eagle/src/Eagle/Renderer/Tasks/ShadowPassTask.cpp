@@ -2449,7 +2449,7 @@ namespace Eagle
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_meshes.vert", ShaderType::Vertex, defines);
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
 
 			m_OpacityMSLPipeline = PipelineGraphics::Create(state);
@@ -2484,7 +2484,7 @@ namespace Eagle
 			const ShaderDefines vertexDefines = { {"EG_MATERIALS_REQUIRED", ""} };
 
 			PipelineGraphicsState state;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_meshes.vert", ShaderType::Vertex, vertexDefines);
 
@@ -2544,7 +2544,7 @@ namespace Eagle
 
 			PipelineGraphicsState state;
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.bEnableMultiViewRendering = true;
 			state.MultiViewPasses = 6;
 			state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
@@ -2606,7 +2606,7 @@ namespace Eagle
 
 			PipelineGraphicsState state;
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
 
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_meshes.vert", ShaderType::Vertex, defines);
@@ -2720,7 +2720,7 @@ namespace Eagle
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_skeletal_meshes.vert", ShaderType::Vertex, defines);
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
 
 			m_OpacitySMSLPipeline = PipelineGraphics::Create(state);
@@ -2806,7 +2806,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_skeletal_meshes.vert", ShaderType::Vertex, defines);
 			state.FragmentShader = Shader::Create("shadow_maps/shadow_map_masked.frag", ShaderType::Fragment);
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
 
 			m_MaskedSMSLPipeline = PipelineGraphics::Create(state);
@@ -2858,7 +2858,7 @@ namespace Eagle
 			const ShaderDefines vertexDefines = { {"EG_MATERIALS_REQUIRED", ""} };
 
 			PipelineGraphicsState state;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_skeletal_meshes.vert", ShaderType::Vertex, vertexDefines);
 			state.FragmentShader = Shader::Create("shadow_maps/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
@@ -2936,7 +2936,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_skeletal_meshes.vert", ShaderType::Vertex, defines);
 			state.FragmentShader = Shader::Create("shadow_maps/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.bEnableMultiViewRendering = true;
 			state.MultiViewPasses = 6;
 			state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
@@ -3014,7 +3014,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_skeletal_meshes.vert", ShaderType::Vertex, defines);
 			state.FragmentShader = Shader::Create("shadow_maps/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
 			state.ColorAttachments.push_back(colorAttachment);
 			if (bVolumetricLightsEnabled)
@@ -3119,7 +3119,7 @@ namespace Eagle
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_sprites.vert", ShaderType::Vertex, slDefines);
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.FrontFace = FrontFaceMode::Clockwise;
 
 			m_OpacitySSLPipeline = PipelineGraphics::Create(state);
@@ -3204,7 +3204,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_sprites.vert", ShaderType::Vertex, slDefines);
 			state.FragmentShader = Shader::Create("shadow_maps/shadow_map_masked.frag", ShaderType::Fragment);
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.FrontFace = FrontFaceMode::Clockwise;
 
 			m_MaskedSSLPipeline = PipelineGraphics::Create(state);
@@ -3257,7 +3257,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_sprites.vert", ShaderType::Vertex, { {"EG_MATERIALS_REQUIRED", ""} });
 			state.FragmentShader = Shader::Create("shadow_maps/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.ColorAttachments.push_back(colorAttachment);
 			if (bVolumetricLightsEnabled)
 				state.ColorAttachments.push_back(depthColorAttachment);
@@ -3331,7 +3331,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_sprites.vert", ShaderType::Vertex, plDefines);
 			state.FragmentShader = Shader::Create("shadow_maps/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.bEnableMultiViewRendering = true;
 			state.MultiViewPasses = 6;
 			state.ColorAttachments.push_back(colorAttachment);
@@ -3407,7 +3407,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_sprites.vert", ShaderType::Vertex, slDefines);
 			state.FragmentShader = Shader::Create("shadow_maps/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.ColorAttachments.push_back(colorAttachment);
 			if (bVolumetricLightsEnabled)
 				state.ColorAttachments.push_back(depthColorAttachment);
@@ -3516,7 +3516,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_lit.vert", ShaderType::Vertex, slDefines);
 			state.FragmentShader = fragShader;
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.FrontFace = FrontFaceMode::Clockwise;
 
 			m_OpaqueLitTSLPipeline = PipelineGraphics::Create(state);
@@ -3603,7 +3603,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_lit.vert", ShaderType::Vertex, slDefines);
 			state.FragmentShader = fragShader;
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.FrontFace = FrontFaceMode::Clockwise;
 
 			m_MaskedLitTSLPipeline = PipelineGraphics::Create(state);
@@ -3663,7 +3663,7 @@ namespace Eagle
 			if (bVolumetricLightsEnabled)
 				state.ColorAttachments.push_back(depthColorAttachment);
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 
 			if (m_TranslucentLitTDLPipelineClearing)
 				m_TranslucentLitTDLPipelineClearing->SetState(state);
@@ -3735,7 +3735,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_lit.vert", ShaderType::Vertex, plDefines);
 			state.FragmentShader = fragShader;
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.bEnableMultiViewRendering = true;
 			state.MultiViewPasses = 6;
 			state.ColorAttachments.push_back(colorAttachment);
@@ -3811,7 +3811,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_lit.vert", ShaderType::Vertex, slDefines);
 			state.FragmentShader = fragShader;
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.ColorAttachments.push_back(colorAttachment);
 			if (bVolumetricLightsEnabled)
 				state.ColorAttachments.push_back(depthColorAttachment);

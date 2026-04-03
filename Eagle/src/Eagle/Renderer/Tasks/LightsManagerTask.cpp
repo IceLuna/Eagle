@@ -120,7 +120,6 @@ namespace Eagle
 			{
 				const float cutoff = light.OuterCutOffRadians * 2.f;
 				glm::mat4 spotLightPerspectiveProjection = Math::Perspective(cutoff, 1.f, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
-				spotLightPerspectiveProjection[1][1] *= -1.f;
 				const glm::vec3 upVector = light.ViewProj[0];
 				light.ViewProj = spotLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + light.Direction, upVector);
 			}
