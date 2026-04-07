@@ -19,6 +19,7 @@
 #include "Tasks/SSAOTask.h"
 #include "Tasks/GTAOTask.h"
 #include "Tasks/FogPassTask.h"
+#include "Tasks/SkinCacheTask.h"
 
 namespace Eagle
 {
@@ -155,6 +156,9 @@ namespace Eagle
 
 		const auto& GetSkeletalMeshesDrawData() const { return m_GeometryManagerTask->GetSkeletalMeshesDrawData(); }
 		const auto& GetSkeletalMeshesBuffers() const { return m_GeometryManagerTask->GetSkeletalMeshesBuffers(); }
+		const auto& GetSkeletalMeshes() const { return m_GeometryManagerTask->GetSkeletalMeshes(); }
+		const auto& GetSkinnedVertices() const { return m_SkinCacheTask->GetSkinnedVertices(); }
+		const auto& GetPrevSkinnedVerticesPositions() const { return m_SkinCacheTask->GetPrevSkinnedVerticesPositions(); }
 
 		const auto& GetPointLights() const { return m_LightsManagerTask->GetPointLights(); }
 		const auto& GetSpotLights() const { return m_LightsManagerTask->GetSpotLights(); }
@@ -169,10 +173,8 @@ namespace Eagle
 		const Ref<Buffer>& GetMeshPrevTransformsBuffer() const { return m_GeometryManagerTask->GetMeshesPrevTransformBuffer(); }
 
 		const Ref<Buffer>& GetSkeletalMeshTransformsBuffer() const { return m_GeometryManagerTask->GetSkeletalMeshesTransformBuffer(); }
-		const Ref<Buffer>& GetSkeletalMeshPrevTransformsBuffer() const { return m_GeometryManagerTask->GetSkeletalMeshesPrevTransformBuffer(); }
 		const std::vector<std::vector<glm::mat4>>& GetAnimationTransforms() const { return m_GeometryManagerTask->GetAnimationTransforms(); }
 		const std::vector<Ref<Buffer>>& GetAnimationTransformsBuffers() const { return m_GeometryManagerTask->GetAnimationTransformsBuffers(); }
-		const std::vector<Ref<Buffer>>& GetAnimationPrevTransformsBuffers() const { return m_GeometryManagerTask->GetAnimationPrevTransformsBuffers(); }
 
 		const auto& GetOpaqueSpritesData() const { return m_GeometryManagerTask->GetOpaqueSpriteData(); }
 		const auto& GetOpaqueNotCastingShadowSpriteData() const { return m_GeometryManagerTask->GetOpaqueNotCastingShadowSpriteData(); }
@@ -214,7 +216,7 @@ namespace Eagle
 		const Ref<Buffer>& GetFogDataBuffer() const { return m_FogTask->GetFogDataBuffer(); }
 
 		// Contains View Matrix, InvVP
-		const Ref<Buffer>& GetCameraBuffer() const { return m_CameraDataBuffer; }
+		const Ref<Buffer>& GetCameraMatricesBuffer() const { return m_CameraDataBuffer; }
 		const Ref<Image>& GetSMDistribution() const { return m_PBRPassTask->GetSMDistribution(); }
 
 		const Ref<Image>& GetSSAOResult() const { return m_SSAOTask->GetResult(); }
@@ -258,6 +260,7 @@ namespace Eagle
 		void InitWithOptions();
 
 	private:
+		Ref<SkinCacheTask> m_SkinCacheTask;
 		Ref<GeometryManagerTask> m_GeometryManagerTask;
 		Ref<RendererTask> m_DepthPrepassTask;
 		Ref<RendererTask> m_RenderMeshesTask;

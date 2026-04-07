@@ -56,6 +56,8 @@ namespace Eagle
 		void CompositePass(const Ref<CommandBuffer>& cmd);
 		void RenderEntityIDs(const Ref<CommandBuffer>& cmd);
 
+		void Prepare(const Ref<CommandBuffer>& cmd);
+
 		void InitMeshPipelines();
 		void InitSkeletalMeshPipelines();
 		void InitSpritesPipelines();
@@ -71,19 +73,6 @@ namespace Eagle
 		bool SetFogEnabled(bool bEnabled);
 
 		void RecreatePipeline(bool bUpdateDefines);
-
-		struct ColorPushData
-		{
-			glm::vec3 CameraPos;
-			float MaxReflectionLOD;
-			glm::ivec2 Size;
-			float MaxShadowDistance2; // Square of distance
-			float CascadesSmoothTransitionAlpha;
-			float IBLIntensity;
-			uint32_t PointLights;
-			uint32_t SpotLights;
-			uint32_t HasDirLight;
-		};
 
 	private:
 		Ref<PipelineGraphics> m_MeshesDepthPipeline;
@@ -111,11 +100,12 @@ namespace Eagle
 		Ref<Shader> m_TransparencyTextColorShader;
 		Ref<Shader> m_TransparencyTextDepthShader;
 
+		Ref<Buffer> m_UniformBuffer;
+
 		Ref<Buffer> m_OITBuffer;
 		uint32_t m_Layers = 4u;
 		PBRConstantsKernelInfo m_KernelInfo;
 
-		ColorPushData m_ColorPushData;
 		ShaderDefines m_ShaderDefines;
 
 		uint64_t m_TexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };

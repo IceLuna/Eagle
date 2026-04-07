@@ -102,6 +102,7 @@ namespace Eagle
 		std::vector<Ref<Image>> m_PLShadowMaps;
 		std::vector<Ref<Sampler>> m_PLShadowMapSamplers;
 		Ref<Buffer> m_PLVPsBuffer;
+		std::vector<glm::mat4> m_PLVPs;
 		//Colored
 		std::vector<Ref<Framebuffer>> m_PLCFramebuffers;
 		std::vector<Ref<Framebuffer>> m_PLCFramebuffers_NoDepth;

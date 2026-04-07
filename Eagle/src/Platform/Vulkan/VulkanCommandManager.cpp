@@ -483,16 +483,28 @@ namespace Eagle
 		uint32_t instanceCount, uint32_t firstInstance, const Ref<Buffer>& perInstanceBuffer)
 	{
 		EG_CORE_ASSERT(m_CurrentGraphicsPipeline);
-		EG_CORE_ASSERT(vertexBuffer->HasUsage(BufferUsage::VertexBuffer));
-		EG_CORE_ASSERT(perInstanceBuffer->HasUsage(BufferUsage::VertexBuffer));
 		EG_CORE_ASSERT(indexBuffer->HasUsage(BufferUsage::IndexBuffer));
 
 		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
 		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-		VkBuffer vertexBuffers[2] = { (VkBuffer)vertexBuffer->GetHandle(), (VkBuffer)perInstanceBuffer->GetHandle() };
+		uint32_t vertexBuffersCount = 0;
+		VkBuffer vertexBuffers[2] = { VK_NULL_HANDLE };
 		VkDeviceSize offsets[] = { 0, 0 };
-		vkCmdBindVertexBuffers(m_CommandBuffer, 0, 2, vertexBuffers, offsets);
+		if (vertexBuffer)
+		{
+			EG_CORE_ASSERT(vertexBuffer->HasUsage(BufferUsage::VertexBuffer));
+			vertexBuffers[vertexBuffersCount++] = (VkBuffer)vertexBuffer->GetHandle();
+		}
+		if (perInstanceBuffer)
+		{
+			EG_CORE_ASSERT(perInstanceBuffer->HasUsage(BufferUsage::VertexBuffer));
+			vertexBuffers[vertexBuffersCount++] = (VkBuffer)perInstanceBuffer->GetHandle();
+		}
+		if (vertexBuffersCount > 0)
+		{
+			vkCmdBindVertexBuffers(m_CommandBuffer, 0, vertexBuffersCount, vertexBuffers, offsets);
+		}
 		vkCmdBindIndexBuffer(m_CommandBuffer, (VkBuffer)indexBuffer->GetHandle(), 0, VK_INDEX_TYPE_UINT32);
 		vkCmdDrawIndexed(m_CommandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 	}

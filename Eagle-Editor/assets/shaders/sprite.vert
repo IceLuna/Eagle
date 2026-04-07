@@ -61,10 +61,6 @@ void main()
     const uint materialIndex  = a_MaterialIndex;
     o_ReceivesDecals = (a_TransformIndex & EG_RECEIVES_DECALS_MASK) == EG_RECEIVES_DECALS_MASK ? 1u : 0u;
 
-    const CPUMaterial material = g_Materials[materialIndex];
-    bool unused;
-    const uint normalTextureIndex = Material_GetIndex(material.PackedIndices2, NormalIndexMask, NormalIndexOffset, unused);
-
     const mat3 normalModel = mat3(transpose(inverse(model)));
     vec3 worldNormal = normalize(normalModel * s_Normal);
     const bool bInvert = (gl_VertexIndex % 8u) >= 4;
@@ -72,6 +68,7 @@ void main()
         worldNormal = -worldNormal;
     o_Normal = worldNormal;
 
+    const uint normalTextureIndex = FetchMaterialNormalTextureIndex(materialIndex);
     if (normalTextureIndex != EG_INVALID_INDEX)
     {
         const vec3 worldTangent = normalize(normalModel * s_Tangent);
@@ -79,7 +76,7 @@ void main()
         o_TBN = mat3(worldTangent, worldBitangent, worldNormal);
     }
 
-    o_TexCoords = a_TexCoords * material.TilingFactor;
+    o_TexCoords = a_TexCoords;
     o_MaterialIndex  = materialIndex;
     o_EntityID = a_EntityID;
 #endif // #ifndef EG_DEPTH_ONLY

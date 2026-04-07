@@ -695,7 +695,7 @@ namespace Eagle
 		m_Simulate->SetBuffer(m_DrawArgs, 0, 8);
 		m_Simulate->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 9);
 		m_Simulate->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 10);
-		m_Simulate->SetBuffer(m_Renderer.GetCameraBuffer(), 0, 11);
+		m_Simulate->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 0, 11);
 		m_Simulate->SetBuffer(m_TransformsBuffer, 0, 12);
 		m_Simulate->SetBuffer(m_OpaqueIndicesToRender, 0, 13);
 		if (bSortOpaque)

@@ -124,18 +124,38 @@ namespace Eagle
 			m_MaskedPipeline = PipelineGraphics::Create(state);
 	}
 
-	void RenderSkeletalMeshesTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const std::vector<MeshDrawData>& meshes, const MeshGeometryData<SkeletalVertex>& buffers, const PushData& pushData, RenderStats& stats)
+	void RenderSkeletalMeshesTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const std::vector<MeshDrawData>& meshes, const MeshGeometryData<SkeletalVertex>& buffers,
+		RenderStats& stats, const DataBufferView& vertexPushData, const Ref<Framebuffer>& framebuffer)
 	{
-		cmd->BeginGraphics(pipeline);
-		cmd->SetGraphicsRootConstants(&pushData, nullptr);
+		// We're manually fetching VB & IVB data, so set the to null for the draw calls
+		static Ref<Buffer> nullBuffer = nullptr;
 
-		uint32_t firstIndex = 0;
-		uint32_t firstInstance = 0;
-		uint32_t vertexOffset = 0;
+		if (framebuffer)
+			cmd->BeginGraphics(pipeline, framebuffer);
+		else
+			cmd->BeginGraphics(pipeline);
+
+		struct PushData
+		{
+			uint32_t VertexCount = 0;
+			uint32_t InstanceOffset = 0;
+			uint32_t VerticesOffset = 0;
+		};
+		PushData pushData;
+
+		constexpr size_t pushConstantsMaxSize = 128;
+		EG_CORE_ASSERT((pushConstantsMaxSize - vertexPushData.Size) >= sizeof(PushData)); // We need to have enough space to hold PushData
+		uint8_t pushConstants[pushConstantsMaxSize];
+		if (vertexPushData.Size > 0)
+		{
+			memcpy_s(pushConstants, pushConstantsMaxSize, vertexPushData.Data, vertexPushData.Size);
+		}
+
+		const size_t dstOffset = vertexPushData.Size;
 		for (const auto& data : meshes)
 		{
-			const uint32_t verticesCount = data.VerticesCount;
-			const uint32_t vertexOffset = data.VertexOffset;
+			pushData.VertexCount = data.VerticesCount;
+			pushData.VerticesOffset = data.SkinnedVertexOffset;
 
 			for (const auto& matRenderData : data.PerMaterialData)
 			{
@@ -145,7 +165,11 @@ namespace Eagle
 				const uint32_t firstInstance = matRenderData.FirstInstance;
 				if (instanceCount > 0)
 				{
-					cmd->DrawIndexedInstanced(buffers.VertexBuffer, buffers.IndexBuffer, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, buffers.InstanceBuffer);
+					pushData.InstanceOffset = firstInstance;
+
+					memcpy_s(pushConstants + dstOffset, pushConstantsMaxSize - dstOffset, &pushData, sizeof(PushData));
+					cmd->SetGraphicsRootConstants(pushConstants, nullptr);
+					cmd->DrawIndexedInstanced(nullBuffer, buffers.IndexBuffer, indicesCount, firstIndex, 0, instanceCount, firstInstance, nullBuffer);
 					++stats.DrawCalls;
 				}
 			}
@@ -171,26 +195,25 @@ namespace Eagle
 			m_OpaqueTexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()] = texturesChangedFrame + 1;
 		}
 
+		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
+		const auto& vb = m_Renderer.GetSkinnedVertices();
+
 		m_OpaquePipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 		m_OpaquePipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
-		m_OpaquePipeline->SetBuffer(m_Renderer.GetSkeletalMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
-		m_OpaquePipeline->SetBufferArray(m_Renderer.GetAnimationTransformsBuffers(), 3, 0);
-
-		PushData pushData;
-		pushData.ViewProj = m_Renderer.GetViewProjection();
+		m_OpaquePipeline->SetBuffer(vb, EG_PERSISTENT_SET, EG_BINDING_MAX);
+		m_OpaquePipeline->SetBuffer(buffers.InstanceBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+		m_OpaquePipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
+		m_OpaquePipeline->SetBuffer(m_Renderer.GetSkeletalMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 3);
 
 		if (bMotionRequired)
 		{
-			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
-			m_OpaquePipeline->SetBuffer(m_Renderer.GetSkeletalMeshPrevTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
-			m_OpaquePipeline->SetBufferArray(m_Renderer.GetAnimationPrevTransformsBuffers(), 4, 0);
+			m_OpaquePipeline->SetBuffer(m_Renderer.GetPrevSkinnedVerticesPositions(), EG_PERSISTENT_SET, EG_BINDING_MAX + 4);
 		}
 		if (bJitter)
 			m_OpaquePipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
 		auto& stats = m_Renderer.GetStats();
-		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
-		Draw(cmd, m_OpaquePipeline, meshes, buffers, pushData, stats);
+		Draw(cmd, m_OpaquePipeline, meshes, buffers, stats);
 	}
 
 	void RenderSkeletalMeshesTask::RenderMasked(const Ref<CommandBuffer>& cmd)
@@ -210,25 +233,24 @@ namespace Eagle
 			m_MaskedTexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()] = texturesChangedFrame + 1;
 		}
 
+		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
+		const auto& vb = m_Renderer.GetSkinnedVertices();
+
 		m_MaskedPipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 		m_MaskedPipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
-		m_MaskedPipeline->SetBuffer(m_Renderer.GetSkeletalMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
-		m_MaskedPipeline->SetBufferArray(m_Renderer.GetAnimationTransformsBuffers(), 3, 0);
-
-		PushData pushData;
-		pushData.ViewProj = m_Renderer.GetViewProjection();
+		m_MaskedPipeline->SetBuffer(vb, EG_PERSISTENT_SET, EG_BINDING_MAX);
+		m_MaskedPipeline->SetBuffer(buffers.InstanceBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+		m_MaskedPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
+		m_MaskedPipeline->SetBuffer(m_Renderer.GetSkeletalMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 3);
 
 		if (bMotionRequired)
 		{
-			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
-			m_MaskedPipeline->SetBuffer(m_Renderer.GetSkeletalMeshPrevTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
-			m_MaskedPipeline->SetBufferArray(m_Renderer.GetAnimationPrevTransformsBuffers(), 4, 0);
+			m_MaskedPipeline->SetBuffer(m_Renderer.GetPrevSkinnedVerticesPositions(), EG_PERSISTENT_SET, EG_BINDING_MAX + 4);
 		}
 		if (bJitter)
 			m_MaskedPipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
 		auto& stats = m_Renderer.GetStats();
-		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
-		Draw(cmd, m_MaskedPipeline, meshes, buffers, pushData, stats);
+		Draw(cmd, m_MaskedPipeline, meshes, buffers, stats);
 	}
 }

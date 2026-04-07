@@ -74,14 +74,13 @@ namespace Eagle
 
 		m_StaticMeshesPipeline->SetBuffer(m_Renderer.GetMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
 
-		RenderMeshesTask::PushData pushData;
-		pushData.ViewProj = m_Renderer.GetViewProjection();
+		const glm::mat4& viewProj = m_Renderer.GetViewProjection();
 		if (bJitter)
 			m_StaticMeshesPipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
 		auto& stats = m_Renderer.GetStats();
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
-		RenderMeshesTask::Draw(cmd, m_StaticMeshesPipeline, meshes, buffers, pushData, stats);
+		RenderMeshesTask::Draw(cmd, m_StaticMeshesPipeline, meshes, buffers, stats, glm::value_ptr(viewProj));
 	}
 
 	void DepthPrepassTask::RenderSkeletalMeshes(const Ref<CommandBuffer>& cmd)
@@ -93,18 +92,18 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Depth Prepass. Skeletal Meshes");
 		EG_CPU_TIMING_SCOPED("Depth Prepass. Skeletal Meshes");
 
-		m_SkeletalMeshesPipeline->SetBuffer(m_Renderer.GetSkeletalMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
-		m_SkeletalMeshesPipeline->SetBufferArray(m_Renderer.GetAnimationTransformsBuffers(), 3, 0);
+		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
+		const auto& vb = m_Renderer.GetSkinnedVertices();
 
-		RenderSkeletalMeshesTask::PushData pushData;
-		pushData.ViewProj = m_Renderer.GetViewProjection();
+		m_SkeletalMeshesPipeline->SetBuffer(vb, EG_PERSISTENT_SET, EG_BINDING_MAX);
+		m_SkeletalMeshesPipeline->SetBuffer(buffers.InstanceBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+		m_SkeletalMeshesPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
 
 		if (bJitter)
 			m_SkeletalMeshesPipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
 		auto& stats = m_Renderer.GetStats();
-		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
-		RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesPipeline, meshes, buffers, pushData, stats);
+		RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesPipeline, meshes, buffers, stats);
 	}
 
 	void DepthPrepassTask::InitSpritesPipeline()

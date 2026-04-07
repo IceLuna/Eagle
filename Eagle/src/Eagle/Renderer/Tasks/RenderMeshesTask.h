@@ -31,12 +31,8 @@ namespace Eagle
 			InitPipeline();
 		}
 
-		struct PushData
-		{
-			glm::mat4 ViewProj;
-			glm::mat4 PrevViewProj;
-		};
-		static void Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const std::vector<MeshDrawData>& meshes, const MeshGeometryData<Vertex>& buffers, const PushData& pushData, RenderStats& stats);
+		static void Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const std::vector<MeshDrawData>& meshes, const MeshGeometryData<Vertex>& buffers, RenderStats& stats,
+			const void* vertexPushData = nullptr, const Ref<Framebuffer>& framebuffer = nullptr);
 
 		inline static const std::vector<PipelineGraphicsState::VertexInputAttribute> PerInstanceAttribs = { { 4u } }; // Locations of Per-Instance data in shader
 

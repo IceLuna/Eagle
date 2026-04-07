@@ -24,19 +24,17 @@ layout(location = 5) in mat3      i_TBN;
 
 layout(location = 0) out vec4 outColor;
 
-layout(push_constant) uniform PushConstants
+layout(set = 6, binding = 0) uniform ShadingUniforms
 {
-    layout(offset = 64) vec3 g_CameraPos;
+    vec3 g_CameraPos;
     float g_MaxReflectionLOD;
     ivec2 g_Size;
     float g_MaxShadowDistance2;
     float g_CSMOverlap;
     float g_IBLIntensity;
-#ifdef EG_STUTTERLESS
     uint g_PointLightsCount;
     uint g_SpotLightsCount;
     uint g_HasDirLight;
-#endif
 };
 
 #ifndef EG_STUTTERLESS

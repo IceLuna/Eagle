@@ -86,7 +86,7 @@ namespace Eagle
 				i += 6;
 			}
 
-			cmd->Write(buffer, indices.data(), ibSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
+			cmd->Write(buffer, indices.data(), ibSize, 0, buffer->GetLayout(), BufferReadAccess::Index);
 			cmd->TransitionLayout(buffer, BufferReadAccess::Index, BufferReadAccess::Index);
 		}
 
@@ -108,7 +108,7 @@ namespace Eagle
 				offset += 4;
 			}
 
-			cmd->Write(buffer, indices.data(), ibSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
+			cmd->Write(buffer, indices.data(), ibSize, 0, buffer->GetLayout(), BufferReadAccess::Index);
 			cmd->TransitionLayout(buffer, BufferReadAccess::Index, BufferReadAccess::Index);
 		}
 
@@ -156,7 +156,7 @@ namespace Eagle
 				if (bMotionRequired && !bTransformBufferGarbage) // Copy old transforms but not if it's garbage
 					cmd->CopyBuffer(gpuBuffer, prevGpuBuffer, 0, 0, gpuBuffer->GetSize());
 
-				cmd->Write(gpuBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+				cmd->Write(gpuBuffer, transforms.data(), currentBufferSize, 0, gpuBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 				cmd->StorageBufferBarrier(gpuBuffer);
 
 				if (bMotionRequired && bTransformBufferGarbage)
@@ -269,8 +269,8 @@ namespace Eagle
 				}
 			}
 
-			cmd->Write(vb, buffers.Vertices.data(), buffers.Vertices.size() * sizeof(VertexType), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
-			cmd->Write(ib, buffers.Indices.data(), buffers.Indices.size() * sizeof(Index), 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
+			cmd->Write(vb, buffers.Vertices.data(), buffers.Vertices.size() * sizeof(VertexType), 0, vb->GetLayout(), BufferReadAccess::Vertex);
+			cmd->Write(ib, buffers.Indices.data(), buffers.Indices.size() * sizeof(Index), 0, ib->GetLayout(), BufferReadAccess::Index);
 		}
 
 		// Fill up ivb so that the same blend mode instances are adjacent in memory.
@@ -334,10 +334,12 @@ namespace Eagle
 			constexpr uint32_t buckets = 2; // Separating shadow casting and non shadow casting instances
 			constexpr uint8_t shadowCastingIdx = 0;
 			constexpr uint8_t allInstancesIdx = 1;
+			uint32_t skinnedVerticesOffset = 0;
 			uint32_t meshIdx = 0;
 			for (const auto& [meshKey, instances] : meshes)
 			{
 				const auto& mesh = meshKey.Mesh;
+				const uint32_t instanceCount = (uint32_t)instances.size();
 				const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
 
 				// Bucket at `shadowCastingIdx` will contain draw data just for shadow casting instances.
@@ -349,12 +351,15 @@ namespace Eagle
 				{
 					for (size_t i = 0; i < Material::MaxBlendModes; ++i)
 					{
+						drawDatas[b][i].SkinnedVertexOffset = skinnedVerticesOffset;
 						drawDatas[b][i].VertexOffset = meshKey.VerticesOffset;
 						drawDatas[b][i].VerticesCount = meshKey.VerticesCount;
+						drawDatas[b][i].InstanceCount = instanceCount;
 						// Allocated as required.
 						// drawDatas[i].PerMaterialData.resize(materialsCount);
 					}
 				}
+				skinnedVerticesOffset += meshKey.VerticesCount * instanceCount;
 
 				// Iterate over every mesh in the batch.
 				// Append instance data in the pattern of `Structure of Arrays`.
@@ -457,7 +462,7 @@ namespace Eagle
 			BufferSpecifications vertexSpecs;
 			vertexSpecs.Size = s_MeshesBaseVertexBufferSize;
 			vertexSpecs.Layout = BufferReadAccess::Vertex;
-			vertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
+			vertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst | BufferUsage::StorageBuffer;
 
 			BufferSpecifications indexSpecs;
 			indexSpecs.Size = s_MeshesBaseIndexBufferSize;
@@ -593,11 +598,12 @@ namespace Eagle
 					UploadSkeletalMeshes(cmd);
 				SortSkeletalMeshes(cmd);
 			}
+			// Note: we're not copying/storing prev transforms buffer here. It's handled in a more optimal way inside SkinCacheTask by just copying last frame's skinned vertices
 			const bool bTransformBufferGarbage = bUploadSkeletalMeshes;
 			Utils::UploadTransforms(cmd, m_SkeletalMeshTransforms, m_SkeletalMeshesBuffers.TransformsBuffer, m_SkeletalMeshesBuffers.PrevTransformsBuffer, m_SkeletalMeshUploadSpecificTransforms,
-				&bUploadSkeletalMeshTransforms, &bUploadSkeletalMeshSpecificTransforms, bMotionRequired, bTransformBufferGarbage, "Skeletal Meshes. Upload Transforms buffer");
+				&bUploadSkeletalMeshTransforms, &bUploadSkeletalMeshSpecificTransforms, false, bTransformBufferGarbage, "Skeletal Meshes. Upload Transforms buffer");
 
-			UploadAnimationTransforms(cmd, bTransformBufferGarbage);
+			UploadAnimationTransforms(cmd);
 
 			bUploadSkeletalMeshes = false;
 		}
@@ -663,11 +669,10 @@ namespace Eagle
 		}
 	}
 
-	void GeometryManagerTask::UploadAnimationTransforms(const Ref<CommandBuffer>& cmd, bool bTransformsGarbage)
+	void GeometryManagerTask::UploadAnimationTransforms(const Ref<CommandBuffer>& cmd)
 	{
 		auto& animTransforms = m_AnimationTransforms;
 		auto& animTransformsBuffers = m_AnimationTransformsBuffers;
-		auto& prevAnimTransformsBuffers = m_AnimationPrevTransformsBuffers;
 
 		// Upload anim transforms
 		{
@@ -688,8 +693,6 @@ namespace Eagle
 					EG_ASSERT(it != finalAnimTransforms.end());
 					transforms = it->second;
 
-					bool bGarbage = bTransformsGarbage;
-
 					auto& animTransformsBuffer = animTransformsBuffers[animIndex];
 					const size_t currentBufferSize = transforms.size() * sizeof(glm::mat4);
 					if (!animTransformsBuffer || (animTransformsBuffer == Buffer::Dummy))
@@ -699,51 +702,14 @@ namespace Eagle
 						transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
 						transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst | BufferUsage::TransferSrc;
 						animTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Meshes_AnimationTransformsBuffer_#" + std::to_string(animIndex));
-						bGarbage = true;
 					}
 					else if (currentBufferSize > animTransformsBuffer->GetSize())
 					{
 						size_t newSize = (currentBufferSize * 3) / 2;
 						animTransformsBuffer->Resize(newSize);
-						bGarbage = true;
 					}
 
-					Ref<Buffer>* prevAnimTransformsBuffer = nullptr;
-					if (bMotionRequired)
-					{
-						auto& prevAnimTransformsBufferRef = prevAnimTransformsBuffers[animIndex];
-						if (!prevAnimTransformsBufferRef || (prevAnimTransformsBufferRef == Buffer::Dummy))
-						{
-							BufferSpecifications transformsBufferSpecs;
-							transformsBufferSpecs.Size = currentBufferSize;
-							transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
-							transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
-							prevAnimTransformsBufferRef = Buffer::Create(transformsBufferSpecs, "Meshes_AnimationPrevTransformsBuffer_#" + std::to_string(animIndex));
-							bGarbage = true;
-						}
-						else if (currentBufferSize > prevAnimTransformsBufferRef->GetSize())
-						{
-							size_t newSize = (currentBufferSize * 3) / 2;
-							prevAnimTransformsBufferRef->Resize(newSize);
-							bGarbage = true;
-						}
-						prevAnimTransformsBuffer = &prevAnimTransformsBufferRef;
-					}
-
-					if (bMotionRequired && !bGarbage)
-					{
-						EG_CORE_ASSERT(currentBufferSize <= (*prevAnimTransformsBuffer)->GetSize());
-						cmd->CopyBuffer(animTransformsBuffer, *prevAnimTransformsBuffer, 0, 0, currentBufferSize);
-					}
-
-					cmd->Write(animTransformsBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-
-					if (bMotionRequired && bGarbage)
-						cmd->Write(*prevAnimTransformsBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-
-					cmd->StorageBufferBarrier(animTransformsBuffer);
-					if (bMotionRequired)
-						cmd->StorageBufferBarrier(*prevAnimTransformsBuffer);
+					cmd->Write(animTransformsBuffer, transforms.data(), currentBufferSize, 0, animTransformsBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 				}
 			}
 		}
@@ -758,10 +724,8 @@ namespace Eagle
 		if (!bMotionRequired)
 		{
 			m_StaticMeshesBuffers.PrevTransformsBuffer.reset();
-			m_SkeletalMeshesBuffers.PrevTransformsBuffer.reset();
 			m_SpritesPrevTransformsBuffer.reset();
 			m_TextPrevTransformsBuffer.reset();
-			m_AnimationPrevTransformsBuffers.clear();
 		}
 		else
 		{
@@ -771,16 +735,15 @@ namespace Eagle
 			transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 			m_StaticMeshesBuffers.PrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Meshes_PrevTransformsBuffer");
 
-			transformsBufferSpecs.Size = m_SkeletalMeshesBuffers.TransformsBuffer->GetSize();
-			m_SkeletalMeshesBuffers.PrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "SkeletalMeshes_PrevTransformsBuffer");
+			// Note: we're not storing prev transforms buffer. It's handled in a more optimal way inside SkinCacheTask by just copying last frame's skinned vertices
+			// transformsBufferSpecs.Size = m_SkeletalMeshesBuffers.TransformsBuffer->GetSize();
+			// m_SkeletalMeshesBuffers.PrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "SkeletalMeshes_PrevTransformsBuffer");
 
 			transformsBufferSpecs.Size = m_SpritesTransformsBuffer->GetSize();
 			m_SpritesPrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Sprites_PrevTransformsBuffer");
 
 			transformsBufferSpecs.Size = m_TextTransformsBuffer->GetSize();
 			m_TextPrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Text_PrevTransformsBuffer");
-
-			m_AnimationPrevTransformsBuffers.resize(m_AnimationTransformsBuffers.size(), Buffer::Dummy);
 		}
 	}
 
@@ -900,7 +863,7 @@ namespace Eagle
 			if (currentInstanceVertexSize > ivb->GetSize())
 				ivb->Resize((currentInstanceVertexSize * 3) / 2);
 
-			cmd->Write(ivb, ivbData.data(), currentInstanceVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+			cmd->Write(ivb, ivbData.data(), currentInstanceVertexSize, 0, ivb->GetLayout(), BufferReadAccess::Vertex);
 		}
 	}
 
@@ -1031,7 +994,7 @@ namespace Eagle
 			if (currentInstanceVertexSize > ivb->GetSize())
 				ivb->Resize((currentInstanceVertexSize * 3) / 2);
 
-			cmd->Write(ivb, ivbData.data(), currentInstanceVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+			cmd->Write(ivb, ivbData.data(), currentInstanceVertexSize, 0, ivb->GetLayout(), BufferLayoutType::StorageBuffer);
 		}
 
 		const uint32_t animationsCount = (uint32_t)m_SkeletalMeshTransforms.size();
@@ -1039,8 +1002,6 @@ namespace Eagle
 		if (m_AnimationTransformsBuffers.size() < animationsCount)
 		{
 			m_AnimationTransformsBuffers.resize(animationsCount);
-			if (bMotionRequired)
-				m_AnimationPrevTransformsBuffers.resize(animationsCount);
 		}
 		else
 		{
@@ -1048,13 +1009,8 @@ namespace Eagle
 			for (size_t i = animationsCount; i < m_AnimationTransformsBuffers.size(); ++i)
 			{
 				m_AnimationTransformsBuffers[i] = Buffer::Dummy;
-				if (bMotionRequired)
-					m_AnimationPrevTransformsBuffers[i] = Buffer::Dummy;
 			}
 		}
-		
-		if (!bMotionRequired)
-			m_AnimationPrevTransformsBuffers.clear();
 	}
 
 	void GeometryManagerTask::UploadSkeletalMeshes(const Ref<CommandBuffer>& cmd)
@@ -1148,7 +1104,7 @@ namespace Eagle
 			Utils::UploadIndexBuffer(cmd, ib);
 		}
 
-		cmd->Write(vb, spritesData.QuadVertices.data(), currentVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+		cmd->Write(vb, spritesData.QuadVertices.data(), currentVertexSize, 0, vb->GetLayout(), BufferReadAccess::Vertex);
 		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
 	}
 
@@ -1834,7 +1790,7 @@ namespace Eagle
 			Utils::UploadIndexBuffer(cmd, ib);
 		}
 
-		cmd->Write(vb, quads.data(), currentVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+		cmd->Write(vb, quads.data(), currentVertexSize, 0, vb->GetLayout(), BufferReadAccess::Vertex);
 		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
 	}
 
@@ -1870,7 +1826,7 @@ namespace Eagle
 			Utils::UploadIndexBufferOneSided(cmd, ib);
 		}
 
-		cmd->Write(vb, quads.data(), currentVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+		cmd->Write(vb, quads.data(), currentVertexSize, 0, vb->GetLayout(), BufferReadAccess::Vertex);
 		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
 	}
 }

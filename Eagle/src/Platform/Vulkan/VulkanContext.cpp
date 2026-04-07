@@ -253,8 +253,9 @@ namespace Eagle
 		EG_CORE_ASSERT(m_PhysicalDevice == nullptr);
 		m_PhysicalDevice = VulkanPhysicalDevice::Select(surface, bRequireSurface);
 
-		VkPhysicalDevice16BitStorageFeatures storageFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES };
-		storageFeatures.storageBuffer16BitAccess = VK_TRUE;
+		VkPhysicalDeviceVulkan11Features deviceFeatures11 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
+		deviceFeatures11.multiview = VK_TRUE;
+		deviceFeatures11.storageBuffer16BitAccess = VK_TRUE;
 
 		VkPhysicalDeviceVulkan12Features deviceFeatures12 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
 		deviceFeatures12.descriptorIndexing = VK_TRUE;
@@ -266,10 +267,11 @@ namespace Eagle
 		deviceFeatures12.imagelessFramebuffer = VK_TRUE;
 		deviceFeatures12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
 		deviceFeatures12.shaderFloat16 = m_PhysicalDevice->IsFloat16Supported() ? VK_TRUE : VK_FALSE;
+		deviceFeatures12.scalarBlockLayout = VK_TRUE;
 #ifdef EG_GPU_TIMINGS
 		deviceFeatures12.hostQueryReset = VK_TRUE;
 #endif
-		deviceFeatures12.pNext = &storageFeatures;
+		deviceFeatures12.pNext = &deviceFeatures11;
 
 		if (!m_PhysicalDevice->IsFloat16Supported())
 		{

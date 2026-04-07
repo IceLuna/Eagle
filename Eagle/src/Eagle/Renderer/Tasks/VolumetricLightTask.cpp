@@ -100,7 +100,7 @@ namespace Eagle
 		m_Pipeline->SetBuffer(m_Renderer.GetPointLightsBuffer(), EG_SCENE_SET, 0);
 		m_Pipeline->SetBuffer(m_Renderer.GetSpotLightsBuffer(), EG_SCENE_SET, 1);
 		m_Pipeline->SetBuffer(m_Renderer.GetDirectionalLightBuffer(), EG_SCENE_SET, 2);
-		m_Pipeline->SetBuffer(m_Renderer.GetCameraBuffer(), EG_SCENE_SET, 3);
+		m_Pipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), EG_SCENE_SET, 3);
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetDirectionalLightShadowMaps(), m_Renderer.GetDirectionalLightShadowMapsSamplers(), 2, 0);
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetPointLightShadowMaps(), m_Renderer.GetPointLightShadowMapsSamplers(), 3, 0);
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), 4, 0);

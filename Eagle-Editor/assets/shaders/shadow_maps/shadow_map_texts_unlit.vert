@@ -8,9 +8,14 @@ layout(binding = 0) readonly buffer SpriteTransformsBuffer
 // For point lights & multi-view depth-pass
 #ifdef EG_POINT_LIGHT_PASS
 #extension GL_EXT_multiview : enable
-layout(binding = 1) uniform ViewProjectionsBuffer
+layout(binding = 1) readonly buffer ViewProjectionsBuffer
 {
-    mat4 g_ViewProjections[6];
+    mat4 g_ViewProjections[];
+};
+
+layout(push_constant) uniform PushData
+{
+    uint g_LightIndex;
 };
 #endif
 
@@ -34,7 +39,7 @@ void main()
     o_AtlasIndex = a_AtlasIndex;
 
 #ifdef EG_POINT_LIGHT_PASS
-    gl_Position = g_ViewProjections[gl_ViewIndex] * worldPos;
+    gl_Position = g_ViewProjections[g_LightIndex * 6 + gl_ViewIndex] * worldPos;
 #elif defined(EG_SPOT_LIGHT_PASS)
     gl_Position = g_ViewProj * worldPos;
 #else

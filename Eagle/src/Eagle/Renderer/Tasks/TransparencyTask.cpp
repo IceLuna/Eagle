@@ -17,32 +17,18 @@
 
 namespace Eagle
 {
-	namespace Utils
+	struct UniformData
 	{
-		template<typename MeshData, typename MeshGeometryData>
-		static void RenderMeshes(const Ref<CommandBuffer>& cmd, const MeshData& meshes, const MeshGeometryData& meshesData, RenderStats& stats)
-		{
-			const auto& buffers = meshesData;
-			for (const auto& data : meshes)
-			{
-				const uint32_t verticesCount = data.VerticesCount;
-				const uint32_t vertexOffset = data.VertexOffset;
-
-				for (const auto& matRenderData : data.PerMaterialData)
-				{
-					const uint32_t indicesCount = matRenderData.IndexCount;
-					const uint32_t firstIndex = matRenderData.FirstIndex;
-					const uint32_t instanceCount = matRenderData.InstanceCount;
-					const uint32_t firstInstance = matRenderData.FirstInstance;
-					if (instanceCount > 0)
-					{
-						cmd->DrawIndexedInstanced(buffers.VertexBuffer, buffers.IndexBuffer, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, buffers.InstanceBuffer);
-						++stats.DrawCalls;
-					}
-				}
-			}
-		}
-	}
+		glm::vec3 CameraPos;
+		float MaxReflectionLOD;
+		glm::ivec2 Size;
+		float MaxShadowDistance2; // Square of distance
+		float CascadesSmoothTransitionAlpha;
+		float IBLIntensity;
+		uint32_t PointLights;
+		uint32_t SpotLights;
+		uint32_t HasDirLight;
+	};
 
 	constexpr static uint32_t s_OITFillValue = 0x0u; // 0xFFFFFFFFu
 
@@ -70,6 +56,13 @@ namespace Eagle
 
 		m_TransparencyTextDepthShader = Shader::Create("transparency/transparency_text_depth.frag", ShaderType::Fragment, defines);
 		m_TransparencyTextColorShader = Shader::Create("transparency/transparency_text_color.frag", ShaderType::Fragment, defines);
+
+		{
+			BufferSpecifications specs{};
+			specs.Size = sizeof(UniformData);
+			specs.Usage = BufferUsage::UniformBuffer | BufferUsage::TransferDst;
+			m_UniformBuffer = Buffer::Create(specs, "TransparencyTask_UniformBuffer");
+		}
 
 		InitOITBuffer();
 		InitMeshPipelines();
@@ -103,6 +96,7 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Transparency");
 		EG_CPU_TIMING_SCOPED("Transparency");
 
+		Prepare(cmd);
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Transparency. Clear Buffer");
 			EG_CPU_TIMING_SCOPED("Transparency. Clear Buffer");
@@ -114,99 +108,46 @@ namespace Eagle
 			cmd->FillBuffer(m_OITBuffer, s_OITFillValue, 0, bytesToClear);
 		}
 
-		cmd->StorageBufferBarrier(m_OITBuffer);
-
 		RenderMeshesDepth(cmd);
-		cmd->StorageBufferBarrier(m_OITBuffer);
-
 		RenderSkeletalMeshesDepth(cmd);
-		cmd->StorageBufferBarrier(m_OITBuffer);
 
+		if (!spritesData.QuadVertices.empty() || !spritesNoShadowData.QuadVertices.empty())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Transparency. Sprites. Depth");
 			EG_CPU_TIMING_SCOPED("Transparency. Sprites. Depth");
 			
 			RenderSpritesDepth(cmd, spritesData);
-			cmd->StorageBufferBarrier(m_OITBuffer);
 			RenderSpritesDepth(cmd, spritesNoShadowData);
-			cmd->StorageBufferBarrier(m_OITBuffer);
 		}
 
+		if (!textsData.QuadVertices.empty() || !textsNoShadowData.QuadVertices.empty())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Transparency. Texts. Depth");
 			EG_CPU_TIMING_SCOPED("Transparency. Texts. Depth");
 
 			RenderTextsDepth(cmd, textsData);
-			cmd->StorageBufferBarrier(m_OITBuffer);
 			RenderTextsDepth(cmd, textsNoShadowData);
-			cmd->StorageBufferBarrier(m_OITBuffer);
-		}
-
-		// Prepare data for color passes
-		{
-			const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
-			const bool bTexturesDirty = texturesChangedFrame >= m_TexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()];
-			if (bTexturesDirty)
-			{
-				m_TextColorPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
-				m_SpritesColorPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
-				m_MeshesColorPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
-				m_SkeletalMeshesColorPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
-				m_TexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()] = texturesChangedFrame + 1;
-			}
-
-			const auto& iblAsset = m_Renderer.GetSkybox();
-			const bool bHasIrradiance = m_Renderer.IsSkyboxEnabled() && iblAsset.operator bool();
-			const auto& ibl = bHasIrradiance ? iblAsset->GetTexture() : RenderManager::GetDummyIBL();
-			m_ColorPushData.Size = m_Renderer.GetViewportSize();
-			m_ColorPushData.CameraPos = m_Renderer.GetViewPosition();
-			m_ColorPushData.MaxReflectionLOD = float(ibl->GetPrefilterImage()->GetMipsCount() - 1);
-			m_ColorPushData.MaxShadowDistance2 = m_Renderer.GetShadowMaxDistance() * m_Renderer.GetShadowMaxDistance();
-			m_ColorPushData.CascadesSmoothTransitionAlpha = m_Renderer.GetOptions_RT().InternalState.CascadesSmoothTransitionAlpha;
-			m_ColorPushData.IBLIntensity = m_Renderer.GetSkyboxIntensity();
-			m_ColorPushData.PointLights = (uint32_t)m_Renderer.GetPointLights().size();
-			m_ColorPushData.SpotLights = (uint32_t)m_Renderer.GetSpotLights().size();
-			m_ColorPushData.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());
-
-			PBRConstantsKernelInfo info;
-			info.PointLightsCount = m_ColorPushData.PointLights;
-			info.SpotLightsCount = m_ColorPushData.SpotLights;
-			info.bHasDirLight = m_ColorPushData.HasDirLight;
-			info.bHasIrradiance = bHasIrradiance;
-			if (info != m_KernelInfo)
-			{
-				// If stutterless, reload only if `bHasIrradiance` differs
-				const bool bRecreate = !bStutterlessShaders || (m_KernelInfo.bHasIrradiance != info.bHasIrradiance);
-				m_KernelInfo = info;
-				if (bRecreate)
-					RecreatePipeline(false);
-			}
 		}
 
 		RenderMeshesColor(cmd);
-		cmd->StorageBufferBarrier(m_OITBuffer);
-
 		RenderSkeletalMeshesColor(cmd);
-		cmd->StorageBufferBarrier(m_OITBuffer);
 
+		if (!spritesData.QuadVertices.empty() || !spritesNoShadowData.QuadVertices.empty())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Transparency. Sprites. Color");
 			EG_CPU_TIMING_SCOPED("Transparency. Sprites. Color");
 
 			RenderSpritesColor(cmd, spritesData);
-			cmd->StorageBufferBarrier(m_OITBuffer);
 			RenderSpritesColor(cmd, spritesNoShadowData);
-			cmd->StorageBufferBarrier(m_OITBuffer);
 		}
 
+		if (!textsData.QuadVertices.empty() || !textsNoShadowData.QuadVertices.empty())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Transparency. Texts. Color");
 			EG_CPU_TIMING_SCOPED("Transparency. Texts. Color");
 
 			RenderTextsColor(cmd, textsData);
-			cmd->StorageBufferBarrier(m_OITBuffer);
 			RenderTextsColor(cmd, textsNoShadowData);
-			cmd->StorageBufferBarrier(m_OITBuffer);
 		}
 
 		CompositePass(cmd);
@@ -267,7 +208,6 @@ namespace Eagle
 	void TransparencyTask::RenderMeshesDepth(const Ref<CommandBuffer>& cmd)
 	{
 		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().Translucent;
-
 		if (meshes.empty())
 			return;
 
@@ -276,23 +216,21 @@ namespace Eagle
 
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
 		const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
-		const glm::mat4& viewProj = m_Renderer.GetViewProjection();
-		const glm::uvec2 viewportSize = m_Renderer.GetViewportSize();
 
-		m_MeshesDepthPipeline->SetBuffer(transformsBuffer, EG_PERSISTENT_SET, 0);
-		m_MeshesDepthPipeline->SetBuffer(m_OITBuffer, EG_PERSISTENT_SET, 1);
+		m_MeshesDepthPipeline->SetBuffer(transformsBuffer, 0, 0);
+		m_MeshesDepthPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 0, 1);
+		m_MeshesDepthPipeline->SetBuffer(m_OITBuffer, 5, 0);
+		m_MeshesDepthPipeline->SetBuffer(m_UniformBuffer, 5, 1);
 
 		auto& stats = m_Renderer.GetStats();
-		cmd->BeginGraphics(m_MeshesDepthPipeline);
-		cmd->SetGraphicsRootConstants(&viewProj[0][0], &viewportSize);
-		Utils::RenderMeshes(cmd, meshes, buffers, stats);
-		cmd->EndGraphics();
+		RenderMeshesTask::Draw(cmd, m_MeshesDepthPipeline, meshes, buffers, stats);
+
+		cmd->StorageBufferBarrier(m_OITBuffer);
 	}
 
 	void TransparencyTask::RenderSkeletalMeshesDepth(const Ref<CommandBuffer>& cmd)
 	{
 		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().Translucent;
-
 		if (meshes.empty())
 			return;
 
@@ -300,25 +238,22 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Transparency. Skeletal Meshes. Depth");
 
 		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
-		const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
-		const glm::mat4& viewProj = m_Renderer.GetViewProjection();
-		const glm::uvec2 viewportSize = m_Renderer.GetViewportSize();
+		const auto& vb = m_Renderer.GetSkinnedVertices();
 
-		m_SkeletalMeshesDepthPipeline->SetBuffer(transformsBuffer, EG_PERSISTENT_SET, 0);
-		m_SkeletalMeshesDepthPipeline->SetBuffer(m_OITBuffer, EG_PERSISTENT_SET, 1);
-		m_SkeletalMeshesDepthPipeline->SetBufferArray(m_Renderer.GetAnimationTransformsBuffers(), 5, 0);
+		m_SkeletalMeshesDepthPipeline->SetBuffer(vb, 0, 0);
+		m_SkeletalMeshesDepthPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 0, 1);
+		m_SkeletalMeshesDepthPipeline->SetBuffer(m_OITBuffer, 5, 0);
+		m_SkeletalMeshesDepthPipeline->SetBuffer(m_UniformBuffer, 5, 1);
 
 		auto& stats = m_Renderer.GetStats();
-		cmd->BeginGraphics(m_SkeletalMeshesDepthPipeline);
-		cmd->SetGraphicsRootConstants(&viewProj[0][0], &viewportSize);
-		Utils::RenderMeshes(cmd, meshes, buffers, stats);
-		cmd->EndGraphics();
+		RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesDepthPipeline, meshes, buffers, stats);
+
+		cmd->StorageBufferBarrier(m_OITBuffer);
 	}
 
 	void TransparencyTask::RenderSpritesDepth(const Ref<CommandBuffer>& cmd, const SpriteGeometryData& spritesData)
 	{
 		const auto& vertices = spritesData.QuadVertices;
-
 		const uint32_t quadsCount = (uint32_t)(vertices.size() / 4);
 		if (quadsCount == 0)
 			return;
@@ -327,19 +262,18 @@ namespace Eagle
 		const auto& ib = spritesData.IndexBuffer;
 		const auto& transformsBuffer = m_Renderer.GetSpritesTransformsBuffer();
 
-		const glm::mat4& viewProj = m_Renderer.GetViewProjection();
-		const glm::uvec2 viewportSize = m_Renderer.GetViewportSize();
-
-		m_SpritesDepthPipeline->SetBuffer(transformsBuffer, EG_PERSISTENT_SET, 0);
-		m_SpritesDepthPipeline->SetBuffer(m_OITBuffer, EG_PERSISTENT_SET, 1);
+		m_SpritesDepthPipeline->SetBuffer(transformsBuffer, 0, 0);
+		m_SpritesDepthPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 0, 1);
+		m_SpritesDepthPipeline->SetBuffer(m_OITBuffer, 5, 0);
+		m_SpritesDepthPipeline->SetBuffer(m_UniformBuffer, 5, 1);
 
 		auto& stats = m_Renderer.GetStats();
 		++stats.DrawCalls;
 
 		cmd->BeginGraphics(m_SpritesDepthPipeline);
-		cmd->SetGraphicsRootConstants(&viewProj[0][0], &viewportSize);
 		cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
+		cmd->StorageBufferBarrier(m_OITBuffer);
 	}
 
 	void TransparencyTask::RenderTextsDepth(const Ref<CommandBuffer>& cmd, const LitTextGeometryData& data)
@@ -363,12 +297,12 @@ namespace Eagle
 		cmd->SetGraphicsRootConstants(&viewProj, &viewportSize);
 		cmd->DrawIndexed(data.VertexBuffer, data.IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
+		cmd->StorageBufferBarrier(m_OITBuffer);
 	}
 	
 	void TransparencyTask::RenderMeshesColor(const Ref<CommandBuffer>& cmd)
 	{
 		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().Translucent;
-
 		if (meshes.empty())
 			return;
 
@@ -376,18 +310,17 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Transparency. Static Meshes. Color");
 
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
-
 		const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
-		const glm::mat4& viewProj = m_Renderer.GetViewProjection();
-
 		const auto& materials = MaterialSystem::GetMaterialsBuffer();
+
 		m_MeshesColorPipeline->SetBuffer(materials, EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 		m_MeshesColorPipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 		m_MeshesColorPipeline->SetBuffer(transformsBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
-		m_MeshesColorPipeline->SetBuffer(m_OITBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
-		m_MeshesColorPipeline->SetBuffer(m_Renderer.GetCameraBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
+		m_MeshesColorPipeline->SetBuffer(m_OITBuffer, 5, 0);
+		m_MeshesColorPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 5, 1);
+		m_MeshesColorPipeline->SetBuffer(m_UniformBuffer, 5, 2);
 		if (bFog)
-			m_MeshesColorPipeline->SetBuffer(m_Renderer.GetFogDataBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 3);
+			m_MeshesColorPipeline->SetBuffer(m_Renderer.GetFogDataBuffer(), 5, 3);
 		
 		const auto& iblAsset = m_Renderer.GetSkybox();
 		const bool bHasIrradiance = m_Renderer.IsSkyboxEnabled() && iblAsset.operator bool() && iblAsset->GetTexture()->IsLoaded();
@@ -408,16 +341,13 @@ namespace Eagle
 		m_MeshesColorPipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), 4, 0);
 
 		auto& stats = m_Renderer.GetStats();
-		cmd->BeginGraphics(m_MeshesColorPipeline);
-		cmd->SetGraphicsRootConstants(&viewProj[0][0], &m_ColorPushData);
-		Utils::RenderMeshes(cmd, meshes, buffers, stats);
-		cmd->EndGraphics();
+		RenderMeshesTask::Draw(cmd, m_MeshesColorPipeline, meshes, buffers, stats);
+		cmd->StorageBufferBarrier(m_OITBuffer);
 	}
 	
 	void TransparencyTask::RenderSkeletalMeshesColor(const Ref<CommandBuffer>& cmd)
 	{
 		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().Translucent;
-
 		if (meshes.empty())
 			return;
 
@@ -425,22 +355,18 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Transparency. Skeletal Meshes. Color");
 
 		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
-		const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
-		const glm::mat4& viewProj = m_Renderer.GetViewProjection();
-
 		const auto& materials = MaterialSystem::GetMaterialsBuffer();
+		const auto& vb = m_Renderer.GetSkinnedVertices();
+
 		m_SkeletalMeshesColorPipeline->SetBuffer(materials, EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 		m_SkeletalMeshesColorPipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
-		m_SkeletalMeshesColorPipeline->SetBuffer(transformsBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
-		m_SkeletalMeshesColorPipeline->SetBuffer(m_OITBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
-		m_SkeletalMeshesColorPipeline->SetBuffer(m_Renderer.GetCameraBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
-		if (bFog)
-			m_SkeletalMeshesColorPipeline->SetBuffer(m_Renderer.GetFogDataBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 3);
+		m_SkeletalMeshesColorPipeline->SetBuffer(vb, EG_PERSISTENT_SET, EG_BINDING_MAX);
+		m_SkeletalMeshesColorPipeline->SetBuffer(buffers.InstanceBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+		m_SkeletalMeshesColorPipeline->SetBuffer(m_Renderer.GetSkeletalMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
 		
 		const auto& iblAsset = m_Renderer.GetSkybox();
 		const bool bHasIrradiance = m_Renderer.IsSkyboxEnabled() && iblAsset.operator bool() && iblAsset->GetTexture()->IsLoaded();
 		const auto& ibl = bHasIrradiance ? iblAsset->GetTexture() : RenderManager::GetDummyIBL();
-		
 		const Ref<Image>& smDistribution = bSoftShadows ? m_Renderer.GetSMDistribution() : RenderManager::GetDummyImage3D();
 		
 		m_SkeletalMeshesColorPipeline->SetBuffer(m_Renderer.GetPointLightsBuffer(), EG_SCENE_SET, EG_BINDING_POINT_LIGHTS);
@@ -454,19 +380,21 @@ namespace Eagle
 		m_SkeletalMeshesColorPipeline->SetImageSamplerArray(m_Renderer.GetDirectionalLightShadowMaps(), m_Renderer.GetDirectionalLightShadowMapsSamplers(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 5);
 		m_SkeletalMeshesColorPipeline->SetImageSamplerArray(m_Renderer.GetPointLightShadowMaps(), m_Renderer.GetPointLightShadowMapsSamplers(), 3, 0);
 		m_SkeletalMeshesColorPipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), 4, 0);
-		m_SkeletalMeshesColorPipeline->SetBufferArray(m_Renderer.GetAnimationTransformsBuffers(), 5, 0);
+
+		m_SkeletalMeshesColorPipeline->SetBuffer(m_OITBuffer, 5, 0);
+		m_SkeletalMeshesColorPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 5, 1);
+		m_SkeletalMeshesColorPipeline->SetBuffer(m_UniformBuffer, 5, 2);
+		if (bFog)
+			m_SkeletalMeshesColorPipeline->SetBuffer(m_Renderer.GetFogDataBuffer(), 5, 3);
 
 		auto& stats = m_Renderer.GetStats();
-		cmd->BeginGraphics(m_SkeletalMeshesColorPipeline);
-		cmd->SetGraphicsRootConstants(&viewProj[0][0], &m_ColorPushData);
-		Utils::RenderMeshes(cmd, meshes, buffers, stats);
-		cmd->EndGraphics();
+		RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesColorPipeline, meshes, buffers, stats);
+		cmd->StorageBufferBarrier(m_OITBuffer);
 	}
 
 	void TransparencyTask::RenderSpritesColor(const Ref<CommandBuffer>& cmd, const SpriteGeometryData& spritesData)
 	{
 		const auto& vertices = spritesData.QuadVertices;
-
 		if (vertices.empty())
 			return;
 
@@ -474,16 +402,15 @@ namespace Eagle
 		const auto& ib = spritesData.IndexBuffer;
 		const auto& transformsBuffer = m_Renderer.GetSpritesTransformsBuffer();
 
-		const glm::mat4& viewProj = m_Renderer.GetViewProjection();
-
 		const auto& materials = MaterialSystem::GetMaterialsBuffer();
 		m_SpritesColorPipeline->SetBuffer(materials, EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 		m_SpritesColorPipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 		m_SpritesColorPipeline->SetBuffer(transformsBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
-		m_SpritesColorPipeline->SetBuffer(m_OITBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
-		m_SpritesColorPipeline->SetBuffer(m_Renderer.GetCameraBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
+		m_SpritesColorPipeline->SetBuffer(m_OITBuffer, 5, 0);
+		m_SpritesColorPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 5, 1);
+		m_SpritesColorPipeline->SetBuffer(m_UniformBuffer, 5, 2);
 		if (bFog)
-			m_SpritesColorPipeline->SetBuffer(m_Renderer.GetFogDataBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 3);
+			m_SpritesColorPipeline->SetBuffer(m_Renderer.GetFogDataBuffer(), 5, 3);
 
 		const auto& iblAsset = m_Renderer.GetSkybox();
 		const bool bHasIrradiance = m_Renderer.IsSkyboxEnabled() && iblAsset.operator bool() && iblAsset->GetTexture()->IsLoaded();
@@ -505,14 +432,13 @@ namespace Eagle
 		m_SpritesColorPipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), 4, 0);
 
 		const uint32_t quadsCount = (uint32_t)(vertices.size() / 4);
+		cmd->BeginGraphics(m_SpritesColorPipeline);
+		cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
+		cmd->EndGraphics();
+		cmd->StorageBufferBarrier(m_OITBuffer);
 
 		auto& stats = m_Renderer.GetStats();
 		++stats.DrawCalls;
-
-		cmd->BeginGraphics(m_SpritesColorPipeline);
-		cmd->SetGraphicsRootConstants(&viewProj[0][0], &m_ColorPushData);
-		cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
-		cmd->EndGraphics();
 	}
 
 	void TransparencyTask::RenderTextsColor(const Ref<CommandBuffer>& cmd, const LitTextGeometryData& data)
@@ -527,11 +453,12 @@ namespace Eagle
 		m_TextColorPipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 		m_TextColorPipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
 		m_TextColorPipeline->SetBuffer(m_OITBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
-		m_TextColorPipeline->SetBuffer(m_Renderer.GetCameraBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
+		m_TextColorPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
 		if (bFog)
 			m_TextColorPipeline->SetBuffer(m_Renderer.GetFogDataBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 3);
 
 		m_TextColorPipeline->SetTextureArray(m_Renderer.GetAtlases(), 5, 0);
+		m_TextColorPipeline->SetBuffer(m_UniformBuffer, 6, 0);
 
 		const auto& iblAsset = m_Renderer.GetSkybox();
 		const bool bHasIrradiance = m_Renderer.IsSkyboxEnabled() && iblAsset.operator bool() && iblAsset->GetTexture()->IsLoaded();
@@ -558,9 +485,10 @@ namespace Eagle
 		++stats.DrawCalls;
 
 		cmd->BeginGraphics(m_TextColorPipeline);
-		cmd->SetGraphicsRootConstants(&viewProj, &m_ColorPushData);
+		cmd->SetGraphicsRootConstants(&viewProj, nullptr);
 		cmd->DrawIndexed(data.VertexBuffer, data.IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
+		cmd->StorageBufferBarrier(m_OITBuffer);
 	}
 
 	void TransparencyTask::CompositePass(const Ref<CommandBuffer>& cmd)
@@ -571,8 +499,6 @@ namespace Eagle
 		m_CompositePipeline->SetBuffer(m_OITBuffer, 0, 0);
 
 		const glm::uvec2 viewportSize = m_Renderer.GetViewportSize();
-
-		cmd->StorageBufferBarrier(m_OITBuffer);
 
 		cmd->BeginGraphics(m_CompositePipeline);
 		cmd->SetGraphicsRootConstants(nullptr, &viewportSize);
@@ -602,10 +528,7 @@ namespace Eagle
 				const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
 				auto& stats = m_Renderer.GetStats();
 
-				cmd->BeginGraphics(m_MeshesEntityIDPipeline);
-				cmd->SetGraphicsRootConstants(&viewProj[0][0], nullptr);
-				Utils::RenderMeshes(cmd, meshes, buffers, stats);
-				cmd->EndGraphics();
+				RenderMeshesTask::Draw(cmd, m_MeshesEntityIDPipeline, meshes, buffers, stats, glm::value_ptr(viewProj));
 			}
 		}
 
@@ -617,17 +540,15 @@ namespace Eagle
 				EG_GPU_TIMING_SCOPED(cmd, "Transparency. Skeletal Meshes Entity IDs");
 				EG_CPU_TIMING_SCOPED("Transparency. Skeletal Meshes Entity IDs");
 
-				const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
-				m_SkeletalMeshesEntityIDPipeline->SetBuffer(transformsBuffer, 0, 0);
-				m_SkeletalMeshesEntityIDPipeline->SetBufferArray(m_Renderer.GetAnimationTransformsBuffers(), 5, 0);
-
 				const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
-				auto& stats = m_Renderer.GetStats();
+				const auto& vb = m_Renderer.GetSkinnedVertices();
 
-				cmd->BeginGraphics(m_SkeletalMeshesEntityIDPipeline);
-				cmd->SetGraphicsRootConstants(&viewProj[0][0], nullptr);
-				Utils::RenderMeshes(cmd, meshes, buffers, stats);
-				cmd->EndGraphics();
+				m_SkeletalMeshesEntityIDPipeline->SetBuffer(vb, 0, 0);
+				m_SkeletalMeshesEntityIDPipeline->SetBuffer(buffers.InstanceBuffer, 0, 1);
+				m_SkeletalMeshesEntityIDPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 0, 2);
+
+				auto& stats = m_Renderer.GetStats();
+				RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesEntityIDPipeline, meshes, buffers, stats);
 			}
 		}
 
@@ -689,6 +610,50 @@ namespace Eagle
 				cmd->DrawIndexed(data->VertexBuffer, data->IndexBuffer, quadsCount * 6, 0, 0);
 				cmd->EndGraphics();
 			}
+		}
+	}
+
+	void TransparencyTask::Prepare(const Ref<CommandBuffer>& cmd)
+	{
+		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
+		const bool bTexturesDirty = texturesChangedFrame >= m_TexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()];
+		if (bTexturesDirty)
+		{
+			m_TextColorPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+			m_SpritesColorPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+			m_MeshesColorPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+			m_SkeletalMeshesColorPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+			m_TexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()] = texturesChangedFrame + 1;
+		}
+
+		const auto& iblAsset = m_Renderer.GetSkybox();
+		const bool bHasIrradiance = m_Renderer.IsSkyboxEnabled() && iblAsset.operator bool();
+		const auto& ibl = bHasIrradiance ? iblAsset->GetTexture() : RenderManager::GetDummyIBL();
+
+		UniformData uniforms{};
+		uniforms.Size = m_Renderer.GetViewportSize();
+		uniforms.CameraPos = m_Renderer.GetViewPosition();
+		uniforms.MaxReflectionLOD = float(ibl->GetPrefilterImage()->GetMipsCount() - 1);
+		uniforms.MaxShadowDistance2 = m_Renderer.GetShadowMaxDistance() * m_Renderer.GetShadowMaxDistance();
+		uniforms.CascadesSmoothTransitionAlpha = m_Renderer.GetOptions_RT().InternalState.CascadesSmoothTransitionAlpha;
+		uniforms.IBLIntensity = m_Renderer.GetSkyboxIntensity();
+		uniforms.PointLights = (uint32_t)m_Renderer.GetPointLights().size();
+		uniforms.SpotLights = (uint32_t)m_Renderer.GetSpotLights().size();
+		uniforms.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());
+		cmd->Write(m_UniformBuffer, &uniforms, sizeof(UniformData), 0, m_UniformBuffer->GetLayout(), BufferReadAccess::Uniform);
+
+		PBRConstantsKernelInfo info;
+		info.PointLightsCount = uniforms.PointLights;
+		info.SpotLightsCount = uniforms.SpotLights;
+		info.bHasDirLight = uniforms.HasDirLight;
+		info.bHasIrradiance = bHasIrradiance;
+		if (info != m_KernelInfo)
+		{
+			// If stutterless, reload only if `bHasIrradiance` differs
+			const bool bRecreate = !bStutterlessShaders || (m_KernelInfo.bHasIrradiance != info.bHasIrradiance);
+			m_KernelInfo = info;
+			if (bRecreate)
+				RecreatePipeline(false);
 		}
 	}
 
@@ -982,6 +947,7 @@ namespace Eagle
 		specs.Format = ImageFormat::R32_UInt;
 		specs.Usage = BufferUsage::StorageTexelBuffer | BufferUsage::TransferDst;
 		specs.Size = size_t(size.x * size.y * m_Layers) * s_Stride;
+		specs.Layout = BufferLayoutType::StorageBuffer;
 		m_OITBuffer = Buffer::Create(specs, "OIT_Buffer");
 	}
 	

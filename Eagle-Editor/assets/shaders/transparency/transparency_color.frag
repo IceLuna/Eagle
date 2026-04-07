@@ -21,21 +21,6 @@ layout(location = 4) in mat3 i_TBN;
 
 layout(location = 0) out vec4 outColor;
 
-layout(push_constant) uniform PushConstants
-{
-    layout(offset = 64) vec3 g_CameraPos;
-    float g_MaxReflectionLOD;
-    ivec2 g_Size;
-    float g_MaxShadowDistance2;
-    float g_CSMOverlap;
-    float g_IBLIntensity;
-#ifdef EG_STUTTERLESS
-    uint g_PointLightsCount;
-    uint g_SpotLightsCount;
-    uint g_HasDirLight;
-#endif
-};
-
 #ifndef EG_STUTTERLESS
 layout(constant_id = 0) const uint g_PointLightsCount = 0;
 layout(constant_id = 1) const uint g_SpotLightsCount = 0;
@@ -43,16 +28,32 @@ layout(constant_id = 2) const uint g_HasDirLight = 0;
 #endif
 layout(constant_id = 3) const bool s_HasIrradiance = false;
 
-layout(binding = EG_BINDING_MAX + 1, r32ui) uniform coherent uimageBuffer imgAbuffer;
+layout(set = 5, binding = 0, r32ui) uniform coherent uimageBuffer imgAbuffer;
 
-layout(binding = EG_BINDING_MAX + 2)
-uniform CameraView
+layout(set = 5, binding = 1)
+uniform CameraMatrices
 {
-	mat4 g_CameraView;
+    mat4 g_View;
+    mat4 g_InvViewProj;
+    mat4 g_ViewProjection;
+    mat4 g_PrevViewProjection;
+};
+
+layout(set = 5, binding = 2) uniform UniformBuffer
+{
+    vec3 g_CameraPos;
+    float g_MaxReflectionLOD;
+    ivec2 g_Size;
+    float g_MaxShadowDistance2;
+    float g_CSMOverlap;
+    float g_IBLIntensity;
+    uint g_PointLightsCount;
+    uint g_SpotLightsCount;
+    uint g_HasDirLight;
 };
 
 #ifdef EG_FOG
-layout(binding = EG_BINDING_MAX + 3) uniform FogData
+layout(set = 5, binding = 3) uniform FogData
 {
     vec3  g_FogColor;
     float g_FogMin;
@@ -252,7 +253,7 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
 
     if (g_HasDirLight != 0)
     {
-        const float cascadeDepth = abs((g_CameraView * vec4(worldPos, 1.0)).z);
+        const float cascadeDepth = abs((g_View * vec4(worldPos, 1.0)).z);
         int layer = GetCascadeIndex(g_DirectionalLight, cascadeDepth);
 
         const vec3 incoming = normalize(-g_DirectionalLight.Direction);

@@ -12,6 +12,12 @@
 
 namespace Eagle
 {
+	struct PushData
+	{
+		glm::mat4 ViewProj;
+		glm::mat4 PrevViewProj;
+	};
+
 	RenderMeshesTask::RenderMeshesTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
@@ -142,10 +148,14 @@ namespace Eagle
 			m_MaskedPipeline = PipelineGraphics::Create(state);
 	}
 	
-	void RenderMeshesTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const std::vector<MeshDrawData>& meshes, const MeshGeometryData<Vertex>& buffers, const PushData& pushData, RenderStats& stats)
+	void RenderMeshesTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const std::vector<MeshDrawData>& meshes, const MeshGeometryData<Vertex>& buffers, RenderStats& stats,
+		const void* vertexPushData, const Ref<Framebuffer>& framebuffer)
 	{
-		cmd->BeginGraphics(pipeline);
-		cmd->SetGraphicsRootConstants(&pushData, nullptr);
+		if (framebuffer)
+			cmd->BeginGraphics(pipeline, framebuffer);
+		else
+			cmd->BeginGraphics(pipeline);
+		cmd->SetGraphicsRootConstants(vertexPushData, nullptr);
 
 		for (const auto& data : meshes)
 		{
@@ -199,7 +209,7 @@ namespace Eagle
 		auto& stats = m_Renderer.GetStats();
 		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().Opaque;
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
-		Draw(cmd, m_OpaquePipeline, meshes, buffers, pushData, stats);
+		Draw(cmd, m_OpaquePipeline, meshes, buffers, stats, &pushData);
 	}
 
 	void RenderMeshesTask::RenderMasked(const Ref<CommandBuffer>& cmd)
@@ -233,6 +243,6 @@ namespace Eagle
 		auto& stats = m_Renderer.GetStats();
 		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().Masked;
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
-		Draw(cmd, m_MaskedPipeline, meshes, buffers, pushData, stats);
+		Draw(cmd, m_MaskedPipeline, meshes, buffers, stats, &pushData);
 	}
 }

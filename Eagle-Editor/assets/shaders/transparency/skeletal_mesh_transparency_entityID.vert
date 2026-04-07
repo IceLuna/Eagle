@@ -1,45 +1,46 @@
 #include "defines.h"
 #include "skeletal_mesh_vertex_input_layout.h"
-#extension GL_EXT_nonuniform_qualifier : enable
 
-layout(binding = 0)
-readonly buffer MeshTransformsBuffer
+layout(scalar, binding = 0)
+readonly buffer SkinnedVertices
 {
-    mat4 g_Transforms[];
+    Vertex g_SkinnedVertices[];
 };
 
-layout(set = 5, binding = 0)
-readonly buffer MeshAnimTransformsBuffer
+layout(scalar, binding = 1)
+readonly buffer PerInstanceDataBuffer
 {
-    mat4 Transforms[];
-} g_MeshAnimation[];
+    InstanceData g_InstanceData[];
+};
+
+layout(binding = 2)
+uniform CameraMatrices
+{
+    mat4 g_View;
+    mat4 g_InvViewProj;
+    mat4 g_ViewProjection;
+    mat4 g_PrevViewProjection;
+};
 
 layout(push_constant) uniform PushConstants
 {
-    mat4 g_ViewProjection;
+    uint g_VertexCount;
+    uint g_InstanceOffset;
+    uint g_VerticesOffset;
 };
 
 layout(location = 0) flat out int o_ObjectID;
 
 void main()
 {
-    const uint transformIndex = a_PerInstanceData.x & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
+    // We need an index that's not affected by the offset.
+    // So, we need something that goes from [0; InstanceCount)
+    const uint instanceIndex = gl_InstanceIndex - g_InstanceOffset;
 
-    vec4 totalPosition = vec4(a_Position, 1.0);
-    mat4 boneTransform = mat4(0.f);
-    for (uint i = 0; i < 4; ++i)
-    {
-        const float weight = GetWeight(i);
-        if (weight > 0.f)
-        {
-            boneTransform += g_MeshAnimation[nonuniformEXT(transformIndex)].Transforms[GetBoneID(i)] * weight;
-        }
-    }
+    const Vertex vertex = g_SkinnedVertices[g_VerticesOffset + g_VertexCount * instanceIndex + gl_VertexIndex];
+    const InstanceData instanceData = g_InstanceData[gl_InstanceIndex];
 
-    totalPosition = boneTransform * vec4(a_Position, 1.0);
-
-    const mat4 model = g_Transforms[transformIndex];
-    gl_Position = g_ViewProjection * model * totalPosition;
+    gl_Position = g_ViewProjection * vec4(vertex.Position, 1.0);
  
-    o_ObjectID = int(a_PerInstanceData.z);
+    o_ObjectID = int(instanceData.ObjectID);
 }

@@ -8,40 +8,48 @@
 #include "pipeline_layout.h"
 #endif
 
-layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX)
+layout(scalar, set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX)
+readonly buffer SkinnedVertices
+{
+    Vertex g_SkinnedVertices[];
+};
+
+layout(scalar, set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX + 1)
+readonly buffer PerInstanceDataBuffer
+{
+    InstanceData g_InstanceData[];
+};
+
+layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX + 2)
+uniform CameraMatrices
+{
+    mat4 g_View;
+    mat4 g_InvViewProj;
+    mat4 g_ViewProjection;
+    mat4 g_PrevViewProjection;
+};
+
+#ifndef EG_DEPTH_ONLY
+layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX + 3)
 readonly buffer MeshTransformsBuffer
 {
     mat4 g_Transforms[];
 };
-
-#ifdef EG_MOTION
-layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX + 1)
-readonly buffer MeshPrevTransformsBuffer
-{
-    mat4 g_PrevTransforms[];
-};
 #endif
 
-layout(set = 3, binding = 0)
-readonly buffer MeshAnimTransformsBuffer
-{
-    mat4 Transforms[];
-} g_MeshAnimation[];
-
 #ifdef EG_MOTION
-layout(set = 4, binding = 0)
-readonly buffer PrevMeshAnimTransformsBuffer
+layout(scalar, set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX + 4)
+readonly buffer PrevSkinnedVerticesPositions
 {
-    mat4 Transforms[];
-} g_PrevMeshAnimation[];
+    vec3 g_PrevSkinnedVertexPosition[];
+};
 #endif
 
 layout(push_constant) uniform PushConstants
 {
-    mat4 g_ViewProjection;
-#ifdef EG_MOTION
-    mat4 g_PrevViewProjection;
-#endif
+    uint g_VertexCount;
+    uint g_InstanceOffset;
+    uint g_VerticesOffset;
 };
 
 #ifdef EG_JITTER
@@ -68,66 +76,47 @@ layout(location = 9) out vec3 o_PrevPos;
 
 void main()
 {
-    const uint transformIndex = a_PerInstanceData.x & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
-    const mat4 model = g_Transforms[transformIndex];
+    // We need an index that's not affected by the offset.
+    // So, we need something that goes from [0; InstanceCount)
+    const uint instanceIndex = gl_InstanceIndex - g_InstanceOffset;
+    const uint vertexIndex = g_VerticesOffset + g_VertexCount * instanceIndex + gl_VertexIndex;
 
-    vec4 totalPosition = vec4(a_Position, 1.0);
-    mat4 boneTransform = mat4(0.f);
-    for (uint i = 0; i < 4; ++i)
-    {
-        const float weight = GetWeight(i);
-        if (weight > 0.f)
-        {
-            boneTransform += g_MeshAnimation[nonuniformEXT(transformIndex)].Transforms[GetBoneID(i)] * weight;
-        }
-    }
-    totalPosition = boneTransform * vec4(a_Position, 1.0);
-    gl_Position = g_ViewProjection * model * totalPosition;
+    const Vertex vertex = g_SkinnedVertices[vertexIndex];
+    const InstanceData instanceData = g_InstanceData[gl_InstanceIndex];
+
+    const uint transformIndex = instanceData.TransformIndex & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
+    gl_Position = g_ViewProjection * vec4(vertex.Position, 1.0);
 
 #ifndef EG_DEPTH_ONLY
-    const uint materialIndex = a_PerInstanceData.y;
-    const uint objectID = a_PerInstanceData.z;
-    o_ReceivesDecals = (a_PerInstanceData.x & EG_RECEIVES_DECALS_MASK) == EG_RECEIVES_DECALS_MASK ? 1u : 0u;
+    const mat4 model = g_Transforms[transformIndex];
+    const uint materialIndex = instanceData.MaterialIndex;
+    const uint objectID = instanceData.ObjectID;
+    o_ReceivesDecals = (instanceData.TransformIndex & EG_RECEIVES_DECALS_MASK) == EG_RECEIVES_DECALS_MASK ? 1u : 0u;
 
-    const vec3 normal = mat3(boneTransform) * a_Normal;
+    const vec3 normal = vertex.Normal;
     const mat3 normalModel = transpose(inverse(mat3(model)));
     const vec3 worldNormal = normalize(normalModel * normal);
 
     const uint normalTextureIndex = FetchMaterialNormalTextureIndex(materialIndex);
     if (normalTextureIndex != EG_INVALID_INDEX)
     {
-        vec3 tangent = normalize(normalModel * a_Tangent);
+        vec3 tangent = normalize(normalModel * vertex.Tangent);
         tangent = normalize(tangent - worldNormal * dot(tangent, worldNormal));
         vec3 bitangent = normalize(cross(worldNormal, tangent));
         o_TBN = mat3(tangent, bitangent, worldNormal);
     }
 
     o_Normal = worldNormal;
-    o_TexCoords = a_TexCoords;
+    o_TexCoords = vertex.TexCoords;
     o_MaterialIndex = materialIndex;
     o_ObjectID = objectID;
 #endif // #ifndef EG_DEPTH_ONLY
 
 #ifdef EG_MOTION
     o_CurPos = gl_Position.xyw;
-
     {
-        vec4 prevTotalPosition = vec4(a_Position, 1.0);
-    
-        mat4 prevBoneTransform = mat4(0.f);
-        for (uint i = 0; i < 4; ++i)
-        {
-            const float weight = GetWeight(i);
-            if (weight > 0.f)
-            {
-                prevBoneTransform += g_PrevMeshAnimation[nonuniformEXT(transformIndex)].Transforms[GetBoneID(i)] * weight;
-            }
-        }
-
-        prevTotalPosition = prevBoneTransform * vec4(a_Position, 1.0);
-
-        const mat4 prevModel = g_PrevTransforms[transformIndex];
-        const vec4 prevPos = g_PrevViewProjection * prevModel * prevTotalPosition;
+        const vec3 prevVertexPos = g_PrevSkinnedVertexPosition[vertexIndex];
+        const vec4 prevPos = g_PrevViewProjection * vec4(prevVertexPos, 1.0);
         o_PrevPos = prevPos.xyw;
     }
 #endif

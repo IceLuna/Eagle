@@ -154,8 +154,10 @@ namespace Eagle
 
 	struct MeshDrawData
 	{
+		uint32_t SkinnedVertexOffset = 0;
 		uint32_t VertexOffset = 0;
 		uint32_t VerticesCount = 0;
+		uint32_t InstanceCount = 0;
 
 		struct MaterialData
 		{
@@ -235,11 +237,10 @@ namespace Eagle
 		const MeshesDrawLists& GetSkeletalMeshesDrawData() const { return m_SkeletalMeshesDrawData; }
 		const MeshGeometryData<SkeletalVertex>& GetSkeletalMeshesBuffers() const { return m_SkeletalMeshesBuffers; }
 		const Ref<Buffer>& GetSkeletalMeshesTransformBuffer() const { return m_SkeletalMeshesBuffers.TransformsBuffer; }
-		const Ref<Buffer>& GetSkeletalMeshesPrevTransformBuffer() const { return m_SkeletalMeshesBuffers.PrevTransformsBuffer; }
+		const SkeletalMeshesMap& GetSkeletalMeshes() const { return m_SkeletalMeshes; }
 
 		const std::vector<std::vector<glm::mat4>>& GetAnimationTransforms() const { return m_AnimationTransforms; }
 		const std::vector<Ref<Buffer>>& GetAnimationTransformsBuffers() const { return m_AnimationTransformsBuffers; }
-		const std::vector<Ref<Buffer>>& GetAnimationPrevTransformsBuffers() const { return m_AnimationPrevTransformsBuffers; }
 
 		// Sprite getters
 		const SpriteGeometryData& GetOpaqueSpriteData() const { return m_OpaqueSpritesData; }
@@ -284,7 +285,7 @@ namespace Eagle
 		void UploadTexts(const Ref<CommandBuffer>& cmd, LitTextGeometryData& textsData);
 		void UploadTexts(const Ref<CommandBuffer>& cmd, UnlitTextGeometryData& textsData);
 
-		void UploadAnimationTransforms(const Ref<CommandBuffer>& cmd, bool bTransformsGarbage);
+		void UploadAnimationTransforms(const Ref<CommandBuffer>& cmd);
 
 	private:
 		// ------- Static Meshes -------
@@ -316,7 +317,6 @@ namespace Eagle
 		// Transforms of animations
 		std::vector<std::vector<glm::mat4>> m_AnimationTransforms;
 		std::vector<Ref<Buffer>> m_AnimationTransformsBuffers;
-		std::vector<Ref<Buffer>> m_AnimationPrevTransformsBuffers;
 
 		bool bUploadSkeletalMeshTransforms = true;
 		bool bUploadSkeletalMeshSpecificTransforms = false;

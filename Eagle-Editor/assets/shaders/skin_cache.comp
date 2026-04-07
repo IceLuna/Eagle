@@ -1,0 +1,100 @@
+#extension GL_EXT_nonuniform_qualifier : enable
+
+#include "defines.h"
+#include "utils.h"
+
+#include "skeletal_mesh_vertex_input_layout.h"
+
+layout(scalar, set = 0, binding = 0)
+readonly buffer Vertices
+{
+    SkeletalVertex g_Vertices[];
+};
+
+layout(scalar, set = 0, binding = 1)
+buffer SkinnedVertices
+{
+    Vertex g_SkinnedVertices[];
+};
+
+layout(set = 0, binding = 2)
+readonly buffer MeshTransformsBuffer
+{
+    mat4 g_Transforms[];
+};
+
+#ifdef EG_OUTPUT_PREV_POSITION
+layout(scalar, set = 0, binding = 3)
+buffer PrevSkinnedVertices
+{
+    vec3 g_PrevSkinnedVerticesPositions[];
+};
+#endif
+
+layout(set = 1, binding = 0)
+readonly buffer MeshAnimTransformsBuffer
+{
+    mat4 Transforms[];
+} g_MeshAnimation[];
+
+layout(push_constant) uniform PushData
+{
+    uint g_VerticesCount;
+	uint g_VerticesOffset;
+	uint g_DstOffset;
+	uint g_AnimIndex;
+#ifdef EG_OUTPUT_PREV_POSITION
+    uint g_PrevVerticesValid;
+#endif
+};
+
+#define GROUP_SIZE 128
+layout(local_size_x = GROUP_SIZE) in;
+
+void main()
+{
+    const uint threadID = gl_GlobalInvocationID.x;
+    if (threadID >= g_VerticesCount)
+    {
+        return;
+    }
+
+    const uint vertexIndex = threadID + g_VerticesOffset;
+    const uint dstIndex = g_DstOffset + threadID;
+
+    SkeletalVertex vertex = g_Vertices[vertexIndex];
+#ifdef EG_OUTPUT_PREV_POSITION
+    if (g_PrevVerticesValid == 1u)
+    {
+        g_PrevSkinnedVerticesPositions[dstIndex] = g_SkinnedVertices[dstIndex].Position;
+    }
+#endif
+
+    mat4 boneTransform = mat4(0.f);
+    for (uint i = 0; i < 4; ++i)
+    {
+        const float weight = GetWeight(vertex, i);
+        if (weight > 0.f)
+        {
+            boneTransform += g_MeshAnimation[g_AnimIndex].Transforms[GetBoneID(vertex, i)] * weight;
+        }
+    }
+
+    // They're the same
+    const uint transformIndex = g_AnimIndex;
+
+    Vertex skinnedVertex;
+    skinnedVertex.Position = (g_Transforms[transformIndex] * boneTransform * vec4(vertex.Position, 1.0)).xyz;
+    skinnedVertex.Normal   = mat3(boneTransform) * vertex.Normal;
+    skinnedVertex.Tangent  = mat3(boneTransform) * vertex.Tangent;
+    skinnedVertex.TexCoords  = vertex.TexCoords;
+#ifdef EG_OUTPUT_PREV_POSITION
+    if (g_PrevVerticesValid == 0u)
+    {
+        // If invalid, copy the most up to date position
+        g_PrevSkinnedVerticesPositions[dstIndex] = skinnedVertex.Position;
+    }
+#endif
+
+    g_SkinnedVertices[dstIndex] = skinnedVertex;
+}

@@ -33,6 +33,8 @@ namespace Eagle
 	{
 		glm::mat4 View;
 		glm::mat4 InvViewProj;
+		glm::mat4 ViewProj;
+		glm::mat4 PrevViewProj;
 	};
 
 	template <typename TaskClass, typename Task, typename... Args>
@@ -77,6 +79,7 @@ namespace Eagle
 		m_GBuffer.Init({ m_Size, 1 });
 		m_GBuffer.InitOptional(m_Options.InternalState, glm::uvec3(m_Size, 1u));
 		// Create tasks
+		m_SkinCacheTask = MakeRef<SkinCacheTask>(*this);
 		m_DepthPrepassTask = MakeRef<DepthPrepassTask>(*this);
 		m_RenderMeshesTask = MakeRef<RenderMeshesTask>(*this);
 		m_RenderSkeletalMeshesTask = MakeRef<RenderSkeletalMeshesTask>(*this);
@@ -172,11 +175,14 @@ namespace Eagle
 				CameraData cameraData;
 				cameraData.View = renderer->m_View;
 				cameraData.InvViewProj = renderer->m_InvViewProjection;
+				cameraData.ViewProj = renderer->m_ViewProjection;
+				cameraData.PrevViewProj = renderer->m_PrevViewProjection;
 				cmd->Write(renderer->m_CameraDataBuffer, &cameraData, sizeof(CameraData), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
 			}
 
 			renderer->m_LightsManagerTask->RecordCommandBuffer(cmd);
 			renderer->m_GeometryManagerTask->RecordCommandBuffer(cmd);
+			renderer->m_SkinCacheTask->RecordCommandBuffer(cmd);
 			renderer->m_DepthPrepassTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderMeshesTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderSpritesTask->RecordCommandBuffer(cmd);
@@ -372,6 +378,7 @@ namespace Eagle
 		m_GBuffer.Resize({ m_Size, 1 });
 
 		// Tasks
+		m_SkinCacheTask->OnResize(m_Size);
 		m_DepthPrepassTask->OnResize(m_Size);
 		m_RenderMeshesTask->OnResize(m_Size);
 		m_RenderSkeletalMeshesTask->OnResize(m_Size);
@@ -459,6 +466,7 @@ namespace Eagle
 		m_GBuffer.InitOptional(options.InternalState, glm::uvec3(m_Size, 1u));
 		m_PhotoLinearScale = CalculatePhotoLinearScale(options.PhotoLinearTonemappingParams, options.Gamma);
 		m_GeometryManagerTask->InitWithOptions(options);
+		m_SkinCacheTask->InitWithOptions(options);
 		m_DepthPrepassTask->InitWithOptions(options);
 		m_RenderMeshesTask->InitWithOptions(options);
 		m_RenderSkeletalMeshesTask->InitWithOptions(options);

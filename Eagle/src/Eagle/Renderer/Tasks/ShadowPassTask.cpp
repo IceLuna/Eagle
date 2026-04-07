@@ -23,33 +23,6 @@
 
 namespace Eagle
 {
-	namespace Utils
-	{
-		template<typename MeshData, typename MeshGeometryData>
-		static void RenderMeshes(const Ref<CommandBuffer>& cmd, const MeshData& meshes, const MeshGeometryData& meshesData, RenderStats& stats)
-		{
-			const auto& buffers = meshesData;
-			for (const auto& data : meshes)
-			{
-				const uint32_t verticesCount = data.VerticesCount;
-				const uint32_t vertexOffset = data.VertexOffset;
-
-				for (const auto& matRenderData : data.PerMaterialData)
-				{
-					const uint32_t indicesCount = matRenderData.IndexCount;
-					const uint32_t firstIndex = matRenderData.FirstIndex;
-					const uint32_t instanceCount = matRenderData.InstanceCount;
-					const uint32_t firstInstance = matRenderData.FirstInstance;
-					if (instanceCount > 0)
-					{
-						cmd->DrawIndexedInstanced(buffers.VertexBuffer, buffers.IndexBuffer, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, buffers.InstanceBuffer);
-						++stats.DrawCalls;
-					}
-				}
-			}
-		}
-	}
-
 	glm::uvec2 ShadowPassTask::GetPointLightSMSize(float distanceToCamera, float maxShadowDistance)
 	{
 		const float k = distanceToCamera / maxShadowDistance;
@@ -156,9 +129,9 @@ namespace Eagle
 		InitUnlitTextsPipelines();
 
 		BufferSpecifications pointLightsVPBufferSpecs;
-		pointLightsVPBufferSpecs.Size = sizeof(glm::mat4) * 6;
-		pointLightsVPBufferSpecs.Layout = BufferReadAccess::Uniform;
-		pointLightsVPBufferSpecs.Usage = BufferUsage::UniformBuffer | BufferUsage::TransferDst;
+		pointLightsVPBufferSpecs.Size = sizeof(glm::mat4) * 6 * 10;
+		pointLightsVPBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
+		pointLightsVPBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 		m_PLVPsBuffer = Buffer::Create(pointLightsVPBufferSpecs, "PointLightsVPs");
 
 		InitWithOptions(m_Renderer.GetOptions());
@@ -219,6 +192,7 @@ namespace Eagle
 		auto& translucentPipeline = m_TranslucentMPLPipeline;
 		auto& translucentPipeline_NoDepth = m_TranslucentMPLPipeline_NoDepth;
 
+		m_PLVPs.clear();
 		m_PointLightIndices.clear();
 		uint32_t pointLightsCount = 0;
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
@@ -228,6 +202,11 @@ namespace Eagle
 			auto& pointLight = pointLights[plIndex];
 			if (!pointLight.DoesCastShadows())
 				continue;
+
+			for (uint32_t i = 0; i < 6; ++i)
+			{
+				m_PLVPs.push_back(pointLight.ViewProj[i]);
+			}
 
 			m_PointLightIndices.push_back(plIndex);
 			const float distanceToCamera = glm::length(cameraPos - pointLight.Position);
@@ -308,6 +287,14 @@ namespace Eagle
 
 			++pointLightsCount;
 		}
+
+		const size_t requiredSize = m_PLVPs.size() * sizeof(glm::mat4);
+		if (m_PLVPsBuffer->GetSize() < requiredSize)
+		{
+			m_PLVPsBuffer->Resize((requiredSize * 3) / 2);
+		}
+		if (requiredSize > 0)
+			cmd->Write(m_PLVPsBuffer, m_PLVPs.data(), requiredSize, 0, m_PLVPsBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 
 		// Release unused shadow-maps & framebuffers
 		shadowMaps.resize(pointLightsCount);
@@ -615,11 +602,7 @@ namespace Eagle
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
 				const auto& viewProj = dirLight.ViewProj[i];
-
-				cmd->BeginGraphics(m_OpacityMDLPipeline, m_DLFramebuffers[i]);
-				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-				Utils::RenderMeshes(cmd, meshes, buffers, stats);
-				cmd->EndGraphics();
+				RenderMeshesTask::Draw(cmd, m_OpacityMDLPipeline, meshes, buffers, stats, &viewProj, m_DLFramebuffers[i]);
 			}
 		}
 		else
@@ -647,11 +630,7 @@ namespace Eagle
 						auto& pointLight = pointLights[index];
 						bDidDrawPL = true;
 
-						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-
-						cmd->BeginGraphics(pipeline, framebuffers[i]);
-						Utils::RenderMeshes(cmd, meshes, buffers, stats);
-						cmd->EndGraphics();
+						RenderMeshesTask::Draw(cmd, pipeline, meshes, buffers, stats, &i, framebuffers[i]);
 						++i;
 					}
 				}
@@ -679,10 +658,7 @@ namespace Eagle
 
 						const auto& viewProj = spotLight.ViewProj;
 
-						cmd->BeginGraphics(pipeline, framebuffers[i]);
-						cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-						Utils::RenderMeshes(cmd, meshes, buffers, stats);
-						cmd->EndGraphics();
+						RenderMeshesTask::Draw(cmd, pipeline, meshes, buffers, stats, &viewProj, framebuffers[i]);
 						++spotLightsCount;
 					}
 				}
@@ -741,11 +717,7 @@ namespace Eagle
 			for (uint32_t i = 0; i < framebuffers.size(); ++i)
 			{
 				const auto& viewProj = dirLight.ViewProj[i];
-
-				cmd->BeginGraphics(pipeline, framebuffers[i]);
-				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-				Utils::RenderMeshes(cmd, meshes, buffers, stats);
-				cmd->EndGraphics();
+				RenderMeshesTask::Draw(cmd, pipeline, meshes, buffers, stats, &viewProj, framebuffers[i]);
 			}
 			bDidDrawDLC = true;
 		}
@@ -788,11 +760,7 @@ namespace Eagle
 						bDidDrawPLC = true;
 						const uint32_t& i = pointLightsCount;
 
-						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-
-						cmd->BeginGraphics(pipeline, framebuffers[i]);
-						Utils::RenderMeshes(cmd, meshes, buffers, stats);
-						cmd->EndGraphics();
+						RenderMeshesTask::Draw(cmd, pipeline, meshes, buffers, stats, &i, framebuffers[i]);
 						++pointLightsCount;
 					}
 				}
@@ -833,10 +801,7 @@ namespace Eagle
 
 						const auto& viewProj = spotLight.ViewProj;
 
-						cmd->BeginGraphics(pipeline, framebuffers[i]);
-						cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-						Utils::RenderMeshes(cmd, meshes, buffers, stats);
-						cmd->EndGraphics();
+						RenderMeshesTask::Draw(cmd, pipeline, meshes, buffers, stats, &viewProj, framebuffers[i]);
 						++spotLightsCount;
 					}
 				}
@@ -887,11 +852,7 @@ namespace Eagle
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
 				const auto& viewProj = dirLight.ViewProj[i];
-
-				cmd->BeginGraphics(pipeline, m_DLFramebuffers[i]);
-				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-				Utils::RenderMeshes(cmd, meshes, buffers, stats);
-				cmd->EndGraphics();
+				RenderMeshesTask::Draw(cmd, pipeline, meshes, buffers, stats, &viewProj, m_DLFramebuffers[i]);
 			}
 			bDidDrawDL = true;
 		}
@@ -932,11 +893,7 @@ namespace Eagle
 						auto& pointLight = pointLights[index];
 						bDidDrawPL = true;
 
-						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-
-						cmd->BeginGraphics(pipeline, framebuffers[i]);
-						Utils::RenderMeshes(cmd, meshes, buffers, stats);
-						cmd->EndGraphics();
+						RenderMeshesTask::Draw(cmd, pipeline, meshes, buffers, stats, &i, framebuffers[i]);
 						++i;
 					}
 				}
@@ -975,11 +932,7 @@ namespace Eagle
 						const uint32_t& i = spotLightsCount;
 
 						const auto& viewProj = spotLight.ViewProj;
-
-						cmd->BeginGraphics(pipeline, framebuffers[i]);
-						cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-						Utils::RenderMeshes(cmd, meshes, buffers, stats);
-						cmd->EndGraphics();
+						RenderMeshesTask::Draw(cmd, pipeline, meshes, buffers, stats, &viewProj, framebuffers[i]);
 						++spotLightsCount;
 					}
 				}
@@ -996,9 +949,8 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Opacity Skeletal Meshes shadow pass");
 		EG_CPU_TIMING_SCOPED("Opacity Skeletal Meshes shadow pass");
 
+		const auto& skinnedVertices = m_Renderer.GetSkinnedVertices();
 		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
-		const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
-		const auto& animTransformsBuffers = m_Renderer.GetAnimationTransformsBuffers();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
 		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
@@ -1013,16 +965,11 @@ namespace Eagle
 			CreateIfNeededDirectionalLightShadowMaps();
 			
 			auto& pipeline = bDidDrawDL ? m_OpacitySMDLPipeline : m_OpacitySMDLPipelineClearing;
-			pipeline->SetBuffer(transformsBuffer, 0, 0);
-			pipeline->SetBufferArray(animTransformsBuffers, 3, 0);
+			pipeline->SetBuffer(skinnedVertices, 0, 0);
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
 				const auto& viewProj = dirLight.ViewProj[i];
-
-				cmd->BeginGraphics(pipeline, m_DLFramebuffers[i]);
-				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-				Utils::RenderMeshes(cmd, meshes, buffers, stats);
-				cmd->EndGraphics();
+				RenderSkeletalMeshesTask::Draw(cmd, pipeline, meshes, buffers, stats, DataBufferView(&viewProj, sizeof(viewProj)), m_DLFramebuffers[i]);
 			}
 			bDidDrawDL = true;
 		}
@@ -1039,9 +986,8 @@ namespace Eagle
 			{
 				auto& vpsBuffer = m_PLVPsBuffer;
 				auto& pipeline = bDidDrawPL ? m_OpacitySMPLPipeline : m_OpacitySMPLPipelineClearing;
-				pipeline->SetBuffer(transformsBuffer, 0, 0);
-				pipeline->SetBuffer(vpsBuffer, 0, 1);
-				pipeline->SetBufferArray(animTransformsBuffers, 3, 0);
+				pipeline->SetBuffer(skinnedVertices, 0, 0);
+				pipeline->SetBuffer(vpsBuffer, 0, 2);
 				{
 					EG_GPU_TIMING_SCOPED(cmd, "Opacity Skeletal Meshes: Point Lights Shadow pass");
 					EG_CPU_TIMING_SCOPED("Opacity Skeletal Meshes: Point Lights Shadow pass");
@@ -1052,11 +998,7 @@ namespace Eagle
 						auto& pointLight = pointLights[index];
 						bDidDrawPL = true;
 
-						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-
-						cmd->BeginGraphics(pipeline, framebuffers[i]);
-						Utils::RenderMeshes(cmd, meshes, buffers, stats);
-						cmd->EndGraphics();
+						RenderSkeletalMeshesTask::Draw(cmd, pipeline, meshes, buffers, stats, DataBufferView(&i, sizeof(i)), framebuffers[i]);
 						++i;
 					}
 				}
@@ -1070,8 +1012,7 @@ namespace Eagle
 			auto& framebuffers = m_SLFramebuffers;
 			{
 				auto& pipeline = bDidDrawSL ? m_OpacitySMSLPipeline : m_OpacitySMSLPipelineClearing;
-				pipeline->SetBuffer(transformsBuffer, 0, 0);
-				pipeline->SetBufferArray(animTransformsBuffers, 3, 0);
+				pipeline->SetBuffer(skinnedVertices, 0, 0);
 				{
 					EG_GPU_TIMING_SCOPED(cmd, "Opacity Skeletal Meshes: Spot Lights Shadow pass");
 					EG_CPU_TIMING_SCOPED("Opacity Skeletal Meshes: Spot Lights Shadow pass");
@@ -1084,11 +1025,7 @@ namespace Eagle
 						const uint32_t& i = spotLightsCount;
 
 						const auto& viewProj = spotLight.ViewProj;
-
-						cmd->BeginGraphics(pipeline, framebuffers[i]);
-						cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-						Utils::RenderMeshes(cmd, meshes, buffers, stats);
-						cmd->EndGraphics();
+						RenderSkeletalMeshesTask::Draw(cmd, pipeline, meshes, buffers, stats, DataBufferView(&viewProj, sizeof(viewProj)), framebuffers[i]);
 						++spotLightsCount;
 					}
 				}
@@ -1105,9 +1042,8 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Translucent Skeletal Meshes shadow pass");
 		EG_CPU_TIMING_SCOPED("Translucent Skeletal Meshes shadow pass");
 
+		const auto& skinnedVertices = m_Renderer.GetSkinnedVertices();
 		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
-		const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
-		const auto& animTransformsBuffers = m_Renderer.GetAnimationTransformsBuffers();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
 		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
@@ -1134,8 +1070,8 @@ namespace Eagle
 			if (framebuffers.empty())
 				InitColoredDirectionalLightFramebuffers(framebuffers, pipeline, bDidDrawDL);
 
-			pipeline->SetBuffer(transformsBuffer, 1, 0);
-			pipeline->SetBufferArray(animTransformsBuffers, 3, 0);
+			pipeline->SetBuffer(skinnedVertices, 1, 0);
+			pipeline->SetBuffer(buffers.InstanceBuffer, 1, 1);
 
 			const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
 			const bool bTexturesDirty = texturesChangedFrame >= m_TranslucentSkeletalMeshesDLTexturesUpdatedFrames[currentFrameIndex];
@@ -1153,11 +1089,7 @@ namespace Eagle
 			for (uint32_t i = 0; i < framebuffers.size(); ++i)
 			{
 				const auto& viewProj = dirLight.ViewProj[i];
-
-				cmd->BeginGraphics(pipeline, framebuffers[i]);
-				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-				Utils::RenderMeshes(cmd, meshes, buffers, stats);
-				cmd->EndGraphics();
+				RenderSkeletalMeshesTask::Draw(cmd, pipeline, meshes, buffers, stats, DataBufferView(&viewProj, sizeof(viewProj)), framebuffers[i]);
 			}
 			bDidDrawDLC = true;
 		}
@@ -1176,9 +1108,9 @@ namespace Eagle
 				auto& pipeline = bDidDrawPL ?
 					bDidDrawPLC ? m_TranslucentSMPLPipeline : m_TranslucentSMPLPipelineClearing :
 					bDidDrawPLC ? m_TranslucentSMPLPipeline_NoDepth : m_TranslucentSMPLPipelineClearing_NoDepth;
-				pipeline->SetBuffer(transformsBuffer, 1, 0);
-				pipeline->SetBuffer(vpsBuffer, 1, 1);
-				pipeline->SetBufferArray(animTransformsBuffers, 3, 0);
+				pipeline->SetBuffer(skinnedVertices, 1, 0);
+				pipeline->SetBuffer(buffers.InstanceBuffer, 1, 1);
+				pipeline->SetBuffer(vpsBuffer, 1, 2);
 
 				const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
 				const bool bTexturesDirty = texturesChangedFrame >= m_TranslucentSkeletalMeshesPLTexturesUpdatedFrames[currentFrameIndex];
@@ -1205,11 +1137,7 @@ namespace Eagle
 						bDidDrawPLC = true;
 						const uint32_t& i = pointLightsCount;
 
-						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-
-						cmd->BeginGraphics(pipeline, framebuffers[i]);
-						Utils::RenderMeshes(cmd, meshes, buffers, stats);
-						cmd->EndGraphics();
+						RenderSkeletalMeshesTask::Draw(cmd, pipeline, meshes, buffers, stats, DataBufferView(&i, sizeof(i)), framebuffers[i]);
 						++pointLightsCount;
 					}
 				}
@@ -1225,8 +1153,8 @@ namespace Eagle
 				auto& pipeline = bDidDrawSL ?
 					bDidDrawSLC ? m_TranslucentSMSLPipeline : m_TranslucentSMSLPipelineClearing :
 					bDidDrawSLC ? m_TranslucentSMSLPipeline_NoDepth : m_TranslucentSMSLPipelineClearing_NoDepth;
-				pipeline->SetBuffer(transformsBuffer, 1, 0);
-				pipeline->SetBufferArray(animTransformsBuffers, 3, 0);
+				pipeline->SetBuffer(skinnedVertices, 1, 0);
+				pipeline->SetBuffer(buffers.InstanceBuffer, 1, 1);
 
 				const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
 				const bool bTexturesDirty = texturesChangedFrame >= m_TranslucentSkeletalMeshesSLTexturesUpdatedFrames[currentFrameIndex];
@@ -1254,11 +1182,7 @@ namespace Eagle
 						const uint32_t& i = spotLightsCount;
 
 						const auto& viewProj = spotLight.ViewProj;
-
-						cmd->BeginGraphics(pipeline, framebuffers[i]);
-						cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-						Utils::RenderMeshes(cmd, meshes, buffers, stats);
-						cmd->EndGraphics();
+						RenderSkeletalMeshesTask::Draw(cmd, pipeline, meshes, buffers, stats, DataBufferView(&viewProj, sizeof(viewProj)), framebuffers[i]);
 						++spotLightsCount;
 					}
 				}
@@ -1275,9 +1199,8 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Masked Skeletal Meshes shadow pass");
 		EG_CPU_TIMING_SCOPED("Masked Skeletal Meshes shadow pass");
 
+		const auto& skinnedVertices = m_Renderer.GetSkinnedVertices();
 		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
-		const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
-		const auto& animTransformsBuffers = m_Renderer.GetAnimationTransformsBuffers();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
 		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
@@ -1294,8 +1217,8 @@ namespace Eagle
 			auto& pipeline = bDidDrawDL ? m_MaskedSMDLPipeline : m_MaskedSMDLPipelineClearing;
 
 			CreateIfNeededDirectionalLightShadowMaps();
-			pipeline->SetBuffer(transformsBuffer, 1, 0);
-			pipeline->SetBufferArray(animTransformsBuffers, 3, 0);
+			pipeline->SetBuffer(skinnedVertices, 1, 0);
+			pipeline->SetBuffer(buffers.InstanceBuffer, 1, 1);
 
 			const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
 			const bool bTexturesDirty = texturesChangedFrame >= m_MaskedSkeletalMeshesDLTexturesUpdatedFrames[currentFrameIndex];
@@ -1311,11 +1234,7 @@ namespace Eagle
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
 				const auto& viewProj = dirLight.ViewProj[i];
-
-				cmd->BeginGraphics(pipeline, m_DLFramebuffers[i]);
-				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-				Utils::RenderMeshes(cmd, meshes, buffers, stats);
-				cmd->EndGraphics();
+				RenderSkeletalMeshesTask::Draw(cmd, pipeline, meshes, buffers, stats, DataBufferView(&viewProj, sizeof(viewProj)), m_DLFramebuffers[i]);
 			}
 			bDidDrawDL = true;
 		}
@@ -1332,9 +1251,9 @@ namespace Eagle
 			{
 				auto& vpsBuffer = m_PLVPsBuffer;
 				auto& pipeline = bDidDrawPL ? m_MaskedSMPLPipeline : m_MaskedSMPLPipelineClearing;
-				pipeline->SetBuffer(transformsBuffer, 1, 0);
-				pipeline->SetBuffer(vpsBuffer, 1, 1);
-				pipeline->SetBufferArray(animTransformsBuffers, 3, 0);
+				pipeline->SetBuffer(skinnedVertices, 1, 0);
+				pipeline->SetBuffer(buffers.InstanceBuffer, 1, 1);
+				pipeline->SetBuffer(vpsBuffer, 1, 2);
 
 				const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
 				const bool bTexturesDirty = texturesChangedFrame >= m_MaskedSkeletalMeshesPLTexturesUpdatedFrames[currentFrameIndex];
@@ -1357,11 +1276,7 @@ namespace Eagle
 						auto& pointLight = pointLights[index];
 						bDidDrawPL = true;
 
-						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-
-						cmd->BeginGraphics(pipeline, framebuffers[i]);
-						Utils::RenderMeshes(cmd, meshes, buffers, stats);
-						cmd->EndGraphics();
+						RenderSkeletalMeshesTask::Draw(cmd, pipeline, meshes, buffers, stats, DataBufferView(&i, sizeof(i)), framebuffers[i]);
 						++i;
 					}
 				}
@@ -1375,8 +1290,8 @@ namespace Eagle
 			auto& framebuffers = m_SLFramebuffers;
 			{
 				auto& pipeline = bDidDrawSL ? m_MaskedSMSLPipeline : m_MaskedSMSLPipelineClearing;
-				pipeline->SetBuffer(transformsBuffer, 1, 0);
-				pipeline->SetBufferArray(animTransformsBuffers, 3, 0);
+				pipeline->SetBuffer(skinnedVertices, 1, 0);
+				pipeline->SetBuffer(buffers.InstanceBuffer, 1, 1);
 
 				const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
 				const bool bTexturesDirty = texturesChangedFrame >= m_MaskedSkeletalMeshesSLTexturesUpdatedFrames[currentFrameIndex];
@@ -1401,11 +1316,7 @@ namespace Eagle
 						const uint32_t& i = spotLightsCount;
 
 						const auto& viewProj = spotLight.ViewProj;
-
-						cmd->BeginGraphics(pipeline, framebuffers[i]);
-						cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-						Utils::RenderMeshes(cmd, meshes, buffers, stats);
-						cmd->EndGraphics();
+						RenderSkeletalMeshesTask::Draw(cmd, pipeline, meshes, buffers, stats, DataBufferView(&viewProj, sizeof(viewProj)), framebuffers[i]);
 						++spotLightsCount;
 					}
 				}
@@ -1478,9 +1389,8 @@ namespace Eagle
 				auto& pointLight = pointLights[index];
 				bDidDrawPL = true;
 
-				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
+				cmd->SetGraphicsRootConstants(&i, nullptr);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 				cmd->EndGraphics();
 				++stats.DrawCalls;
@@ -1629,9 +1539,8 @@ namespace Eagle
 					bDidDrawPLC = true;
 					const uint32_t& i = pointLightsCount;
 
-					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-
 					cmd->BeginGraphics(pipeline, framebuffers[i]);
+					cmd->SetGraphicsRootConstants(&i, nullptr);
 					cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 					cmd->EndGraphics();
 					++pointLightsCount;
@@ -1780,9 +1689,8 @@ namespace Eagle
 
 				bDidDrawPL = true;
 
-				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
+				cmd->SetGraphicsRootConstants(&i, nullptr);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 				cmd->EndGraphics();
 				++stats.DrawCalls;
@@ -1899,9 +1807,8 @@ namespace Eagle
 
 				bDidDrawPL = true;
 
-				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
+				cmd->SetGraphicsRootConstants(&i, nullptr);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 				cmd->EndGraphics();
 				++stats.DrawCalls;
@@ -2051,9 +1958,8 @@ namespace Eagle
 					bDidDrawPLC = true;
 					const uint32_t& i = pointLightsCount;
 
-					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-
 					cmd->BeginGraphics(pipeline, framebuffers[i]);
+					cmd->SetGraphicsRootConstants(&i, nullptr);
 					cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 					cmd->EndGraphics();
 					++pointLightsCount;
@@ -2203,9 +2109,8 @@ namespace Eagle
 
 				bDidDrawPL = true;
 
-				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
+				cmd->SetGraphicsRootConstants(&i, nullptr);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 				cmd->EndGraphics();
 				++stats.DrawCalls;
@@ -2322,9 +2227,8 @@ namespace Eagle
 
 				bDidDrawPL = true;
 
-				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
-
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
+				cmd->SetGraphicsRootConstants(&i, nullptr);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 				cmd->EndGraphics();
 				++stats.DrawCalls;
