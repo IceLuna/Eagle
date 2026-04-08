@@ -622,7 +622,8 @@ namespace Eagle
 		importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1.0f);
 		importer.SetPropertyBool(AI_CONFIG_FBX_CONVERT_TO_M, true);
 
-		const aiScene* scene = importer.ReadFile(path.string(), s_ImportMeshFlags);
+		ScopedDataBuffer fileBinary = FileSystem::Read(path);
+		const aiScene* scene = importer.ReadFileFromMemory(fileBinary.Data(), fileBinary.Size(), s_ImportMeshFlags);
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 		{
@@ -658,7 +659,8 @@ namespace Eagle
 		importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1.0f);
 		importer.SetPropertyBool(AI_CONFIG_FBX_CONVERT_TO_M, true);
 
-		const aiScene* scene = importer.ReadFile(path.string(), s_ImportMeshFlags);
+		ScopedDataBuffer fileBinary = FileSystem::Read(path);
+		const aiScene* scene = importer.ReadFileFromMemory(fileBinary.Data(), fileBinary.Size(), s_ImportMeshFlags);
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 		{
@@ -715,7 +717,8 @@ namespace Eagle
 		importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1.0f);
 		importer.SetPropertyBool(AI_CONFIG_FBX_CONVERT_TO_M, true);
 
-		const aiScene* scene = importer.ReadFile(path.string(), s_ImportAnimFlags);
+		ScopedDataBuffer fileBinary = FileSystem::Read(path);
+		const aiScene* scene = importer.ReadFileFromMemory(fileBinary.Data(), fileBinary.Size(), s_ImportAnimFlags);
 
 		if (!scene)
 		{
@@ -770,7 +773,7 @@ namespace Eagle
 				// aiTexture->mHeight can be zero, in this case `aiTexture->pcData` is not RGB values but compressed JPEG/PNG data
 				if (size.y == 0u)
 				{
-					const std::string textureName = texturePath.stem().string();
+					const std::string textureName = Utils::AsString(texturePath.stem());
 					assetTexture = CreateAssetFromEncoded(DataBuffer(aiTexture->pcData, aiTexture->mWidth), saveTo, textureName, bNormalMap);
 				}
 				else if (size.x > 0 && size.y > 0 && (strcmp(aiTexture->achFormatHint, "rgba8888") == 0))
@@ -782,7 +785,7 @@ namespace Eagle
 
 					// We need an encoded (png/jpg etc) image data for asset creation
 					const ScopedDataBuffer png = Utils::ToPNG(decoded, size, numChannels);
-					const std::string textureName = texturePath.stem().string();
+					const std::string textureName = Utils::AsString(texturePath.stem());
 					assetTexture = CreateAssetFromEncoded(png.GetDataBuffer(), saveTo, textureName, bNormalMap);
 				}
 				else
@@ -804,12 +807,12 @@ namespace Eagle
 
 					int comp = 1;
 					int unused = 0;
-					stbi_info(texturePath.string().c_str(), &unused, &unused, &comp);
+					stbi_info(Utils::AsString(texturePath).c_str(), &unused, &unused, &comp);
 					settings.ImportFormat = ChannelsToAssetTexture2DFormat(comp);
 				}
 				if (AssetImporter::Import(texturePath, saveTo, AssetType::Texture2D, importSettings))
 				{
-					Path outputFilename = saveTo / (texturePath.stem().string() + Asset::GetExtension());
+					Path outputFilename = saveTo / Utils::AsPath(Utils::AsString(texturePath.stem()) + Asset::GetExtension());
 					assetTexture = Cast<AssetTexture2D>(Asset::Create(outputFilename));
 					AssetManager::Register(assetTexture);
 				}
@@ -822,7 +825,8 @@ namespace Eagle
 	std::vector<Ref<AssetMaterial>> Utils::ImportMaterials(const Path& path, const Path& saveTo)
 	{
 		Assimp::Importer importer;
-		const aiScene* scene = importer.ReadFile(path.string(), s_ImportMaterialsFlags);
+		ScopedDataBuffer fileBinary = FileSystem::Read(path);
+		const aiScene* scene = importer.ReadFileFromMemory(fileBinary.Data(), fileBinary.Size(), s_ImportMaterialsFlags);
 
 		if (!scene)
 		{

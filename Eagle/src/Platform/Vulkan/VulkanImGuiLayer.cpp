@@ -104,19 +104,19 @@ namespace Eagle
 		io.ConfigDebugHighlightIdConflicts = false;
 		io.ConfigDebugHighlightIdConflictsShowItemPicker = false;
 
-		m_IniPath = (Application::GetCorePath() / "imgui.ini").string();
+		m_IniPath = Utils::AsString(Application::GetCorePath() / "imgui.ini");
 		const Path boldFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Bold.ttf";
 		const Path regularFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Regular.ttf";
 
 		io.IniFilename = m_IniPath.c_str();
 		if (std::filesystem::exists(boldFont))
 		{
-			io.Fonts->AddFontFromFileTTF(boldFont.string().c_str(), 32.f * Window::s_HighDPIScaleFactor, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
+			io.Fonts->AddFontFromFileTTF(Utils::AsString(boldFont).c_str(), 32.f * Window::s_HighDPIScaleFactor, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
 			io.Fonts->Fonts[0]->Scale = 0.5f;
 		}
 		if (std::filesystem::exists(regularFont))
 		{
-			io.FontDefault = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), 32.f * Window::s_HighDPIScaleFactor, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
+			io.FontDefault = io.Fonts->AddFontFromFileTTF(Utils::AsString(regularFont).c_str(), 32.f * Window::s_HighDPIScaleFactor, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
 			io.FontDefault->Scale = 0.5f;
 		}
 

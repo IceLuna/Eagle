@@ -157,7 +157,7 @@ namespace Eagle
 			return CookingResult::Failure;
 		}
 
-		std::string filename = collisionMesh->GetPath().stem().string();
+		std::string filename = Utils::AsString(collisionMesh->GetPath().stem());
 		if (bConvex)
 			filename += "_convex.pxm";
 		else
@@ -167,7 +167,7 @@ namespace Eagle
 			filename += "_tri.pmx";
 		}
 
-		const Path filepath = Project::GetCachePath() / "PhysX" / filename;
+		const Path filepath = Project::GetCachePath() / "PhysX" / Utils::AsPath(filename);
 
 		CookingResult result = CookingResult::Failure;
 		if (!std::filesystem::exists(filepath))

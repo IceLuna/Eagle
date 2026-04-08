@@ -44,7 +44,7 @@ namespace Eagle
 
 		UI::BeginPropertyGrid("StaticMeshDetails");
 		UI::TextWithSeparator("Data");
-		UI::Text("Name", m_Asset->GetPath().stem().string());
+		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 		UI::Text("Type", "Static Mesh");
 		UI::Text("Vertices", std::to_string(verticesCount));
 		UI::Text("Indices", std::to_string(indicesCount));

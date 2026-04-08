@@ -91,7 +91,7 @@ namespace Eagle
 
 			bDetailsDocked = ImGui::IsWindowDocked();
 			UI::BeginPropertyGrid("TextureDetails");
-			UI::Text("Name", m_Asset->GetPath().stem().string());
+			UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 			UI::Text("Type", "Texture 2D");
 			UI::Text("Resolution", baseSizeString);
 			UI::Text("Mip resolution", mipSizeString);

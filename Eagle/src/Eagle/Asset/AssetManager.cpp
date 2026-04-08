@@ -65,7 +65,7 @@ namespace Eagle
 		if (!ScriptEngine::LoadAppAssembly(Project::GetBinariesPath() / (project.Name + ".dll")))
 		{
 			const std::string error = std::string("Open VS solution (") +
-				(project.BasePath / (project.Name + ".sln")).string() + " or \"File > Open VS Solution\") and compile the project.\nIf the solution is not there, try to generate it \"File > Generate VS Solution\"";
+				Utils::AsString(project.BasePath / (project.Name + ".sln")) + " or \"File > Open VS Solution\") and compile the project.\nIf the solution is not there, try to generate it \"File > Generate VS Solution\"";
 			EG_CORE_WARN(error);
 		}
 
@@ -521,7 +521,7 @@ namespace Eagle
 
 			out << YAML::BeginMap;
 
-			out << YAML::Key << "Path" << YAML::Value << path.string();
+			out << YAML::Key << "Path" << YAML::Value << Utils::AsString(path);
 			out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
 			out << YAML::Key << "DataSize" << YAML::Value << data.Size();
 			out << YAML::Key << "DataOffset" << YAML::Value << offset;

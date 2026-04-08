@@ -32,7 +32,7 @@ namespace Eagle
 		const Path recentProjectsFile = corePath / "Saved/RecentProjects";
 		if (std::filesystem::exists(recentProjectsFile))
 		{
-			YAML::Node node = YAML::LoadFile(recentProjectsFile.string());
+			YAML::Node node = YAML::Load(FileSystem::ReadText(recentProjectsFile));
 			if (auto recentProjectsNode = node["RecentProjects"])
 			{
 				for (const auto& projectNode : recentProjectsNode)
@@ -56,7 +56,7 @@ namespace Eagle
 		out << YAML::Key << "RecentProjects" << YAML::Value << YAML::BeginSeq;
 
 		for (const auto& recentProject : m_RecentProjects)
-			out << recentProject.string();
+			out << Utils::AsString(recentProject);
 
 		YAML::EndSeq;
 		YAML::EndMap;
@@ -151,7 +151,7 @@ namespace Eagle
 
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().ItemSpacing.y);
 
-			ImGui::Text("Location: %s", m_NewProjectPath.string().c_str());
+			ImGui::Text("Location: %s", Utils::AsString(m_NewProjectPath).c_str());
 			ImGui::SameLine();
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3.f);
 			if (ImGui::Button("Browse"))
@@ -262,7 +262,7 @@ namespace Eagle
 			if (bSelected)
 				UI::PushButtonSelectedStyleColors();
 
-			const std::string name = path.stem().string();
+			const std::string name = Utils::AsString(path.stem());
 			if (UI::ImageButtonWithText(m_UserProjectIcon, name, { size, size }))
 				m_SelectedPath = path;
 

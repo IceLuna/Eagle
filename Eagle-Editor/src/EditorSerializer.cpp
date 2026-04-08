@@ -2,6 +2,7 @@
 
 #include "Eagle/Core/Serializer.h"
 #include "Eagle/Asset/AssetManager.h"
+#include "Eagle/Utils/PlatformUtils.h"
 
 #include "EditorSerializer.h"
 #include "EditorLayer.h"
@@ -66,7 +67,7 @@ namespace Eagle
 		if (!std::filesystem::exists(filepath))
 			return false;
 
-		YAML::Node data = YAML::LoadFile(filepath.string());
+		YAML::Node data = YAML::Load(FileSystem::ReadText(filepath));
 		bool bVSync = true;
 		bool bRenderOnlyWhenFocused = editor->bRenderOnlyWhenFocused;
 		bool bUpdateAnimationsInEditor = editor->bUpdateAnimationsInEditor;

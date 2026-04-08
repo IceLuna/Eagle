@@ -1338,7 +1338,7 @@ namespace Eagle
 			}
 		}
 
-		MonoAssembly* assemb = mono_assembly_load_from_full(image, assemblyPath.string().c_str(), &status, 0);
+		MonoAssembly* assemb = mono_assembly_load_from_full(image, Utils::AsString(assemblyPath).c_str(), &status, 0);
 		mono_image_close(image);
 		return assemb;
 	}

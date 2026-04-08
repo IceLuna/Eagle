@@ -714,7 +714,7 @@ namespace Eagle
 
                         if (bTreeOpened)
                         {
-                            const std::string name = bs->GetPath().stem().string();
+                            const std::string name = Utils::AsString(bs->GetPath().stem());
                             if (ImGui::MenuItem(name.c_str()))
                             {
                                 node = &GraphNodeFactory::SpawnBlendSpaceNode(*this, name, bs);
@@ -1640,7 +1640,7 @@ namespace Eagle
                     Ref<GraphVariableAnimation> value = Cast<GraphVariableAnimation>(input.DefaultValue);
                     float maxWidth = 75.f;
                     if (value->Value)
-                        maxWidth = glm::max(150.f, ImGui::CalcTextSize(value->Value->GetPath().stem().string().c_str(), NULL, true).x);
+                        maxWidth = glm::max(150.f, ImGui::CalcTextSize(Utils::AsString(value->Value->GetPath().stem()).c_str(), NULL, true).x);
                     if (UI::DrawAssetSelection("", value->Value, "", maxWidth))
                         m_Editor.OnGraphChanged();
                     ImGui::Spring(0);

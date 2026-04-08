@@ -55,9 +55,9 @@ namespace Eagle
 			return false;
 		}
 
-		Path outputFilename = saveTo / (pathToRaw.stem().string() + Asset::GetExtension());
+		Path outputFilename = saveTo / Utils::AsPath(Utils::AsString(pathToRaw.stem()) + Asset::GetExtension());
 		if (std::filesystem::exists(outputFilename))
-			outputFilename = Utils::GetUniqueAssetFilepath(outputFilename.parent_path(), outputFilename.stem().string());
+			outputFilename = Utils::GetUniqueAssetFilepath(outputFilename.parent_path(), Utils::AsString(outputFilename.stem()));
 
 		bool bSuccess = false;
 		switch (type)
@@ -101,7 +101,7 @@ namespace Eagle
 				Ref<AssetSkeletalMesh> skeletal = Cast<AssetSkeletalMesh>(asset);
 				std::vector<SkeletalMeshAnimation> animations = Utils::ImportAnimations(pathToRaw, skeletal->GetMesh(), settings.AnimationSettings.RootMotionType);
 
-				std::string filename = outputFilename.stem().string() + "_Anim";
+				std::string filename = Utils::AsString(outputFilename.stem()) + "_Anim";
 				uint32_t animIndex = 0;
 				for (const auto& anim : animations)
 				{
@@ -265,7 +265,7 @@ namespace Eagle
 		};
 
 		static const std::locale& loc = std::locale("RU_ru");
-		std::string extension = filepath.extension().string();
+		std::string extension = Utils::AsString(filepath.extension());
 
 		for (char& c : extension)
 			c = std::tolower(c, loc);
@@ -397,7 +397,7 @@ namespace Eagle
 			return false;
 		}
 
-		std::string filename = outputFilename.stem().string();
+		std::string filename = Utils::AsString(outputFilename.stem());
 		uint32_t animIndex = 0;
 		for (const auto& anim : animations)
 		{

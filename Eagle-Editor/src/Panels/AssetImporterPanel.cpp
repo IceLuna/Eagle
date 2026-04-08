@@ -61,7 +61,7 @@ namespace Eagle
 				settings.bNormalMap = Utils::IsNormalMap(path);
 
 				int comp = 1;
-				stbi_info(path.string().c_str(), &data.Size.x, &data.Size.y, &comp);
+				stbi_info(Utils::AsString(path).c_str(), &data.Size.x, &data.Size.y, &comp);
 				settings.ImportFormat = ChannelsToAssetTexture2DFormat(comp);
 			}
 			else if (assetType == AssetType::TextureCube)
@@ -72,7 +72,7 @@ namespace Eagle
 				auto& settings = data.Settings;
 
 				int comp = 1;
-				stbi_info(path.string().c_str(), &data.Size.x, &data.Size.y, &comp);
+				stbi_info(Utils::AsString(path).c_str(), &data.Size.x, &data.Size.y, &comp);
 			}
 		}
 
@@ -142,7 +142,7 @@ namespace Eagle
 					for (auto& texture : m_2DTextures)
 					{
 						constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
-						if (ImGui::TreeNodeEx(&texture, flags, texture.AssetPath.string().c_str()))
+						if (ImGui::TreeNodeEx(&texture, flags, Utils::AsString(texture.AssetPath).c_str()))
 						{
 							Render2DSettings(texture.AssetPath, texture.Settings, texture.Size, false, &texture.bOverride);
 							ImGui::TreePop();
@@ -158,7 +158,7 @@ namespace Eagle
 					for (auto& texture : m_CubeTextures)
 					{
 						constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
-						if (ImGui::TreeNodeEx(&texture, flags, texture.AssetPath.string().c_str()))
+						if (ImGui::TreeNodeEx(&texture, flags, Utils::AsString(texture.AssetPath).c_str()))
 						{
 							RenderCubeSettings(texture.AssetPath, texture.Settings, texture.Size, &texture.bOverride);
 							ImGui::TreePop();
@@ -214,7 +214,7 @@ namespace Eagle
 		UI::BeginPropertyGrid("TextureImporter");
 
 		if (!path.empty())
-			UI::Text("Path", path.string());
+			UI::Text("Path", Utils::AsString(path));
 		if (size.x > 0 && size.y > 0)
 			UI::Text("Size", std::to_string(size.x) + 'x' + std::to_string(size.y));
 		ImGui::Separator();
@@ -266,7 +266,7 @@ namespace Eagle
 		UI::BeginPropertyGrid("TextureImporter");
 
 		if (!path.empty())
-			UI::Text("Path", path.string());
+			UI::Text("Path", Utils::AsString(path));
 		if (size.x > 0 && size.y > 0)
 			UI::Text("Size", std::to_string(size.x) + 'x' + std::to_string(size.y));
 		ImGui::Separator();
@@ -345,7 +345,7 @@ namespace Eagle
 					constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
 						ImGuiTreeNodeFlags_SpanAvailWidth;
 
-					if (ImGui::TreeNodeEx(&mesh, flags, mesh.AssetPath.string().c_str()))
+					if (ImGui::TreeNodeEx(&mesh, flags, Utils::AsString(mesh.AssetPath).c_str()))
 					{
 						RenderSettings(mesh.AssetPath, mesh.Settings, mesh.bSkeletal, &mesh.bOverride);
 						ImGui::TreePop();
@@ -409,7 +409,7 @@ namespace Eagle
 		UI::BeginPropertyGrid("MeshImporter");
 
 		if (!path.empty())
-			UI::Text("Path", path.string());
+			UI::Text("Path", Utils::AsString(path));
 
 		ImGui::Separator();
 

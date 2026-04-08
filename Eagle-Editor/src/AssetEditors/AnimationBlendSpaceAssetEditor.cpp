@@ -29,7 +29,7 @@ namespace Eagle
 		, m_Asset(asset)
 	{
 		m_DetailsWindowName = AssetEditor::GetAssetWindowName(m_Asset);
-		m_PlotWindowName = m_Asset->GetPath().string() + "_Plot";
+		m_PlotWindowName = Utils::AsString(m_Asset->GetPath()) + "_Plot";
 
 		m_Horizontal = m_Asset->GetHorizontalAxis();
 		m_Vertical = m_Asset->GetVerticalAxis();
@@ -82,7 +82,7 @@ namespace Eagle
 		ImGui::Begin(m_DetailsWindowName.c_str(), pOpen);
 
 		UI::BeginPropertyGrid("AnimationBlendSpaceDetails");
-		UI::Text("Name", m_Asset->GetPath().stem().string());
+		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 		UI::Text("Type", "Animation Blend Space");
 
 		ImGui::Separator();
@@ -392,7 +392,7 @@ namespace Eagle
 				auto& pointData = m_PointsData[i];
 
 				const std::string name = pointData.Animation ?
-					pointData.Animation->GetPath().stem().string() + " (" + std::to_string(i) + ')'
+					Utils::AsString(pointData.Animation->GetPath().stem()) + " (" + std::to_string(i) + ')'
 					: '(' + std::to_string(i) + ')';
 
 				const bool bOpened = ImGui::TreeNodeEx((void*)&m_PointsData[i], flags, name.c_str());
@@ -536,7 +536,7 @@ namespace Eagle
 		{
 			auto& bsNode = nodes.emplace_back();
 			bsNode.OwnerID = data.Graph.ID;
-			bsNode.Name = m_Asset->GetPath().stem().string();
+			bsNode.Name = Utils::AsString(m_Asset->GetPath().stem());
 			bsNode.NodeID = blendSpaceNodeID;
 			bsNode.Type = GraphNodeType::BlendSpace;
 			bsNode.BlendSpace = m_Asset;

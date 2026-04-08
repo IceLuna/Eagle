@@ -102,6 +102,12 @@ namespace Eagle
 		}
 		return ret;
 	}
+
+	std::string Utils::AsString(const Path& path)
+	{
+		const std::u8string u8str = path.u8string();
+		return std::string(u8str.begin(), u8str.end());
+	}
 	
 	size_t Utils::FindSubstringI(const std::string& str1, const std::string& str2)
 	{
@@ -254,12 +260,12 @@ namespace Eagle
 	
 	Path Utils::GetUniqueAssetFilepath(const Path& saveTo, const std::string& assetFilename)
 	{
-		Path outputFilename = saveTo / (assetFilename + Asset::GetExtension());
+		Path outputFilename = saveTo / Utils::AsPath(assetFilename + Asset::GetExtension());
 		uint32_t i = 0;
 		while (std::filesystem::exists(outputFilename))
 		{
 			std::string uniqueFilename = assetFilename + '_' + std::to_string(i);
-			outputFilename = saveTo / (uniqueFilename + Asset::GetExtension());
+			outputFilename = saveTo / Utils::AsPath(uniqueFilename + Asset::GetExtension());
 			++i;
 		}
 

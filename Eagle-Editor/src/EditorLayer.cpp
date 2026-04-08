@@ -480,7 +480,7 @@ namespace Eagle
 		if (!ScriptEngine::LoadAppAssembly(Project::GetBinariesPath() / (project.Name + ".dll")))
 		{
 			const std::string error = std::string("Open VS solution (") +
-				(project.BasePath / (project.Name + ".sln")).string() + " or \"File > Open VS Solution\") and compile the project.\nIf the solution is not there, try to generate it \"File > Generate VS Solution\"";
+				Utils::AsString(project.BasePath / (project.Name + ".sln")) + " or \"File > Open VS Solution\") and compile the project.\nIf the solution is not there, try to generate it \"File > Generate VS Solution\"";
 			m_ImGuiLayer->AddMessage(error);
 			EG_CORE_WARN(error);
 		}
@@ -492,7 +492,7 @@ namespace Eagle
 		{
 			const auto& project = Project::GetProjectInfo();
 			const std::string error = std::string("Open VS solution (") +
-				(project.BasePath / (project.Name + ".sln")).string() + " or \"File > Open VS Solution\") and compile the project.\nIf the solution is not there, try to generate it \"File > Generate VS Solution\"";
+				Utils::AsString(project.BasePath / (project.Name + ".sln")) + " or \"File > Open VS Solution\") and compile the project.\nIf the solution is not there, try to generate it \"File > Generate VS Solution\"";
 			m_ImGuiLayer->AddMessage(error);
 		}
 	}
@@ -670,7 +670,7 @@ namespace Eagle
 				const Path currentPath = Project::GetProjectPath();
 				filepath = std::filesystem::relative(filepath, currentPath);
 				const bool bDir = std::filesystem::is_directory(filepath);
-				Path assetPath = AssetImporter::CreateScene(bDir ? filepath : filepath.parent_path(), bDir ? "NewScene" : filepath.stem().string());
+				Path assetPath = AssetImporter::CreateScene(bDir ? filepath : filepath.parent_path(), bDir ? "NewScene" : Utils::AsString(filepath.stem()));
 
 				Ref<Asset> asset;
 				if (AssetManager::Get(assetPath, &asset) == false)
@@ -718,7 +718,7 @@ namespace Eagle
 			const Path currentPath = Project::GetProjectPath();
 			filepath = std::filesystem::relative(filepath, currentPath);
 			const bool bDir = std::filesystem::is_directory(filepath);
-			Path assetPath = AssetImporter::CreateScene(bDir ? filepath : filepath.parent_path(), bDir ? "NewScene" : filepath.stem().string());
+			Path assetPath = AssetImporter::CreateScene(bDir ? filepath : filepath.parent_path(), bDir ? "NewScene" : Utils::AsString(filepath.stem()));
 
 			Ref<Asset> asset;
 			if (AssetManager::Get(assetPath, &asset) == false)
@@ -755,7 +755,7 @@ namespace Eagle
 			return;
 		}
 
-		std::string displayName = scene->GetPath().string();
+		std::string displayName = Utils::AsString(scene->GetPath());
 		const size_t contentPos = displayName.find("Content");
 		if (contentPos != std::string::npos)
 			displayName = displayName.substr(contentPos);
@@ -2291,7 +2291,7 @@ namespace Eagle
 				{
 					const auto& asset = m_DirtyAssets[i];
 					bool bChecked = m_DirtyAssetsChecked[i];
-					if (ImGui::Checkbox(asset->GetPath().string().c_str(), &bChecked))
+					if (ImGui::Checkbox(Utils::AsString(asset->GetPath()).c_str(), &bChecked))
 					{
 						m_DirtyAssetsChecked[i] = bChecked;
 					}

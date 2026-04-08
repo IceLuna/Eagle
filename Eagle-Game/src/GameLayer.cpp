@@ -21,7 +21,7 @@ namespace Eagle
 		if (startScene)
 		{
 			const auto& scenePath = startScene->GetPath();
-			Ref<Scene> scene = MakeRef<Scene>(scenePath.filename().string(), nullptr, true);
+			Ref<Scene> scene = MakeRef<Scene>(Utils::AsString(scenePath.filename()), nullptr, true);
 			Ref<ScopedDataBuffer> sceneData;
 			if (AssetManager::GetRuntimeAssetData(scenePath, &sceneData))
 			{

@@ -56,7 +56,7 @@ namespace Eagle
 			return nullptr;
 		}
 
-		std::string extension = path.extension().string();
+		std::string extension = Utils::AsString(path.extension());
 		std::transform(extension.begin(), extension.end(), extension.begin(),
 			[](unsigned char c) { return std::tolower(c); });
 
@@ -150,7 +150,7 @@ namespace Eagle
 		for (const auto& [path, source] : sourceCodes)
 		{
 			out << YAML::BeginMap;
-			out << YAML::Key << "Path" << YAML::Value << path.string();
+			out << YAML::Key << "Path" << YAML::Value << Utils::AsString(path);
 			out << YAML::Key << "SourceCode" << YAML::Value << source;
 			out << YAML::EndMap;
 		}

@@ -31,6 +31,8 @@ namespace Eagle::Utils
 	};
 
 	std::string ToUtf8(const std::wstring& str);
+	std::string AsString(const Path& path);
+	static Path AsPath(const std::string& str) { return Path{ std::u8string(str.begin(), str.end()) }; }
 
 	static uint16_t ToFloat16(float value)
 	{
@@ -159,7 +161,7 @@ namespace Eagle::Utils
 			return false;
 
 		static const std::locale& loc = std::locale("RU_ru");
-		std::string fileExtension = filepath.extension().string();
+		std::string fileExtension = Utils::AsString(filepath.extension());
 
 		for (char& c : fileExtension)
 			c = std::tolower(c, loc);

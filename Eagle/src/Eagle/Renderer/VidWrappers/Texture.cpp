@@ -41,7 +41,7 @@ namespace Eagle
 		{
 		case RendererAPIType::Vulkan:
 		{
-			auto texture2D = MakeRef<VulkanTexture2D>(imageFormat, glm::uvec2(width, height), imageData.Data(), specs, path.stem().string());
+			auto texture2D = MakeRef<VulkanTexture2D>(imageFormat, glm::uvec2(width, height), imageData.Data(), specs, Utils::AsString(path.stem()));
 			texture2D->CreateImageFromData(true); // It's here because can't call `shared_from_this` inside of a constructor
 			result = texture2D;
 			break;

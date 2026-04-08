@@ -279,7 +279,7 @@ namespace Eagle
 
 		// Trying to find a cache for the shader
 		Path cachePath = GetShaderCacheDir();
-		Path cacheFilePath = cachePath / (m_Path.filename().string() + "_" + std::to_string(sourceHash) + ".bin");
+		Path cacheFilePath = cachePath / Utils::AsPath(Utils::AsString(m_Path.filename()) + "_" + std::to_string(sourceHash) + ".bin");
 		bool bLoadedFromCache = false;
 		if (std::filesystem::exists(cacheFilePath))
 		{
@@ -311,11 +311,11 @@ namespace Eagle
 			options.SetGenerateDebugInfo();
 
 			EG_RENDERER_TRACE("Compiling shader: {}", m_Path);
-			shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, Utils::ShaderTypeToShaderC(m_ShaderType), m_Path.string().c_str(), options);
+			shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, Utils::ShaderTypeToShaderC(m_ShaderType), Utils::AsString(m_Path).c_str(), options);
 			if (module.GetCompilationStatus() != shaderc_compilation_status_success)
 			{
 				EG_RENDERER_CRITICAL("Failed to compile shader at: {0}", m_Path);
-				Path filePath = cachePath / (m_Path.filename().string() + "_failed.txt");
+				Path filePath = cachePath / Utils::AsPath(Utils::AsString(m_Path.filename()) + "_failed.txt");
 				std::ofstream fout(filePath);
 				if (fout)
 				{

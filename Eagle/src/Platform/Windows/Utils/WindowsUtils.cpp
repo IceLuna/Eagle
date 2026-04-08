@@ -193,14 +193,26 @@ namespace Eagle
 				return {};
 			}
 			std::ifstream stream(path, std::ios::binary | std::ios::ate);
+			if (!stream)
+			{
+				EG_CORE_ERROR("Couldn't open a file: {}", path);
+				return {};
+			}
 
-			std::streampos end = stream.tellg();
+			const size_t size = (size_t)stream.tellg();
+			if (size == 0)
+			{
+				EG_CORE_WARN("Empty file read, returning null: {}", path);
+				return {};
+			}
 			stream.seekg(0, std::ios::beg);
-			size_t size = end - stream.tellg();
-			EG_CORE_ASSERT(size != 0, "Empty file");
 
 			ScopedDataBuffer buffer(size);
-			stream.read((char*)buffer.Data(), buffer.Size());
+			if (!stream.read((char*)buffer.Data(), buffer.Size()))
+			{
+				EG_CORE_ERROR("Failed to read a file: {}", path);
+				return {};
+			}
 
 			return buffer;
 		}
@@ -213,6 +225,11 @@ namespace Eagle
 				return {};
 			}
 			std::ifstream stream(path, std::ios::ate);
+			if (!stream)
+			{
+				EG_CORE_ERROR("Failed to open a file file: {}", path);
+				return {};
+			}
 			std::streampos end = stream.tellg();
 			stream.seekg(0, std::ios::beg);
 			size_t size = end - stream.tellg();
@@ -292,7 +309,7 @@ namespace Eagle
 
 		int Execute(const Path& exePath, const std::string& args)
 		{
-			const std::string cmd = "call " + exePath.string() + ' ' + args;
+			const std::string cmd = "call " + Utils::AsString(exePath) + ' ' + args;
 			return system(cmd.c_str());
 		}
 	}

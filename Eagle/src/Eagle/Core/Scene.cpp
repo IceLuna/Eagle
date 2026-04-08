@@ -529,7 +529,7 @@ namespace Eagle
 			ComponentsNotificationSystem::Reset();
 			ScriptEngine::Reset();
 			RenderManager::Wait();
-			Ref<Scene> scene = MakeRef<Scene>(path.string(), (bReuseCurrentSceneRenderer && s_CurrentScene) ? s_CurrentScene->GetSceneRenderer() : nullptr, bRuntime);
+			Ref<Scene> scene = MakeRef<Scene>(Utils::AsString(path), (bReuseCurrentSceneRenderer && s_CurrentScene) ? s_CurrentScene->GetSceneRenderer() : nullptr, bRuntime);
 			scene->SetSkybox(SkySettings{});
 			scene->SetSkybox(nullptr);
 			scene->SetSkyboxIntensity(1.f);
@@ -1601,7 +1601,7 @@ namespace Eagle
 	Entity Scene::CreateFromEntityAsset(const Ref<AssetEntity>& asset, bool bCopyGUID)
 	{
 		Entity createdEntity = CreateFromEntity(*asset->GetEntity().get(), bCopyGUID);
-		createdEntity.SetName(asset->GetPath().stem().string());
+		createdEntity.SetName(Utils::AsString(asset->GetPath().stem()));
 		if (createdEntity.HasComponent<EntityAssetComponent>())
 		{
 			createdEntity.GetComponent<EntityAssetComponent>().AssetGUID = asset->GetGUID();

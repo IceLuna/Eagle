@@ -21,7 +21,7 @@ namespace Eagle
 		bool bHidden = !ImGui::Begin(m_WindowName.c_str(), pOpen);
 		UI::BeginPropertyGrid("AudioDetails");
 
-		UI::Text("Name", m_Asset->GetPath().stem().string());
+		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 		UI::Text("Type", "Audio");
 		UI::Text("Channels", std::to_string(m_Asset->GetAudio()->GetChannelsCount()));
 

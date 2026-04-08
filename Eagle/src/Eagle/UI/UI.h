@@ -240,7 +240,7 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		const std::string assetName = modifyingAsset ? modifyingAsset->GetPath().stem().string() : "None";
+		const std::string assetName = modifyingAsset ? Utils::AsString(modifyingAsset->GetPath().stem()) : "None";
 		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
 		ImGui::PushID(label.data());
 
@@ -418,7 +418,7 @@ namespace Eagle::UI
 
 				if (!search.empty())
 				{
-					const std::string filename = path.stem().string();
+					const std::string filename = Utils::AsString(path.stem());
 					std::size_t pos = Utils::FindSubstringI(filename, search);
 					if (pos == std::string::npos)
 					{
@@ -484,7 +484,7 @@ namespace Eagle::UI
 				ImGui::SameLine();
 				if (bHasPreview)
 					ImGui::SetCursorPosY(ImGui::GetCursorPosY() + previewSize.y * 0.25f);
-				ImGui::Text("%s", path.stem().string().c_str());
+				ImGui::Text("%s", Utils::AsString(path.stem()).c_str());
 
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
 				if (bSelected)

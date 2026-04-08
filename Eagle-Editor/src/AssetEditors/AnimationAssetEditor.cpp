@@ -45,7 +45,7 @@ namespace Eagle
 		ImGui::Begin(m_WindowName.c_str(), pOpen);
 		UI::BeginPropertyGrid("AnimationDetails");
 
-		UI::Text("Name", m_Asset->GetPath().stem().string());
+		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 		UI::Text("Type", "Animation");
 		UI::Text("Duration", std::to_string(animation->Duration) + " ticks (" + durationSec + " seconds)");
 		UI::Text("Ticks per Second", std::to_string(animation->TicksPerSecond));

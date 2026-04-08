@@ -541,7 +541,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Texture2D);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
-		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
+		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 		out << YAML::Key << "FilterMode" << YAML::Value << Utils::GetEnumName(filterMode);
 		out << YAML::Key << "AddressMode" << YAML::Value << Utils::GetEnumName(addressMode);
 		out << YAML::Key << "Anisotropy" << YAML::Value << anisotropy;
@@ -611,7 +611,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::TextureCube);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
-		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
+		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(format);
 		out << YAML::Key << "LayerSize" << YAML::Value << layerSize;
 		out << YAML::Key << "PrefilterSize" << YAML::Value << prefilterSize;
@@ -672,7 +672,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::StaticMesh);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
-		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
+		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 
 		// AABB
 		{
@@ -782,7 +782,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::SkeletalMesh);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
-		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
+		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 
 		// AABB
 		{
@@ -918,7 +918,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Audio);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
-		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
+		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 		out << YAML::Key << "Volume" << YAML::Value << volume;
 		out << YAML::Key << "Pitch" << YAML::Value << pitch;
 		out << YAML::Key << "Pan" << YAML::Value << pan;
@@ -965,7 +965,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Font);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
-		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
+		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
 		out << YAML::Key << "OrigSize" << YAML::Value << origDataSize;
@@ -1181,7 +1181,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Animation);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
-		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
+		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 		out << YAML::Key << "Index" << YAML::Value << animIndex;
 		out << YAML::Key << "Skeletal" << YAML::Value << skeletal->GetGUID();
 
@@ -3285,7 +3285,7 @@ namespace Eagle
 		const Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.string();
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + Utils::AsString(pathToRaw);
 			EG_CORE_ERROR("{}", errorMessage);
 			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
@@ -3364,7 +3364,7 @@ namespace Eagle
 		{
 			if (!compressedTextures.empty() && compressedFormat != ImageFormat::Unknown && TextureCompressor::IsCompressionFormatSupported(compressedFormat))
 			{
-				texture = Texture2D::Create(pathToAsset.stem().string(), compressedFormat, glm::uvec2(width, height), compressedTextures, specs);
+				texture = Texture2D::Create(Utils::AsString(pathToAsset.stem()), compressedFormat, glm::uvec2(width, height), compressedTextures, specs);
 			}
 			else
 			{
@@ -3373,7 +3373,7 @@ namespace Eagle
 				compressedData = TextureCompressor::Compress(binary.GetDataBuffer(), targetNumChannels, specs.MipsCount, compression, bNormalMap);
 				if (compressedData)
 				{
-					texture = Texture2D::Create(pathToAsset.stem().string(), compressedData.Format, glm::uvec2(width, height), compressedData.DataPerMip, specs);
+					texture = Texture2D::Create(Utils::AsString(pathToAsset.stem()), compressedData.Format, glm::uvec2(width, height), compressedData.DataPerMip, specs);
 				}
 				else
 				{
@@ -3395,7 +3395,7 @@ namespace Eagle
 			}
 
 			const ImageFormat imageFormat = AssetTextureFormatToImageFormat(assetFormat);
-			texture = Texture2D::Create(pathToAsset.stem().string(), imageFormat, glm::uvec2(width, height), imageData.Data(), specs);
+			texture = Texture2D::Create(Utils::AsString(pathToAsset.stem()), imageFormat, glm::uvec2(width, height), imageData.Data(), specs);
 		}
 
 		class LocalAssetTexture2D : public AssetTexture2D
@@ -3423,7 +3423,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.string();
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + Utils::AsString(pathToRaw);
 			EG_CORE_ERROR("{}", errorMessage);
 			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
@@ -3469,7 +3469,7 @@ namespace Eagle
 		};
 
 		Ref<AssetTextureCube> asset = MakeRef<LocalAssetTextureCube>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(),
-			TextureCube::Create(pathToAsset.stem().string(), desiredFormat, imageData.Data(), glm::uvec2(width, height), layerSize, prefilterSize), assetFormat);
+			TextureCube::Create(Utils::AsString(pathToAsset.stem()), desiredFormat, imageData.Data(), glm::uvec2(width, height), layerSize, prefilterSize), assetFormat);
 
 		return asset;
 	}
@@ -3492,7 +3492,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.string();
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + Utils::AsString(pathToRaw);
 			EG_CORE_ERROR("{}", errorMessage);
 			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
@@ -3575,7 +3575,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.string();
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + Utils::AsString(pathToRaw);
 			EG_CORE_ERROR("{}", errorMessage);
 			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
@@ -3717,7 +3717,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.string();
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + Utils::AsString(pathToRaw);
 			EG_CORE_ERROR("{}", errorMessage);
 			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
@@ -3787,7 +3787,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.string();
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + Utils::AsString(pathToRaw);
 			EG_CORE_ERROR("{}", errorMessage);
 			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
@@ -3828,7 +3828,7 @@ namespace Eagle
 				: AssetFont(path, pathToRaw, guid, rawData, font) {}
 		};
 
-		return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(), Font::Create(binary.GetDataBuffer(), pathToAsset.stem().string()));
+		return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(), Font::Create(binary.GetDataBuffer(), Utils::AsString(pathToAsset.stem())));
 	}
 
 	Ref<AssetMaterial> Serializer::DeserializeAssetMaterial(const DataBuffer& data, const Path& pathToAsset)
@@ -4083,7 +4083,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.string();
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + Utils::AsString(pathToRaw);
 			EG_CORE_ERROR("{}", errorMessage);
 			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
@@ -4104,7 +4104,7 @@ namespace Eagle
 			if (animations.size() < animIndex)
 			{
 				const std::string errorMessage = "Failed to reload an animation asset. The asset was initially imported at index " + 
-					std::to_string(animIndex) + ", but now the file doesn't contains an animation at that index: " + pathToRaw.string();
+					std::to_string(animIndex) + ", but now the file doesn't contains an animation at that index: " + Utils::AsString(pathToRaw);
 				EG_CORE_ERROR("{}", errorMessage);
 				Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 				return {};

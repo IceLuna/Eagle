@@ -7602,37 +7602,37 @@ namespace Eagle
 	//-------------- Project --------------
 	MonoString* Script::Eagle_Project_GetProjectPath()
 	{
-		return mono_string_new(mono_domain_get(), Project::GetProjectPath().string().c_str());
+		return mono_string_new(mono_domain_get(), Eagle::Utils::AsString(Project::GetProjectPath()).c_str());
 	}
 
 	MonoString* Script::Eagle_Project_GetBinariesPath()
 	{
-		return mono_string_new(mono_domain_get(), Project::GetBinariesPath().string().c_str());
+		return mono_string_new(mono_domain_get(), Eagle::Utils::AsString(Project::GetBinariesPath()).c_str());
 	}
 
 	MonoString* Script::Eagle_Project_GetConfigPath()
 	{
-		return mono_string_new(mono_domain_get(), Project::GetConfigPath().string().c_str());
+		return mono_string_new(mono_domain_get(), Eagle::Utils::AsString(Project::GetConfigPath()).c_str());
 	}
 
 	MonoString* Script::Eagle_Project_GetContentPath()
 	{
-		return mono_string_new(mono_domain_get(), Project::GetContentPath().string().c_str());
+		return mono_string_new(mono_domain_get(), Eagle::Utils::AsString(Project::GetContentPath()).c_str());
 	}
 
 	MonoString* Script::Eagle_Project_GetCachePath()
 	{
-		return mono_string_new(mono_domain_get(), Project::GetCachePath().string().c_str());
+		return mono_string_new(mono_domain_get(), Eagle::Utils::AsString(Project::GetCachePath()).c_str());
 	}
 
 	MonoString* Script::Eagle_Project_GetRendererCachePath()
 	{
-		return mono_string_new(mono_domain_get(), Project::GetRendererCachePath().string().c_str());
+		return mono_string_new(mono_domain_get(), Eagle::Utils::AsString(Project::GetRendererCachePath()).c_str());
 	}
 
 	MonoString* Script::Eagle_Project_GetSavedPath()
 	{
-		return mono_string_new(mono_domain_get(), Project::GetSavedPath().string().c_str());
+		return mono_string_new(mono_domain_get(), Eagle::Utils::AsString(Project::GetSavedPath()).c_str());
 	}
 
 	//-------------- Scene --------------
@@ -8078,7 +8078,7 @@ namespace Eagle
 			return nullptr;
 		}
 
-		return mono_string_new(mono_domain_get(), asset->GetPath().string().c_str());
+		return mono_string_new(mono_domain_get(), Eagle::Utils::AsString(asset->GetPath()).c_str());
 	}
 
 	AssetType Script::Eagle_Asset_GetAssetType(GUID guid)

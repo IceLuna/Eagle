@@ -198,13 +198,13 @@ namespace Eagle
 	{
 		const std::string vsVersions[] = { "vs2026", "vs2022", "vs2019" };
 
-		const std::string eagleDir = std::filesystem::absolute(Application::GetCorePath().parent_path()).string();
+		const std::string eagleDir = Utils::AsString(std::filesystem::absolute(Application::GetCorePath().parent_path()));
 		std::string args = std::string(" --file=" + eagleDir + "/premake5_project.lua ") + "--projectname=" + info.Name
-			+ " --projectdir=" + info.BasePath.string() + " --eagledir=" + eagleDir;
+			+ " --projectdir=" + Utils::AsString(info.BasePath) + " --eagledir=" + eagleDir;
 
 		for (const auto& version : vsVersions)
 		{
-			const int result = Utils::Execute(eagleDir + "/vendor/premake/premake5.exe", version + args);
+			const int result = Utils::Execute(Utils::AsPath(eagleDir) / "vendor/premake/premake5.exe", version + args);
 			if (result == 0)
 			{
 				EG_CORE_INFO("Successfully generated {} solution files: {}", version, info.BasePath);
@@ -521,7 +521,7 @@ namespace Eagle
 	{
 		*outInfo = {};
 
-		YAML::Node data = YAML::LoadFile(filepath.string());
+		YAML::Node data = YAML::Load(FileSystem::ReadText(filepath));
 		auto nameNode = data["Name"];
 
 		if (!nameNode)
