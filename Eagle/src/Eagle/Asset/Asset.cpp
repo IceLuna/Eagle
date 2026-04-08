@@ -122,7 +122,7 @@ namespace Eagle
 			}
 			else
 			{
-				EG_CORE_ERROR("Failed to generate compressed texture: {}", GetPath().u8string());
+				EG_CORE_ERROR("Failed to generate compressed texture: {}", GetPath());
 				m_Compression = TextureCompressor::Quality::Disabled;
 			}
 		}
@@ -141,7 +141,7 @@ namespace Eagle
 			}
 			else
 			{
-				EG_CORE_ERROR("Failed to load the image: {}", GetPath().u8string());
+				EG_CORE_ERROR("Failed to load the image: {}", GetPath());
 			}
 
 			if (m_Texture->GetMipsCount() != mipsCount)
@@ -169,7 +169,7 @@ namespace Eagle
 		ScopedDataBuffer imageData = Utils::LoadHDRTextureFromMemory(m_RawData, &width, &height, &channels, desiredFormat);
 		if (!imageData)
 		{
-			EG_CORE_ERROR("Failed to change format of TextureCube asset. Failed to load the texture data from memory: {} - {}", m_Path.u8string(), Utils::GetEnumName(format));
+			EG_CORE_ERROR("Failed to change format of TextureCube asset. Failed to load the texture data from memory: {} - {}", m_Path, Utils::GetEnumName(format));
 			return false;
 		}
 
@@ -192,7 +192,7 @@ namespace Eagle
 	{
 		if (!std::filesystem::exists(path))
 		{
-			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path.u8string());
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path);
 			return {};
 		}
 
@@ -224,7 +224,7 @@ namespace Eagle
 
 		if (assetType == AssetType::Scene)
 		{
-			EG_CORE_ERROR("Reloading scene assets is not supported! {}", assetPath.u8string());
+			EG_CORE_ERROR("Reloading scene assets is not supported! {}", assetPath);
 			return;
 		}
 

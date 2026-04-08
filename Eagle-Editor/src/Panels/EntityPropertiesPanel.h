@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Eagle.h"
+#include <imgui_internal.h>
 
 namespace Eagle
 {
@@ -72,7 +73,7 @@ namespace Eagle
 				if (canRemove)
 				{
 					ImGui::SameLine(contentRegionAvailable.x - lineHeight * 0.5f);
-					if (ImGui::Button("...", ImVec2{ lineHeight, lineHeight })) //•••
+					if (ImGui::Button("...", ImVec2{ lineHeight, lineHeight }))
 					{
 						ImGui::OpenPopup("ComponentSettings");
 					}

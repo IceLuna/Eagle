@@ -122,7 +122,7 @@ project "Eagle"
 	location "Eagle"
 	kind "StaticLib"
 	language "C++"
-	cppdialect "C++17"
+	cppdialect "C++23"
 	staticruntime "off"
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
@@ -200,6 +200,7 @@ project "Eagle"
 		"IMGUI_DEFINE_MATH_OPERATORS",
 		"_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING",
 		"KHRONOS_STATIC",
+		"_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING",
 	}
 
 	libdirs
@@ -231,6 +232,11 @@ project "Eagle"
 	{
 		"/ignore:4099", -- Disable 'PDB was not found' warnings 
 		"/ignore:4006" -- Disable 'already defined in ...; second definition ignored' warnings 
+	}
+
+	buildoptions
+	{
+		"/utf-8"
 	}
 
 	filter "files:Eagle/vendor/ImGuizmo/**.cpp"
@@ -348,7 +354,7 @@ project "Eagle-Editor"
 	location "Eagle-Editor"
 	kind "ConsoleApp"
 	language "C++"
-	cppdialect "C++17"
+	cppdialect "C++23"
 	staticruntime "off"
 
 	targetdir ("%{prj.name}")
@@ -398,6 +404,7 @@ project "Eagle-Editor"
 		"GLM_FORCE_DEPTH_ZERO_TO_ONE",
 		"IMGUI_DEFINE_MATH_OPERATORS",
 		"KHRONOS_STATIC",
+		"_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING",
 	}
 
 	linkoptions
@@ -405,6 +412,11 @@ project "Eagle-Editor"
 		"/ignore:4099", -- Disable 'PDB was not found' warnings 
 		"/ignore:4006", -- Disable 'already defined in ...; second definition ignored' warnings 
 		"/ignore:4098" -- Disable `defaultlib 'libcmt.lib' conflicts with use of other libs`
+	}
+
+	buildoptions
+	{
+		"/utf-8"
 	}
 
 	filter "system:windows"
@@ -491,7 +503,7 @@ project "Eagle-Game"
 	location "Eagle-Game"
 	kind "ConsoleApp"
 	language "C++"
-	cppdialect "C++17"
+	cppdialect "C++23"
 	staticruntime "off"
 
 	targetdir ("Eagle-Editor")
@@ -541,6 +553,7 @@ project "Eagle-Game"
 		"GLM_FORCE_DEPTH_ZERO_TO_ONE",
 		"IMGUI_DEFINE_MATH_OPERATORS",
 		"KHRONOS_STATIC",
+		"_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING",
 	}
 
 	linkoptions
@@ -548,6 +561,11 @@ project "Eagle-Game"
 		"/ignore:4099", -- Disable 'PDB was not found' warnings 
 		"/ignore:4006", -- Disable 'already defined in ...; second definition ignored' warnings 
 		"/ignore:4098" -- Disable `defaultlib 'libcmt.lib' conflicts with use of other libs`
+	}
+
+	buildoptions
+	{
+		"/utf-8"
 	}
 
 	filter "system:windows"

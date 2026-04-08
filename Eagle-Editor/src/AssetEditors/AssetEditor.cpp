@@ -54,7 +54,7 @@ namespace Eagle
 		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
 
 		if (m_ViewportWindowName.empty())
-			m_ViewportWindowName = GetAsset()->GetPath().u8string() + "_Viewport";
+			m_ViewportWindowName = GetAsset()->GetPath().string() + "_Viewport";
 		bViewportVisible = ImGui::Begin(m_ViewportWindowName.c_str());
 		HandleFirstWindowRender(m_ViewportWindowName, parentName);
 
@@ -282,7 +282,7 @@ namespace Eagle
 
 	std::string AssetEditor::GetAssetWindowName(const Ref<Asset>& asset)
 	{
-		return asset->GetPath().stem().u8string() + "##" + std::to_string(asset->GetGUID().GetHash());
+		return asset->GetPath().stem().string() + "##" + std::to_string(asset->GetGUID().GetHash());
 	}
 	
 	void AssetEditor::HandleCameraFocus()

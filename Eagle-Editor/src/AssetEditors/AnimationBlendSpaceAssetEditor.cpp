@@ -13,11 +13,11 @@
 
 namespace Eagle
 {
-	static constexpr char* s_SyncHelpMsg = "When animations have different durations, they might blend in a weird way. "
+	static const char* s_SyncHelpMsg = "When animations have different durations, they might blend in a weird way. "
 		"To help to fix it, enable sync. When it's enabled, highest weighted animation will lead others. "
 		"Meaning, if it's at 25% of its duration, other animations will also be at 25% of their durations. When it resets to 0 (loops back), other animations also reset to 0.";
 
-	static constexpr char* s_ShortestBlendPathHelpMsg = "When enabled, the system will blend using the shortest path to the target. "
+	static const char* s_ShortestBlendPathHelpMsg = "When enabled, the system will blend using the shortest path to the target. "
 		"For example, if X-axis is [-100; 100], and input has changed from `-99` to `99`, instead of blending all the way from `-99` to `99`, "
 		"it'll blend from `-99` to `-100`, flip over to `100` and blend from `100` to `99`. So, the blend length is only `2` units, instead of `198`";
 
@@ -29,7 +29,7 @@ namespace Eagle
 		, m_Asset(asset)
 	{
 		m_DetailsWindowName = AssetEditor::GetAssetWindowName(m_Asset);
-		m_PlotWindowName = m_Asset->GetPath().u8string() + "_Plot";
+		m_PlotWindowName = m_Asset->GetPath().string() + "_Plot";
 
 		m_Horizontal = m_Asset->GetHorizontalAxis();
 		m_Vertical = m_Asset->GetVerticalAxis();
@@ -82,7 +82,7 @@ namespace Eagle
 		ImGui::Begin(m_DetailsWindowName.c_str(), pOpen);
 
 		UI::BeginPropertyGrid("AnimationBlendSpaceDetails");
-		UI::Text("Name", m_Asset->GetPath().stem().u8string());
+		UI::Text("Name", m_Asset->GetPath().stem().string());
 		UI::Text("Type", "Animation Blend Space");
 
 		ImGui::Separator();
@@ -392,7 +392,7 @@ namespace Eagle
 				auto& pointData = m_PointsData[i];
 
 				const std::string name = pointData.Animation ?
-					pointData.Animation->GetPath().stem().u8string() + " (" + std::to_string(i) + ')'
+					pointData.Animation->GetPath().stem().string() + " (" + std::to_string(i) + ')'
 					: '(' + std::to_string(i) + ')';
 
 				const bool bOpened = ImGui::TreeNodeEx((void*)&m_PointsData[i], flags, name.c_str());
@@ -536,7 +536,7 @@ namespace Eagle
 		{
 			auto& bsNode = nodes.emplace_back();
 			bsNode.OwnerID = data.Graph.ID;
-			bsNode.Name = m_Asset->GetPath().stem().u8string();
+			bsNode.Name = m_Asset->GetPath().stem().string();
 			bsNode.NodeID = blendSpaceNodeID;
 			bsNode.Type = GraphNodeType::BlendSpace;
 			bsNode.BlendSpace = m_Asset;

@@ -54,7 +54,7 @@ namespace Eagle
 		ImGui::Begin(m_WindowName.c_str(), pOpen);
 		
 		UI::BeginPropertyGrid("MaterialDetails");
-		UI::Text("Name", m_Asset->GetPath().stem().u8string());
+		UI::Text("Name", m_Asset->GetPath().stem().string());
 		UI::Text("Type", "Material");
 
 		Material::BlendMode blendMode = material->GetBlendMode();

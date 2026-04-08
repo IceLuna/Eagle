@@ -159,7 +159,7 @@ namespace Eagle::Utils
 			return false;
 
 		static const std::locale& loc = std::locale("RU_ru");
-		std::string fileExtension = filepath.extension().u8string();
+		std::string fileExtension = filepath.extension().string();
 
 		for (char& c : fileExtension)
 			c = std::tolower(c, loc);

@@ -62,7 +62,7 @@ namespace Eagle
 
 #define REGISTER_COMPONENT_TYPE(Type)\
 	{\
-		MonoType* type = mono_reflection_type_from_name("Eagle." #Type, s_CoreAssemblyImage);\
+		MonoType* type = mono_reflection_type_from_name((char*)("Eagle." #Type), s_CoreAssemblyImage);\
 		if (type)\
 		{\
 			m_HasComponentFunctions[type] = [](Entity& entity) { return entity.HasComponent<Type>(); };\

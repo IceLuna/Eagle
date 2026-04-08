@@ -529,7 +529,7 @@ namespace Eagle
 			ComponentsNotificationSystem::Reset();
 			ScriptEngine::Reset();
 			RenderManager::Wait();
-			Ref<Scene> scene = MakeRef<Scene>(path.u8string(), (bReuseCurrentSceneRenderer && s_CurrentScene) ? s_CurrentScene->GetSceneRenderer() : nullptr, bRuntime);
+			Ref<Scene> scene = MakeRef<Scene>(path.string(), (bReuseCurrentSceneRenderer && s_CurrentScene) ? s_CurrentScene->GetSceneRenderer() : nullptr, bRuntime);
 			scene->SetSkybox(SkySettings{});
 			scene->SetSkybox(nullptr);
 			scene->SetSkyboxIntensity(1.f);
@@ -545,7 +545,7 @@ namespace Eagle
 					OnSceneOpened(scene);
 				}
 				else
-					EG_CORE_ERROR("Failed to open the scene. The asset is not found: {}", path.u8string());
+					EG_CORE_ERROR("Failed to open the scene. The asset is not found: {}", path);
 			}
 			else
 			{
@@ -1601,7 +1601,7 @@ namespace Eagle
 	Entity Scene::CreateFromEntityAsset(const Ref<AssetEntity>& asset, bool bCopyGUID)
 	{
 		Entity createdEntity = CreateFromEntity(*asset->GetEntity().get(), bCopyGUID);
-		createdEntity.SetName(asset->GetPath().stem().u8string());
+		createdEntity.SetName(asset->GetPath().stem().string());
 		if (createdEntity.HasComponent<EntityAssetComponent>())
 		{
 			createdEntity.GetComponent<EntityAssetComponent>().AssetGUID = asset->GetGUID();

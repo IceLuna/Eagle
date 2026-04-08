@@ -65,7 +65,7 @@ namespace Eagle
 		if (!ScriptEngine::LoadAppAssembly(Project::GetBinariesPath() / (project.Name + ".dll")))
 		{
 			const std::string error = std::string("Open VS solution (") +
-				(project.BasePath / (project.Name + ".sln")).u8string() + " or \"File > Open VS Solution\") and compile the project.\nIf the solution is not there, try to generate it \"File > Generate VS Solution\"";
+				(project.BasePath / (project.Name + ".sln")).string() + " or \"File > Open VS Solution\") and compile the project.\nIf the solution is not there, try to generate it \"File > Generate VS Solution\"";
 			EG_CORE_WARN(error);
 		}
 
@@ -142,7 +142,7 @@ namespace Eagle
 		{
 			Timer timer;
 			Ref<Asset> asset = Asset::Create(assetPath);
-			EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetSeconds(), assetPath.u8string());
+			EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetSeconds(), assetPath);
 			if (bUseMutex)
 			{
 				std::scoped_lock lock(mutex);
@@ -194,7 +194,7 @@ namespace Eagle
 
 		auto assetsNodes = baseNode["Assets"];
 
-		for (auto& assetNode : assetsNodes)
+		for (const auto& assetNode : assetsNodes)
 		{
 			const Path path = assetNode["Path"].as<std::string>();
 			const GUID assetGUID = assetNode["GUID"].as<GUID>();
@@ -278,7 +278,7 @@ namespace Eagle
 				Timer timer;
 				const auto& assetData = it->second;
 				*outAsset = Serializer::DeserializeAsset(assetData->GetDataBuffer(), path, false);
-				EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetSeconds(), path.u8string());
+				EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetSeconds(), path);
 
 				Register(*outAsset);
 				return true;
@@ -321,7 +321,7 @@ namespace Eagle
 
 				Timer timer;
 				*outAsset = Serializer::DeserializeAsset(assetData->GetDataBuffer(), assetPath, false);
-				EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetSeconds(), assetPath.u8string());
+				EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetSeconds(), assetPath);
 
 				Register(*outAsset);
 				return true;
@@ -454,14 +454,14 @@ namespace Eagle
 
 				if (!SceneSerializer::SerializeWithYaml(filepath, sceneDesc))
 				{
-					EG_CORE_ERROR("Failed to write to: {}", filepath.u8string());
+					EG_CORE_ERROR("Failed to write to: {}", filepath);
 					return false;
 				}
 				Register(Asset::Create(filepath));
 			}
 			else
 			{
-				EG_CORE_ERROR("Failed to duplicate a scene. Couldn't find its GUID. {}", assetPath.u8string());
+				EG_CORE_ERROR("Failed to duplicate a scene. Couldn't find its GUID. {}", assetPath);
 				return false;
 			}
 		}
@@ -485,19 +485,19 @@ namespace Eagle
 		auto it = s_Assets.find(assetPath);
 		if (it == s_Assets.end())
 		{
-			EG_CORE_ERROR("Failed to delete an asset: {}. Didn't find it in the asset manager", assetPath.u8string());
+			EG_CORE_ERROR("Failed to delete an asset: {}. Didn't find it in the asset manager", assetPath);
 			return;
 		}
 
 		std::error_code error;
 		std::filesystem::remove(assetPath, error);
 		if (error)
-			EG_CORE_ERROR("Failed to delete {}. Error: {}", assetPath.u8string(), error.message());
+			EG_CORE_ERROR("Failed to delete {}. Error: {}", assetPath, error.message());
 		else
 		{
 			s_Assets.erase(it);
 			s_AssetsByGUID.erase(asset->GetGUID());
-			EG_CORE_TRACE("Deleted asset at: {}", assetPath.u8string());
+			EG_CORE_TRACE("Deleted asset at: {}", assetPath);
 		}
 	}
 	

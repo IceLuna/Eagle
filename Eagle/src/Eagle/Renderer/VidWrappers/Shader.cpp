@@ -18,7 +18,7 @@ namespace Eagle
 	{
 		static bool IsShaderExtension(const Path& path)
 		{
-			constexpr char* shaderExtensions[] = { ".h", ".comp", ".vert", ".frag" };
+			const char* shaderExtensions[] = { ".h", ".comp", ".vert", ".frag" };
 			for (const auto& extension : shaderExtensions)
 				if (Utils::HasExtension(path, extension))
 					return true;
@@ -52,7 +52,7 @@ namespace Eagle
 	{
 		if (!std::filesystem::exists(path))
 		{
-			EG_RENDERER_ERROR("Couldn't find shader: {}", path.u8string());
+			EG_RENDERER_ERROR("Couldn't find shader: {}", path);
 			return nullptr;
 		}
 
@@ -69,7 +69,7 @@ namespace Eagle
 			shaderType = ShaderType::Compute;
 		else
 		{
-			EG_RENDERER_ERROR("Invalid shader extension. Couldn't deduce its type: {}", path.u8string());
+			EG_RENDERER_ERROR("Invalid shader extension. Couldn't deduce its type: {}", path);
 			return nullptr;
 		}
 

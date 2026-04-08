@@ -123,7 +123,7 @@ namespace Eagle
 		return bChanged;
 	}
 
-	bool SceneHierarchyPanel::DrawEntityNode(Entity& entity)
+	bool SceneHierarchyPanel::DrawEntityNode(Entity entity)
 	{
 		if (entity.HasParent()) //For drawing children use DrawChilds
 			return false;
@@ -250,7 +250,7 @@ namespace Eagle
 		return bChanged;
 	}
 
-	bool SceneHierarchyPanel::DrawChilds(Entity& entity)
+	bool SceneHierarchyPanel::DrawChilds(Entity entity)
 	{
 		bool bChanged = false;
 		auto& children = entity.GetComponent<OwnershipComponent>().Children;

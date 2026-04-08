@@ -39,7 +39,7 @@ namespace Eagle
 	{
 		if (!baseNode)
 		{
-			EG_CORE_ERROR("Failed to deserialize an asset: {}", path.u8string());
+			EG_CORE_ERROR("Failed to deserialize an asset: {}", path);
 			return false;
 		}
 
@@ -49,7 +49,7 @@ namespace Eagle
 
 		if (actualType != expectedType)
 		{
-			EG_CORE_ERROR("Failed to load an asset. It's not a {}: {}", Utils::GetEnumName(actualType), path.u8string());
+			EG_CORE_ERROR("Failed to load an asset. It's not a {}: {}", Utils::GetEnumName(actualType), path);
 			return false;
 		}
 
@@ -195,7 +195,7 @@ namespace Eagle
 			result = MakeRef<GraphVariableAnimation>(valueNode ? GetAsset<AssetAnimation>(valueNode) : nullptr);
 			break;
 		case GraphVariableType::String:
-			result = MakeRef<GraphVariableString>(valueNode ? valueNode.as<std::string>() : nullptr);
+			result = MakeRef<GraphVariableString>(valueNode ? valueNode.as<std::string>() : "");
 			break;
 		case GraphVariableType::Vec4:
 			result = MakeRef<GraphVariableVec4>(valueNode ? valueNode.as<glm::vec4>() : glm::vec4(0));
@@ -2299,7 +2299,7 @@ namespace Eagle
 			auto& camera = cameraComponent.Camera;
 			Transform relativeTransform;
 
-			auto& cameraNode = cameraComponentNode["Camera"];
+			auto cameraNode = cameraComponentNode["Camera"];
 			camera.SetProjectionMode(Utils::GetEnumFromName<CameraProjectionMode>(cameraNode["ProjectionMode"].as<std::string>()));
 
 			camera.SetPerspectiveVerticalFOV(cameraNode["PerspectiveVerticalFOV"].as<float>());
@@ -3285,7 +3285,7 @@ namespace Eagle
 		const Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.u8string();
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.string();
 			EG_CORE_ERROR("{}", errorMessage);
 			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
@@ -3324,7 +3324,7 @@ namespace Eagle
 			binary = FileSystem::Read(pathToRaw);
 			if (!binary)
 			{
-				EG_CORE_ERROR("Failed to reload from raw texture 2D: {}", pathToAsset.u8string());
+				EG_CORE_ERROR("Failed to reload from raw texture 2D: {}", pathToAsset);
 				return {};
 			}
 		}
@@ -3354,7 +3354,7 @@ namespace Eagle
 		}
 		else
 		{
-			EG_CORE_ERROR("Failed to deserialize texture 2D: {}", pathToAsset.u8string());
+			EG_CORE_ERROR("Failed to deserialize texture 2D: {}", pathToAsset);
 			return {};
 		}
 
@@ -3364,7 +3364,7 @@ namespace Eagle
 		{
 			if (!compressedTextures.empty() && compressedFormat != ImageFormat::Unknown && TextureCompressor::IsCompressionFormatSupported(compressedFormat))
 			{
-				texture = Texture2D::Create(pathToAsset.stem().u8string(), compressedFormat, glm::uvec2(width, height), compressedTextures, specs);
+				texture = Texture2D::Create(pathToAsset.stem().string(), compressedFormat, glm::uvec2(width, height), compressedTextures, specs);
 			}
 			else
 			{
@@ -3373,11 +3373,11 @@ namespace Eagle
 				compressedData = TextureCompressor::Compress(binary.GetDataBuffer(), targetNumChannels, specs.MipsCount, compression, bNormalMap);
 				if (compressedData)
 				{
-					texture = Texture2D::Create(pathToAsset.stem().u8string(), compressedData.Format, glm::uvec2(width, height), compressedData.DataPerMip, specs);
+					texture = Texture2D::Create(pathToAsset.stem().string(), compressedData.Format, glm::uvec2(width, height), compressedData.DataPerMip, specs);
 				}
 				else
 				{
-					EG_CORE_ERROR("Failed to load the compressed texture. Falling back to loading raw data: {}", pathToAsset.u8string());
+					EG_CORE_ERROR("Failed to load the compressed texture. Falling back to loading raw data: {}", pathToAsset);
 					compression = TextureCompressor::Quality::Disabled;
 				}
 			}
@@ -3390,12 +3390,12 @@ namespace Eagle
 			ScopedDataBuffer imageData = Utils::LoadTextureFromMemory(binary, &width, &height, &channels, desiredChannels);
 			if (!imageData)
 			{
-				EG_CORE_ERROR("Deserialization failed. `LoadTextureFromMemory` failed: {}", pathToAsset.u8string());
+				EG_CORE_ERROR("Deserialization failed. `LoadTextureFromMemory` failed: {}", pathToAsset);
 				return {};
 			}
 
 			const ImageFormat imageFormat = AssetTextureFormatToImageFormat(assetFormat);
-			texture = Texture2D::Create(pathToAsset.stem().u8string(), imageFormat, glm::uvec2(width, height), imageData.Data(), specs);
+			texture = Texture2D::Create(pathToAsset.stem().string(), imageFormat, glm::uvec2(width, height), imageData.Data(), specs);
 		}
 
 		class LocalAssetTexture2D : public AssetTexture2D
@@ -3423,7 +3423,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.u8string();
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.string();
 			EG_CORE_ERROR("{}", errorMessage);
 			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
@@ -3457,7 +3457,7 @@ namespace Eagle
 		ScopedDataBuffer imageData = Utils::LoadHDRTextureFromMemory(binary, &width, &height, &channels, desiredFormat);
 		if (!imageData)
 		{
-			EG_CORE_ERROR("Import failed. LoadHDRTextureFromMemory failed: {} - {}", pathToAsset.u8string(), Utils::GetEnumName(assetFormat));
+			EG_CORE_ERROR("Import failed. LoadHDRTextureFromMemory failed: {} - {}", pathToAsset, Utils::GetEnumName(assetFormat));
 			return {};
 		}
 
@@ -3469,7 +3469,7 @@ namespace Eagle
 		};
 
 		Ref<AssetTextureCube> asset = MakeRef<LocalAssetTextureCube>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(),
-			TextureCube::Create(pathToAsset.stem().u8string(), desiredFormat, imageData.Data(), glm::uvec2(width, height), layerSize, prefilterSize), assetFormat);
+			TextureCube::Create(pathToAsset.stem().string(), desiredFormat, imageData.Data(), glm::uvec2(width, height), layerSize, prefilterSize), assetFormat);
 
 		return asset;
 	}
@@ -3492,7 +3492,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.u8string();
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.string();
 			EG_CORE_ERROR("{}", errorMessage);
 			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
@@ -3505,7 +3505,7 @@ namespace Eagle
 			auto importedMeshData = Utils::ImportStaticMesh(pathToRaw);
 			if (!importedMeshData.Mesh)
 			{
-				EG_CORE_ERROR("Failed to reload a mesh asset: {}", pathToRaw.u8string());
+				EG_CORE_ERROR("Failed to reload a mesh asset: {}", pathToRaw);
 				return {};
 			}
 
@@ -3575,7 +3575,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.u8string();
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.string();
 			EG_CORE_ERROR("{}", errorMessage);
 			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
@@ -3587,7 +3587,7 @@ namespace Eagle
 			auto importedMeshData = Utils::ImportSkeletalMesh(pathToRaw);
 			if (!importedMeshData.Mesh)
 			{
-				EG_CORE_ERROR("Failed to reload a skeletal mesh asset: {}", pathToRaw.u8string());
+				EG_CORE_ERROR("Failed to reload a skeletal mesh asset: {}", pathToRaw);
 				return {};
 			}
 
@@ -3717,7 +3717,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.u8string();
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.string();
 			EG_CORE_ERROR("{}", errorMessage);
 			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
@@ -3742,7 +3742,7 @@ namespace Eagle
 			binary = FileSystem::Read(pathToRaw);
 			if (!binary)
 			{
-				EG_CORE_ERROR("Failed to reload a raw asset: {}", pathToRaw.u8string());
+				EG_CORE_ERROR("Failed to reload a raw asset: {}", pathToRaw);
 				return {};
 			}
 		}
@@ -3757,7 +3757,7 @@ namespace Eagle
 			}
 			if (!binary)
 			{
-				EG_CORE_ERROR("Failed to load the asset: {}", pathToAsset.u8string());
+				EG_CORE_ERROR("Failed to load the asset: {}", pathToAsset);
 				return {};
 			}
 		}
@@ -3787,7 +3787,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.u8string();
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.string();
 			EG_CORE_ERROR("{}", errorMessage);
 			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
@@ -3801,7 +3801,7 @@ namespace Eagle
 			binary = FileSystem::Read(pathToRaw);
 			if (!binary)
 			{
-				EG_CORE_ERROR("Failed to reload a raw asset: {}", pathToRaw.u8string());
+				EG_CORE_ERROR("Failed to reload a raw asset: {}", pathToRaw);
 				return {};
 			}
 		}
@@ -3816,7 +3816,7 @@ namespace Eagle
 			}
 			if (!binary)
 			{
-				EG_CORE_ERROR("Failed to load the asset: {}", pathToAsset.u8string());
+				EG_CORE_ERROR("Failed to load the asset: {}", pathToAsset);
 				return {};
 			}
 		}
@@ -3828,7 +3828,7 @@ namespace Eagle
 				: AssetFont(path, pathToRaw, guid, rawData, font) {}
 		};
 
-		return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(), Font::Create(binary.GetDataBuffer(), pathToAsset.stem().u8string()));
+		return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(), Font::Create(binary.GetDataBuffer(), pathToAsset.stem().string()));
 	}
 
 	Ref<AssetMaterial> Serializer::DeserializeAssetMaterial(const DataBuffer& data, const Path& pathToAsset)
@@ -4025,7 +4025,7 @@ namespace Eagle
 			std::unordered_map<uint32_t, uint32_t> childs;
 
 			const uint32_t collisionGroupValidMasks = Serializer::DeserializeProjectCollisionGroupGUIDs(baseNode);
-			for (auto& entityNode : entitiesNode)
+			for (auto entityNode : entitiesNode)
 			{
 				uint32_t id;
 				int parentID = -1;
@@ -4083,7 +4083,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.u8string();
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.string();
 			EG_CORE_ERROR("{}", errorMessage);
 			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
@@ -4093,7 +4093,7 @@ namespace Eagle
 		Ref<AssetSkeletalMesh> skeletal = GetAsset<AssetSkeletalMesh>(baseNode["Skeletal"]);
 		if (!skeletal)
 		{
-			EG_CORE_ERROR("Failed to load {}. Its skeletal mesh wasn't found!", pathToAsset.u8string());
+			EG_CORE_ERROR("Failed to load {}. Its skeletal mesh wasn't found!", pathToAsset);
 			return {};
 		}
 
@@ -4104,7 +4104,7 @@ namespace Eagle
 			if (animations.size() < animIndex)
 			{
 				const std::string errorMessage = "Failed to reload an animation asset. The asset was initially imported at index " + 
-					std::to_string(animIndex) + ", but now the file doesn't contains an animation at that index: " + pathToRaw.u8string();
+					std::to_string(animIndex) + ", but now the file doesn't contains an animation at that index: " + pathToRaw.string();
 				EG_CORE_ERROR("{}", errorMessage);
 				Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 				return {};
@@ -4237,7 +4237,7 @@ namespace Eagle
 		auto mesh = GetAsset<AssetSkeletalMesh>(baseNode["SkeletalMesh"]);
 		if (!mesh)
 		{
-			EG_CORE_ERROR("Failed to deserialize animation graph at {}. Skeletal mesh wasn't found", pathToAsset.u8string());
+			EG_CORE_ERROR("Failed to deserialize animation graph at {}. Skeletal mesh wasn't found", pathToAsset);
 			return {};
 		}
 
@@ -4412,7 +4412,7 @@ namespace Eagle
 		auto mesh = GetAsset<AssetSkeletalMesh>(baseNode["SkeletalMesh"]);
 		if (!mesh)
 		{
-			EG_CORE_ERROR("Failed to deserialize animation blend space at {}. Skeletal mesh wasn't found", pathToAsset.u8string());
+			EG_CORE_ERROR("Failed to deserialize animation blend space at {}. Skeletal mesh wasn't found", pathToAsset);
 			return {};
 		}
 
@@ -4537,7 +4537,7 @@ namespace Eagle
 
 		if (!baseNode)
 		{
-			EG_CORE_ERROR("Failed to get an asset type: {}", pathToAsset.u8string());
+			EG_CORE_ERROR("Failed to get an asset type: {}", pathToAsset);
 			return AssetType::None;
 		}
 
@@ -4654,7 +4654,7 @@ namespace Eagle
 
 	void Serializer::DeserializePublicFieldValues(YAML::Node& publicFieldsNode, std::vector<PublicField>& publicFields)
 	{
-		for (auto& it : publicFieldsNode)
+		for (auto it : publicFieldsNode)
 		{
 			std::string fullName = it.first.as<std::string>();
 			FieldType fieldType = Utils::GetEnumFromName<FieldType>(it.second["Type"].as<std::string>());
@@ -4673,7 +4673,7 @@ namespace Eagle
 				auto valuesNode = it.second["Values"];
 				for (size_t i = 0; i < savedArrayLength; ++i)
 				{
-					auto& node = valuesNode[i];
+					auto node = valuesNode[i];
 					switch (fieldType)
 					{
 						case FieldType::Int:

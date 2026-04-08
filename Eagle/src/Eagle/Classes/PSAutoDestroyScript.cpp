@@ -110,7 +110,7 @@ namespace Eagle
 		{
 			if (emitter.LoopCount == 0)
 			{
-				EG_CORE_WARN("[ScriptEngine] Particle system won't be auto-destroyed since one of its emitters has infinite loop count! {}", m_ParticleAsset->GetPath().u8string());
+				EG_CORE_WARN("[ScriptEngine] Particle system won't be auto-destroyed since one of its emitters has infinite loop count! {}", m_ParticleAsset->GetPath());
 				m_Lifetime = FLT_MAX;
 				break;
 			}

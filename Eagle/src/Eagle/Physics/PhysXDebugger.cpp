@@ -40,7 +40,7 @@ namespace Eagle
 		}
 		else
 		{
-			s_DebuggerData->Transport = physx::PxDefaultPvdFileTransportCreate((filepath / ".pxd2").u8string().c_str());
+			s_DebuggerData->Transport = physx::PxDefaultPvdFileTransportCreate((filepath / ".pxd2").string().c_str());
 			s_DebuggerData->Debugger->connect(*s_DebuggerData->Transport, physx::PxPvdInstrumentationFlag::eALL);
 		}
 	}

@@ -9,7 +9,7 @@
 namespace Eagle
 {
 	static constexpr int s_MinMips = 1;
-	static constexpr char* s_CompressionHelpMsg = "If set to true, the engine will try to compress the image. "
+	static const char* s_CompressionHelpMsg = "If set to true, the engine will try to compress the image. "
 		"Most of the time, medium compression is good enough. But if you see some banding/blocks, choose a higher quality, especially for normal maps.";
 
 	Texture2DAssetEditor::Texture2DAssetEditor(const Ref<AssetTexture2D>& asset)
@@ -91,7 +91,7 @@ namespace Eagle
 
 			bDetailsDocked = ImGui::IsWindowDocked();
 			UI::BeginPropertyGrid("TextureDetails");
-			UI::Text("Name", m_Asset->GetPath().stem().u8string());
+			UI::Text("Name", m_Asset->GetPath().stem().string());
 			UI::Text("Type", "Texture 2D");
 			UI::Text("Resolution", baseSizeString);
 			UI::Text("Mip resolution", mipSizeString);

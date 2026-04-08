@@ -50,7 +50,7 @@ namespace Eagle
 		ImGui::Begin(m_WindowName.c_str(), pOpen);
 
 		UI::BeginPropertyGrid("ParticleSystemAssetEditor");
-		UI::Text("Name", m_Asset->GetPath().stem().u8string());
+		UI::Text("Name", m_Asset->GetPath().stem().string());
 		UI::Text("Type", "Particle System");
 
 		if (UI::Button("Emitters", "Add"))

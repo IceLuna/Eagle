@@ -75,7 +75,7 @@ namespace Eagle
 
 			bDetailsDocked = ImGui::IsWindowDocked();
 			UI::BeginPropertyGrid("TextureCubeDetails");
-			UI::Text("Name", m_Asset->GetPath().stem().u8string());
+			UI::Text("Name", m_Asset->GetPath().stem().string());
 			UI::Text("Type", "Texture Cube");
 			UI::Text("Resolution", textureSizeString);
 

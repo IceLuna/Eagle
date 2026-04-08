@@ -88,7 +88,7 @@ namespace Eagle
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		}
 
-		const std::string assetName = modifyingAsset ? modifyingAsset->GetPath().stem().u8string() : "None";
+		const std::string assetName = modifyingAsset ? modifyingAsset->GetPath().stem().string() : "None";
 		if (ImGui::BeginCombo("##", assetName.c_str()))
 		{
 			const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
@@ -152,7 +152,7 @@ namespace Eagle
 
 				ImGui::SameLine();
 				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + previewSize.y * 0.25f);
-				ImGui::Text("%s", path.stem().u8string().c_str());
+				ImGui::Text("%s", path.stem().string().c_str());
 
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
 				if (bSelected)
@@ -446,7 +446,7 @@ namespace Eagle
 
 		UI::TextWithSeparator("Data");
 		UI::BeginPropertyGrid("SkeletalMeshDetails");
-		UI::Text("Name", m_Asset->GetPath().stem().u8string());
+		UI::Text("Name", m_Asset->GetPath().stem().string());
 		UI::Text("Type", "Skeletal Mesh");
 		UI::Text("Vertices", std::to_string(verticesCount));
 		UI::Text("Indices", std::to_string(indicesCount));

@@ -104,7 +104,7 @@ namespace Eagle
 		io.ConfigDebugHighlightIdConflicts = false;
 		io.ConfigDebugHighlightIdConflictsShowItemPicker = false;
 
-		m_IniPath = (Application::GetCorePath() / "imgui.ini").u8string();
+		m_IniPath = (Application::GetCorePath() / "imgui.ini").string();
 		const Path boldFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Bold.ttf";
 		const Path regularFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Regular.ttf";
 

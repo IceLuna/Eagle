@@ -242,7 +242,7 @@ namespace Eagle
 				const std::string& includeSource = ShaderManager::GetSource(filename);
 				if (includeSource.empty())
 				{
-					EG_RENDERER_CRITICAL("Failed to open shader file: {0}", filename.u8string());
+					EG_RENDERER_CRITICAL("Failed to open shader file: {0}", filename);
 					return;
 				}
 				// Adding defines and reading shader code from the file
@@ -279,7 +279,7 @@ namespace Eagle
 
 		// Trying to find a cache for the shader
 		Path cachePath = GetShaderCacheDir();
-		Path cacheFilePath = cachePath / (m_Path.filename().u8string() + "_" + std::to_string(sourceHash) + ".bin");
+		Path cacheFilePath = cachePath / (m_Path.filename().string() + "_" + std::to_string(sourceHash) + ".bin");
 		bool bLoadedFromCache = false;
 		if (std::filesystem::exists(cacheFilePath))
 		{
@@ -310,18 +310,18 @@ namespace Eagle
 			options.SetWarningsAsErrors();
 			options.SetGenerateDebugInfo();
 
-			EG_RENDERER_TRACE("Compiling shader: {}", m_Path.u8string());
-			shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, Utils::ShaderTypeToShaderC(m_ShaderType), m_Path.u8string().c_str(), options);
+			EG_RENDERER_TRACE("Compiling shader: {}", m_Path);
+			shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, Utils::ShaderTypeToShaderC(m_ShaderType), m_Path.string().c_str(), options);
 			if (module.GetCompilationStatus() != shaderc_compilation_status_success)
 			{
-				EG_RENDERER_CRITICAL("Failed to compile shader at: {0}", m_Path.u8string());
-				Path filePath = cachePath / (m_Path.filename().u8string() + "_failed.txt");
+				EG_RENDERER_CRITICAL("Failed to compile shader at: {0}", m_Path);
+				Path filePath = cachePath / (m_Path.filename().string() + "_failed.txt");
 				std::ofstream fout(filePath);
 				if (fout)
 				{
 					fout << source;
 					fout.close();
-					EG_RENDERER_TRACE("Outputing shader to: {}", filePath.u8string());
+					EG_RENDERER_TRACE("Outputing shader to: {}", filePath);
 				}
 				EG_RENDERER_TRACE("Error: \n{0}", module.GetErrorMessage());
 				return false;

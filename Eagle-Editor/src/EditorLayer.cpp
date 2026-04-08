@@ -480,7 +480,7 @@ namespace Eagle
 		if (!ScriptEngine::LoadAppAssembly(Project::GetBinariesPath() / (project.Name + ".dll")))
 		{
 			const std::string error = std::string("Open VS solution (") +
-				(project.BasePath / (project.Name + ".sln")).u8string() + " or \"File > Open VS Solution\") and compile the project.\nIf the solution is not there, try to generate it \"File > Generate VS Solution\"";
+				(project.BasePath / (project.Name + ".sln")).string() + " or \"File > Open VS Solution\") and compile the project.\nIf the solution is not there, try to generate it \"File > Generate VS Solution\"";
 			m_ImGuiLayer->AddMessage(error);
 			EG_CORE_WARN(error);
 		}
@@ -492,7 +492,7 @@ namespace Eagle
 		{
 			const auto& project = Project::GetProjectInfo();
 			const std::string error = std::string("Open VS solution (") +
-				(project.BasePath / (project.Name + ".sln")).u8string() + " or \"File > Open VS Solution\") and compile the project.\nIf the solution is not there, try to generate it \"File > Generate VS Solution\"";
+				(project.BasePath / (project.Name + ".sln")).string() + " or \"File > Open VS Solution\") and compile the project.\nIf the solution is not there, try to generate it \"File > Generate VS Solution\"";
 			m_ImGuiLayer->AddMessage(error);
 		}
 	}
@@ -670,13 +670,13 @@ namespace Eagle
 				const Path currentPath = Project::GetProjectPath();
 				filepath = std::filesystem::relative(filepath, currentPath);
 				const bool bDir = std::filesystem::is_directory(filepath);
-				Path assetPath = AssetImporter::CreateScene(bDir ? filepath : filepath.parent_path(), bDir ? "NewScene" : filepath.stem().u8string());
+				Path assetPath = AssetImporter::CreateScene(bDir ? filepath : filepath.parent_path(), bDir ? "NewScene" : filepath.stem().string());
 
 				Ref<Asset> asset;
 				if (AssetManager::Get(assetPath, &asset) == false)
 				{
 					m_ImGuiLayer->AddMessage("Error opening a scene. It's not a scene asset");
-					EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath.u8string());
+					EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath);
 					return false;
 				}
 
@@ -684,7 +684,7 @@ namespace Eagle
 				if (!sceneAsset)
 				{
 					m_ImGuiLayer->AddMessage("Error opening a scene. It's not a scene asset");
-					EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath.u8string());
+					EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath);
 					return false;
 				}
 				
@@ -718,13 +718,13 @@ namespace Eagle
 			const Path currentPath = Project::GetProjectPath();
 			filepath = std::filesystem::relative(filepath, currentPath);
 			const bool bDir = std::filesystem::is_directory(filepath);
-			Path assetPath = AssetImporter::CreateScene(bDir ? filepath : filepath.parent_path(), bDir ? "NewScene" : filepath.stem().u8string());
+			Path assetPath = AssetImporter::CreateScene(bDir ? filepath : filepath.parent_path(), bDir ? "NewScene" : filepath.stem().string());
 
 			Ref<Asset> asset;
 			if (AssetManager::Get(assetPath, &asset) == false)
 			{
 				m_ImGuiLayer->AddMessage("Error opening a scene. It's not a scene asset");
-				EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath.u8string());
+				EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath);
 				return false;
 			}
 
@@ -732,7 +732,7 @@ namespace Eagle
 			if (!sceneAsset)
 			{
 				m_ImGuiLayer->AddMessage("Error opening a scene. It's not a scene asset");
-				EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath.u8string());
+				EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath);
 				return false;
 			}
 
@@ -755,7 +755,7 @@ namespace Eagle
 			return;
 		}
 
-		std::string displayName = scene->GetPath().u8string();
+		std::string displayName = scene->GetPath().string();
 		const size_t contentPos = displayName.find("Content");
 		if (contentPos != std::string::npos)
 			displayName = displayName.substr(contentPos);
@@ -771,10 +771,10 @@ namespace Eagle
 		SetCurrentScene(m_EditorScene);
 		if (m_OpenedSceneAsset)
 		{
-			EG_CORE_TRACE("Loading scene '{0}'", m_OpenedSceneAsset->GetPath().u8string());
+			EG_CORE_TRACE("Loading scene '{0}'", m_OpenedSceneAsset->GetPath());
 
 			if (SceneSerializer::Deserialize(m_EditorScene, m_OpenedSceneAsset->GetPath()))
-				EG_CORE_TRACE("Loaded scene '{0}'", m_OpenedSceneAsset->GetPath().u8string());
+				EG_CORE_TRACE("Loaded scene '{0}'", m_OpenedSceneAsset->GetPath());
 			UpdateEditorTitle(m_OpenedSceneAsset);
 		}
 		else
@@ -1625,7 +1625,7 @@ namespace Eagle
 				if (EditorResources::DrawAssetSelection("Dirt", settings.Dirt))
 				{
 					bSettingsChanged = true;
-					EG_CORE_TRACE("Changed Bloom Dirt Texture to: {}", settings.Dirt ? settings.Dirt->GetPath().u8string() : "None");
+					EG_CORE_TRACE("Changed Bloom Dirt Texture to: {}", settings.Dirt ? settings.Dirt->GetPath() : "None");
 				}
 
 				UI::EndPropertyGrid();
@@ -2291,7 +2291,7 @@ namespace Eagle
 				{
 					const auto& asset = m_DirtyAssets[i];
 					bool bChecked = m_DirtyAssetsChecked[i];
-					if (ImGui::Checkbox(asset->GetPath().u8string().c_str(), &bChecked))
+					if (ImGui::Checkbox(asset->GetPath().string().c_str(), &bChecked))
 					{
 						m_DirtyAssetsChecked[i] = bChecked;
 					}

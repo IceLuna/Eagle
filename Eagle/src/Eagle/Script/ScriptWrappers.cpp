@@ -238,7 +238,7 @@ namespace Eagle
 			return nullptr;
 		}
 
-		if (Entity& parent = entity.GetParent())
+		if (Entity parent = entity.GetParent())
 			return ScriptEngine::GetEntityMonoObject(parent);
 
 		return nullptr;
@@ -5969,7 +5969,7 @@ namespace Eagle
 	void Script::Eagle_SpriteComponent_GetAtlasSpriteCoords(GUID entityID, glm::vec2* outValue)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get atlas sprite coords. Entity is null");
@@ -5982,7 +5982,7 @@ namespace Eagle
 	void Script::Eagle_SpriteComponent_SetAtlasSpriteCoords(GUID entityID, const glm::vec2* value)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set atlas sprite coords. Entity is null");
@@ -5995,7 +5995,7 @@ namespace Eagle
 	void Script::Eagle_SpriteComponent_GetAtlasSpriteSize(GUID entityID, glm::vec2* outValue)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get atlas sprite size. Entity is null");
@@ -6008,7 +6008,7 @@ namespace Eagle
 	void Script::Eagle_SpriteComponent_SetAtlasSpriteSize(GUID entityID, const glm::vec2* value)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set atlas sprite size. Entity is null");
@@ -6021,7 +6021,7 @@ namespace Eagle
 	void Script::Eagle_SpriteComponent_GetAtlasSpriteSizeCoef(GUID entityID, glm::vec2* outValue)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get atlas sprite size coef. Entity is null");
@@ -6034,7 +6034,7 @@ namespace Eagle
 	void Script::Eagle_SpriteComponent_SetAtlasSpriteSizeCoef(GUID entityID, const glm::vec2* value)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set atlas sprite size coef. Entity is null");
@@ -6047,7 +6047,7 @@ namespace Eagle
 	bool Script::Eagle_SpriteComponent_GetIsAtlas(GUID entityID)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetIsAtlas`. Entity is null");
@@ -6060,7 +6060,7 @@ namespace Eagle
 	void Script::Eagle_SpriteComponent_SetIsAtlas(GUID entityID, bool value)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetIsAtlas`. Entity is null");
@@ -7602,37 +7602,37 @@ namespace Eagle
 	//-------------- Project --------------
 	MonoString* Script::Eagle_Project_GetProjectPath()
 	{
-		return mono_string_new(mono_domain_get(), Project::GetProjectPath().u8string().c_str());
+		return mono_string_new(mono_domain_get(), Project::GetProjectPath().string().c_str());
 	}
 
 	MonoString* Script::Eagle_Project_GetBinariesPath()
 	{
-		return mono_string_new(mono_domain_get(), Project::GetBinariesPath().u8string().c_str());
+		return mono_string_new(mono_domain_get(), Project::GetBinariesPath().string().c_str());
 	}
 
 	MonoString* Script::Eagle_Project_GetConfigPath()
 	{
-		return mono_string_new(mono_domain_get(), Project::GetConfigPath().u8string().c_str());
+		return mono_string_new(mono_domain_get(), Project::GetConfigPath().string().c_str());
 	}
 
 	MonoString* Script::Eagle_Project_GetContentPath()
 	{
-		return mono_string_new(mono_domain_get(), Project::GetContentPath().u8string().c_str());
+		return mono_string_new(mono_domain_get(), Project::GetContentPath().string().c_str());
 	}
 
 	MonoString* Script::Eagle_Project_GetCachePath()
 	{
-		return mono_string_new(mono_domain_get(), Project::GetCachePath().u8string().c_str());
+		return mono_string_new(mono_domain_get(), Project::GetCachePath().string().c_str());
 	}
 
 	MonoString* Script::Eagle_Project_GetRendererCachePath()
 	{
-		return mono_string_new(mono_domain_get(), Project::GetRendererCachePath().u8string().c_str());
+		return mono_string_new(mono_domain_get(), Project::GetRendererCachePath().string().c_str());
 	}
 
 	MonoString* Script::Eagle_Project_GetSavedPath()
 	{
-		return mono_string_new(mono_domain_get(), Project::GetSavedPath().u8string().c_str());
+		return mono_string_new(mono_domain_get(), Project::GetSavedPath().string().c_str());
 	}
 
 	//-------------- Scene --------------
@@ -8078,7 +8078,7 @@ namespace Eagle
 			return nullptr;
 		}
 
-		return mono_string_new(mono_domain_get(), asset->GetPath().u8string().c_str());
+		return mono_string_new(mono_domain_get(), asset->GetPath().string().c_str());
 	}
 
 	AssetType Script::Eagle_Asset_GetAssetType(GUID guid)

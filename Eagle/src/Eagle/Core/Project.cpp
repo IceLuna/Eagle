@@ -42,7 +42,7 @@ namespace Eagle
 		}
 	}
 
-	static void LoadCollisionGroups(YAML::Node& groupsNode, ProjectInfo& info)
+	static void LoadCollisionGroups(const YAML::Node& groupsNode, ProjectInfo& info)
 	{
 		info.UserCollisionGroups.clear();
 		info.AllCollisionGroups.clear();
@@ -106,7 +106,7 @@ namespace Eagle
 
 		if (!fs::is_directory(info.BasePath))
 		{
-			EG_CORE_ERROR("Couldn't create project at: {}. It's not a folder!", info.BasePath.u8string());
+			EG_CORE_ERROR("Couldn't create project at: {}. It's not a folder!", info.BasePath);
 			return false;
 		}
 
@@ -122,7 +122,7 @@ namespace Eagle
 			
 			if (Utils::HasExtension(filepath, GetExtension()))
 			{
-				EG_CORE_ERROR("Couldn't create project at: {}. This folder already contains another Eagle project!", info.BasePath.u8string());
+				EG_CORE_ERROR("Couldn't create project at: {}. This folder already contains another Eagle project!", info.BasePath);
 				return false;
 			}
 		}
@@ -148,7 +148,7 @@ namespace Eagle
 
 		GenerateSolution(info);
 
-		EG_CORE_INFO("Created project at: {}", info.BasePath.u8string());
+		EG_CORE_INFO("Created project at: {}", info.BasePath);
 
 		return true;
 	}
@@ -157,13 +157,13 @@ namespace Eagle
 	{
 		if (!std::filesystem::exists(filepath))
 		{
-			EG_CORE_ERROR("Couldn't open a project at: {}. The file doesn't exist!", filepath.u8string());
+			EG_CORE_ERROR("Couldn't open a project at: {}. The file doesn't exist!", filepath);
 			return {};
 		}
 
 		if (!Utils::HasExtension(filepath, GetExtension()))
 		{
-			EG_CORE_ERROR("Couldn't open a project at: {}. It's not a project file!", filepath.u8string());
+			EG_CORE_ERROR("Couldn't open a project at: {}. It's not a project file!", filepath);
 			return false;
 		}
 
@@ -171,7 +171,7 @@ namespace Eagle
 			return false;
 
 		Application::OnProjectChanged(true);
-		EG_CORE_INFO("Opened project at: {}", s_Info.BasePath.u8string());
+		EG_CORE_INFO("Opened project at: {}", s_Info.BasePath);
 
 		return true;
 	}
@@ -187,7 +187,7 @@ namespace Eagle
 		if (!Application::Get().IsGame())
 			Save();
 
-		EG_CORE_INFO("Closed project at: {}", s_Info.BasePath.u8string());
+		EG_CORE_INFO("Closed project at: {}", s_Info.BasePath);
 		s_Info = {};
 		Application::OnProjectChanged(false);
 
@@ -198,19 +198,19 @@ namespace Eagle
 	{
 		const std::string vsVersions[] = { "vs2026", "vs2022", "vs2019" };
 
-		const std::string eagleDir = std::filesystem::absolute(Application::GetCorePath().parent_path()).u8string();
+		const std::string eagleDir = std::filesystem::absolute(Application::GetCorePath().parent_path()).string();
 		std::string args = std::string(" --file=" + eagleDir + "/premake5_project.lua ") + "--projectname=" + info.Name
-			+ " --projectdir=" + info.BasePath.u8string() + " --eagledir=" + eagleDir;
+			+ " --projectdir=" + info.BasePath.string() + " --eagledir=" + eagleDir;
 
 		for (const auto& version : vsVersions)
 		{
 			const int result = Utils::Execute(eagleDir + "/vendor/premake/premake5.exe", version + args);
 			if (result == 0)
 			{
-				EG_CORE_INFO("Successfully generated {} solution files: {}", version, info.BasePath.u8string());
+				EG_CORE_INFO("Successfully generated {} solution files: {}", version, info.BasePath);
 				break;
 			}
-			EG_CORE_ERROR("Failed to generate {} solution files: {}", version, info.BasePath.u8string());
+			EG_CORE_ERROR("Failed to generate {} solution files: {}", version, info.BasePath);
 		}
 	}
 	
@@ -335,7 +335,7 @@ namespace Eagle
 		ScopedDataBuffer compressedData = FileSystem::Read(assetPackPath);
 		if (!compressedData)
 		{
-			EG_CORE_CRITICAL("Failed to load the asset pack: {}", assetPackPath.u8string());
+			EG_CORE_CRITICAL("Failed to load the asset pack: {}", assetPackPath);
 			exit(-1);
 		}
 
@@ -526,7 +526,7 @@ namespace Eagle
 
 		if (!nameNode)
 		{
-			EG_CORE_ERROR("Failed to load a project. Invalid format: {}", filepath.u8string());
+			EG_CORE_ERROR("Failed to load a project. Invalid format: {}", filepath);
 			return false;
 		}
 

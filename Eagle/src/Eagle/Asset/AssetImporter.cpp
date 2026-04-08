@@ -50,13 +50,14 @@ namespace Eagle
 	{
 		if (!std::filesystem::exists(pathToRaw) || std::filesystem::is_directory(pathToRaw))
 		{
-			EG_CORE_ERROR("Import failed. File doesn't exist: {}", pathToRaw.u8string());
+			EG_CORE_ERROR("Import failed. File doesn't exist: {}", pathToRaw);
+			spdlog::info("{}", pathToRaw);
 			return false;
 		}
 
-		Path outputFilename = saveTo / (pathToRaw.stem().u8string() + Asset::GetExtension());
+		Path outputFilename = saveTo / (pathToRaw.stem().string() + Asset::GetExtension());
 		if (std::filesystem::exists(outputFilename))
-			outputFilename = Utils::GetUniqueAssetFilepath(outputFilename.parent_path(), outputFilename.stem().u8string());
+			outputFilename = Utils::GetUniqueAssetFilepath(outputFilename.parent_path(), outputFilename.stem().string());
 
 		bool bSuccess = false;
 		switch (type)
@@ -83,7 +84,7 @@ namespace Eagle
 				bSuccess = ImportAnimation(pathToRaw, saveTo, outputFilename, settings.AnimationSettings);
 				break;
 			default:
-				EG_CORE_ERROR("Import failed. Unknown asset type: {} - {}", pathToRaw.u8string(), Utils::GetEnumName(type));
+				EG_CORE_ERROR("Import failed. Unknown asset type: {} - {}", pathToRaw, Utils::GetEnumName(type));
 				return false;
 		}
 
@@ -100,7 +101,7 @@ namespace Eagle
 				Ref<AssetSkeletalMesh> skeletal = Cast<AssetSkeletalMesh>(asset);
 				std::vector<SkeletalMeshAnimation> animations = Utils::ImportAnimations(pathToRaw, skeletal->GetMesh(), settings.AnimationSettings.RootMotionType);
 
-				std::string filename = outputFilename.stem().u8string() + "_Anim";
+				std::string filename = outputFilename.stem().string() + "_Anim";
 				uint32_t animIndex = 0;
 				for (const auto& anim : animations)
 				{
@@ -130,7 +131,7 @@ namespace Eagle
 		size_t counter = 0;
 		for (const auto& path : pathsToRaw)
 		{
-			EG_CORE_TRACE("\tProgress: importing {}/{}: {}", ++counter, pathsToRaw.size(), path.u8string());
+			EG_CORE_TRACE("\tProgress: importing {}/{}: {}", ++counter, pathsToRaw.size(), path);
 			Import(path, saveTo, GetAssetTypeByExtension(path), settings);
 		}
 		EG_CORE_INFO("Done");
@@ -264,7 +265,7 @@ namespace Eagle
 		};
 
 		static const std::locale& loc = std::locale("RU_ru");
-		std::string extension = filepath.extension().u8string();
+		std::string extension = filepath.extension().string();
 
 		for (char& c : extension)
 			c = std::tolower(c, loc);
@@ -300,7 +301,7 @@ namespace Eagle
 		Utils::StaticMeshImportData importedMeshData = Utils::ImportStaticMesh(pathToRaw);
 		if (!importedMeshData.Mesh)
 		{
-			EG_CORE_ERROR("Failed to import a mesh. No meshes in file '{0}'", pathToRaw.u8string());
+			EG_CORE_ERROR("Failed to import a mesh. No meshes in file '{0}'", pathToRaw);
 			return false;
 		}
 
@@ -336,7 +337,7 @@ namespace Eagle
 		Utils::SkeletalMeshImportData importedMeshData = Utils::ImportSkeletalMesh(pathToRaw);
 		if (!importedMeshData.Mesh)
 		{
-			EG_CORE_ERROR("Failed to import a mesh. No meshes in file '{0}'", pathToRaw.u8string());
+			EG_CORE_ERROR("Failed to import a mesh. No meshes in file '{0}'", pathToRaw);
 			return false;
 		}
 
@@ -392,11 +393,11 @@ namespace Eagle
 		std::vector<SkeletalMeshAnimation> animations = Utils::ImportAnimations(pathToRaw, skeletal->GetMesh(), settings.RootMotionType);
 		if (animations.empty())
 		{
-			EG_CORE_ERROR("Failed to import an animation. No animations in file '{0}'", pathToRaw.u8string());
+			EG_CORE_ERROR("Failed to import an animation. No animations in file '{0}'", pathToRaw);
 			return false;
 		}
 
-		std::string filename = outputFilename.stem().u8string();
+		std::string filename = outputFilename.stem().string();
 		uint32_t animIndex = 0;
 		for (const auto& anim : animations)
 		{

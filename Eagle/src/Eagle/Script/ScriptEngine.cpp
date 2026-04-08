@@ -814,7 +814,7 @@ namespace Eagle
 		auto appAssemply = LoadAssembly(path);
 		if (!appAssemply)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Error loading assembly at '{0}'!", path.u8string());
+			EG_CORE_ERROR("[ScriptEngine] Error loading assembly at '{0}'!", path);
 			return false;
 		}
 
@@ -1219,6 +1219,8 @@ namespace Eagle
 
 	bool ScriptEngine::LoadCoreAssembly(const Path& assemblyPath)
 	{
+		char domainName[] = "Eagle Runtime";
+
 		s_CoreAssemblyPath = assemblyPath;
 
 		if (s_CurrentMonoDomain)
@@ -1226,12 +1228,12 @@ namespace Eagle
 			mono_domain_set(s_RootDomain, false);
 			mono_domain_unload(s_CurrentMonoDomain);
 
-			s_CurrentMonoDomain = mono_domain_create_appdomain("Eagle Runtime", nullptr);
+			s_CurrentMonoDomain = mono_domain_create_appdomain(domainName, nullptr);
 			mono_domain_set(s_CurrentMonoDomain, false);
 		}
 		else
 		{
-			s_CurrentMonoDomain = mono_domain_create_appdomain("Eagle Runtime", nullptr);
+			s_CurrentMonoDomain = mono_domain_create_appdomain(domainName, nullptr);
 			mono_domain_set(s_CurrentMonoDomain, false);
 		}
 
@@ -1297,9 +1299,9 @@ namespace Eagle
 		MonoAssembly* assembly = LoadAssemblyFromFile(assemblyPath);
 
 		if (assembly)
-			EG_CORE_INFO("[ScriptEngine] Successfully loaded assembly at {0}!", assemblyPath.u8string());
+			EG_CORE_INFO("[ScriptEngine] Successfully loaded assembly at {0}!", assemblyPath);
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't load assembly at {0}!", assemblyPath.u8string());
+			EG_CORE_ERROR("[ScriptEngine] Couldn't load assembly at {0}!", assemblyPath);
 
 		return assembly;
 	}
@@ -1308,7 +1310,7 @@ namespace Eagle
 	{
 		if (!std::filesystem::exists(assemblyPath))
 		{
-			EG_CORE_WARN("[ScriptEngine] Failed to load C# assembly. File doesn't exist: {}", assemblyPath.u8string());
+			EG_CORE_WARN("[ScriptEngine] Failed to load C# assembly. File doesn't exist: {}", assemblyPath);
 			return nullptr;
 		}
 
@@ -1328,15 +1330,15 @@ namespace Eagle
 			{
 				ScopedDataBuffer data(Eagle::FileSystem::Read(pdbPath));
 				mono_debug_open_image_from_memory(image, (const mono_byte*)data.Data(), uint32_t(data.Size()));
-				EG_CORE_INFO("[ScriptEngine] Loaded PDB-file for debugging: {}", pdbPath.u8string());
+				EG_CORE_INFO("[ScriptEngine] Loaded PDB-file for debugging: {}", pdbPath);
 			}
 			else
 			{
-				EG_CORE_WARN("[ScriptEngine] Failed to load PDB-file for debugging: {}", pdbPath.u8string());
+				EG_CORE_WARN("[ScriptEngine] Failed to load PDB-file for debugging: {}", pdbPath);
 			}
 		}
 
-		MonoAssembly* assemb = mono_assembly_load_from_full(image, assemblyPath.u8string().c_str(), &status, 0);
+		MonoAssembly* assemb = mono_assembly_load_from_full(image, assemblyPath.string().c_str(), &status, 0);
 		mono_image_close(image);
 		return assemb;
 	}

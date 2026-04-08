@@ -622,11 +622,11 @@ namespace Eagle
 		importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1.0f);
 		importer.SetPropertyBool(AI_CONFIG_FBX_CONVERT_TO_M, true);
 
-		const aiScene* scene = importer.ReadFile(path.u8string(), s_ImportMeshFlags);
+		const aiScene* scene = importer.ReadFile(path.string(), s_ImportMeshFlags);
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 		{
-			EG_CORE_ERROR("Failed to load Static Mesh. {0} ({1})", importer.GetErrorString(), path.u8string());
+			EG_CORE_ERROR("Failed to load Static Mesh. {0} ({1})", importer.GetErrorString(), path);
 			return {};
 		}
 
@@ -658,11 +658,11 @@ namespace Eagle
 		importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1.0f);
 		importer.SetPropertyBool(AI_CONFIG_FBX_CONVERT_TO_M, true);
 
-		const aiScene* scene = importer.ReadFile(path.u8string(), s_ImportMeshFlags);
+		const aiScene* scene = importer.ReadFile(path.string(), s_ImportMeshFlags);
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 		{
-			EG_CORE_ERROR("Failed to import Skeletal Mesh. {0} ({1})", importer.GetErrorString(), path.u8string());
+			EG_CORE_ERROR("Failed to import Skeletal Mesh. {0} ({1})", importer.GetErrorString(), path);
 			return {};
 		}
 
@@ -672,7 +672,7 @@ namespace Eagle
 		ProcessNode(scene->mRootNode, scene, importedMeshes, bones, coordCorrection);
 		if (bones.empty())
 		{
-			EG_CORE_ERROR("Failed to import Skeletal Mesh. It has no bones ({})", path.u8string());
+			EG_CORE_ERROR("Failed to import Skeletal Mesh. It has no bones ({})", path);
 			return {};
 		}
 		if (importedMeshes.size() > 1)
@@ -715,16 +715,16 @@ namespace Eagle
 		importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1.0f);
 		importer.SetPropertyBool(AI_CONFIG_FBX_CONVERT_TO_M, true);
 
-		const aiScene* scene = importer.ReadFile(path.u8string(), s_ImportAnimFlags);
+		const aiScene* scene = importer.ReadFile(path.string(), s_ImportAnimFlags);
 
 		if (!scene)
 		{
-			EG_CORE_ERROR("Failed to load animations. {0} ({1})", importer.GetErrorString(), path.u8string());
+			EG_CORE_ERROR("Failed to load animations. {0} ({1})", importer.GetErrorString(), path);
 			return {};
 		}
 		if (scene->mNumAnimations == 0)
 		{
-			EG_CORE_WARN("No animations in: {}", path.u8string());
+			EG_CORE_WARN("No animations in: {}", path);
 			return {};
 		}
 
@@ -770,7 +770,7 @@ namespace Eagle
 				// aiTexture->mHeight can be zero, in this case `aiTexture->pcData` is not RGB values but compressed JPEG/PNG data
 				if (size.y == 0u)
 				{
-					const std::string textureName = texturePath.stem().u8string();
+					const std::string textureName = texturePath.stem().string();
 					assetTexture = CreateAssetFromEncoded(DataBuffer(aiTexture->pcData, aiTexture->mWidth), saveTo, textureName, bNormalMap);
 				}
 				else if (size.x > 0 && size.y > 0 && (strcmp(aiTexture->achFormatHint, "rgba8888") == 0))
@@ -782,12 +782,12 @@ namespace Eagle
 
 					// We need an encoded (png/jpg etc) image data for asset creation
 					const ScopedDataBuffer png = Utils::ToPNG(decoded, size, numChannels);
-					const std::string textureName = texturePath.stem().u8string();
+					const std::string textureName = texturePath.stem().string();
 					assetTexture = CreateAssetFromEncoded(png.GetDataBuffer(), saveTo, textureName, bNormalMap);
 				}
 				else
 				{
-					EG_CORE_ERROR("Failed to read an embedded texture: {}", filename.u8string());
+					EG_CORE_ERROR("Failed to read an embedded texture: {}", filename);
 				}
 			}
 			else
@@ -804,12 +804,12 @@ namespace Eagle
 
 					int comp = 1;
 					int unused = 0;
-					stbi_info(texturePath.u8string().c_str(), &unused, &unused, &comp);
+					stbi_info(texturePath.string().c_str(), &unused, &unused, &comp);
 					settings.ImportFormat = ChannelsToAssetTexture2DFormat(comp);
 				}
 				if (AssetImporter::Import(texturePath, saveTo, AssetType::Texture2D, importSettings))
 				{
-					Path outputFilename = saveTo / (texturePath.stem().u8string() + Asset::GetExtension());
+					Path outputFilename = saveTo / (texturePath.stem().string() + Asset::GetExtension());
 					assetTexture = Cast<AssetTexture2D>(Asset::Create(outputFilename));
 					AssetManager::Register(assetTexture);
 				}
@@ -822,17 +822,17 @@ namespace Eagle
 	std::vector<Ref<AssetMaterial>> Utils::ImportMaterials(const Path& path, const Path& saveTo)
 	{
 		Assimp::Importer importer;
-		const aiScene* scene = importer.ReadFile(path.u8string(), s_ImportMaterialsFlags);
+		const aiScene* scene = importer.ReadFile(path.string(), s_ImportMaterialsFlags);
 
 		if (!scene)
 		{
-			EG_CORE_ERROR("Failed to load materials. {0} ({1})", importer.GetErrorString(), path.u8string());
+			EG_CORE_ERROR("Failed to load materials. {0} ({1})", importer.GetErrorString(), path);
 			return {};
 		}
 
 		if (scene->mNumMaterials == 0)
 		{
-			EG_CORE_WARN("No materials in: {}", path.u8string());
+			EG_CORE_WARN("No materials in: {}", path);
 			return {};
 		}
 

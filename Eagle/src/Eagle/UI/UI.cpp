@@ -24,7 +24,7 @@ namespace Eagle::UI
 	static uint64_t s_ID = 0;
 	static char s_IDBuffer[s_IDBufferSize];
 	static const VkImageLayout s_VulkanImageLayout = ImageLayoutToVulkan(ImageReadAccess::PixelShaderRead);
-	static constexpr char* s_HelpMarker = "(?)";
+	static const char* s_HelpMarker = "(?)";
 
 	bool HandlePublicField(std::string_view label, PublicField& field, MonoObject* instance, size_t fieldIndex, bool bRuntime, Entity entity)
 	{
@@ -149,7 +149,7 @@ namespace Eagle::UI
 					names.reserve(entities.size_hint());
 					ids.reserve(entities.size_hint());
 
-					for (auto& [sceneEntity, idComp, nameComp] : entities.each())
+					for (const auto& [sceneEntity, idComp, nameComp] : entities.each())
 					{
 						if (sceneEntity == entity.GetEnttID())
 							continue; // Don't show itself

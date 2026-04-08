@@ -57,7 +57,7 @@ namespace Eagle
 		physx::PxConvexMeshCookingResult::Enum result;
 		if (!s_CookingData->CookingSDK->cookConvexMesh(convexDesc, buf, &result))
 		{
-			EG_CORE_ERROR("[Physics Engine] Failed to cook convex mesh '{0}'. Reason: {1}", meshAsset->GetPath().u8string(), Utils::GetEnumName(result));
+			EG_CORE_ERROR("[Physics Engine] Failed to cook convex mesh '{0}'. Reason: {1}", meshAsset->GetPath(), Utils::GetEnumName(result));
 			return PhysXUtils::FromPhysXCookingResult(result);
 		}
 
@@ -105,7 +105,7 @@ namespace Eagle
 		bool bValid = s_CookingData->CookingSDK->validateTriangleMesh(triangleDesc);
 		if (!bValid)
 		{
-			EG_CORE_ERROR("[Physics Engine] Failed to validate triangle mesh '{0}'", meshAsset->GetPath().u8string());
+			EG_CORE_ERROR("[Physics Engine] Failed to validate triangle mesh '{0}'", meshAsset->GetPath());
 			return CookingResult::Failure;
 		}
 #endif
@@ -114,7 +114,7 @@ namespace Eagle
 		physx::PxTriangleMeshCookingResult::Enum result;
 		if (!s_CookingData->CookingSDK->cookTriangleMesh(triangleDesc, buf, &result))
 		{
-			EG_CORE_ERROR("[Physics Engine] Failed to cook triangle mesh '{0}'. Reason: {1}", meshAsset->GetPath().u8string(), Utils::GetEnumName(result));
+			EG_CORE_ERROR("[Physics Engine] Failed to cook triangle mesh '{0}'. Reason: {1}", meshAsset->GetPath(), Utils::GetEnumName(result));
 			return PhysXUtils::FromPhysXCookingResult(result);
 		}
 
@@ -157,7 +157,7 @@ namespace Eagle
 			return CookingResult::Failure;
 		}
 
-		std::string filename = collisionMesh->GetPath().stem().u8string();
+		std::string filename = collisionMesh->GetPath().stem().string();
 		if (bConvex)
 			filename += "_convex.pxm";
 		else
@@ -193,7 +193,7 @@ namespace Eagle
 				bool bSuccessWrite = FileSystem::Write(filepath, *outData);
 
 				if (!bSuccessWrite)
-					EG_CORE_ERROR("[Physics Engine] Failed to write collider to '{0}'", filepath.u8string());
+					EG_CORE_ERROR("[Physics Engine] Failed to write collider to '{0}'", filepath);
 			}
 		}
 		else

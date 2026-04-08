@@ -32,10 +32,10 @@ namespace Eagle
 		const Path recentProjectsFile = corePath / "Saved/RecentProjects";
 		if (std::filesystem::exists(recentProjectsFile))
 		{
-			YAML::Node node = YAML::LoadFile(recentProjectsFile.u8string());
+			YAML::Node node = YAML::LoadFile(recentProjectsFile.string());
 			if (auto recentProjectsNode = node["RecentProjects"])
 			{
-				for (auto& projectNode : recentProjectsNode)
+				for (const auto& projectNode : recentProjectsNode)
 					AddRecentProject(projectNode.as<std::string>());
 			}
 		}
@@ -151,7 +151,7 @@ namespace Eagle
 
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().ItemSpacing.y);
 
-			ImGui::Text("Location: %s", m_NewProjectPath.u8string().c_str());
+			ImGui::Text("Location: %s", m_NewProjectPath.string().c_str());
 			ImGui::SameLine();
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3.f);
 			if (ImGui::Button("Browse"))

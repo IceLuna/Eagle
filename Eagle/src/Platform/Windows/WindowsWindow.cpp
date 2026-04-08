@@ -35,6 +35,7 @@ namespace Eagle
 		::ShowWindow(::GetConsoleWindow(), SW_HIDE);
 #else
 		::ShowWindow(::GetConsoleWindow(), SW_RESTORE);
+		SetConsoleOutputCP(CP_UTF8);
 #endif
 
 		if (!s_GLFWInitialized)
@@ -138,7 +139,7 @@ namespace Eagle
 		GLFWmonitor* monitor = bFullscreen ? glfwGetPrimaryMonitor() : nullptr;
 		const GLFWvidmode* mode = bFullscreen ? glfwGetVideoMode(monitor) : nullptr;
 
-		glm::ivec2 windowSize = mode ? glm::ivec2(mode->width, mode->height) : GetWindowSize();
+		glm::ivec2 windowSize = mode ? glm::ivec2(mode->width, mode->height) : glm::ivec2(GetWindowSize());
 		const glm::ivec2 windowPos = GetWindowPos();
 		glfwSetWindowMonitor(m_Window, monitor, windowPos.x, windowPos.y, windowSize.x, windowSize.y, GLFW_DONT_CARE);
 		glfwGetWindowSize(m_Window, &windowSize.x, &windowSize.y);
