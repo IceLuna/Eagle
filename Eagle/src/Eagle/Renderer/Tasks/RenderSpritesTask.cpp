@@ -118,38 +118,38 @@ namespace Eagle
 
 		ColorAttachment colorAttachment;
 		colorAttachment.ClearOperation = ClearOperation::Load;
-		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		colorAttachment.Image = gbuffer.Albedo;
 
 		ColorAttachment geometry_shading_NormalsAttachment;
 		geometry_shading_NormalsAttachment.ClearOperation = ClearOperation::Load;
-		geometry_shading_NormalsAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		geometry_shading_NormalsAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		geometry_shading_NormalsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		geometry_shading_NormalsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		geometry_shading_NormalsAttachment.Image = gbuffer.Geometry_Shading_Normals;
 
 		ColorAttachment emissiveAttachment;
 		emissiveAttachment.ClearOperation = ClearOperation::Load;
-		emissiveAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		emissiveAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		emissiveAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		emissiveAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		emissiveAttachment.Image = gbuffer.Emissive;
 
 		ColorAttachment materialAttachment;
 		materialAttachment.ClearOperation = ClearOperation::Load;
-		materialAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		materialAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		materialAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		materialAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		materialAttachment.Image = gbuffer.MaterialData;
 
 		ColorAttachment flagsAttachment;
 		flagsAttachment.Image = gbuffer.Flags;
-		flagsAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		flagsAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		flagsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		flagsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		flagsAttachment.ClearOperation = ClearOperation::Load;
 
 		ColorAttachment objectIDAttachment;
 		objectIDAttachment.ClearOperation = ClearOperation::Load;
-		objectIDAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		objectIDAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		objectIDAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		objectIDAttachment.Image = gbuffer.ObjectID;
 
 		DepthStencilAttachment depthAttachment;
@@ -184,8 +184,8 @@ namespace Eagle
 		{
 			ColorAttachment velocityAttachment;
 			velocityAttachment.Image = gbuffer.Motion;
-			velocityAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-			velocityAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			velocityAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+			velocityAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 			velocityAttachment.ClearOperation = ClearOperation::Load;
 			state.ColorAttachments.push_back(velocityAttachment);
 		}

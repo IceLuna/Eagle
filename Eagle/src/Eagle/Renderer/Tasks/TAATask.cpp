@@ -49,17 +49,24 @@ namespace Eagle
 			cmd->CopyImage(m_FinalImage, ImageView{}, m_HistoryImage, ImageView{}, glm::ivec3{ 0 }, glm::ivec3{ 0 }, m_FinalImage->GetSize());
 		}
 
+		const auto& gbuffer = m_Renderer.GetGBuffer();
+
 		m_Pipeline->SetImageSampler(m_HistoryImage, Sampler::BilinearSampler, 0, 0);
-		m_Pipeline->SetImageSampler(m_Renderer.GetGBuffer().Motion, Sampler::PointSampler, 0, 1);
+		m_Pipeline->SetImageSampler(gbuffer.Motion, Sampler::PointSampler, 0, 1);
 		m_Pipeline->SetImage(m_FinalImage, 0, 2);
 		m_Pipeline->SetImage(m_Result, 0, 3);
 
-		const ImageLayout oldLayout = m_FinalImage->GetLayout();
-		cmd->TransitionLayout(m_FinalImage, oldLayout, ImageLayoutType::StorageImage);
+		const ImageLayout finalLayout = m_FinalImage->GetLayout();
+		const ImageLayout motionLayout = gbuffer.Motion->GetLayout();
+
+		cmd->TransitionLayout(m_FinalImage, finalLayout, ImageLayoutType::StorageImage);
+		cmd->TransitionLayout(gbuffer.Motion, motionLayout, ImageReadAccess::PixelShaderRead);
 
 		cmd->Dispatch(m_Pipeline, numGroups.x, numGroups.y, 1, &pushData);
 
-		cmd->TransitionLayout(m_FinalImage, ImageLayoutType::StorageImage, oldLayout);
+		cmd->TransitionLayout(m_FinalImage, ImageLayoutType::StorageImage, finalLayout);
+		cmd->TransitionLayout(gbuffer.Motion, ImageReadAccess::PixelShaderRead, motionLayout);
+		
 		cmd->CopyImage(m_Result, ImageView{}, m_FinalImage, ImageView{}, glm::ivec3{0}, glm::ivec3{0}, m_FinalImage->GetSize());
 		cmd->CopyImage(m_Result, ImageView{}, m_HistoryImage, ImageView{}, glm::ivec3{0}, glm::ivec3{0}, m_FinalImage->GetSize());
 

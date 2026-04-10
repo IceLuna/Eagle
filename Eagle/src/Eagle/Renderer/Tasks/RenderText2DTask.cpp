@@ -323,8 +323,8 @@ namespace Eagle
 	{
 		ColorAttachment colorAttachment;
 		colorAttachment.Image = m_Renderer.GetHDROutput();
-		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		colorAttachment.ClearOperation = ClearOperation::Load;
 
 		colorAttachment.bBlendEnabled = true;
@@ -338,8 +338,8 @@ namespace Eagle
 
 		ColorAttachment objectIDAttachment;
 		objectIDAttachment.Image = m_Renderer.GetGBuffer().ObjectID;
-		objectIDAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		objectIDAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		objectIDAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		objectIDAttachment.ClearOperation = ClearOperation::Load;
 
 		ShaderDefines noObjectIDDefine = { {"EG_NO_OBJECT_ID", ""} };

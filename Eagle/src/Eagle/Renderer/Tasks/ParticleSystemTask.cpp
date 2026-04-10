@@ -704,11 +704,14 @@ namespace Eagle
 		}
 
 		const ImageLayout oldDepthLayout = gbuffer.Depth->GetLayout();
+		const ImageLayout oldNormalsLayout = gbuffer.Geometry_Shading_Normals->GetLayout();
 		cmd->TransitionLayout(gbuffer.Depth, oldDepthLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(gbuffer.Geometry_Shading_Normals, oldNormalsLayout, ImageReadAccess::PixelShaderRead);
 
 		cmd->DispatchIndirect(m_Simulate, m_DispatchArgs, sizeof(DispatchIndirectArgs), &pushData);
 
 		cmd->TransitionLayout(gbuffer.Depth, ImageReadAccess::PixelShaderRead, oldDepthLayout);
+		cmd->TransitionLayout(gbuffer.Geometry_Shading_Normals, ImageReadAccess::PixelShaderRead, oldNormalsLayout);
 		cmd->Barrier(m_SystemData);
 		cmd->Barrier(m_ParticlesBuffer);
 		cmd->Barrier(m_OpaqueIndicesToRender);
@@ -1319,8 +1322,8 @@ namespace Eagle
 			const auto& gBuffer = m_Renderer.GetGBuffer();
 			ColorAttachment colorAttachment;
 			colorAttachment.Image = m_Renderer.GetHDROutput();
-			colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-			colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+			colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 			colorAttachment.ClearOperation = ClearOperation::Load;
 
 			colorAttachment.bBlendEnabled = true;

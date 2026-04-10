@@ -11,10 +11,10 @@
 
 namespace Eagle
 {
-    VolumetricLightTask::VolumetricLightTask(SceneRenderer& renderer, const Ref<Image>& renderTo)
-        : RendererTask(renderer), m_ResultImage(renderTo)
+    VolumetricLightTask::VolumetricLightTask(SceneRenderer& renderer)
+        : RendererTask(renderer)
     {
-		const glm::uvec3 size = m_ResultImage->GetSize();
+		const glm::uvec3 size = m_Renderer.GetHDROutput()->GetSize();
 		const glm::uvec3 halfSize = glm::max(size / 2u, glm::uvec3(1u));
 
 		ImageSpecifications specs;
@@ -39,9 +39,10 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Volumetric Light Pass");
 
 		auto& stats = m_Renderer.GetStats();
+		const auto& input = m_Renderer.GetHDROutput();
 
 		constexpr uint32_t tileSize = 8;
-		const glm::uvec2 size = m_ResultImage->GetSize();
+		const glm::uvec2 size = input->GetSize();
 		const glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
 
 		const glm::uvec2 halfSize = m_VolumetricsImage->GetSize();
@@ -117,10 +118,15 @@ namespace Eagle
 		}
 
 		m_CompositePipeline->SetImageSampler(m_VolumetricsImageBlurred, Sampler::BilinearSamplerClamp, 0, 0);
-		m_CompositePipeline->SetImage(m_ResultImage, 0, 1);
+		m_CompositePipeline->SetImage(input, 0, 1);
 
-		cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageLayoutType::StorageImage);
-		cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageReadAccess::PixelShaderRead);
+		const ImageLayout resultLayout = input->GetLayout();
+		const ImageLayout depthLayout = gbuffer.Depth->GetLayout();
+		const ImageLayout normalsLayout = gbuffer.Geometry_Shading_Normals->GetLayout();
+
+		cmd->TransitionLayout(input, resultLayout, ImageLayoutType::StorageImage);
+		cmd->TransitionLayout(gbuffer.Depth, depthLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(gbuffer.Geometry_Shading_Normals, normalsLayout, ImageReadAccess::PixelShaderRead);
 
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Volumetric Lighting");
@@ -131,7 +137,8 @@ namespace Eagle
 			cmd->TransitionLayout(m_VolumetricsImage, ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
 			++stats.Dispatches;
 		}
-		cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageLayoutType::DepthStencilWrite);
+		cmd->TransitionLayout(gbuffer.Depth, ImageReadAccess::PixelShaderRead, depthLayout);
+		cmd->TransitionLayout(gbuffer.Geometry_Shading_Normals, ImageReadAccess::PixelShaderRead, normalsLayout);
 
 		struct PushDataComp
 		{
@@ -165,7 +172,46 @@ namespace Eagle
 			++stats.Dispatches;
 		}
 
-		cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(input, ImageLayoutType::StorageImage, resultLayout);
+	}
+
+	void VolumetricLightTask::InitWithOptions(const SceneRendererSettings& settings)
+	{
+		bool bReloadPipeline = false;
+		bool bVolumetricFogChanged = false;
+		if (m_VolumetricSettings != settings.VolumetricSettings)
+		{
+			bReloadPipeline |= m_VolumetricSettings.Samples != settings.VolumetricSettings.Samples;
+			bVolumetricFogChanged = m_VolumetricSettings.bFogEnable != settings.VolumetricSettings.bFogEnable;
+			bReloadPipeline |= bVolumetricFogChanged;
+
+			m_VolumetricSettings = settings.VolumetricSettings;
+			m_Constants.VolumetricSamples = m_VolumetricSettings.Samples;
+
+			if (m_VolumetricSettings.bEnable)
+			{
+				if (!m_VolumetricsImage)
+				{
+					ImageSpecifications specs;
+					specs.Format = ImageFormat::R16G16B16A16_Float;
+					specs.Size = glm::max(m_Renderer.GetHDROutput()->GetSize() / 2u, glm::uvec3(1u));
+					specs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::Storage;
+					m_VolumetricsImage = Image::Create(specs, "PBR_Volumetric");
+				}
+			}
+			else
+				m_VolumetricsImage.reset();
+		}
+
+		const bool bStutterlessChanged = bStutterlessShaders != settings.bStutterlessShaders;
+		const bool translucentShadowsChanged = bTranslucentShadows != settings.bTranslucentShadows;
+		bReloadPipeline |= bStutterlessChanged;
+		bReloadPipeline |= translucentShadowsChanged;
+		bTranslucentShadows = settings.bTranslucentShadows;
+		bStutterlessShaders = settings.bStutterlessShaders;
+
+		if (bReloadPipeline)
+			InitPipeline(bStutterlessChanged, translucentShadowsChanged, bVolumetricFogChanged);
 	}
 
 	void VolumetricLightTask::OnResize(glm::uvec2 size)

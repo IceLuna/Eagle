@@ -75,8 +75,8 @@ namespace Eagle
 	
 	void TransparencyTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().Translucent;
-		const auto& skeletalMeshes = m_Renderer.GetSkeletalMeshesDrawData().Translucent;
+		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().SingleSided.Translucent;
+		const auto& skeletalMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Translucent;
 		const auto& spritesData = m_Renderer.GetTranslucentSpritesData();
 		const auto& spritesNoShadowData = m_Renderer.GetTranslucentNotCastingShadowSpriteData();
 		const auto& textsData = m_Renderer.GetTranslucentLitTextData();
@@ -207,7 +207,7 @@ namespace Eagle
 
 	void TransparencyTask::RenderMeshesDepth(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().Translucent;
+		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().SingleSided.Translucent;
 		if (meshes.empty())
 			return;
 
@@ -230,7 +230,7 @@ namespace Eagle
 
 	void TransparencyTask::RenderSkeletalMeshesDepth(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().Translucent;
+		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Translucent;
 		if (meshes.empty())
 			return;
 
@@ -302,7 +302,7 @@ namespace Eagle
 	
 	void TransparencyTask::RenderMeshesColor(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().Translucent;
+		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().SingleSided.Translucent;
 		if (meshes.empty())
 			return;
 
@@ -347,7 +347,7 @@ namespace Eagle
 	
 	void TransparencyTask::RenderSkeletalMeshesColor(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().Translucent;
+		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Translucent;
 		if (meshes.empty())
 			return;
 
@@ -516,7 +516,7 @@ namespace Eagle
 
 		// Meshes
 		{
-			const auto& meshes = m_Renderer.GetStaticMeshesDrawData().Translucent;
+			const auto& meshes = m_Renderer.GetStaticMeshesDrawData().SingleSided.Translucent;
 			if (!meshes.empty())
 			{
 				EG_GPU_TIMING_SCOPED(cmd, "Transparency. Static Meshes Entity IDs");
@@ -534,7 +534,7 @@ namespace Eagle
 
 		// Skeletal Meshes
 		{
-			auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().Translucent;
+			auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Translucent;
 			if (!meshes.empty())
 			{
 				EG_GPU_TIMING_SCOPED(cmd, "Transparency. Skeletal Meshes Entity IDs");
@@ -663,8 +663,8 @@ namespace Eagle
 
 		ColorAttachment attachment;
 		attachment.Image = m_Renderer.GetHDROutput();
-		attachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		attachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		attachment.InitialLayout = ImageLayoutType::RenderTarget;
+		attachment.FinalLayout = ImageLayoutType::RenderTarget;
 		attachment.ClearOperation = ClearOperation::Load;
 
 		attachment.bBlendEnabled = true;
@@ -718,8 +718,8 @@ namespace Eagle
 
 		ColorAttachment attachment;
 		attachment.Image = m_Renderer.GetHDROutput();
-		attachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		attachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		attachment.InitialLayout = ImageLayoutType::RenderTarget;
+		attachment.FinalLayout = ImageLayoutType::RenderTarget;
 		attachment.ClearOperation = ClearOperation::Load;
 
 		attachment.bBlendEnabled = true;
@@ -773,8 +773,8 @@ namespace Eagle
 
 		ColorAttachment attachment;
 		attachment.Image = m_Renderer.GetHDROutput();
-		attachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		attachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		attachment.InitialLayout = ImageLayoutType::RenderTarget;
+		attachment.FinalLayout = ImageLayoutType::RenderTarget;
 		attachment.ClearOperation = ClearOperation::Load;
 
 		attachment.bBlendEnabled = true;
@@ -827,8 +827,8 @@ namespace Eagle
 
 		ColorAttachment attachment;
 		attachment.Image = m_Renderer.GetHDROutput();
-		attachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		attachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		attachment.InitialLayout = ImageLayoutType::RenderTarget;
+		attachment.FinalLayout = ImageLayoutType::RenderTarget;
 		attachment.ClearOperation = ClearOperation::Load;
 
 		attachment.bBlendEnabled = true;
@@ -879,8 +879,8 @@ namespace Eagle
 	{
 		ColorAttachment colorAttachment;
 		colorAttachment.Image = m_Renderer.GetHDROutput();
-		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		colorAttachment.ClearOperation = ClearOperation::Load;
 
 		colorAttachment.bBlendEnabled = true;
@@ -905,8 +905,8 @@ namespace Eagle
 	{
 		ColorAttachment objectIDAttachment;
 		objectIDAttachment.Image = m_Renderer.GetGBuffer().ObjectID;
-		objectIDAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		objectIDAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		objectIDAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		objectIDAttachment.ClearOperation = ClearOperation::Load;
 
 		DepthStencilAttachment depthAttachment;

@@ -56,8 +56,15 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("GTAO");
 
 		auto& gBuffer = m_Renderer.GetGBuffer();
+
 		const ImageLayout oldDepthLayout = gBuffer.Depth->GetLayout();
 		cmd->TransitionLayout(gBuffer.Depth, oldDepthLayout, ImageReadAccess::PixelShaderRead);
+
+		const ImageLayout oldNormalsLayout = gBuffer.Geometry_Shading_Normals->GetLayout();
+		cmd->TransitionLayout(gBuffer.Geometry_Shading_Normals, oldNormalsLayout, ImageReadAccess::PixelShaderRead);
+
+		const ImageLayout oldMotionLayout = gBuffer.Motion->GetLayout();
+		cmd->TransitionLayout(gBuffer.Motion, oldMotionLayout, ImageReadAccess::PixelShaderRead);
 
 		Downsample(cmd);
 		GTAO(cmd);
@@ -65,6 +72,8 @@ namespace Eagle
 		CopyToPrev(cmd);
 
 		cmd->TransitionLayout(gBuffer.Depth, gBuffer.Depth->GetLayout(), oldDepthLayout);
+		cmd->TransitionLayout(gBuffer.Geometry_Shading_Normals, gBuffer.Geometry_Shading_Normals->GetLayout(), oldNormalsLayout);
+		cmd->TransitionLayout(gBuffer.Motion, gBuffer.Motion->GetLayout(), oldMotionLayout);
 	}
 
 	void GTAOTask::Downsample(const Ref<CommandBuffer>& cmd)

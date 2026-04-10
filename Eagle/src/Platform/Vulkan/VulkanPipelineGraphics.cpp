@@ -207,7 +207,7 @@ namespace Eagle
 		rasterization.rasterizerDiscardEnable = VK_FALSE; // No geometry passes rasterization stage if set to TRUE
 		rasterization.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterization.lineWidth = m_State.LineWidth;
-		rasterization.cullMode = CullModeToVulkan(m_State.CullMode);
+		rasterization.cullMode = m_State.CullMode == CullMode::Dynamic ? VK_CULL_MODE_BACK_BIT : CullModeToVulkan(m_State.CullMode);
 		rasterization.frontFace = FrontFaceToVulkan(m_State.FrontFace);
 		rasterization.pNext = (m_State.bEnableConservativeRasterization && bDeviceSupportsConservativeRasterization) ? &conservativeRasterizationCI : nullptr;
 
@@ -654,7 +654,11 @@ namespace Eagle
 		}
 
 		// Dynamic states
-		std::array dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+		std::vector dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+		if (m_State.CullMode == CullMode::Dynamic)
+		{
+			dynamicStates.push_back(VK_DYNAMIC_STATE_CULL_MODE);
+		}
 		VkPipelineDynamicStateCreateInfo dynamicStatesCI{};
 		dynamicStatesCI.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 		dynamicStatesCI.dynamicStateCount = (uint32_t)dynamicStates.size();

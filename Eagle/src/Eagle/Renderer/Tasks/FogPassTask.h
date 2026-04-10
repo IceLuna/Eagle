@@ -11,7 +11,7 @@ namespace Eagle
 	class FogPassTask : public RendererTask
 	{
 	public:
-		FogPassTask(SceneRenderer& renderer, const Ref<Image>& renderTo);
+		FogPassTask(SceneRenderer& renderer);
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 
 		const Ref<Buffer>& GetFogDataBuffer() const { return m_FogDataBuffer; }
@@ -31,6 +31,5 @@ namespace Eagle
 	private:
 		Ref<PipelineCompute> m_Pipeline;
 		Ref<Buffer> m_FogDataBuffer;
-		Ref<Image> m_Result;
 	};
 }

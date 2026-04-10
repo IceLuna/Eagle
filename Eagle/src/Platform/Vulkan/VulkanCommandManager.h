@@ -75,6 +75,7 @@ namespace Eagle
 		void ExecuteSecondary(const Ref<CommandBuffer>& secondaryCmd) override;
 
 		void SetGraphicsRootConstants(const void* vertexRootConstants, const void* fragmentRootConstants) override;
+		void SetGraphicsCullMode(CullMode cullMode) override;
 
 		void TransitionLayout(const Ref<Image>& image, ImageLayout oldLayout, ImageLayout newLayout) override;
 		void TransitionLayout(const Ref<Image>& image, const ImageView& imageView, ImageLayout oldLayout, ImageLayout newLayout) override;

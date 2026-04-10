@@ -12,9 +12,8 @@
 
 namespace Eagle
 {
-	SkyboxPassTask::SkyboxPassTask(SceneRenderer& renderer, const Ref<Image>& renderTo)
+	SkyboxPassTask::SkyboxPassTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
-		, m_FinalImage(renderTo)
 	{
 		const auto& sky = m_Renderer.GetSkySettings();
 		m_Clouds.bCirrus = sky.bEnableCirrusClouds;
@@ -93,9 +92,9 @@ namespace Eagle
 	{
 		ColorAttachment colorAttachment;
 		colorAttachment.ClearOperation = ClearOperation::Load;
-		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.Image = m_FinalImage;
+		colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+		colorAttachment.Image = m_Renderer.GetHDROutput();
 
 		DepthStencilAttachment depthAttachment;
 		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;

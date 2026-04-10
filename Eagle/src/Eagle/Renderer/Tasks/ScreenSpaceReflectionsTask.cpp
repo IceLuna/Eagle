@@ -27,12 +27,28 @@ namespace Eagle
 
 		auto& gbuffer = m_Renderer.GetGBuffer();
 		auto& color = m_Renderer.GetHDROutput();
-		auto& depth = gbuffer.Depth;
 
-		const ImageLayout oldDepthLayout = depth->GetLayout();
-		const ImageLayout oldColorLayout = color->GetLayout();
-		cmd->TransitionLayout(depth, oldDepthLayout, ImageReadAccess::PixelShaderRead);
-		cmd->TransitionLayout(color, oldColorLayout, ImageLayoutType::StorageImage);
+		const ImageLayout colorLayout = color->GetLayout();
+		const ImageLayout depthLayout = gbuffer.Depth->GetLayout();
+		const ImageLayout normalsLayout = gbuffer.Geometry_Shading_Normals->GetLayout();
+		const ImageLayout albedoLayout = gbuffer.Albedo->GetLayout();
+		const ImageLayout materialLayout = gbuffer.MaterialData->GetLayout();
+		const ImageLayout depthHistoryLayout = gbuffer.DepthHistory->GetLayout();
+		const ImageLayout normalsHistoryLayout = gbuffer.NormalsHistory->GetLayout();
+		const ImageLayout motionLayout = gbuffer.Motion->GetLayout();
+
+		cmd->TransitionLayout(color, colorLayout, ImageLayoutType::StorageImage);
+		cmd->TransitionLayout(gbuffer.Depth, depthLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(gbuffer.Geometry_Shading_Normals, normalsLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(gbuffer.Albedo, albedoLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(gbuffer.MaterialData, materialLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(gbuffer.DepthHistory, depthHistoryLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(gbuffer.NormalsHistory, normalsHistoryLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(gbuffer.Motion, motionLayout, ImageReadAccess::PixelShaderRead);
+
+		//Geometry_Shading_Normals
+		//Albedo
+		//MaterialData
 
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "SSSR. Update uniform data");
@@ -61,8 +77,15 @@ namespace Eagle
 		TemporalResolve(cmd);
 		Composite(cmd);
 
-		cmd->TransitionLayout(depth, ImageReadAccess::PixelShaderRead, oldDepthLayout);
-		cmd->TransitionLayout(color, ImageLayoutType::StorageImage, oldColorLayout);
+		cmd->TransitionLayout(color, ImageLayoutType::StorageImage, colorLayout);
+		cmd->TransitionLayout(gbuffer.Depth, ImageReadAccess::PixelShaderRead, depthLayout);
+		cmd->TransitionLayout(gbuffer.Geometry_Shading_Normals, ImageReadAccess::PixelShaderRead, normalsLayout);
+		cmd->TransitionLayout(gbuffer.Albedo, ImageReadAccess::PixelShaderRead, albedoLayout);
+		cmd->TransitionLayout(gbuffer.MaterialData, ImageReadAccess::PixelShaderRead, materialLayout);
+		cmd->TransitionLayout(gbuffer.DepthHistory, ImageReadAccess::PixelShaderRead, depthHistoryLayout);
+		cmd->TransitionLayout(gbuffer.NormalsHistory, ImageReadAccess::PixelShaderRead, normalsHistoryLayout);
+		cmd->TransitionLayout(gbuffer.Motion, ImageReadAccess::PixelShaderRead, motionLayout);
+
 		cmd->CopyImage(m_Roughness, m_RoughnessHistory, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
 
 		m_PingPong = (m_PingPong + 1) % 2;

@@ -8,7 +8,7 @@ namespace Eagle
 	class RenderTextUnlitTask : public RendererTask
 	{
 	public:
-		RenderTextUnlitTask(SceneRenderer& renderer, const Ref<Image>& renderTo);
+		RenderTextUnlitTask(SceneRenderer& renderer);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
@@ -26,7 +26,6 @@ namespace Eagle
 
 	private:
 		Ref<PipelineGraphics> m_Pipeline;
-		Ref<Image> m_ResultImage;
 
 		bool bJitter = false;
 	};

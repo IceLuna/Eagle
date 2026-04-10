@@ -273,6 +273,10 @@ namespace Eagle
 #endif
 		deviceFeatures12.pNext = &deviceFeatures11;
 
+		VkPhysicalDeviceVulkan13Features deviceFeatures13 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
+		deviceFeatures13.shaderDemoteToHelperInvocation = VK_TRUE;
+		deviceFeatures13.pNext = &deviceFeatures12;
+
 		if (!m_PhysicalDevice->IsFloat16Supported())
 		{
 			EG_CORE_WARN("Your GPU doesn't support float16. Some rendering features might work incorrectly or even result in crashes");
@@ -289,7 +293,7 @@ namespace Eagle
 		features.features.textureCompressionETC2 = supportedFeatures.bTextureCompressionETC2;
 		features.features.textureCompressionBC = supportedFeatures.bTextureCompressionBC;
 		features.features.shaderInt16 = VK_TRUE;
-		features.pNext = &deviceFeatures12;
+		features.pNext = &deviceFeatures13;
 
 		m_Device = VulkanDevice::Create(m_PhysicalDevice, features);
 

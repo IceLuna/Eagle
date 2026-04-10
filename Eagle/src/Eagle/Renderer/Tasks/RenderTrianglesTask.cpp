@@ -98,8 +98,8 @@ namespace Eagle
 	{
 		ColorAttachment colorAttachment;
 		colorAttachment.ClearOperation = ClearOperation::Load;
-		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		colorAttachment.Image = m_Renderer.GetHDROutput();
 
 		DepthStencilAttachment depthAttachment;

@@ -89,13 +89,13 @@ namespace Eagle
 		m_GeometryManagerTask = MakeRef<GeometryManagerTask>(*this);
 		m_RenderLinesTask = MakeRef<RenderLinesTask>(*this);
 		m_RenderTrianglesTask = MakeRef<RenderTrianglesTask>(*this);
-		m_RenderBillboardsTask = MakeRef<RenderBillboardsTask>(*this, m_HDRRTImage);
+		m_RenderBillboardsTask = MakeRef<RenderBillboardsTask>(*this);
 		m_RenderLitTextTask = MakeRef<RenderTextLitTask>(*this);
-		m_RenderUnlitTextTask = MakeRef<RenderTextUnlitTask>(*this, m_HDRRTImage);
-		m_PBRPassTask = MakeRef<PBRPassTask>(*this, m_HDRRTImage);
+		m_RenderUnlitTextTask = MakeRef<RenderTextUnlitTask>(*this);
+		m_PBRPassTask = MakeRef<PBRPassTask>(*this);
 		m_ShadowPassTask = MakeRef<ShadowPassTask>(*this);
-		m_SkyboxPassTask = MakeRef<SkyboxPassTask>(*this, m_HDRRTImage);
-		m_PostProcessingPassTask = MakeRef<PostprocessingPassTask>(*this, m_HDRRTImage);
+		m_SkyboxPassTask = MakeRef<SkyboxPassTask>(*this);
+		m_PostProcessingPassTask = MakeRef<PostprocessingPassTask>(*this);
 		m_GridTask = MakeRef<GridTask>(*this);
 		m_TransparencyTask = MakeRef<TransparencyTask>(*this);
 		m_Text2DTask = MakeRef<RenderText2DTask>(*this);
@@ -103,12 +103,12 @@ namespace Eagle
 		m_DOFTask = MakeRef<DOFTask>(*this);
 		m_ParticleTask = MakeRef<ParticleSystemTask>(*this);
 		
-		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this, m_HDRRTImage);
+		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this);
 		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);
 		InitOptionalTask<GTAOTask>(m_GTAOTask, options, options.AO == AmbientOcclusion::GTAO, *this);
 		InitOptionalTask<TAATask>(m_TAATask, options, options.AA == AAMethod::TAA, *this);
-		InitOptionalTask<VolumetricLightTask>(m_VolumetricTask, options, options.VolumetricSettings.bEnable, *this, m_HDRRTImage);
-		InitOptionalTask<FogPassTask>(m_FogTask, options, options.FogSettings.bEnable, *this, m_HDRRTImage);
+		InitOptionalTask<VolumetricLightTask>(m_VolumetricTask, options, options.VolumetricSettings.bEnable, *this);
+		InitOptionalTask<FogPassTask>(m_FogTask, options, options.FogSettings.bEnable, *this);
 		InitOptionalTask<MotionBlurTask>(m_MotionBlurTask, options, options.MotionBlur.bEnable, *this);
 		InitOptionalTask<ScreenSpaceReflectionsTask>(m_ScreenSpaceReflectionsTask, options, options.ScreenSpaceReflections.bEnable, *this);
 
@@ -180,10 +180,14 @@ namespace Eagle
 				cmd->Write(renderer->m_CameraDataBuffer, &cameraData, sizeof(CameraData), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
 			}
 
+			cmd->TransitionLayout(renderer->m_FinalImage, renderer->m_FinalImage->GetLayout(), ImageLayoutType::RenderTarget);
+			renderer->m_GBuffer.Clear(cmd);
+
 			renderer->m_LightsManagerTask->RecordCommandBuffer(cmd);
 			renderer->m_GeometryManagerTask->RecordCommandBuffer(cmd);
 			renderer->m_SkinCacheTask->RecordCommandBuffer(cmd);
-			renderer->m_DepthPrepassTask->RecordCommandBuffer(cmd);
+			if (renderer->m_Options_RT.bDepthPrepass)
+				renderer->m_DepthPrepassTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderMeshesTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderSpritesTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderSkeletalMeshesTask->RecordCommandBuffer(cmd);
@@ -242,6 +246,8 @@ namespace Eagle
 
 			if (bRenderGrid)
 				renderer->m_GridTask->RecordCommandBuffer(cmd);
+
+			cmd->TransitionLayout(renderer->m_FinalImage, renderer->m_FinalImage->GetLayout(), ImageReadAccess::PixelShaderRead);
 
 			// Handle object picking. Always enabled in editor mode
 			if (!renderer->IsRuntime() || options.bEnableObjectPicking)
@@ -486,12 +492,12 @@ namespace Eagle
 		m_DOFTask->InitWithOptions(options);
 		m_ParticleTask->InitWithOptions(options);
 
-		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this, m_HDRRTImage);
+		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this);
 		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);
 		InitOptionalTask<GTAOTask>(m_GTAOTask, options, options.AO == AmbientOcclusion::GTAO, *this);
 		InitOptionalTask<TAATask>(m_TAATask, options, options.AA == AAMethod::TAA, *this);
-		InitOptionalTask<VolumetricLightTask>(m_VolumetricTask, options, options.VolumetricSettings.bEnable, *this, m_HDRRTImage);
-		InitOptionalTask<FogPassTask>(m_FogTask, options, options.FogSettings.bEnable, *this, m_HDRRTImage);
+		InitOptionalTask<VolumetricLightTask>(m_VolumetricTask, options, options.VolumetricSettings.bEnable, *this);
+		InitOptionalTask<FogPassTask>(m_FogTask, options, options.FogSettings.bEnable, *this);
 		InitOptionalTask<MotionBlurTask>(m_MotionBlurTask, options, options.MotionBlur.bEnable, *this);
 		InitOptionalTask<ScreenSpaceReflectionsTask>(m_ScreenSpaceReflectionsTask, options, options.ScreenSpaceReflections.bEnable, *this);
 	}
@@ -564,7 +570,8 @@ namespace Eagle
 				ImageSpecifications velocitySpecs;
 				velocitySpecs.Format = ImageFormat::R16G16_Float;
 				velocitySpecs.Size = size;
-				velocitySpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+				velocitySpecs.Layout = ImageLayoutType::RenderTarget;
+				velocitySpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferDst;
 				Motion = Image::Create(velocitySpecs, "GBuffer_Motion");
 			}
 		}
@@ -634,10 +641,25 @@ namespace Eagle
 			{
 				constexpr glm::vec4 clearColor = glm::vec4(0.f);
 				if (depth)
-					cmd->ClearDepthStencilImage(depth, 0.f, 0, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+					cmd->ClearDepthStencilImage(depth, 0.f, 0, depth->GetLayout(), ImageReadAccess::PixelShaderRead);
 				if (normals)
-					cmd->ClearColorImage(normals, clearColor, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+					cmd->ClearColorImage(normals, clearColor, normals->GetLayout(), ImageReadAccess::PixelShaderRead);
 			});
 		}
+	}
+	
+	void GBuffer::Clear(const Ref<CommandBuffer>& cmd)
+	{
+		cmd->ClearDepthStencilImage(Depth, 0, 0, Depth->GetLayout(), ImageLayoutType::DepthStencilWrite);
+		if (Motion)
+			cmd->ClearColorImage(Motion, glm::vec4(0), Motion->GetLayout(), ImageLayoutType::RenderTarget);
+
+		// Note: I think there's no need to clear these buffers.
+		//cmd->ClearColorImage(Albedo, glm::vec4(0), Albedo->GetLayout(), ImageReadAccess::PixelShaderRead);
+		//cmd->ClearColorImage(Geometry_Shading_Normals, glm::vec4(0), Geometry_Shading_Normals->GetLayout(), ImageReadAccess::PixelShaderRead);
+		//cmd->ClearColorImage(Emissive, glm::vec4(0), Emissive->GetLayout(), ImageReadAccess::PixelShaderRead);
+		//cmd->ClearColorImage(MaterialData, glm::vec4(0), MaterialData->GetLayout(), ImageReadAccess::PixelShaderRead);
+		//cmd->ClearColorImage(Flags, glm::vec4(0), Flags->GetLayout(), ImageReadAccess::PixelShaderRead);
+		//cmd->ClearColorImage(ObjectID, glm::vec4(0), ObjectID->GetLayout(), ImageReadAccess::PixelShaderRead);
 	}
 }

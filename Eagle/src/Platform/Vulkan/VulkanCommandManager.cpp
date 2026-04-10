@@ -583,6 +583,12 @@ namespace Eagle
 		}
 	}
 
+	void VulkanCommandBuffer::SetGraphicsCullMode(CullMode cullMode)
+	{
+		EG_CORE_ASSERT(cullMode != CullMode::Dynamic); // Invalid value
+		vkCmdSetCullMode(m_CommandBuffer, CullModeToVulkan(cullMode));
+	}
+
 	void VulkanCommandBuffer::TransitionLayout(const Ref<Image>& image, ImageLayout oldLayout, ImageLayout newLayout)
 	{
 		TransitionLayout(image, ImageView{ 0, image->GetMipsCount(), 0 }, oldLayout, newLayout);

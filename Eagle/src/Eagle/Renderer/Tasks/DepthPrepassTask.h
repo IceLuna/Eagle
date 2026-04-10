@@ -20,12 +20,10 @@ namespace Eagle
 
 		void InitWithOptions(const SceneRendererSettings& settings) override
 		{
-			if (bJitter == settings.InternalState.bJitter &&
-				bEnabled == settings.bDepthPrepass)
+			if (bJitter == settings.InternalState.bJitter)
 				return;
 
 			bJitter = settings.InternalState.bJitter;
-			bEnabled = settings.bDepthPrepass;
 			InitPipelines();
 		}
 
@@ -50,6 +48,5 @@ namespace Eagle
 		Ref<PipelineGraphics> m_StaticMeshesPipeline;
 		Ref<PipelineGraphics> m_SkeletalMeshesPipeline;
 		bool bJitter = false;
-		bool bEnabled = false;
 	};
 }

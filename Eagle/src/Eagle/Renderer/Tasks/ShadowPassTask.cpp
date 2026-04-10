@@ -576,7 +576,7 @@ namespace Eagle
 
 	void ShadowPassTask::ShadowPassOpacityMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetStaticMeshesDrawData().ShadowCastingOpaque;
+		auto& meshes = m_Renderer.GetStaticMeshesDrawData().SingleSided.ShadowCastingOpaque;
 		if (meshes.empty())
 			return;
 
@@ -668,7 +668,7 @@ namespace Eagle
 
 	void ShadowPassTask::ShadowPassTranslucentMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetStaticMeshesDrawData().ShadowCastingTranslucent;
+		auto& meshes = m_Renderer.GetStaticMeshesDrawData().SingleSided.ShadowCastingTranslucent;
 		if (meshes.empty())
 			return;
 
@@ -811,7 +811,7 @@ namespace Eagle
 	
 	void ShadowPassTask::ShadowPassMaskedMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetStaticMeshesDrawData().ShadowCastingMasked;
+		auto& meshes = m_Renderer.GetStaticMeshesDrawData().SingleSided.ShadowCastingMasked;
 		if (meshes.empty())
 			return;
 
@@ -942,7 +942,7 @@ namespace Eagle
 	
 	void ShadowPassTask::ShadowPassOpacitySkeletalMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().ShadowCastingOpaque;
+		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.ShadowCastingOpaque;
 		if (meshes.empty())
 			return;
 
@@ -1035,7 +1035,7 @@ namespace Eagle
 
 	void ShadowPassTask::ShadowPassTranslucentSkeletalMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().ShadowCastingTranslucent;
+		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.ShadowCastingTranslucent;
 		if (meshes.empty())
 			return;
 
@@ -1192,7 +1192,7 @@ namespace Eagle
 	
 	void ShadowPassTask::ShadowPassMaskedSkeletalMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().ShadowCastingMasked;
+		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.ShadowCastingMasked;
 		if (meshes.empty())
 			return;
 

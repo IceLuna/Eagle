@@ -399,7 +399,8 @@ namespace Eagle
         None,
         Front,
         Back,
-        FrontAndBack
+        FrontAndBack,
+        Dynamic, // Can be used during pipeline creation to indicate that cull mode is set dynamically before rendering
     };
 
     enum class FrontFaceMode

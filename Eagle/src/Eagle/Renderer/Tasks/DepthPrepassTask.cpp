@@ -19,24 +19,17 @@ namespace Eagle
 	{
 		const auto& options = renderer.GetOptions_RT();
 		bJitter = options.InternalState.bJitter;
-		bEnabled = options.bDepthPrepass;
 		InitPipelines();
 	}
 
 	void DepthPrepassTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
-		auto& gBuffer = m_Renderer.GetGBuffer();
-		cmd->ClearDepthStencilImage(gBuffer.Depth, 0, 0, gBuffer.Depth->GetLayout(), ImageLayoutType::DepthStencilWrite);
+		EG_CPU_TIMING_SCOPED("Depth Prepass");
+		EG_GPU_TIMING_SCOPED(cmd, "Depth Prepass");
 
-		if (bEnabled)
-		{
-			EG_CPU_TIMING_SCOPED("Depth Prepass");
-			EG_GPU_TIMING_SCOPED(cmd, "Depth Prepass");
-
-			RenderSprites(cmd);
-			RenderStaticMeshes(cmd);
-			RenderSkeletalMeshes(cmd);
-		}
+		RenderSprites(cmd);
+		RenderStaticMeshes(cmd);
+		RenderSkeletalMeshes(cmd);
 	}
 
 	void DepthPrepassTask::RenderSprites(const Ref<CommandBuffer>& cmd)
@@ -65,7 +58,7 @@ namespace Eagle
 
 	void DepthPrepassTask::RenderStaticMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().Opaque;
+		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().SingleSided.Opaque;
 		if (meshes.empty())
 			return;
 
@@ -85,7 +78,7 @@ namespace Eagle
 
 	void DepthPrepassTask::RenderSkeletalMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().Opaque;
+		const auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Opaque;
 		if (meshes.empty())
 			return;
 

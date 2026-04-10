@@ -16,7 +16,7 @@ namespace Eagle
 	class RenderBillboardsTask : public RendererTask
 	{
 	public:
-		RenderBillboardsTask(SceneRenderer& renderer, const Ref<Image>& renderTo);
+		RenderBillboardsTask(SceneRenderer& renderer);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
@@ -58,7 +58,6 @@ namespace Eagle
 		std::vector<BillboardVertex> m_Vertices;
 		Ref<Buffer> m_VertexBuffer;
 		Ref<Buffer> m_IndexBuffer;
-		Ref<Image> m_ResultImage;
 		Ref<PipelineGraphics> m_Pipeline;
 		uint64_t m_TexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 		bool bJitter = false;

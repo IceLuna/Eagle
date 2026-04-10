@@ -14,9 +14,8 @@
 
 namespace Eagle
 {
-	PBRPassTask::PBRPassTask(SceneRenderer& renderer, const Ref<Image>& renderTo) 
+	PBRPassTask::PBRPassTask(SceneRenderer& renderer) 
 		: RendererTask(renderer)
-		, m_ResultImage(renderTo)
 	{
 		const auto& options = m_Renderer.GetOptions();
 
@@ -114,18 +113,36 @@ namespace Eagle
 			m_Pipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMapsColored(), m_Renderer.GetSpotLightShadowMapsSamplers(), 5, 0);
 		}
 
-		m_Pipeline->SetImage(m_ResultImage, 6, 0);
+		const auto& resultImage = m_Renderer.GetHDROutput();
+		m_Pipeline->SetImage(resultImage, 6, 0);
 
 		constexpr uint32_t tileSize = 8;
-		const glm::uvec2 size = m_ResultImage->GetSize();
+		const glm::uvec2 size = resultImage->GetSize();
 		glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
 		pushData.Size = size;
 
-		cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageLayoutType::StorageImage);
-		cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageReadAccess::PixelShaderRead);
+		const ImageLayout resultLayout = resultImage->GetLayout();
+		const ImageLayout depthLayout = gbuffer.Depth->GetLayout();
+		const ImageLayout albedoLayout = gbuffer.Albedo->GetLayout();
+		const ImageLayout normalsLayout = gbuffer.Geometry_Shading_Normals->GetLayout();
+		const ImageLayout emissiveLayout = gbuffer.Emissive->GetLayout();
+		const ImageLayout materialLayout = gbuffer.MaterialData->GetLayout();
+
+		cmd->TransitionLayout(resultImage, resultLayout, ImageLayoutType::StorageImage);
+		cmd->TransitionLayout(gbuffer.Depth, depthLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(gbuffer.Albedo, albedoLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(gbuffer.Geometry_Shading_Normals, normalsLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(gbuffer.Emissive, emissiveLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(gbuffer.MaterialData, materialLayout, ImageReadAccess::PixelShaderRead);
+
 		cmd->Dispatch(m_Pipeline, numGroups.x, numGroups.y, 1, &pushData);
-		cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageLayoutType::DepthStencilWrite);
-		cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageReadAccess::PixelShaderRead);
+
+		cmd->TransitionLayout(resultImage, ImageLayoutType::StorageImage, resultLayout);
+		cmd->TransitionLayout(gbuffer.Depth, ImageReadAccess::PixelShaderRead, depthLayout);
+		cmd->TransitionLayout(gbuffer.Albedo, ImageReadAccess::PixelShaderRead, albedoLayout);
+		cmd->TransitionLayout(gbuffer.Geometry_Shading_Normals, ImageReadAccess::PixelShaderRead, normalsLayout);
+		cmd->TransitionLayout(gbuffer.Emissive, ImageReadAccess::PixelShaderRead, emissiveLayout);
+		cmd->TransitionLayout(gbuffer.MaterialData, ImageReadAccess::PixelShaderRead, materialLayout);
 
 		auto& stats = m_Renderer.GetStats();
 		++stats.Dispatches;

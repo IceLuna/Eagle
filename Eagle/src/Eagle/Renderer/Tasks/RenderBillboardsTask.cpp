@@ -17,9 +17,8 @@ namespace Eagle
 {
 	static constexpr glm::vec4 s_QuadVertexPosition[4] = { { -0.5f, -0.5f, 0.0f, 1.0f }, { 0.5f, -0.5f, 0.0f, 1.0f }, { 0.5f, 0.5f, 0.0f, 1.0f }, { -0.5f, 0.5f, 0.0f, 1.0f } };
 
-	RenderBillboardsTask::RenderBillboardsTask(SceneRenderer& renderer, const Ref<Image>& renderTo)
+	RenderBillboardsTask::RenderBillboardsTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
-		, m_ResultImage(renderTo)
 	{
 		BufferSpecifications vertexSpecs;
 		vertexSpecs.Size = 1; // Used 1 so that we don't allocate a lot of data here, but rather do it as needed
@@ -235,9 +234,9 @@ namespace Eagle
 	{
 		const auto& gBuffer = m_Renderer.GetGBuffer();
 		ColorAttachment colorAttachment;
-		colorAttachment.Image = m_ResultImage;
-		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.Image = m_Renderer.GetHDROutput();
+		colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		colorAttachment.ClearOperation = ClearOperation::Load;
 
 		colorAttachment.bBlendEnabled = true;
@@ -251,8 +250,8 @@ namespace Eagle
 
 		ColorAttachment objectIDAttachment;
 		objectIDAttachment.Image = gBuffer.ObjectID;
-		objectIDAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		objectIDAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		objectIDAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		objectIDAttachment.ClearOperation = ClearOperation::Load;
 
 		DepthStencilAttachment depthAttachment;
@@ -282,8 +281,8 @@ namespace Eagle
 		{
 			ColorAttachment velocityAttachment;
 			velocityAttachment.Image = gBuffer.Motion;
-			velocityAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-			velocityAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			velocityAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+			velocityAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 			velocityAttachment.ClearOperation = ClearOperation::Load;
 			state.ColorAttachments.push_back(velocityAttachment);
 		}

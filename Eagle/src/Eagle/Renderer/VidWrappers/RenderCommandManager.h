@@ -90,7 +90,8 @@ namespace Eagle
 		virtual void ExecuteSecondary(const Ref<CommandBuffer>& secondaryCmd) = 0;
 
 		virtual void SetGraphicsRootConstants(const void* vertexRootConstants, const void* fragmentRootConstants) = 0;
-
+		virtual void SetGraphicsCullMode(CullMode cullMode) = 0;
+		
 		void StorageImageBarrier(const Ref<Image>& image) { TransitionLayout(image, ImageLayoutType::StorageImage, ImageLayoutType::StorageImage); }
 		virtual void TransitionLayout(const Ref<Image>& image, ImageLayout oldLayout, ImageLayout newLayout) = 0;
 		virtual void TransitionLayout(const Ref<Image>& image, const ImageView& imageView, ImageLayout oldLayout, ImageLayout newLayout) = 0;

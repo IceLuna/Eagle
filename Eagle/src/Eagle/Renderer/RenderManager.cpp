@@ -680,10 +680,15 @@ namespace Eagle
 	void RenderManager::PresentGame(const Ref<CommandBuffer>& cmd, const PresentPushData& pushData)
 	{
 		EG_GPU_TIMING_SCOPED(cmd, "Present");
-
 		const auto& data = s_RendererData;
+
+		const ImageLayout layout = data->PresentImage ? data->PresentImage->GetLayout() : ImageLayoutType::Unknown;
+
 		if (data->PresentImage)
+		{
+			cmd->TransitionLayout(data->PresentImage, layout, ImageReadAccess::PixelShaderRead);
 			data->PresentPipeline->SetImageSampler(data->PresentImage, Sampler::PointSampler, 0, 0);
+		}
 		
 		cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[data->SwapchainImageIndex]);
 
@@ -695,6 +700,11 @@ namespace Eagle
 
 		(*data->ImGuiLayer)->Render(cmd);
 		cmd->EndGraphics();
+
+		if (data->PresentImage)
+		{
+			cmd->TransitionLayout(data->PresentImage, ImageReadAccess::PixelShaderRead, layout);
+		}
 	}
 
 	std::mutex& RenderManager::GetSubmitMutex()

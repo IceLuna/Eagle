@@ -16,9 +16,8 @@
 
 namespace Eagle
 {
-	RenderTextUnlitTask::RenderTextUnlitTask(SceneRenderer& renderer, const Ref<Image>& renderTo)
+	RenderTextUnlitTask::RenderTextUnlitTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
-		, m_ResultImage(renderTo)
 	{
 		bJitter = m_Renderer.GetOptions().InternalState.bJitter;
 		InitPipeline();
@@ -60,9 +59,9 @@ namespace Eagle
 	void RenderTextUnlitTask::InitPipeline()
 	{
 		ColorAttachment colorAttachment;
-		colorAttachment.Image = m_ResultImage;
-		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.Image = m_Renderer.GetHDROutput();
+		colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		colorAttachment.ClearOperation = ClearOperation::Load;
 
 		colorAttachment.bBlendEnabled = true;
@@ -76,8 +75,8 @@ namespace Eagle
 
 		ColorAttachment objectIDAttachment;
 		objectIDAttachment.Image = m_Renderer.GetGBuffer().ObjectID;
-		objectIDAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		objectIDAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		objectIDAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		objectIDAttachment.ClearOperation = ClearOperation::Load;
 
 		DepthStencilAttachment depthAttachment;

@@ -10,7 +10,7 @@ namespace Eagle
 	class PBRPassTask : public RendererTask
 	{
 	public:
-		PBRPassTask(SceneRenderer& renderer, const Ref<Image>& renderTo);
+		PBRPassTask(SceneRenderer& renderer);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 
@@ -48,7 +48,6 @@ namespace Eagle
 	private:
 		Ref<PipelineCompute> m_Pipeline;
 		Ref<Shader> m_Shader;
-		Ref<Image> m_ResultImage;
 		Ref<Image> m_ShadowMapDistribution; // For soft shadows
 		ShaderDefines m_ShaderDefines;
 		PBRConstantsKernelInfo m_KernelInfo;

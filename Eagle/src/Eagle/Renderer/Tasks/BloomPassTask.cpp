@@ -14,14 +14,14 @@
 
 namespace Eagle
 {
-	BloomPassTask::BloomPassTask(SceneRenderer& renderer, const Ref<Image>& input)
-		: RendererTask(renderer), m_InputImage(input)
+	BloomPassTask::BloomPassTask(SceneRenderer& renderer)
+		: RendererTask(renderer)
 	{
 		InitPipeline();
 
 		m_MipViews.resize(16);
 		std::fill(m_MipViews.begin(), m_MipViews.end(), ImageView{});
-		const uint32_t mipsCount = m_InputImage->GetMipsCount();
+		const uint32_t mipsCount = m_Renderer.GetHDROutput()->GetMipsCount();
 		m_BloomSampler = Sampler::Create(FilterMode::Bilinear, AddressMode::Clamp, CompareOperation::Never, 0.f, float(mipsCount - 1), 1.f);
 		m_DirtSampler = Sampler::Create(FilterMode::Bilinear, AddressMode::Clamp, CompareOperation::Never, 0.f, 0.f, 1.f);
 
@@ -35,10 +35,12 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Bloom Pass");
 
 		auto& stats = m_Renderer.GetStats();
+		const auto& input = m_Renderer.GetHDROutput();
 
 		constexpr uint32_t tileSize = 8;
-		const uint32_t mipCount = m_InputImage->GetMipsCount();
-		const glm::uvec2 inputSize = m_InputImage->GetSize();
+		const uint32_t mipCount = input->GetMipsCount();
+		const glm::uvec2 inputSize = input->GetSize();
+		const ImageLayout inputLayout = input->GetLayout();
 		glm::uvec2 mipSize = inputSize >> 1u;
 
 		const auto& bloomSettings = m_Renderer.GetOptions_RT().BloomSettings;
@@ -58,9 +60,9 @@ namespace Eagle
 			} pushData;
 			pushData.Threshold = glm::vec4(bloomSettings.Threshold, bloomSettings.Threshold - bloomSettings.Knee, 2.f * bloomSettings.Knee, 0.25f * bloomSettings.Knee);
 
-			m_DownscalePipeline->SetImageSampler(m_InputImage, m_BloomSampler, 0, 0);
-			m_DownscalePipeline->SetImageArray(m_InputImage, m_MipViews, 0, 1);
-			cmd->TransitionLayout(m_InputImage, ImageReadAccess::PixelShaderRead, ImageLayoutType::StorageImage);
+			m_DownscalePipeline->SetImageSampler(input, m_BloomSampler, 0, 0);
+			m_DownscalePipeline->SetImageArray(input, m_MipViews, 0, 1);
+			cmd->TransitionLayout(input, inputLayout, ImageLayoutType::StorageImage);
 
 			for (uint32_t mip = 0; mip < mipCount - 1; ++mip)
 			{
@@ -75,8 +77,8 @@ namespace Eagle
 
 				++stats.Dispatches;
 				cmd->Dispatch(m_DownscalePipeline, numGroups.x, numGroups.y, 1, &pushData);
-				cmd->TransitionLayout(m_InputImage, m_MipViews[mip], ImageLayoutType::StorageImage, ImageLayoutType::StorageImage);
-				cmd->TransitionLayout(m_InputImage, m_MipViews[mip + 1], ImageLayoutType::StorageImage, ImageLayoutType::StorageImage);
+				cmd->TransitionLayout(input, m_MipViews[mip], ImageLayoutType::StorageImage, ImageLayoutType::StorageImage);
+				cmd->TransitionLayout(input, m_MipViews[mip + 1], ImageLayoutType::StorageImage, ImageLayoutType::StorageImage);
 
 				mipSize >>= 1u;
 				lastDownscaledMip = mip + 1;
@@ -106,8 +108,8 @@ namespace Eagle
 
 			const auto& dirtTexture = bUseDirt ? bloomSettings.Dirt->GetTexture() : Texture2D::DummyTexture;
 
-			m_UpscalePipeline->SetImageSampler(m_InputImage, m_BloomSampler, 0, 0);
-			m_UpscalePipeline->SetImageArray(m_InputImage, m_MipViews, 0, 1);
+			m_UpscalePipeline->SetImageSampler(input, m_BloomSampler, 0, 0);
+			m_UpscalePipeline->SetImageArray(input, m_MipViews, 0, 1);
 			m_UpscalePipeline->SetImageSampler(dirtTexture->GetImage(), m_DirtSampler, 0, 2);
 
 			for (uint32_t mip = lastDownscaledMip; mip >= 1 ; --mip)
@@ -125,18 +127,18 @@ namespace Eagle
 
 				++stats.Dispatches;
 				cmd->Dispatch(m_UpscalePipeline, numGroups.x, numGroups.y, 1, &pushData);
-				cmd->TransitionLayout(m_InputImage, m_MipViews[mip], ImageLayoutType::StorageImage, ImageLayoutType::StorageImage);
-				cmd->TransitionLayout(m_InputImage, m_MipViews[mip - 1], ImageLayoutType::StorageImage, ImageLayoutType::StorageImage);
+				cmd->TransitionLayout(input, m_MipViews[mip], ImageLayoutType::StorageImage, ImageLayoutType::StorageImage);
+				cmd->TransitionLayout(input, m_MipViews[mip - 1], ImageLayoutType::StorageImage, ImageLayoutType::StorageImage);
 			}
 		}
 
-		cmd->TransitionLayout(m_InputImage, ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(input, ImageLayoutType::StorageImage, inputLayout);
 	}
 
 	void BloomPassTask::OnResize(const glm::uvec2 size)
 	{
 		std::fill(m_MipViews.begin(), m_MipViews.end(), ImageView{});
-		const uint32_t mipsCount = m_InputImage->GetMipsCount();
+		const uint32_t mipsCount = m_Renderer.GetHDROutput()->GetMipsCount();
 		m_BloomSampler = Sampler::Create(FilterMode::Bilinear, AddressMode::Clamp, CompareOperation::Never, 0.f, float(mipsCount - 1), 1.f);
 		for (uint32_t mip = 0; mip < mipsCount; ++mip)
 			m_MipViews[mip] = ImageView{ mip };
