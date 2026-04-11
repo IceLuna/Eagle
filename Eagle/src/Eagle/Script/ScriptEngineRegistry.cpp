@@ -647,6 +647,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.TextComponent::DoesReceiveDecals_Native", Eagle::Script::Eagle_TextComponent_DoesReceiveDecals);
 		mono_add_internal_call("Eagle.TextComponent::SetVisible_Native", Eagle::Script::Eagle_TextComponent_SetVisible);
 		mono_add_internal_call("Eagle.TextComponent::IsVisible_Native", Eagle::Script::Eagle_TextComponent_IsVisible);
+		mono_add_internal_call("Eagle.TextComponent::SetDoubleSided_Native", Eagle::Script::Eagle_TextComponent_SetDoubleSided);
+		mono_add_internal_call("Eagle.TextComponent::IsDoubleSided_Native", Eagle::Script::Eagle_TextComponent_IsDoubleSided);
 
 		// Text2D Component
 		mono_add_internal_call("Eagle.Text2DComponent::GetText_Native", Eagle::Script::Eagle_Text2DComponent_GetText);

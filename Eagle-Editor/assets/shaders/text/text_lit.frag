@@ -43,10 +43,6 @@ float ScreenPxRange()
 
 void main()
 {
-    //const vec4 bgColor = vec4(i_Color, 1.0);
-    //const vec4 fgColor = vec4(i_Color, 1.0);
-    //outColor = mix(bgColor, fgColor, opacity);
-
     vec2 uv = i_TexCoords;
     const ShaderMaterial material = FetchMaterial(i_MaterialIndex, uv);
 
@@ -69,13 +65,18 @@ void main()
         return;
     }
 
-    const vec2 packedGeometryNormal = EncodeNormal(normalize(i_Normal));
+	const vec3 geomNormal = gl_FrontFacing ? i_Normal : -i_Normal;
+    const vec2 packedGeometryNormal = EncodeNormal(normalize(geomNormal));
 	vec2 packedShadingNormal = packedGeometryNormal;
 	if (material.NormalTextureIndex != EG_INVALID_INDEX)
 	{
+		mat3 tbn = i_TBN;
+		if (!gl_FrontFacing)
+			tbn[2] = -tbn[2]; // Flip the normal
+
 		vec3 shadingNormal = ReadTexture(material.NormalTextureIndex, uv).rgb;
 		shadingNormal = normalize(shadingNormal * 2.0 - 1.0);
-		shadingNormal = normalize(i_TBN * shadingNormal);
+		shadingNormal = normalize(tbn * shadingNormal);
 		packedShadingNormal = EncodeNormal(shadingNormal);
 	}
 

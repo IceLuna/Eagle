@@ -91,7 +91,7 @@ namespace Eagle
 		m_Pipeline->SetBuffer(m_Renderer.GetSpotLightsBuffer(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHTS);
 		m_Pipeline->SetBuffer(m_Renderer.GetDirectionalLightBuffer(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT);
 		m_Pipeline->SetImageSampler(gbuffer.Albedo, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_ALBEDO_ROUGHNESS_TEXTURE);
-		m_Pipeline->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_GEOMETRY_SHADING_NORMALS_TEXTURE);
+		m_Pipeline->SetImageSampler(gbuffer.Normals, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_GEOMETRY_SHADING_NORMALS_TEXTURE);
 		m_Pipeline->SetImageSampler(gbuffer.Emissive, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_EMISSIVE_TEXTURE);
 		m_Pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DEPTH_TEXTURE);
 		m_Pipeline->SetImageSampler(gbuffer.MaterialData, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_MATERIAL_DATA_TEXTURE);
@@ -124,14 +124,14 @@ namespace Eagle
 		const ImageLayout resultLayout = resultImage->GetLayout();
 		const ImageLayout depthLayout = gbuffer.Depth->GetLayout();
 		const ImageLayout albedoLayout = gbuffer.Albedo->GetLayout();
-		const ImageLayout normalsLayout = gbuffer.Geometry_Shading_Normals->GetLayout();
+		const ImageLayout normalsLayout = gbuffer.Normals->GetLayout();
 		const ImageLayout emissiveLayout = gbuffer.Emissive->GetLayout();
 		const ImageLayout materialLayout = gbuffer.MaterialData->GetLayout();
 
 		cmd->TransitionLayout(resultImage, resultLayout, ImageLayoutType::StorageImage);
 		cmd->TransitionLayout(gbuffer.Depth, depthLayout, ImageReadAccess::PixelShaderRead);
 		cmd->TransitionLayout(gbuffer.Albedo, albedoLayout, ImageReadAccess::PixelShaderRead);
-		cmd->TransitionLayout(gbuffer.Geometry_Shading_Normals, normalsLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(gbuffer.Normals, normalsLayout, ImageReadAccess::PixelShaderRead);
 		cmd->TransitionLayout(gbuffer.Emissive, emissiveLayout, ImageReadAccess::PixelShaderRead);
 		cmd->TransitionLayout(gbuffer.MaterialData, materialLayout, ImageReadAccess::PixelShaderRead);
 
@@ -140,7 +140,7 @@ namespace Eagle
 		cmd->TransitionLayout(resultImage, ImageLayoutType::StorageImage, resultLayout);
 		cmd->TransitionLayout(gbuffer.Depth, ImageReadAccess::PixelShaderRead, depthLayout);
 		cmd->TransitionLayout(gbuffer.Albedo, ImageReadAccess::PixelShaderRead, albedoLayout);
-		cmd->TransitionLayout(gbuffer.Geometry_Shading_Normals, ImageReadAccess::PixelShaderRead, normalsLayout);
+		cmd->TransitionLayout(gbuffer.Normals, ImageReadAccess::PixelShaderRead, normalsLayout);
 		cmd->TransitionLayout(gbuffer.Emissive, ImageReadAccess::PixelShaderRead, emissiveLayout);
 		cmd->TransitionLayout(gbuffer.MaterialData, ImageReadAccess::PixelShaderRead, materialLayout);
 

@@ -694,7 +694,7 @@ namespace Eagle
 		m_Simulate->SetBuffer(m_TranslucentDistancesBuffer, 0, 7);
 		m_Simulate->SetBuffer(m_DrawArgs, 0, 8);
 		m_Simulate->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 9);
-		m_Simulate->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 10);
+		m_Simulate->SetImageSampler(gbuffer.Normals, Sampler::PointSamplerClamp, 0, 10);
 		m_Simulate->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 0, 11);
 		m_Simulate->SetBuffer(m_TransformsBuffer, 0, 12);
 		m_Simulate->SetBuffer(m_OpaqueIndicesToRender, 0, 13);
@@ -704,14 +704,14 @@ namespace Eagle
 		}
 
 		const ImageLayout oldDepthLayout = gbuffer.Depth->GetLayout();
-		const ImageLayout oldNormalsLayout = gbuffer.Geometry_Shading_Normals->GetLayout();
+		const ImageLayout oldNormalsLayout = gbuffer.Normals->GetLayout();
 		cmd->TransitionLayout(gbuffer.Depth, oldDepthLayout, ImageReadAccess::PixelShaderRead);
-		cmd->TransitionLayout(gbuffer.Geometry_Shading_Normals, oldNormalsLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(gbuffer.Normals, oldNormalsLayout, ImageReadAccess::PixelShaderRead);
 
 		cmd->DispatchIndirect(m_Simulate, m_DispatchArgs, sizeof(DispatchIndirectArgs), &pushData);
 
 		cmd->TransitionLayout(gbuffer.Depth, ImageReadAccess::PixelShaderRead, oldDepthLayout);
-		cmd->TransitionLayout(gbuffer.Geometry_Shading_Normals, ImageReadAccess::PixelShaderRead, oldNormalsLayout);
+		cmd->TransitionLayout(gbuffer.Normals, ImageReadAccess::PixelShaderRead, oldNormalsLayout);
 		cmd->Barrier(m_SystemData);
 		cmd->Barrier(m_ParticlesBuffer);
 		cmd->Barrier(m_OpaqueIndicesToRender);

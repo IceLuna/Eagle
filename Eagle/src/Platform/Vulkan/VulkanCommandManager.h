@@ -122,8 +122,10 @@ namespace Eagle
 		VkQueueFlags m_QueueFlags;
 		Ref<VulkanPipelineGraphics> m_CurrentGraphicsPipeline;
 		Ref<Framebuffer> m_CurrentFramebuffer;
+		CullMode m_CullMode = CullMode::None;
 		bool m_bIsPrimary = true;
 		bool m_bIsRecording = false;
+		bool m_bOverrideCullMode = false;
 
 		friend class VulkanCommandManager;
 		friend class VulkanImage;

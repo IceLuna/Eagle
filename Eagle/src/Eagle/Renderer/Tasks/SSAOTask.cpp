@@ -124,24 +124,24 @@ namespace Eagle
 			pushData.Bias = settings.GetBias();
 
 			auto& gbuffer = m_Renderer.GetGBuffer();
-			m_Pipeline->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 0);
+			m_Pipeline->SetImageSampler(gbuffer.Normals, Sampler::PointSamplerClamp, 0, 0);
 			m_Pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 1);
 			m_Pipeline->SetImageSampler(m_NoiseImage, Sampler::PointSampler, 0, 2);
 			m_Pipeline->SetBuffer(m_SamplesBuffer, 0, 3);
 			m_Pipeline->SetImage(m_SSAOPassImage, 0, 4);
 
 			const ImageLayout depthLayout = gbuffer.Depth->GetLayout();
-			const ImageLayout normalsLayout = gbuffer.Geometry_Shading_Normals->GetLayout();
+			const ImageLayout normalsLayout = gbuffer.Normals->GetLayout();
 
 			cmd->TransitionLayout(m_SSAOPassImage, m_SSAOPassImage->GetLayout(), ImageLayoutType::StorageImage);
 			cmd->TransitionLayout(gbuffer.Depth, depthLayout, ImageReadAccess::PixelShaderRead);
-			cmd->TransitionLayout(gbuffer.Geometry_Shading_Normals, normalsLayout, ImageReadAccess::PixelShaderRead);
+			cmd->TransitionLayout(gbuffer.Normals, normalsLayout, ImageReadAccess::PixelShaderRead);
 
 			cmd->Dispatch(m_Pipeline, numGroupds.x, numGroupds.y, 1, &pushData);
 
 			cmd->TransitionLayout(m_SSAOPassImage, m_SSAOPassImage->GetLayout(), ImageReadAccess::PixelShaderRead);
 			cmd->TransitionLayout(gbuffer.Depth, ImageReadAccess::PixelShaderRead, depthLayout);
-			cmd->TransitionLayout(gbuffer.Geometry_Shading_Normals, ImageReadAccess::PixelShaderRead, normalsLayout);
+			cmd->TransitionLayout(gbuffer.Normals, ImageReadAccess::PixelShaderRead, normalsLayout);
 
 			++stats.Dispatches;
 		}

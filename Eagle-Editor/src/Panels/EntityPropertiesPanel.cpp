@@ -627,6 +627,13 @@ namespace Eagle
 							component.SetColor(color);
 							bEntityChanged = true;
 						}
+
+						bool bDoubleSided = component.IsDoubleSided();
+						if (UI::Property("Double Sided", bDoubleSided))
+						{
+							component.SetDoubleSided(bDoubleSided);
+							bEntityChanged = true;
+						}
 					}
 					
 					if (UI::PropertyDrag("Line Spacing", lineSpacing, 0.1f))

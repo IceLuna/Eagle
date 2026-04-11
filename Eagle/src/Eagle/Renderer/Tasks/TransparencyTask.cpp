@@ -9,6 +9,8 @@
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Renderer/Tasks/RenderMeshesTask.h"
 #include "Eagle/Renderer/Tasks/RenderSkeletalMeshesTask.h"
+#include "Eagle/Renderer/Tasks/RenderSpritesTask.h"
+#include "Eagle/Renderer/Tasks/RenderTextLitTask.h"
 
 #include "Eagle/Asset/Asset.h"
 
@@ -75,21 +77,6 @@ namespace Eagle
 	
 	void TransparencyTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().SingleSided.Translucent;
-		const auto& skeletalMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Translucent;
-		const auto& spritesData = m_Renderer.GetTranslucentSpritesData();
-		const auto& spritesNoShadowData = m_Renderer.GetTranslucentNotCastingShadowSpriteData();
-		const auto& textsData = m_Renderer.GetTranslucentLitTextData();
-		const auto& textsNoShadowData = m_Renderer.GetTranslucentLitNotCastingShadowTextData();
-
-		if (meshes.empty() && skeletalMeshes.empty() &&
-			spritesData.QuadVertices.empty() && spritesNoShadowData.QuadVertices.empty() &&
-			textsData.QuadVertices.empty() && textsNoShadowData.QuadVertices.empty())
-		{
-			m_OITBuffer.reset(); // Release buffers since it's not needed
-			return;
-		}
-
 		if (!m_OITBuffer)
 			InitOITBuffer();
 
@@ -110,45 +97,13 @@ namespace Eagle
 
 		RenderMeshesDepth(cmd);
 		RenderSkeletalMeshesDepth(cmd);
-
-		if (!spritesData.QuadVertices.empty() || !spritesNoShadowData.QuadVertices.empty())
-		{
-			EG_GPU_TIMING_SCOPED(cmd, "Transparency. Sprites. Depth");
-			EG_CPU_TIMING_SCOPED("Transparency. Sprites. Depth");
-			
-			RenderSpritesDepth(cmd, spritesData);
-			RenderSpritesDepth(cmd, spritesNoShadowData);
-		}
-
-		if (!textsData.QuadVertices.empty() || !textsNoShadowData.QuadVertices.empty())
-		{
-			EG_GPU_TIMING_SCOPED(cmd, "Transparency. Texts. Depth");
-			EG_CPU_TIMING_SCOPED("Transparency. Texts. Depth");
-
-			RenderTextsDepth(cmd, textsData);
-			RenderTextsDepth(cmd, textsNoShadowData);
-		}
+		RenderSpritesDepth(cmd);
+		RenderTextsDepth(cmd);
 
 		RenderMeshesColor(cmd);
 		RenderSkeletalMeshesColor(cmd);
-
-		if (!spritesData.QuadVertices.empty() || !spritesNoShadowData.QuadVertices.empty())
-		{
-			EG_GPU_TIMING_SCOPED(cmd, "Transparency. Sprites. Color");
-			EG_CPU_TIMING_SCOPED("Transparency. Sprites. Color");
-
-			RenderSpritesColor(cmd, spritesData);
-			RenderSpritesColor(cmd, spritesNoShadowData);
-		}
-
-		if (!textsData.QuadVertices.empty() || !textsNoShadowData.QuadVertices.empty())
-		{
-			EG_GPU_TIMING_SCOPED(cmd, "Transparency. Texts. Color");
-			EG_CPU_TIMING_SCOPED("Transparency. Texts. Color");
-
-			RenderTextsColor(cmd, textsData);
-			RenderTextsColor(cmd, textsNoShadowData);
-		}
+		RenderSpritesColor(cmd);
+		RenderTextsColor(cmd);
 
 		CompositePass(cmd);
 		RenderEntityIDs(cmd);
@@ -207,8 +162,10 @@ namespace Eagle
 
 	void TransparencyTask::RenderMeshesDepth(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().SingleSided.Translucent;
-		if (meshes.empty())
+		const auto& drawData = m_Renderer.GetStaticMeshesDrawData();
+		const auto& singleSidedMeshes = drawData.SingleSided.Translucent;
+		const auto& doubleSidedMeshes = drawData.DoubleSided.Translucent;
+		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Static Meshes. Depth");
@@ -223,15 +180,25 @@ namespace Eagle
 		m_MeshesDepthPipeline->SetBuffer(m_UniformBuffer, 5, 1);
 
 		auto& stats = m_Renderer.GetStats();
-		RenderMeshesTask::Draw(cmd, m_MeshesDepthPipeline, meshes, buffers, stats);
-
-		cmd->StorageBufferBarrier(m_OITBuffer);
+		if (!singleSidedMeshes.empty())
+		{
+			cmd->SetGraphicsCullMode(CullMode::Back);
+			RenderMeshesTask::Draw(cmd, m_MeshesDepthPipeline, singleSidedMeshes, buffers, stats);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+		}
+		if (!doubleSidedMeshes.empty())
+		{
+			cmd->SetGraphicsCullMode(CullMode::None);
+			RenderMeshesTask::Draw(cmd, m_MeshesDepthPipeline, doubleSidedMeshes, buffers, stats);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+		}
 	}
 
 	void TransparencyTask::RenderSkeletalMeshesDepth(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Translucent;
-		if (meshes.empty())
+		const auto& singleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Translucent;
+		const auto& doubleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.Translucent;
+		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Skeletal Meshes. Depth");
@@ -246,20 +213,31 @@ namespace Eagle
 		m_SkeletalMeshesDepthPipeline->SetBuffer(m_UniformBuffer, 5, 1);
 
 		auto& stats = m_Renderer.GetStats();
-		RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesDepthPipeline, meshes, buffers, stats);
-
-		cmd->StorageBufferBarrier(m_OITBuffer);
+		if (!singleSidedMeshes.empty())
+		{
+			cmd->SetGraphicsCullMode(CullMode::Back);
+			RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesDepthPipeline, singleSidedMeshes, buffers, stats);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+		}
+		if (!doubleSidedMeshes.empty())
+		{
+			cmd->SetGraphicsCullMode(CullMode::None);
+			RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesDepthPipeline, doubleSidedMeshes, buffers, stats);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+		}
 	}
 
-	void TransparencyTask::RenderSpritesDepth(const Ref<CommandBuffer>& cmd, const SpriteGeometryData& spritesData)
+	void TransparencyTask::RenderSpritesDepth(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& vertices = spritesData.QuadVertices;
-		const uint32_t quadsCount = (uint32_t)(vertices.size() / 4);
-		if (quadsCount == 0)
+		const auto& singleSided = m_Renderer.GetSingleSidedSpritesRenderData();
+		const auto& doubleSided = m_Renderer.GetDoubleSidedSpritesRenderData();
+
+		if (singleSided.Translucent.IsEmpty() && doubleSided.Translucent.IsEmpty())
 			return;
 
-		const auto& vb = spritesData.VertexBuffer;
-		const auto& ib = spritesData.IndexBuffer;
+		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Sprites. Depth");
+		EG_CPU_TIMING_SCOPED("Transparency. Sprites. Depth");
+
 		const auto& transformsBuffer = m_Renderer.GetSpritesTransformsBuffer();
 
 		m_SpritesDepthPipeline->SetBuffer(transformsBuffer, 0, 0);
@@ -268,42 +246,60 @@ namespace Eagle
 		m_SpritesDepthPipeline->SetBuffer(m_UniformBuffer, 5, 1);
 
 		auto& stats = m_Renderer.GetStats();
-		++stats.DrawCalls;
-
-		cmd->BeginGraphics(m_SpritesDepthPipeline);
-		cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
-		cmd->EndGraphics();
-		cmd->StorageBufferBarrier(m_OITBuffer);
+		if (!singleSided.Translucent.IsEmpty())
+		{
+			cmd->SetGraphicsCullMode(CullMode::Back);
+			RenderSpritesTask::Draw(cmd, m_SpritesDepthPipeline, singleSided.Translucent, nullptr, stats);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+		}
+		if (!doubleSided.Translucent.IsEmpty())
+		{
+			cmd->SetGraphicsCullMode(CullMode::None);
+			RenderSpritesTask::Draw(cmd, m_SpritesDepthPipeline, doubleSided.Translucent, nullptr, stats);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+		}
 	}
 
-	void TransparencyTask::RenderTextsDepth(const Ref<CommandBuffer>& cmd, const LitTextGeometryData& data)
+	void TransparencyTask::RenderTextsDepth(const Ref<CommandBuffer>& cmd)
 	{
-		if (data.QuadVertices.empty())
+		const auto& singleSided = m_Renderer.GetSingleSidedTextsRenderData();
+		const auto& doubleSided = m_Renderer.GetDoubleSidedTextsRenderData();
+
+		if (singleSided.Translucent.IsEmpty() && doubleSided.Translucent.IsEmpty())
 			return;
 
-		const auto& viewProj = m_Renderer.GetViewProjection();
-		const glm::uvec2 viewportSize = m_Renderer.GetViewportSize();
+		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Texts. Depth");
+		EG_CPU_TIMING_SCOPED("Transparency. Texts. Depth");
 
 		m_TextDepthPipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
 		m_TextDepthPipeline->SetBuffer(m_OITBuffer, 0, 1);
+		m_TextDepthPipeline->SetBuffer(m_UniformBuffer, 0, 2);
 		m_TextDepthPipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 
-		const uint32_t quadsCount = (uint32_t)(data.QuadVertices.size() / 4);
-
+		const auto& viewProj = m_Renderer.GetViewProjection();
 		auto& stats = m_Renderer.GetStats();
-		++stats.DrawCalls;
 
-		cmd->BeginGraphics(m_TextDepthPipeline);
-		cmd->SetGraphicsRootConstants(&viewProj, &viewportSize);
-		cmd->DrawIndexed(data.VertexBuffer, data.IndexBuffer, quadsCount * 6, 0, 0);
-		cmd->EndGraphics();
-		cmd->StorageBufferBarrier(m_OITBuffer);
+		cmd->SetGraphicsCullMode(CullMode::Back);
+		if (!singleSided.Translucent.IsEmpty())
+		{
+			RenderTextLitTask::Draw(cmd, m_TextDepthPipeline, singleSided.Translucent, glm::value_ptr(viewProj), stats);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+		}
+
+		cmd->SetGraphicsCullMode(CullMode::None);
+		if (!doubleSided.Translucent.IsEmpty())
+		{
+			RenderTextLitTask::Draw(cmd, m_TextDepthPipeline, doubleSided.Translucent, glm::value_ptr(viewProj), stats);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+		}
 	}
 	
 	void TransparencyTask::RenderMeshesColor(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().SingleSided.Translucent;
-		if (meshes.empty())
+		const auto& drawData = m_Renderer.GetStaticMeshesDrawData();
+		const auto& singleSidedMeshes = drawData.SingleSided.Translucent;
+		const auto& doubleSidedMeshes = drawData.DoubleSided.Translucent;
+		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Static Meshes. Color");
@@ -341,14 +337,25 @@ namespace Eagle
 		m_MeshesColorPipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), 4, 0);
 
 		auto& stats = m_Renderer.GetStats();
-		RenderMeshesTask::Draw(cmd, m_MeshesColorPipeline, meshes, buffers, stats);
-		cmd->StorageBufferBarrier(m_OITBuffer);
+		if (!singleSidedMeshes.empty())
+		{
+			cmd->SetGraphicsCullMode(CullMode::Back);
+			RenderMeshesTask::Draw(cmd, m_MeshesColorPipeline, singleSidedMeshes, buffers, stats);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+		}
+		if (!doubleSidedMeshes.empty())
+		{
+			cmd->SetGraphicsCullMode(CullMode::None);
+			RenderMeshesTask::Draw(cmd, m_MeshesColorPipeline, doubleSidedMeshes, buffers, stats);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+		}
 	}
 	
 	void TransparencyTask::RenderSkeletalMeshesColor(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Translucent;
-		if (meshes.empty())
+		const auto& singleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Translucent;
+		const auto& doubleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.Translucent;
+		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Skeletal Meshes. Color");
@@ -388,18 +395,31 @@ namespace Eagle
 			m_SkeletalMeshesColorPipeline->SetBuffer(m_Renderer.GetFogDataBuffer(), 5, 3);
 
 		auto& stats = m_Renderer.GetStats();
-		RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesColorPipeline, meshes, buffers, stats);
-		cmd->StorageBufferBarrier(m_OITBuffer);
+		if (!singleSidedMeshes.empty())
+		{
+			cmd->SetGraphicsCullMode(CullMode::Back);
+			RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesColorPipeline, singleSidedMeshes, buffers, stats);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+		}
+		if (!doubleSidedMeshes.empty())
+		{
+			cmd->SetGraphicsCullMode(CullMode::None);
+			RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesColorPipeline, doubleSidedMeshes, buffers, stats);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+		}
 	}
 
-	void TransparencyTask::RenderSpritesColor(const Ref<CommandBuffer>& cmd, const SpriteGeometryData& spritesData)
+	void TransparencyTask::RenderSpritesColor(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& vertices = spritesData.QuadVertices;
-		if (vertices.empty())
+		const auto& singleSided = m_Renderer.GetSingleSidedSpritesRenderData();
+		const auto& doubleSided = m_Renderer.GetDoubleSidedSpritesRenderData();
+
+		if (singleSided.Translucent.IsEmpty() && doubleSided.Translucent.IsEmpty())
 			return;
 
-		const auto& vb = spritesData.VertexBuffer;
-		const auto& ib = spritesData.IndexBuffer;
+		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Sprites. Color");
+		EG_CPU_TIMING_SCOPED("Transparency. Sprites. Color");
+
 		const auto& transformsBuffer = m_Renderer.GetSpritesTransformsBuffer();
 
 		const auto& materials = MaterialSystem::GetMaterialsBuffer();
@@ -431,22 +451,31 @@ namespace Eagle
 		m_SpritesColorPipeline->SetImageSamplerArray(m_Renderer.GetPointLightShadowMaps(), m_Renderer.GetPointLightShadowMapsSamplers(), 3, 0);
 		m_SpritesColorPipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), 4, 0);
 
-		const uint32_t quadsCount = (uint32_t)(vertices.size() / 4);
-		cmd->BeginGraphics(m_SpritesColorPipeline);
-		cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
-		cmd->EndGraphics();
-		cmd->StorageBufferBarrier(m_OITBuffer);
-
 		auto& stats = m_Renderer.GetStats();
-		++stats.DrawCalls;
+		if (!singleSided.Translucent.IsEmpty())
+		{
+			cmd->SetGraphicsCullMode(CullMode::Back);
+			RenderSpritesTask::Draw(cmd, m_SpritesColorPipeline, singleSided.Translucent, nullptr, stats);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+		}
+		if (!doubleSided.Translucent.IsEmpty())
+		{
+			cmd->SetGraphicsCullMode(CullMode::None);
+			RenderSpritesTask::Draw(cmd, m_SpritesColorPipeline, doubleSided.Translucent, nullptr, stats);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+		}
 	}
 
-	void TransparencyTask::RenderTextsColor(const Ref<CommandBuffer>& cmd, const LitTextGeometryData& data)
+	void TransparencyTask::RenderTextsColor(const Ref<CommandBuffer>& cmd)
 	{
-		if (data.QuadVertices.empty())
+		const auto& singleSided = m_Renderer.GetSingleSidedTextsRenderData();
+		const auto& doubleSided = m_Renderer.GetDoubleSidedTextsRenderData();
+
+		if (singleSided.Translucent.IsEmpty() && doubleSided.Translucent.IsEmpty())
 			return;
 
-		const auto& viewProj = m_Renderer.GetViewProjection();
+		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Texts. Color");
+		EG_CPU_TIMING_SCOPED("Transparency. Texts. Color");
 
 		const auto& materials = MaterialSystem::GetMaterialsBuffer();
 		m_TextColorPipeline->SetBuffer(materials, EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
@@ -479,16 +508,22 @@ namespace Eagle
 		m_TextColorPipeline->SetImageSamplerArray(m_Renderer.GetPointLightShadowMaps(), m_Renderer.GetPointLightShadowMapsSamplers(), 3, 0);
 		m_TextColorPipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), 4, 0);
 
-		const uint32_t quadsCount = (uint32_t)(data.QuadVertices.size() / 4);
-
+		const auto& viewProj = m_Renderer.GetViewProjection();
 		auto& stats = m_Renderer.GetStats();
-		++stats.DrawCalls;
 
-		cmd->BeginGraphics(m_TextColorPipeline);
-		cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-		cmd->DrawIndexed(data.VertexBuffer, data.IndexBuffer, quadsCount * 6, 0, 0);
-		cmd->EndGraphics();
-		cmd->StorageBufferBarrier(m_OITBuffer);
+		cmd->SetGraphicsCullMode(CullMode::Back);
+		if (!singleSided.Translucent.IsEmpty())
+		{
+			RenderTextLitTask::Draw(cmd, m_TextColorPipeline, singleSided.Translucent, glm::value_ptr(viewProj), stats);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+		}
+
+		cmd->SetGraphicsCullMode(CullMode::None);
+		if (!doubleSided.Translucent.IsEmpty())
+		{
+			RenderTextLitTask::Draw(cmd, m_TextColorPipeline, doubleSided.Translucent, glm::value_ptr(viewProj), stats);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+		}
 	}
 
 	void TransparencyTask::CompositePass(const Ref<CommandBuffer>& cmd)
@@ -516,26 +551,44 @@ namespace Eagle
 
 		// Meshes
 		{
-			const auto& meshes = m_Renderer.GetStaticMeshesDrawData().SingleSided.Translucent;
-			if (!meshes.empty())
+			const auto& drawData = m_Renderer.GetStaticMeshesDrawData();
+			const auto& singleSidedMeshes = drawData.SingleSided.Translucent;
+			const auto& doubleSidedMeshes = drawData.DoubleSided.Translucent;
+			const bool bNoMeshes = singleSidedMeshes.empty() && doubleSidedMeshes.empty();
+			if (!bNoMeshes)
 			{
-				EG_GPU_TIMING_SCOPED(cmd, "Transparency. Static Meshes Entity IDs");
-				EG_CPU_TIMING_SCOPED("Transparency. Static Meshes Entity IDs");
+				const auto& meshes = m_Renderer.GetStaticMeshesDrawData().SingleSided.Translucent;
+				if (!meshes.empty())
+				{
+					EG_GPU_TIMING_SCOPED(cmd, "Transparency. Static Meshes Entity IDs");
+					EG_CPU_TIMING_SCOPED("Transparency. Static Meshes Entity IDs");
 
-				const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
-				m_MeshesEntityIDPipeline->SetBuffer(transformsBuffer, 0, 0);
+					const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
+					m_MeshesEntityIDPipeline->SetBuffer(transformsBuffer, 0, 0);
 
-				const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
-				auto& stats = m_Renderer.GetStats();
+					const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
+					auto& stats = m_Renderer.GetStats();
 
-				RenderMeshesTask::Draw(cmd, m_MeshesEntityIDPipeline, meshes, buffers, stats, glm::value_ptr(viewProj));
+					if (!singleSidedMeshes.empty())
+					{
+						cmd->SetGraphicsCullMode(CullMode::Back);
+						RenderMeshesTask::Draw(cmd, m_MeshesEntityIDPipeline, singleSidedMeshes, buffers, stats, glm::value_ptr(viewProj));
+					}
+					if (!doubleSidedMeshes.empty())
+					{
+						cmd->SetGraphicsCullMode(CullMode::None);
+						RenderMeshesTask::Draw(cmd, m_MeshesEntityIDPipeline, doubleSidedMeshes, buffers, stats, glm::value_ptr(viewProj));
+					}
+				}
 			}
 		}
 
 		// Skeletal Meshes
 		{
-			auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Translucent;
-			if (!meshes.empty())
+			const auto& singleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Translucent;
+			const auto& doubleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.Translucent;
+			const bool bNoMeshes = singleSidedMeshes.empty() && doubleSidedMeshes.empty();
+			if (!bNoMeshes)
 			{
 				EG_GPU_TIMING_SCOPED(cmd, "Transparency. Skeletal Meshes Entity IDs");
 				EG_CPU_TIMING_SCOPED("Transparency. Skeletal Meshes Entity IDs");
@@ -548,67 +601,74 @@ namespace Eagle
 				m_SkeletalMeshesEntityIDPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 0, 2);
 
 				auto& stats = m_Renderer.GetStats();
-				RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesEntityIDPipeline, meshes, buffers, stats);
+				if (!singleSidedMeshes.empty())
+				{
+					cmd->SetGraphicsCullMode(CullMode::Back);
+					RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesEntityIDPipeline, singleSidedMeshes, buffers, stats);
+				}
+				if (!doubleSidedMeshes.empty())
+				{
+					cmd->SetGraphicsCullMode(CullMode::None);
+					RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesEntityIDPipeline, doubleSidedMeshes, buffers, stats);
+				}
 			}
 		}
 
 		// Sprites
 		{
-			EG_GPU_TIMING_SCOPED(cmd, "Transparency. Sprites Entity IDs");
-			EG_CPU_TIMING_SCOPED("Transparency. Sprites Entity IDs");
+			const auto& singleSided = m_Renderer.GetSingleSidedSpritesRenderData();
+			const auto& doubleSided = m_Renderer.GetDoubleSidedSpritesRenderData();
 
-			const SpriteGeometryData* spritesDatas[2] = { &m_Renderer.GetTranslucentSpritesData(), &m_Renderer.GetTranslucentNotCastingShadowSpriteData() };
-			for (const auto& spritesData : spritesDatas)
+			const bool bNoSprites = singleSided.Translucent.IsEmpty() && doubleSided.Translucent.IsEmpty();
+			if (!bNoSprites)
 			{
-				const auto& vertices = spritesData->QuadVertices;
+				EG_GPU_TIMING_SCOPED(cmd, "Transparency. Sprites Entity IDs");
+				EG_CPU_TIMING_SCOPED("Transparency. Sprites Entity IDs");
 
-				if (!vertices.empty())
+				const auto& transformsBuffer = m_Renderer.GetSpritesTransformsBuffer();
+				m_SpritesEntityIDPipeline->SetBuffer(transformsBuffer, 0, 0);
+
+				auto& stats = m_Renderer.GetStats();
+				if (!singleSided.Translucent.IsEmpty())
 				{
-					const auto& transformsBuffer = m_Renderer.GetSpritesTransformsBuffer();
-					m_SpritesEntityIDPipeline->SetBuffer(transformsBuffer, 0, 0);
-
-					const auto& vb = spritesData->VertexBuffer;
-					const auto& ib = spritesData->IndexBuffer;
-					const uint32_t quadsCount = (uint32_t)(vertices.size() / 4);
-
-					auto& stats = m_Renderer.GetStats();
-					++stats.DrawCalls;
-
-					cmd->BeginGraphics(m_SpritesEntityIDPipeline);
-					cmd->SetGraphicsRootConstants(&viewProj[0][0], nullptr);
-					cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
-					cmd->EndGraphics();
+					cmd->SetGraphicsCullMode(CullMode::Back);
+					RenderSpritesTask::Draw(cmd, m_SpritesEntityIDPipeline, singleSided.Translucent, nullptr, stats);
+				}
+				if (!doubleSided.Translucent.IsEmpty())
+				{
+					cmd->SetGraphicsCullMode(CullMode::None);
+					RenderSpritesTask::Draw(cmd, m_SpritesEntityIDPipeline, doubleSided.Translucent, nullptr, stats);
 				}
 			}
 		}
 		
 		// Texts
 		{
-			const LitTextGeometryData* textDatas[2] = { &m_Renderer.GetTranslucentLitTextData(), &m_Renderer.GetTranslucentLitNotCastingShadowTextData() };
+			const auto& singleSided = m_Renderer.GetSingleSidedTextsRenderData();
+			const auto& doubleSided = m_Renderer.GetDoubleSidedTextsRenderData();
 
-			for (const auto& data : textDatas)
+			const bool bNoTexts = singleSided.Translucent.IsEmpty() && doubleSided.Translucent.IsEmpty();
+			if (!bNoTexts)
 			{
-				if (data->QuadVertices.empty())
-					return;
-
 				EG_GPU_TIMING_SCOPED(cmd, "Transparency. Texts Entity IDs");
 				EG_CPU_TIMING_SCOPED("Transparency. Texts Entity IDs");
-
-				const auto& viewProj = m_Renderer.GetViewProjection();
 
 				m_TextEntityIDPipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
 				m_TextEntityIDPipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 
-				const uint32_t quadsCount = (uint32_t)(data->QuadVertices.size() / 4);
-
+				const auto& viewProj = m_Renderer.GetViewProjection();
 				auto& stats = m_Renderer.GetStats();
-				++stats.DrawCalls;
 
-
-				cmd->BeginGraphics(m_TextEntityIDPipeline);
-				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-				cmd->DrawIndexed(data->VertexBuffer, data->IndexBuffer, quadsCount * 6, 0, 0);
-				cmd->EndGraphics();
+				cmd->SetGraphicsCullMode(CullMode::Back);
+				if (!singleSided.Translucent.IsEmpty())
+				{
+					RenderTextLitTask::Draw(cmd, m_TextEntityIDPipeline, singleSided.Translucent, glm::value_ptr(viewProj), stats);
+				}
+				cmd->SetGraphicsCullMode(CullMode::None);
+				if (!doubleSided.Translucent.IsEmpty())
+				{
+					RenderTextLitTask::Draw(cmd, m_TextEntityIDPipeline, doubleSided.Translucent, glm::value_ptr(viewProj), stats);
+				}
 			}
 		}
 	}
@@ -689,7 +749,7 @@ namespace Eagle
 		state.FragmentShader = m_TransparencyColorShader;
 		state.ColorAttachments.push_back(attachment);
 		state.DepthStencilAttachment = depthAttachment;
-		state.CullMode = CullMode::None;
+		state.CullMode = CullMode::Dynamic;
 		state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
 
 		ShaderSpecializationInfo constants;
@@ -744,7 +804,7 @@ namespace Eagle
 		state.FragmentShader = m_TransparencyColorShader;
 		state.ColorAttachments.push_back(attachment);
 		state.DepthStencilAttachment = depthAttachment;
-		state.CullMode = CullMode::None;
+		state.CullMode = CullMode::Dynamic;
 		state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
 
 		ShaderSpecializationInfo constants;
@@ -799,7 +859,7 @@ namespace Eagle
 		state.FragmentShader = m_TransparencyColorShader;
 		state.ColorAttachments.push_back(attachment);
 		state.DepthStencilAttachment = depthAttachment;
-		state.CullMode = CullMode::Back;
+		state.CullMode = CullMode::Dynamic;
 
 		ShaderSpecializationInfo constants;
 		if (!bStutterlessShaders)
@@ -853,7 +913,7 @@ namespace Eagle
 		state.FragmentShader = m_TransparencyTextColorShader;
 		state.ColorAttachments.push_back(attachment);
 		state.DepthStencilAttachment = depthAttachment;
-		state.CullMode = CullMode::Back;
+		state.CullMode = CullMode::Dynamic;
 
 		ShaderSpecializationInfo constants;
 		if (!bStutterlessShaders)
@@ -896,7 +956,7 @@ namespace Eagle
 		state.VertexShader = Shader::Create("quad_tri.vert", ShaderType::Vertex);
 		state.FragmentShader = m_TransparencyCompositeShader;
 		state.ColorAttachments.push_back(colorAttachment);
-		state.CullMode = CullMode::None;
+		state.CullMode = CullMode::Back;
 
 		m_CompositePipeline = PipelineGraphics::Create(state);
 	}
@@ -922,7 +982,7 @@ namespace Eagle
 		state.FragmentShader = Shader::Create("transparency/transparency_entityID.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(objectIDAttachment);
 		state.DepthStencilAttachment = depthAttachment;
-		state.CullMode = CullMode::None;
+		state.CullMode = CullMode::Dynamic;
 
 		m_SpritesEntityIDPipeline = PipelineGraphics::Create(state);
 

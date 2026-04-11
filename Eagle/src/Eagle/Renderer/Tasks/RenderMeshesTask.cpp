@@ -28,18 +28,8 @@ namespace Eagle
 
 	void RenderMeshesTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& drawData = m_Renderer.GetStaticMeshesDrawData();
-		if (drawData.Opaque.empty())
-		{
-			// Just to clear images & transition layouts
-			cmd->BeginGraphics(m_OpaquePipeline);
-			cmd->EndGraphics();
-		}
-		else
-			RenderOpaque(cmd);
-		
-		if (!drawData.Masked.empty())
-			RenderMasked(cmd);
+		RenderOpaque(cmd);
+		RenderMasked(cmd);
 	}
 
 	void RenderMeshesTask::InitPipeline()
@@ -48,41 +38,41 @@ namespace Eagle
 
 		ColorAttachment colorAttachment;
 		colorAttachment.Image = gbuffer.Albedo;
-		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
-		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.ClearOperation = ClearOperation::Clear;
+		colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+		colorAttachment.ClearOperation = ClearOperation::Load;
 
 		ColorAttachment geometry_shading_NormalsAttachment;
-		geometry_shading_NormalsAttachment.Image = gbuffer.Geometry_Shading_Normals;
-		geometry_shading_NormalsAttachment.InitialLayout = ImageLayoutType::Unknown;
-		geometry_shading_NormalsAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		geometry_shading_NormalsAttachment.ClearOperation = ClearOperation::Clear;
+		geometry_shading_NormalsAttachment.Image = gbuffer.Normals;
+		geometry_shading_NormalsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		geometry_shading_NormalsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+		geometry_shading_NormalsAttachment.ClearOperation = ClearOperation::Load;
 
 		ColorAttachment emissiveAttachment;
 		emissiveAttachment.Image = gbuffer.Emissive;
-		emissiveAttachment.InitialLayout = ImageLayoutType::Unknown;
-		emissiveAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		emissiveAttachment.ClearOperation = ClearOperation::Clear;
+		emissiveAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		emissiveAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+		emissiveAttachment.ClearOperation = ClearOperation::Load;
 
 		ColorAttachment materialAttachment;
 		materialAttachment.Image = gbuffer.MaterialData;
-		materialAttachment.InitialLayout = ImageLayoutType::Unknown;
-		materialAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		materialAttachment.ClearOperation = ClearOperation::Clear;
+		materialAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		materialAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+		materialAttachment.ClearOperation = ClearOperation::Load;
 
 		ColorAttachment flagsAttachment;
 		flagsAttachment.Image = gbuffer.Flags;
-		flagsAttachment.InitialLayout = ImageLayoutType::Unknown;
-		flagsAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		flagsAttachment.ClearOperation = ClearOperation::Clear;
+		flagsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		flagsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+		flagsAttachment.ClearOperation = ClearOperation::Load;
 
 		constexpr int objectIDClearColorUint = -1;
 		const float objectIDClearColor = *(float*)(&objectIDClearColorUint);
 		ColorAttachment objectIDAttachment;
 		objectIDAttachment.Image = gbuffer.ObjectID;
-		objectIDAttachment.InitialLayout = ImageLayoutType::Unknown;
-		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		objectIDAttachment.ClearOperation = ClearOperation::Clear;
+		objectIDAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		objectIDAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+		objectIDAttachment.ClearOperation = ClearOperation::Load;
 		objectIDAttachment.ClearColor = glm::vec4{ objectIDClearColor };
 
 		DepthStencilAttachment depthAttachment;
@@ -117,27 +107,20 @@ namespace Eagle
 		{
 			ColorAttachment velocityAttachment;
 			velocityAttachment.Image = gbuffer.Motion;
-			velocityAttachment.InitialLayout = ImageLayoutType::Unknown;
-			velocityAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-			velocityAttachment.ClearOperation = ClearOperation::Clear;
+			velocityAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+			velocityAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+			velocityAttachment.ClearOperation = ClearOperation::Load;
 			state.ColorAttachments.push_back(velocityAttachment);
 		}
 
 		state.PerInstanceAttribs = PerInstanceAttribs;
 		state.DepthStencilAttachment = depthAttachment;
-		state.CullMode = CullMode::Back;
+		state.CullMode = CullMode::Dynamic;
 
 		if (m_OpaquePipeline)
 			m_OpaquePipeline->SetState(state);
 		else
 			m_OpaquePipeline = PipelineGraphics::Create(state);
-
-		// Attachments of masked pipeline must be loaded
-		for (auto& attachment : state.ColorAttachments)
-		{
-			attachment.ClearOperation = ClearOperation::Load;
-			attachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		}
 
 		fragmentDefines["EG_MASKED"] = "";
 		state.FragmentShader = Shader::Create("mesh.frag", ShaderType::Fragment, fragmentDefines);
@@ -151,6 +134,9 @@ namespace Eagle
 	void RenderMeshesTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const std::vector<MeshDrawData>& meshes, const MeshGeometryData<Vertex>& buffers, RenderStats& stats,
 		const void* vertexPushData, const Ref<Framebuffer>& framebuffer)
 	{
+		if (meshes.empty())
+			return;
+
 		if (framebuffer)
 			cmd->BeginGraphics(pipeline, framebuffer);
 		else
@@ -181,6 +167,12 @@ namespace Eagle
 
 	void RenderMeshesTask::RenderOpaque(const Ref<CommandBuffer>& cmd)
 	{
+		const auto& drawData = m_Renderer.GetStaticMeshesDrawData();
+		const auto& singleSidedMeshes = drawData.SingleSided.Opaque;
+		const auto& doubleSidedMeshes = drawData.DoubleSided.Opaque;
+		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
+			return;
+
 		EG_GPU_TIMING_SCOPED(cmd, "Render Opaque Static Meshes");
 		EG_CPU_TIMING_SCOPED("Render Opaque Static Meshes");
 
@@ -207,13 +199,28 @@ namespace Eagle
 			m_OpaquePipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
 		auto& stats = m_Renderer.GetStats();
-		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().Opaque;
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
-		Draw(cmd, m_OpaquePipeline, meshes, buffers, stats, &pushData);
+
+		if (!singleSidedMeshes.empty())
+		{
+			cmd->SetGraphicsCullMode(CullMode::Back);
+			Draw(cmd, m_OpaquePipeline, singleSidedMeshes, buffers, stats, &pushData);
+		}
+		if (!doubleSidedMeshes.empty())
+		{
+			cmd->SetGraphicsCullMode(CullMode::None);
+			Draw(cmd, m_OpaquePipeline, doubleSidedMeshes, buffers, stats, &pushData);
+		}
 	}
 
 	void RenderMeshesTask::RenderMasked(const Ref<CommandBuffer>& cmd)
 	{
+		const auto& drawData = m_Renderer.GetStaticMeshesDrawData();
+		const auto& singleSidedMeshes = drawData.SingleSided.Masked;
+		const auto& doubleSidedMeshes = drawData.DoubleSided.Masked;
+		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
+			return;
+
 		EG_GPU_TIMING_SCOPED(cmd, "Render Masked Static Meshes");
 		EG_CPU_TIMING_SCOPED("Render Masked Static Meshes");
 
@@ -241,8 +248,17 @@ namespace Eagle
 			m_MaskedPipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
 		auto& stats = m_Renderer.GetStats();
-		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().Masked;
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
-		Draw(cmd, m_MaskedPipeline, meshes, buffers, stats, &pushData);
+
+		if (!singleSidedMeshes.empty())
+		{
+			cmd->SetGraphicsCullMode(CullMode::Back);
+			Draw(cmd, m_MaskedPipeline, singleSidedMeshes, buffers, stats, &pushData);
+		}
+		if (!doubleSidedMeshes.empty())
+		{
+			cmd->SetGraphicsCullMode(CullMode::None);
+			Draw(cmd, m_MaskedPipeline, doubleSidedMeshes, buffers, stats, &pushData);
+		}
 	}
 }

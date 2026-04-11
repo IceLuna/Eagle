@@ -92,7 +92,7 @@ namespace Eagle::Script::Utils
 		GUID albedoTexture, GUID metalnessTexture, GUID normalTexture, GUID roughnessTexture, GUID aoTexture, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
 		const glm::vec3* albedo, float metalness, float roughness, float ao, const glm::vec3* emissive, float opacity, float opacityMask,
 		bool bUseAlbedoTexture, bool bUseMetalnessTexture, bool bUseRoughnessTexture, bool bUseAOTexture, bool bUseEmissiveTexture, bool bUseOpacityTexture, bool bUseOpacityMaskTexture,
-		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode,
+		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode, bool bDoubleSided,
 		Material::TextureChannel metalnessTextureChannel, Material::TextureChannel roughnessTextureChannel, Material::TextureChannel aoTextureChannel,
 		Material::TextureChannel opacityTextureChannel, Material::TextureChannel opacityMaskTextureChannel)
 	{
@@ -137,13 +137,14 @@ namespace Eagle::Script::Utils
 		material->SetEmissiveIntensity(*emissiveIntensity);
 		material->SetTilingFactor(tilingFactor);
 		material->SetBlendMode(blendMode);
+		material->SetDoubleSided(bDoubleSided);
 	}
 
 	static void GetMaterial(const Ref<Material>& material,
 		GUID* outAlbedoTexture, GUID* outMetalnessTexture, GUID* outNormalTexture, GUID* outRoughnessTexture, GUID* outAOTexture, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
 		glm::vec3* albedo, float* metalness, float* roughness, float* ao, glm::vec3* emissive, float* opacity, float* opacityMask,
 		bool* bUseAlbedoTexture, bool* bUseMetalnessTexture, bool* bUseRoughnessTexture, bool* bUseAOTexture, bool* bUseEmissiveTexture, bool* bUseOpacityTexture, bool* bUseOpacityMaskTexture,
-		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode,
+		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode, bool* bDoubleSided,
 		Material::TextureChannel* outMetalnessTextureChannel, Material::TextureChannel* outRoughnessTextureChannel, Material::TextureChannel* outAOTextureChannel,
 		Material::TextureChannel* outOpacityTextureChannel, Material::TextureChannel* outOpacityMaskTextureChannel)
 	{
@@ -222,6 +223,7 @@ namespace Eagle::Script::Utils
 		*outEmissiveIntensity = material->GetEmissiveIntensity();
 		*outTilingFactor = material->GetTilingFactor();
 		*outBlendMode = material->GetBlendMode();
+		*bDoubleSided = material->IsDoubleSided();
 	}
 }
 
@@ -5303,6 +5305,29 @@ namespace Eagle
 		}
 	}
 
+	void Script::Eagle_TextComponent_SetDoubleSided(GUID entityID, bool value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetDoubleSided(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetDoubleSided` of Text Component. Entity is null");
+	}
+
+	bool Script::Eagle_TextComponent_IsDoubleSided(GUID entityID)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<TextComponent>().IsDoubleSided();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsDoubleSided` of Text Component. Entity is null");
+			return false;
+		}
+	}
+
 	void Script::Eagle_TextComponent_SetReceivesDecals(GUID entityID, bool value)
 	{
 		auto& scene = Scene::GetCurrentScene();
@@ -8519,7 +8544,7 @@ namespace Eagle
 		GUID* outAlbedoTexture, GUID* outMetalnessTexture, GUID* outNormalTexture, GUID* outRoughnessTexture, GUID* outAOTexture, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
 		glm::vec3* albedo, float* metalness, float* roughness, float* ao, glm::vec3* emissive, float* opacity, float* opacityMask,
 		bool* bUseAlbedoTexture, bool* bUseMetalnessTexture, bool* bUseRoughnessTexture, bool* bUseAOTexture, bool* bUseEmissiveTexture, bool* bUseOpacityTexture, bool* bUseOpacityMaskTexture,
-		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode,
+		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode, bool* bDoubleSided,
 		Material::TextureChannel* outMetalnessTextureChannel, Material::TextureChannel* outRoughnessTextureChannel, Material::TextureChannel* outAOTextureChannel,
 		Material::TextureChannel* outOpacityTextureChannel, Material::TextureChannel* outOpacityMaskTextureChannel)
 	{
@@ -8537,7 +8562,7 @@ namespace Eagle
 				outAlbedoTexture, outMetalnessTexture, outNormalTexture, outRoughnessTexture, outAOTexture, outEmissiveTexture, outOpacityTexture, outOpacityMaskTexture,
 				albedo, metalness, roughness, ao, emissive, opacity, opacityMask,
 				bUseAlbedoTexture, bUseMetalnessTexture, bUseRoughnessTexture, bUseAOTexture, bUseEmissiveTexture, bUseOpacityTexture, bUseOpacityMaskTexture,
-				outTint, outEmissiveIntensity, outTilingFactor, outBlendMode, outMetalnessTextureChannel, outRoughnessTextureChannel, outAOTextureChannel, outOpacityTextureChannel, outOpacityMaskTextureChannel);
+				outTint, outEmissiveIntensity, outTilingFactor, outBlendMode, bDoubleSided, outMetalnessTextureChannel, outRoughnessTextureChannel, outAOTextureChannel, outOpacityTextureChannel, outOpacityMaskTextureChannel);
 		}
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get material. It's not a material asset");
@@ -8547,7 +8572,7 @@ namespace Eagle
 		GUID albedoTexture, GUID metalnessTexture, GUID normalTexture, GUID roughnessTexture, GUID aoTexture, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
 		const glm::vec3* albedo, float metalness, float roughness, float ao, const glm::vec3* emissive, float opacity, float opacityMask,
 		bool bUseAlbedoTexture, bool bUseMetalnessTexture, bool bUseRoughnessTexture, bool bUseAOTexture, bool bUseEmissiveTexture, bool bUseOpacityTexture, bool bUseOpacityMaskTexture,
-		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode,
+		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode, bool bDoubleSided,
 		Material::TextureChannel metalnessTextureChannel, Material::TextureChannel roughnessTextureChannel, Material::TextureChannel aoTextureChannel,
 		Material::TextureChannel opacityTextureChannel, Material::TextureChannel opacityMaskTextureChannel)
 	{
@@ -8565,7 +8590,7 @@ namespace Eagle
 				albedoTexture, metalnessTexture, normalTexture, roughnessTexture, aoTexture, emissiveTexture, opacityTexture, opacityMaskTexture,
 				albedo, metalness, roughness, ao, emissive, opacity, opacityMask,
 				bUseAlbedoTexture, bUseMetalnessTexture, bUseRoughnessTexture, bUseAOTexture, bUseEmissiveTexture, bUseOpacityTexture, bUseOpacityMaskTexture,
-				tint, emissiveIntensity, tilingFactor, blendMode, metalnessTextureChannel, roughnessTextureChannel, aoTextureChannel, opacityTextureChannel, opacityMaskTextureChannel);
+				tint, emissiveIntensity, tilingFactor, blendMode, bDoubleSided, metalnessTextureChannel, roughnessTextureChannel, aoTextureChannel, opacityTextureChannel, opacityMaskTextureChannel);
 		}
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set material. It's not a material asset");

@@ -47,5 +47,6 @@
         public Color3 EmissiveIntensity = new Color3(1f);
         public float TilingFactor = 1f;
         public MaterialBlendMode BlendMode = MaterialBlendMode.Opaque;
+        public bool bDoubleSided = false;
     }
 }

@@ -57,6 +57,13 @@ namespace Eagle
 		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 		UI::Text("Type", "Material");
 
+		bool bDoubleSided = material->IsDoubleSided();
+		if (UI::Property("Double Sided", bDoubleSided))
+		{
+			material->SetDoubleSided(bDoubleSided);
+			bChanged = true;
+		}
+
 		Material::BlendMode blendMode = material->GetBlendMode();
 		if (UI::ComboEnum("Blend Mode", blendMode, s_BlendModeHelpMsg))
 		{

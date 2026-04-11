@@ -30,6 +30,7 @@ namespace Eagle::Utils
 		std::vector<uint32_t> MaterialIndices; // Indices of imported materials
 	};
 
+	std::u32string ToUTF32(const std::string& s);
 	std::string ToUtf8(const std::wstring& str);
 	std::string AsString(const Path& path);
 	static Path AsPath(const std::string& str) { return Path{ std::u8string(str.begin(), str.end()) }; }

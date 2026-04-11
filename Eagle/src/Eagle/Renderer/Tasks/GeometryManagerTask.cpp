@@ -19,13 +19,19 @@
 
 #include "msdf-atlas-gen.h"
 
-#include <codecvt>
-
 // TODO v0.7: Test this functionality on heavy scenes and check if it's faster than uploading the whole buffer at once
 #define EG_UPLOAD_ONLY_REQUIRED_TRANSFORMS 1
 
 namespace Eagle
 {
+	struct DrawDataInsertIndices
+	{
+		uint32_t Global = UINT_MAX;
+		uint32_t ShadowCasting = UINT_MAX;
+
+		bool IsValid() const { return Global != UINT_MAX; }
+	};
+
 	static constexpr float s_QuadPosition = 0.5f;
 	static constexpr glm::vec4 s_QuadVertexPosition[4] = { { -s_QuadPosition, -s_QuadPosition, 0.0f, 1.0f },
 														   {  s_QuadPosition, -s_QuadPosition, 0.0f, 1.0f },
@@ -53,44 +59,7 @@ namespace Eagle
 
 	namespace Utils
 	{
-		static void UploadIndexBuffer(const Ref<CommandBuffer>& cmd, Ref<Buffer>& buffer)
-		{
-			const size_t ibSize = buffer->GetSize();
-			uint32_t offset = 0;
-			std::vector<Index> indices(ibSize / sizeof(Index));
-			for (size_t i = 0; i < indices.size();)
-			{
-				indices[i + 0] = offset + 0;
-				indices[i + 1] = offset + 1;
-				indices[i + 2] = offset + 2;
-
-				indices[i + 3] = offset + 2;
-				indices[i + 4] = offset + 3;
-				indices[i + 5] = offset + 0;
-
-				offset += 4;
-				i += 6;
-
-				if (i >= indices.size())
-					break;
-
-				indices[i + 0] = offset + 2;
-				indices[i + 1] = offset + 1;
-				indices[i + 2] = offset + 0;
-
-				indices[i + 3] = offset + 0;
-				indices[i + 4] = offset + 3;
-				indices[i + 5] = offset + 2;
-
-				offset += 4;
-				i += 6;
-			}
-
-			cmd->Write(buffer, indices.data(), ibSize, 0, buffer->GetLayout(), BufferReadAccess::Index);
-			cmd->TransitionLayout(buffer, BufferReadAccess::Index, BufferReadAccess::Index);
-		}
-
-		static void UploadIndexBufferOneSided(const Ref<CommandBuffer>& cmd, Ref<Buffer>& buffer)
+		static void UploadIndexBuffer(const Ref<CommandBuffer>& cmd, const Ref<Buffer>& buffer)
 		{
 			const size_t& ibSize = buffer->GetSize();
 			uint32_t offset = 0;
@@ -194,11 +163,193 @@ namespace Eagle
 			specificIndices.clear();
 		}
 
+		[[nodiscard]] static DrawDataInsertIndices AddDrawData(MeshesDrawLists& data, const MeshDrawData& meshData, Material::BlendMode blendMode,
+			const MeshDrawData::MaterialData& matData, bool bNewMaterialSlot, bool bCastsShadows, bool bDoubleSided, const DrawDataInsertIndices& dataIndices)
+		{
+			auto& drawLists = bDoubleSided ? data.DoubleSided : data.SingleSided;
+
+			std::vector<MeshDrawData>* allDatas = nullptr;
+			std::vector<MeshDrawData>* shadowCastingDatas = nullptr;
+			switch (blendMode)
+			{
+				case Material::BlendMode::Opaque:
+				{
+					allDatas = &drawLists.Opaque;
+					shadowCastingDatas = &drawLists.ShadowCastingOpaque;
+					break;
+				}
+				case Material::BlendMode::Masked:
+				{
+					allDatas = &drawLists.Masked;
+					shadowCastingDatas = &drawLists.ShadowCastingMasked;
+					break;
+				}
+				case Material::BlendMode::Translucent:
+				{
+					allDatas = &drawLists.Translucent;
+					shadowCastingDatas = &drawLists.ShadowCastingTranslucent;
+					break;
+				}
+				default:
+				{
+					EG_CORE_ASSERT(false);
+					return {};
+				}
+			}
+
+			// In order to prevent duplication of the same mesh (shadow casting and non-casting ones) being added to the `allDatas` list,
+			// `dataIndex` is used to update the draw data (increment instance count), instead of adding a new draw command and partially breaking instancing
+			DrawDataInsertIndices insertionIndices = dataIndices;
+			if (!dataIndices.IsValid())
+			{
+				insertionIndices.Global = (int32_t)allDatas->size();
+				allDatas->emplace_back(meshData).PerMaterialData.push_back(matData);
+				if (bCastsShadows)
+				{
+					insertionIndices.ShadowCasting = (int32_t)shadowCastingDatas->size();
+					shadowCastingDatas->emplace_back(meshData).PerMaterialData.push_back(matData);
+				}
+			}
+			else
+			{
+				auto& opaque = (*allDatas)[insertionIndices.Global];
+				if (bNewMaterialSlot)
+				{
+					opaque.PerMaterialData.push_back(matData);
+					if (bCastsShadows)
+					{
+						auto& opaqueShadow = (*shadowCastingDatas)[insertionIndices.ShadowCasting];
+						opaqueShadow.PerMaterialData.push_back(matData);
+					}
+				}
+				else
+				{
+					opaque.PerMaterialData.back().InstanceCount += matData.InstanceCount;
+					if (bCastsShadows)
+					{
+						auto& opaqueShadow = (*shadowCastingDatas)[insertionIndices.ShadowCasting];
+						opaqueShadow.PerMaterialData.back().InstanceCount += matData.InstanceCount;
+					}
+				}
+			}
+
+			return insertionIndices;
+		}
+
+		template <typename MeshType, typename MeshesMapType>
+		static void ProcessInstances2(const MeshesMapType& meshes, MeshesDrawLists* drawList, std::vector<PerInstanceData>* ivb)
+		{
+			struct InstanceKey
+			{
+				MeshIndicesData Indices;
+				uint32_t VertexOffset = 0;
+				uint32_t VerticesCount = 0;
+				uint32_t InstanceCount = 0;
+				uint32_t SkinnedVertexOffset = 0;
+
+				Ref<MeshType> Mesh;
+				Material::BlendMode BlendMode = Material::BlendMode::Opaque;
+				uint32_t MaterialSlot = 0;
+				bool bCastsShadows = false;
+				bool bDoubleSided = false;
+
+				bool operator< (const InstanceKey& other) const
+				{
+					if (Mesh != other.Mesh)
+						return Mesh < other.Mesh;
+
+					if (BlendMode != other.BlendMode)
+						return BlendMode < other.BlendMode;
+
+					if (bDoubleSided != other.bDoubleSided)
+						return bDoubleSided < other.bDoubleSided; // Single sided first
+
+					if (MaterialSlot != other.MaterialSlot)
+						return MaterialSlot < other.MaterialSlot;
+
+					return bCastsShadows > other.bCastsShadows; // Shadow casters first
+				}
+			};
+
+			std::map<InstanceKey, std::vector<PerInstanceData>> instancesDatas;
+
+			uint32_t skinnedVerticesOffset = 0;
+			for (const auto& [meshKey, instances] : meshes)
+			{
+				const auto& mesh = meshKey.Mesh;
+				const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
+				const uint32_t instanceCount = (uint32_t)instances.size();
+
+				InstanceKey instanceKey{};
+				instanceKey.Mesh = mesh;
+				instanceKey.VertexOffset = meshKey.VerticesOffset;
+				instanceKey.VerticesCount = meshKey.VerticesCount;
+				instanceKey.InstanceCount = instanceCount;
+				instanceKey.SkinnedVertexOffset = skinnedVerticesOffset;
+				skinnedVerticesOffset += meshKey.VerticesCount * instanceCount;
+
+				for (const auto& instance : instances)
+				{
+					instanceKey.bCastsShadows = instance.bCastsShadows;
+					for (uint32_t i = 0; i < materialsCount; ++i)
+					{
+						const Material::BlendMode blendMode = instance.Materials[i] ? instance.Materials[i]->GetBlendMode() : Material::BlendMode::Opaque;
+						const bool bDoubleSided = instance.Materials[i] ? instance.Materials[i]->IsDoubleSided() : false;
+						instanceKey.BlendMode = blendMode;
+						instanceKey.bDoubleSided = bDoubleSided;
+						instanceKey.MaterialSlot = i;
+						instanceKey.Indices = meshKey.PerMaterialIndices[i];
+
+						auto& instancesData = instancesDatas[instanceKey];
+						instancesData.push_back(instance.SubMeshData[i]);
+					}
+				}
+			}
+
+			Ref<MeshType> lastMesh = nullptr;
+			uint32_t lastBlendMode = UINT_MAX;
+			uint32_t lastMaterialSlot = UINT_MAX;
+			bool lastDoubleSided = false;
+			DrawDataInsertIndices insertionIndices = {};
+			uint32_t currentOffset = 0;
+			for (const auto& [instanceKey, instances] : instancesDatas)
+			{
+				if (lastMesh != instanceKey.Mesh || lastBlendMode != uint32_t(instanceKey.BlendMode) || lastDoubleSided != instanceKey.bDoubleSided)
+				{
+					insertionIndices = {};
+					lastMesh = instanceKey.Mesh;
+					lastBlendMode = uint32_t(instanceKey.BlendMode);
+				}
+
+				const bool bNewMatSlot = lastMaterialSlot != instanceKey.MaterialSlot;
+				lastMaterialSlot = instanceKey.MaterialSlot;
+
+				ivb->insert(ivb->end(), instances.begin(), instances.end());
+
+				const uint32_t instanceCount = (uint32_t)instances.size();
+				MeshDrawData drawData{};
+				drawData.VertexOffset = instanceKey.VertexOffset;
+				drawData.VerticesCount = instanceKey.VerticesCount;
+				drawData.InstanceCount = instanceKey.InstanceCount;
+				drawData.SkinnedVertexOffset = instanceKey.SkinnedVertexOffset;
+
+				MeshDrawData::MaterialData matData{};
+				matData.InstanceCount = instanceCount;
+				matData.FirstIndex = instanceKey.Indices.FirstIndex;
+				matData.IndexCount = instanceKey.Indices.IndicesCount;
+				matData.FirstInstance = currentOffset;
+
+				insertionIndices = Utils::AddDrawData(*drawList, drawData, instanceKey.BlendMode, matData, bNewMatSlot, instanceKey.bCastsShadows, instanceKey.bDoubleSided, insertionIndices);
+
+				currentOffset += matData.InstanceCount;
+			}
+		}
+
 		static std::vector<MeshDrawData>& GetDrawData(MeshesDrawLists& data, Material::BlendMode blendMode, bool bShadowCastingOnly)
 		{
-			auto& opaque      = bShadowCastingOnly ? data.ShadowCastingOpaque      : data.Opaque;
-			auto& translucent = bShadowCastingOnly ? data.ShadowCastingTranslucent : data.Translucent;
-			auto& masked      = bShadowCastingOnly ? data.ShadowCastingMasked      : data.Masked;
+			auto& opaque      = bShadowCastingOnly ? data.SingleSided.ShadowCastingOpaque      : data.SingleSided.Opaque;
+			auto& translucent = bShadowCastingOnly ? data.SingleSided.ShadowCastingTranslucent : data.SingleSided.Translucent;
+			auto& masked      = bShadowCastingOnly ? data.SingleSided.ShadowCastingMasked      : data.SingleSided.Masked;
 
 			switch (blendMode)
 			{
@@ -497,23 +648,8 @@ namespace Eagle
 			transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
 			transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst | BufferUsage::TransferSrc;
 
-			m_OpaqueSpritesData.VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D_Opaque");
-			m_OpaqueSpritesData.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Opaque");
-
-			m_MaskedSpritesData.VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D_Masked");
-			m_MaskedSpritesData.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Masked");
-
-			m_OpaqueNonShadowSpritesData.VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D_Opaque_NotCastingShadow");
-			m_OpaqueNonShadowSpritesData.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Opaque_NotCastingShadow");
-
-			m_MaskedNonShadowSpritesData.VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D_Masked_NotCastingShadow");
-			m_MaskedNonShadowSpritesData.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Masked_NotCastingShadow");
-
-			m_TranslucentSpritesData.VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D_Translucent");
-			m_TranslucentSpritesData.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Translucent");
-
-			m_TranslucentNonShadowSpritesData.VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D_Translucent_NotCastingShadow");
-			m_TranslucentNonShadowSpritesData.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Translucent_NotCastingShadow");
+			m_SingleSidedSprites.Init(vertexSpecs, indexSpecs);
+			m_DoubleSidedSprites.Init(vertexSpecs, indexSpecs);
 
 			m_SpritesTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Sprites_TransformsBuffer");
 		}
@@ -535,25 +671,12 @@ namespace Eagle
 			transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
 			transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst | BufferUsage::TransferSrc;
 
-			m_OpaqueLitTextData.VertexBuffer = Buffer::Create(vertexSpecs, "Text_Lit_VertexBuffer_Opaque");
-			m_OpaqueLitTextData.IndexBuffer = Buffer::Create(indexSpecs, "Text_Lit_IndexBuffer_Opaque");
-			m_OpaqueLitNonShadowTextData.VertexBuffer = Buffer::Create(vertexSpecs, "Text_Lit_VertexBuffer_Opaque_NotCastingShadow");
-			m_OpaqueLitNonShadowTextData.IndexBuffer = Buffer::Create(indexSpecs, "Text_Lit_IndexBuffer_Opaque_NotCastingShadow");
+			m_SingleSidedTexts.Init(vertexSpecs, indexSpecs);
+			m_DoubleSidedTexts.Init(vertexSpecs, indexSpecs);
 
-			m_MaskedLitTextData.VertexBuffer = Buffer::Create(vertexSpecs, "Text_Lit_VertexBuffer_Masked");
-			m_MaskedLitTextData.IndexBuffer = Buffer::Create(indexSpecs, "Text_Lit_IndexBuffer_Masked");
-			m_MaskedLitNonShadowTextData.VertexBuffer = Buffer::Create(vertexSpecs, "Text_Lit_VertexBuffer_Masked_NotCastingShadow");
-			m_MaskedLitNonShadowTextData.IndexBuffer = Buffer::Create(indexSpecs, "Text_Lit_IndexBuffer_Masked_NotCastingShadow");
-
-			m_TranslucentLitTextData.VertexBuffer = Buffer::Create(vertexSpecs, "Text_Lit_VertexBuffer_Translucent");
-			m_TranslucentLitTextData.IndexBuffer = Buffer::Create(indexSpecs, "Text_Lit_IndexBuffer_Translucent");
-			m_TranslucentNonShadowLitTextData.VertexBuffer = Buffer::Create(vertexSpecs, "Text_Lit_VertexBuffer_Translucent_NotCastingShadow");
-			m_TranslucentNonShadowLitTextData.IndexBuffer = Buffer::Create(indexSpecs, "Text_Lit_IndexBuffer_Translucent_NotCastingShadow");
-
-			m_UnlitTextData.VertexBuffer = Buffer::Create(vertexSpecs, "Text_Unlit_VertexBuffer");
-			m_UnlitTextData.IndexBuffer = Buffer::Create(indexSpecs, "Text_Unlit_IndexBuffer");
-			m_UnlitNonShadowTextData.VertexBuffer = Buffer::Create(vertexSpecs, "Text_Unlit_VertexBuffer_NotCastingShadow");
-			m_UnlitNonShadowTextData.IndexBuffer = Buffer::Create(indexSpecs, "Text_Unlit_IndexBuffer_NotCastingShadow");
+			constexpr bool bOpaqueOnly = true;
+			m_SingleSidedUnlitTexts.Init(vertexSpecs, indexSpecs, bOpaqueOnly);
+			m_DoubleSidedUnlitTexts.Init(vertexSpecs, indexSpecs, bOpaqueOnly);
 
 			m_TextTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Text_TransformsBuffer");
 		}
@@ -567,14 +690,14 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Process Geometry");
 
 		// If it changed, we need to re-sort meshes
-		const bool bBlendModeChanged = MaterialSystem::HasBlendModeChanged();
+		const bool bRenderingModeChanged = MaterialSystem::HasRenderingModeChanged();
 
 		// Meshes
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Process Meshes");
 			EG_CPU_TIMING_SCOPED("Process Meshes");
 
-			if (bUploadMeshes || bBlendModeChanged)
+			if (bUploadMeshes || bRenderingModeChanged)
 			{
 				if (bUploadMeshes)
 					UploadStaticMeshes(cmd);
@@ -592,7 +715,7 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "Process Skeletal Meshes");
 			EG_CPU_TIMING_SCOPED("Process Skeletal Meshes");
 
-			if (bUploadSkeletalMeshes || bBlendModeChanged)
+			if (bUploadSkeletalMeshes || bRenderingModeChanged)
 			{
 				if (bUploadSkeletalMeshes)
 					UploadSkeletalMeshes(cmd);
@@ -613,19 +736,15 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "Process Sprites");
 			EG_CPU_TIMING_SCOPED("Process Sprites");
 
-			if (bUploadSprites || bBlendModeChanged)
+			if (bUploadSprites || bRenderingModeChanged)
 			{
 				SortSprites();
 				{
 					EG_GPU_TIMING_SCOPED(cmd, "Sprites. Upload vertex & index buffers");
 					EG_CPU_TIMING_SCOPED("Sprites. Upload vertex & index buffers");
 
-					UploadSprites(cmd, m_OpaqueSpritesData);
-					UploadSprites(cmd, m_OpaqueNonShadowSpritesData);
-					UploadSprites(cmd, m_MaskedSpritesData);
-					UploadSprites(cmd, m_MaskedNonShadowSpritesData);
-					UploadSprites(cmd, m_TranslucentSpritesData);
-					UploadSprites(cmd, m_TranslucentNonShadowSpritesData);
+					UploadSprites(cmd, m_SingleSidedSprites);
+					UploadSprites(cmd, m_DoubleSidedSprites);
 				}
 			}
 			const bool bTransformBufferGarbage = bUploadSprites;
@@ -640,25 +759,17 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "Process Texts");
 			EG_CPU_TIMING_SCOPED("Process Texts");
 
-			if (bUploadTextQuads || bBlendModeChanged)
+			if (bUploadTextQuads || bRenderingModeChanged)
 			{
-				if (!bUploadTextQuads)
-					SortLitTexts(); // Required only when materials were changed. Because they're already sorted if `bUploadTextQuads` == true
-
-				EG_GPU_TIMING_SCOPED(cmd, "Texts. Upload vertex & index buffers");
-				EG_CPU_TIMING_SCOPED("Texts. Upload vertex & index buffers");
-
-				UploadTexts(cmd, m_OpaqueLitTextData);
-				UploadTexts(cmd, m_OpaqueLitNonShadowTextData);
-				UploadTexts(cmd, m_MaskedLitTextData);
-				UploadTexts(cmd, m_MaskedLitNonShadowTextData);
-				UploadTexts(cmd, m_TranslucentLitTextData);
-				UploadTexts(cmd, m_TranslucentNonShadowLitTextData);
-
-				if (bUploadTextQuads) // Don't need to reupload if just materials have changes since unlit ones don't have materials
+				SortTexts();
 				{
-					UploadTexts(cmd, m_UnlitTextData);
-					UploadTexts(cmd, m_UnlitNonShadowTextData);
+					EG_GPU_TIMING_SCOPED(cmd, "Sprites. Upload vertex & index buffers");
+					EG_CPU_TIMING_SCOPED("Sprites. Upload vertex & index buffers");
+
+					UploadTexts(cmd, m_SingleSidedTexts);
+					UploadTexts(cmd, m_DoubleSidedTexts);
+					UploadTexts(cmd, m_SingleSidedUnlitTexts);
+					UploadTexts(cmd, m_DoubleSidedUnlitTexts);
 				}
 			}
 			const bool bTransformBufferGarbage = bUploadTextQuads;
@@ -853,7 +964,8 @@ namespace Eagle
 		ivbData.clear();
 		m_StaticMeshesDrawData.Clear();
 
-		Utils::ProcessInstances(m_StaticMeshes, &m_StaticMeshesDrawData, &ivbData);
+		Utils::ProcessInstances2<StaticMesh>(m_StaticMeshes, &m_StaticMeshesDrawData, &ivbData);
+		//Utils::ProcessInstances(m_StaticMeshes, &m_StaticMeshesDrawData, &ivbData);
 
 		if (!ivbData.empty())
 		{
@@ -984,7 +1096,8 @@ namespace Eagle
 		ivbData.clear();
 		m_SkeletalMeshesDrawData.Clear();
 
-		Utils::ProcessInstances(m_SkeletalMeshes, &m_SkeletalMeshesDrawData, &ivbData);
+		Utils::ProcessInstances2<SkeletalMesh>(m_SkeletalMeshes, &m_SkeletalMeshesDrawData, &ivbData);
+		//Utils::ProcessInstances(m_SkeletalMeshes, &m_SkeletalMeshesDrawData, &ivbData);
 
 		if (!ivbData.empty())
 		{
@@ -1029,12 +1142,8 @@ namespace Eagle
 	{
 		EG_CPU_TIMING_SCOPED("Sort sprites based on Blend Mode");
 
-		m_OpaqueSpritesData.QuadVertices.clear();
-		m_OpaqueNonShadowSpritesData.QuadVertices.clear();
-		m_MaskedSpritesData.QuadVertices.clear();
-		m_MaskedNonShadowSpritesData.QuadVertices.clear();
-		m_TranslucentSpritesData.QuadVertices.clear();
-		m_TranslucentNonShadowSpritesData.QuadVertices.clear();
+		m_SingleSidedSprites.Clear();
+		m_DoubleSidedSprites.Clear();
 
 		const size_t spritesCount = m_Sprites.size();
 		for (size_t i = 0; i < spritesCount; ++i)
@@ -1043,30 +1152,32 @@ namespace Eagle
 			const uint32_t transformIndex = uint32_t(i);
 			const uint32_t transformIndexPacked = transformIndex | (sprite.bReceivesDecals ? (1 << 31) : 0u);
 			const Material::BlendMode blendMode = sprite.Material ? sprite.Material->GetBlendMode() : Material::BlendMode::Opaque;
+			const bool bDoubleSided = sprite.Material ? sprite.Material->IsDoubleSided() : false;
+			auto& spritesData = bDoubleSided ? m_DoubleSidedSprites : m_SingleSidedSprites;
 			switch (blendMode)
 			{
 				case Material::BlendMode::Opaque:
 				{
 					if (sprite.bCastsShadows)
-						AddQuad(m_OpaqueSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
+						AddQuad(spritesData.Opaque.ShadowCastingQuads.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
 					else
-						AddQuad(m_OpaqueNonShadowSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
+						AddQuad(spritesData.Opaque.NonShadowQuads.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
 					break;
 				}
 				case Material::BlendMode::Translucent:
 				{
 					if (sprite.bCastsShadows)
-						AddQuad(m_TranslucentSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
+						AddQuad(spritesData.Translucent.ShadowCastingQuads.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
 					else
-						AddQuad(m_TranslucentNonShadowSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
+						AddQuad(spritesData.Translucent.NonShadowQuads.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
 					break;
 				}
 				case Material::BlendMode::Masked:
 				{
 					if (sprite.bCastsShadows)
-						AddQuad(m_MaskedSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
+						AddQuad(spritesData.Masked.ShadowCastingQuads.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
 					else
-						AddQuad(m_MaskedNonShadowSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
+						AddQuad(spritesData.Masked.NonShadowQuads.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
 					break;
 				}
 				default: EG_CORE_ASSERT("Unknown blend mode!");
@@ -1074,7 +1185,7 @@ namespace Eagle
 		}
 	}
 
-	void GeometryManagerTask::UploadSprites(const Ref<CommandBuffer>& cmd, SpriteGeometryData& spritesData)
+	void GeometryManagerTask::UploadSprites(const Ref<CommandBuffer>& cmd, const SpriteGeometryData& spritesData)
 	{
 		if (spritesData.QuadVertices.empty())
 			return;
@@ -1106,6 +1217,16 @@ namespace Eagle
 
 		cmd->Write(vb, spritesData.QuadVertices.data(), currentVertexSize, 0, vb->GetLayout(), BufferReadAccess::Vertex);
 		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
+	}
+
+	void GeometryManagerTask::UploadSprites(const Ref<CommandBuffer>& cmd, const QuadsRenderData<SpriteGeometryData>& spritesData)
+	{
+		UploadSprites(cmd, spritesData.Opaque.ShadowCastingQuads);
+		UploadSprites(cmd, spritesData.Opaque.NonShadowQuads);
+		UploadSprites(cmd, spritesData.Masked.ShadowCastingQuads);
+		UploadSprites(cmd, spritesData.Masked.NonShadowQuads);
+		UploadSprites(cmd, spritesData.Translucent.ShadowCastingQuads);
+		UploadSprites(cmd, spritesData.Translucent.NonShadowQuads);
 	}
 
 	void GeometryManagerTask::SetSprites(const std::vector<const SpriteComponent*>& sprites, bool bDirty)
@@ -1213,15 +1334,7 @@ namespace Eagle
 
 	void GeometryManagerTask::AddQuad(std::vector<QuadVertex>& vertices, const glm::mat4& transform, const Ref<Material>& material, uint32_t transformIndex, const glm::vec2 UVs[4], int entityID)
 	{
-		const glm::mat3 normalModel = glm::mat3(glm::transpose(glm::inverse(transform)));
-		const glm::vec3 normal = glm::normalize(normalModel * s_QuadVertexNormal);
-		const glm::vec3 worldNormal = glm::normalize(glm::vec3(transform * s_QuadVertexNormal));
-		const glm::vec3 invNormal = -normal;
-		const glm::vec3 invWorldNormal = -worldNormal;
-
 		const uint32_t materialIndex = MaterialSystem::GetMaterialIndex(material);
-
-		size_t frontFaceVertexIndex = vertices.size();
 		for (int i = 0; i < 4; ++i)
 		{
 			auto& vertex = vertices.emplace_back();
@@ -1230,189 +1343,147 @@ namespace Eagle
 			vertex.TransformIndex = transformIndex;
 			vertex.MaterialIndex = materialIndex;
 		}
-		// Backface
-		for (int i = 0; i < 4; ++i)
-		{
-			auto& vertex = vertices.emplace_back();
-			vertex = vertices[frontFaceVertexIndex++];
-		}
 	}
 
 	// --------- Texts ---------
-	struct LitTextComponentData
+	template <typename TextDataType, typename VertexType>
+	static void ProcessTextData(const TextDataType& component, std::unordered_map<Ref<Texture2D>, uint32_t>& fontAtlases,
+		std::vector<VertexType>& vertices, uint32_t& atlasCurrentIndex)
 	{
-		Ref<Material> Material;
-		std::u32string Text;
-		Ref<Font> Font;
-		int EntityID;
-		float LineHeightOffset;
-		float KerningOffset;
-		float MaxWidth;
-		uint32_t TransformIndex;
-	};
-
-	struct UnlitTextComponentData
-	{
-		glm::vec3 Color;
-		std::u32string Text;
-		Ref<Font> Font;
-		int EntityID;
-		float LineHeightOffset;
-		float KerningOffset;
-		float MaxWidth;
-		uint32_t TransformIndex;
-	};
-
-	static std::u32string ToUTF32(const std::string& s)
-	{
-		std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> conv;
-		return conv.from_bytes(s);
-	}
-
-	static void ProcessLitComponents(const std::vector<LitTextComponentData>& textComponents, std::unordered_map<Ref<Texture2D>, uint32_t>& fontAtlases, LitTextGeometryData& geometryData,
-		std::unordered_map<uint32_t, Ref<Material>>& textMaterials, uint32_t& atlasCurrentIndex)
-	{
-		if (textComponents.empty())
-			return;
-
-		const size_t componentsCount = textComponents.size();
-		for (size_t i = 0; i < componentsCount; ++i)
+		const auto& fontGeometry = component.Font->GetFontGeometry();
+		const auto& metrics = fontGeometry->getMetrics();
+		const auto& text = component.Text;
+		const auto& atlas = component.Font->GetAtlas();
+		uint32_t atlasIndex = atlasCurrentIndex;
+		auto it = fontAtlases.find(atlas);
+		if (it == fontAtlases.end())
 		{
-			auto& component = textComponents[i];
-			const auto& fontGeometry = component.Font->GetFontGeometry();
-			const auto& metrics = fontGeometry->getMetrics();
-			const auto& text = component.Text;
-			const auto& atlas = component.Font->GetAtlas();
-			uint32_t atlasIndex = atlasCurrentIndex;
-			auto it = fontAtlases.find(atlas);
-			if (it == fontAtlases.end())
+			if (fontAtlases.size() == RendererConfig::MaxTextures)
 			{
-				if (fontAtlases.size() == RendererConfig::MaxTextures)
-				{
-					EG_CORE_CRITICAL("Not enough samplers to store all font atlases! Max supported fonts: {}", RendererConfig::MaxTextures);
-					atlasIndex = 0;
-				}
-				else
-					fontAtlases.emplace(atlas, atlasCurrentIndex++);
+				EG_CORE_CRITICAL("Not enough samplers to store all font atlases! Max supported fonts: {}", RendererConfig::MaxTextures);
+				atlasIndex = 0;
 			}
 			else
-				atlasIndex = it->second;
+				fontAtlases.emplace(atlas, atlasCurrentIndex++);
+		}
+		else
+			atlasIndex = it->second;
 
-			const double spaceAdvance = fontGeometry->getGlyph(' ')->getAdvance();
-			std::vector<int> nextLines = Font::GetNextLines(metrics, fontGeometry, text, spaceAdvance,
-				component.LineHeightOffset, component.KerningOffset, component.MaxWidth);
+		const double spaceAdvance = fontGeometry->getGlyph(' ')->getAdvance();
+		std::vector<int> nextLines = Font::GetNextLines(metrics, fontGeometry, text, spaceAdvance,
+			component.LineHeightOffset, component.KerningOffset, component.MaxWidth);
 
+		{
+			double x = 0.0;
+			double fsScale = 1 / (metrics.ascenderY - metrics.descenderY);
+			double y = 0.0;
+			const uint32_t transformIndex = component.TransformIndex;
+
+			const size_t textSize = text.size();
+			for (int i = 0; i < textSize; i++)
 			{
-				double x = 0.0;
-				double fsScale = 1 / (metrics.ascenderY - metrics.descenderY);
-				double y = 0.0;
-				const uint32_t transformIndex = component.TransformIndex;
-				const uint32_t materialIndex = MaterialSystem::GetMaterialIndex(component.Material);
-
-				textMaterials[materialIndex] = component.Material;
-
-				const size_t textSize = text.size();
-				for (int i = 0; i < textSize; i++)
+				char32_t character = text[i];
+				if (character == '\n' || Font::NextLine(i, nextLines))
 				{
-					char32_t character = text[i];
-					if (character == '\n' || Font::NextLine(i, nextLines))
+					x = 0;
+					y -= fsScale * metrics.lineHeight + component.LineHeightOffset;
+					continue;
+				}
+
+				const bool bIsTab = character == '\t';
+				if (character == ' ' || bIsTab)
+				{
+					character = ' '; // treat tabs as spaces
+					double advance = spaceAdvance;
+					if (i < textSize - 1)
 					{
-						x = 0;
-						y -= fsScale * metrics.lineHeight + component.LineHeightOffset;
-						continue;
+						char32_t nextCharacter = text[i + 1];
+						if (nextCharacter == '\t')
+							nextCharacter = ' ';
+						fontGeometry->getAdvance(advance, character, nextCharacter);
 					}
 
-					const bool bIsTab = character == '\t';
-					if (character == ' ' || bIsTab)
-					{
-						character = ' '; // treat tabs as spaces
-						double advance = spaceAdvance;
-						if (i < textSize - 1)
-						{
-							char32_t nextCharacter = text[i + 1];
-							if (nextCharacter == '\t')
-								nextCharacter = ' ';
-							fontGeometry->getAdvance(advance, character, nextCharacter);
-						}
+					// Tab is 4 spaces
+					x += (fsScale * advance + component.KerningOffset) * (bIsTab ? 4.0 : 1.0);
+					continue;
+				}
 
-						// Tab is 4 spaces
-						x += (fsScale * advance + component.KerningOffset) * (bIsTab ? 4.0 : 1.0);
-						continue;
-					}
+				auto glyph = fontGeometry->getGlyph(character);
+				if (!glyph)
+					glyph = fontGeometry->getGlyph('?');
+				if (!glyph)
+					continue;
 
-					auto glyph = fontGeometry->getGlyph(character);
-					if (!glyph)
-						glyph = fontGeometry->getGlyph('?');
-					if (!glyph)
-						continue;
+				double l, b, r, t;
+				glyph->getQuadAtlasBounds(l, b, r, t);
 
-					double l, b, r, t;
-					glyph->getQuadAtlasBounds(l, b, r, t);
+				double pl, pb, pr, pt;
+				glyph->getQuadPlaneBounds(pl, pb, pr, pt);
 
-					double pl, pb, pr, pt;
-					glyph->getQuadPlaneBounds(pl, pb, pr, pt);
+				pl *= fsScale, pb *= fsScale, pr *= fsScale, pt *= fsScale;
+				pl += x, pb += y, pr += x, pt += y;
 
-					pl *= fsScale, pb *= fsScale, pr *= fsScale, pt *= fsScale;
-					pl += x, pb += y, pr += x, pt += y;
+				double texelWidth = 1. / atlas->GetWidth();
+				double texelHeight = 1. / atlas->GetHeight();
+				l *= texelWidth, b *= texelHeight, r *= texelWidth, t *= texelHeight;
 
-					double texelWidth = 1. / atlas->GetWidth();
-					double texelHeight = 1. / atlas->GetHeight();
-					l *= texelWidth, b *= texelHeight, r *= texelWidth, t *= texelHeight;
+				const size_t q1Index = vertices.size();
+				if constexpr (std::is_same_v<TextDataType, LitTextData>)
+				{
+					auto& q1 = vertices.emplace_back();
+					q1.Position = glm::vec2(pl, pb);
+					q1.MaterialIndex = component.MaterialIndex;
+					q1.TexCoord = { l, b };
+					q1.EntityID = component.EntityID;
+					q1.AtlasIndex = atlasIndex;
+					q1.TransformIndex = transformIndex;
+				}
+				else
+				{
+					auto& q1 = vertices.emplace_back();
+					q1.Position = glm::vec2(pl, pb);
+					q1.Color = component.Color;
+					q1.TexCoord = { l, b };
+					q1.EntityID = component.EntityID;
+					q1.AtlasIndex = atlasIndex;
+					q1.TransformIndex = component.TransformIndex;
+				}
 
-					const size_t q1Index = geometryData.QuadVertices.size();
-					{
-						auto& q1 = geometryData.QuadVertices.emplace_back();
-						q1.Position = glm::vec2(pl, pb);
-						q1.MaterialIndex = materialIndex;
-						q1.TexCoord = { l, b };
-						q1.EntityID = component.EntityID;
-						q1.AtlasIndex = atlasIndex;
-						q1.TransformIndex = transformIndex;
-					}
+				const size_t q2Index = vertices.size();
+				{
+					auto& q2 = vertices.emplace_back();
+					q2 = vertices[q1Index];
+					q2.Position = glm::vec2(pr, pb);
+					q2.TexCoord = { r, b };
+				}
 
-					const size_t q2Index = geometryData.QuadVertices.size();
-					{
-						auto& q2 = geometryData.QuadVertices.emplace_back();
-						q2 = geometryData.QuadVertices[q1Index];
-						q2.Position = glm::vec2(pl, pt);
-						q2.TexCoord = { l, t };
-					}
+				const size_t q3Index = vertices.size();
+				{
+					auto& q3 = vertices.emplace_back();
+					q3 = vertices[q1Index];
+					q3.Position = glm::vec2(pr, pt);
+					q3.TexCoord = { r, t };
+				}
 
-					const size_t q3Index = geometryData.QuadVertices.size();
-					{
-						auto& q3 = geometryData.QuadVertices.emplace_back();
-						q3 = geometryData.QuadVertices[q1Index];
-						q3.Position = glm::vec2(pr, pt);
-						q3.TexCoord = { r, t };
-					}
+				const size_t q4Index = vertices.size();
+				{
+					auto& q4 = vertices.emplace_back();
+					q4 = vertices[q1Index];
+					q4.Position = glm::vec2(pl, pt);
+					q4.TexCoord = { l, t };
+				}
 
-
-					const size_t q4Index = geometryData.QuadVertices.size();
-					{
-						auto& q4 = geometryData.QuadVertices.emplace_back();
-						q4 = geometryData.QuadVertices[q1Index];
-						q4.Position = glm::vec2(pr, pb);
-						q4.TexCoord = { r, b };
-					}
-
-					// back face, they have NON inverted normals
-					geometryData.QuadVertices.emplace_back() = geometryData.QuadVertices[q1Index];
-					geometryData.QuadVertices.emplace_back() = geometryData.QuadVertices[q2Index];
-					geometryData.QuadVertices.emplace_back() = geometryData.QuadVertices[q3Index];
-					geometryData.QuadVertices.emplace_back() = geometryData.QuadVertices[q4Index];
-
-					if (i + 1 < textSize)
-					{
-						double advance = glyph->getAdvance();
-						fontGeometry->getAdvance(advance, character, text[i + 1]);
-						x += fsScale * advance + component.KerningOffset;
-					}
+				if (i + 1 < textSize)
+				{
+					double advance = glyph->getAdvance();
+					fontGeometry->getAdvance(advance, character, text[i + 1]);
+					x += fsScale * advance + component.KerningOffset;
 				}
 			}
 		}
 	}
 
-	static void ProcessUnlitComponents(const std::vector<UnlitTextComponentData>& textComponents, std::unordered_map<Ref<Texture2D>, uint32_t>& fontAtlases, UnlitTextGeometryData& geometryData, uint32_t& atlasCurrentIndex)
+	static void ProcessUnlitComponents(const std::vector<UnlitTextData>& textComponents, std::unordered_map<Ref<Texture2D>, uint32_t>& fontAtlases, UnlitTextGeometryData& geometryData, uint32_t& atlasCurrentIndex)
 	{
 		if (textComponents.empty())
 			return;
@@ -1545,25 +1616,13 @@ namespace Eagle
 		if (!bDirty)
 			return;
 
-		std::vector<LitTextComponentData> opaqueLitDatas;
-		std::vector<LitTextComponentData> opaqueLitNotCastingShadowDatas;
-		std::vector<LitTextComponentData> maskedLitDatas;
-		std::vector<LitTextComponentData> maskedLitNotCastingShadowDatas;
-		std::vector<LitTextComponentData> translucentLitDatas;
-		std::vector<LitTextComponentData> translucentLitNotCastingShadowDatas;
-		std::vector<UnlitTextComponentData> unlitDatas;
-		std::vector<UnlitTextComponentData> unlitNotCastingShadowDatas;
+		std::vector<LitTextData> litTexts;
+		std::vector<UnlitTextData> unlitTexts;
 		std::unordered_map<uint32_t, uint64_t> tempTransformsIndices; // EntityID -> uint64_t (index to m_TextTransformIndices)
 		std::vector<glm::mat4> tempTransforms;
 
-		opaqueLitDatas.reserve(texts.size());
-		opaqueLitNotCastingShadowDatas.reserve(texts.size());
-		maskedLitDatas.reserve(texts.size());
-		maskedLitNotCastingShadowDatas.reserve(texts.size());
-		translucentLitDatas.reserve(texts.size());
-		translucentLitNotCastingShadowDatas.reserve(texts.size());
-		unlitDatas.reserve(texts.size());
-		unlitNotCastingShadowDatas.reserve(texts.size());
+		litTexts.reserve(texts.size());
+		unlitTexts.reserve(texts.size());
 		tempTransforms.reserve(texts.size());
 		tempTransformsIndices.reserve(texts.size());
 
@@ -1578,87 +1637,52 @@ namespace Eagle
 			{
 				const auto& materialAsset = text->GetMaterialAsset();
 				Ref<Material> material = materialAsset ? materialAsset->GetMaterial() : nullptr;
-				LitTextComponentData* data = nullptr;
-				Material::BlendMode blendMode = material ? material->GetBlendMode() : Material::BlendMode::Opaque;
-				// Emplace into correct container
-				switch (blendMode)
-				{
-					case Material::BlendMode::Opaque:
-						data = &(text->DoesCastShadows() ? opaqueLitDatas.emplace_back() : opaqueLitNotCastingShadowDatas.emplace_back());
-						break;
-					case Material::BlendMode::Translucent:
-						data = &(text->DoesCastShadows() ? translucentLitDatas.emplace_back() : translucentLitNotCastingShadowDatas.emplace_back());
-						break;
-					case Material::BlendMode::Masked:
-						data = &(text->DoesCastShadows() ? maskedLitDatas.emplace_back() : maskedLitNotCastingShadowDatas.emplace_back());
-						break;
-
-					default: EG_ASSERT(false);
-				}
-
-				data->Material = std::move(material);
-				data->Text = ToUTF32(text->GetText());
-				data->Font = asset->GetFont();
-				data->EntityID = text->Parent.GetID();
-				data->LineHeightOffset = text->GetLineSpacing();
-				data->KerningOffset = text->GetKerning();
-				data->MaxWidth = text->GetMaxWidth();
-				data->TransformIndex = transformIndex | (text->DoesReceiveDecals() ? (1 << 31) : 0u);
+				LitTextData& data = litTexts.emplace_back();
+				data.Material = std::move(material);
+				data.Text = Utils::ToUTF32(text->GetText());
+				data.Font = asset->GetFont();
+				data.EntityID = text->Parent.GetID();
+				data.LineHeightOffset = text->GetLineSpacing();
+				data.KerningOffset = text->GetKerning();
+				data.MaxWidth = text->GetMaxWidth();
+				data.TransformIndex = transformIndex | (text->DoesReceiveDecals() ? (1 << 31) : 0u);
+				data.MaterialIndex = MaterialSystem::GetMaterialIndex(data.Material);
+				data.bCastsShadows = text->DoesCastShadows();
 			}
 			else
 			{
-				auto& data = text->DoesCastShadows() ? unlitDatas.emplace_back() : unlitNotCastingShadowDatas.emplace_back();
+				auto& data = unlitTexts.emplace_back();
 				data.TransformIndex = transformIndex;
-				data.Text = ToUTF32(text->GetText());
+				data.Text = Utils::ToUTF32(text->GetText());
 				data.Font = asset->GetFont();
 				data.Color = text->GetColor();
 				data.EntityID = text->Parent.GetID();
 				data.LineHeightOffset = text->GetLineSpacing();
 				data.KerningOffset = text->GetKerning();
 				data.MaxWidth = text->GetMaxWidth();
+				data.bCastsShadows = text->DoesCastShadows();
+				data.bDoubleSided = text->IsDoubleSided();
 			}
 			tempTransformsIndices.emplace(text->Parent.GetID(), transformIndex);
 			tempTransforms.emplace_back(Math::ToTransformMatrix(text->GetWorldTransform()));
 		}
 
-		RenderManager::Submit([task = shared_from_this(), opaqueTextComponents = std::move(opaqueLitDatas), opaqueNotCastingShadowsTextComponents = std::move(opaqueLitNotCastingShadowDatas),
-			maskedTextComponents = std::move(maskedLitDatas), maskedNotCastingShadowsTextComponents = std::move(maskedLitNotCastingShadowDatas),
-			translucentTextComponents = std::move(translucentLitDatas), translucentNotCastingShadowsTextComponents = std::move(translucentLitNotCastingShadowDatas),
-			unlitNotCastingShadowsTextComponents = std::move(unlitNotCastingShadowDatas),
-			unlitTextComponents = std::move(unlitDatas), transforms = std::move(tempTransforms), transformsIndices = std::move(tempTransformsIndices)](Ref<CommandBuffer>&) mutable
+		RenderManager::Submit([task = shared_from_this(), litTextComponents = std::move(litTexts), unlitTextComponents = std::move(unlitTexts),
+			transforms = std::move(tempTransforms), transformsIndices = std::move(tempTransformsIndices)](Ref<CommandBuffer>&) mutable
 		{
 			auto thisRef = Cast<GeometryManagerTask>(task);
 			thisRef->bUploadTextQuads = true;
 			thisRef->bUploadTextTransforms = true;
 
-			thisRef->m_OpaqueLitTextData.QuadVertices.clear();
-			thisRef->m_OpaqueLitNonShadowTextData.QuadVertices.clear();
-			thisRef->m_MaskedLitTextData.QuadVertices.clear();
-			thisRef->m_MaskedLitNonShadowTextData.QuadVertices.clear();
-			thisRef->m_TranslucentLitTextData.QuadVertices.clear();
-			thisRef->m_TranslucentNonShadowLitTextData.QuadVertices.clear();
-			thisRef->m_UnlitTextData.QuadVertices.clear();
-			thisRef->m_UnlitNonShadowTextData.QuadVertices.clear();
-			thisRef->m_TextMaterials.clear();
+			thisRef->m_SingleSidedTexts.Clear();
+			thisRef->m_DoubleSidedTexts.Clear();
+			thisRef->m_SingleSidedUnlitTexts.Clear();
+			thisRef->m_DoubleSidedUnlitTexts.Clear();
 
-			thisRef->m_FontAtlases.clear();
-			thisRef->m_Atlases.clear();
 			thisRef->m_TextTransforms = std::move(transforms);
 			thisRef->m_TextTransformIndices = std::move(transformsIndices);
-
-			uint32_t atlasCurrentIndex = 0;
-			ProcessLitComponents(opaqueTextComponents, thisRef->m_FontAtlases, thisRef->m_OpaqueLitTextData, thisRef->m_TextMaterials, atlasCurrentIndex);
-			ProcessLitComponents(opaqueNotCastingShadowsTextComponents, thisRef->m_FontAtlases, thisRef->m_OpaqueLitNonShadowTextData, thisRef->m_TextMaterials, atlasCurrentIndex);
-			ProcessLitComponents(maskedTextComponents, thisRef->m_FontAtlases, thisRef->m_MaskedLitTextData, thisRef->m_TextMaterials, atlasCurrentIndex);
-			ProcessLitComponents(maskedNotCastingShadowsTextComponents, thisRef->m_FontAtlases, thisRef->m_MaskedLitNonShadowTextData, thisRef->m_TextMaterials, atlasCurrentIndex);
-			ProcessLitComponents(translucentTextComponents, thisRef->m_FontAtlases, thisRef->m_TranslucentLitTextData, thisRef->m_TextMaterials, atlasCurrentIndex);
-			ProcessLitComponents(translucentNotCastingShadowsTextComponents, thisRef->m_FontAtlases, thisRef->m_TranslucentNonShadowLitTextData, thisRef->m_TextMaterials, atlasCurrentIndex);
-			ProcessUnlitComponents(unlitTextComponents, thisRef->m_FontAtlases, thisRef->m_UnlitTextData, atlasCurrentIndex);
-			ProcessUnlitComponents(unlitNotCastingShadowsTextComponents, thisRef->m_FontAtlases, thisRef->m_UnlitNonShadowTextData, atlasCurrentIndex);
-
-			thisRef->m_Atlases.resize(atlasCurrentIndex);
-			for (auto& atlas : thisRef->m_FontAtlases)
-				thisRef->m_Atlases[atlas.second] = atlas.first;
+			thisRef->m_LitTexts = std::move(litTextComponents);
+			thisRef->m_UnlitTexts = std::move(unlitTextComponents);
 		});
 	}
 	
@@ -1695,70 +1719,85 @@ namespace Eagle
 		});
 	}
 
-	static void FillByBlendMode(std::vector<LitTextQuadVertex>& newOpaqueData, std::vector<LitTextQuadVertex>& newMaskedData, std::vector<LitTextQuadVertex>& newTranslucentData,
-		const LitTextGeometryData& data, const std::unordered_map<uint32_t, Ref<Material>>& materials)
+	void GeometryManagerTask::SortTexts()
 	{
-		for (const auto& vertex : data.QuadVertices)
-		{
-			auto it = materials.find(vertex.MaterialIndex);
-			EG_CORE_ASSERT(it != materials.end());
-			const auto& material = it->second;
-			const Material::BlendMode blend = material->GetBlendMode();
+		EG_CPU_TIMING_SCOPED("Sort lit texts based on Blend Mode");
 
-			switch (blend)
+		m_SingleSidedTexts.Clear();
+		m_DoubleSidedTexts.Clear();
+		m_FontAtlases.clear();
+		m_Atlases.clear();
+
+		uint32_t atlasCurrentIndex = 0;
+		{
+			const size_t textsCount = m_LitTexts.size();
+			for (size_t i = 0; i < textsCount; ++i)
 			{
-			case Material::BlendMode::Opaque:
-				newOpaqueData.push_back(vertex);
-				break;
-			case Material::BlendMode::Masked:
-				newMaskedData.push_back(vertex);
-				break;
-			case Material::BlendMode::Translucent:
-				newTranslucentData.push_back(vertex);
-				break;
+				const auto& text = m_LitTexts[i];
+				const Material::BlendMode blendMode = text.Material ? text.Material->GetBlendMode() : Material::BlendMode::Opaque;
+				const bool bDoubleSided = text.Material ? text.Material->IsDoubleSided() : false;
+				auto& textsData = bDoubleSided ? m_DoubleSidedTexts : m_SingleSidedTexts;
+
+				switch (blendMode)
+				{
+					case Material::BlendMode::Opaque:
+					{
+						if (text.bCastsShadows)
+							ProcessTextData(text, m_FontAtlases, textsData.Opaque.ShadowCastingQuads.QuadVertices, atlasCurrentIndex);
+						else
+							ProcessTextData(text, m_FontAtlases, textsData.Opaque.NonShadowQuads.QuadVertices, atlasCurrentIndex);
+						break;
+					}
+					case Material::BlendMode::Translucent:
+					{
+						if (text.bCastsShadows)
+							ProcessTextData(text, m_FontAtlases, textsData.Translucent.ShadowCastingQuads.QuadVertices, atlasCurrentIndex);
+						else
+							ProcessTextData(text, m_FontAtlases, textsData.Translucent.NonShadowQuads.QuadVertices, atlasCurrentIndex);
+						break;
+					}
+					case Material::BlendMode::Masked:
+					{
+						if (text.bCastsShadows)
+							ProcessTextData(text, m_FontAtlases, textsData.Masked.ShadowCastingQuads.QuadVertices, atlasCurrentIndex);
+						else
+							ProcessTextData(text, m_FontAtlases, textsData.Masked.NonShadowQuads.QuadVertices, atlasCurrentIndex);
+						break;
+					}
+					default: EG_CORE_ASSERT("Unknown blend mode!");
+				}
 			}
 		}
+
+		{
+			const size_t textsCount = m_UnlitTexts.size();
+			for (size_t i = 0; i < textsCount; ++i)
+			{
+				const auto& text = m_UnlitTexts[i];
+				auto& textsData = text.bDoubleSided ? m_DoubleSidedUnlitTexts : m_SingleSidedUnlitTexts;
+				if (text.bCastsShadows)
+					ProcessTextData(text, m_FontAtlases, textsData.Opaque.ShadowCastingQuads.QuadVertices, atlasCurrentIndex);
+				else
+					ProcessTextData(text, m_FontAtlases, textsData.Opaque.NonShadowQuads.QuadVertices, atlasCurrentIndex);
+			}
+		}
+
+		m_Atlases.resize(atlasCurrentIndex);
+		for (auto& atlas : m_FontAtlases)
+			m_Atlases[atlas.second] = atlas.first;
 	}
 
-	void GeometryManagerTask::SortLitTexts()
+	void GeometryManagerTask::UploadTexts(const Ref<CommandBuffer>& cmd, const QuadsRenderData<LitTextGeometryData>& textsData)
 	{
-		std::vector<LitTextQuadVertex> newOpaqueData;
-		newOpaqueData.reserve(m_OpaqueLitTextData.QuadVertices.size());
-		std::vector<LitTextQuadVertex> newMaskedData;
-		newMaskedData.reserve(m_MaskedLitTextData.QuadVertices.size());
-		std::vector<LitTextQuadVertex> newTranslucentData;
-		newTranslucentData.reserve(m_TranslucentLitTextData.QuadVertices.size());
-
-		{
-			newOpaqueData.clear();
-			newMaskedData.clear();
-			newTranslucentData.clear();
-
-			FillByBlendMode(newOpaqueData, newMaskedData, newTranslucentData, m_OpaqueLitTextData, m_TextMaterials);
-			FillByBlendMode(newOpaqueData, newMaskedData, newTranslucentData, m_MaskedLitTextData, m_TextMaterials);
-			FillByBlendMode(newOpaqueData, newMaskedData, newTranslucentData, m_TranslucentLitTextData, m_TextMaterials);
-
-			m_OpaqueLitTextData.QuadVertices = std::move(newOpaqueData);
-			m_MaskedLitTextData.QuadVertices = std::move(newMaskedData);
-			m_TranslucentLitTextData.QuadVertices = std::move(newTranslucentData);
-		}
-
-		{
-			newOpaqueData.clear();
-			newMaskedData.clear();
-			newTranslucentData.clear();
-
-			FillByBlendMode(newOpaqueData, newMaskedData, newTranslucentData, m_OpaqueLitNonShadowTextData, m_TextMaterials);
-			FillByBlendMode(newOpaqueData, newMaskedData, newTranslucentData, m_MaskedLitNonShadowTextData, m_TextMaterials);
-			FillByBlendMode(newOpaqueData, newMaskedData, newTranslucentData, m_TranslucentNonShadowLitTextData, m_TextMaterials);
-
-			m_OpaqueLitNonShadowTextData.QuadVertices = std::move(newOpaqueData);
-			m_MaskedLitNonShadowTextData.QuadVertices = std::move(newMaskedData);
-			m_TranslucentNonShadowLitTextData.QuadVertices = std::move(newTranslucentData);
-		}
+		UploadTexts(cmd, textsData.Opaque.ShadowCastingQuads);
+		UploadTexts(cmd, textsData.Opaque.NonShadowQuads);
+		UploadTexts(cmd, textsData.Masked.ShadowCastingQuads);
+		UploadTexts(cmd, textsData.Masked.NonShadowQuads);
+		UploadTexts(cmd, textsData.Translucent.ShadowCastingQuads);
+		UploadTexts(cmd, textsData.Translucent.NonShadowQuads);
 	}
 
-	void GeometryManagerTask::UploadTexts(const Ref<CommandBuffer>& cmd, LitTextGeometryData& textsData)
+	void GeometryManagerTask::UploadTexts(const Ref<CommandBuffer>& cmd, const LitTextGeometryData& textsData)
 	{
 		if (textsData.QuadVertices.empty())
 			return;
@@ -1794,7 +1833,17 @@ namespace Eagle
 		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
 	}
 
-	void GeometryManagerTask::UploadTexts(const Ref<CommandBuffer>& cmd, UnlitTextGeometryData& textsData)
+	void GeometryManagerTask::UploadTexts(const Ref<CommandBuffer>& cmd, const QuadsRenderData<UnlitTextGeometryData>& textsData)
+	{
+		UploadTexts(cmd, textsData.Opaque.ShadowCastingQuads);
+		UploadTexts(cmd, textsData.Opaque.NonShadowQuads);
+		UploadTexts(cmd, textsData.Masked.ShadowCastingQuads);
+		UploadTexts(cmd, textsData.Masked.NonShadowQuads);
+		UploadTexts(cmd, textsData.Translucent.ShadowCastingQuads);
+		UploadTexts(cmd, textsData.Translucent.NonShadowQuads);
+	}
+
+	void GeometryManagerTask::UploadTexts(const Ref<CommandBuffer>& cmd, const UnlitTextGeometryData& textsData)
 	{
 		if (textsData.QuadVertices.empty())
 			return;
@@ -1823,7 +1872,7 @@ namespace Eagle
 			newSize += alignment - (newSize % alignment);
 
 			ib->Resize(newSize);
-			Utils::UploadIndexBufferOneSided(cmd, ib);
+			Utils::UploadIndexBuffer(cmd, ib);
 		}
 
 		cmd->Write(vb, quads.data(), currentVertexSize, 0, vb->GetLayout(), BufferReadAccess::Vertex);

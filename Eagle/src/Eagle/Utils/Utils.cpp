@@ -3,6 +3,7 @@
 
 #include "Eagle/Asset/Asset.h"
 
+#include <codecvt>
 #include <locale>
 #include <stb_image.h>
 #include <stb_image_write.h>
@@ -89,6 +90,12 @@ namespace Eagle
 	{
 		ScopedDataBuffer* buffer = (ScopedDataBuffer*)context;
 		*buffer = DataBuffer::Copy(data, size);
+	}
+
+	std::u32string Utils::ToUTF32(const std::string& s)
+	{
+		std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> conv;
+		return conv.from_bytes(s);
 	}
 
 	std::string Utils::ToUtf8(const std::wstring& str)

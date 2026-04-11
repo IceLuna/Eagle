@@ -13,6 +13,12 @@
 
 namespace Eagle
 {
+	struct PushData
+	{
+		glm::mat4 ViewProj;
+		glm::mat4 PrevViewProj;
+	};
+
 	RenderSpritesTask::RenderSpritesTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
@@ -21,14 +27,41 @@ namespace Eagle
 		InitPipeline();
 	}
 
-	void RenderSpritesTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const SpriteGeometryData& spritesData, const PushData& pushData, RenderStats& stats)
+	void RenderSpritesTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const QuadsRenderData<SpriteGeometryData>::BlendModeGeomType& spritesData, const void* vertexPushData, RenderStats& stats)
 	{
-		if (spritesData.QuadVertices.empty())
+		if (spritesData.IsEmpty())
 			return;
 
-		const uint32_t quadsCount = (uint32_t)(spritesData.QuadVertices.size() / 4);
 		cmd->BeginGraphics(pipeline);
-		cmd->SetGraphicsRootConstants(&pushData, nullptr);
+		cmd->SetGraphicsRootConstants(vertexPushData, nullptr);
+
+		uint32_t quadsCount = (uint32_t)(spritesData.ShadowCastingQuads.QuadVertices.size() / 4);
+		if (quadsCount > 0)
+		{
+			cmd->DrawIndexed(spritesData.ShadowCastingQuads.VertexBuffer, spritesData.ShadowCastingQuads.IndexBuffer, quadsCount * 6, 0, 0);
+			++stats.DrawCalls;
+		}
+		quadsCount = (uint32_t)(spritesData.NonShadowQuads.QuadVertices.size() / 4);
+		if (quadsCount > 0)
+		{
+			cmd->DrawIndexed(spritesData.NonShadowQuads.VertexBuffer, spritesData.NonShadowQuads.IndexBuffer, quadsCount * 6, 0, 0);
+			++stats.DrawCalls;
+		}
+
+		cmd->EndGraphics();
+	}
+
+	void RenderSpritesTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const SpriteGeometryData& spritesData, const void* vertexPushData, RenderStats& stats, const Ref<Framebuffer>& fb)
+	{
+		const uint32_t quadsCount = (uint32_t)(spritesData.QuadVertices.size() / 4);
+		if (quadsCount == 0)
+			return;
+
+		if (fb)
+			cmd->BeginGraphics(pipeline, fb);
+		else
+			cmd->BeginGraphics(pipeline);
+		cmd->SetGraphicsRootConstants(vertexPushData, nullptr);
 		cmd->DrawIndexed(spritesData.VertexBuffer, spritesData.IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 		++stats.DrawCalls;
@@ -42,10 +75,10 @@ namespace Eagle
 
 	void RenderSpritesTask::RenderOpaque(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& spritesData = m_Renderer.GetOpaqueSpritesData();
-		const auto& notCastingShadowspritesData = m_Renderer.GetOpaqueNotCastingShadowSpriteData();
+		const auto& singleSided = m_Renderer.GetSingleSidedSpritesRenderData();
+		const auto& doubleSided = m_Renderer.GetDoubleSidedSpritesRenderData();
 
-		if (spritesData.QuadVertices.empty() && notCastingShadowspritesData.QuadVertices.empty())
+		if (singleSided.Opaque.IsEmpty() && doubleSided.Opaque.IsEmpty())
 			return;
 
 		EG_CPU_TIMING_SCOPED("Render Opaque Sprites");
@@ -72,16 +105,19 @@ namespace Eagle
 		if (bJitter)
 			m_OpaquePipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
-		Draw(cmd, m_OpaquePipeline, spritesData, pushData, m_Renderer.GetStats());
-		Draw(cmd, m_OpaquePipeline, notCastingShadowspritesData, pushData, m_Renderer.GetStats());
+		cmd->SetGraphicsCullMode(CullMode::Back);
+		Draw(cmd, m_OpaquePipeline, singleSided.Opaque, &pushData, m_Renderer.GetStats());
+
+		cmd->SetGraphicsCullMode(CullMode::None);
+		Draw(cmd, m_OpaquePipeline, doubleSided.Opaque, &pushData, m_Renderer.GetStats());
 	}
 
 	void RenderSpritesTask::RenderMasked(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& spritesData = m_Renderer.GetMaskedSpritesData();
-		const auto& notCastingShadowspritesData = m_Renderer.GetMaskedNotCastingShadowSpriteData();
+		const auto& singleSided = m_Renderer.GetSingleSidedSpritesRenderData();
+		const auto& doubleSided = m_Renderer.GetDoubleSidedSpritesRenderData();
 
-		if (spritesData.QuadVertices.empty() && notCastingShadowspritesData.QuadVertices.empty())
+		if (singleSided.Masked.IsEmpty() && doubleSided.Masked.IsEmpty())
 			return;
 
 		EG_CPU_TIMING_SCOPED("Render Masked Sprites");
@@ -108,8 +144,11 @@ namespace Eagle
 		if (bJitter)
 			m_MaskedPipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
-		Draw(cmd, m_MaskedPipeline, spritesData, pushData, m_Renderer.GetStats());
-		Draw(cmd, m_MaskedPipeline, notCastingShadowspritesData, pushData, m_Renderer.GetStats());
+		cmd->SetGraphicsCullMode(CullMode::Back);
+		Draw(cmd, m_MaskedPipeline, singleSided.Masked, &pushData, m_Renderer.GetStats());
+
+		cmd->SetGraphicsCullMode(CullMode::None);
+		Draw(cmd, m_MaskedPipeline, doubleSided.Masked, &pushData, m_Renderer.GetStats());
 	}
 
 	void RenderSpritesTask::InitPipeline()
@@ -126,7 +165,7 @@ namespace Eagle
 		geometry_shading_NormalsAttachment.ClearOperation = ClearOperation::Load;
 		geometry_shading_NormalsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
 		geometry_shading_NormalsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
-		geometry_shading_NormalsAttachment.Image = gbuffer.Geometry_Shading_Normals;
+		geometry_shading_NormalsAttachment.Image = gbuffer.Normals;
 
 		ColorAttachment emissiveAttachment;
 		emissiveAttachment.ClearOperation = ClearOperation::Load;
@@ -190,7 +229,7 @@ namespace Eagle
 			state.ColorAttachments.push_back(velocityAttachment);
 		}
 		state.DepthStencilAttachment = depthAttachment;
-		state.CullMode = CullMode::Back;
+		state.CullMode = CullMode::Dynamic;
 
 		if (m_OpaquePipeline)
 			m_OpaquePipeline->SetState(state);

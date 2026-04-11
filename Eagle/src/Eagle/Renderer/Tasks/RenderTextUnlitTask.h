@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RendererTask.h"
+#include "GeometryManagerTask.h"
 #include "Eagle/Renderer/VidWrappers/PipelineGraphics.h"
 
 namespace Eagle
@@ -20,6 +21,9 @@ namespace Eagle
 			bJitter = settings.InternalState.bJitter;
 			InitPipeline();
 		}
+
+		static void Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const QuadsRenderData<UnlitTextGeometryData>::BlendModeGeomType& data, const void* pushData, RenderStats& stats);
+		static void Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const UnlitTextGeometryData& data, const void* pushData, RenderStats& stats, const Ref<Framebuffer>& fb);
 
 	private:
 		void InitPipeline();

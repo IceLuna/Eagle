@@ -366,7 +366,7 @@ namespace Eagle
 		geometry_shading_NormalsAttachment.ClearOperation = ClearOperation::Load;
 		geometry_shading_NormalsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
 		geometry_shading_NormalsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
-		geometry_shading_NormalsAttachment.Image = gbuffer.Geometry_Shading_Normals;
+		geometry_shading_NormalsAttachment.Image = gbuffer.Normals;
 
 		PipelineGraphicsState state;
 		state.VertexShader = Shader::Create("decals.vert", ShaderType::Vertex);

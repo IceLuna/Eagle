@@ -30,7 +30,7 @@ namespace Eagle
 
 		const ImageLayout colorLayout = color->GetLayout();
 		const ImageLayout depthLayout = gbuffer.Depth->GetLayout();
-		const ImageLayout normalsLayout = gbuffer.Geometry_Shading_Normals->GetLayout();
+		const ImageLayout normalsLayout = gbuffer.Normals->GetLayout();
 		const ImageLayout albedoLayout = gbuffer.Albedo->GetLayout();
 		const ImageLayout materialLayout = gbuffer.MaterialData->GetLayout();
 		const ImageLayout depthHistoryLayout = gbuffer.DepthHistory->GetLayout();
@@ -39,14 +39,14 @@ namespace Eagle
 
 		cmd->TransitionLayout(color, colorLayout, ImageLayoutType::StorageImage);
 		cmd->TransitionLayout(gbuffer.Depth, depthLayout, ImageReadAccess::PixelShaderRead);
-		cmd->TransitionLayout(gbuffer.Geometry_Shading_Normals, normalsLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(gbuffer.Normals, normalsLayout, ImageReadAccess::PixelShaderRead);
 		cmd->TransitionLayout(gbuffer.Albedo, albedoLayout, ImageReadAccess::PixelShaderRead);
 		cmd->TransitionLayout(gbuffer.MaterialData, materialLayout, ImageReadAccess::PixelShaderRead);
 		cmd->TransitionLayout(gbuffer.DepthHistory, depthHistoryLayout, ImageReadAccess::PixelShaderRead);
 		cmd->TransitionLayout(gbuffer.NormalsHistory, normalsHistoryLayout, ImageReadAccess::PixelShaderRead);
 		cmd->TransitionLayout(gbuffer.Motion, motionLayout, ImageReadAccess::PixelShaderRead);
 
-		//Geometry_Shading_Normals
+		//Normals
 		//Albedo
 		//MaterialData
 
@@ -79,7 +79,7 @@ namespace Eagle
 
 		cmd->TransitionLayout(color, ImageLayoutType::StorageImage, colorLayout);
 		cmd->TransitionLayout(gbuffer.Depth, ImageReadAccess::PixelShaderRead, depthLayout);
-		cmd->TransitionLayout(gbuffer.Geometry_Shading_Normals, ImageReadAccess::PixelShaderRead, normalsLayout);
+		cmd->TransitionLayout(gbuffer.Normals, ImageReadAccess::PixelShaderRead, normalsLayout);
 		cmd->TransitionLayout(gbuffer.Albedo, ImageReadAccess::PixelShaderRead, albedoLayout);
 		cmd->TransitionLayout(gbuffer.MaterialData, ImageReadAccess::PixelShaderRead, materialLayout);
 		cmd->TransitionLayout(gbuffer.DepthHistory, ImageReadAccess::PixelShaderRead, depthHistoryLayout);
@@ -117,7 +117,7 @@ namespace Eagle
 		m_ClassifyPipeline->SetBuffer(m_DenoiserTileList, 0, 3);
 		m_ClassifyPipeline->SetBuffer(m_RayList, 0, 4);
 		m_ClassifyPipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 5);
-		m_ClassifyPipeline->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 6);
+		m_ClassifyPipeline->SetImageSampler(gbuffer.Normals, Sampler::PointSamplerClamp, 0, 6);
 		m_ClassifyPipeline->SetImageSampler(gbuffer.MaterialData, Sampler::PointSamplerClamp, 0, 7);
 		m_ClassifyPipeline->SetImage(m_Radiance[m_PingPong], 0, 8);
 		m_ClassifyPipeline->SetImage(m_Roughness, 0, 9);
@@ -237,7 +237,7 @@ namespace Eagle
 
 		auto& gbuffer = m_Renderer.GetGBuffer();
 		m_IntersectionPipeline->SetBuffer(m_Uniform, 0, 0);
-		m_IntersectionPipeline->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 1);
+		m_IntersectionPipeline->SetImageSampler(gbuffer.Normals, Sampler::PointSamplerClamp, 0, 1);
 		m_IntersectionPipeline->SetImageSampler(RenderManager::GetBlueNoise()->GetImage(), Sampler::PointSamplerClamp, 0, 2);
 		m_IntersectionPipeline->SetImage(m_Renderer.GetHDROutput(), 0, 3);
 		m_IntersectionPipeline->SetImage(m_Radiance[m_PingPong], 0, 4);
@@ -276,7 +276,7 @@ namespace Eagle
 		m_ReprojectPipeline->SetImageSampler(m_Radiance[m_PingPong], Sampler::PointSamplerClamp, 0, 3);
 		m_ReprojectPipeline->SetImageSampler(m_Radiance[1 - m_PingPong], Sampler::PointSamplerClamp, 0, 4);
 		m_ReprojectPipeline->SetImageSampler(m_SampleCount[1 - m_PingPong], Sampler::PointSamplerClamp, 0, 5);
-		m_ReprojectPipeline->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 6);
+		m_ReprojectPipeline->SetImageSampler(gbuffer.Normals, Sampler::PointSamplerClamp, 0, 6);
 		m_ReprojectPipeline->SetImageSampler(gbuffer.NormalsHistory, Sampler::PointSamplerClamp, 0, 7);
 		m_ReprojectPipeline->SetImageSampler(m_Roughness, Sampler::PointSamplerClamp, 0, 8);
 		m_ReprojectPipeline->SetImageSampler(m_RoughnessHistory, Sampler::PointSamplerClamp, 0, 9);
@@ -337,7 +337,7 @@ namespace Eagle
 		m_PrefilterPipeline->SetImageSampler(m_Variance[m_PingPong], Sampler::PointSamplerClamp, 0, 2);
 		m_PrefilterPipeline->SetImageSampler(m_AverageRadiance[m_PingPong], Sampler::PointSamplerClamp, 0, 3);
 		m_PrefilterPipeline->SetImageSampler(m_Roughness, Sampler::PointSamplerClamp, 0, 4);
-		m_PrefilterPipeline->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 5);
+		m_PrefilterPipeline->SetImageSampler(gbuffer.Normals, Sampler::PointSamplerClamp, 0, 5);
 		m_PrefilterPipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 6);
 		m_PrefilterPipeline->SetBuffer(m_DenoiserTileList, 0, 7);
 		m_PrefilterPipeline->SetImage(m_Radiance[1 - m_PingPong], 0, 8);
@@ -409,7 +409,7 @@ namespace Eagle
 
 		auto& gbuffer = m_Renderer.GetGBuffer();
 		m_CompositePipeline->SetImage(m_Radiance[m_PingPong], 0, 0);
-		m_CompositePipeline->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 1);
+		m_CompositePipeline->SetImageSampler(gbuffer.Normals, Sampler::PointSamplerClamp, 0, 1);
 		m_CompositePipeline->SetImageSampler(gbuffer.Albedo, Sampler::PointSamplerClamp, 0, 2);
 		m_CompositePipeline->SetImageSampler(gbuffer.MaterialData, Sampler::PointSamplerClamp, 0, 3);
 		m_CompositePipeline->SetImageSampler(RenderManager::GetBRDFLUTImage(), Sampler::PointSamplerClamp, 0, 4);

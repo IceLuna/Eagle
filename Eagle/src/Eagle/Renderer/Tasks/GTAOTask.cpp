@@ -60,8 +60,8 @@ namespace Eagle
 		const ImageLayout oldDepthLayout = gBuffer.Depth->GetLayout();
 		cmd->TransitionLayout(gBuffer.Depth, oldDepthLayout, ImageReadAccess::PixelShaderRead);
 
-		const ImageLayout oldNormalsLayout = gBuffer.Geometry_Shading_Normals->GetLayout();
-		cmd->TransitionLayout(gBuffer.Geometry_Shading_Normals, oldNormalsLayout, ImageReadAccess::PixelShaderRead);
+		const ImageLayout oldNormalsLayout = gBuffer.Normals->GetLayout();
+		cmd->TransitionLayout(gBuffer.Normals, oldNormalsLayout, ImageReadAccess::PixelShaderRead);
 
 		const ImageLayout oldMotionLayout = gBuffer.Motion->GetLayout();
 		cmd->TransitionLayout(gBuffer.Motion, oldMotionLayout, ImageReadAccess::PixelShaderRead);
@@ -72,7 +72,7 @@ namespace Eagle
 		CopyToPrev(cmd);
 
 		cmd->TransitionLayout(gBuffer.Depth, gBuffer.Depth->GetLayout(), oldDepthLayout);
-		cmd->TransitionLayout(gBuffer.Geometry_Shading_Normals, gBuffer.Geometry_Shading_Normals->GetLayout(), oldNormalsLayout);
+		cmd->TransitionLayout(gBuffer.Normals, gBuffer.Normals->GetLayout(), oldNormalsLayout);
 		cmd->TransitionLayout(gBuffer.Motion, gBuffer.Motion->GetLayout(), oldMotionLayout);
 	}
 
@@ -129,7 +129,7 @@ namespace Eagle
 		pushData.RadRotationTemporal = aRotation[frameNumber % 6];
 
 		m_GTAOPipeline->SetImageSampler(m_HalfDepth, Sampler::PointSamplerClamp, 0, 0);
-		m_GTAOPipeline->SetImageSampler(m_Renderer.GetGBuffer().Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 1);
+		m_GTAOPipeline->SetImageSampler(m_Renderer.GetGBuffer().Normals, Sampler::PointSamplerClamp, 0, 1);
 		m_GTAOPipeline->SetImage(m_GTAOPassImage, 0, 2);
 
 		cmd->TransitionLayout(m_GTAOPassImage, m_GTAOPassImage->GetLayout(), ImageLayoutType::StorageImage);

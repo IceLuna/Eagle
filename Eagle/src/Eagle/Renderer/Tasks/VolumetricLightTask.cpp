@@ -97,7 +97,7 @@ namespace Eagle
 		const auto& gbuffer = m_Renderer.GetGBuffer();
 		m_Pipeline->SetImage(m_VolumetricsImage, 0, 0);
 		m_Pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSampler, 0, 1);
-		m_Pipeline->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSampler, 0, 2);
+		m_Pipeline->SetImageSampler(gbuffer.Normals, Sampler::PointSampler, 0, 2);
 		m_Pipeline->SetBuffer(m_Renderer.GetPointLightsBuffer(), EG_SCENE_SET, 0);
 		m_Pipeline->SetBuffer(m_Renderer.GetSpotLightsBuffer(), EG_SCENE_SET, 1);
 		m_Pipeline->SetBuffer(m_Renderer.GetDirectionalLightBuffer(), EG_SCENE_SET, 2);
@@ -122,11 +122,11 @@ namespace Eagle
 
 		const ImageLayout resultLayout = input->GetLayout();
 		const ImageLayout depthLayout = gbuffer.Depth->GetLayout();
-		const ImageLayout normalsLayout = gbuffer.Geometry_Shading_Normals->GetLayout();
+		const ImageLayout normalsLayout = gbuffer.Normals->GetLayout();
 
 		cmd->TransitionLayout(input, resultLayout, ImageLayoutType::StorageImage);
 		cmd->TransitionLayout(gbuffer.Depth, depthLayout, ImageReadAccess::PixelShaderRead);
-		cmd->TransitionLayout(gbuffer.Geometry_Shading_Normals, normalsLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(gbuffer.Normals, normalsLayout, ImageReadAccess::PixelShaderRead);
 
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Volumetric Lighting");
@@ -138,7 +138,7 @@ namespace Eagle
 			++stats.Dispatches;
 		}
 		cmd->TransitionLayout(gbuffer.Depth, ImageReadAccess::PixelShaderRead, depthLayout);
-		cmd->TransitionLayout(gbuffer.Geometry_Shading_Normals, ImageReadAccess::PixelShaderRead, normalsLayout);
+		cmd->TransitionLayout(gbuffer.Normals, ImageReadAccess::PixelShaderRead, normalsLayout);
 
 		struct PushDataComp
 		{

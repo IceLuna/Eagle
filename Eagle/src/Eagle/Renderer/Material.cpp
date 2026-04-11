@@ -49,10 +49,10 @@ namespace Eagle
 		return material;
 	}
 
-	void Material::OnMaterialChanged(bool bBlendModeChanged)
+	void Material::OnMaterialChanged(bool bRenderModeChanged)
 	{
 		auto thisMaterial = shared_from_this();
-		MaterialSystem::OnMaterialChanged(thisMaterial, bBlendModeChanged);
+		MaterialSystem::OnMaterialChanged(thisMaterial, bRenderModeChanged);
 
 		for (auto& [_, callback] : m_Callbacks)
 			callback();

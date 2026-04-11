@@ -62,11 +62,7 @@ void main()
     o_ReceivesDecals = (a_TransformIndex & EG_RECEIVES_DECALS_MASK) == EG_RECEIVES_DECALS_MASK ? 1u : 0u;
 
     const mat3 normalModel = mat3(transpose(inverse(model)));
-    vec3 worldNormal = normalize(normalModel * s_Normal);
-    const bool bInvert = (gl_VertexIndex % 8u) >= 4;
-    if (bInvert)
-        worldNormal = -worldNormal;
-    o_Normal = worldNormal;
+    const vec3 worldNormal = normalize(normalModel * s_Normal);
 
     const uint normalTextureIndex = FetchMaterialNormalTextureIndex(materialIndex);
     if (normalTextureIndex != EG_INVALID_INDEX)
@@ -76,6 +72,7 @@ void main()
         o_TBN = mat3(worldTangent, worldBitangent, worldNormal);
     }
 
+    o_Normal = worldNormal;
     o_TexCoords = a_TexCoords;
     o_MaterialIndex  = materialIndex;
     o_EntityID = a_EntityID;

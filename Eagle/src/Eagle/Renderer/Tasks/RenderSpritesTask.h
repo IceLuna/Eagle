@@ -1,14 +1,13 @@
 #pragma once
 
 #include "RendererTask.h"
+#include "GeometryManagerTask.h"
 #include "Eagle/Renderer/VidWrappers/PipelineGraphics.h"
 
 struct CPUMaterial;
 
 namespace Eagle
 {
-	struct SpriteGeometryData;
-
 	class RenderSpritesTask : public RendererTask
 	{
 	public:
@@ -34,12 +33,8 @@ namespace Eagle
 
 		void InitPipeline();
 
-		struct PushData
-		{
-			glm::mat4 ViewProj;
-			glm::mat4 PrevViewProj;
-		};
-		static void Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const SpriteGeometryData& spritesData, const PushData& pushData, RenderStats& stats);
+		static void Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const QuadsRenderData<SpriteGeometryData>::BlendModeGeomType& spritesData, const void* vertexPushData, RenderStats& stats);
+		static void Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const SpriteGeometryData& spritesData, const void* vertexPushData, RenderStats& stats, const Ref<Framebuffer>& fb = nullptr);
 
 	private:
 		void RenderOpaque(const Ref<CommandBuffer>& cmd);

@@ -34,10 +34,8 @@ namespace Eagle
 
 	void DepthPrepassTask::RenderSprites(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& spritesData = m_Renderer.GetOpaqueSpritesData();
-		const auto& notCastingShadowspritesData = m_Renderer.GetOpaqueNotCastingShadowSpriteData();
-
-		if (spritesData.QuadVertices.empty() && notCastingShadowspritesData.QuadVertices.empty())
+		const auto& singleSided = m_Renderer.GetSingleSidedSpritesRenderData();
+		if (singleSided.Opaque.IsEmpty())
 		{
 			return;
 		}
@@ -47,13 +45,11 @@ namespace Eagle
 
 		m_SpritesPipeline->SetBuffer(m_Renderer.GetSpritesTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
 
-		RenderSpritesTask::PushData pushData;
-		pushData.ViewProj = m_Renderer.GetViewProjection();
+		const auto& vp = m_Renderer.GetViewProjection();
 		if (bJitter)
 			m_SpritesPipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
-		RenderSpritesTask::Draw(cmd, m_SpritesPipeline, spritesData, pushData, m_Renderer.GetStats());
-		RenderSpritesTask::Draw(cmd, m_SpritesPipeline, notCastingShadowspritesData, pushData, m_Renderer.GetStats());
+		RenderSpritesTask::Draw(cmd, m_SpritesPipeline, singleSided.Opaque, glm::value_ptr(vp), m_Renderer.GetStats());
 	}
 
 	void DepthPrepassTask::RenderStaticMeshes(const Ref<CommandBuffer>& cmd)

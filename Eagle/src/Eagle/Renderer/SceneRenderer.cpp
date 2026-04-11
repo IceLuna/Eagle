@@ -235,7 +235,7 @@ namespace Eagle
 			if (renderer->m_GBuffer.DepthHistory)
 				cmd->CopyImage(renderer->m_GBuffer.Depth, renderer->m_GBuffer.DepthHistory, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
 			if (renderer->m_GBuffer.NormalsHistory)
-				cmd->CopyImage(renderer->m_GBuffer.Geometry_Shading_Normals, renderer->m_GBuffer.NormalsHistory, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+				cmd->CopyImage(renderer->m_GBuffer.Normals, renderer->m_GBuffer.NormalsHistory, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
 
 			renderer->m_Images2DTask->RecordCommandBuffer(cmd);
 			renderer->m_Text2DTask->RecordCommandBuffer(cmd);
@@ -523,7 +523,7 @@ namespace Eagle
 		normalSpecs.Layout = ImageLayoutType::RenderTarget;
 		normalSpecs.Size = size;
 		normalSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc;
-		Geometry_Shading_Normals = Image::Create(normalSpecs, "GBuffer_Geometry_Shading_Normals");
+		Normals = Image::Create(normalSpecs, "GBuffer_Geometry_Shading_Normals");
 
 		ImageSpecifications emissiveSpecs;
 		emissiveSpecs.Format = ImageFormat::R11G11B10_Float;
@@ -602,9 +602,9 @@ namespace Eagle
 			if (!NormalsHistory)
 			{
 				ImageSpecifications specs;
-				specs.Format = Geometry_Shading_Normals->GetFormat();
+				specs.Format = Normals->GetFormat();
 				specs.Size = size;
-				specs.Usage = Geometry_Shading_Normals->GetUsage() | ImageUsage::TransferDst;
+				specs.Usage = Normals->GetUsage() | ImageUsage::TransferDst;
 				specs.Layout = ImageReadAccess::PixelShaderRead;
 				NormalsHistory = Image::Create(specs, "GBuffer_NormalsHistory");
 			}
@@ -619,7 +619,7 @@ namespace Eagle
 	{
 		Albedo->Resize(size);
 		MaterialData->Resize(size);
-		Geometry_Shading_Normals->Resize(size);
+		Normals->Resize(size);
 		Emissive->Resize(size);
 		ObjectID->Resize(size);
 		if (ObjectIDCopy)
@@ -656,7 +656,7 @@ namespace Eagle
 
 		// Note: I think there's no need to clear these buffers.
 		//cmd->ClearColorImage(Albedo, glm::vec4(0), Albedo->GetLayout(), ImageReadAccess::PixelShaderRead);
-		//cmd->ClearColorImage(Geometry_Shading_Normals, glm::vec4(0), Geometry_Shading_Normals->GetLayout(), ImageReadAccess::PixelShaderRead);
+		//cmd->ClearColorImage(Normals, glm::vec4(0), Normals->GetLayout(), ImageReadAccess::PixelShaderRead);
 		//cmd->ClearColorImage(Emissive, glm::vec4(0), Emissive->GetLayout(), ImageReadAccess::PixelShaderRead);
 		//cmd->ClearColorImage(MaterialData, glm::vec4(0), MaterialData->GetLayout(), ImageReadAccess::PixelShaderRead);
 		//cmd->ClearColorImage(Flags, glm::vec4(0), Flags->GetLayout(), ImageReadAccess::PixelShaderRead);

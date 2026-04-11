@@ -45,13 +45,13 @@ namespace Eagle
 	private:
 		void RenderMeshesDepth(const Ref<CommandBuffer>& cmd);
 		void RenderSkeletalMeshesDepth(const Ref<CommandBuffer>& cmd);
-		void RenderSpritesDepth(const Ref<CommandBuffer>& cmd, const SpriteGeometryData& spritesData);
-		void RenderTextsDepth(const Ref<CommandBuffer>& cmd, const LitTextGeometryData& data);
+		void RenderSpritesDepth(const Ref<CommandBuffer>& cmd);
+		void RenderTextsDepth(const Ref<CommandBuffer>& cmd);
 
 		void RenderMeshesColor(const Ref<CommandBuffer>& cmd);
 		void RenderSkeletalMeshesColor(const Ref<CommandBuffer>& cmd);
-		void RenderSpritesColor(const Ref<CommandBuffer>& cmd, const SpriteGeometryData& spritesData);
-		void RenderTextsColor(const Ref<CommandBuffer>& cmd, const LitTextGeometryData& data);
+		void RenderSpritesColor(const Ref<CommandBuffer>& cmd);
+		void RenderTextsColor(const Ref<CommandBuffer>& cmd);
 
 		void CompositePass(const Ref<CommandBuffer>& cmd);
 		void RenderEntityIDs(const Ref<CommandBuffer>& cmd);

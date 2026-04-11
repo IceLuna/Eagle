@@ -48,7 +48,7 @@ namespace Eagle
 	struct GBuffer
 	{
 		Ref<Image> Albedo;
-		Ref<Image> Geometry_Shading_Normals;
+		Ref<Image> Normals; // Packed Geometry Normals are stored in XY; Packed Shading Normals are stored in ZW
 		Ref<Image> Emissive;
 		Ref<Image> MaterialData; // R: Metallness; G: AO; B: Roughness; A: Used for blending of material data when decals are used
 		Ref<Image> Flags; // R: Flags. Currently, used for `bReceivesDecals`
@@ -177,23 +177,15 @@ namespace Eagle
 		const std::vector<std::vector<glm::mat4>>& GetAnimationTransforms() const { return m_GeometryManagerTask->GetAnimationTransforms(); }
 		const std::vector<Ref<Buffer>>& GetAnimationTransformsBuffers() const { return m_GeometryManagerTask->GetAnimationTransformsBuffers(); }
 
-		const auto& GetOpaqueSpritesData() const { return m_GeometryManagerTask->GetOpaqueSpriteData(); }
-		const auto& GetOpaqueNotCastingShadowSpriteData() const { return m_GeometryManagerTask->GetOpaqueNotCastingShadowSpriteData(); }
-		const auto& GetMaskedSpritesData() const { return m_GeometryManagerTask->GetMaskedSpriteData(); }
-		const auto& GetMaskedNotCastingShadowSpriteData() const { return m_GeometryManagerTask->GetMaskedNotCastingShadowSpriteData(); }
-		const auto& GetTranslucentSpritesData() const { return m_GeometryManagerTask->GetTranslucentSpriteData(); }
-		const auto& GetTranslucentNotCastingShadowSpriteData() const { return m_GeometryManagerTask->GetTranslucentNotCastingShadowSpriteData(); }
+		const auto& GetSingleSidedSpritesRenderData() const { return m_GeometryManagerTask->GetSingleSidedSpritesRenderData(); }
+		const auto& GetDoubleSidedSpritesRenderData() const { return m_GeometryManagerTask->GetDoubleSidedSpritesRenderData(); }
 		const Ref<Buffer>& GetSpritesTransformsBuffer() const { return m_GeometryManagerTask->GetSpritesTransformBuffer(); }
 		const Ref<Buffer>& GetSpritesPrevTransformBuffer() const { return m_GeometryManagerTask->GetSpritesPrevTransformBuffer(); }
 
-		const LitTextGeometryData& GetOpaqueLitTextData() const { return m_GeometryManagerTask->GetOpaqueLitTextData(); }
-		const LitTextGeometryData& GetOpaqueLitNotCastingShadowTextData() const { return m_GeometryManagerTask->GetOpaqueLitNotCastingShadowTextData(); }
-		const LitTextGeometryData& GetMaskedLitTextData() const { return m_GeometryManagerTask->GetMaskedLitTextData(); }
-		const LitTextGeometryData& GetMaskedLitNotCastingShadowTextData() const { return m_GeometryManagerTask->GetMaskedLitNotCastingShadowTextData(); }
-		const LitTextGeometryData& GetTranslucentLitTextData() const { return m_GeometryManagerTask->GetTranslucentLitTextData(); }
-		const LitTextGeometryData& GetTranslucentLitNotCastingShadowTextData() const { return m_GeometryManagerTask->GetTranslucentLitNotCastingShadowTextData(); }
-		const UnlitTextGeometryData& GetUnlitTextData() const { return m_GeometryManagerTask->GetUnlitTextData(); }
-		const UnlitTextGeometryData& GetUnlitNotCastingShadowTextData() const { return m_GeometryManagerTask->GetUnlitNotCastingShadowTextData(); }
+		const auto& GetSingleSidedTextsRenderData() const { return m_GeometryManagerTask->GetSingleSidedTextsRenderData(); }
+		const auto& GetDoubleSidedTextsRenderData() const { return m_GeometryManagerTask->GetDoubleSidedTextsRenderData(); }
+		const auto& GetSingleSidedUnlitTextsRenderData() const { return m_GeometryManagerTask->GetSingleSidedUnlitTextsRenderData(); }
+		const auto& GetDoubleSidedUnlitTextsRenderData() const { return m_GeometryManagerTask->GetDoubleSidedUnlitTextsRenderData(); }
 		const Ref<Buffer>& GetTextsTransformsBuffer() const { return m_GeometryManagerTask->GetTextsTransformBuffer(); }
 		const Ref<Buffer>& GetTextsPrevTransformBuffer() const { return m_GeometryManagerTask->GetTextsPrevTransformBuffer(); }
 		const std::vector<Ref<Texture2D>>& GetAtlases() const { return m_GeometryManagerTask->GetAtlases(); }

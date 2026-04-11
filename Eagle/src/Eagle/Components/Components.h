@@ -898,6 +898,13 @@ namespace Eagle
 		}
 		bool IsVisible() const { return m_bVisible; }
 
+		void SetDoubleSided(bool bDoubleSided)
+		{
+			m_bDoubleSided = bDoubleSided;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+		bool IsDoubleSided() const { return m_bDoubleSided; }
+
 	private:
 		std::string m_Text = "Hello, World!";
 		Ref<AssetFont> m_FontAsset;
@@ -908,6 +915,7 @@ namespace Eagle
 		float m_Kerning = 0.0f;
 		float m_MaxWidth = 10.0f;
 
+		bool m_bDoubleSided = false; // Used if bLit == false
 		bool m_bLit = false;
 		bool m_bCastsShadows = false;
 		bool m_bReceivesDecals = true;

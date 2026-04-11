@@ -143,7 +143,8 @@ namespace Eagle
 		data.Name = timing->GetName();
 		data.Timing = timing->GetTiming();
 
-		const auto& children = timing->GetChildren();
+		// Intentional copy
+		const auto children = timing->GetChildren();
 		data.Children.reserve(children.size());
 		for (const auto& child : children)
 		{

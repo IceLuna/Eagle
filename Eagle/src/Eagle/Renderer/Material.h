@@ -68,6 +68,15 @@ namespace Eagle
 			OnMaterialChanged(true);
 		}
 
+		void SetDoubleSided(bool bDoubleSided)
+		{
+			if (this->bDoubleSided == bDoubleSided)
+				return;
+
+			this->bDoubleSided = bDoubleSided;
+			OnMaterialChanged(true);
+		}
+
 		const Ref<AssetTexture2D>& GetAlbedoAsset() const { return m_AlbedoAsset; }
 		const Ref<AssetTexture2D>& GetMetalnessAsset() const { return m_MetallnessAsset; }
 		const Ref<AssetTexture2D>& GetNormalAsset() const { return m_NormalAsset; }
@@ -103,6 +112,7 @@ namespace Eagle
 		const glm::vec3& GetEmissiveIntensity() const { return m_EmissiveIntensity; }
 		float GetTilingFactor() const { return m_TilingFactor; }
 		BlendMode GetBlendMode() const { return m_BlendMode; }
+		bool IsDoubleSided() const { return bDoubleSided; }
 
 		void AddOnModifiedCallback(const GUID& id, const std::function<void()>& func)
 		{
@@ -129,7 +139,7 @@ namespace Eagle
 		Material& operator= (const Material&) = delete;
 		Material& operator= (Material&&) = delete;
 
-		void OnMaterialChanged(bool bBlendModeChanged = false);
+		void OnMaterialChanged(bool bRenderModeChanged = false);
 
 	private:
 		std::mutex m_Mutex;
@@ -164,5 +174,6 @@ namespace Eagle
 		glm::vec3 m_EmissiveIntensity = glm::vec3(1.f);
 		float m_TilingFactor = 1.f;
 		BlendMode m_BlendMode = BlendMode::Opaque;
+		bool bDoubleSided = false;
 	};
 }

@@ -39,7 +39,7 @@ namespace Eagle
 		colorAttachment.ClearOperation = ClearOperation::Load;
 
 		ColorAttachment geometry_shading_NormalsAttachment;
-		geometry_shading_NormalsAttachment.Image = gbuffer.Geometry_Shading_Normals;
+		geometry_shading_NormalsAttachment.Image = gbuffer.Normals;
 		geometry_shading_NormalsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
 		geometry_shading_NormalsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		geometry_shading_NormalsAttachment.ClearOperation = ClearOperation::Load;
@@ -108,7 +108,7 @@ namespace Eagle
 
 		state.PerInstanceAttribs = PerInstanceAttribs;
 		state.DepthStencilAttachment = depthAttachment;
-		state.CullMode = CullMode::Back;
+		state.CullMode = CullMode::Dynamic;
 
 		if (m_OpaquePipeline)
 			m_OpaquePipeline->SetState(state);
@@ -127,6 +127,9 @@ namespace Eagle
 	void RenderSkeletalMeshesTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const std::vector<MeshDrawData>& meshes, const MeshGeometryData<SkeletalVertex>& buffers,
 		RenderStats& stats, const DataBufferView& vertexPushData, const Ref<Framebuffer>& framebuffer)
 	{
+		if (meshes.empty())
+			return;
+
 		// We're manually fetching VB & IVB data, so set the to null for the draw calls
 		static Ref<Buffer> nullBuffer = nullptr;
 
@@ -180,8 +183,9 @@ namespace Eagle
 
 	void RenderSkeletalMeshesTask::RenderOpaque(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Opaque;
-		if (meshes.empty())
+		const auto& singleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Opaque;
+		const auto& doubleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.Opaque;
+		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Render Opaque Skeletal Meshes");
@@ -213,13 +217,23 @@ namespace Eagle
 			m_OpaquePipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
 		auto& stats = m_Renderer.GetStats();
-		Draw(cmd, m_OpaquePipeline, meshes, buffers, stats);
+		if (!singleSidedMeshes.empty())
+		{
+			cmd->SetGraphicsCullMode(CullMode::Back);
+			Draw(cmd, m_OpaquePipeline, singleSidedMeshes, buffers, stats);
+		}
+		if (!doubleSidedMeshes.empty())
+		{
+			cmd->SetGraphicsCullMode(CullMode::None);
+			Draw(cmd, m_OpaquePipeline, doubleSidedMeshes, buffers, stats);
+		}
 	}
 
 	void RenderSkeletalMeshesTask::RenderMasked(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Masked;
-		if (meshes.empty())
+		const auto& singleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Masked;
+		const auto& doubleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.Masked;
+		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Render Masked Skeletal Meshes");
@@ -251,6 +265,15 @@ namespace Eagle
 			m_MaskedPipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
 		auto& stats = m_Renderer.GetStats();
-		Draw(cmd, m_MaskedPipeline, meshes, buffers, stats);
+		if (!singleSidedMeshes.empty())
+		{
+			cmd->SetGraphicsCullMode(CullMode::Back);
+			Draw(cmd, m_MaskedPipeline, singleSidedMeshes, buffers, stats);
+		}
+		if (!doubleSidedMeshes.empty())
+		{
+			cmd->SetGraphicsCullMode(CullMode::None);
+			Draw(cmd, m_MaskedPipeline, doubleSidedMeshes, buffers, stats);
+		}
 	}
 }

@@ -247,7 +247,7 @@ namespace Eagle
 	void VulkanCommandBuffer::BeginGraphics(const Ref<PipelineGraphics>& pipeline)
 	{
 		Ref<VulkanPipelineGraphics> vulkanPipeline = Cast<VulkanPipelineGraphics>(pipeline);
-		auto& state = pipeline->GetState();
+		const auto& state = pipeline->GetState();
 		m_CurrentGraphicsPipeline = vulkanPipeline;
 		m_CurrentFramebuffer.reset();
 
@@ -282,6 +282,7 @@ namespace Eagle
 		beginInfo.pClearValues = clearValues.data();
 		beginInfo.renderArea.extent = { vulkanPipeline->m_Width, vulkanPipeline->m_Height };
 		vkCmdBeginRenderPass(m_CommandBuffer, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanPipeline->m_GraphicsPipeline);
 
 		VkViewport viewport{};
 		viewport.width = float(vulkanPipeline->m_Width);
@@ -294,7 +295,11 @@ namespace Eagle
 		scissor.extent = { vulkanPipeline->m_Width, vulkanPipeline->m_Height };
 		vkCmdSetScissor(m_CommandBuffer, 0, 1, &scissor);
 
-		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanPipeline->m_GraphicsPipeline);
+		if (m_bOverrideCullMode && state.CullMode == CullMode::Dynamic)
+		{
+			vkCmdSetCullMode(m_CommandBuffer, CullModeToVulkan(m_CullMode));
+			m_bOverrideCullMode = false;
+		}
 	}
 
 	void VulkanCommandBuffer::BeginGraphics(const Ref<PipelineGraphics>& pipeline, const Ref<Framebuffer>& framebuffer)
@@ -302,7 +307,7 @@ namespace Eagle
 		m_CurrentGraphicsPipeline = Cast<VulkanPipelineGraphics>(pipeline);
 		m_CurrentFramebuffer = framebuffer;
 
-		auto& state = pipeline->GetState();
+		const auto& state = pipeline->GetState();
 
 		size_t usedResolveAttachmentsCount = std::count_if(state.ResolveAttachments.begin(), state.ResolveAttachments.end(), [](const auto& attachment) { return attachment.Image; });
 		std::vector<VkClearValue> clearValues(state.ColorAttachments.size() + usedResolveAttachmentsCount);
@@ -349,6 +354,12 @@ namespace Eagle
 		VkRect2D scissor{};
 		scissor.extent = { size.x, size.y };
 		vkCmdSetScissor(m_CommandBuffer, 0, 1, &scissor);
+
+		if (m_bOverrideCullMode && state.CullMode == CullMode::Dynamic)
+		{
+			vkCmdSetCullMode(m_CommandBuffer, CullModeToVulkan(m_CullMode));
+			m_bOverrideCullMode = false;
+		}
 	}
 
 	void VulkanCommandBuffer::EndGraphics()
@@ -586,7 +597,8 @@ namespace Eagle
 	void VulkanCommandBuffer::SetGraphicsCullMode(CullMode cullMode)
 	{
 		EG_CORE_ASSERT(cullMode != CullMode::Dynamic); // Invalid value
-		vkCmdSetCullMode(m_CommandBuffer, CullModeToVulkan(cullMode));
+		m_bOverrideCullMode = true;
+		m_CullMode = cullMode;
 	}
 
 	void VulkanCommandBuffer::TransitionLayout(const Ref<Image>& image, ImageLayout oldLayout, ImageLayout newLayout)

@@ -36,13 +36,18 @@ void main()
 	}
 #endif
 
-    const vec2 packedGeometryNormal = EncodeNormal(normalize(i_Normal));
+	const vec3 geomNormal = gl_FrontFacing ? i_Normal : -i_Normal;
+    const vec2 packedGeometryNormal = EncodeNormal(normalize(geomNormal));
 	vec2 packedShadingNormal = packedGeometryNormal;
 	if (material.NormalTextureIndex != EG_INVALID_INDEX)
 	{
+		mat3 tbn = i_TBN;
+		if (!gl_FrontFacing)
+			tbn[2] = -tbn[2]; // Flip the normal
+
 		vec3 shadingNormal = ReadTexture(material.NormalTextureIndex, uv).rgb;
 		shadingNormal = normalize(shadingNormal * 2.0 - 1.0);
-		shadingNormal = normalize(i_TBN * shadingNormal);
+		shadingNormal = normalize(tbn * shadingNormal);
 		packedShadingNormal = EncodeNormal(shadingNormal);
 	}
 

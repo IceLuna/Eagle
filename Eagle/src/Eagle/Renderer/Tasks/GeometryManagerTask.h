@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RendererTask.h"
+#include "Eagle/Renderer/VidWrappers/Buffer.h"
 #include "Eagle/Classes/StaticMesh.h"
 #include "Eagle/Classes/SkeletalMesh.h"
 #include "Eagle/Core/GUID.h"
@@ -60,6 +61,7 @@ namespace Eagle
 	class Buffer;
 	class Texture2D;
 	class SubTexture2D;
+	class Font;
 
 	struct QuadVertex
 	{
@@ -121,8 +123,42 @@ namespace Eagle
 	{
 		Ref<Buffer> VertexBuffer;
 		Ref<Buffer> IndexBuffer;
-
 		std::vector<QuadVertex> QuadVertices;
+
+		void Clear()
+		{
+			QuadVertices.clear();
+		}
+	};
+
+	template <typename GeometryDataType>
+	struct QuadsRenderData
+	{
+		struct BlendModeGeomType
+		{
+			GeometryDataType ShadowCastingQuads;
+			GeometryDataType NonShadowQuads; // Quads that don't cast shadows
+
+			bool IsEmpty() const
+			{
+				return ShadowCastingQuads.QuadVertices.empty() && NonShadowQuads.QuadVertices.empty();
+			}
+		};
+		BlendModeGeomType Opaque;
+		BlendModeGeomType Masked;
+		BlendModeGeomType Translucent;
+
+		void Clear()
+		{
+			Opaque.ShadowCastingQuads.Clear();
+			Opaque.NonShadowQuads.Clear();
+			Masked.ShadowCastingQuads.Clear();
+			Masked.NonShadowQuads.Clear();
+			Translucent.ShadowCastingQuads.Clear();
+			Translucent.NonShadowQuads.Clear();
+		}
+
+		void Init(const BufferSpecifications& vertexSpecs, const BufferSpecifications& indexSpecs, bool bOpaqueOnly = false);
 	};
 
 	struct LitTextGeometryData
@@ -130,6 +166,11 @@ namespace Eagle
 		Ref<Buffer> VertexBuffer;
 		Ref<Buffer> IndexBuffer;
 		std::vector<LitTextQuadVertex> QuadVertices;
+
+		void Clear()
+		{
+			QuadVertices.clear();
+		}
 	};
 
 	struct UnlitTextGeometryData
@@ -137,6 +178,11 @@ namespace Eagle
 		Ref<Buffer> VertexBuffer;
 		Ref<Buffer> IndexBuffer;
 		std::vector<UnlitTextQuadVertex> QuadVertices;
+
+		void Clear()
+		{
+			QuadVertices.clear();
+		}
 	};
 
 	struct MeshInstance
@@ -171,25 +217,34 @@ namespace Eagle
 
 	struct MeshesDrawLists
 	{
-		// All meshes
-		std::vector<MeshDrawData> Opaque;
-		std::vector<MeshDrawData> Translucent;
-		std::vector<MeshDrawData> Masked;
+		struct
+		{
+			// All meshes
+			std::vector<MeshDrawData> Opaque;
+			std::vector<MeshDrawData> Translucent;
+			std::vector<MeshDrawData> Masked;
 
-		// Shadow casting only
-		std::vector<MeshDrawData> ShadowCastingOpaque;
-		std::vector<MeshDrawData> ShadowCastingTranslucent;
-		std::vector<MeshDrawData> ShadowCastingMasked;
+			// Shadow casting only
+			std::vector<MeshDrawData> ShadowCastingOpaque;
+			std::vector<MeshDrawData> ShadowCastingTranslucent;
+			std::vector<MeshDrawData> ShadowCastingMasked;
+
+			void Clear()
+			{
+				Opaque.clear();
+				Translucent.clear();
+				Masked.clear();
+
+				ShadowCastingOpaque.clear();
+				ShadowCastingTranslucent.clear();
+				ShadowCastingMasked.clear();
+			}
+		} SingleSided, DoubleSided;
 
 		void Clear()
 		{
-			Opaque.clear();
-			Translucent.clear();
-			Masked.clear();
-
-			ShadowCastingOpaque.clear();
-			ShadowCastingTranslucent.clear();
-			ShadowCastingMasked.clear();
+			SingleSided.Clear();
+			DoubleSided.Clear();
 		}
 	};
 
@@ -201,6 +256,34 @@ namespace Eagle
 		bool bAtlas = false;
 		bool bCastsShadows = true;
 		bool bReceivesDecals = true;
+	};
+
+	struct LitTextData
+	{
+		Ref<Material> Material;
+		std::u32string Text;
+		Ref<Font> Font;
+		int EntityID;
+		float LineHeightOffset;
+		float KerningOffset;
+		float MaxWidth;
+		uint32_t TransformIndex;
+		uint32_t MaterialIndex;
+		bool bCastsShadows = false;
+	};
+
+	struct UnlitTextData
+	{
+		glm::vec3 Color;
+		std::u32string Text;
+		Ref<Font> Font;
+		int EntityID;
+		float LineHeightOffset;
+		float KerningOffset;
+		float MaxWidth;
+		uint32_t TransformIndex;
+		bool bCastsShadows = false;
+		bool bDoubleSided = false;
 	};
 
 	class GeometryManagerTask : public RendererTask
@@ -243,24 +326,16 @@ namespace Eagle
 		const std::vector<Ref<Buffer>>& GetAnimationTransformsBuffers() const { return m_AnimationTransformsBuffers; }
 
 		// Sprite getters
-		const SpriteGeometryData& GetOpaqueSpriteData() const { return m_OpaqueSpritesData; }
-		const SpriteGeometryData& GetOpaqueNotCastingShadowSpriteData() const { return m_OpaqueNonShadowSpritesData; }
-		const SpriteGeometryData& GetMaskedSpriteData() const { return m_MaskedSpritesData; }
-		const SpriteGeometryData& GetMaskedNotCastingShadowSpriteData() const { return m_MaskedNonShadowSpritesData; }
-		const SpriteGeometryData& GetTranslucentSpriteData() const { return m_TranslucentSpritesData; }
-		const SpriteGeometryData& GetTranslucentNotCastingShadowSpriteData() const { return m_TranslucentNonShadowSpritesData; }
+		const QuadsRenderData<SpriteGeometryData>& GetSingleSidedSpritesRenderData() const { return m_SingleSidedSprites; }
+		const QuadsRenderData<SpriteGeometryData>& GetDoubleSidedSpritesRenderData() const { return m_DoubleSidedSprites; }
 		const Ref<Buffer>& GetSpritesTransformBuffer() const { return m_SpritesTransformsBuffer; }
 		const Ref<Buffer>& GetSpritesPrevTransformBuffer() const { return m_SpritesPrevTransformsBuffer; }
 
 		// Text getters
-		const LitTextGeometryData& GetOpaqueLitTextData() const { return m_OpaqueLitTextData; }
-		const LitTextGeometryData& GetOpaqueLitNotCastingShadowTextData() const { return m_OpaqueLitNonShadowTextData; }
-		const LitTextGeometryData& GetMaskedLitTextData() const { return m_MaskedLitTextData; }
-		const LitTextGeometryData& GetMaskedLitNotCastingShadowTextData() const { return m_MaskedLitNonShadowTextData; }
-		const LitTextGeometryData& GetTranslucentLitTextData() const { return m_TranslucentLitTextData; }
-		const LitTextGeometryData& GetTranslucentLitNotCastingShadowTextData() const { return m_TranslucentNonShadowLitTextData; }
-		const UnlitTextGeometryData& GetUnlitTextData() const { return m_UnlitTextData; }
-		const UnlitTextGeometryData& GetUnlitNotCastingShadowTextData() const { return m_UnlitNonShadowTextData; }
+		const QuadsRenderData<LitTextGeometryData>& GetSingleSidedTextsRenderData() const { return m_SingleSidedTexts; }
+		const QuadsRenderData<LitTextGeometryData>& GetDoubleSidedTextsRenderData() const { return m_DoubleSidedTexts; }
+		const QuadsRenderData<UnlitTextGeometryData>& GetSingleSidedUnlitTextsRenderData() const { return m_SingleSidedUnlitTexts; }
+		const QuadsRenderData<UnlitTextGeometryData>& GetDoubleSidedUnlitTextsRenderData() const { return m_DoubleSidedUnlitTexts; }
 		const Ref<Buffer>& GetTextsTransformBuffer() const { return m_TextTransformsBuffer; }
 		const Ref<Buffer>& GetTextsPrevTransformBuffer() const { return m_TextPrevTransformsBuffer; }
 		const std::vector<Ref<Texture2D>>& GetAtlases() const { return m_Atlases; }
@@ -276,14 +351,17 @@ namespace Eagle
 
 		// ------- Sprites -------
 		void SortSprites();
-		void UploadSprites(const Ref<CommandBuffer>& cmd, SpriteGeometryData& spritesData);
+		void UploadSprites(const Ref<CommandBuffer>& cmd, const SpriteGeometryData& spritesData);
+		void UploadSprites(const Ref<CommandBuffer>& cmd, const QuadsRenderData<SpriteGeometryData>& spritesData);
 		static void AddQuad(std::vector<QuadVertex>& vertices, const SpriteData& sprite, const glm::mat4& transform, uint32_t transformIndex);
 		static void AddQuad(std::vector<QuadVertex>& vertices, const glm::mat4& transform, const Ref<Material>& material, uint32_t transformIndex, const glm::vec2 UVs[4], int entityID = -1);
 
 		// ------- Texts -------
-		void SortLitTexts();
-		void UploadTexts(const Ref<CommandBuffer>& cmd, LitTextGeometryData& textsData);
-		void UploadTexts(const Ref<CommandBuffer>& cmd, UnlitTextGeometryData& textsData);
+		void SortTexts();
+		void UploadTexts(const Ref<CommandBuffer>& cmd, const QuadsRenderData<LitTextGeometryData>& textsData);
+		void UploadTexts(const Ref<CommandBuffer>& cmd, const LitTextGeometryData& textsData);
+		void UploadTexts(const Ref<CommandBuffer>& cmd, const QuadsRenderData<UnlitTextGeometryData>& textsData);
+		void UploadTexts(const Ref<CommandBuffer>& cmd, const UnlitTextGeometryData& textsData);
 
 		void UploadAnimationTransforms(const Ref<CommandBuffer>& cmd);
 
@@ -325,12 +403,8 @@ namespace Eagle
 		// ------- !Skeletal Meshes -------
 
 		// ------- Sprites -------
-		SpriteGeometryData m_OpaqueSpritesData;
-		SpriteGeometryData m_OpaqueNonShadowSpritesData; // Quads that don't cast shadows
-		SpriteGeometryData m_MaskedSpritesData;
-		SpriteGeometryData m_MaskedNonShadowSpritesData; // Quads that don't cast shadows
-		SpriteGeometryData m_TranslucentSpritesData;
-		SpriteGeometryData m_TranslucentNonShadowSpritesData; // Quads that don't cast shadows
+		QuadsRenderData<SpriteGeometryData> m_SingleSidedSprites;
+		QuadsRenderData<SpriteGeometryData> m_DoubleSidedSprites;
 
 		Ref<Buffer> m_SpritesTransformsBuffer;
 		Ref<Buffer> m_SpritesPrevTransformsBuffer;
@@ -352,17 +426,14 @@ namespace Eagle
 		Ref<Buffer> m_TextPrevTransformsBuffer;
 		std::unordered_map<Ref<Texture2D>, uint32_t> m_FontAtlases;
 		std::vector<Ref<Texture2D>> m_Atlases;
-		std::unordered_map<uint32_t, Ref<Material>> m_TextMaterials; // Materials that are used by the text quads.
 
 		// ------- Lit Text 3D -------
-		LitTextGeometryData m_OpaqueLitTextData;
-		LitTextGeometryData m_OpaqueLitNonShadowTextData;
-		LitTextGeometryData m_MaskedLitTextData;
-		LitTextGeometryData m_MaskedLitNonShadowTextData;
-		LitTextGeometryData m_TranslucentLitTextData;
-		LitTextGeometryData m_TranslucentNonShadowLitTextData;
-		UnlitTextGeometryData m_UnlitTextData;
-		UnlitTextGeometryData m_UnlitNonShadowTextData;
+		std::vector<LitTextData> m_LitTexts;
+		std::vector<UnlitTextData> m_UnlitTexts;
+		QuadsRenderData<LitTextGeometryData> m_SingleSidedTexts;
+		QuadsRenderData<LitTextGeometryData> m_DoubleSidedTexts;
+		QuadsRenderData<UnlitTextGeometryData> m_SingleSidedUnlitTexts;
+		QuadsRenderData<UnlitTextGeometryData> m_DoubleSidedUnlitTexts;
 
 		std::vector<glm::mat4> m_TextTransforms;
 		std::vector<uint64_t> m_TextUploadSpecificTransforms; // Instead of uploading all transforms, upload just required transforms. uint - index to "std::vector<glm::mat4> transforms"
@@ -375,4 +446,29 @@ namespace Eagle
 
 		bool bMotionRequired = false;
 	};
+	
+	template<typename GeometryDataType>
+	inline void QuadsRenderData<GeometryDataType>::Init(const BufferSpecifications& vertexSpecs, const BufferSpecifications& indexSpecs, bool bOpaqueOnly)
+	{
+		Opaque.ShadowCastingQuads.VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D_Opaque");
+		Opaque.ShadowCastingQuads.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Opaque");
+
+		Opaque.NonShadowQuads.VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D_Opaque_NotCastingShadow");
+		Opaque.NonShadowQuads.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Opaque_NotCastingShadow");
+
+		if (bOpaqueOnly)
+			return;
+
+		Masked.ShadowCastingQuads.VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D_Masked");
+		Masked.ShadowCastingQuads.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Masked");
+
+		Masked.NonShadowQuads.VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D_Masked_NotCastingShadow");
+		Masked.NonShadowQuads.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Masked_NotCastingShadow");
+
+		Translucent.ShadowCastingQuads.VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D_Translucent");
+		Translucent.ShadowCastingQuads.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Translucent");
+
+		Translucent.NonShadowQuads.VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D_Translucent_NotCastingShadow");
+		Translucent.NonShadowQuads.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Translucent_NotCastingShadow");
+	}
 }

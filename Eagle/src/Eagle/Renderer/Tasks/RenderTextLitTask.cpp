@@ -28,14 +28,42 @@ namespace Eagle
 		InitPipeline();
 	}
 
-	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const LitTextGeometryData& data, const PushData& pushData, RenderStats& stats)
+	void RenderTextLitTask::Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const QuadsRenderData<LitTextGeometryData>::BlendModeGeomType& data, const void* vertexPushData, RenderStats& stats)
 	{
-		if (data.QuadVertices.empty())
+		if (data.IsEmpty())
 			return;
 
-		const uint32_t quadsCount = (uint32_t)(data.QuadVertices.size() / 4);
 		cmd->BeginGraphics(pipeline);
-		cmd->SetGraphicsRootConstants(&pushData, nullptr);
+		cmd->SetGraphicsRootConstants(vertexPushData, nullptr);
+
+		uint32_t quadsCount = (uint32_t)(data.ShadowCastingQuads.QuadVertices.size() / 4);
+		if (quadsCount > 0)
+		{
+			cmd->DrawIndexed(data.ShadowCastingQuads.VertexBuffer, data.ShadowCastingQuads.IndexBuffer, quadsCount * 6, 0, 0);
+			++stats.DrawCalls;
+		}
+		quadsCount = (uint32_t)(data.NonShadowQuads.QuadVertices.size() / 4);
+		if (quadsCount > 0)
+		{
+			cmd->DrawIndexed(data.NonShadowQuads.VertexBuffer, data.NonShadowQuads.IndexBuffer, quadsCount * 6, 0, 0);
+			++stats.DrawCalls;
+		}
+		
+		cmd->EndGraphics();
+	}
+
+	void RenderTextLitTask::Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const LitTextGeometryData& data, const void* vertexPushData, RenderStats& stats, const Ref<Framebuffer>& fb)
+	{
+		const uint32_t quadsCount = (uint32_t)(data.QuadVertices.size() / 4);
+		if (quadsCount == 0)
+			return;
+
+		if (fb)
+			cmd->BeginGraphics(pipeline, fb);
+		else
+			cmd->BeginGraphics(pipeline);
+
+		cmd->SetGraphicsRootConstants(vertexPushData, nullptr);
 		cmd->DrawIndexed(data.VertexBuffer, data.IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 		++stats.DrawCalls;
@@ -49,10 +77,10 @@ namespace Eagle
 
 	void RenderTextLitTask::RenderOpaque(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& data = m_Renderer.GetOpaqueLitTextData();
-		const auto& notCastingShadowsData = m_Renderer.GetOpaqueLitNotCastingShadowTextData();
+		const auto& singleSided = m_Renderer.GetSingleSidedTextsRenderData();
+		const auto& doubleSided = m_Renderer.GetDoubleSidedTextsRenderData();
 
-		if (data.QuadVertices.empty() && notCastingShadowsData.QuadVertices.empty())
+		if (singleSided.Opaque.IsEmpty() && doubleSided.Opaque.IsEmpty())
 			return;
 
 		EG_CPU_TIMING_SCOPED("Render Opaque Text3D Lit");
@@ -79,16 +107,21 @@ namespace Eagle
 		}
 		m_OpaquePipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 
-		Draw(cmd, m_OpaquePipeline, data, pushData, m_Renderer.GetStats());
-		Draw(cmd, m_OpaquePipeline, notCastingShadowsData, pushData, m_Renderer.GetStats());
+		auto& stats = m_Renderer.GetStats();
+
+		cmd->SetGraphicsCullMode(CullMode::Back);
+		Draw(cmd, m_OpaquePipeline, singleSided.Opaque, &pushData, stats);
+
+		cmd->SetGraphicsCullMode(CullMode::None);
+		Draw(cmd, m_OpaquePipeline, doubleSided.Opaque, &pushData, stats);
 	}
 
 	void RenderTextLitTask::RenderMasked(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& data = m_Renderer.GetMaskedLitTextData();
-		const auto& notCastingShadowsData = m_Renderer.GetMaskedLitNotCastingShadowTextData();
+		const auto& singleSided = m_Renderer.GetSingleSidedTextsRenderData();
+		const auto& doubleSided = m_Renderer.GetDoubleSidedTextsRenderData();
 
-		if (data.QuadVertices.empty() && notCastingShadowsData.QuadVertices.empty())
+		if (singleSided.Masked.IsEmpty() && doubleSided.Masked.IsEmpty())
 			return;
 
 		EG_CPU_TIMING_SCOPED("Render Masked Text3D Lit");
@@ -115,8 +148,12 @@ namespace Eagle
 		}
 		m_MaskedPipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 
-		Draw(cmd, m_MaskedPipeline, data, pushData, m_Renderer.GetStats());
-		Draw(cmd, m_MaskedPipeline, notCastingShadowsData, pushData, m_Renderer.GetStats());
+		auto& stats = m_Renderer.GetStats();
+		cmd->SetGraphicsCullMode(CullMode::Back);
+		Draw(cmd, m_MaskedPipeline, singleSided.Masked, &pushData, stats);
+
+		cmd->SetGraphicsCullMode(CullMode::None);
+		Draw(cmd, m_MaskedPipeline, doubleSided.Masked, &pushData, stats);
 	}
 
 	void RenderTextLitTask::InitPipeline()
@@ -133,7 +170,7 @@ namespace Eagle
 		geometry_shading_NormalsAttachment.ClearOperation = ClearOperation::Load;
 		geometry_shading_NormalsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
 		geometry_shading_NormalsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
-		geometry_shading_NormalsAttachment.Image = gbuffer.Geometry_Shading_Normals;
+		geometry_shading_NormalsAttachment.Image = gbuffer.Normals;
 
 		ColorAttachment emissiveAttachment;
 		emissiveAttachment.ClearOperation = ClearOperation::Load;
@@ -197,7 +234,7 @@ namespace Eagle
 			state.ColorAttachments.push_back(velocityAttachment);
 		}
 		state.DepthStencilAttachment = depthAttachment;
-		state.CullMode = CullMode::Back;
+		state.CullMode = CullMode::Dynamic;
 
 		if (m_OpaquePipeline)
 			m_OpaquePipeline->SetState(state);

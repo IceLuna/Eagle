@@ -1051,6 +1051,7 @@ namespace Eagle
 			out << YAML::Key << "EmissiveIntensity" << YAML::Value << material->GetEmissiveIntensity();
 			out << YAML::Key << "TilingFactor" << YAML::Value << material->GetTilingFactor();
 			out << YAML::Key << "BlendMode" << YAML::Value << Utils::GetEnumName(material->GetBlendMode());
+			out << YAML::Key << "IsDoubleSided" << YAML::Value << material->IsDoubleSided();
 		}
 		
 		out << YAML::EndMap;
@@ -2063,6 +2064,7 @@ namespace Eagle
 			out << YAML::Key << "Text" << YAML::Value << text.GetText();
 			out << YAML::Key << "Color" << YAML::Value << text.GetColor();
 			out << YAML::Key << "IsLit" << YAML::Value << text.IsLit();
+			out << YAML::Key << "IsDoubleSided" << YAML::Value << text.IsDoubleSided();
 			out << YAML::Key << "bCastsShadows" << YAML::Value << text.DoesCastShadows();
 			out << YAML::Key << "bReceivesDecals" << YAML::Value << text.DoesReceiveDecals();
 			out << YAML::Key << "IsVisible" << YAML::Value << text.IsVisible();
@@ -2735,6 +2737,8 @@ namespace Eagle
 			text.SetText(textNode["Text"].as<std::string>());
 			text.SetColor(textNode["Color"].as<glm::vec3>());
 			text.SetIsLit(textNode["IsLit"].as<bool>());
+			if (auto node = textNode["IsDoubleSided"])
+				text.SetDoubleSided(node.as<bool>());
 			if (auto node = textNode["bCastsShadows"])
 				text.SetCastsShadows(node.as<bool>());
 			if (auto node = textNode["bReceivesDecals"])
@@ -3930,6 +3934,9 @@ namespace Eagle
 
 		if (auto node = baseNode["BlendMode"])
 			material->SetBlendMode(Utils::GetEnumFromName<Material::BlendMode>(node.as<std::string>()));
+
+		if (auto node = baseNode["IsDoubleSided"])
+			material->SetDoubleSided(node.as<bool>());
 
 		class LocalAssetMaterial : public AssetMaterial
 		{

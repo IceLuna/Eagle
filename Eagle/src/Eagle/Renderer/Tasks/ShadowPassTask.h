@@ -134,6 +134,9 @@ namespace Eagle
 		Ref<PipelineGraphics> m_OpacityMPLPipeline;
 		Ref<PipelineGraphics> m_OpacityMSLPipeline;
 		Ref<PipelineGraphics> m_OpacityMDLPipeline;
+		Ref<PipelineGraphics> m_OpacityMPLPipelineClearing;
+		Ref<PipelineGraphics> m_OpacityMSLPipelineClearing;
+		Ref<PipelineGraphics> m_OpacityMDLPipelineClearing;
 
 		// For translucent meshes
 		Ref<PipelineGraphics> m_TranslucentMPLPipeline;

@@ -1491,6 +1491,12 @@ namespace Eagle
             set { SetVisible_Native(Parent.ID, value); }
         }
 
+        public bool bDoubleSided // Used only if bLit is false
+        {
+            get { return IsDoubleSided_Native(Parent.ID); }
+            set { SetDoubleSided_Native(Parent.ID, value); }
+        }
+
         public bool bLit
         {
             get { return GetIsLit_Native(Parent.ID); }
@@ -1556,6 +1562,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsVisible_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetDoubleSided_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsDoubleSided_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetMaterial_Native(in GUID entityID, out GUID assetID);
