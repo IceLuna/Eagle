@@ -166,11 +166,11 @@ namespace Eagle
 		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		colorAttachment.Image = gbuffer.Albedo;
 
-		ColorAttachment geometry_shading_NormalsAttachment;
-		geometry_shading_NormalsAttachment.ClearOperation = ClearOperation::Load;
-		geometry_shading_NormalsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
-		geometry_shading_NormalsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
-		geometry_shading_NormalsAttachment.Image = gbuffer.Normals;
+		ColorAttachment normalsAttachment;
+		normalsAttachment.ClearOperation = ClearOperation::Load;
+		normalsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		normalsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+		normalsAttachment.Image = gbuffer.Normals;
 
 		ColorAttachment emissiveAttachment;
 		emissiveAttachment.ClearOperation = ClearOperation::Load;
@@ -219,7 +219,7 @@ namespace Eagle
 		state.VertexShader = Shader::Create("text/text_lit.vert", ShaderType::Vertex, vertexDefines);
 		state.FragmentShader = Shader::Create("text/text_lit.frag", ShaderType::Fragment, fragmentDefines);
 		state.ColorAttachments.push_back(colorAttachment);
-		state.ColorAttachments.push_back(geometry_shading_NormalsAttachment);
+		state.ColorAttachments.push_back(normalsAttachment);
 		state.ColorAttachments.push_back(emissiveAttachment);
 		state.ColorAttachments.push_back(materialAttachment);
 		state.ColorAttachments.push_back(flagsAttachment);

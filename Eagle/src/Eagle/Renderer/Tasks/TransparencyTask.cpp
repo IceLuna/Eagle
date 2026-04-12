@@ -163,8 +163,8 @@ namespace Eagle
 	void TransparencyTask::RenderMeshesDepth(const Ref<CommandBuffer>& cmd)
 	{
 		const auto& drawData = m_Renderer.GetStaticMeshesDrawData();
-		const auto& singleSidedMeshes = drawData.SingleSided.Translucent;
-		const auto& doubleSidedMeshes = drawData.DoubleSided.Translucent;
+		const auto& singleSidedMeshes = drawData.SingleSided.Translucent.DrawData;
+		const auto& doubleSidedMeshes = drawData.DoubleSided.Translucent.DrawData;
 		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
 			return;
 
@@ -196,8 +196,8 @@ namespace Eagle
 
 	void TransparencyTask::RenderSkeletalMeshesDepth(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& singleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Translucent;
-		const auto& doubleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.Translucent;
+		const auto& singleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Translucent.DrawData;
+		const auto& doubleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.Translucent.DrawData;
 		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
 			return;
 
@@ -297,8 +297,8 @@ namespace Eagle
 	void TransparencyTask::RenderMeshesColor(const Ref<CommandBuffer>& cmd)
 	{
 		const auto& drawData = m_Renderer.GetStaticMeshesDrawData();
-		const auto& singleSidedMeshes = drawData.SingleSided.Translucent;
-		const auto& doubleSidedMeshes = drawData.DoubleSided.Translucent;
+		const auto& singleSidedMeshes = drawData.SingleSided.Translucent.DrawData;
+		const auto& doubleSidedMeshes = drawData.DoubleSided.Translucent.DrawData;
 		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
 			return;
 
@@ -353,8 +353,8 @@ namespace Eagle
 	
 	void TransparencyTask::RenderSkeletalMeshesColor(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& singleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Translucent;
-		const auto& doubleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.Translucent;
+		const auto& singleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Translucent.DrawData;
+		const auto& doubleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.Translucent.DrawData;
 		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
 			return;
 
@@ -552,41 +552,37 @@ namespace Eagle
 		// Meshes
 		{
 			const auto& drawData = m_Renderer.GetStaticMeshesDrawData();
-			const auto& singleSidedMeshes = drawData.SingleSided.Translucent;
-			const auto& doubleSidedMeshes = drawData.DoubleSided.Translucent;
+			const auto& singleSidedMeshes = drawData.SingleSided.Translucent.DrawData;
+			const auto& doubleSidedMeshes = drawData.DoubleSided.Translucent.DrawData;
 			const bool bNoMeshes = singleSidedMeshes.empty() && doubleSidedMeshes.empty();
 			if (!bNoMeshes)
 			{
-				const auto& meshes = m_Renderer.GetStaticMeshesDrawData().SingleSided.Translucent;
-				if (!meshes.empty())
+				EG_GPU_TIMING_SCOPED(cmd, "Transparency. Static Meshes Entity IDs");
+				EG_CPU_TIMING_SCOPED("Transparency. Static Meshes Entity IDs");
+
+				const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
+				m_MeshesEntityIDPipeline->SetBuffer(transformsBuffer, 0, 0);
+
+				const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
+				auto& stats = m_Renderer.GetStats();
+
+				if (!singleSidedMeshes.empty())
 				{
-					EG_GPU_TIMING_SCOPED(cmd, "Transparency. Static Meshes Entity IDs");
-					EG_CPU_TIMING_SCOPED("Transparency. Static Meshes Entity IDs");
-
-					const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
-					m_MeshesEntityIDPipeline->SetBuffer(transformsBuffer, 0, 0);
-
-					const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
-					auto& stats = m_Renderer.GetStats();
-
-					if (!singleSidedMeshes.empty())
-					{
-						cmd->SetGraphicsCullMode(CullMode::Back);
-						RenderMeshesTask::Draw(cmd, m_MeshesEntityIDPipeline, singleSidedMeshes, buffers, stats, glm::value_ptr(viewProj));
-					}
-					if (!doubleSidedMeshes.empty())
-					{
-						cmd->SetGraphicsCullMode(CullMode::None);
-						RenderMeshesTask::Draw(cmd, m_MeshesEntityIDPipeline, doubleSidedMeshes, buffers, stats, glm::value_ptr(viewProj));
-					}
+					cmd->SetGraphicsCullMode(CullMode::Back);
+					RenderMeshesTask::Draw(cmd, m_MeshesEntityIDPipeline, singleSidedMeshes, buffers, stats, glm::value_ptr(viewProj));
+				}
+				if (!doubleSidedMeshes.empty())
+				{
+					cmd->SetGraphicsCullMode(CullMode::None);
+					RenderMeshesTask::Draw(cmd, m_MeshesEntityIDPipeline, doubleSidedMeshes, buffers, stats, glm::value_ptr(viewProj));
 				}
 			}
 		}
 
 		// Skeletal Meshes
 		{
-			const auto& singleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Translucent;
-			const auto& doubleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.Translucent;
+			const auto& singleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Translucent.DrawData;
+			const auto& doubleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.Translucent.DrawData;
 			const bool bNoMeshes = singleSidedMeshes.empty() && doubleSidedMeshes.empty();
 			if (!bNoMeshes)
 			{

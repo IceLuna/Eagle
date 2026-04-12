@@ -54,7 +54,7 @@ namespace Eagle
 
 	void DepthPrepassTask::RenderStaticMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().SingleSided.Opaque;
+		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().SingleSided.Opaque.DrawData;
 		if (meshes.empty())
 			return;
 
@@ -74,7 +74,7 @@ namespace Eagle
 
 	void DepthPrepassTask::RenderSkeletalMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Opaque;
+		const auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Opaque.DrawData;
 		if (meshes.empty())
 			return;
 

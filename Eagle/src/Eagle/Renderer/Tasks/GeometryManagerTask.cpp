@@ -173,20 +173,20 @@ namespace Eagle
 			{
 				case Material::BlendMode::Opaque:
 				{
-					allDatas = &drawLists.Opaque;
-					shadowCastingDatas = &drawLists.ShadowCastingOpaque;
+					allDatas = &drawLists.Opaque.DrawData;
+					shadowCastingDatas = &drawLists.ShadowCastingOpaque.DrawData;
 					break;
 				}
 				case Material::BlendMode::Masked:
 				{
-					allDatas = &drawLists.Masked;
-					shadowCastingDatas = &drawLists.ShadowCastingMasked;
+					allDatas = &drawLists.Masked.DrawData;
+					shadowCastingDatas = &drawLists.ShadowCastingMasked.DrawData;
 					break;
 				}
 				case Material::BlendMode::Translucent:
 				{
-					allDatas = &drawLists.Translucent;
-					shadowCastingDatas = &drawLists.ShadowCastingTranslucent;
+					allDatas = &drawLists.Translucent.DrawData;
+					shadowCastingDatas = &drawLists.ShadowCastingTranslucent.DrawData;
 					break;
 				}
 				default:
@@ -352,12 +352,12 @@ namespace Eagle
 
 			switch (blendMode)
 			{
-				case Material::BlendMode::Opaque: return opaque;
-				case Material::BlendMode::Translucent: return translucent;
-				case Material::BlendMode::Masked: return masked;
+				case Material::BlendMode::Opaque: return opaque.DrawData;
+				case Material::BlendMode::Translucent: return translucent.DrawData;
+				case Material::BlendMode::Masked: return masked.DrawData;
 				default:
 					EG_CORE_ASSERT(false);
-					return opaque;
+					return opaque.DrawData;
 			}
 		}
 
@@ -963,6 +963,9 @@ namespace Eagle
 		ivbData.clear();
 		m_StaticMeshesDrawData.Clear();
 
+		// ProcessInstances2 is an alternative to `ProcessInstances` which is more flexible and easier to maintain/extend.
+		// But the downside is that it's slower (50us vs 150us on a test scene)
+		// Note: `ProcessInstances` doesn't support double sided materials
 		Utils::ProcessInstances2<StaticMesh>(m_StaticMeshes, &m_StaticMeshesDrawData, &ivbData);
 		//Utils::ProcessInstances(m_StaticMeshes, &m_StaticMeshesDrawData, &ivbData);
 
@@ -1095,6 +1098,9 @@ namespace Eagle
 		ivbData.clear();
 		m_SkeletalMeshesDrawData.Clear();
 
+		// ProcessInstances2 is an alternative to `ProcessInstances` which is more flexible and easier to maintain/extend.
+		// But the downside is that it's slower (50us vs 150us on a test scene).
+		// Note: `ProcessInstances` doesn't support double sided materials
 		Utils::ProcessInstances2<SkeletalMesh>(m_SkeletalMeshes, &m_SkeletalMeshesDrawData, &ivbData);
 		//Utils::ProcessInstances(m_SkeletalMeshes, &m_SkeletalMeshesDrawData, &ivbData);
 

@@ -42,11 +42,11 @@ namespace Eagle
 		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		colorAttachment.ClearOperation = ClearOperation::Load;
 
-		ColorAttachment geometry_shading_NormalsAttachment;
-		geometry_shading_NormalsAttachment.Image = gbuffer.Normals;
-		geometry_shading_NormalsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
-		geometry_shading_NormalsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
-		geometry_shading_NormalsAttachment.ClearOperation = ClearOperation::Load;
+		ColorAttachment normalsAttachment;
+		normalsAttachment.Image = gbuffer.Normals;
+		normalsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		normalsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+		normalsAttachment.ClearOperation = ClearOperation::Load;
 
 		ColorAttachment emissiveAttachment;
 		emissiveAttachment.Image = gbuffer.Emissive;
@@ -98,7 +98,7 @@ namespace Eagle
 		state.FragmentShader = Shader::Create("mesh.frag", ShaderType::Fragment, fragmentDefines);
 
 		state.ColorAttachments.push_back(colorAttachment);
-		state.ColorAttachments.push_back(geometry_shading_NormalsAttachment);
+		state.ColorAttachments.push_back(normalsAttachment);
 		state.ColorAttachments.push_back(emissiveAttachment);
 		state.ColorAttachments.push_back(materialAttachment);
 		state.ColorAttachments.push_back(flagsAttachment);
@@ -168,8 +168,8 @@ namespace Eagle
 	void RenderMeshesTask::RenderOpaque(const Ref<CommandBuffer>& cmd)
 	{
 		const auto& drawData = m_Renderer.GetStaticMeshesDrawData();
-		const auto& singleSidedMeshes = drawData.SingleSided.Opaque;
-		const auto& doubleSidedMeshes = drawData.DoubleSided.Opaque;
+		const auto& singleSidedMeshes = drawData.SingleSided.Opaque.DrawData;
+		const auto& doubleSidedMeshes = drawData.DoubleSided.Opaque.DrawData;
 		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
 			return;
 
@@ -216,8 +216,8 @@ namespace Eagle
 	void RenderMeshesTask::RenderMasked(const Ref<CommandBuffer>& cmd)
 	{
 		const auto& drawData = m_Renderer.GetStaticMeshesDrawData();
-		const auto& singleSidedMeshes = drawData.SingleSided.Masked;
-		const auto& doubleSidedMeshes = drawData.DoubleSided.Masked;
+		const auto& singleSidedMeshes = drawData.SingleSided.Masked.DrawData;
+		const auto& doubleSidedMeshes = drawData.DoubleSided.Masked.DrawData;
 		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
 			return;
 

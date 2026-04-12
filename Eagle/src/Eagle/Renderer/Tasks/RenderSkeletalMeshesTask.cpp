@@ -38,11 +38,11 @@ namespace Eagle
 		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		colorAttachment.ClearOperation = ClearOperation::Load;
 
-		ColorAttachment geometry_shading_NormalsAttachment;
-		geometry_shading_NormalsAttachment.Image = gbuffer.Normals;
-		geometry_shading_NormalsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
-		geometry_shading_NormalsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
-		geometry_shading_NormalsAttachment.ClearOperation = ClearOperation::Load;
+		ColorAttachment normalsAttachment;
+		normalsAttachment.Image = gbuffer.Normals;
+		normalsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		normalsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+		normalsAttachment.ClearOperation = ClearOperation::Load;
 
 		ColorAttachment emissiveAttachment;
 		emissiveAttachment.Image = gbuffer.Emissive;
@@ -91,7 +91,7 @@ namespace Eagle
 		state.FragmentShader = Shader::Create("mesh.frag", ShaderType::Fragment, fragmentDefines);
 
 		state.ColorAttachments.push_back(colorAttachment);
-		state.ColorAttachments.push_back(geometry_shading_NormalsAttachment);
+		state.ColorAttachments.push_back(normalsAttachment);
 		state.ColorAttachments.push_back(emissiveAttachment);
 		state.ColorAttachments.push_back(materialAttachment);
 		state.ColorAttachments.push_back(flagsAttachment);
@@ -183,8 +183,8 @@ namespace Eagle
 
 	void RenderSkeletalMeshesTask::RenderOpaque(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& singleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Opaque;
-		const auto& doubleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.Opaque;
+		const auto& singleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Opaque.DrawData;
+		const auto& doubleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.Opaque.DrawData;
 		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
 			return;
 
@@ -231,8 +231,8 @@ namespace Eagle
 
 	void RenderSkeletalMeshesTask::RenderMasked(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& singleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Masked;
-		const auto& doubleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.Masked;
+		const auto& singleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Masked.DrawData;
+		const auto& doubleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.Masked.DrawData;
 		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
 			return;
 

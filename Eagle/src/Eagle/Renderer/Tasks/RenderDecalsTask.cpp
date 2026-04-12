@@ -362,11 +362,11 @@ namespace Eagle
 		objectIDAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		objectIDAttachment.Image = gbuffer.ObjectID;
 
-		ColorAttachment geometry_shading_NormalsAttachment;
-		geometry_shading_NormalsAttachment.ClearOperation = ClearOperation::Load;
-		geometry_shading_NormalsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
-		geometry_shading_NormalsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
-		geometry_shading_NormalsAttachment.Image = gbuffer.Normals;
+		ColorAttachment normalsAttachment;
+		normalsAttachment.ClearOperation = ClearOperation::Load;
+		normalsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		normalsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+		normalsAttachment.Image = gbuffer.Normals;
 
 		PipelineGraphicsState state;
 		state.VertexShader = Shader::Create("decals.vert", ShaderType::Vertex);
@@ -384,7 +384,7 @@ namespace Eagle
 			m_Pipeline = PipelineGraphics::Create(state);
 
 		state.FragmentShader = Shader::Create("decals.frag", ShaderType::Fragment, { { "DECAL_NORMALS", "" } });
-		state.ColorAttachments.push_back(geometry_shading_NormalsAttachment);
+		state.ColorAttachments.push_back(normalsAttachment);
 		if (m_WithNormalsPipeline)
 			m_WithNormalsPipeline->SetState(state);
 		else

@@ -558,8 +558,8 @@ namespace Eagle
 
 	void ShadowPassTask::ShadowPassOpacityMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& singleSided = m_Renderer.GetStaticMeshesDrawData().SingleSided.ShadowCastingOpaque;
-		const auto& doubleSided = m_Renderer.GetStaticMeshesDrawData().DoubleSided.ShadowCastingOpaque;
+		const auto& singleSided = m_Renderer.GetStaticMeshesDrawData().SingleSided.ShadowCastingOpaque.DrawData;
+		const auto& doubleSided = m_Renderer.GetStaticMeshesDrawData().DoubleSided.ShadowCastingOpaque.DrawData;
 		if (singleSided.empty() && doubleSided.empty())
 			return;
 
@@ -663,8 +663,8 @@ namespace Eagle
 
 	void ShadowPassTask::ShadowPassTranslucentMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& singleSided = m_Renderer.GetStaticMeshesDrawData().SingleSided.ShadowCastingTranslucent;
-		const auto& doubleSided = m_Renderer.GetStaticMeshesDrawData().DoubleSided.ShadowCastingTranslucent;
+		const auto& singleSided = m_Renderer.GetStaticMeshesDrawData().SingleSided.ShadowCastingTranslucent.DrawData;
+		const auto& doubleSided = m_Renderer.GetStaticMeshesDrawData().DoubleSided.ShadowCastingTranslucent.DrawData;
 		if (singleSided.empty() && doubleSided.empty())
 			return;
 
@@ -788,8 +788,8 @@ namespace Eagle
 	
 	void ShadowPassTask::ShadowPassMaskedMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& singleSided = m_Renderer.GetStaticMeshesDrawData().SingleSided.ShadowCastingMasked;
-		const auto& doubleSided = m_Renderer.GetStaticMeshesDrawData().DoubleSided.ShadowCastingMasked;
+		const auto& singleSided = m_Renderer.GetStaticMeshesDrawData().SingleSided.ShadowCastingMasked.DrawData;
+		const auto& doubleSided = m_Renderer.GetStaticMeshesDrawData().DoubleSided.ShadowCastingMasked.DrawData;
 		if (singleSided.empty() && doubleSided.empty())
 			return;
 
@@ -911,8 +911,8 @@ namespace Eagle
 	
 	void ShadowPassTask::ShadowPassOpacitySkeletalMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& singleSided = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.ShadowCastingOpaque;
-		const auto& doubleSided = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.ShadowCastingOpaque;
+		const auto& singleSided = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.ShadowCastingOpaque.DrawData;
+		const auto& doubleSided = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.ShadowCastingOpaque.DrawData;
 		if (singleSided.empty() && doubleSided.empty())
 			return;
 
@@ -1000,8 +1000,8 @@ namespace Eagle
 
 	void ShadowPassTask::ShadowPassTranslucentSkeletalMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& singleSided = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.ShadowCastingTranslucent;
-		const auto& doubleSided = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.ShadowCastingTranslucent;
+		const auto& singleSided = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.ShadowCastingTranslucent.DrawData;
+		const auto& doubleSided = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.ShadowCastingTranslucent.DrawData;
 		if (singleSided.empty() && doubleSided.empty())
 			return;
 
@@ -1129,8 +1129,8 @@ namespace Eagle
 	
 	void ShadowPassTask::ShadowPassMaskedSkeletalMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& singleSided = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.ShadowCastingMasked;
-		const auto& doubleSided = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.ShadowCastingMasked;
+		const auto& singleSided = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.ShadowCastingMasked.DrawData;
+		const auto& doubleSided = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.ShadowCastingMasked.DrawData;
 		if (singleSided.empty() && doubleSided.empty())
 			return;
 

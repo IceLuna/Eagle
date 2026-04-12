@@ -215,29 +215,39 @@ namespace Eagle
 		std::vector<MaterialData> PerMaterialData;
 	};
 
+	struct MeshDrawDataInfo
+	{
+		std::vector<MeshDrawData> DrawData;
+		
+		void Clear()
+		{
+			DrawData.clear();
+		}
+	};
+
 	struct MeshesDrawLists
 	{
 		struct
 		{
 			// All meshes
-			std::vector<MeshDrawData> Opaque;
-			std::vector<MeshDrawData> Translucent;
-			std::vector<MeshDrawData> Masked;
+			MeshDrawDataInfo Opaque;
+			MeshDrawDataInfo Translucent;
+			MeshDrawDataInfo Masked;
 
 			// Shadow casting only
-			std::vector<MeshDrawData> ShadowCastingOpaque;
-			std::vector<MeshDrawData> ShadowCastingTranslucent;
-			std::vector<MeshDrawData> ShadowCastingMasked;
+			MeshDrawDataInfo ShadowCastingOpaque;
+			MeshDrawDataInfo ShadowCastingTranslucent;
+			MeshDrawDataInfo ShadowCastingMasked;
 
 			void Clear()
 			{
-				Opaque.clear();
-				Translucent.clear();
-				Masked.clear();
+				Opaque.Clear();
+				Translucent.Clear();
+				Masked.Clear();
 
-				ShadowCastingOpaque.clear();
-				ShadowCastingTranslucent.clear();
-				ShadowCastingMasked.clear();
+				ShadowCastingOpaque.Clear();
+				ShadowCastingTranslucent.Clear();
+				ShadowCastingMasked.Clear();
 			}
 		} SingleSided, DoubleSided;
 

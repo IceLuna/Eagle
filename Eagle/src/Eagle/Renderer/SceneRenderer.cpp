@@ -166,7 +166,7 @@ namespace Eagle
 				// we need to adjust the range so that the positions are jittered both in positiveand negative directionsand are not jittered more than the size
 				glm::vec2 jitter = RenderManager::GetHalton();
 				jitter = ((jitter - 0.5f) / glm::vec2(renderer->m_Size)) * 2.f;
-				cmd->Write(, &jitter, sizeof(glm::vec2), 0, renderer->m_Jitter->GetLayout(), BufferReadAccess::Uniform);
+				cmd->Write(renderer->m_Jitter, &jitter, sizeof(glm::vec2), 0, renderer->m_Jitter->GetLayout(), BufferReadAccess::Uniform);
 			}
 
 			// Update camera data
