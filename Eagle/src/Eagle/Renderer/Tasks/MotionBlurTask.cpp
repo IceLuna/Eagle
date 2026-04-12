@@ -43,7 +43,7 @@ namespace Eagle
 			cmd->TransitionLayout(depth, oldDepthLayout, ImageReadAccess::PixelShaderRead);
 
 			m_Tiles.EarlyExit.ThreadGroupCount = m_Tiles.Cheap.ThreadGroupCount = m_Tiles.Expensive.ThreadGroupCount = glm::uvec4(0, 1, 1, 0);
-			cmd->Write(m_DispatchArgs, &m_Tiles, sizeof(m_Tiles), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			cmd->Write(m_DispatchArgs, &m_Tiles, sizeof(m_Tiles), 0, m_DispatchArgs->GetLayout(), BufferLayoutType::StorageBuffer);
 
 			cmd->FillBuffer(m_EarlyExitTiles, 0);
 			cmd->FillBuffer(m_CheapTiles, 0);

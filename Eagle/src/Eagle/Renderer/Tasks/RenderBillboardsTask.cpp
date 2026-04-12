@@ -79,8 +79,7 @@ namespace Eagle
 			UpdateIndexBuffer(cmd);
 		}
 
-		cmd->Write(vb, m_Vertices.data(), currentVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
-		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
+		cmd->Write(vb, m_Vertices.data(), currentVertexSize, 0, vb->GetLayout(), BufferReadAccess::Vertex);
 	}
 
 	void RenderBillboardsTask::UpdateIndexBuffer(const Ref<CommandBuffer>& cmd)
@@ -101,8 +100,7 @@ namespace Eagle
 			offset += 4;
 		}
 
-		cmd->Write(m_IndexBuffer, indices.data(), ibSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
-		cmd->TransitionLayout(m_IndexBuffer, BufferReadAccess::Index, BufferReadAccess::Index);
+		cmd->Write(m_IndexBuffer, indices.data(), ibSize, 0, m_IndexBuffer->GetLayout(), BufferReadAccess::Index);
 	}
 
 	void RenderBillboardsTask::RenderBillboards(const Ref<CommandBuffer>& cmd)

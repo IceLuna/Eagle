@@ -91,8 +91,7 @@ namespace Eagle
 			vb->Resize(newSize);
 		}
 
-		cmd->Write(vb, m_Vertices.data(), currentVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
-		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
+		cmd->Write(vb, m_Vertices.data(), currentVertexSize, 0, vb->GetLayout(), BufferReadAccess::Vertex);
 	}
 
 	void RenderLinesTask::InitPipeline()

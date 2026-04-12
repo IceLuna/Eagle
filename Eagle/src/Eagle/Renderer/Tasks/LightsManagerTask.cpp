@@ -225,8 +225,7 @@ namespace Eagle
 
 			if (pointLightsDataSize)
 			{
-				cmd->Write(m_PointLightsBuffer, m_PointLights.data(), pointLightsDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-				cmd->StorageBufferBarrier(m_PointLightsBuffer);
+				cmd->Write(m_PointLightsBuffer, m_PointLights.data(), pointLightsDataSize, 0, m_PointLightsBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 			}
 			bPointLightsDirty = false;
 		}
@@ -239,13 +238,11 @@ namespace Eagle
 
 			if (spotLightsDataSize)
 			{
-				cmd->Write(m_SpotLightsBuffer, m_SpotLights.data(), spotLightsDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-				cmd->StorageBufferBarrier(m_SpotLightsBuffer);
+				cmd->Write(m_SpotLightsBuffer, m_SpotLights.data(), spotLightsDataSize, 0, m_SpotLightsBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 			}
 			bSpotLightsDirty = false;
 		}
 
-		cmd->Write(m_DirectionalLightBuffer, &m_DirectionalLight, sizeof(DirectionalLight), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-		cmd->StorageBufferBarrier(m_DirectionalLightBuffer);
+		cmd->Write(m_DirectionalLightBuffer, &m_DirectionalLight, sizeof(DirectionalLight), 0, m_DirectionalLightBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 	}
 }

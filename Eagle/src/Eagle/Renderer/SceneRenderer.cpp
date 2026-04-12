@@ -166,8 +166,7 @@ namespace Eagle
 				// we need to adjust the range so that the positions are jittered both in positiveand negative directionsand are not jittered more than the size
 				glm::vec2 jitter = RenderManager::GetHalton();
 				jitter = ((jitter - 0.5f) / glm::vec2(renderer->m_Size)) * 2.f;
-				cmd->Write(renderer->m_Jitter, &jitter, sizeof(glm::vec2), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-				cmd->Barrier(renderer->m_Jitter);
+				cmd->Write(, &jitter, sizeof(glm::vec2), 0, renderer->m_Jitter->GetLayout(), BufferReadAccess::Uniform);
 			}
 
 			// Update camera data
@@ -177,7 +176,7 @@ namespace Eagle
 				cameraData.InvViewProj = renderer->m_InvViewProjection;
 				cameraData.ViewProj = renderer->m_ViewProjection;
 				cameraData.PrevViewProj = renderer->m_PrevViewProjection;
-				cmd->Write(renderer->m_CameraDataBuffer, &cameraData, sizeof(CameraData), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
+				cmd->Write(renderer->m_CameraDataBuffer, &cameraData, sizeof(CameraData), 0, renderer->m_CameraDataBuffer->GetLayout(), BufferReadAccess::Uniform);
 			}
 
 			cmd->TransitionLayout(renderer->m_FinalImage, renderer->m_FinalImage->GetLayout(), ImageLayoutType::RenderTarget);

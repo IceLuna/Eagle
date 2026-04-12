@@ -50,8 +50,7 @@ namespace Eagle
 			m_FogData.FogMax = fogOptions.MaxDistance;
 			m_FogData.Density = fogOptions.Density;
 			m_FogData.FogEquation = fogOptions.Equation;
-			cmd->Write(m_FogDataBuffer, &m_FogData, sizeof(FogData), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-			cmd->Barrier(m_FogDataBuffer);
+			cmd->Write(m_FogDataBuffer, &m_FogData, sizeof(FogData), 0, m_FogDataBuffer->GetLayout(), BufferReadAccess::Uniform);
 		}
 
 		const auto& depth = m_Renderer.GetGBuffer().Depth;

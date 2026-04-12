@@ -93,7 +93,7 @@ namespace Eagle
 				size_t newSize = (currentTransformsSize * 3) / 2;
 				m_TransformsBuffer->Resize(newSize);
 			}
-			cmd->Write(m_TransformsBuffer, m_Transforms.data(), m_Transforms.size() * sizeof(glm::mat4), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			cmd->Write(m_TransformsBuffer, m_Transforms.data(), m_Transforms.size() * sizeof(glm::mat4), 0, m_TransformsBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 		}
 
 		if (bUpload)
@@ -129,7 +129,7 @@ namespace Eagle
 				size_t newSize = (currentInstancesSize * 3) / 2;
 				m_InstanceBuffer->Resize(newSize);
 			}
-			cmd->Write(m_InstanceBuffer, m_Decals.data(), m_Decals.size() * sizeof(DecalData), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+			cmd->Write(m_InstanceBuffer, m_Decals.data(), m_Decals.size() * sizeof(DecalData), 0, m_InstanceBuffer->GetLayout(), BufferReadAccess::Vertex);
 		}
 
 		bUpload = false;

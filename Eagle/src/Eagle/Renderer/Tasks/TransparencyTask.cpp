@@ -184,13 +184,13 @@ namespace Eagle
 		{
 			cmd->SetGraphicsCullMode(CullMode::Back);
 			RenderMeshesTask::Draw(cmd, m_MeshesDepthPipeline, singleSidedMeshes, buffers, stats);
-			cmd->StorageBufferBarrier(m_OITBuffer);
+			cmd->Barrier(m_OITBuffer);
 		}
 		if (!doubleSidedMeshes.empty())
 		{
 			cmd->SetGraphicsCullMode(CullMode::None);
 			RenderMeshesTask::Draw(cmd, m_MeshesDepthPipeline, doubleSidedMeshes, buffers, stats);
-			cmd->StorageBufferBarrier(m_OITBuffer);
+			cmd->Barrier(m_OITBuffer);
 		}
 	}
 
@@ -217,13 +217,13 @@ namespace Eagle
 		{
 			cmd->SetGraphicsCullMode(CullMode::Back);
 			RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesDepthPipeline, singleSidedMeshes, buffers, stats);
-			cmd->StorageBufferBarrier(m_OITBuffer);
+			cmd->Barrier(m_OITBuffer);
 		}
 		if (!doubleSidedMeshes.empty())
 		{
 			cmd->SetGraphicsCullMode(CullMode::None);
 			RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesDepthPipeline, doubleSidedMeshes, buffers, stats);
-			cmd->StorageBufferBarrier(m_OITBuffer);
+			cmd->Barrier(m_OITBuffer);
 		}
 	}
 
@@ -250,13 +250,13 @@ namespace Eagle
 		{
 			cmd->SetGraphicsCullMode(CullMode::Back);
 			RenderSpritesTask::Draw(cmd, m_SpritesDepthPipeline, singleSided.Translucent, nullptr, stats);
-			cmd->StorageBufferBarrier(m_OITBuffer);
+			cmd->Barrier(m_OITBuffer);
 		}
 		if (!doubleSided.Translucent.IsEmpty())
 		{
 			cmd->SetGraphicsCullMode(CullMode::None);
 			RenderSpritesTask::Draw(cmd, m_SpritesDepthPipeline, doubleSided.Translucent, nullptr, stats);
-			cmd->StorageBufferBarrier(m_OITBuffer);
+			cmd->Barrier(m_OITBuffer);
 		}
 	}
 
@@ -283,14 +283,14 @@ namespace Eagle
 		if (!singleSided.Translucent.IsEmpty())
 		{
 			RenderTextLitTask::Draw(cmd, m_TextDepthPipeline, singleSided.Translucent, glm::value_ptr(viewProj), stats);
-			cmd->StorageBufferBarrier(m_OITBuffer);
+			cmd->Barrier(m_OITBuffer);
 		}
 
 		cmd->SetGraphicsCullMode(CullMode::None);
 		if (!doubleSided.Translucent.IsEmpty())
 		{
 			RenderTextLitTask::Draw(cmd, m_TextDepthPipeline, doubleSided.Translucent, glm::value_ptr(viewProj), stats);
-			cmd->StorageBufferBarrier(m_OITBuffer);
+			cmd->Barrier(m_OITBuffer);
 		}
 	}
 	
@@ -341,13 +341,13 @@ namespace Eagle
 		{
 			cmd->SetGraphicsCullMode(CullMode::Back);
 			RenderMeshesTask::Draw(cmd, m_MeshesColorPipeline, singleSidedMeshes, buffers, stats);
-			cmd->StorageBufferBarrier(m_OITBuffer);
+			cmd->Barrier(m_OITBuffer);
 		}
 		if (!doubleSidedMeshes.empty())
 		{
 			cmd->SetGraphicsCullMode(CullMode::None);
 			RenderMeshesTask::Draw(cmd, m_MeshesColorPipeline, doubleSidedMeshes, buffers, stats);
-			cmd->StorageBufferBarrier(m_OITBuffer);
+			cmd->Barrier(m_OITBuffer);
 		}
 	}
 	
@@ -399,13 +399,13 @@ namespace Eagle
 		{
 			cmd->SetGraphicsCullMode(CullMode::Back);
 			RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesColorPipeline, singleSidedMeshes, buffers, stats);
-			cmd->StorageBufferBarrier(m_OITBuffer);
+			cmd->Barrier(m_OITBuffer);
 		}
 		if (!doubleSidedMeshes.empty())
 		{
 			cmd->SetGraphicsCullMode(CullMode::None);
 			RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesColorPipeline, doubleSidedMeshes, buffers, stats);
-			cmd->StorageBufferBarrier(m_OITBuffer);
+			cmd->Barrier(m_OITBuffer);
 		}
 	}
 
@@ -456,13 +456,13 @@ namespace Eagle
 		{
 			cmd->SetGraphicsCullMode(CullMode::Back);
 			RenderSpritesTask::Draw(cmd, m_SpritesColorPipeline, singleSided.Translucent, nullptr, stats);
-			cmd->StorageBufferBarrier(m_OITBuffer);
+			cmd->Barrier(m_OITBuffer);
 		}
 		if (!doubleSided.Translucent.IsEmpty())
 		{
 			cmd->SetGraphicsCullMode(CullMode::None);
 			RenderSpritesTask::Draw(cmd, m_SpritesColorPipeline, doubleSided.Translucent, nullptr, stats);
-			cmd->StorageBufferBarrier(m_OITBuffer);
+			cmd->Barrier(m_OITBuffer);
 		}
 	}
 
@@ -515,14 +515,14 @@ namespace Eagle
 		if (!singleSided.Translucent.IsEmpty())
 		{
 			RenderTextLitTask::Draw(cmd, m_TextColorPipeline, singleSided.Translucent, glm::value_ptr(viewProj), stats);
-			cmd->StorageBufferBarrier(m_OITBuffer);
+			cmd->Barrier(m_OITBuffer);
 		}
 
 		cmd->SetGraphicsCullMode(CullMode::None);
 		if (!doubleSided.Translucent.IsEmpty())
 		{
 			RenderTextLitTask::Draw(cmd, m_TextColorPipeline, doubleSided.Translucent, glm::value_ptr(viewProj), stats);
-			cmd->StorageBufferBarrier(m_OITBuffer);
+			cmd->Barrier(m_OITBuffer);
 		}
 	}
 

@@ -32,8 +32,7 @@ namespace Eagle
 			offset += 4;
 		}
 
-		cmd->Write(buffer, indices.data(), ibSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
-		cmd->TransitionLayout(buffer, BufferReadAccess::Index, BufferReadAccess::Index);
+		cmd->Write(buffer, indices.data(), ibSize, 0, buffer->GetLayout(), BufferReadAccess::Index);
 	}
 
 	RenderText2DTask::RenderText2DTask(SceneRenderer& renderer)
@@ -104,8 +103,7 @@ namespace Eagle
 			UploadIndexBuffer(cmd, ib);
 		}
 
-		cmd->Write(vb, quads.data(), currentVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
-		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
+		cmd->Write(vb, quads.data(), currentVertexSize, 0, vb->GetLayout(), BufferReadAccess::Vertex);
 	}
 
 	void RenderText2DTask::Render(const Ref<CommandBuffer>& cmd)

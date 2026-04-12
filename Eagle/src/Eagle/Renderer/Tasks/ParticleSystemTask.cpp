@@ -193,9 +193,9 @@ namespace Eagle
 				}
 
 				if (verticesSize > 0)
-					cmd->Write(vertexBuffer, vertices.data(), verticesSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+					cmd->Write(vertexBuffer, vertices.data(), verticesSize, 0, vertexBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 				if (indicesSize > 0)
-					cmd->Write(indexBuffer, indices.data(), indicesSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+					cmd->Write(indexBuffer, indices.data(), indicesSize, 0, indexBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 			}
 		}
 	}
@@ -458,7 +458,7 @@ namespace Eagle
 					const size_t newSize = (size * 12) / 10; // Resize policy: increase by 20%
 					m_TransformsBuffer->Resize(newSize);
 				}
-				cmd->Write(m_TransformsBuffer, m_Transforms.data(), size, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+				cmd->Write(m_TransformsBuffer, m_Transforms.data(), size, 0, m_TransformsBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 			}
 			{
 				const size_t size = m_DecompositedTransforms.size() * sizeof(DecompositedTransform);
@@ -467,7 +467,7 @@ namespace Eagle
 					const size_t newSize = (size * 12) / 10; // Resize policy: increase by 20%
 					m_DecompositedTransformsBuffer->Resize(newSize);
 				}
-				cmd->Write(m_DecompositedTransformsBuffer, m_DecompositedTransforms.data(), size, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+				cmd->Write(m_DecompositedTransformsBuffer, m_DecompositedTransforms.data(), size, 0, m_DecompositedTransformsBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 			}
 			bUpdateTransforms = false;
 		}
@@ -543,7 +543,7 @@ namespace Eagle
 				const size_t newSize = (size * 12) / 10; // Resize policy: increase by 20%
 				m_AnimationTransformsBuffer->Resize(newSize);
 			}
-			cmd->Write(m_AnimationTransformsBuffer, m_AnimationTransforms.data(), size, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			cmd->Write(m_AnimationTransformsBuffer, m_AnimationTransforms.data(), size, 0, m_AnimationTransformsBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 		}
 	}
 
@@ -595,8 +595,8 @@ namespace Eagle
 		m_PrepareData->SetBuffer(m_EmittersSpawnCountBuffer, 0, 4);
 		m_PrepareData->SetBuffer(m_TransformsBuffer, 0, 5);
 
-		cmd->TransitionLayout(m_DrawArgs, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-		cmd->TransitionLayout(m_DispatchArgs, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+		cmd->TransitionLayout(m_DrawArgs, m_DrawArgs->GetLayout(), BufferLayoutType::StorageBuffer);
+		cmd->TransitionLayout(m_DispatchArgs, m_DispatchArgs->GetLayout(), BufferLayoutType::StorageBuffer);
 
 		// Note: this pipeline is designed with num groups of (1, 1, 1) in mind.
 		// If this ever changes, the shader logic needs to be revisited. At least handling of available slots
@@ -1292,12 +1292,12 @@ namespace Eagle
 		RenderManager::Submit([dataBuffer = m_SystemData, deadIndices = m_DeadIndices, maxParticles = m_MaxParticles](const Ref<CommandBuffer>& cmd) mutable
 		{
 			ParticleSystemData systemData(maxParticles);
-			cmd->Write(dataBuffer, &systemData, sizeof(systemData), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			cmd->Write(dataBuffer, &systemData, sizeof(systemData), 0, dataBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 
 			std::vector<uint32_t> data(maxParticles);
 			for (size_t i = 0; i < maxParticles; ++i)
 				data[i] = uint32_t(i);
-			cmd->Write(deadIndices, data.data(), data.size() * sizeof(uint32_t), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			cmd->Write(deadIndices, data.data(), data.size() * sizeof(uint32_t), 0, deadIndices->GetLayout(), BufferLayoutType::StorageBuffer);
 		});
 	}
 	

@@ -117,7 +117,6 @@ namespace Eagle
 			const glm::ivec3& srcOffset, const glm::ivec3& dstOffset,
 			const glm::uvec3& size) = 0;
 
-		void StorageBufferBarrier(const Ref<Buffer>& buffer) { TransitionLayout(buffer, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer); };
 		virtual void TransitionLayout(const Ref<Buffer>& buffer, BufferLayout oldLayout, BufferLayout newLayout) = 0;
 		virtual void CopyBuffer(const Ref<Buffer>& src, const Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size) = 0;
 		virtual void CopyBufferTransitionless(const Ref<Buffer>& src, const Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size) = 0; // Doesn't transition layouts
@@ -125,7 +124,7 @@ namespace Eagle
 		virtual void FillBuffer(const Ref<Buffer>& dst, uint32_t data, size_t offset = 0, size_t numBytes = 0) = 0;
 
 		void Barrier(const Ref<Buffer>& buffer) { TransitionLayout(buffer, buffer->GetLayout(), buffer->GetLayout()); }
-		void Barrier(Ref<Image>& image) { TransitionLayout(image, image->GetLayout(), image->GetLayout()); }
+		void Barrier(const Ref<Image>& image) { TransitionLayout(image, image->GetLayout(), image->GetLayout()); }
 
 		virtual void CopyBufferToImage(const Ref<Buffer>& src, const Ref<Image>& dst, const std::vector<BufferImageCopy>& regions) = 0;
 		virtual void CopyImageToBuffer(const Ref<Image>& src, const Ref<Buffer>& dst, const std::vector<BufferImageCopy>& regions) = 0;

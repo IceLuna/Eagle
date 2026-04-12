@@ -126,7 +126,6 @@ namespace Eagle
 					cmd->CopyBuffer(gpuBuffer, prevGpuBuffer, 0, 0, gpuBuffer->GetSize());
 
 				cmd->Write(gpuBuffer, transforms.data(), currentBufferSize, 0, gpuBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
-				cmd->StorageBufferBarrier(gpuBuffer);
 
 				if (bMotionRequired && bTransformBufferGarbage)
 					cmd->CopyBuffer(gpuBuffer, prevGpuBuffer, 0, 0, gpuBuffer->GetSize());

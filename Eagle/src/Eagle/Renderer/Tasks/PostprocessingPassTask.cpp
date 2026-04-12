@@ -61,7 +61,7 @@ namespace Eagle
 		if (bAutoExposure)
 			AutoExposurePass(cmd);
 		else
-			cmd->Write(m_Exposure, &options.Exposure, sizeof(float), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			cmd->Write(m_Exposure, &options.Exposure, sizeof(float), 0, m_Exposure->GetLayout(), BufferLayoutType::StorageBuffer);
 
 		auto& intermediate = bLensEnabled ? m_Intermediate : output;
 

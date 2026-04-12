@@ -81,8 +81,7 @@ namespace Eagle
 			// Resize if needed
 			m_SamplesBuffer->Resize(newBufferSize);
 
-			cmd->Write(m_SamplesBuffer, m_Samples.data(), newBufferSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-			cmd->StorageBufferBarrier(m_SamplesBuffer);
+			cmd->Write(m_SamplesBuffer, m_Samples.data(), newBufferSize, 0, m_SamplesBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 
 			bKernelsDirty = false;
 		}

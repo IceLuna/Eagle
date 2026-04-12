@@ -46,10 +46,6 @@ namespace Eagle
 		cmd->TransitionLayout(gbuffer.NormalsHistory, normalsHistoryLayout, ImageReadAccess::PixelShaderRead);
 		cmd->TransitionLayout(gbuffer.Motion, motionLayout, ImageReadAccess::PixelShaderRead);
 
-		//Normals
-		//Albedo
-		//MaterialData
-
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "SSSR. Update uniform data");
 			EG_CPU_TIMING_SCOPED("SSSR. Update uniform data");
@@ -65,7 +61,7 @@ namespace Eagle
 			m_UniformData.PrevViewProj = m_Renderer.GetPrevViewProjection();
 			m_UniformData.RoughnessThreshold = m_Renderer.GetOptions_RT().ScreenSpaceReflections.RoughnessThreshold;
 
-			cmd->Write(m_Uniform, &m_UniformData, sizeof(m_UniformData), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
+			cmd->Write(m_Uniform, &m_UniformData, sizeof(m_UniformData), 0, m_Uniform->GetLayout(), BufferReadAccess::Uniform);
 		}
 
 		ClassifyTiles(cmd);
@@ -152,7 +148,7 @@ namespace Eagle
 		m_PreparePipeline->SetBuffer(m_RayCounter, 0, 0);
 		m_PreparePipeline->SetBuffer(m_IntersectionPassIndirectArgs, 0, 1);
 
-		cmd->TransitionLayout(m_IntersectionPassIndirectArgs, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+		cmd->TransitionLayout(m_IntersectionPassIndirectArgs, m_IntersectionPassIndirectArgs->GetLayout(), BufferLayoutType::StorageBuffer);
 
 		cmd->Dispatch(m_PreparePipeline, 1, 1, 1);
 
@@ -188,12 +184,12 @@ namespace Eagle
 			const ImageLayout srcOldLayout = depth->GetLayout();
 
 			cmd->TransitionLayout(depth, srcOldLayout, ImageReadAccess::CopySource);
-			cmd->TransitionLayout(m_TempDepthCopy, BufferLayoutType::Unknown, BufferLayoutType::CopyDest);
+			cmd->TransitionLayout(m_TempDepthCopy, m_TempDepthCopy->GetLayout(), BufferLayoutType::CopyDest);
 			cmd->CopyImageToBuffer(depth, m_TempDepthCopy, copyRegion);
 			cmd->TransitionLayout(m_TempDepthCopy, BufferLayoutType::CopyDest, BufferReadAccess::CopySource);
 			cmd->TransitionLayout(depth, ImageReadAccess::CopySource, srcOldLayout);
 
-			cmd->TransitionLayout(m_HZB, ImageLayoutType::Unknown, ImageLayoutType::CopyDest);
+			cmd->TransitionLayout(m_HZB, m_HZB->GetLayout(), ImageLayoutType::CopyDest);
 			cmd->CopyBufferToImage(m_TempDepthCopy, m_HZB, copyRegion);
 			cmd->TransitionLayout(m_HZB, ImageLayoutType::CopyDest, ImageLayoutType::StorageImage);
 		}

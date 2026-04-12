@@ -148,11 +148,8 @@ namespace Eagle
 		if (materialRawDataSize > materialRawBufferSize)
 			s_MaterialsRawBuffer->Resize((materialRawDataSize * 3) / 2);
 
-		cmd->Write(s_MaterialsBuffer, s_CPUMaterials.data(), materialDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-		cmd->StorageBufferBarrier(s_MaterialsBuffer);
-
-		cmd->Write(s_MaterialsRawBuffer, s_CPURawMaterials.data(), materialRawDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-		cmd->StorageBufferBarrier(s_MaterialsRawBuffer);
+		cmd->Write(s_MaterialsBuffer, s_CPUMaterials.data(), materialDataSize, 0, s_MaterialsBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
+		cmd->Write(s_MaterialsRawBuffer, s_CPURawMaterials.data(), materialRawDataSize, 0, s_MaterialsRawBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 
 		s_Dirty = false;
 	}
