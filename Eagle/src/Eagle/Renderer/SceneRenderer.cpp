@@ -247,6 +247,7 @@ namespace Eagle
 				renderer->m_GridTask->RecordCommandBuffer(cmd);
 
 			cmd->TransitionLayout(renderer->m_FinalImage, renderer->m_FinalImage->GetLayout(), ImageReadAccess::PixelShaderRead);
+			renderer->m_GBuffer.PrepareForReading(cmd);
 
 			// Handle object picking. Always enabled in editor mode
 			if (!renderer->IsRuntime() || options.bEnableObjectPicking)
@@ -514,42 +515,42 @@ namespace Eagle
 		colorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
 		colorSpecs.Layout = ImageLayoutType::RenderTarget;
 		colorSpecs.Size = size;
-		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferDst;
 		Albedo = Image::Create(colorSpecs, "GBuffer_Albedo");
 
 		ImageSpecifications normalSpecs;
 		normalSpecs.Format = ImageFormat::R16G16B16A16_Float;
 		normalSpecs.Layout = ImageLayoutType::RenderTarget;
 		normalSpecs.Size = size;
-		normalSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc;
+		normalSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc | ImageUsage::TransferDst;
 		Normals = Image::Create(normalSpecs, "GBuffer_Geometry_Shading_Normals");
 
 		ImageSpecifications emissiveSpecs;
 		emissiveSpecs.Format = ImageFormat::R11G11B10_Float;
 		emissiveSpecs.Layout = ImageLayoutType::RenderTarget;
 		emissiveSpecs.Size = size;
-		emissiveSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+		emissiveSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferDst;
 		Emissive = Image::Create(emissiveSpecs, "GBuffer_Emissive");
 
 		ImageSpecifications materialSpecs;
 		materialSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
 		materialSpecs.Layout = ImageLayoutType::RenderTarget;
 		materialSpecs.Size = size;
-		materialSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+		materialSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferDst;
 		MaterialData = Image::Create(materialSpecs, "GBuffer_MaterialData");
 
 		ImageSpecifications flagSpecs;
 		flagSpecs.Format = ImageFormat::R8_UNorm;
 		flagSpecs.Layout = ImageLayoutType::RenderTarget;
 		flagSpecs.Size = size;
-		flagSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+		flagSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferDst;
 		Flags = Image::Create(materialSpecs, "GBuffer_Flags");
 
 		ImageSpecifications objectIDSpecs;
 		objectIDSpecs.Format = ImageFormat::R32_SInt;
 		objectIDSpecs.Layout = ImageLayoutType::RenderTarget;
 		objectIDSpecs.Size = size;
-		objectIDSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc;
+		objectIDSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc | ImageUsage::TransferDst;
 		ObjectID = Image::Create(objectIDSpecs, "GBuffer_ObjectID");
 
 		ImageSpecifications objectIDCopySpecs;
@@ -650,15 +651,29 @@ namespace Eagle
 	void GBuffer::Clear(const Ref<CommandBuffer>& cmd)
 	{
 		cmd->ClearDepthStencilImage(Depth, 0, 0, Depth->GetLayout(), ImageLayoutType::DepthStencilWrite);
+		cmd->ClearColorImage(ObjectID, glm::uintBitsToFloat(glm::uvec4(-1)), ObjectID->GetLayout(), ImageLayoutType::RenderTarget);
 		if (Motion)
 			cmd->ClearColorImage(Motion, glm::vec4(0), Motion->GetLayout(), ImageLayoutType::RenderTarget);
 
 		// Note: I think there's no need to clear these buffers.
-		//cmd->ClearColorImage(Albedo, glm::vec4(0), Albedo->GetLayout(), ImageReadAccess::PixelShaderRead);
-		//cmd->ClearColorImage(Normals, glm::vec4(0), Normals->GetLayout(), ImageReadAccess::PixelShaderRead);
-		//cmd->ClearColorImage(Emissive, glm::vec4(0), Emissive->GetLayout(), ImageReadAccess::PixelShaderRead);
-		//cmd->ClearColorImage(MaterialData, glm::vec4(0), MaterialData->GetLayout(), ImageReadAccess::PixelShaderRead);
-		//cmd->ClearColorImage(Flags, glm::vec4(0), Flags->GetLayout(), ImageReadAccess::PixelShaderRead);
-		//cmd->ClearColorImage(ObjectID, glm::vec4(0), ObjectID->GetLayout(), ImageReadAccess::PixelShaderRead);
+		cmd->ClearColorImage(Albedo, glm::vec4(0), Albedo->GetLayout(), ImageLayoutType::RenderTarget);
+		cmd->ClearColorImage(Normals, glm::vec4(0), Normals->GetLayout(), ImageLayoutType::RenderTarget);
+		cmd->ClearColorImage(Emissive, glm::vec4(0), Emissive->GetLayout(), ImageLayoutType::RenderTarget);
+		cmd->ClearColorImage(MaterialData, glm::vec4(0), MaterialData->GetLayout(), ImageLayoutType::RenderTarget);
+		cmd->ClearColorImage(Flags, glm::vec4(0), Flags->GetLayout(), ImageLayoutType::RenderTarget);
+	}
+	
+	void GBuffer::PrepareForReading(const Ref<CommandBuffer>& cmd)
+	{
+		cmd->TransitionLayout(Depth, Depth->GetLayout(), ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(ObjectID, ObjectID->GetLayout(), ImageReadAccess::PixelShaderRead);
+		if (Motion)
+			cmd->TransitionLayout(Motion, Motion->GetLayout(), ImageReadAccess::PixelShaderRead);
+
+		cmd->TransitionLayout(Albedo, Albedo->GetLayout(), ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(Normals, Normals->GetLayout(), ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(Emissive, Emissive->GetLayout(), ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(MaterialData, MaterialData->GetLayout(), ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(Flags, Flags->GetLayout(), ImageReadAccess::PixelShaderRead);
 	}
 }

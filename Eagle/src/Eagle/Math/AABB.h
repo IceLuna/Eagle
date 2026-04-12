@@ -23,7 +23,8 @@ namespace Eagle
 		}
 
 		constexpr glm::vec3 Center() const { return (Min + Max) * 0.5f; }
-		constexpr glm::vec3 Extents() const { return Max - Min; }
+		constexpr glm::vec3 Size() const { return Max - Min; }
+		constexpr glm::vec3 Extents() const { return Size() * 0.5f; }
 		float Length() const { return glm::length(Extents()); }
 
 		void Grow(const AABB& other)
@@ -88,24 +89,21 @@ namespace Eagle
 
 		constexpr bool Contains(const glm::vec3& p) const
 		{
-			const glm::vec3 radius = Extents() * 0.5f;
-			const glm::vec3 center = Center();
-
 			return
-				(glm::abs(p.x - center.x) <= radius.x) &&
-				(glm::abs(p.y - center.y) <= radius.y) &&
-				(glm::abs(p.z - center.z) <= radius.z);
+				(p.x >= Min.x && p.x <= Max.x) &&
+				(p.y >= Min.y && p.y <= Max.y) &&
+				(p.z >= Min.z && p.z <= Max.z);
 		}
 
 		constexpr float MinSide() const
 		{
-			const glm::vec3 extents = Extents();
+			const glm::vec3 extents = Size();
 			return glm::min(extents.x, glm::min(extents.y, extents.z));
 		}
 
 		constexpr float MaxSide() const
 		{
-			const glm::vec3 extents = Extents();
+			const glm::vec3 extents = Size();
 			return glm::max(extents.x, glm::max(extents.y, extents.z));
 		}
 

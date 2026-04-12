@@ -145,9 +145,7 @@ namespace Eagle
 
 		for (const auto& data : meshes)
 		{
-			const uint32_t verticesCount = data.VerticesCount;
 			const uint32_t vertexOffset = data.VertexOffset;
-
 			for (const auto& matRenderData : data.PerMaterialData)
 			{
 				const uint32_t indicesCount = matRenderData.IndexCount;

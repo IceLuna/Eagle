@@ -237,6 +237,28 @@ namespace Eagle
 		{
 			asset->SetDirty(true);
 			asset->OnModified();
+
+			// Keep the materials
+			if (assetType == AssetType::StaticMesh)
+			{
+				Ref<AssetStaticMesh> reloadedMesh = Cast<AssetStaticMesh>(reloaded);
+				Ref<AssetStaticMesh> oldMesh = Cast<AssetStaticMesh>(asset);
+				const uint32_t matCount = glm::min(reloadedMesh->GetMesh()->GetMaterialSlotsCount(), oldMesh->GetMesh()->GetMaterialSlotsCount());
+				for (uint32_t i = 0; i < matCount; ++i)
+				{
+					reloadedMesh->GetMesh()->SetMaterialAsset(i, oldMesh->GetMesh()->GetMaterialAsset(i));
+				}
+			}
+			else if (assetType == AssetType::SkeletalMesh)
+			{
+				Ref<AssetSkeletalMesh> reloadedMesh = Cast<AssetSkeletalMesh>(reloaded);
+				Ref<AssetSkeletalMesh> oldMesh = Cast<AssetSkeletalMesh>(asset);
+				const uint32_t matCount = glm::min(reloadedMesh->GetMesh()->GetMaterialSlotsCount(), oldMesh->GetMesh()->GetMaterialSlotsCount());
+				for (uint32_t i = 0; i < matCount; ++i)
+				{
+					reloadedMesh->GetMesh()->SetMaterialAsset(i, oldMesh->GetMesh()->GetMaterialAsset(i));
+				}
+			}
 		}
 
 		Asset& reloadedRaw = *reloaded.get();

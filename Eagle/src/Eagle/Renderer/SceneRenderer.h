@@ -63,6 +63,7 @@ namespace Eagle
 		void InitOptional(const SceneRendererInternalState& optional, const glm::uvec3& size);
 		void Resize(const glm::uvec3& size);
 		void Clear(const Ref<CommandBuffer>& cmd);
+		void PrepareForReading(const Ref<CommandBuffer>& cmd);
 	};
 
 	class SceneRenderer : public std::enable_shared_from_this<SceneRenderer>

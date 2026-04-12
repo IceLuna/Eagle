@@ -24,7 +24,8 @@ namespace Eagle
         }
 
         public Vector3 Center() { return (Min + Max) * 0.5f; }
-		public Vector3 Extents() { return Max - Min; }
+		public Vector3 Size() { return Max - Min; }
+		public Vector3 Extents() { return Size() * 0.5f; }
 		public float Length() { return Mathf.Length(Extents()); }
 
 		public void Grow(AABB other)
@@ -41,24 +42,21 @@ namespace Eagle
 
 		public bool Contains(Vector3 p)
 		{
-			Vector3 radius = Extents() * 0.5f;
-			Vector3 center = Center();
-
 			return
-				(Mathf.Abs(p.X - center.X) <= radius.X) &&
-				(Mathf.Abs(p.Y - center.Y) <= radius.Y) &&
-				(Mathf.Abs(p.Z - center.Z) <= radius.Z);
+                (p.X >= Min.X && p.X <= Max.X) &&
+                (p.Y >= Min.Y && p.Y <= Max.Y) &&
+                (p.Z >= Min.Z && p.Z <= Max.Z);
 		}
 
 		public float MinSide()
 		{
-			Vector3 extents = Extents();
+			Vector3 extents = Size();
 			return Mathf.Min(extents.X, Mathf.Min(extents.Y, extents.Z));
 		}
 
 		public float MaxSide()
 		{
-			Vector3 extents = Extents();
+			Vector3 extents = Size();
 			return Mathf.Max(extents.X, Mathf.Max(extents.Y, extents.Z));
 		}
 

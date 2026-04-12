@@ -177,8 +177,9 @@ namespace Eagle
 		}
 
 		AABB aabb;
-		aabb.Min = correctedTr * glm::vec4(ToGLM(mesh->mAABB.mMin), 1.f);
-		aabb.Max = correctedTr * glm::vec4(ToGLM(mesh->mAABB.mMax), 1.f);
+		aabb.Min = glm::vec4(ToGLM(mesh->mAABB.mMin), 1.f);
+		aabb.Max = glm::vec4(ToGLM(mesh->mAABB.mMax), 1.f);
+		aabb.Transform(correctedTr);
 
 		return Utils::StaticMeshImportData{ StaticMesh::Create(vertices, { indices }, aabb), { mesh->mMaterialIndex } };
 	}
