@@ -520,6 +520,42 @@ namespace Eagle
 		vkCmdDrawIndexed(m_CommandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 	}
 
+	void VulkanCommandBuffer::DrawIndexedInstancedIndirectCount(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, const Ref<Buffer>& indirectBuffer, const Ref<Buffer>& countBuffer,
+		const Ref<Buffer>& perInstanceBuffer, uint32_t maxDrawCount, size_t indirectOffset, size_t countBufferOffset)
+	{
+		EG_CORE_ASSERT(m_CurrentGraphicsPipeline);
+		EG_CORE_ASSERT(indexBuffer->HasUsage(BufferUsage::IndexBuffer));
+
+		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
+		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+		uint32_t vertexBuffersCount = 0;
+		VkBuffer vertexBuffers[2] = { VK_NULL_HANDLE };
+		VkDeviceSize offsets[] = { 0, 0 };
+		if (vertexBuffer)
+		{
+			EG_CORE_ASSERT(vertexBuffer->HasUsage(BufferUsage::VertexBuffer));
+			vertexBuffers[vertexBuffersCount++] = (VkBuffer)vertexBuffer->GetHandle();
+		}
+		if (perInstanceBuffer)
+		{
+			EG_CORE_ASSERT(perInstanceBuffer->HasUsage(BufferUsage::VertexBuffer));
+			vertexBuffers[vertexBuffersCount++] = (VkBuffer)perInstanceBuffer->GetHandle();
+		}
+		if (vertexBuffersCount > 0)
+		{
+			vkCmdBindVertexBuffers(m_CommandBuffer, 0, vertexBuffersCount, vertexBuffers, offsets);
+		}
+
+		vkCmdBindIndexBuffer(m_CommandBuffer, (VkBuffer)indexBuffer->GetHandle(), 0, VK_INDEX_TYPE_UINT32);
+
+		const VkBuffer vkIndirect = (VkBuffer)indirectBuffer->GetHandle();
+		const VkBuffer vkCount = (VkBuffer)countBuffer->GetHandle();
+		vkCmdDrawIndexedIndirectCount(m_CommandBuffer, vkIndirect, indirectOffset,
+			vkCount, countBufferOffset, maxDrawCount, sizeof(VkDrawIndexedIndirectCommand)
+		);
+	}
+
 	void VulkanCommandBuffer::DrawIndexed(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset)
 	{
 		EG_CORE_ASSERT(m_CurrentGraphicsPipeline);
@@ -597,8 +633,18 @@ namespace Eagle
 	void VulkanCommandBuffer::SetGraphicsCullMode(CullMode cullMode)
 	{
 		EG_CORE_ASSERT(cullMode != CullMode::Dynamic); // Invalid value
-		m_bOverrideCullMode = true;
-		m_CullMode = cullMode;
+
+		if (m_CurrentGraphicsPipeline)
+		{
+			vkCmdSetCullMode(m_CommandBuffer, CullModeToVulkan(m_CullMode));
+			m_bOverrideCullMode = false;
+		}
+		else
+		{
+			// There's no graphics pipeline active. Postpone the call
+			m_bOverrideCullMode = true;
+			m_CullMode = cullMode;
+		}
 	}
 
 	void VulkanCommandBuffer::TransitionLayout(const Ref<Image>& image, ImageLayout oldLayout, ImageLayout newLayout)

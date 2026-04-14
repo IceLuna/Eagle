@@ -895,6 +895,12 @@ namespace Eagle
 						camera.SetCascadesSmoothTransitionAlpha(cascadesTransitionAlpha);
 						bEntityChanged = true;
 					}
+
+					bool bDebugFrustumCulling = cameraComponent.IsDebugFrustumCullingEnabled();
+					if (UI::Property("Use for culling", bDebugFrustumCulling, "When enabled, this camera's frustum will be used for culling. This property is not saved. Use for debug purposes only"))
+					{
+						cameraComponent.SetDebugFrustumCullingEnabled(bDebugFrustumCulling);
+					}
 					
 					UI::EndPropertyGrid();
 

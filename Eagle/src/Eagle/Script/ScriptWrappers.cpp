@@ -7563,6 +7563,11 @@ namespace Eagle
 		Scene::GetCurrentScene()->DrawAABB(*aabb, *transform);
 	}
 
+	void Script::Eagle_Renderer_DrawBox(const AABB* aabb, const Transform* transform)
+	{
+		Scene::GetCurrentScene()->DrawBox(*aabb, *transform);
+	}
+
 	void Script::Eagle_Renderer_DrawCone(const glm::vec3* location, const glm::quat* rotation, float distance, float angleRad)
 	{
 		Scene::GetCurrentScene()->DrawCone(*location, *rotation, distance, angleRad);

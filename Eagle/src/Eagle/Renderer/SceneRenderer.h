@@ -20,6 +20,7 @@
 #include "Tasks/GTAOTask.h"
 #include "Tasks/FogPassTask.h"
 #include "Tasks/SkinCacheTask.h"
+#include "Tasks/FrustumCullingTask.h"
 
 namespace Eagle
 {
@@ -162,6 +163,10 @@ namespace Eagle
 		const auto& GetSkinnedVertices() const { return m_SkinCacheTask->GetSkinnedVertices(); }
 		const auto& GetPrevSkinnedVerticesPositions() const { return m_SkinCacheTask->GetPrevSkinnedVerticesPositions(); }
 
+		const auto& GetFrustumCullingTask() const { return m_FrustumCullingTask; }
+		const auto& GetCulledStaticMeshes() const { return m_FrustumCullingTask->GetCulledStaticMeshes(); }
+		const auto& GetCulledSkeletalMeshes() const { return m_FrustumCullingTask->GetCulledSkeletalMeshes(); }
+
 		const auto& GetPointLights() const { return m_LightsManagerTask->GetPointLights(); }
 		const auto& GetSpotLights() const { return m_LightsManagerTask->GetSpotLights(); }
 		const auto& GetDirectionalLight() const { return m_LightsManagerTask->GetDirectionalLight(); }
@@ -236,6 +241,10 @@ namespace Eagle
 		float GetZFar() const { return m_ZFar; }
 		float GetFOV() const { return m_CameraFOV; }
 
+		// Needs to be called every frame
+		void SetDebugFrustumCulling(const glm::mat4& view, float aspectRatio, float fov, float nearPlane, float farPlane);
+		const CullingFrustumData& GetCullingFrustumData() const { return m_CullingData; }
+
 		// Prev frame data
 		const glm::mat4& GetPrevViewMatrix() const { return m_PrevView; }
 		const glm::mat4& GetPrevProjectionMatrix() const { return m_PrevProjection; }
@@ -285,9 +294,15 @@ namespace Eagle
 		Ref<RendererTask> m_DOFTask;
 		Ref<RendererTask> m_MotionBlurTask;
 		Ref<RendererTask> m_ScreenSpaceReflectionsTask;
+		Ref<FrustumCullingTask> m_FrustumCullingTask;
 		
 		Ref<Buffer> m_Jitter;
 		Ref<Buffer> m_CameraDataBuffer;
+		
+		CullingFrustumData m_CullingData;
+		// If set, these values will be used for frustum culling for debug/visualization purposes
+		CullingFrustumData m_DebugCullingData;
+		bool m_bUseDebugCullingFrustum = false;
 
 		GBuffer m_GBuffer;
 		Ref<Image> m_FinalImage;

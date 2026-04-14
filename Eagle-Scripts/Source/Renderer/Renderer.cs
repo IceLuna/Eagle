@@ -292,6 +292,11 @@ namespace Eagle
             DrawAABB_Native(ref aabb, ref worldTransform);
         }
 
+        public static void DrawBox(AABB aabb, Transform worldTransform)
+        {
+            DrawBox_Native(ref aabb, ref worldTransform);
+        }
+
         public static void DrawCone(Vector3 location, Rotator rotation, float distance, float angleRad)
         {
             DrawCone_Native(ref location, ref rotation.Rotation, distance, angleRad);
@@ -680,6 +685,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void DrawAABB_Native(ref AABB aabb, ref Transform worldTransform);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void DrawBox_Native(ref AABB aabb, ref Transform worldTransform);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void DrawCone_Native(ref Vector3 location, ref Quat rotation, float distance, float angleRad);

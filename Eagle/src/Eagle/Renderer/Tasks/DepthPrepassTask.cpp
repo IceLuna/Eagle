@@ -54,8 +54,11 @@ namespace Eagle
 
 	void DepthPrepassTask::RenderStaticMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().SingleSided.Opaque.DrawData;
-		if (meshes.empty())
+		const auto& culledMeshes = m_Renderer.GetCulledStaticMeshes();
+		const auto& ivb = culledMeshes.InstanceBuffer;
+		const auto& singleSided = culledMeshes.SingleSided.Opaque;
+		const auto& doubleSided = culledMeshes.DoubleSided.Opaque;
+		if (singleSided.GetNumMeshes() == 0 && doubleSided.GetNumMeshes() == 0)
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Depth Prepass. Static Meshes");
@@ -69,30 +72,65 @@ namespace Eagle
 
 		auto& stats = m_Renderer.GetStats();
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
-		RenderMeshesTask::Draw(cmd, m_StaticMeshesPipeline, meshes, buffers, stats, glm::value_ptr(viewProj));
+
+		cmd->BeginGraphics(m_StaticMeshesPipeline);
+		cmd->SetGraphicsRootConstants(glm::value_ptr(viewProj), nullptr);
+
+		if (singleSided.GetNumMeshes() > 0)
+		{
+			cmd->SetGraphicsCullMode(CullMode::Back);
+			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, singleSided.Result.IndirectArgsBuffer, singleSided.Result.DrawCountBuffer, ivb, singleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
+		}
+		if (doubleSided.GetNumMeshes())
+		{
+			cmd->SetGraphicsCullMode(CullMode::None);
+			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, doubleSided.Result.IndirectArgsBuffer, doubleSided.Result.DrawCountBuffer, ivb, doubleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
+		}
+
+		cmd->EndGraphics();
 	}
 
 	void DepthPrepassTask::RenderSkeletalMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Opaque.DrawData;
-		if (meshes.empty())
+		// We're manually fetching VB & IVB data, so set the to null for the draw calls
+		static Ref<Buffer> s_NullBuffer = nullptr;
+
+		const auto& culledMeshes = m_Renderer.GetCulledSkeletalMeshes();
+		const auto& ivb = culledMeshes.InstanceBuffer;
+		const auto& singleSided = culledMeshes.SingleSided.Opaque;
+		const auto& doubleSided = culledMeshes.DoubleSided.Opaque;
+		if (singleSided.GetNumMeshes() == 0 && doubleSided.GetNumMeshes() == 0)
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Depth Prepass. Skeletal Meshes");
 		EG_CPU_TIMING_SCOPED("Depth Prepass. Skeletal Meshes");
 
-		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
-		const auto& vb = m_Renderer.GetSkinnedVertices();
-
-		m_SkeletalMeshesPipeline->SetBuffer(vb, EG_PERSISTENT_SET, EG_BINDING_MAX);
-		m_SkeletalMeshesPipeline->SetBuffer(buffers.InstanceBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+		m_SkeletalMeshesPipeline->SetBuffer(m_Renderer.GetSkinnedVertices(), EG_PERSISTENT_SET, EG_BINDING_MAX);
+		m_SkeletalMeshesPipeline->SetBuffer(ivb, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 		m_SkeletalMeshesPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
 
 		if (bJitter)
 			m_SkeletalMeshesPipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
+		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
 		auto& stats = m_Renderer.GetStats();
-		RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesPipeline, meshes, buffers, stats);
+
+		cmd->BeginGraphics(m_SkeletalMeshesPipeline);
+		if (singleSided.GetNumMeshes() > 0)
+		{
+			cmd->SetGraphicsCullMode(CullMode::Back);
+			cmd->DrawIndexedInstancedIndirectCount(s_NullBuffer, buffers.IndexBuffer, singleSided.Result.IndirectArgsBuffer, singleSided.Result.DrawCountBuffer, s_NullBuffer, singleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
+		}
+		if (doubleSided.GetNumMeshes() > 0)
+		{
+			cmd->SetGraphicsCullMode(CullMode::None);
+			cmd->DrawIndexedInstancedIndirectCount(s_NullBuffer, buffers.IndexBuffer, doubleSided.Result.IndirectArgsBuffer, doubleSided.Result.DrawCountBuffer, s_NullBuffer, doubleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
+		}
+		cmd->EndGraphics();
 	}
 
 	void DepthPrepassTask::InitSpritesPipeline()

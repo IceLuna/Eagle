@@ -1048,6 +1048,14 @@ namespace Eagle
 		{
 			return m_ViewMatrix;
 		}
+
+		void SetDebugFrustumCullingEnabled(bool bEnabled)
+		{
+			bDebugFrustumCulling = bEnabled;
+			Parent.SignalComponentChanged<CameraComponent>(Notification::OnDebugStateChanged);
+		}
+
+		bool IsDebugFrustumCullingEnabled() const { return bDebugFrustumCulling; }
 		
 	private:
 		void CalculateViewMatrix()
@@ -1060,6 +1068,7 @@ namespace Eagle
 
 	private:
 		glm::mat4 m_ViewMatrix = glm::mat4(1.f);
+		bool bDebugFrustumCulling = false; // When enabled, this camera's frustum will be used for culling
 
 	public:
 		SceneCamera Camera;

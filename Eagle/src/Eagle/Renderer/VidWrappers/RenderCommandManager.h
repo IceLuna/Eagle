@@ -86,6 +86,8 @@ namespace Eagle
 		virtual void DrawInstanced(const Ref<Buffer>& perInstanceBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
 		virtual void DrawIndexedInstanced(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, int32_t vertexOffset,
 			uint32_t instanceCount, uint32_t firstInstance, const Ref<Buffer>& perInstanceBuffer) = 0;
+		virtual void DrawIndexedInstancedIndirectCount(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, const Ref<Buffer>& indirectBuffer, const Ref<Buffer>& countBuffer,
+			const Ref<Buffer>& perInstanceBuffer, uint32_t maxDrawCount, size_t indirectOffset = 0, size_t countBufferOffset = 0) = 0;
 		virtual void DrawIndexed(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset) = 0;
 		virtual void ExecuteSecondary(const Ref<CommandBuffer>& secondaryCmd) = 0;
 

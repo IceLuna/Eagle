@@ -88,6 +88,7 @@ namespace Eagle
 		const std::vector<Vertex>& GetVertices() const { return m_Vertices; }
 		size_t GetVerticesCount() const { return m_Vertices.size(); }
 
+		void SetAABB(const AABB& aabb) { m_AABB = aabb; }
 		const AABB& GetAABB() const { return m_AABB; }
 
 		// True if vertex & index buffers contain data

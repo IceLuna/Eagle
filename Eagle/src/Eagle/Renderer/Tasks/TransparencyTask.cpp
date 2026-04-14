@@ -31,7 +31,9 @@ namespace Eagle
 		uint32_t SpotLights;
 		uint32_t HasDirLight;
 	};
-
+	
+	// We're manually fetching skeletal VB & IVB data, so set the to null for the draw calls
+	static Ref<Buffer> s_NullBuffer = nullptr;
 	constexpr static uint32_t s_OITFillValue = 0x0u; // 0xFFFFFFFFu
 
 	TransparencyTask::TransparencyTask(SceneRenderer& renderer)
@@ -162,10 +164,11 @@ namespace Eagle
 
 	void TransparencyTask::RenderMeshesDepth(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& drawData = m_Renderer.GetStaticMeshesDrawData();
-		const auto& singleSidedMeshes = drawData.SingleSided.Translucent.DrawData;
-		const auto& doubleSidedMeshes = drawData.DoubleSided.Translucent.DrawData;
-		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
+		const auto& culledMeshes = m_Renderer.GetCulledStaticMeshes();
+		const auto& ivb = culledMeshes.InstanceBuffer;
+		const auto& singleSided = culledMeshes.SingleSided.Translucent;
+		const auto& doubleSided = culledMeshes.DoubleSided.Translucent;
+		if (singleSided.GetNumMeshes() == 0 && doubleSided.GetNumMeshes() == 0)
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Static Meshes. Depth");
@@ -180,51 +183,58 @@ namespace Eagle
 		m_MeshesDepthPipeline->SetBuffer(m_UniformBuffer, 5, 1);
 
 		auto& stats = m_Renderer.GetStats();
-		if (!singleSidedMeshes.empty())
+		cmd->BeginGraphics(m_MeshesDepthPipeline);
+		if (singleSided.GetNumMeshes() > 0)
 		{
 			cmd->SetGraphicsCullMode(CullMode::Back);
-			RenderMeshesTask::Draw(cmd, m_MeshesDepthPipeline, singleSidedMeshes, buffers, stats);
-			cmd->Barrier(m_OITBuffer);
+			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, singleSided.Result.IndirectArgsBuffer, singleSided.Result.DrawCountBuffer, ivb, singleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
 		}
-		if (!doubleSidedMeshes.empty())
+		if (doubleSided.GetNumMeshes())
 		{
 			cmd->SetGraphicsCullMode(CullMode::None);
-			RenderMeshesTask::Draw(cmd, m_MeshesDepthPipeline, doubleSidedMeshes, buffers, stats);
-			cmd->Barrier(m_OITBuffer);
+			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, doubleSided.Result.IndirectArgsBuffer, doubleSided.Result.DrawCountBuffer, ivb, doubleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
 		}
+		cmd->EndGraphics();
+		cmd->Barrier(m_OITBuffer);
 	}
 
 	void TransparencyTask::RenderSkeletalMeshesDepth(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& singleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Translucent.DrawData;
-		const auto& doubleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.Translucent.DrawData;
-		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
+		const auto& culledMeshes = m_Renderer.GetCulledSkeletalMeshes();
+		const auto& ivb = culledMeshes.InstanceBuffer;
+		const auto& singleSided = culledMeshes.SingleSided.Translucent;
+		const auto& doubleSided = culledMeshes.DoubleSided.Translucent;
+		if (singleSided.GetNumMeshes() == 0 && doubleSided.GetNumMeshes() == 0)
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Skeletal Meshes. Depth");
 		EG_CPU_TIMING_SCOPED("Transparency. Skeletal Meshes. Depth");
 
-		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
-		const auto& vb = m_Renderer.GetSkinnedVertices();
-
-		m_SkeletalMeshesDepthPipeline->SetBuffer(vb, 0, 0);
-		m_SkeletalMeshesDepthPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 0, 1);
+		m_SkeletalMeshesDepthPipeline->SetBuffer(m_Renderer.GetSkinnedVertices(), 0, 0);
+		m_SkeletalMeshesDepthPipeline->SetBuffer(ivb, 0, 1);
+		m_SkeletalMeshesDepthPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 0, 2);
 		m_SkeletalMeshesDepthPipeline->SetBuffer(m_OITBuffer, 5, 0);
 		m_SkeletalMeshesDepthPipeline->SetBuffer(m_UniformBuffer, 5, 1);
 
+		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
 		auto& stats = m_Renderer.GetStats();
-		if (!singleSidedMeshes.empty())
+		cmd->BeginGraphics(m_SkeletalMeshesDepthPipeline);
+		if (singleSided.GetNumMeshes() > 0)
 		{
 			cmd->SetGraphicsCullMode(CullMode::Back);
-			RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesDepthPipeline, singleSidedMeshes, buffers, stats);
-			cmd->Barrier(m_OITBuffer);
+			cmd->DrawIndexedInstancedIndirectCount(s_NullBuffer, buffers.IndexBuffer, singleSided.Result.IndirectArgsBuffer, singleSided.Result.DrawCountBuffer, s_NullBuffer, singleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
 		}
-		if (!doubleSidedMeshes.empty())
+		if (doubleSided.GetNumMeshes() > 0)
 		{
 			cmd->SetGraphicsCullMode(CullMode::None);
-			RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesDepthPipeline, doubleSidedMeshes, buffers, stats);
-			cmd->Barrier(m_OITBuffer);
+			cmd->DrawIndexedInstancedIndirectCount(s_NullBuffer, buffers.IndexBuffer, doubleSided.Result.IndirectArgsBuffer, doubleSided.Result.DrawCountBuffer, s_NullBuffer, doubleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
 		}
+		cmd->EndGraphics();
+		cmd->Barrier(m_OITBuffer);
 	}
 
 	void TransparencyTask::RenderSpritesDepth(const Ref<CommandBuffer>& cmd)
@@ -296,10 +306,11 @@ namespace Eagle
 	
 	void TransparencyTask::RenderMeshesColor(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& drawData = m_Renderer.GetStaticMeshesDrawData();
-		const auto& singleSidedMeshes = drawData.SingleSided.Translucent.DrawData;
-		const auto& doubleSidedMeshes = drawData.DoubleSided.Translucent.DrawData;
-		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
+		const auto& culledMeshes = m_Renderer.GetCulledStaticMeshes();
+		const auto& ivb = culledMeshes.InstanceBuffer;
+		const auto& singleSided = culledMeshes.SingleSided.Translucent;
+		const auto& doubleSided = culledMeshes.DoubleSided.Translucent;
+		if (singleSided.GetNumMeshes() == 0 && doubleSided.GetNumMeshes() == 0)
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Static Meshes. Color");
@@ -337,38 +348,39 @@ namespace Eagle
 		m_MeshesColorPipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), 4, 0);
 
 		auto& stats = m_Renderer.GetStats();
-		if (!singleSidedMeshes.empty())
+		cmd->BeginGraphics(m_MeshesColorPipeline);
+		if (singleSided.GetNumMeshes() > 0)
 		{
 			cmd->SetGraphicsCullMode(CullMode::Back);
-			RenderMeshesTask::Draw(cmd, m_MeshesColorPipeline, singleSidedMeshes, buffers, stats);
-			cmd->Barrier(m_OITBuffer);
+			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, singleSided.Result.IndirectArgsBuffer, singleSided.Result.DrawCountBuffer, ivb, singleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
 		}
-		if (!doubleSidedMeshes.empty())
+		if (doubleSided.GetNumMeshes())
 		{
 			cmd->SetGraphicsCullMode(CullMode::None);
-			RenderMeshesTask::Draw(cmd, m_MeshesColorPipeline, doubleSidedMeshes, buffers, stats);
-			cmd->Barrier(m_OITBuffer);
+			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, doubleSided.Result.IndirectArgsBuffer, doubleSided.Result.DrawCountBuffer, ivb, doubleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
 		}
+		cmd->EndGraphics();
+		cmd->Barrier(m_OITBuffer);
 	}
 	
 	void TransparencyTask::RenderSkeletalMeshesColor(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& singleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Translucent.DrawData;
-		const auto& doubleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.Translucent.DrawData;
-		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
+		const auto& culledMeshes = m_Renderer.GetCulledSkeletalMeshes();
+		const auto& ivb = culledMeshes.InstanceBuffer;
+		const auto& singleSided = culledMeshes.SingleSided.Translucent;
+		const auto& doubleSided = culledMeshes.DoubleSided.Translucent;
+		if (singleSided.GetNumMeshes() == 0 && doubleSided.GetNumMeshes() == 0)
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Skeletal Meshes. Color");
 		EG_CPU_TIMING_SCOPED("Transparency. Skeletal Meshes. Color");
 
-		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
-		const auto& materials = MaterialSystem::GetMaterialsBuffer();
-		const auto& vb = m_Renderer.GetSkinnedVertices();
-
-		m_SkeletalMeshesColorPipeline->SetBuffer(materials, EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+		m_SkeletalMeshesColorPipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 		m_SkeletalMeshesColorPipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
-		m_SkeletalMeshesColorPipeline->SetBuffer(vb, EG_PERSISTENT_SET, EG_BINDING_MAX);
-		m_SkeletalMeshesColorPipeline->SetBuffer(buffers.InstanceBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+		m_SkeletalMeshesColorPipeline->SetBuffer(m_Renderer.GetSkinnedVertices(), EG_PERSISTENT_SET, EG_BINDING_MAX);
+		m_SkeletalMeshesColorPipeline->SetBuffer(ivb, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 		m_SkeletalMeshesColorPipeline->SetBuffer(m_Renderer.GetSkeletalMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
 		
 		const auto& iblAsset = m_Renderer.GetSkybox();
@@ -394,19 +406,23 @@ namespace Eagle
 		if (bFog)
 			m_SkeletalMeshesColorPipeline->SetBuffer(m_Renderer.GetFogDataBuffer(), 5, 3);
 
+		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
 		auto& stats = m_Renderer.GetStats();
-		if (!singleSidedMeshes.empty())
+		cmd->BeginGraphics(m_SkeletalMeshesColorPipeline);
+		if (singleSided.GetNumMeshes() > 0)
 		{
 			cmd->SetGraphicsCullMode(CullMode::Back);
-			RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesColorPipeline, singleSidedMeshes, buffers, stats);
-			cmd->Barrier(m_OITBuffer);
+			cmd->DrawIndexedInstancedIndirectCount(s_NullBuffer, buffers.IndexBuffer, singleSided.Result.IndirectArgsBuffer, singleSided.Result.DrawCountBuffer, s_NullBuffer, singleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
 		}
-		if (!doubleSidedMeshes.empty())
+		if (doubleSided.GetNumMeshes() > 0)
 		{
 			cmd->SetGraphicsCullMode(CullMode::None);
-			RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesColorPipeline, doubleSidedMeshes, buffers, stats);
-			cmd->Barrier(m_OITBuffer);
+			cmd->DrawIndexedInstancedIndirectCount(s_NullBuffer, buffers.IndexBuffer, doubleSided.Result.IndirectArgsBuffer, doubleSided.Result.DrawCountBuffer, s_NullBuffer, doubleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
 		}
+		cmd->EndGraphics();
+		cmd->Barrier(m_OITBuffer);
 	}
 
 	void TransparencyTask::RenderSpritesColor(const Ref<CommandBuffer>& cmd)
@@ -551,10 +567,11 @@ namespace Eagle
 
 		// Meshes
 		{
-			const auto& drawData = m_Renderer.GetStaticMeshesDrawData();
-			const auto& singleSidedMeshes = drawData.SingleSided.Translucent.DrawData;
-			const auto& doubleSidedMeshes = drawData.DoubleSided.Translucent.DrawData;
-			const bool bNoMeshes = singleSidedMeshes.empty() && doubleSidedMeshes.empty();
+			const auto& culledMeshes = m_Renderer.GetCulledStaticMeshes();
+			const auto& ivb = culledMeshes.InstanceBuffer;
+			const auto& singleSided = culledMeshes.SingleSided.Translucent;
+			const auto& doubleSided = culledMeshes.DoubleSided.Translucent;
+			const bool bNoMeshes = singleSided.GetNumMeshes() == 0 && doubleSided.GetNumMeshes() == 0;
 			if (!bNoMeshes)
 			{
 				EG_GPU_TIMING_SCOPED(cmd, "Transparency. Static Meshes Entity IDs");
@@ -566,47 +583,56 @@ namespace Eagle
 				const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
 				auto& stats = m_Renderer.GetStats();
 
-				if (!singleSidedMeshes.empty())
+				cmd->BeginGraphics(m_MeshesEntityIDPipeline);
+				cmd->SetGraphicsRootConstants(glm::value_ptr(viewProj), nullptr);
+				if (singleSided.GetNumMeshes() > 0)
 				{
 					cmd->SetGraphicsCullMode(CullMode::Back);
-					RenderMeshesTask::Draw(cmd, m_MeshesEntityIDPipeline, singleSidedMeshes, buffers, stats, glm::value_ptr(viewProj));
+					cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, singleSided.Result.IndirectArgsBuffer, singleSided.Result.DrawCountBuffer, ivb, singleSided.Result.MaxDrawCalls);
+					++stats.DrawCalls;
 				}
-				if (!doubleSidedMeshes.empty())
+				if (doubleSided.GetNumMeshes())
 				{
 					cmd->SetGraphicsCullMode(CullMode::None);
-					RenderMeshesTask::Draw(cmd, m_MeshesEntityIDPipeline, doubleSidedMeshes, buffers, stats, glm::value_ptr(viewProj));
+					cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, doubleSided.Result.IndirectArgsBuffer, doubleSided.Result.DrawCountBuffer, ivb, doubleSided.Result.MaxDrawCalls);
+					++stats.DrawCalls;
 				}
+				cmd->EndGraphics();
 			}
 		}
 
 		// Skeletal Meshes
 		{
-			const auto& singleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Translucent.DrawData;
-			const auto& doubleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.Translucent.DrawData;
-			const bool bNoMeshes = singleSidedMeshes.empty() && doubleSidedMeshes.empty();
+			const auto& culledMeshes = m_Renderer.GetCulledSkeletalMeshes();
+			const auto& ivb = culledMeshes.InstanceBuffer;
+			const auto& singleSided = culledMeshes.SingleSided.Translucent;
+			const auto& doubleSided = culledMeshes.DoubleSided.Translucent;
+			const bool bNoMeshes = singleSided.GetNumMeshes() == 0 && doubleSided.GetNumMeshes() == 0;
 			if (!bNoMeshes)
 			{
 				EG_GPU_TIMING_SCOPED(cmd, "Transparency. Skeletal Meshes Entity IDs");
 				EG_CPU_TIMING_SCOPED("Transparency. Skeletal Meshes Entity IDs");
 
-				const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
-				const auto& vb = m_Renderer.GetSkinnedVertices();
-
-				m_SkeletalMeshesEntityIDPipeline->SetBuffer(vb, 0, 0);
-				m_SkeletalMeshesEntityIDPipeline->SetBuffer(buffers.InstanceBuffer, 0, 1);
+				m_SkeletalMeshesEntityIDPipeline->SetBuffer(m_Renderer.GetSkinnedVertices(), 0, 0);
+				m_SkeletalMeshesEntityIDPipeline->SetBuffer(ivb, 0, 1);
 				m_SkeletalMeshesEntityIDPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 0, 2);
 
+				const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
 				auto& stats = m_Renderer.GetStats();
-				if (!singleSidedMeshes.empty())
+				cmd->BeginGraphics(m_SkeletalMeshesEntityIDPipeline);
+				if (singleSided.GetNumMeshes() > 0)
 				{
 					cmd->SetGraphicsCullMode(CullMode::Back);
-					RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesEntityIDPipeline, singleSidedMeshes, buffers, stats);
+					cmd->DrawIndexedInstancedIndirectCount(s_NullBuffer, buffers.IndexBuffer, singleSided.Result.IndirectArgsBuffer, singleSided.Result.DrawCountBuffer, s_NullBuffer, singleSided.Result.MaxDrawCalls);
+					++stats.DrawCalls;
 				}
-				if (!doubleSidedMeshes.empty())
+				if (doubleSided.GetNumMeshes() > 0)
 				{
 					cmd->SetGraphicsCullMode(CullMode::None);
-					RenderSkeletalMeshesTask::Draw(cmd, m_SkeletalMeshesEntityIDPipeline, doubleSidedMeshes, buffers, stats);
+					cmd->DrawIndexedInstancedIndirectCount(s_NullBuffer, buffers.IndexBuffer, doubleSided.Result.IndirectArgsBuffer, doubleSided.Result.DrawCountBuffer, s_NullBuffer, doubleSided.Result.MaxDrawCalls);
+					++stats.DrawCalls;
 				}
+				cmd->EndGraphics();
 			}
 		}
 

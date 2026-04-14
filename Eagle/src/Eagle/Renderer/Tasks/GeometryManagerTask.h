@@ -105,7 +105,26 @@ namespace Eagle
 		};
 	};
 
-	template <typename VertexType>
+	struct SkeletalPerInstanceData
+	{
+		union
+		{
+			// .x = TransformIndex; .y = MaterialIndex; .z = ObjectID; .w = VertexOffset
+			glm::uvec4 Data = glm::uvec4(0, 0, 0, ~0);
+			struct
+			{
+				uint32_t PackedTransformIndex; // The highest is a flag whether a mesh receives decals
+				uint32_t MaterialIndex;
+				uint32_t ObjectID;
+
+				// Because of skin cache + culling (indirect draw calls), we can't properly pick the correct skinned vertex because the order can change based on culling.
+				// In order to solve this problem, each instance data has to store an offset to its vertices in the skin cache
+				uint32_t VertexOffset;
+			};
+		};
+	};
+
+	template <typename VertexType, typename PerInstanceDataType>
 	struct MeshGeometryData
 	{
 		Ref<Buffer> VertexBuffer;
@@ -115,7 +134,7 @@ namespace Eagle
 		Ref<Buffer> PrevTransformsBuffer;
 
 		std::vector<VertexType> Vertices;
-		std::vector<PerInstanceData> InstanceVertices;
+		std::vector<PerInstanceDataType> InstanceVertices;
 		std::vector<Index> Indices;
 	};
 
@@ -185,21 +204,25 @@ namespace Eagle
 		}
 	};
 
+	template <typename PerInstanceDataType>
 	struct MeshInstance
 	{
 		std::vector<Ref<Material>> Materials;
 		// Each material has its own submesh data it's assigned to.
 		// So, it's a submesh for each material
-		std::vector<PerInstanceData> SubMeshData;
+		std::vector<PerInstanceDataType> SubMeshData;
 
 		bool bCastsShadows = false;
 	};
 
-	using StaticMeshesMap = std::unordered_map<MeshKey<StaticMesh>, std::vector<MeshInstance>>;
-	using SkeletalMeshesMap = std::unordered_map<MeshKey<SkeletalMesh>, std::vector<MeshInstance>>;
+	using StaticMeshesMap = std::unordered_map<MeshKey<StaticMesh>, std::vector<MeshInstance<PerInstanceData>>>;
+	using SkeletalMeshesMap = std::unordered_map<MeshKey<SkeletalMesh>, std::vector<MeshInstance<SkeletalPerInstanceData>>>;
+	using StaticMeshGeometryData = MeshGeometryData<Vertex, PerInstanceData>;
+	using SkeletalMeshGeometryData = MeshGeometryData<SkeletalVertex, SkeletalPerInstanceData>;
 
 	struct MeshDrawData
 	{
+		AABB MeshAABB;
 		uint32_t SkinnedVertexOffset = 0;
 		uint32_t VertexOffset = 0;
 		uint32_t VerticesCount = 0;
@@ -219,9 +242,14 @@ namespace Eagle
 	{
 		std::vector<MeshDrawData> DrawData;
 		
+		// Just a meta data indicating how many draw call it would require to draw this mesh and all of it's instances
+		// Used to allocate enough memory for indirect draw calls
+		uint32_t DrawCallsCount = 0;
+
 		void Clear()
 		{
 			DrawData.clear();
+			DrawCallsCount = 0u;
 		}
 	};
 
@@ -322,13 +350,13 @@ namespace Eagle
 
 		// Static Mesh getters
 		const MeshesDrawLists& GetStaticMeshesDrawData() const { return m_StaticMeshesDrawData; }
-		const MeshGeometryData<Vertex>& GetStaticMeshesBuffers() const { return m_StaticMeshesBuffers; }
+		const StaticMeshGeometryData& GetStaticMeshesBuffers() const { return m_StaticMeshesBuffers; }
 		const Ref<Buffer>& GetMeshesTransformBuffer() const { return m_StaticMeshesBuffers.TransformsBuffer; }
 		const Ref<Buffer>& GetMeshesPrevTransformBuffer() const { return m_StaticMeshesBuffers.PrevTransformsBuffer; }
 
 		// Skeletal Mesh getters
 		const MeshesDrawLists& GetSkeletalMeshesDrawData() const { return m_SkeletalMeshesDrawData; }
-		const MeshGeometryData<SkeletalVertex>& GetSkeletalMeshesBuffers() const { return m_SkeletalMeshesBuffers; }
+		const SkeletalMeshGeometryData& GetSkeletalMeshesBuffers() const { return m_SkeletalMeshesBuffers; }
 		const Ref<Buffer>& GetSkeletalMeshesTransformBuffer() const { return m_SkeletalMeshesBuffers.TransformsBuffer; }
 		const SkeletalMeshesMap& GetSkeletalMeshes() const { return m_SkeletalMeshes; }
 
@@ -377,7 +405,7 @@ namespace Eagle
 
 	private:
 		// ------- Static Meshes -------
-		MeshGeometryData<Vertex> m_StaticMeshesBuffers;
+		StaticMeshGeometryData m_StaticMeshesBuffers;
 		StaticMeshesMap m_StaticMeshes;
 		MeshesDrawLists m_StaticMeshesDrawData;
 		std::vector<glm::mat4> m_MeshTransforms;
@@ -394,7 +422,7 @@ namespace Eagle
 		// ------- !Static Meshes -------
 
 		// ------- Skeletal Meshes -------
-		MeshGeometryData<SkeletalVertex> m_SkeletalMeshesBuffers;
+		SkeletalMeshGeometryData m_SkeletalMeshesBuffers;
 		SkeletalMeshesMap m_SkeletalMeshes;
 		MeshesDrawLists m_SkeletalMeshesDrawData;
 		std::vector<glm::mat4> m_SkeletalMeshTransforms;

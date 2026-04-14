@@ -30,13 +30,6 @@ uniform CameraMatrices
     mat4 g_PrevViewProjection;
 };
 
-layout(push_constant) uniform PushConstants
-{
-    uint g_VertexCount;
-    uint g_InstanceOffset;
-    uint g_VerticesOffset;
-};
-
 layout(location = 0) out vec3 o_Normal;
 layout(location = 1) out vec2 o_TexCoords;
 layout(location = 2) flat out uint o_MaterialIndex;
@@ -45,12 +38,9 @@ layout(location = 4) out mat3 o_TBN;
 
 void main()
 {
-    // We need an index that's not affected by the offset.
-    // So, we need something that goes from [0; InstanceCount)
-    const uint instanceIndex = gl_InstanceIndex - g_InstanceOffset;
-
-    const Vertex vertex = g_SkinnedVertices[g_VerticesOffset + g_VertexCount * instanceIndex + gl_VertexIndex];
     const InstanceData instanceData = g_InstanceData[gl_InstanceIndex];
+    const uint vertexIndex = instanceData.VertexOffset + gl_VertexIndex;
+    const Vertex vertex = g_SkinnedVertices[vertexIndex];
 
     const uint transformIndex = instanceData.TransformIndex & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
     gl_Position = g_ViewProjection * vec4(vertex.Position, 1.0);

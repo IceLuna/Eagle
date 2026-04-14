@@ -167,26 +167,26 @@ namespace Eagle
 		{
 			auto& drawLists = bDoubleSided ? data.DoubleSided : data.SingleSided;
 
-			std::vector<MeshDrawData>* allDatas = nullptr;
-			std::vector<MeshDrawData>* shadowCastingDatas = nullptr;
+			MeshDrawDataInfo* allDatas = nullptr;
+			MeshDrawDataInfo* shadowCastingDatas = nullptr;
 			switch (blendMode)
 			{
 				case Material::BlendMode::Opaque:
 				{
-					allDatas = &drawLists.Opaque.DrawData;
-					shadowCastingDatas = &drawLists.ShadowCastingOpaque.DrawData;
+					allDatas = &drawLists.Opaque;
+					shadowCastingDatas = &drawLists.ShadowCastingOpaque;
 					break;
 				}
 				case Material::BlendMode::Masked:
 				{
-					allDatas = &drawLists.Masked.DrawData;
-					shadowCastingDatas = &drawLists.ShadowCastingMasked.DrawData;
+					allDatas = &drawLists.Masked;
+					shadowCastingDatas = &drawLists.ShadowCastingMasked;
 					break;
 				}
 				case Material::BlendMode::Translucent:
 				{
-					allDatas = &drawLists.Translucent.DrawData;
-					shadowCastingDatas = &drawLists.ShadowCastingTranslucent.DrawData;
+					allDatas = &drawLists.Translucent;
+					shadowCastingDatas = &drawLists.ShadowCastingTranslucent;
 					break;
 				}
 				default:
@@ -201,32 +201,36 @@ namespace Eagle
 			DrawDataInsertIndices insertionIndices = dataIndices;
 			if (!dataIndices.IsValid())
 			{
-				insertionIndices.Global = (int32_t)allDatas->size();
-				allDatas->emplace_back(meshData).PerMaterialData.push_back(matData);
+				insertionIndices.Global = (int32_t)allDatas->DrawData.size();
+				allDatas->DrawData.emplace_back(meshData).PerMaterialData.push_back(matData);
+				allDatas->DrawCallsCount += 1;
 				if (bCastsShadows)
 				{
-					insertionIndices.ShadowCasting = (int32_t)shadowCastingDatas->size();
-					shadowCastingDatas->emplace_back(meshData).PerMaterialData.push_back(matData);
+					insertionIndices.ShadowCasting = (int32_t)shadowCastingDatas->DrawData.size();
+					shadowCastingDatas->DrawData.emplace_back(meshData).PerMaterialData.push_back(matData);
+					shadowCastingDatas->DrawCallsCount += 1;
 				}
 			}
 			else
 			{
-				auto& opaque = (*allDatas)[insertionIndices.Global];
+				auto& drawData = allDatas->DrawData[insertionIndices.Global];
 				if (bNewMaterialSlot)
 				{
-					opaque.PerMaterialData.push_back(matData);
+					drawData.PerMaterialData.push_back(matData);
+					allDatas->DrawCallsCount += 1;
 					if (bCastsShadows)
 					{
-						auto& opaqueShadow = (*shadowCastingDatas)[insertionIndices.ShadowCasting];
+						auto& opaqueShadow = shadowCastingDatas->DrawData[insertionIndices.ShadowCasting];
 						opaqueShadow.PerMaterialData.push_back(matData);
+						shadowCastingDatas->DrawCallsCount += 1;
 					}
 				}
 				else
 				{
-					opaque.PerMaterialData.back().InstanceCount += matData.InstanceCount;
+					drawData.PerMaterialData.back().InstanceCount += matData.InstanceCount;
 					if (bCastsShadows)
 					{
-						auto& opaqueShadow = (*shadowCastingDatas)[insertionIndices.ShadowCasting];
+						auto& opaqueShadow = shadowCastingDatas->DrawData[insertionIndices.ShadowCasting];
 						opaqueShadow.PerMaterialData.back().InstanceCount += matData.InstanceCount;
 					}
 				}
@@ -235,8 +239,8 @@ namespace Eagle
 			return insertionIndices;
 		}
 
-		template <typename MeshType, typename MeshesMapType>
-		static void ProcessInstances2(const MeshesMapType& meshes, MeshesDrawLists* drawList, std::vector<PerInstanceData>* ivb)
+		template <typename MeshType, typename MeshesMapType, typename PerInstanceDataType>
+		static void ProcessInstances2(const MeshesMapType& meshes, MeshesDrawLists* drawList, std::vector<PerInstanceDataType>* ivb)
 		{
 			struct InstanceKey
 			{
@@ -270,7 +274,7 @@ namespace Eagle
 				}
 			};
 
-			std::map<InstanceKey, std::vector<PerInstanceData>> instancesDatas;
+			std::map<InstanceKey, std::vector<PerInstanceDataType>> instancesDatas;
 
 			uint32_t skinnedVerticesOffset = 0;
 			for (const auto& [meshKey, instances] : meshes)
@@ -331,6 +335,7 @@ namespace Eagle
 				drawData.VerticesCount = instanceKey.VerticesCount;
 				drawData.InstanceCount = instanceKey.InstanceCount;
 				drawData.SkinnedVertexOffset = instanceKey.SkinnedVertexOffset;
+				drawData.MeshAABB = instanceKey.Mesh->GetAABB();
 
 				MeshDrawData::MaterialData matData{};
 				matData.InstanceCount = instanceCount;
@@ -361,8 +366,8 @@ namespace Eagle
 			}
 		}
 
-		template <typename VertexType, typename MeshesMapType>
-		static void UploadMeshes(const Ref<CommandBuffer>& cmd, MeshGeometryData<VertexType>& buffers, MeshesMapType& meshes)
+		template <typename VertexType, typename PerInstanceDataType, typename MeshesMapType>
+		static void UploadMeshes(const Ref<CommandBuffer>& cmd, MeshGeometryData<VertexType, PerInstanceDataType>& buffers, MeshesMapType& meshes)
 		{
 			auto& vb = buffers.VertexBuffer;
 			auto& ib = buffers.IndexBuffer;
@@ -589,7 +594,7 @@ namespace Eagle
 			BufferSpecifications vertexSpecs;
 			vertexSpecs.Size = s_MeshesBaseVertexBufferSize;
 			vertexSpecs.Layout = BufferReadAccess::Vertex;
-			vertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
+			vertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst | BufferUsage::StorageBuffer;
 
 			BufferSpecifications indexSpecs;
 			indexSpecs.Size = s_MeshesBaseIndexBufferSize;
@@ -1106,7 +1111,7 @@ namespace Eagle
 
 		if (!ivbData.empty())
 		{
-			const size_t currentInstanceVertexSize = ivbData.size() * sizeof(PerInstanceData);
+			const size_t currentInstanceVertexSize = ivbData.size() * sizeof(SkeletalPerInstanceData);
 
 			auto& ivb = m_SkeletalMeshesBuffers.InstanceBuffer;
 			if (currentInstanceVertexSize > ivb->GetSize())

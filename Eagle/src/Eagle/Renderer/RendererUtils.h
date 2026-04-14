@@ -293,6 +293,41 @@ namespace Eagle
         uint32_t FirstInstance = 0;
     };
 
+    struct DrawIndexedIndirectCommand
+    {
+        uint32_t IndexCount = 0;
+        uint32_t InstanceCount = 0;
+        uint32_t FirstIndex = 0;
+        int32_t  VertexOffset = 0;
+        uint32_t FirstInstance = 0;
+    };
+
+    struct CullingFrustum
+    {
+        float NearRight = 0;
+        float NearTop = 0;
+        float NearPlane = 0;
+        float FarPlane = 0;
+    };
+
+    static CullingFrustum CalculateFrustum(float nearPlane, float farPlane, float fovY, float aspectRatio)
+    {
+        const float tanFov = std::tan(0.5f * fovY);
+        return CullingFrustum
+            {
+                aspectRatio * nearPlane * tanFov,
+                nearPlane * tanFov,
+                -nearPlane,
+                -farPlane,
+            };
+    }
+
+    struct CullingFrustumData
+    {
+        CullingFrustum Frustum;
+        glm::mat4 View = glm::mat4(1);
+    };
+
     struct PostprocessTileStatistics
     {
         DispatchIndirectArgs EarlyExit;

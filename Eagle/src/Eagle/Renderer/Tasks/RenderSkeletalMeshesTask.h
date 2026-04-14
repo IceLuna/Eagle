@@ -35,7 +35,7 @@ namespace Eagle
 		}
 
 		
-		static void Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const std::vector<MeshDrawData>& meshes, const MeshGeometryData<SkeletalVertex>& buffers,
+		static void Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const std::vector<MeshDrawData>& meshes, const SkeletalMeshGeometryData& buffers,
 			RenderStats& stats, const DataBufferView& vertexPushData = {}, const Ref<Framebuffer>& framebuffer = nullptr);
 
 		inline static const std::vector<PipelineGraphicsState::VertexInputAttribute> PerInstanceAttribs = { { 6u } }; // Locations of Per-Instance data in shader

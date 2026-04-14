@@ -45,13 +45,6 @@ readonly buffer PrevSkinnedVerticesPositions
 };
 #endif
 
-layout(push_constant) uniform PushConstants
-{
-    uint g_VertexCount;
-    uint g_InstanceOffset;
-    uint g_VerticesOffset;
-};
-
 #ifdef EG_JITTER
 layout(set = 1, binding = 0) uniform Jitter
 {
@@ -76,13 +69,10 @@ layout(location = 9) out vec3 o_PrevPos;
 
 void main()
 {
-    // We need an index that's not affected by the offset.
-    // So, we need something that goes from [0; InstanceCount)
-    const uint instanceIndex = gl_InstanceIndex - g_InstanceOffset;
-    const uint vertexIndex = g_VerticesOffset + g_VertexCount * instanceIndex + gl_VertexIndex;
-
-    const Vertex vertex = g_SkinnedVertices[vertexIndex];
     const InstanceData instanceData = g_InstanceData[gl_InstanceIndex];
+    
+    const uint vertexIndex = instanceData.VertexOffset + gl_VertexIndex;
+    const Vertex vertex = g_SkinnedVertices[vertexIndex];
 
     const uint transformIndex = instanceData.TransformIndex & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
     gl_Position = g_ViewProjection * vec4(vertex.Position, 1.0);

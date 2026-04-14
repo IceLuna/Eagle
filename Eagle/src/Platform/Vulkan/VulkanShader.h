@@ -56,6 +56,6 @@ namespace Eagle
 		std::string m_Source; // Source of the shader without passed defines
 		std::string m_DefinesSource;
 
-		static constexpr const char* s_ShaderVersion = "#version 450\n";
+		static constexpr const char* s_ShaderVersion = "#version 460\n";
 	};
 }

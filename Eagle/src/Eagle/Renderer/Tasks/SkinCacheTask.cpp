@@ -32,6 +32,7 @@ namespace Eagle
 		if (meshes.empty())
 			return;
 
+		// TODO: Maybe precalculate it in the GeometryManager?
 		size_t totalVertices = 0;
 		for (auto& [meshKey, instances] : meshes)
 		{

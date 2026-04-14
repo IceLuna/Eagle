@@ -227,6 +227,233 @@ namespace Eagle
 			}
 		}
 
+		void DrawAABB(std::vector<RendererLine>& buffer, AABB aabb, const Transform& worldTr, const glm::vec3& color = glm::vec3(0, 1, 0))
+		{
+			const glm::mat4 trMat = Math::ToTransformMatrix(worldTr);
+			const size_t startIdx = buffer.size();
+
+			aabb.Transform(trMat);
+
+			for (glm::length_t i = 0; i < aabb.Min.length(); ++i)
+			{
+				auto& line = buffer.emplace_back();
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Min;
+
+				line.End.Location = aabb.Min;
+				line.End.Location[i] = aabb.Max[i];
+			}
+
+			for (glm::length_t i = 0; i < aabb.Max.length(); ++i)
+			{
+				auto& line = buffer.emplace_back();
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Max;
+
+				line.End.Location = aabb.Max;
+				line.End.Location[i] = aabb.Min[i];
+			}
+
+			{
+				auto& line = buffer.emplace_back();
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Min;
+				line.Start.Location.y = aabb.Max.y;
+
+				line.End.Location = line.Start.Location;
+				line.End.Location.z = aabb.Max.z;
+			}
+
+			{
+				auto& line = buffer.emplace_back();
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Min;
+				line.Start.Location.y = aabb.Max.y;
+
+				line.End.Location = line.Start.Location;
+				line.End.Location.x = aabb.Max.x;
+			}
+
+			{
+				auto& line = buffer.emplace_back();
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Min;
+				line.Start.Location.x = aabb.Max.x;
+
+				line.End.Location = line.Start.Location;
+				line.End.Location.z = aabb.Max.z;
+			}
+
+			{
+				auto& line = buffer.emplace_back();
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Min;
+				line.Start.Location.x = aabb.Max.x;
+
+				line.End.Location = line.Start.Location;
+				line.End.Location.y = aabb.Max.y;
+			}
+
+			{
+				auto& line = buffer.emplace_back();
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Min;
+				line.Start.Location.z = aabb.Max.z;
+
+				line.End.Location = line.Start.Location;
+				line.End.Location.y = aabb.Max.y;
+			}
+
+			{
+				auto& line = buffer.emplace_back();
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Min;
+				line.Start.Location.z = aabb.Max.z;
+
+				line.End.Location = line.Start.Location;
+				line.End.Location.x = aabb.Max.x;
+			}
+		}
+
+		void DrawFrustum(std::vector<RendererLine>& lines, const Camera& camera, const Transform& tr, float aspect, const glm::vec3& color = glm::vec3(0, 1, 0))
+		{
+			auto AddLine = [](std::vector<RendererLine>& lines,
+				const glm::vec3& a,
+				const glm::vec3& b,
+				const glm::vec3& color)
+			{
+				RendererLine l;
+				l.Start.Location = a;
+				l.Start.Color = color;
+				l.End.Location = b;
+				l.End.Color = color;
+				lines.push_back(l);
+			};
+
+			const float fovY = camera.GetPerspectiveVerticalFOV();
+			const float znear = camera.GetPerspectiveNearClip();
+			const float zfar = camera.GetPerspectiveFarClip();
+
+			const glm::vec3& pos = tr.Location;
+			const glm::vec3 forward = Math::GetForwardVector(tr.Rotation);
+			const glm::vec3 up = Math::GetUpVector(tr.Rotation);
+			const glm::vec3 right = Math::GetRightVector(tr.Rotation);
+
+			float tanHalfFov = tanf(fovY * 0.5f);
+
+			float nearH = 2.0f * tanHalfFov * znear;
+			float nearW = nearH * aspect;
+
+			float farH = 2.0f * tanHalfFov * zfar;
+			float farW = farH * aspect;
+
+			glm::vec3 nc = pos + forward * znear;
+			glm::vec3 fc = pos + forward * zfar;
+
+			// Near corners
+			glm::vec3 ntl = nc + (up * nearH * 0.5f) - (right * nearW * 0.5f);
+			glm::vec3 ntr = nc + (up * nearH * 0.5f) + (right * nearW * 0.5f);
+			glm::vec3 nbl = nc - (up * nearH * 0.5f) - (right * nearW * 0.5f);
+			glm::vec3 nbr = nc - (up * nearH * 0.5f) + (right * nearW * 0.5f);
+
+			// Far corners
+			glm::vec3 ftl = fc + (up * farH * 0.5f) - (right * farW * 0.5f);
+			glm::vec3 ftr = fc + (up * farH * 0.5f) + (right * farW * 0.5f);
+			glm::vec3 fbl = fc - (up * farH * 0.5f) - (right * farW * 0.5f);
+			glm::vec3 fbr = fc - (up * farH * 0.5f) + (right * farW * 0.5f);
+
+			// Colors
+			const glm::vec3 edgeColor = color; // (1, 1, 0);
+			const glm::vec3 nearColor = color; // (0, 1, 1);
+			const glm::vec3 farColor = color; // (0, 0.5f, 1);
+			const glm::vec3 sliceColor = color; // (1, 0.5f, 0);
+			const glm::vec3 diagColor = color; // (1, 0, 0);
+
+			// Near
+			AddLine(lines, ntl, ntr, edgeColor);
+			AddLine(lines, ntr, nbr, edgeColor);
+			AddLine(lines, nbr, nbl, edgeColor);
+			AddLine(lines, nbl, ntl, edgeColor);
+
+			// Far
+			AddLine(lines, ftl, ftr, edgeColor);
+			AddLine(lines, ftr, fbr, edgeColor);
+			AddLine(lines, fbr, fbl, edgeColor);
+			AddLine(lines, fbl, ftl, edgeColor);
+
+			// Connections
+			AddLine(lines, ntl, ftl, edgeColor);
+			AddLine(lines, ntr, ftr, edgeColor);
+			AddLine(lines, nbl, fbl, edgeColor);
+			AddLine(lines, nbr, fbr, edgeColor);
+
+			// Diagonals (orientation)
+			AddLine(lines, ntl, nbr, diagColor);
+			AddLine(lines, ntr, nbl, diagColor);
+			AddLine(lines, ftl, fbr, diagColor);
+			AddLine(lines, ftr, fbl, diagColor);
+
+			// Near plane grid
+			const int gridSteps = 1;
+			for (int i = 1; i < gridSteps; i++)
+			{
+				float t = i / (float)gridSteps;
+			
+				glm::vec3 left = glm::mix(nbl, ntl, t);
+				glm::vec3 right = glm::mix(nbr, ntr, t);
+				AddLine(lines, left, right, nearColor);
+			
+				glm::vec3 bottom = glm::mix(nbl, nbr, t);
+				glm::vec3 top = glm::mix(ntl, ntr, t);
+				AddLine(lines, bottom, top, nearColor);
+			}
+
+			// Far plane grid
+			for (int i = 1; i < gridSteps; i++)
+			{
+				float t = i / (float)gridSteps;
+			
+				glm::vec3 left = glm::mix(fbl, ftl, t);
+				glm::vec3 right = glm::mix(fbr, ftr, t);
+				AddLine(lines, left, right, farColor);
+			
+				glm::vec3 bottom = glm::mix(fbl, fbr, t);
+				glm::vec3 top = glm::mix(ftl, ftr, t);
+				AddLine(lines, bottom, top, farColor);
+			}
+
+			// Depth slices
+			const int depthSlices = 3;
+			for (int i = 1; i <= depthSlices; i++)
+			{
+				float t = i / (float)(depthSlices + 1);
+				float z = glm::mix(znear, zfar, t);
+
+				float h = 2.0f * tanHalfFov * z;
+				float w = h * aspect;
+
+				glm::vec3 center = pos + forward * z;
+
+				glm::vec3 tl = center + (up * h * 0.5f) - (right * w * 0.5f);
+				glm::vec3 tr = center + (up * h * 0.5f) + (right * w * 0.5f);
+				glm::vec3 bl = center - (up * h * 0.5f) - (right * w * 0.5f);
+				glm::vec3 br = center - (up * h * 0.5f) + (right * w * 0.5f);
+
+				AddLine(lines, tl, tr, sliceColor);
+				AddLine(lines, tr, br, sliceColor);
+				AddLine(lines, br, bl, sliceColor);
+				AddLine(lines, bl, tl, sliceColor);
+			}
+		}
+
 		template <typename Comp>
 		void InvalidateCollisionGroups(entt::registry& registry, uint32_t validMasks)
 		{
@@ -334,6 +561,7 @@ namespace Eagle
 	, m_RuntimePhysicsSettings(other->m_RuntimePhysicsSettings)
 	, bDrawMiscellaneous(other->bDrawMiscellaneous)
 	, bDrawNavMesh(other->bDrawNavMesh)
+	, bDrawMeshAABBs(other->bDrawMeshAABBs)
 	, bDrawBones(other->bDrawBones)
 	, m_Cubemap(other->m_Cubemap)
 	, m_Sky(other->m_Sky)
@@ -1241,24 +1469,34 @@ namespace Eagle
 			// AABBs
 			if (true)
 			{
-				if (false)
+				if (bDrawMeshAABBs)
 				{
 					auto view = m_Registry.view<SkeletalMeshComponent>();
 					for (auto entity : view)
 					{
 						const auto& skeletal = view.get<SkeletalMeshComponent>(entity);
 						if (const auto& asset = skeletal.GetMeshAsset())
-							Utils::DrawBox(m_DebugLinesToDraw, asset->GetMesh()->GetAABB(), skeletal.GetWorldTransform());
+							Utils::DrawAABB(m_DebugLinesToDraw, asset->GetMesh()->GetAABB(), skeletal.GetWorldTransform());
 					}
 				}
-				if (false)
+				if (bDrawMeshAABBs)
 				{
 					auto view = m_Registry.view<StaticMeshComponent>();
 					for (auto entity : view)
 					{
 						const auto& staticMesh = view.get<StaticMeshComponent>(entity);
 						if (const auto& asset = staticMesh.GetMeshAsset())
-							Utils::DrawBox(m_DebugLinesToDraw, asset->GetMesh()->GetAABB(), staticMesh.GetWorldTransform());
+							Utils::DrawAABB(m_DebugLinesToDraw, asset->GetMesh()->GetAABB(), staticMesh.GetWorldTransform());
+					}
+				}
+				if (false)
+				{
+					const float aspect = float(m_ViewportWidth) / m_ViewportHeight;
+					auto view = m_Registry.view<CameraComponent>();
+					for (auto entity : view)
+					{
+						const auto& camera = view.get<CameraComponent>(entity);
+						Utils::DrawFrustum(m_DebugLinesToDraw, camera.Camera, camera.GetWorldTransform(), aspect);
 					}
 				}
 				if (false)
@@ -1365,11 +1603,16 @@ namespace Eagle
 						Utils::DrawBox(m_DebugLinesToDraw, aabb, {}, glm::vec3(0, 0, 1));
 					}
 				}
-				for (const auto& [aabb, transform] :m_UserAABBs)
+				for (const auto& [aabb, transform] : m_UserAABBs)
+				{
+					Utils::DrawAABB(m_DebugLinesToDraw, aabb, transform);
+				}
+				for (const auto& [aabb, transform] : m_UserBoxes)
 				{
 					Utils::DrawBox(m_DebugLinesToDraw, aabb, transform);
 				}
 				m_UserAABBs.clear();
+				m_UserBoxes.clear();
 			}
 
 			// Append user provided lines
@@ -1480,6 +1723,23 @@ namespace Eagle
 		m_SceneRenderer->SetSkeletalParticleAnimationTransforms(std::move(m_SkeletalParticlesAnimationTransforms));
 		m_SceneRenderer->SetGravity(m_RuntimePhysicsSettings.Gravity);
 		m_SceneRenderer->SetDecals(m_Decals, m_DirtyFlags.bDecalsDirty);
+
+		if (!m_DebugCameras.empty())
+		{
+			const float aspect = float(m_ViewportWidth) / m_ViewportHeight;
+			const uint32_t cameraEntityID = *m_DebugCameras.begin();
+			Entity entity((entt::entity)cameraEntityID, this);
+
+			EG_CORE_ASSERT(entity.HasComponent<CameraComponent>());
+			if (entity.HasComponent<CameraComponent>())
+			{
+				const auto& camera = entity.GetComponent<CameraComponent>();
+				const float fovY = camera.Camera.GetPerspectiveVerticalFOV();
+				const float nearPlane = camera.Camera.GetPerspectiveNearClip();
+				const float farPlane = camera.Camera.GetPerspectiveFarClip();
+				m_SceneRenderer->SetDebugFrustumCulling(camera.GetViewMatrix(), aspect, fovY, nearPlane, farPlane);
+			}
+		}
 
 		const bool bDrawEditorHelpers = !bIsPlaying && bDrawMiscellaneous;
 		m_SceneRenderer->SetGridEnabled(bDrawEditorHelpers);
@@ -1772,6 +2032,12 @@ namespace Eagle
 		}
 	}
 
+	void Scene::DrawFrustum(const CameraComponent& camera)
+	{
+		const float aspect = float(m_ViewportWidth) / m_ViewportHeight;
+		Utils::DrawFrustum(m_UserDebugLines, camera.Camera, camera.GetWorldTransform(), aspect);
+	}
+
 	SceneSoundData Scene::SpawnSound2D(const Ref<AssetAudio>& audio, const SoundSettings& settings)
 	{
 		SceneSoundData result;
@@ -2016,6 +2282,12 @@ namespace Eagle
 		component.RemoveAgent();
 	}
 
+	void Scene::OnCameraRemoved(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		m_DebugCameras.erase(entity.GetID());
+	}
+
 	void Scene::ConnectSignals()
 	{
 		m_Registry.on_destroy<StaticMeshComponent>().connect<&Scene::OnStaticMeshComponentRemoved>(*this);
@@ -2042,6 +2314,7 @@ namespace Eagle
 		m_Registry.on_destroy<CapsuleColliderComponent>().connect<&Scene::OnCapsuleColliderRemoved>(*this);
 		m_Registry.on_construct<NavigationCrowdAgentComponent>().connect<&Scene::OnCrowdAgentAdded>(*this);
 		m_Registry.on_destroy<NavigationCrowdAgentComponent>().connect<&Scene::OnCrowdAgentRemoved>(*this);
+		m_Registry.on_destroy<CameraComponent>().connect<&Scene::OnCameraRemoved>(*this);
 	}
 
 	void Scene::RegisterSkeletalParticleIfCan(const ParticleSystemComponent& system)

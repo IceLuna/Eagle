@@ -148,9 +148,15 @@ namespace Eagle
 			m_UserAABBs.emplace_back(aabb, transform);
 		}
 
+		void DrawBox(const AABB& aabb, const Transform& transform)
+		{
+			m_UserBoxes.emplace_back(aabb, transform);
+		}
+
 		// Needs to be called every frame
 		void DrawArrow(const glm::vec3& start, const glm::vec3& end, const glm::vec3& up);
 		void DrawCone(const glm::vec3& location, const glm::quat& rotation, float distance, float angleRad);
+		void DrawFrustum(const CameraComponent& camera);
 
 		SceneSoundData SpawnSound2D(const Ref<AssetAudio>& audio, const SoundSettings& settings);
 		SceneSoundData SpawnSound3D(const Ref<AssetAudio>& audio, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, const SoundSettings& settings = {});
@@ -350,6 +356,7 @@ namespace Eagle
 		void OnCapsuleColliderRemoved(entt::registry& r, entt::entity e);
 		void OnCrowdAgentAdded(entt::registry& r, entt::entity e);
 		void OnCrowdAgentRemoved(entt::registry& r, entt::entity e);
+		void OnCameraRemoved(entt::registry& r, entt::entity e);
 
 		// T - is component type
 		template<typename T>
@@ -536,6 +543,21 @@ namespace Eagle
 					}
 				}
 			}
+
+			if constexpr (std::is_base_of<CameraComponent, T>::value)
+			{
+				if (notification == Notification::OnDebugStateChanged)
+				{
+					if (component.IsDebugFrustumCullingEnabled())
+					{
+						m_DebugCameras.emplace(component.Parent.GetID());
+					}
+					else
+					{
+						m_DebugCameras.erase(component.Parent.GetID());
+					}
+				}
+			}
 		}
 
 	public:
@@ -543,6 +565,7 @@ namespace Eagle
 		bool bCanUpdateEditorCamera = false;
 		bool bDrawMiscellaneous = true;
 		bool bDrawNavMesh = false;
+		bool bDrawMeshAABBs = false;
 		bool bDrawBones = false;
 
 	private:
@@ -628,6 +651,7 @@ namespace Eagle
 		std::vector<RendererLine> m_DebugPointLines;
 		std::vector<RendererLine> m_DebugSpotLines;
 		std::vector<RendererLine> m_DebugReverbLines;
+		std::vector<std::pair<AABB, Transform>> m_UserBoxes; // Box and its world transform
 		std::vector<std::pair<AABB, Transform>> m_UserAABBs; // AABB and its world transform
 
 		std::unordered_set<const PointLightComponent*> m_PointLightsDebugRadii;
@@ -638,6 +662,9 @@ namespace Eagle
 
 		std::unordered_set<const ReverbComponent*> m_ReverbDebugBoxes;
 		bool m_ReverbDebugBoxesDirty = true;
+
+		// entt::entity. Can't store Entity (forward declaration)
+		std::unordered_set<uint32_t> m_DebugCameras;
 
 		GUID m_GUID;
 

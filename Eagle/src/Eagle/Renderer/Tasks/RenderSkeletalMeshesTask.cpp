@@ -14,6 +14,9 @@
 
 namespace Eagle
 {
+	// We're manually fetching VB & IVB data, so set the to null for the draw calls
+	static Ref<Buffer> s_NullBuffer = nullptr;
+
 	RenderSkeletalMeshesTask::RenderSkeletalMeshesTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
@@ -124,14 +127,11 @@ namespace Eagle
 			m_MaskedPipeline = PipelineGraphics::Create(state);
 	}
 
-	void RenderSkeletalMeshesTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const std::vector<MeshDrawData>& meshes, const MeshGeometryData<SkeletalVertex>& buffers,
+	void RenderSkeletalMeshesTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const std::vector<MeshDrawData>& meshes, const SkeletalMeshGeometryData& buffers,
 		RenderStats& stats, const DataBufferView& vertexPushData, const Ref<Framebuffer>& framebuffer)
 	{
 		if (meshes.empty())
 			return;
-
-		// We're manually fetching VB & IVB data, so set the to null for the draw calls
-		static Ref<Buffer> nullBuffer = nullptr;
 
 		if (framebuffer)
 			cmd->BeginGraphics(pipeline, framebuffer);
@@ -172,7 +172,7 @@ namespace Eagle
 
 					memcpy_s(pushConstants + dstOffset, pushConstantsMaxSize - dstOffset, &pushData, sizeof(PushData));
 					cmd->SetGraphicsRootConstants(pushConstants, nullptr);
-					cmd->DrawIndexedInstanced(nullBuffer, buffers.IndexBuffer, indicesCount, firstIndex, 0, instanceCount, firstInstance, nullBuffer);
+					cmd->DrawIndexedInstanced(s_NullBuffer, buffers.IndexBuffer, indicesCount, firstIndex, 0, instanceCount, firstInstance, s_NullBuffer);
 					++stats.DrawCalls;
 				}
 			}
@@ -183,9 +183,11 @@ namespace Eagle
 
 	void RenderSkeletalMeshesTask::RenderOpaque(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& singleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Opaque.DrawData;
-		const auto& doubleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.Opaque.DrawData;
-		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
+		const auto& culledMeshes = m_Renderer.GetCulledSkeletalMeshes();
+		const auto& ivb = culledMeshes.InstanceBuffer;
+		const auto& singleSided = culledMeshes.SingleSided.Opaque;
+		const auto& doubleSided = culledMeshes.DoubleSided.Opaque;
+		if (singleSided.GetNumMeshes() == 0 && doubleSided.GetNumMeshes() == 0)
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Render Opaque Skeletal Meshes");
@@ -199,13 +201,10 @@ namespace Eagle
 			m_OpaqueTexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()] = texturesChangedFrame + 1;
 		}
 
-		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
-		const auto& vb = m_Renderer.GetSkinnedVertices();
-
 		m_OpaquePipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 		m_OpaquePipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
-		m_OpaquePipeline->SetBuffer(vb, EG_PERSISTENT_SET, EG_BINDING_MAX);
-		m_OpaquePipeline->SetBuffer(buffers.InstanceBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+		m_OpaquePipeline->SetBuffer(m_Renderer.GetSkinnedVertices(), EG_PERSISTENT_SET, EG_BINDING_MAX);
+		m_OpaquePipeline->SetBuffer(ivb, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 		m_OpaquePipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
 		m_OpaquePipeline->SetBuffer(m_Renderer.GetSkeletalMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 3);
 
@@ -216,24 +215,32 @@ namespace Eagle
 		if (bJitter)
 			m_OpaquePipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
+		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
 		auto& stats = m_Renderer.GetStats();
-		if (!singleSidedMeshes.empty())
+
+		cmd->BeginGraphics(m_OpaquePipeline);
+		if (singleSided.GetNumMeshes() > 0)
 		{
 			cmd->SetGraphicsCullMode(CullMode::Back);
-			Draw(cmd, m_OpaquePipeline, singleSidedMeshes, buffers, stats);
+			cmd->DrawIndexedInstancedIndirectCount(s_NullBuffer, buffers.IndexBuffer, singleSided.Result.IndirectArgsBuffer, singleSided.Result.DrawCountBuffer, s_NullBuffer, singleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
 		}
-		if (!doubleSidedMeshes.empty())
+		if (doubleSided.GetNumMeshes() > 0)
 		{
 			cmd->SetGraphicsCullMode(CullMode::None);
-			Draw(cmd, m_OpaquePipeline, doubleSidedMeshes, buffers, stats);
+			cmd->DrawIndexedInstancedIndirectCount(s_NullBuffer, buffers.IndexBuffer, doubleSided.Result.IndirectArgsBuffer, doubleSided.Result.DrawCountBuffer, s_NullBuffer, doubleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
 		}
+		cmd->EndGraphics();
 	}
 
 	void RenderSkeletalMeshesTask::RenderMasked(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& singleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().SingleSided.Masked.DrawData;
-		const auto& doubleSidedMeshes = m_Renderer.GetSkeletalMeshesDrawData().DoubleSided.Masked.DrawData;
-		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
+		const auto& culledMeshes = m_Renderer.GetCulledSkeletalMeshes();
+		const auto& ivb = culledMeshes.InstanceBuffer;
+		const auto& singleSided = culledMeshes.SingleSided.Masked;
+		const auto& doubleSided = culledMeshes.DoubleSided.Masked;
+		if (singleSided.GetNumMeshes() == 0 && doubleSided.GetNumMeshes() == 0)
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Render Masked Skeletal Meshes");
@@ -247,13 +254,10 @@ namespace Eagle
 			m_MaskedTexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()] = texturesChangedFrame + 1;
 		}
 
-		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
-		const auto& vb = m_Renderer.GetSkinnedVertices();
-
 		m_MaskedPipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 		m_MaskedPipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
-		m_MaskedPipeline->SetBuffer(vb, EG_PERSISTENT_SET, EG_BINDING_MAX);
-		m_MaskedPipeline->SetBuffer(buffers.InstanceBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+		m_MaskedPipeline->SetBuffer(m_Renderer.GetSkinnedVertices(), EG_PERSISTENT_SET, EG_BINDING_MAX);
+		m_MaskedPipeline->SetBuffer(ivb, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 		m_MaskedPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
 		m_MaskedPipeline->SetBuffer(m_Renderer.GetSkeletalMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 3);
 
@@ -264,16 +268,21 @@ namespace Eagle
 		if (bJitter)
 			m_MaskedPipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
+		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
 		auto& stats = m_Renderer.GetStats();
-		if (!singleSidedMeshes.empty())
+		cmd->BeginGraphics(m_MaskedPipeline);
+		if (singleSided.GetNumMeshes() > 0)
 		{
 			cmd->SetGraphicsCullMode(CullMode::Back);
-			Draw(cmd, m_MaskedPipeline, singleSidedMeshes, buffers, stats);
+			cmd->DrawIndexedInstancedIndirectCount(s_NullBuffer, buffers.IndexBuffer, singleSided.Result.IndirectArgsBuffer, singleSided.Result.DrawCountBuffer, s_NullBuffer, singleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
 		}
-		if (!doubleSidedMeshes.empty())
+		if (doubleSided.GetNumMeshes() > 0)
 		{
 			cmd->SetGraphicsCullMode(CullMode::None);
-			Draw(cmd, m_MaskedPipeline, doubleSidedMeshes, buffers, stats);
+			cmd->DrawIndexedInstancedIndirectCount(s_NullBuffer, buffers.IndexBuffer, doubleSided.Result.IndirectArgsBuffer, doubleSided.Result.DrawCountBuffer, s_NullBuffer, doubleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
 		}
+		cmd->EndGraphics();
 	}
 }

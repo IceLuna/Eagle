@@ -39,6 +39,7 @@ namespace Eagle
 		out << YAML::Key << "bUpdateAnimationsInEditor" << YAML::Value << editor->bUpdateAnimationsInEditor;
 		out << YAML::Key << "DrawAxisGuizmo" << YAML::Value << editor->bDrawAxisGuizmo;
 		out << YAML::Key << "DrawNavMesh" << YAML::Value << editor->bDrawNavMesh;
+		out << YAML::Key << "DrawMeshAABBs" << YAML::Value << editor->bDrawMeshAABBs;
 		out << YAML::Key << "StopSimulationKey" << YAML::Value << Utils::GetEnumName(editor->m_StopSimulationKey);
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
 		out << YAML::Key << "GuizmoMode" << YAML::Value << Utils::GetEnumName((ImGuizmo::MODE)editor->m_GuizmoMode);
@@ -73,6 +74,7 @@ namespace Eagle
 		bool bUpdateAnimationsInEditor = editor->bUpdateAnimationsInEditor;
 		bool bDrawAxisGuizmo = editor->bDrawAxisGuizmo;
 		bool bDrawNavMesh = editor->bDrawNavMesh;
+		bool bDrawMeshAABBs = editor->bDrawMeshAABBs;
 		Key stopSimulationKey = editor->m_StopSimulationKey;
 		int guizmoMode = ImGuizmo::MODE::WORLD;
 
@@ -106,6 +108,8 @@ namespace Eagle
 			bDrawAxisGuizmo = node.as<bool>();
 		if (auto node = data["DrawNavMesh"])
 			bDrawNavMesh = node.as<bool>();
+		if (auto node = data["DrawMeshAABBs"])
+			bDrawMeshAABBs = node.as<bool>();
 		if (auto node = data["StopSimulationKey"])
 			stopSimulationKey = Utils::GetEnumFromName<Eagle::Key>(node.as<std::string>());
 		if (auto VSyncNode = data["VSync"])
@@ -115,7 +119,7 @@ namespace Eagle
 		
 		Serializer::DeserializeRendererSettings(data, settings);
 
-		editor->OnDeserialized(windowSize, windowPos, settings, bWindowMaximized, bVSync, bRenderOnlyWhenFocused, bDrawNavMesh, bDrawAxisGuizmo, stopSimulationKey, bUpdateAnimationsInEditor, guizmoMode);
+		editor->OnDeserialized(windowSize, windowPos, settings, bWindowMaximized, bVSync, bRenderOnlyWhenFocused, bDrawNavMesh, bDrawMeshAABBs, bDrawAxisGuizmo, stopSimulationKey, bUpdateAnimationsInEditor, guizmoMode);
 		return true;
 	}
 }

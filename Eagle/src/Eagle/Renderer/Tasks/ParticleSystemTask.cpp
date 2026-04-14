@@ -554,39 +554,23 @@ namespace Eagle
 
 		struct PushData
 		{
-			glm::mat4 ViewProj;
+			glm::mat4 View;
 			uint32_t PreSimIndex;
 			uint32_t PostSimIndex;
 			uint32_t NumEmitters;
 			float DeltaTime;
 			uint32_t MaxParticles;
-			struct CullingFrustum
-			{
-				float near_right;
-				float near_top;
-				float near_plane;
-				float far_plane;
-			} Frustum;
+			CullingFrustum Frustum;
 		} pushData;
-		pushData.ViewProj = m_Renderer.GetViewMatrix();
+
+		const auto& cullingData = m_Renderer.GetCullingFrustumData();
+		pushData.View = cullingData.View;
 		pushData.PreSimIndex = m_PingPong;
 		pushData.PostSimIndex = 1u - m_PingPong;
 		pushData.NumEmitters = m_NumEmitters;
 		pushData.DeltaTime = Application::Get().GetTimestep();
 		pushData.MaxParticles = m_MaxParticles;
-
-		const float tanFov = std::tan(0.5f * m_Renderer.GetFOV());
-		const float nearPlane = m_Renderer.GetZNear();
-		const float farPlane = m_Renderer.GetZFar();
-		const float aspectRatio = float(m_Size.x) / m_Size.y;
-
-		pushData.Frustum =
-		{
-			aspectRatio * nearPlane * tanFov,
-			nearPlane * tanFov,
-			-nearPlane,
-			-farPlane,
-		};
+		pushData.Frustum = cullingData.Frustum;
 
 		m_PrepareData->SetBuffer(m_SystemData, 0, 0);
 		m_PrepareData->SetBuffer(m_DrawArgs, 0, 1);

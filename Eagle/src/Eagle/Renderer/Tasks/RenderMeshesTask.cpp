@@ -131,7 +131,7 @@ namespace Eagle
 			m_MaskedPipeline = PipelineGraphics::Create(state);
 	}
 	
-	void RenderMeshesTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const std::vector<MeshDrawData>& meshes, const MeshGeometryData<Vertex>& buffers, RenderStats& stats,
+	void RenderMeshesTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const std::vector<MeshDrawData>& meshes, const StaticMeshGeometryData& buffers, RenderStats& stats,
 		const void* vertexPushData, const Ref<Framebuffer>& framebuffer)
 	{
 		if (meshes.empty())
@@ -165,10 +165,11 @@ namespace Eagle
 
 	void RenderMeshesTask::RenderOpaque(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& drawData = m_Renderer.GetStaticMeshesDrawData();
-		const auto& singleSidedMeshes = drawData.SingleSided.Opaque.DrawData;
-		const auto& doubleSidedMeshes = drawData.DoubleSided.Opaque.DrawData;
-		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
+		const auto& culledMeshes = m_Renderer.GetCulledStaticMeshes();
+		const auto& ivb = culledMeshes.InstanceBuffer;
+		const auto& singleSided = culledMeshes.SingleSided.Opaque;
+		const auto& doubleSided = culledMeshes.DoubleSided.Opaque;
+		if (singleSided.GetNumMeshes() == 0 && doubleSided.GetNumMeshes() == 0)
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Render Opaque Static Meshes");
@@ -196,27 +197,36 @@ namespace Eagle
 		if (bJitter)
 			m_OpaquePipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
-		auto& stats = m_Renderer.GetStats();
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
+		auto& stats = m_Renderer.GetStats();
 
-		if (!singleSidedMeshes.empty())
+		cmd->BeginGraphics(m_OpaquePipeline);
+		cmd->SetGraphicsRootConstants(&pushData, nullptr);
+
+		if (singleSided.GetNumMeshes() > 0)
 		{
 			cmd->SetGraphicsCullMode(CullMode::Back);
-			Draw(cmd, m_OpaquePipeline, singleSidedMeshes, buffers, stats, &pushData);
+			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, singleSided.Result.IndirectArgsBuffer, singleSided.Result.DrawCountBuffer, ivb, singleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
 		}
-		if (!doubleSidedMeshes.empty())
+
+		if (doubleSided.GetNumMeshes())
 		{
 			cmd->SetGraphicsCullMode(CullMode::None);
-			Draw(cmd, m_OpaquePipeline, doubleSidedMeshes, buffers, stats, &pushData);
+			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, doubleSided.Result.IndirectArgsBuffer, doubleSided.Result.DrawCountBuffer, ivb, doubleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
 		}
+
+		cmd->EndGraphics();
 	}
 
 	void RenderMeshesTask::RenderMasked(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& drawData = m_Renderer.GetStaticMeshesDrawData();
-		const auto& singleSidedMeshes = drawData.SingleSided.Masked.DrawData;
-		const auto& doubleSidedMeshes = drawData.DoubleSided.Masked.DrawData;
-		if (singleSidedMeshes.empty() && doubleSidedMeshes.empty())
+		const auto& culledMeshes = m_Renderer.GetCulledStaticMeshes();
+		const auto& ivb = culledMeshes.InstanceBuffer;
+		const auto& singleSided = culledMeshes.SingleSided.Masked;
+		const auto& doubleSided = culledMeshes.DoubleSided.Masked;
+		if (singleSided.GetNumMeshes() == 0 && doubleSided.GetNumMeshes() == 0)
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Render Masked Static Meshes");
@@ -248,15 +258,23 @@ namespace Eagle
 		auto& stats = m_Renderer.GetStats();
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
 
-		if (!singleSidedMeshes.empty())
+		cmd->BeginGraphics(m_MaskedPipeline);
+		cmd->SetGraphicsRootConstants(&pushData, nullptr);
+
+		if (singleSided.GetNumMeshes() > 0)
 		{
 			cmd->SetGraphicsCullMode(CullMode::Back);
-			Draw(cmd, m_MaskedPipeline, singleSidedMeshes, buffers, stats, &pushData);
+			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, singleSided.Result.IndirectArgsBuffer, singleSided.Result.DrawCountBuffer, ivb, singleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
 		}
-		if (!doubleSidedMeshes.empty())
+
+		if (doubleSided.GetNumMeshes())
 		{
 			cmd->SetGraphicsCullMode(CullMode::None);
-			Draw(cmd, m_MaskedPipeline, doubleSidedMeshes, buffers, stats, &pushData);
+			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, doubleSided.Result.IndirectArgsBuffer, doubleSided.Result.DrawCountBuffer, ivb, doubleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
 		}
+
+		cmd->EndGraphics();
 	}
 }

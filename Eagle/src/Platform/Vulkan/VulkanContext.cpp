@@ -256,6 +256,7 @@ namespace Eagle
 		VkPhysicalDeviceVulkan11Features deviceFeatures11 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
 		deviceFeatures11.multiview = VK_TRUE;
 		deviceFeatures11.storageBuffer16BitAccess = VK_TRUE;
+		deviceFeatures11.shaderDrawParameters = VK_TRUE;
 
 		VkPhysicalDeviceVulkan12Features deviceFeatures12 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
 		deviceFeatures12.descriptorIndexing = VK_TRUE;
@@ -268,6 +269,7 @@ namespace Eagle
 		deviceFeatures12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
 		deviceFeatures12.shaderFloat16 = m_PhysicalDevice->IsFloat16Supported() ? VK_TRUE : VK_FALSE;
 		deviceFeatures12.scalarBlockLayout = VK_TRUE;
+		deviceFeatures12.drawIndirectCount = VK_TRUE;
 #ifdef EG_GPU_TIMINGS
 		deviceFeatures12.hostQueryReset = VK_TRUE;
 #endif
@@ -293,6 +295,8 @@ namespace Eagle
 		features.features.textureCompressionETC2 = supportedFeatures.bTextureCompressionETC2;
 		features.features.textureCompressionBC = supportedFeatures.bTextureCompressionBC;
 		features.features.shaderInt16 = VK_TRUE;
+		features.features.drawIndirectFirstInstance = VK_TRUE;
+		features.features.multiDrawIndirect = VK_TRUE;
 		features.pNext = &deviceFeatures13;
 
 		m_Device = VulkanDevice::Create(m_PhysicalDevice, features);

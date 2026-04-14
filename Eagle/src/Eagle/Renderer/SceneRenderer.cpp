@@ -80,6 +80,7 @@ namespace Eagle
 		m_GBuffer.InitOptional(m_Options.InternalState, glm::uvec3(m_Size, 1u));
 		// Create tasks
 		m_SkinCacheTask = MakeRef<SkinCacheTask>(*this);
+		m_FrustumCullingTask = MakeRef<FrustumCullingTask>(*this);
 		m_DepthPrepassTask = MakeRef<DepthPrepassTask>(*this);
 		m_RenderMeshesTask = MakeRef<RenderMeshesTask>(*this);
 		m_RenderSkeletalMeshesTask = MakeRef<RenderSkeletalMeshesTask>(*this);
@@ -159,6 +160,19 @@ namespace Eagle
 			renderer->m_CameraCascadeFarPlanes = std::move(cascadeFarPlanes);
 			renderer->m_MaxShadowDistance = shadowDistance;
 
+			if (renderer->m_bUseDebugCullingFrustum)
+			{
+				renderer->m_CullingData = renderer->m_DebugCullingData;
+				renderer->m_bUseDebugCullingFrustum = false;
+			}
+			else
+			{
+				const auto& size = renderer->m_Size;
+				const float aspectRatio = float(size.x) / size.y;
+				renderer->m_CullingData.Frustum = CalculateFrustum(zNear, zFar, cameraFov, aspectRatio);
+				renderer->m_CullingData.View = renderer->m_View;
+			}
+
 			if (options.InternalState.bJitter)
 			{
 				// The range of numbers from Halton sequence is between 0 to 1.
@@ -184,6 +198,7 @@ namespace Eagle
 
 			renderer->m_LightsManagerTask->RecordCommandBuffer(cmd);
 			renderer->m_GeometryManagerTask->RecordCommandBuffer(cmd);
+			renderer->m_FrustumCullingTask->RecordCommandBuffer(cmd);
 			renderer->m_SkinCacheTask->RecordCommandBuffer(cmd);
 			if (renderer->m_Options_RT.bDepthPrepass)
 				renderer->m_DepthPrepassTask->RecordCommandBuffer(cmd);
@@ -384,6 +399,7 @@ namespace Eagle
 		m_GBuffer.Resize({ m_Size, 1 });
 
 		// Tasks
+		m_FrustumCullingTask->OnResize(m_Size);
 		m_SkinCacheTask->OnResize(m_Size);
 		m_DepthPrepassTask->OnResize(m_Size);
 		m_RenderMeshesTask->OnResize(m_Size);
@@ -450,6 +466,19 @@ namespace Eagle
 		});
 	}
 
+	void SceneRenderer::SetDebugFrustumCulling(const glm::mat4& view, float aspectRatio, float fov, float nearPlane, float farPlane)
+	{
+		CullingFrustumData data{};
+		data.Frustum = CalculateFrustum(nearPlane, farPlane, fov, aspectRatio);
+		data.View = view;
+
+		RenderManager::Submit([renderer = shared_from_this(), data](const Ref<CommandBuffer>&)
+		{
+			renderer->m_DebugCullingData = data;
+			renderer->m_bUseDebugCullingFrustum = true;
+		});
+	}
+
 	void SceneRenderer::InitWithOptions()
 	{
 		auto& options = m_Options_RT;
@@ -472,6 +501,7 @@ namespace Eagle
 		m_GBuffer.InitOptional(options.InternalState, glm::uvec3(m_Size, 1u));
 		m_PhotoLinearScale = CalculatePhotoLinearScale(options.PhotoLinearTonemappingParams, options.Gamma);
 		m_GeometryManagerTask->InitWithOptions(options);
+		m_FrustumCullingTask->InitWithOptions(options);
 		m_SkinCacheTask->InitWithOptions(options);
 		m_DepthPrepassTask->InitWithOptions(options);
 		m_RenderMeshesTask->InitWithOptions(options);
@@ -650,6 +680,9 @@ namespace Eagle
 	
 	void GBuffer::Clear(const Ref<CommandBuffer>& cmd)
 	{
+		EG_GPU_TIMING_SCOPED(cmd, "Clearing GBuffer");
+		EG_CPU_TIMING_SCOPED("Clearing GBuffer");
+
 		cmd->ClearDepthStencilImage(Depth, 0, 0, Depth->GetLayout(), ImageLayoutType::DepthStencilWrite);
 		cmd->ClearColorImage(ObjectID, glm::uintBitsToFloat(glm::uvec4(-1)), ObjectID->GetLayout(), ImageLayoutType::RenderTarget);
 		if (Motion)

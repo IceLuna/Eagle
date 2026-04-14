@@ -221,6 +221,7 @@ namespace Eagle
 		m_Ts = ts;
 		m_CurrentScene->bDrawMiscellaneous = m_bDrawEditorMisc;
 		m_CurrentScene->bDrawNavMesh = bDrawNavMesh;
+		m_CurrentScene->bDrawMeshAABBs = bDrawMeshAABBs;
 
 		{
 			std::scoped_lock lock(s_DeferredCallsMutex);
@@ -764,7 +765,7 @@ namespace Eagle
 	}
 
 	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync,
-		bool bRenderOnlyWhenFocused, bool bDrawNavMesh, bool bDrawAxisGuizmo, Key stopSimulationKey, bool bUpdateAnimationsInEditor, int guizmoMode)
+		bool bRenderOnlyWhenFocused, bool bDrawNavMesh, bool bDrawMeshAABBs, bool bDrawAxisGuizmo, Key stopSimulationKey, bool bUpdateAnimationsInEditor, int guizmoMode)
 	{
 		// Scene creation needs to go through this way of setting it up since we need to get Ref<Scene> immediately
 		m_EditorScene = MakeRef<Scene>("Editor Scene");
@@ -790,6 +791,7 @@ namespace Eagle
 		this->bRenderOnlyWhenFocused = bRenderOnlyWhenFocused;
 		this->bUpdateAnimationsInEditor = bUpdateAnimationsInEditor;
 		this->bDrawNavMesh = bDrawNavMesh;
+		this->bDrawMeshAABBs = bDrawMeshAABBs;
 		this->bDrawAxisGuizmo = bDrawAxisGuizmo;
 		m_GuizmoMode = guizmoMode;
 		m_StopSimulationKey = stopSimulationKey;
@@ -825,9 +827,14 @@ namespace Eagle
 			if (selectedType == SelectedComponent::DecalComponent)
 			{
 				const AABB aabb(glm::vec3(-0.5f), glm::vec3(0.5f));
-				m_CurrentScene->DrawAABB(aabb, selectedComponent->GetWorldTransform());
+				m_CurrentScene->DrawBox(aabb, selectedComponent->GetWorldTransform());
 				const auto& start = selectedComponent->GetWorldTransform().Location;
 				m_CurrentScene->DrawArrow(start, start + selectedComponent->GetForwardVector() * 0.25f, selectedComponent->GetUpVector());
+			}
+			else if (selectedType == SelectedComponent::CameraComponent)
+			{
+				CameraComponent& camera = *(CameraComponent*)selectedComponent;
+				m_CurrentScene->DrawFrustum(camera);
 			}
 		}
 
@@ -2142,6 +2149,7 @@ namespace Eagle
 			UI::Property("Update Animations", bUpdateAnimationsInEditor, "If checked, animations will be updated in the editor mode");
 			UI::Property("Draw Editor Miscellaneous", m_bDrawEditorMisc);
 			UI::Property("Draw Nav Mesh", bDrawNavMesh);
+			UI::Property("Draw AABBs of Meshes", bDrawMeshAABBs);
 			UI::ComboEnum<Eagle::Key>("Stop simulation key", m_StopSimulationKey, "The editor will stop the game-simulation when this key is pressed. Set it to 'None' to disable");
 			ImGuiLayer::ShowStyleSelector("Style", m_EditorStyle);
 

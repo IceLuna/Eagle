@@ -610,6 +610,7 @@ namespace Eagle::Script
 	void Eagle_Renderer_DrawTriangle(const glm::vec3* v0Location, const glm::vec3* v0Color, const glm::vec3* v1Location, const glm::vec3* v1Color, const glm::vec3* v2Location, const glm::vec3* v2Color);
 	void Eagle_Renderer_DrawArrow(const glm::vec3* start, const glm::vec3* end, const glm::vec3* up);
 	void Eagle_Renderer_DrawAABB(const AABB* aabb, const Transform* transform);
+	void Eagle_Renderer_DrawBox(const AABB* aabb, const Transform* transform);
 	void Eagle_Renderer_DrawCone(const glm::vec3* location, const glm::quat* rotation, float distance, float angleRad);
 
 	// Project

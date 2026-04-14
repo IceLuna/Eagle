@@ -1,0 +1,167 @@
+#extension GL_EXT_scalar_block_layout : require
+
+#include "defines.h"
+#include "utils.h"
+
+struct MeshData
+{
+	vec3 MinAABB;
+	uint MaterialsCount;
+	vec3 MaxAABB;
+	uint MaterialsOffset;
+	uint VertexOffset;
+};
+
+struct MaterialData
+{
+	uint FirstIndex;
+	uint IndexCount;
+	uint FirstInstance;
+	uint InstanceCount;
+};
+
+#ifdef EG_SKELETAL
+struct InstanceData
+{
+	uint TransformIndex; // (highest bit is flag whether it receives decals)
+	uint MaterialIndex;
+	uint ObjectID;
+    uint VertexOffset;
+};
+#else
+struct InstanceData
+{
+	uint TransformIndex; // (highest bit is flag whether it receives decals)
+	uint MaterialIndex;
+	uint ObjectID;
+};
+#endif
+
+struct DrawIndexedIndirectCommand
+{
+    uint IndexCount;
+    uint InstanceCount;
+    uint FirstIndex;
+    int  VertexOffset;
+    uint FirstInstance;
+};
+
+layout(scalar, binding = 0) readonly buffer MeshDataBuffer
+{
+    MeshData g_Meshes[];
+};
+
+layout(binding = 1) readonly buffer MaterialsDataBuffer
+{
+    MaterialData g_MaterialsData[];
+};
+
+layout(scalar, binding = 2) readonly buffer InstanceBuffer
+{
+    InstanceData g_Instances[];
+};
+
+layout(binding = 3) readonly buffer MeshTransformsBuffer
+{
+    mat4 g_Transforms[];
+};
+
+layout(scalar, binding = 4) buffer CulledInstanceBuffer
+{
+    InstanceData g_CulledInstances[];
+};
+
+layout(scalar, binding = 5) buffer DrawCallsBuffer
+{
+    DrawIndexedIndirectCommand g_DrawCalls[];
+};
+
+layout(binding = 6) buffer DrawCallsCounterBuffer
+{
+    uint g_DrawCallsCounter;
+};
+
+#ifdef EG_SKELETAL
+struct SkeletalPushData
+{
+	uint VertexCount;
+	uint InstanceOffset;
+	uint VerticesOffset;
+};
+
+layout(scalar, binding = 7) readonly buffer InputSkeletalPushDataBuffer
+{
+    SkeletalPushData g_InputSkeletalPushData[];
+};
+#endif
+
+layout(push_constant) uniform PushData
+{
+    mat4 g_View;
+    CullingFrustum g_Frustum;
+    uint g_NumMeshes;
+    uint g_MaxDrawCalls;
+};
+
+#define GROUP_SIZE 32
+layout(local_size_x = GROUP_SIZE) in;
+
+void main()
+{
+    const uint meshIndex = gl_GlobalInvocationID.x;
+    if (meshIndex >= g_NumMeshes)
+    {
+        return;
+    }
+
+    const MeshData mesh = g_Meshes[meshIndex];
+    for (uint materialIndex = 0; materialIndex < mesh.MaterialsCount; ++materialIndex)
+    {
+        const uint dataIndex = mesh.MaterialsOffset + materialIndex;
+        const MaterialData materialData = g_MaterialsData[dataIndex];
+#ifdef EG_SKELETAL
+        const SkeletalPushData pushData = g_InputSkeletalPushData[dataIndex];
+#endif
+
+        DrawIndexedIndirectCommand drawCall;
+        drawCall.IndexCount = materialData.IndexCount;
+        drawCall.FirstIndex = materialData.FirstIndex;
+#ifdef EG_SKELETAL
+        drawCall.VertexOffset = 0; // Skeletal vertices are fetched manually
+#else
+        drawCall.VertexOffset = int(mesh.VertexOffset);
+#endif
+        drawCall.FirstInstance = materialData.FirstInstance;
+
+        uint instanceCount = 0;
+        for (uint i = 0; i < materialData.InstanceCount; ++i)
+        {
+            const uint instanceIndex = materialData.FirstInstance + i;
+            InstanceData instance = g_Instances[instanceIndex];
+            const uint transformIndex = instance.TransformIndex & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
+            const mat4 model = g_Transforms[transformIndex];
+            
+            const bool bVisible = FrustumAABBIntersection(g_Frustum, g_View * model, mesh.MinAABB, mesh.MaxAABB);
+            if (bVisible)
+            {
+#ifdef EG_SKELETAL
+                instance.VertexOffset = pushData.VerticesOffset + pushData.VertexCount * i;
+#endif
+
+                g_CulledInstances[materialData.FirstInstance + instanceCount] = instance;
+                instanceCount++;
+            }
+        }
+
+        if (instanceCount > 0)
+        {
+            uint insertIdx = 0;
+            EG_SUBGROUP_ATOMIC_INCREMENT(g_DrawCallsCounter, true, insertIdx)
+            if (insertIdx < g_MaxDrawCalls)
+            {
+                drawCall.InstanceCount = instanceCount;
+                g_DrawCalls[insertIdx] = drawCall;
+            }
+        }
+    }
+}

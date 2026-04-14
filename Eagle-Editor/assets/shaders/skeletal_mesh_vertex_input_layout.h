@@ -34,6 +34,7 @@ struct InstanceData
 	uint TransformIndex; // (highest bit is flag whether it receives decals)
 	uint MaterialIndex;
 	uint ObjectID;
+	uint VertexOffset;
 };
 
 #ifdef EG_VERTEX_LAYOUT
