@@ -347,9 +347,9 @@ namespace Eagle::UI
 
 	// Fonts
 	void LoadFonts();
-	bool PushFontRegular();
-	bool PushFontHeader();
-	bool PushFontBold();
+	void PushFontRegular();
+	void PushFontHeader();
+	void PushFontBold();
 	void PopFont();
 
 	// @bReturnOnEnter. If set to true, the function won't return true while the values is being changed. True will be returned after a user stops editing the value

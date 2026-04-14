@@ -40,8 +40,6 @@ namespace Eagle
 		if (!s_GLFWInitialized)
 		{
 			SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-			//BOOL dpiSuccess = SetProcessDPIAware();
-			//EG_CORE_WARN("[GLFW Before Init] SetProcessDPIAware -> {}", dpiSuccess ? "TRUE" : "FALSE");
 			int success = glfwInit();
 			EG_CORE_ASSERT(success, "Could not initialize GLFW!");
 #ifndef EG_RELEASE
@@ -60,7 +58,7 @@ namespace Eagle
 		if (xscale > 1.0f || yscale > 1.0f)
 		{
 			m_DPIScale = glm::max(xscale, yscale);
-			//glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
+			glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
 		}
 
 		if (m_Props.Fullscreen)

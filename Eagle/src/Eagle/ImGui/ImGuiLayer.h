@@ -47,7 +47,7 @@ namespace Eagle
 
 	protected:
 		virtual void Render(const Ref<CommandBuffer>& cmd) = 0;
-		virtual void UploadFonts();
+		virtual void UploadFonts() {}
 
 		friend class RenderManager;
 

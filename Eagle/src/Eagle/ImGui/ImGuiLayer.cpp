@@ -22,11 +22,6 @@ namespace Eagle
 		style.ScaleAllSizes(dpi);
 	}
 
-	void ImGuiLayer::UploadFonts()
-	{
-		// I'm dumbo.
-	}
-
 	void ImGuiLayer::RebuildFonts()
 	{
 		ImGuiIO& io = ImGui::GetIO();
@@ -139,7 +134,6 @@ namespace Eagle
 		if (EventType::WindowContentScale == e.GetEventType())
 		{
 			WindowContentScaleEvent& scaleEvent = (WindowContentScaleEvent&)e;
-			EG_CORE_TRACE(scaleEvent.ToString());
 			RebuildFonts();
 		}
 	}

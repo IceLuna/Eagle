@@ -2615,11 +2615,9 @@ namespace Eagle
 		}
 		ImGui::PushID("HelpWindow");
 
-		if (UI::PushFontHeader())
-		{
-			ImGui::Text("Eagle Engine v%s", EG_VERSION);
-			UI::PopFont();
-		}
+		UI::PushFontHeader();
+		ImGui::Text("Eagle Engine v%s", EG_VERSION);
+		UI::PopFont();
 		ImGui::Separator();
 
 		const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth

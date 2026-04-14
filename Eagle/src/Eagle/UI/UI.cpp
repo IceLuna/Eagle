@@ -36,16 +36,6 @@ namespace Eagle::UI
 
 	namespace
 	{
-		bool PushFont(ImFont* font)
-		{
-			if (font)
-			{
-				ImGui::PushFont(font);
-				return true;
-			}
-			return false;
-		}
-
 		bool HandlePublicField(std::string_view label, PublicField& field, MonoObject* instance, size_t fieldIndex, bool bRuntime, Entity entity)
 		{
 			bool bChanged = false;
@@ -328,46 +318,55 @@ namespace Eagle::UI
 		ImGuiIO& io = ImGui::GetIO();
 
 		const Path regularFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Regular.ttf";
-		const Path boldFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Bold.ttf";
+		const Path boldFont	   = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Bold.ttf";
 
-		if (!std::filesystem::exists(regularFont) || !std::filesystem::exists(boldFont))
+		if (std::filesystem::exists(regularFont) && std::filesystem::exists(boldFont))
 		{
-			EG_CORE_WARN("UI fonts not found. Falling back to default.");
-			io.Fonts->AddFontDefault();
-			io.FontDefault = nullptr;
-			return;
+			constexpr float baseFontSize   = 17.f;
+			constexpr float baseHeaderSize = 24.f;
+
+			const float dpi		   = Application::Get().GetWindow().GetDPIScale();
+			const float fontSize   = baseFontSize * dpi;
+			const float headerSize = baseHeaderSize * dpi;
+
+			const ImWchar* ranges = io.Fonts->GetGlyphRangesCyrillic();
+
+			Fonts.Regular = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), fontSize,   nullptr, ranges);
+			Fonts.Header  = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), headerSize, nullptr, ranges);
+			Fonts.Bold    = io.Fonts->AddFontFromFileTTF(boldFont.string().c_str(),    fontSize,   nullptr, ranges);
+
+			if (Fonts.Regular)
+			{
+				io.FontDefault = Fonts.Regular;
+				return;
+			}
 		}
 
-		constexpr float baseFontSize = 17.f;
-		constexpr float baseHeaderSize = 24.f;
+		// Fallback path
+		EG_CORE_WARN("UI fonts not found. Falling back to default.");
 
-		const float dpi = Application::Get().GetWindow().GetDPIScale();
-		const float fontSize = baseFontSize * dpi;
-		const float headerSize = baseHeaderSize * dpi;
+		ImFont* defaultFont = io.Fonts->AddFontDefault();
 
-		const ImWchar* ranges = io.Fonts->GetGlyphRangesCyrillic();
+		Fonts.Regular = defaultFont;
+		Fonts.Bold	  = defaultFont;
+		Fonts.Header  = defaultFont;
 
-		UI::Fonts.Regular = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), fontSize, nullptr, ranges);
-		UI::Fonts.Header = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), headerSize, nullptr, ranges);
-		UI::Fonts.Bold = io.Fonts->AddFontFromFileTTF(boldFont.string().c_str(), fontSize, nullptr, ranges);
-
-		if (UI::Fonts.Regular)
-			io.FontDefault = UI::Fonts.Regular;
+		io.FontDefault = defaultFont;
 	}
 
-	bool PushFontRegular()
+	void PushFontRegular()
 	{
-		return PushFont(Fonts.Regular);
+		ImGui::PushFont(Fonts.Regular);
 	}
 
-	bool PushFontHeader()
+	void PushFontHeader()
 	{
-		return PushFont(Fonts.Header);
+		ImGui::PushFont(Fonts.Header);
 	}
 
-	bool PushFontBold()
+	void PushFontBold()
 	{
-		return PushFont(Fonts.Bold);
+		ImGui::PushFont(Fonts.Bold);
 	}
 
 	void PopFont()
