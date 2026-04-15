@@ -132,7 +132,7 @@ namespace Eagle
 
 		RenderManager::Submit([textureRef = shared_from_this(), image = m_Image, imageData = std::move(m_ImageData), bGenerateMips, bAutogenerateMips](Ref<CommandBuffer>& cmd) mutable
 		{
-			cmd->Write(image, imageData[0].Data(), imageData[0].Size(), ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			cmd->Write(image, imageData[0].Data(), imageData[0].Size(), image->GetLayout(), ImageReadAccess::PixelShaderRead);
 			if (bGenerateMips)
 			{
 				if (bAutogenerateMips)

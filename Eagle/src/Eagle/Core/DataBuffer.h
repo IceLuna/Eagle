@@ -163,6 +163,11 @@ namespace Eagle
 			return ScopedDataBuffer(DataBuffer::Copy(other.Data(), other.Size()));
 		}
 
+		static ScopedDataBuffer Copy(const DataBuffer& other)
+		{
+			return ScopedDataBuffer(DataBuffer::Copy(other.Data, other.Size));
+		}
+
 		ScopedDataBuffer& operator=(const ScopedDataBuffer&) = delete;
 		ScopedDataBuffer& operator=(ScopedDataBuffer&& other) noexcept
 		{

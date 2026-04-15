@@ -5,6 +5,7 @@
 #include "Eagle/Core/DataBuffer.h"
 #include "Eagle/Core/Serializer.h"
 #include "Eagle/Core/SceneSerializer.h"
+#include "Eagle/Classes/Font.h"
 #include "Eagle/Classes/StaticMesh.h"
 #include "Eagle/Classes/SkeletalMesh.h"
 #include "Eagle/Animation/Animation.h"
@@ -381,7 +382,8 @@ namespace Eagle
 	{
 		ScopedDataBuffer buffer(FileSystem::Read(pathToRaw));
 
-		auto data = Serializer::SerializeAssetFontFromData(buffer.GetDataBuffer(), GUID{}, pathToRaw);
+		Ref<Font> font = Font::Create(buffer.GetDataBuffer());
+		auto data = Serializer::SerializeAssetFontFromData(buffer.GetDataBuffer(), font->GetAtlasData().GetDataBuffer(), font->GetAtlas()->GetSize(), GUID{}, pathToRaw);
 		FileSystem::Write(outputFilename, data);
 
 		return true;

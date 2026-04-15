@@ -951,14 +951,18 @@ namespace Eagle
 			audio->GetVolume(), audio->GetPitch(), audio->GetPan(), asset->GetSoundGroupAsset());
 	}
 
-	ScopedDataBuffer Serializer::SerializeAssetFontFromData(const DataBuffer& fontData, const GUID& guid, const Path& pathToRaw)
+	ScopedDataBuffer Serializer::SerializeAssetFontFromData(const DataBuffer& fontData, const DataBuffer& atlasData, glm::uvec2 atlasSize, const GUID& guid, const Path& pathToRaw)
 	{
 		size_t totalSize = sizeof(AssetHeader);
 
 		const size_t origDataSize = fontData.Size; // Required for decompression
 		ScopedDataBuffer compressed(Compressor::Compress(fontData));
 
+		const size_t origFontSize = atlasData.Size;
+		ScopedDataBuffer compressedAtlas = Compressor::Compress(atlasData);
+
 		const size_t dataOffset = Utils::AddSize(compressed, &totalSize);
+		const size_t atlasOffset = Utils::AddSize(compressedAtlas, &totalSize);
 
 		YAML::Emitter out;
 		out << YAML::BeginMap;
@@ -973,6 +977,13 @@ namespace Eagle
 		out << YAML::Key << "Offset" << YAML::Value << dataOffset;
 		out << YAML::EndMap;
 
+		out << YAML::Key << "AtlasData" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "OrigSize" << YAML::Value << origFontSize;
+		out << YAML::Key << "Size" << YAML::Value << compressedAtlas.Size();
+		out << YAML::Key << "Offset" << YAML::Value << atlasOffset;
+		out << YAML::Key << "AtlasSize" << YAML::Value << atlasSize;
+		out << YAML::EndMap;
+
 		out << YAML::EndMap;
 
 		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
@@ -981,6 +992,7 @@ namespace Eagle
 		size_t offset = 0;
 		Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
 		Utils::WriteToBuffer(buffer, compressed, &offset);
+		Utils::WriteToBuffer(buffer, compressedAtlas, &offset);
 		Utils::WriteYaml(buffer, out, &offset);
 
 		return buffer;
@@ -988,7 +1000,8 @@ namespace Eagle
 
 	ScopedDataBuffer Serializer::SerializeAssetFont(const Ref<AssetFont>& asset)
 	{
-		return SerializeAssetFontFromData(asset->GetRawData().GetDataBuffer(), asset->GetGUID(), asset->GetPathToRaw());
+		const auto& font = asset->GetFont();
+		return SerializeAssetFontFromData(asset->GetRawData().GetDataBuffer(), font->GetAtlasData().GetDataBuffer(), glm::uvec2(font->GetAtlas()->GetSize()), asset->GetGUID(), asset->GetPathToRaw());
 	}
 
 	ScopedDataBuffer Serializer::SerializeAssetMaterial(const Ref<AssetMaterial>& asset)
@@ -3782,6 +3795,14 @@ namespace Eagle
 
 	Ref<AssetFont> Serializer::DeserializeAssetFont(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw)
 	{
+		class LocalAssetFont : public AssetFont
+		{
+		public:
+			LocalAssetFont(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Font>& font)
+				: AssetFont(path, pathToRaw, guid, rawData, font) {
+			}
+		};
+
 		YAML::Node baseNode;
 		Utils::ReadYAML(data, &baseNode);
 
@@ -3798,19 +3819,23 @@ namespace Eagle
 		}
 
 		const GUID guid = baseNode["GUID"].as<GUID>();
-
-		ScopedDataBuffer binary;
 		if (bReloadRaw)
 		{
-			binary = FileSystem::Read(pathToRaw);
+			ScopedDataBuffer binary = FileSystem::Read(pathToRaw);
 			if (!binary)
 			{
 				EG_CORE_ERROR("Failed to reload a raw asset: {}", pathToRaw);
 				return {};
 			}
+
+			return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(), Font::Create(binary.GetDataBuffer(), Utils::AsString(pathToAsset.stem())));
 		}
 		else
 		{
+			ScopedDataBuffer binary;
+			ScopedDataBuffer atlasBinary;
+			glm::uvec2 size = glm::uvec2(0);
+
 			if (auto baseDataNode = baseNode["Data"])
 			{
 				const size_t origSize = baseDataNode["OrigSize"].as<size_t>();
@@ -3823,16 +3848,27 @@ namespace Eagle
 				EG_CORE_ERROR("Failed to load the asset: {}", pathToAsset);
 				return {};
 			}
+
+			if (auto baseDataNode = baseNode["AtlasData"])
+			{
+				const size_t origSize = baseDataNode["OrigSize"].as<size_t>();
+				const size_t dataSize = baseDataNode["Size"].as<size_t>();
+				const size_t dataOffset = baseDataNode["Offset"].as<size_t>();
+				size = baseDataNode["AtlasSize"].as<glm::uvec2>();
+				
+				Utils::ReadCompressedBinary(data, dataSize, dataOffset, origSize, &atlasBinary);
+			}
+
+			if (atlasBinary)
+			{
+				return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(), Font::Create(atlasBinary.GetDataBuffer(), size, binary.GetDataBuffer(), Utils::AsString(pathToAsset.stem())));
+			}
+			else
+			{
+				EG_CORE_WARN("Failed to load font atlas from an asset. Generating it... Prease, resave the asset");
+				return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(), Font::Create(binary.GetDataBuffer(), Utils::AsString(pathToAsset.stem())));
+			}
 		}
-
-		class LocalAssetFont: public AssetFont
-		{
-		public:
-			LocalAssetFont(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Font>& font)
-				: AssetFont(path, pathToRaw, guid, rawData, font) {}
-		};
-
-		return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(), Font::Create(binary.GetDataBuffer(), Utils::AsString(pathToAsset.stem())));
 	}
 
 	Ref<AssetMaterial> Serializer::DeserializeAssetMaterial(const DataBuffer& data, const Path& pathToAsset)
