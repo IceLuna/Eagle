@@ -1291,7 +1291,7 @@ namespace Eagle
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			*outAmbient = entity.GetComponent<DirectionalLightComponent>().Ambient;
+			*outAmbient = entity.GetComponent<DirectionalLightComponent>().GetAmbientColor();
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get 'Ambient' of DirectionalLight Component. Entity is null");
@@ -1303,7 +1303,7 @@ namespace Eagle
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<DirectionalLightComponent>().Ambient = *inAmbient;
+			entity.GetComponent<DirectionalLightComponent>().SetAmbientColor(*inAmbient);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'Ambient' of DirectionalLight Component. Entity is null");
 	}

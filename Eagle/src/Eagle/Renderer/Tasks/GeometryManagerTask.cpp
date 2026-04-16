@@ -926,7 +926,7 @@ namespace Eagle
 			});
 	}
 	
-	void GeometryManagerTask::SetTransforms(const std::unordered_set<const StaticMeshComponent*>& meshes)
+	void GeometryManagerTask::SetTransforms(const std::vector<const StaticMeshComponent*>& meshes)
 	{
 		if (meshes.empty())
 			return;
@@ -1061,7 +1061,7 @@ namespace Eagle
 			});
 	}
 
-	void GeometryManagerTask::SetTransforms(const std::unordered_set<const SkeletalMeshComponent*>& meshes)
+	void GeometryManagerTask::SetTransforms(const std::vector<const SkeletalMeshComponent*>& meshes)
 	{
 		if (meshes.empty())
 			return;
@@ -1304,7 +1304,7 @@ namespace Eagle
 		});
 	}
 
-	void GeometryManagerTask::SetTransforms(const std::unordered_set<const SpriteComponent*>& sprites)
+	void GeometryManagerTask::SetTransforms(const std::vector<const SpriteComponent*>& sprites)
 	{
 		if (sprites.empty())
 			return;
@@ -1696,7 +1696,7 @@ namespace Eagle
 		});
 	}
 	
-	void GeometryManagerTask::SetTransforms(const std::unordered_set<const TextComponent*>& texts)
+	void GeometryManagerTask::SetTransforms(const std::vector<const TextComponent*>& texts)
 	{
 		if (texts.empty())
 			return;

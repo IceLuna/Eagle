@@ -1062,30 +1062,26 @@ namespace Eagle
 		{
 			auto view = m_Registry.view<PointLightComponent>();
 			m_PointLights.clear();
-			m_PointLightsDebugRadii.clear();
-			m_PointLightsDebugRadiiDirty = true;
 
 			for (auto entity : view)
 			{
 				auto& component = view.get<PointLightComponent>(entity);
-				if (component.VisualizeRadiusEnabled())
-					m_PointLightsDebugRadii.emplace(&component);
 				if (component.DoesAffectWorld())
 					m_PointLights.push_back(&component);
 			}
 		}
 
-		m_DirectionalLight = nullptr;
+		if (m_DirtyFlags.bDirLightsDirty)
 		{
-			auto view = m_Registry.view<DirectionalLightComponent>();
+			m_DirectionalLights.clear();
 
+			auto view = m_Registry.view<DirectionalLightComponent>();
 			for (auto entity : view)
 			{
 				auto& component = view.get<DirectionalLightComponent>(entity);
 				if (component.DoesAffectWorld())
 				{
-					m_DirectionalLight = &component;
-					break;
+					m_DirectionalLights.push_back(&component);
 				}
 			}
 		}
@@ -1094,14 +1090,10 @@ namespace Eagle
 		{
 			auto view = m_Registry.view<SpotLightComponent>();
 			m_SpotLights.clear();
-			m_SpotLightsDebugRadii.clear();
-			m_SpotLightsDebugRadiiDirty = true;
 
 			for (auto entity : view)
 			{
 				auto& component = view.get<SpotLightComponent>(entity);
-				if (component.VisualizeDistanceEnabled())
-					m_SpotLightsDebugRadii.emplace(&component);
 				if (component.DoesAffectWorld())
 					m_SpotLights.push_back(&component);
 			}
@@ -1305,23 +1297,92 @@ namespace Eagle
 		// If meshes are dirty, there's not point in updating specific transforms
 		// Since meshes are going to be fully updated anyway
 		if (m_DirtyFlags.bStaticMeshTransformsDirty && !m_DirtyFlags.bStaticMeshesDirty)
-			m_SceneRenderer->UpdateMeshesTransforms(m_DirtyTransformStaticMeshes);
+		{
+			std::vector<const StaticMeshComponent*> dirtyComponents;
+			dirtyComponents.reserve(m_DirtyTransformStaticMeshes.size());
+			for (auto entityID : m_DirtyTransformStaticMeshes)
+			{
+				Entity e{ (entt::entity)entityID , this };
+				if (e.HasComponent<StaticMeshComponent>())
+				{
+					const auto& comp = e.GetComponent<StaticMeshComponent>();
+					dirtyComponents.emplace_back(&comp);
+				}
+			}
+
+			m_SceneRenderer->UpdateMeshesTransforms(dirtyComponents);
+		}
 
 		// Same for skeletals
 		if (m_DirtyFlags.bSkeletalMeshTransformsDirty && !m_DirtyFlags.bSkeletalMeshesDirty)
-			m_SceneRenderer->UpdateSkeletalMeshesTransforms(m_DirtyTransformSkeletalMeshes);
+		{
+			std::vector<const SkeletalMeshComponent*> dirtyComponents;
+			dirtyComponents.reserve(m_DirtyTransformSkeletalMeshes.size());
+			for (auto entityID : m_DirtyTransformSkeletalMeshes)
+			{
+				Entity e{ (entt::entity)entityID , this };
+				if (e.HasComponent<SkeletalMeshComponent>())
+				{
+					const auto& comp = e.GetComponent<SkeletalMeshComponent>();
+					dirtyComponents.emplace_back(&comp);
+				}
+			}
+
+			m_SceneRenderer->UpdateSkeletalMeshesTransforms(dirtyComponents);
+		}
 
 		// Same for sprites
 		if (m_DirtyFlags.bSpriteTransformsDirty && !m_DirtyFlags.bSpritesDirty)
-			m_SceneRenderer->UpdateSpritesTransforms(m_DirtyTransformSprites);
+		{
+			std::vector<const SpriteComponent*> dirtyComponents;
+			dirtyComponents.reserve(m_DirtyTransformSprites.size());
+			for (auto entityID : m_DirtyTransformSprites)
+			{
+				Entity e{ (entt::entity)entityID , this };
+				if (e.HasComponent<SpriteComponent>())
+				{
+					const auto& comp = e.GetComponent<SpriteComponent>();
+					dirtyComponents.emplace_back(&comp);
+				}
+			}
+
+			m_SceneRenderer->UpdateSpritesTransforms(dirtyComponents);
+		}
 
 		// Same for decals
 		if (m_DirtyFlags.bDecalTransformsDirty && !m_DirtyFlags.bDecalsDirty)
-			m_SceneRenderer->UpdateDecalsTransforms(m_DirtyTransformDecals);
+		{
+			std::vector<const DecalComponent*> dirtyComponents;
+			dirtyComponents.reserve(m_DirtyTransformDecals.size());
+			for (auto entityID : m_DirtyTransformDecals)
+			{
+				Entity e{ (entt::entity)entityID , this };
+				if (e.HasComponent<DecalComponent>())
+				{
+					const auto& comp = e.GetComponent<DecalComponent>();
+					dirtyComponents.emplace_back(&comp);
+				}
+			}
+			m_SceneRenderer->UpdateDecalsTransforms(dirtyComponents);
+		}
 
 		// Same for texts
 		if (m_DirtyFlags.bTextTransformsDirty && !m_DirtyFlags.bTextDirty)
-			m_SceneRenderer->UpdateTextsTransforms(m_DirtyTransformTexts);
+		{
+			std::vector<const TextComponent*> dirtyComponents;
+			dirtyComponents.reserve(m_DirtyTransformTexts.size());
+			for (auto entityID : m_DirtyTransformTexts)
+			{
+				Entity e{ (entt::entity)entityID , this };
+				if (e.HasComponent<TextComponent>())
+				{
+					const auto& comp = e.GetComponent<TextComponent>();
+					dirtyComponents.emplace_back(&comp);
+				}
+			}
+
+			m_SceneRenderer->UpdateTextsTransforms(dirtyComponents);
+		}
 
 		// Gather billboards
 		{
@@ -1335,33 +1396,51 @@ namespace Eagle
 			}
 		}
 
+		auto& rb = m_PhysicsScene->GetRenderBuffer();
+		const uint32_t debugCollisionsLinesSize = rb.getNbLines();
+
+		constexpr size_t linesPerDirLight = 3ull;
+		size_t debugDirLightLinesCount = 0;
+		auto dirLightsView = m_Registry.view<DirectionalLightComponent>();
+		debugDirLightLinesCount = dirLightsView.size() * linesPerDirLight;
+
+		m_DebugLinesToDraw.clear();
+		m_DebugLinesToDraw.reserve(debugCollisionsLinesSize + m_UserDebugLines.size() + debugDirLightLinesCount);
+		m_DebugTrianglesToDraw.clear();
+
 		// Gather Debug data
 		{
 			// Debug point lights attenuation radii
-			if (m_PointLightsDebugRadiiDirty)
 			{
-				m_DebugPointLines.clear();
-				for (auto& light : m_PointLightsDebugRadii)
+				for (auto& lightEntityID : m_PointLightsDebugRadii)
 				{
-					const glm::vec3& center = light->GetWorldTransform().Location;
-					const float radius = light->GetRadius();
-					Utils::DrawSphere(m_DebugPointLines, center, glm::vec3(0, 1, 0), radius);
+					Entity entity((entt::entity)lightEntityID, this);
+					if (!entity.HasComponent<PointLightComponent>())
+						return;
+
+					const auto& light = entity.GetComponent<PointLightComponent>();
+					const glm::vec3& center = light.GetWorldTransform().Location;
+					const float radius = light.GetRadius();
+					Utils::DrawSphere(m_DebugLinesToDraw, center, glm::vec3(0, 1, 0), radius);
 				}
-				m_PointLightsDebugRadiiDirty = false;
 			}
 
 			// Debug spot lights attenuation distance
-			if (m_SpotLightsDebugRadiiDirty)
 			{
-				m_DebugSpotLines.clear();
-				for (auto& light : m_SpotLightsDebugRadii)
+				for (auto& lightEntityID : m_SpotLightsDebugRadii)
 				{
-					const glm::vec3& location = light->GetWorldTransform().Location;
-					const float distance = light->GetDistance();
-					const glm::vec3 center = location + light->GetForwardVector() * distance;
-					const glm::quat quat = light->GetWorldTransform().Rotation.GetQuat();
-					const float innerRadius = distance * glm::tan(glm::radians(light->GetInnerCutOffAngle()));
-					const float outerRadius = distance * glm::tan(glm::radians(light->GetOuterCutOffAngle()));
+					Entity entity((entt::entity)lightEntityID, this);
+					if (!entity.HasComponent<SpotLightComponent>())
+						return;
+
+					const auto& light = entity.GetComponent<SpotLightComponent>();
+
+					const glm::vec3& location = light.GetWorldTransform().Location;
+					const float distance = light.GetDistance();
+					const glm::vec3 center = location + light.GetForwardVector() * distance;
+					const glm::quat quat = light.GetWorldTransform().Rotation.GetQuat();
+					const float innerRadius = distance * glm::tan(glm::radians(light.GetInnerCutOffAngle()));
+					const float outerRadius = distance * glm::tan(glm::radians(light.GetOuterCutOffAngle()));
 
 					for (uint32_t i = 0; i < Utils::s_SphereLinesCount; ++i)
 					{
@@ -1373,64 +1452,54 @@ namespace Eagle
 						const float sinAngle2 = glm::sin(angle2);
 
 						const glm::vec3 innerStart = center + glm::rotate(quat, innerRadius * glm::vec3(cosAngle1, sinAngle1, 0.f));
-						auto& innerCircleLine = m_DebugSpotLines.emplace_back();
+						auto& innerCircleLine = m_DebugLinesToDraw.emplace_back();
 						innerCircleLine.Start.Location = innerStart;
 						innerCircleLine.End.Location = center + glm::rotate(quat, innerRadius * glm::vec3(cosAngle2, sinAngle2, 0.f));
 
-						auto& toInnerLine = m_DebugSpotLines.emplace_back();
+						auto& toInnerLine = m_DebugLinesToDraw.emplace_back();
 						toInnerLine.Start.Location = location;
 						toInnerLine.End.Location = innerStart;
 
 						const glm::vec3 outerStart = center + glm::rotate(quat, outerRadius * glm::vec3(cosAngle1, sinAngle1, 0.f));
-						auto& outerCircleLine = m_DebugSpotLines.emplace_back();
+						auto& outerCircleLine = m_DebugLinesToDraw.emplace_back();
 						outerCircleLine.Start.Location = outerStart;
 						outerCircleLine.End.Location = center + glm::rotate(quat, outerRadius * glm::vec3(cosAngle2, sinAngle2, 0.f));
 						outerCircleLine.Start.Color = glm::vec3(0.75, 0.75f, 0.f);
 						outerCircleLine.End.Color = glm::vec3(0.75, 0.75f, 0.f);
 
-						auto& toOuterLine = m_DebugSpotLines.emplace_back();
+						auto& toOuterLine = m_DebugLinesToDraw.emplace_back();
 						toOuterLine.Start.Location = location;
 						toOuterLine.End.Location = outerStart;
 						toOuterLine.Start.Color = glm::vec3(0.75, 0.75f, 0.f);
 						toOuterLine.End.Color = glm::vec3(0.75, 0.75f, 0.f);
 					}
 				}
-				m_SpotLightsDebugRadiiDirty = false;
 			}
 
 			// Debug spot lights attenuation distance
-			if (m_ReverbDebugBoxesDirty)
 			{
-				m_DebugReverbLines.clear();
-				for (auto& reverb : m_ReverbDebugBoxes)
+				for (auto& reverbEntityID : m_ReverbDebugBoxes)
 				{
-					const glm::vec3& center = reverb->GetReverb()->GetPosition();
-					Utils::DrawSphere(m_DebugReverbLines, center, glm::vec3(0, 1, 0), reverb->GetMinDistance());
-					Utils::DrawSphere(m_DebugReverbLines, center, glm::vec3(1, 0, 0), reverb->GetMaxDistance());
+					Entity entity((entt::entity)reverbEntityID, this);
+					if (!entity.HasComponent<ReverbComponent>())
+						return;
+
+					const auto& reverb = entity.GetComponent<ReverbComponent>();
+					const glm::vec3& center = reverb.GetReverb()->GetPosition();
+					Utils::DrawSphere(m_DebugLinesToDraw, center, glm::vec3(0, 1, 0), reverb.GetMinDistance());
+					Utils::DrawSphere(m_DebugLinesToDraw, center, glm::vec3(1, 0, 0), reverb.GetMaxDistance());
 				}
-				m_ReverbDebugBoxesDirty = false;
 			}
 
-			auto& rb = m_PhysicsScene->GetRenderBuffer();
-			const uint32_t debugCollisionsLinesSize = rb.getNbLines();
-
-			constexpr size_t linesPerDirLight = 3ull;
-			size_t debugDirLightLinesCount = 0;
-			auto dirLightsView = m_Registry.view<DirectionalLightComponent>();
-			debugDirLightLinesCount = dirLightsView.size() * linesPerDirLight;
-
-			m_DebugLinesToDraw.clear();
-			m_DebugLinesToDraw.reserve(debugCollisionsLinesSize + m_DebugPointLines.size() + m_DebugSpotLines.size() + m_DebugReverbLines.size() + m_UserDebugLines.size() + debugDirLightLinesCount);
-			m_DebugLinesToDraw = m_DebugPointLines;
-			m_DebugLinesToDraw.insert(m_DebugLinesToDraw.end(), m_DebugSpotLines.begin(), m_DebugSpotLines.end());
-			m_DebugLinesToDraw.insert(m_DebugLinesToDraw.end(), m_DebugReverbLines.begin(), m_DebugReverbLines.end());
-			m_DebugTrianglesToDraw.clear();
-
-			for (auto entity : dirLightsView)
+			// Debug dir lights direction
 			{
-				auto& dir = dirLightsView.get<DirectionalLightComponent>(entity);
-				if (dir.bVisualizeDirection)
+				for (auto& lightEntityID : m_DirLightsDebugDirection)
 				{
+					Entity entity((entt::entity)lightEntityID, this);
+					if (!entity.HasComponent<DirectionalLightComponent>())
+						return;
+
+					const auto& dir = entity.GetComponent<DirectionalLightComponent>();
 					const glm::vec3& location = dir.GetWorldTransform().Location;
 					const glm::vec3 forward = dir.GetForwardVector();
 					const glm::vec3 endLocation = location + forward * 0.2f;
@@ -1708,7 +1777,7 @@ namespace Eagle
 		const Camera* camera = bIsPlaying ? (Camera*)&m_RuntimeCamera->Camera : (Camera*)&m_EditorCamera;
 		m_SceneRenderer->SetPointLights(m_PointLights, m_DirtyFlags.bPointLightsDirty);
 		m_SceneRenderer->SetSpotLights(m_SpotLights, m_DirtyFlags.bSpotLightsDirty);
-		m_SceneRenderer->SetDirectionalLight(m_DirectionalLight);
+		m_SceneRenderer->SetDirectionalLight(m_DirectionalLights.empty() ? nullptr : m_DirectionalLights[0]);
 		m_SceneRenderer->SetMeshes(m_Meshes, m_DirtyFlags.bStaticMeshesDirty);
 		m_SceneRenderer->SetSkeletalMeshes(m_SkeletalMeshes, m_DirtyFlags.bSkeletalMeshesDirty);
 		m_SceneRenderer->SetSprites(m_Sprites, m_DirtyFlags.bSpritesDirty);
@@ -1761,11 +1830,11 @@ namespace Eagle
 
 				m_SceneRenderer->AddAdditionalBillboard(transform, Texture2D::SpotLightIcon, (int)spot->Parent.GetID());
 			}
-			if (m_DirectionalLight)
+			for (const auto& dir : m_DirectionalLights)
 			{
-				transform = m_DirectionalLight->GetWorldTransform();
+				transform = dir->GetWorldTransform();
 				transform.Scale3D = glm::vec3(0.25f);
-				m_SceneRenderer->AddAdditionalBillboard(transform, Texture2D::DirectionalLightIcon, (int)m_DirectionalLight->Parent.GetID());
+				m_SceneRenderer->AddAdditionalBillboard(transform, Texture2D::DirectionalLightIcon, (int)dir->Parent.GetID());
 			}
 		}
 
@@ -2190,6 +2259,7 @@ namespace Eagle
 		{
 			m_DirtyFlags.bPointLightsDirty = true;
 		}
+		m_PointLightsDebugRadii.erase(entity.GetID());
 	}
 
 	void Scene::OnSpotLightAdded(entt::registry& r, entt::entity e)
@@ -2205,6 +2275,7 @@ namespace Eagle
 		{
 			m_DirtyFlags.bSpotLightsDirty = true;
 		}
+		m_SpotLightsDebugRadii.erase(entity.GetID());
 	}
 
 	void Scene::OnTextAddedRemoved(entt::registry& r, entt::entity e)
@@ -2288,6 +2359,18 @@ namespace Eagle
 		m_DebugCameras.erase(entity.GetID());
 	}
 
+	void Scene::OnReverbRemoved(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		m_ReverbDebugBoxes.erase(entity.GetID());
+	}
+
+	void Scene::OnDirectionalLightRemoved(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		m_DirLightsDebugDirection.erase(entity.GetID());
+	}
+
 	void Scene::ConnectSignals()
 	{
 		m_Registry.on_destroy<StaticMeshComponent>().connect<&Scene::OnStaticMeshComponentRemoved>(*this);
@@ -2315,6 +2398,8 @@ namespace Eagle
 		m_Registry.on_construct<NavigationCrowdAgentComponent>().connect<&Scene::OnCrowdAgentAdded>(*this);
 		m_Registry.on_destroy<NavigationCrowdAgentComponent>().connect<&Scene::OnCrowdAgentRemoved>(*this);
 		m_Registry.on_destroy<CameraComponent>().connect<&Scene::OnCameraRemoved>(*this);
+		m_Registry.on_destroy<ReverbComponent>().connect<&Scene::OnReverbRemoved>(*this);
+		m_Registry.on_destroy<DirectionalLightComponent>().connect<&Scene::OnDirectionalLightRemoved>(*this);
 	}
 
 	void Scene::RegisterSkeletalParticleIfCan(const ParticleSystemComponent& system)

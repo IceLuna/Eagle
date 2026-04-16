@@ -107,11 +107,11 @@ namespace Eagle
 
 		// Instead of using `SetMeshes` and triggering all buffers recollection/uploading
 		// This function can be used to update transforms of meshes that were already set
-		void UpdateMeshesTransforms(const std::unordered_set<const StaticMeshComponent*>& meshes) { m_GeometryManagerTask->SetTransforms(meshes); }
-		void UpdateSkeletalMeshesTransforms(const std::unordered_set<const SkeletalMeshComponent*>& meshes) { m_GeometryManagerTask->SetTransforms(meshes); }
-		void UpdateSpritesTransforms(const std::unordered_set<const SpriteComponent*>& sprites) { m_GeometryManagerTask->SetTransforms(sprites); }
-		void UpdateDecalsTransforms(const std::unordered_set<const DecalComponent*>& decals) { m_RenderDecalsTask->SetTransforms(decals); }
-		void UpdateTextsTransforms(const std::unordered_set<const TextComponent*>& texts) { m_GeometryManagerTask->SetTransforms(texts); }
+		void UpdateMeshesTransforms(const std::vector<const StaticMeshComponent*>& meshes) { m_GeometryManagerTask->SetTransforms(meshes); }
+		void UpdateSkeletalMeshesTransforms(const std::vector<const SkeletalMeshComponent*>& meshes) { m_GeometryManagerTask->SetTransforms(meshes); }
+		void UpdateSpritesTransforms(const std::vector<const SpriteComponent*>& sprites) { m_GeometryManagerTask->SetTransforms(sprites); }
+		void UpdateDecalsTransforms(const std::vector<const DecalComponent*>& decals) { m_RenderDecalsTask->SetTransforms(decals); }
+		void UpdateTextsTransforms(const std::vector<const TextComponent*>& texts) { m_GeometryManagerTask->SetTransforms(texts); }
 
 		void SetGridEnabled(bool bEnabled) { m_bGridEnabled = bEnabled; }
 

@@ -995,11 +995,13 @@ namespace Eagle
 				DrawComponent<DirectionalLightComponent>("Directional Light", entity, [&entity, this](DirectionalLightComponent& directionalLight)
 				{
 					glm::vec3 lightColor = directionalLight.GetLightColor();
+					glm::vec3 ambientColor = directionalLight.GetAmbientColor();
 					float intensity = directionalLight.GetIntensity();
 					float fogIntensity = directionalLight.GetVolumetricFogIntensity();
 					bool bAffectsWorld = directionalLight.DoesAffectWorld();
 					bool bCastsShadows = directionalLight.DoesCastShadows();
 					bool bVolumetric = directionalLight.IsVolumetricLight();
+					bool bVisualize = directionalLight.IsVisualizeDirectionEnabled();
 
 					UI::BeginPropertyGrid("DirectionalLightComponent");
 					if (UI::PropertyColor("Light Color", lightColor))
@@ -1014,7 +1016,11 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					bEntityChanged |= UI::PropertyColor("Ambient", directionalLight.Ambient);
+					if (UI::PropertyColor("Ambient", ambientColor))
+					{
+						directionalLight.SetAmbientColor(ambientColor);
+						bEntityChanged = true;
+					}
 						
 					if (UI::Property("Affects world", bAffectsWorld))
 					{
@@ -1028,7 +1034,11 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					bEntityChanged |= UI::Property("Visualize direction", directionalLight.bVisualizeDirection);
+					if (UI::Property("Visualize direction", bVisualize))
+					{
+						directionalLight.SetVisualizeDirectionEnabled(bVisualize);
+						bEntityChanged = true;
+					}
 
 					if (!bVolumetricsEnabled)
 						UI::PushItemDisabled();

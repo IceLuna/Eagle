@@ -1848,13 +1848,13 @@ namespace Eagle
 			SerializeRelativeTransform(out, directionalLightComponent.GetRelativeTransform());
 
 			out << YAML::Key << "LightColor" << YAML::Value << directionalLightComponent.GetLightColor();
-			out << YAML::Key << "Ambient" << YAML::Value << directionalLightComponent.Ambient;
+			out << YAML::Key << "Ambient" << YAML::Value << directionalLightComponent.GetAmbientColor();
 			out << YAML::Key << "Intensity" << YAML::Value << directionalLightComponent.GetIntensity();
 			out << YAML::Key << "VolumetricFogIntensity" << YAML::Value << directionalLightComponent.GetVolumetricFogIntensity();
 			out << YAML::Key << "AffectsWorld" << YAML::Value << directionalLightComponent.DoesAffectWorld();
 			out << YAML::Key << "CastsShadows" << YAML::Value << directionalLightComponent.DoesCastShadows();
 			out << YAML::Key << "IsVolumetric" << YAML::Value << directionalLightComponent.IsVolumetricLight();
-			out << YAML::Key << "Visualize" << YAML::Value << directionalLightComponent.bVisualizeDirection;
+			out << YAML::Key << "Visualize" << YAML::Value << directionalLightComponent.IsVisualizeDirectionEnabled();
 
 			out << YAML::EndMap; //DirectionalLightComponent
 		}
@@ -2496,7 +2496,7 @@ namespace Eagle
 			if (auto lightColorNode = directionalLightComponentNode["LightColor"])
 				directionalLightComponent.SetLightColor(lightColorNode.as<glm::vec3>());
 			if (auto ambientNode = directionalLightComponentNode["Ambient"])
-				directionalLightComponent.Ambient = ambientNode.as<glm::vec3>();
+				directionalLightComponent.SetAmbientColor(ambientNode.as<glm::vec3>());
 			if (auto intensityNode = directionalLightComponentNode["Intensity"])
 				directionalLightComponent.SetIntensity(intensityNode.as<float>());
 			if (auto intensityNode = directionalLightComponentNode["VolumetricFogIntensity"])
@@ -2508,7 +2508,7 @@ namespace Eagle
 			if (auto node = directionalLightComponentNode["IsVolumetric"])
 				directionalLightComponent.SetIsVolumetricLight(node.as<bool>());
 			if (auto node = directionalLightComponentNode["Visualize"])
-				directionalLightComponent.bVisualizeDirection = node.as<bool>();
+				directionalLightComponent.SetVisualizeDirectionEnabled(node.as<bool>());
 		}
 
 		if (auto spotLightComponentNode = entityNode["SpotLightComponent"])

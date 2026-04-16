@@ -288,7 +288,7 @@ namespace Eagle
 		});
 	}
 
-	void RenderDecalsTask::SetTransforms(const std::unordered_set<const DecalComponent*>& decals)
+	void RenderDecalsTask::SetTransforms(const std::vector<const DecalComponent*>& decals)
 	{
 		if (decals.empty())
 			return;

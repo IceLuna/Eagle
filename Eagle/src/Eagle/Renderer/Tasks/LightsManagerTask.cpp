@@ -129,7 +129,7 @@ namespace Eagle
 			RenderManager::Submit([task = shared_from_this(),
 				forward = directionalLightComponent->GetForwardVector(),
 				lightColor = directionalLightComponent->GetLightColor() * directionalLightComponent->GetIntensity(),
-				ambient = directionalLightComponent->Ambient,
+				ambient = directionalLightComponent->GetAmbientColor(),
 				volumetricFogIntensity = directionalLightComponent->GetVolumetricFogIntensity(),
 				bVolumetric = directionalLightComponent->IsVolumetricLight(),
 			    bCastsShadows = directionalLightComponent->DoesCastShadows()](Ref<CommandBuffer>& cmd)

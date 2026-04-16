@@ -334,19 +334,19 @@ namespace Eagle
 
 		// ------- Meshes -------
 		void SetMeshes(const std::vector<const StaticMeshComponent*>& meshes, bool bDirty);
-		void SetTransforms(const std::unordered_set<const StaticMeshComponent*>& meshes);
+		void SetTransforms(const std::vector<const StaticMeshComponent*>& meshes);
 
 		// ------- Skeletal Meshes -------
 		void SetSkeletalMeshes(const std::vector<SkeletalMeshComponent*>& meshes, bool bDirty);
-		void SetTransforms(const std::unordered_set<const SkeletalMeshComponent*>& meshes);
+		void SetTransforms(const std::vector<const SkeletalMeshComponent*>& meshes);
 
 		// ------- Sprites -------
 		void SetSprites(const std::vector<const SpriteComponent*>& sprites, bool bDirty);
-		void SetTransforms(const std::unordered_set<const SpriteComponent*>& sprites);
+		void SetTransforms(const std::vector<const SpriteComponent*>& sprites);
 
 		// ------- Texts -------
 		void SetTexts(const std::vector<const TextComponent*>& texts, bool bDirty);
-		void SetTransforms(const std::unordered_set<const TextComponent*>& texts);
+		void SetTransforms(const std::vector<const TextComponent*>& texts);
 
 		// Static Mesh getters
 		const MeshesDrawLists& GetStaticMeshesDrawData() const { return m_StaticMeshesDrawData; }
