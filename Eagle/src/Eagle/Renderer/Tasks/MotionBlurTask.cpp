@@ -83,9 +83,9 @@ namespace Eagle
 			m_PushData.Size = m_Size;
 			m_PushData.TexelSize = 1.f / glm::vec2(m_PushData.Size);
 
-			constexpr uint32_t tileSize = 8;
 			const auto& size = m_PushData.PassSize;
-			glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
+			const glm::uvec3 groupSize = m_TileHorizontalPipeline->GetWorkGroupSize();
+			const glm::uvec2 numGroups = CalcNumGroups(size, groupSize);
 			cmd->Dispatch(m_TileHorizontalPipeline, numGroups.x, numGroups.y, 1, &m_PushData);
 			++stats.Dispatches;
 		}
@@ -107,9 +107,9 @@ namespace Eagle
 			cmd->Barrier(m_TileMinHorizontal);
 			cmd->Barrier(m_TileMaxHorizontal);
 
-			constexpr uint32_t tileSize = 8;
 			const auto& size = m_PushData.PassSize;
-			glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
+			const glm::uvec3 groupSize = m_TileVerticalPipeline->GetWorkGroupSize();
+			const glm::uvec2 numGroups = CalcNumGroups(size, groupSize);
 			cmd->Dispatch(m_TileVerticalPipeline, numGroups.x, numGroups.y, 1, &m_PushData);
 			++stats.Dispatches;
 		}
@@ -137,9 +137,9 @@ namespace Eagle
 		cmd->TransitionLayout(m_NeighborhoodMax, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
 		cmd->Barrier(m_TileMax);
 
-		constexpr uint32_t tileSize = 8;
 		const auto& size = m_PushData.PassSize;
-		glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
+		const glm::uvec3 groupSize = m_TileVerticalPipeline->GetWorkGroupSize();
+		const glm::uvec2 numGroups = CalcNumGroups(size, groupSize);
 		cmd->Dispatch(m_NeighborhoodPipeline, numGroups.x, numGroups.y, 1, &m_PushData);
 
 		cmd->Barrier(m_EarlyExitTiles);

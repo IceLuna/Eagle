@@ -580,8 +580,6 @@ namespace Eagle::Script
 	void Eagle_Renderer_SetAutoExposureSettings(float minLogLum, float maxLogLum, float adaptationSpeed, float adaptationKey, bool bEnabled, bool bHalfResolution);
 	void Eagle_Renderer_SetScreenSpaceReflectionsSettings(float roughnessThreshold, uint32_t samplesPerQuad, uint32_t maxIters, bool bEnabled);
 	void Eagle_Renderer_SetLensSettings(bool bChromaticAberration, bool bVignette, bool bFilmGrain, float chromaticIntensity, float vignetteIntensity, float filmGrainScale, float filmGrainAmount, float filmGrainSeedUpdateRate);
-	void Eagle_Renderer_SetStutterlessShaders(bool value);
-	bool Eagle_Renderer_GetStutterlessShaders();
 	void Eagle_Renderer_SetDepthPrepassEnabled(bool value);
 	bool Eagle_Renderer_GetDepthPrepassEnabled();
 	void Eagle_Renderer_SetTranslucentShadowsEnabled(bool value);

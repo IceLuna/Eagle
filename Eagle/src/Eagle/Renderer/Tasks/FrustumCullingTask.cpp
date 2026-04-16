@@ -122,8 +122,9 @@ namespace Eagle
 			pushData.NumMeshes = numMeshes;
 			pushData.MaxDrawCalls = maxDrawCalls;
 
-			const uint32_t numGroups = CalcNumGroups(numMeshes, 32);
-			cmd->Dispatch(pipeline, numGroups, 1, 1, &pushData);
+			const glm::uvec3 groupSize = pipeline->GetWorkGroupSize();
+			const glm::uvec3 numGroups = CalcNumGroups(numMeshes, groupSize);
+			cmd->Dispatch(pipeline, numGroups, &pushData);
 			stats.Dispatches++;
 
 			// Required, otherwise we won't be able to cull again with different buffers

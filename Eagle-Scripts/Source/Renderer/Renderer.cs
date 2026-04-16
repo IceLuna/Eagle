@@ -637,12 +637,6 @@ namespace Eagle
             get { return GetVisualizeCascades_Native(); }
         }
 
-        public static bool bStutterlessShaders
-        {
-            set { SetStutterlessShaders_Native(value); }
-            get { return GetStutterlessShaders_Native(); }
-        }
-
         public static bool bEnableObjectPicking
         {
             set { SetObjectPickingEnabled_Native(value); }
@@ -817,12 +811,6 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern bool GetVisualizeCascades_Native();
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetStutterlessShaders_Native(bool value);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern bool GetStutterlessShaders_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetObjectPickingEnabled_Native(bool value);

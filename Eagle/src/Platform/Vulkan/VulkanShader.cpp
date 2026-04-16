@@ -16,6 +16,8 @@
 
 namespace Eagle
 {
+	static const char* s_EntryPoint = "main";
+
 	namespace Utils
 	{
 		static shaderc_env_version GetShaderCVersion()
@@ -423,6 +425,16 @@ namespace Eagle
 			pushConstantRange.Offset =
 				glsl.get_decoration(resources.push_constant_buffers.front().id, spv::DecorationOffset);
 		}
+	
+		if (m_ShaderType == ShaderType::Compute)
+		{
+			const spirv_cross::SPIREntryPoint& entry = glsl.get_entry_point(s_EntryPoint, spv::ExecutionModelGLCompute);
+			m_WorkGroupSize = glm::uvec3(
+				entry.workgroup_size.x,
+				entry.workgroup_size.y,
+				entry.workgroup_size.z
+			);
+		}
 	}
 
 	void VulkanShader::ReloadInternal(bool bFromDefines)
@@ -457,7 +469,7 @@ namespace Eagle
 		shaderStage = {};
 		shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		shaderStage.module = m_ShaderModule;
-		shaderStage.pName = "main";
+		shaderStage.pName = s_EntryPoint;
 		shaderStage.stage = ShaderTypeToVulkan(m_ShaderType);
 	}
 

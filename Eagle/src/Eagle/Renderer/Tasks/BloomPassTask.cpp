@@ -37,7 +37,6 @@ namespace Eagle
 		auto& stats = m_Renderer.GetStats();
 		const auto& input = m_Renderer.GetHDROutput();
 
-		constexpr uint32_t tileSize = 8;
 		const uint32_t mipCount = input->GetMipsCount();
 		const glm::uvec2 inputSize = input->GetSize();
 		const ImageLayout inputLayout = input->GetLayout();
@@ -60,13 +59,15 @@ namespace Eagle
 			} pushData;
 			pushData.Threshold = glm::vec4(bloomSettings.Threshold, bloomSettings.Threshold - bloomSettings.Knee, 2.f * bloomSettings.Knee, 0.25f * bloomSettings.Knee);
 
+			const glm::uvec3 groupSize = m_DownscalePipeline->GetWorkGroupSize();
+
 			m_DownscalePipeline->SetImageSampler(input, m_BloomSampler, 0, 0);
 			m_DownscalePipeline->SetImageArray(input, m_MipViews, 0, 1);
 			cmd->TransitionLayout(input, inputLayout, ImageLayoutType::StorageImage);
 
 			for (uint32_t mip = 0; mip < mipCount - 1; ++mip)
 			{
-				glm::uvec2 numGroups = { glm::ceil(mipSize.x / float(tileSize)), glm::ceil(mipSize.y / float(tileSize)) };
+				const glm::uvec2 numGroups = CalcNumGroups(mipSize, groupSize);
 				if (glm::min(numGroups.x, numGroups.y) == 0)
 					break;
 
@@ -112,12 +113,13 @@ namespace Eagle
 			m_UpscalePipeline->SetImageArray(input, m_MipViews, 0, 1);
 			m_UpscalePipeline->SetImageSampler(dirtTexture->GetImage(), m_DirtSampler, 0, 2);
 
+			const glm::uvec3 groupSize = m_UpscalePipeline->GetWorkGroupSize();
 			for (uint32_t mip = lastDownscaledMip; mip >= 1 ; --mip)
 			{
 				mipSize.x = uint32_t(glm::max(1.0, glm::floor(float(inputSize.x) / glm::pow(2.0, mip - 1))));
 				mipSize.y = uint32_t(glm::max(1.0, glm::floor(float(inputSize.y) / glm::pow(2.0, mip - 1))));
 
-				glm::uvec2 numGroups = { glm::ceil(mipSize.x / float(tileSize)), glm::ceil(mipSize.y / float(tileSize)) };
+				const glm::uvec2 numGroups = CalcNumGroups(mipSize, groupSize);
 				if (glm::min(numGroups.x, numGroups.y) == 0)
 					break;
 

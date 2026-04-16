@@ -23,7 +23,6 @@ namespace Eagle
 		SetSoftShadowsEnabled(options.bEnableSoftShadows);
 		SetSSAOEnabled(options.AO != AmbientOcclusion::None);
 		SetCSMSmoothTransitionEnabled(options.bEnableCSMSmoothTransition);
-		SetStutterlessEnabled(options.bStutterlessShaders);
 		SetTranslucentShadowsEnabled(options.bTranslucentShadows);
 		InitPipeline();
 	}
@@ -62,18 +61,11 @@ namespace Eagle
 		pushData.SpotLights = (uint32_t)m_Renderer.GetSpotLights().size();
 		pushData.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());
 
-		PBRConstantsKernelInfo info;
-		info.PointLightsCount = pushData.PointLights;
-		info.SpotLightsCount = pushData.SpotLights;
-		info.bHasDirLight = pushData.HasDirLight;
-		info.bHasIrradiance = bHasIrradiance;
-		if (info != m_KernelInfo)
+		const uint32_t newIrradiance = bHasIrradiance ? 1u : 0u;
+		if (this->bHasIrradiance != newIrradiance)
 		{
-			// If stutterless, reload only if `bHasIrradiance` differs
-			const bool bRecreate = !bStutterlessShaders || (m_KernelInfo.bHasIrradiance != info.bHasIrradiance);
-			m_KernelInfo = info;
-			if (bRecreate)
-				RecreatePipeline();
+			this->bHasIrradiance = newIrradiance;
+			RecreatePipeline();
 		}
 
 		if (bRequestedToCreateShadowMapDistribution)
@@ -116,9 +108,9 @@ namespace Eagle
 		const auto& resultImage = m_Renderer.GetHDROutput();
 		m_Pipeline->SetImage(resultImage, 6, 0);
 
-		constexpr uint32_t tileSize = 8;
 		const glm::uvec2 size = resultImage->GetSize();
-		glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
+		const glm::uvec3 groupSize = m_Pipeline->GetWorkGroupSize();
+		const glm::uvec2 numGroups = CalcNumGroups(size, groupSize);
 		pushData.Size = size;
 
 		const ImageLayout resultLayout = resultImage->GetLayout();
@@ -257,37 +249,6 @@ namespace Eagle
 		return bUpdate;
 	}
 
-	bool PBRPassTask::SetStutterlessEnabled(bool bEnable)
-	{
-		if (bStutterlessShaders == bEnable)
-			return false;
-
-		bStutterlessShaders = bEnable;
-
-		auto& defines = m_ShaderDefines;
-		auto it = defines.find("EG_STUTTERLESS");
-
-		bool bUpdate = false;
-		if (bEnable)
-		{
-			if (it == defines.end())
-			{
-				defines["EG_STUTTERLESS"] = "";
-				bUpdate = true;
-			}
-		}
-		else
-		{
-			if (it != defines.end())
-			{
-				defines.erase(it);
-				bUpdate = true;
-			}
-		}
-
-		return bUpdate;
-	}
-
 	bool PBRPassTask::SetTranslucentShadowsEnabled(bool bEnable)
 	{
 		if (bTranslucentShadows == bEnable)
@@ -322,15 +283,9 @@ namespace Eagle
 	void PBRPassTask::RecreatePipeline()
 	{
 		ShaderSpecializationInfo constants;
-		if (!bStutterlessShaders)
-		{
-			constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
-			constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
-			constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
-		}
-		constants.MapEntries.push_back({ 3, 12, sizeof(uint32_t) });
-		constants.Data = &m_KernelInfo;
-		constants.Size = sizeof(PBRConstantsKernelInfo);
+		constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
+		constants.Data = &bHasIrradiance;
+		constants.Size = sizeof(uint32_t);
 
 		auto state = m_Pipeline->GetState();
 		state.ComputeSpecializationInfo = constants;
@@ -340,15 +295,9 @@ namespace Eagle
 	void PBRPassTask::InitPipeline()
 	{
 		ShaderSpecializationInfo constants;
-		if (!bStutterlessShaders)
-		{
-			constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
-			constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
-			constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
-		}
-		constants.MapEntries.push_back({3, 12, sizeof(uint32_t)});
-		constants.Data = &m_KernelInfo;
-		constants.Size = sizeof(PBRConstantsKernelInfo);
+		constants.MapEntries.push_back({0, 0, sizeof(uint32_t)});
+		constants.Data = &bHasIrradiance;
+		constants.Size = sizeof(uint32_t);
 
 		if (m_Shader)
 			m_Shader->SetDefines(m_ShaderDefines);

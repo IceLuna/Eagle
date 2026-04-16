@@ -84,5 +84,6 @@
 #endif
 
 #define EG_RECEIVES_DECALS_MASK (1 << 31)
+#define EG_FLAGS_RECEIVES_DECALS_MASK (1 << 0)
 
 #endif

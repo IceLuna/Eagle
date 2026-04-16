@@ -17,19 +17,12 @@ layout(push_constant) uniform PushConstants
     float g_MaxShadowDistance2; // Square of distance
     float g_CSMOverlap;
     float g_IBLIntensity;
-#ifdef EG_STUTTERLESS
     uint g_PointLightsCount;
     uint g_SpotLightsCount;
     uint g_HasDirLight;
-#endif
 };
 
-#ifndef EG_STUTTERLESS
-layout(constant_id = 0) const uint g_PointLightsCount = 0u;
-layout(constant_id = 1) const uint g_SpotLightsCount = 0u;
-layout(constant_id = 2) const uint g_HasDirLight = 0u;
-#endif
-layout(constant_id = 3) const bool s_HasIrradiance = false;
+layout(constant_id = 0) const bool s_HasIrradiance = false;
 
 vec3 GTAOMultiBounce(vec3 albedo, float ao)
 {

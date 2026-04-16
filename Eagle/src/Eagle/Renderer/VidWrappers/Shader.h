@@ -65,6 +65,12 @@ namespace Eagle
 		ShaderType GetType() const { return m_ShaderType; }
 		const Path& GetPath() const { return m_Path; };
 
+		const glm::uvec3& GetWorkGroupSize() const
+		{
+			EG_CORE_ASSERT(m_ShaderType == ShaderType::Compute);
+			return m_WorkGroupSize;
+		}
+
 		static Ref<Shader> Create(const Path& path, const ShaderDefines& defines = {});
 		static Ref<Shader> Create(const Path& path, ShaderType shaderType, const ShaderDefines& defines = {});
 
@@ -77,6 +83,7 @@ namespace Eagle
 		ShaderType m_ShaderType;
 		std::vector<PushConstantRange> m_PushConstantRanges;
 		std::unordered_map<void*, ShaderReloadedCallback> m_ReloadedCallbacks;
+		glm::uvec3 m_WorkGroupSize = glm::uvec3(0); // Valid only for a compute shader
 
 		friend class ShaderManager;
 	};

@@ -27,10 +27,9 @@ namespace Eagle
 		const auto& options = m_Renderer.GetOptions();
 		m_VolumetricSettings = options.VolumetricSettings;
 		m_Constants.VolumetricSamples = m_VolumetricSettings.Samples;
-		bStutterlessShaders = options.bStutterlessShaders;
 		bTranslucentShadows = options.bTranslucentShadows;
 
-		InitPipeline(false, false, false);
+		InitPipeline(false, false);
     }
 
 	void VolumetricLightTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
@@ -41,12 +40,9 @@ namespace Eagle
 		auto& stats = m_Renderer.GetStats();
 		const auto& input = m_Renderer.GetHDROutput();
 
-		constexpr uint32_t tileSize = 8;
 		const glm::uvec2 size = input->GetSize();
-		const glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
+		const glm::uvec2 volumetricsImageSize = m_VolumetricsImage->GetSize();
 
-		const glm::uvec2 halfSize = m_VolumetricsImage->GetSize();
-		const glm::uvec2 halfNumGroups = { glm::ceil(halfSize.x / float(tileSize)), glm::ceil(halfSize.y / float(tileSize)) };
 		const Timestep ts = Application::Get().GetTimestep();
 		m_Time += ts * m_VolumetricSettings.FogSpeed;
 
@@ -69,7 +65,7 @@ namespace Eagle
 
 		pushData.CameraPos = m_Renderer.GetViewPosition();
 		pushData.VolumetricMaxScatteringDist = m_VolumetricSettings.MaxScatteringDistance;
-		pushData.Size = halfSize;
+		pushData.Size = volumetricsImageSize;
 		pushData.MaxShadowDistance = m_Renderer.GetShadowMaxDistance() * m_Renderer.GetShadowMaxDistance();
 		pushData.Time = m_Time;
 		pushData.FogAlbedo = m_VolumetricSettings.Albedo;
@@ -81,17 +77,11 @@ namespace Eagle
 		pushData.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());
 
 		ConstantData info;
-		info.PointLightsCount = pushData.PointLights;
-		info.SpotLightsCount = pushData.SpotLights;
-		info.bHasDirLight = pushData.HasDirLight;
 		info.VolumetricSamples = m_VolumetricSettings.Samples;
 		if (info != m_Constants)
 		{
 			m_Constants = info;
-			// Don't need to recreate if stutterless
-			const bool bRecreate = !bStutterlessShaders;
-			if (bRecreate)
-				InitPipeline(false, false, false);
+			InitPipeline(false, false);
 		}
 
 		const auto& gbuffer = m_Renderer.GetGBuffer();
@@ -132,8 +122,10 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "Volumetric Lighting");
 			EG_CPU_TIMING_SCOPED("Volumetric Lighting");
 
+			const glm::uvec2 numGroups = CalcNumGroups(volumetricsImageSize, m_Pipeline->GetWorkGroupSize());
+
 			cmd->TransitionLayout(m_VolumetricsImage, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
-			cmd->Dispatch(m_Pipeline, halfNumGroups.x, halfNumGroups.y, 1, &pushData);
+			cmd->Dispatch(m_Pipeline, numGroups, &pushData);
 			cmd->TransitionLayout(m_VolumetricsImage, ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
 			++stats.Dispatches;
 		}
@@ -155,9 +147,10 @@ namespace Eagle
 
 			pushDataComp.Size = pushData.Size;
 			pushDataComp.TexelSize = 1.f / glm::vec2(pushData.Size);
-			
+
+			const glm::uvec2 numGroups = CalcNumGroups(volumetricsImageSize, m_GuassianPipeline->GetWorkGroupSize());
 			cmd->TransitionLayout(m_VolumetricsImageBlurred, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
-			cmd->Dispatch(m_GuassianPipeline, halfNumGroups.x, halfNumGroups.y, 1, &pushDataComp);
+			cmd->Dispatch(m_GuassianPipeline, numGroups, &pushDataComp);
 			cmd->TransitionLayout(m_VolumetricsImageBlurred, ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
 			++stats.Dispatches;
 		}
@@ -168,7 +161,9 @@ namespace Eagle
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Volumetric Composite");
 			EG_CPU_TIMING_SCOPED("Volumetric Composite");
-			cmd->Dispatch(m_CompositePipeline, numGroups.x, numGroups.y, 1, &pushDataComp);
+
+			const glm::uvec2 numGroups = CalcNumGroups(size, m_CompositePipeline->GetWorkGroupSize());
+			cmd->Dispatch(m_CompositePipeline, numGroups, &pushDataComp);
 			++stats.Dispatches;
 		}
 
@@ -203,15 +198,12 @@ namespace Eagle
 				m_VolumetricsImage.reset();
 		}
 
-		const bool bStutterlessChanged = bStutterlessShaders != settings.bStutterlessShaders;
 		const bool translucentShadowsChanged = bTranslucentShadows != settings.bTranslucentShadows;
-		bReloadPipeline |= bStutterlessChanged;
 		bReloadPipeline |= translucentShadowsChanged;
 		bTranslucentShadows = settings.bTranslucentShadows;
-		bStutterlessShaders = settings.bStutterlessShaders;
 
 		if (bReloadPipeline)
-			InitPipeline(bStutterlessChanged, translucentShadowsChanged, bVolumetricFogChanged);
+			InitPipeline(translucentShadowsChanged, bVolumetricFogChanged);
 	}
 
 	void VolumetricLightTask::OnResize(glm::uvec2 size)
@@ -221,16 +213,10 @@ namespace Eagle
 		m_VolumetricsImageBlurred->Resize(glm::uvec3(halfSize, 1u));
 	}
 
-	void VolumetricLightTask::InitPipeline(bool bStutterlessChanged, bool translucentShadowsChanged, bool bVolumetricFogChanged)
+	void VolumetricLightTask::InitPipeline(bool translucentShadowsChanged, bool bVolumetricFogChanged)
 	{
 		ShaderSpecializationInfo constants;
-		if (!bStutterlessShaders)
-		{
-			constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
-			constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
-			constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
-		}
-		constants.MapEntries.push_back({ 3, 12, sizeof(uint32_t) });
+		constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
 		constants.Data = &m_Constants;
 		constants.Size = sizeof(m_Constants);
 
@@ -242,26 +228,6 @@ namespace Eagle
 
 			bool bUpdateDefines = false;
 			auto defines = state.ComputeShader->GetDefines();
-			if (bStutterlessChanged)
-			{
-				auto it = defines.find("EG_STUTTERLESS");
-				if (bStutterlessShaders)
-				{
-					if (it == defines.end())
-					{
-						defines["EG_STUTTERLESS"] = "";
-						bUpdateDefines = true;
-					}
-				}
-				else
-				{
-					if (it != defines.end())
-					{
-						defines.erase(it);
-						bUpdateDefines = true;
-					}
-				}
-			}
 			if (translucentShadowsChanged)
 			{
 				auto it = defines.find("EG_TRANSLUCENT_SHADOWS");
@@ -310,8 +276,6 @@ namespace Eagle
 		{
 			ShaderDefines defines;
 			defines["EG_VOLUMETRIC_LIGHT"] = "";
-			if (bStutterlessShaders)
-				defines["EG_STUTTERLESS"] = "";
 			if (bTranslucentShadows)
 				defines["EG_TRANSLUCENT_SHADOWS"] = "";
 			if (m_VolumetricSettings.bFogEnable)

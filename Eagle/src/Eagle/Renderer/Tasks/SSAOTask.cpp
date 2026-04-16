@@ -101,8 +101,6 @@ namespace Eagle
 		static_assert(sizeof(PushConstants) <= 128u);
 		const glm::vec2 viewportSize = m_ResultImage->GetSize();
 
-		constexpr uint32_t s_TileSize = 8;
-		const glm::uvec2 numGroupds = { glm::ceil(viewportSize.x / float(s_TileSize)), glm::ceil(viewportSize.y / float(s_TileSize)) };
 		auto& stats = m_Renderer.GetStats();
 
 		// AO
@@ -136,7 +134,9 @@ namespace Eagle
 			cmd->TransitionLayout(gbuffer.Depth, depthLayout, ImageReadAccess::PixelShaderRead);
 			cmd->TransitionLayout(gbuffer.Normals, normalsLayout, ImageReadAccess::PixelShaderRead);
 
-			cmd->Dispatch(m_Pipeline, numGroupds.x, numGroupds.y, 1, &pushData);
+			const glm::uvec3 groupSize = m_Pipeline->GetWorkGroupSize();
+			const glm::uvec2 numGroups = CalcNumGroups(viewportSize, groupSize);
+			cmd->Dispatch(m_Pipeline, numGroups.x, numGroups.y, 1, &pushData);
 
 			cmd->TransitionLayout(m_SSAOPassImage, m_SSAOPassImage->GetLayout(), ImageReadAccess::PixelShaderRead);
 			cmd->TransitionLayout(gbuffer.Depth, ImageReadAccess::PixelShaderRead, depthLayout);
@@ -158,11 +158,14 @@ namespace Eagle
 			blurPushData.Size = pushData.Size;
 			blurPushData.TexelSize = 1.f / viewportSize;
 
+			const glm::uvec3 groupSize = m_BlurPipeline->GetWorkGroupSize();
+			const glm::uvec2 numGroups = CalcNumGroups(viewportSize, groupSize);
+
 			m_BlurPipeline->SetImageSampler(m_SSAOPassImage, Sampler::PointSamplerClamp, 0, 0);
 			m_BlurPipeline->SetImage(m_ResultImage, 0, 1);
 
 			cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageLayoutType::StorageImage);
-			cmd->Dispatch(m_BlurPipeline, numGroupds.x, numGroupds.y, 1, &blurPushData);
+			cmd->Dispatch(m_BlurPipeline, numGroups.x, numGroups.y, 1, &blurPushData);
 			cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageReadAccess::PixelShaderRead);
 
 			++stats.Dispatches;

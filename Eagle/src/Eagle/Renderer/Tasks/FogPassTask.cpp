@@ -29,9 +29,9 @@ namespace Eagle
 		const auto& fogOptions = options.FogSettings;
 		const auto& input = m_Renderer.GetHDROutput();
 
-		constexpr uint32_t tileSize = 8;
 		const glm::uvec2 size = input->GetSize();
-		glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
+		const glm::uvec3 groupSize = m_Pipeline->GetWorkGroupSize();
+		const glm::uvec2 numGroups = CalcNumGroups(size, groupSize);
 
 		struct PushData
 		{

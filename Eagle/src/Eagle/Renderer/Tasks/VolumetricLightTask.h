@@ -17,21 +17,15 @@ namespace Eagle
 		void OnResize(glm::uvec2 size) override;
 
 	private:
-		void InitPipeline(bool bStutterlessChanged, bool translucentShadowsChanged, bool bVolumetricFogChanged);
+		void InitPipeline(bool translucentShadowsChanged, bool bVolumetricFogChanged);
 
 		struct ConstantData
 		{
-			uint32_t PointLightsCount = 0;
-			uint32_t SpotLightsCount = 0;
-			uint32_t bHasDirLight = 0;
 			uint32_t VolumetricSamples = 20;
 
 			bool operator== (const ConstantData& other) const
 			{
-				return PointLightsCount == other.PointLightsCount &&
-					SpotLightsCount == other.SpotLightsCount &&
-					bHasDirLight == other.bHasDirLight &&
-					VolumetricSamples == other.VolumetricSamples;
+				return VolumetricSamples == other.VolumetricSamples;
 			}
 
 			bool operator!= (const ConstantData& other) const
@@ -51,7 +45,6 @@ namespace Eagle
 		Ref<Image> m_VolumetricsImageBlurred;
 		
 		float m_Time = 0.0;
-		bool bStutterlessShaders = false;
 		bool bTranslucentShadows = false;
 	};
 }

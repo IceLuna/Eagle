@@ -23,11 +23,6 @@ namespace Eagle
 {
 	static const char* s_SkyHelpMsg = "Sky is used just for background! It doesn't actually light the scene at the moment!\nIf this is checked, IBL will still light the scene if it's set. The only thing that changes is background";
 	static const char* s_EnableVolumetricLightsHelpMsg = "Note that this just notifies the engine that volumetric lights can be used! To use volumetric lights, you'll need to check `Is Volumetric` of a particular light";
-	static const char* s_StutterlessHelpMsg = "If checked, Point/Spot/Dir lights info will be dynamically sent to shaders meaning it won't recompile and won't trigger recompilation. "
-		"But since they'll become dynamic, the compiler won't be able to optimize some shader code making it run slower. "
-		"So if you don't care much about the performance and want to avoid stutters when adding/removing lights, use this option. "
-		"If unchecked, adding/removing lights MIGHT trigger some shaders recompilation since the light data is getting injected right into the shader source code which then needs to be recompiled. "
-		"But it's not that bad because shaders are being cached. So if the engine sees the same light data again, there'll be no stutters since shaders won't be recompiled, they'll be just taken from the cache";
 	static const char* s_MaxShadowDistHelpMsg = "Beyond this distance from camera, shadows won't be rendered. Note this setting applies only to the editor camera! You'll need to apply this value to CameraComponent if you want to see it in the simulation";
 	static const char* s_CascadesSplitAlphaHelpMsg = "It's used to determine how to split cascades for directional light shadows. Note this setting applies only to the editor camera! You'll need to apply this value to CameraComponent if you want to see it in the simulation";
 	static const char* s_CascadesSmoothTransitionAlphaHelpMsg = "The blend amount between cascades of directional light shadows (if smooth transition is enabled). Try to keep it as low as possible. Note this setting applies only to the editor camera! You'll need to apply this value to CameraComponent if you want to see it in the simulation";
@@ -1385,12 +1380,6 @@ namespace Eagle
 		if (UI::Property("Depth Prepass", options.bDepthPrepass, "Some objects will be pre-rendered into the depth buffer to reduce unnecessary fragment invocations during rendering"))
 		{
 			EG_CORE_TRACE("Changed Depth Prepass to: {}", options.bDepthPrepass);
-			bSettingsChanged = true;
-		}
-
-		if (UI::Property("Stutterless", options.bStutterlessShaders, s_StutterlessHelpMsg))
-		{
-			EG_CORE_TRACE("Changed Stutterless to: {}", options.bStutterlessShaders);
 			bSettingsChanged = true;
 		}
 

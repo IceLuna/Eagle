@@ -809,9 +809,9 @@ namespace Eagle
 
 			glm::uvec2 pushData = { newParticlesAmount, oldMaxParticles };
 
-			constexpr uint32_t tileSize = 256;
-			const uint32_t numGroup = CalcNumGroups(newParticlesAmount, tileSize);
-			cmd->Dispatch(m_UpdateMaxParticles, numGroup, 1, 1, &pushData);
+			const glm::uvec3 groupSize = m_UpdateMaxParticles->GetWorkGroupSize();
+			const uint32_t numGroups = CalcNumGroups(newParticlesAmount, groupSize).x;
+			cmd->Dispatch(m_UpdateMaxParticles, numGroups, 1, 1, &pushData);
 			cmd->Barrier(m_SystemData);
 			cmd->Barrier(m_DeadIndices);
 		}

@@ -126,8 +126,8 @@ namespace Eagle
 		cmd->TransitionLayout(m_Roughness, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
 		cmd->TransitionLayout(m_Radiance[m_PingPong], ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
 
-		constexpr uint32_t tileSize = 8;
-		glm::uvec2 numGroups = { glm::ceil(m_Size.x / float(tileSize)), glm::ceil(m_Size.y / float(tileSize)) };
+		const glm::uvec3 groupSize = m_ClassifyPipeline->GetWorkGroupSize();
+		const glm::uvec2 numGroups = CalcNumGroups(m_Size, groupSize);
 		cmd->Dispatch(m_ClassifyPipeline, numGroups.x, numGroups.y, 1, &pushData);
 
 		cmd->Barrier(m_RayCounter);
@@ -164,7 +164,6 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "SSSR. HZB generation");
 		EG_CPU_TIMING_SCOPED("SSSR. HZB generation");
 
-		constexpr uint32_t tileSize = 8;
 		const uint32_t mipCount = m_HZB->GetMipsCount();
 		const glm::uvec2 inputSize = m_HZB->GetSize();
 		glm::uvec2 mipSize = inputSize;
@@ -205,7 +204,8 @@ namespace Eagle
 			mipSize >>= 1u;
 			pushData.Size = mipSize;
 
-			glm::uvec2 numGroups = { glm::ceil(mipSize.x / float(tileSize)), glm::ceil(mipSize.y / float(tileSize)) };
+			const glm::uvec3 groupSize = m_HZBPipeline->GetWorkGroupSize();
+			const glm::uvec2 numGroups = CalcNumGroups(mipSize, groupSize);
 			if (glm::min(numGroups.x, numGroups.y) == 0)
 				break;
 
@@ -416,8 +416,8 @@ namespace Eagle
 		pushData.CameraDir = m_Renderer.GetViewDirection();
 		//cmd->TransitionLayout(m_Radiance[m_PingPong], ImageReadAccess::PixelShaderRead, ImageLayoutType::StorageImage);
 
-		constexpr uint32_t tileSize = 8;
-		glm::uvec2 numGroups = { glm::ceil(m_Size.x / float(tileSize)), glm::ceil(m_Size.y / float(tileSize)) };
+		const glm::uvec3 groupSize = m_CompositePipeline->GetWorkGroupSize();
+		const glm::uvec2 numGroups = CalcNumGroups(m_Size, groupSize);
 		cmd->Dispatch(m_CompositePipeline, numGroups.x, numGroups.y, 1, &pushData);
 
 		auto& stats = m_Renderer.GetStats();

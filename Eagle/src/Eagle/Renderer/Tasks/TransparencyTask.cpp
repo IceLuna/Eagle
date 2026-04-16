@@ -50,7 +50,6 @@ namespace Eagle
 		SetVisualizeCascades(options.bVisualizeCascades);
 		SetSoftShadowsEnabled(options.bEnableSoftShadows);
 		SetCSMSmoothTransitionEnabled(options.bEnableCSMSmoothTransition);
-		SetStutterlessEnabled(options.bStutterlessShaders);
 		SetFogEnabled(options.FogSettings.bEnable);
 		bObjectPickingEnabled = options.bEnableObjectPicking;
 
@@ -121,18 +120,14 @@ namespace Eagle
 		bReloadShader |= SetFogEnabled(settings.FogSettings.bEnable);
 		bObjectPickingEnabled = settings.bEnableObjectPicking;
 
-		const bool bReloadPipeline = SetStutterlessEnabled(settings.bStutterlessShaders);
-
-		if (!bReloadShader && !bReloadPipeline)
+		if (!bReloadShader)
 			return;
 
 		m_Layers = settings.TransparencyLayers;
 		const std::string layersString = std::to_string(m_Layers);
 		m_ShaderDefines["EG_OIT_LAYERS"] = layersString;
 
-		if (bReloadPipeline)
-			RecreatePipeline(true);
-		else if (bReloadShader)
+		if (bReloadShader)
 		{
 			m_TransparencyColorShader->SetDefines(m_ShaderDefines);
 			m_TransparencyTextColorShader->SetDefines(m_ShaderDefines);
@@ -724,18 +719,11 @@ namespace Eagle
 		uniforms.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());
 		cmd->Write(m_UniformBuffer, &uniforms, sizeof(UniformData), 0, m_UniformBuffer->GetLayout(), BufferReadAccess::Uniform);
 
-		PBRConstantsKernelInfo info;
-		info.PointLightsCount = uniforms.PointLights;
-		info.SpotLightsCount = uniforms.SpotLights;
-		info.bHasDirLight = uniforms.HasDirLight;
-		info.bHasIrradiance = bHasIrradiance;
-		if (info != m_KernelInfo)
+		const uint32_t newIrradiance = bHasIrradiance ? 1u : 0u;
+		if (this->bHasIrradiance != newIrradiance)
 		{
-			// If stutterless, reload only if `bHasIrradiance` differs
-			const bool bRecreate = !bStutterlessShaders || (m_KernelInfo.bHasIrradiance != info.bHasIrradiance);
-			m_KernelInfo = info;
-			if (bRecreate)
-				RecreatePipeline(false);
+			this->bHasIrradiance = newIrradiance;
+			RecreatePipeline(false);
 		}
 	}
 
@@ -775,15 +763,9 @@ namespace Eagle
 		state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
 
 		ShaderSpecializationInfo constants;
-		if (!bStutterlessShaders)
-		{
-			constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
-			constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
-			constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
-		}
-		constants.MapEntries.push_back({ 3, 12, sizeof(uint32_t) });
-		constants.Data = &m_KernelInfo;
-		constants.Size = sizeof(PBRConstantsKernelInfo);
+		constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
+		constants.Data = &bHasIrradiance;
+		constants.Size = sizeof(uint32_t);
 		
 		state.FragmentSpecializationInfo = constants;
 		m_MeshesColorPipeline = PipelineGraphics::Create(state);
@@ -830,15 +812,9 @@ namespace Eagle
 		state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
 
 		ShaderSpecializationInfo constants;
-		if (!bStutterlessShaders)
-		{
-			constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
-			constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
-			constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
-		}
-		constants.MapEntries.push_back({ 3, 12, sizeof(uint32_t) });
-		constants.Data = &m_KernelInfo;
-		constants.Size = sizeof(PBRConstantsKernelInfo);
+		constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
+		constants.Data = &bHasIrradiance;
+		constants.Size = sizeof(uint32_t);
 		
 		state.FragmentSpecializationInfo = constants;
 		m_SkeletalMeshesColorPipeline = PipelineGraphics::Create(state);
@@ -884,15 +860,9 @@ namespace Eagle
 		state.CullMode = CullMode::Dynamic;
 
 		ShaderSpecializationInfo constants;
-		if (!bStutterlessShaders)
-		{
-			constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
-			constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
-			constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
-		}
-		constants.MapEntries.push_back({ 3, 12, sizeof(uint32_t) });
-		constants.Data = &m_KernelInfo;
-		constants.Size = sizeof(PBRConstantsKernelInfo);
+		constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
+		constants.Data = &bHasIrradiance;
+		constants.Size = sizeof(uint32_t);
 
 		state.FragmentSpecializationInfo = constants;
 		m_SpritesColorPipeline = PipelineGraphics::Create(state);
@@ -938,15 +908,9 @@ namespace Eagle
 		state.CullMode = CullMode::Dynamic;
 
 		ShaderSpecializationInfo constants;
-		if (!bStutterlessShaders)
-		{
-			constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
-			constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
-			constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
-		}
-		constants.MapEntries.push_back({ 3, 12, sizeof(uint32_t) });
-		constants.Data = &m_KernelInfo;
-		constants.Size = sizeof(PBRConstantsKernelInfo);
+		constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
+		constants.Data = &bHasIrradiance;
+		constants.Size = sizeof(uint32_t);
 
 		state.FragmentSpecializationInfo = constants;
 		m_TextColorPipeline = PipelineGraphics::Create(state);
@@ -1113,37 +1077,6 @@ namespace Eagle
 		return bUpdate;
 	}
 
-	bool TransparencyTask::SetStutterlessEnabled(bool bEnable)
-	{
-		if (bStutterlessShaders == bEnable)
-			return false;
-
-		bStutterlessShaders = bEnable;
-
-		auto& defines = m_ShaderDefines;
-		auto it = defines.find("EG_STUTTERLESS");
-
-		bool bUpdate = false;
-		if (bEnable)
-		{
-			if (it == defines.end())
-			{
-				defines["EG_STUTTERLESS"] = "";
-				bUpdate = true;
-			}
-		}
-		else
-		{
-			if (it != defines.end())
-			{
-				defines.erase(it);
-				bUpdate = true;
-			}
-		}
-
-		return bUpdate;
-	}
-
 	bool TransparencyTask::SetFogEnabled(bool bEnable)
 	{
 		if (bFog == bEnable)
@@ -1178,16 +1111,9 @@ namespace Eagle
 	void TransparencyTask::RecreatePipeline(bool bUpdateDefines)
 	{
 		ShaderSpecializationInfo constants;
-		if (!bStutterlessShaders)
-		{
-			constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
-			constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
-			constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
-		}
-
-		constants.MapEntries.push_back({ 3, 12, sizeof(uint32_t) });
-		constants.Data = &m_KernelInfo;
-		constants.Size = sizeof(PBRConstantsKernelInfo);
+		constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
+		constants.Data = &bHasIrradiance;
+		constants.Size = sizeof(uint32_t);
 
 		{
 			auto state = m_MeshesColorPipeline->GetState();

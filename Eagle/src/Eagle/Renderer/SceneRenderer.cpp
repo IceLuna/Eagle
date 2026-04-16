@@ -570,11 +570,11 @@ namespace Eagle
 		MaterialData = Image::Create(materialSpecs, "GBuffer_MaterialData");
 
 		ImageSpecifications flagSpecs;
-		flagSpecs.Format = ImageFormat::R8_UNorm;
+		flagSpecs.Format = ImageFormat::R8_UInt;
 		flagSpecs.Layout = ImageLayoutType::RenderTarget;
 		flagSpecs.Size = size;
 		flagSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferDst;
-		Flags = Image::Create(materialSpecs, "GBuffer_Flags");
+		Flags = Image::Create(flagSpecs, "GBuffer_Flags");
 
 		ImageSpecifications objectIDSpecs;
 		objectIDSpecs.Format = ImageFormat::R32_SInt;

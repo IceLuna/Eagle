@@ -71,6 +71,14 @@ namespace Eagle
 		virtual void Begin() = 0;
 		virtual void End() = 0;
 
+		void Dispatch(const Ref<PipelineCompute>& pipeline, const glm::uvec2& numGroups, const void* pushConstants = nullptr)
+		{
+			Dispatch(pipeline, numGroups.x, numGroups.y, 1, pushConstants);
+		}
+		void Dispatch(const Ref<PipelineCompute>& pipeline, const glm::uvec3& numGroups, const void* pushConstants = nullptr)
+		{
+			Dispatch(pipeline, numGroups.x, numGroups.y, numGroups.z, pushConstants);
+		}
 		virtual void Dispatch(const Ref<PipelineCompute>& pipeline, uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ, const void* pushConstants = nullptr) = 0;
 		virtual void DispatchIndirect(const Ref<PipelineCompute>& pipeline, const Ref<Buffer>& args, size_t offset, const void* pushConstants = nullptr) = 0;
 

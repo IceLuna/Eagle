@@ -16,7 +16,6 @@ namespace Eagle
 		{
 			m_HalfSize = glm::max(size / 2u, glm::uvec2(1u));
 			m_HalfTexelSize = 1.f / glm::vec2(m_HalfSize);
-			m_HalfNumGroups = { glm::ceil(m_HalfSize.x / float(s_TileSize)), glm::ceil(m_HalfSize.y / float(s_TileSize)) };
 
 			m_HalfDepth->Resize({ m_HalfSize, 1u });
 			m_HalfDepthPrev->Resize({ m_HalfSize, 1u });
@@ -61,7 +60,6 @@ namespace Eagle
 
 		glm::uvec2 m_HalfSize = glm::uvec2(1u);
 		glm::vec2 m_HalfTexelSize = glm::vec2(0.f);
-		glm::uvec2 m_HalfNumGroups = glm::uvec2(1u);
 
 		uint32_t m_Samples = 0;
 

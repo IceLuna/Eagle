@@ -99,8 +99,8 @@ namespace Eagle
 			
 			pushData.VerticesCount = verticesCount;
 
-			constexpr uint32_t groupSize = 128u;
-			const uint32_t numGroups = CalcNumGroups(verticesCount, groupSize);
+			const glm::uvec3 groupSize = m_Pipeline->GetWorkGroupSize();
+			const uint32_t numGroups = CalcNumGroups(verticesCount, groupSize.x);
 			for (uint32_t i = 0; i < instancesCount; ++i)
 			{
 				// It doesn't matter which submesh index we take, since `TransformIndex` is going to be the same

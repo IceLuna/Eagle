@@ -507,6 +507,7 @@ namespace Eagle
 		if (bTranslucencyShadowsChanged || bVolumetricChanged)
 		{
 			InitTranslucentMeshPipelines();
+			InitTranslucentSkeletalMeshPipelines();
 			InitTranslucentSpritesPipelines();
 			InitTranslucentLitTextsPipelines();
 		}

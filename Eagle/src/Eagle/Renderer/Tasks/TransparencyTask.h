@@ -69,7 +69,6 @@ namespace Eagle
 		bool SetSoftShadowsEnabled(bool bEnable);
 		bool SetVisualizeCascades(bool bVisualize);
 		bool SetCSMSmoothTransitionEnabled(bool bEnabled);
-		bool SetStutterlessEnabled(bool bEnabled);
 		bool SetFogEnabled(bool bEnabled);
 
 		void RecreatePipeline(bool bUpdateDefines);
@@ -104,8 +103,8 @@ namespace Eagle
 
 		Ref<Buffer> m_OITBuffer;
 		uint32_t m_Layers = 4u;
-		PBRConstantsKernelInfo m_KernelInfo;
 
+		uint32_t bHasIrradiance = 0u;
 		ShaderDefines m_ShaderDefines;
 
 		uint64_t m_TexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };

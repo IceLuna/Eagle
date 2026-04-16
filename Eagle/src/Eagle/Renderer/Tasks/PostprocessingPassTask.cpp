@@ -200,7 +200,7 @@ namespace Eagle
 			pushData.MinLog2Lum = minLogLum;
 			pushData.InvLog2Lum = 1.0f / (maxLogLum - minLogLum);
 
-			glm::uvec2 numGroups = { glm::ceil(size.x / float(s_TileSize)), glm::ceil(size.y / float(s_TileSize)) };
+			const glm::uvec2 numGroups = CalcNumGroups(size, s_TileSize);
 			cmd->Dispatch(m_HistogramPipeline, numGroups.x, numGroups.y, 1, &pushData);
 		}
 

@@ -17,7 +17,6 @@ namespace Eagle
 		const glm::uvec3 size = glm::max(glm::uvec3(m_Renderer.GetViewportSize(), 1u) / 2u, glm::uvec3(1u));
 		m_HalfSize = size;
 		m_HalfTexelSize = 1.f / glm::vec2(m_HalfSize);
-		m_HalfNumGroups = { glm::ceil(size.x / float(s_TileSize)), glm::ceil(size.y / float(s_TileSize)) };
 
 		ImageSpecifications depthSpecs;
 		depthSpecs.Size = size;
@@ -135,7 +134,9 @@ namespace Eagle
 		cmd->TransitionLayout(m_GTAOPassImage, m_GTAOPassImage->GetLayout(), ImageLayoutType::StorageImage);
 		cmd->Barrier(m_HalfDepth);
 
-		cmd->Dispatch(m_GTAOPipeline, m_HalfNumGroups.x, m_HalfNumGroups.y, 1, &pushData);
+		const glm::uvec3 groupSize = m_GTAOPipeline->GetWorkGroupSize();
+		const glm::uvec2 numGroups = CalcNumGroups(m_HalfSize, groupSize);
+		cmd->Dispatch(m_GTAOPipeline, numGroups, &pushData);
 
 		cmd->TransitionLayout(m_GTAOPassImage, m_GTAOPassImage->GetLayout(), ImageReadAccess::PixelShaderRead);
 
@@ -172,7 +173,9 @@ namespace Eagle
 		cmd->TransitionLayout(m_DenoisedPrev, m_DenoisedPrev->GetLayout(), ImageReadAccess::PixelShaderRead);
 		cmd->TransitionLayout(m_Denoised, m_Denoised->GetLayout(), ImageLayoutType::StorageImage);
 
-		cmd->Dispatch(m_DenoiserPipeline, m_HalfNumGroups.x, m_HalfNumGroups.y, 1, &pushData);
+		const glm::uvec3 groupSize = m_DenoiserPipeline->GetWorkGroupSize();
+		const glm::uvec2 numGroups = CalcNumGroups(m_HalfSize, groupSize);
+		cmd->Dispatch(m_DenoiserPipeline, numGroups, &pushData);
 
 		cmd->TransitionLayout(m_Denoised, m_Denoised->GetLayout(), ImageReadAccess::PixelShaderRead);
 

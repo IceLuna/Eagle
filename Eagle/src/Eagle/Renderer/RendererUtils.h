@@ -681,27 +681,6 @@ namespace Eagle
         bool bNormalHistory = false;
     };
 
-    struct PBRConstantsKernelInfo
-    {
-        uint32_t PointLightsCount = 0;
-        uint32_t SpotLightsCount = 0;
-        uint32_t bHasDirLight = 0;
-        uint32_t bHasIrradiance = 0;
-
-        bool operator== (const PBRConstantsKernelInfo& other) const
-        {
-            return PointLightsCount == other.PointLightsCount &&
-                SpotLightsCount == other.SpotLightsCount &&
-                bHasDirLight == other.bHasDirLight &&
-                bHasIrradiance == other.bHasIrradiance;
-        }
-
-        bool operator!= (const PBRConstantsKernelInfo& other) const
-        {
-            return !((*this) == other);
-        }
-    };
-
     struct SkySettings
     {
         glm::vec3 SunPos = glm::vec3(0.f, 0.f, -1.f);
@@ -946,7 +925,6 @@ namespace Eagle
         bool bEnableSoftShadows = true;
         bool bEnableCSMSmoothTransition = true;
         bool bVisualizeCascades = false;
-        bool bStutterlessShaders = true;
         bool bEnableObjectPicking = false;
         bool bEnable2DObjectPicking = false;
         bool bSortOpaqueParticles = false;
@@ -976,7 +954,6 @@ namespace Eagle
                 bEnableSoftShadows == other.bEnableSoftShadows &&
                 bEnableCSMSmoothTransition == other.bEnableCSMSmoothTransition &&
                 bVisualizeCascades == other.bVisualizeCascades &&
-                bStutterlessShaders == other.bStutterlessShaders &&
                 bEnableObjectPicking == other.bEnableObjectPicking &&
                 bEnable2DObjectPicking == other.bEnable2DObjectPicking &&
                 bSortOpaqueParticles == other.bSortOpaqueParticles &&

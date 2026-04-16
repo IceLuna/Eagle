@@ -37,12 +37,7 @@ layout(set = 6, binding = 0) uniform ShadingUniforms
     uint g_HasDirLight;
 };
 
-#ifndef EG_STUTTERLESS
-layout(constant_id = 0) const uint g_PointLightsCount = 0;
-layout(constant_id = 1) const uint g_SpotLightsCount = 0;
-layout(constant_id = 2) const uint g_HasDirLight = 0;
-#endif
-layout(constant_id = 3) const bool s_HasIrradiance = false;
+layout(constant_id = 0) const bool s_HasIrradiance = false;
 
 layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX + 1, r32ui) uniform coherent uimageBuffer imgAbuffer;
 

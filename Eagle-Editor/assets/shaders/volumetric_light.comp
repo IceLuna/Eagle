@@ -58,19 +58,12 @@ layout(push_constant) uniform PushConstants
     float g_FogAnisotropy;
     float g_Near;
     float g_Far;
-#ifdef EG_STUTTERLESS
     uint g_PointLightsCount;
     uint g_SpotLightsCount;
     uint g_HasDirLight;
-#endif
 };
 
-#ifndef EG_STUTTERLESS
-layout(constant_id = 0) const uint g_PointLightsCount = 0;
-layout(constant_id = 1) const uint g_SpotLightsCount = 0;
-layout(constant_id = 2) const uint g_HasDirLight = 0;
-#endif
-layout(constant_id = 3) const uint s_VolumetricSamples = 20;
+layout(constant_id = 0) const uint s_VolumetricSamples = 20;
 
 #define EG_PIXEL_COORDS vec2(gl_GlobalInvocationID)
 #include "volumetric_utils.h"

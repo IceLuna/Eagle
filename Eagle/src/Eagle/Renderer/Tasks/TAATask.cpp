@@ -29,9 +29,9 @@ namespace Eagle
 		pushData.Size = m_FinalImage->GetSize();
 		pushData.TexelSize = 1.f / glm::vec2(pushData.Size);
 
-		constexpr uint32_t tileSize = 8;
 		const auto& size = pushData.Size;
-		glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
+		const glm::uvec3 groupSize = m_Pipeline->GetWorkGroupSize();
+		const glm::uvec2 numGroups = CalcNumGroups(size, groupSize);
 
 		if (!m_HistoryImage)
 		{

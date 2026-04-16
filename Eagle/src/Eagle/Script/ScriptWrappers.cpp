@@ -7421,25 +7421,6 @@ namespace Eagle
 		sceneRenderer->SetOptions(settings);
 	}
 
-	void Script::Eagle_Renderer_SetStutterlessShaders(bool value)
-	{
-		const auto& scene = Scene::GetCurrentScene();
-		auto& sceneRenderer = scene->GetSceneRenderer();
-		auto options = sceneRenderer->GetOptions();
-
-		options.bStutterlessShaders = value;
-		sceneRenderer->SetOptions(options);
-	}
-
-	bool Script::Eagle_Renderer_GetStutterlessShaders()
-	{
-		const auto& scene = Scene::GetCurrentScene();
-		const auto& sceneRenderer = scene->GetSceneRenderer();
-		const auto& options = sceneRenderer->GetOptions();
-
-		return options.bStutterlessShaders;
-	}
-
 	void Script::Eagle_Renderer_SetDepthPrepassEnabled(bool value)
 	{
 		const auto& scene = Scene::GetCurrentScene();
