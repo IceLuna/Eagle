@@ -201,6 +201,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::GetPhotoLinearTonemappingSettings_Native", Eagle::Script::Eagle_Renderer_GetPhotoLinearTonemappingSettings);
 		mono_add_internal_call("Eagle.Renderer::SetFilmicTonemappingSettings_Native", Eagle::Script::Eagle_Renderer_SetFilmicTonemappingSettings);
 		mono_add_internal_call("Eagle.Renderer::GetFilmicTonemappingSettings_Native", Eagle::Script::Eagle_Renderer_GetFilmicTonemappingSettings);
+		mono_add_internal_call("Eagle.Renderer::SetAgXTonemappingSettings_Native", Eagle::Script::Eagle_Renderer_SetAgXTonemappingSettings);
+		mono_add_internal_call("Eagle.Renderer::GetAgXTonemappingSettings_Native", Eagle::Script::Eagle_Renderer_GetAgXTonemappingSettings);
 		mono_add_internal_call("Eagle.Renderer::GetGamma_Native", Eagle::Script::Eagle_Renderer_GetGamma);
 		mono_add_internal_call("Eagle.Renderer::SetGamma_Native", Eagle::Script::Eagle_Renderer_SetGamma);
 		mono_add_internal_call("Eagle.Renderer::GetExposure_Native", Eagle::Script::Eagle_Renderer_GetExposure);
@@ -269,6 +271,10 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::DrawAABB_Native", Eagle::Script::Eagle_Renderer_DrawAABB);
 		mono_add_internal_call("Eagle.Renderer::DrawBox_Native", Eagle::Script::Eagle_Renderer_DrawBox);
 		mono_add_internal_call("Eagle.Renderer::DrawCone_Native", Eagle::Script::Eagle_Renderer_DrawCone);
+
+		mono_add_internal_call("Eagle.AgXTonemappingSettings::GetDefaultLook_Native", Eagle::Script::Eagle_AgXTonemapping_GetDefaultLook);
+		mono_add_internal_call("Eagle.AgXTonemappingSettings::GetGoldenLook_Native", Eagle::Script::Eagle_AgXTonemapping_GetGoldenLook);
+		mono_add_internal_call("Eagle.AgXTonemappingSettings::GetPunchyLook_Native", Eagle::Script::Eagle_AgXTonemapping_GetPunchyLook);
 
 		// Log
 		mono_add_internal_call("Eagle.Log::Trace", Eagle::Script::Eagle_Log_Trace);

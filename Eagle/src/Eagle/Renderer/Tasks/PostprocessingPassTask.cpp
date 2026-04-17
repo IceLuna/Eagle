@@ -242,11 +242,15 @@ namespace Eagle
 
 		struct PushData
 		{
-			glm::ivec2 Size;
+			glm::vec3 AgXSlope;
 			float InvGamma;
+			glm::vec3 AgXPower;
 			float PhotolinearScale;
+			glm::vec3 AgXOffset;
 			float WhitePoint;
+			glm::ivec2 Size;
 			uint32_t TonemappingMethod;
+			float AgXSaturation;
 		} pushData;
 		static_assert(sizeof(PushData) <= 128);
 
@@ -260,6 +264,10 @@ namespace Eagle
 		pushData.PhotolinearScale = m_Renderer.GetPhotoLinearScale();
 		pushData.WhitePoint = options.FilmicTonemappingParams.WhitePoint;
 		pushData.TonemappingMethod = (uint32_t)options.Tonemapping;
+		pushData.AgXSlope = options.AgXTonemappingParams.Slope;
+		pushData.AgXPower = options.AgXTonemappingParams.Power;
+		pushData.AgXOffset = options.AgXTonemappingParams.Offset;
+		pushData.AgXSaturation = options.AgXTonemappingParams.Saturation;
 
 		m_TonemappingPipeline->SetImage(input, 0, 0);
 		m_TonemappingPipeline->SetImage(output, 0, 1);

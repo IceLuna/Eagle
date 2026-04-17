@@ -485,7 +485,8 @@ namespace Eagle
         Reinhard,
         Filmic,
         ACES,
-        PhotoLinear
+        PhotoLinear,
+        AgX,
     };
 
     enum class AAMethod
@@ -518,6 +519,50 @@ namespace Eagle
             return WhitePoint == other.WhitePoint;
         }
         bool operator!= (const FilmicTonemappingSettings& other) const { return !(*this == other); }
+    };
+
+    struct AgXTonemappingSettings
+    {
+        glm::vec3 Slope = glm::vec3(1);
+        glm::vec3 Power = glm::vec3(1);
+        glm::vec3 Offset = glm::vec3(0);
+        float Saturation = 1.f;
+
+        static AgXTonemappingSettings GetDefaultLook()
+        {
+            return AgXTonemappingSettings{};
+        }
+
+        static AgXTonemappingSettings GetGoldenLook()
+        {
+            AgXTonemappingSettings result{};
+            result.Slope = glm::vec3(1.0f, 0.9f, 0.5f);
+            result.Power = glm::vec3(0.8f);
+            result.Offset = glm::vec3(0.0f);
+            result.Saturation = 0.8f;
+
+            return result;
+        }
+
+        static AgXTonemappingSettings GetPunchyLook()
+        {
+            AgXTonemappingSettings result{};
+            result.Slope = glm::vec3(1.0f);
+            result.Power = glm::vec3(1.35f);
+            result.Offset = glm::vec3(0.0f);
+            result.Saturation = 1.4f;
+
+            return result;
+        }
+
+        bool operator== (const AgXTonemappingSettings& other) const
+        {
+            return Slope == other.Slope &&
+                Power == other.Power &&
+                Offset == other.Offset &&
+                Saturation == other.Saturation;
+        }
+        bool operator!= (const AgXTonemappingSettings& other) const { return !(*this == other); }
     };
 
     struct GPUResourceDebugData
@@ -909,6 +954,7 @@ namespace Eagle
         VolumetricLightsSettings VolumetricSettings;
         PhotoLinearTonemappingSettings PhotoLinearTonemappingParams;
         FilmicTonemappingSettings FilmicTonemappingParams;
+        AgXTonemappingSettings AgXTonemappingParams = AgXTonemappingSettings::GetPunchyLook();
         DepthOfFieldSettings DOFSettings;
         MotionBlurSettings MotionBlur;
         AutoExposureSettings AutoExposure;
@@ -917,7 +963,7 @@ namespace Eagle
         float Gamma = 2.2f;
         float Exposure = 1.f;
         float LineWidth = 2.5f;
-        TonemappingMethod Tonemapping = TonemappingMethod::ACES;
+        TonemappingMethod Tonemapping = TonemappingMethod::AgX;
         AmbientOcclusion AO = AmbientOcclusion::None;
         AAMethod AA = AAMethod::None;
         bool bDepthPrepass = false;
@@ -938,6 +984,7 @@ namespace Eagle
         {
             return PhotoLinearTonemappingParams == other.PhotoLinearTonemappingParams &&
                 FilmicTonemappingParams == other.FilmicTonemappingParams &&
+                AgXTonemappingParams == other.AgXTonemappingParams &&
                 DOFSettings == other.DOFSettings &&
                 MotionBlur == other.MotionBlur &&
                 FogSettings == other.FogSettings &&

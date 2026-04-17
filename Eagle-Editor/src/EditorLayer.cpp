@@ -1889,6 +1889,78 @@ namespace Eagle
 			}
 		}
 
+		// AgX Tonemapping settings
+		{
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx("AgX tonemapping", treeFlags);
+			ImGui::PopStyleVar();
+
+			if (treeOpened)
+			{
+				auto& agx = options.AgXTonemappingParams;
+
+				UI::BeginPropertyGrid("AgXSettings");
+
+				if (UI::PropertyDrag("Slope", agx.Slope, 0.01f))
+				{
+					EG_CORE_TRACE("Changed AgX Slope to: {}", agx.Slope);
+					bSettingsChanged = true;
+				}
+
+				if (UI::PropertyDrag("Power", agx.Power, 0.01f))
+				{
+					EG_CORE_TRACE("Changed AgX Power to: {}", agx.Power);
+					bSettingsChanged = true;
+				}
+
+				if (UI::PropertyDrag("Offset", agx.Offset, 0.01f))
+				{
+					EG_CORE_TRACE("Changed AgX Offset to: {}", agx.Offset);
+					bSettingsChanged = true;
+				}
+
+				if (UI::PropertyDrag("Saturation", agx.Saturation, 0.01f))
+				{
+					EG_CORE_TRACE("Changed AgX Saturation to: {}", agx.Saturation);
+					bSettingsChanged = true;
+				}
+				UI::EndPropertyGrid();
+
+				ImGui::Separator();
+
+				// Buttons to reset AgX settings
+				{
+					constexpr int buttonCount = 3;
+					const float totalWidth = ImGui::GetContentRegionAvail().x;
+					const float spacing = ImGui::GetStyle().ItemSpacing.x;
+					const float buttonWidth = (totalWidth - spacing * (buttonCount - 1)) / buttonCount;
+
+					if (ImGui::Button("Default", ImVec2(buttonWidth, 0)))
+					{
+						agx = AgXTonemappingSettings::GetDefaultLook();
+						bSettingsChanged = true;
+					}
+					ImGui::SameLine();
+
+					if (ImGui::Button("Punchy Look", ImVec2(buttonWidth, 0)))
+					{
+						agx = AgXTonemappingSettings::GetPunchyLook();
+						bSettingsChanged = true;
+					}
+					ImGui::SameLine();
+
+					if (ImGui::Button("Golden Look", ImVec2(buttonWidth, 0)))
+					{
+						agx = AgXTonemappingSettings::GetGoldenLook();
+						bSettingsChanged = true;
+					}
+				}
+
+				ImGui::TreePop();
+			}
+		}
+
 		// Chromatic Aberration
 		{
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });

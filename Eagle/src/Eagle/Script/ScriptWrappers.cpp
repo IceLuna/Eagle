@@ -6942,6 +6942,29 @@ namespace Eagle
 		*outWhitePoint = options.FilmicTonemappingParams.WhitePoint;
 	}
 
+	void Script::Eagle_Renderer_SetAgXTonemappingSettings(const glm::vec3& slope, const glm::vec3& power, const glm::vec3& offset, float saturation)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.AgXTonemappingParams.Slope = slope;
+		options.AgXTonemappingParams.Power = power;
+		options.AgXTonemappingParams.Offset = offset;
+		options.AgXTonemappingParams.Saturation = saturation;
+
+		sceneRenderer->SetOptions(options);
+	}
+
+	void Script::Eagle_Renderer_GetAgXTonemappingSettings(glm::vec3* slope, glm::vec3* power, glm::vec3* offset, float* saturation)
+	{
+		const auto& options = Scene::GetCurrentScene()->GetSceneRenderer()->GetOptions();
+		*slope = options.AgXTonemappingParams.Slope;
+		*power = options.AgXTonemappingParams.Power;
+		*offset = options.AgXTonemappingParams.Offset;
+		*saturation = options.AgXTonemappingParams.Saturation;
+	}
+
 	float Script::Eagle_Renderer_GetGamma()
 	{
 		const auto& scene = Scene::GetCurrentScene();
@@ -7552,6 +7575,36 @@ namespace Eagle
 	void Script::Eagle_Renderer_DrawCone(const glm::vec3* location, const glm::quat* rotation, float distance, float angleRad)
 	{
 		Scene::GetCurrentScene()->DrawCone(*location, *rotation, distance, angleRad);
+	}
+
+	void Script::Eagle_AgXTonemapping_GetDefaultLook(glm::vec3* slope, glm::vec3* power, glm::vec3* offset, float* saturation)
+	{
+		AgXTonemappingSettings agx = AgXTonemappingSettings::GetDefaultLook();
+
+		*slope = agx.Slope;
+		*power = agx.Power;
+		*offset = agx.Offset;
+		*saturation = agx.Saturation;
+	}
+
+	void Script::Eagle_AgXTonemapping_GetGoldenLook(glm::vec3* slope, glm::vec3* power, glm::vec3* offset, float* saturation)
+	{
+		AgXTonemappingSettings agx = AgXTonemappingSettings::GetGoldenLook();
+
+		*slope = agx.Slope;
+		*power = agx.Power;
+		*offset = agx.Offset;
+		*saturation = agx.Saturation;
+	}
+
+	void Script::Eagle_AgXTonemapping_GetPunchyLook(glm::vec3* slope, glm::vec3* power, glm::vec3* offset, float* saturation)
+	{
+		AgXTonemappingSettings agx = AgXTonemappingSettings::GetPunchyLook();
+
+		*slope = agx.Slope;
+		*power = agx.Power;
+		*offset = agx.Offset;
+		*saturation = agx.Saturation;
 	}
 	
 	void Script::Eagle_Renderer_SetObjectPickingEnabled(bool value)

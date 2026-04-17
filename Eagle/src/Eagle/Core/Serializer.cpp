@@ -2914,6 +2914,7 @@ namespace Eagle
 		const auto& shadowSettings = settings.ShadowsSettings;
 		const auto& photoLinearParams = settings.PhotoLinearTonemappingParams;
 		const auto& filmicParams = settings.FilmicTonemappingParams;
+		const auto& agxParams = settings.AgXTonemappingParams;
 		const auto& dofSettings = settings.DOFSettings;
 		const auto& motionBlurSettings = settings.MotionBlur;
 		const auto& autoExposureSettings = settings.AutoExposure;
@@ -3000,6 +3001,14 @@ namespace Eagle
 		out << YAML::BeginMap;
 		out << YAML::Key << "WhitePoint" << YAML::Value << filmicParams.WhitePoint;
 		out << YAML::EndMap; //FilmicTonemappingSettings
+
+		out << YAML::Key << "AgX Tonemapping";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Slope" << YAML::Value << agxParams.Slope;
+		out << YAML::Key << "Power" << YAML::Value << agxParams.Power;
+		out << YAML::Key << "Offset" << YAML::Value << agxParams.Offset;
+		out << YAML::Key << "Saturation" << YAML::Value << agxParams.Saturation;
+		out << YAML::EndMap; //AgX Tonemapping
 
 		out << YAML::Key << "DOF";
 		out << YAML::BeginMap;
@@ -3171,6 +3180,14 @@ namespace Eagle
 		if (auto filmicNode = data["Filmic Tonemapping"])
 		{
 			settings.FilmicTonemappingParams.WhitePoint = filmicNode["WhitePoint"].as<float>();
+		}
+
+		if (auto agxNode = data["AgX Tonemapping"])
+		{
+			settings.AgXTonemappingParams.Slope = agxNode["Slope"].as<glm::vec3>();
+			settings.AgXTonemappingParams.Power = agxNode["Power"].as<glm::vec3>();
+			settings.AgXTonemappingParams.Offset = agxNode["Offset"].as<glm::vec3>();
+			settings.AgXTonemappingParams.Saturation = agxNode["Saturation"].as<float>();
 		}
 
 		if (auto dofNode = data["DOF"])

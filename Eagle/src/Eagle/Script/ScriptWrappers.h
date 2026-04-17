@@ -540,6 +540,8 @@ namespace Eagle::Script
 	void Eagle_Renderer_GetPhotoLinearTonemappingSettings(float* outSensitivity, float* outExposureTime, float* outfStop);
 	void Eagle_Renderer_SetFilmicTonemappingSettings(float whitePoint);
 	void Eagle_Renderer_GetFilmicTonemappingSettings(float* outWhitePoint);
+	void Eagle_Renderer_SetAgXTonemappingSettings(const glm::vec3& slope, const glm::vec3& power, const glm::vec3& offset, float saturation);
+	void Eagle_Renderer_GetAgXTonemappingSettings(glm::vec3* slope, glm::vec3* power, glm::vec3* offset, float* saturation);
 	float Eagle_Renderer_GetGamma();
 	void Eagle_Renderer_SetGamma(float value);
 	float Eagle_Renderer_GetExposure();
@@ -610,6 +612,11 @@ namespace Eagle::Script
 	void Eagle_Renderer_DrawAABB(const AABB* aabb, const Transform* transform);
 	void Eagle_Renderer_DrawBox(const AABB* aabb, const Transform* transform);
 	void Eagle_Renderer_DrawCone(const glm::vec3* location, const glm::quat* rotation, float distance, float angleRad);
+
+	// AgXTonemapping
+	void Eagle_AgXTonemapping_GetDefaultLook(glm::vec3* slope, glm::vec3* power, glm::vec3* offset, float* saturation);
+	void Eagle_AgXTonemapping_GetGoldenLook(glm::vec3* slope, glm::vec3* power, glm::vec3* offset, float* saturation);
+	void Eagle_AgXTonemapping_GetPunchyLook(glm::vec3* slope, glm::vec3* power, glm::vec3* offset, float* saturation);
 
 	// Project
 	MonoString* Eagle_Project_GetProjectPath();

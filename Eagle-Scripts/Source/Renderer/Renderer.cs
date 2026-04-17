@@ -41,7 +41,8 @@ namespace Eagle
         Reinhard,
         Filmic,
         ACES,
-        PhotoLinear
+        PhotoLinear,
+        AgX,
     }
 
     public enum AAMethod
@@ -68,6 +69,44 @@ namespace Eagle
     {
         public float WhitePoint;
     }
+
+    public struct AgXTonemappingSettings
+    {
+        public Vector3 Slope;
+        public Vector3 Power;
+        public Vector3 Offset;
+        public float Saturation;
+
+        public static AgXTonemappingSettings GetDefaultLook()
+        {
+            AgXTonemappingSettings result = new AgXTonemappingSettings();
+            GetDefaultLook_Native(out result.Slope, out result.Power, out result.Offset, out result.Saturation);
+            return result;
+        }
+
+        public static AgXTonemappingSettings GetGoldenLook()
+        {
+            AgXTonemappingSettings result = new AgXTonemappingSettings();
+            GetGoldenLook_Native(out result.Slope, out result.Power, out result.Offset, out result.Saturation);
+            return result;
+        }
+
+        public static AgXTonemappingSettings GetPunchyLook()
+        {
+            AgXTonemappingSettings result = new AgXTonemappingSettings();
+            GetPunchyLook_Native(out result.Slope, out result.Power, out result.Offset, out result.Saturation);
+            return result;
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetDefaultLook_Native(out Vector3 slope, out Vector3 power, out Vector3 offset, out float saturation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetGoldenLook_Native(out Vector3 slope, out Vector3 power, out Vector3 offset, out float saturation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetPunchyLook_Native(out Vector3 slope, out Vector3 power, out Vector3 offset, out float saturation);
+    };
 
     public struct SkySettings
     {
@@ -376,11 +415,8 @@ namespace Eagle
 
         public static PhotoLinearTonemappingSettings GetPhotoLinearTonemappingSettings()
         {
-            GetPhotoLinearTonemappingSettings_Native(out float sensitivity, out float exposureTime, out float fstop);
             PhotoLinearTonemappingSettings settings = new PhotoLinearTonemappingSettings();
-            settings.Sensitivity = sensitivity;
-            settings.ExposureTime = exposureTime;
-            settings.FStop = fstop;
+            GetPhotoLinearTonemappingSettings_Native(out settings.Sensitivity, out settings.ExposureTime, out settings.FStop);
             return settings;
         }
 
@@ -391,9 +427,20 @@ namespace Eagle
 
         public static FilmicTonemappingSettings GetFilmicTonemappingSettings()
         {
-            GetFilmicTonemappingSettings_Native(out float whitePoint);
             FilmicTonemappingSettings settings = new FilmicTonemappingSettings();
-            settings.WhitePoint = whitePoint;
+            GetFilmicTonemappingSettings_Native(out settings.WhitePoint);
+            return settings;
+        }
+
+        public static void SetAgXTonemappingSettings(AgXTonemappingSettings value)
+        {
+            SetAgXTonemappingSettings_Native(ref value.Slope, ref value.Power, ref value.Offset, value.Saturation);
+        }
+
+        public static AgXTonemappingSettings GetAgXTonemappingSettings()
+        {
+            AgXTonemappingSettings settings = new AgXTonemappingSettings();
+            GetAgXTonemappingSettings_Native(out settings.Slope, out settings.Power, out settings.Offset, out settings.Saturation);
             return settings;
         }
 
@@ -721,6 +768,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void GetFilmicTonemappingSettings_Native(out float whitePoint);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetAgXTonemappingSettings_Native(ref Vector3 slope, ref Vector3 power, ref Vector3 offset, float saturation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetAgXTonemappingSettings_Native(out Vector3 slope, out Vector3 power, out Vector3 offset, out float saturation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern float GetGamma_Native();
