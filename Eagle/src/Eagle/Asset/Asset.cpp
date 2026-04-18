@@ -19,6 +19,8 @@
 #include "Eagle/Utils/SerializerUtils.h"
 #include "Eagle/Components/Components.h"
 
+#include "Eagle/Physics/PhysXCookingFactory.h"
+
 namespace Eagle
 {
 	namespace Utils
@@ -235,9 +237,6 @@ namespace Eagle
 
 		if (bReloadRawData)
 		{
-			asset->SetDirty(true);
-			asset->OnModified();
-
 			// Keep the materials
 			if (assetType == AssetType::StaticMesh)
 			{
@@ -248,6 +247,7 @@ namespace Eagle
 				{
 					reloadedMesh->GetMesh()->SetMaterialAsset(i, oldMesh->GetMesh()->GetMaterialAsset(i));
 				}
+				PhysXCookingFactory::DeleteCached(oldMesh);
 			}
 			else if (assetType == AssetType::SkeletalMesh)
 			{
@@ -258,7 +258,11 @@ namespace Eagle
 				{
 					reloadedMesh->GetMesh()->SetMaterialAsset(i, oldMesh->GetMesh()->GetMaterialAsset(i));
 				}
+				PhysXCookingFactory::DeleteCached(oldMesh);
 			}
+
+			asset->SetDirty(true);
+			asset->OnModified();
 		}
 
 		Asset& reloadedRaw = *reloaded.get();

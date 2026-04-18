@@ -20,6 +20,22 @@ namespace Eagle
 
 	static PhysXCookingData* s_CookingData = nullptr;
 
+	static std::string GetCacheFilename(const Ref<AssetBaseMesh>& mesh, bool bConvex, bool bFlip)
+	{
+		const GUID& assetID = mesh->GetGUID();
+		std::string filename = std::to_string(assetID.GetHigh()) + '_' + std::to_string(assetID.GetLow());
+		if (bConvex)
+			filename += "_convex.pxm";
+		else
+		{
+			if (bFlip)
+				filename += "_flipped";
+			filename += "_tri.pmx";
+		}
+
+		return filename;
+	}
+
 	template <typename AssetMeshType>
 	CookingResult CookConvexMesh(const Ref<AssetMeshType>& meshAsset, ScopedDataBuffer* outData)
 	{
@@ -157,17 +173,8 @@ namespace Eagle
 			return CookingResult::Failure;
 		}
 
-		std::string filename = Utils::AsString(collisionMesh->GetPath().stem());
-		if (bConvex)
-			filename += "_convex.pxm";
-		else
-		{
-			if (bFlip)
-				filename += "_flipped";
-			filename += "_tri.pmx";
-		}
-
-		const Path filepath = Project::GetCachePath() / "PhysX" / Utils::AsPath(filename);
+		const std::string filename = GetCacheFilename(collisionMesh, bConvex, bFlip);
+		const Path filepath = Project::GetCachePath() / "PhysX" / filename;
 
 		CookingResult result = CookingResult::Failure;
 		if (!std::filesystem::exists(filepath))
@@ -206,5 +213,18 @@ namespace Eagle
 		}
 
 		return result;
+	}
+	
+	void PhysXCookingFactory::DeleteCached(const Ref<AssetBaseMesh>& collisionMeshAsset)
+	{
+		const std::string convexName = GetCacheFilename(collisionMeshAsset, true, false);
+		const std::string triName = GetCacheFilename(collisionMeshAsset, false, false);
+		const std::string triFlippedName = GetCacheFilename(collisionMeshAsset, false, true);
+
+		const Path folder = Project::GetCachePath() / "PhysX";
+
+		std::filesystem::remove(folder / convexName);
+		std::filesystem::remove(folder / triName);
+		std::filesystem::remove(folder / triFlippedName);
 	}
 }

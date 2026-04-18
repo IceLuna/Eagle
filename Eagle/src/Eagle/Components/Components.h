@@ -1426,6 +1426,7 @@ namespace Eagle
 	{
 	public:
 		MeshColliderComponent(const Entity& entity) : BaseColliderComponent(entity) { OnInit(); }
+		~MeshColliderComponent();
 		MeshColliderComponent& operator=(const MeshColliderComponent& other);
 		MeshColliderComponent(const MeshColliderComponent&) = delete;
 		MeshColliderComponent(MeshColliderComponent&&) noexcept = default;

@@ -14,5 +14,8 @@ namespace Eagle
 		static void Shutdown();
 
 		static CookingResult CookMesh(const Ref<AssetBaseMesh>& collisionMeshAsset, bool bConvex, bool bFlipNormals, ScopedDataBuffer* outData);
+
+		// Deletes cached results for a given asset
+		static void DeleteCached(const Ref<AssetBaseMesh>& collisionMeshAsset);
 	};
 }
