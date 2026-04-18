@@ -34,14 +34,6 @@ float GeometryFunction(float NdotV, float NdotL, float roughness)
 	return ggx1 * ggx2;
 }
 
-float GeometryFunctionIBL(float NdotV, float NdotL, float roughness)
-{
-	float a2 = pow(roughness, 4.0);
-	float GGXV = NdotL * sqrt(NdotV * NdotV * (1.0 - a2) + a2);
-	float GGXL = NdotV * sqrt(NdotL * NdotL * (1.0 - a2) + a2);
-	return 0.5 / (GGXV + GGXL);
-}
-
 vec3 FresnelSchlick(vec3 F0, float cosTheta)
 {
 	return F0 + (1.f - F0) * pow(clamp(1.f - cosTheta, 0.f, 1.f), 5.f);
@@ -88,43 +80,6 @@ float RadicalInverse_VdC(uint bits)
 vec2 Hammersley(uint i, uint N)
 {
 	return vec2(float(i) / float(N), RadicalInverse_VdC(i));
-}
-
-vec2 IntegrateBRDF(float NdotV, float roughness)
-{
-	const vec3 V = vec3(sqrt(1.0 - NdotV * NdotV), 0.f, NdotV);
-
-	vec2 AB = vec2(0.f);
-
-	const vec3 N = vec3(0.0, 0.0, 1.0);
-
-	const uint SAMPLE_COUNT = 1024u;
-	const float ONE_OVER_SAMPLE_COUNT = 1.f / float(SAMPLE_COUNT);
-
-	for (uint i = 0u; i < SAMPLE_COUNT; ++i)
-	{
-		// generates a sample vector that's biased towards the
-		// preferred alignment direction (importance sampling).
-		const vec2 Xi = Hammersley(i, SAMPLE_COUNT);
-		const vec3 H = ImportanceSampleGGX(Xi, N, roughness);
-		
-		const float VdotH = clamp(dot(V, H), EG_FLT_SMALL, 1.0);
-		const vec3 L = normalize(2.0 * VdotH * H - V);
-		
-		const float NdotL = clamp(L.z, 0.0, 1.0);
-		if (NdotL > 0.0)
-		{
-			const float NdotH = clamp(H.z, EG_FLT_SMALL, 1.0);
-			const float G = GeometryFunctionIBL(NdotV, NdotL, roughness);
-			const float G_Vis = (G * VdotH * max(NdotL, EG_FLT_SMALL)) / NdotH;
-			const float Fc = pow(1.0 - VdotH, 5.0);
-			
-			AB += vec2((1.0 - Fc) * G_Vis, Fc * G_Vis);
-		}
-	}
-	AB *= ONE_OVER_SAMPLE_COUNT;
-
-	return 4.f * AB;
 }
 
 vec3 EvaluatePBR(vec3 lambert_albedo, vec3 incoming, vec3 V, vec3 N, vec3 F0, float metallness, float roughness, vec3 lightColor, float lightIntensity)
@@ -184,5 +139,30 @@ vec3 EvaluatePBR_TwoSided(vec3 lambert_albedo, vec3 incoming, vec3 V, vec3 N, ve
 	
 	return (kD * lambert_albedo + specular) * radiance * NdotL;
 }
+
+#ifdef PBR_EVALUATE_IBL
+// @viewDir. fragment to camera
+vec3 EvaluateIBL(vec3 albedo, vec3 F0, vec3 normal, vec3 viewDir, float roughness, float metalness, float maxReflectionLOD)
+{
+	const vec3 R = reflect(-viewDir, normal);
+	const float NdotV = clamp(dot(normal, viewDir), EG_FLT_SMALL, 1.0);
+
+	const vec3 Fr = max(vec3(1.f - roughness), F0) - F0;
+	const vec3 F = F0 + Fr * pow(1.f - NdotV, 5.f);
+	const vec3 kS = F;
+	const vec3 kD = (1.0 - kS) * (1.0 - metalness);
+
+	const vec3 prefilteredColor = textureLod(g_PrefilterMap, R, roughness * maxReflectionLOD).rgb;
+	const vec2 brdf = texture(g_BRDFLUT, vec2(NdotV, roughness)).rg;
+	const vec3 ambientDiffuse = kD * albedo * texture(g_IrradianceMap, normal).rgb;
+
+	const float E_o = brdf.x + brdf.y;
+	const vec3 envSpecBRDFss = F * brdf.x + brdf.y;
+	const vec3 multiScatterScale = F0 * (1.0 - E_o) / E_o + vec3(1.0); // Multiple Scattering (for ambient light)
+	const vec3 ambientSpecular = prefilteredColor * multiScatterScale * envSpecBRDFss;
+
+	return ambientDiffuse + ambientSpecular;
+}
+#endif
 
 #endif

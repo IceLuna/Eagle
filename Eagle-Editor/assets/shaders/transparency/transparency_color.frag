@@ -5,6 +5,7 @@
 #include "utils.h"
 #include "transparency/transparency_color_pipeline_layout.h"
 
+#define PBR_EVALUATE_IBL
 #include "pbr_utils.h"
 #define EG_OIT_NULL 0x0u // 0xFFFFFFFFu
 
@@ -308,27 +309,7 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
     vec3 ambient = (g_HasDirLight != 0) ? (albedo * g_DirectionalLight.Ambient) : vec3(0.f);
     if (s_HasIrradiance)
     {
-        const vec3 R = reflect(-V, shadingNormal);
-        const float NdotV = clamp(dot(shadingNormal, V), EG_FLT_SMALL, 1.0);
-
-        const vec3 Fr = max(vec3(1.f - roughness), F0) - F0;
-        const vec3 kS = F0 + Fr * pow(1.f - NdotV, 5.f);
-
-        const vec2 envBRDF = texture(g_BRDFLUT, vec2(NdotV, roughness)).rg;
-        const vec3 FssEss = kS * envBRDF.x + envBRDF.y;
-
-        // Multiple scattering, from Fdez-Aguera
-        const float Ems = (1.0 - (envBRDF.x + envBRDF.y));
-        const vec3 Favg = F0 + (1.0 - F0) / 21.0;
-        const vec3 FmsEms = Ems * FssEss * Favg / (1.0 - Favg * Ems);
-
-        const vec3 diffuseColor = albedo * (1.f - EG_BASE_REFLECTIVITY) * (1.f - metalness);
-        const vec3 kD = diffuseColor * (1.0 - FssEss - FmsEms);
-
-        const vec3 radiance = textureLod(g_PrefilterMap, R, roughness * g_MaxReflectionLOD).rgb;
-        const vec3 irradiance = texture(g_IrradianceMap, shadingNormal).rgb;
-        const vec3 color = FssEss * radiance + (FmsEms + kD) * irradiance;
-        ambient += color * ao * g_IBLIntensity;
+        ambient += EvaluateIBL(albedo, F0, shadingNormal, V, roughness, metalness, g_MaxReflectionLOD) * ao * g_IBLIntensity;
     }
 
     const vec3 emissive = material.Emissive;
