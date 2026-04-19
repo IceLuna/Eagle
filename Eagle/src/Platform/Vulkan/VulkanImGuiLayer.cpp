@@ -14,7 +14,6 @@
 #include <backends/imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 #include <ImGuizmo.h>
-#include <implot.h>
 
 struct ImDrawDataSnapshotEntry
 {
@@ -86,72 +85,23 @@ inline void ImDrawDataSnapshot::SnapUsingSwap(ImDrawData* src, uint32_t frameInd
 namespace Eagle
 {
 	static constexpr uint32_t s_AdditionalPools = 1;
-	static uint32_t s_FrameIndex = 0;
 	static ImDrawDataSnapshot s_Snapshots[RendererConfig::FramesInFlight] = {};
+
+	void VulkanImGuiLayer::UploadFonts()
+	{
+		// We can't release ImGui VK data while it's used
+		RenderManager::Wait();
+
+		ImGui_ImplVulkan_DestroyFontsTexture();
+		Ref<CommandBuffer> commandBuffer = RenderManager::AllocateCommandBuffer(true);
+		ImGui_ImplVulkan_CreateFontsTexture((VkCommandBuffer)commandBuffer->GetHandle());
+		commandBuffer->End();
+		RenderManager::SubmitCommandBuffer(commandBuffer, true);
+		ImGui_ImplVulkan_DestroyFontUploadObjects();
+	}
 
 	void VulkanImGuiLayer::OnAttach()
 	{
-		IMGUI_CHECKVERSION();
-		ImGui::CreateContext();
-		ImPlot::CreateContext();
-
-		ImGuiIO& io = ImGui::GetIO();
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  //Enagle Keyboard controls 
-		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; //Enable Gamepad controls
-		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;	   //Enable Docking
-		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;	   //Enable Multi-Viewport
-		io.ConfigWindowsMoveFromTitleBarOnly = true;
-		io.ConfigDebugHighlightIdConflicts = false;
-		io.ConfigDebugHighlightIdConflictsShowItemPicker = false;
-
-		m_IniPath = Utils::AsString(Application::GetCorePath() / "imgui.ini");
-		const Path boldFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Bold.ttf";
-		const Path regularFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Regular.ttf";
-
-		io.IniFilename = m_IniPath.c_str();
-		if (std::filesystem::exists(boldFont))
-		{
-			io.Fonts->AddFontFromFileTTF(Utils::AsString(boldFont).c_str(), 32.f * Window::s_HighDPIScaleFactor, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
-			io.Fonts->Fonts[0]->Scale = 0.5f;
-		}
-		if (std::filesystem::exists(regularFont))
-		{
-			io.FontDefault = io.Fonts->AddFontFromFileTTF(Utils::AsString(regularFont).c_str(), 32.f * Window::s_HighDPIScaleFactor, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
-			io.FontDefault->Scale = 0.5f;
-		}
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		style.ScaleAllSizes(Window::s_HighDPIScaleFactor);
-		style.TabRounding = 8.f;
-		style.FrameRounding = 8.f;
-		style.GrabRounding = 8.f;
-		style.WindowRounding = 8.f;
-		style.PopupRounding = 8.f;
-
-		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-		{
-			//style.WindowRounding = 0.f;
-			style.Colors[ImGuiCol_WindowBg].w = 1.f;
-		}
-
-		SetDarkThemeColors();
-
-		// ImGuizmo style
-		{
-			ImGuizmo::Style& style = ImGuizmo::GetStyle();
-			style.RotationLineThickness = 6.f;
-			style.RotationOuterLineThickness = 6.f;
-			style.TranslationLineArrowSize = 12.f;
-			style.Colors[ImGuizmo::DIRECTION_X] = ImGui::ColorConvertU32ToFloat4(0xFF715ED8);
-			style.Colors[ImGuizmo::DIRECTION_Y] = ImGui::ColorConvertU32ToFloat4(0xFF25AA25);
-			style.Colors[ImGuizmo::DIRECTION_Z] = ImGui::ColorConvertU32ToFloat4(0xFFCC532C);
-			style.Colors[ImGuizmo::PLANE_X] = ImGui::ColorConvertU32ToFloat4(0xFF7A68D8);
-			style.Colors[ImGuizmo::PLANE_Y] = ImGui::ColorConvertU32ToFloat4(0xFF55AB55);
-			style.Colors[ImGuizmo::PLANE_Z] = ImGui::ColorConvertU32ToFloat4(0xFFD96742);
-			style.Colors[ImGuizmo::SELECTION] = ImGui::ColorConvertU32ToFloat4(0xFF20AACC);
-			ImGuizmo::SetGizmoSizeClipSpace(0.15f);
-		}
-
 		Application& app = Application::Get();
 		GLFWwindow* window = app.GetWindow().GetGLFWWindow();
 
@@ -208,15 +158,7 @@ namespace Eagle
 		initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 		ImGui_ImplVulkan_Init(&initInfo, (VkRenderPass)RenderManager::GetPresentRenderPassHandle());
 
-		// Upload Fonts
-		{
-			// Use any command queue
-			Ref<CommandBuffer> commandBuffer = RenderManager::AllocateCommandBuffer(true);
-			ImGui_ImplVulkan_CreateFontsTexture((VkCommandBuffer)commandBuffer->GetHandle());
-			commandBuffer->End();
-			RenderManager::SubmitCommandBuffer(commandBuffer, true);
-			ImGui_ImplVulkan_DestroyFontUploadObjects();
-		}
+		UploadFonts();
 	}
 	
 	void VulkanImGuiLayer::OnDetach()
@@ -230,8 +172,6 @@ namespace Eagle
 		VK_CHECK(vkDeviceWaitIdle(device));
 		ImGui_ImplVulkan_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
-		ImPlot::DestroyContext();
-		ImGui::DestroyContext();
 
 		vkDestroyDescriptorPool(device, pool, nullptr);
 		for (auto& pool : m_Pools)
@@ -240,12 +180,12 @@ namespace Eagle
 	
 	void VulkanImGuiLayer::BeginFrame()
 	{
-		ImGui_ImplVulkan_NewFrame((VkDescriptorPool)m_Pools[s_FrameIndex]);
+		ImGui_ImplVulkan_NewFrame((VkDescriptorPool)m_Pools[m_FrameIndex]);
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 		ImGuizmo::BeginFrame();
 
-		s_FrameIndex = (s_FrameIndex + 1) % (RendererConfig::FramesInFlight + s_AdditionalPools);
+		m_FrameIndex = (m_FrameIndex + 1) % (RendererConfig::FramesInFlight + s_AdditionalPools);
 	}
 	
 	void VulkanImGuiLayer::EndFrame()

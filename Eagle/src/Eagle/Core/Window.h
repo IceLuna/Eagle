@@ -60,14 +60,13 @@ namespace Eagle
 		const std::string& GetWindowTitle() const { return m_Props.Title; }
 		virtual Ref<VulkanSwapchain>& GetSwapchain() = 0;
 		bool IsFullscreen() const { return m_Props.Fullscreen; }
+		float GetDPIScale() const { return m_DPIScale; }
 
 		static Ref<Window> Create(const WindowProperties& props);
-
-	public:
-		static float s_HighDPIScaleFactor;
 
 	protected:
 		WindowProperties m_Props;
 		GLFWwindow* m_Window;
+		float m_DPIScale = 1.f;
 	};
 }

@@ -24,13 +24,14 @@ namespace Eagle
 
 	public:
 		ImGuiLayer(const std::string& name = "ImGuiLayer");
-		virtual ~ImGuiLayer() = default;
+		virtual ~ImGuiLayer();
 
 		virtual void BeginFrame() = 0;
 		virtual void EndFrame() = 0;
 		virtual void UpdatePlatform() = 0;
 		void OnImGuiRender() override;
 		void OnUpdate(Timestep ts) override;
+		void OnEvent(Event& e) override;
 
 		void AddMessage(const std::string& message);
 
@@ -42,10 +43,16 @@ namespace Eagle
 		static void SelectStyle(Style style);
 		static glm::vec2 GetMousePos();
 
+		void RebuildFonts();
+
 	protected:
 		virtual void Render(const Ref<CommandBuffer>& cmd) = 0;
+		virtual void UploadFonts() {}
 
 		friend class RenderManager;
+
+	protected:
+		std::string m_IniPath;
 
 	private:
 		std::vector<std::string> m_PopupMessages;

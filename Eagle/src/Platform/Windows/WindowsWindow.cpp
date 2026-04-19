@@ -19,7 +19,6 @@
 namespace Eagle
 {
 	static bool s_GLFWInitialized = false;
-	float Window::s_HighDPIScaleFactor = 1.0f;
 
 	static void GLFWErrorCallback(int error, const char* description)
 	{
@@ -30,6 +29,7 @@ namespace Eagle
 	{
 		EG_CORE_INFO("Creating window {0}", m_Props.Title);
 		m_WindowData.Props = &m_Props;
+		m_WindowData.DPIScale = &m_DPIScale;
 
 #ifdef EG_RELEASE
 		::ShowWindow(::GetConsoleWindow(), SW_HIDE);
@@ -40,6 +40,7 @@ namespace Eagle
 
 		if (!s_GLFWInitialized)
 		{
+			SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 			int success = glfwInit();
 			EG_CORE_ASSERT(success, "Could not initialize GLFW!");
 #ifndef EG_RELEASE
@@ -57,7 +58,7 @@ namespace Eagle
 
 		if (xscale > 1.0f || yscale > 1.0f)
 		{
-			s_HighDPIScaleFactor = yscale;
+			m_DPIScale = glm::max(xscale, yscale);
 			glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
 		}
 
@@ -289,6 +290,16 @@ namespace Eagle
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
 			MouseMovedEvent event((float)xPos, (float)yPos);
+			data.EventCallback(event);
+		});
+
+		glfwSetWindowContentScaleCallback(m_Window, [](GLFWwindow* window, float xscale, float yscale)
+		{
+			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+
+			*data.DPIScale = glm::max(xscale, yscale);
+
+			WindowContentScaleEvent event(xscale, yscale);
 			data.EventCallback(event);
 		});
 	}

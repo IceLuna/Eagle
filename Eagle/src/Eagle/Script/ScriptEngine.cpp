@@ -509,10 +509,17 @@ namespace Eagle
 		{
 			MonoMethodDesc* desc = mono_method_desc_new(fullName.c_str(), true);
 			MonoMethod* constructor = mono_method_desc_search_in_class(desc, monoClass);
-			MonoObject* exception = nullptr;
-			mono_runtime_invoke(constructor, obj, parameters, &exception);
-			HandleException(exception);
-			mono_method_desc_free(desc);
+			if (constructor)
+			{
+				MonoObject* exception = nullptr;
+				mono_runtime_invoke(constructor, obj, parameters, &exception);
+				HandleException(exception);
+				mono_method_desc_free(desc);
+			}
+			else
+			{
+				EG_CORE_ERROR("Failed to call the constructor when creating a C# object: {}", fullName);
+			}
 		}
 
 		return obj;
@@ -583,6 +590,13 @@ namespace Eagle
 			function(entityInstance->GetMonoInstance(), eventObj, &exception);
 			HandleException(exception);
 		}
+	}
+
+	void ScriptEngine::OnEventEntity(const Entity& entity, Event& event)
+	{
+		std::array params = event.GetData();
+		void* eventObject = ScriptEngine::Construct(event.GetCSharpCtor(), true, params.data());
+		OnEventEntity(entity, eventObject);
 	}
 
 	void ScriptEngine::OnAnimationEventEntity(const Entity& entity, const std::string& eventName, float time)

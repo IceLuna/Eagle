@@ -16,7 +16,7 @@ namespace Eagle
 	enum class EventType
 	{
 		None = 0,
-		WindowClose, WindowResize, WindowFocused,
+		WindowClose, WindowResize, WindowFocused, WindowContentScale,
 		KeyPressed, KeyReleased, KeyTyped,
 		MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled
 	};

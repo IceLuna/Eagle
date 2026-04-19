@@ -39,6 +39,13 @@ namespace Eagle::UI
 
 	const Ref<Eagle::Image> GetAssetPreview(const Ref<Asset>& asset);
 
+	// Fonts
+	void LoadFonts();
+	void PushFontRegular();
+	void PushFontHeader();
+	void PushFontBold();
+	void PopFont();
+
 	// @bReturnOnEnter. If set to true, the function won't return true while the values is being changed. True will be returned after a user stops editing the value
 	bool DrawVec3Control(const std::string_view label, glm::vec3& values, const glm::vec3& resetValues = glm::vec3{ 0.f }, float columnWidth = 100.f, bool bReturnOnEnter = false);
 	bool DrawQuatControl(const std::string_view label, glm::quat& values, const glm::quat& resetValues = glm::quat(1.f, 0.f, 0.f, 0.f), float columnWidth = 100.f, bool bReturnOnEnter = false);
