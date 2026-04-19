@@ -92,7 +92,7 @@ namespace Eagle::Script::Utils
 		GUID albedoTexture, GUID metalnessTexture, GUID normalTexture, GUID roughnessTexture, GUID aoTexture, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
 		const glm::vec3* albedo, float metalness, float roughness, float ao, const glm::vec3* emissive, float opacity, float opacityMask,
 		bool bUseAlbedoTexture, bool bUseMetalnessTexture, bool bUseRoughnessTexture, bool bUseAOTexture, bool bUseEmissiveTexture, bool bUseOpacityTexture, bool bUseOpacityMaskTexture,
-		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode,
+		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode, bool bDoubleSided,
 		Material::TextureChannel metalnessTextureChannel, Material::TextureChannel roughnessTextureChannel, Material::TextureChannel aoTextureChannel,
 		Material::TextureChannel opacityTextureChannel, Material::TextureChannel opacityMaskTextureChannel)
 	{
@@ -137,13 +137,14 @@ namespace Eagle::Script::Utils
 		material->SetEmissiveIntensity(*emissiveIntensity);
 		material->SetTilingFactor(tilingFactor);
 		material->SetBlendMode(blendMode);
+		material->SetDoubleSided(bDoubleSided);
 	}
 
 	static void GetMaterial(const Ref<Material>& material,
 		GUID* outAlbedoTexture, GUID* outMetalnessTexture, GUID* outNormalTexture, GUID* outRoughnessTexture, GUID* outAOTexture, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
 		glm::vec3* albedo, float* metalness, float* roughness, float* ao, glm::vec3* emissive, float* opacity, float* opacityMask,
 		bool* bUseAlbedoTexture, bool* bUseMetalnessTexture, bool* bUseRoughnessTexture, bool* bUseAOTexture, bool* bUseEmissiveTexture, bool* bUseOpacityTexture, bool* bUseOpacityMaskTexture,
-		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode,
+		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode, bool* bDoubleSided,
 		Material::TextureChannel* outMetalnessTextureChannel, Material::TextureChannel* outRoughnessTextureChannel, Material::TextureChannel* outAOTextureChannel,
 		Material::TextureChannel* outOpacityTextureChannel, Material::TextureChannel* outOpacityMaskTextureChannel)
 	{
@@ -222,6 +223,7 @@ namespace Eagle::Script::Utils
 		*outEmissiveIntensity = material->GetEmissiveIntensity();
 		*outTilingFactor = material->GetTilingFactor();
 		*outBlendMode = material->GetBlendMode();
+		*bDoubleSided = material->IsDoubleSided();
 	}
 }
 
@@ -238,7 +240,7 @@ namespace Eagle
 			return nullptr;
 		}
 
-		if (Entity& parent = entity.GetParent())
+		if (Entity parent = entity.GetParent())
 			return ScriptEngine::GetEntityMonoObject(parent);
 
 		return nullptr;
@@ -1289,7 +1291,7 @@ namespace Eagle
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			*outAmbient = entity.GetComponent<DirectionalLightComponent>().Ambient;
+			*outAmbient = entity.GetComponent<DirectionalLightComponent>().GetAmbientColor();
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get 'Ambient' of DirectionalLight Component. Entity is null");
@@ -1301,7 +1303,7 @@ namespace Eagle
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<DirectionalLightComponent>().Ambient = *inAmbient;
+			entity.GetComponent<DirectionalLightComponent>().SetAmbientColor(*inAmbient);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'Ambient' of DirectionalLight Component. Entity is null");
 	}
@@ -5303,6 +5305,29 @@ namespace Eagle
 		}
 	}
 
+	void Script::Eagle_TextComponent_SetDoubleSided(GUID entityID, bool value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetDoubleSided(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetDoubleSided` of Text Component. Entity is null");
+	}
+
+	bool Script::Eagle_TextComponent_IsDoubleSided(GUID entityID)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<TextComponent>().IsDoubleSided();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsDoubleSided` of Text Component. Entity is null");
+			return false;
+		}
+	}
+
 	void Script::Eagle_TextComponent_SetReceivesDecals(GUID entityID, bool value)
 	{
 		auto& scene = Scene::GetCurrentScene();
@@ -5969,7 +5994,7 @@ namespace Eagle
 	void Script::Eagle_SpriteComponent_GetAtlasSpriteCoords(GUID entityID, glm::vec2* outValue)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get atlas sprite coords. Entity is null");
@@ -5982,7 +6007,7 @@ namespace Eagle
 	void Script::Eagle_SpriteComponent_SetAtlasSpriteCoords(GUID entityID, const glm::vec2* value)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set atlas sprite coords. Entity is null");
@@ -5995,7 +6020,7 @@ namespace Eagle
 	void Script::Eagle_SpriteComponent_GetAtlasSpriteSize(GUID entityID, glm::vec2* outValue)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get atlas sprite size. Entity is null");
@@ -6008,7 +6033,7 @@ namespace Eagle
 	void Script::Eagle_SpriteComponent_SetAtlasSpriteSize(GUID entityID, const glm::vec2* value)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set atlas sprite size. Entity is null");
@@ -6021,7 +6046,7 @@ namespace Eagle
 	void Script::Eagle_SpriteComponent_GetAtlasSpriteSizeCoef(GUID entityID, glm::vec2* outValue)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get atlas sprite size coef. Entity is null");
@@ -6034,7 +6059,7 @@ namespace Eagle
 	void Script::Eagle_SpriteComponent_SetAtlasSpriteSizeCoef(GUID entityID, const glm::vec2* value)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set atlas sprite size coef. Entity is null");
@@ -6047,7 +6072,7 @@ namespace Eagle
 	bool Script::Eagle_SpriteComponent_GetIsAtlas(GUID entityID)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetIsAtlas`. Entity is null");
@@ -6060,7 +6085,7 @@ namespace Eagle
 	void Script::Eagle_SpriteComponent_SetIsAtlas(GUID entityID, bool value)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetIsAtlas`. Entity is null");
@@ -6917,6 +6942,29 @@ namespace Eagle
 		*outWhitePoint = options.FilmicTonemappingParams.WhitePoint;
 	}
 
+	void Script::Eagle_Renderer_SetAgXTonemappingSettings(const glm::vec3& slope, const glm::vec3& power, const glm::vec3& offset, float saturation)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.AgXTonemappingParams.Slope = slope;
+		options.AgXTonemappingParams.Power = power;
+		options.AgXTonemappingParams.Offset = offset;
+		options.AgXTonemappingParams.Saturation = saturation;
+
+		sceneRenderer->SetOptions(options);
+	}
+
+	void Script::Eagle_Renderer_GetAgXTonemappingSettings(glm::vec3* slope, glm::vec3* power, glm::vec3* offset, float* saturation)
+	{
+		const auto& options = Scene::GetCurrentScene()->GetSceneRenderer()->GetOptions();
+		*slope = options.AgXTonemappingParams.Slope;
+		*power = options.AgXTonemappingParams.Power;
+		*offset = options.AgXTonemappingParams.Offset;
+		*saturation = options.AgXTonemappingParams.Saturation;
+	}
+
 	float Script::Eagle_Renderer_GetGamma()
 	{
 		const auto& scene = Scene::GetCurrentScene();
@@ -7396,23 +7444,23 @@ namespace Eagle
 		sceneRenderer->SetOptions(settings);
 	}
 
-	void Script::Eagle_Renderer_SetStutterlessShaders(bool value)
+	void Script::Eagle_Renderer_SetDepthPrepassEnabled(bool value)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		auto& sceneRenderer = scene->GetSceneRenderer();
 		auto options = sceneRenderer->GetOptions();
 
-		options.bStutterlessShaders = value;
+		options.bDepthPrepass = value;
 		sceneRenderer->SetOptions(options);
 	}
 
-	bool Script::Eagle_Renderer_GetStutterlessShaders()
+	bool Script::Eagle_Renderer_GetDepthPrepassEnabled()
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		const auto& sceneRenderer = scene->GetSceneRenderer();
 		const auto& options = sceneRenderer->GetOptions();
 
-		return options.bStutterlessShaders;
+		return options.bDepthPrepass;
 	}
 
 	void Script::Eagle_Renderer_SetTranslucentShadowsEnabled(bool value)
@@ -7519,9 +7567,44 @@ namespace Eagle
 		Scene::GetCurrentScene()->DrawAABB(*aabb, *transform);
 	}
 
+	void Script::Eagle_Renderer_DrawBox(const AABB* aabb, const Transform* transform)
+	{
+		Scene::GetCurrentScene()->DrawBox(*aabb, *transform);
+	}
+
 	void Script::Eagle_Renderer_DrawCone(const glm::vec3* location, const glm::quat* rotation, float distance, float angleRad)
 	{
 		Scene::GetCurrentScene()->DrawCone(*location, *rotation, distance, angleRad);
+	}
+
+	void Script::Eagle_AgXTonemapping_GetDefaultLook(glm::vec3* slope, glm::vec3* power, glm::vec3* offset, float* saturation)
+	{
+		AgXTonemappingSettings agx = AgXTonemappingSettings::GetDefaultLook();
+
+		*slope = agx.Slope;
+		*power = agx.Power;
+		*offset = agx.Offset;
+		*saturation = agx.Saturation;
+	}
+
+	void Script::Eagle_AgXTonemapping_GetGoldenLook(glm::vec3* slope, glm::vec3* power, glm::vec3* offset, float* saturation)
+	{
+		AgXTonemappingSettings agx = AgXTonemappingSettings::GetGoldenLook();
+
+		*slope = agx.Slope;
+		*power = agx.Power;
+		*offset = agx.Offset;
+		*saturation = agx.Saturation;
+	}
+
+	void Script::Eagle_AgXTonemapping_GetPunchyLook(glm::vec3* slope, glm::vec3* power, glm::vec3* offset, float* saturation)
+	{
+		AgXTonemappingSettings agx = AgXTonemappingSettings::GetPunchyLook();
+
+		*slope = agx.Slope;
+		*power = agx.Power;
+		*offset = agx.Offset;
+		*saturation = agx.Saturation;
 	}
 	
 	void Script::Eagle_Renderer_SetObjectPickingEnabled(bool value)
@@ -7583,37 +7666,37 @@ namespace Eagle
 	//-------------- Project --------------
 	MonoString* Script::Eagle_Project_GetProjectPath()
 	{
-		return mono_string_new(mono_domain_get(), Project::GetProjectPath().u8string().c_str());
+		return mono_string_new(mono_domain_get(), Eagle::Utils::AsString(Project::GetProjectPath()).c_str());
 	}
 
 	MonoString* Script::Eagle_Project_GetBinariesPath()
 	{
-		return mono_string_new(mono_domain_get(), Project::GetBinariesPath().u8string().c_str());
+		return mono_string_new(mono_domain_get(), Eagle::Utils::AsString(Project::GetBinariesPath()).c_str());
 	}
 
 	MonoString* Script::Eagle_Project_GetConfigPath()
 	{
-		return mono_string_new(mono_domain_get(), Project::GetConfigPath().u8string().c_str());
+		return mono_string_new(mono_domain_get(), Eagle::Utils::AsString(Project::GetConfigPath()).c_str());
 	}
 
 	MonoString* Script::Eagle_Project_GetContentPath()
 	{
-		return mono_string_new(mono_domain_get(), Project::GetContentPath().u8string().c_str());
+		return mono_string_new(mono_domain_get(), Eagle::Utils::AsString(Project::GetContentPath()).c_str());
 	}
 
 	MonoString* Script::Eagle_Project_GetCachePath()
 	{
-		return mono_string_new(mono_domain_get(), Project::GetCachePath().u8string().c_str());
+		return mono_string_new(mono_domain_get(), Eagle::Utils::AsString(Project::GetCachePath()).c_str());
 	}
 
 	MonoString* Script::Eagle_Project_GetRendererCachePath()
 	{
-		return mono_string_new(mono_domain_get(), Project::GetRendererCachePath().u8string().c_str());
+		return mono_string_new(mono_domain_get(), Eagle::Utils::AsString(Project::GetRendererCachePath()).c_str());
 	}
 
 	MonoString* Script::Eagle_Project_GetSavedPath()
 	{
-		return mono_string_new(mono_domain_get(), Project::GetSavedPath().u8string().c_str());
+		return mono_string_new(mono_domain_get(), Eagle::Utils::AsString(Project::GetSavedPath()).c_str());
 	}
 
 	//-------------- Scene --------------
@@ -8059,7 +8142,7 @@ namespace Eagle
 			return nullptr;
 		}
 
-		return mono_string_new(mono_domain_get(), asset->GetPath().u8string().c_str());
+		return mono_string_new(mono_domain_get(), Eagle::Utils::AsString(asset->GetPath()).c_str());
 	}
 
 	AssetType Script::Eagle_Asset_GetAssetType(GUID guid)
@@ -8500,7 +8583,7 @@ namespace Eagle
 		GUID* outAlbedoTexture, GUID* outMetalnessTexture, GUID* outNormalTexture, GUID* outRoughnessTexture, GUID* outAOTexture, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
 		glm::vec3* albedo, float* metalness, float* roughness, float* ao, glm::vec3* emissive, float* opacity, float* opacityMask,
 		bool* bUseAlbedoTexture, bool* bUseMetalnessTexture, bool* bUseRoughnessTexture, bool* bUseAOTexture, bool* bUseEmissiveTexture, bool* bUseOpacityTexture, bool* bUseOpacityMaskTexture,
-		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode,
+		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode, bool* bDoubleSided,
 		Material::TextureChannel* outMetalnessTextureChannel, Material::TextureChannel* outRoughnessTextureChannel, Material::TextureChannel* outAOTextureChannel,
 		Material::TextureChannel* outOpacityTextureChannel, Material::TextureChannel* outOpacityMaskTextureChannel)
 	{
@@ -8518,7 +8601,7 @@ namespace Eagle
 				outAlbedoTexture, outMetalnessTexture, outNormalTexture, outRoughnessTexture, outAOTexture, outEmissiveTexture, outOpacityTexture, outOpacityMaskTexture,
 				albedo, metalness, roughness, ao, emissive, opacity, opacityMask,
 				bUseAlbedoTexture, bUseMetalnessTexture, bUseRoughnessTexture, bUseAOTexture, bUseEmissiveTexture, bUseOpacityTexture, bUseOpacityMaskTexture,
-				outTint, outEmissiveIntensity, outTilingFactor, outBlendMode, outMetalnessTextureChannel, outRoughnessTextureChannel, outAOTextureChannel, outOpacityTextureChannel, outOpacityMaskTextureChannel);
+				outTint, outEmissiveIntensity, outTilingFactor, outBlendMode, bDoubleSided, outMetalnessTextureChannel, outRoughnessTextureChannel, outAOTextureChannel, outOpacityTextureChannel, outOpacityMaskTextureChannel);
 		}
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get material. It's not a material asset");
@@ -8528,7 +8611,7 @@ namespace Eagle
 		GUID albedoTexture, GUID metalnessTexture, GUID normalTexture, GUID roughnessTexture, GUID aoTexture, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
 		const glm::vec3* albedo, float metalness, float roughness, float ao, const glm::vec3* emissive, float opacity, float opacityMask,
 		bool bUseAlbedoTexture, bool bUseMetalnessTexture, bool bUseRoughnessTexture, bool bUseAOTexture, bool bUseEmissiveTexture, bool bUseOpacityTexture, bool bUseOpacityMaskTexture,
-		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode,
+		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode, bool bDoubleSided,
 		Material::TextureChannel metalnessTextureChannel, Material::TextureChannel roughnessTextureChannel, Material::TextureChannel aoTextureChannel,
 		Material::TextureChannel opacityTextureChannel, Material::TextureChannel opacityMaskTextureChannel)
 	{
@@ -8546,7 +8629,7 @@ namespace Eagle
 				albedoTexture, metalnessTexture, normalTexture, roughnessTexture, aoTexture, emissiveTexture, opacityTexture, opacityMaskTexture,
 				albedo, metalness, roughness, ao, emissive, opacity, opacityMask,
 				bUseAlbedoTexture, bUseMetalnessTexture, bUseRoughnessTexture, bUseAOTexture, bUseEmissiveTexture, bUseOpacityTexture, bUseOpacityMaskTexture,
-				tint, emissiveIntensity, tilingFactor, blendMode, metalnessTextureChannel, roughnessTextureChannel, aoTextureChannel, opacityTextureChannel, opacityMaskTextureChannel);
+				tint, emissiveIntensity, tilingFactor, blendMode, bDoubleSided, metalnessTextureChannel, roughnessTextureChannel, aoTextureChannel, opacityTextureChannel, opacityMaskTextureChannel);
 		}
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set material. It's not a material asset");

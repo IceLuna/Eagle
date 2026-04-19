@@ -41,7 +41,8 @@ namespace Eagle
         Reinhard,
         Filmic,
         ACES,
-        PhotoLinear
+        PhotoLinear,
+        AgX,
     }
 
     public enum AAMethod
@@ -68,6 +69,44 @@ namespace Eagle
     {
         public float WhitePoint;
     }
+
+    public struct AgXTonemappingSettings
+    {
+        public Vector3 Slope;
+        public Vector3 Power;
+        public Vector3 Offset;
+        public float Saturation;
+
+        public static AgXTonemappingSettings GetDefaultLook()
+        {
+            AgXTonemappingSettings result = new AgXTonemappingSettings();
+            GetDefaultLook_Native(out result.Slope, out result.Power, out result.Offset, out result.Saturation);
+            return result;
+        }
+
+        public static AgXTonemappingSettings GetGoldenLook()
+        {
+            AgXTonemappingSettings result = new AgXTonemappingSettings();
+            GetGoldenLook_Native(out result.Slope, out result.Power, out result.Offset, out result.Saturation);
+            return result;
+        }
+
+        public static AgXTonemappingSettings GetPunchyLook()
+        {
+            AgXTonemappingSettings result = new AgXTonemappingSettings();
+            GetPunchyLook_Native(out result.Slope, out result.Power, out result.Offset, out result.Saturation);
+            return result;
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetDefaultLook_Native(out Vector3 slope, out Vector3 power, out Vector3 offset, out float saturation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetGoldenLook_Native(out Vector3 slope, out Vector3 power, out Vector3 offset, out float saturation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetPunchyLook_Native(out Vector3 slope, out Vector3 power, out Vector3 offset, out float saturation);
+    };
 
     public struct SkySettings
     {
@@ -292,6 +331,11 @@ namespace Eagle
             DrawAABB_Native(ref aabb, ref worldTransform);
         }
 
+        public static void DrawBox(AABB aabb, Transform worldTransform)
+        {
+            DrawBox_Native(ref aabb, ref worldTransform);
+        }
+
         public static void DrawCone(Vector3 location, Rotator rotation, float distance, float angleRad)
         {
             DrawCone_Native(ref location, ref rotation.Rotation, distance, angleRad);
@@ -371,11 +415,8 @@ namespace Eagle
 
         public static PhotoLinearTonemappingSettings GetPhotoLinearTonemappingSettings()
         {
-            GetPhotoLinearTonemappingSettings_Native(out float sensitivity, out float exposureTime, out float fstop);
             PhotoLinearTonemappingSettings settings = new PhotoLinearTonemappingSettings();
-            settings.Sensitivity = sensitivity;
-            settings.ExposureTime = exposureTime;
-            settings.FStop = fstop;
+            GetPhotoLinearTonemappingSettings_Native(out settings.Sensitivity, out settings.ExposureTime, out settings.FStop);
             return settings;
         }
 
@@ -386,9 +427,20 @@ namespace Eagle
 
         public static FilmicTonemappingSettings GetFilmicTonemappingSettings()
         {
-            GetFilmicTonemappingSettings_Native(out float whitePoint);
             FilmicTonemappingSettings settings = new FilmicTonemappingSettings();
-            settings.WhitePoint = whitePoint;
+            GetFilmicTonemappingSettings_Native(out settings.WhitePoint);
+            return settings;
+        }
+
+        public static void SetAgXTonemappingSettings(AgXTonemappingSettings value)
+        {
+            SetAgXTonemappingSettings_Native(ref value.Slope, ref value.Power, ref value.Offset, value.Saturation);
+        }
+
+        public static AgXTonemappingSettings GetAgXTonemappingSettings()
+        {
+            AgXTonemappingSettings settings = new AgXTonemappingSettings();
+            GetAgXTonemappingSettings_Native(out settings.Slope, out settings.Power, out settings.Offset, out settings.Saturation);
             return settings;
         }
 
@@ -608,6 +660,12 @@ namespace Eagle
             get { return GetSoftShadowsEnabled_Native(); }
         }
 
+        public static bool bDepthPrepass
+        {
+            set { SetDepthPrepassEnabled_Native(value); }
+            get { return GetDepthPrepassEnabled_Native(); }
+        }
+
         public static bool bTranslucentShadows
         {
             set { SetTranslucentShadowsEnabled_Native(value); }
@@ -624,12 +682,6 @@ namespace Eagle
         {
             set { SetVisualizeCascades_Native(value); }
             get { return GetVisualizeCascades_Native(); }
-        }
-
-        public static bool bStutterlessShaders
-        {
-            set { SetStutterlessShaders_Native(value); }
-            get { return GetStutterlessShaders_Native(); }
         }
 
         public static bool bEnableObjectPicking
@@ -676,6 +728,9 @@ namespace Eagle
         private static extern void DrawAABB_Native(ref AABB aabb, ref Transform worldTransform);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void DrawBox_Native(ref AABB aabb, ref Transform worldTransform);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void DrawCone_Native(ref Vector3 location, ref Quat rotation, float distance, float angleRad);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -713,6 +768,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void GetFilmicTonemappingSettings_Native(out float whitePoint);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetAgXTonemappingSettings_Native(ref Vector3 slope, ref Vector3 power, ref Vector3 offset, float saturation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetAgXTonemappingSettings_Native(out Vector3 slope, out Vector3 power, out Vector3 offset, out float saturation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern float GetGamma_Native();
@@ -763,6 +824,12 @@ namespace Eagle
         private static extern bool GetSoftShadowsEnabled_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetDepthPrepassEnabled_Native(bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern bool GetDepthPrepassEnabled_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetTranslucentShadowsEnabled_Native(bool value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -797,12 +864,6 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern bool GetVisualizeCascades_Native();
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetStutterlessShaders_Native(bool value);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern bool GetStutterlessShaders_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetObjectPickingEnabled_Native(bool value);

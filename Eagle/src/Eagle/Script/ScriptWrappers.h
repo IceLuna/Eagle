@@ -418,6 +418,8 @@ namespace Eagle::Script
 	bool Eagle_TextComponent_DoesReceiveDecals(GUID entityID);
 	void Eagle_TextComponent_SetVisible(GUID entityID, bool value);
 	bool Eagle_TextComponent_IsVisible(GUID entityID);
+	void Eagle_TextComponent_SetDoubleSided(GUID entityID, bool value);
+	bool Eagle_TextComponent_IsDoubleSided(GUID entityID);
 
 	// Text2D Component
 	MonoString* Eagle_Text2DComponent_GetText(GUID entityID);
@@ -538,6 +540,8 @@ namespace Eagle::Script
 	void Eagle_Renderer_GetPhotoLinearTonemappingSettings(float* outSensitivity, float* outExposureTime, float* outfStop);
 	void Eagle_Renderer_SetFilmicTonemappingSettings(float whitePoint);
 	void Eagle_Renderer_GetFilmicTonemappingSettings(float* outWhitePoint);
+	void Eagle_Renderer_SetAgXTonemappingSettings(const glm::vec3& slope, const glm::vec3& power, const glm::vec3& offset, float saturation);
+	void Eagle_Renderer_GetAgXTonemappingSettings(glm::vec3* slope, glm::vec3* power, glm::vec3* offset, float* saturation);
 	float Eagle_Renderer_GetGamma();
 	void Eagle_Renderer_SetGamma(float value);
 	float Eagle_Renderer_GetExposure();
@@ -578,8 +582,8 @@ namespace Eagle::Script
 	void Eagle_Renderer_SetAutoExposureSettings(float minLogLum, float maxLogLum, float adaptationSpeed, float adaptationKey, bool bEnabled, bool bHalfResolution);
 	void Eagle_Renderer_SetScreenSpaceReflectionsSettings(float roughnessThreshold, uint32_t samplesPerQuad, uint32_t maxIters, bool bEnabled);
 	void Eagle_Renderer_SetLensSettings(bool bChromaticAberration, bool bVignette, bool bFilmGrain, float chromaticIntensity, float vignetteIntensity, float filmGrainScale, float filmGrainAmount, float filmGrainSeedUpdateRate);
-	void Eagle_Renderer_SetStutterlessShaders(bool value);
-	bool Eagle_Renderer_GetStutterlessShaders();
+	void Eagle_Renderer_SetDepthPrepassEnabled(bool value);
+	bool Eagle_Renderer_GetDepthPrepassEnabled();
 	void Eagle_Renderer_SetTranslucentShadowsEnabled(bool value);
 	bool Eagle_Renderer_GetTranslucentShadowsEnabled();
 	void Eagle_Renderer_GetCameraTransform(Transform* outTransform);
@@ -606,7 +610,13 @@ namespace Eagle::Script
 	void Eagle_Renderer_DrawTriangle(const glm::vec3* v0Location, const glm::vec3* v0Color, const glm::vec3* v1Location, const glm::vec3* v1Color, const glm::vec3* v2Location, const glm::vec3* v2Color);
 	void Eagle_Renderer_DrawArrow(const glm::vec3* start, const glm::vec3* end, const glm::vec3* up);
 	void Eagle_Renderer_DrawAABB(const AABB* aabb, const Transform* transform);
+	void Eagle_Renderer_DrawBox(const AABB* aabb, const Transform* transform);
 	void Eagle_Renderer_DrawCone(const glm::vec3* location, const glm::quat* rotation, float distance, float angleRad);
+
+	// AgXTonemapping
+	void Eagle_AgXTonemapping_GetDefaultLook(glm::vec3* slope, glm::vec3* power, glm::vec3* offset, float* saturation);
+	void Eagle_AgXTonemapping_GetGoldenLook(glm::vec3* slope, glm::vec3* power, glm::vec3* offset, float* saturation);
+	void Eagle_AgXTonemapping_GetPunchyLook(glm::vec3* slope, glm::vec3* power, glm::vec3* offset, float* saturation);
 
 	// Project
 	MonoString* Eagle_Project_GetProjectPath();
@@ -686,7 +696,7 @@ namespace Eagle::Script
 		GUID* outAlbedoTexture, GUID* outMetalnessTexture, GUID* outNormalTexture, GUID* outRoughnessTexture, GUID* outAOTexture, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
 		glm::vec3* albedo, float* metalness, float* roughness, float* ao, glm::vec3* emissive, float* opacity, float* opacityMask,
 		bool* bUseAlbedoTexture, bool* bUseMetalnessTexture, bool* bUseRoughnessTexture, bool* bUseAOTexture, bool* bUseEmissiveTexture, bool* bUseOpacityTexture, bool* bUseOpacityMaskTexture,
-		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode,
+		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode, bool* bDoubleSided,
 		Material::TextureChannel* outMetalnessTextureChannel, Material::TextureChannel* outRoughnessTextureChannel, Material::TextureChannel* outAOTextureChannel,
 		Material::TextureChannel* outOpacityTextureChannel, Material::TextureChannel* outOpacityMaskTextureChannel);
 
@@ -694,7 +704,7 @@ namespace Eagle::Script
 		GUID albedoTexture, GUID metalnessTexture, GUID normalTexture, GUID roughnessTexture, GUID aoTexture, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
 		const glm::vec3* albedo, float metalness, float roughness, float ao, const glm::vec3* emissive, float opacity, float opacityMask,
 		bool bUseAlbedoTexture, bool bUseMetalnessTexture, bool bUseRoughnessTexture, bool bUseAOTexture, bool bUseEmissiveTexture, bool bUseOpacityTexture, bool bUseOpacityMaskTexture,
-		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode,
+		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode, bool bDoubleSided,
 		Material::TextureChannel metalnessTextureChannel, Material::TextureChannel roughnessTextureChannel, Material::TextureChannel aoTextureChannel,
 		Material::TextureChannel opacityTextureChannel, Material::TextureChannel opacityMaskTextureChannel);
 

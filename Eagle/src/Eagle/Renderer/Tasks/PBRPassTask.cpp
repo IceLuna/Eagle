@@ -14,9 +14,8 @@
 
 namespace Eagle
 {
-	PBRPassTask::PBRPassTask(SceneRenderer& renderer, const Ref<Image>& renderTo) 
+	PBRPassTask::PBRPassTask(SceneRenderer& renderer) 
 		: RendererTask(renderer)
-		, m_ResultImage(renderTo)
 	{
 		const auto& options = m_Renderer.GetOptions();
 
@@ -24,7 +23,6 @@ namespace Eagle
 		SetSoftShadowsEnabled(options.bEnableSoftShadows);
 		SetSSAOEnabled(options.AO != AmbientOcclusion::None);
 		SetCSMSmoothTransitionEnabled(options.bEnableCSMSmoothTransition);
-		SetStutterlessEnabled(options.bStutterlessShaders);
 		SetTranslucentShadowsEnabled(options.bTranslucentShadows);
 		InitPipeline();
 	}
@@ -63,18 +61,11 @@ namespace Eagle
 		pushData.SpotLights = (uint32_t)m_Renderer.GetSpotLights().size();
 		pushData.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());
 
-		PBRConstantsKernelInfo info;
-		info.PointLightsCount = pushData.PointLights;
-		info.SpotLightsCount = pushData.SpotLights;
-		info.bHasDirLight = pushData.HasDirLight;
-		info.bHasIrradiance = bHasIrradiance;
-		if (info != m_KernelInfo)
+		const uint32_t newIrradiance = bHasIrradiance ? 1u : 0u;
+		if (this->bHasIrradiance != newIrradiance)
 		{
-			// If stutterless, reload only if `bHasIrradiance` differs
-			const bool bRecreate = !bStutterlessShaders || (m_KernelInfo.bHasIrradiance != info.bHasIrradiance);
-			m_KernelInfo = info;
-			if (bRecreate)
-				RecreatePipeline();
+			this->bHasIrradiance = newIrradiance;
+			RecreatePipeline();
 		}
 
 		if (bRequestedToCreateShadowMapDistribution)
@@ -92,14 +83,14 @@ namespace Eagle
 		m_Pipeline->SetBuffer(m_Renderer.GetSpotLightsBuffer(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHTS);
 		m_Pipeline->SetBuffer(m_Renderer.GetDirectionalLightBuffer(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT);
 		m_Pipeline->SetImageSampler(gbuffer.Albedo, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_ALBEDO_ROUGHNESS_TEXTURE);
-		m_Pipeline->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_GEOMETRY_SHADING_NORMALS_TEXTURE);
+		m_Pipeline->SetImageSampler(gbuffer.Normals, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_GEOMETRY_SHADING_NORMALS_TEXTURE);
 		m_Pipeline->SetImageSampler(gbuffer.Emissive, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_EMISSIVE_TEXTURE);
 		m_Pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DEPTH_TEXTURE);
 		m_Pipeline->SetImageSampler(gbuffer.MaterialData, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_MATERIAL_DATA_TEXTURE);
-		m_Pipeline->SetImageSampler(ibl->GetIrradianceImage(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_IRRADIANCE_MAP);
+		m_Pipeline->SetImageSampler(ibl->GetIrradianceImage(), Sampler::PointSamplerClamp, EG_SCENE_SET, EG_BINDING_IRRADIANCE_MAP);
 		m_Pipeline->SetImageSampler(ibl->GetPrefilterImage(), ibl->GetPrefilterImageSampler(), EG_SCENE_SET, EG_BINDING_PREFILTER_MAP);
-		m_Pipeline->SetImageSampler(RenderManager::GetBRDFLUTImage(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_BRDF_LUT);
-		m_Pipeline->SetBuffer(m_Renderer.GetCameraBuffer(), EG_SCENE_SET, EG_BINDING_CAMERA_VIEW);
+		m_Pipeline->SetImageSampler(RenderManager::GetBRDFLUTImage(), Sampler::PointSamplerClamp, EG_SCENE_SET, EG_BINDING_BRDF_LUT);
+		m_Pipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), EG_SCENE_SET, EG_BINDING_CAMERA_VIEW);
 		m_Pipeline->SetImageSampler(smDistribution, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SM_DISTRIBUTION);
 		m_Pipeline->SetImageSampler(ssaoImage, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SSAO);
 
@@ -114,18 +105,36 @@ namespace Eagle
 			m_Pipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMapsColored(), m_Renderer.GetSpotLightShadowMapsSamplers(), 5, 0);
 		}
 
-		m_Pipeline->SetImage(m_ResultImage, 6, 0);
+		const auto& resultImage = m_Renderer.GetHDROutput();
+		m_Pipeline->SetImage(resultImage, 6, 0);
 
-		constexpr uint32_t tileSize = 8;
-		const glm::uvec2 size = m_ResultImage->GetSize();
-		glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
+		const glm::uvec2 size = resultImage->GetSize();
+		const glm::uvec3 groupSize = m_Pipeline->GetWorkGroupSize();
+		const glm::uvec2 numGroups = CalcNumGroups(size, groupSize);
 		pushData.Size = size;
 
-		cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageLayoutType::StorageImage);
-		cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageReadAccess::PixelShaderRead);
+		const ImageLayout resultLayout = resultImage->GetLayout();
+		const ImageLayout depthLayout = gbuffer.Depth->GetLayout();
+		const ImageLayout albedoLayout = gbuffer.Albedo->GetLayout();
+		const ImageLayout normalsLayout = gbuffer.Normals->GetLayout();
+		const ImageLayout emissiveLayout = gbuffer.Emissive->GetLayout();
+		const ImageLayout materialLayout = gbuffer.MaterialData->GetLayout();
+
+		cmd->TransitionLayout(resultImage, resultLayout, ImageLayoutType::StorageImage);
+		cmd->TransitionLayout(gbuffer.Depth, depthLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(gbuffer.Albedo, albedoLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(gbuffer.Normals, normalsLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(gbuffer.Emissive, emissiveLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(gbuffer.MaterialData, materialLayout, ImageReadAccess::PixelShaderRead);
+
 		cmd->Dispatch(m_Pipeline, numGroups.x, numGroups.y, 1, &pushData);
-		cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageLayoutType::DepthStencilWrite);
-		cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageReadAccess::PixelShaderRead);
+
+		cmd->TransitionLayout(resultImage, ImageLayoutType::StorageImage, resultLayout);
+		cmd->TransitionLayout(gbuffer.Depth, ImageReadAccess::PixelShaderRead, depthLayout);
+		cmd->TransitionLayout(gbuffer.Albedo, ImageReadAccess::PixelShaderRead, albedoLayout);
+		cmd->TransitionLayout(gbuffer.Normals, ImageReadAccess::PixelShaderRead, normalsLayout);
+		cmd->TransitionLayout(gbuffer.Emissive, ImageReadAccess::PixelShaderRead, emissiveLayout);
+		cmd->TransitionLayout(gbuffer.MaterialData, ImageReadAccess::PixelShaderRead, materialLayout);
 
 		auto& stats = m_Renderer.GetStats();
 		++stats.Dispatches;
@@ -240,37 +249,6 @@ namespace Eagle
 		return bUpdate;
 	}
 
-	bool PBRPassTask::SetStutterlessEnabled(bool bEnable)
-	{
-		if (bStutterlessShaders == bEnable)
-			return false;
-
-		bStutterlessShaders = bEnable;
-
-		auto& defines = m_ShaderDefines;
-		auto it = defines.find("EG_STUTTERLESS");
-
-		bool bUpdate = false;
-		if (bEnable)
-		{
-			if (it == defines.end())
-			{
-				defines["EG_STUTTERLESS"] = "";
-				bUpdate = true;
-			}
-		}
-		else
-		{
-			if (it != defines.end())
-			{
-				defines.erase(it);
-				bUpdate = true;
-			}
-		}
-
-		return bUpdate;
-	}
-
 	bool PBRPassTask::SetTranslucentShadowsEnabled(bool bEnable)
 	{
 		if (bTranslucentShadows == bEnable)
@@ -305,15 +283,9 @@ namespace Eagle
 	void PBRPassTask::RecreatePipeline()
 	{
 		ShaderSpecializationInfo constants;
-		if (!bStutterlessShaders)
-		{
-			constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
-			constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
-			constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
-		}
-		constants.MapEntries.push_back({ 3, 12, sizeof(uint32_t) });
-		constants.Data = &m_KernelInfo;
-		constants.Size = sizeof(PBRConstantsKernelInfo);
+		constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
+		constants.Data = &bHasIrradiance;
+		constants.Size = sizeof(uint32_t);
 
 		auto state = m_Pipeline->GetState();
 		state.ComputeSpecializationInfo = constants;
@@ -323,15 +295,9 @@ namespace Eagle
 	void PBRPassTask::InitPipeline()
 	{
 		ShaderSpecializationInfo constants;
-		if (!bStutterlessShaders)
-		{
-			constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
-			constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
-			constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
-		}
-		constants.MapEntries.push_back({3, 12, sizeof(uint32_t)});
-		constants.Data = &m_KernelInfo;
-		constants.Size = sizeof(PBRConstantsKernelInfo);
+		constants.MapEntries.push_back({0, 0, sizeof(uint32_t)});
+		constants.Data = &bHasIrradiance;
+		constants.Size = sizeof(uint32_t);
 
 		if (m_Shader)
 			m_Shader->SetDefines(m_ShaderDefines);

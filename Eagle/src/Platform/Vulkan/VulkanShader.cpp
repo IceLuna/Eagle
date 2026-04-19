@@ -16,6 +16,8 @@
 
 namespace Eagle
 {
+	static const char* s_EntryPoint = "main";
+
 	namespace Utils
 	{
 		static shaderc_env_version GetShaderCVersion()
@@ -242,7 +244,7 @@ namespace Eagle
 				const std::string& includeSource = ShaderManager::GetSource(filename);
 				if (includeSource.empty())
 				{
-					EG_RENDERER_CRITICAL("Failed to open shader file: {0}", filename.u8string());
+					EG_RENDERER_CRITICAL("Failed to open shader file: {0}", filename);
 					return;
 				}
 				// Adding defines and reading shader code from the file
@@ -279,7 +281,7 @@ namespace Eagle
 
 		// Trying to find a cache for the shader
 		Path cachePath = GetShaderCacheDir();
-		Path cacheFilePath = cachePath / (m_Path.filename().u8string() + "_" + std::to_string(sourceHash) + ".bin");
+		Path cacheFilePath = cachePath / Utils::AsPath(Utils::AsString(m_Path.filename()) + "_" + std::to_string(sourceHash) + ".bin");
 		bool bLoadedFromCache = false;
 		if (std::filesystem::exists(cacheFilePath))
 		{
@@ -310,18 +312,18 @@ namespace Eagle
 			options.SetWarningsAsErrors();
 			options.SetGenerateDebugInfo();
 
-			EG_RENDERER_TRACE("Compiling shader: {}", m_Path.u8string());
-			shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, Utils::ShaderTypeToShaderC(m_ShaderType), m_Path.u8string().c_str(), options);
+			EG_RENDERER_TRACE("Compiling shader: {}", m_Path);
+			shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, Utils::ShaderTypeToShaderC(m_ShaderType), Utils::AsString(m_Path).c_str(), options);
 			if (module.GetCompilationStatus() != shaderc_compilation_status_success)
 			{
-				EG_RENDERER_CRITICAL("Failed to compile shader at: {0}", m_Path.u8string());
-				Path filePath = cachePath / (m_Path.filename().u8string() + "_failed.txt");
+				EG_RENDERER_CRITICAL("Failed to compile shader at: {0}", m_Path);
+				Path filePath = cachePath / Utils::AsPath(Utils::AsString(m_Path.filename()) + "_failed.txt");
 				std::ofstream fout(filePath);
 				if (fout)
 				{
 					fout << source;
 					fout.close();
-					EG_RENDERER_TRACE("Outputing shader to: {}", filePath.u8string());
+					EG_RENDERER_TRACE("Outputing shader to: {}", filePath);
 				}
 				EG_RENDERER_TRACE("Error: \n{0}", module.GetErrorMessage());
 				return false;
@@ -423,6 +425,16 @@ namespace Eagle
 			pushConstantRange.Offset =
 				glsl.get_decoration(resources.push_constant_buffers.front().id, spv::DecorationOffset);
 		}
+	
+		if (m_ShaderType == ShaderType::Compute)
+		{
+			const spirv_cross::SPIREntryPoint& entry = glsl.get_entry_point(s_EntryPoint, spv::ExecutionModelGLCompute);
+			m_WorkGroupSize = glm::uvec3(
+				entry.workgroup_size.x,
+				entry.workgroup_size.y,
+				entry.workgroup_size.z
+			);
+		}
 	}
 
 	void VulkanShader::ReloadInternal(bool bFromDefines)
@@ -457,7 +469,7 @@ namespace Eagle
 		shaderStage = {};
 		shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		shaderStage.module = m_ShaderModule;
-		shaderStage.pName = "main";
+		shaderStage.pName = s_EntryPoint;
 		shaderStage.stage = ShaderTypeToVulkan(m_ShaderType);
 	}
 

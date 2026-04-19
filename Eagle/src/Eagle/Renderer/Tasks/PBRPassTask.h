@@ -10,7 +10,7 @@ namespace Eagle
 	class PBRPassTask : public RendererTask
 	{
 	public:
-		PBRPassTask(SceneRenderer& renderer, const Ref<Image>& renderTo);
+		PBRPassTask(SceneRenderer& renderer);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 
@@ -23,12 +23,7 @@ namespace Eagle
 			bReloadShader |= SetCSMSmoothTransitionEnabled(settings.bEnableCSMSmoothTransition);
 			bReloadShader |= SetTranslucentShadowsEnabled(settings.bTranslucentShadows);
 
-			const bool bReloadPipeline = SetStutterlessEnabled(settings.bStutterlessShaders);
-
-			if (bReloadPipeline)
-				InitPipeline();
-			else if (bReloadShader)
-				m_Shader->SetDefines(m_ShaderDefines);
+			m_Shader->SetDefines(m_ShaderDefines);
 		}
 
 		const Ref<Image>& GetSMDistribution() const { return m_ShadowMapDistribution; }
@@ -42,21 +37,18 @@ namespace Eagle
 		bool SetVisualizeCascades(bool bVisualize);
 		bool SetSSAOEnabled(bool bEnabled);
 		bool SetCSMSmoothTransitionEnabled(bool bEnabled);
-		bool SetStutterlessEnabled(bool bEnabled);
 		bool SetTranslucentShadowsEnabled(bool bEnabled);
 
 	private:
 		Ref<PipelineCompute> m_Pipeline;
 		Ref<Shader> m_Shader;
-		Ref<Image> m_ResultImage;
 		Ref<Image> m_ShadowMapDistribution; // For soft shadows
 		ShaderDefines m_ShaderDefines;
-		PBRConstantsKernelInfo m_KernelInfo;
 
+		uint32_t bHasIrradiance = 0u;
 		bool bSoftShadows = false;
 		bool bTranslucentShadows = false;
 		bool bVisualizeCascades = false;
 		bool bRequestedToCreateShadowMapDistribution = bSoftShadows;
-		bool bStutterlessShaders = false;
 	};
 }

@@ -28,14 +28,42 @@ namespace Eagle
 		InitPipeline();
 	}
 
-	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const LitTextGeometryData& data, const PushData& pushData, SceneRenderer::Statistics& stats)
+	void RenderTextLitTask::Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const QuadsRenderData<LitTextGeometryData>::BlendModeGeomType& data, const void* vertexPushData, RenderStats& stats)
 	{
-		if (data.QuadVertices.empty())
+		if (data.IsEmpty())
 			return;
 
-		const uint32_t quadsCount = (uint32_t)(data.QuadVertices.size() / 4);
 		cmd->BeginGraphics(pipeline);
-		cmd->SetGraphicsRootConstants(&pushData, nullptr);
+		cmd->SetGraphicsRootConstants(vertexPushData, nullptr);
+
+		uint32_t quadsCount = (uint32_t)(data.ShadowCastingQuads.QuadVertices.size() / 4);
+		if (quadsCount > 0)
+		{
+			cmd->DrawIndexed(data.ShadowCastingQuads.VertexBuffer, data.ShadowCastingQuads.IndexBuffer, quadsCount * 6, 0, 0);
+			++stats.DrawCalls;
+		}
+		quadsCount = (uint32_t)(data.NonShadowQuads.QuadVertices.size() / 4);
+		if (quadsCount > 0)
+		{
+			cmd->DrawIndexed(data.NonShadowQuads.VertexBuffer, data.NonShadowQuads.IndexBuffer, quadsCount * 6, 0, 0);
+			++stats.DrawCalls;
+		}
+		
+		cmd->EndGraphics();
+	}
+
+	void RenderTextLitTask::Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const LitTextGeometryData& data, const void* vertexPushData, RenderStats& stats, const Ref<Framebuffer>& fb)
+	{
+		const uint32_t quadsCount = (uint32_t)(data.QuadVertices.size() / 4);
+		if (quadsCount == 0)
+			return;
+
+		if (fb)
+			cmd->BeginGraphics(pipeline, fb);
+		else
+			cmd->BeginGraphics(pipeline);
+
+		cmd->SetGraphicsRootConstants(vertexPushData, nullptr);
 		cmd->DrawIndexed(data.VertexBuffer, data.IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 		++stats.DrawCalls;
@@ -49,10 +77,10 @@ namespace Eagle
 
 	void RenderTextLitTask::RenderOpaque(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& data = m_Renderer.GetOpaqueLitTextData();
-		const auto& notCastingShadowsData = m_Renderer.GetOpaqueLitNotCastingShadowTextData();
+		const auto& singleSided = m_Renderer.GetSingleSidedTextsRenderData();
+		const auto& doubleSided = m_Renderer.GetDoubleSidedTextsRenderData();
 
-		if (data.QuadVertices.empty() && notCastingShadowsData.QuadVertices.empty())
+		if (singleSided.Opaque.IsEmpty() && doubleSided.Opaque.IsEmpty())
 			return;
 
 		EG_CPU_TIMING_SCOPED("Render Opaque Text3D Lit");
@@ -79,16 +107,21 @@ namespace Eagle
 		}
 		m_OpaquePipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 
-		Draw(cmd, m_OpaquePipeline, data, pushData, m_Renderer.GetStats());
-		Draw(cmd, m_OpaquePipeline, notCastingShadowsData, pushData, m_Renderer.GetStats());
+		auto& stats = m_Renderer.GetStats();
+
+		cmd->SetGraphicsCullMode(CullMode::Back);
+		Draw(cmd, m_OpaquePipeline, singleSided.Opaque, &pushData, stats);
+
+		cmd->SetGraphicsCullMode(CullMode::None);
+		Draw(cmd, m_OpaquePipeline, doubleSided.Opaque, &pushData, stats);
 	}
 
 	void RenderTextLitTask::RenderMasked(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& data = m_Renderer.GetMaskedLitTextData();
-		const auto& notCastingShadowsData = m_Renderer.GetMaskedLitNotCastingShadowTextData();
+		const auto& singleSided = m_Renderer.GetSingleSidedTextsRenderData();
+		const auto& doubleSided = m_Renderer.GetDoubleSidedTextsRenderData();
 
-		if (data.QuadVertices.empty() && notCastingShadowsData.QuadVertices.empty())
+		if (singleSided.Masked.IsEmpty() && doubleSided.Masked.IsEmpty())
 			return;
 
 		EG_CPU_TIMING_SCOPED("Render Masked Text3D Lit");
@@ -115,8 +148,12 @@ namespace Eagle
 		}
 		m_MaskedPipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 
-		Draw(cmd, m_MaskedPipeline, data, pushData, m_Renderer.GetStats());
-		Draw(cmd, m_MaskedPipeline, notCastingShadowsData, pushData, m_Renderer.GetStats());
+		auto& stats = m_Renderer.GetStats();
+		cmd->SetGraphicsCullMode(CullMode::Back);
+		Draw(cmd, m_MaskedPipeline, singleSided.Masked, &pushData, stats);
+
+		cmd->SetGraphicsCullMode(CullMode::None);
+		Draw(cmd, m_MaskedPipeline, doubleSided.Masked, &pushData, stats);
 	}
 
 	void RenderTextLitTask::InitPipeline()
@@ -125,38 +162,38 @@ namespace Eagle
 
 		ColorAttachment colorAttachment;
 		colorAttachment.ClearOperation = ClearOperation::Load;
-		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		colorAttachment.Image = gbuffer.Albedo;
 
-		ColorAttachment geometry_shading_NormalsAttachment;
-		geometry_shading_NormalsAttachment.ClearOperation = ClearOperation::Load;
-		geometry_shading_NormalsAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		geometry_shading_NormalsAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		geometry_shading_NormalsAttachment.Image = gbuffer.Geometry_Shading_Normals;
+		ColorAttachment normalsAttachment;
+		normalsAttachment.ClearOperation = ClearOperation::Load;
+		normalsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		normalsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+		normalsAttachment.Image = gbuffer.Normals;
 
 		ColorAttachment emissiveAttachment;
 		emissiveAttachment.ClearOperation = ClearOperation::Load;
-		emissiveAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		emissiveAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		emissiveAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		emissiveAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		emissiveAttachment.Image = gbuffer.Emissive;
 
 		ColorAttachment materialAttachment;
 		materialAttachment.ClearOperation = ClearOperation::Load;
-		materialAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		materialAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		materialAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		materialAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		materialAttachment.Image = gbuffer.MaterialData;
 
 		ColorAttachment flagsAttachment;
 		flagsAttachment.Image = gbuffer.Flags;
-		flagsAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		flagsAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		flagsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		flagsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		flagsAttachment.ClearOperation = ClearOperation::Load;
 
 		ColorAttachment objectIDAttachment;
 		objectIDAttachment.ClearOperation = ClearOperation::Load;
-		objectIDAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		objectIDAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		objectIDAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		objectIDAttachment.Image = gbuffer.ObjectID;
 
 		DepthStencilAttachment depthAttachment;
@@ -166,7 +203,7 @@ namespace Eagle
 		depthAttachment.ClearOperation = ClearOperation::Load;
 		depthAttachment.bWriteDepth = true;
 		depthAttachment.DepthClearValue = 0.f;
-		depthAttachment.DepthCompareOp = CompareOperation::Greater;
+		depthAttachment.DepthCompareOp = CompareOperation::GreaterEqual;
 
 		ShaderDefines vertexDefines;
 		ShaderDefines fragmentDefines;
@@ -182,7 +219,7 @@ namespace Eagle
 		state.VertexShader = Shader::Create("text/text_lit.vert", ShaderType::Vertex, vertexDefines);
 		state.FragmentShader = Shader::Create("text/text_lit.frag", ShaderType::Fragment, fragmentDefines);
 		state.ColorAttachments.push_back(colorAttachment);
-		state.ColorAttachments.push_back(geometry_shading_NormalsAttachment);
+		state.ColorAttachments.push_back(normalsAttachment);
 		state.ColorAttachments.push_back(emissiveAttachment);
 		state.ColorAttachments.push_back(materialAttachment);
 		state.ColorAttachments.push_back(flagsAttachment);
@@ -191,13 +228,13 @@ namespace Eagle
 		{
 			ColorAttachment velocityAttachment;
 			velocityAttachment.Image = gbuffer.Motion;
-			velocityAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-			velocityAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			velocityAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+			velocityAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 			velocityAttachment.ClearOperation = ClearOperation::Load;
 			state.ColorAttachments.push_back(velocityAttachment);
 		}
 		state.DepthStencilAttachment = depthAttachment;
-		state.CullMode = CullMode::Back;
+		state.CullMode = CullMode::Dynamic;
 
 		if (m_OpaquePipeline)
 			m_OpaquePipeline->SetState(state);

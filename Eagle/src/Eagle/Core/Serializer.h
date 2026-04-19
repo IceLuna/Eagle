@@ -157,7 +157,7 @@ namespace Eagle
 		static ScopedDataBuffer SerializeAssetSkeletalMeshFromMesh(const Ref<SkeletalMesh>& mesh, const GUID& guid, const Path& pathToRaw);
 		static ScopedDataBuffer SerializeAssetAudioFromData(const DataBuffer& audioData, const GUID& guid, const Path& pathToRaw,
 			float volume, float pitch, float pan, const Ref<AssetSoundGroup>& soundGroup);
-		static ScopedDataBuffer SerializeAssetFontFromData(const DataBuffer& fontData, const GUID& guid, const Path& pathToRaw);
+		static ScopedDataBuffer SerializeAssetFontFromData(const DataBuffer& fontData, const DataBuffer& atlasData, glm::uvec2 atlasSize, const GUID& guid, const Path& pathToRaw);
 		static ScopedDataBuffer SerializeAssetAnimationFromData(const GUID& guid, const Path& pathToRaw, uint32_t animIndex,
 			const SkeletalMeshAnimation& anim, const Ref<AssetSkeletalMesh>& skeletal);
 

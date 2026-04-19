@@ -45,7 +45,7 @@ namespace Eagle
 		ImGui::Begin(m_WindowName.c_str(), pOpen);
 		UI::BeginPropertyGrid("AnimationDetails");
 
-		UI::Text("Name", m_Asset->GetPath().stem().u8string());
+		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 		UI::Text("Type", "Animation");
 		UI::Text("Duration", std::to_string(animation->Duration) + " ticks (" + durationSec + " seconds)");
 		UI::Text("Ticks per Second", std::to_string(animation->TicksPerSecond));
@@ -85,7 +85,7 @@ namespace Eagle
 				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.f, 0.7f, 0.f, 1.f));
 				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.35f, 0.f, 1.f));
 
-				constexpr char* addEventText = "Add Event";
+				const char* addEventText = "Add Event";
 				const float textWidth = ImGui::CalcTextSize(addEventText, NULL, true).x;
 				ImGui::SameLine(contentRegionAvailable.x - textWidth);
 				if (ImGui::Button(addEventText, ImVec2{ textWidth + ImGui::GetStyle().FramePadding.y * 2.f, lineHeight }))

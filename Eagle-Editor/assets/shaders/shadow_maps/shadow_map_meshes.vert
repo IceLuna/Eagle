@@ -15,9 +15,14 @@ layout(set = s_Set, binding = 0) readonly buffer MeshTransformsBuffer
 // For point lights & multi-view depth-pass
 #ifdef EG_POINT_LIGHT_PASS
 #extension GL_EXT_multiview : enable
-layout(set = s_Set, binding = 1) uniform ViewProjectionsBuffer
+layout(set = s_Set, binding = 1) readonly buffer ViewProjectionsBuffer
 {
-    mat4 g_ViewProjections[6];
+    mat4 g_ViewProjections[];
+};
+
+layout(push_constant) uniform PushData
+{
+    uint g_LightIndex;
 };
 #endif
 
@@ -38,7 +43,7 @@ void main()
     const uint transformIndex = a_PerInstanceData.x & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
     const vec4 worldPos = g_Transforms[transformIndex] * vec4(a_Position, 1.0);
 #ifdef EG_POINT_LIGHT_PASS
-    gl_Position = g_ViewProjections[gl_ViewIndex] * worldPos;
+    gl_Position = g_ViewProjections[g_LightIndex * 6 + gl_ViewIndex] * worldPos;
 #elif defined(EG_SPOT_LIGHT_PASS)
     gl_Position = g_ViewProj * worldPos;
 #else

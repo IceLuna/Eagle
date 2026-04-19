@@ -10,9 +10,8 @@
 
 namespace Eagle
 {
-	PostprocessingPassTask::PostprocessingPassTask(SceneRenderer& renderer, const Ref<Image>& input)
+	PostprocessingPassTask::PostprocessingPassTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
-		, m_Input(input)
 	{
 		const auto& options = m_Renderer.GetOptions();
 		const auto& lens = options.Lens;
@@ -48,22 +47,24 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Postprocessing Pass");
 		EG_CPU_TIMING_SCOPED("Postprocessing Pass");
 
+		const auto& input = m_Renderer.GetHDROutput();
+		const auto& output = m_Renderer.GetOutput();
 		const auto& options = m_Renderer.GetOptions_RT();
 		const bool bLensEnabled = m_LensPipeline.operator bool();
 
-		const ImageLayout inputOldLayout = m_Input->GetLayout();
-		cmd->TransitionLayout(m_Input, inputOldLayout, ImageLayoutType::StorageImage);
-		cmd->TransitionLayout(m_Intermediate, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
+		const ImageLayout inputOldLayout = input->GetLayout();
+		const ImageLayout outputOldLayout = output->GetLayout();
+		cmd->TransitionLayout(input, inputOldLayout, ImageLayoutType::StorageImage);
+		cmd->TransitionLayout(m_Intermediate, m_Intermediate->GetLayout(), ImageLayoutType::StorageImage);
+		cmd->TransitionLayout(output, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
 
 		if (bAutoExposure)
 			AutoExposurePass(cmd);
 		else
-			cmd->Write(m_Exposure, &options.Exposure, sizeof(float), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			cmd->Write(m_Exposure, &options.Exposure, sizeof(float), 0, m_Exposure->GetLayout(), BufferLayoutType::StorageBuffer);
 
-		auto& output = m_Renderer.GetOutput();
 		auto& intermediate = bLensEnabled ? m_Intermediate : output;
 
-		cmd->TransitionLayout(output, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
 		TonemappingPass(cmd, intermediate);
 		if (bLensEnabled)
 		{
@@ -71,8 +72,8 @@ namespace Eagle
 			LensPass(cmd, intermediate, output);
 		}
 
-		cmd->TransitionLayout(output, ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
-		cmd->TransitionLayout(m_Input, ImageLayoutType::StorageImage, inputOldLayout);
+		cmd->TransitionLayout(output, output->GetLayout(), outputOldLayout);
+		cmd->TransitionLayout(input, ImageLayoutType::StorageImage, inputOldLayout);
 	}
 
 	void PostprocessingPassTask::InitWithOptions(const SceneRendererSettings& settings)
@@ -174,8 +175,9 @@ namespace Eagle
 		const float maxLogLum = options.MaxLogLum;
 		const float timeCoeff = glm::clamp(1.0f - glm::exp(-ts * options.AdaptationSpeed), 0.0f, 1.0f);
 
+		const auto& input = m_Renderer.GetHDROutput();
 		const uint32_t downscaleFactor = options.bHalfResolution ? 2u : 1u;
-		const glm::uvec2 size = m_Input->GetSize() / downscaleFactor;
+		const glm::uvec2 size = input->GetSize() / downscaleFactor;
 
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Postprocessing. Calculate Histogram");
@@ -190,7 +192,7 @@ namespace Eagle
 			} pushData;
 			static_assert(sizeof(PushData) <= 128);
 
-			m_HistogramPipeline->SetImage(m_Input, 0, 0);
+			m_HistogramPipeline->SetImage(input, 0, 0);
 			m_HistogramPipeline->SetBuffer(m_Histogram, 0, 1);
 
 			pushData.Size = size;
@@ -198,7 +200,7 @@ namespace Eagle
 			pushData.MinLog2Lum = minLogLum;
 			pushData.InvLog2Lum = 1.0f / (maxLogLum - minLogLum);
 
-			glm::uvec2 numGroups = { glm::ceil(size.x / float(s_TileSize)), glm::ceil(size.y / float(s_TileSize)) };
+			const glm::uvec2 numGroups = CalcNumGroups(size, s_TileSize);
 			cmd->Dispatch(m_HistogramPipeline, numGroups.x, numGroups.y, 1, &pushData);
 		}
 
@@ -240,16 +242,21 @@ namespace Eagle
 
 		struct PushData
 		{
-			glm::ivec2 Size;
+			glm::vec3 AgXSlope;
 			float InvGamma;
+			glm::vec3 AgXPower;
 			float PhotolinearScale;
+			glm::vec3 AgXOffset;
 			float WhitePoint;
+			glm::ivec2 Size;
 			uint32_t TonemappingMethod;
+			float AgXSaturation;
 		} pushData;
 		static_assert(sizeof(PushData) <= 128);
 
 		constexpr uint32_t tileSize = 8;
-		const glm::uvec2 size = m_Input->GetSize();
+		const auto& input = m_Renderer.GetHDROutput();
+		const glm::uvec2 size = input->GetSize();
 		glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
 
 		pushData.Size = size;
@@ -257,8 +264,12 @@ namespace Eagle
 		pushData.PhotolinearScale = m_Renderer.GetPhotoLinearScale();
 		pushData.WhitePoint = options.FilmicTonemappingParams.WhitePoint;
 		pushData.TonemappingMethod = (uint32_t)options.Tonemapping;
+		pushData.AgXSlope = options.AgXTonemappingParams.Slope;
+		pushData.AgXPower = options.AgXTonemappingParams.Power;
+		pushData.AgXOffset = options.AgXTonemappingParams.Offset;
+		pushData.AgXSaturation = options.AgXTonemappingParams.Saturation;
 
-		m_TonemappingPipeline->SetImage(m_Input, 0, 0);
+		m_TonemappingPipeline->SetImage(input, 0, 0);
 		m_TonemappingPipeline->SetImage(output, 0, 1);
 		m_TonemappingPipeline->SetBuffer(m_Exposure, 0, 2);
 

@@ -27,7 +27,12 @@ namespace Eagle
 		// @createdNodes. Map of nodes that were created during cloning. It's used to prevent the same node being cloned multiple times.
 		// For example, let's consider a situation: we have node `A` with 2 inputs, and node `B` is connected to both `A` inputs.
 		// We want to create node `B` just once and set it to both inputs of `A`, and that's what `createdNodes` allows us to do.
-		virtual Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes = std::map<const GraphNode*, Ref<GraphNode>>{}) const = 0;
+		virtual Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph, std::map<const GraphNode*, Ref<GraphNode>>& createdNodes) const = 0;
+		Ref<GraphNode> Clone(const Weak<AnimationGraph>& newGraph) const
+		{
+			std::map<const GraphNode*, Ref<GraphNode>> createdNodes;
+			return Clone(newGraph, createdNodes);
+		}
 
 		void SetInput(const Ref<GraphNode>& node, size_t index)
 		{

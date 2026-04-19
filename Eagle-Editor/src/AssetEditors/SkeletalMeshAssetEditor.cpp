@@ -16,6 +16,9 @@ namespace Eagle
 		"objects closer to the correct value given the restitution.";
 	static const char* s_CollisionDetectionTypeHelpMsg = "When continuous collision detection (or CCD) is turned on, the affected rigid bodies will not go through other objects at high velocities (a problem also known as tunnelling). "
 		"A cheaper but less robust approach is called speculative CCD";
+	static const char* s_AABBHelpMsg = "If AABB is not visible by the camera, the mesh is not rendered.\n"
+		"It makes sense to increase it manually for skeletal meshes if an animation moves the mesh beyond the bounding box. So, to prevent culling it in such cases, increase AABB.\n"
+		"But for optimization reasons, keep AABB as small as possible";
 
 	static bool HasBoneWithName(const BoneNode& node, const std::string& name)
 	{
@@ -88,7 +91,7 @@ namespace Eagle
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		}
 
-		const std::string assetName = modifyingAsset ? modifyingAsset->GetPath().stem().u8string() : "None";
+		const std::string assetName = modifyingAsset ? Utils::AsString(modifyingAsset->GetPath().stem()) : "None";
 		if (ImGui::BeginCombo("##", assetName.c_str()))
 		{
 			const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
@@ -152,7 +155,7 @@ namespace Eagle
 
 				ImGui::SameLine();
 				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + previewSize.y * 0.25f);
-				ImGui::Text("%s", path.stem().u8string().c_str());
+				ImGui::Text("%s", Utils::AsString(path.stem()).c_str());
 
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
 				if (bSelected)
@@ -446,7 +449,7 @@ namespace Eagle
 
 		UI::TextWithSeparator("Data");
 		UI::BeginPropertyGrid("SkeletalMeshDetails");
-		UI::Text("Name", m_Asset->GetPath().stem().u8string());
+		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 		UI::Text("Type", "Skeletal Mesh");
 		UI::Text("Vertices", std::to_string(verticesCount));
 		UI::Text("Indices", std::to_string(indicesCount));
@@ -471,6 +474,31 @@ namespace Eagle
 			UI::EndPropertyGrid();
 
 			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNodeEx("AABB", ImGuiTreeNodeFlags_Framed))
+		{
+			UI::BeginPropertyGrid("SkeletalMeshDetails");
+			bool bAABBChanged = false;
+			AABB aabb = mesh->GetAABB();
+			bAABBChanged |= UI::PropertyDrag("Min", aabb.Min, 0.1f, 0, 0, s_AABBHelpMsg);
+			bAABBChanged |= UI::PropertyDrag("Max", aabb.Max, 0.1f, 0, 0, s_AABBHelpMsg);
+			UI::Property("Visualize", bDrawAABB);
+			if (bAABBChanged)
+			{
+				mesh->SetAABB(aabb);
+				bChanged = true;
+				if (auto& scene = Scene::GetCurrentScene())
+					scene->SetSkeletalMeshesDirty(true);
+			}
+			UI::EndPropertyGrid();
+			ImGui::TreePop();
+		}
+
+		if (bDrawAABB)
+		{
+			const AABB& aabb = mesh->GetAABB();
+			GetCurrentScene()->DrawAABB(aabb, Transform{});
 		}
 
 		if (ImGui::TreeNodeEx("Preview Settings", ImGuiTreeNodeFlags_Framed))
@@ -969,7 +997,7 @@ namespace Eagle
 		const glm::vec3 planeLocation = glm::vec3(center.x, aabb.Min.y, center.z); // Place the plane under the mesh
 
 		constexpr static glm::vec3 planeScale = glm::vec3(100.f, 0.05f, 100.f);
-		const glm::vec3 extent = glm::abs(aabb.Extents()) * 0.5f;
+		const glm::vec3 extent = glm::abs(aabb.Extents());
 		const glm::vec3 meshScale = glm::vec3(extent.x, 1.f, extent.z); // To make the floor bigger than the mesh
 		Transform tr;
 		tr.Location = planeLocation;

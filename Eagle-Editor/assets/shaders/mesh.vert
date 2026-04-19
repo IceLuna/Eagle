@@ -1,6 +1,10 @@
+#include "mesh_vertex_input_layout.h"
+#include "defines.h"
+
+#ifndef EG_DEPTH_ONLY
 #define EG_NO_TEXTURES
 #include "pipeline_layout.h"
-#include "mesh_vertex_input_layout.h"
+#endif
 
 layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX)
 readonly buffer MeshTransformsBuffer
@@ -31,6 +35,8 @@ layout(set = 1, binding = 0) uniform Jitter
 };
 #endif
 
+#ifndef EG_DEPTH_ONLY
+
 layout(location = 0) out mat3 o_TBN;
 layout(location = 3) out vec3 o_Normal;
 layout(location = 4) out vec2 o_TexCoords;
@@ -42,15 +48,19 @@ layout(location = 8) out vec3 o_CurPos;
 layout(location = 9) out vec3 o_PrevPos;
 #endif
 
+#endif // #ifndef EG_DEPTH_ONLY
+
 void main()
 {
     const uint transformIndex = a_PerInstanceData.x & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
+    const mat4 model = g_Transforms[transformIndex];
+    gl_Position = g_ViewProjection * model * vec4(a_Position, 1.0);
+
+#ifndef EG_DEPTH_ONLY
     const uint materialIndex = a_PerInstanceData.y;
     const uint objectID = a_PerInstanceData.z;
     o_ReceivesDecals = (a_PerInstanceData.x & EG_RECEIVES_DECALS_MASK) == EG_RECEIVES_DECALS_MASK ? 1u : 0u;
 
-    const mat4 model = g_Transforms[transformIndex];
-    gl_Position = g_ViewProjection * model * vec4(a_Position, 1.0);
     const mat3 normalModel = mat3(transpose(inverse(model)));
     const vec3 worldNormal = normalize(normalModel * a_Normal);
 
@@ -67,6 +77,7 @@ void main()
     o_TexCoords = a_TexCoords;
     o_MaterialIndex = materialIndex;
     o_ObjectID = objectID;
+#endif // #ifndef EG_DEPTH_ONLY
 
 #ifdef EG_MOTION
     o_CurPos = gl_Position.xyw;

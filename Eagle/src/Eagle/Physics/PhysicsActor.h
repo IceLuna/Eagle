@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Eagle/Core/Entity.h"
+#include "Eagle/Components/Components.h"
 #include "PhysicsEngine.h"
 #include "PhysicsUtils.h"
 #include "PhysicsShapes.h"

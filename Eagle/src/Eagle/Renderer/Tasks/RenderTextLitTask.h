@@ -1,10 +1,13 @@
 #pragma once
 
 #include "RendererTask.h"
+#include "GeometryManagerTask.h"
 #include "Eagle/Renderer/VidWrappers/PipelineGraphics.h"
 
 namespace Eagle
 {
+	struct LitTextGeometryData;
+
 	class RenderTextLitTask : public RendererTask
 	{
 	public:
@@ -27,6 +30,9 @@ namespace Eagle
 			bJitter = settings.InternalState.bJitter;
 			InitPipeline();
 		}
+
+		static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const QuadsRenderData<LitTextGeometryData>::BlendModeGeomType& data, const void* vertexPushData, RenderStats& stats);
+		static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const LitTextGeometryData& data, const void* vertexPushData, RenderStats& stats, const Ref<Framebuffer>& fb);
 
 	private:
 		void InitPipeline();

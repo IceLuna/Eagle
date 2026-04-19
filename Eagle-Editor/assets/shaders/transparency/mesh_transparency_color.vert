@@ -9,9 +9,13 @@ readonly buffer MeshTransformsBuffer
     mat4 g_Transforms[];
 };
 
-layout(push_constant) uniform PushConstants
+layout(set = 5, binding = 1)
+uniform CameraMatrices
 {
+    mat4 g_View;
+    mat4 g_InvViewProj;
     mat4 g_ViewProjection;
+    mat4 g_PrevViewProjection;
 };
 
 layout(location = 0) out vec3 o_Normal;
@@ -26,21 +30,23 @@ void main()
     const uint materialIndex = a_PerInstanceData.y;
 
     const mat4 model = g_Transforms[transformIndex];
-    gl_Position = g_ViewProjection * model * vec4(a_Position, 1.0);
-    
-    o_WorldPos = vec3(model * vec4(a_Position, 1.0));
-    
+    const vec4 worldPos = model * vec4(a_Position, 1);
+    gl_Position = g_ViewProjection * worldPos;
+
+    const mat3 normalModel = mat3(transpose(inverse(model)));
+    const vec3 worldNormal = normalize(normalModel * a_Normal);
+
     const uint normalTextureIndex = FetchMaterialNormalTextureIndex(materialIndex);
     if (normalTextureIndex != EG_INVALID_INDEX)
     {
-        vec3 tangent = normalize(vec3(model * vec4(a_Tangent, 0.0)));
-        vec3 normal = normalize(vec3(model * vec4(a_Normal, 0.0)));
-        tangent = normalize(tangent - normal * dot(tangent, normal));
-        vec3 bitangent = normalize(cross(normal, tangent));
-        o_TBN = mat3(tangent, bitangent, normal);
+        vec3 tangent = normalize(normalModel * a_Tangent);
+        tangent = normalize(tangent - worldNormal * dot(tangent, worldNormal));
+        vec3 bitangent = normalize(cross(worldNormal, tangent));
+        o_TBN = mat3(tangent, bitangent, worldNormal);
     }
 
-    o_Normal = mat3(transpose(inverse(model))) * a_Normal;
+    o_WorldPos = worldPos.xyz;
+    o_Normal = worldNormal;
     o_TexCoords = a_TexCoords;
     o_MaterialIndex = materialIndex;
 }

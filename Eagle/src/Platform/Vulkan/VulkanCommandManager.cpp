@@ -206,7 +206,7 @@ namespace Eagle
 		m_bIsRecording = false;
 	}
 
-	void VulkanCommandBuffer::Dispatch(Ref<PipelineCompute>& pipeline, uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ, const void* pushConstants)
+	void VulkanCommandBuffer::Dispatch(const Ref<PipelineCompute>& pipeline, uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ, const void* pushConstants)
 	{
 		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, (VkPipeline)pipeline->GetPipelineHandle());
 
@@ -224,7 +224,7 @@ namespace Eagle
 		vkCmdDispatch(m_CommandBuffer, numGroupsX, numGroupsY, numGroupsZ);
 	}
 
-	void VulkanCommandBuffer::DispatchIndirect(Ref<PipelineCompute>& pipeline, const Ref<Buffer>& args, size_t offset, const void* pushConstants)
+	void VulkanCommandBuffer::DispatchIndirect(const Ref<PipelineCompute>& pipeline, const Ref<Buffer>& args, size_t offset, const void* pushConstants)
 	{
 		EG_CORE_ASSERT(args->HasUsage(BufferUsage::IndirectBuffer));
 
@@ -244,10 +244,10 @@ namespace Eagle
 		vkCmdDispatchIndirect(m_CommandBuffer, (VkBuffer)args->GetHandle(), offset);
 	}
 
-	void VulkanCommandBuffer::BeginGraphics(Ref<PipelineGraphics>& pipeline)
+	void VulkanCommandBuffer::BeginGraphics(const Ref<PipelineGraphics>& pipeline)
 	{
 		Ref<VulkanPipelineGraphics> vulkanPipeline = Cast<VulkanPipelineGraphics>(pipeline);
-		auto& state = pipeline->GetState();
+		const auto& state = pipeline->GetState();
 		m_CurrentGraphicsPipeline = vulkanPipeline;
 		m_CurrentFramebuffer.reset();
 
@@ -282,6 +282,7 @@ namespace Eagle
 		beginInfo.pClearValues = clearValues.data();
 		beginInfo.renderArea.extent = { vulkanPipeline->m_Width, vulkanPipeline->m_Height };
 		vkCmdBeginRenderPass(m_CommandBuffer, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanPipeline->m_GraphicsPipeline);
 
 		VkViewport viewport{};
 		viewport.width = float(vulkanPipeline->m_Width);
@@ -294,15 +295,19 @@ namespace Eagle
 		scissor.extent = { vulkanPipeline->m_Width, vulkanPipeline->m_Height };
 		vkCmdSetScissor(m_CommandBuffer, 0, 1, &scissor);
 
-		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanPipeline->m_GraphicsPipeline);
+		if (m_bOverrideCullMode && state.CullMode == CullMode::Dynamic)
+		{
+			vkCmdSetCullMode(m_CommandBuffer, CullModeToVulkan(m_CullMode));
+			m_bOverrideCullMode = false;
+		}
 	}
 
-	void VulkanCommandBuffer::BeginGraphics(Ref<PipelineGraphics>& pipeline, const Ref<Framebuffer>& framebuffer)
+	void VulkanCommandBuffer::BeginGraphics(const Ref<PipelineGraphics>& pipeline, const Ref<Framebuffer>& framebuffer)
 	{
 		m_CurrentGraphicsPipeline = Cast<VulkanPipelineGraphics>(pipeline);
 		m_CurrentFramebuffer = framebuffer;
 
-		auto& state = pipeline->GetState();
+		const auto& state = pipeline->GetState();
 
 		size_t usedResolveAttachmentsCount = std::count_if(state.ResolveAttachments.begin(), state.ResolveAttachments.end(), [](const auto& attachment) { return attachment.Image; });
 		std::vector<VkClearValue> clearValues(state.ColorAttachments.size() + usedResolveAttachmentsCount);
@@ -349,6 +354,12 @@ namespace Eagle
 		VkRect2D scissor{};
 		scissor.extent = { size.x, size.y };
 		vkCmdSetScissor(m_CommandBuffer, 0, 1, &scissor);
+
+		if (m_bOverrideCullMode && state.CullMode == CullMode::Dynamic)
+		{
+			vkCmdSetCullMode(m_CommandBuffer, CullModeToVulkan(m_CullMode));
+			m_bOverrideCullMode = false;
+		}
 	}
 
 	void VulkanCommandBuffer::EndGraphics()
@@ -483,18 +494,66 @@ namespace Eagle
 		uint32_t instanceCount, uint32_t firstInstance, const Ref<Buffer>& perInstanceBuffer)
 	{
 		EG_CORE_ASSERT(m_CurrentGraphicsPipeline);
-		EG_CORE_ASSERT(vertexBuffer->HasUsage(BufferUsage::VertexBuffer));
-		EG_CORE_ASSERT(perInstanceBuffer->HasUsage(BufferUsage::VertexBuffer));
 		EG_CORE_ASSERT(indexBuffer->HasUsage(BufferUsage::IndexBuffer));
 
 		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
 		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-		VkBuffer vertexBuffers[2] = { (VkBuffer)vertexBuffer->GetHandle(), (VkBuffer)perInstanceBuffer->GetHandle() };
+		uint32_t vertexBuffersCount = 0;
+		VkBuffer vertexBuffers[2] = { VK_NULL_HANDLE };
 		VkDeviceSize offsets[] = { 0, 0 };
-		vkCmdBindVertexBuffers(m_CommandBuffer, 0, 2, vertexBuffers, offsets);
+		if (vertexBuffer)
+		{
+			EG_CORE_ASSERT(vertexBuffer->HasUsage(BufferUsage::VertexBuffer));
+			vertexBuffers[vertexBuffersCount++] = (VkBuffer)vertexBuffer->GetHandle();
+		}
+		if (perInstanceBuffer)
+		{
+			EG_CORE_ASSERT(perInstanceBuffer->HasUsage(BufferUsage::VertexBuffer));
+			vertexBuffers[vertexBuffersCount++] = (VkBuffer)perInstanceBuffer->GetHandle();
+		}
+		if (vertexBuffersCount > 0)
+		{
+			vkCmdBindVertexBuffers(m_CommandBuffer, 0, vertexBuffersCount, vertexBuffers, offsets);
+		}
 		vkCmdBindIndexBuffer(m_CommandBuffer, (VkBuffer)indexBuffer->GetHandle(), 0, VK_INDEX_TYPE_UINT32);
 		vkCmdDrawIndexed(m_CommandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+	}
+
+	void VulkanCommandBuffer::DrawIndexedInstancedIndirectCount(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, const Ref<Buffer>& indirectBuffer, const Ref<Buffer>& countBuffer,
+		const Ref<Buffer>& perInstanceBuffer, uint32_t maxDrawCount, size_t indirectOffset, size_t countBufferOffset)
+	{
+		EG_CORE_ASSERT(m_CurrentGraphicsPipeline);
+		EG_CORE_ASSERT(indexBuffer->HasUsage(BufferUsage::IndexBuffer));
+
+		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
+		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+		uint32_t vertexBuffersCount = 0;
+		VkBuffer vertexBuffers[2] = { VK_NULL_HANDLE };
+		VkDeviceSize offsets[] = { 0, 0 };
+		if (vertexBuffer)
+		{
+			EG_CORE_ASSERT(vertexBuffer->HasUsage(BufferUsage::VertexBuffer));
+			vertexBuffers[vertexBuffersCount++] = (VkBuffer)vertexBuffer->GetHandle();
+		}
+		if (perInstanceBuffer)
+		{
+			EG_CORE_ASSERT(perInstanceBuffer->HasUsage(BufferUsage::VertexBuffer));
+			vertexBuffers[vertexBuffersCount++] = (VkBuffer)perInstanceBuffer->GetHandle();
+		}
+		if (vertexBuffersCount > 0)
+		{
+			vkCmdBindVertexBuffers(m_CommandBuffer, 0, vertexBuffersCount, vertexBuffers, offsets);
+		}
+
+		vkCmdBindIndexBuffer(m_CommandBuffer, (VkBuffer)indexBuffer->GetHandle(), 0, VK_INDEX_TYPE_UINT32);
+
+		const VkBuffer vkIndirect = (VkBuffer)indirectBuffer->GetHandle();
+		const VkBuffer vkCount = (VkBuffer)countBuffer->GetHandle();
+		vkCmdDrawIndexedIndirectCount(m_CommandBuffer, vkIndirect, indirectOffset,
+			vkCount, countBufferOffset, maxDrawCount, sizeof(VkDrawIndexedIndirectCommand)
+		);
 	}
 
 	void VulkanCommandBuffer::DrawIndexed(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset)
@@ -571,6 +630,23 @@ namespace Eagle
 		}
 	}
 
+	void VulkanCommandBuffer::SetGraphicsCullMode(CullMode cullMode)
+	{
+		EG_CORE_ASSERT(cullMode != CullMode::Dynamic); // Invalid value
+
+		if (m_CurrentGraphicsPipeline)
+		{
+			vkCmdSetCullMode(m_CommandBuffer, CullModeToVulkan(m_CullMode));
+			m_bOverrideCullMode = false;
+		}
+		else
+		{
+			// There's no graphics pipeline active. Postpone the call
+			m_bOverrideCullMode = true;
+			m_CullMode = cullMode;
+		}
+	}
+
 	void VulkanCommandBuffer::TransitionLayout(const Ref<Image>& image, ImageLayout oldLayout, ImageLayout newLayout)
 	{
 		TransitionLayout(image, ImageView{ 0, image->GetMipsCount(), 0 }, oldLayout, newLayout);
@@ -612,7 +688,7 @@ namespace Eagle
 			1, &barrier);
 	}
 
-	void VulkanCommandBuffer::ClearColorImage(Ref<Image>& image, const glm::vec4& color, ImageLayout layout, ImageLayout newLayout)
+	void VulkanCommandBuffer::ClearColorImage(const Ref<Image>& image, const glm::vec4& color, ImageLayout layout, ImageLayout newLayout)
 	{
 		Ref<VulkanImage> vulkanImage = Cast<VulkanImage>(image);
 		EG_CORE_ASSERT(vulkanImage->GetDefaultAspectMask() == VK_IMAGE_ASPECT_COLOR_BIT);
@@ -632,7 +708,7 @@ namespace Eagle
 		TransitionLayout(image, ImageLayoutType::CopyDest, newLayout);
 	}
 
-	void VulkanCommandBuffer::ClearDepthStencilImage(Ref<Image>& image, float depthValue, uint32_t stencilValue, ImageLayout layout, ImageLayout newLayout)
+	void VulkanCommandBuffer::ClearDepthStencilImage(const Ref<Image>& image, float depthValue, uint32_t stencilValue, ImageLayout layout, ImageLayout newLayout)
 	{
 		Ref<VulkanImage> vulkanImage = Cast<VulkanImage>(image);
 		VkImageAspectFlags aspectMask = vulkanImage->GetDefaultAspectMask();
@@ -654,7 +730,7 @@ namespace Eagle
 	}
 
 	void VulkanCommandBuffer::CopyImage(const Ref<Image>& src, const ImageView& srcView,
-		Ref<Image>& dst, const ImageView& dstView, ImageLayout dstOldLayout, ImageLayout dstNewLayout,
+		const Ref<Image>& dst, const ImageView& dstView, ImageLayout dstOldLayout, ImageLayout dstNewLayout,
 		const glm::ivec3& srcOffset, const glm::ivec3& dstOffset,
 		const glm::uvec3& size)
 	{
@@ -725,7 +801,7 @@ namespace Eagle
 			0, nullptr);
 	}
 
-	void VulkanCommandBuffer::CopyBuffer(const Ref<Buffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size)
+	void VulkanCommandBuffer::CopyBuffer(const Ref<Buffer>& src, const Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size)
 	{
 		EG_CORE_ASSERT(src->HasUsage(BufferUsage::TransferSrc));
 		EG_CORE_ASSERT(dst->HasUsage(BufferUsage::TransferDst));
@@ -749,7 +825,7 @@ namespace Eagle
 		TransitionLayout(dst, BufferLayoutType::CopyDest, dstOldLayout);
 	}
 
-	void VulkanCommandBuffer::CopyBufferTransitionless(const Ref<Buffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size)
+	void VulkanCommandBuffer::CopyBufferTransitionless(const Ref<Buffer>& src, const Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size)
 	{
 		EG_CORE_ASSERT(src->HasUsage(BufferUsage::TransferSrc));
 		EG_CORE_ASSERT(dst->HasUsage(BufferUsage::TransferDst));
@@ -763,12 +839,12 @@ namespace Eagle
 		vkCmdCopyBuffer(m_CommandBuffer, (VkBuffer)src->GetHandle(), (VkBuffer)dst->GetHandle(), 1, &region);
 	}
 
-	void VulkanCommandBuffer::CopyBuffer(const Ref<StagingBuffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size)
+	void VulkanCommandBuffer::CopyBuffer(const Ref<StagingBuffer>& src, const Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size)
 	{
 		CopyBuffer(src->GetBuffer(), dst, srcOffset, dstOffset, size);
 	}
 
-	void VulkanCommandBuffer::FillBuffer(Ref<Buffer>& dst, uint32_t data, size_t offset, size_t numBytes)
+	void VulkanCommandBuffer::FillBuffer(const Ref<Buffer>& dst, uint32_t data, size_t offset, size_t numBytes)
 	{
 		EG_CORE_ASSERT(dst->HasUsage(BufferUsage::TransferDst));
 		EG_CORE_ASSERT(numBytes % 4 == 0);
@@ -779,7 +855,7 @@ namespace Eagle
 		TransitionLayout(dst, BufferLayoutType::CopyDest, layout);
 	}
 
-	void VulkanCommandBuffer::CopyBufferToImage(const Ref<Buffer>& src, Ref<Image>& dst, const std::vector<BufferImageCopy>& regions)
+	void VulkanCommandBuffer::CopyBufferToImage(const Ref<Buffer>& src, const Ref<Image>& dst, const std::vector<BufferImageCopy>& regions)
 	{
 		Ref<VulkanImage> vulkanImage = Cast<VulkanImage>(dst);
 
@@ -814,7 +890,7 @@ namespace Eagle
 			uint32_t(regionsCount), imageCopyRegions.data());
 	}
 
-	void VulkanCommandBuffer::CopyImageToBuffer(const Ref<Image>& src, Ref<Buffer>& dst, const std::vector<BufferImageCopy>& regions)
+	void VulkanCommandBuffer::CopyImageToBuffer(const Ref<Image>& src, const Ref<Buffer>& dst, const std::vector<BufferImageCopy>& regions)
 	{
 		Ref<VulkanImage> vulkanImage = Cast<VulkanImage>(src);
 
@@ -849,7 +925,7 @@ namespace Eagle
 			(VkBuffer)dst->GetHandle(), uint32_t(regionsCount), imageCopyRegions.data());
 	}
 
-	void VulkanCommandBuffer::Write(Ref<Image>& image, const void* data, size_t size, ImageLayout initialLayout, ImageLayout finalLayout)
+	void VulkanCommandBuffer::Write(const Ref<Image>& image, const void* data, size_t size, ImageLayout initialLayout, ImageLayout finalLayout)
 	{
 		Ref<VulkanImage> vulkanImage = Cast<VulkanImage>(image);
 
@@ -880,7 +956,7 @@ namespace Eagle
 			TransitionLayout(image, ImageLayoutType::CopyDest, finalLayout);
 	}
 
-	void VulkanCommandBuffer::Write(Ref<Buffer>& buffer, const void* data, size_t size, size_t offset, BufferLayout initialLayout, BufferLayout finalLayout)
+	void VulkanCommandBuffer::Write(const Ref<Buffer>& buffer, const void* data, size_t size, size_t offset, BufferLayout initialLayout, BufferLayout finalLayout)
 	{
 		EG_CORE_ASSERT(buffer);
 		EG_CORE_ASSERT(buffer->HasUsage(BufferUsage::TransferDst));
@@ -935,7 +1011,7 @@ namespace Eagle
 		}
 	}
 
-	void VulkanCommandBuffer::GenerateMips(Ref<Image>& image, ImageLayout initialLayout, ImageLayout finalLayout)
+	void VulkanCommandBuffer::GenerateMips(const Ref<Image>& image, ImageLayout initialLayout, ImageLayout finalLayout)
 	{
 		EG_CORE_ASSERT(image->HasUsage(ImageUsage::TransferSrc | ImageUsage::TransferDst));
 		EG_CORE_ASSERT(image->GetSamplesCount() == SamplesCount::Samples1); // Multisampled images are not supported
@@ -1008,7 +1084,7 @@ namespace Eagle
 		}
 	}
 
-	void VulkanCommandBuffer::GenerateMips(Ref<Image>& image, const std::vector<ScopedDataBuffer>& dataPerMip, ImageLayout initialLayout, ImageLayout finalLayout)
+	void VulkanCommandBuffer::GenerateMips(const Ref<Image>& image, const std::vector<ScopedDataBuffer>& dataPerMip, ImageLayout initialLayout, ImageLayout finalLayout)
 	{
 		if (dataPerMip.size() < 2)
 			return;
@@ -1058,7 +1134,7 @@ namespace Eagle
 	}
 
 #ifdef EG_GPU_TIMINGS
-	void VulkanCommandBuffer::StartTiming(Ref<RHIGPUTiming>& timing, uint32_t frameIndex)
+	void VulkanCommandBuffer::StartTiming(const Ref<RHIGPUTiming>& timing, uint32_t frameIndex)
 	{
 		VkQueryPool pool = (VkQueryPool)timing->GetQueryPoolHandle();
 		const uint32_t queryIndex = frameIndex * 2;
@@ -1066,7 +1142,7 @@ namespace Eagle
 		vkCmdWriteTimestamp(m_CommandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, pool, queryIndex);
 	}
 
-	void VulkanCommandBuffer::EndTiming(Ref<RHIGPUTiming>& timing, uint32_t frameIndex)
+	void VulkanCommandBuffer::EndTiming(const Ref<RHIGPUTiming>& timing, uint32_t frameIndex)
 	{
 		VkQueryPool pool = (VkQueryPool)timing->GetQueryPoolHandle();
 		vkCmdWriteTimestamp(m_CommandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, pool, frameIndex * 2 + 1);

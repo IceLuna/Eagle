@@ -17,15 +17,22 @@ layout(location = 1) flat in uint i_AtlasIndex;
 
 layout(location = 0) out vec4 outColor;
 
-layout(push_constant) uniform PushConstants
-{
-    layout(offset = 64) ivec2 g_Size;
-};
-
 #extension GL_ARB_post_depth_coverage : enable
 layout(post_depth_coverage) in;
 
 layout(binding = 1, r32ui) uniform coherent uimageBuffer imgAbuffer;
+layout(binding = 2) uniform UniformBuffer
+{
+    vec3 g_CameraPos;
+    float g_MaxReflectionLOD;
+    ivec2 g_Size;
+    float g_MaxShadowDistance2;
+    float g_CSMOverlap;
+    float g_IBLIntensity;
+    uint g_PointLightsCount;
+    uint g_SpotLightsCount;
+    uint g_HasDirLight;
+};
 
 layout(set = 1, binding = 0) uniform sampler2D g_FontAtlases[];
 

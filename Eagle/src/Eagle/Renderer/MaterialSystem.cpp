@@ -18,7 +18,7 @@ namespace Eagle
 	std::unordered_map<Ref<Material>, uint32_t> MaterialSystem::s_UsedMaterialsMap;
 	bool MaterialSystem::s_Dirty = true;
 	bool MaterialSystem::s_Changed = true;
-	bool MaterialSystem::s_BlendModeChanged = true;
+	bool MaterialSystem::s_RenderingModeChanged = true;
 
 	static std::vector<CPUMaterial> s_CPUMaterials;
 	static std::vector<float> s_CPURawMaterials;
@@ -95,7 +95,7 @@ namespace Eagle
 			// This way the value is saved till the end of the frame.
 			// So if materials were changed, `s_Changed` won't reset until the next frame
 			s_Changed = false;
-			s_BlendModeChanged = false;
+			s_RenderingModeChanged = false;
 			return;
 		}
 
@@ -148,11 +148,8 @@ namespace Eagle
 		if (materialRawDataSize > materialRawBufferSize)
 			s_MaterialsRawBuffer->Resize((materialRawDataSize * 3) / 2);
 
-		cmd->Write(s_MaterialsBuffer, s_CPUMaterials.data(), materialDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-		cmd->StorageBufferBarrier(s_MaterialsBuffer);
-
-		cmd->Write(s_MaterialsRawBuffer, s_CPURawMaterials.data(), materialRawDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-		cmd->StorageBufferBarrier(s_MaterialsRawBuffer);
+		cmd->Write(s_MaterialsBuffer, s_CPUMaterials.data(), materialDataSize, 0, s_MaterialsBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
+		cmd->Write(s_MaterialsRawBuffer, s_CPURawMaterials.data(), materialRawDataSize, 0, s_MaterialsRawBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 
 		s_Dirty = false;
 	}
@@ -177,10 +174,10 @@ namespace Eagle
 	{
 		std::scoped_lock lock(s_Mutex);
 		
-		s_Dirty = s_Changed = s_BlendModeChanged = true;
+		s_Dirty = s_Changed = s_RenderingModeChanged = true;
 	}
 
-	void MaterialSystem::OnMaterialChanged(const Ref<Material>& material, bool bBlendModeChanged)
+	void MaterialSystem::OnMaterialChanged(const Ref<Material>& material, bool bRenderingModeChanged)
 	{
 		if (!material)
 			return;
@@ -191,7 +188,7 @@ namespace Eagle
 		if (it != s_UsedMaterialsMap.end())
 		{
 			SetDirty_Internal();
-			s_BlendModeChanged |= bBlendModeChanged;
+			s_RenderingModeChanged |= bRenderingModeChanged;
 		}
 	}
 }

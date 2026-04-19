@@ -81,8 +81,7 @@ namespace Eagle
 			// Resize if needed
 			m_SamplesBuffer->Resize(newBufferSize);
 
-			cmd->Write(m_SamplesBuffer, m_Samples.data(), newBufferSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-			cmd->StorageBufferBarrier(m_SamplesBuffer);
+			cmd->Write(m_SamplesBuffer, m_Samples.data(), newBufferSize, 0, m_SamplesBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 
 			bKernelsDirty = false;
 		}
@@ -102,8 +101,6 @@ namespace Eagle
 		static_assert(sizeof(PushConstants) <= 128u);
 		const glm::vec2 viewportSize = m_ResultImage->GetSize();
 
-		constexpr uint32_t s_TileSize = 8;
-		const glm::uvec2 numGroupds = { glm::ceil(viewportSize.x / float(s_TileSize)), glm::ceil(viewportSize.y / float(s_TileSize)) };
 		auto& stats = m_Renderer.GetStats();
 
 		// AO
@@ -124,19 +121,26 @@ namespace Eagle
 			pushData.Bias = settings.GetBias();
 
 			auto& gbuffer = m_Renderer.GetGBuffer();
-			m_Pipeline->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 0);
+			m_Pipeline->SetImageSampler(gbuffer.Normals, Sampler::PointSamplerClamp, 0, 0);
 			m_Pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 1);
 			m_Pipeline->SetImageSampler(m_NoiseImage, Sampler::PointSampler, 0, 2);
 			m_Pipeline->SetBuffer(m_SamplesBuffer, 0, 3);
 			m_Pipeline->SetImage(m_SSAOPassImage, 0, 4);
 
-			cmd->TransitionLayout(m_SSAOPassImage, m_SSAOPassImage->GetLayout(), ImageLayoutType::StorageImage);
-			cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageReadAccess::PixelShaderRead);
+			const ImageLayout depthLayout = gbuffer.Depth->GetLayout();
+			const ImageLayout normalsLayout = gbuffer.Normals->GetLayout();
 
-			cmd->Dispatch(m_Pipeline, numGroupds.x, numGroupds.y, 1, &pushData);
+			cmd->TransitionLayout(m_SSAOPassImage, m_SSAOPassImage->GetLayout(), ImageLayoutType::StorageImage);
+			cmd->TransitionLayout(gbuffer.Depth, depthLayout, ImageReadAccess::PixelShaderRead);
+			cmd->TransitionLayout(gbuffer.Normals, normalsLayout, ImageReadAccess::PixelShaderRead);
+
+			const glm::uvec3 groupSize = m_Pipeline->GetWorkGroupSize();
+			const glm::uvec2 numGroups = CalcNumGroups(viewportSize, groupSize);
+			cmd->Dispatch(m_Pipeline, numGroups.x, numGroups.y, 1, &pushData);
 
 			cmd->TransitionLayout(m_SSAOPassImage, m_SSAOPassImage->GetLayout(), ImageReadAccess::PixelShaderRead);
-			cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageLayoutType::DepthStencilWrite);
+			cmd->TransitionLayout(gbuffer.Depth, ImageReadAccess::PixelShaderRead, depthLayout);
+			cmd->TransitionLayout(gbuffer.Normals, ImageReadAccess::PixelShaderRead, normalsLayout);
 
 			++stats.Dispatches;
 		}
@@ -154,11 +158,14 @@ namespace Eagle
 			blurPushData.Size = pushData.Size;
 			blurPushData.TexelSize = 1.f / viewportSize;
 
+			const glm::uvec3 groupSize = m_BlurPipeline->GetWorkGroupSize();
+			const glm::uvec2 numGroups = CalcNumGroups(viewportSize, groupSize);
+
 			m_BlurPipeline->SetImageSampler(m_SSAOPassImage, Sampler::PointSamplerClamp, 0, 0);
 			m_BlurPipeline->SetImage(m_ResultImage, 0, 1);
 
 			cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageLayoutType::StorageImage);
-			cmd->Dispatch(m_BlurPipeline, numGroupds.x, numGroupds.y, 1, &blurPushData);
+			cmd->Dispatch(m_BlurPipeline, numGroups.x, numGroups.y, 1, &blurPushData);
 			cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageReadAccess::PixelShaderRead);
 
 			++stats.Dispatches;

@@ -227,6 +227,233 @@ namespace Eagle
 			}
 		}
 
+		void DrawAABB(std::vector<RendererLine>& buffer, AABB aabb, const Transform& worldTr, const glm::vec3& color = glm::vec3(0, 1, 0))
+		{
+			const glm::mat4 trMat = Math::ToTransformMatrix(worldTr);
+			const size_t startIdx = buffer.size();
+
+			aabb.Transform(trMat);
+
+			for (glm::length_t i = 0; i < aabb.Min.length(); ++i)
+			{
+				auto& line = buffer.emplace_back();
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Min;
+
+				line.End.Location = aabb.Min;
+				line.End.Location[i] = aabb.Max[i];
+			}
+
+			for (glm::length_t i = 0; i < aabb.Max.length(); ++i)
+			{
+				auto& line = buffer.emplace_back();
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Max;
+
+				line.End.Location = aabb.Max;
+				line.End.Location[i] = aabb.Min[i];
+			}
+
+			{
+				auto& line = buffer.emplace_back();
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Min;
+				line.Start.Location.y = aabb.Max.y;
+
+				line.End.Location = line.Start.Location;
+				line.End.Location.z = aabb.Max.z;
+			}
+
+			{
+				auto& line = buffer.emplace_back();
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Min;
+				line.Start.Location.y = aabb.Max.y;
+
+				line.End.Location = line.Start.Location;
+				line.End.Location.x = aabb.Max.x;
+			}
+
+			{
+				auto& line = buffer.emplace_back();
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Min;
+				line.Start.Location.x = aabb.Max.x;
+
+				line.End.Location = line.Start.Location;
+				line.End.Location.z = aabb.Max.z;
+			}
+
+			{
+				auto& line = buffer.emplace_back();
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Min;
+				line.Start.Location.x = aabb.Max.x;
+
+				line.End.Location = line.Start.Location;
+				line.End.Location.y = aabb.Max.y;
+			}
+
+			{
+				auto& line = buffer.emplace_back();
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Min;
+				line.Start.Location.z = aabb.Max.z;
+
+				line.End.Location = line.Start.Location;
+				line.End.Location.y = aabb.Max.y;
+			}
+
+			{
+				auto& line = buffer.emplace_back();
+				line.Start.Color = color;
+				line.End.Color = color;
+				line.Start.Location = aabb.Min;
+				line.Start.Location.z = aabb.Max.z;
+
+				line.End.Location = line.Start.Location;
+				line.End.Location.x = aabb.Max.x;
+			}
+		}
+
+		void DrawFrustum(std::vector<RendererLine>& lines, const Camera& camera, const Transform& tr, float aspect, const glm::vec3& color = glm::vec3(0, 1, 0))
+		{
+			auto AddLine = [](std::vector<RendererLine>& lines,
+				const glm::vec3& a,
+				const glm::vec3& b,
+				const glm::vec3& color)
+			{
+				RendererLine l;
+				l.Start.Location = a;
+				l.Start.Color = color;
+				l.End.Location = b;
+				l.End.Color = color;
+				lines.push_back(l);
+			};
+
+			const float fovY = camera.GetPerspectiveVerticalFOV();
+			const float znear = camera.GetPerspectiveNearClip();
+			const float zfar = camera.GetPerspectiveFarClip();
+
+			const glm::vec3& pos = tr.Location;
+			const glm::vec3 forward = Math::GetForwardVector(tr.Rotation);
+			const glm::vec3 up = Math::GetUpVector(tr.Rotation);
+			const glm::vec3 right = Math::GetRightVector(tr.Rotation);
+
+			float tanHalfFov = tanf(fovY * 0.5f);
+
+			float nearH = 2.0f * tanHalfFov * znear;
+			float nearW = nearH * aspect;
+
+			float farH = 2.0f * tanHalfFov * zfar;
+			float farW = farH * aspect;
+
+			glm::vec3 nc = pos + forward * znear;
+			glm::vec3 fc = pos + forward * zfar;
+
+			// Near corners
+			glm::vec3 ntl = nc + (up * nearH * 0.5f) - (right * nearW * 0.5f);
+			glm::vec3 ntr = nc + (up * nearH * 0.5f) + (right * nearW * 0.5f);
+			glm::vec3 nbl = nc - (up * nearH * 0.5f) - (right * nearW * 0.5f);
+			glm::vec3 nbr = nc - (up * nearH * 0.5f) + (right * nearW * 0.5f);
+
+			// Far corners
+			glm::vec3 ftl = fc + (up * farH * 0.5f) - (right * farW * 0.5f);
+			glm::vec3 ftr = fc + (up * farH * 0.5f) + (right * farW * 0.5f);
+			glm::vec3 fbl = fc - (up * farH * 0.5f) - (right * farW * 0.5f);
+			glm::vec3 fbr = fc - (up * farH * 0.5f) + (right * farW * 0.5f);
+
+			// Colors
+			const glm::vec3 edgeColor = color; // (1, 1, 0);
+			const glm::vec3 nearColor = color; // (0, 1, 1);
+			const glm::vec3 farColor = color; // (0, 0.5f, 1);
+			const glm::vec3 sliceColor = color; // (1, 0.5f, 0);
+			const glm::vec3 diagColor = color; // (1, 0, 0);
+
+			// Near
+			AddLine(lines, ntl, ntr, edgeColor);
+			AddLine(lines, ntr, nbr, edgeColor);
+			AddLine(lines, nbr, nbl, edgeColor);
+			AddLine(lines, nbl, ntl, edgeColor);
+
+			// Far
+			AddLine(lines, ftl, ftr, edgeColor);
+			AddLine(lines, ftr, fbr, edgeColor);
+			AddLine(lines, fbr, fbl, edgeColor);
+			AddLine(lines, fbl, ftl, edgeColor);
+
+			// Connections
+			AddLine(lines, ntl, ftl, edgeColor);
+			AddLine(lines, ntr, ftr, edgeColor);
+			AddLine(lines, nbl, fbl, edgeColor);
+			AddLine(lines, nbr, fbr, edgeColor);
+
+			// Diagonals (orientation)
+			AddLine(lines, ntl, nbr, diagColor);
+			AddLine(lines, ntr, nbl, diagColor);
+			AddLine(lines, ftl, fbr, diagColor);
+			AddLine(lines, ftr, fbl, diagColor);
+
+			// Near plane grid
+			const int gridSteps = 1;
+			for (int i = 1; i < gridSteps; i++)
+			{
+				float t = i / (float)gridSteps;
+			
+				glm::vec3 left = glm::mix(nbl, ntl, t);
+				glm::vec3 right = glm::mix(nbr, ntr, t);
+				AddLine(lines, left, right, nearColor);
+			
+				glm::vec3 bottom = glm::mix(nbl, nbr, t);
+				glm::vec3 top = glm::mix(ntl, ntr, t);
+				AddLine(lines, bottom, top, nearColor);
+			}
+
+			// Far plane grid
+			for (int i = 1; i < gridSteps; i++)
+			{
+				float t = i / (float)gridSteps;
+			
+				glm::vec3 left = glm::mix(fbl, ftl, t);
+				glm::vec3 right = glm::mix(fbr, ftr, t);
+				AddLine(lines, left, right, farColor);
+			
+				glm::vec3 bottom = glm::mix(fbl, fbr, t);
+				glm::vec3 top = glm::mix(ftl, ftr, t);
+				AddLine(lines, bottom, top, farColor);
+			}
+
+			// Depth slices
+			const int depthSlices = 3;
+			for (int i = 1; i <= depthSlices; i++)
+			{
+				float t = i / (float)(depthSlices + 1);
+				float z = glm::mix(znear, zfar, t);
+
+				float h = 2.0f * tanHalfFov * z;
+				float w = h * aspect;
+
+				glm::vec3 center = pos + forward * z;
+
+				glm::vec3 tl = center + (up * h * 0.5f) - (right * w * 0.5f);
+				glm::vec3 tr = center + (up * h * 0.5f) + (right * w * 0.5f);
+				glm::vec3 bl = center - (up * h * 0.5f) - (right * w * 0.5f);
+				glm::vec3 br = center - (up * h * 0.5f) + (right * w * 0.5f);
+
+				AddLine(lines, tl, tr, sliceColor);
+				AddLine(lines, tr, br, sliceColor);
+				AddLine(lines, br, bl, sliceColor);
+				AddLine(lines, bl, tl, sliceColor);
+			}
+		}
+
 		template <typename Comp>
 		void InvalidateCollisionGroups(entt::registry& registry, uint32_t validMasks)
 		{
@@ -334,6 +561,7 @@ namespace Eagle
 	, m_RuntimePhysicsSettings(other->m_RuntimePhysicsSettings)
 	, bDrawMiscellaneous(other->bDrawMiscellaneous)
 	, bDrawNavMesh(other->bDrawNavMesh)
+	, bDrawMeshAABBs(other->bDrawMeshAABBs)
 	, bDrawBones(other->bDrawBones)
 	, m_Cubemap(other->m_Cubemap)
 	, m_Sky(other->m_Sky)
@@ -529,7 +757,7 @@ namespace Eagle
 			ComponentsNotificationSystem::Reset();
 			ScriptEngine::Reset();
 			RenderManager::Wait();
-			Ref<Scene> scene = MakeRef<Scene>(path.u8string(), (bReuseCurrentSceneRenderer && s_CurrentScene) ? s_CurrentScene->GetSceneRenderer() : nullptr, bRuntime);
+			Ref<Scene> scene = MakeRef<Scene>(Utils::AsString(path), (bReuseCurrentSceneRenderer && s_CurrentScene) ? s_CurrentScene->GetSceneRenderer() : nullptr, bRuntime);
 			scene->SetSkybox(SkySettings{});
 			scene->SetSkybox(nullptr);
 			scene->SetSkyboxIntensity(1.f);
@@ -545,7 +773,7 @@ namespace Eagle
 					OnSceneOpened(scene);
 				}
 				else
-					EG_CORE_ERROR("Failed to open the scene. The asset is not found: {}", path.u8string());
+					EG_CORE_ERROR("Failed to open the scene. The asset is not found: {}", path);
 			}
 			else
 			{
@@ -834,30 +1062,26 @@ namespace Eagle
 		{
 			auto view = m_Registry.view<PointLightComponent>();
 			m_PointLights.clear();
-			m_PointLightsDebugRadii.clear();
-			m_PointLightsDebugRadiiDirty = true;
 
 			for (auto entity : view)
 			{
 				auto& component = view.get<PointLightComponent>(entity);
-				if (component.VisualizeRadiusEnabled())
-					m_PointLightsDebugRadii.emplace(&component);
 				if (component.DoesAffectWorld())
 					m_PointLights.push_back(&component);
 			}
 		}
 
-		m_DirectionalLight = nullptr;
+		if (m_DirtyFlags.bDirLightsDirty)
 		{
-			auto view = m_Registry.view<DirectionalLightComponent>();
+			m_DirectionalLights.clear();
 
+			auto view = m_Registry.view<DirectionalLightComponent>();
 			for (auto entity : view)
 			{
 				auto& component = view.get<DirectionalLightComponent>(entity);
 				if (component.DoesAffectWorld())
 				{
-					m_DirectionalLight = &component;
-					break;
+					m_DirectionalLights.push_back(&component);
 				}
 			}
 		}
@@ -866,14 +1090,10 @@ namespace Eagle
 		{
 			auto view = m_Registry.view<SpotLightComponent>();
 			m_SpotLights.clear();
-			m_SpotLightsDebugRadii.clear();
-			m_SpotLightsDebugRadiiDirty = true;
 
 			for (auto entity : view)
 			{
 				auto& component = view.get<SpotLightComponent>(entity);
-				if (component.VisualizeDistanceEnabled())
-					m_SpotLightsDebugRadii.emplace(&component);
 				if (component.DoesAffectWorld())
 					m_SpotLights.push_back(&component);
 			}
@@ -1077,23 +1297,92 @@ namespace Eagle
 		// If meshes are dirty, there's not point in updating specific transforms
 		// Since meshes are going to be fully updated anyway
 		if (m_DirtyFlags.bStaticMeshTransformsDirty && !m_DirtyFlags.bStaticMeshesDirty)
-			m_SceneRenderer->UpdateMeshesTransforms(m_DirtyTransformStaticMeshes);
+		{
+			std::vector<const StaticMeshComponent*> dirtyComponents;
+			dirtyComponents.reserve(m_DirtyTransformStaticMeshes.size());
+			for (auto entityID : m_DirtyTransformStaticMeshes)
+			{
+				Entity e{ (entt::entity)entityID , this };
+				if (e.HasComponent<StaticMeshComponent>())
+				{
+					const auto& comp = e.GetComponent<StaticMeshComponent>();
+					dirtyComponents.emplace_back(&comp);
+				}
+			}
+
+			m_SceneRenderer->UpdateMeshesTransforms(dirtyComponents);
+		}
 
 		// Same for skeletals
 		if (m_DirtyFlags.bSkeletalMeshTransformsDirty && !m_DirtyFlags.bSkeletalMeshesDirty)
-			m_SceneRenderer->UpdateSkeletalMeshesTransforms(m_DirtyTransformSkeletalMeshes);
+		{
+			std::vector<const SkeletalMeshComponent*> dirtyComponents;
+			dirtyComponents.reserve(m_DirtyTransformSkeletalMeshes.size());
+			for (auto entityID : m_DirtyTransformSkeletalMeshes)
+			{
+				Entity e{ (entt::entity)entityID , this };
+				if (e.HasComponent<SkeletalMeshComponent>())
+				{
+					const auto& comp = e.GetComponent<SkeletalMeshComponent>();
+					dirtyComponents.emplace_back(&comp);
+				}
+			}
+
+			m_SceneRenderer->UpdateSkeletalMeshesTransforms(dirtyComponents);
+		}
 
 		// Same for sprites
 		if (m_DirtyFlags.bSpriteTransformsDirty && !m_DirtyFlags.bSpritesDirty)
-			m_SceneRenderer->UpdateSpritesTransforms(m_DirtyTransformSprites);
+		{
+			std::vector<const SpriteComponent*> dirtyComponents;
+			dirtyComponents.reserve(m_DirtyTransformSprites.size());
+			for (auto entityID : m_DirtyTransformSprites)
+			{
+				Entity e{ (entt::entity)entityID , this };
+				if (e.HasComponent<SpriteComponent>())
+				{
+					const auto& comp = e.GetComponent<SpriteComponent>();
+					dirtyComponents.emplace_back(&comp);
+				}
+			}
+
+			m_SceneRenderer->UpdateSpritesTransforms(dirtyComponents);
+		}
 
 		// Same for decals
 		if (m_DirtyFlags.bDecalTransformsDirty && !m_DirtyFlags.bDecalsDirty)
-			m_SceneRenderer->UpdateDecalsTransforms(m_DirtyTransformDecals);
+		{
+			std::vector<const DecalComponent*> dirtyComponents;
+			dirtyComponents.reserve(m_DirtyTransformDecals.size());
+			for (auto entityID : m_DirtyTransformDecals)
+			{
+				Entity e{ (entt::entity)entityID , this };
+				if (e.HasComponent<DecalComponent>())
+				{
+					const auto& comp = e.GetComponent<DecalComponent>();
+					dirtyComponents.emplace_back(&comp);
+				}
+			}
+			m_SceneRenderer->UpdateDecalsTransforms(dirtyComponents);
+		}
 
 		// Same for texts
 		if (m_DirtyFlags.bTextTransformsDirty && !m_DirtyFlags.bTextDirty)
-			m_SceneRenderer->UpdateTextsTransforms(m_DirtyTransformTexts);
+		{
+			std::vector<const TextComponent*> dirtyComponents;
+			dirtyComponents.reserve(m_DirtyTransformTexts.size());
+			for (auto entityID : m_DirtyTransformTexts)
+			{
+				Entity e{ (entt::entity)entityID , this };
+				if (e.HasComponent<TextComponent>())
+				{
+					const auto& comp = e.GetComponent<TextComponent>();
+					dirtyComponents.emplace_back(&comp);
+				}
+			}
+
+			m_SceneRenderer->UpdateTextsTransforms(dirtyComponents);
+		}
 
 		// Gather billboards
 		{
@@ -1107,33 +1396,51 @@ namespace Eagle
 			}
 		}
 
+		auto& rb = m_PhysicsScene->GetRenderBuffer();
+		const uint32_t debugCollisionsLinesSize = rb.getNbLines();
+
+		constexpr size_t linesPerDirLight = 3ull;
+		size_t debugDirLightLinesCount = 0;
+		auto dirLightsView = m_Registry.view<DirectionalLightComponent>();
+		debugDirLightLinesCount = dirLightsView.size() * linesPerDirLight;
+
+		m_DebugLinesToDraw.clear();
+		m_DebugLinesToDraw.reserve(debugCollisionsLinesSize + m_UserDebugLines.size() + debugDirLightLinesCount);
+		m_DebugTrianglesToDraw.clear();
+
 		// Gather Debug data
 		{
 			// Debug point lights attenuation radii
-			if (m_PointLightsDebugRadiiDirty)
 			{
-				m_DebugPointLines.clear();
-				for (auto& light : m_PointLightsDebugRadii)
+				for (auto& lightEntityID : m_PointLightsDebugRadii)
 				{
-					const glm::vec3& center = light->GetWorldTransform().Location;
-					const float radius = light->GetRadius();
-					Utils::DrawSphere(m_DebugPointLines, center, glm::vec3(0, 1, 0), radius);
+					Entity entity((entt::entity)lightEntityID, this);
+					if (!entity.HasComponent<PointLightComponent>())
+						return;
+
+					const auto& light = entity.GetComponent<PointLightComponent>();
+					const glm::vec3& center = light.GetWorldTransform().Location;
+					const float radius = light.GetRadius();
+					Utils::DrawSphere(m_DebugLinesToDraw, center, glm::vec3(0, 1, 0), radius);
 				}
-				m_PointLightsDebugRadiiDirty = false;
 			}
 
 			// Debug spot lights attenuation distance
-			if (m_SpotLightsDebugRadiiDirty)
 			{
-				m_DebugSpotLines.clear();
-				for (auto& light : m_SpotLightsDebugRadii)
+				for (auto& lightEntityID : m_SpotLightsDebugRadii)
 				{
-					const glm::vec3& location = light->GetWorldTransform().Location;
-					const float distance = light->GetDistance();
-					const glm::vec3 center = location + light->GetForwardVector() * distance;
-					const glm::quat quat = light->GetWorldTransform().Rotation.GetQuat();
-					const float innerRadius = distance * glm::tan(glm::radians(light->GetInnerCutOffAngle()));
-					const float outerRadius = distance * glm::tan(glm::radians(light->GetOuterCutOffAngle()));
+					Entity entity((entt::entity)lightEntityID, this);
+					if (!entity.HasComponent<SpotLightComponent>())
+						return;
+
+					const auto& light = entity.GetComponent<SpotLightComponent>();
+
+					const glm::vec3& location = light.GetWorldTransform().Location;
+					const float distance = light.GetDistance();
+					const glm::vec3 center = location + light.GetForwardVector() * distance;
+					const glm::quat quat = light.GetWorldTransform().Rotation.GetQuat();
+					const float innerRadius = distance * glm::tan(glm::radians(light.GetInnerCutOffAngle()));
+					const float outerRadius = distance * glm::tan(glm::radians(light.GetOuterCutOffAngle()));
 
 					for (uint32_t i = 0; i < Utils::s_SphereLinesCount; ++i)
 					{
@@ -1145,64 +1452,54 @@ namespace Eagle
 						const float sinAngle2 = glm::sin(angle2);
 
 						const glm::vec3 innerStart = center + glm::rotate(quat, innerRadius * glm::vec3(cosAngle1, sinAngle1, 0.f));
-						auto& innerCircleLine = m_DebugSpotLines.emplace_back();
+						auto& innerCircleLine = m_DebugLinesToDraw.emplace_back();
 						innerCircleLine.Start.Location = innerStart;
 						innerCircleLine.End.Location = center + glm::rotate(quat, innerRadius * glm::vec3(cosAngle2, sinAngle2, 0.f));
 
-						auto& toInnerLine = m_DebugSpotLines.emplace_back();
+						auto& toInnerLine = m_DebugLinesToDraw.emplace_back();
 						toInnerLine.Start.Location = location;
 						toInnerLine.End.Location = innerStart;
 
 						const glm::vec3 outerStart = center + glm::rotate(quat, outerRadius * glm::vec3(cosAngle1, sinAngle1, 0.f));
-						auto& outerCircleLine = m_DebugSpotLines.emplace_back();
+						auto& outerCircleLine = m_DebugLinesToDraw.emplace_back();
 						outerCircleLine.Start.Location = outerStart;
 						outerCircleLine.End.Location = center + glm::rotate(quat, outerRadius * glm::vec3(cosAngle2, sinAngle2, 0.f));
 						outerCircleLine.Start.Color = glm::vec3(0.75, 0.75f, 0.f);
 						outerCircleLine.End.Color = glm::vec3(0.75, 0.75f, 0.f);
 
-						auto& toOuterLine = m_DebugSpotLines.emplace_back();
+						auto& toOuterLine = m_DebugLinesToDraw.emplace_back();
 						toOuterLine.Start.Location = location;
 						toOuterLine.End.Location = outerStart;
 						toOuterLine.Start.Color = glm::vec3(0.75, 0.75f, 0.f);
 						toOuterLine.End.Color = glm::vec3(0.75, 0.75f, 0.f);
 					}
 				}
-				m_SpotLightsDebugRadiiDirty = false;
 			}
 
 			// Debug spot lights attenuation distance
-			if (m_ReverbDebugBoxesDirty)
 			{
-				m_DebugReverbLines.clear();
-				for (auto& reverb : m_ReverbDebugBoxes)
+				for (auto& reverbEntityID : m_ReverbDebugBoxes)
 				{
-					const glm::vec3& center = reverb->GetReverb()->GetPosition();
-					Utils::DrawSphere(m_DebugReverbLines, center, glm::vec3(0, 1, 0), reverb->GetMinDistance());
-					Utils::DrawSphere(m_DebugReverbLines, center, glm::vec3(1, 0, 0), reverb->GetMaxDistance());
+					Entity entity((entt::entity)reverbEntityID, this);
+					if (!entity.HasComponent<ReverbComponent>())
+						return;
+
+					const auto& reverb = entity.GetComponent<ReverbComponent>();
+					const glm::vec3& center = reverb.GetReverb()->GetPosition();
+					Utils::DrawSphere(m_DebugLinesToDraw, center, glm::vec3(0, 1, 0), reverb.GetMinDistance());
+					Utils::DrawSphere(m_DebugLinesToDraw, center, glm::vec3(1, 0, 0), reverb.GetMaxDistance());
 				}
-				m_ReverbDebugBoxesDirty = false;
 			}
 
-			auto& rb = m_PhysicsScene->GetRenderBuffer();
-			const uint32_t debugCollisionsLinesSize = rb.getNbLines();
-
-			constexpr size_t linesPerDirLight = 3ull;
-			size_t debugDirLightLinesCount = 0;
-			auto dirLightsView = m_Registry.view<DirectionalLightComponent>();
-			debugDirLightLinesCount = dirLightsView.size() * linesPerDirLight;
-
-			m_DebugLinesToDraw.clear();
-			m_DebugLinesToDraw.reserve(debugCollisionsLinesSize + m_DebugPointLines.size() + m_DebugSpotLines.size() + m_DebugReverbLines.size() + m_UserDebugLines.size() + debugDirLightLinesCount);
-			m_DebugLinesToDraw = m_DebugPointLines;
-			m_DebugLinesToDraw.insert(m_DebugLinesToDraw.end(), m_DebugSpotLines.begin(), m_DebugSpotLines.end());
-			m_DebugLinesToDraw.insert(m_DebugLinesToDraw.end(), m_DebugReverbLines.begin(), m_DebugReverbLines.end());
-			m_DebugTrianglesToDraw.clear();
-
-			for (auto entity : dirLightsView)
+			// Debug dir lights direction
 			{
-				auto& dir = dirLightsView.get<DirectionalLightComponent>(entity);
-				if (dir.bVisualizeDirection)
+				for (auto& lightEntityID : m_DirLightsDebugDirection)
 				{
+					Entity entity((entt::entity)lightEntityID, this);
+					if (!entity.HasComponent<DirectionalLightComponent>())
+						return;
+
+					const auto& dir = entity.GetComponent<DirectionalLightComponent>();
 					const glm::vec3& location = dir.GetWorldTransform().Location;
 					const glm::vec3 forward = dir.GetForwardVector();
 					const glm::vec3 endLocation = location + forward * 0.2f;
@@ -1241,24 +1538,34 @@ namespace Eagle
 			// AABBs
 			if (true)
 			{
-				if (false)
+				if (bDrawMeshAABBs)
 				{
 					auto view = m_Registry.view<SkeletalMeshComponent>();
 					for (auto entity : view)
 					{
 						const auto& skeletal = view.get<SkeletalMeshComponent>(entity);
 						if (const auto& asset = skeletal.GetMeshAsset())
-							Utils::DrawBox(m_DebugLinesToDraw, asset->GetMesh()->GetAABB(), skeletal.GetWorldTransform());
+							Utils::DrawAABB(m_DebugLinesToDraw, asset->GetMesh()->GetAABB(), skeletal.GetWorldTransform());
 					}
 				}
-				if (false)
+				if (bDrawMeshAABBs)
 				{
 					auto view = m_Registry.view<StaticMeshComponent>();
 					for (auto entity : view)
 					{
 						const auto& staticMesh = view.get<StaticMeshComponent>(entity);
 						if (const auto& asset = staticMesh.GetMeshAsset())
-							Utils::DrawBox(m_DebugLinesToDraw, asset->GetMesh()->GetAABB(), staticMesh.GetWorldTransform());
+							Utils::DrawAABB(m_DebugLinesToDraw, asset->GetMesh()->GetAABB(), staticMesh.GetWorldTransform());
+					}
+				}
+				if (false)
+				{
+					const float aspect = float(m_ViewportWidth) / m_ViewportHeight;
+					auto view = m_Registry.view<CameraComponent>();
+					for (auto entity : view)
+					{
+						const auto& camera = view.get<CameraComponent>(entity);
+						Utils::DrawFrustum(m_DebugLinesToDraw, camera.Camera, camera.GetWorldTransform(), aspect);
 					}
 				}
 				if (false)
@@ -1365,11 +1672,16 @@ namespace Eagle
 						Utils::DrawBox(m_DebugLinesToDraw, aabb, {}, glm::vec3(0, 0, 1));
 					}
 				}
-				for (const auto& [aabb, transform] :m_UserAABBs)
+				for (const auto& [aabb, transform] : m_UserAABBs)
+				{
+					Utils::DrawAABB(m_DebugLinesToDraw, aabb, transform);
+				}
+				for (const auto& [aabb, transform] : m_UserBoxes)
 				{
 					Utils::DrawBox(m_DebugLinesToDraw, aabb, transform);
 				}
 				m_UserAABBs.clear();
+				m_UserBoxes.clear();
 			}
 
 			// Append user provided lines
@@ -1465,7 +1777,7 @@ namespace Eagle
 		const Camera* camera = bIsPlaying ? (Camera*)&m_RuntimeCamera->Camera : (Camera*)&m_EditorCamera;
 		m_SceneRenderer->SetPointLights(m_PointLights, m_DirtyFlags.bPointLightsDirty);
 		m_SceneRenderer->SetSpotLights(m_SpotLights, m_DirtyFlags.bSpotLightsDirty);
-		m_SceneRenderer->SetDirectionalLight(m_DirectionalLight);
+		m_SceneRenderer->SetDirectionalLight(m_DirectionalLights.empty() ? nullptr : m_DirectionalLights[0]);
 		m_SceneRenderer->SetMeshes(m_Meshes, m_DirtyFlags.bStaticMeshesDirty);
 		m_SceneRenderer->SetSkeletalMeshes(m_SkeletalMeshes, m_DirtyFlags.bSkeletalMeshesDirty);
 		m_SceneRenderer->SetSprites(m_Sprites, m_DirtyFlags.bSpritesDirty);
@@ -1480,6 +1792,23 @@ namespace Eagle
 		m_SceneRenderer->SetSkeletalParticleAnimationTransforms(std::move(m_SkeletalParticlesAnimationTransforms));
 		m_SceneRenderer->SetGravity(m_RuntimePhysicsSettings.Gravity);
 		m_SceneRenderer->SetDecals(m_Decals, m_DirtyFlags.bDecalsDirty);
+
+		if (!m_DebugCameras.empty())
+		{
+			const float aspect = float(m_ViewportWidth) / m_ViewportHeight;
+			const uint32_t cameraEntityID = *m_DebugCameras.begin();
+			Entity entity((entt::entity)cameraEntityID, this);
+
+			EG_CORE_ASSERT(entity.HasComponent<CameraComponent>());
+			if (entity.HasComponent<CameraComponent>())
+			{
+				const auto& camera = entity.GetComponent<CameraComponent>();
+				const float fovY = camera.Camera.GetPerspectiveVerticalFOV();
+				const float nearPlane = camera.Camera.GetPerspectiveNearClip();
+				const float farPlane = camera.Camera.GetPerspectiveFarClip();
+				m_SceneRenderer->SetDebugFrustumCulling(camera.GetViewMatrix(), aspect, fovY, nearPlane, farPlane);
+			}
+		}
 
 		const bool bDrawEditorHelpers = !bIsPlaying && bDrawMiscellaneous;
 		m_SceneRenderer->SetGridEnabled(bDrawEditorHelpers);
@@ -1501,11 +1830,11 @@ namespace Eagle
 
 				m_SceneRenderer->AddAdditionalBillboard(transform, Texture2D::SpotLightIcon, (int)spot->Parent.GetID());
 			}
-			if (m_DirectionalLight)
+			for (const auto& dir : m_DirectionalLights)
 			{
-				transform = m_DirectionalLight->GetWorldTransform();
+				transform = dir->GetWorldTransform();
 				transform.Scale3D = glm::vec3(0.25f);
-				m_SceneRenderer->AddAdditionalBillboard(transform, Texture2D::DirectionalLightIcon, (int)m_DirectionalLight->Parent.GetID());
+				m_SceneRenderer->AddAdditionalBillboard(transform, Texture2D::DirectionalLightIcon, (int)dir->Parent.GetID());
 			}
 		}
 
@@ -1601,7 +1930,7 @@ namespace Eagle
 	Entity Scene::CreateFromEntityAsset(const Ref<AssetEntity>& asset, bool bCopyGUID)
 	{
 		Entity createdEntity = CreateFromEntity(*asset->GetEntity().get(), bCopyGUID);
-		createdEntity.SetName(asset->GetPath().stem().u8string());
+		createdEntity.SetName(Utils::AsString(asset->GetPath().stem()));
 		if (createdEntity.HasComponent<EntityAssetComponent>())
 		{
 			createdEntity.GetComponent<EntityAssetComponent>().AssetGUID = asset->GetGUID();
@@ -1773,6 +2102,12 @@ namespace Eagle
 		}
 	}
 
+	void Scene::DrawFrustum(const CameraComponent& camera)
+	{
+		const float aspect = float(m_ViewportWidth) / m_ViewportHeight;
+		Utils::DrawFrustum(m_UserDebugLines, camera.Camera, camera.GetWorldTransform(), aspect);
+	}
+
 	SceneSoundData Scene::SpawnSound2D(const Ref<AssetAudio>& audio, const SoundSettings& settings)
 	{
 		SceneSoundData result;
@@ -1925,6 +2260,7 @@ namespace Eagle
 		{
 			m_DirtyFlags.bPointLightsDirty = true;
 		}
+		m_PointLightsDebugRadii.erase(entity.GetID());
 	}
 
 	void Scene::OnSpotLightAdded(entt::registry& r, entt::entity e)
@@ -1940,6 +2276,7 @@ namespace Eagle
 		{
 			m_DirtyFlags.bSpotLightsDirty = true;
 		}
+		m_SpotLightsDebugRadii.erase(entity.GetID());
 	}
 
 	void Scene::OnTextAddedRemoved(entt::registry& r, entt::entity e)
@@ -2017,6 +2354,24 @@ namespace Eagle
 		component.RemoveAgent();
 	}
 
+	void Scene::OnCameraRemoved(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		m_DebugCameras.erase(entity.GetID());
+	}
+
+	void Scene::OnReverbRemoved(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		m_ReverbDebugBoxes.erase(entity.GetID());
+	}
+
+	void Scene::OnDirectionalLightRemoved(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		m_DirLightsDebugDirection.erase(entity.GetID());
+	}
+
 	void Scene::ConnectSignals()
 	{
 		m_Registry.on_destroy<StaticMeshComponent>().connect<&Scene::OnStaticMeshComponentRemoved>(*this);
@@ -2043,6 +2398,9 @@ namespace Eagle
 		m_Registry.on_destroy<CapsuleColliderComponent>().connect<&Scene::OnCapsuleColliderRemoved>(*this);
 		m_Registry.on_construct<NavigationCrowdAgentComponent>().connect<&Scene::OnCrowdAgentAdded>(*this);
 		m_Registry.on_destroy<NavigationCrowdAgentComponent>().connect<&Scene::OnCrowdAgentRemoved>(*this);
+		m_Registry.on_destroy<CameraComponent>().connect<&Scene::OnCameraRemoved>(*this);
+		m_Registry.on_destroy<ReverbComponent>().connect<&Scene::OnReverbRemoved>(*this);
+		m_Registry.on_destroy<DirectionalLightComponent>().connect<&Scene::OnDirectionalLightRemoved>(*this);
 	}
 
 	void Scene::RegisterSkeletalParticleIfCan(const ParticleSystemComponent& system)

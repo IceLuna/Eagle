@@ -10,7 +10,7 @@ namespace Eagle
 	class SkyboxPassTask : public RendererTask
 	{
 	public:
-		SkyboxPassTask(SceneRenderer& renderer, const Ref<Image>& renderTo);
+		SkyboxPassTask(SceneRenderer& renderer);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(glm::uvec2 size) override
@@ -26,7 +26,6 @@ namespace Eagle
 	private:
 		Ref<PipelineGraphics> m_IBLPipeline;
 		Ref<PipelineGraphics> m_SkyPipeline;
-		Ref<Image> m_FinalImage;
 
 		struct Clouds
 		{

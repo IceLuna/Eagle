@@ -185,6 +185,7 @@ namespace Eagle
 			m_Radius = other.m_Radius;
 			m_VisualizeRadiusEnabled = other.m_VisualizeRadiusEnabled;
 			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
+			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnDebugStateChanged);
 			return *this;
 		}
 
@@ -243,13 +244,13 @@ namespace Eagle
 		
 		bool VisualizeRadiusEnabled() const { return m_VisualizeRadiusEnabled; }
 
-		virtual void SetCastsShadows(bool bCasts) override
+		void SetCastsShadows(bool bCasts) override
 		{
 			m_bCastsShadows = bCasts;
 			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
 		}
 
-		virtual void SetIsVolumetricLight(bool bVolumetric) override
+		void SetIsVolumetricLight(bool bVolumetric) override
 		{
 			m_bVolumetricLight = bVolumetric;
 			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
@@ -267,9 +268,92 @@ namespace Eagle
 		DirectionalLightComponent(const Entity& entity, const glm::vec3& lightColor)
 			: LightComponent(entity, lightColor) {}
 
-		COMPONENT_DEFAULTS(DirectionalLightComponent);
+		DirectionalLightComponent(const DirectionalLightComponent&) = delete;
+		DirectionalLightComponent(DirectionalLightComponent&& other) = default;
+		DirectionalLightComponent& operator=(DirectionalLightComponent&& other) = default;
+		DirectionalLightComponent& operator=(const DirectionalLightComponent& other)
+		{
+			if (this == &other)
+				return *this;
 
-		glm::vec3 Ambient = glm::vec3(0.f);
+			LightComponent::operator=(other);
+
+			m_Ambient = other.m_Ambient;
+			bVisualizeDirection = other.bVisualizeDirection;
+			Parent.SignalComponentChanged<DirectionalLightComponent>(Notification::OnStateChanged);
+			Parent.SignalComponentChanged<DirectionalLightComponent>(Notification::OnDebugStateChanged);
+			return *this;
+		}
+
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			LightComponent::SetWorldTransform(worldTransform);
+			Parent.SignalComponentChanged<DirectionalLightComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			LightComponent::SetRelativeTransform(relativeTransform);
+			Parent.SignalComponentChanged<DirectionalLightComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetLightColor(const glm::vec3& lightColor) override
+		{
+			m_LightColor = lightColor;
+			Parent.SignalComponentChanged<DirectionalLightComponent>(Notification::OnStateChanged);
+		}
+
+		void SetAffectsWorld(bool bAffects) override
+		{
+			m_bAffectsWorld = bAffects;
+			Parent.SignalComponentChanged<DirectionalLightComponent>(Notification::OnStateChanged);
+		}
+
+		void SetIntensity(float intensity) override
+		{
+			m_Intensity = glm::max(0.f, intensity);
+			Parent.SignalComponentChanged<DirectionalLightComponent>(Notification::OnStateChanged);
+		}
+
+		void SetVolumetricFogIntensity(float intensity) override
+		{
+			m_VolumetricFogIntensity = glm::max(0.f, intensity);
+			Parent.SignalComponentChanged<DirectionalLightComponent>(Notification::OnStateChanged);
+		}
+
+		void SetAmbientColor(const glm::vec3& ambient)
+		{
+			m_Ambient = ambient;
+			Parent.SignalComponentChanged<DirectionalLightComponent>(Notification::OnStateChanged);
+		}
+
+		const glm::vec3& GetAmbientColor() const { return m_Ambient; }
+
+		void SetVisualizeDirectionEnabled(bool bEnabled)
+		{
+			if (bVisualizeDirection != bEnabled)
+			{
+				bVisualizeDirection = bEnabled;
+				Parent.SignalComponentChanged<DirectionalLightComponent>(Notification::OnDebugStateChanged);
+			}
+		}
+
+		bool IsVisualizeDirectionEnabled() const { return bVisualizeDirection; }
+
+		void SetCastsShadows(bool bCasts) override
+		{
+			m_bCastsShadows = bCasts;
+			Parent.SignalComponentChanged<DirectionalLightComponent>(Notification::OnStateChanged);
+		}
+
+		void SetIsVolumetricLight(bool bVolumetric) override
+		{
+			m_bVolumetricLight = bVolumetric;
+			Parent.SignalComponentChanged<DirectionalLightComponent>(Notification::OnStateChanged);
+		}
+
+	private:
+		glm::vec3 m_Ambient = glm::vec3(0.f);
 		bool bVisualizeDirection = false;
 	};
 
@@ -293,6 +377,7 @@ namespace Eagle
 			m_Distance = other.m_Distance;
 			m_VisualizeDistanceEnabled = other.m_VisualizeDistanceEnabled;
 
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnDebugStateChanged);
 			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
 			return *this;
 		}
@@ -898,6 +983,13 @@ namespace Eagle
 		}
 		bool IsVisible() const { return m_bVisible; }
 
+		void SetDoubleSided(bool bDoubleSided)
+		{
+			m_bDoubleSided = bDoubleSided;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+		bool IsDoubleSided() const { return m_bDoubleSided; }
+
 	private:
 		std::string m_Text = "Hello, World!";
 		Ref<AssetFont> m_FontAsset;
@@ -908,6 +1000,7 @@ namespace Eagle
 		float m_Kerning = 0.0f;
 		float m_MaxWidth = 10.0f;
 
+		bool m_bDoubleSided = false; // Used if bLit == false
 		bool m_bLit = false;
 		bool m_bCastsShadows = false;
 		bool m_bReceivesDecals = true;
@@ -1017,7 +1110,26 @@ namespace Eagle
 	{
 	public:
 		CameraComponent(const Entity& entity) : SceneComponent(entity) {}
-		COMPONENT_DEFAULTS(CameraComponent);
+		CameraComponent(const CameraComponent&) = delete;
+		CameraComponent(CameraComponent&&) noexcept = default;
+		CameraComponent& operator=(CameraComponent&&) noexcept = default;
+
+		CameraComponent& operator=(const CameraComponent& other)
+		{
+			if (this == &other)
+				return *this;
+
+			SceneComponent::operator=(other);
+
+			m_ViewMatrix = other.m_ViewMatrix;
+			bDebugFrustumCulling = other.bDebugFrustumCulling;
+			Camera = other.Camera;
+			Primary = other.Primary;
+			FixedAspectRatio = other.FixedAspectRatio;
+
+			Parent.SignalComponentChanged<CameraComponent>(Notification::OnStateChanged);
+			return *this;
+		}
 
 		void SetWorldTransform(const Transform& worldTransform) override
 		{
@@ -1040,6 +1152,14 @@ namespace Eagle
 		{
 			return m_ViewMatrix;
 		}
+
+		void SetDebugFrustumCullingEnabled(bool bEnabled)
+		{
+			bDebugFrustumCulling = bEnabled;
+			Parent.SignalComponentChanged<CameraComponent>(Notification::OnDebugStateChanged);
+		}
+
+		bool IsDebugFrustumCullingEnabled() const { return bDebugFrustumCulling; }
 		
 	private:
 		void CalculateViewMatrix()
@@ -1052,6 +1172,7 @@ namespace Eagle
 
 	private:
 		glm::mat4 m_ViewMatrix = glm::mat4(1.f);
+		bool bDebugFrustumCulling = false; // When enabled, this camera's frustum will be used for culling
 
 	public:
 		SceneCamera Camera;
@@ -1305,6 +1426,7 @@ namespace Eagle
 	{
 	public:
 		MeshColliderComponent(const Entity& entity) : BaseColliderComponent(entity) { OnInit(); }
+		~MeshColliderComponent();
 		MeshColliderComponent& operator=(const MeshColliderComponent& other);
 		MeshColliderComponent(const MeshColliderComponent&) = delete;
 		MeshColliderComponent(MeshColliderComponent&&) noexcept = default;

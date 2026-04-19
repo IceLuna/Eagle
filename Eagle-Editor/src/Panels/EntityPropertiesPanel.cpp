@@ -228,11 +228,14 @@ namespace Eagle
 			
 			if(entityTreeOpened)
 			{
+				const bool bCanRemoveRigidBody = !entity.HasAny<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, MeshColliderComponent>();
+
 #define EG_DRAW_COMPONENT_LINE(label, type, typeEnum) { if (DrawComponentLine<type>(label, entity, m_SelectedComponent == typeEnum)) m_SelectedComponent = typeEnum; }
+#define EG_DRAW_COMPONENT_LINE_EX(label, type, typeEnum, bCanRemove) { if (DrawComponentLine<type>(label, entity, m_SelectedComponent == typeEnum, bCanRemove)) m_SelectedComponent = typeEnum; }
 				EG_DRAW_COMPONENT_LINE("C# Script", ScriptComponent, SelectedComponent::ScriptComponent);
 				EG_DRAW_COMPONENT_LINE("Audio", AudioComponent, SelectedComponent::AudioComponent);
 				EG_DRAW_COMPONENT_LINE("Reverb", ReverbComponent, SelectedComponent::ReverbComponent);
-				EG_DRAW_COMPONENT_LINE("Rigid Body", RigidBodyComponent, SelectedComponent::RigidBodyComponent);
+				EG_DRAW_COMPONENT_LINE_EX("Rigid Body", RigidBodyComponent, SelectedComponent::RigidBodyComponent, bCanRemoveRigidBody);
 				EG_DRAW_COMPONENT_LINE("Box Collider", BoxColliderComponent, SelectedComponent::BoxColliderComponent);
 				EG_DRAW_COMPONENT_LINE("Sphere Collider", SphereColliderComponent, SelectedComponent::SphereColliderComponent);
 				EG_DRAW_COMPONENT_LINE("Capsule Collider", CapsuleColliderComponent, SelectedComponent::CapsuleColliderComponent);
@@ -253,6 +256,7 @@ namespace Eagle
 				EG_DRAW_COMPONENT_LINE("Navigation Mesh", NavigationMeshComponent, SelectedComponent::NavigationMeshComponent);
 				EG_DRAW_COMPONENT_LINE("Navigation Crowd Agent", NavigationCrowdAgentComponent, SelectedComponent::NavigationCrowdAgentComponent);
 #undef EG_DRAW_COMPONENT_LINE
+#undef EG_DRAW_COMPONENT_LINE_EX
 				ImGui::TreePop();
 			}
 
@@ -623,6 +627,13 @@ namespace Eagle
 							component.SetColor(color);
 							bEntityChanged = true;
 						}
+
+						bool bDoubleSided = component.IsDoubleSided();
+						if (UI::Property("Double Sided", bDoubleSided))
+						{
+							component.SetDoubleSided(bDoubleSided);
+							bEntityChanged = true;
+						}
 					}
 					
 					if (UI::PropertyDrag("Line Spacing", lineSpacing, 0.1f))
@@ -884,6 +895,12 @@ namespace Eagle
 						camera.SetCascadesSmoothTransitionAlpha(cascadesTransitionAlpha);
 						bEntityChanged = true;
 					}
+
+					bool bDebugFrustumCulling = cameraComponent.IsDebugFrustumCullingEnabled();
+					if (UI::Property("Use for culling", bDebugFrustumCulling, "When enabled, this camera's frustum will be used for culling. This property is not saved. Use for debug purposes only"))
+					{
+						cameraComponent.SetDebugFrustumCullingEnabled(bDebugFrustumCulling);
+					}
 					
 					UI::EndPropertyGrid();
 
@@ -978,11 +995,13 @@ namespace Eagle
 				DrawComponent<DirectionalLightComponent>("Directional Light", entity, [&entity, this](DirectionalLightComponent& directionalLight)
 				{
 					glm::vec3 lightColor = directionalLight.GetLightColor();
+					glm::vec3 ambientColor = directionalLight.GetAmbientColor();
 					float intensity = directionalLight.GetIntensity();
 					float fogIntensity = directionalLight.GetVolumetricFogIntensity();
 					bool bAffectsWorld = directionalLight.DoesAffectWorld();
 					bool bCastsShadows = directionalLight.DoesCastShadows();
 					bool bVolumetric = directionalLight.IsVolumetricLight();
+					bool bVisualize = directionalLight.IsVisualizeDirectionEnabled();
 
 					UI::BeginPropertyGrid("DirectionalLightComponent");
 					if (UI::PropertyColor("Light Color", lightColor))
@@ -997,7 +1016,11 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					bEntityChanged |= UI::PropertyColor("Ambient", directionalLight.Ambient);
+					if (UI::PropertyColor("Ambient", ambientColor))
+					{
+						directionalLight.SetAmbientColor(ambientColor);
+						bEntityChanged = true;
+					}
 						
 					if (UI::Property("Affects world", bAffectsWorld))
 					{
@@ -1011,7 +1034,11 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					bEntityChanged |= UI::Property("Visualize direction", directionalLight.bVisualizeDirection);
+					if (UI::Property("Visualize direction", bVisualize))
+					{
+						directionalLight.SetVisualizeDirectionEnabled(bVisualize);
+						bEntityChanged = true;
+					}
 
 					if (!bVolumetricsEnabled)
 						UI::PushItemDisabled();

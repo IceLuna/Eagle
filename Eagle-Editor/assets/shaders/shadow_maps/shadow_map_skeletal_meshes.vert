@@ -8,17 +8,34 @@ const uint s_Set = 1;
 const uint s_Set = 0;
 #endif
 
-layout(set = s_Set, binding = 0) readonly buffer MeshTransformsBuffer
+layout(scalar, set = s_Set, binding = 0)
+readonly buffer SkinnedVertices
 {
-    mat4 g_Transforms[];
+    Vertex g_SkinnedVertices[];
 };
+
+#ifdef EG_MATERIALS_REQUIRED
+layout(scalar, set = s_Set, binding = 1)
+readonly buffer PerInstanceDataBuffer
+{
+    InstanceData g_InstanceData[];
+};
+#endif
 
 // For point lights & multi-view depth-pass
 #ifdef EG_POINT_LIGHT_PASS
 #extension GL_EXT_multiview : enable
-layout(set = s_Set, binding = 1) uniform ViewProjectionsBuffer
+layout(set = s_Set, binding = 2) readonly buffer ViewProjectionsBuffer
 {
-    mat4 g_ViewProjections[6];
+    mat4 g_ViewProjections[];
+};
+
+layout(push_constant) uniform PushData
+{
+    uint g_LightIndex;
+    uint g_VertexCount;
+    uint g_InstanceOffset;
+    uint g_VerticesOffset;
 };
 #endif
 
@@ -26,14 +43,11 @@ layout(set = s_Set, binding = 1) uniform ViewProjectionsBuffer
 layout(push_constant) uniform PushData
 {
     mat4 g_ViewProj;
+    uint g_VertexCount;
+    uint g_InstanceOffset;
+    uint g_VerticesOffset;
 };
 #endif
-
-layout(set = 3, binding = 0)
-readonly buffer MeshAnimTransformsBuffer
-{
-    mat4 Transforms[];
-} g_MeshAnimation[];
 
 #ifdef EG_MATERIALS_REQUIRED
 layout(location = 0) out vec2 o_TexCoords;
@@ -42,24 +56,16 @@ layout(location = 1) flat out uint o_MaterialIndex;
 
 void main()
 {
-    const uint transformIndex = a_PerInstanceData.x & (EG_RECEIVES_DECALS_MASK - 1); // Get all but the highest bit
+    // We need an index that's not affected by the offset.
+    // So, we need something that goes from [0; InstanceCount)
+    const uint instanceIndex = gl_InstanceIndex - g_InstanceOffset;
+    const uint vertexIndex = g_VerticesOffset + g_VertexCount * instanceIndex + gl_VertexIndex;
 
-    vec4 totalPosition = vec4(a_Position, 1.0);
-    mat4 boneTransform = mat4(0.f);
-    for (uint i = 0; i < 4; ++i)
-    {
-        const float weight = GetWeight(i);
-        if (weight > 0.f)
-        {
-            boneTransform += g_MeshAnimation[nonuniformEXT(transformIndex)].Transforms[GetBoneID(i)] * weight;
-        }
-    }
+    const Vertex vertex = g_SkinnedVertices[vertexIndex];
 
-    totalPosition = boneTransform * vec4(a_Position, 1.0);
-
-    const vec4 worldPos = g_Transforms[transformIndex] * totalPosition;
+    const vec4 worldPos = vec4(vertex.Position, 1.0);
 #ifdef EG_POINT_LIGHT_PASS
-    gl_Position = g_ViewProjections[gl_ViewIndex] * worldPos;
+    gl_Position = g_ViewProjections[g_LightIndex * 6 + gl_ViewIndex] * worldPos;
 #elif defined(EG_SPOT_LIGHT_PASS)
     gl_Position = g_ViewProj * worldPos;
 #else
@@ -67,7 +73,9 @@ void main()
 #endif
 
 #ifdef EG_MATERIALS_REQUIRED
-    o_TexCoords = a_TexCoords;
-    o_MaterialIndex = a_PerInstanceData.y;
+    const InstanceData instanceData = g_InstanceData[gl_InstanceIndex];
+
+    o_TexCoords = vertex.TexCoords;
+    o_MaterialIndex = instanceData.MaterialIndex;
 #endif
 }

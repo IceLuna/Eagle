@@ -253,8 +253,10 @@ namespace Eagle
 		EG_CORE_ASSERT(m_PhysicalDevice == nullptr);
 		m_PhysicalDevice = VulkanPhysicalDevice::Select(surface, bRequireSurface);
 
-		VkPhysicalDevice16BitStorageFeatures storageFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES };
-		storageFeatures.storageBuffer16BitAccess = VK_TRUE;
+		VkPhysicalDeviceVulkan11Features deviceFeatures11 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
+		deviceFeatures11.multiview = VK_TRUE;
+		deviceFeatures11.storageBuffer16BitAccess = VK_TRUE;
+		deviceFeatures11.shaderDrawParameters = VK_TRUE;
 
 		VkPhysicalDeviceVulkan12Features deviceFeatures12 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
 		deviceFeatures12.descriptorIndexing = VK_TRUE;
@@ -266,10 +268,16 @@ namespace Eagle
 		deviceFeatures12.imagelessFramebuffer = VK_TRUE;
 		deviceFeatures12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
 		deviceFeatures12.shaderFloat16 = m_PhysicalDevice->IsFloat16Supported() ? VK_TRUE : VK_FALSE;
+		deviceFeatures12.scalarBlockLayout = VK_TRUE;
+		deviceFeatures12.drawIndirectCount = VK_TRUE;
 #ifdef EG_GPU_TIMINGS
 		deviceFeatures12.hostQueryReset = VK_TRUE;
 #endif
-		deviceFeatures12.pNext = &storageFeatures;
+		deviceFeatures12.pNext = &deviceFeatures11;
+
+		VkPhysicalDeviceVulkan13Features deviceFeatures13 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
+		deviceFeatures13.shaderDemoteToHelperInvocation = VK_TRUE;
+		deviceFeatures13.pNext = &deviceFeatures12;
 
 		if (!m_PhysicalDevice->IsFloat16Supported())
 		{
@@ -287,7 +295,9 @@ namespace Eagle
 		features.features.textureCompressionETC2 = supportedFeatures.bTextureCompressionETC2;
 		features.features.textureCompressionBC = supportedFeatures.bTextureCompressionBC;
 		features.features.shaderInt16 = VK_TRUE;
-		features.pNext = &deviceFeatures12;
+		features.features.drawIndirectFirstInstance = VK_TRUE;
+		features.features.multiDrawIndirect = VK_TRUE;
+		features.pNext = &deviceFeatures13;
 
 		m_Device = VulkanDevice::Create(m_PhysicalDevice, features);
 

@@ -34,7 +34,7 @@ namespace Eagle
 		const Path& GetCurrentRelativeDirectory() const { return m_CurrentDirectoryRelative; }
 		void RefreshBrowserContent() { m_RefreshBrowser = true; }
 
-		static ContentBrowserPanel& Get(); // Not a good idea™
+		static ContentBrowserPanel& Get(); // Not a good idea
 
 		const char* GetWindowName() const { return "Content Browser"; }
 

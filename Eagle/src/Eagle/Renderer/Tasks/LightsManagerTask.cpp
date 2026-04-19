@@ -63,6 +63,9 @@ namespace Eagle
 			light.LightColor = pointLight->GetLightColor() * pointLight->GetIntensity();
 			light.VolumetricFogIntensity = glm::max(pointLight->GetVolumetricFogIntensity(), 0.0f);
 
+			for (int i = 0; i < 6; ++i)
+				light.ViewProj[i] = s_PointLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + s_Directions[i], s_UpVectors[i]);
+
 			uint32_t* intensity = (uint32_t*)&light.VolumetricFogIntensity;
 			*intensity = (*intensity) | (bVolumetric ? 0x80000000 : 0u);
 
@@ -74,12 +77,6 @@ namespace Eagle
 		{
 			auto thisRef = Cast<LightsManagerTask>(task);
 			thisRef->m_PointLights = std::move(pointLights);
-
-			for (auto& light : thisRef->m_PointLights)
-			{
-				for (int i = 0; i < 6; ++i)
-					light.ViewProj[i] = s_PointLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + s_Directions[i], s_UpVectors[i]);
-			}
 			thisRef->bPointLightsDirty = true;
 		});
 	}
@@ -93,6 +90,9 @@ namespace Eagle
 		tempData.reserve(spotLights.size());
 		for (auto& spotLight : spotLights)
 		{
+			constexpr float nearPlane = EG_POINT_LIGHT_NEAR;
+			constexpr float aspectRatio = 1.f;
+
 			auto& light = tempData.emplace_back();
 
 			const float innerAngle = glm::clamp(spotLight->GetInnerCutOffAngle(), 1.f, 80.f);
@@ -106,24 +106,18 @@ namespace Eagle
 			light.VolumetricFogIntensity = glm::max(spotLight->GetVolumetricFogIntensity(), 0.0f);
 			const float distance = spotLight->GetDistance();
 			light.Distance2  = distance * distance;
-			light.ViewProj[0] = glm::vec4(spotLight->GetUpVector(), 0.f); // Temporary storing up vector
 			light.bCastsShadows = uint32_t(spotLight->DoesCastShadows());
 			light.bVolumetricLight = uint32_t(spotLight->IsVolumetricLight());
+
+			const float fovY = light.OuterCutOffRadians * 2.f;
+			const glm::mat4 view = glm::lookAt(light.Position, light.Position + light.Direction, spotLight->GetUpVector());
+			light.ViewProj = Math::Perspective(fovY, aspectRatio, nearPlane, distance) * view;
 		}
 
 		RenderManager::Submit([task = shared_from_this(), spotLights = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
 		{
 			auto thisRef = Cast<LightsManagerTask>(task);
 			thisRef->m_SpotLights = std::move(spotLights);
-
-			for (auto& light : thisRef->m_SpotLights)
-			{
-				const float cutoff = light.OuterCutOffRadians * 2.f;
-				glm::mat4 spotLightPerspectiveProjection = Math::Perspective(cutoff, 1.f, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
-				spotLightPerspectiveProjection[1][1] *= -1.f;
-				const glm::vec3 upVector = light.ViewProj[0];
-				light.ViewProj = spotLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + light.Direction, upVector);
-			}
 			thisRef->bSpotLightsDirty = true;
 		});
 	}
@@ -135,7 +129,7 @@ namespace Eagle
 			RenderManager::Submit([task = shared_from_this(),
 				forward = directionalLightComponent->GetForwardVector(),
 				lightColor = directionalLightComponent->GetLightColor() * directionalLightComponent->GetIntensity(),
-				ambient = directionalLightComponent->Ambient,
+				ambient = directionalLightComponent->GetAmbientColor(),
 				volumetricFogIntensity = directionalLightComponent->GetVolumetricFogIntensity(),
 				bVolumetric = directionalLightComponent->IsVolumetricLight(),
 			    bCastsShadows = directionalLightComponent->DoesCastShadows()](Ref<CommandBuffer>& cmd)
@@ -226,8 +220,7 @@ namespace Eagle
 
 			if (pointLightsDataSize)
 			{
-				cmd->Write(m_PointLightsBuffer, m_PointLights.data(), pointLightsDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-				cmd->StorageBufferBarrier(m_PointLightsBuffer);
+				cmd->Write(m_PointLightsBuffer, m_PointLights.data(), pointLightsDataSize, 0, m_PointLightsBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 			}
 			bPointLightsDirty = false;
 		}
@@ -240,13 +233,11 @@ namespace Eagle
 
 			if (spotLightsDataSize)
 			{
-				cmd->Write(m_SpotLightsBuffer, m_SpotLights.data(), spotLightsDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-				cmd->StorageBufferBarrier(m_SpotLightsBuffer);
+				cmd->Write(m_SpotLightsBuffer, m_SpotLights.data(), spotLightsDataSize, 0, m_SpotLightsBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 			}
 			bSpotLightsDirty = false;
 		}
 
-		cmd->Write(m_DirectionalLightBuffer, &m_DirectionalLight, sizeof(DirectionalLight), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-		cmd->StorageBufferBarrier(m_DirectionalLightBuffer);
+		cmd->Write(m_DirectionalLightBuffer, &m_DirectionalLight, sizeof(DirectionalLight), 0, m_DirectionalLightBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 	}
 }

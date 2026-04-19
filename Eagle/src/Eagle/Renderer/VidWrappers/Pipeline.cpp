@@ -85,6 +85,18 @@ namespace Eagle
 		m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()][set].SetArgArray(binding, images, imageViews, samplers);
 	}
 
+	void Pipeline::ResetDescriptors()
+	{
+		for (auto& data : m_DescriptorSetData)
+		{
+			data.clear();
+		}
+		for (auto& set : m_DescriptorSets)
+		{
+			set.clear();
+		}
+	}
+
 	Ref<DescriptorSet>& Pipeline::AllocateDescriptorSet(uint32_t set)
 	{
 		auto& desciptorSet = m_DescriptorSets[RenderManager::GetCurrentFrameIndex()];

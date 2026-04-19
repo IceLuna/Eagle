@@ -19,6 +19,8 @@
 #include "Tasks/SSAOTask.h"
 #include "Tasks/GTAOTask.h"
 #include "Tasks/FogPassTask.h"
+#include "Tasks/SkinCacheTask.h"
+#include "Tasks/FrustumCullingTask.h"
 
 namespace Eagle
 {
@@ -47,7 +49,7 @@ namespace Eagle
 	struct GBuffer
 	{
 		Ref<Image> Albedo;
-		Ref<Image> Geometry_Shading_Normals;
+		Ref<Image> Normals; // Packed Geometry Normals are stored in XY; Packed Shading Normals are stored in ZW
 		Ref<Image> Emissive;
 		Ref<Image> MaterialData; // R: Metallness; G: AO; B: Roughness; A: Used for blending of material data when decals are used
 		Ref<Image> Flags; // R: Flags. Currently, used for `bReceivesDecals`
@@ -61,6 +63,8 @@ namespace Eagle
 		void Init(const glm::uvec3& size);
 		void InitOptional(const SceneRendererInternalState& optional, const glm::uvec3& size);
 		void Resize(const glm::uvec3& size);
+		void Clear(const Ref<CommandBuffer>& cmd);
+		void PrepareForReading(const Ref<CommandBuffer>& cmd);
 	};
 
 	class SceneRenderer : public std::enable_shared_from_this<SceneRenderer>
@@ -103,11 +107,11 @@ namespace Eagle
 
 		// Instead of using `SetMeshes` and triggering all buffers recollection/uploading
 		// This function can be used to update transforms of meshes that were already set
-		void UpdateMeshesTransforms(const std::unordered_set<const StaticMeshComponent*>& meshes) { m_GeometryManagerTask->SetTransforms(meshes); }
-		void UpdateSkeletalMeshesTransforms(const std::unordered_set<const SkeletalMeshComponent*>& meshes) { m_GeometryManagerTask->SetTransforms(meshes); }
-		void UpdateSpritesTransforms(const std::unordered_set<const SpriteComponent*>& sprites) { m_GeometryManagerTask->SetTransforms(sprites); }
-		void UpdateDecalsTransforms(const std::unordered_set<const DecalComponent*>& decals) { m_RenderDecalsTask->SetTransforms(decals); }
-		void UpdateTextsTransforms(const std::unordered_set<const TextComponent*>& texts) { m_GeometryManagerTask->SetTransforms(texts); }
+		void UpdateMeshesTransforms(const std::vector<const StaticMeshComponent*>& meshes) { m_GeometryManagerTask->SetTransforms(meshes); }
+		void UpdateSkeletalMeshesTransforms(const std::vector<const SkeletalMeshComponent*>& meshes) { m_GeometryManagerTask->SetTransforms(meshes); }
+		void UpdateSpritesTransforms(const std::vector<const SpriteComponent*>& sprites) { m_GeometryManagerTask->SetTransforms(sprites); }
+		void UpdateDecalsTransforms(const std::vector<const DecalComponent*>& decals) { m_RenderDecalsTask->SetTransforms(decals); }
+		void UpdateTextsTransforms(const std::vector<const TextComponent*>& texts) { m_GeometryManagerTask->SetTransforms(texts); }
 
 		void SetGridEnabled(bool bEnabled) { m_bGridEnabled = bEnabled; }
 
@@ -155,6 +159,13 @@ namespace Eagle
 
 		const auto& GetSkeletalMeshesDrawData() const { return m_GeometryManagerTask->GetSkeletalMeshesDrawData(); }
 		const auto& GetSkeletalMeshesBuffers() const { return m_GeometryManagerTask->GetSkeletalMeshesBuffers(); }
+		const auto& GetSkeletalMeshes() const { return m_GeometryManagerTask->GetSkeletalMeshes(); }
+		const auto& GetSkinnedVertices() const { return m_SkinCacheTask->GetSkinnedVertices(); }
+		const auto& GetPrevSkinnedVerticesPositions() const { return m_SkinCacheTask->GetPrevSkinnedVerticesPositions(); }
+
+		const auto& GetFrustumCullingTask() const { return m_FrustumCullingTask; }
+		const auto& GetCulledStaticMeshes() const { return m_FrustumCullingTask->GetCulledStaticMeshes(); }
+		const auto& GetCulledSkeletalMeshes() const { return m_FrustumCullingTask->GetCulledSkeletalMeshes(); }
 
 		const auto& GetPointLights() const { return m_LightsManagerTask->GetPointLights(); }
 		const auto& GetSpotLights() const { return m_LightsManagerTask->GetSpotLights(); }
@@ -169,28 +180,18 @@ namespace Eagle
 		const Ref<Buffer>& GetMeshPrevTransformsBuffer() const { return m_GeometryManagerTask->GetMeshesPrevTransformBuffer(); }
 
 		const Ref<Buffer>& GetSkeletalMeshTransformsBuffer() const { return m_GeometryManagerTask->GetSkeletalMeshesTransformBuffer(); }
-		const Ref<Buffer>& GetSkeletalMeshPrevTransformsBuffer() const { return m_GeometryManagerTask->GetSkeletalMeshesPrevTransformBuffer(); }
 		const std::vector<std::vector<glm::mat4>>& GetAnimationTransforms() const { return m_GeometryManagerTask->GetAnimationTransforms(); }
 		const std::vector<Ref<Buffer>>& GetAnimationTransformsBuffers() const { return m_GeometryManagerTask->GetAnimationTransformsBuffers(); }
-		const std::vector<Ref<Buffer>>& GetAnimationPrevTransformsBuffers() const { return m_GeometryManagerTask->GetAnimationPrevTransformsBuffers(); }
 
-		const auto& GetOpaqueSpritesData() const { return m_GeometryManagerTask->GetOpaqueSpriteData(); }
-		const auto& GetOpaqueNotCastingShadowSpriteData() const { return m_GeometryManagerTask->GetOpaqueNotCastingShadowSpriteData(); }
-		const auto& GetMaskedSpritesData() const { return m_GeometryManagerTask->GetMaskedSpriteData(); }
-		const auto& GetMaskedNotCastingShadowSpriteData() const { return m_GeometryManagerTask->GetMaskedNotCastingShadowSpriteData(); }
-		const auto& GetTranslucentSpritesData() const { return m_GeometryManagerTask->GetTranslucentSpriteData(); }
-		const auto& GetTranslucentNotCastingShadowSpriteData() const { return m_GeometryManagerTask->GetTranslucentNotCastingShadowSpriteData(); }
+		const auto& GetSingleSidedSpritesRenderData() const { return m_GeometryManagerTask->GetSingleSidedSpritesRenderData(); }
+		const auto& GetDoubleSidedSpritesRenderData() const { return m_GeometryManagerTask->GetDoubleSidedSpritesRenderData(); }
 		const Ref<Buffer>& GetSpritesTransformsBuffer() const { return m_GeometryManagerTask->GetSpritesTransformBuffer(); }
 		const Ref<Buffer>& GetSpritesPrevTransformBuffer() const { return m_GeometryManagerTask->GetSpritesPrevTransformBuffer(); }
 
-		const LitTextGeometryData& GetOpaqueLitTextData() const { return m_GeometryManagerTask->GetOpaqueLitTextData(); }
-		const LitTextGeometryData& GetOpaqueLitNotCastingShadowTextData() const { return m_GeometryManagerTask->GetOpaqueLitNotCastingShadowTextData(); }
-		const LitTextGeometryData& GetMaskedLitTextData() const { return m_GeometryManagerTask->GetMaskedLitTextData(); }
-		const LitTextGeometryData& GetMaskedLitNotCastingShadowTextData() const { return m_GeometryManagerTask->GetMaskedLitNotCastingShadowTextData(); }
-		const LitTextGeometryData& GetTranslucentLitTextData() const { return m_GeometryManagerTask->GetTranslucentLitTextData(); }
-		const LitTextGeometryData& GetTranslucentLitNotCastingShadowTextData() const { return m_GeometryManagerTask->GetTranslucentLitNotCastingShadowTextData(); }
-		const UnlitTextGeometryData& GetUnlitTextData() const { return m_GeometryManagerTask->GetUnlitTextData(); }
-		const UnlitTextGeometryData& GetUnlitNotCastingShadowTextData() const { return m_GeometryManagerTask->GetUnlitNotCastingShadowTextData(); }
+		const auto& GetSingleSidedTextsRenderData() const { return m_GeometryManagerTask->GetSingleSidedTextsRenderData(); }
+		const auto& GetDoubleSidedTextsRenderData() const { return m_GeometryManagerTask->GetDoubleSidedTextsRenderData(); }
+		const auto& GetSingleSidedUnlitTextsRenderData() const { return m_GeometryManagerTask->GetSingleSidedUnlitTextsRenderData(); }
+		const auto& GetDoubleSidedUnlitTextsRenderData() const { return m_GeometryManagerTask->GetDoubleSidedUnlitTextsRenderData(); }
 		const Ref<Buffer>& GetTextsTransformsBuffer() const { return m_GeometryManagerTask->GetTextsTransformBuffer(); }
 		const Ref<Buffer>& GetTextsPrevTransformBuffer() const { return m_GeometryManagerTask->GetTextsPrevTransformBuffer(); }
 		const std::vector<Ref<Texture2D>>& GetAtlases() const { return m_GeometryManagerTask->GetAtlases(); }
@@ -214,7 +215,7 @@ namespace Eagle
 		const Ref<Buffer>& GetFogDataBuffer() const { return m_FogTask->GetFogDataBuffer(); }
 
 		// Contains View Matrix, InvVP
-		const Ref<Buffer>& GetCameraBuffer() const { return m_CameraDataBuffer; }
+		const Ref<Buffer>& GetCameraMatricesBuffer() const { return m_CameraDataBuffer; }
 		const Ref<Image>& GetSMDistribution() const { return m_PBRPassTask->GetSMDistribution(); }
 
 		const Ref<Image>& GetSSAOResult() const { return m_SSAOTask->GetResult(); }
@@ -240,6 +241,10 @@ namespace Eagle
 		float GetZFar() const { return m_ZFar; }
 		float GetFOV() const { return m_CameraFOV; }
 
+		// Needs to be called every frame
+		void SetDebugFrustumCulling(const glm::mat4& view, float aspectRatio, float fov, float nearPlane, float farPlane);
+		const CullingFrustumData& GetCullingFrustumData() const { return m_CullingData; }
+
 		// Prev frame data
 		const glm::mat4& GetPrevViewMatrix() const { return m_PrevView; }
 		const glm::mat4& GetPrevProjectionMatrix() const { return m_PrevProjection; }
@@ -250,21 +255,17 @@ namespace Eagle
 		float GetShadowMaxDistance() const { return m_MaxShadowDistance; }
 
 	public:
-		struct Statistics
-		{
-			uint64_t DrawCalls = 0;
-			uint64_t Dispatches = 0;
-		};
-
-		Statistics& GetStats() { return m_Stats[m_FrameIndex]; }
-		const Statistics& GetStats() const { return m_Stats[m_FrameIndex]; }
-		const Statistics& GetStats_MT() const { return m_Stats_MT; }
+		RenderStats& GetStats() { return m_Stats[m_FrameIndex]; }
+		const RenderStats& GetStats() const { return m_Stats[m_FrameIndex]; }
+		const RenderStats& GetStats_MT() const { return m_Stats_MT; }
 
 	private:
 		void InitWithOptions();
 
 	private:
+		Ref<SkinCacheTask> m_SkinCacheTask;
 		Ref<GeometryManagerTask> m_GeometryManagerTask;
+		Ref<RendererTask> m_DepthPrepassTask;
 		Ref<RendererTask> m_RenderMeshesTask;
 		Ref<RendererTask> m_RenderSkeletalMeshesTask;
 		Ref<RendererTask> m_RenderSpritesTask;
@@ -293,9 +294,15 @@ namespace Eagle
 		Ref<RendererTask> m_DOFTask;
 		Ref<RendererTask> m_MotionBlurTask;
 		Ref<RendererTask> m_ScreenSpaceReflectionsTask;
+		Ref<FrustumCullingTask> m_FrustumCullingTask;
 		
 		Ref<Buffer> m_Jitter;
 		Ref<Buffer> m_CameraDataBuffer;
+		
+		CullingFrustumData m_CullingData;
+		// If set, these values will be used for frustum culling for debug/visualization purposes
+		CullingFrustumData m_DebugCullingData;
+		bool m_bUseDebugCullingFrustum = false;
 
 		GBuffer m_GBuffer;
 		Ref<Image> m_FinalImage;
@@ -341,7 +348,7 @@ namespace Eagle
 		bool m_bIsRuntime = false;
 		bool m_bIsGame = false;
 
-		Statistics m_Stats[RendererConfig::FramesInFlight];
-		Statistics m_Stats_MT{};
+		RenderStats m_Stats[RendererConfig::FramesInFlight];
+		RenderStats m_Stats_MT{};
 	};
 }

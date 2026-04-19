@@ -16,21 +16,21 @@ namespace Eagle
 
 	private:
 		// @bOverride. Can be set to nullptr to not display it
-		void Render2DSettings(const std::string& path, AssetImportTexture2DSettings& settings, glm::ivec2 size, bool bDrawingCommon, bool* bOverride = nullptr);
-		void RenderCubeSettings(const std::string& path, AssetImportTextureCubeSettings& settings, glm::ivec2 size, bool* bOverride = nullptr);
+		void Render2DSettings(const Path& path, AssetImportTexture2DSettings& settings, glm::ivec2 size, bool bDrawingCommon, bool* bOverride = nullptr);
+		void RenderCubeSettings(const Path& path, AssetImportTextureCubeSettings& settings, glm::ivec2 size, bool* bOverride = nullptr);
 
 	private:
 		struct Texture2DData
 		{
 			AssetImportTexture2DSettings Settings;
-			std::string AssetPath;
+			Path AssetPath;
 			glm::ivec2 Size = glm::ivec2(0);
 			bool bOverride = false;
 		};
 		struct TextureCubeData
 		{
 			AssetImportTextureCubeSettings Settings;
-			std::string AssetPath;
+			Path AssetPath;
 			glm::ivec2 Size = glm::ivec2(0);
 			bool bOverride = false;
 		};
@@ -55,13 +55,13 @@ namespace Eagle
 
 	private:
 		// @bOverride. Can be set to nullptr to not display it
-		void RenderSettings(const std::string& path, AssetImportSettings& settings, bool& bSkeletal, bool* bOverride = nullptr);
+		void RenderSettings(const Path& path, AssetImportSettings& settings, bool& bSkeletal, bool* bOverride = nullptr);
 
 	private:
 		struct MeshData
 		{
 			AssetImportSettings Settings;
-			std::string AssetPath;
+			Path AssetPath;
 			bool bSkeletal = false;
 			bool bOverride = false;
 		};

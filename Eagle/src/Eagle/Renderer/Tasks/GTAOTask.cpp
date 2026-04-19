@@ -17,7 +17,6 @@ namespace Eagle
 		const glm::uvec3 size = glm::max(glm::uvec3(m_Renderer.GetViewportSize(), 1u) / 2u, glm::uvec3(1u));
 		m_HalfSize = size;
 		m_HalfTexelSize = 1.f / glm::vec2(m_HalfSize);
-		m_HalfNumGroups = { glm::ceil(size.x / float(s_TileSize)), glm::ceil(size.y / float(s_TileSize)) };
 
 		ImageSpecifications depthSpecs;
 		depthSpecs.Size = size;
@@ -56,8 +55,15 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("GTAO");
 
 		auto& gBuffer = m_Renderer.GetGBuffer();
+
 		const ImageLayout oldDepthLayout = gBuffer.Depth->GetLayout();
 		cmd->TransitionLayout(gBuffer.Depth, oldDepthLayout, ImageReadAccess::PixelShaderRead);
+
+		const ImageLayout oldNormalsLayout = gBuffer.Normals->GetLayout();
+		cmd->TransitionLayout(gBuffer.Normals, oldNormalsLayout, ImageReadAccess::PixelShaderRead);
+
+		const ImageLayout oldMotionLayout = gBuffer.Motion->GetLayout();
+		cmd->TransitionLayout(gBuffer.Motion, oldMotionLayout, ImageReadAccess::PixelShaderRead);
 
 		Downsample(cmd);
 		GTAO(cmd);
@@ -65,6 +71,8 @@ namespace Eagle
 		CopyToPrev(cmd);
 
 		cmd->TransitionLayout(gBuffer.Depth, gBuffer.Depth->GetLayout(), oldDepthLayout);
+		cmd->TransitionLayout(gBuffer.Normals, gBuffer.Normals->GetLayout(), oldNormalsLayout);
+		cmd->TransitionLayout(gBuffer.Motion, gBuffer.Motion->GetLayout(), oldMotionLayout);
 	}
 
 	void GTAOTask::Downsample(const Ref<CommandBuffer>& cmd)
@@ -120,13 +128,15 @@ namespace Eagle
 		pushData.RadRotationTemporal = aRotation[frameNumber % 6];
 
 		m_GTAOPipeline->SetImageSampler(m_HalfDepth, Sampler::PointSamplerClamp, 0, 0);
-		m_GTAOPipeline->SetImageSampler(m_Renderer.GetGBuffer().Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 1);
+		m_GTAOPipeline->SetImageSampler(m_Renderer.GetGBuffer().Normals, Sampler::PointSamplerClamp, 0, 1);
 		m_GTAOPipeline->SetImage(m_GTAOPassImage, 0, 2);
 
 		cmd->TransitionLayout(m_GTAOPassImage, m_GTAOPassImage->GetLayout(), ImageLayoutType::StorageImage);
 		cmd->Barrier(m_HalfDepth);
 
-		cmd->Dispatch(m_GTAOPipeline, m_HalfNumGroups.x, m_HalfNumGroups.y, 1, &pushData);
+		const glm::uvec3 groupSize = m_GTAOPipeline->GetWorkGroupSize();
+		const glm::uvec2 numGroups = CalcNumGroups(m_HalfSize, groupSize);
+		cmd->Dispatch(m_GTAOPipeline, numGroups, &pushData);
 
 		cmd->TransitionLayout(m_GTAOPassImage, m_GTAOPassImage->GetLayout(), ImageReadAccess::PixelShaderRead);
 
@@ -163,7 +173,9 @@ namespace Eagle
 		cmd->TransitionLayout(m_DenoisedPrev, m_DenoisedPrev->GetLayout(), ImageReadAccess::PixelShaderRead);
 		cmd->TransitionLayout(m_Denoised, m_Denoised->GetLayout(), ImageLayoutType::StorageImage);
 
-		cmd->Dispatch(m_DenoiserPipeline, m_HalfNumGroups.x, m_HalfNumGroups.y, 1, &pushData);
+		const glm::uvec3 groupSize = m_DenoiserPipeline->GetWorkGroupSize();
+		const glm::uvec2 numGroups = CalcNumGroups(m_HalfSize, groupSize);
+		cmd->Dispatch(m_DenoiserPipeline, numGroups, &pushData);
 
 		cmd->TransitionLayout(m_Denoised, m_Denoised->GetLayout(), ImageReadAccess::PixelShaderRead);
 

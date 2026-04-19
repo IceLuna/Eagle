@@ -54,8 +54,8 @@ namespace Eagle
 		ColorAttachment attachment;
 		attachment.Image = m_Renderer.GetOutput();
 		attachment.ClearOperation = ClearOperation::Load;
-		attachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		attachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		attachment.InitialLayout = ImageLayoutType::RenderTarget;
+		attachment.FinalLayout = ImageLayoutType::RenderTarget;
 
 		attachment.bBlendEnabled = true;
 		attachment.BlendingState.BlendOp = BlendOperation::Add;

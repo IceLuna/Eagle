@@ -12,6 +12,12 @@
 
 namespace Eagle
 {
+	struct PushData
+	{
+		glm::mat4 ViewProj;
+		glm::mat4 PrevViewProj;
+	};
+
 	RenderMeshesTask::RenderMeshesTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
@@ -22,18 +28,8 @@ namespace Eagle
 
 	void RenderMeshesTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& drawData = m_Renderer.GetStaticMeshesDrawData();
-		if (drawData.Opaque.empty())
-		{
-			// Just to clear images & transition layouts
-			cmd->BeginGraphics(m_OpaquePipeline);
-			cmd->EndGraphics();
-		}
-		else
-			RenderOpaque(cmd);
-		
-		if (!drawData.Masked.empty())
-			RenderMasked(cmd);
+		RenderOpaque(cmd);
+		RenderMasked(cmd);
 	}
 
 	void RenderMeshesTask::InitPipeline()
@@ -42,51 +38,50 @@ namespace Eagle
 
 		ColorAttachment colorAttachment;
 		colorAttachment.Image = gbuffer.Albedo;
-		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
-		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.ClearOperation = ClearOperation::Clear;
+		colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+		colorAttachment.ClearOperation = ClearOperation::Load;
 
-		ColorAttachment geometry_shading_NormalsAttachment;
-		geometry_shading_NormalsAttachment.Image = gbuffer.Geometry_Shading_Normals;
-		geometry_shading_NormalsAttachment.InitialLayout = ImageLayoutType::Unknown;
-		geometry_shading_NormalsAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		geometry_shading_NormalsAttachment.ClearOperation = ClearOperation::Clear;
+		ColorAttachment normalsAttachment;
+		normalsAttachment.Image = gbuffer.Normals;
+		normalsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		normalsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+		normalsAttachment.ClearOperation = ClearOperation::Load;
 
 		ColorAttachment emissiveAttachment;
 		emissiveAttachment.Image = gbuffer.Emissive;
-		emissiveAttachment.InitialLayout = ImageLayoutType::Unknown;
-		emissiveAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		emissiveAttachment.ClearOperation = ClearOperation::Clear;
+		emissiveAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		emissiveAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+		emissiveAttachment.ClearOperation = ClearOperation::Load;
 
 		ColorAttachment materialAttachment;
 		materialAttachment.Image = gbuffer.MaterialData;
-		materialAttachment.InitialLayout = ImageLayoutType::Unknown;
-		materialAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		materialAttachment.ClearOperation = ClearOperation::Clear;
+		materialAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		materialAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+		materialAttachment.ClearOperation = ClearOperation::Load;
 
 		ColorAttachment flagsAttachment;
 		flagsAttachment.Image = gbuffer.Flags;
-		flagsAttachment.InitialLayout = ImageLayoutType::Unknown;
-		flagsAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		flagsAttachment.ClearOperation = ClearOperation::Clear;
+		flagsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		flagsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+		flagsAttachment.ClearOperation = ClearOperation::Load;
 
 		constexpr int objectIDClearColorUint = -1;
 		const float objectIDClearColor = *(float*)(&objectIDClearColorUint);
 		ColorAttachment objectIDAttachment;
 		objectIDAttachment.Image = gbuffer.ObjectID;
-		objectIDAttachment.InitialLayout = ImageLayoutType::Unknown;
-		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		objectIDAttachment.ClearOperation = ClearOperation::Clear;
+		objectIDAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		objectIDAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+		objectIDAttachment.ClearOperation = ClearOperation::Load;
 		objectIDAttachment.ClearColor = glm::vec4{ objectIDClearColor };
 
 		DepthStencilAttachment depthAttachment;
-		depthAttachment.InitialLayout = ImageLayoutType::Unknown;
+		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.Image = gbuffer.Depth;
 		depthAttachment.bWriteDepth = true;
-		depthAttachment.ClearOperation = ClearOperation::Clear;
-		depthAttachment.DepthClearValue = 0.f;
-		depthAttachment.DepthCompareOp = CompareOperation::Greater;
+		depthAttachment.ClearOperation = ClearOperation::Load;
+		depthAttachment.DepthCompareOp = CompareOperation::GreaterEqual;
 
 		ShaderDefines vertexDefines;
 		ShaderDefines fragmentDefines;
@@ -103,7 +98,7 @@ namespace Eagle
 		state.FragmentShader = Shader::Create("mesh.frag", ShaderType::Fragment, fragmentDefines);
 
 		state.ColorAttachments.push_back(colorAttachment);
-		state.ColorAttachments.push_back(geometry_shading_NormalsAttachment);
+		state.ColorAttachments.push_back(normalsAttachment);
 		state.ColorAttachments.push_back(emissiveAttachment);
 		state.ColorAttachments.push_back(materialAttachment);
 		state.ColorAttachments.push_back(flagsAttachment);
@@ -112,29 +107,20 @@ namespace Eagle
 		{
 			ColorAttachment velocityAttachment;
 			velocityAttachment.Image = gbuffer.Motion;
-			velocityAttachment.InitialLayout = ImageLayoutType::Unknown;
-			velocityAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-			velocityAttachment.ClearOperation = ClearOperation::Clear;
+			velocityAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+			velocityAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+			velocityAttachment.ClearOperation = ClearOperation::Load;
 			state.ColorAttachments.push_back(velocityAttachment);
 		}
 
 		state.PerInstanceAttribs = PerInstanceAttribs;
 		state.DepthStencilAttachment = depthAttachment;
-		state.CullMode = CullMode::Back;
+		state.CullMode = CullMode::Dynamic;
 
 		if (m_OpaquePipeline)
 			m_OpaquePipeline->SetState(state);
 		else
 			m_OpaquePipeline = PipelineGraphics::Create(state);
-
-		// Attachments of masked pipeline must be loaded
-		for (auto& attachment : state.ColorAttachments)
-		{
-			attachment.ClearOperation = ClearOperation::Load;
-			attachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		}
-		state.DepthStencilAttachment.ClearOperation = ClearOperation::Load;
-		state.DepthStencilAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
 
 		fragmentDefines["EG_MASKED"] = "";
 		state.FragmentShader = Shader::Create("mesh.frag", ShaderType::Fragment, fragmentDefines);
@@ -145,49 +131,21 @@ namespace Eagle
 			m_MaskedPipeline = PipelineGraphics::Create(state);
 	}
 	
-	void RenderMeshesTask::RenderOpaque(const Ref<CommandBuffer>& cmd)
+	void RenderMeshesTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const std::vector<MeshDrawData>& meshes, const StaticMeshGeometryData& buffers, RenderStats& stats,
+		const void* vertexPushData, const Ref<Framebuffer>& framebuffer)
 	{
-		EG_GPU_TIMING_SCOPED(cmd, "Render Opaque Meshes");
-		EG_CPU_TIMING_SCOPED("Render Opaque Meshes");
+		if (meshes.empty())
+			return;
 
-		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
-		const bool bTexturesDirty = texturesChangedFrame >= m_OpaqueTexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()];
-		if (bTexturesDirty)
-		{
-			m_OpaquePipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
-			m_OpaqueTexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()] = texturesChangedFrame + 1;
-		}
+		if (framebuffer)
+			cmd->BeginGraphics(pipeline, framebuffer);
+		else
+			cmd->BeginGraphics(pipeline);
+		cmd->SetGraphicsRootConstants(vertexPushData, nullptr);
 
-		m_OpaquePipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
-		m_OpaquePipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
-		m_OpaquePipeline->SetBuffer(m_Renderer.GetMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
-
-		struct PushData
-		{
-			glm::mat4 ViewProj;
-			glm::mat4 PrevViewProj;
-		} pushData;
-		pushData.ViewProj = m_Renderer.GetViewProjection();
-
-		if (bMotionRequired)
-		{
-			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
-			m_OpaquePipeline->SetBuffer(m_Renderer.GetMeshPrevTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
-		}
-		if (bJitter)
-			m_OpaquePipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
-
-		cmd->BeginGraphics(m_OpaquePipeline);
-		cmd->SetGraphicsRootConstants(&pushData, nullptr);
-
-		auto& stats = m_Renderer.GetStats();
-		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().Opaque;
-		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
 		for (const auto& data : meshes)
 		{
-			const uint32_t verticesCount = data.VerticesCount;
 			const uint32_t vertexOffset = data.VertexOffset;
-
 			for (const auto& matRenderData : data.PerMaterialData)
 			{
 				const uint32_t indicesCount = matRenderData.IndexCount;
@@ -205,10 +163,74 @@ namespace Eagle
 		cmd->EndGraphics();
 	}
 
+	void RenderMeshesTask::RenderOpaque(const Ref<CommandBuffer>& cmd)
+	{
+		const auto& culledMeshes = m_Renderer.GetCulledStaticMeshes();
+		const auto& ivb = culledMeshes.InstanceBuffer;
+		const auto& singleSided = culledMeshes.SingleSided.Opaque;
+		const auto& doubleSided = culledMeshes.DoubleSided.Opaque;
+		if (singleSided.GetNumMeshes() == 0 && doubleSided.GetNumMeshes() == 0)
+			return;
+
+		EG_GPU_TIMING_SCOPED(cmd, "Render Opaque Static Meshes");
+		EG_CPU_TIMING_SCOPED("Render Opaque Static Meshes");
+
+		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
+		const bool bTexturesDirty = texturesChangedFrame >= m_OpaqueTexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()];
+		if (bTexturesDirty)
+		{
+			m_OpaquePipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+			m_OpaqueTexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()] = texturesChangedFrame + 1;
+		}
+
+		m_OpaquePipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+		m_OpaquePipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
+		m_OpaquePipeline->SetBuffer(m_Renderer.GetMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
+
+		PushData pushData;
+		pushData.ViewProj = m_Renderer.GetViewProjection();
+		if (bMotionRequired)
+		{
+			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
+			m_OpaquePipeline->SetBuffer(m_Renderer.GetMeshPrevTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+		}
+		if (bJitter)
+			m_OpaquePipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
+
+		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
+		auto& stats = m_Renderer.GetStats();
+
+		cmd->BeginGraphics(m_OpaquePipeline);
+		cmd->SetGraphicsRootConstants(&pushData, nullptr);
+
+		if (singleSided.GetNumMeshes() > 0)
+		{
+			cmd->SetGraphicsCullMode(CullMode::Back);
+			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, singleSided.Result.IndirectArgsBuffer, singleSided.Result.DrawCountBuffer, ivb, singleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
+		}
+
+		if (doubleSided.GetNumMeshes())
+		{
+			cmd->SetGraphicsCullMode(CullMode::None);
+			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, doubleSided.Result.IndirectArgsBuffer, doubleSided.Result.DrawCountBuffer, ivb, doubleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
+		}
+
+		cmd->EndGraphics();
+	}
+
 	void RenderMeshesTask::RenderMasked(const Ref<CommandBuffer>& cmd)
 	{
-		EG_GPU_TIMING_SCOPED(cmd, "Render Masked Meshes");
-		EG_CPU_TIMING_SCOPED("Render Masked Meshes");
+		const auto& culledMeshes = m_Renderer.GetCulledStaticMeshes();
+		const auto& ivb = culledMeshes.InstanceBuffer;
+		const auto& singleSided = culledMeshes.SingleSided.Masked;
+		const auto& doubleSided = culledMeshes.DoubleSided.Masked;
+		if (singleSided.GetNumMeshes() == 0 && doubleSided.GetNumMeshes() == 0)
+			return;
+
+		EG_GPU_TIMING_SCOPED(cmd, "Render Masked Static Meshes");
+		EG_CPU_TIMING_SCOPED("Render Masked Static Meshes");
 
 		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
 		const bool bTexturesDirty = texturesChangedFrame >= m_MaskedTexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()];
@@ -222,11 +244,7 @@ namespace Eagle
 		m_MaskedPipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 		m_MaskedPipeline->SetBuffer(m_Renderer.GetMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
 
-		struct PushData
-		{
-			glm::mat4 ViewProj;
-			glm::mat4 PrevViewProj;
-		} pushData;
+		PushData pushData;
 		pushData.ViewProj = m_Renderer.GetViewProjection();
 
 		if (bMotionRequired)
@@ -237,30 +255,24 @@ namespace Eagle
 		if (bJitter)
 			m_MaskedPipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
+		auto& stats = m_Renderer.GetStats();
+		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
+
 		cmd->BeginGraphics(m_MaskedPipeline);
 		cmd->SetGraphicsRootConstants(&pushData, nullptr);
 
-		auto& stats = m_Renderer.GetStats();
-
-		const auto& meshes = m_Renderer.GetStaticMeshesDrawData().Masked;
-		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
-		for (const auto& data : meshes)
+		if (singleSided.GetNumMeshes() > 0)
 		{
-			const uint32_t verticesCount = data.VerticesCount;
-			const uint32_t vertexOffset = data.VertexOffset;
+			cmd->SetGraphicsCullMode(CullMode::Back);
+			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, singleSided.Result.IndirectArgsBuffer, singleSided.Result.DrawCountBuffer, ivb, singleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
+		}
 
-			for (const auto& matRenderData : data.PerMaterialData)
-			{
-				const uint32_t indicesCount = matRenderData.IndexCount;
-				const uint32_t firstIndex = matRenderData.FirstIndex;
-				const uint32_t instanceCount = matRenderData.InstanceCount;
-				const uint32_t firstInstance = matRenderData.FirstInstance;
-				if (instanceCount > 0)
-				{
-					cmd->DrawIndexedInstanced(buffers.VertexBuffer, buffers.IndexBuffer, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, buffers.InstanceBuffer);
-					++stats.DrawCalls;
-				}
-			}
+		if (doubleSided.GetNumMeshes())
+		{
+			cmd->SetGraphicsCullMode(CullMode::None);
+			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, doubleSided.Result.IndirectArgsBuffer, doubleSided.Result.DrawCountBuffer, ivb, doubleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
 		}
 
 		cmd->EndGraphics();

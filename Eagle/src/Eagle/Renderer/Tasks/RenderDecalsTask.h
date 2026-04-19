@@ -20,7 +20,7 @@ namespace Eagle
 		void OnResize(const glm::uvec2 size) { m_Pipeline->Resize(size); m_WithNormalsPipeline->Resize(size); }
 
 		void SetDecals(const std::vector<const DecalComponent*>& decals, bool bDirty);
-		void SetTransforms(const std::unordered_set<const DecalComponent*>& decals);
+		void SetTransforms(const std::vector<const DecalComponent*>& decals);
 
 	private:
 		void InitPipeline();

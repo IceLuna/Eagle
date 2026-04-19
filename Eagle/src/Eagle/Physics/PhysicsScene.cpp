@@ -282,7 +282,7 @@ namespace Eagle
     QueryHits PhysicsScene::CollectCollidersWithinVolume(const AABB& volume)
     {
         Transform pose = volume.Center();
-        const glm::vec3 halfExtent = pose.Scale3D * volume.Extents() * 0.5f;
+        const glm::vec3 halfExtent = pose.Scale3D * volume.Extents();
         physx::PxBoxGeometry box = physx::PxBoxGeometry(PhysXUtils::ToPhysXVector(halfExtent));
         return OverlapScene(box, PhysXUtils::ToPhysXTranform(pose), PhysicsQueryType::Static, s_CollisionGroupAny);
     }

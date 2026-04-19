@@ -33,317 +33,11 @@ namespace Eagle::UI
 	};
 	DECLARE_FLAGS(ButtonType);
 
+	// Internal usage only
+	void UpdateIDBuffer(const std::string_view label);
+	const char* GetIDBuffer();
+
 	const Ref<Eagle::Image> GetAssetPreview(const Ref<Asset>& asset);
-
-	// maxItemWidth. Ignored if < 0
-	template<class Type>
-	bool DrawAssetSelection(const std::string_view label, Ref<Type>& modifyingAsset, const std::string_view helpMessage = "", float maxItemWidth = -1.f, const Ref<Eagle::Image>& preview = nullptr, bool* outPreviewClicked = nullptr)
-	{
-		const ImVec2 previewSize = ImVec2(32.f, 32.f);
-		bool bResult = false;
-		constexpr bool bRenderablePreview = std::is_same<Type, AssetBaseMesh>::value ? true : ThumbnailCache::IsRenderableAssetType(Type::GetAssetType_Static());
-
-		if constexpr (std::is_same<Type, AssetTexture2D>::value || std::is_same<Type, AssetTextureCube>::value)
-			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + previewSize.y * 0.5f - ImGui::CalcTextSize(label.data()).y * 0.5f); // Place text in the middle
-		else if (preview)
-			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + previewSize.y * 0.5f - ImGui::CalcTextSize(label.data()).y * 0.5f);
-		else
-			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		ImGui::Text(label.data());
-		if (helpMessage.size())
-		{
-			ImGui::SameLine();
-			UI::HelpMarker(helpMessage);
-		}
-		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
-
-		const std::string assetName = modifyingAsset ? modifyingAsset->GetPath().stem().u8string() : "None";
-		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
-		ImGui::PushID(label.data());
-
-		if constexpr (std::is_same<Type, AssetTexture2D>::value)
-		{
-			if (modifyingAsset || Texture2D::NoneIconTexture)
-			{
-				const ImVec2 p = ImGui::GetCursorScreenPos();
-				const bool bClicked = ImGui::InvisibleButton("##preview_inv_btn", previewSize);
-				const bool bHovered = ImGui::IsItemHovered();
-				ImGui::SetCursorScreenPos(p);
-
-				UI::Image(modifyingAsset ? modifyingAsset->GetTexture() : Texture2D::NoneIconTexture, previewSize, { 0, 0 }, { 1, 1 }, bHovered && modifyingAsset ? ImVec4(0.5f, 0.5f, 0.5f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
-
-				if (outPreviewClicked)
-				{
-					*outPreviewClicked = bClicked;
-				}
-
-				ImGui::SameLine();
-			}
-			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		}
-		else if constexpr (std::is_same<Type, AssetTextureCube>::value)
-		{
-			if ((modifyingAsset && modifyingAsset->GetTexture()->GetTexture2D()) || Texture2D::NoneIconTexture)
-			{
-				const ImVec2 p = ImGui::GetCursorScreenPos();
-				const bool bClicked = ImGui::InvisibleButton("##preview_inv_btn", previewSize);
-				const bool bHovered = ImGui::IsItemHovered();
-				ImGui::SetCursorScreenPos(p);
-
-				UI::Image(modifyingAsset ? modifyingAsset->GetTexture()->GetTexture2D() : Texture2D::NoneIconTexture, previewSize, { 0, 0 }, { 1, 1 }, bHovered && modifyingAsset ? ImVec4(0.5f, 0.5f, 0.5f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
-
-				if (outPreviewClicked)
-				{
-					*outPreviewClicked = bClicked;
-				}
-
-				ImGui::SameLine();
-			}
-			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		}
-		else
-		{
-			if (preview)
-			{
-				const ImVec2 p = ImGui::GetCursorScreenPos();
-				const bool bClicked = ImGui::InvisibleButton("##preview_inv_btn", previewSize);
-				const bool bHovered = ImGui::IsItemHovered();
-				ImGui::SetCursorScreenPos(p);
-
-				UI::Image(preview, previewSize, { 0, 0 }, {1, 1}, bHovered && modifyingAsset ? ImVec4(0.5f, 0.5f, 0.5f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
-
-				if (outPreviewClicked)
-				{
-					*outPreviewClicked = bClicked;
-				}
-				ImGui::SameLine();
-				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-			}
-		}
-
-		const bool bApplyMaxWidth = maxItemWidth > 0.f;
-		if (bApplyMaxWidth)
-			ImGui::PushItemWidth(maxItemWidth);
-
-		static std::string search;
-		static bool bJustOpened = true;
-		bool bBeginCombo = ImGui::BeginCombo("##", assetName.c_str(), ImGuiComboFlags_HeightLarge);
-
-		//Drop event
-		if (ImGui::BeginDragDropTarget())
-		{
-			auto processAssetDrop = [&](AssetType assetType)
-			{
-				if (assetType == AssetType::None)
-					return;
-
-				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(GetAssetDragDropCellTag(assetType)))
-				{
-					const wchar_t* payload_n = (const wchar_t*)payload->Data;
-					Path filepath = Path(payload_n);
-					Ref<Asset> asset;
-					if (AssetManager::Get(filepath, &asset) == false)
-					{
-						asset = Asset::Create(filepath);
-						AssetManager::Register(asset);
-					}
-					bResult = asset != modifyingAsset;
-					if (bResult)
-						modifyingAsset = Cast<Type>(asset);
-				}
-			};
-
-			if constexpr (std::is_same<Type, Asset>::value)
-			{
-				magic_enum::enum_for_each<AssetType>([&](auto val)
-				{
-					processAssetDrop(val);
-				});
-			}
-			else if constexpr (std::is_same<Type, AssetBaseMesh>::value)
-			{
-				processAssetDrop(AssetType::StaticMesh);
-				processAssetDrop(AssetType::SkeletalMesh);
-			}
-			else
-			{
-				processAssetDrop(Type::GetAssetType_Static());
-			}
-
-			ImGui::EndDragDropTarget();
-		}
-
-		if (bBeginCombo)
-		{
-			const int nonePosition = 0;
-			int currentItemIdx = nonePosition;
-			// Initially find currently selected asset to scroll to it.
-			if (modifyingAsset)
-			{
-				uint32_t i = noneOffset;
-				const auto& allAssets = AssetManager::GetAssets();
-				for (const auto& [unused, asset] : allAssets)
-				{
-					if (asset == modifyingAsset)
-					{
-						currentItemIdx = i;
-						break;
-					}
-					if (const auto& castedAsset = Cast<Type>(asset))
-						i++;
-				}
-			}
-
-			if (bJustOpened)
-			{
-				bJustOpened = false;
-				ImGui::SetKeyboardFocusHere();
-			}
-			UI::InputTextWithHint("##search", search, "Search");
-			ImGui::Separator();
-
-			const float listHeight = ImGui::GetTextLineHeightWithSpacing() * 8.0f;
-			ImGui::BeginChild("##scrollable", ImVec2(0, listHeight));
-
-			// Draw none
-			{
-				const bool bSelected = (currentItemIdx == nonePosition);
-				if (ImGui::Selectable("None", bSelected))
-					currentItemIdx = nonePosition;
-
-				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-				if (bSelected)
-					ImGui::SetItemDefaultFocus();
-
-				if (ImGui::IsItemClicked())
-				{
-					currentItemIdx = nonePosition;
-					modifyingAsset.reset();
-					bResult = true;
-					ImGui::CloseCurrentPopup();
-				}
-			}
-
-			// Drawing all existing asset
-			const auto& allAssets = AssetManager::GetAssets();
-			uint32_t i = noneOffset;
-			for (const auto& [path, asset] : allAssets)
-			{
-				const auto castedAsset = Cast<Type>(asset);
-				if (!castedAsset)
-					continue;
-
-				if (!search.empty())
-				{
-					const std::string filename = path.stem().u8string();
-					std::size_t pos = Utils::FindSubstringI(filename, search);
-					if (pos == std::string::npos)
-					{
-						continue;
-					}
-				}
-
-				const bool bSelected = currentItemIdx == i;
-				ImGui::PushID((void*)asset->GetGUID().GetHash());
-
-				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowOverlap, {0.0f, previewSize.y});
-				bSelectableTriggered |= ImGui::IsItemClicked();
-
-				bool bHasPreview = false;
-				if constexpr (std::is_same<Type, Asset>::value)
-				{
-					if (const auto texture2DAsset = Cast<AssetTexture2D>(asset))
-					{
-						ImGui::SameLine();
-						UI::Image(texture2DAsset->GetTexture(), previewSize);
-						bHasPreview = true;
-					}
-					else if (const auto textureCubeAsset = Cast<AssetTextureCube>(asset))
-					{
-						if (const auto& texture2D = textureCubeAsset->GetTexture()->GetTexture2D())
-						{
-							ImGui::SameLine();
-							UI::Image(texture2D, previewSize);
-							bHasPreview = true;
-						}
-					}
-					else if (bRenderablePreview)
-					{
-						ImGui::SameLine();
-						Ref<Eagle::Image> preview = ThumbnailCache::Get(asset);
-						UI::Image(preview ? preview : Texture2D::NoneIconTexture->GetImage(), previewSize);
-						bHasPreview = true;
-					}
-				}
-				else if constexpr (std::is_same<Type, AssetTexture2D>::value)
-				{
-					ImGui::SameLine();
-					UI::Image(castedAsset->GetTexture(), previewSize);
-					bHasPreview = true;
-				}
-				else if constexpr (std::is_same<Type, AssetTextureCube>::value)
-				{
-					if (const auto& texture2D = castedAsset->GetTexture()->GetTexture2D())
-					{
-						ImGui::SameLine();
-						UI::Image(texture2D, previewSize);
-						bHasPreview = true;
-					}
-				}
-				else if constexpr (bRenderablePreview)
-				{
-					ImGui::SameLine();
-					Ref<Eagle::Image> preview = ThumbnailCache::Get(asset);
-					UI::Image(preview ? preview : Texture2D::NoneIconTexture->GetImage(), previewSize);
-					bHasPreview = true;
-				}
-
-				ImGui::SameLine();
-				if (bHasPreview)
-					ImGui::SetCursorPosY(ImGui::GetCursorPosY() + previewSize.y * 0.25f);
-				ImGui::Text("%s", path.stem().u8string().c_str());
-
-				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-				if (bSelected)
-					ImGui::SetItemDefaultFocus();
-
-				if (bSelectableTriggered)
-				{
-					currentItemIdx = i;
-
-					modifyingAsset = castedAsset;
-					bResult = true;
-					ImGui::CloseCurrentPopup();
-				}
-				++i;
-				ImGui::PopID();
-			}
-			
-			ImGui::EndChild();
-			ImGui::EndCombo();
-		}
-		else
-		{
-			search.clear();
-			bJustOpened = true;
-		}
-
-		if (bApplyMaxWidth)
-			ImGui::PopItemWidth();
-
-		ImGui::PopItemWidth();
-		ImGui::NextColumn();
-		ImGui::PopID();
-
-		return bResult;
-	}
-
-	template<class Type>
-	bool DrawAssetSelection(const std::string_view label, Ref<Type>& modifyingAsset, const Ref<Eagle::Image>& preview, bool* outPreviewClicked = nullptr)
-	{
-		return DrawAssetSelection(label, modifyingAsset, "", -1.f, preview, outPreviewClicked);
-	}
 
 	// Fonts
 	void LoadFonts();
@@ -357,6 +51,7 @@ namespace Eagle::UI
 	bool DrawQuatControl(const std::string_view label, glm::quat& values, const glm::quat& resetValues = glm::quat(1.f, 0.f, 0.f, 0.f), float columnWidth = 100.f, bool bReturnOnEnter = false);
 
 	ButtonType DrawButtons(ButtonType buttons);
+	void HelpMarker(const std::string_view text);
 
 	//Grid Name needs to be unique
 	void BeginPropertyGrid(const std::string_view gridName);
@@ -507,8 +202,6 @@ namespace Eagle::UI
 	void PushButtonSelectedStyleColors();
 	void PopButtonSelectedStyleColors();
 
-	void HelpMarker(const std::string_view text);
-
 	ButtonType ShowMessage(const std::string_view title, const std::string_view message, ButtonType buttons);
 	ButtonType InputPopup(const std::string_view title, const std::string_view hint, std::string& input);
 
@@ -531,7 +224,313 @@ namespace Eagle::UI
 
 	int TextResizeCallback(ImGuiInputTextCallbackData* data);
 
-	// Internal usage only
-	void UpdateIDBuffer(const std::string_view label);
-	const char* GetIDBuffer();
+	// maxItemWidth. Ignored if < 0
+	template<class Type>
+	bool DrawAssetSelection(const std::string_view label, Ref<Type>& modifyingAsset, const std::string_view helpMessage = "", float maxItemWidth = -1.f, const Ref<Eagle::Image>& preview = nullptr, bool* outPreviewClicked = nullptr)
+	{
+		const ImVec2 previewSize = ImVec2(32.f, 32.f);
+		bool bResult = false;
+		constexpr bool bRenderablePreview = std::is_same<Type, AssetBaseMesh>::value ? true : ThumbnailCache::IsRenderableAssetType(Type::GetAssetType_Static());
+
+		if constexpr (std::is_same<Type, AssetTexture2D>::value || std::is_same<Type, AssetTextureCube>::value)
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + previewSize.y * 0.5f - ImGui::CalcTextSize(label.data()).y * 0.5f); // Place text in the middle
+		else if (preview)
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + previewSize.y * 0.5f - ImGui::CalcTextSize(label.data()).y * 0.5f);
+		else
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		ImGui::Text(label.data());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+
+		const std::string assetName = modifyingAsset ? Utils::AsString(modifyingAsset->GetPath().stem()) : "None";
+		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
+		ImGui::PushID(label.data());
+
+		if constexpr (std::is_same<Type, AssetTexture2D>::value)
+		{
+			if (modifyingAsset || Texture2D::NoneIconTexture)
+			{
+				const ImVec2 p = ImGui::GetCursorScreenPos();
+				const bool bClicked = ImGui::InvisibleButton("##preview_inv_btn", previewSize);
+				const bool bHovered = ImGui::IsItemHovered();
+				ImGui::SetCursorScreenPos(p);
+
+				UI::Image(modifyingAsset ? modifyingAsset->GetTexture() : Texture2D::NoneIconTexture, previewSize, { 0, 0 }, { 1, 1 }, bHovered && modifyingAsset ? ImVec4(0.5f, 0.5f, 0.5f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+
+				if (outPreviewClicked)
+				{
+					*outPreviewClicked = bClicked;
+				}
+
+				ImGui::SameLine();
+			}
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		}
+		else if constexpr (std::is_same<Type, AssetTextureCube>::value)
+		{
+			if ((modifyingAsset && modifyingAsset->GetTexture()->GetTexture2D()) || Texture2D::NoneIconTexture)
+			{
+				const ImVec2 p = ImGui::GetCursorScreenPos();
+				const bool bClicked = ImGui::InvisibleButton("##preview_inv_btn", previewSize);
+				const bool bHovered = ImGui::IsItemHovered();
+				ImGui::SetCursorScreenPos(p);
+
+				UI::Image(modifyingAsset ? modifyingAsset->GetTexture()->GetTexture2D() : Texture2D::NoneIconTexture, previewSize, { 0, 0 }, { 1, 1 }, bHovered && modifyingAsset ? ImVec4(0.5f, 0.5f, 0.5f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+
+				if (outPreviewClicked)
+				{
+					*outPreviewClicked = bClicked;
+				}
+
+				ImGui::SameLine();
+			}
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		}
+		else
+		{
+			if (preview)
+			{
+				const ImVec2 p = ImGui::GetCursorScreenPos();
+				const bool bClicked = ImGui::InvisibleButton("##preview_inv_btn", previewSize);
+				const bool bHovered = ImGui::IsItemHovered();
+				ImGui::SetCursorScreenPos(p);
+
+				UI::Image(preview, previewSize, { 0, 0 }, { 1, 1 }, bHovered && modifyingAsset ? ImVec4(0.5f, 0.5f, 0.5f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+
+				if (outPreviewClicked)
+				{
+					*outPreviewClicked = bClicked;
+				}
+				ImGui::SameLine();
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+			}
+		}
+
+		const bool bApplyMaxWidth = maxItemWidth > 0.f;
+		if (bApplyMaxWidth)
+			ImGui::PushItemWidth(maxItemWidth);
+
+		static std::string search;
+		static bool bJustOpened = true;
+		bool bBeginCombo = ImGui::BeginCombo("##", assetName.c_str(), ImGuiComboFlags_HeightLarge);
+
+		//Drop event
+		if (ImGui::BeginDragDropTarget())
+		{
+			auto processAssetDrop = [&](AssetType assetType)
+				{
+					if (assetType == AssetType::None)
+						return;
+
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(GetAssetDragDropCellTag(assetType)))
+					{
+						const wchar_t* payload_n = (const wchar_t*)payload->Data;
+						Path filepath = Path(payload_n);
+						Ref<Asset> asset;
+						if (AssetManager::Get(filepath, &asset) == false)
+						{
+							asset = Asset::Create(filepath);
+							AssetManager::Register(asset);
+						}
+						bResult = asset != modifyingAsset;
+						if (bResult)
+							modifyingAsset = Cast<Type>(asset);
+					}
+				};
+
+			if constexpr (std::is_same<Type, Asset>::value)
+			{
+				magic_enum::enum_for_each<AssetType>([&](auto val)
+				{
+					processAssetDrop(val);
+				});
+			}
+			else if constexpr (std::is_same<Type, AssetBaseMesh>::value)
+			{
+				processAssetDrop(AssetType::StaticMesh);
+				processAssetDrop(AssetType::SkeletalMesh);
+			}
+			else
+			{
+				processAssetDrop(Type::GetAssetType_Static());
+			}
+
+			ImGui::EndDragDropTarget();
+		}
+
+		if (bBeginCombo)
+		{
+			const int nonePosition = 0;
+			int currentItemIdx = nonePosition;
+			// Initially find currently selected asset to scroll to it.
+			if (modifyingAsset)
+			{
+				uint32_t i = noneOffset;
+				const auto& allAssets = AssetManager::GetAssets();
+				for (const auto& [unused, asset] : allAssets)
+				{
+					if (asset == modifyingAsset)
+					{
+						currentItemIdx = i;
+						break;
+					}
+					if (const auto& castedAsset = Cast<Type>(asset))
+						i++;
+				}
+			}
+
+			if (bJustOpened)
+			{
+				bJustOpened = false;
+				ImGui::SetKeyboardFocusHere();
+			}
+			UI::InputTextWithHint("##search", search, "Search");
+			ImGui::Separator();
+
+			const float listHeight = ImGui::GetTextLineHeightWithSpacing() * 8.0f;
+			ImGui::BeginChild("##scrollable", ImVec2(0, listHeight));
+
+			// Draw none
+			{
+				const bool bSelected = (currentItemIdx == nonePosition);
+				if (ImGui::Selectable("None", bSelected))
+					currentItemIdx = nonePosition;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				if (ImGui::IsItemClicked())
+				{
+					currentItemIdx = nonePosition;
+					modifyingAsset.reset();
+					bResult = true;
+					ImGui::CloseCurrentPopup();
+				}
+			}
+
+			// Drawing all existing asset
+			const auto& allAssets = AssetManager::GetAssets();
+			uint32_t i = noneOffset;
+			for (const auto& [path, asset] : allAssets)
+			{
+				const auto castedAsset = Cast<Type>(asset);
+				if (!castedAsset)
+					continue;
+
+				if (!search.empty())
+				{
+					const std::string filename = Utils::AsString(path.stem());
+					std::size_t pos = Utils::FindSubstringI(filename, search);
+					if (pos == std::string::npos)
+					{
+						continue;
+					}
+				}
+
+				const bool bSelected = currentItemIdx == i;
+				ImGui::PushID((void*)asset->GetGUID().GetHash());
+
+				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowOverlap, { 0.0f, previewSize.y });
+				bSelectableTriggered |= ImGui::IsItemClicked();
+
+				bool bHasPreview = false;
+				if constexpr (std::is_same<Type, Asset>::value)
+				{
+					if (const auto texture2DAsset = Cast<AssetTexture2D>(asset))
+					{
+						ImGui::SameLine();
+						UI::Image(texture2DAsset->GetTexture(), previewSize);
+						bHasPreview = true;
+					}
+					else if (const auto textureCubeAsset = Cast<AssetTextureCube>(asset))
+					{
+						if (const auto& texture2D = textureCubeAsset->GetTexture()->GetTexture2D())
+						{
+							ImGui::SameLine();
+							UI::Image(texture2D, previewSize);
+							bHasPreview = true;
+						}
+					}
+					else if (bRenderablePreview)
+					{
+						ImGui::SameLine();
+						Ref<Eagle::Image> preview = ThumbnailCache::Get(asset);
+						UI::Image(preview ? preview : Texture2D::NoneIconTexture->GetImage(), previewSize);
+						bHasPreview = true;
+					}
+				}
+				else if constexpr (std::is_same<Type, AssetTexture2D>::value)
+				{
+					ImGui::SameLine();
+					UI::Image(castedAsset->GetTexture(), previewSize);
+					bHasPreview = true;
+				}
+				else if constexpr (std::is_same<Type, AssetTextureCube>::value)
+				{
+					if (const auto& texture2D = castedAsset->GetTexture()->GetTexture2D())
+					{
+						ImGui::SameLine();
+						UI::Image(texture2D, previewSize);
+						bHasPreview = true;
+					}
+				}
+				else if constexpr (bRenderablePreview)
+				{
+					ImGui::SameLine();
+					Ref<Eagle::Image> preview = ThumbnailCache::Get(asset);
+					UI::Image(preview ? preview : Texture2D::NoneIconTexture->GetImage(), previewSize);
+					bHasPreview = true;
+				}
+
+				ImGui::SameLine();
+				if (bHasPreview)
+					ImGui::SetCursorPosY(ImGui::GetCursorPosY() + previewSize.y * 0.25f);
+				ImGui::Text("%s", Utils::AsString(path.stem()).c_str());
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				if (bSelectableTriggered)
+				{
+					currentItemIdx = i;
+
+					modifyingAsset = castedAsset;
+					bResult = true;
+					ImGui::CloseCurrentPopup();
+				}
+				++i;
+				ImGui::PopID();
+			}
+			
+			ImGui::EndChild();
+			ImGui::EndCombo();
+		}
+		else
+		{
+			search.clear();
+			bJustOpened = true;
+		}
+
+		if (bApplyMaxWidth)
+			ImGui::PopItemWidth();
+
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+		ImGui::PopID();
+
+		return bResult;
+	}
+
+	template<class Type>
+	bool DrawAssetSelection(const std::string_view label, Ref<Type>& modifyingAsset, const Ref<Eagle::Image>& preview, bool* outPreviewClicked = nullptr)
+	{
+		return DrawAssetSelection(label, modifyingAsset, "", -1.f, preview, outPreviewClicked);
+	}
 }

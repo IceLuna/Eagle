@@ -60,12 +60,14 @@ namespace Eagle
 
 		void CreateIfNeededColoredDirectionalLightShadowMaps();
 		void InitColoredDirectionalLightShadowMaps();
-		void InitColoredDirectionalLightFramebuffers(std::vector<Ref<Framebuffer>>& framebuffers, const Ref<PipelineGraphics>& pipeline, bool bIncludeDepth);
+		void InitColoredDirectionalLightFramebuffers(std::vector<Ref<Framebuffer>>& framebuffers, const Ref<PipelineGraphics>& pipeline);
 		void FreeColoredDirectionalLightShadowMaps();
 
 		void HandlePointLightResources(const Ref<CommandBuffer>& cmd);
 		void HandleSpotLightResources(const Ref<CommandBuffer>& cmd);
-		void ClearFramebuffers(const Ref<CommandBuffer>& cmd);
+		void HandleDirectionalLightResources(const Ref<CommandBuffer>& cmd);
+		void ClearShadowMaps(const Ref<CommandBuffer>& cmd);
+		void PrepareShadowMapsForSampling(const Ref<CommandBuffer>& cmd);
 
 		void HandleColoredPointLightShadowMaps();
 		void HandleColoredSpotLightShadowMaps();
@@ -102,9 +104,9 @@ namespace Eagle
 		std::vector<Ref<Image>> m_PLShadowMaps;
 		std::vector<Ref<Sampler>> m_PLShadowMapSamplers;
 		Ref<Buffer> m_PLVPsBuffer;
+		std::vector<glm::mat4> m_PLVPs;
 		//Colored
 		std::vector<Ref<Framebuffer>> m_PLCFramebuffers;
-		std::vector<Ref<Framebuffer>> m_PLCFramebuffers_NoDepth;
 		std::vector<Ref<Image>> m_PLCShadowMaps;
 		std::vector<Ref<Image>> m_PLCDShadowMaps;
 
@@ -113,7 +115,6 @@ namespace Eagle
 		std::vector<Ref<Image>> m_SLShadowMaps;
 		// Colored
 		std::vector<Ref<Framebuffer>> m_SLCFramebuffers;
-		std::vector<Ref<Framebuffer>> m_SLCFramebuffers_NoDepth;
 		std::vector<Ref<Image>> m_SLCShadowMaps;
 		std::vector<Ref<Image>> m_SLCDShadowMaps;
 
@@ -127,7 +128,6 @@ namespace Eagle
 		std::vector<Ref<Image>> m_DLCShadowMaps;
 		std::vector<Ref<Image>> m_DLCDShadowMaps;
 		std::vector<Ref<Framebuffer>> m_DLCFramebuffers;
-		std::vector<Ref<Framebuffer>> m_DLCFramebuffers_NoDepth;
 
 		// For opacity meshes
 		Ref<PipelineGraphics> m_OpacityMPLPipeline;
@@ -139,128 +139,60 @@ namespace Eagle
 		Ref<PipelineGraphics> m_TranslucentMSLPipeline;
 		Ref<PipelineGraphics> m_TranslucentMDLPipeline;
 
-		Ref<PipelineGraphics> m_TranslucentMPLPipeline_NoDepth;
-		Ref<PipelineGraphics> m_TranslucentMSLPipeline_NoDepth;
-		Ref<PipelineGraphics> m_TranslucentMDLPipeline_NoDepth;
-
 		// For masked meshes
 		Ref<PipelineGraphics> m_MaskedMPLPipeline;
 		Ref<PipelineGraphics> m_MaskedMSLPipeline;
 		Ref<PipelineGraphics> m_MaskedMDLPipeline;
-		Ref<PipelineGraphics> m_MaskedMPLPipelineClearing;
-		Ref<PipelineGraphics> m_MaskedMSLPipelineClearing;
-		Ref<PipelineGraphics> m_MaskedMDLPipelineClearing;
 
 		// For opacity skeletal meshes
 		Ref<PipelineGraphics> m_OpacitySMPLPipeline;
 		Ref<PipelineGraphics> m_OpacitySMSLPipeline;
 		Ref<PipelineGraphics> m_OpacitySMDLPipeline;
-		Ref<PipelineGraphics> m_OpacitySMPLPipelineClearing;
-		Ref<PipelineGraphics> m_OpacitySMSLPipelineClearing;
-		Ref<PipelineGraphics> m_OpacitySMDLPipelineClearing;
 
 		// For translucent skeletal meshes
 		Ref<PipelineGraphics> m_TranslucentSMPLPipeline;
 		Ref<PipelineGraphics> m_TranslucentSMSLPipeline;
 		Ref<PipelineGraphics> m_TranslucentSMDLPipeline;
-		Ref<PipelineGraphics> m_TranslucentSMPLPipelineClearing;
-		Ref<PipelineGraphics> m_TranslucentSMSLPipelineClearing;
-		Ref<PipelineGraphics> m_TranslucentSMDLPipelineClearing;
-
-		Ref<PipelineGraphics> m_TranslucentSMPLPipeline_NoDepth;
-		Ref<PipelineGraphics> m_TranslucentSMSLPipeline_NoDepth;
-		Ref<PipelineGraphics> m_TranslucentSMDLPipeline_NoDepth;
-		Ref<PipelineGraphics> m_TranslucentSMPLPipelineClearing_NoDepth;
-		Ref<PipelineGraphics> m_TranslucentSMSLPipelineClearing_NoDepth;
-		Ref<PipelineGraphics> m_TranslucentSMDLPipelineClearing_NoDepth;
 
 		// For masked skeletal meshes
 		Ref<PipelineGraphics> m_MaskedSMPLPipeline;
 		Ref<PipelineGraphics> m_MaskedSMSLPipeline;
 		Ref<PipelineGraphics> m_MaskedSMDLPipeline;
-		Ref<PipelineGraphics> m_MaskedSMPLPipelineClearing;
-		Ref<PipelineGraphics> m_MaskedSMSLPipelineClearing;
-		Ref<PipelineGraphics> m_MaskedSMDLPipelineClearing;
 
 		// For opacity sprites
 		Ref<PipelineGraphics> m_OpacitySPLPipeline;
 		Ref<PipelineGraphics> m_OpacitySSLPipeline;
 		Ref<PipelineGraphics> m_OpacitySDLPipeline;
-		Ref<PipelineGraphics> m_OpacitySPLPipelineClearing;
-		Ref<PipelineGraphics> m_OpacitySSLPipelineClearing;
-		Ref<PipelineGraphics> m_OpacitySDLPipelineClearing;
 
 		// For translucent sprites
 		Ref<PipelineGraphics> m_TranslucentSPLPipeline;
 		Ref<PipelineGraphics> m_TranslucentSSLPipeline;
 		Ref<PipelineGraphics> m_TranslucentSDLPipeline;
-		Ref<PipelineGraphics> m_TranslucentSPLPipelineClearing;
-		Ref<PipelineGraphics> m_TranslucentSSLPipelineClearing;
-		Ref<PipelineGraphics> m_TranslucentSDLPipelineClearing;
-
-		Ref<PipelineGraphics> m_TranslucentSPLPipeline_NoDepth;
-		Ref<PipelineGraphics> m_TranslucentSPLPipelineClearing_NoDepth;
-		Ref<PipelineGraphics> m_TranslucentSSLPipeline_NoDepth;
-		Ref<PipelineGraphics> m_TranslucentSSLPipelineClearing_NoDepth;
-		Ref<PipelineGraphics> m_TranslucentSDLPipeline_NoDepth;
-		Ref<PipelineGraphics> m_TranslucentSDLPipelineClearing_NoDepth;
 
 		// For masked sprites
 		Ref<PipelineGraphics> m_MaskedSPLPipeline;
 		Ref<PipelineGraphics> m_MaskedSSLPipeline;
 		Ref<PipelineGraphics> m_MaskedSDLPipeline;
-		Ref<PipelineGraphics> m_MaskedSPLPipelineClearing;
-		Ref<PipelineGraphics> m_MaskedSSLPipelineClearing;
-		Ref<PipelineGraphics> m_MaskedSDLPipelineClearing;
 
 		// For opaque lit texts
 		Ref<PipelineGraphics> m_OpaqueLitTPLPipeline;
 		Ref<PipelineGraphics> m_OpaqueLitTSLPipeline;
 		Ref<PipelineGraphics> m_OpaqueLitTDLPipeline;
-		Ref<PipelineGraphics> m_OpaqueLitTPLPipelineClearing;
-		Ref<PipelineGraphics> m_OpaqueLitTSLPipelineClearing;
-		Ref<PipelineGraphics> m_OpaqueLitTDLPipelineClearing;
 
 		// For translucent lit texts
 		Ref<PipelineGraphics> m_TranslucentLitTPLPipeline;
 		Ref<PipelineGraphics> m_TranslucentLitTSLPipeline;
 		Ref<PipelineGraphics> m_TranslucentLitTDLPipeline;
-		Ref<PipelineGraphics> m_TranslucentLitTPLPipelineClearing;
-		Ref<PipelineGraphics> m_TranslucentLitTSLPipelineClearing;
-		Ref<PipelineGraphics> m_TranslucentLitTDLPipelineClearing;
-
-		Ref<PipelineGraphics> m_TranslucentLitTPLPipeline_NoDepth;
-		Ref<PipelineGraphics> m_TranslucentLitTPLPipelineClearing_NoDepth;
-		Ref<PipelineGraphics> m_TranslucentLitTSLPipeline_NoDepth;
-		Ref<PipelineGraphics> m_TranslucentLitTSLPipelineClearing_NoDepth;
-		Ref<PipelineGraphics> m_TranslucentLitTDLPipeline_NoDepth;
-		Ref<PipelineGraphics> m_TranslucentLitTDLPipelineClearing_NoDepth;
 
 		// For masked lit texts
 		Ref<PipelineGraphics> m_MaskedLitTPLPipeline;
 		Ref<PipelineGraphics> m_MaskedLitTSLPipeline;
 		Ref<PipelineGraphics> m_MaskedLitTDLPipeline;
-		Ref<PipelineGraphics> m_MaskedLitTPLPipelineClearing;
-		Ref<PipelineGraphics> m_MaskedLitTSLPipelineClearing;
-		Ref<PipelineGraphics> m_MaskedLitTDLPipelineClearing;
 
 		// For unlit texts
 		Ref<PipelineGraphics> m_UnlitTPLPipeline;
 		Ref<PipelineGraphics> m_UnlitTSLPipeline;
 		Ref<PipelineGraphics> m_UnlitTDLPipeline;
-		Ref<PipelineGraphics> m_UnlitTPLPipelineClearing;
-		Ref<PipelineGraphics> m_UnlitTSLPipelineClearing;
-		Ref<PipelineGraphics> m_UnlitTDLPipelineClearing;
-
-		// Used as a flag to indicate that atleast one draw happened
-		bool bDidDrawDL = false;
-		bool bDidDrawPL = false;
-		bool bDidDrawSL = false;
-
-		// Colored
-		bool bDidDrawDLC = false;
-		bool bDidDrawPLC = false;
-		bool bDidDrawSLC = false;
 
 		uint64_t m_MaskedMeshesDLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 		uint64_t m_MaskedMeshesPLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };

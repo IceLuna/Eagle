@@ -16,21 +16,47 @@
 
 namespace Eagle
 {
-	RenderTextUnlitTask::RenderTextUnlitTask(SceneRenderer& renderer, const Ref<Image>& renderTo)
+	RenderTextUnlitTask::RenderTextUnlitTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
-		, m_ResultImage(renderTo)
 	{
 		bJitter = m_Renderer.GetOptions().InternalState.bJitter;
 		InitPipeline();
 	}
 
-	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const UnlitTextGeometryData& data, const void* pushData, SceneRenderer::Statistics& stats)
+	void RenderTextUnlitTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const QuadsRenderData<UnlitTextGeometryData>::BlendModeGeomType& data, const void* pushData, RenderStats& stats)
 	{
-		if (data.QuadVertices.empty())
+		if (data.IsEmpty())
 			return;
 
-		const uint32_t quadsCount = (uint32_t)(data.QuadVertices.size() / 4);
 		cmd->BeginGraphics(pipeline);
+		cmd->SetGraphicsRootConstants(pushData, nullptr);
+
+		uint32_t quadsCount = (uint32_t)(data.ShadowCastingQuads.QuadVertices.size() / 4);
+		if (quadsCount > 0)
+		{
+			cmd->DrawIndexed(data.ShadowCastingQuads.VertexBuffer, data.ShadowCastingQuads.IndexBuffer, quadsCount * 6, 0, 0);
+			++stats.DrawCalls;
+		}
+		quadsCount = (uint32_t)(data.NonShadowQuads.QuadVertices.size() / 4);
+		if (quadsCount > 0)
+		{
+			cmd->DrawIndexed(data.NonShadowQuads.VertexBuffer, data.NonShadowQuads.IndexBuffer, quadsCount * 6, 0, 0);
+			++stats.DrawCalls;
+		}
+
+		cmd->EndGraphics();
+	}
+
+	void RenderTextUnlitTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const UnlitTextGeometryData& data, const void* pushData, RenderStats& stats, const Ref<Framebuffer>& fb)
+	{
+		const uint32_t quadsCount = (uint32_t)(data.QuadVertices.size() / 4);
+		if (quadsCount == 0)
+			return;
+
+		if (fb)
+			cmd->BeginGraphics(pipeline, fb);
+		else
+			cmd->BeginGraphics(pipeline);
 		cmd->SetGraphicsRootConstants(pushData, nullptr);
 		cmd->DrawIndexed(data.VertexBuffer, data.IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
@@ -39,10 +65,10 @@ namespace Eagle
 
 	void RenderTextUnlitTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& data = m_Renderer.GetUnlitTextData();
-		const auto& notCastingShadowsData = m_Renderer.GetUnlitNotCastingShadowTextData();
+		const auto& singleSided = m_Renderer.GetSingleSidedUnlitTextsRenderData();
+		const auto& doubleSided = m_Renderer.GetDoubleSidedUnlitTextsRenderData();
 
-		if (data.QuadVertices.empty() && notCastingShadowsData.QuadVertices.empty())
+		if (singleSided.Opaque.IsEmpty() && doubleSided.Opaque.IsEmpty())
 			return;
 
 		EG_CPU_TIMING_SCOPED("Render Text3D Unlit");
@@ -53,16 +79,21 @@ namespace Eagle
 		if (bJitter)
 			m_Pipeline->SetBuffer(m_Renderer.GetJitter(), 2, 0);
 
-		Draw(cmd, m_Pipeline, data, &m_Renderer.GetViewProjection()[0][0], m_Renderer.GetStats());
-		Draw(cmd, m_Pipeline, notCastingShadowsData, &m_Renderer.GetViewProjection()[0][0], m_Renderer.GetStats());
+		const auto& vp = m_Renderer.GetViewProjection();
+		auto& stats = m_Renderer.GetStats();
+		cmd->SetGraphicsCullMode(CullMode::Back);
+		Draw(cmd, m_Pipeline, singleSided.Opaque, glm::value_ptr(vp), stats);
+
+		cmd->SetGraphicsCullMode(CullMode::None);
+		Draw(cmd, m_Pipeline, doubleSided.Opaque, glm::value_ptr(vp), stats);
 	}
 
 	void RenderTextUnlitTask::InitPipeline()
 	{
 		ColorAttachment colorAttachment;
-		colorAttachment.Image = m_ResultImage;
-		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.Image = m_Renderer.GetHDROutput();
+		colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		colorAttachment.ClearOperation = ClearOperation::Load;
 
 		colorAttachment.bBlendEnabled = true;
@@ -76,8 +107,8 @@ namespace Eagle
 
 		ColorAttachment objectIDAttachment;
 		objectIDAttachment.Image = m_Renderer.GetGBuffer().ObjectID;
-		objectIDAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		objectIDAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		objectIDAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		objectIDAttachment.ClearOperation = ClearOperation::Load;
 
 		DepthStencilAttachment depthAttachment;
@@ -85,7 +116,7 @@ namespace Eagle
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.Image = m_Renderer.GetGBuffer().Depth;
 		depthAttachment.bWriteDepth = true;
-		depthAttachment.DepthCompareOp = CompareOperation::Greater;
+		depthAttachment.DepthCompareOp = CompareOperation::GreaterEqual;
 		depthAttachment.ClearOperation = ClearOperation::Load;
 
 		ShaderDefines defines;
@@ -98,7 +129,7 @@ namespace Eagle
 		state.ColorAttachments.push_back(colorAttachment);
 		state.ColorAttachments.push_back(objectIDAttachment);
 		state.DepthStencilAttachment = depthAttachment;
-		state.CullMode = CullMode::None;
+		state.CullMode = CullMode::Dynamic;
 
 		if (m_Pipeline)
 			m_Pipeline->SetState(state);

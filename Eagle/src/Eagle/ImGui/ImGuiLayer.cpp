@@ -53,7 +53,7 @@ namespace Eagle
 		io.ConfigDebugHighlightIdConflicts = false;
 		io.ConfigDebugHighlightIdConflictsShowItemPicker = false;
 
-		m_IniPath = (Application::GetCorePath() / "imgui.ini").u8string();
+		m_IniPath = Utils::AsString(Application::GetCorePath() / "imgui.ini");
 		io.IniFilename = m_IniPath.c_str();
 
 		UI::LoadFonts();

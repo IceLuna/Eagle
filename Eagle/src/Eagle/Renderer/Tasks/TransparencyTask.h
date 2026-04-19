@@ -45,16 +45,18 @@ namespace Eagle
 	private:
 		void RenderMeshesDepth(const Ref<CommandBuffer>& cmd);
 		void RenderSkeletalMeshesDepth(const Ref<CommandBuffer>& cmd);
-		void RenderSpritesDepth(const Ref<CommandBuffer>& cmd, const SpriteGeometryData& spritesData);
-		void RenderTextsDepth(const Ref<CommandBuffer>& cmd, const LitTextGeometryData& data);
+		void RenderSpritesDepth(const Ref<CommandBuffer>& cmd);
+		void RenderTextsDepth(const Ref<CommandBuffer>& cmd);
 
 		void RenderMeshesColor(const Ref<CommandBuffer>& cmd);
 		void RenderSkeletalMeshesColor(const Ref<CommandBuffer>& cmd);
-		void RenderSpritesColor(const Ref<CommandBuffer>& cmd, const SpriteGeometryData& spritesData);
-		void RenderTextsColor(const Ref<CommandBuffer>& cmd, const LitTextGeometryData& data);
+		void RenderSpritesColor(const Ref<CommandBuffer>& cmd);
+		void RenderTextsColor(const Ref<CommandBuffer>& cmd);
 
 		void CompositePass(const Ref<CommandBuffer>& cmd);
 		void RenderEntityIDs(const Ref<CommandBuffer>& cmd);
+
+		void Prepare(const Ref<CommandBuffer>& cmd);
 
 		void InitMeshPipelines();
 		void InitSkeletalMeshPipelines();
@@ -67,23 +69,9 @@ namespace Eagle
 		bool SetSoftShadowsEnabled(bool bEnable);
 		bool SetVisualizeCascades(bool bVisualize);
 		bool SetCSMSmoothTransitionEnabled(bool bEnabled);
-		bool SetStutterlessEnabled(bool bEnabled);
 		bool SetFogEnabled(bool bEnabled);
 
 		void RecreatePipeline(bool bUpdateDefines);
-
-		struct ColorPushData
-		{
-			glm::vec3 CameraPos;
-			float MaxReflectionLOD;
-			glm::ivec2 Size;
-			float MaxShadowDistance2; // Square of distance
-			float CascadesSmoothTransitionAlpha;
-			float IBLIntensity;
-			uint32_t PointLights;
-			uint32_t SpotLights;
-			uint32_t HasDirLight;
-		};
 
 	private:
 		Ref<PipelineGraphics> m_MeshesDepthPipeline;
@@ -111,11 +99,12 @@ namespace Eagle
 		Ref<Shader> m_TransparencyTextColorShader;
 		Ref<Shader> m_TransparencyTextDepthShader;
 
+		Ref<Buffer> m_UniformBuffer;
+
 		Ref<Buffer> m_OITBuffer;
 		uint32_t m_Layers = 4u;
-		PBRConstantsKernelInfo m_KernelInfo;
 
-		ColorPushData m_ColorPushData;
+		uint32_t bHasIrradiance = 0u;
 		ShaderDefines m_ShaderDefines;
 
 		uint64_t m_TexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };

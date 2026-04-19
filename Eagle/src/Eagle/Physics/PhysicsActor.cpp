@@ -413,7 +413,7 @@ namespace Eagle
 		if (!IsKinematic())
 		{
 			EG_CORE_WARN("[PhysicsEngine] Cannot get kinematic target rotation of non-kinematic PhysicsActor. Entity: '{0}'", m_Entity.GetName());
-			return glm::vec3(0.f);
+			return Rotator{};
 		}
 
 		physx::PxRigidDynamic* actor = m_RigidActor->is<physx::PxRigidDynamic>();

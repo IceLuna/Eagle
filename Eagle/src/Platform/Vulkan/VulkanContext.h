@@ -25,8 +25,8 @@ namespace Eagle
 		void InitDevices(VkSurfaceKHR surface, bool bRequireSurface);
 		const VulkanDevice* GetContextDevice() { return m_Device.get(); }
 
-		static const char* GetVulkanAPIVersionStr() { return "Vulkan 1.2"; }
-		static uint32_t GetVulkanAPIVersion() { return VK_API_VERSION_1_2; }
+		static const char* GetVulkanAPIVersionStr() { return "Vulkan 1.3"; }
+		static uint32_t GetVulkanAPIVersion() { return VK_API_VERSION_1_3; }
 		static VkInstance GetInstance() { return s_VulkanInstance; }
 		static VulkanContext& Get() { return *s_VulkanContext; }
 		static const VulkanDevice* GetDevice() { return VulkanContext::Get().m_Device.get(); }

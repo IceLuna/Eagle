@@ -22,7 +22,7 @@ namespace Eagle
 		bool bHidden = !ImGui::Begin(m_WindowName.c_str(), pOpen);
 		UI::BeginPropertyGrid("SoundGroupDetails");
 
-		UI::Text("Name", m_Asset->GetPath().stem().u8string());
+		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 		UI::Text("Type", "Sound Group");
 
 		float volume = soundGroup->GetVolume();

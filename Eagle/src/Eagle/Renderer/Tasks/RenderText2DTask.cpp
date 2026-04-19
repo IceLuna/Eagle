@@ -12,8 +12,6 @@
 
 #include "msdf-atlas-gen.h"
 
-#include <codecvt>
-
 namespace Eagle
 {
 	static void UploadIndexBuffer(const Ref<CommandBuffer>& cmd, Ref<Buffer>& buffer)
@@ -34,8 +32,7 @@ namespace Eagle
 			offset += 4;
 		}
 
-		cmd->Write(buffer, indices.data(), ibSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
-		cmd->TransitionLayout(buffer, BufferReadAccess::Index, BufferReadAccess::Index);
+		cmd->Write(buffer, indices.data(), ibSize, 0, buffer->GetLayout(), BufferReadAccess::Index);
 	}
 
 	RenderText2DTask::RenderText2DTask(SceneRenderer& renderer)
@@ -106,8 +103,7 @@ namespace Eagle
 			UploadIndexBuffer(cmd, ib);
 		}
 
-		cmd->Write(vb, quads.data(), currentVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
-		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
+		cmd->Write(vb, quads.data(), currentVertexSize, 0, vb->GetLayout(), BufferReadAccess::Vertex);
 	}
 
 	void RenderText2DTask::Render(const Ref<CommandBuffer>& cmd)
@@ -135,12 +131,6 @@ namespace Eagle
 		m_PipelineNoEntityID->Resize(size.x, size.y);
 	}
 
-	static std::u32string ToUTF32(const std::string& s)
-	{
-		std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> conv;
-		return conv.from_bytes(s);
-	}
-
 	void RenderText2DTask::SetTexts(const std::vector<const Text2DComponent*>& texts, bool bDirty)
 	{
 		if (!bDirty)
@@ -157,7 +147,7 @@ namespace Eagle
 
 			auto& data = datas.emplace_back();
 			data.Font = asset->GetFont();
-			data.Text = ToUTF32(text->GetText());
+			data.Text = Utils::ToUTF32(text->GetText());
 			data.Color = text->GetColor();
 			data.LineSpacing = text->GetLineSpacing();
 			data.Pos = text->GetPosition();
@@ -288,8 +278,8 @@ namespace Eagle
 					{
 						auto& q2 = m_Quads.emplace_back();
 						q2 = m_Quads[q1Index];
-						q2.Position = glm::vec2(transform * glm::vec4(pl, pt, 0.f, 1.f)) + component.Pos;
-						q2.TexCoord = { l, t };
+						q2.Position = glm::vec2(transform * glm::vec4(pr, pb, 0.f, 1.f)) + component.Pos;
+						q2.TexCoord = { r, b };
 					}
 
 					{
@@ -302,8 +292,8 @@ namespace Eagle
 					{
 						auto& q4 = m_Quads.emplace_back();
 						q4 = m_Quads[q1Index];
-						q4.Position = glm::vec2(transform * glm::vec4(pr, pb, 0.f, 1.f)) + component.Pos;
-						q4.TexCoord = { r, b };
+						q4.Position = glm::vec2(transform * glm::vec4(pl, pt, 0.f, 1.f)) + component.Pos;
+						q4.TexCoord = { l, t };
 					}
 
 					if (i + 1 < textSize)
@@ -323,8 +313,8 @@ namespace Eagle
 	{
 		ColorAttachment colorAttachment;
 		colorAttachment.Image = m_Renderer.GetHDROutput();
-		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		colorAttachment.ClearOperation = ClearOperation::Load;
 
 		colorAttachment.bBlendEnabled = true;
@@ -338,8 +328,8 @@ namespace Eagle
 
 		ColorAttachment objectIDAttachment;
 		objectIDAttachment.Image = m_Renderer.GetGBuffer().ObjectID;
-		objectIDAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		objectIDAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		objectIDAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		objectIDAttachment.ClearOperation = ClearOperation::Load;
 
 		ShaderDefines noObjectIDDefine = { {"EG_NO_OBJECT_ID", ""} };
@@ -347,7 +337,6 @@ namespace Eagle
 		state.VertexShader = Shader::Create("text/text2D.vert", ShaderType::Vertex, noObjectIDDefine);
 		state.FragmentShader = Shader::Create("text/text2D.frag", ShaderType::Fragment, noObjectIDDefine);
 		state.ColorAttachments.push_back(colorAttachment);
-		state.CullMode = CullMode::Front;
 
 		if (m_PipelineNoEntityID)
 			m_PipelineNoEntityID->SetState(state);

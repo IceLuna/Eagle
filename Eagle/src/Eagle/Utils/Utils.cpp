@@ -3,6 +3,7 @@
 
 #include "Eagle/Asset/Asset.h"
 
+#include <codecvt>
 #include <locale>
 #include <stb_image.h>
 #include <stb_image_write.h>
@@ -91,6 +92,12 @@ namespace Eagle
 		*buffer = DataBuffer::Copy(data, size);
 	}
 
+	std::u32string Utils::ToUTF32(const std::string& s)
+	{
+		std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> conv;
+		return conv.from_bytes(s);
+	}
+
 	std::string Utils::ToUtf8(const std::wstring& str)
 	{
 		std::string ret;
@@ -101,6 +108,12 @@ namespace Eagle
 			WideCharToMultiByte(CP_UTF8, 0, str.c_str(), (int)str.length(), &ret[0], len, NULL, NULL);
 		}
 		return ret;
+	}
+
+	std::string Utils::AsString(const Path& path)
+	{
+		const std::u8string u8str = path.u8string();
+		return std::string(u8str.begin(), u8str.end());
 	}
 	
 	size_t Utils::FindSubstringI(const std::string& str1, const std::string& str2)
@@ -254,12 +267,12 @@ namespace Eagle
 	
 	Path Utils::GetUniqueAssetFilepath(const Path& saveTo, const std::string& assetFilename)
 	{
-		Path outputFilename = saveTo / (assetFilename + Asset::GetExtension());
+		Path outputFilename = saveTo / Utils::AsPath(assetFilename + Asset::GetExtension());
 		uint32_t i = 0;
 		while (std::filesystem::exists(outputFilename))
 		{
 			std::string uniqueFilename = assetFilename + '_' + std::to_string(i);
-			outputFilename = saveTo / (uniqueFilename + Asset::GetExtension());
+			outputFilename = saveTo / Utils::AsPath(uniqueFilename + Asset::GetExtension());
 			++i;
 		}
 

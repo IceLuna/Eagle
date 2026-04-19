@@ -14,6 +14,9 @@
 
 namespace Eagle
 {
+	// We're manually fetching VB & IVB data, so set the to null for the draw calls
+	static Ref<Buffer> s_NullBuffer = nullptr;
+
 	RenderSkeletalMeshesTask::RenderSkeletalMeshesTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
@@ -34,38 +37,38 @@ namespace Eagle
 
 		ColorAttachment colorAttachment;
 		colorAttachment.Image = gbuffer.Albedo;
-		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		colorAttachment.ClearOperation = ClearOperation::Load;
 
-		ColorAttachment geometry_shading_NormalsAttachment;
-		geometry_shading_NormalsAttachment.Image = gbuffer.Geometry_Shading_Normals;
-		geometry_shading_NormalsAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		geometry_shading_NormalsAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		geometry_shading_NormalsAttachment.ClearOperation = ClearOperation::Load;
+		ColorAttachment normalsAttachment;
+		normalsAttachment.Image = gbuffer.Normals;
+		normalsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		normalsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+		normalsAttachment.ClearOperation = ClearOperation::Load;
 
 		ColorAttachment emissiveAttachment;
 		emissiveAttachment.Image = gbuffer.Emissive;
-		emissiveAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		emissiveAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		emissiveAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		emissiveAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		emissiveAttachment.ClearOperation = ClearOperation::Load;
 
 		ColorAttachment materialAttachment;
 		materialAttachment.Image = gbuffer.MaterialData;
-		materialAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		materialAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		materialAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		materialAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		materialAttachment.ClearOperation = ClearOperation::Load;
 
 		ColorAttachment flagsAttachment;
 		flagsAttachment.Image = gbuffer.Flags;
-		flagsAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		flagsAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		flagsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		flagsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		flagsAttachment.ClearOperation = ClearOperation::Load;
 
 		ColorAttachment objectIDAttachment;
 		objectIDAttachment.Image = gbuffer.ObjectID;
-		objectIDAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		objectIDAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		objectIDAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		objectIDAttachment.ClearOperation = ClearOperation::Load;
 
 		DepthStencilAttachment depthAttachment;
@@ -74,7 +77,7 @@ namespace Eagle
 		depthAttachment.Image = gbuffer.Depth;
 		depthAttachment.bWriteDepth = true;
 		depthAttachment.ClearOperation = ClearOperation::Load;
-		depthAttachment.DepthCompareOp = CompareOperation::Greater;
+		depthAttachment.DepthCompareOp = CompareOperation::GreaterEqual;
 
 		ShaderDefines vertexDefines;
 		ShaderDefines fragmentDefines;
@@ -91,7 +94,7 @@ namespace Eagle
 		state.FragmentShader = Shader::Create("mesh.frag", ShaderType::Fragment, fragmentDefines);
 
 		state.ColorAttachments.push_back(colorAttachment);
-		state.ColorAttachments.push_back(geometry_shading_NormalsAttachment);
+		state.ColorAttachments.push_back(normalsAttachment);
 		state.ColorAttachments.push_back(emissiveAttachment);
 		state.ColorAttachments.push_back(materialAttachment);
 		state.ColorAttachments.push_back(flagsAttachment);
@@ -100,15 +103,15 @@ namespace Eagle
 		{
 			ColorAttachment velocityAttachment;
 			velocityAttachment.Image = gbuffer.Motion;
-			velocityAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-			velocityAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			velocityAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+			velocityAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 			velocityAttachment.ClearOperation = ClearOperation::Load;
 			state.ColorAttachments.push_back(velocityAttachment);
 		}
 
 		state.PerInstanceAttribs = PerInstanceAttribs;
 		state.DepthStencilAttachment = depthAttachment;
-		state.CullMode = CullMode::Back;
+		state.CullMode = CullMode::Dynamic;
 
 		if (m_OpaquePipeline)
 			m_OpaquePipeline->SetState(state);
@@ -124,10 +127,67 @@ namespace Eagle
 			m_MaskedPipeline = PipelineGraphics::Create(state);
 	}
 
+	void RenderSkeletalMeshesTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const std::vector<MeshDrawData>& meshes, const SkeletalMeshGeometryData& buffers,
+		RenderStats& stats, const DataBufferView& vertexPushData, const Ref<Framebuffer>& framebuffer)
+	{
+		if (meshes.empty())
+			return;
+
+		if (framebuffer)
+			cmd->BeginGraphics(pipeline, framebuffer);
+		else
+			cmd->BeginGraphics(pipeline);
+
+		struct PushData
+		{
+			uint32_t VertexCount = 0;
+			uint32_t InstanceOffset = 0;
+			uint32_t VerticesOffset = 0;
+		};
+		PushData pushData;
+
+		constexpr size_t pushConstantsMaxSize = 128;
+		EG_CORE_ASSERT((pushConstantsMaxSize - vertexPushData.Size) >= sizeof(PushData)); // We need to have enough space to hold PushData
+		uint8_t pushConstants[pushConstantsMaxSize];
+		if (vertexPushData.Size > 0)
+		{
+			memcpy_s(pushConstants, pushConstantsMaxSize, vertexPushData.Data, vertexPushData.Size);
+		}
+
+		const size_t dstOffset = vertexPushData.Size;
+		for (const auto& data : meshes)
+		{
+			pushData.VertexCount = data.VerticesCount;
+			pushData.VerticesOffset = data.SkinnedVertexOffset;
+
+			for (const auto& matRenderData : data.PerMaterialData)
+			{
+				const uint32_t indicesCount = matRenderData.IndexCount;
+				const uint32_t firstIndex = matRenderData.FirstIndex;
+				const uint32_t instanceCount = matRenderData.InstanceCount;
+				const uint32_t firstInstance = matRenderData.FirstInstance;
+				if (instanceCount > 0)
+				{
+					pushData.InstanceOffset = firstInstance;
+
+					memcpy_s(pushConstants + dstOffset, pushConstantsMaxSize - dstOffset, &pushData, sizeof(PushData));
+					cmd->SetGraphicsRootConstants(pushConstants, nullptr);
+					cmd->DrawIndexedInstanced(s_NullBuffer, buffers.IndexBuffer, indicesCount, firstIndex, 0, instanceCount, firstInstance, s_NullBuffer);
+					++stats.DrawCalls;
+				}
+			}
+		}
+
+		cmd->EndGraphics();
+	}
+
 	void RenderSkeletalMeshesTask::RenderOpaque(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().Opaque;
-		if (meshes.empty())
+		const auto& culledMeshes = m_Renderer.GetCulledSkeletalMeshes();
+		const auto& ivb = culledMeshes.InstanceBuffer;
+		const auto& singleSided = culledMeshes.SingleSided.Opaque;
+		const auto& doubleSided = culledMeshes.DoubleSided.Opaque;
+		if (singleSided.GetNumMeshes() == 0 && doubleSided.GetNumMeshes() == 0)
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Render Opaque Skeletal Meshes");
@@ -143,59 +203,44 @@ namespace Eagle
 
 		m_OpaquePipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 		m_OpaquePipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
-		m_OpaquePipeline->SetBuffer(m_Renderer.GetSkeletalMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
-		m_OpaquePipeline->SetBufferArray(m_Renderer.GetAnimationTransformsBuffers(), 3, 0);
-
-		struct PushData
-		{
-			glm::mat4 ViewProj;
-			glm::mat4 PrevViewProj;
-		} pushData;
-		pushData.ViewProj = m_Renderer.GetViewProjection();
+		m_OpaquePipeline->SetBuffer(m_Renderer.GetSkinnedVertices(), EG_PERSISTENT_SET, EG_BINDING_MAX);
+		m_OpaquePipeline->SetBuffer(ivb, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+		m_OpaquePipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
+		m_OpaquePipeline->SetBuffer(m_Renderer.GetSkeletalMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 3);
 
 		if (bMotionRequired)
 		{
-			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
-			m_OpaquePipeline->SetBuffer(m_Renderer.GetSkeletalMeshPrevTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
-			m_OpaquePipeline->SetBufferArray(m_Renderer.GetAnimationPrevTransformsBuffers(), 4, 0);
+			m_OpaquePipeline->SetBuffer(m_Renderer.GetPrevSkinnedVerticesPositions(), EG_PERSISTENT_SET, EG_BINDING_MAX + 4);
 		}
 		if (bJitter)
 			m_OpaquePipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
-		cmd->BeginGraphics(m_OpaquePipeline);
-		cmd->SetGraphicsRootConstants(&pushData, nullptr);
-
-		auto& stats = m_Renderer.GetStats();
-		uint32_t firstIndex = 0;
-		uint32_t firstInstance = 0;
-		uint32_t vertexOffset = 0;
 		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
-		for (const auto& data : meshes)
+		auto& stats = m_Renderer.GetStats();
+
+		cmd->BeginGraphics(m_OpaquePipeline);
+		if (singleSided.GetNumMeshes() > 0)
 		{
-			const uint32_t verticesCount = data.VerticesCount;
-			const uint32_t vertexOffset = data.VertexOffset;
-
-			for (const auto& matRenderData : data.PerMaterialData)
-			{
-				const uint32_t indicesCount = matRenderData.IndexCount;
-				const uint32_t firstIndex = matRenderData.FirstIndex;
-				const uint32_t instanceCount = matRenderData.InstanceCount;
-				const uint32_t firstInstance = matRenderData.FirstInstance;
-				if (instanceCount > 0)
-				{
-					cmd->DrawIndexedInstanced(buffers.VertexBuffer, buffers.IndexBuffer, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, buffers.InstanceBuffer);
-					++stats.DrawCalls;
-				}
-			}
+			cmd->SetGraphicsCullMode(CullMode::Back);
+			cmd->DrawIndexedInstancedIndirectCount(s_NullBuffer, buffers.IndexBuffer, singleSided.Result.IndirectArgsBuffer, singleSided.Result.DrawCountBuffer, s_NullBuffer, singleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
 		}
-
+		if (doubleSided.GetNumMeshes() > 0)
+		{
+			cmd->SetGraphicsCullMode(CullMode::None);
+			cmd->DrawIndexedInstancedIndirectCount(s_NullBuffer, buffers.IndexBuffer, doubleSided.Result.IndirectArgsBuffer, doubleSided.Result.DrawCountBuffer, s_NullBuffer, doubleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
+		}
 		cmd->EndGraphics();
 	}
 
 	void RenderSkeletalMeshesTask::RenderMasked(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& meshes = m_Renderer.GetSkeletalMeshesDrawData().Masked;
-		if (meshes.empty())
+		const auto& culledMeshes = m_Renderer.GetCulledSkeletalMeshes();
+		const auto& ivb = culledMeshes.InstanceBuffer;
+		const auto& singleSided = culledMeshes.SingleSided.Masked;
+		const auto& doubleSided = culledMeshes.DoubleSided.Masked;
+		if (singleSided.GetNumMeshes() == 0 && doubleSided.GetNumMeshes() == 0)
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Render Masked Skeletal Meshes");
@@ -211,52 +256,33 @@ namespace Eagle
 
 		m_MaskedPipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 		m_MaskedPipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
-		m_MaskedPipeline->SetBuffer(m_Renderer.GetSkeletalMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
-		m_MaskedPipeline->SetBufferArray(m_Renderer.GetAnimationTransformsBuffers(), 3, 0);
-
-		struct PushData
-		{
-			glm::mat4 ViewProj;
-			glm::mat4 PrevViewProj;
-		} pushData;
-		pushData.ViewProj = m_Renderer.GetViewProjection();
+		m_MaskedPipeline->SetBuffer(m_Renderer.GetSkinnedVertices(), EG_PERSISTENT_SET, EG_BINDING_MAX);
+		m_MaskedPipeline->SetBuffer(ivb, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+		m_MaskedPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
+		m_MaskedPipeline->SetBuffer(m_Renderer.GetSkeletalMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 3);
 
 		if (bMotionRequired)
 		{
-			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
-			m_MaskedPipeline->SetBuffer(m_Renderer.GetSkeletalMeshPrevTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
-			m_MaskedPipeline->SetBufferArray(m_Renderer.GetAnimationPrevTransformsBuffers(), 4, 0);
+			m_MaskedPipeline->SetBuffer(m_Renderer.GetPrevSkinnedVerticesPositions(), EG_PERSISTENT_SET, EG_BINDING_MAX + 4);
 		}
 		if (bJitter)
 			m_MaskedPipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
-		cmd->BeginGraphics(m_MaskedPipeline);
-		cmd->SetGraphicsRootConstants(&pushData, nullptr);
-
-		auto& stats = m_Renderer.GetStats();
-		uint32_t firstIndex = 0;
-		uint32_t firstInstance = 0;
-		uint32_t vertexOffset = 0;
 		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
-		for (const auto& data : meshes)
+		auto& stats = m_Renderer.GetStats();
+		cmd->BeginGraphics(m_MaskedPipeline);
+		if (singleSided.GetNumMeshes() > 0)
 		{
-			const uint32_t verticesCount = data.VerticesCount;
-			const uint32_t vertexOffset = data.VertexOffset;
-
-			for (const auto& matRenderData : data.PerMaterialData)
-			{
-				const uint32_t indicesCount = matRenderData.IndexCount;
-				const uint32_t firstIndex = matRenderData.FirstIndex;
-				const uint32_t instanceCount = matRenderData.InstanceCount;
-				const uint32_t firstInstance = matRenderData.FirstInstance;
-				if (instanceCount > 0)
-				{
-					cmd->DrawIndexedInstanced(buffers.VertexBuffer, buffers.IndexBuffer, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, buffers.InstanceBuffer);
-					++stats.DrawCalls;
-				}
-			}
+			cmd->SetGraphicsCullMode(CullMode::Back);
+			cmd->DrawIndexedInstancedIndirectCount(s_NullBuffer, buffers.IndexBuffer, singleSided.Result.IndirectArgsBuffer, singleSided.Result.DrawCountBuffer, s_NullBuffer, singleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
 		}
-
+		if (doubleSided.GetNumMeshes() > 0)
+		{
+			cmd->SetGraphicsCullMode(CullMode::None);
+			cmd->DrawIndexedInstancedIndirectCount(s_NullBuffer, buffers.IndexBuffer, doubleSided.Result.IndirectArgsBuffer, doubleSided.Result.DrawCountBuffer, s_NullBuffer, doubleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
+		}
 		cmd->EndGraphics();
 	}
 }

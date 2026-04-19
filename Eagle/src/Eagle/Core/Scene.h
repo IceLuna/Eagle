@@ -59,6 +59,7 @@ namespace Eagle
 
 			bool bPointLightsDirty = true;
 			bool bSpotLightsDirty = true;
+			bool bDirLightsDirty = true;
 
 			bool bTextDirty = true;
 			bool bText2DDirty = true;
@@ -80,6 +81,7 @@ namespace Eagle
 				bSpriteTransformsDirty = bDirty;
 				bPointLightsDirty = bDirty;
 				bSpotLightsDirty = bDirty;
+				bDirLightsDirty = bDirty;
 				bTextDirty = bDirty;
 				bText2DDirty = bDirty;
 				bTextTransformsDirty = bDirty;
@@ -148,9 +150,15 @@ namespace Eagle
 			m_UserAABBs.emplace_back(aabb, transform);
 		}
 
+		void DrawBox(const AABB& aabb, const Transform& transform)
+		{
+			m_UserBoxes.emplace_back(aabb, transform);
+		}
+
 		// Needs to be called every frame
 		void DrawArrow(const glm::vec3& start, const glm::vec3& end, const glm::vec3& up);
 		void DrawCone(const glm::vec3& location, const glm::quat& rotation, float distance, float angleRad);
+		void DrawFrustum(const CameraComponent& camera);
 
 		SceneSoundData SpawnSound2D(const Ref<AssetAudio>& audio, const SoundSettings& settings);
 		SceneSoundData SpawnSound3D(const Ref<AssetAudio>& audio, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, const SoundSettings& settings = {});
@@ -306,7 +314,7 @@ namespace Eagle
 		size_t GetSkeletalMeshesCount() const { return m_SkeletalMeshes.size(); }
 		size_t GetPointLightsCount() const { return m_PointLights.size(); }
 		size_t GetSpotLightsCount() const { return m_SpotLights.size(); }
-		size_t GetDirLightsCount() const { return m_DirectionalLight ? 1 : 0; }
+		size_t GetDirLightsCount() const { return m_DirectionalLights.size(); }
 		bool HasIBL() const { return m_Cubemap && IsSkyboxEnabled(); }
 
 	private:
@@ -350,6 +358,9 @@ namespace Eagle
 		void OnCapsuleColliderRemoved(entt::registry& r, entt::entity e);
 		void OnCrowdAgentAdded(entt::registry& r, entt::entity e);
 		void OnCrowdAgentRemoved(entt::registry& r, entt::entity e);
+		void OnCameraRemoved(entt::registry& r, entt::entity e);
+		void OnReverbRemoved(entt::registry& r, entt::entity e);
+		void OnDirectionalLightRemoved(entt::registry& r, entt::entity e);
 
 		// T - is component type
 		template<typename T>
@@ -363,7 +374,7 @@ namespace Eagle
 				}
 				else if (notification == Notification::OnTransformChanged)
 				{
-					m_DirtyTransformStaticMeshes.emplace(&component);
+					m_DirtyTransformStaticMeshes.emplace(component.Parent.GetID());
 					m_DirtyFlags.bStaticMeshTransformsDirty = true;
 				}
 			}
@@ -376,7 +387,7 @@ namespace Eagle
 				}
 				else if (notification == Notification::OnTransformChanged)
 				{
-					m_DirtyTransformSkeletalMeshes.emplace(&component);
+					m_DirtyTransformSkeletalMeshes.emplace(component.Parent.GetID());
 					m_DirtyFlags.bSkeletalMeshTransformsDirty = true;
 				}
 			}
@@ -389,7 +400,7 @@ namespace Eagle
 				}
 				else if (notification == Notification::OnTransformChanged)
 				{
-					m_DirtyTransformSprites.emplace(&component);
+					m_DirtyTransformSprites.emplace(component.Parent.GetID());
 					m_DirtyFlags.bSpriteTransformsDirty = true;
 				}
 			}
@@ -402,23 +413,13 @@ namespace Eagle
 				}
 				else if (notification == Notification::OnDebugStateChanged)
 				{
-					// No need to updated if point lights are dirty since all data will be recollected
-					if (!m_DirtyFlags.bPointLightsDirty)
+					if (component.VisualizeRadiusEnabled())
 					{
-						if (component.VisualizeRadiusEnabled())
-						{
-							m_PointLightsDebugRadii.emplace(&component);
-							m_PointLightsDebugRadiiDirty = true;
-						}
-						else
-						{
-							auto it = m_PointLightsDebugRadii.find(&component);
-							if (it != m_PointLightsDebugRadii.end())
-							{
-								m_PointLightsDebugRadii.erase(it);
-								m_PointLightsDebugRadiiDirty = true;
-							}
-						}
+						m_PointLightsDebugRadii.emplace(component.Parent.GetID());
+					}
+					else
+					{
+						m_PointLightsDebugRadii.erase(component.Parent.GetID());
 					}
 				}
 			}
@@ -432,23 +433,33 @@ namespace Eagle
 
 				else if (notification == Notification::OnDebugStateChanged)
 				{
-					// No need to updated if spot lights are dirty since all data will be recollected
-					if (!m_DirtyFlags.bSpotLightsDirty)
+					if (component.VisualizeDistanceEnabled())
 					{
-						if (component.VisualizeDistanceEnabled())
-						{
-							m_SpotLightsDebugRadii.emplace(&component);
-							m_SpotLightsDebugRadiiDirty = true;
-						}
-						else
-						{
-							auto it = m_SpotLightsDebugRadii.find(&component);
-							if (it != m_SpotLightsDebugRadii.end())
-							{
-								m_SpotLightsDebugRadii.erase(it);
-								m_SpotLightsDebugRadiiDirty = true;
-							}
-						}
+						m_SpotLightsDebugRadii.emplace(component.Parent.GetID());
+					}
+					else
+					{
+						m_SpotLightsDebugRadii.erase(component.Parent.GetID());
+					}
+				}
+			}
+
+			if constexpr (std::is_base_of<DirectionalLightComponent, T>::value)
+			{
+				if (notification == Notification::OnStateChanged || notification == Notification::OnTransformChanged)
+				{
+					m_DirtyFlags.bDirLightsDirty = true;
+				}
+
+				else if (notification == Notification::OnDebugStateChanged)
+				{
+					if (component.IsVisualizeDirectionEnabled())
+					{
+						m_DirLightsDebugDirection.emplace(component.Parent.GetID());
+					}
+					else
+					{
+						m_DirLightsDebugDirection.erase(component.Parent.GetID());
 					}
 				}
 			}
@@ -459,17 +470,11 @@ namespace Eagle
 				{
 					if (component.IsVisualizeRadiusEnabled())
 					{
-						m_ReverbDebugBoxes.emplace(&component);
-						m_ReverbDebugBoxesDirty = true;
+						m_ReverbDebugBoxes.emplace(component.Parent.GetID());
 					}
 					else
 					{
-						auto it = m_ReverbDebugBoxes.find(&component);
-						if (it != m_ReverbDebugBoxes.end())
-						{
-							m_ReverbDebugBoxes.erase(it);
-							m_ReverbDebugBoxesDirty = true;
-						}
+						m_ReverbDebugBoxes.erase(component.Parent.GetID());
 					}
 				}
 			}
@@ -482,7 +487,7 @@ namespace Eagle
 				}
 				else if (notification == Notification::OnTransformChanged)
 				{
-					m_DirtyTransformTexts.emplace(&component);
+					m_DirtyTransformTexts.emplace(component.Parent.GetID());
 					m_DirtyFlags.bTextTransformsDirty = true;
 				}
 			}
@@ -519,7 +524,7 @@ namespace Eagle
 				}
 				else if (notification == Notification::OnTransformChanged)
 				{
-					m_DirtyTransformDecals.emplace(&component);
+					m_DirtyTransformDecals.emplace(component.Parent.GetID());
 					m_DirtyFlags.bDecalTransformsDirty = true;
 				}
 			}
@@ -536,6 +541,21 @@ namespace Eagle
 					}
 				}
 			}
+
+			if constexpr (std::is_base_of<CameraComponent, T>::value)
+			{
+				if (notification == Notification::OnDebugStateChanged)
+				{
+					if (component.IsDebugFrustumCullingEnabled())
+					{
+						m_DebugCameras.emplace(component.Parent.GetID());
+					}
+					else
+					{
+						m_DebugCameras.erase(component.Parent.GetID());
+					}
+				}
+			}
 		}
 
 	public:
@@ -543,6 +563,7 @@ namespace Eagle
 		bool bCanUpdateEditorCamera = false;
 		bool bDrawMiscellaneous = true;
 		bool bDrawNavMesh = false;
+		bool bDrawMeshAABBs = false;
 		bool bDrawBones = false;
 
 	private:
@@ -573,11 +594,12 @@ namespace Eagle
 		std::vector<AnimationEventData> m_AnimationsToTrigger;
 		std::vector<ParticleSystemComponent*> m_SystemsToUpdateAnims;
 
-		std::unordered_set<const StaticMeshComponent*> m_DirtyTransformStaticMeshes;
-		std::unordered_set<const SkeletalMeshComponent*> m_DirtyTransformSkeletalMeshes;
-		std::unordered_set<const SpriteComponent*> m_DirtyTransformSprites;
-		std::unordered_set<const TextComponent*> m_DirtyTransformTexts;
-		std::unordered_set<const DecalComponent*> m_DirtyTransformDecals;
+		// entt::entity. Can't store Entity (forward declaration)
+		std::unordered_set<uint32_t> m_DirtyTransformStaticMeshes;
+		std::unordered_set<uint32_t> m_DirtyTransformSkeletalMeshes;
+		std::unordered_set<uint32_t> m_DirtyTransformSprites;
+		std::unordered_set<uint32_t> m_DirtyTransformTexts;
+		std::unordered_set<uint32_t> m_DirtyTransformDecals;
 
 		// entt::entity. Can't store Entity (forward declaration)
 		std::unordered_set<uint32_t> m_SkeletalParticles; // Particles that use animated mesh
@@ -588,7 +610,7 @@ namespace Eagle
 		std::unordered_map<GUID, Entity> m_AliveEntities;
 		std::vector<const PointLightComponent*> m_PointLights;
 		std::vector<const SpotLightComponent*> m_SpotLights;
-		DirectionalLightComponent* m_DirectionalLight = nullptr;
+		std::vector<const DirectionalLightComponent*> m_DirectionalLights;
 		std::vector<std::pair<Entity, bool>> m_EntitiesToDestroy; // 1st - Entity to destroy; 2nd - whether to destroy its children
 		entt::registry m_Registry;
 		CameraComponent* m_RuntimeCamera = nullptr;
@@ -625,19 +647,15 @@ namespace Eagle
 		std::vector<RendererLine> m_DebugLinesToDraw;
 		std::vector<RendererTriangle> m_DebugTrianglesToDraw;
 		std::vector<RendererTriangle> m_UserDebugTriangles;
-		std::vector<RendererLine> m_DebugPointLines;
-		std::vector<RendererLine> m_DebugSpotLines;
-		std::vector<RendererLine> m_DebugReverbLines;
+		std::vector<std::pair<AABB, Transform>> m_UserBoxes; // Box and its world transform
 		std::vector<std::pair<AABB, Transform>> m_UserAABBs; // AABB and its world transform
 
-		std::unordered_set<const PointLightComponent*> m_PointLightsDebugRadii;
-		bool m_PointLightsDebugRadiiDirty = true;
-
-		std::unordered_set<const SpotLightComponent*> m_SpotLightsDebugRadii;
-		bool m_SpotLightsDebugRadiiDirty = true;
-
-		std::unordered_set<const ReverbComponent*> m_ReverbDebugBoxes;
-		bool m_ReverbDebugBoxesDirty = true;
+		// entt::entity. Can't store Entity (forward declaration)
+		std::unordered_set<uint32_t> m_PointLightsDebugRadii;
+		std::unordered_set<uint32_t> m_SpotLightsDebugRadii;
+		std::unordered_set<uint32_t> m_DirLightsDebugDirection;
+		std::unordered_set<uint32_t> m_ReverbDebugBoxes;
+		std::unordered_set<uint32_t> m_DebugCameras;
 
 		GUID m_GUID;
 

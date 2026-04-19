@@ -6,7 +6,7 @@ layout(location = 0) out vec4 outAlbedo;
 layout(location = 1) out vec4 outGeometryShadingNormals;
 layout(location = 2) out vec4 outEmissive;
 layout(location = 3) out vec4 outMaterialData;
-layout(location = 4) out float outFlags;
+layout(location = 4) out uint outFlags;
 layout(location = 5) out int  outObjectID;
 #ifdef EG_MOTION
 layout(location = 6) out vec2 outMotion;
@@ -36,13 +36,18 @@ void main()
 	}
 #endif
 
-    const vec2 packedGeometryNormal = EncodeNormal(normalize(i_Normal));
+	const vec3 geomNormal = gl_FrontFacing ? i_Normal : -i_Normal;
+    const vec2 packedGeometryNormal = EncodeNormal(normalize(geomNormal));
 	vec2 packedShadingNormal = packedGeometryNormal;
 	if (material.NormalTextureIndex != EG_INVALID_INDEX)
 	{
+		mat3 tbn = i_TBN;
+		if (!gl_FrontFacing)
+			tbn[2] = -tbn[2]; // Flip the normal
+
 		vec3 shadingNormal = ReadTexture(material.NormalTextureIndex, uv).rgb;
 		shadingNormal = normalize(shadingNormal * 2.0 - 1.0);
-		shadingNormal = normalize(i_TBN * shadingNormal);
+		shadingNormal = normalize(tbn * shadingNormal);
 		packedShadingNormal = EncodeNormal(shadingNormal);
 	}
 
@@ -55,7 +60,7 @@ void main()
 	outEmissive = vec4(material.Emissive, 1.0);
 	outMaterialData = vec4(metalness, ao, roughness, 0);
 	outObjectID = i_EntityID;
-	outFlags = i_ReceivesDecals == 1u ? 1.f : 0.f;
+	outFlags = i_ReceivesDecals == 1u ? EG_FLAGS_RECEIVES_DECALS_MASK : 0;
 
 #ifdef EG_MOTION
 	outMotion = ((i_CurPos.xy / i_CurPos.z) - (i_PrevPos.xy / i_PrevPos.z)) * 0.5f; // The + 0.5 part is unnecessary, since it cancels out in a-b anyway

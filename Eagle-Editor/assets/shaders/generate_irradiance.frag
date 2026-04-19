@@ -7,7 +7,7 @@ layout(location = 0) out vec4 outColor;
 layout(set = 0, binding = 0) uniform samplerCube u_Cubemap;
 
 void main()
-{		
+{
     const vec3 normal = normalize(i_Pos);
 
     vec3 up = vec3(0.f, 1.f, 0.f);
@@ -37,7 +37,7 @@ void main()
             samplesCount++;
         }
     }
-    irradiance = (EG_PI * irradiance) / float(samplesCount);
+    irradiance = irradiance / float(samplesCount) * EG_PI;
 
     outColor = vec4(irradiance, 1.f);
 }

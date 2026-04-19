@@ -42,8 +42,8 @@ namespace Eagle
 
 	private:
 		bool DrawSceneHierarchy();
-		bool DrawEntityNode(Entity& entity);
-		bool DrawChilds(Entity& entity);
+		bool DrawEntityNode(Entity entity);
+		bool DrawChilds(Entity entity);
 		bool OnKeyPressed(KeyPressedEvent& e, bool bViewportFocused);
 
 	private:

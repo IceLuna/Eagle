@@ -341,18 +341,13 @@ namespace Eagle
 			queueCreateInfos.push_back(additionalQueueCI);
 		}
 
-		VkPhysicalDeviceMultiviewFeaturesKHR physicalDeviceMultiviewFeatures{};
-		physicalDeviceMultiviewFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES_KHR;
-		physicalDeviceMultiviewFeatures.multiview = VK_TRUE;
-		physicalDeviceMultiviewFeatures.pNext = &enabledFeatures;
-
 		VkDeviceCreateInfo deviceCI{};
 		deviceCI.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		deviceCI.pQueueCreateInfos = queueCreateInfos.data();
 		deviceCI.queueCreateInfoCount = (uint32_t)queueCreateInfos.size();
 		deviceCI.enabledExtensionCount = (uint32_t)deviceExtensions.size();
 		deviceCI.ppEnabledExtensionNames = deviceExtensions.data();
-		deviceCI.pNext = &physicalDeviceMultiviewFeatures;
+		deviceCI.pNext = &enabledFeatures;
 
 		VK_CHECK(vkCreateDevice(physicalDevice->GetVulkanPhysicalDevice(), &deviceCI, nullptr, &m_Device));
 		vkGetDeviceQueue(m_Device, queueFamilyIndices.GraphicsFamily, 0, &m_GraphicsQueues[0]);

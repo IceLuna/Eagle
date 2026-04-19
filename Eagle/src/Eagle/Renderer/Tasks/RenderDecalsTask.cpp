@@ -93,7 +93,7 @@ namespace Eagle
 				size_t newSize = (currentTransformsSize * 3) / 2;
 				m_TransformsBuffer->Resize(newSize);
 			}
-			cmd->Write(m_TransformsBuffer, m_Transforms.data(), m_Transforms.size() * sizeof(glm::mat4), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			cmd->Write(m_TransformsBuffer, m_Transforms.data(), m_Transforms.size() * sizeof(glm::mat4), 0, m_TransformsBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 		}
 
 		if (bUpload)
@@ -129,7 +129,7 @@ namespace Eagle
 				size_t newSize = (currentInstancesSize * 3) / 2;
 				m_InstanceBuffer->Resize(newSize);
 			}
-			cmd->Write(m_InstanceBuffer, m_Decals.data(), m_Decals.size() * sizeof(DecalData), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+			cmd->Write(m_InstanceBuffer, m_Decals.data(), m_Decals.size() * sizeof(DecalData), 0, m_InstanceBuffer->GetLayout(), BufferReadAccess::Vertex);
 		}
 
 		bUpload = false;
@@ -152,7 +152,10 @@ namespace Eagle
 		
 		const auto& gbuffer = m_Renderer.GetGBuffer();
 		const auto& depth = gbuffer.Depth;
-		const auto oldLayout = depth->GetLayout();
+		const auto& flags= gbuffer.Flags;
+
+		const auto depthLayout = depth->GetLayout();
+		const auto flagsLayout = flags->GetLayout();
 
 		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
 		const bool bTexturesDirty = texturesChangedFrame >= m_TexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()];
@@ -170,7 +173,8 @@ namespace Eagle
 		const glm::mat4& vp = m_Renderer.GetViewProjection();
 		const glm::mat4& invVP = m_Renderer.GetInverseViewProjection();
 
-		cmd->TransitionLayout(depth, oldLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(depth, depthLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(flags, flagsLayout, ImageReadAccess::PixelShaderRead);
 		auto& stats = m_Renderer.GetStats();
 
 		// Without normals
@@ -194,7 +198,8 @@ namespace Eagle
 			++stats.DrawCalls;
 		}
 
-		cmd->TransitionLayout(depth, ImageReadAccess::PixelShaderRead, oldLayout);
+		cmd->TransitionLayout(depth, ImageReadAccess::PixelShaderRead, depthLayout);
+		cmd->TransitionLayout(flags, ImageReadAccess::PixelShaderRead, flagsLayout);
 	}
 
 	void RenderDecalsTask::AddMaterialCallbacks()
@@ -283,7 +288,7 @@ namespace Eagle
 		});
 	}
 
-	void RenderDecalsTask::SetTransforms(const std::unordered_set<const DecalComponent*>& decals)
+	void RenderDecalsTask::SetTransforms(const std::vector<const DecalComponent*>& decals)
 	{
 		if (decals.empty())
 			return;
@@ -329,39 +334,39 @@ namespace Eagle
 
 		ColorAttachment colorAttachment;
 		colorAttachment.ClearOperation = ClearOperation::Load;
-		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		colorAttachment.Image = gbuffer.Albedo;
 		colorAttachment.bBlendEnabled = true;
 		colorAttachment.BlendingState = alphaBlendingState;
 
 		ColorAttachment emissiveAttachment;
 		emissiveAttachment.ClearOperation = ClearOperation::Load;
-		emissiveAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		emissiveAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		emissiveAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		emissiveAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		emissiveAttachment.Image = gbuffer.Emissive;
 		emissiveAttachment.bBlendEnabled = true;
 		emissiveAttachment.BlendingState = alphaBlendingState;
 
 		ColorAttachment materialAttachment;
 		materialAttachment.ClearOperation = ClearOperation::Load;
-		materialAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		materialAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		materialAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		materialAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		materialAttachment.Image = gbuffer.MaterialData;
 		materialAttachment.bBlendEnabled = true;
 		materialAttachment.BlendingState = alphaBlendingState;
 
 		ColorAttachment objectIDAttachment;
 		objectIDAttachment.ClearOperation = ClearOperation::Load;
-		objectIDAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		objectIDAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		objectIDAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		objectIDAttachment.Image = gbuffer.ObjectID;
 
-		ColorAttachment geometry_shading_NormalsAttachment;
-		geometry_shading_NormalsAttachment.ClearOperation = ClearOperation::Load;
-		geometry_shading_NormalsAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		geometry_shading_NormalsAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		geometry_shading_NormalsAttachment.Image = gbuffer.Geometry_Shading_Normals;
+		ColorAttachment normalsAttachment;
+		normalsAttachment.ClearOperation = ClearOperation::Load;
+		normalsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		normalsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+		normalsAttachment.Image = gbuffer.Normals;
 
 		PipelineGraphicsState state;
 		state.VertexShader = Shader::Create("decals.vert", ShaderType::Vertex);
@@ -379,7 +384,7 @@ namespace Eagle
 			m_Pipeline = PipelineGraphics::Create(state);
 
 		state.FragmentShader = Shader::Create("decals.frag", ShaderType::Fragment, { { "DECAL_NORMALS", "" } });
-		state.ColorAttachments.push_back(geometry_shading_NormalsAttachment);
+		state.ColorAttachments.push_back(normalsAttachment);
 		if (m_WithNormalsPipeline)
 			m_WithNormalsPipeline->SetState(state);
 		else

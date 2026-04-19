@@ -28,7 +28,7 @@ namespace Eagle
 
 	bool SceneSerializer::Serialize(const Ref<Scene>& scene, const Path& filepath)
 	{
-		EG_CORE_TRACE("Saving Scene at '{0}'", std::filesystem::absolute(filepath).u8string());
+		EG_CORE_TRACE("Saving Scene at '{0}'", std::filesystem::absolute(filepath));
 
 		YAML::Emitter out;
 		if (Serialize(scene, out))
@@ -134,7 +134,7 @@ namespace Eagle
 		const ScopedDataBuffer data = FileSystem::Read(filepath);
 		if (data.Size() == 0)
 		{
-			EG_CORE_ERROR("Failed to deserialize a scene: {}", filepath.u8string());
+			EG_CORE_ERROR("Failed to deserialize a scene: {}", filepath);
 			return false;
 		}
 
@@ -240,7 +240,7 @@ namespace Eagle
 			//uint32_t - entity that has an parent, uint32_t - parent id
 			std::unordered_map<uint32_t, uint32_t> childs;
 
-			for (auto& entityNode : entities)
+			for (const auto& entityNode : entities)
 			{
 				uint32_t id;
 				int parentID = -1;

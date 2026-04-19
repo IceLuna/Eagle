@@ -24,7 +24,7 @@ layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX) readonly buffer Transf
 };
 
 layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX + 1) uniform sampler2D g_Depth;
-layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX + 2) uniform sampler2D g_Flags;
+layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX + 2) uniform usampler2D g_Flags;
 
 layout(push_constant) uniform PushConstants
 {
@@ -79,8 +79,9 @@ void main()
         discard;
 	}
 
-	const float receivesDecal = texture(g_Flags, uv).x; // 0.0 if doesn't receive decals
-	if (receivesDecal < 0.1)
+	const uint flags = texture(g_Flags, uv).x;
+	const bool bReceivesDecals = (flags & EG_FLAGS_RECEIVES_DECALS_MASK) == EG_FLAGS_RECEIVES_DECALS_MASK;
+	if (!bReceivesDecals)
 		discard;
 
 	vec2 decalUV = ComputeUV(localPos);

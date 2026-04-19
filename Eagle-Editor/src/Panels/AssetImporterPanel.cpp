@@ -9,12 +9,12 @@
 
 namespace Eagle
 {
-	static constexpr char* s_RootMotionHelpMsg = "Animation root motion will be used to drive the transformation of an entity\n"
+	static const char* s_RootMotionHelpMsg = "Animation root motion will be used to drive the transformation of an entity\n"
 		"Base Pose: use base pose root bone transform\n"
 		"AnimFirstFrame: use root bone transform of the first animation frame";
-	static constexpr char* s_2DCommonSettingsHelpMsg = "`Is Normal Map` and `Import Alpha channel` aren't present in common settings. "
+	static const char* s_2DCommonSettingsHelpMsg = "`Is Normal Map` and `Import Alpha channel` aren't present in common settings. "
 		"You can control them via per texture settings";
-	static constexpr char* s_CompressionHelpMsg = "If set to true, the engine will try to compress the image. "
+	static const char* s_CompressionHelpMsg = "If set to true, the engine will try to compress the image. "
 		"Most of the time, medium compression is good enough. But if you see some banding/blocks, choose a higher quality, especially for normal maps.";
 
 	static ImVec2 s_DefaultWindowSize = ImVec2(720.f, 450.f);
@@ -55,24 +55,24 @@ namespace Eagle
 			if (assetType == AssetType::Texture2D)
 			{
 				auto& data = m_2DTextures.emplace_back();
-				data.AssetPath = path.u8string();
+				data.AssetPath = path;
 
 				auto& settings = data.Settings;
 				settings.bNormalMap = Utils::IsNormalMap(path);
 
 				int comp = 1;
-				stbi_info(path.u8string().c_str(), &data.Size.x, &data.Size.y, &comp);
+				stbi_info(Utils::AsString(path).c_str(), &data.Size.x, &data.Size.y, &comp);
 				settings.ImportFormat = ChannelsToAssetTexture2DFormat(comp);
 			}
 			else if (assetType == AssetType::TextureCube)
 			{
 				auto& data = m_CubeTextures.emplace_back();
-				data.AssetPath = path.u8string();
+				data.AssetPath = path;
 
 				auto& settings = data.Settings;
 
 				int comp = 1;
-				stbi_info(path.u8string().c_str(), &data.Size.x, &data.Size.y, &comp);
+				stbi_info(Utils::AsString(path).c_str(), &data.Size.x, &data.Size.y, &comp);
 			}
 		}
 
@@ -142,7 +142,7 @@ namespace Eagle
 					for (auto& texture : m_2DTextures)
 					{
 						constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
-						if (ImGui::TreeNodeEx(&texture, flags, texture.AssetPath.c_str()))
+						if (ImGui::TreeNodeEx(&texture, flags, Utils::AsString(texture.AssetPath).c_str()))
 						{
 							Render2DSettings(texture.AssetPath, texture.Settings, texture.Size, false, &texture.bOverride);
 							ImGui::TreePop();
@@ -158,7 +158,7 @@ namespace Eagle
 					for (auto& texture : m_CubeTextures)
 					{
 						constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
-						if (ImGui::TreeNodeEx(&texture, flags, texture.AssetPath.c_str()))
+						if (ImGui::TreeNodeEx(&texture, flags, Utils::AsString(texture.AssetPath).c_str()))
 						{
 							RenderCubeSettings(texture.AssetPath, texture.Settings, texture.Size, &texture.bOverride);
 							ImGui::TreePop();
@@ -209,12 +209,12 @@ namespace Eagle
 		return bResult;
 	}
 
-	void TextureImporterPanel::Render2DSettings(const std::string& path, AssetImportTexture2DSettings& settings, glm::ivec2 size, bool bDrawingCommon, bool* bOverride)
+	void TextureImporterPanel::Render2DSettings(const Path& path, AssetImportTexture2DSettings& settings, glm::ivec2 size, bool bDrawingCommon, bool* bOverride)
 	{
 		UI::BeginPropertyGrid("TextureImporter");
 
 		if (!path.empty())
-			UI::Text("Path", path);
+			UI::Text("Path", Utils::AsString(path));
 		if (size.x > 0 && size.y > 0)
 			UI::Text("Size", std::to_string(size.x) + 'x' + std::to_string(size.y));
 		ImGui::Separator();
@@ -261,12 +261,12 @@ namespace Eagle
 		UI::EndPropertyGrid();
 	}
 
-	void TextureImporterPanel::RenderCubeSettings(const std::string& path, AssetImportTextureCubeSettings& settings, glm::ivec2 size, bool* bOverride)
+	void TextureImporterPanel::RenderCubeSettings(const Path& path, AssetImportTextureCubeSettings& settings, glm::ivec2 size, bool* bOverride)
 	{
 		UI::BeginPropertyGrid("TextureImporter");
 
 		if (!path.empty())
-			UI::Text("Path", path);
+			UI::Text("Path", Utils::AsString(path));
 		if (size.x > 0 && size.y > 0)
 			UI::Text("Size", std::to_string(size.x) + 'x' + std::to_string(size.y));
 		ImGui::Separator();
@@ -303,7 +303,7 @@ namespace Eagle
 			EG_CORE_ASSERT(assetType == AssetType::StaticMesh || assetType == AssetType::StaticMesh);
 
 			auto& data = m_Meshes.emplace_back();
-			data.AssetPath = path.u8string();
+			data.AssetPath = path;
 		}
 	}
 
@@ -345,7 +345,7 @@ namespace Eagle
 					constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
 						ImGuiTreeNodeFlags_SpanAvailWidth;
 
-					if (ImGui::TreeNodeEx(&mesh, flags, mesh.AssetPath.c_str()))
+					if (ImGui::TreeNodeEx(&mesh, flags, Utils::AsString(mesh.AssetPath).c_str()))
 					{
 						RenderSettings(mesh.AssetPath, mesh.Settings, mesh.bSkeletal, &mesh.bOverride);
 						ImGui::TreePop();
@@ -402,14 +402,14 @@ namespace Eagle
 		return bResult;
 	}
 
-	void MeshImporterPanel::RenderSettings(const std::string& path, AssetImportSettings& settings, bool& bSkeletal, bool* bOverride)
+	void MeshImporterPanel::RenderSettings(const Path& path, AssetImportSettings& settings, bool& bSkeletal, bool* bOverride)
 	{
 		auto& meshSettings = settings.MeshSettings;
 
 		UI::BeginPropertyGrid("MeshImporter");
 
 		if (!path.empty())
-			UI::Text("Path", path);
+			UI::Text("Path", Utils::AsString(path));
 
 		ImGui::Separator();
 

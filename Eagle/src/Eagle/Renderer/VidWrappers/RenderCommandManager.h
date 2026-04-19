@@ -71,11 +71,19 @@ namespace Eagle
 		virtual void Begin() = 0;
 		virtual void End() = 0;
 
-		virtual void Dispatch(Ref<PipelineCompute>& pipeline, uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ, const void* pushConstants = nullptr) = 0;
-		virtual void DispatchIndirect(Ref<PipelineCompute>& pipeline, const Ref<Buffer>& args, size_t offset, const void* pushConstants = nullptr) = 0;
+		void Dispatch(const Ref<PipelineCompute>& pipeline, const glm::uvec2& numGroups, const void* pushConstants = nullptr)
+		{
+			Dispatch(pipeline, numGroups.x, numGroups.y, 1, pushConstants);
+		}
+		void Dispatch(const Ref<PipelineCompute>& pipeline, const glm::uvec3& numGroups, const void* pushConstants = nullptr)
+		{
+			Dispatch(pipeline, numGroups.x, numGroups.y, numGroups.z, pushConstants);
+		}
+		virtual void Dispatch(const Ref<PipelineCompute>& pipeline, uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ, const void* pushConstants = nullptr) = 0;
+		virtual void DispatchIndirect(const Ref<PipelineCompute>& pipeline, const Ref<Buffer>& args, size_t offset, const void* pushConstants = nullptr) = 0;
 
-		virtual void BeginGraphics(Ref<PipelineGraphics>& pipeline) = 0;
-		virtual void BeginGraphics(Ref<PipelineGraphics>& pipeline, const Ref<Framebuffer>& framebuffer) = 0;
+		virtual void BeginGraphics(const Ref<PipelineGraphics>& pipeline) = 0;
+		virtual void BeginGraphics(const Ref<PipelineGraphics>& pipeline, const Ref<Framebuffer>& framebuffer) = 0;
 		virtual void EndGraphics() = 0;
 		virtual void Draw(uint32_t vertexCount, uint32_t firstVertex) = 0;
 		virtual void DrawIndirect(const Ref<Buffer>& args, size_t offset, uint32_t drawCount, uint32_t stride) = 0;
@@ -86,59 +94,61 @@ namespace Eagle
 		virtual void DrawInstanced(const Ref<Buffer>& perInstanceBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
 		virtual void DrawIndexedInstanced(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, int32_t vertexOffset,
 			uint32_t instanceCount, uint32_t firstInstance, const Ref<Buffer>& perInstanceBuffer) = 0;
+		virtual void DrawIndexedInstancedIndirectCount(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, const Ref<Buffer>& indirectBuffer, const Ref<Buffer>& countBuffer,
+			const Ref<Buffer>& perInstanceBuffer, uint32_t maxDrawCount, size_t indirectOffset = 0, size_t countBufferOffset = 0) = 0;
 		virtual void DrawIndexed(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset) = 0;
 		virtual void ExecuteSecondary(const Ref<CommandBuffer>& secondaryCmd) = 0;
 
 		virtual void SetGraphicsRootConstants(const void* vertexRootConstants, const void* fragmentRootConstants) = 0;
-
+		virtual void SetGraphicsCullMode(CullMode cullMode) = 0;
+		
 		void StorageImageBarrier(const Ref<Image>& image) { TransitionLayout(image, ImageLayoutType::StorageImage, ImageLayoutType::StorageImage); }
 		virtual void TransitionLayout(const Ref<Image>& image, ImageLayout oldLayout, ImageLayout newLayout) = 0;
 		virtual void TransitionLayout(const Ref<Image>& image, const ImageView& imageView, ImageLayout oldLayout, ImageLayout newLayout) = 0;
-		virtual void ClearColorImage(Ref<Image>& image, const glm::vec4& color, ImageLayout layout, ImageLayout newLayout) = 0;
-		virtual void ClearDepthStencilImage(Ref<Image>& image, float depthValue, uint32_t stencilValue, ImageLayout layout, ImageLayout newLayout) = 0;
+		virtual void ClearColorImage(const Ref<Image>& image, const glm::vec4& color, ImageLayout layout, ImageLayout newLayout) = 0;
+		virtual void ClearDepthStencilImage(const Ref<Image>& image, float depthValue, uint32_t stencilValue, ImageLayout layout, ImageLayout newLayout) = 0;
 
 		void CopyImage(const Ref<Image>& src, const ImageView& srcView,
-			Ref<Image>& dst, const ImageView& dstView,
+			const Ref<Image>& dst, const ImageView& dstView,
 			const glm::ivec3& srcOffset, const glm::ivec3& dstOffset,
 			const glm::uvec3& size)
 		{
 			CopyImage(src, srcView, dst, dstView, dst->GetLayout(), dst->GetLayout(), srcOffset, dstOffset, size);
 		}
 
-		void CopyImage(const Ref<Image>& src, Ref<Image>& dst, ImageLayout dstOldLayout, ImageLayout dstNewLayout)
+		void CopyImage(const Ref<Image>& src, const Ref<Image>& dst, ImageLayout dstOldLayout, ImageLayout dstNewLayout)
 		{
 			EG_CORE_ASSERT(src->GetSize() == dst->GetSize());
 			CopyImage(src, ImageView{}, dst, ImageView{}, dstOldLayout, dstNewLayout, {}, {}, dst->GetSize());
 		}
 
 		virtual void CopyImage(const Ref<Image>& src, const ImageView& srcView,
-			Ref<Image>& dst, const ImageView& dstView, ImageLayout dstOldLayout, ImageLayout dstNewLayout,
+			const Ref<Image>& dst, const ImageView& dstView, ImageLayout dstOldLayout, ImageLayout dstNewLayout,
 			const glm::ivec3& srcOffset, const glm::ivec3& dstOffset,
 			const glm::uvec3& size) = 0;
 
-		void StorageBufferBarrier(const Ref<Buffer>& buffer) { TransitionLayout(buffer, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer); };
 		virtual void TransitionLayout(const Ref<Buffer>& buffer, BufferLayout oldLayout, BufferLayout newLayout) = 0;
-		virtual void CopyBuffer(const Ref<Buffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size) = 0;
-		virtual void CopyBufferTransitionless(const Ref<Buffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size) = 0; // Doesn't transition layouts
-		virtual void CopyBuffer(const Ref<StagingBuffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size) = 0;
-		virtual void FillBuffer(Ref<Buffer>& dst, uint32_t data, size_t offset = 0, size_t numBytes = 0) = 0;
+		virtual void CopyBuffer(const Ref<Buffer>& src, const Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size) = 0;
+		virtual void CopyBufferTransitionless(const Ref<Buffer>& src, const Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size) = 0; // Doesn't transition layouts
+		virtual void CopyBuffer(const Ref<StagingBuffer>& src, const Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size) = 0;
+		virtual void FillBuffer(const Ref<Buffer>& dst, uint32_t data, size_t offset = 0, size_t numBytes = 0) = 0;
 
 		void Barrier(const Ref<Buffer>& buffer) { TransitionLayout(buffer, buffer->GetLayout(), buffer->GetLayout()); }
-		void Barrier(Ref<Image>& image) { TransitionLayout(image, image->GetLayout(), image->GetLayout()); }
+		void Barrier(const Ref<Image>& image) { TransitionLayout(image, image->GetLayout(), image->GetLayout()); }
 
-		virtual void CopyBufferToImage(const Ref<Buffer>& src, Ref<Image>& dst, const std::vector<BufferImageCopy>& regions) = 0;
-		virtual void CopyImageToBuffer(const Ref<Image>& src, Ref<Buffer>& dst, const std::vector<BufferImageCopy>& regions) = 0;
+		virtual void CopyBufferToImage(const Ref<Buffer>& src, const Ref<Image>& dst, const std::vector<BufferImageCopy>& regions) = 0;
+		virtual void CopyImageToBuffer(const Ref<Image>& src, const Ref<Buffer>& dst, const std::vector<BufferImageCopy>& regions) = 0;
 
-		virtual void Write(Ref<Image>& image, const void* data, size_t size, ImageLayout initialLayout, ImageLayout finalLayout) = 0;
-		virtual void Write(Ref<Buffer>& buffer, const void* data, size_t size, size_t offset, BufferLayout initialLayout, BufferLayout finalLayout) = 0;
+		virtual void Write(const Ref<Image>& image, const void* data, size_t size, ImageLayout initialLayout, ImageLayout finalLayout) = 0;
+		virtual void Write(const Ref<Buffer>& buffer, const void* data, size_t size, size_t offset, BufferLayout initialLayout, BufferLayout finalLayout) = 0;
 		virtual void WriteTransitionless(Ref<Buffer>& buffer, const void* data, size_t size, size_t offset) = 0;
 
-		virtual void GenerateMips(Ref<Image>& image, ImageLayout initialLayout, ImageLayout finalLayout) = 0;
-		virtual void GenerateMips(Ref<Image>& image, const std::vector<ScopedDataBuffer>& dataPerMip, ImageLayout initialLayout, ImageLayout finalLayout) = 0;
+		virtual void GenerateMips(const Ref<Image>& image, ImageLayout initialLayout, ImageLayout finalLayout) = 0;
+		virtual void GenerateMips(const Ref<Image>& image, const std::vector<ScopedDataBuffer>& dataPerMip, ImageLayout initialLayout, ImageLayout finalLayout) = 0;
 
 #ifdef EG_GPU_TIMINGS
-		virtual void StartTiming(Ref<RHIGPUTiming>& timing, uint32_t frameIndex) = 0;
-		virtual void EndTiming(Ref<RHIGPUTiming>& timing, uint32_t frameIndex) = 0;
+		virtual void StartTiming(const Ref<RHIGPUTiming>& timing, uint32_t frameIndex) = 0;
+		virtual void EndTiming(const Ref<RHIGPUTiming>& timing, uint32_t frameIndex) = 0;
 		virtual void BeginMarker(std::string_view name) = 0;
 		virtual void EndMarker() = 0;
 #endif

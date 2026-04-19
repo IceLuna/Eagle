@@ -274,6 +274,12 @@ namespace Eagle
         }
     };
 
+    struct RenderStats
+    {
+        uint64_t DrawCalls = 0;
+        uint64_t Dispatches = 0;
+    };
+
     struct DispatchIndirectArgs
     {
         glm::uvec4 ThreadGroupCount = glm::uvec4(0); // It's `uvec4` because of padding issues on GPU side
@@ -285,6 +291,41 @@ namespace Eagle
         uint32_t InstanceCount = 0;
         uint32_t FirstVertex = 0;
         uint32_t FirstInstance = 0;
+    };
+
+    struct DrawIndexedIndirectCommand
+    {
+        uint32_t IndexCount = 0;
+        uint32_t InstanceCount = 0;
+        uint32_t FirstIndex = 0;
+        int32_t  VertexOffset = 0;
+        uint32_t FirstInstance = 0;
+    };
+
+    struct CullingFrustum
+    {
+        float NearRight = 0;
+        float NearTop = 0;
+        float NearPlane = 0;
+        float FarPlane = 0;
+    };
+
+    static CullingFrustum CalculateFrustum(float nearPlane, float farPlane, float fovY, float aspectRatio)
+    {
+        const float tanFov = std::tan(0.5f * fovY);
+        return CullingFrustum
+            {
+                aspectRatio * nearPlane * tanFov,
+                nearPlane * tanFov,
+                -nearPlane,
+                -farPlane,
+            };
+    }
+
+    struct CullingFrustumData
+    {
+        CullingFrustum Frustum;
+        glm::mat4 View = glm::mat4(1);
     };
 
     struct PostprocessTileStatistics
@@ -393,7 +434,8 @@ namespace Eagle
         None,
         Front,
         Back,
-        FrontAndBack
+        FrontAndBack,
+        Dynamic, // Can be used during pipeline creation to indicate that cull mode is set dynamically before rendering
     };
 
     enum class FrontFaceMode
@@ -443,7 +485,8 @@ namespace Eagle
         Reinhard,
         Filmic,
         ACES,
-        PhotoLinear
+        PhotoLinear,
+        AgX,
     };
 
     enum class AAMethod
@@ -476,6 +519,50 @@ namespace Eagle
             return WhitePoint == other.WhitePoint;
         }
         bool operator!= (const FilmicTonemappingSettings& other) const { return !(*this == other); }
+    };
+
+    struct AgXTonemappingSettings
+    {
+        glm::vec3 Slope = glm::vec3(1);
+        glm::vec3 Power = glm::vec3(1);
+        glm::vec3 Offset = glm::vec3(0);
+        float Saturation = 1.f;
+
+        static AgXTonemappingSettings GetDefaultLook()
+        {
+            return AgXTonemappingSettings{};
+        }
+
+        static AgXTonemappingSettings GetGoldenLook()
+        {
+            AgXTonemappingSettings result{};
+            result.Slope = glm::vec3(1.0f, 0.9f, 0.5f);
+            result.Power = glm::vec3(0.8f);
+            result.Offset = glm::vec3(0.0f);
+            result.Saturation = 0.8f;
+
+            return result;
+        }
+
+        static AgXTonemappingSettings GetPunchyLook()
+        {
+            AgXTonemappingSettings result{};
+            result.Slope = glm::vec3(1.0f);
+            result.Power = glm::vec3(1.35f);
+            result.Offset = glm::vec3(0.0f);
+            result.Saturation = 1.4f;
+
+            return result;
+        }
+
+        bool operator== (const AgXTonemappingSettings& other) const
+        {
+            return Slope == other.Slope &&
+                Power == other.Power &&
+                Offset == other.Offset &&
+                Saturation == other.Saturation;
+        }
+        bool operator!= (const AgXTonemappingSettings& other) const { return !(*this == other); }
     };
 
     struct GPUResourceDebugData
@@ -637,27 +724,6 @@ namespace Eagle
         bool bMotionBuffer = false;
         bool bDepthHistory = false;
         bool bNormalHistory = false;
-    };
-
-    struct PBRConstantsKernelInfo
-    {
-        uint32_t PointLightsCount = 0;
-        uint32_t SpotLightsCount = 0;
-        uint32_t bHasDirLight = 0;
-        uint32_t bHasIrradiance = 0;
-
-        bool operator== (const PBRConstantsKernelInfo& other) const
-        {
-            return PointLightsCount == other.PointLightsCount &&
-                SpotLightsCount == other.SpotLightsCount &&
-                bHasDirLight == other.bHasDirLight &&
-                bHasIrradiance == other.bHasIrradiance;
-        }
-
-        bool operator!= (const PBRConstantsKernelInfo& other) const
-        {
-            return !((*this) == other);
-        }
     };
 
     struct SkySettings
@@ -888,6 +954,7 @@ namespace Eagle
         VolumetricLightsSettings VolumetricSettings;
         PhotoLinearTonemappingSettings PhotoLinearTonemappingParams;
         FilmicTonemappingSettings FilmicTonemappingParams;
+        AgXTonemappingSettings AgXTonemappingParams = AgXTonemappingSettings::GetPunchyLook();
         DepthOfFieldSettings DOFSettings;
         MotionBlurSettings MotionBlur;
         AutoExposureSettings AutoExposure;
@@ -896,14 +963,14 @@ namespace Eagle
         float Gamma = 2.2f;
         float Exposure = 1.f;
         float LineWidth = 2.5f;
-        TonemappingMethod Tonemapping = TonemappingMethod::ACES;
+        TonemappingMethod Tonemapping = TonemappingMethod::AgX;
         AmbientOcclusion AO = AmbientOcclusion::None;
         AAMethod AA = AAMethod::None;
+        bool bDepthPrepass = false;
         bool bTranslucentShadows = true;
         bool bEnableSoftShadows = true;
         bool bEnableCSMSmoothTransition = true;
         bool bVisualizeCascades = false;
-        bool bStutterlessShaders = true;
         bool bEnableObjectPicking = false;
         bool bEnable2DObjectPicking = false;
         bool bSortOpaqueParticles = false;
@@ -917,6 +984,7 @@ namespace Eagle
         {
             return PhotoLinearTonemappingParams == other.PhotoLinearTonemappingParams &&
                 FilmicTonemappingParams == other.FilmicTonemappingParams &&
+                AgXTonemappingParams == other.AgXTonemappingParams &&
                 DOFSettings == other.DOFSettings &&
                 MotionBlur == other.MotionBlur &&
                 FogSettings == other.FogSettings &&
@@ -928,11 +996,11 @@ namespace Eagle
                 Tonemapping == other.Tonemapping &&
                 AO == other.AO &&
                 AA == other.AA &&
+                bDepthPrepass == other.bDepthPrepass &&
                 bTranslucentShadows == other.bTranslucentShadows &&
                 bEnableSoftShadows == other.bEnableSoftShadows &&
                 bEnableCSMSmoothTransition == other.bEnableCSMSmoothTransition &&
                 bVisualizeCascades == other.bVisualizeCascades &&
-                bStutterlessShaders == other.bStutterlessShaders &&
                 bEnableObjectPicking == other.bEnableObjectPicking &&
                 bEnable2DObjectPicking == other.bEnable2DObjectPicking &&
                 bSortOpaqueParticles == other.bSortOpaqueParticles &&
@@ -953,6 +1021,7 @@ namespace Eagle
         {
             SceneRendererSettings settings;
             settings.VolumetricSettings.bEnable = false;
+            settings.bDepthPrepass = false;
             settings.bTranslucentShadows = false;
             settings.bEnableCSMSmoothTransition = false;
             settings.bEnableObjectPicking = false;

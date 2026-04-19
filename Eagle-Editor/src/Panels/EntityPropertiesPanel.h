@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Eagle.h"
+#include <imgui_internal.h>
 
 namespace Eagle
 {
@@ -72,7 +73,7 @@ namespace Eagle
 				if (canRemove)
 				{
 					ImGui::SameLine(contentRegionAvailable.x - lineHeight * 0.5f);
-					if (ImGui::Button("...", ImVec2{ lineHeight, lineHeight })) //•••
+					if (ImGui::Button("...", ImVec2{ lineHeight, lineHeight }))
 					{
 						ImGui::OpenPopup("ComponentSettings");
 					}
@@ -107,13 +108,13 @@ namespace Eagle
 		}
 
 		template <typename T>
-		bool DrawComponentLine(const std::string& name, Entity& entity, bool selected)
+		bool DrawComponentLine(const std::string& name, Entity& entity, bool bSelected, bool bCanRemove = true)
 		{
 			bool bClicked = false;
 			if (entity.HasComponent<T>())
 			{
 				ImGuiTreeNodeFlags childFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_Leaf
-					| ImGuiTreeNodeFlags_SpanAvailWidth | (selected ? ImGuiTreeNodeFlags_Selected : 0);
+					| ImGuiTreeNodeFlags_SpanAvailWidth | (bSelected ? ImGuiTreeNodeFlags_Selected : 0);
 				bool treeOpened = ImGui::TreeNodeEx((void*)(typeid(T).hash_code() + typeid(Entity).hash_code()), childFlags, name.c_str());
 
 				bClicked = ImGui::IsItemClicked();
@@ -121,12 +122,17 @@ namespace Eagle
 				std::string popupID = std::to_string(entity.GetID()) + typeid(T).name();
 				if (ImGui::BeginPopupContextItem(popupID.c_str()))
 				{
+					if (!bCanRemove)
+						UI::PushItemDisabled();
 					if (ImGui::MenuItem("Remove Component"))
 					{
 						m_SelectedComponent = SelectedComponent::None;
 						entity.RemoveComponent<T>();
 						bEntityChanged = true;
 					}
+					if (!bCanRemove)
+						UI::PopItemDisabled();
+
 					ImGui::EndPopup();
 				}
 

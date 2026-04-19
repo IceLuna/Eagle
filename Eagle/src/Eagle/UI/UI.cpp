@@ -31,8 +31,8 @@ namespace Eagle::UI
 	static uint64_t s_ID = 0;
 	static char s_IDBuffer[s_IDBufferSize];
 	static const VkImageLayout s_VulkanImageLayout = ImageLayoutToVulkan(ImageReadAccess::PixelShaderRead);
-	static constexpr char* s_HelpMarker = "(?)";
-	static FontContext Fonts{};
+	static const char* s_HelpMarker = "(?)";
+	static FontContext Fonts;
 
 	namespace
 	{
@@ -159,10 +159,10 @@ namespace Eagle::UI
 						names.reserve(entities.size_hint());
 						ids.reserve(entities.size_hint());
 
-						for (auto& [sceneEntity, idComp, nameComp] : entities.each())
-						{
-							if (sceneEntity == entity.GetEnttID())
-								continue; // Don't show itself
+					for (const auto& [sceneEntity, idComp, nameComp] : entities.each())
+					{
+						if (sceneEntity == entity.GetEnttID())
+							continue; // Don't show itself
 
 							const auto& ID = idComp.ID;
 							const auto& name = nameComp.Name;

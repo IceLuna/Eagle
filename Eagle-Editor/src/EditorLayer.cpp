@@ -23,11 +23,6 @@ namespace Eagle
 {
 	static const char* s_SkyHelpMsg = "Sky is used just for background! It doesn't actually light the scene at the moment!\nIf this is checked, IBL will still light the scene if it's set. The only thing that changes is background";
 	static const char* s_EnableVolumetricLightsHelpMsg = "Note that this just notifies the engine that volumetric lights can be used! To use volumetric lights, you'll need to check `Is Volumetric` of a particular light";
-	static const char* s_StutterlessHelpMsg = "If checked, Point/Spot/Dir lights info will be dynamically sent to shaders meaning it won't recompile and won't trigger recompilation. "
-		"But since they'll become dynamic, the compiler won't be able to optimize some shader code making it run slower. "
-		"So if you don't care much about the performance and want to avoid stutters when adding/removing lights, use this option. "
-		"If unchecked, adding/removing lights MIGHT trigger some shaders recompilation since the light data is getting injected right into the shader source code which then needs to be recompiled. "
-		"But it's not that bad because shaders are being cached. So if the engine sees the same light data again, there'll be no stutters since shaders won't be recompiled, they'll be just taken from the cache";
 	static const char* s_MaxShadowDistHelpMsg = "Beyond this distance from camera, shadows won't be rendered. Note this setting applies only to the editor camera! You'll need to apply this value to CameraComponent if you want to see it in the simulation";
 	static const char* s_CascadesSplitAlphaHelpMsg = "It's used to determine how to split cascades for directional light shadows. Note this setting applies only to the editor camera! You'll need to apply this value to CameraComponent if you want to see it in the simulation";
 	static const char* s_CascadesSmoothTransitionAlphaHelpMsg = "The blend amount between cascades of directional light shadows (if smooth transition is enabled). Try to keep it as low as possible. Note this setting applies only to the editor camera! You'll need to apply this value to CameraComponent if you want to see it in the simulation";
@@ -222,6 +217,7 @@ namespace Eagle
 		m_Ts = ts;
 		m_CurrentScene->bDrawMiscellaneous = m_bDrawEditorMisc;
 		m_CurrentScene->bDrawNavMesh = bDrawNavMesh;
+		m_CurrentScene->bDrawMeshAABBs = bDrawMeshAABBs;
 
 		{
 			std::scoped_lock lock(s_DeferredCallsMutex);
@@ -481,7 +477,7 @@ namespace Eagle
 		if (!ScriptEngine::LoadAppAssembly(Project::GetBinariesPath() / (project.Name + ".dll")))
 		{
 			const std::string error = std::string("Open VS solution (") +
-				(project.BasePath / (project.Name + ".sln")).u8string() + " or \"File > Open VS Solution\") and compile the project.\nIf the solution is not there, try to generate it \"File > Generate VS Solution\"";
+				Utils::AsString(project.BasePath / (project.Name + ".sln")) + " or \"File > Open VS Solution\") and compile the project.\nIf the solution is not there, try to generate it \"File > Generate VS Solution\"";
 			m_ImGuiLayer->AddMessage(error);
 			EG_CORE_WARN(error);
 		}
@@ -493,7 +489,7 @@ namespace Eagle
 		{
 			const auto& project = Project::GetProjectInfo();
 			const std::string error = std::string("Open VS solution (") +
-				(project.BasePath / (project.Name + ".sln")).u8string() + " or \"File > Open VS Solution\") and compile the project.\nIf the solution is not there, try to generate it \"File > Generate VS Solution\"";
+				Utils::AsString(project.BasePath / (project.Name + ".sln")) + " or \"File > Open VS Solution\") and compile the project.\nIf the solution is not there, try to generate it \"File > Generate VS Solution\"";
 			m_ImGuiLayer->AddMessage(error);
 		}
 	}
@@ -671,13 +667,13 @@ namespace Eagle
 				const Path currentPath = Project::GetProjectPath();
 				filepath = std::filesystem::relative(filepath, currentPath);
 				const bool bDir = std::filesystem::is_directory(filepath);
-				Path assetPath = AssetImporter::CreateScene(bDir ? filepath : filepath.parent_path(), bDir ? "NewScene" : filepath.stem().u8string());
+				Path assetPath = AssetImporter::CreateScene(bDir ? filepath : filepath.parent_path(), bDir ? "NewScene" : Utils::AsString(filepath.stem()));
 
 				Ref<Asset> asset;
 				if (AssetManager::Get(assetPath, &asset) == false)
 				{
 					m_ImGuiLayer->AddMessage("Error opening a scene. It's not a scene asset");
-					EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath.u8string());
+					EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath);
 					return false;
 				}
 
@@ -685,7 +681,7 @@ namespace Eagle
 				if (!sceneAsset)
 				{
 					m_ImGuiLayer->AddMessage("Error opening a scene. It's not a scene asset");
-					EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath.u8string());
+					EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath);
 					return false;
 				}
 				
@@ -719,13 +715,13 @@ namespace Eagle
 			const Path currentPath = Project::GetProjectPath();
 			filepath = std::filesystem::relative(filepath, currentPath);
 			const bool bDir = std::filesystem::is_directory(filepath);
-			Path assetPath = AssetImporter::CreateScene(bDir ? filepath : filepath.parent_path(), bDir ? "NewScene" : filepath.stem().u8string());
+			Path assetPath = AssetImporter::CreateScene(bDir ? filepath : filepath.parent_path(), bDir ? "NewScene" : Utils::AsString(filepath.stem()));
 
 			Ref<Asset> asset;
 			if (AssetManager::Get(assetPath, &asset) == false)
 			{
 				m_ImGuiLayer->AddMessage("Error opening a scene. It's not a scene asset");
-				EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath.u8string());
+				EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath);
 				return false;
 			}
 
@@ -733,7 +729,7 @@ namespace Eagle
 			if (!sceneAsset)
 			{
 				m_ImGuiLayer->AddMessage("Error opening a scene. It's not a scene asset");
-				EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath.u8string());
+				EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath);
 				return false;
 			}
 
@@ -756,7 +752,7 @@ namespace Eagle
 			return;
 		}
 
-		std::string displayName = scene->GetPath().u8string();
+		std::string displayName = Utils::AsString(scene->GetPath());
 		const size_t contentPos = displayName.find("Content");
 		if (contentPos != std::string::npos)
 			displayName = displayName.substr(contentPos);
@@ -765,17 +761,17 @@ namespace Eagle
 	}
 
 	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync,
-		bool bRenderOnlyWhenFocused, bool bDrawNavMesh, bool bDrawAxisGuizmo, Key stopSimulationKey, bool bUpdateAnimationsInEditor, int guizmoMode)
+		bool bRenderOnlyWhenFocused, bool bDrawNavMesh, bool bDrawMeshAABBs, bool bDrawAxisGuizmo, Key stopSimulationKey, bool bUpdateAnimationsInEditor, int guizmoMode)
 	{
 		// Scene creation needs to go through this way of setting it up since we need to get Ref<Scene> immediately
 		m_EditorScene = MakeRef<Scene>("Editor Scene");
 		SetCurrentScene(m_EditorScene);
 		if (m_OpenedSceneAsset)
 		{
-			EG_CORE_TRACE("Loading scene '{0}'", m_OpenedSceneAsset->GetPath().u8string());
+			EG_CORE_TRACE("Loading scene '{0}'", m_OpenedSceneAsset->GetPath());
 
 			if (SceneSerializer::Deserialize(m_EditorScene, m_OpenedSceneAsset->GetPath()))
-				EG_CORE_TRACE("Loaded scene '{0}'", m_OpenedSceneAsset->GetPath().u8string());
+				EG_CORE_TRACE("Loaded scene '{0}'", m_OpenedSceneAsset->GetPath());
 			UpdateEditorTitle(m_OpenedSceneAsset);
 		}
 		else
@@ -791,6 +787,7 @@ namespace Eagle
 		this->bRenderOnlyWhenFocused = bRenderOnlyWhenFocused;
 		this->bUpdateAnimationsInEditor = bUpdateAnimationsInEditor;
 		this->bDrawNavMesh = bDrawNavMesh;
+		this->bDrawMeshAABBs = bDrawMeshAABBs;
 		this->bDrawAxisGuizmo = bDrawAxisGuizmo;
 		m_GuizmoMode = guizmoMode;
 		m_StopSimulationKey = stopSimulationKey;
@@ -826,9 +823,14 @@ namespace Eagle
 			if (selectedType == SelectedComponent::DecalComponent)
 			{
 				const AABB aabb(glm::vec3(-0.5f), glm::vec3(0.5f));
-				m_CurrentScene->DrawAABB(aabb, selectedComponent->GetWorldTransform());
+				m_CurrentScene->DrawBox(aabb, selectedComponent->GetWorldTransform());
 				const auto& start = selectedComponent->GetWorldTransform().Location;
 				m_CurrentScene->DrawArrow(start, start + selectedComponent->GetForwardVector() * 0.25f, selectedComponent->GetUpVector());
+			}
+			else if (selectedType == SelectedComponent::CameraComponent)
+			{
+				CameraComponent& camera = *(CameraComponent*)selectedComponent;
+				m_CurrentScene->DrawFrustum(camera);
 			}
 		}
 
@@ -1391,9 +1393,9 @@ namespace Eagle
 
 		bSettingsChanged |= UI::ComboEnum<TonemappingMethod>("Tonemapping", options.Tonemapping);
 
-		if (UI::Property("Stutterless", options.bStutterlessShaders, s_StutterlessHelpMsg))
+		if (UI::Property("Depth Prepass", options.bDepthPrepass, "Some objects will be pre-rendered into the depth buffer to reduce unnecessary fragment invocations during rendering"))
 		{
-			EG_CORE_TRACE("Changed Stutterless to: {}", options.bStutterlessShaders);
+			EG_CORE_TRACE("Changed Depth Prepass to: {}", options.bDepthPrepass);
 			bSettingsChanged = true;
 		}
 
@@ -1635,7 +1637,7 @@ namespace Eagle
 				if (EditorResources::DrawAssetSelection("Dirt", settings.Dirt))
 				{
 					bSettingsChanged = true;
-					EG_CORE_TRACE("Changed Bloom Dirt Texture to: {}", settings.Dirt ? settings.Dirt->GetPath().u8string() : "None");
+					EG_CORE_TRACE("Changed Bloom Dirt Texture to: {}", settings.Dirt ? settings.Dirt->GetPath() : "None");
 				}
 
 				UI::EndPropertyGrid();
@@ -1903,6 +1905,78 @@ namespace Eagle
 			}
 		}
 
+		// AgX Tonemapping settings
+		{
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx("AgX tonemapping", treeFlags);
+			ImGui::PopStyleVar();
+
+			if (treeOpened)
+			{
+				auto& agx = options.AgXTonemappingParams;
+
+				UI::BeginPropertyGrid("AgXSettings");
+
+				if (UI::PropertyDrag("Slope", agx.Slope, 0.01f))
+				{
+					EG_CORE_TRACE("Changed AgX Slope to: {}", agx.Slope);
+					bSettingsChanged = true;
+				}
+
+				if (UI::PropertyDrag("Power", agx.Power, 0.01f))
+				{
+					EG_CORE_TRACE("Changed AgX Power to: {}", agx.Power);
+					bSettingsChanged = true;
+				}
+
+				if (UI::PropertyDrag("Offset", agx.Offset, 0.01f))
+				{
+					EG_CORE_TRACE("Changed AgX Offset to: {}", agx.Offset);
+					bSettingsChanged = true;
+				}
+
+				if (UI::PropertyDrag("Saturation", agx.Saturation, 0.01f))
+				{
+					EG_CORE_TRACE("Changed AgX Saturation to: {}", agx.Saturation);
+					bSettingsChanged = true;
+				}
+				UI::EndPropertyGrid();
+
+				ImGui::Separator();
+
+				// Buttons to reset AgX settings
+				{
+					constexpr int buttonCount = 3;
+					const float totalWidth = ImGui::GetContentRegionAvail().x;
+					const float spacing = ImGui::GetStyle().ItemSpacing.x;
+					const float buttonWidth = (totalWidth - spacing * (buttonCount - 1)) / buttonCount;
+
+					if (ImGui::Button("Default", ImVec2(buttonWidth, 0)))
+					{
+						agx = AgXTonemappingSettings::GetDefaultLook();
+						bSettingsChanged = true;
+					}
+					ImGui::SameLine();
+
+					if (ImGui::Button("Punchy Look", ImVec2(buttonWidth, 0)))
+					{
+						agx = AgXTonemappingSettings::GetPunchyLook();
+						bSettingsChanged = true;
+					}
+					ImGui::SameLine();
+
+					if (ImGui::Button("Golden Look", ImVec2(buttonWidth, 0)))
+					{
+						agx = AgXTonemappingSettings::GetGoldenLook();
+						bSettingsChanged = true;
+					}
+				}
+
+				ImGui::TreePop();
+			}
+		}
+
 		// Chromatic Aberration
 		{
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
@@ -2152,6 +2226,7 @@ namespace Eagle
 			UI::Property("Update Animations", bUpdateAnimationsInEditor, "If checked, animations will be updated in the editor mode");
 			UI::Property("Draw Editor Miscellaneous", m_bDrawEditorMisc);
 			UI::Property("Draw Nav Mesh", bDrawNavMesh);
+			UI::Property("Draw AABBs of Meshes", bDrawMeshAABBs);
 			UI::ComboEnum<Eagle::Key>("Stop simulation key", m_StopSimulationKey, "The editor will stop the game-simulation when this key is pressed. Set it to 'None' to disable");
 			ImGuiLayer::ShowStyleSelector("Style", m_EditorStyle);
 
@@ -2301,7 +2376,7 @@ namespace Eagle
 				{
 					const auto& asset = m_DirtyAssets[i];
 					bool bChecked = m_DirtyAssetsChecked[i];
-					if (ImGui::Checkbox(asset->GetPath().u8string().c_str(), &bChecked))
+					if (ImGui::Checkbox(Utils::AsString(asset->GetPath()).c_str(), &bChecked))
 					{
 						m_DirtyAssetsChecked[i] = bChecked;
 					}

@@ -9,9 +9,8 @@
 
 namespace Eagle
 {
-	FogPassTask::FogPassTask(SceneRenderer& renderer, const Ref<Image>& renderTo)
+	FogPassTask::FogPassTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
-		, m_Result(renderTo)
 	{
 		InitPipeline();
 
@@ -28,10 +27,11 @@ namespace Eagle
 
 		const auto& options = m_Renderer.GetOptions_RT();
 		const auto& fogOptions = options.FogSettings;
+		const auto& input = m_Renderer.GetHDROutput();
 
-		constexpr uint32_t tileSize = 8;
-		const glm::uvec2 size = m_Result->GetSize();
-		glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
+		const glm::uvec2 size = input->GetSize();
+		const glm::uvec3 groupSize = m_Pipeline->GetWorkGroupSize();
+		const glm::uvec2 numGroups = CalcNumGroups(size, groupSize);
 
 		struct PushData
 		{
@@ -50,22 +50,21 @@ namespace Eagle
 			m_FogData.FogMax = fogOptions.MaxDistance;
 			m_FogData.Density = fogOptions.Density;
 			m_FogData.FogEquation = fogOptions.Equation;
-			cmd->Write(m_FogDataBuffer, &m_FogData, sizeof(FogData), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-			cmd->Barrier(m_FogDataBuffer);
+			cmd->Write(m_FogDataBuffer, &m_FogData, sizeof(FogData), 0, m_FogDataBuffer->GetLayout(), BufferReadAccess::Uniform);
 		}
 
 		const auto& depth = m_Renderer.GetGBuffer().Depth;
-		m_Pipeline->SetImage(m_Result, 0, 0);
+		m_Pipeline->SetImage(input, 0, 0);
 		m_Pipeline->SetImageSampler(depth, Sampler::PointSampler, 0, 1);
 		m_Pipeline->SetBuffer(m_FogDataBuffer, 0, 2);
 
-		const ImageLayout inputOldLayout = m_Result->GetLayout();
+		const ImageLayout inputOldLayout = input->GetLayout();
 		const ImageLayout oldDepthLayout = depth->GetLayout();
 
 		cmd->TransitionLayout(depth, oldDepthLayout, ImageReadAccess::PixelShaderRead);
-		cmd->TransitionLayout(m_Result, inputOldLayout, ImageLayoutType::StorageImage);
+		cmd->TransitionLayout(input, inputOldLayout, ImageLayoutType::StorageImage);
 		cmd->Dispatch(m_Pipeline, numGroups.x, numGroups.y, 1, &pushData);
-		cmd->TransitionLayout(m_Result, ImageLayoutType::StorageImage, inputOldLayout);
+		cmd->TransitionLayout(input, ImageLayoutType::StorageImage, inputOldLayout);
 		cmd->TransitionLayout(depth, ImageReadAccess::PixelShaderRead, oldDepthLayout);
 
 		auto& stats = m_Renderer.GetStats();

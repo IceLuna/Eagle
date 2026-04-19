@@ -193,9 +193,9 @@ namespace Eagle
 				}
 
 				if (verticesSize > 0)
-					cmd->Write(vertexBuffer, vertices.data(), verticesSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+					cmd->Write(vertexBuffer, vertices.data(), verticesSize, 0, vertexBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 				if (indicesSize > 0)
-					cmd->Write(indexBuffer, indices.data(), indicesSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+					cmd->Write(indexBuffer, indices.data(), indicesSize, 0, indexBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 			}
 		}
 	}
@@ -458,7 +458,7 @@ namespace Eagle
 					const size_t newSize = (size * 12) / 10; // Resize policy: increase by 20%
 					m_TransformsBuffer->Resize(newSize);
 				}
-				cmd->Write(m_TransformsBuffer, m_Transforms.data(), size, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+				cmd->Write(m_TransformsBuffer, m_Transforms.data(), size, 0, m_TransformsBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 			}
 			{
 				const size_t size = m_DecompositedTransforms.size() * sizeof(DecompositedTransform);
@@ -467,7 +467,7 @@ namespace Eagle
 					const size_t newSize = (size * 12) / 10; // Resize policy: increase by 20%
 					m_DecompositedTransformsBuffer->Resize(newSize);
 				}
-				cmd->Write(m_DecompositedTransformsBuffer, m_DecompositedTransforms.data(), size, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+				cmd->Write(m_DecompositedTransformsBuffer, m_DecompositedTransforms.data(), size, 0, m_DecompositedTransformsBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 			}
 			bUpdateTransforms = false;
 		}
@@ -543,7 +543,7 @@ namespace Eagle
 				const size_t newSize = (size * 12) / 10; // Resize policy: increase by 20%
 				m_AnimationTransformsBuffer->Resize(newSize);
 			}
-			cmd->Write(m_AnimationTransformsBuffer, m_AnimationTransforms.data(), size, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			cmd->Write(m_AnimationTransformsBuffer, m_AnimationTransforms.data(), size, 0, m_AnimationTransformsBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 		}
 	}
 
@@ -554,39 +554,23 @@ namespace Eagle
 
 		struct PushData
 		{
-			glm::mat4 ViewProj;
+			glm::mat4 View;
 			uint32_t PreSimIndex;
 			uint32_t PostSimIndex;
 			uint32_t NumEmitters;
 			float DeltaTime;
 			uint32_t MaxParticles;
-			struct CullingFrustum
-			{
-				float near_right;
-				float near_top;
-				float near_plane;
-				float far_plane;
-			} Frustum;
+			CullingFrustum Frustum;
 		} pushData;
-		pushData.ViewProj = m_Renderer.GetViewMatrix();
+
+		const auto& cullingData = m_Renderer.GetCullingFrustumData();
+		pushData.View = cullingData.View;
 		pushData.PreSimIndex = m_PingPong;
 		pushData.PostSimIndex = 1u - m_PingPong;
 		pushData.NumEmitters = m_NumEmitters;
 		pushData.DeltaTime = Application::Get().GetTimestep();
 		pushData.MaxParticles = m_MaxParticles;
-
-		const float tanFov = std::tan(0.5f * m_Renderer.GetFOV());
-		const float nearPlane = m_Renderer.GetZNear();
-		const float farPlane = m_Renderer.GetZFar();
-		const float aspectRatio = float(m_Size.x) / m_Size.y;
-
-		pushData.Frustum =
-		{
-			aspectRatio * nearPlane * tanFov,
-			nearPlane * tanFov,
-			-nearPlane,
-			-farPlane,
-		};
+		pushData.Frustum = cullingData.Frustum;
 
 		m_PrepareData->SetBuffer(m_SystemData, 0, 0);
 		m_PrepareData->SetBuffer(m_DrawArgs, 0, 1);
@@ -595,8 +579,8 @@ namespace Eagle
 		m_PrepareData->SetBuffer(m_EmittersSpawnCountBuffer, 0, 4);
 		m_PrepareData->SetBuffer(m_TransformsBuffer, 0, 5);
 
-		cmd->TransitionLayout(m_DrawArgs, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-		cmd->TransitionLayout(m_DispatchArgs, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+		cmd->TransitionLayout(m_DrawArgs, m_DrawArgs->GetLayout(), BufferLayoutType::StorageBuffer);
+		cmd->TransitionLayout(m_DispatchArgs, m_DispatchArgs->GetLayout(), BufferLayoutType::StorageBuffer);
 
 		// Note: this pipeline is designed with num groups of (1, 1, 1) in mind.
 		// If this ever changes, the shader logic needs to be revisited. At least handling of available slots
@@ -694,8 +678,8 @@ namespace Eagle
 		m_Simulate->SetBuffer(m_TranslucentDistancesBuffer, 0, 7);
 		m_Simulate->SetBuffer(m_DrawArgs, 0, 8);
 		m_Simulate->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 9);
-		m_Simulate->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 10);
-		m_Simulate->SetBuffer(m_Renderer.GetCameraBuffer(), 0, 11);
+		m_Simulate->SetImageSampler(gbuffer.Normals, Sampler::PointSamplerClamp, 0, 10);
+		m_Simulate->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 0, 11);
 		m_Simulate->SetBuffer(m_TransformsBuffer, 0, 12);
 		m_Simulate->SetBuffer(m_OpaqueIndicesToRender, 0, 13);
 		if (bSortOpaque)
@@ -704,11 +688,14 @@ namespace Eagle
 		}
 
 		const ImageLayout oldDepthLayout = gbuffer.Depth->GetLayout();
+		const ImageLayout oldNormalsLayout = gbuffer.Normals->GetLayout();
 		cmd->TransitionLayout(gbuffer.Depth, oldDepthLayout, ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(gbuffer.Normals, oldNormalsLayout, ImageReadAccess::PixelShaderRead);
 
 		cmd->DispatchIndirect(m_Simulate, m_DispatchArgs, sizeof(DispatchIndirectArgs), &pushData);
 
 		cmd->TransitionLayout(gbuffer.Depth, ImageReadAccess::PixelShaderRead, oldDepthLayout);
+		cmd->TransitionLayout(gbuffer.Normals, ImageReadAccess::PixelShaderRead, oldNormalsLayout);
 		cmd->Barrier(m_SystemData);
 		cmd->Barrier(m_ParticlesBuffer);
 		cmd->Barrier(m_OpaqueIndicesToRender);
@@ -822,9 +809,9 @@ namespace Eagle
 
 			glm::uvec2 pushData = { newParticlesAmount, oldMaxParticles };
 
-			constexpr uint32_t tileSize = 256;
-			const uint32_t numGroup = CalcNumGroups(newParticlesAmount, tileSize);
-			cmd->Dispatch(m_UpdateMaxParticles, numGroup, 1, 1, &pushData);
+			const glm::uvec3 groupSize = m_UpdateMaxParticles->GetWorkGroupSize();
+			const uint32_t numGroups = CalcNumGroups(newParticlesAmount, groupSize).x;
+			cmd->Dispatch(m_UpdateMaxParticles, numGroups, 1, 1, &pushData);
 			cmd->Barrier(m_SystemData);
 			cmd->Barrier(m_DeadIndices);
 		}
@@ -1289,12 +1276,12 @@ namespace Eagle
 		RenderManager::Submit([dataBuffer = m_SystemData, deadIndices = m_DeadIndices, maxParticles = m_MaxParticles](const Ref<CommandBuffer>& cmd) mutable
 		{
 			ParticleSystemData systemData(maxParticles);
-			cmd->Write(dataBuffer, &systemData, sizeof(systemData), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			cmd->Write(dataBuffer, &systemData, sizeof(systemData), 0, dataBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 
 			std::vector<uint32_t> data(maxParticles);
 			for (size_t i = 0; i < maxParticles; ++i)
 				data[i] = uint32_t(i);
-			cmd->Write(deadIndices, data.data(), data.size() * sizeof(uint32_t), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			cmd->Write(deadIndices, data.data(), data.size() * sizeof(uint32_t), 0, deadIndices->GetLayout(), BufferLayoutType::StorageBuffer);
 		});
 	}
 	
@@ -1319,8 +1306,8 @@ namespace Eagle
 			const auto& gBuffer = m_Renderer.GetGBuffer();
 			ColorAttachment colorAttachment;
 			colorAttachment.Image = m_Renderer.GetHDROutput();
-			colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-			colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+			colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 			colorAttachment.ClearOperation = ClearOperation::Load;
 
 			colorAttachment.bBlendEnabled = true;

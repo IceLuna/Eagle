@@ -50,11 +50,7 @@ void main()
     const uint normalTextureIndex = Material_GetIndex(material.PackedIndices2, NormalIndexMask, NormalIndexOffset, unused);
 
     const mat3 normalModel = mat3(transpose(inverse(model)));
-    vec3 worldNormal = normalize(normalModel * s_Normal);
-    const bool bInvert = (gl_VertexIndex % 8u) < 4;
-    if (bInvert)
-        worldNormal = -worldNormal;
-    o_Normal = worldNormal;
+    const vec3 worldNormal = normalize(normalModel * s_Normal);
 
     if (normalTextureIndex != EG_INVALID_INDEX)
     {
@@ -63,6 +59,7 @@ void main()
         o_TBN = mat3(worldTangent, worldBitangent, worldNormal);
     }
 
+    o_Normal = worldNormal;
     o_TexCoords = a_TexCoords;
     o_EntityID = a_EntityID;
     o_AtlasIndex = a_AtlasIndex;

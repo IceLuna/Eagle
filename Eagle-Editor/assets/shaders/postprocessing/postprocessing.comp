@@ -4,11 +4,15 @@
 
 layout(push_constant) uniform PushData
 {
-    ivec2 g_Size;
+    vec3 AgXSlope;
     float g_InvGamma;
+    vec3 AgXPower;
     float g_PhotolinearScale;
+    vec3 AgXOffset;
     float g_WhitePoint;
+    ivec2 g_Size;
     uint g_TonemappingMethod;
+    float AgXSaturation;
 };
 
 layout(binding = 0, r11f_g11f_b10f) uniform readonly image2D g_Color;
@@ -28,8 +32,14 @@ void main()
     if (pixelCoords.x >= g_Size.x || pixelCoords.y >= g_Size.y)
         return;
 
+    AgXParams agx;
+    agx.Slope = AgXSlope;
+    agx.Power = AgXPower;
+    agx.Offset = AgXOffset;
+    agx.Saturation = AgXSaturation;
+
     vec3 color = imageLoad(g_Color, pixelCoords).rgb;
-    color = ApplyTonemapping(g_TonemappingMethod, color, g_Exposure, g_WhitePoint, g_PhotolinearScale);
+    color = ApplyTonemapping(g_TonemappingMethod, color, g_Exposure, g_WhitePoint, g_PhotolinearScale, agx);
     if (g_TonemappingMethod != TONE_MAPPING_PHOTO_LINEAR)
         color = ApplyGamma(color, g_InvGamma);
 

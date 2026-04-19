@@ -18,7 +18,7 @@ namespace Eagle
 	{
 		static bool IsShaderExtension(const Path& path)
 		{
-			constexpr char* shaderExtensions[] = { ".h", ".comp", ".vert", ".frag" };
+			const char* shaderExtensions[] = { ".h", ".comp", ".vert", ".frag" };
 			for (const auto& extension : shaderExtensions)
 				if (Utils::HasExtension(path, extension))
 					return true;
@@ -52,11 +52,11 @@ namespace Eagle
 	{
 		if (!std::filesystem::exists(path))
 		{
-			EG_RENDERER_ERROR("Couldn't find shader: {}", path.u8string());
+			EG_RENDERER_ERROR("Couldn't find shader: {}", path);
 			return nullptr;
 		}
 
-		std::string extension = path.extension().string();
+		std::string extension = Utils::AsString(path.extension());
 		std::transform(extension.begin(), extension.end(), extension.begin(),
 			[](unsigned char c) { return std::tolower(c); });
 
@@ -69,7 +69,7 @@ namespace Eagle
 			shaderType = ShaderType::Compute;
 		else
 		{
-			EG_RENDERER_ERROR("Invalid shader extension. Couldn't deduce its type: {}", path.u8string());
+			EG_RENDERER_ERROR("Invalid shader extension. Couldn't deduce its type: {}", path);
 			return nullptr;
 		}
 
@@ -150,7 +150,7 @@ namespace Eagle
 		for (const auto& [path, source] : sourceCodes)
 		{
 			out << YAML::BeginMap;
-			out << YAML::Key << "Path" << YAML::Value << path.string();
+			out << YAML::Key << "Path" << YAML::Value << Utils::AsString(path);
 			out << YAML::Key << "SourceCode" << YAML::Value << source;
 			out << YAML::EndMap;
 		}

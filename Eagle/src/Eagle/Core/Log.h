@@ -1,16 +1,17 @@
 #pragma once
 
 #include "Core.h"
-#include "spdlog/spdlog.h"
-#include "spdlog/fmt/ostr.h"
-#include "glm/glm.hpp"
+#include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/fmt/std.h>
+#include <glm/glm.hpp>
 
 template<>
 struct fmt::formatter<glm::vec2> : fmt::formatter<std::string>
 {
 	auto format(const glm::vec3& my, format_context& ctx) const -> decltype(ctx.out())
 	{
-		return format_to(ctx.out(), "[{}, {}]", my.x, my.y);
+		return fmt::format_to(ctx.out(), "[{}, {}]", my.x, my.y);
 	}
 };
 
@@ -19,7 +20,7 @@ struct fmt::formatter<glm::vec3> : fmt::formatter<std::string>
 {
 	auto format(const glm::vec3& my, format_context& ctx) const -> decltype(ctx.out())
 	{
-		return format_to(ctx.out(), "[{}, {}, {}]", my.x, my.y, my.z);
+		return fmt::format_to(ctx.out(), "[{}, {}, {}]", my.x, my.y, my.z);
 	}
 };
 
@@ -28,7 +29,7 @@ struct fmt::formatter<glm::vec4> : fmt::formatter<std::string>
 {
 	auto format(const glm::vec4& my, format_context& ctx) const -> decltype(ctx.out())
 	{
-		return format_to(ctx.out(), "[{}, {}, {}, {}]", my.x, my.y, my.z, my.w);
+		return fmt::format_to(ctx.out(), "[{}, {}, {}, {}]", my.x, my.y, my.z, my.w);
 	}
 };
 

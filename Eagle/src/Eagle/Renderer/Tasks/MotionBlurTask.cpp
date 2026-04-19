@@ -43,7 +43,7 @@ namespace Eagle
 			cmd->TransitionLayout(depth, oldDepthLayout, ImageReadAccess::PixelShaderRead);
 
 			m_Tiles.EarlyExit.ThreadGroupCount = m_Tiles.Cheap.ThreadGroupCount = m_Tiles.Expensive.ThreadGroupCount = glm::uvec4(0, 1, 1, 0);
-			cmd->Write(m_DispatchArgs, &m_Tiles, sizeof(m_Tiles), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			cmd->Write(m_DispatchArgs, &m_Tiles, sizeof(m_Tiles), 0, m_DispatchArgs->GetLayout(), BufferLayoutType::StorageBuffer);
 
 			cmd->FillBuffer(m_EarlyExitTiles, 0);
 			cmd->FillBuffer(m_CheapTiles, 0);
@@ -63,16 +63,19 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Motion Blur. Tile min-max");
 
 		auto& stats = m_Renderer.GetStats();
+		auto& motion = m_Renderer.GetGBuffer().Motion;
+		const ImageLayout oldMotionLayout = motion->GetLayout();
+		cmd->TransitionLayout(motion, oldMotionLayout, ImageReadAccess::PixelShaderRead);
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Motion Blur. Tile min-max. Horizontal");
 			EG_CPU_TIMING_SCOPED("Motion Blur. Tile min-max. Horizontal");
 
-			cmd->TransitionLayout(m_TileMinHorizontal, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
-			cmd->TransitionLayout(m_TileMaxHorizontal, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
-			cmd->TransitionLayout(m_TileMin, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
-			cmd->TransitionLayout(m_TileMax, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
+			cmd->TransitionLayout(m_TileMinHorizontal, m_TileMinHorizontal->GetLayout(), ImageLayoutType::StorageImage);
+			cmd->TransitionLayout(m_TileMaxHorizontal, m_TileMaxHorizontal->GetLayout(), ImageLayoutType::StorageImage);
+			cmd->TransitionLayout(m_TileMin, m_TileMin->GetLayout(), ImageLayoutType::StorageImage);
+			cmd->TransitionLayout(m_TileMax, m_TileMax->GetLayout(), ImageLayoutType::StorageImage);
 
-			m_TileHorizontalPipeline->SetImageSampler(m_Renderer.GetGBuffer().Motion, Sampler::PointSamplerClamp, 0, 0);
+			m_TileHorizontalPipeline->SetImageSampler(motion, Sampler::PointSamplerClamp, 0, 0);
 			m_TileHorizontalPipeline->SetImage(m_TileMinHorizontal, 0, 1);
 			m_TileHorizontalPipeline->SetImage(m_TileMaxHorizontal, 0, 2);
 
@@ -80,12 +83,13 @@ namespace Eagle
 			m_PushData.Size = m_Size;
 			m_PushData.TexelSize = 1.f / glm::vec2(m_PushData.Size);
 
-			constexpr uint32_t tileSize = 8;
 			const auto& size = m_PushData.PassSize;
-			glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
+			const glm::uvec3 groupSize = m_TileHorizontalPipeline->GetWorkGroupSize();
+			const glm::uvec2 numGroups = CalcNumGroups(size, groupSize);
 			cmd->Dispatch(m_TileHorizontalPipeline, numGroups.x, numGroups.y, 1, &m_PushData);
 			++stats.Dispatches;
 		}
+		cmd->TransitionLayout(motion, ImageReadAccess::PixelShaderRead, oldMotionLayout);
 
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Motion Blur. Tile min-max. Vertical");
@@ -103,9 +107,9 @@ namespace Eagle
 			cmd->Barrier(m_TileMinHorizontal);
 			cmd->Barrier(m_TileMaxHorizontal);
 
-			constexpr uint32_t tileSize = 8;
 			const auto& size = m_PushData.PassSize;
-			glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
+			const glm::uvec3 groupSize = m_TileVerticalPipeline->GetWorkGroupSize();
+			const glm::uvec2 numGroups = CalcNumGroups(size, groupSize);
 			cmd->Dispatch(m_TileVerticalPipeline, numGroups.x, numGroups.y, 1, &m_PushData);
 			++stats.Dispatches;
 		}
@@ -133,9 +137,9 @@ namespace Eagle
 		cmd->TransitionLayout(m_NeighborhoodMax, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
 		cmd->Barrier(m_TileMax);
 
-		constexpr uint32_t tileSize = 8;
 		const auto& size = m_PushData.PassSize;
-		glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
+		const glm::uvec3 groupSize = m_TileVerticalPipeline->GetWorkGroupSize();
+		const glm::uvec2 numGroups = CalcNumGroups(size, groupSize);
 		cmd->Dispatch(m_NeighborhoodPipeline, numGroups.x, numGroups.y, 1, &m_PushData);
 
 		cmd->Barrier(m_EarlyExitTiles);
@@ -174,10 +178,12 @@ namespace Eagle
 		setDescriptors(m_MainCheapPipeline, m_CheapTiles);
 		setDescriptors(m_MainExpensivePipeline, m_ExpensiveTiles);
 
-		cmd->CopyImage(color, m_ColorCopy, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
+		cmd->CopyImage(color, m_ColorCopy, m_ColorCopy->GetLayout(), ImageLayoutType::StorageImage);
 
-		ImageLayout oldLayout = color->GetLayout();
-		cmd->TransitionLayout(color, oldLayout, ImageLayoutType::StorageImage);
+		const ImageLayout colorLayout = color->GetLayout();
+		const ImageLayout motionLayout = motion->GetLayout();
+		cmd->TransitionLayout(color, colorLayout, ImageLayoutType::StorageImage);
+		cmd->TransitionLayout(motion, motionLayout, ImageReadAccess::NonPixelShaderRead);
 
 		cmd->DispatchIndirect(m_MainEarlyPipeline, m_DispatchArgs, offsetof(PostprocessTileStatistics, EarlyExit), &m_PushData);
 		++stats.Dispatches;
@@ -186,7 +192,8 @@ namespace Eagle
 		cmd->DispatchIndirect(m_MainExpensivePipeline, m_DispatchArgs, offsetof(PostprocessTileStatistics, Expensive), &m_PushData);
 		++stats.Dispatches;
 
-		cmd->TransitionLayout(color, ImageLayoutType::StorageImage, oldLayout);
+		cmd->TransitionLayout(color, ImageLayoutType::StorageImage, colorLayout);
+		cmd->TransitionLayout(motion, ImageReadAccess::NonPixelShaderRead, motionLayout);
 	}
 
 	void MotionBlurTask::OnResize(glm::uvec2 size)

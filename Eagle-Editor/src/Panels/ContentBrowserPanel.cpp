@@ -9,6 +9,7 @@
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Utils/ThumbnailCache.h"
 #include "Eagle/UI/UI.h"
+#include "Eagle/UI/Editors/BehaviorGraphEditor.h"
 
 #include "Eagle/Debug/CPUTimings.h"
 
@@ -120,12 +121,12 @@ namespace Eagle
 		AssetManager::Get(path, &assetToCopy);
 		if (assetToCopy)
 		{
-			const std::string newName = path.stem().u8string() + (bCopy ? "_Copy" : "") + Asset::GetExtension();
-			newFilepath = destinationFolder / newName;
+			const std::string newName = Utils::AsString(path.stem()) + (bCopy ? "_Copy" : "") + Asset::GetExtension();
+			newFilepath = destinationFolder / Utils::AsPath(newName);
 			if (std::filesystem::exists(newFilepath))
 			{
 				Application::Get().GetImGuiLayer()->AddMessage("Paste failed. File already exists");
-				EG_CORE_ERROR("Paste failed. File already exists: {}", newFilepath.u8string());
+				EG_CORE_ERROR("Paste failed. File already exists: {}", newFilepath);
 				bFailed = true;
 			}
 			else
@@ -151,7 +152,7 @@ namespace Eagle
 		else
 		{
 			Application::Get().GetImGuiLayer()->AddMessage("Failed to paste an asset. Didn't find an asset");
-			EG_CORE_ERROR("Failed to paste an asset. Didn't find an asset at: {}", path.u8string());
+			EG_CORE_ERROR("Failed to paste an asset. Didn't find an asset at: {}", path);
 			bFailed = true;
 		}
 
@@ -207,11 +208,11 @@ namespace Eagle
 					}
 					else if (m_InputState == InputNameState::AssetRename)
 					{
-						const Path newFilepath = m_CurrentDirectoryRelative / (m_PopupInput + Asset::GetExtension());
+						const Path newFilepath = m_CurrentDirectoryRelative / Utils::AsPath(m_PopupInput + Asset::GetExtension());
 						if (std::filesystem::exists(newFilepath))
 						{
 							Application::Get().GetImGuiLayer()->AddMessage("Rename failed. File already exists");
-							EG_CORE_ERROR("Rename failed. File already exists: {}", newFilepath.u8string());
+							EG_CORE_ERROR("Rename failed. File already exists: {}", newFilepath);
 						}
 						else if (AssetManager::Rename(m_AssetToRename, newFilepath))
 						{
@@ -680,8 +681,8 @@ namespace Eagle
 		for (auto& dir : directories)
 		{
 			const auto& path = dir;
-			std::string pathString = path.u8string();
-			std::string filename = path.filename().u8string();
+			std::string pathString = Utils::AsString(path);
+			std::string filename = Utils::AsString(path.filename());
 
 			{
 				const bool bSelected = m_SelectedFile == path;
@@ -735,8 +736,8 @@ namespace Eagle
 		for (auto& file : files)
 		{
 			const auto& path = file;
-			std::string pathString = path.u8string();
-			std::string filename = path.stem().u8string();
+			std::string pathString = Utils::AsString(path);
+			std::string filename = Utils::AsString(path.stem());
 
 			Ref<Asset> asset;
 			if (AssetManager::Get(path, &asset) == false)
@@ -910,7 +911,7 @@ namespace Eagle
 		{
 			Path filename = it->filename();
 			temp /= filename;
-			if (ImGui::Button(filename.u8string().c_str()))
+			if (ImGui::Button(Utils::AsString(filename).c_str()))
 			{
 				SetSelected("", false);
 				auto prevPath = m_CurrentDirectory;
@@ -942,7 +943,7 @@ namespace Eagle
 				continue;
 
 			const Path path = dirEntry.path();
-			const std::string filename = path.stem().u8string();
+			const std::string filename = Utils::AsString(path.stem());
 
 			std::size_t pos = Utils::FindSubstringI(filename, search);
 			if (pos != std::string::npos)
@@ -955,7 +956,7 @@ namespace Eagle
 	void ContentBrowserPanel::DrawItemPopupMenu(const Path& path, int timesCalledForASinglePath)
 	{
 		static bool bDoneOnce = false;
-		const std::string pathString = path.u8string();
+		const std::string pathString = Utils::AsString(path);
 		if (ImGui::BeginPopupContextItem(pathString.c_str()))
 		{
 			if (!bDoneOnce)
@@ -1132,14 +1133,14 @@ namespace Eagle
 		m_bShowInputName = true;
 		m_InputState = InputNameState::AssetRename;
 		m_AssetToRename = asset;
-		m_PopupInput = asset ? asset->GetPath().filename().stem().u8string() : "";
+		m_PopupInput = asset ? Utils::AsString(asset->GetPath().filename().stem()) : "";
 	}
 
 	void ContentBrowserPanel::OnDeleteAsset(const Ref<Asset>& asset)
 	{
 		m_ShowDeleteConfirmation = true;
 		m_AssetToDelete = asset;
-		m_DeleteConfirmationMessage = "Are you sure you want to delete " + m_AssetToDelete->GetPath().stem().u8string()
+		m_DeleteConfirmationMessage = "Are you sure you want to delete " + Utils::AsString(m_AssetToDelete->GetPath().stem())
 			+ "?\nDeleting it won't remove it from the current scene,\nbut the next time it's opened, it will be replaced with an empty asset";
 	}
 
@@ -1147,13 +1148,13 @@ namespace Eagle
 	{
 		m_ShowDeleteConfirmation = true;
 		m_FolderToDelete = path;
-		m_DeleteConfirmationMessage = "Are you sure you want to delete this folder and all of its content?\nFolder: " + m_FolderToDelete.u8string();
+		m_DeleteConfirmationMessage = "Are you sure you want to delete this folder and all of its content?\nFolder: " + Utils::AsString(m_FolderToDelete);
 	}
 
 	void ContentBrowserPanel::DuplicateAsset(const Ref<Asset>& asset)
 	{
 		const auto& path = asset->GetPath();
-		Path newFilepath = Utils::GetUniqueAssetFilepath(path.parent_path(), path.stem().u8string());
+		Path newFilepath = Utils::GetUniqueAssetFilepath(path.parent_path(), Utils::AsString(path.stem()));
 		if (!AssetManager::Duplicate(asset, newFilepath))
 		{
 			Application::Get().GetImGuiLayer()->AddMessage("Duplicate failed. See logs for more details");

@@ -114,6 +114,34 @@ namespace Eagle
 		size_t Size = 0;
 	};
 
+	// Read-only
+	class DataBufferView
+	{
+	public:
+		DataBufferView() = default;
+		DataBufferView(const void* data, size_t size) : Data(data), Size(size) {}
+
+		template<typename T>
+		T& Read(size_t offset = 0)
+		{
+			EG_CORE_ASSERT(offset <= Size, "Overflow");
+			uint8_t* offseted = ((uint8_t*)Data) + offset;
+			return *((T*)offseted);
+		}
+
+		template<typename T>
+		const T& Read(size_t offset = 0) const
+		{
+			EG_CORE_ASSERT(offset <= Size, "Overflow");
+			const uint8_t* offseted = ((uint8_t*)Data) + offset;
+			return *((T*)offseted);
+		}
+
+	public:
+		const void* Data = nullptr;
+		size_t Size = 0;
+	};
+
 	class ScopedDataBuffer
 	{
 	public:
@@ -133,6 +161,11 @@ namespace Eagle
 		static ScopedDataBuffer Copy(const ScopedDataBuffer& other)
 		{
 			return ScopedDataBuffer(DataBuffer::Copy(other.Data(), other.Size()));
+		}
+
+		static ScopedDataBuffer Copy(const DataBuffer& other)
+		{
+			return ScopedDataBuffer(DataBuffer::Copy(other.Data, other.Size));
 		}
 
 		ScopedDataBuffer& operator=(const ScopedDataBuffer&) = delete;

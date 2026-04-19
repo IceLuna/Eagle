@@ -12,7 +12,7 @@ namespace Eagle
 	class BloomPassTask : public RendererTask
 	{
 	public:
-		BloomPassTask(SceneRenderer& renderer, const Ref<Image>& input);
+		BloomPassTask(SceneRenderer& renderer);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(glm::uvec2 size) override;
@@ -23,7 +23,6 @@ namespace Eagle
 	private:
 		Ref<PipelineCompute> m_DownscalePipeline;
 		Ref<PipelineCompute> m_UpscalePipeline;
-		Ref<Image> m_InputImage;
 		Ref<Sampler> m_BloomSampler;
 		Ref<Sampler> m_DirtSampler;
 		std::vector<ImageView> m_MipViews;

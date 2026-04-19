@@ -20,6 +20,22 @@ namespace Eagle
 
 	static PhysXCookingData* s_CookingData = nullptr;
 
+	static std::string GetCacheFilename(const Ref<AssetBaseMesh>& mesh, bool bConvex, bool bFlip)
+	{
+		const GUID& assetID = mesh->GetGUID();
+		std::string filename = std::to_string(assetID.GetHigh()) + '_' + std::to_string(assetID.GetLow());
+		if (bConvex)
+			filename += "_convex.pxm";
+		else
+		{
+			if (bFlip)
+				filename += "_flipped";
+			filename += "_tri.pmx";
+		}
+
+		return filename;
+	}
+
 	template <typename AssetMeshType>
 	CookingResult CookConvexMesh(const Ref<AssetMeshType>& meshAsset, ScopedDataBuffer* outData)
 	{
@@ -57,7 +73,7 @@ namespace Eagle
 		physx::PxConvexMeshCookingResult::Enum result;
 		if (!s_CookingData->CookingSDK->cookConvexMesh(convexDesc, buf, &result))
 		{
-			EG_CORE_ERROR("[Physics Engine] Failed to cook convex mesh '{0}'. Reason: {1}", meshAsset->GetPath().u8string(), Utils::GetEnumName(result));
+			EG_CORE_ERROR("[Physics Engine] Failed to cook convex mesh '{0}'. Reason: {1}", meshAsset->GetPath(), Utils::GetEnumName(result));
 			return PhysXUtils::FromPhysXCookingResult(result);
 		}
 
@@ -105,7 +121,7 @@ namespace Eagle
 		bool bValid = s_CookingData->CookingSDK->validateTriangleMesh(triangleDesc);
 		if (!bValid)
 		{
-			EG_CORE_ERROR("[Physics Engine] Failed to validate triangle mesh '{0}'", meshAsset->GetPath().u8string());
+			EG_CORE_ERROR("[Physics Engine] Failed to validate triangle mesh '{0}'", meshAsset->GetPath());
 			return CookingResult::Failure;
 		}
 #endif
@@ -114,7 +130,7 @@ namespace Eagle
 		physx::PxTriangleMeshCookingResult::Enum result;
 		if (!s_CookingData->CookingSDK->cookTriangleMesh(triangleDesc, buf, &result))
 		{
-			EG_CORE_ERROR("[Physics Engine] Failed to cook triangle mesh '{0}'. Reason: {1}", meshAsset->GetPath().u8string(), Utils::GetEnumName(result));
+			EG_CORE_ERROR("[Physics Engine] Failed to cook triangle mesh '{0}'. Reason: {1}", meshAsset->GetPath(), Utils::GetEnumName(result));
 			return PhysXUtils::FromPhysXCookingResult(result);
 		}
 
@@ -157,16 +173,7 @@ namespace Eagle
 			return CookingResult::Failure;
 		}
 
-		std::string filename = collisionMesh->GetPath().stem().u8string();
-		if (bConvex)
-			filename += "_convex.pxm";
-		else
-		{
-			if (bFlip)
-				filename += "_flipped";
-			filename += "_tri.pmx";
-		}
-
+		const std::string filename = GetCacheFilename(collisionMesh, bConvex, bFlip);
 		const Path filepath = Project::GetCachePath() / "PhysX" / filename;
 
 		CookingResult result = CookingResult::Failure;
@@ -193,7 +200,7 @@ namespace Eagle
 				bool bSuccessWrite = FileSystem::Write(filepath, *outData);
 
 				if (!bSuccessWrite)
-					EG_CORE_ERROR("[Physics Engine] Failed to write collider to '{0}'", filepath.u8string());
+					EG_CORE_ERROR("[Physics Engine] Failed to write collider to '{0}'", filepath);
 			}
 		}
 		else
@@ -206,5 +213,18 @@ namespace Eagle
 		}
 
 		return result;
+	}
+	
+	void PhysXCookingFactory::DeleteCached(const Ref<AssetBaseMesh>& collisionMeshAsset)
+	{
+		const std::string convexName = GetCacheFilename(collisionMeshAsset, true, false);
+		const std::string triName = GetCacheFilename(collisionMeshAsset, false, false);
+		const std::string triFlippedName = GetCacheFilename(collisionMeshAsset, false, true);
+
+		const Path folder = Project::GetCachePath() / "PhysX";
+
+		std::filesystem::remove(folder / convexName);
+		std::filesystem::remove(folder / triName);
+		std::filesystem::remove(folder / triFlippedName);
 	}
 }

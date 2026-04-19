@@ -3,15 +3,19 @@
 #define EG_NO_TEXTURES
 #include "pipeline_layout.h"
 
-layout(push_constant) uniform PushConstants
-{
-    mat4 g_ViewProj;
-};
-
 layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX)
 readonly buffer MeshTransformsBuffer
 {
     mat4 g_Transforms[];
+};
+
+layout(set = 5, binding = 1)
+uniform CameraMatrices
+{
+    mat4 g_View;
+    mat4 g_InvViewProj;
+    mat4 g_ViewProjection;
+    mat4 g_PrevViewProjection;
 };
 
 layout(location = 0) out vec3 o_Normal;
@@ -27,7 +31,7 @@ void main()
     const uint transformIndex = a_TransformIndex & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
 
     const mat4 model = g_Transforms[transformIndex];
-    gl_Position = g_ViewProj * model * vec4(s_QuadVertexPosition[vertexID], 1.f);
+    gl_Position = g_ViewProjection * model * vec4(s_QuadVertexPosition[vertexID], 1.f);
     
     o_WorldPos = vec3(model * vec4(s_QuadVertexPosition[vertexID], 1.f));
 

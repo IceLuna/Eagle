@@ -62,7 +62,7 @@ namespace Eagle
 
 #define REGISTER_COMPONENT_TYPE(Type)\
 	{\
-		MonoType* type = mono_reflection_type_from_name("Eagle." #Type, s_CoreAssemblyImage);\
+		MonoType* type = mono_reflection_type_from_name((char*)("Eagle." #Type), s_CoreAssemblyImage);\
 		if (type)\
 		{\
 			m_HasComponentFunctions[type] = [](Entity& entity) { return entity.HasComponent<Type>(); };\
@@ -201,6 +201,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::GetPhotoLinearTonemappingSettings_Native", Eagle::Script::Eagle_Renderer_GetPhotoLinearTonemappingSettings);
 		mono_add_internal_call("Eagle.Renderer::SetFilmicTonemappingSettings_Native", Eagle::Script::Eagle_Renderer_SetFilmicTonemappingSettings);
 		mono_add_internal_call("Eagle.Renderer::GetFilmicTonemappingSettings_Native", Eagle::Script::Eagle_Renderer_GetFilmicTonemappingSettings);
+		mono_add_internal_call("Eagle.Renderer::SetAgXTonemappingSettings_Native", Eagle::Script::Eagle_Renderer_SetAgXTonemappingSettings);
+		mono_add_internal_call("Eagle.Renderer::GetAgXTonemappingSettings_Native", Eagle::Script::Eagle_Renderer_GetAgXTonemappingSettings);
 		mono_add_internal_call("Eagle.Renderer::GetGamma_Native", Eagle::Script::Eagle_Renderer_GetGamma);
 		mono_add_internal_call("Eagle.Renderer::SetGamma_Native", Eagle::Script::Eagle_Renderer_SetGamma);
 		mono_add_internal_call("Eagle.Renderer::GetExposure_Native", Eagle::Script::Eagle_Renderer_GetExposure);
@@ -241,8 +243,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::SetAutoExposureSettings_Native", Eagle::Script::Eagle_Renderer_SetAutoExposureSettings);
 		mono_add_internal_call("Eagle.Renderer::SetScreenSpaceReflectionsSettings_Native", Eagle::Script::Eagle_Renderer_SetScreenSpaceReflectionsSettings);
 		mono_add_internal_call("Eagle.Renderer::SetLensSettings_Native", Eagle::Script::Eagle_Renderer_SetLensSettings);
-		mono_add_internal_call("Eagle.Renderer::SetStutterlessShaders_Native", Eagle::Script::Eagle_Renderer_SetStutterlessShaders);
-		mono_add_internal_call("Eagle.Renderer::GetStutterlessShaders_Native", Eagle::Script::Eagle_Renderer_GetStutterlessShaders);
+		mono_add_internal_call("Eagle.Renderer::SetDepthPrepassEnabled_Native", Eagle::Script::Eagle_Renderer_SetDepthPrepassEnabled);
+		mono_add_internal_call("Eagle.Renderer::GetDepthPrepassEnabled_Native", Eagle::Script::Eagle_Renderer_GetDepthPrepassEnabled);
 		mono_add_internal_call("Eagle.Renderer::SetTranslucentShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_SetTranslucentShadowsEnabled);
 		mono_add_internal_call("Eagle.Renderer::GetTranslucentShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_GetTranslucentShadowsEnabled);
 		mono_add_internal_call("Eagle.Renderer::GetCameraTransform_Native", Eagle::Script::Eagle_Renderer_GetCameraTransform);
@@ -267,7 +269,12 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::DrawTriangle_Native", Eagle::Script::Eagle_Renderer_DrawTriangle);
 		mono_add_internal_call("Eagle.Renderer::DrawArrow_Native", Eagle::Script::Eagle_Renderer_DrawArrow);
 		mono_add_internal_call("Eagle.Renderer::DrawAABB_Native", Eagle::Script::Eagle_Renderer_DrawAABB);
+		mono_add_internal_call("Eagle.Renderer::DrawBox_Native", Eagle::Script::Eagle_Renderer_DrawBox);
 		mono_add_internal_call("Eagle.Renderer::DrawCone_Native", Eagle::Script::Eagle_Renderer_DrawCone);
+
+		mono_add_internal_call("Eagle.AgXTonemappingSettings::GetDefaultLook_Native", Eagle::Script::Eagle_AgXTonemapping_GetDefaultLook);
+		mono_add_internal_call("Eagle.AgXTonemappingSettings::GetGoldenLook_Native", Eagle::Script::Eagle_AgXTonemapping_GetGoldenLook);
+		mono_add_internal_call("Eagle.AgXTonemappingSettings::GetPunchyLook_Native", Eagle::Script::Eagle_AgXTonemapping_GetPunchyLook);
 
 		// Log
 		mono_add_internal_call("Eagle.Log::Trace", Eagle::Script::Eagle_Log_Trace);
@@ -645,6 +652,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.TextComponent::DoesReceiveDecals_Native", Eagle::Script::Eagle_TextComponent_DoesReceiveDecals);
 		mono_add_internal_call("Eagle.TextComponent::SetVisible_Native", Eagle::Script::Eagle_TextComponent_SetVisible);
 		mono_add_internal_call("Eagle.TextComponent::IsVisible_Native", Eagle::Script::Eagle_TextComponent_IsVisible);
+		mono_add_internal_call("Eagle.TextComponent::SetDoubleSided_Native", Eagle::Script::Eagle_TextComponent_SetDoubleSided);
+		mono_add_internal_call("Eagle.TextComponent::IsDoubleSided_Native", Eagle::Script::Eagle_TextComponent_IsDoubleSided);
 
 		// Text2D Component
 		mono_add_internal_call("Eagle.Text2DComponent::GetText_Native", Eagle::Script::Eagle_Text2DComponent_GetText);

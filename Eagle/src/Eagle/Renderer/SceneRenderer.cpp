@@ -5,6 +5,7 @@
 
 #include "VidWrappers/RenderCommandManager.h"
 
+#include "Tasks/DepthPrepassTask.h" 
 #include "Tasks/BloomPassTask.h" 
 #include "Tasks/SkyboxPassTask.h" 
 #include "Tasks/PostprocessingPassTask.h" 
@@ -32,6 +33,8 @@ namespace Eagle
 	{
 		glm::mat4 View;
 		glm::mat4 InvViewProj;
+		glm::mat4 ViewProj;
+		glm::mat4 PrevViewProj;
 	};
 
 	template <typename TaskClass, typename Task, typename... Args>
@@ -76,6 +79,9 @@ namespace Eagle
 		m_GBuffer.Init({ m_Size, 1 });
 		m_GBuffer.InitOptional(m_Options.InternalState, glm::uvec3(m_Size, 1u));
 		// Create tasks
+		m_SkinCacheTask = MakeRef<SkinCacheTask>(*this);
+		m_FrustumCullingTask = MakeRef<FrustumCullingTask>(*this);
+		m_DepthPrepassTask = MakeRef<DepthPrepassTask>(*this);
 		m_RenderMeshesTask = MakeRef<RenderMeshesTask>(*this);
 		m_RenderSkeletalMeshesTask = MakeRef<RenderSkeletalMeshesTask>(*this);
 		m_RenderSpritesTask = MakeRef<RenderSpritesTask>(*this);
@@ -84,13 +90,13 @@ namespace Eagle
 		m_GeometryManagerTask = MakeRef<GeometryManagerTask>(*this);
 		m_RenderLinesTask = MakeRef<RenderLinesTask>(*this);
 		m_RenderTrianglesTask = MakeRef<RenderTrianglesTask>(*this);
-		m_RenderBillboardsTask = MakeRef<RenderBillboardsTask>(*this, m_HDRRTImage);
+		m_RenderBillboardsTask = MakeRef<RenderBillboardsTask>(*this);
 		m_RenderLitTextTask = MakeRef<RenderTextLitTask>(*this);
-		m_RenderUnlitTextTask = MakeRef<RenderTextUnlitTask>(*this, m_HDRRTImage);
-		m_PBRPassTask = MakeRef<PBRPassTask>(*this, m_HDRRTImage);
+		m_RenderUnlitTextTask = MakeRef<RenderTextUnlitTask>(*this);
+		m_PBRPassTask = MakeRef<PBRPassTask>(*this);
 		m_ShadowPassTask = MakeRef<ShadowPassTask>(*this);
-		m_SkyboxPassTask = MakeRef<SkyboxPassTask>(*this, m_HDRRTImage);
-		m_PostProcessingPassTask = MakeRef<PostprocessingPassTask>(*this, m_HDRRTImage);
+		m_SkyboxPassTask = MakeRef<SkyboxPassTask>(*this);
+		m_PostProcessingPassTask = MakeRef<PostprocessingPassTask>(*this);
 		m_GridTask = MakeRef<GridTask>(*this);
 		m_TransparencyTask = MakeRef<TransparencyTask>(*this);
 		m_Text2DTask = MakeRef<RenderText2DTask>(*this);
@@ -98,12 +104,12 @@ namespace Eagle
 		m_DOFTask = MakeRef<DOFTask>(*this);
 		m_ParticleTask = MakeRef<ParticleSystemTask>(*this);
 		
-		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this, m_HDRRTImage);
+		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this);
 		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);
 		InitOptionalTask<GTAOTask>(m_GTAOTask, options, options.AO == AmbientOcclusion::GTAO, *this);
 		InitOptionalTask<TAATask>(m_TAATask, options, options.AA == AAMethod::TAA, *this);
-		InitOptionalTask<VolumetricLightTask>(m_VolumetricTask, options, options.VolumetricSettings.bEnable, *this, m_HDRRTImage);
-		InitOptionalTask<FogPassTask>(m_FogTask, options, options.FogSettings.bEnable, *this, m_HDRRTImage);
+		InitOptionalTask<VolumetricLightTask>(m_VolumetricTask, options, options.VolumetricSettings.bEnable, *this);
+		InitOptionalTask<FogPassTask>(m_FogTask, options, options.FogSettings.bEnable, *this);
 		InitOptionalTask<MotionBlurTask>(m_MotionBlurTask, options, options.MotionBlur.bEnable, *this);
 		InitOptionalTask<ScreenSpaceReflectionsTask>(m_ScreenSpaceReflectionsTask, options, options.ScreenSpaceReflections.bEnable, *this);
 
@@ -138,7 +144,7 @@ namespace Eagle
 			}
 			renderer->m_Options_RT.InternalState.CascadesSmoothTransitionAlpha = cascadesSmoothTransitionAlpha;
 
-			renderer->m_Stats[renderer->m_FrameIndex] = Statistics();
+			renderer->m_Stats[renderer->m_FrameIndex] = RenderStats();
 
 			renderer->m_PrevView = renderer->m_View;
 			renderer->m_PrevProjection = renderer->m_Projection;
@@ -154,6 +160,19 @@ namespace Eagle
 			renderer->m_CameraCascadeFarPlanes = std::move(cascadeFarPlanes);
 			renderer->m_MaxShadowDistance = shadowDistance;
 
+			if (renderer->m_bUseDebugCullingFrustum)
+			{
+				renderer->m_CullingData = renderer->m_DebugCullingData;
+				renderer->m_bUseDebugCullingFrustum = false;
+			}
+			else
+			{
+				const auto& size = renderer->m_Size;
+				const float aspectRatio = float(size.x) / size.y;
+				renderer->m_CullingData.Frustum = CalculateFrustum(zNear, zFar, cameraFov, aspectRatio);
+				renderer->m_CullingData.View = renderer->m_View;
+			}
+
 			if (options.InternalState.bJitter)
 			{
 				// The range of numbers from Halton sequence is between 0 to 1.
@@ -161,8 +180,7 @@ namespace Eagle
 				// we need to adjust the range so that the positions are jittered both in positiveand negative directionsand are not jittered more than the size
 				glm::vec2 jitter = RenderManager::GetHalton();
 				jitter = ((jitter - 0.5f) / glm::vec2(renderer->m_Size)) * 2.f;
-				cmd->Write(renderer->m_Jitter, &jitter, sizeof(glm::vec2), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-				cmd->Barrier(renderer->m_Jitter);
+				cmd->Write(renderer->m_Jitter, &jitter, sizeof(glm::vec2), 0, renderer->m_Jitter->GetLayout(), BufferReadAccess::Uniform);
 			}
 
 			// Update camera data
@@ -170,11 +188,20 @@ namespace Eagle
 				CameraData cameraData;
 				cameraData.View = renderer->m_View;
 				cameraData.InvViewProj = renderer->m_InvViewProjection;
-				cmd->Write(renderer->m_CameraDataBuffer, &cameraData, sizeof(CameraData), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
+				cameraData.ViewProj = renderer->m_ViewProjection;
+				cameraData.PrevViewProj = renderer->m_PrevViewProjection;
+				cmd->Write(renderer->m_CameraDataBuffer, &cameraData, sizeof(CameraData), 0, renderer->m_CameraDataBuffer->GetLayout(), BufferReadAccess::Uniform);
 			}
+
+			cmd->TransitionLayout(renderer->m_FinalImage, renderer->m_FinalImage->GetLayout(), ImageLayoutType::RenderTarget);
+			renderer->m_GBuffer.Clear(cmd);
 
 			renderer->m_LightsManagerTask->RecordCommandBuffer(cmd);
 			renderer->m_GeometryManagerTask->RecordCommandBuffer(cmd);
+			renderer->m_FrustumCullingTask->RecordCommandBuffer(cmd);
+			renderer->m_SkinCacheTask->RecordCommandBuffer(cmd);
+			if (renderer->m_Options_RT.bDepthPrepass)
+				renderer->m_DepthPrepassTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderMeshesTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderSpritesTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderSkeletalMeshesTask->RecordCommandBuffer(cmd);
@@ -222,7 +249,7 @@ namespace Eagle
 			if (renderer->m_GBuffer.DepthHistory)
 				cmd->CopyImage(renderer->m_GBuffer.Depth, renderer->m_GBuffer.DepthHistory, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
 			if (renderer->m_GBuffer.NormalsHistory)
-				cmd->CopyImage(renderer->m_GBuffer.Geometry_Shading_Normals, renderer->m_GBuffer.NormalsHistory, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+				cmd->CopyImage(renderer->m_GBuffer.Normals, renderer->m_GBuffer.NormalsHistory, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
 
 			renderer->m_Images2DTask->RecordCommandBuffer(cmd);
 			renderer->m_Text2DTask->RecordCommandBuffer(cmd);
@@ -233,6 +260,9 @@ namespace Eagle
 
 			if (bRenderGrid)
 				renderer->m_GridTask->RecordCommandBuffer(cmd);
+
+			cmd->TransitionLayout(renderer->m_FinalImage, renderer->m_FinalImage->GetLayout(), ImageReadAccess::PixelShaderRead);
+			renderer->m_GBuffer.PrepareForReading(cmd);
 
 			// Handle object picking. Always enabled in editor mode
 			if (!renderer->IsRuntime() || options.bEnableObjectPicking)
@@ -369,6 +399,9 @@ namespace Eagle
 		m_GBuffer.Resize({ m_Size, 1 });
 
 		// Tasks
+		m_FrustumCullingTask->OnResize(m_Size);
+		m_SkinCacheTask->OnResize(m_Size);
+		m_DepthPrepassTask->OnResize(m_Size);
 		m_RenderMeshesTask->OnResize(m_Size);
 		m_RenderSkeletalMeshesTask->OnResize(m_Size);
 		m_RenderSpritesTask->OnResize(m_Size);
@@ -433,6 +466,19 @@ namespace Eagle
 		});
 	}
 
+	void SceneRenderer::SetDebugFrustumCulling(const glm::mat4& view, float aspectRatio, float fov, float nearPlane, float farPlane)
+	{
+		CullingFrustumData data{};
+		data.Frustum = CalculateFrustum(nearPlane, farPlane, fov, aspectRatio);
+		data.View = view;
+
+		RenderManager::Submit([renderer = shared_from_this(), data](const Ref<CommandBuffer>&)
+		{
+			renderer->m_DebugCullingData = data;
+			renderer->m_bUseDebugCullingFrustum = true;
+		});
+	}
+
 	void SceneRenderer::InitWithOptions()
 	{
 		auto& options = m_Options_RT;
@@ -455,6 +501,9 @@ namespace Eagle
 		m_GBuffer.InitOptional(options.InternalState, glm::uvec3(m_Size, 1u));
 		m_PhotoLinearScale = CalculatePhotoLinearScale(options.PhotoLinearTonemappingParams, options.Gamma);
 		m_GeometryManagerTask->InitWithOptions(options);
+		m_FrustumCullingTask->InitWithOptions(options);
+		m_SkinCacheTask->InitWithOptions(options);
+		m_DepthPrepassTask->InitWithOptions(options);
 		m_RenderMeshesTask->InitWithOptions(options);
 		m_RenderSkeletalMeshesTask->InitWithOptions(options);
 		m_RenderSpritesTask->InitWithOptions(options);
@@ -473,12 +522,12 @@ namespace Eagle
 		m_DOFTask->InitWithOptions(options);
 		m_ParticleTask->InitWithOptions(options);
 
-		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this, m_HDRRTImage);
+		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this);
 		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);
 		InitOptionalTask<GTAOTask>(m_GTAOTask, options, options.AO == AmbientOcclusion::GTAO, *this);
 		InitOptionalTask<TAATask>(m_TAATask, options, options.AA == AAMethod::TAA, *this);
-		InitOptionalTask<VolumetricLightTask>(m_VolumetricTask, options, options.VolumetricSettings.bEnable, *this, m_HDRRTImage);
-		InitOptionalTask<FogPassTask>(m_FogTask, options, options.FogSettings.bEnable, *this, m_HDRRTImage);
+		InitOptionalTask<VolumetricLightTask>(m_VolumetricTask, options, options.VolumetricSettings.bEnable, *this);
+		InitOptionalTask<FogPassTask>(m_FogTask, options, options.FogSettings.bEnable, *this);
 		InitOptionalTask<MotionBlurTask>(m_MotionBlurTask, options, options.MotionBlur.bEnable, *this);
 		InitOptionalTask<ScreenSpaceReflectionsTask>(m_ScreenSpaceReflectionsTask, options, options.ScreenSpaceReflections.bEnable, *this);
 	}
@@ -489,49 +538,49 @@ namespace Eagle
 		depthSpecs.Format = Application::Get().GetRenderContext()->GetDepthFormat();
 		depthSpecs.Layout = ImageLayoutType::DepthStencilWrite;
 		depthSpecs.Size = size;
-		depthSpecs.Usage = ImageUsage::DepthStencilAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc;
+		depthSpecs.Usage = ImageUsage::DepthStencilAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc | ImageUsage::TransferDst;
 		Depth = Image::Create(depthSpecs, "GBuffer_Depth");
 
 		ImageSpecifications colorSpecs;
 		colorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
 		colorSpecs.Layout = ImageLayoutType::RenderTarget;
 		colorSpecs.Size = size;
-		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferDst;
 		Albedo = Image::Create(colorSpecs, "GBuffer_Albedo");
 
 		ImageSpecifications normalSpecs;
 		normalSpecs.Format = ImageFormat::R16G16B16A16_Float;
 		normalSpecs.Layout = ImageLayoutType::RenderTarget;
 		normalSpecs.Size = size;
-		normalSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc;
-		Geometry_Shading_Normals = Image::Create(normalSpecs, "GBuffer_Geometry_Shading_Normals");
+		normalSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc | ImageUsage::TransferDst;
+		Normals = Image::Create(normalSpecs, "GBuffer_Geometry_Shading_Normals");
 
 		ImageSpecifications emissiveSpecs;
 		emissiveSpecs.Format = ImageFormat::R11G11B10_Float;
 		emissiveSpecs.Layout = ImageLayoutType::RenderTarget;
 		emissiveSpecs.Size = size;
-		emissiveSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+		emissiveSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferDst;
 		Emissive = Image::Create(emissiveSpecs, "GBuffer_Emissive");
 
 		ImageSpecifications materialSpecs;
 		materialSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
 		materialSpecs.Layout = ImageLayoutType::RenderTarget;
 		materialSpecs.Size = size;
-		materialSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+		materialSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferDst;
 		MaterialData = Image::Create(materialSpecs, "GBuffer_MaterialData");
 
 		ImageSpecifications flagSpecs;
-		flagSpecs.Format = ImageFormat::R8_UNorm;
+		flagSpecs.Format = ImageFormat::R8_UInt;
 		flagSpecs.Layout = ImageLayoutType::RenderTarget;
 		flagSpecs.Size = size;
-		flagSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
-		Flags = Image::Create(materialSpecs, "GBuffer_Flags");
+		flagSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferDst;
+		Flags = Image::Create(flagSpecs, "GBuffer_Flags");
 
 		ImageSpecifications objectIDSpecs;
 		objectIDSpecs.Format = ImageFormat::R32_SInt;
 		objectIDSpecs.Layout = ImageLayoutType::RenderTarget;
 		objectIDSpecs.Size = size;
-		objectIDSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc;
+		objectIDSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc | ImageUsage::TransferDst;
 		ObjectID = Image::Create(objectIDSpecs, "GBuffer_ObjectID");
 
 		ImageSpecifications objectIDCopySpecs;
@@ -551,7 +600,8 @@ namespace Eagle
 				ImageSpecifications velocitySpecs;
 				velocitySpecs.Format = ImageFormat::R16G16_Float;
 				velocitySpecs.Size = size;
-				velocitySpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+				velocitySpecs.Layout = ImageLayoutType::RenderTarget;
+				velocitySpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferDst;
 				Motion = Image::Create(velocitySpecs, "GBuffer_Motion");
 			}
 		}
@@ -582,9 +632,9 @@ namespace Eagle
 			if (!NormalsHistory)
 			{
 				ImageSpecifications specs;
-				specs.Format = Geometry_Shading_Normals->GetFormat();
+				specs.Format = Normals->GetFormat();
 				specs.Size = size;
-				specs.Usage = Geometry_Shading_Normals->GetUsage() | ImageUsage::TransferDst;
+				specs.Usage = Normals->GetUsage() | ImageUsage::TransferDst;
 				specs.Layout = ImageReadAccess::PixelShaderRead;
 				NormalsHistory = Image::Create(specs, "GBuffer_NormalsHistory");
 			}
@@ -599,7 +649,7 @@ namespace Eagle
 	{
 		Albedo->Resize(size);
 		MaterialData->Resize(size);
-		Geometry_Shading_Normals->Resize(size);
+		Normals->Resize(size);
 		Emissive->Resize(size);
 		ObjectID->Resize(size);
 		if (ObjectIDCopy)
@@ -621,10 +671,42 @@ namespace Eagle
 			{
 				constexpr glm::vec4 clearColor = glm::vec4(0.f);
 				if (depth)
-					cmd->ClearDepthStencilImage(depth, 0.f, 0, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+					cmd->ClearDepthStencilImage(depth, 0.f, 0, depth->GetLayout(), ImageReadAccess::PixelShaderRead);
 				if (normals)
-					cmd->ClearColorImage(normals, clearColor, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+					cmd->ClearColorImage(normals, clearColor, normals->GetLayout(), ImageReadAccess::PixelShaderRead);
 			});
 		}
+	}
+	
+	void GBuffer::Clear(const Ref<CommandBuffer>& cmd)
+	{
+		EG_GPU_TIMING_SCOPED(cmd, "Clearing GBuffer");
+		EG_CPU_TIMING_SCOPED("Clearing GBuffer");
+
+		cmd->ClearDepthStencilImage(Depth, 0, 0, Depth->GetLayout(), ImageLayoutType::DepthStencilWrite);
+		cmd->ClearColorImage(ObjectID, glm::uintBitsToFloat(glm::uvec4(-1)), ObjectID->GetLayout(), ImageLayoutType::RenderTarget);
+		if (Motion)
+			cmd->ClearColorImage(Motion, glm::vec4(0), Motion->GetLayout(), ImageLayoutType::RenderTarget);
+
+		// Note: I think there's no need to clear these buffers.
+		cmd->ClearColorImage(Albedo, glm::vec4(0), Albedo->GetLayout(), ImageLayoutType::RenderTarget);
+		cmd->ClearColorImage(Normals, glm::vec4(0), Normals->GetLayout(), ImageLayoutType::RenderTarget);
+		cmd->ClearColorImage(Emissive, glm::vec4(0), Emissive->GetLayout(), ImageLayoutType::RenderTarget);
+		cmd->ClearColorImage(MaterialData, glm::vec4(0), MaterialData->GetLayout(), ImageLayoutType::RenderTarget);
+		cmd->ClearColorImage(Flags, glm::vec4(0), Flags->GetLayout(), ImageLayoutType::RenderTarget);
+	}
+	
+	void GBuffer::PrepareForReading(const Ref<CommandBuffer>& cmd)
+	{
+		cmd->TransitionLayout(Depth, Depth->GetLayout(), ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(ObjectID, ObjectID->GetLayout(), ImageReadAccess::PixelShaderRead);
+		if (Motion)
+			cmd->TransitionLayout(Motion, Motion->GetLayout(), ImageReadAccess::PixelShaderRead);
+
+		cmd->TransitionLayout(Albedo, Albedo->GetLayout(), ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(Normals, Normals->GetLayout(), ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(Emissive, Emissive->GetLayout(), ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(MaterialData, MaterialData->GetLayout(), ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(Flags, Flags->GetLayout(), ImageReadAccess::PixelShaderRead);
 	}
 }

@@ -40,6 +40,8 @@ namespace Eagle
 		std::unordered_map<uint32_t, DescriptorSetData>& GetDescriptorSetsData() { return m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()]; }
 		const std::unordered_map<uint32_t, Ref<DescriptorSet>>& GetDescriptorSets() const { return m_DescriptorSets[RenderManager::GetCurrentFrameIndex()]; }
 
+		void ResetDescriptors();
+
 		Ref<DescriptorSet>& AllocateDescriptorSet(uint32_t set);
 
 	protected:

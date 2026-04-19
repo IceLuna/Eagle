@@ -90,16 +90,15 @@ namespace Eagle
 			vb->Resize(newSize);
 		}
 
-		cmd->Write(vb, m_Vertices.data(), currentVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
-		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
+		cmd->Write(vb, m_Vertices.data(), currentVertexSize, 0, vb->GetLayout(), BufferReadAccess::Vertex);
 	}
 
 	void RenderTrianglesTask::InitPipeline()
 	{
 		ColorAttachment colorAttachment;
 		colorAttachment.ClearOperation = ClearOperation::Load;
-		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		colorAttachment.Image = m_Renderer.GetHDROutput();
 
 		DepthStencilAttachment depthAttachment;
@@ -108,7 +107,7 @@ namespace Eagle
 		depthAttachment.Image = m_Renderer.GetGBuffer().Depth;
 		depthAttachment.ClearOperation = ClearOperation::Load;
 		depthAttachment.bWriteDepth = true;
-		depthAttachment.DepthCompareOp = CompareOperation::Greater;
+		depthAttachment.DepthCompareOp = CompareOperation::GreaterEqual;
 
 		ShaderDefines defines;
 		if (bJitter)

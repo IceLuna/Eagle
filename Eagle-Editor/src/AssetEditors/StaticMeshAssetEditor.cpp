@@ -8,6 +8,10 @@
 
 namespace Eagle
 {
+	static const char* s_AABBHelpMsg = "If AABB is not visible by the camera, the mesh is not rendered.\n"
+		"It makes sense to increase it manually for skeletal meshes if an animation moves the mesh beyond the bounding box. So, to prevent culling it in such cases, increase AABB.\n"
+		"But for optimization reasons, keep AABB as small as possible";
+
 	StaticMeshAssetEditor::StaticMeshAssetEditor(const Ref<AssetStaticMesh>& asset)
 		: AssetEditor(true), m_Asset(asset)
 	{
@@ -44,7 +48,7 @@ namespace Eagle
 
 		UI::BeginPropertyGrid("StaticMeshDetails");
 		UI::TextWithSeparator("Data");
-		UI::Text("Name", m_Asset->GetPath().stem().u8string());
+		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 		UI::Text("Type", "Static Mesh");
 		UI::Text("Vertices", std::to_string(verticesCount));
 		UI::Text("Indices", std::to_string(indicesCount));
@@ -69,6 +73,31 @@ namespace Eagle
 			UI::EndPropertyGrid();
 
 			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNodeEx("AABB", ImGuiTreeNodeFlags_Framed))
+		{
+			UI::BeginPropertyGrid("StaticMeshDetails");
+			bool bAABBChanged = false;
+			AABB aabb = mesh->GetAABB();
+			bAABBChanged |= UI::PropertyDrag("Min", aabb.Min, 0.1f, 0, 0, s_AABBHelpMsg);
+			bAABBChanged |= UI::PropertyDrag("Max", aabb.Max, 0.1f, 0, 0, s_AABBHelpMsg);
+			UI::Property("Visualize", bDrawAABB);
+			if (bAABBChanged)
+			{
+				mesh->SetAABB(aabb);
+				bChanged = true;
+				if (auto& scene = Scene::GetCurrentScene())
+					scene->SetStaticMeshesDirty(true);
+			}
+			UI::EndPropertyGrid();
+			ImGui::TreePop();
+		}
+
+		if (bDrawAABB)
+		{
+			const AABB& aabb = mesh->GetAABB();
+			GetCurrentScene()->DrawAABB(aabb, Transform{});
 		}
 
 		if (bChanged)

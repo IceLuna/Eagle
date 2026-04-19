@@ -37,8 +37,7 @@ namespace Eagle
 			offset += 4;
 		}
 
-		cmd->Write(buffer, indices.data(), ibSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
-		cmd->TransitionLayout(buffer, BufferReadAccess::Index, BufferReadAccess::Index);
+		cmd->Write(buffer, indices.data(), ibSize, 0, buffer->GetLayout(), BufferReadAccess::Index);
 	}
 
 	RenderImages2DTask::RenderImages2DTask(SceneRenderer& renderer)
@@ -107,8 +106,7 @@ namespace Eagle
 			UploadIndexBuffer(cmd, ib);
 		}
 
-		cmd->Write(vb, quads.data(), currentVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
-		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
+		cmd->Write(vb, quads.data(), currentVertexSize, 0, vb->GetLayout(), BufferReadAccess::Vertex);
 	}
 
 	void RenderImages2DTask::Render(const Ref<CommandBuffer>& cmd)
@@ -239,8 +237,8 @@ namespace Eagle
 	{
 		ColorAttachment colorAttachment;
 		colorAttachment.Image = m_Renderer.GetHDROutput();
-		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		colorAttachment.ClearOperation = ClearOperation::Load;
 
 		colorAttachment.bBlendEnabled = true;
@@ -254,8 +252,8 @@ namespace Eagle
 
 		ColorAttachment objectIDAttachment;
 		objectIDAttachment.Image = m_Renderer.GetGBuffer().ObjectID;
-		objectIDAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		objectIDAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		objectIDAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		objectIDAttachment.ClearOperation = ClearOperation::Load;
 
 		ShaderDefines noObjectIDDefine = { {"EG_NO_OBJECT_ID", ""} };

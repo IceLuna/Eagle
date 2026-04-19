@@ -39,7 +39,7 @@ namespace Eagle
 	{
 		if (!baseNode)
 		{
-			EG_CORE_ERROR("Failed to deserialize an asset: {}", path.u8string());
+			EG_CORE_ERROR("Failed to deserialize an asset: {}", path);
 			return false;
 		}
 
@@ -49,7 +49,7 @@ namespace Eagle
 
 		if (actualType != expectedType)
 		{
-			EG_CORE_ERROR("Failed to load an asset. It's not a {}: {}", Utils::GetEnumName(actualType), path.u8string());
+			EG_CORE_ERROR("Failed to load an asset. It's not a {}: {}", Utils::GetEnumName(actualType), path);
 			return false;
 		}
 
@@ -195,7 +195,7 @@ namespace Eagle
 			result = MakeRef<GraphVariableAnimation>(valueNode ? GetAsset<AssetAnimation>(valueNode) : nullptr);
 			break;
 		case GraphVariableType::String:
-			result = MakeRef<GraphVariableString>(valueNode ? valueNode.as<std::string>() : nullptr);
+			result = MakeRef<GraphVariableString>(valueNode ? valueNode.as<std::string>() : "");
 			break;
 		case GraphVariableType::Vec4:
 			result = MakeRef<GraphVariableVec4>(valueNode ? valueNode.as<glm::vec4>() : glm::vec4(0));
@@ -541,7 +541,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Texture2D);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
-		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
+		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 		out << YAML::Key << "FilterMode" << YAML::Value << Utils::GetEnumName(filterMode);
 		out << YAML::Key << "AddressMode" << YAML::Value << Utils::GetEnumName(addressMode);
 		out << YAML::Key << "Anisotropy" << YAML::Value << anisotropy;
@@ -611,7 +611,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::TextureCube);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
-		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
+		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(format);
 		out << YAML::Key << "LayerSize" << YAML::Value << layerSize;
 		out << YAML::Key << "PrefilterSize" << YAML::Value << prefilterSize;
@@ -672,7 +672,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::StaticMesh);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
-		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
+		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 
 		// AABB
 		{
@@ -782,7 +782,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::SkeletalMesh);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
-		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
+		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 
 		// AABB
 		{
@@ -918,7 +918,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Audio);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
-		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
+		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 		out << YAML::Key << "Volume" << YAML::Value << volume;
 		out << YAML::Key << "Pitch" << YAML::Value << pitch;
 		out << YAML::Key << "Pan" << YAML::Value << pan;
@@ -951,26 +951,37 @@ namespace Eagle
 			audio->GetVolume(), audio->GetPitch(), audio->GetPan(), asset->GetSoundGroupAsset());
 	}
 
-	ScopedDataBuffer Serializer::SerializeAssetFontFromData(const DataBuffer& fontData, const GUID& guid, const Path& pathToRaw)
+	ScopedDataBuffer Serializer::SerializeAssetFontFromData(const DataBuffer& fontData, const DataBuffer& atlasData, glm::uvec2 atlasSize, const GUID& guid, const Path& pathToRaw)
 	{
 		size_t totalSize = sizeof(AssetHeader);
 
 		const size_t origDataSize = fontData.Size; // Required for decompression
 		ScopedDataBuffer compressed(Compressor::Compress(fontData));
 
+		const size_t origFontSize = atlasData.Size;
+		ScopedDataBuffer compressedAtlas = Compressor::Compress(atlasData);
+
 		const size_t dataOffset = Utils::AddSize(compressed, &totalSize);
+		const size_t atlasOffset = Utils::AddSize(compressedAtlas, &totalSize);
 
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Font);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
-		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
+		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
 		out << YAML::Key << "OrigSize" << YAML::Value << origDataSize;
 		out << YAML::Key << "Size" << YAML::Value << compressed.Size();
 		out << YAML::Key << "Offset" << YAML::Value << dataOffset;
+		out << YAML::EndMap;
+
+		out << YAML::Key << "AtlasData" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "OrigSize" << YAML::Value << origFontSize;
+		out << YAML::Key << "Size" << YAML::Value << compressedAtlas.Size();
+		out << YAML::Key << "Offset" << YAML::Value << atlasOffset;
+		out << YAML::Key << "AtlasSize" << YAML::Value << atlasSize;
 		out << YAML::EndMap;
 
 		out << YAML::EndMap;
@@ -981,6 +992,7 @@ namespace Eagle
 		size_t offset = 0;
 		Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
 		Utils::WriteToBuffer(buffer, compressed, &offset);
+		Utils::WriteToBuffer(buffer, compressedAtlas, &offset);
 		Utils::WriteYaml(buffer, out, &offset);
 
 		return buffer;
@@ -988,7 +1000,8 @@ namespace Eagle
 
 	ScopedDataBuffer Serializer::SerializeAssetFont(const Ref<AssetFont>& asset)
 	{
-		return SerializeAssetFontFromData(asset->GetRawData().GetDataBuffer(), asset->GetGUID(), asset->GetPathToRaw());
+		const auto& font = asset->GetFont();
+		return SerializeAssetFontFromData(asset->GetRawData().GetDataBuffer(), font->GetAtlasData().GetDataBuffer(), glm::uvec2(font->GetAtlas()->GetSize()), asset->GetGUID(), asset->GetPathToRaw());
 	}
 
 	ScopedDataBuffer Serializer::SerializeAssetMaterial(const Ref<AssetMaterial>& asset)
@@ -1051,6 +1064,7 @@ namespace Eagle
 			out << YAML::Key << "EmissiveIntensity" << YAML::Value << material->GetEmissiveIntensity();
 			out << YAML::Key << "TilingFactor" << YAML::Value << material->GetTilingFactor();
 			out << YAML::Key << "BlendMode" << YAML::Value << Utils::GetEnumName(material->GetBlendMode());
+			out << YAML::Key << "IsDoubleSided" << YAML::Value << material->IsDoubleSided();
 		}
 		
 		out << YAML::EndMap;
@@ -1181,7 +1195,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Animation);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
-		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
+		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 		out << YAML::Key << "Index" << YAML::Value << animIndex;
 		out << YAML::Key << "Skeletal" << YAML::Value << skeletal->GetGUID();
 
@@ -1834,13 +1848,13 @@ namespace Eagle
 			SerializeRelativeTransform(out, directionalLightComponent.GetRelativeTransform());
 
 			out << YAML::Key << "LightColor" << YAML::Value << directionalLightComponent.GetLightColor();
-			out << YAML::Key << "Ambient" << YAML::Value << directionalLightComponent.Ambient;
+			out << YAML::Key << "Ambient" << YAML::Value << directionalLightComponent.GetAmbientColor();
 			out << YAML::Key << "Intensity" << YAML::Value << directionalLightComponent.GetIntensity();
 			out << YAML::Key << "VolumetricFogIntensity" << YAML::Value << directionalLightComponent.GetVolumetricFogIntensity();
 			out << YAML::Key << "AffectsWorld" << YAML::Value << directionalLightComponent.DoesAffectWorld();
 			out << YAML::Key << "CastsShadows" << YAML::Value << directionalLightComponent.DoesCastShadows();
 			out << YAML::Key << "IsVolumetric" << YAML::Value << directionalLightComponent.IsVolumetricLight();
-			out << YAML::Key << "Visualize" << YAML::Value << directionalLightComponent.bVisualizeDirection;
+			out << YAML::Key << "Visualize" << YAML::Value << directionalLightComponent.IsVisualizeDirectionEnabled();
 
 			out << YAML::EndMap; //DirectionalLightComponent
 		}
@@ -2063,6 +2077,7 @@ namespace Eagle
 			out << YAML::Key << "Text" << YAML::Value << text.GetText();
 			out << YAML::Key << "Color" << YAML::Value << text.GetColor();
 			out << YAML::Key << "IsLit" << YAML::Value << text.IsLit();
+			out << YAML::Key << "IsDoubleSided" << YAML::Value << text.IsDoubleSided();
 			out << YAML::Key << "bCastsShadows" << YAML::Value << text.DoesCastShadows();
 			out << YAML::Key << "bReceivesDecals" << YAML::Value << text.DoesReceiveDecals();
 			out << YAML::Key << "IsVisible" << YAML::Value << text.IsVisible();
@@ -2299,7 +2314,7 @@ namespace Eagle
 			auto& camera = cameraComponent.Camera;
 			Transform relativeTransform;
 
-			auto& cameraNode = cameraComponentNode["Camera"];
+			auto cameraNode = cameraComponentNode["Camera"];
 			camera.SetProjectionMode(Utils::GetEnumFromName<CameraProjectionMode>(cameraNode["ProjectionMode"].as<std::string>()));
 
 			camera.SetPerspectiveVerticalFOV(cameraNode["PerspectiveVerticalFOV"].as<float>());
@@ -2481,7 +2496,7 @@ namespace Eagle
 			if (auto lightColorNode = directionalLightComponentNode["LightColor"])
 				directionalLightComponent.SetLightColor(lightColorNode.as<glm::vec3>());
 			if (auto ambientNode = directionalLightComponentNode["Ambient"])
-				directionalLightComponent.Ambient = ambientNode.as<glm::vec3>();
+				directionalLightComponent.SetAmbientColor(ambientNode.as<glm::vec3>());
 			if (auto intensityNode = directionalLightComponentNode["Intensity"])
 				directionalLightComponent.SetIntensity(intensityNode.as<float>());
 			if (auto intensityNode = directionalLightComponentNode["VolumetricFogIntensity"])
@@ -2493,7 +2508,7 @@ namespace Eagle
 			if (auto node = directionalLightComponentNode["IsVolumetric"])
 				directionalLightComponent.SetIsVolumetricLight(node.as<bool>());
 			if (auto node = directionalLightComponentNode["Visualize"])
-				directionalLightComponent.bVisualizeDirection = node.as<bool>();
+				directionalLightComponent.SetVisualizeDirectionEnabled(node.as<bool>());
 		}
 
 		if (auto spotLightComponentNode = entityNode["SpotLightComponent"])
@@ -2735,6 +2750,8 @@ namespace Eagle
 			text.SetText(textNode["Text"].as<std::string>());
 			text.SetColor(textNode["Color"].as<glm::vec3>());
 			text.SetIsLit(textNode["IsLit"].as<bool>());
+			if (auto node = textNode["IsDoubleSided"])
+				text.SetDoubleSided(node.as<bool>());
 			if (auto node = textNode["bCastsShadows"])
 				text.SetCastsShadows(node.as<bool>());
 			if (auto node = textNode["bReceivesDecals"])
@@ -2897,6 +2914,7 @@ namespace Eagle
 		const auto& shadowSettings = settings.ShadowsSettings;
 		const auto& photoLinearParams = settings.PhotoLinearTonemappingParams;
 		const auto& filmicParams = settings.FilmicTonemappingParams;
+		const auto& agxParams = settings.AgXTonemappingParams;
 		const auto& dofSettings = settings.DOFSettings;
 		const auto& motionBlurSettings = settings.MotionBlur;
 		const auto& autoExposureSettings = settings.AutoExposure;
@@ -2907,7 +2925,7 @@ namespace Eagle
 		out << YAML::Key << "SoftShadows" << YAML::Value << settings.bEnableSoftShadows;
 		out << YAML::Key << "TranslucentShadows" << YAML::Value << settings.bTranslucentShadows;
 		out << YAML::Key << "ShadowsSmoothTransition" << YAML::Value << settings.bEnableCSMSmoothTransition;
-		out << YAML::Key << "StutterlessShaders" << YAML::Value << settings.bStutterlessShaders;
+		out << YAML::Key << "DepthPrepass" << YAML::Value << settings.bDepthPrepass;
 		out << YAML::Key << "EnableObjectPicking" << YAML::Value << settings.bEnableObjectPicking;
 		out << YAML::Key << "Enable2DObjectPicking" << YAML::Value << settings.bEnable2DObjectPicking;
 		out << YAML::Key << "SortOpaqueParticles" << YAML::Value << settings.bSortOpaqueParticles;
@@ -2984,6 +3002,14 @@ namespace Eagle
 		out << YAML::Key << "WhitePoint" << YAML::Value << filmicParams.WhitePoint;
 		out << YAML::EndMap; //FilmicTonemappingSettings
 
+		out << YAML::Key << "AgX Tonemapping";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Slope" << YAML::Value << agxParams.Slope;
+		out << YAML::Key << "Power" << YAML::Value << agxParams.Power;
+		out << YAML::Key << "Offset" << YAML::Value << agxParams.Offset;
+		out << YAML::Key << "Saturation" << YAML::Value << agxParams.Saturation;
+		out << YAML::EndMap; //AgX Tonemapping
+
 		out << YAML::Key << "DOF";
 		out << YAML::BeginMap;
 		out << YAML::Key << "ApertureShape" << YAML::Value << dofSettings.ApertureShape;
@@ -3057,8 +3083,8 @@ namespace Eagle
 			settings.bTranslucentShadows = translucentShadows.as<bool>();
 		if (auto smoothShadows = data["ShadowsSmoothTransition"])
 			settings.bEnableCSMSmoothTransition = smoothShadows.as<bool>();
-		if (auto stutterless = data["StutterlessShaders"])
-			settings.bStutterlessShaders = stutterless.as<bool>();
+		if (auto depthPrepass = data["DepthPrepass"])
+			settings.bDepthPrepass = depthPrepass.as<bool>();
 		if (auto objectPicking = data["EnableObjectPicking"])
 			settings.bEnableObjectPicking = objectPicking.as<bool>();
 		if (auto objectPicking = data["Enable2DObjectPicking"])
@@ -3154,6 +3180,14 @@ namespace Eagle
 		if (auto filmicNode = data["Filmic Tonemapping"])
 		{
 			settings.FilmicTonemappingParams.WhitePoint = filmicNode["WhitePoint"].as<float>();
+		}
+
+		if (auto agxNode = data["AgX Tonemapping"])
+		{
+			settings.AgXTonemappingParams.Slope = agxNode["Slope"].as<glm::vec3>();
+			settings.AgXTonemappingParams.Power = agxNode["Power"].as<glm::vec3>();
+			settings.AgXTonemappingParams.Offset = agxNode["Offset"].as<glm::vec3>();
+			settings.AgXTonemappingParams.Saturation = agxNode["Saturation"].as<float>();
 		}
 
 		if (auto dofNode = data["DOF"])
@@ -3282,7 +3316,7 @@ namespace Eagle
 		const Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.u8string();
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + Utils::AsString(pathToRaw);
 			EG_CORE_ERROR("{}", errorMessage);
 			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
@@ -3321,7 +3355,7 @@ namespace Eagle
 			binary = FileSystem::Read(pathToRaw);
 			if (!binary)
 			{
-				EG_CORE_ERROR("Failed to reload from raw texture 2D: {}", pathToAsset.u8string());
+				EG_CORE_ERROR("Failed to reload from raw texture 2D: {}", pathToAsset);
 				return {};
 			}
 		}
@@ -3351,7 +3385,7 @@ namespace Eagle
 		}
 		else
 		{
-			EG_CORE_ERROR("Failed to deserialize texture 2D: {}", pathToAsset.u8string());
+			EG_CORE_ERROR("Failed to deserialize texture 2D: {}", pathToAsset);
 			return {};
 		}
 
@@ -3361,7 +3395,7 @@ namespace Eagle
 		{
 			if (!compressedTextures.empty() && compressedFormat != ImageFormat::Unknown && TextureCompressor::IsCompressionFormatSupported(compressedFormat))
 			{
-				texture = Texture2D::Create(pathToAsset.stem().u8string(), compressedFormat, glm::uvec2(width, height), compressedTextures, specs);
+				texture = Texture2D::Create(Utils::AsString(pathToAsset.stem()), compressedFormat, glm::uvec2(width, height), compressedTextures, specs);
 			}
 			else
 			{
@@ -3370,11 +3404,11 @@ namespace Eagle
 				compressedData = TextureCompressor::Compress(binary.GetDataBuffer(), targetNumChannels, specs.MipsCount, compression, bNormalMap);
 				if (compressedData)
 				{
-					texture = Texture2D::Create(pathToAsset.stem().u8string(), compressedData.Format, glm::uvec2(width, height), compressedData.DataPerMip, specs);
+					texture = Texture2D::Create(Utils::AsString(pathToAsset.stem()), compressedData.Format, glm::uvec2(width, height), compressedData.DataPerMip, specs);
 				}
 				else
 				{
-					EG_CORE_ERROR("Failed to load the compressed texture. Falling back to loading raw data: {}", pathToAsset.u8string());
+					EG_CORE_ERROR("Failed to load the compressed texture. Falling back to loading raw data: {}", pathToAsset);
 					compression = TextureCompressor::Quality::Disabled;
 				}
 			}
@@ -3387,12 +3421,12 @@ namespace Eagle
 			ScopedDataBuffer imageData = Utils::LoadTextureFromMemory(binary, &width, &height, &channels, desiredChannels);
 			if (!imageData)
 			{
-				EG_CORE_ERROR("Deserialization failed. `LoadTextureFromMemory` failed: {}", pathToAsset.u8string());
+				EG_CORE_ERROR("Deserialization failed. `LoadTextureFromMemory` failed: {}", pathToAsset);
 				return {};
 			}
 
 			const ImageFormat imageFormat = AssetTextureFormatToImageFormat(assetFormat);
-			texture = Texture2D::Create(pathToAsset.stem().u8string(), imageFormat, glm::uvec2(width, height), imageData.Data(), specs);
+			texture = Texture2D::Create(Utils::AsString(pathToAsset.stem()), imageFormat, glm::uvec2(width, height), imageData.Data(), specs);
 		}
 
 		class LocalAssetTexture2D : public AssetTexture2D
@@ -3420,7 +3454,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.u8string();
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + Utils::AsString(pathToRaw);
 			EG_CORE_ERROR("{}", errorMessage);
 			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
@@ -3454,7 +3488,7 @@ namespace Eagle
 		ScopedDataBuffer imageData = Utils::LoadHDRTextureFromMemory(binary, &width, &height, &channels, desiredFormat);
 		if (!imageData)
 		{
-			EG_CORE_ERROR("Import failed. LoadHDRTextureFromMemory failed: {} - {}", pathToAsset.u8string(), Utils::GetEnumName(assetFormat));
+			EG_CORE_ERROR("Import failed. LoadHDRTextureFromMemory failed: {} - {}", pathToAsset, Utils::GetEnumName(assetFormat));
 			return {};
 		}
 
@@ -3466,7 +3500,7 @@ namespace Eagle
 		};
 
 		Ref<AssetTextureCube> asset = MakeRef<LocalAssetTextureCube>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(),
-			TextureCube::Create(pathToAsset.stem().u8string(), desiredFormat, imageData.Data(), glm::uvec2(width, height), layerSize, prefilterSize), assetFormat);
+			TextureCube::Create(Utils::AsString(pathToAsset.stem()), desiredFormat, imageData.Data(), glm::uvec2(width, height), layerSize, prefilterSize), assetFormat);
 
 		return asset;
 	}
@@ -3489,7 +3523,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.u8string();
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + Utils::AsString(pathToRaw);
 			EG_CORE_ERROR("{}", errorMessage);
 			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
@@ -3502,7 +3536,7 @@ namespace Eagle
 			auto importedMeshData = Utils::ImportStaticMesh(pathToRaw);
 			if (!importedMeshData.Mesh)
 			{
-				EG_CORE_ERROR("Failed to reload a mesh asset: {}", pathToRaw.u8string());
+				EG_CORE_ERROR("Failed to reload a mesh asset: {}", pathToRaw);
 				return {};
 			}
 
@@ -3572,7 +3606,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.u8string();
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + Utils::AsString(pathToRaw);
 			EG_CORE_ERROR("{}", errorMessage);
 			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
@@ -3584,7 +3618,7 @@ namespace Eagle
 			auto importedMeshData = Utils::ImportSkeletalMesh(pathToRaw);
 			if (!importedMeshData.Mesh)
 			{
-				EG_CORE_ERROR("Failed to reload a skeletal mesh asset: {}", pathToRaw.u8string());
+				EG_CORE_ERROR("Failed to reload a skeletal mesh asset: {}", pathToRaw);
 				return {};
 			}
 
@@ -3714,7 +3748,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.u8string();
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + Utils::AsString(pathToRaw);
 			EG_CORE_ERROR("{}", errorMessage);
 			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
@@ -3739,7 +3773,7 @@ namespace Eagle
 			binary = FileSystem::Read(pathToRaw);
 			if (!binary)
 			{
-				EG_CORE_ERROR("Failed to reload a raw asset: {}", pathToRaw.u8string());
+				EG_CORE_ERROR("Failed to reload a raw asset: {}", pathToRaw);
 				return {};
 			}
 		}
@@ -3754,7 +3788,7 @@ namespace Eagle
 			}
 			if (!binary)
 			{
-				EG_CORE_ERROR("Failed to load the asset: {}", pathToAsset.u8string());
+				EG_CORE_ERROR("Failed to load the asset: {}", pathToAsset);
 				return {};
 			}
 		}
@@ -3775,6 +3809,14 @@ namespace Eagle
 
 	Ref<AssetFont> Serializer::DeserializeAssetFont(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw)
 	{
+		class LocalAssetFont : public AssetFont
+		{
+		public:
+			LocalAssetFont(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Font>& font)
+				: AssetFont(path, pathToRaw, guid, rawData, font) {
+			}
+		};
+
 		YAML::Node baseNode;
 		Utils::ReadYAML(data, &baseNode);
 
@@ -3784,26 +3826,30 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.u8string();
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + Utils::AsString(pathToRaw);
 			EG_CORE_ERROR("{}", errorMessage);
 			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
 		}
 
 		const GUID guid = baseNode["GUID"].as<GUID>();
-
-		ScopedDataBuffer binary;
 		if (bReloadRaw)
 		{
-			binary = FileSystem::Read(pathToRaw);
+			ScopedDataBuffer binary = FileSystem::Read(pathToRaw);
 			if (!binary)
 			{
-				EG_CORE_ERROR("Failed to reload a raw asset: {}", pathToRaw.u8string());
+				EG_CORE_ERROR("Failed to reload a raw asset: {}", pathToRaw);
 				return {};
 			}
+
+			return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(), Font::Create(binary.GetDataBuffer(), Utils::AsString(pathToAsset.stem())));
 		}
 		else
 		{
+			ScopedDataBuffer binary;
+			ScopedDataBuffer atlasBinary;
+			glm::uvec2 size = glm::uvec2(0);
+
 			if (auto baseDataNode = baseNode["Data"])
 			{
 				const size_t origSize = baseDataNode["OrigSize"].as<size_t>();
@@ -3813,19 +3859,30 @@ namespace Eagle
 			}
 			if (!binary)
 			{
-				EG_CORE_ERROR("Failed to load the asset: {}", pathToAsset.u8string());
+				EG_CORE_ERROR("Failed to load the asset: {}", pathToAsset);
 				return {};
 			}
+
+			if (auto baseDataNode = baseNode["AtlasData"])
+			{
+				const size_t origSize = baseDataNode["OrigSize"].as<size_t>();
+				const size_t dataSize = baseDataNode["Size"].as<size_t>();
+				const size_t dataOffset = baseDataNode["Offset"].as<size_t>();
+				size = baseDataNode["AtlasSize"].as<glm::uvec2>();
+				
+				Utils::ReadCompressedBinary(data, dataSize, dataOffset, origSize, &atlasBinary);
+			}
+
+			if (atlasBinary)
+			{
+				return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(), Font::Create(atlasBinary.GetDataBuffer(), size, binary.GetDataBuffer(), Utils::AsString(pathToAsset.stem())));
+			}
+			else
+			{
+				EG_CORE_WARN("Failed to load font atlas from an asset. Generating it... Prease, resave the asset");
+				return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(), Font::Create(binary.GetDataBuffer(), Utils::AsString(pathToAsset.stem())));
+			}
 		}
-
-		class LocalAssetFont: public AssetFont
-		{
-		public:
-			LocalAssetFont(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Font>& font)
-				: AssetFont(path, pathToRaw, guid, rawData, font) {}
-		};
-
-		return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(), Font::Create(binary.GetDataBuffer(), pathToAsset.stem().u8string()));
 	}
 
 	Ref<AssetMaterial> Serializer::DeserializeAssetMaterial(const DataBuffer& data, const Path& pathToAsset)
@@ -3928,6 +3985,9 @@ namespace Eagle
 		if (auto node = baseNode["BlendMode"])
 			material->SetBlendMode(Utils::GetEnumFromName<Material::BlendMode>(node.as<std::string>()));
 
+		if (auto node = baseNode["IsDoubleSided"])
+			material->SetDoubleSided(node.as<bool>());
+
 		class LocalAssetMaterial : public AssetMaterial
 		{
 		public:
@@ -4022,7 +4082,7 @@ namespace Eagle
 			std::unordered_map<uint32_t, uint32_t> childs;
 
 			const uint32_t collisionGroupValidMasks = Serializer::DeserializeProjectCollisionGroupGUIDs(baseNode);
-			for (auto& entityNode : entitiesNode)
+			for (auto entityNode : entitiesNode)
 			{
 				uint32_t id;
 				int parentID = -1;
@@ -4080,7 +4140,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.u8string();
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + Utils::AsString(pathToRaw);
 			EG_CORE_ERROR("{}", errorMessage);
 			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
@@ -4090,7 +4150,7 @@ namespace Eagle
 		Ref<AssetSkeletalMesh> skeletal = GetAsset<AssetSkeletalMesh>(baseNode["Skeletal"]);
 		if (!skeletal)
 		{
-			EG_CORE_ERROR("Failed to load {}. Its skeletal mesh wasn't found!", pathToAsset.u8string());
+			EG_CORE_ERROR("Failed to load {}. Its skeletal mesh wasn't found!", pathToAsset);
 			return {};
 		}
 
@@ -4101,7 +4161,7 @@ namespace Eagle
 			if (animations.size() < animIndex)
 			{
 				const std::string errorMessage = "Failed to reload an animation asset. The asset was initially imported at index " + 
-					std::to_string(animIndex) + ", but now the file doesn't contains an animation at that index: " + pathToRaw.u8string();
+					std::to_string(animIndex) + ", but now the file doesn't contains an animation at that index: " + Utils::AsString(pathToRaw);
 				EG_CORE_ERROR("{}", errorMessage);
 				Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 				return {};
@@ -4234,7 +4294,7 @@ namespace Eagle
 		auto mesh = GetAsset<AssetSkeletalMesh>(baseNode["SkeletalMesh"]);
 		if (!mesh)
 		{
-			EG_CORE_ERROR("Failed to deserialize animation graph at {}. Skeletal mesh wasn't found", pathToAsset.u8string());
+			EG_CORE_ERROR("Failed to deserialize animation graph at {}. Skeletal mesh wasn't found", pathToAsset);
 			return {};
 		}
 
@@ -4409,7 +4469,7 @@ namespace Eagle
 		auto mesh = GetAsset<AssetSkeletalMesh>(baseNode["SkeletalMesh"]);
 		if (!mesh)
 		{
-			EG_CORE_ERROR("Failed to deserialize animation blend space at {}. Skeletal mesh wasn't found", pathToAsset.u8string());
+			EG_CORE_ERROR("Failed to deserialize animation blend space at {}. Skeletal mesh wasn't found", pathToAsset);
 			return {};
 		}
 
@@ -4534,7 +4594,7 @@ namespace Eagle
 
 		if (!baseNode)
 		{
-			EG_CORE_ERROR("Failed to get an asset type: {}", pathToAsset.u8string());
+			EG_CORE_ERROR("Failed to get an asset type: {}", pathToAsset);
 			return AssetType::None;
 		}
 
@@ -4651,7 +4711,7 @@ namespace Eagle
 
 	void Serializer::DeserializePublicFieldValues(YAML::Node& publicFieldsNode, std::vector<PublicField>& publicFields)
 	{
-		for (auto& it : publicFieldsNode)
+		for (auto it : publicFieldsNode)
 		{
 			std::string fullName = it.first.as<std::string>();
 			FieldType fieldType = Utils::GetEnumFromName<FieldType>(it.second["Type"].as<std::string>());
@@ -4670,7 +4730,7 @@ namespace Eagle
 				auto valuesNode = it.second["Values"];
 				for (size_t i = 0; i < savedArrayLength; ++i)
 				{
-					auto& node = valuesNode[i];
+					auto node = valuesNode[i];
 					switch (fieldType)
 					{
 						case FieldType::Int:

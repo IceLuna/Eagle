@@ -7,6 +7,7 @@
 #include "utils.h"
 #include "transparency/transparency_color_pipeline_layout.h"
 
+#define PBR_EVALUATE_IBL
 #include "pbr_utils.h"
 #define EG_OIT_NULL 0x0u // 0xFFFFFFFFu
 
@@ -24,27 +25,20 @@ layout(location = 5) in mat3      i_TBN;
 
 layout(location = 0) out vec4 outColor;
 
-layout(push_constant) uniform PushConstants
+layout(set = 6, binding = 0) uniform ShadingUniforms
 {
-    layout(offset = 64) vec3 g_CameraPos;
+    vec3 g_CameraPos;
     float g_MaxReflectionLOD;
     ivec2 g_Size;
     float g_MaxShadowDistance2;
     float g_CSMOverlap;
     float g_IBLIntensity;
-#ifdef EG_STUTTERLESS
     uint g_PointLightsCount;
     uint g_SpotLightsCount;
     uint g_HasDirLight;
-#endif
 };
 
-#ifndef EG_STUTTERLESS
-layout(constant_id = 0) const uint g_PointLightsCount = 0;
-layout(constant_id = 1) const uint g_SpotLightsCount = 0;
-layout(constant_id = 2) const uint g_HasDirLight = 0;
-#endif
-layout(constant_id = 3) const bool s_HasIrradiance = false;
+layout(constant_id = 0) const bool s_HasIrradiance = false;
 
 layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX + 1, r32ui) uniform coherent uimageBuffer imgAbuffer;
 
@@ -164,10 +158,10 @@ vec3 Lighting(ShaderMaterial material, vec2 uv)
     const vec3 lambert_albedo = albedo * EG_INV_PI;
     const vec3 worldPos = i_WorldPos;
 
-    const float metallness = material.Metalness;
+    const float metalness = material.Metalness;
     const float ao = material.AO;
     const float roughness = material.Roughness;
-    const vec3 F0 = mix(vec3(EG_BASE_REFLECTIVITY), albedo, metallness);
+    const vec3 F0 = mix(vec3(EG_BASE_REFLECTIVITY), albedo, metalness);
 
     const vec3 fragToCamera = g_CameraPos - worldPos;
     const bool bInShadowRange = dot(fragToCamera, fragToCamera) < g_MaxShadowDistance2;
@@ -216,7 +210,7 @@ vec3 Lighting(ShaderMaterial material, vec2 uv)
             plShadowMapIndex++;
         }
 
-        const vec3 pointLightLo = EvaluatePBR_TwoSided(lambert_albedo, normIncoming, V, normal, F0, metallness, roughness, pointLight.LightColor, attenuation);
+        const vec3 pointLightLo = EvaluatePBR_TwoSided(lambert_albedo, normIncoming, V, normal, F0, metalness, roughness, pointLight.LightColor, attenuation);
         Lo += pointLightLo * shadow;
     }
 
@@ -268,7 +262,7 @@ vec3 Lighting(ShaderMaterial material, vec2 uv)
 
             slShadowMapIndex++;
         }
-        const vec3 spotLightLo = EvaluatePBR_TwoSided(lambert_albedo, normIncoming, V, normal, F0, metallness, roughness, spotLight.LightColor, attenuation);
+        const vec3 spotLightLo = EvaluatePBR_TwoSided(lambert_albedo, normIncoming, V, normal, F0, metalness, roughness, spotLight.LightColor, attenuation);
         Lo += spotLightLo * shadow;
     }
 
@@ -330,7 +324,7 @@ vec3 Lighting(ShaderMaterial material, vec2 uv)
 #endif // EG_CSM_SMOOTH_TRANSITION
             }
         }
-        const vec3 directional_Lo = EvaluatePBR_TwoSided(lambert_albedo, incoming, V, normal, F0, metallness, roughness, g_DirectionalLight.LightColor, 1.f);
+        const vec3 directional_Lo = EvaluatePBR_TwoSided(lambert_albedo, incoming, V, normal, F0, metalness, roughness, g_DirectionalLight.LightColor, 1.f);
         Lo += directional_Lo * shadow;
     }
 
@@ -338,27 +332,7 @@ vec3 Lighting(ShaderMaterial material, vec2 uv)
     vec3 ambient = (g_HasDirLight != 0) ? (albedo * g_DirectionalLight.Ambient) : vec3(0.f);
     if (s_HasIrradiance)
     {
-        const vec3 R = reflect(-V, normal);
-        const float NdotV = clamp(dot(normal, V), EG_FLT_SMALL, 1.0);
-
-        const vec3 Fr = max(vec3(1.f - roughness), F0) - F0;
-        const vec3 kS = F0 + Fr * pow(1.f - NdotV, 5.f);
-
-        const vec2 envBRDF = texture(g_BRDFLUT, vec2(NdotV, roughness)).rg;
-        const vec3 FssEss = kS * envBRDF.x + envBRDF.y;
-
-        // Multiple scattering, from Fdez-Aguera
-        const float Ems = (1.0 - (envBRDF.x + envBRDF.y));
-        const vec3 Favg = F0 + (1.0 - F0) / 21.0;
-        const vec3 FmsEms = Ems * FssEss * Favg / (1.0 - Favg * Ems);
-
-        const vec3 diffuseColor = albedo * (1.f - EG_BASE_REFLECTIVITY) * (1.f - metallness);
-        const vec3 kD = diffuseColor * (1.0 - FssEss - FmsEms);
-
-        const vec3 radiance = textureLod(g_PrefilterMap, R, roughness * g_MaxReflectionLOD).rgb;
-        const vec3 irradiance = texture(g_IrradianceMap, normal).rgb;
-        const vec3 color = FssEss * radiance + (FmsEms + kD) * irradiance;
-        ambient += color * ao * g_IBLIntensity;
+        ambient += EvaluateIBL(albedo, F0, normal, V, roughness, metalness, g_MaxReflectionLOD) * ao * g_IBLIntensity;
     }
 
     const vec3 emissive = material.Emissive;

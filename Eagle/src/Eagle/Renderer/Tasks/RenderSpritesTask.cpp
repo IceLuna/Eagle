@@ -27,14 +27,41 @@ namespace Eagle
 		InitPipeline();
 	}
 
-	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const SpriteGeometryData& spritesData, const PushData& pushData, SceneRenderer::Statistics& stats)
+	void RenderSpritesTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const QuadsRenderData<SpriteGeometryData>::BlendModeGeomType& spritesData, const void* vertexPushData, RenderStats& stats)
 	{
-		if (spritesData.QuadVertices.empty())
+		if (spritesData.IsEmpty())
 			return;
 
-		const uint32_t quadsCount = (uint32_t)(spritesData.QuadVertices.size() / 4);
 		cmd->BeginGraphics(pipeline);
-		cmd->SetGraphicsRootConstants(&pushData, nullptr);
+		cmd->SetGraphicsRootConstants(vertexPushData, nullptr);
+
+		uint32_t quadsCount = (uint32_t)(spritesData.ShadowCastingQuads.QuadVertices.size() / 4);
+		if (quadsCount > 0)
+		{
+			cmd->DrawIndexed(spritesData.ShadowCastingQuads.VertexBuffer, spritesData.ShadowCastingQuads.IndexBuffer, quadsCount * 6, 0, 0);
+			++stats.DrawCalls;
+		}
+		quadsCount = (uint32_t)(spritesData.NonShadowQuads.QuadVertices.size() / 4);
+		if (quadsCount > 0)
+		{
+			cmd->DrawIndexed(spritesData.NonShadowQuads.VertexBuffer, spritesData.NonShadowQuads.IndexBuffer, quadsCount * 6, 0, 0);
+			++stats.DrawCalls;
+		}
+
+		cmd->EndGraphics();
+	}
+
+	void RenderSpritesTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const SpriteGeometryData& spritesData, const void* vertexPushData, RenderStats& stats, const Ref<Framebuffer>& fb)
+	{
+		const uint32_t quadsCount = (uint32_t)(spritesData.QuadVertices.size() / 4);
+		if (quadsCount == 0)
+			return;
+
+		if (fb)
+			cmd->BeginGraphics(pipeline, fb);
+		else
+			cmd->BeginGraphics(pipeline);
+		cmd->SetGraphicsRootConstants(vertexPushData, nullptr);
 		cmd->DrawIndexed(spritesData.VertexBuffer, spritesData.IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 		++stats.DrawCalls;
@@ -48,10 +75,10 @@ namespace Eagle
 
 	void RenderSpritesTask::RenderOpaque(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& spritesData = m_Renderer.GetOpaqueSpritesData();
-		const auto& notCastingShadowspritesData = m_Renderer.GetOpaqueNotCastingShadowSpriteData();
+		const auto& singleSided = m_Renderer.GetSingleSidedSpritesRenderData();
+		const auto& doubleSided = m_Renderer.GetDoubleSidedSpritesRenderData();
 
-		if (spritesData.QuadVertices.empty() && notCastingShadowspritesData.QuadVertices.empty())
+		if (singleSided.Opaque.IsEmpty() && doubleSided.Opaque.IsEmpty())
 			return;
 
 		EG_CPU_TIMING_SCOPED("Render Opaque Sprites");
@@ -78,16 +105,19 @@ namespace Eagle
 		if (bJitter)
 			m_OpaquePipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
-		Draw(cmd, m_OpaquePipeline, spritesData, pushData, m_Renderer.GetStats());
-		Draw(cmd, m_OpaquePipeline, notCastingShadowspritesData, pushData, m_Renderer.GetStats());
+		cmd->SetGraphicsCullMode(CullMode::Back);
+		Draw(cmd, m_OpaquePipeline, singleSided.Opaque, &pushData, m_Renderer.GetStats());
+
+		cmd->SetGraphicsCullMode(CullMode::None);
+		Draw(cmd, m_OpaquePipeline, doubleSided.Opaque, &pushData, m_Renderer.GetStats());
 	}
 
 	void RenderSpritesTask::RenderMasked(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& spritesData = m_Renderer.GetMaskedSpritesData();
-		const auto& notCastingShadowspritesData = m_Renderer.GetMaskedNotCastingShadowSpriteData();
+		const auto& singleSided = m_Renderer.GetSingleSidedSpritesRenderData();
+		const auto& doubleSided = m_Renderer.GetDoubleSidedSpritesRenderData();
 
-		if (spritesData.QuadVertices.empty() && notCastingShadowspritesData.QuadVertices.empty())
+		if (singleSided.Masked.IsEmpty() && doubleSided.Masked.IsEmpty())
 			return;
 
 		EG_CPU_TIMING_SCOPED("Render Masked Sprites");
@@ -114,8 +144,11 @@ namespace Eagle
 		if (bJitter)
 			m_MaskedPipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
-		Draw(cmd, m_MaskedPipeline, spritesData, pushData, m_Renderer.GetStats());
-		Draw(cmd, m_MaskedPipeline, notCastingShadowspritesData, pushData, m_Renderer.GetStats());
+		cmd->SetGraphicsCullMode(CullMode::Back);
+		Draw(cmd, m_MaskedPipeline, singleSided.Masked, &pushData, m_Renderer.GetStats());
+
+		cmd->SetGraphicsCullMode(CullMode::None);
+		Draw(cmd, m_MaskedPipeline, doubleSided.Masked, &pushData, m_Renderer.GetStats());
 	}
 
 	void RenderSpritesTask::InitPipeline()
@@ -124,38 +157,38 @@ namespace Eagle
 
 		ColorAttachment colorAttachment;
 		colorAttachment.ClearOperation = ClearOperation::Load;
-		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		colorAttachment.Image = gbuffer.Albedo;
 
-		ColorAttachment geometry_shading_NormalsAttachment;
-		geometry_shading_NormalsAttachment.ClearOperation = ClearOperation::Load;
-		geometry_shading_NormalsAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		geometry_shading_NormalsAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		geometry_shading_NormalsAttachment.Image = gbuffer.Geometry_Shading_Normals;
+		ColorAttachment normalsAttachment;
+		normalsAttachment.ClearOperation = ClearOperation::Load;
+		normalsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		normalsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+		normalsAttachment.Image = gbuffer.Normals;
 
 		ColorAttachment emissiveAttachment;
 		emissiveAttachment.ClearOperation = ClearOperation::Load;
-		emissiveAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		emissiveAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		emissiveAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		emissiveAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		emissiveAttachment.Image = gbuffer.Emissive;
 
 		ColorAttachment materialAttachment;
 		materialAttachment.ClearOperation = ClearOperation::Load;
-		materialAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		materialAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		materialAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		materialAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		materialAttachment.Image = gbuffer.MaterialData;
 
 		ColorAttachment flagsAttachment;
 		flagsAttachment.Image = gbuffer.Flags;
-		flagsAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		flagsAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		flagsAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		flagsAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		flagsAttachment.ClearOperation = ClearOperation::Load;
 
 		ColorAttachment objectIDAttachment;
 		objectIDAttachment.ClearOperation = ClearOperation::Load;
-		objectIDAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		objectIDAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+		objectIDAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		objectIDAttachment.Image = gbuffer.ObjectID;
 
 		DepthStencilAttachment depthAttachment;
@@ -165,7 +198,7 @@ namespace Eagle
 		depthAttachment.ClearOperation = ClearOperation::Load;
 		depthAttachment.bWriteDepth = true;
 		depthAttachment.DepthClearValue = 0.f;
-		depthAttachment.DepthCompareOp = CompareOperation::Greater;
+		depthAttachment.DepthCompareOp = CompareOperation::GreaterEqual;
 
 		ShaderDefines vertexDefines;
 		ShaderDefines fragmentDefines;
@@ -181,7 +214,7 @@ namespace Eagle
 		state.VertexShader = Shader::Create("sprite.vert", ShaderType::Vertex, vertexDefines);
 		state.FragmentShader = Shader::Create("sprite.frag", ShaderType::Fragment, fragmentDefines);
 		state.ColorAttachments.push_back(colorAttachment);
-		state.ColorAttachments.push_back(geometry_shading_NormalsAttachment);
+		state.ColorAttachments.push_back(normalsAttachment);
 		state.ColorAttachments.push_back(emissiveAttachment);
 		state.ColorAttachments.push_back(materialAttachment);
 		state.ColorAttachments.push_back(flagsAttachment);
@@ -190,13 +223,13 @@ namespace Eagle
 		{
 			ColorAttachment velocityAttachment;
 			velocityAttachment.Image = gbuffer.Motion;
-			velocityAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-			velocityAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			velocityAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+			velocityAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 			velocityAttachment.ClearOperation = ClearOperation::Load;
 			state.ColorAttachments.push_back(velocityAttachment);
 		}
 		state.DepthStencilAttachment = depthAttachment;
-		state.CullMode = CullMode::Back;
+		state.CullMode = CullMode::Dynamic;
 
 		if (m_OpaquePipeline)
 			m_OpaquePipeline->SetState(state);
