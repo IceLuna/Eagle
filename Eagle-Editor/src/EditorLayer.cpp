@@ -2705,7 +2705,7 @@ namespace Eagle
 		ImGui::TextLinkOpenURL("Issues", "https://github.com/IceLuna/Eagle/issues");
 		ImGui::Separator();
 
-		ImGui::Text("By Shikali Shikhaliev.");
+		ImGui::Text("By Shikhali Shikhaliev.");
 		ImGui::Text("Eagle Engine is licensed under the Apache-2.0 License, see LICENSE for more information.");
 
 		if (ImGui::TreeNodeEx("Third party", flags, "Third party"))

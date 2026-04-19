@@ -32,7 +32,7 @@ namespace Eagle::UI
 	static char s_IDBuffer[s_IDBufferSize];
 	static const VkImageLayout s_VulkanImageLayout = ImageLayoutToVulkan(ImageReadAccess::PixelShaderRead);
 	static const char* s_HelpMarker = "(?)";
-	static FontContext Fonts;
+	static FontContext s_Fonts;
 
 	namespace
 	{
@@ -331,13 +331,13 @@ namespace Eagle::UI
 
 			const ImWchar* ranges = io.Fonts->GetGlyphRangesCyrillic();
 
-			Fonts.Regular = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), fontSize,   nullptr, ranges);
-			Fonts.Header  = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), headerSize, nullptr, ranges);
-			Fonts.Bold    = io.Fonts->AddFontFromFileTTF(boldFont.string().c_str(),    fontSize,   nullptr, ranges);
+			s_Fonts.Regular = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), fontSize,   nullptr, ranges);
+			s_Fonts.Header  = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), headerSize, nullptr, ranges);
+			s_Fonts.Bold    = io.Fonts->AddFontFromFileTTF(boldFont.string().c_str(),    fontSize,   nullptr, ranges);
 
-			if (Fonts.Regular)
+			if (s_Fonts.Regular)
 			{
-				io.FontDefault = Fonts.Regular;
+				io.FontDefault = s_Fonts.Regular;
 				return;
 			}
 		}
@@ -347,26 +347,26 @@ namespace Eagle::UI
 
 		ImFont* defaultFont = io.Fonts->AddFontDefault();
 
-		Fonts.Regular = defaultFont;
-		Fonts.Bold	  = defaultFont;
-		Fonts.Header  = defaultFont;
+		s_Fonts.Regular = defaultFont;
+		s_Fonts.Bold	  = defaultFont;
+		s_Fonts.Header  = defaultFont;
 
 		io.FontDefault = defaultFont;
 	}
 
 	void PushFontRegular()
 	{
-		ImGui::PushFont(Fonts.Regular);
+		ImGui::PushFont(s_Fonts.Regular);
 	}
 
 	void PushFontHeader()
 	{
-		ImGui::PushFont(Fonts.Header);
+		ImGui::PushFont(s_Fonts.Header);
 	}
 
 	void PushFontBold()
 	{
-		ImGui::PushFont(Fonts.Bold);
+		ImGui::PushFont(s_Fonts.Bold);
 	}
 
 	void PopFont()
@@ -378,7 +378,7 @@ namespace Eagle::UI
 	{
 		bool bValueChanged = false;
 		ImGuiIO& io = ImGui::GetIO();
-		ImFont* boldFont = Fonts.Bold ? Fonts.Bold : io.Fonts->Fonts[0];
+		ImFont* boldFont = s_Fonts.Bold ? s_Fonts.Bold : io.Fonts->Fonts[0];
 
 		ImGui::PushID(label.data());
 
@@ -486,7 +486,7 @@ namespace Eagle::UI
 	{
 		bool bValueChanged = false;
 		ImGuiIO& io = ImGui::GetIO();
-		ImFont* boldFont = Fonts.Bold ? Fonts.Bold : io.Fonts->Fonts[0];
+		ImFont* boldFont = s_Fonts.Bold ? s_Fonts.Bold : io.Fonts->Fonts[0];
 
 		ImGui::PushID(label.data());
 
