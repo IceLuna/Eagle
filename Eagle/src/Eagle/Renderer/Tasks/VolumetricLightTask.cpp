@@ -11,11 +11,13 @@
 
 namespace Eagle
 {
+	constexpr uint32_t s_DownscaleFactor = 2u; // Volumetrics are calculated in half res
+
     VolumetricLightTask::VolumetricLightTask(SceneRenderer& renderer)
         : RendererTask(renderer)
     {
 		const glm::uvec3 size = m_Renderer.GetHDROutput()->GetSize();
-		const glm::uvec3 halfSize = glm::max(size / 2u, glm::uvec3(1u));
+		const glm::uvec3 halfSize = glm::max(size / s_DownscaleFactor, glm::uvec3(1u));
 
 		ImageSpecifications specs;
 		specs.Format = ImageFormat::R11G11B10_Float;
@@ -42,6 +44,7 @@ namespace Eagle
 
 		const glm::uvec2 size = input->GetSize();
 		const glm::uvec2 volumetricsImageSize = m_VolumetricsImage->GetSize();
+		const Ref<LightCullingTask>& lightCulling = m_Renderer.GetLightCullingTask();
 
 		const Timestep ts = Application::Get().GetTimestep();
 		m_Time += ts * m_VolumetricSettings.FogSpeed;
@@ -57,8 +60,8 @@ namespace Eagle
 			float FogAnisotropy;
 			float NearPlane;
 			float FarPlane;
-			uint32_t PointLights;
-			uint32_t SpotLights;
+			uint32_t TilesBufferWidth;
+			uint32_t DownscaleFactor;
 			uint32_t HasDirLight;
 		} pushData;
 		static_assert(sizeof(PushDataVol) <= 128);
@@ -72,8 +75,8 @@ namespace Eagle
 		pushData.FogAnisotropy = m_VolumetricSettings.Anisotropy;
 		pushData.NearPlane = m_Renderer.GetZNear();
 		pushData.FarPlane = m_Renderer.GetZFar();
-		pushData.PointLights = (uint32_t)m_Renderer.GetPointLights().size();
-		pushData.SpotLights = (uint32_t)m_Renderer.GetSpotLights().size();
+		pushData.TilesBufferWidth = lightCulling->GetTilesBufferWidth();
+		pushData.DownscaleFactor = s_DownscaleFactor;
 		pushData.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());
 
 		ConstantData info;
@@ -88,10 +91,14 @@ namespace Eagle
 		m_Pipeline->SetImage(m_VolumetricsImage, 0, 0);
 		m_Pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSampler, 0, 1);
 		m_Pipeline->SetImageSampler(gbuffer.Normals, Sampler::PointSampler, 0, 2);
-		m_Pipeline->SetBuffer(m_Renderer.GetPointLightsBuffer(), EG_SCENE_SET, 0);
-		m_Pipeline->SetBuffer(m_Renderer.GetSpotLightsBuffer(), EG_SCENE_SET, 1);
-		m_Pipeline->SetBuffer(m_Renderer.GetDirectionalLightBuffer(), EG_SCENE_SET, 2);
-		m_Pipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), EG_SCENE_SET, 3);
+		m_Pipeline->SetBuffer(lightCulling->GetCulledPointLightsBuffer(), EG_SCENE_SET, 0);
+		m_Pipeline->SetBuffer(lightCulling->GetCulledSpotLightsBuffer(), EG_SCENE_SET, 1);
+		m_Pipeline->SetBuffer(lightCulling->GetTiles_Translucent_PL(), EG_SCENE_SET, 2);
+		m_Pipeline->SetBuffer(lightCulling->GetTiles_Translucent_SL(), EG_SCENE_SET, 3);
+		m_Pipeline->SetBuffer(lightCulling->GetLightsCountersBuffer(), EG_SCENE_SET, 4);
+		m_Pipeline->SetBuffer(m_Renderer.GetDirectionalLightBuffer(), EG_SCENE_SET, 5);
+		m_Pipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), EG_SCENE_SET, 6);
+		m_Pipeline->SetBuffer(m_Renderer.GetLightMatricesBuffer(), EG_SCENE_SET, 7);
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetDirectionalLightShadowMaps(), m_Renderer.GetDirectionalLightShadowMapsSamplers(), 2, 0);
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetPointLightShadowMaps(), m_Renderer.GetPointLightShadowMapsSamplers(), 3, 0);
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), 4, 0);
@@ -208,7 +215,7 @@ namespace Eagle
 
 	void VolumetricLightTask::OnResize(glm::uvec2 size)
 	{
-		const glm::uvec2 halfSize = glm::max(size / 2u, glm::uvec2(1u));
+		const glm::uvec2 halfSize = glm::max(size / s_DownscaleFactor, glm::uvec2(1u));
 		m_VolumetricsImage->Resize(glm::uvec3(halfSize, 1u));
 		m_VolumetricsImageBlurred->Resize(glm::uvec3(halfSize, 1u));
 	}

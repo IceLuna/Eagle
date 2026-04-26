@@ -4,6 +4,12 @@
 //----------------------------
 #define EG_MAX_LIGHT_SHADOW_MAPS 1024 // TODO: Replace with dynamic array and move this to size to C++ so we can resize it if we exceed max number.
 #define EG_INVALID_INDEX 0 // Must be 0
+#define EG_INVALID_SHADOW_MAP (0xFFFFFFFF)
+
+#define EG_LIGHT_CULLING_TILE_SIZE 16
+#define EG_MAX_LIGHTS_PER_TILE 256
+#define EG_LIGHT_BUCKET_SIZE 32
+#define EG_LIGHTS_BUCKET_COUNT (EG_MAX_LIGHTS_PER_TILE / EG_LIGHT_BUCKET_SIZE)
 
 #ifndef EG_CASCADES_COUNT
 #define EG_CASCADES_COUNT 4 // After changing this, projections need to be adjusted. The same defined in Camera.h
@@ -23,22 +29,25 @@
 
 #define EG_SCENE_SET 1
 
-#define EG_BINDING_POINT_LIGHTS                     0
-#define EG_BINDING_SPOT_LIGHTS                      1
-#define EG_BINDING_DIRECTIONAL_LIGHT                2
-#define EG_BINDING_ALBEDO_ROUGHNESS_TEXTURE         3
-#define EG_BINDING_GEOMETRY_SHADING_NORMALS_TEXTURE 4
-#define EG_BINDING_EMISSIVE_TEXTURE                 5
-#define EG_BINDING_DEPTH_TEXTURE                    6
-#define EG_BINDING_MATERIAL_DATA_TEXTURE            7
-#define EG_BINDING_IRRADIANCE_MAP                   8
-#define EG_BINDING_PREFILTER_MAP                    9
-#define EG_BINDING_BRDF_LUT                         10
-#define EG_BINDING_CAMERA_VIEW                      11
-#define EG_BINDING_SM_DISTRIBUTION                  12
-#define EG_BINDING_SSAO                             13
-
-#define EG_BINDING_CSM_SHADOW_MAPS                  14
+#define EG_BINDING_LIGHT_MATRICES                   0
+#define EG_BINDING_POINT_LIGHTS                     1
+#define EG_BINDING_SPOT_LIGHTS                      2
+#define EG_BINDING_POINT_LIGHT_TILE_BUCKETS         3
+#define EG_BINDING_SPOT_LIGHT_TILE_BUCKETS          4
+#define EG_BINDING_LIGHTS_COUNT                     5
+#define EG_BINDING_DIRECTIONAL_LIGHT                6
+#define EG_BINDING_ALBEDO_ROUGHNESS_TEXTURE         7
+#define EG_BINDING_GEOMETRY_SHADING_NORMALS_TEXTURE 8
+#define EG_BINDING_EMISSIVE_TEXTURE                 9
+#define EG_BINDING_DEPTH_TEXTURE                    10
+#define EG_BINDING_MATERIAL_DATA_TEXTURE            11
+#define EG_BINDING_IRRADIANCE_MAP                   12
+#define EG_BINDING_PREFILTER_MAP                    13
+#define EG_BINDING_BRDF_LUT                         14
+#define EG_BINDING_CAMERA_VIEW                      15
+#define EG_BINDING_SM_DISTRIBUTION                  16
+#define EG_BINDING_SSAO                             17
+#define EG_BINDING_CSM_SHADOW_MAPS                  18
 #define EG_BINDING_CSMC_SHADOW_MAPS                 EG_BINDING_CSM_SHADOW_MAPS + EG_CASCADES_COUNT
 
 #define EG_SM_DISTRIBUTION_TEXTURE_SIZE 16

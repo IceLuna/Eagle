@@ -9,45 +9,42 @@ namespace Eagle
 	class SpotLightComponent;
 	class DirectionalLightComponent;
 	class Buffer;
-
+	
 	class LightsManagerTask : public RendererTask
 	{
-	private:
+	public:
 		struct PointLight
 		{
-			glm::mat4 ViewProj[6];
-
 			glm::vec3 Position;
 			float Radius2; // Sign bit is used as a flag for `bCastsShadows`
 
 			glm::vec3 LightColor;
 			float VolumetricFogIntensity; // Sign bit is used as a flag for `bVolumetricLight`
 
+			uint32_t ShadowMapIndex = EG_INVALID_SHADOW_MAP;
+			uint32_t ViewProjOffset; // Note: it's invalid to use it on shader side because point light transforms aren't uploaded. Currently, used to fetch it on the CPU side
+			uint32_t Padding0;
+			uint32_t Padding1;
+
 			bool DoesCastShadows() const { return (*((uint32_t*)(&Radius2)) & 0x80000000) != 0; }
 		};
 
 		struct DirectionalLight
 		{
-			glm::mat4 ViewProj[EG_CASCADES_COUNT];
 			float CascadePlaneDistances[EG_CASCADES_COUNT];
 
 			glm::vec3 Direction;
-			float VolumetricFogIntensity;
+			uint32_t ViewProjOffset; // Offset into the transforms buffer
 
 			glm::vec3 LightColor;
 			uint32_t bCastsShadows;
 
-			glm::vec3 Specular;
-			uint32_t bVolumetricLight;
-
 			glm::vec3 Ambient;
-			uint32_t unused;
+			float VolumetricFogIntensity; // Sign bit is used as a flag for `bVolumetricLight`
 		};
 
 		struct SpotLight
 		{
-			glm::mat4 ViewProj;
-
 			glm::vec3 Position;
 			float InnerCutOffRadians;
 
@@ -55,12 +52,12 @@ namespace Eagle
 			float OuterCutOffRadians;
 
 			glm::vec3 LightColor;
-			float VolumetricFogIntensity;
+			uint32_t ViewProjOffset; // Offset into the transforms buffer
 
-			float unused;
+			float VolumetricFogIntensity; // Sign bit is used as a flag for `bVolumetricLight`
 			float Distance2;
 			uint32_t bCastsShadows;
-			uint32_t bVolumetricLight;
+			uint32_t ShadowMapIndex = EG_INVALID_SHADOW_MAP;
 		};
 
 	public:
@@ -76,11 +73,14 @@ namespace Eagle
 		const std::vector<PointLight>& GetPointLights() const { return m_PointLights; }
 		const std::vector<SpotLight>& GetSpotLights() const { return m_SpotLights; }
 		const DirectionalLight& GetDirectionalLight() const { return m_DirectionalLight; }
+		const std::vector<glm::mat4>& GetLightMatrices() const { return m_LightMatrices; }
+		const std::vector<glm::mat4>& GetPointLightMatrices() const { return m_PointLightMatrices; }
 		bool HasDirectionalLight() const { return bHasDirectionalLight; }
 
 		const Ref<Buffer>& GetPointLightsBuffer() const { return m_PointLightsBuffer; }
 		const Ref<Buffer>& GetSpotLightsBuffer() const { return m_SpotLightsBuffer; }
 		const Ref<Buffer>& GetDirectionalLightBuffer() const { return m_DirectionalLightBuffer; }
+		const Ref<Buffer>& GetLightMatricesBuffer() const { return m_MatricesBuffer; }
 
 	private:
 		void UploadLightBuffers(const Ref<CommandBuffer>& cmd);
@@ -90,9 +90,15 @@ namespace Eagle
 		std::vector<SpotLight> m_SpotLights;
 		DirectionalLight m_DirectionalLight{};
 
+		std::vector<glm::mat4> m_LightMatrices;
+		std::vector<glm::mat4> m_PointLightMatrices;
+		std::vector<glm::mat4> m_SpotLightMatrices;
+		std::array<glm::mat4, EG_CASCADES_COUNT> m_DirLightMatrices;
+
 		Ref<Buffer> m_PointLightsBuffer;
 		Ref<Buffer> m_SpotLightsBuffer;
 		Ref<Buffer> m_DirectionalLightBuffer;
+		Ref<Buffer> m_MatricesBuffer;
 
 		bool bPointLightsDirty = true;
 		bool bSpotLightsDirty = true;

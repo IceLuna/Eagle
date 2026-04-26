@@ -1,0 +1,297 @@
+#extension GL_KHR_shader_subgroup_arithmetic : require
+
+#include "utils.h"
+#include "light_culling/utils.h"
+
+layout(binding = 0) readonly buffer PointLightsBuffer
+{
+	PointLight g_PointLights[];
+};
+
+layout(binding = 1) readonly buffer SpotLightsBuffer
+{
+	SpotLight g_SpotLights[];
+};
+
+layout(binding = 2) uniform LightsCounterBuffer
+{
+	uint g_PointLightsCount;
+	uint g_SpotLightsCount;
+};
+
+layout(binding = 3) uniform CameraMatrices
+{
+    mat4 g_View;
+    mat4 g_InvViewProj;
+    mat4 g_ViewProjection;
+    mat4 g_PrevViewProjection;
+    mat4 g_Proj;
+    mat4 g_InvProj;
+};
+
+layout(binding = 4) uniform sampler2D g_Depth;
+#ifdef EG_DEBUG_LIGHT_CULLING
+layout(binding = 5, r11f_g11f_b10f) uniform image2D g_DebugOutput;
+#endif
+
+layout (set = 1, binding = 0) buffer PointLightsOpaqueBuffer
+{
+    uint g_Buckets_PL_Opaque[];
+};
+layout (set = 1, binding = 1) buffer SpotLightsOpaqueBuffer
+{
+    uint g_Buckets_SL_Opaque[];
+};
+layout (set = 1, binding = 2) buffer PointLightsTranslucentBuffer
+{
+    uint g_Buckets_PL_Translucent[];
+};
+layout (set = 1, binding = 3) buffer SpotLightsTranslucentBuffer
+{
+    uint g_Buckets_SL_Translucent[];
+};
+
+layout(push_constant) uniform PushData
+{
+    ivec2 g_Size;
+    uint g_TilesBufferWidth;
+};
+
+ivec2 unflatten2D(int index, int size)
+{
+    return ivec2(index % size, index / size);
+}
+
+shared uint s_PointLights_Opaque[EG_LIGHTS_BUCKET_COUNT];
+shared uint s_SpotLights_Opaque[EG_LIGHTS_BUCKET_COUNT];
+shared uint s_PointLights_Translucent[EG_LIGHTS_BUCKET_COUNT];
+shared uint s_SpotLights_Translucent[EG_LIGHTS_BUCKET_COUNT];
+
+#ifdef EG_DEBUG_LIGHT_CULLING
+shared uint s_DebugNumLights;
+#endif
+shared uint s_DepthMask;
+shared uint s_MinDepth;
+shared uint s_MaxDepth;
+shared Frustum s_Frustum;
+shared AABB s_AABB;
+
+void AddPointLight_Opaque(uint lightIndex)
+{
+    const uint bucketIndex = lightIndex / EG_LIGHT_BUCKET_SIZE;
+    const uint bitIndex = lightIndex % EG_LIGHT_BUCKET_SIZE;
+
+    if (bucketIndex < EG_LIGHTS_BUCKET_COUNT)
+    {
+        atomicOr(s_PointLights_Opaque[bucketIndex], 1 << bitIndex);
+
+#ifdef EG_DEBUG_LIGHT_CULLING
+        atomicAdd(s_DebugNumLights, 1);
+#endif
+    }
+}
+
+void AddSpotLight_Opaque(uint lightIndex)
+{
+    const uint bucketIndex = lightIndex / EG_LIGHT_BUCKET_SIZE;
+    const uint bitIndex = lightIndex % EG_LIGHT_BUCKET_SIZE;
+
+    if (bucketIndex < EG_LIGHTS_BUCKET_COUNT)
+    {
+        atomicOr(s_SpotLights_Opaque[bucketIndex], 1 << bitIndex);
+
+#ifdef EG_DEBUG_LIGHT_CULLING
+        atomicAdd(s_DebugNumLights, 1);
+#endif
+    }
+}
+
+void AddPointLight_Translucent(uint lightIndex)
+{
+    const uint bucketIndex = lightIndex / EG_LIGHT_BUCKET_SIZE;
+    const uint bitIndex = lightIndex % EG_LIGHT_BUCKET_SIZE;
+
+    if (bucketIndex < EG_LIGHTS_BUCKET_COUNT)
+    {
+        atomicOr(s_PointLights_Translucent[bucketIndex], 1 << bitIndex);
+    }
+}
+
+void AddSpotLight_Translucent(uint lightIndex)
+{
+    const uint bucketIndex = lightIndex / EG_LIGHT_BUCKET_SIZE;
+    const uint bitIndex = lightIndex % EG_LIGHT_BUCKET_SIZE;
+
+    if (bucketIndex < EG_LIGHTS_BUCKET_COUNT)
+    {
+        atomicOr(s_SpotLights_Translucent[bucketIndex], 1 << bitIndex);
+    }
+}
+
+#define GROUP_SIZE 8
+#define GRANULARITY (EG_LIGHT_CULLING_TILE_SIZE / GROUP_SIZE)
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+void main()
+{
+    const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
+    const uvec2 groupID = gl_WorkGroupID.xy;
+    const uint threadIndex = gl_LocalInvocationIndex;
+    const uint tileSize = EG_LIGHT_CULLING_TILE_SIZE;
+    const vec2 rcpScreenSize = vec2(1) / g_Size;
+
+    for (uint i = threadIndex; i < EG_LIGHTS_BUCKET_COUNT; i += GROUP_SIZE * GROUP_SIZE)
+    {
+        s_PointLights_Opaque[i] = 0;
+        s_SpotLights_Opaque[i] = 0;
+        s_PointLights_Translucent[i] = 0;
+        s_SpotLights_Translucent[i] = 0;
+    }
+
+	if (threadIndex == 0)
+	{
+		s_MinDepth = 0xffffffff;
+		s_MaxDepth = 0;
+        s_DepthMask = 0;
+#ifdef EG_DEBUG_LIGHT_CULLING
+        s_DebugNumLights = 0;
+#endif
+	}
+
+    // Calculate min & max depth in threadgroup / tile.
+	float depth[GRANULARITY * GRANULARITY];
+	float minDepth = 10000000;
+	float maxDepth = -10000000;
+
+	for (int granularity = 0; granularity < GRANULARITY * GRANULARITY; ++granularity)
+	{
+		ivec2 pixel = pixelCoords * ivec2(GRANULARITY, GRANULARITY) + unflatten2D(granularity, GRANULARITY);
+		pixel = min(pixel, g_Size - 1);
+		depth[granularity] = texelFetch(g_Depth, pixel, 0).x;
+
+		minDepth = min(minDepth, depth[granularity]);
+		maxDepth = max(maxDepth, depth[granularity]);
+	}
+
+	barrier();
+
+    const float waveMinDepth = subgroupMin(minDepth);
+	const float waveMaxDepth = subgroupMax(maxDepth);
+	if (subgroupElect())
+	{
+        atomicMin(s_MinDepth, floatBitsToUint(waveMinDepth));
+        atomicMax(s_MaxDepth, floatBitsToUint(waveMaxDepth));
+	}
+	
+    barrier();
+
+	// reversed depth buffer!
+	minDepth = uintBitsToFloat(s_MaxDepth);
+	maxDepth = uintBitsToFloat(s_MinDepth);
+	maxDepth = max(FLT_EPSILON, maxDepth); // Fixes culling for tiles that don't cover any geometry (min/max is 0)
+
+    Frustum frustum;
+    AABB aabb;
+    CalculateFrustumAndAABB(g_InvProj, rcpScreenSize, groupID * tileSize, (groupID + 1u) * tileSize, minDepth, maxDepth, frustum, aabb);
+
+    barrier();
+
+    const float minDepthVS = ScreenToView(g_InvProj, vec4(0, 0, minDepth, 1), rcpScreenSize).z;
+    const float maxDepthVS = ScreenToView(g_InvProj, vec4(0, 0, maxDepth, 1), rcpScreenSize).z;
+	const float nearClipVS = ScreenToView(g_InvProj, vec4(0, 0, 1, 1), rcpScreenSize).z;
+
+    const float depthDiff = maxDepthVS - minDepthVS;
+    const float rcpDepthRange = depthDiff > FLT_EPSILON ? 31.0 / depthDiff : 1.0;
+    uint depthMask = 0u;
+    if (depthDiff > FLT_EPSILON)
+    {
+	    for (uint granularity = 0; granularity < GRANULARITY * GRANULARITY; ++granularity)
+	    {
+		    const float curDepthVS = ScreenToView(g_InvProj, vec4(0, 0, depth[granularity], 1), rcpScreenSize).z;
+		    const uint depthCellIndex = max(0u, min(31u, uint(floor((curDepthVS - minDepthVS) * rcpDepthRange))));
+		    depthMask |= 1u << depthCellIndex;
+	    }
+    }
+    else
+    {
+        depthMask = 0xFFFFFFFF;
+    }
+
+	const uint waveDepthMask = subgroupOr(depthMask);
+	if (subgroupElect())
+	{
+		atomicOr(s_DepthMask, waveDepthMask);
+	}
+    barrier();
+    depthMask = s_DepthMask;
+
+    {
+        for (uint i = threadIndex; i < g_PointLightsCount; i += GROUP_SIZE * GROUP_SIZE)
+        {
+            const PointLight light = g_PointLights[i];
+            const Sphere sphere = SphereFromPointLight(light, g_View);
+            if (SphereInsideFrustum(sphere, frustum, nearClipVS, maxDepthVS))
+            {
+                AddPointLight_Translucent(i);
+
+                if (SphereIntersectsAABB(sphere, aabb))
+                {
+                    if ((depthMask & GetSphereDepthMask(sphere, minDepthVS, rcpDepthRange)) != 0)
+                    {
+                        AddPointLight_Opaque(i);
+                    }
+                }
+            }
+        }
+    }
+
+    {
+        for (uint i = threadIndex; i < g_SpotLightsCount; i += GROUP_SIZE * GROUP_SIZE)
+        {
+            const SpotLight light = g_SpotLights[i];
+            const Sphere sphere = SphereFromSpotLight(light, g_View);
+	        if (SphereInsideFrustum(sphere, frustum, nearClipVS, maxDepthVS))
+            {
+                AddSpotLight_Translucent(i);
+
+                if (SpotIntersectsAABB(light, aabb, g_View))
+                {
+                    if ((depthMask & GetSphereDepthMask(sphere, minDepthVS, rcpDepthRange)) != 0)
+                    {
+                        AddSpotLight_Opaque(i);
+                    }
+                }
+            }
+        }
+    }
+
+    barrier();
+
+    const uint tileIndex = (groupID.x + groupID.y * g_TilesBufferWidth) * EG_LIGHTS_BUCKET_COUNT;
+    for (uint i = threadIndex; i < EG_LIGHTS_BUCKET_COUNT; i += GROUP_SIZE * GROUP_SIZE)
+    {
+        g_Buckets_PL_Opaque[tileIndex + i] = s_PointLights_Opaque[i];
+        g_Buckets_SL_Opaque[tileIndex + i] = s_SpotLights_Opaque[i];
+        g_Buckets_PL_Translucent[tileIndex + i] = s_PointLights_Translucent[i];
+        g_Buckets_SL_Translucent[tileIndex + i] = s_SpotLights_Translucent[i];
+    }
+
+#ifdef EG_DEBUG_LIGHT_CULLING
+    const uint numLights = s_DebugNumLights;
+    if (numLights > 0)
+    {
+        const float intensity = 0.15f;
+        const vec3 debugColor = mix(vec3(0, intensity, 0), vec3(intensity, 0, 0), vec3(float(numLights) / EG_MAX_LIGHTS_PER_TILE));
+        for (int granularity = 0; granularity < GRANULARITY * GRANULARITY; ++granularity)
+	    {
+		    ivec2 pixel = pixelCoords * ivec2(GRANULARITY, GRANULARITY) + unflatten2D(granularity, GRANULARITY);
+		    pixel = min(pixel, g_Size - 1);
+
+            vec4 color = imageLoad(g_DebugOutput, pixel);
+            color.rgb += debugColor;
+
+            imageStore(g_DebugOutput, pixel, color);
+	    }
+    }
+#endif // EG_DEBUG_LIGHT_CULLING
+}

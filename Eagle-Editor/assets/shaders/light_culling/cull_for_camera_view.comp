@@ -1,0 +1,88 @@
+#include "common_structures.h"
+#include "utils.h"
+#include "light_culling/utils.h"
+
+#ifdef EG_POINT_LIGHTS
+layout(binding = 0) readonly buffer LightsBuffer
+{
+	PointLight g_Lights[];
+};
+
+layout(binding = 1) writeonly buffer CulledLightsBuffer
+{
+	PointLight g_CulledLights[];
+};
+#else
+layout(binding = 0) readonly buffer LightsBuffer
+{
+	SpotLight g_Lights[];
+};
+
+layout(binding = 1) writeonly buffer CulledLightsBuffer
+{
+	SpotLight g_CulledLights[];
+};
+#endif
+
+layout(binding = 2) buffer LightsCounterBuffer
+{
+	uint g_Counters[];
+};
+
+layout(binding = 3) uniform CameraMatrices
+{
+    mat4 g_View;
+    mat4 g_InvViewProj;
+    mat4 g_ViewProjection;
+    mat4 g_PrevViewProjection;
+    mat4 g_Proj;
+    mat4 g_InvProj;
+};
+
+layout(push_constant) uniform PushData
+{
+    uvec2 g_Size;
+    uint g_NumLight;
+};
+
+#define GROUP_SIZE 64
+layout(local_size_x = GROUP_SIZE) in;
+
+void main()
+{
+    const uint lightIndex = gl_GlobalInvocationID.x;
+    if (lightIndex >= g_NumLight)
+        return;
+
+    const vec2 rcpScreenSize = vec2(1) / g_Size;
+
+    const float fMinDepth = 1.f;
+    const float fMaxDepth = 0.f;
+
+    Frustum frustum;
+    AABB aabb;
+    CalculateFrustumAndAABB(g_InvProj, rcpScreenSize, vec2(0), vec2(g_Size), fMinDepth, fMaxDepth, frustum, aabb);
+
+    const float maxDepthVS = ScreenToView(g_InvProj, vec4(0, 0, fMaxDepth, 1), rcpScreenSize).z;
+	const float nearClipVS = ScreenToView(g_InvProj, vec4(0, 0, 1, 1), rcpScreenSize).z;
+
+#ifdef EG_POINT_LIGHTS
+    const PointLight light = g_Lights[lightIndex];
+    const Sphere sphere = SphereFromPointLight(light, g_View);
+    const uint counterIdx = 0;
+#else
+    const SpotLight light = g_Lights[lightIndex];
+    const Sphere sphere = SphereFromSpotLight(light, g_View);
+    const uint counterIdx = 1;
+#endif
+
+    if (SphereInsideFrustum(sphere, frustum, nearClipVS, maxDepthVS))
+    {
+        if (SphereIntersectsAABB(sphere, aabb))
+        {
+            uint insertIdx = 0;
+            EG_SUBGROUP_ATOMIC_INCREMENT(g_Counters[counterIdx], true, insertIdx)
+            g_CulledLights[insertIdx] = light;
+        }
+    }
+}

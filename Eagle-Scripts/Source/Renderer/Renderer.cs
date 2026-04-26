@@ -684,6 +684,12 @@ namespace Eagle
             get { return GetVisualizeCascades_Native(); }
         }
 
+        public static bool bVisualizeLightTiles
+        {
+            set { SetVisualizeLightTiles_Native(value); }
+            get { return GetVisualizeLightTiles_Native(); }
+        }
+
         public static bool bEnableObjectPicking
         {
             set { SetObjectPickingEnabled_Native(value); }
@@ -864,6 +870,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern bool GetVisualizeCascades_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetVisualizeLightTiles_Native(bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern bool GetVisualizeLightTiles_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetObjectPickingEnabled_Native(bool value);

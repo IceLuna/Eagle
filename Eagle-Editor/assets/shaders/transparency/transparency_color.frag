@@ -10,7 +10,7 @@
 #define EG_OIT_NULL 0x0u // 0xFFFFFFFFu
 
 #define EG_PIXEL_COORDS vec2(gl_FragCoord.xy)
-#include "shadow_maps/shadows_utils.h"
+#include "light_utils.h"
 #include "postprocessing/utils.h"
 
 // Input
@@ -43,8 +43,7 @@ layout(set = 5, binding = 2) uniform UniformBuffer
     float g_MaxShadowDistance2;
     float g_CSMOverlap;
     float g_IBLIntensity;
-    uint g_PointLightsCount;
-    uint g_SpotLightsCount;
+    uint g_TilesBufferWidth;
     uint g_HasDirLight;
 };
 
@@ -142,7 +141,8 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
     const vec3 V = normalize(fragToCamera);
 
     vec3 Lo = vec3(0.f);
-    vec3 shadingNormal = normalize(i_Normal);
+    const vec3 geometryNormal = normalize(i_Normal);
+    vec3 shadingNormal = geometryNormal;
     if (material.NormalTextureIndex != EG_INVALID_INDEX)
     {
         shadingNormal = ReadTexture(material.NormalTextureIndex, uv).rgb;
@@ -150,96 +150,40 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
         shadingNormal = normalize(i_TBN * shadingNormal);
     }
 
+    const uvec2 tileID = uvec2(gl_FragCoord.xy) / EG_LIGHT_CULLING_TILE_SIZE;
+    const uint tileIndex = tileID.x + tileID.y * g_TilesBufferWidth;
+    const uint bucketStartIndex = tileIndex * EG_LIGHTS_BUCKET_COUNT;
+
     // PointLights
-    uint plShadowMapIndex = 0;
-    for (uint i = 0; i < g_PointLightsCount; ++i)
+    const uint pointLightsBucketsCount = g_PointLightsCount > 0 ? min(EG_LIGHTS_BUCKET_COUNT, ((g_PointLightsCount - 1) / EG_LIGHT_BUCKET_SIZE) + 1) : 0u;
+    for (uint bucket = 0; bucket < pointLightsBucketsCount; bucket++)
     {
-        const PointLight pointLight = g_PointLights[i];
-        const vec3 incoming = pointLight.Position - worldPos;
-        const float distance2 = dot(incoming, incoming);
-        const bool bCastsShadows = (floatBitsToUint(pointLight.Radius2) & 0x80000000) != 0; // TODO: replace with `pointLight.Radius2 < 0.0`
-        const float radius2 = abs(pointLight.Radius2);
-        if (distance2 > radius2)
+        uint bucketBits = g_PointLightsBuckets[bucketStartIndex + bucket];
+        while(bucketBits > 0)
         {
-            if (bCastsShadows)
-                plShadowMapIndex++;
-            continue;
+            const uint bucketLightIndex = findLSB(bucketBits);
+            const uint lightIndex = EG_LIGHT_BUCKET_SIZE * bucket + bucketLightIndex;
+            bucketBits ^= (1 << bucketLightIndex);
+
+            const PointLight pointLight = g_PointLights[lightIndex];
+            Lo += CalculatePointLightRadiance(pointLight, worldPos, geometryNormal, shadingNormal, lambert_albedo, V, F0, metalness, roughness, bInShadowRange);
         }
-        const float attenuation = 1.f / distance2
-                    * EG_SQUARE(clamp(1.0 - EG_SQUARE(distance2 * 1.0f / radius2), 0.f, 1.f));
-
-        const vec3 normIncoming = normalize(incoming);
-        float shadow = 1.f;
-        if (bCastsShadows)
-        {
-            if (bInShadowRange && NOT_ZERO(attenuation))
-            {
-                if (plShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS)
-                {
-                    const vec3 geometryNormal = normalize(i_Normal);
-                    const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
-                    shadow = PointLight_ShadowCalculation(g_PointShadowMaps[nonuniformEXT(plShadowMapIndex)], -incoming, normIncoming, NdotL);
-                }
-            }
-
-            plShadowMapIndex++;
-        }
-
-        const vec3 pointLightLo = EvaluatePBR_TwoSided(lambert_albedo, normIncoming, V, shadingNormal, F0, metalness, roughness, pointLight.LightColor, attenuation);
-        Lo += pointLightLo * shadow;
     }
 
     // SpotLights
-    uint slShadowMapIndex = 0;
-    for (uint i = 0; i < g_SpotLightsCount; ++i)
+    const uint spotLightsBucketsCount = g_SpotLightsCount > 0 ? min(EG_LIGHTS_BUCKET_COUNT, ((g_SpotLightsCount - 1) / EG_LIGHT_BUCKET_SIZE) + 1) : 0u;
+    for (uint bucket = 0; bucket < spotLightsBucketsCount; bucket++)
     {
-        const SpotLight spotLight = g_SpotLights[i];
-        const vec3 incoming = spotLight.Position - worldPos;
-        const float distance2 = dot(incoming, incoming);
-        if (distance2 > spotLight.Distance2)
+        uint bucketBits = g_SpotLightsBuckets[bucketStartIndex + bucket];
+        while(bucketBits > 0)
         {
-            if (spotLight.bCastsShadows != 0)
-                slShadowMapIndex++;
-            continue;
+            const uint bucketLightIndex = findLSB(bucketBits);
+            const uint lightIndex = EG_LIGHT_BUCKET_SIZE * bucket + bucketLightIndex;
+            bucketBits ^= (1 << bucketLightIndex);
+
+            const SpotLight spotLight = g_SpotLights[lightIndex];
+            Lo += CalculateSpotLightRadiance(spotLight, worldPos, geometryNormal, shadingNormal, lambert_albedo, V, F0, metalness, roughness, bInShadowRange);
         }
-
-        float attenuation = 1.f / distance2
-                    * EG_SQUARE(clamp(1.0 - EG_SQUARE(distance2 * 1.0f / spotLight.Distance2), 0.f, 1.f));
-
-        const vec3 normIncoming = normalize(incoming);
-
-        //Cutoff
-        const float innerCutOffCos = cos(spotLight.InnerCutOffRadians);
-        const float outerCutOffCos = cos(spotLight.OuterCutOffRadians);
-        const float epsilon = innerCutOffCos - outerCutOffCos;
-        const float theta = clamp(dot(normIncoming, normalize(-spotLight.Direction)), EG_FLT_SMALL, 1.0);
-        const float cutoffIntensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
-        attenuation *= cutoffIntensity;
-
-        float shadow = 1.f;
-        if (spotLight.bCastsShadows != 0)
-        {
-            if (bInShadowRange && NOT_ZERO(attenuation))
-            {
-                if (slShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS)
-                {
-                    const vec3 geometryNormal = normalize(i_Normal);
-                    const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
-
-                    const float texelSize = 1.f / textureSize(g_SpotShadowMaps[nonuniformEXT(slShadowMapIndex)], 0).x;
-                    const float k = 20.f + (40.f * spotLight.OuterCutOffRadians * spotLight.OuterCutOffRadians) + distance2 * 2.2f; // Some magic number that help to fight against self-shadowing
-                    const float bias = texelSize * k;
-                    const vec3 normalBias = normIncoming * bias;
-                    vec4 lightSpacePos = spotLight.ViewProj * vec4(worldPos + normalBias, 1.0);
-                    lightSpacePos.xyz /= lightSpacePos.w;
-                    shadow = SpotLight_ShadowCalculation(g_SpotShadowMaps[nonuniformEXT(slShadowMapIndex)], lightSpacePos.xyz, NdotL);
-                }
-            }
-
-            slShadowMapIndex++;
-        }
-        const vec3 spotLightLo = EvaluatePBR_TwoSided(lambert_albedo, normIncoming, V, shadingNormal, F0, metalness, roughness, spotLight.LightColor, attenuation);
-        Lo += spotLightLo * shadow;
     }
 
     // Directional light
@@ -249,60 +193,12 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
 
     if (g_HasDirLight != 0)
     {
-        const float cascadeDepth = abs((g_View * vec4(worldPos, 1.0)).z);
-        int layer = GetCascadeIndex(g_DirectionalLight, cascadeDepth);
-
-        const vec3 incoming = normalize(-g_DirectionalLight.Direction);
-        float shadow = 1.f;
-        if (layer != -1)
-        {
+        Lo += CalculateDirectionalLightRadiance(g_DirectionalLight, worldPos, geometryNormal, shadingNormal, lambert_albedo, V, F0, metalness, roughness, bInShadowRange,
+            g_View, g_CSMOverlap
 #ifdef EG_ENABLE_CSM_VISUALIZATION
-            const vec3 cascadeColors[EG_CASCADES_COUNT] = vec3[]
-            (
-                vec3(1, 0, 0),
-                vec3(0, 1, 0),
-                vec3(0, 0, 1),
-                vec3(1, 0, 1)
-            );
-            cascadeVisualizationColor = cascadeColors[layer];
-#endif // EG_ENABLE_CSM_VISUALIZATION
-            if (g_DirectionalLight.bCastsShadows != 0 && bInShadowRange)
-            {
-                const vec3 geometryNormal = normalize(i_Normal);
-                const float NdotL = clamp(dot(incoming, geometryNormal), EG_FLT_SMALL, 1.0);
-
-            	const float texelSize = 1.f / textureSize(g_DirShadowMaps[nonuniformEXT(layer)], 0).x;
-                const float k = GetCascadeTexelOffset(layer);
-                const float bias = texelSize * k;
-                const vec3 normalBias = geometryNormal * bias;
-
-                const vec3 lightSpacePos = (g_DirectionalLight.ViewProj[layer] * vec4(worldPos + normalBias + incoming * bias * 1.5f, 1.0)).xyz;
-                shadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePos, NdotL, layer);
-
-#ifdef EG_CSM_SMOOTH_TRANSITION
-                if (layer != EG_CASCADES_COUNT - 1)
-                {
-                    const float currentSplit = g_DirectionalLight.CascadePlaneDistances[layer];
-                    const float nextSplit = currentSplit - currentSplit * g_CSMOverlap;
-                    const float blendFactor = (cascadeDepth - nextSplit) / (currentSplit - nextSplit);
-                    if (blendFactor > 0.f)
-                    {
-                        layer = layer + 1;
-                        const float k = GetCascadeTexelOffset(layer);
-                        const float texelSize = 1.f / textureSize(g_DirShadowMaps[nonuniformEXT(layer)], 0).x;
-                        const float bias = texelSize * k;
-                        const vec3 normalBias = geometryNormal * bias;
-                        const vec3 lightSpacePos = (g_DirectionalLight.ViewProj[layer] * vec4(worldPos + normalBias + incoming * bias * 1.5f, 1.0)).xyz;
-                        const float nextShadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePos, NdotL, layer);
-                    
-                        shadow = mix(shadow, nextShadow, blendFactor);
-                    }
-                }
-#endif // EG_CSM_SMOOTH_TRANSITION
-            }
-        }
-        const vec3 directional_Lo = EvaluatePBR_TwoSided(lambert_albedo, incoming, V, shadingNormal, F0, metalness, roughness, g_DirectionalLight.LightColor, 1.f);
-        Lo += directional_Lo * shadow;
+            , cascadeVisualizationColor
+#endif
+        );
     }
 
     // Ambient

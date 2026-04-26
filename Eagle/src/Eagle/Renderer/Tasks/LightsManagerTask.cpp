@@ -39,9 +39,15 @@ namespace Eagle
 		directionalLightBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
 		directionalLightBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 
-		m_PointLightsBuffer = Buffer::Create(pointLightsBufferSpecs, "PointLightsBuffer");
-		m_SpotLightsBuffer = Buffer::Create(spotLightsBufferSpecs, "SpotLightsBuffer");
-		m_DirectionalLightBuffer = Buffer::Create(directionalLightBufferSpecs, "DirectionalLightBuffer");
+		BufferSpecifications matricesBufferSpecs;
+		matricesBufferSpecs.Size = 100 * sizeof(glm::mat4);
+		matricesBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
+		matricesBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+
+		m_PointLightsBuffer = Buffer::Create(pointLightsBufferSpecs, "Point Lights Buffer");
+		m_SpotLightsBuffer = Buffer::Create(spotLightsBufferSpecs, "Spot Lights Buffer");
+		m_DirectionalLightBuffer = Buffer::Create(directionalLightBufferSpecs, "Directional Light Buffer");
+		m_MatricesBuffer = Buffer::Create(matricesBufferSpecs, "Light Matrices Buffer");
 	}
 
 	void LightsManagerTask::SetPointLights(const std::vector<const PointLightComponent*>& pointLights, bool bDirty)
@@ -50,7 +56,10 @@ namespace Eagle
 			return;
 
 		std::vector<PointLight> tempData;
+		std::vector<glm::mat4> matrices;
 		tempData.reserve(pointLights.size());
+		matrices.reserve(pointLights.size() * 6); // For each face
+
 		for (auto& pointLight : pointLights)
 		{
 			const bool bCastsShadows = pointLight->DoesCastShadows();
@@ -62,21 +71,25 @@ namespace Eagle
 			light.Radius2 = radius * radius;
 			light.LightColor = pointLight->GetLightColor() * pointLight->GetIntensity();
 			light.VolumetricFogIntensity = glm::max(pointLight->GetVolumetricFogIntensity(), 0.0f);
+			light.ViewProjOffset = (uint32_t)matrices.size();
 
 			for (int i = 0; i < 6; ++i)
-				light.ViewProj[i] = s_PointLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + s_Directions[i], s_UpVectors[i]);
+				matrices.emplace_back() = s_PointLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + s_Directions[i], s_UpVectors[i]);
 
 			uint32_t* intensity = (uint32_t*)&light.VolumetricFogIntensity;
 			*intensity = (*intensity) | (bVolumetric ? 0x80000000 : 0u);
 
 			uint32_t* radius2 = (uint32_t*)&light.Radius2;
 			*radius2 = (*radius2) | (bCastsShadows ? 0x80000000 : 0u);
+
+			EG_CORE_ASSERT(bCastsShadows == light.DoesCastShadows());
 		}
 
-		RenderManager::Submit([task = shared_from_this(), pointLights = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([task = shared_from_this(), pointLights = std::move(tempData), lightMatrices = std::move(matrices)](Ref<CommandBuffer>& cmd) mutable
 		{
 			auto thisRef = Cast<LightsManagerTask>(task);
 			thisRef->m_PointLights = std::move(pointLights);
+			thisRef->m_PointLightMatrices = std::move(lightMatrices);
 			thisRef->bPointLightsDirty = true;
 		});
 	}
@@ -87,7 +100,10 @@ namespace Eagle
 			return;
 
 		std::vector<SpotLight> tempData;
+		std::vector<glm::mat4> matrices;
 		tempData.reserve(spotLights.size());
+		matrices.reserve(spotLights.size());
+
 		for (auto& spotLight : spotLights)
 		{
 			constexpr float nearPlane = EG_POINT_LIGHT_NEAR;
@@ -107,17 +123,21 @@ namespace Eagle
 			const float distance = spotLight->GetDistance();
 			light.Distance2  = distance * distance;
 			light.bCastsShadows = uint32_t(spotLight->DoesCastShadows());
-			light.bVolumetricLight = uint32_t(spotLight->IsVolumetricLight());
+			light.ViewProjOffset = uint32_t(matrices.size());
+
+			uint32_t* intensity = (uint32_t*)&light.VolumetricFogIntensity;
+			*intensity = (*intensity) | (spotLight->IsVolumetricLight() ? 0x80000000 : 0u);
 
 			const float fovY = light.OuterCutOffRadians * 2.f;
 			const glm::mat4 view = glm::lookAt(light.Position, light.Position + light.Direction, spotLight->GetUpVector());
-			light.ViewProj = Math::Perspective(fovY, aspectRatio, nearPlane, distance) * view;
+			matrices.emplace_back() = Math::Perspective(fovY, aspectRatio, nearPlane, distance) * view;
 		}
 
-		RenderManager::Submit([task = shared_from_this(), spotLights = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([task = shared_from_this(), spotLights = std::move(tempData), lightMatrices = std::move(matrices)](Ref<CommandBuffer>& cmd) mutable
 		{
 			auto thisRef = Cast<LightsManagerTask>(task);
 			thisRef->m_SpotLights = std::move(spotLights);
+			thisRef->m_SpotLightMatrices = std::move(lightMatrices);
 			thisRef->bSpotLightsDirty = true;
 		});
 	}
@@ -132,7 +152,7 @@ namespace Eagle
 				ambient = directionalLightComponent->GetAmbientColor(),
 				volumetricFogIntensity = directionalLightComponent->GetVolumetricFogIntensity(),
 				bVolumetric = directionalLightComponent->IsVolumetricLight(),
-			    bCastsShadows = directionalLightComponent->DoesCastShadows()](Ref<CommandBuffer>& cmd)
+			    bCastsShadows = directionalLightComponent->DoesCastShadows()](const Ref<CommandBuffer>& cmd)
 			{
 				auto thisRef = Cast<LightsManagerTask>(task);
 
@@ -146,7 +166,10 @@ namespace Eagle
 				directionalLight.Ambient = ambient;
 				directionalLight.VolumetricFogIntensity = glm::max(volumetricFogIntensity, 0.f);
 				directionalLight.bCastsShadows = uint32_t(bCastsShadows);
-				directionalLight.bVolumetricLight = uint32_t(bVolumetric);
+				directionalLight.ViewProjOffset = 0u;
+
+				uint32_t* intensity = (uint32_t*)&directionalLight.VolumetricFogIntensity;
+				*intensity = (*intensity) | (bVolumetric ? 0x80000000 : 0u);
 
 				for (uint32_t i = 0; i < EG_CASCADES_COUNT; ++i)
 					directionalLight.CascadePlaneDistances[i] = cascadeFarPlanes[i];
@@ -188,7 +211,7 @@ namespace Eagle
 
 					lightOrthoMatrix[3] += roundOffset;
 
-					directionalLight.ViewProj[index] = lightOrthoMatrix * lightViewMatrix;
+					thisRef->m_DirLightMatrices[index] = lightOrthoMatrix * lightViewMatrix;
 				}
 			});
 		}
@@ -212,6 +235,26 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Upload Light Buffers");
 		EG_GPU_TIMING_SCOPED(cmd, "Upload Light Buffers");
 
+		// Matrices buffer layout:
+		//	 Spot lights go first
+		//	 Dir lights go second
+		// Note: Point light matrices aren't uploaded since they're not used by the shaders currently
+		// If this is ever changed, revisit how ShadowPass task uses/collects them
+
+		m_LightMatrices.clear();
+
+		const uint32_t spotLightsOffset = (uint32_t)m_LightMatrices.size();
+		m_LightMatrices.insert(m_LightMatrices.end(), m_SpotLightMatrices.begin(), m_SpotLightMatrices.end());
+
+		if (bHasDirectionalLight)
+		{
+			m_DirectionalLight.ViewProjOffset = (uint32_t)m_LightMatrices.size();
+			for (uint32_t i = 0; i < EG_CASCADES_COUNT; ++i)
+			{
+				m_LightMatrices.push_back(m_DirLightMatrices[i]);
+			}
+		}
+
 		if (bPointLightsDirty)
 		{
 			const size_t pointLightsDataSize = m_PointLights.size() * sizeof(PointLight);
@@ -227,6 +270,14 @@ namespace Eagle
 
 		if (bSpotLightsDirty)
 		{
+			if (spotLightsOffset > 0)
+			{
+				for (auto& light : m_SpotLights)
+				{
+					light.ViewProjOffset += spotLightsOffset;
+				}
+			}
+
 			const size_t spotLightsDataSize = m_SpotLights.size() * sizeof(SpotLight);
 			if (spotLightsDataSize > m_SpotLightsBuffer->GetSize())
 				m_SpotLightsBuffer->Resize((spotLightsDataSize * 3) / 2);
@@ -238,6 +289,19 @@ namespace Eagle
 			bSpotLightsDirty = false;
 		}
 
-		cmd->Write(m_DirectionalLightBuffer, &m_DirectionalLight, sizeof(DirectionalLight), 0, m_DirectionalLightBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
+		if (bHasDirectionalLight)
+			cmd->Write(m_DirectionalLightBuffer, &m_DirectionalLight, sizeof(DirectionalLight), 0, m_DirectionalLightBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
+
+		// Upload matrices
+		{
+			const size_t matricesDataSize = m_LightMatrices.size() * sizeof(glm::mat4);
+			if (matricesDataSize > m_MatricesBuffer->GetSize())
+				m_MatricesBuffer->Resize((matricesDataSize * 3) / 2);
+
+			if (matricesDataSize)
+			{
+				cmd->Write(m_MatricesBuffer, m_LightMatrices.data(), matricesDataSize, 0, m_MatricesBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
+			}
+		}
 	}
 }

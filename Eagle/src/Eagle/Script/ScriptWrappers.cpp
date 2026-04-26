@@ -7142,6 +7142,25 @@ namespace Eagle
 		return options.bVisualizeCascades;
 	}
 
+	void Script::Eagle_Renderer_SetVisualizeLightTiles(bool value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.bVisualizeLightTiles = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	bool Script::Eagle_Renderer_GetVisualizeLightTiles()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.bVisualizeLightTiles;
+	}
+
 	void Script::Eagle_Renderer_SetTransparencyLayers(uint32_t value)
 	{
 		const auto& scene = Scene::GetCurrentScene();

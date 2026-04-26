@@ -21,16 +21,41 @@ readonly buffer SpotLightsBuffer
 };
 
 layout(set = 1, binding = 2)
+readonly buffer PointLightsBucketsBuffer
+{
+	uint g_PointLightsBuckets[];
+};
+
+layout(set = 1, binding = 3)
+readonly buffer SpotLightsBucketsBuffer
+{
+	uint g_SpotLightsBuckets[];
+};
+
+layout(set = 1, binding = 4)
+uniform LightsCounterBuffer
+{
+	uint g_PointLightsCount;
+	uint g_SpotLightsCount;
+};
+
+layout(set = 1, binding = 5)
 readonly buffer DirectionalLightBuffer
 {
     DirectionalLight g_DirectionalLight;
 };
 
-layout(set = 1, binding = 3)
+layout(set = 1, binding = 6)
 uniform CameraView
 {
     mat4 g_CameraView;
     mat4 g_ViewProjInv;
+};
+
+layout(set = 1, binding = 7)
+readonly buffer LightMatricesBuffer
+{
+	mat4 g_LightMatrices[];
 };
 
 layout(set = 2, binding = 0) uniform sampler2D   g_DirShadowMaps[EG_CASCADES_COUNT];
@@ -58,8 +83,8 @@ layout(push_constant) uniform PushConstants
     float g_FogAnisotropy;
     float g_Near;
     float g_Far;
-    uint g_PointLightsCount;
-    uint g_SpotLightsCount;
+    uint g_TilesBufferWidth;
+    uint g_DownscaleFactor;
     uint g_HasDirLight;
 };
 
@@ -81,75 +106,95 @@ void main()
     const vec2 uv = (pixelCoords + 0.5) * texelSize;
 
     const float depth = texture(g_DepthTexture, uv).x;
-    const float linearDepth = min(g_VolumetricMaxDistance, ToLinear(depth, g_Near, g_Far));
     const vec3 worldPos = WorldPosFromDepth(g_ViewProjInv, uv, depth);
 
     vec3 Lo = vec3(0.f);
     const vec3 geometryNormal = DecodeNormal(texture(g_GeometryShadingNormalsTexture, uv).xy); // xy - geometry, zw - shading
 
-    // PointLights
-    uint plShadowMapIndex = 0;
-    for (uint i = 0; i < g_PointLightsCount; ++i)
-    {
-        const PointLight pointLight = g_PointLights[i];
-        const vec3 incoming = pointLight.Position - worldPos;
-        const float distance2 = dot(incoming, incoming);
-        const bool bCastsShadows = (floatBitsToUint(pointLight.Radius2) & 0x80000000) != 0;
-        const bool bCheckShadows = plShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS;
-        const float NdotL = clamp(dot(normalize(incoming), geometryNormal), EG_FLT_SMALL, 1.0);
+    // Upscale to full-res to get correct tile ID
+    const uvec2 tileID = (pixelCoords * g_DownscaleFactor) / EG_LIGHT_CULLING_TILE_SIZE;
+    const uint tileIndex = tileID.x + tileID.y * g_TilesBufferWidth;
+    const uint bucketStartIndex = tileIndex * EG_LIGHTS_BUCKET_COUNT;
 
-        if (bCastsShadows)
+    // PointLights
+    const uint pointLightsBucketsCount = g_PointLightsCount > 0 ? min(EG_LIGHTS_BUCKET_COUNT, ((g_PointLightsCount - 1) / EG_LIGHT_BUCKET_SIZE) + 1) : 0u;
+    for (uint bucket = 0; bucket < pointLightsBucketsCount; bucket++)
+    {
+        uint bucketBits = g_PointLightsBuckets[bucketStartIndex + bucket];
+        while(bucketBits > 0)
         {
-            Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[nonuniformEXT(plShadowMapIndex)], linearDepth,
-#ifdef EG_TRANSLUCENT_SHADOWS
-                g_PointShadowMapsColored[nonuniformEXT(plShadowMapIndex)], g_PointShadowMapsColoredDepth[nonuniformEXT(plShadowMapIndex)],
-#endif
-                worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCheckShadows);
-            plShadowMapIndex++;
-        }
-        else
-        {
-            Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[0], linearDepth,
-#ifdef EG_TRANSLUCENT_SHADOWS
-                g_PointShadowMapsColored[0], g_PointShadowMapsColoredDepth[0],
-#endif
-                worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, false);
+            const uint bucketLightIndex = findLSB(bucketBits);
+            const uint lightIndex = EG_LIGHT_BUCKET_SIZE * bucket + bucketLightIndex;
+            bucketBits ^= (1 << bucketLightIndex);
+
+            const PointLight pointLight = g_PointLights[lightIndex];
+            const uint shadowMapIndex = pointLight.ShadowMapIndex;
+            const vec3 incoming = pointLight.Position - worldPos;
+            const float distance2 = dot(incoming, incoming);
+            const bool bCastsShadows = (floatBitsToUint(pointLight.Radius2) & 0x80000000) != 0;
+            const bool bCheckShadows = shadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS;
+            const float NdotL = clamp(dot(normalize(incoming), geometryNormal), EG_FLT_SMALL, 1.0);
+
+            if (bCastsShadows)
+            {
+                Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[nonuniformEXT(shadowMapIndex)],
+    #ifdef EG_TRANSLUCENT_SHADOWS
+                    g_PointShadowMapsColored[nonuniformEXT(shadowMapIndex)], g_PointShadowMapsColoredDepth[nonuniformEXT(shadowMapIndex)],
+    #endif
+                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCheckShadows);
+            }
+            else
+            {
+                Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[0],
+    #ifdef EG_TRANSLUCENT_SHADOWS
+                    g_PointShadowMapsColored[0], g_PointShadowMapsColoredDepth[0],
+    #endif
+                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, false);
+            }
         }
     }
 
     // SpotLights
-    uint slShadowMapIndex = 0;
-    for (uint i = 0; i < g_SpotLightsCount; ++i)
+    const uint spotLightsBucketsCount = g_SpotLightsCount > 0 ? min(EG_LIGHTS_BUCKET_COUNT, ((g_SpotLightsCount - 1) / EG_LIGHT_BUCKET_SIZE) + 1) : 0u;
+    for (uint bucket = 0; bucket < spotLightsBucketsCount; bucket++)
     {
-        const SpotLight spotLight = g_SpotLights[i];
-        const vec3 incoming = spotLight.Position - worldPos;
-        const bool bCastsShadows = spotLight.bCastsShadows != 0;
-        const float NdotL = clamp(dot(normalize(incoming), geometryNormal), EG_FLT_SMALL, 1.0);
-        const bool bCheckShadows = slShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS;
+        uint bucketBits = g_SpotLightsBuckets[bucketStartIndex + bucket];
+        while(bucketBits > 0)
+        {
+            const uint bucketLightIndex = findLSB(bucketBits);
+            const uint lightIndex = EG_LIGHT_BUCKET_SIZE * bucket + bucketLightIndex;
+            bucketBits ^= (1 << bucketLightIndex);
 
-        if (bCastsShadows)
-        {
-            Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[nonuniformEXT(slShadowMapIndex)], linearDepth,
-#ifdef EG_TRANSLUCENT_SHADOWS
-                g_SpotShadowMapsColored[nonuniformEXT(slShadowMapIndex)], g_SpotShadowMapsColoredDepth[nonuniformEXT(slShadowMapIndex)],
-#endif
-                worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCheckShadows);
-            slShadowMapIndex++;
-        }
-        else
-        {
-            Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[0], linearDepth,
-#ifdef EG_TRANSLUCENT_SHADOWS
-                g_SpotShadowMapsColored[0], g_SpotShadowMapsColoredDepth[0],
-#endif
-                worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, false);
+            const SpotLight spotLight = g_SpotLights[lightIndex];
+            const uint shadowMapIndex = spotLight.ShadowMapIndex;
+            const vec3 incoming = spotLight.Position - worldPos;
+            const bool bCastsShadows = spotLight.bCastsShadows != 0;
+            const float NdotL = clamp(dot(normalize(incoming), geometryNormal), EG_FLT_SMALL, 1.0);
+            const bool bCheckShadows = shadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS;
+
+            if (bCastsShadows)
+            {
+                Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[nonuniformEXT(shadowMapIndex)],
+    #ifdef EG_TRANSLUCENT_SHADOWS
+                    g_SpotShadowMapsColored[nonuniformEXT(shadowMapIndex)], g_SpotShadowMapsColoredDepth[nonuniformEXT(shadowMapIndex)],
+    #endif
+                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCheckShadows);
+            }
+            else
+            {
+                Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[0],
+    #ifdef EG_TRANSLUCENT_SHADOWS
+                    g_SpotShadowMapsColored[0], g_SpotShadowMapsColoredDepth[0],
+    #endif
+                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, false);
+            }
         }
     }
 
     if (g_HasDirLight != 0)
     {
         const vec3 incoming = normalize(-g_DirectionalLight.Direction);
-        Lo += DirectionalLight_Volumetric(g_DirectionalLight, g_DirShadowMaps, linearDepth,
+        Lo += DirectionalLight_Volumetric(g_DirectionalLight, g_DirShadowMaps,
 #ifdef EG_TRANSLUCENT_SHADOWS
             g_DirShadowMapsColored, g_DirShadowMapsColoredDepth,
 #endif

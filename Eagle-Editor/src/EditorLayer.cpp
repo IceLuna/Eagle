@@ -31,6 +31,7 @@ namespace Eagle
 		"Memory consumption: `width * height * layers * 12` bytes";
 	static const char* s_PhysicsDebugTypeHelpMsg = "When `Live` is selected, the data will be sent directly to PhysX Visual Debugger at runtime. Otherwise, it'll be saved to a file which can be opened later. "
 		"The file is saved into `Saved` folder inside your project";
+	static const char* s_VisualizeTilesHelpMsg = "Visualize which pixels are affected by lights. No color or green indicates low number of lights (low shading complexity). The more red, the higher the number (higher shading complexity)";
 
 	static std::mutex s_DeferredCallsMutex;
 	
@@ -1070,6 +1071,8 @@ namespace Eagle
 
 				SceneRendererSettings options = sceneRenderer->GetOptions();
 				if (UI::Property("Visualize CSM", options.bVisualizeCascades, "Red, green, blue, purple. Doesn't work if there's no directional light"))
+					sceneRenderer->SetOptions(options);
+				if (UI::Property("Visualize Light Tiles", options.bVisualizeLightTiles, s_VisualizeTilesHelpMsg))
 					sceneRenderer->SetOptions(options);
 
 				ImGui::EndMenu();

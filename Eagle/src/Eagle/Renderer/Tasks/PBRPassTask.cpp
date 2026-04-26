@@ -40,8 +40,7 @@ namespace Eagle
 			float MaxShadowDistance;
 			float CascadesSmoothTransitionAlpha;
 			float IBLIntensity;
-			uint32_t PointLights;
-			uint32_t SpotLights;
+			uint32_t TilesBufferWidth;
 			uint32_t HasDirLight;
 		} pushData;
 		static_assert(sizeof(PushData) <= 128);
@@ -51,14 +50,14 @@ namespace Eagle
 		const auto& ibl = bHasIrradiance ? iblAsset->GetTexture() : RenderManager::GetDummyIBL();
 		const auto& options = m_Renderer.GetOptions_RT();
 		auto& gbuffer = m_Renderer.GetGBuffer();
+		const Ref<LightCullingTask>& lightCulling = m_Renderer.GetLightCullingTask();
 
 		pushData.CameraPos = m_Renderer.GetViewPosition();
 		pushData.MaxReflectionLOD = float(ibl->GetPrefilterImage()->GetMipsCount() - 1);
 		pushData.MaxShadowDistance = m_Renderer.GetShadowMaxDistance() * m_Renderer.GetShadowMaxDistance();
 		pushData.CascadesSmoothTransitionAlpha = options.InternalState.CascadesSmoothTransitionAlpha;
 		pushData.IBLIntensity = m_Renderer.GetSkyboxIntensity();
-		pushData.PointLights = (uint32_t)m_Renderer.GetPointLights().size();
-		pushData.SpotLights = (uint32_t)m_Renderer.GetSpotLights().size();
+		pushData.TilesBufferWidth = lightCulling->GetTilesBufferWidth();
 		pushData.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());
 
 		const uint32_t newIrradiance = bHasIrradiance ? 1u : 0u;
@@ -79,8 +78,12 @@ namespace Eagle
 									: options.AO == AmbientOcclusion::GTAO ? m_Renderer.GetGTAOResult()
 									: Texture2D::WhiteTexture->GetImage();
 
-		m_Pipeline->SetBuffer(m_Renderer.GetPointLightsBuffer(), EG_SCENE_SET, EG_BINDING_POINT_LIGHTS);
-		m_Pipeline->SetBuffer(m_Renderer.GetSpotLightsBuffer(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHTS);
+		m_Pipeline->SetBuffer(m_Renderer.GetLightMatricesBuffer(), EG_SCENE_SET, EG_BINDING_LIGHT_MATRICES);
+		m_Pipeline->SetBuffer(lightCulling->GetCulledPointLightsBuffer(), EG_SCENE_SET, EG_BINDING_POINT_LIGHTS);
+		m_Pipeline->SetBuffer(lightCulling->GetCulledSpotLightsBuffer(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHTS);
+		m_Pipeline->SetBuffer(lightCulling->GetTiles_Opaque_PL(), EG_SCENE_SET, EG_BINDING_POINT_LIGHT_TILE_BUCKETS);
+		m_Pipeline->SetBuffer(lightCulling->GetTiles_Opaque_SL(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHT_TILE_BUCKETS);
+		m_Pipeline->SetBuffer(lightCulling->GetLightsCountersBuffer(), EG_SCENE_SET, EG_BINDING_LIGHTS_COUNT);
 		m_Pipeline->SetBuffer(m_Renderer.GetDirectionalLightBuffer(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT);
 		m_Pipeline->SetImageSampler(gbuffer.Albedo, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_ALBEDO_ROUGHNESS_TEXTURE);
 		m_Pipeline->SetImageSampler(gbuffer.Normals, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_GEOMETRY_SHADING_NORMALS_TEXTURE);

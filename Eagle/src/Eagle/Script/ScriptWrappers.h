@@ -560,6 +560,8 @@ namespace Eagle::Script
 	bool Eagle_Renderer_GetCSMSmoothTransitionEnabled();
 	void Eagle_Renderer_SetVisualizeCascades(bool value);
 	bool Eagle_Renderer_GetVisualizeCascades();
+	void Eagle_Renderer_SetVisualizeLightTiles(bool value);
+	bool Eagle_Renderer_GetVisualizeLightTiles();
 	void Eagle_Renderer_SetTransparencyLayers(uint32_t value);
 	uint32_t Eagle_Renderer_GetTransparencyLayers();
 	AAMethod Eagle_Renderer_GetAAMethod();

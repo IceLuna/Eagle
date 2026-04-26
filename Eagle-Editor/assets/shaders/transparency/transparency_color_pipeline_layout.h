@@ -4,6 +4,12 @@
 #include "defines.h"
 #include "common_structures.h"
 
+layout(set = EG_SCENE_SET, binding = EG_BINDING_LIGHT_MATRICES)
+readonly buffer LightMatricesBuffer
+{
+	mat4 g_LightMatrices[];
+};
+
 layout(set = EG_SCENE_SET, binding = EG_BINDING_POINT_LIGHTS)
 readonly buffer PointLightsBuffer
 {
@@ -14,6 +20,25 @@ layout(set = EG_SCENE_SET, binding = EG_BINDING_SPOT_LIGHTS)
 readonly buffer SpotLightsBuffer
 {
 	SpotLight g_SpotLights[];
+};
+
+layout(set = EG_SCENE_SET, binding = EG_BINDING_POINT_LIGHT_TILE_BUCKETS)
+readonly buffer PointLightsBucketsBuffer
+{
+	uint g_PointLightsBuckets[];
+};
+
+layout(set = EG_SCENE_SET, binding = EG_BINDING_SPOT_LIGHT_TILE_BUCKETS)
+readonly buffer SpotLightsBucketsBuffer
+{
+	uint g_SpotLightsBuckets[];
+};
+
+layout(set = EG_SCENE_SET, binding = EG_BINDING_LIGHTS_COUNT)
+uniform LightsCounterBuffer
+{
+	uint g_PointLightsCount;
+	uint g_SpotLightsCount;
 };
 
 layout(set = EG_SCENE_SET, binding = EG_BINDING_DIRECTIONAL_LIGHT)

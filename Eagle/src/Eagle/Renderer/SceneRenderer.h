@@ -21,6 +21,7 @@
 #include "Tasks/FogPassTask.h"
 #include "Tasks/SkinCacheTask.h"
 #include "Tasks/FrustumCullingTask.h"
+#include "Tasks/LightCullingTask.h"
 
 namespace Eagle
 {
@@ -65,6 +66,16 @@ namespace Eagle
 		void Resize(const glm::uvec3& size);
 		void Clear(const Ref<CommandBuffer>& cmd);
 		void PrepareForReading(const Ref<CommandBuffer>& cmd);
+	};
+
+	struct CameraData
+	{
+		glm::mat4 View;
+		glm::mat4 InvViewProj;
+		glm::mat4 ViewProj;
+		glm::mat4 PrevViewProj;
+		glm::mat4 Proj;
+		glm::mat4 InvProj;
 	};
 
 	class SceneRenderer : public std::enable_shared_from_this<SceneRenderer>
@@ -167,14 +178,21 @@ namespace Eagle
 		const auto& GetCulledStaticMeshes() const { return m_FrustumCullingTask->GetCulledStaticMeshes(); }
 		const auto& GetCulledSkeletalMeshes() const { return m_FrustumCullingTask->GetCulledSkeletalMeshes(); }
 
+		const auto& GetLightCullingTask() const { return m_LightCullingTask; }
+
 		const auto& GetPointLights() const { return m_LightsManagerTask->GetPointLights(); }
 		const auto& GetSpotLights() const { return m_LightsManagerTask->GetSpotLights(); }
+		const auto& GetCulledPointLights() const { return m_LightCullingTask->GetCulledPointLights(); }
+		const auto& GetCulledSpotLights() const { return m_LightCullingTask->GetCulledSpotLights(); }
 		const auto& GetDirectionalLight() const { return m_LightsManagerTask->GetDirectionalLight(); }
+		const auto& GetLightMatrices() const { return m_LightsManagerTask->GetLightMatrices(); }
+		const auto& GetPointLightMatrices() const { return m_LightsManagerTask->GetPointLightMatrices(); }
 		bool HasDirectionalLight() const { return m_LightsManagerTask->HasDirectionalLight(); }
 
 		const Ref<Buffer>& GetPointLightsBuffer() const { return m_LightsManagerTask->GetPointLightsBuffer(); }
 		const Ref<Buffer>& GetSpotLightsBuffer() const { return m_LightsManagerTask->GetSpotLightsBuffer(); }
 		const Ref<Buffer>& GetDirectionalLightBuffer() const { return m_LightsManagerTask->GetDirectionalLightBuffer(); }
+		const Ref<Buffer>& GetLightMatricesBuffer() const { return m_LightsManagerTask->GetLightMatricesBuffer(); }
 
 		const Ref<Buffer>& GetMeshTransformsBuffer() const { return m_GeometryManagerTask->GetMeshesTransformBuffer(); }
 		const Ref<Buffer>& GetMeshPrevTransformsBuffer() const { return m_GeometryManagerTask->GetMeshesPrevTransformBuffer(); }
@@ -230,10 +248,11 @@ namespace Eagle
 
 		const SceneRendererSettings& GetOptions_RT() const { return m_Options_RT; }
 		const SceneRendererSettings& GetOptions() const { return m_Options; }
-		const glm::mat4& GetViewMatrix() const { return m_View; }
-		const glm::mat4& GetProjectionMatrix() const { return m_Projection; }
-		const glm::mat4& GetViewProjection() const { return m_ViewProjection; }
-		const glm::mat4& GetInverseViewProjection() const { return m_InvViewProjection; }
+		const CameraData& GetCameraMatrices() const { return m_CameraMatrices; }
+		const glm::mat4& GetViewMatrix() const { return m_CameraMatrices.View; }
+		const glm::mat4& GetProjectionMatrix() const { return m_CameraMatrices.Proj; }
+		const glm::mat4& GetViewProjection() const { return m_CameraMatrices.ViewProj; }
+		const glm::mat4& GetInverseViewProjection() const { return m_CameraMatrices.InvViewProj; }
 		const glm::vec3 GetViewPosition() const { return m_ViewPos; }
 		const glm::vec3 GetViewDirection() const { return m_ViewDir; }
 		float GetPhotoLinearScale() const { return m_PhotoLinearScale; }
@@ -295,6 +314,7 @@ namespace Eagle
 		Ref<RendererTask> m_MotionBlurTask;
 		Ref<RendererTask> m_ScreenSpaceReflectionsTask;
 		Ref<FrustumCullingTask> m_FrustumCullingTask;
+		Ref<LightCullingTask> m_LightCullingTask;
 		
 		Ref<Buffer> m_Jitter;
 		Ref<Buffer> m_CameraDataBuffer;
@@ -316,10 +336,7 @@ namespace Eagle
 		std::unordered_map<GUID, std::unordered_map<GUID, std::vector<glm::mat4>>> m_SkeletalParticlesAnimationTransforms;
 
 		SkySettings m_Sky;
-		glm::mat4 m_View = glm::mat4(1.f);
-		glm::mat4 m_Projection = glm::mat4(1.f);
-		glm::mat4 m_ViewProjection = glm::mat4(1.f);
-		glm::mat4 m_InvViewProjection = glm::mat4(1.f);
+		CameraData m_CameraMatrices;
 		glm::vec3 m_ViewPos = glm::vec3(0.f);
 		glm::vec3 m_ViewDir = glm::vec3(0.f);
 

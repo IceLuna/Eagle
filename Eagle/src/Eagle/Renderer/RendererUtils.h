@@ -971,6 +971,7 @@ namespace Eagle
         bool bEnableSoftShadows = true;
         bool bEnableCSMSmoothTransition = true;
         bool bVisualizeCascades = false;
+        bool bVisualizeLightTiles = false;
         bool bEnableObjectPicking = false;
         bool bEnable2DObjectPicking = false;
         bool bSortOpaqueParticles = false;
@@ -1001,6 +1002,7 @@ namespace Eagle
                 bEnableSoftShadows == other.bEnableSoftShadows &&
                 bEnableCSMSmoothTransition == other.bEnableCSMSmoothTransition &&
                 bVisualizeCascades == other.bVisualizeCascades &&
+                bVisualizeLightTiles == other.bVisualizeLightTiles &&
                 bEnableObjectPicking == other.bEnableObjectPicking &&
                 bEnable2DObjectPicking == other.bEnable2DObjectPicking &&
                 bSortOpaqueParticles == other.bSortOpaqueParticles &&

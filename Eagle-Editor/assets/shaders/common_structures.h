@@ -118,37 +118,34 @@ struct ShaderMaterial
 
 struct PointLight
 {
-	mat4 ViewProj[6];
-
 	vec3 Position;
 	float Radius2; // Sign bit is used as a flag for `bCastsShadows`
 
 	vec3 LightColor;
 	float VolumetricFogIntensity; // Sign bit is used as a flag for `bVolumetricLight`
+
+	uint ShadowMapIndex;
+	uint ViewProjOffset; // Note: it's invalid to use it on shader side because point light transforms aren't uploaded. Currently, used to fetch it on the CPU side
+	uint Padding0;
+	uint Padding1;
 };
 
 struct DirectionalLight
 {
-	mat4 ViewProj[EG_CASCADES_COUNT];
 	float CascadePlaneDistances[EG_CASCADES_COUNT];
 
 	vec3 Direction;
-	float VolumetricFogIntensity;
+	uint ViewProjOffset; // Offset into the transforms buffer
 
 	vec3 LightColor;
 	uint bCastsShadows;
 
-	vec3 Specular;
-	uint bVolumetricLight;
-
 	vec3 Ambient;
-	uint unused;
+	float VolumetricFogIntensity; // Sign bit is used as a flag for `bVolumetricLight`
 };
 
 struct SpotLight
 {
-	mat4 ViewProj;
-
 	vec3 Position;
 	float InnerCutOffRadians;
 
@@ -156,12 +153,12 @@ struct SpotLight
 	float OuterCutOffRadians;
 
 	vec3 LightColor;
-	float VolumetricFogIntensity;
+	uint ViewProjOffset; // Offset into the transforms buffer
 
-	float unused1;
+	float VolumetricFogIntensity; // Sign bit is used as a flag for `bVolumetricLight`
 	float Distance2;
 	uint bCastsShadows;
-	uint bVolumetricLight;
+	uint ShadowMapIndex;
 };
 
 #ifndef __cplusplus

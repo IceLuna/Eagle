@@ -179,7 +179,7 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Shadow pass. Handle PointLight Resources");
 		EG_CPU_TIMING_SCOPED("Shadow pass. Handle PointLight Resources");
 
-		const auto& pointLights = m_Renderer.GetPointLights();
+		const auto& pointLights = m_Renderer.GetCulledPointLights();
 		auto& framebuffers = m_PLFramebuffers;
 		auto& shadowMaps = m_PLShadowMaps;
 		auto& coloredShadowMaps = m_PLCShadowMaps;
@@ -194,6 +194,7 @@ namespace Eagle
 		uint32_t pointLightsCount = 0;
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
 		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
+		const auto& plMatrices = m_Renderer.GetPointLightMatrices();
 		for (size_t plIndex = 0; plIndex < pointLights.size(); ++plIndex)
 		{
 			auto& pointLight = pointLights[plIndex];
@@ -202,7 +203,7 @@ namespace Eagle
 
 			for (uint32_t i = 0; i < 6; ++i)
 			{
-				m_PLVPs.push_back(pointLight.ViewProj[i]);
+				m_PLVPs.push_back(plMatrices[pointLight.ViewProjOffset + i]);
 			}
 
 			m_PointLightIndices.push_back(plIndex);
@@ -304,7 +305,7 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Shadow pass. Handle SpotLight Resources");
 		EG_CPU_TIMING_SCOPED("Shadow pass. Handle SpotLight Resources");
 
-		const auto& spotLights = m_Renderer.GetSpotLights();
+		const auto& spotLights = m_Renderer.GetCulledSpotLights();
 		auto& framebuffers = m_SLFramebuffers;
 		auto& shadowMaps = m_SLShadowMaps;
 		auto& coloredShadowMaps = m_SLCShadowMaps;
@@ -569,6 +570,7 @@ namespace Eagle
 
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
 		const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
+		const auto& lightMatrices = m_Renderer.GetLightMatrices();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
 		auto& stats = m_Renderer.GetStats();
 
@@ -582,7 +584,7 @@ namespace Eagle
 			pipeline->SetBuffer(transformsBuffer, 0, 0);
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
-				const auto& viewProj = dirLight.ViewProj[i];
+				const auto& viewProj = lightMatrices[dirLight.ViewProjOffset + i];
 				if (!singleSided.empty())
 				{
 					cmd->SetGraphicsCullMode(CullMode::Front);
@@ -599,6 +601,7 @@ namespace Eagle
 		// For point lights
 		{
 			const auto& framebuffers = m_PLFramebuffers;
+			const auto& pointLights = m_Renderer.GetCulledPointLights();
 			{
 				auto& vpsBuffer = m_PLVPsBuffer;
 				auto& pipeline = m_OpacityMPLPipeline;
@@ -611,6 +614,9 @@ namespace Eagle
 					uint32_t i = 0;
 					for (const auto& index : m_PointLightIndices)
 					{
+						const auto& pointLight = pointLights[index];
+						EG_CORE_ASSERT(pointLight.ShadowMapIndex == i);
+
 						if (!singleSided.empty())
 						{
 							cmd->SetGraphicsCullMode(CullMode::Front);
@@ -629,7 +635,7 @@ namespace Eagle
 
 		// For spot lights
 		{
-			const auto& spotLights = m_Renderer.GetSpotLights();
+			const auto& spotLights = m_Renderer.GetCulledSpotLights();
 			uint32_t spotLightsCount = 0;
 			auto& framebuffers = m_SLFramebuffers;
 			{
@@ -642,8 +648,10 @@ namespace Eagle
 					for (const auto& index : m_SpotLightIndices)
 					{
 						const auto& spotLight = spotLights[index];
-						const auto& viewProj = spotLight.ViewProj;
+						const auto& viewProj = lightMatrices[spotLight.ViewProjOffset];
 						const uint32_t& i = spotLightsCount;
+
+						EG_CORE_ASSERT(spotLight.ShadowMapIndex == i);
 
 						if (!singleSided.empty())
 						{
@@ -674,6 +682,7 @@ namespace Eagle
 
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
 		const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
+		const auto& lightMatrices = m_Renderer.GetLightMatrices();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
 		auto& stats = m_Renderer.GetStats();
 		const uint32_t currentFrameIndex = RenderManager::GetCurrentFrameIndex();
@@ -701,7 +710,7 @@ namespace Eagle
 
 			for (uint32_t i = 0; i < framebuffers.size(); ++i)
 			{
-				const auto& viewProj = dirLight.ViewProj[i];
+				const auto& viewProj = lightMatrices[dirLight.ViewProjOffset + i];
 				cmd->SetGraphicsCullMode(CullMode::Front);
 				RenderMeshesTask::Draw(cmd, pipeline, singleSided, buffers, stats, &viewProj, framebuffers[i]);
 				cmd->SetGraphicsCullMode(CullMode::None);
@@ -748,7 +757,7 @@ namespace Eagle
 
 		// For spot lights
 		{
-			const auto& spotLights = m_Renderer.GetSpotLights();
+			const auto& spotLights = m_Renderer.GetCulledSpotLights();
 			const auto& framebuffers = m_SLCFramebuffers;
 
 			{
@@ -773,12 +782,13 @@ namespace Eagle
 					for (const auto& index : m_SpotLightIndices)
 					{
 						const auto& spotLight = spotLights[index];
+						const auto& viewProj = lightMatrices[spotLight.ViewProjOffset];
 						const uint32_t& i = spotLightsCount;
 
 						cmd->SetGraphicsCullMode(CullMode::Front);
-						RenderMeshesTask::Draw(cmd, pipeline, singleSided, buffers, stats, &spotLight.ViewProj, framebuffers[i]);
+						RenderMeshesTask::Draw(cmd, pipeline, singleSided, buffers, stats, &viewProj, framebuffers[i]);
 						cmd->SetGraphicsCullMode(CullMode::None);
-						RenderMeshesTask::Draw(cmd, pipeline, doubleSided, buffers, stats, &spotLight.ViewProj, framebuffers[i]);
+						RenderMeshesTask::Draw(cmd, pipeline, doubleSided, buffers, stats, &viewProj, framebuffers[i]);
 
 						++spotLightsCount;
 					}
@@ -799,6 +809,7 @@ namespace Eagle
 
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
 		const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
+		const auto& lightMatrices = m_Renderer.GetLightMatrices();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
 		auto& stats = m_Renderer.GetStats();
 
@@ -825,7 +836,7 @@ namespace Eagle
 
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
-				const auto& viewProj = dirLight.ViewProj[i];
+				const auto& viewProj = lightMatrices[dirLight.ViewProjOffset + i];
 				cmd->SetGraphicsCullMode(CullMode::Front);
 				RenderMeshesTask::Draw(cmd, pipeline, singleSided, buffers, stats, &viewProj, m_DLFramebuffers[i]);
 				cmd->SetGraphicsCullMode(CullMode::None);
@@ -872,7 +883,7 @@ namespace Eagle
 
 		// For spot lights
 		{
-			const auto& spotLights = m_Renderer.GetSpotLights();
+			const auto& spotLights = m_Renderer.GetCulledSpotLights();
 			uint32_t spotLightsCount = 0;
 			auto& framebuffers = m_SLFramebuffers;
 			{
@@ -896,12 +907,13 @@ namespace Eagle
 					for (const auto& index : m_SpotLightIndices)
 					{
 						const auto& spotLight = spotLights[index];
+						const auto& viewProj = lightMatrices[spotLight.ViewProjOffset];
 						const uint32_t& i = spotLightsCount;
 
 						cmd->SetGraphicsCullMode(CullMode::Front);
-						RenderMeshesTask::Draw(cmd, pipeline, singleSided, buffers, stats, &spotLight.ViewProj, framebuffers[i]);
+						RenderMeshesTask::Draw(cmd, pipeline, singleSided, buffers, stats, &viewProj, framebuffers[i]);
 						cmd->SetGraphicsCullMode(CullMode::None);
-						RenderMeshesTask::Draw(cmd, pipeline, doubleSided, buffers, stats, &spotLight.ViewProj, framebuffers[i]);
+						RenderMeshesTask::Draw(cmd, pipeline, doubleSided, buffers, stats, &viewProj, framebuffers[i]);
 
 						++spotLightsCount;
 					}
@@ -922,6 +934,7 @@ namespace Eagle
 
 		const auto& skinnedVertices = m_Renderer.GetSkinnedVertices();
 		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
+		const auto& lightMatrices = m_Renderer.GetLightMatrices();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
 		auto& stats = m_Renderer.GetStats();
 
@@ -935,7 +948,7 @@ namespace Eagle
 			pipeline->SetBuffer(skinnedVertices, 0, 0);
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
-				const auto& viewProj = dirLight.ViewProj[i];
+				const auto& viewProj = lightMatrices[dirLight.ViewProjOffset + i];
 				cmd->SetGraphicsCullMode(CullMode::Front);
 				RenderSkeletalMeshesTask::Draw(cmd, pipeline, singleSided, buffers, stats, DataBufferView(&viewProj, sizeof(viewProj)), m_DLFramebuffers[i]);
 				cmd->SetGraphicsCullMode(CullMode::None);
@@ -971,7 +984,7 @@ namespace Eagle
 
 		// For spot lights
 		{
-			const auto& spotLights = m_Renderer.GetSpotLights();
+			const auto& spotLights = m_Renderer.GetCulledSpotLights();
 			uint32_t spotLightsCount = 0;
 			auto& framebuffers = m_SLFramebuffers;
 			{
@@ -984,7 +997,7 @@ namespace Eagle
 					for (const auto& index : m_SpotLightIndices)
 					{
 						const auto& spotLight = spotLights[index];
-						const auto& viewProj = spotLight.ViewProj;
+						const auto& viewProj = lightMatrices[spotLight.ViewProjOffset];
 						const uint32_t& i = spotLightsCount;
 
 						cmd->SetGraphicsCullMode(CullMode::Front);
@@ -1011,6 +1024,7 @@ namespace Eagle
 
 		const auto& skinnedVertices = m_Renderer.GetSkinnedVertices();
 		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
+		const auto& lightMatrices = m_Renderer.GetLightMatrices();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
 		auto& stats = m_Renderer.GetStats();
 		const uint32_t currentFrameIndex = RenderManager::GetCurrentFrameIndex();
@@ -1039,7 +1053,7 @@ namespace Eagle
 
 			for (uint32_t i = 0; i < framebuffers.size(); ++i)
 			{
-				const auto& viewProj = dirLight.ViewProj[i];
+				const auto& viewProj = lightMatrices[dirLight.ViewProjOffset + i];
 				cmd->SetGraphicsCullMode(CullMode::Front);
 				RenderSkeletalMeshesTask::Draw(cmd, pipeline, singleSided, buffers, stats, DataBufferView(&viewProj, sizeof(viewProj)), framebuffers[i]);
 				cmd->SetGraphicsCullMode(CullMode::None);
@@ -1087,7 +1101,7 @@ namespace Eagle
 
 		// For spot lights
 		{
-			const auto& spotLights = m_Renderer.GetSpotLights();
+			const auto& spotLights = m_Renderer.GetCulledSpotLights();
 			const auto& framebuffers = m_SLCFramebuffers;
 
 			{
@@ -1113,7 +1127,7 @@ namespace Eagle
 					for (const auto& index : m_SpotLightIndices)
 					{
 						const auto& spotLight = spotLights[index];
-						const auto& viewProj = spotLight.ViewProj;
+						const auto& viewProj = lightMatrices[spotLight.ViewProjOffset];
 						const uint32_t& i = spotLightsCount;
 
 						cmd->SetGraphicsCullMode(CullMode::Front);
@@ -1140,6 +1154,7 @@ namespace Eagle
 
 		const auto& skinnedVertices = m_Renderer.GetSkinnedVertices();
 		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
+		const auto& lightMatrices = m_Renderer.GetLightMatrices();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
 		auto& stats = m_Renderer.GetStats();
 
@@ -1168,7 +1183,7 @@ namespace Eagle
 
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
-				const auto& viewProj = dirLight.ViewProj[i];
+				const auto& viewProj = lightMatrices[dirLight.ViewProjOffset + i];
 				cmd->SetGraphicsCullMode(CullMode::Front);
 				RenderSkeletalMeshesTask::Draw(cmd, pipeline, singleSided, buffers, stats, DataBufferView(&viewProj, sizeof(viewProj)), m_DLFramebuffers[i]);
 				cmd->SetGraphicsCullMode(CullMode::None);
@@ -1217,7 +1232,7 @@ namespace Eagle
 
 		// For spot lights
 		{
-			const auto& spotLights = m_Renderer.GetSpotLights();
+			const auto& spotLights = m_Renderer.GetCulledSpotLights();
 			uint32_t spotLightsCount = 0;
 			auto& framebuffers = m_SLFramebuffers;
 			{
@@ -1242,7 +1257,7 @@ namespace Eagle
 					for (const auto& index : m_SpotLightIndices)
 					{
 						const auto& spotLight = spotLights[index];
-						const auto& viewProj = spotLight.ViewProj;
+						const auto& viewProj = lightMatrices[spotLight.ViewProjOffset];
 						const uint32_t& i = spotLightsCount;
 
 						cmd->SetGraphicsCullMode(CullMode::Front);
@@ -1269,6 +1284,7 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Opacity Sprites shadow pass");
 
 		const auto& transformsBuffer = m_Renderer.GetSpritesTransformsBuffer();
+		const auto& lightMatrices = m_Renderer.GetLightMatrices();
 		auto& stats = m_Renderer.GetStats();
 
 		// For directional light
@@ -1282,10 +1298,11 @@ namespace Eagle
 			pipeline->SetBuffer(transformsBuffer, 0, 0);
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
+				const auto& viewProj = lightMatrices[dirLight.ViewProjOffset + i];
 				cmd->SetGraphicsCullMode(CullMode::Front);
-				RenderSpritesTask::Draw(cmd, pipeline, singleSided.Opaque.ShadowCastingQuads, &dirLight.ViewProj[i], stats, m_DLFramebuffers[i]);
+				RenderSpritesTask::Draw(cmd, pipeline, singleSided.Opaque.ShadowCastingQuads, &viewProj, stats, m_DLFramebuffers[i]);
 				cmd->SetGraphicsCullMode(CullMode::None);
-				RenderSpritesTask::Draw(cmd, pipeline, doubleSided.Opaque.ShadowCastingQuads, &dirLight.ViewProj[i], stats, m_DLFramebuffers[i]);
+				RenderSpritesTask::Draw(cmd, pipeline, doubleSided.Opaque.ShadowCastingQuads, &viewProj, stats, m_DLFramebuffers[i]);
 			}
 		}
 
@@ -1318,7 +1335,7 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "Opacity Sprites: Spot Lights Shadow pass");
 			EG_CPU_TIMING_SCOPED("Opacity Sprites: Spot Lights Shadow pass");
 
-			const auto& spotLights = m_Renderer.GetSpotLights();
+			const auto& spotLights = m_Renderer.GetCulledSpotLights();
 			uint32_t spotLightsCount = 0;
 			auto& framebuffers = m_SLFramebuffers;
 
@@ -1328,12 +1345,13 @@ namespace Eagle
 			for (const auto& index : m_SpotLightIndices)
 			{
 				const auto& spotLight = spotLights[index];
+				const auto& viewProj = lightMatrices[spotLight.ViewProjOffset];
 				const uint32_t& i = spotLightsCount;
 
 				cmd->SetGraphicsCullMode(CullMode::Front);
-				RenderSpritesTask::Draw(cmd, pipeline, singleSided.Opaque.ShadowCastingQuads, &spotLight.ViewProj, stats, framebuffers[i]);
+				RenderSpritesTask::Draw(cmd, pipeline, singleSided.Opaque.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
 				cmd->SetGraphicsCullMode(CullMode::None);
-				RenderSpritesTask::Draw(cmd, pipeline, doubleSided.Opaque.ShadowCastingQuads, &spotLight.ViewProj, stats, framebuffers[i]);
+				RenderSpritesTask::Draw(cmd, pipeline, doubleSided.Opaque.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
 
 				++spotLightsCount;
 			}
@@ -1352,6 +1370,7 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Translucent Sprites shadow pass");
 
 		const auto& transformsBuffer = m_Renderer.GetSpritesTransformsBuffer();
+		const auto& lightMatrices = m_Renderer.GetLightMatrices();
 		auto& stats = m_Renderer.GetStats();
 
 		const uint32_t currentFrameIndex = RenderManager::GetCurrentFrameIndex();
@@ -1379,10 +1398,11 @@ namespace Eagle
 
 			for (uint32_t i = 0; i < framebuffers.size(); ++i)
 			{
+				const auto& viewProj = lightMatrices[dirLight.ViewProjOffset + i];
 				cmd->SetGraphicsCullMode(CullMode::Front);
-				RenderSpritesTask::Draw(cmd, pipeline, singleSided.Translucent.ShadowCastingQuads, &dirLight.ViewProj[i], stats, framebuffers[i]);
+				RenderSpritesTask::Draw(cmd, pipeline, singleSided.Translucent.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
 				cmd->SetGraphicsCullMode(CullMode::None);
-				RenderSpritesTask::Draw(cmd, pipeline, doubleSided.Translucent.ShadowCastingQuads, &dirLight.ViewProj[i], stats, framebuffers[i]);
+				RenderSpritesTask::Draw(cmd, pipeline, doubleSided.Translucent.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
 			}
 		}
 
@@ -1434,7 +1454,7 @@ namespace Eagle
 				EG_GPU_TIMING_SCOPED(cmd, "Translucent Sprites: Spot Lights Shadow pass");
 				EG_CPU_TIMING_SCOPED("Translucent Sprites: Spot Lights Shadow pass");
 
-				auto& spotLights = m_Renderer.GetSpotLights();
+				auto& spotLights = m_Renderer.GetCulledSpotLights();
 				auto& pipeline = m_TranslucentSSLPipeline;
 
 				const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
@@ -1453,12 +1473,13 @@ namespace Eagle
 				for (const auto& index : m_SpotLightIndices)
 				{
 					const auto& spotLight = spotLights[index];
+					const auto& viewProj = lightMatrices[spotLight.ViewProjOffset];
 					const uint32_t& i = spotLightsCount;
 
 					cmd->SetGraphicsCullMode(CullMode::Front);
-					RenderSpritesTask::Draw(cmd, pipeline, singleSided.Translucent.ShadowCastingQuads, &spotLight.ViewProj, stats, framebuffers[i]);
+					RenderSpritesTask::Draw(cmd, pipeline, singleSided.Translucent.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
 					cmd->SetGraphicsCullMode(CullMode::None);
-					RenderSpritesTask::Draw(cmd, pipeline, doubleSided.Translucent.ShadowCastingQuads, &spotLight.ViewProj, stats, framebuffers[i]);
+					RenderSpritesTask::Draw(cmd, pipeline, doubleSided.Translucent.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
 
 					++spotLightsCount;
 				}
@@ -1478,6 +1499,7 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Masked Sprites shadow pass");
 
 		const auto& transformsBuffer = m_Renderer.GetSpritesTransformsBuffer();
+		const auto& lightMatrices = m_Renderer.GetLightMatrices();
 		auto& stats = m_Renderer.GetStats();
 
 		const uint32_t currentFrameIndex = RenderManager::GetCurrentFrameIndex();
@@ -1503,10 +1525,11 @@ namespace Eagle
 			pipeline->SetBuffer(transformsBuffer, 1, 0);
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
+				const auto& viewProj = lightMatrices[dirLight.ViewProjOffset + i];
 				cmd->SetGraphicsCullMode(CullMode::Front);
-				RenderSpritesTask::Draw(cmd, pipeline, singleSided.Masked.ShadowCastingQuads, &dirLight.ViewProj[i], stats, m_DLFramebuffers[i]);
+				RenderSpritesTask::Draw(cmd, pipeline, singleSided.Masked.ShadowCastingQuads, &viewProj, stats, m_DLFramebuffers[i]);
 				cmd->SetGraphicsCullMode(CullMode::None);
-				RenderSpritesTask::Draw(cmd, pipeline, doubleSided.Masked.ShadowCastingQuads, &dirLight.ViewProj[i], stats, m_DLFramebuffers[i]);
+				RenderSpritesTask::Draw(cmd, pipeline, doubleSided.Masked.ShadowCastingQuads, &viewProj, stats, m_DLFramebuffers[i]);
 			}
 		}
 
@@ -1550,7 +1573,7 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "Masked Sprites: Spot Lights Shadow pass");
 			EG_CPU_TIMING_SCOPED("Masked Sprites: Spot Lights Shadow pass");
 
-			auto& spotLights = m_Renderer.GetSpotLights();
+			auto& spotLights = m_Renderer.GetCulledSpotLights();
 			uint32_t spotLightsCount = 0;
 			auto& framebuffers = m_SLFramebuffers;
 			auto& pipeline = m_MaskedSSLPipeline;
@@ -1570,12 +1593,13 @@ namespace Eagle
 			for (auto& index : m_SpotLightIndices)
 			{
 				auto& spotLight = spotLights[index];
+				const auto& viewProj = lightMatrices[spotLight.ViewProjOffset];
 				const uint32_t& i = spotLightsCount;
 
 				cmd->SetGraphicsCullMode(CullMode::Front);
-				RenderSpritesTask::Draw(cmd, pipeline, singleSided.Opaque.ShadowCastingQuads, &spotLight.ViewProj, stats, framebuffers[i]);
+				RenderSpritesTask::Draw(cmd, pipeline, singleSided.Opaque.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
 				cmd->SetGraphicsCullMode(CullMode::None);
-				RenderSpritesTask::Draw(cmd, pipeline, doubleSided.Opaque.ShadowCastingQuads, &spotLight.ViewProj, stats, framebuffers[i]);
+				RenderSpritesTask::Draw(cmd, pipeline, doubleSided.Opaque.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
 
 				++spotLightsCount;
 			}
@@ -1593,6 +1617,7 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Opaque Lit Texts shadow pass");
 
 		const auto& transformsBuffer = m_Renderer.GetTextsTransformsBuffer();
+		const auto& lightMatrices = m_Renderer.GetLightMatrices();
 		auto& stats = m_Renderer.GetStats();
 
 		// For directional light
@@ -1607,10 +1632,11 @@ namespace Eagle
 			pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
+				const auto& viewProj = lightMatrices[dirLight.ViewProjOffset + i];
 				cmd->SetGraphicsCullMode(CullMode::Front);
-				RenderTextLitTask::Draw(cmd, pipeline, singleSided.Opaque.ShadowCastingQuads, &dirLight.ViewProj[i], stats, m_DLFramebuffers[i]);
+				RenderTextLitTask::Draw(cmd, pipeline, singleSided.Opaque.ShadowCastingQuads, &viewProj, stats, m_DLFramebuffers[i]);
 				cmd->SetGraphicsCullMode(CullMode::None);
-				RenderTextLitTask::Draw(cmd, pipeline, doubleSided.Opaque.ShadowCastingQuads, &dirLight.ViewProj[i], stats, m_DLFramebuffers[i]);
+				RenderTextLitTask::Draw(cmd, pipeline, doubleSided.Opaque.ShadowCastingQuads, &viewProj, stats, m_DLFramebuffers[i]);
 			}
 		}
 
@@ -1644,7 +1670,7 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "Opaque Lit Texts: Spot Lights Shadow pass");
 			EG_CPU_TIMING_SCOPED("Opaque Lit Texts: Spot Lights Shadow pass");
 
-			auto& spotLights = m_Renderer.GetSpotLights();
+			auto& spotLights = m_Renderer.GetCulledSpotLights();
 			uint32_t spotLightsCount = 0;
 			auto& framebuffers = m_SLFramebuffers;
 			auto& pipeline = m_OpaqueLitTSLPipeline;
@@ -1654,12 +1680,13 @@ namespace Eagle
 			for (const auto& index : m_SpotLightIndices)
 			{
 				const auto& spotLight = spotLights[index];
+				const auto& viewProj = lightMatrices[spotLight.ViewProjOffset];
 				const uint32_t& i = spotLightsCount;
 
 				cmd->SetGraphicsCullMode(CullMode::Front);
-				RenderTextLitTask::Draw(cmd, pipeline, singleSided.Opaque.ShadowCastingQuads, &spotLight.ViewProj, stats, framebuffers[i]);
+				RenderTextLitTask::Draw(cmd, pipeline, singleSided.Opaque.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
 				cmd->SetGraphicsCullMode(CullMode::None);
-				RenderTextLitTask::Draw(cmd, pipeline, doubleSided.Opaque.ShadowCastingQuads, &spotLight.ViewProj, stats, framebuffers[i]);
+				RenderTextLitTask::Draw(cmd, pipeline, doubleSided.Opaque.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
 
 				++spotLightsCount;
 			}
@@ -1677,6 +1704,7 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Translucent Lit Texts shadow pass");
 
 		const auto& transformsBuffer = m_Renderer.GetTextsTransformsBuffer();
+		const auto& lightMatrices = m_Renderer.GetLightMatrices();
 		auto& stats = m_Renderer.GetStats();
 
 		const uint32_t currentFrameIndex = RenderManager::GetCurrentFrameIndex();
@@ -1705,10 +1733,11 @@ namespace Eagle
 
 			for (uint32_t i = 0; i < framebuffers.size(); ++i)
 			{
+				const auto& viewProj = lightMatrices[dirLight.ViewProjOffset + i];
 				cmd->SetGraphicsCullMode(CullMode::Front);
-				RenderTextLitTask::Draw(cmd, pipeline, singleSided.Translucent.ShadowCastingQuads, &dirLight.ViewProj[i], stats, framebuffers[i]);
+				RenderTextLitTask::Draw(cmd, pipeline, singleSided.Translucent.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
 				cmd->SetGraphicsCullMode(CullMode::None);
-				RenderTextLitTask::Draw(cmd, pipeline, doubleSided.Translucent.ShadowCastingQuads, &dirLight.ViewProj[i], stats, framebuffers[i]);
+				RenderTextLitTask::Draw(cmd, pipeline, doubleSided.Translucent.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
 			}
 		}
 
@@ -1761,7 +1790,7 @@ namespace Eagle
 				EG_GPU_TIMING_SCOPED(cmd, "Translucent Lit Texts: Spot Lights Shadow pass");
 				EG_CPU_TIMING_SCOPED("Translucent Lit Texts: Spot Lights Shadow pass");
 
-				auto& spotLights = m_Renderer.GetSpotLights();
+				auto& spotLights = m_Renderer.GetCulledSpotLights();
 
 				auto& pipeline = m_TranslucentLitTSLPipeline;
 
@@ -1781,12 +1810,13 @@ namespace Eagle
 				for (const auto& index : m_SpotLightIndices)
 				{
 					const auto& spotLight = spotLights[index];
+					const auto& viewProj = lightMatrices[spotLight.ViewProjOffset];
 					const uint32_t& i = spotLightsCount;
 
 					cmd->SetGraphicsCullMode(CullMode::Front);
-					RenderTextLitTask::Draw(cmd, pipeline, singleSided.Translucent.ShadowCastingQuads, &spotLight.ViewProj, stats, framebuffers[i]);
+					RenderTextLitTask::Draw(cmd, pipeline, singleSided.Translucent.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
 					cmd->SetGraphicsCullMode(CullMode::None);
-					RenderTextLitTask::Draw(cmd, pipeline, doubleSided.Translucent.ShadowCastingQuads, &spotLight.ViewProj, stats, framebuffers[i]);
+					RenderTextLitTask::Draw(cmd, pipeline, doubleSided.Translucent.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
 
 					++spotLightsCount;
 				}
@@ -1805,6 +1835,7 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Masked Lit Texts shadow pass");
 
 		const auto& transformsBuffer = m_Renderer.GetTextsTransformsBuffer();
+		const auto& lightMatrices = m_Renderer.GetLightMatrices();
 		auto& stats = m_Renderer.GetStats();
 
 		const uint32_t currentFrameIndex = RenderManager::GetCurrentFrameIndex();
@@ -1831,10 +1862,11 @@ namespace Eagle
 
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
+				const auto& viewProj = lightMatrices[dirLight.ViewProjOffset + i];
 				cmd->SetGraphicsCullMode(CullMode::Front);
-				RenderTextLitTask::Draw(cmd, pipeline, singleSided.Masked.ShadowCastingQuads, &dirLight.ViewProj[i], stats, m_DLFramebuffers[i]);
+				RenderTextLitTask::Draw(cmd, pipeline, singleSided.Masked.ShadowCastingQuads, &viewProj, stats, m_DLFramebuffers[i]);
 				cmd->SetGraphicsCullMode(CullMode::None);
-				RenderTextLitTask::Draw(cmd, pipeline, doubleSided.Masked.ShadowCastingQuads, &dirLight.ViewProj[i], stats, m_DLFramebuffers[i]);
+				RenderTextLitTask::Draw(cmd, pipeline, doubleSided.Masked.ShadowCastingQuads, &viewProj, stats, m_DLFramebuffers[i]);
 			}
 		}
 
@@ -1879,7 +1911,7 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "Masked Lit Texts: Spot Lights Shadow pass");
 			EG_CPU_TIMING_SCOPED("Masked Lit Texts: Spot Lights Shadow pass");
 
-			auto& spotLights = m_Renderer.GetSpotLights();
+			auto& spotLights = m_Renderer.GetCulledSpotLights();
 			uint32_t spotLightsCount = 0;
 			auto& framebuffers = m_SLFramebuffers;
 			auto& pipeline = m_MaskedLitTSLPipeline;
@@ -1899,12 +1931,13 @@ namespace Eagle
 			for (const auto& index : m_SpotLightIndices)
 			{
 				const auto& spotLight = spotLights[index];
+				const auto& viewProj = lightMatrices[spotLight.ViewProjOffset];
 				const uint32_t& i = spotLightsCount;
 
 				cmd->SetGraphicsCullMode(CullMode::Front);
-				RenderTextLitTask::Draw(cmd, pipeline, singleSided.Masked.ShadowCastingQuads, &spotLight.ViewProj, stats, framebuffers[i]);
+				RenderTextLitTask::Draw(cmd, pipeline, singleSided.Masked.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
 				cmd->SetGraphicsCullMode(CullMode::None);
-				RenderTextLitTask::Draw(cmd, pipeline, doubleSided.Masked.ShadowCastingQuads, &spotLight.ViewProj, stats, framebuffers[i]);
+				RenderTextLitTask::Draw(cmd, pipeline, doubleSided.Masked.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
 
 				++spotLightsCount;
 			}
@@ -1923,6 +1956,7 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Unlit Texts shadow pass");
 
 		const auto& transformsBuffer = m_Renderer.GetTextsTransformsBuffer();
+		const auto& lightMatrices = m_Renderer.GetLightMatrices();
 		auto& stats = m_Renderer.GetStats();
 
 		// For directional light
@@ -1937,10 +1971,11 @@ namespace Eagle
 			pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
+				const auto& viewProj = lightMatrices[dirLight.ViewProjOffset + i];
 				cmd->SetGraphicsCullMode(CullMode::Front);
-				RenderTextUnlitTask::Draw(cmd, pipeline, singleSided.Opaque.ShadowCastingQuads, &dirLight.ViewProj[i], stats, m_DLFramebuffers[i]);
+				RenderTextUnlitTask::Draw(cmd, pipeline, singleSided.Opaque.ShadowCastingQuads, &viewProj, stats, m_DLFramebuffers[i]);
 				cmd->SetGraphicsCullMode(CullMode::None);
-				RenderTextUnlitTask::Draw(cmd, pipeline, doubleSided.Opaque.ShadowCastingQuads, &dirLight.ViewProj[i], stats, m_DLFramebuffers[i]);
+				RenderTextUnlitTask::Draw(cmd, pipeline, doubleSided.Opaque.ShadowCastingQuads, &viewProj, stats, m_DLFramebuffers[i]);
 			}
 		}
 
@@ -1975,7 +2010,7 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "Unlit Texts: Spot Lights Shadow pass");
 			EG_CPU_TIMING_SCOPED("Unlit Texts: Spot Lights Shadow pass");
 
-			auto& spotLights = m_Renderer.GetSpotLights();
+			auto& spotLights = m_Renderer.GetCulledSpotLights();
 			uint32_t spotLightsCount = 0;
 			auto& framebuffers = m_SLFramebuffers;
 			auto& pipeline = m_UnlitTSLPipeline;
@@ -1985,12 +2020,13 @@ namespace Eagle
 			for (auto& index : m_SpotLightIndices)
 			{
 				auto& spotLight = spotLights[index];
+				const auto& viewProj = lightMatrices[spotLight.ViewProjOffset];
 				const uint32_t& i = spotLightsCount;
 
 				cmd->SetGraphicsCullMode(CullMode::Front);
-				RenderTextUnlitTask::Draw(cmd, pipeline, singleSided.Opaque.ShadowCastingQuads, &spotLight.ViewProj, stats, framebuffers[i]);
+				RenderTextUnlitTask::Draw(cmd, pipeline, singleSided.Opaque.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
 				cmd->SetGraphicsCullMode(CullMode::None);
-				RenderTextUnlitTask::Draw(cmd, pipeline, doubleSided.Opaque.ShadowCastingQuads, &spotLight.ViewProj, stats, framebuffers[i]);
+				RenderTextUnlitTask::Draw(cmd, pipeline, doubleSided.Opaque.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
 
 				++spotLightsCount;
 			}

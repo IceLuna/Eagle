@@ -1476,7 +1476,7 @@ namespace Eagle
 				}
 			}
 
-			// Debug spot lights attenuation distance
+			// Debug reverb boxes distance
 			{
 				for (auto& reverbEntityID : m_ReverbDebugBoxes)
 				{

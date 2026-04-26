@@ -27,8 +27,7 @@ namespace Eagle
 		float MaxShadowDistance2; // Square of distance
 		float CascadesSmoothTransitionAlpha;
 		float IBLIntensity;
-		uint32_t PointLights;
-		uint32_t SpotLights;
+		uint32_t TilesWidthBuffer;
 		uint32_t HasDirLight;
 	};
 	
@@ -329,9 +328,14 @@ namespace Eagle
 		const auto& ibl = bHasIrradiance ? iblAsset->GetTexture() : RenderManager::GetDummyIBL();
 		
 		const Ref<Image>& smDistribution = bSoftShadows ? m_Renderer.GetSMDistribution() : RenderManager::GetDummyImage3D();
-		
-		m_MeshesColorPipeline->SetBuffer(m_Renderer.GetPointLightsBuffer(), EG_SCENE_SET, EG_BINDING_POINT_LIGHTS);
-		m_MeshesColorPipeline->SetBuffer(m_Renderer.GetSpotLightsBuffer(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHTS);
+		const Ref<LightCullingTask>& lightCulling = m_Renderer.GetLightCullingTask();
+
+		m_MeshesColorPipeline->SetBuffer(m_Renderer.GetLightMatricesBuffer(), EG_SCENE_SET, EG_BINDING_LIGHT_MATRICES);
+		m_MeshesColorPipeline->SetBuffer(lightCulling->GetCulledPointLightsBuffer(), EG_SCENE_SET, EG_BINDING_POINT_LIGHTS);
+		m_MeshesColorPipeline->SetBuffer(lightCulling->GetCulledSpotLightsBuffer(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHTS);
+		m_MeshesColorPipeline->SetBuffer(lightCulling->GetTiles_Translucent_PL(), EG_SCENE_SET, EG_BINDING_POINT_LIGHT_TILE_BUCKETS);
+		m_MeshesColorPipeline->SetBuffer(lightCulling->GetTiles_Translucent_SL(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHT_TILE_BUCKETS);
+		m_MeshesColorPipeline->SetBuffer(lightCulling->GetLightsCountersBuffer(), EG_SCENE_SET, EG_BINDING_LIGHTS_COUNT);
 		m_MeshesColorPipeline->SetBuffer(m_Renderer.GetDirectionalLightBuffer(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT);
 		m_MeshesColorPipeline->SetImageSampler(ibl->GetIrradianceImage(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 1);
 		m_MeshesColorPipeline->SetImageSampler(ibl->GetPrefilterImage(), ibl->GetPrefilterImageSampler(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 2);
@@ -382,9 +386,14 @@ namespace Eagle
 		const bool bHasIrradiance = m_Renderer.IsSkyboxEnabled() && iblAsset.operator bool() && iblAsset->GetTexture()->IsLoaded();
 		const auto& ibl = bHasIrradiance ? iblAsset->GetTexture() : RenderManager::GetDummyIBL();
 		const Ref<Image>& smDistribution = bSoftShadows ? m_Renderer.GetSMDistribution() : RenderManager::GetDummyImage3D();
-		
-		m_SkeletalMeshesColorPipeline->SetBuffer(m_Renderer.GetPointLightsBuffer(), EG_SCENE_SET, EG_BINDING_POINT_LIGHTS);
-		m_SkeletalMeshesColorPipeline->SetBuffer(m_Renderer.GetSpotLightsBuffer(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHTS);
+		const Ref<LightCullingTask>& lightCulling = m_Renderer.GetLightCullingTask();
+
+		m_SkeletalMeshesColorPipeline->SetBuffer(m_Renderer.GetLightMatricesBuffer(), EG_SCENE_SET, EG_BINDING_LIGHT_MATRICES);
+		m_SkeletalMeshesColorPipeline->SetBuffer(lightCulling->GetCulledPointLightsBuffer(), EG_SCENE_SET, EG_BINDING_POINT_LIGHTS);
+		m_SkeletalMeshesColorPipeline->SetBuffer(lightCulling->GetCulledSpotLightsBuffer(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHTS);
+		m_SkeletalMeshesColorPipeline->SetBuffer(lightCulling->GetTiles_Translucent_PL(), EG_SCENE_SET, EG_BINDING_POINT_LIGHT_TILE_BUCKETS);
+		m_SkeletalMeshesColorPipeline->SetBuffer(lightCulling->GetTiles_Translucent_SL(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHT_TILE_BUCKETS);
+		m_SkeletalMeshesColorPipeline->SetBuffer(lightCulling->GetLightsCountersBuffer(), EG_SCENE_SET, EG_BINDING_LIGHTS_COUNT);
 		m_SkeletalMeshesColorPipeline->SetBuffer(m_Renderer.GetDirectionalLightBuffer(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT);
 		m_SkeletalMeshesColorPipeline->SetImageSampler(ibl->GetIrradianceImage(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 1);
 		m_SkeletalMeshesColorPipeline->SetImageSampler(ibl->GetPrefilterImage(), ibl->GetPrefilterImageSampler(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 2);
@@ -449,9 +458,14 @@ namespace Eagle
 		
 		const Ref<Image>& smDistribution = m_Renderer.GetSMDistribution();
 		const Ref<Image>& smDistributionToUse = smDistribution.operator bool() ? smDistribution : RenderManager::GetDummyImage3D();
-		
-		m_SpritesColorPipeline->SetBuffer(m_Renderer.GetPointLightsBuffer(), EG_SCENE_SET, EG_BINDING_POINT_LIGHTS);
-		m_SpritesColorPipeline->SetBuffer(m_Renderer.GetSpotLightsBuffer(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHTS);
+		const Ref<LightCullingTask>& lightCulling = m_Renderer.GetLightCullingTask();
+
+		m_SpritesColorPipeline->SetBuffer(m_Renderer.GetLightMatricesBuffer(), EG_SCENE_SET, EG_BINDING_LIGHT_MATRICES);
+		m_SpritesColorPipeline->SetBuffer(lightCulling->GetCulledPointLightsBuffer(), EG_SCENE_SET, EG_BINDING_POINT_LIGHTS);
+		m_SpritesColorPipeline->SetBuffer(lightCulling->GetCulledSpotLightsBuffer(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHTS);
+		m_SpritesColorPipeline->SetBuffer(lightCulling->GetTiles_Translucent_PL(), EG_SCENE_SET, EG_BINDING_POINT_LIGHT_TILE_BUCKETS);
+		m_SpritesColorPipeline->SetBuffer(lightCulling->GetTiles_Translucent_SL(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHT_TILE_BUCKETS);
+		m_SpritesColorPipeline->SetBuffer(lightCulling->GetLightsCountersBuffer(), EG_SCENE_SET, EG_BINDING_LIGHTS_COUNT);
 		m_SpritesColorPipeline->SetBuffer(m_Renderer.GetDirectionalLightBuffer(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT);
 		m_SpritesColorPipeline->SetImageSampler(ibl->GetIrradianceImage(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 1);
 		m_SpritesColorPipeline->SetImageSampler(ibl->GetPrefilterImage(), ibl->GetPrefilterImageSampler(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 2);
@@ -506,9 +520,14 @@ namespace Eagle
 
 		const Ref<Image>& smDistribution = m_Renderer.GetSMDistribution();
 		const Ref<Image>& smDistributionToUse = smDistribution.operator bool() ? smDistribution : RenderManager::GetDummyImage3D();
+		const Ref<LightCullingTask>& lightCulling = m_Renderer.GetLightCullingTask();
 
-		m_TextColorPipeline->SetBuffer(m_Renderer.GetPointLightsBuffer(), EG_SCENE_SET, EG_BINDING_POINT_LIGHTS);
-		m_TextColorPipeline->SetBuffer(m_Renderer.GetSpotLightsBuffer(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHTS);
+		m_TextColorPipeline->SetBuffer(m_Renderer.GetLightMatricesBuffer(), EG_SCENE_SET, EG_BINDING_LIGHT_MATRICES);
+		m_TextColorPipeline->SetBuffer(lightCulling->GetCulledPointLightsBuffer(), EG_SCENE_SET, EG_BINDING_POINT_LIGHTS);
+		m_TextColorPipeline->SetBuffer(lightCulling->GetCulledSpotLightsBuffer(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHTS);
+		m_TextColorPipeline->SetBuffer(lightCulling->GetTiles_Translucent_PL(), EG_SCENE_SET, EG_BINDING_POINT_LIGHT_TILE_BUCKETS);
+		m_TextColorPipeline->SetBuffer(lightCulling->GetTiles_Translucent_SL(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHT_TILE_BUCKETS);
+		m_TextColorPipeline->SetBuffer(lightCulling->GetLightsCountersBuffer(), EG_SCENE_SET, EG_BINDING_LIGHTS_COUNT);
 		m_TextColorPipeline->SetBuffer(m_Renderer.GetDirectionalLightBuffer(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT);
 		m_TextColorPipeline->SetImageSampler(ibl->GetIrradianceImage(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 1);
 		m_TextColorPipeline->SetImageSampler(ibl->GetPrefilterImage(), ibl->GetPrefilterImageSampler(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 2);
@@ -714,8 +733,7 @@ namespace Eagle
 		uniforms.MaxShadowDistance2 = m_Renderer.GetShadowMaxDistance() * m_Renderer.GetShadowMaxDistance();
 		uniforms.CascadesSmoothTransitionAlpha = m_Renderer.GetOptions_RT().InternalState.CascadesSmoothTransitionAlpha;
 		uniforms.IBLIntensity = m_Renderer.GetSkyboxIntensity();
-		uniforms.PointLights = (uint32_t)m_Renderer.GetPointLights().size();
-		uniforms.SpotLights = (uint32_t)m_Renderer.GetSpotLights().size();
+		uniforms.TilesWidthBuffer = m_Renderer.GetLightCullingTask()->GetTilesBufferWidth();
 		uniforms.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());
 		cmd->Write(m_UniformBuffer, &uniforms, sizeof(UniformData), 0, m_UniformBuffer->GetLayout(), BufferReadAccess::Uniform);
 

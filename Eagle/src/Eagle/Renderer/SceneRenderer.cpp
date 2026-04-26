@@ -29,14 +29,6 @@
 
 namespace Eagle
 {
-	struct CameraData
-	{
-		glm::mat4 View;
-		glm::mat4 InvViewProj;
-		glm::mat4 ViewProj;
-		glm::mat4 PrevViewProj;
-	};
-
 	template <typename TaskClass, typename Task, typename... Args>
 	static void InitOptionalTask(Ref<Task>& task, const SceneRendererSettings& settings, bool bEnabled, Args&&... args)
 	{
@@ -72,7 +64,7 @@ namespace Eagle
 		colorSpecs.Format = ImageFormat::R11G11B10_Float;
 		colorSpecs.Layout = ImageLayoutType::RenderTarget;
 		colorSpecs.Size = { m_Size.x, m_Size.y, 1 };
-		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::Storage | ImageUsage::TransferSrc;
+		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::Storage | ImageUsage::TransferSrc | ImageUsage::TransferDst;
 		colorSpecs.MipsCount = UINT_MAX;
 		m_HDRRTImage = Image::Create(colorSpecs, "Renderer_HDR");
 
@@ -81,6 +73,7 @@ namespace Eagle
 		// Create tasks
 		m_SkinCacheTask = MakeRef<SkinCacheTask>(*this);
 		m_FrustumCullingTask = MakeRef<FrustumCullingTask>(*this);
+		m_LightCullingTask = MakeRef<LightCullingTask>(*this);
 		m_DepthPrepassTask = MakeRef<DepthPrepassTask>(*this);
 		m_RenderMeshesTask = MakeRef<RenderMeshesTask>(*this);
 		m_RenderSkeletalMeshesTask = MakeRef<RenderSkeletalMeshesTask>(*this);
@@ -146,14 +139,18 @@ namespace Eagle
 
 			renderer->m_Stats[renderer->m_FrameIndex] = RenderStats();
 
-			renderer->m_PrevView = renderer->m_View;
-			renderer->m_PrevProjection = renderer->m_Projection;
-			renderer->m_PrevViewProjection = renderer->m_ViewProjection;
+			renderer->m_PrevView = renderer->m_CameraMatrices.View;
+			renderer->m_PrevProjection = renderer->m_CameraMatrices.Proj;
+			renderer->m_PrevViewProjection = renderer->m_CameraMatrices.ViewProj;
 
-			renderer->m_View = viewMat;
-			renderer->m_Projection = proj;
-			renderer->m_ViewProjection = renderer->m_Projection * renderer->m_View;
-			renderer->m_InvViewProjection = glm::inverse(renderer->m_ViewProjection);
+			renderer->m_CameraMatrices.View = viewMat;
+			renderer->m_CameraMatrices.Proj = proj;
+			renderer->m_CameraMatrices.ViewProj = renderer->m_CameraMatrices.Proj * renderer->m_CameraMatrices.View;
+			renderer->m_CameraMatrices.InvViewProj = glm::inverse(renderer->m_CameraMatrices.ViewProj);
+			renderer->m_CameraMatrices.PrevViewProj = renderer->m_PrevViewProjection;
+			renderer->m_CameraMatrices.InvProj = glm::inverse(renderer->m_CameraMatrices.Proj);
+			cmd->Write(renderer->m_CameraDataBuffer, &renderer->m_CameraMatrices, sizeof(CameraData), 0, renderer->m_CameraDataBuffer->GetLayout(), BufferReadAccess::Uniform);
+
 			renderer->m_ViewPos = viewPosition;
 			renderer->m_ViewDir = viewDirection;
 			renderer->m_CameraCascadeProjections = std::move(cascadeProjections);
@@ -170,7 +167,7 @@ namespace Eagle
 				const auto& size = renderer->m_Size;
 				const float aspectRatio = float(size.x) / size.y;
 				renderer->m_CullingData.Frustum = CalculateFrustum(zNear, zFar, cameraFov, aspectRatio);
-				renderer->m_CullingData.View = renderer->m_View;
+				renderer->m_CullingData.View = renderer->m_CameraMatrices.View;
 			}
 
 			if (options.InternalState.bJitter)
@@ -183,18 +180,14 @@ namespace Eagle
 				cmd->Write(renderer->m_Jitter, &jitter, sizeof(glm::vec2), 0, renderer->m_Jitter->GetLayout(), BufferReadAccess::Uniform);
 			}
 
-			// Update camera data
-			{
-				CameraData cameraData;
-				cameraData.View = renderer->m_View;
-				cameraData.InvViewProj = renderer->m_InvViewProjection;
-				cameraData.ViewProj = renderer->m_ViewProjection;
-				cameraData.PrevViewProj = renderer->m_PrevViewProjection;
-				cmd->Write(renderer->m_CameraDataBuffer, &cameraData, sizeof(CameraData), 0, renderer->m_CameraDataBuffer->GetLayout(), BufferReadAccess::Uniform);
-			}
-
 			cmd->TransitionLayout(renderer->m_FinalImage, renderer->m_FinalImage->GetLayout(), ImageLayoutType::RenderTarget);
-			renderer->m_GBuffer.Clear(cmd);
+			{
+				EG_GPU_TIMING_SCOPED(cmd, "Clearing Render Targets");
+				EG_CPU_TIMING_SCOPED("Clearing Render Targets");
+
+				cmd->ClearColorImage(renderer->m_HDRRTImage, glm::vec4(0), renderer->m_HDRRTImage->GetLayout(), renderer->m_HDRRTImage->GetLayout());
+				renderer->m_GBuffer.Clear(cmd);
+			}
 
 			renderer->m_LightsManagerTask->RecordCommandBuffer(cmd);
 			renderer->m_GeometryManagerTask->RecordCommandBuffer(cmd);
@@ -207,6 +200,8 @@ namespace Eagle
 			renderer->m_RenderSkeletalMeshesTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderLitTextTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderDecalsTask->RecordCommandBuffer(cmd);
+
+			renderer->m_LightCullingTask->RecordCommandBuffer(cmd);
 			renderer->m_ShadowPassTask->RecordCommandBuffer(cmd);
 
 			if (renderer->m_Options_RT.AO == AmbientOcclusion::SSAO)
@@ -399,6 +394,7 @@ namespace Eagle
 		m_GBuffer.Resize({ m_Size, 1 });
 
 		// Tasks
+		m_LightCullingTask->OnResize(m_Size);
 		m_FrustumCullingTask->OnResize(m_Size);
 		m_SkinCacheTask->OnResize(m_Size);
 		m_DepthPrepassTask->OnResize(m_Size);
@@ -502,6 +498,8 @@ namespace Eagle
 		m_PhotoLinearScale = CalculatePhotoLinearScale(options.PhotoLinearTonemappingParams, options.Gamma);
 		m_GeometryManagerTask->InitWithOptions(options);
 		m_FrustumCullingTask->InitWithOptions(options);
+		m_LightsManagerTask->InitWithOptions(options);
+		m_LightCullingTask->InitWithOptions(options);
 		m_SkinCacheTask->InitWithOptions(options);
 		m_DepthPrepassTask->InitWithOptions(options);
 		m_RenderMeshesTask->InitWithOptions(options);
@@ -680,9 +678,6 @@ namespace Eagle
 	
 	void GBuffer::Clear(const Ref<CommandBuffer>& cmd)
 	{
-		EG_GPU_TIMING_SCOPED(cmd, "Clearing GBuffer");
-		EG_CPU_TIMING_SCOPED("Clearing GBuffer");
-
 		cmd->ClearDepthStencilImage(Depth, 0, 0, Depth->GetLayout(), ImageLayoutType::DepthStencilWrite);
 		cmd->ClearColorImage(ObjectID, glm::uintBitsToFloat(glm::uvec4(-1)), ObjectID->GetLayout(), ImageLayoutType::RenderTarget);
 		if (Motion)
