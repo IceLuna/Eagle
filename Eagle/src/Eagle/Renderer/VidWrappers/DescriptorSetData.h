@@ -21,12 +21,12 @@ namespace Eagle
 			void* SamplerHandle = nullptr;
 			bool bDepth = false;
 
-			// Revision is changed on each image recreation to update descriptors when an image is recreated.
+			// Revision is changed on each resource recreation to update descriptors when a resource is recreated.
 			// It should work without it because internal handles are updated, but for some reason RenderDoc is not happy without it.
 			// And it thinks textures are not bound to the pipeline. So, this exists purely to make RenderDoc happy and correctly display pass inputs
 			// RenderDoc version: 1.42
-			// Additional thought: maybe it's not RenderDoc issues. Maybe when an image is recreated (old handle is released, a new one is created immediately),
-			// VK returns the same handle ID for the new image? And because of that descriptor cache invalidation system doesn't detect changes and tries to reuse invalid image view or smth?
+			// Additional thought: maybe it's not RenderDoc issues. Maybe when a resource is recreated (old handle is released, a new one is created immediately),
+			// VK returns the same handle ID for the new resource? And because of that descriptor cache invalidation system doesn't detect changes and tries to reuse invalid resource view or smth?
 			uint8_t Revision = 0;
 
 			ImageBinding() = default;
@@ -69,15 +69,23 @@ namespace Eagle
 			size_t Offset = 0;
 			size_t Range = size_t(-1);
 
+			// Revision is changed on each resource recreation to update descriptors when a resource is recreated.
+			// It should work without it because internal handles are updated, but for some reason RenderDoc is not happy without it.
+			// And it thinks textures are not bound to the pipeline. So, this exists purely to make RenderDoc happy and correctly display pass inputs
+			// RenderDoc version: 1.42
+			// Additional thought: maybe it's not RenderDoc issues. Maybe when a resource is recreated (old handle is released, a new one is created immediately),
+			// VK returns the same handle ID for the new resource? And because of that descriptor cache invalidation system doesn't detect changes and tries to reuse invalid resource view or smth?
+			uint8_t Revision = 0;
+
 			BufferBinding() = default;
 			BufferBinding(const Ref<Eagle::Buffer>& buffer)
-				: BufferHandle(buffer->GetHandle()), BufferViewHandle(buffer->GetViewHandle()) {}
+				: BufferHandle(buffer->GetHandle()), BufferViewHandle(buffer->GetViewHandle()), Revision(buffer->GetRevision()) {}
 			BufferBinding(const Ref<Eagle::Buffer>& buffer, size_t offset, size_t range)
-				: BufferHandle(buffer->GetHandle()), BufferViewHandle(buffer->GetViewHandle()), Offset(offset), Range(range) {}
+				: BufferHandle(buffer->GetHandle()), BufferViewHandle(buffer->GetViewHandle()), Offset(offset), Range(range), Revision(buffer->GetRevision()) {}
 
 			bool operator != (const BufferBinding& other) const
 			{
-				return BufferHandle != other.BufferHandle || Offset != other.Offset || Range != other.Range;
+				return BufferHandle != other.BufferHandle || Offset != other.Offset || Range != other.Range || Revision != other.Revision;
 			}
 
 			friend bool operator!=(const std::vector<BufferBinding>& left, const std::vector<BufferBinding>& right)

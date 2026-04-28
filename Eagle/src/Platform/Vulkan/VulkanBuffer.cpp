@@ -19,6 +19,7 @@ namespace Eagle
 		m_Specs.Size = size;
 		Release();
 		Create();
+		m_Revision++;
 	}
 
 	void VulkanBuffer::Create()

@@ -18,7 +18,8 @@ namespace Eagle
 	protected:
 		Buffer(const BufferSpecifications& specs, const std::string& debugName = "")
 			: m_Specs(specs)
-			, m_DebugName(debugName) {}
+			, m_DebugName(debugName)
+			, m_Revision(0) {}
 
 	public:
 		virtual ~Buffer() = default;
@@ -37,6 +38,8 @@ namespace Eagle
 		BufferLayout GetLayout() const { return m_Specs.Layout; }
 		const std::string& GetDebugName() const { return m_DebugName; }
 
+		uint8_t GetRevision() const { return m_Revision; }
+
 		bool HasUsage(BufferUsage usage) const { return HasFlags(m_Specs.Usage, usage); }
 
 		static Ref<Buffer> Create(const BufferSpecifications& specs, const std::string& debugName = "");
@@ -49,6 +52,7 @@ namespace Eagle
 	protected:
 		BufferSpecifications m_Specs;
 		std::string m_DebugName;
+		uint8_t m_Revision;
 
 		friend class VulkanCommandManager;
 		friend class VulkanCommandBuffer;

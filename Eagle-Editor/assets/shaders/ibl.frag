@@ -8,7 +8,14 @@ const vec2 invAtan = vec2(0.1591, 0.3183);
 
 vec2 SampleSphericalMap(vec3 v)
 {
-    vec2 uv = vec2(atan(v.z, v.x), asin(-v.y));
+    float phi = 0.0;
+    float theta = asin(clamp(-v.y, -1.0, 1.0));
+
+    // Avoid atan2(0,0)
+    if (abs(v.x) > 1e-6 || abs(v.z) > 1e-6)
+        phi = atan(v.z, v.x);
+
+    vec2 uv = vec2(phi, theta);
     uv *= invAtan;
     uv += 0.5;
     return uv;

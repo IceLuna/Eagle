@@ -179,8 +179,8 @@ namespace Eagle
 		static Ref<CommandBuffer>& GetCurrentFrameCommandBuffer();
 		static RenderCommandQueue& GetRenderCommandQueue();
 
-		static void PresentEditor(const Ref<CommandBuffer>& cmd, const PresentPushData& pushData);
-		static void PresentGame(const Ref<CommandBuffer>& cmd, const PresentPushData& pushData);
+		static void PresentEditor(const Ref<CommandBuffer>& cmd, const PresentPushData& pushData, uint32_t swapchainImageIndex);
+		static void PresentGame(const Ref<CommandBuffer>& cmd, const PresentPushData& pushData, uint32_t swapchainImageIndex);
 
 		static std::mutex& GetSubmitMutex();
 		static std::mutex& GetSubmitFreeMutex();
