@@ -24,11 +24,8 @@ namespace Eagle
 
 		static VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& modes)
 		{
-			auto it = std::find(modes.begin(), modes.end(), VK_PRESENT_MODE_MAILBOX_KHR);
-			if (it != modes.end())
-				return VK_PRESENT_MODE_MAILBOX_KHR;
-
-			it = std::find(modes.begin(), modes.end(), VK_PRESENT_MODE_IMMEDIATE_KHR);
+			// VK_PRESENT_MODE_MAILBOX_KHR can introduce stutters
+			auto it = std::find(modes.begin(), modes.end(), VK_PRESENT_MODE_IMMEDIATE_KHR);
 			if (it != modes.end())
 				return VK_PRESENT_MODE_IMMEDIATE_KHR;
 
@@ -101,7 +98,7 @@ namespace Eagle
 		}
 	}
 
-	void VulkanSwapchain::Present(const Ref<Semaphore>& waitSemaphore)
+	void VulkanSwapchain::Present(const Ref<Semaphore>& waitSemaphore, uint32_t imageIndex)
 	{
 		VkSemaphore vkWaitSemaphore = waitSemaphore ? (VkSemaphore)waitSemaphore->GetHandle() : nullptr;
 		VkPresentInfoKHR info{};
@@ -110,7 +107,7 @@ namespace Eagle
 		info.waitSemaphoreCount = waitSemaphore ? 1 : 0;
 		info.swapchainCount = 1;
 		info.pSwapchains = &m_Swapchain;
-		info.pImageIndices = &m_SwapchainPresentImageIndex;
+		info.pImageIndices = &imageIndex;
 
 		VkResult result = vkQueuePresentKHR(m_Device->GetPresentQueue(), &info);
 		if (result != VK_SUCCESS)
@@ -125,8 +122,11 @@ namespace Eagle
 		}
 	}
 
-	const Ref<Semaphore>& VulkanSwapchain::AcquireImage(uint32_t* outFrameIndex)
+	const Ref<Semaphore>& VulkanSwapchain::AcquireImage(uint32_t frameIndex, uint32_t* outFrameIndex)
 	{
+		static Ref<Semaphore> s_Invalid;
+
+		m_FrameIndex = (m_FrameIndex + 1) % uint32_t(m_WaitSemaphores.size());
 		// We check if the swapchain is valid. If it's not, we try to recreate it.
 		// If the recreation failed, that means the window is minimized, so we just return
 		if (!m_Swapchain)
@@ -137,27 +137,23 @@ namespace Eagle
 					semaphore = MakeRef<VulkanSemaphore>();
 			}
 			else
-				return m_WaitSemaphores[m_FrameIndex];
+				return s_Invalid;
 		}
 
-		auto* semaphore = &m_WaitSemaphores[m_FrameIndex];
-		VkSemaphore vkSemaphore = (VkSemaphore)(*semaphore)->GetHandle();
-		VkResult result = vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_Swapchain, UINT64_MAX, vkSemaphore, VK_NULL_HANDLE, &m_SwapchainPresentImageIndex);
+		VkSemaphore vkSemaphore = (VkSemaphore)m_WaitSemaphores[m_FrameIndex]->GetHandle();
+		VkResult result = vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_Swapchain, UINT64_MAX, vkSemaphore, VK_NULL_HANDLE, outFrameIndex);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{
 			if (!Recreate())
-				return m_WaitSemaphores[m_FrameIndex]; // Recreation failed, the window is minimized
+				return s_Invalid; // Recreation failed, the window is minimized
 
 			// Recreate semaphore so it can be used for another `acquire` call
 			m_WaitSemaphores[m_FrameIndex] = MakeRef<VulkanSemaphore>();
-			semaphore = &m_WaitSemaphores[m_FrameIndex];
-			VkSemaphore vkSemaphore = (VkSemaphore)(*semaphore)->GetHandle();
-			VK_CHECK(vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_Swapchain, UINT64_MAX, vkSemaphore, VK_NULL_HANDLE, &m_SwapchainPresentImageIndex));
+			VkSemaphore vkSemaphore = (VkSemaphore)m_WaitSemaphores[m_FrameIndex]->GetHandle();
+			VK_CHECK(vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_Swapchain, UINT64_MAX, vkSemaphore, VK_NULL_HANDLE, outFrameIndex));
 		}
 
-		*outFrameIndex = m_SwapchainPresentImageIndex;
-		m_FrameIndex = (m_FrameIndex + 1) % uint32_t(m_WaitSemaphores.size());
-		return *semaphore;
+		return m_WaitSemaphores[m_FrameIndex];
 	}
 
 	bool VulkanSwapchain::Recreate()

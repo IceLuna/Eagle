@@ -29,12 +29,11 @@ namespace Eagle
 		const std::vector<Ref<Image>>& GetImages() const { return m_Images; }
 		uint32_t GetImageCount() const { return (uint32_t)m_Images.size(); }
 
-		void Present(const Ref<Semaphore>& waitSemaphore);
+		void Present(const Ref<Semaphore>& waitSemaphore, uint32_t imageIndex);
 
 		// Returns a semaphore that will be signaled when image is ready
-		const Ref<Semaphore>& AcquireImage(uint32_t* outFrameIndex);
+		const Ref<Semaphore>& AcquireImage(uint32_t frameIndex, uint32_t* outImageIndex);
 
-		uint32_t GetFrameIndex() const { return m_FrameIndex; }
 		glm::uvec2 GetSize() const { return { m_Extent.width, m_Extent.height }; }
 
 		// Returns false if swapchain isn't valid. It can happen if a window is minimized
@@ -58,7 +57,6 @@ namespace Eagle
 		const VulkanDevice* m_Device = nullptr;
 		GLFWwindow* m_Window = nullptr;
 		uint32_t m_FrameIndex = 0;
-		uint32_t m_SwapchainPresentImageIndex = 0;
 		bool m_bVSyncEnabled = false;
 	};
 }

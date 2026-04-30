@@ -14,6 +14,7 @@
 #include "VidWrappers/Texture.h"
 
 #include "Eagle/Utils/BlueNoise.h"
+#include "Eagle/Utils/Timer.h"
 
 #include "Platform/Vulkan/VulkanSwapchain.h"
 
@@ -74,14 +75,13 @@ namespace Eagle
 		Ref<Texture2D> BlueNoise;
 		glm::vec2 HaltonSequence[s_JitterSize];
 
-		uint32_t SwapchainImageIndex = 0;
 		uint32_t CurrentRenderingFrameIndex = 0;
 		uint32_t CurrentFrameIndex = 0;
 		uint32_t CurrentReleaseFrameIndex = 0;
 		uint64_t FrameNumber = 0;
 		uint64_t FrameNumber_CPU = 0;
 
-		void (*PresentFunc)(const Ref<CommandBuffer>&, const PresentPushData&) = nullptr;
+		void (*PresentFunc)(const Ref<CommandBuffer>&, const PresentPushData&, uint32_t swapchainImageIndex) = nullptr;
 	};
 
 	struct ShaderDependencies
@@ -211,7 +211,7 @@ namespace Eagle
 
 	static void SetupPresentPipeline()
 	{
-		auto& swapchainImages = s_RendererData->Swapchain->GetImages();
+		const auto& swapchainImages = s_RendererData->Swapchain->GetImages();
 		const auto& size = swapchainImages[0]->GetSize();
 
 		ColorAttachment colorAttachment;
@@ -228,9 +228,12 @@ namespace Eagle
 		state.CullMode = CullMode::Back;
 
 		s_RendererData->PresentPipeline = PipelineGraphics::Create(state);
-
-		for (auto& image : swapchainImages)
+		s_RendererData->Semaphores.clear();
+		for (const auto& image : swapchainImages)
+		{
 			s_RendererData->PresentFramebuffers.push_back(Framebuffer::Create({ image }, size, s_RendererData->PresentPipeline->GetRenderPassHandle()));
+			s_RendererData->Semaphores.push_back(Semaphore::Create());
+		}
 	}
 
 	static void SetupBRDFLUTPipeline()
@@ -290,22 +293,25 @@ namespace Eagle
 		s_RendererData->Swapchain->SetOnSwapchainRecreatedCallback([data = s_RendererData]()
 		{
 			data->PresentFramebuffers.clear();
-			auto& swapchainImages = data->Swapchain->GetImages();
+			const auto& swapchainImages = data->Swapchain->GetImages();
 			glm::uvec2 size = s_RendererData->Swapchain->GetSize();
 			const void* renderPassHandle = data->PresentPipeline->GetRenderPassHandle();
-			for (auto& image : swapchainImages)
+
+			data->Semaphores.clear();
+			for (const auto& image : swapchainImages)
+			{
 				data->PresentFramebuffers.push_back(Framebuffer::Create({ image }, size, data->PresentPipeline->GetRenderPassHandle()));
+				data->Semaphores.push_back(Semaphore::Create());
+			}
 		});
 
 		s_RendererData->GraphicsCommandManager = CommandManager::Create(CommandQueueFamily::Graphics, true);
 		s_RendererData->CommandBuffers.reserve(RendererConfig::FramesInFlight);
 		s_RendererData->Fences.reserve(RendererConfig::FramesInFlight);
-		s_RendererData->Semaphores.reserve(RendererConfig::FramesInFlight);
 		for (uint32_t i = 0; i < RendererConfig::FramesInFlight; ++i)
 		{
 			s_RendererData->CommandBuffers.push_back(s_RendererData->GraphicsCommandManager->AllocateCommandBuffer(false));
 			s_RendererData->Fences.push_back(Fence::Create(true));
-			s_RendererData->Semaphores.push_back(Semaphore::Create());
 		}
 		s_RendererData->DescriptorManager = DescriptorManager::Create(DescriptorManager::MaxNumDescriptors, DescriptorManager::MaxSets);
 
@@ -618,12 +624,14 @@ namespace Eagle
 		tasks[s_RendererData->CurrentFrameIndex] = 
 			pool->submit([frameIndex = s_RendererData->CurrentFrameIndex]()
 		{
+			EG_CPU_TIMING_SCOPED("Preparing a frame");
 			StagingManager::NextFrame();
 
+			uint32_t swapchainImageIndex = 0;
 			auto& fence = s_RendererData->Fences[frameIndex];
-			auto& imageAcquireSemaphore = s_RendererData->Swapchain->AcquireImage(&s_RendererData->SwapchainImageIndex);
-			auto& semaphore = s_RendererData->Semaphores[s_RendererData->SwapchainImageIndex];
-			const bool bSwapchainValid = s_RendererData->Swapchain->IsValid();
+			Ref<Semaphore> imageAcquireSemaphore = s_RendererData->Swapchain->AcquireImage(frameIndex, &swapchainImageIndex);
+			auto& semaphore = s_RendererData->Semaphores[swapchainImageIndex];
+			const bool bSwapchainValid = s_RendererData->Swapchain->IsValid() && imageAcquireSemaphore;
 			fence->Reset();
 
 			{
@@ -643,7 +651,7 @@ namespace Eagle
 				if (bSwapchainValid)
 				{
 					PresentPushData pushData;
-					s_RendererData->PresentFunc(cmd, pushData);
+					s_RendererData->PresentFunc(cmd, pushData, swapchainImageIndex);
 				}
 			}
 			cmd->End();
@@ -654,7 +662,7 @@ namespace Eagle
 				s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, fence, imageAcquireSemaphore.get(), semaphoreCount, semaphore.get(), semaphoreCount);
 				if (bSwapchainValid)
 				{
-					s_RendererData->Swapchain->Present(semaphore);
+					s_RendererData->Swapchain->Present(semaphore, swapchainImageIndex);
 				}
 			}
 
@@ -667,18 +675,18 @@ namespace Eagle
 		s_RendererData->CurrentFrameIndex = (s_RendererData->CurrentFrameIndex + 1) % RendererConfig::FramesInFlight;
 	}
 
-	void RenderManager::PresentEditor(const Ref<CommandBuffer>& cmd, const PresentPushData& pushData)
+	void RenderManager::PresentEditor(const Ref<CommandBuffer>& cmd, const PresentPushData& pushData, uint32_t swapchainImageIndex)
 	{
 		EG_GPU_TIMING_SCOPED(cmd, "Present+ImGui");
 
 		const auto& data = s_RendererData;
-		cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[data->SwapchainImageIndex]);
+		cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[swapchainImageIndex]);
 		cmd->SetGraphicsRootConstants(&pushData, nullptr);
 		(*data->ImGuiLayer)->Render(cmd);
 		cmd->EndGraphics();
 	}
 
-	void RenderManager::PresentGame(const Ref<CommandBuffer>& cmd, const PresentPushData& pushData)
+	void RenderManager::PresentGame(const Ref<CommandBuffer>& cmd, const PresentPushData& pushData, uint32_t swapchainImageIndex)
 	{
 		EG_GPU_TIMING_SCOPED(cmd, "Present");
 		const auto& data = s_RendererData;
@@ -691,7 +699,7 @@ namespace Eagle
 			data->PresentPipeline->SetImageSampler(data->PresentImage, Sampler::PointSampler, 0, 0);
 		}
 		
-		cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[data->SwapchainImageIndex]);
+		cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[swapchainImageIndex]);
 
 		if (data->PresentImage)
 		{
