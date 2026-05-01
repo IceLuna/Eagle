@@ -14,25 +14,26 @@ namespace Eagle
 	{
 	public:
 		// @bAllowReuse. If set to true, allows already allocated command buffers to be rerecorded.
-		VulkanCommandManager(CommandQueueFamily queueFamily, bool bAllowReuse);
+		VulkanCommandManager(CommandQueueFamily queueFamily, bool bAllowReuse, uint32_t queueIndex);
 		virtual ~VulkanCommandManager();
 
 		VulkanCommandManager& operator=(const VulkanCommandManager&) = delete;
 		VulkanCommandManager& operator=(VulkanCommandManager&& other) noexcept = delete;
 
+		void* GetHandle() const override { return GetVulkanQueue(); }
 		VkQueue GetVulkanQueue() const { return m_Queue; }
 
 		[[nodiscard]] Ref<CommandBuffer> AllocateCommandBuffer(bool bBegin = true) override;
 		[[nodiscard]] Ref<CommandBuffer> AllocateSecondaryCommandbuffer(bool bBegin = true) override;
 
-		void Submit(CommandBuffer* cmdBuffers, uint32_t cmdBuffersCount,
+		void Submit(std::span<CommandBuffer*> cmdBuffers,
 			const Ref<Fence>& signalFence,
-			const Semaphore* waitSemaphores = nullptr, uint32_t waitSemaphoresCount = 0,
-			const Semaphore* signalSemaphores = nullptr, uint32_t signalSemaphoresCount = 0) override;
+			std::span<const Semaphore*> waitSemaphores = {},
+			std::span<const Semaphore*> signalSemaphores = {}) override;
 
-		void Submit(CommandBuffer* cmdBuffers, uint32_t cmdBuffersCount,
-			const Semaphore* waitSemaphores = nullptr, uint32_t waitSemaphoresCount = 0,
-			const Semaphore* signalSemaphores = nullptr, uint32_t signalSemaphoresCount = 0) override;
+		void Submit(std::span<CommandBuffer*> cmdBuffers,
+			std::span<const Semaphore*> waitSemaphores = {},
+			std::span<const Semaphore*> signalSemaphores = {}) override;
 
 	private:
 		VkCommandPool m_CommandPool = VK_NULL_HANDLE;

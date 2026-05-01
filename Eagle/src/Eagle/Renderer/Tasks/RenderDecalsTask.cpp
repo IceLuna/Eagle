@@ -268,7 +268,7 @@ namespace Eagle
 		});
 
 		RenderManager::Submit([task = shared_from_this(), decals = std::move(decalsData), transforms = std::move(decalTransforms),
-			transformsMapping = std::move(decalsTransformsMapping), materials = std::move(decalMaterials)](Ref<CommandBuffer>& cmd) mutable
+			transformsMapping = std::move(decalsTransformsMapping), materials = std::move(decalMaterials)](const Ref<CommandBuffer>& cmd) mutable
 		{
 			auto thisRef = Cast<RenderDecalsTask>(task);
 			thisRef->m_Decals.clear();
@@ -305,7 +305,7 @@ namespace Eagle
 		for (auto& decal : decals)
 			updateData.push_back({ CalculateDecalInvTransform(decal), decal->Parent.GetID() });
 
-		RenderManager::Submit([task = shared_from_this(), data = std::move(updateData)](Ref<CommandBuffer>&)
+		RenderManager::Submit([task = shared_from_this(), data = std::move(updateData)](const Ref<CommandBuffer>&)
 		{
 			auto thisRef = Cast<RenderDecalsTask>(task);
 			for (auto& sprite : data)

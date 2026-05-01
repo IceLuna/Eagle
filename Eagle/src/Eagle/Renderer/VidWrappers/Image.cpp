@@ -26,7 +26,7 @@ namespace Eagle
         // So it's not possible right now to make this call from inside Image-constructor.
         if (specs.Layout != ImageLayoutType::Unknown || bGenerateMips)
         {
-            RenderManager::Submit([result, layout = specs.Layout, bGenerateMips](Ref<CommandBuffer>& cmd) mutable
+            RenderManager::Submit([result, layout = specs.Layout, bGenerateMips](const Ref<CommandBuffer>& cmd) mutable
             {
                 if (layout != ImageLayoutType::Unknown)
                     cmd->TransitionLayout(result, ImageLayoutType::Unknown, layout);

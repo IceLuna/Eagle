@@ -702,12 +702,26 @@ namespace Eagle
 	
 	void MeshColliderComponent::SetCollisionMeshAsset(const Ref<AssetBaseMesh>& meshAsset)
 	{
-		if (m_CollisionMeshAsset)
+		if (meshAsset != m_CollisionMeshAsset)
 		{
-			m_CollisionMeshAsset->RemoveOnAssetModifiedCallback(Parent.GetGUID());
-		}
+			if (m_CollisionMeshAsset)
+			{
+				m_CollisionMeshAsset->RemoveOnAssetModifiedCallback(Parent.GetGUID());
+			}
+			m_CollisionMeshAsset = meshAsset;
 
-		m_CollisionMeshAsset = meshAsset;
+			if (m_CollisionMeshAsset)
+			{
+				m_CollisionMeshAsset->AddOnAssetModifiedCallback(Parent.GetGUID(), [entity = Parent]() mutable
+				{
+					if (entity.HasComponent<MeshColliderComponent>())
+					{
+						auto& comp = entity.GetComponent<MeshColliderComponent>();
+						comp.SetCollisionMeshAsset(comp.GetCollisionMeshAsset());
+					}
+				});
+			}
+		}
 
 		auto actor = Parent.GetPhysicsActor();
 		if (actor)
@@ -735,18 +749,6 @@ namespace Eagle
 
 		SetShowCollision(bShowCollision);
 		SetIsTrigger(bTrigger);
-
-		if (m_CollisionMeshAsset)
-		{
-			m_CollisionMeshAsset->AddOnAssetModifiedCallback(Parent.GetGUID(), [entity = Parent]() mutable
-			{
-				if (entity.HasComponent<MeshColliderComponent>())
-				{
-					auto& comp = entity.GetComponent<MeshColliderComponent>();
-					comp.SetCollisionMeshAsset(comp.GetCollisionMeshAsset());
-				}
-			});
-		}
 	}
 	
 	void MeshColliderComponent::OnInit()

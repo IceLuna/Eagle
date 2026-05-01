@@ -164,11 +164,11 @@ namespace Eagle
 		static uint32_t GetCurrentFrameIndex(); // Render Thread
 		static uint32_t GetCurrentFrameIndex_CPU();
 		static uint32_t GetCurrentReleaseFrameIndex();
-		static Ref<DescriptorManager>& GetDescriptorSetManager();
+		static const Ref<DescriptorManager>& GetDescriptorSetManager();
 		static Ref<PipelineGraphics> CreateIBLPipeline(const Ref<Image>& attachment);
 		static Ref<PipelineGraphics> CreateIrradiancePipeline(const Ref<Image>& attachment);
 		static Ref<PipelineGraphics> CreatePrefilterPipeline(const Ref<Image>& attachment);
-		static Ref<PipelineGraphics>& GetBRDFLUTPipeline();
+		static const Ref<PipelineGraphics>& GetBRDFLUTPipeline();
 		static void* GetPresentRenderPassHandle();
 		static uint64_t GetFrameNumber_RT();
 		static uint64_t GetFrameNumber_CPU();
@@ -176,11 +176,11 @@ namespace Eagle
 		static void SetImmediateDeletionMode(bool bEnabled) { bImmediateDeletionMode = bEnabled; }
 
 	private:
-		static Ref<CommandBuffer>& GetCurrentFrameCommandBuffer();
+		static const Ref<CommandBuffer>& GetCurrentFrameCommandBuffer();
 		static RenderCommandQueue& GetRenderCommandQueue();
 
-		static void PresentEditor(const Ref<CommandBuffer>& cmd, const PresentPushData& pushData, uint32_t swapchainImageIndex);
-		static void PresentGame(const Ref<CommandBuffer>& cmd, const PresentPushData& pushData, uint32_t swapchainImageIndex);
+		static void PresentEditor(const Ref<CommandBuffer>& cmd, const Ref<Image>& srcImage, uint32_t swapchainImageIndex);
+		static void PresentGame(const Ref<CommandBuffer>& cmd, const Ref<Image>& srcImage, uint32_t swapchainImageIndex);
 
 		static std::mutex& GetSubmitMutex();
 		static std::mutex& GetSubmitFreeMutex();

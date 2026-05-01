@@ -85,7 +85,7 @@ namespace Eagle
 			EG_CORE_ASSERT(bCastsShadows == light.DoesCastShadows());
 		}
 
-		RenderManager::Submit([task = shared_from_this(), pointLights = std::move(tempData), lightMatrices = std::move(matrices)](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([task = shared_from_this(), pointLights = std::move(tempData), lightMatrices = std::move(matrices)](const Ref<CommandBuffer>& cmd) mutable
 		{
 			auto thisRef = Cast<LightsManagerTask>(task);
 			thisRef->m_PointLights = std::move(pointLights);
@@ -133,7 +133,7 @@ namespace Eagle
 			matrices.emplace_back() = Math::Perspective(fovY, aspectRatio, nearPlane, distance) * view;
 		}
 
-		RenderManager::Submit([task = shared_from_this(), spotLights = std::move(tempData), lightMatrices = std::move(matrices)](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([task = shared_from_this(), spotLights = std::move(tempData), lightMatrices = std::move(matrices)](const Ref<CommandBuffer>& cmd) mutable
 		{
 			auto thisRef = Cast<LightsManagerTask>(task);
 			thisRef->m_SpotLights = std::move(spotLights);
@@ -217,7 +217,7 @@ namespace Eagle
 		}
 		else
 		{
-			RenderManager::Submit([task = shared_from_this()](Ref<CommandBuffer>& cmd)
+			RenderManager::Submit([task = shared_from_this()](const Ref<CommandBuffer>& cmd)
 			{
 				auto thisRef = Cast<LightsManagerTask>(task);
 				thisRef->bHasDirectionalLight = false;

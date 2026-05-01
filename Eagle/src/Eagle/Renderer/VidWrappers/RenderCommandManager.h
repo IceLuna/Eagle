@@ -29,7 +29,7 @@ namespace Eagle
 		CommandManager() = default;
 
 	public:
-		static Ref<CommandManager> Create(CommandQueueFamily queueFamily, bool bAllowReuse);
+		static Ref<CommandManager> Create(CommandQueueFamily queueFamily, bool bAllowReuse, uint32_t queueIndex = 0);
 
 		virtual ~CommandManager() = default;
 
@@ -39,17 +39,75 @@ namespace Eagle
 		CommandManager& operator=(const CommandManager&) = delete;
 		CommandManager& operator=(CommandManager&& other) noexcept = delete;
 
+		virtual void* GetHandle() const = 0;
+
 		[[nodiscard]] virtual Ref<CommandBuffer> AllocateCommandBuffer(bool bBegin = true) = 0;
 		[[nodiscard]] virtual Ref<CommandBuffer> AllocateSecondaryCommandbuffer(bool bBegin = true) = 0;
 
-		virtual void Submit(CommandBuffer* cmdBuffers, uint32_t cmdBuffersCount,
+		virtual void Submit(std::span<CommandBuffer*> cmdBuffers,
 			const Ref<Fence>& signalFence,
-			const Semaphore* waitSemaphores = nullptr, uint32_t waitSemaphoresCount = 0,
-			const Semaphore* signalSemaphores = nullptr, uint32_t signalSemaphoresCount = 0) = 0;
+			std::span<const Semaphore*> waitSemaphores = {},
+			std::span<const Semaphore*> signalSemaphores = {}) = 0;
 
-		virtual void Submit(CommandBuffer* cmdBuffers, uint32_t cmdBuffersCount,
-			const Semaphore* waitSemaphores = nullptr, uint32_t waitSemaphoresCount = 0,
-			const Semaphore* signalSemaphores = nullptr, uint32_t signalSemaphoresCount = 0) = 0;
+		virtual void Submit(std::span<CommandBuffer*> cmdBuffers,
+			std::span<const Semaphore*> waitSemaphores = {},
+			std::span<const Semaphore*> signalSemaphores = {}) = 0;
+
+		void Submit(const Ref<CommandBuffer>& cmd,
+			const Ref<Fence>& signalFence,
+			std::span<const Semaphore*> waitSemaphores = {},
+			const Ref<Semaphore>& signalSemaphore = {})
+		{
+			auto cmds = std::array{ cmd.get() };
+			if (signalSemaphore)
+			{
+				auto signalSemaphores = std::array<const Semaphore*, 1>{ signalSemaphore.get() };
+				Submit(cmds, signalFence, waitSemaphores, signalSemaphores);
+			}
+			else
+			{
+				Submit(cmds, signalFence);
+			}
+		}
+
+		void Submit(const Ref<CommandBuffer>& cmd,
+			std::span<const Semaphore*> waitSemaphores,
+			const Ref<Semaphore>& signalSemaphore)
+		{
+			auto cmds = std::array{ cmd.get() };
+			if (signalSemaphore)
+			{
+				auto signalSemaphores = std::array<const Semaphore*, 1>{ signalSemaphore.get() };
+				Submit(cmds, waitSemaphores, signalSemaphores);
+			}
+			else
+			{
+				Submit(cmds);
+			}
+		}
+
+		void Submit(const Ref<CommandBuffer>& cmd,
+			const Ref<Fence>& fence,
+			const Ref<Semaphore>& waitSemaphore,
+			const Ref<Semaphore>& signalSemaphore)
+		{
+			auto cmds = std::array{ cmd.get() };
+			auto waitSemaphores = std::array<const Semaphore*, 1>{ waitSemaphore.get() };
+			auto signalSemaphores = std::array<const Semaphore*, 1>{ signalSemaphore.get() };
+			Submit(cmds, fence, waitSemaphores, signalSemaphores);
+		}
+
+		void Submit(const Ref<CommandBuffer>& cmd)
+		{
+			auto cmds = std::array{ cmd.get() };
+			Submit(cmds);
+		}
+
+		void Submit(const Ref<CommandBuffer>& cmd, std::span<const Semaphore*> waitSemaphores)
+		{
+			auto cmds = std::array{ cmd.get() };
+			Submit(cmds, waitSemaphores);
+		}
 	};
 
 	class CommandBuffer

@@ -591,7 +591,7 @@ namespace Eagle
 
 					if (mouse.x >= 0 && mouse.y >= 0 && mouse.x < (int)viewportSize.x && mouse.y < (int)viewportSize.y)
 					{
-						RenderManager::Submit([editorLayer = this, mouse, entityAsset](Ref<CommandBuffer>&)
+						RenderManager::Submit([editorLayer = this, mouse, entityAsset](const Ref<CommandBuffer>&)
 						{
 							Ref<Image>& depthBuffer = editorLayer->m_CurrentScene->GetSceneRenderer()->GetGBuffer().Depth;
 							float depth = 0.f;

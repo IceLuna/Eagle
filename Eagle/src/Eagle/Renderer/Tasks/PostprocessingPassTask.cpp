@@ -36,7 +36,7 @@ namespace Eagle
 		imageSpecs.Usage = ImageUsage::Storage | ImageUsage::Sampled;
 		m_Intermediate = Image::Create(imageSpecs, "Postprocessing_Intermediate");
 
-		RenderManager::Submit([exposure = m_Exposure](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([exposure = m_Exposure](const Ref<CommandBuffer>& cmd) mutable
 		{
 			cmd->FillBuffer(exposure, 0);
 		});

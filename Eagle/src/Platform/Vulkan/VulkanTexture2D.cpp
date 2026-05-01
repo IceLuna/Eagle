@@ -67,7 +67,7 @@ namespace Eagle
 		Ref<Image> oldImage = m_Image;
 		m_Image = CreateImage();
 
-		RenderManager::Submit([oldImage = std::move(oldImage), image = m_Image](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([oldImage = std::move(oldImage), image = m_Image](const Ref<CommandBuffer>& cmd) mutable
 		{
 			cmd->CopyImage(oldImage, image, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
 			cmd->GenerateMips(image, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
@@ -130,7 +130,7 @@ namespace Eagle
 		m_Sampler = Sampler::Create(m_Specs.FilterMode, m_Specs.AddressMode, CompareOperation::Never, 0.f, float(mipsCount - 1), m_Specs.MaxAnisotropy);
 		const bool bGenerateMips = m_Specs.MipsCount > 1;
 
-		RenderManager::Submit([textureRef = shared_from_this(), image = m_Image, imageData = std::move(m_ImageData), bGenerateMips, bAutogenerateMips](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([textureRef = shared_from_this(), image = m_Image, imageData = std::move(m_ImageData), bGenerateMips, bAutogenerateMips](const Ref<CommandBuffer>& cmd) mutable
 		{
 			cmd->Write(image, imageData[0].Data(), imageData[0].Size(), image->GetLayout(), ImageReadAccess::PixelShaderRead);
 			if (bGenerateMips)

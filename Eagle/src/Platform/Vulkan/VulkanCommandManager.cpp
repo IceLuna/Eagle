@@ -30,11 +30,11 @@ namespace Eagle
 		return uint32_t(-1);
 	}
 
-	static VkQueue SelectQueue(CommandQueueFamily queueFamily, const VulkanDevice* device)
+	static VkQueue SelectQueue(CommandQueueFamily queueFamily, const VulkanDevice* device, uint32_t queueIndex)
 	{
 		switch (queueFamily)
 		{
-		case CommandQueueFamily::Graphics: return device->GetGraphicsQueue();
+		case CommandQueueFamily::Graphics: return device->GetGraphicsQueue(queueIndex);
 		case CommandQueueFamily::Compute:  return device->GetComputeQueue();
 		case CommandQueueFamily::Transfer: return device->GetTransferQueue();
 		}
@@ -57,12 +57,12 @@ namespace Eagle
 	//------------------
 	// COMMAND MANAGER
 	//------------------
-	VulkanCommandManager::VulkanCommandManager(CommandQueueFamily queueFamily, bool bAllowReuse)
+	VulkanCommandManager::VulkanCommandManager(CommandQueueFamily queueFamily, bool bAllowReuse, uint32_t queueIndex)
 	{
 		const VulkanDevice* device = VulkanContext::GetDevice();
 		VkDevice vulkanDevice = device->GetVulkanDevice();
 		m_QueueFamilyIndex = SelectQueueFamilyIndex(queueFamily, device->GetPhysicalDevice()->GetFamilyIndices());
-		m_Queue = SelectQueue(queueFamily, device);
+		m_Queue = SelectQueue(queueFamily, device, queueIndex);
 		m_QueueFlags = GetQueueFlags(queueFamily);
 
 		VkCommandPoolCreateInfo ci{};
@@ -101,15 +101,19 @@ namespace Eagle
 		return cmd;
 	}
 
-	void VulkanCommandManager::Submit(CommandBuffer* cmdBuffers, uint32_t cmdBuffersCount,
+	void VulkanCommandManager::Submit(std::span<CommandBuffer*> cmdBuffers,
 		const Ref<Fence>& signalFence,
-		const Semaphore* waitSemaphores, uint32_t waitSemaphoresCount,
-		const Semaphore* signalSemaphores, uint32_t signalSemaphoresCount)
+		std::span<const Semaphore*> waitSemaphores,
+		std::span<const Semaphore*> signalSemaphores)
 	{
+		const uint32_t cmdBuffersCount = (uint32_t)cmdBuffers.size();
+		const uint32_t waitSemaphoresCount = (uint32_t)waitSemaphores.size();
+		const uint32_t signalSemaphoresCount = (uint32_t)signalSemaphores.size();
+
 		std::vector<VkCommandBuffer> vkCmdBuffers(cmdBuffersCount);
 		for (uint32_t i = 0; i < cmdBuffersCount; ++i)
 		{
-			VulkanCommandBuffer* cmdBuffer = (VulkanCommandBuffer*)cmdBuffers + i;
+			VulkanCommandBuffer* cmdBuffer = (VulkanCommandBuffer*)cmdBuffers[i];
 			vkCmdBuffers[i] = cmdBuffer->m_CommandBuffer;
 
 			for (auto& staging : cmdBuffer->m_UsedStagingBuffers)
@@ -125,13 +129,13 @@ namespace Eagle
 
 		std::vector<VkSemaphore> vkSignalSemaphores(signalSemaphoresCount);
 		for (uint32_t i = 0; i < signalSemaphoresCount; ++i)
-			vkSignalSemaphores[i] = (VkSemaphore)((VulkanSemaphore*)signalSemaphores + i)->GetHandle();
+			vkSignalSemaphores[i] = (VkSemaphore)((VulkanSemaphore*)signalSemaphores[i])->GetHandle();
 
 		std::vector<VkSemaphore> vkWaitSemaphores(waitSemaphoresCount);
 		std::vector<VkPipelineStageFlags> vkDstStageMask(waitSemaphoresCount);
 		for (uint32_t i = 0; i < waitSemaphoresCount; ++i)
 		{
-			vkWaitSemaphores[i] = (VkSemaphore)((VulkanSemaphore*)waitSemaphores + i)->GetHandle();
+			vkWaitSemaphores[i] = (VkSemaphore)((VulkanSemaphore*)waitSemaphores[i])->GetHandle();
 			vkDstStageMask[i] = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 		}
 
@@ -148,12 +152,12 @@ namespace Eagle
 		VK_CHECK(vkQueueSubmit(m_Queue, 1, &info, (VkFence)signalFence->GetHandle()));
 	}
 
-	void VulkanCommandManager::Submit(CommandBuffer* cmdBuffers, uint32_t cmdBuffersCount,
-		const Semaphore* waitSemaphores, uint32_t waitSemaphoresCount,
-		const Semaphore* signalSemaphores, uint32_t signalSemaphoresCount)
+	void VulkanCommandManager::Submit(std::span<CommandBuffer*> cmdBuffers,
+		std::span<const Semaphore*> waitSemaphores,
+		std::span<const Semaphore*> signalSemaphores)
 	{
-		Submit(cmdBuffers, cmdBuffersCount, Fence::Create(),
-			waitSemaphores, waitSemaphoresCount, signalSemaphores, signalSemaphoresCount);
+		Submit(cmdBuffers, Fence::Create(),
+			waitSemaphores, signalSemaphores);
 	}
 
 	//------------------

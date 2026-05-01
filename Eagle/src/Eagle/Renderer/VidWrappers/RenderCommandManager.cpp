@@ -6,11 +6,11 @@
 
 namespace Eagle
 {
-	Ref<CommandManager> CommandManager::Create(CommandQueueFamily queueFamily, bool bAllowReuse)
+	Ref<CommandManager> CommandManager::Create(CommandQueueFamily queueFamily, bool bAllowReuse, uint32_t queueIndex)
 	{
 		switch (RenderManager::GetAPI())
 		{
-			case RendererAPIType::Vulkan:  return MakeRef<VulkanCommandManager>(queueFamily, bAllowReuse);
+			case RendererAPIType::Vulkan:  return MakeRef<VulkanCommandManager>(queueFamily, bAllowReuse, queueIndex);
 		}
 		EG_CORE_ASSERT(false, "Unknown RendererAPI");
 		return nullptr;

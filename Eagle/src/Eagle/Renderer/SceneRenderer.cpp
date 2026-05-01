@@ -125,7 +125,7 @@ namespace Eagle
 		RenderManager::Submit([renderer = shared_from_this(), viewMat, proj = camera->GetProjection(), viewPosition, viewDirection, bRenderGrid = m_bGridEnabled, options = m_Options,
 			cascadeProjections = std::move(cameraCascadeProjections), cascadeFarPlanes = std::move(cameraCascadeFarPlanes), shadowDistance = camera->GetShadowFarClip(),
 			cascadesSmoothTransitionAlpha = camera->GetCascadesSmoothTransitionAlpha(), zNear = camera->GetPerspectiveNearClip(), zFar = camera->GetPerspectiveFarClip(),
-			cameraFov = camera->GetPerspectiveVerticalFOV()](Ref<CommandBuffer>& cmd) mutable
+			cameraFov = camera->GetPerspectiveVerticalFOV()](const Ref<CommandBuffer>& cmd) mutable
 		{
 			renderer->m_ZNear = zNear;
 			renderer->m_ZFar = zFar;
@@ -294,7 +294,7 @@ namespace Eagle
 
 	void SceneRenderer::SetOutputImage(const Ref<Image>& image)
 	{
-		RenderManager::Submit([renderer = shared_from_this(), image](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([renderer = shared_from_this(), image](const Ref<CommandBuffer>& cmd) mutable
 		{
 			renderer->m_FinalImage = image;
 		});
@@ -338,7 +338,7 @@ namespace Eagle
 
 	void SceneRenderer::SetSkybox(const Ref<AssetTextureCube>& cubemap)
 	{
-		RenderManager::Submit([renderer = shared_from_this(), cubemap](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([renderer = shared_from_this(), cubemap](const Ref<CommandBuffer>& cmd) mutable
 		{
 			renderer->m_Cubemap = cubemap;
 		});
@@ -346,7 +346,7 @@ namespace Eagle
 
 	void SceneRenderer::SetSkybox(const SkySettings& sky)
 	{
-		RenderManager::Submit([renderer = shared_from_this(), sky](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([renderer = shared_from_this(), sky](const Ref<CommandBuffer>& cmd) mutable
 		{
 			renderer->m_Sky = sky;
 		});
@@ -354,7 +354,7 @@ namespace Eagle
 
 	void SceneRenderer::SetSkyboxIntensity(float intensity)
 	{
-		RenderManager::Submit([renderer = shared_from_this(), intensity](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([renderer = shared_from_this(), intensity](const Ref<CommandBuffer>& cmd) mutable
 		{
 			renderer->m_CubemapIntensity = glm::max(0.f, intensity);
 		});
@@ -362,7 +362,7 @@ namespace Eagle
 
 	void SceneRenderer::SetUseSkyAsBackground(bool value)
 	{
-		RenderManager::Submit([renderer = shared_from_this(), value](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([renderer = shared_from_this(), value](const Ref<CommandBuffer>& cmd) mutable
 		{
 			renderer->m_bUseSkyAsBackground = value;
 		});

@@ -21,6 +21,7 @@
 #include <map>
 #include <unordered_set>
 #include <unordered_map>
+#include <span>
 
 //Engine core
 #include "Eagle/Core/Core.h"

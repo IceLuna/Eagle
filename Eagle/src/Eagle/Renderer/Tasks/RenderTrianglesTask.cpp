@@ -49,7 +49,7 @@ namespace Eagle
 				tempData.push_back(vertex);
 		}
 
-		RenderManager::Submit([task = shared_from_this(), vertices = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([task = shared_from_this(), vertices = std::move(tempData)](const Ref<CommandBuffer>& cmd) mutable
 		{
 			auto thisRef = Cast<RenderTrianglesTask>(task);
 			thisRef->m_Vertices = std::move(vertices);

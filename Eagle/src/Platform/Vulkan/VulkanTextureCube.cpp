@@ -146,7 +146,7 @@ namespace Eagle
 			}
 		}
 
-		RenderManager::Submit([texture = shared_from_this()](Ref<CommandBuffer>& cmd)
+		RenderManager::Submit([texture = shared_from_this()](const Ref<CommandBuffer>& cmd)
 		{
 			struct PushData
 			{

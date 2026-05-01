@@ -206,7 +206,7 @@ namespace Eagle
 			data.EntityID = billboard->Parent.GetID();
 		}
 
-		RenderManager::Submit([task = shared_from_this(), billboards = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([task = shared_from_this(), billboards = std::move(tempData)](const Ref<CommandBuffer>& cmd) mutable
 		{
 			auto thisRef = Cast<RenderBillboardsTask>(task);
 			thisRef->m_BillboardsData.reserve(billboards.size());
@@ -222,7 +222,7 @@ namespace Eagle
 			return;
 
 		const uint32_t textureIndex = TextureSystem::AddTexture(texture);
-		RenderManager::Submit([this, worldTransform, textureIndex, entityID](Ref<CommandBuffer>& cmd)
+		RenderManager::Submit([this, worldTransform, textureIndex, entityID](const Ref<CommandBuffer>& cmd)
 		{
 			m_BillboardsData.emplace_back(worldTransform, textureIndex, entityID);
 		});

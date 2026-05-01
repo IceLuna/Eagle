@@ -50,7 +50,7 @@ namespace Eagle
 			tempData.push_back(line.End);
 		}
 
-		RenderManager::Submit([task = shared_from_this(), vertices = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([task = shared_from_this(), vertices = std::move(tempData)](const Ref<CommandBuffer>& cmd) mutable
 		{
 			auto thisRef = Cast<RenderLinesTask>(task);
 			thisRef->m_Vertices = std::move(vertices);

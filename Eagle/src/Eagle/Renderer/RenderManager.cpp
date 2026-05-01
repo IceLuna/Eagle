@@ -81,7 +81,7 @@ namespace Eagle
 		uint64_t FrameNumber = 0;
 		uint64_t FrameNumber_CPU = 0;
 
-		void (*PresentFunc)(const Ref<CommandBuffer>&, const PresentPushData&, uint32_t swapchainImageIndex) = nullptr;
+		void (*PresentFunc)(const Ref<CommandBuffer>&, const Ref<Image>&, uint32_t swapchainImageIndex) = nullptr;
 	};
 
 	struct ShaderDependencies
@@ -402,7 +402,7 @@ namespace Eagle
 
 		s_RendererData->DummyIBL = TextureCube::Create(Texture2D::BlackTexture, 1, 1);
 
-		RenderManager::Submit([](Ref<CommandBuffer>& cmd)
+		RenderManager::Submit([](const Ref<CommandBuffer>& cmd)
 		{
 			cmd->ClearDepthStencilImage(s_RendererData->DummyDepthImage, 0, 0, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
 			cmd->ClearDepthStencilImage(s_RendererData->DummyCubeDepthImage, 0, 0, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
@@ -414,7 +414,7 @@ namespace Eagle
 
 		// Render BRDF LUT
 		{
-			RenderManager::Submit([](Ref<CommandBuffer>& cmd)
+			RenderManager::Submit([](const Ref<CommandBuffer>& cmd)
 			{
 				struct PushData
 				{
@@ -452,7 +452,7 @@ namespace Eagle
 			for (uint32_t i = 0; i < RendererConfig::FramesInFlight; ++i)
 				s_CommandQueue[i].Execute();
 			cmd->End();
-			s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, fence, nullptr, 0, nullptr, 0);
+			s_RendererData->GraphicsCommandManager->Submit(cmd, fence);
 			fence->Wait();
 		}).wait();
 
@@ -650,16 +650,14 @@ namespace Eagle
 				s_CommandQueue[frameIndex].Execute();
 				if (bSwapchainValid)
 				{
-					PresentPushData pushData;
-					s_RendererData->PresentFunc(cmd, pushData, swapchainImageIndex);
+					s_RendererData->PresentFunc(cmd, s_RendererData->PresentImage, swapchainImageIndex);
 				}
 			}
 			cmd->End();
 
 			{
 				EG_CPU_TIMING_SCOPED("Submit & Present");
-				const uint32_t semaphoreCount = bSwapchainValid ? 1u : 0u;
-				s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, fence, imageAcquireSemaphore.get(), semaphoreCount, semaphore.get(), semaphoreCount);
+				s_RendererData->GraphicsCommandManager->Submit(cmd, fence, imageAcquireSemaphore, semaphore);
 				if (bSwapchainValid)
 				{
 					s_RendererData->Swapchain->Present(semaphore, swapchainImageIndex);
@@ -675,9 +673,11 @@ namespace Eagle
 		s_RendererData->CurrentFrameIndex = (s_RendererData->CurrentFrameIndex + 1) % RendererConfig::FramesInFlight;
 	}
 
-	void RenderManager::PresentEditor(const Ref<CommandBuffer>& cmd, const PresentPushData& pushData, uint32_t swapchainImageIndex)
+	void RenderManager::PresentEditor(const Ref<CommandBuffer>& cmd, const Ref<Image>& presentImage, uint32_t swapchainImageIndex)
 	{
 		EG_GPU_TIMING_SCOPED(cmd, "Present+ImGui");
+
+		PresentPushData pushData{0, 0};
 
 		const auto& data = s_RendererData;
 		cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[swapchainImageIndex]);
@@ -686,23 +686,24 @@ namespace Eagle
 		cmd->EndGraphics();
 	}
 
-	void RenderManager::PresentGame(const Ref<CommandBuffer>& cmd, const PresentPushData& pushData, uint32_t swapchainImageIndex)
+	void RenderManager::PresentGame(const Ref<CommandBuffer>& cmd, const Ref<Image>& presentImage, uint32_t swapchainImageIndex)
 	{
 		EG_GPU_TIMING_SCOPED(cmd, "Present");
 		const auto& data = s_RendererData;
 
-		const ImageLayout layout = data->PresentImage ? data->PresentImage->GetLayout() : ImageLayoutType::Unknown;
+		const ImageLayout layout = presentImage ? presentImage->GetLayout() : ImageLayoutType::Unknown;
 
-		if (data->PresentImage)
+		if (presentImage)
 		{
-			cmd->TransitionLayout(data->PresentImage, layout, ImageReadAccess::PixelShaderRead);
-			data->PresentPipeline->SetImageSampler(data->PresentImage, Sampler::PointSampler, 0, 0);
+			cmd->TransitionLayout(presentImage, layout, ImageReadAccess::PixelShaderRead);
+			data->PresentPipeline->SetImageSampler(presentImage, Sampler::PointSampler, 0, 0);
 		}
 		
 		cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[swapchainImageIndex]);
 
-		if (data->PresentImage)
+		if (presentImage)
 		{
+			PresentPushData pushData{ 0, 0 };
 			cmd->SetGraphicsRootConstants(&pushData, nullptr);
 			cmd->Draw(6, 0);
 		}
@@ -710,9 +711,9 @@ namespace Eagle
 		(*data->ImGuiLayer)->Render(cmd);
 		cmd->EndGraphics();
 
-		if (data->PresentImage)
+		if (presentImage)
 		{
-			cmd->TransitionLayout(data->PresentImage, ImageReadAccess::PixelShaderRead, layout);
+			cmd->TransitionLayout(presentImage, ImageReadAccess::PixelShaderRead, layout);
 		}
 	}
 
@@ -800,12 +801,12 @@ namespace Eagle
 			if (bBlock)
 			{
 				Ref<Fence> waitFence = Fence::Create();
-				s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, waitFence, nullptr, 0, nullptr, 0);
+				s_RendererData->GraphicsCommandManager->Submit(cmd, waitFence);
 				waitFence->Wait();
 			}
 			else
 			{
-				s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, nullptr, 0, nullptr, 0);
+				s_RendererData->GraphicsCommandManager->Submit(cmd);
 			}
 		};
 
@@ -825,7 +826,7 @@ namespace Eagle
 		return s_ResourceFreeQueue[index];
 	}
 
-	Ref<CommandBuffer>& RenderManager::GetCurrentFrameCommandBuffer()
+	const Ref<CommandBuffer>& RenderManager::GetCurrentFrameCommandBuffer()
 	{
 		return s_RendererData->CommandBuffers[s_RendererData->CurrentRenderingFrameIndex];
 	}
@@ -850,7 +851,7 @@ namespace Eagle
 		return s_RendererData->CurrentReleaseFrameIndex;
 	}
 
-	Ref<DescriptorManager>& RenderManager::GetDescriptorSetManager()
+	const Ref<DescriptorManager>& RenderManager::GetDescriptorSetManager()
 	{
 		return s_RendererData->DescriptorManager;
 	}
@@ -909,7 +910,7 @@ namespace Eagle
 		return PipelineGraphics::Create(prefilterState);
 	}
 
-	Ref<PipelineGraphics>& RenderManager::GetBRDFLUTPipeline()
+	const Ref<PipelineGraphics>& RenderManager::GetBRDFLUTPipeline()
 	{
 		return s_RendererData->BRDFLUTPipeline;
 	}

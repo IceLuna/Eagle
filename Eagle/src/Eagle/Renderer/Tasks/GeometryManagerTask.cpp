@@ -914,7 +914,7 @@ namespace Eagle
 
 		RenderManager::Submit([task = shared_from_this(), meshes = std::move(tempMeshes),
 			transforms = std::move(tempMeshTransforms),
-			transformIndices = std::move(meshTransformIndices)](Ref<CommandBuffer>&) mutable
+			transformIndices = std::move(meshTransformIndices)](const Ref<CommandBuffer>&) mutable
 			{
 				auto thisRef = Cast<GeometryManagerTask>(task);
 				thisRef->m_StaticMeshes = std::move(meshes);
@@ -943,7 +943,7 @@ namespace Eagle
 		for (auto& mesh : meshes)
 			updateData.push_back({ Math::ToTransformMatrix(mesh->GetWorldTransform()), mesh->Parent.GetID() });
 
-		RenderManager::Submit([task = shared_from_this(), data = std::move(updateData)](Ref<CommandBuffer>&)
+		RenderManager::Submit([task = shared_from_this(), data = std::move(updateData)](const Ref<CommandBuffer>&)
 		{
 			auto thisRef = Cast<GeometryManagerTask>(task);
 			for (auto& mesh : data)
@@ -1049,7 +1049,7 @@ namespace Eagle
 
 		RenderManager::Submit([task = shared_from_this(), meshes = std::move(tempMeshes),
 			transforms = std::move(tempMeshTransforms),
-			transformIndices = std::move(meshTransformIndices)](Ref<CommandBuffer>&) mutable
+			transformIndices = std::move(meshTransformIndices)](const Ref<CommandBuffer>&) mutable
 			{
 				auto thisRef = Cast<GeometryManagerTask>(task);
 				thisRef->m_SkeletalMeshes = std::move(meshes);
@@ -1078,7 +1078,7 @@ namespace Eagle
 		for (auto& mesh : meshes)
 			updateData.push_back({ Math::ToTransformMatrix(mesh->GetWorldTransform()), mesh->Parent.GetID() });
 
-		RenderManager::Submit([task = shared_from_this(), data = std::move(updateData)](Ref<CommandBuffer>&)
+		RenderManager::Submit([task = shared_from_this(), data = std::move(updateData)](const Ref<CommandBuffer>&)
 		{
 			auto thisRef = Cast<GeometryManagerTask>(task);
 			for (auto& mesh : data)
@@ -1292,7 +1292,7 @@ namespace Eagle
 
 		RenderManager::Submit([task = shared_from_this(), sprites = std::move(spritesData),
 							   transformIndices = std::move(tempTransformIndices),
-							   transforms = std::move(tempTransforms)](Ref<CommandBuffer>& cmd) mutable
+							   transforms = std::move(tempTransforms)](const Ref<CommandBuffer>& cmd) mutable
 		{
 			auto thisRef = Cast<GeometryManagerTask>(task);
 			thisRef->m_Sprites = std::move(sprites);
@@ -1321,7 +1321,7 @@ namespace Eagle
 		for (auto& sprite : sprites)
 			updateData.push_back({ Math::ToTransformMatrix(sprite->GetWorldTransform()), sprite->Parent.GetID() });
 
-		RenderManager::Submit([task = shared_from_this(), data = std::move(updateData)](Ref<CommandBuffer>&)
+		RenderManager::Submit([task = shared_from_this(), data = std::move(updateData)](const Ref<CommandBuffer>&)
 		{
 			auto thisRef = Cast<GeometryManagerTask>(task);
 			for (auto& sprite : data)
@@ -1678,7 +1678,7 @@ namespace Eagle
 		}
 
 		RenderManager::Submit([task = shared_from_this(), litTextComponents = std::move(litTexts), unlitTextComponents = std::move(unlitTexts),
-			transforms = std::move(tempTransforms), transformsIndices = std::move(tempTransformsIndices)](Ref<CommandBuffer>&) mutable
+			transforms = std::move(tempTransforms), transformsIndices = std::move(tempTransformsIndices)](const Ref<CommandBuffer>&) mutable
 		{
 			auto thisRef = Cast<GeometryManagerTask>(task);
 			thisRef->bUploadTextQuads = true;
@@ -1713,7 +1713,7 @@ namespace Eagle
 		for (auto& text : texts)
 			updateData.push_back({ Math::ToTransformMatrix(text->GetWorldTransform()), text->Parent.GetID() });
 
-		RenderManager::Submit([task = shared_from_this(), data = std::move(updateData)](Ref<CommandBuffer>&)
+		RenderManager::Submit([task = shared_from_this(), data = std::move(updateData)](const Ref<CommandBuffer>&)
 		{
 			auto thisRef = Cast<GeometryManagerTask>(task);
 			for (auto& text : data)

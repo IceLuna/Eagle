@@ -222,6 +222,7 @@ namespace Eagle
 		void AddOnAssetModifiedCallback(const GUID& id, const std::function<void()>& func)
 		{
 			std::scoped_lock lock(m_Mutex);
+			EG_CORE_ASSERT(m_Callbacks.find(id) == m_Callbacks.end());
 			m_Callbacks[id] = func;
 		}
 
