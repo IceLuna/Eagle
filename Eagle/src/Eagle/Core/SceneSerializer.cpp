@@ -64,22 +64,11 @@ namespace Eagle
 		out << YAML::BeginMap;
 
 		//Editor camera
-		const auto& camera = scene->GetEditorCamera();
+		const auto& camera = scene->EditorCamera;
 		const auto& transform = camera.GetTransform();
 		
+		// Only location & rotation are stored. Other settings are provided by the editor
 		out << YAML::Key << "EditorCamera"	<< YAML::BeginMap;
-		out << YAML::Key << "ProjectionMode" << YAML::Value << Utils::GetEnumName(camera.GetProjectionMode());
-		out << YAML::Key << "PerspectiveVerticalFOV" << YAML::Value << camera.GetPerspectiveVerticalFOV();
-		out << YAML::Key << "PerspectiveNearClip" << YAML::Value << camera.GetPerspectiveNearClip();
-		out << YAML::Key << "PerspectiveFarClip" << YAML::Value << camera.GetPerspectiveFarClip();
-		out << YAML::Key << "OrthographicSize" << YAML::Value << camera.GetOrthographicSize();
-		out << YAML::Key << "OrthographicNearClip" << YAML::Value << camera.GetOrthographicNearClip();
-		out << YAML::Key << "OrthographicFarClip" << YAML::Value << camera.GetOrthographicFarClip();
-		out << YAML::Key << "ShadowFarClip" << YAML::Value << camera.GetShadowFarClip();
-		out << YAML::Key << "CascadesSplitAlpha" << YAML::Value << camera.GetCascadesSplitAlpha();
-		out << YAML::Key << "CascadesSmoothTransitionAlpha" << YAML::Value << camera.GetCascadesSmoothTransitionAlpha();
-		out << YAML::Key << "MoveSpeed" << YAML::Value << camera.GetMoveSpeed();
-		out << YAML::Key << "RotationSpeed" << YAML::Value << camera.GetRotationSpeed();
 		out << YAML::Key << "Location" << YAML::Value << transform.Location;
 		out << YAML::Key << "Rotation" << YAML::Value << transform.Rotation;
 		out << YAML::EndMap; //Editor Camera
@@ -179,26 +168,7 @@ namespace Eagle
 
 		if (auto editorCameraNode = data["EditorCamera"])
 		{
-			auto& camera = scene->GetEditorCamera();
-
-			camera.SetProjectionMode(Utils::GetEnumFromName<CameraProjectionMode>(editorCameraNode["ProjectionMode"].as<std::string>()));
-
-			camera.SetPerspectiveVerticalFOV(editorCameraNode["PerspectiveVerticalFOV"].as<float>());
-			camera.SetPerspectiveNearClip(editorCameraNode["PerspectiveNearClip"].as<float>());
-			camera.SetPerspectiveFarClip(editorCameraNode["PerspectiveFarClip"].as<float>());
-
-			camera.SetOrthographicSize(editorCameraNode["OrthographicSize"].as<float>());
-			camera.SetOrthographicNearClip(editorCameraNode["OrthographicNearClip"].as<float>());
-			camera.SetOrthographicFarClip(editorCameraNode["OrthographicFarClip"].as<float>());
-			if (auto node = editorCameraNode["ShadowFarClip"])
-				camera.SetShadowFarClip(node.as<float>());
-			if (auto node = editorCameraNode["CascadesSplitAlpha"])
-				camera.SetCascadesSplitAlpha(node.as<float>());
-			if (auto node = editorCameraNode["CascadesSmoothTransitionAlpha"])
-				camera.SetCascadesSmoothTransitionAlpha(node.as<float>());
-
-			camera.SetMoveSpeed(editorCameraNode["MoveSpeed"].as<float>());
-			camera.SetRotationSpeed(editorCameraNode["RotationSpeed"].as<float>());
+			auto& camera = scene->EditorCamera;
 
 			Transform transform;
 			transform.Location = editorCameraNode["Location"].as<glm::vec3>();

@@ -23,9 +23,9 @@ namespace Eagle
 {
 	static const char* s_SkyHelpMsg = "Sky is used just for background! It doesn't actually light the scene at the moment!\nIf this is checked, IBL will still light the scene if it's set. The only thing that changes is background";
 	static const char* s_EnableVolumetricLightsHelpMsg = "Note that this just notifies the engine that volumetric lights can be used! To use volumetric lights, you'll need to check `Is Volumetric` of a particular light";
-	static const char* s_MaxShadowDistHelpMsg = "Beyond this distance from camera, shadows won't be rendered. Note this setting applies only to the editor camera! You'll need to apply this value to CameraComponent if you want to see it in the simulation";
-	static const char* s_CascadesSplitAlphaHelpMsg = "It's used to determine how to split cascades for directional light shadows. Note this setting applies only to the editor camera! You'll need to apply this value to CameraComponent if you want to see it in the simulation";
-	static const char* s_CascadesSmoothTransitionAlphaHelpMsg = "The blend amount between cascades of directional light shadows (if smooth transition is enabled). Try to keep it as low as possible. Note this setting applies only to the editor camera! You'll need to apply this value to CameraComponent if you want to see it in the simulation";
+	static const char* s_MaxShadowDistHelpMsg = "If a light source is beyond this distance from the camera, its shadows won't be rendered";
+	static const char* s_CascadesSplitAlphaHelpMsg = "It's used to determine how to split cascades for directional light shadows";
+	static const char* s_CascadesSmoothTransitionAlphaHelpMsg = "The blend amount between cascades of directional light shadows (if smooth transition is enabled). Try to keep it as low as possible";
 	static const char* s_SkyboxEnableHelpMsg = "Affects Sky and IBL";
 	static const char* s_TransparencyLayersHelpMsg = "More layers - better quality. But be careful when increasing this value since it requires a lot of memory. "
 		"Memory consumption: `width * height * layers * 12` bytes";
@@ -232,6 +232,11 @@ namespace Eagle
 		ReloadScriptsIfNecessary();
 		HandleResize();
 		m_CurrentScene->OnUpdate(ts, !m_ViewportHidden && bShouldRenderBasedOnFocus, bUpdateAnimationsInEditor);
+
+		if (m_EditorState == EditorState::Edit)
+		{
+			m_Camera = m_CurrentScene->EditorCamera;
+		}
 	}
 
 	void EditorLayer::OnEvent(Event& e)
@@ -614,7 +619,7 @@ namespace Eagle
 
 	void EditorLayer::SpawnEntityAtDepth(const Ref<AssetEntity>& entityAsset, glm::vec2 uv, float depth)
 	{
-		const auto& editorCamera = m_EditorScene->GetEditorCamera();
+		const auto& editorCamera = m_EditorScene->EditorCamera;
 		glm::vec3 worldPos = Math::WorldPosFromDepth(glm::inverse(editorCamera.GetViewProjection()), uv, depth);
 		
 		if (depth == 0.f)
@@ -761,9 +766,11 @@ namespace Eagle
 		m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + displayName);
 	}
 
-	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync,
+	void EditorLayer::OnDeserialized(const EditorCamera& camera, const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync,
 		bool bRenderOnlyWhenFocused, bool bDrawNavMesh, bool bDrawMeshAABBs, bool bDrawAxisGuizmo, Key stopSimulationKey, bool bUpdateAnimationsInEditor, int guizmoMode)
 	{
+		m_Camera = camera;
+
 		// Scene creation needs to go through this way of setting it up since we need to get Ref<Scene> immediately
 		m_EditorScene = MakeRef<Scene>("Editor Scene");
 		SetCurrentScene(m_EditorScene);
@@ -812,6 +819,18 @@ namespace Eagle
 		m_CurrentScene = scene;
 		Scene::SetCurrentScene(m_CurrentScene);
 		m_SceneHierarchyPanel.SetContext(m_CurrentScene);
+		UpdateSceneEditorCamera(scene);
+	}
+
+	void EditorLayer::UpdateSceneEditorCamera(const Ref<Scene>& scene, bool bUpdateTransform)
+	{
+		// Save transform to restore
+		const Transform oldTransform = scene->EditorCamera.GetTransform();
+		scene->EditorCamera = m_Camera; // Copy camera settings
+
+		// Reset transform back
+		if (!bUpdateTransform)
+			scene->EditorCamera.SetTransform(oldTransform);
 	}
 
 	void EditorLayer::UpdateGuizmo()
@@ -844,7 +863,7 @@ namespace Eagle
 			ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
 
 			//Camera
-			const auto& editorCamera = m_EditorScene->GetEditorCamera();
+			const auto& editorCamera = m_EditorScene->EditorCamera;
 			const auto runtimeCamera = m_CurrentScene->GetRuntimeCamera();
 			const bool bEditing = m_EditorState == EditorState::Edit;
 			glm::mat4 cameraProjection = bEditing ? editorCamera.GetUnreversedProjection() : runtimeCamera->Camera.GetUnreversedProjection();
@@ -916,7 +935,7 @@ namespace Eagle
 		// ImOGuizmo
 		if (m_EditorState == EditorState::Edit && bDrawAxisGuizmo)
 		{
-			auto& editorCamera = m_EditorScene->GetEditorCamera();
+			auto& editorCamera = m_EditorScene->EditorCamera;
 			glm::mat4 cameraProjection = editorCamera.GetProjection();
 			glm::mat4 cameraViewMatrix = editorCamera.GetViewMatrix();
 			cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
@@ -1520,19 +1539,6 @@ namespace Eagle
 				bSettingsChanged |= UI::Property("Enable Translucent Shadows", options.bTranslucentShadows);
 				bSettingsChanged |= UI::Property("Enable Soft Shadows", options.bEnableSoftShadows, "Hard shadows are still filtered using 3x3 PCF filter");
 				bSettingsChanged |= UI::Property("Enable Shadows smooth transition", options.bEnableCSMSmoothTransition, "Enable smooth transition of cascaded shadows (affects shadows that are casted by directional light)");
-
-				auto& editorCamera = m_CurrentScene->GetEditorCamera();
-				float maxShadowDist = editorCamera.GetShadowFarClip();
-				if (UI::PropertyDrag("Max Shadow distance", maxShadowDist, 1.f, 0.f, 0.f, s_MaxShadowDistHelpMsg))
-					editorCamera.SetShadowFarClip(maxShadowDist);
-
-				float cascadesSplitAlpha = editorCamera.GetCascadesSplitAlpha();
-				if (UI::PropertySlider("Cascades Split Alpha", cascadesSplitAlpha, 0.f, 1.f, s_CascadesSplitAlphaHelpMsg))
-					editorCamera.SetCascadesSplitAlpha(cascadesSplitAlpha);
-
-				float csmTransitionAlpha = editorCamera.GetCascadesSmoothTransitionAlpha();
-				if (UI::PropertySlider("Cascades Smooth Transition Alpha", csmTransitionAlpha, 0.f, 1.f, s_CascadesSmoothTransitionAlphaHelpMsg))
-					editorCamera.SetCascadesSmoothTransitionAlpha(csmTransitionAlpha);
 
 				ImGui::Separator();
 
@@ -2174,17 +2180,15 @@ namespace Eagle
 	
 	void EditorLayer::DrawEditorPreferences()
 	{
-		constexpr uint64_t treeID = 95242191ull;
 		glm::vec3 tempSnappingValues = m_SnappingValues;
 		ImGuizmo::MODE guizmoMode = (ImGuizmo::MODE)m_GuizmoMode;
 		ImGui::Begin("Editor Preferences");
 
-		constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+		constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
 			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
 
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-		ImGui::Separator();
-		bool treeOpened = ImGui::TreeNodeEx((void*)treeID, flags, "Snapping");
+		bool treeOpened = ImGui::TreeNodeEx("Snapping", flags);
 		ImGui::PopStyleVar();
 		if (treeOpened)
 		{
@@ -2205,6 +2209,101 @@ namespace Eagle
 					m_SnappingValues[2] = tempSnappingValues[2];
 			}
 			UI::EndPropertyGrid();
+			ImGui::TreePop();
+		}
+		ImGui::Separator();
+
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+		treeOpened = ImGui::TreeNodeEx("Camera", flags);
+		ImGui::PopStyleVar();
+		if (treeOpened)
+		{
+			bool bCameraChanged = false;
+			bool bCameraTransformChanged = false;
+
+			UI::BeginPropertyGrid("EditorPreferences_Camera");
+
+			float moveSpeed = m_Camera.GetMoveSpeed();
+			if (UI::PropertyDrag("Move speed", moveSpeed))
+			{
+				m_Camera.SetMoveSpeed(moveSpeed);
+				bCameraChanged = true;
+			}
+
+			float rotationSpeed = m_Camera.GetRotationSpeed();
+			if (UI::PropertyDrag("Rotation speed", rotationSpeed))
+			{
+				m_Camera.SetRotationSpeed(rotationSpeed);
+				bCameraChanged = true;
+			}
+
+			float verticalFov = glm::degrees(m_Camera.GetPerspectiveVerticalFOV());
+			if (UI::PropertyDrag("Vertical FOV", verticalFov))
+			{
+				m_Camera.SetPerspectiveVerticalFOV(glm::radians(verticalFov));
+				bCameraChanged = true;
+			}
+
+			float perspectiveNear = m_Camera.GetPerspectiveNearClip();
+			if (UI::PropertyDrag("Near Clip", perspectiveNear))
+			{
+				m_Camera.SetPerspectiveNearClip(perspectiveNear);
+				bCameraChanged = true;
+			}
+
+			float perspectiveFar = m_Camera.GetPerspectiveFarClip();
+			if (UI::PropertyDrag("Far Clip", perspectiveFar))
+			{
+				m_Camera.SetPerspectiveFarClip(perspectiveFar);
+				bCameraChanged = true;
+			}
+
+			float shadowFar = m_Camera.GetShadowFarClip();
+			if (UI::PropertyDrag("Shadow Far Clip", shadowFar, 1.f, 0.f, FLT_MAX, s_MaxShadowDistHelpMsg))
+			{
+				m_Camera.SetShadowFarClip(shadowFar);
+				bCameraChanged = true;
+			}
+
+			float cascadesSplitAlpha = m_Camera.GetCascadesSplitAlpha();
+			if (UI::PropertySlider("Cascades Split Alpha", cascadesSplitAlpha, 0.f, 1.f, s_CascadesSplitAlphaHelpMsg))
+			{
+				m_Camera.SetCascadesSplitAlpha(cascadesSplitAlpha);
+				bCameraChanged = true;
+			}
+
+			float cascadesTransitionAlpha = m_Camera.GetCascadesSmoothTransitionAlpha();
+			if (UI::PropertySlider("Cascades Smooth Transition Alpha", cascadesTransitionAlpha, 0.f, 1.f, s_CascadesSmoothTransitionAlphaHelpMsg))
+			{
+				m_Camera.SetCascadesSmoothTransitionAlpha(cascadesTransitionAlpha);
+				bCameraChanged = true;
+			}
+			UI::EndPropertyGrid();
+
+			ImGui::Separator();
+
+			// Transform
+			{
+				Transform cameraTr = m_Camera.GetTransform();
+				glm::quat quat = cameraTr.Rotation.GetQuat();
+
+				bCameraTransformChanged |= UI::DrawVec3Control("Location", cameraTr.Location, glm::vec3{ 0.f });
+				if (UI::DrawQuatControl("Rotation (Quat)", quat))
+				{
+					cameraTr.Rotation = quat;
+					bCameraTransformChanged = true;
+				}
+				if (bCameraTransformChanged)
+				{
+					m_Camera.SetTransform(cameraTr);
+				}
+			}
+
+			if (bCameraChanged || bCameraTransformChanged)
+			{
+				UpdateSceneEditorCamera(m_EditorScene, bCameraTransformChanged);
+			}
+
 			ImGui::TreePop();
 		}
 		ImGui::Separator();

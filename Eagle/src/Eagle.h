@@ -23,7 +23,6 @@
 #include "Eagle/Renderer/VidWrappers/Framebuffer.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 
-#include "Eagle/Camera/SceneCamera.h"
 #include "Eagle/Camera/EditorCamera.h"
 #include "Eagle/Camera/CameraController.h"
 

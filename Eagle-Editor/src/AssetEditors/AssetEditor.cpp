@@ -110,7 +110,7 @@ namespace Eagle
 		ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
 
 		//Camera
-		const auto& editorCamera = m_CurrentScene->GetEditorCamera();
+		const auto& editorCamera = m_CurrentScene->EditorCamera;
 		const auto runtimeCamera = m_CurrentScene->GetRuntimeCamera();
 		glm::mat4 cameraProjection = m_SimulationScene ? runtimeCamera->Camera.GetUnreversedProjection() : editorCamera.GetUnreversedProjection();
 		const glm::mat4& cameraViewMatrix = m_SimulationScene ? runtimeCamera->GetViewMatrix() : editorCamera.GetViewMatrix();
@@ -156,7 +156,7 @@ namespace Eagle
 		if (!m_CurrentScene)
 			return;
 
-		auto& editorCamera = m_CurrentScene->GetEditorCamera();
+		auto& editorCamera = m_CurrentScene->EditorCamera;
 		glm::mat4 cameraProjection = editorCamera.GetProjection();
 		glm::mat4 cameraViewMatrix = editorCamera.GetViewMatrix();
 		cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo

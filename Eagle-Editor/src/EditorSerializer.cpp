@@ -44,6 +44,28 @@ namespace Eagle
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
 		out << YAML::Key << "GuizmoMode" << YAML::Value << Utils::GetEnumName((ImGuizmo::MODE)editor->m_GuizmoMode);
 
+		// Editor camera
+		{
+			// Location & Rotation aren't saved. They're saved in the scene asset
+
+			const EditorCamera& camera = editor->m_Camera;
+			const auto& transform = camera.GetTransform();
+			out << YAML::Key << "EditorCamera" << YAML::BeginMap;
+			out << YAML::Key << "ProjectionMode" << YAML::Value << Utils::GetEnumName(camera.GetProjectionMode());
+			out << YAML::Key << "PerspectiveVerticalFOV" << YAML::Value << camera.GetPerspectiveVerticalFOV();
+			out << YAML::Key << "PerspectiveNearClip" << YAML::Value << camera.GetPerspectiveNearClip();
+			out << YAML::Key << "PerspectiveFarClip" << YAML::Value << camera.GetPerspectiveFarClip();
+			out << YAML::Key << "OrthographicSize" << YAML::Value << camera.GetOrthographicSize();
+			out << YAML::Key << "OrthographicNearClip" << YAML::Value << camera.GetOrthographicNearClip();
+			out << YAML::Key << "OrthographicFarClip" << YAML::Value << camera.GetOrthographicFarClip();
+			out << YAML::Key << "ShadowFarClip" << YAML::Value << camera.GetShadowFarClip();
+			out << YAML::Key << "CascadesSplitAlpha" << YAML::Value << camera.GetCascadesSplitAlpha();
+			out << YAML::Key << "CascadesSmoothTransitionAlpha" << YAML::Value << camera.GetCascadesSmoothTransitionAlpha();
+			out << YAML::Key << "MoveSpeed" << YAML::Value << camera.GetMoveSpeed();
+			out << YAML::Key << "RotationSpeed" << YAML::Value << camera.GetRotationSpeed();
+			out << YAML::EndMap;
+		}
+
 		Serializer::SerializeRendererSettings(out, rendererOptions);
 
 		out << YAML::EndMap;
@@ -77,6 +99,7 @@ namespace Eagle
 		bool bDrawMeshAABBs = editor->bDrawMeshAABBs;
 		Key stopSimulationKey = editor->m_StopSimulationKey;
 		int guizmoMode = ImGuizmo::MODE::WORLD;
+		EditorCamera camera{};
 
 		if (auto openedScenePathNode = data["EditorStartupScene"])
 		{
@@ -116,10 +139,32 @@ namespace Eagle
 			bVSync = VSyncNode.as<bool>();
 		if (auto node = data["GuizmoMode"])
 			guizmoMode = Utils::GetEnumFromName<ImGuizmo::MODE>(node.as<std::string>());
+
+		if (auto editorCameraNode = data["EditorCamera"])
+		{
+			camera.SetProjectionMode(Utils::GetEnumFromName<CameraProjectionMode>(editorCameraNode["ProjectionMode"].as<std::string>()));
+
+			camera.SetPerspectiveVerticalFOV(editorCameraNode["PerspectiveVerticalFOV"].as<float>());
+			camera.SetPerspectiveNearClip(editorCameraNode["PerspectiveNearClip"].as<float>());
+			camera.SetPerspectiveFarClip(editorCameraNode["PerspectiveFarClip"].as<float>());
+
+			camera.SetOrthographicSize(editorCameraNode["OrthographicSize"].as<float>());
+			camera.SetOrthographicNearClip(editorCameraNode["OrthographicNearClip"].as<float>());
+			camera.SetOrthographicFarClip(editorCameraNode["OrthographicFarClip"].as<float>());
+			if (auto node = editorCameraNode["ShadowFarClip"])
+				camera.SetShadowFarClip(node.as<float>());
+			if (auto node = editorCameraNode["CascadesSplitAlpha"])
+				camera.SetCascadesSplitAlpha(node.as<float>());
+			if (auto node = editorCameraNode["CascadesSmoothTransitionAlpha"])
+				camera.SetCascadesSmoothTransitionAlpha(node.as<float>());
+
+			camera.SetMoveSpeed(editorCameraNode["MoveSpeed"].as<float>());
+			camera.SetRotationSpeed(editorCameraNode["RotationSpeed"].as<float>());
+		}
 		
 		Serializer::DeserializeRendererSettings(data, settings);
 
-		editor->OnDeserialized(windowSize, windowPos, settings, bWindowMaximized, bVSync, bRenderOnlyWhenFocused, bDrawNavMesh, bDrawMeshAABBs, bDrawAxisGuizmo, stopSimulationKey, bUpdateAnimationsInEditor, guizmoMode);
+		editor->OnDeserialized(camera, windowSize, windowPos, settings, bWindowMaximized, bVSync, bRenderOnlyWhenFocused, bDrawNavMesh, bDrawMeshAABBs, bDrawAxisGuizmo, stopSimulationKey, bUpdateAnimationsInEditor, guizmoMode);
 		return true;
 	}
 }

@@ -40,8 +40,8 @@ namespace Eagle
 		float GetMoveSpeed() const { return m_MoveSpeed; }
 		void  SetMoveSpeed(float speed) { m_MoveSpeed = speed; }
 
-		float GetRotationSpeed() const { return m_MouseRotationSpeed; }
-		void  SetRotationSpeed(float speed) { m_MouseRotationSpeed = speed; }
+		float GetRotationSpeed() const { return m_MouseRotationSpeed * 100.f; }
+		void  SetRotationSpeed(float speed) { m_MouseRotationSpeed = speed / 100.f; }
 
 		void LookAt(const glm::vec3& pos);
 

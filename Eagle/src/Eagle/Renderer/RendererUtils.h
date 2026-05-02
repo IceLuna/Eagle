@@ -326,6 +326,9 @@ namespace Eagle
     {
         CullingFrustum Frustum;
         glm::mat4 View = glm::mat4(1);
+        glm::mat4 Proj = glm::mat4(1);
+        glm::mat4 InvProj = glm::mat4(1);
+        glm::vec3 Position = glm::vec3(0);
     };
 
     struct PostprocessTileStatistics

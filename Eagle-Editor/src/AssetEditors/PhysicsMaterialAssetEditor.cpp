@@ -81,7 +81,7 @@ namespace Eagle
 			sun.SetLightColor(glm::vec3(20.5f));
 		}
 
-		auto& camera = scene->GetEditorCamera();
+		auto& camera = scene->EditorCamera;
 		camera.SetLocation(glm::vec3(-4.f, 0.f, 0.f));
 		camera.LookAt(glm::vec3(0, 0, 0));
 		const glm::vec3 cameraDir = camera.GetForwardVector();

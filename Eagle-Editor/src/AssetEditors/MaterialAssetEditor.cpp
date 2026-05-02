@@ -24,7 +24,7 @@ namespace Eagle
 		tr.Rotation = glm::rotate(tr.Rotation.GetQuat(), glm::radians(-90.f), glm::vec3(1.f, 0.f, 0.f));
 		sm.SetWorldTransform(tr);
 
-		auto& camera = scene->GetEditorCamera();
+		auto& camera = scene->EditorCamera;
 		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
 		camera.LookAt(glm::vec3(0, 0, 0));
 		const glm::vec3 cameraDir = camera.GetForwardVector();

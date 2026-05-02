@@ -81,8 +81,8 @@ namespace Eagle
 
 		float m_PerspectiveVerticalFOV = glm::radians(45.f);
 		float m_PerspectiveNear = 0.01f;
-		float m_PerspectiveFar = 500.f;
-		float m_ShadowFar = 150.f;
+		float m_PerspectiveFar = 150.f;
+		float m_ShadowFar = 30.f; // in meters
 		float m_CSMSmoothTransitionAlpha = 3.5f / 100.f; // 3.5%
 
 		float m_OrthographicSize = 10.f;
@@ -90,7 +90,7 @@ namespace Eagle
 		float m_OrthographicFar = 100.f;
 
 		// Just some default values
-		float m_AspectRatio = 0.785398185f;
+		float m_AspectRatio = 1;
 		uint32_t m_ViewportWidth = 128;
 		uint32_t m_ViewportHeight = 128;
 	};

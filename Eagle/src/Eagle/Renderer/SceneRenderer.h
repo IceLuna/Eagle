@@ -261,7 +261,7 @@ namespace Eagle
 		float GetFOV() const { return m_CameraFOV; }
 
 		// Needs to be called every frame
-		void SetDebugFrustumCulling(const glm::mat4& view, float aspectRatio, float fov, float nearPlane, float farPlane);
+		void SetDebugFrustumCulling(const glm::vec3& cameraPos, const glm::mat4& view, const Camera& camera, float aspectRatio);
 		const CullingFrustumData& GetCullingFrustumData() const { return m_CullingData; }
 
 		// Prev frame data

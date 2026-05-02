@@ -77,7 +77,6 @@ layout(push_constant) uniform PushConstants
     vec3 g_CameraPos;
     float g_VolumetricMaxDistance;
     ivec2 g_Size;
-    float g_MaxShadowDistance2;
     float g_Time;
     vec3 g_FogAlbedo;
     float g_FogAnisotropy;
@@ -141,7 +140,7 @@ void main()
     #ifdef EG_TRANSLUCENT_SHADOWS
                     g_PointShadowMapsColored[nonuniformEXT(shadowMapIndex)], g_PointShadowMapsColoredDepth[nonuniformEXT(shadowMapIndex)],
     #endif
-                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCheckShadows);
+                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, bCheckShadows);
             }
             else
             {
@@ -149,7 +148,7 @@ void main()
     #ifdef EG_TRANSLUCENT_SHADOWS
                     g_PointShadowMapsColored[0], g_PointShadowMapsColoredDepth[0],
     #endif
-                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, false);
+                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, false);
             }
         }
     }
@@ -178,7 +177,7 @@ void main()
     #ifdef EG_TRANSLUCENT_SHADOWS
                     g_SpotShadowMapsColored[nonuniformEXT(shadowMapIndex)], g_SpotShadowMapsColoredDepth[nonuniformEXT(shadowMapIndex)],
     #endif
-                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCheckShadows);
+                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, bCheckShadows);
             }
             else
             {
@@ -186,7 +185,7 @@ void main()
     #ifdef EG_TRANSLUCENT_SHADOWS
                     g_SpotShadowMapsColored[0], g_SpotShadowMapsColoredDepth[0],
     #endif
-                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, false);
+                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, false);
             }
         }
     }
@@ -198,7 +197,7 @@ void main()
 #ifdef EG_TRANSLUCENT_SHADOWS
             g_DirShadowMapsColored, g_DirShadowMapsColoredDepth,
 #endif
-            worldPos, g_CameraPos, incoming, geometryNormal, g_CameraView, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2);
+            worldPos, g_CameraPos, incoming, geometryNormal, g_CameraView, s_VolumetricSamples, g_VolumetricMaxDistance);
     }
 
     Lo *= g_FogAlbedo;

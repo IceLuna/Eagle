@@ -126,8 +126,8 @@ struct PointLight
 
 	uint ShadowMapIndex;
 	uint ViewProjOffset; // Note: it's invalid to use it on shader side because point light transforms aren't uploaded. Currently, used to fetch it on the CPU side
+	float Radius;
 	uint Padding0;
-	uint Padding1;
 };
 
 struct DirectionalLight

@@ -40,7 +40,6 @@ layout(set = 5, binding = 2) uniform UniformBuffer
     vec3 g_CameraPos;
     float g_MaxReflectionLOD;
     ivec2 g_Size;
-    float g_MaxShadowDistance2;
     float g_CSMOverlap;
     float g_IBLIntensity;
     uint g_TilesBufferWidth;
@@ -137,7 +136,6 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
     const vec3 F0 = mix(vec3(EG_BASE_REFLECTIVITY), albedo, metalness);
 
     const vec3 fragToCamera = g_CameraPos - worldPos;
-    const bool bInShadowRange = dot(fragToCamera, fragToCamera) < g_MaxShadowDistance2;
     const vec3 V = normalize(fragToCamera);
 
     vec3 Lo = vec3(0.f);
@@ -166,7 +164,7 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
             bucketBits ^= (1 << bucketLightIndex);
 
             const PointLight pointLight = g_PointLights[lightIndex];
-            Lo += CalculatePointLightRadiance(pointLight, worldPos, geometryNormal, shadingNormal, lambert_albedo, V, F0, metalness, roughness, bInShadowRange);
+            Lo += CalculatePointLightRadiance(pointLight, worldPos, geometryNormal, shadingNormal, lambert_albedo, V, F0, metalness, roughness);
         }
     }
 
@@ -182,7 +180,7 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
             bucketBits ^= (1 << bucketLightIndex);
 
             const SpotLight spotLight = g_SpotLights[lightIndex];
-            Lo += CalculateSpotLightRadiance(spotLight, worldPos, geometryNormal, shadingNormal, lambert_albedo, V, F0, metalness, roughness, bInShadowRange);
+            Lo += CalculateSpotLightRadiance(spotLight, worldPos, geometryNormal, shadingNormal, lambert_albedo, V, F0, metalness, roughness);
         }
     }
 
@@ -193,7 +191,7 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
 
     if (g_HasDirLight != 0)
     {
-        Lo += CalculateDirectionalLightRadiance(g_DirectionalLight, worldPos, geometryNormal, shadingNormal, lambert_albedo, V, F0, metalness, roughness, bInShadowRange,
+        Lo += CalculateDirectionalLightRadiance(g_DirectionalLight, worldPos, geometryNormal, shadingNormal, lambert_albedo, V, F0, metalness, roughness,
             g_View, g_CSMOverlap
 #ifdef EG_ENABLE_CSM_VISUALIZATION
             , cascadeVisualizationColor

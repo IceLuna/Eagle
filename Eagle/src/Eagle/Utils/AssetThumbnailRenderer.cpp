@@ -43,7 +43,7 @@ namespace Eagle
 		auto& component = entity.AddComponent<StaticMeshComponent>();
 		component.SetMeshAsset(asset);
 
-		auto& camera = m_Scene->GetEditorCamera();
+		auto& camera = m_Scene->EditorCamera;
 		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
 		camera.LookAt(glm::vec3(0, 0, 0));
 		const glm::vec3 cameraDir = camera.GetForwardVector();
@@ -60,7 +60,7 @@ namespace Eagle
 		auto& component = entity.AddComponent<SkeletalMeshComponent>();
 		component.SetMeshAsset(asset);
 
-		auto& camera = m_Scene->GetEditorCamera();
+		auto& camera = m_Scene->EditorCamera;
 		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
 		camera.LookAt(glm::vec3(0, 0, 0));
 		const glm::vec3 cameraDir = camera.GetForwardVector();
@@ -84,7 +84,7 @@ namespace Eagle
 		tr.Rotation = glm::rotate(tr.Rotation.GetQuat(), glm::radians(-90.f), glm::vec3(1.f, 0.f, 0.f));
 		component.SetWorldTransform(tr);
 
-		auto& camera = m_Scene->GetEditorCamera();
+		auto& camera = m_Scene->EditorCamera;
 		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
 		camera.LookAt(glm::vec3(0, 0, 0));
 		const glm::vec3 cameraDir = camera.GetForwardVector();
@@ -99,7 +99,7 @@ namespace Eagle
 	{
 		Entity entity = m_Scene->CreateFromEntityAsset(asset);
 
-		auto& camera = m_Scene->GetEditorCamera();
+		auto& camera = m_Scene->EditorCamera;
 		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
 		camera.LookAt(glm::vec3(0, 0, 0));
 		const glm::vec3 cameraDir = camera.GetForwardVector();
@@ -142,7 +142,7 @@ namespace Eagle
 		component.SetMeshAsset(skeletal);
 		component.SetAnimationAsset(asset);
 
-		auto& camera = m_Scene->GetEditorCamera();
+		auto& camera = m_Scene->EditorCamera;
 		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
 		camera.LookAt(glm::vec3(0, 0, 0));
 		const glm::vec3 cameraDir = camera.GetForwardVector();
@@ -170,7 +170,7 @@ namespace Eagle
 		auto& component = entity.AddComponent<ParticleSystemComponent>();
 		component.SetAsset(assetCopy);
 
-		auto& camera = m_Scene->GetEditorCamera();
+		auto& camera = m_Scene->EditorCamera;
 		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
 		camera.LookAt(glm::vec3(0, 0, 0));
 		const glm::vec3 cameraDir = camera.GetForwardVector();

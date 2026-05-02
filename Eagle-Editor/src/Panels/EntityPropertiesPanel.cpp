@@ -876,7 +876,7 @@ namespace Eagle
 					}
 
 					float shadowFar = camera.GetShadowFarClip();
-					if (UI::PropertyDrag("Shadow Far Clip", shadowFar, 1.f, 0.f, FLT_MAX, "Max distance for cascades (directional light shadows)"))
+					if (UI::PropertyDrag("Shadow Far Clip", shadowFar, 1.f, 0.f, FLT_MAX, "If a light source is beyond this distance from the camera, its shadows won't be rendered"))
 					{
 						camera.SetShadowFarClip(shadowFar);
 						bEntityChanged = true;
@@ -908,7 +908,7 @@ namespace Eagle
 					if (ImGui::Button("Copy transform from the editor camera"))
 					{
 						const auto& scene = entity.GetScene();
-						const auto& editorCamera = scene->GetEditorCamera();
+						const auto& editorCamera = scene->EditorCamera;
 						cameraComponent.SetWorldTransform(editorCamera.GetTransform());
 					}
 				});

@@ -22,7 +22,7 @@ namespace Eagle
 		m_Component->AnimType = AnimationType::Clip;
 		m_Component->SetRootMotionLockFlag(bInPlace ? RootMotionLockFlag::Position : RootMotionLockFlag::None);
 
-		auto& camera = scene->GetEditorCamera();
+		auto& camera = scene->EditorCamera;
 		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
 		camera.LookAt(glm::vec3(0, 0, 0));
 		const glm::vec3 cameraDir = camera.GetForwardVector();

@@ -67,13 +67,15 @@ namespace Eagle
 
 		const glm::vec2 size = m_Renderer.GetViewportSize();
 		const glm::vec2 rcpScreenSize = vec2(1) / size;
+		const float maxShadowDistance2 = m_Renderer.GetShadowMaxDistance() * m_Renderer.GetShadowMaxDistance();
 
 		const float fMinDepth = 1.f;
 		const float fMaxDepth = 0.f;
 
-		const auto& matrices = m_Renderer.GetCameraMatrices();
-		const glm::mat4& invProj = matrices.InvProj;
-		const glm::mat4& view = matrices.View;
+		const auto& frustumData = m_Renderer.GetCullingFrustumData();
+		const glm::mat4& invProj = frustumData.InvProj;
+		const glm::mat4& view = frustumData.View;
+		const glm::vec3& cameraPos = frustumData.Position;
 
 		::Frustum frustum;
 		::AABB aabb;
@@ -99,7 +101,13 @@ namespace Eagle
 						auto& emplaced = m_CulledPointLights.emplace_back(light);
 						if (emplaced.DoesCastShadows())
 						{
-							emplaced.ShadowMapIndex = shadowMapIndex++;
+							const float distance2 = glm::distance2(cameraPos, light.Position);
+							const bool bInShadowRange = distance2 <= maxShadowDistance2;
+							emplaced.SetCastsShadows(bInShadowRange);
+							if (bInShadowRange)
+							{
+								emplaced.ShadowMapIndex = shadowMapIndex++;
+							}
 						}
 					}
 				}
@@ -112,13 +120,16 @@ namespace Eagle
 			const auto& lights = m_Renderer.GetSpotLights();
 			for (const auto& light : lights)
 			{
-				const ::Sphere sphere = SphereFromSpotLight((::SpotLight&)light, view);
-				if (SphereInsideFrustum(sphere, frustum, nearClipVS, maxDepthVS))
+				const ::Cone cone = ConeFromSpotLight((::SpotLight&)light, view);
+				if (ConeInsideFrustum(cone, frustum, nearClipVS, maxDepthVS))
 				{
-					if (SphereIntersectsAABB(sphere, aabb))
+					auto& emplaced = m_CulledSpotLights.emplace_back(light);
+					if (emplaced.bCastsShadows != 0)
 					{
-						auto& emplaced = m_CulledSpotLights.emplace_back(light);
-						if (emplaced.bCastsShadows != 0)
+						const float distance2 = glm::distance2(cameraPos, light.Position);
+						const bool bInShadowRange = distance2 <= maxShadowDistance2;
+						emplaced.bCastsShadows = bInShadowRange ? 1u : 0u;
+						if (bInShadowRange)
 						{
 							emplaced.ShadowMapIndex = shadowMapIndex++;
 						}

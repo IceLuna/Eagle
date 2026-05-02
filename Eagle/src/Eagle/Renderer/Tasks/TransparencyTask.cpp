@@ -24,7 +24,6 @@ namespace Eagle
 		glm::vec3 CameraPos;
 		float MaxReflectionLOD;
 		glm::ivec2 Size;
-		float MaxShadowDistance2; // Square of distance
 		float CascadesSmoothTransitionAlpha;
 		float IBLIntensity;
 		uint32_t TilesWidthBuffer;
@@ -730,7 +729,6 @@ namespace Eagle
 		uniforms.Size = m_Renderer.GetViewportSize();
 		uniforms.CameraPos = m_Renderer.GetViewPosition();
 		uniforms.MaxReflectionLOD = float(ibl->GetPrefilterImage()->GetMipsCount() - 1);
-		uniforms.MaxShadowDistance2 = m_Renderer.GetShadowMaxDistance() * m_Renderer.GetShadowMaxDistance();
 		uniforms.CascadesSmoothTransitionAlpha = m_Renderer.GetOptions_RT().InternalState.CascadesSmoothTransitionAlpha;
 		uniforms.IBLIntensity = m_Renderer.GetSkyboxIntensity();
 		uniforms.TilesWidthBuffer = m_Renderer.GetLightCullingTask()->GetTilesBufferWidth();

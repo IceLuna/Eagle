@@ -90,7 +90,7 @@ float DirLight_ShadowCalculation_Volumetric(sampler2D depthTexture, vec3 fragPos
 	return 1.f - shadow;
 }
 
-float PointLight_ShadowCalculation_Volumetric(samplerCube depthTexture, vec3 lightToFrag, vec3 geometryNormal, float NdotL)
+float PointLight_ShadowCalculation_Volumetric(samplerCube depthTexture, vec3 lightToFrag, vec3 geometryNormal, float NdotL, float farDistance)
 {
 	const float texelSize = 1.f / textureSize(depthTexture, 0).x;
 	const float k = mix(30.f, 150.f, 1.f - NdotL);
@@ -98,7 +98,7 @@ float PointLight_ShadowCalculation_Volumetric(samplerCube depthTexture, vec3 lig
 	const vec3 normalBias = geometryNormal * bias;
 	lightToFrag += normalBias;
 	
-	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_FAR, EG_POINT_LIGHT_NEAR);
+	const float currentDepth = VectorToDepth(lightToFrag, farDistance, EG_POINT_LIGHT_NEAR);
 	float shadow = 0.f;
 	
 	float closestDepth = texture(depthTexture, lightToFrag).r;
@@ -146,13 +146,13 @@ vec3 DirLight_ColoredShadowCalculation_Volumetric(sampler2D depthTexture, sample
 	return texture(depthTexture, projCoords).rgb;
 }
 
-vec3 PointLight_ColoredShadowCalculation_Volumetric(samplerCube depthTexture, samplerCube coloredDepthTexture, vec3 lightToFrag, vec3 geometryNormal, float NdotL)
+vec3 PointLight_ColoredShadowCalculation_Volumetric(samplerCube depthTexture, samplerCube coloredDepthTexture, vec3 lightToFrag, vec3 geometryNormal, float NdotL, float farDistance)
 {
 	const float texelSize = 1.f / textureSize(depthTexture, 0).x;
 	const float bias = texelSize * (1.f - NdotL) * 4.f;
 	lightToFrag += bias;
 	
-	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_FAR, EG_POINT_LIGHT_NEAR);
+	const float currentDepth = VectorToDepth(lightToFrag, farDistance, EG_POINT_LIGHT_NEAR);
 	const float depth = texture(coloredDepthTexture, lightToFrag).r;
 	if (currentDepth > depth)
 		return vec3(1);
@@ -160,7 +160,7 @@ vec3 PointLight_ColoredShadowCalculation_Volumetric(samplerCube depthTexture, sa
 	return texture(depthTexture, lightToFrag).rgb;
 }
 
-vec3 SpotLight_ColoredShadowCalculation_Volumetric(sampler2D coloredTexture, sampler2D coloredDepthTexture, vec3 fragPosLightSpace, float NdotL, float dist2)
+vec3 SpotLight_ColoredShadowCalculation_Volumetric(sampler2D coloredTexture, sampler2D coloredDepthTexture, vec3 fragPosLightSpace, float NdotL)
 {
 	const float texelSize = 1.f / float(textureSize(coloredTexture, 0));
 	const float baseBias = texelSize;
@@ -180,7 +180,7 @@ vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2D depthTextures
 	sampler2D coloredTextures[EG_CASCADES_COUNT], sampler2D coloredDepthTextures[EG_CASCADES_COUNT],
 #endif
 	vec3 worldPos, vec3 cameraPos,
-	vec3 incoming, vec3 normal, mat4 cameraView, uint scatteringSamples, float scatteringZFar, float maxShadowDistance2)
+	vec3 incoming, vec3 normal, mat4 cameraView, uint scatteringSamples, float scatteringZFar)
 {
 	const bool bVolumetricLight = (floatBitsToUint(light.VolumetricFogIntensity) & 0x80000000) != 0;
 	if (!bVolumetricLight)
@@ -220,7 +220,6 @@ vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2D depthTextures
 		{
 			const vec3 incoming = currentPos - cameraPos;
 			const float distance2 = dot(incoming, incoming);
-			if (distance2 < maxShadowDistance2)
 			{
 				const float cascadeDepth = abs((cameraView * vec4(currentPos, 1.0)).z);
 				int layer = -1;
@@ -297,7 +296,7 @@ vec3 PointLight_Volumetric(in PointLight light, samplerCube shadowMap,
 	samplerCube coloredTexture, samplerCube coloredDepthTexture,
 #endif
 	vec3 worldPos, vec3 cameraPos,
-	float NdotL, vec3 normal, uint scatteringSamples, float scatteringZFar, float maxShadowRange2, bool bCastsShadow)
+	float NdotL, vec3 normal, uint scatteringSamples, float scatteringZFar, bool bCastsShadow)
 {
 	const bool bVolumetricLight = (floatBitsToUint(light.VolumetricFogIntensity) & 0x80000000) != 0;
 	if (!bVolumetricLight)
@@ -360,11 +359,10 @@ vec3 PointLight_Volumetric(in PointLight light, samplerCube shadowMap,
 			
 			if (bCastsShadow && NOT_ZERO(attenuation))
 			{
-				if (distance2 < maxShadowRange2)
 				{
-					visibility = PointLight_ShadowCalculation_Volumetric(shadowMap, -incoming, normal, NdotL);
+					visibility = PointLight_ShadowCalculation_Volumetric(shadowMap, -incoming, normal, NdotL, light.Radius);
 #ifdef EG_TRANSLUCENT_SHADOWS
-					coloredVisibility = PointLight_ColoredShadowCalculation_Volumetric(coloredTexture, coloredDepthTexture , -incoming, normal, NdotL);
+					coloredVisibility = PointLight_ColoredShadowCalculation_Volumetric(coloredTexture, coloredDepthTexture , -incoming, normal, NdotL, light.Radius);
 #endif
 				}
 			}
@@ -466,7 +464,7 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap,
 	sampler2D coloredTexture, sampler2D coloredDepthTexture,
 #endif
 	vec3 worldPos, vec3 cameraPos,
-	float NdotL, vec3 normal, uint scatteringSamples, float scatteringZFar, float maxShadowRange2, bool bCastsShadow)
+	float NdotL, vec3 normal, uint scatteringSamples, float scatteringZFar, bool bCastsShadow)
 {
 	const bool bVolumetricLight = (floatBitsToUint(light.VolumetricFogIntensity) & 0x80000000) != 0;
 	if (!bVolumetricLight)
@@ -541,7 +539,6 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap,
 #endif
 			if (bCastsShadow && NOT_ZERO(attenuation))
 			{
-				if (distance2 < maxShadowRange2)
 				{
 					const float k = 20.f + (40.f * light.OuterCutOffRadians * light.OuterCutOffRadians) + distance2 * 2.2f; // Some magic number that helps to fight against self-shadowing
 					const float bias = texelSize * k;
@@ -553,7 +550,7 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap,
 					
 					visibility = SpotLight_ShadowCalculation_Volumetric(shadowMap, lightSpacePos.xyz, NdotL);
 #ifdef EG_TRANSLUCENT_SHADOWS
-					coloredShadow = SpotLight_ColoredShadowCalculation_Volumetric(coloredTexture, coloredDepthTexture, lightSpacePos.xyz, NdotL, distance2);
+					coloredShadow = SpotLight_ColoredShadowCalculation_Volumetric(coloredTexture, coloredDepthTexture, lightSpacePos.xyz, NdotL);
 #endif
 				}
 			}

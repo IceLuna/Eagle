@@ -168,6 +168,9 @@ namespace Eagle
 				const float aspectRatio = float(size.x) / size.y;
 				renderer->m_CullingData.Frustum = CalculateFrustum(zNear, zFar, cameraFov, aspectRatio);
 				renderer->m_CullingData.View = renderer->m_CameraMatrices.View;
+				renderer->m_CullingData.Proj = renderer->m_CameraMatrices.Proj;
+				renderer->m_CullingData.InvProj = renderer->m_CameraMatrices.InvProj;
+				renderer->m_CullingData.Position = viewPosition;
 			}
 
 			if (options.InternalState.bJitter)
@@ -462,11 +465,18 @@ namespace Eagle
 		});
 	}
 
-	void SceneRenderer::SetDebugFrustumCulling(const glm::mat4& view, float aspectRatio, float fov, float nearPlane, float farPlane)
+	void SceneRenderer::SetDebugFrustumCulling(const glm::vec3& cameraPos, const glm::mat4& view, const Camera& camera, float aspectRatio)
 	{
+		const float fovY = camera.GetPerspectiveVerticalFOV();
+		const float nearPlane = camera.GetPerspectiveNearClip();
+		const float farPlane = camera.GetPerspectiveFarClip();
+
 		CullingFrustumData data{};
-		data.Frustum = CalculateFrustum(nearPlane, farPlane, fov, aspectRatio);
+		data.Frustum = CalculateFrustum(nearPlane, farPlane, fovY, aspectRatio);
 		data.View = view;
+		data.Proj = camera.GetProjection();
+		data.InvProj = glm::inverse(data.Proj);
+		data.Position = cameraPos;
 
 		RenderManager::Submit([renderer = shared_from_this(), data](const Ref<CommandBuffer>&)
 		{

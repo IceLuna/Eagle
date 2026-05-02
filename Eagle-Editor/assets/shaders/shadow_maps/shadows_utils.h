@@ -84,7 +84,7 @@ float DirLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLightS
 	return (1.f - shadow);
 }
 
-float PointLight_ShadowCalculation_Soft(samplerCube depthTexture, vec3 lightToFrag, vec3 geometryNormal, float NdotL)
+float PointLight_ShadowCalculation_Soft(samplerCube depthTexture, vec3 lightToFrag, vec3 geometryNormal, float NdotL, float farDistance)
 {
 	const float texelSize = 1.f / textureSize(depthTexture, 0).x;
 	const float k = mix(30.f, 100.f, 1.f - NdotL);
@@ -92,7 +92,7 @@ float PointLight_ShadowCalculation_Soft(samplerCube depthTexture, vec3 lightToFr
 	const vec3 normalBias = geometryNormal * bias;
 	lightToFrag += normalBias;
 	
-	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_FAR, EG_POINT_LIGHT_NEAR);
+	const float currentDepth = VectorToDepth(lightToFrag, farDistance, EG_POINT_LIGHT_NEAR);
 	
 	const ivec2 f = ivec2(mod(EG_PIXEL_COORDS, vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
 	
@@ -373,7 +373,7 @@ float DirLight_ShadowCalculation_Hard(sampler2D depthTexture, vec3 fragPosLightS
 	return (1.f - (shadow * invPCFMatrixSize));
 }
 
-float PointLight_ShadowCalculation_Hard(samplerCube depthTexture, vec3 lightToFrag, vec3 geometryNormal, float NdotL)
+float PointLight_ShadowCalculation_Hard(samplerCube depthTexture, vec3 lightToFrag, vec3 geometryNormal, float NdotL, float farDistance)
 {
 	const int samples = 20;
 	const float invSamples = 1.f / float(samples);
@@ -392,7 +392,7 @@ float PointLight_ShadowCalculation_Hard(samplerCube depthTexture, vec3 lightToFr
 	const vec3 normalBias = geometryNormal * bias;
 	lightToFrag += normalBias;
 	
-	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_FAR, EG_POINT_LIGHT_NEAR);
+	const float currentDepth = VectorToDepth(lightToFrag, farDistance, EG_POINT_LIGHT_NEAR);
 	float shadow = 0.f;
 	
 	const float baseDiskRadius = 0.001f;
@@ -521,9 +521,9 @@ vec3 SpotLight_ColoredShadowCalculation_Hard(sampler2D coloredTexture, vec3 frag
 
 // 0 = in shadow, 1 = not in shadow
 #ifdef EG_SOFT_SHADOWS
-#define PointLight_ShadowCalculation(depthTexture, lightToFrag, geometryNormal, NdotL) PointLight_ShadowCalculation_Soft(depthTexture, lightToFrag, geometryNormal, NdotL)
+#define PointLight_ShadowCalculation(depthTexture, lightToFrag, geometryNormal, NdotL, farDistance) PointLight_ShadowCalculation_Soft(depthTexture, lightToFrag, geometryNormal, NdotL, farDistance)
 #else
-#define PointLight_ShadowCalculation(depthTexture, lightToFrag, geometryNormal, NdotL) PointLight_ShadowCalculation_Hard(depthTexture, lightToFrag, geometryNormal, NdotL)
+#define PointLight_ShadowCalculation(depthTexture, lightToFrag, geometryNormal, NdotL, farDistance) PointLight_ShadowCalculation_Hard(depthTexture, lightToFrag, geometryNormal, NdotL, farDistance)
 #endif
 
 // 0 = in shadow, 1 = not in shadow

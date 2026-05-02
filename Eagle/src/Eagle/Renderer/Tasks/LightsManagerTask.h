@@ -23,8 +23,21 @@ namespace Eagle
 
 			uint32_t ShadowMapIndex = EG_INVALID_SHADOW_MAP;
 			uint32_t ViewProjOffset; // Note: it's invalid to use it on shader side because point light transforms aren't uploaded. Currently, used to fetch it on the CPU side
+			float Radius;
 			uint32_t Padding0;
-			uint32_t Padding1;
+
+			void SetCastsShadows(bool bCastsShadows)
+			{
+				uint32_t* radius2 = (uint32_t*)&Radius2;
+				if (bCastsShadows)
+				{
+					*radius2 = (*radius2) | 0x80000000;
+				}
+				else
+				{
+					*radius2 = (*radius2) & (~0x80000000);
+				}
+			}
 
 			bool DoesCastShadows() const { return (*((uint32_t*)(&Radius2)) & 0x80000000) != 0; }
 		};

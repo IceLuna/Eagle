@@ -66,9 +66,11 @@ namespace Eagle
 
 		void UpdateEditorTitle(const Ref<AssetScene>& scene);
 
-		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync, bool bRenderOnlyWhenFocused,
+		void OnDeserialized(const EditorCamera& camera, const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync, bool bRenderOnlyWhenFocused,
 			bool bDrawNavMesh, bool bDrawMeshAABBs, bool bDrawAxisGuizmo, Key stopSimulationKey, bool bUpdateAnimationsInEditor, int guizmoMode);
 		void SetCurrentScene(const Ref<Scene>& scene);
+
+		void UpdateSceneEditorCamera(const Ref<Scene>& scene, bool bUpdateTransform = false);
 
 		void UpdateGuizmo();
 		void DrawMenuBar();
@@ -130,6 +132,7 @@ namespace Eagle
 		Ref<AssetScene> m_OpenedSceneAsset;
 		std::string m_WindowTitle;
 
+		EditorCamera m_Camera;
 		glm::vec3 m_SnappingValues = glm::vec3(0.1f, 10.f, 0.1f);
 		glm::vec2 m_CurrentViewportSize = {1.f, 1.f};
 		glm::vec2 m_NewViewportSize = {1.f, 1.f};

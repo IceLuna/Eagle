@@ -60,7 +60,7 @@ namespace Eagle
 			comp.SetMeshAsset(skAsset);
 			comp.SetAnimationGraphAsset(m_Asset);
 
-			auto& camera = scene->GetEditorCamera();
+			auto& camera = scene->EditorCamera;
 			camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
 			camera.LookAt(glm::vec3(0, 0, 0));
 			const glm::vec3 cameraDir = camera.GetForwardVector();

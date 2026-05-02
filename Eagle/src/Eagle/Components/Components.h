@@ -5,7 +5,6 @@
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/Core/ScriptableEntity.h"
 #include "Eagle/Core/GUID.h"
-#include "Eagle/Camera/SceneCamera.h"
 #include "Eagle/Math/Math.h"
 #include "Eagle/Classes/StaticMesh.h"
 #include "Eagle/Script/PublicField.h"
@@ -1175,7 +1174,7 @@ namespace Eagle
 		bool bDebugFrustumCulling = false; // When enabled, this camera's frustum will be used for culling
 
 	public:
-		SceneCamera Camera;
+		Camera Camera;
 		bool Primary = false; //TODO: think about moving to Scene, or somewhere else
 		bool FixedAspectRatio = false;
 	};

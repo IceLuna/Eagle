@@ -553,7 +553,7 @@ namespace Eagle
 	: bCanUpdateEditorCamera(other->bCanUpdateEditorCamera)
 	, m_RuntimePhysicsScene(other->m_RuntimePhysicsScene)
 	, m_PhysicsScene(other->m_RuntimePhysicsScene)
-	, m_EditorCamera(other->m_EditorCamera)
+	, EditorCamera(other->EditorCamera)
 	, m_EntitiesToDestroy(other->m_EntitiesToDestroy)
 	, m_ViewportWidth(other->m_ViewportWidth)
 	, m_ViewportHeight(other->m_ViewportHeight)
@@ -981,7 +981,7 @@ namespace Eagle
 	{
 		DestroyPendingEntities();
 
-		m_EditorCamera.OnUpdate(ts, bCanUpdateEditorCamera);
+		EditorCamera.OnUpdate(ts, bCanUpdateEditorCamera);
 
 		GatherSkeletalMeshes();
 		UpdateAnimations(ts, !bForceAnimationsUpdate, false);
@@ -1244,9 +1244,9 @@ namespace Eagle
 				m_RuntimeCameraHolder->RemoveComponent<EntitySceneNameComponent>(); // Delete it so it doesn't show up in the Scene hierarchy
 
 				auto& cameraComp = m_RuntimeCameraHolder->AddComponent<CameraComponent>();
-				cameraComp.Camera = m_EditorCamera;
+				cameraComp.Camera = EditorCamera;
 				cameraComp.Primary = true;
-				cameraComp.SetWorldTransform(m_EditorCamera.GetTransform());
+				cameraComp.SetWorldTransform(EditorCamera.GetTransform());
 			}
 			camera = &m_RuntimeCameraHolder->GetComponent<CameraComponent>();
 		}
@@ -1774,7 +1774,7 @@ namespace Eagle
 			}
 		}
 
-		const Camera* camera = bIsPlaying ? (Camera*)&m_RuntimeCamera->Camera : (Camera*)&m_EditorCamera;
+		const Camera* camera = bIsPlaying ? (Camera*)&m_RuntimeCamera->Camera : (Camera*)&EditorCamera;
 		m_SceneRenderer->SetPointLights(m_PointLights, m_DirtyFlags.bPointLightsDirty);
 		m_SceneRenderer->SetSpotLights(m_SpotLights, m_DirtyFlags.bSpotLightsDirty);
 		m_SceneRenderer->SetDirectionalLight(m_DirectionalLights.empty() ? nullptr : m_DirectionalLights[0]);
@@ -1803,10 +1803,7 @@ namespace Eagle
 			if (entity.HasComponent<CameraComponent>())
 			{
 				const auto& camera = entity.GetComponent<CameraComponent>();
-				const float fovY = camera.Camera.GetPerspectiveVerticalFOV();
-				const float nearPlane = camera.Camera.GetPerspectiveNearClip();
-				const float farPlane = camera.Camera.GetPerspectiveFarClip();
-				m_SceneRenderer->SetDebugFrustumCulling(camera.GetViewMatrix(), aspect, fovY, nearPlane, farPlane);
+				m_SceneRenderer->SetDebugFrustumCulling(camera.GetWorldTransform().Location, camera.GetViewMatrix(), camera.Camera, aspect);
 			}
 		}
 
@@ -1838,9 +1835,9 @@ namespace Eagle
 			}
 		}
 
-		const glm::mat4& viewMatrix = bIsPlaying ? m_RuntimeCamera->GetViewMatrix() : m_EditorCamera.GetViewMatrix();
-		const glm::vec3& viewPos = bIsPlaying ? m_RuntimeCamera->GetWorldTransform().Location : m_EditorCamera.GetLocation();
-		const glm::vec3& viewDir = bIsPlaying ? m_RuntimeCamera->GetForwardVector() : m_EditorCamera.GetForwardVector();
+		const glm::mat4& viewMatrix = bIsPlaying ? m_RuntimeCamera->GetViewMatrix() : EditorCamera.GetViewMatrix();
+		const glm::vec3& viewPos = bIsPlaying ? m_RuntimeCamera->GetWorldTransform().Location : EditorCamera.GetLocation();
+		const glm::vec3& viewDir = bIsPlaying ? m_RuntimeCamera->GetForwardVector() : EditorCamera.GetForwardVector();
 		{
 			EG_CPU_TIMING_SCOPED("Scene. Render");
 			m_SceneRenderer->Render(camera, viewMatrix, viewPos, viewDir);
@@ -1994,7 +1991,7 @@ namespace Eagle
 
 	void Scene::OnEventEditor(Event& e)
 	{
-		m_EditorCamera.OnEvent(e);
+		EditorCamera.OnEvent(e);
 	}
 
 	void Scene::OnViewportResize(uint32_t width, uint32_t height)
@@ -2002,7 +1999,7 @@ namespace Eagle
 		m_ViewportWidth = width;
 		m_ViewportHeight = height;
 
-		m_EditorCamera.SetViewportSize(width, height);
+		EditorCamera.SetViewportSize(width, height);
 		m_SceneRenderer->SetViewportSize({ width, height });
 	}
 
@@ -2370,6 +2367,11 @@ namespace Eagle
 	{
 		Entity entity(e, this);
 		m_DirLightsDebugDirection.erase(entity.GetID());
+		auto& light = entity.GetComponent<DirectionalLightComponent>();
+		if (light.DoesAffectWorld())
+		{
+			m_DirtyFlags.bDirLightsDirty = true;
+		}
 	}
 
 	void Scene::ConnectSignals()

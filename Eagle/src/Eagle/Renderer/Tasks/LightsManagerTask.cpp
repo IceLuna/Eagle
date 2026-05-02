@@ -19,8 +19,6 @@ namespace Eagle
 	static constexpr glm::vec3 s_UpVectors[6] = { glm::vec3(0.0, -1.0, +0.0), glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, +0.0, 1.0),
 										          glm::vec3(0.0, +0.0, -1.0), glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, -1.0, 0.0) };
 
-	static const glm::mat4 s_PointLightPerspectiveProjection = Math::Perspective(glm::radians(90.f), 1.f, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
-
 	LightsManagerTask::LightsManagerTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
@@ -64,23 +62,24 @@ namespace Eagle
 		{
 			const bool bCastsShadows = pointLight->DoesCastShadows();
 			const bool bVolumetric = pointLight->IsVolumetricLight();
+			const float radius = pointLight->GetRadius();
 
 			auto& light = tempData.emplace_back();
 			light.Position = pointLight->GetWorldTransform().Location;
-			const float radius = pointLight->GetRadius();
+			light.Radius = radius;
 			light.Radius2 = radius * radius;
 			light.LightColor = pointLight->GetLightColor() * pointLight->GetIntensity();
 			light.VolumetricFogIntensity = glm::max(pointLight->GetVolumetricFogIntensity(), 0.0f);
 			light.ViewProjOffset = (uint32_t)matrices.size();
+			light.SetCastsShadows(bCastsShadows);
+
+			const glm::mat4 projection = Math::Perspective(glm::radians(90.f), 1.f, EG_POINT_LIGHT_NEAR, radius);
 
 			for (int i = 0; i < 6; ++i)
-				matrices.emplace_back() = s_PointLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + s_Directions[i], s_UpVectors[i]);
+				matrices.emplace_back() = projection * glm::lookAt(light.Position, light.Position + s_Directions[i], s_UpVectors[i]);
 
 			uint32_t* intensity = (uint32_t*)&light.VolumetricFogIntensity;
 			*intensity = (*intensity) | (bVolumetric ? 0x80000000 : 0u);
-
-			uint32_t* radius2 = (uint32_t*)&light.Radius2;
-			*radius2 = (*radius2) | (bCastsShadows ? 0x80000000 : 0u);
 
 			EG_CORE_ASSERT(bCastsShadows == light.DoesCastShadows());
 		}

@@ -257,8 +257,6 @@ namespace Eagle
 		//Camera
 		CameraComponent* GetRuntimeCamera();
 		Entity GetPrimaryCameraEntity(); //TODO: Remove
-		const EditorCamera& GetEditorCamera() const { return m_EditorCamera; }
-		EditorCamera& GetEditorCamera() { return m_EditorCamera; }
 
 		//Static 
 		static void SetCurrentScene(const Ref<Scene>& currentScene)
@@ -559,6 +557,7 @@ namespace Eagle
 		}
 
 	public:
+		EditorCamera EditorCamera;
 		glm::vec2 ViewportBounds[2] = { glm::vec2(0.f) };
 		bool bCanUpdateEditorCamera = false;
 		bool bDrawMiscellaneous = true;
@@ -571,7 +570,6 @@ namespace Eagle
 		Ref<PhysicsScene> m_PhysicsScene;
 		Ref<PhysicsScene> m_RuntimePhysicsScene;
 		PhysicsSettings m_RuntimePhysicsSettings{};
-		EditorCamera m_EditorCamera;
 		uint32_t m_ViewportWidth = 1;
 		uint32_t m_ViewportHeight = 1;
 		Ref<SceneRenderer> m_SceneRenderer;

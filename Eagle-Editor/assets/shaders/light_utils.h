@@ -5,7 +5,7 @@
 #include "shadow_maps/shadows_utils.h"
 
 vec3 CalculatePointLightRadiance(PointLight pointLight, vec3 worldPos, vec3 geometryNormal, vec3 shadingNormal, vec3 lambertAlbedo, vec3 V, vec3 F0,
-    float metalness, float roughness, bool bInShadowRange)
+    float metalness, float roughness)
 {
     const vec3 incoming = pointLight.Position - worldPos;
     const float distance2 = dot(incoming, incoming);
@@ -26,13 +26,13 @@ vec3 CalculatePointLightRadiance(PointLight pointLight, vec3 worldPos, vec3 geom
 #endif
     if (bCastsShadows)
     {
-        if (bInShadowRange && NOT_ZERO(attenuation))
+        if (NOT_ZERO(attenuation))
         {
             const uint shadowMapIndex = pointLight.ShadowMapIndex;
             if (shadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS)
             {
                 const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
-                shadow = PointLight_ShadowCalculation(g_PointShadowMaps[nonuniformEXT(shadowMapIndex)], -incoming, normIncoming, NdotL);
+                shadow = PointLight_ShadowCalculation(g_PointShadowMaps[nonuniformEXT(shadowMapIndex)], -incoming, normIncoming, NdotL, pointLight.Radius);
 #ifdef EG_TRANSLUCENT_SHADOWS
                 coloredShadow = PointLight_ColoredShadowCalculation(g_PointShadowMapsColored[nonuniformEXT(shadowMapIndex)], -incoming, geometryNormal, NdotL);
 #endif
@@ -49,7 +49,7 @@ vec3 CalculatePointLightRadiance(PointLight pointLight, vec3 worldPos, vec3 geom
 }
 
 vec3 CalculateSpotLightRadiance(SpotLight spotLight, vec3 worldPos, vec3 geometryNormal, vec3 shadingNormal, vec3 lambertAlbedo, vec3 V, vec3 F0,
-    float metalness, float roughness, bool bInShadowRange)
+    float metalness, float roughness)
 {
     const vec3 incoming = spotLight.Position - worldPos;
     const float distance2 = dot(incoming, incoming);
@@ -77,7 +77,7 @@ vec3 CalculateSpotLightRadiance(SpotLight spotLight, vec3 worldPos, vec3 geometr
     float shadow = 1.f;
     if (spotLight.bCastsShadows != 0)
     {
-        if (bInShadowRange && NOT_ZERO(attenuation))
+        if (NOT_ZERO(attenuation))
         {
             const uint shadowMapIndex = spotLight.ShadowMapIndex;
             if (shadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS)
@@ -107,7 +107,7 @@ vec3 CalculateSpotLightRadiance(SpotLight spotLight, vec3 worldPos, vec3 geometr
 }
 
 vec3 CalculateDirectionalLightRadiance(DirectionalLight light, vec3 worldPos, vec3 geometryNormal, vec3 shadingNormal, vec3 lambertAlbedo, vec3 V, vec3 F0,
-    float metalness, float roughness, bool bInShadowRange, mat4 view, float csmOverlap
+    float metalness, float roughness, mat4 view, float csmOverlap
 #ifdef EG_ENABLE_CSM_VISUALIZATION
     , inout vec3 cascadeVisualizationColor
 #endif
@@ -133,7 +133,7 @@ vec3 CalculateDirectionalLightRadiance(DirectionalLight light, vec3 worldPos, ve
             );
         cascadeVisualizationColor = cascadeColors[layer];
 #endif // EG_ENABLE_CSM_VISUALIZATION
-        if (light.bCastsShadows != 0 && bInShadowRange)
+        if (light.bCastsShadows != 0)
         {
             const float NdotL = clamp(dot(incoming, geometryNormal), EG_FLT_SMALL, 1.0);
 

@@ -54,7 +54,6 @@ namespace Eagle
 			glm::vec3 CameraPos;
 			float VolumetricMaxScatteringDist;
 			glm::ivec2 Size;
-			float MaxShadowDistance;
 			float Time;
 			glm::vec3 FogAlbedo;
 			float FogAnisotropy;
@@ -69,7 +68,6 @@ namespace Eagle
 		pushData.CameraPos = m_Renderer.GetViewPosition();
 		pushData.VolumetricMaxScatteringDist = m_VolumetricSettings.MaxScatteringDistance;
 		pushData.Size = volumetricsImageSize;
-		pushData.MaxShadowDistance = m_Renderer.GetShadowMaxDistance() * m_Renderer.GetShadowMaxDistance();
 		pushData.Time = m_Time;
 		pushData.FogAlbedo = m_VolumetricSettings.Albedo;
 		pushData.FogAnisotropy = m_VolumetricSettings.Anisotropy;

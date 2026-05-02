@@ -31,10 +31,10 @@ namespace Eagle
 		const float k = distanceToCamera / maxShadowDistance;
 
 		uint32_t scaler = 1u;
-		for (float f = 0.1f; f < 1.f; f += 0.1f)
+		for (float f = 0.25f; f < 1.f; f += 0.25f)
 		{
 			if (k > f)
-				scaler *= 2u; // Resolution is getting two times lower each 10% of the distance
+				scaler *= 2u; // Resolution is getting two times lower each 25% of the distance
 			else
 				break; // early exit
 		}
@@ -45,6 +45,24 @@ namespace Eagle
 		size = glm::max(minRes, size);
 
 		return size;
+	}
+
+	static glm::uvec2 GetPointLightSMSize2(uint pointLightShadowMapSize, float distance, float radius, float maxDistance)
+	{
+		float importance = radius / glm::max(distance, 0.001f);
+
+		// Normalize importance
+		float k = glm::clamp(importance * 10.0f, 0.0f, 1.0f);
+
+		// Smooth scaling
+		float scale = glm::mix(0.125f, 1.0f, k);
+
+		uint32_t size = uint32_t(pointLightShadowMapSize * scale);
+
+		// Quantize to power of two (optional)
+		size = glm::max(64u, size);
+
+		return glm::uvec2(size);
 	}
 
 	glm::uvec2 ShadowPassTask::GetSpotLightSMSize(float distanceToCamera, float maxShadowDistance)
@@ -198,7 +216,7 @@ namespace Eagle
 		for (size_t plIndex = 0; plIndex < pointLights.size(); ++plIndex)
 		{
 			auto& pointLight = pointLights[plIndex];
-			if (!pointLight.DoesCastShadows())
+			if (pointLight.ShadowMapIndex == EG_INVALID_SHADOW_MAP)
 				continue;
 
 			for (uint32_t i = 0; i < 6; ++i)
@@ -210,7 +228,7 @@ namespace Eagle
 			const float distanceToCamera = glm::length(cameraPos - pointLight.Position);
 			const uint32_t& i = pointLightsCount;
 
-			const glm::uvec3 smSize = glm::uvec3(GetPointLightSMSize(distanceToCamera, shadowMaxDistance), 1u);
+			const glm::uvec3 smSize = glm::uvec3(GetPointLightSMSize2(m_Settings.PointLightShadowMapSize, distanceToCamera, pointLight.Radius, shadowMaxDistance), 1u);
 			if (i >= framebuffers.size())
 			{
 				// Create SM & framebuffer
@@ -322,7 +340,7 @@ namespace Eagle
 		for (size_t slIndex = 0; slIndex < spotLights.size(); ++slIndex)
 		{
 			auto& spotLight = spotLights[slIndex];
-			if (!spotLight.bCastsShadows)
+			if (spotLight.ShadowMapIndex == EG_INVALID_SHADOW_MAP)
 				continue;
 
 			m_SpotLightIndices.push_back(slIndex);
