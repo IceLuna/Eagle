@@ -92,15 +92,15 @@ namespace Eagle
 		// For these functions, Renderer copies required data from components
 		// If 'bDirty' is false, passed data is ignored and last state is used to render.
 		// Else buffers are cleared and required data from components is copied
-		void SetMeshes(const std::vector<const StaticMeshComponent*>& meshes, bool bDirty) { m_GeometryManagerTask->SetMeshes(meshes, bDirty); }
-		void SetSkeletalMeshes(const std::vector<SkeletalMeshComponent*>& meshes, bool bDirty) { m_GeometryManagerTask->SetSkeletalMeshes(meshes, bDirty); }
-		void SetSprites(const std::vector<const SpriteComponent*>& sprites, bool bDirty) { m_GeometryManagerTask->SetSprites(sprites, bDirty); }
-		void SetPointLights(const std::vector<const PointLightComponent*>& pointLights, bool bDirty) { m_LightsManagerTask->SetPointLights(pointLights, bDirty); }
-		void SetSpotLights(const std::vector<const SpotLightComponent*>& spotLights, bool bDirty) { m_LightsManagerTask->SetSpotLights(spotLights, bDirty); }
-		void SetTexts(const std::vector<const TextComponent*>& texts, bool bDirty) { m_GeometryManagerTask->SetTexts(texts, bDirty); }
-		void SetTexts2D(const std::vector<const Text2DComponent*>& texts, bool bDirty) { m_Text2DTask->SetTexts(texts, bDirty); }
-		void SetImages2D(const std::vector<const Image2DComponent*>& images, bool bDirty) { m_Images2DTask->SetImages(images, bDirty); }
-		void SetDecals(const std::vector<const DecalComponent*>& decals, bool bDirty) { m_RenderDecalsTask->SetDecals(decals, bDirty); }
+		void SetMeshes(const std::vector<const StaticMeshComponent*>& meshes) { m_GeometryManagerTask->SetMeshes(meshes); }
+		void SetSkeletalMeshes(const std::vector<SkeletalMeshComponent*>& meshes) { m_GeometryManagerTask->SetSkeletalMeshes(meshes); }
+		void SetSprites(const std::vector<const SpriteComponent*>& sprites) { m_GeometryManagerTask->SetSprites(sprites); }
+		void SetPointLights(const std::vector<const PointLightComponent*>& pointLights) { m_LightsManagerTask->SetPointLights(pointLights); }
+		void SetSpotLights(const std::vector<const SpotLightComponent*>& spotLights) { m_LightsManagerTask->SetSpotLights(spotLights); }
+		void SetTexts(const std::vector<const TextComponent*>& texts) { m_GeometryManagerTask->SetTexts(texts); }
+		void SetTexts2D(const std::vector<const Text2DComponent*>& texts) { m_Text2DTask->SetTexts(texts); }
+		void SetImages2D(const std::vector<const Image2DComponent*>& images) { m_Images2DTask->SetImages(images); }
+		void SetDecals(const std::vector<const DecalComponent*>& decals) { m_RenderDecalsTask->SetDecals(decals); }
 		void AddParticleSystem(const ParticleSystemComponent& system);
 		void UpdateParticleSystem(const ParticleSystemComponent& system);
 		void RemoveParticleSystem(const ParticleSystemComponent& system);

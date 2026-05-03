@@ -186,11 +186,8 @@ namespace Eagle
 		return textureCurrentIndex;
 	}
 
-	void RenderImages2DTask::SetImages(const std::vector<const Image2DComponent*>& images, bool bDirty)
+	void RenderImages2DTask::SetImages(const std::vector<const Image2DComponent*>& images)
 	{
-		if (!bDirty)
-			return;
-
 		std::vector<Image2DComponentData> datas;
 		datas.reserve(images.size());
 

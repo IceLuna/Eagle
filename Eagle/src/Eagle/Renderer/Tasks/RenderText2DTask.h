@@ -21,7 +21,7 @@ namespace Eagle
 		void Render(const Ref<CommandBuffer>& cmd);
 		void OnResize(glm::uvec2 size) override;
 
-		void SetTexts(const std::vector<const Text2DComponent*>& texts, bool bDirty);
+		void SetTexts(const std::vector<const Text2DComponent*>& texts);
 
 	private:
 		struct QuadVertex

@@ -78,12 +78,12 @@ layout(push_constant) uniform PushConstants
     float g_VolumetricMaxDistance;
     ivec2 g_Size;
     float g_Time;
+    uint g_DownscaleFactor;
     vec3 g_FogAlbedo;
     float g_FogAnisotropy;
     float g_Near;
     float g_Far;
     uint g_TilesBufferWidth;
-    uint g_DownscaleFactor;
     uint g_HasDirLight;
 };
 

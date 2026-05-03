@@ -213,11 +213,8 @@ namespace Eagle
 		}
 	}
 
-	void RenderDecalsTask::SetDecals(const std::vector<const DecalComponent*>& decals, bool bDirty)
+	void RenderDecalsTask::SetDecals(const std::vector<const DecalComponent*>& decals)
 	{
-		if (!bDirty)
-			return;
-
 		struct UpdateData
 		{
 			DecalData Data;

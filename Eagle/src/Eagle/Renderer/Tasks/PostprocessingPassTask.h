@@ -42,6 +42,7 @@ namespace Eagle
 
 		Ref<PipelineCompute> m_LensPipeline;
 
+		TonemappingMethod m_Tonemapping = TonemappingMethod::AgX;
 		bool bAutoExposure = false;
 		bool bChromaticAberration = false;
 		bool bVignette = false;

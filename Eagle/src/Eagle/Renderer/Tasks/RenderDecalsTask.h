@@ -19,7 +19,7 @@ namespace Eagle
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(const glm::uvec2 size) { m_Pipeline->Resize(size); m_WithNormalsPipeline->Resize(size); }
 
-		void SetDecals(const std::vector<const DecalComponent*>& decals, bool bDirty);
+		void SetDecals(const std::vector<const DecalComponent*>& decals);
 		void SetTransforms(const std::vector<const DecalComponent*>& decals);
 
 	private:

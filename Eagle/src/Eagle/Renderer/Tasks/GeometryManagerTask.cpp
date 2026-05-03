@@ -863,11 +863,8 @@ namespace Eagle
 	}
 
 	// ---------- Static Meshes ----------
-	void GeometryManagerTask::SetMeshes(const std::vector<const StaticMeshComponent*>& meshes, bool bDirty)
+	void GeometryManagerTask::SetMeshes(const std::vector<const StaticMeshComponent*>& meshes)
 	{
-		if (!bDirty)
-			return;
-
 		StaticMeshesMap tempMeshes;
 		std::unordered_map<uint32_t, uint64_t> meshTransformIndices; // EntityID -> uint64_t (index to m_MeshTransforms)
 		std::vector<glm::mat4> tempMeshTransforms;
@@ -998,11 +995,8 @@ namespace Eagle
 	}
 
 	// ---------- Skeletal Meshes ----------
-	void GeometryManagerTask::SetSkeletalMeshes(const std::vector<SkeletalMeshComponent*>& meshes, bool bDirty)
+	void GeometryManagerTask::SetSkeletalMeshes(const std::vector<SkeletalMeshComponent*>& meshes)
 	{
-		if (!bDirty)
-			return;
-
 		SkeletalMeshesMap tempMeshes;
 		std::unordered_map<uint32_t, uint64_t> meshTransformIndices; // EntityID -> uint64_t (index to m_SkeletalMeshTransforms)
 		std::vector<glm::mat4> tempMeshTransforms;
@@ -1239,11 +1233,8 @@ namespace Eagle
 		UploadSprites(cmd, spritesData.Translucent.NonShadowQuads);
 	}
 
-	void GeometryManagerTask::SetSprites(const std::vector<const SpriteComponent*>& sprites, bool bDirty)
+	void GeometryManagerTask::SetSprites(const std::vector<const SpriteComponent*>& sprites)
 	{
-		if (!bDirty)
-			return;
-
 		std::vector<SpriteData> spritesData;
 		std::unordered_map<uint32_t, uint64_t> tempTransformIndices; // EntityID -> uint64_t (index to m_Transforms)
 		std::vector<glm::mat4> tempTransforms;
@@ -1621,11 +1612,8 @@ namespace Eagle
 		}
 	}
 
-	void GeometryManagerTask::SetTexts(const std::vector<const TextComponent*>& texts, bool bDirty)
+	void GeometryManagerTask::SetTexts(const std::vector<const TextComponent*>& texts)
 	{
-		if (!bDirty)
-			return;
-
 		std::vector<LitTextData> litTexts;
 		std::vector<UnlitTextData> unlitTexts;
 		std::unordered_map<uint32_t, uint64_t> tempTransformsIndices; // EntityID -> uint64_t (index to m_TextTransformIndices)

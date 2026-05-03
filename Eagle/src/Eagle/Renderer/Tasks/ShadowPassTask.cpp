@@ -52,15 +52,11 @@ namespace Eagle
 		float importance = radius / glm::max(distance, 0.001f);
 
 		// Normalize importance
-		float k = glm::clamp(importance * 10.0f, 0.0f, 1.0f);
-
-		// Smooth scaling
-		float scale = glm::mix(0.125f, 1.0f, k);
-
+		float scale = glm::clamp(importance, 0.0f, 1.0f);
 		uint32_t size = uint32_t(pointLightShadowMapSize * scale);
 
-		// Quantize to power of two (optional)
 		size = glm::max(64u, size);
+		size = std::bit_ceil(size);
 
 		return glm::uvec2(size);
 	}

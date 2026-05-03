@@ -48,11 +48,8 @@ namespace Eagle
 		m_MatricesBuffer = Buffer::Create(matricesBufferSpecs, "Light Matrices Buffer");
 	}
 
-	void LightsManagerTask::SetPointLights(const std::vector<const PointLightComponent*>& pointLights, bool bDirty)
+	void LightsManagerTask::SetPointLights(const std::vector<const PointLightComponent*>& pointLights)
 	{
-		if (!bDirty)
-			return;
-
 		std::vector<PointLight> tempData;
 		std::vector<glm::mat4> matrices;
 		tempData.reserve(pointLights.size());
@@ -93,11 +90,8 @@ namespace Eagle
 		});
 	}
 
-	void LightsManagerTask::SetSpotLights(const std::vector<const SpotLightComponent*>& spotLights, bool bDirty)
+	void LightsManagerTask::SetSpotLights(const std::vector<const SpotLightComponent*>& spotLights)
 	{
-		if (!bDirty)
-			return;
-
 		std::vector<SpotLight> tempData;
 		std::vector<glm::mat4> matrices;
 		tempData.reserve(spotLights.size());

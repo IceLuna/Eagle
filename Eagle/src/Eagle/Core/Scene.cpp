@@ -1775,23 +1775,32 @@ namespace Eagle
 		}
 
 		const Camera* camera = bIsPlaying ? (Camera*)&m_RuntimeCamera->Camera : (Camera*)&EditorCamera;
-		m_SceneRenderer->SetPointLights(m_PointLights, m_DirtyFlags.bPointLightsDirty);
-		m_SceneRenderer->SetSpotLights(m_SpotLights, m_DirtyFlags.bSpotLightsDirty);
+		if (m_DirtyFlags.bPointLightsDirty)
+			m_SceneRenderer->SetPointLights(m_PointLights);
+		if (m_DirtyFlags.bSpotLightsDirty)
+			m_SceneRenderer->SetSpotLights(m_SpotLights);
 		m_SceneRenderer->SetDirectionalLight(m_DirectionalLights.empty() ? nullptr : m_DirectionalLights[0]);
-		m_SceneRenderer->SetMeshes(m_Meshes, m_DirtyFlags.bStaticMeshesDirty);
-		m_SceneRenderer->SetSkeletalMeshes(m_SkeletalMeshes, m_DirtyFlags.bSkeletalMeshesDirty);
-		m_SceneRenderer->SetSprites(m_Sprites, m_DirtyFlags.bSpritesDirty);
+		if (m_DirtyFlags.bStaticMeshesDirty)
+			m_SceneRenderer->SetMeshes(m_Meshes);
+		if (m_DirtyFlags.bSkeletalMeshesDirty)
+			m_SceneRenderer->SetSkeletalMeshes(m_SkeletalMeshes);
+		if (m_DirtyFlags.bSpritesDirty)
+			m_SceneRenderer->SetSprites(m_Sprites);
 		m_SceneRenderer->SetDebugLines(m_DebugLinesToDraw);
 		m_SceneRenderer->SetDebugTriangles(m_DebugTrianglesToDraw);
 		m_SceneRenderer->SetBillboards(m_Billboards);
-		m_SceneRenderer->SetTexts(m_Texts, m_DirtyFlags.bTextDirty);
-		m_SceneRenderer->SetTexts2D(m_Texts2D, m_DirtyFlags.bText2DDirty);
-		m_SceneRenderer->SetImages2D(m_Images2D, m_DirtyFlags.bImage2DDirty);
+		if (m_DirtyFlags.bTextDirty)
+			m_SceneRenderer->SetTexts(m_Texts);
+		if (m_DirtyFlags.bText2DDirty)
+			m_SceneRenderer->SetTexts2D(m_Texts2D);
+		if (m_DirtyFlags.bImage2DDirty)
+			m_SceneRenderer->SetImages2D(m_Images2D);
 		m_SceneRenderer->SetIsRuntime(bIsPlaying);
 		m_SceneRenderer->SetMeshesAnimationTransforms(std::move(m_AnimationTransforms));
 		m_SceneRenderer->SetSkeletalParticleAnimationTransforms(std::move(m_SkeletalParticlesAnimationTransforms));
 		m_SceneRenderer->SetGravity(m_RuntimePhysicsSettings.Gravity);
-		m_SceneRenderer->SetDecals(m_Decals, m_DirtyFlags.bDecalsDirty);
+		if (m_DirtyFlags.bDecalsDirty)
+			m_SceneRenderer->SetDecals(m_Decals);
 
 		if (!m_DebugCameras.empty())
 		{

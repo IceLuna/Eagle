@@ -20,7 +20,7 @@ namespace Eagle
 		void Render(const Ref<CommandBuffer>& cmd);
 		void OnResize(glm::uvec2 size) override;
 
-		void SetImages(const std::vector<const Image2DComponent*>& images, bool bDirty);
+		void SetImages(const std::vector<const Image2DComponent*>& images);
 
 	private:
 		struct QuadVertex

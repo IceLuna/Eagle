@@ -92,7 +92,7 @@ float DirLight_ShadowCalculation_Volumetric(sampler2D depthTexture, vec3 fragPos
 
 float PointLight_ShadowCalculation_Volumetric(samplerCube depthTexture, vec3 lightToFrag, vec3 geometryNormal, float NdotL, float farDistance)
 {
-	const float texelSize = 1.f / textureSize(depthTexture, 0).x;
+	const float texelSize = 1.f / 2048; // This defaults seems to be good enough
 	const float k = mix(30.f, 150.f, 1.f - NdotL);
 	const float bias = texelSize * k;
 	const vec3 normalBias = geometryNormal * bias;
@@ -148,7 +148,7 @@ vec3 DirLight_ColoredShadowCalculation_Volumetric(sampler2D depthTexture, sample
 
 vec3 PointLight_ColoredShadowCalculation_Volumetric(samplerCube depthTexture, samplerCube coloredDepthTexture, vec3 lightToFrag, vec3 geometryNormal, float NdotL, float farDistance)
 {
-	const float texelSize = 1.f / textureSize(depthTexture, 0).x;
+	const float texelSize = 1.f / 2048; // This defaults seems to be good enough
 	const float bias = texelSize * (1.f - NdotL) * 4.f;
 	lightToFrag += bias;
 	

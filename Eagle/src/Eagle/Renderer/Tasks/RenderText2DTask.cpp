@@ -131,11 +131,8 @@ namespace Eagle
 		m_PipelineNoEntityID->Resize(size.x, size.y);
 	}
 
-	void RenderText2DTask::SetTexts(const std::vector<const Text2DComponent*>& texts, bool bDirty)
+	void RenderText2DTask::SetTexts(const std::vector<const Text2DComponent*>& texts)
 	{
-		if (!bDirty)
-			return;
-
 		std::vector<Text2DComponentData> datas;
 		datas.reserve(texts.size());
 

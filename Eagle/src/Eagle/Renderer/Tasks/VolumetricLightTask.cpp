@@ -55,12 +55,12 @@ namespace Eagle
 			float VolumetricMaxScatteringDist;
 			glm::ivec2 Size;
 			float Time;
+			uint32_t DownscaleFactor;
 			glm::vec3 FogAlbedo;
 			float FogAnisotropy;
 			float NearPlane;
 			float FarPlane;
 			uint32_t TilesBufferWidth;
-			uint32_t DownscaleFactor;
 			uint32_t HasDirLight;
 		} pushData;
 		static_assert(sizeof(PushDataVol) <= 128);

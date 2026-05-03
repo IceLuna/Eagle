@@ -83,11 +83,13 @@ namespace Eagle
 		if (bAutoExposure == settings.AutoExposure.bEnable &&
 			bChromaticAberration == lens.bEnableChromaticAberration &&
 			bVignette == lens.bEnableVignette &&
-			bFilmGrain == lens.bEnableFilmGrain)
+			bFilmGrain == lens.bEnableFilmGrain &&
+			m_Tonemapping == settings.Tonemapping)
 		{
 			return;
 		}
 
+		m_Tonemapping = settings.Tonemapping;
 		bAutoExposure = settings.AutoExposure.bEnable;
 		bChromaticAberration = lens.bEnableChromaticAberration;
 		bVignette = lens.bEnableVignette;
@@ -110,7 +112,13 @@ namespace Eagle
 		ShaderDefines defines;
 		defines["OUTPUT_FORMAT"] = bUsesLens ? "r11f_g11f_b10f" : "rgba8";
 
+		ShaderSpecializationInfo constants;
+		constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
+		constants.Data = &m_Tonemapping;
+		constants.Size = sizeof(uint32_t);
+
 		PipelineComputeState state;
+		state.ComputeSpecializationInfo = constants;
 		state.ComputeShader = Shader::Create("postprocessing/postprocessing.comp", ShaderType::Compute, defines);
 
 		m_TonemappingPipeline = PipelineCompute::Create(state);
@@ -249,7 +257,6 @@ namespace Eagle
 			glm::vec3 AgXOffset;
 			float WhitePoint;
 			glm::ivec2 Size;
-			uint32_t TonemappingMethod;
 			float AgXSaturation;
 		} pushData;
 		static_assert(sizeof(PushData) <= 128);
@@ -263,7 +270,6 @@ namespace Eagle
 		pushData.InvGamma = 1.f / options.Gamma;
 		pushData.PhotolinearScale = m_Renderer.GetPhotoLinearScale();
 		pushData.WhitePoint = options.FilmicTonemappingParams.WhitePoint;
-		pushData.TonemappingMethod = (uint32_t)options.Tonemapping;
 		pushData.AgXSlope = options.AgXTonemappingParams.Slope;
 		pushData.AgXPower = options.AgXTonemappingParams.Power;
 		pushData.AgXOffset = options.AgXTonemappingParams.Offset;

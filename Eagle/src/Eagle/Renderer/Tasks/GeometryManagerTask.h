@@ -333,19 +333,19 @@ namespace Eagle
 		void InitWithOptions(const SceneRendererSettings& settings) override;
 
 		// ------- Meshes -------
-		void SetMeshes(const std::vector<const StaticMeshComponent*>& meshes, bool bDirty);
+		void SetMeshes(const std::vector<const StaticMeshComponent*>& meshes);
 		void SetTransforms(const std::vector<const StaticMeshComponent*>& meshes);
 
 		// ------- Skeletal Meshes -------
-		void SetSkeletalMeshes(const std::vector<SkeletalMeshComponent*>& meshes, bool bDirty);
+		void SetSkeletalMeshes(const std::vector<SkeletalMeshComponent*>& meshes);
 		void SetTransforms(const std::vector<const SkeletalMeshComponent*>& meshes);
 
 		// ------- Sprites -------
-		void SetSprites(const std::vector<const SpriteComponent*>& sprites, bool bDirty);
+		void SetSprites(const std::vector<const SpriteComponent*>& sprites);
 		void SetTransforms(const std::vector<const SpriteComponent*>& sprites);
 
 		// ------- Texts -------
-		void SetTexts(const std::vector<const TextComponent*>& texts, bool bDirty);
+		void SetTexts(const std::vector<const TextComponent*>& texts);
 		void SetTransforms(const std::vector<const TextComponent*>& texts);
 
 		// Static Mesh getters

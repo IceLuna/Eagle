@@ -86,7 +86,7 @@ float DirLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLightS
 
 float PointLight_ShadowCalculation_Soft(samplerCube depthTexture, vec3 lightToFrag, vec3 geometryNormal, float NdotL, float farDistance)
 {
-	const float texelSize = 1.f / textureSize(depthTexture, 0).x;
+	const float texelSize = 1.f / 2048; // This defaults seems to be good enough
 	const float k = mix(30.f, 100.f, 1.f - NdotL);
 	const float bias = texelSize * k;
 	const vec3 normalBias = geometryNormal * bias;
@@ -247,7 +247,7 @@ vec3 DirLight_ColoredShadowCalculation_Soft(sampler2D coloredTexture, vec3 fragP
 
 vec3 PointLight_ColoredShadowCalculation_Soft(samplerCube coloredTexture, vec3 lightToFrag, vec3 geometryNormal, float NdotL)
 {
-	const float texelSize = 1.f / textureSize(coloredTexture, 0).x;
+	const float texelSize = 1.f / 2048; // This defaults seems to be good enough
 	const float bias = texelSize * (1.f - NdotL) * 4.f;
 	lightToFrag += bias;
 	
@@ -386,7 +386,7 @@ float PointLight_ShadowCalculation_Hard(samplerCube depthTexture, vec3 lightToFr
 		vec3(0, 1, +1), vec3(+0, -1, +1), vec3(+0, -1, -1), vec3(+0, +1, -1)
 	);
 
-	const float texelSize = 1.f / textureSize(depthTexture, 0).x;
+	const float texelSize = 1.f / 2048; // This defaults seems to be good enough
 	const float k = mix(30.f, 150.f, 1.f - NdotL);
 	const float bias = texelSize * k;
 	const vec3 normalBias = geometryNormal * bias;
@@ -476,7 +476,7 @@ vec3 PointLight_ColoredShadowCalculation_Hard(samplerCube depthTexture, vec3 lig
 		vec3(0, 1, +1), vec3(+0, -1, +1), vec3(+0, -1, -1), vec3(+0, +1, -1)
 	);
 
-	const float texelSize = 1.f / textureSize(depthTexture, 0).x;
+	const float texelSize = 1.f / 2048; // This defaults seems to be good enough
 	const float bias = texelSize * (1.f - NdotL) * 4.f;
 	lightToFrag += bias;
 	

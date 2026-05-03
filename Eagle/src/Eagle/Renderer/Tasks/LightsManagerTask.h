@@ -76,8 +76,8 @@ namespace Eagle
 	public:
 		LightsManagerTask(SceneRenderer& renderer);
 
-		void SetPointLights(const std::vector<const PointLightComponent*>& pointLights, bool bDirty);
-		void SetSpotLights(const std::vector<const SpotLightComponent*>& spotLights, bool bDirty);
+		void SetPointLights(const std::vector<const PointLightComponent*>& pointLights);
+		void SetSpotLights(const std::vector<const SpotLightComponent*>& spotLights);
 		void SetDirectionalLight(const DirectionalLightComponent* directionalLightComponent);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
