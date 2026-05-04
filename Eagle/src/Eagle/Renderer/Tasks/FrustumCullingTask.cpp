@@ -111,6 +111,7 @@ namespace Eagle
 				glm::mat4 View = glm::mat4(1);
 				CullingFrustum Frustum;
 				uint32_t NumMeshes = 0;
+				uint32_t MeshOffset = 0;
 				uint32_t MaxDrawCalls = 0;
 			};
 			static_assert(sizeof(CullingPushData) <= 128);
@@ -122,10 +123,19 @@ namespace Eagle
 			pushData.NumMeshes = numMeshes;
 			pushData.MaxDrawCalls = maxDrawCalls;
 
-			const glm::uvec3 groupSize = pipeline->GetWorkGroupSize();
-			const glm::uvec3 numGroups = CalcNumGroups(numMeshes, groupSize);
-			cmd->Dispatch(pipeline, numGroups, &pushData);
-			stats.Dispatches++;
+			// One group handles one mesh, so that all instances are processed in parallel. Reduces wave divergence
+			const uint32_t meshesPerBatch = 1024;
+			const uint32_t numBatches = ((numMeshes - 1) / meshesPerBatch) + 1;
+
+			uint32_t meshOffset = 0;
+			for (uint32_t i = 0; i < numBatches; ++i)
+			{
+				pushData.MeshOffset = meshOffset;
+				cmd->Dispatch(pipeline, glm::uvec3(meshesPerBatch, 1, 1), &pushData);
+				stats.Dispatches++;
+
+				meshOffset += meshesPerBatch;
+			}
 
 			// Required, otherwise we won't be able to cull again with different buffers
 			// Because it would cause old descriptors to be overwritten while in use. So we reset them.

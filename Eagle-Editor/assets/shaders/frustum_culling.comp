@@ -100,15 +100,20 @@ layout(push_constant) uniform PushData
     mat4 g_View;
     CullingFrustum g_Frustum;
     uint g_NumMeshes;
+    uint g_MeshOffset;
     uint g_MaxDrawCalls;
 };
 
+// Keep it at 32 (or lower), otherwise subgroup logic will have to be changed
 #define GROUP_SIZE 32
 layout(local_size_x = GROUP_SIZE) in;
 
+shared uint s_InstanceCount;
+
 void main()
 {
-    const uint meshIndex = gl_GlobalInvocationID.x;
+    const uint meshIndex = g_MeshOffset + gl_WorkGroupID.x;
+    const uint threadIndex = gl_LocalInvocationIndex;
     if (meshIndex >= g_NumMeshes)
     {
         return;
@@ -133,8 +138,12 @@ void main()
 #endif
         drawCall.FirstInstance = materialData.FirstInstance;
 
-        uint instanceCount = 0;
-        for (uint i = 0; i < materialData.InstanceCount; ++i)
+        if (subgroupElect())
+        {
+            s_InstanceCount = 0;
+        }
+
+        for (uint i = threadIndex; i < materialData.InstanceCount; i += GROUP_SIZE)
         {
             const uint instanceIndex = materialData.FirstInstance + i;
             InstanceData instance = g_Instances[instanceIndex];
@@ -148,18 +157,19 @@ void main()
                 instance.VertexOffset = pushData.VerticesOffset + pushData.VertexCount * i;
 #endif
 
-                g_CulledInstances[materialData.FirstInstance + instanceCount] = instance;
-                instanceCount++;
+                uint offset;
+                EG_SUBGROUP_ATOMIC_INCREMENT(s_InstanceCount, true, offset);
+                g_CulledInstances[materialData.FirstInstance + offset] = instance;
             }
         }
 
-        if (instanceCount > 0)
+        if (subgroupElect() && s_InstanceCount > 0)
         {
             uint insertIdx = 0;
             EG_SUBGROUP_ATOMIC_INCREMENT(g_DrawCallsCounter, true, insertIdx)
             if (insertIdx < g_MaxDrawCalls)
             {
-                drawCall.InstanceCount = instanceCount;
+                drawCall.InstanceCount = s_InstanceCount;
                 g_DrawCalls[insertIdx] = drawCall;
             }
         }
