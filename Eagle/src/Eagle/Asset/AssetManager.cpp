@@ -161,9 +161,13 @@ namespace Eagle
 			{
 				for (const auto& assetPath : assets.Paths)
 				{
-					threadPool->push_task(loadAssetFunc, assetPath, true);
+					threadPool->detach_task([&assetPath, &loadAssetFunc]()
+					{
+						const bool bUseMutex = true;
+						loadAssetFunc(assetPath, bUseMutex);
+					});
 				}
-				threadPool->wait_for_tasks();
+				threadPool->wait();
 			}
 			else
 			{

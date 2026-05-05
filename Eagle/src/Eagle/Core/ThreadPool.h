@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef BS_THREAD_POOL_NATIVE_EXTENSIONS
+#define BS_THREAD_POOL_NATIVE_EXTENSIONS
+#endif
 #include "BS_thread_pool.hpp"
 #include "Application.h"
 
@@ -16,12 +19,12 @@ namespace Eagle
 				Application::Get().RemoveThread(*this);
 		}
 
-		BS::thread_pool* operator->()
+		BS::thread_pool<>* operator->()
 		{
 			return &m_ThreadPool;
 		}
 
-		const BS::thread_pool* operator->() const
+		const BS::thread_pool<>* operator->() const
 		{
 			return &m_ThreadPool;
 		}
@@ -32,7 +35,7 @@ namespace Eagle
 		void SetName();
 
 	private:
-		BS::thread_pool m_ThreadPool;
+		BS::thread_pool<> m_ThreadPool;
 		std::string_view m_Name;
 		bool bRegister = true;
 	};

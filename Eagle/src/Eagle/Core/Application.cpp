@@ -299,7 +299,7 @@ namespace Eagle
 	void Application::AddThread(const ThreadPool& threadPool)
 	{
 		const auto& threads = threadPool->get_threads();
-		const uint32_t threadsCount = threadPool->get_thread_count();
+		const uint32_t threadsCount = (uint32_t)threadPool->get_thread_count();
 		for (uint32_t i = 0; i < threadsCount; ++i)
 			m_Threads.emplace(threads[i].get_id(), threadPool.GetName());
 	}
@@ -307,7 +307,7 @@ namespace Eagle
 	void Application::RemoveThread(const ThreadPool& threadPool)
 	{
 		const auto& threads = threadPool->get_threads();
-		const uint32_t threadsCount = threadPool->get_thread_count();
+		const uint32_t threadsCount = (uint32_t)threadPool->get_thread_count();
 		for (uint32_t i = 0; i < threadsCount; ++i)
 		{
 			auto it = m_Threads.find(threads[i].get_id());

@@ -445,8 +445,8 @@ namespace Eagle
 
 		Wait();
 
-		s_RendererData->ThreadPool->wait_for_tasks();
-		s_RendererData->ThreadPool->submit([]()
+		s_RendererData->ThreadPool->wait();
+		s_RendererData->ThreadPool->submit_task([]()
 		{
 			auto& fence = s_RendererData->Fences[s_RendererData->CurrentFrameIndex];
 			fence->Reset();
@@ -634,7 +634,7 @@ namespace Eagle
 		auto& pool = s_RendererData->ThreadPool;
 		auto& tasks = s_RendererData->ThreadPoolTasks;
 		tasks[s_RendererData->CurrentFrameIndex] = 
-			pool->submit([frameIndex = s_RendererData->CurrentFrameIndex]()
+			pool->submit_task([frameIndex = s_RendererData->CurrentFrameIndex]()
 		{
 			EG_CPU_TIMING_SCOPED("Preparing a frame");
 			StagingManager::NextFrame();
@@ -746,7 +746,7 @@ namespace Eagle
 
 	bool RenderManager::IsRenderThread()
 	{
-		return std::this_thread::get_id() == s_RendererData->ThreadPool->get_threads()[0].get_id();
+		return std::this_thread::get_id() == s_RendererData->ThreadPool->get_thread_ids()[0];
 	}
 
 	void RenderManager::RegisterShaderDependency(const Shader* shader, const Ref<Pipeline>& pipeline)
@@ -829,7 +829,7 @@ namespace Eagle
 		else
 		{
 			auto& pool = s_RendererData->ThreadPool;
-			pool->submit(doSubmit).wait();
+			pool->submit_task(doSubmit).wait();
 		}
 	}
 

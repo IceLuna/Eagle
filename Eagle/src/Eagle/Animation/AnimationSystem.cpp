@@ -527,7 +527,7 @@ namespace Eagle
     {
         EG_CPU_TIMING_SCOPED("Animation System. Update");
 
-        s_ThreadPool->wait_for_tasks();
+        s_ThreadPool->wait();
 
         s_Transforms.clear();
         s_Transforms.reserve(meshes.size());
@@ -547,7 +547,7 @@ namespace Eagle
             if (!asset)
                 continue;
 
-            s_ThreadPool->push_task([&asset, mesh, ts]()
+            s_ThreadPool->detach_task([&asset, mesh, ts]()
             {
                 const auto& skeletalMesh = asset->GetMesh();
                 auto& transforms = s_Transforms[mesh->Parent.GetID()];
@@ -609,7 +609,7 @@ namespace Eagle
             });
         }
 
-        s_ThreadPool->wait_for_tasks();
+        s_ThreadPool->wait();
 
         for (auto& mesh : meshes)
         {
@@ -635,7 +635,7 @@ namespace Eagle
     {
         EG_CPU_TIMING_SCOPED("Animation System. Update");
 
-        s_ThreadPool->wait_for_tasks();
+        s_ThreadPool->wait();
         s_Transforms.clear();
         s_Transforms.reserve(meshes.size());
 
@@ -655,7 +655,7 @@ namespace Eagle
             if (!asset)
                 continue;
 
-            s_ThreadPool->push_task([mesh, ts, &asset]()
+            s_ThreadPool->detach_task([mesh, ts, &asset]()
             {
                 const auto& skeletalMesh = asset->GetMesh();
                 auto& transforms = s_Transforms[mesh->Parent.GetID()];
@@ -679,7 +679,7 @@ namespace Eagle
                 FinalizePose(mesh->LastPose, skeletalInfo.RootBone, rootTransform, skeletalInfo, transforms);
             });
         }
-        s_ThreadPool->wait_for_tasks();
+        s_ThreadPool->wait();
 
         return s_Transforms;
     }
@@ -691,7 +691,7 @@ namespace Eagle
 
         EG_CPU_TIMING_SCOPED("Animation System. Update Particle System animations");
 
-        s_ThreadPool->wait_for_tasks();
+        s_ThreadPool->wait();
 
         s_EmittersTransforms.clear();
         s_EmittersTransforms.reserve(systems.size());
@@ -733,7 +733,7 @@ namespace Eagle
 
                 auto& transforms = perEmitterTransforms.at(emitter.ID);
 
-                s_ThreadPool->push_task([system, &emitter, &transforms, i, ts]()
+                s_ThreadPool->detach_task([system, &emitter, &transforms, i, ts]()
                 {
                     const auto& skeletalMesh = Cast<AssetSkeletalMesh>(emitter.MeshAsset)->GetMesh();
                     auto& animData = system->PerEmitterAnimData[i];
@@ -767,7 +767,7 @@ namespace Eagle
             }
         }
 
-        s_ThreadPool->wait_for_tasks();
+        s_ThreadPool->wait();
 
         if (outEventsToTrigger)
         {
