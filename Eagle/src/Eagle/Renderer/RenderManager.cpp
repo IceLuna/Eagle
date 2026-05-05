@@ -28,6 +28,7 @@ namespace Eagle
 	std::mutex g_TimingsMutex;
 	static std::mutex s_SubmitMutex;
 	static std::mutex s_SubmitFreeMutex;
+	static const uint32_t s_VSyncFramesInFlight = 2u;
 
 	struct RendererData
 	{
@@ -75,6 +76,7 @@ namespace Eagle
 		Ref<Texture2D> BlueNoise;
 		glm::vec2 HaltonSequence[s_JitterSize];
 
+		uint32_t FramesInFlight = RendererConfig::FramesInFlight;
 		uint32_t CurrentRenderingFrameIndex = 0;
 		uint32_t CurrentFrameIndex = 0;
 		uint32_t CurrentReleaseFrameIndex = 0;
@@ -287,6 +289,7 @@ namespace Eagle
 		s_RendererData = new RendererData();
 		s_RendererData->Swapchain = app.GetWindow().GetSwapchain();
 		s_RendererData->PresentFunc = bGame ? &RenderManager::PresentGame : &RenderManager::PresentEditor;
+		s_RendererData->FramesInFlight = s_RendererData->Swapchain->IsVSyncEnabled() ? s_VSyncFramesInFlight : RendererConfig::FramesInFlight;
 
 		InitHaltonSequence();
 
@@ -594,6 +597,15 @@ namespace Eagle
 			RenderManager::GetResourceReleaseQueue(i).Execute();
 	}
 
+	void RenderManager::OnVSyncEnabled(bool bEnabled)
+	{
+		Wait();
+		s_RendererData->CurrentFrameIndex = 0;
+		s_RendererData->CurrentReleaseFrameIndex = 0;
+		s_RendererData->CurrentRenderingFrameIndex = 0;
+		s_RendererData->FramesInFlight = bEnabled ? s_VSyncFramesInFlight : RendererConfig::FramesInFlight;
+	}
+
 	void RenderManager::SetPresentImage(const Ref<Image>& image)
 	{
 		s_RendererData->PresentImage = image;
@@ -664,13 +676,13 @@ namespace Eagle
 				}
 			}
 
-			s_RendererData->CurrentRenderingFrameIndex = (s_RendererData->CurrentRenderingFrameIndex + 1) % RendererConfig::FramesInFlight;
-			s_RendererData->CurrentReleaseFrameIndex = (s_RendererData->CurrentReleaseFrameIndex + 1) % RendererConfig::ReleaseFramesInFlight;
+			s_RendererData->CurrentRenderingFrameIndex = (s_RendererData->CurrentRenderingFrameIndex + 1) % s_RendererData->FramesInFlight;
+			s_RendererData->CurrentReleaseFrameIndex = (s_RendererData->CurrentReleaseFrameIndex + 1) % s_RendererData->FramesInFlight;
 			s_RendererData->FrameNumber++;
 		});
 
 		s_RendererData->FrameNumber_CPU++;
-		s_RendererData->CurrentFrameIndex = (s_RendererData->CurrentFrameIndex + 1) % RendererConfig::FramesInFlight;
+		s_RendererData->CurrentFrameIndex = (s_RendererData->CurrentFrameIndex + 1) % s_RendererData->FramesInFlight;
 	}
 
 	void RenderManager::PresentEditor(const Ref<CommandBuffer>& cmd, const Ref<Image>& presentImage, uint32_t swapchainImageIndex)

@@ -89,12 +89,10 @@ namespace Eagle
 	{
 		if (m_bVSyncEnabled != bEnabled)
 		{
+			RenderManager::Wait();
 			m_bVSyncEnabled = bEnabled;
-			Application::Get().CallNextFrame([this]()
-			{
-				RenderManager::Wait();
-				Recreate();
-			});
+			Recreate();
+			RenderManager::OnVSyncEnabled(bEnabled);
 		}
 	}
 

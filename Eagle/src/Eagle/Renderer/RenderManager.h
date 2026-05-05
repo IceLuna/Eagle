@@ -62,6 +62,7 @@ namespace Eagle
 		static void Wait();
 		static void ReleasePendingResources();
 
+		static void OnVSyncEnabled(bool bEnabled);
 		static void SetPresentImage(const Ref<Image>& image);
 
 		static void BeginFrame();
