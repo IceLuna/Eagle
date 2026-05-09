@@ -3983,7 +3983,7 @@ namespace Eagle
 			material->SetTilingFactor(node.as<float>());
 
 		if (auto node = baseNode["BlendMode"])
-			material->SetBlendMode(Utils::GetEnumFromName<Material::BlendMode>(node.as<std::string>()));
+			material->SetBlendMode(Utils::GetEnumFromName<MaterialBlendMode>(node.as<std::string>()));
 
 		if (auto node = baseNode["IsDoubleSided"])
 			material->SetDoubleSided(node.as<bool>());

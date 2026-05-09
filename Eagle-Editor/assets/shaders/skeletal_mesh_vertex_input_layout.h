@@ -1,6 +1,3 @@
-#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
-#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
-
 // With this extension, we can define an SSBO of these vertices without worrying about the alignment.
 // But it's important to specify `scalar` in its layout! For example:
 // 
@@ -10,6 +7,8 @@
 //     Vertex g_Vertices[];
 // };
 #extension GL_EXT_scalar_block_layout : require
+
+#include "defines.h"
 
 struct SkeletalVertex
 {
@@ -31,8 +30,8 @@ struct Vertex
 
 struct InstanceData
 {
-	uint TransformIndex; // (highest bit is flag whether it receives decals)
-	uint MaterialIndex;
+	uint PackedTransformIndex;
+	uint PackedMaterialIndex;
 	uint ObjectID;
 	uint VertexOffset;
 };
@@ -45,7 +44,7 @@ layout(location = 3) in vec2 a_TexCoords;
 layout(location = 4) in uvec2 a_Weights; // Each 16bit piece of data is a fp16 representing a weight
 layout(location = 5) in uvec2 a_BoneIDs; // Each 16bit piece of data is a u16 representing a boneID
 
-layout(location = 6) in uvec3 a_PerInstanceData; // .x = TransformIndex (highest bit is flag whether it receives decals); .y = MaterialIndex; .z = ObjectID
+layout(location = 6) in uvec4 a_PerInstanceData;
 #endif
 
 float GetWeight(uvec2 weights, uint idx)
@@ -73,6 +72,31 @@ uint GetBoneID(SkeletalVertex vertex, uint idx)
 	return GetBoneID(vertex.BoneIDs, idx);
 }
 
+uint GetTransformIndex(uint data)
+{
+	return data & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
+}
+
+uint GetMaterialIndex(uint data)
+{
+	return data & (~EG_CASTS_SHADOWS_MASK); // Get all but the highest bit
+}
+
+uint GetObjectID(uint data)
+{
+	return data;
+}
+
+bool DoesReceiveDecals(uint data)
+{
+	return (data & EG_RECEIVES_DECALS_MASK) == EG_RECEIVES_DECALS_MASK;
+}
+
+bool DoesCastShadows(uint data)
+{
+	return (data & EG_CASTS_SHADOWS_MASK) == EG_CASTS_SHADOWS_MASK;
+}
+
 #ifdef EG_VERTEX_LAYOUT
 float GetWeight(uint idx)
 {
@@ -82,5 +106,65 @@ float GetWeight(uint idx)
 uint GetBoneID(uint idx)
 {
 	return GetBoneID(a_BoneIDs, idx);
+}
+
+uint GetTransformIndex()
+{
+	return GetTransformIndex(a_PerInstanceData.x);
+}
+
+uint GetMaterialIndex()
+{
+	return GetMaterialIndex(a_PerInstanceData.y);
+}
+
+uint GetObjectID()
+{
+	return GetObjectID(a_PerInstanceData.z);
+}
+
+uint GetVertexOffset(InstanceData instance)
+{
+	return a_PerInstanceData.w;
+}
+
+bool DoesReceiveDecals()
+{
+	return DoesReceiveDecals(a_PerInstanceData.x);
+}
+
+bool DoesCastShadows()
+{
+	return DoesCastShadows(a_PerInstanceData.y);
+}
+#else
+uint GetTransformIndex(InstanceData instance)
+{
+	return GetTransformIndex(instance.PackedTransformIndex);
+}
+
+uint GetMaterialIndex(InstanceData instance)
+{
+	return GetMaterialIndex(instance.PackedMaterialIndex);
+}
+
+uint GetObjectID(InstanceData instance)
+{
+	return GetObjectID(instance.ObjectID);
+}
+
+uint GetVertexOffset(InstanceData instance)
+{
+	return instance.VertexOffset;
+}
+
+bool DoesReceiveDecals(InstanceData instance)
+{
+	return DoesReceiveDecals(instance.PackedTransformIndex);
+}
+
+bool DoesCastShadows(InstanceData instance)
+{
+	return DoesCastShadows(instance.PackedMaterialIndex);
 }
 #endif

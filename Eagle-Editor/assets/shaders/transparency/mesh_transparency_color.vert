@@ -26,8 +26,8 @@ layout(location = 4) out mat3 o_TBN;
 
 void main()
 {
-    const uint transformIndex = a_PerInstanceData.x & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
-    const uint materialIndex = a_PerInstanceData.y;
+    const uint transformIndex = GetTransformIndex();
+    const uint materialIndex = GetMaterialIndex();
 
     const mat4 model = g_Transforms[transformIndex];
     const vec4 worldPos = model * vec4(a_Position, 1);

@@ -162,7 +162,7 @@ namespace Eagle
 			specificIndices.clear();
 		}
 
-		[[nodiscard]] static DrawDataInsertIndices AddDrawData(MeshesDrawLists& data, const MeshDrawData& meshData, Material::BlendMode blendMode,
+		[[nodiscard]] static DrawDataInsertIndices AddDrawData(MeshesDrawLists& data, const MeshDrawData& meshData, MaterialBlendMode blendMode,
 			const MeshDrawData::MaterialData& matData, bool bNewMaterialSlot, bool bCastsShadows, bool bDoubleSided, const DrawDataInsertIndices& dataIndices)
 		{
 			auto& drawLists = bDoubleSided ? data.DoubleSided : data.SingleSided;
@@ -171,19 +171,19 @@ namespace Eagle
 			MeshDrawDataInfo* shadowCastingDatas = nullptr;
 			switch (blendMode)
 			{
-				case Material::BlendMode::Opaque:
+				case MaterialBlendMode::Opaque:
 				{
 					allDatas = &drawLists.Opaque;
 					shadowCastingDatas = &drawLists.ShadowCastingOpaque;
 					break;
 				}
-				case Material::BlendMode::Masked:
+				case MaterialBlendMode::Masked:
 				{
 					allDatas = &drawLists.Masked;
 					shadowCastingDatas = &drawLists.ShadowCastingMasked;
 					break;
 				}
-				case Material::BlendMode::Translucent:
+				case MaterialBlendMode::Translucent:
 				{
 					allDatas = &drawLists.Translucent;
 					shadowCastingDatas = &drawLists.ShadowCastingTranslucent;
@@ -251,7 +251,7 @@ namespace Eagle
 				uint32_t SkinnedVertexOffset = 0;
 
 				Ref<MeshType> Mesh;
-				Material::BlendMode BlendMode = Material::BlendMode::Opaque;
+				MaterialBlendMode BlendMode = MaterialBlendMode::Opaque;
 				uint32_t MaterialSlot = 0;
 				bool bCastsShadows = false;
 				bool bDoubleSided = false;
@@ -296,7 +296,7 @@ namespace Eagle
 					instanceKey.bCastsShadows = instance.bCastsShadows;
 					for (uint32_t i = 0; i < materialsCount; ++i)
 					{
-						const Material::BlendMode blendMode = instance.Materials[i] ? instance.Materials[i]->GetBlendMode() : Material::BlendMode::Opaque;
+						const MaterialBlendMode blendMode = instance.Materials[i] ? instance.Materials[i]->GetBlendMode() : MaterialBlendMode::Opaque;
 						const bool bDoubleSided = instance.Materials[i] ? instance.Materials[i]->IsDoubleSided() : false;
 						instanceKey.BlendMode = blendMode;
 						instanceKey.bDoubleSided = bDoubleSided;
@@ -349,7 +349,7 @@ namespace Eagle
 			}
 		}
 
-		static std::vector<MeshDrawData>& GetDrawData(MeshesDrawLists& data, Material::BlendMode blendMode, bool bShadowCastingOnly)
+		static std::vector<MeshDrawData>& GetDrawData(MeshesDrawLists& data, MaterialBlendMode blendMode, bool bShadowCastingOnly)
 		{
 			auto& opaque      = bShadowCastingOnly ? data.SingleSided.ShadowCastingOpaque      : data.SingleSided.Opaque;
 			auto& translucent = bShadowCastingOnly ? data.SingleSided.ShadowCastingTranslucent : data.SingleSided.Translucent;
@@ -357,9 +357,9 @@ namespace Eagle
 
 			switch (blendMode)
 			{
-				case Material::BlendMode::Opaque: return opaque.DrawData;
-				case Material::BlendMode::Translucent: return translucent.DrawData;
-				case Material::BlendMode::Masked: return masked.DrawData;
+				case MaterialBlendMode::Opaque: return opaque.DrawData;
+				case MaterialBlendMode::Translucent: return translucent.DrawData;
+				case MaterialBlendMode::Masked: return masked.DrawData;
 				default:
 					EG_CORE_ASSERT(false);
 					return opaque.DrawData;
@@ -439,9 +439,9 @@ namespace Eagle
 		{
 			struct MeshCounters
 			{
-				std::array<uint32_t, Material::MaxBlendModes> Offset = { 0 };
-				std::array<uint32_t, Material::MaxBlendModes> ShadowCasting = { 0 };
-				std::array<uint32_t, Material::MaxBlendModes> NonShadowCasting = { 0 };
+				std::array<uint32_t, s_MaxBlendModes> Offset = { 0 };
+				std::array<uint32_t, s_MaxBlendModes> ShadowCasting = { 0 };
+				std::array<uint32_t, s_MaxBlendModes> NonShadowCasting = { 0 };
 			};
 
 			uint32_t totalInstances = 0u;
@@ -458,7 +458,7 @@ namespace Eagle
 					{
 						for (uint32_t i = 0; i < materialsCount; ++i)
 						{
-							const Material::BlendMode blendMode = instance.Materials[i] ? instance.Materials[i]->GetBlendMode() : Material::BlendMode::Opaque;
+							const MaterialBlendMode blendMode = instance.Materials[i] ? instance.Materials[i]->GetBlendMode() : MaterialBlendMode::Opaque;
 							// Count instances
 							instance.bCastsShadows ? offset.ShadowCasting[uint32_t(blendMode)]++ : offset.NonShadowCasting[uint32_t(blendMode)]++;
 						}
@@ -469,7 +469,7 @@ namespace Eagle
 
 				// Calculate the final offsets
 				uint32_t currentOffset = 0;
-				for (uint32_t i = 0; i < Material::MaxBlendModes; ++i)
+				for (uint32_t i = 0; i < s_MaxBlendModes; ++i)
 				{
 					for (auto& offset : offsets)
 					{
@@ -499,12 +499,12 @@ namespace Eagle
 
 				// Bucket at `shadowCastingIdx` will contain draw data just for shadow casting instances.
 				// Bucket at `nonShadowCastingIdx` will contain draw data for all instances
-				std::array<bool, Material::MaxBlendModes> hasAnyInstances[buckets] = { { false }, { false } };
-				std::array<MeshDrawData, Material::MaxBlendModes> drawDatas[buckets] = { {}, {} };
+				std::array<bool, s_MaxBlendModes> hasAnyInstances[buckets] = { { false }, { false } };
+				std::array<MeshDrawData, s_MaxBlendModes> drawDatas[buckets] = { {}, {} };
 
 				for (uint32_t b = 0; b < buckets; ++b)
 				{
-					for (size_t i = 0; i < Material::MaxBlendModes; ++i)
+					for (size_t i = 0; i < s_MaxBlendModes; ++i)
 					{
 						drawDatas[b][i].SkinnedVertexOffset = skinnedVerticesOffset;
 						drawDatas[b][i].VertexOffset = meshKey.VerticesOffset;
@@ -521,10 +521,10 @@ namespace Eagle
 				// For example, [0, 0, 0, 1, 1, 1] rather than [0, 1, 0, 1, 0, 1]
 				for (uint32_t i = 0; i < materialsCount; ++i)
 				{
-					std::array<uint32_t, Material::MaxBlendModes> instancesPerBlendMode = { 0 };
+					std::array<uint32_t, s_MaxBlendModes> instancesPerBlendMode = { 0 };
 					for (auto& instance : instances)
 					{
-						const Material::BlendMode blendMode = instance.Materials[i] ? instance.Materials[i]->GetBlendMode() : Material::BlendMode::Opaque;
+						const MaterialBlendMode blendMode = instance.Materials[i] ? instance.Materials[i]->GetBlendMode() : MaterialBlendMode::Opaque;
 						const uint32_t blendModeIdx = uint32_t(blendMode);
 						instancesPerBlendMode[blendModeIdx]++;
 
@@ -564,7 +564,7 @@ namespace Eagle
 						perMaterialData.InstanceCount++;
 					}
 
-					for (uint32_t blendMode = 0; blendMode < Material::MaxBlendModes; ++blendMode)
+					for (uint32_t blendMode = 0; blendMode < s_MaxBlendModes; ++blendMode)
 					{
 						offsets[meshIdx].Offset[blendMode] += instancesPerBlendMode[blendMode];
 					}
@@ -573,11 +573,11 @@ namespace Eagle
 				for (uint32_t b = 0; b < buckets; ++b)
 				{
 					const bool bShadowCasting = b == shadowCastingIdx;
-					for (size_t i = 0; i < Material::MaxBlendModes; ++i)
+					for (size_t i = 0; i < s_MaxBlendModes; ++i)
 					{
 						if (hasAnyInstances[b][i])
 						{
-							Utils::GetDrawData(*drawList, Material::BlendMode(i), bShadowCasting).emplace_back(std::move(drawDatas[b][i]));
+							Utils::GetDrawData(*drawList, MaterialBlendMode(i), bShadowCasting).emplace_back(std::move(drawDatas[b][i]));
 						}
 					}
 				}
@@ -901,7 +901,9 @@ namespace Eagle
 				auto& subInstanceData = instance.SubMeshData.emplace_back();
 				subInstanceData.PackedTransformIndex = meshIndex | (bReceivesDecals ? EG_RECEIVES_DECALS_MASK : 0u);
 				subInstanceData.ObjectID = meshID;
-				subInstanceData.MaterialIndex = MaterialSystem::GetMaterialIndex(instance.Materials[i]);
+
+				const uint32_t materialIndex = MaterialSystem::GetMaterialIndex(instance.Materials[i]);
+				subInstanceData.PackedMaterialIndex = materialIndex | (bCastsShadows ? EG_CASTS_SHADOWS_MASK : 0u);
 			}
 
 			tempMeshTransforms.push_back(Math::ToTransformMatrix(comp->GetWorldTransform()));
@@ -1033,7 +1035,9 @@ namespace Eagle
 				auto& subInstanceData = instance.SubMeshData.emplace_back();
 				subInstanceData.PackedTransformIndex = meshIndex | (bReceivesDecals ? EG_RECEIVES_DECALS_MASK : 0u);
 				subInstanceData.ObjectID = meshID;
-				subInstanceData.MaterialIndex = MaterialSystem::GetMaterialIndex(instance.Materials[i]);
+
+				const uint32_t materialIndex = MaterialSystem::GetMaterialIndex(instance.Materials[i]);
+				subInstanceData.PackedMaterialIndex = materialIndex | (bCastsShadows ? EG_CASTS_SHADOWS_MASK : 0u);
 			}
 
 			tempMeshTransforms.push_back(Math::ToTransformMatrix(comp->GetWorldTransform()));
@@ -1155,12 +1159,12 @@ namespace Eagle
 			const auto& sprite = m_Sprites[i];
 			const uint32_t transformIndex = uint32_t(i);
 			const uint32_t transformIndexPacked = transformIndex | (sprite.bReceivesDecals ? (1 << 31) : 0u);
-			const Material::BlendMode blendMode = sprite.Material ? sprite.Material->GetBlendMode() : Material::BlendMode::Opaque;
+			const MaterialBlendMode blendMode = sprite.Material ? sprite.Material->GetBlendMode() : MaterialBlendMode::Opaque;
 			const bool bDoubleSided = sprite.Material ? sprite.Material->IsDoubleSided() : false;
 			auto& spritesData = bDoubleSided ? m_DoubleSidedSprites : m_SingleSidedSprites;
 			switch (blendMode)
 			{
-				case Material::BlendMode::Opaque:
+				case MaterialBlendMode::Opaque:
 				{
 					if (sprite.bCastsShadows)
 						AddQuad(spritesData.Opaque.ShadowCastingQuads.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
@@ -1168,7 +1172,7 @@ namespace Eagle
 						AddQuad(spritesData.Opaque.NonShadowQuads.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
 					break;
 				}
-				case Material::BlendMode::Translucent:
+				case MaterialBlendMode::Translucent:
 				{
 					if (sprite.bCastsShadows)
 						AddQuad(spritesData.Translucent.ShadowCastingQuads.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
@@ -1176,7 +1180,7 @@ namespace Eagle
 						AddQuad(spritesData.Translucent.NonShadowQuads.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
 					break;
 				}
-				case Material::BlendMode::Masked:
+				case MaterialBlendMode::Masked:
 				{
 					if (sprite.bCastsShadows)
 						AddQuad(spritesData.Masked.ShadowCastingQuads.QuadVertices, sprite, m_SpriteTransforms[i], transformIndexPacked);
@@ -1732,13 +1736,13 @@ namespace Eagle
 			for (size_t i = 0; i < textsCount; ++i)
 			{
 				const auto& text = m_LitTexts[i];
-				const Material::BlendMode blendMode = text.Material ? text.Material->GetBlendMode() : Material::BlendMode::Opaque;
+				const MaterialBlendMode blendMode = text.Material ? text.Material->GetBlendMode() : MaterialBlendMode::Opaque;
 				const bool bDoubleSided = text.Material ? text.Material->IsDoubleSided() : false;
 				auto& textsData = bDoubleSided ? m_DoubleSidedTexts : m_SingleSidedTexts;
 
 				switch (blendMode)
 				{
-					case Material::BlendMode::Opaque:
+					case MaterialBlendMode::Opaque:
 					{
 						if (text.bCastsShadows)
 							ProcessTextData(text, m_FontAtlases, textsData.Opaque.ShadowCastingQuads.QuadVertices, atlasCurrentIndex);
@@ -1746,7 +1750,7 @@ namespace Eagle
 							ProcessTextData(text, m_FontAtlases, textsData.Opaque.NonShadowQuads.QuadVertices, atlasCurrentIndex);
 						break;
 					}
-					case Material::BlendMode::Translucent:
+					case MaterialBlendMode::Translucent:
 					{
 						if (text.bCastsShadows)
 							ProcessTextData(text, m_FontAtlases, textsData.Translucent.ShadowCastingQuads.QuadVertices, atlasCurrentIndex);
@@ -1754,7 +1758,7 @@ namespace Eagle
 							ProcessTextData(text, m_FontAtlases, textsData.Translucent.NonShadowQuads.QuadVertices, atlasCurrentIndex);
 						break;
 					}
-					case Material::BlendMode::Masked:
+					case MaterialBlendMode::Masked:
 					{
 						if (text.bCastsShadows)
 							ProcessTextData(text, m_FontAtlases, textsData.Masked.ShadowCastingQuads.QuadVertices, atlasCurrentIndex);

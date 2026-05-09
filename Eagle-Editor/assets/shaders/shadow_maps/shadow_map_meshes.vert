@@ -1,4 +1,3 @@
-#include "defines.h"
 #include "mesh_vertex_input_layout.h"
 
 #ifdef EG_MATERIALS_REQUIRED
@@ -40,7 +39,7 @@ layout(location = 1) flat out uint o_MaterialIndex;
 
 void main()
 {
-    const uint transformIndex = a_PerInstanceData.x & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
+    const uint transformIndex = GetTransformIndex();
     const vec4 worldPos = g_Transforms[transformIndex] * vec4(a_Position, 1.0);
 #ifdef EG_POINT_LIGHT_PASS
     gl_Position = g_ViewProjections[g_LightIndex * 6 + gl_ViewIndex] * worldPos;
@@ -52,6 +51,6 @@ void main()
 
 #ifdef EG_MATERIALS_REQUIRED
     o_TexCoords = a_TexCoords;
-    o_MaterialIndex = a_PerInstanceData.y;
+    o_MaterialIndex = GetMaterialIndex();
 #endif
 }

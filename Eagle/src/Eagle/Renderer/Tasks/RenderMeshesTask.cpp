@@ -6,6 +6,7 @@
 #include "Eagle/Renderer/MaterialSystem.h"
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
 #include "Eagle/Renderer/TextureSystem.h"
+#include "FrustumCullingTask.h"
 
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Debug/GPUTimings.h"
@@ -131,11 +132,39 @@ namespace Eagle
 			m_MaskedPipeline = PipelineGraphics::Create(state);
 	}
 	
-	void RenderMeshesTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const std::vector<MeshDrawData>& meshes, const StaticMeshGeometryData& buffers, RenderStats& stats,
-		const void* vertexPushData, const Ref<Framebuffer>& framebuffer)
+	void RenderMeshesTask::DrawCulled(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const StaticMeshGeometryData& buffers, const FrustumCulledMeshes& meshes,
+		MaterialBlendMode blendMode, RenderStats& stats, const void* vertexPushData)
 	{
-		if (meshes.empty())
-			return;
+		const auto& ivb = meshes.InstanceBuffer;
+		const auto& singleSided = meshes.SingleSided.BlendModes[uint32_t(blendMode)];
+		const auto& doubleSided = meshes.DoubleSided.BlendModes[uint32_t(blendMode)];
+
+		cmd->BeginGraphics(pipeline);
+		cmd->SetGraphicsRootConstants(vertexPushData, nullptr);
+
+		if (singleSided.GetNumMeshes() > 0)
+		{
+			cmd->SetGraphicsCullMode(CullMode::Back);
+			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, singleSided.Result.IndirectArgsBuffer, singleSided.Result.DrawCountBuffer, ivb, singleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
+		}
+
+		if (doubleSided.GetNumMeshes() > 0)
+		{
+			cmd->SetGraphicsCullMode(CullMode::None);
+			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, doubleSided.Result.IndirectArgsBuffer, doubleSided.Result.DrawCountBuffer, ivb, doubleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
+		}
+
+		cmd->EndGraphics();
+	}
+	
+	void RenderMeshesTask::DrawUnculledShadowCasters(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const StaticMeshGeometryData& buffers, const FrustumCulledMeshes& meshes,
+		MaterialBlendMode blendMode, RenderStats& stats, const void* vertexPushData, const Ref<Framebuffer>& framebuffer, CullMode singleSidedCullMode)
+	{
+		const auto& ivb = meshes.UnculledInstanceBuffer;
+		const auto& singleSided = meshes.SingleSided.BlendModes[uint32_t(blendMode)];
+		const auto& doubleSided = meshes.DoubleSided.BlendModes[uint32_t(blendMode)];
 
 		if (framebuffer)
 			cmd->BeginGraphics(pipeline, framebuffer);
@@ -143,21 +172,18 @@ namespace Eagle
 			cmd->BeginGraphics(pipeline);
 		cmd->SetGraphicsRootConstants(vertexPushData, nullptr);
 
-		for (const auto& data : meshes)
+		if (singleSided.GetNumMeshes() > 0)
 		{
-			const uint32_t vertexOffset = data.VertexOffset;
-			for (const auto& matRenderData : data.PerMaterialData)
-			{
-				const uint32_t indicesCount = matRenderData.IndexCount;
-				const uint32_t firstIndex = matRenderData.FirstIndex;
-				const uint32_t instanceCount = matRenderData.InstanceCount;
-				const uint32_t firstInstance = matRenderData.FirstInstance;
-				if (instanceCount > 0)
-				{
-					cmd->DrawIndexedInstanced(buffers.VertexBuffer, buffers.IndexBuffer, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, buffers.InstanceBuffer);
-					++stats.DrawCalls;
-				}
-			}
+			cmd->SetGraphicsCullMode(singleSidedCullMode);
+			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, singleSided.Result.UnculledShadowCastersIndirectArgsBuffer, singleSided.Result.UnculledShadowCastersDrawCountBuffer, ivb, singleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
+		}
+
+		if (doubleSided.GetNumMeshes() > 0)
+		{
+			cmd->SetGraphicsCullMode(CullMode::None);
+			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, doubleSided.Result.UnculledShadowCastersIndirectArgsBuffer, doubleSided.Result.UnculledShadowCastersDrawCountBuffer, ivb, doubleSided.Result.MaxDrawCalls);
+			++stats.DrawCalls;
 		}
 
 		cmd->EndGraphics();
@@ -167,8 +193,8 @@ namespace Eagle
 	{
 		const auto& culledMeshes = m_Renderer.GetCulledStaticMeshes();
 		const auto& ivb = culledMeshes.InstanceBuffer;
-		const auto& singleSided = culledMeshes.SingleSided.Opaque;
-		const auto& doubleSided = culledMeshes.DoubleSided.Opaque;
+		const auto& singleSided = culledMeshes.SingleSided.BlendModes[uint32_t(MaterialBlendMode::Opaque)];
+		const auto& doubleSided = culledMeshes.DoubleSided.BlendModes[uint32_t(MaterialBlendMode::Opaque)];
 		if (singleSided.GetNumMeshes() == 0 && doubleSided.GetNumMeshes() == 0)
 			return;
 
@@ -199,33 +225,15 @@ namespace Eagle
 
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
 		auto& stats = m_Renderer.GetStats();
-
-		cmd->BeginGraphics(m_OpaquePipeline);
-		cmd->SetGraphicsRootConstants(&pushData, nullptr);
-
-		if (singleSided.GetNumMeshes() > 0)
-		{
-			cmd->SetGraphicsCullMode(CullMode::Back);
-			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, singleSided.Result.IndirectArgsBuffer, singleSided.Result.DrawCountBuffer, ivb, singleSided.Result.MaxDrawCalls);
-			++stats.DrawCalls;
-		}
-
-		if (doubleSided.GetNumMeshes())
-		{
-			cmd->SetGraphicsCullMode(CullMode::None);
-			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, doubleSided.Result.IndirectArgsBuffer, doubleSided.Result.DrawCountBuffer, ivb, doubleSided.Result.MaxDrawCalls);
-			++stats.DrawCalls;
-		}
-
-		cmd->EndGraphics();
+		DrawCulled(cmd, m_OpaquePipeline, buffers, culledMeshes, MaterialBlendMode::Opaque, stats, &pushData);
 	}
 
 	void RenderMeshesTask::RenderMasked(const Ref<CommandBuffer>& cmd)
 	{
 		const auto& culledMeshes = m_Renderer.GetCulledStaticMeshes();
 		const auto& ivb = culledMeshes.InstanceBuffer;
-		const auto& singleSided = culledMeshes.SingleSided.Masked;
-		const auto& doubleSided = culledMeshes.DoubleSided.Masked;
+		const auto& singleSided = culledMeshes.SingleSided.BlendModes[uint32_t(MaterialBlendMode::Masked)];
+		const auto& doubleSided = culledMeshes.DoubleSided.BlendModes[uint32_t(MaterialBlendMode::Masked)];
 		if (singleSided.GetNumMeshes() == 0 && doubleSided.GetNumMeshes() == 0)
 			return;
 
@@ -257,24 +265,6 @@ namespace Eagle
 
 		auto& stats = m_Renderer.GetStats();
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
-
-		cmd->BeginGraphics(m_MaskedPipeline);
-		cmd->SetGraphicsRootConstants(&pushData, nullptr);
-
-		if (singleSided.GetNumMeshes() > 0)
-		{
-			cmd->SetGraphicsCullMode(CullMode::Back);
-			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, singleSided.Result.IndirectArgsBuffer, singleSided.Result.DrawCountBuffer, ivb, singleSided.Result.MaxDrawCalls);
-			++stats.DrawCalls;
-		}
-
-		if (doubleSided.GetNumMeshes())
-		{
-			cmd->SetGraphicsCullMode(CullMode::None);
-			cmd->DrawIndexedInstancedIndirectCount(buffers.VertexBuffer, buffers.IndexBuffer, doubleSided.Result.IndirectArgsBuffer, doubleSided.Result.DrawCountBuffer, ivb, doubleSided.Result.MaxDrawCalls);
-			++stats.DrawCalls;
-		}
-
-		cmd->EndGraphics();
+		DrawCulled(cmd, m_MaskedPipeline, buffers, culledMeshes, MaterialBlendMode::Masked, stats, &pushData);
 	}
 }

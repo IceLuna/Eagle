@@ -640,7 +640,7 @@ namespace Eagle
 
 		if (m_CurrentGraphicsPipeline)
 		{
-			vkCmdSetCullMode(m_CommandBuffer, CullModeToVulkan(m_CullMode));
+			vkCmdSetCullMode(m_CommandBuffer, CullModeToVulkan(cullMode));
 			m_bOverrideCullMode = false;
 		}
 		else

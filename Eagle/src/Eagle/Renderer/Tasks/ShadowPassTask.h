@@ -72,15 +72,15 @@ namespace Eagle
 		void HandleColoredPointLightShadowMaps();
 		void HandleColoredSpotLightShadowMaps();
 
-		void ShadowPassOpacityMeshes(const Ref<CommandBuffer>& cmd);
+		void ShadowPassOpaqueMeshes(const Ref<CommandBuffer>& cmd);
 		void ShadowPassMaskedMeshes(const Ref<CommandBuffer>& cmd);
 		void ShadowPassTranslucentMeshes(const Ref<CommandBuffer>& cmd);
 
-		void ShadowPassOpacitySkeletalMeshes(const Ref<CommandBuffer>& cmd);
+		void ShadowPassOpaqueSkeletalMeshes(const Ref<CommandBuffer>& cmd);
 		void ShadowPassMaskedSkeletalMeshes(const Ref<CommandBuffer>& cmd);
 		void ShadowPassTranslucentSkeletalMeshes(const Ref<CommandBuffer>& cmd);
 
-		void ShadowPassOpacitySprites(const Ref<CommandBuffer>& cmd);
+		void ShadowPassOpaqueSprites(const Ref<CommandBuffer>& cmd);
 		void ShadowPassMaskedSprites(const Ref<CommandBuffer>& cmd);
 		void ShadowPassTranslucentSprites(const Ref<CommandBuffer>& cmd);
 

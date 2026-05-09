@@ -9,14 +9,6 @@ namespace Eagle
 	class Material : virtual public std::enable_shared_from_this<Material>
 	{
 	public:
-		enum class BlendMode
-		{
-			Opaque, Translucent, Masked
-		};
-		// It's outside instead of being a part of `BlendMode` enum is to avoid it showing up in UI.
-		// TODO: Fix it when reflection is introduced
-		static constexpr uint32_t MaxBlendModes = (uint32_t)magic_enum::enum_count<BlendMode>();
-
 		enum class TextureChannel
 		{
 			R = 0, G = 1, B = 2, A = 3
@@ -59,7 +51,7 @@ namespace Eagle
 		void SetTintColor(const glm::vec4& tintColor)         { m_TintColor = tintColor;         OnMaterialChanged(); }
 		void SetEmissiveIntensity(const glm::vec3& intensity) { m_EmissiveIntensity = intensity; OnMaterialChanged(); }
 		void SetTilingFactor(float tiling)                    { m_TilingFactor = tiling;         OnMaterialChanged(); }
-		void SetBlendMode(BlendMode blendMode)
+		void SetBlendMode(MaterialBlendMode blendMode)
 		{
 			if (blendMode == m_BlendMode)
 				return;
@@ -111,7 +103,7 @@ namespace Eagle
 		const glm::vec4& GetTintColor() const { return m_TintColor; }
 		const glm::vec3& GetEmissiveIntensity() const { return m_EmissiveIntensity; }
 		float GetTilingFactor() const { return m_TilingFactor; }
-		BlendMode GetBlendMode() const { return m_BlendMode; }
+		MaterialBlendMode GetBlendMode() const { return m_BlendMode; }
 		bool IsDoubleSided() const { return bDoubleSided; }
 
 		void AddOnModifiedCallback(const GUID& id, const std::function<void()>& func)
@@ -173,7 +165,7 @@ namespace Eagle
 		glm::vec4 m_TintColor = glm::vec4(1.0);
 		glm::vec3 m_EmissiveIntensity = glm::vec3(1.f);
 		float m_TilingFactor = 1.f;
-		BlendMode m_BlendMode = BlendMode::Opaque;
+		MaterialBlendMode m_BlendMode = MaterialBlendMode::Opaque;
 		bool bDoubleSided = false;
 	};
 }

@@ -120,7 +120,7 @@ CPUMaterial CPUMaterial::Convert(const Eagle::Ref<Eagle::Material>& material, st
 
 	uint32_t opacityIndex = 0u;
 	bool bUseRawOpacity = true;
-	if (material->GetBlendMode() == Material::BlendMode::Translucent)
+	if (material->GetBlendMode() == MaterialBlendMode::Translucent)
 	{
 		if (material->IsRawOpacityUsed())
 		{
@@ -140,7 +140,7 @@ CPUMaterial CPUMaterial::Convert(const Eagle::Ref<Eagle::Material>& material, st
 
 	uint32_t opacityMaskIndex = 0u;
 	bool bUseRawOpacityMask = true;
-	if (material->GetBlendMode() == Material::BlendMode::Masked)
+	if (material->GetBlendMode() == MaterialBlendMode::Masked)
 	{
 		if (material->IsRawOpacityMaskUsed())
 		{

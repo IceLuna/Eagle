@@ -27,10 +27,10 @@ layout(location = 0) flat out int o_ObjectID;
 void main()
 {
     const InstanceData instanceData = g_InstanceData[gl_InstanceIndex];
-    const uint vertexIndex = instanceData.VertexOffset + gl_VertexIndex;
+    const uint vertexIndex = GetVertexOffset(instanceData) + gl_VertexIndex;
     const Vertex vertex = g_SkinnedVertices[vertexIndex];
 
     gl_Position = g_ViewProjection * vec4(vertex.Position, 1.0);
  
-    o_ObjectID = int(instanceData.ObjectID);
+    o_ObjectID = int(GetObjectID(instanceData));
 }

@@ -865,7 +865,7 @@ namespace Eagle
 			if (opacity)
 			{
 				material->SetRawOpacityUsed(false);
-				material->SetBlendMode(Material::BlendMode::Translucent);
+				material->SetBlendMode(MaterialBlendMode::Translucent);
 			}
 
 			{
@@ -937,7 +937,7 @@ namespace Eagle
 					material->SetOpacity(aiValue.r);
 					if (!opacity && aiValue.r < 1.f)
 					{
-						material->SetBlendMode(Material::BlendMode::Translucent);
+						material->SetBlendMode(MaterialBlendMode::Translucent);
 						material->SetRawOpacityUsed(true);
 					}
 				}
@@ -946,7 +946,7 @@ namespace Eagle
 					material->SetOpacity(1.f - aiValue.r);
 					if (!opacity && (1.f - aiValue.r) < 1.f)
 					{
-						material->SetBlendMode(Material::BlendMode::Translucent);
+						material->SetBlendMode(MaterialBlendMode::Translucent);
 						material->SetRawOpacityUsed(true);
 					}
 				}

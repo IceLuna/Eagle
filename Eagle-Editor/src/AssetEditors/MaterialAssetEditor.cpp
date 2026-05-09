@@ -64,7 +64,7 @@ namespace Eagle
 			bChanged = true;
 		}
 
-		Material::BlendMode blendMode = material->GetBlendMode();
+		MaterialBlendMode blendMode = material->GetBlendMode();
 		if (UI::ComboEnum("Blend Mode", blendMode, s_BlendModeHelpMsg))
 		{
 			material->SetBlendMode(blendMode);
@@ -259,7 +259,7 @@ namespace Eagle
 		{
 			UI::TextWithSeparator("Opacity");
 
-			const bool bTranslucent = blendMode == Material::BlendMode::Translucent;
+			const bool bTranslucent = blendMode == MaterialBlendMode::Translucent;
 			if (!bTranslucent)
 				UI::PushItemDisabled();
 
@@ -306,7 +306,7 @@ namespace Eagle
 		{
 			UI::TextWithSeparator("Opacity Mask");
 
-			const bool bMasked = blendMode == Material::BlendMode::Masked;
+			const bool bMasked = blendMode == MaterialBlendMode::Masked;
 			if (!bMasked)
 				UI::PushItemDisabled();
 

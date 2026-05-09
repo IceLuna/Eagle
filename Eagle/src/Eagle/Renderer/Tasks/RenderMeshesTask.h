@@ -8,6 +8,8 @@
 
 namespace Eagle
 {
+	struct FrustumCulledMeshes;
+
 	class RenderMeshesTask : public RendererTask
 	{
 	public:
@@ -32,8 +34,10 @@ namespace Eagle
 			InitPipeline();
 		}
 
-		static void Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const std::vector<MeshDrawData>& meshes, const StaticMeshGeometryData& buffers, RenderStats& stats,
-			const void* vertexPushData = nullptr, const Ref<Framebuffer>& framebuffer = nullptr);
+		static void DrawCulled(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const StaticMeshGeometryData& buffers, const FrustumCulledMeshes& meshes,
+			MaterialBlendMode blendMode, RenderStats& stats, const void* vertexPushData = nullptr);
+		static void DrawUnculledShadowCasters(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const StaticMeshGeometryData& buffers, const FrustumCulledMeshes& meshes,
+			MaterialBlendMode blendMode, RenderStats& stats, const void* vertexPushData = nullptr, const Ref<Framebuffer>& framebuffer = nullptr, CullMode singleSidedCullMode = CullMode::Front);
 
 		inline static const std::vector<PipelineGraphicsState::VertexInputAttribute> PerInstanceAttribs = { { 4u } }; // Locations of Per-Instance data in shader
 

@@ -17,7 +17,7 @@ uniform CameraMatrices
 
 void main()
 {
-    const uint transformIndex = a_PerInstanceData.x & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
+    const uint transformIndex = GetTransformIndex();
     const mat4 model = g_Transforms[transformIndex];
     const vec4 worldPos = model * vec4(a_Position, 1.0);
     gl_Position = g_ViewProjection * worldPos;

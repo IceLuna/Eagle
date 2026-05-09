@@ -1,5 +1,4 @@
 #include "mesh_vertex_input_layout.h"
-#include "defines.h"
 
 #ifndef EG_DEPTH_ONLY
 #define EG_NO_TEXTURES
@@ -52,14 +51,14 @@ layout(location = 9) out vec3 o_PrevPos;
 
 void main()
 {
-    const uint transformIndex = a_PerInstanceData.x & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
+    const uint transformIndex = GetTransformIndex();
     const mat4 model = g_Transforms[transformIndex];
     gl_Position = g_ViewProjection * model * vec4(a_Position, 1.0);
 
 #ifndef EG_DEPTH_ONLY
-    const uint materialIndex = a_PerInstanceData.y;
-    const uint objectID = a_PerInstanceData.z;
-    o_ReceivesDecals = (a_PerInstanceData.x & EG_RECEIVES_DECALS_MASK) == EG_RECEIVES_DECALS_MASK ? 1u : 0u;
+    const uint materialIndex = GetMaterialIndex();
+    const uint objectID = GetObjectID();
+    o_ReceivesDecals = DoesReceiveDecals() ? 1u : 0u;
 
     const mat3 normalModel = mat3(transpose(inverse(model)));
     const vec3 worldNormal = normalize(normalModel * a_Normal);

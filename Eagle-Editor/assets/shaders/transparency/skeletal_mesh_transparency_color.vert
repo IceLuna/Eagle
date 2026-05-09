@@ -39,10 +39,10 @@ layout(location = 4) out mat3 o_TBN;
 void main()
 {
     const InstanceData instanceData = g_InstanceData[gl_InstanceIndex];
-    const uint vertexIndex = instanceData.VertexOffset + gl_VertexIndex;
+    const uint vertexIndex = GetVertexOffset(instanceData) + gl_VertexIndex;
     const Vertex vertex = g_SkinnedVertices[vertexIndex];
 
-    const uint transformIndex = instanceData.TransformIndex & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
+    const uint transformIndex = GetTransformIndex(instanceData);
     gl_Position = g_ViewProjection * vec4(vertex.Position, 1.0);
     
     const mat4 model = g_Transforms[transformIndex];
@@ -50,7 +50,7 @@ void main()
     const mat3 normalModel = transpose(inverse(mat3(model)));
     const vec3 worldNormal = normalize(normalModel * normal);
 
-    const uint materialIndex = instanceData.MaterialIndex;
+    const uint materialIndex = GetMaterialIndex(instanceData);
     const uint normalTextureIndex = FetchMaterialNormalTextureIndex(materialIndex);
     if (normalTextureIndex != EG_INVALID_INDEX)
     {

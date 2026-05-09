@@ -1,5 +1,4 @@
 #extension GL_EXT_nonuniform_qualifier : enable
-#include "defines.h"
 #include "skeletal_mesh_vertex_input_layout.h"
 
 #ifdef EG_MATERIALS_REQUIRED
@@ -14,13 +13,11 @@ readonly buffer SkinnedVertices
     Vertex g_SkinnedVertices[];
 };
 
-#ifdef EG_MATERIALS_REQUIRED
 layout(scalar, set = s_Set, binding = 1)
 readonly buffer PerInstanceDataBuffer
 {
     InstanceData g_InstanceData[];
 };
-#endif
 
 // For point lights & multi-view depth-pass
 #ifdef EG_POINT_LIGHT_PASS
@@ -33,9 +30,6 @@ layout(set = s_Set, binding = 2) readonly buffer ViewProjectionsBuffer
 layout(push_constant) uniform PushData
 {
     uint g_LightIndex;
-    uint g_VertexCount;
-    uint g_InstanceOffset;
-    uint g_VerticesOffset;
 };
 #endif
 
@@ -43,9 +37,6 @@ layout(push_constant) uniform PushData
 layout(push_constant) uniform PushData
 {
     mat4 g_ViewProj;
-    uint g_VertexCount;
-    uint g_InstanceOffset;
-    uint g_VerticesOffset;
 };
 #endif
 
@@ -56,11 +47,9 @@ layout(location = 1) flat out uint o_MaterialIndex;
 
 void main()
 {
-    // We need an index that's not affected by the offset.
-    // So, we need something that goes from [0; InstanceCount)
-    const uint instanceIndex = gl_InstanceIndex - g_InstanceOffset;
-    const uint vertexIndex = g_VerticesOffset + g_VertexCount * instanceIndex + gl_VertexIndex;
-
+    const InstanceData instanceData = g_InstanceData[gl_InstanceIndex];
+    
+    const uint vertexIndex = GetVertexOffset(instanceData) + gl_VertexIndex;
     const Vertex vertex = g_SkinnedVertices[vertexIndex];
 
     const vec4 worldPos = vec4(vertex.Position, 1.0);
@@ -73,9 +62,7 @@ void main()
 #endif
 
 #ifdef EG_MATERIALS_REQUIRED
-    const InstanceData instanceData = g_InstanceData[gl_InstanceIndex];
-
     o_TexCoords = vertex.TexCoords;
-    o_MaterialIndex = instanceData.MaterialIndex;
+    o_MaterialIndex = GetMaterialIndex(instanceData);
 #endif
 }

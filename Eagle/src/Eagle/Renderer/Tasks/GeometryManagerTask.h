@@ -98,8 +98,8 @@ namespace Eagle
 			glm::uvec3 Data = glm::uvec3(0u); // .x = TransformIndex; .y = MaterialIndex; .z = ObjectID
 			struct
 			{
-				uint32_t PackedTransformIndex; // The highest is a flag whether a mesh receives decals
-				uint32_t MaterialIndex;
+				uint32_t PackedTransformIndex; // The highest bit is a flag whether an instance receives decals
+				uint32_t PackedMaterialIndex; // The highest bit is a flag whether an instance casts shadows
 				uint32_t ObjectID;
 			};
 		};
@@ -113,8 +113,8 @@ namespace Eagle
 			glm::uvec4 Data = glm::uvec4(0, 0, 0, ~0);
 			struct
 			{
-				uint32_t PackedTransformIndex; // The highest is a flag whether a mesh receives decals
-				uint32_t MaterialIndex;
+				uint32_t PackedTransformIndex; // The highest bit is a flag whether an instance receives decals
+				uint32_t PackedMaterialIndex; // The highest bit is a flag whether an instance casts shadows
 				uint32_t ObjectID;
 
 				// Because of skin cache + culling (indirect draw calls), we can't properly pick the correct skinned vertex because the order can change based on culling.

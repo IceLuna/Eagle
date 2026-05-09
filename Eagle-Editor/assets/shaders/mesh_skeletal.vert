@@ -1,7 +1,6 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 
 #include "skeletal_mesh_vertex_input_layout.h"
-#include "defines.h"
 
 #ifndef EG_DEPTH_ONLY
 #define EG_NO_TEXTURES
@@ -71,17 +70,17 @@ void main()
 {
     const InstanceData instanceData = g_InstanceData[gl_InstanceIndex];
     
-    const uint vertexIndex = instanceData.VertexOffset + gl_VertexIndex;
+    const uint vertexIndex = GetVertexOffset(instanceData) + gl_VertexIndex;
     const Vertex vertex = g_SkinnedVertices[vertexIndex];
 
-    const uint transformIndex = instanceData.TransformIndex & (~EG_RECEIVES_DECALS_MASK); // Get all but the highest bit
+    const uint transformIndex = GetTransformIndex(instanceData);
     gl_Position = g_ViewProjection * vec4(vertex.Position, 1.0);
 
 #ifndef EG_DEPTH_ONLY
     const mat4 model = g_Transforms[transformIndex];
-    const uint materialIndex = instanceData.MaterialIndex;
-    const uint objectID = instanceData.ObjectID;
-    o_ReceivesDecals = (instanceData.TransformIndex & EG_RECEIVES_DECALS_MASK) == EG_RECEIVES_DECALS_MASK ? 1u : 0u;
+    const uint materialIndex = GetMaterialIndex(instanceData);
+    const uint objectID = GetObjectID(instanceData);
+    o_ReceivesDecals = DoesReceiveDecals(instanceData) ? 1u : 0u;
 
     const vec3 normal = vertex.Normal;
     const mat3 normalModel = transpose(inverse(mat3(model)));

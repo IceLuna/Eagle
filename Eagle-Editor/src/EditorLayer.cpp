@@ -2357,7 +2357,7 @@ namespace Eagle
 
 			if (ImGui::TreeNodeEx("Scene stats", flags))
 			{
-				ImGui::Text("Draw Calls: %d", stats.DrawCalls);
+				ImGui::Text("CPU Draw Calls: %d", stats.DrawCalls);
 				ImGui::Text("Compute Dispatches: %d", stats.Dispatches);
 				ImGui::Separator();
 				ImGui::Text("Static Meshes: %d", m_CurrentScene->GetStaticMeshesCount());

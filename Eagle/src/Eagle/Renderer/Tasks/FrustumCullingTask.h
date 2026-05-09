@@ -7,10 +7,13 @@
 
 namespace Eagle
 {
+	// Also outputs unculled draw calls for shadow casting meshes so that `ShadowPass` task can use indirect draw calls to reduce CPU overhead.
 	struct FrustumCullingResult
 	{
 		Ref<Buffer> IndirectArgsBuffer;
 		Ref<Buffer> DrawCountBuffer;
+		Ref<Buffer> UnculledShadowCastersIndirectArgsBuffer;
+		Ref<Buffer> UnculledShadowCastersDrawCountBuffer;
 		uint32_t MaxDrawCalls = 0;
 
 		void Init();
@@ -52,17 +55,21 @@ namespace Eagle
 
 				void Init(bool bSkeletalMeshes);
 				uint32_t GetNumMeshes() const { return (uint32_t)MeshDatas.size(); }
-			} Opaque, Masked, Translucent;
+			};
+			std::array<Data, s_MaxBlendModes> BlendModes;
 
 			void Init(bool bSkeletalMeshes)
 			{
-				Opaque.Init(bSkeletalMeshes);
-				Masked.Init(bSkeletalMeshes);
-				Translucent.Init(bSkeletalMeshes);
+				for (auto& type : BlendModes)
+					type.Init(bSkeletalMeshes);
 			}
 		} SingleSided, DoubleSided;
 
 		Ref<Buffer> InstanceBuffer;
+
+		// This one contains unculled instances.
+		// Can be used to render meshes in shadow passes in a single CPU draw call
+		Ref<Buffer> UnculledInstanceBuffer;
 
 		void Init(bool bSkeletalMeshes)
 		{

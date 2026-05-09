@@ -1,8 +1,10 @@
 #pragma once
 
 #include "Eagle/Core/Core.h"
+
 #include <glm/glm.hpp>
 #include <array>
+#include <magic_enum.hpp>
 
 // If changed, vertex shaders for skeletal meshes should also be updated
 #define EG_MAX_BONES_PER_VERTEX 4
@@ -11,6 +13,14 @@ namespace Eagle
 {
     using Index = uint32_t;
     constexpr uint32_t s_JitterSize = 16u;
+
+    enum class MaterialBlendMode
+    {
+        Opaque, Translucent, Masked
+    };
+    // It's outside instead of being a part of `MaterialBlendMode` enum is to avoid it showing up in UI.
+    // TODO: Fix it when reflection is introduced
+    static constexpr uint32_t s_MaxBlendModes = (uint32_t)magic_enum::enum_count<MaterialBlendMode>();
 
     enum class ShaderType
     {
