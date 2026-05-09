@@ -163,30 +163,26 @@ namespace Eagle
 		}
 
 		[[nodiscard]] static DrawDataInsertIndices AddDrawData(MeshesDrawLists& data, const MeshDrawData& meshData, MaterialBlendMode blendMode,
-			const MeshDrawData::MaterialData& matData, bool bNewMaterialSlot, bool bCastsShadows, bool bDoubleSided, const DrawDataInsertIndices& dataIndices)
+			const MeshDrawData::MaterialData& matData, bool bNewMaterialSlot, bool bDoubleSided, const DrawDataInsertIndices& dataIndices)
 		{
 			auto& drawLists = bDoubleSided ? data.DoubleSided : data.SingleSided;
 
 			MeshDrawDataInfo* allDatas = nullptr;
-			MeshDrawDataInfo* shadowCastingDatas = nullptr;
 			switch (blendMode)
 			{
 				case MaterialBlendMode::Opaque:
 				{
 					allDatas = &drawLists.Opaque;
-					shadowCastingDatas = &drawLists.ShadowCastingOpaque;
 					break;
 				}
 				case MaterialBlendMode::Masked:
 				{
 					allDatas = &drawLists.Masked;
-					shadowCastingDatas = &drawLists.ShadowCastingMasked;
 					break;
 				}
 				case MaterialBlendMode::Translucent:
 				{
 					allDatas = &drawLists.Translucent;
-					shadowCastingDatas = &drawLists.ShadowCastingTranslucent;
 					break;
 				}
 				default:
@@ -204,12 +200,6 @@ namespace Eagle
 				insertionIndices.Global = (int32_t)allDatas->DrawData.size();
 				allDatas->DrawData.emplace_back(meshData).PerMaterialData.push_back(matData);
 				allDatas->DrawCallsCount += 1;
-				if (bCastsShadows)
-				{
-					insertionIndices.ShadowCasting = (int32_t)shadowCastingDatas->DrawData.size();
-					shadowCastingDatas->DrawData.emplace_back(meshData).PerMaterialData.push_back(matData);
-					shadowCastingDatas->DrawCallsCount += 1;
-				}
 			}
 			else
 			{
@@ -218,21 +208,10 @@ namespace Eagle
 				{
 					drawData.PerMaterialData.push_back(matData);
 					allDatas->DrawCallsCount += 1;
-					if (bCastsShadows)
-					{
-						auto& opaqueShadow = shadowCastingDatas->DrawData[insertionIndices.ShadowCasting];
-						opaqueShadow.PerMaterialData.push_back(matData);
-						shadowCastingDatas->DrawCallsCount += 1;
-					}
 				}
 				else
 				{
 					drawData.PerMaterialData.back().InstanceCount += matData.InstanceCount;
-					if (bCastsShadows)
-					{
-						auto& opaqueShadow = shadowCastingDatas->DrawData[insertionIndices.ShadowCasting];
-						opaqueShadow.PerMaterialData.back().InstanceCount += matData.InstanceCount;
-					}
 				}
 			}
 
@@ -240,7 +219,7 @@ namespace Eagle
 		}
 
 		template <typename MeshType, typename MeshesMapType, typename PerInstanceDataType>
-		static void ProcessInstances2(const MeshesMapType& meshes, MeshesDrawLists* drawList, std::vector<PerInstanceDataType>* ivb)
+		static void ProcessInstances(const MeshesMapType& meshes, MeshesDrawLists* drawList, std::vector<PerInstanceDataType>* ivb)
 		{
 			struct InstanceKey
 			{
@@ -253,7 +232,6 @@ namespace Eagle
 				Ref<MeshType> Mesh;
 				MaterialBlendMode BlendMode = MaterialBlendMode::Opaque;
 				uint32_t MaterialSlot = 0;
-				bool bCastsShadows = false;
 				bool bDoubleSided = false;
 
 				bool operator< (const InstanceKey& other) const
@@ -270,7 +248,7 @@ namespace Eagle
 					if (MaterialSlot != other.MaterialSlot)
 						return MaterialSlot < other.MaterialSlot;
 
-					return bCastsShadows > other.bCastsShadows; // Shadow casters first
+					return false;
 				}
 			};
 
@@ -293,7 +271,6 @@ namespace Eagle
 
 				for (const auto& instance : instances)
 				{
-					instanceKey.bCastsShadows = instance.bCastsShadows;
 					for (uint32_t i = 0; i < materialsCount; ++i)
 					{
 						const MaterialBlendMode blendMode = instance.Materials[i] ? instance.Materials[i]->GetBlendMode() : MaterialBlendMode::Opaque;
@@ -343,26 +320,9 @@ namespace Eagle
 				matData.IndexCount = instanceKey.Indices.IndicesCount;
 				matData.FirstInstance = currentOffset;
 
-				insertionIndices = Utils::AddDrawData(*drawList, drawData, instanceKey.BlendMode, matData, bNewMatSlot, instanceKey.bCastsShadows, instanceKey.bDoubleSided, insertionIndices);
+				insertionIndices = Utils::AddDrawData(*drawList, drawData, instanceKey.BlendMode, matData, bNewMatSlot, instanceKey.bDoubleSided, insertionIndices);
 
 				currentOffset += matData.InstanceCount;
-			}
-		}
-
-		static std::vector<MeshDrawData>& GetDrawData(MeshesDrawLists& data, MaterialBlendMode blendMode, bool bShadowCastingOnly)
-		{
-			auto& opaque      = bShadowCastingOnly ? data.SingleSided.ShadowCastingOpaque      : data.SingleSided.Opaque;
-			auto& translucent = bShadowCastingOnly ? data.SingleSided.ShadowCastingTranslucent : data.SingleSided.Translucent;
-			auto& masked      = bShadowCastingOnly ? data.SingleSided.ShadowCastingMasked      : data.SingleSided.Masked;
-
-			switch (blendMode)
-			{
-				case MaterialBlendMode::Opaque: return opaque.DrawData;
-				case MaterialBlendMode::Translucent: return translucent.DrawData;
-				case MaterialBlendMode::Masked: return masked.DrawData;
-				default:
-					EG_CORE_ASSERT(false);
-					return opaque.DrawData;
 			}
 		}
 
@@ -426,163 +386,6 @@ namespace Eagle
 
 			cmd->Write(vb, buffers.Vertices.data(), buffers.Vertices.size() * sizeof(VertexType), 0, vb->GetLayout(), BufferReadAccess::Vertex);
 			cmd->Write(ib, buffers.Indices.data(), buffers.Indices.size() * sizeof(Index), 0, ib->GetLayout(), BufferReadAccess::Index);
-		}
-
-		// Fill up ivb so that the same blend mode instances are adjacent in memory.
-		// Also, shadow casting instances of the blend mode come first.
-		// For example: Opaque_CastingShadow_#0, Opaque_CastingShadow_#1, Opaque_NotCastingShadow_#2, ..., Opaque_NotCastingShadow_#N
-		// This pattern allows us to build two draw lists: one for passes that care only about shadow casting meshes (Shadow pass),
-		// and the other list for passes that don't care about it (Base pass).
-		// So, with the above example, shadow pass draw list will have `Instance Count = 2`, but the base pass will have `Instance Count = N`.
-		template <typename MeshesMap, typename PerInstanceDataType>
-		static void ProcessInstances(const MeshesMap& meshes, MeshesDrawLists* drawList, std::vector<PerInstanceDataType>* ivb)
-		{
-			struct MeshCounters
-			{
-				std::array<uint32_t, s_MaxBlendModes> Offset = { 0 };
-				std::array<uint32_t, s_MaxBlendModes> ShadowCasting = { 0 };
-				std::array<uint32_t, s_MaxBlendModes> NonShadowCasting = { 0 };
-			};
-
-			uint32_t totalInstances = 0u;
-			std::vector<MeshCounters> offsets;
-			offsets.reserve(meshes.size());
-			{
-				// First, count the instances by types so that we can calculate final offsets correctly
-				for (const auto& [meshKey, instances] : meshes)
-				{
-					MeshCounters& offset = offsets.emplace_back();
-					const auto& mesh = meshKey.Mesh;
-					const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
-					for (auto& instance : instances)
-					{
-						for (uint32_t i = 0; i < materialsCount; ++i)
-						{
-							const MaterialBlendMode blendMode = instance.Materials[i] ? instance.Materials[i]->GetBlendMode() : MaterialBlendMode::Opaque;
-							// Count instances
-							instance.bCastsShadows ? offset.ShadowCasting[uint32_t(blendMode)]++ : offset.NonShadowCasting[uint32_t(blendMode)]++;
-						}
-					}
-
-					totalInstances += materialsCount * uint32_t(instances.size());
-				}
-
-				// Calculate the final offsets
-				uint32_t currentOffset = 0;
-				for (uint32_t i = 0; i < s_MaxBlendModes; ++i)
-				{
-					for (auto& offset : offsets)
-					{
-						const uint32_t shadowCastingInstances = offset.ShadowCasting[i];
-						const uint32_t nonShadowCastingInstances = offset.NonShadowCasting[i];
-
-						offset.Offset[i] = currentOffset;
-						offset.ShadowCasting[i] = offset.Offset[i]; // Shadow casting go first
-						offset.NonShadowCasting[i] = offset.Offset[i] + shadowCastingInstances;
-
-						currentOffset += shadowCastingInstances + nonShadowCastingInstances;
-					}
-				}
-			}
-			ivb->resize(totalInstances);
-
-			constexpr uint32_t buckets = 2; // Separating shadow casting and non shadow casting instances
-			constexpr uint8_t shadowCastingIdx = 0;
-			constexpr uint8_t allInstancesIdx = 1;
-			uint32_t skinnedVerticesOffset = 0;
-			uint32_t meshIdx = 0;
-			for (const auto& [meshKey, instances] : meshes)
-			{
-				const auto& mesh = meshKey.Mesh;
-				const uint32_t instanceCount = (uint32_t)instances.size();
-				const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
-
-				// Bucket at `shadowCastingIdx` will contain draw data just for shadow casting instances.
-				// Bucket at `nonShadowCastingIdx` will contain draw data for all instances
-				std::array<bool, s_MaxBlendModes> hasAnyInstances[buckets] = { { false }, { false } };
-				std::array<MeshDrawData, s_MaxBlendModes> drawDatas[buckets] = { {}, {} };
-
-				for (uint32_t b = 0; b < buckets; ++b)
-				{
-					for (size_t i = 0; i < s_MaxBlendModes; ++i)
-					{
-						drawDatas[b][i].SkinnedVertexOffset = skinnedVerticesOffset;
-						drawDatas[b][i].VertexOffset = meshKey.VerticesOffset;
-						drawDatas[b][i].VerticesCount = meshKey.VerticesCount;
-						drawDatas[b][i].InstanceCount = instanceCount;
-						// Allocated as required.
-						// drawDatas[i].PerMaterialData.resize(materialsCount);
-					}
-				}
-				skinnedVerticesOffset += meshKey.VerticesCount * instanceCount;
-
-				// Iterate over every mesh in the batch.
-				// Append instance data in the pattern of `Structure of Arrays`.
-				// For example, [0, 0, 0, 1, 1, 1] rather than [0, 1, 0, 1, 0, 1]
-				for (uint32_t i = 0; i < materialsCount; ++i)
-				{
-					std::array<uint32_t, s_MaxBlendModes> instancesPerBlendMode = { 0 };
-					for (auto& instance : instances)
-					{
-						const MaterialBlendMode blendMode = instance.Materials[i] ? instance.Materials[i]->GetBlendMode() : MaterialBlendMode::Opaque;
-						const uint32_t blendModeIdx = uint32_t(blendMode);
-						instancesPerBlendMode[blendModeIdx]++;
-
-						auto& allInstancesDrawData = drawDatas[allInstancesIdx][blendModeIdx];
-						if (allInstancesDrawData.PerMaterialData.size() != materialsCount)
-							allInstancesDrawData.PerMaterialData.resize(materialsCount);
-
-						auto& perMaterialData = allInstancesDrawData.PerMaterialData[i];
-						const uint32_t offset = offsets[meshIdx].Offset[blendModeIdx];
-						if (perMaterialData.InstanceCount == 0)
-						{
-							perMaterialData.IndexCount = meshKey.PerMaterialIndices[i].IndicesCount;
-							perMaterialData.FirstIndex = meshKey.PerMaterialIndices[i].FirstIndex;
-							perMaterialData.FirstInstance = offset;
-							hasAnyInstances[allInstancesIdx][blendModeIdx] = true;
-						}
-						if (instance.bCastsShadows)
-						{
-							auto& shadowCastingInstancesDrawData = drawDatas[shadowCastingIdx][blendModeIdx];
-
-							if (shadowCastingInstancesDrawData.PerMaterialData.size() != materialsCount)
-								shadowCastingInstancesDrawData.PerMaterialData.resize(materialsCount);
-							
-							auto& perMaterialData = shadowCastingInstancesDrawData.PerMaterialData[i];
-							if (perMaterialData.InstanceCount == 0)
-							{
-								perMaterialData.IndexCount = meshKey.PerMaterialIndices[i].IndicesCount;
-								perMaterialData.FirstIndex = meshKey.PerMaterialIndices[i].FirstIndex;
-								perMaterialData.FirstInstance = offset;
-								hasAnyInstances[shadowCastingIdx][blendModeIdx] = true;
-							}
-							perMaterialData.InstanceCount++;
-						}
-
-						uint32_t& insertionIdx = instance.bCastsShadows ? offsets[meshIdx].ShadowCasting[blendModeIdx] : offsets[meshIdx].NonShadowCasting[blendModeIdx];
-						(*ivb)[insertionIdx++] = instance.SubMeshData[i];
-						perMaterialData.InstanceCount++;
-					}
-
-					for (uint32_t blendMode = 0; blendMode < s_MaxBlendModes; ++blendMode)
-					{
-						offsets[meshIdx].Offset[blendMode] += instancesPerBlendMode[blendMode];
-					}
-				}
-
-				for (uint32_t b = 0; b < buckets; ++b)
-				{
-					const bool bShadowCasting = b == shadowCastingIdx;
-					for (size_t i = 0; i < s_MaxBlendModes; ++i)
-					{
-						if (hasAnyInstances[b][i])
-						{
-							Utils::GetDrawData(*drawList, MaterialBlendMode(i), bShadowCasting).emplace_back(std::move(drawDatas[b][i]));
-						}
-					}
-				}
-				meshIdx++;
-			}
 		}
 	}
 
@@ -892,7 +695,6 @@ namespace Eagle
 			auto& instances = tempMeshes[{ staticMesh }];
 			auto& instance = instances.emplace_back();
 			instance.SubMeshData.reserve(materialsCount);
-			instance.bCastsShadows = bCastsShadows;
 
 			for (uint32_t i = 0; i < materialsCount; ++i)
 			{
@@ -967,12 +769,7 @@ namespace Eagle
 		ivbData.clear();
 		m_StaticMeshesDrawData.Clear();
 
-		// ProcessInstances2 is an alternative to `ProcessInstances` which is more flexible and easier to maintain/extend.
-		// But the downside is that it's slower (50us vs 150us on a test scene)
-		// Note: `ProcessInstances` doesn't support double sided materials
-		Utils::ProcessInstances2<StaticMesh>(m_StaticMeshes, &m_StaticMeshesDrawData, &ivbData);
-		//Utils::ProcessInstances(m_StaticMeshes, &m_StaticMeshesDrawData, &ivbData);
-
+		Utils::ProcessInstances<StaticMesh>(m_StaticMeshes, &m_StaticMeshesDrawData, &ivbData);
 		if (!ivbData.empty())
 		{
 			const size_t currentInstanceVertexSize = ivbData.size() * sizeof(PerInstanceData);
@@ -1026,7 +823,6 @@ namespace Eagle
 			auto& instances = tempMeshes[{ skeletalMesh }];
 			auto& instance = instances.emplace_back();
 			instance.SubMeshData.reserve(materialsCount);
-			instance.bCastsShadows = bCastsShadows;
 
 			for (uint32_t i = 0; i < materialsCount; ++i)
 			{
@@ -1101,12 +897,7 @@ namespace Eagle
 		ivbData.clear();
 		m_SkeletalMeshesDrawData.Clear();
 
-		// ProcessInstances2 is an alternative to `ProcessInstances` which is more flexible and easier to maintain/extend.
-		// But the downside is that it's slower (50us vs 150us on a test scene).
-		// Note: `ProcessInstances` doesn't support double sided materials
-		Utils::ProcessInstances2<SkeletalMesh>(m_SkeletalMeshes, &m_SkeletalMeshesDrawData, &ivbData);
-		//Utils::ProcessInstances(m_SkeletalMeshes, &m_SkeletalMeshesDrawData, &ivbData);
-
+		Utils::ProcessInstances<SkeletalMesh>(m_SkeletalMeshes, &m_SkeletalMeshesDrawData, &ivbData);
 		if (!ivbData.empty())
 		{
 			const size_t currentInstanceVertexSize = ivbData.size() * sizeof(SkeletalPerInstanceData);

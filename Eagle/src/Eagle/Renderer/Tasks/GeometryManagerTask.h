@@ -211,8 +211,6 @@ namespace Eagle
 		// Each material has its own submesh data it's assigned to.
 		// So, it's a submesh for each material
 		std::vector<PerInstanceDataType> SubMeshData;
-
-		bool bCastsShadows = false;
 	};
 
 	using StaticMeshesMap = std::unordered_map<MeshKey<StaticMesh>, std::vector<MeshInstance<PerInstanceData>>>;
@@ -262,20 +260,11 @@ namespace Eagle
 			MeshDrawDataInfo Translucent;
 			MeshDrawDataInfo Masked;
 
-			// Shadow casting only
-			MeshDrawDataInfo ShadowCastingOpaque;
-			MeshDrawDataInfo ShadowCastingTranslucent;
-			MeshDrawDataInfo ShadowCastingMasked;
-
 			void Clear()
 			{
 				Opaque.Clear();
 				Translucent.Clear();
 				Masked.Clear();
-
-				ShadowCastingOpaque.Clear();
-				ShadowCastingTranslucent.Clear();
-				ShadowCastingMasked.Clear();
 			}
 		} SingleSided, DoubleSided;
 
