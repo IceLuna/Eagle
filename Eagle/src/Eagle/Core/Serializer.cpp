@@ -1670,6 +1670,7 @@ namespace Eagle
 			out << YAML::Key << "OrthographicNearClip" << YAML::Value << camera.GetOrthographicNearClip();
 			out << YAML::Key << "OrthographicFarClip" << YAML::Value << camera.GetOrthographicFarClip();
 			out << YAML::Key << "ShadowFarClip" << YAML::Value << camera.GetShadowFarClip();
+			out << YAML::Key << "DirLightShadowFarClip" << YAML::Value << camera.GetDirLightShadowFarClip();
 			out << YAML::Key << "CascadesSmoothTransitionAlpha" << YAML::Value << camera.GetCascadesSmoothTransitionAlpha();
 			out << YAML::Key << "CascadesSplitAlpha" << YAML::Value << camera.GetCascadesSplitAlpha();
 
@@ -2326,6 +2327,8 @@ namespace Eagle
 			camera.SetOrthographicFarClip(cameraNode["OrthographicFarClip"].as<float>());
 			if (auto node = cameraNode["ShadowFarClip"])
 				camera.SetShadowFarClip(node.as<float>());
+			if (auto node = cameraNode["DirLightShadowFarClip"])
+				camera.SetDirLightShadowFarClip(node.as<float>());
 			if (auto node = cameraNode["CascadesSplitAlpha"])
 				camera.SetCascadesSplitAlpha(node.as<float>());
 			if (auto node = cameraNode["CascadesSmoothTransitionAlpha"])

@@ -44,7 +44,7 @@ namespace Eagle
 
 			float cascadeSplits[EG_CASCADES_COUNT];
 
-			const float clipRange = m_ShadowFar - m_PerspectiveNear;
+			const float clipRange = m_DirLightShadowFar - m_PerspectiveNear;
 			const float minZ = m_PerspectiveNear;
 			const float maxZ = m_PerspectiveNear + clipRange;
 
@@ -65,7 +65,7 @@ namespace Eagle
 			// Calculating cascade projections
 			{
 				for (uint32_t i = 0; i < EG_CASCADES_COUNT; i++)
-					m_CascadeFarPlanes[i] = m_ShadowFar * cascadeSplits[i];
+					m_CascadeFarPlanes[i] = m_DirLightShadowFar * cascadeSplits[i];
 
 				m_CascadeProjections[0] = Math::Perspective(m_PerspectiveVerticalFOV, m_AspectRatio, m_PerspectiveNear, m_CascadeFarPlanes[0]);
 				for (int i = 1; i < EG_CASCADES_COUNT; ++i)

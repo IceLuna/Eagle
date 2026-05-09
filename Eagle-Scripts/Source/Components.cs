@@ -294,11 +294,19 @@ namespace Eagle
             get { return GetPerspectiveFarClip_Native(Parent.ID); }
             set { SetPerspectiveFarClip_Native(Parent.ID, value); }
         }
-        
+
+        // If a light source is beyond this distance from the camera, its shadows won't be rendered (doesn't affect a directional light since it doesn't really have a position)
         public float ShadowFarClip
         {
             get { return GetShadowFarClip_Native(Parent.ID); }
             set { SetShadowFarClip_Native(Parent.ID, value); }
+        }
+
+        // Pixels beyond this distance from the camera won't receive shadows from a directional light
+        public float DirLightShadowFarClip
+        {
+            get { return GetDirLightShadowFarClip_Native(Parent.ID); }
+            set { SetDirLightShadowFarClip_Native(Parent.ID, value); }
         }
         
         public float CascadesSplitAlpha
@@ -353,6 +361,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetShadowFarClip_Native(in GUID entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetDirLightShadowFarClip_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetDirLightShadowFarClip_Native(in GUID entityID, float value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetCascadesSplitAlpha_Native(in GUID entityID);

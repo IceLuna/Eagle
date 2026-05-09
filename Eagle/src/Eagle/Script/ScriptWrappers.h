@@ -377,6 +377,8 @@ namespace Eagle::Script
 	void Eagle_CameraComponent_SetPerspectiveFarClip(GUID entityID, float value);
 	float Eagle_CameraComponent_GetShadowFarClip(GUID entityID);
 	void Eagle_CameraComponent_SetShadowFarClip(GUID entityID, float value);
+	float Eagle_CameraComponent_GetDirLightShadowFarClip(GUID entityID);
+	void Eagle_CameraComponent_SetDirLightShadowFarClip(GUID entityID, float value);
 	float Eagle_CameraComponent_GetCascadesSplitAlpha(GUID entityID);
 	void Eagle_CameraComponent_SetCascadesSplitAlpha(GUID entityID, float value);
 	float Eagle_CameraComponent_GetCascadesSmoothTransitionAlpha(GUID entityID);

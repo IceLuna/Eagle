@@ -4922,6 +4922,31 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'ShadowFarClip'. Entity is null");
 	}
 
+	float Script::Eagle_CameraComponent_GetDirLightShadowFarClip(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<CameraComponent>().Camera.GetDirLightShadowFarClip();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get 'DirLightShadowFarClip'. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_CameraComponent_SetDirLightShadowFarClip(GUID entityID, float value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<CameraComponent>().Camera.SetDirLightShadowFarClip(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'DirLightShadowFarClip'. Entity is null");
+	}
+
 	float Script::Eagle_CameraComponent_GetCascadesSplitAlpha(GUID entityID)
 	{
 		auto& scene = Scene::GetCurrentScene();

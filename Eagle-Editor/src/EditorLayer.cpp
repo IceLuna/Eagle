@@ -23,7 +23,7 @@ namespace Eagle
 {
 	static const char* s_SkyHelpMsg = "Sky is used just for background! It doesn't actually light the scene at the moment!\nIf this is checked, IBL will still light the scene if it's set. The only thing that changes is background";
 	static const char* s_EnableVolumetricLightsHelpMsg = "Note that this just notifies the engine that volumetric lights can be used! To use volumetric lights, you'll need to check `Is Volumetric` of a particular light";
-	static const char* s_MaxShadowDistHelpMsg = "If a light source is beyond this distance from the camera, its shadows won't be rendered";
+	static const char* s_MaxShadowDistHelpMsg = "If a light source is beyond this distance from the camera, its shadows won't be rendered (doesn't affect a directional light since it doesn't really have a position)";
 	static const char* s_CascadesSplitAlphaHelpMsg = "It's used to determine how to split cascades for directional light shadows";
 	static const char* s_CascadesSmoothTransitionAlphaHelpMsg = "The blend amount between cascades of directional light shadows (if smooth transition is enabled). Try to keep it as low as possible";
 	static const char* s_SkyboxEnableHelpMsg = "Affects Sky and IBL";
@@ -2262,6 +2262,13 @@ namespace Eagle
 			if (UI::PropertyDrag("Shadow Far Clip", shadowFar, 1.f, 0.f, FLT_MAX, s_MaxShadowDistHelpMsg))
 			{
 				m_Camera.SetShadowFarClip(shadowFar);
+				bCameraChanged = true;
+			}
+
+			float dirLightShadowFar = m_Camera.GetDirLightShadowFarClip();
+			if (UI::PropertyDrag("Dir Light Shadow Far Clip", dirLightShadowFar, 1.f, 0.f, FLT_MAX, "Pixels beyond this distance from the camera won't receive shadows from a directional light"))
+			{
+				m_Camera.SetDirLightShadowFarClip(dirLightShadowFar);
 				bCameraChanged = true;
 			}
 

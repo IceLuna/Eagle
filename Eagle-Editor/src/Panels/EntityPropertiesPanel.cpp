@@ -876,9 +876,16 @@ namespace Eagle
 					}
 
 					float shadowFar = camera.GetShadowFarClip();
-					if (UI::PropertyDrag("Shadow Far Clip", shadowFar, 1.f, 0.f, FLT_MAX, "If a light source is beyond this distance from the camera, its shadows won't be rendered"))
+					if (UI::PropertyDrag("Shadow Far Clip", shadowFar, 1.f, 0.f, FLT_MAX, "If a light source is beyond this distance from the camera, its shadows won't be rendered (doesn't affect a directional light since it doesn't really have a position)"))
 					{
 						camera.SetShadowFarClip(shadowFar);
+						bEntityChanged = true;
+					}
+
+					float dirLightShadowFar = camera.GetDirLightShadowFarClip();
+					if (UI::PropertyDrag("Dir Light Shadow Far Clip", dirLightShadowFar, 1.f, 0.f, FLT_MAX, "Pixels beyond this distance from the camera won't receive shadows from a directional light"))
+					{
+						camera.SetDirLightShadowFarClip(dirLightShadowFar);
 						bEntityChanged = true;
 					}
 
