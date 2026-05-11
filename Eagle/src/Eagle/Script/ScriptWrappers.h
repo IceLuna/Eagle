@@ -538,6 +538,8 @@ namespace Eagle::Script
 	void Eagle_Renderer_GetSSAOSettings(uint32_t* outSamples, float* outRadius, float* outBias);
 	void Eagle_Renderer_SetGTAOSettings(uint32_t samples, float radius);
 	void Eagle_Renderer_GetGTAOSettings(uint32_t* outSamples, float* outRadius);
+	void Eagle_Renderer_SetMSAASettings(MSAASamples samples, float edgeThreshold);
+	void Eagle_Renderer_GetMSAASettings(MSAASamples* outSamples, float* outEdgeThreshold);
 	void Eagle_Renderer_SetPhotoLinearTonemappingSettings(float sensitivity, float exposureTime, float fStop);
 	void Eagle_Renderer_GetPhotoLinearTonemappingSettings(float* outSensitivity, float* outExposureTime, float* outfStop);
 	void Eagle_Renderer_SetFilmicTonemappingSettings(float whitePoint);
@@ -586,8 +588,6 @@ namespace Eagle::Script
 	void Eagle_Renderer_SetAutoExposureSettings(float minLogLum, float maxLogLum, float adaptationSpeed, float adaptationKey, bool bEnabled, bool bHalfResolution);
 	void Eagle_Renderer_SetScreenSpaceReflectionsSettings(float roughnessThreshold, uint32_t samplesPerQuad, uint32_t maxIters, bool bEnabled);
 	void Eagle_Renderer_SetLensSettings(bool bChromaticAberration, bool bVignette, bool bFilmGrain, float chromaticIntensity, float vignetteIntensity, float filmGrainScale, float filmGrainAmount, float filmGrainSeedUpdateRate);
-	void Eagle_Renderer_SetDepthPrepassEnabled(bool value);
-	bool Eagle_Renderer_GetDepthPrepassEnabled();
 	void Eagle_Renderer_SetTranslucentShadowsEnabled(bool value);
 	bool Eagle_Renderer_GetTranslucentShadowsEnabled();
 	void Eagle_Renderer_GetCameraTransform(Transform* outTransform);

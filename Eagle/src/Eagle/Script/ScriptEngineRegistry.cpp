@@ -199,6 +199,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::GetGTAOSettings_Native", Eagle::Script::Eagle_Renderer_GetGTAOSettings);
 		mono_add_internal_call("Eagle.Renderer::SetPhotoLinearTonemappingSettings_Native", Eagle::Script::Eagle_Renderer_SetPhotoLinearTonemappingSettings);
 		mono_add_internal_call("Eagle.Renderer::GetPhotoLinearTonemappingSettings_Native", Eagle::Script::Eagle_Renderer_GetPhotoLinearTonemappingSettings);
+		mono_add_internal_call("Eagle.Renderer::SetMSAASettings_Native", Eagle::Script::Eagle_Renderer_SetMSAASettings);
+		mono_add_internal_call("Eagle.Renderer::GetMSAASettings_Native", Eagle::Script::Eagle_Renderer_GetMSAASettings);
 		mono_add_internal_call("Eagle.Renderer::SetFilmicTonemappingSettings_Native", Eagle::Script::Eagle_Renderer_SetFilmicTonemappingSettings);
 		mono_add_internal_call("Eagle.Renderer::GetFilmicTonemappingSettings_Native", Eagle::Script::Eagle_Renderer_GetFilmicTonemappingSettings);
 		mono_add_internal_call("Eagle.Renderer::SetAgXTonemappingSettings_Native", Eagle::Script::Eagle_Renderer_SetAgXTonemappingSettings);
@@ -245,8 +247,6 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::SetAutoExposureSettings_Native", Eagle::Script::Eagle_Renderer_SetAutoExposureSettings);
 		mono_add_internal_call("Eagle.Renderer::SetScreenSpaceReflectionsSettings_Native", Eagle::Script::Eagle_Renderer_SetScreenSpaceReflectionsSettings);
 		mono_add_internal_call("Eagle.Renderer::SetLensSettings_Native", Eagle::Script::Eagle_Renderer_SetLensSettings);
-		mono_add_internal_call("Eagle.Renderer::SetDepthPrepassEnabled_Native", Eagle::Script::Eagle_Renderer_SetDepthPrepassEnabled);
-		mono_add_internal_call("Eagle.Renderer::GetDepthPrepassEnabled_Native", Eagle::Script::Eagle_Renderer_GetDepthPrepassEnabled);
 		mono_add_internal_call("Eagle.Renderer::SetTranslucentShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_SetTranslucentShadowsEnabled);
 		mono_add_internal_call("Eagle.Renderer::GetTranslucentShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_GetTranslucentShadowsEnabled);
 		mono_add_internal_call("Eagle.Renderer::GetCameraTransform_Native", Eagle::Script::Eagle_Renderer_GetCameraTransform);

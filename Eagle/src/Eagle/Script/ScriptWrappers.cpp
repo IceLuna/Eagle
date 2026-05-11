@@ -6925,6 +6925,27 @@ namespace Eagle
 		*outRadius = options.GTAOSettings.GetRadius();
 	}
 
+	void Script::Eagle_Renderer_SetMSAASettings(MSAASamples samples, float edgeThreshold)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.MSAAParams.Samples = samples;
+		options.MSAAParams.EdgeThreshold = edgeThreshold;
+		sceneRenderer->SetOptions(options);
+	}
+
+	void Script::Eagle_Renderer_GetMSAASettings(MSAASamples* outSamples, float* outEdgeThreshold)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		*outSamples = options.MSAAParams.Samples;
+		*outEdgeThreshold = options.MSAAParams.EdgeThreshold;
+	}
+
 	void Script::Eagle_Renderer_SetPhotoLinearTonemappingSettings(float sensitivity, float exposureTime, float fStop)
 	{
 		const auto& scene = Scene::GetCurrentScene();
@@ -7486,25 +7507,6 @@ namespace Eagle
 		settings.Lens.FilmGrainSeedUpdateRate = filmGrainSeedUpdateRate;
 
 		sceneRenderer->SetOptions(settings);
-	}
-
-	void Script::Eagle_Renderer_SetDepthPrepassEnabled(bool value)
-	{
-		const auto& scene = Scene::GetCurrentScene();
-		auto& sceneRenderer = scene->GetSceneRenderer();
-		auto options = sceneRenderer->GetOptions();
-
-		options.bDepthPrepass = value;
-		sceneRenderer->SetOptions(options);
-	}
-
-	bool Script::Eagle_Renderer_GetDepthPrepassEnabled()
-	{
-		const auto& scene = Scene::GetCurrentScene();
-		const auto& sceneRenderer = scene->GetSceneRenderer();
-		const auto& options = sceneRenderer->GetOptions();
-
-		return options.bDepthPrepass;
 	}
 
 	void Script::Eagle_Renderer_SetTranslucentShadowsEnabled(bool value)

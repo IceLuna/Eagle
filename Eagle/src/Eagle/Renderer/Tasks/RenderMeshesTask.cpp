@@ -139,6 +139,9 @@ namespace Eagle
 		const auto& singleSided = meshes.SingleSided.BlendModes[uint32_t(blendMode)];
 		const auto& doubleSided = meshes.DoubleSided.BlendModes[uint32_t(blendMode)];
 
+		if (singleSided.GetNumMeshes() == 0 && doubleSided.GetNumMeshes() == 0)
+			return;
+
 		cmd->BeginGraphics(pipeline);
 		cmd->SetGraphicsRootConstants(vertexPushData, nullptr);
 

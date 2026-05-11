@@ -5,7 +5,6 @@
 
 #include "VidWrappers/RenderCommandManager.h"
 
-#include "Tasks/DepthPrepassTask.h" 
 #include "Tasks/BloomPassTask.h" 
 #include "Tasks/SkyboxPassTask.h" 
 #include "Tasks/PostprocessingPassTask.h" 
@@ -15,6 +14,7 @@
 #include "Tasks/RenderMeshesTask.h"
 #include "Tasks/RenderSpritesTask.h"
 #include "Tasks/TAATask.h"
+#include "Tasks/MSAATask.h"
 #include "Tasks/VolumetricLightTask.h"
 #include "Tasks/DOFTask.h"
 #include "Tasks/MotionBlurTask.h"
@@ -74,7 +74,6 @@ namespace Eagle
 		m_SkinCacheTask = MakeRef<SkinCacheTask>(*this);
 		m_FrustumCullingTask = MakeRef<FrustumCullingTask>(*this);
 		m_LightCullingTask = MakeRef<LightCullingTask>(*this);
-		m_DepthPrepassTask = MakeRef<DepthPrepassTask>(*this);
 		m_RenderMeshesTask = MakeRef<RenderMeshesTask>(*this);
 		m_RenderSkeletalMeshesTask = MakeRef<RenderSkeletalMeshesTask>(*this);
 		m_RenderSpritesTask = MakeRef<RenderSpritesTask>(*this);
@@ -101,6 +100,7 @@ namespace Eagle
 		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);
 		InitOptionalTask<GTAOTask>(m_GTAOTask, options, options.AO == AmbientOcclusion::GTAO, *this);
 		InitOptionalTask<TAATask>(m_TAATask, options, options.AA == AAMethod::TAA, *this);
+		InitOptionalTask<MSAATask>(m_MSAATask, options, options.AA == AAMethod::MSAA, *this);
 		InitOptionalTask<VolumetricLightTask>(m_VolumetricTask, options, options.VolumetricSettings.bEnable, *this);
 		InitOptionalTask<FogPassTask>(m_FogTask, options, options.FogSettings.bEnable, *this);
 		InitOptionalTask<MotionBlurTask>(m_MotionBlurTask, options, options.MotionBlur.bEnable, *this);
@@ -196,8 +196,6 @@ namespace Eagle
 			renderer->m_GeometryManagerTask->RecordCommandBuffer(cmd);
 			renderer->m_FrustumCullingTask->RecordCommandBuffer(cmd);
 			renderer->m_SkinCacheTask->RecordCommandBuffer(cmd);
-			if (renderer->m_Options_RT.bDepthPrepass)
-				renderer->m_DepthPrepassTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderMeshesTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderSpritesTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderSkeletalMeshesTask->RecordCommandBuffer(cmd);
@@ -243,6 +241,8 @@ namespace Eagle
 
 			if (renderer->m_Options_RT.AA == AAMethod::TAA)
 				renderer->m_TAATask->RecordCommandBuffer(cmd);
+			else if (renderer->m_Options_RT.AA == AAMethod::MSAA)
+				renderer->m_MSAATask->RecordCommandBuffer(cmd);
 
 			if (renderer->m_GBuffer.DepthHistory)
 				cmd->CopyImage(renderer->m_GBuffer.Depth, renderer->m_GBuffer.DepthHistory, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
@@ -387,10 +387,10 @@ namespace Eagle
 		if (m_Size == size)
 			return;
 
-		m_Size = size;
-
 		RenderManager::Wait();
 		RenderManager::SetImmediateDeletionMode(true);
+
+		m_Size = size;
 
 		m_FinalImage->Resize({ m_Size, 1 });
 		m_HDRRTImage->Resize({ m_Size, 1 });
@@ -400,7 +400,6 @@ namespace Eagle
 		m_LightCullingTask->OnResize(m_Size);
 		m_FrustumCullingTask->OnResize(m_Size);
 		m_SkinCacheTask->OnResize(m_Size);
-		m_DepthPrepassTask->OnResize(m_Size);
 		m_RenderMeshesTask->OnResize(m_Size);
 		m_RenderSkeletalMeshesTask->OnResize(m_Size);
 		m_RenderSpritesTask->OnResize(m_Size);
@@ -437,6 +436,9 @@ namespace Eagle
 
 		if (m_TAATask)
 			m_TAATask->OnResize(m_Size);
+
+		if (m_MSAATask)
+			m_MSAATask->OnResize(m_Size);
 
 		if (m_MotionBlurTask)
 			m_MotionBlurTask->OnResize(m_Size);
@@ -511,7 +513,6 @@ namespace Eagle
 		m_LightsManagerTask->InitWithOptions(options);
 		m_LightCullingTask->InitWithOptions(options);
 		m_SkinCacheTask->InitWithOptions(options);
-		m_DepthPrepassTask->InitWithOptions(options);
 		m_RenderMeshesTask->InitWithOptions(options);
 		m_RenderSkeletalMeshesTask->InitWithOptions(options);
 		m_RenderSpritesTask->InitWithOptions(options);
@@ -534,6 +535,7 @@ namespace Eagle
 		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);
 		InitOptionalTask<GTAOTask>(m_GTAOTask, options, options.AO == AmbientOcclusion::GTAO, *this);
 		InitOptionalTask<TAATask>(m_TAATask, options, options.AA == AAMethod::TAA, *this);
+		InitOptionalTask<MSAATask>(m_MSAATask, options, options.AA == AAMethod::MSAA, *this);
 		InitOptionalTask<VolumetricLightTask>(m_VolumetricTask, options, options.VolumetricSettings.bEnable, *this);
 		InitOptionalTask<FogPassTask>(m_FogTask, options, options.FogSettings.bEnable, *this);
 		InitOptionalTask<MotionBlurTask>(m_MotionBlurTask, options, options.MotionBlur.bEnable, *this);

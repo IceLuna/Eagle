@@ -217,6 +217,8 @@ namespace Eagle
 		VkPipelineMultisampleStateCreateInfo multisampling{};
 		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 		multisampling.rasterizationSamples = GetVulkanSamplesCount(m_State.GetSamplesCount());
+		multisampling.sampleShadingEnable = VK_FALSE;
+		multisampling.alphaToCoverageEnable = m_State.bEnableAlphaToCoverage ? VK_TRUE : VK_FALSE;
 
 		std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachmentStates(colorAttachmentsCount);
 		VkPipelineColorBlendAttachmentState colorBlendAttachment{};

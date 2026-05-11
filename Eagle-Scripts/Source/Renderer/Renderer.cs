@@ -5,6 +5,13 @@ using System.Security.Permissions;
 
 namespace Eagle
 {
+    public enum MSAASamples
+    {
+        x2 = 2,
+        x4 = 4,
+        x8 = 8,
+    };
+
     public struct RendererVertex
     {
         public Vector3 Location;
@@ -48,7 +55,8 @@ namespace Eagle
     public enum AAMethod
     {
         None,
-        TAA
+        MSAA,
+        TAA,
     };
 
     public enum TextureCompressionQuality
@@ -57,6 +65,12 @@ namespace Eagle
 		Medium, // BC1, BC3
 		High,   // BC7
 	}
+
+    public struct MSAASettings
+    {
+        public MSAASamples Samples;
+        public float EdgeThreshold;
+    };
 
     public struct PhotoLinearTonemappingSettings
     {
@@ -420,6 +434,18 @@ namespace Eagle
             return settings;
         }
 
+        public static void SetMSAASettings(MSAASettings value)
+        {
+            SetMSAASettings_Native(value.Samples, value.EdgeThreshold);
+        }
+
+        public static MSAASettings GetMSAASettings()
+        {
+            MSAASettings settings = new MSAASettings();
+            GetMSAASettings_Native(out settings.Samples, out settings.EdgeThreshold);
+            return settings;
+        }
+
         public static void SetFilmicTonemappingSettings(FilmicTonemappingSettings value)
         {
             SetFilmicTonemappingSettings_Native(value.WhitePoint);
@@ -660,12 +686,6 @@ namespace Eagle
             get { return GetSoftShadowsEnabled_Native(); }
         }
 
-        public static bool bDepthPrepass
-        {
-            set { SetDepthPrepassEnabled_Native(value); }
-            get { return GetDepthPrepassEnabled_Native(); }
-        }
-
         public static bool bTranslucentShadows
         {
             set { SetTranslucentShadowsEnabled_Native(value); }
@@ -770,6 +790,12 @@ namespace Eagle
         private static extern void GetPhotoLinearTonemappingSettings_Native(out float sensetivity, out float exposureTime, out float fStop);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetMSAASettings_Native(MSAASamples samples, float edgeThreshold);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetMSAASettings_Native(out MSAASamples samples, out float edgeThreshold);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetFilmicTonemappingSettings_Native(float whitePoint);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -828,12 +854,6 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern bool GetSoftShadowsEnabled_Native();
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetDepthPrepassEnabled_Native(bool value);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern bool GetDepthPrepassEnabled_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetTranslucentShadowsEnabled_Native(bool value);

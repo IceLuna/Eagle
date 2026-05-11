@@ -2928,7 +2928,6 @@ namespace Eagle
 		out << YAML::Key << "SoftShadows" << YAML::Value << settings.bEnableSoftShadows;
 		out << YAML::Key << "TranslucentShadows" << YAML::Value << settings.bTranslucentShadows;
 		out << YAML::Key << "ShadowsSmoothTransition" << YAML::Value << settings.bEnableCSMSmoothTransition;
-		out << YAML::Key << "DepthPrepass" << YAML::Value << settings.bDepthPrepass;
 		out << YAML::Key << "EnableObjectPicking" << YAML::Value << settings.bEnableObjectPicking;
 		out << YAML::Key << "Enable2DObjectPicking" << YAML::Value << settings.bEnable2DObjectPicking;
 		out << YAML::Key << "SortOpaqueParticles" << YAML::Value << settings.bSortOpaqueParticles;
@@ -2964,6 +2963,12 @@ namespace Eagle
 		out << YAML::Key << "Samples" << YAML::Value << gtaoSettings.GetNumberOfSamples();
 		out << YAML::Key << "Radius" << YAML::Value << gtaoSettings.GetRadius();
 		out << YAML::EndMap; // GTAO Settings
+
+		out << YAML::Key << "MSAA Settings";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Samples" << YAML::Value << Utils::GetEnumName(settings.MSAAParams.Samples);
+		out << YAML::Key << "EdgeThreshold" << YAML::Value << settings.MSAAParams.EdgeThreshold;
+		out << YAML::EndMap; // MSAA Settings
 
 		out << YAML::Key << "Fog Settings";
 		out << YAML::BeginMap;
@@ -3086,8 +3091,6 @@ namespace Eagle
 			settings.bTranslucentShadows = translucentShadows.as<bool>();
 		if (auto smoothShadows = data["ShadowsSmoothTransition"])
 			settings.bEnableCSMSmoothTransition = smoothShadows.as<bool>();
-		if (auto depthPrepass = data["DepthPrepass"])
-			settings.bDepthPrepass = depthPrepass.as<bool>();
 		if (auto objectPicking = data["EnableObjectPicking"])
 			settings.bEnableObjectPicking = objectPicking.as<bool>();
 		if (auto objectPicking = data["Enable2DObjectPicking"])
@@ -3137,6 +3140,13 @@ namespace Eagle
 		{
 			settings.GTAOSettings.SetNumberOfSamples(gtaoSettingsNode["Samples"].as<uint32_t>());
 			settings.GTAOSettings.SetRadius(gtaoSettingsNode["Radius"].as<float>());
+		}
+
+		if (auto msaaSettingsNode = data["MSAA Settings"])
+		{
+			settings.MSAAParams.Samples = Utils::GetEnumFromName<MSAASamples>(msaaSettingsNode["Samples"].as<std::string>());
+			if (auto node = msaaSettingsNode["EdgeThreshold"])
+				settings.MSAAParams.EdgeThreshold = node.as<float>();
 		}
 
 		if (auto fogSettingsNode = data["Fog Settings"])

@@ -153,7 +153,8 @@ namespace Eagle::Utils
 		}
 
 		EG_CORE_WARN("Couldn't get enum from name: {}", name);
-		return Enum();
+		constexpr auto values = magic_enum::enum_values<Enum>();
+		return values[0];
 	}
 
 	static bool HasExtension(const Path& filepath, const char* extension)

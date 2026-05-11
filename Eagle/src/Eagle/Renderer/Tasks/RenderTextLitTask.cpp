@@ -28,7 +28,7 @@ namespace Eagle
 		InitPipeline();
 	}
 
-	void RenderTextLitTask::Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const QuadsRenderData<LitTextGeometryData>::BlendModeGeomType& data, const void* vertexPushData, RenderStats& stats)
+	void RenderTextLitTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const QuadsRenderData<LitTextGeometryData>::BlendModeGeomType& data, const void* vertexPushData, RenderStats& stats)
 	{
 		if (data.IsEmpty())
 			return;
@@ -52,7 +52,7 @@ namespace Eagle
 		cmd->EndGraphics();
 	}
 
-	void RenderTextLitTask::Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const LitTextGeometryData& data, const void* vertexPushData, RenderStats& stats, const Ref<Framebuffer>& fb)
+	void RenderTextLitTask::Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const LitTextGeometryData& data, const void* vertexPushData, RenderStats& stats, const Ref<Framebuffer>& fb)
 	{
 		const uint32_t quadsCount = (uint32_t)(data.QuadVertices.size() / 4);
 		if (quadsCount == 0)

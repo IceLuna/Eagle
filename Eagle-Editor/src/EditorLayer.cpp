@@ -1415,12 +1415,6 @@ namespace Eagle
 
 		bSettingsChanged |= UI::ComboEnum<TonemappingMethod>("Tonemapping", options.Tonemapping);
 
-		if (UI::Property("Depth Prepass", options.bDepthPrepass, "Some objects will be pre-rendered into the depth buffer to reduce unnecessary fragment invocations during rendering"))
-		{
-			EG_CORE_TRACE("Changed Depth Prepass to: {}", options.bDepthPrepass);
-			bSettingsChanged = true;
-		}
-
 		if (UI::Property("In-game object picking", options.bEnableObjectPicking, "You can disable it through C# when it's not needed to improve performance and reduce memory usage"))
 		{
 			EG_CORE_TRACE("Changed Object Picking to: {}", options.bEnableObjectPicking);
@@ -1718,6 +1712,41 @@ namespace Eagle
 					settings.SetRadius(radius);
 					bSettingsChanged = true;
 					EG_CORE_TRACE("Changed GTAO Radius to: {}", settings.GetRadius());
+				}
+
+				UI::EndPropertyGrid();
+				ImGui::TreePop();
+			}
+		}
+
+		// MSAA settings
+		{
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx("MSAA", treeFlags);
+			ImGui::PopStyleVar();
+			if (treeOpened)
+			{
+				UI::BeginPropertyGrid("MSAA Settings");
+
+				MSAASettings& settings = options.MSAAParams;
+
+				if (UI::ComboEnum("Samples", settings.Samples))
+				{
+					bSettingsChanged = true;
+					EG_CORE_TRACE("Changed MSAA samples to: {}", Utils::GetEnumName(settings.Samples));
+				}
+
+				if (UI::PropertySlider("Edge Threshold", settings.EdgeThreshold, 0.0f, 1.0f))
+				{
+					bSettingsChanged = true;
+					EG_CORE_TRACE("Changed MSAA Edge Threshold to: {}", settings.EdgeThreshold);
+				}
+
+				if (UI::Property("Visualize Edges", settings.bVisualizeEdges))
+				{
+					bSettingsChanged = true;
+					EG_CORE_TRACE("Changed MSAA Visualize Edges to: {}", settings.bVisualizeEdges);
 				}
 
 				UI::EndPropertyGrid();

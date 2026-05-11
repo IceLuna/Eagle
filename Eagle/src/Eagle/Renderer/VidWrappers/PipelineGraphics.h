@@ -58,6 +58,7 @@ namespace Eagle
 		bool bEnableConservativeRasterization = false;
 		bool bImagelessFramebuffer = false;
 		bool bEnableMultiViewRendering = false;
+		bool bEnableAlphaToCoverage = false;
 
 		SamplesCount GetSamplesCount() const
 		{

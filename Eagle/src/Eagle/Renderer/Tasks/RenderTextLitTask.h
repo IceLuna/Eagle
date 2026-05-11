@@ -31,8 +31,8 @@ namespace Eagle
 			InitPipeline();
 		}
 
-		static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const QuadsRenderData<LitTextGeometryData>::BlendModeGeomType& data, const void* vertexPushData, RenderStats& stats);
-		static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const LitTextGeometryData& data, const void* vertexPushData, RenderStats& stats, const Ref<Framebuffer>& fb);
+		static void Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const LitTextGeometryData& data, const void* vertexPushData, RenderStats& stats, const Ref<Framebuffer>& fb);
+		static void Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const QuadsRenderData<LitTextGeometryData>::BlendModeGeomType& data, const void* vertexPushData, RenderStats& stats);
 
 	private:
 		void InitPipeline();

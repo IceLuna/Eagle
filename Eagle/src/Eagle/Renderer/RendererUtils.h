@@ -505,7 +505,28 @@ namespace Eagle
     enum class AAMethod
     {
         None,
-        TAA
+        MSAA,
+        TAA,
+    };
+
+    enum class MSAASamples
+    {
+        x2 = 2,
+        x4 = 4,
+        x8 = 8,
+    };
+
+    struct MSAASettings
+    {
+        MSAASamples Samples = MSAASamples::x4;
+        float EdgeThreshold = 0.1f;
+        bool bVisualizeEdges = false;
+
+        bool operator== (const MSAASettings& other) const
+        {
+            return Samples == other.Samples && EdgeThreshold == other.EdgeThreshold && bVisualizeEdges == other.bVisualizeEdges;
+        }
+        bool operator!= (const MSAASettings& other) const { return !(*this == other); }
     };
 
     struct PhotoLinearTonemappingSettings
@@ -979,7 +1000,7 @@ namespace Eagle
         TonemappingMethod Tonemapping = TonemappingMethod::AgX;
         AmbientOcclusion AO = AmbientOcclusion::None;
         AAMethod AA = AAMethod::None;
-        bool bDepthPrepass = false;
+        MSAASettings MSAAParams;
         bool bTranslucentShadows = true;
         bool bEnableSoftShadows = true;
         bool bEnableCSMSmoothTransition = true;
@@ -1010,7 +1031,7 @@ namespace Eagle
                 Tonemapping == other.Tonemapping &&
                 AO == other.AO &&
                 AA == other.AA &&
-                bDepthPrepass == other.bDepthPrepass &&
+                MSAAParams == other.MSAAParams &&
                 bTranslucentShadows == other.bTranslucentShadows &&
                 bEnableSoftShadows == other.bEnableSoftShadows &&
                 bEnableCSMSmoothTransition == other.bEnableCSMSmoothTransition &&
@@ -1036,7 +1057,6 @@ namespace Eagle
         {
             SceneRendererSettings settings;
             settings.VolumetricSettings.bEnable = false;
-            settings.bDepthPrepass = false;
             settings.bTranslucentShadows = false;
             settings.bEnableCSMSmoothTransition = false;
             settings.bEnableObjectPicking = false;

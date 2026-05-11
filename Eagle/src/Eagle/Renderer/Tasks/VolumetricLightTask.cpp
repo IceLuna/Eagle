@@ -59,7 +59,6 @@ namespace Eagle
 			glm::vec3 FogAlbedo;
 			float FogAnisotropy;
 			float NearPlane;
-			float FarPlane;
 			uint32_t TilesBufferWidth;
 			uint32_t HasDirLight;
 		} pushData;
@@ -72,7 +71,6 @@ namespace Eagle
 		pushData.FogAlbedo = m_VolumetricSettings.Albedo;
 		pushData.FogAnisotropy = m_VolumetricSettings.Anisotropy;
 		pushData.NearPlane = m_Renderer.GetZNear();
-		pushData.FarPlane = m_Renderer.GetZFar();
 		pushData.TilesBufferWidth = lightCulling->GetTilesBufferWidth();
 		pushData.DownscaleFactor = s_DownscaleFactor;
 		pushData.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());

@@ -284,7 +284,6 @@ namespace Eagle
 	private:
 		Ref<SkinCacheTask> m_SkinCacheTask;
 		Ref<GeometryManagerTask> m_GeometryManagerTask;
-		Ref<RendererTask> m_DepthPrepassTask;
 		Ref<RendererTask> m_RenderMeshesTask;
 		Ref<RendererTask> m_RenderSkeletalMeshesTask;
 		Ref<RendererTask> m_RenderSpritesTask;
@@ -295,6 +294,7 @@ namespace Eagle
 		Ref<RenderLinesTask> m_RenderLinesTask;
 		Ref<RenderTrianglesTask> m_RenderTrianglesTask;
 		Ref<RendererTask> m_TAATask;
+		Ref<RendererTask> m_MSAATask;
 		Ref<RenderBillboardsTask> m_RenderBillboardsTask;
 		Ref<PBRPassTask> m_PBRPassTask;
 		Ref<ShadowPassTask> m_ShadowPassTask;
