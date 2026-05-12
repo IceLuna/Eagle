@@ -526,12 +526,10 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap,
 		const float distance2 = dot(incoming, incoming);
 		const float incomingLen = sqrt(distance2);
 		{
-			float attenuation = 1.f / distance2
-				* EG_SQUARE(clamp(1.0 - EG_SQUARE(distance2 * 1.0f / light.Distance2), 0.f, 1.f));
 			const vec3 normIncoming = incoming / incomingLen;
 			const float theta = clamp(dot(normIncoming, normSpotDir), EG_FLT_SMALL, 1.0);
 			const float cutoffIntensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
-			attenuation *= cutoffIntensity;
+			const float attenuation = cutoffIntensity / distance2;
 			
 			float visibility = bCastsShadow ? 0.f : 1.f;
 #ifdef EG_TRANSLUCENT_SHADOWS

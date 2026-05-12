@@ -52,15 +52,12 @@ vec3 CalculateSpotLightRadiance(SpotLight spotLight, vec3 worldPos, vec3 geometr
     float metalness, float roughness)
 {
     const vec3 incoming = spotLight.Position - worldPos;
-    const float distance2 = dot(incoming, incoming);
-    if (distance2 > spotLight.Distance2)
-    {
+    // Check whether the point is within the cone range
+    const float projectedDistance = dot(spotLight.Direction, -incoming);
+    if ((projectedDistance * projectedDistance) > spotLight.Distance2)
         return vec3(0);
-    }
 
-    float attenuation = 1.f / distance2
-        * EG_SQUARE(clamp(1.0 - EG_SQUARE(distance2 * 1.0f / spotLight.Distance2), 0.f, 1.f));
-
+    const float distance2 = dot(incoming, incoming);
     const vec3 normIncoming = normalize(incoming);
 
     //Cutoff
@@ -69,7 +66,7 @@ vec3 CalculateSpotLightRadiance(SpotLight spotLight, vec3 worldPos, vec3 geometr
     const float epsilon = innerCutOffCos - outerCutOffCos;
     const float theta = clamp(dot(normIncoming, normalize(-spotLight.Direction)), EG_FLT_SMALL, 1.0);
     const float cutoffIntensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
-    attenuation *= cutoffIntensity;
+    const float attenuation = cutoffIntensity / distance2;
 
 #ifdef EG_TRANSLUCENT_SHADOWS
     vec3 coloredShadow = vec3(1.f);
