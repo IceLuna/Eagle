@@ -76,7 +76,7 @@ uint Random_NextUint(inout Random random, uint nmax)
 
 vec3 Random_PointInSphere(inout Random random, vec3 radius)
 {
-    if (IS_ZERO(radius))
+    if (all(lessThan(abs(radius), vec3(FLT_EPSILON))))
         return vec3(0);
 
     // Rejection sampling method

@@ -669,7 +669,14 @@ namespace Eagle
 
 			{
 				EG_CPU_TIMING_SCOPED("Submit & Present");
-				s_RendererData->GraphicsCommandManager->Submit(cmd, fence, imageAcquireSemaphore, semaphore);
+				if (imageAcquireSemaphore)
+				{
+					s_RendererData->GraphicsCommandManager->Submit(cmd, fence, imageAcquireSemaphore, semaphore);
+				}
+				else
+				{
+					s_RendererData->GraphicsCommandManager->Submit(cmd, fence, std::span<const Semaphore*>{}, semaphore);
+				}
 				if (bSwapchainValid)
 				{
 					s_RendererData->Swapchain->Present(semaphore, swapchainImageIndex);

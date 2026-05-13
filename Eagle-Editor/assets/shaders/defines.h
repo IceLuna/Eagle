@@ -74,7 +74,7 @@
 #define EG_DEFAULT_ROUGHNESS 0.5f
 #define EG_DEFAULT_AO 1.f
 
-#define IS_ZERO(x) (dot(x, x) < FLT_EPSILON)
+#define IS_ZERO(x) (abs(x) < FLT_EPSILON)
 #define NOT_ZERO(x) (!IS_ZERO(x))
 
 #define IS_ONE(x) (abs(1.f - x) < 1e-3f)

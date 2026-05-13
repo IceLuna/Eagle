@@ -1919,7 +1919,7 @@ namespace Eagle
 
 	void ShadowPassTask::InitOpacityMaskedMeshPipelines()
 	{
-		Ref<Sampler> shadowMapSampler = Sampler::Create(FilterMode::Point, AddressMode::ClampToOpaqueWhite, CompareOperation::Never, 0.f, 0.f, 1.f);
+		Ref<Sampler> shadowMapSampler = Sampler::Create(FilterMode::Point, AddressMode::ClampToOpaqueBlack, CompareOperation::Never, 0.f, 0.f, 1.f);
 
 		// For directional light
 		{

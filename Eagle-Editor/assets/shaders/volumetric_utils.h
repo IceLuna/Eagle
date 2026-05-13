@@ -348,16 +348,16 @@ vec3 PointLight_Volumetric(in PointLight light, samplerCube shadowMap,
 
 		const vec3 incoming = light.Position - currentPos;
 		const float distance2 = dot(incoming, incoming);
-		if (distance2 < radius2)
+		const float attenuation = 1.f / distance2
+			* EG_SQUARE(clamp(1.0 - EG_SQUARE(distance2 * 1.0f / radius2), 0.f, 1.f));
+		if (distance2 < radius2 && NOT_ZERO(attenuation))
 		{
 #ifdef EG_TRANSLUCENT_SHADOWS
 			vec3 coloredVisibility = vec3(1.f);
 #endif
 			float visibility = bCastsShadow ? 0.f : 1.f;
-			const float attenuation = 1.f / distance2
-				* EG_SQUARE(clamp(1.0 - EG_SQUARE(distance2 * 1.0f / radius2), 0.f, 1.f));
 			
-			if (bCastsShadow && NOT_ZERO(attenuation))
+			if (bCastsShadow)
 			{
 				{
 					visibility = PointLight_ShadowCalculation_Volumetric(shadowMap, -incoming, normal, NdotL, light.Radius);
@@ -525,17 +525,18 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap,
 		const vec3 incoming = light.Position - currentPos;
 		const float distance2 = dot(incoming, incoming);
 		const float incomingLen = sqrt(distance2);
+		const vec3 normIncoming = incoming / incomingLen;
+		const float theta = clamp(dot(normIncoming, normSpotDir), EG_FLT_SMALL, 1.0);
+		const float cutoffIntensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
+		const float attenuation = cutoffIntensity / distance2;
+
+		if (NOT_ZERO(attenuation))
 		{
-			const vec3 normIncoming = incoming / incomingLen;
-			const float theta = clamp(dot(normIncoming, normSpotDir), EG_FLT_SMALL, 1.0);
-			const float cutoffIntensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
-			const float attenuation = cutoffIntensity / distance2;
-			
 			float visibility = bCastsShadow ? 0.f : 1.f;
 #ifdef EG_TRANSLUCENT_SHADOWS
 			vec3 coloredShadow = vec3(1.f);
 #endif
-			if (bCastsShadow && NOT_ZERO(attenuation))
+			if (bCastsShadow)
 			{
 				{
 					const float k = 20.f + (40.f * light.OuterCutOffRadians * light.OuterCutOffRadians) + distance2 * 2.2f; // Some magic number that helps to fight against self-shadowing
