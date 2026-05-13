@@ -37,7 +37,8 @@ void main()
 	}
 #endif
 
-    const vec2 packedGeometryNormal = EncodeNormal(normalize(i_Normal));
+	const vec3 geomNormal = normalize(i_Normal);
+    const vec2 packedGeometryNormal = EncodeNormal(geomNormal);
 	vec2 packedShadingNormal = packedGeometryNormal;
 	if (material.NormalTextureIndex != EG_INVALID_INDEX)
 	{
@@ -48,7 +49,7 @@ void main()
 	}
 
 	const float metalness = material.Metalness;
-	const float roughness = material.Roughness;
+	const float roughness = ApplyGeometricSpecularAntiAliasing(geomNormal, material.Roughness);
 	const float ao = material.AO;
 
     outAlbedo = vec4(material.Albedo, 1.f);

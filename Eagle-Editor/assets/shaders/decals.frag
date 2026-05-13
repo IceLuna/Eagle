@@ -89,24 +89,28 @@ void main()
 	if (material.OpacityMask < EG_OPACITY_MASK_THRESHOLD || IS_ZERO(material.Opacity))
 		discard;
 
+#ifdef DECAL_NORMALS
+	vec3 geometryNormal;
+	{
+		vec3 shadingNormal = ReadTexture(material.NormalTextureIndex, decalUV).rgb;
+		shadingNormal = normalize(shadingNormal * 2.0 - 1.0);
+
+		shadingNormal = normalize(ComputeTBN(worldPos, decalUV, geometryNormal) * shadingNormal);
+
+		outGeometryShadingNormals = vec4(EncodeNormal(geometryNormal), EncodeNormal(shadingNormal));
+	}
+#endif
+
 	const float metalness = material.Metalness;
+#ifdef DECAL_NORMALS
+	const float roughness = ApplyGeometricSpecularAntiAliasing(geometryNormal, material.Roughness);
+#else
 	const float roughness = material.Roughness;
+#endif
 	const float ao = material.AO;
 
 	outAlbedo = vec4(material.Albedo, material.Opacity);
 	outEmissive = vec4(material.Emissive, material.Opacity); // Blending based on opacity
 	outMaterialData = vec4(metalness, ao, roughness, material.Opacity); // Blending based on opacity
 	outObjectID = int(i_EntityID);
-
-#ifdef DECAL_NORMALS
-	{
-		vec3 shadingNormal = ReadTexture(material.NormalTextureIndex, decalUV).rgb;
-		shadingNormal = normalize(shadingNormal * 2.0 - 1.0);
-
-		vec3 geometryNormal;
-		shadingNormal = normalize(ComputeTBN(worldPos, decalUV, geometryNormal) * shadingNormal);
-
-		outGeometryShadingNormals = vec4(EncodeNormal(geometryNormal), EncodeNormal(shadingNormal));
-	}
-#endif
 }

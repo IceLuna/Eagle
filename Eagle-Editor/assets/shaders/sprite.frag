@@ -52,7 +52,7 @@ void main()
 	}
 
 	const float metalness = material.Metalness;
-	const float roughness = material.Roughness;
+	const float roughness = ApplyGeometricSpecularAntiAliasing(geomNormal, material.Roughness);
 	const float ao = material.AO;
 	
 	outAlbedo = vec4(material.Albedo, 1.f);

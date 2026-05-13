@@ -511,6 +511,21 @@ vec3 Color_SRGBToLinear(vec3 color)
     return vec3(color.r <= t ? x.r : y.r, color.g <= t ? x.g : y.g, color.b <= t ? x.b : y.b);
 }
 
+float ApplyGeometricSpecularAntiAliasing(vec3 geomNormal, float roughness)
+{
+#if defined(EG_SHADER_FRAGMENT) && 1 // You can disable it to test the diff
+    // Source: Advanced VR Rendering (Valve)
+    // https://media.steampowered.com/apps/valve/2015/Alex_Vlachos_Advanced_VR_Rendering_GDC2015.pdf
+    const vec3 geomNormaldx = dFdx(geomNormal);
+    const vec3 geomNormaldy = dFdy(geomNormal);
+    const float geometricRoughnessFactor = pow(clamp(max(dot(geomNormaldx, geomNormaldx), dot(geomNormaldy, geomNormaldy)), 0, 1), 0.333);
+
+    return max(roughness, geometricRoughnessFactor);
+#else
+    return roughness;
+#endif
+}
+
 #define EG_SUBGROUP_ATOMIC_INCREMENT(data, bActive, outputIndex) \
 { \
     const uvec4 activeLanes = subgroupBallot(bActive); \

@@ -129,17 +129,17 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
     const vec3 albedo = material.Albedo;
     const vec3 lambert_albedo = albedo * EG_INV_PI;
     const vec3 worldPos = i_WorldPos;
+    const vec3 geometryNormal = normalize(i_Normal);
 
     const float metalness = material.Metalness;
     const float ao = material.AO;
-    const float roughness = material.Roughness;
+	const float roughness = ApplyGeometricSpecularAntiAliasing(geometryNormal, material.Roughness);
     const vec3 F0 = mix(vec3(EG_BASE_REFLECTIVITY), albedo, metalness);
 
     const vec3 fragToCamera = g_CameraPos - worldPos;
     const vec3 V = normalize(fragToCamera);
 
     vec3 Lo = vec3(0.f);
-    const vec3 geometryNormal = normalize(i_Normal);
     vec3 shadingNormal = geometryNormal;
     if (material.NormalTextureIndex != EG_INVALID_INDEX)
     {

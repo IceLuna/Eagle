@@ -268,6 +268,22 @@ namespace Eagle
 		for (auto& define : m_Defines)
 			m_DefinesSource += "#define " + define.first + ' ' + define.second + '\n';
 
+		switch (m_ShaderType)
+		{
+			case ShaderType::Vertex:
+				m_DefinesSource += "#define EG_SHADER_VERTEX\n";
+				break;
+			case ShaderType::Fragment:
+				m_DefinesSource += "#define EG_SHADER_FRAGMENT\n";
+				break;
+			case ShaderType::Geometry:
+				m_DefinesSource += "#define EG_SHADER_GEOMETRY\n";
+				break;
+			case ShaderType::Compute:
+				m_DefinesSource += "#define EG_SHADER_COMPUTE\n";
+				break;
+		}
+
 		if (!bFromDefines)
 		{
 			m_Source = ShaderManager::GetSource(m_Path);
