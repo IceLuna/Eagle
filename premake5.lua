@@ -240,7 +240,7 @@ project "Eagle"
 	}
 
 	filter "files:Eagle/vendor/ImGuizmo/**.cpp"
-		flags { "NoPCH"	}
+		enablepch "Off"
 	filter "files:Eagle/src/Eagle/Script/ScriptEngineRegistry.cpp"
 		buildoptions { "/bigobj" }
 	filter "files:Eagle/src/Eagle/Core/Serializer.cpp"
