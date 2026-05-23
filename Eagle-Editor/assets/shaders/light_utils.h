@@ -23,28 +23,30 @@ vec3 CalculatePointLightRadiance(PointLight pointLight, vec3 worldPos, vec3 geom
         return vec3(0);
 
     const vec3 normIncoming = normalize(incoming);
-    float shadow = 1.f;
+    float visibility = 1.f;
 #ifdef EG_TRANSLUCENT_SHADOWS
-    vec3 coloredShadow = vec3(1.f);
+    vec3 coloredVisibility = vec3(1.f);
 #endif
     if (bCastsShadows)
     {
         const uint shadowMapIndex = pointLight.ShadowMapIndex;
         if (shadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS)
         {
-            const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
-            shadow = PointLight_ShadowCalculation(g_PointShadowMaps[nonuniformEXT(shadowMapIndex)], -incoming, normIncoming, NdotL, pointLight.Radius);
+            const float NdotL = clamp(dot(normIncoming, geometryNormal), 0.0, 1.0);
+
+            const vec3 samplePos = GetPointLightSamplePosition(g_PointShadowMaps[nonuniformEXT(shadowMapIndex)], pointLight, worldPos, geometryNormal, NdotL, sqrt(distance2));
+            visibility = PointLight_ShadowCalculation(g_PointShadowMaps[nonuniformEXT(shadowMapIndex)], samplePos, NdotL, pointLight.Radius);
 #ifdef EG_TRANSLUCENT_SHADOWS
-            coloredShadow = PointLight_ColoredShadowCalculation(g_PointShadowMapsColored[nonuniformEXT(shadowMapIndex)], -incoming, geometryNormal, NdotL);
+            coloredVisibility = PointLight_ColoredShadowCalculation(g_PointShadowMapsColored[nonuniformEXT(shadowMapIndex)], -incoming);
 #endif
         }
     }
 
     const vec3 pointLightLo = EvaluatePBR(lambertAlbedo, normIncoming, V, shadingNormal, F0, metalness, roughness, pointLight.LightColor, attenuation);
 #ifdef EG_TRANSLUCENT_SHADOWS
-    return pointLightLo * coloredShadow * shadow;
+    return pointLightLo * coloredVisibility * visibility;
 #else
-    return pointLightLo * shadow;
+    return pointLightLo * visibility;
 #endif
 }
 
@@ -54,7 +56,7 @@ vec3 CalculateSpotLightRadiance(SpotLight spotLight, vec3 worldPos, vec3 geometr
     const vec3 incoming = spotLight.Position - worldPos;
     // Check whether the point is within the cone range
     const float projectedDistance = dot(spotLight.Direction, -incoming);
-    if ((projectedDistance * projectedDistance) > spotLight.Distance2)
+    if (projectedDistance > spotLight.Distance)
         return vec3(0);
 
     const float distance2 = dot(incoming, incoming);
@@ -72,34 +74,29 @@ vec3 CalculateSpotLightRadiance(SpotLight spotLight, vec3 worldPos, vec3 geometr
         return vec3(0);
 
 #ifdef EG_TRANSLUCENT_SHADOWS
-    vec3 coloredShadow = vec3(1.f);
+    vec3 coloredVisibility = vec3(1.f);
 #endif
-    float shadow = 1.f;
+    float visibility = 1.f;
     if (spotLight.bCastsShadows != 0)
     {
         const uint shadowMapIndex = spotLight.ShadowMapIndex;
         if (shadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS)
         {
-            const mat4 viewProj = g_LightMatrices[spotLight.ViewProjOffset];
-            const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
-            const float texelSize = 1.f / textureSize(g_SpotShadowMaps[nonuniformEXT(shadowMapIndex)], 0).x;
-            const float k = 20.f + (40.f * spotLight.OuterCutOffRadians * spotLight.OuterCutOffRadians) + distance2 * 2.2f; // Some magic number that help to fight against self-shadowing
-            const float bias = texelSize * k;
-            const vec3 normalBias = normIncoming * bias;
-            vec4 lightSpacePos = viewProj * vec4(worldPos + normalBias, 1.0);
-            lightSpacePos.xyz /= lightSpacePos.w;
+            float lightRadiusUV = 0;
+            mat4 lightVP = g_LightMatrices[spotLight.ViewProjOffset];
+            const vec3 lightSpacePos = GetSpotLightSpacePosition(g_SpotShadowMaps[nonuniformEXT(shadowMapIndex)], spotLight, lightVP, worldPos, geometryNormal, normIncoming, sqrt(distance2), lightRadiusUV);
 
+            visibility = SpotLight_ShadowCalculation(g_SpotShadowMaps[nonuniformEXT(shadowMapIndex)], lightSpacePos, lightRadiusUV);
 #ifdef EG_TRANSLUCENT_SHADOWS
-            coloredShadow = SpotLight_ColoredShadowCalculation(g_SpotShadowMapsColored[nonuniformEXT(shadowMapIndex)], lightSpacePos.xyz, NdotL);
+            coloredVisibility = SpotLight_ColoredShadowCalculation(g_SpotShadowMapsColored[nonuniformEXT(shadowMapIndex)], lightSpacePos);
 #endif
-            shadow = SpotLight_ShadowCalculation(g_SpotShadowMaps[nonuniformEXT(shadowMapIndex)], lightSpacePos.xyz, NdotL);
         }
     }
     const vec3 spotLightLo = EvaluatePBR(lambertAlbedo, normIncoming, V, shadingNormal, F0, metalness, roughness, spotLight.LightColor, attenuation);
 #ifdef EG_TRANSLUCENT_SHADOWS
-    return spotLightLo * coloredShadow * shadow;
+    return spotLightLo * coloredVisibility * visibility;
 #else
-    return spotLightLo * shadow;
+    return spotLightLo * visibility;
 #endif
 }
 
@@ -132,19 +129,13 @@ vec3 CalculateDirectionalLightRadiance(DirectionalLight light, vec3 worldPos, ve
 #endif // EG_ENABLE_CSM_VISUALIZATION
         if (light.bCastsShadows != 0)
         {
-            const float NdotL = clamp(dot(incoming, geometryNormal), EG_FLT_SMALL, 1.0);
-
-            const float texelSize = 1.f / textureSize(g_DirShadowMaps[nonuniformEXT(layer)], 0).x;
-            const float k = GetCascadeTexelOffset(layer);
-            const float bias = texelSize * k;
-            const vec3 normalBias = geometryNormal * bias;
-
             const mat4 viewProj = g_LightMatrices[light.ViewProjOffset + layer];
-            const vec3 lightSpacePosBiased = (viewProj * vec4(worldPos + normalBias + incoming * bias * 1.5f, 1.0)).xyz;
-            const vec3 lightSpacePos = (viewProj * vec4(worldPos, 1.0)).xyz;
-            shadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePosBiased, NdotL, layer);
+
+            float lightRadiusUV = 0.0;
+            const vec3 lightSpacePos = GetDirectionalLightSamplePosition(g_DirShadowMaps[nonuniformEXT(layer)], viewProj, worldPos, geometryNormal, incoming, layer, lightRadiusUV);
+            shadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePos, lightRadiusUV, layer);
 #ifdef EG_TRANSLUCENT_SHADOWS
-            coloredShadow = DirLight_ColoredShadowCalculation(g_DirShadowMapsColored[nonuniformEXT(layer)], lightSpacePos, NdotL, layer);
+            coloredShadow = DirLight_ColoredShadowCalculation(g_DirShadowMapsColored[nonuniformEXT(layer)], lightSpacePos);
 #endif
 
 #ifdef EG_CSM_SMOOTH_TRANSITION
@@ -156,19 +147,15 @@ vec3 CalculateDirectionalLightRadiance(DirectionalLight light, vec3 worldPos, ve
                 if (blendFactor > 0.f)
                 {
                     layer = layer + 1;
-                    const float k = GetCascadeTexelOffset(layer);
-                    const float texelSize = 1.f / textureSize(g_DirShadowMaps[nonuniformEXT(layer)], 0).x;
-                    const float bias = texelSize * k;
-                    const vec3 normalBias = geometryNormal * bias;
+
                     const mat4 nextViewProj = g_LightMatrices[light.ViewProjOffset + layer];
 
-                    const vec3 lightSpacePosBiased = (nextViewProj * vec4(worldPos + normalBias + incoming * bias * 1.5f, 1.0)).xyz;
-                    const vec3 lightSpacePos = (nextViewProj * vec4(worldPos, 1.0)).xyz;
-                    const float nextShadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePosBiased, NdotL, layer);
+                    const vec3 lightSpacePos = GetDirectionalLightSamplePosition(g_DirShadowMaps[nonuniformEXT(layer)], nextViewProj, worldPos, geometryNormal, incoming, layer, lightRadiusUV);
+                    const float nextShadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePos, lightRadiusUV, layer);
                     shadow = mix(shadow, nextShadow, blendFactor);
 
 #ifdef EG_TRANSLUCENT_SHADOWS
-                    const vec3 nextColoredShadow = DirLight_ColoredShadowCalculation(g_DirShadowMapsColored[nonuniformEXT(layer)], lightSpacePos, NdotL, layer);
+                    const vec3 nextColoredShadow = DirLight_ColoredShadowCalculation(g_DirShadowMapsColored[nonuniformEXT(layer)], lightSpacePos);
                     coloredShadow = mix(coloredShadow, nextColoredShadow, blendFactor);
 #endif
                 }

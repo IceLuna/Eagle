@@ -2,6 +2,7 @@
 #define EG_VOLUMETRIC_UTILS
 
 #include "defines.h"
+#include "shadow_maps/shadows_utils.h"
 
 // Used resources for volumetric:
 // https://www.alexandre-pestana.com/volumetric-lights/
@@ -66,79 +67,39 @@ const float DITHER_PATTERN[16] = float[](
 	0.9375f, 0.4375f, 0.8125f, 0.3125f
 );
 
-float DirLight_ShadowCalculation_Volumetric(sampler2D depthTexture, vec3 fragPosLightSpace, float NdotL, int cascade)
+float DirLight_ShadowCalculation_Volumetric(sampler2DShadow shadowMap, vec3 fragPosLightSpace)
 {
-	const float texelSize = 1.f / textureSize(depthTexture, 0).x;
-	const float baseBias = texelSize * (cascade == 0 ? 0.25f : 0.5f);
-	float k = 0.f;
-	switch (cascade)
-	{
-		case 1: k = 0.00009f; break;
-		case 2: k = 0.0005f; break;
-		case 3: k = 0.002f; break;
-	}
-	const float bias = max(baseBias * (1.0 - NdotL), baseBias) + k;
+	const float texelSize = 1.0 / float(textureSize(shadowMap, 0).x);
+	const float bias = s_BaseBias;
+	const float currentDepth = fragPosLightSpace.z + bias;
+	const vec2 uv = fragPosLightSpace.xy * 0.5 + 0.5;
 	
-	const vec2 uv = (fragPosLightSpace * 0.5f + 0.5f).xy;
-	const float currentDepth = fragPosLightSpace.z - bias;
-	
-	float shadow = 0.f;
-	const float closestDepth = texture(depthTexture, uv).r;
-	if (currentDepth < closestDepth)
-		shadow = 1.f;
-	
-	return 1.f - shadow;
+	return texture(shadowMap, vec3(uv, currentDepth));
 }
 
-float PointLight_ShadowCalculation_Volumetric(samplerCube depthTexture, vec3 lightToFrag, vec3 geometryNormal, float NdotL, float farDistance)
+float PointLight_ShadowCalculation_Volumetric(samplerCubeShadow depthTexture, vec3 samplePos, float farDistance)
 {
-	const float texelSize = 1.f / 2048; // This defaults seems to be good enough
-	const float k = mix(30.f, 150.f, 1.f - NdotL);
-	const float bias = texelSize * k;
-	const vec3 normalBias = geometryNormal * bias;
-	lightToFrag += normalBias;
+	const float bias = s_BaseBias;
+	const float currentDepth = VectorToDepth(samplePos, farDistance, EG_POINT_LIGHT_NEAR) + bias;
 	
-	const float currentDepth = VectorToDepth(lightToFrag, farDistance, EG_POINT_LIGHT_NEAR);
-	float shadow = 0.f;
-	
-	float closestDepth = texture(depthTexture, lightToFrag).r;
-	if (currentDepth < closestDepth)
-		shadow = 1.f;
-	
-	return 1.f - shadow;
+	return texture(depthTexture, vec4(samplePos, currentDepth));
 }
 
-float SpotLight_ShadowCalculation_Volumetric(sampler2D depthTexture, vec3 fragPosLightSpace, float NdotL)
+float SpotLight_ShadowCalculation_Volumetric(sampler2DShadow depthTexture, vec3 fragPosLightSpace)
 {
-	const vec2 texelSize = vec2(1.f) / vec2(textureSize(depthTexture, 0));
-	const float baseBias = texelSize.x * 0.0007f;
-	const float bias = max(5.f * baseBias * (1.f - NdotL), baseBias);
+	const float bias = s_BaseBias;
 	const vec2 uv = (fragPosLightSpace * 0.5f + 0.5f).xy;
 	const float currentDepth = fragPosLightSpace.z + bias;
 	
-	float shadow = 0.f;
-	const float closestDepth = texture(depthTexture, uv).r;
-	if (currentDepth < closestDepth)
-		shadow = 1.f;
-	
-	return 1.f - shadow;
+	return texture(depthTexture, vec3(uv, currentDepth)).r;
 }
 
-vec3 DirLight_ColoredShadowCalculation_Volumetric(sampler2D depthTexture, sampler2D coloredDepthTexture, vec3 fragPosLightSpace, float NdotL, int cascade)
+vec3 DirLight_ColoredShadowCalculation_Volumetric(sampler2D depthTexture, sampler2D coloredDepthTexture, vec3 fragPosLightSpace)
 {
-	const float texelSize = 1.f / textureSize(depthTexture, 0).x;
-	const float baseBias = texelSize * (cascade == 0 ? 0.25f : 0.5f);
-	float k = 0.f;
-	switch (cascade)
-	{
-		case 1: k = 0.00009f; break;
-		case 2: k = 0.0005f; break;
-		case 3: k = 0.002f; break;
-	}
-	const float bias = max(baseBias * (1.0 - NdotL), baseBias) + k;
-	const vec2 projCoords = (fragPosLightSpace.xy * 0.5f + 0.5f) + vec2(bias);
+	const float bias = s_BaseBias;
+	const float currentDepth = fragPosLightSpace.z + bias;
+	const vec2 projCoords = fragPosLightSpace.xy * 0.5f + 0.5f;
 	
-	const float currentDepth = fragPosLightSpace.z - bias;
 	const float depth = texture(coloredDepthTexture, projCoords).r;
 	if (currentDepth > depth)
 		return vec3(1);
@@ -146,28 +107,24 @@ vec3 DirLight_ColoredShadowCalculation_Volumetric(sampler2D depthTexture, sample
 	return texture(depthTexture, projCoords).rgb;
 }
 
-vec3 PointLight_ColoredShadowCalculation_Volumetric(samplerCube depthTexture, samplerCube coloredDepthTexture, vec3 lightToFrag, vec3 geometryNormal, float NdotL, float farDistance)
+vec3 PointLight_ColoredShadowCalculation_Volumetric(samplerCube depthTexture, samplerCube coloredDepthTexture, vec3 samplePos, float farDistance)
 {
-	const float texelSize = 1.f / 2048; // This defaults seems to be good enough
-	const float bias = texelSize * (1.f - NdotL) * 4.f;
-	lightToFrag += bias;
-	
-	const float currentDepth = VectorToDepth(lightToFrag, farDistance, EG_POINT_LIGHT_NEAR);
-	const float depth = texture(coloredDepthTexture, lightToFrag).r;
+	const float bias = s_BaseBias;
+	const float currentDepth = VectorToDepth(samplePos, farDistance, EG_POINT_LIGHT_NEAR) + bias;
+	const float depth = texture(coloredDepthTexture, samplePos).r;
 	if (currentDepth > depth)
 		return vec3(1);
 	
-	return texture(depthTexture, lightToFrag).rgb;
+	return texture(depthTexture, samplePos).rgb;
 }
 
-vec3 SpotLight_ColoredShadowCalculation_Volumetric(sampler2D coloredTexture, sampler2D coloredDepthTexture, vec3 fragPosLightSpace, float NdotL)
+vec3 SpotLight_ColoredShadowCalculation_Volumetric(sampler2D coloredTexture, sampler2D coloredDepthTexture, vec3 fragPosLightSpace)
 {
-	const float texelSize = 1.f / float(textureSize(coloredTexture, 0));
-	const float baseBias = texelSize;
-	const float bias = max(1.15f * baseBias * (1.f - NdotL), baseBias);
-	const vec2 projCoords = (fragPosLightSpace * 0.5f + 0.5f).xy + vec2(bias);
+	const float texelSize = 1.0 / float(textureSize(coloredDepthTexture, 0).x);
+	const float bias = s_BaseBias;
+	const float currentDepth = fragPosLightSpace.z + bias;
+	const vec2 projCoords = fragPosLightSpace.xy * 0.5 + 0.5;
 	
-	const float currentDepth = fragPosLightSpace.z;
 	const float depth = texture(coloredDepthTexture, projCoords).r;
 	if (currentDepth > depth)
 		return vec3(1);
@@ -175,7 +132,7 @@ vec3 SpotLight_ColoredShadowCalculation_Volumetric(sampler2D coloredTexture, sam
 	return texture(coloredTexture, projCoords).rgb;
 }
 
-vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2D depthTextures[EG_CASCADES_COUNT],
+vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2DShadow depthTextures[EG_CASCADES_COUNT],
 #ifdef EG_TRANSLUCENT_SHADOWS
 	sampler2D coloredTextures[EG_CASCADES_COUNT], sampler2D coloredDepthTextures[EG_CASCADES_COUNT],
 #endif
@@ -199,8 +156,6 @@ vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2D depthTextures
 	float currentT = deltaStep * 0.5f;
 	float tempT = currentT;
 	
-	const float NdotL = clamp(dot(incoming, normal), EG_FLT_SMALL, 1.0);
-	const float k = 100.f;
 #ifdef EG_TRANSLUCENT_SHADOWS
 	vec3 result = vec3(0.0);
 #else
@@ -218,32 +173,24 @@ vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2D depthTextures
 		float visibility = bCastsShadows ? 0.f : 1.f;
 		if (bCastsShadows)
 		{
-			const vec3 incoming = currentPos - cameraPos;
-			const float distance2 = dot(incoming, incoming);
+			const float cascadeDepth = abs((cameraView * vec4(currentPos, 1.0)).z);
+			int layer = -1;
+			for (int i = 0; i < EG_CASCADES_COUNT; ++i)
 			{
-				const float cascadeDepth = abs((cameraView * vec4(currentPos, 1.0)).z);
-				int layer = -1;
-				for (int i = 0; i < EG_CASCADES_COUNT; ++i)
+				if (cascadeDepth < light.CascadePlaneDistances[i])
 				{
-					if (cascadeDepth < light.CascadePlaneDistances[i])
-					{
-						layer = i;
-						break;
-					}
+					layer = i;
+					break;
 				}
-				if (layer != -1)
-				{
-					const float texelSize = 1.f / textureSize(depthTextures[nonuniformEXT(layer)], 0).x;
-					const float bias = texelSize * k;
-					const vec3 normalBias = normal * bias;
-					const mat4 viewProj = g_LightMatrices[light.ViewProjOffset + layer];
-
-					const vec3 lightSpacePos = (viewProj * vec4(currentPos + normalBias, 1.0)).xyz;
-					visibility = DirLight_ShadowCalculation_Volumetric(depthTextures[nonuniformEXT(layer)], lightSpacePos, NdotL, layer);
+			}
+			if (layer != -1)
+			{
+				const mat4 viewProj = g_LightMatrices[light.ViewProjOffset + layer];
+				const vec3 lightSpacePos = GetDirectionalLightSamplePosition(depthTextures[nonuniformEXT(layer)], viewProj, currentPos, normal, incoming, layer);
+				visibility = DirLight_ShadowCalculation_Volumetric(depthTextures[nonuniformEXT(layer)], lightSpacePos);
 #ifdef EG_TRANSLUCENT_SHADOWS
-					coloredVisibility = DirLight_ColoredShadowCalculation_Volumetric(coloredTextures[nonuniformEXT(layer)], coloredDepthTextures[nonuniformEXT(layer)], lightSpacePos, NdotL, layer);
+				coloredVisibility = DirLight_ColoredShadowCalculation_Volumetric(coloredTextures[nonuniformEXT(layer)], coloredDepthTextures[nonuniformEXT(layer)], lightSpacePos);
 #endif
-				}
 			}
 		}
 
@@ -291,12 +238,12 @@ bool SphereIntersect(vec3 ro, vec3 rd, vec3 sphere, float radius2, out float t0,
 	return true;
 }
 
-vec3 PointLight_Volumetric(in PointLight light, samplerCube shadowMap,
+vec3 PointLight_Volumetric(in PointLight light, samplerCubeShadow shadowMap,
 #ifdef EG_TRANSLUCENT_SHADOWS
 	samplerCube coloredTexture, samplerCube coloredDepthTexture,
 #endif
 	vec3 worldPos, vec3 cameraPos,
-	float NdotL, vec3 normal, uint scatteringSamples, float scatteringZFar, bool bCastsShadow)
+	vec3 normal, uint scatteringSamples, float scatteringZFar, bool bCastsShadow)
 {
 	const bool bVolumetricLight = (floatBitsToUint(light.VolumetricFogIntensity) & 0x80000000) != 0;
 	if (!bVolumetricLight)
@@ -359,12 +306,12 @@ vec3 PointLight_Volumetric(in PointLight light, samplerCube shadowMap,
 			
 			if (bCastsShadow)
 			{
-				{
-					visibility = PointLight_ShadowCalculation_Volumetric(shadowMap, -incoming, normal, NdotL, light.Radius);
+				const float NdotL = clamp(dot(normalize(incoming), normal), 0, 1.0);
+				const vec3 samplePos = GetPointLightSamplePosition(shadowMap, light, currentPos, normal, NdotL, sqrt(distance2));
+				visibility = PointLight_ShadowCalculation_Volumetric(shadowMap, samplePos, light.Radius);
 #ifdef EG_TRANSLUCENT_SHADOWS
-					coloredVisibility = PointLight_ColoredShadowCalculation_Volumetric(coloredTexture, coloredDepthTexture , -incoming, normal, NdotL, light.Radius);
+				coloredVisibility = PointLight_ColoredShadowCalculation_Volumetric(coloredTexture, coloredDepthTexture, samplePos, light.Radius);
 #endif
-				}
 			}
 #ifdef EG_VOLUMETRIC_FOG
 			float fog = SampleFog(currentPos);
@@ -459,12 +406,12 @@ bool ConeIntersect(vec3 ro, vec3 rd, vec3 conePoint, vec3 axis, float h, float c
 	return true;
 }
 
-vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap,
+vec3 SpotLight_Volumetric(in SpotLight light, sampler2DShadow shadowMap,
 #ifdef EG_TRANSLUCENT_SHADOWS
 	sampler2D coloredTexture, sampler2D coloredDepthTexture,
 #endif
 	vec3 worldPos, vec3 cameraPos,
-	float NdotL, vec3 normal, uint scatteringSamples, float scatteringZFar, bool bCastsShadow)
+	vec3 normal, uint scatteringSamples, float scatteringZFar, bool bCastsShadow)
 {
 	const bool bVolumetricLight = (floatBitsToUint(light.VolumetricFogIntensity) & 0x80000000) != 0;
 	if (!bVolumetricLight)
@@ -480,7 +427,7 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap,
 		camDir,
 		light.Position,
 		light.Direction,
-		sqrt(light.Distance2),
+		light.Distance,
 		cos(light.OuterCutOffRadians),
 		t0, t1) || t1 < 0.f)
 	{
@@ -538,20 +485,13 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap,
 #endif
 			if (bCastsShadow)
 			{
-				{
-					const float k = 20.f + (40.f * light.OuterCutOffRadians * light.OuterCutOffRadians) + distance2 * 2.2f; // Some magic number that helps to fight against self-shadowing
-					const float bias = texelSize * k;
-					const vec3 normalBias = normIncoming * bias;
-					const mat4 viewProj = g_LightMatrices[light.ViewProjOffset];
+				const mat4 lightVP = g_LightMatrices[light.ViewProjOffset];
+				const vec3 lightSpacePos = GetSpotLightSpacePosition(shadowMap, light, lightVP, currentPos, normIncoming, normIncoming, incomingLen);
 
-					vec4 lightSpacePos = viewProj * vec4(currentPos + normalBias, 1.0);
-					lightSpacePos.xyz /= lightSpacePos.w;
-					
-					visibility = SpotLight_ShadowCalculation_Volumetric(shadowMap, lightSpacePos.xyz, NdotL);
+				visibility = SpotLight_ShadowCalculation_Volumetric(shadowMap, lightSpacePos);
 #ifdef EG_TRANSLUCENT_SHADOWS
-					coloredShadow = SpotLight_ColoredShadowCalculation_Volumetric(coloredTexture, coloredDepthTexture, lightSpacePos.xyz, NdotL);
+				coloredShadow = SpotLight_ColoredShadowCalculation_Volumetric(coloredTexture, coloredDepthTexture, lightSpacePos);
 #endif
-				}
 			}
 #ifdef EG_VOLUMETRIC_FOG
 			float fog = SampleFog(currentPos);

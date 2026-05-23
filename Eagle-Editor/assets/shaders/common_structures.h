@@ -156,7 +156,7 @@ struct SpotLight
 	uint ViewProjOffset; // Offset into the transforms buffer
 
 	float VolumetricFogIntensity; // Sign bit is used as a flag for `bVolumetricLight`
-	float Distance2;
+	float Distance;
 	uint bCastsShadows;
 	uint ShadowMapIndex;
 };

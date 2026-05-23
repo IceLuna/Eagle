@@ -86,7 +86,7 @@ namespace Eagle
 		float m_PerspectiveFar = 150.f;
 		float m_ShadowFar = 30.f; // in meters
 		float m_DirLightShadowFar = 100.f; // in meters
-		float m_CSMSmoothTransitionAlpha = 3.5f / 100.f; // 3.5%
+		float m_CSMSmoothTransitionAlpha = 1.f / 100.f; // 1%
 
 		float m_OrthographicSize = 10.f;
 		float m_OrthographicNear = -100.f;

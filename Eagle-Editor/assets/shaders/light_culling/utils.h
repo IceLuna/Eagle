@@ -252,7 +252,7 @@ Cone ConeFromSpotLight(SpotLight light, mat4 view)
 Cone ConeFromSpotLight(const SpotLight& light, mat4 view)
 #endif
 {
-    const float distance = sqrt(light.Distance2);
+    const float distance = light.Distance;
     const float radius = distance * tan(light.OuterCutOffRadians);
 
     Cone cone;
@@ -270,7 +270,7 @@ Sphere SphereFromSpotLight(SpotLight light, mat4 view)
 Sphere SphereFromSpotLight(const SpotLight& light, mat4 view)
 #endif
 {
-    const float distance = sqrt(light.Distance2);
+    const float distance = light.Distance;
     const float angleCos = cos(light.OuterCutOffRadians);
 
     const vec3 posVS = vec3(view * vec4(light.Position, 1));
@@ -326,14 +326,13 @@ bool SpotIntersectsAABB(SpotLight light, AABB aabb, mat4 view)
     const vec3 pos = vec3(view * vec4(light.Position, 1));
     const vec3 dir = mat3(view) * light.Direction;
 
-    // Note: adding extra 0.1, otherwise edges of the cone will be clipped
-    float sphereRadius = dot(aabb.e, aabb.e) + 0.1f;
+    float sphereRadius = length(aabb.e);
     vec3 v = aabb.c - pos;
     float lenSq = dot(v, v);
     float v1Len = dot(v, dir);
     float distanceClosestPoint = cos(light.OuterCutOffRadians) * sqrt(lenSq - v1Len * v1Len) - v1Len * sin(light.OuterCutOffRadians);
     bool angleCull = distanceClosestPoint > sphereRadius;
-    bool frontCull = v1Len > sphereRadius + sqrt(light.Distance2);
+    bool frontCull = v1Len > sphereRadius + light.Distance;
     bool backCull = v1Len < -sphereRadius;
     return !(angleCull || frontCull || backCull);
 }

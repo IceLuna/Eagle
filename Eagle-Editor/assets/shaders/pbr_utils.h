@@ -91,7 +91,7 @@ vec3 EvaluatePBR(vec3 lambert_albedo, vec3 incoming, vec3 V, vec3 N, vec3 F0, fl
 	
 	const float VdotH = clamp(dot(V, H), EG_FLT_SMALL, 1.0);
 	const float NdotV = clamp(dot(N, V), EG_FLT_SMALL, 1.0);
-	const float NdotL = clamp(dot(N, L), EG_FLT_SMALL, 1.0);
+	const float NdotL = clamp(dot(N, L), 0.0, 1.0);
 	
 	const vec3 F = FresnelSchlick(F0, VdotH);
 	const float NDF = DistributionGGX(N, H, roughness);

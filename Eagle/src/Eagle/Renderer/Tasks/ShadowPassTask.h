@@ -32,9 +32,9 @@ namespace Eagle
 		const std::vector<Ref<Image>>& GetDirectionalLightShadowMapsColored() const { return m_DLCShadowMaps; }
 		const std::vector<Ref<Image>>& GetDirectionalLightShadowMapsColoredDepth() const { return m_DLCDShadowMaps; }
 
-		const std::vector<Ref<Sampler>>& GetPointLightShadowMapsSamplers() const { return m_PLShadowMapSamplers; }
-		const std::vector<Ref<Sampler>>& GetSpotLightShadowMapsSamplers() const { return m_SLShadowMapSamplers; }
-		const std::vector<Ref<Sampler>>& GetDirectionalLightShadowMapsSamplers() const { return m_DLShadowMapSamplers; }
+		const Ref<Sampler>& GetPCFSampler() const { return m_PCFSampler; }
+		const Ref<Sampler>& GetPointSampler() const { return m_PointSampler; }
+		const Ref<Sampler>& GetColoredShadowMapsSampler() const { return m_ColoredShadowMapSampler; }
 
 	private:
 		void InitOpacityMaskedMeshPipelines();
@@ -99,10 +99,13 @@ namespace Eagle
 		std::vector<size_t> m_PointLightIndices;
 		std::vector<size_t> m_SpotLightIndices;
 
+		Ref<Sampler> m_PCFSampler;
+		Ref<Sampler> m_PointSampler;
+		Ref<Sampler> m_ColoredShadowMapSampler;
+
 		// Point Light
 		std::vector<Ref<Framebuffer>> m_PLFramebuffers;
 		std::vector<Ref<Image>> m_PLShadowMaps;
-		std::vector<Ref<Sampler>> m_PLShadowMapSamplers;
 		Ref<Buffer> m_PLVPsBuffer;
 		std::vector<glm::mat4> m_PLVPs;
 		//Colored
@@ -118,11 +121,8 @@ namespace Eagle
 		std::vector<Ref<Image>> m_SLCShadowMaps;
 		std::vector<Ref<Image>> m_SLCDShadowMaps;
 
-		const std::vector<Ref<Sampler>>& m_SLShadowMapSamplers; // Spot light samplers are the same as for point lights
-
 		// Directional Light
 		std::vector<Ref<Image>> m_DLShadowMaps;
-		std::vector<Ref<Sampler>> m_DLShadowMapSamplers;
 		std::vector<Ref<Framebuffer>> m_DLFramebuffers;
 		// Colored
 		std::vector<Ref<Image>> m_DLCShadowMaps;

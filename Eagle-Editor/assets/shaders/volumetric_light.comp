@@ -58,9 +58,9 @@ readonly buffer LightMatricesBuffer
 	mat4 g_LightMatrices[];
 };
 
-layout(set = 2, binding = 0) uniform sampler2D   g_DirShadowMaps[EG_CASCADES_COUNT];
-layout(set = 3, binding = 0) uniform samplerCube g_PointShadowMaps[];
-layout(set = 4, binding = 0) uniform sampler2D   g_SpotShadowMaps[];
+layout(set = 2, binding = 0) uniform sampler2DShadow   g_DirShadowMaps[EG_CASCADES_COUNT];
+layout(set = 3, binding = 0) uniform samplerCubeShadow g_PointShadowMaps[];
+layout(set = 4, binding = 0) uniform sampler2DShadow   g_SpotShadowMaps[];
 
 #ifdef EG_TRANSLUCENT_SHADOWS
 layout(set = 5, binding = 0) uniform sampler2D   g_DirShadowMapsColored[EG_CASCADES_COUNT];
@@ -130,7 +130,6 @@ void main()
             const vec3 incoming = pointLight.Position - worldPos;
             const bool bCastsShadows = (floatBitsToUint(pointLight.Radius2) & 0x80000000) != 0;
             const bool bCheckShadows = shadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS;
-            const float NdotL = clamp(dot(normalize(incoming), geometryNormal), EG_FLT_SMALL, 1.0);
 
             if (bCastsShadows)
             {
@@ -138,7 +137,7 @@ void main()
     #ifdef EG_TRANSLUCENT_SHADOWS
                     g_PointShadowMapsColored[nonuniformEXT(shadowMapIndex)], g_PointShadowMapsColoredDepth[nonuniformEXT(shadowMapIndex)],
     #endif
-                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, bCheckShadows);
+                    worldPos, g_CameraPos, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, bCheckShadows);
             }
             else
             {
@@ -146,7 +145,7 @@ void main()
     #ifdef EG_TRANSLUCENT_SHADOWS
                     g_PointShadowMapsColored[0], g_PointShadowMapsColoredDepth[0],
     #endif
-                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, false);
+                    worldPos, g_CameraPos, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, false);
             }
         }
     }
@@ -166,7 +165,6 @@ void main()
             const uint shadowMapIndex = spotLight.ShadowMapIndex;
             const vec3 incoming = spotLight.Position - worldPos;
             const bool bCastsShadows = spotLight.bCastsShadows != 0;
-            const float NdotL = clamp(dot(normalize(incoming), geometryNormal), EG_FLT_SMALL, 1.0);
             const bool bCheckShadows = shadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS;
 
             if (bCastsShadows)
@@ -175,7 +173,7 @@ void main()
     #ifdef EG_TRANSLUCENT_SHADOWS
                     g_SpotShadowMapsColored[nonuniformEXT(shadowMapIndex)], g_SpotShadowMapsColoredDepth[nonuniformEXT(shadowMapIndex)],
     #endif
-                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, bCheckShadows);
+                    worldPos, g_CameraPos, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, bCheckShadows);
             }
             else
             {
@@ -183,7 +181,7 @@ void main()
     #ifdef EG_TRANSLUCENT_SHADOWS
                     g_SpotShadowMapsColored[0], g_SpotShadowMapsColoredDepth[0],
     #endif
-                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, false);
+                    worldPos, g_CameraPos, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, false);
             }
         }
     }

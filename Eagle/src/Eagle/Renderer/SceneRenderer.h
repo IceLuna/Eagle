@@ -226,9 +226,9 @@ namespace Eagle
 		const std::vector<Ref<Image>>& GetDirectionalLightShadowMapsColored() const { return m_ShadowPassTask->GetDirectionalLightShadowMapsColored(); }
 		const std::vector<Ref<Image>>& GetDirectionalLightShadowMapsColoredDepth() const { return m_ShadowPassTask->GetDirectionalLightShadowMapsColoredDepth(); }
 
-		const std::vector<Ref<Sampler>>& GetPointLightShadowMapsSamplers() const { return m_ShadowPassTask->GetPointLightShadowMapsSamplers(); }
-		const std::vector<Ref<Sampler>>& GetSpotLightShadowMapsSamplers() const { return m_ShadowPassTask->GetSpotLightShadowMapsSamplers(); }
-		const std::vector<Ref<Sampler>>& GetDirectionalLightShadowMapsSamplers() const { return m_ShadowPassTask->GetDirectionalLightShadowMapsSamplers(); }
+		const Ref<Sampler>& GetShadowMapPCFSampler() const { return m_ShadowPassTask->GetPCFSampler(); }
+		const Ref<Sampler>& GetShadowMapPointSampler() const { return m_ShadowPassTask->GetPointSampler(); }
+		const Ref<Sampler>& GetColoredShadowMapSampler() const { return m_ShadowPassTask->GetColoredShadowMapsSampler(); }
 
 		const Ref<Buffer>& GetFogDataBuffer() const { return m_FogTask->GetFogDataBuffer(); }
 

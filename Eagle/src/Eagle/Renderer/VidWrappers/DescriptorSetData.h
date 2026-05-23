@@ -127,6 +127,7 @@ namespace Eagle
 
 		void SetArg(uint32_t idx, const Ref<Image>& image, const Ref<Sampler>& sampler, bool bDepth = false);
 		void SetArg(uint32_t idx, const Ref<Image>& image, const ImageView& imageView, const Ref<Sampler>& sampler);
+		void SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images, const Ref<Sampler>& sampler);
 		void SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images, const std::vector<Ref<Sampler>>& samplers);
 		void SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images, const std::vector<ImageView>& imageViews, const std::vector<Ref<Sampler>>& samplers);
 		void SetArgArray(uint32_t idx, const std::vector<Ref<Texture2D>>& textures);

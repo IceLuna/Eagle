@@ -330,6 +330,11 @@ namespace Eagle
 				NewScene();
 				m_ShowSaveScenePopupForNewScene = false;
 			}
+
+			if (!m_ShowSaveScenePopupForNewScene && m_CloseEngineRequested)
+			{
+				ProcessCloseRequest();
+			}
 		}
 
 		EndDocking();
@@ -364,10 +369,7 @@ namespace Eagle
 		switch (pressedKey)
 		{
 			case Key::F5:
-				Application::Get().CallNextFrame([]()
-				{
-					ShaderManager::ReloadAllShaders();
-				});
+				ShaderManager::ReloadAllShaders();
 				bHandled = true;
 				break;
 
@@ -2713,6 +2715,16 @@ namespace Eagle
 	void EditorLayer::HandleCloseRequest(bool bCloseEngine)
 	{
 		m_CloseEngineRequested = bCloseEngine;
+		if (!m_OpenedSceneAsset)
+		{
+			m_ShowSaveScenePopupForNewScene = true;
+			return;
+		}
+		ProcessCloseRequest();
+	}
+
+	void EditorLayer::ProcessCloseRequest()
+	{
 		PrepareDirtyAssets(DirtyAssetsReason::ProjectClose);
 		if (!m_ShowDirtyAssetMessage)
 		{

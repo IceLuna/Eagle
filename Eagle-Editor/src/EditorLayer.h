@@ -96,6 +96,7 @@ namespace Eagle
 		void StopPlayingScene();
 		void HandleOnSimulationButton();
 		void HandleCloseRequest(bool bCloseEngine);
+		void ProcessCloseRequest();
 
 		void BeginDocking();
 		void EndDocking();

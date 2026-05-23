@@ -137,6 +137,24 @@ namespace Eagle
         }
     }
 
+    void DescriptorSetData::SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images, const Ref<Sampler>& sampler)
+    {
+        const size_t imagesCount = images.size();
+        auto& currentBinding = m_Bindings[idx];
+
+        std::vector<ImageBinding> bindings;
+        bindings.reserve(imagesCount);
+
+        for (size_t i = 0; i < imagesCount; ++i)
+            bindings.emplace_back(images[i], sampler);
+
+        if (currentBinding.ImageBindings != bindings)
+        {
+            currentBinding.ImageBindings = std::move(bindings);
+            m_bDirty = true;
+        }
+    }
+
     void DescriptorSetData::SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images, const std::vector<Ref<Sampler>>& samplers)
     {
         const size_t imagesCount = images.size();

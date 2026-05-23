@@ -80,6 +80,11 @@ namespace Eagle
 		m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()][set].SetArgArray(binding, images, samplers);
 	}
 
+	void Pipeline::SetImageSamplerArray(const std::vector<Ref<Image>>& images, const Ref<Sampler>& sampler, uint32_t set, uint32_t binding)
+	{
+		m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()][set].SetArgArray(binding, images, sampler);
+	}
+
 	void Pipeline::SetImageSamplerArray(const std::vector<Ref<Image>>& images, const std::vector<ImageView>& imageViews, const std::vector<Ref<Sampler>>& samplers, uint32_t set, uint32_t binding)
 	{
 		m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()][set].SetArgArray(binding, images, imageViews, samplers);

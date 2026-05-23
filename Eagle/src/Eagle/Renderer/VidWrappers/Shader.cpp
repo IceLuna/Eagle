@@ -179,10 +179,8 @@ namespace Eagle
 		}
 		m_Shaders = std::move(shaders);
 
-		RenderManager::Submit([shaders = m_Shaders](const Ref<CommandBuffer>&)
-		{
-			for (auto& shader : shaders)
-				shader->Reload();
-		});
+		RenderManager::Wait();
+		for (auto& shader : m_Shaders)
+			shader->Reload();
 	}
 }

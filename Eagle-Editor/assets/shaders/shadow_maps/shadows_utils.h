@@ -3,6 +3,8 @@
 
 #include "defines.h"
 
+const float s_BaseBias = 0.000001;
+
 int GetCascadeIndex(in DirectionalLight light, float cascadeDepth)
 {
 	for (int i = 0; i < EG_CASCADES_COUNT; ++i)
@@ -13,367 +15,279 @@ int GetCascadeIndex(in DirectionalLight light, float cascadeDepth)
 	return -1;
 }
 
-float GetCascadeTexelOffset(int cascade)
+float GetCascadeNormalOffsetScale(uint cascade)
 {
 	switch (cascade)
 	{
-		case 0: return 50.f;
-		case 1: return 75.f;
-		case 2: return 125.f;
-		case 3: return 125.f;
+		case 0: return 30.f;
+		case 1: return 45.f;
+		case 2: return 85.f;
+		case 3: return 275.f;
 	}
 	return 100.f;
 }
 
+vec3 GetPointLightSamplePosition(samplerCubeShadow shadowMap, PointLight light, vec3 worldPos, vec3 geomNormal, float NdotL, float receiverDistance)
+{
+	vec3 normalOffset = vec3(0);
+	if (NdotL > 0)
+	{
+		const float shadowMapSize = float(textureSize(shadowMap, 0).x);
+		const float texelWorldSize = receiverDistance / shadowMapSize;
+		const float normalBiasScale = mix(0.5, 2.0, 1.0 - NdotL);
+
+		normalOffset = geomNormal * texelWorldSize * normalBiasScale * 2.0;
+	}
+
+	return (worldPos + normalOffset) - light.Position;
+}
+
+// Applies normal offset
+vec3 GetSpotLightSpacePosition(sampler2DShadow shadowMap, SpotLight light, mat4 lightVP, vec3 worldPos, vec3 geomNormal, vec3 normIncoming, float receiverDistance, out float lightRadiusUV)
+{
+	lightRadiusUV = 0;
+
+	float NdotL = dot(geomNormal, normIncoming);
+	vec3 normalOffset = vec3(0);
+	if (NdotL > 0)
+	{
+		// Approximate spotlight frustum width at receiver distance
+		const float shadowMapSize = float(textureSize(shadowMap, 0).x);
+		const float frustumWidth = 2.0 * tan(light.OuterCutOffRadians) * receiverDistance;
+		const float texelWorldSize = frustumWidth / shadowMapSize;
+		const float normalBiasScale = mix(0.5, 2.0, 1.0 - NdotL);
+
+		// Texel scaled normal bias
+		normalOffset = geomNormal * texelWorldSize * normalBiasScale * 2.0;
+
+		const float baseDiskRadius = 0.0001f;
+		lightRadiusUV = max(10.f * baseDiskRadius * (1.f - NdotL), baseDiskRadius);
+
+		// Constant scale (2.5)
+		//lightRadiusUV = 2.5 / shadowMapSize;
+	}
+
+	vec4 lightSpacePos = lightVP * vec4(worldPos + normalOffset, 1.0);
+	lightSpacePos.xyz /= lightSpacePos.w;
+
+	return lightSpacePos.xyz;
+}
+
+vec3 GetDirectionalLightSamplePosition(sampler2DShadow shadowMap, mat4 lightVP, vec3 worldPos, vec3 geomNormal, vec3 normIncoming, uint cascade, out float lightRadiusUV)
+{
+	lightRadiusUV = 0;
+
+	float NdotL = dot(geomNormal, normIncoming);
+	vec3 normalOffset = vec3(0);
+	if (NdotL > 0)
+	{
+		// Approximate spotlight frustum width at receiver distance
+		const float shadowMapSize = float(textureSize(shadowMap, 0).x);
+		const float texelWorldSize = 1 / shadowMapSize;
+		const float normalBiasScale = mix(0.5, 2.0, 1.0 - NdotL);
+
+		// Texel scaled normal bias
+		normalOffset = geomNormal * texelWorldSize * normalBiasScale * GetCascadeNormalOffsetScale(cascade);
+
+		//const float baseDiskRadius = 0.0001f;
+		//lightRadiusUV = max(10.f * baseDiskRadius * (1.f - NdotL), baseDiskRadius);
+
+		// Constant scale
+		lightRadiusUV = 1.0 / shadowMapSize;
+	}
+
+	vec4 lightSpacePos = lightVP * vec4(worldPos + normalOffset, 1.0);
+	lightSpacePos.xyz /= lightSpacePos.w;
+
+	return lightSpacePos.xyz;
+}
+
+vec3 GetDirectionalLightSamplePosition(sampler2DShadow shadowMap, mat4 lightVP, vec3 worldPos, vec3 geomNormal, vec3 normIncoming, uint cascade)
+{
+	float lightRadiusUV = 0.0;
+	return GetDirectionalLightSamplePosition(shadowMap, lightVP, worldPos, geomNormal, normIncoming, cascade, lightRadiusUV);
+}
+
+// Applies normal offset
+vec3 GetSpotLightSpacePosition(sampler2DShadow shadowMap, SpotLight light, mat4 lightVP, vec3 worldPos, vec3 geomNormal, vec3 normIncoming, float receiverDistance)
+{
+	float lightRadiusUV = 0;
+	return GetSpotLightSpacePosition(shadowMap, light, lightVP, worldPos, geomNormal, normIncoming, receiverDistance, lightRadiusUV);
+}
+
+float ShadowVisibility_PCF(sampler2DShadow shadowMap, vec2 uv, float currentDepth, int pcfSize)
+{
+	const int pcfRange = pcfSize / 2;
+	const float invPCFMatrixSize = 1.f / (pcfSize * pcfSize);
+
+	const float texelSize = 1.0 / float(textureSize(shadowMap, 0).x);
+	float visibility = 0.f;
+	for (int x = -pcfRange; x <= pcfRange; ++x)
+		for (int y = -pcfRange; y <= pcfRange; ++y)
+		{
+			const vec2 uv = uv + vec2(x, y) * texelSize;
+			visibility += texture(shadowMap, vec3(uv, currentDepth));
+		}
+
+	return visibility * invPCFMatrixSize;
+}
+
+float ShadowVisibility_PCF(sampler2DShadow shadowMap, vec2 uv, float currentDepth)
+{
+	const int pcfSize = 3;
+	return ShadowVisibility_PCF(shadowMap, uv, currentDepth, pcfSize);
+}
+
 #ifdef EG_SOFT_SHADOWS
-float DirLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLightSpace, float NdotL, int cascade)
+
+float DirLight_ShadowCalculation_Soft(sampler2DShadow shadowMap, vec3 fragPosLightSpace, float lightRadiusUV, int cascade)
 {
-	const float texelSize = 1.f / textureSize(depthTexture, 0).x;
-	const float baseBias = texelSize * (cascade == 0 ? 0.25f : 0.5f); // use texelSize?
-	float k = 0.f;
-	switch (cascade)
-	{
-		case 1: k = 0.0002f; break;
-		case 2: k = 0.0004f; break;
-		case 3: k = 0.0006f; break;
-	}
-	const float bias = -max(baseBias * (1.0 - NdotL), baseBias) + k;
-
-	const float currentDepth = fragPosLightSpace.z - bias;
-	const vec2 shadowCoords = (fragPosLightSpace * 0.5f + 0.5f).xy;
-	const ivec2 f = ivec2(mod(EG_PIXEL_COORDS, vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
-
-	const float invSamplesCount = 1.f / 8.f;
-	float sum = 0.f;
-	for (int i = 0; i < 4; ++i)
-	{
-		const vec3 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0).rgb * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
-		vec2 uv = shadowCoords + offsets.rg * texelSize;
-		float closestDepth = texture(depthTexture, uv).x;
-		if (currentDepth < closestDepth)
-			sum += 1.f;
-
-		uv = shadowCoords + offsets.br * texelSize;
-		closestDepth = texture(depthTexture, uv).x;
-		if (currentDepth < closestDepth)
-			sum += 1.f;
-	}
-	float shadow = sum * invSamplesCount;
-
-	if (NOT_ZERO(shadow) && NOT_ONE(shadow))
-	{
-		const int samplesDiv2 = int(float(EG_SM_DISTRIBUTION_FILTER_SIZE * EG_SM_DISTRIBUTION_FILTER_SIZE) * 0.5f);
-
-		for (int i = 4; i < samplesDiv2; ++i)
-		{
-			const vec3 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0).rgb * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
-			vec2 uv = shadowCoords + offsets.rg * texelSize;
-			float closestDepth = texture(depthTexture, uv).x;
-			if (currentDepth < closestDepth)
-				sum += 1.f;
-
-			uv = shadowCoords + offsets.br * texelSize;
-			closestDepth = texture(depthTexture, uv).x;
-			if (currentDepth < closestDepth)
-				sum += 1.f;
-		}
-
-		shadow = sum / float(samplesDiv2 * 2.f);
-	}
-
-	return (1.f - shadow);
-}
-
-float PointLight_ShadowCalculation_Soft(samplerCube depthTexture, vec3 lightToFrag, vec3 geometryNormal, float NdotL, float farDistance)
-{
-	const float texelSize = 1.f / 2048; // This defaults seems to be good enough
-	const float k = mix(30.f, 100.f, 1.f - NdotL);
-	const float bias = texelSize * k;
-	const vec3 normalBias = geometryNormal * bias;
-	lightToFrag += normalBias;
-	
-	const float currentDepth = VectorToDepth(lightToFrag, farDistance, EG_POINT_LIGHT_NEAR);
-	
-	const ivec2 f = ivec2(mod(EG_PIXEL_COORDS, vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
-	
-	const int samples = 8;
-	const float invSamples = 1.f / float(samples);
-	float sum = 0.f;
-	
-	const float baseDiskRadius = 0.0025f;
-	const float diskRadius = max(2.f * baseDiskRadius * (1.f - NdotL), baseDiskRadius);
-	for (int i = 0; i < 4; ++i)
-	{
-		const vec3 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0).rgb * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
-
-		vec3 uv = lightToFrag + offsets.rgb * diskRadius;
-		float closestDepth = texture(depthTexture, uv).r;
-		if (currentDepth < closestDepth)
-			sum += 1.f;
-
-		uv = lightToFrag + offsets.brg * diskRadius;
-		closestDepth = texture(depthTexture, uv).r;
-		if (currentDepth < closestDepth)
-			sum += 1.f;
-	}
-	float shadow = sum * invSamples;
-
-	if (NOT_ZERO(shadow) && NOT_ONE(shadow))
-	{
-		const int samplesDiv2 = int(float(EG_SM_DISTRIBUTION_FILTER_SIZE * EG_SM_DISTRIBUTION_FILTER_SIZE) * 0.5f);
-
-		for (int i = 4; i < samplesDiv2; ++i)
-		{
-			const vec3 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0).rgb * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
-			
-			vec3 uv = lightToFrag + offsets.rgb * diskRadius;
-			float closestDepth = texture(depthTexture, uv).r;
-			if (currentDepth < closestDepth)
-				sum += 1.f;
-
-			uv = lightToFrag + offsets.brg * diskRadius;
-			closestDepth = texture(depthTexture, uv).x;
-			if (currentDepth < closestDepth)
-				sum += 1.f;
-		}
-
-		shadow = sum / float(samplesDiv2 * 2.f);
-	}
-
-	return (1.f - shadow);
-}
-
-float SpotLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLightSpace, float NdotL)
-{
-	const float texelSize = 1.f / float(textureSize(depthTexture, 0));
-	const float baseBias = texelSize * 0.002f;
-	const float bias = max(5.f * baseBias * (1.f - NdotL), baseBias);
-	
+	const float bias = s_BaseBias;
 	const float currentDepth = fragPosLightSpace.z + bias;
-	const vec2 shadowCoords = fragPosLightSpace.xy * 0.5f + 0.5f;
-	const ivec2 f = ivec2(mod(EG_PIXEL_COORDS, vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
-	
-	const float invSamplesCount = 1.f / 8.f;
-	float sum = 0.f;
-	for (int i = 0; i < 4; ++i)
-	{
-		const vec4 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0) * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
-		vec2 uv = shadowCoords + offsets.rg * texelSize;
-		float closestDepth = texture(depthTexture, uv).x;
-		if (currentDepth < closestDepth)
-			sum += 1.f;
+	const vec2 uv = fragPosLightSpace.xy * 0.5 + 0.5;
+	const ivec2 pixel = ivec2(mod(EG_PIXEL_COORDS, vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
 
-		uv = shadowCoords + offsets.ba * texelSize;
-		closestDepth = texture(depthTexture, uv).x;
-		if (currentDepth < closestDepth)
-			sum += 1.f;
+	float visibilitySum = 0.0;
+	uint samples = 0;
+
+	const int earlySamples = 8;
+	for (int i = 0; i < earlySamples / 2; ++i)
+	{
+		const vec4 offsets = texelFetch(g_SmDistribution, ivec3(i, pixel), 0);
+		const vec2 offset0 = offsets.xy * lightRadiusUV;
+		const vec2 offset1 = offsets.zw * lightRadiusUV;
+
+		visibilitySum += texture(shadowMap, vec3(uv + offset0, currentDepth));
+		visibilitySum += texture(shadowMap, vec3(uv + offset1, currentDepth));
+
+		samples += 2;
 	}
-	float shadow = sum * invSamplesCount;
 
-	if (NOT_ZERO(shadow) && NOT_ONE(shadow))
+	float visibility = visibilitySum / samples;
+
+	if (visibility > 0.0 && visibility < 1.0)
 	{
-		const int samplesDiv2 = int(float(EG_SM_DISTRIBUTION_FILTER_SIZE * EG_SM_DISTRIBUTION_FILTER_SIZE) * 0.5f);
-
-		for (int i = 4; i < samplesDiv2; ++i)
+		const int totalSamples = EG_SM_DISTRIBUTION_FILTER_SIZE * EG_SM_DISTRIBUTION_FILTER_SIZE;
+		for (int i = earlySamples / 2; i < totalSamples / 2; ++i)
 		{
-			const vec4 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0) * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
-			vec2 uv = shadowCoords + offsets.rg * texelSize;
-			float closestDepth = texture(depthTexture, uv).x;
-			if (currentDepth < closestDepth)
-				sum += 1.f;
+			const vec4 offsets = texelFetch(g_SmDistribution, ivec3(i, pixel), 0);
+			const vec2 offset0 = offsets.xy * lightRadiusUV;
+			const vec2 offset1 = offsets.zw * lightRadiusUV;
 
-			uv = shadowCoords + offsets.ba * texelSize;
-			closestDepth = texture(depthTexture, uv).x;
-			if (currentDepth < closestDepth)
-				sum += 1.f;
+			visibilitySum += texture(shadowMap, vec3(uv + offset0, currentDepth));
+			visibilitySum += texture(shadowMap, vec3(uv + offset1, currentDepth));
+
+			samples += 2;
 		}
 
-		shadow = sum / float(samplesDiv2 * 2.f);
+		visibilitySum /= float(samples);
 	}
 
-	return (1.f - shadow);
+	return visibility;
 }
 
-vec3 DirLight_ColoredShadowCalculation_Soft(sampler2D coloredTexture, vec3 fragPosLightSpace, float NdotL, int cascade)
+float PointLight_ShadowCalculation_Soft(samplerCubeShadow depthTexture, vec3 samplePos, float NdotL, float farDistance)
 {
-	const float texelSize = 1.f / textureSize(coloredTexture, 0).x;
-	const float baseBias = texelSize * 0.1f;
-	float k = 0.f;
-	switch (cascade)
-	{
-		case 1: k = 0.00009f; break;
-		case 2: k = 0.0005f; break;
-		case 3: k = 0.002f; break;
-	}
-	const float bias = max(baseBias * (1.0 - NdotL), baseBias) + k;
+	const float bias = s_BaseBias;
+	const float currentDepth = VectorToDepth(samplePos, farDistance, EG_POINT_LIGHT_NEAR) + bias;
+	const ivec2 pixel = ivec2(mod(EG_PIXEL_COORDS, vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
 
-	const vec2 shadowCoords = (fragPosLightSpace.xy * 0.5f + 0.5f) + vec2(bias);
-	const ivec2 f = ivec2(mod(EG_PIXEL_COORDS, vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
+	float visibilitySum = 0.f;
+	uint samples = 0;
 
-	const float invSamplesCount = 1.f / 8.f;
-	vec3 colorSum = vec3(0.f);
+	const float baseDiskRadius = 0.0001f;
+	const float diskRadius = max(10.f * baseDiskRadius * (1.f - NdotL), baseDiskRadius);
 	for (int i = 0; i < 4; ++i)
 	{
-		const vec3 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0).rgb * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
-		vec2 uv = shadowCoords + offsets.rg * texelSize;
-		colorSum += texture(coloredTexture, uv).rgb;
-		
-		uv = shadowCoords + offsets.br * texelSize;
-		colorSum += texture(coloredTexture, uv).rgb;
+		const vec4 offsets = texelFetch(g_SmDistribution, ivec3(i, pixel), 0) * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
+		const vec3 offset0 = offsets.xyz * diskRadius;
+		const vec3 offset1 = offsets.wxz * diskRadius;
+
+		visibilitySum += texture(depthTexture, vec4(samplePos + offset0, currentDepth)).r;
+		visibilitySum += texture(depthTexture, vec4(samplePos + offset1, currentDepth)).x;
+
+		samples += 2;
 	}
+	float visibility = visibilitySum / samples;
 
-	const vec3 centerColored = texture(coloredTexture, shadowCoords).rgb;
-	vec3 colored = colorSum * invSamplesCount;
-	
-	if (!IS_EQUAL(colored, centerColored))
+	if (visibility > 0.0 && visibility < 1.0)
 	{
-		const int samplesDiv2 = int(float(EG_SM_DISTRIBUTION_FILTER_SIZE * EG_SM_DISTRIBUTION_FILTER_SIZE) * 0.5f);
-
-		for (int i = 4; i < samplesDiv2; ++i)
+		const int totalSamples = EG_SM_DISTRIBUTION_FILTER_SIZE * EG_SM_DISTRIBUTION_FILTER_SIZE;
+		for (int i = 4; i < totalSamples / 2; ++i)
 		{
-			const vec3 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0).rgb * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
-			vec2 uv = shadowCoords + offsets.rg * texelSize;
-			colorSum += texture(coloredTexture, uv).rgb;
-			
-			uv = shadowCoords + offsets.br * texelSize;
-			colorSum += texture(coloredTexture, uv).rgb;
+			const vec4 offsets = texelFetch(g_SmDistribution, ivec3(i, pixel), 0) * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
+			const vec3 offset0 = offsets.xyz * diskRadius;
+			const vec3 offset1 = offsets.wxz * diskRadius;
+
+			visibilitySum += texture(depthTexture, vec4(samplePos + offset0, currentDepth)).r;
+			visibilitySum += texture(depthTexture, vec4(samplePos + offset1, currentDepth)).x;
+
+			samples += 2;
 		}
 
-		colored = colorSum / float(samplesDiv2 * 2.f);
+		visibility = visibilitySum / samples;
 	}
 
-	return colored;
+	return visibility;
 }
 
-vec3 PointLight_ColoredShadowCalculation_Soft(samplerCube coloredTexture, vec3 lightToFrag, vec3 geometryNormal, float NdotL)
+float SpotLight_ShadowCalculation_Soft(sampler2DShadow shadowMap, vec3 fragPosLightSpace, float lightRadiusUV)
 {
-	const float texelSize = 1.f / 2048; // This defaults seems to be good enough
-	const float bias = texelSize * (1.f - NdotL) * 4.f;
-	lightToFrag += bias;
-	
-	const ivec2 f = ivec2(mod(EG_PIXEL_COORDS, vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
-	
-	const int samples = 8;
-	const float invSamples = 1.f / float(samples);
-	vec3 colorSum = vec3(0.f);
-	
-	const float baseDiskRadius = 0.0025f;
-	const float diskRadius = max(2.f * baseDiskRadius * (1.f - NdotL), baseDiskRadius);
-	for (int i = 0; i < 4; ++i)
+	const float bias = s_BaseBias;
+	const float currentDepth = fragPosLightSpace.z + bias;
+	const vec2 uv = fragPosLightSpace.xy * 0.5 + 0.5;
+	const ivec2 pixel = ivec2(mod(EG_PIXEL_COORDS, vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
+
+	float visibilitySum = 0.0;
+	uint samples = 0;
+
+	const int earlySamples = 8;
+	for (int i = 0; i < earlySamples / 2; ++i)
 	{
-		const vec3 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0).rgb * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
-		
-		vec3 uv = lightToFrag + offsets.rgb * diskRadius;
-		colorSum += texture(coloredTexture, uv).rgb;
-		
-		uv = lightToFrag + offsets.brg * diskRadius;
-		colorSum += texture(coloredTexture, uv).rgb;
+		const vec4 offsets = texelFetch(g_SmDistribution, ivec3(i, pixel), 0);
+		const vec2 offset0 = offsets.xy * lightRadiusUV;
+		const vec2 offset1 = offsets.zw * lightRadiusUV;
+
+		visibilitySum += texture(shadowMap, vec3(uv + offset0, currentDepth));
+		visibilitySum += texture(shadowMap, vec3(uv + offset1, currentDepth));
+
+		samples += 2;
 	}
 
-	const vec3 centerColored = texture(coloredTexture, lightToFrag).rgb;
-	vec3 colored = colorSum * invSamples;
-	
-	if (!IS_EQUAL(colored, centerColored))
-	{
-		const int samplesDiv2 = int(float(EG_SM_DISTRIBUTION_FILTER_SIZE * EG_SM_DISTRIBUTION_FILTER_SIZE) * 0.5f);
+	float visibility = visibilitySum / samples;
 
-		for (int i = 4; i < samplesDiv2; ++i)
+	if (visibility > 0.0 && visibility < 1.0)
+	{
+		const int totalSamples = EG_SM_DISTRIBUTION_FILTER_SIZE * EG_SM_DISTRIBUTION_FILTER_SIZE;
+		for (int i = earlySamples / 2; i < totalSamples / 2; ++i)
 		{
-			const vec3 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0).rgb * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
-			
-			vec3 uv = lightToFrag + offsets.rgb * diskRadius;
-			colorSum += texture(coloredTexture, uv).rgb;
-			
-			uv = lightToFrag + offsets.brg * diskRadius;
-			colorSum += texture(coloredTexture, uv).rgb;
+			const vec4 offsets = texelFetch(g_SmDistribution, ivec3(i, pixel), 0);
+			const vec2 offset0 = offsets.xy * lightRadiusUV;
+			const vec2 offset1 = offsets.zw * lightRadiusUV;
+
+			visibilitySum += texture(shadowMap, vec3(uv + offset0, currentDepth));
+			visibilitySum += texture(shadowMap, vec3(uv + offset1, currentDepth));
+
+			samples += 2;
 		}
 
-		colored = colorSum / float(samplesDiv2 * 2.f);
+		visibilitySum /= float(samples);
 	}
 
-	return colored;
-}
-
-vec3 SpotLight_ColoredShadowCalculation_Soft(sampler2D coloredTexture, vec3 fragPosLightSpace, float NdotL)
-{
-	const float texelSize = 1.f / float(textureSize(coloredTexture, 0));
-	const float baseBias = texelSize;
-	const float bias = max(1.15f * baseBias * (1.f - NdotL), baseBias);
-	
-	const vec2 shadowCoords = (fragPosLightSpace.xy * 0.5f + 0.5f) + vec2(bias);
-	const ivec2 f = ivec2(mod(EG_PIXEL_COORDS, vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
-	
-	const float invSamplesCount = 1.f / 8.f;
-	vec3 colorSum = vec3(0.f);
-	for (int i = 0; i < 4; ++i)
-	{
-		const vec4 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0) * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
-		vec2 uv = shadowCoords + offsets.rg * texelSize;
-		colorSum += texture(coloredTexture, uv).rgb;
-		
-		uv = shadowCoords + offsets.ba * texelSize;
-		colorSum += texture(coloredTexture, uv).rgb;
-	}
-
-	const vec3 centerColored = texture(coloredTexture, shadowCoords).rgb;
-	vec3 colored = colorSum * invSamplesCount;
-	
-	if (!IS_EQUAL(colored, centerColored))
-	{
-		const int samplesDiv2 = int(float(EG_SM_DISTRIBUTION_FILTER_SIZE * EG_SM_DISTRIBUTION_FILTER_SIZE) * 0.5f);
-
-		for (int i = 4; i < samplesDiv2; ++i)
-		{
-			const vec4 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0) * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
-			vec2 uv = shadowCoords + offsets.rg * texelSize;
-			colorSum += texture(coloredTexture, uv).rgb;
-			
-			uv = shadowCoords + offsets.ba * texelSize;
-			colorSum += texture(coloredTexture, uv).rgb;
-		}
-
-		colored = colorSum / float(samplesDiv2 * 2.f);
-	}
-
-	return colored;
+	return visibility;
 }
 
 #endif
 
-float DirLight_ShadowCalculation_Hard(sampler2D depthTexture, vec3 fragPosLightSpace, float NdotL, int cascade)
+float DirLight_ShadowCalculation_Hard(sampler2DShadow shadowMap, vec3 fragPosLightSpace, float lightRadiusUV, int cascade)
 {
-	const float texelSize = 1.f / textureSize(depthTexture, 0).x;
-	const float baseBias = texelSize * (cascade == 0 ? 0.25f : 0.5f);
-	float k = 0.f;
-	switch (cascade)
-	{
-		case 1: k = 0.00009f; break;
-		case 2: k = 0.0005f; break;
-		case 3: k = 0.002f; break;
-	}
-	const float bias = max(baseBias * (1.0 - NdotL), baseBias) + k;
-	
-	const vec2 projCoords = fragPosLightSpace.xy * 0.5f + 0.5f;
-	const float currentDepth = fragPosLightSpace.z - bias;
+	const vec2 uv = fragPosLightSpace.xy * 0.5 + 0.5;
+	const float currentDepth = fragPosLightSpace.z + s_BaseBias;
 
-	const int pcfSize = 3;
-	const int pcfRange = pcfSize / 2;
-	const float invPCFMatrixSize = 1.f / (pcfSize * pcfSize);
-
-	float shadow = 0.f;
-	for (int x = -pcfRange; x <= pcfRange; ++x)
-		for (int y = -pcfRange; y <= pcfRange; ++y)
-		{
-			const vec2 uv = projCoords + vec2(x, y) * texelSize;
-			const float closestDepth = texture(depthTexture, uv).r;
-			if (currentDepth < closestDepth)
-				shadow += 1.f;
-		}
-
-	return (1.f - (shadow * invPCFMatrixSize));
+	return ShadowVisibility_PCF(shadowMap, uv, currentDepth);
 }
 
-float PointLight_ShadowCalculation_Hard(samplerCube depthTexture, vec3 lightToFrag, vec3 geometryNormal, float NdotL, float farDistance)
+float PointLight_ShadowCalculation_Hard(samplerCubeShadow depthTexture, vec3 samplePos, float NdotL, float farDistance)
 {
 	const int samples = 20;
 	const float invSamples = 1.f / float(samples);
@@ -386,170 +300,84 @@ float PointLight_ShadowCalculation_Hard(samplerCube depthTexture, vec3 lightToFr
 		vec3(0, 1, +1), vec3(+0, -1, +1), vec3(+0, -1, -1), vec3(+0, +1, -1)
 	);
 
-	const float texelSize = 1.f / 2048; // This defaults seems to be good enough
-	const float k = mix(30.f, 150.f, 1.f - NdotL);
-	const float bias = texelSize * k;
-	const vec3 normalBias = geometryNormal * bias;
-	lightToFrag += normalBias;
+	const float bias = s_BaseBias;
+	const float currentDepth = VectorToDepth(samplePos, farDistance, EG_POINT_LIGHT_NEAR) + bias;
+	float visibility = 0.f;
 	
-	const float currentDepth = VectorToDepth(lightToFrag, farDistance, EG_POINT_LIGHT_NEAR);
-	float shadow = 0.f;
-	
-	const float baseDiskRadius = 0.001f;
+	const float baseDiskRadius = 0.0001f;
 	const float diskRadius = max(10.f * baseDiskRadius * (1.f - NdotL), baseDiskRadius);
 	for (int i = 0; i < samples; ++i)
 	{
-		float closestDepth = texture(depthTexture, lightToFrag + sampleOffsetDirections[i] * diskRadius).r;
-		if (currentDepth < closestDepth)
-			shadow += 1.f;
+		visibility += texture(depthTexture, vec4(samplePos + normalize(sampleOffsetDirections[i]) * diskRadius, currentDepth));
 	}
-	shadow *= invSamples;
+	visibility *= invSamples;
 	
-	return (1.f - shadow);
+	return visibility;
 }
 
-float SpotLight_ShadowCalculation_Hard(sampler2D depthTexture, vec3 fragPosLightSpace, float NdotL)
+float SpotLight_ShadowCalculation_Hard(sampler2DShadow shadowMap, vec3 fragPosLightSpace, float lightRadiusUV)
 {
-	const vec2 texelSize = vec2(1.f) / vec2(textureSize(depthTexture, 0));
-	const float baseBias = texelSize.x * 0.0007f;
-	const float bias = max(5.f * baseBias * (1.f - NdotL), baseBias);
-	const vec2 projCoords = (fragPosLightSpace * 0.5f + 0.5f).xy;
-	const float currentDepth = fragPosLightSpace.z + bias;
-	
-	const int pcfSize = 3;
-	const int pcfRange = pcfSize / 2;
-	const float invPCFMatrixSize = 1.f / (pcfSize * pcfSize);
-	
-	float shadow = 0.f;
-	for (int x = -pcfRange; x <= pcfRange; ++x)
-		for (int y = -pcfRange; y <= pcfRange; ++y)
-		{
-			const vec2 uv = projCoords + vec2(x, y) * texelSize;
-			const float closestDepth = texture(depthTexture, uv).r;
-			if (currentDepth < closestDepth)
-				shadow += 1.f;
-		}
+	const vec2 uv = fragPosLightSpace.xy * 0.5 + 0.5;
+	const float currentDepth = fragPosLightSpace.z + s_BaseBias;
 
-	return (1.f - (shadow * invPCFMatrixSize));
+	return ShadowVisibility_PCF(shadowMap, uv, currentDepth);
 }
 
-vec3 DirLight_ColoredShadowCalculation_Hard(sampler2D depthTexture, vec3 fragPosLightSpace, float NdotL, int cascade)
+vec3 DirLight_ColoredShadowCalculation_Hard(sampler2D coloredTexture, vec3 fragPosLightSpace)
 {
-	const float texelSize = 1.f / textureSize(depthTexture, 0).x;
-	const float baseBias = texelSize * 0.1f;
-	float k = 0.f;
-	switch (cascade)
-	{
-		case 1: k = 0.00009f; break;
-		case 2: k = 0.0005f; break;
-		case 3: k = 0.002f; break;
-	}
-	const float bias = max(baseBias * (1.0 - NdotL), baseBias) + k;
-	
-	const vec2 projCoords = (fragPosLightSpace.xy * 0.5f + 0.5f) + vec2(bias);
-	
-	const int pcfSize = 3;
-	const int pcfRange = pcfSize / 2;
-	const float invPCFMatrixSize = 1.f / (pcfSize * pcfSize);
-	
-	vec3 coloredShadow = vec3(0.f);
-	for (int x = -pcfRange; x <= pcfRange; ++x)
-		for (int y = -pcfRange; y <= pcfRange; ++y)
-		{
-			const vec2 uv = projCoords + vec2(x, y) * texelSize;
-			coloredShadow += texture(depthTexture, uv).rgb;
-		}
-
-	return coloredShadow * invPCFMatrixSize;
+	const vec2 uv = fragPosLightSpace.xy * 0.5f + 0.5f;
+	return texture(coloredTexture, uv).rgb;
 }
 
-vec3 PointLight_ColoredShadowCalculation_Hard(samplerCube depthTexture, vec3 lightToFrag, vec3 geometryNormal, float NdotL)
+vec3 PointLight_ColoredShadowCalculation_Hard(samplerCube depthTexture, vec3 lightToFrag)
 {
-	const int samples = 20;
-	const float invSamples = 1.f / float(samples);
-	const vec3 sampleOffsetDirections[samples] = vec3[]
-	(
-		vec3(1, 1, +1), vec3(+1, -1, +1), vec3(-1, -1, +1), vec3(-1, +1, +1),
-		vec3(1, 1, -1), vec3(+1, -1, -1), vec3(-1, -1, -1), vec3(-1, +1, -1),
-		vec3(1, 1, +0), vec3(+1, -1, +0), vec3(-1, -1, +0), vec3(-1, +1, +0),
-		vec3(1, 0, +1), vec3(-1, +0, +1), vec3(+1, +0, -1), vec3(-1, +0, -1),
-		vec3(0, 1, +1), vec3(+0, -1, +1), vec3(+0, -1, -1), vec3(+0, +1, -1)
-	);
-
-	const float texelSize = 1.f / 2048; // This defaults seems to be good enough
-	const float bias = texelSize * (1.f - NdotL) * 4.f;
-	lightToFrag += bias;
-	
-	vec3 coloredShadow = vec3(0.f);
-	
-	const float baseDiskRadius = 0.001f;
-	const float diskRadius = max(10.f * baseDiskRadius * (1.f - NdotL), baseDiskRadius);
-	for (int i = 0; i < samples; ++i)
-		coloredShadow += texture(depthTexture, lightToFrag + sampleOffsetDirections[i] * diskRadius).rgb;
-
-	return coloredShadow * invSamples;
+	return texture(depthTexture, lightToFrag).rgb;
 }
 
-vec3 SpotLight_ColoredShadowCalculation_Hard(sampler2D coloredTexture, vec3 fragPosLightSpace, float NdotL)
+vec3 SpotLight_ColoredShadowCalculation_Hard(sampler2D coloredTexture, vec3 fragPosLightSpace)
 {
-	const float texelSize = 1.f / float(textureSize(coloredTexture, 0));
-	const float baseBias = texelSize;
-	const float bias = max(1.15f * baseBias * (1.f - NdotL), baseBias);
-	const vec2 projCoords = (fragPosLightSpace * 0.5f + 0.5f).xy + vec2(bias);
-	
-	const int pcfSize = 3;
-	const int pcfRange = pcfSize / 2;
-	const float invPCFMatrixSize = 1.f / (pcfSize * pcfSize);
-	
-	vec3 color = vec3(0.f);
-	for (int x = -pcfRange; x <= pcfRange; ++x)
-		for (int y = -pcfRange; y <= pcfRange; ++y)
-		{
-			const vec2 uv = projCoords + vec2(x, y) * texelSize;
-			color += texture(coloredTexture, uv).rgb;
-		}
-
-	return color * invPCFMatrixSize;
+	const vec2 uv = fragPosLightSpace.xy * 0.5 + 0.5;
+	return texture(coloredTexture, uv).rgb;
 }
 
 // 0 = in shadow, 1 = not in shadow
 #ifdef EG_SOFT_SHADOWS
-#define DirLight_ShadowCalculation(depthTexture, fragPos_LS, NdotL, cascade) DirLight_ShadowCalculation_Soft(depthTexture, fragPos_LS, NdotL, cascade)
+#define DirLight_ShadowCalculation(depthTexture, fragPos_LS, lightRadiusUV, cascade) DirLight_ShadowCalculation_Soft(depthTexture, fragPos_LS, lightRadiusUV, cascade)
 #else
-#define DirLight_ShadowCalculation(depthTexture, fragPos_LS, NdotL, cascade) DirLight_ShadowCalculation_Hard(depthTexture, fragPos_LS, NdotL, cascade)
+#define DirLight_ShadowCalculation(depthTexture, fragPos_LS, lightRadiusUV, cascade) DirLight_ShadowCalculation_Hard(depthTexture, fragPos_LS, lightRadiusUV, cascade)
 #endif
 
 // 0 = in shadow, 1 = not in shadow
 #ifdef EG_SOFT_SHADOWS
-#define PointLight_ShadowCalculation(depthTexture, lightToFrag, geometryNormal, NdotL, farDistance) PointLight_ShadowCalculation_Soft(depthTexture, lightToFrag, geometryNormal, NdotL, farDistance)
+#define PointLight_ShadowCalculation(depthTexture, lightToFrag, NdotL, farDistance) PointLight_ShadowCalculation_Soft(depthTexture, lightToFrag, NdotL, farDistance)
 #else
-#define PointLight_ShadowCalculation(depthTexture, lightToFrag, geometryNormal, NdotL, farDistance) PointLight_ShadowCalculation_Hard(depthTexture, lightToFrag, geometryNormal, NdotL, farDistance)
+#define PointLight_ShadowCalculation(depthTexture, lightToFrag, NdotL, farDistance) PointLight_ShadowCalculation_Hard(depthTexture, lightToFrag, NdotL, farDistance)
 #endif
 
 // 0 = in shadow, 1 = not in shadow
 #ifdef EG_SOFT_SHADOWS
-#define SpotLight_ShadowCalculation(depthTexture, fragPos_LS, NdotL) SpotLight_ShadowCalculation_Soft(depthTexture, fragPos_LS, NdotL)
+#define SpotLight_ShadowCalculation(depthTexture, fragPos_LS, lightRadiusUV) SpotLight_ShadowCalculation_Soft(depthTexture, fragPos_LS, lightRadiusUV)
 #else
-#define SpotLight_ShadowCalculation(depthTexture, fragPos_LS, NdotL) SpotLight_ShadowCalculation_Hard(depthTexture, fragPos_LS, NdotL)
+#define SpotLight_ShadowCalculation(depthTexture, fragPos_LS, lightRadiusUV) SpotLight_ShadowCalculation_Hard(depthTexture, fragPos_LS, lightRadiusUV)
 #endif
 
 #ifdef EG_SOFT_SHADOWS
-#define DirLight_ColoredShadowCalculation(depthTexture, fragPos_LS, NdotL, cascade) DirLight_ColoredShadowCalculation_Soft(depthTexture, fragPos_LS, NdotL, cascade)
+#define DirLight_ColoredShadowCalculation(depthTexture, fragPos_LS) DirLight_ColoredShadowCalculation_Hard(depthTexture, fragPos_LS)
 #else
-#define DirLight_ColoredShadowCalculation(depthTexture, fragPos_LS, NdotL, cascade) DirLight_ColoredShadowCalculation_Hard(depthTexture, fragPos_LS, NdotL, cascade)
+#define DirLight_ColoredShadowCalculation(depthTexture, fragPos_LS) DirLight_ColoredShadowCalculation_Hard(depthTexture, fragPos_LS)
 #endif
 
 // 0 = in shadow, 1 = not in shadow
 #ifdef EG_SOFT_SHADOWS
-#define PointLight_ColoredShadowCalculation(depthTexture, lightToFrag, geometryNormal, NdotL) PointLight_ColoredShadowCalculation_Soft(depthTexture, lightToFrag, geometryNormal, NdotL)
+#define PointLight_ColoredShadowCalculation(depthTexture, lightToFrag) PointLight_ColoredShadowCalculation_Hard(depthTexture, lightToFrag)
 #else
-#define PointLight_ColoredShadowCalculation(depthTexture, lightToFrag, geometryNormal, NdotL) PointLight_ColoredShadowCalculation_Hard(depthTexture, lightToFrag, geometryNormal, NdotL)
+#define PointLight_ColoredShadowCalculation(depthTexture, lightToFrag) PointLight_ColoredShadowCalculation_Hard(depthTexture, lightToFrag)
 #endif
 
 #ifdef EG_SOFT_SHADOWS
-#define SpotLight_ColoredShadowCalculation(depthTexture, fragPos_LS, NdotL) SpotLight_ColoredShadowCalculation_Soft(depthTexture, fragPos_LS, NdotL)
+#define SpotLight_ColoredShadowCalculation(depthTexture, fragPos_LS) SpotLight_ColoredShadowCalculation_Hard(depthTexture, fragPos_LS)
 #else
-#define SpotLight_ColoredShadowCalculation(depthTexture, fragPos_LS, NdotL) SpotLight_ColoredShadowCalculation_Hard(depthTexture, fragPos_LS, NdotL)
+#define SpotLight_ColoredShadowCalculation(depthTexture, fragPos_LS) SpotLight_ColoredShadowCalculation_Hard(depthTexture, fragPos_LS)
 #endif
 
 #endif

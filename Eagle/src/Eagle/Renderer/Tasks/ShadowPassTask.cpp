@@ -54,9 +54,13 @@ namespace Eagle
 		// Normalize importance
 		float scale = glm::clamp(importance, 0.0f, 1.0f);
 		uint32_t size = uint32_t(pointLightShadowMapSize * scale);
+		
+		// Reduced in intervals of `32` to avoid frequent resolution changes and reallocation
+		const float reductionFactor = 32.0f;
+		const float k = glm::ceil(size / reductionFactor);
+		size = uint32_t(k * reductionFactor);
 
 		size = glm::max(64u, size);
-		size = std::bit_ceil(size);
 
 		return glm::uvec2(size);
 	}
@@ -114,15 +118,16 @@ namespace Eagle
 
 	ShadowPassTask::ShadowPassTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
-		, m_PLShadowMapSamplers(EG_MAX_LIGHT_SHADOW_MAPS)
-		, m_SLShadowMapSamplers(m_PLShadowMapSamplers)
 		, m_DLShadowMaps(EG_CASCADES_COUNT)
 		, m_DLCShadowMaps(EG_CASCADES_COUNT)
 		, m_DLCDShadowMaps(EG_CASCADES_COUNT)
-		, m_DLShadowMapSamplers(EG_CASCADES_COUNT)
 	{
 		bVolumetricLightsEnabled = m_Renderer.GetOptions().VolumetricSettings.bEnable;
 		bTranslucencyShadowsEnabled = m_Renderer.GetOptions().bTranslucentShadows;
+
+		m_ColoredShadowMapSampler = Sampler::Create(FilterMode::Bilinear, AddressMode::ClampToOpaqueWhite, CompareOperation::Never, 0.f, 0.f, 1.f);
+		m_PCFSampler = Sampler::Create(FilterMode::Bilinear, AddressMode::ClampToOpaqueBlack, CompareOperation::GreaterEqual, 0.f, 0.f, 1.f);
+		m_PointSampler = Sampler::Create(FilterMode::Point, AddressMode::ClampToOpaqueBlack, CompareOperation::Never, 0.f, 0.f, 1.f);
 
 		std::fill(m_DLShadowMaps.begin(), m_DLShadowMaps.end(), RenderManager::GetDummyDepthImage());
 		std::fill(m_DLCShadowMaps.begin(), m_DLCShadowMaps.end(), RenderManager::GetDummyImage());
@@ -1919,13 +1924,8 @@ namespace Eagle
 
 	void ShadowPassTask::InitOpacityMaskedMeshPipelines()
 	{
-		Ref<Sampler> shadowMapSampler = Sampler::Create(FilterMode::Point, AddressMode::ClampToOpaqueBlack, CompareOperation::Never, 0.f, 0.f, 1.f);
-
 		// For directional light
 		{
-			for (uint32_t i = 0; i < m_DLShadowMapSamplers.size(); ++i)
-				m_DLShadowMapSamplers[i] = shadowMapSampler;
-
 			DepthStencilAttachment depthAttachment;
 			depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
 			depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
@@ -1972,8 +1972,6 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_meshes.vert", ShaderType::Vertex, defines);
 			state.FragmentShader = Shader::Create("shadow_maps/shadow_map_masked.frag", ShaderType::Fragment);
 			m_MaskedMPLPipeline = PipelineGraphics::Create(state);
-
-			std::fill(m_PLShadowMapSamplers.begin(), m_PLShadowMapSamplers.end(), shadowMapSampler);
 		}
 
 		// For Spot lights

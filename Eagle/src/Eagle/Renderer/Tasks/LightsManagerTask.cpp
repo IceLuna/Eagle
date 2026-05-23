@@ -114,7 +114,7 @@ namespace Eagle
 			light.OuterCutOffRadians = glm::radians(outerAngle);
 			light.VolumetricFogIntensity = glm::max(spotLight->GetVolumetricFogIntensity(), 0.0f);
 			const float distance = spotLight->GetDistance();
-			light.Distance2  = distance * distance;
+			light.Distance = distance;
 			light.bCastsShadows = uint32_t(spotLight->DoesCastShadows());
 			light.ViewProjOffset = uint32_t(matrices.size());
 

@@ -68,7 +68,7 @@ namespace Eagle
 			uint32_t ViewProjOffset; // Offset into the transforms buffer
 
 			float VolumetricFogIntensity; // Sign bit is used as a flag for `bVolumetricLight`
-			float Distance2;
+			float Distance;
 			uint32_t bCastsShadows;
 			uint32_t ShadowMapIndex = EG_INVALID_SHADOW_MAP;
 		};

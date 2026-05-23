@@ -782,7 +782,7 @@ namespace Eagle
     {
         glm::vec3 Albedo = glm::vec3(1.f);
         uint32_t Samples = 20;
-        float MaxScatteringDistance = 250.f;
+        float MaxScatteringDistance = 100.f;
         float FogSpeed = 1.f;
         float Anisotropy = 0.f;
         bool bFogEnable = true;
@@ -807,8 +807,8 @@ namespace Eagle
 
     struct ShadowMapsSettings
     {
-        uint32_t PointLightShadowMapSize = 2048u;
-        uint32_t SpotLightShadowMapSize = 2048u;
+        uint32_t PointLightShadowMapSize = 1024u;
+        uint32_t SpotLightShadowMapSize = 1024u;
         std::vector<uint32_t> DirLightShadowMapSizes = { 4096u, 2048u, 2048u, 2048u };
 
         static constexpr uint32_t MinPointLightShadowMapSize = 64u;
@@ -1002,7 +1002,7 @@ namespace Eagle
         AAMethod AA = AAMethod::None;
         MSAASettings MSAAParams;
         bool bTranslucentShadows = true;
-        bool bEnableSoftShadows = true;
+        bool bEnableSoftShadows = false;
         bool bEnableCSMSmoothTransition = true;
         bool bVisualizeCascades = false;
         bool bVisualizeLightTiles = false;
