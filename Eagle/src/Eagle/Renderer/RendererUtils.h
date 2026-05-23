@@ -500,6 +500,7 @@ namespace Eagle
         ACES,
         PhotoLinear,
         AgX,
+        PBRNeutral,
     };
 
     enum class AAMethod

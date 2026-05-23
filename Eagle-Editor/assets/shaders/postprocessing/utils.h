@@ -6,6 +6,7 @@
 #define TONE_MAPPING_ACES 2
 #define TONE_MAPPING_PHOTO_LINEAR 3
 #define TONE_MAPPING_AgX 4
+#define TONE_MAPPING_PBR_NEUTRAL 5
 
 #define FOG_LINEAR 0
 #define FOG_EXP 1
@@ -162,6 +163,30 @@ vec3 AgX(vec3 color, AgXParams agxParams)
     return color;
 }
 
+// Khronos PBR neutral tonemapping
+vec3 PBRNeutral(vec3 color)
+{
+    const float F90 = 0.04f;
+    const float ks = 0.8f - F90;
+    const float kd = 0.15f;
+
+    float x = min(color.x, min(color.y, color.z));
+    float offset = x < (2.0f * F90) ? x - (1.0f / (4.0f * F90)) * x * x : 0.04f;
+    color -= offset;
+
+    float p = max(color.x, max(color.y, color.z));
+    if (p <= ks)
+    {
+        return color;
+    }
+
+    float d = 1.0f - ks;
+    float pn = 1.0f - d * d / (p + d - ks);
+
+    float g = 1.0f / (kd * (p - pn) + 1.0f);
+    return mix(vec3(pn), color * (pn / p), g);
+}
+
 vec3 ApplyTonemapping(const uint tonemapping_method, vec3 color, float exposure, float white_point, float photolinear_scale, AgXParams agxParams)
 {
     color *= exposure;
@@ -173,6 +198,7 @@ vec3 ApplyTonemapping(const uint tonemapping_method, vec3 color, float exposure,
         case TONE_MAPPING_ACES:         return ACESTonemap(color);
         case TONE_MAPPING_PHOTO_LINEAR: return PhotoLinearTonemap(color, photolinear_scale);
         case TONE_MAPPING_AgX:          return AgX(color, agxParams);
+        case TONE_MAPPING_PBR_NEUTRAL:  return PBRNeutral(color);
         default: return color;
     }
 }
