@@ -153,7 +153,6 @@ void main()
 vec3 Lighting(ShaderMaterial material, vec2 uv)
 {
     const vec3 albedo = material.Albedo;
-    const vec3 lambert_albedo = albedo * EG_INV_PI;
     const vec3 worldPos = i_WorldPos;
     const vec3 geometryNormal = normalize(i_Normal);
 
@@ -190,7 +189,7 @@ vec3 Lighting(ShaderMaterial material, vec2 uv)
             bucketBits ^= (1 << bucketLightIndex);
 
             const PointLight pointLight = g_PointLights[lightIndex];
-            Lo += CalculatePointLightRadiance(pointLight, worldPos, geometryNormal, shadingNormal, lambert_albedo, V, F0, metalness, roughness);
+            Lo += CalculatePointLightRadiance(pointLight, worldPos, geometryNormal, shadingNormal, albedo, V, F0, metalness, roughness);
         }
     }
 
@@ -206,7 +205,7 @@ vec3 Lighting(ShaderMaterial material, vec2 uv)
             bucketBits ^= (1 << bucketLightIndex);
 
             const SpotLight spotLight = g_SpotLights[lightIndex];
-            Lo += CalculateSpotLightRadiance(spotLight, worldPos, geometryNormal, shadingNormal, lambert_albedo, V, F0, metalness, roughness);
+            Lo += CalculateSpotLightRadiance(spotLight, worldPos, geometryNormal, shadingNormal, albedo, V, F0, metalness, roughness);
         }
     }
 
@@ -217,7 +216,7 @@ vec3 Lighting(ShaderMaterial material, vec2 uv)
 
     if (g_HasDirLight != 0)
     {
-        Lo += CalculateDirectionalLightRadiance(g_DirectionalLight, worldPos, geometryNormal, shadingNormal, lambert_albedo, V, F0, metalness, roughness,
+        Lo += CalculateDirectionalLightRadiance(g_DirectionalLight, worldPos, geometryNormal, shadingNormal, albedo, V, F0, metalness, roughness,
             g_CameraView, g_CSMOverlap
 #ifdef EG_ENABLE_CSM_VISUALIZATION
             , cascadeVisualizationColor

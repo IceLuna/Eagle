@@ -139,7 +139,7 @@ vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2DShadow depthTe
 	vec3 worldPos, vec3 cameraPos,
 	vec3 incoming, vec3 normal, mat4 cameraView, uint scatteringSamples, float scatteringZFar)
 {
-	const bool bVolumetricLight = (floatBitsToUint(light.VolumetricFogIntensity) & 0x80000000) != 0;
+	const bool bVolumetricLight = light.VolumetricFogIntensity < 0;
 	if (!bVolumetricLight)
 		return vec3(0.f);
 
@@ -245,7 +245,7 @@ vec3 PointLight_Volumetric(in PointLight light, samplerCubeShadow shadowMap,
 	vec3 worldPos, vec3 cameraPos,
 	vec3 normal, uint scatteringSamples, float scatteringZFar, bool bCastsShadow)
 {
-	const bool bVolumetricLight = (floatBitsToUint(light.VolumetricFogIntensity) & 0x80000000) != 0;
+	const bool bVolumetricLight = light.VolumetricFogIntensity < 0;
 	if (!bVolumetricLight)
 		return vec3(0.f);
 
@@ -413,7 +413,7 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2DShadow shadowMap,
 	vec3 worldPos, vec3 cameraPos,
 	vec3 normal, uint scatteringSamples, float scatteringZFar, bool bCastsShadow)
 {
-	const bool bVolumetricLight = (floatBitsToUint(light.VolumetricFogIntensity) & 0x80000000) != 0;
+	const bool bVolumetricLight = light.VolumetricFogIntensity < 0;
 	if (!bVolumetricLight)
 		return vec3(0.f);
 
@@ -473,7 +473,7 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2DShadow shadowMap,
 		const float distance2 = dot(incoming, incoming);
 		const float incomingLen = sqrt(distance2);
 		const vec3 normIncoming = incoming / incomingLen;
-		const float theta = clamp(dot(normIncoming, normSpotDir), EG_FLT_SMALL, 1.0);
+		const float theta = clamp(dot(normIncoming, normSpotDir), 0.0, 1.0);
 		const float cutoffIntensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
 		const float attenuation = cutoffIntensity / distance2;
 

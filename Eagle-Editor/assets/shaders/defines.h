@@ -66,7 +66,7 @@
 #define FLT_MIN 1.175494351e-38
 #endif
 #define FLT_MAX 3.402823466e+38F     // max value
-#define EG_FLT_SMALL 0.001f
+#define EG_FLT_SMALL (1e-6)
 #define EG_MIN_ROUGHNESS 0.04f
 #define EG_BASE_REFLECTIVITY 0.04f
 #define EG_OPACITY_MASK_THRESHOLD 0.5f

@@ -46,11 +46,11 @@ void main()
             // sample from the environment's mip level based on roughness/pdf
             const float D   = DistributionGGX(N, H, g_Roughness);
             const float NdotH = clamp(dot(N, H), 0.0, 1.0);
-            const float HdotV = clamp(dot(H, V), EG_FLT_SMALL, 1.0);
-            const float pdf = D * NdotH / (4.0 * HdotV);
+            const float HdotV = clamp(dot(H, V), 0.0, 1.0);
+            const float pdf = D * NdotH / max(4.0 * HdotV, EG_FLT_SMALL);
 
             const float saTexel  = 4.0 * EG_PI / (6.f * g_ResPerFace * g_ResPerFace);
-            const float saSample = 1.0 / (float(SAMPLE_COUNT) * pdf + EG_FLT_SMALL);
+            const float saSample = 1.0 / max(float(SAMPLE_COUNT) * pdf, EG_FLT_SMALL);
 
             const float mipLevel = max(0.5 * log2(saSample / saTexel), 0.f); 
             

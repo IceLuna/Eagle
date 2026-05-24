@@ -45,7 +45,6 @@ void main()
     const vec2 uv = (pixelCoords + 0.5) * texelSize;
 
     const vec3 albedo = texture(g_AlbedoTexture, uv).rgb;
-    const vec3 lambertAlbedo = albedo * EG_INV_PI;
     const float depth = texture(g_DepthTexture, uv).x;
     if (depth == EG_DEPTH_FAR)
     {
@@ -84,7 +83,7 @@ void main()
             bucketBits ^= (1 << bucketLightIndex);
 
             const PointLight pointLight = g_PointLights[lightIndex];
-            Lo += CalculatePointLightRadiance(pointLight, worldPos, geometryNormal, shadingNormal, lambertAlbedo, V, F0, metalness, roughness);
+            Lo += CalculatePointLightRadiance(pointLight, worldPos, geometryNormal, shadingNormal, albedo, V, F0, metalness, roughness);
         }
     }
 
@@ -100,7 +99,7 @@ void main()
             bucketBits ^= (1 << bucketLightIndex);
 
             const SpotLight spotLight = g_SpotLights[lightIndex];
-            Lo += CalculateSpotLightRadiance(spotLight, worldPos, geometryNormal, shadingNormal, lambertAlbedo, V, F0, metalness, roughness);
+            Lo += CalculateSpotLightRadiance(spotLight, worldPos, geometryNormal, shadingNormal, albedo, V, F0, metalness, roughness);
         }
     }
 
@@ -111,7 +110,7 @@ void main()
 
     if (g_HasDirLight != 0)
     {
-        Lo += CalculateDirectionalLightRadiance(g_DirectionalLight, worldPos, geometryNormal, shadingNormal, lambertAlbedo, V, F0, metalness, roughness,
+        Lo += CalculateDirectionalLightRadiance(g_DirectionalLight, worldPos, geometryNormal, shadingNormal, albedo, V, F0, metalness, roughness,
             g_CameraView, g_CSMOverlap
 #ifdef EG_ENABLE_CSM_VISUALIZATION
             , cascadeVisualizationColor

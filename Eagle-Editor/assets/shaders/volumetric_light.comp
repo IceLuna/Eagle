@@ -128,7 +128,7 @@ void main()
             const PointLight pointLight = g_PointLights[lightIndex];
             const uint shadowMapIndex = pointLight.ShadowMapIndex;
             const vec3 incoming = pointLight.Position - worldPos;
-            const bool bCastsShadows = (floatBitsToUint(pointLight.Radius2) & 0x80000000) != 0;
+            const bool bCastsShadows = pointLight.Radius2 < 0;
             const bool bCheckShadows = shadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS;
 
             if (bCastsShadows)

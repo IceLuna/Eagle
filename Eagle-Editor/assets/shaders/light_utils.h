@@ -4,19 +4,19 @@
 #include "common_structures.h"
 #include "shadow_maps/shadows_utils.h"
 
-vec3 CalculatePointLightRadiance(PointLight pointLight, vec3 worldPos, vec3 geometryNormal, vec3 shadingNormal, vec3 lambertAlbedo, vec3 V, vec3 F0,
+vec3 CalculatePointLightRadiance(PointLight pointLight, vec3 worldPos, vec3 geometryNormal, vec3 shadingNormal, vec3 albedo, vec3 V, vec3 F0,
     float metalness, float roughness)
 {
     const vec3 incoming = pointLight.Position - worldPos;
     const float distance2 = dot(incoming, incoming);
-    const bool bCastsShadows = (floatBitsToUint(pointLight.Radius2) & 0x80000000) != 0; // TODO: replace with `pointLight.Radius2 < 0.0`?
+    const bool bCastsShadows = pointLight.Radius2 < 0;
     const float radius2 = abs(pointLight.Radius2);
     if (distance2 > radius2)
     {
         return vec3(0);
     }
 
-    const float attenuation = 1.f / distance2
+    const float attenuation = 1.f / max(distance2, EG_FLT_SMALL)
         * EG_SQUARE(clamp(1.0 - EG_SQUARE(distance2 * 1.0f / radius2), 0.f, 1.f));
 
     if (IS_ZERO(attenuation))
@@ -42,7 +42,7 @@ vec3 CalculatePointLightRadiance(PointLight pointLight, vec3 worldPos, vec3 geom
         }
     }
 
-    const vec3 pointLightLo = EvaluatePBR(lambertAlbedo, normIncoming, V, shadingNormal, F0, metalness, roughness, pointLight.LightColor, attenuation);
+    const vec3 pointLightLo = EvaluatePBR(albedo, normIncoming, V, shadingNormal, F0, metalness, roughness, pointLight.LightColor, attenuation);
 #ifdef EG_TRANSLUCENT_SHADOWS
     return pointLightLo * coloredVisibility * visibility;
 #else
@@ -50,7 +50,7 @@ vec3 CalculatePointLightRadiance(PointLight pointLight, vec3 worldPos, vec3 geom
 #endif
 }
 
-vec3 CalculateSpotLightRadiance(SpotLight spotLight, vec3 worldPos, vec3 geometryNormal, vec3 shadingNormal, vec3 lambertAlbedo, vec3 V, vec3 F0,
+vec3 CalculateSpotLightRadiance(SpotLight spotLight, vec3 worldPos, vec3 geometryNormal, vec3 shadingNormal, vec3 albedo, vec3 V, vec3 F0,
     float metalness, float roughness)
 {
     const vec3 incoming = spotLight.Position - worldPos;
@@ -66,9 +66,9 @@ vec3 CalculateSpotLightRadiance(SpotLight spotLight, vec3 worldPos, vec3 geometr
     const float innerCutOffCos = cos(spotLight.InnerCutOffRadians);
     const float outerCutOffCos = cos(spotLight.OuterCutOffRadians);
     const float epsilon = innerCutOffCos - outerCutOffCos;
-    const float theta = clamp(dot(normIncoming, normalize(-spotLight.Direction)), EG_FLT_SMALL, 1.0);
+    const float theta = clamp(dot(normIncoming, normalize(-spotLight.Direction)), 0.0, 1.0);
     const float cutoffIntensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
-    const float attenuation = cutoffIntensity / distance2;
+    const float attenuation = cutoffIntensity / max(distance2, EG_FLT_SMALL);
 
     if (IS_ZERO(attenuation))
         return vec3(0);
@@ -92,7 +92,7 @@ vec3 CalculateSpotLightRadiance(SpotLight spotLight, vec3 worldPos, vec3 geometr
 #endif
         }
     }
-    const vec3 spotLightLo = EvaluatePBR(lambertAlbedo, normIncoming, V, shadingNormal, F0, metalness, roughness, spotLight.LightColor, attenuation);
+    const vec3 spotLightLo = EvaluatePBR(albedo, normIncoming, V, shadingNormal, F0, metalness, roughness, spotLight.LightColor, attenuation);
 #ifdef EG_TRANSLUCENT_SHADOWS
     return spotLightLo * coloredVisibility * visibility;
 #else
@@ -100,7 +100,7 @@ vec3 CalculateSpotLightRadiance(SpotLight spotLight, vec3 worldPos, vec3 geometr
 #endif
 }
 
-vec3 CalculateDirectionalLightRadiance(DirectionalLight light, vec3 worldPos, vec3 geometryNormal, vec3 shadingNormal, vec3 lambertAlbedo, vec3 V, vec3 F0,
+vec3 CalculateDirectionalLightRadiance(DirectionalLight light, vec3 worldPos, vec3 geometryNormal, vec3 shadingNormal, vec3 albedo, vec3 V, vec3 F0,
     float metalness, float roughness, mat4 view, float csmOverlap
 #ifdef EG_ENABLE_CSM_VISUALIZATION
     , inout vec3 cascadeVisualizationColor
@@ -163,7 +163,7 @@ vec3 CalculateDirectionalLightRadiance(DirectionalLight light, vec3 worldPos, ve
 #endif // EG_CSM_SMOOTH_TRANSITION
         }
     }
-    const vec3 directional_Lo = EvaluatePBR(lambertAlbedo, incoming, V, shadingNormal, F0, metalness, roughness, light.LightColor, 1.f);
+    const vec3 directional_Lo = EvaluatePBR(albedo, incoming, V, shadingNormal, F0, metalness, roughness, light.LightColor, 1.f);
 #ifdef EG_TRANSLUCENT_SHADOWS
     return directional_Lo * shadow * coloredShadow;
 #else
