@@ -50,7 +50,8 @@ namespace Eagle
         ACES,
         PhotoLinear,
         AgX,
-        PBRNeutral,
+        PBRNeutral, // From Khronos
+        GT7, // From Gran Turismo 7
     }
 
     public enum AAMethod
