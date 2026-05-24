@@ -295,6 +295,7 @@ namespace Eagle
 		Ref<RenderTrianglesTask> m_RenderTrianglesTask;
 		Ref<RendererTask> m_TAATask;
 		Ref<RendererTask> m_MSAATask;
+		Ref<RendererTask> m_FXAATask;
 		Ref<RenderBillboardsTask> m_RenderBillboardsTask;
 		Ref<PBRPassTask> m_PBRPassTask;
 		Ref<ShadowPassTask> m_ShadowPassTask;

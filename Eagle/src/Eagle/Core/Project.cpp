@@ -196,7 +196,7 @@ namespace Eagle
 	
 	void Project::GenerateSolution(const ProjectInfo& info)
 	{
-		const std::string vsVersions[] = { "vs2026", "vs2022", "vs2019" };
+		const std::string vsVersions[] = { "vs2022", "vs2019" };
 
 		const std::string eagleDir = Utils::AsString(std::filesystem::absolute(Application::GetCorePath().parent_path()));
 		std::string args = std::string(" --file=" + eagleDir + "/premake5_project.lua ") + "--projectname=" + info.Name

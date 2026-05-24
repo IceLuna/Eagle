@@ -507,6 +507,7 @@ namespace Eagle
     enum class AAMethod
     {
         None,
+        FXAA,
         MSAA,
         TAA,
     };

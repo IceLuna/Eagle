@@ -1,0 +1,45 @@
+#define FXAA_PC 1
+#define FXAA_GLSL_130 1
+#define FXAA_GREEN_AS_LUMA 1
+#define FXAA_QUALITY_PRESET 39
+
+#include "fxaa/fxaa3_11.h"
+
+layout(binding = 0) uniform sampler2D g_Input;
+layout(binding = 1, rgba8) uniform image2D g_Output;
+
+layout(push_constant) uniform PushConstants
+{
+    ivec2 g_Size;
+};
+
+#define GROUP_SIZE 8
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+void main()
+{
+    const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID);
+    if (pixelCoords.x >= g_Size.x || pixelCoords.y >= g_Size.y)
+        return;
+
+    const vec2 rcpSize = 1.0 / vec2(g_Size);
+    const vec2 pos = (vec2(pixelCoords) + 0.5f) * rcpSize;
+    const vec4 dummy4 =  vec4(0);
+    const float dummy1 = 0.0;
+    
+    // Reduces blur compared to the default value
+    // Src: https://youtu.be/N6sLJhI_Fmg?t=88
+    const float fxaaQualitySubpix = 0.0;
+
+    const float fxaaQualityEdgeThreshold = 0.166;
+    const float fxaaQualityEdgeThresholdMin = 0.0833;
+    
+    const vec4 result = FxaaPixelShader(pos, dummy4,
+                                        g_Input, g_Input, g_Input,
+                                        rcpSize, dummy4, dummy4, dummy4,
+                                        fxaaQualitySubpix, fxaaQualityEdgeThreshold,
+                                        fxaaQualityEdgeThresholdMin,
+                                        dummy1, dummy1, dummy1, dummy4);
+
+    imageStore(g_Output, pixelCoords, vec4(result.rgb, 1));
+}

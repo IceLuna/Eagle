@@ -15,6 +15,7 @@
 #include "Tasks/RenderSpritesTask.h"
 #include "Tasks/TAATask.h"
 #include "Tasks/MSAATask.h"
+#include "Tasks/FXAATask.h"
 #include "Tasks/VolumetricLightTask.h"
 #include "Tasks/DOFTask.h"
 #include "Tasks/MotionBlurTask.h"
@@ -101,6 +102,7 @@ namespace Eagle
 		InitOptionalTask<GTAOTask>(m_GTAOTask, options, options.AO == AmbientOcclusion::GTAO, *this);
 		InitOptionalTask<TAATask>(m_TAATask, options, options.AA == AAMethod::TAA, *this);
 		InitOptionalTask<MSAATask>(m_MSAATask, options, options.AA == AAMethod::MSAA, *this);
+		InitOptionalTask<FXAATask>(m_FXAATask, options, options.AA == AAMethod::FXAA, *this);
 		InitOptionalTask<VolumetricLightTask>(m_VolumetricTask, options, options.VolumetricSettings.bEnable, *this);
 		InitOptionalTask<FogPassTask>(m_FogTask, options, options.FogSettings.bEnable, *this);
 		InitOptionalTask<MotionBlurTask>(m_MotionBlurTask, options, options.MotionBlur.bEnable, *this);
@@ -255,6 +257,9 @@ namespace Eagle
 			if (renderer->m_Options_RT.BloomSettings.bEnable)
 				renderer->m_BloomTask->RecordCommandBuffer(cmd);
 			renderer->m_PostProcessingPassTask->RecordCommandBuffer(cmd);
+
+			if (renderer->m_Options_RT.AA == AAMethod::FXAA)
+				renderer->m_FXAATask->RecordCommandBuffer(cmd);
 
 			if (bRenderGrid)
 				renderer->m_GridTask->RecordCommandBuffer(cmd);
@@ -440,6 +445,9 @@ namespace Eagle
 		if (m_MSAATask)
 			m_MSAATask->OnResize(m_Size);
 
+		if (m_FXAATask)
+			m_FXAATask->OnResize(m_Size);
+
 		if (m_MotionBlurTask)
 			m_MotionBlurTask->OnResize(m_Size);
 
@@ -536,6 +544,7 @@ namespace Eagle
 		InitOptionalTask<GTAOTask>(m_GTAOTask, options, options.AO == AmbientOcclusion::GTAO, *this);
 		InitOptionalTask<TAATask>(m_TAATask, options, options.AA == AAMethod::TAA, *this);
 		InitOptionalTask<MSAATask>(m_MSAATask, options, options.AA == AAMethod::MSAA, *this);
+		InitOptionalTask<FXAATask>(m_FXAATask, options, options.AA == AAMethod::FXAA, *this);
 		InitOptionalTask<VolumetricLightTask>(m_VolumetricTask, options, options.VolumetricSettings.bEnable, *this);
 		InitOptionalTask<FogPassTask>(m_FogTask, options, options.FogSettings.bEnable, *this);
 		InitOptionalTask<MotionBlurTask>(m_MotionBlurTask, options, options.MotionBlur.bEnable, *this);
