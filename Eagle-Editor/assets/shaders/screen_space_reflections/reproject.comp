@@ -44,54 +44,54 @@ float FFX_DNSR_Reflections_SampleDepthHistory(vec2 uv)
     return texture(g_DepthHistory, uv).x;
 }
 
-f16vec3 FFX_DNSR_Reflections_LoadRadiance(ivec2 pixelCoordinate)
+vec3 FFX_DNSR_Reflections_LoadRadiance(ivec2 pixelCoordinate)
 {
-    return f16vec3(texelFetch(g_Radiance, pixelCoordinate, 0).xyz);
+    return texelFetch(g_Radiance, pixelCoordinate, 0).xyz;
 }
 
-f16vec3 FFX_DNSR_Reflections_LoadRadianceHistory(ivec2 pixelCoordinate)
+vec3 FFX_DNSR_Reflections_LoadRadianceHistory(ivec2 pixelCoordinate)
 {
-    return f16vec3(texelFetch(g_RadianceHistory, pixelCoordinate, 0).xyz);
+    return texelFetch(g_RadianceHistory, pixelCoordinate, 0).xyz;
 }
 
-f16vec3 FFX_DNSR_Reflections_SampleRadianceHistory(vec2 uv)
+vec3 FFX_DNSR_Reflections_SampleRadianceHistory(vec2 uv)
 {
-    return f16vec3(texture(g_RadianceHistory, uv).xyz);
+    return texture(g_RadianceHistory, uv).xyz;
 }
 
-float16_t FFX_DNSR_Reflections_SampleNumSamplesHistory(vec2 uv)
+float FFX_DNSR_Reflections_SampleNumSamplesHistory(vec2 uv)
 {
-    return float16_t(texture(g_SampleCountHistory, uv).x);
+    return texture(g_SampleCountHistory, uv).x;
 }
 
-f16vec3 FFX_DNSR_Reflections_LoadWorldSpaceNormal(ivec2 pixelCoordinate)
+vec3 FFX_DNSR_Reflections_LoadWorldSpaceNormal(ivec2 pixelCoordinate)
 {
-    return normalize(f16vec3(DecodeNormal(texelFetch(g_Normal, pixelCoordinate, 0).zw)));
+    return normalize(DecodeNormal(texelFetch(g_Normal, pixelCoordinate, 0).zw));
 }
 
-f16vec3 FFX_DNSR_Reflections_LoadWorldSpaceNormalHistory(ivec2 pixelCoordinate)
+vec3 FFX_DNSR_Reflections_LoadWorldSpaceNormalHistory(ivec2 pixelCoordinate)
 {
-    return normalize(f16vec3(DecodeNormal(texelFetch(g_NormalHistory, pixelCoordinate, 0).zw)));
+    return normalize(DecodeNormal(texelFetch(g_NormalHistory, pixelCoordinate, 0).zw));
 }
 
-f16vec3 FFX_DNSR_Reflections_SampleWorldSpaceNormalHistory(vec2 uv)
+vec3 FFX_DNSR_Reflections_SampleWorldSpaceNormalHistory(vec2 uv)
 {
-    return normalize(f16vec3(DecodeNormal(texture(g_NormalHistory, uv).zw)));
+    return normalize(DecodeNormal(texture(g_NormalHistory, uv).zw));
 }
 
-float16_t FFX_DNSR_Reflections_LoadRoughness(ivec2 pixelCoordinate)
+float FFX_DNSR_Reflections_LoadRoughness(ivec2 pixelCoordinate)
 {
-    return float16_t(texelFetch(g_Roughness, pixelCoordinate, 0).x);
+    return texelFetch(g_Roughness, pixelCoordinate, 0).x;
 }
 
-float16_t FFX_DNSR_Reflections_SampleRoughnessHistory(vec2 uv)
+float FFX_DNSR_Reflections_SampleRoughnessHistory(vec2 uv)
 {
-    return float16_t(texture(g_RoughnessHistory, uv).x);
+    return texture(g_RoughnessHistory, uv).x;
 }
 
-float16_t FFX_DNSR_Reflections_LoadRoughnessHistory(ivec2 pixelCoordinate)
+float FFX_DNSR_Reflections_LoadRoughnessHistory(ivec2 pixelCoordinate)
 {
-    return float16_t(texelFetch(g_RoughnessHistory, pixelCoordinate, 0).x);
+    return texelFetch(g_RoughnessHistory, pixelCoordinate, 0).x;
 }
 
 vec2 FFX_DNSR_Reflections_LoadMotionVector(ivec2 pixelCoordinate)
@@ -99,39 +99,39 @@ vec2 FFX_DNSR_Reflections_LoadMotionVector(ivec2 pixelCoordinate)
     return texelFetch(g_Motion, pixelCoordinate, 0).xy;
 }
 
-f16vec3 FFX_DNSR_Reflections_SamplePreviousAverageRadiance(vec2 uv)
+vec3 FFX_DNSR_Reflections_SamplePreviousAverageRadiance(vec2 uv)
 {
-    return f16vec3(texture(g_AverageRadianceHistory, uv).xyz);
+    return texture(g_AverageRadianceHistory, uv).xyz;
 }
 
-float16_t FFX_DNSR_Reflections_SampleVarianceHistory(vec2 uv)
+float FFX_DNSR_Reflections_SampleVarianceHistory(vec2 uv)
 {
-    return float16_t(texture(g_VarianceHistory, uv).x);
+    return texture(g_VarianceHistory, uv).x;
 }
 
-float16_t FFX_DNSR_Reflections_LoadRayLength(ivec2 pixelCoordinate)
+float FFX_DNSR_Reflections_LoadRayLength(ivec2 pixelCoordinate)
 {
-    return float16_t(texelFetch(g_Radiance, pixelCoordinate, 0).w);
+    return texelFetch(g_Radiance, pixelCoordinate, 0).w;
 }
 
-void FFX_DNSR_Reflections_StoreRadianceReprojected(ivec2 pixelCoordinate, f16vec3 value)
+void FFX_DNSR_Reflections_StoreRadianceReprojected(ivec2 pixelCoordinate, vec3 value)
 {
-    imageStore(g_OutReprojectedRadiance, pixelCoordinate, f16vec4(value, float16_t(0.f)));
+    imageStore(g_OutReprojectedRadiance, pixelCoordinate, vec4(value, 0.f));
 }
 
-void FFX_DNSR_Reflections_StoreAverageRadiance(ivec2 pixelCoordinate, f16vec3 value)
+void FFX_DNSR_Reflections_StoreAverageRadiance(ivec2 pixelCoordinate, vec3 value)
 {
-    imageStore(g_OutAverageRadiance, pixelCoordinate, f16vec4(value, float16_t(0.f)));
+    imageStore(g_OutAverageRadiance, pixelCoordinate, vec4(value, 0.f));
 }
 
-void FFX_DNSR_Reflections_StoreVariance(ivec2 pixelCoordinate, float16_t value)
+void FFX_DNSR_Reflections_StoreVariance(ivec2 pixelCoordinate, float value)
 {
-    imageStore(g_OutVariance, pixelCoordinate, f16vec4(value));
+    imageStore(g_OutVariance, pixelCoordinate, vec4(value));
 }
 
-void FFX_DNSR_Reflections_StoreNumSamples(ivec2 pixelCoordinate, float16_t value)
+void FFX_DNSR_Reflections_StoreNumSamples(ivec2 pixelCoordinate, float value)
 {
-    imageStore(g_OutSampleCount, pixelCoordinate, f16vec4(value));
+    imageStore(g_OutSampleCount, pixelCoordinate, vec4(value));
 }
 
 #include "screen_space_reflections/ffx_denoiser_reflections_reproject.h"

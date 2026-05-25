@@ -328,21 +328,21 @@ void main()
     particle.Flags = EmitterFlagsToParticleFlags(emitter.Flags);
 
     particle.Velocity = normal * emitter.NormalVelocityFactor + mix(emitter.VelocityMin, emitter.VelocityMax, Random_NextFloat3(random));
-    particle.Bounciness = float16_t(bounciness);
-    particle.RotationZ = float16_t(emitter.RotationZStart);
+    particle.Bounciness = bounciness;
+    particle.RotationZ = emitter.RotationZStart;
 
     particle.VelocityCoef = emitter.VelocityCoefStart;
-    particle.EmitterIndex = uint16_t(emitterIndex);
+    particle.EmitterIndex = emitterIndex;
 
-    particle.Color = f16vec4(emitter.ColorStart);
-    particle.TextureIndex = uint16_t(emitter.TextureIndex);
-    particle.AnimationSpriteCoord = u16vec2(0);
-    particle.AnimationLerp = float16_t(0.f);
+    particle.Color = emitter.ColorStart;
+    particle.TextureIndex = emitter.TextureIndex;
+    particle.AnimationSpriteCoord = uvec2(0);
+    particle.AnimationLerp = 0.0f;
 
     DecompositedTransform decompositedTr = g_DecompositedTransforms[emitter.TransformIndex];
     particle.SizeScale = decompositedTr.Scale;
     particle.RotationZOffset = decompositedTr.RotationZ;
 
-    g_Particles[particleIndex] = Particle_Pack(particle, u16vec2(emitter.AnimationImagesNum));
+    g_Particles[particleIndex] = Particle_Pack(particle, emitter.AnimationImagesNum);
     PushAlive(particleIndex);
 }

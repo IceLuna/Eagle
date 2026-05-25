@@ -177,7 +177,7 @@ bool Emitter_WasExplode(Emitter emitter)
 	return HasFlag(emitter.InternalFlags, Emitter_Internal_WasExplode_Mask);
 }
 
-// TODO: Is it even worth it? 92+4padding bytes (packed) vs 122 bytes (unpacked). Unpacked will probably require more, since then it'd need to be aligned correctly
+// TODO: Is it even worth it? 96 bytes (packed) vs 144 bytes (unpacked). Unpacked will probably require more, since then it'd need to be aligned correctly
 struct PackedParticle
 {
 	vec2 Size;
@@ -194,17 +194,26 @@ struct PackedParticle
 	uint Bounciness_Opacity; // packHalf2x16
 
 	uint RotationZ_AnimationLerp; // packHalf2x16
-	uint16_t TextureIndex; // Texture index is stored here to avoid an addition read from emitters buffer just to get this index
-	uint16_t EmitterIndex;
+	uint TextureIndex; // Texture index is stored here to avoid an addition read from emitters buffer just to get this index
+	uint EmitterIndex;
 	uint AnimationImagesNum; // Used to calculate SpriteSize, which is used to calculate UV1 from UV0 (uv1 = uv0 + spriteSize)
-	uint AnimationSpriteCoord; // High 16 bits - x, rest - y
 
 	vec2 SizeScale;
 	float RotationZOffset;
-	uint Padding0;
+	uint AnimationSpriteCoord; // High 16 bits - x, rest - y
 };
 
 #ifndef __cplusplus
+
+uint packUint16(uvec2 v)
+{
+	return (v.x & 0xFFFFu) | (v.y << 16);
+}
+
+uvec2 unpackUint16(uint p)
+{
+	return uvec2(p & 0xFFFFu, (p >> 16) & 0xFFFFu);
+}
 
 struct StaticMeshVertex
 {
@@ -216,8 +225,8 @@ struct SkeletalMeshVertex
 {
 	vec3 Position;
 	uint Normal;
-	f16vec4 Weights;
-	u16vec4 BoneIDs;
+	uvec2 Weights; // Packed f16
+	uvec2 BoneIDs; // Packed u16
 };
 
 struct DrawArgs
@@ -230,6 +239,8 @@ struct DrawArgs
 
 struct Particle
 {
+	vec4 Color; // RGBA
+
 	vec2 Size;
 	float CurrentLifetime;
 	float Lifetime;
@@ -238,50 +249,48 @@ struct Particle
 	uint Flags;
 
 	vec3 Velocity;
-	float16_t Bounciness;
-	float16_t RotationZ;
+	uint TextureIndex;
 
 	vec3 VelocityCoef;
-	uint16_t EmitterIndex;
-	uint16_t TextureIndex;
-
-	f16vec4 Color; // RGBA
+	uint EmitterIndex;
 
 	vec2 AnimationUV0;
 	vec2 AnimationUV1;
 	vec2 NextAnimationUV0; // Used for lerping
 	vec2 NextAnimationUV1; // Used for lerping
 
-	u16vec2 AnimationSpriteCoord;
-	float16_t AnimationLerp;
+	uvec2 AnimationSpriteCoord;
+	float AnimationLerp;
+	float RotationZ;
 
 	vec2 SizeScale;
 	float RotationZOffset;
+	float Bounciness;
 };
 
-void Particle_CalculateAnimationUV(u16vec2 coord, u16vec2 animationImagesNum, out vec2 uv0, out vec2 uv1)
+void Particle_CalculateAnimationUV(uvec2 coord, uvec2 animationImagesNum, out vec2 uv0, out vec2 uv1)
 {
 	const vec2 spriteSize = 1.f / vec2(animationImagesNum);
 	uv0 = vec2(coord) * spriteSize;
 	uv1 = uv0 + spriteSize;
 }
 
-void Particle_AdvanceAnimation(inout u16vec2 coord, u16vec2 animationImagesNum)
+void Particle_AdvanceAnimation(inout uvec2 coord, uvec2 animationImagesNum)
 {
-	coord.x += uint16_t(1u);
+	coord.x += 1u;
 
 	const bool exceededWidth = coord.x >= animationImagesNum.x;
 	if (exceededWidth)
 	{
-		coord.x = uint16_t(0u);
-		coord.y += uint16_t(1u);
+		coord.x = 0u;
+		coord.y += 1u;
 		const bool exceededHeight = coord.y >= animationImagesNum.y;
 		if (exceededHeight)
-			coord.y = animationImagesNum.y - uint16_t(1u);
+			coord.y = animationImagesNum.y - 1u;
 	}
 }
 
-PackedParticle Particle_Pack(Particle particle, u16vec2 animationImagesNum)
+PackedParticle Particle_Pack(Particle particle, uvec2 animationImagesNum)
 {
 	PackedParticle packed;
 
@@ -293,17 +302,17 @@ PackedParticle Particle_Pack(Particle particle, u16vec2 animationImagesNum)
 	packed.Flags = particle.Flags;
 
 	packed.Velocity = particle.Velocity;
-	packed.Color = PackR11G11B10_F16(particle.Color.rgb);
+	packed.Color = PackR11G11B10(particle.Color.rgb);
 
 	packed.VelocityCoef = particle.VelocityCoef;
-	packed.Bounciness_Opacity = packFloat2x16(f16vec2(particle.Bounciness, particle.Color.a));
+	packed.Bounciness_Opacity = packHalf2x16(vec2(particle.Bounciness, particle.Color.a));
 
-	packed.RotationZ_AnimationLerp = packFloat2x16(f16vec2(particle.RotationZ, particle.AnimationLerp));
+	packed.RotationZ_AnimationLerp = packHalf2x16(vec2(particle.RotationZ, particle.AnimationLerp));
 	packed.EmitterIndex = particle.EmitterIndex;
 	packed.TextureIndex = particle.TextureIndex;
 
-	packed.AnimationImagesNum = packUint2x16(animationImagesNum);
-	packed.AnimationSpriteCoord = packUint2x16(particle.AnimationSpriteCoord);
+	packed.AnimationImagesNum = packUint16(animationImagesNum);
+	packed.AnimationSpriteCoord = packUint16(particle.AnimationSpriteCoord);
 
 	packed.SizeScale = particle.SizeScale;
 	packed.RotationZOffset = particle.RotationZOffset;
@@ -313,8 +322,6 @@ PackedParticle Particle_Pack(Particle particle, u16vec2 animationImagesNum)
 
 Particle Particle_Unpack(PackedParticle packed)
 {
-	f16vec2 unpackedf16;
-
 	Particle particle;
 
 	particle.Size = packed.Size;
@@ -325,26 +332,26 @@ Particle Particle_Unpack(PackedParticle packed)
 	particle.Flags = packed.Flags;
 
 	particle.Velocity = packed.Velocity;
-	particle.Color.rgb = UnpackR11G11B10_F16(packed.Color);
+	particle.Color.rgb = UnpackR11G11B10(packed.Color);
 
-	unpackedf16 = unpackFloat2x16(packed.Bounciness_Opacity);
+	vec2 unpacked = unpackHalf2x16(packed.Bounciness_Opacity);
 	particle.VelocityCoef = packed.VelocityCoef;
-	particle.Bounciness = unpackedf16.x;
-	particle.Color.a = unpackedf16.y;
+	particle.Bounciness = unpacked.x;
+	particle.Color.a = unpacked.y;
 
 	particle.SizeScale = packed.SizeScale;
 	particle.RotationZOffset = packed.RotationZOffset;
 
-	unpackedf16 = unpackFloat2x16(packed.RotationZ_AnimationLerp);
-	particle.RotationZ = unpackedf16.x;
-	particle.AnimationLerp = unpackedf16.y;
+	unpacked = unpackHalf2x16(packed.RotationZ_AnimationLerp);
+	particle.RotationZ = unpacked.x;
+	particle.AnimationLerp = unpacked.y;
 	particle.TextureIndex = packed.TextureIndex;
 	particle.EmitterIndex = packed.EmitterIndex;
 
 	if (particle.TextureIndex != EG_INVALID_INDEX)
 	{
-		u16vec2 animationImagesNum = unpackUint2x16(packed.AnimationImagesNum);
-		u16vec2 animationSpriteCoord = unpackUint2x16(packed.AnimationSpriteCoord);
+		uvec2 animationImagesNum = unpackUint16(packed.AnimationImagesNum);
+		uvec2 animationSpriteCoord = unpackUint16(packed.AnimationSpriteCoord);
 		particle.AnimationSpriteCoord = animationSpriteCoord;
 
 		Particle_CalculateAnimationUV(animationSpriteCoord, animationImagesNum, particle.AnimationUV0, particle.AnimationUV1);
@@ -361,7 +368,7 @@ Particle Particle_Unpack(PackedParticle packed)
 	}
 	else
 	{
-		particle.AnimationSpriteCoord = u16vec2(0);
+		particle.AnimationSpriteCoord = uvec2(0);
 		particle.AnimationUV0 = vec2(0);
 		particle.AnimationUV1 = vec2(0);
 		particle.NextAnimationUV0 = vec2(0);

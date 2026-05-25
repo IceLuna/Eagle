@@ -2,8 +2,6 @@
 #define EG_UTILS
 
 #extension GL_KHR_shader_subgroup_ballot : enable
-#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
-#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 
 // For each component of v, returns -1 if the component is < 0, else 1
 vec2 sign_not_zero(vec2 v)
@@ -455,37 +453,71 @@ vec3 BarycentricInterp(vec3 v0, vec3 v1, vec3 v2, vec2 buv)
     return v0 * (1.f - buv.x - buv.y) + v1 * buv.x + v2 * buv.y;
 }
 
-uint PackR11G11B10_F16(f16vec3 value)
+uint PackR11(uint f32, uint mantissaBits)
 {
-    u16vec3 value16 = halfBitsToUint16(value);
+    uint exponent = (f32 >> 23) & 0xFFu;
+    uint mantissa = f32 & 0x7FFFFFu;
 
-    // Discarding some mantissa bits.
-    // Note: shifting to the right needs to be "4 or 5" instead of "5 or 6"
-    // because float16 has a sign bit and we don't need it.
-    uint r11 = uint(value16.x >> 4) & 0x7FF;
-    uint g11 = uint(value16.y >> 4) & 0x7FF;
-    uint b10 = uint(value16.z >> 5) & 0x3FF;
-    return (b10 << 22) | (g11 << 11) | r11;
+    // Zero / denormals
+    if (exponent == 0u)
+        return 0u;
+
+    // Remove FP32 bias, apply FP16/R11G11B10 bias
+    int newExp = int(exponent) - 127 + 15;
+
+    // Clamp exponent
+    if (newExp <= 0)
+        return 0u;
+
+    if (newExp >= 31)
+    {
+        // INF
+        return (31u << mantissaBits);
+    }
+
+    // Truncate mantissa
+    uint newMantissa = mantissa >> (23u - mantissaBits);
+
+    return (uint(newExp) << mantissaBits) | newMantissa;
 }
 
-f16vec3 UnpackR11G11B10_F16(uint packed)
+float UnpackChannel(uint bits, uint mantissaBits)
 {
-    u16vec3 value16;
-    value16.x = uint16_t(packed & 0x7FF) << 4;
-    value16.y = uint16_t((packed >> 11) & 0x7FF) << 4;
-    value16.z = uint16_t((packed >> 22) & 0x3FF) << 5;
+    uint exponent = bits >> mantissaBits;
+    uint mantissaMask = (1u << mantissaBits) - 1u;
+    uint mantissa = bits & mantissaMask;
 
-    return uint16BitsToHalf(value16);
+    if (exponent == 0u)
+        return 0.0;
+
+    // Convert back to FP32 exponent
+    uint fp32Exp = uint(int(exponent) - 15 + 127);
+
+    uint fp32Mantissa = mantissa << (23u - mantissaBits);
+
+    uint fp32 = (fp32Exp << 23) | fp32Mantissa;
+
+    return uintBitsToFloat(fp32);
 }
 
-uint PackR11G11B10_F32(vec3 value)
+uint PackR11G11B10(vec3 value)
 {
-    return PackR11G11B10_F16(f16vec3(value));
+    uvec3 bits = floatBitsToUint(value);
+
+    uint r = PackR11(bits.x, 6);
+    uint g = PackR11(bits.y, 6);
+    uint b = PackR11(bits.z, 5);
+
+    return r | (g << 11) | (b << 22);
 }
 
-vec3 UnpackR11G11B10_F32(uint packed)
+vec3 UnpackR11G11B10(uint packed)
 {
-    return vec3(UnpackR11G11B10_F16(packed));
+    float r = UnpackChannel(packed & 0x7FFu, 6);
+    float g = UnpackChannel((packed >> 11) & 0x7FFu, 6);
+    float b = UnpackChannel((packed >> 22) & 0x3FFu, 5);
+
+    return vec3(r, g, b);
 }
 
 vec3 Color_LinearToSRGB(vec3 color)

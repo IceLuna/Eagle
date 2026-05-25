@@ -218,7 +218,7 @@ void main()
 
         while (AdvanceAnimationCount > 0) // TODO: Advance at once
         {
-            Particle_AdvanceAnimation(particle.AnimationSpriteCoord, u16vec2(emitter.AnimationImagesNum));
+            Particle_AdvanceAnimation(particle.AnimationSpriteCoord, emitter.AnimationImagesNum);
             --AdvanceAnimationCount;
         }
     }
@@ -232,13 +232,13 @@ void main()
     particle.CurrentLifetime += g_DeltaTime;
     particle.Position += velocity * g_DeltaTime;
     particle.Flags = EmitterFlagsToParticleFlags(emitter.Flags);
-    particle.RotationZ = float16_t(rotationZ);
+    particle.RotationZ = rotationZ;
     particle.VelocityCoef = mix(emitter.VelocityCoefStart, emitter.VelocityCoefEnd, lifeAlpha);
-    particle.Color = f16vec4(mix(emitter.ColorStart, emitter.ColorEnd, lifeAlpha));
-    particle.TextureIndex = uint16_t(emitter.TextureIndex);
-    particle.AnimationLerp = float16_t(animationLerp);
+    particle.Color = mix(emitter.ColorStart, emitter.ColorEnd, lifeAlpha);
+    particle.TextureIndex = emitter.TextureIndex;
+    particle.AnimationLerp = animationLerp;
 
-    g_Particles[particleIndex] = Particle_Pack(particle, u16vec2(emitter.AnimationImagesNum));
+    g_Particles[particleIndex] = Particle_Pack(particle, emitter.AnimationImagesNum);
     PushAlive(particleIndex);
 
     if (Emitter_IsVisible(emitter))

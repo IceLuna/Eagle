@@ -25,9 +25,6 @@ THE SOFTWARE.
 
 #include "screen_space_reflections/ffx_denoiser_reflections_config.h"
 
-#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
-#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
-
 uint FFX_DNSR_Reflections_BitfieldExtract(uint src, uint off, uint bits) {
     uint mask = (1 << bits) - 1;
     return (src >> off) & mask;
@@ -53,28 +50,26 @@ uvec2 FFX_DNSR_Reflections_RemapLane8x8(uint lane) {
                  FFX_DNSR_Reflections_BitfieldInsert(FFX_DNSR_Reflections_BitfieldExtract(lane, 3u, 3u), FFX_DNSR_Reflections_BitfieldExtract(lane, 1u, 2u), 2u));
 }
 
-float16_t FFX_DNSR_Reflections_Luminance(f16vec3 color) { return max(dot(color, f16vec3(0.299, 0.587, 0.114)), float16_t(0.001)); }
+float FFX_DNSR_Reflections_Luminance(vec3 color) { return max(dot(color, vec3(0.299, 0.587, 0.114)), 0.001); }
 
-float16_t FFX_DNSR_Reflections_ComputeTemporalVariance(f16vec3 history_radiance, f16vec3 radiance) {
-    float16_t history_luminance = FFX_DNSR_Reflections_Luminance(history_radiance);
-    float16_t luminance         = FFX_DNSR_Reflections_Luminance(radiance);
-    float16_t diff              = abs(history_luminance - luminance) / max(max(history_luminance, luminance), float16_t(0.5f));
+float FFX_DNSR_Reflections_ComputeTemporalVariance(vec3 history_radiance, vec3 radiance) {
+    float history_luminance = FFX_DNSR_Reflections_Luminance(history_radiance);
+    float luminance         = FFX_DNSR_Reflections_Luminance(radiance);
+    float diff              = abs(history_luminance - luminance) / max(max(history_luminance, luminance), 0.5f);
     return diff * diff;
 }
 
-uint FFX_DNSR_Reflections_PackFloat16(f16vec2 v) {
-    uvec2 p = uvec2(halfBitsToUint16(v.x), halfBitsToUint16(v.y));
-    return p.x | (p.y << 16);
+uint FFX_DNSR_Reflections_PackFloat16(vec2 v) {
+    return packHalf2x16(v);
 }
 
-f16vec2 FFX_DNSR_Reflections_UnpackFloat16(uint a) {
-    u16vec2 temp = u16vec2(a & 0xFFFF, a >> 16);
-    return f16vec2(uint16BitsToHalf(temp.x), uint16BitsToHalf(temp.y));
+vec2 FFX_DNSR_Reflections_UnpackFloat16(uint a) {
+    return unpackHalf2x16(a);
 }
 
-uvec2 FFX_DNSR_Reflections_PackFloat16_4(f16vec4 v) { return uvec2(FFX_DNSR_Reflections_PackFloat16(v.xy), FFX_DNSR_Reflections_PackFloat16(v.zw)); }
+uvec2 FFX_DNSR_Reflections_PackFloat16_4(vec4 v) { return uvec2(FFX_DNSR_Reflections_PackFloat16(v.xy), FFX_DNSR_Reflections_PackFloat16(v.zw)); }
 
-f16vec4 FFX_DNSR_Reflections_UnpackFloat16_4(uvec2 a) { return f16vec4(FFX_DNSR_Reflections_UnpackFloat16(a.x), FFX_DNSR_Reflections_UnpackFloat16(a.y)); }
+vec4 FFX_DNSR_Reflections_UnpackFloat16_4(uvec2 a) { return vec4(FFX_DNSR_Reflections_UnpackFloat16(a.x), FFX_DNSR_Reflections_UnpackFloat16(a.y)); }
 
 // Rounds value to the nearest multiple of 8
 uvec2 FFX_DNSR_Reflections_RoundUp8(uvec2 value) {
@@ -105,7 +100,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ********************************************************************/
-f16vec3 FFX_DNSR_Reflections_ClipAABB(f16vec3 aabb_min, f16vec3 aabb_max, f16vec3 prev_sample) {
+vec3 FFX_DNSR_Reflections_ClipAABB(vec3 aabb_min, vec3 aabb_max, vec3 prev_sample) {
     // Main idea behind clipping - it prevents clustering when neighbor color space
     // is distant from history sample
 
@@ -121,10 +116,10 @@ f16vec3 FFX_DNSR_Reflections_ClipAABB(f16vec3 aabb_min, f16vec3 aabb_max, f16vec
     vec3 color_vector_clip = color_vector / extent_clip;
     // Find max absolute component
     color_vector_clip       = abs(color_vector_clip);
-    float16_t max_abs_unit = float16_t(max(max(color_vector_clip.x, color_vector_clip.y), color_vector_clip.z));
+    float max_abs_unit = max(max(color_vector_clip.x, color_vector_clip.y), color_vector_clip.z);
 
     if (max_abs_unit > 1.0) {
-        return f16vec3(aabb_center + color_vector / max_abs_unit); // clip towards color vector
+        return aabb_center + color_vector / max_abs_unit; // clip towards color vector
     } else {
         return prev_sample; // point is inside aabb
     }
@@ -136,9 +131,9 @@ f16vec3 FFX_DNSR_Reflections_ClipAABB(f16vec3 aabb_min, f16vec3 aabb_max, f16vec
 #        define FFX_DNSR_REFLECTIONS_LOCAL_NEIGHBORHOOD_RADIUS 4
 #    endif
 
-float16_t FFX_DNSR_Reflections_LocalNeighborhoodKernelWeight(float16_t i) {
-    const float16_t radius = float16_t(FFX_DNSR_REFLECTIONS_LOCAL_NEIGHBORHOOD_RADIUS + 1.0);
-    return exp(float16_t(-FFX_DNSR_REFLECTIONS_GAUSSIAN_K) * (i * i) / (radius * radius));
+float FFX_DNSR_Reflections_LocalNeighborhoodKernelWeight(float i) {
+    const float radius = FFX_DNSR_REFLECTIONS_LOCAL_NEIGHBORHOOD_RADIUS + 1.0;
+    return exp(-FFX_DNSR_REFLECTIONS_GAUSSIAN_K * (i * i) / (radius * radius));
 }
 
 #endif // FFX_DNSR_REFLECTIONS_ESTIMATES_LOCAL_NEIGHBORHOOD

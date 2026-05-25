@@ -20,9 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ********************************************************************/
 
-#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
-#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
-
 const float g_roughness_sigma_min = 0.01f;
 const float g_roughness_sigma_max = 0.02f;
 const float g_depth_sigma = 0.02f;
@@ -40,16 +37,14 @@ layout(binding = 0) uniform SSSRData
 
 //=== Common functions of the SssrSample ===
 
-uint PackFloat16(f16vec2 v)
+uint PackFloat16(vec2 v)
 {
-    uvec2 p = uvec2(halfBitsToUint16(v.x), halfBitsToUint16(v.y));
-    return p.x | (p.y << 16);
+    return packHalf2x16(v);
 }
 
-f16vec2 UnpackFloat16(uint a)
+vec2 UnpackFloat16(uint a)
 {
-    u16vec2 temp = u16vec2(a & 0xFFFF, a >> 16);
-    return f16vec2(uint16BitsToHalf(temp.x), uint16BitsToHalf(temp.y));
+    return unpackHalf2x16(a);
 }
 
 uint PackRayCoords(uvec2 ray_coord, bool copy_horizontal, bool copy_vertical, bool copy_diagonal)

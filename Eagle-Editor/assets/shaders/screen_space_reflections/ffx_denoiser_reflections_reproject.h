@@ -31,26 +31,26 @@ shared uint g_ffx_dnsr_shared_1[16][16];
 
 struct FFX_DNSR_Reflections_NeighborhoodSample
 {
-    f16vec3 radiance;
+    vec3 radiance;
 };
 
 FFX_DNSR_Reflections_NeighborhoodSample FFX_DNSR_Reflections_LoadFromGroupSharedMemory(ivec2 idx)
 {
     uvec2       packed_radiance      = uvec2(g_ffx_dnsr_shared_0[idx.y][idx.x], g_ffx_dnsr_shared_1[idx.y][idx.x]);
-    f16vec4 unpacked_radiance        = FFX_DNSR_Reflections_UnpackFloat16_4(packed_radiance);
+    vec4 unpacked_radiance        = FFX_DNSR_Reflections_UnpackFloat16_4(packed_radiance);
 
     FFX_DNSR_Reflections_NeighborhoodSample smpl;
     smpl.radiance = unpacked_radiance.xyz;
     return smpl;
 }
 
-void FFX_DNSR_Reflections_StoreInGroupSharedMemory(ivec2 group_thread_id, f16vec3 radiance)
+void FFX_DNSR_Reflections_StoreInGroupSharedMemory(ivec2 group_thread_id, vec3 radiance)
 {
     g_ffx_dnsr_shared_0[group_thread_id.y][group_thread_id.x]     = FFX_DNSR_Reflections_PackFloat16(radiance.xy);
     g_ffx_dnsr_shared_1[group_thread_id.y][group_thread_id.x]     = FFX_DNSR_Reflections_PackFloat16(radiance.zz);
 }
 
-void FFX_DNSR_Reflections_StoreInGroupSharedMemory(ivec2 group_thread_id, f16vec4 radiance_variance) {
+void FFX_DNSR_Reflections_StoreInGroupSharedMemory(ivec2 group_thread_id, vec4 radiance_variance) {
     g_ffx_dnsr_shared_0[group_thread_id.y][group_thread_id.x]     = FFX_DNSR_Reflections_PackFloat16(radiance_variance.xy);
     g_ffx_dnsr_shared_1[group_thread_id.y][group_thread_id.x]     = FFX_DNSR_Reflections_PackFloat16(radiance_variance.zw);
 }
@@ -61,7 +61,7 @@ void FFX_DNSR_Reflections_InitializeGroupSharedMemory(ivec2 dispatch_thread_id, 
     ivec2 offset[4] = { ivec2(0, 0), ivec2(8, 0), ivec2(0, 8), ivec2(8, 8)};
 
     // Intermediate storage registers to cache the result of all loads
-    f16vec3 radiance[4];
+    vec3 radiance[4];
 
     // Start in the upper left corner of the 16x16 region.
     dispatch_thread_id -= 4;
@@ -79,16 +79,16 @@ void FFX_DNSR_Reflections_InitializeGroupSharedMemory(ivec2 dispatch_thread_id, 
     }
 }
 
-f16vec4 FFX_DNSR_Reflections_LoadFromGroupSharedMemoryRaw(ivec2 idx)
+vec4 FFX_DNSR_Reflections_LoadFromGroupSharedMemoryRaw(ivec2 idx)
 {
     uvec2 packed_radiance = uvec2(g_ffx_dnsr_shared_0[idx.y][idx.x], g_ffx_dnsr_shared_1[idx.y][idx.x]);
     return FFX_DNSR_Reflections_UnpackFloat16_4(packed_radiance);
 }
 
-float16_t FFX_DNSR_Reflections_GetLuminanceWeight(f16vec3 val)
+float FFX_DNSR_Reflections_GetLuminanceWeight(vec3 val)
 {
-    float16_t luma   = FFX_DNSR_Reflections_Luminance(val.xyz);
-    float16_t weight = max(exp(-luma * float16_t(FFX_DNSR_REFLECTIONS_AVG_RADIANCE_LUMINANCE_WEIGHT)), float16_t(1.0e-2));
+    float luma   = FFX_DNSR_Reflections_Luminance(val.xyz);
+    float weight = max(exp(-luma * FFX_DNSR_REFLECTIONS_AVG_RADIANCE_LUMINANCE_WEIGHT), 1.0e-2);
     return weight;
 }
 
@@ -121,31 +121,31 @@ vec2 FFX_DNSR_Reflections_GetHitPositionReprojection(ivec2 dispatch_thread_id, v
     return history_uv;
 }
 
-float16_t FFX_DNSR_Reflections_GetDisocclusionFactor(f16vec3 normal, f16vec3 history_normal, float linear_depth, float history_linear_depth)
+float FFX_DNSR_Reflections_GetDisocclusionFactor(vec3 normal, vec3 history_normal, float linear_depth, float history_linear_depth)
 {
-    float16_t factor = float16_t(1.0)
-                        * exp(-abs(float16_t(1.0) - max(float16_t(0.0), dot(normal, history_normal))) * float16_t(FFX_DNSR_REFLECTIONS_DISOCCLUSION_NORMAL_WEIGHT))
-                        * exp(-abs(float16_t(history_linear_depth) - float16_t(linear_depth)) / float16_t(linear_depth) * float16_t(FFX_DNSR_REFLECTIONS_DISOCCLUSION_DEPTH_WEIGHT));
+    float factor = 1.0
+                        * exp(-abs(1.0 - max(0.0, dot(normal, history_normal))) * FFX_DNSR_REFLECTIONS_DISOCCLUSION_NORMAL_WEIGHT)
+                        * exp(-abs(history_linear_depth - linear_depth) / linear_depth * FFX_DNSR_REFLECTIONS_DISOCCLUSION_DEPTH_WEIGHT);
     return factor;
 }
 
 struct FFX_DNSR_Reflections_Moments
 {
-    f16vec3 mean;
-    f16vec3 variance;
+    vec3 mean;
+    vec3 variance;
 };
 
 FFX_DNSR_Reflections_Moments FFX_DNSR_Reflections_EstimateLocalNeighborhoodInGroup(ivec2 group_thread_id)
 {
     FFX_DNSR_Reflections_Moments estimate;
-    estimate.mean                = f16vec3(0);
-    estimate.variance            = f16vec3(0);
-    float16_t accumulated_weight = float16_t(0);
+    estimate.mean                = vec3(0);
+    estimate.variance            = vec3(0);
+    float accumulated_weight = 0;
     for (int j = -FFX_DNSR_REFLECTIONS_LOCAL_NEIGHBORHOOD_RADIUS; j <= FFX_DNSR_REFLECTIONS_LOCAL_NEIGHBORHOOD_RADIUS; ++j) {
         for (int i = -FFX_DNSR_REFLECTIONS_LOCAL_NEIGHBORHOOD_RADIUS; i <= FFX_DNSR_REFLECTIONS_LOCAL_NEIGHBORHOOD_RADIUS; ++i) {
             ivec2        new_idx  = group_thread_id + ivec2(i, j);
-            f16vec3 radiance = FFX_DNSR_Reflections_LoadFromGroupSharedMemory(new_idx).radiance;
-            float16_t  weight   = FFX_DNSR_Reflections_LocalNeighborhoodKernelWeight(float16_t(i)) * FFX_DNSR_Reflections_LocalNeighborhoodKernelWeight(float16_t(j));
+            vec3 radiance = FFX_DNSR_Reflections_LoadFromGroupSharedMemory(new_idx).radiance;
+            float weight  = FFX_DNSR_Reflections_LocalNeighborhoodKernelWeight(i) * FFX_DNSR_Reflections_LocalNeighborhoodKernelWeight(j);
             accumulated_weight  += weight;
             estimate.mean       += radiance * weight;
             estimate.variance   += radiance * radiance * weight;
@@ -160,35 +160,35 @@ FFX_DNSR_Reflections_Moments FFX_DNSR_Reflections_EstimateLocalNeighborhoodInGro
 
 float dot2(vec3 a) { return dot(a, a); }
 
-void FFX_DNSR_Reflections_PickReprojection(ivec2          dispatch_thread_id,  //
-                                           ivec2          group_thread_id,     //
-                                           uvec2          screen_size,         //
-                                           float16_t      roughness,           //
-                                           float16_t      ray_length,          //
-                                           out float16_t  disocclusion_factor, //
-                                           out vec2       reprojection_uv,     //
-                                           out f16vec3 reprojection)
+void FFX_DNSR_Reflections_PickReprojection(ivec2     dispatch_thread_id,  //
+                                           ivec2     group_thread_id,     //
+                                           uvec2     screen_size,         //
+                                           float     roughness,           //
+                                           float     ray_length,          //
+                                           out float disocclusion_factor, //
+                                           out vec2  reprojection_uv,     //
+                                           out vec3  reprojection)
 {
 
     FFX_DNSR_Reflections_Moments local_neighborhood = FFX_DNSR_Reflections_EstimateLocalNeighborhoodInGroup(group_thread_id);
 
-    vec2      uv     = vec2(dispatch_thread_id.x + 0.5, dispatch_thread_id.y + 0.5) / screen_size;
-    f16vec3 normal = FFX_DNSR_Reflections_LoadWorldSpaceNormal(dispatch_thread_id);
-    f16vec3 history_normal;
-    float       history_linear_depth;
+    vec2 uv     = vec2(dispatch_thread_id.x + 0.5, dispatch_thread_id.y + 0.5) / screen_size;
+    vec3 normal = FFX_DNSR_Reflections_LoadWorldSpaceNormal(dispatch_thread_id);
+    vec3 history_normal;
+    float history_linear_depth;
 
     {
-        const vec2      motion_vector               = FFX_DNSR_Reflections_LoadMotionVector(dispatch_thread_id);
-        const vec2      surface_reprojection_uv     = FFX_DNSR_Reflections_GetSurfaceReprojection(dispatch_thread_id, uv, motion_vector);
-        const vec2      hit_reprojection_uv         = FFX_DNSR_Reflections_GetHitPositionReprojection(dispatch_thread_id, uv, ray_length);
-        const f16vec3 surface_normal                = FFX_DNSR_Reflections_SampleWorldSpaceNormalHistory(surface_reprojection_uv);
-        const f16vec3 hit_normal                    = FFX_DNSR_Reflections_SampleWorldSpaceNormalHistory(hit_reprojection_uv);
-        const f16vec3 surface_history               = FFX_DNSR_Reflections_SampleRadianceHistory(surface_reprojection_uv);
-        const f16vec3 hit_history                   = FFX_DNSR_Reflections_SampleRadianceHistory(hit_reprojection_uv);
-        const float       hit_normal_similarity     = dot(normalize(vec3(hit_normal)), normalize(vec3(normal)));
-        const float       surface_normal_similarity = dot(normalize(vec3(surface_normal)), normalize(vec3(normal)));
-        const float16_t   hit_roughness             = FFX_DNSR_Reflections_SampleRoughnessHistory(hit_reprojection_uv);
-        const float16_t   surface_roughness         = FFX_DNSR_Reflections_SampleRoughnessHistory(surface_reprojection_uv);
+        const vec2  motion_vector             = FFX_DNSR_Reflections_LoadMotionVector(dispatch_thread_id);
+        const vec2  surface_reprojection_uv   = FFX_DNSR_Reflections_GetSurfaceReprojection(dispatch_thread_id, uv, motion_vector);
+        const vec2  hit_reprojection_uv       = FFX_DNSR_Reflections_GetHitPositionReprojection(dispatch_thread_id, uv, ray_length);
+        const vec3  surface_normal            = FFX_DNSR_Reflections_SampleWorldSpaceNormalHistory(surface_reprojection_uv);
+        const vec3  hit_normal                = FFX_DNSR_Reflections_SampleWorldSpaceNormalHistory(hit_reprojection_uv);
+        const vec3  surface_history           = FFX_DNSR_Reflections_SampleRadianceHistory(surface_reprojection_uv);
+        const vec3  hit_history               = FFX_DNSR_Reflections_SampleRadianceHistory(hit_reprojection_uv);
+        const float hit_normal_similarity     = dot(normalize(vec3(hit_normal)), normalize(vec3(normal)));
+        const float surface_normal_similarity = dot(normalize(vec3(surface_normal)), normalize(vec3(normal)));
+        const float hit_roughness             = FFX_DNSR_Reflections_SampleRoughnessHistory(hit_reprojection_uv);
+        const float surface_roughness         = FFX_DNSR_Reflections_SampleRoughnessHistory(surface_reprojection_uv);
 
         // Choose reprojection uv based on similarity to the local neighborhood.
         if (hit_normal_similarity > FFX_DNSR_REFLECTIONS_REPROJECTION_NORMAL_SIMILARITY_THRESHOLD  // Candidate for mirror reflection parallax
@@ -212,7 +212,7 @@ void FFX_DNSR_Reflections_PickReprojection(ivec2          dispatch_thread_id,  /
                 reprojection_uv                    = surface_reprojection_uv;
                 reprojection                       = surface_history;
             } else {
-                disocclusion_factor = float16_t(0.0);
+                disocclusion_factor = 0.0;
                 return;
             }
         }
@@ -233,10 +233,10 @@ void FFX_DNSR_Reflections_PickReprojection(ivec2          dispatch_thread_id,  /
         for (int y = -search_radius; y <= search_radius; y++) {
             for (int x = -search_radius; x <= search_radius; x++) {
                 vec2      uv                   = reprojection_uv + vec2(x, y) * dudv;
-                f16vec3 history_normal         = FFX_DNSR_Reflections_SampleWorldSpaceNormalHistory(uv);
+                vec3 history_normal            = FFX_DNSR_Reflections_SampleWorldSpaceNormalHistory(uv);
                 float       history_depth        = FFX_DNSR_Reflections_SampleDepthHistory(uv);
                 float       history_linear_depth = FFX_DNSR_Reflections_GetLinearDepth(uv, history_depth);
-                float16_t   weight               = FFX_DNSR_Reflections_GetDisocclusionFactor(normal, history_normal, linear_depth, history_linear_depth);
+                float       weight               = FFX_DNSR_Reflections_GetDisocclusionFactor(normal, history_normal, linear_depth, history_linear_depth);
                 if (weight > disocclusion_factor) {
                     disocclusion_factor = weight;
                     closest_uv          = uv;
@@ -255,41 +255,41 @@ void FFX_DNSR_Reflections_PickReprojection(ivec2          dispatch_thread_id,  /
         float       uvx                    = fract(float(screen_size.x) * reprojection_uv.x + 0.5);
         float       uvy                    = fract(float(screen_size.y) * reprojection_uv.y + 0.5);
         ivec2       reproject_texel_coords = ivec2(screen_size * reprojection_uv - 0.5);
-        f16vec3 reprojection00             = FFX_DNSR_Reflections_LoadRadianceHistory(reproject_texel_coords + ivec2(0, 0));
-        f16vec3 reprojection10             = FFX_DNSR_Reflections_LoadRadianceHistory(reproject_texel_coords + ivec2(1, 0));
-        f16vec3 reprojection01             = FFX_DNSR_Reflections_LoadRadianceHistory(reproject_texel_coords + ivec2(0, 1));
-        f16vec3 reprojection11             = FFX_DNSR_Reflections_LoadRadianceHistory(reproject_texel_coords + ivec2(1, 1));
-        f16vec3 normal00                   = FFX_DNSR_Reflections_LoadWorldSpaceNormalHistory(reproject_texel_coords + ivec2(0, 0));
-        f16vec3 normal10                   = FFX_DNSR_Reflections_LoadWorldSpaceNormalHistory(reproject_texel_coords + ivec2(1, 0));
-        f16vec3 normal01                   = FFX_DNSR_Reflections_LoadWorldSpaceNormalHistory(reproject_texel_coords + ivec2(0, 1));
-        f16vec3 normal11                   = FFX_DNSR_Reflections_LoadWorldSpaceNormalHistory(reproject_texel_coords + ivec2(1, 1));
+        vec3 reprojection00                = FFX_DNSR_Reflections_LoadRadianceHistory(reproject_texel_coords + ivec2(0, 0));
+        vec3 reprojection10                = FFX_DNSR_Reflections_LoadRadianceHistory(reproject_texel_coords + ivec2(1, 0));
+        vec3 reprojection01                = FFX_DNSR_Reflections_LoadRadianceHistory(reproject_texel_coords + ivec2(0, 1));
+        vec3 reprojection11                = FFX_DNSR_Reflections_LoadRadianceHistory(reproject_texel_coords + ivec2(1, 1));
+        vec3 normal00                      = FFX_DNSR_Reflections_LoadWorldSpaceNormalHistory(reproject_texel_coords + ivec2(0, 0));
+        vec3 normal10                      = FFX_DNSR_Reflections_LoadWorldSpaceNormalHistory(reproject_texel_coords + ivec2(1, 0));
+        vec3 normal01                      = FFX_DNSR_Reflections_LoadWorldSpaceNormalHistory(reproject_texel_coords + ivec2(0, 1));
+        vec3 normal11                      = FFX_DNSR_Reflections_LoadWorldSpaceNormalHistory(reproject_texel_coords + ivec2(1, 1));
         float       depth00                = FFX_DNSR_Reflections_GetLinearDepth(reprojection_uv, FFX_DNSR_Reflections_LoadDepthHistory(reproject_texel_coords + ivec2(0, 0)));
         float       depth10                = FFX_DNSR_Reflections_GetLinearDepth(reprojection_uv, FFX_DNSR_Reflections_LoadDepthHistory(reproject_texel_coords + ivec2(1, 0)));
         float       depth01                = FFX_DNSR_Reflections_GetLinearDepth(reprojection_uv, FFX_DNSR_Reflections_LoadDepthHistory(reproject_texel_coords + ivec2(0, 1)));
         float       depth11                = FFX_DNSR_Reflections_GetLinearDepth(reprojection_uv, FFX_DNSR_Reflections_LoadDepthHistory(reproject_texel_coords + ivec2(1, 1)));
-        f16vec4 w                          = f16vec4(1.0);
+        vec4 w                             = vec4(1.0);
         // Initialize with occlusion weights
-        w.x = FFX_DNSR_Reflections_GetDisocclusionFactor(normal, normal00, linear_depth, depth00) > float16_t(FFX_DNSR_REFLECTIONS_DISOCCLUSION_THRESHOLD / 2.0) ? float16_t(1.0) : float16_t(0.0);
-        w.y = FFX_DNSR_Reflections_GetDisocclusionFactor(normal, normal10, linear_depth, depth10) > float16_t(FFX_DNSR_REFLECTIONS_DISOCCLUSION_THRESHOLD / 2.0) ? float16_t(1.0) : float16_t(0.0);
-        w.z = FFX_DNSR_Reflections_GetDisocclusionFactor(normal, normal01, linear_depth, depth01) > float16_t(FFX_DNSR_REFLECTIONS_DISOCCLUSION_THRESHOLD / 2.0) ? float16_t(1.0) : float16_t(0.0);
-        w.w = FFX_DNSR_Reflections_GetDisocclusionFactor(normal, normal11, linear_depth, depth11) > float16_t(FFX_DNSR_REFLECTIONS_DISOCCLUSION_THRESHOLD / 2.0) ? float16_t(1.0) : float16_t(0.0);
+        w.x = FFX_DNSR_Reflections_GetDisocclusionFactor(normal, normal00, linear_depth, depth00) > FFX_DNSR_REFLECTIONS_DISOCCLUSION_THRESHOLD / 2.0 ? 1.0 : 0.0;
+        w.y = FFX_DNSR_Reflections_GetDisocclusionFactor(normal, normal10, linear_depth, depth10) > FFX_DNSR_REFLECTIONS_DISOCCLUSION_THRESHOLD / 2.0 ? 1.0 : 0.0;
+        w.z = FFX_DNSR_Reflections_GetDisocclusionFactor(normal, normal01, linear_depth, depth01) > FFX_DNSR_REFLECTIONS_DISOCCLUSION_THRESHOLD / 2.0 ? 1.0 : 0.0;
+        w.w = FFX_DNSR_Reflections_GetDisocclusionFactor(normal, normal11, linear_depth, depth11) > FFX_DNSR_REFLECTIONS_DISOCCLUSION_THRESHOLD / 2.0 ? 1.0 : 0.0;
         // And then mix in bilinear weights
-        w.x           = w.x * float16_t((1.0 - uvx) * (1.0 - uvy));
-        w.y           = w.y * float16_t((uvx) * (1.0 - uvy));
-        w.z           = w.z * float16_t((1.0 - uvx) * (uvy));
-        w.w           = w.w * float16_t(uvx * uvy);
-        float16_t  ws = max(w.x + w.y + w.z + w.w, float16_t(1.0e-3));
+        w.x           = w.x * (1.0 - uvx) * (1.0 - uvy);
+        w.y           = w.y * (uvx) * (1.0 - uvy);
+        w.z           = w.z * (1.0 - uvx) * (uvy);
+        w.w           = w.w * uvx * uvy;
+        float ws = max(w.x + w.y + w.z + w.w, 1.0e-3);
         // normalize
         w /= ws;
 
-        f16vec3 history_normal;
-        float       history_linear_depth;
+        vec3  history_normal;
+        float history_linear_depth;
         reprojection         = reprojection00 * w.x + reprojection10 * w.y + reprojection01 * w.z + reprojection11 * w.w;
         history_linear_depth = depth00 * w.x + depth10 * w.y + depth01 * w.z + depth11 * w.w;
         history_normal       = normal00 * w.x + normal10 * w.y + normal01 * w.z + normal11 * w.w;
         disocclusion_factor  = FFX_DNSR_Reflections_GetDisocclusionFactor(normal, history_normal, linear_depth, history_linear_depth);
     }
-    disocclusion_factor = disocclusion_factor < float16_t(FFX_DNSR_REFLECTIONS_DISOCCLUSION_THRESHOLD) ? float16_t(0.0) : disocclusion_factor;
+    disocclusion_factor = disocclusion_factor < FFX_DNSR_REFLECTIONS_DISOCCLUSION_THRESHOLD ? 0.0 : disocclusion_factor;
 }
 
 void FFX_DNSR_Reflections_Reproject(ivec2 dispatch_thread_id, ivec2 group_thread_id, uvec2 screen_size, float temporal_stability_factor, int max_samples)
@@ -300,18 +300,18 @@ void FFX_DNSR_Reflections_Reproject(ivec2 dispatch_thread_id, ivec2 group_thread
 
     group_thread_id += 4; // Center threads in groupshared memory
 
-    float16_t        variance    = float16_t(1.0);
-    float16_t        num_samples = float16_t(0.0);
-    float16_t        roughness   = FFX_DNSR_Reflections_LoadRoughness(dispatch_thread_id);
-    vec3           normal        = FFX_DNSR_Reflections_LoadWorldSpaceNormal(dispatch_thread_id);
-    f16vec3      radiance        = FFX_DNSR_Reflections_LoadRadiance(dispatch_thread_id);
-    const float16_t  ray_length  = FFX_DNSR_Reflections_LoadRayLength(dispatch_thread_id);
+    float       variance    = 1.0;
+    float       num_samples = 0.0;
+    float       roughness   = FFX_DNSR_Reflections_LoadRoughness(dispatch_thread_id);
+    vec3        normal      = FFX_DNSR_Reflections_LoadWorldSpaceNormal(dispatch_thread_id);
+    vec3        radiance    = FFX_DNSR_Reflections_LoadRadiance(dispatch_thread_id);
+    const float ray_length  = FFX_DNSR_Reflections_LoadRayLength(dispatch_thread_id);
 
     if (FFX_DNSR_Reflections_IsGlossyReflection(roughness))
     {
-        float16_t disocclusion_factor;
+        float disocclusion_factor;
         vec2      reprojection_uv;
-        f16vec3   reprojection;
+        vec3   reprojection;
         FFX_DNSR_Reflections_PickReprojection(/*in*/ dispatch_thread_id,
                                               /* in */ group_thread_id,
                                               /* in */ screen_size,
@@ -322,48 +322,48 @@ void FFX_DNSR_Reflections_Reproject(ivec2 dispatch_thread_id, ivec2 group_thread
                                               /* out */ reprojection);
         if (all(greaterThan(reprojection_uv, vec2(0.0))) && all(lessThan(reprojection_uv, vec2(1.0))))
         {
-            float16_t  prev_variance = FFX_DNSR_Reflections_SampleVarianceHistory(reprojection_uv);
-            num_samples              = FFX_DNSR_Reflections_SampleNumSamplesHistory(reprojection_uv) * disocclusion_factor;
-            float16_t  s_max_samples = float16_t(max(8.0, max_samples * FFX_DNSR_REFLECTIONS_SAMPLES_FOR_ROUGHNESS(roughness)));
-            num_samples              = min(s_max_samples, num_samples + float16_t(1));
-            float16_t  new_variance  = FFX_DNSR_Reflections_ComputeTemporalVariance(radiance.xyz, reprojection.xyz);
+            float  prev_variance = FFX_DNSR_Reflections_SampleVarianceHistory(reprojection_uv);
+            num_samples          = FFX_DNSR_Reflections_SampleNumSamplesHistory(reprojection_uv) * disocclusion_factor;
+            float  s_max_samples = max(8.0, max_samples * FFX_DNSR_REFLECTIONS_SAMPLES_FOR_ROUGHNESS(roughness));
+            num_samples          = min(s_max_samples, num_samples + 1);
+            float  new_variance  = FFX_DNSR_Reflections_ComputeTemporalVariance(radiance.xyz, reprojection.xyz);
             if (disocclusion_factor < FFX_DNSR_REFLECTIONS_DISOCCLUSION_THRESHOLD)
             {
-                FFX_DNSR_Reflections_StoreRadianceReprojected(dispatch_thread_id, f16vec3(0.0));
-                FFX_DNSR_Reflections_StoreVariance(dispatch_thread_id, float16_t(1.0));
-                FFX_DNSR_Reflections_StoreNumSamples(dispatch_thread_id, float16_t(1.0));
+                FFX_DNSR_Reflections_StoreRadianceReprojected(dispatch_thread_id, vec3(0.0));
+                FFX_DNSR_Reflections_StoreVariance(dispatch_thread_id, 1.0);
+                FFX_DNSR_Reflections_StoreNumSamples(dispatch_thread_id, 1.0);
             }
             else
             {
-                float16_t variance_mix = mix(new_variance, prev_variance, float16_t(1.0) / num_samples);
+                float variance_mix = mix(new_variance, prev_variance, 1.0 / num_samples);
                 FFX_DNSR_Reflections_StoreRadianceReprojected(dispatch_thread_id, reprojection);
                 FFX_DNSR_Reflections_StoreVariance(dispatch_thread_id, variance_mix);
                 FFX_DNSR_Reflections_StoreNumSamples(dispatch_thread_id, num_samples);
                 // Mix in reprojection for radiance mip computation 
-                radiance = mix(radiance, reprojection, f16vec3(0.3));
+                radiance = mix(radiance, reprojection, vec3(0.3));
             }
         }
         else
         {
-            FFX_DNSR_Reflections_StoreRadianceReprojected(dispatch_thread_id, f16vec3(0.0));
-            FFX_DNSR_Reflections_StoreVariance(dispatch_thread_id, float16_t(1.0));
-            FFX_DNSR_Reflections_StoreNumSamples(dispatch_thread_id, float16_t(1.0));
+            FFX_DNSR_Reflections_StoreRadianceReprojected(dispatch_thread_id, vec3(0.0));
+            FFX_DNSR_Reflections_StoreVariance(dispatch_thread_id, 1.0);
+            FFX_DNSR_Reflections_StoreNumSamples(dispatch_thread_id, 1.0);
         }
     }
     
     // Downsample 8x8 -> 1 radiance using groupshared memory
     // Initialize groupshared array for downsampling
-    float16_t weight = FFX_DNSR_Reflections_GetLuminanceWeight(radiance.xyz);
+    float weight = FFX_DNSR_Reflections_GetLuminanceWeight(radiance.xyz);
     radiance.xyz *= weight;
-    if (any(greaterThanEqual(uvec2(dispatch_thread_id), screen_size)) || any(isinf(radiance)) || any(isnan(radiance)) || weight > float16_t(1.0e3))
+    if (any(greaterThanEqual(uvec2(dispatch_thread_id), screen_size)) || any(isinf(radiance)) || any(isnan(radiance)) || weight > 1.0e3)
     {
-        radiance = f16vec3(0.0);
-        weight   = float16_t(0.0);
+        radiance = vec3(0.0);
+        weight   = 0.0;
     }
 
     group_thread_id -= 4; // Center threads in groupshared memory
 
-    FFX_DNSR_Reflections_StoreInGroupSharedMemory(group_thread_id, f16vec4(radiance.xyz, weight));
+    FFX_DNSR_Reflections_StoreInGroupSharedMemory(group_thread_id, vec4(radiance.xyz, weight));
     groupMemoryBarrier();
     barrier();
 
@@ -375,11 +375,11 @@ void FFX_DNSR_Reflections_Reproject(ivec2 dispatch_thread_id, ivec2 group_thread
         int iy = group_thread_id.y * i + i / 2;
         if (ix < 8 && iy < 8)
         {
-            f16vec4 rad_weight00 = FFX_DNSR_Reflections_LoadFromGroupSharedMemoryRaw(ivec2(ox, oy));
-            f16vec4 rad_weight10 = FFX_DNSR_Reflections_LoadFromGroupSharedMemoryRaw(ivec2(ox, iy));
-            f16vec4 rad_weight01 = FFX_DNSR_Reflections_LoadFromGroupSharedMemoryRaw(ivec2(ix, oy));
-            f16vec4 rad_weight11 = FFX_DNSR_Reflections_LoadFromGroupSharedMemoryRaw(ivec2(ix, iy));
-            f16vec4 sum          = rad_weight00 + rad_weight01 + rad_weight10 + rad_weight11;
+            vec4 rad_weight00 = FFX_DNSR_Reflections_LoadFromGroupSharedMemoryRaw(ivec2(ox, oy));
+            vec4 rad_weight10 = FFX_DNSR_Reflections_LoadFromGroupSharedMemoryRaw(ivec2(ox, iy));
+            vec4 rad_weight01 = FFX_DNSR_Reflections_LoadFromGroupSharedMemoryRaw(ivec2(ix, oy));
+            vec4 rad_weight11 = FFX_DNSR_Reflections_LoadFromGroupSharedMemoryRaw(ivec2(ix, iy));
+            vec4 sum          = rad_weight00 + rad_weight01 + rad_weight10 + rad_weight11;
             FFX_DNSR_Reflections_StoreInGroupSharedMemory(ivec2(ox, oy), sum);
         }
         groupMemoryBarrier();
@@ -388,9 +388,9 @@ void FFX_DNSR_Reflections_Reproject(ivec2 dispatch_thread_id, ivec2 group_thread
 
     if (all(equal(group_thread_id, ivec2(0))))
     {
-        f16vec4   sum          = FFX_DNSR_Reflections_LoadFromGroupSharedMemoryRaw(ivec2(0, 0));
-        float16_t weight_acc   = max(sum.w, float16_t(1.0e-3));
-        f16vec3   radiance_avg = sum.xyz / weight_acc;
+        vec4  sum          = FFX_DNSR_Reflections_LoadFromGroupSharedMemoryRaw(ivec2(0, 0));
+        float weight_acc   = max(sum.w, 1.0e-3);
+        vec3  radiance_avg = sum.xyz / weight_acc;
         FFX_DNSR_Reflections_StoreAverageRadiance(dispatch_thread_id.xy / 8, radiance_avg);
     }
 }

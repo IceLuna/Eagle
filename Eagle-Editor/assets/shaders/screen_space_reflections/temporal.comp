@@ -1,6 +1,3 @@
-#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
-#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
-
 #include "defines.h"
 #include "screen_space_reflections/common.h"
 
@@ -23,37 +20,37 @@ layout(push_constant) uniform PushConstants
 
 const float g_TemporalStabilityFactor = 0.7;
 
-f16vec3 FFX_DNSR_Reflections_SampleAverageRadiance(vec2 uv)
+vec3 FFX_DNSR_Reflections_SampleAverageRadiance(vec2 uv)
 {
-    return f16vec3(texture(g_AverageRadiance, uv).xyz);
+    return texture(g_AverageRadiance, uv).xyz;
 }
 
-f16vec3 FFX_DNSR_Reflections_LoadRadiance(ivec2 pixelCoordinate)
+vec3 FFX_DNSR_Reflections_LoadRadiance(ivec2 pixelCoordinate)
 {
-    return f16vec3(texelFetch(g_Radiance, pixelCoordinate, 0).xyz);
+    return texelFetch(g_Radiance, pixelCoordinate, 0).xyz;
 }
 
-f16vec3 FFX_DNSR_Reflections_LoadRadianceReprojected(ivec2 pixelCoordinate)
+vec3 FFX_DNSR_Reflections_LoadRadianceReprojected(ivec2 pixelCoordinate)
 {
-    return f16vec3(texelFetch(g_ReprojectedRadiance, pixelCoordinate, 0).xyz);
+    return texelFetch(g_ReprojectedRadiance, pixelCoordinate, 0).xyz;
 }
 
-float16_t FFX_DNSR_Reflections_LoadRoughness(ivec2 pixelCoordinate)
+float FFX_DNSR_Reflections_LoadRoughness(ivec2 pixelCoordinate)
 {
-    return float16_t(texelFetch(g_Roughness, pixelCoordinate, 0).x);
+    return texelFetch(g_Roughness, pixelCoordinate, 0).x;
 }
 
-float16_t FFX_DNSR_Reflections_LoadVariance(ivec2 pixelCoordinate)
+float FFX_DNSR_Reflections_LoadVariance(ivec2 pixelCoordinate)
 {
-    return float16_t(texelFetch(g_Variance, pixelCoordinate, 0).x);
+    return texelFetch(g_Variance, pixelCoordinate, 0).x;
 }
 
-float16_t FFX_DNSR_Reflections_LoadNumSamples(ivec2 pixelCoordinate)
+float FFX_DNSR_Reflections_LoadNumSamples(ivec2 pixelCoordinate)
 {
-    return float16_t(texelFetch(g_SampleCount, pixelCoordinate, 0).x);
+    return texelFetch(g_SampleCount, pixelCoordinate, 0).x;
 }
 
-void FFX_DNSR_Reflections_StoreTemporalAccumulation(ivec2 pixelCoordinate, f16vec3 radiance, float16_t variance)
+void FFX_DNSR_Reflections_StoreTemporalAccumulation(ivec2 pixelCoordinate, vec3 radiance, float variance)
 {
     imageStore(g_OutRadiance, pixelCoordinate, radiance.xyzz);
     imageStore(g_OutVariance, pixelCoordinate, vec4(variance.x));

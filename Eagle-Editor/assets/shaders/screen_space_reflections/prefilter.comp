@@ -19,28 +19,28 @@ layout(push_constant) uniform PushConstants
     vec2 g_TexelSize;
 };
 
-f16vec3 FFX_DNSR_Reflections_SampleAverageRadiance(vec2 uv)
+vec3 FFX_DNSR_Reflections_SampleAverageRadiance(vec2 uv)
 {
-    return f16vec3(texture(g_AverageRadiance, uv).xyz);
+    return texture(g_AverageRadiance, uv).xyz;
 }
 
-float16_t FFX_DNSR_Reflections_LoadRoughness(ivec2 pixelCoordinate)
+float FFX_DNSR_Reflections_LoadRoughness(ivec2 pixelCoordinate)
 {
-    return float16_t(texelFetch(g_Roughness, pixelCoordinate, 0).x);
+    return texelFetch(g_Roughness, pixelCoordinate, 0).x;
 }
 
-void FFX_DNSR_Reflections_LoadNeighborhood(ivec2 pixelCoordinate, out f16vec3 radiance, out float16_t variance, out f16vec3 normal, out float depth, ivec2 screen_size)
+void FFX_DNSR_Reflections_LoadNeighborhood(ivec2 pixelCoordinate, out vec3 radiance, out float variance, out vec3 normal, out float depth, ivec2 screen_size)
 {
-    radiance = f16vec3(texelFetch(g_Radiance, pixelCoordinate, 0).xyz);
-    variance = float16_t(texelFetch(g_Variance, pixelCoordinate, 0).x);
+    radiance = texelFetch(g_Radiance, pixelCoordinate, 0).xyz;
+    variance = texelFetch(g_Variance, pixelCoordinate, 0).x;
 
-    normal = f16vec3(DecodeNormal(texelFetch(g_Normal, pixelCoordinate, 0).zw)); // zw - is a shading normal;
+    normal = normalize(DecodeNormal(texelFetch(g_Normal, pixelCoordinate, 0).zw)); // zw - is a shading normal;
 
     vec2 uv = (pixelCoordinate.xy + 0.5f) * g_TexelSize;
     depth = FFX_DNSR_Reflections_GetLinearDepth(uv, texelFetch(g_Depth, pixelCoordinate, 0).x);
 }
 
-void FFX_DNSR_Reflections_StorePrefilteredReflections(ivec2 pixelCoordinate, f16vec3 radiance, float16_t variance)
+void FFX_DNSR_Reflections_StorePrefilteredReflections(ivec2 pixelCoordinate, vec3 radiance, float variance)
 {
     imageStore(g_OutRadiance, pixelCoordinate, radiance.xyzz);
     imageStore(g_OutVariance, pixelCoordinate, vec4(variance.x));
