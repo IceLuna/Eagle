@@ -73,6 +73,7 @@ namespace Eagle
 		std::unordered_map<std::string_view, Weak<RHIGPUTiming>> RHIGPUTimingsParentless; // Timings that do not have parents
 #endif
 
+		Ref<Texture2D> WhiteNoise;
 		Ref<Texture2D> BlueNoise;
 		glm::vec2 HaltonSequence[s_JitterSize];
 
@@ -255,6 +256,30 @@ namespace Eagle
 		s_RendererData->BRDFLUTPipeline = PipelineGraphics::Create(brdfLutState);
 	}
 
+	static void InitWhiteNoise()
+	{
+		constexpr uint32_t size = 32u;
+		ScopedDataBuffer whiteNoiseBuffer(size * size * sizeof(uint32_t)); // rgba8
+		uint32_t* whitenoise = (uint32_t*)whiteNoiseBuffer.Data();
+
+		for (int y = 0; y < size; ++y)
+		{
+			for (int x = 0; x < size; ++x)
+			{
+				glm::uvec4 noise;
+				for (int i = 0; i < 4; ++i)
+					noise[i] = Random::UInt(0, 256);
+
+				uint32_t packed = noise.x | (noise.y << 8) | (noise.z << 16) | (noise.w << 24);
+				whitenoise[x + y * size] = packed;
+			}
+		}
+
+		Texture2DSpecifications specs{};
+		specs.FilterMode = FilterMode::Point;
+		s_RendererData->WhiteNoise = Texture2D::Create("White Noise", ImageFormat::R8G8B8A8_UNorm, glm::uvec2(size), whitenoise, specs);
+	}
+
 	static void InitBlueNoise()
 	{
 		uint32_t bluenoise[128 * 128]; // rgba8
@@ -402,6 +427,7 @@ namespace Eagle
 		SetupPresentPipeline();
 		SetupBRDFLUTPipeline();
 		InitBlueNoise();
+		InitWhiteNoise();
 
 		s_RendererData->DummyIBL = TextureCube::Create(Texture2D::BlackTexture, 1, 1);
 
@@ -516,6 +542,11 @@ namespace Eagle
 	const Ref<Texture2D>& RenderManager::GetBlueNoise()
 	{
 		return s_RendererData->BlueNoise;
+	}
+
+	const Ref<Texture2D>& RenderManager::GetWhiteNoise()
+	{
+		return s_RendererData->WhiteNoise;
 	}
 
 	float RenderManager::GetBlueNoisePhase()

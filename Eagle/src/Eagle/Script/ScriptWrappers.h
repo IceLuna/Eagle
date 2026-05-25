@@ -578,13 +578,13 @@ namespace Eagle::Script
 	void Eagle_Renderer_GetVolumetricLightsSettings(glm::vec3* albedo, float* anisotropy, uint32_t* outSamples, float* outMaxScatteringDist, float* fogSpeed, bool* bFogEnable, bool* bEnable);
 	MonoArray* Eagle_Renderer_GetShadowMapsSettings(uint32_t* outPointLightSize, uint32_t* outSpotLightSize);
 	void Eagle_Renderer_GetDepthOfFieldSettings(glm::vec2* apertureShape, float* apertureSize, float* focalLength, float* COCScale, float* maxCOC);
-	void Eagle_Renderer_GetMotionBlurSettings(bool* bEnabled, uint32_t* numSamples, float* strength);
+	void Eagle_Renderer_GetMotionBlurSettings(bool* bEnabled, uint32_t* numSamples, float* strength, float* noMotionBlurThreshold, float* lowMotionThreshold, bool* bUseCheapOnLowMotion);
 	void Eagle_Renderer_GetAutoExposureSettings(float* minLogLum, float* maxLogLum, float* adaptationSpeed, float* adaptationKey, bool* bEnabled, bool* bHalfResolution);
 	void Eagle_Renderer_GetScreenSpaceReflectionsSettings(float* roughnessThreshold, uint32_t* samplesPerQuad, uint32_t* maxIters, bool* bEnabled);
 	void Eagle_Renderer_GetLensSettings(bool* bChromaticAberration, bool* bVignette, bool* bFilmGrain, float* chromaticIntensity, float* vignetteIntensity, float* filmGrainScale, float* filmGrainAmount, float* filmGrainSeedUpdateRate);
 	void Eagle_Renderer_SetShadowMapsSettings(uint32_t pointLightSize, uint32_t spotLightSize, MonoArray* dirLightSizes);
 	void Eagle_Renderer_SetDepthOfFieldSettings(const glm::vec2* apertureShape, float apertureSize, float focalLength, float COCScale, float maxCOC);
-	void Eagle_Renderer_SetMotionBlurSettings(bool bEnabled, uint32_t numSamples, float strength);
+	void Eagle_Renderer_SetMotionBlurSettings(bool bEnabled, uint32_t numSamples, float strength, float noMotionBlurThreshold, float lowMotionThreshold, bool bUseCheapOnLowMotion);
 	void Eagle_Renderer_SetAutoExposureSettings(float minLogLum, float maxLogLum, float adaptationSpeed, float adaptationKey, bool bEnabled, bool bHalfResolution);
 	void Eagle_Renderer_SetScreenSpaceReflectionsSettings(float roughnessThreshold, uint32_t samplesPerQuad, uint32_t maxIters, bool bEnabled);
 	void Eagle_Renderer_SetLensSettings(bool bChromaticAberration, bool bVignette, bool bFilmGrain, float chromaticIntensity, float vignetteIntensity, float filmGrainScale, float filmGrainAmount, float filmGrainSeedUpdateRate);

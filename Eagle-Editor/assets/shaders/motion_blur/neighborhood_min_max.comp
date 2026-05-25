@@ -67,17 +67,19 @@ void main()
 	}
 
 	const uint tile = (pixelCoords.x & 0xFFFF) | ((pixelCoords.y & 0xFFFF) << 16);
-	if (maxMagnitudeSquared < 0.0001f)
+	if (maxMagnitudeSquared < g_NoMotionBlurThreshold2)
 	{
 		uint prev = atomicAdd(g_TileArgs.EarlyExit.x, MOTIONBLUR_TILE_REPLICATE); 
 		g_EarlyExitTiles[prev / MOTIONBLUR_TILE_REPLICATE] = tile;
 	}
-	else if (abs(maxMagnitudeSquared - minMagnitudeSquared) < 0.0002f)
+#ifdef EG_ENABLE_CHEAP_ON_LOW_MOTION
+	else if (abs(maxMagnitudeSquared - minMagnitudeSquared) < g_CheapMotionBlurThreshold2)
 	{
 		uint prev = atomicAdd(g_TileArgs.Cheap.x, MOTIONBLUR_TILE_REPLICATE); 
 		g_CheapTiles[prev / MOTIONBLUR_TILE_REPLICATE] = tile;
 		imageStore(g_NeighborHoodMax, pixelCoords, vec4(maxVelocity, 0.f, 0.f));
 	}
+#endif
 	else
 	{
 		uint prev = atomicAdd(g_TileArgs.Expensive.x, MOTIONBLUR_TILE_REPLICATE); 

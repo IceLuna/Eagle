@@ -7359,7 +7359,7 @@ namespace Eagle
 		*maxCOC = settings.MaxCOC;
 	}
 
-	void Script::Eagle_Renderer_GetMotionBlurSettings(bool* bEnabled, uint32_t* numSamples, float* strength)
+	void Script::Eagle_Renderer_GetMotionBlurSettings(bool* bEnabled, uint32_t* numSamples, float* strength, float* noMotionBlurThreshold, float* lowMotionThreshold, bool* bUseCheapOnLowMotion)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		const auto& sceneRenderer = scene->GetSceneRenderer();
@@ -7368,6 +7368,9 @@ namespace Eagle
 		*bEnabled = settings.bEnable;
 		*numSamples = settings.NumSamples;
 		*strength = settings.Strength;
+		*noMotionBlurThreshold = settings.NoMotionBlurThreshold;
+		*lowMotionThreshold = settings.LowMotionThreshold;
+		*bUseCheapOnLowMotion = settings.bUseCheapOnLowMotion;
 	}
 
 	void Script::Eagle_Renderer_GetAutoExposureSettings(float* minLogLum, float* maxLogLum, float* adaptationSpeed, float* adaptationKey, bool* bEnabled, bool* bHalfResolution)
@@ -7448,7 +7451,7 @@ namespace Eagle
 		sceneRenderer->SetOptions(settings);
 	}
 
-	void Script::Eagle_Renderer_SetMotionBlurSettings(bool bEnabled, uint32_t numSamples, float strength)
+	void Script::Eagle_Renderer_SetMotionBlurSettings(bool bEnabled, uint32_t numSamples, float strength, float noMotionBlurThreshold, float lowMotionThreshold, bool bUseCheapOnLowMotion)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		const auto& sceneRenderer = scene->GetSceneRenderer();
@@ -7457,6 +7460,9 @@ namespace Eagle
 		settings.MotionBlur.bEnable = bEnabled;
 		settings.MotionBlur.NumSamples = numSamples;
 		settings.MotionBlur.Strength = strength;
+		settings.MotionBlur.NoMotionBlurThreshold = noMotionBlurThreshold;
+		settings.MotionBlur.LowMotionThreshold = lowMotionThreshold;
+		settings.MotionBlur.bUseCheapOnLowMotion = bUseCheapOnLowMotion;
 
 		sceneRenderer->SetOptions(settings);
 	}

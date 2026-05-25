@@ -20,6 +20,7 @@ namespace Eagle
 
 	private:
 		void InitPipeline();
+		void InitNeighborhoodPipeline();
 		void InitMainPipeline();
 		void InitResources();
 
@@ -54,15 +55,19 @@ namespace Eagle
 		uint32_t m_NumSamples = 16;
 		bool bDebugTiles = false; // Debug output
 
+		// Whether to apply cheaper motion blur. If disabled, more computationally expensive blur is applied instead.
+		bool bUseCheapOnLowMotion = false;
+
 		struct PushData
 		{
-			float Strength = 1.f;
-			float ZNear = 0.f;
-			float ZFar = 1.f;
-			uint32_t Unused = 0;
 			glm::vec2 TexelSize;
 			glm::uvec2 Size;
 			glm::uvec2 PassSize;
+			float Strength = 1.f;
+			float ZNear = 0.f;
+			float ZFar = 1.f;
+			float NoMotionBlurThreshold2 = 0.0; // Squared
+			float CheapMotionBlurThreshold2 = 0.0; // Squared
 		} m_PushData;
 
 		constexpr static uint32_t s_TileSize = 16; // Same in shaders

@@ -1878,7 +1878,10 @@ namespace Eagle
 				bSettingsChanged |= UI::Property("Enable", settings.bEnable);
 				bSettingsChanged |= UI::PropertySlider("Num Samples", settings.NumSamples, 1u, 64u);
 				bSettingsChanged |= UI::PropertySlider("Strength", settings.Strength, 0.f, 1.f);
-				bSettingsChanged |= UI::Property("Debug Output", settings.bDebugOutput);
+				bSettingsChanged |= UI::Property("Use cheap on low motion", settings.bUseCheapOnLowMotion, "Whether to apply cheaper motion blur. If disabled, more computationally expensive blur is applied instead.");
+				bSettingsChanged |= UI::PropertyDrag("No Motion Blur threshold", settings.NoMotionBlurThreshold, 0.001f, 0.f, 1.f, "If a motion vector's magnitude is lower then this value, no motion blur is applied.");
+				bSettingsChanged |= UI::PropertyDrag("Low Motion Blur threshold", settings.LowMotionThreshold, 0.001f, 0.f, 1.f, "If a motion vector's magnitude is lower then this value, cheaper motion blur is applied.");
+				bSettingsChanged |= UI::Property("Debug Output", settings.bDebugOutput, "Blue - no motion blur; Green - cheaper quality; Red - higher quality");
 
 				UI::EndPropertyGrid();
 				ImGui::TreePop();

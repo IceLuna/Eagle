@@ -85,6 +85,7 @@ namespace Eagle
 		static const glm::vec2 GetHalton(uint32_t index);
 		static const glm::vec2 GetHalton() { return GetHalton(GetFrameNumber_RT() % s_JitterSize); }
 
+		static const Ref<Texture2D>& GetWhiteNoise();
 		static const Ref<Texture2D>& GetBlueNoise();
 		static float GetBlueNoisePhase();
 

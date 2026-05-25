@@ -3,6 +3,7 @@
 
 #include "Eagle/Renderer/SceneRenderer.h"
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
+#include "Eagle/Renderer/VidWrappers/Texture.h"
 
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Debug/GPUTimings.h"
@@ -30,9 +31,12 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Motion Blur");
 		EG_CPU_TIMING_SCOPED("Motion Blur");
 
+		const auto& mbOptions = m_Renderer.GetOptions_RT().MotionBlur;
 		m_PushData.ZNear = m_Renderer.GetZNear();
 		m_PushData.ZFar = m_Renderer.GetZFar();
-		m_PushData.Strength = m_Renderer.GetOptions_RT().MotionBlur.Strength;
+		m_PushData.Strength = mbOptions.Strength;
+		m_PushData.NoMotionBlurThreshold2 = mbOptions.NoMotionBlurThreshold * mbOptions.NoMotionBlurThreshold;
+		m_PushData.CheapMotionBlurThreshold2 = mbOptions.LowMotionThreshold * mbOptions.LowMotionThreshold;
 
 		auto& depth = m_Renderer.GetGBuffer().Depth;
 		const ImageLayout oldDepthLayout = depth->GetLayout();
@@ -161,17 +165,19 @@ namespace Eagle
 		m_PushData.Size = m_Size;
 		m_PushData.TexelSize = 1.f / glm::vec2(m_PushData.Size);
 
+		const auto& whiteNoise = RenderManager::GetWhiteNoise();
 		const auto& color = m_Renderer.GetHDROutput();
 		const auto& depth = m_Renderer.GetGBuffer().Depth;
 		const auto& motion = m_Renderer.GetGBuffer().Motion;
-		auto setDescriptors = [this, &color, &depth, &motion](Ref<PipelineCompute>& pipeline, const Ref<Buffer>& tiles)
+		auto setDescriptors = [this, &color, &depth, &motion, &whiteNoise](Ref<PipelineCompute>& pipeline, const Ref<Buffer>& tiles)
 		{
 			pipeline->SetImage(m_ColorCopy, 0, 0);
 			pipeline->SetImage(m_NeighborhoodMax, 0, 1);
 			pipeline->SetImageSampler(depth, Sampler::PointSamplerClamp, 0, 2);
 			pipeline->SetImageSampler(motion, Sampler::PointSamplerClamp, 0, 3);
-			pipeline->SetImage(color, 0, 4);
-			pipeline->SetBuffer(tiles, 0, 5);
+			pipeline->SetImageSampler(whiteNoise->GetImage(), Sampler::PointSampler, 0, 4);
+			pipeline->SetImage(color, 0, 5);
+			pipeline->SetBuffer(tiles, 0, 6);
 		};
 
 		setDescriptors(m_MainEarlyPipeline, m_EarlyExitTiles);
@@ -204,11 +210,18 @@ namespace Eagle
 
 	void MotionBlurTask::InitWithOptions(const SceneRendererSettings& settings)
 	{
-		if (settings.MotionBlur.bDebugOutput == bDebugTiles && settings.MotionBlur.NumSamples == m_NumSamples)
+		if (settings.MotionBlur.bDebugOutput == bDebugTiles && settings.MotionBlur.NumSamples == m_NumSamples
+			&& settings.MotionBlur.bUseCheapOnLowMotion == bUseCheapOnLowMotion)
 			return;
+
+		const bool bCheapStateChanged = bUseCheapOnLowMotion != settings.MotionBlur.bUseCheapOnLowMotion;
 		
 		bDebugTiles = settings.MotionBlur.bDebugOutput;
 		m_NumSamples = settings.MotionBlur.NumSamples;
+		bUseCheapOnLowMotion = settings.MotionBlur.bUseCheapOnLowMotion;
+
+		if (bCheapStateChanged)
+			InitNeighborhoodPipeline();
 		InitMainPipeline();
 	}
 
@@ -222,10 +235,21 @@ namespace Eagle
 		state.ComputeShader = Shader::Create("motion_blur/tile_min_max_vertical.comp", ShaderType::Compute);
 		m_TileVerticalPipeline = PipelineCompute::Create(state);
 
-		state.ComputeShader = Shader::Create("motion_blur/neighborhood_min_max.comp", ShaderType::Compute);
-		m_NeighborhoodPipeline = PipelineCompute::Create(state);
-
+		InitNeighborhoodPipeline();
 		InitMainPipeline();
+	}
+
+	void MotionBlurTask::InitNeighborhoodPipeline()
+	{
+		ShaderDefines defines{};
+		if (bUseCheapOnLowMotion)
+		{
+			defines["EG_ENABLE_CHEAP_ON_LOW_MOTION"] = "";
+		}
+
+		PipelineComputeState state{};
+		state.ComputeShader = Shader::Create("motion_blur/neighborhood_min_max.comp", ShaderType::Compute, defines);
+		m_NeighborhoodPipeline = PipelineCompute::Create(state);
 	}
 
 	void MotionBlurTask::InitMainPipeline()

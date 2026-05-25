@@ -3033,6 +3033,9 @@ namespace Eagle
 		out << YAML::Key << "bEnable" << YAML::Value << motionBlurSettings.bEnable;
 		out << YAML::Key << "NumSamples" << YAML::Value << motionBlurSettings.NumSamples;
 		out << YAML::Key << "Strength" << YAML::Value << motionBlurSettings.Strength;
+		out << YAML::Key << "NoMotionBlurThreshold" << YAML::Value << motionBlurSettings.NoMotionBlurThreshold;
+		out << YAML::Key << "LowMotionThreshold" << YAML::Value << motionBlurSettings.LowMotionThreshold;
+		out << YAML::Key << "bUseCheapOnLowMotion" << YAML::Value << motionBlurSettings.bUseCheapOnLowMotion;
 		out << YAML::Key << "bDebug" << YAML::Value << motionBlurSettings.bDebugOutput;
 		out << YAML::EndMap; //MotionBlur
 
@@ -3219,6 +3222,12 @@ namespace Eagle
 			settings.MotionBlur.NumSamples = motionBlurNode["NumSamples"].as<uint32_t>();
 			settings.MotionBlur.Strength = motionBlurNode["Strength"].as<float>();
 			settings.MotionBlur.bDebugOutput = motionBlurNode["bDebug"].as<bool>();
+			if (auto node = motionBlurNode["NoMotionBlurThreshold"])
+				settings.MotionBlur.NoMotionBlurThreshold = node.as<float>();
+			if (auto node = motionBlurNode["LowMotionThreshold"])
+				settings.MotionBlur.LowMotionThreshold = node.as<float>();
+			if (auto node = motionBlurNode["bUseCheapOnLowMotion"])
+				settings.MotionBlur.bUseCheapOnLowMotion = node.as<bool>();
 		}
 
 		if (auto autoExposureNode = data["AutoExposure"])

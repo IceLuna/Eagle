@@ -876,6 +876,15 @@ namespace Eagle
     {
         float Strength = 1.f; // [0; 1]
         uint32_t NumSamples = 16;
+        
+        // If a motion vector's magnitude is lower then this value, no motion blur is applied.
+        float NoMotionBlurThreshold = 0.01f;
+
+        // If a motion vector's magnitude is lower then this value, cheaper motion blur is applied.
+        float LowMotionThreshold = 0.014142f;
+        // Whether to apply cheaper motion blur. If disabled, more computationally expensive blur is applied instead.
+        bool bUseCheapOnLowMotion = false;
+
         bool bEnable = false;
         bool bDebugOutput = false;
 
@@ -884,6 +893,9 @@ namespace Eagle
             bool bEqual =
                 Strength == other.Strength &&
                 NumSamples == other.NumSamples &&
+                NoMotionBlurThreshold == other.NoMotionBlurThreshold &&
+                LowMotionThreshold == other.LowMotionThreshold &&
+                bUseCheapOnLowMotion == other.bUseCheapOnLowMotion &&
                 bEnable == other.bEnable &&
                 bDebugOutput == other.bDebugOutput;
 

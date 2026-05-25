@@ -59,6 +59,10 @@ namespace Eagle
 
 				auto& settings = data.Settings;
 				settings.bNormalMap = Utils::IsNormalMap(path);
+				if (settings.bNormalMap)
+				{
+					settings.Compression = TextureCompressor::Quality::High;
+				}
 
 				int comp = 1;
 				stbi_info(Utils::AsString(path).c_str(), &data.Size.x, &data.Size.y, &comp);

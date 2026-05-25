@@ -208,6 +208,14 @@ namespace Eagle
         public bool bEnabled;
         public uint NumSamples;
         public float Strength;
+
+        // If a motion vector's magnitude is lower then this value, no motion blur is applied.
+        public float NoMotionBlurThreshold;
+
+        // If a motion vector's magnitude is lower then this value, cheaper motion blur is applied.
+        public float LowMotionThreshold;
+        // Whether to apply cheaper motion blur. If disabled, more computationally expensive blur is applied instead.
+        public bool bUseCheapOnLowMotion;
     }
 
     public struct AutoExposureSettings
@@ -564,13 +572,13 @@ namespace Eagle
 
         public static void SetMotionBlurSettings(MotionBlurSettings value)
         {
-            SetMotionBlurSettings_Native(value.bEnabled, value.NumSamples, value.Strength);
+            SetMotionBlurSettings_Native(value.bEnabled, value.NumSamples, value.Strength, value.NoMotionBlurThreshold, value.LowMotionThreshold, value.bUseCheapOnLowMotion);
         }
 
         public static MotionBlurSettings GetMotionBlurSettings()
         {
             MotionBlurSettings result = new MotionBlurSettings();
-            GetMotionBlurSettings_Native(out result.bEnabled, out result.NumSamples, out result.Strength);
+            GetMotionBlurSettings_Native(out result.bEnabled, out result.NumSamples, out result.Strength, out result.NoMotionBlurThreshold, out result.LowMotionThreshold, out result.bUseCheapOnLowMotion);
             return result;
         }
 
@@ -949,7 +957,7 @@ namespace Eagle
         private static extern void GetDepthOfFieldSettings_Native(out Vector2 apertureShape, out float apertureSize, out float focalLength, out float COCScale, out float maxCOC);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetMotionBlurSettings_Native(out bool bEnabled, out uint numSamples, out float strength);
+        private static extern void GetMotionBlurSettings_Native(out bool bEnabled, out uint numSamples, out float strength, out float noMotionBlurThreshold, out float lowMotionThreshold, out bool bUseCheapOnLowMotion);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void GetAutoExposureSettings_Native(out float minLogLum, out float maxLogLum, out float adaptationSpeed, out float adaptationKey, out bool bEnabled, out bool bHalfResolution);
@@ -967,7 +975,7 @@ namespace Eagle
         private static extern void SetDepthOfFieldSettings_Native(ref Vector2 apertureShape, float apertureSize, float focalLength, float COCScale, float maxCOC);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetMotionBlurSettings_Native(bool bEnabled, uint numSamples, float strength);
+        private static extern void SetMotionBlurSettings_Native(bool bEnabled, uint numSamples, float strength, float noMotionBlurThreshold, float lowMotionThreshold, bool bUseCheapOnLowMotion);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetAutoExposureSettings_Native(float minLogLum, float maxLogLum, float adaptationSpeed, float adaptationKey, bool bEnabled, bool bHalfResolution);

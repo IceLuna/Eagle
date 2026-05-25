@@ -177,7 +177,6 @@ bool Emitter_WasExplode(Emitter emitter)
 	return HasFlag(emitter.InternalFlags, Emitter_Internal_WasExplode_Mask);
 }
 
-// TODO: Is it even worth it? 96 bytes (packed) vs 144 bytes (unpacked). Unpacked will probably require more, since then it'd need to be aligned correctly
 struct PackedParticle
 {
 	vec2 Size;

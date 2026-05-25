@@ -4,22 +4,41 @@ layout(binding = 0, r11f_g11f_b10f) uniform readonly image2D g_Color;
 layout(binding = 1, rg16f) uniform readonly image2D g_NeighborHoodMax;
 layout(binding = 2) uniform sampler2D g_Depth;
 layout(binding = 3) uniform sampler2D g_Motion;
-layout(binding = 4, r11f_g11f_b10f) uniform writeonly image2D g_Output;
+layout(binding = 4) uniform sampler2D g_WhiteNoise;
+layout(binding = 5, r11f_g11f_b10f) uniform writeonly image2D g_Output;
 
-layout(binding = 5) buffer Tiles
+layout(binding = 6) buffer Tiles
 {
 	uint g_Tiles[];
 };
 
 layout(constant_id = 0) const uint g_NumSamples = 16;
 
-float InterleavedGradientNoise( vec2 uv, float frameId )
+float InterleavedGradientNoise(vec2 uv, uint frameId)
 {
     // magic values are found by experimentation
     uv += frameId * (vec2(47, 17) * 0.695f);
 
     const vec3 magic = vec3( 0.06711056f, 0.00583715f, 52.9829189f );
     return fract(magic.z * fract(dot(uv, magic.xy)));
+}
+
+vec2 WhiteNoise(vec2 uv, uint pixelIndex)
+{
+    const vec4 noise = texture(g_WhiteNoise, uv);
+    return vec2(noise[(pixelIndex + 0) % 4], noise[(pixelIndex + 1) % 4]);
+}
+
+vec2 GetRandom(vec2 uv, uint pixelIndex)
+{
+    // Uses white noise by default to reduce noise patterns
+    // https://youtu.be/ytUD8UkrY18?t=725
+
+#if 0
+    return vec2(InterleavedGradientNoise(uv, 0), InterleavedGradientNoise(uv, 1));
+#else
+    return WhiteNoise(uv, pixelIndex);
+#endif
 }
 
 vec2 LimitVelocityVector(vec2 velocity, float limit)
@@ -72,6 +91,7 @@ void main()
     const uvec2 subtile = Unflatten2D(subtileIdx, uvec2(MOTIONBLUR_TILESIZE / GROUP_SIZE));
     const uvec2 subtileUpperleft = tile * MOTIONBLUR_TILESIZE + subtile * GROUP_SIZE;
     const ivec2 pixelCoords = ivec2(subtileUpperleft + Unflatten2D(gl_LocalInvocationID.x, uvec2(GROUP_SIZE)));
+    const uint pixelIndex = pixelCoords.x + pixelCoords.y * g_PassSize.x;
 
     if (pixelCoords.x >= g_PassSize.x || pixelCoords.y >= g_PassSize.y)
         return;
@@ -85,11 +105,10 @@ void main()
     const float blurRadius = MOTIONBLUR_TILESIZE;
     const float pixelToTileScale = 1.f / blurRadius;
 
-    const float random1 = InterleavedGradientNoise(uv, 0);
-    const float random2 = InterleavedGradientNoise(uv, 1);
+    const vec2 random = GetRandom(uv, pixelIndex);
     
     // [-0.25, 0.25]
-    const vec2 tileJitter = (vec2(random1, random2) - 0.5f) * 0.5f;
+    const vec2 tileJitter = (vec2(random.x, random.y) - 0.5f) * 0.5f;
 
     // Map to velocity tile pos with jitter.
     const vec2 velocityTilePos = (vec2(pixelCoords) * pixelToTileScale + tileJitter);
@@ -118,7 +137,7 @@ void main()
     	float sampleVelocityLen[2];
     	float weight[2];
     
-    	vec2 offsetLen = vec2(random1 - 0.5, 0.5 - random1) + i + 0.5f;
+    	vec2 offsetLen = vec2(random.x - 0.5, 0.5 - random.x) + i + 0.5f;
     	vec2 offsetFraction = offsetLen / g_NumSamples;
     
     	sampleUV[0] = uv + offsetFraction.x * searchVector.xy;
