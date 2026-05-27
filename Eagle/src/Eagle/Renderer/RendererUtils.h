@@ -759,8 +759,6 @@ namespace Eagle
         float CascadesSmoothTransitionAlpha = 3.5f / 100.f;
         bool bJitter = false;
         bool bMotionBuffer = false;
-        bool bDepthHistory = false;
-        bool bNormalHistory = false;
     };
 
     struct SkySettings
@@ -939,17 +937,29 @@ namespace Eagle
 
     struct ScreenSpaceReflectionsSettings
     {
-        float RoughnessThreshold = 0.7f;
-        uint32_t SamplesPerQuad = 1;
-        uint32_t MaxTraversalIterations = 128;
+        float VarianceThreshold = 0.0f; // Luminance differences between history results will trigger an additional ray if they are greater than this threshold value.
+        float DepthBufferThickness = 0.1f; // A bias for accepting hits. Larger values can cause streaks, lower values can cause holes.
+        float TemporalStabilityFactor = 0.7f; // A factor to control the accmulation of history values. Higher values reduce noise, but are more likely to exhibit ghosting artefacts.
+        float RoughnessThreshold = 0.7f; // Regions with a roughness value greater than this threshold won't spawn rays.
+        uint32_t SamplesPerQuad = 1; // The minimum number of rays per quad. Variance guided tracing can increase this up to a maximum of 4.
+        uint32_t MaxTraversalIterations = 128; // Caps the maximum number of lookups that are performed from the depth buffer hierarchy. Most rays should terminate after approximately 20 lookups.
+        uint32_t MinTraversalOccupancy = 4; // Exit the core loop early if less than this number of threads are running.
+        bool bTemporalVarianceGuidedTracing = true; // Controls whether a ray should be spawned on pixels where a temporal variance is detected or not.
+        bool bVisualizeReflections = false; // Debug option to visualize SSR only
         bool bEnable = true;
 
         bool operator== (const ScreenSpaceReflectionsSettings& other) const
         {
             bool bEqual =
+                VarianceThreshold == other.VarianceThreshold &&
+                DepthBufferThickness == other.DepthBufferThickness &&
+                TemporalStabilityFactor == other.TemporalStabilityFactor &&
                 RoughnessThreshold == other.RoughnessThreshold &&
                 SamplesPerQuad == other.SamplesPerQuad &&
                 MaxTraversalIterations == other.MaxTraversalIterations &&
+                MinTraversalOccupancy == other.MinTraversalOccupancy &&
+                bTemporalVarianceGuidedTracing == other.bTemporalVarianceGuidedTracing &&
+                bVisualizeReflections == other.bVisualizeReflections &&
                 bEnable == other.bEnable;
 
             return bEqual;

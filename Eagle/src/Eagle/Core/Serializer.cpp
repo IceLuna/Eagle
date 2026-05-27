@@ -3051,9 +3051,14 @@ namespace Eagle
 
 		out << YAML::Key << "SSSR";
 		out << YAML::BeginMap;
+		out << YAML::Key << "VarianceThreshold" << YAML::Value << sssr.VarianceThreshold;
+		out << YAML::Key << "DepthBufferThickness" << YAML::Value << sssr.DepthBufferThickness;
+		out << YAML::Key << "TemporalStabilityFactor" << YAML::Value << sssr.TemporalStabilityFactor;
 		out << YAML::Key << "RoughnessThreshold" << YAML::Value << sssr.RoughnessThreshold;
 		out << YAML::Key << "SamplesPerQuad" << YAML::Value << sssr.SamplesPerQuad;
 		out << YAML::Key << "MaxTraversalIterations" << YAML::Value << sssr.MaxTraversalIterations;
+		out << YAML::Key << "MinTraversalOccupancy" << YAML::Value << sssr.MinTraversalOccupancy;
+		out << YAML::Key << "bTemporalVarianceGuidedTracing" << YAML::Value << sssr.bTemporalVarianceGuidedTracing;
 		out << YAML::Key << "bEnable" << YAML::Value << sssr.bEnable;
 		out << YAML::EndMap; //SSSR
 
@@ -3242,9 +3247,19 @@ namespace Eagle
 
 		if (auto sssrNode = data["SSSR"])
 		{
+			if (auto node = sssrNode["VarianceThreshold"])
+				settings.ScreenSpaceReflections.VarianceThreshold = node.as<float>();
+			if (auto node = sssrNode["DepthBufferThickness"])
+				settings.ScreenSpaceReflections.DepthBufferThickness = node.as<float>();
+			if (auto node = sssrNode["TemporalStabilityFactor"])
+				settings.ScreenSpaceReflections.TemporalStabilityFactor = node.as<float>();
 			settings.ScreenSpaceReflections.RoughnessThreshold = sssrNode["RoughnessThreshold"].as<float>();
 			settings.ScreenSpaceReflections.SamplesPerQuad = sssrNode["SamplesPerQuad"].as<uint32_t>();
 			settings.ScreenSpaceReflections.MaxTraversalIterations = sssrNode["MaxTraversalIterations"].as<uint32_t>();
+			if (auto node = sssrNode["MinTraversalOccupancy"])
+				settings.ScreenSpaceReflections.MinTraversalOccupancy = node.as<uint32_t>();
+			if (auto node = sssrNode["bTemporalVarianceGuidedTracing"])
+				settings.ScreenSpaceReflections.bTemporalVarianceGuidedTracing = node.as<bool>();
 			settings.ScreenSpaceReflections.bEnable = sssrNode["bEnable"].as<bool>();
 		}
 	}

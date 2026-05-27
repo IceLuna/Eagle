@@ -228,5 +228,6 @@ namespace Eagle
 
 		bool bVolumetricLightsEnabled = false;
 		bool bTranslucencyShadowsEnabled = false;
+		bool bUseVolumetricLights = false;
 	};
 }

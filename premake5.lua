@@ -43,6 +43,7 @@ IncludeDir["MagicEnum"] = "Eagle/vendor/magic_enum/include"
 IncludeDir["zstd"] = "Eagle/vendor/zstd/include"
 IncludeDir["RecastNavigation"] = "Eagle/vendor/recastnavigation"
 IncludeDir["compressonator"] = "Eagle/vendor/compressonator/include"
+IncludeDir["FFX_SSSR"] = "Eagle/vendor/ffx_sssr/include"
 
 -- Lib dirs
 LibDir = {}
@@ -55,6 +56,7 @@ LibDir["fmodDebug"] = "%{wks.location}/Eagle/vendor/fmod/lib/Debug"
 LibDir["fmodRelease"] = "%{wks.location}/Eagle/vendor/fmod/lib/Release"
 LibDir["zstdDebug"] = "%{wks.location}/Eagle/vendor/zstd/lib/Debug"
 LibDir["zstdRelease"] = "%{wks.location}/Eagle/vendor/zstd/lib/Release"
+LibDir["FFX_SSSR"] = "%{wks.location}/Eagle/vendor/ffx_sssr/lib"
 
 -- Lib files
 LibFiles = {}
@@ -104,6 +106,14 @@ LibFiles["zstdRelease"] = "%{LibDir.zstdRelease}/zstd_static.lib"
 
 LibFiles["compressonatorDebug"]   = "%{wks.location}/Eagle/vendor/compressonator/lib/Debug/Compressonator_MDd.lib"
 LibFiles["compressonatorRelease"] = "%{wks.location}/Eagle/vendor/compressonator/lib/Release/Compressonator_MD.lib"
+
+LibFiles["FFX_SSSR_Backend_VK_Debug"] = "%{LibDir.FFX_SSSR}/Debug/ffx_backend_vk_x64d.lib"
+LibFiles["FFX_SSSR_Denoiser_Debug"] = "%{LibDir.FFX_SSSR}/Debug/ffx_denoiser_x64d.lib"
+LibFiles["FFX_SSSR_Debug"] = "%{LibDir.FFX_SSSR}/Debug/ffx_sssr_x64d.lib"
+
+LibFiles["FFX_SSSR_Backend_VK_Release"] = "%{LibDir.FFX_SSSR}/Release/ffx_backend_vk_x64.lib"
+LibFiles["FFX_SSSR_Denoiser_Release"] = "%{LibDir.FFX_SSSR}/Release/ffx_denoiser_x64.lib"
+LibFiles["FFX_SSSR_Release"] = "%{LibDir.FFX_SSSR}/Release/ffx_sssr_x64.lib"
 
 --------------------------------------------------------------------------------------------------------------
 
@@ -188,6 +198,7 @@ project "Eagle"
 		"%{IncludeDir.RecastNavigation}/Recast/Include",
 		"%{IncludeDir.RecastNavigation}/DebugUtils/Include",
 		"%{IncludeDir.compressonator}",
+		"%{IncludeDir.FFX_SSSR}",
 	}
 
 	defines
@@ -275,6 +286,10 @@ project "Eagle"
 
 			"%{LibFiles.ShaderC_Debug}",
 			"%{LibFiles.SPIRV_Cross_Debug}",
+
+			"%{LibFiles.FFX_SSSR_Backend_VK_Debug}",
+			"%{LibFiles.FFX_SSSR_Denoiser_Debug}",
+			"%{LibFiles.FFX_SSSR_Debug}",
 		}
 
 	filter "configurations:ReleaseWithDebug"
@@ -305,6 +320,10 @@ project "Eagle"
 
 			"%{LibFiles.ShaderC_Release}",
 			"%{LibFiles.SPIRV_Cross_Release}",
+
+			"%{LibFiles.FFX_SSSR_Backend_VK_Release}",
+			"%{LibFiles.FFX_SSSR_Denoiser_Release}",
+			"%{LibFiles.FFX_SSSR_Release}",
 		}
 		buildoptions
 		{

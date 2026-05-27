@@ -231,9 +231,14 @@ namespace Eagle
 
     public struct ScreenSpaceReflectionsSettings
     {
-        public float RoughnessThreshold;
-        public uint SamplesPerQuad;
-        public uint MaxTraversalIterations;
+        public float VarianceThreshold; // Luminance differences between history results will trigger an additional ray if they are greater than this threshold value.
+        public float DepthBufferThickness; // A bias for accepting hits. Larger values can cause streaks, lower values can cause holes.
+        public float TemporalStabilityFactor; // A factor to control the accmulation of history values. Higher values reduce noise, but are more likely to exhibit ghosting artefacts.
+        public float RoughnessThreshold; // Regions with a roughness value greater than this threshold won't spawn rays.
+        public uint SamplesPerQuad; // The minimum number of rays per quad. Variance guided tracing can increase this up to a maximum of 4.
+        public uint MaxTraversalIterations; // Caps the maximum number of lookups that are performed from the depth buffer hierarchy. Most rays should terminate after approximately 20 lookups.
+        public uint MinTraversalOccupancy; // Exit the core loop early if less than this number of threads are running.
+        public bool bTemporalVarianceGuidedTracing; // Controls whether a ray should be spawned on pixels where a temporal variance is detected or not.
         public bool bEnabled;
     }
 
@@ -596,13 +601,16 @@ namespace Eagle
 
         public static void SetScreenSpaceReflectionsSettings(ScreenSpaceReflectionsSettings value)
         {
-            SetScreenSpaceReflectionsSettings_Native(value.RoughnessThreshold, value.SamplesPerQuad, value.MaxTraversalIterations, value.bEnabled);
+            SetScreenSpaceReflectionsSettings_Native(value.VarianceThreshold, value.DepthBufferThickness, value.TemporalStabilityFactor, value.RoughnessThreshold,
+                value.SamplesPerQuad, value.MaxTraversalIterations, value.MinTraversalOccupancy, value.bTemporalVarianceGuidedTracing, value.bEnabled);
         }
 
         public static ScreenSpaceReflectionsSettings GetScreenSpaceReflectionsSettings()
         {
             ScreenSpaceReflectionsSettings result = new ScreenSpaceReflectionsSettings();
-            GetScreenSpaceReflectionsSettings_Native(out result.RoughnessThreshold, out result.SamplesPerQuad, out result.MaxTraversalIterations, out result.bEnabled);
+            GetScreenSpaceReflectionsSettings_Native(out result.VarianceThreshold, out result.DepthBufferThickness, out result.TemporalStabilityFactor, out result.RoughnessThreshold,
+                out result.SamplesPerQuad, out result.MaxTraversalIterations, out result.MinTraversalOccupancy, out result.bTemporalVarianceGuidedTracing, out result.bEnabled);
+
             return result;
         }
 
@@ -963,7 +971,8 @@ namespace Eagle
         private static extern void GetAutoExposureSettings_Native(out float minLogLum, out float maxLogLum, out float adaptationSpeed, out float adaptationKey, out bool bEnabled, out bool bHalfResolution);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetScreenSpaceReflectionsSettings_Native(out float roughnessThreshold, out uint samplesPerQuad, out uint maxIters, out bool bEnabled);
+        private static extern void GetScreenSpaceReflectionsSettings_Native(out float varianceThreshold, out float depthBufferThickness, out float temporalStabilityFactor, out float roughnessThreshold,
+                out uint samplesPerQuad, out uint maxTraversalIterations, out uint minTraversalOccupancy, out bool bTemporalVarianceGuidedTracing, out bool bEnabled);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void GetLensSettings_Native(out bool bChromaticAberration, out bool bVignette, out bool bFilmGrain, out float chromaticIntensity, out float vignetteIntensity, out float filmGrainScale, out float filmGrainAmount, out float filmGrainSeedUpdateRate);
@@ -981,7 +990,8 @@ namespace Eagle
         private static extern void SetAutoExposureSettings_Native(float minLogLum, float maxLogLum, float adaptationSpeed, float adaptationKey, bool bEnabled, bool bHalfResolution);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetScreenSpaceReflectionsSettings_Native(float roughnessThreshold, uint samplesPerQuad, uint maxIters, bool bEnabled);
+        private static extern void SetScreenSpaceReflectionsSettings_Native(float varianceThreshold, float depthBufferThickness, float temporalStabilityFactor, float roughnessThreshold,
+                uint samplesPerQuad, uint maxTraversalIterations, uint minTraversalOccupancy, bool bTemporalVarianceGuidedTracing, bool bEnabled);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetLensSettings_Native(bool bChromaticAberration, bool bVignette, bool bFilmGrain, float chromaticIntensity, float vignetteIntensity, float filmGrainScale, float filmGrainAmount, float filmGrainSeedUpdateRate);

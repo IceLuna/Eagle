@@ -1,0 +1,25 @@
+#include "utils.h"
+
+layout(binding = 0) uniform sampler2D g_Input;
+layout(binding = 1, rgba16f) uniform writeonly image2D g_Output;
+
+layout(push_constant) uniform PushData
+{
+    ivec2 g_Size;
+};
+
+#define GROUP_SIZE 8
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+void main()
+{
+    const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID);
+    if (pixelCoords.x >= g_Size.x || pixelCoords.y >= g_Size.y)
+        return;
+
+    const vec2 uv = (vec2(pixelCoords) + 0.5f) / vec2(g_Size);
+    const vec2 packedShadingNormal = texture(g_Input, uv).zw;
+    const vec3 shadingNormal = DecodeNormal(packedShadingNormal);
+
+    imageStore(g_Output, pixelCoords, vec4(shadingNormal, 0.0f));
+}

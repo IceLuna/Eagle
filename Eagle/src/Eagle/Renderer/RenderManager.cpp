@@ -631,9 +631,7 @@ namespace Eagle
 	void RenderManager::OnVSyncEnabled(bool bEnabled)
 	{
 		Wait();
-		s_RendererData->CurrentFrameIndex = 0;
-		s_RendererData->CurrentReleaseFrameIndex = 0;
-		s_RendererData->CurrentRenderingFrameIndex = 0;
+		ReleasePendingResources();
 		s_RendererData->FramesInFlight = bEnabled ? s_VSyncFramesInFlight : RendererConfig::FramesInFlight;
 	}
 

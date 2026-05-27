@@ -279,11 +279,6 @@ namespace Eagle
 		deviceFeatures13.shaderDemoteToHelperInvocation = VK_TRUE;
 		deviceFeatures13.pNext = &deviceFeatures12;
 
-		if (!m_PhysicalDevice->IsFloat16Supported())
-		{
-			EG_CORE_WARN("Your GPU doesn't support float16. Some rendering features might work incorrectly or even result in crashes");
-		}
-
 		const auto& supportedFeatures = m_PhysicalDevice->GetSupportedFeatures();
 		const bool bSupportsAnisotropy = supportedFeatures.bAnisotropy;
 		VkPhysicalDeviceFeatures2 features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
@@ -294,7 +289,6 @@ namespace Eagle
 		features.features.textureCompressionASTC_LDR = supportedFeatures.bTextureCompressionASTC_LDR;
 		features.features.textureCompressionETC2 = supportedFeatures.bTextureCompressionETC2;
 		features.features.textureCompressionBC = supportedFeatures.bTextureCompressionBC;
-		features.features.shaderInt16 = VK_TRUE;
 		features.features.drawIndirectFirstInstance = VK_TRUE;
 		features.features.multiDrawIndirect = VK_TRUE;
 		features.pNext = &deviceFeatures13;

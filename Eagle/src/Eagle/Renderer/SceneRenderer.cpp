@@ -127,8 +127,9 @@ namespace Eagle
 		RenderManager::Submit([renderer = shared_from_this(), viewMat, proj = camera->GetProjection(), viewPosition, viewDirection, bRenderGrid = m_bGridEnabled, options = m_Options,
 			cascadeProjections = std::move(cameraCascadeProjections), cascadeFarPlanes = std::move(cameraCascadeFarPlanes), shadowDistance = camera->GetShadowFarClip(),
 			cascadesSmoothTransitionAlpha = camera->GetCascadesSmoothTransitionAlpha(), zNear = camera->GetPerspectiveNearClip(), zFar = camera->GetPerspectiveFarClip(),
-			cameraFov = camera->GetPerspectiveVerticalFOV()](const Ref<CommandBuffer>& cmd) mutable
+			cameraFov = camera->GetPerspectiveVerticalFOV(), bProjectionFlipped = camera->IsProjectionFlipped()](const Ref<CommandBuffer>& cmd) mutable
 		{
+			renderer->m_bProjectionFlipped = bProjectionFlipped;
 			renderer->m_ZNear = zNear;
 			renderer->m_ZFar = zFar;
 			renderer->m_CameraFOV = cameraFov;
@@ -151,6 +152,8 @@ namespace Eagle
 			renderer->m_CameraMatrices.InvViewProj = glm::inverse(renderer->m_CameraMatrices.ViewProj);
 			renderer->m_CameraMatrices.PrevViewProj = renderer->m_PrevViewProjection;
 			renderer->m_CameraMatrices.InvProj = glm::inverse(renderer->m_CameraMatrices.Proj);
+			renderer->m_CameraMatrices.PrevProj = renderer->m_PrevProjection;
+			renderer->m_CameraMatrices.PrevView = renderer->m_PrevView;
 			cmd->Write(renderer->m_CameraDataBuffer, &renderer->m_CameraMatrices, sizeof(CameraData), 0, renderer->m_CameraDataBuffer->GetLayout(), BufferReadAccess::Uniform);
 
 			renderer->m_ViewPos = viewPosition;
@@ -245,11 +248,6 @@ namespace Eagle
 				renderer->m_TAATask->RecordCommandBuffer(cmd);
 			else if (renderer->m_Options_RT.AA == AAMethod::MSAA)
 				renderer->m_MSAATask->RecordCommandBuffer(cmd);
-
-			if (renderer->m_GBuffer.DepthHistory)
-				cmd->CopyImage(renderer->m_GBuffer.Depth, renderer->m_GBuffer.DepthHistory, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
-			if (renderer->m_GBuffer.NormalsHistory)
-				cmd->CopyImage(renderer->m_GBuffer.Normals, renderer->m_GBuffer.NormalsHistory, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
 
 			renderer->m_Images2DTask->RecordCommandBuffer(cmd);
 			renderer->m_Text2DTask->RecordCommandBuffer(cmd);
@@ -383,8 +381,6 @@ namespace Eagle
 		const bool bTAAEnabled = m_Options.AA == AAMethod::TAA;
 		m_Options.InternalState.bMotionBuffer = (m_Options.AO == AmbientOcclusion::GTAO) || bTAAEnabled || m_Options.MotionBlur.bEnable || m_Options.ScreenSpaceReflections.bEnable;
 		m_Options.InternalState.bJitter = bTAAEnabled;
-		m_Options.InternalState.bDepthHistory = m_Options.ScreenSpaceReflections.bEnable;
-		m_Options.InternalState.bNormalHistory = m_Options.ScreenSpaceReflections.bEnable;
 	}
 
 	void SceneRenderer::SetViewportSize(const glm::uvec2 size)
@@ -557,7 +553,7 @@ namespace Eagle
 		depthSpecs.Format = Application::Get().GetRenderContext()->GetDepthFormat();
 		depthSpecs.Layout = ImageLayoutType::DepthStencilWrite;
 		depthSpecs.Size = size;
-		depthSpecs.Usage = ImageUsage::DepthStencilAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc | ImageUsage::TransferDst;
+		depthSpecs.Usage = ImageUsage::DepthStencilAttachment | ImageUsage::Sampled | ImageUsage::TransferDst;
 		Depth = Image::Create(depthSpecs, "GBuffer_Depth");
 
 		ImageSpecifications colorSpecs;
@@ -571,7 +567,7 @@ namespace Eagle
 		normalSpecs.Format = ImageFormat::R16G16B16A16_Float;
 		normalSpecs.Layout = ImageLayoutType::RenderTarget;
 		normalSpecs.Size = size;
-		normalSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc | ImageUsage::TransferDst;
+		normalSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferDst;
 		Normals = Image::Create(normalSpecs, "GBuffer_Geometry_Shading_Normals");
 
 		ImageSpecifications emissiveSpecs;
@@ -628,40 +624,6 @@ namespace Eagle
 		{
 			Motion.reset();
 		}
-
-		if (optional.bDepthHistory)
-		{
-			if (!DepthHistory)
-			{
-				ImageSpecifications specs;
-				specs.Format = Depth->GetFormat();
-				specs.Size = size;
-				specs.Usage = Depth->GetUsage() | ImageUsage::TransferDst;
-				specs.Layout = ImageReadAccess::PixelShaderRead;
-				DepthHistory = Image::Create(specs, "GBuffer_DepthHistory");
-			}
-		}
-		else
-		{
-			DepthHistory.reset();
-		}
-
-		if (optional.bNormalHistory)
-		{
-			if (!NormalsHistory)
-			{
-				ImageSpecifications specs;
-				specs.Format = Normals->GetFormat();
-				specs.Size = size;
-				specs.Usage = Normals->GetUsage() | ImageUsage::TransferDst;
-				specs.Layout = ImageReadAccess::PixelShaderRead;
-				NormalsHistory = Image::Create(specs, "GBuffer_NormalsHistory");
-			}
-		}
-		else
-		{
-			NormalsHistory.reset();
-		}
 	}
 	
 	void GBuffer::Resize(const glm::uvec3& size)
@@ -677,24 +639,6 @@ namespace Eagle
 		Flags->Resize(size);
 		if (Motion)
 			Motion->Resize(size);
-		
-		const bool bNeedClear = DepthHistory || NormalsHistory;
-		if (DepthHistory)
-			DepthHistory->Resize(size);
-		if (NormalsHistory)
-			NormalsHistory->Resize(size);
-
-		if (bNeedClear)
-		{
-			RenderManager::Submit([depth = DepthHistory, normals = NormalsHistory](const Ref<CommandBuffer>& cmd) mutable
-			{
-				constexpr glm::vec4 clearColor = glm::vec4(0.f);
-				if (depth)
-					cmd->ClearDepthStencilImage(depth, 0.f, 0, depth->GetLayout(), ImageReadAccess::PixelShaderRead);
-				if (normals)
-					cmd->ClearColorImage(normals, clearColor, normals->GetLayout(), ImageReadAccess::PixelShaderRead);
-			});
-		}
 	}
 	
 	void GBuffer::Clear(const Ref<CommandBuffer>& cmd)
@@ -704,12 +648,14 @@ namespace Eagle
 		if (Motion)
 			cmd->ClearColorImage(Motion, glm::vec4(0), Motion->GetLayout(), ImageLayoutType::RenderTarget);
 
+#ifndef EG_RELEASE
 		// Note: I think there's no need to clear these buffers.
 		cmd->ClearColorImage(Albedo, glm::vec4(0), Albedo->GetLayout(), ImageLayoutType::RenderTarget);
 		cmd->ClearColorImage(Normals, glm::vec4(0), Normals->GetLayout(), ImageLayoutType::RenderTarget);
 		cmd->ClearColorImage(Emissive, glm::vec4(0), Emissive->GetLayout(), ImageLayoutType::RenderTarget);
 		cmd->ClearColorImage(MaterialData, glm::vec4(0), MaterialData->GetLayout(), ImageLayoutType::RenderTarget);
 		cmd->ClearColorImage(Flags, glm::vec4(0), Flags->GetLayout(), ImageLayoutType::RenderTarget);
+#endif
 	}
 	
 	void GBuffer::PrepareForReading(const Ref<CommandBuffer>& cmd)

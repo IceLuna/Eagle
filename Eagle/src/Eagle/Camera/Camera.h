@@ -68,6 +68,8 @@ namespace Eagle
 
 		float GetCascadeFarPlane(uint32_t index) const { EG_ASSERT(index < EG_CASCADES_COUNT); return m_CascadeFarPlanes[index]; }
 
+		bool IsProjectionFlipped() const { return m_bFlipProjection; }
+
 	protected:
 		void RecalculateProjection();
 
@@ -96,6 +98,9 @@ namespace Eagle
 		float m_AspectRatio = 1;
 		uint32_t m_ViewportWidth = 128;
 		uint32_t m_ViewportHeight = 128;
+
+		// Flipping Y for Vulkan
+		bool m_bFlipProjection = true;
 	};
 
 }

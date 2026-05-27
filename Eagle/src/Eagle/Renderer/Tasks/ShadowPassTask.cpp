@@ -124,6 +124,7 @@ namespace Eagle
 	{
 		bVolumetricLightsEnabled = m_Renderer.GetOptions().VolumetricSettings.bEnable;
 		bTranslucencyShadowsEnabled = m_Renderer.GetOptions().bTranslucentShadows;
+		bUseVolumetricLights = bVolumetricLightsEnabled && bTranslucencyShadowsEnabled;
 
 		m_ColoredShadowMapSampler = Sampler::Create(FilterMode::Bilinear, AddressMode::ClampToOpaqueWhite, CompareOperation::Never, 0.f, 0.f, 1.f);
 		m_PCFSampler = Sampler::Create(FilterMode::Bilinear, AddressMode::ClampToOpaqueBlack, CompareOperation::GreaterEqual, 0.f, 0.f, 1.f);
@@ -260,7 +261,7 @@ namespace Eagle
 					bUpdateFb = true;
 				}
 
-				if (bVolumetricLightsEnabled)
+				if (bUseVolumetricLights)
 				{
 					if (i < depthShadowMaps.size())
 					{
@@ -282,7 +283,7 @@ namespace Eagle
 					std::vector<Ref<Image>> attachments;
 					attachments.reserve(3);
 					attachments.push_back(coloredShadowMaps[i]);
-					if (bVolumetricLightsEnabled)
+					if (bUseVolumetricLights)
 						attachments.push_back(depthShadowMaps[i]);
 					attachments.push_back(shadowMaps[i]);
 
@@ -313,7 +314,7 @@ namespace Eagle
 		if (bTranslucencyShadowsEnabled)
 		{
 			coloredShadowMaps.resize(pointLightsCount);
-			if (bVolumetricLightsEnabled)
+			if (bUseVolumetricLights)
 				depthShadowMaps.resize(pointLightsCount);
 			translucentFramebuffers.resize(pointLightsCount);
 		}
@@ -380,7 +381,7 @@ namespace Eagle
 					bUpdateFb = true;
 				}
 
-				if (bVolumetricLightsEnabled)
+				if (bUseVolumetricLights)
 				{
 					if (i < depthShadowMaps.size())
 					{
@@ -402,7 +403,7 @@ namespace Eagle
 					std::vector<Ref<Image>> attachments;
 					attachments.reserve(3);
 					attachments.push_back(coloredShadowMaps[i]);
-					if (bVolumetricLightsEnabled)
+					if (bUseVolumetricLights)
 						attachments.push_back(depthShadowMaps[i]);
 					attachments.push_back(shadowMaps[i]);
 
@@ -425,7 +426,7 @@ namespace Eagle
 		if (bTranslucencyShadowsEnabled)
 		{
 			coloredShadowMaps.resize(spotLightsCount);
-			if (bVolumetricLightsEnabled)
+			if (bUseVolumetricLights)
 				depthShadowMaps.resize(spotLightsCount);
 			translucentFramebuffers.resize(spotLightsCount);
 		}
@@ -527,7 +528,7 @@ namespace Eagle
 		bTranslucencyShadowsEnabled = settings.bTranslucentShadows;
 
 		// Disable if no translucent shadows
-		bVolumetricLightsEnabled = bVolumetricLightsEnabled && bTranslucencyShadowsEnabled;
+		bUseVolumetricLights = bVolumetricLightsEnabled && bTranslucencyShadowsEnabled;
 
 		if (bTranslucencyShadowsChanged || bVolumetricChanged)
 		{
@@ -2003,7 +2004,7 @@ namespace Eagle
 	void ShadowPassTask::InitTranslucentMeshPipelines()
 	{
 		ShaderDefines fragmentDefines;
-		if (bVolumetricLightsEnabled)
+		if (bUseVolumetricLights)
 			fragmentDefines["EG_OUTPUT_DEPTH"] = "";
 
 		// For directional light
@@ -2045,7 +2046,7 @@ namespace Eagle
 
 			state.DepthStencilAttachment = depthAttachment;
 			state.ColorAttachments.push_back(colorAttachment);
-			if (bVolumetricLightsEnabled)
+			if (bUseVolumetricLights)
 				state.ColorAttachments.push_back(depthColorAttachment);
 			state.FragmentShader = Shader::Create("shadow_maps/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
 			
@@ -2100,7 +2101,7 @@ namespace Eagle
 			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Max;
 
 			state.ColorAttachments.push_back(colorAttachment);
-			if (bVolumetricLightsEnabled)
+			if (bUseVolumetricLights)
 				state.ColorAttachments.push_back(depthColorAttachment);
 
 			if (m_TranslucentMPLPipeline)
@@ -2152,7 +2153,7 @@ namespace Eagle
 			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Max;
 
 			state.ColorAttachments.push_back(colorAttachment);
-			if (bVolumetricLightsEnabled)
+			if (bUseVolumetricLights)
 				state.ColorAttachments.push_back(depthColorAttachment);
 
 			if (m_TranslucentMSLPipeline)
@@ -2301,7 +2302,7 @@ namespace Eagle
 	void ShadowPassTask::InitTranslucentSkeletalMeshPipelines()
 	{
 		ShaderDefines fragmentDefines;
-		if (bVolumetricLightsEnabled)
+		if (bUseVolumetricLights)
 			fragmentDefines["EG_OUTPUT_DEPTH"] = "";
 
 		// For directional light
@@ -2343,7 +2344,7 @@ namespace Eagle
 			state.FragmentShader = Shader::Create("shadow_maps/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
 			state.DepthStencilAttachment = depthAttachment;
 			state.ColorAttachments.push_back(colorAttachment);
-			if (bVolumetricLightsEnabled)
+			if (bUseVolumetricLights)
 				state.ColorAttachments.push_back(depthColorAttachment);
 
 			if (m_TranslucentSMDLPipeline)
@@ -2396,7 +2397,7 @@ namespace Eagle
 			state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
 
 			state.ColorAttachments.push_back(colorAttachment);
-			if (bVolumetricLightsEnabled)
+			if (bUseVolumetricLights)
 				state.ColorAttachments.push_back(depthColorAttachment);
 
 			if (m_TranslucentSMPLPipeline)
@@ -2446,7 +2447,7 @@ namespace Eagle
 			state.CullMode = CullMode::Dynamic;
 			state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
 			state.ColorAttachments.push_back(colorAttachment);
-			if (bVolumetricLightsEnabled)
+			if (bUseVolumetricLights)
 				state.ColorAttachments.push_back(depthColorAttachment);
 
 			if (m_TranslucentSMSLPipeline)
@@ -2594,7 +2595,7 @@ namespace Eagle
 	void ShadowPassTask::InitTranslucentSpritesPipelines()
 	{
 		ShaderDefines fragmentDefines;
-		if (bVolumetricLightsEnabled)
+		if (bUseVolumetricLights)
 			fragmentDefines["EG_OUTPUT_DEPTH"] = "";
 
 		// Directional light
@@ -2633,7 +2634,7 @@ namespace Eagle
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Dynamic;
 			state.ColorAttachments.push_back(colorAttachment);
-			if (bVolumetricLightsEnabled)
+			if (bUseVolumetricLights)
 				state.ColorAttachments.push_back(depthColorAttachment);
 
 			if (m_TranslucentSDLPipeline)
@@ -2684,7 +2685,7 @@ namespace Eagle
 			state.bEnableMultiViewRendering = true;
 			state.MultiViewPasses = 6;
 			state.ColorAttachments.push_back(colorAttachment);
-			if (bVolumetricLightsEnabled)
+			if (bUseVolumetricLights)
 				state.ColorAttachments.push_back(depthColorAttachment);
 
 			if (m_TranslucentSPLPipeline)
@@ -2733,7 +2734,7 @@ namespace Eagle
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Dynamic;
 			state.ColorAttachments.push_back(colorAttachment);
-			if (bVolumetricLightsEnabled)
+			if (bUseVolumetricLights)
 				state.ColorAttachments.push_back(depthColorAttachment);
 
 			if (m_TranslucentSSLPipeline)
@@ -2884,7 +2885,7 @@ namespace Eagle
 		ShaderDefines fragmentDefines;
 		fragmentDefines["EG_TRANSLUCENT"] = "";
 		fragmentDefines["EG_MATERIALS_REQUIRED"] = "";
-		if (bVolumetricLightsEnabled)
+		if (bUseVolumetricLights)
 			fragmentDefines["EG_OUTPUT_DEPTH"] = "";
 
 		Ref<Shader> fragShader = Shader::Create("shadow_maps/shadow_map_texts_lit.frag", ShaderType::Fragment, fragmentDefines);
@@ -2923,7 +2924,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_lit.vert", ShaderType::Vertex, { {"EG_MATERIALS_REQUIRED", ""} });
 			state.FragmentShader = fragShader;
 			state.ColorAttachments.push_back(colorAttachment);
-			if (bVolumetricLightsEnabled)
+			if (bUseVolumetricLights)
 				state.ColorAttachments.push_back(depthColorAttachment);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Dynamic;
@@ -2976,7 +2977,7 @@ namespace Eagle
 			state.bEnableMultiViewRendering = true;
 			state.MultiViewPasses = 6;
 			state.ColorAttachments.push_back(colorAttachment);
-			if (bVolumetricLightsEnabled)
+			if (bUseVolumetricLights)
 				state.ColorAttachments.push_back(depthColorAttachment);
 
 			if (m_TranslucentLitTPLPipeline)
@@ -3025,7 +3026,7 @@ namespace Eagle
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Dynamic;
 			state.ColorAttachments.push_back(colorAttachment);
-			if (bVolumetricLightsEnabled)
+			if (bUseVolumetricLights)
 				state.ColorAttachments.push_back(depthColorAttachment);
 
 			if (m_TranslucentLitTSLPipeline)
@@ -3144,7 +3145,7 @@ namespace Eagle
 	void ShadowPassTask::InitColoredDirectionalLightShadowMaps()
 	{
 		m_DLCShadowMaps.resize(EG_CASCADES_COUNT);
-		if (bVolumetricLightsEnabled)
+		if (bUseVolumetricLights)
 			m_DLCDShadowMaps.resize(EG_CASCADES_COUNT);
 		else
 			std::fill(m_DLCDShadowMaps.begin(), m_DLCDShadowMaps.end(), RenderManager::GetDummyImageR16());
@@ -3154,7 +3155,7 @@ namespace Eagle
 		{
 			const glm::uvec3 size = glm::uvec3(csmSizes[i], csmSizes[i], 1);
 			m_DLCShadowMaps[i] = CreateColoredFilterImage(size, std::string("CSMShadowMap_Colored") + std::to_string(i), false);
-			if (bVolumetricLightsEnabled)
+			if (bUseVolumetricLights)
 				m_DLCDShadowMaps[i] = CreateDepthImage16(size, std::string("CSMShadowMap_Colored_Depth") + std::to_string(i), false);
 		}
 	}
@@ -3171,7 +3172,7 @@ namespace Eagle
 			attachments.reserve(3);
 
 			attachments.push_back(m_DLCShadowMaps[i]);
-			if (bVolumetricLightsEnabled)
+			if (bUseVolumetricLights)
 				attachments.push_back(m_DLCDShadowMaps[i]);
 			attachments.push_back(nonTraslucentShadowMaps[i]);
 

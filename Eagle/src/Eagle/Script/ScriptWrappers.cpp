@@ -7387,15 +7387,21 @@ namespace Eagle
 		*bHalfResolution = settings.bHalfResolution;
 	}
 
-	void Script::Eagle_Renderer_GetScreenSpaceReflectionsSettings(float* roughnessThreshold, uint32_t* samplesPerQuad, uint32_t* maxIters, bool* bEnabled)
+	void Script::Eagle_Renderer_GetScreenSpaceReflectionsSettings(float* varianceThreshold, float* depthBufferThickness, float* temporalStabilityFactor, float* roughnessThreshold,
+		uint32_t* samplesPerQuad, uint32_t* maxTraversalIterations, uint32_t* minTraversalOccupancy, bool* bTemporalVarianceGuidedTracing, bool* bEnabled)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		const auto& sceneRenderer = scene->GetSceneRenderer();
 		const auto& settings = sceneRenderer->GetOptions().ScreenSpaceReflections;
 
+		*varianceThreshold = settings.VarianceThreshold;
+		*depthBufferThickness = settings.DepthBufferThickness;
+		*temporalStabilityFactor = settings.TemporalStabilityFactor;
 		*roughnessThreshold = settings.RoughnessThreshold;
 		*samplesPerQuad = settings.SamplesPerQuad;
-		*maxIters = settings.MaxTraversalIterations;
+		*maxTraversalIterations = settings.MaxTraversalIterations;
+		*minTraversalOccupancy = settings.MinTraversalOccupancy;
+		*bTemporalVarianceGuidedTracing = settings.bTemporalVarianceGuidedTracing;
 		*bEnabled = settings.bEnable;
 	}
 
@@ -7483,15 +7489,21 @@ namespace Eagle
 		sceneRenderer->SetOptions(settings);
 	}
 
-	void Script::Eagle_Renderer_SetScreenSpaceReflectionsSettings(float roughnessThreshold, uint32_t samplesPerQuad, uint32_t maxIters, bool bEnabled)
+	void Script::Eagle_Renderer_SetScreenSpaceReflectionsSettings(float varianceThreshold, float depthBufferThickness, float temporalStabilityFactor, float roughnessThreshold,
+		uint32_t samplesPerQuad, uint32_t maxTraversalIterations, uint32_t minTraversalOccupancy, bool bTemporalVarianceGuidedTracing, bool bEnabled)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		const auto& sceneRenderer = scene->GetSceneRenderer();
 
 		auto settings = sceneRenderer->GetOptions();
+		settings.ScreenSpaceReflections.VarianceThreshold = varianceThreshold;
+		settings.ScreenSpaceReflections.DepthBufferThickness = depthBufferThickness;
+		settings.ScreenSpaceReflections.TemporalStabilityFactor = temporalStabilityFactor;
 		settings.ScreenSpaceReflections.RoughnessThreshold = roughnessThreshold;
 		settings.ScreenSpaceReflections.SamplesPerQuad = samplesPerQuad;
-		settings.ScreenSpaceReflections.MaxTraversalIterations = maxIters;
+		settings.ScreenSpaceReflections.MaxTraversalIterations = maxTraversalIterations;
+		settings.ScreenSpaceReflections.MinTraversalOccupancy = minTraversalOccupancy;
+		settings.ScreenSpaceReflections.bTemporalVarianceGuidedTracing = bTemporalVarianceGuidedTracing;
 		settings.ScreenSpaceReflections.bEnable = bEnabled;
 
 		sceneRenderer->SetOptions(settings);

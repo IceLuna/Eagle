@@ -31,6 +31,7 @@ namespace Eagle
         VkImageAspectFlags GetDefaultAspectMask() const { return m_AspectMask; }
         VkImageAspectFlags GetTransitionAspectMask(ImageLayout oldLayout, ImageLayout newLayout) const;
         VkFormat GetVulkanFormat() const { return m_VulkanFormat; }
+        const VkImageCreateInfo& GetCreateInfo() const { return m_CreateInfo; }
 
     private:
         void CreateImage();
@@ -41,6 +42,7 @@ namespace Eagle
     private:
         mutable std::unordered_map<ImageView, VkImageView> m_Views; // Mutable by `GetVulkanImageView(const ImageView&)`
 
+        VkImageCreateInfo m_CreateInfo{};
         VkDevice m_Device = VK_NULL_HANDLE;
         VkImage m_Image = VK_NULL_HANDLE;
         VkImageView m_DefaultImageView = VK_NULL_HANDLE;

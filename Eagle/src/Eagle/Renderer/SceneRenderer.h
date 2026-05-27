@@ -58,8 +58,6 @@ namespace Eagle
 		Ref<Image> ObjectIDCopy;
 		Ref<Image> Depth;
 		Ref<Image> Motion;
-		Ref<Image> DepthHistory;
-		Ref<Image> NormalsHistory;
 
 		void Init(const glm::uvec3& size);
 		void InitOptional(const SceneRendererInternalState& optional, const glm::uvec3& size);
@@ -76,6 +74,8 @@ namespace Eagle
 		glm::mat4 PrevViewProj;
 		glm::mat4 Proj;
 		glm::mat4 InvProj;
+		glm::mat4 PrevProj;
+		glm::mat4 PrevView;
 	};
 
 	class SceneRenderer : public std::enable_shared_from_this<SceneRenderer>
@@ -273,6 +273,8 @@ namespace Eagle
 		const std::vector<float>& GetCascadeFarPlanes() const { return m_CameraCascadeFarPlanes; }
 		float GetShadowMaxDistance() const { return m_MaxShadowDistance; }
 
+		float IsProjectionFlipped() const { return m_bProjectionFlipped; }
+
 	public:
 		RenderStats& GetStats() { return m_Stats[m_FrameIndex]; }
 		const RenderStats& GetStats() const { return m_Stats[m_FrameIndex]; }
@@ -349,6 +351,7 @@ namespace Eagle
 		std::vector<glm::mat4> m_CameraCascadeProjections = std::vector<glm::mat4>(EG_CASCADES_COUNT);
 		std::vector<float> m_CameraCascadeFarPlanes = std::vector<float>(EG_CASCADES_COUNT);
 		float m_MaxShadowDistance = 1.f;
+		bool m_bProjectionFlipped = true;
 
 		glm::uvec2 m_Size = { 1, 1 };
 		float m_PhotoLinearScale = 1.f;

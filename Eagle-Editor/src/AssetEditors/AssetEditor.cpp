@@ -114,7 +114,9 @@ namespace Eagle
 		const auto runtimeCamera = m_CurrentScene->GetRuntimeCamera();
 		glm::mat4 cameraProjection = m_SimulationScene ? runtimeCamera->Camera.GetUnreversedProjection() : editorCamera.GetUnreversedProjection();
 		const glm::mat4& cameraViewMatrix = m_SimulationScene ? runtimeCamera->GetViewMatrix() : editorCamera.GetViewMatrix();
-		cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
+		const bool bProjectionFlipped = m_SimulationScene ? runtimeCamera->Camera.IsProjectionFlipped() : editorCamera.IsProjectionFlipped();
+		if (bProjectionFlipped)
+			cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
 
 		int snappingIndex = 0;
 		if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
@@ -159,7 +161,9 @@ namespace Eagle
 		auto& editorCamera = m_CurrentScene->EditorCamera;
 		glm::mat4 cameraProjection = editorCamera.GetProjection();
 		glm::mat4 cameraViewMatrix = editorCamera.GetViewMatrix();
-		cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
+		const bool bProjectionFlipped = editorCamera.IsProjectionFlipped();
+		if (bProjectionFlipped)
+			cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
 
 		const float shortestSide = glm::min(m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
 

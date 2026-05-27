@@ -870,7 +870,9 @@ namespace Eagle
 			const bool bEditing = m_EditorState == EditorState::Edit;
 			glm::mat4 cameraProjection = bEditing ? editorCamera.GetUnreversedProjection() : runtimeCamera->Camera.GetUnreversedProjection();
 			const glm::mat4& cameraViewMatrix = bEditing ? editorCamera.GetViewMatrix() : runtimeCamera->GetViewMatrix();
-			cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
+			const bool bProjectionFlipped = bEditing ? editorCamera.IsProjectionFlipped() : runtimeCamera->Camera.IsProjectionFlipped();
+			if (bProjectionFlipped)
+				cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
 
 			Transform transform;
 			Transform finalTransform;
@@ -940,7 +942,9 @@ namespace Eagle
 			auto& editorCamera = m_EditorScene->EditorCamera;
 			glm::mat4 cameraProjection = editorCamera.GetProjection();
 			glm::mat4 cameraViewMatrix = editorCamera.GetViewMatrix();
-			cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
+			const bool bProjectionFlipped = editorCamera.IsProjectionFlipped();
+			if (bProjectionFlipped)
+				cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
 
 			const float shortestSide = glm::min(m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
 			const float size = shortestSide * 0.1f; // Size is ~100 per 1000pixels
@@ -1584,14 +1588,20 @@ namespace Eagle
 				auto& settings = options.ScreenSpaceReflections;
 
 				bSettingsChanged |= UI::Property("Enable", settings.bEnable);
-				bSettingsChanged |= UI::PropertySlider("Roughness Threshold", settings.RoughnessThreshold, 0.f, 1.f);
-				if (UI::PropertySlider("Samples Per Quad", settings.SamplesPerQuad, 1, 4, "1, 2, or 4"))
+				bSettingsChanged |= UI::Property("Temporal Variance Guided Tracing", settings.bTemporalVarianceGuidedTracing, "Controls whether a ray should be spawned on pixels where a temporal variance is detected or not.");
+				bSettingsChanged |= UI::PropertySlider("Variance Threshold", settings.VarianceThreshold, 0.f, 1.f, "Luminance differences between history results will trigger an additional ray if they are greater than this threshold value.");
+				bSettingsChanged |= UI::PropertyDrag("Depth Buffer Thickness", settings.DepthBufferThickness, 0.001f, 0.f, 1.f, "A bias for accepting hits. Larger values can cause streaks, lower values can cause holes.");
+				bSettingsChanged |= UI::PropertySlider("Temporal Stability Factor", settings.TemporalStabilityFactor, 0.f, 1.f, "A factor to control the accmulation of history values. Higher values reduce noise, but are more likely to exhibit ghosting artefacts.");
+				bSettingsChanged |= UI::PropertySlider("Roughness Threshold", settings.RoughnessThreshold, 0.f, 1.f, "Regions with a roughness value greater than this threshold won't spawn rays.");
+				if (UI::PropertySlider("Samples Per Quad", settings.SamplesPerQuad, 1, 4, "The minimum number of rays per quad. Variance guided tracing can increase this up to a maximum of 4."))
 				{
 					if (settings.SamplesPerQuad == 3)
 						settings.SamplesPerQuad = 4;
 					bSettingsChanged = true;
 				}
-				bSettingsChanged |= UI::PropertyDrag("Max Traversal Iterations", settings.MaxTraversalIterations, 1, 1, 512);
+				bSettingsChanged |= UI::PropertyDrag("Max Traversal Iterations", settings.MaxTraversalIterations, 1, 1, 256, "Caps the maximum number of lookups that are performed from the depth buffer hierarchy. Most rays should terminate after approximately 20 lookups.");
+				bSettingsChanged |= UI::PropertyDrag("Min Traversal Occupancy", settings.MinTraversalOccupancy, 1, 1, 32, "Exit the core loop early if less than this number of threads are running.");
+				bSettingsChanged |= UI::Property("Visualize Reflection", settings.bVisualizeReflections);
 
 				UI::EndPropertyGrid();
 				ImGui::TreePop();

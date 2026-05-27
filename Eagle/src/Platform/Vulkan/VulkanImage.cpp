@@ -58,20 +58,20 @@ namespace Eagle
 
 		m_VulkanFormat = ImageFormatToVulkan(m_Specs.Format);
 		m_AspectMask = GetImageAspectFlags(m_VulkanFormat);
-		VkImageCreateInfo info{};
-		info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		info.imageType = ImageTypeToVulkan(m_Specs.Type);
-		info.format = m_VulkanFormat;
-		info.arrayLayers = m_Specs.bIsCube ? 6 : 1;
-		info.extent = { m_Specs.Size.x, m_Specs.Size.y, m_Specs.Size.z };
-		info.mipLevels = m_Specs.MipsCount;
-		info.samples = GetVulkanSamplesCount(m_Specs.SamplesCount);
-		info.tiling = m_Specs.MemoryType == MemoryType::Gpu ? VK_IMAGE_TILING_OPTIMAL : VK_IMAGE_TILING_LINEAR;
-		info.usage = ImageUsageToVulkan(m_Specs.Usage);
-		info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		info.flags |= m_Specs.bIsCube ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
+		m_CreateInfo = VkImageCreateInfo{};
+		m_CreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		m_CreateInfo.imageType = ImageTypeToVulkan(m_Specs.Type);
+		m_CreateInfo.format = m_VulkanFormat;
+		m_CreateInfo.arrayLayers = m_Specs.bIsCube ? 6 : 1;
+		m_CreateInfo.extent = { m_Specs.Size.x, m_Specs.Size.y, m_Specs.Size.z };
+		m_CreateInfo.mipLevels = m_Specs.MipsCount;
+		m_CreateInfo.samples = GetVulkanSamplesCount(m_Specs.SamplesCount);
+		m_CreateInfo.tiling = m_Specs.MemoryType == MemoryType::Gpu ? VK_IMAGE_TILING_OPTIMAL : VK_IMAGE_TILING_LINEAR;
+		m_CreateInfo.usage = ImageUsageToVulkan(m_Specs.Usage);
+		m_CreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		m_CreateInfo.flags |= m_Specs.bIsCube ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
 
-		m_Allocation = VulkanAllocator::AllocateImage(&info, m_Specs.MemoryType, m_DebugName, &m_Image);
+		m_Allocation = VulkanAllocator::AllocateImage(&m_CreateInfo, m_Specs.MemoryType, m_DebugName, &m_Image);
 
 		if (!m_DebugName.empty())
 			VulkanContext::AddResourceDebugName(m_Image, m_DebugName, VK_OBJECT_TYPE_IMAGE);

@@ -100,11 +100,14 @@ namespace Eagle
 			}
 		}
 
-		// Flipping for Vulkan
-		m_Projection[1][1] *= -1.f;
-		m_UnreversedProjection[1][1] *= -1.f;
-		for (uint32_t i = 0; i < EG_CASCADES_COUNT; ++i)
-			m_CascadeProjections[i][1][1] *= -1.f;
+		if (m_bFlipProjection)
+		{
+			// Flipping for Vulkan
+			m_Projection[1][1] *= -1.f;
+			m_UnreversedProjection[1][1] *= -1.f;
+			for (uint32_t i = 0; i < EG_CASCADES_COUNT; ++i)
+				m_CascadeProjections[i][1][1] *= -1.f;
+		}
 	}
 }
 
