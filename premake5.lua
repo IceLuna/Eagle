@@ -361,6 +361,10 @@ project "Eagle"
 
 			"%{LibFiles.ShaderC_Release}",
 			"%{LibFiles.SPIRV_Cross_Release}",
+
+			"%{LibFiles.FFX_SSSR_Backend_VK_Release}",
+			"%{LibFiles.FFX_SSSR_Denoiser_Release}",
+			"%{LibFiles.FFX_SSSR_Release}",
 		}
 		buildoptions
 		{
