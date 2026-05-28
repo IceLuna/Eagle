@@ -2936,6 +2936,7 @@ namespace Eagle
 		out << YAML::Key << "TransparencyLayers" << YAML::Value << settings.TransparencyLayers;
 		out << YAML::Key << "AO" << YAML::Value << Utils::GetEnumName(settings.AO);
 		out << YAML::Key << "AA" << YAML::Value << Utils::GetEnumName(settings.AA);
+		out << YAML::Key << "GeometricSpecularAA" << YAML::Value << settings.bGeometricSpecularAA;
 		out << YAML::Key << "Gamma" << YAML::Value << settings.Gamma;
 		out << YAML::Key << "Exposure" << YAML::Value << settings.Exposure;
 		out << YAML::Key << "TonemappingMethod" << YAML::Value << Utils::GetEnumName(settings.Tonemapping);
@@ -3115,6 +3116,8 @@ namespace Eagle
 			settings.AO = Utils::GetEnumFromName<AmbientOcclusion>(node.as<std::string>());
 		if (auto node = data["AA"])
 			settings.AA = Utils::GetEnumFromName<AAMethod>(node.as<std::string>());
+		if (auto node = data["GeometricSpecularAA"])
+			settings.bGeometricSpecularAA = node.as<bool>();
 		if (auto gammaNode = data["Gamma"])
 			settings.Gamma = gammaNode.as<float>();
 		if (auto exposureNode = data["Exposure"])
