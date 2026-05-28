@@ -23,8 +23,11 @@ namespace Eagle
 	RenderTextLitTask::RenderTextLitTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
-		bMotionRequired = m_Renderer.GetOptions_RT().InternalState.bMotionBuffer;
-		bJitter = m_Renderer.GetOptions_RT().InternalState.bJitter;
+		const auto& settings = m_Renderer.GetOptions();
+		bMotionRequired = settings.InternalState.bMotionBuffer;
+		bJitter = settings.InternalState.bJitter;
+		bGeometricSpecularAA = settings.bGeometricSpecularAA;
+
 		InitPipeline();
 	}
 
@@ -214,6 +217,8 @@ namespace Eagle
 		}
 		if (bJitter)
 			vertexDefines["EG_JITTER"] = "";
+		if (bGeometricSpecularAA)
+			fragmentDefines["EG_GEOMETRIC_SPECULAR_AA"] = "";
 
 		PipelineGraphicsState state;
 		state.VertexShader = Shader::Create("text/text_lit.vert", ShaderType::Vertex, vertexDefines);

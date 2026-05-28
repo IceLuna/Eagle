@@ -1483,10 +1483,16 @@ namespace Eagle
 			}
 		}
 
-		if (UI::ComboEnum<AAMethod>("Anti-aliasing", options.AA))
+		if (UI::ComboEnum<AAMethod>("Anti-Aliasing", options.AA))
 		{
 			bSettingsChanged = true;
 			EG_CORE_TRACE("Changed AA to: {}", magic_enum::enum_name(options.AA));
+		}
+
+		if (UI::Property("Geometric Specular Anti-Aliasing", options.bGeometricSpecularAA))
+		{
+			bSettingsChanged = true;
+			EG_CORE_TRACE("Changed Geometric Specular Anti-aliasing to: {}", options.bGeometricSpecularAA);
 		}
 
 		UI::EndPropertyGrid();

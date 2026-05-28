@@ -22,8 +22,11 @@ namespace Eagle
 	RenderMeshesTask::RenderMeshesTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
-		bMotionRequired = renderer.GetOptions_RT().InternalState.bMotionBuffer;
-		bJitter = renderer.GetOptions_RT().InternalState.bJitter;
+		const auto& settings = renderer.GetOptions();
+		bMotionRequired = settings.InternalState.bMotionBuffer;
+		bJitter = settings.InternalState.bJitter;
+		bGeometricSpecularAA = settings.bGeometricSpecularAA;
+
 		InitPipeline();
 	}
 
@@ -93,6 +96,8 @@ namespace Eagle
 		}
 		if (bJitter)
 			vertexDefines["EG_JITTER"] = "";
+		if (bGeometricSpecularAA)
+			fragmentDefines["EG_GEOMETRIC_SPECULAR_AA"] = "";
 
 		PipelineGraphicsState state;
 		state.VertexShader = Shader::Create("mesh.vert", ShaderType::Vertex, vertexDefines);

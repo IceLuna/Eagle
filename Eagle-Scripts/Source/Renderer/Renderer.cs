@@ -693,6 +693,12 @@ namespace Eagle
             get { return GetAAMethod_Native(); }
         }
 
+        public static bool GeometricSpecularAA
+        {
+            set { SetGeometricSpecularAAEnabled_Native(value); }
+            get { return IsGeometricSpecularAAEnabled_Native(); }
+        }
+
         public static bool bVSync
         {
             set { SetVSyncEnabled_Native(value); }
@@ -855,6 +861,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetAAMethod_Native(AAMethod value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern bool IsGeometricSpecularAAEnabled_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetGeometricSpecularAAEnabled_Native(bool value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern AmbientOcclusion GetAO_Native();

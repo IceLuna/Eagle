@@ -47,6 +47,7 @@ namespace Eagle
 		SetSoftShadowsEnabled(options.bEnableSoftShadows);
 		SetCSMSmoothTransitionEnabled(options.bEnableCSMSmoothTransition);
 		SetFogEnabled(options.FogSettings.bEnable);
+		SetGeometicSpecularAAEnabled(options.bGeometricSpecularAA);
 		bObjectPickingEnabled = options.bEnableObjectPicking;
 
 		m_TransparencyColorShader     = Shader::Create("transparency/transparency_color.frag", ShaderType::Fragment, defines);
@@ -114,6 +115,7 @@ namespace Eagle
 		bReloadShader |= SetSoftShadowsEnabled(settings.bEnableSoftShadows);
 		bReloadShader |= SetCSMSmoothTransitionEnabled(settings.bEnableCSMSmoothTransition);
 		bReloadShader |= SetFogEnabled(settings.FogSettings.bEnable);
+		bReloadShader |= SetGeometicSpecularAAEnabled(settings.bGeometricSpecularAA);
 		bObjectPickingEnabled = settings.bEnableObjectPicking;
 
 		if (!bReloadShader)
@@ -934,21 +936,21 @@ namespace Eagle
 	
 	bool TransparencyTask::SetSoftShadowsEnabled(bool bEnable)
 	{
-		if (bSoftShadows == bEnable)
-			return false;
-
 		bSoftShadows = bEnable;
 		auto& defines = m_ShaderDefines;
+		auto it = defines.find("EG_SOFT_SHADOWS");
 
 		bool bUpdate = false;
 		if (bEnable)
 		{
-			defines["EG_SOFT_SHADOWS"] = "";
-			bUpdate = true;
+			if (it == defines.end())
+			{
+				defines["EG_SOFT_SHADOWS"] = "";
+				bUpdate = true;
+			}
 		}
 		else
 		{
-			auto it = defines.find("EG_SOFT_SHADOWS");
 			if (it != defines.end())
 			{
 				defines.erase(it);
@@ -961,21 +963,21 @@ namespace Eagle
 
 	bool TransparencyTask::SetVisualizeCascades(bool bVisualize)
 	{
-		if (bVisualizeCascades == bVisualize)
-			return false;
-
 		bVisualizeCascades = bVisualize;
 		auto& defines = m_ShaderDefines;
+		auto it = defines.find("EG_ENABLE_CSM_VISUALIZATION");
 
 		bool bUpdate = false;
 		if (bVisualize)
 		{
-			defines["EG_ENABLE_CSM_VISUALIZATION"] = "";
-			bUpdate = true;
+			if (it == defines.end())
+			{
+				defines["EG_ENABLE_CSM_VISUALIZATION"] = "";
+				bUpdate = true;
+			}
 		}
 		else
 		{
-			auto it = defines.find("EG_ENABLE_CSM_VISUALIZATION");
 			if (it != defines.end())
 			{
 				defines.erase(it);
@@ -1014,9 +1016,6 @@ namespace Eagle
 
 	bool TransparencyTask::SetFogEnabled(bool bEnable)
 	{
-		if (bFog == bEnable)
-			return false;
-
 		bFog = bEnable;
 
 		auto& defines = m_ShaderDefines;
@@ -1028,6 +1027,34 @@ namespace Eagle
 			if (it == defines.end())
 			{
 				defines["EG_FOG"] = "";
+				bUpdate = true;
+			}
+		}
+		else
+		{
+			if (it != defines.end())
+			{
+				defines.erase(it);
+				bUpdate = true;
+			}
+		}
+
+		return bUpdate;
+	}
+
+	bool TransparencyTask::SetGeometicSpecularAAEnabled(bool bEnable)
+	{
+		bGeometricSpecularAA = bEnable;
+
+		auto& defines = m_ShaderDefines;
+		auto it = defines.find("EG_GEOMETRIC_SPECULAR_AA");
+
+		bool bUpdate = false;
+		if (bEnable)
+		{
+			if (it == defines.end())
+			{
+				defines["EG_GEOMETRIC_SPECULAR_AA"] = "";
 				bUpdate = true;
 			}
 		}

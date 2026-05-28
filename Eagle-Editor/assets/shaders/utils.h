@@ -545,7 +545,7 @@ vec3 Color_SRGBToLinear(vec3 color)
 
 float ApplyGeometricSpecularAntiAliasing(vec3 geomNormal, float roughness)
 {
-#if defined(EG_SHADER_FRAGMENT) && 1 // You can disable it to test the diff
+#if defined(EG_SHADER_FRAGMENT) && defined(EG_GEOMETRIC_SPECULAR_AA)
     // Source: Advanced VR Rendering (Valve)
     // https://media.steampowered.com/apps/valve/2015/Alex_Vlachos_Advanced_VR_Rendering_GDC2015.pdf
     const vec3 geomNormaldx = dFdx(geomNormal);

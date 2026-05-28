@@ -7106,6 +7106,25 @@ namespace Eagle
 		sceneRenderer->SetOptions(options);
 	}
 
+	bool Script::Eagle_Renderer_IsGeometricSpecularAAEnabled()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.bGeometricSpecularAA;
+	}
+
+	void Script::Eagle_Renderer_SetGeometicSpecularAAEnabled(bool bEnabled)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.bGeometricSpecularAA = bEnabled;
+		sceneRenderer->SetOptions(options);
+	}
+
 	AmbientOcclusion Script::Eagle_Renderer_GetAO()
 	{
 		const auto& scene = Scene::GetCurrentScene();

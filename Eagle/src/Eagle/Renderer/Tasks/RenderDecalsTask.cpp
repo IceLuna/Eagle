@@ -46,6 +46,7 @@ namespace Eagle
 	RenderDecalsTask::RenderDecalsTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
+		bGeometricSpecularAA = renderer.GetOptions().bGeometricSpecularAA;
 		InitPipeline();
 
 		BufferSpecifications specs{};
@@ -213,6 +214,15 @@ namespace Eagle
 		}
 	}
 
+	void RenderDecalsTask::InitWithOptions(const SceneRendererSettings& settings)
+	{
+		if (settings.bGeometricSpecularAA == bGeometricSpecularAA)
+			return;
+
+		bGeometricSpecularAA = settings.bGeometricSpecularAA;
+		InitPipeline();
+	}
+
 	void RenderDecalsTask::SetDecals(const std::vector<const DecalComponent*>& decals)
 	{
 		struct UpdateData
@@ -319,6 +329,12 @@ namespace Eagle
 
 	void RenderDecalsTask::InitPipeline()
 	{
+		ShaderDefines defines;
+		if (bGeometricSpecularAA)
+		{
+			defines["EG_GEOMETRIC_SPECULAR_AA"] = "";
+		}
+
 		const auto& gbuffer = m_Renderer.GetGBuffer();
 
 		BlendState alphaBlendingState{};
@@ -367,7 +383,7 @@ namespace Eagle
 
 		PipelineGraphicsState state;
 		state.VertexShader = Shader::Create("decals.vert", ShaderType::Vertex);
-		state.FragmentShader = Shader::Create("decals.frag", ShaderType::Fragment);
+		state.FragmentShader = Shader::Create("decals.frag", ShaderType::Fragment, defines);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.ColorAttachments.push_back(emissiveAttachment);
 		state.ColorAttachments.push_back(materialAttachment);
@@ -380,7 +396,9 @@ namespace Eagle
 		else
 			m_Pipeline = PipelineGraphics::Create(state);
 
-		state.FragmentShader = Shader::Create("decals.frag", ShaderType::Fragment, { { "DECAL_NORMALS", "" } });
+		defines["DECAL_NORMALS"] = "";
+
+		state.FragmentShader = Shader::Create("decals.frag", ShaderType::Fragment, defines);
 		state.ColorAttachments.push_back(normalsAttachment);
 		if (m_WithNormalsPipeline)
 			m_WithNormalsPipeline->SetState(state);

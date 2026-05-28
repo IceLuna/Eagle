@@ -1037,6 +1037,7 @@ namespace Eagle
         bool bEnableDebugLinesDepthTest = true;
         float GridScale = 4.f; // Editor Only
         uint32_t TransparencyLayers = 4u;
+        bool bGeometricSpecularAA = true;
 
         SceneRendererInternalState InternalState; // Internal
 
@@ -1073,6 +1074,7 @@ namespace Eagle
                 GTAOSettings == other.GTAOSettings &&
                 GridScale == other.GridScale &&
                 TransparencyLayers == other.TransparencyLayers &&
+                bGeometricSpecularAA == other.bGeometricSpecularAA &&
                 BloomSettings == other.BloomSettings;
         }
 

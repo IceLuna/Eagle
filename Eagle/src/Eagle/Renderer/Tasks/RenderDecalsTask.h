@@ -18,7 +18,7 @@ namespace Eagle
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(const glm::uvec2 size) { m_Pipeline->Resize(size); m_WithNormalsPipeline->Resize(size); }
-
+		void InitWithOptions(const SceneRendererSettings& settings) override;
 		void SetDecals(const std::vector<const DecalComponent*>& decals);
 		void SetTransforms(const std::vector<const DecalComponent*>& decals);
 
@@ -49,6 +49,7 @@ namespace Eagle
 		uint32_t m_WithNormalsDecalsCount = 0;
 		bool bUpload = true;
 		bool bUploadTransforms = true;
+		bool bGeometricSpecularAA = true;
 
 		Ref<PipelineGraphics> m_Pipeline; // Doesn't affect normals in the gbuffer
 		Ref<PipelineGraphics> m_WithNormalsPipeline;

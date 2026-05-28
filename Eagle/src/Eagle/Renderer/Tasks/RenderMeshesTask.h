@@ -25,11 +25,13 @@ namespace Eagle
 		void InitWithOptions(const SceneRendererSettings& settings) override
 		{
 			if (bMotionRequired == settings.InternalState.bMotionBuffer &&
-				bJitter == settings.InternalState.bJitter)
+				bJitter == settings.InternalState.bJitter &&
+				bGeometricSpecularAA == settings.bGeometricSpecularAA)
 				return;
 
 			bMotionRequired = settings.InternalState.bMotionBuffer;
 			bJitter = settings.InternalState.bJitter;
+			bGeometricSpecularAA = settings.bGeometricSpecularAA;
 
 			InitPipeline();
 		}
@@ -54,5 +56,6 @@ namespace Eagle
 		uint64_t m_MaskedTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 		bool bMotionRequired = false;
 		bool bJitter = false;
+		bool bGeometricSpecularAA = true;
 	};
 }
