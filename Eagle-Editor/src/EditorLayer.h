@@ -101,12 +101,12 @@ namespace Eagle
 		void BeginDocking();
 		void EndDocking();
 
-		const Ref<Image>& GetRequiredGBufferImage(const Ref<SceneRenderer>& renderer, const GBuffer& gbuffer);
+		Ref<Image> GetRequiredGBufferImage(const Ref<SceneRenderer>& renderer, const GBuffer& gbuffer);
 
 	private:
 		enum class GBufferVisualizingType
 		{
-			Final, Albedo, Emissive, SSAO, GTAO, Motion
+			Final, Albedo, Emissive, AO, Motion
 		};
 		void SetVisualizingBufferType(GBufferVisualizingType value);
 
@@ -121,7 +121,7 @@ namespace Eagle
 		Ref<Scene> m_EditorScene;
 		Ref<Scene> m_SimulationScene;
 		Ref<Scene> m_CurrentScene;
-		const Ref<Image>* m_ViewportImage = nullptr; // A pointer just not to copy Ref
+		Ref<Image> m_ViewportImage;
 		GBufferVisualizingType m_VisualizingGBufferType = GBufferVisualizingType::Final;
 		int m_SelectedBufferIndex = 0;
 

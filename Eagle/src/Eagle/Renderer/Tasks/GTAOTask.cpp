@@ -100,36 +100,26 @@ namespace Eagle
 
 		struct PushData
 		{
-			glm::mat4 ProjInv;
-			glm::vec3 ViewRow1;
-			int SizeX;
-			glm::vec3 ViewRow2;
-			int SizeY;
-			glm::vec3 ViewRow3;
-			float Radius;
+			glm::uvec2 Size;
 			float RadRotationTemporal;
+			float Radius;
 		} pushData;
 		static_assert(sizeof(PushData) <= 128);
 
 		constexpr float aRotation[] = { 60.f, 300.f, 180.f, 240.f, 120.f, 0.f };
 
 		const auto& gtaoSettings = m_Renderer.GetOptions_RT().GTAOSettings;
-		const auto& view = m_Renderer.GetViewMatrix();
 		const uint64_t frameNumber = RenderManager::GetFrameNumber_RT();
 		auto& stats = m_Renderer.GetStats();
 
-		pushData.ProjInv = glm::inverse(m_Renderer.GetProjectionMatrix());
-		pushData.SizeX = int(m_HalfSize.x);
-		pushData.SizeY = int(m_HalfSize.y);
+		pushData.Size = m_HalfSize;
 		pushData.Radius = gtaoSettings.GetRadius();
-		pushData.ViewRow1 = view[0];
-		pushData.ViewRow2 = view[1];
-		pushData.ViewRow3 = view[2];
 		pushData.RadRotationTemporal = aRotation[frameNumber % 6];
 
 		m_GTAOPipeline->SetImageSampler(m_HalfDepth, Sampler::PointSamplerClamp, 0, 0);
 		m_GTAOPipeline->SetImageSampler(m_Renderer.GetGBuffer().Normals, Sampler::PointSamplerClamp, 0, 1);
-		m_GTAOPipeline->SetImage(m_GTAOPassImage, 0, 2);
+		m_GTAOPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 0, 2);
+		m_GTAOPipeline->SetImage(m_GTAOPassImage, 0, 3);
 
 		cmd->TransitionLayout(m_GTAOPassImage, m_GTAOPassImage->GetLayout(), ImageLayoutType::StorageImage);
 		cmd->Barrier(m_HalfDepth);

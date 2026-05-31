@@ -271,7 +271,7 @@ namespace Eagle
 
 		const auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
 		const GBuffer& gBuffers = sceneRenderer->GetGBuffer();
-		m_ViewportImage = &(GetRequiredGBufferImage(sceneRenderer, gBuffers));
+		m_ViewportImage = GetRequiredGBufferImage(sceneRenderer, gBuffers);
 
 		BeginDocking();
 
@@ -1075,13 +1075,9 @@ namespace Eagle
 						if (ImGui::RadioButton("Motion", &m_SelectedBufferIndex, radioButtonIndex++))
 							SetVisualizingBufferType(GBufferVisualizingType::Motion);
 
-					if (sceneRenderer->GetOptions().AO == AmbientOcclusion::SSAO)
-						if (ImGui::RadioButton("SSAO", &m_SelectedBufferIndex, radioButtonIndex++))
-								SetVisualizingBufferType(GBufferVisualizingType::SSAO);
-
-					if (sceneRenderer->GetOptions().AO == AmbientOcclusion::GTAO)
-						if (ImGui::RadioButton("GTAO", &m_SelectedBufferIndex, radioButtonIndex++))
-								SetVisualizingBufferType(GBufferVisualizingType::GTAO);
+					if (sceneRenderer->GetOptions().AO != AmbientOcclusion::None)
+						if (ImGui::RadioButton("AO", &m_SelectedBufferIndex, radioButtonIndex++))
+								SetVisualizingBufferType(GBufferVisualizingType::AO);
 
 					ImGui::EndMenu();
 				}
@@ -1462,22 +1458,13 @@ namespace Eagle
 				bSettingsChanged = true;
 				EG_CORE_TRACE("Changed AO to: {}", magic_enum::enum_name(options.AO));
 
-				if (options.AO != AmbientOcclusion::SSAO && oldAO == AmbientOcclusion::SSAO)
+				if (options.AO == AmbientOcclusion::None)
 				{
-					if (m_VisualizingGBufferType == GBufferVisualizingType::SSAO)
+					if (m_VisualizingGBufferType == GBufferVisualizingType::AO)
 					{
 						SetVisualizingBufferType(GBufferVisualizingType::Final);
 						m_SelectedBufferIndex = 0;
-						m_ViewportImage = &sceneRenderer->GetOutput();
-					}
-				}
-				else if (options.AO != AmbientOcclusion::GTAO && oldAO == AmbientOcclusion::GTAO)
-				{
-					if (m_VisualizingGBufferType == GBufferVisualizingType::GTAO)
-					{
-						SetVisualizingBufferType(GBufferVisualizingType::Final);
-						m_SelectedBufferIndex = 0;
-						m_ViewportImage = &sceneRenderer->GetOutput();
+						m_ViewportImage = sceneRenderer->GetOutput();
 					}
 				}
 			}
@@ -2452,7 +2439,7 @@ namespace Eagle
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
 			m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
 
-			UI::Image(*m_ViewportImage, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y });
+			UI::Image(m_ViewportImage, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y });
 
 			// Drop event
 			if (m_EditorState == EditorState::Edit)
@@ -2754,15 +2741,24 @@ namespace Eagle
 		}
 	}
 
-	const Ref<Image>& EditorLayer::GetRequiredGBufferImage(const Ref<SceneRenderer>& renderer, const GBuffer& gbuffer)
+	Ref<Image> EditorLayer::GetRequiredGBufferImage(const Ref<SceneRenderer>& renderer, const GBuffer& gbuffer)
 	{
 		switch (m_VisualizingGBufferType)
 		{
 			case Eagle::EditorLayer::GBufferVisualizingType::Final: return renderer->GetOutput();
 			case Eagle::EditorLayer::GBufferVisualizingType::Albedo: return gbuffer.Albedo;
 			case Eagle::EditorLayer::GBufferVisualizingType::Emissive:  return gbuffer.Emissive;
-			case Eagle::EditorLayer::GBufferVisualizingType::SSAO:  return renderer->GetSSAOResult();
-			case Eagle::EditorLayer::GBufferVisualizingType::GTAO:  return renderer->GetGTAOResult();
+			case Eagle::EditorLayer::GBufferVisualizingType::AO:
+			{
+				const AmbientOcclusion ao = renderer->GetOptions().AO;
+				if (ao == AmbientOcclusion::SSAO)
+					return renderer->GetSSAOResult();
+				else if (ao == AmbientOcclusion::GTAO)
+					return renderer->GetGTAOResult();
+				
+				EG_CORE_ASSERT(false);
+				return renderer->GetOutput();
+			}
 			case Eagle::EditorLayer::GBufferVisualizingType::Motion: return gbuffer.Motion ? gbuffer.Motion : renderer->GetOutput();
 			default: return renderer->GetOutput();
 		}

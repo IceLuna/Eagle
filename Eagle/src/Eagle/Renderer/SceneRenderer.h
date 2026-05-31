@@ -236,8 +236,8 @@ namespace Eagle
 		const Ref<Buffer>& GetCameraMatricesBuffer() const { return m_CameraDataBuffer; }
 		const Ref<Image>& GetSMDistribution() const { return m_PBRPassTask->GetSMDistribution(); }
 
-		const Ref<Image>& GetSSAOResult() const { return m_SSAOTask->GetResult(); }
-		const Ref<Image>& GetGTAOResult() const { return m_GTAOTask->GetResult(); }
+		Ref<Image> GetSSAOResult() const { return m_SSAOTask ? m_SSAOTask->GetResult() : nullptr; }
+		Ref<Image> GetGTAOResult() const { return m_GTAOTask ? m_GTAOTask->GetResult() : nullptr; }
 		// ------------------------------------------------
 
 		const Ref<Buffer>& GetJitter() const { return m_Jitter; }
