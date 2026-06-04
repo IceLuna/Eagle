@@ -168,8 +168,57 @@ namespace Eagle
     
     public struct GTAOSettings
     {
-        public uint Samples;
+        public struct QualityParams
+        {
+            public uint Samples;
+            public uint StepsPerSample;
+            public uint NumberOfBlurPasses;
+        }
+
+        public QualityParams Quality;
         public float Radius;
+        public float FalloffRange;
+        public bool bHalfRes;
+
+        public static QualityParams GetLowQuality()
+        {
+            QualityParams result = new QualityParams();
+            GetQuality_Low_Native(out result.Samples, out result.StepsPerSample, out result.NumberOfBlurPasses);
+            return result;
+        }
+
+        public static QualityParams GetMediumQuality()
+        {
+            QualityParams result = new QualityParams();
+            GetQuality_Medium_Native(out result.Samples, out result.StepsPerSample, out result.NumberOfBlurPasses);
+            return result;
+        }
+
+        public static QualityParams GetHighQuality()
+        {
+            QualityParams result = new QualityParams();
+            GetQuality_High_Native(out result.Samples, out result.StepsPerSample, out result.NumberOfBlurPasses);
+            return result;
+        }
+
+        public static QualityParams GetUltraQuality()
+        {
+            QualityParams result = new QualityParams();
+            GetQuality_Ultra_Native(out result.Samples, out result.StepsPerSample, out result.NumberOfBlurPasses);
+            return result;
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetQuality_Low_Native(out uint samples, out uint stepsPerSample, out uint numOfBlurPasses);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetQuality_Medium_Native(out uint samples, out uint stepsPerSample, out uint numOfBlurPasses);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetQuality_High_Native(out uint samples, out uint stepsPerSample, out uint numOfBlurPasses);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetQuality_Ultra_Native(out uint samples, out uint stepsPerSample, out uint numOfBlurPasses);
     }
 
     public struct VolumetricLightsSettings
@@ -426,15 +475,14 @@ namespace Eagle
 
         public static void SetGTAOSettings(GTAOSettings value)
         {
-            SetGTAOSettings_Native(value.Samples, value.Radius);
+            SetGTAOSettings_Native(value.Quality.Samples, value.Quality.StepsPerSample, value.Radius, value.FalloffRange, value.bHalfRes);
         }
 
         public static GTAOSettings GetGTAOSettings()
         {
-            GetGTAOSettings_Native(out uint samples, out float radius);
             GTAOSettings settings = new GTAOSettings();
-            settings.Samples = samples;
-            settings.Radius = radius;
+            GetGTAOSettings_Native(out settings.Quality.Samples, out settings.Quality.StepsPerSample, out settings.Radius, out settings.FalloffRange, out settings.bHalfRes);
+
             return settings;
         }
 
@@ -803,10 +851,10 @@ namespace Eagle
         private static extern void GetSSAOSettings_Native(out uint samples, out float radius, out float bias);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetGTAOSettings_Native(uint samples, float radius);
+        private static extern void SetGTAOSettings_Native(uint samples, uint stepsPerSample, float radius, float falloffRange, bool bHalfRes);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetGTAOSettings_Native(out uint samples, out float radius);
+        private static extern void GetGTAOSettings_Native(out uint samples, out uint stepsPerSample, out float radius, out float falloffRange, out bool bHalfRes);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetPhotoLinearTonemappingSettings_Native(float sensetivity, float exposureTime, float fStop);

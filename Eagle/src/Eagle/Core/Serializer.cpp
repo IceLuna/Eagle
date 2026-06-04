@@ -2961,8 +2961,12 @@ namespace Eagle
 
 		out << YAML::Key << "GTAO Settings";
 		out << YAML::BeginMap;
-		out << YAML::Key << "Samples" << YAML::Value << gtaoSettings.GetNumberOfSamples();
-		out << YAML::Key << "Radius" << YAML::Value << gtaoSettings.GetRadius();
+		out << YAML::Key << "Samples" << YAML::Value << gtaoSettings.Quality.NumberOfSamples;
+		out << YAML::Key << "StepsPerSample" << YAML::Value << gtaoSettings.Quality.StepsPerSample;
+		out << YAML::Key << "StepsPerSample" << YAML::Value << gtaoSettings.Quality.NumberOfBlurPasses;
+		out << YAML::Key << "Radius" << YAML::Value << gtaoSettings.Radius;
+		out << YAML::Key << "FalloffRange" << YAML::Value << gtaoSettings.FalloffRange;
+		out << YAML::Key << "bHalfRes" << YAML::Value << gtaoSettings.bHalfRes;
 		out << YAML::EndMap; // GTAO Settings
 
 		out << YAML::Key << "MSAA Settings";
@@ -3149,8 +3153,16 @@ namespace Eagle
 
 		if (auto gtaoSettingsNode = data["GTAO Settings"])
 		{
-			settings.GTAOSettings.SetNumberOfSamples(gtaoSettingsNode["Samples"].as<uint32_t>());
-			settings.GTAOSettings.SetRadius(gtaoSettingsNode["Radius"].as<float>());
+			settings.GTAOSettings.Quality.NumberOfSamples = gtaoSettingsNode["Samples"].as<uint32_t>();
+			if (auto node = gtaoSettingsNode["StepsPerSample"])
+				settings.GTAOSettings.Quality.StepsPerSample = node.as<uint32_t>();
+			if (auto node = gtaoSettingsNode["NumberOfBlurPasses"])
+				settings.GTAOSettings.Quality.NumberOfBlurPasses = node.as<uint32_t>();
+			settings.GTAOSettings.Radius = gtaoSettingsNode["Radius"].as<float>();
+			if (auto node = gtaoSettingsNode["FalloffRange"])
+				settings.GTAOSettings.FalloffRange = node.as<float>();
+			if (auto node = gtaoSettingsNode["bHalfRes"])
+				settings.GTAOSettings.bHalfRes = node.as<bool>();
 		}
 
 		if (auto msaaSettingsNode = data["MSAA Settings"])

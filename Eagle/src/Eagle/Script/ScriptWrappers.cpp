@@ -6904,25 +6904,31 @@ namespace Eagle
 		*outBias = options.SSAOSettings.GetBias();
 	}
 
-	void Script::Eagle_Renderer_SetGTAOSettings(uint32_t samples, float radius)
+	void Script::Eagle_Renderer_SetGTAOSettings(uint32_t samples, uint32_t stepsPerSample, float radius, float fallollRange, bool bHalfRes)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		auto& sceneRenderer = scene->GetSceneRenderer();
 		auto options = sceneRenderer->GetOptions();
 
-		options.GTAOSettings.SetNumberOfSamples(samples);
-		options.GTAOSettings.SetRadius(radius);
+		options.GTAOSettings.Quality.NumberOfSamples = samples;
+		options.GTAOSettings.Quality.StepsPerSample = stepsPerSample;
+		options.GTAOSettings.Radius = radius;
+		options.GTAOSettings.FalloffRange = fallollRange;
+		options.GTAOSettings.bHalfRes = bHalfRes;
 		sceneRenderer->SetOptions(options);
 	}
 
-	void Script::Eagle_Renderer_GetGTAOSettings(uint32_t* outSamples, float* outRadius)
+	void Script::Eagle_Renderer_GetGTAOSettings(uint32_t* outSamples, uint32_t* outStepsPerSample, float* outRadius, float* outFalloffRange, bool* outHalfRes)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		const auto& sceneRenderer = scene->GetSceneRenderer();
 		const auto& options = sceneRenderer->GetOptions();
 
-		*outSamples = options.GTAOSettings.GetNumberOfSamples();
-		*outRadius = options.GTAOSettings.GetRadius();
+		*outSamples = options.GTAOSettings.Quality.NumberOfSamples;
+		*outStepsPerSample = options.GTAOSettings.Quality.StepsPerSample;
+		*outRadius = options.GTAOSettings.Radius;
+		*outFalloffRange = options.GTAOSettings.FalloffRange;
+		*outHalfRes = options.GTAOSettings.bHalfRes;
 	}
 
 	void Script::Eagle_Renderer_SetMSAASettings(MSAASamples samples, float edgeThreshold)
@@ -7688,6 +7694,38 @@ namespace Eagle
 		*power = agx.Power;
 		*offset = agx.Offset;
 		*saturation = agx.Saturation;
+	}
+
+	void Script::Eagle_GTAO_GetQuality_Low(uint32_t* samples, uint32_t* stepsPerSample, uint32_t* numOfBlurPasses)
+	{
+		GTAOSettings::QualityParams quality = GTAOSettings::GetLowQuality();
+		*samples = quality.NumberOfSamples;
+		*stepsPerSample = quality.StepsPerSample;
+		*numOfBlurPasses = quality.NumberOfBlurPasses;
+	}
+
+	void Script::Eagle_GTAO_GetQuality_Medium(uint32_t* samples, uint32_t* stepsPerSample, uint32_t* numOfBlurPasses)
+	{
+		GTAOSettings::QualityParams quality = GTAOSettings::GetMediumQuality();
+		*samples = quality.NumberOfSamples;
+		*stepsPerSample = quality.StepsPerSample;
+		*numOfBlurPasses = quality.NumberOfBlurPasses;
+	}
+
+	void Script::Eagle_GTAO_GetQuality_High(uint32_t* samples, uint32_t* stepsPerSample, uint32_t* numOfBlurPasses)
+	{
+		GTAOSettings::QualityParams quality = GTAOSettings::GetHighQuality();
+		*samples = quality.NumberOfSamples;
+		*stepsPerSample = quality.StepsPerSample;
+		*numOfBlurPasses = quality.NumberOfBlurPasses;
+	}
+
+	void Script::Eagle_GTAO_GetQuality_Ultra(uint32_t* samples, uint32_t* stepsPerSample, uint32_t* numOfBlurPasses)
+	{
+		GTAOSettings::QualityParams quality = GTAOSettings::GetUltraQuality();
+		*samples = quality.NumberOfSamples;
+		*stepsPerSample = quality.StepsPerSample;
+		*numOfBlurPasses = quality.NumberOfBlurPasses;
 	}
 	
 	void Script::Eagle_Renderer_SetObjectPickingEnabled(bool value)

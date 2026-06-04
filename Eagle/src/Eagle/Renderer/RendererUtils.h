@@ -700,29 +700,76 @@ namespace Eagle
 
     struct GTAOSettings
     {
-        void SetNumberOfSamples(uint32_t number)
+        struct QualityParams
         {
-            m_NumberOfSamples = glm::max(1u, number);
-        }
-        uint32_t GetNumberOfSamples() const { return m_NumberOfSamples; }
+            uint32_t NumberOfSamples = 3;
+            uint32_t StepsPerSample = 3;
+            uint32_t NumberOfBlurPasses = 3u; // The higher, the softer
 
-        void SetRadius(float radius)
+            bool operator== (const QualityParams& other) const
+            {
+                return NumberOfSamples == other.NumberOfSamples &&
+                    NumberOfBlurPasses == other.NumberOfBlurPasses &&
+                    StepsPerSample == other.StepsPerSample;
+            }
+
+            bool operator!= (const QualityParams& other) const { return !(*this == other); }
+        };
+
+        QualityParams Quality = GetHighQuality();
+        float Radius = 0.7285f;
+        float FalloffRange = 0.615f; // Distant samples contribute less
+        bool bHalfRes = false; // If set to true, GTAO will be computed in half resolution
+
+        static QualityParams GetLowQuality()
         {
-            m_Radius = glm::max(0.f, radius);
+            QualityParams quality{};
+            quality.NumberOfSamples = 2;
+            quality.StepsPerSample = 2;
+            quality.NumberOfBlurPasses = 5;
+
+            return quality;
         }
-        float GetRadius() const { return m_Radius; }
+
+        static QualityParams GetMediumQuality()
+        {
+            QualityParams quality{};
+            quality.NumberOfSamples = 4;
+            quality.StepsPerSample = 2;
+            quality.NumberOfBlurPasses = 4;
+
+            return quality;
+        }
+
+        static QualityParams GetHighQuality()
+        {
+            QualityParams quality{};
+            quality.NumberOfSamples = 6;
+            quality.StepsPerSample = 3;
+            quality.NumberOfBlurPasses = 4;
+
+            return quality;
+        }
+
+        static QualityParams GetUltraQuality()
+        {
+            QualityParams quality{};
+            quality.NumberOfSamples = 9;
+            quality.StepsPerSample = 3;
+            quality.NumberOfBlurPasses = 3;
+
+            return quality;
+        }
 
         bool operator== (const GTAOSettings& other) const
         {
-            return m_NumberOfSamples == other.m_NumberOfSamples &&
-                m_Radius == other.m_Radius;
+            return Quality == other.Quality &&
+                Radius == other.Radius &&
+                FalloffRange == other.FalloffRange &&
+                bHalfRes == other.bHalfRes;
         }
 
         bool operator!= (const GTAOSettings& other) const { return !(*this == other); }
-
-    private:
-        uint32_t m_NumberOfSamples = 8; // For each direction
-        float m_Radius = 1.f;
     };
 
     enum class FogEquation

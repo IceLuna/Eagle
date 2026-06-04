@@ -43,6 +43,9 @@ namespace Eagle
 				, SamplerHandle(sampler ? sampler->GetHandle() : nullptr)
 				, Revision(image->GetRevision()) {}
 
+			ImageBinding(const Ref<Sampler>& sampler)
+				: SamplerHandle(sampler->GetHandle()) {}
+
 			bool operator!=(const ImageBinding& other) const
 			{
 				return ImageHandle != other.ImageHandle || ImageViewHandle != other.ImageViewHandle || SamplerHandle != other.SamplerHandle || bDepth != other.bDepth || Revision != other.Revision;
@@ -117,20 +120,22 @@ namespace Eagle
 
 		void SetArg(uint32_t idx, const Ref<Buffer>& buffer);
 		void SetArg(uint32_t idx, const Ref<Buffer>& buffer, std::size_t offset, std::size_t size);
-		void SetArgArray(uint32_t idx, const std::vector<Ref<Buffer>>& buffers);
+		void SetArgArray(uint32_t idx, const std::span<const Ref<Buffer>>& buffers);
 
 		void SetArg(uint32_t idx, const Ref<Image>& image);
 		void SetArg(uint32_t idx, const Ref<Image>& image, const ImageView& imageView);
-		void SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images);
-		void SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images, const std::vector<ImageView>& imageViews);
-		void SetArgArray(uint32_t idx, const Ref<Image>& image, const std::vector<ImageView>& imageViews);
+		void SetArgArray(uint32_t idx, const std::span<const Ref<Image>>& images);
+		void SetArgArray(uint32_t idx, const std::span<const Ref<Image>>& images, const std::span<const ImageView>& imageViews);
+		void SetArgArray(uint32_t idx, const Ref<Image>& image, const std::span<const ImageView>& imageViews);
+
+		void SetArg(uint32_t idx, const Ref<Sampler>& sampler);
 
 		void SetArg(uint32_t idx, const Ref<Image>& image, const Ref<Sampler>& sampler, bool bDepth = false);
 		void SetArg(uint32_t idx, const Ref<Image>& image, const ImageView& imageView, const Ref<Sampler>& sampler);
-		void SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images, const Ref<Sampler>& sampler);
-		void SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images, const std::vector<Ref<Sampler>>& samplers);
-		void SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images, const std::vector<ImageView>& imageViews, const std::vector<Ref<Sampler>>& samplers);
-		void SetArgArray(uint32_t idx, const std::vector<Ref<Texture2D>>& textures);
+		void SetArgArray(uint32_t idx, const std::span<const Ref<Image>>& images, const Ref<Sampler>& sampler);
+		void SetArgArray(uint32_t idx, const std::span<const Ref<Image>>& images, const std::span<const Ref<Sampler>>& samplers);
+		void SetArgArray(uint32_t idx, const std::span<const Ref<Image>>& images, const std::span<const ImageView>& imageViews, const std::span<const Ref<Sampler>>& samplers);
+		void SetArgArray(uint32_t idx, const std::span<const Ref<Texture2D>>& textures);
 
 	private:
 		std::unordered_map<uint32_t, Binding> m_Bindings; // Binding -> Data

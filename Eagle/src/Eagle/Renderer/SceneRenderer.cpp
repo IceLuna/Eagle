@@ -379,7 +379,7 @@ namespace Eagle
 		m_Options = options;
 		
 		const bool bTAAEnabled = m_Options.AA == AAMethod::TAA;
-		m_Options.InternalState.bMotionBuffer = (m_Options.AO == AmbientOcclusion::GTAO) || bTAAEnabled || m_Options.MotionBlur.bEnable || m_Options.ScreenSpaceReflections.bEnable;
+		m_Options.InternalState.bMotionBuffer = bTAAEnabled || m_Options.MotionBlur.bEnable || m_Options.ScreenSpaceReflections.bEnable;
 		m_Options.InternalState.bJitter = bTAAEnabled;
 	}
 

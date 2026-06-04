@@ -1703,23 +1703,86 @@ namespace Eagle
 				UI::BeginPropertyGrid("GTAO Settings");
 
 				GTAOSettings& settings = options.GTAOSettings;
-				int samples = (int)settings.GetNumberOfSamples();
-				float radius = settings.GetRadius();
+				if (UI::PropertyDrag("Samples", settings.Quality.NumberOfSamples, 1, 1, 12))
+				{
+					settings.Quality.NumberOfSamples = glm::min(12u, settings.Quality.NumberOfSamples);
 
-				if (UI::PropertyDrag("Samples", samples, 1, 1, INT_MAX))
-				{
-					settings.SetNumberOfSamples(uint32_t(samples));
 					bSettingsChanged = true;
-					EG_CORE_TRACE("Changed GTAO Samples Number to: {}", settings.GetNumberOfSamples());
+					EG_CORE_TRACE("Changed GTAO Samples Number to: {}", settings.Quality.NumberOfSamples);
 				}
-				if (UI::PropertyDrag("Radius", radius, 0.01f))
+				if (UI::PropertyDrag("Steps per Sample", settings.Quality.StepsPerSample, 1, 1, 6))
 				{
-					settings.SetRadius(radius);
+					settings.Quality.StepsPerSample = glm::min(6u, settings.Quality.StepsPerSample);
+
 					bSettingsChanged = true;
-					EG_CORE_TRACE("Changed GTAO Radius to: {}", settings.GetRadius());
+					EG_CORE_TRACE("Changed GTAO Steps per Sample to: {}", settings.Quality.StepsPerSample);
+				}
+				if (UI::PropertyDrag("Number of Blur Passes", settings.Quality.NumberOfBlurPasses, 1, 1, 10))
+				{
+					settings.Quality.NumberOfBlurPasses = glm::max(1u, settings.Quality.NumberOfBlurPasses);
+
+					bSettingsChanged = true;
+					EG_CORE_TRACE("Changed GTAO Number of Blur Passes to: {}", settings.Quality.NumberOfBlurPasses);
+				}
+				if (UI::PropertyDrag("Radius", settings.Radius, 0.01f))
+				{
+					settings.Radius = glm::max(0.0f, settings.Radius);
+
+					bSettingsChanged = true;
+					EG_CORE_TRACE("Changed GTAO Radius to: {}", settings.Radius);
+				}
+				if (UI::PropertyDrag("Falloff Range", settings.FalloffRange, 0.01f, 0.0f, FLT_MAX, "Distant samples contribute less"))
+				{
+					settings.FalloffRange = glm::max(0.0f, settings.FalloffRange);
+
+					bSettingsChanged = true;
+					EG_CORE_TRACE("Changed GTAO Falloff Range to: {}", settings.FalloffRange);
+				}
+				if (UI::Property("Half Res", settings.bHalfRes, "If enabled, GTAO will be computed in half resolution"))
+				{
+					bSettingsChanged = true;
+					EG_CORE_TRACE("Changed GTAO HalfRes to: {}", settings.bHalfRes);
 				}
 
 				UI::EndPropertyGrid();
+
+				ImGui::Separator();
+
+				// Buttons to reset GTAO settings
+				{
+					constexpr int buttonCount = 4;
+					const float totalWidth = ImGui::GetContentRegionAvail().x;
+					const float spacing = ImGui::GetStyle().ItemSpacing.x;
+					const float buttonWidth = (totalWidth - spacing * (buttonCount - 1)) / buttonCount;
+
+					if (ImGui::Button("Low", ImVec2(buttonWidth, 0)))
+					{
+						settings.Quality = GTAOSettings::GetLowQuality();
+						bSettingsChanged = true;
+					}
+					ImGui::SameLine();
+
+					if (ImGui::Button("Medium", ImVec2(buttonWidth, 0)))
+					{
+						settings.Quality = GTAOSettings::GetMediumQuality();
+						bSettingsChanged = true;
+					}
+					ImGui::SameLine();
+
+					if (ImGui::Button("High", ImVec2(buttonWidth, 0)))
+					{
+						settings.Quality = GTAOSettings::GetHighQuality();
+						bSettingsChanged = true;
+					}
+					ImGui::SameLine();
+
+					if (ImGui::Button("Ultra", ImVec2(buttonWidth, 0)))
+					{
+						settings.Quality = GTAOSettings::GetUltraQuality();
+						bSettingsChanged = true;
+					}
+				}
+
 				ImGui::TreePop();
 			}
 		}

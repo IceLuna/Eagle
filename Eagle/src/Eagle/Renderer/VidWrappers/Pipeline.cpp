@@ -15,7 +15,7 @@ namespace Eagle
 		m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()][set].SetArg(binding, buffer, offset, size);
 	}
 
-	void Pipeline::SetBufferArray(const std::vector<Ref<Buffer>>& buffers, uint32_t set, uint32_t binding)
+	void Pipeline::SetBufferArray(const std::span<const Ref<Buffer>>& buffers, uint32_t set, uint32_t binding)
 	{
 		m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()][set].SetArgArray(binding, buffers);
 	}
@@ -30,19 +30,24 @@ namespace Eagle
 		m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()][set].SetArg(binding, image, imageView);
 	}
 
-	void Pipeline::SetImageArray(const std::vector<Ref<Image>>& images, uint32_t set, uint32_t binding)
+	void Pipeline::SetImageArray(const std::span<const Ref<Image>>& images, uint32_t set, uint32_t binding)
 	{
 		m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()][set].SetArgArray(binding, images);
 	}
 
-	void Pipeline::SetImageArray(const std::vector<Ref<Image>>& images, const std::vector<ImageView>& imageViews, uint32_t set, uint32_t binding)
+	void Pipeline::SetImageArray(const std::span<const Ref<Image>>& images, const std::span<const ImageView>& imageViews, uint32_t set, uint32_t binding)
 	{
 		m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()][set].SetArgArray(binding, images, imageViews);
 	}
 
-	void Pipeline::SetImageArray(const Ref<Image>& image, const std::vector<ImageView>& imageViews, uint32_t set, uint32_t binding)
+	void Pipeline::SetImageArray(const Ref<Image>& image, const std::span<const ImageView>& imageViews, uint32_t set, uint32_t binding)
 	{
 		m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()][set].SetArgArray(binding, image, imageViews);
+	}
+
+	void Pipeline::SetSampler(const Ref<Sampler>& sampler, uint32_t set, uint32_t binding)
+	{
+		m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()][set].SetArg(binding, sampler);
 	}
 
 	void Pipeline::SetImageSampler(const Ref<Image>& image, const Ref<Sampler>& sampler, uint32_t set, uint32_t binding)
@@ -65,7 +70,7 @@ namespace Eagle
 		m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()][set].SetArg(binding, texture->GetImage(), imageView, texture->GetSampler());
 	}
 
-	void Pipeline::SetTextureArray(const std::vector<Ref<Texture2D>>& textures, uint32_t set, uint32_t binding)
+	void Pipeline::SetTextureArray(const std::span<const Ref<Texture2D>>& textures, uint32_t set, uint32_t binding)
 	{
 		m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()][set].SetArgArray(binding, textures);
 	}
@@ -75,17 +80,17 @@ namespace Eagle
 		m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()][set].SetArg(binding, image, imageView, sampler);
 	}
 
-	void Pipeline::SetImageSamplerArray(const std::vector<Ref<Image>>& images, const std::vector<Ref<Sampler>>& samplers, uint32_t set, uint32_t binding)
+	void Pipeline::SetImageSamplerArray(const std::span<const Ref<Image>>& images, const std::span<const Ref<Sampler>>& samplers, uint32_t set, uint32_t binding)
 	{
 		m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()][set].SetArgArray(binding, images, samplers);
 	}
 
-	void Pipeline::SetImageSamplerArray(const std::vector<Ref<Image>>& images, const Ref<Sampler>& sampler, uint32_t set, uint32_t binding)
+	void Pipeline::SetImageSamplerArray(const std::span<const Ref<Image>>& images, const Ref<Sampler>& sampler, uint32_t set, uint32_t binding)
 	{
 		m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()][set].SetArgArray(binding, images, sampler);
 	}
 
-	void Pipeline::SetImageSamplerArray(const std::vector<Ref<Image>>& images, const std::vector<ImageView>& imageViews, const std::vector<Ref<Sampler>>& samplers, uint32_t set, uint32_t binding)
+	void Pipeline::SetImageSamplerArray(const std::span<const Ref<Image>>& images, const std::span<const ImageView>& imageViews, const std::span<const Ref<Sampler>>& samplers, uint32_t set, uint32_t binding)
 	{
 		m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()][set].SetArgArray(binding, images, imageViews, samplers);
 	}

@@ -73,6 +73,7 @@ namespace Eagle
 		std::unordered_map<std::string_view, Weak<RHIGPUTiming>> RHIGPUTimingsParentless; // Timings that do not have parents
 #endif
 
+		Ref<Texture2D> HilbertCurve;
 		Ref<Texture2D> WhiteNoise;
 		Ref<Texture2D> BlueNoise;
 		glm::vec2 HaltonSequence[s_JitterSize];
@@ -256,6 +257,56 @@ namespace Eagle
 		s_RendererData->BRDFLUTPipeline = PipelineGraphics::Create(brdfLutState);
 	}
 
+	static uint32_t HilbertIndex(uint32_t posX, uint32_t posY)
+	{
+		// From https://www.shadertoy.com/view/3tB3z3 - except we're using R2 here
+		const uint32_t hilbertLevel = 6u;
+		const uint32_t hilbertWidth = 1u << hilbertLevel;
+
+		uint32_t index = 0u;
+		for (uint32_t curLevel = hilbertWidth / 2u; curLevel > 0u; curLevel /= 2u)
+		{
+			uint32_t regionX = (posX & curLevel) > 0u;
+			uint32_t regionY = (posY & curLevel) > 0u;
+			index += curLevel * curLevel * ((3U * regionX) ^ regionY);
+			if (regionY == 0u)
+			{
+				if (regionX == 1u)
+				{
+					posX = uint32_t((hilbertWidth - 1u)) - posX;
+					posY = uint32_t((hilbertWidth - 1u)) - posY;
+				}
+
+				uint32_t temp = posX;
+				posX = posY;
+				posY = temp;
+			}
+		}
+		return index;
+	}
+
+	// Hilbert look-up texture
+	static void InitHilbertCurve()
+	{
+		constexpr uint32_t size = 64u;
+		ScopedDataBuffer dataBuffer(size * size * sizeof(uint16_t));
+		uint16_t* data = (uint16_t*)dataBuffer.Data();
+
+		for (int y = 0; y < size; ++y)
+		{
+			for (int x = 0; x < size; ++x)
+			{
+				uint32_t r2index = HilbertIndex(x, y);
+				EG_CORE_ASSERT(r2index < 65536);
+				data[x + y * size] = uint16_t(r2index);
+			}
+		}
+
+		Texture2DSpecifications specs{};
+		specs.FilterMode = FilterMode::Point;
+		s_RendererData->HilbertCurve = Texture2D::Create("Hilbert Curve", ImageFormat::R16_UInt, glm::uvec2(size), data, specs);
+	}
+
 	static void InitWhiteNoise()
 	{
 		constexpr uint32_t size = 32u;
@@ -282,11 +333,13 @@ namespace Eagle
 
 	static void InitBlueNoise()
 	{
-		uint32_t bluenoise[128 * 128]; // rgba8
+		constexpr uint32_t size = 128u;
+		ScopedDataBuffer dataBuffer(size * size * sizeof(uint32_t));
+		uint32_t* bluenoise = (uint32_t*)dataBuffer.Data();
 
-		for (int y = 0; y < 128; ++y)
+		for (int y = 0; y < size; ++y)
 		{
-			for (int x = 0; x < 128; ++x)
+			for (int x = 0; x < size; ++x)
 			{
 				glm::vec4 noise;
 				noise[0] = Utils::BlueNoise(x, y, 0, 0);
@@ -296,13 +349,13 @@ namespace Eagle
 				
 				glm::uvec4 uNoise = glm::uvec4(noise * 255.f);
 				uint32_t packed = uint32_t(uNoise.x) | (uint32_t(uNoise.y) << 8) | (uint32_t(uNoise.z) << 16) | (uint32_t(uNoise.w) << 24);
-				bluenoise[x + y * 128] = packed;
+				bluenoise[x + y * size] = packed;
 			}
 		}
 
 		Texture2DSpecifications specs{};
 		specs.FilterMode = FilterMode::Point;
-		s_RendererData->BlueNoise = Texture2D::Create("Blue Noise", ImageFormat::R8G8B8A8_UNorm, glm::uvec2(128u), bluenoise, specs);
+		s_RendererData->BlueNoise = Texture2D::Create("Blue Noise", ImageFormat::R8G8B8A8_UNorm, glm::uvec2(size), bluenoise, specs);
 	}
 
 	void RenderManager::Init()
@@ -426,6 +479,7 @@ namespace Eagle
 		// Init renderer pipelines
 		SetupPresentPipeline();
 		SetupBRDFLUTPipeline();
+		InitHilbertCurve();
 		InitBlueNoise();
 		InitWhiteNoise();
 
@@ -542,6 +596,11 @@ namespace Eagle
 	const Ref<Texture2D>& RenderManager::GetBlueNoise()
 	{
 		return s_RendererData->BlueNoise;
+	}
+
+	const Ref<Texture2D>& RenderManager::GetHilbertCurve()
+	{
+		return s_RendererData->HilbertCurve;
 	}
 
 	const Ref<Texture2D>& RenderManager::GetWhiteNoise()

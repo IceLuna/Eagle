@@ -1,0 +1,52 @@
+#include "defines.h"
+
+layout(binding = 0) uniform sampler2D g_Depth;
+layout(binding = 1) uniform sampler2D g_Normal;
+layout(binding = 2) uniform usampler2D g_HilbertCurve;
+layout(binding = 3) uniform CameraMatrices
+{
+    mat4 g_View;
+    mat4 g_InvViewProj;
+    mat4 g_ViewProj;
+    mat4 g_PrevViewProj;
+    mat4 g_Proj;
+    mat4 g_InvProj;
+};
+
+layout(binding = 4, r8) uniform writeonly image2D g_WorkingEdges;
+layout(binding = 5, r8) uniform writeonly image2D g_Result;
+
+#define XE_GTAO_MAIN_PASS
+#include "XeGTAO/XeGTAO.h"
+
+layout(push_constant) uniform PushConstants
+{
+    GTAOConstants g_GTAO;
+};
+
+#define GROUP_SIZE 8
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+layout(constant_id = 0) const uint s_Samples = 9;
+layout(constant_id = 1) const uint s_StepsPerSample = 3;
+
+void main()
+{
+    const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID);
+    if (pixelCoords.x >= g_GTAO.ViewportSize.x || pixelCoords.y >= g_GTAO.ViewportSize.y)
+        return;
+
+    const vec2 uv = (pixelCoords + 0.5) * g_GTAO.ViewportPixelSize;
+
+    const float depth = texture(g_Depth, uv).x;
+    if (depth == EG_DEPTH_FAR)
+    {
+        imageStore(g_Result, pixelCoords, vec4(0.f));
+        return;
+    }
+
+    const vec3 wsNormal = DecodeNormal(texture(g_Normal, uv).xy); // xy - is a geometry normal;
+    const vec3 viewNormal = normalize(mat3(g_View) * wsNormal);
+
+    XeGTAO_MainPass( pixelCoords, s_Samples, s_StepsPerSample, SpatioTemporalNoise(g_HilbertCurve, pixelCoords, g_GTAO.NoiseIndex), viewNormal, g_GTAO);
+}

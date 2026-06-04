@@ -14,38 +14,11 @@ namespace Eagle
 	GTAOTask::GTAOTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
-		const glm::uvec3 size = glm::max(glm::uvec3(m_Renderer.GetViewportSize(), 1u) / 2u, glm::uvec3(1u));
-		m_HalfSize = size;
-		m_HalfTexelSize = 1.f / glm::vec2(m_HalfSize);
+		const auto& gtao = m_Renderer.GetOptions_RT().GTAOSettings;
+		m_Quality = gtao.Quality;
+		bHalfRes = gtao.bHalfRes;
 
-		ImageSpecifications depthSpecs;
-		depthSpecs.Size = size;
-		depthSpecs.Usage = ImageUsage::Sampled | ImageUsage::ColorAttachment | ImageUsage::TransferSrc;
-		depthSpecs.Format = ImageFormat::R32_Float;
-		m_HalfDepth = Image::Create(depthSpecs, "GTAO_HalfDepth");
-
-		depthSpecs.Usage = ImageUsage::Sampled | ImageUsage::TransferDst;
-		m_HalfDepthPrev = Image::Create(depthSpecs, "GTAO_HalfDepth_Prev");
-
-		ImageSpecifications motionSpecs;
-		motionSpecs.Size = size;
-		motionSpecs.Usage = ImageUsage::Sampled | ImageUsage::ColorAttachment;
-		motionSpecs.Format = ImageFormat::R16G16_Float;
-		m_HalfMotion = Image::Create(motionSpecs, "GTAO_HalfMotion");
-
-		ImageSpecifications specs;
-		specs.Format = ImageFormat::R8_UNorm;
-		specs.Usage = ImageUsage::Sampled | ImageUsage::Storage;
-		specs.Size = size;
-		m_GTAOPassImage = Image::Create(specs, "GTAO_Pass");
-
-		specs.Usage = ImageUsage::Sampled | ImageUsage::Storage | ImageUsage::TransferSrc;
-		m_Denoised = Image::Create(specs, "GTAO_Denoised");
-
-		specs.Usage = ImageUsage::Sampled | ImageUsage::TransferDst;
-		m_DenoisedPrev = Image::Create(specs, "GTAO_Denoised_Prev");
-
-		m_Samples = m_Renderer.GetOptions_RT().GTAOSettings.GetNumberOfSamples();
+		InitResources();
 		InitPipeline();
 	}
 
@@ -62,35 +35,96 @@ namespace Eagle
 		const ImageLayout oldNormalsLayout = gBuffer.Normals->GetLayout();
 		cmd->TransitionLayout(gBuffer.Normals, oldNormalsLayout, ImageReadAccess::PixelShaderRead);
 
-		const ImageLayout oldMotionLayout = gBuffer.Motion->GetLayout();
-		cmd->TransitionLayout(gBuffer.Motion, oldMotionLayout, ImageReadAccess::PixelShaderRead);
+		// Prepare constants
+		{
+			const glm::mat4& projMatrix = m_Renderer.GetProjectionMatrix();
+			const auto& gtaoSettings = m_Renderer.GetOptions_RT().GTAOSettings;
 
+			auto& consts = m_Constants;
+			consts.ViewportSize = m_PassSize;
+			consts.ViewportPixelSize = glm::vec2(1) / glm::vec2(consts.ViewportSize);
+
+			const float tanHalfFOVY = m_Renderer.IsProjectionFlipped() ? -1.0f / projMatrix[1][1] : 1.0f / projMatrix[1][1];
+			const float tanHalfFOVX = 1.0f / projMatrix[0][0];
+			consts.CameraTanHalfFOV = { tanHalfFOVX, tanHalfFOVY };
+
+			consts.NDCToViewMul = { consts.CameraTanHalfFOV.x * 2.0f, consts.CameraTanHalfFOV.y * -2.0f };
+			consts.NDCToViewAdd = { consts.CameraTanHalfFOV.x * -1.0f, consts.CameraTanHalfFOV.y * 1.0f };
+
+			consts.NDCToViewMul_x_PixelSize = { consts.NDCToViewMul.x * consts.ViewportPixelSize.x, consts.NDCToViewMul.y * consts.ViewportPixelSize.y };
+
+			consts.EffectRadius = gtaoSettings.Radius;
+
+			consts.EffectFalloffRange = gtaoSettings.FalloffRange;
+			consts.DenoiseBlurBeta = (1.2f);
+
+			consts.RadiusMultiplier = 1;
+			consts.SampleDistributionPower = 2;
+			consts.ThinOccluderCompensation = 0;
+			consts.FinalValuePower = 2.2f;
+			consts.DepthMIPSamplingOffset = 3.3f;
+			consts.NoiseIndex = 0;// (RenderManager::GetFrameNumber_RT() % 64);
+
+			consts.CameraPlanes.x = m_Renderer.GetZNear();
+			consts.CameraPlanes.y = m_Renderer.GetZFar();
+			consts.FinalPass = 0u;
+
+			static_assert(sizeof(GTAOConstants) <= 128);
+		}
+		
+		m_PingPong = 0;
 		Downsample(cmd);
 		GTAO(cmd);
 		Denoiser(cmd);
-		CopyToPrev(cmd);
+		if (bHalfRes)
+		{
+			Interleave(cmd);
+		}
 
+		cmd->TransitionLayout(m_Denoised, m_Denoised->GetLayout(), ImageReadAccess::PixelShaderRead);
 		cmd->TransitionLayout(gBuffer.Depth, gBuffer.Depth->GetLayout(), oldDepthLayout);
 		cmd->TransitionLayout(gBuffer.Normals, gBuffer.Normals->GetLayout(), oldNormalsLayout);
-		cmd->TransitionLayout(gBuffer.Motion, gBuffer.Motion->GetLayout(), oldMotionLayout);
+	}
+
+	void GTAOTask::OnResize(glm::uvec2 size)
+	{
+		if (bHalfRes)
+			m_PassSize = glm::max(size / 2u, glm::uvec2(1u));
+		else
+			m_PassSize = glm::max(size, glm::uvec2(1u));
+
+		if (bHalfRes)
+		{
+			m_Depth->Resize({ m_PassSize, 1u });
+			m_DownsamplePipeline->Resize(m_PassSize);
+		}
+
+		m_Denoised->Resize({ size, 1u });
+		for (uint32_t i = 0; i < 2; ++i)
+			m_GTAOPassImage[i]->Resize({ m_PassSize, 1u });
+		m_GTAOEdgesImage->Resize({ m_PassSize, 1u });
 	}
 
 	void GTAOTask::Downsample(const Ref<CommandBuffer>& cmd)
 	{
-		EG_GPU_TIMING_SCOPED(cmd, "GTAO. Downsample");
-		EG_CPU_TIMING_SCOPED("GTAO. Downsample");
+		const auto& gBuffer = m_Renderer.GetGBuffer();
+		if (bHalfRes)
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "GTAO. Downsample");
+			EG_CPU_TIMING_SCOPED("GTAO. Downsample");
+			auto& stats = m_Renderer.GetStats();
 
-		auto& gBuffer = m_Renderer.GetGBuffer();
-		auto& stats = m_Renderer.GetStats();
+			m_DownsamplePipeline->SetImageSampler(gBuffer.Depth, Sampler::PointSampler, 0, 0);
 
-		// Inputs
-		m_DownsamplePipeline->SetImageSampler(gBuffer.Depth, Sampler::PointSampler, 0, 0);
-		m_DownsamplePipeline->SetImageSampler(gBuffer.Motion, Sampler::PointSampler, 0, 1);
-
-		cmd->BeginGraphics(m_DownsamplePipeline);
-		cmd->Draw(6, 0);
-		cmd->EndGraphics();
-		++stats.DrawCalls;
+			cmd->BeginGraphics(m_DownsamplePipeline);
+			cmd->Draw(6, 0);
+			cmd->EndGraphics();
+			++stats.DrawCalls;
+		}
+		else
+		{
+			m_Depth = gBuffer.Depth;
+		}
 	}
 
 	void GTAOTask::GTAO(const Ref<CommandBuffer>& cmd)
@@ -98,38 +132,25 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "GTAO. AO");
 		EG_CPU_TIMING_SCOPED("GTAO. AO");
 
-		struct PushData
-		{
-			glm::uvec2 Size;
-			float RadRotationTemporal;
-			float Radius;
-		} pushData;
-		static_assert(sizeof(PushData) <= 128);
-
-		constexpr float aRotation[] = { 60.f, 300.f, 180.f, 240.f, 120.f, 0.f };
-
-		const auto& gtaoSettings = m_Renderer.GetOptions_RT().GTAOSettings;
-		const uint64_t frameNumber = RenderManager::GetFrameNumber_RT();
-		auto& stats = m_Renderer.GetStats();
-
-		pushData.Size = m_HalfSize;
-		pushData.Radius = gtaoSettings.GetRadius();
-		pushData.RadRotationTemporal = aRotation[frameNumber % 6];
-
-		m_GTAOPipeline->SetImageSampler(m_HalfDepth, Sampler::PointSamplerClamp, 0, 0);
+		m_GTAOPipeline->SetImageSampler(m_Depth, Sampler::PointSamplerClamp, 0, 0);
 		m_GTAOPipeline->SetImageSampler(m_Renderer.GetGBuffer().Normals, Sampler::PointSamplerClamp, 0, 1);
-		m_GTAOPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 0, 2);
-		m_GTAOPipeline->SetImage(m_GTAOPassImage, 0, 3);
+		m_GTAOPipeline->SetImageSampler(RenderManager::GetHilbertCurve()->GetImage(), Sampler::PointSampler, 0, 2);
+		m_GTAOPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 0, 3);
+		m_GTAOPipeline->SetImage(m_GTAOEdgesImage, 0, 4);
+		m_GTAOPipeline->SetImage(m_GTAOPassImage[0], 0, 5);
 
-		cmd->TransitionLayout(m_GTAOPassImage, m_GTAOPassImage->GetLayout(), ImageLayoutType::StorageImage);
-		cmd->Barrier(m_HalfDepth);
+		cmd->TransitionLayout(m_GTAOEdgesImage, m_GTAOEdgesImage->GetLayout(), ImageLayoutType::StorageImage);
+		cmd->TransitionLayout(m_GTAOPassImage[0], m_GTAOPassImage[0]->GetLayout(), ImageLayoutType::StorageImage);
+		cmd->Barrier(m_Depth);
 
 		const glm::uvec3 groupSize = m_GTAOPipeline->GetWorkGroupSize();
-		const glm::uvec2 numGroups = CalcNumGroups(m_HalfSize, groupSize);
-		cmd->Dispatch(m_GTAOPipeline, numGroups, &pushData);
+		const glm::uvec2 numGroups = CalcNumGroups(m_PassSize, groupSize);
+		cmd->Dispatch(m_GTAOPipeline, numGroups, &m_Constants);
 
-		cmd->TransitionLayout(m_GTAOPassImage, m_GTAOPassImage->GetLayout(), ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(m_GTAOEdgesImage, m_GTAOEdgesImage->GetLayout(), ImageReadAccess::PixelShaderRead);
+		cmd->TransitionLayout(m_GTAOPassImage[0], m_GTAOPassImage[0]->GetLayout(), ImageLayoutType::StorageImage);
 
+		auto& stats = m_Renderer.GetStats();
 		++stats.Dispatches;
 	}
 
@@ -140,86 +161,134 @@ namespace Eagle
 
 		auto& stats = m_Renderer.GetStats();
 
-		m_DenoiserPipeline->SetImageSampler(m_GTAOPassImage, Sampler::PointSamplerClamp, 0, 0);
-		m_DenoiserPipeline->SetImageSampler(m_DenoisedPrev, Sampler::PointSampler, 0, 1);
-		m_DenoiserPipeline->SetImageSampler(m_HalfMotion, Sampler::PointSamplerClamp, 0, 2);
-		m_DenoiserPipeline->SetImageSampler(m_HalfDepth, Sampler::PointSamplerClamp, 0, 3);
-		m_DenoiserPipeline->SetImageSampler(m_HalfDepthPrev, Sampler::PointSamplerClamp, 0, 4);
-
-		struct PushData
-		{
-			glm::uvec2 Size;
-			glm::vec2 TexelSize;
-		} pushData;
-		static_assert(sizeof(PushData) <= 128);
-
-		pushData.Size = m_HalfSize;
-		pushData.TexelSize = m_HalfTexelSize;
-
-		// Output
-		m_DenoiserPipeline->SetImage(m_Denoised, 0, 5);
-
-		cmd->TransitionLayout(m_HalfDepthPrev, m_HalfDepthPrev->GetLayout(), ImageReadAccess::PixelShaderRead);
-		cmd->TransitionLayout(m_DenoisedPrev, m_DenoisedPrev->GetLayout(), ImageReadAccess::PixelShaderRead);
-		cmd->TransitionLayout(m_Denoised, m_Denoised->GetLayout(), ImageLayoutType::StorageImage);
-
 		const glm::uvec3 groupSize = m_DenoiserPipeline->GetWorkGroupSize();
-		const glm::uvec2 numGroups = CalcNumGroups(m_HalfSize, groupSize);
-		cmd->Dispatch(m_DenoiserPipeline, numGroups, &pushData);
+		const glm::uvec2 numGroups = glm::uvec2((m_PassSize.x + (groupSize.x * 2u) - 1u) / (groupSize.x * 2u), (m_PassSize.y + groupSize.y - 1u) / groupSize.y);
 
-		cmd->TransitionLayout(m_Denoised, m_Denoised->GetLayout(), ImageReadAccess::PixelShaderRead);
+		const uint32_t numPasses = glm::max(1u, m_Renderer.GetOptions_RT().GTAOSettings.Quality.NumberOfBlurPasses);
+		for (uint32_t i = 0; i < numPasses; ++i)
+		{
+			const bool bFinalPass = i == (numPasses - 1);
+			m_Constants.FinalPass = bFinalPass ? 1u : 0u;
 
-		++stats.Dispatches;
+			auto& input = m_GTAOPassImage[m_PingPong];
+
+			// If in half res mode, then output into the temp image, since we have the upscale pass
+			auto& output = bFinalPass && !bHalfRes ? m_Denoised : m_GTAOPassImage[1u - m_PingPong];
+
+			cmd->TransitionLayout(input, input->GetLayout(), ImageReadAccess::NonPixelShaderRead);
+			cmd->TransitionLayout(output, output->GetLayout(), ImageLayoutType::StorageImage);
+
+			// TODO: Remove/Fix when manual descriptors system is implemented
+			m_DenoiserPipeline->ResetDescriptors();
+
+			m_DenoiserPipeline->SetImageSampler(input, Sampler::PointSamplerClamp, 0, 0);
+			m_DenoiserPipeline->SetImageSampler(m_GTAOEdgesImage, Sampler::PointSamplerClamp, 0, 1);
+			m_DenoiserPipeline->SetImageSampler(m_Depth, Sampler::PointSamplerClamp, 0, 2);
+			m_DenoiserPipeline->SetImage(output, 0, 3);
+
+			cmd->Dispatch(m_DenoiserPipeline, numGroups, &m_Constants);
+			++stats.Dispatches;
+
+			m_PingPong = 1u - m_PingPong;
+		}
+
 	}
 
-	void GTAOTask::CopyToPrev(const Ref<CommandBuffer>& cmd)
+	void GTAOTask::Interleave(const Ref<CommandBuffer>& cmd)
 	{
-		EG_GPU_TIMING_SCOPED(cmd, "GTAO. Copy to prev");
-		EG_CPU_TIMING_SCOPED("GTAO. Copy to prev");
+		EG_GPU_TIMING_SCOPED(cmd, "GTAO. Upscale to native");
+		EG_CPU_TIMING_SCOPED("GTAO. Upscale to native");
 
-		cmd->CopyImage(m_HalfDepth, ImageView{}, m_HalfDepthPrev, ImageView{}, glm::ivec3(0), glm::ivec3(0), glm::uvec3(m_HalfSize, 1));
-		cmd->CopyImage(m_Denoised, ImageView{}, m_DenoisedPrev, ImageView{}, glm::ivec3(0), glm::ivec3(0), glm::uvec3(m_HalfSize, 1));
+		const glm::ivec2 size = m_Renderer.GetViewportSize();
+		auto& input = m_GTAOPassImage[1u - m_PingPong];
+		auto& output = m_Denoised;
+
+		cmd->TransitionLayout(input, input->GetLayout(), ImageReadAccess::NonPixelShaderRead);
+		cmd->TransitionLayout(output, output->GetLayout(), ImageLayoutType::StorageImage);
+
+		m_InterleavePipeline->SetImageSampler(input, Sampler::BilinearSamplerClamp, 0, 0);
+		m_InterleavePipeline->SetImageSampler(m_GTAOEdgesImage, Sampler::PointSamplerClamp, 0, 1);
+		m_InterleavePipeline->SetImage(output, 0, 2);
+
+		const glm::uvec3 groupSize = m_InterleavePipeline->GetWorkGroupSize();
+		const glm::uvec2 numGroups = CalcNumGroups(size, groupSize);
+		cmd->Dispatch(m_InterleavePipeline, numGroups, &size);
+	}
+
+	void GTAOTask::InitResources()
+	{
+		const glm::uvec3 viewportSize = glm::uvec3(m_Renderer.GetViewportSize(), 1u);
+		m_PassSize = bHalfRes ? glm::max(viewportSize / 2u, glm::uvec3(1u)) : viewportSize;
+
+		if (bHalfRes)
+		{
+			ImageSpecifications depthSpecs;
+			depthSpecs.Size = glm::uvec3(m_PassSize, 1u);
+			depthSpecs.Usage = ImageUsage::Sampled | ImageUsage::ColorAttachment;
+			depthSpecs.Format = ImageFormat::R32_Float;
+			m_Depth = Image::Create(depthSpecs, "GTAO_Depth");
+		}
+		else
+		{
+			m_Depth.reset();
+		}
+
+		ImageSpecifications specs;
+		specs.Format = ImageFormat::R8_UNorm;
+		specs.Usage = ImageUsage::Sampled | ImageUsage::Storage;
+		specs.Size = glm::uvec3(m_PassSize, 1u);
+		m_GTAOPassImage[0] = Image::Create(specs, "GTAO_Pass[0]");
+		m_GTAOPassImage[1] = Image::Create(specs, "GTAO_Pass[1]");
+		m_GTAOEdgesImage = Image::Create(specs, "GTAO_Pass_Edges");
+
+		specs.Usage = ImageUsage::Sampled | ImageUsage::Storage;
+		specs.Size = viewportSize;
+		m_Denoised = Image::Create(specs, "GTAO_Denoised");
 	}
 
 	void GTAOTask::InitPipeline()
 	{
-		const glm::uvec2 size = m_HalfDepth->GetSize();
-
 		// Downsample
+		if (bHalfRes)
 		{
+			const glm::uvec2 size = m_Depth->GetSize();
+
 			ColorAttachment depthAttachment;
-			depthAttachment.Image = m_HalfDepth;
+			depthAttachment.Image = m_Depth;
 			depthAttachment.ClearOperation = ClearOperation::DontCare;
 			depthAttachment.InitialLayout = ImageLayoutType::Unknown;
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 
-			ColorAttachment motionAttachment;
-			motionAttachment.Image = m_HalfMotion;
-			motionAttachment.ClearOperation = ClearOperation::DontCare;
-			motionAttachment.InitialLayout = ImageLayoutType::Unknown;
-			motionAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-
 			PipelineGraphicsState downsamplesState;
 			downsamplesState.ColorAttachments.push_back(depthAttachment);
-			downsamplesState.ColorAttachments.push_back(motionAttachment);
 			downsamplesState.Size = size;
 			downsamplesState.VertexShader = Shader::Create("quad.vert", ShaderType::Vertex);
-			downsamplesState.FragmentShader = Shader::Create("gtao_downsample.frag", ShaderType::Fragment);
+			downsamplesState.FragmentShader = Shader::Create("XeGTAO/downsample.frag", ShaderType::Fragment);
 			downsamplesState.CullMode = CullMode::Back;
 
 			m_DownsamplePipeline = PipelineGraphics::Create(downsamplesState);
+
+			PipelineComputeState state;
+			state.ComputeShader = Shader::Create("XeGTAO/interleave.comp", ShaderType::Compute);
+			m_InterleavePipeline = PipelineCompute::Create(state);
+		}
+		else
+		{
+			m_DownsamplePipeline.reset();
+			m_InterleavePipeline.reset();
 		}
 
 		// GTAO Pipeline
 		{
 			ShaderSpecializationInfo constants;
 			constants.MapEntries.push_back({0, 0, sizeof(uint32_t)});
-			constants.Data = &m_Samples;
-			constants.Size = sizeof(uint32_t);
+			constants.MapEntries.push_back({1, sizeof(uint32_t), sizeof(uint32_t)});
+			constants.Data = &m_Quality;
+			constants.Size = sizeof(m_Quality);
 			
 			PipelineComputeState state;
 			state.ComputeSpecializationInfo = constants;
-			state.ComputeShader = Shader::Create("gtao.comp", ShaderType::Compute);
+			state.ComputeShader = Shader::Create("XeGTAO/gtao.comp", ShaderType::Compute);
 
 			m_GTAOPipeline = PipelineCompute::Create(state);
 		}
@@ -227,7 +296,7 @@ namespace Eagle
 		// Denoiser pipeline
 		{
 			PipelineComputeState state;
-			state.ComputeShader = Shader::Create("gtao_denoiser.comp", ShaderType::Compute);
+			state.ComputeShader = Shader::Create("XeGTAO/denoiser.comp", ShaderType::Compute);
 
 			m_DenoiserPipeline = PipelineCompute::Create(state);
 		}

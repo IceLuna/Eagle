@@ -29,6 +29,18 @@ namespace Eagle
         }
     }
 
+    void DescriptorSetData::SetArg(uint32_t idx, const Ref<Sampler>& sampler)
+    {
+        auto& currentBinding = m_Bindings[idx];
+
+        ImageBinding binding(sampler);
+        if (currentBinding.ImageBindings[0] != binding)
+        {
+            currentBinding.ImageBindings[0] = binding;
+            m_bDirty = true;
+        }
+    }
+
     void DescriptorSetData::SetArg(uint32_t idx, const Ref<Image>& image)
     {
         SetArg(idx, image, nullptr);
@@ -64,7 +76,7 @@ namespace Eagle
         }
     }
 
-    void DescriptorSetData::SetArgArray(uint32_t idx, const std::vector<Ref<Buffer>>& buffers)
+    void DescriptorSetData::SetArgArray(uint32_t idx, const std::span<const Ref<Buffer>>& buffers)
     {
         assert(buffers.size());
         auto& currentBinding = m_Bindings[idx];
@@ -82,7 +94,7 @@ namespace Eagle
         }
     }
 
-    void DescriptorSetData::SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images)
+    void DescriptorSetData::SetArgArray(uint32_t idx, const std::span<const Ref<Image>>& images)
     {
         assert(images.size());
         auto& currentBinding = m_Bindings[idx];
@@ -100,7 +112,7 @@ namespace Eagle
         }
     }
 
-    void DescriptorSetData::SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images, const std::vector<ImageView>& imageViews)
+    void DescriptorSetData::SetArgArray(uint32_t idx, const std::span<const Ref<Image>>& images, const std::span<const ImageView>& imageViews)
     {
         const size_t imagesCount = images.size();
         assert(imagesCount);
@@ -119,7 +131,7 @@ namespace Eagle
         }
     }
 
-    void DescriptorSetData::SetArgArray(uint32_t idx, const Ref<Image>& image, const std::vector<ImageView>& imageViews)
+    void DescriptorSetData::SetArgArray(uint32_t idx, const Ref<Image>& image, const std::span<const ImageView>& imageViews)
     {
         const size_t imagesCount = imageViews.size();
         auto& currentBinding = m_Bindings[idx];
@@ -137,7 +149,7 @@ namespace Eagle
         }
     }
 
-    void DescriptorSetData::SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images, const Ref<Sampler>& sampler)
+    void DescriptorSetData::SetArgArray(uint32_t idx, const std::span<const Ref<Image>>& images, const Ref<Sampler>& sampler)
     {
         const size_t imagesCount = images.size();
         auto& currentBinding = m_Bindings[idx];
@@ -155,7 +167,7 @@ namespace Eagle
         }
     }
 
-    void DescriptorSetData::SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images, const std::vector<Ref<Sampler>>& samplers)
+    void DescriptorSetData::SetArgArray(uint32_t idx, const std::span<const Ref<Image>>& images, const std::span<const Ref<Sampler>>& samplers)
     {
         const size_t imagesCount = images.size();
         auto& currentBinding = m_Bindings[idx];
@@ -173,7 +185,7 @@ namespace Eagle
         }
     }
 
-    void DescriptorSetData::SetArgArray(uint32_t idx, const std::vector<Ref<Texture2D>>& textures)
+    void DescriptorSetData::SetArgArray(uint32_t idx, const std::span<const Ref<Texture2D>>& textures)
     {
         const size_t count = textures.size();
         auto& currentBinding = m_Bindings[idx];
@@ -191,7 +203,7 @@ namespace Eagle
         }
     }
 
-    void DescriptorSetData::SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images, const std::vector<ImageView>& imageViews, const std::vector<Ref<Sampler>>& samplers)
+    void DescriptorSetData::SetArgArray(uint32_t idx, const std::span<const Ref<Image>>& images, const std::span<const ImageView>& imageViews, const std::span<const Ref<Sampler>>& samplers)
     {
         const size_t imagesCount = images.size();
         auto& currentBinding = m_Bindings[idx];

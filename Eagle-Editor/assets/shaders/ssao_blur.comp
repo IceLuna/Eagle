@@ -18,16 +18,34 @@ void main()
 
     const vec2 uv = (pixelCoords + 0.5f) * g_TexelSize;
 
+#if 0
     float result = 0.f;
-    for (int x = -2; x < 2; ++x)
-       for (int y = -2; y < 2; ++y)
+    for (int x = -2; x <= 2; ++x)
+       for (int y = -2; y <= 2; ++y)
        {
            vec2 offset = vec2(x, y) * g_TexelSize;
            result += texture(g_SSAO, uv + offset).x;
        }
     
-    const float invNumSamples = 1.f / 16.f;
+    const float invNumSamples = 1.f / 25.0;
     result = result * invNumSamples;
+#else
+    float result = 0.0;
+
+    result += texelFetch(g_SSAO, pixelCoords + ivec2(+0, +0), 0).x * 4.0;
+
+    result += texelFetch(g_SSAO, pixelCoords + ivec2(+1, +0), 0).x * 2.0;
+    result += texelFetch(g_SSAO, pixelCoords + ivec2(-1, +0), 0).x * 2.0;
+    result += texelFetch(g_SSAO, pixelCoords + ivec2(+0, +1), 0).x * 2.0;
+    result += texelFetch(g_SSAO, pixelCoords + ivec2(+0, -1), 0).x * 2.0;
+
+    result += texelFetch(g_SSAO, pixelCoords + ivec2(-1, -1), 0).x * 1.0;
+    result += texelFetch(g_SSAO, pixelCoords + ivec2(+1, -1), 0).x * 1.0;
+    result += texelFetch(g_SSAO, pixelCoords + ivec2(-1, +1), 0).x * 1.0;
+    result += texelFetch(g_SSAO, pixelCoords + ivec2(+1, +1), 0).x * 1.0;
+
+    result /= 16.0;
+#endif
 
     imageStore(g_Result, pixelCoords, vec4(result, 0.f, 0.f, 1.f));
 }

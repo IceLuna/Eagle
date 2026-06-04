@@ -280,6 +280,11 @@ namespace Eagle
 		mono_add_internal_call("Eagle.AgXTonemappingSettings::GetGoldenLook_Native", Eagle::Script::Eagle_AgXTonemapping_GetGoldenLook);
 		mono_add_internal_call("Eagle.AgXTonemappingSettings::GetPunchyLook_Native", Eagle::Script::Eagle_AgXTonemapping_GetPunchyLook);
 
+		mono_add_internal_call("Eagle.GTAOSettings::GetQuality_Low_Native", Eagle::Script::Eagle_GTAO_GetQuality_Low);
+		mono_add_internal_call("Eagle.GTAOSettings::GetQuality_Medium_Native", Eagle::Script::Eagle_GTAO_GetQuality_Medium);
+		mono_add_internal_call("Eagle.GTAOSettings::GetQuality_High_Native", Eagle::Script::Eagle_GTAO_GetQuality_High);
+		mono_add_internal_call("Eagle.GTAOSettings::GetQuality_Ultra_Native", Eagle::Script::Eagle_GTAO_GetQuality_Ultra);
+
 		// Log
 		mono_add_internal_call("Eagle.Log::Trace", Eagle::Script::Eagle_Log_Trace);
 		mono_add_internal_call("Eagle.Log::Info", Eagle::Script::Eagle_Log_Info);
