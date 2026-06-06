@@ -26,6 +26,12 @@ uniform CameraMatrices
     mat4 g_InvViewProj;
     mat4 g_ViewProjection;
     mat4 g_PrevViewProjection;
+	mat4 g_Proj;
+	mat4 g_InvProj;
+	mat4 g_PrevProj;
+	mat4 g_PrevView;
+	mat4 g_ViewProjUnjittered;
+	mat4 g_PrevViewProjUnjittered;
 };
 
 #ifndef EG_DEPTH_ONLY
@@ -41,13 +47,6 @@ layout(scalar, set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX + 4)
 readonly buffer PrevSkinnedVerticesPositions
 {
     vec3 g_PrevSkinnedVertexPosition[];
-};
-#endif
-
-#ifdef EG_JITTER
-layout(set = 1, binding = 0) uniform Jitter
-{
-    vec2 g_Jitter;
 };
 #endif
 
@@ -102,15 +101,12 @@ void main()
 #endif // #ifndef EG_DEPTH_ONLY
 
 #ifdef EG_MOTION
-    o_CurPos = gl_Position.xyw;
+    const vec4 curPos = g_ViewProjUnjittered * vec4(vertex.Position, 1.0);
+    o_CurPos = curPos.xyw;
     {
         const vec3 prevVertexPos = g_PrevSkinnedVertexPosition[vertexIndex];
-        const vec4 prevPos = g_PrevViewProjection * vec4(prevVertexPos, 1.0);
+        const vec4 prevPos = g_PrevViewProjUnjittered * vec4(prevVertexPos, 1.0);
         o_PrevPos = prevPos.xyw;
     }
-#endif
-
-#ifdef EG_JITTER
-    gl_Position.xy += g_Jitter * gl_Position.w;
 #endif
 }

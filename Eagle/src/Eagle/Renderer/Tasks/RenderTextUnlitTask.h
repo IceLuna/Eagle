@@ -13,14 +13,6 @@ namespace Eagle
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
-		void InitWithOptions(const SceneRendererSettings& settings) override
-		{
-			if (settings.InternalState.bJitter == bJitter)
-				return;
-			
-			bJitter = settings.InternalState.bJitter;
-			InitPipeline();
-		}
 
 		static void Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const QuadsRenderData<UnlitTextGeometryData>::BlendModeGeomType& data, const void* pushData, RenderStats& stats);
 		static void Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const UnlitTextGeometryData& data, const void* pushData, RenderStats& stats, const Ref<Framebuffer>& fb);
@@ -30,7 +22,5 @@ namespace Eagle
 
 	private:
 		Ref<PipelineGraphics> m_Pipeline;
-
-		bool bJitter = false;
 	};
 }

@@ -76,6 +76,10 @@ namespace Eagle
 		glm::mat4 InvProj;
 		glm::mat4 PrevProj;
 		glm::mat4 PrevView;
+		glm::mat4 ViewProjUnjittered;
+		glm::mat4 PrevViewProjUnjittered;
+		glm::mat4 ProjUnjittered;
+		glm::mat4 PrevProjUnjittered;
 	};
 
 	class SceneRenderer : public std::enable_shared_from_this<SceneRenderer>
@@ -240,7 +244,6 @@ namespace Eagle
 		Ref<Image> GetGTAOResult() const { return m_GTAOTask ? m_GTAOTask->GetResult() : nullptr; }
 		// ------------------------------------------------
 
-		const Ref<Buffer>& GetJitter() const { return m_Jitter; }
 		const GBuffer& GetGBuffer() const { return m_GBuffer; }
 		GBuffer& GetGBuffer() { return m_GBuffer; }
 		const Ref<Image>& GetOutput() const { return m_FinalImage; }
@@ -319,7 +322,6 @@ namespace Eagle
 		Ref<FrustumCullingTask> m_FrustumCullingTask;
 		Ref<LightCullingTask> m_LightCullingTask;
 		
-		Ref<Buffer> m_Jitter;
 		Ref<Buffer> m_CameraDataBuffer;
 		
 		CullingFrustumData m_CullingData;

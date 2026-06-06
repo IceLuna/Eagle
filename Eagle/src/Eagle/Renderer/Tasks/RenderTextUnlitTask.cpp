@@ -19,7 +19,6 @@ namespace Eagle
 	RenderTextUnlitTask::RenderTextUnlitTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
-		bJitter = m_Renderer.GetOptions().InternalState.bJitter;
 		InitPipeline();
 	}
 
@@ -76,8 +75,6 @@ namespace Eagle
 
 		m_Pipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
 		m_Pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
-		if (bJitter)
-			m_Pipeline->SetBuffer(m_Renderer.GetJitter(), 2, 0);
 
 		const auto& vp = m_Renderer.GetViewProjection();
 		auto& stats = m_Renderer.GetStats();
@@ -119,12 +116,8 @@ namespace Eagle
 		depthAttachment.DepthCompareOp = CompareOperation::GreaterEqual;
 		depthAttachment.ClearOperation = ClearOperation::Load;
 
-		ShaderDefines defines;
-		if (bJitter)
-			defines["EG_JITTER"] = "";
-
 		PipelineGraphicsState state;
-		state.VertexShader = Shader::Create("text/text.vert", ShaderType::Vertex, defines);
+		state.VertexShader = Shader::Create("text/text.vert", ShaderType::Vertex);
 		state.FragmentShader = Shader::Create("text/text.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.ColorAttachments.push_back(objectIDAttachment);

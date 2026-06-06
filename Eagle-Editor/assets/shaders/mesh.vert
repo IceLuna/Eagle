@@ -19,20 +19,19 @@ readonly buffer MeshPrevTransformsBuffer
 };
 #endif
 
-layout(push_constant) uniform PushConstants
+layout(set = 1, binding = 0) uniform CameraData
 {
-    mat4 g_ViewProjection;
-#ifdef EG_MOTION
-    mat4 g_PrevViewProjection;
-#endif
+	mat4 g_View;
+	mat4 g_InvViewProj;
+	mat4 g_ViewProj;
+	mat4 g_PrevViewProj;
+	mat4 g_Proj;
+	mat4 g_InvProj;
+	mat4 g_PrevProj;
+	mat4 g_PrevView;
+	mat4 g_ViewProjUnjittered;
+	mat4 g_PrevViewProjUnjittered;
 };
-
-#ifdef EG_JITTER
-layout(set = 1, binding = 0) uniform Jitter
-{
-    vec2 g_Jitter;
-};
-#endif
 
 #ifndef EG_DEPTH_ONLY
 
@@ -53,7 +52,7 @@ void main()
 {
     const uint transformIndex = GetTransformIndex();
     const mat4 model = g_Transforms[transformIndex];
-    gl_Position = g_ViewProjection * model * vec4(a_Position, 1.0);
+    gl_Position = g_ViewProj * model * vec4(a_Position, 1.0);
 
 #ifndef EG_DEPTH_ONLY
     const uint materialIndex = GetMaterialIndex();
@@ -79,14 +78,11 @@ void main()
 #endif // #ifndef EG_DEPTH_ONLY
 
 #ifdef EG_MOTION
-    o_CurPos = gl_Position.xyw;
+    const vec4 curPos = g_ViewProjUnjittered * model * vec4(a_Position, 1.0);
+    o_CurPos = curPos.xyw;
 
     const mat4 prevModel = g_PrevTransforms[transformIndex];
-    const vec4 prevPos = g_PrevViewProjection * prevModel * vec4(a_Position, 1.0);
+    const vec4 prevPos = g_PrevViewProjUnjittered * prevModel * vec4(a_Position, 1.0);
     o_PrevPos = prevPos.xyw;
-#endif
-
-#ifdef EG_JITTER
-    gl_Position.xy += g_Jitter * gl_Position.w;
 #endif
 }

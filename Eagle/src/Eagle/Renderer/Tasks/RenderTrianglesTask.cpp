@@ -14,7 +14,6 @@ namespace Eagle
 	RenderTrianglesTask::RenderTrianglesTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
-		bJitter = m_Renderer.GetOptions().InternalState.bJitter;
 		InitPipeline();
 
 		BufferSpecifications linesVertexSpecs;
@@ -63,9 +62,6 @@ namespace Eagle
 
 		const uint32_t trianglesCount = (uint32_t)(m_Vertices.size());
 
-		if (bJitter)
-			m_Pipeline->SetBuffer(m_Renderer.GetJitter(), 0, 0);
-
 		cmd->BeginGraphics(m_Pipeline);
 		cmd->SetGraphicsRootConstants(&m_Renderer.GetViewProjection()[0][0], nullptr);
 		cmd->Draw(m_VertexBuffer, trianglesCount, 0);
@@ -109,12 +105,8 @@ namespace Eagle
 		depthAttachment.bWriteDepth = true;
 		depthAttachment.DepthCompareOp = CompareOperation::GreaterEqual;
 
-		ShaderDefines defines;
-		if (bJitter)
-			defines["EG_JITTER"] = "";
-
 		PipelineGraphicsState state;
-		state.VertexShader = Shader::Create("simple_colored_geometry.vert", ShaderType::Vertex, defines);
+		state.VertexShader = Shader::Create("simple_colored_geometry.vert", ShaderType::Vertex);
 		state.FragmentShader = Shader::Create("simple_colored_geometry.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(colorAttachment);
 		if (bEnableDebugLinesDepthTest)

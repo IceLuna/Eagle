@@ -11,13 +11,6 @@ layout(push_constant) uniform PushConstants
     mat4 g_ViewProjection;
 };
 
-#ifdef EG_JITTER
-layout(set = 1, binding = 0) uniform Jitter
-{
-    vec2 g_Jitter;
-};
-#endif
-
 layout(location = 0) out vec3 o_Normal;
 layout(location = 1) out vec2 o_TexCoords;
 #ifdef EG_MASKED
@@ -37,9 +30,5 @@ void main()
     o_TexCoords = a_TexCoords;
 #ifdef EG_MASKED
     o_MaterialIndex = GetMaterialIndex();
-#endif
-
-#ifdef EG_JITTER
-    gl_Position.xy += g_Jitter * gl_Position.w;
 #endif
 }

@@ -51,8 +51,8 @@ namespace Eagle
 
 		const auto& gbuffer = m_Renderer.GetGBuffer();
 
-		m_Pipeline->SetImageSampler(m_HistoryImage, Sampler::BilinearSampler, 0, 0);
-		m_Pipeline->SetImageSampler(gbuffer.Motion, Sampler::PointSampler, 0, 1);
+		m_Pipeline->SetImageSampler(m_HistoryImage, Sampler::BilinearSamplerClamp, 0, 0);
+		m_Pipeline->SetImageSampler(gbuffer.Motion, Sampler::PointSamplerClamp, 0, 1);
 		m_Pipeline->SetImage(m_FinalImage, 0, 2);
 		m_Pipeline->SetImage(m_Result, 0, 3);
 

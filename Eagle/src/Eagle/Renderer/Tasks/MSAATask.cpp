@@ -34,7 +34,6 @@ namespace Eagle
 	{
 		const auto& options = renderer.GetOptions_RT();
 		m_Samples = options.MSAAParams.Samples;
-		bJitter = options.InternalState.bJitter;
 
 		m_MeshOpaqueDrawShader = Shader::Create("msaa/msaa_draw.frag", ShaderType::Fragment);
 		m_MeshMaskedDrawShader = Shader::Create("msaa/msaa_draw.frag", ShaderType::Fragment, { {"EG_MASKED", "" }});
@@ -144,8 +143,6 @@ namespace Eagle
 			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 			pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 			pipeline->SetBuffer(m_Renderer.GetSpritesTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
-			if (bJitter)
-				pipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 		};
 
 		const auto& singleSided = m_Renderer.GetSingleSidedSpritesRenderData();
@@ -198,9 +195,6 @@ namespace Eagle
 			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 			pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 			pipeline->SetBuffer(m_Renderer.GetMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
-
-			if (bJitter)
-				pipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 		};
 
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
@@ -242,8 +236,6 @@ namespace Eagle
 			pipeline->SetBuffer(ivb, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 			pipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
 			pipeline->SetBuffer(m_Renderer.GetSkeletalMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 3);
-			if (bJitter)
-				pipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 		};
 
 		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
@@ -317,8 +309,6 @@ namespace Eagle
 
 		ShaderDefines defines;
 		defines["EG_BACKFACE_FLIP_NORMAL"] = "";
-		if (bJitter)
-			defines["EG_JITTER"] = "";
 
 		PipelineGraphicsState state;
 		state.ColorAttachments.push_back(normalsAttachment);
@@ -359,13 +349,9 @@ namespace Eagle
 		depthAttachment.ClearOperation = ClearOperation::Load;
 		depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
-		ShaderDefines defines;
-		if (bJitter)
-			defines["EG_JITTER"] = "";
-
 		PipelineGraphicsState state;
 		state.ColorAttachments.push_back(normalsAttachment);
-		state.VertexShader = Shader::Create("msaa/msaa_mesh.vert", ShaderType::Vertex, defines);
+		state.VertexShader = Shader::Create("msaa/msaa_mesh.vert", ShaderType::Vertex);
 		state.FragmentShader = m_MeshOpaqueDrawShader;
 		state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
 		state.DepthStencilAttachment = depthAttachment;
@@ -376,6 +362,7 @@ namespace Eagle
 		else
 			m_StaticMeshesPipeline = PipelineGraphics::Create(state);
 
+		ShaderDefines defines;
 		defines["EG_MASKED"] = "";
 		state.VertexShader = Shader::Create("msaa/msaa_mesh.vert", ShaderType::Vertex, defines);
 		state.FragmentShader = m_MeshMaskedDrawShader;
@@ -403,13 +390,9 @@ namespace Eagle
 		depthAttachment.ClearOperation = ClearOperation::Load;
 		depthAttachment.DepthCompareOp = CompareOperation::Greater;
 
-		ShaderDefines defines;
-		if (bJitter)
-			defines["EG_JITTER"] = "";
-
 		PipelineGraphicsState state;
 		state.ColorAttachments.push_back(normalsAttachment);
-		state.VertexShader = Shader::Create("msaa/msaa_mesh_skeletal.vert", ShaderType::Vertex, defines);
+		state.VertexShader = Shader::Create("msaa/msaa_mesh_skeletal.vert", ShaderType::Vertex);
 		state.FragmentShader = m_MeshOpaqueDrawShader;
 		state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
 		state.DepthStencilAttachment = depthAttachment;
@@ -420,6 +403,7 @@ namespace Eagle
 		else
 			m_SkeletalMeshesPipeline = PipelineGraphics::Create(state);
 
+		ShaderDefines defines;
 		defines["EG_MASKED"] = "";
 		state.VertexShader = Shader::Create("msaa/msaa_mesh_skeletal.vert", ShaderType::Vertex, defines);
 		state.FragmentShader = m_MeshMaskedDrawShader;

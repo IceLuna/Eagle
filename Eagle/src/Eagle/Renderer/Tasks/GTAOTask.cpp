@@ -38,7 +38,8 @@ namespace Eagle
 		// Prepare constants
 		{
 			const glm::mat4& projMatrix = m_Renderer.GetProjectionMatrix();
-			const auto& gtaoSettings = m_Renderer.GetOptions_RT().GTAOSettings;
+			const auto& options = m_Renderer.GetOptions_RT();
+			const auto& gtaoSettings = options.GTAOSettings;
 
 			auto& consts = m_Constants;
 			consts.ViewportSize = m_PassSize;
@@ -63,7 +64,7 @@ namespace Eagle
 			consts.ThinOccluderCompensation = 0;
 			consts.FinalValuePower = 2.2f;
 			consts.DepthMIPSamplingOffset = 3.3f;
-			consts.NoiseIndex = 0;// (RenderManager::GetFrameNumber_RT() % 64);
+			consts.NoiseIndex = options.AA == AAMethod::TAA ? (RenderManager::GetFrameNumber_RT() % 64) : 0u;
 
 			consts.CameraPlanes.x = m_Renderer.GetZNear();
 			consts.CameraPlanes.y = m_Renderer.GetZFar();

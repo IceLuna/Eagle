@@ -146,6 +146,23 @@ namespace Eagle
 			renderer->m_PrevProjection = renderer->m_CameraMatrices.Proj;
 			renderer->m_PrevViewProjection = renderer->m_CameraMatrices.ViewProj;
 
+			renderer->m_CameraMatrices.PrevProjUnjittered = renderer->m_CameraMatrices.ProjUnjittered;
+			renderer->m_CameraMatrices.ProjUnjittered = proj;
+			renderer->m_CameraMatrices.PrevViewProjUnjittered = renderer->m_CameraMatrices.ViewProjUnjittered;
+			renderer->m_CameraMatrices.ViewProjUnjittered = proj * viewMat;
+
+			if (options.InternalState.bJitter)
+			{
+				// The range of numbers from Halton sequence is between 0 to 1.
+				// In order to use these numbers as offset for jittering,
+				// we need to adjust the range so that the positions are jittered both in positive and negative directions and are not jittered more than the size
+				glm::vec2 jitter = RenderManager::GetHalton();
+				jitter = (2.0f * (jitter - 0.5f) / glm::vec2(renderer->m_Size));
+
+				proj[2][0] += jitter.x;
+				proj[2][1] += jitter.y;
+			}
+
 			renderer->m_CameraMatrices.View = viewMat;
 			renderer->m_CameraMatrices.Proj = proj;
 			renderer->m_CameraMatrices.ViewProj = renderer->m_CameraMatrices.Proj * renderer->m_CameraMatrices.View;
@@ -176,16 +193,6 @@ namespace Eagle
 				renderer->m_CullingData.Proj = renderer->m_CameraMatrices.Proj;
 				renderer->m_CullingData.InvProj = renderer->m_CameraMatrices.InvProj;
 				renderer->m_CullingData.Position = viewPosition;
-			}
-
-			if (options.InternalState.bJitter)
-			{
-				// The range of numbers from Halton sequence is between 0 to 1.
-				// In order to use these numbers as offset for jittering,
-				// we need to adjust the range so that the positions are jittered both in positiveand negative directionsand are not jittered more than the size
-				glm::vec2 jitter = RenderManager::GetHalton();
-				jitter = ((jitter - 0.5f) / glm::vec2(renderer->m_Size)) * 2.f;
-				cmd->Write(renderer->m_Jitter, &jitter, sizeof(glm::vec2), 0, renderer->m_Jitter->GetLayout(), BufferReadAccess::Uniform);
 			}
 
 			cmd->TransitionLayout(renderer->m_FinalImage, renderer->m_FinalImage->GetLayout(), ImageLayoutType::RenderTarget);
@@ -494,21 +501,6 @@ namespace Eagle
 	void SceneRenderer::InitWithOptions()
 	{
 		auto& options = m_Options_RT;
-
-		if (options.InternalState.bJitter)
-		{
-			if (!m_Jitter)
-			{
-				BufferSpecifications specs;
-				specs.Size = sizeof(glm::vec2);
-				specs.Usage = BufferUsage::UniformBuffer | BufferUsage::TransferDst;
-				m_Jitter = Buffer::Create(specs, "Jitter");
-			}
-		}
-		else
-		{
-			m_Jitter.reset();
-		}
 
 		m_GBuffer.InitOptional(options.InternalState, glm::uvec3(m_Size, 1u));
 		m_PhotoLinearScale = CalculatePhotoLinearScale(options.PhotoLinearTonemappingParams, options.Gamma);

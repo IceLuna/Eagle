@@ -6,12 +6,12 @@ layout(push_constant) uniform PushConstants
     vec2 g_TexelSize;
 };
 
-const float g_Alpha = 0.9f;
+const float g_Alpha = 0.1f;
 const float g_ColorBoxSigma = 1.f;
 
-layout(binding = 0) uniform sampler2D g_TexPrevColor;
-layout(binding = 1) uniform sampler2D g_TexMotionVec;
-layout(binding = 2, r11f_g11f_b10f) uniform readonly image2D g_TexColor;
+layout(binding = 0) uniform sampler2D g_PrevColor;
+layout(binding = 1) uniform sampler2D g_Motion;
+layout(binding = 2, r11f_g11f_b10f) uniform readonly image2D g_Color;
 layout(binding = 3, r11f_g11f_b10f) uniform writeonly image2D g_Result;
 
 // software.intel.com/en-us/node/503873
@@ -60,15 +60,15 @@ vec3 bicubicSampleCatmullRom(vec2 samplePos)
     vec2 tc3 = (tc + 2.f) * g_TexelSize;
 
     vec3 result =
-        texture(g_TexPrevColor, vec2(tc0.x,  tc0.y)).rgb  * (w0.x  * w0.y) +
-        texture(g_TexPrevColor, vec2(tc0.x,  tc12.y)).rgb * (w0.x  * w12.y) +
-        texture(g_TexPrevColor, vec2(tc0.x,  tc3.y)).rgb  * (w0.x  * w3.y) +
-        texture(g_TexPrevColor, vec2(tc12.x, tc0.y)).rgb  * (w12.x * w0.y) +
-        texture(g_TexPrevColor, vec2(tc12.x, tc12.y)).rgb * (w12.x * w12.y) +
-        texture(g_TexPrevColor, vec2(tc12.x, tc3.y)).rgb  * (w12.x * w3.y) +
-        texture(g_TexPrevColor, vec2(tc3.x,  tc0.y)).rgb  * (w3.x  * w0.y) +
-        texture(g_TexPrevColor, vec2(tc3.x,  tc12.y)).rgb * (w3.x  * w12.y) +
-        texture(g_TexPrevColor, vec2(tc3.x,  tc3.y)).rgb  * (w3.x  * w3.y);
+        texture(g_PrevColor, vec2(tc0.x,  tc0.y)).rgb  * (w0.x  * w0.y) +
+        texture(g_PrevColor, vec2(tc0.x,  tc12.y)).rgb * (w0.x  * w12.y) +
+        texture(g_PrevColor, vec2(tc0.x,  tc3.y)).rgb  * (w0.x  * w3.y) +
+        texture(g_PrevColor, vec2(tc12.x, tc0.y)).rgb  * (w12.x * w0.y) +
+        texture(g_PrevColor, vec2(tc12.x, tc12.y)).rgb * (w12.x * w12.y) +
+        texture(g_PrevColor, vec2(tc12.x, tc3.y)).rgb  * (w12.x * w3.y) +
+        texture(g_PrevColor, vec2(tc3.x,  tc0.y)).rgb  * (w3.x  * w0.y) +
+        texture(g_PrevColor, vec2(tc3.x,  tc12.y)).rgb * (w3.x  * w12.y) +
+        texture(g_PrevColor, vec2(tc3.x,  tc3.y)).rgb  * (w3.x  * w3.y);
 
     return result;
 }
@@ -89,25 +89,18 @@ void main()
                               ivec2( 0,  1), ivec2(-1,  0), };
 
         
-    vec2 pos = uv * g_Size;
-    ivec2 ipos = ivec2(pos);
-
     // Fetch the current pixel color and compute the color bounding box
     // Details here: http://www.gdcvault.com/play/1023521/From-the-Lab-Bench-Real
     // and here: http://cwyman.org/papers/siga16_gazeTrackedFoveatedRendering.pdf
-    vec4 texColor = imageLoad(g_TexColor, ipos);
-    vec3 color = texColor.rgb;
-    color = RGBToYCgCo(color);
+    vec4 texColor = imageLoad(g_Color, pixelCoords);
+    vec3 color = RGBToYCgCo(texColor.rgb);
     vec3 colorAvg = color;
     vec3 colorVar = color * color;
 
     for (int k = 0; k < 8; k++)
     {
-        const ivec2 coords = ipos + offset[k];
-        if (coords.x >= g_Size.x || coords.y >= g_Size.y)
-            continue;
-
-        vec3 c = imageLoad(g_TexColor, coords).rgb;
+        const ivec2 coords = clamp(pixelCoords + offset[k], ivec2(0), g_Size - 1);
+        vec3 c = imageLoad(g_Color, coords).rgb;
         c = RGBToYCgCo(c);
         colorAvg += c;
         colorVar += c * c;
@@ -122,10 +115,10 @@ void main()
     vec3 colorMax = colorAvg + g_ColorBoxSigma * sigma;
 
     // Find the longest motion vector
-    vec2 motion = texture(g_TexMotionVec, uv).xy;
+    vec2 motion = texture(g_Motion, uv).xy;
     for (int a = 0; a < 8; a++)
     {
-        vec2 m = texture(g_TexMotionVec, (ipos + offset[a]) * g_TexelSize).rg;
+        vec2 m = texelFetch(g_Motion, pixelCoords + offset[a], 0).rg;
         motion = dot(m, m) > dot(motion, motion) ? m : motion;
     }
 

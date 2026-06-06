@@ -22,7 +22,6 @@ namespace Eagle
 	{
 		const auto& settings = renderer.GetOptions();
 		bMotionRequired = settings.InternalState.bMotionBuffer;
-		bJitter = settings.InternalState.bJitter;
 		bGeometricSpecularAA = settings.bGeometricSpecularAA;
 
 		InitPipeline();
@@ -89,8 +88,6 @@ namespace Eagle
 			vertexDefines["EG_MOTION"] = "";
 			fragmentDefines["EG_MOTION"] = "";
 		}
-		if (bJitter)
-			vertexDefines["EG_JITTER"] = "";
 		if (bGeometricSpecularAA)
 			fragmentDefines["EG_GEOMETRIC_SPECULAR_AA"] = "";
 
@@ -224,8 +221,6 @@ namespace Eagle
 		{
 			m_OpaquePipeline->SetBuffer(m_Renderer.GetPrevSkinnedVerticesPositions(), EG_PERSISTENT_SET, EG_BINDING_MAX + 4);
 		}
-		if (bJitter)
-			m_OpaquePipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
 		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
 		auto& stats = m_Renderer.GetStats();
@@ -264,8 +259,6 @@ namespace Eagle
 		{
 			m_MaskedPipeline->SetBuffer(m_Renderer.GetPrevSkinnedVerticesPositions(), EG_PERSISTENT_SET, EG_BINDING_MAX + 4);
 		}
-		if (bJitter)
-			m_MaskedPipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
 		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
 		auto& stats = m_Renderer.GetStats();

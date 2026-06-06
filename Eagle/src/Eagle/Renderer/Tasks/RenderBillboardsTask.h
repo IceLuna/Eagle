@@ -60,7 +60,6 @@ namespace Eagle
 		Ref<Buffer> m_IndexBuffer;
 		Ref<PipelineGraphics> m_Pipeline;
 		uint64_t m_TexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
-		bool bJitter = false;
 		bool bMotionRequired = false;
 	};
 }

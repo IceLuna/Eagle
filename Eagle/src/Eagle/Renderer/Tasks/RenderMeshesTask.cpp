@@ -13,18 +13,11 @@
 
 namespace Eagle
 {
-	struct PushData
-	{
-		glm::mat4 ViewProj;
-		glm::mat4 PrevViewProj;
-	};
-
 	RenderMeshesTask::RenderMeshesTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
 		const auto& settings = renderer.GetOptions();
 		bMotionRequired = settings.InternalState.bMotionBuffer;
-		bJitter = settings.InternalState.bJitter;
 		bGeometricSpecularAA = settings.bGeometricSpecularAA;
 
 		InitPipeline();
@@ -94,8 +87,6 @@ namespace Eagle
 			vertexDefines["EG_MOTION"] = "";
 			fragmentDefines["EG_MOTION"] = "";
 		}
-		if (bJitter)
-			vertexDefines["EG_JITTER"] = "";
 		if (bGeometricSpecularAA)
 			fragmentDefines["EG_GEOMETRIC_SPECULAR_AA"] = "";
 
@@ -221,19 +212,15 @@ namespace Eagle
 		m_OpaquePipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 		m_OpaquePipeline->SetBuffer(m_Renderer.GetMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
 
-		PushData pushData;
-		pushData.ViewProj = m_Renderer.GetViewProjection();
 		if (bMotionRequired)
 		{
-			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
 			m_OpaquePipeline->SetBuffer(m_Renderer.GetMeshPrevTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 		}
-		if (bJitter)
-			m_OpaquePipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
+		m_OpaquePipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 1, 0);
 
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
 		auto& stats = m_Renderer.GetStats();
-		DrawCulled(cmd, m_OpaquePipeline, buffers, culledMeshes, MaterialBlendMode::Opaque, stats, &pushData);
+		DrawCulled(cmd, m_OpaquePipeline, buffers, culledMeshes, MaterialBlendMode::Opaque, stats);
 	}
 
 	void RenderMeshesTask::RenderMasked(const Ref<CommandBuffer>& cmd)
@@ -260,19 +247,14 @@ namespace Eagle
 		m_MaskedPipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 		m_MaskedPipeline->SetBuffer(m_Renderer.GetMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
 
-		PushData pushData;
-		pushData.ViewProj = m_Renderer.GetViewProjection();
-
 		if (bMotionRequired)
 		{
-			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
 			m_MaskedPipeline->SetBuffer(m_Renderer.GetMeshPrevTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 		}
-		if (bJitter)
-			m_MaskedPipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
+		m_MaskedPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 1, 0);
 
 		auto& stats = m_Renderer.GetStats();
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
-		DrawCulled(cmd, m_MaskedPipeline, buffers, culledMeshes, MaterialBlendMode::Masked, stats, &pushData);
+		DrawCulled(cmd, m_MaskedPipeline, buffers, culledMeshes, MaterialBlendMode::Masked, stats);
 	}
 }

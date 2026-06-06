@@ -115,37 +115,24 @@ namespace Eagle
 			m_Pipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
 			m_TexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()] = texturesChangedFrame + 1;
 		}
-		if (bJitter)
-			m_Pipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
+		m_Pipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 1, 0);
 
 		const uint32_t quadsCount = (uint32_t)(m_Vertices.size() / 4);
 
 		auto& stats = m_Renderer.GetStats();
 		++stats.DrawCalls;
 
-		struct PushData
-		{
-			glm::mat4 Proj;
-			glm::mat4 PrevProj;
-		} pushData;
-		pushData.Proj = m_Renderer.GetProjectionMatrix();
-		if (bMotionRequired)
-			pushData.PrevProj = m_Renderer.GetPrevProjectionMatrix();
-
 		const float& gamma = m_Renderer.GetOptions_RT().Gamma;
 		cmd->BeginGraphics(m_Pipeline);
-		cmd->SetGraphicsRootConstants(&pushData, nullptr);
 		cmd->DrawIndexed(m_VertexBuffer, m_IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 	}
 
 	void RenderBillboardsTask::InitWithOptions(const SceneRendererSettings& settings)
 	{
-		if (settings.InternalState.bJitter == bJitter &&
-			settings.InternalState.bMotionBuffer == bMotionRequired)
+		if (settings.InternalState.bMotionBuffer == bMotionRequired)
 			return;
 
-		bJitter = settings.InternalState.bJitter;
 		bMotionRequired = settings.InternalState.bMotionBuffer;
 		InitPipeline();
 	}
@@ -262,8 +249,6 @@ namespace Eagle
 
 		ShaderDefines vertexDefines;
 		ShaderDefines fragmentDefines;
-		if (bJitter)
-			vertexDefines["EG_JITTER"] = "";
 		if (bMotionRequired)
 		{
 			vertexDefines["EG_MOTION"] = "";

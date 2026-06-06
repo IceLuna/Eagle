@@ -13,18 +13,11 @@
 
 namespace Eagle
 {
-	struct PushData
-	{
-		glm::mat4 ViewProj;
-		glm::mat4 PrevViewProj;
-	};
-
 	RenderSpritesTask::RenderSpritesTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
 		const auto& settings = renderer.GetOptions();
 		bMotionRequired = settings.InternalState.bMotionBuffer;
-		bJitter = settings.InternalState.bJitter;
 		bGeometricSpecularAA = settings.bGeometricSpecularAA;
 
 		InitPipeline();
@@ -36,7 +29,8 @@ namespace Eagle
 			return;
 
 		cmd->BeginGraphics(pipeline);
-		cmd->SetGraphicsRootConstants(vertexPushData, nullptr);
+		if (vertexPushData)
+			cmd->SetGraphicsRootConstants(vertexPushData, nullptr);
 
 		uint32_t quadsCount = (uint32_t)(spritesData.ShadowCastingQuads.QuadVertices.size() / 4);
 		if (quadsCount > 0)
@@ -64,7 +58,8 @@ namespace Eagle
 			cmd->BeginGraphics(pipeline, fb);
 		else
 			cmd->BeginGraphics(pipeline);
-		cmd->SetGraphicsRootConstants(vertexPushData, nullptr);
+		if (vertexPushData)
+			cmd->SetGraphicsRootConstants(vertexPushData, nullptr);
 		cmd->DrawIndexed(spritesData.VertexBuffer, spritesData.IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 		++stats.DrawCalls;
@@ -98,21 +93,17 @@ namespace Eagle
 		m_OpaquePipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 		m_OpaquePipeline->SetBuffer(m_Renderer.GetSpritesTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
 
-		PushData pushData;
-		pushData.ViewProj = m_Renderer.GetViewProjection();
 		if (bMotionRequired)
 		{
-			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
 			m_OpaquePipeline->SetBuffer(m_Renderer.GetSpritesPrevTransformBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 		}
-		if (bJitter)
-			m_OpaquePipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
+		m_OpaquePipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 1, 0);
 
 		cmd->SetGraphicsCullMode(CullMode::Back);
-		Draw(cmd, m_OpaquePipeline, singleSided.Opaque, &pushData, m_Renderer.GetStats());
+		Draw(cmd, m_OpaquePipeline, singleSided.Opaque, nullptr, m_Renderer.GetStats());
 
 		cmd->SetGraphicsCullMode(CullMode::None);
-		Draw(cmd, m_OpaquePipeline, doubleSided.Opaque, &pushData, m_Renderer.GetStats());
+		Draw(cmd, m_OpaquePipeline, doubleSided.Opaque, nullptr, m_Renderer.GetStats());
 	}
 
 	void RenderSpritesTask::RenderMasked(const Ref<CommandBuffer>& cmd)
@@ -137,21 +128,17 @@ namespace Eagle
 		m_MaskedPipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
 		m_MaskedPipeline->SetBuffer(m_Renderer.GetSpritesTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
 
-		PushData pushData;
-		pushData.ViewProj = m_Renderer.GetViewProjection();
 		if (bMotionRequired)
 		{
-			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
 			m_MaskedPipeline->SetBuffer(m_Renderer.GetSpritesPrevTransformBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 		}
-		if (bJitter)
-			m_MaskedPipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
+		m_MaskedPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 1, 0);
 
 		cmd->SetGraphicsCullMode(CullMode::Back);
-		Draw(cmd, m_MaskedPipeline, singleSided.Masked, &pushData, m_Renderer.GetStats());
+		Draw(cmd, m_MaskedPipeline, singleSided.Masked, nullptr, m_Renderer.GetStats());
 
 		cmd->SetGraphicsCullMode(CullMode::None);
-		Draw(cmd, m_MaskedPipeline, doubleSided.Masked, &pushData, m_Renderer.GetStats());
+		Draw(cmd, m_MaskedPipeline, doubleSided.Masked, nullptr, m_Renderer.GetStats());
 	}
 
 	void RenderSpritesTask::InitPipeline()
@@ -210,8 +197,6 @@ namespace Eagle
 			vertexDefines["EG_MOTION"] = "";
 			fragmentDefines["EG_MOTION"] = "";
 		}
-		if (bJitter)
-			vertexDefines["EG_JITTER"] = "";
 		if (bGeometricSpecularAA)
 			fragmentDefines["EG_GEOMETRIC_SPECULAR_AA"] = "";
 

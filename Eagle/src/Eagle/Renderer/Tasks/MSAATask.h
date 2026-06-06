@@ -18,14 +18,11 @@ namespace Eagle
 
 		void InitWithOptions(const SceneRendererSettings& settings) override
 		{
-			if (bJitter == settings.InternalState.bJitter && m_Samples == settings.MSAAParams.Samples)
+			if (m_Samples == settings.MSAAParams.Samples)
 				return;
 
-			const bool bMSAAChanged = m_Samples != settings.MSAAParams.Samples;
 			m_Samples = settings.MSAAParams.Samples;
-			bJitter = settings.InternalState.bJitter;
-			if (bMSAAChanged)
-				CreateMSAATextures();
+			CreateMSAATextures();
 			InitPipelines();
 		}
 
@@ -65,6 +62,5 @@ namespace Eagle
 		Ref<Image> m_MSAANormals;
 
 		MSAASamples m_Samples;
-		bool bJitter = false;
 	};
 }
