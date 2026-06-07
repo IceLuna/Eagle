@@ -50,10 +50,13 @@ namespace Eagle
 			uint32_t ViewProjOffset; // Offset into the transforms buffer
 
 			glm::vec3 LightColor;
-			uint32_t bCastsShadows;
+			uint32_t Flags;
 
 			glm::vec3 Ambient;
 			float VolumetricFogIntensity; // Sign bit is used as a flag for `bVolumetricLight`
+
+			bool DoesCastShadows() const { return (Flags & EG_DIR_LIGHT_CASTS_SHADOWS_MASK) != 0; }
+			bool DoesCastScreenSpaceShadows() const { return (Flags & EG_DIR_LIGHT_CASTS_SCREEN_SPACE_SHADOWS_MASK) != 0; }
 		};
 
 		struct SpotLight

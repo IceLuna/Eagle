@@ -351,9 +351,18 @@ namespace Eagle
 			Parent.SignalComponentChanged<DirectionalLightComponent>(Notification::OnStateChanged);
 		}
 
+		void SetCastsScreenSpaceShadows(bool bCasts)
+		{
+			m_bCastsScreenSpaceShadows = bCasts;
+			Parent.SignalComponentChanged<DirectionalLightComponent>(Notification::OnStateChanged);
+		}
+
+		bool DoesCastScreenSpaceShadows() const { return m_bCastsScreenSpaceShadows; }
+
 	private:
 		glm::vec3 m_Ambient = glm::vec3(0.f);
 		bool bVisualizeDirection = false;
+		bool m_bCastsScreenSpaceShadows = true;
 	};
 
 	class SpotLightComponent : public LightComponent

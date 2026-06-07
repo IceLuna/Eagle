@@ -19,6 +19,7 @@ namespace Eagle
 	{
 		const auto& options = m_Renderer.GetOptions();
 
+		m_ShaderDefines["EG_SCREEN_SPACE_SHADOWS"] = "";
 		SetVisualizeCascades(options.bVisualizeCascades);
 		SetSoftShadowsEnabled(options.bEnableSoftShadows);
 		SetSSAOEnabled(options.AO != AmbientOcclusion::None);
@@ -94,6 +95,7 @@ namespace Eagle
 		m_Pipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), EG_SCENE_SET, EG_BINDING_CAMERA_VIEW);
 		m_Pipeline->SetImageSampler(smDistribution, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SM_DISTRIBUTION);
 		m_Pipeline->SetImageSampler(ssaoImage, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SSAO);
+		m_Pipeline->SetImageSampler(m_Renderer.GetScreenSpaceShadows(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SCREEN_SPACE_SHADOWS);
 
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetDirectionalLightShadowMaps(), m_Renderer.GetShadowMapPCFSampler(), EG_SCENE_SET, EG_BINDING_CSM_SHADOW_MAPS);
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetPointLightShadowMaps(), m_Renderer.GetShadowMapPCFSampler(), 2, 0);

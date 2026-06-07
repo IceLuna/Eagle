@@ -1308,6 +1308,29 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'Ambient' of DirectionalLight Component. Entity is null");
 	}
 
+	bool Script::Eagle_DirectionalLightComponent_GetCastsScreenSpaceShadows(GUID entityID)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<DirectionalLightComponent>().DoesCastScreenSpaceShadows();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get 'CastsScreenSpaceShadows' of DirectionalLight Component. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_DirectionalLightComponent_SetCastsScreenSpaceShadows(GUID entityID, bool bCasts)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<DirectionalLightComponent>().SetCastsScreenSpaceShadows(bCasts);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'CastsScreenSpaceShadows' of DirectionalLight Component. Entity is null");
+	}
+
 	//--------------StaticMesh Component--------------
 	void Script::Eagle_StaticMeshComponent_SetMesh(GUID entityID, GUID assetID)
 	{
@@ -7371,6 +7394,25 @@ namespace Eagle
 		return result;
 	}
 
+	void Script::Eagle_Renderer_GetScreenSpaceShadowsSettings(uint32_t* samples, uint32_t* hardShadowSamples, uint32_t* fadeOutSamples, float* surfaceThickness, float* bilinearThreshold,
+		float* shadowContrast, bool* bIgnoreEdgePixels, bool* bUsePrecisionOffset, bool* bBilinearSamplingOffsetMode, bool* bUseEarlyOut)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& settings = sceneRenderer->GetOptions().ScreenSpaceShadows;
+
+		*samples = settings.Samples;
+		*hardShadowSamples = settings.HardShadowSamples;
+		*fadeOutSamples = settings.FadeOutSamples;
+		*surfaceThickness = settings.SurfaceThickness;
+		*bilinearThreshold = settings.BilinearThreshold;
+		*shadowContrast = settings.ShadowContrast;
+		*bIgnoreEdgePixels = settings.bIgnoreEdgePixels;
+		*bUsePrecisionOffset = settings.bUsePrecisionOffset;
+		*bBilinearSamplingOffsetMode = settings.bBilinearSamplingOffsetMode;
+		*bUseEarlyOut = settings.bUseEarlyOut;
+	}
+
 	void Script::Eagle_Renderer_GetDepthOfFieldSettings(glm::vec2* apertureShape, float* apertureSize, float* focalLength, float* COCScale, float* maxCOC)
 	{
 		const auto& scene = Scene::GetCurrentScene();
@@ -7463,6 +7505,27 @@ namespace Eagle
 			uint32_t val = mono_array_get(dirLightSizes, uint32_t, i);
 			settings.ShadowsSettings.DirLightShadowMapSizes[i] = glm::max(val, ShadowMapsSettings::MinDirLightShadowMapSize);
 		}
+
+		sceneRenderer->SetOptions(settings);
+	}
+
+	void Script::Eagle_Renderer_SetScreenSpaceShadowsSettings(uint32_t samples, uint32_t hardShadowSamples, uint32_t fadeOutSamples, float surfaceThickness, float bilinearThreshold,
+		float shadowContrast, bool bIgnoreEdgePixels, bool bUsePrecisionOffset, bool bBilinearSamplingOffsetMode, bool bUseEarlyOut)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+
+		auto settings = sceneRenderer->GetOptions();
+		settings.ScreenSpaceShadows.Samples = samples;
+		settings.ScreenSpaceShadows.HardShadowSamples = hardShadowSamples;
+		settings.ScreenSpaceShadows.FadeOutSamples = fadeOutSamples;
+		settings.ScreenSpaceShadows.SurfaceThickness = surfaceThickness;
+		settings.ScreenSpaceShadows.BilinearThreshold = bilinearThreshold;
+		settings.ScreenSpaceShadows.ShadowContrast = shadowContrast;
+		settings.ScreenSpaceShadows.bIgnoreEdgePixels = bIgnoreEdgePixels;
+		settings.ScreenSpaceShadows.bUsePrecisionOffset = bUsePrecisionOffset;
+		settings.ScreenSpaceShadows.bBilinearSamplingOffsetMode = bBilinearSamplingOffsetMode;
+		settings.ScreenSpaceShadows.bUseEarlyOut = bUseEarlyOut;
 
 		sceneRenderer->SetOptions(settings);
 	}

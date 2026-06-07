@@ -1007,6 +1007,7 @@ namespace Eagle
 					float fogIntensity = directionalLight.GetVolumetricFogIntensity();
 					bool bAffectsWorld = directionalLight.DoesAffectWorld();
 					bool bCastsShadows = directionalLight.DoesCastShadows();
+					bool bCastsScreenSpaceShadows = directionalLight.DoesCastScreenSpaceShadows();
 					bool bVolumetric = directionalLight.IsVolumetricLight();
 					bool bVisualize = directionalLight.IsVisualizeDirectionEnabled();
 
@@ -1038,6 +1039,12 @@ namespace Eagle
 					if (UI::Property("Casts shadows", bCastsShadows))
 					{
 						directionalLight.SetCastsShadows(bCastsShadows);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Casts screen space shadows", bCastsScreenSpaceShadows))
+					{
+						directionalLight.SetCastsScreenSpaceShadows(bCastsScreenSpaceShadows);
 						bEntityChanged = true;
 					}
 

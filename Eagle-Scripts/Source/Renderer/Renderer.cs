@@ -243,6 +243,49 @@ namespace Eagle
         public const uint MinDirLightShadowMapSize = 64u;
     }
 
+    public struct ScreenSpaceShadowsSettings
+    {
+        // Number of shadow samples per-pixel.
+        // Determines overall cost, as this value controls the length of the shadow (in pixels).
+        public uint Samples;
+
+        // Number of initial shadow samples that will produce a hard shadow, and not perform sample-averaging.
+        // This trades aliasing for grounding pixels very close to the shadow caster.
+        public uint HardShadowSamples;
+
+        // Number of samples that will fade out at the end of the shadow (for a minor cost).
+        public uint FadeOutSamples;
+
+        // This is the assumed thickness of each pixel for shadow-casting, measured as a percentage of the difference in non-linear depth between the sample and FarDepthValue (1.0).
+        public float SurfaceThickness;
+
+        // Percentage threshold for determining if the difference between two depth values represents an edge, and should not perform interpolation.
+        // To tune this value, set 'bDebugOutputEdgeMask' to true to visualize where edges are being detected.
+        public float BilinearThreshold;
+
+        // A contrast boost is applied to the transition in/out of shadow. Must be >= 1.0
+        public float ShadowContrast;
+
+        // If an edge is detected, the edge pixel will not contribute to the shadow.
+        // If a very flat surface is being lit and rendered at an grazing angles, the edge detect may incorrectly detect multiple 'edge' pixels along that flat surface.
+        // In these cases, the grazing angle of the light may subsequently produce aliasing artefacts in the shadow where these incorrect edges were detected.
+        // Setting this value to true would mean that those pixels would not cast a shadow, however it can also thin out otherwise valid shadows, especially on foliage edges.
+        public bool bIgnoreEdgePixels;
+
+        // A small offset is applied to account for an imprecise depth buffer
+        public bool bUsePrecisionOffset;
+
+        // There are two modes to compute bilinear samples for shadow depth:
+        // true = sampling points for pixels are offset to the wavefront shared ray, shadow depths and starting depths are the same. Can project more jagged/aliased shadow lines in some cases.
+        // false = sampling points for pixels are not offset and start from pixel centers. Shadow depths are biased based on depth gradient across the current pixel bilinear sample. Has more issues in back-face / grazing areas.
+        // Both modes have subtle visual differences, which may / may not exaggerate depth buffer aliasing that gets projected in to the shadow.
+        public bool bBilinearSamplingOffsetMode;
+
+        // Set to true to early-out when depth values are not within depth bounds.
+        // This can dramatically reduce cost when only a small portion of the pixels need a shadow term (e.g., cull out sky pixels), however it does have some overhead (~15%) in worst-case where nothing early-outs
+        public bool bUseEarlyOut;
+    };
+
     public struct DepthOfFieldSettings
     {
         public Vector2 ApertureShape;
@@ -609,6 +652,20 @@ namespace Eagle
             result.PointLightShadowMapSize = pointLightSize;
             result.SpotLightShadowMapSize = spotLightSize;
             return result;
+        }
+
+        public static void SetScreenSpaceShadowsSettings(ScreenSpaceShadowsSettings value)
+        {
+            SetScreenSpaceShadowsSettings_Native(value.Samples, value.HardShadowSamples, value.FadeOutSamples, value.SurfaceThickness, value.BilinearThreshold,
+                value.ShadowContrast, value.bIgnoreEdgePixels, value.bUsePrecisionOffset, value.bBilinearSamplingOffsetMode, value.bUseEarlyOut);
+        }
+
+        public static ScreenSpaceShadowsSettings GetScreenSpaceShadowsSettings()
+        {
+            ScreenSpaceShadowsSettings value = new ScreenSpaceShadowsSettings();
+            GetScreenSpaceShadowsSettings_Native(out value.Samples, out value.HardShadowSamples, out value.FadeOutSamples, out value.SurfaceThickness, out value.BilinearThreshold,
+                out value.ShadowContrast, out value.bIgnoreEdgePixels, out value.bUsePrecisionOffset, out value.bBilinearSamplingOffsetMode, out value.bUseEarlyOut);
+            return value;
         }
 
         public static void SetDepthOfFieldSettings(DepthOfFieldSettings value)
@@ -1022,6 +1079,10 @@ namespace Eagle
         private static extern uint[] GetShadowMapsSettings_Native(out uint pointLightSize, out uint spotLightSize);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetScreenSpaceShadowsSettings_Native(out uint samples, out uint hardShadowSamples, out uint fadeOutSamples, out float surfaceThickness, out float bilinearThreshold,
+                out float shadowContrast, out bool bIgnoreEdgePixels, out bool bUsePrecisionOffset, out bool bBilinearSamplingOffsetMode, out bool bUseEarlyOut);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void GetDepthOfFieldSettings_Native(out Vector2 apertureShape, out float apertureSize, out float focalLength, out float COCScale, out float maxCOC);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -1039,6 +1100,10 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetShadowMapsSettings_Native(uint pointLightSize, uint spotLightSize, uint[] dirLightSizes);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetScreenSpaceShadowsSettings_Native(uint samples, uint hardShadowSamples, uint fadeOutSamples, float surfaceThickness, float bilinearThreshold,
+                float shadowContrast, bool bIgnoreEdgePixels, bool bUsePrecisionOffset, bool bBilinearSamplingOffsetMode, bool bUseEarlyOut);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetDepthOfFieldSettings_Native(ref Vector2 apertureShape, float apertureSize, float focalLength, float COCScale, float maxCOC);

@@ -22,6 +22,7 @@
 #include "Tasks/SkinCacheTask.h"
 #include "Tasks/FrustumCullingTask.h"
 #include "Tasks/LightCullingTask.h"
+#include "Tasks/ScreenSpaceShadowsTask.h"
 
 namespace Eagle
 {
@@ -242,6 +243,7 @@ namespace Eagle
 
 		Ref<Image> GetSSAOResult() const { return m_SSAOTask ? m_SSAOTask->GetResult() : nullptr; }
 		Ref<Image> GetGTAOResult() const { return m_GTAOTask ? m_GTAOTask->GetResult() : nullptr; }
+		const Ref<Image>& GetScreenSpaceShadows() const { return m_ScreenSpaceShadows->GetResult(); }
 		// ------------------------------------------------
 
 		const GBuffer& GetGBuffer() const { return m_GBuffer; }
@@ -321,6 +323,7 @@ namespace Eagle
 		Ref<RendererTask> m_ScreenSpaceReflectionsTask;
 		Ref<FrustumCullingTask> m_FrustumCullingTask;
 		Ref<LightCullingTask> m_LightCullingTask;
+		Ref<ScreenSpaceShadowsTask> m_ScreenSpaceShadows;
 		
 		Ref<Buffer> m_CameraDataBuffer;
 		

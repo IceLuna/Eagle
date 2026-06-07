@@ -435,7 +435,7 @@ namespace Eagle
 	void ShadowPassTask::HandleDirectionalLightResources(const Ref<CommandBuffer>& cmd)
 	{
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
-		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
+		if (m_Renderer.HasDirectionalLight() && dirLight.DoesCastShadows())
 		{
 			CreateIfNeededDirectionalLightShadowMaps();
 			CreateIfNeededColoredDirectionalLightShadowMaps();
@@ -474,7 +474,7 @@ namespace Eagle
 			cmd->ClearColorImage(sm, depthClearValue4, sm->GetLayout(), ImageLayoutType::RenderTarget);
 
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
-		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
+		if (m_Renderer.HasDirectionalLight() && dirLight.DoesCastShadows())
 		{
 			for (const auto& sm : m_DLShadowMaps)
 				cmd->ClearDepthStencilImage(sm, depthClearValue, 0, sm->GetLayout(), ImageLayoutType::DepthStencilWrite);
@@ -540,7 +540,7 @@ namespace Eagle
 
 		if (bDirLightChanged)
 		{
-			if (m_Renderer.HasDirectionalLight() && m_Renderer.GetDirectionalLight().bCastsShadows)
+			if (m_Renderer.HasDirectionalLight() && m_Renderer.GetDirectionalLight().DoesCastShadows())
 			{
 				InitDirectionalLightShadowMaps();
 				if (bTranslucencyShadowsEnabled)
@@ -601,7 +601,7 @@ namespace Eagle
 		auto& stats = m_Renderer.GetStats();
 
 		// For directional light
-		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
+		if (m_Renderer.HasDirectionalLight() && dirLight.DoesCastShadows())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Opacity Meshes: CSM Shadow pass");
 			EG_CPU_TIMING_SCOPED("Opacity Meshes: CSM Shadow pass");
@@ -686,7 +686,7 @@ namespace Eagle
 		const uint32_t currentFrameIndex = RenderManager::GetCurrentFrameIndex();
 
 		// For directional light
-		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
+		if (m_Renderer.HasDirectionalLight() && dirLight.DoesCastShadows())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Translucent Meshes: CSM Shadow pass");
 			EG_CPU_TIMING_SCOPED("Translucent Meshes: CSM Shadow pass");
@@ -801,7 +801,7 @@ namespace Eagle
 		const uint32_t currentFrameIndex = RenderManager::GetCurrentFrameIndex();
 
 		// For directional light
-		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
+		if (m_Renderer.HasDirectionalLight() && dirLight.DoesCastShadows())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Masked Meshes: CSM Shadow pass");
 			EG_CPU_TIMING_SCOPED("Masked Meshes: CSM Shadow pass");
@@ -912,7 +912,7 @@ namespace Eagle
 		auto& stats = m_Renderer.GetStats();
 
 		// For directional light
-		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
+		if (m_Renderer.HasDirectionalLight() && dirLight.DoesCastShadows())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Opacity Skeletal Meshes: CSM Shadow pass");
 			EG_CPU_TIMING_SCOPED("Opacity Skeletal Meshes: CSM Shadow pass");
@@ -994,7 +994,7 @@ namespace Eagle
 		const uint32_t currentFrameIndex = RenderManager::GetCurrentFrameIndex();
 
 		// For directional light
-		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
+		if (m_Renderer.HasDirectionalLight() && dirLight.DoesCastShadows())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Translucent Skeletal Meshes: CSM Shadow pass");
 			EG_CPU_TIMING_SCOPED("Translucent Skeletal Meshes: CSM Shadow pass");
@@ -1113,7 +1113,7 @@ namespace Eagle
 		const uint32_t currentFrameIndex = RenderManager::GetCurrentFrameIndex();
 
 		// For directional light
-		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
+		if (m_Renderer.HasDirectionalLight() && dirLight.DoesCastShadows())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Masked Skeletal Meshes: CSM Shadow pass");
 			EG_CPU_TIMING_SCOPED("Masked Skeletal Meshes: CSM Shadow pass");
@@ -1227,7 +1227,7 @@ namespace Eagle
 
 		// For directional light
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
-		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
+		if (m_Renderer.HasDirectionalLight() && dirLight.DoesCastShadows())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Opacity Sprites: CSM Shadow pass");
 			EG_CPU_TIMING_SCOPED("Opacity Sprites: CSM Shadow pass");
@@ -1310,7 +1310,7 @@ namespace Eagle
 
 		// For directional light
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
-		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
+		if (m_Renderer.HasDirectionalLight() && dirLight.DoesCastShadows())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Translucent Sprites: CSM Shadow pass");
 			EG_CPU_TIMING_SCOPED("Translucent Sprites: CSM Shadow pass");
@@ -1432,7 +1432,7 @@ namespace Eagle
 
 		// For directional light
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
-		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
+		if (m_Renderer.HasDirectionalLight() && dirLight.DoesCastShadows())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Masked Sprites: CSM Shadow pass");
 			EG_CPU_TIMING_SCOPED("Masked Sprites: CSM Shadow pass");
@@ -1543,7 +1543,7 @@ namespace Eagle
 
 		// For directional light
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
-		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
+		if (m_Renderer.HasDirectionalLight() && dirLight.DoesCastShadows())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Opaque Lit Texts: CSM Shadow pass");
 			EG_CPU_TIMING_SCOPED("Opaque Lit Texts: CSM Shadow pass");
@@ -1627,7 +1627,7 @@ namespace Eagle
 
 		// For directional light
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
-		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
+		if (m_Renderer.HasDirectionalLight() && dirLight.DoesCastShadows())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Translucent Lit Texts: CSM Shadow pass");
 			EG_CPU_TIMING_SCOPED("Translucent Lit Texts: CSM Shadow pass");
@@ -1743,7 +1743,7 @@ namespace Eagle
 
 		// For directional light
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
-		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
+		if (m_Renderer.HasDirectionalLight() && dirLight.DoesCastShadows())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Masked Lit Texts: CSM Shadow pass");
 			EG_CPU_TIMING_SCOPED("Masked Lit Texts: CSM Shadow pass");
@@ -1856,7 +1856,7 @@ namespace Eagle
 
 		// For directional light
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
-		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
+		if (m_Renderer.HasDirectionalLight() && dirLight.DoesCastShadows())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Unlit Texts: CSM Shadow pass");
 			EG_CPU_TIMING_SCOPED("Unlit Texts: CSM Shadow pass");

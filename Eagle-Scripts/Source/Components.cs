@@ -553,11 +553,29 @@ namespace Eagle
             }
         }
 
+        public bool bCastsScreenSpaceShadows
+        {
+            get
+            {
+                return GetCastsScreenSpaceShadows_Native(Parent.ID);
+            }
+            set
+            {
+                SetCastsScreenSpaceShadows_Native(Parent.ID, value);
+            }
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetAmbient_Native(in GUID entityID, out Color3 outAmbient);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetAmbient_Native(in GUID entityID, ref Color3 ambient);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetCastsScreenSpaceShadows_Native(GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetCastsScreenSpaceShadows_Native(GUID entityID, bool bCasts);
     }
 
     public class SpotLightComponent : LightComponent

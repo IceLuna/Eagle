@@ -118,6 +118,8 @@ namespace Eagle::Script
 	// DirectionalLightComponent
 	void Eagle_DirectionalLightComponent_GetAmbient(GUID entityID, glm::vec3* outAmbient);
 	void Eagle_DirectionalLightComponent_SetAmbient(GUID entityID, glm::vec3* inAmbient);
+	bool Eagle_DirectionalLightComponent_GetCastsScreenSpaceShadows(GUID entityID);
+	void Eagle_DirectionalLightComponent_SetCastsScreenSpaceShadows(GUID entityID, bool bCasts);
 
 	// StaticMeshComponent
 	void Eagle_StaticMeshComponent_SetMesh(GUID entityID, GUID guid);
@@ -579,6 +581,8 @@ namespace Eagle::Script
 	void Eagle_Renderer_SetVolumetricLightsSettings(const glm::vec3* albedo, float anisotropy, uint32_t samples, float maxScatteringDist, float fogSpeed, bool bFogEnable, bool bEnable);
 	void Eagle_Renderer_GetVolumetricLightsSettings(glm::vec3* albedo, float* anisotropy, uint32_t* outSamples, float* outMaxScatteringDist, float* fogSpeed, bool* bFogEnable, bool* bEnable);
 	MonoArray* Eagle_Renderer_GetShadowMapsSettings(uint32_t* outPointLightSize, uint32_t* outSpotLightSize);
+	void Eagle_Renderer_GetScreenSpaceShadowsSettings(uint32_t* samples, uint32_t* hardShadowSamples, uint32_t* fadeOutSamples, float* surfaceThickness, float* bilinearThreshold,
+		float* shadowContrast, bool* bIgnoreEdgePixels, bool* bUsePrecisionOffset, bool* bBilinearSamplingOffsetMode, bool* bUseEarlyOut);
 	void Eagle_Renderer_GetDepthOfFieldSettings(glm::vec2* apertureShape, float* apertureSize, float* focalLength, float* COCScale, float* maxCOC);
 	void Eagle_Renderer_GetMotionBlurSettings(bool* bEnabled, uint32_t* numSamples, float* strength, float* noMotionBlurThreshold, float* lowMotionThreshold, bool* bUseCheapOnLowMotion);
 	void Eagle_Renderer_GetAutoExposureSettings(float* minLogLum, float* maxLogLum, float* adaptationSpeed, float* adaptationKey, bool* bEnabled, bool* bHalfResolution);
@@ -586,6 +590,8 @@ namespace Eagle::Script
 		uint32_t* samplesPerQuad, uint32_t* maxTraversalIterations, uint32_t* minTraversalOccupancy, bool* bTemporalVarianceGuidedTracing, bool* bEnabled);
 	void Eagle_Renderer_GetLensSettings(bool* bChromaticAberration, bool* bVignette, bool* bFilmGrain, float* chromaticIntensity, float* vignetteIntensity, float* filmGrainScale, float* filmGrainAmount, float* filmGrainSeedUpdateRate);
 	void Eagle_Renderer_SetShadowMapsSettings(uint32_t pointLightSize, uint32_t spotLightSize, MonoArray* dirLightSizes);
+	void Eagle_Renderer_SetScreenSpaceShadowsSettings(uint32_t samples, uint32_t hardShadowSamples, uint32_t fadeOutSamples, float surfaceThickness, float bilinearThreshold,
+		float shadowContrast, bool bIgnoreEdgePixels, bool bUsePrecisionOffset, bool bBilinearSamplingOffsetMode, bool bUseEarlyOut);
 	void Eagle_Renderer_SetDepthOfFieldSettings(const glm::vec2* apertureShape, float apertureSize, float focalLength, float COCScale, float maxCOC);
 	void Eagle_Renderer_SetMotionBlurSettings(bool bEnabled, uint32_t numSamples, float strength, float noMotionBlurThreshold, float lowMotionThreshold, bool bUseCheapOnLowMotion);
 	void Eagle_Renderer_SetAutoExposureSettings(float minLogLum, float maxLogLum, float adaptationSpeed, float adaptationKey, bool bEnabled, bool bHalfResolution);

@@ -238,12 +238,14 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::SetVolumetricLightsSettings_Native", Eagle::Script::Eagle_Renderer_SetVolumetricLightsSettings);
 		mono_add_internal_call("Eagle.Renderer::GetVolumetricLightsSettings_Native", Eagle::Script::Eagle_Renderer_GetVolumetricLightsSettings);
 		mono_add_internal_call("Eagle.Renderer::GetShadowMapsSettings_Native", Eagle::Script::Eagle_Renderer_GetShadowMapsSettings);
+		mono_add_internal_call("Eagle.Renderer::GetScreenSpaceShadowsSettings_Native", Eagle::Script::Eagle_Renderer_GetScreenSpaceShadowsSettings);
 		mono_add_internal_call("Eagle.Renderer::GetDepthOfFieldSettings_Native", Eagle::Script::Eagle_Renderer_GetDepthOfFieldSettings);
 		mono_add_internal_call("Eagle.Renderer::GetMotionBlurSettings_Native", Eagle::Script::Eagle_Renderer_GetMotionBlurSettings);
 		mono_add_internal_call("Eagle.Renderer::GetAutoExposureSettings_Native", Eagle::Script::Eagle_Renderer_GetAutoExposureSettings);
 		mono_add_internal_call("Eagle.Renderer::GetScreenSpaceReflectionsSettings_Native", Eagle::Script::Eagle_Renderer_GetScreenSpaceReflectionsSettings);
 		mono_add_internal_call("Eagle.Renderer::GetLensSettings_Native", Eagle::Script::Eagle_Renderer_GetLensSettings);
 		mono_add_internal_call("Eagle.Renderer::SetShadowMapsSettings_Native", Eagle::Script::Eagle_Renderer_SetShadowMapsSettings);
+		mono_add_internal_call("Eagle.Renderer::SetScreenSpaceShadowsSettings_Native", Eagle::Script::Eagle_Renderer_SetScreenSpaceShadowsSettings);
 		mono_add_internal_call("Eagle.Renderer::SetDepthOfFieldSettings_Native", Eagle::Script::Eagle_Renderer_SetDepthOfFieldSettings);
 		mono_add_internal_call("Eagle.Renderer::SetMotionBlurSettings_Native", Eagle::Script::Eagle_Renderer_SetMotionBlurSettings);
 		mono_add_internal_call("Eagle.Renderer::SetAutoExposureSettings_Native", Eagle::Script::Eagle_Renderer_SetAutoExposureSettings);
@@ -362,6 +364,8 @@ namespace Eagle
 		// DirectionalLightComponent
 		mono_add_internal_call("Eagle.DirectionalLightComponent::GetAmbient_Native", Eagle::Script::Eagle_DirectionalLightComponent_GetAmbient);
 		mono_add_internal_call("Eagle.DirectionalLightComponent::SetAmbient_Native", Eagle::Script::Eagle_DirectionalLightComponent_SetAmbient);
+		mono_add_internal_call("Eagle.DirectionalLightComponent::GetCastsScreenSpaceShadows_Native", Eagle::Script::Eagle_DirectionalLightComponent_GetCastsScreenSpaceShadows);
+		mono_add_internal_call("Eagle.DirectionalLightComponent::SetCastsScreenSpaceShadows_Native", Eagle::Script::Eagle_DirectionalLightComponent_SetCastsScreenSpaceShadows);
 
 		//StaticMeshComponent
 		mono_add_internal_call("Eagle.StaticMeshComponent::SetMesh_Native", Eagle::Script::Eagle_StaticMeshComponent_SetMesh);

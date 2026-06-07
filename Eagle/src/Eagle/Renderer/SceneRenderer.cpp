@@ -96,6 +96,7 @@ namespace Eagle
 		m_Images2DTask = MakeRef<RenderImages2DTask>(*this);
 		m_DOFTask = MakeRef<DOFTask>(*this);
 		m_ParticleTask = MakeRef<ParticleSystemTask>(*this);
+		m_ScreenSpaceShadows = MakeRef<ScreenSpaceShadowsTask>(*this);
 		
 		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this);
 		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);
@@ -216,6 +217,7 @@ namespace Eagle
 
 			renderer->m_LightCullingTask->RecordCommandBuffer(cmd);
 			renderer->m_ShadowPassTask->RecordCommandBuffer(cmd);
+			renderer->m_ScreenSpaceShadows->RecordCommandBuffer(cmd);
 
 			if (renderer->m_Options_RT.AO == AmbientOcclusion::SSAO)
 				renderer->m_SSAOTask->RecordCommandBuffer(cmd);
@@ -422,6 +424,7 @@ namespace Eagle
 		m_Images2DTask->OnResize(m_Size);
 		m_PBRPassTask->OnResize(m_Size);
 		m_ShadowPassTask->OnResize(m_Size);
+		m_ScreenSpaceShadows->OnResize(m_Size);
 		m_SkyboxPassTask->OnResize(m_Size);
 		m_PostProcessingPassTask->OnResize(m_Size);
 		m_GridTask->OnResize(m_Size);
@@ -524,6 +527,7 @@ namespace Eagle
 		m_TransparencyTask->InitWithOptions(options);
 		m_GridTask->InitWithOptions(options);
 		m_ShadowPassTask->InitWithOptions(options);
+		m_ScreenSpaceShadows->InitWithOptions(options);
 		m_DOFTask->InitWithOptions(options);
 		m_ParticleTask->InitWithOptions(options);
 

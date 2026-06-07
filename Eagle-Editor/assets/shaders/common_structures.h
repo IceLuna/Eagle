@@ -138,7 +138,7 @@ struct DirectionalLight
 	uint ViewProjOffset; // Offset into the transforms buffer
 
 	vec3 LightColor;
-	uint bCastsShadows;
+	uint Flags;
 
 	vec3 Ambient;
 	float VolumetricFogIntensity; // Sign bit is used as a flag for `bVolumetricLight`

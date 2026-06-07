@@ -889,6 +889,71 @@ namespace Eagle
         }
     };
 
+    struct ScreenSpaceShadowsSettings
+    {
+        // Number of shadow samples per-pixel.
+        // Determines overall cost, as this value controls the length of the shadow (in pixels).
+        uint32_t Samples = 60;
+
+        // Number of initial shadow samples that will produce a hard shadow, and not perform sample-averaging.
+        // This trades aliasing for grounding pixels very close to the shadow caster.
+        uint32_t HardShadowSamples = 4;
+
+        // Number of samples that will fade out at the end of the shadow (for a minor cost).
+        uint32_t FadeOutSamples = 8;
+
+        // This is the assumed thickness of each pixel for shadow-casting, measured as a percentage of the difference in non-linear depth between the sample and FarDepthValue (1.0).
+        float SurfaceThickness = 0.015f;
+
+        // Percentage threshold for determining if the difference between two depth values represents an edge, and should not perform interpolation.
+        // To tune this value, set 'bDebugOutputEdgeMask' to true to visualize where edges are being detected.
+        float BilinearThreshold = 0.04f;
+
+        // A contrast boost is applied to the transition in/out of shadow. Must be >= 1.0
+        float ShadowContrast = 4.0f;
+
+        // If an edge is detected, the edge pixel will not contribute to the shadow.
+        // If a very flat surface is being lit and rendered at an grazing angles, the edge detect may incorrectly detect multiple 'edge' pixels along that flat surface.
+        // In these cases, the grazing angle of the light may subsequently produce aliasing artefacts in the shadow where these incorrect edges were detected.
+        // Setting this value to true would mean that those pixels would not cast a shadow, however it can also thin out otherwise valid shadows, especially on foliage edges.
+        bool bIgnoreEdgePixels = false;
+
+        // A small offset is applied to account for an imprecise depth buffer
+        bool bUsePrecisionOffset = false;
+
+        // There are two modes to compute bilinear samples for shadow depth:
+        // true = sampling points for pixels are offset to the wavefront shared ray, shadow depths and starting depths are the same. Can project more jagged/aliased shadow lines in some cases.
+        // false = sampling points for pixels are not offset and start from pixel centers. Shadow depths are biased based on depth gradient across the current pixel bilinear sample. Has more issues in back-face / grazing areas.
+        // Both modes have subtle visual differences, which may / may not exaggerate depth buffer aliasing that gets projected in to the shadow.
+        bool bBilinearSamplingOffsetMode = true;
+
+        // Set to true to early-out when depth values are not within depth bounds.
+        // This can dramatically reduce cost when only a small portion of the pixels need a shadow term (e.g., cull out sky pixels), however it does have some overhead (~15%) in worst-case where nothing early-outs
+        bool bUseEarlyOut = true;
+
+        bool bDebugOutputEdgeMask = false;
+
+        bool operator== (const ScreenSpaceShadowsSettings& other) const
+        {
+            return Samples == other.Samples &&
+                HardShadowSamples == other.HardShadowSamples &&
+                FadeOutSamples == other.FadeOutSamples &&
+                SurfaceThickness == other.SurfaceThickness &&
+                BilinearThreshold == other.BilinearThreshold &&
+                ShadowContrast == other.ShadowContrast &&
+                bIgnoreEdgePixels == other.bIgnoreEdgePixels &&
+                bUsePrecisionOffset == other.bUsePrecisionOffset &&
+                bBilinearSamplingOffsetMode == other.bBilinearSamplingOffsetMode &&
+                bUseEarlyOut == other.bUseEarlyOut &&
+                bDebugOutputEdgeMask == other.bDebugOutputEdgeMask;
+        }
+
+        bool operator!= (const ScreenSpaceShadowsSettings& other) const
+        {
+            return !((*this) == other);
+        }
+    };
+
     struct DepthOfFieldSettings
     {
         glm::vec2 ApertureShape = glm::vec2(1.f); // [0; 2]
@@ -1057,6 +1122,7 @@ namespace Eagle
         GTAOSettings GTAOSettings;
         FogSettings FogSettings;
         ShadowMapsSettings ShadowsSettings;
+        ScreenSpaceShadowsSettings ScreenSpaceShadows;
         VolumetricLightsSettings VolumetricSettings;
         PhotoLinearTonemappingSettings PhotoLinearTonemappingParams;
         FilmicTonemappingSettings FilmicTonemappingParams;
@@ -1097,6 +1163,7 @@ namespace Eagle
                 MotionBlur == other.MotionBlur &&
                 FogSettings == other.FogSettings &&
                 ShadowsSettings == other.ShadowsSettings &&
+                ScreenSpaceShadows == other.ScreenSpaceShadows &&
                 VolumetricSettings == other.VolumetricSettings &&
                 Gamma == other.Gamma &&
                 Exposure == other.Exposure &&

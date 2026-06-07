@@ -38,7 +38,7 @@ namespace Eagle
 		const glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.f, 0.005f, 0.f))
 			* glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f))
 			* glm::scale(glm::mat4(1.0f), glm::vec3(scale));
-		const glm::mat4 mvp = m_Renderer.GetViewProjection() * transform;
+		const glm::mat4 mvp = m_Renderer.GetCameraMatrices().ViewProjUnjittered * transform;
 
 		cmd->BeginGraphics(m_Pipeline);
 		cmd->SetGraphicsRootConstants(&mvp, &pushData);

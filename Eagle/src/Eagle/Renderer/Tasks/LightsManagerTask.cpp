@@ -145,7 +145,8 @@ namespace Eagle
 				ambient = directionalLightComponent->GetAmbientColor(),
 				volumetricFogIntensity = directionalLightComponent->GetVolumetricFogIntensity(),
 				bVolumetric = directionalLightComponent->IsVolumetricLight(),
-			    bCastsShadows = directionalLightComponent->DoesCastShadows()](const Ref<CommandBuffer>& cmd)
+			    bCastsShadows = directionalLightComponent->DoesCastShadows(),
+				bCastsScreenSpaceShadows = directionalLightComponent->DoesCastScreenSpaceShadows()](const Ref<CommandBuffer>& cmd)
 			{
 				auto thisRef = Cast<LightsManagerTask>(task);
 
@@ -158,8 +159,13 @@ namespace Eagle
 				directionalLight.LightColor = lightColor;
 				directionalLight.Ambient = ambient;
 				directionalLight.VolumetricFogIntensity = glm::max(volumetricFogIntensity, 0.f);
-				directionalLight.bCastsShadows = uint32_t(bCastsShadows);
+				directionalLight.Flags = 0;
 				directionalLight.ViewProjOffset = 0u;
+
+				if (bCastsShadows)
+					directionalLight.Flags |= EG_DIR_LIGHT_CASTS_SHADOWS_MASK;
+				if (bCastsScreenSpaceShadows)
+					directionalLight.Flags |= EG_DIR_LIGHT_CASTS_SCREEN_SPACE_SHADOWS_MASK;
 
 				uint32_t* intensity = (uint32_t*)&directionalLight.VolumetricFogIntensity;
 				*intensity = (*intensity) | (bVolumetric ? 0x80000000 : 0u);

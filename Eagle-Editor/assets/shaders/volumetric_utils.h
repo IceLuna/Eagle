@@ -162,7 +162,7 @@ vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2DShadow depthTe
 	float result = 0.f;
 #endif
 
-	bool bCastsShadows = light.bCastsShadows != 0;
+	bool bCastsShadows = (light.Flags & EG_DIR_LIGHT_CASTS_SHADOWS_MASK) != 0;
 	for (uint i = 0; i < scatteringSamples && (currentT < camToFragLen); ++i)
 	{
 		vec3 currentPos = cameraPos + camDir * currentT;

@@ -33,6 +33,22 @@ namespace Eagle
 		"The file is saved into `Saved` folder inside your project";
 	static const char* s_VisualizeTilesHelpMsg = "Visualize which pixels are affected by lights. No color or green indicates low number of lights (low shading complexity). The more red, the higher the number (higher shading complexity)";
 
+	static const char* s_ScreenSpaceShadowsIgnoreEdgePixelsHelpMsg = "If an edge is detected, the edge pixel will not contribute to the shadow. "
+		"If a very flat surface is being lit and rendered at an grazing angles, the edge detect may incorrectly detect multiple 'edge' pixels along that flat surface. "
+		"In these cases, the grazing angle of the light may subsequently produce aliasing artefacts in the shadow where these incorrect edges were detected. "
+		"Setting this value to true would mean that those pixels would not cast a shadow, however it can also thin out otherwise valid shadows, especially on foliage edges.";
+
+	static const char* s_ScreenSpaceShadowsBilinearSamplingOffsetModeHelpMsg = "There are two modes to compute bilinear samples for shadow depth:\n"
+		"enabled = sampling points for pixels are offset to the wavefront shared ray, shadow depths and starting depths are the same. Can project more jagged/aliased shadow lines in some cases.\n"
+		"disabled = sampling points for pixels are not offset and start from pixel centers. Shadow depths are biased based on depth gradient across the current pixel bilinear sample. Has more issues in back-face / grazing areas.\n"
+		"Both modes have subtle visual differences, which may / may not exaggerate depth buffer aliasing that gets projected in to the shadow.";
+
+	static const char* s_ScreenSpaceShadowsEarlyOutHelpMsg = "Set to true to early-out when depth values are not within depth bounds. "
+		"This can dramatically reduce cost when only a small portion of the pixels need a shadow term (e.g., cull out sky pixels), however it does have some overhead (~15%) in worst-case where nothing early-outs";
+
+	static const char* s_ScreenSpaceShadowsBilinearThresholdHelpMsg = "Percentage threshold for determining if the difference between two depth values represents an edge, and should not perform interpolation. "
+		"To tune this value, set 'Debug Output Edge Mask' to true to visualize where edges are being detected.";
+
 	static std::mutex s_DeferredCallsMutex;
 	
 	static glm::vec3 notUsed1;
@@ -1071,6 +1087,9 @@ namespace Eagle
 					if (ImGui::RadioButton("Emission", &m_SelectedBufferIndex, radioButtonIndex++))
 						SetVisualizingBufferType(GBufferVisualizingType::Emissive);
 
+					if (ImGui::RadioButton("Screen Space Shadows", &m_SelectedBufferIndex, radioButtonIndex++))
+						SetVisualizingBufferType(GBufferVisualizingType::ScreenSpaceShadows);
+
 					if (bMotion)
 						if (ImGui::RadioButton("Motion", &m_SelectedBufferIndex, radioButtonIndex++))
 							SetVisualizingBufferType(GBufferVisualizingType::Motion);
@@ -1568,15 +1587,43 @@ namespace Eagle
 			}
 		}
 
+		// Screen Space Shadow settings
+		{
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx("Screen Space Shadows", treeFlags);
+			ImGui::PopStyleVar();
+			if (treeOpened)
+			{
+				UI::BeginPropertyGrid("ScreenSpaceSettings");
+
+				auto& settings = options.ScreenSpaceShadows;
+				bSettingsChanged |= UI::PropertyDrag("Samples", settings.Samples, 1, 0, INT_MAX, "Number of shadow samples per-pixel. Determines overall cost, as this value controls the length of the shadow (in pixels)");
+				bSettingsChanged |= UI::PropertyDrag("Hard Shadow Samples", settings.HardShadowSamples, 1, 0, INT_MAX, "Number of initial shadow samples that will produce a hard shadow, and not perform sample-averaging. This trades aliasing for grounding pixels very close to the shadow caster.");
+				bSettingsChanged |= UI::PropertyDrag("Fade Out Samples", settings.FadeOutSamples, 1, 0, INT_MAX, "Number of samples that will fade out at the end of the shadow (for a minor cost).");
+				bSettingsChanged |= UI::PropertyDrag("Surface Thickness", settings.SurfaceThickness, 0.005f, 0, 1.0, "This is the assumed thickness of each pixel for shadow-casting, measured as a percentage of the difference in non-linear depth between the sample and FarDepthValue (which is 1.0).");
+				bSettingsChanged |= UI::PropertyDrag("Bilinear Threshold", settings.BilinearThreshold, 0.005f, 0, 1.0, s_ScreenSpaceShadowsBilinearThresholdHelpMsg);
+				bSettingsChanged |= UI::PropertyDrag("Shadow Contrast", settings.ShadowContrast, 0.01f, 1.0f, FLT_MAX, "A contrast boost is applied to the transition in/out of shadow. Must be >= 1.0");
+				bSettingsChanged |= UI::Property("Ignore Edge Pixels", settings.bIgnoreEdgePixels, s_ScreenSpaceShadowsIgnoreEdgePixelsHelpMsg);
+				bSettingsChanged |= UI::Property("Use Precision Offset", settings.bUsePrecisionOffset, "A small offset is applied to account for an imprecise depth buffer");
+				bSettingsChanged |= UI::Property("Offset samples", settings.bBilinearSamplingOffsetMode, s_ScreenSpaceShadowsBilinearSamplingOffsetModeHelpMsg);
+				bSettingsChanged |= UI::Property("Use Early Out", settings.bUseEarlyOut, s_ScreenSpaceShadowsEarlyOutHelpMsg);
+				bSettingsChanged |= UI::Property("Debug Output Edge Mask", settings.bDebugOutputEdgeMask);
+
+				UI::EndPropertyGrid();
+				ImGui::TreePop();
+			}
+		}
+
 		// Screen Space Reflections settings
 		{
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Screen-space Reflections", treeFlags);
+			bool treeOpened = ImGui::TreeNodeEx("Screen Space Reflections", treeFlags);
 			ImGui::PopStyleVar();
 			if (treeOpened)
 			{
-				UI::BeginPropertyGrid("Screen-space Reflections Settings");
+				UI::BeginPropertyGrid("ScreenSpaceReflectionsSettings");
 
 				auto& settings = options.ScreenSpaceReflections;
 
@@ -2811,6 +2858,7 @@ namespace Eagle
 			case Eagle::EditorLayer::GBufferVisualizingType::Final: return renderer->GetOutput();
 			case Eagle::EditorLayer::GBufferVisualizingType::Albedo: return gbuffer.Albedo;
 			case Eagle::EditorLayer::GBufferVisualizingType::Emissive:  return gbuffer.Emissive;
+			case Eagle::EditorLayer::GBufferVisualizingType::ScreenSpaceShadows:  return renderer->GetScreenSpaceShadows();
 			case Eagle::EditorLayer::GBufferVisualizingType::AO:
 			{
 				const AmbientOcclusion ao = renderer->GetOptions().AO;

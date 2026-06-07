@@ -111,9 +111,9 @@ vec3 CalculateDirectionalLightRadiance(DirectionalLight light, vec3 worldPos, ve
     int layer = GetCascadeIndex(light, cascadeDepth);
 
     const vec3 incoming = normalize(-light.Direction);
-    float shadow = 1.f;
+    float visibility = 1.f;
 #ifdef EG_TRANSLUCENT_SHADOWS
-    vec3 coloredShadow = vec3(1.f);
+    vec3 coloredVisibility = vec3(1.f);
 #endif
     if (layer != -1)
     {
@@ -127,15 +127,15 @@ vec3 CalculateDirectionalLightRadiance(DirectionalLight light, vec3 worldPos, ve
             );
         cascadeVisualizationColor = cascadeColors[layer];
 #endif // EG_ENABLE_CSM_VISUALIZATION
-        if (light.bCastsShadows != 0)
+        if ((light.Flags & EG_DIR_LIGHT_CASTS_SHADOWS_MASK) != 0)
         {
             const mat4 viewProj = g_LightMatrices[light.ViewProjOffset + layer];
 
             float lightRadiusUV = 0.0;
             const vec3 lightSpacePos = GetDirectionalLightSamplePosition(g_DirShadowMaps[nonuniformEXT(layer)], viewProj, worldPos, geometryNormal, incoming, layer, lightRadiusUV);
-            shadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePos, lightRadiusUV, layer);
+            visibility = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePos, lightRadiusUV, layer);
 #ifdef EG_TRANSLUCENT_SHADOWS
-            coloredShadow = DirLight_ColoredShadowCalculation(g_DirShadowMapsColored[nonuniformEXT(layer)], lightSpacePos);
+            coloredVisibility = DirLight_ColoredShadowCalculation(g_DirShadowMapsColored[nonuniformEXT(layer)], lightSpacePos);
 #endif
 
 #ifdef EG_CSM_SMOOTH_TRANSITION
@@ -151,23 +151,31 @@ vec3 CalculateDirectionalLightRadiance(DirectionalLight light, vec3 worldPos, ve
                     const mat4 nextViewProj = g_LightMatrices[light.ViewProjOffset + layer];
 
                     const vec3 lightSpacePos = GetDirectionalLightSamplePosition(g_DirShadowMaps[nonuniformEXT(layer)], nextViewProj, worldPos, geometryNormal, incoming, layer, lightRadiusUV);
-                    const float nextShadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePos, lightRadiusUV, layer);
-                    shadow = mix(shadow, nextShadow, blendFactor);
+                    const float nextVisibility = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePos, lightRadiusUV, layer);
+                    visibility = mix(visibility, nextVisibility, blendFactor);
 
 #ifdef EG_TRANSLUCENT_SHADOWS
-                    const vec3 nextColoredShadow = DirLight_ColoredShadowCalculation(g_DirShadowMapsColored[nonuniformEXT(layer)], lightSpacePos);
-                    coloredShadow = mix(coloredShadow, nextColoredShadow, blendFactor);
+                    const vec3 nextColoredVisibility = DirLight_ColoredShadowCalculation(g_DirShadowMapsColored[nonuniformEXT(layer)], lightSpacePos);
+                    coloredVisibility = mix(coloredVisibility, nextColoredVisibility, blendFactor);
 #endif
                 }
             }
 #endif // EG_CSM_SMOOTH_TRANSITION
         }
     }
+    
+#ifdef EG_SCREEN_SPACE_SHADOWS
+    if ((light.Flags & EG_DIR_LIGHT_CASTS_SCREEN_SPACE_SHADOWS_MASK) != 0)
+    {
+        visibility = min(visibility, texelFetch(g_ScreenSpaceShadows, ivec2(EG_PIXEL_COORDS), 0).x);
+    }
+#endif
+
     const vec3 directional_Lo = EvaluatePBR(albedo, incoming, V, shadingNormal, F0, metalness, roughness, light.LightColor, 1.f);
 #ifdef EG_TRANSLUCENT_SHADOWS
-    return directional_Lo * shadow * coloredShadow;
+    return directional_Lo * visibility * coloredVisibility;
 #else
-    return directional_Lo * shadow;
+    return directional_Lo * visibility;
 #endif
 }
 

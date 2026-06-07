@@ -1,0 +1,97 @@
+
+// Compile time settings
+layout(constant_id = 0)  const int   s_Samples = 60;
+layout(constant_id = 1)  const int   s_HardShadowSamples = 4;
+layout(constant_id = 2)  const int   s_FadeOutSamples = 8;
+layout(constant_id = 3)  const float s_SurfaceThickness = 0.01f;
+layout(constant_id = 4)  const float s_BilinearThreshold = 0.04f;
+layout(constant_id = 5)  const float s_ShadowContrast = 4.0f;
+layout(constant_id = 6)  const bool  s_bIgnoreEdgePixels = false;
+layout(constant_id = 7)  const bool  s_bUsePrecisionOffset = false;
+layout(constant_id = 8)  const bool  s_bBilinearSamplingOffsetMode = false;
+layout(constant_id = 9)  const bool  s_bUseEarlyOut = true;
+layout(constant_id = 10) const bool  s_bDebugOutputEdgeMask = false;
+
+// Wavefront size of the compute shader running this code. 
+// Only tested with 64.
+#define WAVE_SIZE  64
+
+// Number of shadow samples per-pixel.
+// Determines overall cost, as this value controls the length of the shadow (in pixels).
+// The number of texture-reads performed per-thread will be (SAMPLE_COUNT / WAVE_SIZE + 2) * 2.
+// Recommended starting value is 60 (This would be 4 reads per thread if WAVE_SIZE is 64). A value of 64 would require 6 reads.
+#define SAMPLE_COUNT (s_Samples)
+
+// Not all shadow samples are treated the same:
+// The bulk of samples will average together in to groups of 4, to produce a slightly smoothed result (so one sample cannot fully show the pixel)
+// However, the samples very close to the start pixel can optionally be forced to disable this averaging, so a single sample can fully shadow the pixel (HardShadowSamples)
+// Plus, a number of the last (most distant) samples can (for a small cost) apply a fade-out effect to soften a hash shadow cutoff (FadeOutSamples)
+
+// Number of initial shadow samples that will produce a hard shadow, and not perform sample-averaging.
+// This trades aliasing for grounding pixels very close to the shadow caster.
+// Recommended starting value: 4
+#define HARD_SHADOW_SAMPLES (s_HardShadowSamples)
+
+// Number of samples that will fade out at the end of the shadow (for a minor cost).
+// Recommended starting value: 8
+#define FADE_OUT_SAMPLES (s_FadeOutSamples)
+
+// Apply a 0.5 texel offset when sampling a texture. Toggle this macro if the output shadow has odd, regular grid-like artefacts.
+#define USE_HALF_PIXEL_OFFSET 1
+
+// Use Sample(uv + bias) instead of Sample(uv, bias)
+#define USE_UV_PIXEL_BIAS 1
+
+#include "defines.h"
+#include "screen_space_shadows/bend_sss_gpu.h"
+
+layout (binding = 0) uniform sampler2D g_Depth;
+layout (binding = 1, r8) uniform image2D g_Output;
+
+layout(push_constant) uniform PushData
+{
+    vec4 g_LightCoords;
+    ivec2 g_WaveOffset;
+    vec2 g_TexelSize;
+};
+
+DispatchParameters GetDefaultParams(vec4 lightCoords, ivec2 waveOffset, float nearDepth, float farDepth, vec2 invDepthTextureSize)
+{
+	DispatchParameters params;
+
+	params.SurfaceThickness = s_SurfaceThickness;
+	params.BilinearThreshold = s_BilinearThreshold;
+	params.ShadowContrast = s_ShadowContrast;
+	params.IgnoreEdgePixels = s_bIgnoreEdgePixels;
+	params.UsePrecisionOffset = s_bUsePrecisionOffset;
+	params.BilinearSamplingOffsetMode = s_bBilinearSamplingOffsetMode;
+	params.DebugOutputEdgeMask = s_bDebugOutputEdgeMask;
+	params.DebugOutputThreadIndex = false;
+	params.DebugOutputWaveIndex = false;
+	params.DepthBounds = vec2(0, 1);
+	params.UseEarlyOut = s_bUseEarlyOut;
+
+	params.LightCoordinate = lightCoords;
+	params.WaveOffset = waveOffset;
+	params.NearDepthValue = nearDepth;
+	params.FarDepthValue = farDepth;
+	params.InvDepthTextureSize = invDepthTextureSize;
+
+	return params;
+}
+
+layout(local_size_x = WAVE_SIZE) in;
+
+void main()
+{
+    const ivec3 groupID = ivec3(gl_WorkGroupID);
+    const int localID = int(gl_LocalInvocationID.x);
+
+    DispatchParameters params = GetDefaultParams(g_LightCoords, g_WaveOffset, EG_DEPTH_NEAR, EG_DEPTH_FAR, g_TexelSize);
+
+	vec2 writeXY;
+	float resultVisibility;
+    WriteScreenSpaceShadow(params, groupID, localID, g_Depth, writeXY, resultVisibility);
+
+	imageStore(g_Output, ivec2(writeXY), vec4(resultVisibility));
+}

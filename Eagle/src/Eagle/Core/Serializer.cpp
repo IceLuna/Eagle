@@ -1854,6 +1854,7 @@ namespace Eagle
 			out << YAML::Key << "VolumetricFogIntensity" << YAML::Value << directionalLightComponent.GetVolumetricFogIntensity();
 			out << YAML::Key << "AffectsWorld" << YAML::Value << directionalLightComponent.DoesAffectWorld();
 			out << YAML::Key << "CastsShadows" << YAML::Value << directionalLightComponent.DoesCastShadows();
+			out << YAML::Key << "CastsScreenSpaceShadows" << YAML::Value << directionalLightComponent.DoesCastScreenSpaceShadows();
 			out << YAML::Key << "IsVolumetric" << YAML::Value << directionalLightComponent.IsVolumetricLight();
 			out << YAML::Key << "Visualize" << YAML::Value << directionalLightComponent.IsVisualizeDirectionEnabled();
 
@@ -2508,6 +2509,8 @@ namespace Eagle
 				directionalLightComponent.SetAffectsWorld(node.as<bool>());
 			if (auto node = directionalLightComponentNode["CastsShadows"])
 				directionalLightComponent.SetCastsShadows(node.as<bool>());
+			if (auto node = directionalLightComponentNode["CastsScreenSpaceShadows"])
+				directionalLightComponent.SetCastsScreenSpaceShadows(node.as<bool>());
 			if (auto node = directionalLightComponentNode["IsVolumetric"])
 				directionalLightComponent.SetIsVolumetricLight(node.as<bool>());
 			if (auto node = directionalLightComponentNode["Visualize"])
@@ -2915,6 +2918,7 @@ namespace Eagle
 		const auto& fogSettings = settings.FogSettings;
 		const auto& volumetricSettings = settings.VolumetricSettings;
 		const auto& shadowSettings = settings.ShadowsSettings;
+		const auto& screenSpaceShadowsSettings = settings.ScreenSpaceShadows;
 		const auto& photoLinearParams = settings.PhotoLinearTonemappingParams;
 		const auto& filmicParams = settings.FilmicTonemappingParams;
 		const auto& agxParams = settings.AgXTonemappingParams;
@@ -3002,6 +3006,20 @@ namespace Eagle
 		out << YAML::Key << "SpotLightSize" << YAML::Value << shadowSettings.SpotLightShadowMapSize;
 		out << YAML::Key << "DirLightSizes" << YAML::Value << shadowSettings.DirLightShadowMapSizes;
 		out << YAML::EndMap; // Shadow Settings
+
+		out << YAML::Key << "Screen Space Shadow Settings";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Samples" << YAML::Value << screenSpaceShadowsSettings.Samples;
+		out << YAML::Key << "HardShadowSamples" << YAML::Value << screenSpaceShadowsSettings.HardShadowSamples;
+		out << YAML::Key << "FadeOutSamples" << YAML::Value << screenSpaceShadowsSettings.FadeOutSamples;
+		out << YAML::Key << "SurfaceThickness" << YAML::Value << screenSpaceShadowsSettings.SurfaceThickness;
+		out << YAML::Key << "BilinearThreshold" << YAML::Value << screenSpaceShadowsSettings.BilinearThreshold;
+		out << YAML::Key << "ShadowContrast" << YAML::Value << screenSpaceShadowsSettings.ShadowContrast;
+		out << YAML::Key << "bIgnoreEdgePixels" << YAML::Value << screenSpaceShadowsSettings.bIgnoreEdgePixels;
+		out << YAML::Key << "bUsePrecisionOffset" << YAML::Value << screenSpaceShadowsSettings.bUsePrecisionOffset;
+		out << YAML::Key << "bBilinearSamplingOffsetMode" << YAML::Value << screenSpaceShadowsSettings.bBilinearSamplingOffsetMode;
+		out << YAML::Key << "bUseEarlyOut" << YAML::Value << screenSpaceShadowsSettings.bUseEarlyOut;
+		out << YAML::EndMap; // Screen Space Shadow Settings
 
 		out << YAML::Key << "PhotoLinear Tonemapping";
 		out << YAML::BeginMap;
@@ -3201,6 +3219,20 @@ namespace Eagle
 			settings.ShadowsSettings.PointLightShadowMapSize = shadowSettingsNode["PointLightSize"].as<uint32_t>();
 			settings.ShadowsSettings.SpotLightShadowMapSize = shadowSettingsNode["SpotLightSize"].as<uint32_t>();
 			settings.ShadowsSettings.DirLightShadowMapSizes = shadowSettingsNode["DirLightSizes"].as<std::vector<uint32_t>>();
+		}
+
+		if (auto shadowSettingsNode = data["Screen Space Shadow Settings"])
+		{
+			settings.ScreenSpaceShadows.Samples = shadowSettingsNode["Samples"].as<uint32_t>();
+			settings.ScreenSpaceShadows.HardShadowSamples = shadowSettingsNode["HardShadowSamples"].as<uint32_t>();
+			settings.ScreenSpaceShadows.FadeOutSamples = shadowSettingsNode["FadeOutSamples"].as<uint32_t>();
+			settings.ScreenSpaceShadows.SurfaceThickness = shadowSettingsNode["SurfaceThickness"].as<float>();
+			settings.ScreenSpaceShadows.BilinearThreshold = shadowSettingsNode["BilinearThreshold"].as<float>();
+			settings.ScreenSpaceShadows.ShadowContrast = shadowSettingsNode["ShadowContrast"].as<float>();
+			settings.ScreenSpaceShadows.bIgnoreEdgePixels = shadowSettingsNode["bIgnoreEdgePixels"].as<bool>();
+			settings.ScreenSpaceShadows.bUsePrecisionOffset = shadowSettingsNode["bUsePrecisionOffset"].as<bool>();
+			settings.ScreenSpaceShadows.bBilinearSamplingOffsetMode = shadowSettingsNode["bBilinearSamplingOffsetMode"].as<bool>();
+			settings.ScreenSpaceShadows.bUseEarlyOut = shadowSettingsNode["bUseEarlyOut"].as<bool>();
 		}
 
 		if (auto photolinearNode = data["PhotoLinear Tonemapping"])

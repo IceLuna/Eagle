@@ -47,7 +47,8 @@
 #define EG_BINDING_CAMERA_VIEW                      15
 #define EG_BINDING_SM_DISTRIBUTION                  16
 #define EG_BINDING_SSAO                             17
-#define EG_BINDING_CSM_SHADOW_MAPS                  18
+#define EG_BINDING_SCREEN_SPACE_SHADOWS             18
+#define EG_BINDING_CSM_SHADOW_MAPS                  19
 #define EG_BINDING_CSMC_SHADOW_MAPS                 EG_BINDING_CSM_SHADOW_MAPS + EG_CASCADES_COUNT
 
 #define EG_SM_DISTRIBUTION_TEXTURE_SIZE 16
@@ -86,13 +87,18 @@
 
 #define EG_REVERSED_DEPTH
 #ifdef EG_REVERSED_DEPTH
-#define EG_DEPTH_FAR 0.f
+#define EG_DEPTH_NEAR 1.0f
+#define EG_DEPTH_FAR 0.0f
 #else
-#define EG_DEPTH_FAR 1.f
+#define EG_DEPTH_NEAR 0.0f
+#define EG_DEPTH_FAR 1.0f
 #endif
 
 #define EG_RECEIVES_DECALS_MASK (1 << 31)
 #define EG_CASTS_SHADOWS_MASK (1 << 31)
 #define EG_FLAGS_RECEIVES_DECALS_MASK (1 << 0)
+
+#define EG_DIR_LIGHT_CASTS_SHADOWS_MASK (1 << 0)
+#define EG_DIR_LIGHT_CASTS_SCREEN_SPACE_SHADOWS_MASK (1 << 1)
 
 #endif

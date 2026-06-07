@@ -64,6 +64,7 @@ layout(set = EG_SCENE_SET, binding = EG_BINDING_PREFILTER_MAP)                  
 layout(set = EG_SCENE_SET, binding = EG_BINDING_BRDF_LUT)                         uniform sampler2D         g_BRDFLUT;
 layout(set = EG_SCENE_SET, binding = EG_BINDING_SM_DISTRIBUTION)                  uniform sampler3D         g_SmDistribution;
 layout(set = EG_SCENE_SET, binding = EG_BINDING_SSAO)                             uniform sampler2D         g_SSAO;
+layout(set = EG_SCENE_SET, binding = EG_BINDING_SCREEN_SPACE_SHADOWS)             uniform sampler2D         g_ScreenSpaceShadows;
 layout(set = EG_SCENE_SET, binding = EG_BINDING_CSM_SHADOW_MAPS)                  uniform sampler2DShadow   g_DirShadowMaps[EG_CASCADES_COUNT];
 layout(set = 2, binding = 0)                                                      uniform samplerCubeShadow g_PointShadowMaps[];
 layout(set = 3, binding = 0)                                                      uniform sampler2DShadow   g_SpotShadowMaps[];

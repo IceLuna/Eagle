@@ -106,7 +106,7 @@ namespace Eagle
 	private:
 		enum class GBufferVisualizingType
 		{
-			Final, Albedo, Emissive, AO, Motion
+			Final, Albedo, Emissive, ScreenSpaceShadows, AO, Motion
 		};
 		void SetVisualizingBufferType(GBufferVisualizingType value);
 
