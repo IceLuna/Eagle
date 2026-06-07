@@ -88,7 +88,11 @@ namespace Eagle
 
             for (auto& binding : setBindings)
             {
-                const auto& bindingData = setBindingsData.at(binding.binding);
+                auto it = setBindingsData.find(binding.binding);
+                if (it == setBindingsData.end())
+                    continue;
+
+                const auto& bindingData = it->second;
 
                 if (IsBufferType(binding.descriptorType))
                     buffersInfoCount += binding.descriptorCount + bindingData.BufferBindings.size();
@@ -131,7 +135,11 @@ namespace Eagle
 
             for (auto& binding : setBindings)
             {
-                const auto& bindingData = setBindingsData.at(binding.binding);
+                auto it = setBindingsData.find(binding.binding);
+                if (it == setBindingsData.end())
+                    continue;
+
+                const auto& bindingData = it->second;
 
                 if (IsBufferType(binding.descriptorType))
                 {

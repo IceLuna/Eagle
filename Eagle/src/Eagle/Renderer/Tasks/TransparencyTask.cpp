@@ -310,7 +310,7 @@ namespace Eagle
 		m_MeshesColorPipeline->SetBuffer(lightCulling->GetTiles_Translucent_SL(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHT_TILE_BUCKETS);
 		m_MeshesColorPipeline->SetBuffer(lightCulling->GetLightsCountersBuffer(), EG_SCENE_SET, EG_BINDING_LIGHTS_COUNT);
 		m_MeshesColorPipeline->SetBuffer(m_Renderer.GetDirectionalLightBuffer(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT);
-		m_MeshesColorPipeline->SetImageSampler(ibl->GetIrradianceImage(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 1);
+		m_MeshesColorPipeline->SetImageSampler(ibl->GetIrradianceImage(), Sampler::BilinearSamplerClamp, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 1);
 		m_MeshesColorPipeline->SetImageSampler(ibl->GetPrefilterImage(), ibl->GetPrefilterImageSampler(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 2);
 		m_MeshesColorPipeline->SetImageSampler(RenderManager::GetBRDFLUTImage(), Sampler::PointSamplerClamp, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 3);
 		m_MeshesColorPipeline->SetImageSampler(smDistribution, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 4);
@@ -355,7 +355,7 @@ namespace Eagle
 		m_SkeletalMeshesColorPipeline->SetBuffer(lightCulling->GetTiles_Translucent_SL(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHT_TILE_BUCKETS);
 		m_SkeletalMeshesColorPipeline->SetBuffer(lightCulling->GetLightsCountersBuffer(), EG_SCENE_SET, EG_BINDING_LIGHTS_COUNT);
 		m_SkeletalMeshesColorPipeline->SetBuffer(m_Renderer.GetDirectionalLightBuffer(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT);
-		m_SkeletalMeshesColorPipeline->SetImageSampler(ibl->GetIrradianceImage(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 1);
+		m_SkeletalMeshesColorPipeline->SetImageSampler(ibl->GetIrradianceImage(), Sampler::BilinearSamplerClamp, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 1);
 		m_SkeletalMeshesColorPipeline->SetImageSampler(ibl->GetPrefilterImage(), ibl->GetPrefilterImageSampler(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 2);
 		m_SkeletalMeshesColorPipeline->SetImageSampler(RenderManager::GetBRDFLUTImage(), Sampler::PointSamplerClamp, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 3);
 		m_SkeletalMeshesColorPipeline->SetImageSampler(smDistribution, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 4);
@@ -414,7 +414,7 @@ namespace Eagle
 		m_SpritesColorPipeline->SetBuffer(lightCulling->GetTiles_Translucent_SL(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHT_TILE_BUCKETS);
 		m_SpritesColorPipeline->SetBuffer(lightCulling->GetLightsCountersBuffer(), EG_SCENE_SET, EG_BINDING_LIGHTS_COUNT);
 		m_SpritesColorPipeline->SetBuffer(m_Renderer.GetDirectionalLightBuffer(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT);
-		m_SpritesColorPipeline->SetImageSampler(ibl->GetIrradianceImage(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 1);
+		m_SpritesColorPipeline->SetImageSampler(ibl->GetIrradianceImage(), Sampler::BilinearSamplerClamp, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 1);
 		m_SpritesColorPipeline->SetImageSampler(ibl->GetPrefilterImage(), ibl->GetPrefilterImageSampler(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 2);
 		m_SpritesColorPipeline->SetImageSampler(RenderManager::GetBRDFLUTImage(), Sampler::PointSamplerClamp, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 3);
 		m_SpritesColorPipeline->SetImageSampler(smDistributionToUse, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 4);
@@ -476,7 +476,7 @@ namespace Eagle
 		m_TextColorPipeline->SetBuffer(lightCulling->GetTiles_Translucent_SL(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHT_TILE_BUCKETS);
 		m_TextColorPipeline->SetBuffer(lightCulling->GetLightsCountersBuffer(), EG_SCENE_SET, EG_BINDING_LIGHTS_COUNT);
 		m_TextColorPipeline->SetBuffer(m_Renderer.GetDirectionalLightBuffer(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT);
-		m_TextColorPipeline->SetImageSampler(ibl->GetIrradianceImage(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 1);
+		m_TextColorPipeline->SetImageSampler(ibl->GetIrradianceImage(), Sampler::BilinearSamplerClamp, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 1);
 		m_TextColorPipeline->SetImageSampler(ibl->GetPrefilterImage(), ibl->GetPrefilterImageSampler(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 2);
 		m_TextColorPipeline->SetImageSampler(RenderManager::GetBRDFLUTImage(), Sampler::PointSamplerClamp, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 3);
 		m_TextColorPipeline->SetImageSampler(smDistributionToUse, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 4);

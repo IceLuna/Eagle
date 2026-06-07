@@ -18,11 +18,12 @@ namespace Eagle
 		: RendererTask(renderer)
 	{
 		const auto& options = m_Renderer.GetOptions();
+		const bool bUseBentNormals = options.AO == AmbientOcclusion::GTAO && options.GTAOSettings.bGenerateBentNormals;
 
 		m_ShaderDefines["EG_SCREEN_SPACE_SHADOWS"] = "";
 		SetVisualizeCascades(options.bVisualizeCascades);
 		SetSoftShadowsEnabled(options.bEnableSoftShadows);
-		SetSSAOEnabled(options.AO != AmbientOcclusion::None);
+		SetSSAOEnabled(options.AO, bUseBentNormals);
 		SetCSMSmoothTransitionEnabled(options.bEnableCSMSmoothTransition);
 		SetTranslucentShadowsEnabled(options.bTranslucentShadows);
 		InitPipeline();
@@ -73,9 +74,10 @@ namespace Eagle
 		}
 
 		const Ref<Image>& smDistribution = options.bEnableSoftShadows ? m_ShadowMapDistribution : RenderManager::GetDummyImage3D();
-		const Ref<Image>& ssaoImage = options.AO == AmbientOcclusion::SSAO ? m_Renderer.GetSSAOResult()
+		const Ref<Image>  ssaoImage = options.AO == AmbientOcclusion::SSAO ? m_Renderer.GetSSAOResult()
 									: options.AO == AmbientOcclusion::GTAO ? m_Renderer.GetGTAOResult()
 									: Texture2D::WhiteTexture->GetImage();
+		const Ref<Image> bentNormalsImage = options.AO == AmbientOcclusion::GTAO && options.GTAOSettings.bGenerateBentNormals ? m_Renderer.GetGTAOBentNormals() : Texture2D::WhiteTexture->GetImage();
 
 		m_Pipeline->SetBuffer(m_Renderer.GetLightMatricesBuffer(), EG_SCENE_SET, EG_BINDING_LIGHT_MATRICES);
 		m_Pipeline->SetBuffer(lightCulling->GetCulledPointLightsBuffer(), EG_SCENE_SET, EG_BINDING_POINT_LIGHTS);
@@ -89,12 +91,13 @@ namespace Eagle
 		m_Pipeline->SetImageSampler(gbuffer.Emissive, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_EMISSIVE_TEXTURE);
 		m_Pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DEPTH_TEXTURE);
 		m_Pipeline->SetImageSampler(gbuffer.MaterialData, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_MATERIAL_DATA_TEXTURE);
-		m_Pipeline->SetImageSampler(ibl->GetIrradianceImage(), Sampler::PointSamplerClamp, EG_SCENE_SET, EG_BINDING_IRRADIANCE_MAP);
+		m_Pipeline->SetImageSampler(ibl->GetIrradianceImage(), Sampler::BilinearSamplerClamp, EG_SCENE_SET, EG_BINDING_IRRADIANCE_MAP);
 		m_Pipeline->SetImageSampler(ibl->GetPrefilterImage(), ibl->GetPrefilterImageSampler(), EG_SCENE_SET, EG_BINDING_PREFILTER_MAP);
 		m_Pipeline->SetImageSampler(RenderManager::GetBRDFLUTImage(), Sampler::PointSamplerClamp, EG_SCENE_SET, EG_BINDING_BRDF_LUT);
 		m_Pipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), EG_SCENE_SET, EG_BINDING_CAMERA_VIEW);
 		m_Pipeline->SetImageSampler(smDistribution, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SM_DISTRIBUTION);
 		m_Pipeline->SetImageSampler(ssaoImage, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SSAO);
+		m_Pipeline->SetImageSampler(bentNormalsImage, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_BENT_NORMALS);
 		m_Pipeline->SetImageSampler(m_Renderer.GetScreenSpaceShadows(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SCREEN_SPACE_SHADOWS);
 
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetDirectionalLightShadowMaps(), m_Renderer.GetShadowMapPCFSampler(), EG_SCENE_SET, EG_BINDING_CSM_SHADOW_MAPS);
@@ -141,6 +144,20 @@ namespace Eagle
 
 		auto& stats = m_Renderer.GetStats();
 		++stats.Dispatches;
+	}
+
+	void PBRPassTask::InitWithOptions(const SceneRendererSettings& settings)
+	{
+		const bool bUseBentNormals = settings.AO == AmbientOcclusion::GTAO && settings.GTAOSettings.bGenerateBentNormals;
+		bool bReloadShader = false;
+		bReloadShader |= SetVisualizeCascades(settings.bVisualizeCascades);
+		bReloadShader |= SetSoftShadowsEnabled(settings.bEnableSoftShadows);
+		bReloadShader |= SetSSAOEnabled(settings.AO, bUseBentNormals);
+		bReloadShader |= SetCSMSmoothTransitionEnabled(settings.bEnableCSMSmoothTransition);
+		bReloadShader |= SetTranslucentShadowsEnabled(settings.bTranslucentShadows);
+
+		if (bReloadShader)
+			m_Shader->SetDefines(m_ShaderDefines);
 	}
 
 	bool PBRPassTask::SetSoftShadowsEnabled(bool bEnable)
@@ -200,19 +217,23 @@ namespace Eagle
 		return bUpdate;
 	}
 
-	bool PBRPassTask::SetSSAOEnabled(bool bEnabled)
+	bool PBRPassTask::SetSSAOEnabled(AmbientOcclusion ao, bool bUseBentNormals)
 	{
 		auto& defines = m_ShaderDefines;
-		auto it = defines.find("EG_SSAO");
+		auto it = defines.find("EG_AO");
 
+		const bool bEnabled = ao != AmbientOcclusion::None;
 		bool bUpdate = false;
 		if (bEnabled)
 		{
 			if (it == defines.end())
 			{
-				defines["EG_SSAO"] = "";
+				defines["EG_AO"] = "";
 				bUpdate = true;
 			}
+
+			const bool bContainsBentNormals = defines.find("EG_BENT_NORMALS") != defines.end();
+			bUpdate |= bUseBentNormals && !bContainsBentNormals || (!bUseBentNormals && bContainsBentNormals);
 		}
 		else
 		{
@@ -222,6 +243,10 @@ namespace Eagle
 				bUpdate = true;
 			}
 		}
+
+		defines.erase("EG_BENT_NORMALS");
+		if (bUseBentNormals)
+			defines["EG_BENT_NORMALS"] = "";
 
 		return bUpdate;
 	}

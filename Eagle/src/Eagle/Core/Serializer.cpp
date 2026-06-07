@@ -2970,6 +2970,7 @@ namespace Eagle
 		out << YAML::Key << "StepsPerSample" << YAML::Value << gtaoSettings.Quality.NumberOfBlurPasses;
 		out << YAML::Key << "Radius" << YAML::Value << gtaoSettings.Radius;
 		out << YAML::Key << "FalloffRange" << YAML::Value << gtaoSettings.FalloffRange;
+		out << YAML::Key << "bGenerateBentNormals" << YAML::Value << gtaoSettings.bGenerateBentNormals;
 		out << YAML::Key << "bHalfRes" << YAML::Value << gtaoSettings.bHalfRes;
 		out << YAML::EndMap; // GTAO Settings
 
@@ -3179,6 +3180,8 @@ namespace Eagle
 			settings.GTAOSettings.Radius = gtaoSettingsNode["Radius"].as<float>();
 			if (auto node = gtaoSettingsNode["FalloffRange"])
 				settings.GTAOSettings.FalloffRange = node.as<float>();
+			if (auto node = gtaoSettingsNode["bGenerateBentNormals"])
+				settings.GTAOSettings.bGenerateBentNormals = node.as<bool>();
 			if (auto node = gtaoSettingsNode["bHalfRes"])
 				settings.GTAOSettings.bHalfRes = node.as<bool>();
 		}

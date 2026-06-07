@@ -80,16 +80,6 @@ void XeGTAO_DecodeVisibilityBentNormal(const uint packedValue, out float visibil
     visibility = decoded.w;
 }
 
-void XeGTAO_DecodeGatherPartial(const vec4 packedValue, out AOTermType outDecoded[4])
-{
-    for (int i = 0; i < 4; i++)
-#ifdef XE_GTAO_COMPUTE_BENT_NORMALS
-        XeGTAO_DecodeVisibilityBentNormal(packedValue[i], outDecoded[i].w, outDecoded[i].xyz);
-#else
-        outDecoded[i] = packedValue[i];
-#endif
-}
-
 vec4 XeGTAO_UnpackEdges(float _packedVal)
 {
     uint packedVal = uint(_packedVal * 255.5);
@@ -182,6 +172,44 @@ float XeGTAO_PackEdges(vec4 edgesLRTB)
 }
 
 #ifdef XE_GTAO_MAIN_PASS
+
+// "Efficiently building a matrix to rotate one vector to another"
+// http://cs.brown.edu/research/pubs/pdfs/1999/Moller-1999-EBA.pdf / https://dl.acm.org/doi/10.1080/10867651.1999.10487509
+// (using https://github.com/assimp/assimp/blob/master/include/assimp/matrix3x3.inl#L275 as a code reference as it seems to be best)
+mat3 XeGTAO_RotFromToMatrix(vec3 from, vec3 to)
+{
+    const float e = dot(from, to);
+    const float f = abs(e); //(e < 0)? -e:e;
+
+    // WARNING: This has not been tested/worked through, especially not for 16bit floats; seems to work in our special use case (from is always {0, 0, -1}) but wouldn't use it in general
+    if (f > (1.0 - 0.0003))
+        return mat3(1, 0, 0, 0, 1, 0, 0, 0, 1);
+
+    const vec3 v = cross(from, to);
+    /* ... use this hand optimized version (9 mults less) */
+    const float h = (1.0) / (1.0 + e);      /* optimization by Gottfried Chen */
+    const float hvx = h * v.x;
+    const float hvz = h * v.z;
+    const float hvxy = hvx * v.y;
+    const float hvxz = hvx * v.z;
+    const float hvyz = hvz * v.y;
+
+    mat3 mtx;
+    mtx[0][0] = e + hvx * v.x;
+    mtx[1][0] = hvxy - v.z;
+    mtx[2][0] = hvxz + v.y;
+
+    mtx[0][1] = hvxy + v.z;
+    mtx[1][1] = e + h * v.y * v.y;
+    mtx[2][1] = hvyz - v.x;
+
+    mtx[0][2] = hvxz - v.y;
+    mtx[1][2] = hvyz + v.x;
+    mtx[2][2] = e + hvz * v.z;
+
+    return mtx;
+}
+
 void XeGTAO_MainPass(
     ivec2 pixCoord,
     float sliceCount,
@@ -275,11 +303,9 @@ void XeGTAO_MainPass(
     float noiseSlice = localNoise.x;
     float noiseSample = localNoise.y;
 
-    vec2 pixelDirRBViewspaceSizeAtCenterZ =
-        viewspaceZ * consts.NDCToViewMul_x_PixelSize;
+    vec2 pixelDirRBViewspaceSizeAtCenterZ = viewspaceZ * consts.NDCToViewMul_x_PixelSize;
 
-    float screenspaceRadius =
-        effectRadius / pixelDirRBViewspaceSizeAtCenterZ.x;
+    float screenspaceRadius = effectRadius / pixelDirRBViewspaceSizeAtCenterZ.x;
 
     visibility += clamp((10.0 - screenspaceRadius) / 100.0, 0.0, 1.0) * 0.5;
 
@@ -300,15 +326,13 @@ void XeGTAO_MainPass(
         vec3 orthoDirectionVec = directionVec - dot(directionVec, viewVec) * viewVec;
         vec3 axisVec = normalize(cross(orthoDirectionVec, viewVec));
 
-        vec3 projectedNormalVec =
-            viewspaceNormal - axisVec * dot(viewspaceNormal, axisVec);
+        vec3 projectedNormalVec = viewspaceNormal - axisVec * dot(viewspaceNormal, axisVec);
 
         float signNorm = sign(dot(orthoDirectionVec, projectedNormalVec));
 
         float projectedLen = length(projectedNormalVec);
 
-        float cosNorm =
-            clamp(dot(projectedNormalVec, viewVec) / projectedLen, 0.0, 1.0);
+        float cosNorm = clamp(dot(projectedNormalVec, viewVec) / projectedLen, 0.0, 1.0);
 
         float n = signNorm * XeGTAO_FastACos(cosNorm);
 
@@ -320,8 +344,7 @@ void XeGTAO_MainPass(
 
         for (int step = 0; step < int(stepsPerSlice); step++)
         {
-            float stepBaseNoise =
-                float(slice + step * stepsPerSlice) * 0.6180339887;
+            float stepBaseNoise = float(slice + step * stepsPerSlice) * 0.6180339887;
 
             float stepNoise = fract(noiseSample + stepBaseNoise);
 
@@ -349,11 +372,8 @@ void XeGTAO_MainPass(
             SZ0 = ToLinear(SZ0, consts.CameraPlanes.x, consts.CameraPlanes.y);
             SZ1 = ToLinear(SZ1, consts.CameraPlanes.x, consts.CameraPlanes.y);
 
-            vec3 samplePos0 =
-                XeGTAO_ComputeViewspacePosition(sampleScreenPos0, SZ0, consts);
-
-            vec3 samplePos1 =
-                XeGTAO_ComputeViewspacePosition(sampleScreenPos1, SZ1, consts);
+            vec3 samplePos0 = XeGTAO_ComputeViewspacePosition(sampleScreenPos0, SZ0, consts);
+            vec3 samplePos1 = XeGTAO_ComputeViewspacePosition(sampleScreenPos1, SZ1, consts);
 
             vec3 d0 = samplePos0 - pixCenterPos;
             vec3 d1 = samplePos1 - pixCenterPos;
@@ -418,7 +438,7 @@ void XeGTAO_MainPass(
         float t0 = (6 * sin(h0 - n) - sin(3 * h0 - n) + 6 * sin(h1 - n) - sin(3 * h1 - n) + 16 * sin(n) - 3 * (sin(h0 + n) + sin(h1 + n))) / 12;
         float t1 = (-cos(3 * h0 - n) - cos(3 * h1 - n) + 8 * cos(n) - 3 * (cos(h0 + n) + cos(h1 + n))) / 12;
         vec3 localBentNormal = vec3(directionVec.x * t0, directionVec.y * t0, -t1);
-        localBentNormal = mul(XeGTAO_RotFromToMatrix(lpfloat3(0, 0, -1), viewVec), localBentNormal) * projectedNormalVecLength;
+        localBentNormal = (XeGTAO_RotFromToMatrix(vec3(0, 0, -1), viewVec) * localBentNormal) * projectedLen;
         bentNormal += localBentNormal;
 #endif
     }
@@ -428,24 +448,57 @@ void XeGTAO_MainPass(
     visibility = max(0.03, visibility);
     visibility = clamp(visibility / XE_GTAO_OCCLUSION_TERM_SCALE, 0, 1);
 
-#ifdef XE_GTAO_COMPUTE_BENT_NORMALS
-    bentNormal = normalize(bentNormal);
-#endif
-
     imageStore(g_Result, pixCoord, vec4(vec3(visibility), 1));
+
+#ifdef XE_GTAO_COMPUTE_BENT_NORMALS
+    // We flipped it at the beginning. Flip back and convert to worlds space
+    bentNormal.z = -bentNormal.z;
+    bentNormal = normalize(bentNormal);
+    bentNormal = inverse(mat3(g_View)) * bentNormal;
+    const vec2 encodedNormal = EncodeNormal(bentNormal);
+    const uint packed = packHalf2x16(encodedNormal);
+    imageStore(g_BentNormalsResult, pixCoord, uvec4(packed));
+#endif
 }
 #endif // #ifdef XE_GTAO_MAIN_PASS
 
 #ifdef XE_GTAO_DENOISE
+
+#ifdef XE_GTAO_COMPUTE_BENT_NORMALS
+void XeGTAO_DecodeGatherPartial(vec4 visibilities, uvec4 bentNormals, out AOTermType outDecoded[4])
+{
+    for (int i = 0; i < 4; i++)
+    {
+        const vec2 encodedNormal = unpackHalf2x16(bentNormals[i]);
+        outDecoded[i].xyz = DecodeNormal(encodedNormal);
+        outDecoded[i].w = visibilities[i];
+    }
+}
+#else
+void XeGTAO_DecodeGatherPartial(vec4 visibilities, out AOTermType outDecoded[4])
+{
+    for (int i = 0; i < 4; i++)
+    {
+        outDecoded[i] = visibilities[i];
+    }
+}
+#endif // #ifdef XE_GTAO_COMPUTE_BENT_NORMALS
+
 void XeGTAO_Output(uvec2 pixCoord, AOTermType outputValue, bool bFinalPass)
 {
 #ifdef XE_GTAO_COMPUTE_BENT_NORMALS
-    float   visibility = outputValue.w * (bFinalPass ? XE_GTAO_OCCLUSION_TERM_SCALE : 1.0);
-    vec3    bentNormal = normalize(outputValue.xyz);
-    imageStore(g_Result, ivec2(pixCoord), XeGTAO_EncodeVisibilityBentNormal(visibility, bentNormal));
+    float visibility = outputValue.w;
 #else
-    outputValue *= (bFinalPass ? XE_GTAO_OCCLUSION_TERM_SCALE : 1.0);
-    imageStore(g_Result, ivec2(pixCoord), vec4(outputValue));
+    float visibility = outputValue;
+#endif
+    visibility *= (bFinalPass ? XE_GTAO_OCCLUSION_TERM_SCALE : 1.0);
+    imageStore(g_Result, ivec2(pixCoord), vec4(visibility));
+
+#ifdef XE_GTAO_COMPUTE_BENT_NORMALS
+    const vec3 bentNormal = normalize(outputValue.xyz);
+    const vec2 encodedNormal = EncodeNormal(bentNormal);
+    const uint packed = packHalf2x16(encodedNormal);
+    imageStore(g_ResultBentNormals, ivec2(pixCoord), uvec4(packed));
 #endif
 }
 
@@ -469,10 +522,21 @@ void XeGTAO_Denoise(const ivec2 pixCoordBase, const GTAOConstants consts)
     vec4 edgesQ1 = textureGatherOffset(g_Edges, gatherCenter, ivec2(2, 0), 0);
     vec4 edgesQ2 = textureGatherOffset(g_Edges, gatherCenter, ivec2(1, 2), 0);
 
-    AOTermType visQ0[4];    XeGTAO_DecodeGatherPartial(textureGatherOffset(g_AO, gatherCenter, ivec2(0, 0), 0), visQ0);
-    AOTermType visQ1[4];    XeGTAO_DecodeGatherPartial(textureGatherOffset(g_AO, gatherCenter, ivec2(2, 0), 0), visQ1);
-    AOTermType visQ2[4];    XeGTAO_DecodeGatherPartial(textureGatherOffset(g_AO, gatherCenter, ivec2(0, 2), 0), visQ2);
-    AOTermType visQ3[4];    XeGTAO_DecodeGatherPartial(textureGatherOffset(g_AO, gatherCenter, ivec2(2, 2), 0), visQ3);
+    AOTermType visQ0[4];
+    AOTermType visQ1[4];
+    AOTermType visQ2[4];
+    AOTermType visQ3[4];
+#ifdef XE_GTAO_COMPUTE_BENT_NORMALS
+    XeGTAO_DecodeGatherPartial(textureGatherOffset(g_AO, gatherCenter, ivec2(0, 0), 0), textureGatherOffset(g_BentNormals, gatherCenter, ivec2(0, 0), 0), visQ0);
+    XeGTAO_DecodeGatherPartial(textureGatherOffset(g_AO, gatherCenter, ivec2(2, 0), 0), textureGatherOffset(g_BentNormals, gatherCenter, ivec2(2, 0), 0), visQ1);
+    XeGTAO_DecodeGatherPartial(textureGatherOffset(g_AO, gatherCenter, ivec2(0, 2), 0), textureGatherOffset(g_BentNormals, gatherCenter, ivec2(0, 2), 0), visQ2);
+    XeGTAO_DecodeGatherPartial(textureGatherOffset(g_AO, gatherCenter, ivec2(2, 2), 0), textureGatherOffset(g_BentNormals, gatherCenter, ivec2(2, 2), 0), visQ3);
+#else
+    XeGTAO_DecodeGatherPartial(textureGatherOffset(g_AO, gatherCenter, ivec2(0, 0), 0), visQ0);
+    XeGTAO_DecodeGatherPartial(textureGatherOffset(g_AO, gatherCenter, ivec2(2, 0), 0), visQ1);
+    XeGTAO_DecodeGatherPartial(textureGatherOffset(g_AO, gatherCenter, ivec2(0, 2), 0), visQ2);
+    XeGTAO_DecodeGatherPartial(textureGatherOffset(g_AO, gatherCenter, ivec2(2, 2), 0), visQ3);
+#endif
 
     for (int side = 0; side < 2; side++)
     {

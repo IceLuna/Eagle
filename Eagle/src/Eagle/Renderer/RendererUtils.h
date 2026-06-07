@@ -719,6 +719,7 @@ namespace Eagle
         QualityParams Quality = GetHighQuality();
         float Radius = 0.7285f;
         float FalloffRange = 0.615f; // Distant samples contribute less
+        bool bGenerateBentNormals = true; // If true, bent normal will be used for diffuse shading from IBL. Surface's normals is bent to face the direction where ambient light is coming from to provide a better estimate for lighting
         bool bHalfRes = false; // If set to true, GTAO will be computed in half resolution
 
         static QualityParams GetLowQuality()
@@ -766,6 +767,7 @@ namespace Eagle
             return Quality == other.Quality &&
                 Radius == other.Radius &&
                 FalloffRange == other.FalloffRange &&
+                bGenerateBentNormals == other.bGenerateBentNormals &&
                 bHalfRes == other.bHalfRes;
         }
 

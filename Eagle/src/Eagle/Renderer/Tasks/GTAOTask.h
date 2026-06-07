@@ -18,10 +18,12 @@ namespace Eagle
 		void InitWithOptions(const SceneRendererSettings& settings) override
 		{
 			if (m_Quality == settings.GTAOSettings.Quality &&
+				bGenerateBentNormals == settings.GTAOSettings.bGenerateBentNormals &&
 				bHalfRes == settings.GTAOSettings.bHalfRes)
 				return;
 
 			m_Quality = settings.GTAOSettings.Quality;
+			bGenerateBentNormals = settings.GTAOSettings.bGenerateBentNormals;
 			bHalfRes = settings.GTAOSettings.bHalfRes;
 
 			InitResources();
@@ -29,6 +31,7 @@ namespace Eagle
 		}
 
 		const Ref<Image>& GetResult() const { return m_Denoised; }
+		const Ref<Image>& GetBentNormals() const { return m_GTAOBentNormalsPassImage; }
 
 	private:
 		void InitResources();
@@ -76,6 +79,7 @@ namespace Eagle
 		Ref<Image> m_Denoised;
 
 		Ref<Image> m_GTAOPassImage[2];
+		Ref<Image> m_GTAOBentNormalsPassImage;
 		Ref<Image> m_GTAOEdgesImage;
 		
 		glm::uvec2 m_PassSize = glm::uvec2(1u);
@@ -101,6 +105,7 @@ namespace Eagle
 			}
 		};
 		QualityParams m_Quality;
+		bool bGenerateBentNormals = false;
 		bool bHalfRes = false;
 
 		constexpr static uint32_t s_TileSize = 8;

@@ -16,6 +16,7 @@ namespace Eagle
 	{
 		const auto& gtao = m_Renderer.GetOptions_RT().GTAOSettings;
 		m_Quality = gtao.Quality;
+		bGenerateBentNormals = gtao.bGenerateBentNormals;
 		bHalfRes = gtao.bHalfRes;
 
 		InitResources();
@@ -101,6 +102,8 @@ namespace Eagle
 		}
 
 		m_Denoised->Resize({ size, 1u });
+		if (bGenerateBentNormals)
+			m_GTAOBentNormalsPassImage->Resize({ m_PassSize, 1u });
 		for (uint32_t i = 0; i < 2; ++i)
 			m_GTAOPassImage[i]->Resize({ m_PassSize, 1u });
 		m_GTAOEdgesImage->Resize({ m_PassSize, 1u });
@@ -139,6 +142,11 @@ namespace Eagle
 		m_GTAOPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 0, 3);
 		m_GTAOPipeline->SetImage(m_GTAOEdgesImage, 0, 4);
 		m_GTAOPipeline->SetImage(m_GTAOPassImage[0], 0, 5);
+		if (bGenerateBentNormals)
+		{
+			m_GTAOPipeline->SetImage(m_GTAOBentNormalsPassImage, 0, 6);
+			cmd->TransitionLayout(m_GTAOBentNormalsPassImage, m_GTAOBentNormalsPassImage->GetLayout(), ImageLayoutType::StorageImage);
+		}
 
 		cmd->TransitionLayout(m_GTAOEdgesImage, m_GTAOEdgesImage->GetLayout(), ImageLayoutType::StorageImage);
 		cmd->TransitionLayout(m_GTAOPassImage[0], m_GTAOPassImage[0]->GetLayout(), ImageLayoutType::StorageImage);
@@ -150,6 +158,8 @@ namespace Eagle
 
 		cmd->TransitionLayout(m_GTAOEdgesImage, m_GTAOEdgesImage->GetLayout(), ImageReadAccess::PixelShaderRead);
 		cmd->TransitionLayout(m_GTAOPassImage[0], m_GTAOPassImage[0]->GetLayout(), ImageLayoutType::StorageImage);
+		if (bGenerateBentNormals)
+			cmd->TransitionLayout(m_GTAOBentNormalsPassImage, m_GTAOBentNormalsPassImage->GetLayout(), ImageReadAccess::NonPixelShaderRead | ImageReadAccess::PixelShaderRead);
 
 		auto& stats = m_Renderer.GetStats();
 		++stats.Dispatches;
@@ -171,9 +181,8 @@ namespace Eagle
 			const bool bFinalPass = i == (numPasses - 1);
 			m_Constants.FinalPass = bFinalPass ? 1u : 0u;
 
-			auto& input = m_GTAOPassImage[m_PingPong];
-
 			// If in half res mode, then output into the temp image, since we have the upscale pass
+			auto& input = m_GTAOPassImage[m_PingPong];
 			auto& output = bFinalPass && !bHalfRes ? m_Denoised : m_GTAOPassImage[1u - m_PingPong];
 
 			cmd->TransitionLayout(input, input->GetLayout(), ImageReadAccess::NonPixelShaderRead);
@@ -242,9 +251,19 @@ namespace Eagle
 		m_GTAOPassImage[1] = Image::Create(specs, "GTAO_Pass[1]");
 		m_GTAOEdgesImage = Image::Create(specs, "GTAO_Pass_Edges");
 
-		specs.Usage = ImageUsage::Sampled | ImageUsage::Storage;
 		specs.Size = viewportSize;
 		m_Denoised = Image::Create(specs, "GTAO_Denoised");
+
+		if (bGenerateBentNormals)
+		{
+			specs.Size = glm::uvec3(m_PassSize, 1u);
+			specs.Format = ImageFormat::R32_UInt; // RG16F normal is packed into uint to be able to use `textureGather`
+			m_GTAOBentNormalsPassImage = Image::Create(specs, "GTAO_BentNormals");
+		}
+		else
+		{
+			m_GTAOBentNormalsPassImage.reset();
+		}
 	}
 
 	void GTAOTask::InitPipeline()
@@ -281,6 +300,10 @@ namespace Eagle
 
 		// GTAO Pipeline
 		{
+			ShaderDefines gtaoDefines;
+			if (bGenerateBentNormals)
+				gtaoDefines["XE_GTAO_COMPUTE_BENT_NORMALS"] = "";
+
 			ShaderSpecializationInfo constants;
 			constants.MapEntries.push_back({0, 0, sizeof(uint32_t)});
 			constants.MapEntries.push_back({1, sizeof(uint32_t), sizeof(uint32_t)});
@@ -289,7 +312,7 @@ namespace Eagle
 			
 			PipelineComputeState state;
 			state.ComputeSpecializationInfo = constants;
-			state.ComputeShader = Shader::Create("XeGTAO/gtao.comp", ShaderType::Compute);
+			state.ComputeShader = Shader::Create("XeGTAO/gtao.comp", ShaderType::Compute, gtaoDefines);
 
 			m_GTAOPipeline = PipelineCompute::Create(state);
 		}

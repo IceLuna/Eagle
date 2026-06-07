@@ -178,6 +178,7 @@ namespace Eagle
         public QualityParams Quality;
         public float Radius;
         public float FalloffRange;
+        public bool bGenerateBentNormals;
         public bool bHalfRes;
 
         public static QualityParams GetLowQuality()
@@ -518,13 +519,13 @@ namespace Eagle
 
         public static void SetGTAOSettings(GTAOSettings value)
         {
-            SetGTAOSettings_Native(value.Quality.Samples, value.Quality.StepsPerSample, value.Radius, value.FalloffRange, value.bHalfRes);
+            SetGTAOSettings_Native(value.Quality.Samples, value.Quality.StepsPerSample, value.Radius, value.FalloffRange, value.bGenerateBentNormals, value.bHalfRes);
         }
 
         public static GTAOSettings GetGTAOSettings()
         {
             GTAOSettings settings = new GTAOSettings();
-            GetGTAOSettings_Native(out settings.Quality.Samples, out settings.Quality.StepsPerSample, out settings.Radius, out settings.FalloffRange, out settings.bHalfRes);
+            GetGTAOSettings_Native(out settings.Quality.Samples, out settings.Quality.StepsPerSample, out settings.Radius, out settings.FalloffRange, out settings.bGenerateBentNormals, out settings.bHalfRes);
 
             return settings;
         }
@@ -908,10 +909,10 @@ namespace Eagle
         private static extern void GetSSAOSettings_Native(out uint samples, out float radius, out float bias);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetGTAOSettings_Native(uint samples, uint stepsPerSample, float radius, float falloffRange, bool bHalfRes);
+        private static extern void SetGTAOSettings_Native(uint samples, uint stepsPerSample, float radius, float falloffRange, bool bGenerateBentNormals, bool bHalfRes);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetGTAOSettings_Native(out uint samples, out uint stepsPerSample, out float radius, out float falloffRange, out bool bHalfRes);
+        private static extern void GetGTAOSettings_Native(out uint samples, out uint stepsPerSample, out float radius, out float falloffRange, out bool bGenerateBentNormals, out bool bHalfRes);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetPhotoLinearTonemappingSettings_Native(float sensetivity, float exposureTime, float fStop);

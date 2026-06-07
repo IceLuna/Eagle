@@ -123,9 +123,16 @@ void main()
     if (s_HasIrradiance)
     {
         const vec3 shadingNormal = DecodeNormal(encodedNormals.zw);
-        ambient += EvaluateIBL(albedo, F0, shadingNormal, V, roughness, metalness, g_MaxReflectionLOD) * ao * g_IBLIntensity;
+#ifdef EG_BENT_NORMALS
+        const vec2 encodedNormal = unpackHalf2x16(texture(g_BentNormals, uv).x);
+        const vec3 bentNormal = DecodeNormal(encodedNormal);
+        ambient += EvaluateIBL(albedo, F0, shadingNormal, bentNormal, V, roughness, metalness, g_MaxReflectionLOD) * g_IBLIntensity;
+#else
+        ambient += EvaluateIBL(albedo, F0, shadingNormal, V, roughness, metalness, g_MaxReflectionLOD) * g_IBLIntensity;
+#endif
     }
-#ifdef EG_SSAO
+    ambient *= ao; // Apply material's AO
+#ifdef EG_AO
     ambient *= GTAOMultiBounce(albedo, texture(g_SSAO, uv).x);
 #endif
 

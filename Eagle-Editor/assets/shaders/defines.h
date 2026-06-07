@@ -47,8 +47,9 @@
 #define EG_BINDING_CAMERA_VIEW                      15
 #define EG_BINDING_SM_DISTRIBUTION                  16
 #define EG_BINDING_SSAO                             17
-#define EG_BINDING_SCREEN_SPACE_SHADOWS             18
-#define EG_BINDING_CSM_SHADOW_MAPS                  19
+#define EG_BINDING_BENT_NORMALS                     18
+#define EG_BINDING_SCREEN_SPACE_SHADOWS             19
+#define EG_BINDING_CSM_SHADOW_MAPS                  20
 #define EG_BINDING_CSMC_SHADOW_MAPS                 EG_BINDING_CSM_SHADOW_MAPS + EG_CASCADES_COUNT
 
 #define EG_SM_DISTRIBUTION_TEXTURE_SIZE 16

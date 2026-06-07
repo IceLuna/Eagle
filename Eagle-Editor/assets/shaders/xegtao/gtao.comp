@@ -15,6 +15,9 @@ layout(binding = 3) uniform CameraMatrices
 
 layout(binding = 4, r8) uniform writeonly image2D g_WorkingEdges;
 layout(binding = 5, r8) uniform writeonly image2D g_Result;
+#ifdef XE_GTAO_COMPUTE_BENT_NORMALS
+layout(binding = 6, r32ui) uniform writeonly uimage2D g_BentNormalsResult;
+#endif
 
 #define XE_GTAO_MAIN_PASS
 #include "XeGTAO/XeGTAO.h"

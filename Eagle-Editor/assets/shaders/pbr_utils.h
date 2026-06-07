@@ -161,7 +161,7 @@ vec3 EvaluatePBR(vec3 albedo, vec3 incoming, vec3 V, vec3 N, vec3 F0, float meta
 
 #ifdef PBR_EVALUATE_IBL
 // @viewDir. fragment to camera
-vec3 EvaluateIBL(vec3 albedo, vec3 F0, vec3 normal, vec3 viewDir, float roughness, float metalness, float maxReflectionLOD)
+vec3 EvaluateIBL(vec3 albedo, vec3 F0, vec3 normal, vec3 bentNormal, vec3 viewDir, float roughness, float metalness, float maxReflectionLOD)
 {
 	const vec3 R = reflect(-viewDir, normal);
 	const float NdotV = clamp(dot(normal, viewDir), 0.0, 1.0);
@@ -173,7 +173,7 @@ vec3 EvaluateIBL(vec3 albedo, vec3 F0, vec3 normal, vec3 viewDir, float roughnes
 
 	const vec3 prefilteredColor = textureLod(g_PrefilterMap, R, roughness * maxReflectionLOD).rgb;
 	const vec2 brdf = texture(g_BRDFLUT, vec2(NdotV, roughness)).rg;
-	const vec3 ambientDiffuse = kD * albedo * texture(g_IrradianceMap, normal).rgb;
+	const vec3 ambientDiffuse = kD * albedo * texture(g_IrradianceMap, bentNormal).rgb;
 
 	const float E_o = brdf.x + brdf.y;
 	const vec3 envSpecBRDFss = F * brdf.x + brdf.y;
@@ -181,6 +181,12 @@ vec3 EvaluateIBL(vec3 albedo, vec3 F0, vec3 normal, vec3 viewDir, float roughnes
 	const vec3 ambientSpecular = prefilteredColor * multiScatterScale * envSpecBRDFss;
 
 	return ambientDiffuse + ambientSpecular;
+}
+
+// @viewDir. fragment to camera
+vec3 EvaluateIBL(vec3 albedo, vec3 F0, vec3 normal, vec3 viewDir, float roughness, float metalness, float maxReflectionLOD)
+{
+	return EvaluateIBL(albedo, F0, normal, normal, viewDir, roughness, metalness, maxReflectionLOD);
 }
 #endif
 

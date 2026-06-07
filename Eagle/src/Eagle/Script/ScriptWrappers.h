@@ -538,8 +538,8 @@ namespace Eagle::Script
 	void Eagle_Renderer_GetBloomSettings(GUID* outDirtTexture, float* outThreashold, float* outIntensity, float* outDirtIntensity, float* outKnee, bool* outbEnabled);
 	void Eagle_Renderer_SetSSAOSettings(uint32_t samples, float radius, float bias);
 	void Eagle_Renderer_GetSSAOSettings(uint32_t* outSamples, float* outRadius, float* outBias);
-	void Eagle_Renderer_SetGTAOSettings(uint32_t samples, uint32_t stepsPerSample, float radius, float fallollRange, bool bHalfRes);
-	void Eagle_Renderer_GetGTAOSettings(uint32_t* outSamples, uint32_t* outStepsPerSample, float* outRadius, float* outFalloffRange, bool* outHalfRes);
+	void Eagle_Renderer_SetGTAOSettings(uint32_t samples, uint32_t stepsPerSample, float radius, float fallollRange, bool bGenerateBentNormals, bool bHalfRes);
+	void Eagle_Renderer_GetGTAOSettings(uint32_t* outSamples, uint32_t* outStepsPerSample, float* outRadius, float* outFalloffRange, bool* outGenerateBentNormals, bool* outHalfRes);
 	void Eagle_Renderer_SetMSAASettings(MSAASamples samples, float edgeThreshold);
 	void Eagle_Renderer_GetMSAASettings(MSAASamples* outSamples, float* outEdgeThreshold);
 	void Eagle_Renderer_SetPhotoLinearTonemappingSettings(float sensitivity, float exposureTime, float fStop);

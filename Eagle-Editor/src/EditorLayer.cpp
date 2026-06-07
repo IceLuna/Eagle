@@ -32,22 +32,19 @@ namespace Eagle
 	static const char* s_PhysicsDebugTypeHelpMsg = "When `Live` is selected, the data will be sent directly to PhysX Visual Debugger at runtime. Otherwise, it'll be saved to a file which can be opened later. "
 		"The file is saved into `Saved` folder inside your project";
 	static const char* s_VisualizeTilesHelpMsg = "Visualize which pixels are affected by lights. No color or green indicates low number of lights (low shading complexity). The more red, the higher the number (higher shading complexity)";
-
 	static const char* s_ScreenSpaceShadowsIgnoreEdgePixelsHelpMsg = "If an edge is detected, the edge pixel will not contribute to the shadow. "
 		"If a very flat surface is being lit and rendered at an grazing angles, the edge detect may incorrectly detect multiple 'edge' pixels along that flat surface. "
 		"In these cases, the grazing angle of the light may subsequently produce aliasing artefacts in the shadow where these incorrect edges were detected. "
 		"Setting this value to true would mean that those pixels would not cast a shadow, however it can also thin out otherwise valid shadows, especially on foliage edges.";
-
 	static const char* s_ScreenSpaceShadowsBilinearSamplingOffsetModeHelpMsg = "There are two modes to compute bilinear samples for shadow depth:\n"
 		"enabled = sampling points for pixels are offset to the wavefront shared ray, shadow depths and starting depths are the same. Can project more jagged/aliased shadow lines in some cases.\n"
 		"disabled = sampling points for pixels are not offset and start from pixel centers. Shadow depths are biased based on depth gradient across the current pixel bilinear sample. Has more issues in back-face / grazing areas.\n"
 		"Both modes have subtle visual differences, which may / may not exaggerate depth buffer aliasing that gets projected in to the shadow.";
-
 	static const char* s_ScreenSpaceShadowsEarlyOutHelpMsg = "Set to true to early-out when depth values are not within depth bounds. "
 		"This can dramatically reduce cost when only a small portion of the pixels need a shadow term (e.g., cull out sky pixels), however it does have some overhead (~15%) in worst-case where nothing early-outs";
-
 	static const char* s_ScreenSpaceShadowsBilinearThresholdHelpMsg = "Percentage threshold for determining if the difference between two depth values represents an edge, and should not perform interpolation. "
 		"To tune this value, set 'Debug Output Edge Mask' to true to visualize where edges are being detected.";
+	static const char* s_GTAOBentNormalHelpMsg = "If enabled, bent normal will be used for diffuse shading from IBL. Surface's normals is bent to face the direction where ambient light is coming from to provide a better estimate for lighting";
 
 	static std::mutex s_DeferredCallsMutex;
 	
@@ -1784,6 +1781,11 @@ namespace Eagle
 
 					bSettingsChanged = true;
 					EG_CORE_TRACE("Changed GTAO Falloff Range to: {}", settings.FalloffRange);
+				}
+				if (UI::Property("Generate Bent Normals", settings.bGenerateBentNormals, s_GTAOBentNormalHelpMsg))
+				{
+					bSettingsChanged = true;
+					EG_CORE_TRACE("Changed GTAO `bGenerateBentNormals` to: {}", settings.bGenerateBentNormals);
 				}
 				if (UI::Property("Half Res", settings.bHalfRes, "If enabled, GTAO will be computed in half resolution"))
 				{

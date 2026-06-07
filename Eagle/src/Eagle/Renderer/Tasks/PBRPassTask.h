@@ -13,18 +13,7 @@ namespace Eagle
 		PBRPassTask(SceneRenderer& renderer);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
-
-		virtual void InitWithOptions(const SceneRendererSettings& settings) override
-		{
-			bool bReloadShader = false;
-			bReloadShader |= SetVisualizeCascades(settings.bVisualizeCascades);
-			bReloadShader |= SetSoftShadowsEnabled(settings.bEnableSoftShadows);
-			bReloadShader |= SetSSAOEnabled(settings.AO != AmbientOcclusion::None);
-			bReloadShader |= SetCSMSmoothTransitionEnabled(settings.bEnableCSMSmoothTransition);
-			bReloadShader |= SetTranslucentShadowsEnabled(settings.bTranslucentShadows);
-
-			m_Shader->SetDefines(m_ShaderDefines);
-		}
+		void InitWithOptions(const SceneRendererSettings& settings) override;
 
 		const Ref<Image>& GetSMDistribution() const { return m_ShadowMapDistribution; }
 
@@ -35,7 +24,7 @@ namespace Eagle
 
 		bool SetSoftShadowsEnabled(bool bEnable);
 		bool SetVisualizeCascades(bool bVisualize);
-		bool SetSSAOEnabled(bool bEnabled);
+		bool SetSSAOEnabled(AmbientOcclusion ao, bool bUseBentNormals);
 		bool SetCSMSmoothTransitionEnabled(bool bEnabled);
 		bool SetTranslucentShadowsEnabled(bool bEnabled);
 

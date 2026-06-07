@@ -6927,7 +6927,7 @@ namespace Eagle
 		*outBias = options.SSAOSettings.GetBias();
 	}
 
-	void Script::Eagle_Renderer_SetGTAOSettings(uint32_t samples, uint32_t stepsPerSample, float radius, float fallollRange, bool bHalfRes)
+	void Script::Eagle_Renderer_SetGTAOSettings(uint32_t samples, uint32_t stepsPerSample, float radius, float fallollRange, bool bGenerateBentNormals, bool bHalfRes)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		auto& sceneRenderer = scene->GetSceneRenderer();
@@ -6937,11 +6937,12 @@ namespace Eagle
 		options.GTAOSettings.Quality.StepsPerSample = stepsPerSample;
 		options.GTAOSettings.Radius = radius;
 		options.GTAOSettings.FalloffRange = fallollRange;
+		options.GTAOSettings.bGenerateBentNormals = bGenerateBentNormals;
 		options.GTAOSettings.bHalfRes = bHalfRes;
 		sceneRenderer->SetOptions(options);
 	}
 
-	void Script::Eagle_Renderer_GetGTAOSettings(uint32_t* outSamples, uint32_t* outStepsPerSample, float* outRadius, float* outFalloffRange, bool* outHalfRes)
+	void Script::Eagle_Renderer_GetGTAOSettings(uint32_t* outSamples, uint32_t* outStepsPerSample, float* outRadius, float* outFalloffRange, bool* outGenerateBentNormals, bool* outHalfRes)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		const auto& sceneRenderer = scene->GetSceneRenderer();
@@ -6951,6 +6952,7 @@ namespace Eagle
 		*outStepsPerSample = options.GTAOSettings.Quality.StepsPerSample;
 		*outRadius = options.GTAOSettings.Radius;
 		*outFalloffRange = options.GTAOSettings.FalloffRange;
+		*outGenerateBentNormals = options.GTAOSettings.bGenerateBentNormals;
 		*outHalfRes = options.GTAOSettings.bHalfRes;
 	}
 

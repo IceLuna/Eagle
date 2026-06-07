@@ -243,6 +243,7 @@ namespace Eagle
 
 		Ref<Image> GetSSAOResult() const { return m_SSAOTask ? m_SSAOTask->GetResult() : nullptr; }
 		Ref<Image> GetGTAOResult() const { return m_GTAOTask ? m_GTAOTask->GetResult() : nullptr; }
+		Ref<Image> GetGTAOBentNormals() const { return m_GTAOTask ? m_GTAOTask->GetBentNormals() : nullptr; }
 		const Ref<Image>& GetScreenSpaceShadows() const { return m_ScreenSpaceShadows->GetResult(); }
 		// ------------------------------------------------
 
