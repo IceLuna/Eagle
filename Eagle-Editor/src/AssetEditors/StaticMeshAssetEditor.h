@@ -21,6 +21,5 @@ namespace Eagle
 		Ref<AssetStaticMesh> m_Asset;
 		StaticMeshComponent* m_Component = nullptr; // Not owning
 		std::string m_WindowName;
-		bool bDrawAABB = false;
 	};
 }

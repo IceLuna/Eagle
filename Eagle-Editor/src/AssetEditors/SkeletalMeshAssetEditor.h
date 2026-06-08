@@ -86,6 +86,5 @@ namespace Eagle
 		bool bVisualizeRagdollBones = true;
 		bool bVisualizeBoneDirection = false;
 		bool bEnableDebugLinesDepthTest = false;
-		bool bDrawAABB = false;
 	};
 }

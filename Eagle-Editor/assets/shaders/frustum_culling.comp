@@ -98,6 +98,17 @@ layout(scalar, binding = 10) readonly buffer InputSkeletalPushDataBuffer
 {
     SkeletalPushData g_InputSkeletalPushData[];
 };
+
+struct AABB
+{
+	vec3 Min;
+	vec3 Max;
+};
+
+layout(scalar, binding = 11) readonly buffer InputSkeletalAABBsBuffer
+{
+    AABB g_AABBs[];
+};
 #endif
 
 layout(push_constant) uniform PushData
@@ -149,9 +160,16 @@ void main()
 
 #ifdef EG_SKELETAL
             instance.VertexOffset = pushData.VerticesOffset + pushData.VertexCount * i;
+
+            const AABB aabb = g_AABBs[transformIndex];
+            const vec3 aabbMin = aabb.Min;
+            const vec3 aabbMax = aabb.Max;
+#else
+            const vec3 aabbMin = mesh.MinAABB;
+            const vec3 aabbMax = mesh.MaxAABB;
 #endif
             
-            const bool bVisible = FrustumAABBIntersection(g_Frustum, g_View * model, mesh.MinAABB, mesh.MaxAABB);
+            const bool bVisible = FrustumAABBIntersection(g_Frustum, g_View * model, aabbMin, aabbMax);
             if (bVisible)
             {
                 uint offset;

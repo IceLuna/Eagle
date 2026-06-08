@@ -207,8 +207,8 @@ namespace Eagle
 
 			renderer->m_LightsManagerTask->RecordCommandBuffer(cmd);
 			renderer->m_GeometryManagerTask->RecordCommandBuffer(cmd);
-			renderer->m_FrustumCullingTask->RecordCommandBuffer(cmd);
 			renderer->m_SkinCacheTask->RecordCommandBuffer(cmd);
+			renderer->m_FrustumCullingTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderMeshesTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderSpritesTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderSkeletalMeshesTask->RecordCommandBuffer(cmd);

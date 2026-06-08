@@ -177,6 +177,7 @@ namespace Eagle
 		const auto& GetSkeletalMeshesBuffers() const { return m_GeometryManagerTask->GetSkeletalMeshesBuffers(); }
 		const auto& GetSkeletalMeshes() const { return m_GeometryManagerTask->GetSkeletalMeshes(); }
 		const auto& GetSkinnedVertices() const { return m_SkinCacheTask->GetSkinnedVertices(); }
+		const auto& GetSkinnedAABBs() const { return m_SkinCacheTask->GetSkinnedAABBs(); }
 		const auto& GetPrevSkinnedVerticesPositions() const { return m_SkinCacheTask->GetPrevSkinnedVerticesPositions(); }
 
 		const auto& GetFrustumCullingTask() const { return m_FrustumCullingTask; }

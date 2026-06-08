@@ -1,0 +1,36 @@
+#extension GL_EXT_scalar_block_layout : require
+
+#include "defines.h"
+#include "skin_cache/skin_cache_utils.h"
+
+layout(scalar, binding = 0)
+buffer MeshAABBsBuffer
+{
+    UAABB g_AABBs[];
+};
+
+layout(push_constant) uniform PushData
+{
+    uint g_Count;
+};
+
+#define GROUP_SIZE 128
+layout(local_size_x = GROUP_SIZE) in;
+
+void main()
+{
+    const uint index = gl_GlobalInvocationID.x;
+    if (index >= g_Count)
+    {
+        return;
+    }
+
+    const uint fltMax = floatToUintSortable(+FLT_MAX);
+    const uint fltMin = floatToUintSortable(-FLT_MAX);
+
+    UAABB aabb;
+	aabb.Min = uvec3(fltMax);
+	aabb.Max = uvec3(fltMin);
+
+    g_AABBs[index] = aabb;
+}

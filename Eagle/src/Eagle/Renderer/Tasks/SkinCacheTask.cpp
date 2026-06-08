@@ -9,6 +9,8 @@
 
 namespace Eagle
 {
+	constexpr static uint32_t s_AABBSize = sizeof(glm::vec3) * 2;
+
 	SkinCacheTask::SkinCacheTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
@@ -21,6 +23,18 @@ namespace Eagle
 		specs.Layout = BufferLayoutType::StorageBuffer;
 		specs.Usage = BufferUsage::StorageBuffer;
 		m_SkinnedVertices = Buffer::Create(specs, "SkinnedVertices");
+
+		specs.Size = 100 * s_AABBSize;
+		m_AABBs = Buffer::Create(specs, "SkinnedAABBs");
+
+		{
+			PipelineComputeState state;
+			state.ComputeShader = Shader::Create("skin_cache/skin_cache_clear_aabb.comp", ShaderType::Compute);
+			m_ClearAABBPipeline = PipelineCompute::Create(state);
+
+			state.ComputeShader = Shader::Create("skin_cache/skin_cache_prepare_aabb.comp", ShaderType::Compute);
+			m_PrepareAABBPipeline = PipelineCompute::Create(state);
+		}
 	}
 
 	void SkinCacheTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
@@ -34,9 +48,12 @@ namespace Eagle
 
 		// TODO: Maybe precalculate it in the GeometryManager?
 		size_t totalVertices = 0;
-		for (auto& [meshKey, instances] : meshes)
+		size_t numInstances = 0;
+		for (const auto& [meshKey, instances] : meshes)
 		{
-			totalVertices += meshKey.Mesh->GetVerticesCount() * instances.size();
+			const size_t instanceCount = instances.size();
+			totalVertices += meshKey.Mesh->GetVerticesCount() * instanceCount;
+			numInstances += instanceCount;
 		}
 
 		if (bMotionRequired)
@@ -66,14 +83,34 @@ namespace Eagle
 			bVerticesValid = false;
 		}
 
+		// Allocate AABB buffer
+		const size_t requiredAABBSize = numInstances * s_AABBSize;
+		if (requiredAABBSize > m_AABBs->GetSize())
+		{
+			m_AABBs->Resize((requiredAABBSize * 12) / 10);
+		}
+
+		// Clear AABBs
+		{
+			const glm::uvec3 groupSize = m_ClearAABBPipeline->GetWorkGroupSize();
+			const uint32_t numGroups = CalcNumGroups(uint32_t(numInstances), groupSize.x);
+
+			m_ClearAABBPipeline->SetBuffer(m_AABBs, 0, 0);
+
+			cmd->Barrier(m_AABBs);
+			cmd->Dispatch(m_ClearAABBPipeline, numGroups, 1, 1, &numInstances);
+			cmd->Barrier(m_AABBs);
+		}
+
 		auto& stats = m_Renderer.GetStats();
 		const auto& buffers = m_Renderer.GetSkeletalMeshesBuffers();
 		m_Pipeline->SetBuffer(buffers.VertexBuffer, 0, 0);
 		m_Pipeline->SetBuffer(m_SkinnedVertices, 0, 1);
 		m_Pipeline->SetBuffer(m_Renderer.GetSkeletalMeshTransformsBuffer(), 0, 2);
+		m_Pipeline->SetBuffer(m_AABBs, 0, 3);
 		if (bMotionRequired)
 		{
-			m_Pipeline->SetBuffer(m_PrevSkinnedVerticesPosition, 0, 3);
+			m_Pipeline->SetBuffer(m_PrevSkinnedVerticesPosition, 0, 4);
 		}
 		m_Pipeline->SetBufferArray(m_Renderer.GetAnimationTransformsBuffers(), 1, 0);
 
@@ -91,7 +128,7 @@ namespace Eagle
 		pushData.PrevVerticesValid = bVerticesValid ? 1u : 0u;
 
 		uint32_t dstOffset = 0;
-		for (auto& [meshKey, instances] : meshes)
+		for (const auto& [meshKey, instances] : meshes)
 		{
 			auto& mesh = meshKey.Mesh;
 			const uint32_t verticesCount = (uint32_t)mesh->GetVerticesCount();
@@ -121,6 +158,18 @@ namespace Eagle
 		cmd->TransitionLayout(buffers.VertexBuffer, BufferLayoutType::StorageBuffer, BufferReadAccess::Vertex);
 		cmd->Barrier(m_SkinnedVertices);
 
+		// Prepare AABBs for use by other passes
+		{
+			const glm::uvec3 groupSize = m_PrepareAABBPipeline->GetWorkGroupSize();
+			const uint32_t numGroups = CalcNumGroups(uint32_t(numInstances), groupSize.x);
+
+			m_PrepareAABBPipeline->SetBuffer(m_AABBs, 0, 0);
+
+			cmd->Barrier(m_AABBs);
+			cmd->Dispatch(m_PrepareAABBPipeline, numGroups, 1, 1, &numInstances);
+			cmd->Barrier(m_AABBs);
+		}
+
 		bVerticesValid = true;
 	}
 	
@@ -132,7 +181,7 @@ namespace Eagle
 			defines["EG_OUTPUT_PREV_POSITION"] = "";
 		}
 		PipelineComputeState state;
-		state.ComputeShader = Shader::Create("skin_cache.comp", ShaderType::Compute, defines);
+		state.ComputeShader = Shader::Create("skin_cache/skin_cache.comp", ShaderType::Compute, defines);
 		m_Pipeline = PipelineCompute::Create(state);
 	}
 }

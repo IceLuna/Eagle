@@ -75,7 +75,7 @@ namespace Eagle
 
 	static void Cull_Internal(const Ref<CommandBuffer>& cmd, const Ref<PipelineCompute>& pipeline, const CullingFrustumData& frustum, RenderStats& stats,
 		const Ref<Buffer>& transforms, const FrustumCulledMeshes::PerSideData::Data& data, const Ref<Buffer>& origIVB, const Ref<Buffer>& culledInstanceBuffer, const Ref<Buffer>& unculledInstanceBuffer,
-		uint32_t maxDrawCalls, bool bSkeletal, FrustumCullingResult* result)
+		uint32_t maxDrawCalls, bool bSkeletal, const Ref<Buffer>& aabbs, FrustumCullingResult* result)
 	{
 		const uint32_t numMeshes = data.GetNumMeshes();
 		if (numMeshes == 0)
@@ -106,6 +106,7 @@ namespace Eagle
 		if (bSkeletal)
 		{
 			pipeline->SetBuffer(data.SkeletalPushDatasBuffer, 0, 10);
+			pipeline->SetBuffer(aabbs, 0, 11);
 		}
 
 		cmd->FillBuffer(result->DrawCountBuffer, 0);
@@ -177,7 +178,7 @@ namespace Eagle
 	}
 
 	static void CullMeshes(const Ref<CommandBuffer>& cmd, const Ref<PipelineCompute>& pipeline, const CullingFrustumData& frustum, RenderStats& stats,
-		const Ref<Buffer>& transforms, const Ref<Buffer>& origInstanceBuffer, const MeshesDrawLists& drawData, bool bSkeletal, FrustumCulledMeshes* output)
+		const Ref<Buffer>& transforms, const Ref<Buffer>& origInstanceBuffer, const MeshesDrawLists& drawData, bool bSkeletal, const Ref<Buffer>& aabbs, FrustumCulledMeshes* output)
 	{
 		HandleInstanceBufferAllocation(output->InstanceBuffer, origInstanceBuffer);
 		HandleInstanceBufferAllocation(output->UnculledInstanceBuffer, origInstanceBuffer);
@@ -193,37 +194,37 @@ namespace Eagle
 			const auto& meshes = drawData.SingleSided.Opaque;
 			auto& datas = output->SingleSided.BlendModes[uint32_t(MaterialBlendMode::Opaque)];
 			Prepare(cmd, meshes, bSkeletal, datas);
-			Cull_Internal(cmd, pipeline, frustum, stats, transforms, datas, origInstanceBuffer, output->InstanceBuffer, output->UnculledInstanceBuffer, meshes.DrawCallsCount, bSkeletal, &datas.Result);
+			Cull_Internal(cmd, pipeline, frustum, stats, transforms, datas, origInstanceBuffer, output->InstanceBuffer, output->UnculledInstanceBuffer, meshes.DrawCallsCount, bSkeletal, aabbs, & datas.Result);
 		}
 		{
 			const auto& meshes = drawData.SingleSided.Masked;
 			auto& datas = output->SingleSided.BlendModes[uint32_t(MaterialBlendMode::Masked)];
 			Prepare(cmd, meshes, bSkeletal, datas);
-			Cull_Internal(cmd, pipeline, frustum, stats, transforms, datas, origInstanceBuffer, output->InstanceBuffer, output->UnculledInstanceBuffer, meshes.DrawCallsCount, bSkeletal, &datas.Result);
+			Cull_Internal(cmd, pipeline, frustum, stats, transforms, datas, origInstanceBuffer, output->InstanceBuffer, output->UnculledInstanceBuffer, meshes.DrawCallsCount, bSkeletal, aabbs, & datas.Result);
 		}
 		{
 			const auto& meshes = drawData.SingleSided.Translucent;
 			auto& datas = output->SingleSided.BlendModes[uint32_t(MaterialBlendMode::Translucent)];
 			Prepare(cmd, meshes, bSkeletal, datas);
-			Cull_Internal(cmd, pipeline, frustum, stats, transforms, datas, origInstanceBuffer, output->InstanceBuffer, output->UnculledInstanceBuffer, meshes.DrawCallsCount, bSkeletal, &datas.Result);
+			Cull_Internal(cmd, pipeline, frustum, stats, transforms, datas, origInstanceBuffer, output->InstanceBuffer, output->UnculledInstanceBuffer, meshes.DrawCallsCount, bSkeletal, aabbs, & datas.Result);
 		}
 		{
 			const auto& meshes = drawData.DoubleSided.Opaque;
 			auto& datas = output->DoubleSided.BlendModes[uint32_t(MaterialBlendMode::Opaque)];
 			Prepare(cmd, meshes, bSkeletal, datas);
-			Cull_Internal(cmd, pipeline, frustum, stats, transforms, datas, origInstanceBuffer, output->InstanceBuffer, output->UnculledInstanceBuffer, meshes.DrawCallsCount, bSkeletal, &datas.Result);
+			Cull_Internal(cmd, pipeline, frustum, stats, transforms, datas, origInstanceBuffer, output->InstanceBuffer, output->UnculledInstanceBuffer, meshes.DrawCallsCount, bSkeletal, aabbs, & datas.Result);
 		}
 		{
 			const auto& meshes = drawData.DoubleSided.Masked;
 			auto& datas = output->DoubleSided.BlendModes[uint32_t(MaterialBlendMode::Masked)];
 			Prepare(cmd, meshes, bSkeletal, datas);
-			Cull_Internal(cmd, pipeline, frustum, stats, transforms, datas, origInstanceBuffer, output->InstanceBuffer, output->UnculledInstanceBuffer, meshes.DrawCallsCount, bSkeletal, &datas.Result);
+			Cull_Internal(cmd, pipeline, frustum, stats, transforms, datas, origInstanceBuffer, output->InstanceBuffer, output->UnculledInstanceBuffer, meshes.DrawCallsCount, bSkeletal, aabbs, & datas.Result);
 		}
 		{
 			const auto& meshes = drawData.DoubleSided.Translucent;
 			auto& datas = output->DoubleSided.BlendModes[uint32_t(MaterialBlendMode::Translucent)];
 			Prepare(cmd, meshes, bSkeletal, datas);
-			Cull_Internal(cmd, pipeline, frustum, stats, transforms, datas, origInstanceBuffer, output->InstanceBuffer, output->UnculledInstanceBuffer, meshes.DrawCallsCount, bSkeletal, &datas.Result);
+			Cull_Internal(cmd, pipeline, frustum, stats, transforms, datas, origInstanceBuffer, output->InstanceBuffer, output->UnculledInstanceBuffer, meshes.DrawCallsCount, bSkeletal, aabbs, &datas.Result);
 		}
 
 		cmd->TransitionLayout(origInstanceBuffer, BufferLayoutType::StorageBuffer, origIvbLayout);
@@ -264,6 +265,7 @@ namespace Eagle
 
 	void FrustumCullingTask::CullStaticMeshes(const Ref<CommandBuffer>& cmd)
 	{
+		static Ref<Buffer> s_NullBuffer;
 		const auto& buffers = m_Renderer.GetStaticMeshesBuffers();
 		const auto& ivb = buffers.InstanceBuffer;
 		const auto& drawData = m_Renderer.GetStaticMeshesDrawData();
@@ -273,7 +275,7 @@ namespace Eagle
 		constexpr bool bSkeletal = false;
 		auto& stats = m_Renderer.GetStats();
 
-		CullMeshes(cmd, pipeline, frustum, stats, transforms, ivb, drawData, bSkeletal, &m_CulledStaticMeshes);
+		CullMeshes(cmd, pipeline, frustum, stats, transforms, ivb, drawData, bSkeletal, s_NullBuffer, &m_CulledStaticMeshes);
 	}
 
 	void FrustumCullingTask::CullSkeletalMeshes(const Ref<CommandBuffer>& cmd)
@@ -284,9 +286,10 @@ namespace Eagle
 		const auto& transforms = m_Renderer.GetSkeletalMeshTransformsBuffer();
 		const auto& frustum = m_Renderer.GetCullingFrustumData();
 		const auto& pipeline = m_SkeletalFrustumCulling;
+		const auto& aabbs = m_Renderer.GetSkinnedAABBs();
 		constexpr bool bSkeletal = true;
 		auto& stats = m_Renderer.GetStats();
-		CullMeshes(cmd, pipeline, frustum, stats, transforms, ivb, drawData, bSkeletal, &m_CulledSkeletalMeshes);
+		CullMeshes(cmd, pipeline, frustum, stats, transforms, ivb, drawData, bSkeletal, aabbs, &m_CulledSkeletalMeshes);
 	}
 
 	void FrustumCulledMeshes::PerSideData::Data::Init(bool bSkeletalMeshes)

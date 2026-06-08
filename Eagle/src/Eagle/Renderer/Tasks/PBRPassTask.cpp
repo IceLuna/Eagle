@@ -98,7 +98,7 @@ namespace Eagle
 		m_Pipeline->SetImageSampler(smDistribution, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SM_DISTRIBUTION);
 		m_Pipeline->SetImageSampler(ssaoImage, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SSAO);
 		m_Pipeline->SetImageSampler(bentNormalsImage, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_BENT_NORMALS);
-		m_Pipeline->SetImageSampler(m_Renderer.GetScreenSpaceShadows(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SCREEN_SPACE_SHADOWS);
+		m_Pipeline->SetImageSampler(m_Renderer.GetScreenSpaceShadows(), Sampler::BilinearSampler, EG_SCENE_SET, EG_BINDING_SCREEN_SPACE_SHADOWS);
 
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetDirectionalLightShadowMaps(), m_Renderer.GetShadowMapPCFSampler(), EG_SCENE_SET, EG_BINDING_CSM_SHADOW_MAPS);
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetPointLightShadowMaps(), m_Renderer.GetShadowMapPCFSampler(), 2, 0);

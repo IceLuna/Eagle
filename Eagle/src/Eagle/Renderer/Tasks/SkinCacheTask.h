@@ -26,14 +26,18 @@ namespace Eagle
 		}
 
 		const Ref<Buffer>& GetSkinnedVertices() const { return m_SkinnedVertices; }
+		const Ref<Buffer>& GetSkinnedAABBs() const { return m_AABBs; }
 		const Ref<Buffer>& GetPrevSkinnedVerticesPositions() const { return m_PrevSkinnedVerticesPosition; }
 
 	private:
 		void InitPipeline();
 
 	private:
+		Ref<PipelineCompute> m_ClearAABBPipeline;
+		Ref<PipelineCompute> m_PrepareAABBPipeline;
 		Ref<PipelineCompute> m_Pipeline;
 		Ref<Buffer> m_SkinnedVertices;
+		Ref<Buffer> m_AABBs;
 		Ref<Buffer> m_PrevSkinnedVerticesPosition;
 		bool bMotionRequired = false;
 		bool bVerticesValid = false;

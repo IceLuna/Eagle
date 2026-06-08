@@ -1,7 +1,10 @@
 #extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_KHR_shader_subgroup_arithmetic : require
+#extension GL_EXT_scalar_block_layout : require
 
 #include "defines.h"
 #include "utils.h"
+#include "skin_cache/skin_cache_utils.h"
 
 #include "skeletal_mesh_vertex_input_layout.h"
 
@@ -23,8 +26,14 @@ readonly buffer MeshTransformsBuffer
     mat4 g_Transforms[];
 };
 
-#ifdef EG_OUTPUT_PREV_POSITION
 layout(scalar, set = 0, binding = 3)
+buffer MeshAABBsBuffer
+{
+    UAABB g_AABBs[];
+};
+
+#ifdef EG_OUTPUT_PREV_POSITION
+layout(scalar, set = 0, binding = 4)
 buffer PrevSkinnedVertices
 {
     vec3 g_PrevSkinnedVerticesPositions[];
@@ -48,6 +57,8 @@ layout(push_constant) uniform PushData
 #endif
 };
 
+shared UAABB s_AABB;
+
 #define GROUP_SIZE 128
 layout(local_size_x = GROUP_SIZE) in;
 
@@ -58,6 +69,13 @@ void main()
     {
         return;
     }
+
+    const uint threadIndex = gl_LocalInvocationIndex;
+    if (threadIndex == 0)
+	{
+		s_AABB.Min = floatToUintSortable(vec3(+FLT_MAX));
+		s_AABB.Max = floatToUintSortable(vec3(-FLT_MAX));
+	}
 
     const uint vertexIndex = threadID + g_VerticesOffset;
     const uint dstIndex = g_DstOffset + threadID;
@@ -82,9 +100,10 @@ void main()
 
     // They're the same
     const uint transformIndex = g_AnimIndex;
+    const vec4 vertexPosition = boneTransform * vec4(vertex.Position, 1.0);
 
     Vertex skinnedVertex;
-    skinnedVertex.Position = (g_Transforms[transformIndex] * boneTransform * vec4(vertex.Position, 1.0)).xyz;
+    skinnedVertex.Position = (g_Transforms[transformIndex] * vertexPosition).xyz;
     skinnedVertex.Normal   = mat3(boneTransform) * vertex.Normal;
     skinnedVertex.Tangent  = mat3(boneTransform) * vertex.Tangent;
     skinnedVertex.TexCoords  = vertex.TexCoords;
@@ -97,4 +116,25 @@ void main()
 #endif
 
     g_SkinnedVertices[dstIndex] = skinnedVertex;
+
+    // Calculate AABB min/max
+    {
+        barrier();
+
+        const vec3 aabbMin = subgroupMin(vertexPosition.xyz);
+	    const vec3 aabbMax = subgroupMax(vertexPosition.xyz);
+	    if (subgroupElect())
+	    {
+            doAtomicMin(s_AABB.Min, floatToUintSortable(aabbMin));
+            doAtomicMax(s_AABB.Max, floatToUintSortable(aabbMax));
+	    }
+
+        barrier();
+        if (threadIndex == 0)
+        {
+            // Write to global memory
+            doAtomicMin(g_AABBs[transformIndex].Min, s_AABB.Min);
+            doAtomicMax(g_AABBs[transformIndex].Max, s_AABB.Max);
+        }
+    }
 }

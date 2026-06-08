@@ -16,9 +16,6 @@ namespace Eagle
 		"objects closer to the correct value given the restitution.";
 	static const char* s_CollisionDetectionTypeHelpMsg = "When continuous collision detection (or CCD) is turned on, the affected rigid bodies will not go through other objects at high velocities (a problem also known as tunnelling). "
 		"A cheaper but less robust approach is called speculative CCD";
-	static const char* s_AABBHelpMsg = "If AABB is not visible by the camera, the mesh is not rendered.\n"
-		"It makes sense to increase it manually for skeletal meshes if an animation moves the mesh beyond the bounding box. So, to prevent culling it in such cases, increase AABB.\n"
-		"But for optimization reasons, keep AABB as small as possible";
 
 	static bool HasBoneWithName(const BoneNode& node, const std::string& name)
 	{
@@ -474,31 +471,6 @@ namespace Eagle
 			UI::EndPropertyGrid();
 
 			ImGui::TreePop();
-		}
-
-		if (ImGui::TreeNodeEx("AABB", ImGuiTreeNodeFlags_Framed))
-		{
-			UI::BeginPropertyGrid("SkeletalMeshDetails");
-			bool bAABBChanged = false;
-			AABB aabb = mesh->GetAABB();
-			bAABBChanged |= UI::PropertyDrag("Min", aabb.Min, 0.1f, 0, 0, s_AABBHelpMsg);
-			bAABBChanged |= UI::PropertyDrag("Max", aabb.Max, 0.1f, 0, 0, s_AABBHelpMsg);
-			UI::Property("Visualize", bDrawAABB);
-			if (bAABBChanged)
-			{
-				mesh->SetAABB(aabb);
-				bChanged = true;
-				if (auto& scene = Scene::GetCurrentScene())
-					scene->SetSkeletalMeshesDirty(true);
-			}
-			UI::EndPropertyGrid();
-			ImGui::TreePop();
-		}
-
-		if (bDrawAABB)
-		{
-			const AABB& aabb = mesh->GetAABB();
-			GetCurrentScene()->DrawAABB(aabb, Transform{});
 		}
 
 		if (ImGui::TreeNodeEx("Preview Settings", ImGuiTreeNodeFlags_Framed))
