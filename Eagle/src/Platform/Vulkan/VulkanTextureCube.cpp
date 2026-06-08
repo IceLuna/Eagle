@@ -148,11 +148,6 @@ namespace Eagle
 
 		RenderManager::Submit([texture = shared_from_this()](const Ref<CommandBuffer>& cmd)
 		{
-			struct PushData
-			{
-				glm::mat4 VP;
-			} pushData;
-
 			Ref<PipelineGraphics>& iblPipeline = texture->GetIBLPipeline();
 			Ref<PipelineGraphics>& irradiancePipeline = texture->GetIrradiancePipeline();
 			Ref<PipelineGraphics>& prefilterPipeline = texture->GetPrefilterPipeline();
@@ -163,9 +158,8 @@ namespace Eagle
 
 			for (uint32_t i = 0; i < texture->m_Framebuffers.size(); ++i)
 			{
-				pushData.VP = g_CaptureVPs[i];
 				cmd->BeginGraphics(iblPipeline, texture->m_Framebuffers[i]);
-				cmd->SetGraphicsRootConstants(&pushData, nullptr);
+				cmd->SetGraphicsRootConstants(&g_CaptureVPs[i], nullptr);
 				cmd->Draw(36, 0);
 				cmd->EndGraphics();
 			}
@@ -180,9 +174,8 @@ namespace Eagle
 
 			for (uint32_t i = 0; i < texture->m_IrradianceFramebuffers.size(); ++i)
 			{
-				pushData.VP = g_CaptureVPs[i];
 				cmd->BeginGraphics(irradiancePipeline, texture->m_IrradianceFramebuffers[i]);
-				cmd->SetGraphicsRootConstants(&pushData, nullptr);
+				cmd->SetGraphicsRootConstants(&g_CaptureVPs[i], nullptr);
 				cmd->Draw(36, 0);
 				cmd->EndGraphics();
 			}
@@ -201,9 +194,8 @@ namespace Eagle
 				auto& currentLayers = texture->m_PrefilterFramebuffers[mip];
 				for (uint32_t layer = 0; layer < currentLayers.size(); ++layer)
 				{
-					pushData.VP = g_CaptureVPs[layer];
 					cmd->BeginGraphics(prefilterPipeline, currentLayers[layer]);
-					cmd->SetGraphicsRootConstants(&pushData, &fragmentPushData);
+					cmd->SetGraphicsRootConstants(&g_CaptureVPs[layer], &fragmentPushData);
 					cmd->Draw(36, 0);
 					cmd->EndGraphics();
 				}

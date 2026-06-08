@@ -69,7 +69,6 @@ namespace Eagle
 
 	static CMP_FORMAT GetCompressionFormat_BC(uint32_t numChannels, TextureCompressor::TextureType type, TextureCompressor::Quality quality)
 	{
-		// TODO: What about BC7?
 		using TT = TextureCompressor::TextureType;
 
 		if (type == TT::HDR)
@@ -228,7 +227,7 @@ namespace Eagle
 			s_GetCompressionFormatFunc = nullptr;
 			s_FromCMPFormatFunc = nullptr;
 			s_IsFormatSupportedFunc = nullptr;
-			EG_CORE_WARN("Texture compression is not supported by the current device: {}. Currently, only BC and ETC2 compression are supported by the engine", caps.Device);
+			EG_CORE_WARN("Texture compression is not supported by the current device: {}. Currently, only BC and ETC2 compressions are supported by the engine", caps.Device);
 		}
 	}
 

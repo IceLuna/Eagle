@@ -82,7 +82,6 @@ namespace Eagle
 	public:
 		static Ref<Texture2D> Create(const Path& path, const Texture2DSpecifications& specs = {});
 
-		// @name is assigned to m_Path so that in TextureLibrary we can differentiate it from other manually created textures
 		static Ref<Texture2D> Create(const std::string& name, ImageFormat format, glm::uvec2 size, const void* data = nullptr, const Texture2DSpecifications& properties = {});
 		// @dataPerMip. Data to upload to each mip of a GPU texture
 		static Ref<Texture2D> Create(const std::string& name, ImageFormat format, glm::uvec2 size, const std::vector<ScopedDataBuffer>& dataPerMip, const Texture2DSpecifications& properties = {});
