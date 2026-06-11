@@ -164,7 +164,7 @@ namespace Eagle
 	bool AssetTextureCube::SetFormat(AssetTextureCubeFormat format)
 	{
 		if (m_Format == format)
-			return false;
+			return true;
 
 		int width, height, channels;
 		const ImageFormat desiredFormat = AssetTextureFormatToImageFormat(format);
@@ -175,10 +175,27 @@ namespace Eagle
 			return false;
 		}
 
-		m_Texture->SetData(imageData.GetDataBuffer(), desiredFormat);
-
+		m_Texture->SetData(imageData.GetDataBuffer(), desiredFormat, IsCompressed());
 		m_Format = format;
 
+		return true;
+	}
+
+	bool AssetTextureCube::SetCompressed(bool bCompress)
+	{
+		if (IsCompressed() == bCompress)
+			return true;
+
+		int width, height, channels;
+		const ImageFormat desiredFormat = AssetTextureFormatToImageFormat(m_Format);
+		ScopedDataBuffer imageData = Utils::LoadHDRTextureFromMemory(m_RawData, &width, &height, &channels, desiredFormat);
+		if (!imageData)
+		{
+			EG_CORE_ERROR("Failed to change compression of TextureCube asset. Failed to load the texture data from memory: {} - {}", m_Path, Utils::GetEnumName(m_Format));
+			return false;
+		}
+
+		m_Texture->SetData(imageData.GetDataBuffer(), desiredFormat, bCompress);
 		return true;
 	}
 

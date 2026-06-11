@@ -9,6 +9,17 @@
 
 namespace Eagle
 {
+	VulkanTexture2D::VulkanTexture2D(ImageFormat format, glm::uvec2 size, const std::string& debugName)
+		: Texture2D(format, size, Texture2DSpecifications{}), m_DebugName(debugName)
+	{
+		m_Image = CreateImage();
+
+		const uint32_t mipsCount = m_Image->GetMipsCount();
+		m_Sampler = Sampler::Create(m_Specs.FilterMode, m_Specs.AddressMode, CompareOperation::Never, 0.f, float(mipsCount - 1), m_Specs.MaxAnisotropy);
+
+		m_bIsLoaded = true;
+	}
+
 	VulkanTexture2D::VulkanTexture2D(ImageFormat format, glm::uvec2 size, const void* data, const Texture2DSpecifications& specs, const std::string& debugName)
 		: Texture2D(format, size, specs), m_DebugName(debugName)
 	{

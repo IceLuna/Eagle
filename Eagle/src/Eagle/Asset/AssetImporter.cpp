@@ -291,7 +291,7 @@ namespace Eagle
 		const auto& textureSettings = settings.TextureCubeSettings;
 
 		auto data = Serializer::SerializeAssetTextureCubeFromData(buffer.GetDataBuffer(), GUID{}, pathToRaw,
-			textureSettings.ImportFormat, textureSettings.LayerSize, textureSettings.PrefilterSize);
+			textureSettings.ImportFormat, textureSettings.LayerSize, textureSettings.PrefilterSize, textureSettings.bCompress);
 		FileSystem::Write(outputFilename, data);
 
 		return true;

@@ -226,9 +226,7 @@ namespace Eagle
 		YAML::Emitter shaderPackOut;
 		std::thread buildThread([&outputFolder, &shaderPackOut, &gameExeFile]()
 		{
-			shaderPackOut << YAML::BeginMap;
 			ShaderManager::BuildShaderPack(shaderPackOut);
-			shaderPackOut << YAML::EndMap;
 
 			// Creating a renderer config file
 			{
@@ -290,13 +288,9 @@ namespace Eagle
 		SaveCollisionGroups(out, s_Info);
 		out << YAML::EndMap;
 
-		std::string yamlStr = out.c_str();
-		yamlStr += '\n';
-		buildThread.join();
-		yamlStr += shaderPackOut.c_str();
-
 		// Compress and save
 		{
+			std::string yamlStr = out.c_str();
 			AssetHeader header = Utils::CreateHeader(yamlStr, &totalSize);
 			ScopedDataBuffer build(totalSize);
 
@@ -327,6 +321,31 @@ namespace Eagle
 			}
 #endif
 		}
+
+		{
+			buildThread.join();
+
+			size_t totalSize = sizeof(AssetHeader);
+			std::string yamlStr = shaderPackOut.c_str();
+			AssetHeader header = Utils::CreateHeader(yamlStr, &totalSize);
+			ScopedDataBuffer build(totalSize);
+
+			size_t offset = 0;
+			Utils::WriteToBuffer(build, &header, sizeof(header), &offset);
+			Utils::WriteStringToBuffer(build, yamlStr, &offset);
+
+			const size_t origSize = build.Size();
+			ScopedDataBuffer compressed = Compressor::Compress(build);
+
+			ScopedDataBuffer outputData(compressed.Size() + sizeof(size_t)); // We append buffer's size at the beginning, so we need room for it
+			outputData.Write(&origSize, sizeof(size_t));
+			outputData.Write(compressed.Data(), compressed.Size(), sizeof(size_t));
+
+			const Path outputFilename = outputFolder / "Data" / "ShaderPack.egspack";
+			FileSystem::Write(outputFilename, outputData.GetDataBuffer());
+		}
+
+		Application::Get().GetImGuiLayer()->AddMessage("The build finished successfully!");
 	}
 	
 	void Project::OpenGameBuild(const Path& filepath)
@@ -354,7 +373,6 @@ namespace Eagle
 		s_Info.Version = baseNode["Version"].as<glm::uvec3>();
 		s_Info.BasePath = Application::GetCorePath();
 
-		ShaderManager::InitGame(baseNode["Shaders"]);
 		GUID startupSceneGUID = GUID(0, 0);
 		if (auto startupSceneNode = baseNode["StartupScene"])
 		{

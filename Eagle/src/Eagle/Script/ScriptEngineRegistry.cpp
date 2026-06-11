@@ -835,9 +835,11 @@ namespace Eagle
 		mono_add_internal_call("Eagle.AssetTextureCube::SetLayerSize_Native", Eagle::Script::Eagle_AssetTextureCube_SetLayerSize);
 		mono_add_internal_call("Eagle.AssetTextureCube::SetPrefilterSize_Native", Eagle::Script::Eagle_AssetTextureCube_SetPrefilterSize);
 		mono_add_internal_call("Eagle.AssetTextureCube::SetFormat_Native", Eagle::Script::Eagle_AssetTextureCube_SetFormat);
+		mono_add_internal_call("Eagle.AssetTextureCube::SetCompressed_Native", Eagle::Script::Eagle_AssetTextureCube_SetCompressed);
 		mono_add_internal_call("Eagle.AssetTextureCube::GetLayerSize_Native", Eagle::Script::Eagle_AssetTextureCube_GetLayerSize);
 		mono_add_internal_call("Eagle.AssetTextureCube::GetPrefilterSize_Native", Eagle::Script::Eagle_AssetTextureCube_GetPrefilterSize);
 		mono_add_internal_call("Eagle.AssetTextureCube::GetFormat_Native", Eagle::Script::Eagle_AssetTextureCube_GetFormat);
+		mono_add_internal_call("Eagle.AssetTextureCube::IsCompressed_Native", Eagle::Script::Eagle_AssetTextureCube_IsCompressed);
 
 		// AssetMaterial
 		mono_add_internal_call("Eagle.AssetMaterial::GetMaterial_Native", Eagle::Script::Eagle_AssetMaterial_GetMaterial);

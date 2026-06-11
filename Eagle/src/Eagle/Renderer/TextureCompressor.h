@@ -7,6 +7,9 @@
 
 namespace Eagle
 {
+	class Image;
+	class CommandBuffer;
+
 	class TextureCompressor
 	{
 	public:
@@ -57,5 +60,19 @@ namespace Eagle
 		// @imageData. Input texture data in RGBA8 format
 		// @size. Texture size
 		static Result CompressDecoded(DataBuffer imageData, glm::uvec2 size, uint32_t targetNumChannels, uint32_t mipsCount, Quality quality, bool bNormalMap, bool bHDR = false);
+
+		// This version of the function performs BC6H compression on the GPU.
+		// @imageData. Input texture data that needs to be compressed
+		// @size. Texture size of `imageData`
+		// @format. Image format of `imageData`
+		// @dst. The destination texture. Needs to have `BC6H_UFloat` format
+		// @return. True on success
+		static bool CompressHDR(const void* imageData, glm::uvec2 size, ImageFormat format, const Ref<Image>& dst);
+
+		// This version of the function performs BC6H compression on the GPU. Supports compression of cube images. Supports mips generation
+		// @cmd. Command buffer to use for recording
+		// @src. Source texture
+		// @return. On success, returns a valid BC6H image
+		static Ref<Image> CompressHDR(const Ref<CommandBuffer>& cmd, const Ref<Image>& src);
 	};
 }

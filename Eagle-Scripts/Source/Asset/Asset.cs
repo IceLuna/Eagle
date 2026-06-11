@@ -225,11 +225,16 @@ namespace Eagle
 
         public bool SetFormat(AssetTextureCubeFormat format) { return SetFormat_Native(m_GUID, format); }
 
+        public bool SetCompressed(bool bCompress) { return SetCompressed_Native(m_GUID, bCompress); }
+
         public uint GetLayerSize() { return GetLayerSize_Native(m_GUID); }
 
         public uint GetPrefilterSize() { return GetPrefilterSize_Native(m_GUID); }
 
         public AssetTextureCubeFormat GetFormat() { return GetFormat_Native(m_GUID); }
+
+        public bool IsCompressed() { return IsCompressed_Native(m_GUID); }
+
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetLayerSize_Native(GUID id, uint value);
@@ -241,6 +246,9 @@ namespace Eagle
         internal static extern bool SetFormat_Native(GUID id, AssetTextureCubeFormat value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool SetCompressed_Native(GUID id, bool bCompressed);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern uint GetLayerSize_Native(GUID id);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -248,6 +256,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern AssetTextureCubeFormat GetFormat_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsCompressed_Native(GUID id);
     }
 
     public class AssetStaticMesh : Asset

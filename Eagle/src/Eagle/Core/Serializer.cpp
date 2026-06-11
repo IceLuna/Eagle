@@ -597,7 +597,7 @@ namespace Eagle
 			asset->GetFormat(), asset->GetCompressionQuality(), asset->IsNormalMap());
 	}
 
-	ScopedDataBuffer Serializer::SerializeAssetTextureCubeFromData(const DataBuffer& textureData, const GUID& guid, const Path& pathToRaw, AssetTextureCubeFormat format, uint32_t layerSize, uint32_t prefilterSize)
+	ScopedDataBuffer Serializer::SerializeAssetTextureCubeFromData(const DataBuffer& textureData, const GUID& guid, const Path& pathToRaw, AssetTextureCubeFormat format, uint32_t layerSize, uint32_t prefilterSize, bool bCompress)
 	{
 		size_t totalSize = sizeof(AssetHeader);
 
@@ -615,6 +615,7 @@ namespace Eagle
 		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(format);
 		out << YAML::Key << "LayerSize" << YAML::Value << layerSize;
 		out << YAML::Key << "PrefilterSize" << YAML::Value << prefilterSize;
+		out << YAML::Key << "Compress" << YAML::Value << bCompress;
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
 		out << YAML::Key << "OrigSize" << YAML::Value << origDataSize;
@@ -639,7 +640,7 @@ namespace Eagle
 	{
 		const auto& textureCube = asset->GetTexture();
 		return SerializeAssetTextureCubeFromData(asset->GetRawData().GetDataBuffer(), asset->GetGUID(), asset->GetPathToRaw(),
-			asset->GetFormat(), textureCube->GetSize().x, textureCube->GetPrefilterSize());
+			asset->GetFormat(), textureCube->GetSize().x, textureCube->GetPrefilterSize(), textureCube->IsCompressed());
 	}
 
 	ScopedDataBuffer Serializer::SerializeAssetStaticMeshFromMesh(const Ref<StaticMesh>& mesh, const GUID& guid, const Path& pathToRaw)
@@ -3551,8 +3552,11 @@ namespace Eagle
 		const AssetTextureCubeFormat assetFormat = Utils::GetEnumFromName<AssetTextureCubeFormat>(baseNode["Format"].as<std::string>());
 		const uint32_t layerSize = baseNode["LayerSize"].as<uint32_t>();
 		uint32_t prefilterSize = layerSize;
+		bool bCompress = true;
 		if (auto prefilterNode = baseNode["PrefilterSize"])
 			prefilterSize = prefilterNode.as<uint32_t>();
+		if (auto node = baseNode["Compress"])
+			bCompress = node.as<bool>();
 
 		ScopedDataBuffer binary;
 		if (bReloadRaw)
@@ -3587,7 +3591,7 @@ namespace Eagle
 		};
 
 		Ref<AssetTextureCube> asset = MakeRef<LocalAssetTextureCube>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(),
-			TextureCube::Create(Utils::AsString(pathToAsset.stem()), desiredFormat, imageData.Data(), glm::uvec2(width, height), layerSize, prefilterSize), assetFormat);
+			TextureCube::Create(Utils::AsString(pathToAsset.stem()), desiredFormat, imageData.Data(), glm::uvec2(width, height), layerSize, prefilterSize, bCompress), assetFormat);
 
 		return asset;
 	}

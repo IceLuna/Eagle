@@ -264,13 +264,15 @@ namespace Eagle
 	
 	bool AssetManager::Get(const Path& path, Ref<Asset>* outAsset)
 	{
-		std::scoped_lock lock(s_Mutex);
-
-		auto it = s_Assets.find(path);
-		if (it != s_Assets.end())
 		{
-			*outAsset = it->second;
-			return true;
+			std::scoped_lock lock(s_Mutex);
+
+			auto it = s_Assets.find(path);
+			if (it != s_Assets.end())
+			{
+				*outAsset = it->second;
+				return true;
+			}
 		}
 
 		// Try to load it
@@ -297,20 +299,22 @@ namespace Eagle
 		if (guid.IsNull())
 			return false;
 
-		std::scoped_lock lock(s_Mutex);
-
-		auto it = s_AssetsByGUID.find(guid);
-		if (it != s_AssetsByGUID.end())
 		{
-			*outAsset = it->second;
-			return true;
-		}
+			std::scoped_lock lock(s_Mutex);
 
-		it = s_RuntimeAssets.find(guid);
-		if (it != s_RuntimeAssets.end())
-		{
-			*outAsset = it->second;
-			return true;
+			auto it = s_AssetsByGUID.find(guid);
+			if (it != s_AssetsByGUID.end())
+			{
+				*outAsset = it->second;
+				return true;
+			}
+
+			it = s_RuntimeAssets.find(guid);
+			if (it != s_RuntimeAssets.end())
+			{
+				*outAsset = it->second;
+				return true;
+			}
 		}
 
 		// Try to load it

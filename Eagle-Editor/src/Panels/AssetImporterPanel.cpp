@@ -285,6 +285,7 @@ namespace Eagle
 			}
 		}
 
+		UI::Property("Compress", settings.bCompress);
 		UI::ComboEnum("Format", settings.ImportFormat);
 		if (UI::PropertyDrag("Layer Size", settings.LayerSize, 16.f, 32, 0, "Resolution of a cube side"))
 			settings.LayerSize = glm::clamp(settings.LayerSize, 16u, 4096u);

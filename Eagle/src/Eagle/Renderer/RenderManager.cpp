@@ -483,7 +483,7 @@ namespace Eagle
 		InitBlueNoise();
 		InitWhiteNoise();
 
-		s_RendererData->DummyIBL = TextureCube::Create(Texture2D::BlackTexture, 1, 1);
+		s_RendererData->DummyIBL = TextureCube::Create(Texture2D::BlackTexture, 1, 1, false);
 
 		RenderManager::Submit([](const Ref<CommandBuffer>& cmd)
 		{

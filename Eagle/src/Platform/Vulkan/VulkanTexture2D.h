@@ -8,6 +8,7 @@ namespace Eagle
 	class VulkanTexture2D : public Texture2D, public std::enable_shared_from_this<VulkanTexture2D>
 	{
 	public:
+		VulkanTexture2D(ImageFormat format, glm::uvec2 size, const std::string& debugName = "");
 		VulkanTexture2D(ImageFormat format, glm::uvec2 size, const void* data = nullptr, const Texture2DSpecifications& specs = {}, const std::string& debugName = "");
 		VulkanTexture2D(ImageFormat format, glm::uvec2 size, const std::vector<ScopedDataBuffer>& dataPerMip, const Texture2DSpecifications& specs = {}, const std::string& debugName = "");
 

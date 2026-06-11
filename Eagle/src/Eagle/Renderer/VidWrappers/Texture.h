@@ -107,22 +107,25 @@ namespace Eagle
 	class TextureCube : public Texture
 	{
 	public:
-		TextureCube(ImageFormat format, uint32_t layerSize, uint32_t prefilterSize)
+		TextureCube(ImageFormat format, uint32_t layerSize, uint32_t prefilterSize, bool bCompress)
 			: Texture(format, glm::uvec3(layerSize, layerSize, 1u))
 			, m_PrefilterSize(prefilterSize)
+			, m_Compress(bCompress)
 		{}
 
-		TextureCube(const Ref<Texture2D>& texture, uint32_t layerSize, uint32_t prefilterSize)
+		TextureCube(const Ref<Texture2D>& texture, uint32_t layerSize, uint32_t prefilterSize, bool bCompress)
 			: Texture(texture->GetFormat(), glm::uvec3(layerSize, layerSize, 1))
 			, m_Texture2D(texture)
 			, m_PrefilterSize(prefilterSize)
+			, m_Compress(bCompress)
 		{}
 
 		virtual void SetLayerSize(uint32_t layerSize) = 0;
 		virtual void SetPrefilterSize(uint32_t prefilterSize) = 0;
-		virtual void SetData(DataBuffer data, ImageFormat format) = 0;
+		virtual void SetData(DataBuffer data, ImageFormat format, bool bCompress) = 0;
 
 		uint32_t GetPrefilterSize() const { return m_PrefilterSize; }
+		bool IsCompressed() const { return m_Compress; }
 
 		const Ref<Texture2D>& GetTexture2D() const { return m_Texture2D; };
 
@@ -135,8 +138,8 @@ namespace Eagle
 
 		size_t GetMemoryUsage() const { return m_Image->GetMemoryUsage() + m_IrradianceImage->GetMemoryUsage() + m_PrefilterImage->GetMemoryUsage(); }
 
-		static Ref<TextureCube> Create(const std::string& name, ImageFormat format, const void* data, glm::uvec2 size, uint32_t layerSize, uint32_t prefilterSize = 512);
-		static Ref<TextureCube> Create(const Ref<Texture2D>& texture, uint32_t layerSize, uint32_t prefilterSize = 512);
+		static Ref<TextureCube> Create(const std::string& name, ImageFormat format, const void* data, glm::uvec2 size, uint32_t layerSize, uint32_t prefilterSize = 512, bool bCompress = true);
+		static Ref<TextureCube> Create(const Ref<Texture2D>& texture, uint32_t layerSize, uint32_t prefilterSize = 512, bool bCompress = true);
 
 		static constexpr uint32_t SkyboxSize = 1024;
 		static constexpr uint32_t IrradianceSize = 32;
@@ -147,6 +150,7 @@ namespace Eagle
 		Ref<Sampler> m_PrefilterImageSampler;
 		Ref<Texture2D> m_Texture2D; // Null for game builds
 		uint32_t m_PrefilterSize;
+		bool m_Compress = true;
 		bool m_Loaded = false; // Set to false during IBL generation. Set to true, when IBL data is generated and ready to be used
 	};
 }

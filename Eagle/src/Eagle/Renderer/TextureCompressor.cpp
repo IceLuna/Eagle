@@ -1,6 +1,10 @@
 #include "egpch.h"
 #include "TextureCompressor.h"
 #include "Eagle/Core/Application.h"
+#include "Eagle/Renderer/RenderManager.h"
+#include "Eagle/Renderer/VidWrappers/PipelineCompute.h"
+#include "Eagle/Renderer/VidWrappers/Image.h"
+#include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
 
 #include <compressonator/compressonator.h>
 #include <compressonator/common.h>
@@ -10,6 +14,15 @@ namespace Eagle
 	static CMP_FORMAT(*s_GetCompressionFormatFunc)(uint32_t, TextureCompressor::TextureType, TextureCompressor::Quality) = nullptr;
 	static ImageFormat(*s_FromCMPFormatFunc)(CMP_FORMAT) = nullptr;
 	static bool(*s_IsFormatSupportedFunc)(ImageFormat) = nullptr;
+
+	static Ref<PipelineCompute> s_BC6HPipeline;
+	static Ref<PipelineCompute> s_BC6HCubePipeline;
+	static const uint32_t BC_BLOCK_SIZE = 4;
+
+	static uint32_t DivideAndRoundUp(uint32_t x, uint32_t divisor)
+	{
+		return (x + divisor - 1) / divisor;
+	}
 
 	static TextureCompressor::TextureType ToTextureType(uint32_t numChannels, bool bNormalMap, bool bHDR)
 	{
@@ -229,12 +242,21 @@ namespace Eagle
 			s_IsFormatSupportedFunc = nullptr;
 			EG_CORE_WARN("Texture compression is not supported by the current device: {}. Currently, only BC and ETC2 compressions are supported by the engine", caps.Device);
 		}
+
+		PipelineComputeState state{};
+		state.ComputeShader = Shader::Create("bc6h.comp", ShaderType::Compute);
+		s_BC6HPipeline = PipelineCompute::Create(state);
+
+		state.ComputeShader = Shader::Create("bc6h.comp", ShaderType::Compute, { {"EG_CUBE", ""}});
+		s_BC6HCubePipeline = PipelineCompute::Create(state);
 	}
 
 	void TextureCompressor::Shutdown()
 	{
 		s_GetCompressionFormatFunc = nullptr;
 		s_FromCMPFormatFunc = nullptr;
+		s_BC6HPipeline.reset();
+		s_BC6HCubePipeline.reset();
 	}
 
 	bool TextureCompressor::IsCompressionFormatSupported(ImageFormat format)
@@ -342,5 +364,150 @@ namespace Eagle
 		CMP_FreeMipSet(&dst);
 
 		return result;
+	}
+	
+	bool TextureCompressor::CompressHDR(const void* imageData, glm::uvec2 size, ImageFormat format, const Ref<Image>& dst)
+	{
+		const size_t dataSize = CalculateImageMemorySize(format, size.x, size.y);
+		glm::uvec2 encodedSize;
+		encodedSize.x = DivideAndRoundUp(size.x, BC_BLOCK_SIZE);
+		encodedSize.y = DivideAndRoundUp(size.y, BC_BLOCK_SIZE);
+
+		Ref<Image> inputImage;
+		Ref<Buffer> encodedBuffer;
+		{
+			ImageSpecifications specs{};
+			specs.Format = format;
+			specs.Size = glm::uvec3(size, 1u);
+			specs.Usage = ImageUsage::Sampled | ImageUsage::TransferDst;
+
+			inputImage = Image::Create(specs);
+		}
+		{
+			BufferSpecifications specs{};
+			specs.Size = sizeof(glm::uvec4) * encodedSize.x * encodedSize.y;
+			specs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferSrc;
+			specs.Layout = BufferLayoutType::StorageBuffer;
+
+			encodedBuffer = Buffer::Create(specs);
+		}
+
+		struct PushData
+		{
+			glm::uvec2 TextureSizeInBlocks;
+			glm::vec2 TextureSizeRcp;
+		} pushData;
+		pushData.TextureSizeInBlocks = encodedSize;
+		pushData.TextureSizeRcp = 1.0f / glm::vec2(size);
+
+		s_BC6HPipeline->SetImageSampler(inputImage, Sampler::PointSamplerClamp, 0, 0);
+		s_BC6HPipeline->SetBuffer(encodedBuffer, 0, 1);
+
+		std::vector<BufferImageCopy> copyRegion(1);
+		copyRegion[0].ImageExtent = glm::uvec3(size, 1u);
+
+		const glm::uvec3 groupSize = s_BC6HPipeline->GetWorkGroupSize();
+
+		Ref<CommandBuffer> cmd = RenderManager::AllocateCommandBuffer(true);
+		cmd->Write(inputImage, imageData, dataSize, ImageLayoutType::Unknown, ImageReadAccess::NonPixelShaderRead);
+		cmd->Dispatch(s_BC6HPipeline, DivideAndRoundUp(size.x, groupSize.x * BC_BLOCK_SIZE), DivideAndRoundUp(size.y, groupSize.y * BC_BLOCK_SIZE), 1, &pushData);
+
+		cmd->TransitionLayout(encodedBuffer, BufferLayoutType::StorageBuffer, BufferReadAccess::CopySource);
+		cmd->TransitionLayout(dst, ImageLayoutType::Unknown, ImageLayoutType::CopyDest);
+		cmd->CopyBufferToImage(encodedBuffer, dst, copyRegion);
+		cmd->TransitionLayout(dst, ImageLayoutType::CopyDest, ImageReadAccess::PixelShaderRead);
+
+		cmd->End();
+		RenderManager::SubmitCommandBuffer(cmd, true);
+
+		return true;
+	}
+	
+	Ref<Image> TextureCompressor::CompressHDR(const Ref<CommandBuffer>& cmd, const Ref<Image>& src)
+	{
+		Ref<Image> dst;
+		{
+			ImageSpecifications specs = src->GetSpecs();
+			specs.Layout = ImageLayoutType::Unknown;
+			specs.Format = ImageFormat::BC6H_UFloat16;
+			specs.Usage &= ~ImageUsage::ColorAttachment;
+			specs.Usage |= ImageUsage::TransferDst;
+			dst = Image::Create(specs, src->GetDebugName());
+		}
+
+		const glm::uvec2 size = src->GetSize();
+		glm::uvec2 encodedSize;
+		encodedSize.x = DivideAndRoundUp(size.x, BC_BLOCK_SIZE);
+		encodedSize.y = DivideAndRoundUp(size.y, BC_BLOCK_SIZE);
+
+		Ref<Buffer> encodedBuffer;
+		{
+			BufferSpecifications specs{};
+			specs.Size = sizeof(glm::uvec4) * encodedSize.x * encodedSize.y;
+			specs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferSrc;
+			specs.Layout = BufferLayoutType::StorageBuffer;
+
+			encodedBuffer = Buffer::Create(specs);
+		}
+
+		struct PushData
+		{
+			glm::uvec2 TextureSizeInBlocks;
+			glm::vec2 TextureSizeRcp;
+			uint32_t Face = 0;
+		} pushData;
+		pushData.TextureSizeInBlocks = encodedSize;
+
+		std::vector<BufferImageCopy> copyRegion(1);
+
+		const bool bCube = src->IsCube();
+		const uint32_t faces = bCube ? 6u : 1u;
+		const auto& pipeline = bCube ? s_BC6HCubePipeline : s_BC6HPipeline;
+
+		const glm::uvec3 groupSize = pipeline->GetWorkGroupSize();
+		const ImageLayout oldSrcLayout = src->GetLayout();
+
+		const uint32_t mipsCount = src->GetMipsCount();
+		glm::uvec2 mipSize = size;
+		for (uint32_t mip = 0; mip < mipsCount; ++mip)
+		{
+			const uint32_t numGroupsX = DivideAndRoundUp(mipSize.x, groupSize.x * BC_BLOCK_SIZE);
+			const uint32_t numGroupsY = DivideAndRoundUp(mipSize.y, groupSize.y * BC_BLOCK_SIZE);
+
+			pushData.TextureSizeInBlocks = glm::max(encodedSize >> mip, glm::uvec2(1u));
+			pushData.TextureSizeRcp = 1.0f / glm::vec2(mipSize);
+			copyRegion[0].ImageExtent = glm::uvec3(mipSize, 1u);
+			copyRegion[0].ImageMipLevel = mip;
+
+			const ImageView mipView = ImageView{ mip };
+			pipeline->SetImageSampler(src, mipView, Sampler::PointSamplerClamp, 0, 0);
+			pipeline->SetBuffer(encodedBuffer, 0, 1);
+
+			cmd->TransitionLayout(src, mipView, oldSrcLayout, ImageReadAccess::NonPixelShaderRead);
+
+			for (uint32_t face = 0; face < faces; ++face)
+			{
+				pushData.Face = face;
+				cmd->Dispatch(pipeline, numGroupsX, numGroupsY, 1, &pushData);
+
+				copyRegion[0].ImageArrayLayer = face;
+				cmd->TransitionLayout(encodedBuffer, BufferLayoutType::StorageBuffer, BufferReadAccess::CopySource);
+				cmd->TransitionLayout(dst, ImageLayoutType::Unknown, ImageLayoutType::CopyDest);
+				cmd->CopyBufferToImage(encodedBuffer, dst, copyRegion);
+				cmd->TransitionLayout(dst, ImageLayoutType::CopyDest, ImageReadAccess::PixelShaderRead);
+				cmd->TransitionLayout(encodedBuffer, BufferReadAccess::CopySource, BufferLayoutType::StorageBuffer);
+			}
+
+			pipeline->ResetDescriptors();
+			mipSize = glm::max(mipSize >> 1u, glm::uvec2(1u));
+		}
+
+		if (oldSrcLayout != ImageLayoutType::Unknown)
+		{
+			for (uint32_t mip = 0; mip < mipsCount; ++mip)
+				cmd->TransitionLayout(src, ImageView{ mip }, ImageReadAccess::NonPixelShaderRead, oldSrcLayout);
+		}
+
+		return dst;
 	}
 }

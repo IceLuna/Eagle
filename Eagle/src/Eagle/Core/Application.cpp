@@ -13,6 +13,9 @@
 #include "Eagle/Renderer/VidWrappers/Shader.h"
 #include "Eagle/Renderer/TextureCompressor.h"
 #include "Eagle/Utils/ThumbnailCache.h"
+#include "Eagle/Utils/PlatformUtils.h"
+#include "Eagle/Utils/Compressor.h"
+#include "Eagle/Utils/SerializerUtils.h"
 
 #include "Platform/Vulkan/VulkanSwapchain.h"
 
@@ -53,6 +56,31 @@ namespace Eagle
 		m_RendererContext = RendererContext::Create();
 		m_Window = Window::Create(m_WindowProps);
 		m_Window->SetEventCallback(EG_BIND_FN(OnEvent));
+
+		if (m_Game)
+		{
+			const Path shaderPackPath = "Data/ShaderPack.egspack";
+			ScopedDataBuffer compressedData = FileSystem::Read(shaderPackPath);
+			if (!compressedData)
+			{
+				EG_CORE_CRITICAL("Failed to load the shader pack: {}", shaderPackPath);
+				exit(-1);
+			}
+
+			const size_t origSize = compressedData.Read<size_t>();
+			DataBuffer compressedDataWithOffset((uint8_t*)compressedData.Data() + sizeof(size_t), compressedData.Size() - sizeof(size_t));
+
+			ScopedDataBuffer data = Compressor::Decompress(compressedDataWithOffset, origSize);
+
+			YAML::Node baseNode;
+			Utils::ReadYAML(data, &baseNode);
+			ShaderManager::InitGame(baseNode["Shaders"]);
+		}
+		else
+		{
+			ShaderManager::Init();
+		}
+		RenderManager::Init();
 		TextureCompressor::Init();
 
 		PhysicsEngine::Init();
@@ -77,12 +105,6 @@ namespace Eagle
 				break;
 			}
 		}
-		else
-		{
-			ShaderManager::Init();
-		}
-
-		RenderManager::Init();
 
 		m_ImGuiLayer = ImGuiLayer::Create();
 		PushLayer(m_ImGuiLayer);
@@ -106,8 +128,8 @@ namespace Eagle
 		ScriptEngine::Shutdown();
 		AudioEngine::Shutdown();
 		PhysicsEngine::Shutdown();
-		RenderManager::Shutdown();
 		TextureCompressor::Shutdown();
+		RenderManager::Shutdown();
 		s_Instance = nullptr;
 	}
 

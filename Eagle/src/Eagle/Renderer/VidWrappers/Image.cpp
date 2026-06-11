@@ -24,7 +24,7 @@ namespace Eagle
 
         // This is here and not inside Image because this call requires fully constructed Ref
         // So it's not possible right now to make this call from inside Image-constructor.
-        if (specs.Layout != ImageLayoutType::Unknown || bGenerateMips)
+        if (specs.Layout != ImageLayoutType::Unknown)
         {
             RenderManager::Submit([result, layout = specs.Layout, bGenerateMips](const Ref<CommandBuffer>& cmd) mutable
             {

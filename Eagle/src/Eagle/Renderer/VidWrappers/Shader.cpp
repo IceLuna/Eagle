@@ -145,6 +145,7 @@ namespace Eagle
 		// Get fresh sources
 		auto sourceCodes = Utils::LoadShadersSourceCode();
 		
+		out << YAML::BeginMap;
 		out << YAML::Key << "Shaders" << YAML::Value << YAML::BeginSeq;
 
 		for (const auto& [path, source] : sourceCodes)
@@ -155,6 +156,7 @@ namespace Eagle
 			out << YAML::EndMap;
 		}
 		out << YAML::EndSeq;
+		out << YAML::EndMap;
 	}
 
 	void ShaderManager::ReloadAllShaders()

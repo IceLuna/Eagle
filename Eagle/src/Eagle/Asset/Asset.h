@@ -153,16 +153,6 @@ namespace Eagle
 		return ImageFormat::Unknown;
 	}
 
-	static bool IsFloat16Format(AssetTextureCubeFormat format)
-	{
-		using Format = AssetTextureCubeFormat;
-		switch (format)
-		{
-		case Format::RGBA16: return true;
-		}
-		return false;
-	}
-
 	static constexpr const char* GetAssetDragDropCellTag(AssetType format)
 	{
 		switch (format)
@@ -336,9 +326,11 @@ namespace Eagle
 		void SetLayerSize(uint32_t layerSize);
 		void SetPrefilterSize(uint32_t prefilter);
 		bool SetFormat(AssetTextureCubeFormat format);
+		bool SetCompressed(bool bCompress);
 
 		const Ref<TextureCube>& GetTexture() const { return m_Texture; }
 		AssetTextureCubeFormat GetFormat() const { return m_Format; }
+		bool IsCompressed() const { return m_Texture->IsCompressed(); }
 
 		AssetTextureCube& operator=(Asset&& other) noexcept override
 		{

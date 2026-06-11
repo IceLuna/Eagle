@@ -705,9 +705,11 @@ namespace Eagle::Script
 	void Eagle_AssetTextureCube_SetLayerSize(GUID id, uint32_t value);
 	void Eagle_AssetTextureCube_SetPrefilterSize(GUID id, uint32_t value);
 	bool Eagle_AssetTextureCube_SetFormat(GUID id, AssetTextureCubeFormat value);
+	bool Eagle_AssetTextureCube_SetCompressed(GUID id, bool bCompress);
 	uint32_t Eagle_AssetTextureCube_GetLayerSize(GUID id);
 	uint32_t Eagle_AssetTextureCube_GetPrefilterSize(GUID id);
 	AssetTextureCubeFormat Eagle_AssetTextureCube_GetFormat(GUID id);
+	bool Eagle_AssetTextureCube_IsCompressed(GUID id);
 
 	// AssetMaterial
 	GUID Eagle_AssetMaterial_Create();

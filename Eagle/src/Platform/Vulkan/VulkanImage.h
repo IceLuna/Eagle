@@ -40,7 +40,8 @@ namespace Eagle
         void Release();
 
     private:
-        mutable std::unordered_map<ImageView, VkImageView> m_Views; // Mutable by `GetVulkanImageView(const ImageView&)`
+        // [0] or [1] depends whether image view is forced as 2D or not
+        mutable std::array<std::unordered_map<ImageView, VkImageView>, 2> m_Views; // Mutable by `GetVulkanImageView(const ImageView&)`
 
         VkImageCreateInfo m_CreateInfo{};
         VkDevice m_Device = VK_NULL_HANDLE;

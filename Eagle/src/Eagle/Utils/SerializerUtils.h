@@ -6,7 +6,7 @@
 
 namespace Eagle
 {
-	// Note: YAML size is not store here, since it's written at the end of the file (we read till the end of the file).
+	// Note: YAML size is not stored here, since it's written at the end of the file (we read till the end of the file).
 	// This way we can easily modify YAML in any text editor without worrying about any alignments issues
 	struct AssetHeader
 	{

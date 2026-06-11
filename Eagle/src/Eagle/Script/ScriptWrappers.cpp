@@ -8677,6 +8677,25 @@ namespace Eagle
 		return textureAsset->SetFormat(value);
 	}
 
+	bool Script::Eagle_AssetTextureCube_SetCompressed(GUID id, bool bCompress)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetCompressed` for AssetTextureCube. Couldn't find an asset");
+			return false;
+		}
+
+		Ref<AssetTextureCube> textureAsset = Cast<AssetTextureCube>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetCompressed` for AssetTextureCube. It's not a texture cube asset");
+			return false;
+		}
+
+		return textureAsset->SetCompressed(bCompress);
+	}
+
 	uint32_t Script::Eagle_AssetTextureCube_GetLayerSize(GUID id)
 	{
 		Ref<Asset> asset;
@@ -8732,6 +8751,25 @@ namespace Eagle
 		}
 
 		return textureAsset->GetFormat();
+	}
+
+	bool Script::Eagle_AssetTextureCube_IsCompressed(GUID id)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsCompressed` for AssetTextureCube. Couldn't find an asset");
+			return false;
+		}
+
+		Ref<AssetTextureCube> textureAsset = Cast<AssetTextureCube>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsCompressed` for AssetTextureCube. It's not a texture cube asset");
+			return false;
+		}
+
+		return textureAsset->IsCompressed();
 	}
 
 	//--------------AssetMaterial--------------

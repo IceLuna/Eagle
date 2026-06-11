@@ -89,8 +89,11 @@ namespace Eagle
 	{
 		RenderManager::SubmitResourceFree([views = std::move(m_Views), debugName = m_DebugName, device = m_Device, image = m_Image, allocation = m_Allocation, bOwns = m_bOwns]()
 		{
-			for (auto& view : views)
-				vkDestroyImageView(device, view.second, nullptr);
+			for (uint32_t i = 0; i < views.size(); ++i)
+			{
+				for (auto& view : views[i])
+					vkDestroyImageView(device, view.second, nullptr);
+			}
 
 			if (image)
 			{
@@ -102,15 +105,17 @@ namespace Eagle
 			}
 		});
 
-		m_Views.clear();
+		for (uint32_t i = 0; i < m_Views.size(); ++i)
+			m_Views[i].clear();
 		m_DefaultImageView = VK_NULL_HANDLE;
 		m_Image = VK_NULL_HANDLE;
 	}
 
 	void* VulkanImage::GetImageViewHandle(const ImageView& viewInfo, bool bForce2D) const
 	{
-		auto it = m_Views.find(viewInfo);
-		if (it != m_Views.end())
+		auto& views = bForce2D ? m_Views[0] : m_Views[1];
+		auto it = views.find(viewInfo);
+		if (it != views.end())
 			return it->second;
 
 		if (!m_Image)
@@ -119,7 +124,7 @@ namespace Eagle
 		// If force2D, set to 1, otherwise check if cube
 		uint32_t layerCount = bForce2D ? 1 : (m_Specs.bIsCube ? VK_REMAINING_ARRAY_LAYERS : 1);
 
-		VkImageView& imageView = m_Views[viewInfo];
+		VkImageView& imageView = views[viewInfo];
 		VkImageViewCreateInfo viewCI{};
 		viewCI.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewCI.image = m_Image;

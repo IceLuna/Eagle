@@ -45,6 +45,7 @@ namespace Eagle
 			const std::string textureSizeString = std::to_string(textureSize.x) + "x" + std::to_string(textureSize.y);
 			size_t gpuMemSize = textureCube->GetMemoryUsage();
 			auto assetFormat = m_Asset->GetFormat();
+			bool bCompress = m_Asset->IsCompressed();
 			bool bChanged = false;
 
 			ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
@@ -86,15 +87,14 @@ namespace Eagle
 			else
 				UI::Text("GPU memory usage (MB)", std::to_string(gpuMemSize / 1024.f / 1024.f), "Cube + Prefilter + Irradiance images");
 
+			if (UI::Property("Compress", bCompress))
+			{
+				m_Asset->SetCompressed(bCompress);
+				bChanged = true;
+			}
 			if (UI::ComboEnum("Format", assetFormat))
 			{
-				// IBL generation might take some time, which for some reason results in vulkan validation error (from ImGui)
-				// saying that ImageView is destroyed before commands finish executing. But deferring this call fixes it.
-				// It's strange because the error seems to come from ImGui, but ImGui used 2D texture, which is created fast.
-				Application::Get().CallNextFrame([asset = m_Asset, format = assetFormat]()
-				{
-					asset->SetFormat(format);
-				});
+				m_Asset->SetFormat(assetFormat);
 				bChanged = true;
 			}
 

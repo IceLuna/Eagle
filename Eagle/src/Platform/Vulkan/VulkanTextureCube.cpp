@@ -4,9 +4,11 @@
 #include "VulkanPipelineGraphics.h"
 #include "VulkanUtils.h"
 #include "VulkanFence.h"
+#include "VulkanTexture2D.h"
 #include "VulkanSampler.h"
 
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
+#include "Eagle/Renderer/TextureCompressor.h"
 #include "Eagle/Math/Math.h"
 
 #include <glm/gtx/transform.hpp>
@@ -33,10 +35,18 @@ namespace Eagle
 		g_CaptureProjection * g_CaptureViews[5]
 	};
 
-	VulkanTextureCube::VulkanTextureCube(const std::string& name, ImageFormat format, const void* data, glm::uvec2 size, uint32_t layerSize, uint32_t prefilterSize)
-		: TextureCube(format, layerSize, prefilterSize)
+	VulkanTextureCube::VulkanTextureCube(const std::string& name, ImageFormat format, const void* data, glm::uvec2 size, uint32_t layerSize, uint32_t prefilterSize, bool bCompress)
+		: TextureCube(format, layerSize, prefilterSize, bCompress)
 	{
-		m_Texture2D = Texture2D::Create(name, m_Format, size, data, Texture2DSpecifications{});
+		if (m_Compress)
+		{
+			m_Texture2D = MakeRef<VulkanTexture2D>(ImageFormat::BC6H_UFloat16, size, name);
+			TextureCompressor::CompressHDR(data, size, m_Format, m_Texture2D->GetImage());
+		}
+		else
+		{
+			m_Texture2D = Texture2D::Create(name, m_Format, size, data, Texture2DSpecifications{});
+		}
 		m_Sampler = Sampler::PointSampler;
 
 		// The data is not uploaded to the GPU here.
@@ -44,8 +54,8 @@ namespace Eagle
 		// But we can't call it from a constructor
 	}
 
-	VulkanTextureCube::VulkanTextureCube(const Ref<Texture2D>& texture, uint32_t layerSize, uint32_t prefilterSize)
-		: TextureCube(texture, layerSize, prefilterSize)
+	VulkanTextureCube::VulkanTextureCube(const Ref<Texture2D>& texture, uint32_t layerSize, uint32_t prefilterSize, bool bCompress)
+		: TextureCube(texture, layerSize, prefilterSize, bCompress)
 	{
 		m_Sampler = Sampler::PointSampler;
 
@@ -72,10 +82,22 @@ namespace Eagle
 		GenerateIBL();
 	}
 
-	void VulkanTextureCube::SetData(DataBuffer data, ImageFormat format)
+	void VulkanTextureCube::SetData(DataBuffer data, ImageFormat format, bool bCompress)
 	{
+		const bool bCompressStateChanged = bCompress != m_Compress;
+		m_Compress = bCompress;
 		m_Format = format;
-		m_Texture2D->SetData(data, format);
+		if (m_Compress)
+		{
+			const glm::uvec2 size = m_Texture2D->GetSize();
+			if (bCompressStateChanged) // Only makes sense to recrete it if the state changed because we need it to be in `BC6H_UFloat16` format
+				m_Texture2D = MakeRef<VulkanTexture2D>(ImageFormat::BC6H_UFloat16, size, m_Texture2D->GetImage()->GetDebugName());
+			TextureCompressor::CompressHDR(data.Data, size, m_Format, m_Texture2D->GetImage());
+		}
+		else
+		{
+			m_Texture2D->SetData(data, format);
+		}
 		GenerateIBL();
 	}
 
@@ -89,7 +111,6 @@ namespace Eagle
 		imageSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc | ImageUsage::TransferDst;
 		imageSpecs.Layout = ImageLayoutType::RenderTarget;
 		imageSpecs.bIsCube = true;
-		imageSpecs.MipsCount = UINT_MAX;
 		m_Image = MakeRef<VulkanImage>(imageSpecs, "CubeImage");
 		m_CubemapSampler = MakeRef<VulkanSampler>(FilterMode::Trilinear, AddressMode::Clamp, CompareOperation::Never, 0.f, float(m_Image->GetMipsCount() - 1u));
 
@@ -148,6 +169,7 @@ namespace Eagle
 
 		RenderManager::Submit([texture = shared_from_this()](const Ref<CommandBuffer>& cmd)
 		{
+			const bool bCompress = texture->m_Compress;
 			Ref<PipelineGraphics>& iblPipeline = texture->GetIBLPipeline();
 			Ref<PipelineGraphics>& irradiancePipeline = texture->GetIrradiancePipeline();
 			Ref<PipelineGraphics>& prefilterPipeline = texture->GetPrefilterPipeline();
@@ -164,13 +186,10 @@ namespace Eagle
 				cmd->EndGraphics();
 			}
 
-			// Render-pass doesn't transition layout of mips, so we need to do that manually
-			for (uint32_t mip = 1; mip < texture->m_Image->GetMipsCount(); ++mip)
+			if (bCompress)
 			{
-				ImageView view{ mip };
-				cmd->TransitionLayout(texture->m_Image, view, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+				texture->m_Image = TextureCompressor::CompressHDR(cmd, texture->m_Image);
 			}
-			cmd->GenerateMips(texture->m_Image, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
 
 			for (uint32_t i = 0; i < texture->m_IrradianceFramebuffers.size(); ++i)
 			{
@@ -199,6 +218,11 @@ namespace Eagle
 					cmd->Draw(36, 0);
 					cmd->EndGraphics();
 				}
+			}
+
+			if (bCompress)
+			{
+				texture->m_PrefilterImage = TextureCompressor::CompressHDR(cmd, texture->m_PrefilterImage);
 			}
 
 			texture->m_Loaded = true;
