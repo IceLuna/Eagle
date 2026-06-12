@@ -153,8 +153,8 @@ void main()
                 }
 
                 s_EmitCount[lid] += count;
+                emitter.SpawnIntervalTimer -= spawnInterval * spawnTriggersCount;
             }
-            emitter.SpawnIntervalTimer -= spawnInterval * spawnTriggersCount;
         }
 
         if (!bCanSpawn)
