@@ -232,6 +232,52 @@ namespace Eagle::UI
 		bool bResult = false;
 		constexpr bool bRenderablePreview = std::is_same<Type, AssetBaseMesh>::value ? true : ThumbnailCache::IsRenderableAssetType(Type::GetAssetType_Static());
 
+		auto HandleDropEvent = [&bResult, &modifyingAsset]()
+		{
+			if (ImGui::BeginDragDropTarget())
+			{
+				auto processAssetDrop = [&](AssetType assetType)
+				{
+					if (assetType == AssetType::None)
+						return;
+
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(GetAssetDragDropCellTag(assetType)))
+					{
+						const wchar_t* payload_n = (const wchar_t*)payload->Data;
+						Path filepath = Path(payload_n);
+						Ref<Asset> asset;
+						if (AssetManager::Get(filepath, &asset) == false)
+						{
+							asset = Asset::Create(filepath);
+							AssetManager::Register(asset);
+						}
+						bResult = asset != modifyingAsset;
+						if (bResult)
+							modifyingAsset = Cast<Type>(asset);
+					}
+				};
+
+				if constexpr (std::is_same<Type, Asset>::value)
+				{
+					magic_enum::enum_for_each<AssetType>([&](auto val)
+					{
+						processAssetDrop(val);
+					});
+				}
+				else if constexpr (std::is_same<Type, AssetBaseMesh>::value)
+				{
+					processAssetDrop(AssetType::StaticMesh);
+					processAssetDrop(AssetType::SkeletalMesh);
+				}
+				else
+				{
+					processAssetDrop(Type::GetAssetType_Static());
+				}
+
+				ImGui::EndDragDropTarget();
+			}
+		};
+
 		if constexpr (std::is_same<Type, AssetTexture2D>::value || std::is_same<Type, AssetTextureCube>::value)
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + previewSize.y * 0.5f - ImGui::CalcTextSize(label.data()).y * 0.5f); // Place text in the middle
 		else if (preview)
@@ -261,6 +307,7 @@ namespace Eagle::UI
 				ImGui::SetCursorScreenPos(p);
 
 				UI::Image(modifyingAsset ? modifyingAsset->GetTexture() : Texture2D::NoneIconTexture, previewSize, { 0, 0 }, { 1, 1 }, bHovered && modifyingAsset ? ImVec4(0.5f, 0.5f, 0.5f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+				HandleDropEvent();
 
 				if (outPreviewClicked)
 				{
@@ -281,6 +328,7 @@ namespace Eagle::UI
 				ImGui::SetCursorScreenPos(p);
 
 				UI::Image(modifyingAsset ? modifyingAsset->GetTexture()->GetTexture2D() : Texture2D::NoneIconTexture, previewSize, { 0, 0 }, { 1, 1 }, bHovered && modifyingAsset ? ImVec4(0.5f, 0.5f, 0.5f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+				HandleDropEvent();
 
 				if (outPreviewClicked)
 				{
@@ -301,6 +349,7 @@ namespace Eagle::UI
 				ImGui::SetCursorScreenPos(p);
 
 				UI::Image(preview, previewSize, { 0, 0 }, { 1, 1 }, bHovered && modifyingAsset ? ImVec4(0.5f, 0.5f, 0.5f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+				HandleDropEvent();
 
 				if (outPreviewClicked)
 				{
@@ -319,49 +368,7 @@ namespace Eagle::UI
 		static bool bJustOpened = true;
 		bool bBeginCombo = ImGui::BeginCombo("##", assetName.c_str(), ImGuiComboFlags_HeightLarge);
 
-		//Drop event
-		if (ImGui::BeginDragDropTarget())
-		{
-			auto processAssetDrop = [&](AssetType assetType)
-				{
-					if (assetType == AssetType::None)
-						return;
-
-					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(GetAssetDragDropCellTag(assetType)))
-					{
-						const wchar_t* payload_n = (const wchar_t*)payload->Data;
-						Path filepath = Path(payload_n);
-						Ref<Asset> asset;
-						if (AssetManager::Get(filepath, &asset) == false)
-						{
-							asset = Asset::Create(filepath);
-							AssetManager::Register(asset);
-						}
-						bResult = asset != modifyingAsset;
-						if (bResult)
-							modifyingAsset = Cast<Type>(asset);
-					}
-				};
-
-			if constexpr (std::is_same<Type, Asset>::value)
-			{
-				magic_enum::enum_for_each<AssetType>([&](auto val)
-				{
-					processAssetDrop(val);
-				});
-			}
-			else if constexpr (std::is_same<Type, AssetBaseMesh>::value)
-			{
-				processAssetDrop(AssetType::StaticMesh);
-				processAssetDrop(AssetType::SkeletalMesh);
-			}
-			else
-			{
-				processAssetDrop(Type::GetAssetType_Static());
-			}
-
-			ImGui::EndDragDropTarget();
-		}
+		HandleDropEvent();
 
 		if (bBeginCombo)
 		{

@@ -199,7 +199,7 @@ namespace Eagle
 		const float middle = (ImGui::GetWindowContentRegionMax().x * 0.5f) - (size * 0.5f);
 		ImGui::SetCursorPosX(middle - (totalItemSpacing + 0.5f * size * (buttonsCount - 1)));
 
-		ImGui::SetWindowFontScale(1.5f);
+		UI::PushFontHeader();
 
 		if (UI::ImageButtonWithText(m_CreateProjectIcon, "Create project", { size, size }, true, 1.f, -itemSpacing))
 			m_DrawCreateProjectPopup = true;
@@ -215,13 +215,15 @@ namespace Eagle
 					OpenEditor();
 			}
 		}
-		ImGui::SetWindowFontScale(1.f);
+		UI::PopFont();
 	}
 
 	void ProjectLayer::DrawRecentProjects()
 	{
-		ImGui::SetWindowFontScale(2.f);
+		UI::PushFontHeader();
+		ImGui::SetWindowFontScale(1.4f);
 		ImGui::Text("Recent projects");
+		UI::PopFont();
 		ImGui::SetWindowFontScale(1.1f);
 
 		if (m_RecentProjects.empty())

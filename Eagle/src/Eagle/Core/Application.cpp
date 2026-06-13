@@ -172,7 +172,7 @@ namespace Eagle
 
 	void Application::OnProjectChanged(bool bOpened)
 	{
-		Get().CallNextFrame([bOpened, corePath = Get().m_CorePath]()
+		Get().CallNextFrame([bOpened, corePath = Get().m_CorePath, imguiLayer = Get().m_ImGuiLayer]()
 		{
 			ThumbnailCache::Release();
 			RenderManager::Reset();
@@ -185,11 +185,13 @@ namespace Eagle
 				std::filesystem::current_path(Project::GetProjectPath());
 				AssetManager::Init();
 				ThumbnailCache::Init();
+				imguiLayer->SetIniFilepath(Project::GetConfigPath() / "imgui.ini");
 				Project::OnProjectOpenProcessed();
 			}
 			else
 			{
 				std::filesystem::current_path(corePath);
+				imguiLayer->SetIniFilepath(corePath / "imgui.ini");
 			}
 		});
 	}

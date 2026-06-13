@@ -132,9 +132,11 @@ namespace Eagle
 		fs::create_directory(contentPath);
 		fs::create_directory(info.BasePath / "Binaries");
 		fs::create_directory(info.BasePath / "Source");
+		fs::create_directory(info.BasePath / "Config");
 
 		fs::copy(Application::GetCorePath() / "assets/meshes/Cube.egasset", contentPath / "Cube.egasset");
 		fs::copy(Application::GetCorePath() / "assets/meshes/Sphere.egasset", contentPath / "Sphere.egasset");
+		fs::copy(Application::GetCorePath() / "default_imgui_layout.ini", info.BasePath / "Config" / "imgui.ini");
 
 		// Git ignore
 		{
@@ -142,6 +144,7 @@ namespace Eagle
 			fout << "Binaries/*\n";
 			fout << "Cache/*\n";
 			fout << "Saved/*\n";
+			fout << "Config/imgui.ini\n";
 		}
 
 		Save(info);
@@ -241,9 +244,10 @@ namespace Eagle
 				Serializer::SerializeRendererSettings(outRenderer, rendererOptions);
 				outRenderer << YAML::EndMap;
 
-				const Path configFilepath = outputFolder / "Config" / "RenderConfig.ini";
-				if (std::filesystem::exists(configFilepath.parent_path()) == false)
-					std::filesystem::create_directory(configFilepath.parent_path());
+				const Path configFolder = outputFolder / "Config";
+				const Path configFilepath = configFolder / "RenderConfig.ini";
+				if (std::filesystem::exists(configFolder) == false)
+					std::filesystem::create_directory(configFolder);
 				std::ofstream fout(configFilepath);
 				fout << outRenderer.c_str();
 			}

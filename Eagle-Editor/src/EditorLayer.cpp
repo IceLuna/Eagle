@@ -592,47 +592,78 @@ namespace Eagle
 		}
 	}
 
-	void EditorLayer::HandleEntityDragDrop()
+	void EditorLayer::HandleAssetDragDrop()
 	{
 		if (ImGui::BeginDragDropTarget())
 		{
-			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(GetAssetDragDropCellTag(AssetType::Entity)))
+			auto HandleDrop = [editorLayer = this]<typename AssetT, typename Func>(AssetType assetType, Func&& func)
 			{
-				const wchar_t* payload_n = (const wchar_t*)payload->Data;
-				Path filepath(payload_n);
-
-				Ref<Asset> asset;
-				if (AssetManager::Get(filepath, &asset))
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(GetAssetDragDropCellTag(assetType)))
 				{
-					Ref<AssetEntity> entityAsset = Cast<AssetEntity>(asset);
+					const wchar_t* payload_n = (const wchar_t*)payload->Data;
+					Path filepath(payload_n);
 
-					const glm::vec2 viewportSize = m_ViewportBounds[1] - m_ViewportBounds[0];
-					const glm::ivec2 mouse = GetMousePosWithinViewport();
-
-					if (mouse.x >= 0 && mouse.y >= 0 && mouse.x < (int)viewportSize.x && mouse.y < (int)viewportSize.y)
+					Ref<Asset> asset;
+					if (AssetManager::Get(filepath, &asset))
 					{
-						RenderManager::Submit([editorLayer = this, mouse, entityAsset](const Ref<CommandBuffer>&)
+						Ref<AssetT> castedAsset = Cast<AssetT>(asset);
+
+						const glm::vec2 viewportSize = editorLayer->m_ViewportBounds[1] - editorLayer->m_ViewportBounds[0];
+						const glm::ivec2 mouse = editorLayer->GetMousePosWithinViewport();
+
+						if (mouse.x >= 0 && mouse.y >= 0 && mouse.x < (int)viewportSize.x && mouse.y < (int)viewportSize.y)
 						{
-							Ref<Image>& depthBuffer = editorLayer->m_CurrentScene->GetSceneRenderer()->GetGBuffer().Depth;
-							float depth = 0.f;
-							const ImageLayout depthLayout = depthBuffer->GetLayout();
-							depthBuffer->Read(&depth, sizeof(float), glm::ivec3{ mouse.x, mouse.y, 0 }, glm::uvec3{ 1 }, depthLayout, depthLayout);
-
-							const glm::vec2 uv = glm::vec2(mouse.x, mouse.y) / glm::vec2(depthBuffer->GetSize());
-
-							editorLayer->Submit([editorLayer, depth, entityAsset, uv]()
+							RenderManager::Submit([editorLayer, mouse, castedAsset, func](const Ref<CommandBuffer>&)
 							{
-								editorLayer->SpawnEntityAtDepth(entityAsset, uv, depth);
+								Ref<Image>& depthBuffer = editorLayer->m_CurrentScene->GetSceneRenderer()->GetGBuffer().Depth;
+								float depth = 0.f;
+								const ImageLayout depthLayout = depthBuffer->GetLayout();
+								depthBuffer->Read(&depth, sizeof(float), glm::ivec3{ mouse.x, mouse.y, 0 }, glm::uvec3{ 1 }, depthLayout, depthLayout);
+
+								const glm::vec2 uv = glm::vec2(mouse.x, mouse.y) / glm::vec2(depthBuffer->GetSize());
+
+								editorLayer->Submit([editorLayer, depth, castedAsset, uv, func]()
+								{
+									Entity createdEntity = func(castedAsset);
+									editorLayer->SpawnEntityAtDepth(createdEntity, uv, depth);
+								});
 							});
-						});
+						}
 					}
 				}
-			}
+			};
+
+			HandleDrop.template operator()<AssetEntity>(AssetType::Entity, [this](const Ref<AssetEntity>& asset)
+			{
+				return m_EditorScene->CreateFromEntityAsset(asset);
+			});
+			HandleDrop.template operator()<AssetStaticMesh>(AssetType::StaticMesh, [this](const Ref<AssetStaticMesh>& asset)
+			{
+				Entity entity = m_EditorScene->CreateEntity(Utils::AsString(asset->GetPath().stem()));
+				auto& comp = entity.AddComponent<StaticMeshComponent>();
+				comp.SetMeshAsset(asset);
+				return entity;
+			});
+			HandleDrop.template operator()<AssetSkeletalMesh>(AssetType::SkeletalMesh, [this](const Ref<AssetSkeletalMesh>& asset)
+			{
+				Entity entity = m_EditorScene->CreateEntity(Utils::AsString(asset->GetPath().stem()));
+				auto& comp = entity.AddComponent<SkeletalMeshComponent>();
+				comp.SetMeshAsset(asset);
+				return entity;
+			});
+			HandleDrop.template operator()<AssetParticleSystem>(AssetType::ParticleSystem, [this](const Ref<AssetParticleSystem>& asset)
+			{
+				Entity entity = m_EditorScene->CreateEntity(Utils::AsString(asset->GetPath().stem()));
+				auto& comp = entity.AddComponent<ParticleSystemComponent>();
+				comp.SetAsset(asset);
+				return entity;
+			});
+
 			ImGui::EndDragDropTarget();
 		}
 	}
 
-	void EditorLayer::SpawnEntityAtDepth(const Ref<AssetEntity>& entityAsset, glm::vec2 uv, float depth)
+	void EditorLayer::SpawnEntityAtDepth(Entity entity, glm::vec2 uv, float depth)
 	{
 		const auto& editorCamera = m_EditorScene->EditorCamera;
 		glm::vec3 worldPos = Math::WorldPosFromDepth(glm::inverse(editorCamera.GetViewProjection()), uv, depth);
@@ -643,9 +674,8 @@ namespace Eagle
 			worldPos = cameraPos + glm::normalize(worldPos - cameraPos);
 		}
 
-		Entity createdEntity = m_EditorScene->CreateFromEntityAsset(entityAsset);
-		createdEntity.SetWorldLocation(worldPos);
-		m_SceneHierarchyPanel.SetEntitySelected(createdEntity);
+		entity.SetWorldLocation(worldPos);
+		m_SceneHierarchyPanel.SetEntitySelected(entity);
 		if (m_OpenedSceneAsset)
 			m_OpenedSceneAsset->SetDirty(true);
 	}
@@ -661,6 +691,10 @@ namespace Eagle
 
 	void EditorLayer::NewScene()
 	{
+		// We're opening a new scene, so there would be no way to save the old one, so unmark dirty flag
+		if (m_OpenedSceneAsset)
+			m_OpenedSceneAsset->SetDirty(false);
+
 		if (m_EditorState == EditorState::Edit)
 		{
 			m_OpenedSceneAsset.reset();
@@ -670,6 +704,10 @@ namespace Eagle
 
 	void EditorLayer::OpenScene(const Ref<AssetScene>& sceneAsset)
 	{
+		// We're opening a new scene, so there would be no way to save the old one, so unmark dirty flag
+		if (m_OpenedSceneAsset)
+			m_OpenedSceneAsset->SetDirty(false);
+
 		if (m_EditorState == EditorState::Edit)
 			Scene::OpenScene(sceneAsset);
 	}
@@ -2555,7 +2593,7 @@ namespace Eagle
 
 			// Drop event
 			if (m_EditorState == EditorState::Edit)
-				HandleEntityDragDrop();
+				HandleAssetDragDrop();
 
 			if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
 				ImGui::SetWindowFocus();

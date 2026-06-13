@@ -549,7 +549,7 @@ namespace Eagle
 		depthSpecs.Format = Application::Get().GetRenderContext()->GetDepthFormat();
 		depthSpecs.Layout = ImageLayoutType::DepthStencilWrite;
 		depthSpecs.Size = size;
-		depthSpecs.Usage = ImageUsage::DepthStencilAttachment | ImageUsage::Sampled | ImageUsage::TransferDst;
+		depthSpecs.Usage = ImageUsage::DepthStencilAttachment | ImageUsage::Sampled | ImageUsage::TransferDst | ImageUsage::TransferSrc;
 		Depth = Image::Create(depthSpecs, "GBuffer_Depth");
 
 		ImageSpecifications colorSpecs;

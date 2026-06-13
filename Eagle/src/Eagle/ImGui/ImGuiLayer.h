@@ -34,8 +34,8 @@ namespace Eagle
 		void OnEvent(Event& e) override;
 
 		void AddMessage(const std::string& message);
-
-		static Ref<ImGuiLayer> Create();
+		void RebuildFonts();
+		void SetIniFilepath(const Path& filepath);
 
 		static void SetDarkThemeColors();
 
@@ -43,7 +43,7 @@ namespace Eagle
 		static void SelectStyle(Style style);
 		static glm::vec2 GetMousePos();
 
-		void RebuildFonts();
+		static Ref<ImGuiLayer> Create();
 
 	protected:
 		virtual void Render(const Ref<CommandBuffer>& cmd) = 0;

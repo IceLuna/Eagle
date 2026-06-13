@@ -177,7 +177,7 @@ namespace Eagle
 		const std::string& GetDebugName() const { return m_DebugName; }
 
 		GUID GetGUID() const { return m_GUID; }
-		void SetGUID(GUID guid) { m_GUID = guid; }
+		void SetGUID(GUID guid);
 
 		void SetGravity(const glm::vec3& gravity);
 		const glm::vec3& GetGravity() const { return m_RuntimePhysicsSettings.Gravity; }

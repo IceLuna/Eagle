@@ -35,6 +35,22 @@ namespace Eagle
 		UploadFonts();
 	}
 
+	void ImGuiLayer::SetIniFilepath(const Path& filepath)
+	{
+		if (!std::filesystem::exists(filepath))
+		{
+			EG_CORE_ERROR("Failed to set ImGui ini filepath. The file doesn't exist: {}", filepath);
+			return;
+		}
+
+		ImGuiIO& io = ImGui::GetIO();
+		ImGui::SaveIniSettingsToDisk(io.IniFilename);
+
+		m_IniPath = Utils::AsString(filepath);
+		io.IniFilename = m_IniPath.c_str();
+		ImGui::LoadIniSettingsFromDisk(io.IniFilename);
+	}
+
 	ImGuiLayer::ImGuiLayer(const std::string& name)
 		: Layer(name)
 	{
@@ -52,9 +68,9 @@ namespace Eagle
 		io.ConfigWindowsMoveFromTitleBarOnly = true;
 		io.ConfigDebugHighlightIdConflicts = false;
 		io.ConfigDebugHighlightIdConflictsShowItemPicker = false;
+		ImGui::LoadIniSettingsFromDisk(io.IniFilename);
 
-		m_IniPath = Utils::AsString(Application::GetCorePath() / "imgui.ini");
-		io.IniFilename = m_IniPath.c_str();
+		SetIniFilepath(Application::GetCorePath() / "imgui.ini");
 
 		UI::LoadFonts();
 

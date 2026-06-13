@@ -2158,6 +2158,14 @@ namespace Eagle
 		return s_NullPhysicsActor;
 	}
 
+	void Scene::SetGUID(GUID guid)
+	{
+		ScriptEngine::RemoveOnAppAssemblyReloadedCallback(m_GUID);
+
+		m_GUID = guid;
+		SetupOnAppAssemblyReloadedCallback();
+	}
+
 	void Scene::SetGravity(const glm::vec3& gravity)
 	{
 		m_RuntimePhysicsSettings.Gravity = gravity;
