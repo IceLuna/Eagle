@@ -12,7 +12,7 @@
 #include "../ImOGuizmo.h"
 
 #include <imgui/imgui_internal.h>
-#include <ImGuizmo/ImGuizmo.h>
+#include <ImGuizmo.h>
 #include <glm/gtc/type_ptr.hpp>
 
 namespace Eagle

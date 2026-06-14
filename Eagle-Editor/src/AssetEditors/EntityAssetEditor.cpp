@@ -5,7 +5,7 @@
 #include "Eagle/UI/UI.h"
 #include "../EditorLayer.h"
 
-#include <ImGuizmo/ImGuizmo.h>
+#include <ImGuizmo.h>
 
 namespace Eagle
 {

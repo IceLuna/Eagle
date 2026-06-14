@@ -28,7 +28,7 @@ IncludeDir["glm"] = "Eagle/vendor/glm"
 IncludeDir["stb_image"] = "Eagle/vendor/stb_image"
 IncludeDir["entt"] = "Eagle/vendor/entt/include"
 IncludeDir["yaml_cpp"] = "Eagle/vendor/yaml-cpp/include"
-IncludeDir["ImGuizmo"] = "Eagle/vendor/ImGuizmo"
+IncludeDir["ImGuizmo"] = "Eagle/vendor/ImGuizmo/src"
 IncludeDir["imoguizmo"] = "Eagle/vendor/imoguizmo"
 IncludeDir["assimp"] = "Eagle/vendor/assimp/include"
 IncludeDir["mono"] = "Eagle/vendor/mono/include"
@@ -154,8 +154,8 @@ project "Eagle"
 		"%{prj.name}/vendor/stb_image/**.h",
 		"%{prj.name}/vendor/stb_image/**.cpp",
 
-		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.h",
-		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.cpp",
+		"%{prj.name}/vendor/ImGuizmo/src/ImGuizmo.h",
+		"%{prj.name}/vendor/ImGuizmo/src/ImGuizmo.cpp",
 
 		"%{prj.name}/vendor/imoguizmo/imoguizmo.hpp",
 
@@ -250,7 +250,7 @@ project "Eagle"
 		"/utf-8"
 	}
 
-	filter "files:Eagle/vendor/ImGuizmo/**.cpp"
+	filter "files:Eagle/vendor/ImGuizmo/src/**.cpp"
 		enablepch "Off"
 	filter "files:Eagle/src/Eagle/Script/ScriptEngineRegistry.cpp"
 		buildoptions { "/bigobj" }

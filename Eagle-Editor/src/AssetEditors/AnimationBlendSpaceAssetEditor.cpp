@@ -274,6 +274,10 @@ namespace Eagle
 
 			if (bDrawTriangulation)
 			{
+				ImPlotSpec specs{};
+				specs.Stride = sizeof(glm::dvec2);
+				specs.LineColor = ImVec4(0.45f, 0.45f, 0.25f, 1.f);
+
 				const auto& triangulation = m_Asset->GetTriangulation();
 				// We shouldn't use `m_PointsData` because selection will be flickering while a point is being dragged around, since we didn't yet regenerate the triangulation
 				const auto& pointsData = m_Asset->GetPointsData();
@@ -284,18 +288,17 @@ namespace Eagle
 					const float lineWidth = bSelected ? 3.f : 0.5f;
 					glm::dvec2 points[2];
 
+					specs.LineWeight = lineWidth;
+
 					points[0] = tri.V[0].Coord;
 					points[1] = tri.V[1].Coord;
-					ImPlot::SetNextLineStyle(ImVec4(0.45f, 0.45f, 0.25f, 1.f), lineWidth);
-					ImPlot::PlotLine("##", &points[0].x, &points[0].y, 2, 0, 0, sizeof(glm::dvec2));
+					ImPlot::PlotLine("##", &points[0].x, &points[0].y, 2, specs);
 
 					points[1] = tri.V[2].Coord;
-					ImPlot::SetNextLineStyle(ImVec4(0.45f, 0.45f, 0.25f, 1.f), lineWidth);
-					ImPlot::PlotLine("##", &points[0].x, &points[0].y, 2, 0, 0, sizeof(glm::dvec2));
+					ImPlot::PlotLine("##", &points[0].x, &points[0].y, 2, specs);
 
 					points[0] = tri.V[1].Coord;
-					ImPlot::SetNextLineStyle(ImVec4(0.45f, 0.45f, 0.25f, 1.f), lineWidth);
-					ImPlot::PlotLine("##", &points[0].x, &points[0].y, 2, 0, 0, sizeof(glm::dvec2));
+					ImPlot::PlotLine("##", &points[0].x, &points[0].y, 2, specs);
 				}
 			}
 
@@ -327,6 +330,7 @@ namespace Eagle
 					auto& point = m_PointsData.emplace_back();
 					point.Coord.x = glm::clamp(m_CoordsToSpawnPoint.x, m_Horizontal.Min, m_Horizontal.Max);
 					point.Coord.y = glm::clamp(m_CoordsToSpawnPoint.y, m_Vertical.Min, m_Vertical.Max);
+					bChanged = true;
 				}
 				ImGui::EndPopup();
 			}
