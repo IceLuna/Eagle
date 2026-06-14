@@ -42,9 +42,27 @@ namespace Eagle
 
 	private:
 		bool DrawSceneHierarchy();
-		bool DrawEntityNode(Entity entity);
-		bool DrawChilds(Entity entity);
+		bool DrawEntityNode(Entity entity, bool bFilteredOnly);
+		bool DrawChilds(Entity entity, bool bFilteredOnly);
 		bool OnKeyPressed(KeyPressedEvent& e, bool bViewportFocused);
+
+		void AddSearchingEntity(const Entity& entity, std::unordered_set<Entity>& output);
+
+		template <typename T>
+		void GatherSearchingEntities(const T& view, const std::string& search, std::unordered_set<Entity>& output)
+		{
+			for (auto& entt : view)
+			{
+				Entity entity = Entity(entt, m_Scene.get());
+				const std::string& name = entity.GetName();
+
+				std::size_t pos = Utils::FindSubstringI(name, search);
+				if (pos != std::string::npos)
+				{
+					AddSearchingEntity(entity, output);
+				}
+			}
+		}
 
 	private:
 		EntityPropertiesPanel m_Properties;
@@ -54,6 +72,8 @@ namespace Eagle
 
 		std::string m_SceneHierarchyWindowName;
 		std::string m_PropertiesWindowName;
+		std::string m_Search;
+		std::unordered_set<Entity> m_AllowedForDisplayEntities; // Only valid when searching
 
 		bool m_SceneHierarchyHovered = false;
 		bool m_SceneHierarchyFocused = false;

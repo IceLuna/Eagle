@@ -67,6 +67,13 @@ namespace Eagle
 		return bChanged;
 	}
 
+	void SceneHierarchyPanel::AddSearchingEntity(const Entity& entity, std::unordered_set<Entity>& output)
+	{
+		output.insert(entity);
+		if (entity.HasParent())
+			AddSearchingEntity(entity.GetParent(), output);
+	}
+
 	bool SceneHierarchyPanel::DrawSceneHierarchy()
 	{
 		bool bChanged = false;
@@ -90,10 +97,21 @@ namespace Eagle
 			ImGui::EndDragDropTarget();
 		}
 
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+		const bool bSearchInputChanged = UI::InputTextWithHint("##search", m_Search, "Search...");
+		ImGui::Separator();
+
 		auto view = m_Scene->GetAllEntitiesWith<EntitySceneNameComponent>();
+
+		m_AllowedForDisplayEntities.clear();
+		if (!m_Search.empty())
+		{
+			GatherSearchingEntities(view, m_Search, m_AllowedForDisplayEntities);
+		}
+
 		for (auto& entity : view)
 		{
-			bChanged |= DrawEntityNode(Entity(entity, m_Scene.get()));
+			bChanged |= DrawEntityNode(Entity(entity, m_Scene.get()), !m_Search.empty());
 		}
 
 		if (ImGui::IsMouseDown(0) && ImGui::IsWindowHovered())
@@ -123,10 +141,15 @@ namespace Eagle
 		return bChanged;
 	}
 
-	bool SceneHierarchyPanel::DrawEntityNode(Entity entity)
+	bool SceneHierarchyPanel::DrawEntityNode(Entity entity, bool bFilteredOnly)
 	{
 		if (entity.HasParent()) //For drawing children use DrawChilds
 			return false;
+
+		if (bFilteredOnly && !m_AllowedForDisplayEntities.contains(entity))
+		{
+			return false;
+		}
 
 		if (m_AllowOnlySingleRoot)
 		{
@@ -157,7 +180,7 @@ namespace Eagle
 		{
 			if (opened)
 			{
-				bChanged |= DrawChilds(entity);
+				bChanged |= DrawChilds(entity, bFilteredOnly);
 				ImGui::TreePop();
 			}
 			return bChanged;
@@ -243,14 +266,14 @@ namespace Eagle
 	
 		if (opened)
 		{
-			bChanged |= DrawChilds(entity);
+			bChanged |= DrawChilds(entity, bFilteredOnly);
 			ImGui::TreePop();
 		}
 
 		return bChanged;
 	}
 
-	bool SceneHierarchyPanel::DrawChilds(Entity entity)
+	bool SceneHierarchyPanel::DrawChilds(Entity entity, bool bFilteredOnly)
 	{
 		bool bChanged = false;
 		auto& children = entity.GetComponent<OwnershipComponent>().Children;
@@ -260,6 +283,11 @@ namespace Eagle
 		for (int i = 0; i < children.size(); ++i)
 		{
 			Entity child = children[i];
+			if (bFilteredOnly && !m_AllowedForDisplayEntities.contains(child))
+			{
+				continue;
+			}
+
 			ImGuiTreeNodeFlags childTreeFlags = flags | (child.HasChildren() ? 0 : ImGuiTreeNodeFlags_Leaf) | (m_SelectedEntity == child ? ImGuiTreeNodeFlags_Selected : 0);
 
 			//If selected child of this entity, open tree node
@@ -279,7 +307,7 @@ namespace Eagle
 			{
 				if (openedChild)
 				{
-					bChanged |= DrawChilds(child);
+					bChanged |= DrawChilds(child, bFilteredOnly);
 					ImGui::TreePop();
 				}
 				continue;
@@ -379,7 +407,7 @@ namespace Eagle
 
 			if (openedChild)
 			{
-				bChanged |= DrawChilds(child);
+				bChanged |= DrawChilds(child, bFilteredOnly);
 				ImGui::TreePop();
 			}
 		}
