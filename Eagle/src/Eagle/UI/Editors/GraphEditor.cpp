@@ -4,6 +4,7 @@
 #include "Eagle/Core/Serializer.h"
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/UI/UI.h"
+#include "Eagle/Input/Input.h"
 
 namespace Eagle
 {
@@ -246,6 +247,17 @@ namespace Eagle
         m_Graphs.back()->OnEvent(e); // Pass the event to a graph that's opened
 
         Event::Dispatch<MouseButtonPressedEvent>(e, EG_BIND_FN(GraphEditor::OnMousePressedEvent));
+        Event::Dispatch<KeyPressedEvent>(e, EG_BIND_FN(GraphEditor::OnKeyPressedEvent));
+    }
+
+    bool GraphEditor::OnKeyPressedEvent(KeyPressedEvent& e)
+    {
+        if (e.GetKey() == Key::S && Input::IsKeyPressed(Key::LeftControl))
+        {
+            Save();
+            return true;
+        }
+        return false;
     }
 
     bool GraphEditor::OnMousePressedEvent(MouseButtonPressedEvent& e)

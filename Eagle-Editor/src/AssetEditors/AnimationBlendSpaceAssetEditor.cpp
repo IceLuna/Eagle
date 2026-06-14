@@ -29,7 +29,7 @@ namespace Eagle
 		, m_Asset(asset)
 	{
 		m_DetailsWindowName = AssetEditor::GetAssetWindowName(m_Asset);
-		m_PlotWindowName = Utils::AsString(m_Asset->GetPath()) + "_Plot";
+		m_PlotWindowName = AssetEditor::GetAssetWindowName(m_Asset, "_Plot");
 
 		m_Horizontal = m_Asset->GetHorizontalAxis();
 		m_Vertical = m_Asset->GetVerticalAxis();
@@ -72,6 +72,22 @@ namespace Eagle
 		{
 			m_Asset->SetPointsData(m_PointsData);
 		}
+	}
+
+	void AnimationBlendSpaceAssetEditor::OnEvent(Event& e)
+	{
+		AssetEditor::OnEvent(e);
+		Event::Dispatch<KeyPressedEvent>(e, EG_BIND_FN(AnimationBlendSpaceAssetEditor::OnKeyPressedEvent));
+	}
+
+	bool AnimationBlendSpaceAssetEditor::OnKeyPressedEvent(KeyPressedEvent& e)
+	{
+		if (e.GetKey() == Key::S && Input::IsKeyPressed(Key::LeftControl))
+		{
+			Asset::Save(m_Asset);
+			return true;
+		}
+		return false;
 	}
 
 	bool AnimationBlendSpaceAssetEditor::DrawDetails(bool* pOpen)
@@ -187,6 +203,16 @@ namespace Eagle
 			const ImVec4 defaultColor = ImVec4(0.85f, 0.85f, 0.85f, 1);
 			const ImVec4 selectedColor = ImVec4(0.45f, 0.45f, 0.75f, 1);
 
+			if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+				m_MousePosOnRMB = ImGui::GetMousePos();
+			const bool bRMBReleased = ImGui::IsMouseReleased(ImGuiMouseButton_Right);
+			bool bCanSpawnPopup = false;
+			if (bRMBReleased)
+			{
+				const ImVec2 imDelta = ImGui::GetMousePos() - m_MousePosOnRMB;
+				const glm::vec2 delta = { imDelta.x, imDelta.y };
+				bCanSpawnPopup = glm::length2(delta) < 1;
+			}
 			size_t pointIdxToDelete = s_InvalidIndex;
 			bool bAnyClicked = false;
 
@@ -201,7 +227,7 @@ namespace Eagle
 				bool bHeld = false;
 
 				bChanged |= ImPlot::DragPoint(int(i), &pointData.Coord.x, &pointData.Coord.y, m_SelectedPointIdx == i ? selectedColor : defaultColor, 4, ImPlotDragToolFlags_Clamp, &bClicked, &bHovered, &bHeld);
-				if (bHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+				if (bHovered && bCanSpawnPopup)
 				{
 					bClicked = true;
 					ImGui::OpenPopup("AnimPoint Context Menu");
@@ -273,16 +299,37 @@ namespace Eagle
 				}
 			}
 
+			const ImPlotPoint pointCoord = ImPlot::GetPlotMousePos();
 			if (bVisualization)
 			{
-				ImPlotPoint coords = ImPlot::GetPlotMousePos();
 				auto& graph = m_Entity.GetComponent<SkeletalMeshComponent>().GetAnimationGraph();
-				Cast<GraphVariableFloat>(graph->GetVariable(s_XVarName))->Value = float(coords.x);
-				Cast<GraphVariableFloat>(graph->GetVariable(s_YVarName))->Value = float(coords.y);
+				Cast<GraphVariableFloat>(graph->GetVariable(s_XVarName))->Value = float(pointCoord.x);
+				Cast<GraphVariableFloat>(graph->GetVariable(s_YVarName))->Value = float(pointCoord.y);
 			}
 
 			m_bPlotHovered = ImPlot::IsPlotHovered();
 			ImPlot::EndPlot();
+
+			if (bMouseWithinPlot && !bAnyClicked)
+			{
+				if (bCanSpawnPopup)
+				{
+					m_CoordsToSpawnPoint.x = pointCoord.x;
+					m_CoordsToSpawnPoint.y = pointCoord.y;
+					ImGui::OpenPopup("AnimPointSpace Context Menu");
+				}
+			}
+
+			if (ImGui::BeginPopup("AnimPointSpace Context Menu"))
+			{
+				if (ImGui::MenuItem("Add Point"))
+				{
+					auto& point = m_PointsData.emplace_back();
+					point.Coord.x = glm::clamp(m_CoordsToSpawnPoint.x, m_Horizontal.Min, m_Horizontal.Max);
+					point.Coord.y = glm::clamp(m_CoordsToSpawnPoint.y, m_Vertical.Min, m_Vertical.Max);
+				}
+				ImGui::EndPopup();
+			}
 		}
 
 		ImGui::End();
@@ -461,8 +508,16 @@ namespace Eagle
 			auto xVar = Cast<GraphVariableFloat>(graph->GetVariable(s_XVarName));
 			auto yVar = Cast<GraphVariableFloat>(graph->GetVariable(s_YVarName));
 
-			UI::InputFloat(m_Horizontal.Name, xVar->Value, 0.f, 0.f, "You can also hold CTRL and move mouse on the plot");
-			UI::InputFloat(m_Vertical.Name, yVar->Value, 0.f, 0.f, "You can also hold CTRL and move mouse on the plot");
+			{
+				ImGui::PushID(&m_Horizontal);
+				UI::InputFloat(m_Horizontal.Name, xVar->Value, 0.f, 0.f, "You can also hold CTRL and move mouse on the plot");
+				ImGui::PopID();
+			}
+			{
+				ImGui::PushID(&m_Vertical);
+				UI::InputFloat(m_Vertical.Name, yVar->Value, 0.f, 0.f, "You can also hold CTRL and move mouse on the plot");
+				ImGui::PopID();
+			}
 
 			xVar->Value = (float)glm::clamp(double(xVar->Value), m_Horizontal.Min, m_Horizontal.Max);
 			yVar->Value = (float)glm::clamp(double(yVar->Value), m_Vertical.Min, m_Vertical.Max);

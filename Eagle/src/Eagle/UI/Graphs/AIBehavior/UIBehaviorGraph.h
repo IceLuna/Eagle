@@ -18,6 +18,7 @@ namespace Eagle
 
 		void DrawLinks() override;
 		void OnImGuiRender(bool* pOpen = nullptr) override;
+		void OnEvent(Event& e) override;
 
 		Node* GetOutputNode() override { return FindNode(m_EntryNodeId); };
 		ax::NodeEditor::NodeId GetOutputNodeID() const override { return m_EntryNodeId; };
@@ -37,6 +38,7 @@ namespace Eagle
 		void OnAppAssemblyReloaded();
 		void RenderLeftPanel();
 		void HandleSelectedNode();
+		bool OnKeyPressedEvent(KeyPressedEvent& e);
 
 		void OnNodeRenamingFinished(Node& node, const std::string& newName) override;
 

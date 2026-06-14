@@ -4581,6 +4581,7 @@ namespace Eagle
 			bUseShortestBlendPath = blendPathNode.as<bool>();
 
 		BlendSpaceAxisSettings horAxis;
+		horAxis.Name = "Horizontal Axis";
 		if (auto horNode = baseNode["HorizontalAxis"])
 		{
 			horAxis.Name = horNode["Name"].as<std::string>();
@@ -4589,6 +4590,7 @@ namespace Eagle
 		}
 
 		BlendSpaceAxisSettings verAxis;
+		verAxis.Name = "Vertical Axis";
 		if (auto verNode = baseNode["VerticalAxis"])
 		{
 			verAxis.Name = verNode["Name"].as<std::string>();

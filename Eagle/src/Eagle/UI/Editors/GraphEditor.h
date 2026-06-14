@@ -143,6 +143,7 @@ namespace Eagle
 
         const char* GetVarDragDropTag() { return m_VarDragDropTag.c_str(); }
 
+        bool OnKeyPressedEvent(KeyPressedEvent& e);
         bool OnMousePressedEvent(MouseButtonPressedEvent& e);
 
         void SetRenderPreviewPanelCallback(const std::function<void(float, float)>& func)

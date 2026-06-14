@@ -17,6 +17,7 @@ namespace Eagle
 		AnimationBlendSpaceAssetEditor(const Ref<AssetAnimationBlendSpace>& asset);
 
 		void OnImGuiRender(bool* pOpen) override;
+		void OnEvent(Event& e) override;
 
 		const Ref<Asset> GetAsset() const override { return Cast<Asset>(m_Asset); }
 	
@@ -34,6 +35,7 @@ namespace Eagle
 		void RemovePoint(size_t idx);
 
 		void CreateAnimGraphForViewport();
+		bool OnKeyPressedEvent(KeyPressedEvent& e);
 
 	private:
 		Ref<AssetAnimationBlendSpace> m_Asset;
@@ -47,6 +49,8 @@ namespace Eagle
 		std::vector<BlendSpaceVertex> m_PointsData;
 		constexpr static size_t s_InvalidIndex = size_t(-1);
 		size_t m_SelectedPointIdx = s_InvalidIndex;
+		glm::dvec2 m_CoordsToSpawnPoint = {};
+		ImVec2 m_MousePosOnRMB = {};
 
 		BlendSpaceAxisSettings m_Horizontal;
 		BlendSpaceAxisSettings m_Vertical;

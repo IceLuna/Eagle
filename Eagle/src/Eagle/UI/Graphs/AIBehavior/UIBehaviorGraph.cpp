@@ -3,6 +3,7 @@
 
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/UI/UI.h"
+#include "Eagle/Input/Input.h"
 
 namespace Eagle
 {
@@ -385,6 +386,22 @@ namespace Eagle
                 ValidateNodes();
             }
         }
+    }
+
+    void UIBehaviorGraph::OnEvent(Event& e)
+    {
+        UIGraph::OnEvent(e);
+        Event::Dispatch<KeyPressedEvent>(e, EG_BIND_FN(UIBehaviorGraph::OnKeyPressedEvent));
+    }
+
+    bool UIBehaviorGraph::OnKeyPressedEvent(KeyPressedEvent& e)
+    {
+        if (e.GetKey() == Key::S && Input::IsKeyPressed(Key::LeftControl))
+        {
+            m_Editor.Save();
+            return true;
+        }
+        return false;
     }
 
     void UIBehaviorGraph::RenderLeftPanel()
