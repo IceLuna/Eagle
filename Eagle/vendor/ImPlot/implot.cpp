@@ -4004,6 +4004,15 @@ bool DragPoint(int n_id, double* x, double* y, const ImVec4& col, float radius, 
     if (held && ImGui::IsMouseDragging(0)) {
         *x = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).x;
         *y = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).y;
+
+        if (ImHasFlag(flags, ImPlotDragToolFlags_Clamp))
+        {
+            const auto& range_x = GImPlot->CurrentPlot->XAxis(0).Range;
+            const auto& range_y = GImPlot->CurrentPlot->YAxis(0).Range;
+
+            *x = ImClamp(*x, range_x.Min, range_x.Max);
+            *y = ImClamp(*y, range_y.Min, range_y.Max);
+        }
         modified = true;
     }
 
