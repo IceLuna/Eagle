@@ -2380,6 +2380,16 @@ namespace Eagle
 		m_ReverbDebugBoxes.erase(entity.GetID());
 	}
 
+	void Scene::OnDirectionalLightAdded(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		auto& light = entity.GetComponent<DirectionalLightComponent>();
+		if (light.DoesAffectWorld())
+		{
+			m_DirtyFlags.bDirLightsDirty = true;
+		}
+	}
+
 	void Scene::OnDirectionalLightRemoved(entt::registry& r, entt::entity e)
 	{
 		Entity entity(e, this);
@@ -2419,6 +2429,7 @@ namespace Eagle
 		m_Registry.on_destroy<NavigationCrowdAgentComponent>().connect<&Scene::OnCrowdAgentRemoved>(*this);
 		m_Registry.on_destroy<CameraComponent>().connect<&Scene::OnCameraRemoved>(*this);
 		m_Registry.on_destroy<ReverbComponent>().connect<&Scene::OnReverbRemoved>(*this);
+		m_Registry.on_construct<DirectionalLightComponent>().connect<&Scene::OnDirectionalLightAdded>(*this);
 		m_Registry.on_destroy<DirectionalLightComponent>().connect<&Scene::OnDirectionalLightRemoved>(*this);
 	}
 

@@ -358,6 +358,7 @@ namespace Eagle
 		void OnCrowdAgentRemoved(entt::registry& r, entt::entity e);
 		void OnCameraRemoved(entt::registry& r, entt::entity e);
 		void OnReverbRemoved(entt::registry& r, entt::entity e);
+		void OnDirectionalLightAdded(entt::registry& r, entt::entity e);
 		void OnDirectionalLightRemoved(entt::registry& r, entt::entity e);
 
 		// T - is component type

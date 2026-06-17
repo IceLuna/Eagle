@@ -20,8 +20,8 @@ float GetCascadeNormalOffsetScale(uint cascade)
 	switch (cascade)
 	{
 		case 0: return 30.f;
-		case 1: return 45.f;
-		case 2: return 85.f;
+		case 1: return 50.f;
+		case 2: return 95.f;
 		case 3: return 275.f;
 	}
 	return 100.f;
