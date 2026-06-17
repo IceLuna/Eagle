@@ -816,10 +816,9 @@ namespace Eagle
 
 		SceneComponent::operator=(other);
 
-		m_MeshAsset = other.m_MeshAsset;
+		SetMeshAsset(other.m_MeshAsset);
 		m_MaterialAssets = other.m_MaterialAssets;
 		m_AnimAsset = other.m_AnimAsset;
-		m_AnimGraphAsset = other.m_AnimGraphAsset;
 		m_RootMotionLockFlags = other.m_RootMotionLockFlags;
 		if (other.m_Graph)
 		{
@@ -842,6 +841,7 @@ namespace Eagle
 		bClipLooping = other.bClipLooping;
 		AnimType = other.AnimType;
 		LastPose = other.LastPose;
+		SetAnimationGraphAsset(other.m_AnimGraphAsset);
 
 		if (m_MeshAsset)
 		{
