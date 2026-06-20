@@ -10,53 +10,53 @@
 
 namespace Eagle
 {
-	std::unordered_map<MonoType*, std::function<void(Entity&)>> m_AddComponentFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&)>> m_RemoveComponentFunctions;
-	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_HasComponentFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&)>> m_AddComponentFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&)>> m_RemoveComponentFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<bool(Entity&)>> m_HasComponentFunctions;
 
 	//SceneComponents
-	std::unordered_map<MonoType*, std::function<void(Entity&, const Transform*)>> m_SetWorldTransformFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, const Transform*)>> m_SetRelativeTransformFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, Transform*)>> m_GetWorldTransformFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, Transform*)>> m_GetRelativeTransformFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetForwardVectorFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetRightVectorFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetUpVectorFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, const Transform*)>> m_SetWorldTransformFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, const Transform*)>> m_SetRelativeTransformFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, Transform*)>> m_GetWorldTransformFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, Transform*)>> m_GetRelativeTransformFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetForwardVectorFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetRightVectorFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetUpVectorFunctions;
 
 	//Light Component
-	std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetLightColorFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetLightColorFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetAffectsWorldFunctions;
-	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetAffectsWorldFunctions;
-	std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetIntensityFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetIntensityFunctions;
-	std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetVolumetricFogIntensityFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetVolumetricFogIntensityFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetCastsShadowsFunctions;
-	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetCastsShadowsFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsVolumetricLightFunctions;
-	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetIsVolumetricLightFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetLightColorFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetLightColorFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, bool)>> m_SetAffectsWorldFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<bool(Entity&)>> m_GetAffectsWorldFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<float(Entity&)>> m_GetIntensityFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, float)>> m_SetIntensityFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<float(Entity&)>> m_GetVolumetricFogIntensityFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, float)>> m_SetVolumetricFogIntensityFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, bool)>> m_SetCastsShadowsFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<bool(Entity&)>> m_GetCastsShadowsFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsVolumetricLightFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<bool(Entity&)>> m_GetIsVolumetricLightFunctions;
 
 	//BaseColliderComponent
-	std::unordered_map<MonoType*, std::function<void(Entity&, CollisionGroup)>> m_SetCollisionGroupsFunctions;
-	std::unordered_map<MonoType*, std::function<CollisionGroup(Entity&)>> m_GetCollisionGroupsFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, CollisionGroup)>> m_SetInteractingCollisionGroupsFunctions;
-	std::unordered_map<MonoType*, std::function<CollisionGroup(Entity&)>> m_GetInteractingCollisionGroupsFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsTriggerFunctions;
-	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsTriggerFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetCollisionEnabledFunctions;
-	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsCollisionEnabledFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetCollisionVisibleFunctions;
-	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsCollisionVisibleFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, const Ref<AssetPhysicsMaterial>&)>> m_SetPhysicsMaterialFunctions;
-	std::unordered_map<MonoType*, std::function<GUID(Entity&)>> m_GetPhysicsMaterialFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetAffectsNavMeshBuildFunctions;
-	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_DoesAffectNavMeshBuildFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsObstacleFunctions;
-	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsObstacleFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, CollisionGroup)>> m_SetCollisionGroupsFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<CollisionGroup(Entity&)>> m_GetCollisionGroupsFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, CollisionGroup)>> m_SetInteractingCollisionGroupsFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<CollisionGroup(Entity&)>> m_GetInteractingCollisionGroupsFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsTriggerFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<bool(Entity&)>> m_IsTriggerFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, bool)>> m_SetCollisionEnabledFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<bool(Entity&)>> m_IsCollisionEnabledFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, bool)>> m_SetCollisionVisibleFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<bool(Entity&)>> m_IsCollisionVisibleFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, const Ref<AssetPhysicsMaterial>&)>> m_SetPhysicsMaterialFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<GUID(Entity&)>> m_GetPhysicsMaterialFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, bool)>> m_SetAffectsNavMeshBuildFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<bool(Entity&)>> m_DoesAffectNavMeshBuildFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsObstacleFunctions;
+	ankerl::unordered_dense::map<MonoType*, std::function<bool(Entity&)>> m_IsObstacleFunctions;
 
 	// Scene
-	std::unordered_map<MonoType*, std::function<std::vector<Entity>(const Ref<Scene>&)>> m_GetAllEntitiesWith;
+	ankerl::unordered_dense::map<MonoType*, std::function<std::vector<Entity>(const Ref<Scene>&)>> m_GetAllEntitiesWith;
 
 	extern MonoImage* s_CoreAssemblyImage;
 

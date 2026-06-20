@@ -8,7 +8,7 @@ namespace Eagle
 {
 	std::vector<Ref<Image>> TextureSystem::s_Images;
 	std::vector<Ref<Sampler>> TextureSystem::s_Samplers;
-	std::unordered_map<GUID, uint32_t> TextureSystem::s_UsedTexturesMap; // uint32_t = index to vector<Ref<Image>>
+	ankerl::unordered_dense::map<GUID, uint32_t> TextureSystem::s_UsedTexturesMap; // uint32_t = index to vector<Ref<Image>>
 	std::vector<size_t> TextureSystem::s_FreeIndices; // Free slots inside `s_Images` and `s_Samplers`
 	uint64_t TextureSystem::s_LastUpdatedAtFrame = 0;
 	static uint32_t s_DummyIndex = 0u;

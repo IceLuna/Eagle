@@ -465,7 +465,7 @@ namespace Eagle
 		StagingManager::ReleaseBuffers();
 	}
 
-	void SceneRenderer::SetMeshesAnimationTransforms(std::unordered_map<uint32_t, std::vector<glm::mat4>>&& transforms)
+	void SceneRenderer::SetMeshesAnimationTransforms(ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>>&& transforms)
 	{
 		RenderManager::Submit([renderer = shared_from_this(), transforms = std::move(transforms)](const Ref<CommandBuffer>&)
 		{
@@ -473,7 +473,7 @@ namespace Eagle
 		});
 	}
 
-	void SceneRenderer::SetSkeletalParticleAnimationTransforms(std::unordered_map<GUID, std::unordered_map<GUID, std::vector<glm::mat4>>>&& transforms)
+	void SceneRenderer::SetSkeletalParticleAnimationTransforms(ankerl::unordered_dense::map<GUID, ankerl::unordered_dense::map<GUID, std::vector<glm::mat4>>>&& transforms)
 	{
 		RenderManager::Submit([renderer = shared_from_this(), transforms = std::move(transforms)](const Ref<CommandBuffer>&)
 		{

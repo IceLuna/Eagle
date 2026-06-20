@@ -10,6 +10,7 @@
 #include "Notifications.h"
 
 #include <entt.hpp>
+#include <ankerl/unordered_dense.h>
 
 namespace Eagle
 {
@@ -576,9 +577,9 @@ namespace Eagle
 		Ref<SceneRenderer> m_SceneRenderer;
 
 		// Key - mesh ID (entity ID)
-		std::unordered_map<uint32_t, std::vector<glm::mat4>> m_AnimationTransforms;
+		ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> m_AnimationTransforms;
 		// Key - system ID; Value - transforms per emitter
-		std::unordered_map<GUID, std::unordered_map<GUID, std::vector<glm::mat4>>> m_SkeletalParticlesAnimationTransforms;
+		ankerl::unordered_dense::map<GUID, ankerl::unordered_dense::map<GUID, std::vector<glm::mat4>>> m_SkeletalParticlesAnimationTransforms;
 
 		// Skybox
 		Ref<AssetTextureCube> m_Cubemap;
@@ -606,7 +607,7 @@ namespace Eagle
 
 		std::unordered_set<const ParticleSystemComponent*> m_TempParticleSystems; // Used to update and to avoid reallocation of this data structure
 
-		std::unordered_map<GUID, Entity> m_AliveEntities;
+		ankerl::unordered_dense::map<GUID, Entity> m_AliveEntities;
 		std::vector<const PointLightComponent*> m_PointLights;
 		std::vector<const SpotLightComponent*> m_SpotLights;
 		std::vector<const DirectionalLightComponent*> m_DirectionalLights;

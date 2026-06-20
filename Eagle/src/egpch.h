@@ -31,8 +31,9 @@
 #include "Eagle/Core/Log.h"
 
 // 3rd party
-#include "glm/glm.hpp"
+#include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <ankerl/unordered_dense.h>
 
 #ifdef EG_PLATFORM_WINDOWS
 	#include <Windows.h>

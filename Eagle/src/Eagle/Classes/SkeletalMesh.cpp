@@ -34,7 +34,7 @@ namespace Eagle
                 return data;
 
 #if 0 // We dont need to account for the curret pose here
-            if (auto it = currentPose.Bones.find(node.Name); it != currentPose.Bones.end())
+            if (auto it = currentPose.FindBone(node.Name); it != currentPose.Bones.end())
             {
                 const auto& bone = it->second;
                 const glm::mat4 boneTransform = Math::ToTransformMatrix(bone);
@@ -48,12 +48,12 @@ namespace Eagle
 
             const glm::vec3 parentLocation = Math::DecomposeTransformMatrix(data.LocalTransform).Location;
             data.AABB.Grow(parentLocation);
-            data.Name = node.Name;
+            data.Name = node.GetName();
             data.Children.reserve(node.Children.size());
-            const bool bCanMergeToCurrent = boneMap.find(node.Name) != boneMap.end();
+            const bool bCanMergeToCurrent = boneMap.find(node.GetName()) != boneMap.end();
             for (const auto& child : node.Children)
             {
-                if (child.bVirtualBone || IsIKBone(child.Name))
+                if (child.bVirtualBone || IsIKBone(child.GetName()))
                     continue;
 
                 SkeletalRagdollBone childData = MergeBones(minBoneSize, boneMap, child, data.LocalTransform);
@@ -141,7 +141,7 @@ namespace Eagle
                 vertex.Weights[i] = Utils::ToFloat16(weigthsF32[i] / totalWeight);
             }
         }
-        m_RagdollRoot = Utils::MergeBones(m_MinRagdollBoneSize, m_Skeletal.BoneInfoMap, m_Skeletal.RootBone);
+        m_RagdollRoot = Utils::MergeBones(m_MinRagdollBoneSize, m_Skeletal.GetBoneInfoMap(), m_Skeletal.RootBone);
         Utils::PrepareAABB(m_RagdollRoot);
         Utils::SetUserSettings(m_RagdollRoot, ragdollPerBoneSettings);
     }
@@ -217,7 +217,7 @@ namespace Eagle
         std::unordered_map<std::string, SkeletalRagdollBone::UserSettings> ragdollPerBoneSettings;
         Utils::GetUserSettings(m_RagdollRoot, ragdollPerBoneSettings);
 
-        m_RagdollRoot = Utils::MergeBones(m_MinRagdollBoneSize, m_Skeletal.BoneInfoMap, m_Skeletal.RootBone);
+        m_RagdollRoot = Utils::MergeBones(m_MinRagdollBoneSize, m_Skeletal.GetBoneInfoMap(), m_Skeletal.RootBone);
         Utils::PrepareAABB(m_RagdollRoot);
         Utils::SetUserSettings(m_RagdollRoot, ragdollPerBoneSettings);
     }

@@ -44,7 +44,7 @@ namespace Eagle
 		Ref<Buffer> m_InstanceBuffer;
 		Ref<Buffer> m_TransformsBuffer;
 		std::vector<glm::mat4> m_Transforms;
-		std::unordered_map<uint32_t, uint64_t> m_TransformsMapping; // key - entity ID; value - index into m_Transforms
+		ankerl::unordered_dense::map<uint32_t, uint64_t> m_TransformsMapping; // key - entity ID; value - index into m_Transforms
 		uint32_t m_NoNormalsDecalsCount = 0;
 		uint32_t m_WithNormalsDecalsCount = 0;
 		bool bUpload = true;

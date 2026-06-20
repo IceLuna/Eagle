@@ -174,4 +174,6 @@ namespace Eagle::Utils
 	// @saveTo. Folder to save to.
 	// @assetFilename. Asset filename (without the extension)
 	Path GetUniqueAssetFilepath(const Path& saveTo, const std::string& assetFilename);
+
+	size_t CalculateBoneNameHash(const std::string& name);
 }

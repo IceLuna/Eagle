@@ -5,7 +5,7 @@
 
 namespace Eagle
 {
-	static std::unordered_map<Entity, std::vector<Component*>> s_Entities;
+	static ankerl::unordered_dense::map<Entity, std::vector<Component*>> s_Entities;
 	
 	void ComponentsNotificationSystem::AddObserver(const Entity& parent, Component* observer)
 	{

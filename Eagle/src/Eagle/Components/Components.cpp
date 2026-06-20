@@ -16,7 +16,7 @@ namespace Eagle
 		static bool GetBoneWorldTransform(const SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const std::string_view targetBoneName, Transform* outTransform)
 		{
 			glm::mat4 globalTransformation;
-			if (auto it = pose.Bones.find(node.Name); it != pose.Bones.end())
+			if (auto it = pose.FindBone(node.GetNameHash()); it != pose.Bones.end())
 			{
 				const auto& bone = it->second;
 				const glm::mat4 boneTransform = Math::ToTransformMatrix(bone);
@@ -25,7 +25,7 @@ namespace Eagle
 			else
 				globalTransformation = parentTransform * node.Transformation;
 
-			if (node.Name == targetBoneName)
+			if (node.GetName() == targetBoneName)
 			{
 				*outTransform = Math::DecomposeTransformMatrix(globalTransformation);
 				return true;
@@ -41,7 +41,7 @@ namespace Eagle
 		static bool GetBoneWorldTransform_Ragdoll(const SkeletalPose& pose, const BoneNode& node, const glm::mat4& worldTransform, const glm::mat4& parentTransform, const std::string_view targetBoneName, Transform* outTransform)
 		{
 			glm::mat4 globalTransformation;
-			if (auto it = pose.Bones.find(node.Name); it != pose.Bones.end())
+			if (auto it = pose.FindBone(node.GetNameHash()); it != pose.Bones.end())
 			{
 				const auto& bone = it->second;
 				const glm::mat4 boneTransform = Math::ToTransformMatrix(bone);
@@ -51,7 +51,7 @@ namespace Eagle
 			else
 				globalTransformation = parentTransform * node.Transformation;
 
-			if (node.Name == targetBoneName)
+			if (node.GetName() == targetBoneName)
 			{
 				*outTransform = Math::DecomposeTransformMatrix(worldTransform * globalTransformation);
 				return true;
@@ -67,7 +67,7 @@ namespace Eagle
 		// True if found
 		static bool HasBone(const BoneNode& node, const std::string_view targetBoneName)
 		{
-			const std::string& nodeName = node.Name;
+			const std::string& nodeName = node.GetName();
 			if (nodeName == targetBoneName)
 			{
 				return true;

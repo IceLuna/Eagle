@@ -193,7 +193,7 @@ namespace Eagle
 
 		const bool bShouldAdd = bones.find(boneName) != bones.end();
 
-		output.Name = std::move(boneName);
+		output.SetName(std::move(boneName));
 		output.Transformation = ToGLM(node->mTransformation);
 		output.Children.reserve(node->mNumChildren);
 		for (size_t i = 0; i < node->mNumChildren; ++i)
@@ -394,7 +394,7 @@ namespace Eagle
 
 	static std::vector<SkeletalMeshAnimation> ProcessAnimations(const aiScene* scene, const SkeletalMeshInfo& skeletalInfo, const RootMotionMode& rootMotionMode)
 	{
-		const auto& meshBoneInfoMap = skeletalInfo.BoneInfoMap;
+		const auto& meshBoneInfoMap = skeletalInfo.GetBoneInfoMap();
 		const uint32_t animationsCount = scene->mNumAnimations;
 		std::vector<SkeletalMeshAnimation> animations(animationsCount);
 		const glm::mat4 correction = GetCorrectionMatrix(scene);
@@ -407,6 +407,7 @@ namespace Eagle
 			animation.TicksPerSecond = float(assimpAnimation->mTicksPerSecond > 0.0 ? assimpAnimation->mTicksPerSecond : 25.0);
 
 			//reading channels(bones engaged in an animation and their keyframes)
+			BonesAnimMap animBones;
 			for (uint32_t j = 0; j < assimpAnimation->mNumChannels; ++j)
 			{
 				auto channel = assimpAnimation->mChannels[j];
@@ -417,7 +418,7 @@ namespace Eagle
 				if (it == meshBoneInfoMap.end())
 					continue;
 
-				BoneAnimation& bone = animation.Bones[boneName];
+				BoneAnimation& bone = animBones[boneName];
 				bone.BoneID = it->second.BoneID;
 				bone.Locations.reserve(channel->mNumPositionKeys);
 				bone.Rotations.reserve(channel->mNumRotationKeys);
@@ -432,14 +433,14 @@ namespace Eagle
 							auto& locationKey = bone.Locations.emplace_back();
 							locationKey.Location = ToGLM(channel->mPositionKeys[pI].mValue);
 							locationKey.TimeStamp = 0.f;
-							if (boneName == skeletalInfo.RootBone.Name)
+							if (boneName == skeletalInfo.RootBone.GetName())
 								locationKey.Location = correction * glm::vec4(locationKey.Location, 1.f);
 						}
 
 						auto& locationKey = bone.Locations.emplace_back();
 						locationKey.Location = ToGLM(channel->mPositionKeys[pI].mValue);
 						locationKey.TimeStamp = (float)channel->mPositionKeys[pI].mTime;
-						if (boneName == skeletalInfo.RootBone.Name)
+						if (boneName == skeletalInfo.RootBone.GetName())
 							locationKey.Location = correction * glm::vec4(locationKey.Location, 1.f);
 						pI++;
 					}
@@ -449,7 +450,7 @@ namespace Eagle
 						auto& locationKey = bone.Locations.emplace_back();
 						locationKey.Location = ToGLM(channel->mPositionKeys[pI].mValue);
 						locationKey.TimeStamp = (float)channel->mPositionKeys[pI].mTime;
-						if (boneName == skeletalInfo.RootBone.Name)
+						if (boneName == skeletalInfo.RootBone.GetName())
 							locationKey.Location = correction * glm::vec4(locationKey.Location, 1.f);
 					}
 				}
@@ -463,14 +464,14 @@ namespace Eagle
 							auto& rotationKey = bone.Rotations.emplace_back();
 							rotationKey.Rotation = ToGLM(channel->mRotationKeys[pI].mValue);
 							rotationKey.TimeStamp = 0.f;
-							if (boneName == skeletalInfo.RootBone.Name)
+							if (boneName == skeletalInfo.RootBone.GetName())
 								rotationKey.Rotation = glm::toQuat(glm::mat3(correction) * glm::toMat3(rotationKey.Rotation));
 						}
 
 						auto& rotationKey = bone.Rotations.emplace_back();
 						rotationKey.Rotation = ToGLM(channel->mRotationKeys[pI].mValue);
 						rotationKey.TimeStamp = (float)channel->mRotationKeys[pI].mTime;
-						if (boneName == skeletalInfo.RootBone.Name)
+						if (boneName == skeletalInfo.RootBone.GetName())
 							rotationKey.Rotation = glm::toQuat(glm::mat3(correction) * glm::toMat3(rotationKey.Rotation));
 						pI++;
 					}
@@ -480,7 +481,7 @@ namespace Eagle
 						auto& rotationKey = bone.Rotations.emplace_back();
 						rotationKey.Rotation = ToGLM(channel->mRotationKeys[pI].mValue);
 						rotationKey.TimeStamp = (float)channel->mRotationKeys[pI].mTime;
-						if (boneName == skeletalInfo.RootBone.Name)
+						if (boneName == skeletalInfo.RootBone.GetName())
 							rotationKey.Rotation = glm::toQuat(glm::mat3(correction) * glm::toMat3(rotationKey.Rotation));
 					}
 				}
@@ -511,6 +512,7 @@ namespace Eagle
 				}
 			}
 
+			animation.SetAnimationBones(std::move(animBones));
 			if (rootMotionMode != RootMotionMode::Disabled)
 				animation.ExtractRootMotion(skeletalInfo, rootMotionMode);
 		}
@@ -687,13 +689,13 @@ namespace Eagle
 		if (!importedMeshes.empty())
 		{
 			auto& skeletalInfo = importedMeshes[0].Mesh->GetSkeletalMeshInfo();
-			skeletalInfo.BoneInfoMap = std::move(bones);
-			ProcessBoneNode(skeletalInfo.RootBone, scene->mRootNode, skeletalInfo.BoneInfoMap);
+			skeletalInfo.SetBonesInfoMap(std::move(bones));
+			ProcessBoneNode(skeletalInfo.RootBone, scene->mRootNode, skeletalInfo.GetBoneInfoMap());
 			skeletalInfo.RootBone.Transformation = coordCorrection * skeletalInfo.RootBone.Transformation;
 
 			// It's possible that we have two root bones: one from the mesh, and one from assimp. So keep only one of them
 			{
-				const bool bValidBone = skeletalInfo.BoneInfoMap.find(skeletalInfo.RootBone.Name) != skeletalInfo.BoneInfoMap.end();
+				const bool bValidBone = skeletalInfo.IsValid(skeletalInfo.FindBoneInfo(skeletalInfo.RootBone.GetName()));;
 				if (!bValidBone)
 				{
 					// It's assimp root, delete it if we have another root

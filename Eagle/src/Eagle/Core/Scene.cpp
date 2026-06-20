@@ -66,7 +66,7 @@ namespace Eagle
 		void DrawBones_Internal(std::vector<RendererLine>& buffer, const BoneNode& node, const SkeletalPose& currentPose, const glm::mat4& baseTransform)
 		{
 			glm::mat4 tr;
-			if (auto it = currentPose.Bones.find(node.Name); it != currentPose.Bones.end())
+			if (auto it = currentPose.FindBone(node.GetNameHash()); it != currentPose.Bones.end())
 			{
 				const auto& bone = it->second;
 				const glm::mat4 boneTransform = Math::ToTransformMatrix(bone);
@@ -94,7 +94,7 @@ namespace Eagle
 		void DrawRagdollBones_Internal(std::vector<RendererLine>& buffer, const BoneNode& node, const SkeletalPose& currentPose, const glm::mat4& worldTransform, const glm::mat4& baseTransform)
 		{
 			glm::mat4 tr;
-			if (auto it = currentPose.Bones.find(node.Name); it != currentPose.Bones.end())
+			if (auto it = currentPose.FindBone(node.GetNameHash()); it != currentPose.Bones.end())
 			{
 				const auto& bone = it->second;
 				tr = Math::ToTransformMatrix(bone); // Ragdoll is already a global transform
@@ -473,7 +473,7 @@ namespace Eagle
 	static std::unordered_map<GUID, std::function<void(const Ref<Scene>&)>> s_OnSceneOpenedCallbacks;
 
 	template<typename T>
-	static void SceneAddAndCopyComponent(Scene* destScene, entt::registry& destRegistry, entt::registry& srcRegistry, const std::unordered_map<entt::entity, entt::entity>& createdEntities)
+	static void SceneAddAndCopyComponent(Scene* destScene, entt::registry& destRegistry, entt::registry& srcRegistry, const ankerl::unordered_dense::map<entt::entity, entt::entity>& createdEntities)
 	{
 		auto entities = srcRegistry.view<T>();
 		for (auto srcEntity : entities)
@@ -580,7 +580,7 @@ namespace Eagle
 		SetSkyboxIntensity(m_SkyboxIntensity);
 		SetSkybox(m_Sky);
 
-		std::unordered_map<entt::entity, entt::entity> createdEntities;
+		ankerl::unordered_dense::map<entt::entity, entt::entity> createdEntities;
 		createdEntities.reserve(other->GetEntitiesCount());
 		for (auto entt : other->m_Registry.view<TransformComponent>())
 		{

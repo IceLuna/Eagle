@@ -421,7 +421,7 @@ namespace Eagle
 	{
 		out << YAML::BeginMap;
 		out << YAML::Key << "Transformation" << YAML::Value << node.Transformation;
-		out << YAML::Key << "Name" << YAML::Value << node.Name;
+		out << YAML::Key << "Name" << YAML::Value << node.GetName();
 		out << YAML::Key << "IsVirtual" << YAML::Value << node.bVirtualBone;
 
 		if (node.Children.size())
@@ -440,7 +440,7 @@ namespace Eagle
 	void Serializer::ReadBoneNode(const YAML::Node& baseNode, BoneNode& node)
 	{
 		node.Transformation = baseNode["Transformation"].as<glm::mat4>();
-		node.Name = baseNode["Name"].as<std::string>();
+		node.SetName(baseNode["Name"].as<std::string>());
 		if (auto virtualNode = baseNode["IsVirtual"])
 			node.bVirtualBone = virtualNode.as<bool>();
 
@@ -851,7 +851,7 @@ namespace Eagle
 		{
 			out << YAML::Value << YAML::BeginSeq;
 
-			const auto& bones = skeletalInfo.BoneInfoMap;
+			const auto& bones = skeletalInfo.GetBoneInfoMap();
 			for (auto& [name, data] : bones)
 			{
 				out << YAML::BeginMap;
@@ -1200,7 +1200,7 @@ namespace Eagle
 		out << YAML::Key << "Index" << YAML::Value << animIndex;
 		out << YAML::Key << "Skeletal" << YAML::Value << skeletal->GetGUID();
 
-		const auto& bones = anim.Bones;
+		const auto& bones = anim.GetAnimationBones();
 		const bool bHasRootMotion = anim.HasRootMotion();
 
 		// Serialize animation
@@ -3778,6 +3778,8 @@ namespace Eagle
 
 		// BoneInfoMap
 		{
+			BonesMap boneMap;
+
 			auto boneNodes = baseNode["BoneInfoMap"];
 			for (const auto& boneNode : boneNodes)
 			{
@@ -3785,8 +3787,10 @@ namespace Eagle
 				BoneInfo info;
 				info.Offset = boneNode["Matrix"].as<glm::mat4>();
 				info.BoneID = boneNode["ID"].as<int>();
-				skeletalInfo.BoneInfoMap.emplace(std::move(name), std::move(info));
+				boneMap.emplace(std::move(name), std::move(info));
 			}
+
+			skeletalInfo.SetBonesInfoMap(std::move(boneMap));
 		}
 
 		std::vector<SkeletalVertex> vertices;
@@ -4326,7 +4330,7 @@ namespace Eagle
 
 			// Bones
 			{
-				animation.Bones.clear();
+				BonesAnimMap animBones;
 				const size_t bonesDataSize = baseAnimNode["BonesSize"].as<size_t>();
 				const size_t bonesDataOffset = baseAnimNode["BonesOffset"].as<size_t>();
 				ScopedDataBuffer bonesData;
@@ -4363,9 +4367,10 @@ namespace Eagle
 					animData.BoneID = bonesData.Read<uint32_t>(offset);
 					offset += sizeof(uint32_t);
 				
-					animation.Bones.emplace(boneName, std::move(animData));
+					animBones.emplace(boneName, std::move(animData));
 				}
 				EG_CORE_ASSERT(offset == bonesDataSize);
+				animation.SetAnimationBones(std::move(animBones));
 			}
 		}
 

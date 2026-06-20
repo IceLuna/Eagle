@@ -29,7 +29,7 @@ namespace Eagle
     // TODO: group args
     static void CreateArticulationChain(const SkeletalRagdollBone& bone, const std::unordered_map<std::string_view, glm::mat4>& boneTransforms, const BonesMap& boneMap, physx::PxScene* scene, PhysicsRagdollActor::BoneData& physicsBoneData, void* userData,
         const glm::mat4& worldTransform, const glm::mat4& compWorldTrInv, float twist, float swing, const physx::PxFilterData& filterData, const physx::PxVec3& linearVelocity,
-        const physx::PxVec3& angularVelocity, std::unordered_map<std::string, physx::PxRigidDynamic*>& ragdollBonesMap, physx::PxRigidDynamic* parentBody = nullptr)
+        const physx::PxVec3& angularVelocity, ankerl::unordered_dense::map<std::string, physx::PxRigidDynamic*>& ragdollBonesMap, physx::PxRigidDynamic* parentBody = nullptr)
     {
         using namespace physx;
 
@@ -148,7 +148,8 @@ namespace Eagle
             Transform transform = PhysXUtils::FromPhysXTransform(node.Body->getGlobalPose());
             glm::mat4 currentWorldTr = origBaseWorldTrInv * Math::ToTransformMatrix(transform);
             glm::mat4 offsetTr = currentWorldTr * node.OriginalBodyTrInv;
-            pose.Bones[node.Name] = Math::DecomposeTransformMatrix(offsetTr * node.BoneWorldTr);
+            const size_t nameHash = Utils::CalculateBoneNameHash(node.Name);
+            pose.Bones[nameHash] = Math::DecomposeTransformMatrix(offsetTr * node.BoneWorldTr);
         }
 
         for (const auto& child : node.Children)
@@ -197,7 +198,7 @@ namespace Eagle
     static void GatherTransforms(const SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, std::unordered_map<std::string_view, glm::mat4>& boneTransforms)
     {
         glm::mat4 globalTransformation;
-        if (auto it = pose.Bones.find(node.Name); it != pose.Bones.end())
+        if (auto it = pose.FindBone(node.GetNameHash()); it != pose.Bones.end())
         {
             const auto& bone = it->second;
             const glm::mat4 boneTransform = Math::ToTransformMatrix(bone);
@@ -206,7 +207,7 @@ namespace Eagle
         else
             globalTransformation = parentTransform * node.Transformation;
 
-        boneTransforms[node.Name] = globalTransformation;
+        boneTransforms[node.GetName()] = globalTransformation;
 
         for (auto& child : node.Children)
             GatherTransforms(pose, child, globalTransformation, boneTransforms);
@@ -254,7 +255,7 @@ namespace Eagle
 
         std::unordered_map<std::string_view, glm::mat4> boneTransforms;
         GatherTransforms(skeletalComp.LastPose, meshInfo.RootBone, worldTransform, boneTransforms);
-		CreateArticulationChain(mesh->GetRagdollRoot(), boneTransforms, meshInfo.BoneInfoMap, m_Scene, m_Root, userData, worldTransform, m_OriginalTransformInv,
+		CreateArticulationChain(mesh->GetRagdollRoot(), boneTransforms, meshInfo.GetBoneInfoMap(), m_Scene, m_Root, userData, worldTransform, m_OriginalTransformInv,
             glm::radians(twist), glm::radians(swing), filterData, linearVelocity, angularVelocity, m_BonesMap);
         m_RigidActor = m_Root.Body;
 	}

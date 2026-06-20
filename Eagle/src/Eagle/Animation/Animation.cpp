@@ -9,7 +9,7 @@ namespace Eagle
     {
 		static bool FindRootBoneName(const BonesAnimMap& bones, const SkeletalMeshInfo& skeletalInfo, const BoneNode& node, std::string* outBoneName)
 		{
-			const auto& meshBoneInfoMap = skeletalInfo.BoneInfoMap;
+			const auto& meshBoneInfoMap = skeletalInfo.GetBoneInfoMap();
 			bool bFoundRootBone = false;
 
 			for (const auto& [boneName, _] : bones)
@@ -18,7 +18,7 @@ namespace Eagle
 				if (it == meshBoneInfoMap.end())
 					continue;
 
-				const bool bRootNode = boneName == node.Name;
+				const bool bRootNode = boneName == node.GetName();
 				if (bRootNode)
 				{
 					*outBoneName = boneName;
@@ -58,15 +58,15 @@ namespace Eagle
 		}
 
 		std::string rootBoneName;
-		const bool bFoundRootBone = Utils::FindRootBoneName(Bones, skeletalInfo, skeletalInfo.RootBone, &rootBoneName);
+		const bool bFoundRootBone = Utils::FindRootBoneName(m_AnimBones, skeletalInfo, skeletalInfo.RootBone, &rootBoneName);
 		if (!bFoundRootBone)
 		{
 			EG_CORE_ERROR("Failed to extract root motion data. Failed to find the root bone!");
 			return false;
 		}
 
-		auto it = Bones.find(rootBoneName);
-		EG_CORE_ASSERT(it != Bones.end());
+		auto it = m_AnimBones.find(rootBoneName);
+		EG_CORE_ASSERT(it != m_AnimBones.end());
 
 		auto& bone = it->second;
 		PreRootMotionLocations.reserve(bone.Locations.size());
@@ -81,7 +81,7 @@ namespace Eagle
 		{
 			SkeletalPose pose{};
 			AnimationSystem::FinalizePose(pose, skeletalInfo.RootBone, glm::mat4(1), skeletalInfo);
-			auto itRootTr = pose.Bones.find(rootBoneName);
+			auto itRootTr = pose.FindBone(rootBoneName);
 			if (itRootTr != pose.Bones.end())
 			{
 				baseRootTr = itRootTr->second;
@@ -136,15 +136,15 @@ namespace Eagle
             return false;
 
 		std::string rootBoneName;
-		const bool bFoundRootBone = Utils::FindRootBoneName(Bones, skeletalInfo, skeletalInfo.RootBone, &rootBoneName);
+		const bool bFoundRootBone = Utils::FindRootBoneName(m_AnimBones, skeletalInfo, skeletalInfo.RootBone, &rootBoneName);
 		if (!bFoundRootBone)
 		{
 			EG_CORE_ERROR("Failed to remove root motion data. Failed to find the root bone!");
 			return false;
 		}
 
-		auto it = Bones.find(rootBoneName);
-		EG_CORE_ASSERT(it != Bones.end());
+		auto it = m_AnimBones.find(rootBoneName);
+		EG_CORE_ASSERT(it != m_AnimBones.end());
 
 		auto& bone = it->second;
 

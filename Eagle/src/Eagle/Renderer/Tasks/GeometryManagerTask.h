@@ -213,8 +213,8 @@ namespace Eagle
 		std::vector<PerInstanceDataType> SubMeshData;
 	};
 
-	using StaticMeshesMap = std::unordered_map<MeshKey<StaticMesh>, std::vector<MeshInstance<PerInstanceData>>>;
-	using SkeletalMeshesMap = std::unordered_map<MeshKey<SkeletalMesh>, std::vector<MeshInstance<SkeletalPerInstanceData>>>;
+	using StaticMeshesMap = ankerl::unordered_dense::map<MeshKey<StaticMesh>, std::vector<MeshInstance<PerInstanceData>>>;
+	using SkeletalMeshesMap = ankerl::unordered_dense::map<MeshKey<SkeletalMesh>, std::vector<MeshInstance<SkeletalPerInstanceData>>>;
 	using StaticMeshGeometryData = MeshGeometryData<Vertex, PerInstanceData>;
 	using SkeletalMeshGeometryData = MeshGeometryData<SkeletalVertex, SkeletalPerInstanceData>;
 
@@ -400,7 +400,7 @@ namespace Eagle
 		std::vector<glm::mat4> m_MeshTransforms;
 		std::vector<uint64_t> m_MeshUploadSpecificTransforms; // Instead of uploading all transforms, upload just required transforms. uint - index to "std::vector<glm::mat4> transforms"
 
-		std::unordered_map<uint32_t, uint64_t> m_MeshTransformIndices; // EntityID -> uint64_t (index to m_MeshTransforms)
+		ankerl::unordered_dense::map<uint32_t, uint64_t> m_MeshTransformIndices; // EntityID -> uint64_t (index to m_MeshTransforms)
 
 		bool bUploadMeshTransforms = true;
 		bool bUploadMeshSpecificTransforms = false;
@@ -417,7 +417,7 @@ namespace Eagle
 		std::vector<glm::mat4> m_SkeletalMeshTransforms;
 		std::vector<uint64_t> m_SkeletalMeshUploadSpecificTransforms; // Instead of uploading all transforms, upload just required transforms. uint - index to "std::vector<glm::mat4> transforms"
 
-		std::unordered_map<uint32_t, uint64_t> m_SkeletalMeshTransformIndices; // EntityID -> uint64_t (index to m_MeshTransforms)
+		ankerl::unordered_dense::map<uint32_t, uint64_t> m_SkeletalMeshTransformIndices; // EntityID -> uint64_t (index to m_MeshTransforms)
 
 		// Transforms of animations
 		std::vector<std::vector<glm::mat4>> m_AnimationTransforms;
@@ -440,7 +440,7 @@ namespace Eagle
 
 		std::vector<SpriteData> m_Sprites;
 
-		std::unordered_map<uint32_t, uint64_t> m_SpriteTransformIndices; // EntityID -> uint64_t (index to m_SpriteTransforms)
+		ankerl::unordered_dense::map<uint32_t, uint64_t> m_SpriteTransformIndices; // EntityID -> uint64_t (index to m_SpriteTransforms)
 
 		bool bUploadSpritesTransforms = true;
 		bool bUploadSpritesSpecificTransforms = false;
@@ -451,7 +451,7 @@ namespace Eagle
 		// ------- Text 3D -------
 		Ref<Buffer> m_TextTransformsBuffer;
 		Ref<Buffer> m_TextPrevTransformsBuffer;
-		std::unordered_map<Ref<Texture2D>, uint32_t> m_FontAtlases;
+		ankerl::unordered_dense::map<Ref<Texture2D>, uint32_t> m_FontAtlases;
 		std::vector<Ref<Texture2D>> m_Atlases;
 
 		// ------- Lit Text 3D -------
@@ -464,7 +464,7 @@ namespace Eagle
 
 		std::vector<glm::mat4> m_TextTransforms;
 		std::vector<uint64_t> m_TextUploadSpecificTransforms; // Instead of uploading all transforms, upload just required transforms. uint - index to "std::vector<glm::mat4> transforms"
-		std::unordered_map<uint32_t, uint64_t> m_TextTransformIndices; // EntityID -> uint64_t (index to m_TextTransformIndices)
+		ankerl::unordered_dense::map<uint32_t, uint64_t> m_TextTransformIndices; // EntityID -> uint64_t (index to m_TextTransformIndices)
 
 		bool bUploadTextQuads = true;
 		bool bUploadTextTransforms = true;

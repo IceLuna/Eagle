@@ -153,9 +153,10 @@ namespace Eagle
 
 	const SkeletalPose& AnimationGraph::Update(Timestep ts)
 	{
-		m_Pose.Reset();
 		if (m_ResultNode)
 			m_Pose = m_ResultNode->Update(ts);
+		else
+			m_Pose.Reset();
 
 		return m_Pose;
 	}

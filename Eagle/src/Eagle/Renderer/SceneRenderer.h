@@ -24,6 +24,8 @@
 #include "Tasks/LightCullingTask.h"
 #include "Tasks/ScreenSpaceShadowsTask.h"
 
+#include <ankerl/unordered_dense.h>
+
 namespace Eagle
 {
 	class StaticMeshComponent;
@@ -161,11 +163,11 @@ namespace Eagle
 		float GetAspectRatio() const { return float(m_Size.x) / float(m_Size.y); }
 
 		// Key -> Mesh ID (entity ID)
-		void SetMeshesAnimationTransforms(std::unordered_map<uint32_t, std::vector<glm::mat4>>&& transforms);
-		const std::unordered_map<uint32_t, std::vector<glm::mat4>>& GetMeshesAnimationTransforms_RT() const { return m_AnimationTransforms; }
+		void SetMeshesAnimationTransforms(ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>>&& transforms);
+		const ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>>& GetMeshesAnimationTransforms_RT() const { return m_AnimationTransforms; }
 
 		// Key - system ID; Value - transforms per emitter
-		void SetSkeletalParticleAnimationTransforms(std::unordered_map<GUID, std::unordered_map<GUID, std::vector<glm::mat4>>>&& transforms);
+		void SetSkeletalParticleAnimationTransforms(ankerl::unordered_dense::map<GUID, ankerl::unordered_dense::map<GUID, std::vector<glm::mat4>>>&& transforms);
 		const auto& GetSkeletalParticleAnimationTransforms_RT() const { return m_SkeletalParticlesAnimationTransforms; }
 
 		// ----------- Getters from other tasks -----------
@@ -342,8 +344,8 @@ namespace Eagle
 		bool m_bSkyboxEnabled = true;
 		bool m_bRenderSkybox = true;
 
-		std::unordered_map<uint32_t, std::vector<glm::mat4>> m_AnimationTransforms;
-		std::unordered_map<GUID, std::unordered_map<GUID, std::vector<glm::mat4>>> m_SkeletalParticlesAnimationTransforms;
+		ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> m_AnimationTransforms;
+		ankerl::unordered_dense::map<GUID, ankerl::unordered_dense::map<GUID, std::vector<glm::mat4>>> m_SkeletalParticlesAnimationTransforms;
 
 		SkySettings m_Sky;
 		CameraData m_CameraMatrices;

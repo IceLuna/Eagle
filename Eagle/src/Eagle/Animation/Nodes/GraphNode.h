@@ -105,6 +105,7 @@ namespace Eagle
 		std::vector<Ref<GraphVariable>> m_Variables;
 
 		SkeletalPose m_Pose; // Pose that was calculated by the node during the latest update
+		SkeletalPose* m_PosePtr = nullptr; // Pose that was calculated by another. Can be used if the node doesn't need to copy the result into its own `m_Pose`
 
 		size_t m_CalculatedOnFrame = 0;
 	};

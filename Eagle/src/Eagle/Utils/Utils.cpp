@@ -7,6 +7,7 @@
 #include <locale>
 #include <stb_image.h>
 #include <stb_image_write.h>
+#include <ankerl/unordered_dense.h>
 
 namespace Eagle
 {
@@ -277,5 +278,10 @@ namespace Eagle
 		}
 
 		return outputFilename;
+	}
+	
+	uint64_t Utils::CalculateBoneNameHash(const std::string& name)
+	{
+		return ankerl::unordered_dense::hash<std::string>()(name);
 	}
 }

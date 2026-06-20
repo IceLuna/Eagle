@@ -9,7 +9,7 @@
 
 namespace Eagle
 {
-	static Ref<AnimationStateGraph> GetGraphFromCache(std::unordered_map<Ref<AnimationStateGraph>, Ref<AnimationStateGraph>>& cache,
+	static Ref<AnimationStateGraph> GetGraphFromCache(ankerl::unordered_dense::map<Ref<AnimationStateGraph>, Ref<AnimationStateGraph>>& cache,
 		std::vector<Ref<AnimationStateGraph>>& states, const Ref<AnimationStateGraph>& stateToCopy, const VariablesMap& variablesToUse, const Ref<AnimationGraph>& root)
 	{
 		auto it = cache.find(stateToCopy);
@@ -28,7 +28,7 @@ namespace Eagle
 		// Key - graph that was copied
 		// Value - It's copy
 		// Cache is needed to avoid duplication of graphs.
-		std::unordered_map<Ref<AnimationStateGraph>, Ref<AnimationStateGraph>> cache;
+		ankerl::unordered_dense::map<Ref<AnimationStateGraph>, Ref<AnimationStateGraph>> cache;
 
 		m_States.reserve(other->m_States.size());
 		for (const auto& stateToCopy : other->m_States)
@@ -56,7 +56,7 @@ namespace Eagle
 		m_States.clear();
 	}
 
-	const SkeletalPose& AnimationStateMachineGraph::Update(Timestep ts)
+	SkeletalPose& AnimationStateMachineGraph::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)

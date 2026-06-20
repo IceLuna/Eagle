@@ -12,7 +12,7 @@ namespace YAML
 namespace Eagle
 {
 	using AssetsMap = std::map<Path, Ref<Asset>>;
-	using AssetsMapByGUID = std::unordered_map<GUID, Ref<Asset>>;
+	using AssetsMapByGUID = ankerl::unordered_dense::map<GUID, Ref<Asset>>;
 
 	class AssetManager
 	{
@@ -62,7 +62,7 @@ namespace Eagle
 	private:
 		static AssetsMap s_Assets;
 		static AssetsMapByGUID s_AssetsByGUID;
-		static std::unordered_map<GUID, std::function<void(const Ref<Asset>&)>> s_Callbacks;
+		static ankerl::unordered_dense::map<GUID, std::function<void(const Ref<Asset>&)>> s_Callbacks;
 
 		// Used to store assets that are created at runtime (using C#). They're deleted once the scene is closed
 		static AssetsMapByGUID s_RuntimeAssets;

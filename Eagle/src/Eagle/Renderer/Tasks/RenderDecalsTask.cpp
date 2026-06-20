@@ -231,7 +231,7 @@ namespace Eagle
 			uint32_t SortPriority;
 		};
 
-		std::unordered_map<uint32_t, uint64_t> decalsTransformsMapping; // key - entity ID; value - index into m_Transforms
+		ankerl::unordered_dense::map<uint32_t, uint64_t> decalsTransformsMapping; // key - entity ID; value - index into m_Transforms
 		std::vector<UpdateData> decalsData;
 		std::vector<glm::mat4> decalTransforms;
 		std::map<uint32_t, Ref<Material>> decalMaterials; // Key - Material index

@@ -4,6 +4,8 @@
 #include "DescriptorManager.h"
 #include "Eagle/Renderer/RenderManager.h"
 
+#include <ankerl/unordered_dense.h>
+
 namespace Eagle
 {
 	class Texture2D;
@@ -39,16 +41,16 @@ namespace Eagle
 		virtual void* GetPipelineHandle() const = 0;
 		virtual void* GetPipelineLayoutHandle() const = 0;
 
-		const std::unordered_map<uint32_t, DescriptorSetData>& GetDescriptorSetsData() const { return m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()]; }
-		std::unordered_map<uint32_t, DescriptorSetData>& GetDescriptorSetsData() { return m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()]; }
-		const std::unordered_map<uint32_t, Ref<DescriptorSet>>& GetDescriptorSets() const { return m_DescriptorSets[RenderManager::GetCurrentFrameIndex()]; }
+		const ankerl::unordered_dense::map<uint32_t, DescriptorSetData>& GetDescriptorSetsData() const { return m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()]; }
+		ankerl::unordered_dense::map<uint32_t, DescriptorSetData>& GetDescriptorSetsData() { return m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()]; }
+		const ankerl::unordered_dense::map<uint32_t, Ref<DescriptorSet>>& GetDescriptorSets() const { return m_DescriptorSets[RenderManager::GetCurrentFrameIndex()]; }
 
 		void ResetDescriptors();
 
 		Ref<DescriptorSet>& AllocateDescriptorSet(uint32_t set);
 
 	protected:
-		std::array<std::unordered_map<uint32_t, DescriptorSetData>, RendererConfig::FramesInFlight> m_DescriptorSetData; // Set -> Data
-		std::array<std::unordered_map<uint32_t, Ref<DescriptorSet>>, RendererConfig::FramesInFlight> m_DescriptorSets; // Set -> DescriptorSet
+		std::array<ankerl::unordered_dense::map<uint32_t, DescriptorSetData>, RendererConfig::FramesInFlight> m_DescriptorSetData; // Set -> Data
+		std::array<ankerl::unordered_dense::map<uint32_t, Ref<DescriptorSet>>, RendererConfig::FramesInFlight> m_DescriptorSets; // Set -> DescriptorSet
 	};
 }

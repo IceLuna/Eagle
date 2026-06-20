@@ -52,12 +52,12 @@ namespace Eagle
 	std::mutex ScriptEngine::s_Mutex;
 
 	std::map<std::string, EntityScriptClass> ScriptEngine::s_EntityClasses;
-	std::unordered_map<GUID, EntityInstance> ScriptEngine::s_EntityInstanceDataMap;
+	ankerl::unordered_dense::map<GUID, EntityInstance> ScriptEngine::s_EntityInstanceDataMap;
 	AIBehaviorClasses ScriptEngine::s_CoreAIClasses;
 	AIBehaviorClasses ScriptEngine::s_UserAIClasses;
-	std::unordered_map<GUID, std::function<void()>> ScriptEngine::s_AppAssemblyReloadedCallbacks;
+	ankerl::unordered_dense::map<GUID, std::function<void()>> ScriptEngine::s_AppAssemblyReloadedCallbacks;
 
-	static std::unordered_map<MonoClass*, FieldType> s_BuiltInEagleTypes;
+	static ankerl::unordered_dense::map<MonoClass*, FieldType> s_BuiltInEagleTypes;
 
 	static bool s_EnableDebugging = false;
 

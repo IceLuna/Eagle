@@ -22,7 +22,7 @@ namespace Eagle
 
 	AssetsMap AssetManager::s_Assets;
 	AssetsMapByGUID AssetManager::s_AssetsByGUID;
-	std::unordered_map<GUID, std::function<void(const Ref<Asset>&)>> AssetManager::s_Callbacks;
+	ankerl::unordered_dense::map<GUID, std::function<void(const Ref<Asset>&)>> AssetManager::s_Callbacks;
 	AssetsMapByGUID AssetManager::s_RuntimeAssets;
 	Ref<AssetTextureCube> AssetManager::s_Skybox;
 	Ref<AssetStaticMesh> AssetManager::s_Sphere;
@@ -33,8 +33,8 @@ namespace Eagle
 	// So here we are creating a map, where Path is a path to an asset and ScopedDataBuffer is a buffer that contains asset data.
 	// Using this approach will allow us to quickly load assets since there's no need to parse the asset pack.
 	// And when an asset is requested, we should check if it's loaded already (s_Assets)
-	static std::unordered_map<Path, Ref<ScopedDataBuffer>> s_AssetPackAssets;
-	static std::unordered_map<GUID, std::pair<Path, Ref<ScopedDataBuffer>>> s_AssetPackAssetsByGUID;
+	static ankerl::unordered_dense::map<Path, Ref<ScopedDataBuffer>> s_AssetPackAssets;
+	static ankerl::unordered_dense::map<GUID, std::pair<Path, Ref<ScopedDataBuffer>>> s_AssetPackAssetsByGUID;
 	static std::mutex s_Mutex;
 	static bool s_bGame = false;
 

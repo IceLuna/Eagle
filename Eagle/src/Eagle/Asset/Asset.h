@@ -11,6 +11,8 @@
 #include "Eagle/Utils/DelaunayTriangulation.h"
 #include "Eagle/Renderer/TextureCompressor.h"
 
+#include <ankerl/unordered_dense.h>
+
 namespace YAML
 {
 	class Node;
@@ -261,7 +263,7 @@ namespace Eagle
 
 	protected:
 		std::mutex m_Mutex;
-		std::unordered_map<GUID, std::function<void()>> m_Callbacks;
+		ankerl::unordered_dense::map<GUID, std::function<void()>> m_Callbacks;
 		Path m_Path;
 		Path m_PathToRaw;
 		GUID m_GUID;

@@ -32,7 +32,7 @@ namespace Eagle
     };
 
     static VulkanAllocatorData* s_AllocatorData = nullptr;
-	static std::unordered_map<VmaAllocation, GPUResourceDebugData> s_Allocations;
+	static ankerl::unordered_dense::map<VmaAllocation, GPUResourceDebugData> s_Allocations;
 
 	static std::mutex s_Mutex;
 

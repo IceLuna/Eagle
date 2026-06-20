@@ -79,7 +79,7 @@ namespace Eagle
 		void InitFunctions();
 
 	private:
-		std::unordered_map<void*, std::string> m_ResourcesDebugNames;
+		ankerl::unordered_dense::map<void*, std::string> m_ResourcesDebugNames;
 		VulkanFunctions m_Functions{};
 		Scope<VulkanPhysicalDevice> m_PhysicalDevice;
 		Scope<VulkanDevice> m_Device;

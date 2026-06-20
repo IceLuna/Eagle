@@ -44,6 +44,7 @@ IncludeDir["zstd"] = "Eagle/vendor/zstd/include"
 IncludeDir["RecastNavigation"] = "Eagle/vendor/recastnavigation"
 IncludeDir["compressonator"] = "Eagle/vendor/compressonator/include"
 IncludeDir["FFX_SSSR"] = "Eagle/vendor/ffx_sssr/include"
+IncludeDir["unordered_dense"] = "Eagle/vendor/unordered_dense"
 
 -- Lib dirs
 LibDir = {}
@@ -199,6 +200,7 @@ project "Eagle"
 		"%{IncludeDir.RecastNavigation}/DebugUtils/Include",
 		"%{IncludeDir.compressonator}",
 		"%{IncludeDir.FFX_SSSR}",
+		"%{IncludeDir.unordered_dense}",
 	}
 
 	defines
@@ -414,6 +416,7 @@ project "Eagle-Editor"
 		"%{IncludeDir.RecastNavigation}/Recast/Include",
 		"%{IncludeDir.RecastNavigation}/Recast/DebugUtils",
 		"%{IncludeDir.RecastNavigation}/DebugUtils/Include",
+		"%{IncludeDir.unordered_dense}",
 	}
 
 	links
@@ -563,6 +566,7 @@ project "Eagle-Game"
 		"%{IncludeDir.RecastNavigation}/Recast/Include",
 		"%{IncludeDir.RecastNavigation}/Recast/DebugUtils",
 		"%{IncludeDir.RecastNavigation}/DebugUtils/Include",
+		"%{IncludeDir.unordered_dense}",
 	}
 
 	links

@@ -136,7 +136,7 @@ namespace Eagle
 			}
 		};
 
-		std::unordered_map<GUID, std::unordered_map<ParticleEmitter, EmitterData>> m_SystemToEmittersMapping; // Key - Particle system; Value - its emitters
+		ankerl::unordered_dense::map<GUID, ankerl::unordered_dense::map<ParticleEmitter, EmitterData>> m_SystemToEmittersMapping; // Key - Particle system; Value - its emitters
 		std::vector<ModifyRequest> m_ModifyRequestQueue;
 		std::vector<DeadEmitterData> m_DeadEmitters;
 
@@ -165,10 +165,10 @@ namespace Eagle
 		std::vector<Index> m_StaticMeshIndices;
 		Ref<Buffer> m_StaticMeshVertexBuffer;
 		Ref<Buffer> m_StaticMeshIndexBuffer;
-		std::unordered_map<Ref<StaticMesh>, MeshEmitterData> m_StaticMeshDataMapping; // To avoid duplicating meshes in the memory
+		ankerl::unordered_dense::map<Ref<StaticMesh>, MeshEmitterData> m_StaticMeshDataMapping; // To avoid duplicating meshes in the memory
 		bool bRebuildStaticMeshData = false;
 
-		std::unordered_map<Ref<SkeletalMesh>, MeshEmitterData> m_SkeletalMeshDataMapping; // To avoid duplicating meshes in the memory
+		ankerl::unordered_dense::map<Ref<SkeletalMesh>, MeshEmitterData> m_SkeletalMeshDataMapping; // To avoid duplicating meshes in the memory
 		std::vector<ParticleSkeletalMeshVertex> m_SkeletalMeshVertices;
 		std::vector<Index> m_SkeletalMeshIndices;
 		Ref<Buffer> m_SkeletalMeshVertexBuffer;

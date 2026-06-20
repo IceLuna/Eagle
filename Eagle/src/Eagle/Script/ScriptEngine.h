@@ -126,11 +126,11 @@ namespace Eagle
 		static std::mutex s_Mutex;
 
 		static std::map<std::string, EntityScriptClass> s_EntityClasses; // FullName -> Data
-		static std::unordered_map<GUID, EntityInstance> s_EntityInstanceDataMap;
+		static ankerl::unordered_dense::map<GUID, EntityInstance> s_EntityInstanceDataMap;
 
 		static AIBehaviorClasses s_CoreAIClasses;
 		static AIBehaviorClasses s_UserAIClasses;
 
-		static std::unordered_map<GUID, std::function<void()>> s_AppAssemblyReloadedCallbacks;
+		static ankerl::unordered_dense::map<GUID, std::function<void()>> s_AppAssemblyReloadedCallbacks;
 	};
 }

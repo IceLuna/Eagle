@@ -19,7 +19,7 @@ namespace Eagle
 
 	static bool HasBoneWithName(const BoneNode& node, const std::string& name)
 	{
-		if (node.Name == name)
+		if (node.GetName() == name)
 			return true;
 
 		for (const auto& child : node.Children)
@@ -44,7 +44,7 @@ namespace Eagle
 	// Returns true if found
 	static bool GetRootBone_Internal(BoneNode& node, const BonesMap& bonesMap, BoneNode** outNode = nullptr)
 	{
-		if (auto it = bonesMap.find(node.Name); it != bonesMap.end())
+		if (auto it = bonesMap.find(node.GetName()); it != bonesMap.end())
 		{
 			*outNode = &node;
 			return true;
@@ -250,19 +250,19 @@ namespace Eagle
 	// Returns true if it changed
 	bool SkeletalMeshAssetEditor::DrawSkeletalTree(const SkeletalMeshInfo& skeletalInfo, BoneNode& node, size_t baseHash, bool* outDelete, const glm::mat4& baseTransform, const std::string& parentName)
 	{
-		size_t hash = std::hash<std::string>()(node.Name);
+		size_t hash = std::hash<std::string>()(node.GetName());
 		HashCombine(hash, baseHash);
 		bool bChanged = false;
 
 		const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_AllowOverlap | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick
-			| (node.Children.size() ? 0 : ImGuiTreeNodeFlags_Leaf) | (m_SelectedBone && m_SelectedBone->Name == node.Name ? ImGuiTreeNodeFlags_Selected : 0);
+			| (node.Children.size() ? 0 : ImGuiTreeNodeFlags_Leaf) | (m_SelectedBone && m_SelectedBone->GetName() == node.GetName() ? ImGuiTreeNodeFlags_Selected : 0);
 
-		bool opened = ImGui::TreeNodeEx((void*)hash, flags, node.Name.c_str());
+		bool opened = ImGui::TreeNodeEx((void*)hash, flags, node.GetName().c_str());
 		const glm::mat4 worldTr = baseTransform * node.Transformation;
 
 		if (ImGui::IsItemClicked())
 		{
-			m_SelectedBoneName = node.Name;
+			m_SelectedBoneName = node.GetName();
 			m_SelectedBoneParentName = parentName;
 			m_SelectedBone = &node;
 		}
@@ -272,7 +272,7 @@ namespace Eagle
 			if (ImGui::MenuItem("Add virtual bone"))
 			{
 				auto& bone = node.Children.emplace_back();
-				bone.Name = GetUniqueBoneName(skeletalInfo);
+				bone.SetName(GetUniqueBoneName(skeletalInfo));
 				bone.Transformation = glm::mat4(1.f);
 				bone.bVirtualBone = true;
 				bChanged = true;
@@ -280,7 +280,7 @@ namespace Eagle
 
 			if (ImGui::BeginMenu("Attach Mesh (visualization only)"))
 			{
-				auto it = m_AttachedToBonesMeshes.find(node.Name);
+				auto it = m_AttachedToBonesMeshes.find(node.GetName());
 				Ref<AssetBaseMesh> mesh = it != m_AttachedToBonesMeshes.end() ? it->second.Mesh : nullptr;
 
 				if (DrawMeshSelection(mesh))
@@ -294,8 +294,8 @@ namespace Eagle
 
 					if (mesh)
 					{
-						Entity e = SpawnMeshVisualization(mesh, node.Name, scene);
-						m_AttachedToBonesMeshes[node.Name] = { mesh, e };
+						Entity e = SpawnMeshVisualization(mesh, node.GetName(), scene);
+						m_AttachedToBonesMeshes[node.GetName()] = {mesh, e};
 					}
 				}
 
@@ -305,11 +305,11 @@ namespace Eagle
 			if (ImGui::BeginMenu("Attach primitive (visualization only)"))
 			{
 				auto& scene = GetCurrentScene();
-				auto it = m_AttachedToBonesColliders.find(node.Name);
+				auto it = m_AttachedToBonesColliders.find(node.GetName());
 				const bool bValid = it != m_AttachedToBonesColliders.end();
-				const bool bHasBox = DrawColliderCheckbox<BoxColliderComponent>("Box", node.Name, scene, it, m_AttachedToBonesColliders);
-				const bool bHasSphere = DrawColliderCheckbox<SphereColliderComponent>("Sphere", node.Name, scene, it, m_AttachedToBonesColliders);
-				const bool bHasCapsule = DrawColliderCheckbox<CapsuleColliderComponent>("Capsule", node.Name, scene, it, m_AttachedToBonesColliders);
+				const bool bHasBox = DrawColliderCheckbox<BoxColliderComponent>("Box", node.GetName(), scene, it, m_AttachedToBonesColliders);
+				const bool bHasSphere = DrawColliderCheckbox<SphereColliderComponent>("Sphere", node.GetName(), scene, it, m_AttachedToBonesColliders);
+				const bool bHasCapsule = DrawColliderCheckbox<CapsuleColliderComponent>("Capsule", node.GetName(), scene, it, m_AttachedToBonesColliders);
 
 				if (bValid && !bHasBox && !bHasSphere && !bHasCapsule)
 				{
@@ -325,7 +325,7 @@ namespace Eagle
 				ImGui::Separator();
 				if (ImGui::MenuItem("Delete"))
 				{
-					if (m_SelectedBone && m_SelectedBone->Name == node.Name)
+					if (m_SelectedBone && m_SelectedBone->GetName() == node.GetName())
 					{
 						m_SelectedBoneName.clear();
 						m_SelectedBone = nullptr;
@@ -346,7 +346,7 @@ namespace Eagle
 				auto& child = *it;
 
 				bool bDelete = false;
-				bChanged |= DrawSkeletalTree(skeletalInfo, child, baseHash, &bDelete, worldTr, node.Name);
+				bChanged |= DrawSkeletalTree(skeletalInfo, child, baseHash, &bDelete, worldTr, node.GetName());
 
 				if (bDelete)
 				{
@@ -643,7 +643,7 @@ namespace Eagle
 		if (bOpened)
 		{
 			auto& skeletalInfo = mesh->GetSkeletalMeshInfo();
-			auto& root = GetRootBone(skeletalInfo.RootBone, skeletalInfo.BoneInfoMap);
+			auto& root = GetRootBone(skeletalInfo.RootBone, skeletalInfo.GetBoneInfoMap());
 			bChanged |= DrawSkeletalTree(skeletalInfo, root, assetHash);
 
 			if (m_SelectedBone)
@@ -670,16 +670,16 @@ namespace Eagle
 					if (!ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 						bStoppedEditing = true;
 
-					if (bStoppedEditing && m_SelectedBoneName != m_SelectedBone->Name)
+					if (bStoppedEditing && m_SelectedBoneName != m_SelectedBone->GetName())
 					{
 						if (HasBoneWithName(skeletalInfo.RootBone, m_SelectedBoneName))
 						{
 							Application::Get().GetImGuiLayer()->AddMessage("Failed to rename the bone. The name is already taken!");
-							m_SelectedBoneName = m_SelectedBone->Name;
+							m_SelectedBoneName = m_SelectedBone->GetName();
 						}
 						else
 						{
-							m_SelectedBone->Name = m_SelectedBoneName;
+							m_SelectedBone->SetName(m_SelectedBoneName);
 							bChanged = true;
 						}
 					}
@@ -995,12 +995,12 @@ namespace Eagle
 	
 	void SkeletalMeshAssetEditor::OnBoneNodeDeletion(const BoneNode& node)
 	{
-		if (auto it = m_AttachedToBonesMeshes.find(node.Name); it != m_AttachedToBonesMeshes.end())
+		if (auto it = m_AttachedToBonesMeshes.find(node.GetName()); it != m_AttachedToBonesMeshes.end())
 		{
 			GetCurrentScene()->DestroyEntity(it->second.Entity);
 			m_AttachedToBonesMeshes.erase(it);
 		}
-		if (auto it = m_AttachedToBonesColliders.find(node.Name); it != m_AttachedToBonesColliders.end())
+		if (auto it = m_AttachedToBonesColliders.find(node.GetName()); it != m_AttachedToBonesColliders.end())
 		{
 			GetCurrentScene()->DestroyEntity(it->second.Entity);
 			m_AttachedToBonesColliders.erase(it);

@@ -77,8 +77,8 @@ namespace Eagle
         // Used to detect if the same image is used but with a different layout
         // In that case, layout should be VK_IMAGE_LAYOUT_GENERAL.
         // Bool here means `IsUnique` so if it's false, use VK_IMAGE_LAYOUT_GENERAL
-        std::unordered_map<void*, bool> imageBindingsUnique;
-        std::unordered_map<void*, VkDescriptorType> imageBindingsTypes;
+        ankerl::unordered_dense::map<void*, bool> imageBindingsUnique;
+        ankerl::unordered_dense::map<void*, VkDescriptorType> imageBindingsTypes;
 
         for (auto& writeData : writeDatas)
         {

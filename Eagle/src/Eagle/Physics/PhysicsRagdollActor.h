@@ -77,6 +77,6 @@ namespace Eagle
 		bool m_bShowCollision = false;
 
 		BoneData m_Root;
-		std::unordered_map<std::string, physx::PxRigidDynamic*> m_BonesMap;
+		ankerl::unordered_dense::map<std::string, physx::PxRigidDynamic*> m_BonesMap;
 	};
 }

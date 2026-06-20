@@ -85,16 +85,21 @@ namespace Eagle
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
-			return m_Pose;
-
-		m_Pose.Reset();
+			return m_PosePtr ? *m_PosePtr : m_Pose;
 
 		if (m_Inputs[0])
-			m_Pose = m_Inputs[0]->Update(ts);
+		{
+			m_PosePtr = &m_Inputs[0]->Update(ts);
+		}
+		else
+		{
+			m_Pose.Reset();
+			m_PosePtr = nullptr;
+		}
 
 		m_CalculatedOnFrame = currentFrame;
 
-		return m_Pose;
+		return m_PosePtr ? *m_PosePtr : m_Pose;
 	}
 
 	SkeletalPose& AnimationGraphNodeStateOutput::Update(Timestep ts)
@@ -103,9 +108,10 @@ namespace Eagle
 		if (currentFrame <= m_CalculatedOnFrame)
 			return m_Pose;
 
-		m_Pose.Reset();
 		if (m_Inputs[0])
 			m_Pose = m_Inputs[0]->Update(ts);
+		else
+			m_Pose.Reset();
 
 		m_CalculatedOnFrame = currentFrame;
 
@@ -136,16 +142,21 @@ namespace Eagle
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
-			return m_Pose;
-
-		m_Pose.Reset();
+			return m_PosePtr ? *m_PosePtr : m_Pose;
 
 		if (const auto& ref = GetStateMachine())
-			m_Pose = ref->Update(ts);
+		{
+			m_PosePtr = &ref->Update(ts);
+		}
+		else
+		{
+			m_Pose.Reset();
+			m_PosePtr = nullptr;
+		}
 
 		m_CalculatedOnFrame = currentFrame;
 
-		return m_Pose;
+		return m_PosePtr ? *m_PosePtr : m_Pose;
 	}
 
 	const Ref<AnimationStateMachineGraph>& AnimationGraphStateMachineEntry::GetStateMachine() const
@@ -318,7 +329,7 @@ namespace Eagle
 			Utils::GetValue(m_Inputs[2], m_Variables[2], ts, &rotation);
 
 			m_Pose = input->Update(ts);
-			auto it = m_Pose.Bones.find(boneName);
+			auto it = m_Pose.FindBone(boneName);
 			if (it != m_Pose.Bones.end())
 			{
 				glm::quat q;
@@ -555,29 +566,34 @@ namespace Eagle
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
-			return m_Pose;
-
-		m_Pose.Reset();
+			return m_PosePtr ? *m_PosePtr : m_Pose;
 
 		bool bValue = false;
 		Utils::GetValue(m_Inputs[0], m_Variables[0], ts, &bValue);
 
 		auto& poseInput = bValue ? m_Inputs[2] : m_Inputs[1];
 		if (poseInput)
-			m_Pose = poseInput->Update(ts);
+		{
+			m_PosePtr = &poseInput->Update(ts);
+		}
+		else
+		{
+			m_Pose.Reset();
+			m_PosePtr = nullptr;
+		}
 
 		m_CalculatedOnFrame = currentFrame;
 
-		return m_Pose;
+		return m_PosePtr ? *m_PosePtr : m_Pose;
 	}
 
 	SkeletalPose& AnimationGraphNodeSelectPoseByInt::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
-			return m_Pose;
+			return m_PosePtr ? *m_PosePtr : m_Pose;
 
-		m_Pose.Reset();
+		m_PosePtr = nullptr;
 
 		int value = 0;
 		if (Utils::GetValueFromVariable(m_Variables[0], &value))
@@ -588,12 +604,17 @@ namespace Eagle
 		{
 			auto& poseInput = m_Inputs[poseIndex];
 			if (poseInput)
-				m_Pose = poseInput->Update(ts);
+				m_PosePtr = &poseInput->Update(ts);
+		}
+
+		if (!m_PosePtr)
+		{
+			m_Pose.Reset();
 		}
 
 		m_CalculatedOnFrame = currentFrame;
 
-		return m_Pose;
+		return m_PosePtr ? *m_PosePtr : m_Pose;
 	}
 
 	SkeletalPose& AnimationGraphNodeAnd::Update(Timestep ts)
@@ -1047,16 +1068,21 @@ namespace Eagle
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
-			return m_Pose;
+			return m_PosePtr ? *m_PosePtr : m_Pose;
 
 		if (m_Inputs[0])
-			m_Pose = m_Inputs[0]->Update(ts);
+		{
+			m_PosePtr = &m_Inputs[0]->Update(ts);
+		}
 		else
+		{
 			m_Pose.Reset();
+			m_PosePtr = nullptr;
+		}
 
 		m_CalculatedOnFrame = currentFrame;
 
-		return m_Pose;
+		return m_PosePtr ? *m_PosePtr : m_Pose;
 	}
 	
 	AnimationGraphNodeBlendSpace::AnimationGraphNodeBlendSpace(const Weak<AnimationGraph>& graph, const Ref<AssetAnimationBlendSpace>& asset, uint32_t numInputs)

@@ -15,7 +15,7 @@ namespace Eagle
 	std::vector<Ref<Material>> MaterialSystem::s_Materials;
 	Ref<Buffer> MaterialSystem::s_MaterialsBuffer;
 	Ref<Buffer> MaterialSystem::s_MaterialsRawBuffer;
-	std::unordered_map<Ref<Material>, uint32_t> MaterialSystem::s_UsedMaterialsMap;
+	ankerl::unordered_dense::map<Ref<Material>, uint32_t> MaterialSystem::s_UsedMaterialsMap;
 	bool MaterialSystem::s_Dirty = true;
 	bool MaterialSystem::s_Changed = true;
 	bool MaterialSystem::s_RenderingModeChanged = true;

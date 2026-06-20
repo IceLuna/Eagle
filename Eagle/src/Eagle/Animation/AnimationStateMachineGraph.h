@@ -18,7 +18,7 @@ namespace Eagle
 		virtual ~AnimationStateMachineGraph();
 
 		// Can be used by other graphs in cases when they need to calculate subgraphs
-		const SkeletalPose& Update(Timestep ts);
+		SkeletalPose& Update(Timestep ts);
 
 		void AddState(const Ref<AnimationStateGraph>& state)
 		{

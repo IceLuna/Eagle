@@ -8,6 +8,7 @@
 
 #include <vector>
 #include <glm/glm.hpp>
+#include <ankerl/unordered_dense.h>
 
 namespace Eagle
 {
@@ -46,14 +47,32 @@ namespace Eagle
 
 	struct BoneNode
 	{
+	private:
+		std::string m_Name;
+		uint64_t m_NameHash;
+	public:
 		glm::mat4 Transformation = glm::mat4(1.f);
-		std::string Name;
 		std::vector<BoneNode> Children;
 
 		bool bVirtualBone = false;
 		bool bIgnoreParentLocation = false;
 		bool bIgnoreParentRotation = false;
 		bool bIgnoreParentScale = false;
+
+		void SetName(const std::string& name)
+		{
+			m_Name = name;
+			m_NameHash = Utils::CalculateBoneNameHash(m_Name);
+		}
+
+		void SetName(std::string&& name)
+		{
+			m_Name = std::move(name);
+			m_NameHash = Utils::CalculateBoneNameHash(m_Name);
+		}
+
+		const std::string& GetName() const { return m_Name; }
+		uint64_t GetNameHash() const { return m_NameHash; }
 	};
 
 	struct BoneInfo
@@ -64,14 +83,62 @@ namespace Eagle
 
 	// TODO: Optimize these structs by using `std::vector` and storing indices into it, instead of making a look-up into a hash map
 	// string - bone name
-	using BonesMap = std::unordered_map<std::string, BoneInfo>;
+	using BonesMap = ankerl::unordered_dense::map<std::string, BoneInfo>;
+	using BonesMapByHash = ankerl::unordered_dense::map<uint64_t, BoneInfo>;
 
 	struct SkeletalMeshInfo
 	{
+	private:
+		BonesMap m_BoneInfoMap;
+		BonesMapByHash m_BoneInfoMapByHash;
+
+	public:
 		glm::mat4 InverseTransform = glm::mat4(1.f);
 		glm::mat4 CoordCorrection = glm::mat4(1.f); // Stores matrix that can be used for coord system correction, since some imported meshes can have different basis
 		BoneNode RootBone;
-		BonesMap BoneInfoMap;
+
+		void SetBonesInfoMap(BonesMap&& other)
+		{
+			m_BoneInfoMap = std::move(other);
+			
+			m_BoneInfoMapByHash.clear();
+			for (const auto& [name, value] : m_BoneInfoMap)
+			{
+				m_BoneInfoMapByHash.emplace(Utils::CalculateBoneNameHash(name), value);
+			}
+		}
+
+		const BonesMap& GetBoneInfoMap() const { return m_BoneInfoMap; }
+
+		auto FindBoneInfo(const std::string& name)
+		{
+			return m_BoneInfoMap.find(name);
+		}
+
+		auto FindBoneInfo(const std::string& name) const
+		{
+			return m_BoneInfoMap.find(name);
+		}
+
+		auto FindBoneInfo(uint64_t nameHash)
+		{
+			return m_BoneInfoMapByHash.find(nameHash);
+		}
+
+		auto FindBoneInfo(uint64_t nameHash) const
+		{
+			return m_BoneInfoMapByHash.find(nameHash);
+		}
+
+		bool IsValid(const BonesMap::const_iterator& it) const
+		{
+			return it != m_BoneInfoMap.end();
+		}
+
+		bool IsValid(const BonesMapByHash::const_iterator& it) const
+		{
+			return it != m_BoneInfoMapByHash.end();
+		}
 	};
 
 	struct SkeletalRagdollBone

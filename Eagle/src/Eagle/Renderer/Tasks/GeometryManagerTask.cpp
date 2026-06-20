@@ -669,7 +669,7 @@ namespace Eagle
 	void GeometryManagerTask::SetMeshes(const std::vector<const StaticMeshComponent*>& meshes)
 	{
 		StaticMeshesMap tempMeshes;
-		std::unordered_map<uint32_t, uint64_t> meshTransformIndices; // EntityID -> uint64_t (index to m_MeshTransforms)
+		ankerl::unordered_dense::map<uint32_t, uint64_t> meshTransformIndices; // EntityID -> uint64_t (index to m_MeshTransforms)
 		std::vector<glm::mat4> tempMeshTransforms;
 
 		tempMeshes.reserve(meshes.size());
@@ -797,7 +797,7 @@ namespace Eagle
 	void GeometryManagerTask::SetSkeletalMeshes(const std::vector<SkeletalMeshComponent*>& meshes)
 	{
 		SkeletalMeshesMap tempMeshes;
-		std::unordered_map<uint32_t, uint64_t> meshTransformIndices; // EntityID -> uint64_t (index to m_SkeletalMeshTransforms)
+		ankerl::unordered_dense::map<uint32_t, uint64_t> meshTransformIndices; // EntityID -> uint64_t (index to m_SkeletalMeshTransforms)
 		std::vector<glm::mat4> tempMeshTransforms;
 
 		tempMeshes.reserve(meshes.size());
@@ -1031,7 +1031,7 @@ namespace Eagle
 	void GeometryManagerTask::SetSprites(const std::vector<const SpriteComponent*>& sprites)
 	{
 		std::vector<SpriteData> spritesData;
-		std::unordered_map<uint32_t, uint64_t> tempTransformIndices; // EntityID -> uint64_t (index to m_Transforms)
+		ankerl::unordered_dense::map<uint32_t, uint64_t> tempTransformIndices; // EntityID -> uint64_t (index to m_Transforms)
 		std::vector<glm::mat4> tempTransforms;
 
 		spritesData.reserve(sprites.size());
@@ -1143,7 +1143,7 @@ namespace Eagle
 
 	// --------- Texts ---------
 	template <typename TextDataType, typename VertexType>
-	static void ProcessTextData(const TextDataType& component, std::unordered_map<Ref<Texture2D>, uint32_t>& fontAtlases,
+	static void ProcessTextData(const TextDataType& component, ankerl::unordered_dense::map<Ref<Texture2D>, uint32_t>& fontAtlases,
 		std::vector<VertexType>& vertices, uint32_t& atlasCurrentIndex)
 	{
 		const auto& fontGeometry = component.Font->GetFontGeometry();
@@ -1279,7 +1279,7 @@ namespace Eagle
 		}
 	}
 
-	static void ProcessUnlitComponents(const std::vector<UnlitTextData>& textComponents, std::unordered_map<Ref<Texture2D>, uint32_t>& fontAtlases, UnlitTextGeometryData& geometryData, uint32_t& atlasCurrentIndex)
+	static void ProcessUnlitComponents(const std::vector<UnlitTextData>& textComponents, ankerl::unordered_dense::map<Ref<Texture2D>, uint32_t>& fontAtlases, UnlitTextGeometryData& geometryData, uint32_t& atlasCurrentIndex)
 	{
 		if (textComponents.empty())
 			return;
@@ -1411,7 +1411,7 @@ namespace Eagle
 	{
 		std::vector<LitTextData> litTexts;
 		std::vector<UnlitTextData> unlitTexts;
-		std::unordered_map<uint32_t, uint64_t> tempTransformsIndices; // EntityID -> uint64_t (index to m_TextTransformIndices)
+		ankerl::unordered_dense::map<uint32_t, uint64_t> tempTransformsIndices; // EntityID -> uint64_t (index to m_TextTransformIndices)
 		std::vector<glm::mat4> tempTransforms;
 
 		litTexts.reserve(texts.size());

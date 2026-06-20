@@ -13,11 +13,11 @@ namespace Eagle
 	};
 	static GUID s_AssetModifiedCallbackID;
 	static Scope<AssetThumbnailRenderer> s_AssetThumbnailRenderer;
-	static std::unordered_map<Ref<Asset>, CachedImage> s_ThumbnailCache;
+	static ankerl::unordered_dense::map<Ref<Asset>, CachedImage> s_ThumbnailCache;
 	static bool s_RenderingThumbnail = false;
 
 	// Contains the frame number it was rendered on. We need to wait `FramesInFlight` frames for it to be ready
-	static std::unordered_map<Ref<Asset>, std::pair<Ref<Image>, uint64_t>> s_PendingThumbnails;
+	static ankerl::unordered_dense::map<Ref<Asset>, std::pair<Ref<Image>, uint64_t>> s_PendingThumbnails;
 
 	void ThumbnailCache::Init()
 	{

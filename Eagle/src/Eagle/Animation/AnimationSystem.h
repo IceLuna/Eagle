@@ -24,9 +24,9 @@ namespace Eagle
 	class AnimationSystem
 	{
 	public:
-		static std::unordered_map<uint32_t, std::vector<glm::mat4>> Update(const std::vector<SkeletalMeshComponent*>& meshes, float ts, bool bApplyRootMotion, std::vector<struct AnimationEventData>* outEventsToTrigger = nullptr);
-		static std::unordered_map<uint32_t, std::vector<glm::mat4>> UpdateBasePose(const std::vector<SkeletalMeshComponent*>& meshes, float ts);
-		static std::unordered_map<GUID, std::unordered_map<GUID, std::vector<glm::mat4>>> Update(const std::vector<ParticleSystemComponent*>& systems, float ts, std::vector<struct AnimationEventData>* outEventsToTrigger = nullptr);
+		static ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> Update(const std::vector<SkeletalMeshComponent*>& meshes, float ts, bool bApplyRootMotion, std::vector<struct AnimationEventData>* outEventsToTrigger = nullptr);
+		static ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> UpdateBasePose(const std::vector<SkeletalMeshComponent*>& meshes, float ts);
+		static ankerl::unordered_dense::map<GUID, ankerl::unordered_dense::map<GUID, std::vector<glm::mat4>>> Update(const std::vector<ParticleSystemComponent*>& systems, float ts, std::vector<struct AnimationEventData>* outEventsToTrigger = nullptr);
 
 		// @currentTime - current time of animation to calculate
 		static void Update(const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* animation, float currentTime, std::vector<glm::mat4>* outTransforms, SkeletalPose* outPose);
@@ -68,7 +68,7 @@ namespace Eagle
 		static ThreadPool s_ThreadPool;
 
 		// uint32_t = EntityID
-		static std::unordered_map<uint32_t, std::vector<glm::mat4>> s_Transforms;
-		static std::unordered_map<GUID, std::unordered_map<GUID, std::vector<glm::mat4>>> s_EmittersTransforms; // SystemID -> Emitter ID -> Its transforms
+		static ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> s_Transforms;
+		static ankerl::unordered_dense::map<GUID, ankerl::unordered_dense::map<GUID, std::vector<glm::mat4>>> s_EmittersTransforms; // SystemID -> Emitter ID -> Its transforms
 	};
 }

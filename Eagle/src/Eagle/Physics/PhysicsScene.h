@@ -85,8 +85,8 @@ namespace Eagle
 	private:
 		PhysicsSettings m_Settings;
 		physx::PxScene* m_Scene = nullptr;
-		std::unordered_map<GUID, Ref<PhysicsActor>> m_Actors;
-		std::unordered_map<GUID, Ref<PhysicsRagdollActor>> m_RagdollActors;
+		ankerl::unordered_dense::map<GUID, Ref<PhysicsActor>> m_Actors;
+		ankerl::unordered_dense::map<GUID, Ref<PhysicsRagdollActor>> m_RagdollActors;
 		mutable QueryHits m_QueryHits; // Exists just to avoid allocations on every query
 		mutable UniqueQueryHits m_UniqueQueryHits; // Exists just to avoid allocations on every query
 		std::vector<uint32_t> m_BroadPhaseRegionHandles;

@@ -136,7 +136,7 @@ namespace Eagle
 		}
 	
 		template <typename MeshType, typename ParticleVertex>
-		static void RebuildMeshData(const Ref<CommandBuffer>& cmd, std::unordered_map<Ref<MeshType>, ParticleSystemTask::MeshEmitterData>& meshDataMapping,
+		static void RebuildMeshData(const Ref<CommandBuffer>& cmd, ankerl::unordered_dense::map<Ref<MeshType>, ParticleSystemTask::MeshEmitterData>& meshDataMapping,
 			std::vector<ParticleVertex>& vertices, std::vector<Index>& indices, Ref<Buffer>& vertexBuffer, Ref<Buffer>& indexBuffer)
 		{
 			vertices.clear();
@@ -1012,7 +1012,7 @@ namespace Eagle
 			const auto& emitters = updateData.Emitters;
 			if (emitters.empty())
 			{
-				thisRef->m_SystemToEmittersMapping.emplace(updateData.SystemID, std::unordered_map<ParticleEmitter, EmitterData>{});
+				thisRef->m_SystemToEmittersMapping.emplace(updateData.SystemID, ankerl::unordered_dense::map<ParticleEmitter, EmitterData>{});
 			}
 			else
 			{
@@ -1158,7 +1158,7 @@ namespace Eagle
 			glm::mat4 Transform;
 			GUID EmitterID;
 		};
-		std::unordered_map<GUID, std::vector<UpdateTrData>> newTransforms;
+		ankerl::unordered_dense::map<GUID, std::vector<UpdateTrData>> newTransforms;
 		for (const auto& system : systems)
 		{
 			const auto& asset = system->GetAsset();
