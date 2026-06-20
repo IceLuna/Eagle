@@ -74,7 +74,17 @@ namespace Eagle
 
 	void AnimationGraphAssetEditor::OnImGuiRender(bool* pOpen)
 	{
-		m_Graph->OnImGuiRender(pOpen);
+		const bool bRecompiled = m_Graph->OnImGuiRender(pOpen);
+		if (bRecompiled)
+		{
+			// Graphs are reloaded automatically on recompilation.
+			// This is done only to reset variables to use new graph default values.
+			// Otherwise, we'll get visualization mismatch vars values.
+
+			const bool bMergeVars = false;
+			auto& comp = m_Entity.GetComponent<SkeletalMeshComponent>();
+			comp.SetAnimationGraphAsset(m_Asset, bMergeVars);
+		}
 	}
 
 	void AnimationGraphAssetEditor::SetInFocus()

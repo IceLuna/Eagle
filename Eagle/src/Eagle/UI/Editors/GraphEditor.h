@@ -14,8 +14,10 @@ namespace Eagle
         GraphEditor(const std::string_view name);
         virtual ~GraphEditor();
 
-        virtual void OnImGuiRender(bool* pOpen = nullptr);
-        virtual void RenderLeftPanel();
+        // Returns true if the graph was recompiled this frame
+        virtual bool OnImGuiRender(bool* pOpen = nullptr);
+        // Returns true if the graph was recompiled this frame
+        virtual bool RenderLeftPanel();
 
         virtual void OnEvent(Event& e);
 

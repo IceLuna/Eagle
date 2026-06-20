@@ -183,22 +183,22 @@ namespace Eagle
 		switch (varType)
 		{
 		case GraphVariableType::Bool:
-			result = MakeRef<GraphVariableBool>(valueNode ? valueNode.as<bool>() : false);
+			result = MakeRef<GraphVariableBool>(valueNode ? valueNode.as<bool>() : false, true);
 			break;
 		case GraphVariableType::Int:
-			result = MakeRef<GraphVariableInt>(valueNode ? valueNode.as<int>() : 0);
+			result = MakeRef<GraphVariableInt>(valueNode ? valueNode.as<int>() : 0, true);
 			break;
 		case GraphVariableType::Float:
-			result = MakeRef<GraphVariableFloat>(valueNode ? valueNode.as<float>() : 0.f);
+			result = MakeRef<GraphVariableFloat>(valueNode ? valueNode.as<float>() : 0.f, true);
 			break;
 		case GraphVariableType::Animation:
-			result = MakeRef<GraphVariableAnimation>(valueNode ? GetAsset<AssetAnimation>(valueNode) : nullptr);
+			result = MakeRef<GraphVariableAnimation>(valueNode ? GetAsset<AssetAnimation>(valueNode) : nullptr, true);
 			break;
 		case GraphVariableType::String:
-			result = MakeRef<GraphVariableString>(valueNode ? valueNode.as<std::string>() : "");
+			result = MakeRef<GraphVariableString>(valueNode ? valueNode.as<std::string>() : "", true);
 			break;
 		case GraphVariableType::Vec4:
-			result = MakeRef<GraphVariableVec4>(valueNode ? valueNode.as<glm::vec4>() : glm::vec4(0));
+			result = MakeRef<GraphVariableVec4>(valueNode ? valueNode.as<glm::vec4>() : glm::vec4(0), true);
 			break;
 		default:
 			EG_CORE_ASSERT(false);

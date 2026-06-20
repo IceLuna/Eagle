@@ -118,13 +118,15 @@ namespace Eagle
         m_Graphs.clear();
     }
 
-    void GraphEditor::OnImGuiRender(bool* pOpen)
+    bool GraphEditor::OnImGuiRender(bool* pOpen)
     {
         m_HeaderBackground = UI::GetTextureID(m_HeaderTexture);
 
         // Required to not mark asset as dirty.
         // Because when drawing a graph for the first time, save events will be triggered
         bool bIgnoreChanges = false;
+
+        bool bRecompiled = false;
 
         for (auto& graph : m_GraphsToAdd)
         {
@@ -139,7 +141,7 @@ namespace Eagle
         if (ImGui::Begin(m_Name.c_str(), pOpen))
         {
             m_bGraphFocused = ImGui::IsWindowFocused();
-            RenderLeftPanel();
+            bRecompiled = RenderLeftPanel();
 
             auto& currentGraph = m_Graphs.back();
             if (bIgnoreChanges)
@@ -153,10 +155,14 @@ namespace Eagle
         ImGui::End();
 
         m_bIgnoreChangedEvent = false;
+
+        return bRecompiled;
     }
 	
-	void GraphEditor::RenderLeftPanel()
+	bool GraphEditor::RenderLeftPanel()
 	{
+        bool bRecompiled = false;
+
         Splitter(true, 4.0f, &m_LeftPanelWidth, &m_RightPanelWidth, 50.0f, 50.0f);
         float panelWidth = m_LeftPanelWidth - 4.0f;
 
@@ -169,7 +175,10 @@ namespace Eagle
         ImGui::BeginHorizontal("Style Editor", ImVec2(panelWidth, 0));
         ImGui::Spring(0.0f, 0.0f);
         if (ImGui::Button("Compile"))
+        {
             Compile();
+            bRecompiled = true;
+        }
         if (ImGui::Button("Save"))
             Save();
         if (ImGui::Button("Zoom to Content"))
@@ -237,6 +246,8 @@ namespace Eagle
         ImGui::EndChild();
 
         ImGui::SameLine(0.0f, 12.0f);
+
+        return bRecompiled;
 	}
 
     void GraphEditor::OnEvent(Event& e)

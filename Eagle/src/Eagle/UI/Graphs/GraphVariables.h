@@ -21,11 +21,12 @@ namespace Eagle
 	class GraphVariable
 	{
 	public:
-		GraphVariable(GraphVariableType type) : m_Type(type) {}
+		// @bDefaultVar. Set to true if this var is created as a default value for the node. This is the case if a user didn't connect anything to the pin
+		GraphVariable(GraphVariableType type, bool bDefaultVar = false) : m_Type(type), bDefaultVar(bDefaultVar) {}
 		virtual ~GraphVariable() = default;
 
 		GraphVariable(const Ref<GraphVariable>& other)
-			: m_Type(other->m_Type), bShowInUI(other->bShowInUI)
+			: m_Type(other->m_Type), bShowInUI(other->bShowInUI), bDefaultVar(other->bDefaultVar)
 		{}
 
 		// Returns false on failure (for example, if variables have different types)
@@ -34,17 +35,19 @@ namespace Eagle
 		virtual bool HasValue() const = 0;
 
 		GraphVariableType GetType() const { return m_Type; }
+		bool IsDefaultVar() const { return bDefaultVar; }
 
 		bool bShowInUI = true;
 
 	private:
 		GraphVariableType m_Type;
+		bool bDefaultVar = false;
 	};
 
 	class GraphVariableBool : public GraphVariable
 	{
 	public:
-		GraphVariableBool(bool val = false) : GraphVariable(GraphVariableType::Bool), Value(val) {}
+		GraphVariableBool(bool val = false, bool bDefaultVar = false) : GraphVariable(GraphVariableType::Bool, bDefaultVar), Value(val) {}
 
 		GraphVariableBool(const Ref<GraphVariableBool>& other)
 			: GraphVariable(other)
@@ -70,7 +73,7 @@ namespace Eagle
 	class GraphVariableInt : public GraphVariable
 	{
 	public:
-		GraphVariableInt(int val = 0) : GraphVariable(GraphVariableType::Int), Value(val) {}
+		GraphVariableInt(int val = 0, bool bDefaultVar = false) : GraphVariable(GraphVariableType::Int, bDefaultVar), Value(val) {}
 
 		GraphVariableInt(const Ref<GraphVariableInt>& other)
 			: GraphVariable(other)
@@ -96,7 +99,7 @@ namespace Eagle
 	class GraphVariableFloat : public GraphVariable
 	{
 	public:
-		GraphVariableFloat(float val = 0.f) : GraphVariable(GraphVariableType::Float), Value(val) {}
+		GraphVariableFloat(float val = 0.f, bool bDefaultVar = false) : GraphVariable(GraphVariableType::Float, bDefaultVar), Value(val) {}
 
 		GraphVariableFloat(const Ref<GraphVariableFloat>& other)
 			: GraphVariable(other)
@@ -122,7 +125,7 @@ namespace Eagle
 	class GraphVariableAnimation : public GraphVariable
 	{
 	public:
-		GraphVariableAnimation(const Ref<AssetAnimation>& value = nullptr) : GraphVariable(GraphVariableType::Animation), Value(value) {}
+		GraphVariableAnimation(const Ref<AssetAnimation>& value = nullptr, bool bDefaultVar = false) : GraphVariable(GraphVariableType::Animation, bDefaultVar), Value(value) {}
 
 		GraphVariableAnimation(const Ref<GraphVariableAnimation>& other)
 			: GraphVariable(other)
@@ -148,7 +151,7 @@ namespace Eagle
 	class GraphVariableString : public GraphVariable
 	{
 	public:
-		GraphVariableString(const std::string& val = "") : GraphVariable(GraphVariableType::String), Value(val) {}
+		GraphVariableString(const std::string& val = "", bool bDefaultVar = false) : GraphVariable(GraphVariableType::String, bDefaultVar), Value(val) {}
 
 		GraphVariableString(const Ref<GraphVariableString>& other)
 			: GraphVariable(other)
@@ -174,7 +177,7 @@ namespace Eagle
 	class GraphVariableVec4 : public GraphVariable
 	{
 	public:
-		GraphVariableVec4(const glm::vec4& val = glm::vec4(0)) : GraphVariable(GraphVariableType::Vec4), Value(val) {}
+		GraphVariableVec4(const glm::vec4& val = glm::vec4(0), bool bDefaultVar = false) : GraphVariable(GraphVariableType::Vec4, bDefaultVar), Value(val) {}
 
 		GraphVariableVec4(const Ref<GraphVariableVec4>& other)
 			: GraphVariable(other)

@@ -19,6 +19,12 @@ This kind of transitional blend works well when the two clips/poses are unrelate
     static const char* s_BlendSpaceIndexHelpMsg = "An index of the blendspace point. You can check an index in the blendspace editor under `All Points` next to its name. "
         "For example, if it's the first point in the list, it'll have an index `0`";
 
+    template <typename T>
+    static Ref<GraphVariable> CreateVariable(decltype(T::Value) v = {})
+    {
+        return MakeRef<T>(v, true);
+    }
+
     void GraphNodeFactory::FillCommonNodes(std::unordered_map<std::string, NodeFactoryMap>& factory)
     {
         // Math catergory
@@ -373,10 +379,10 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
         
         auto& node = graph.AddNode("Transition", ImColor(128, 195, 248), false);
-        const ed::PinId shouldTransitionPinID = node.InputPins.emplace_back(graph.GetNextId(), "Should Transition", PinType::Bool, MakeRef<GraphVariableBool>(false)).ID;
-        node.InputPins.emplace_back(graph.GetNextId(), "Transition Time", PinType::Float, MakeRef<GraphVariableFloat>(0.1f));
-        node.InputPins.emplace_back(graph.GetNextId(), "Smooth Transition", PinType::Bool, MakeRef<GraphVariableBool>(true), s_FrozenTransitionHelpMsg);
-        auto& pin = node.InputPins.emplace_back(graph.GetNextId(), "Auto-Transition", PinType::Bool, MakeRef<GraphVariableBool>(false), s_AutoTransitionHelpMsg);
+        const ed::PinId shouldTransitionPinID = node.InputPins.emplace_back(graph.GetNextId(), "Should Transition", PinType::Bool, CreateVariable<GraphVariableBool>(false)).ID;
+        node.InputPins.emplace_back(graph.GetNextId(), "Transition Time", PinType::Float, CreateVariable<GraphVariableFloat>(0.1f));
+        node.InputPins.emplace_back(graph.GetNextId(), "Smooth Transition", PinType::Bool, CreateVariable<GraphVariableBool>(true), s_FrozenTransitionHelpMsg);
+        auto& pin = node.InputPins.emplace_back(graph.GetNextId(), "Auto-Transition", PinType::Bool, CreateVariable<GraphVariableBool>(false), s_AutoTransitionHelpMsg);
         pin.DisableInUIWhenPinIndexIsUsed = shouldTransitionPinID;
 
         node.GraphNode = MakeRef<AnimationGraphNodeTransitionOutput>(graphAsset->GetGraph());
@@ -409,7 +415,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
         node.InputPins.emplace_back(graph.GetNextId(), "Pose 1", PinType::Pose);
         node.InputPins.emplace_back(graph.GetNextId(), "Pose 2", PinType::Pose);
-        node.InputPins.emplace_back(graph.GetNextId(), "Blend weight", PinType::Float, MakeRef<GraphVariableFloat>(0.5f));
+        node.InputPins.emplace_back(graph.GetNextId(), "Blend weight", PinType::Float, CreateVariable<GraphVariableFloat>(0.5f));
 
         node.OutputPins.emplace_back(graph.GetNextId(), "Output pose", PinType::Pose);
         node.Type = NodeType::Blueprint;
@@ -448,7 +454,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
         node.InputPins.emplace_back(graph.GetNextId(), "Target pose", PinType::Pose);
         node.InputPins.emplace_back(graph.GetNextId(), "Additive pose", PinType::Pose);
-        node.InputPins.emplace_back(graph.GetNextId(), "Blend weight", PinType::Float, MakeRef<GraphVariableFloat>(1.f));
+        node.InputPins.emplace_back(graph.GetNextId(), "Blend weight", PinType::Float, CreateVariable<GraphVariableFloat>(1.f));
 
         node.OutputPins.emplace_back(graph.GetNextId(), "Output pose", PinType::Pose);
         node.Type = NodeType::Blueprint;
@@ -466,9 +472,9 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "Animation", PinType::Object, MakeRef<GraphVariableAnimation>());
-        node.InputPins.emplace_back(graph.GetNextId(), "Playback speed", PinType::Float, MakeRef<GraphVariableFloat>(1.f));
-        node.InputPins.emplace_back(graph.GetNextId(), "Loop", PinType::Bool, MakeRef<GraphVariableBool>(true));
+        node.InputPins.emplace_back(graph.GetNextId(), "Animation", PinType::Object, CreateVariable<GraphVariableAnimation>());
+        node.InputPins.emplace_back(graph.GetNextId(), "Playback speed", PinType::Float, CreateVariable<GraphVariableFloat>(1.f));
+        node.InputPins.emplace_back(graph.GetNextId(), "Loop", PinType::Bool, CreateVariable<GraphVariableBool>(true));
 
         node.OutputPins.emplace_back(graph.GetNextId(), "Output pose", PinType::Pose);
         node.Type = NodeType::Blueprint;
@@ -486,11 +492,11 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "Condition", PinType::Bool, MakeRef<GraphVariableBool>(true));
+        node.InputPins.emplace_back(graph.GetNextId(), "Condition", PinType::Bool, CreateVariable<GraphVariableBool>(true));
         node.InputPins.emplace_back(graph.GetNextId(), "False pose", PinType::Pose);
-        node.InputPins.emplace_back(graph.GetNextId(), "False Blend Time", PinType::Float, MakeRef<GraphVariableFloat>(0.1f), "Used to control how long it will take to blend into the pose");
+        node.InputPins.emplace_back(graph.GetNextId(), "False Blend Time", PinType::Float, CreateVariable<GraphVariableFloat>(0.1f), "Used to control how long it will take to blend into the pose");
         node.InputPins.emplace_back(graph.GetNextId(), "True pose", PinType::Pose);
-        node.InputPins.emplace_back(graph.GetNextId(), "True Blend Time", PinType::Float, MakeRef<GraphVariableFloat>(0.1f), "Used to control how long it will take to blend into the pose");
+        node.InputPins.emplace_back(graph.GetNextId(), "True Blend Time", PinType::Float, CreateVariable<GraphVariableFloat>(0.1f), "Used to control how long it will take to blend into the pose");
 
         node.OutputPins.emplace_back(graph.GetNextId(), "Output pose", PinType::Pose);
         node.Type = NodeType::Blueprint;
@@ -508,11 +514,11 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "Active Pose index", PinType::Int, MakeRef<GraphVariableInt>(0));
+        node.InputPins.emplace_back(graph.GetNextId(), "Active Pose index", PinType::Int, CreateVariable<GraphVariableInt>(0));
         node.InputPins.emplace_back(graph.GetNextId(), "Pose 0", PinType::Pose);
-        node.InputPins.emplace_back(graph.GetNextId(), "Pose 0 Blend Time", PinType::Float, MakeRef<GraphVariableFloat>(0.1f), "Used to control how long it will take to blend into the pose");
+        node.InputPins.emplace_back(graph.GetNextId(), "Pose 0 Blend Time", PinType::Float, CreateVariable<GraphVariableFloat>(0.1f), "Used to control how long it will take to blend into the pose");
         node.InputPins.emplace_back(graph.GetNextId(), "Pose 1", PinType::Pose);
-        node.InputPins.emplace_back(graph.GetNextId(), "Pose 1 Blend Time", PinType::Float, MakeRef<GraphVariableFloat>(0.1f), "Used to control how long it will take to blend into the pose");
+        node.InputPins.emplace_back(graph.GetNextId(), "Pose 1 Blend Time", PinType::Float, CreateVariable<GraphVariableFloat>(0.1f), "Used to control how long it will take to blend into the pose");
 
         node.OutputPins.emplace_back(graph.GetNextId(), "Output pose", PinType::Pose);
         node.Type = NodeType::Blueprint;
@@ -524,7 +530,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
             const uint32_t poseIndex = ((uint32_t)node.InputPins.size() - 1) / 2;
             const std::string poseName = "Pose " + std::to_string(poseIndex);
             node.InputPins.emplace_back(graph.GetNextId(), poseName, PinType::Pose);
-            node.InputPins.emplace_back(graph.GetNextId(), poseName + " Blend Time", PinType::Float, MakeRef<GraphVariableFloat>(0.1f), "Used to control how long it will take to blend into the pose");
+            node.InputPins.emplace_back(graph.GetNextId(), poseName + " Blend Time", PinType::Float, CreateVariable<GraphVariableFloat>(0.1f), "Used to control how long it will take to blend into the pose");
             node.GraphNode->AddInput();
             node.GraphNode->AddInput();
             
@@ -569,7 +575,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "Condition", PinType::Bool, MakeRef<GraphVariableBool>(true));
+        node.InputPins.emplace_back(graph.GetNextId(), "Condition", PinType::Bool, CreateVariable<GraphVariableBool>(true));
         node.InputPins.emplace_back(graph.GetNextId(), "False pose", PinType::Pose);
         node.InputPins.emplace_back(graph.GetNextId(), "True pose", PinType::Pose);
 
@@ -589,7 +595,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "Active Pose index", PinType::Int, MakeRef<GraphVariableInt>(0));
+        node.InputPins.emplace_back(graph.GetNextId(), "Active Pose index", PinType::Int, CreateVariable<GraphVariableInt>(0));
         node.InputPins.emplace_back(graph.GetNextId(), "Pose 0", PinType::Pose);
         node.InputPins.emplace_back(graph.GetNextId(), "Pose 1", PinType::Pose);
 
@@ -644,10 +650,10 @@ This kind of transitional blend works well when the two clips/poses are unrelate
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
         node.InputPins.emplace_back(graph.GetNextId(), "Pose", PinType::Pose);
-        node.InputPins.emplace_back(graph.GetNextId(), "Bone Name", PinType::String, MakeRef<GraphVariableString>(), "The node will filter-out the bones that are not related to the specified bone");
-        node.InputPins.emplace_back(graph.GetNextId(), "Ignore parent location", PinType::Bool, MakeRef<GraphVariableBool>(false), "Parent location of a specified bone will be ignored");
-        node.InputPins.emplace_back(graph.GetNextId(), "Ignore parent rotation", PinType::Bool, MakeRef<GraphVariableBool>(true), "Parent rotation of a specified bone will be ignored");
-        node.InputPins.emplace_back(graph.GetNextId(), "Ignore parent scale", PinType::Bool, MakeRef<GraphVariableBool>(true), "Parent scale of a specified bone will be ignored");
+        node.InputPins.emplace_back(graph.GetNextId(), "Bone Name", PinType::String, CreateVariable<GraphVariableString>(), "The node will filter-out the bones that are not related to the specified bone");
+        node.InputPins.emplace_back(graph.GetNextId(), "Ignore parent location", PinType::Bool, CreateVariable<GraphVariableBool>(false), "Parent location of a specified bone will be ignored");
+        node.InputPins.emplace_back(graph.GetNextId(), "Ignore parent rotation", PinType::Bool, CreateVariable<GraphVariableBool>(true), "Parent rotation of a specified bone will be ignored");
+        node.InputPins.emplace_back(graph.GetNextId(), "Ignore parent scale", PinType::Bool, CreateVariable<GraphVariableBool>(true), "Parent scale of a specified bone will be ignored");
 
         node.OutputPins.emplace_back(graph.GetNextId(), "Output pose", PinType::Pose);
         node.Type = NodeType::Blueprint;
@@ -666,8 +672,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
         node.InputPins.emplace_back(graph.GetNextId(), "Pose", PinType::Pose);
-        node.InputPins.emplace_back(graph.GetNextId(), "Bone Name", PinType::String, MakeRef<GraphVariableString>());
-        node.InputPins.emplace_back(graph.GetNextId(), "Rotation", PinType::Vec4, MakeRef<GraphVariableVec4>(glm::vec4(0, 0, 0, 1)));
+        node.InputPins.emplace_back(graph.GetNextId(), "Bone Name", PinType::String, CreateVariable<GraphVariableString>());
+        node.InputPins.emplace_back(graph.GetNextId(), "Rotation", PinType::Vec4, CreateVariable<GraphVariableVec4>(glm::vec4(0, 0, 0, 1)));
 
         node.OutputPins.emplace_back(graph.GetNextId(), "Output pose", PinType::Pose);
         node.Type = NodeType::Blueprint;
@@ -702,8 +708,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "X", PinType::Float, MakeRef<GraphVariableFloat>(0.f));
-        node.InputPins.emplace_back(graph.GetNextId(), "Y", PinType::Float, MakeRef<GraphVariableFloat>(0.f));
+        node.InputPins.emplace_back(graph.GetNextId(), "X", PinType::Float, CreateVariable<GraphVariableFloat>(0.f));
+        node.InputPins.emplace_back(graph.GetNextId(), "Y", PinType::Float, CreateVariable<GraphVariableFloat>(0.f));
 
         node.OutputPins.emplace_back(graph.GetNextId(), "Output pose", PinType::Pose);
         node.Type = NodeType::BlendSpace;
@@ -719,8 +725,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
             const std::string indexName = "Point Index to Override " + indexStr;
             const std::string animName = "Animation Override " + indexStr;
 
-            node.InputPins.emplace_back(graph.GetNextId(), indexName, PinType::Int, MakeRef<GraphVariableInt>(0), s_BlendSpaceIndexHelpMsg);
-            node.InputPins.emplace_back(graph.GetNextId(), animName, PinType::Object, MakeRef<GraphVariableAnimation>(), "This animation will be used instead of the animation of the point");
+            node.InputPins.emplace_back(graph.GetNextId(), indexName, PinType::Int, CreateVariable<GraphVariableInt>(0), s_BlendSpaceIndexHelpMsg);
+            node.InputPins.emplace_back(graph.GetNextId(), animName, PinType::Object, CreateVariable<GraphVariableAnimation>(), "This animation will be used instead of the animation of the point");
 
             node.GraphNode->AddInput();
             node.GraphNode->AddInput();
@@ -764,8 +770,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "Loop", PinType::Bool, MakeRef<GraphVariableBool>(false), s_SelectRandomAnimationHelpMsg);
-        node.InputPins.emplace_back(graph.GetNextId(), "Animation 0", PinType::Object, MakeRef<GraphVariableAnimation>());
+        node.InputPins.emplace_back(graph.GetNextId(), "Loop", PinType::Bool, CreateVariable<GraphVariableBool>(false), s_SelectRandomAnimationHelpMsg);
+        node.InputPins.emplace_back(graph.GetNextId(), "Animation 0", PinType::Object, CreateVariable<GraphVariableAnimation>());
 
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Object);
         node.Type = NodeType::Blueprint;
@@ -776,7 +782,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
 
             const size_t animIndex = node.InputPins.size() - 1; // Deduct `Loop` inputs
             const std::string animName = "Animation " + std::to_string(animIndex);
-            node.InputPins.emplace_back(graph.GetNextId(), animName, PinType::Object, MakeRef<GraphVariableAnimation>());
+            node.InputPins.emplace_back(graph.GetNextId(), animName, PinType::Object, CreateVariable<GraphVariableAnimation>());
             node.GraphNode->AddInput();
 
             graph.BuildNode(node);
@@ -817,8 +823,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Bool, MakeRef<GraphVariableBool>());
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Bool, MakeRef<GraphVariableBool>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Bool, CreateVariable<GraphVariableBool>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Bool, CreateVariable<GraphVariableBool>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Bool);
         node.Type = NodeType::Simple;
 
@@ -835,8 +841,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Bool, MakeRef<GraphVariableBool>());
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Bool, MakeRef<GraphVariableBool>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Bool, CreateVariable<GraphVariableBool>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Bool, CreateVariable<GraphVariableBool>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Bool);
         node.Type = NodeType::Simple;
 
@@ -853,8 +859,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Bool, MakeRef<GraphVariableBool>());
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Bool, MakeRef<GraphVariableBool>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Bool, CreateVariable<GraphVariableBool>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Bool, CreateVariable<GraphVariableBool>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Bool);
         node.Type = NodeType::Simple;
 
@@ -871,7 +877,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Bool, MakeRef<GraphVariableBool>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Bool, CreateVariable<GraphVariableBool>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Bool);
         node.Type = NodeType::Simple;
 
@@ -888,8 +894,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Bool);
         node.Type = NodeType::Simple;
 
@@ -906,8 +912,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Bool);
         node.Type = NodeType::Simple;
 
@@ -924,8 +930,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Bool);
         node.Type = NodeType::Simple;
 
@@ -942,8 +948,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Bool);
         node.Type = NodeType::Simple;
 
@@ -960,8 +966,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Bool);
         node.Type = NodeType::Simple;
 
@@ -978,8 +984,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Bool);
         node.Type = NodeType::Simple;
 
@@ -996,7 +1002,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "Animation", PinType::Object, MakeRef<GraphVariableAnimation>());
+        node.InputPins.emplace_back(graph.GetNextId(), "Animation", PinType::Object, CreateVariable<GraphVariableAnimation>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Bool);
         node.Type = NodeType::Simple;
 
@@ -1013,8 +1019,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Float);
         node.Type = NodeType::Simple;
 
@@ -1031,8 +1037,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Float);
         node.Type = NodeType::Simple;
 
@@ -1049,8 +1055,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>(1.f));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>(1.f));
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>(1.f));
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>(1.f));
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Float);
         node.Type = NodeType::Simple;
 
@@ -1067,8 +1073,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>(1.f));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>(1.f));
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>(1.f));
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>(1.f));
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Float);
         node.Type = NodeType::Simple;
 
@@ -1085,7 +1091,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Float);
         node.Type = NodeType::Simple;
 
@@ -1102,7 +1108,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Float);
         node.Type = NodeType::Simple;
 
@@ -1119,7 +1125,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Float);
         node.Type = NodeType::Simple;
 
@@ -1136,7 +1142,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Float);
         node.Type = NodeType::Simple;
 
@@ -1153,7 +1159,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Float);
         node.Type = NodeType::Simple;
 
@@ -1170,7 +1176,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Float);
         node.Type = NodeType::Simple;
 
@@ -1187,7 +1193,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Float);
         node.Type = NodeType::Simple;
 
@@ -1204,7 +1210,7 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, CreateVariable<GraphVariableFloat>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Float);
         node.Type = NodeType::Simple;
 
@@ -1221,11 +1227,11 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto & graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "Value", PinType::Float, MakeRef<GraphVariableFloat>());
-        node.InputPins.emplace_back(graph.GetNextId(), "Min A", PinType::Float, MakeRef<GraphVariableFloat>());
-        node.InputPins.emplace_back(graph.GetNextId(), "Max A", PinType::Float, MakeRef<GraphVariableFloat>());
-        node.InputPins.emplace_back(graph.GetNextId(), "Min B", PinType::Float, MakeRef<GraphVariableFloat>());
-        node.InputPins.emplace_back(graph.GetNextId(), "Max B", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "Value", PinType::Float, CreateVariable<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "Min A", PinType::Float, CreateVariable<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "Max A", PinType::Float, CreateVariable<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "Min B", PinType::Float, CreateVariable<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "Max B", PinType::Float, CreateVariable<GraphVariableFloat>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Float);
         node.Type = NodeType::Simple;
 
@@ -1242,9 +1248,9 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "X", PinType::Float, MakeRef<GraphVariableFloat>());
-        node.InputPins.emplace_back(graph.GetNextId(), "Y", PinType::Float, MakeRef<GraphVariableFloat>());
-        node.InputPins.emplace_back(graph.GetNextId(), "Z", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "X", PinType::Float, CreateVariable<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "Y", PinType::Float, CreateVariable<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "Z", PinType::Float, CreateVariable<GraphVariableFloat>());
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Vec4);
         node.Type = NodeType::Simple;
 

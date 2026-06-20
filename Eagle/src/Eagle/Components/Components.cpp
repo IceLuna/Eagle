@@ -923,7 +923,7 @@ namespace Eagle
 		Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnStateChanged);
 	}
 	
-	void SkeletalMeshComponent::SetAnimationGraphAsset(const Ref<AssetAnimationGraph>& anim)
+	void SkeletalMeshComponent::SetAnimationGraphAsset(const Ref<AssetAnimationGraph>& anim, bool bMergeVars)
 	{
 		const bool bSameGraph = m_AnimGraphAsset == anim;
 		if (bSameGraph == false)
@@ -944,7 +944,7 @@ namespace Eagle
 				});
 			}
 			// Merging means that the values of old variables will be used if possible
-			const bool bMergeVars = bSameGraph && m_Graph;
+			bMergeVars &= bSameGraph && m_Graph;
 
 			VariablesMap oldVars;
 			if (bMergeVars)

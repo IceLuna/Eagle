@@ -10,7 +10,7 @@ namespace Eagle
         BehaviorGraphEditor(const Ref<AssetBehaviorGraph>& asset, const std::string& name = "Behavior Graph Editor");
 
         // We'll draw it manually in `UIBehaviorGraph`
-        void RenderLeftPanel() override {}
+        bool RenderLeftPanel() override { return false; }
 
         GraphEditorSerializationData Save() override;
 

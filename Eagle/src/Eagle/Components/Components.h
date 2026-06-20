@@ -719,8 +719,9 @@ namespace Eagle
 			PrevClipPlayTime = 0.f;
 		}
 
+		// @bMergeVars. If set to true, it'll try to merge vars to preserve current values of the variables (old variables will be used if possible)
+		void SetAnimationGraphAsset(const Ref<AssetAnimationGraph>& anim, bool bMergeVars = true);
 		const Ref<AssetAnimationGraph>& GetAnimationGraphAsset() const { return m_AnimGraphAsset; }
-		void SetAnimationGraphAsset(const Ref<AssetAnimationGraph>& anim);
 
 		const Ref<AnimationGraph>& GetAnimationGraph() const { return m_Graph; }
 
