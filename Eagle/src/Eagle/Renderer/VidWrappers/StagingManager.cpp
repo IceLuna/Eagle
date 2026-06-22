@@ -90,10 +90,14 @@ namespace Eagle
 				(*it)->SetState(state);
 			}
 			if (state == StagingBufferState::Free)
+			{
 				if ((currentFrameNumber - (*it)->m_FrameNumberUsed) > s_ReleaseAfterNFrames)
+				{
 					it = stagingBuffers.erase(it);
-			else
-				++it;
+					continue;
+				}
+			}
+			++it;
 		}
 	}
 
