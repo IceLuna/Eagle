@@ -98,6 +98,8 @@ namespace Eagle
 		const Ref<Buffer>& GetDirectionalLightBuffer() const { return m_DirectionalLightBuffer; }
 		const Ref<Buffer>& GetLightMatricesBuffer() const { return m_MatricesBuffer; }
 
+		bool HasVolumetricLights() const { return bHasVolumetricPointLights || bHasVolumetricSpotLights || bHasVolumetricDirectionalLights; }
+
 	private:
 		void UploadLightBuffers(const Ref<CommandBuffer>& cmd);
 
@@ -119,6 +121,10 @@ namespace Eagle
 		bool bPointLightsDirty = true;
 		bool bSpotLightsDirty = true;
 		bool bHasDirectionalLight = false;
+
+		bool bHasVolumetricPointLights = false;
+		bool bHasVolumetricSpotLights = false;
+		bool bHasVolumetricDirectionalLights = false;
 
 		static constexpr size_t s_BaseLightsCount = 10;
 		static constexpr size_t s_BasePointLightsBufferSize = s_BaseLightsCount * sizeof(PointLight);

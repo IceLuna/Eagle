@@ -196,6 +196,7 @@ namespace Eagle
 		const auto& GetLightMatrices() const { return m_LightsManagerTask->GetLightMatrices(); }
 		const auto& GetPointLightMatrices() const { return m_LightsManagerTask->GetPointLightMatrices(); }
 		bool HasDirectionalLight() const { return m_LightsManagerTask->HasDirectionalLight(); }
+		bool HasVolumetricLights() const { return m_LightsManagerTask->HasVolumetricLights(); }
 
 		const Ref<Buffer>& GetPointLightsBuffer() const { return m_LightsManagerTask->GetPointLightsBuffer(); }
 		const Ref<Buffer>& GetSpotLightsBuffer() const { return m_LightsManagerTask->GetSpotLightsBuffer(); }

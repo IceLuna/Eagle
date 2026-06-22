@@ -55,11 +55,13 @@ namespace Eagle
 		tempData.reserve(pointLights.size());
 		matrices.reserve(pointLights.size() * 6); // For each face
 
+		bool bHasVolumetric = false;
 		for (auto& pointLight : pointLights)
 		{
 			const bool bCastsShadows = pointLight->DoesCastShadows();
 			const bool bVolumetric = pointLight->IsVolumetricLight();
 			const float radius = pointLight->GetRadius();
+			bHasVolumetric |= bVolumetric;
 
 			auto& light = tempData.emplace_back();
 			light.Position = pointLight->GetWorldTransform().Location;
@@ -81,11 +83,12 @@ namespace Eagle
 			EG_CORE_ASSERT(bCastsShadows == light.DoesCastShadows());
 		}
 
-		RenderManager::Submit([task = shared_from_this(), pointLights = std::move(tempData), lightMatrices = std::move(matrices)](const Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([task = shared_from_this(), pointLights = std::move(tempData), lightMatrices = std::move(matrices), bHasVolumetric](const Ref<CommandBuffer>& cmd) mutable
 		{
 			auto thisRef = Cast<LightsManagerTask>(task);
 			thisRef->m_PointLights = std::move(pointLights);
 			thisRef->m_PointLightMatrices = std::move(lightMatrices);
+			thisRef->bHasVolumetricPointLights = bHasVolumetric;
 			thisRef->bPointLightsDirty = true;
 		});
 	}
@@ -97,6 +100,7 @@ namespace Eagle
 		tempData.reserve(spotLights.size());
 		matrices.reserve(spotLights.size());
 
+		bool bHasVolumetric = false;
 		for (auto& spotLight : spotLights)
 		{
 			constexpr float nearPlane = EG_POINT_LIGHT_NEAR;
@@ -106,6 +110,8 @@ namespace Eagle
 
 			const float innerAngle = glm::clamp(spotLight->GetInnerCutOffAngle(), 1.f, 80.f);
 			const float outerAngle = glm::clamp(spotLight->GetOuterCutOffAngle(), 1.f, 80.f);
+			const bool bVolumetric = spotLight->IsVolumetricLight();
+			bHasVolumetric |= bVolumetric;
 
 			light.Position = spotLight->GetWorldTransform().Location;
 			light.LightColor = spotLight->GetLightColor() * spotLight->GetIntensity();
@@ -119,18 +125,19 @@ namespace Eagle
 			light.ViewProjOffset = uint32_t(matrices.size());
 
 			uint32_t* intensity = (uint32_t*)&light.VolumetricFogIntensity;
-			*intensity = (*intensity) | (spotLight->IsVolumetricLight() ? 0x80000000 : 0u);
+			*intensity = (*intensity) | (bVolumetric ? 0x80000000 : 0u);
 
 			const float fovY = light.OuterCutOffRadians * 2.f;
 			const glm::mat4 view = glm::lookAt(light.Position, light.Position + light.Direction, spotLight->GetUpVector());
 			matrices.emplace_back() = Math::Perspective(fovY, aspectRatio, nearPlane, distance) * view;
 		}
 
-		RenderManager::Submit([task = shared_from_this(), spotLights = std::move(tempData), lightMatrices = std::move(matrices)](const Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([task = shared_from_this(), spotLights = std::move(tempData), lightMatrices = std::move(matrices), bHasVolumetric](const Ref<CommandBuffer>& cmd) mutable
 		{
 			auto thisRef = Cast<LightsManagerTask>(task);
 			thisRef->m_SpotLights = std::move(spotLights);
 			thisRef->m_SpotLightMatrices = std::move(lightMatrices);
+			thisRef->bHasVolumetricSpotLights = bHasVolumetric;
 			thisRef->bSpotLightsDirty = true;
 		});
 	}
@@ -150,6 +157,7 @@ namespace Eagle
 			{
 				auto thisRef = Cast<LightsManagerTask>(task);
 
+				thisRef->bHasVolumetricDirectionalLights = bVolumetric;
 				thisRef->bHasDirectionalLight = true;
 				const auto& cascadeProjections = thisRef->m_Renderer.GetCascadeProjections();
 				const auto& cascadeFarPlanes = thisRef->m_Renderer.GetCascadeFarPlanes();
@@ -219,6 +227,7 @@ namespace Eagle
 			RenderManager::Submit([task = shared_from_this()](const Ref<CommandBuffer>& cmd)
 			{
 				auto thisRef = Cast<LightsManagerTask>(task);
+				thisRef->bHasVolumetricDirectionalLights = false;
 				thisRef->bHasDirectionalLight = false;
 			});
 		}

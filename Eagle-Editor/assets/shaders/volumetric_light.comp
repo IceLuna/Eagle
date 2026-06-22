@@ -7,6 +7,10 @@
 layout(set = 0, binding = 0, r11f_g11f_b10f) uniform writeonly image2D g_Result;
 layout(set = 0, binding = 1) uniform sampler2D g_DepthTexture;
 layout(set = 0, binding = 2) uniform sampler2D g_GeometryShadingNormalsTexture;
+layout(set = 0, binding = 3) buffer IndirectArgs
+{
+    uvec4 g_DispatchArgs;
+};
 
 layout(set = 1, binding = 0)
 readonly buffer PointLightsBuffer
@@ -126,6 +130,10 @@ void main()
             bucketBits ^= (1 << bucketLightIndex);
 
             const PointLight pointLight = g_PointLights[lightIndex];
+	        const bool bVolumetricLight = pointLight.VolumetricFogIntensity < 0;
+	        if (!bVolumetricLight)
+		        continue;
+
             const uint shadowMapIndex = pointLight.ShadowMapIndex;
             const vec3 incoming = pointLight.Position - worldPos;
             const bool bCastsShadows = pointLight.Radius2 < 0;
@@ -162,6 +170,10 @@ void main()
             bucketBits ^= (1 << bucketLightIndex);
 
             const SpotLight spotLight = g_SpotLights[lightIndex];
+	        const bool bVolumetricLight = spotLight.VolumetricFogIntensity < 0;
+	        if (!bVolumetricLight)
+		        continue;
+
             const uint shadowMapIndex = spotLight.ShadowMapIndex;
             const vec3 incoming = spotLight.Position - worldPos;
             const bool bCastsShadows = spotLight.bCastsShadows != 0;
@@ -188,14 +200,24 @@ void main()
 
     if (g_HasDirLight != 0)
     {
-        const vec3 incoming = normalize(-g_DirectionalLight.Direction);
-        Lo += DirectionalLight_Volumetric(g_DirectionalLight, g_DirShadowMaps,
+	    const bool bVolumetricLight = g_DirectionalLight.VolumetricFogIntensity < 0;
+	    if (bVolumetricLight)
+        {
+            const vec3 incoming = normalize(-g_DirectionalLight.Direction);
+            Lo += DirectionalLight_Volumetric(g_DirectionalLight, g_DirShadowMaps,
 #ifdef EG_TRANSLUCENT_SHADOWS
-            g_DirShadowMapsColored, g_DirShadowMapsColoredDepth,
+                g_DirShadowMapsColored, g_DirShadowMapsColoredDepth,
 #endif
-            worldPos, g_CameraPos, incoming, geometryNormal, g_CameraView, s_VolumetricSamples, g_VolumetricMaxDistance);
+                worldPos, g_CameraPos, incoming, geometryNormal, g_CameraView, s_VolumetricSamples, g_VolumetricMaxDistance);
+        }
     }
 
     Lo *= g_FogAlbedo;
     imageStore(g_Result, pixelCoords, vec4(Lo, 1.f));
+
+    if (any(greaterThan(Lo, vec3(0))))
+    {
+        // We just need an indication that we have something on the screen that's worth applying
+        g_DispatchArgs.x = 1;
+    }
 }

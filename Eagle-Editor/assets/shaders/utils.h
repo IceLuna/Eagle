@@ -558,6 +558,16 @@ float ApplyGeometricSpecularAntiAliasing(vec3 geomNormal, float roughness)
 #endif
 }
 
+uint CalcNumGroups(uint size, uint groupSize)
+{
+    return (size + groupSize - 1) / groupSize;
+}
+
+uvec2 CalcNumGroups(uvec2 size, uvec2 groupSize)
+{
+    return (size + groupSize - 1) / groupSize;
+}
+
 #define EG_SUBGROUP_ATOMIC_INCREMENT(data, bActive, outputIndex) \
 { \
     const uvec4 activeLanes = subgroupBallot(bActive); \

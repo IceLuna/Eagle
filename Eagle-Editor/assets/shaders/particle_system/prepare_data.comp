@@ -43,11 +43,6 @@ layout(push_constant) uniform PushConstants
     CullingFrustum g_Frustum;
 };
 
-uint CalcNumGroups(uint size, uint groupSize)
-{
-	return (size + groupSize - 1) / groupSize;
-}
-
 #define GROUP_SIZE 32
 
 shared uint s_EmitCount[GROUP_SIZE];

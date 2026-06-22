@@ -1,0 +1,32 @@
+#include "defines.h"
+#include "utils.h"
+#include "common_structures.h"
+
+layout(binding = 0) buffer IndirectArgs
+{
+    uvec4 g_BlurDispatchArgs;
+    uvec4 g_CompositeDispatchArgs;
+};
+
+layout(push_constant) uniform PushConstants
+{
+    uvec2 g_BlurSize;
+    uvec2 g_CompositeSize;
+    uvec2 g_BlurGroupSize;
+    uvec2 g_CompositeGroupSize;
+};
+
+layout(local_size_x = 1, local_size_y = 1) in;
+
+void main()
+{
+    const bool bHasAnyWork = g_BlurDispatchArgs.x != 0;
+    if (bHasAnyWork)
+    {
+        g_BlurDispatchArgs.xy = CalcNumGroups(g_BlurSize, g_BlurGroupSize);
+        g_CompositeDispatchArgs.xy = CalcNumGroups(g_CompositeSize, g_CompositeGroupSize);
+
+        g_BlurDispatchArgs.z = 1;
+        g_CompositeDispatchArgs.z = 1;
+    }
+}

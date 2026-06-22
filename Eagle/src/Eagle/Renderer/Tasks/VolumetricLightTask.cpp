@@ -31,11 +31,28 @@ namespace Eagle
 		m_Constants.VolumetricSamples = m_VolumetricSettings.Samples;
 		bTranslucentShadows = options.bTranslucentShadows;
 
+		{
+			BufferSpecifications specs{};
+			specs.Size = sizeof(DispatchIndirectArgs) * 2; // For blur & composite passes
+			specs.Usage = BufferUsage::TransferDst | BufferUsage::StorageBuffer | BufferUsage::IndirectBuffer;
+			specs.Layout = BufferLayoutType::StorageBuffer;
+			m_IndirectArgs = Buffer::Create(specs, "VolumetricLights_IndirectArgs");
+		}
+
+		{
+			PipelineComputeState state{};
+			state.ComputeShader = Shader::Create("volumetric_prepare_args.comp", ShaderType::Compute);
+			m_PrepareArgsPipeline = PipelineCompute::Create(state);
+		}
+
 		InitPipeline(false, false);
     }
 
 	void VolumetricLightTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
+		if (!m_Renderer.HasVolumetricLights())
+			return;
+
 		EG_GPU_TIMING_SCOPED(cmd, "Volumetric Light Pass");
 		EG_CPU_TIMING_SCOPED("Volumetric Light Pass");
 
@@ -87,6 +104,7 @@ namespace Eagle
 		m_Pipeline->SetImage(m_VolumetricsImage, 0, 0);
 		m_Pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSampler, 0, 1);
 		m_Pipeline->SetImageSampler(gbuffer.Normals, Sampler::PointSampler, 0, 2);
+		m_Pipeline->SetBuffer(m_IndirectArgs, 0, 3);
 		m_Pipeline->SetBuffer(lightCulling->GetCulledPointLightsBuffer(), EG_SCENE_SET, 0);
 		m_Pipeline->SetBuffer(lightCulling->GetCulledSpotLightsBuffer(), EG_SCENE_SET, 1);
 		m_Pipeline->SetBuffer(lightCulling->GetTiles_Translucent_PL(), EG_SCENE_SET, 2);
@@ -121,6 +139,8 @@ namespace Eagle
 		cmd->TransitionLayout(gbuffer.Depth, depthLayout, ImageReadAccess::PixelShaderRead);
 		cmd->TransitionLayout(gbuffer.Normals, normalsLayout, ImageReadAccess::PixelShaderRead);
 
+		cmd->FillBuffer(m_IndirectArgs, 0);
+
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Volumetric Lighting");
 			EG_CPU_TIMING_SCOPED("Volumetric Lighting");
@@ -134,6 +154,30 @@ namespace Eagle
 		}
 		cmd->TransitionLayout(gbuffer.Depth, ImageReadAccess::PixelShaderRead, depthLayout);
 		cmd->TransitionLayout(gbuffer.Normals, ImageReadAccess::PixelShaderRead, normalsLayout);
+		cmd->Barrier(m_IndirectArgs);
+
+		const glm::uvec2 blurGroupSize = m_GuassianPipeline->GetWorkGroupSize();
+		const glm::uvec2 compositeGroupSize = m_CompositePipeline->GetWorkGroupSize();
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Volumetric Lights. Prepare args");
+			EG_CPU_TIMING_SCOPED("Volumetric Lights. Prepare args");
+
+			struct PushData
+			{
+				glm::uvec2 BlurSize;
+				glm::uvec2 CompositeSize;
+				glm::uvec2 BlurGroupSize;
+				glm::uvec2 CompositeGroupSize;
+			} pushData;
+			pushData.BlurSize = volumetricsImageSize;
+			pushData.CompositeSize = size;
+			pushData.BlurGroupSize = blurGroupSize;
+			pushData.CompositeGroupSize = compositeGroupSize;
+
+			m_PrepareArgsPipeline->SetBuffer(m_IndirectArgs, 0, 0);
+			cmd->Dispatch(m_PrepareArgsPipeline, 1, 1, 1, &pushData);
+			cmd->TransitionLayout(m_IndirectArgs, BufferLayoutType::StorageBuffer, BufferReadAccess::IndirectArgument);
+		}
 
 		struct PushDataComp
 		{
@@ -151,9 +195,8 @@ namespace Eagle
 			pushDataComp.Size = pushData.Size;
 			pushDataComp.TexelSize = 1.f / glm::vec2(pushData.Size);
 
-			const glm::uvec2 numGroups = CalcNumGroups(volumetricsImageSize, m_GuassianPipeline->GetWorkGroupSize());
 			cmd->TransitionLayout(m_VolumetricsImageBlurred, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
-			cmd->Dispatch(m_GuassianPipeline, numGroups, &pushDataComp);
+			cmd->DispatchIndirect(m_GuassianPipeline, m_IndirectArgs, 0, &pushDataComp);
 			cmd->TransitionLayout(m_VolumetricsImageBlurred, ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
 			++stats.Dispatches;
 		}
@@ -165,12 +208,12 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "Volumetric Composite");
 			EG_CPU_TIMING_SCOPED("Volumetric Composite");
 
-			const glm::uvec2 numGroups = CalcNumGroups(size, m_CompositePipeline->GetWorkGroupSize());
-			cmd->Dispatch(m_CompositePipeline, numGroups, &pushDataComp);
+			cmd->DispatchIndirect(m_CompositePipeline, m_IndirectArgs, sizeof(DispatchIndirectArgs), &pushDataComp);
 			++stats.Dispatches;
 		}
 
 		cmd->TransitionLayout(input, ImageLayoutType::StorageImage, resultLayout);
+		cmd->TransitionLayout(m_IndirectArgs, BufferReadAccess::IndirectArgument, BufferLayoutType::StorageBuffer);
 	}
 
 	void VolumetricLightTask::InitWithOptions(const SceneRendererSettings& settings)

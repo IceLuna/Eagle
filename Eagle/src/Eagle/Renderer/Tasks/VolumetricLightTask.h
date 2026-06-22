@@ -39,10 +39,12 @@ namespace Eagle
 		Ref<PipelineCompute> m_Pipeline;
 		Ref<PipelineCompute> m_CompositePipeline;
 		Ref<PipelineCompute> m_GuassianPipeline;
+		Ref<PipelineCompute> m_PrepareArgsPipeline;
 
 		VolumetricLightsSettings m_VolumetricSettings;
 		Ref<Image> m_VolumetricsImage; // Volumetric effect is rendered separately into here. Half res
 		Ref<Image> m_VolumetricsImageBlurred;
+		Ref<Buffer> m_IndirectArgs;
 		
 		float m_Time = 0.0;
 		bool bTranslucentShadows = false;
