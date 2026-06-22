@@ -679,7 +679,9 @@ namespace Eagle
 						}
 						else
 						{
+							const std::string oldName = m_SelectedBone->GetName();
 							m_SelectedBone->SetName(m_SelectedBoneName);
+							OnBoneRenamed(oldName, m_SelectedBoneName);
 							bChanged = true;
 						}
 					}
@@ -1008,5 +1010,22 @@ namespace Eagle
 
 		for (const auto& child : node.Children)
 			OnBoneNodeDeletion(child);
+	}
+	
+	void SkeletalMeshAssetEditor::OnBoneRenamed(const std::string& oldName, const std::string& newName)
+	{
+		if (auto it = m_AttachedToBonesMeshes.find(oldName); it != m_AttachedToBonesMeshes.end())
+		{
+			AttachedMeshData value = std::move(it->second);
+			m_AttachedToBonesMeshes.erase(it);
+			m_AttachedToBonesMeshes[newName] = std::move(value);
+		}
+
+		if (auto it = m_AttachedToBonesColliders.find(oldName); it != m_AttachedToBonesColliders.end())
+		{
+			AttachedColliderData value = std::move(it->second);
+			m_AttachedToBonesColliders.erase(it);
+			m_AttachedToBonesColliders[newName] = std::move(value);
+		}
 	}
 }

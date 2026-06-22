@@ -50,6 +50,7 @@ namespace Eagle
 		void OnSimulateRagdollChanged();
 
 		void OnBoneNodeDeletion(const BoneNode& node);
+		void OnBoneRenamed(const std::string& oldName, const std::string& newName);
 
 		enum class OpenedTabType
 		{

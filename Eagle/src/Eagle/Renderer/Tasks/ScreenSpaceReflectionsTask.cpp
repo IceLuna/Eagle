@@ -139,7 +139,7 @@ namespace Eagle
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Screen-Space Reflections. Main pass");
 
-			// Note: We're not passing IBL because lighting for it are already calculated.
+			// Note: We're not passing IBL because lighting for it is already calculated.
 			// Otherwise, we'd get double contribution
 
 			FfxSssrDispatchDescription dispatchParameters = {};

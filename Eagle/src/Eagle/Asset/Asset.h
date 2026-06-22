@@ -211,13 +211,7 @@ namespace Eagle
 		void SetDirty(bool dirty) { bDirty = dirty; }
 		bool IsDirty() const { return bDirty; }
 
-		void AddOnAssetModifiedCallback(const GUID& id, const std::function<void()>& func)
-		{
-			std::scoped_lock lock(m_Mutex);
-			EG_CORE_ASSERT(m_Callbacks.find(id) == m_Callbacks.end());
-			m_Callbacks[id] = func;
-		}
-
+		void AddOnAssetModifiedCallback(const GUID& id, const std::function<void()>& func);
 		void RemoveOnAssetModifiedCallback(const GUID& id)
 		{
 			std::scoped_lock lock(m_Mutex);

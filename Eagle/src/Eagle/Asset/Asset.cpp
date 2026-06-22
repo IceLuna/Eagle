@@ -199,6 +199,13 @@ namespace Eagle
 		return true;
 	}
 
+	void Asset::AddOnAssetModifiedCallback(const GUID& id, const std::function<void()>& func)
+	{
+		std::scoped_lock lock(m_Mutex);
+		EG_CORE_ASSERT(m_Callbacks.find(id) == m_Callbacks.end());
+		m_Callbacks[id] = func;
+	}
+
 	void Asset::OnModified()
 	{
 		AssetManager::OnModified(shared_from_this());

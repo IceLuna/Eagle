@@ -618,7 +618,7 @@ namespace Eagle
 	{
 		if (m_CollisionMeshAsset)
 		{
-			m_CollisionMeshAsset->RemoveOnAssetModifiedCallback(Parent.GetGUID());
+			m_CollisionMeshAsset->RemoveOnAssetModifiedCallback(m_CallbackID);
 		}
 	}
 
@@ -706,13 +706,13 @@ namespace Eagle
 		{
 			if (m_CollisionMeshAsset)
 			{
-				m_CollisionMeshAsset->RemoveOnAssetModifiedCallback(Parent.GetGUID());
+				m_CollisionMeshAsset->RemoveOnAssetModifiedCallback(m_CallbackID);
 			}
 			m_CollisionMeshAsset = meshAsset;
 
 			if (m_CollisionMeshAsset)
 			{
-				m_CollisionMeshAsset->AddOnAssetModifiedCallback(Parent.GetGUID(), [entity = Parent]() mutable
+				m_CollisionMeshAsset->AddOnAssetModifiedCallback(m_CallbackID, [entity = Parent]() mutable
 				{
 					if (entity.HasComponent<MeshColliderComponent>())
 					{

@@ -704,12 +704,14 @@ namespace Eagle
 
 	void EditorLayer::OpenScene(const Ref<AssetScene>& sceneAsset)
 	{
-		// We're opening a new scene, so there would be no way to save the old one, so unmark dirty flag
-		if (m_OpenedSceneAsset)
-			m_OpenedSceneAsset->SetDirty(false);
-
 		if (m_EditorState == EditorState::Edit)
+		{
+			// We're opening a new scene, so there would be no way to save the old one, so unmark dirty flag
+			if (m_OpenedSceneAsset)
+				m_OpenedSceneAsset->SetDirty(false);
+
 			Scene::OpenScene(sceneAsset);
+		}
 	}
 
 	// TODO: Don't use file dialog because user can save it outside of Content folder

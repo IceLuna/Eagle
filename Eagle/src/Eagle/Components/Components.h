@@ -1479,6 +1479,7 @@ namespace Eagle
 
 	protected:
 		std::array<Ref<MeshShape>, 2> m_Shapes; // [0] - front side, [1] - backside. If two-sided collision is enabled, backside will be a valid shape
+		GUID m_CallbackID;
 		Ref<AssetBaseMesh> m_CollisionMeshAsset;
 		bool bConvex = true;
 		bool bTwoSided = false; // Only affects triangle mesh colliders
