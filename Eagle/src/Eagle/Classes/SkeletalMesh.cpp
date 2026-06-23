@@ -126,21 +126,6 @@ namespace Eagle
         , m_CollisionGroup(collisionGroup)
         , m_InteractingCollisionGroup(interactingCollisionGroup)
     {
-        // Normalize bone weights
-        for (auto& vertex : m_Vertices)
-        {
-            float totalWeight = 0.f;
-            float weigthsF32[EG_MAX_BONES_PER_VERTEX];
-            for (uint32_t i = 0; i < EG_MAX_BONES_PER_VERTEX; ++i)
-            {
-                weigthsF32[i] = Utils::ToFloat32(vertex.Weights[i]);
-                totalWeight += weigthsF32[i];
-            }
-            for (uint32_t i = 0; i < EG_MAX_BONES_PER_VERTEX; ++i)
-            {
-                vertex.Weights[i] = Utils::ToFloat16(weigthsF32[i] / totalWeight);
-            }
-        }
         m_RagdollRoot = Utils::MergeBones(m_MinRagdollBoneSize, m_Skeletal.GetBoneInfoMap(), m_Skeletal.RootBone);
         Utils::PrepareAABB(m_RagdollRoot);
         Utils::SetUserSettings(m_RagdollRoot, ragdollPerBoneSettings);
