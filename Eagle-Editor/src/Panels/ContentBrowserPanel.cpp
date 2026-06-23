@@ -159,12 +159,11 @@ namespace Eagle
 		return bFailed ? Path{} : newFilepath;
 	}
 
-	ContentBrowserPanel::ContentBrowserPanel(EditorLayer& editorLayer)
+	ContentBrowserPanel::ContentBrowserPanel()
 		: m_ProjectPath(Project::GetProjectPath())
 		, m_ContentPath(Project::GetContentPath())
 		, m_CurrentDirectory(m_ContentPath)
 		, m_CurrentDirectoryRelative(std::filesystem::relative(m_CurrentDirectory, m_ProjectPath))
-		, m_EditorLayer(editorLayer)
 	{
 		EG_CORE_ASSERT(!s_Instance);
 		s_Instance = this;
@@ -306,24 +305,25 @@ namespace Eagle
 
 		ImGui::PopID();
 
-		m_ShowSaveScenePopup = m_ShowSaveScenePopup && m_EditorLayer.GetEditorState() == EditorState::Edit;
+		auto& editorLayer = *EditorLayer::Get();
+		m_ShowSaveScenePopup = m_ShowSaveScenePopup && editorLayer.GetEditorState() == EditorState::Edit;
 
 		if (m_ShowSaveScenePopup)
 		{
-			if (const auto& openedScene = m_EditorLayer.GetOpenedSceneAsset(); !openedScene || openedScene->IsDirty())
+			if (const auto& openedScene = editorLayer.GetOpenedSceneAsset(); !openedScene || openedScene->IsDirty())
 			{
 				UI::ButtonType result = UI::ShowMessage("Eagle Editor", "Do you want to save the current scene?", UI::ButtonType::YesNoCancel);
 				if (result != UI::ButtonType::None)
 				{
 					if (result == UI::ButtonType::Yes)
 					{
-						if (m_EditorLayer.SaveScene()) // Open a new scene only if the old scene was successfully saved
-							m_EditorLayer.OpenScene(m_SceneToOpen);
+						if (editorLayer.SaveScene()) // Open a new scene only if the old scene was successfully saved
+							editorLayer.OpenScene(m_SceneToOpen);
 						m_ShowSaveScenePopup = false;
 					}
 					else if (result == UI::ButtonType::No)
 					{
-						m_EditorLayer.OpenScene(m_SceneToOpen);
+						editorLayer.OpenScene(m_SceneToOpen);
 						m_ShowSaveScenePopup = false;
 					}
 					else if (result == UI::ButtonType::Cancel)
@@ -334,7 +334,7 @@ namespace Eagle
 			}
 			else
 			{
-				m_EditorLayer.OpenScene(m_SceneToOpen);
+				editorLayer.OpenScene(m_SceneToOpen);
 				m_ShowSaveScenePopup = false;
 			}
 		}
@@ -631,7 +631,7 @@ namespace Eagle
 			AddAssetEditor<PhysicsMaterialAssetEditor, AssetPhysicsMaterial>(asset);
 			break;
 		case AssetType::Entity:
-			AddAssetEditor<EntityAssetEditor, AssetEntity>(asset, m_EditorLayer);
+			AddAssetEditor<EntityAssetEditor, AssetEntity>(asset, *EditorLayer::Get());
 			break;
 		case AssetType::Scene:
 		{
@@ -1169,9 +1169,10 @@ namespace Eagle
 	{
 		if (asset->GetAssetType() == AssetType::Scene)
 		{
-			if (m_EditorLayer.GetOpenedSceneAsset() == asset)
+			auto& editorLayer = *EditorLayer::Get();
+			if (editorLayer.GetOpenedSceneAsset() == asset)
 			{
-				m_EditorLayer.SaveScene();
+				editorLayer.SaveScene();
 				asset->SetDirty(false);
 			}
 		}

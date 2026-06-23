@@ -254,4 +254,33 @@ namespace Eagle
 
 		return MakeRef<LocalSkeletalMesh>(*other.get());
 	}
+
+    static bool FindNode_Internal(BoneNode& node, uint64_t nameHash, BoneNode** outNode)
+    {
+        if (node.GetNameHash() == nameHash)
+        {
+            *outNode = &node;
+            return true;
+        }
+
+        for (auto& child : node.Children)
+        {
+            const bool bFound = FindNode_Internal(child, nameHash, outNode);
+            if (bFound)
+                return true;
+        }
+
+        return false;
+    }
+
+    bool BoneNode::FindNode(uint64_t nameHash, BoneNode** outNode)
+    {
+        return FindNode_Internal(*this, nameHash, outNode);
+    }
+    
+    bool BoneNode::FindNode(const std::string& name, BoneNode** outNode)
+    {
+        const uint64_t nameHash = Utils::CalculateBoneNameHash(name);
+        return FindNode(nameHash, outNode);
+    }
 }

@@ -22,7 +22,7 @@ namespace Eagle
 	class ContentBrowserPanel
 	{
 	public:
-		ContentBrowserPanel(EditorLayer& editorLayer);
+		ContentBrowserPanel();
 		~ContentBrowserPanel();
 
 		void OnImGuiRender();
@@ -96,7 +96,6 @@ namespace Eagle
 		Path m_CurrentDirectory;
 		Path m_CurrentDirectoryRelative;
 		Path m_SelectedFile;
-		EditorLayer& m_EditorLayer;
 		std::vector<Path> m_Directories;
 		std::vector<Path> m_Files;
 		std::vector<Path> m_SearchFiles;

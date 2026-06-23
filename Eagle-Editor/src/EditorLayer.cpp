@@ -50,7 +50,7 @@ namespace Eagle
 	
 	static glm::vec3 notUsed1;
 	static glm::vec4 notUsed2;
-	static const EditorLayer* s_EditorLayer = nullptr;
+	static EditorLayer* s_EditorLayer = nullptr;
 
 	static void ShowShortcutsWindow(bool* p_open = nullptr);
 	static void ShowHelpWindow(bool* p_open = nullptr);
@@ -150,8 +150,6 @@ namespace Eagle
 
 	EditorLayer::EditorLayer()
 		: Layer("EditorLayer")
-		, m_SceneHierarchyPanel()
-		, m_ContentBrowserPanel(*this)
 		, m_Window(Application::Get().GetWindow())
 	{
 		m_SimulatePanelSettings.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_AutoHideTabBar | ImGuiDockNodeFlags_NoTabBar;
@@ -217,6 +215,14 @@ namespace Eagle
 	void EditorLayer::OnDetach()
 	{
 		EditorSerializer::Serialize(this, Project::GetConfigPath() / "EditorDefault.ini");
+		if (m_EditorState != EditorState::Edit && m_SimulationScene)
+		{
+			m_SimulationScene->OnRuntimeStop();
+			m_SimulationScene.reset();
+		}
+		m_EditorScene.reset();
+		m_SimulationScene.reset();
+		m_CurrentScene.reset();
 		Scene::SetCurrentScene(nullptr);
 		Scene::RemoveOnSceneOpenedCallback(m_OpenedSceneCallbackID);
 		EditorResources::Release();
@@ -254,7 +260,7 @@ namespace Eagle
 
 	void EditorLayer::OnEvent(Event& e)
 	{
-		if (m_SceneHierarchyPanel.OnEvent(e, IsViewportFocused()))
+		if (m_SceneHierarchyPanel.OnEvent(m_CurrentScene, e, IsViewportFocused()))
 		{
 			if (m_EditorState == EditorState::Edit && m_OpenedSceneAsset)
 				m_OpenedSceneAsset->SetDirty(true);
@@ -303,7 +309,7 @@ namespace Eagle
 		if (!m_bFullScreen)
 		{
 			DrawSimulatePanel();
-			if (m_SceneHierarchyPanel.OnImGuiRender(m_EditorState == EditorState::Play))
+			if (m_SceneHierarchyPanel.OnImGuiRender(m_CurrentScene, m_EditorState == EditorState::Play))
 			{
 				if (m_EditorState == EditorState::Edit && m_OpenedSceneAsset)
 					m_OpenedSceneAsset->SetDirty(true);
@@ -357,7 +363,7 @@ namespace Eagle
 		//ImPlot::ShowDemoWindow();
 	}
 
-	const EditorLayer* EditorLayer::Get()
+	EditorLayer* EditorLayer::Get()
 	{
 		return s_EditorLayer;
 	}
@@ -873,8 +879,8 @@ namespace Eagle
 	{
 		m_CurrentScene = scene;
 		Scene::SetCurrentScene(m_CurrentScene);
-		m_SceneHierarchyPanel.SetContext(m_CurrentScene);
-		UpdateSceneEditorCamera(scene);
+		if (scene)
+			UpdateSceneEditorCamera(scene);
 	}
 
 	void EditorLayer::UpdateSceneEditorCamera(const Ref<Scene>& scene, bool bUpdateTransform)
@@ -2886,6 +2892,12 @@ namespace Eagle
 		PrepareDirtyAssets(DirtyAssetsReason::ProjectClose);
 		if (!m_ShowDirtyAssetMessage)
 		{
+			if (m_EditorState != EditorState::Edit && m_SimulationScene)
+			{
+				m_SimulationScene->OnRuntimeStop();
+				m_SimulationScene.reset();
+			}
+			m_DirtyAssets.clear();
 			if (m_CloseEngineRequested)
 				Application::Get().SetShouldClose(true);
 			else

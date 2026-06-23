@@ -71,6 +71,11 @@ namespace Eagle
 			m_NameHash = Utils::CalculateBoneNameHash(m_Name);
 		}
 
+		// Finds a node with the required name
+		// Returns true on success and sets `outNode` to point to that node
+		bool FindNode(const std::string& name, BoneNode** outNode);
+		bool FindNode(uint64_t nameHash, BoneNode** outNode);
+
 		const std::string& GetName() const { return m_Name; }
 		uint64_t GetNameHash() const { return m_NameHash; }
 	};

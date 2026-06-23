@@ -13,14 +13,12 @@ namespace Eagle
 	class SceneHierarchyPanel
 	{
 	public:
-		SceneHierarchyPanel() = default;
-		SceneHierarchyPanel(const Ref<Scene>& scene);
+		SceneHierarchyPanel();
 
-		// @uniqueID. Can be used to 
-		void SetContext(const Ref<Scene>& scene, uint64_t uniqueID = 0);
+		void SetHashID(uint64_t uniqueID);
 		void ClearSelection();
 
-		bool OnEvent(Event& e, bool bViewportFocused);
+		bool OnEvent(const Ref<Scene>& scene, Event& e, bool bViewportFocused);
 
 		Entity GetSelectedEntity() const { return m_SelectedEntity; }
 		void SetEntitySelected(Entity entity, SelectedComponent component = SelectedComponent::None);
@@ -38,7 +36,7 @@ namespace Eagle
 		
 		SelectedComponent GetSelectedComponentType() const { return m_Properties.GetSelectedComponentType(); }
 
-		bool OnImGuiRender(bool bScenePlaying, bool bAllowOnlySingleRoot = false, const bool* bVolumetricsEnabledOverride = nullptr);
+		bool OnImGuiRender(const Ref<Scene>& scene, bool bScenePlaying, bool bAllowOnlySingleRoot = false, const bool* bVolumetricsEnabledOverride = nullptr);
 
 	private:
 		bool DrawSceneHierarchy();
@@ -53,7 +51,7 @@ namespace Eagle
 		{
 			for (auto& entt : view)
 			{
-				Entity entity = Entity(entt, m_Scene.get());
+				Entity entity = Entity(entt, m_Scene);
 				const std::string& name = entity.GetName();
 
 				std::size_t pos = Utils::FindSubstringI(name, search);
@@ -66,7 +64,7 @@ namespace Eagle
 
 	private:
 		EntityPropertiesPanel m_Properties;
-		Ref<Scene> m_Scene;
+		Scene* m_Scene = nullptr; // Only valid during the call (OnImGuiRender or OnEvent)
 		Entity m_SelectedEntity;
 		Entity m_RootEntity; // Only valid when `m_AllowOnlySingleRoot` is set to true
 

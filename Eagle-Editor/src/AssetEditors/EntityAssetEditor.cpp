@@ -51,7 +51,7 @@ namespace Eagle
 			camera.LookAt(center);
 		}
 
-		m_SceneHierarchy.SetContext(scene, asset->GetGUID().GetHigh());
+		m_SceneHierarchy.SetHashID(asset->GetGUID().GetHigh());
 		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
 	}
 
@@ -65,7 +65,7 @@ namespace Eagle
 		if (ImGui::Begin(m_WindowName.c_str(), pOpen))
 		{
 			const auto& scene = GetCurrentScene();
-			const bool bEntityChanged = m_SceneHierarchy.OnImGuiRender(bRuntime, true, &bVolumetricsEnabled);
+			const bool bEntityChanged = m_SceneHierarchy.OnImGuiRender(scene, bRuntime, true, &bVolumetricsEnabled);
 			if (bEntityChanged)
 				OnEntityChanged();
 
@@ -116,7 +116,8 @@ namespace Eagle
 		AssetEditor::OnEvent(e);
 		Event::Dispatch<MouseButtonPressedEvent>(e, EG_BIND_FN(EntityAssetEditor::HandleEntitySelection));
 
-		const bool bEntityChanged = m_SceneHierarchy.OnEvent(e, bViewportFocused);
+		const auto& scene = GetCurrentScene();
+		const bool bEntityChanged = m_SceneHierarchy.OnEvent(scene, e, bViewportFocused);
 		if (bEntityChanged)
 			OnEntityChanged();
 	}

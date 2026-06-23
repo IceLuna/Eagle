@@ -708,6 +708,7 @@ namespace Eagle
 				}
 			}
 
+			importedMeshes[0].Mesh->RegenerateRagdollData(importedMeshes[0].Mesh->GetMinRagdollBoneSize());
 			return importedMeshes[0];
 		}
 		else

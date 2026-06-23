@@ -13,17 +13,13 @@
 
 namespace Eagle
 {
-	SceneHierarchyPanel::SceneHierarchyPanel(const Ref<Scene>& scene)
+	SceneHierarchyPanel::SceneHierarchyPanel()
 	{
-		SetContext(scene);
+		SetHashID(0);
 	}
 
-	void SceneHierarchyPanel::SetContext(const Ref<Scene>& scene, uint64_t uniqueID)
+	void SceneHierarchyPanel::SetHashID(uint64_t uniqueID)
 	{
-		ClearSelection();
-		m_Scene = scene;
-		m_Properties = {};
-
 		m_SceneHierarchyWindowName = uniqueID == 0u ? "Scene Hierarchy" : "Scene Hierarchy##" + std::to_string(uniqueID);
 		m_PropertiesWindowName = uniqueID == 0u ? "Properties" : "Properties##" + std::to_string(uniqueID);
 	}
@@ -40,16 +36,23 @@ namespace Eagle
 
 		if (entity)
 		{
+			m_Scene = entity.GetScene();
 			m_SelectedEntity = entity;
 			m_Properties.SetEntitySelected(entity, component);
 			m_ScrollToSelected = true;
 		}
 	}
 
-	bool SceneHierarchyPanel::OnImGuiRender(bool bScenePlaying, bool bAllowOnlySingleRoot, const bool* bVolumetricsEnabledOverride)
+	bool SceneHierarchyPanel::OnImGuiRender(const Ref<Scene>& scene, bool bScenePlaying, bool bAllowOnlySingleRoot, const bool* bVolumetricsEnabledOverride)
 	{
 		EG_CPU_TIMING_SCOPED("Scene Hierarchy Panel");
 
+		if (m_Scene != scene.get())
+		{
+			ClearSelection();
+			m_Properties = {};
+		}
+		m_Scene = scene.get();
 		m_AllowOnlySingleRoot = bAllowOnlySingleRoot;
 		bool bChanged = false;
 		bChanged |= DrawSceneHierarchy();
@@ -64,6 +67,7 @@ namespace Eagle
 			bChanged |= m_Properties.OnImGuiRender(m_SelectedEntity, bRuntime, bVolumetricsEnabled);
 		}
 		ImGui::End(); //Properties
+
 		return bChanged;
 	}
 
@@ -89,7 +93,7 @@ namespace Eagle
 			{
 				uint32_t payload_n = *(uint32_t*)payload->Data;
 
-				Entity droppedEntity((entt::entity)payload_n, m_Scene.get());
+				Entity droppedEntity((entt::entity)payload_n, m_Scene);
 				droppedEntity.SetParent(Entity::Null);
 				bChanged = true;
 			}
@@ -111,7 +115,7 @@ namespace Eagle
 
 		for (auto& entity : view)
 		{
-			bChanged |= DrawEntityNode(Entity(entity, m_Scene.get()), !m_Search.empty());
+			bChanged |= DrawEntityNode(Entity(entity, m_Scene), !m_Search.empty());
 		}
 
 		if (ImGui::IsMouseDown(0) && ImGui::IsWindowHovered())
@@ -253,7 +257,7 @@ namespace Eagle
 			{
 				uint32_t payload_n = *(uint32_t*)payload->Data;
 
-				Entity droppedEntity((entt::entity)payload_n, m_Scene.get());
+				Entity droppedEntity((entt::entity)payload_n, m_Scene);
 				if (!droppedEntity.IsParentOf(entity) && droppedEntity.GetParent() != entity)
 				{
 					droppedEntity.SetParent(entity);
@@ -393,7 +397,7 @@ namespace Eagle
 				{
 					uint32_t payload_n = *(uint32_t*)payload->Data;
 
-					Entity droppedEntity((entt::entity)payload_n, m_Scene.get());
+					Entity droppedEntity((entt::entity)payload_n, m_Scene);
 					
 					if (!droppedEntity.IsParentOf(child) && droppedEntity.GetParent() != child)
 					{
@@ -415,8 +419,9 @@ namespace Eagle
 		return bChanged;
 	}
 
-	bool SceneHierarchyPanel::OnEvent(Event& e, bool bViewportFocused)
+	bool SceneHierarchyPanel::OnEvent(const Ref<Scene>& scene, Event& e, bool bViewportFocused)
 	{
+		m_Scene = scene.get();
 		return Event::Dispatch<KeyPressedEvent>(e, EG_BIND_FN(SceneHierarchyPanel::OnKeyPressed), bViewportFocused);
 	}
 

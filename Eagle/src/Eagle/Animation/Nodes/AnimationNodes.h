@@ -9,6 +9,7 @@ namespace Eagle
 {
 	class AnimationStateMachineGraph;
 	class AssetAnimationBlendSpace;
+	class AssetSkeletalMesh;
 	struct BlendSpaceVertex;
 
 	class AnimationGraphNode : public GraphNode
@@ -16,7 +17,7 @@ namespace Eagle
 	public:
 		AnimationGraphNode(const Weak<AnimationGraph>& graph, size_t numInputs);
 
-		const Ref<SkeletalMesh>& GetSkeletal() const { return m_Skeletal; }
+		const Ref<AssetSkeletalMesh>& GetSkeletal() const { return m_Skeletal; }
 
 	protected:
 		// A helper function
@@ -35,7 +36,7 @@ namespace Eagle
 		}
 
 	protected:
-		Ref<SkeletalMesh> m_Skeletal;
+		Ref<AssetSkeletalMesh> m_Skeletal;
 	};
 
 	class AnimationGraphNodeOutput : public AnimationGraphNode

@@ -77,7 +77,7 @@ namespace Eagle
 
 	AnimationGraphNode::AnimationGraphNode(const Weak<AnimationGraph>& graph, size_t numInputs)
 		: GraphNode(graph, numInputs)
-		, m_Skeletal(graph.lock()->GetSkeletal())
+		, m_Skeletal(graph.lock()->GetSkeletalAsset())
 	{
 	}
 
@@ -184,7 +184,7 @@ namespace Eagle
 
 		m_Pose.Reset();
 
-		const auto& skeletal = GetSkeletal();
+		const auto& skeletal = GetSkeletal()->GetMesh();
 		const SkeletalMeshAnimation* animation = nullptr;
 		float speed = 1.f;
 		bool bLoop = true;
@@ -275,7 +275,7 @@ namespace Eagle
 		if (Utils::GetValue(m_Inputs[2], m_Variables[2], ts, &weight))
 			weight = glm::clamp(weight, 0.f, 1.f);
 
-		const auto& skeletal = GetSkeletal();
+		const auto& skeletal = GetSkeletal()->GetMesh();
 		AnimationSystem::BlendPoses(pose0 ? *pose0 : SkeletalPose{}, pose1 ? *pose1 : SkeletalPose{}, skeletal->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
 
 		m_CalculatedOnFrame = currentFrame;
@@ -292,7 +292,7 @@ namespace Eagle
 		m_Pose.Reset();
 		if (const auto& input = m_Inputs[0])
 		{
-			const auto& skeletal = GetSkeletal();
+			const auto& skeletal = GetSkeletal()->GetMesh();
 			std::string boneName;
 			Utils::GetValueFromVariable(m_Variables[1], &boneName);
 
@@ -360,7 +360,7 @@ namespace Eagle
 		m_Pose.Reset();
 		if (m_Inputs[0] && m_Inputs[1])
 		{
-			const auto& skeletal = GetSkeletal();
+			const auto& skeletal = GetSkeletal()->GetMesh();
 			float weight = 0.f;
 			if (Utils::GetValue(m_Inputs[2], m_Variables[2], ts, &weight))
 				weight = glm::clamp(weight, 0.f, 1.f);
@@ -395,7 +395,7 @@ namespace Eagle
 			const auto& input1 = m_Inputs[1];
 			if (input0 && input1)
 			{
-				const auto& skeletal = GetSkeletal();
+				const auto& skeletal = GetSkeletal()->GetMesh();
 				const auto& pose0 = input0->Update(ts);
 				const auto& pose1 = input1->Update(ts);
 				AnimationSystem::CalculateAdditivePose(pose0, pose1, skeletal->GetSkeletalMeshInfo().RootBone, &m_Pose);
@@ -455,7 +455,7 @@ namespace Eagle
 			const float weight = glm::clamp(m_CurrentTransitionTime / transitionTime, 0.f, 1.f);
 			m_CurrentTransitionTime = bValue ? m_CurrentTransitionTime + ts : m_CurrentTransitionTime - ts;
 
-			AnimationSystem::BlendPoses(falsePose ? *falsePose : SkeletalPose{}, truePose ? *truePose : SkeletalPose{}, m_Skeletal->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
+			AnimationSystem::BlendPoses(falsePose ? *falsePose : SkeletalPose{}, truePose ? *truePose : SkeletalPose{}, m_Skeletal->GetMesh()->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
 			if (m_CurrentTransitionTime >= transitionTime || m_CurrentTransitionTime <= 0.f)
 			{
 				// Finished transitioning
@@ -544,7 +544,7 @@ namespace Eagle
 			const float weight = glm::clamp(m_CurrentTransitionTime / transitionTime, 0.f, 1.f);
 			m_CurrentTransitionTime += ts;
 
-			AnimationSystem::BlendPoses(prevPose ? *prevPose : SkeletalPose{}, currentPose ? *currentPose : SkeletalPose{}, m_Skeletal->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
+			AnimationSystem::BlendPoses(prevPose ? *prevPose : SkeletalPose{}, currentPose ? *currentPose : SkeletalPose{}, m_Skeletal->GetMesh()->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
 			if (m_CurrentTransitionTime >= transitionTime)
 			{
 				// Finished transitioning

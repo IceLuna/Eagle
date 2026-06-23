@@ -36,6 +36,44 @@ namespace Eagle
 				comp.SetInteractingCollisionGroup(CollisionGroup(uint32_t(comp.GetInteractingCollisionGroup()) & validMasks));
 			}
 		}
+
+		void RestoreVirtualBones(const BoneNode& node, BoneNode& dstRoot)
+		{
+			bool bHasAnyVirtualChild = false;
+			for (auto& child : node.Children)
+			{
+				if (child.bVirtualBone)
+				{
+					bHasAnyVirtualChild = true;
+					break;
+				}
+			}
+
+			if (bHasAnyVirtualChild)
+			{
+				BoneNode* foundNode = nullptr;
+				if (dstRoot.FindNode(node.GetNameHash(), &foundNode))
+				{
+					for (auto& child : node.Children)
+					{
+						if (!child.bVirtualBone)
+							continue;
+
+						// Copy the virtual bone
+						foundNode->Children.emplace_back(child);
+					}
+				}
+			}
+
+			// We don't need to check children on virtual bones since they're all appended at once during the virtual bone copy
+			if (!node.bVirtualBone)
+			{
+				for (auto& child : node.Children)
+				{
+					RestoreVirtualBones(child, dstRoot);
+				}
+			}
+		}
 	}
 
 	Ref<Scene> AssetEntity::s_EntityAssetsScene;
@@ -281,6 +319,13 @@ namespace Eagle
 				for (uint32_t i = 0; i < matCount; ++i)
 				{
 					reloadedMesh->GetMesh()->SetMaterialAsset(i, oldMesh->GetMesh()->GetMaterialAsset(i));
+				}
+
+				// Restore virtual bones
+				{
+					auto& dstRoot = reloadedMesh->GetMesh()->GetSkeletalMeshInfo().RootBone;
+					const auto& root = oldMesh->GetMesh()->GetSkeletalMeshInfo().RootBone;
+					Utils::RestoreVirtualBones(root, dstRoot);
 				}
 				PhysXCookingFactory::DeleteCached(oldMesh);
 			}
