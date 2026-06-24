@@ -311,10 +311,9 @@ namespace Eagle
 		m_ObstacleID = navMesh->AddBoxObstacle(WorldTransform.Location, halfExtents, yRotation);
 	}
 
-	void BoxColliderComponent::SetShowCollision(bool bShowCollision)
+	void BoxColliderComponent::UpdateShowCollisionState()
 	{
-		this->bShowCollision = bShowCollision;
-		m_Shape->SetShowCollision(bShowCollision);
+		m_Shape->SetShowCollision(bShowCollision || Parent.GetScene()->IsForcingShowCollision());
 	}
 	
 	void BoxColliderComponent::OnInit()
@@ -433,10 +432,9 @@ namespace Eagle
 		m_ObstacleID = navMesh->AddCylinderObstacle(WorldTransform.Location - glm::vec3(0.f, radius, 0.f), radius, height);
 	}
 
-	void SphereColliderComponent::SetShowCollision(bool bShowCollision)
+	void SphereColliderComponent::UpdateShowCollisionState()
 	{
-		this->bShowCollision = bShowCollision;
-		m_Shape->SetShowCollision(bShowCollision);
+		m_Shape->SetShowCollision(bShowCollision || Parent.GetScene()->IsForcingShowCollision());
 	}
 
 	void SphereColliderComponent::SetCollisionGroup(CollisionGroup group)
@@ -516,10 +514,9 @@ namespace Eagle
 		m_Shape->SetPhysicsMaterial(m_MaterialAsset);
 	}
 
-	void CapsuleColliderComponent::SetShowCollision(bool bShowCollision)
+	void CapsuleColliderComponent::UpdateShowCollisionState()
 	{
-		this->bShowCollision = bShowCollision;
-		m_Shape->SetShowCollision(bShowCollision);
+		m_Shape->SetShowCollision(bShowCollision || Parent.GetScene()->IsForcingShowCollision());
 	}
 
 	void CapsuleColliderComponent::SetCollisionGroup(CollisionGroup group)
@@ -663,11 +660,11 @@ namespace Eagle
 		EG_CORE_ERROR("MeshColliderComponent can't be an obstacle!");
 	}
 
-	void MeshColliderComponent::SetShowCollision(bool bShowCollision)
+	void MeshColliderComponent::UpdateShowCollisionState()
 	{
 		this->bShowCollision = bShowCollision;
 		if (m_Shapes[0]) // No need to enable it for the backside
-			m_Shapes[0]->SetShowCollision(bShowCollision);
+			m_Shapes[0]->SetShowCollision(bShowCollision || Parent.GetScene()->IsForcingShowCollision());
 	}
 
 	void MeshColliderComponent::SetCollisionGroup(CollisionGroup group)

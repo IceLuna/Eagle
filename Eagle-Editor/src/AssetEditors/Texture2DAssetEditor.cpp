@@ -59,7 +59,7 @@ namespace Eagle
 			bool bChanged = false;
 
 			const glm::ivec2 baseTextureSize = textureToView->GetSize();
-			const glm::ivec2 mipTextureSize = baseTextureSize >> m_SelectedMip;
+			const glm::ivec2 mipTextureSize = glm::max(glm::ivec2(1), baseTextureSize >> m_SelectedMip);
 			const std::string baseSizeString = std::to_string(baseTextureSize.x) + "x" + std::to_string(baseTextureSize.y);
 			const std::string mipSizeString = std::to_string(mipTextureSize.x) + "x" + std::to_string(mipTextureSize.y);
 

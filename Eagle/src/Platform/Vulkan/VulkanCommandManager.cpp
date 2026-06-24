@@ -1111,7 +1111,7 @@ namespace Eagle
 		TransitionLayout(image, initialLayout, ImageLayoutType::CopyDest);
 		for (uint32_t i = 1; i < mipCount; ++i)
 		{
-			glm::uvec2 mipSize = baseMipSize >> i;
+			glm::uvec2 mipSize = glm::max(glm::uvec2(1), baseMipSize >> i);
 
 			const auto& data = dataPerMip[i];
 			Ref<StagingBuffer> stagingBuffer = StagingManager::AcquireBuffer(data.Size(), false);

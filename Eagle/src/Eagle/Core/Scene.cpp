@@ -630,6 +630,7 @@ namespace Eagle
 		ConnectSignals();
 		SetupOnAppAssemblyReloadedCallback();
 		m_DirtyFlags.SetEverythingDirty(true);
+		SetForceShowCollision(other->IsForcingShowCollision());
 	}
 
 	Scene::~Scene()
@@ -787,6 +788,54 @@ namespace Eagle
 		};
 
 		Application::Get().CallNextFrame(func);
+	}
+
+	void Scene::SetForceShowCollision(bool bForce)
+	{
+		if (bForceShowCollision == bForce)
+			return;
+
+		bForceShowCollision = bForce;
+
+		// Box
+		{
+			auto view = m_Registry.view<BoxColliderComponent>();
+			for (auto entity : view)
+			{
+				auto& component = view.get<BoxColliderComponent>(entity);
+				component.UpdateShowCollisionState();
+			}
+		}
+
+		// Sphere
+		{
+			auto view = m_Registry.view<SphereColliderComponent>();
+			for (auto entity : view)
+			{
+				auto& component = view.get<SphereColliderComponent>(entity);
+				component.UpdateShowCollisionState();
+			}
+		}
+
+		// Capsule
+		{
+			auto view = m_Registry.view<CapsuleColliderComponent>();
+			for (auto entity : view)
+			{
+				auto& component = view.get<CapsuleColliderComponent>(entity);
+				component.UpdateShowCollisionState();
+			}
+		}
+
+		// Mesh
+		{
+			auto view = m_Registry.view<MeshColliderComponent>();
+			for (auto entity : view)
+			{
+				auto& component = view.get<MeshColliderComponent>(entity);
+				component.UpdateShowCollisionState();
+			}
+		}
 	}
 
 	void Scene::SetSkybox(const Ref<AssetTextureCube>& cubemap)

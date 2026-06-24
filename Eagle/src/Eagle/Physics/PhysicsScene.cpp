@@ -192,6 +192,24 @@ namespace Eagle
         return OverlapScene_Unique(geometry, PhysXUtils::ToPhysXTranform(transform), queryType, collisionGroup, entitiesToIgnore);
     }
 
+    UniqueQueryHits PhysicsScene::SweepBox(const Transform& transform, const glm::vec3& boxHalfSize, const glm::vec3& direction, float distance, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore) const
+    {
+        physx::PxBoxGeometry geometry(boxHalfSize.x, boxHalfSize.y, boxHalfSize.z);
+        return SweepScene_Unique(geometry, transform, direction, distance, queryType, collisionGroup, entitiesToIgnore);
+    }
+
+    UniqueQueryHits PhysicsScene::SweepCapsule(const Transform& transform, float radius, float halfHeight, const glm::vec3& direction, float distance, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore) const
+    {
+        physx::PxCapsuleGeometry geometry(radius, halfHeight);
+        return SweepScene_Unique(geometry, transform, direction, distance, queryType, collisionGroup, entitiesToIgnore);
+    }
+
+    UniqueQueryHits PhysicsScene::SweepSphere(const Transform& transform, float radius, const glm::vec3& direction, float distance, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore) const
+    {
+        physx::PxSphereGeometry geometry(radius);
+        return SweepScene_Unique(geometry, transform, direction, distance, queryType, collisionGroup, entitiesToIgnore);
+    }
+
     void PhysicsScene::CreateRegions()
     {
         const PhysicsSettings& settings = m_Settings;
@@ -359,6 +377,20 @@ namespace Eagle
         PhysXQueryFilterCallback filterCallback(physx::PxQueryHitType::eTOUCH, collisionGroup, entitiesToIgnore);
         const physx::PxQueryFilterData queryData = PhysXUtils::GetPxQueryFilterData(queryType);
         m_Scene->overlap(geometry, pose, callback, queryData, &filterCallback);
+
+        return m_UniqueQueryHits;
+    }
+
+    UniqueQueryHits PhysicsScene::SweepScene_Unique(const physx::PxGeometry& geometry, const Transform& transform, const glm::vec3& direction, float distance, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore) const
+    {
+        m_UniqueQueryHits.clear();
+        UniqueUnboundedSweep callback(m_UniqueQueryHits);
+        PhysXQueryFilterCallback filterCallback(physx::PxQueryHitType::eTOUCH, collisionGroup, entitiesToIgnore);
+        const physx::PxQueryFilterData queryData = PhysXUtils::GetPxQueryFilterData(queryType);
+
+        physx::PxTransform pose = PhysXUtils::ToPhysXTranform(transform);
+        physx::PxVec3 pxDir = PhysXUtils::ToPhysXVector(direction);
+        m_Scene->sweep(geometry, pose, pxDir, distance, callback, physx::PxHitFlag::eDEFAULT, queryData, &filterCallback);
 
         return m_UniqueQueryHits;
     }

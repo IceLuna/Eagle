@@ -654,6 +654,9 @@ namespace Eagle::Script
 	MonoArray* Eagle_Scene_OverlapBox(const Transform* transform, const glm::vec3* boxHalfSize, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore);
 	MonoArray* Eagle_Scene_OverlapCapsule(const Transform* transform, float radius, float halfHeight, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore);
 	MonoArray* Eagle_Scene_OverlapSphere(const Transform* transform, float radius, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore);
+	MonoArray* Eagle_Scene_SweepBox(const Transform* transform, const glm::vec3* boxHalfSize, const glm::vec3* direction, float distance, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* entitiesToIgnore);
+	MonoArray* Eagle_Scene_SweepCapsule(const Transform* transform, float radius, float halfHeight, const glm::vec3* direction, float distance, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* entitiesToIgnore);
+	MonoArray* Eagle_Scene_SweepSphere(const Transform* transform, float radius, const glm::vec3* direction, float distance, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* entitiesToIgnore);
 	void Eagle_Scene_SetGravity(const glm::vec3* gravity);
 	void Eagle_Scene_GetGravity(glm::vec3* gravity);
 	MonoArray* Eagle_Scene_GetAllEntitiesWithComponent(void* type);

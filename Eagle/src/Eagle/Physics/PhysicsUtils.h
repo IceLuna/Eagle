@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PhysicsEngine.h"
+#include "PhysicsActorBase.h"
 #include "Eagle/Core/Entity.h"
 #include "Eagle/Math/Transform.h"
 
@@ -25,6 +26,7 @@ namespace Eagle
 	{
 		// The Entity of the body that was hit.
 		Entity HitEntity;
+		float Distance = 0; // Valid for sweeps
 
 		// The shape on the body that was hit.
 		ColliderShape* Shape = nullptr;
@@ -37,37 +39,90 @@ namespace Eagle
 		{
 			return HitEntity < other.HitEntity;
 		}
+
+		static SceneQueryHit GetHitFromPxOverlapHit(const physx::PxOverlapHit& pxHit)
+		{
+			SceneQueryHit hit;
+			if (pxHit.actor && pxHit.actor->userData)
+			{
+				if (pxHit.actor->userData)
+				{
+					const PhysicsActorBase* actor = (PhysicsActorBase*)pxHit.actor->userData;
+					hit.HitEntity = actor->GetEntity();
+					hit.Body = actor->GetPhysXActor();
+				}
+
+				if (pxHit.shape != nullptr)
+				{
+					hit.Shape = (ColliderShape*)pxHit.shape->userData;
+				}
+			}
+			return hit;
+		}
+
+		static SceneQueryHit GetHitFromPxOverlapHit(const physx::PxSweepHit& pxHit)
+		{
+			SceneQueryHit hit;
+			if (pxHit.actor && pxHit.actor->userData)
+			{
+				hit.Distance = pxHit.distance;
+				if (pxHit.actor->userData)
+				{
+					const PhysicsActorBase* actor = (PhysicsActorBase*)pxHit.actor->userData;
+					hit.HitEntity = actor->GetEntity();
+					hit.Body = actor->GetPhysXActor();
+				}
+
+				if (pxHit.shape != nullptr)
+				{
+					hit.Shape = (ColliderShape*)pxHit.shape->userData;
+				}
+			}
+			return hit;
+		}
 	};
 	using QueryHits = std::vector<SceneQueryHit>;
 	using UniqueQueryHits = std::set<SceneQueryHit>;
 
 	// Callback used to process unbounded overlap scene queries.
-	struct UnboundedOverlap : public physx::PxHitCallback<physx::PxOverlapHit>
+	template <typename T, typename QueryHitsT>
+	struct UnboundedHitCallback : public physx::PxHitCallback<T>
 	{
-		UnboundedOverlap(QueryHits& hits);
+		UnboundedHitCallback(QueryHitsT& hits)
+			: m_Results(hits), physx::PxHitCallback<T>(&m_Hit, 1) {}
 		
 		// physx::PxHitCallback<physx::PxOverlapHit> ...
-		physx::PxAgain processTouches(const physx::PxOverlapHit* buffer, physx::PxU32 numHits) override;
+		physx::PxAgain processTouches(const T* buffer, physx::PxU32 numHits) override
+		{
+			for (auto it = buffer; it != buffer + numHits; ++it)
+			{
+				const SceneQueryHit hit = SceneQueryHit::GetHitFromPxOverlapHit(*it);
+				if (hit.IsValid())
+				{
+					if constexpr (std::is_same_v<QueryHitsT, QueryHits>)
+					{
+						m_Results.emplace_back(hit);
+					}
+					else
+					{
+						m_Results.emplace(hit);
+					}
+				}
+			}
+			return true;
+		}
 
-		QueryHits& m_Results;
+		QueryHitsT& m_Results;
 
 	private:
-		physx::PxOverlapHit m_Hit{};
+		T m_Hit{};
 	};
 
-	// Callback used to process unbounded overlap scene queries.
-	struct UniqueUnboundedOverlap : public physx::PxHitCallback<physx::PxOverlapHit>
-	{
-		UniqueUnboundedOverlap(UniqueQueryHits& hits);
-		
-		// physx::PxHitCallback<physx::PxOverlapHit> ...
-		physx::PxAgain processTouches(const physx::PxOverlapHit* buffer, physx::PxU32 numHits) override;
+	using UnboundedOverlap = UnboundedHitCallback<physx::PxOverlapHit, QueryHits>;
+	using UniqueUnboundedOverlap = UnboundedHitCallback<physx::PxOverlapHit, UniqueQueryHits>;
 
-		UniqueQueryHits& m_Results;
-
-	private:
-		physx::PxOverlapHit m_Hit{};
-	};
+	using UnboundedSweep = UnboundedHitCallback<physx::PxSweepHit, QueryHits>;
+	using UniqueUnboundedSweep = UnboundedHitCallback<physx::PxSweepHit, UniqueQueryHits>;
 
 	// Helper class, responsible for filtering invalid collision candidates prior to more expensive narrow phase checks
 	class PhysXQueryFilterCallback : public physx::PxQueryFilterCallback

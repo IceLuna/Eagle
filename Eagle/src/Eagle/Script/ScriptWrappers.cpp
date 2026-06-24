@@ -8045,6 +8045,105 @@ namespace Eagle
 		return result;
 	}
 
+	MonoArray* Script::Eagle_Scene_SweepBox(const Transform* transform, const glm::vec3* boxHalfSize, const glm::vec3* direction, float distance, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& physicsScene = scene->GetPhysicsScene();
+
+		UniqueQueryHits hits;
+		if (monoEntitiesToIgnore)
+		{
+			std::set<GUID> entitiesToIgnore;
+			const uint32_t length = (uint32_t)mono_array_length(monoEntitiesToIgnore);
+			for (uint32_t i = 0; i < length; ++i)
+			{
+				GUID entityGUID = mono_array_get(monoEntitiesToIgnore, GUID, i);
+				entitiesToIgnore.emplace(entityGUID);
+			}
+			hits = physicsScene->SweepBox(*transform, *boxHalfSize, *direction, distance, query, collisionGroup, &entitiesToIgnore);
+		}
+		else
+		{
+			hits = physicsScene->SweepBox(*transform, *boxHalfSize, *direction, distance, query, collisionGroup);
+		}
+
+		MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetEntityClass(), hits.size());
+		size_t index = 0;
+		for (auto& hit : hits)
+		{
+			MonoObject* obj = ScriptEngine::GetEntityMonoObject(hit.HitEntity);
+			mono_array_set(result, MonoObject*, index++, obj);
+		}
+
+		return result;
+	}
+
+	MonoArray* Script::Eagle_Scene_SweepCapsule(const Transform* transform, float radius, float halfHeight, const glm::vec3* direction, float distance, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& physicsScene = scene->GetPhysicsScene();
+
+		UniqueQueryHits hits;
+		if (monoEntitiesToIgnore)
+		{
+			std::set<GUID> entitiesToIgnore;
+			const uint32_t length = (uint32_t)mono_array_length(monoEntitiesToIgnore);
+			for (uint32_t i = 0; i < length; ++i)
+			{
+				GUID entityGUID = mono_array_get(monoEntitiesToIgnore, GUID, i);
+				entitiesToIgnore.emplace(entityGUID);
+			}
+			hits = physicsScene->SweepCapsule(*transform, radius, halfHeight, *direction, distance, query, collisionGroup, &entitiesToIgnore);
+		}
+		else
+		{
+			hits = physicsScene->SweepCapsule(*transform, radius, halfHeight, *direction, distance, query, collisionGroup);
+		}
+
+		MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetEntityClass(), hits.size());
+		size_t index = 0;
+		for (auto& hit : hits)
+		{
+			MonoObject* obj = ScriptEngine::GetEntityMonoObject(hit.HitEntity);
+			mono_array_set(result, MonoObject*, index++, obj);
+		}
+
+		return result;
+	}
+
+	MonoArray* Script::Eagle_Scene_SweepSphere(const Transform* transform, float radius, const glm::vec3* direction, float distance, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& physicsScene = scene->GetPhysicsScene();
+
+		UniqueQueryHits hits;
+		if (monoEntitiesToIgnore)
+		{
+			std::set<GUID> entitiesToIgnore;
+			const uint32_t length = (uint32_t)mono_array_length(monoEntitiesToIgnore);
+			for (uint32_t i = 0; i < length; ++i)
+			{
+				GUID entityGUID = mono_array_get(monoEntitiesToIgnore, GUID, i);
+				entitiesToIgnore.emplace(entityGUID);
+			}
+			hits = physicsScene->SweepSphere(*transform, radius, *direction, distance, query, collisionGroup, &entitiesToIgnore);
+		}
+		else
+		{
+			hits = physicsScene->SweepSphere(*transform, radius, *direction, distance, query, collisionGroup);
+		}
+
+		MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetEntityClass(), hits.size());
+		size_t index = 0;
+		for (auto& hit : hits)
+		{
+			MonoObject* obj = ScriptEngine::GetEntityMonoObject(hit.HitEntity);
+			mono_array_set(result, MonoObject*, index++, obj);
+		}
+
+		return result;
+	}
+
 	void Script::Eagle_Scene_SetGravity(const glm::vec3* gravity)
 	{
 		Scene::GetCurrentScene()->SetGravity(*gravity);

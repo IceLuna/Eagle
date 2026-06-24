@@ -113,6 +113,7 @@ namespace Eagle
 			GatherSearchingEntities(view, m_Search, m_AllowedForDisplayEntities);
 		}
 
+		ImGui::BeginChild("SceneHierarchyScrollingRegion", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar);
 		for (auto& entity : view)
 		{
 			bChanged |= DrawEntityNode(Entity(entity, m_Scene), !m_Search.empty());
@@ -140,6 +141,7 @@ namespace Eagle
 			ImGui::EndPopup();
 		}
 
+		ImGui::EndChild();
 		ImGui::End(); //Scene Hierarchy
 
 		return bChanged;

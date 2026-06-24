@@ -41,6 +41,24 @@ namespace Eagle
             return OverlapSphere_Native(ref transform, radius, query, collisionGroup, entityGUIDsToIgnore);
         }
 
+        public static Entity[] SweepBox(Transform transform, Vector3 boxHalfSize, Vector3 direction, float distance, PhysicsQueryType query = PhysicsQueryType.Default, CollisionGroup collisionGroup = CollisionGroup.Any, Entity[] entitiesToIgnore = null)
+        {
+            GUID[] entityGUIDsToIgnore = GetEntityGUIDs(entitiesToIgnore);
+            return SweepBox_Native(ref transform, ref boxHalfSize, ref direction, distance, query, collisionGroup, entityGUIDsToIgnore);
+        }
+
+        public static Entity[] SweepCapsule(Transform transform, float radius, float halfHeight, Vector3 direction, float distance, PhysicsQueryType query = PhysicsQueryType.Default, CollisionGroup collisionGroup = CollisionGroup.Any, Entity[] entitiesToIgnore = null)
+        {
+            GUID[] entityGUIDsToIgnore = GetEntityGUIDs(entitiesToIgnore);
+            return SweepCapsule_Native(ref transform, radius, halfHeight, ref direction, distance, query, collisionGroup, entityGUIDsToIgnore);
+        }
+
+        public static Entity[] SweepSphere(Transform transform, float radius, Vector3 direction, float distance, PhysicsQueryType query = PhysicsQueryType.Default, CollisionGroup collisionGroup = CollisionGroup.Any, Entity[] entitiesToIgnore = null)
+        {
+            GUID[] entityGUIDsToIgnore = GetEntityGUIDs(entitiesToIgnore);
+            return SweepSphere_Native(ref transform, radius, ref direction, distance, query, collisionGroup, entityGUIDsToIgnore);
+        }
+
         public static void SetGravity(Vector3 gravity)
         {
             SetGravity_Native(ref gravity);
@@ -109,6 +127,15 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern Entity[] OverlapSphere_Native(ref Transform transform, float radius, PhysicsQueryType query, CollisionGroup collisionGroup, GUID[] entitiesToIgnore);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern Entity[] SweepBox_Native(ref Transform transform, ref Vector3 boxHalfSize, ref Vector3 direction, float distance, PhysicsQueryType query, CollisionGroup collisionGroup, GUID[] entitiesToIgnore);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern Entity[] SweepCapsule_Native(ref Transform transform, float radius, float halfHeight, ref Vector3 direction, float distance, PhysicsQueryType query, CollisionGroup collisionGroup, GUID[] entitiesToIgnore);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern Entity[] SweepSphere_Native(ref Transform transform, float radius, ref Vector3 direction, float distance, PhysicsQueryType query, CollisionGroup collisionGroup, GUID[] entitiesToIgnore);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetGravity_Native(ref Vector3 gravity);

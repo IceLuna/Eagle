@@ -786,6 +786,9 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Scene::OverlapBox_Native", Eagle::Script::Eagle_Scene_OverlapBox);
 		mono_add_internal_call("Eagle.Scene::OverlapCapsule_Native", Eagle::Script::Eagle_Scene_OverlapCapsule);
 		mono_add_internal_call("Eagle.Scene::OverlapSphere_Native", Eagle::Script::Eagle_Scene_OverlapSphere);
+		mono_add_internal_call("Eagle.Scene::SweepBox_Native", Eagle::Script::Eagle_Scene_SweepBox);
+		mono_add_internal_call("Eagle.Scene::SweepCapsule_Native", Eagle::Script::Eagle_Scene_SweepCapsule);
+		mono_add_internal_call("Eagle.Scene::SweepSphere_Native", Eagle::Script::Eagle_Scene_SweepSphere);
 		mono_add_internal_call("Eagle.Scene::SetGravity_Native", Eagle::Script::Eagle_Scene_SetGravity);
 		mono_add_internal_call("Eagle.Scene::GetGravity_Native", Eagle::Script::Eagle_Scene_GetGravity);
 		mono_add_internal_call("Eagle.Scene::GetAllEntitiesWithComponent_Native", Eagle::Script::Eagle_Scene_GetAllEntitiesWithComponent);

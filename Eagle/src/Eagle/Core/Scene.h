@@ -230,6 +230,9 @@ namespace Eagle
 			return m_Registry.storage<entt::entity>()->size();
 		}
 
+		bool IsForcingShowCollision() const { return bForceShowCollision; }
+		void SetForceShowCollision(bool bForce);
+
 		// Skybox
 		void SetSkybox(const Ref<AssetTextureCube>& cubemap);
 		const Ref<AssetTextureCube>& GetSkybox() const { return m_Cubemap; }
@@ -641,6 +644,9 @@ namespace Eagle
 		// So here's the fix: if scripts invalidated skeletal meshes data, we just ignore it for the current frame, and force it to be updated on the next one.
 		// This way we keep animation data and skeletal data in sync.
 		bool bForceSkeletalMeshUpdateNextFrame = false;
+
+		// Can be used to force collision visualization
+		bool bForceShowCollision = false;
 
 		// Debug data
 		std::vector<RendererLine> m_UserDebugLines;

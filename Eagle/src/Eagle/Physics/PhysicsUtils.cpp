@@ -454,56 +454,6 @@ namespace Eagle
 			}
 		}
 	}
-
-	static SceneQueryHit GetHitFromPxOverlapHit(const physx::PxOverlapHit& pxHit)
-	{
-		SceneQueryHit hit;
-		if (pxHit.actor && pxHit.actor->userData)
-		{
-			if (pxHit.actor->userData)
-			{
-				const PhysicsActorBase* actor = (PhysicsActorBase*)pxHit.actor->userData;
-				hit.HitEntity = actor->GetEntity();
-				hit.Body = actor->GetPhysXActor();
-			}
-
-			if (pxHit.shape != nullptr)
-			{
-				hit.Shape = (ColliderShape*)pxHit.shape->userData;
-			}
-		}
-		return hit;
-	}
-
-	UnboundedOverlap::UnboundedOverlap(QueryHits& hits)
-		: m_Results(hits), physx::PxHitCallback<physx::PxOverlapHit>(&m_Hit, 1)
-	{}
-	
-	physx::PxAgain UnboundedOverlap::processTouches(const physx::PxOverlapHit* buffer, physx::PxU32 numHits)
-	{
-		for (auto it = buffer; it != buffer + numHits; ++it)
-		{
-			const SceneQueryHit hit = GetHitFromPxOverlapHit(*it);
-			if (hit.IsValid())
-				m_Results.emplace_back(hit);
-		}
-		return true;
-	}
-
-	UniqueUnboundedOverlap::UniqueUnboundedOverlap(UniqueQueryHits& hits)
-		: m_Results(hits), physx::PxHitCallback<physx::PxOverlapHit>(&m_Hit, 1)
-	{}
-
-	physx::PxAgain UniqueUnboundedOverlap::processTouches(const physx::PxOverlapHit* buffer, physx::PxU32 numHits)
-	{
-		for (auto it = buffer; it != buffer + numHits; ++it)
-		{
-			const SceneQueryHit hit = GetHitFromPxOverlapHit(*it);
-			if (hit.IsValid())
-				m_Results.emplace(hit);
-		}
-		return true;
-	}
 	
 	physx::PxQueryHitType::Enum PhysXQueryFilterCallback::preFilter(const physx::PxFilterData& queryFilterData, const physx::PxShape* pxShape, const physx::PxRigidActor* actor, physx::PxHitFlags& queryTypes)
 	{

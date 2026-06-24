@@ -51,6 +51,9 @@ namespace Eagle
 		UniqueQueryHits OverlapBox(const Transform& transform, const glm::vec3& boxHalfSize, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore = nullptr) const;
 		UniqueQueryHits OverlapCapsule(const Transform& transform, float radius, float halfHeight, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore = nullptr) const;
 		UniqueQueryHits OverlapSphere(const Transform& transform, float radius, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore = nullptr) const;
+		UniqueQueryHits SweepBox(const Transform& transform, const glm::vec3& boxHalfSize, const glm::vec3& direction, float distance, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore = nullptr) const;
+		UniqueQueryHits SweepCapsule(const Transform& transform, float radius, float halfHeight, const glm::vec3& direction, float distance, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore = nullptr) const;
+		UniqueQueryHits SweepSphere(const Transform& transform, float radius, const glm::vec3& direction, float distance, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore = nullptr) const;
 
 		bool IsValid() const { return m_Scene != nullptr; }
 
@@ -81,6 +84,9 @@ namespace Eagle
 		QueryHits OverlapScene(const physx::PxGeometry& geometry, const physx::PxTransform& pose, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore = nullptr) const;
 		// Result doesn't contain the same entity per each collider
 		UniqueQueryHits OverlapScene_Unique(const physx::PxGeometry& geometry, const physx::PxTransform& pose, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore = nullptr) const;
+
+		// Result doesn't contain the same entity per each collider
+		UniqueQueryHits SweepScene_Unique(const physx::PxGeometry& geometry, const Transform& transform, const glm::vec3& dir, float distance, PhysicsQueryType queryType, CollisionGroup collisionGroup, const std::set<GUID>* entitiesToIgnore = nullptr) const;
 
 	private:
 		PhysicsSettings m_Settings;

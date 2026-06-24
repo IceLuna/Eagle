@@ -91,7 +91,7 @@ namespace Eagle
 
 	// Internal component. It's used to indicate that an entity was created from AssetEntity.
 	// So each entity, that was created from an asset, has this component.
-	// It's used to get update entities when an asset changes.
+	// It's used to get updated entities when an asset changes.
 	class EntityAssetComponent
 	{
 	public:
@@ -1274,8 +1274,13 @@ namespace Eagle
 		virtual void SetWorldTransform(const Transform& worldTransform) override;
 		virtual void SetRelativeTransform(const Transform& relativeTransform) override;
 
+		virtual void UpdateShowCollisionState() = 0;
 		bool IsCollisionVisible() const { return bShowCollision; }
-		virtual void SetShowCollision(bool bShowCollision) = 0;
+		void SetShowCollision(bool bShowCollision)
+		{
+			this->bShowCollision = bShowCollision;
+			UpdateShowCollisionState();
+		}
 
 		bool IsCollisionEnabled() const { return bCollisionEnabled; }
 		virtual void SetCollisionEnabled(bool bEnabled) = 0;
@@ -1329,8 +1334,8 @@ namespace Eagle
 
 		void OnInit();
 
+		void UpdateShowCollisionState() override;
 		void SetIsTrigger(bool bTrigger) override;
-		void SetShowCollision(bool bShowCollision) override;
 		void OnRemoved() override;
 		void SetCollisionGroup(CollisionGroup groups) override;
 		void SetInteractingCollisionGroup(CollisionGroup groups) override;
@@ -1365,8 +1370,8 @@ namespace Eagle
 		void SetRadius(float radius);
 		float GetRadius() const { return m_Radius; }
 
+		void UpdateShowCollisionState() override;
 		void SetIsTrigger(bool bTrigger) override;
-		void SetShowCollision(bool bShowCollision) override;
 		void SetCollisionGroup(CollisionGroup groups) override;
 		void SetInteractingCollisionGroup(CollisionGroup groups) override;
 		void SetCollisionEnabled(bool bEnabled) override;
@@ -1396,8 +1401,8 @@ namespace Eagle
 
 		void OnInit();
 
+		void UpdateShowCollisionState() override;
 		void SetIsTrigger(bool bTrigger) override;
-		void SetShowCollision(bool bShowCollision) override;
 		void SetCollisionGroup(CollisionGroup groups) override;
 		void SetInteractingCollisionGroup(CollisionGroup groups) override;
 		void SetCollisionEnabled(bool bEnabled) override;
@@ -1443,8 +1448,8 @@ namespace Eagle
 
 		void OnInit();
 
+		void UpdateShowCollisionState() override;
 		void SetIsTrigger(bool bTrigger) override;
-		void SetShowCollision(bool bShowCollision) override;
 		void SetCollisionGroup(CollisionGroup groups) override;
 		void SetInteractingCollisionGroup(CollisionGroup groups) override;
 		void SetCollisionEnabled(bool bEnabled) override;

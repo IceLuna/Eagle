@@ -2513,6 +2513,7 @@ namespace Eagle
 		{
 			auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
 			SceneRendererSettings options = sceneRenderer->GetOptions();
+			bool bForceShowCollision = m_CurrentScene->IsForcingShowCollision();
 
 			UI::BeginPropertyGrid("EditorPreferences");
 
@@ -2528,6 +2529,8 @@ namespace Eagle
 			UI::Property("Draw Axis Guizmo", bDrawAxisGuizmo);
 			UI::Property("Eco Rendering", bRenderOnlyWhenFocused, "If checked, the scene won't be rendered if the window is not in focus");
 			UI::Property("Update Animations", bUpdateAnimationsInEditor, "If checked, animations will be updated in the editor mode");
+			if (UI::Property("Draw All Colliders", bForceShowCollision))
+				m_CurrentScene->SetForceShowCollision(bForceShowCollision);
 			UI::Property("Draw Editor Miscellaneous", m_bDrawEditorMisc);
 			UI::Property("Draw Nav Mesh", bDrawNavMesh);
 			UI::Property("Draw AABBs of Meshes", bDrawMeshAABBs);
