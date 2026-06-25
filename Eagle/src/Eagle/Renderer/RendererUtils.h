@@ -808,6 +808,7 @@ namespace Eagle
         float CascadesSmoothTransitionAlpha = 3.5f / 100.f;
         bool bJitter = false;
         bool bMotionBuffer = false;
+        bool bGenerateHZB = false;
     };
 
     struct SkySettings

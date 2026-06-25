@@ -61,6 +61,8 @@ namespace Eagle
 		Ref<Image> ObjectIDCopy;
 		Ref<Image> Depth;
 		Ref<Image> Motion;
+		Ref<Image> HZB;
+		Ref<Sampler> HZBSampler;
 
 		void Init(const glm::uvec3& size);
 		void InitOptional(const SceneRendererInternalState& optional, const glm::uvec3& size);
@@ -329,6 +331,7 @@ namespace Eagle
 		Ref<FrustumCullingTask> m_FrustumCullingTask;
 		Ref<LightCullingTask> m_LightCullingTask;
 		Ref<ScreenSpaceShadowsTask> m_ScreenSpaceShadows;
+		Ref<RendererTask> m_HZBTask;
 		
 		Ref<Buffer> m_CameraDataBuffer;
 		

@@ -21,6 +21,7 @@
 #include "Tasks/MotionBlurTask.h"
 #include "Tasks/ScreenSpaceReflectionsTask.h"
 #include "Tasks/ParticleSystemTask.h"
+#include "Tasks/HZBTask.h"
 
 #include "Eagle/Debug/CPUTimings.h" 
 #include "Eagle/Debug/GPUTimings.h"
@@ -108,6 +109,7 @@ namespace Eagle
 		InitOptionalTask<FogPassTask>(m_FogTask, options, options.FogSettings.bEnable, *this);
 		InitOptionalTask<MotionBlurTask>(m_MotionBlurTask, options, options.MotionBlur.bEnable, *this);
 		InitOptionalTask<ScreenSpaceReflectionsTask>(m_ScreenSpaceReflectionsTask, options, options.ScreenSpaceReflections.bEnable, *this);
+		InitOptionalTask<HZBTask>(m_HZBTask, options, m_Options.InternalState.bGenerateHZB, *this);
 
 		InitWithOptions();
 	}
@@ -138,6 +140,17 @@ namespace Eagle
 			{
 				renderer->m_Options_RT = options;
 				renderer->InitWithOptions();
+			}
+			if (renderer->m_Options_RT.InternalState.bGenerateHZB)
+			{
+				if (!renderer->m_HZBTask)
+				{
+					renderer->m_HZBTask = MakeRef<HZBTask>(*renderer.get());
+				}
+			}
+			else
+			{
+				renderer->m_HZBTask.reset();
 			}
 			renderer->m_Options_RT.InternalState.CascadesSmoothTransitionAlpha = cascadesSmoothTransitionAlpha;
 
@@ -214,6 +227,8 @@ namespace Eagle
 			renderer->m_RenderSkeletalMeshesTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderLitTextTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderDecalsTask->RecordCommandBuffer(cmd);
+			if (renderer->m_HZBTask)
+				renderer->m_HZBTask->RecordCommandBuffer(cmd);
 
 			renderer->m_LightCullingTask->RecordCommandBuffer(cmd);
 			renderer->m_ShadowPassTask->RecordCommandBuffer(cmd);
@@ -460,6 +475,9 @@ namespace Eagle
 		if (m_ScreenSpaceReflectionsTask)
 			m_ScreenSpaceReflectionsTask->OnResize(m_Size);
 
+		if (m_HZBTask)
+			m_HZBTask->OnResize(m_Size);
+
 		RenderManager::SetImmediateDeletionMode(false);
 		RenderManager::ReleasePendingResources();
 		StagingManager::ReleaseBuffers();
@@ -541,6 +559,7 @@ namespace Eagle
 		InitOptionalTask<FogPassTask>(m_FogTask, options, options.FogSettings.bEnable, *this);
 		InitOptionalTask<MotionBlurTask>(m_MotionBlurTask, options, options.MotionBlur.bEnable, *this);
 		InitOptionalTask<ScreenSpaceReflectionsTask>(m_ScreenSpaceReflectionsTask, options, options.ScreenSpaceReflections.bEnable, *this);
+		InitOptionalTask<HZBTask>(m_HZBTask, options, options.InternalState.bGenerateHZB, *this);
 	}
 
 	void GBuffer::Init(const glm::uvec3& size)
@@ -620,6 +639,28 @@ namespace Eagle
 		{
 			Motion.reset();
 		}
+
+		if (optional.bGenerateHZB)
+		{
+			if (!HZB)
+			{
+				ImageSpecifications specs{};
+				specs.Format = ImageFormat::R32_Float;
+				specs.Size = size;
+				specs.MipsCount = UINT_MAX;
+				specs.Usage = ImageUsage::Storage | ImageUsage::Sampled | ImageUsage::TransferSrc | ImageUsage::TransferDst;
+				specs.Layout = ImageLayoutType::StorageImage;
+				HZB = Image::Create(specs, "HZB");
+
+				const uint32_t mipsCount = HZB->GetMipsCount();
+				HZBSampler = Sampler::Create(FilterMode::Point, AddressMode::ClampToOpaqueBlack, CompareOperation::Never, 0.f, float(mipsCount - 1), 1.f);
+			}
+		}
+		else
+		{
+			HZB.reset();
+			HZBSampler.reset();
+		}
 	}
 	
 	void GBuffer::Resize(const glm::uvec3& size)
@@ -635,6 +676,13 @@ namespace Eagle
 		Flags->Resize(size);
 		if (Motion)
 			Motion->Resize(size);
+		if (HZB)
+		{
+			HZB->Resize(size);
+
+			const uint32_t mipsCount = HZB->GetMipsCount();
+			HZBSampler = Sampler::Create(FilterMode::Point, AddressMode::Clamp, CompareOperation::Never, 0.f, float(mipsCount - 1), 1.f);
+		}
 	}
 	
 	void GBuffer::Clear(const Ref<CommandBuffer>& cmd)
