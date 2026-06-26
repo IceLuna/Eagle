@@ -88,26 +88,10 @@ void main()
     }
 #endif
 
-    
-    float weights[4];
-    // Normalize bone weights
-    {
-        float weightsSum = 0;
-        for (uint i = 0; i < 4; ++i)
-        {
-            weights[i] = GetWeight(vertex, i);
-            weightsSum += weights[i];
-        }
-        for (uint i = 0; i < 4; ++i)
-        {
-            weights[i] /= weightsSum;
-        }
-    }
-
     mat4 boneTransform = mat4(0.f);
     for (uint i = 0; i < 4; ++i)
     {
-        const float weight = weights[i];
+        const float weight = GetWeight(vertex, i);
         if (weight > 0.f)
         {
             boneTransform += g_MeshAnimation[g_AnimIndex].Transforms[GetBoneID(vertex, i)] * weight;

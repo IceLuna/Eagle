@@ -41,7 +41,7 @@ layout(location = 0) in vec3 a_Position;
 layout(location = 1) in vec3 a_Normal;
 layout(location = 2) in vec3 a_Tangent;
 layout(location = 3) in vec2 a_TexCoords;
-layout(location = 4) in uvec2 a_Weights; // Each 16bit piece of data is a fp16 representing a weight
+layout(location = 4) in uvec2 a_Weights; // Each 16bit piece of data is a unorm16 representing a weight
 layout(location = 5) in uvec2 a_BoneIDs; // Each 16bit piece of data is a u16 representing a boneID
 
 layout(location = 6) in uvec4 a_PerInstanceData;
@@ -49,8 +49,10 @@ layout(location = 6) in uvec4 a_PerInstanceData;
 
 float GetWeight(uvec2 weights, uint idx)
 {
-	vec2 unpackedWeights = unpackHalf2x16(weights[1 - (idx / 2)]);
-	return unpackedWeights[1 - (idx % 2)];
+	uint unorm = weights[1 - (idx / 2)];
+	uint bitsIndex = (1 - (idx % 2)); // If 0, lower 16 bits, else - higher 16 bits
+	uint offset = (~(bitsIndex - 1u)) & 16; // If bitsIndex is 0, offset will be 0, otherwise - 16
+	return ((unorm >> offset) & 0xFFFF) * (1.0 / 65535.0);
 }
 
 uint GetBoneID(uvec2 boneIDs, uint idx)
