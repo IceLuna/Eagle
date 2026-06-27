@@ -90,7 +90,8 @@ namespace Eagle
 				ImGui::SameLine(contentRegionAvailable.x - textWidth);
 				if (ImGui::Button(addEventText, ImVec2{ textWidth + ImGui::GetStyle().FramePadding.y * 2.f, lineHeight }))
 				{
-					animation->Events.emplace_back();
+					auto& event = animation->Events.emplace_back();
+					event.Time = m_Component->CurrentClipPlayTime;
 					bChanged = true;
 				}
 

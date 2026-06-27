@@ -1101,6 +1101,32 @@ namespace Eagle
                         HandleNodeCreation(node, ImGui::GetMousePos(), nullptr);
                     }
                 }
+                else
+                {
+                    // Check whether the graph supports animation nodes
+                    if (m_NodeFactory.contains("Animations"))
+                    {
+                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(GetAssetDragDropCellTag(AssetType::Animation)))
+                        {
+                            const wchar_t* payload_n = (const wchar_t*)payload->Data;
+                            Path filepath(payload_n);
+
+                            Ref<Asset> asset;
+                            if (AssetManager::Get(filepath, &asset))
+                            {
+                                Ref<AssetAnimation> castedAsset = Cast<AssetAnimation>(asset);
+                                Node& node = GraphNodeFactory::SpawnAnimClipNode(*this, "Animation Clip");
+                                if (Ref<GraphVariableAnimation> defaultVal = Cast<GraphVariableAnimation>(node.InputPins[0].DefaultValue))
+                                {
+                                    defaultVal->Value = castedAsset;
+                                }
+
+                                m_CreateNewNode = false;
+                                HandleNodeCreation(node, ImGui::GetMousePos(), nullptr);
+                            }
+                        }
+                    }
+                }
             }
 
             ImGui::EndDragDropTarget();
