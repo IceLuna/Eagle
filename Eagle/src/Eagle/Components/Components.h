@@ -34,6 +34,7 @@ namespace Eagle
 	class MeshShape;
 	class PhysicsActor;
 	class PhysicsRagdollActor;
+	class PhysicsCharacterController;
 
 	class IDComponent
 	{
@@ -1260,6 +1261,106 @@ namespace Eagle
 		bool bKinematic = false;
 		
 		ActorLockFlag m_LockFlags = ActorLockFlag::None;
+	};
+
+	// Uses physics engine's controller to move the entity.
+	// The Character Controller (CCT) is a kinematic controller. Unlike a rigid body, you don't apply forces to it.
+	// Every frame you compute the desired displacement yourself (from WASD, gravity, jumping, etc.) and pass that displacement to `Move(...)` function.
+	// It then performs the collide-and-slide algorithm automatically
+	// Avoid mixing it with other colliders. The controller creates it internally.
+	class CharacterControllerComponent : public SceneComponent
+	{
+	public:
+		CharacterControllerComponent(const Entity& entity);
+		CharacterControllerComponent(const StaticMeshComponent&) = delete;
+		CharacterControllerComponent(CharacterControllerComponent&& other) = default;
+		CharacterControllerComponent& operator=(CharacterControllerComponent&& other) = default;
+
+		CharacterControllerComponent& operator=(const CharacterControllerComponent& other);
+
+		// Moves the character. To retrieve new position, use `GetWorldLocation()` or `GetFootWorldLocation()`
+		// @disp is the displacement vector for current frame. It is typically a combination of vertical motion due to gravity and lateral motion when your character is moving.
+		//		 Note that users are responsible for applying gravity to characters here.
+		// @minDist is a minimal length used to stop the recursive displacement algorithm early when remaining distance to travel goes below this limit.
+		// @elapsedTime is the amount of time that passed since the last call to the move function.
+		// @return Returns collision flags
+		CharacterControllerCollisionFlags Move(const glm::vec3& disp, float minDist, float elapsedTime);
+
+		void SetSlopeLimit(float degrees);
+		float GetSlopeLimit() const;
+
+		void SetContactOffset(float contactOffset);
+		float GetContactOffset() const;
+
+		void SetStepOffset(float stepOffset);
+		float GetStepOffset() const;
+
+		void SetPhysicsMaterialAsset(const Ref<AssetPhysicsMaterial>& material);
+		const Ref<AssetPhysicsMaterial>& GetPhysicsMaterialAsset() const;
+
+		void SetShapeType(CharacterControllerShape shape);
+		CharacterControllerShape GetShapeType() const;
+
+		void SetCapsuleClimbingMode(CapsuleClimbingMode mode);
+		CapsuleClimbingMode GetCapsuleClimbingMode() const;
+
+		void SetCapsuleRadius(float radius);
+		float GetCapsuleRadius() const { return m_Radius; }
+
+		void SetCapsuleHeight(float height);
+		float GetCapsuleHeight() const { return m_Height; }
+
+		void SetBoxSize(const glm::vec3& size);
+		const glm::vec3& GetBoxSize() const { return m_Size; }
+
+		void SetWorldTransform(const Transform& worldTransform) override;
+		void SetRelativeTransform(const Transform& relativeTransform) override;
+
+		// Returns the center position of the controller
+		glm::vec3 GetControllerWorldLocation() const;
+
+		// Returns the "foot" position of the controller, i.e.the position of the bottom of the CCT's shape.
+		// The foot position takes the contact offset into account
+		glm::vec3 GetControllerFootWorldLocation() const;
+
+		bool IsCollisionVisible() const { return bShowCollision; }
+		void SetShowCollision(bool bShowCollision)
+		{
+			this->bShowCollision = bShowCollision;
+			Parent.SignalComponentChanged<CharacterControllerComponent>(Notification::OnDebugStateChanged);
+		}
+
+		// Collision groups it belongs to. It can belong to different groups (use XOR to combine groups)
+		void SetCollisionGroup(CollisionGroup groups);
+		CollisionGroup GetCollisionGroup() const;
+
+		// Collision groups it can interact with
+		void SetInteractingCollisionGroup(CollisionGroup groups);
+		CollisionGroup GetInteractingCollisionGroup() const;
+
+		// If set to true, controller vs controller collisions will be resolved using collision groups.
+		// If set to false, controllers won't collide with each other
+		void SetDoesCollideWithOtherControllers(bool bCollides);
+		bool DoesCollideWithOtherControllers() const;
+
+		glm::vec3 GetScaledBoxSize() const;
+		float GetScaledCapsuleRadius() const;
+		float GetScaledCapsuleHeight() const;
+
+	private:
+		void UpdateTransform();
+
+	public:
+		bool bMoveWholeEntity = true; // If enabled, the result of `Move` call will be applied to the parent entity. Otherwise, to this component only
+		bool bUseFootLocation = false; // If enabled, foot location (i.e.the position of the bottom of the shape, takes the contact offset into account) will be used as a result of the move operation. Otherwise, shape's center.
+
+	private:
+		Ref<PhysicsCharacterController> m_Controller;
+		glm::vec3 m_Size = glm::vec3(1);
+		float m_Radius = 0.35f;
+		float m_Height = 1.0f;
+		bool bShowCollision = false;
+		bool bCurrentlyMoving = false;
 	};
 
 	class BaseColliderComponent : public SceneComponent

@@ -6,6 +6,7 @@
 #include "Eagle/Physics/PhysicsRagdollActor.h"
 #include "Eagle/Physics/PhysicsShapes.h"
 #include "Eagle/Physics/PhysicsScene.h"
+#include "Eagle/Physics/PhysicsCharacterController.h"
 #include "Components.h"
 
 namespace Eagle
@@ -203,6 +204,229 @@ namespace Eagle
 		m_LockFlags = flag;
 		if (const auto& actor = Parent.GetPhysicsActor())
 			actor->SetLockFlag(m_LockFlags);
+	}
+
+	CharacterControllerComponent::CharacterControllerComponent(const Entity& entity)
+		: SceneComponent(entity)
+	{
+		m_Controller = MakeRef<PhysicsCharacterController>(*this);
+	}
+
+	CharacterControllerComponent& CharacterControllerComponent::operator=(const CharacterControllerComponent& other)
+	{
+		if (this == &other)
+			return *this;
+
+		SceneComponent::operator=(other);
+
+		SetSlopeLimit(other.GetSlopeLimit());
+		SetContactOffset(other.GetContactOffset());
+		SetStepOffset(other.GetStepOffset());
+		SetPhysicsMaterialAsset(other.GetPhysicsMaterialAsset());
+		SetShapeType(other.GetShapeType());
+		SetCapsuleRadius(other.GetCapsuleRadius());
+		SetCapsuleHeight(other.GetCapsuleHeight());
+		SetBoxSize(other.GetBoxSize());
+		SetCapsuleClimbingMode(other.GetCapsuleClimbingMode());
+		SetCollisionGroup(other.GetCollisionGroup());
+		SetInteractingCollisionGroup(other.GetInteractingCollisionGroup());
+		SetShowCollision(other.IsCollisionVisible());
+		SetDoesCollideWithOtherControllers(other.DoesCollideWithOtherControllers());
+		bMoveWholeEntity = other.bMoveWholeEntity;
+		bUseFootLocation = other.bUseFootLocation;
+		UpdateTransform();
+
+		return *this;
+	}
+
+	CharacterControllerCollisionFlags CharacterControllerComponent::Move(const glm::vec3& disp, float minDist, float elapsedTime)
+	{
+		bCurrentlyMoving = true;
+		auto result = m_Controller->Move(disp, minDist, elapsedTime);
+
+		const glm::vec3 location = bUseFootLocation ? m_Controller->GetFootWorldLocation() : m_Controller->GetWorldLocation();
+		if (bMoveWholeEntity)
+		{
+			Parent.SetWorldLocation(location - RelativeTransform.Location);
+		}
+		else
+		{
+			Transform tr = GetWorldTransform();
+			tr.Location = location;
+			SetWorldTransform(tr);
+		}
+		bCurrentlyMoving = false;
+
+		return result;
+	}
+
+	void CharacterControllerComponent::SetSlopeLimit(float degrees)
+	{
+		m_Controller->SetSlopeLimit(degrees);
+	}
+
+	float CharacterControllerComponent::GetSlopeLimit() const
+	{
+		return m_Controller->GetSlopeLimit();
+	}
+
+	void CharacterControllerComponent::SetContactOffset(float contactOffset)
+	{
+		m_Controller->SetContactOffset(contactOffset);
+	}
+
+	float CharacterControllerComponent::GetContactOffset() const
+	{
+		return m_Controller->GetContactOffset();
+	}
+
+	void CharacterControllerComponent::SetStepOffset(float stepOffset)
+	{
+		m_Controller->SetStepOffset(stepOffset);
+	}
+
+	float CharacterControllerComponent::GetStepOffset() const
+	{
+		return m_Controller->GetStepOffset();
+	}
+
+	void CharacterControllerComponent::SetPhysicsMaterialAsset(const Ref<AssetPhysicsMaterial>& material)
+	{
+		m_Controller->SetPhysicsMaterialAsset(material);
+	}
+
+	const Ref<AssetPhysicsMaterial>& CharacterControllerComponent::GetPhysicsMaterialAsset() const
+	{
+		return m_Controller->GetPhysicsMaterialAsset();
+	}
+
+	void CharacterControllerComponent::SetShapeType(CharacterControllerShape shape)
+	{
+		m_Controller->SetShapeType(shape);
+	}
+
+	CharacterControllerShape CharacterControllerComponent::GetShapeType() const
+	{
+		return m_Controller->GetShapeType();
+	}
+
+	void CharacterControllerComponent::SetCapsuleClimbingMode(CapsuleClimbingMode mode)
+	{
+		m_Controller->SetCapsuleClimbingMode(mode);
+	}
+
+	CapsuleClimbingMode CharacterControllerComponent::GetCapsuleClimbingMode() const
+	{
+		return m_Controller->GetCapsuleClimbingMode();
+	}
+
+	void CharacterControllerComponent::SetCapsuleRadius(float radius)
+	{
+		m_Radius = radius;
+		m_Controller->SetCapsuleRadius(GetScaledCapsuleRadius());
+	}
+
+	void CharacterControllerComponent::SetCapsuleHeight(float height)
+	{
+		m_Height = height;
+		m_Controller->SetCapsuleHeight(GetScaledCapsuleHeight());
+
+		// Controller can change the position, update it
+		Transform transform = WorldTransform;
+		transform.Location = m_Controller->GetWorldLocation();
+		SetWorldTransform(transform);
+	}
+
+	void CharacterControllerComponent::SetBoxSize(const glm::vec3& size)
+	{
+		m_Size = size;
+		m_Controller->SetBoxHalfExtent(GetScaledBoxSize() * 0.5f);
+
+		// Controller can change the position, update it
+		Transform transform = WorldTransform;
+		transform.Location = m_Controller->GetWorldLocation();
+		SetWorldTransform(transform);
+	}
+
+	void CharacterControllerComponent::SetWorldTransform(const Transform& worldTransform)
+	{
+		SceneComponent::SetWorldTransform(worldTransform);
+		UpdateTransform();
+	}
+
+	void CharacterControllerComponent::SetRelativeTransform(const Transform& relativeTransform)
+	{
+		SceneComponent::SetRelativeTransform(relativeTransform);
+		UpdateTransform();
+	}
+
+	glm::vec3 CharacterControllerComponent::GetControllerWorldLocation() const
+	{
+		return m_Controller->GetWorldLocation();
+	}
+
+	glm::vec3 CharacterControllerComponent::GetControllerFootWorldLocation() const
+	{
+		return m_Controller->GetFootWorldLocation();
+	}
+
+	void CharacterControllerComponent::UpdateTransform()
+	{
+		// Hacky way to prevent controller affecting itself
+		if (bCurrentlyMoving)
+			return;
+
+		m_Controller->SetWorldLocation(WorldTransform.Location);
+		m_Controller->SetBoxHalfExtent(GetScaledBoxSize() * 0.5f);
+		m_Controller->SetCapsuleRadius(GetScaledCapsuleRadius());
+		m_Controller->SetCapsuleHeight(GetScaledCapsuleHeight());
+	}
+
+	void CharacterControllerComponent::SetCollisionGroup(CollisionGroup groups)
+	{
+		m_Controller->SetCollisionGroup(groups);
+	}
+
+	CollisionGroup CharacterControllerComponent::GetCollisionGroup() const
+	{
+		return m_Controller->GetCollisionGroup();
+	}
+
+	void CharacterControllerComponent::SetInteractingCollisionGroup(CollisionGroup groups)
+	{
+		m_Controller->SetInteractingCollisionGroup(groups);
+	}
+
+	CollisionGroup CharacterControllerComponent::GetInteractingCollisionGroup() const
+	{
+		return m_Controller->GetInteractingCollisionGroup();
+	}
+
+	void CharacterControllerComponent::SetDoesCollideWithOtherControllers(bool bCollides)
+	{
+		m_Controller->SetDoesCollideWithOtherControllers(bCollides);
+	}
+
+	bool CharacterControllerComponent::DoesCollideWithOtherControllers() const
+	{
+		return m_Controller->DoesCollideWithOtherControllers();
+	}
+
+	glm::vec3 CharacterControllerComponent::GetScaledBoxSize() const
+	{
+		return WorldTransform.Scale3D * m_Size;
+	}
+
+	float CharacterControllerComponent::GetScaledCapsuleRadius() const
+	{
+		const auto& scale = WorldTransform.Scale3D;
+		return glm::max(scale.x, scale.z) * m_Radius;
+	}
+
+	float CharacterControllerComponent::GetScaledCapsuleHeight() const
+	{
+		const auto& scale = WorldTransform.Scale3D;
+		return scale.y * m_Height;
 	}
 
 	void BaseColliderComponent::SetPhysicsMaterialAsset(const Ref<AssetPhysicsMaterial>& material)
@@ -541,6 +765,10 @@ namespace Eagle
 	{
 		m_Height = glm::max(height, 0.f);
 		m_Radius = glm::max(radius, 0.f);
+
+		const auto& scale = WorldTransform.Scale3D;
+		radius = glm::max(scale.x, scale.z) * m_Radius;
+		height = scale.y * m_Height;
 
 		m_Shape->SetHeightAndRadius(height, radius);
 		if (IsObstacle())

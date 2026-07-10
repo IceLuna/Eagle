@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -31,6 +32,26 @@ namespace Eagle
         [UIName("Static & Dynamic")]
         Default = Static | Dynamic
     }
+
+    public enum CharacterControllerCollisionFlags
+    {
+        None  = 0 << 0, // No collision detected
+		Sides = 1 << 0, // Character is colliding to the sides.
+		Up    = 1 << 1, // Character has collision above.
+		Down  = 1 << 2, // Character has collision below.
+	};
+
+    public enum CharacterControllerShape
+    {
+        Box,
+		Capsule,
+	};
+
+    public enum CapsuleClimbingMode
+    {
+        Easy,		 // Standard mode, let the capsule climb over surfaces according to impact normal
+		Constrained, // Constrained mode, try to limit climbing according to the step offset
+	};
 
     public enum CollisionDetectionType
     {
@@ -2500,6 +2521,290 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetLockFlag_Native(in GUID entityID, ActorLockFlag flag, bool value);
+    }
+
+    // Uses physics engine's controller to move the entity.
+    // The Character Controller (CCT) is a kinematic controller. Unlike a rigid body, you don't apply forces to it.
+    // Every frame you compute the desired displacement yourself (from WASD, gravity, jumping, etc.) and pass that displacement to `Move(...)` function.
+    // It then performs the collide-and-slide algorithm automatically.
+    // Avoid mixing it with other colliders. The controller creates it internally.
+    public class CharacterControllerComponent : SceneComponent
+    {
+        // Moves the character. To retrieve new position, use `GetWorldLocation()` or `GetFootWorldLocation()`
+		// @disp is the displacement vector for current frame. It is typically a combination of vertical motion due to gravity and lateral motion when your character is moving.
+		//		 Note that users are responsible for applying gravity to characters here.
+		// @minDist is a minimal length used to stop the recursive displacement algorithm early when remaining distance to travel goes below this limit.
+		// @elapsedTime is the amount of time that passed since the last call to the move function.
+		// @return Returns collision flags
+		public CharacterControllerCollisionFlags Move(Vector3 disp, float minDist, float elapsedTime)
+        {
+            return Move_Native(Parent.ID, ref disp, minDist, elapsedTime);
+        }
+
+		public void SetSlopeLimit(float degrees)
+        {
+            SetSlopeLimit_Native(Parent.ID, degrees);
+        }
+
+		public float GetSlopeLimit()
+        {
+            return GetSlopeLimit_Native(Parent.ID);
+        }
+
+		public void SetContactOffset(float contactOffset)
+        {
+            SetContactOffset_Native(Parent.ID, contactOffset);
+        }
+
+		public float GetContactOffset()
+        {
+            return GetContactOffset_Native(Parent.ID);
+        }
+
+		public void SetStepOffset(float stepOffset)
+        {
+            SetStepOffset_Native(Parent.ID, stepOffset);
+        }
+
+		public float GetStepOffset() 
+        {
+            return GetStepOffset_Native(Parent.ID);
+        }
+
+        public void SetPhysicsMaterialAsset(AssetPhysicsMaterial material)
+        {
+            SetPhysicsMaterialAsset_Native(Parent.ID, material != null ? material.GetGUID() : GUID.Null());
+        }
+
+		public AssetPhysicsMaterial GetPhysicsMaterialAsset()
+        {
+            GUID assetID = GetPhysicsMaterialAsset_Native(Parent.ID);
+            if (assetID.IsNull())
+                return null;
+            return new AssetPhysicsMaterial(assetID);
+        }
+
+		public void SetShapeType(CharacterControllerShape shape)
+        {
+            SetShapeType_Native(Parent.ID, shape);
+        }
+
+		public CharacterControllerShape GetShapeType()
+        {
+            return GetShapeType_Native(Parent.ID);
+        }
+
+		public void SetCapsuleClimbingMode(CapsuleClimbingMode mode)
+        {
+            SetCapsuleClimbingMode_Native(Parent.ID, mode);
+        }
+
+		public CapsuleClimbingMode GetCapsuleClimbingMode()
+        {
+            return GetCapsuleClimbingMode_Native(Parent.ID);
+        }
+
+		public void SetCapsuleRadius(float radius)
+        {
+            SetCapsuleRadius_Native(Parent.ID, radius);
+        }
+
+		public float GetCapsuleRadius()
+        {
+            return GetCapsuleRadius_Native(Parent.ID);
+        }
+
+		public void SetCapsuleHeight(float height)
+        {
+            SetCapsuleHeight_Native(Parent.ID, height);
+        }
+
+		public float GetCapsuleHeight()
+        {
+            return GetCapsuleHeight_Native(Parent.ID);
+        }
+
+		public void SetBoxSize(Vector3 size)
+        {
+            SetBoxSize_Native(Parent.ID, ref size);
+        }
+
+		public Vector3 GetBoxSize()
+        {
+            GetBoxSize_Native(Parent.ID, out Vector3 result);
+            return result;
+        }
+
+		public Vector3 GetControllerWorldLocation()
+        {
+            GetControllerWorldLocation_Native(Parent.ID, out Vector3 result);
+            return result;
+        }
+
+		// Returns the "foot" position of the controller, i.e.the position of the bottom of the CCT's shape.
+		// The foot position takes the contact offset into account
+		public Vector3 GetControllerFootWorldLocation()
+        {
+            GetControllerFootWorldLocation_Native(Parent.ID, out Vector3 result);
+            return result;
+        }
+
+		public bool IsCollisionVisible()
+        {
+            return IsCollisionVisible_Native(Parent.ID);
+        }
+
+		public void SetShowCollision(bool bShowCollision)
+		{
+            SetShowCollision_Native(Parent.ID, bShowCollision);
+		}
+
+		// Collision groups it belongs to. It can belong to different groups (use XOR to combine groups)
+		public void SetCollisionGroup(CollisionGroup groups)
+        {
+            SetCollisionGroup_Native(Parent.ID, groups);
+        }
+
+		public CollisionGroup GetCollisionGroup()
+        {
+            return GetCollisionGroup_Native(Parent.ID);
+        }
+
+		// Collision groups it can interact with
+		public void SetInteractingCollisionGroup(CollisionGroup groups)
+        {
+            SetInteractingCollisionGroup_Native(Parent.ID, groups);
+        }
+
+		public CollisionGroup GetInteractingCollisionGroup()
+        {
+            return GetInteractingCollisionGroup_Native(Parent.ID);
+        }
+
+		// If set to true, controller vs controller collisions will be resolved using collision groups.
+		// If set to false, controllers won't collide with each other
+		public void SetDoesCollideWithOtherControllers(bool bCollides)
+        {
+            SetDoesCollideWithOtherControllers_Native(Parent.ID, bCollides);
+        }
+
+		public bool DoesCollideWithOtherControllers()
+        {
+            return DoesCollideWithOtherControllers_Native(Parent.ID);
+        }
+
+        // If enabled, the result of `Move` call will be applied to the parent entity. Otherwise, to this component only
+        public bool bMoveWholeEntity
+        {
+            get { return GetMoveWholeEntity_Native(Parent.ID); }
+            set { SetMoveWholeEntity_Native(Parent.ID, value); }
+        }
+
+        // If enabled, foot location (i.e.the position of the bottom of the shape, takes the contact offset into account) will be used as a result of the move operation. Otherwise, shape's center.
+        public bool bUseFootLocation
+        {
+            get { return GetUseFootLocation_Native(Parent.ID); }
+            set { SetUseFootLocation_Native(Parent.ID, value); }
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern CharacterControllerCollisionFlags Move_Native(GUID id, ref Vector3 disp, float minDist, float elapsedTime);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetSlopeLimit_Native(GUID id, float degrees);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetSlopeLimit_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetContactOffset_Native(GUID id, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetContactOffset_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetStepOffset_Native(GUID id, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetStepOffset_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetPhysicsMaterialAsset_Native(GUID id, GUID value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID GetPhysicsMaterialAsset_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetShapeType_Native(GUID id, CharacterControllerShape value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern CharacterControllerShape GetShapeType_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetCapsuleClimbingMode_Native(GUID id, CapsuleClimbingMode value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern CapsuleClimbingMode GetCapsuleClimbingMode_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetCapsuleRadius_Native(GUID id, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetCapsuleRadius_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetCapsuleHeight_Native(GUID id, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetCapsuleHeight_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetBoxSize_Native(GUID id, ref Vector3 value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetBoxSize_Native(GUID id, out Vector3 value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetControllerWorldLocation_Native(GUID id, out Vector3 value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetControllerFootWorldLocation_Native(GUID id, out Vector3 value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetShowCollision_Native(GUID id, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsCollisionVisible_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetCollisionGroup_Native(GUID id, CollisionGroup value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern CollisionGroup GetCollisionGroup_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetInteractingCollisionGroup_Native(GUID id, CollisionGroup value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern CollisionGroup GetInteractingCollisionGroup_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetDoesCollideWithOtherControllers_Native(GUID id, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool DoesCollideWithOtherControllers_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMoveWholeEntity_Native(GUID id, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetMoveWholeEntity_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetUseFootLocation_Native(GUID id, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetUseFootLocation_Native(GUID id);
     }
 
     abstract public class BaseColliderComponent : SceneComponent

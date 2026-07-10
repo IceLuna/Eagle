@@ -63,6 +63,7 @@ namespace Eagle
 		CollisionDetectionType collisionDetection = ((PhysicsActor*)m_Shape->getActor()->userData)->GetCollisionDetectionType();
 		physx::PxFilterData filterData = PhysXUtils::GetPxFilterData(m_CollisionGroup, m_InteractingCollisionGroup, collisionDetection);
 		m_Shape->setSimulationFilterData(filterData);
+		m_Shape->setQueryFilterData(filterData);
 	}
 
 	BoxColliderShape::BoxColliderShape(const BoxColliderComponent& component, PhysicsActor& actor)

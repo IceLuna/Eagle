@@ -45,14 +45,18 @@ namespace Eagle
 
         CreateRegions();
         SetUpdateRate(m_Settings.UpdateRate);
+
+        m_ControllerManager = PxCreateControllerManager(*m_Scene);
     }
-    
-    void PhysicsScene::ConstructFromScene(Scene* scene)
+
+    physx::PxController* PhysicsScene::CreateController(physx::PxBoxControllerDesc& desc)
     {
-        scene->OnEach([this](Entity entity)
-        {
-            CreatePhysicsActor(entity);
-        });
+        return m_ControllerManager->createController(desc);
+    }
+
+    physx::PxController* PhysicsScene::CreateController(physx::PxCapsuleControllerDesc& desc)
+    {
+        return m_ControllerManager->createController(desc);
     }
 
     void PhysicsScene::UpdateActors()
@@ -292,6 +296,8 @@ namespace Eagle
 
             m_Actors.clear(); //Just in case
             m_RagdollActors.clear(); //Just in case
+            m_ControllerManager->release();
+            m_ControllerManager = nullptr;
             m_Scene->release();
             m_Scene = nullptr;
         }

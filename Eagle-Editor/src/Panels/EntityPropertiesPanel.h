@@ -18,6 +18,7 @@ namespace Eagle
 		DirectionalLightComponent,
 		SpotLightComponent,
 		ScriptComponent,
+		CharacterControllerComponent,
 		RigidBodyComponent,
 		BoxColliderComponent,
 		SphereColliderComponent,

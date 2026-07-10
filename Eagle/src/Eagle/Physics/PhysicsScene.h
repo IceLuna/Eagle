@@ -26,8 +26,6 @@ namespace Eagle
 		PhysicsScene(const PhysicsSettings& settings);
 		~PhysicsScene() { Destroy(); }
 
-		void ConstructFromScene(Scene* scene);
-
 		void Simulate(Timestep ts, bool bCallScripts);
 
 		Ref<PhysicsActor>& GetPhysicsActor(const Entity& entity);
@@ -72,6 +70,9 @@ namespace Eagle
 		void StartDebugging();
 		void StopDebugging();
 
+		physx::PxController* CreateController(physx::PxBoxControllerDesc& desc);
+		physx::PxController* CreateController(physx::PxCapsuleControllerDesc& desc);
+
 	private:
 		void CreateRegions();
 
@@ -91,6 +92,7 @@ namespace Eagle
 	private:
 		PhysicsSettings m_Settings;
 		physx::PxScene* m_Scene = nullptr;
+		physx::PxControllerManager* m_ControllerManager = nullptr;
 		ankerl::unordered_dense::map<GUID, Ref<PhysicsActor>> m_Actors;
 		ankerl::unordered_dense::map<GUID, Ref<PhysicsRagdollActor>> m_RagdollActors;
 		mutable QueryHits m_QueryHits; // Exists just to avoid allocations on every query

@@ -22,7 +22,8 @@ namespace Eagle
 	namespace Utils
 	{
 		constexpr uint32_t s_SphereLinesCount = 24;
-		constexpr float s_2PI = 2.f * glm::pi<float>();
+		constexpr float s_PI = glm::pi<float>();
+		constexpr float s_2PI = 2.f * s_PI;
 
 		void DrawSphere(std::vector<RendererLine>& buffer, const glm::vec3& center, const glm::vec3& color, float radius)
 		{
@@ -454,6 +455,158 @@ namespace Eagle
 			}
 		}
 
+		// Draws a capsule oriented along the up-axis (Y), consistent with PxControllerDesc::upDirection = (0,1,0)
+		// 'radius' and 'halfHeight' should already include contact offset where relevant (see DrawCCTCapsule below)
+		void DrawCapsule_CCT(std::vector<RendererLine>& buffer, const glm::vec3& center, const glm::vec3& color, float radius, float halfHeight)
+		{
+			const glm::vec3 topCenter = center + glm::vec3(0.f, halfHeight, 0.f);
+			const glm::vec3 bottomCenter = center - glm::vec3(0.f, halfHeight, 0.f);
+
+			for (uint32_t i = 0; i < s_SphereLinesCount; ++i)
+			{
+				const float angle1 = (float(i) / s_SphereLinesCount) * s_2PI;
+				const float angle2 = (float(i + 1) / s_SphereLinesCount) * s_2PI;
+				const float cosAngle1 = glm::cos(angle1);
+				const float cosAngle2 = glm::cos(angle2);
+				const float sinAngle1 = glm::sin(angle1);
+				const float sinAngle2 = glm::sin(angle2);
+
+				// Equatorial ring for the top hemisphere / cylinder top edge (XZ plane)
+				{
+					auto& line = buffer.emplace_back();
+					line.Start.Location = topCenter + radius * glm::vec3(cosAngle1, 0.f, sinAngle1);
+					line.End.Location = topCenter + radius * glm::vec3(cosAngle2, 0.f, sinAngle2);
+					line.Start.Color = color;
+					line.End.Color = color;
+				}
+
+				// Equatorial ring for the bottom hemisphere / cylinder bottom edge (XZ plane)
+				{
+					auto& line = buffer.emplace_back();
+					line.Start.Location = bottomCenter + radius * glm::vec3(cosAngle1, 0.f, sinAngle1);
+					line.End.Location = bottomCenter + radius * glm::vec3(cosAngle2, 0.f, sinAngle2);
+					line.Start.Color = color;
+					line.End.Color = color;
+				}
+
+				// Top hemisphere, XY arc (only upper half, angle in [0, PI])
+				{
+					const float a1 = (float(i) / s_SphereLinesCount) * s_PI;
+					const float a2 = (float(i + 1) / s_SphereLinesCount) * s_PI;
+					auto& line = buffer.emplace_back();
+					line.Start.Location = topCenter + radius * glm::vec3(glm::cos(a1), glm::sin(a1), 0.f);
+					line.End.Location = topCenter + radius * glm::vec3(glm::cos(a2), glm::sin(a2), 0.f);
+					line.Start.Color = color;
+					line.End.Color = color;
+
+					auto& line2 = buffer.emplace_back();
+					line2.Start.Location = topCenter + radius * glm::vec3(0.f, glm::sin(a1), glm::cos(a1));
+					line2.End.Location = topCenter + radius * glm::vec3(0.f, glm::sin(a2), glm::cos(a2));
+					line2.Start.Color = color;
+					line2.End.Color = color;
+				}
+
+				// Bottom hemisphere, XY arc (only lower half, angle in [PI, 2*PI])
+				{
+					const float a1 = s_PI + (float(i) / s_SphereLinesCount) * s_PI;
+					const float a2 = s_PI + (float(i + 1) / s_SphereLinesCount) * s_PI;
+					auto& line = buffer.emplace_back();
+					line.Start.Location = bottomCenter + radius * glm::vec3(glm::cos(a1), glm::sin(a1), 0.f);
+					line.End.Location = bottomCenter + radius * glm::vec3(glm::cos(a2), glm::sin(a2), 0.f);
+					line.Start.Color = color;
+					line.End.Color = color;
+
+					auto& line2 = buffer.emplace_back();
+					line2.Start.Location = bottomCenter + radius * glm::vec3(0.f, glm::sin(a1), glm::cos(a1));
+					line2.End.Location = bottomCenter + radius * glm::vec3(0.f, glm::sin(a2), glm::cos(a2));
+					line2.Start.Color = color;
+					line2.End.Color = color;
+				}
+			}
+
+			// 4 vertical side lines connecting the two equatorial rings (the cylinder body)
+			constexpr int sideCount = 4;
+			for (int i = 0; i < sideCount; ++i)
+			{
+				const float angle = (float(i) / sideCount) * s_2PI;
+				const glm::vec3 offset = radius * glm::vec3(glm::cos(angle), 0.f, glm::sin(angle));
+				auto& line = buffer.emplace_back();
+				line.Start.Location = topCenter + offset;
+				line.End.Location = bottomCenter + offset;
+				line.Start.Color = color;
+				line.End.Color = color;
+			}
+		}
+
+		// Draws a box, half extents given directly (already inflated by contact offset where relevant)
+		void DrawBox_CCT(std::vector<RendererLine>& buffer, const glm::vec3& center, const glm::vec3& color, const glm::vec3& halfExtent)
+		{
+			const glm::vec3 corners[8] =
+			{
+				center + glm::vec3(-halfExtent.x, -halfExtent.y, -halfExtent.z),
+				center + glm::vec3(halfExtent.x, -halfExtent.y, -halfExtent.z),
+				center + glm::vec3(halfExtent.x, -halfExtent.y,  halfExtent.z),
+				center + glm::vec3(-halfExtent.x, -halfExtent.y,  halfExtent.z),
+				center + glm::vec3(-halfExtent.x,  halfExtent.y, -halfExtent.z),
+				center + glm::vec3(halfExtent.x,  halfExtent.y, -halfExtent.z),
+				center + glm::vec3(halfExtent.x,  halfExtent.y,  halfExtent.z),
+				center + glm::vec3(-halfExtent.x,  halfExtent.y,  halfExtent.z),
+			};
+
+			constexpr int edges[12][2] =
+			{
+				{ 0, 1 }, { 1, 2 }, { 2, 3 }, { 3, 0 }, // bottom face
+				{ 4, 5 }, { 5, 6 }, { 6, 7 }, { 7, 4 }, // top face
+				{ 0, 4 }, { 1, 5 }, { 2, 6 }, { 3, 7 }, // vertical edges
+			};
+
+			for (auto& edge : edges)
+			{
+				auto& line = buffer.emplace_back();
+				line.Start.Location = corners[edge[0]];
+				line.End.Location = corners[edge[1]];
+				line.Start.Color = color;
+				line.End.Color = color;
+			}
+		}
+
+		// Convenience wrappers that pull the right numbers straight from the controller,
+		// including contact offset inflation, so the debug draw matches what PhysX is actually colliding against.
+		void DrawCCTCapsule(std::vector<RendererLine>& buffer, const CharacterControllerComponent& controller, const glm::vec3& color)
+		{
+			const glm::vec3 center = controller.GetControllerWorldLocation();
+
+			const float contactOffset = controller.GetContactOffset();
+			const float radius = controller.GetScaledCapsuleRadius() + contactOffset;
+			const float halfHeight = controller.GetScaledCapsuleHeight() * 0.5f;
+
+			DrawCapsule_CCT(buffer, center, color, radius, halfHeight);
+		}
+
+		void DrawCCTBox(std::vector<RendererLine>& buffer, const CharacterControllerComponent& controller, const glm::vec3& color)
+		{
+			const glm::vec3 center = controller.GetControllerWorldLocation();
+
+			const float contactOffset = controller.GetContactOffset();
+			const glm::vec3 halfExtent = (controller.GetScaledBoxSize() * 0.5f) + contactOffset;
+			DrawBox_CCT(buffer, center, color, halfExtent);
+		}
+
+		void DrawCCT(std::vector<RendererLine>& buffer, const CharacterControllerComponent& controller, const glm::vec3& color)
+		{
+			switch (controller.GetShapeType())
+			{
+			case CharacterControllerShape::Box:
+				Utils::DrawCCTBox(buffer, controller, glm::vec3(0, 1, 0));
+				break;
+			case CharacterControllerShape::Capsule:
+				Utils::DrawCCTCapsule(buffer, controller, glm::vec3(0, 1, 0));
+				break;
+			default:
+				EG_CORE_ASSERT(!"Unknown type");
+			}
+		}
+
 		template <typename Comp>
 		void InvalidateCollisionGroups(entt::registry& registry, uint32_t validMasks)
 		{
@@ -605,6 +758,7 @@ namespace Eagle
 		SceneAddAndCopyComponent<SkeletalMeshComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<BillboardComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<CameraComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<CharacterControllerComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<RigidBodyComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<BoxColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<SphereColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
@@ -1572,6 +1726,29 @@ namespace Eagle
 				}
 			}
 
+			// Debug CCT
+			{
+				if (IsForcingShowCollision())
+				{
+					auto view = m_Registry.view<CharacterControllerComponent>();
+					for (auto entity : view)
+					{
+						auto& component = view.get<CharacterControllerComponent>(entity);
+						Utils::DrawCCT(m_DebugLinesToDraw, component, glm::vec3(0, 1, 0));
+					}
+				}
+				else
+				{
+					for (const auto& entID : m_CharacterControllerDebug)
+					{
+						Entity entity((entt::entity)entID, this);
+						if (!entity.HasComponent<CharacterControllerComponent>())
+							return;
+						Utils::DrawCCT(m_DebugLinesToDraw, entity.GetComponent<CharacterControllerComponent>(), glm::vec3(0, 1, 0));
+					}
+				}
+			}
+
 			// Bones
 			if (bDrawBones)
 			{
@@ -2245,6 +2422,7 @@ namespace Eagle
 
 	void Scene::InvalidateCollisionGroups(uint32_t validMasks)
 	{
+		Utils::InvalidateCollisionGroups<CharacterControllerComponent>(m_Registry, validMasks);
 		Utils::InvalidateCollisionGroups<BoxColliderComponent>(m_Registry, validMasks);
 		Utils::InvalidateCollisionGroups<SphereColliderComponent>(m_Registry, validMasks);
 		Utils::InvalidateCollisionGroups<CapsuleColliderComponent>(m_Registry, validMasks);
@@ -2450,6 +2628,12 @@ namespace Eagle
 		}
 	}
 
+	void Scene::OnCharacterControllerRemoved(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		m_CharacterControllerDebug.erase(entity.GetID());
+	}
+
 	void Scene::ConnectSignals()
 	{
 		m_Registry.on_destroy<StaticMeshComponent>().connect<&Scene::OnStaticMeshComponentRemoved>(*this);
@@ -2480,6 +2664,7 @@ namespace Eagle
 		m_Registry.on_destroy<ReverbComponent>().connect<&Scene::OnReverbRemoved>(*this);
 		m_Registry.on_construct<DirectionalLightComponent>().connect<&Scene::OnDirectionalLightAdded>(*this);
 		m_Registry.on_destroy<DirectionalLightComponent>().connect<&Scene::OnDirectionalLightRemoved>(*this);
+		m_Registry.on_destroy<CharacterControllerComponent>().connect<&Scene::OnCharacterControllerRemoved>(*this);
 	}
 
 	void Scene::RegisterSkeletalParticleIfCan(const ParticleSystemComponent& system)
@@ -2513,6 +2698,7 @@ namespace Eagle
 		EntityCopyComponent<SkeletalMeshComponent>(source, dest);
 		EntityCopyComponent<BillboardComponent>(source, dest);
 		EntityCopyComponent<CameraComponent>(source, dest);
+		EntityCopyComponent<CharacterControllerComponent>(source, dest);
 		EntityCopyComponent<RigidBodyComponent>(source, dest);
 		EntityCopyComponent<BoxColliderComponent>(source, dest);
 		EntityCopyComponent<SphereColliderComponent>(source, dest);

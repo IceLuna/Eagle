@@ -136,6 +136,7 @@ namespace Eagle
 		REGISTER_COMPONENT_TYPE(StaticMeshComponent);
 		REGISTER_COMPONENT_TYPE(SkeletalMeshComponent);
 		REGISTER_COMPONENT_TYPE(AudioComponent);
+		REGISTER_COMPONENT_TYPE(CharacterControllerComponent);
 		REGISTER_COMPONENT_TYPE(RigidBodyComponent);
 		REGISTER_COMPONENT_TYPE(BoxColliderComponent);
 		REGISTER_COMPONENT_TYPE(SphereColliderComponent);
@@ -572,6 +573,41 @@ namespace Eagle
 		mono_add_internal_call("Eagle.RigidBodyComponent::IsLockFlagSet_Native", Eagle::Script::Eagle_RigidBodyComponent_IsLockFlagSet);
 		mono_add_internal_call("Eagle.RigidBodyComponent::GetLockFlags_Native", Eagle::Script::Eagle_RigidBodyComponent_GetLockFlags);
 		mono_add_internal_call("Eagle.RigidBodyComponent::SetLockFlag_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLockFlag);
+
+		// CharacterControllerComponent
+		mono_add_internal_call("Eagle.CharacterControllerComponent::Move_Native", Eagle::Script::Eagle_CharacterControllerComponent_Move);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::SetSlopeLimit_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetSlopeLimit);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::GetSlopeLimit_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetSlopeLimit);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::SetContactOffset_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetContactOffset);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::GetContactOffset_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetContactOffset);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::SetStepOffset_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetStepOffset);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::GetStepOffset_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetStepOffset);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::SetPhysicsMaterialAsset_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetPhysicsMaterialAsset);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::GetPhysicsMaterialAsset_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetPhysicsMaterialAsset);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::SetShapeType_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetShapeType);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::GetShapeType_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetShapeType);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::SetCapsuleClimbingMode_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetCapsuleClimbingMode);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::GetCapsuleClimbingMode_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetCapsuleClimbingMode);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::SetCapsuleRadius_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetCapsuleRadius);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::GetCapsuleRadius_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetCapsuleRadius);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::SetCapsuleHeight_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetCapsuleHeight);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::GetCapsuleHeight_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetCapsuleHeight);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::SetBoxSize_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetBoxSize);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::GetBoxSize_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetBoxSize);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::GetControllerWorldLocation_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetControllerWorldLocation);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::GetControllerFootWorldLocation_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetControllerFootWorldLocation);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::SetShowCollision_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetShowCollision);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::IsCollisionVisible_Native", Eagle::Script::Eagle_CharacterControllerComponent_IsCollisionVisible);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::SetCollisionGroup_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetCollisionGroup);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::GetCollisionGroup_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetCollisionGroup);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::SetInteractingCollisionGroup_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetInteractingCollisionGroup);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::GetInteractingCollisionGroup_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetInteractingCollisionGroup);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::SetDoesCollideWithOtherControllers_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetDoesCollideWithOtherControllers);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::DoesCollideWithOtherControllers_Native", Eagle::Script::Eagle_CharacterControllerComponent_DoesCollideWithOtherControllers);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::SetMoveWholeEntity_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetMoveWholeEntity);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::GetMoveWholeEntity_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetMoveWholeEntity);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::SetUseFootLocation_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetUseFootLocation);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::GetUseFootLocation_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetUseFootLocation);
 
 		//BaseColliderComponent
 		mono_add_internal_call("Eagle.BaseColliderComponent::SetCollisionGroup_Native", Eagle::Script::Eagle_BaseColliderComponent_SetCollisionGroup);

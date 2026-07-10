@@ -303,7 +303,6 @@ namespace Eagle::Script
 	bool Eagle_RigidBodyComponent_IsGravityEnabled(GUID entityID);
 	void Eagle_RigidBodyComponent_SetIsKinematic(GUID entityID, bool bKinematic);
 	bool Eagle_RigidBodyComponent_IsKinematic(GUID entityID);
-
 	void Eagle_RigidBodyComponent_WakeUp(GUID entityID);
 	void Eagle_RigidBodyComponent_PutToSleep(GUID entityID);
 	void Eagle_RigidBodyComponent_AddForce(GUID entityID, const glm::vec3* force, ForceMode forceMode);
@@ -327,6 +326,41 @@ namespace Eagle::Script
 	void Eagle_RigidBodyComponent_SetKinematicTargetLocation(GUID entityID, const glm::vec3* location);
 	void Eagle_RigidBodyComponent_SetKinematicTargetRotation(GUID entityID, const Rotator* rotation);
 	void Eagle_RigidBodyComponent_SetLockFlag(GUID entityID, ActorLockFlag flag, bool value);
+
+	// CharacterControllerComponent
+	CharacterControllerCollisionFlags Eagle_CharacterControllerComponent_Move(GUID id, const glm::vec3* disp, float minDist, float elapsedTime);
+	void Eagle_CharacterControllerComponent_SetSlopeLimit(GUID id, float degrees);
+	float Eagle_CharacterControllerComponent_GetSlopeLimit(GUID id);
+	void Eagle_CharacterControllerComponent_SetContactOffset(GUID id, float value);
+	float Eagle_CharacterControllerComponent_GetContactOffset(GUID id);
+	void Eagle_CharacterControllerComponent_SetStepOffset(GUID id, float value);
+	float Eagle_CharacterControllerComponent_GetStepOffset(GUID id);
+	void Eagle_CharacterControllerComponent_SetPhysicsMaterialAsset(GUID id, GUID value);
+	GUID Eagle_CharacterControllerComponent_GetPhysicsMaterialAsset(GUID id);
+	void Eagle_CharacterControllerComponent_SetShapeType(GUID id, CharacterControllerShape value);
+	CharacterControllerShape Eagle_CharacterControllerComponent_GetShapeType(GUID id);
+	void Eagle_CharacterControllerComponent_SetCapsuleClimbingMode(GUID id, CapsuleClimbingMode value);
+	CapsuleClimbingMode Eagle_CharacterControllerComponent_GetCapsuleClimbingMode(GUID id);
+	void Eagle_CharacterControllerComponent_SetCapsuleRadius(GUID id, float value);
+	float Eagle_CharacterControllerComponent_GetCapsuleRadius(GUID id);
+	void Eagle_CharacterControllerComponent_SetCapsuleHeight(GUID id, float value);
+	float Eagle_CharacterControllerComponent_GetCapsuleHeight(GUID id);
+	void Eagle_CharacterControllerComponent_SetBoxSize(GUID id, const glm::vec3* value);
+	void Eagle_CharacterControllerComponent_GetBoxSize(GUID id, glm::vec3* value);
+	void Eagle_CharacterControllerComponent_GetControllerWorldLocation(GUID id, glm::vec3* value);
+	void Eagle_CharacterControllerComponent_GetControllerFootWorldLocation(GUID id, glm::vec3* value);
+	void Eagle_CharacterControllerComponent_SetShowCollision(GUID id, bool value);
+	bool Eagle_CharacterControllerComponent_IsCollisionVisible(GUID id);
+	void Eagle_CharacterControllerComponent_SetCollisionGroup(GUID id, CollisionGroup value);
+	CollisionGroup Eagle_CharacterControllerComponent_GetCollisionGroup(GUID id);
+	void Eagle_CharacterControllerComponent_SetInteractingCollisionGroup(GUID id, CollisionGroup value);
+	CollisionGroup Eagle_CharacterControllerComponent_GetInteractingCollisionGroup(GUID id);
+	void Eagle_CharacterControllerComponent_SetDoesCollideWithOtherControllers(GUID id, bool value);
+	bool Eagle_CharacterControllerComponent_DoesCollideWithOtherControllers(GUID id);
+	void Eagle_CharacterControllerComponent_SetMoveWholeEntity(GUID id, bool value);
+	bool Eagle_CharacterControllerComponent_GetMoveWholeEntity(GUID id);
+	void Eagle_CharacterControllerComponent_SetUseFootLocation(GUID id, bool value);
+	bool Eagle_CharacterControllerComponent_GetUseFootLocation(GUID id);
 
 	// BaseColliderComponent
 	void Eagle_BaseColliderComponent_SetCollisionGroup(GUID entityID, void* type, CollisionGroup groups);

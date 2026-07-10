@@ -4375,6 +4375,506 @@ namespace Eagle
 		}
 	}
 
+	CharacterControllerCollisionFlags Script::Eagle_CharacterControllerComponent_Move(GUID id, const glm::vec3* disp, float minDist, float elapsedTime)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			return entity.GetComponent<CharacterControllerComponent>().Move(*disp, minDist, elapsedTime);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `Move`. Entity is null");
+			return CharacterControllerCollisionFlags::None;
+		}
+	}
+
+	void Script::Eagle_CharacterControllerComponent_SetSlopeLimit(GUID id, float degrees)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			entity.GetComponent<CharacterControllerComponent>().SetSlopeLimit(degrees);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetSlopeLimit`. Entity is null");
+		}
+	}
+
+	float Script::Eagle_CharacterControllerComponent_GetSlopeLimit(GUID id)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			return entity.GetComponent<CharacterControllerComponent>().GetSlopeLimit();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetSlopeLimit`. Entity is null");
+			return 0.0;
+		}
+	}
+
+	void Script::Eagle_CharacterControllerComponent_SetContactOffset(GUID id, float value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			entity.GetComponent<CharacterControllerComponent>().SetContactOffset(value);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetContactOffset`. Entity is null");
+		}
+	}
+
+	float Script::Eagle_CharacterControllerComponent_GetContactOffset(GUID id)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			return entity.GetComponent<CharacterControllerComponent>().GetContactOffset();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetContactOffset`. Entity is null");
+			return 0.0;
+		}
+	}
+
+	void Script::Eagle_CharacterControllerComponent_SetStepOffset(GUID id, float value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			entity.GetComponent<CharacterControllerComponent>().SetStepOffset(value);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetStepOffset`. Entity is null");
+		}
+	}
+
+	float Script::Eagle_CharacterControllerComponent_GetStepOffset(GUID id)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			return entity.GetComponent<CharacterControllerComponent>().GetStepOffset();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetStepOffset`. Entity is null");
+			return 0.0;
+		}
+	}
+
+	void Script::Eagle_CharacterControllerComponent_SetPhysicsMaterialAsset(GUID id, GUID assetID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set physics material asset of CharacterControllerComponent. Entity is null");
+			return;
+		}
+
+		auto& component = entity.GetComponent<CharacterControllerComponent>();
+		if (assetID.IsNull())
+		{
+			component.SetPhysicsMaterialAsset(nullptr);
+			return;
+		}
+
+		Ref<Asset> asset;
+		if (!AssetManager::Get(assetID, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set physics material asset of CharacterControllerComponent. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetPhysicsMaterial> physicsMaterialAsset = Cast<AssetPhysicsMaterial>(asset);
+		if (!physicsMaterialAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set physics material asset of CharacterControllerComponent. Provided asset is not a physics material asset");
+			return;
+		}
+
+		component.SetPhysicsMaterialAsset(physicsMaterialAsset);
+	}
+
+	GUID Script::Eagle_CharacterControllerComponent_GetPhysicsMaterialAsset(GUID id)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get physics material asset of CharacterControllerComponent. Entity is null");
+			return GUID(0, 0);
+		}
+
+		const auto& component = entity.GetComponent<CharacterControllerComponent>();
+		const auto& asset = component.GetPhysicsMaterialAsset();
+		return asset ? asset->GetGUID() : GUID(0, 0);
+	}
+
+	void Script::Eagle_CharacterControllerComponent_SetShapeType(GUID id, CharacterControllerShape value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			entity.GetComponent<CharacterControllerComponent>().SetShapeType(value);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetShapeType`. Entity is null");
+		}
+	}
+
+	CharacterControllerShape Script::Eagle_CharacterControllerComponent_GetShapeType(GUID id)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			return entity.GetComponent<CharacterControllerComponent>().GetShapeType();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetShapeType`. Entity is null");
+			return CharacterControllerShape::Box;
+		}
+	}
+
+	void Script::Eagle_CharacterControllerComponent_SetCapsuleClimbingMode(GUID id, CapsuleClimbingMode value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			entity.GetComponent<CharacterControllerComponent>().SetCapsuleClimbingMode(value);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetCapsuleClimbingMode`. Entity is null");
+		}
+	}
+
+	CapsuleClimbingMode Script::Eagle_CharacterControllerComponent_GetCapsuleClimbingMode(GUID id)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			return entity.GetComponent<CharacterControllerComponent>().GetCapsuleClimbingMode();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetCapsuleClimbingMode`. Entity is null");
+			return CapsuleClimbingMode::Easy;
+		}
+	}
+
+	void Script::Eagle_CharacterControllerComponent_SetCapsuleRadius(GUID id, float value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			entity.GetComponent<CharacterControllerComponent>().SetCapsuleRadius(value);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetCapsuleRadius`. Entity is null");
+		}
+	}
+
+	float Script::Eagle_CharacterControllerComponent_GetCapsuleRadius(GUID id)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			return entity.GetComponent<CharacterControllerComponent>().GetCapsuleRadius();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetCapsuleRadius`. Entity is null");
+			return 0.0;
+		}
+	}
+
+	void Script::Eagle_CharacterControllerComponent_SetCapsuleHeight(GUID id, float value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			entity.GetComponent<CharacterControllerComponent>().SetCapsuleHeight(value);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetCapsuleHeight`. Entity is null");
+		}
+	}
+
+	float Script::Eagle_CharacterControllerComponent_GetCapsuleHeight(GUID id)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			return entity.GetComponent<CharacterControllerComponent>().GetCapsuleHeight();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetCapsuleHeight`. Entity is null");
+			return 0.0;
+		}
+	}
+
+	void Script::Eagle_CharacterControllerComponent_SetBoxSize(GUID id, const glm::vec3* value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			entity.GetComponent<CharacterControllerComponent>().SetBoxSize(*value);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetBoxSize`. Entity is null");
+		}
+	}
+
+	void Script::Eagle_CharacterControllerComponent_GetBoxSize(GUID id, glm::vec3* value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			*value = entity.GetComponent<CharacterControllerComponent>().GetBoxSize();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetBoxSize`. Entity is null");
+			*value = glm::vec3(0);
+		}
+	}
+
+	void Script::Eagle_CharacterControllerComponent_GetControllerWorldLocation(GUID id, glm::vec3* value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			*value = entity.GetComponent<CharacterControllerComponent>().GetControllerWorldLocation();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetControllerWorldLocation`. Entity is null");
+			*value = glm::vec3(0);
+		}
+	}
+
+	void Script::Eagle_CharacterControllerComponent_GetControllerFootWorldLocation(GUID id, glm::vec3* value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			*value = entity.GetComponent<CharacterControllerComponent>().GetControllerFootWorldLocation();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetControllerFootWorldLocation`. Entity is null");
+			*value = glm::vec3(0);
+		}
+	}
+
+	void Script::Eagle_CharacterControllerComponent_SetShowCollision(GUID id, bool value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			entity.GetComponent<CharacterControllerComponent>().SetShowCollision(value);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetShowCollision`. Entity is null");
+		}
+	}
+
+	bool Script::Eagle_CharacterControllerComponent_IsCollisionVisible(GUID id)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			return entity.GetComponent<CharacterControllerComponent>().IsCollisionVisible();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsCollisionVisible`. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_CharacterControllerComponent_SetCollisionGroup(GUID id, CollisionGroup value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			entity.GetComponent<CharacterControllerComponent>().SetCollisionGroup(value);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetCollisionGroup`. Entity is null");
+		}
+	}
+
+	CollisionGroup Script::Eagle_CharacterControllerComponent_GetCollisionGroup(GUID id)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			return entity.GetComponent<CharacterControllerComponent>().GetCollisionGroup();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetCollisionGroup`. Entity is null");
+			return CollisionGroup::Object;
+		}
+	}
+
+	void Script::Eagle_CharacterControllerComponent_SetInteractingCollisionGroup(GUID id, CollisionGroup value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			entity.GetComponent<CharacterControllerComponent>().SetInteractingCollisionGroup(value);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetInteractingCollisionGroup`. Entity is null");
+		}
+	}
+
+	CollisionGroup Script::Eagle_CharacterControllerComponent_GetInteractingCollisionGroup(GUID id)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			return entity.GetComponent<CharacterControllerComponent>().GetInteractingCollisionGroup();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetInteractingCollisionGroup`. Entity is null");
+			return CollisionGroup::Object;
+		}
+	}
+
+	void Script::Eagle_CharacterControllerComponent_SetDoesCollideWithOtherControllers(GUID id, bool value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			entity.GetComponent<CharacterControllerComponent>().SetDoesCollideWithOtherControllers(value);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetDoesCollideWithOtherControllers`. Entity is null");
+		}
+	}
+
+	bool Script::Eagle_CharacterControllerComponent_DoesCollideWithOtherControllers(GUID id)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			return entity.GetComponent<CharacterControllerComponent>().DoesCollideWithOtherControllers();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `DoesCollideWithOtherControllers`. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_CharacterControllerComponent_SetMoveWholeEntity(GUID id, bool value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			entity.GetComponent<CharacterControllerComponent>().bMoveWholeEntity = value;
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set `bMoveWholeEntity`. Entity is null");
+		}
+	}
+
+	bool Script::Eagle_CharacterControllerComponent_GetMoveWholeEntity(GUID id)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			return entity.GetComponent<CharacterControllerComponent>().bMoveWholeEntity;
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetMoveWholeEntity`. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_CharacterControllerComponent_SetUseFootLocation(GUID id, bool value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			entity.GetComponent<CharacterControllerComponent>().bUseFootLocation = value;
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set `bUseFootLocation`. Entity is null");
+		}
+	}
+
+	bool Script::Eagle_CharacterControllerComponent_GetUseFootLocation(GUID id)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			return entity.GetComponent<CharacterControllerComponent>().bUseFootLocation;
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetUseFootLocation`. Entity is null");
+			return false;
+		}
+	}
+
 	//--------------BaseColliderComponent--------------
 	void Script::Eagle_BaseColliderComponent_SetCollisionGroup(GUID entityID, void* type, CollisionGroup groups)
 	{

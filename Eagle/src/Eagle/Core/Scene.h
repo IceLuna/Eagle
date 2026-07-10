@@ -27,6 +27,7 @@ namespace Eagle
 	class SkeletalMeshComponent;
 	class ReverbComponent;
 	class NavigationMeshComponent;
+	class CharacterControllerComponent;
 	class Sound2D;
 	class AssetAudio;
 	class AssetEntity;
@@ -364,6 +365,7 @@ namespace Eagle
 		void OnReverbRemoved(entt::registry& r, entt::entity e);
 		void OnDirectionalLightAdded(entt::registry& r, entt::entity e);
 		void OnDirectionalLightRemoved(entt::registry& r, entt::entity e);
+		void OnCharacterControllerRemoved(entt::registry& r, entt::entity e);
 
 		// T - is component type
 		template<typename T>
@@ -463,6 +465,21 @@ namespace Eagle
 					else
 					{
 						m_DirLightsDebugDirection.erase(component.Parent.GetID());
+					}
+				}
+			}
+
+			if constexpr (std::is_base_of<CharacterControllerComponent, T>::value)
+			{
+				if (notification == Notification::OnDebugStateChanged)
+				{
+					if (component.IsCollisionVisible())
+					{
+						m_CharacterControllerDebug.emplace(component.Parent.GetID());
+					}
+					else
+					{
+						m_CharacterControllerDebug.erase(component.Parent.GetID());
 					}
 				}
 			}
@@ -660,6 +677,7 @@ namespace Eagle
 		std::unordered_set<uint32_t> m_PointLightsDebugRadii;
 		std::unordered_set<uint32_t> m_SpotLightsDebugRadii;
 		std::unordered_set<uint32_t> m_DirLightsDebugDirection;
+		std::unordered_set<uint32_t> m_CharacterControllerDebug;
 		std::unordered_set<uint32_t> m_ReverbDebugBoxes;
 		std::unordered_set<uint32_t> m_DebugCameras;
 

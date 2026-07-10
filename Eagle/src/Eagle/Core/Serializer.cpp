@@ -1922,6 +1922,35 @@ namespace Eagle
 			out << YAML::EndMap; //RigidBodyComponent
 		}
 
+		if (entity.HasComponent<CharacterControllerComponent>())
+		{
+			auto& component = entity.GetComponent<CharacterControllerComponent>();
+
+			out << YAML::Key << "CharacterControllerComponent";
+			out << YAML::BeginMap; //CharacterControllerComponent
+
+			SerializeRelativeTransform(out, component.GetRelativeTransform());
+
+			out << YAML::Key << "SlopeLimit" << YAML::Value << component.GetSlopeLimit();
+			out << YAML::Key << "ContactOffset" << YAML::Value << component.GetContactOffset();
+			out << YAML::Key << "StepOffset" << YAML::Value << component.GetStepOffset();
+			if (const auto& material = component.GetPhysicsMaterialAsset())
+				out << YAML::Key << "PhysicsMaterial" << YAML::Value << material->GetGUID();
+			out << YAML::Key << "Shape" << YAML::Value << Utils::GetEnumName(component.GetShapeType());
+			out << YAML::Key << "ClimbingMode" << YAML::Value << Utils::GetEnumName(component.GetCapsuleClimbingMode());
+			out << YAML::Key << "CapsuleRadius" << YAML::Value << component.GetCapsuleRadius();
+			out << YAML::Key << "CapsuleHeight" << YAML::Value << component.GetCapsuleHeight();
+			out << YAML::Key << "BoxSize" << YAML::Value << component.GetBoxSize();
+			out << YAML::Key << "IsCollisionVisible" << YAML::Value << component.IsCollisionVisible();
+			out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(component.GetCollisionGroup());
+			out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(component.GetInteractingCollisionGroup());
+			out << YAML::Key << "CollidesWithOtherControllers" << YAML::Value << component.DoesCollideWithOtherControllers();
+			out << YAML::Key << "bMoveWholeEntity" << YAML::Value << component.bMoveWholeEntity;
+			out << YAML::Key << "bUseFootLocation" << YAML::Value << component.bUseFootLocation;
+
+			out << YAML::EndMap; //CharacterControllerComponent
+		}
+
 		if (entity.HasComponent<BoxColliderComponent>())
 		{
 			auto& collider = entity.GetComponent<BoxColliderComponent>();
@@ -2604,6 +2633,35 @@ namespace Eagle
 				collider.SetCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
 			if (auto node = boxColliderNode["InteractingCollisionGroupMask"])
 				collider.SetInteractingCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
+		}
+
+		if (auto ccNode = entityNode["CharacterControllerComponent"])
+		{
+			auto& component = deserializedEntity.AddComponent<CharacterControllerComponent>();
+
+			Transform relativeTransform;
+			DeserializeRelativeTransform(ccNode, relativeTransform);
+			component.SetRelativeTransform(relativeTransform);
+
+			component.SetSlopeLimit(ccNode["SlopeLimit"].as<float>());
+			component.SetContactOffset(ccNode["ContactOffset"].as<float>());
+			component.SetStepOffset(ccNode["StepOffset"].as<float>());
+			component.SetPhysicsMaterialAsset(GetAsset<AssetPhysicsMaterial>(ccNode["PhysicsMaterial"]));
+			component.SetShapeType(Utils::GetEnumFromName<CharacterControllerShape>(ccNode["Shape"].as<std::string>()));
+			component.SetCapsuleClimbingMode(Utils::GetEnumFromName<CapsuleClimbingMode>(ccNode["ClimbingMode"].as<std::string>()));
+			component.SetCapsuleRadius(ccNode["CapsuleRadius"].as<float>());
+			component.SetCapsuleHeight(ccNode["CapsuleHeight"].as<float>());
+			component.SetBoxSize(ccNode["BoxSize"].as<glm::vec3>());
+			component.SetShowCollision(ccNode["IsCollisionVisible"].as<bool>());
+			component.SetDoesCollideWithOtherControllers(ccNode["CollidesWithOtherControllers"].as<bool>());
+			if (auto node = ccNode["CollisionGroupMask"])
+				component.SetCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
+			if (auto node = ccNode["InteractingCollisionGroupMask"])
+				component.SetInteractingCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
+			if (auto node = ccNode["bMoveWholeEntity"])
+				component.bMoveWholeEntity = node.as<bool>();
+			if (auto node = ccNode["bUseFootLocation"])
+				component.bUseFootLocation = node.as<bool>();
 		}
 
 		if (auto sphereColliderNode = entityNode["SphereColliderComponent"])

@@ -50,6 +50,17 @@ namespace Eagle
 		"objects closer to the correct value given the restitution.";
 	static const char* s_CollisionDetectionTypeHelpMsg = "When continuous collision detection (or CCD) is turned on, the affected rigid bodies will not go through other objects at high velocities (a problem also known as tunnelling). "
 		"A cheaper but less robust approach is called speculative CCD";
+	static const char* s_SlopeLimitHelpMsg = "The maximum slope which the character can walk up.In general it is desirable to limit where the character can walk, in particular it is unrealistic "
+		"for the character to be able to climb arbitary slopes. A value of 0 disables this feature";
+	static const char* s_StepOffsetHelpMsg = "Defines the maximum height of an obstacle which the character can climb. "
+		"A small value will mean that the character gets stuck and cannot walk up stairs etc, a value which is too large will mean that the character can climb over unrealistically high obstacles.";
+	static const char* s_CollidesWithOtherControllersHelpMsg = "If enabled, controller vs controller collisions will be resolved using collision groups. "
+		"Otherwise, controllers won't collide with each other";
+	static const char* s_MoveWholeEntityHelpMsg = "If enabled, the result of `Move` call will be applied to the parent entity.Otherwise, to this component only";
+	static const char* s_UseFootLocationHelpMsg = "If enabled, foot location (i.e.the position of the bottom of the shape, takes the contact offset into account) will be used as a result of the move operation. "
+		"Otherwise, shape's center location will be used.";
+	static const char* s_CapsuleClimbModeHelpMsg = "Easy - let the capsule climb over surfaces according to impact normal.\n"
+		"Constrained - try to limit climbing according to the step offset.";
 
 	bool EntityPropertiesPanel::OnImGuiRender(Entity entity, bool bRuntime, bool bVolumetricsEnabled)
 	{
@@ -86,6 +97,7 @@ namespace Eagle
 		case SelectedComponent::PointLightComponent: return &m_Entity.GetComponent<PointLightComponent>();
 		case SelectedComponent::DirectionalLightComponent: return &m_Entity.GetComponent<DirectionalLightComponent>();
 		case SelectedComponent::SpotLightComponent: return &m_Entity.GetComponent<SpotLightComponent>();
+		case SelectedComponent::CharacterControllerComponent: return &m_Entity.GetComponent<CharacterControllerComponent>();
 		case SelectedComponent::BoxColliderComponent: return &m_Entity.GetComponent<BoxColliderComponent>();
 		case SelectedComponent::SphereColliderComponent: return &m_Entity.GetComponent<SphereColliderComponent>();
 		case SelectedComponent::CapsuleColliderComponent: return &m_Entity.GetComponent<CapsuleColliderComponent>();
@@ -117,6 +129,7 @@ namespace Eagle
 			case SelectedComponent::DirectionalLightComponent: return m_Entity.HasComponent<DirectionalLightComponent>();
 			case SelectedComponent::SpotLightComponent: return m_Entity.HasComponent<SpotLightComponent>();
 			case SelectedComponent::ScriptComponent: return m_Entity.HasComponent<ScriptComponent>();
+			case SelectedComponent::CharacterControllerComponent: return m_Entity.HasComponent<CharacterControllerComponent>();
 			case SelectedComponent::RigidBodyComponent: return m_Entity.HasComponent<RigidBodyComponent>();
 			case SelectedComponent::BoxColliderComponent: return m_Entity.HasComponent<BoxColliderComponent>();
 			case SelectedComponent::SphereColliderComponent: return m_Entity.HasComponent<SphereColliderComponent>();
@@ -182,6 +195,7 @@ namespace Eagle
 			EG_ADD_COMPONENT_MENU_ITEM(ReverbComponent, "Reverb");
 
 			UI::TextWithSeparator("Physics");
+			EG_ADD_COMPONENT_MENU_ITEM(CharacterControllerComponent, "Character Controller");
 			EG_ADD_COMPONENT_MENU_ITEM(RigidBodyComponent, "Rigid Body");
 			EG_ADD_COMPONENT_MENU_ITEM(BoxColliderComponent, "Box Collider");
 			EG_ADD_COMPONENT_MENU_ITEM(SphereColliderComponent, "Sphere Collider");
@@ -235,6 +249,7 @@ namespace Eagle
 				EG_DRAW_COMPONENT_LINE("C# Script", ScriptComponent, SelectedComponent::ScriptComponent);
 				EG_DRAW_COMPONENT_LINE("Audio", AudioComponent, SelectedComponent::AudioComponent);
 				EG_DRAW_COMPONENT_LINE("Reverb", ReverbComponent, SelectedComponent::ReverbComponent);
+				EG_DRAW_COMPONENT_LINE("Character Controller", CharacterControllerComponent, SelectedComponent::CharacterControllerComponent);
 				EG_DRAW_COMPONENT_LINE_EX("Rigid Body", RigidBodyComponent, SelectedComponent::RigidBodyComponent, bCanRemoveRigidBody);
 				EG_DRAW_COMPONENT_LINE("Box Collider", BoxColliderComponent, SelectedComponent::BoxColliderComponent);
 				EG_DRAW_COMPONENT_LINE("Sphere Collider", SphereColliderComponent, SelectedComponent::SphereColliderComponent);
@@ -1208,6 +1223,130 @@ namespace Eagle
 				break;
 			}
 		
+			case SelectedComponent::CharacterControllerComponent:
+			{
+				DrawComponentTransformNode(entity, entity.GetComponent<CharacterControllerComponent>());
+				DrawComponent<CharacterControllerComponent>("Character Contoller", entity, [&entity, this](CharacterControllerComponent& component)
+				{
+					UI::BeginPropertyGrid("CharacterControllerComponent");
+
+					Ref<AssetPhysicsMaterial> materialAsset = component.GetPhysicsMaterialAsset();
+					bool bShowCollision = component.IsCollisionVisible();
+					bool bCollidesWithOtherControllers = component.DoesCollideWithOtherControllers();
+					uint32_t collisionGroup = (uint32_t)component.GetCollisionGroup();
+					uint32_t interactingCollisionGroup = (uint32_t)component.GetInteractingCollisionGroup();
+					const auto& collisionGroups = Project::GetAllCollisionGroups();
+					float slopeLimit = component.GetSlopeLimit();
+					float contactOffset = component.GetContactOffset();
+					float stepOffset = component.GetStepOffset();
+					CharacterControllerShape shape = component.GetShapeType();
+					CapsuleClimbingMode climbingMode = component.GetCapsuleClimbingMode();
+					float capsuleRadius = component.GetCapsuleRadius();
+					float capsuleHeight = component.GetCapsuleHeight();
+					glm::vec3 boxSize = component.GetBoxSize();
+
+					if (UI::ComboEnum("Shape", shape))
+					{
+						component.SetShapeType(shape);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Collides with other controllers", bCollidesWithOtherControllers, s_CollidesWithOtherControllersHelpMsg))
+					{
+						component.SetDoesCollideWithOtherControllers(bCollidesWithOtherControllers);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Move Whole Entity", component.bMoveWholeEntity, s_MoveWholeEntityHelpMsg))
+					{
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Use Foot Location", component.bUseFootLocation, s_UseFootLocationHelpMsg))
+					{
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Is Collision Visible", bShowCollision))
+					{
+						component.SetShowCollision(bShowCollision);
+						bEntityChanged = true;
+					}
+
+					ImGui::Separator();
+
+					if (EditorResources::DrawAssetSelection("Physics Material", materialAsset))
+					{
+						component.SetPhysicsMaterialAsset(materialAsset);
+						bEntityChanged = true;
+					}
+
+					if (UI::PropertyDrag("Slope Limit", slopeLimit, 1, 0, 90, s_SlopeLimitHelpMsg))
+					{
+						component.SetSlopeLimit(slopeLimit);
+						bEntityChanged = true;
+					}
+
+					if (UI::PropertyDrag("Contact Offset", contactOffset, 0.01f, 0, FLT_MAX, "How close it can get to geometry before physics engine starts pushing it away"))
+					{
+						component.SetContactOffset(contactOffset);
+						bEntityChanged = true;
+					}
+
+					if (UI::PropertyDrag("Step Offset", stepOffset, 0.01f, 0, FLT_MAX, s_StepOffsetHelpMsg))
+					{
+						component.SetStepOffset(stepOffset);
+						bEntityChanged = true;
+					}
+
+					ImGui::Separator();
+
+					if (UI::ComboEnum("Capsule Climbing Mode", climbingMode, s_CapsuleClimbModeHelpMsg))
+					{
+						component.SetCapsuleClimbingMode(climbingMode);
+						bEntityChanged = true;
+					}
+
+					if (UI::PropertyDrag("Capsule Radius", capsuleRadius, 0.01f, 0, FLT_MAX))
+					{
+						component.SetCapsuleRadius(capsuleRadius);
+						bEntityChanged = true;
+					}
+
+					if (UI::PropertyDrag("Capsule Height", capsuleHeight, 0.01f, 0, FLT_MAX))
+					{
+						component.SetCapsuleHeight(capsuleHeight);
+						bEntityChanged = true;
+					}
+
+					ImGui::Separator();
+
+					if (UI::PropertyDrag("Box Size", boxSize, 0.01f))
+					{
+						component.SetBoxSize(boxSize);
+						bEntityChanged = true;
+					}
+
+					constexpr float thickness = 2.5f;
+					UI::TextWithSeparator("Collision Groups", thickness, "Collision groups it belongs to");
+					if (UI::PropertyBitMask("Collision Groups", collisionGroup, collisionGroups))
+					{
+						component.SetCollisionGroup(CollisionGroup(collisionGroup));
+						bEntityChanged = true;
+					}
+
+					UI::TextWithSeparator("Interacting Collision Groups", thickness, "Collision groups it can interact with");
+					if (UI::PropertyBitMask("Interacting Collision Groups", interactingCollisionGroup, collisionGroups))
+					{
+						component.SetInteractingCollisionGroup(CollisionGroup(interactingCollisionGroup));
+						bEntityChanged = true;
+					}
+
+					UI::EndPropertyGrid();
+				});
+				break;
+			}
+
 			case SelectedComponent::RigidBodyComponent:
 			{
 				bool bCanRemove = !entity.HasAny<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, MeshColliderComponent>();
