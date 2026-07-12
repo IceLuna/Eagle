@@ -25,6 +25,18 @@ namespace Eagle
 		constexpr float s_PI = glm::pi<float>();
 		constexpr float s_2PI = 2.f * s_PI;
 
+		// Builds an orthonormal basis (right, up, forward) from an arbitrary up vector
+		void BuildBasisFromUp(const glm::vec3& up, glm::vec3& outRight, glm::vec3& outUp, glm::vec3& outForward)
+		{
+			outUp = glm::normalize(up);
+
+			// Pick a reference axis unlikely to be parallel to up
+			glm::vec3 reference = (glm::abs(outUp.y) < 0.999f) ? glm::vec3(0.f, 1.f, 0.f) : glm::vec3(1.f, 0.f, 0.f);
+
+			outRight = glm::normalize(glm::cross(reference, outUp));
+			outForward = glm::cross(outUp, outRight);
+		}
+
 		void DrawSphere(std::vector<RendererLine>& buffer, const glm::vec3& center, const glm::vec3& color, float radius)
 		{
 			for (uint32_t i = 0; i < s_SphereLinesCount; ++i)
@@ -457,10 +469,15 @@ namespace Eagle
 
 		// Draws a capsule oriented along the up-axis (Y), consistent with PxControllerDesc::upDirection = (0,1,0)
 		// 'radius' and 'halfHeight' should already include contact offset where relevant (see DrawCCTCapsule below)
-		void DrawCapsule_CCT(std::vector<RendererLine>& buffer, const glm::vec3& center, const glm::vec3& color, float radius, float halfHeight)
+		void DrawCapsule_CCT(std::vector<RendererLine>& buffer, const glm::vec3& center, const glm::vec3& up, float radius, float halfHeight)
 		{
-			const glm::vec3 topCenter = center + glm::vec3(0.f, halfHeight, 0.f);
-			const glm::vec3 bottomCenter = center - glm::vec3(0.f, halfHeight, 0.f);
+			constexpr glm::vec3 color = glm::vec3(0, 1, 0);
+
+			glm::vec3 right, upAxis, forward;
+			BuildBasisFromUp(up, right, upAxis, forward);
+
+			const glm::vec3 topCenter = center + upAxis * halfHeight;
+			const glm::vec3 bottomCenter = center - upAxis * halfHeight;
 
 			for (uint32_t i = 0; i < s_SphereLinesCount; ++i)
 			{
@@ -471,65 +488,63 @@ namespace Eagle
 				const float sinAngle1 = glm::sin(angle1);
 				const float sinAngle2 = glm::sin(angle2);
 
-				// Equatorial ring for the top hemisphere / cylinder top edge (XZ plane)
+				// Equatorial rings (in the right/forward plane, perpendicular to up)
 				{
 					auto& line = buffer.emplace_back();
-					line.Start.Location = topCenter + radius * glm::vec3(cosAngle1, 0.f, sinAngle1);
-					line.End.Location = topCenter + radius * glm::vec3(cosAngle2, 0.f, sinAngle2);
+					line.Start.Location = topCenter + radius * (cosAngle1 * right + sinAngle1 * forward);
+					line.End.Location = topCenter + radius * (cosAngle2 * right + sinAngle2 * forward);
+					line.Start.Color = color;
+					line.End.Color = color;
+				}
+				{
+					auto& line = buffer.emplace_back();
+					line.Start.Location = bottomCenter + radius * (cosAngle1 * right + sinAngle1 * forward);
+					line.End.Location = bottomCenter + radius * (cosAngle2 * right + sinAngle2 * forward);
 					line.Start.Color = color;
 					line.End.Color = color;
 				}
 
-				// Equatorial ring for the bottom hemisphere / cylinder bottom edge (XZ plane)
-				{
-					auto& line = buffer.emplace_back();
-					line.Start.Location = bottomCenter + radius * glm::vec3(cosAngle1, 0.f, sinAngle1);
-					line.End.Location = bottomCenter + radius * glm::vec3(cosAngle2, 0.f, sinAngle2);
-					line.Start.Color = color;
-					line.End.Color = color;
-				}
-
-				// Top hemisphere, XY arc (only upper half, angle in [0, PI])
+				// Top hemisphere arcs (right/up plane and forward/up plane, upper half only)
 				{
 					const float a1 = (float(i) / s_SphereLinesCount) * s_PI;
 					const float a2 = (float(i + 1) / s_SphereLinesCount) * s_PI;
 					auto& line = buffer.emplace_back();
-					line.Start.Location = topCenter + radius * glm::vec3(glm::cos(a1), glm::sin(a1), 0.f);
-					line.End.Location = topCenter + radius * glm::vec3(glm::cos(a2), glm::sin(a2), 0.f);
+					line.Start.Location = topCenter + radius * (glm::cos(a1) * right + glm::sin(a1) * upAxis);
+					line.End.Location = topCenter + radius * (glm::cos(a2) * right + glm::sin(a2) * upAxis);
 					line.Start.Color = color;
 					line.End.Color = color;
 
 					auto& line2 = buffer.emplace_back();
-					line2.Start.Location = topCenter + radius * glm::vec3(0.f, glm::sin(a1), glm::cos(a1));
-					line2.End.Location = topCenter + radius * glm::vec3(0.f, glm::sin(a2), glm::cos(a2));
+					line2.Start.Location = topCenter + radius * (glm::sin(a1) * upAxis + glm::cos(a1) * forward);
+					line2.End.Location = topCenter + radius * (glm::sin(a2) * upAxis + glm::cos(a2) * forward);
 					line2.Start.Color = color;
 					line2.End.Color = color;
 				}
 
-				// Bottom hemisphere, XY arc (only lower half, angle in [PI, 2*PI])
+				// Bottom hemisphere arcs (lower half only)
 				{
 					const float a1 = s_PI + (float(i) / s_SphereLinesCount) * s_PI;
 					const float a2 = s_PI + (float(i + 1) / s_SphereLinesCount) * s_PI;
 					auto& line = buffer.emplace_back();
-					line.Start.Location = bottomCenter + radius * glm::vec3(glm::cos(a1), glm::sin(a1), 0.f);
-					line.End.Location = bottomCenter + radius * glm::vec3(glm::cos(a2), glm::sin(a2), 0.f);
+					line.Start.Location = bottomCenter + radius * (glm::cos(a1) * right + glm::sin(a1) * upAxis);
+					line.End.Location = bottomCenter + radius * (glm::cos(a2) * right + glm::sin(a2) * upAxis);
 					line.Start.Color = color;
 					line.End.Color = color;
 
 					auto& line2 = buffer.emplace_back();
-					line2.Start.Location = bottomCenter + radius * glm::vec3(0.f, glm::sin(a1), glm::cos(a1));
-					line2.End.Location = bottomCenter + radius * glm::vec3(0.f, glm::sin(a2), glm::cos(a2));
+					line2.Start.Location = bottomCenter + radius * (glm::sin(a1) * upAxis + glm::cos(a1) * forward);
+					line2.End.Location = bottomCenter + radius * (glm::sin(a2) * upAxis + glm::cos(a2) * forward);
 					line2.Start.Color = color;
 					line2.End.Color = color;
 				}
 			}
 
-			// 4 vertical side lines connecting the two equatorial rings (the cylinder body)
+			// Vertical side lines connecting the two rings (the cylinder body)
 			constexpr int sideCount = 4;
 			for (int i = 0; i < sideCount; ++i)
 			{
 				const float angle = (float(i) / sideCount) * s_2PI;
-				const glm::vec3 offset = radius * glm::vec3(glm::cos(angle), 0.f, glm::sin(angle));
+				const glm::vec3 offset = radius * (glm::cos(angle) * right + glm::sin(angle) * forward);
 				auto& line = buffer.emplace_back();
 				line.Start.Location = topCenter + offset;
 				line.End.Location = bottomCenter + offset;
@@ -539,18 +554,23 @@ namespace Eagle
 		}
 
 		// Draws a box, half extents given directly (already inflated by contact offset where relevant)
-		void DrawBox_CCT(std::vector<RendererLine>& buffer, const glm::vec3& center, const glm::vec3& color, const glm::vec3& halfExtent)
+		void DrawBox_CCT(std::vector<RendererLine>& buffer, const glm::vec3& center, const glm::vec3& up, const glm::vec3& halfExtent)
 		{
+			constexpr glm::vec3 color = glm::vec3(0, 1, 0);
+
+			glm::vec3 right, upAxis, forward;
+			BuildBasisFromUp(up, right, upAxis, forward);
+
 			const glm::vec3 corners[8] =
 			{
-				center + glm::vec3(-halfExtent.x, -halfExtent.y, -halfExtent.z),
-				center + glm::vec3(halfExtent.x, -halfExtent.y, -halfExtent.z),
-				center + glm::vec3(halfExtent.x, -halfExtent.y,  halfExtent.z),
-				center + glm::vec3(-halfExtent.x, -halfExtent.y,  halfExtent.z),
-				center + glm::vec3(-halfExtent.x,  halfExtent.y, -halfExtent.z),
-				center + glm::vec3(halfExtent.x,  halfExtent.y, -halfExtent.z),
-				center + glm::vec3(halfExtent.x,  halfExtent.y,  halfExtent.z),
-				center + glm::vec3(-halfExtent.x,  halfExtent.y,  halfExtent.z),
+				center - right * halfExtent.x - upAxis * halfExtent.y - forward * halfExtent.z,
+				center + right * halfExtent.x - upAxis * halfExtent.y - forward * halfExtent.z,
+				center + right * halfExtent.x - upAxis * halfExtent.y + forward * halfExtent.z,
+				center - right * halfExtent.x - upAxis * halfExtent.y + forward * halfExtent.z,
+				center - right * halfExtent.x + upAxis * halfExtent.y - forward * halfExtent.z,
+				center + right * halfExtent.x + upAxis * halfExtent.y - forward * halfExtent.z,
+				center + right * halfExtent.x + upAxis * halfExtent.y + forward * halfExtent.z,
+				center - right * halfExtent.x + upAxis * halfExtent.y + forward * halfExtent.z,
 			};
 
 			constexpr int edges[12][2] =
@@ -572,7 +592,7 @@ namespace Eagle
 
 		// Convenience wrappers that pull the right numbers straight from the controller,
 		// including contact offset inflation, so the debug draw matches what PhysX is actually colliding against.
-		void DrawCCTCapsule(std::vector<RendererLine>& buffer, const CharacterControllerComponent& controller, const glm::vec3& color)
+		void DrawCCTCapsule(std::vector<RendererLine>& buffer, const CharacterControllerComponent& controller)
 		{
 			const glm::vec3 center = controller.GetControllerWorldLocation();
 
@@ -580,27 +600,31 @@ namespace Eagle
 			const float radius = controller.GetScaledCapsuleRadius() + contactOffset;
 			const float halfHeight = controller.GetScaledCapsuleHeight() * 0.5f;
 
-			DrawCapsule_CCT(buffer, center, color, radius, halfHeight);
+			DrawCapsule_CCT(buffer, center, controller.GetControllerUpDirection(), radius, halfHeight);
 		}
 
-		void DrawCCTBox(std::vector<RendererLine>& buffer, const CharacterControllerComponent& controller, const glm::vec3& color)
+		void DrawCCTBox(std::vector<RendererLine>& buffer, const CharacterControllerComponent& controller)
 		{
 			const glm::vec3 center = controller.GetControllerWorldLocation();
 
 			const float contactOffset = controller.GetContactOffset();
 			const glm::vec3 halfExtent = (controller.GetScaledBoxSize() * 0.5f) + contactOffset;
-			DrawBox_CCT(buffer, center, color, halfExtent);
+
+			const glm::vec3 upDir = controller.GetControllerUpDirection();
+			const glm::vec3 up = glm::length2(upDir) < 1e-5 ? glm::vec3(0, 1, 0) : glm::normalize(upDir);
+
+			DrawBox_CCT(buffer, center, up, halfExtent);
 		}
 
-		void DrawCCT(std::vector<RendererLine>& buffer, const CharacterControllerComponent& controller, const glm::vec3& color)
+		void DrawCCT(std::vector<RendererLine>& buffer, const CharacterControllerComponent& controller)
 		{
 			switch (controller.GetShapeType())
 			{
 			case CharacterControllerShape::Box:
-				Utils::DrawCCTBox(buffer, controller, glm::vec3(0, 1, 0));
+				Utils::DrawCCTBox(buffer, controller);
 				break;
 			case CharacterControllerShape::Capsule:
-				Utils::DrawCCTCapsule(buffer, controller, glm::vec3(0, 1, 0));
+				Utils::DrawCCTCapsule(buffer, controller);
 				break;
 			default:
 				EG_CORE_ASSERT(!"Unknown type");
@@ -1734,7 +1758,7 @@ namespace Eagle
 					for (auto entity : view)
 					{
 						auto& component = view.get<CharacterControllerComponent>(entity);
-						Utils::DrawCCT(m_DebugLinesToDraw, component, glm::vec3(0, 1, 0));
+						Utils::DrawCCT(m_DebugLinesToDraw, component);
 					}
 				}
 				else
@@ -1744,7 +1768,7 @@ namespace Eagle
 						Entity entity((entt::entity)entID, this);
 						if (!entity.HasComponent<CharacterControllerComponent>())
 							return;
-						Utils::DrawCCT(m_DebugLinesToDraw, entity.GetComponent<CharacterControllerComponent>(), glm::vec3(0, 1, 0));
+						Utils::DrawCCT(m_DebugLinesToDraw, entity.GetComponent<CharacterControllerComponent>());
 					}
 				}
 			}

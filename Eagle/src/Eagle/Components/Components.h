@@ -1347,8 +1347,13 @@ namespace Eagle
 		float GetScaledCapsuleRadius() const;
 		float GetScaledCapsuleHeight() const;
 
+		// Since controller doesn't react to rotations, use these to rotate it
+		// `upDir` should be normalized
+		void SetControllerUpDirection(const glm::vec3& upDir);
+		const glm::vec3& GetControllerUpDirection() const;
+
 	private:
-		void UpdateTransform();
+		void UpdateTransform(bool bUseFoot);
 
 	public:
 		bool bMoveWholeEntity = true; // If enabled, the result of `Move` call will be applied to the parent entity. Otherwise, to this component only

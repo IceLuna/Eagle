@@ -602,6 +602,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.CharacterControllerComponent::GetCollisionGroup_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetCollisionGroup);
 		mono_add_internal_call("Eagle.CharacterControllerComponent::SetInteractingCollisionGroup_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetInteractingCollisionGroup);
 		mono_add_internal_call("Eagle.CharacterControllerComponent::GetInteractingCollisionGroup_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetInteractingCollisionGroup);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::SetControllerUpDirection_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetControllerUpDirection);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::GetControllerUpDirection_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetControllerUpDirection);
 		mono_add_internal_call("Eagle.CharacterControllerComponent::SetDoesCollideWithOtherControllers_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetDoesCollideWithOtherControllers);
 		mono_add_internal_call("Eagle.CharacterControllerComponent::DoesCollideWithOtherControllers_Native", Eagle::Script::Eagle_CharacterControllerComponent_DoesCollideWithOtherControllers);
 		mono_add_internal_call("Eagle.CharacterControllerComponent::SetMoveWholeEntity_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetMoveWholeEntity);

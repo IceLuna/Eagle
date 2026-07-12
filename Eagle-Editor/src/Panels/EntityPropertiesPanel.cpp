@@ -1244,6 +1244,7 @@ namespace Eagle
 					float capsuleRadius = component.GetCapsuleRadius();
 					float capsuleHeight = component.GetCapsuleHeight();
 					glm::vec3 boxSize = component.GetBoxSize();
+					glm::vec3 upDir = component.GetControllerUpDirection();
 
 					if (UI::ComboEnum("Shape", shape))
 					{
@@ -1297,6 +1298,22 @@ namespace Eagle
 					{
 						component.SetStepOffset(stepOffset);
 						bEntityChanged = true;
+					}
+
+					if (UI::PropertyCustom("Up Direction", [&upDir](const char* idBuffer) -> bool
+						{
+							bool bChanged = false;
+							bChanged |= ImGui::DragFloat3(idBuffer, &upDir.x, 0.01f, -1.0f, 1.0f);
+							ImGui::SameLine();
+							if (ImGui::Button("Unit"))
+							{
+								upDir = glm::length2(upDir) < 1e-5 ? glm::vec3(0, 1, 0) : glm::normalize(upDir);
+								bChanged = true;
+							}
+							return bChanged;
+						}, "Since controller doesn't react to rotations, use `up` direction to rotate it"))
+					{
+						component.SetControllerUpDirection(upDir);
 					}
 
 					ImGui::Separator();

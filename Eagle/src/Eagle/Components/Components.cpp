@@ -217,8 +217,6 @@ namespace Eagle
 		if (this == &other)
 			return *this;
 
-		SceneComponent::operator=(other);
-
 		SetSlopeLimit(other.GetSlopeLimit());
 		SetContactOffset(other.GetContactOffset());
 		SetStepOffset(other.GetStepOffset());
@@ -232,9 +230,14 @@ namespace Eagle
 		SetInteractingCollisionGroup(other.GetInteractingCollisionGroup());
 		SetShowCollision(other.IsCollisionVisible());
 		SetDoesCollideWithOtherControllers(other.DoesCollideWithOtherControllers());
+		SetControllerUpDirection(other.GetControllerUpDirection());
 		bMoveWholeEntity = other.bMoveWholeEntity;
 		bUseFootLocation = other.bUseFootLocation;
-		UpdateTransform();
+
+		// Needs to be last because other function calls can adjust the location,
+		// but we want it to match exactly
+		SceneComponent::operator=(other);
+		UpdateTransform(false);
 
 		return *this;
 	}
@@ -350,14 +353,52 @@ namespace Eagle
 
 	void CharacterControllerComponent::SetWorldTransform(const Transform& worldTransform)
 	{
-		SceneComponent::SetWorldTransform(worldTransform);
-		UpdateTransform();
+		// Rotation is not supported.
+		Transform tr = worldTransform;
+		tr.Rotation = Rotator{};
+
+		const bool bTransformChanged = tr != WorldTransform;
+
+		// Same as SceneComponent::SetWorldTransform, but it ignores rotations
+		{
+			const auto& parentWorldTransform = Parent.GetWorldTransform();
+			WorldTransform = tr;
+
+			RelativeTransform.Location = WorldTransform.Location - parentWorldTransform.Location;
+			RelativeTransform.Scale3D = WorldTransform.Scale3D / parentWorldTransform.Scale3D;
+
+			RelativeTransform.Location /= parentWorldTransform.Scale3D; // Undo parent's scaling
+		}
+
+		if (bTransformChanged)
+			UpdateTransform(bUseFootLocation);
 	}
 
 	void CharacterControllerComponent::SetRelativeTransform(const Transform& relativeTransform)
 	{
-		SceneComponent::SetRelativeTransform(relativeTransform);
-		UpdateTransform();
+		// Rotation is not supported.
+		Transform tr = relativeTransform;
+		tr.Rotation = Rotator{};
+
+		const Transform trBefore = WorldTransform.Location;
+
+		glm::vec3 rotated;
+		// Same as SceneComponent::SetRelativeTransform, but it ignores rotations
+		{
+			const auto& parentWorldTransform = Parent.GetWorldTransform();
+			RelativeTransform = tr;
+
+			WorldTransform.Scale3D = parentWorldTransform.Scale3D * RelativeTransform.Scale3D;
+
+			rotated = (RelativeTransform.Location * parentWorldTransform.Scale3D);
+			WorldTransform.Location = parentWorldTransform.Location + rotated;
+		}
+		const bool bTransformChanged = trBefore != WorldTransform;
+
+		if (bTransformChanged)
+		{
+			UpdateTransform(bUseFootLocation);
+		}
 	}
 
 	glm::vec3 CharacterControllerComponent::GetControllerWorldLocation() const
@@ -370,16 +411,23 @@ namespace Eagle
 		return m_Controller->GetFootWorldLocation();
 	}
 
-	void CharacterControllerComponent::UpdateTransform()
+	void CharacterControllerComponent::UpdateTransform(bool bUseFoot)
 	{
 		// Hacky way to prevent controller affecting itself
 		if (bCurrentlyMoving)
 			return;
 
-		m_Controller->SetWorldLocation(WorldTransform.Location);
 		m_Controller->SetBoxHalfExtent(GetScaledBoxSize() * 0.5f);
 		m_Controller->SetCapsuleRadius(GetScaledCapsuleRadius());
 		m_Controller->SetCapsuleHeight(GetScaledCapsuleHeight());
+		if (bUseFoot)
+		{
+			m_Controller->SetFootWorldLocation(WorldTransform.Location);
+		}
+		else
+		{
+			m_Controller->SetWorldLocation(WorldTransform.Location);
+		}
 	}
 
 	void CharacterControllerComponent::SetCollisionGroup(CollisionGroup groups)
@@ -427,6 +475,16 @@ namespace Eagle
 	{
 		const auto& scale = WorldTransform.Scale3D;
 		return scale.y * m_Height;
+	}
+
+	void CharacterControllerComponent::SetControllerUpDirection(const glm::vec3& upDir)
+	{
+		m_Controller->SetUpDirection(upDir);
+	}
+
+	const glm::vec3& CharacterControllerComponent::GetControllerUpDirection() const
+	{
+		return m_Controller->GetUpDirection();
 	}
 
 	void BaseColliderComponent::SetPhysicsMaterialAsset(const Ref<AssetPhysicsMaterial>& material)

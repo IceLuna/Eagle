@@ -4788,6 +4788,34 @@ namespace Eagle
 		}
 	}
 
+	void Script::Eagle_CharacterControllerComponent_SetControllerUpDirection(GUID id, const glm::vec3* value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			entity.GetComponent<CharacterControllerComponent>().SetControllerUpDirection(*value);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetControllerUpDirection`. Entity is null");
+		}
+	}
+
+	void Script::Eagle_CharacterControllerComponent_GetControllerUpDirection(GUID id, glm::vec3* result)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			*result = entity.GetComponent<CharacterControllerComponent>().GetControllerUpDirection();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetControllerUpDirection`. Entity is null");
+		}
+	}
+
 	void Script::Eagle_CharacterControllerComponent_SetDoesCollideWithOtherControllers(GUID id, bool value)
 	{
 		auto& scene = Scene::GetCurrentScene();

@@ -2681,9 +2681,22 @@ namespace Eagle
             return GetInteractingCollisionGroup_Native(Parent.ID);
         }
 
-		// If set to true, controller vs controller collisions will be resolved using collision groups.
-		// If set to false, controllers won't collide with each other
-		public void SetDoesCollideWithOtherControllers(bool bCollides)
+        // Since controller doesn't react to rotations, use these to rotate it
+        // `upDir` should be normalized
+        public void SetControllerUpDirection(Vector3 upDir)
+        {
+            SetControllerUpDirection_Native(Parent.ID, ref upDir);
+        }
+
+		public Vector3 GetControllerUpDirection()
+        {
+            GetControllerUpDirection_Native(Parent.ID, out Vector3 result);
+            return result;
+        }
+
+        // If set to true, controller vs controller collisions will be resolved using collision groups.
+        // If set to false, controllers won't collide with each other
+        public void SetDoesCollideWithOtherControllers(bool bCollides)
         {
             SetDoesCollideWithOtherControllers_Native(Parent.ID, bCollides);
         }
@@ -2787,6 +2800,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern CollisionGroup GetInteractingCollisionGroup_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetControllerUpDirection_Native(GUID id, ref Vector3 value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetControllerUpDirection_Native(GUID id, out Vector3 result);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetDoesCollideWithOtherControllers_Native(GUID id, bool value);

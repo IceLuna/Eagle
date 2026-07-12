@@ -355,6 +355,8 @@ namespace Eagle::Script
 	CollisionGroup Eagle_CharacterControllerComponent_GetCollisionGroup(GUID id);
 	void Eagle_CharacterControllerComponent_SetInteractingCollisionGroup(GUID id, CollisionGroup value);
 	CollisionGroup Eagle_CharacterControllerComponent_GetInteractingCollisionGroup(GUID id);
+	void Eagle_CharacterControllerComponent_SetControllerUpDirection(GUID id, const glm::vec3* value);
+	void Eagle_CharacterControllerComponent_GetControllerUpDirection(GUID id, glm::vec3* result);
 	void Eagle_CharacterControllerComponent_SetDoesCollideWithOtherControllers(GUID id, bool value);
 	bool Eagle_CharacterControllerComponent_DoesCollideWithOtherControllers(GUID id);
 	void Eagle_CharacterControllerComponent_SetMoveWholeEntity(GUID id, bool value);

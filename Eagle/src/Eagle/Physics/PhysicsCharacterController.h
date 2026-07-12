@@ -58,8 +58,9 @@ namespace Eagle
 		void SetWorldLocation(const glm::vec3& location);
 		glm::vec3 GetWorldLocation() const;
 
-		// Returns the "foot" position of the controller, i.e.the position of the bottom of the CCT's shape.
+		// "foot" position of the controller, i.e.the position of the bottom of the CCT's shape.
 	    // The foot position takes the contact offset into account
+		void SetFootWorldLocation(const glm::vec3& location);
 		glm::vec3 GetFootWorldLocation() const;
 
 		// If set to true, controller vs controller collisions will be resolved using collision groups.
@@ -75,6 +76,10 @@ namespace Eagle
 		void SetInteractingCollisionGroup(CollisionGroup groups) { m_InteractingCollisionGroup = groups; }
 		CollisionGroup GetInteractingCollisionGroup() const { return m_InteractingCollisionGroup; }
 
+		// `upDir` should be normalized
+		void SetUpDirection(const glm::vec3& upDir);
+		const glm::vec3& GetUpDirection() const { return m_Up; }
+
 	private:
 		void Recreate(physx::PxExtendedVec3 location);
 		void IterateShapes(const std::function<void(physx::PxShape*)>& func);
@@ -85,6 +90,9 @@ namespace Eagle
 
 		CollisionGroup m_CollisionGroup = s_DefaultCollisionGroup;
 		CollisionGroup m_InteractingCollisionGroup = s_DefaultInteractingCollisionGroup;
+
+		// Can be used to rotate the controller
+		glm::vec3 m_Up = glm::vec3(0, 1, 0);
 
 		// If set to true, controller vs controller collisions will be resolved using collision groups.
 		// If set to false, controllers won't collide with each other

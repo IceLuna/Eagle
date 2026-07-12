@@ -331,9 +331,14 @@ namespace Eagle::UI
 
 			const ImWchar* ranges = io.Fonts->GetGlyphRangesCyrillic();
 
-			s_Fonts.Regular = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), fontSize,   nullptr, ranges);
-			s_Fonts.Header  = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), headerSize, nullptr, ranges);
-			s_Fonts.Bold    = io.Fonts->AddFontFromFileTTF(boldFont.string().c_str(),    fontSize,   nullptr, ranges);
+			ImFontConfig config = {};
+			config.OversampleH = 2;
+			config.OversampleV = 1;
+			config.PixelSnapH = true;
+
+			s_Fonts.Regular = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), fontSize,   &config, ranges);
+			s_Fonts.Header  = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), headerSize, &config, ranges);
+			s_Fonts.Bold    = io.Fonts->AddFontFromFileTTF(boldFont.string().c_str(),    fontSize,   &config, ranges);
 
 			if (s_Fonts.Regular)
 			{
@@ -348,7 +353,7 @@ namespace Eagle::UI
 		ImFont* defaultFont = io.Fonts->AddFontDefault();
 
 		s_Fonts.Regular = defaultFont;
-		s_Fonts.Bold	  = defaultFont;
+		s_Fonts.Bold	= defaultFont;
 		s_Fonts.Header  = defaultFont;
 
 		io.FontDefault = defaultFont;
@@ -1049,6 +1054,24 @@ namespace Eagle::UI
 		if (bChanged)
 			value = glm::uvec3(glm::max(temp, 0)); // Clamp negatives to 0 so that we don't overflow
 		return bChanged;
+	}
+
+	bool PropertyCustom(const std::string_view label, const std::function<bool(const char*)>& callback, const std::string_view helpMessage)
+	{
+		bool bModified = false;
+
+		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		ImGui::Text(label.data());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		ImGui::NextColumn();
+		bModified = callback(s_IDBuffer);
+		ImGui::NextColumn();
+		return bModified;
 	}
 
 	bool PropertySlider(const std::string_view label, int& value, int min, int max, const std::string_view helpMessage)

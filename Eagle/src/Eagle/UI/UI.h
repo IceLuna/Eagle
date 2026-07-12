@@ -79,6 +79,11 @@ namespace Eagle::UI
 	bool PropertyDrag(const std::string_view label, glm::ivec3& value, float speed = 1.f, int min = 0, int max = 0, const std::string_view helpMessage = "");
 	bool PropertyDrag(const std::string_view label, glm::uvec3& value, float speed = 1.f, int min = 0, int max = 0, const std::string_view helpMessage = "");
 
+	// Can be used to draw custom widgets for editing the value. The callback must return a bool to indicate whether the value was changed or not
+	// Callback receives an ID hash-string that can be used for a widget to uniquly identify it.
+	// You can't use it for multiple widgets, otherwise there'll be ID collisions. Call `UpdateIDBuffer` to update it and then you can reuse it
+	bool PropertyCustom(const std::string_view label, const std::function<bool(const char*)>& callback, const std::string_view helpMessage = "");
+
 	bool PropertySlider(const std::string_view label, int& value, int min, int max, const std::string_view helpMessage = "");
 	bool PropertySlider(const std::string_view label, uint32_t& value, int min, int max, const std::string_view helpMessage = "");
 	bool PropertySlider(const std::string_view label, float& value, float min, float max, const std::string_view helpMessage = "");

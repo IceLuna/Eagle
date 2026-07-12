@@ -1944,6 +1944,7 @@ namespace Eagle
 			out << YAML::Key << "IsCollisionVisible" << YAML::Value << component.IsCollisionVisible();
 			out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(component.GetCollisionGroup());
 			out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(component.GetInteractingCollisionGroup());
+			out << YAML::Key << "UpDirection" << YAML::Value << component.GetControllerUpDirection();
 			out << YAML::Key << "CollidesWithOtherControllers" << YAML::Value << component.DoesCollideWithOtherControllers();
 			out << YAML::Key << "bMoveWholeEntity" << YAML::Value << component.bMoveWholeEntity;
 			out << YAML::Key << "bUseFootLocation" << YAML::Value << component.bUseFootLocation;
@@ -2639,10 +2640,6 @@ namespace Eagle
 		{
 			auto& component = deserializedEntity.AddComponent<CharacterControllerComponent>();
 
-			Transform relativeTransform;
-			DeserializeRelativeTransform(ccNode, relativeTransform);
-			component.SetRelativeTransform(relativeTransform);
-
 			component.SetSlopeLimit(ccNode["SlopeLimit"].as<float>());
 			component.SetContactOffset(ccNode["ContactOffset"].as<float>());
 			component.SetStepOffset(ccNode["StepOffset"].as<float>());
@@ -2658,10 +2655,18 @@ namespace Eagle
 				component.SetCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
 			if (auto node = ccNode["InteractingCollisionGroupMask"])
 				component.SetInteractingCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
+			if (auto node = ccNode["UpDirection"])
+				component.SetControllerUpDirection(node.as<glm::vec3>());
 			if (auto node = ccNode["bMoveWholeEntity"])
 				component.bMoveWholeEntity = node.as<bool>();
 			if (auto node = ccNode["bUseFootLocation"])
 				component.bUseFootLocation = node.as<bool>();
+
+			// Above function calls can adjust the transform. But since we want to match exactly,
+			// we call it at the end of the deserialization
+			Transform relativeTransform;
+			DeserializeRelativeTransform(ccNode, relativeTransform);
+			component.SetRelativeTransform(relativeTransform);
 		}
 
 		if (auto sphereColliderNode = entityNode["SphereColliderComponent"])

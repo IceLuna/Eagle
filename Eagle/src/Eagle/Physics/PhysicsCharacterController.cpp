@@ -207,10 +207,22 @@ namespace Eagle
         return glm::vec3(res.x, res.y, res.z);
     }
 
+    void PhysicsCharacterController::SetFootWorldLocation(const glm::vec3& location)
+    {
+        m_Controller->setFootPosition(physx::PxExtendedVec3(location.x, location.y, location.z));
+    }
+
     glm::vec3 PhysicsCharacterController::GetFootWorldLocation() const
     {
         const auto res = m_Controller->getFootPosition();
         return glm::vec3(res.x, res.y, res.z);
+    }
+
+    void PhysicsCharacterController::SetUpDirection(const glm::vec3& upDir)
+    {
+        m_Up = upDir;
+        const glm::vec3 up = glm::length2(upDir) < 1e-5 ? glm::vec3(0, 1, 0) : glm::normalize(m_Up);
+        m_Controller->setUpDirection(PhysXUtils::ToPhysXVector(up));
     }
 
     void PhysicsCharacterController::Recreate(physx::PxExtendedVec3 location)
@@ -229,6 +241,7 @@ namespace Eagle
         }
 
         physx::PxMaterial* material = GetMaterial_Internal(m_PhysicsMaterial);
+        const physx::PxVec3 up = PhysXUtils::ToPhysXVector(glm::normalize(m_Up));
 
         if (m_Shape == CharacterControllerShape::Box)
         {
@@ -237,7 +250,7 @@ namespace Eagle
             desc.material = material;
             desc.stepOffset = m_StepOffset;
             desc.contactOffset = glm::max(0.0001f, m_ContactOffset);
-            desc.upDirection = physx::PxVec3(0, 1, 0);
+            desc.upDirection = up;
             desc.slopeLimit = glm::cos(glm::radians(m_SlopeLimit));
 
             desc.halfSideExtent = m_HalfExtent.x;
@@ -253,7 +266,7 @@ namespace Eagle
             desc.material = material;
             desc.stepOffset = m_StepOffset;
             desc.contactOffset = glm::max(0.0001f, m_ContactOffset);
-            desc.upDirection = physx::PxVec3(0, 1, 0);
+            desc.upDirection = up;
             desc.slopeLimit = glm::cos(glm::radians(m_SlopeLimit));
 
             desc.radius = m_Radius;
