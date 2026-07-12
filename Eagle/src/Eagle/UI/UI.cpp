@@ -1336,6 +1336,28 @@ namespace Eagle::UI
 		return bChanged;
 	}
 
+	bool PushTreeNode(const std::string_view label, bool bFramed, const std::string_view helpMessage)
+	{
+		ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowOverlap;
+		treeFlags |= bFramed ? ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_FramePadding : 0;
+
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+		const bool bOpened = ImGui::TreeNodeEx(label.data(), treeFlags);
+		ImGui::PopStyleVar();
+		if (!helpMessage.empty())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+
+		return bOpened;
+	}
+
+	void PopTreeNode()
+	{
+		ImGui::TreePop();
+	}
+
 	bool Combo(const std::string_view label, uint32_t currentSelection, const std::vector<std::string>& options, size_t optionsSize, int& outSelectedIndex, const std::vector<std::string>& tooltips, const std::string_view helpMessage)
 	{
 		currentSelection = glm::clamp(currentSelection, 0u, uint32_t(optionsSize) - 1u);

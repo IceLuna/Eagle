@@ -401,21 +401,28 @@ namespace Eagle
 						smComponent.SetReceivesDecals(bReceivesDecals);
 						bEntityChanged = true;
 					}
+					UI::EndPropertyGrid();
 
 					const uint32_t materialsCount = smComponent.GetMaterialsSlotsCount();
 					if (materialsCount > 0)
-						UI::TextWithSeparator("Materials");
-					for (uint32_t i = 0; i < materialsCount; ++i)
 					{
-						auto materialAsset = smComponent.GetMaterialAsset(i);
-						if (EditorResources::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
+						ImGui::Separator();
+						if (UI::PushTreeNode("Materials"))
 						{
-							smComponent.SetMaterialAsset(i, materialAsset);
-							bEntityChanged = true;
+							UI::BeginPropertyGrid("StaticMeshComponent");
+							for (uint32_t i = 0; i < materialsCount; ++i)
+							{
+								auto materialAsset = smComponent.GetMaterialAsset(i);
+								if (EditorResources::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
+								{
+									smComponent.SetMaterialAsset(i, materialAsset);
+									bEntityChanged = true;
+								}
+							}
+							UI::EndPropertyGrid();
+							UI::PopTreeNode();
 						}
 					}
-
-					UI::EndPropertyGrid();
 				});
 				break;
 			}
@@ -459,18 +466,29 @@ namespace Eagle
 
 					const uint32_t materialsCount = smComponent.GetMaterialsSlotsCount();
 					if (materialsCount > 0)
-						UI::TextWithSeparator("Materials");
-					for (uint32_t i = 0; i < materialsCount; ++i)
 					{
-						auto materialAsset = smComponent.GetMaterialAsset(i);
-						if (EditorResources::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
-						{
-							smComponent.SetMaterialAsset(i, materialAsset);
-							bEntityChanged = true;
-						}
-					}
+						UI::EndPropertyGrid();
 
-					ImGui::Separator();
+						ImGui::Separator();
+						if (UI::PushTreeNode("Materials"))
+						{
+							UI::BeginPropertyGrid("SkeletalMeshComponent");
+							for (uint32_t i = 0; i < materialsCount; ++i)
+							{
+								auto materialAsset = smComponent.GetMaterialAsset(i);
+								if (EditorResources::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
+								{
+									smComponent.SetMaterialAsset(i, materialAsset);
+									bEntityChanged = true;
+								}
+							}
+							UI::EndPropertyGrid();
+							UI::PopTreeNode();
+						}
+
+						ImGui::Separator();
+						UI::BeginPropertyGrid("SkeletalMeshComponent");
+					}
 
 					if (UI::Property("Ragdolling", bRagdollEnabled))
 					{
@@ -1344,22 +1362,34 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					constexpr float thickness = 2.5f;
-					UI::TextWithSeparator("Collision Groups", thickness, "Collision groups it belongs to");
-					if (UI::PropertyBitMask("Collision Groups", collisionGroup, collisionGroups))
-					{
-						component.SetCollisionGroup(CollisionGroup(collisionGroup));
-						bEntityChanged = true;
-					}
-
-					UI::TextWithSeparator("Interacting Collision Groups", thickness, "Collision groups it can interact with");
-					if (UI::PropertyBitMask("Interacting Collision Groups", interactingCollisionGroup, collisionGroups))
-					{
-						component.SetInteractingCollisionGroup(CollisionGroup(interactingCollisionGroup));
-						bEntityChanged = true;
-					}
-
 					UI::EndPropertyGrid();
+
+					ImGui::Separator();
+					if (UI::PushTreeNode("Collision Groups", true, "Collision groups it belongs to"))
+					{
+						UI::BeginPropertyGrid("CharacterControllerComponent");
+						if (UI::PropertyBitMask("Collision Groups", collisionGroup, collisionGroups))
+						{
+							component.SetCollisionGroup(CollisionGroup(collisionGroup));
+							bEntityChanged = true;
+						}
+						UI::EndPropertyGrid();
+
+						UI::PopTreeNode();
+					}
+
+					if (UI::PushTreeNode("Interacting Collision Groups", true, "Collision groups it can interact with"))
+					{
+						UI::BeginPropertyGrid("CharacterControllerComponent");
+						if (UI::PropertyBitMask("Interacting Collision Groups", interactingCollisionGroup, collisionGroups))
+						{
+							component.SetInteractingCollisionGroup(CollisionGroup(interactingCollisionGroup));
+							bEntityChanged = true;
+						}
+						UI::EndPropertyGrid();
+
+						UI::PopTreeNode();
+					}
 				});
 				break;
 			}
@@ -1541,22 +1571,34 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					constexpr float thickness = 2.5f;
-					UI::TextWithSeparator("Collision Groups", thickness, "Collision groups it belongs to");
-					if (UI::PropertyBitMask("Collision Groups", collisionGroup, collisionGroups))
-					{
-						collider.SetCollisionGroup(CollisionGroup(collisionGroup));
-						bEntityChanged = true;
-					}
-
-					UI::TextWithSeparator("Interacting Collision Groups", thickness, "Collision groups it can interact with");
-					if (UI::PropertyBitMask("Interacting Collision Groups", interactingCollisionGroup, collisionGroups))
-					{
-						collider.SetInteractingCollisionGroup(CollisionGroup(interactingCollisionGroup));
-						bEntityChanged = true;
-					}
-
 					UI::EndPropertyGrid();
+
+					ImGui::Separator();
+					if (UI::PushTreeNode("Collision Groups", true, "Collision groups it belongs to"))
+					{
+						UI::BeginPropertyGrid("BoxColliderComponent");
+						if (UI::PropertyBitMask("Collision Groups", collisionGroup, collisionGroups))
+						{
+							collider.SetCollisionGroup(CollisionGroup(collisionGroup));
+							bEntityChanged = true;
+						}
+						UI::EndPropertyGrid();
+
+						UI::PopTreeNode();
+					}
+
+					if (UI::PushTreeNode("Interacting Collision Groups", true, "Collision groups it can interact with"))
+					{
+						UI::BeginPropertyGrid("BoxColliderComponent");
+						if (UI::PropertyBitMask("Interacting Collision Groups", interactingCollisionGroup, collisionGroups))
+						{
+							collider.SetInteractingCollisionGroup(CollisionGroup(interactingCollisionGroup));
+							bEntityChanged = true;
+						}
+						UI::EndPropertyGrid();
+
+						UI::PopTreeNode();
+					}
 				});
 				break;
 			}
@@ -1620,23 +1662,35 @@ namespace Eagle
 						collider.SetShowCollision(bShowCollision);
 						bEntityChanged = true;
 					}
-
-					constexpr float thickness = 2.5f;
-					UI::TextWithSeparator("Collision Groups", thickness, "Collision groups it belongs to");
-					if (UI::PropertyBitMask("Collision Groups", collisionGroup, collisionGroups))
-					{
-						collider.SetCollisionGroup(CollisionGroup(collisionGroup));
-						bEntityChanged = true;
-					}
-
-					UI::TextWithSeparator("Interacting Collision Groups", thickness, "Collision groups it can interact with");
-					if (UI::PropertyBitMask("Interacting Collision Groups", interactingCollisionGroup, collisionGroups))
-					{
-						collider.SetInteractingCollisionGroup(CollisionGroup(interactingCollisionGroup));
-						bEntityChanged = true;
-					}
 						
 					UI::EndPropertyGrid();
+
+					ImGui::Separator();
+					if (UI::PushTreeNode("Collision Groups", true, "Collision groups it belongs to"))
+					{
+						UI::BeginPropertyGrid("SphereColliderComponent");
+						if (UI::PropertyBitMask("Collision Groups", collisionGroup, collisionGroups))
+						{
+							collider.SetCollisionGroup(CollisionGroup(collisionGroup));
+							bEntityChanged = true;
+						}
+						UI::EndPropertyGrid();
+
+						UI::PopTreeNode();
+					}
+
+					if (UI::PushTreeNode("Interacting Collision Groups", true, "Collision groups it can interact with"))
+					{
+						UI::BeginPropertyGrid("SphereColliderComponent");
+						if (UI::PropertyBitMask("Interacting Collision Groups", interactingCollisionGroup, collisionGroups))
+						{
+							collider.SetInteractingCollisionGroup(CollisionGroup(interactingCollisionGroup));
+							bEntityChanged = true;
+						}
+						UI::EndPropertyGrid();
+
+						UI::PopTreeNode();
+					}
 				});
 				break;
 			}
@@ -1708,22 +1762,34 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					constexpr float thickness = 2.5f;
-					UI::TextWithSeparator("Collision Groups", thickness, "Collision groups it belongs to");
-					if (UI::PropertyBitMask("Collision Groups", collisionGroup, collisionGroups))
-					{
-						collider.SetCollisionGroup(CollisionGroup(collisionGroup));
-						bEntityChanged = true;
-					}
-
-					UI::TextWithSeparator("Interacting Collision Groups", thickness, "Collision groups it can interact with");
-					if (UI::PropertyBitMask("Interacting Collision Groups", interactingCollisionGroup, collisionGroups))
-					{
-						collider.SetInteractingCollisionGroup(CollisionGroup(interactingCollisionGroup));
-						bEntityChanged = true;
-					}
-
 					UI::EndPropertyGrid();
+
+					ImGui::Separator();
+					if (UI::PushTreeNode("Collision Groups", true, "Collision groups it belongs to"))
+					{
+						UI::BeginPropertyGrid("CapsuleColliderComponent");
+						if (UI::PropertyBitMask("Collision Groups", collisionGroup, collisionGroups))
+						{
+							collider.SetCollisionGroup(CollisionGroup(collisionGroup));
+							bEntityChanged = true;
+						}
+						UI::EndPropertyGrid();
+
+						UI::PopTreeNode();
+					}
+
+					if (UI::PushTreeNode("Interacting Collision Groups", true, "Collision groups it can interact with"))
+					{
+						UI::BeginPropertyGrid("CapsuleColliderComponent");
+						if (UI::PropertyBitMask("Interacting Collision Groups", interactingCollisionGroup, collisionGroups))
+						{
+							collider.SetInteractingCollisionGroup(CollisionGroup(interactingCollisionGroup));
+							bEntityChanged = true;
+						}
+						UI::EndPropertyGrid();
+
+						UI::PopTreeNode();
+					}
 				});
 				break;
 			}
@@ -1795,22 +1861,34 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					constexpr float thickness = 2.5f;
-					UI::TextWithSeparator("Collision Groups", thickness, "Collision groups it belongs to");
-					if (UI::PropertyBitMask("Collision Groups", collisionGroup, collisionGroups))
-					{
-						collider.SetCollisionGroup(CollisionGroup(collisionGroup));
-						bEntityChanged = true;
-					}
-
-					UI::TextWithSeparator("Interacting Collision Groups", thickness, "Collision groups it can interact with");
-					if (UI::PropertyBitMask("Interacting Collision Groups", interactingCollisionGroup, collisionGroups))
-					{
-						collider.SetInteractingCollisionGroup(CollisionGroup(interactingCollisionGroup));
-						bEntityChanged = true;
-					}
-
 					UI::EndPropertyGrid();
+
+					ImGui::Separator();
+					if (UI::PushTreeNode("Collision Groups", true, "Collision groups it belongs to"))
+					{
+						UI::BeginPropertyGrid("MeshColliderComponent");
+						if (UI::PropertyBitMask("Collision Groups", collisionGroup, collisionGroups))
+						{
+							collider.SetCollisionGroup(CollisionGroup(collisionGroup));
+							bEntityChanged = true;
+						}
+						UI::EndPropertyGrid();
+
+						UI::PopTreeNode();
+					}
+
+					if (UI::PushTreeNode("Interacting Collision Groups", true, "Collision groups it can interact with"))
+					{
+						UI::BeginPropertyGrid("MeshColliderComponent");
+						if (UI::PropertyBitMask("Interacting Collision Groups", interactingCollisionGroup, collisionGroups))
+						{
+							collider.SetInteractingCollisionGroup(CollisionGroup(interactingCollisionGroup));
+							bEntityChanged = true;
+						}
+						UI::EndPropertyGrid();
+
+						UI::PopTreeNode();
+					}
 				});
 				break;
 			}
@@ -2075,9 +2153,14 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 					UI::Property("Auto Rebuild", component.bAutoRebuild, "If enabled, nav mesh is rebuilt automatically when its transform or settings are changed");
-					
-					UI::TextWithSeparator("Crowd Settings");
+
+					UI::EndPropertyGrid();
+
+					ImGui::Separator();
+					if (UI::PushTreeNode("Crowd Settings"))
 					{
+						UI::BeginPropertyGrid("NavigationMeshComponent");
+
 						auto settings = component.GetCrowdSettings();
 						bool bCrowdChanged = false;
 
@@ -2094,108 +2177,116 @@ namespace Eagle
 							component.SetCrowdSettings(settings);
 							bEntityChanged = true;
 						}
-					}
 
-					UI::TextWithSeparator("Nav Mesh Settings");
-					auto settings = component.GetSettings();
-					bool bChanged = false;
-
-					bChanged |= UI::PropertyDrag("AABB Min", settings.AABB.Min, 0.1f, 0, 0);
-					bChanged |= UI::PropertyDrag("AABB Max", settings.AABB.Max, 0.1f, 0, 0);
-
-					if (UI::PropertyDrag("Max Query Nodes", settings.MaxQueryNodes, 32.f, 1, 65535, "Maximum number of search nodes. [Limits: 0 < value <= 65535]"))
-					{
-						settings.MaxQueryNodes = glm::clamp(settings.MaxQueryNodes, 1u, 65535u);
-						bChanged = true;
-					}
-					if (UI::PropertyDrag("Expected Layers per tile", settings.ExpectedLayersPerTile))
-					{
-						settings.ExpectedLayersPerTile = glm::clamp(settings.ExpectedLayersPerTile, 1u, 65535u);
-						bChanged = true;
-					}
-					if (UI::PropertyDrag("Max Layers", settings.MaxLayers))
-					{
-						settings.MaxLayers = glm::clamp(settings.MaxLayers, 1u, 65535u);
-						bChanged = true;
-					}
-					if (UI::PropertyDrag("Max Obstacles", settings.MaxObstacles))
-					{
-						settings.MaxObstacles = glm::clamp(settings.MaxObstacles, 0u, 1u << 24u);
-						bChanged = true;
-					}
-					if (UI::PropertyDrag("Tile Size", settings.TileSize, 1.f, 0, 0, "The width/height size of tile's on the xz-plane"))
-					{
-						settings.TileSize = glm::clamp(settings.TileSize, 1u, 1u << 24u);
-						bChanged = true;
-					}
-					if (UI::PropertyDrag("Cell Size", settings.CellSize, 0.05f, 0, 0, "The xz-plane cell size to use for fields"))
-					{
-						settings.CellSize = glm::max(settings.CellSize, 0.005f);
-						bChanged = true;
-					}
-					if (UI::PropertyDrag("Cell Height", settings.CellHeight, 0.01f, 0, 0, "The y-axis cell size to use for fields"))
-					{
-						settings.CellHeight = glm::max(settings.CellHeight, 0.001f);
-						bChanged = true;
-					}
-
-					if (UI::PropertyDrag("Max Slope", settings.MaxSlope, 1.f, 0.f, 90.f, "The maximum slope that is considered walkable"))
-					{
-						settings.MaxSlope = glm::clamp(settings.MaxSlope, 0.f, 90.f);
-						bChanged = true;
-					}
-					if (UI::PropertyDrag("Agent Height", settings.AgentHeight, 0.05f, 0.0f, 0.f, "Minimum floor to 'ceiling' height that will still allow the floor area to be considered walkable"))
-					{
-						settings.AgentHeight = glm::max(settings.AgentHeight, 0.1f);
-						bChanged = true;
-					}
-					if (UI::PropertyDrag("Agent Max Climb", settings.AgentMaxClimb, 0.05f, 0.f, 0.f, "Maximum ledge height that is considered to still be traversable"))
-					{
-						settings.AgentMaxClimb = glm::max(settings.AgentMaxClimb, 0.0f);
-						bChanged = true;
-					}
-					if (UI::PropertyDrag("Agent Radius", settings.AgentRadius, 0.05f, 0.f, 0.f, "The distance to erode/shrink the walkable area of the heightfield away from obstructions"))
-					{
-						settings.AgentRadius = glm::max(settings.AgentRadius, 0.0f);
-						bChanged = true;
-					}
-					if (UI::PropertyDrag("Edge Max Len", settings.EdgeMaxLen, 0.05f, 0.f, 0.f, "The maximum allowed length for contour edges along the border of the mesh"))
-					{
-						settings.EdgeMaxLen = glm::max(settings.EdgeMaxLen, 0.0f);
-						bChanged = true;
-					}
-					if (UI::PropertyDrag("Edge Max Error", settings.EdgeMaxError, 0.05f, 0.f, 0.f, "The maximum distance a simplified contour's border edges should deviate the original raw contour"))
-					{
-						settings.EdgeMaxError = glm::max(settings.EdgeMaxError, 0.0f);
-						bChanged = true;
-					}
-					if (UI::PropertyDrag("Region Min Size", settings.RegionMinSize, 0.05f, 0.f, 0.f, "The minimum number of cells allowed to form isolated island areas"))
-					{
-						settings.RegionMinSize = glm::max(settings.RegionMinSize, 0.0f);
-						bChanged = true;
-					}
-					if (UI::PropertyDrag("Region Merge Size", settings.RegionMergeSize, 0.05f, 0.f, 0.f, "Any regions with a span count smaller than this value will, if possible, be merged with larger regions"))
-					{
-						settings.RegionMergeSize = glm::max(settings.RegionMergeSize, 0.0f);
-						bChanged = true;
-					}
-					if (UI::PropertyDrag("Verts Per Poly", settings.VertsPerPoly, 1, 3, 0, "The maximum number of vertices allowed for polygons generated during the contour to polygon conversion process"))
-					{
-						settings.VertsPerPoly = glm::clamp(settings.VertsPerPoly, 3u, 65535u);
-						bChanged = true;
+						UI::EndPropertyGrid();
+						UI::PopTreeNode();
 					}
 					
-					bChanged |= UI::PropertyDrag("Border Size", settings.BorderSize, 1, 0, 0, "The size of the non-navigable border around the heightfield");
-					bChanged |= UI::Property("Filter Low Hanging Obstacles", settings.FilterLowHangingObstacles, s_FilterLowHangingObstaclesHelpMsg);
-					bChanged |= UI::Property("Filter Ledge Spans", settings.FilterLedgeSpans, s_FilterLedgeSpans);
-					bChanged |= UI::Property("Filter Walkable Low Height Spans", settings.FilterWalkableLowHeightSpans, s_FilterWalkableLowHeightSpans);
-
-					UI::EndPropertyGrid();
-
-					if (bChanged)
+					if (UI::PushTreeNode("Nav Mesh Settings"))
 					{
-						component.SetSettings(settings);
-						bEntityChanged = true;
+						UI::BeginPropertyGrid("NavigationMeshComponent");
+
+						bool bChanged = false;
+						auto settings = component.GetSettings();
+
+						bChanged |= UI::PropertyDrag("AABB Min", settings.AABB.Min, 0.1f, 0, 0);
+						bChanged |= UI::PropertyDrag("AABB Max", settings.AABB.Max, 0.1f, 0, 0);
+
+						if (UI::PropertyDrag("Max Query Nodes", settings.MaxQueryNodes, 32.f, 1, 65535, "Maximum number of search nodes. [Limits: 0 < value <= 65535]"))
+						{
+							settings.MaxQueryNodes = glm::clamp(settings.MaxQueryNodes, 1u, 65535u);
+							bChanged = true;
+						}
+						if (UI::PropertyDrag("Expected Layers per tile", settings.ExpectedLayersPerTile))
+						{
+							settings.ExpectedLayersPerTile = glm::clamp(settings.ExpectedLayersPerTile, 1u, 65535u);
+							bChanged = true;
+						}
+						if (UI::PropertyDrag("Max Layers", settings.MaxLayers))
+						{
+							settings.MaxLayers = glm::clamp(settings.MaxLayers, 1u, 65535u);
+							bChanged = true;
+						}
+						if (UI::PropertyDrag("Max Obstacles", settings.MaxObstacles))
+						{
+							settings.MaxObstacles = glm::clamp(settings.MaxObstacles, 0u, 1u << 24u);
+							bChanged = true;
+						}
+						if (UI::PropertyDrag("Tile Size", settings.TileSize, 1.f, 0, 0, "The width/height size of tile's on the xz-plane"))
+						{
+							settings.TileSize = glm::clamp(settings.TileSize, 1u, 1u << 24u);
+							bChanged = true;
+						}
+						if (UI::PropertyDrag("Cell Size", settings.CellSize, 0.05f, 0, 0, "The xz-plane cell size to use for fields"))
+						{
+							settings.CellSize = glm::max(settings.CellSize, 0.005f);
+							bChanged = true;
+						}
+						if (UI::PropertyDrag("Cell Height", settings.CellHeight, 0.01f, 0, 0, "The y-axis cell size to use for fields"))
+						{
+							settings.CellHeight = glm::max(settings.CellHeight, 0.001f);
+							bChanged = true;
+						}
+
+						if (UI::PropertyDrag("Max Slope", settings.MaxSlope, 1.f, 0.f, 90.f, "The maximum slope that is considered walkable"))
+						{
+							settings.MaxSlope = glm::clamp(settings.MaxSlope, 0.f, 90.f);
+							bChanged = true;
+						}
+						if (UI::PropertyDrag("Agent Height", settings.AgentHeight, 0.05f, 0.0f, 0.f, "Minimum floor to 'ceiling' height that will still allow the floor area to be considered walkable"))
+						{
+							settings.AgentHeight = glm::max(settings.AgentHeight, 0.1f);
+							bChanged = true;
+						}
+						if (UI::PropertyDrag("Agent Max Climb", settings.AgentMaxClimb, 0.05f, 0.f, 0.f, "Maximum ledge height that is considered to still be traversable"))
+						{
+							settings.AgentMaxClimb = glm::max(settings.AgentMaxClimb, 0.0f);
+							bChanged = true;
+						}
+						if (UI::PropertyDrag("Agent Radius", settings.AgentRadius, 0.05f, 0.f, 0.f, "The distance to erode/shrink the walkable area of the heightfield away from obstructions"))
+						{
+							settings.AgentRadius = glm::max(settings.AgentRadius, 0.0f);
+							bChanged = true;
+						}
+						if (UI::PropertyDrag("Edge Max Len", settings.EdgeMaxLen, 0.05f, 0.f, 0.f, "The maximum allowed length for contour edges along the border of the mesh"))
+						{
+							settings.EdgeMaxLen = glm::max(settings.EdgeMaxLen, 0.0f);
+							bChanged = true;
+						}
+						if (UI::PropertyDrag("Edge Max Error", settings.EdgeMaxError, 0.05f, 0.f, 0.f, "The maximum distance a simplified contour's border edges should deviate the original raw contour"))
+						{
+							settings.EdgeMaxError = glm::max(settings.EdgeMaxError, 0.0f);
+							bChanged = true;
+						}
+						if (UI::PropertyDrag("Region Min Size", settings.RegionMinSize, 0.05f, 0.f, 0.f, "The minimum number of cells allowed to form isolated island areas"))
+						{
+							settings.RegionMinSize = glm::max(settings.RegionMinSize, 0.0f);
+							bChanged = true;
+						}
+						if (UI::PropertyDrag("Region Merge Size", settings.RegionMergeSize, 0.05f, 0.f, 0.f, "Any regions with a span count smaller than this value will, if possible, be merged with larger regions"))
+						{
+							settings.RegionMergeSize = glm::max(settings.RegionMergeSize, 0.0f);
+							bChanged = true;
+						}
+						if (UI::PropertyDrag("Verts Per Poly", settings.VertsPerPoly, 1, 3, 0, "The maximum number of vertices allowed for polygons generated during the contour to polygon conversion process"))
+						{
+							settings.VertsPerPoly = glm::clamp(settings.VertsPerPoly, 3u, 65535u);
+							bChanged = true;
+						}
+
+						bChanged |= UI::PropertyDrag("Border Size", settings.BorderSize, 1, 0, 0, "The size of the non-navigable border around the heightfield");
+						bChanged |= UI::Property("Filter Low Hanging Obstacles", settings.FilterLowHangingObstacles, s_FilterLowHangingObstaclesHelpMsg);
+						bChanged |= UI::Property("Filter Ledge Spans", settings.FilterLedgeSpans, s_FilterLedgeSpans);
+						bChanged |= UI::Property("Filter Walkable Low Height Spans", settings.FilterWalkableLowHeightSpans, s_FilterWalkableLowHeightSpans);
+
+						if (bChanged)
+						{
+							component.SetSettings(settings);
+							bEntityChanged = true;
+						}
+						
+						UI::EndPropertyGrid();
+						UI::PopTreeNode();
 					}
 				});
 				

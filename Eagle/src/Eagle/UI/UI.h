@@ -101,6 +101,9 @@ namespace Eagle::UI
 	bool InputText(const std::string_view label, std::string& value, ImGuiInputTextFlags flags = ImGuiInputTextFlags_None, const std::string_view helpMessage = "");
 	bool InputTextWithHint(const std::string_view label, std::string& value, std::string_view hint, ImGuiInputTextFlags flags = ImGuiInputTextFlags_None, const std::string_view helpMessage = "");
 	bool InputTextMultiline(const std::string_view label, std::string& value, ImGuiInputTextFlags flags = ImGuiInputTextFlags_None, const std::string_view helpMessage = "");
+
+	bool PushTreeNode(const std::string_view label, bool bFramed = true, const std::string_view helpMessage = "");
+	void PopTreeNode();
 	
 	//Returns true if selection changed.
 	//outSelectedIndex - index of the selected option
