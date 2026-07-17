@@ -126,7 +126,7 @@ namespace Eagle
 	{
 		// Entity Selection
 		Entity selectedEntity = m_SceneHierarchy.GetSelectedEntity();
-		bool bUsingImGuizmo = selectedEntity && (ImGuizmo::IsUsing() || ImGuizmo::IsOver());
+		bool bUsingImGuizmo = selectedEntity && bUsingImGuizmoOrHovered;
 		const auto& scene = GetCurrentScene();
 		if (bViewportHovered && !bUsingImGuizmo && Input::IsMouseButtonPressed(Mouse::ButtonLeft))
 		{

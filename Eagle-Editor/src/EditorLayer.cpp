@@ -555,7 +555,7 @@ namespace Eagle
 
 		// Entity Selection
 		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
-		bool bUsingImGuizmo = selectedEntity && (ImGuizmo::IsUsing() || ImGuizmo::IsOver());
+		bool bUsingImGuizmo = selectedEntity && m_bUsingImGuizmoOrHovered;
 		if (m_ViewportHovered && !bUsingImGuizmo && Input::IsMouseButtonPressed(Mouse::ButtonLeft))
 		{
 			const glm::vec2 viewportSize = m_ViewportBounds[1] - m_ViewportBounds[0];
@@ -917,7 +917,7 @@ namespace Eagle
 
 		if (selectedEntity && (m_GuizmoType != -1))
 		{
-			ImGuizmo::PushID(m_CurrentScene.get());
+			ImGuizmo::PushID(this);
 			//ImGuizmo::SetOrthographic(false); //TODO: Set to true when using Orthographic
 			ImGuizmo::SetDrawlist();
 
@@ -967,6 +967,7 @@ namespace Eagle
 			ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,
 				(ImGuizmo::MODE)m_GuizmoMode, glm::value_ptr(transformMatrix), nullptr, bSnap ? snapValues : nullptr);
 
+			m_bUsingImGuizmoOrHovered = ImGuizmo::IsUsing() || ImGuizmo::IsOver();
 			if (ImGuizmo::IsUsing())
 			{
 				glm::quat newRotation;

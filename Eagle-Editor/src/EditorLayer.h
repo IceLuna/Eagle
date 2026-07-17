@@ -178,6 +178,7 @@ namespace Eagle
 		bool m_ShowSaveScenePopupForNewScene = false;
 		bool m_bDrawEditorMisc = true;
 		bool m_bFirstContentBrowserRender = true;
+		bool m_bUsingImGuizmoOrHovered = false;
 
 		bool m_CloseEngineRequested = false;
 		bool m_ShowDirtyAssetMessage = false;

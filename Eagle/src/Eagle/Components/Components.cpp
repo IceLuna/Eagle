@@ -522,6 +522,9 @@ namespace Eagle
 
 	BaseColliderComponent& BaseColliderComponent::operator=(const BaseColliderComponent& other)
 	{
+		if (this == &other)
+			return *this;
+
 		SceneComponent::operator=(other);
 		SetPhysicsMaterialAsset(other.m_MaterialAsset);
 		SetIsTrigger(other.bTrigger);
@@ -554,6 +557,9 @@ namespace Eagle
 	
 	BoxColliderComponent& BoxColliderComponent::operator=(const BoxColliderComponent& other)
 	{
+		if (this == &other)
+			return *this;
+
 		BaseColliderComponent::operator=(other);
 		SetSize(other.m_Size);
 		UpdatePhysicsTransform();
@@ -663,6 +669,9 @@ namespace Eagle
 
 	SphereColliderComponent& SphereColliderComponent::operator=(const SphereColliderComponent& other)
 	{
+		if (this == &other)
+			return *this;
+
 		BaseColliderComponent::operator=(other);
 		SetRadius(other.m_Radius);
 		UpdatePhysicsTransform();
@@ -778,6 +787,9 @@ namespace Eagle
 
 	CapsuleColliderComponent& CapsuleColliderComponent::operator=(const CapsuleColliderComponent& other)
 	{
+		if (this == &other)
+			return *this;
+
 		BaseColliderComponent::operator=(other);
 		SetHeightAndRadius(other.m_Height, other.m_Radius);
 		UpdatePhysicsTransform();
@@ -907,6 +919,9 @@ namespace Eagle
 
 	MeshColliderComponent& MeshColliderComponent::operator=(const MeshColliderComponent& other)
 	{
+		if (this == &other)
+			return *this;
+
 		BaseColliderComponent::operator=(other);
 
 		// This call is disabled since `SetIsConvex` will call it anyway. So we just set the mesh
@@ -1125,6 +1140,7 @@ namespace Eagle
 		AnimType = other.AnimType;
 		LastPose = other.LastPose;
 		SetAnimationGraphAsset(other.m_AnimGraphAsset);
+		SetShowRagdollCollision(other.m_bRagdollCollisionVisible);
 
 		if (m_MeshAsset)
 		{
@@ -1327,6 +1343,7 @@ namespace Eagle
 			m_PreRagdollLastPose = LastPose;
 			m_RagdollActor = Parent.GetScene()->GetPhysicsScene()->CreateRagdoll(*this);
 			m_bRagdollEnabled = m_RagdollActor.operator bool();
+			m_RagdollActor->SetShowCollision(m_bRagdollCollisionVisible);
 		}
 		else
 		{
@@ -1339,19 +1356,14 @@ namespace Eagle
 
 	bool SkeletalMeshComponent::IsRagdollCollisionShown() const
 	{
-		if (m_RagdollActor)
-			return m_RagdollActor->IsCollisionShown();
-		
-		EG_CORE_ERROR("Failed to call SkeletalMeshComponent::SetShowRagdollCollision. Ragdoll is null");
-		return false;
+		return m_bRagdollCollisionVisible;
 	}
 
 	void SkeletalMeshComponent::SetShowRagdollCollision(bool bShow)
 	{
+		m_bRagdollCollisionVisible = bShow;
 		if (m_RagdollActor)
 			m_RagdollActor->SetShowCollision(bShow);
-		else
-			EG_CORE_ERROR("Failed to call SkeletalMeshComponent::SetShowRagdollCollision. Ragdoll is null");
 	}
 
 	Transform SkeletalMeshComponent::GetRagdollBoneWorldTransform(const std::string& name) const

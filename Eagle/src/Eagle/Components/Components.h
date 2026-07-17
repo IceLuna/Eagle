@@ -819,6 +819,7 @@ namespace Eagle
 		bool m_bReceivesDecals = true;
 		bool m_bVisible = true;
 		bool m_bRagdollEnabled = false;
+		bool m_bRagdollCollisionVisible = false;
 	};
 
 	class BillboardComponent : public SceneComponent

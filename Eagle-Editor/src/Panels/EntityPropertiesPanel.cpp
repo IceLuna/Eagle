@@ -436,6 +436,7 @@ namespace Eagle
 					bool bCastsShadows = smComponent.DoesCastShadows();
 					bool bReceivesDecals = smComponent.DoesReceiveDecals();
 					bool bRagdollEnabled = smComponent.IsRagdollEnabled();
+					bool bRagdollBonesVisible = smComponent.IsRagdollCollisionShown();
 					bool bVisible = smComponent.IsVisible();
 
 					UI::BeginPropertyGrid("SkeletalMeshComponent");
@@ -493,6 +494,12 @@ namespace Eagle
 					if (UI::Property("Ragdolling", bRagdollEnabled))
 					{
 						smComponent.SetRagdollEnabled(bRagdollEnabled);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Show Ragdoll Bones", bRagdollBonesVisible))
+					{
+						smComponent.SetShowRagdollCollision(bRagdollBonesVisible);
 						bEntityChanged = true;
 					}
 

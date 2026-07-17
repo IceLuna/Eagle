@@ -69,5 +69,6 @@ namespace Eagle
 		bool bViewportVisible = false;
 		bool bViewportFocused = false;
 		bool bViewportHovered = false;
+		bool bUsingImGuizmoOrHovered = false;
 	};
 }

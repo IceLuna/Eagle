@@ -126,32 +126,6 @@ namespace Eagle
         , m_CollisionGroup(collisionGroup)
         , m_InteractingCollisionGroup(interactingCollisionGroup)
     {
-        for (auto& vertex : m_Vertices)
-        {
-            float fp32Weights[EG_MAX_BONES_PER_VERTEX];
-            float totalWeight = 0.f;
-            for (uint32_t i = 0; i < EG_MAX_BONES_PER_VERTEX; ++i)
-            {
-                fp32Weights[i] = Utils::ToFloat32(vertex.Weights[i]);
-                totalWeight += fp32Weights[i];
-            }
-
-            const float scale = UINT16_MAX / totalWeight;
-            uint32_t unormWeights[EG_MAX_BONES_PER_VERTEX];
-            uint32_t uSum = 0;
-            uint32_t maxIdx = 0;
-            for (uint32_t i = 0; i < EG_MAX_BONES_PER_VERTEX; ++i)
-            {
-                unormWeights[i] = uint32_t(fp32Weights[i] * scale + 0.5f);
-                uSum += unormWeights[i];
-                if (fp32Weights[i] > fp32Weights[maxIdx])
-                    maxIdx = i;
-            }
-            unormWeights[maxIdx] += UINT16_MAX - uSum; // Forces exact sum = UINT16_MAX
-
-            for (uint32_t i = 0; i < EG_MAX_BONES_PER_VERTEX; ++i)
-                vertex.Weights[i] = uint16_t(unormWeights[i]);
-        }
         m_RagdollRoot = Utils::MergeBones(m_MinRagdollBoneSize, m_Skeletal.GetBoneInfoMap(), m_Skeletal.RootBone);
         Utils::PrepareAABB(m_RagdollRoot);
         Utils::SetUserSettings(m_RagdollRoot, ragdollPerBoneSettings);

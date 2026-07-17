@@ -101,7 +101,7 @@ namespace Eagle
 		if (!m_CurrentScene || m_GuizmoType == -1)
 			return false;
 		
-		ImGuizmo::PushID(m_CurrentScene.get());
+		ImGuizmo::PushID(this);
 
 		bool bChanged = false;
 		const bool bWasEnabled = ImGuizmo::IsEnabled();
@@ -136,6 +136,7 @@ namespace Eagle
 			bWorld ? ImGuizmo::WORLD : ImGuizmo::LOCAL, glm::value_ptr(transformMatrix), nullptr, bSnap ? snapValues : nullptr);
 		ImGuizmo::Enable(bWasEnabled); // Restore state
 
+		bUsingImGuizmoOrHovered = ImGuizmo::IsUsing() || ImGuizmo::IsOver();
 		if (ImGuizmo::IsUsing())
 		{
 			Transform finalTransform = Math::DecomposeTransformMatrix(transformMatrix);

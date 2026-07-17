@@ -376,6 +376,11 @@ namespace Eagle::UI
 		static bool bJustOpened = true;
 		bool bBeginCombo = ImGui::BeginCombo("##", assetName.c_str(), ImGuiComboFlags_HeightLarge);
 
+		if (modifyingAsset)
+		{
+			UI::Tooltip(assetName);
+		}
+
 		HandleDropEvent();
 
 		if (bBeginCombo)
@@ -401,7 +406,6 @@ namespace Eagle::UI
 
 			if (bJustOpened)
 			{
-				bJustOpened = false;
 				ImGui::SetKeyboardFocusHere();
 			}
 			UI::InputTextWithHint("##search", search, "Search");
@@ -453,6 +457,10 @@ namespace Eagle::UI
 
 				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowOverlap, { 0.0f, previewSize.y });
 				bSelectableTriggered |= ImGui::IsItemClicked();
+				if (bJustOpened && bSelected)
+				{
+					ImGui::SetScrollHereY();
+				}
 
 				bool bHasPreview = false;
 				if constexpr (std::is_same<Type, Asset>::value)
@@ -526,6 +534,8 @@ namespace Eagle::UI
 			
 			ImGui::EndChild();
 			ImGui::EndCombo();
+
+			bJustOpened = false;
 		}
 		else
 		{
