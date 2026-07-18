@@ -267,8 +267,7 @@ namespace Eagle
     
     void PhysicsRagdollActor::SynchronizeTransform()
     {
-        const bool bInvalid = m_Root.Body == nullptr;
-        if (bInvalid)
+        if (!m_Root.Body)
             return;
 
         auto& skeletalComp = m_Entity.GetComponent<SkeletalMeshComponent>();
@@ -294,11 +293,23 @@ namespace Eagle
 
     Transform PhysicsRagdollActor::GetRootBoneWorldTransform() const
     {
+        if (!m_Root.Body)
+        {
+            EG_CORE_ERROR("Failed to call `GetRootBoneWorldTransform`. Ragdoll body is invalid");
+            return {};
+        }
+
         return PhysXUtils::FromPhysXTransform(m_Root.Body->getGlobalPose());
     }
 
     void PhysicsRagdollActor::SetLinearVelocity(const glm::vec3& velocity, bool bApplyToRootOnly)
     {
+        if (!m_Root.Body)
+        {
+            EG_CORE_ERROR("Failed to call `SetLinearVelocity`. Ragdoll body is invalid");
+            return;
+        }
+
         const auto pxVel = PhysXUtils::ToPhysXVector(velocity);
         m_Root.Body->setLinearVelocity(pxVel);
         if (!bApplyToRootOnly)
@@ -310,6 +321,12 @@ namespace Eagle
 
     void PhysicsRagdollActor::SetAngularVelocity(const glm::vec3& velocity, bool bApplyToRootOnly)
     {
+        if (!m_Root.Body)
+        {
+            EG_CORE_ERROR("Failed to call `SetAngularVelocity`. Ragdoll body is invalid");
+            return;
+        }
+
         const auto pxVel = PhysXUtils::ToPhysXVector(velocity);
         m_Root.Body->setAngularVelocity(pxVel);
         if (!bApplyToRootOnly)
@@ -321,6 +338,12 @@ namespace Eagle
 
     void PhysicsRagdollActor::AddForce(const glm::vec3& force, ForceMode forceMode, bool bApplyToRootOnly)
     {
+        if (!m_Root.Body)
+        {
+            EG_CORE_ERROR("Failed to call `AddForce`. Ragdoll body is invalid");
+            return;
+        }
+
         const auto pxForce = PhysXUtils::ToPhysXVector(force);
         m_Root.Body->addForce(pxForce, (physx::PxForceMode::Enum)forceMode);
         if (!bApplyToRootOnly)
@@ -332,6 +355,12 @@ namespace Eagle
 
     void PhysicsRagdollActor::AddForceAtLocation(const glm::vec3& location, const glm::vec3& force, ForceMode forceMode, bool bApplyToRootOnly)
     {
+        if (!m_Root.Body)
+        {
+            EG_CORE_ERROR("Failed to call `AddForceAtLocation`. Ragdoll body is invalid");
+            return;
+        }
+
         const auto pxLocation = PhysXUtils::ToPhysXVector(location);
         const auto pxForce = PhysXUtils::ToPhysXVector(force);
 
@@ -345,6 +374,12 @@ namespace Eagle
 
     void PhysicsRagdollActor::AddTorque(const glm::vec3& torque, ForceMode forceMode, bool bApplyToRootOnly)
     {
+        if (!m_Root.Body)
+        {
+            EG_CORE_ERROR("Failed to call `AddTorque`. Ragdoll body is invalid");
+            return;
+        }
+
         const auto pxTorque = PhysXUtils::ToPhysXVector(torque);
         m_Root.Body->addTorque(pxTorque, (physx::PxForceMode::Enum)forceMode);
         if (!bApplyToRootOnly)
@@ -356,11 +391,23 @@ namespace Eagle
     
     glm::vec3 PhysicsRagdollActor::GetLinearVelocity() const
     {
+        if (!m_Root.Body)
+        {
+            EG_CORE_ERROR("Failed to call `GetLinearVelocity`. Ragdoll body is invalid");
+            return glm::vec3(0);
+        }
+
         return PhysXUtils::FromPhysXVector(m_Root.Body->getLinearVelocity());
     }
     
     glm::vec3 PhysicsRagdollActor::GetAngularVelocity() const
     {
+        if (!m_Root.Body)
+        {
+            EG_CORE_ERROR("Failed to call `GetAngularVelocity`. Ragdoll body is invalid");
+            return glm::vec3(0);
+        }
+
         return PhysXUtils::FromPhysXVector(m_Root.Body->getAngularVelocity());
     }
 
@@ -410,6 +457,12 @@ namespace Eagle
     
     void PhysicsRagdollActor::PutToSleep()
     {
+        if (!m_Root.Body)
+        {
+            EG_CORE_ERROR("Failed to call `PutToSleep`. Ragdoll body is invalid");
+            return;
+        }
+
         m_Root.Body->putToSleep();
         for (auto& [_, body] : m_BonesMap)
         {
@@ -419,6 +472,12 @@ namespace Eagle
     
     void PhysicsRagdollActor::WakeUp()
     {
+        if (!m_Root.Body)
+        {
+            EG_CORE_ERROR("Failed to call `WakeUp`. Ragdoll body is invalid");
+            return;
+        }
+
         m_Root.Body->wakeUp();
         for (auto& [_, body] : m_BonesMap)
         {

@@ -218,16 +218,7 @@ namespace Eagle
 
 		ImGui::PopItemWidth();
 
-		const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
-
-		ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
-
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-		ImGui::Separator();
-		bool treeOpened = ImGui::TreeNodeEx((void*)(uint64_t)entity.GetID(), flags, "Components");
-		ImGui::PopStyleVar();
-		if (treeOpened)
+		if (UI::PushTreeNode("Components", true, true, "", (uint64_t)entity.GetID()))
 		{
 			ImGuiTreeNodeFlags childFlags = (m_SelectedComponent == SelectedComponent::None ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow
 				| ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
@@ -275,7 +266,7 @@ namespace Eagle
 				ImGui::TreePop();
 			}
 
-			ImGui::TreePop();
+			UI::PopTreeNode();
 		}
 
 		if (m_SelectedComponent == SelectedComponent::None && entity.HasComponent<TransformComponent>())
@@ -407,7 +398,7 @@ namespace Eagle
 					if (materialsCount > 0)
 					{
 						ImGui::Separator();
-						if (UI::PushTreeNode("Materials"))
+						if (UI::PushTreeNode("Materials", true))
 						{
 							UI::BeginPropertyGrid("StaticMeshComponent");
 							for (uint32_t i = 0; i < materialsCount; ++i)
@@ -471,7 +462,7 @@ namespace Eagle
 						UI::EndPropertyGrid();
 
 						ImGui::Separator();
-						if (UI::PushTreeNode("Materials"))
+						if (UI::PushTreeNode("Materials", true))
 						{
 							UI::BeginPropertyGrid("SkeletalMeshComponent");
 							for (uint32_t i = 0; i < materialsCount; ++i)
@@ -557,21 +548,15 @@ namespace Eagle
 							UI::EndPropertyGrid();
 							bEndGrid = false;
 
-							constexpr ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-								| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
-
-							ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 							ImGui::Separator();
-							bool treeOpened = ImGui::TreeNodeEx("Graph Variables", treeFlags);
-							ImGui::PopStyleVar();
-							if (treeOpened)
+							if (UI::PushTreeNode("Graph Variables"))
 							{
 								UI::BeginPropertyGrid("Graph_Variables");
 
 								bEntityChanged |= EditorResources::DrawGraphVariables(smComponent.GetAnimationGraph());
 
 								UI::EndPropertyGrid();
-								ImGui::TreePop();
+								UI::PopTreeNode();
 							}
 						}
 					}
@@ -1372,7 +1357,7 @@ namespace Eagle
 					UI::EndPropertyGrid();
 
 					ImGui::Separator();
-					if (UI::PushTreeNode("Collision Groups", true, "Collision groups it belongs to"))
+					if (UI::PushTreeNode("Collision Groups", false, true, "Collision groups it belongs to"))
 					{
 						UI::BeginPropertyGrid("CharacterControllerComponent");
 						if (UI::PropertyBitMask("Collision Groups", collisionGroup, collisionGroups))
@@ -1385,7 +1370,7 @@ namespace Eagle
 						UI::PopTreeNode();
 					}
 
-					if (UI::PushTreeNode("Interacting Collision Groups", true, "Collision groups it can interact with"))
+					if (UI::PushTreeNode("Interacting Collision Groups", false, true, "Collision groups it can interact with"))
 					{
 						UI::BeginPropertyGrid("CharacterControllerComponent");
 						if (UI::PropertyBitMask("Interacting Collision Groups", interactingCollisionGroup, collisionGroups))
@@ -1581,7 +1566,7 @@ namespace Eagle
 					UI::EndPropertyGrid();
 
 					ImGui::Separator();
-					if (UI::PushTreeNode("Collision Groups", true, "Collision groups it belongs to"))
+					if (UI::PushTreeNode("Collision Groups", false, true, "Collision groups it belongs to"))
 					{
 						UI::BeginPropertyGrid("BoxColliderComponent");
 						if (UI::PropertyBitMask("Collision Groups", collisionGroup, collisionGroups))
@@ -1594,7 +1579,7 @@ namespace Eagle
 						UI::PopTreeNode();
 					}
 
-					if (UI::PushTreeNode("Interacting Collision Groups", true, "Collision groups it can interact with"))
+					if (UI::PushTreeNode("Interacting Collision Groups", false, true, "Collision groups it can interact with"))
 					{
 						UI::BeginPropertyGrid("BoxColliderComponent");
 						if (UI::PropertyBitMask("Interacting Collision Groups", interactingCollisionGroup, collisionGroups))
@@ -1673,7 +1658,7 @@ namespace Eagle
 					UI::EndPropertyGrid();
 
 					ImGui::Separator();
-					if (UI::PushTreeNode("Collision Groups", true, "Collision groups it belongs to"))
+					if (UI::PushTreeNode("Collision Groups", false, true, "Collision groups it belongs to"))
 					{
 						UI::BeginPropertyGrid("SphereColliderComponent");
 						if (UI::PropertyBitMask("Collision Groups", collisionGroup, collisionGroups))
@@ -1686,7 +1671,7 @@ namespace Eagle
 						UI::PopTreeNode();
 					}
 
-					if (UI::PushTreeNode("Interacting Collision Groups", true, "Collision groups it can interact with"))
+					if (UI::PushTreeNode("Interacting Collision Groups", false, true, "Collision groups it can interact with"))
 					{
 						UI::BeginPropertyGrid("SphereColliderComponent");
 						if (UI::PropertyBitMask("Interacting Collision Groups", interactingCollisionGroup, collisionGroups))
@@ -1772,7 +1757,7 @@ namespace Eagle
 					UI::EndPropertyGrid();
 
 					ImGui::Separator();
-					if (UI::PushTreeNode("Collision Groups", true, "Collision groups it belongs to"))
+					if (UI::PushTreeNode("Collision Groups", false, true, "Collision groups it belongs to"))
 					{
 						UI::BeginPropertyGrid("CapsuleColliderComponent");
 						if (UI::PropertyBitMask("Collision Groups", collisionGroup, collisionGroups))
@@ -1785,7 +1770,7 @@ namespace Eagle
 						UI::PopTreeNode();
 					}
 
-					if (UI::PushTreeNode("Interacting Collision Groups", true, "Collision groups it can interact with"))
+					if (UI::PushTreeNode("Interacting Collision Groups", false, true, "Collision groups it can interact with"))
 					{
 						UI::BeginPropertyGrid("CapsuleColliderComponent");
 						if (UI::PropertyBitMask("Interacting Collision Groups", interactingCollisionGroup, collisionGroups))
@@ -1871,7 +1856,7 @@ namespace Eagle
 					UI::EndPropertyGrid();
 
 					ImGui::Separator();
-					if (UI::PushTreeNode("Collision Groups", true, "Collision groups it belongs to"))
+					if (UI::PushTreeNode("Collision Groups", false, true, "Collision groups it belongs to"))
 					{
 						UI::BeginPropertyGrid("MeshColliderComponent");
 						if (UI::PropertyBitMask("Collision Groups", collisionGroup, collisionGroups))
@@ -1884,7 +1869,7 @@ namespace Eagle
 						UI::PopTreeNode();
 					}
 
-					if (UI::PushTreeNode("Interacting Collision Groups", true, "Collision groups it can interact with"))
+					if (UI::PushTreeNode("Interacting Collision Groups", false, true, "Collision groups it can interact with"))
 					{
 						UI::BeginPropertyGrid("MeshColliderComponent");
 						if (UI::PropertyBitMask("Interacting Collision Groups", interactingCollisionGroup, collisionGroups))

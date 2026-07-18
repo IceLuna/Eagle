@@ -2309,14 +2309,7 @@ namespace Eagle
 
 		// Physics Collision groups
 		{
-			constexpr ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-				| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-			ImGui::Separator();
-			const bool treeOpened = ImGui::TreeNodeEx("Collision Groups", treeFlags);
-			ImGui::PopStyleVar();
-
-			if (treeOpened)
+			if (UI::PushTreeNode("Collision Groups"))
 			{
 				UI::BeginPropertyGrid("ProjectSettingsPanel");
 
@@ -2361,7 +2354,7 @@ namespace Eagle
 				if (!bCanAdd)
 					UI::PopItemDisabled();
 
-				ImGui::TreePop();
+				UI::PopTreeNode();
 			}
 		}
 

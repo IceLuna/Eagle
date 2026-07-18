@@ -458,11 +458,7 @@ namespace Eagle
         if (m_Selected->Type != NodeType::BehaviorTask && m_Selected->Type != NodeType::BehaviorComposite)
             return;
 
-        const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-            | ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
-
         auto& nodeData = m_Selected->BehaviorNodeData;
-
         {
             UI::TextWithSeparator("Node Properties");
             UI::BeginPropertyGrid("BehaviorGraphNodes");
@@ -505,9 +501,7 @@ namespace Eagle
 
             ImGui::PushID(decorator.ClassData.FullName.c_str());
 
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-            bool treeOpened = ImGui::TreeNodeEx(decorator.ClassData.UIName.c_str(), flags);
-            ImGui::PopStyleVar();
+            const bool bTreeOpened = UI::PushTreeNode(decorator.ClassData.UIName, true);
 
             const float offset = ImGui::GetContentRegionAvail().x - m_MoveUpTextSize.x - m_MoveDownTextSize.x - paddingX;
 
@@ -533,7 +527,7 @@ namespace Eagle
                     UI::PopItemDisabled();
             }
 
-            if (treeOpened)
+            if (bTreeOpened)
             {
                 UI::BeginPropertyGrid("DecoratorFields");
                 for (auto& field : decorator.ClassData.Fields)
@@ -541,7 +535,7 @@ namespace Eagle
                     m_bRebuild |= UI::Property(field);
                 }
                 UI::EndPropertyGrid();
-                ImGui::TreePop();
+                UI::PopTreeNode();
             }
 
             ImGui::PopID();

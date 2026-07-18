@@ -498,6 +498,8 @@ namespace Eagle
 		{
 			bool bCreatedAsset = false;
 
+			UI::PushFontHeader(17);
+
 			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::None), "Import...", thumbnailSize, thumbnailSize.x))
 			{
 				bCreatedAsset |= HandleImport();
@@ -563,6 +565,7 @@ namespace Eagle
 				m_DrawAddPanel = false;
 			}
 
+			UI::PopFont();
 			ImGui::EndPopup();
 		}
 	}

@@ -63,7 +63,7 @@ namespace Eagle
                 if (bCanMergeToCurrent && childData.AABB.Length() < minBoneSize)
                 {
                     // Merge
-                    data.Children.insert(data.Children.end(), childData.Children.begin(), childData.Children.end());
+                    data.Children.insert(data.Children.end(), std::make_move_iterator(childData.Children.begin()), std::make_move_iterator(childData.Children.end()));
                     data.AABB.Grow(childData.AABB);
                 }
                 else

@@ -454,7 +454,7 @@ namespace Eagle
 		UI::Text("Indices Mem Usage (Kb)", std::to_string(indicesCount * sizeof(Index) / 1024));
 		UI::EndPropertyGrid();
 
-		if (ImGui::TreeNodeEx("Materials", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
+		if (UI::PushTreeNode("Materials", true))
 		{
 			UI::BeginPropertyGrid("SkeletalMeshDetails");
 			const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
@@ -470,10 +470,10 @@ namespace Eagle
 			}
 			UI::EndPropertyGrid();
 
-			ImGui::TreePop();
+			UI::PopTreeNode();
 		}
 
-		if (ImGui::TreeNodeEx("Preview Settings", ImGuiTreeNodeFlags_Framed))
+		if (UI::PushTreeNode("Preview Settings"))
 		{
 			UI::BeginPropertyGrid("SkeletalMeshDetails");
 			if (EditorResources::DrawAssetSelection("Animation", m_PreviewAnimation))
@@ -518,6 +518,7 @@ namespace Eagle
 			}
 			UI::EndPropertyGrid();
 
+			ImGui::Separator();
 			{
 				const bool bDisableRotation = bSimulate && m_OpenedTab == OpenedTabType::Ragdoll;
 				if (bDisableRotation)
@@ -540,7 +541,7 @@ namespace Eagle
 					UI::PopItemDisabled();
 			}
 
-			ImGui::TreePop();
+			UI::PopTreeNode();
 		}
 
 		size_t assetHash = m_Asset->GetGUID().GetHash();
@@ -837,7 +838,6 @@ namespace Eagle
 
 		ImGui::Separator();
 
-		constexpr float thickness = 2.5f;
 		const auto& collisionGroups = Project::GetAllCollisionGroups();
 		bool bRegenerate = false; // TODO v0.7 Should always do it on change?
 
@@ -847,14 +847,24 @@ namespace Eagle
 		UI::PropertyDrag("Max Twist angle", m_Twist, 1.f, 0.01f, 180.f);
 		UI::PropertyDrag("Max Swing angle", m_Swing, 1.f, 0.01f, 180.f);
 		bRegenerate |= UI::ComboEnum<CollisionDetectionType>("Collision Detection", m_CollisionDetection, s_CollisionDetectionTypeHelpMsg);
-
-		UI::TextWithSeparator("Collision Groups", thickness, "Collision groups it belongs to");
-		bRegenerate |= UI::PropertyBitMask("Collision Groups", m_CollisionGroup, collisionGroups);
-
-		UI::TextWithSeparator("Interacting Collision Groups", thickness, "Collision groups it can interact with");
-		bRegenerate |= UI::PropertyBitMask("Interacting Collision Groups", m_InteractingCollisionGroup, collisionGroups);
-
 		UI::EndPropertyGrid();
+
+		ImGui::Separator();
+		if (UI::PushTreeNode("Collision Groups", false, true, "Collision groups it belongs to"))
+		{
+			UI::BeginPropertyGrid("Ragdoll props");
+			bRegenerate |= UI::PropertyBitMask("Collision Groups", m_CollisionGroup, collisionGroups);
+			UI::EndPropertyGrid();
+			UI::PopTreeNode();
+		}
+
+		if (UI::PushTreeNode("Interacting Collision Groups", false, true, "Collision groups it can interact with"))
+		{
+			UI::BeginPropertyGrid("Ragdoll props");
+			bRegenerate |= UI::PropertyBitMask("Interacting Collision Groups", m_InteractingCollisionGroup, collisionGroups);
+			UI::EndPropertyGrid();
+			UI::PopTreeNode();
+		}
 
 		ImGui::Separator();
 		if (UI::Property("Simulate", bSimulate))

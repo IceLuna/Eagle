@@ -343,15 +343,9 @@ namespace Eagle
 
 	bool AnimationBlendSpaceAssetEditor::DrawAxisTreeNode(const char* name, BlendSpaceAxisSettings& axis)
 	{
-		constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
-
 		bool bChanged = false;
 
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-		bool treeOpened = ImGui::TreeNodeEx(name, flags);
-		ImGui::PopStyleVar();
-		if (treeOpened)
+		if (UI::PushTreeNode(name, true))
 		{
 			UI::BeginPropertyGrid(name);
 
@@ -361,7 +355,7 @@ namespace Eagle
 			bChanged |= bAxisLimitsChanged;
 
 			UI::EndPropertyGrid();
-			ImGui::TreePop();
+			UI::PopTreeNode();
 		}
 
 		return bChanged;
@@ -369,15 +363,8 @@ namespace Eagle
 
 	bool AnimationBlendSpaceAssetEditor::DrawAddPointTreeNode()
 	{
-		constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
-
 		bool bChanged = false;
-
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-		bool treeOpened = ImGui::TreeNodeEx("Add Point", flags);
-		ImGui::PopStyleVar();
-		if (treeOpened)
+		if (UI::PushTreeNode("Add Point", true))
 		{
 			UI::BeginPropertyGrid("Add Point");
 
@@ -399,7 +386,7 @@ namespace Eagle
 				bChanged = true;
 			}
 
-			ImGui::TreePop();
+			UI::PopTreeNode();
 		}
 
 		return bChanged;
@@ -407,15 +394,8 @@ namespace Eagle
 
 	bool AnimationBlendSpaceAssetEditor::DrawAllPointsTreeNode()
 	{
-		constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
-
 		bool bChanged = false;
-
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-		bool treeOpened = ImGui::TreeNodeEx("All Points", flags);
-		ImGui::PopStyleVar();
-		if (treeOpened)
+		if (UI::PushTreeNode("All Points"))
 		{
 			if (!m_PointsData.empty())
 			{
@@ -483,7 +463,7 @@ namespace Eagle
 				ImGui::PopID();
 			}
 
-			ImGui::TreePop();
+			UI::PopTreeNode();
 
 			if (pointIdxToDelete != s_InvalidIndex)
 			{
@@ -497,13 +477,7 @@ namespace Eagle
 
 	void AnimationBlendSpaceAssetEditor::DrawVisualizationData()
 	{
-		constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
-
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-		bool treeOpened = ImGui::TreeNodeEx("Visualization", flags);
-		ImGui::PopStyleVar();
-		if (treeOpened)
+		if (UI::PushTreeNode("Visualization"))
 		{
 			UI::BeginPropertyGrid("Visualization");
 
@@ -527,7 +501,7 @@ namespace Eagle
 			yVar->Value = (float)glm::clamp(double(yVar->Value), m_Vertical.Min, m_Vertical.Max);
 
 			UI::EndPropertyGrid();
-			ImGui::TreePop();
+			UI::PopTreeNode();
 		}
 	}
 

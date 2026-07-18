@@ -52,7 +52,7 @@ namespace Eagle
 		UI::Text("Indices Mem Usage (Kb)", std::to_string(indicesCount * sizeof(Index) / 1024));
 		UI::EndPropertyGrid();
 
-		if (ImGui::TreeNodeEx("Materials", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
+		if (UI::PushTreeNode("Materials", true))
 		{
 			UI::BeginPropertyGrid("StaticMeshDetails");
 			const uint32_t materialsCount = mesh->GetMaterialSlotsCount();
@@ -68,7 +68,7 @@ namespace Eagle
 			}
 			UI::EndPropertyGrid();
 
-			ImGui::TreePop();
+			UI::PopTreeNode();
 		}
 
 		if (bChanged)

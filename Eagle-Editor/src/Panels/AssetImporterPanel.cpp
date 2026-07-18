@@ -22,23 +22,11 @@ namespace Eagle
 	template <typename Func>
 	static void FancyTreeNode(const char* label, bool bDefaultOpen, Func&& func, const char* helpMsg = nullptr)
 	{
-		constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
-
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 		ImGui::Separator();
-		const bool treeOpened = ImGui::TreeNodeEx(label, flags | (bDefaultOpen ? ImGuiTreeNodeFlags_DefaultOpen : 0));
-		ImGui::PopStyleVar();
-		if (helpMsg)
-		{
-			ImGui::SameLine();
-			UI::HelpMarker(helpMsg);
-		}
-
-		if (treeOpened)
+		if (UI::PushTreeNode(label, bDefaultOpen, true, helpMsg))
 		{
 			func();
-			ImGui::TreePop();
+			UI::PopTreeNode();
 			ImGui::Separator();
 		}
 	}

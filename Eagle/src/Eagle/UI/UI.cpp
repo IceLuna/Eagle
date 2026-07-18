@@ -359,19 +359,19 @@ namespace Eagle::UI
 		io.FontDefault = defaultFont;
 	}
 
-	void PushFontRegular()
+	void PushFontRegular(float overrideFontSize)
 	{
-		ImGui::PushFont(s_Fonts.Regular);
+		ImGui::PushFont(s_Fonts.Regular, overrideFontSize);
 	}
 
-	void PushFontHeader()
+	void PushFontHeader(float overrideFontSize)
 	{
-		ImGui::PushFont(s_Fonts.Header);
+		ImGui::PushFont(s_Fonts.Header, overrideFontSize);
 	}
 
-	void PushFontBold()
+	void PushFontBold(float overrideFontSize)
 	{
-		ImGui::PushFont(s_Fonts.Bold);
+		ImGui::PushFont(s_Fonts.Bold, overrideFontSize);
 	}
 
 	void PopFont()
@@ -1336,13 +1336,14 @@ namespace Eagle::UI
 		return bChanged;
 	}
 
-	bool PushTreeNode(const std::string_view label, bool bFramed, const std::string_view helpMessage)
+	bool PushTreeNode(const std::string_view label, bool bOpenedByDefault, bool bFramed, const std::string_view helpMessage, uint64_t uniqueID)
 	{
 		ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowOverlap;
 		treeFlags |= bFramed ? ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_FramePadding : 0;
+		treeFlags |= bOpenedByDefault ? ImGuiTreeNodeFlags_DefaultOpen : 0;
 
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-		const bool bOpened = ImGui::TreeNodeEx(label.data(), treeFlags);
+		const bool bOpened = uniqueID == 0 ? ImGui::TreeNodeEx(label.data(), treeFlags) : ImGui::TreeNodeEx((void*)uniqueID, treeFlags, label.data());
 		ImGui::PopStyleVar();
 		if (!helpMessage.empty())
 		{

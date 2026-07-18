@@ -41,9 +41,9 @@ namespace Eagle::UI
 
 	// Fonts
 	void LoadFonts();
-	void PushFontRegular();
-	void PushFontHeader();
-	void PushFontBold();
+	void PushFontRegular(float overrideFontSize = 0.0f);
+	void PushFontHeader(float overrideFontSize = 0.0f);
+	void PushFontBold(float overrideFontSize = 0.0f);
 	void PopFont();
 
 	// @bReturnOnEnter. If set to true, the function won't return true while the values is being changed. True will be returned after a user stops editing the value
@@ -102,7 +102,8 @@ namespace Eagle::UI
 	bool InputTextWithHint(const std::string_view label, std::string& value, std::string_view hint, ImGuiInputTextFlags flags = ImGuiInputTextFlags_None, const std::string_view helpMessage = "");
 	bool InputTextMultiline(const std::string_view label, std::string& value, ImGuiInputTextFlags flags = ImGuiInputTextFlags_None, const std::string_view helpMessage = "");
 
-	bool PushTreeNode(const std::string_view label, bool bFramed = true, const std::string_view helpMessage = "");
+	// @uniqueID If non zero, it will be used as an ID from ImGui
+	bool PushTreeNode(const std::string_view label, bool bOpenedByDefault = false, bool bFramed = true, const std::string_view helpMessage = "", uint64_t uniqueID = 0);
 	void PopTreeNode();
 	
 	//Returns true if selection changed.
@@ -373,8 +374,8 @@ namespace Eagle::UI
 			ImGui::PushItemWidth(maxItemWidth);
 
 		static std::string search;
-		static bool bJustOpened = true;
-		bool bBeginCombo = ImGui::BeginCombo("##", assetName.c_str(), ImGuiComboFlags_HeightLarge);
+		const bool bBeginCombo = ImGui::BeginCombo("##", assetName.c_str(), ImGuiComboFlags_HeightLarge);
+		const bool bJustOpened = ImGui::IsWindowAppearing();
 
 		if (modifyingAsset)
 		{
@@ -406,6 +407,7 @@ namespace Eagle::UI
 
 			if (bJustOpened)
 			{
+				search.clear();
 				ImGui::SetKeyboardFocusHere();
 			}
 			UI::InputTextWithHint("##search", search, "Search");
@@ -534,13 +536,6 @@ namespace Eagle::UI
 			
 			ImGui::EndChild();
 			ImGui::EndCombo();
-
-			bJustOpened = false;
-		}
-		else
-		{
-			search.clear();
-			bJustOpened = true;
 		}
 
 		if (bApplyMaxWidth)
