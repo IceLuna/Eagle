@@ -98,10 +98,11 @@ namespace Eagle
 
 	void BoxColliderShape::GetGeometry(std::vector<glm::vec3>& vertices, std::vector<uint32_t>& indices, const AABB* optionalBounds) const
 	{
-		physx::PxBoxGeometry geometry{};
-		if (m_Shape->getBoxGeometry(geometry) && geometry.isValid())
+		const physx::PxGeometry& geom = m_Shape->getGeometry();
+		if (geom.getType() == physx::PxGeometryType::eBOX)
 		{
-			PhysXUtils::GetBoxGeometry(geometry, vertices, indices);
+			const auto& boxGeom = static_cast<const physx::PxBoxGeometry&>(geom);
+			PhysXUtils::GetBoxGeometry(boxGeom, vertices, indices);
 		}
 	}
 
@@ -143,10 +144,11 @@ namespace Eagle
 		constexpr uint32_t numStacks = 48u;
 		constexpr uint32_t numSlices = 48u;
 
-		physx::PxSphereGeometry geometry{};
-		if (m_Shape->getSphereGeometry(geometry) && geometry.isValid())
+		const physx::PxGeometry& geom = m_Shape->getGeometry();
+		if (geom.getType() == physx::PxGeometryType::eSPHERE)
 		{
-			PhysXUtils::GetSphereGeometry(geometry, vertices, indices, numStacks, numSlices);
+			const auto& sphereGeom = static_cast<const physx::PxSphereGeometry&>(geom);
+			PhysXUtils::GetSphereGeometry(sphereGeom, vertices, indices, numStacks, numSlices);
 		}
 	}
 	
@@ -192,10 +194,11 @@ namespace Eagle
 		constexpr uint32_t numStacks = 48u;
 		constexpr uint32_t numSlices = 48u;
 
-		physx::PxCapsuleGeometry geometry{};
-		if (m_Shape->getCapsuleGeometry(geometry) && geometry.isValid())
+		const physx::PxGeometry& geom = m_Shape->getGeometry();
+		if (geom.getType() == physx::PxGeometryType::eCAPSULE)
 		{
-			PhysXUtils::GetCapsuleGeometry(geometry, vertices, indices, numStacks, numSlices);
+			const auto& capsuleGeom = static_cast<const physx::PxCapsuleGeometry&>(geom);
+			PhysXUtils::GetCapsuleGeometry(capsuleGeom, vertices, indices, numStacks, numSlices);
 		}
 	}
 	
@@ -258,10 +261,11 @@ namespace Eagle
 
 	void ConvexMeshShape::GetGeometry(std::vector<glm::vec3>& vertices, std::vector<uint32_t>& indices, const AABB* optionalBounds) const
 	{
-		physx::PxConvexMeshGeometry geometry{};
-		if (m_Shape->getConvexMeshGeometry(geometry) && geometry.convexMesh && geometry.isValid())
+		const physx::PxGeometry& geom = m_Shape->getGeometry();
+		if (geom.getType() == physx::PxGeometryType::eCONVEXMESH)
 		{
-			PhysXUtils::GetConvexMeshGeometry(geometry, vertices, indices);
+			const auto& meshGeom = static_cast<const physx::PxConvexMeshGeometry&>(geom);
+			PhysXUtils::GetConvexMeshGeometry(meshGeom, vertices, indices);
 		}
 	}
 	
@@ -337,10 +341,11 @@ namespace Eagle
 			}
 		}
 #else
-		physx::PxTriangleMeshGeometry geometry{};
-		if (m_Shape->getTriangleMeshGeometry(geometry) && geometry.triangleMesh && geometry.isValid())
+		const physx::PxGeometry& geom = m_Shape->getGeometry();
+		if (geom.getType() == physx::PxGeometryType::eTRIANGLEMESH)
 		{
-			PhysXUtils::GetTriangleMeshGeometry(geometry, vertices, indices);
+			const auto& meshGeom = static_cast<const physx::PxTriangleMeshGeometry&>(geom);
+			PhysXUtils::GetTriangleMeshGeometry(meshGeom, vertices, indices);
 		}
 #endif
 	}

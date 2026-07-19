@@ -4,6 +4,14 @@
 #include "PhysXCookingFactory.h"
 #include "Eagle/Components/Components.h"
 
+namespace physx
+{
+	void PxAssert(const char* exception, const char* file, int line, bool& ignore)
+	{
+		EG_CORE_ERROR("[Physics Engine]: {0}: at {1} ({2})", exception, file, line);
+	}
+}
+
 namespace Eagle
 {
 	struct PhysXData
@@ -14,7 +22,6 @@ namespace Eagle
 
 		physx::PxDefaultAllocator Allocator;
 		PhysicsErrorCallback ErrorCallback;
-		PhysicsAssertHandler AssertHandler;
 	};
 
 	static PhysXData* s_PhysXData = nullptr;
@@ -48,8 +55,6 @@ namespace Eagle
 		s_PhysXData->CPUDispatcher = physx::PxDefaultCpuDispatcherCreate(1); // TODO v0.7: Increase it and test perf
 		
 		PhysXCookingFactory::Init();
-
-		PxSetAssertHandler(s_PhysXData->AssertHandler);
 	}
 
 	void PhysXInternal::Shutdown()
@@ -72,6 +77,11 @@ namespace Eagle
 
 		delete s_PhysXData;
 		s_PhysXData = nullptr;
+	}
+
+	bool PhysXInternal::IsVisualDebuggingSupported()
+	{
+		return PhysXDebugger::GetDebugger() != nullptr;
 	}
 
 	physx::PxFoundation& PhysXInternal::GetFoundation()
@@ -161,10 +171,5 @@ namespace Eagle
 				EG_CORE_ASSERT(false, "Critical error");
 				break;
 		}
-	}
-	
-	void PhysicsAssertHandler::operator()(const char* exception, const char* file, int line, bool& ignore)
-	{
-		EG_CORE_ERROR("[Physics Engine]: {0}: at {1} ({2})", exception, file, line);
 	}
 }

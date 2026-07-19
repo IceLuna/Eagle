@@ -19,6 +19,11 @@ namespace Eagle
 		PhysXInternal::Shutdown();
 	}
 
+	bool PhysicsEngine::IsVisualDebuggingSupported()
+	{
+		return PhysXInternal::IsVisualDebuggingSupported();
+	}
+
 	const Ref<PhysicsMaterial>& PhysicsEngine::GetDefaultMaterial()
 	{
 		return s_DefaultMaterial;

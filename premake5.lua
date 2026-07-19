@@ -71,7 +71,7 @@ LibFiles["PhysXCookingDebug"] = "%{LibDir.PhysXDebug}/PhysXCooking_static_64.lib
 LibFiles["PhysXExtensionsDebug"] = "%{LibDir.PhysXDebug}/PhysXExtensions_static_64.lib"
 LibFiles["PhysXFoundationDebug"] = "%{LibDir.PhysXDebug}/PhysXFoundation_static_64.lib"
 LibFiles["PhysXPvdSDKDebug"] = "%{LibDir.PhysXDebug}/PhysXPvdSDK_static_64.lib"
-LibFiles["PhysXVehicleDebug"] = "%{LibDir.PhysXDebug}/PhysXVehicle_static_64.lib"
+LibFiles["PhysXVehicleDebug"] = "%{LibDir.PhysXDebug}/PhysXVehicle2_static_64.lib"
 
 LibFiles["PhysXPhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}/PhysX_static_64.lib"
 LibFiles["PhysXCharacterKinematicPhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}PhysXCharacterKinematic_static_64.lib"
@@ -80,7 +80,7 @@ LibFiles["PhysXCookingPhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}
 LibFiles["PhysXExtensionsPhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}/PhysXExtensions_static_64.lib"
 LibFiles["PhysXFoundationPhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}/PhysXFoundation_static_64.lib"
 LibFiles["PhysXPvdSDKPhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}/PhysXPvdSDK_static_64.lib"
-LibFiles["PhysXVehiclePhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}/PhysXVehicle_static_64.lib"
+LibFiles["PhysXVehiclePhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}/PhysXVehicle2_static_64.lib"
 
 LibFiles["PhysXRelease"] = "%{LibDir.PhysXRelease}/PhysX_static_64.lib"
 LibFiles["PhysXCharacterKinematicRelease"] = "%{LibDir.PhysXRelease}PhysXCharacterKinematic_static_64.lib"
@@ -89,7 +89,7 @@ LibFiles["PhysXCookingRelease"] = "%{LibDir.PhysXRelease}/PhysXCooking_static_64
 LibFiles["PhysXExtensionsRelease"] = "%{LibDir.PhysXRelease}/PhysXExtensions_static_64.lib"
 LibFiles["PhysXFoundationRelease"] = "%{LibDir.PhysXRelease}/PhysXFoundation_static_64.lib"
 LibFiles["PhysXPvdSDKRelease"] = "%{LibDir.PhysXRelease}/PhysXPvdSDK_static_64.lib"
-LibFiles["PhysXVehicleRelease"] = "%{LibDir.PhysXRelease}/PhysXVehicle_static_64.lib"
+LibFiles["PhysXVehicleRelease"] = "%{LibDir.PhysXRelease}/PhysXVehicle2_static_64.lib"
 
 LibFiles["Vulkan"] = "%{LibDir.VulkanSDK}/vulkan-1.lib"
 

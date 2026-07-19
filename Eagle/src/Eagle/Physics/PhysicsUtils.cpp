@@ -83,17 +83,6 @@ namespace Eagle
 			default: return physx::PxBroadPhaseType::Enum::eABP;
 		}
 	}
-	
-	physx::PxFrictionType::Enum PhysXUtils::ToPhysXFrictionType(FrictionType type)
-	{
-		switch (type)
-		{
-			case FrictionType::Patch:			return physx::PxFrictionType::Enum::ePATCH;
-			case FrictionType::OneDirectional:	return physx::PxFrictionType::Enum::eONE_DIRECTIONAL;
-			case FrictionType::TwoDirectional:	return physx::PxFrictionType::Enum::eTWO_DIRECTIONAL;
-			default: return physx::PxFrictionType::Enum::eONE_DIRECTIONAL;
-		}
-	}
 
 	physx::PxFilterData PhysXUtils::GetPxFilterData(CollisionGroup group, CollisionGroup interactingGroup, CollisionDetectionType collisionDetection)
 	{

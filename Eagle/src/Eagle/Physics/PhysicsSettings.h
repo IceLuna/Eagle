@@ -12,13 +12,6 @@ namespace Eagle
 		AutomaticBoxPrune
 	};
 
-	enum class FrictionType
-	{
-		Patch,
-		OneDirectional,
-		TwoDirectional
-	};
-
 	enum class DebugType
 	{
 		ToFile,
@@ -41,7 +34,6 @@ namespace Eagle
 		BroadphaseType BroadphaseAlgorithm = BroadphaseType::AutomaticBoxPrune;
 		AABB WorldAABB = AABB(glm::vec3(-1000.f), glm::vec3(1000.f));
 		uint32_t WorldBoundsSubdivisions = 2;
-		FrictionType FrictionModel = FrictionType::Patch;
 		bool bDebugOnPlay = false;
 		bool bEditorScene = false;
 		DebugType DebugType = DebugType::Live;

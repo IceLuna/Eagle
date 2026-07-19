@@ -9,16 +9,7 @@
 
 namespace Eagle
 {
-	struct PhysXCookingData
-	{
-		physx::PxCooking* CookingSDK;
-		physx::PxCookingParams CookingParams;
-
-		PhysXCookingData(const physx::PxTolerancesScale& scale)
-		: CookingSDK(nullptr), CookingParams(scale) {}
-	};
-
-	static PhysXCookingData* s_CookingData = nullptr;
+	static physx::PxCookingParams s_CookingParams = physx::PxCookingParams{ physx::PxTolerancesScale{} };
 
 	static std::string GetCacheFilename(const Ref<AssetBaseMesh>& mesh, bool bConvex, bool bFlip)
 	{
@@ -71,7 +62,7 @@ namespace Eagle
 
 		physx::PxDefaultMemoryOutputStream buf;
 		physx::PxConvexMeshCookingResult::Enum result;
-		if (!s_CookingData->CookingSDK->cookConvexMesh(convexDesc, buf, &result))
+		if (!PxCookConvexMesh(s_CookingParams, convexDesc, buf, &result))
 		{
 			EG_CORE_ERROR("[Physics Engine] Failed to cook convex mesh '{0}'. Reason: {1}", meshAsset->GetPath(), Utils::GetEnumName(result));
 			return PhysXUtils::FromPhysXCookingResult(result);
@@ -118,7 +109,7 @@ namespace Eagle
 			triangleDesc.flags |= physx::PxMeshFlag::eFLIPNORMALS;
 
 #if 0
-		bool bValid = s_CookingData->CookingSDK->validateTriangleMesh(triangleDesc);
+		bool bValid = PxValidateTriangleMesh(s_CookingParams, triangleDesc);
 		if (!bValid)
 		{
 			EG_CORE_ERROR("[Physics Engine] Failed to validate triangle mesh '{0}'", meshAsset->GetPath());
@@ -128,7 +119,7 @@ namespace Eagle
 
 		physx::PxDefaultMemoryOutputStream buf;
 		physx::PxTriangleMeshCookingResult::Enum result;
-		if (!s_CookingData->CookingSDK->cookTriangleMesh(triangleDesc, buf, &result))
+		if (!PxCookTriangleMesh(s_CookingParams, triangleDesc, buf, &result))
 		{
 			EG_CORE_ERROR("[Physics Engine] Failed to cook triangle mesh '{0}'. Reason: {1}", meshAsset->GetPath(), Utils::GetEnumName(result));
 			return PhysXUtils::FromPhysXCookingResult(result);
@@ -142,27 +133,17 @@ namespace Eagle
 
 	void PhysXCookingFactory::Init()
 	{
-		EG_CORE_ASSERT(!s_CookingData, "[Physics Engine] Trying to init Cooking Factory twice!");
-
 		static bool bSupportsSSE2 = Utils::IsSSE2Supported();
 		static auto midphaseDesc = bSupportsSSE2 ? physx::PxMeshMidPhase::eBVH34 : physx::PxMeshMidPhase::eBVH33;
 
-		s_CookingData = new PhysXCookingData(PhysXInternal::GetPhysics().getTolerancesScale());
-		s_CookingData->CookingParams.meshWeldTolerance = 0.1f;
-		s_CookingData->CookingParams.meshPreprocessParams = physx::PxMeshPreprocessingFlag::eWELD_VERTICES;
-		s_CookingData->CookingParams.midphaseDesc = midphaseDesc;
-
-		s_CookingData->CookingSDK = PxCreateCooking(PX_PHYSICS_VERSION, PhysXInternal::GetFoundation(), s_CookingData->CookingParams);
-		EG_CORE_ASSERT(s_CookingData->CookingSDK, "[Physics Engine] Failed to create Cooking");
+		s_CookingParams = physx::PxCookingParams(PhysXInternal::GetPhysics().getTolerancesScale());
+		s_CookingParams.meshWeldTolerance = 0.1f;
+		s_CookingParams.meshPreprocessParams = physx::PxMeshPreprocessingFlag::eWELD_VERTICES;
+		s_CookingParams.midphaseDesc = midphaseDesc;
 	}
 	
 	void PhysXCookingFactory::Shutdown()
 	{
-		s_CookingData->CookingSDK->release();
-		s_CookingData->CookingSDK = nullptr;
-
-		delete s_CookingData;
-		s_CookingData = nullptr;
 	}
 
 	CookingResult PhysXCookingFactory::CookMesh(const Ref<AssetBaseMesh>& collisionMesh, bool bConvex, bool bFlip, ScopedDataBuffer* outData)

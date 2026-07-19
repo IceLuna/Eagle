@@ -1345,22 +1345,26 @@ namespace Eagle
 					bChanged = true;
 				}
 
-				if (bSimulating)
-					UI::PushItemDisabled();
-
-				if (UI::Property("Debug on Play", bDebugOnPlay, "If enabled, debugging session will start when game simulation starts. You need to use PhysX Visual Debugger"))
+				if (PhysicsEngine::IsVisualDebuggingSupported())
 				{
-					m_CurrentScene->SetPhysicsDebugOnPlay(bDebugOnPlay);
-					bChanged = true;
-				}
-				if (UI::ComboEnum("Debug Type", debugType, s_PhysicsDebugTypeHelpMsg))
-				{
-					m_CurrentScene->SetPhysicsDebugType(debugType);
-					bChanged = true;
+					if (bSimulating)
+						UI::PushItemDisabled();
+
+					if (UI::Property("Debug on Play", bDebugOnPlay, "If enabled, debugging session will start when game simulation starts. You need to use PhysX Visual Debugger"))
+					{
+						m_CurrentScene->SetPhysicsDebugOnPlay(bDebugOnPlay);
+						bChanged = true;
+					}
+					if (UI::ComboEnum("Debug Type", debugType, s_PhysicsDebugTypeHelpMsg))
+					{
+						m_CurrentScene->SetPhysicsDebugType(debugType);
+						bChanged = true;
+					}
+
+					if (bSimulating)
+						UI::PopItemDisabled();
 				}
 
-				if (bSimulating)
-					UI::PopItemDisabled();
 
 				UI::EndPropertyGrid();
 				ImGui::TreePop();

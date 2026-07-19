@@ -31,7 +31,6 @@ namespace Eagle
         sceneDesc.cpuDispatcher = PhysXInternal::GetCPUDispatcher();
         sceneDesc.filterShader = m_Settings.bEditorScene ? (physx::PxSimulationFilterShader)PhysXInternal::EditorFilterShader :(physx::PxSimulationFilterShader)PhysXInternal::FilterShader;
         sceneDesc.simulationEventCallback = &s_ContactListener;
-        sceneDesc.frictionType = PhysXUtils::ToPhysXFrictionType(settings.FrictionModel);
 
         EG_CORE_ASSERT(sceneDesc.isValid(), "Invalid scene desc");
 
@@ -236,7 +235,7 @@ namespace Eagle
         for (uint32_t i = 0; i < regionCount; ++i)
         {
             physx::PxBroadPhaseRegion region;
-            region.bounds = regionBounds[i];
+            region.mBounds = regionBounds[i];
             m_BroadPhaseRegionHandles[i] = m_Scene->addBroadPhaseRegion(region, true);
         }
     }

@@ -103,6 +103,8 @@ namespace Eagle
 		static void Init();
 		static void Shutdown();
 
+		static bool IsVisualDebuggingSupported();
+
 		static const Ref<class PhysicsMaterial>& GetDefaultMaterial();
 	};
 }
