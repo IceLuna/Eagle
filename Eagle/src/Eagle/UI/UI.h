@@ -43,6 +43,7 @@ namespace Eagle::UI
 	void LoadFonts();
 	void PushFontRegular(float overrideFontSize = 0.0f);
 	void PushFontHeader(float overrideFontSize = 0.0f);
+	void PushFontHeader2(float overrideFontSize = 0.0f); // Bigger than Header
 	void PushFontBold(float overrideFontSize = 0.0f);
 	void PopFont();
 

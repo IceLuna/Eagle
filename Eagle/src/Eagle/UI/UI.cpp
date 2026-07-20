@@ -20,11 +20,50 @@
 
 namespace Eagle::UI
 {
+	struct FontData
+	{
+		ImFont* Font = nullptr;
+		float BaseSize = 17.0f;
+
+		void Init(const Path& path, float dpi)
+		{
+			ImGuiIO& io = ImGui::GetIO();
+
+			ImFontConfig config = {};
+			config.OversampleH = 2;
+			config.OversampleV = 1;
+			config.PixelSnapH = true;
+
+			const ImWchar* ranges = io.Fonts->GetGlyphRangesCyrillic();
+			const float fontSize = BaseSize * dpi;
+			Font = io.Fonts->AddFontFromFileTTF(Utils::AsString(path).c_str(), fontSize, &config, ranges);
+		}
+	};
+
 	struct FontContext
 	{
-		ImFont* Regular{ nullptr };
-		ImFont* Bold{ nullptr };
-		ImFont* Header{ nullptr };
+		constexpr static uint32_t NumFonts = 4;
+
+		union
+		{
+			struct
+			{
+				// When changed , update `NumFonts`
+				FontData Regular;
+				FontData Bold;
+				FontData Header;
+				FontData Header2;
+			};
+
+			FontData Fonts[NumFonts];
+		};
+
+		FontContext()
+		    : Regular{ nullptr, 17.0f }
+		    , Bold{ nullptr, 17.0f }
+		    , Header{ nullptr, 24.0f }
+		    , Header2{ nullptr, 32.0f }
+		{}
 	};
 
 	static constexpr int s_IDBufferSize = 32;
@@ -322,27 +361,24 @@ namespace Eagle::UI
 
 		if (std::filesystem::exists(regularFont) && std::filesystem::exists(boldFont))
 		{
-			constexpr float baseFontSize   = 17.f;
-			constexpr float baseHeaderSize = 24.f;
+			const float dpi = Application::Get().GetWindow().GetDPIScale();
 
-			const float dpi		   = Application::Get().GetWindow().GetDPIScale();
-			const float fontSize   = baseFontSize * dpi;
-			const float headerSize = baseHeaderSize * dpi;
+			s_Fonts.Regular.Init(regularFont, dpi);
+			s_Fonts.Bold.Init(boldFont, dpi);
+			s_Fonts.Header.Init(regularFont, dpi);
+			s_Fonts.Header2.Init(regularFont, dpi);
 
-			const ImWchar* ranges = io.Fonts->GetGlyphRangesCyrillic();
-
-			ImFontConfig config = {};
-			config.OversampleH = 2;
-			config.OversampleV = 1;
-			config.PixelSnapH = true;
-
-			s_Fonts.Regular = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), fontSize,   &config, ranges);
-			s_Fonts.Header  = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), headerSize, &config, ranges);
-			s_Fonts.Bold    = io.Fonts->AddFontFromFileTTF(boldFont.string().c_str(),    fontSize,   &config, ranges);
-
-			if (s_Fonts.Regular)
+			for (uint32_t i = 0; i < FontContext::NumFonts; ++i)
 			{
-				io.FontDefault = s_Fonts.Regular;
+				if (s_Fonts.Fonts[i].Font == nullptr)
+				{
+					EG_CORE_ASSERT(!"One of the fonts is not initialized");
+				}
+			}
+
+			if (s_Fonts.Regular.Font)
+			{
+				io.FontDefault = s_Fonts.Regular.Font;
 				return;
 			}
 		}
@@ -351,27 +387,37 @@ namespace Eagle::UI
 		EG_CORE_WARN("UI fonts not found. Falling back to default.");
 
 		ImFont* defaultFont = io.Fonts->AddFontDefault();
-
-		s_Fonts.Regular = defaultFont;
-		s_Fonts.Bold	= defaultFont;
-		s_Fonts.Header  = defaultFont;
+		for (uint32_t i = 0; i < FontContext::NumFonts; ++i)
+		{
+			s_Fonts.Fonts[i].Font = defaultFont;
+			s_Fonts.Fonts[i].BaseSize = defaultFont->LegacySize;
+		}
 
 		io.FontDefault = defaultFont;
 	}
 
 	void PushFontRegular(float overrideFontSize)
 	{
-		ImGui::PushFont(s_Fonts.Regular, overrideFontSize);
+		auto& data = s_Fonts.Regular;
+		ImGui::PushFont(data.Font, overrideFontSize <= 0 ? data.BaseSize : overrideFontSize);
 	}
 
 	void PushFontHeader(float overrideFontSize)
 	{
-		ImGui::PushFont(s_Fonts.Header, overrideFontSize);
+		auto& data = s_Fonts.Header;
+		ImGui::PushFont(data.Font, overrideFontSize <= 0 ? data.BaseSize : overrideFontSize);
+	}
+
+	void PushFontHeader2(float overrideFontSize)
+	{
+		auto& data = s_Fonts.Header2;
+		ImGui::PushFont(data.Font, overrideFontSize <= 0 ? data.BaseSize : overrideFontSize);
 	}
 
 	void PushFontBold(float overrideFontSize)
 	{
-		ImGui::PushFont(s_Fonts.Bold, overrideFontSize);
+		auto& data = s_Fonts.Bold;
+		ImGui::PushFont(data.Font, overrideFontSize <= 0 ? data.BaseSize : overrideFontSize);
 	}
 
 	void PopFont()
@@ -383,7 +429,7 @@ namespace Eagle::UI
 	{
 		bool bValueChanged = false;
 		ImGuiIO& io = ImGui::GetIO();
-		ImFont* boldFont = s_Fonts.Bold ? s_Fonts.Bold : io.Fonts->Fonts[0];
+		ImFont* boldFont = s_Fonts.Bold.Font ? s_Fonts.Bold.Font : io.Fonts->Fonts[0];
 
 		ImGui::PushID(label.data());
 
@@ -491,7 +537,7 @@ namespace Eagle::UI
 	{
 		bool bValueChanged = false;
 		ImGuiIO& io = ImGui::GetIO();
-		ImFont* boldFont = s_Fonts.Bold ? s_Fonts.Bold : io.Fonts->Fonts[0];
+		ImFont* boldFont = s_Fonts.Bold.Font ? s_Fonts.Bold.Font : io.Fonts->Fonts[0];
 
 		ImGui::PushID(label.data());
 
@@ -2047,9 +2093,21 @@ namespace Eagle::UI
 	bool ImageButtonWithTextHorizontal(const Ref<Texture2D>& image, const std::string_view text, ImVec2 size, float frameHeight, bool bFillFrameDefault)
 	{
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
-		const float prevFontScale = window->FontWindowScale;
 		const float scale = size.x / 50.f;
-		ImGui::SetWindowFontScale(scale);
+		const float desiredFontSize = s_Fonts.Regular.BaseSize * scale;
+
+		FontData* bestFont = &s_Fonts.Regular;
+		for (uint32_t i = 0; i < FontContext::NumFonts; ++i)
+		{
+			auto& font = s_Fonts.Fonts[i];
+			const float currDiff = glm::abs(font.BaseSize - desiredFontSize);
+			const float bestDiff = glm::abs(bestFont->BaseSize - desiredFontSize);
+			if (currDiff < bestDiff)
+			{
+				bestFont = &font;
+			}
+		}
+		ImGui::PushFont(bestFont->Font, desiredFontSize);
 
 		ImGuiContext& g = *GImGui;
 		const ImVec2 padding = g.Style.FramePadding;
@@ -2089,11 +2147,12 @@ namespace Eagle::UI
 		ImGui::SetCursorScreenPos(ImVec2(imageEnd.x + itemSpacingWidth, imageEnd.y - 0.5f * (bb.Max.y - bb.Min.y) - textSize.y * 0.5f));
 
 		ImGui::Text(text.data());
-		ImGui::SetWindowFontScale(prevFontScale);
 
 		window->DC.CursorPos = curLine;
 		window->DC.CursorPosPrevLine = prevLine;
 		g.LastItemData = buttonItemData;
+
+		ImGui::PopFont();
 
 		return bResult;
 	}

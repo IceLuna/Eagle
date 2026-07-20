@@ -17,6 +17,20 @@ namespace Eagle
     static ContactListener s_ContactListener;
     static Ref<PhysicsActor> s_InvalidPhysicsActor = nullptr;
 
+    static physx::PxSolverType::Enum ToPhysXSolverType(SolverType solver)
+    {
+        switch (solver)
+        {
+            case SolverType::PGS:
+                return physx::PxSolverType::ePGS;
+            case SolverType::TGS:
+                return physx::PxSolverType::eTGS;
+            default:
+                EG_CORE_ASSERT(!"Unknown solver type");
+                return physx::PxSolverType::eTGS;
+        }
+    }
+
     PhysicsScene::PhysicsScene(const PhysicsSettings& settings)
     : m_Settings(settings)
     {
@@ -31,6 +45,7 @@ namespace Eagle
         sceneDesc.cpuDispatcher = PhysXInternal::GetCPUDispatcher();
         sceneDesc.filterShader = m_Settings.bEditorScene ? (physx::PxSimulationFilterShader)PhysXInternal::EditorFilterShader :(physx::PxSimulationFilterShader)PhysXInternal::FilterShader;
         sceneDesc.simulationEventCallback = &s_ContactListener;
+        sceneDesc.solverType = ToPhysXSolverType(m_Settings.Solver);
 
         EG_CORE_ASSERT(sceneDesc.isValid(), "Invalid scene desc");
 

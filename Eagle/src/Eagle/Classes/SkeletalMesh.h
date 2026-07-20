@@ -157,11 +157,11 @@ namespace Eagle
 		{
 			Transform UserOffset;
 			Ref<AssetPhysicsMaterial> Material;
-			uint32_t PositionSolverIterations = 4;
-			uint32_t VelocitySolverIterations = 1;
-			float LinearDamping = 0.f;
+			uint32_t PositionSolverIterations = 8;
+			uint32_t VelocitySolverIterations = 2;
+			float LinearDamping = 0.1f;
 			float Mass = 1.f;
-			float AngularDamping = 0.05f;
+			float AngularDamping = 0.1f;
 			bool bEnableSimulation = true;
 			bool bEnableCollision = true;
 			enum ShapeType

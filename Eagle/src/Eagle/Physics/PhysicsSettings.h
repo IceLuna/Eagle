@@ -18,6 +18,18 @@ namespace Eagle
 		Live
 	};
 
+	enum class SolverType
+	{
+		// Projected Gauss-Seidel iterative solver.
+		// Selects the iterative sequential impulse solver. This is the same kind of solver used in PhysX 3.4 and earlier releases.
+		PGS, 
+
+		// Temporal Gauss-Seidel solver
+		// Selects a non linear iterative solver. This kind of solver can lead to improved convergence and handle large mass ratios, long chains and jointed systems better.
+		// It is slightly more expensive than PGS solver and can introduce more energy to correct joint and contact errors.
+		TGS,
+	};
+
 	struct PhysicsSettings
 	{
 		constexpr static uint32_t s_MinUpdateRate = 30u;
@@ -32,6 +44,7 @@ namespace Eagle
 		uint32_t UpdateRate = 120u; // 120 fps
 		glm::vec3 Gravity = { 0.f, -9.81f, 0.f };
 		BroadphaseType BroadphaseAlgorithm = BroadphaseType::AutomaticBoxPrune;
+		SolverType Solver = SolverType::TGS;
 		AABB WorldAABB = AABB(glm::vec3(-1000.f), glm::vec3(1000.f));
 		uint32_t WorldBoundsSubdivisions = 2;
 		bool bDebugOnPlay = false;

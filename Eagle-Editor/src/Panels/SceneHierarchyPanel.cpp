@@ -84,8 +84,6 @@ namespace Eagle
 		m_RootEntity = Entity::Null;
 
 		ImGui::Begin(m_SceneHierarchyWindowName.c_str());
-		m_SceneHierarchyHovered = ImGui::IsWindowHovered();
-		m_SceneHierarchyFocused = ImGui::IsWindowFocused();
 		//TODO: Replace to "Drop on empty space"
 		if (!m_AllowOnlySingleRoot && ImGui::BeginDragDropTarget())
 		{
@@ -114,6 +112,9 @@ namespace Eagle
 		}
 
 		ImGui::BeginChild("SceneHierarchyScrollingRegion", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar);
+		m_SceneHierarchyHovered = ImGui::IsWindowHovered();
+		m_SceneHierarchyFocused = ImGui::IsWindowFocused();
+
 		for (auto& entity : view)
 		{
 			bChanged |= DrawEntityNode(Entity(entity, m_Scene), !m_Search.empty());

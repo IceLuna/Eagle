@@ -220,17 +220,16 @@ namespace Eagle
 
 	void ProjectLayer::DrawRecentProjects()
 	{
-		UI::PushFontHeader();
-		ImGui::SetWindowFontScale(1.4f);
+		UI::PushFontHeader2();
 		ImGui::Text("Recent projects");
 		UI::PopFont();
-		ImGui::SetWindowFontScale(1.1f);
 
 		if (m_RecentProjects.empty())
 		{
-			ImGui::SetWindowFontScale(1.f);
 			return;
 		}
+
+		UI::PushFontHeader();
 
 		const float windowWidth = ImGui::GetContentRegionAvail().x;
 		const float itemSpacing = ImGui::GetStyle().ItemSpacing.x;
@@ -304,7 +303,7 @@ namespace Eagle
 
 		ImGui::Columns(1);
 
-		ImGui::SetWindowFontScale(1.f);
+		UI::PopFont();
 
 		if (pathToRemoveIndex >= 0)
 			m_RecentProjects.erase(m_RecentProjects.begin() + pathToRemoveIndex);
