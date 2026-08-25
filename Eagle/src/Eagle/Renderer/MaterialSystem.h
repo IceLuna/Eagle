@@ -31,22 +31,17 @@ namespace Eagle
 
 	private:
 		static void OnMaterialChanged(const Ref<Material>& material, bool bRenderingModeChanged = false);
-		static void SetDirty_Internal()
-		{
-			s_Dirty = s_Changed = true;
-		}
+		static void SetDirty_Internal();
 
 	private:
 		static std::vector<Ref<Material>> s_Materials;
 		static Ref<Buffer> s_MaterialsBuffer; // GPU buffer
 		static Ref<Buffer> s_MaterialsRawBuffer; // GPU buffer of raw values
 		static ankerl::unordered_dense::map<Ref<Material>, uint32_t> s_UsedMaterialsMap; // uint32_t = index to s_Materials
+		static std::vector<size_t> s_FreeIndices; // Free slots inside `s_Materials`
 
 		// If true, materials were changed or new ones were added
 		static bool s_Dirty;
-		// If true, materials were changed or new ones were added.
-		// The difference is that this flag is reset at the beginning of the next frame. So that every other system can see that materials have changed.
-		static bool s_Changed;
 		static bool s_RenderingModeChanged; // Either blend mode or double-sided state have changed
 
 		friend class Material;

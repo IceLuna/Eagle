@@ -16,8 +16,8 @@ namespace Eagle
 	Ref<Buffer> MaterialSystem::s_MaterialsBuffer;
 	Ref<Buffer> MaterialSystem::s_MaterialsRawBuffer;
 	ankerl::unordered_dense::map<Ref<Material>, uint32_t> MaterialSystem::s_UsedMaterialsMap;
+	std::vector<size_t> MaterialSystem::s_FreeIndices; // Free slots inside `s_Materials`
 	bool MaterialSystem::s_Dirty = true;
-	bool MaterialSystem::s_Changed = true;
 	bool MaterialSystem::s_RenderingModeChanged = true;
 
 	static std::vector<CPUMaterial> s_CPUMaterials;
@@ -26,6 +26,7 @@ namespace Eagle
 	static constexpr size_t s_BaseMaterialsBuffer = 100ull * sizeof(CPUMaterial);
 	static constexpr size_t s_BaseMaterialsRawBuffer = 1024ull * sizeof(float);
 	static constexpr uint32_t s_DummyMaterialIndex = 0u;
+	static constexpr uint32_t s_DummyMaterialOffset = s_DummyMaterialIndex + 1u;
 
 	static std::mutex s_Mutex;
 
@@ -53,6 +54,7 @@ namespace Eagle
 		s_CPURawMaterials.clear();
 		s_Materials.clear();
 		s_UsedMaterialsMap.clear();
+		s_FreeIndices.clear();
 		SetDirty_Internal();
 	}
 	
@@ -66,8 +68,18 @@ namespace Eagle
 		auto it = s_UsedMaterialsMap.find(material);
 		if (it == s_UsedMaterialsMap.end())
 		{
-			const uint32_t index = (uint32_t)s_Materials.size();
-			s_Materials.push_back(material);
+			uint32_t index = 0;
+			if (s_FreeIndices.empty())
+			{
+				index = (uint32_t)s_Materials.size();
+				s_Materials.push_back(material);
+			}
+			else
+			{
+				index = (uint32_t)s_FreeIndices.back();
+				s_Materials[index] = material;
+				s_FreeIndices.pop_back();
+			}
 			s_UsedMaterialsMap[material] = index;
 			SetDirty_Internal();
 		}
@@ -80,7 +92,8 @@ namespace Eagle
 		auto it = s_UsedMaterialsMap.find(material);
 		if (it != s_UsedMaterialsMap.end())
 		{
-			s_Materials.erase(s_Materials.begin() + it->second);
+			s_Materials[it->second] = s_Materials[s_DummyMaterialIndex];
+			s_FreeIndices.push_back(it->second);
 			s_UsedMaterialsMap.erase(it);
 			SetDirty_Internal();
 		}
@@ -92,9 +105,6 @@ namespace Eagle
 		
 		if (!s_Dirty)
 		{
-			// This way the value is saved till the end of the frame.
-			// So if materials were changed, `s_Changed` won't reset until the next frame
-			s_Changed = false;
 			s_RenderingModeChanged = false;
 			return;
 		}
@@ -104,25 +114,19 @@ namespace Eagle
 
 		// Remove unused materials
 		{
-			bool bChanged = false;
-			std::vector<Ref<Material>> materialsInUse;
-			materialsInUse.reserve(s_Materials.size());
-			for (auto& material : s_Materials)
+			const size_t size = s_Materials.size();
+			for (size_t i = s_DummyMaterialOffset; i < size; ++i)
 			{
+				auto& material = s_Materials[i];
+
 				// Why 2? Because material system itself stores two Ref<Material>
 				// So if `use_count == 2`, that means that material is not used
-				if (material.use_count() > 2)
-					materialsInUse.emplace_back(std::move(material));
-				else
-					bChanged = true;
-			}
-			s_Materials = std::move(materialsInUse);
-			if (bChanged)
-			{
-				s_UsedMaterialsMap.clear();
-				uint32_t index = 0;
-				for (auto& material : s_Materials)
-					s_UsedMaterialsMap[material] = index++;
+				if (material.use_count() <= 2)
+				{
+					s_UsedMaterialsMap.erase(material);
+					material = s_Materials[s_DummyMaterialIndex];
+					s_FreeIndices.push_back(i);
+				}
 			}
 		}
 
@@ -167,14 +171,14 @@ namespace Eagle
 			EG_CORE_ERROR("Internal error: didn't find the material");
 			return s_DummyMaterialIndex;
 		}
-		return it->second + 1u; // +1 because [0] is always the dummy material
+		return it->second + s_DummyMaterialOffset;
 	}
 	
 	void MaterialSystem::SetDirty()
 	{
 		std::scoped_lock lock(s_Mutex);
 		
-		s_Dirty = s_Changed = s_RenderingModeChanged = true;
+		s_Dirty = s_RenderingModeChanged = true;
 	}
 
 	void MaterialSystem::OnMaterialChanged(const Ref<Material>& material, bool bRenderingModeChanged)
@@ -190,5 +194,10 @@ namespace Eagle
 			SetDirty_Internal();
 			s_RenderingModeChanged |= bRenderingModeChanged;
 		}
+	}
+
+	void MaterialSystem::SetDirty_Internal()
+	{
+		s_Dirty = true;
 	}
 }

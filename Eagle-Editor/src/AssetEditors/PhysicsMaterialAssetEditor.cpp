@@ -22,6 +22,7 @@ namespace Eagle
 		const auto& cube = AssetManager::GetPreviewCube();
 
 		const auto& scene = GetCurrentScene();
+		scene->SetSkyboxIntensity(0.5f);
 		scene->bDrawMiscellaneous = false;
 
 		// Plane 1
@@ -49,6 +50,11 @@ namespace Eagle
 			m_Plane2.SetWorldTransform(tr);
 		}
 
+		Ref<Material> whiteMaterial = Material::Create();
+		whiteMaterial->SetAlbedo(glm::vec3(1));
+		whiteMaterial->SetRawAlbedoUsed(true);
+		Ref<AssetMaterial> whiteMaterialAsset = AssetMaterial::Create(whiteMaterial);
+
 		// Sphere 1
 		{
 			m_Sphere1 = scene->CreateEntity("PhysicsMaterialAssetEditor_Sphere1");
@@ -58,6 +64,7 @@ namespace Eagle
 
 			m_Sphere1.AddComponent<SphereColliderComponent>().SetPhysicsMaterialAsset(asset);
 			m_Sphere1.AddComponent<StaticMeshComponent>().SetMeshAsset(sphere);
+			m_Sphere1.GetComponent<StaticMeshComponent>().SetMaterialAsset(0, whiteMaterialAsset);
 			m_Sphere1.SetWorldTransform(s_Sphere1Transform);
 		}
 
@@ -70,6 +77,7 @@ namespace Eagle
 
 			m_Sphere2.AddComponent<SphereColliderComponent>().SetPhysicsMaterialAsset(asset);
 			m_Sphere2.AddComponent<StaticMeshComponent>().SetMeshAsset(sphere);
+			m_Sphere2.GetComponent<StaticMeshComponent>().SetMaterialAsset(0, whiteMaterialAsset);
 			m_Sphere2.SetWorldTransform(s_Sphere2Transform);
 		}
 
@@ -78,7 +86,7 @@ namespace Eagle
 			Entity entity = scene->CreateEntity("PhysicsMaterialAssetEditor_Sun");
 			entity.SetWorldRotation(glm::quat(0.707f, -0.707f, 0.f, 0.f));
 			auto& sun = entity.AddComponent<DirectionalLightComponent>();
-			sun.SetLightColor(glm::vec3(20.5f));
+			sun.SetLightColor(glm::vec3(3.0f));
 		}
 
 		auto& camera = scene->EditorCamera;
