@@ -20,7 +20,7 @@ namespace Eagle
 		glm::vec3 Normal;
 		glm::vec3 Tangent;
 		glm::vec2 TexCoords;
-		uint16_t Weights[EG_MAX_BONES_PER_VERTEX] = { 0, 0, 0, 0 }; // float16
+		uint16_t Weights[EG_MAX_BONES_PER_VERTEX] = { 0, 0, 0, 0 }; // unorm16
 		uint16_t BoneID[EG_MAX_BONES_PER_VERTEX] = { 0, 0, 0, 0 };
 
 		bool operator==(const SkeletalVertex& other) const
