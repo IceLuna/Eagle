@@ -382,7 +382,7 @@ namespace Eagle
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			return mono_string_new(mono_domain_get(), entity.GetComponent<EntitySceneNameComponent>().Name.c_str());
+			return mono_string_new(mono_domain_get(), entity.GetComponent<EntitySceneNameComponent>().GetName().c_str());
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get Entity name. Entity is null");

@@ -28,6 +28,7 @@ namespace Eagle
 	class ReverbComponent;
 	class NavigationMeshComponent;
 	class CharacterControllerComponent;
+	class EntitySceneNameComponent;
 	class Sound2D;
 	class AssetAudio;
 	class AssetEntity;
@@ -279,7 +280,7 @@ namespace Eagle
 
 		// @id. It's used to identify the callback function. It can be used to remove a callback.
 		// Using the same ID for adding callback will remove the old callback
-		static GUID AddOnSceneOpenedCallback(const std::function<void(const Ref<Scene>&)>& func);
+		[[nodiscard]] static GUID AddOnSceneOpenedCallback(const std::function<void(const Ref<Scene>&)>& func);
 		static void RemoveOnSceneOpenedCallback(GUID id);
 
 		static const Ref<Scene>& GetCurrentScene() { return s_CurrentScene; }
@@ -304,6 +305,9 @@ namespace Eagle
 		{
 			m_DirtyFlags.SetEverythingDirty(true);
 		}
+
+		bool AnyEntityNameChanged() const { return bAnyEntityNameChanged; }
+		bool HasEntityListChanged() const { return bEntityListChanged; }
 
 		void AddParticleSystem(const ParticleSystemComponent& system);
 		void RemoveParticleSystem(const ParticleSystemComponent& system);
@@ -576,6 +580,14 @@ namespace Eagle
 					}
 				}
 			}
+
+			if constexpr (std::is_base_of<EntitySceneNameComponent, T>::value)
+			{
+				if (notification == Notification::OnStateChanged)
+				{
+					bAnyEntityNameChanged = true;
+				}
+			}
 		}
 
 	public:
@@ -664,6 +676,9 @@ namespace Eagle
 
 		// Can be used to force collision visualization
 		bool bForceShowCollision = false;
+
+		bool bAnyEntityNameChanged = false;
+		bool bEntityListChanged = false;
 
 		// Debug data
 		std::vector<RendererLine> m_UserDebugLines;

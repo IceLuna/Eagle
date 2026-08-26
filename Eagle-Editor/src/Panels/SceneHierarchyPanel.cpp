@@ -15,6 +15,7 @@ namespace Eagle
 {
 	SceneHierarchyPanel::SceneHierarchyPanel()
 	{
+		m_RefreshIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/refresh.png");
 		SetHashID(0);
 	}
 
@@ -47,13 +48,18 @@ namespace Eagle
 	{
 		EG_CPU_TIMING_SCOPED("Scene Hierarchy Panel");
 
-		if (m_Scene != scene.get())
+		const bool bSceneChanged = m_Scene != scene.get();
+		if (bSceneChanged)
 		{
 			ClearSelection();
 			m_Properties = {};
 		}
 		m_Scene = scene.get();
 		m_AllowOnlySingleRoot = bAllowOnlySingleRoot;
+
+		m_UpdateSearchResults |= bSceneChanged;
+		m_UpdateSearchResults |= m_Scene->HasEntityListChanged() || m_Scene->AnyEntityNameChanged();
+
 		bool bChanged = false;
 		bChanged |= DrawSceneHierarchy();
 		
@@ -65,6 +71,7 @@ namespace Eagle
 			const bool bVolumetricsEnabled = bVolumetricsEnabledOverride ? *bVolumetricsEnabledOverride : m_Scene->GetSceneRenderer()->GetOptions().VolumetricSettings.bEnable;
 
 			bChanged |= m_Properties.OnImGuiRender(m_SelectedEntity, bRuntime, bVolumetricsEnabled);
+			m_UpdateSearchResults |= m_Scene->HasEntityListChanged() || m_Scene->AnyEntityNameChanged();
 		}
 		ImGui::End(); //Properties
 
@@ -99,15 +106,37 @@ namespace Eagle
 			ImGui::EndDragDropTarget();
 		}
 
-		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+		// Save some space for the refresh button
+		const float padding = 2.0;
+		const float width = ImGui::GetContentRegionAvail().x;
+		const float buttonSize = ImGui::GetFrameHeight();
+		ImGui::SetNextItemWidth(width - buttonSize - padding);
 		const bool bSearchInputChanged = UI::InputTextWithHint("##search", m_Search, "Search...");
+
+		// Refresh button
+		{
+			ImGui::SameLine(0, padding);
+
+			const bool bDisableRefreshButton = m_Search.empty();
+			if (bDisableRefreshButton)
+				UI::PushItemDisabled();
+			if (UI::ImageButton(m_RefreshIcon, ImVec2(buttonSize, buttonSize) - ImGui::GetStyle().FramePadding * 2))
+				m_UpdateSearchResults = true;
+			if (bDisableRefreshButton)
+				UI::PopItemDisabled();
+		}
+
 		ImGui::Separator();
 
 		auto view = m_Scene->GetAllEntitiesWith<EntitySceneNameComponent>();
 
-		m_AllowedForDisplayEntities.clear();
-		if (!m_Search.empty())
+		if (m_Search.empty())
+			m_AllowedForDisplayEntities.clear();
+
+		const bool bPerformSearch = !m_Search.empty() && (bSearchInputChanged || m_UpdateSearchResults);
+		if (bPerformSearch)
 		{
+			m_AllowedForDisplayEntities.clear();
 			GatherSearchingEntities(view, m_Search, m_AllowedForDisplayEntities);
 		}
 
@@ -145,6 +174,8 @@ namespace Eagle
 		ImGui::EndChild();
 		ImGui::End(); //Scene Hierarchy
 
+		m_UpdateSearchResults = false;
+
 		return bChanged;
 	}
 
@@ -165,7 +196,7 @@ namespace Eagle
 		}
 
 		bool bChanged = false;
-		const auto& entityName = entity.GetComponent<EntitySceneNameComponent>().Name;
+		const auto& entityName = entity.GetName();
 
 		//If selected child of this entity, open tree node
 		if (m_SelectedEntity && m_SelectedEntity != entity)
@@ -246,7 +277,7 @@ namespace Eagle
 		if (!m_AllowOnlySingleRoot && ImGui::BeginDragDropSource())
 		{
 			uint32_t selectedEntityID = m_SelectedEntity.GetID();
-			const auto& selectedEntityName = entity.GetComponent<EntitySceneNameComponent>().Name;
+			const auto& selectedEntityName = entity.GetName();
 
 			ImGui::SetDragDropPayload("HIERARCHY_ENTITY_CELL", &selectedEntityID, sizeof(uint32_t));
 			ImGui::Text(selectedEntityName.c_str());
@@ -307,7 +338,7 @@ namespace Eagle
 				ImGui::SetScrollHereY(0.f);
 			}
 
-			const auto& childName = child.GetComponent<EntitySceneNameComponent>().Name;
+			const auto& childName = child.GetName();
 			bool openedChild = ImGui::TreeNodeEx((void*)(uint64_t)child.GetID(), childTreeFlags, childName.c_str());
 
 			if (!ImGui::IsItemVisible()) // Early-exit
@@ -386,7 +417,7 @@ namespace Eagle
 			if (ImGui::BeginDragDropSource())
 			{
 				uint32_t selectedEntityID = m_SelectedEntity.GetID();
-				const auto& selectedEntityName = child.GetComponent<EntitySceneNameComponent>().Name;
+				const auto& selectedEntityName = child.GetName();
 
 				ImGui::SetDragDropPayload("HIERARCHY_ENTITY_CELL", &selectedEntityID, sizeof(uint32_t));
 				ImGui::Text(selectedEntityName.c_str());

@@ -761,7 +761,7 @@ namespace Eagle
 		createdEntities.reserve(other->GetEntitiesCount());
 		for (auto entt : other->m_Registry.view<TransformComponent>())
 		{
-			const std::string& sceneName = other->m_Registry.get<EntitySceneNameComponent>(entt).Name;
+			const std::string& sceneName = other->m_Registry.get<EntitySceneNameComponent>(entt).GetName();
 			const GUID& guid  = other->m_Registry.get<IDComponent>(entt).ID;
 			Entity entity = CreateEntityWithGUID(guid, sceneName);
 			createdEntities[entt] = entity.GetEnttID();
@@ -845,6 +845,7 @@ namespace Eagle
 		entity.AddComponent<OwnershipComponent>();
 
 		m_AliveEntities[guid] = entity;
+		bEntityListChanged = true;
 
 		return entity;
 	}
@@ -852,7 +853,7 @@ namespace Eagle
 	Entity Scene::CreateFromEntity(const Entity& source, bool bCopyGUID)
 	{
 		const GUID guid = bCopyGUID ? source.GetComponent<IDComponent>().ID : GUID{};
-		Entity result = CreateEntityWithGUID(guid, source.GetComponent<EntitySceneNameComponent>().Name);
+		Entity result = CreateEntityWithGUID(guid, source.GetName());
 		EntityCopyComponent<TransformComponent>(source, result); //Copying TransformComponent to set childrens transform correctly
 
 		// Recreating Ownership component
@@ -919,10 +920,15 @@ namespace Eagle
 
 		m_AliveEntities.erase(entity.GetGUID());
 		m_Registry.destroy(entity.GetEnttID());
+
+		bEntityListChanged = true;
 	}
 
 	void Scene::OnUpdate(Timestep ts, bool bRender, bool bForceAnimationsUpdate)
 	{
+		bEntityListChanged = false;
+		bAnyEntityNameChanged = false;
+
 		if (bIsPlaying)
 			OnUpdateRuntime(ts, bRender, bForceAnimationsUpdate);
 		else

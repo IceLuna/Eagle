@@ -155,10 +155,12 @@ namespace Eagle
 		{
 			m_SelectedComponent = SelectedComponent::None;
 		}
-		auto& entityName = entity.GetComponent<EntitySceneNameComponent>().Name;
-
+		
+		
+		std::string entityName = entity.GetName();
 		if (UI::InputText("##Name", entityName))
 		{
+			entity.SetName(entityName);
 			//TODO: Add Check for empty input
 			bEntityChanged = true;
 		}
@@ -223,7 +225,7 @@ namespace Eagle
 			ImGuiTreeNodeFlags childFlags = (m_SelectedComponent == SelectedComponent::None ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow
 				| ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
 
-			const std::string& entityName = entity.GetComponent<EntitySceneNameComponent>().Name;
+			const std::string& entityName = entity.GetName();
 			bool entityTreeOpened = ImGui::TreeNodeEx((void*)(typeid(Entity).hash_code() + typeid(Entity).hash_code()), childFlags, entityName.c_str());
 
 			if (ImGui::IsItemClicked())

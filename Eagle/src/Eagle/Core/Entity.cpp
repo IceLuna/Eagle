@@ -310,12 +310,12 @@ namespace Eagle
 
 	void Entity::SetName(const std::string& name)
 	{
-		GetComponent<EntitySceneNameComponent>().Name = name;
+		GetComponent<EntitySceneNameComponent>().SetName(name);
 	}
 
 	const std::string& Entity::GetName() const
 	{
-		return GetComponent<EntitySceneNameComponent>().Name;
+		return GetComponent<EntitySceneNameComponent>().GetName();
 	}
 
 	void Entity::OnNotify(Notification notification)

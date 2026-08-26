@@ -1612,7 +1612,7 @@ namespace Eagle
 		if (entity.HasComponent<EntitySceneNameComponent>())
 		{
 			const auto& sceneNameComponent = entity.GetComponent<EntitySceneNameComponent>();
-			const auto& name = sceneNameComponent.Name;
+			const auto& name = sceneNameComponent.GetName();
 
 			int parentID = -1;
 			if (Entity parent = entity.GetParent())
@@ -2319,7 +2319,7 @@ namespace Eagle
 				deserializedEntity.AddComponent<EntitySceneNameComponent>();
 			
 			auto& sceneNameComponent = deserializedEntity.GetComponent<EntitySceneNameComponent>();
-			sceneNameComponent.Name = sceneNameComponentNode["Name"].as<std::string>();
+			sceneNameComponent.SetName(sceneNameComponentNode["Name"].as<std::string>());
 			if (outParentID)
 				*outParentID = sceneNameComponentNode["Parent"].as<int>();
 		}

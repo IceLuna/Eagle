@@ -67,6 +67,7 @@ namespace Eagle
 		Scene* m_Scene = nullptr; // Only valid during the call (OnImGuiRender or OnEvent)
 		Entity m_SelectedEntity;
 		Entity m_RootEntity; // Only valid when `m_AllowOnlySingleRoot` is set to true
+		Ref<Texture2D> m_RefreshIcon;
 
 		std::string m_SceneHierarchyWindowName;
 		std::string m_PropertiesWindowName;
@@ -78,5 +79,6 @@ namespace Eagle
 		bool m_PropertiesHovered = false;
 		bool m_ScrollToSelected = false;
 		bool m_AllowOnlySingleRoot = false;
+		bool m_UpdateSearchResults = false;
 	};
 }

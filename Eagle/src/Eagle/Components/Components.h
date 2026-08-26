@@ -81,13 +81,24 @@ namespace Eagle
 		std::vector<Entity> Children;
 	};
 
-	class EntitySceneNameComponent
+	class EntitySceneNameComponent : public Component
 	{
 	public:
-		EntitySceneNameComponent() = default;
-		EntitySceneNameComponent(const std::string& name) : Name(name) {}
+		EntitySceneNameComponent(const Entity& entity) : Component(entity) {}
+		EntitySceneNameComponent(const Entity& entity, const std::string& name) : Component(entity), m_Name(name) {}
 
-		std::string Name;
+		COMPONENT_DEFAULTS(EntitySceneNameComponent);
+
+		void SetName(const std::string& name)
+		{
+			m_Name = name;
+			Parent.SignalComponentChanged<EntitySceneNameComponent>(Notification::OnStateChanged);
+		}
+
+		const std::string& GetName() const { return m_Name; }
+
+	private:
+		std::string m_Name;
 	};
 
 	// Internal component. It's used to indicate that an entity was created from AssetEntity.

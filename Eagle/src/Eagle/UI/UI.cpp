@@ -204,7 +204,7 @@ namespace Eagle::UI
 							continue; // Don't show itself
 
 							const auto& ID = idComp.ID;
-							const auto& name = nameComp.Name;
+							const auto& name = nameComp.GetName();
 							ids.emplace_back(ID);
 							names.emplace_back(name);
 
