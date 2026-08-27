@@ -710,6 +710,7 @@ namespace Eagle
 	void RenderManager::BeginFrame()
 	{
 		// Waiting for the previous execution to finish
+		auto& fence = s_RendererData->Fences[s_RendererData->CurrentFrameIndex];
 		auto& task = s_RendererData->ThreadPoolTasks[s_RendererData->CurrentFrameIndex];
 		{
 			EG_CPU_TIMING_SCOPED("Waiting for GPU");
@@ -718,6 +719,7 @@ namespace Eagle
 				task.wait();
 				task = {};
 			}
+			fence->Wait();
 		}
 
 		s_RendererData->ImGuiLayer = &Application::Get().GetImGuiLayer();
@@ -732,17 +734,14 @@ namespace Eagle
 		{
 			EG_CPU_TIMING_SCOPED("Preparing a frame");
 
-			// Order matters. We first wait for the fence, then staging manager reacts to this fence being signaled, frees memory
-			// and only then we reset the fence (otherwise staging manager won't detect the fence being signaled)
-			auto& fence = s_RendererData->Fences[frameIndex];
-			fence->Wait();
 			StagingManager::NextFrame();
-			fence->Reset();
 
 			uint32_t swapchainImageIndex = 0;
+			auto& fence = s_RendererData->Fences[frameIndex];
 			Ref<Semaphore> imageAcquireSemaphore = s_RendererData->Swapchain->AcquireImage(frameIndex, &swapchainImageIndex);
 			auto& semaphore = s_RendererData->Semaphores[swapchainImageIndex];
 			const bool bSwapchainValid = s_RendererData->Swapchain->IsValid() && imageAcquireSemaphore;
+			fence->Reset();
 
 			{
 				EG_CPU_TIMING_SCOPED("Freeing resources");

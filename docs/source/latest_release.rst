@@ -79,12 +79,6 @@ Each asset type has its own editor which can be opened by double-clicking an ass
 
    Skeletal Mesh Editor
 
-.. warning::
-    If you ever decide to duplicate an asset manually (bypassing editor's content browser functionality),
-    you need to know that it probably won't work correctly since each asset file stores its own unique ID.
-    Which means you'll end up with two or more assets that have the same ID.
-    So, if you desperately need to do it, you'll have to manually open asset files in a text editor and change its ``GUID`` (two ``uint64`` values).
-
 Game Builds
 -----------
 Finally, game builds that you'll be able to share with your friends! If you want to build & ship you project as a game, you can just click ``File -> Build project`` and select the destination folder.
@@ -257,7 +251,7 @@ Brains! Now `Eagle` supports building navigation meshes which means you'll be ab
 
 To build a navigation mesh, use :ref:`Navigation Mesh Component <nav_mesh_component>`.
 
-All colliders (expect for mesh collider) can be markes as `Obstacles` that'll affect Nav Mesh.
+All colliders (except for mesh colliders) can be marked as `Obstacles` that'll affect Nav Mesh.
 Obstacles can be spawned & deleted at runtime and navigational mesh will dynamically update itself.
 
 Also all colliders affect nav mesh during the build. If you don't want a collider to affect it during the build, disable ``Affects NavMesh`` in its component.
@@ -294,13 +288,13 @@ See :ref:`Navigation Crowd Agent Component <nav_crowd_agent_component>` for more
 
 Editor Updates
 --------------
-There a few nice editor updates that make your life easier. Mainly, these are `Content Browser` updates.
+There are a few nice editor updates that make your life easier. Mainly, these are `Content Browser` updates.
 
 Since now engine works with assets, content browser allows you to import, save, and reload assets.
 What does `reload assets` mean? When importing an assets, its original filepath is saved (e.g. "D:/art/texture.png").
 So, if at some point you update this texture and you want to update its asset, you can reload it to update the data.
 
-Content Browser also allows you can copy/cut/paste assets, rename (`F2`), duplicate (`Ctrl + W`), and delete them. Also, now it can delete folders.
+Content Browser also allows you copy/cut/paste assets, rename (`F2`), duplicate (`Ctrl + W`), and delete them. Also, now it can delete folders.
 As was mentioned before, you content browser allows you to open asset editors by double-clicking them. But also you can open it by clicking an asset thumbnail (for example, in ``StaticMeshComponent`` which display selected asset).
 
 Support for runtime assets thumbnails was added so it's easier to tell what it actually looks like.
