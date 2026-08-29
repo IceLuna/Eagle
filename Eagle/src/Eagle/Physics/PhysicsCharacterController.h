@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PhysicsEngine.h"
+#include "PhysicsActorBase.h"
 #include <PhysX/PxPhysicsAPI.h>
 
 namespace Eagle
@@ -9,7 +10,7 @@ namespace Eagle
 	class PhysicsScene;
 	class AssetPhysicsMaterial;
 
-	class PhysicsCharacterController
+	class PhysicsCharacterController : public PhysicsActorBase
 	{
 	public:
 		PhysicsCharacterController(const CharacterControllerComponent& component);
@@ -69,11 +70,11 @@ namespace Eagle
 		bool DoesCollideWithOtherControllers() const { return bCollidesWithOtherControllers; }
 
 		// Collision groups it belongs to. It can belong to different groups (use XOR to combine groups)
-		void SetCollisionGroup(CollisionGroup groups) { m_CollisionGroup = groups; }
+		void SetCollisionGroup(CollisionGroup groups);
 		CollisionGroup GetCollisionGroup() const { return m_CollisionGroup; }
 
 		// Collision groups it can interact with
-		void SetInteractingCollisionGroup(CollisionGroup groups) { m_InteractingCollisionGroup = groups; }
+		void SetInteractingCollisionGroup(CollisionGroup groups);
 		CollisionGroup GetInteractingCollisionGroup() const { return m_InteractingCollisionGroup; }
 
 		// `upDir` should be normalized
@@ -82,6 +83,7 @@ namespace Eagle
 
 	private:
 		void Recreate(physx::PxExtendedVec3 location);
+		void UpdateFilterData();
 		void IterateShapes(const std::function<void(physx::PxShape*)>& func);
 
 	private:

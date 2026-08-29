@@ -39,6 +39,7 @@ namespace Eagle
 		Application(const Application&) = delete;
 		virtual ~Application();
 
+		void Run();
 		virtual void OnEvent(Event& e);
 
 		double GetTime() const { return m_Time; }
@@ -86,12 +87,8 @@ namespace Eagle
 		virtual bool OnWindowClose(WindowCloseEvent& e);
 		virtual bool OnWindowResize(WindowResizeEvent& e);
 
-		void Run();
-
 		void ProcessCmdCommands(int argc, char** argv);
 		void ProcessNextFrameFuncs();
-
-		friend int ::main(int argc, char** argv);
 
 	protected:
 		Ref<Window> m_Window;

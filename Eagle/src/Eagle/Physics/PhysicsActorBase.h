@@ -12,7 +12,7 @@ namespace Eagle
 		PhysicsActorBase(const Entity& entity) : m_Entity(entity) {}
 
 		// It's called when physics scene requested to sync transforms
-		virtual void SceneRequestToSyncTransforms() = 0;
+		virtual void SceneRequestToSyncTransforms() {}
 
 		const physx::PxRigidActor* GetPhysXActor() const { return m_RigidActor; }
 		physx::PxRigidActor* GetPhysXActor() { return m_RigidActor; }

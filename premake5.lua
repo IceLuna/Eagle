@@ -499,6 +499,7 @@ project "Eagle-Editor"
 		}
 		runtime "Release"
 		optimize "Speed"
+		kind "WindowedApp"
 
 		postbuildcommands 
 		{
@@ -631,3 +632,4 @@ project "Eagle-Game"
 		}
 		runtime "Release"
 		optimize "Speed"
+		kind "WindowedApp"

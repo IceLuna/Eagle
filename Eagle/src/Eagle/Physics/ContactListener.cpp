@@ -75,8 +75,9 @@ namespace Eagle
 			entityB = actor->GetEntity();
 		}
 
-		bool bActorAHasScript = ScriptEngine::IsEntityModuleValid(entityA);
-		bool bActorBHasScript = ScriptEngine::IsEntityModuleValid(entityB);
+		const bool bBothValid = entityA && entityB;
+		bool bCanInvokeScriptA = bBothValid && ScriptEngine::IsEntityModuleValid(entityA);
+		bool bCanInvokeScriptB = bBothValid && ScriptEngine::IsEntityModuleValid(entityB);
 
 		CollisionInfo collisionInfo{};
 		if (nbPairs > 0)
@@ -96,21 +97,21 @@ namespace Eagle
 			}
 		}
 
-		if (!bActorAHasScript && !bActorBHasScript)
+		if (!bCanInvokeScriptA && !bCanInvokeScriptB)
 			return;
 
 		if ((pairs->flags & physx::PxContactPairFlag::eACTOR_PAIR_HAS_FIRST_TOUCH) == physx::PxContactPairFlag::eACTOR_PAIR_HAS_FIRST_TOUCH)
 		{
-			if (bActorAHasScript)
+			if (bCanInvokeScriptA)
 				ScriptEngine::OnCollisionBegin(entityA, entityB, collisionInfo);
-			if (bActorBHasScript)
+			if (bCanInvokeScriptB)
 				ScriptEngine::OnCollisionBegin(entityB, entityA, collisionInfo);
 		}
 		else if ((pairs->flags & physx::PxContactPairFlag::eACTOR_PAIR_LOST_TOUCH) == physx::PxContactPairFlag::eACTOR_PAIR_LOST_TOUCH)
 		{
-			if (bActorAHasScript)
+			if (bCanInvokeScriptA)
 				ScriptEngine::OnCollisionEnd(entityA, entityB, collisionInfo);
-			if (bActorBHasScript)
+			if (bCanInvokeScriptB)
 				ScriptEngine::OnCollisionEnd(entityB, entityA, collisionInfo);
 		}
 	}

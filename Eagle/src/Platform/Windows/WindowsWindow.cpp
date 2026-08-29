@@ -31,12 +31,7 @@ namespace Eagle
 		m_WindowData.Props = &m_Props;
 		m_WindowData.DPIScale = &m_DPIScale;
 
-#ifdef EG_RELEASE
-		::ShowWindow(::GetConsoleWindow(), SW_HIDE);
-#else
-		::ShowWindow(::GetConsoleWindow(), SW_RESTORE);
 		SetConsoleOutputCP(CP_UTF8);
-#endif
 
 		if (!s_GLFWInitialized)
 		{

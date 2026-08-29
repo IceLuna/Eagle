@@ -65,8 +65,9 @@ namespace Eagle
     }
 
     PhysicsCharacterController::PhysicsCharacterController(const CharacterControllerComponent& component)
+        : PhysicsActorBase(component.Parent)
     {
-        m_Scene = component.Parent.GetScene()->GetPhysicsScene();
+        m_Scene = m_Entity.GetScene()->GetPhysicsScene();
 
         const auto& location = component.GetWorldTransform().Location;
         Recreate(physx::PxExtendedVec3(location.x, location.y, location.z));
@@ -225,6 +226,28 @@ namespace Eagle
         m_Controller->setUpDirection(PhysXUtils::ToPhysXVector(up));
     }
 
+    void PhysicsCharacterController::SetCollisionGroup(CollisionGroup group)
+    {
+        m_CollisionGroup = group;
+        UpdateFilterData();
+    }
+
+    void PhysicsCharacterController::SetInteractingCollisionGroup(CollisionGroup group)
+    {
+        m_InteractingCollisionGroup = group;
+        UpdateFilterData();
+    }
+
+    void PhysicsCharacterController::UpdateFilterData()
+    {
+        IterateShapes([this](physx::PxShape* shape)
+        {
+            physx::PxFilterData filterData = PhysXUtils::GetPxFilterData(m_CollisionGroup, m_InteractingCollisionGroup, CollisionDetectionType::Continuous);
+            shape->setSimulationFilterData(filterData);
+            shape->setQueryFilterData(filterData);
+        });
+    }
+
     void PhysicsCharacterController::Recreate(physx::PxExtendedVec3 location)
     {
         auto physicsScene = m_Scene.lock();
@@ -280,7 +303,11 @@ namespace Eagle
             EG_CORE_CRITICAL("Unknown physics character contoller type: {}", Utils::GetEnumName(m_Shape));
             EG_CORE_ASSERT(false);
         }
+        m_RigidActor = m_Controller->getActor();
         m_Controller->setUserData(this);
+        m_RigidActor->userData = this;
+
+        UpdateFilterData();
         
         // Disable visualization
         IterateShapes([](physx::PxShape* shape)
