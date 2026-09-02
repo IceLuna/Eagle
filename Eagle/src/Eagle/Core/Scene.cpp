@@ -631,6 +631,24 @@ namespace Eagle
 			}
 		}
 
+		void DrawMesh(std::vector<RendererLine>& buffer, const glm::mat4& tr, const std::vector<glm::vec3>& vertices, const std::vector<Index>& indices)
+		{
+			for (uint32_t i = 0; i < indices.size(); i += 3)
+			{
+				auto& line1 = buffer.emplace_back();
+				line1.Start.Location = tr * glm::vec4(vertices[indices[i]], 1.f);
+				line1.End.Location = tr * glm::vec4(vertices[indices[i + 1]], 1.f);
+
+				auto& line2 = buffer.emplace_back();
+				line2.Start.Location = tr * glm::vec4(vertices[indices[i]], 1.f);
+				line2.End.Location = tr * glm::vec4(vertices[indices[i + 2]], 1.f);
+
+				auto& line3 = buffer.emplace_back();
+				line3.Start.Location = tr * glm::vec4(vertices[indices[i + 1]], 1.f);
+				line3.End.Location = tr * glm::vec4(vertices[indices[i + 2]], 1.f);
+			}
+		}
+
 		template <typename Comp>
 		void InvalidateCollisionGroups(entt::registry& registry, uint32_t validMasks)
 		{
@@ -1106,9 +1124,8 @@ namespace Eagle
 		for (BaseColliderComponent* collider : obstacleColliders)
 			collider->SetIsObstacle(false);
 
-		auto agentComponents = m_Registry.view<NavigationCrowdAgentComponent>();
-
 		// Go through all agents and delete them
+		auto agentComponents = m_Registry.view<NavigationCrowdAgentComponent>();
 		for (auto entity : agentComponents)
 		{
 			auto& component = agentComponents.get<NavigationCrowdAgentComponent>(entity);
@@ -1891,21 +1908,7 @@ namespace Eagle
 						glm::mat4 t = Math::ToTransformMatrix(tBody + pose);
 
 						shape->GetGeometry(vertices, indices);
-
-						for (uint32_t i = 0; i < indices.size(); i += 3)
-						{
-							auto& line1 = m_DebugLinesToDraw.emplace_back();
-							line1.Start.Location = t * glm::vec4(vertices[indices[i]], 1.f);
-							line1.End.Location = t * glm::vec4(vertices[indices[i + 1]], 1.f);
-
-							auto& line2 = m_DebugLinesToDraw.emplace_back();
-							line2.Start.Location = t * glm::vec4(vertices[indices[i]], 1.f);
-							line2.End.Location = t * glm::vec4(vertices[indices[i + 2]], 1.f);
-
-							auto& line3 = m_DebugLinesToDraw.emplace_back();
-							line3.Start.Location = t * glm::vec4(vertices[indices[i + 1]], 1.f);
-							line3.End.Location = t * glm::vec4(vertices[indices[i + 2]], 1.f);
-						}
+						Utils::DrawMesh(m_DebugLinesToDraw, t, vertices, indices);
 					}
 				}
 				if (false)

@@ -20,7 +20,7 @@ namespace Eagle
 	static ImVec2 s_DefaultWindowSize = ImVec2(720.f, 450.f);
 
 	template <typename Func>
-	static void FancyTreeNode(const char* label, bool bDefaultOpen, Func&& func, const char* helpMsg = nullptr)
+	static void FancyTreeNode(const char* label, bool bDefaultOpen, Func&& func, std::string_view helpMsg = "")
 	{
 		ImGui::Separator();
 		if (UI::PushTreeNode(label, bDefaultOpen, true, helpMsg))

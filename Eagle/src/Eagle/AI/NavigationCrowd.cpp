@@ -215,7 +215,7 @@ namespace Eagle::AINavigation
 			return;
 		}
 
-		const float searchHalfExtent[3] = { 2, 4, 2 };
+		const float* searchHalfExtent = m_Crowd->getQueryExtents();
 		dtPolyRef targetRef;
 		glm::vec3 targetPos;
 		m_NavQuery->findNearestPoly(&pos.x, searchHalfExtent, &m_Filter, &targetRef, &targetPos.x);
@@ -233,7 +233,7 @@ namespace Eagle::AINavigation
 			return;
 		}
 
-		const float searchHalfExtent[3] = { 2, 4, 2 };
+		const float* searchHalfExtent = m_Crowd->getQueryExtents();
 		m_NavQuery->findNearestPoly(&pos.x, searchHalfExtent, &m_Filter, &m_TargetRef, &m_TargetPos.x);
 
 		for (int i = 0; i < m_Crowd->getAgentCount(); ++i)

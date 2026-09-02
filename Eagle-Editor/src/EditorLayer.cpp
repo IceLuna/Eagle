@@ -2377,13 +2377,7 @@ namespace Eagle
 		ImGuizmo::MODE guizmoMode = (ImGuizmo::MODE)m_GuizmoMode;
 		ImGui::Begin("Editor Preferences");
 
-		constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
-
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-		bool treeOpened = ImGui::TreeNodeEx("Snapping", flags);
-		ImGui::PopStyleVar();
-		if (treeOpened)
+		if (UI::PushTreeNode("Snapping"))
 		{
 			UI::BeginPropertyGrid("EditorPreferences_Snapping");
 			if (UI::InputFloat("Location", tempSnappingValues[0], 0.1f, 1.f))
@@ -2402,14 +2396,11 @@ namespace Eagle
 					m_SnappingValues[2] = tempSnappingValues[2];
 			}
 			UI::EndPropertyGrid();
-			ImGui::TreePop();
+			UI::PopTreeNode();
 		}
 		ImGui::Separator();
 
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-		treeOpened = ImGui::TreeNodeEx("Camera", flags);
-		ImGui::PopStyleVar();
-		if (treeOpened)
+		if (UI::PushTreeNode("Camera"))
 		{
 			bool bCameraChanged = false;
 			bool bCameraTransformChanged = false;
@@ -2504,16 +2495,16 @@ namespace Eagle
 				UpdateSceneEditorCamera(m_EditorScene, bCameraTransformChanged);
 			}
 
-			ImGui::TreePop();
+			UI::PopTreeNode();
 		}
 		ImGui::Separator();
 
+		if (UI::PushTreeNode("Misc"))
 		{
 			auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
 			SceneRendererSettings options = sceneRenderer->GetOptions();
-			bool bForceShowCollision = m_CurrentScene->IsForcingShowCollision();
 
-			UI::BeginPropertyGrid("EditorPreferences");
+			UI::BeginPropertyGrid("EditorPreferences_Misc");
 
 			if (UI::PropertyDrag("Grid Scale", options.GridScale, 0.1f))
 			{
@@ -2524,19 +2515,40 @@ namespace Eagle
 
 			if (UI::ComboEnum("Guizmo Mode", guizmoMode))
 				m_GuizmoMode = guizmoMode;
-			UI::Property("Draw Axis Guizmo", bDrawAxisGuizmo);
 			UI::Property("Eco Rendering", bRenderOnlyWhenFocused, "If checked, the scene won't be rendered if the window is not in focus");
 			UI::Property("Update Animations", bUpdateAnimationsInEditor, "If checked, animations will be updated in the editor mode");
+			UI::ComboEnum<Eagle::Key>("Stop simulation key", m_StopSimulationKey, "The editor will stop the game-simulation when this key is pressed. Set it to 'None' to disable");
+			ImGuiLayer::ShowStyleSelector("Style", m_EditorStyle);
+
+			UI::EndPropertyGrid();
+			UI::PopTreeNode();
+		}
+		ImGui::Separator();
+
+		if (UI::PushTreeNode("Debug"))
+		{
+			auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
+			SceneRendererSettings options = sceneRenderer->GetOptions();
+			bool bForceShowCollision = m_CurrentScene->IsForcingShowCollision();
+			bool bEnableDebugLinesDepthTest = options.bEnableDebugLinesDepthTest;
+
+			UI::BeginPropertyGrid("EditorPreferences_Debug");
+
+			UI::Property("Draw Axis Guizmo", bDrawAxisGuizmo);
 			if (UI::Property("Draw All Colliders", bForceShowCollision))
 				m_CurrentScene->SetForceShowCollision(bForceShowCollision);
 			UI::Property("Draw Editor Miscellaneous", m_bDrawEditorMisc);
 			UI::Property("Draw Nav Mesh", bDrawNavMesh);
 			UI::Property("Draw AABBs of Meshes", bDrawMeshAABBs);
-			UI::ComboEnum<Eagle::Key>("Stop simulation key", m_StopSimulationKey, "The editor will stop the game-simulation when this key is pressed. Set it to 'None' to disable");
-			ImGuiLayer::ShowStyleSelector("Style", m_EditorStyle);
-
+			if (UI::Property("Debug lines depth test", bEnableDebugLinesDepthTest, "If disabled, debug lines will be drawn over everything"))
+			{
+				options.bEnableDebugLinesDepthTest = bEnableDebugLinesDepthTest;
+				sceneRenderer->SetOptions(options);
+			}
 			UI::EndPropertyGrid();
+			UI::PopTreeNode();
 		}
+		ImGui::Separator();
 
 		ImGui::End(); //Editor Preferences
 	}

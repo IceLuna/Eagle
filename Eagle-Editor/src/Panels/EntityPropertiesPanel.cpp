@@ -171,6 +171,9 @@ namespace Eagle
 		if (ImGui::Button("Add"))
 			ImGui::OpenPopup("AddComponent");
 
+		ImGui::SameLine();
+		ImGui::Text("ID: %u", entity.GetID());
+
 		if (ImGui::BeginPopup("AddComponent"))
 		{
 #define EG_ADD_COMPONENT_MENU_ITEM(type, name) do { if (DrawAddComponentMenuItem<type>(name, #type)) { m_SelectedComponent = SelectedComponent::type; } } while (0)

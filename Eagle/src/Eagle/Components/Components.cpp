@@ -1622,8 +1622,7 @@ namespace Eagle
 
 		glm::mat4 worldTr = Math::ToTransformMatrix(GetWorldTransform());
 		auto settings = m_Settings;
-		settings.AABB.Min = worldTr * glm::vec4(m_Settings.AABB.Min, 1.f);
-		settings.AABB.Max = worldTr * glm::vec4(m_Settings.AABB.Max, 1.f);
+		settings.AABB.Transform(worldTr);
 
 		const QueryHits overlaps = physicsScene->CollectCollidersWithinVolume(settings.AABB);
 		

@@ -332,10 +332,8 @@ namespace Eagle
 
         std::vector<glm::vec3> vertices;
         std::vector<uint32_t> indices;
-        vertices.reserve(100);
-        indices.reserve(100);
-        geometry.Vertices.reserve(100);
-        geometry.Indices.reserve(100);
+        geometry.Vertices.reserve(1000);
+        geometry.Indices.reserve(1000);
 
         std::size_t indicesCount = 0;
 
