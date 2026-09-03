@@ -89,6 +89,9 @@ namespace Eagle
 
 		void Write(const void* data, size_t size, size_t offset = 0)
 		{
+			if (size == 0)
+				return;
+
 			EG_CORE_ASSERT(size + offset <= Size, "Overflow");
 			memcpy((uint8_t*)Data + offset, data, size);
 		}

@@ -3072,7 +3072,7 @@ namespace Eagle
         // Call this method to correctly retrieve script instance.
         // For example, if you have a script `public class MyScript : Entity`, you can call this to get the correct Entity ref.
         // You need to call `ScriptComponent.GetInstance()` to get script instance that you can cast to `MyScript`.
-        // Probably, you'll never need this function because all `Entity` object should already by correct instances.
+        // Probably, you'll never need this function because all `Entity` object should already be correct instances.
         // I think the only scenario you'll need this if you do:
         //      Entity entity = Scene.CreateEntity("MyEntity");
         //      entity.AddComponent<ScriptComponent>().SetScript(typeof(MyScript));

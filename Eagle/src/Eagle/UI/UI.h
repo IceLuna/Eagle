@@ -58,9 +58,9 @@ namespace Eagle::UI
 	void BeginPropertyGrid(const std::string_view gridName);
 	void EndPropertyGrid();
 
-	bool Property(const std::string_view label, bool& value, const std::string_view helpMessage = "");
+	bool Property(const std::string_view label, bool& value, const std::string_view helpMessage = "", const std::function<void()>& customLabelCallback = {});
 	bool Property(const std::string_view label, const std::vector<std::string>& customLabels, bool* values, const std::string_view helpMessage = "");
-	bool PropertyText(const std::string_view label, std::string& value, const std::string_view helpMessage = "", ImGuiInputTextFlags flags = 0);
+	bool PropertyText(const std::string_view label, std::string& value, const std::string_view helpMessage = "", ImGuiInputTextFlags flags = 0, const std::function<void()>& customLabelCallback = {});
 	bool PropertyTextMultiline(const std::string_view label, std::string& value, const std::string_view helpMessage = "");
 	bool PropertyText(const std::string_view label, std::vector<std::string>& values, const std::string_view helpMessage = "");
 	// @instance. Can be nullptr if `bRuntime` is false
@@ -71,12 +71,12 @@ namespace Eagle::UI
 	bool TextLink(const std::string_view text, const std::string_view url);
 	bool BulletLink(const std::string_view text, const std::string_view url);
 
-	bool PropertyDrag(const std::string_view label, int& value, float speed = 1.f, int min = 0, int max = 0, const std::string_view helpMessage = "");
+	bool PropertyDrag(const std::string_view label, int& value, float speed = 1.f, int min = 0, int max = 0, const std::string_view helpMessage = "", const std::function<void()>& customLabelCallback = {});
 	bool PropertyDrag(const std::string_view label, uint32_t& value, float speed = 1.f, int min = 0, int max = 0, const std::string_view helpMessage = "");
-	bool PropertyDrag(const std::string_view label, float& value, float speed = 1.f, float min = 0.f, float max = 0.f, const std::string_view helpMessage = "");
-	bool PropertyDrag(const std::string_view label, glm::vec2& value, float speed = 1.f, float min = 0.f, float max = 0.f, const std::string_view helpMessage = "");
-	bool PropertyDrag(const std::string_view label, glm::vec3& value, float speed = 1.f, float min = 0.f, float max = 0.f, const std::string_view helpMessage = "");
-	bool PropertyDrag(const std::string_view label, glm::vec4& value, float speed = 1.f, float min = 0.f, float max = 0.f, const std::string_view helpMessage = "");
+	bool PropertyDrag(const std::string_view label, float& value, float speed = 1.f, float min = 0.f, float max = 0.f, const std::string_view helpMessage = "", const std::function<void()>& customLabelCallback = {});
+	bool PropertyDrag(const std::string_view label, glm::vec2& value, float speed = 1.f, float min = 0.f, float max = 0.f, const std::string_view helpMessage = "", const std::function<void()>& customLabelCallback = {});
+	bool PropertyDrag(const std::string_view label, glm::vec3& value, float speed = 1.f, float min = 0.f, float max = 0.f, const std::string_view helpMessage = "", const std::function<void()>& customLabelCallback = {});
+	bool PropertyDrag(const std::string_view label, glm::vec4& value, float speed = 1.f, float min = 0.f, float max = 0.f, const std::string_view helpMessage = "", const std::function<void()>& customLabelCallback = {});
 	bool PropertyDrag(const std::string_view label, glm::ivec3& value, float speed = 1.f, int min = 0, int max = 0, const std::string_view helpMessage = "");
 	bool PropertyDrag(const std::string_view label, glm::uvec3& value, float speed = 1.f, int min = 0, int max = 0, const std::string_view helpMessage = "");
 
@@ -92,8 +92,8 @@ namespace Eagle::UI
 	bool PropertySlider(const std::string_view label, glm::vec3& value, float min, float max, const std::string_view helpMessage = "");
 	bool PropertySlider(const std::string_view label, glm::vec4& value, float min, float max, const std::string_view helpMessage = "");
 
-	bool PropertyColor(const std::string_view label, glm::vec3& value, bool bHDR = false, const std::string_view helpMessage = "");
-	bool PropertyColor(const std::string_view label, glm::vec4& value, bool bHDR = false, const std::string_view helpMessage = "");
+	bool PropertyColor(const std::string_view label, glm::vec3& value, bool bHDR = false, const std::string_view helpMessage = "", const std::function<void()>& customLabelCallback = {});
+	bool PropertyColor(const std::string_view label, glm::vec4& value, bool bHDR = false, const std::string_view helpMessage = "", const std::function<void()>& customLabelCallback = {});
 
 	bool PropertyBitMask(const std::string_view label, uint32_t& value, const std::vector<std::pair<std::string, uint32_t>>& masks, const std::string_view helpMessage = "");
 
@@ -113,9 +113,9 @@ namespace Eagle::UI
 	// OptionsSize can be smaller to cutoff some options
 	bool Combo(const std::string_view label, uint32_t currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string_view helpMessage = "");
 	bool Combo(const std::string_view label, uint32_t currentSelection, const std::vector<std::string>& options, size_t optionsSize, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string_view helpMessage = "");
-	bool ComboWithNone(const std::string_view label, int currentSelectionIndex, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string_view helpMessage = "");
+	bool ComboWithNone(const std::string_view label, int currentSelectionIndex, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string_view helpMessage = "", const std::function<void()>& customLabelCallback = {});
 	bool ComboWithNone(const std::string_view label, std::string& moduleName, const std::map<std::string, EntityScriptClass>& entityClasses);
-	bool Combo(const std::string_view label, int currentValue, const ScriptEnumFields& fields, int& outSelectedValue, const std::string_view helpMessage = "");
+	bool Combo(const std::string_view label, int currentValue, const ScriptEnumFields& fields, int& outSelectedValue, const std::string_view helpMessage = "", const std::function<void()>& customLabelCallback = {});
 
 	template <typename Enum>
 	bool ComboEnum(const std::string_view label, Enum& current, const std::string_view helpMessage = "")
@@ -236,7 +236,7 @@ namespace Eagle::UI
 
 	// maxItemWidth. Ignored if < 0
 	template<class Type>
-	bool DrawAssetSelection(const std::string_view label, Ref<Type>& modifyingAsset, const std::string_view helpMessage = "", float maxItemWidth = -1.f, const Ref<Eagle::Image>& preview = nullptr, bool* outPreviewClicked = nullptr)
+	bool DrawAssetSelection(const std::string_view label, Ref<Type>& modifyingAsset, const std::string_view helpMessage = "", float maxItemWidth = -1.f, const Ref<Eagle::Image>& preview = nullptr, bool* outPreviewClicked = nullptr, const std::function<void()>& customLabelCallback = {})
 	{
 		const ImVec2 previewSize = ImVec2(32.f, 32.f);
 		bool bResult = false;
@@ -299,6 +299,11 @@ namespace Eagle::UI
 		{
 			ImGui::SameLine();
 			UI::HelpMarker(helpMessage);
+		}
+		if (customLabelCallback)
+		{
+			ImGui::SameLine();
+			customLabelCallback();
 		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);

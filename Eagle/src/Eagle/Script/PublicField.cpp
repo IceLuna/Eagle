@@ -46,8 +46,77 @@ namespace Eagle
 				return sizeof(GUID);
 		}
 		EG_CORE_ASSERT(false, "Unknown type size");
-		return 0;
+		return 1;
 	}
+
+	static std::string& GetDataAsString_Internal(ScopedDataBuffer& buffer, size_t idx)
+	{
+		std::string* base = (std::string*)(buffer.Data());
+		return *(base + idx);
+	}
+
+	static const std::string& GetDataAsString_Internal(const ScopedDataBuffer& buffer, size_t idx)
+	{
+		const std::string* base = (const std::string*)(buffer.Data());
+		return *(base + idx);
+	}
+
+	static void ReleaseBuffer_Internal(ScopedDataBuffer* buffer, FieldType type, size_t fieldSize)
+	{
+		const size_t length = buffer->Size() / fieldSize;
+		if (type == FieldType::String && buffer->Size() > 0)
+		{
+			for (size_t i = 0; i < length; ++i)
+				GetDataAsString_Internal(*buffer, i).~basic_string();
+		}
+		buffer->Release();
+	}
+
+	static void AllocateBuffer_Internal(FieldType type, ScopedDataBuffer* buffer, size_t fieldSize, size_t length)
+	{
+		ReleaseBuffer_Internal(buffer, type, fieldSize);
+		if (length == 0)
+			return;
+
+		buffer->Allocate(fieldSize * length);
+		if (type == FieldType::String)
+		{
+			std::string* basePtr = (std::string*)buffer->Data();
+			for (size_t i = 0; i < length; ++i)
+			{
+				new (basePtr) std::string();
+				basePtr++;
+			}
+		}
+		else
+		{
+			buffer->WriteZero(buffer->Size());
+		}
+	}
+
+	static void CopyArrayValuesAfterPush(MonoArray* oldArray, MonoArray* newArray, size_t oldLength)
+	{
+		for (size_t i = 0; i < oldLength; ++i)
+		{
+			MonoObject* obj = mono_array_get(oldArray, MonoObject*, i);
+			mono_array_setref(newArray, i, obj);
+		}
+	};
+
+	static void CopyArrayValuesAfterPop(MonoArray* oldArray, MonoArray* newArray, size_t removedIndex, size_t oldLength)
+	{
+		for (size_t i = 0; i < removedIndex; ++i)
+		{
+			MonoObject* obj = mono_array_get(oldArray, MonoObject*, i);
+			mono_array_setref(newArray, i, obj);
+		}
+
+		for (size_t i = removedIndex + 1; i < oldLength; ++i)
+		{
+			MonoObject* obj = mono_array_get(oldArray, MonoObject*, i);
+			mono_array_setref(newArray, i - 1, obj);
+		}
+	};
 
 	// @bytes how many bytes to get(?) (mono API requires it). Must be retrieved via `PublicField::GetFieldSize()`
 	static void* GetArrayData(MonoArray* array, int bytes, size_t index)
@@ -59,14 +128,14 @@ namespace Eagle
 		: FullName(fullName), UIName(name), TypeName(typeName), Tooltip(tooltip), Type(type)
 		, bArray(bArray), ArrayLength(arrayLength), m_FieldSize(GetFieldSize(Type))
 	{
-		AllocateBuffer(Type);
+		AllocateBuffer();
 	}
 
 	PublicField::PublicField(std::string&& fullName, std::string&& name, std::string&& typeName, std::string&& tooltip, FieldType type, bool bArray, size_t arrayLength)
 		: FullName(std::move(fullName)), UIName(std::move(name)), TypeName(std::move(typeName)), Tooltip(std::move(tooltip)), Type(type)
 		, bArray(bArray), ArrayLength(arrayLength), m_FieldSize(GetFieldSize(Type))
 	{
-		AllocateBuffer(Type);
+		AllocateBuffer();
 	}
 
 	PublicField::PublicField(const PublicField& other)
@@ -77,23 +146,21 @@ namespace Eagle
 		, m_MonoProperty(other.m_MonoProperty)
 		, m_FieldSize(other.m_FieldSize)
 	{
-		AllocateBuffer(Type);
+		AllocateBuffer();
 		CopyStoredValue(other);
 	}
 
 	PublicField::~PublicField()
 	{
-		if (Type == FieldType::String && m_StoredValueBuffer.Size() > 0)
-		{
-			for (size_t i = 0; i < ArrayLength; ++i)
-				GetDataAsString(i).~basic_string();
-		}
+		ReleaseBuffer();
 	}
 
 	PublicField& PublicField::operator=(const PublicField& other)
 	{
 		if (&other != this)
 		{
+			ReleaseBuffer();
+
 			FullName = other.FullName;
 			UIName = other.UIName;
 			TypeName = other.TypeName;
@@ -106,11 +173,236 @@ namespace Eagle
 			EnumFields = other.EnumFields;
 			m_FieldSize = other.m_FieldSize;
 
-			AllocateBuffer(Type);
+			AllocateBuffer();
 			CopyStoredValue(other);
 		}
 
 		return *this;
+	}
+
+	size_t PublicField::AppendArrayElement()
+	{
+		if (!bArray)
+			return 0;
+
+		const size_t oldLength = ArrayLength;
+		ArrayLength++;
+
+		ScopedDataBuffer newArray;
+		AllocateBuffer_Internal(Type, &newArray, m_FieldSize, ArrayLength);
+
+		// Copy existing values
+		if (oldLength > 0)
+		{
+			if (Type == FieldType::String)
+			{
+				for (size_t i = 0; i < oldLength; ++i)
+					GetDataAsString_Internal(newArray, i) = std::move(GetDataAsString(i));
+			}
+			else
+			{
+				newArray.Write(m_StoredValueBuffer.Data(), oldLength * m_FieldSize);
+			}
+		}
+
+		ReleaseBuffer();
+		m_StoredValueBuffer = std::move(newArray);
+		return oldLength;
+	}
+
+	void PublicField::RemoveArrayElement(size_t idx)
+	{
+		if (!bArray)
+			return;
+
+		if (idx >= ArrayLength)
+			return; // Invalid index
+
+		const size_t oldLength = ArrayLength;
+		ArrayLength--;
+
+		ScopedDataBuffer newArray;
+		AllocateBuffer_Internal(Type, &newArray, m_FieldSize, ArrayLength);
+
+		// Copy existing values
+		if (ArrayLength > 0)
+		{
+			if (Type == FieldType::String)
+			{
+				for (size_t i = 0; i < idx; ++i)
+					GetDataAsString_Internal(newArray, i) = std::move(GetDataAsString(i));
+
+				for (size_t i = idx + 1; i < oldLength; ++i)
+					GetDataAsString_Internal(newArray, i - 1) = std::move(GetDataAsString(i));
+			}
+			else
+			{
+				const uint8_t* origData = (const uint8_t*)m_StoredValueBuffer.Data();
+
+				size_t offset = 0;
+				newArray.Write(origData, idx * m_FieldSize, offset);
+				offset += idx * m_FieldSize;
+
+				const size_t origDataOffset = (idx + 1) * m_FieldSize;
+				newArray.Write(origData + origDataOffset, (oldLength - idx - 1) * m_FieldSize, offset);
+			}
+		}
+
+		ReleaseBuffer();
+		m_StoredValueBuffer = std::move(newArray);
+	}
+
+	size_t PublicField::AppendRuntimeArrayElement(MonoObject* instance)
+	{
+		if (!bArray)
+			return 0;
+
+		MonoClass* elementClass = GetArrayElementClass();
+		if (!elementClass)
+		{
+			EG_CORE_ERROR("Failed to retrieve array element class: {}", FullName);
+			return 0;
+		}
+
+		const size_t oldLength = GetRuntimeArrayLength(instance);
+		const size_t newLength = oldLength + 1;
+
+		MonoArray* oldArray = nullptr;
+		if (m_MonoProperty)
+		{
+			oldArray = (MonoArray*)mono_property_get_value(m_MonoProperty, instance, nullptr, nullptr);
+		}
+		else if (m_MonoClassField)
+		{
+			mono_field_get_value(instance, m_MonoClassField, &oldArray);
+		}
+
+		// Root the old array because mono_array_new() can trigger GC.
+		uint32_t oldArrayHandle = 0;
+		if (oldArray)
+		{
+			oldArrayHandle = mono_gchandle_new((MonoObject*)oldArray, true);
+		}
+
+		MonoArray* newArray = mono_array_new(mono_domain_get(), elementClass, newLength);
+		const uint32_t newArrayHandle = mono_gchandle_new((MonoObject*)newArray, true);
+
+		if (oldArray)
+		{
+			// Copy existing values
+			if (Type == FieldType::String || Type == FieldType::Entity || IsAssetType(Type))
+			{
+				CopyArrayValuesAfterPush(oldArray, newArray, oldLength);
+			}
+			else
+			{
+				for (size_t i = 0; i < oldLength; ++i)
+				{
+					void* src = GetArrayData(oldArray, m_FieldSize, i);
+					void* dst = GetArrayData(newArray, m_FieldSize, i);
+					memcpy(dst, src, m_FieldSize);
+				}
+			}
+
+			mono_gchandle_free(oldArrayHandle);
+		}
+
+		SetRuntimeArray(instance, newArray);
+		mono_gchandle_free(newArrayHandle);
+
+		return oldLength;
+	}
+
+	void PublicField::RemoveRuntimeArrayElement(MonoObject* instance, size_t idx)
+	{
+		if (!bArray)
+			return;
+
+		const size_t length = GetRuntimeArrayLength(instance);
+		if (idx >= length)
+			return; // Invalid index
+
+		MonoClass* elementClass = GetArrayElementClass();
+		if (!elementClass)
+		{
+			EG_CORE_ERROR("Failed to retrieve array element class for `{}`", FullName);
+			return;
+		}
+
+		const size_t oldLength = length;
+		const size_t newLength = oldLength - 1;
+
+		MonoArray* oldArray = nullptr;
+		if (m_MonoProperty)
+		{
+			oldArray = (MonoArray*)mono_property_get_value(m_MonoProperty, instance, nullptr, nullptr);
+		}
+		else if (m_MonoClassField)
+		{
+			mono_field_get_value(instance, m_MonoClassField, &oldArray);
+		}
+
+		// Root the old array because mono_array_new() can trigger GC.
+		uint32_t oldArrayHandle = 0;
+		if (oldArray)
+		{
+			oldArrayHandle = mono_gchandle_new((MonoObject*)oldArray, true);
+		}
+
+		MonoArray* newArray = mono_array_new(mono_domain_get(), elementClass, newLength);
+		const uint32_t newArrayHandle = mono_gchandle_new((MonoObject*)newArray, true);
+		if (oldArray)
+		{
+			// Copy existing values
+			if (Type == FieldType::String || Type == FieldType::Entity || IsAssetType(Type))
+			{
+				CopyArrayValuesAfterPop(oldArray, newArray, idx, oldLength);
+			}
+			else
+			{
+				for (size_t i = 0; i < idx; ++i)
+				{
+					void* src = GetArrayData(oldArray, m_FieldSize, i);
+					void* dst = GetArrayData(newArray, m_FieldSize, i);
+					memcpy(dst, src, m_FieldSize);
+				}
+
+				for (size_t i = idx + 1; i < oldLength; ++i)
+				{
+					void* src = GetArrayData(oldArray, m_FieldSize, i);
+					void* dst = GetArrayData(newArray, m_FieldSize, i - 1);
+					memcpy(dst, src, m_FieldSize);
+				}
+			}
+			mono_gchandle_free(oldArrayHandle);
+		}
+
+		SetRuntimeArray(instance, newArray);
+		mono_gchandle_free(newArrayHandle);
+	}
+
+	void PublicField::ClearRuntimeArray(MonoObject* instance)
+	{
+		if (!bArray)
+			return;
+
+		MonoClass* elementClass = GetArrayElementClass();
+		if (!elementClass)
+		{
+			EG_CORE_ERROR("Failed to retrieve array element class: {}", FullName);
+			return;
+		}
+
+		SetRuntimeArray(instance, mono_array_new(mono_domain_get(), elementClass, 0));
+	}
+
+	void PublicField::ClearArray()
+	{
+		if (!bArray)
+			return;
+
+		ReleaseBuffer();
+		ArrayLength = 0;
 	}
 
 	size_t PublicField::GetRuntimeArrayLength(MonoObject* instance) const
@@ -140,9 +432,6 @@ namespace Eagle
 
 		if (bArray)
 		{
-			if (ArrayLength == 0)
-				return;
-
 			MonoArray* array = nullptr;
 			if (m_MonoProperty)
 			{
@@ -155,6 +444,9 @@ namespace Eagle
 
 			if (!array)
 				return;
+
+			ArrayLength = mono_array_length(array);
+			AllocateBuffer();
 
 			if (Type == FieldType::String)
 			{
@@ -222,9 +514,9 @@ namespace Eagle
 			// Set valid value
 			for (size_t i = 0; i < ArrayLength; ++i)
 			{
-				const int enumValue = GetStoredValue<int>(0);
+				const int enumValue = GetStoredValue<int>(i);
 				if (EnumFields.find(enumValue) == EnumFields.end())
-					SetStoredValue<int>(EnumFields.begin()->first, 0);
+					SetStoredValue<int>(EnumFields.begin()->first, i);
 			}
 		}
 	}
@@ -235,6 +527,20 @@ namespace Eagle
 		{
 			EG_CORE_ASSERT(instance, "No mono instance");
 			return;
+		}
+
+		// Allocate enought space for the runtime array
+		if (bArray)
+		{
+			MonoClass* elementClass = GetArrayElementClass();
+			if (!elementClass)
+			{
+				EG_CORE_ERROR("Failed to retrieve array element class: {}", FullName);
+				return;
+			}
+
+			MonoArray* array = mono_array_new(mono_domain_get(), elementClass, ArrayLength);
+			SetRuntimeArray(instance, array);
 		}
 
 		if (Type == FieldType::String)
@@ -254,28 +560,35 @@ namespace Eagle
 
 	bool PublicField::CopyStoredValue(const PublicField& other)
 	{
-		if (Type != other.Type)
+		if (Type != other.Type || bArray != other.bArray)
 			return false;
 
-		const size_t arrayLength = std::min(ArrayLength, other.ArrayLength);
+		if (bArray)
+		{
+			ArrayLength = other.ArrayLength;
+			AllocateBuffer();
+		}
+
+		if (ArrayLength == 0)
+			return false;
+
 		if (Type == FieldType::String)
 		{
-			for (size_t i = 0; i < arrayLength; ++i)
+			for (size_t i = 0; i < ArrayLength; ++i)
 				GetDataAsString(i) = other.GetDataAsString(i);
 		}
 		else
 		{
-			m_StoredValueBuffer.Write(other.m_StoredValueBuffer.Data(), arrayLength * m_FieldSize);
+			m_StoredValueBuffer.Write(other.m_StoredValueBuffer.Data(), ArrayLength * m_FieldSize);
 		}
 		return true;
 	}
 
 	bool PublicField::IsStoredValueEqual(const PublicField& other)
 	{
-		if (Type != other.Type)
+		if (Type != other.Type || ArrayLength != other.ArrayLength)
 			return false;
 
-		EG_CORE_ASSERT(m_StoredValueBuffer.Size() == other.m_StoredValueBuffer.Size());
 		if (Type == FieldType::String)
 		{
 			for (size_t i = 0; i < ArrayLength; ++i)
@@ -287,6 +600,9 @@ namespace Eagle
 		}
 		else
 		{
+			if (m_StoredValueBuffer.Size() != other.m_StoredValueBuffer.Size())
+				return false;
+
 			return memcmp(m_StoredValueBuffer.Data(), other.m_StoredValueBuffer.Data(), m_StoredValueBuffer.Size()) == 0;
 		}
 	}
@@ -299,10 +615,10 @@ namespace Eagle
 			return;
 		}
 
-		const size_t arrayLength = GetRuntimeArrayLength(instance);
 		MonoArray* array = nullptr;
 		if (bArray)
 		{
+			const size_t arrayLength = GetRuntimeArrayLength(instance);
 			if (idx >= arrayLength)
 			{
 				EG_CORE_ERROR("Failed to write to an array {} ({}). Index ({}) is out of bounds ({})", UIName, FullName, idx, arrayLength);
@@ -332,7 +648,7 @@ namespace Eagle
 
 			if (bArray)
 			{
-				mono_array_set(array, MonoObject*, idx, obj);
+				mono_array_setref(array, idx, obj);
 			}
 			else
 			{
@@ -377,10 +693,10 @@ namespace Eagle
 			return;
 		}
 
-		const size_t arrayLength = GetRuntimeArrayLength(instance);
 		MonoArray* array = nullptr;
 		if (bArray)
 		{
+			const size_t arrayLength = GetRuntimeArrayLength(instance);
 			if (idx >= arrayLength)
 			{
 				EG_CORE_ERROR("Failed to write to an array {} ({}). Index ({}) is out of bounds ({})", UIName, FullName, idx, arrayLength);
@@ -401,10 +717,9 @@ namespace Eagle
 		}
 
 		MonoString* monoString = mono_string_new(mono_domain_get(), value.c_str());
-
 		if (bArray)
 		{
-			mono_array_set(array, MonoString*, idx, monoString);
+			mono_array_setref(array, idx, monoString);
 		}
 		else
 		{
@@ -425,16 +740,17 @@ namespace Eagle
 		if (!instance)
 		{
 			EG_CORE_ASSERT(instance, "No mono instance");
+			EG_CORE_ERROR("Invalid C# instance");
 			return;
 		}
 
-		const size_t arrayLength = GetRuntimeArrayLength(instance);
 		MonoArray* array = nullptr;
 		if (bArray)
 		{
+			const size_t arrayLength = GetRuntimeArrayLength(instance);
 			if (idx >= arrayLength)
 			{
-				EG_CORE_ERROR("Failed to write to an array {} ({}). Index ({}) is out of bounds ({})", UIName, FullName, idx, arrayLength);
+				EG_CORE_ERROR("Failed to read array {} ({}). Index ({}) is out of bounds ({})", UIName, FullName, idx, arrayLength);
 				return;
 			}
 
@@ -453,7 +769,7 @@ namespace Eagle
 
 		if (Type == FieldType::Entity || IsAssetType(Type))
 		{
-			MonoObject* obj;
+			MonoObject* obj = nullptr;
 			if (bArray)
 			{
 				obj = mono_array_get(array, MonoObject*, idx);
@@ -516,16 +832,17 @@ namespace Eagle
 		if (!instance)
 		{
 			EG_CORE_ASSERT(instance, "No mono instance");
+			EG_CORE_ERROR("Invalid C# instance");
 			return;
 		}
 
-		const size_t arrayLength = GetRuntimeArrayLength(instance);
 		MonoArray* array = nullptr;
 		if (bArray)
 		{
+			const size_t arrayLength = GetRuntimeArrayLength(instance);
 			if (idx >= arrayLength)
 			{
-				EG_CORE_ERROR("Failed to write to an array {} ({}). Index ({}) is out of bounds ({})", UIName, FullName, idx, arrayLength);
+				EG_CORE_ERROR("Failed to read array {} ({}). Index ({}) is out of bounds ({})", UIName, FullName, idx, arrayLength);
 				return;
 			}
 
@@ -539,11 +856,13 @@ namespace Eagle
 			}
 
 			if (!array)
+			{
+				EG_CORE_ERROR("Failed to read array: {}", FullName);
 				return;
+			}
 		}
 
 		MonoString* monoString = nullptr;
-
 		if (bArray)
 		{
 			monoString = mono_array_get(array, MonoString*, idx);
@@ -559,4 +878,61 @@ namespace Eagle
 		outValue = MonoStringHandler(monoString).c_str();
 	}
 
+	void PublicField::AllocateBuffer()
+	{
+		AllocateBuffer_Internal(Type, &m_StoredValueBuffer, m_FieldSize, ArrayLength);
+	}
+
+	void PublicField::ReleaseBuffer()
+	{
+		ReleaseBuffer_Internal(&m_StoredValueBuffer, Type, m_FieldSize);
+	}
+
+	void PublicField::SetRuntimeArray(MonoObject* instance, MonoArray* newArray) const
+	{
+		if (m_MonoProperty)
+		{
+			void* params[] = { newArray };
+			mono_property_set_value(m_MonoProperty, instance, params, nullptr);
+		}
+		else if (m_MonoClassField)
+		{
+			mono_field_set_value(instance, m_MonoClassField, newArray);
+		}
+		else
+		{
+			EG_CORE_ASSERT(false);
+		}
+	}
+
+	MonoClass* PublicField::GetArrayElementClass() const
+	{
+		MonoClass* elementClass = nullptr;
+		if (m_MonoClassField)
+		{
+			if (MonoType* fieldType = mono_field_get_type(m_MonoClassField))
+				if (MonoClass* arrayClass = mono_class_from_mono_type(fieldType))
+					elementClass = mono_class_get_element_class(arrayClass);
+		}
+		else if (m_MonoProperty)
+		{
+			if (MonoMethod* getter = mono_property_get_get_method(m_MonoProperty))
+				if (MonoMethodSignature* signature = mono_method_signature(getter))
+					if (MonoType* returnType = mono_signature_get_return_type(signature))
+						if (MonoClass* arrayClass = mono_class_from_mono_type(returnType))
+							elementClass = mono_class_get_element_class(arrayClass);
+		}
+		EG_CORE_ASSERT(elementClass);
+		return elementClass;
+	}
+	
+	std::string& PublicField::GetDataAsString(size_t idx)
+	{
+		return GetDataAsString_Internal(m_StoredValueBuffer, idx);
+	}
+
+	const std::string& PublicField::GetDataAsString(size_t idx) const
+	{
+		return GetDataAsString_Internal(m_StoredValueBuffer, idx);
+	}
 }

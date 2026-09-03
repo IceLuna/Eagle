@@ -12,6 +12,7 @@ extern "C"
 	typedef struct _MonoClassField MonoClassField;
 	typedef struct _MonoProperty MonoProperty;
 	typedef struct _MonoType MonoType;
+	typedef struct _MonoArray MonoArray;
 }
 
 namespace Eagle
@@ -93,6 +94,15 @@ namespace Eagle
 
 		bool operator< (const PublicField& other) const { return UIName < other.UIName; }
 
+		// Returns the index of the new element
+		size_t AppendArrayElement();
+		void RemoveArrayElement(size_t idx);
+		void ClearArray();
+
+		size_t AppendRuntimeArrayElement(MonoObject* instance);
+		void RemoveRuntimeArrayElement(MonoObject* instance, size_t idx);
+		void ClearRuntimeArray(MonoObject* instance);
+
 		size_t GetRuntimeArrayLength(MonoObject* instance) const;
 
 		void CopyStoredValueFromRuntime(MonoObject* instance);
@@ -144,7 +154,7 @@ namespace Eagle
 			}
 			else
 			{
-				T value;
+				T value = T{};
 				GetRuntimeValue_Internal(instance, &value, idx);
 				return value;
 			}
@@ -184,37 +194,15 @@ namespace Eagle
 		void GetRuntimeValue_Internal(MonoObject* instance, void* outValue, size_t idx = 0) const;
 		void GetRuntimeValue_Internal(MonoObject* instance, std::string& outValue, size_t idx = 0) const;
 
-		void AllocateBuffer(FieldType type)
-		{
-			m_StoredValueBuffer.Allocate(m_FieldSize * ArrayLength);
-			if (type == FieldType::String)
-			{
-				std::string* basePtr = (std::string*)m_StoredValueBuffer.Data();
-				for (size_t i = 0; i < ArrayLength; ++i)
-				{
-					new (basePtr) std::string();
-					basePtr++;
-				}
-			}
-			else
-			{
-				memset(m_StoredValueBuffer.Data(), 0, m_FieldSize);
-			}
-		}
+		void AllocateBuffer();
+		void ReleaseBuffer();
+
+		void SetRuntimeArray(MonoObject* instance, MonoArray* newArray) const;
+		MonoClass* GetArrayElementClass() const;
 
 		// @idx. Used if it's an array
-		std::string& GetDataAsString(size_t idx = 0)
-		{
-			std::string* base = (std::string*)(m_StoredValueBuffer.Data());
-			return *(base + idx);
-		}
-
-		// @idx. Used if it's an array
-		const std::string& GetDataAsString(size_t idx = 0) const
-		{
-			const std::string* base = (const std::string*)(m_StoredValueBuffer.Data());
-			return *(base + idx);
-		}
+		std::string& GetDataAsString(size_t idx = 0);
+		const std::string& GetDataAsString(size_t idx = 0) const;
 
 	private:
 		MonoClassField* m_MonoClassField = nullptr;

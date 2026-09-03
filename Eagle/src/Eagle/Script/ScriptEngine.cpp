@@ -874,7 +874,7 @@ namespace Eagle
 
 			if (IsPublicClass(monoClass))
 			{
-				const std::string fullName = ToFullName(nameSpace, className);
+				std::string fullName = ToFullName(nameSpace, className);
 				if (mono_class_is_subclass_of(monoClass, s_EntityClass, false))
 				{
 					EntityScriptClass data;

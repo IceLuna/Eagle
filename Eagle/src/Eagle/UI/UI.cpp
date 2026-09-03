@@ -75,7 +75,7 @@ namespace Eagle::UI
 
 	namespace
 	{
-		bool HandlePublicField(std::string_view label, PublicField& field, MonoObject* instance, size_t fieldIndex, bool bRuntime, Entity entity)
+		bool HandlePublicField(std::string_view label, PublicField& field, MonoObject* instance, size_t fieldIndex, bool bRuntime, Entity entity, const std::function<void()>& customLabelCallback = {})
 		{
 			bool bChanged = false;
 			switch (field.Type)
@@ -84,7 +84,7 @@ namespace Eagle::UI
 				case FieldType::UnsignedInt:
 				{
 					int value = bRuntime ? field.GetRuntimeValue<int>(instance, fieldIndex) : field.GetStoredValue<int>(fieldIndex);
-					if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
+					if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip, customLabelCallback))
 					{
 						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 						bChanged = true;
@@ -94,7 +94,7 @@ namespace Eagle::UI
 				case FieldType::Float:
 				{
 					float value = bRuntime ? field.GetRuntimeValue<float>(instance, fieldIndex) : field.GetStoredValue<float>(fieldIndex);
-					if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
+					if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip, customLabelCallback))
 					{
 						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 						bChanged = true;
@@ -104,7 +104,7 @@ namespace Eagle::UI
 				case FieldType::String:
 				{
 					std::string value = bRuntime ? field.GetRuntimeValue<std::string>(instance, fieldIndex) : field.GetStoredValue<std::string>(fieldIndex);
-					if (UI::PropertyText(label.data(), value, field.Tooltip))
+					if (UI::PropertyText(label.data(), value, field.Tooltip, 0, customLabelCallback))
 					{
 						bRuntime ? field.SetRuntimeValue<std::string>(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 						bChanged = true;
@@ -114,7 +114,7 @@ namespace Eagle::UI
 				case FieldType::Vec2:
 				{
 					glm::vec2 value = bRuntime ? field.GetRuntimeValue<glm::vec2>(instance, fieldIndex) : field.GetStoredValue<glm::vec2>(fieldIndex);
-					if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
+					if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip, customLabelCallback))
 					{
 						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 						bChanged = true;
@@ -124,7 +124,7 @@ namespace Eagle::UI
 				case FieldType::Vec3:
 				{
 					glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(instance, fieldIndex) : field.GetStoredValue<glm::vec3>(fieldIndex);
-					if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
+					if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip, customLabelCallback))
 					{
 						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 						bChanged = true;
@@ -134,7 +134,7 @@ namespace Eagle::UI
 				case FieldType::Vec4:
 				{
 					glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(instance, fieldIndex) : field.GetStoredValue<glm::vec4>(fieldIndex);
-					if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip))
+					if (UI::PropertyDrag(label.data(), value, 1, 0, 0, field.Tooltip, customLabelCallback))
 					{
 						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 						bChanged = true;
@@ -144,7 +144,7 @@ namespace Eagle::UI
 				case FieldType::Bool:
 				{
 					bool value = bRuntime ? field.GetRuntimeValue<bool>(instance, fieldIndex) : field.GetStoredValue<bool>(fieldIndex);
-					if (UI::Property(label.data(), value, field.Tooltip))
+					if (UI::Property(label.data(), value, field.Tooltip, customLabelCallback))
 					{
 						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 						bChanged = true;
@@ -154,7 +154,7 @@ namespace Eagle::UI
 				case FieldType::Color3:
 				{
 					glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(instance, fieldIndex) : field.GetStoredValue<glm::vec3>(fieldIndex);
-					if (UI::PropertyColor(label.data(), value, true, field.Tooltip))
+					if (UI::PropertyColor(label.data(), value, true, field.Tooltip, customLabelCallback))
 					{
 						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 						bChanged = true;
@@ -164,7 +164,7 @@ namespace Eagle::UI
 				case FieldType::Color4:
 				{
 					glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(instance, fieldIndex) : field.GetStoredValue<glm::vec4>(fieldIndex);
-					if (UI::PropertyColor(label.data(), value, true, field.Tooltip))
+					if (UI::PropertyColor(label.data(), value, true, field.Tooltip, customLabelCallback))
 					{
 						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 						bChanged = true;
@@ -174,7 +174,7 @@ namespace Eagle::UI
 				case FieldType::Enum:
 				{
 					int value = bRuntime ? field.GetRuntimeValue<int>(instance, fieldIndex) : field.GetStoredValue<int>(fieldIndex);
-					if (UI::Combo(label.data(), value, field.EnumFields, value, field.Tooltip))
+					if (UI::Combo(label.data(), value, field.EnumFields, value, field.Tooltip, customLabelCallback))
 					{
 						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 						bChanged = true;
@@ -198,10 +198,10 @@ namespace Eagle::UI
 						names.reserve(entities.size_hint());
 						ids.reserve(entities.size_hint());
 
-					for (const auto& [sceneEntity, idComp, nameComp] : entities.each())
-					{
-						if (sceneEntity == entity.GetEnttID())
-							continue; // Don't show itself
+						for (const auto& [sceneEntity, idComp, nameComp] : entities.each())
+						{
+							if (sceneEntity == entity.GetEnttID())
+								continue; // Don't show itself
 
 							const auto& ID = idComp.ID;
 							const auto& name = nameComp.GetName();
@@ -215,7 +215,7 @@ namespace Eagle::UI
 							i++;
 						}
 
-						const bool bComboChanged = UI::ComboWithNone(label.data(), currentSelection, names, currentSelection, {}, field.Tooltip);
+						const bool bComboChanged = UI::ComboWithNone(label.data(), currentSelection, names, currentSelection, {}, field.Tooltip, customLabelCallback);
 						const bool bInvalidEntity = currentSelection == -1 && value != GUID(0, 0); // Can happen if an entity was removed from the scene
 						if (bComboChanged || bInvalidEntity)
 						{
@@ -235,7 +235,7 @@ namespace Eagle::UI
 						Ref<type> castedAsset;\
 						if (AssetManager::Get(value, &asset))\
 							castedAsset = Cast<type>(asset);\
-						if (UI::DrawAssetSelection(label.data(), castedAsset, field.Tooltip, -1.f, GetAssetPreview(castedAsset)))\
+						if (UI::DrawAssetSelection(label.data(), castedAsset, field.Tooltip, -1.f, GetAssetPreview(castedAsset), nullptr, customLabelCallback))\
 						{\
 							value = castedAsset ? castedAsset->GetGUID() : GUID(0, 0);\
 							bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);\
@@ -687,7 +687,7 @@ namespace Eagle::UI
 		ImGui::PopID();
 	}
 
-	bool Property(const std::string_view label, bool& value, const std::string_view helpMessage)
+	bool Property(const std::string_view label, bool& value, const std::string_view helpMessage, const std::function<void()>& customLabelCallback)
 	{
 		bool bModified = false;
 
@@ -698,6 +698,11 @@ namespace Eagle::UI
 		{
 			ImGui::SameLine();
 			UI::HelpMarker(helpMessage);
+		}
+		if (customLabelCallback)
+		{
+			ImGui::SameLine();
+			customLabelCallback();
 		}
 		ImGui::SameLine();
 		ImGui::NextColumn();
@@ -760,7 +765,7 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyText(const std::string_view label, std::string& value, const std::string_view helpMessage, ImGuiInputTextFlags flags)
+	bool PropertyText(const std::string_view label, std::string& value, const std::string_view helpMessage, ImGuiInputTextFlags flags, const std::function<void()>& customLabelCallback)
 	{
 		bool bModified = false;
 
@@ -771,6 +776,11 @@ namespace Eagle::UI
 		{
 			ImGui::SameLine();
 			UI::HelpMarker(helpMessage);
+		}
+		if (customLabelCallback)
+		{
+			ImGui::SameLine();
+			customLabelCallback();
 		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -883,8 +893,8 @@ namespace Eagle::UI
 		{
 			constexpr ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
 
-			const size_t arrayLength = bRuntime ? field.GetRuntimeArrayLength(instance) : field.ArrayLength;
-			const std::string elementsStr = "Array elements: " + std::to_string(arrayLength);
+			size_t arrayLength = bRuntime ? field.GetRuntimeArrayLength(instance) : field.ArrayLength;
+			const std::string elementsStr = "Elements: " + std::to_string(arrayLength);
 
 			// Calculate `collapser arrow width` offset
 			// in order to move a tree to the left so that children names are all aligned vertically
@@ -900,22 +910,46 @@ namespace Eagle::UI
 
 			ImGui::SetCursorPosX(ImGui::GetCursorPosX() - treeOffsetX * 0.5f + 5.f);
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-			bool entityTreeOpened = ImGui::TreeNodeEx(field.UIName.data(), treeFlags, field.UIName.data());
+			const bool arrayTreeOpened = ImGui::TreeNodeEx(field.UIName.data(), treeFlags, field.UIName.data());
 			ImGui::NextColumn();
-			ImGui::PushItemWidth(-1);
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 			ImGui::Text(elementsStr.c_str());
-			ImGui::PopItemWidth();
+			ImGui::SameLine();
+			if (ImGui::Button("+"))
+			{
+				bRuntime ? field.AppendRuntimeArrayElement(instance) : field.AppendArrayElement();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Clear"))
+			{
+				bRuntime ? field.ClearRuntimeArray(instance) : field.ClearArray();
+				arrayLength = 0;
+			}
 			ImGui::NextColumn();
 
-			if (entityTreeOpened)
+			if (arrayTreeOpened)
 			{
+				constexpr size_t invalidIdx = -1;
+				size_t idxToRemove = invalidIdx;
 				for (size_t i = 0; i < arrayLength; ++i)
 				{
+					auto customLabelFunc = [&idxToRemove, i]()
+					{
+						if (ImGui::Button("Remove"))
+						{
+							idxToRemove = i;
+						}
+					};
+
 					ImGui::PushID(int(i));
-					bChanged |= HandlePublicField(std::to_string(i), field, instance, i, bRuntime, entity);
+					bChanged |= HandlePublicField('[' + std::to_string(i) + ']', field, instance, i, bRuntime, entity, customLabelFunc);
 					ImGui::PopID();
 				}
 				ImGui::TreePop();
+				if (idxToRemove != invalidIdx)
+				{
+					bRuntime ? field.RemoveRuntimeArrayElement(instance, idxToRemove) : field.RemoveArrayElement(idxToRemove);
+				}
 			}
 		}
 		else
@@ -959,7 +993,7 @@ namespace Eagle::UI
 		return TextLink(text, url);
 	}
 
-	bool PropertyDrag(const std::string_view label, int& value, float speed, int min, int max, const std::string_view helpMessage)
+	bool PropertyDrag(const std::string_view label, int& value, float speed, int min, int max, const std::string_view helpMessage, const std::function<void()>& customLabelCallback)
 	{
 		bool bModified = false;
 
@@ -970,6 +1004,11 @@ namespace Eagle::UI
 		{
 			ImGui::SameLine();
 			UI::HelpMarker(helpMessage);
+		}
+		if (customLabelCallback)
+		{
+			ImGui::SameLine();
+			customLabelCallback();
 		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -988,7 +1027,7 @@ namespace Eagle::UI
 		return bChanged;
 	}
 
-	bool PropertyDrag(const std::string_view label, float& value, float speed, float min, float max, const std::string_view helpMessage)
+	bool PropertyDrag(const std::string_view label, float& value, float speed, float min, float max, const std::string_view helpMessage, const std::function<void()>& customLabelCallback)
 	{
 		bool bModified = false;
 
@@ -999,6 +1038,11 @@ namespace Eagle::UI
 		{
 			ImGui::SameLine();
 			UI::HelpMarker(helpMessage);
+		}
+		if (customLabelCallback)
+		{
+			ImGui::SameLine();
+			customLabelCallback();
 		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -1009,7 +1053,7 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyDrag(const std::string_view label, glm::vec2& value, float speed, float min, float max, const std::string_view helpMessage)
+	bool PropertyDrag(const std::string_view label, glm::vec2& value, float speed, float min, float max, const std::string_view helpMessage, const std::function<void()>& customLabelCallback)
 	{
 		bool bModified = false;
 
@@ -1020,6 +1064,11 @@ namespace Eagle::UI
 		{
 			ImGui::SameLine();
 			UI::HelpMarker(helpMessage);
+		}
+		if (customLabelCallback)
+		{
+			ImGui::SameLine();
+			customLabelCallback();
 		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -1030,7 +1079,7 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyDrag(const std::string_view label, glm::vec3& value, float speed, float min, float max, const std::string_view helpMessage)
+	bool PropertyDrag(const std::string_view label, glm::vec3& value, float speed, float min, float max, const std::string_view helpMessage, const std::function<void()>& customLabelCallback)
 	{
 		bool bModified = false;
 
@@ -1042,6 +1091,11 @@ namespace Eagle::UI
 			ImGui::SameLine();
 			UI::HelpMarker(helpMessage);
 		}
+		if (customLabelCallback)
+		{
+			ImGui::SameLine();
+			customLabelCallback();
+		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
@@ -1051,7 +1105,7 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyDrag(const std::string_view label, glm::vec4& value, float speed, float min, float max, const std::string_view helpMessage)
+	bool PropertyDrag(const std::string_view label, glm::vec4& value, float speed, float min, float max, const std::string_view helpMessage, const std::function<void()>& customLabelCallback)
 	{
 		bool bModified = false;
 
@@ -1062,6 +1116,11 @@ namespace Eagle::UI
 		{
 			ImGui::SameLine();
 			UI::HelpMarker(helpMessage);
+		}
+		if (customLabelCallback)
+		{
+			ImGui::SameLine();
+			customLabelCallback();
 		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -1234,7 +1293,7 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyColor(const std::string_view label, glm::vec3& value, bool bHDR, const std::string_view helpMessage)
+	bool PropertyColor(const std::string_view label, glm::vec3& value, bool bHDR, const std::string_view helpMessage, const std::function<void()>& customLabelCallback)
 	{
 		bool bModified = false;
 
@@ -1245,6 +1304,11 @@ namespace Eagle::UI
 		{
 			ImGui::SameLine();
 			UI::HelpMarker(helpMessage);
+		}
+		if (customLabelCallback)
+		{
+			ImGui::SameLine();
+			customLabelCallback();
 		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -1259,7 +1323,7 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyColor(const std::string_view label, glm::vec4& value, bool bHDR, const std::string_view helpMessage)
+	bool PropertyColor(const std::string_view label, glm::vec4& value, bool bHDR, const std::string_view helpMessage, const std::function<void()>& customLabelCallback)
 	{
 		bool bModified = false;
 
@@ -1270,6 +1334,11 @@ namespace Eagle::UI
 		{
 			ImGui::SameLine();
 			UI::HelpMarker(helpMessage);
+		}
+		if (customLabelCallback)
+		{
+			ImGui::SameLine();
+			customLabelCallback();
 		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -1460,7 +1529,7 @@ namespace Eagle::UI
 		return Combo(label, currentSelection, options, options.size(), outSelectedIndex, tooltips, helpMessage);
 	}
 
-	bool ComboWithNone(const std::string_view label, int currentSelectionIndex, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips, const std::string_view helpMessage)
+	bool ComboWithNone(const std::string_view label, int currentSelectionIndex, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips, const std::string_view helpMessage, const std::function<void()>& customLabelCallback)
 	{
 		size_t tooltipsSize = tooltips.size();
 		bool bModified = false;
@@ -1471,6 +1540,11 @@ namespace Eagle::UI
 		{
 			ImGui::SameLine();
 			UI::HelpMarker(helpMessage);
+		}
+		if (customLabelCallback)
+		{
+			ImGui::SameLine();
+			customLabelCallback();
 		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -1586,7 +1660,7 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool Combo(const std::string_view label, int currentValue, const ScriptEnumFields& fields, int& outSelectedValue, const std::string_view helpMessage)
+	bool Combo(const std::string_view label, int currentValue, const ScriptEnumFields& fields, int& outSelectedValue, const std::string_view helpMessage, const std::function<void()>& customLabelCallback)
 	{
 		std::string_view currentString;
 		for (auto& [value, data] : fields)
@@ -1603,6 +1677,11 @@ namespace Eagle::UI
 		{
 			ImGui::SameLine();
 			UI::HelpMarker(helpMessage);
+		}
+		if (customLabelCallback)
+		{
+			ImGui::SameLine();
+			customLabelCallback();
 		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);

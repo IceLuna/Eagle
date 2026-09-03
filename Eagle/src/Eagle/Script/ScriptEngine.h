@@ -82,7 +82,7 @@ namespace Eagle
 			return id;
 		}
 
-		[[nodiscard]] static void AddOnAppAssemblyReloadedCallback(const GUID& id, const std::function<void()>& callback)
+		static void AddOnAppAssemblyReloadedCallback(const GUID& id, const std::function<void()>& callback)
 		{
 			std::scoped_lock lock(s_Mutex);
 			s_AppAssemblyReloadedCallbacks[id] = callback;

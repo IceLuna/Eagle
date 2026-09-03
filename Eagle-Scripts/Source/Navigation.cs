@@ -150,6 +150,7 @@ namespace Eagle
 
     public class CrowdNavigation
     {
+        // Controls all existing agents
         public static void SetMoveTarget(Vector3 pos)
         {
             SetMoveTarget_Native(ref pos);
