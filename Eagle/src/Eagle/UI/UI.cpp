@@ -1457,9 +1457,7 @@ namespace Eagle::UI
 		treeFlags |= bFramed ? ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_FramePadding : 0;
 		treeFlags |= bOpenedByDefault ? ImGuiTreeNodeFlags_DefaultOpen : 0;
 
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 		const bool bOpened = uniqueID == 0 ? ImGui::TreeNodeEx(label.data(), treeFlags) : ImGui::TreeNodeEx((void*)uniqueID, treeFlags, label.data());
-		ImGui::PopStyleVar();
 		if (!helpMessage.empty())
 		{
 			ImGui::SameLine();

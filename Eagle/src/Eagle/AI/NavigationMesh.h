@@ -29,7 +29,7 @@ namespace Eagle::AINavigation
 		uint32_t MaxObstacles = 128u;
 		uint32_t TileSize = 8u;
 		float CellSize = 0.3f;
-		float CellHeight = 0.001f;
+		float CellHeight = 0.1f;
 		float MaxSlope = 45.f;
 		float AgentHeight = 2.f;
 		float AgentMaxClimb = 0.9f;

@@ -484,7 +484,7 @@ namespace Eagle::AINavigation
 			cfg.cs = m_Settings.CellSize;
 			cfg.ch = m_Settings.CellHeight;
 			cfg.walkableSlopeAngle = m_Settings.MaxSlope;
-			cfg.walkableHeight = glm::min(3, (int)ceilf(m_Settings.AgentHeight / cfg.ch));
+			cfg.walkableHeight = (int)ceilf(m_Settings.AgentHeight / cfg.ch);
 			cfg.walkableClimb = (int)floorf(m_Settings.AgentMaxClimb / cfg.ch);
 			cfg.walkableRadius = (int)ceilf(m_Settings.AgentRadius / cfg.cs);
 			cfg.maxEdgeLen = (int)(m_Settings.EdgeMaxLen / m_Settings.CellSize);

@@ -38,6 +38,7 @@ namespace Eagle
 		out << YAML::Key << "EcoRendering" << YAML::Value << editor->bRenderOnlyWhenFocused;
 		out << YAML::Key << "bUpdateAnimationsInEditor" << YAML::Value << editor->bUpdateAnimationsInEditor;
 		out << YAML::Key << "DrawAxisGuizmo" << YAML::Value << editor->bDrawAxisGuizmo;
+		out << YAML::Key << "ForceDrawGuizmo" << YAML::Value << editor->bForceDrawGuizmo;
 		out << YAML::Key << "DrawNavMesh" << YAML::Value << editor->bDrawNavMesh;
 		out << YAML::Key << "DrawMeshAABBs" << YAML::Value << editor->bDrawMeshAABBs;
 		out << YAML::Key << "StopSimulationKey" << YAML::Value << Utils::GetEnumName(editor->m_StopSimulationKey);
@@ -96,6 +97,7 @@ namespace Eagle
 		bool bRenderOnlyWhenFocused = editor->bRenderOnlyWhenFocused;
 		bool bUpdateAnimationsInEditor = editor->bUpdateAnimationsInEditor;
 		bool bDrawAxisGuizmo = editor->bDrawAxisGuizmo;
+		bool bForceDrawGuizmo = editor->bForceDrawGuizmo;
 		bool bDrawNavMesh = editor->bDrawNavMesh;
 		bool bDrawMeshAABBs = editor->bDrawMeshAABBs;
 		Key stopSimulationKey = editor->m_StopSimulationKey;
@@ -130,6 +132,8 @@ namespace Eagle
 			bUpdateAnimationsInEditor = node.as<bool>();
 		if (auto node = data["DrawAxisGuizmo"])
 			bDrawAxisGuizmo = node.as<bool>();
+		if (auto node = data["ForceDrawGuizmo"])
+			bForceDrawGuizmo = node.as<bool>();
 		if (auto node = data["DrawNavMesh"])
 			bDrawNavMesh = node.as<bool>();
 		if (auto node = data["DrawMeshAABBs"])
@@ -167,7 +171,7 @@ namespace Eagle
 		
 		Serializer::DeserializeRendererSettings(data, settings);
 
-		editor->OnDeserialized(camera, windowSize, windowPos, settings, bWindowMaximized, bVSync, bRenderOnlyWhenFocused, bDrawNavMesh, bDrawMeshAABBs, bDrawAxisGuizmo, stopSimulationKey, bUpdateAnimationsInEditor, guizmoMode);
+		editor->OnDeserialized(camera, windowSize, windowPos, settings, bWindowMaximized, bVSync, bRenderOnlyWhenFocused, bDrawNavMesh, bDrawMeshAABBs, bDrawAxisGuizmo, bForceDrawGuizmo, stopSimulationKey, bUpdateAnimationsInEditor, guizmoMode);
 		return true;
 	}
 }

@@ -338,7 +338,7 @@ namespace Eagle
 
 					const size_t arrayLength = bArray ? ScriptEngine::GetMonoArrayLength(instance, fieldIter) : 1;
 					PublicField& publicField = publicFields.emplace_back(std::move(fullName), std::move(uiName), typeName, std::move(tooltip), fieldType, bArray, arrayLength);
-					publicField.m_MonoClassField = fieldIter;
+					publicField.SetMonoClassField(fieldIter);
 					publicField.EnumFields = fieldType == FieldType::Enum ? GetEnumFields(monoFieldType) : ScriptEnumFields{};
 					publicField.CopyStoredValueFromRuntime(instance);
 
@@ -390,7 +390,7 @@ namespace Eagle
 
 					const size_t arrayLength = bArray ? GetMonoArrayLength(instance, propertyIter) : 1;
 					PublicField& publicField = publicFields.emplace_back(std::move(fullName), std::move(uiName), typeName, std::move(tooltip), fieldType, bArray, arrayLength);
-					publicField.m_MonoProperty = propertyIter;
+					publicField.SetMonoProperty(propertyIter);
 					publicField.EnumFields = fieldType == FieldType::Enum ? GetEnumFields(propertyType) : ScriptEnumFields{};
 					publicField.CopyStoredValueFromRuntime(instance);
 				}

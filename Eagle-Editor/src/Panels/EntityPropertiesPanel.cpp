@@ -2154,31 +2154,6 @@ namespace Eagle
 					UI::EndPropertyGrid();
 
 					ImGui::Separator();
-					if (UI::PushTreeNode("Crowd Settings"))
-					{
-						UI::BeginPropertyGrid("NavigationMeshComponent");
-
-						auto settings = component.GetCrowdSettings();
-						bool bCrowdChanged = false;
-
-						bCrowdChanged |= UI::PropertyDrag("Max Agents", settings.MaxAgents);
-
-						if (UI::PropertyDrag("Max Agent Radius", settings.MaxAgentRadius, 0.05f))
-						{
-							settings.MaxAgentRadius = glm::max(settings.MaxAgentRadius, 0.0f);
-							bCrowdChanged = true;
-						}
-
-						if (bCrowdChanged)
-						{
-							component.SetCrowdSettings(settings);
-							bEntityChanged = true;
-						}
-
-						UI::EndPropertyGrid();
-						UI::PopTreeNode();
-					}
-					
 					if (UI::PushTreeNode("Nav Mesh Settings"))
 					{
 						UI::BeginPropertyGrid("NavigationMeshComponent");
@@ -2214,12 +2189,12 @@ namespace Eagle
 							settings.TileSize = glm::clamp(settings.TileSize, 1u, 1u << 24u);
 							bChanged = true;
 						}
-						if (UI::PropertyDrag("Cell Size", settings.CellSize, 0.05f, 0, 0, "The xz-plane cell size to use for fields"))
+						if (UI::PropertyDrag("Cell Size", settings.CellSize, 0.001f, 0, 0, "The xz-plane cell size to use for fields"))
 						{
 							settings.CellSize = glm::max(settings.CellSize, 0.005f);
 							bChanged = true;
 						}
-						if (UI::PropertyDrag("Cell Height", settings.CellHeight, 0.01f, 0, 0, "The y-axis cell size to use for fields"))
+						if (UI::PropertyDrag("Cell Height", settings.CellHeight, 0.001f, 0, 0, "The y-axis cell size to use for fields"))
 						{
 							settings.CellHeight = glm::max(settings.CellHeight, 0.001f);
 							bChanged = true;
@@ -2230,17 +2205,17 @@ namespace Eagle
 							settings.MaxSlope = glm::clamp(settings.MaxSlope, 0.f, 90.f);
 							bChanged = true;
 						}
-						if (UI::PropertyDrag("Agent Height", settings.AgentHeight, 0.05f, 0.0f, 0.f, "Minimum floor to 'ceiling' height that will still allow the floor area to be considered walkable"))
+						if (UI::PropertyDrag("Agent Height", settings.AgentHeight, 0.01f, 0.0f, 0.f, "Minimum floor to 'ceiling' height that will still allow the floor area to be considered walkable"))
 						{
-							settings.AgentHeight = glm::max(settings.AgentHeight, 0.1f);
+							settings.AgentHeight = glm::max(settings.AgentHeight, 0.001f);
 							bChanged = true;
 						}
-						if (UI::PropertyDrag("Agent Max Climb", settings.AgentMaxClimb, 0.05f, 0.f, 0.f, "Maximum ledge height that is considered to still be traversable"))
+						if (UI::PropertyDrag("Agent Max Climb", settings.AgentMaxClimb, 0.01f, 0.f, 0.f, "Maximum ledge height that is considered to still be traversable"))
 						{
 							settings.AgentMaxClimb = glm::max(settings.AgentMaxClimb, 0.0f);
 							bChanged = true;
 						}
-						if (UI::PropertyDrag("Agent Radius", settings.AgentRadius, 0.05f, 0.f, 0.f, "The distance to erode/shrink the walkable area of the heightfield away from obstructions"))
+						if (UI::PropertyDrag("Agent Radius", settings.AgentRadius, 0.01f, 0.f, 0.f, "The distance to erode/shrink the walkable area of the heightfield away from obstructions"))
 						{
 							settings.AgentRadius = glm::max(settings.AgentRadius, 0.0f);
 							bChanged = true;
@@ -2281,7 +2256,33 @@ namespace Eagle
 							component.SetSettings(settings);
 							bEntityChanged = true;
 						}
-						
+
+						UI::EndPropertyGrid();
+						UI::PopTreeNode();
+					}
+					ImGui::Separator();
+
+					if (UI::PushTreeNode("Crowd Settings"))
+					{
+						UI::BeginPropertyGrid("NavigationMeshComponent");
+
+						auto settings = component.GetCrowdSettings();
+						bool bCrowdChanged = false;
+
+						bCrowdChanged |= UI::PropertyDrag("Max Agents", settings.MaxAgents);
+
+						if (UI::PropertyDrag("Max Agent Radius", settings.MaxAgentRadius, 0.05f))
+						{
+							settings.MaxAgentRadius = glm::max(settings.MaxAgentRadius, 0.0f);
+							bCrowdChanged = true;
+						}
+
+						if (bCrowdChanged)
+						{
+							component.SetCrowdSettings(settings);
+							bEntityChanged = true;
+						}
+
 						UI::EndPropertyGrid();
 						UI::PopTreeNode();
 					}
@@ -2299,21 +2300,21 @@ namespace Eagle
 
 					UI::BeginPropertyGrid("NavigationCrowdAgentComponent");
 					
-					if (UI::PropertyDrag("Agent Radius", settings.AgentRadius, 0.05f))
+					if (UI::PropertyDrag("Agent Radius", settings.AgentRadius, 0.01f))
 					{
-						settings.AgentRadius = glm::max(settings.AgentRadius, 0.1f);
+						settings.AgentRadius = glm::max(settings.AgentRadius, 0.0f);
 						bChanged = true;
 					}
 
-					if (UI::PropertyDrag("Agent Height", settings.AgentHeight, 0.05f))
+					if (UI::PropertyDrag("Agent Height", settings.AgentHeight, 0.01f))
 					{
-						settings.AgentHeight = glm::max(settings.AgentHeight, 0.1f);
+						settings.AgentHeight = glm::max(settings.AgentHeight, 0.001f);
 						bChanged = true;
 					}
 
-					if (UI::PropertyDrag("Max Acceleration", settings.MaxAcceleration, 0.1f))
+					if (UI::PropertyDrag("Max Acceleration", settings.MaxAcceleration, 0.01f))
 					{
-						settings.MaxAcceleration = glm::max(settings.MaxAcceleration, 0.1f);
+						settings.MaxAcceleration = glm::max(settings.MaxAcceleration, 0.01f);
 						bChanged = true;
 					}
 

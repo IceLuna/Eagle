@@ -828,7 +828,7 @@ namespace Eagle
 	}
 
 	void EditorLayer::OnDeserialized(const EditorCamera& camera, const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync,
-		bool bRenderOnlyWhenFocused, bool bDrawNavMesh, bool bDrawMeshAABBs, bool bDrawAxisGuizmo, Key stopSimulationKey, bool bUpdateAnimationsInEditor, int guizmoMode)
+		bool bRenderOnlyWhenFocused, bool bDrawNavMesh, bool bDrawMeshAABBs, bool bDrawAxisGuizmo, bool bForceDrawGuizmo, Key stopSimulationKey, bool bUpdateAnimationsInEditor, int guizmoMode)
 	{
 		m_Camera = camera;
 
@@ -858,6 +858,7 @@ namespace Eagle
 		this->bDrawNavMesh = bDrawNavMesh;
 		this->bDrawMeshAABBs = bDrawMeshAABBs;
 		this->bDrawAxisGuizmo = bDrawAxisGuizmo;
+		this->bForceDrawGuizmo = bForceDrawGuizmo;
 		m_GuizmoMode = guizmoMode;
 		m_StopSimulationKey = stopSimulationKey;
 
@@ -1226,9 +1227,6 @@ namespace Eagle
 #ifdef EG_CPU_TIMINGS
 		if (bShowCPUTimings)
 		{
-			constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-				| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
-
 			static CPUTimingsContainer timingsPerThread;
 			static bool bPaused = false;
 
@@ -1245,11 +1243,8 @@ namespace Eagle
 				{
 					const std::string_view threadName = Application::Get().GetThreadName(threadID);
 					ImGui::PushID(threadName.data());
-					ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 					ImGui::Separator();
-					bool treeOpened = ImGui::TreeNodeEx("CPU Timings", flags, threadName.data());
-					ImGui::PopStyleVar();
-					if (treeOpened)
+					if (UI::PushTreeNode(threadName, true))
 					{
 						UI::BeginPropertyGrid("CPUTimings");
 
@@ -1261,7 +1256,7 @@ namespace Eagle
 
 						UI::EndPropertyGrid();
 
-						ImGui::TreePop();
+						UI::PopTreeNode();
 					}
 					ImGui::PopID();
 				}
@@ -1310,9 +1305,6 @@ namespace Eagle
 
 	void EditorLayer::DrawSceneSettings()
 	{
-		constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
-
 		auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
 		bool bChanged = false;
 
@@ -1320,11 +1312,8 @@ namespace Eagle
 		ImGui::Begin("Scene Settings");
 
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Physics Settings", flags);
-			ImGui::PopStyleVar();
-			if (treeOpened)
+			if (UI::PushTreeNode("Physics Settings", true))
 			{
 				UI::BeginPropertyGrid("PhysicsSceneSettings");
 
@@ -1367,16 +1356,13 @@ namespace Eagle
 
 
 				UI::EndPropertyGrid();
-				ImGui::TreePop();
+				UI::PopTreeNode();
 			}
 		}
 
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Skybox Settings", flags);
-			ImGui::PopStyleVar();
-			if (treeOpened)
+			if (UI::PushTreeNode("Skybox Settings", true))
 			{
 				UI::BeginPropertyGrid("IBLSceneSettings");
 
@@ -1447,7 +1433,7 @@ namespace Eagle
 				}
 
 				UI::EndPropertyGrid();
-				ImGui::TreePop();
+				UI::PopTreeNode();
 			}
 		}
 
@@ -1551,16 +1537,10 @@ namespace Eagle
 
 		UI::EndPropertyGrid();
 
-		constexpr ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
-
 		// Auto Exposure settings
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Auto Exposure", treeFlags);
-			ImGui::PopStyleVar();
-			if (treeOpened)
+			if (UI::PushTreeNode("Auto Exposure"))
 			{
 				UI::BeginPropertyGrid("Auto Exposure Settings");
 
@@ -1582,17 +1562,14 @@ namespace Eagle
 				}
 
 				UI::EndPropertyGrid();
-				ImGui::TreePop();
+				UI::PopTreeNode();
 			}
 		}
 
 		// Shadow Resolutions settings
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Shadows", treeFlags);
-			ImGui::PopStyleVar();
-			if (treeOpened)
+			if (UI::PushTreeNode("Shadows"))
 			{
 				UI::BeginPropertyGrid("Shadow Settings");
 
@@ -1631,17 +1608,14 @@ namespace Eagle
 				}
 
 				UI::EndPropertyGrid();
-				ImGui::TreePop();
+				UI::PopTreeNode();
 			}
 		}
 
 		// Screen Space Shadow settings
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Screen Space Shadows", treeFlags);
-			ImGui::PopStyleVar();
-			if (treeOpened)
+			if (UI::PushTreeNode("Screen Space Shadows"))
 			{
 				UI::BeginPropertyGrid("ScreenSpaceSettings");
 
@@ -1659,17 +1633,14 @@ namespace Eagle
 				bSettingsChanged |= UI::Property("Debug Output Edge Mask", settings.bDebugOutputEdgeMask);
 
 				UI::EndPropertyGrid();
-				ImGui::TreePop();
+				UI::PopTreeNode();
 			}
 		}
 
 		// Screen Space Reflections settings
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Screen Space Reflections", treeFlags);
-			ImGui::PopStyleVar();
-			if (treeOpened)
+			if (UI::PushTreeNode("Screen Space Reflections"))
 			{
 				UI::BeginPropertyGrid("ScreenSpaceReflectionsSettings");
 
@@ -1692,17 +1663,14 @@ namespace Eagle
 				bSettingsChanged |= UI::Property("Visualize Reflection", settings.bVisualizeReflections);
 
 				UI::EndPropertyGrid();
-				ImGui::TreePop();
+				UI::PopTreeNode();
 			}
 		}
 
 		// Bloom settings
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Bloom", treeFlags);
-			ImGui::PopStyleVar();
-			if (treeOpened)
+			if (UI::PushTreeNode("Bloom"))
 			{
 				UI::BeginPropertyGrid("Bloom Settings");
 
@@ -1744,17 +1712,14 @@ namespace Eagle
 				}
 
 				UI::EndPropertyGrid();
-				ImGui::TreePop();
+				UI::PopTreeNode();
 			}
 		}
 		
 		// SSAO settings
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("SSAO", treeFlags);
-			ImGui::PopStyleVar();
-			if (treeOpened)
+			if (UI::PushTreeNode("SSAO"))
 			{
 				UI::BeginPropertyGrid("SSAO Settings");
 
@@ -1783,17 +1748,14 @@ namespace Eagle
 				}
 
 				UI::EndPropertyGrid();
-				ImGui::TreePop();
+				UI::PopTreeNode();
 			}
 		}
 
 		// GTAO settings
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("GTAO", treeFlags);
-			ImGui::PopStyleVar();
-			if (treeOpened)
+			if (UI::PushTreeNode("GTAO"))
 			{
 				UI::BeginPropertyGrid("GTAO Settings");
 
@@ -1883,17 +1845,14 @@ namespace Eagle
 					}
 				}
 
-				ImGui::TreePop();
+				UI::PopTreeNode();
 			}
 		}
 
 		// MSAA settings
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("MSAA", treeFlags);
-			ImGui::PopStyleVar();
-			if (treeOpened)
+			if (UI::PushTreeNode("MSAA"))
 			{
 				UI::BeginPropertyGrid("MSAA Settings");
 
@@ -1918,17 +1877,14 @@ namespace Eagle
 				}
 
 				UI::EndPropertyGrid();
-				ImGui::TreePop();
+				UI::PopTreeNode();
 			}
 		}
 
 		// Volumetric settings
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Volumetric Lights", treeFlags);
-			ImGui::PopStyleVar();
-			if (treeOpened)
+			if (UI::PushTreeNode("Volumetric Lights"))
 			{
 				UI::BeginPropertyGrid("Volumetric Lights Settings");
 
@@ -1972,17 +1928,14 @@ namespace Eagle
 				}
 
 				UI::EndPropertyGrid();
-				ImGui::TreePop();
+				UI::PopTreeNode();
 			}
 		}
 
 		// Fog settings
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Fog", treeFlags);
-			ImGui::PopStyleVar();
-			if (treeOpened)
+			if (UI::PushTreeNode("Fog"))
 			{
 				UI::BeginPropertyGrid("Fog Settings");
 
@@ -2000,17 +1953,14 @@ namespace Eagle
 				bSettingsChanged |= UI::PropertyDrag("Density", settings.Density, 0.001f, 0.f, 0.f, "Used by Exponential equations");
 
 				UI::EndPropertyGrid();
-				ImGui::TreePop();
+				UI::PopTreeNode();
 			}
 		}
 
 		// DOF settings
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Depth of Field", treeFlags);
-			ImGui::PopStyleVar();
-			if (treeOpened)
+			if (UI::PushTreeNode("Depth of Field"))
 			{
 				UI::BeginPropertyGrid("DOF Settings");
 
@@ -2025,17 +1975,14 @@ namespace Eagle
 				bSettingsChanged |= UI::Property("Debug Output", settings.bDebugOutput);
 
 				UI::EndPropertyGrid();
-				ImGui::TreePop();
+				UI::PopTreeNode();
 			}
 		}
 
 		// Motion Blur settings
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Motion Blur", treeFlags);
-			ImGui::PopStyleVar();
-			if (treeOpened)
+			if (UI::PushTreeNode("Motion Blur"))
 			{
 				UI::BeginPropertyGrid("Motion Blur Settings");
 
@@ -2050,17 +1997,14 @@ namespace Eagle
 				bSettingsChanged |= UI::Property("Debug Output", settings.bDebugOutput, "Blue - no motion blur; Green - cheaper quality; Red - higher quality");
 
 				UI::EndPropertyGrid();
-				ImGui::TreePop();
+				UI::PopTreeNode();
 			}
 		}
 
 		// Photo Linear Tonemapping Settings
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Photo Linear tonemapping", treeFlags);
-			ImGui::PopStyleVar();
-			if (treeOpened)
+			if (UI::PushTreeNode("Photo Linear tonemapping"))
 			{
 				UI::BeginPropertyGrid("PhotoSettings");
 
@@ -2087,19 +2031,15 @@ namespace Eagle
 
 				bSettingsChanged |= bChanged;
 
-				ImGui::TreePop();
+				UI::PopTreeNode();
 				UI::EndPropertyGrid();
 			}
 		}
 
 		// Filmic Tonemapping settings
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Filmic tonemapping", treeFlags);
-			ImGui::PopStyleVar();
-
-			if (treeOpened)
+			if (UI::PushTreeNode("Filmic tonemapping"))
 			{
 				UI::BeginPropertyGrid("FilmicSettings");
 
@@ -2108,7 +2048,7 @@ namespace Eagle
 					EG_CORE_TRACE("Changed Filmic White Point to: {}", options.FilmicTonemappingParams.WhitePoint);
 					bSettingsChanged = true;
 				}
-				ImGui::TreePop();
+				UI::PopTreeNode();
 
 				UI::EndPropertyGrid();
 			}
@@ -2116,12 +2056,8 @@ namespace Eagle
 
 		// AgX Tonemapping settings
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("AgX tonemapping", treeFlags);
-			ImGui::PopStyleVar();
-
-			if (treeOpened)
+			if (UI::PushTreeNode("AgX tonemapping"))
 			{
 				auto& agx = options.AgXTonemappingParams;
 
@@ -2182,18 +2118,14 @@ namespace Eagle
 					}
 				}
 
-				ImGui::TreePop();
+				UI::PopTreeNode();
 			}
 		}
 
 		// Chromatic Aberration
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Chromatic Aberration", treeFlags);
-			ImGui::PopStyleVar();
-
-			if (treeOpened)
+			if (UI::PushTreeNode("Chromatic Aberration"))
 			{
 				UI::BeginPropertyGrid("ChromaticAbSettings");
 
@@ -2207,7 +2139,7 @@ namespace Eagle
 					EG_CORE_TRACE("Changed Chromatic Aberration Intensity to: {}", options.Lens.ChromaticIntensity);
 					bSettingsChanged = true;
 				}
-				ImGui::TreePop();
+				UI::PopTreeNode();
 
 				UI::EndPropertyGrid();
 			}
@@ -2215,12 +2147,8 @@ namespace Eagle
 
 		// Vignette
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Vignette", treeFlags);
-			ImGui::PopStyleVar();
-
-			if (treeOpened)
+			if (UI::PushTreeNode("Vignette"))
 			{
 				UI::BeginPropertyGrid("VignetteSettings");
 
@@ -2234,7 +2162,7 @@ namespace Eagle
 					EG_CORE_TRACE("Changed Vignette Intensity to: {}", options.Lens.VignetteIntensity);
 					bSettingsChanged = true;
 				}
-				ImGui::TreePop();
+				UI::PopTreeNode();
 
 				UI::EndPropertyGrid();
 			}
@@ -2242,12 +2170,8 @@ namespace Eagle
 
 		// Film Grain
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Film Grain", treeFlags);
-			ImGui::PopStyleVar();
-
-			if (treeOpened)
+			if (UI::PushTreeNode("Film Grain"))
 			{
 				UI::BeginPropertyGrid("FilmGrainSettings");
 
@@ -2271,7 +2195,7 @@ namespace Eagle
 					EG_CORE_TRACE("Changed Film Grain Rate to: {}", options.Lens.FilmGrainSeedUpdateRate);
 					bSettingsChanged = true;
 				}
-				ImGui::TreePop();
+				UI::PopTreeNode();
 
 				UI::EndPropertyGrid();
 			}
@@ -2534,6 +2458,7 @@ namespace Eagle
 
 			UI::BeginPropertyGrid("EditorPreferences_Debug");
 
+			UI::Property("Draw Guizmo in Runtime", bForceDrawGuizmo);
 			UI::Property("Draw Axis Guizmo", bDrawAxisGuizmo);
 			if (UI::Property("Draw All Colliders", bForceShowCollision))
 				m_CurrentScene->SetForceShowCollision(bForceShowCollision);
@@ -2636,7 +2561,7 @@ namespace Eagle
 		else
 			m_EditorScene->bCanUpdateEditorCamera = false;
 
-		if (m_EditorState == EditorState::Edit)
+		if (m_EditorState == EditorState::Edit || bForceDrawGuizmo)
 			UpdateGuizmo();
 
 		ImGui::End(); //Viewport

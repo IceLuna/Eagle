@@ -501,10 +501,10 @@ namespace Eagle
 
             ImGui::PushID(decorator.ClassData.FullName.c_str());
 
+            const float availWidth = ImGui::GetContentRegionAvail().x;
             const bool bTreeOpened = UI::PushTreeNode(decorator.ClassData.UIName, true);
 
-            const float offset = ImGui::GetContentRegionAvail().x - m_MoveUpTextSize.x - m_MoveDownTextSize.x - paddingX;
-
+            const float offset = availWidth - m_MoveUpTextSize.x - m_MoveDownTextSize.x - paddingX * 6;
             ImGui::SameLine(offset);
             {
                 const bool bCanMoveUp = i > 0;

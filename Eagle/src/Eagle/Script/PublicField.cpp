@@ -142,6 +142,7 @@ namespace Eagle
 		: FullName(other.FullName), UIName(other.UIName), TypeName(other.TypeName)
 		, Tooltip(other.Tooltip), Type(other.Type), bArray(other.bArray), ArrayLength(other.ArrayLength)
 		, EnumFields(other.EnumFields)
+		, m_Class(other.m_Class)
 		, m_MonoClassField(other.m_MonoClassField)
 		, m_MonoProperty(other.m_MonoProperty)
 		, m_FieldSize(other.m_FieldSize)
@@ -172,12 +173,55 @@ namespace Eagle
 			m_MonoProperty = other.m_MonoProperty;
 			EnumFields = other.EnumFields;
 			m_FieldSize = other.m_FieldSize;
+			m_Class = other.m_Class;
 
 			AllocateBuffer();
 			CopyStoredValue(other);
 		}
 
 		return *this;
+	}
+
+	void PublicField::SetMonoClassField(MonoClassField* value)
+	{
+		m_MonoClassField = value;
+		m_MonoProperty = nullptr;
+		m_Class = nullptr;
+
+		if (m_MonoClassField)
+		{
+			if (MonoType* fieldType = mono_field_get_type(m_MonoClassField))
+				if (MonoClass* returnClass = mono_class_from_mono_type(fieldType))
+					m_Class = bArray ? mono_class_get_element_class(returnClass) : returnClass;
+		}
+
+		EG_CORE_ASSERT(m_Class);
+		if (!m_Class)
+		{
+			EG_CORE_ERROR("Failed to retrieve field class for: {}", FullName);
+		}
+	}
+
+	void PublicField::SetMonoProperty(MonoProperty* value)
+	{
+		m_MonoProperty = value;
+		m_MonoClassField = nullptr;
+		m_Class = nullptr;
+
+		if (m_MonoProperty)
+		{
+			if (MonoMethod* getter = mono_property_get_get_method(m_MonoProperty))
+				if (MonoMethodSignature* signature = mono_method_signature(getter))
+					if (MonoType* returnType = mono_signature_get_return_type(signature))
+						if (MonoClass* returnClass = mono_class_from_mono_type(returnType))
+							m_Class = bArray ? mono_class_get_element_class(returnClass) : returnClass;
+		}
+
+		EG_CORE_ASSERT(m_Class);
+		if (!m_Class)
+		{
+			EG_CORE_ERROR("Failed to retrieve property class for: {}", FullName);
+		}
 	}
 
 	size_t PublicField::AppendArrayElement()
@@ -254,15 +298,8 @@ namespace Eagle
 
 	size_t PublicField::AppendRuntimeArrayElement(MonoObject* instance)
 	{
-		if (!bArray)
+		if (!bArray || !m_Class)
 			return 0;
-
-		MonoClass* elementClass = GetArrayElementClass();
-		if (!elementClass)
-		{
-			EG_CORE_ERROR("Failed to retrieve array element class: {}", FullName);
-			return 0;
-		}
 
 		const size_t oldLength = GetRuntimeArrayLength(instance);
 		const size_t newLength = oldLength + 1;
@@ -284,7 +321,7 @@ namespace Eagle
 			oldArrayHandle = mono_gchandle_new((MonoObject*)oldArray, true);
 		}
 
-		MonoArray* newArray = mono_array_new(mono_domain_get(), elementClass, newLength);
+		MonoArray* newArray = mono_array_new(mono_domain_get(), m_Class, newLength);
 		const uint32_t newArrayHandle = mono_gchandle_new((MonoObject*)newArray, true);
 
 		if (oldArray)
@@ -315,19 +352,12 @@ namespace Eagle
 
 	void PublicField::RemoveRuntimeArrayElement(MonoObject* instance, size_t idx)
 	{
-		if (!bArray)
+		if (!bArray || !m_Class)
 			return;
 
 		const size_t length = GetRuntimeArrayLength(instance);
 		if (idx >= length)
 			return; // Invalid index
-
-		MonoClass* elementClass = GetArrayElementClass();
-		if (!elementClass)
-		{
-			EG_CORE_ERROR("Failed to retrieve array element class for `{}`", FullName);
-			return;
-		}
 
 		const size_t oldLength = length;
 		const size_t newLength = oldLength - 1;
@@ -349,7 +379,7 @@ namespace Eagle
 			oldArrayHandle = mono_gchandle_new((MonoObject*)oldArray, true);
 		}
 
-		MonoArray* newArray = mono_array_new(mono_domain_get(), elementClass, newLength);
+		MonoArray* newArray = mono_array_new(mono_domain_get(), m_Class, newLength);
 		const uint32_t newArrayHandle = mono_gchandle_new((MonoObject*)newArray, true);
 		if (oldArray)
 		{
@@ -383,17 +413,10 @@ namespace Eagle
 
 	void PublicField::ClearRuntimeArray(MonoObject* instance)
 	{
-		if (!bArray)
+		if (!bArray || !m_Class)
 			return;
 
-		MonoClass* elementClass = GetArrayElementClass();
-		if (!elementClass)
-		{
-			EG_CORE_ERROR("Failed to retrieve array element class: {}", FullName);
-			return;
-		}
-
-		SetRuntimeArray(instance, mono_array_new(mono_domain_get(), elementClass, 0));
+		SetRuntimeArray(instance, mono_array_new(mono_domain_get(), m_Class, 0));
 	}
 
 	void PublicField::ClearArray()
@@ -532,14 +555,13 @@ namespace Eagle
 		// Allocate enought space for the runtime array
 		if (bArray)
 		{
-			MonoClass* elementClass = GetArrayElementClass();
-			if (!elementClass)
+			if (!m_Class)
 			{
 				EG_CORE_ERROR("Failed to retrieve array element class: {}", FullName);
 				return;
 			}
 
-			MonoArray* array = mono_array_new(mono_domain_get(), elementClass, ArrayLength);
+			MonoArray* array = mono_array_new(mono_domain_get(), m_Class, ArrayLength);
 			SetRuntimeArray(instance, array);
 		}
 
@@ -903,27 +925,6 @@ namespace Eagle
 		{
 			EG_CORE_ASSERT(false);
 		}
-	}
-
-	MonoClass* PublicField::GetArrayElementClass() const
-	{
-		MonoClass* elementClass = nullptr;
-		if (m_MonoClassField)
-		{
-			if (MonoType* fieldType = mono_field_get_type(m_MonoClassField))
-				if (MonoClass* arrayClass = mono_class_from_mono_type(fieldType))
-					elementClass = mono_class_get_element_class(arrayClass);
-		}
-		else if (m_MonoProperty)
-		{
-			if (MonoMethod* getter = mono_property_get_get_method(m_MonoProperty))
-				if (MonoMethodSignature* signature = mono_method_signature(getter))
-					if (MonoType* returnType = mono_signature_get_return_type(signature))
-						if (MonoClass* arrayClass = mono_class_from_mono_type(returnType))
-							elementClass = mono_class_get_element_class(arrayClass);
-		}
-		EG_CORE_ASSERT(elementClass);
-		return elementClass;
 	}
 	
 	std::string& PublicField::GetDataAsString(size_t idx)

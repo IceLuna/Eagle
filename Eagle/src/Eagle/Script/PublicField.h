@@ -94,6 +94,9 @@ namespace Eagle
 
 		bool operator< (const PublicField& other) const { return UIName < other.UIName; }
 
+		void SetMonoClassField(MonoClassField* value);
+		void SetMonoProperty(MonoProperty* value);
+
 		// Returns the index of the new element
 		size_t AppendArrayElement();
 		void RemoveArrayElement(size_t idx);
@@ -198,19 +201,17 @@ namespace Eagle
 		void ReleaseBuffer();
 
 		void SetRuntimeArray(MonoObject* instance, MonoArray* newArray) const;
-		MonoClass* GetArrayElementClass() const;
 
 		// @idx. Used if it's an array
 		std::string& GetDataAsString(size_t idx = 0);
 		const std::string& GetDataAsString(size_t idx = 0) const;
 
 	private:
+		MonoClass* m_Class = nullptr;
 		MonoClassField* m_MonoClassField = nullptr;
 		MonoProperty* m_MonoProperty = nullptr;
 		ScopedDataBuffer m_StoredValueBuffer;
 		uint32_t m_FieldSize = 0u;
-
-		friend class ScriptEngine;
 	};
 }
 
