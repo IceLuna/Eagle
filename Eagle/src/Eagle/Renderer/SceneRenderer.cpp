@@ -270,8 +270,6 @@ namespace Eagle
 
 			if (renderer->m_Options_RT.AA == AAMethod::TAA)
 				renderer->m_TAATask->RecordCommandBuffer(cmd);
-			else if (renderer->m_Options_RT.AA == AAMethod::MSAA)
-				renderer->m_MSAATask->RecordCommandBuffer(cmd);
 
 			renderer->m_Images2DTask->RecordCommandBuffer(cmd);
 			renderer->m_Text2DTask->RecordCommandBuffer(cmd);
@@ -282,6 +280,8 @@ namespace Eagle
 
 			if (renderer->m_Options_RT.AA == AAMethod::FXAA)
 				renderer->m_FXAATask->RecordCommandBuffer(cmd);
+			else if (renderer->m_Options_RT.AA == AAMethod::MSAA)
+				renderer->m_MSAATask->RecordCommandBuffer(cmd);
 
 			if (bRenderGrid)
 				renderer->m_GridTask->RecordCommandBuffer(cmd);

@@ -68,7 +68,7 @@ namespace Eagle
 				uint32_t VisualizeEdges = 0;
 			} pushData;
 
-			const auto& output = m_Renderer.GetHDROutput();
+			const auto& output = m_Renderer.GetOutput();
 			const auto& depth = m_Renderer.GetGBuffer().Depth;
 			const auto& normals = m_Renderer.GetGBuffer().Normals;
 

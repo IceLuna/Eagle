@@ -13,7 +13,7 @@ layout(push_constant) uniform PushConstants
 	uint g_VisualizeEdges;
 };
 
-layout(binding = 0, r11f_g11f_b10f) uniform image2D g_Result;
+layout(binding = 0, rgba8) uniform image2D g_Result;
 layout(binding = 1) uniform sampler2D g_ResultBilinear;
 layout(binding = 2) uniform sampler2DMS g_MSAADepth;
 layout(binding = 3) uniform sampler2DMS g_MSAANormals;
@@ -97,13 +97,16 @@ void main()
     const vec4 inputColor = imageLoad(g_Result, pixelCoords);
 	vec3 outputColor = vec3(0);
 
-    // Loop through the MSAA samples and compare with the non-MSAA depth		
+    // Loop through the MSAA samples and compare with the non-MSAA depth
+	bool bAnyEdge = false;
 	for (int i = 0; i < EG_MSAA_SAMPLES; ++i)
 	{
 		const float msDepth = ToLinear(texelFetch(g_MSAADepth, pixelCoords, i).x);
 		const vec3 msNormal = DecodeNormal(texelFetch(g_MSAANormals, pixelCoords, i).xy);
 
 		const bool bEdge = abs(depth - msDepth) >= edgeThreshold || dot(normal, msNormal) < 0.9f;
+		bAnyEdge = bAnyEdge || bEdge;
+
 		if(!bEdge)
 		{
 			outputColor += inputColor.rgb;
@@ -113,19 +116,11 @@ void main()
 			// Take a new sample for each MSAA sample that's on the edge
 			vec2 samplePoint = vec2(pixelCoords) + (s_SamplePoints[i] - vec2(0.5f)) * 2;
 			vec2 sampleCoord = samplePoint / g_Size;
-
-			if (g_VisualizeEdges != 0u)
-			{
-				outputColor += vec3(2.f, 0, 0);
-			}
-			else
-			{
-				outputColor += texture(g_ResultBilinear, sampleCoord).rgb;	
-			}
+			outputColor += texture(g_ResultBilinear, sampleCoord).rgb;
 		}		
 	}
 
-	outputColor /= EG_MSAA_SAMPLES;
-
-    imageStore(g_Result, pixelCoords, vec4(outputColor.rgb, inputColor.a));
+	const bool bEnableVis = g_VisualizeEdges != 0u && bAnyEdge;
+	outputColor.rgb = bEnableVis ? vec3(1, 0, 0) : outputColor / EG_MSAA_SAMPLES;
+	imageStore(g_Result, pixelCoords, vec4(outputColor.rgb, inputColor.a));
 }
