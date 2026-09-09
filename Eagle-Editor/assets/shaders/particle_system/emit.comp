@@ -1,4 +1,5 @@
 #include "particle_system/common.h"
+#include "skeletal_mesh_vertex_input_layout.h"
 #include "utils.h"
 
 struct DecompositedTransform
@@ -189,10 +190,10 @@ void GetPosAndNormalOnSkeletalMesh(Emitter emitter, inout Random random, inout v
         mat4 boneTransform = mat4(0.f);
         for (uint i = 0; i < 4; ++i)
         {
-            float animWeight = vertices[vI].Weights[i];
+            const float animWeight = GetWeight(vertices[vI].Weights, i);
             if (animWeight > 0.f)
             {
-                uint boneID = vertices[vI].BoneIDs[i];
+                uint boneID = GetBoneID(vertices[vI].BoneIDs, i);
                 boneTransform += g_Animations[emitter.AnimationOffset + boneID] * animWeight;
             }
         }

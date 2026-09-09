@@ -161,7 +161,7 @@ namespace Eagle
 						for (uint32_t i = 0; i < EG_MAX_BONES_PER_VERTEX; ++i)
 						{
 							newVertex.Weights[i] = vertex.Weights[i];
-							newVertex.BoneIDs[i] = vertex.BoneID[i];
+							newVertex.BoneID[i] = vertex.BoneID[i];
 						}
 					}
 				}

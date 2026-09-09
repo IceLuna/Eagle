@@ -224,8 +224,8 @@ struct SkeletalMeshVertex
 {
 	vec3 Position;
 	uint Normal;
-	uvec2 Weights; // Packed f16
-	uvec2 BoneIDs; // Packed u16
+	uvec2 Weights;
+	uvec2 BoneIDs;
 };
 
 struct DrawArgs

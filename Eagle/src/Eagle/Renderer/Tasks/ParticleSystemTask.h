@@ -66,8 +66,8 @@ namespace Eagle
 		{
 			glm::vec3 Position = glm::vec3(0);
 			uint32_t Normal = 0; // Packed. Used to set initial velocity.
-			uint16_t Weights[EG_MAX_BONES_PER_VERTEX]; // f16vec4
-			uint16_t BoneIDs[EG_MAX_BONES_PER_VERTEX]; // u16vec4
+			uint16_t Weights[EG_MAX_BONES_PER_VERTEX] = { 0, 0, 0, 0 }; // unorm16
+			uint16_t BoneID[EG_MAX_BONES_PER_VERTEX] = { 0, 0, 0, 0 };
 		};
 
 	private:
