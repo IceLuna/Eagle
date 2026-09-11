@@ -60,45 +60,58 @@ namespace Eagle
 		if (std::filesystem::exists(outputFilename))
 			outputFilename = Utils::GetUniqueAssetFilepath(outputFilename.parent_path(), Utils::AsString(outputFilename.stem()));
 
-		bool bSuccess = false;
+		// Most importers produce exactly one asset. Static/Skeletal Mesh importers can produce several
+		// when `settings.MeshSettings.bCombineMeshes` is `false` and the source file has multiple meshes.
+		std::vector<Path> outputFilenames;
 		switch (type)
 		{
 			case AssetType::Texture2D:
-				bSuccess = ImportTexture2D(pathToRaw, outputFilename, settings);
+				if (ImportTexture2D(pathToRaw, outputFilename, settings))
+					outputFilenames.push_back(outputFilename);
 				break;
 			case AssetType::TextureCube:
-				bSuccess = ImportTextureCube(pathToRaw, outputFilename, settings);
+				if (ImportTextureCube(pathToRaw, outputFilename, settings))
+					outputFilenames.push_back(outputFilename);
 				break;
 			case AssetType::StaticMesh:
-				bSuccess = ImportStaticMesh(pathToRaw, saveTo, outputFilename, settings);
+				outputFilenames = ImportStaticMesh(pathToRaw, saveTo, outputFilename, settings);
 				break;
 			case AssetType::SkeletalMesh:
-				bSuccess = ImportSkeletalMesh(pathToRaw, saveTo, outputFilename, settings);
+				outputFilenames = ImportSkeletalMesh(pathToRaw, saveTo, outputFilename, settings);
 				break;
 			case AssetType::Audio:
-				bSuccess = ImportAudio(pathToRaw, outputFilename, settings);
+				if (ImportAudio(pathToRaw, outputFilename, settings))
+					outputFilenames.push_back(outputFilename);
 				break;
 			case AssetType::Font:
-				bSuccess = ImportFont(pathToRaw, outputFilename, settings);
+				if (ImportFont(pathToRaw, outputFilename, settings))
+					outputFilenames.push_back(outputFilename);
 				break;
 			case AssetType::Animation:
-				bSuccess = ImportAnimation(pathToRaw, saveTo, outputFilename, settings.AnimationSettings);
-				break;
+				return ImportAnimation(pathToRaw, saveTo, outputFilename, settings.AnimationSettings);
 			default:
 				EG_CORE_ERROR("Import failed. Unknown asset type: {} - {}", pathToRaw, Utils::GetEnumName(type));
 				return false;
 		}
 
-		if (bSuccess)
+		if (outputFilenames.empty())
+			return false;
+
+		// Animations apply to the whole armature, so even when multiple Skeletal Mesh assets were produced
+		// (bCombineMeshes is false), only import the animation set once, against the first resulting skeletal asset.
+		bool bAnimationsImported = false;
+
+		for (const auto& filename : outputFilenames)
 		{
-			Ref<Asset> asset = Asset::Create(outputFilename);
+			Ref<Asset> asset = Asset::Create(filename);
 			AssetManager::Register(asset);
 			const AssetType assetType = asset->GetAssetType();
 			const bool bSkeletal = assetType == AssetType::SkeletalMesh;
 
-			// Import animations if required
-			if (settings.MeshSettings.bImportAnimations && bSkeletal)
+			if (settings.MeshSettings.bImportAnimations && bSkeletal && !bAnimationsImported)
 			{
+				bAnimationsImported = true;
+
 				Ref<AssetSkeletalMesh> skeletal = Cast<AssetSkeletalMesh>(asset);
 				std::vector<SkeletalMeshAnimation> animations = Utils::ImportAnimations(pathToRaw, skeletal->GetMesh(), settings.AnimationSettings.RootMotionType);
 
@@ -115,7 +128,7 @@ namespace Eagle
 			}
 		}
 
-		return bSuccess;
+		return true;
 	}
 
 	void AssetImporter::Import(const std::vector<Path>& pathsToRaw, const Path& saveTo)
@@ -297,76 +310,111 @@ namespace Eagle
 		return true;
 	}
 	
-	bool AssetImporter::ImportStaticMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings)
+	// Assigns each imported material to the sub-mesh slot it actually belongs to.
+	// @materialIndices - `MeshImportData::MaterialIndices` for this mesh: materialIndices[slot] == index into `importedMaterials`.
+	// Note: the slot is the position within this array (0, 1, 2...), NOT the raw assimp/global material index
+	template<typename MeshRef>
+	static void AssignImportedMaterials(const MeshRef& mesh, const std::vector<uint32_t>& materialIndices,
+		const std::vector<Ref<AssetMaterial>>& importedMaterials)
 	{
-		Utils::StaticMeshImportData importedMeshData = Utils::ImportStaticMesh(pathToRaw);
-		if (!importedMeshData.Mesh)
+		for (size_t slot = 0; slot < materialIndices.size(); ++slot)
 		{
-			EG_CORE_ERROR("Failed to import a mesh. No meshes in file '{0}'", pathToRaw);
-			return false;
-		}
+			const uint32_t materialIndex = materialIndices[slot];
+			if (materialIndex >= importedMaterials.size())
+				continue;
 
-		if (settings.MeshSettings.bImportMaterials)
-		{
-			std::vector<Ref<AssetMaterial>> importedMaterials = Utils::ImportMaterials(pathToRaw, saveTo);
-			for (size_t i = 0; i < importedMeshData.MaterialIndices.size(); ++i)
+			const auto& material = importedMaterials[materialIndex];
+			mesh->SetMaterialAsset(uint32_t(slot), material);
+
+			// The asset is used, register & save it if required
+			if (!AssetManager::Exists(material->GetPath()))
 			{
-				const uint32_t materialIndex = importedMeshData.MaterialIndices[i];
-				if (materialIndex >= importedMaterials.size())
-					continue;
-
-				const auto& material = importedMaterials[materialIndex];
-				importedMeshData.Mesh->SetMaterialAsset(materialIndex, material);
-
-				// The asset is used, register & save it if required
-				if (!AssetManager::Exists(material->GetPath()))
-				{
-					AssetManager::Register(material);
-					Asset::Save(material);
-				}
+				AssetManager::Register(material);
+				Asset::Save(material);
 			}
 		}
-
-		auto data = Serializer::SerializeAssetStaticMeshFromMesh(importedMeshData.Mesh, GUID{}, pathToRaw);
-		FileSystem::Write(outputFilename, data);
-
-		return true;
 	}
 
-	bool AssetImporter::ImportSkeletalMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings)
+	std::vector<Path> AssetImporter::ImportStaticMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings)
 	{
-		Utils::SkeletalMeshImportData importedMeshData = Utils::ImportSkeletalMesh(pathToRaw);
-		if (!importedMeshData.Mesh)
+		std::vector<Utils::StaticMeshImportData> importedMeshes = Utils::ImportStaticMesh(pathToRaw, settings.MeshSettings.bCombineMeshes, settings.MeshSettings.bResetLocation);
+		if (importedMeshes.empty())
 		{
 			EG_CORE_ERROR("Failed to import a mesh. No meshes in file '{0}'", pathToRaw);
-			return false;
+			return {};
 		}
 
+		std::vector<Ref<AssetMaterial>> importedMaterials;
 		if (settings.MeshSettings.bImportMaterials)
+			importedMaterials = Utils::ImportMaterials(pathToRaw, saveTo);
+
+		const bool bMultipleAssets = importedMeshes.size() > 1;
+		std::vector<Path> outputFilenames;
+		outputFilenames.reserve(importedMeshes.size());
+
+		for (size_t i = 0; i < importedMeshes.size(); ++i)
 		{
-			std::vector<Ref<AssetMaterial>> importedMaterials = Utils::ImportMaterials(pathToRaw, saveTo);
-			for (size_t i = 0; i < importedMeshData.MaterialIndices.size(); ++i)
+			auto& importedMeshData = importedMeshes[i];
+			AssignImportedMaterials(importedMeshData.Mesh, importedMeshData.MaterialIndices, importedMaterials);
+
+			// The originally-computed `outputFilename` is only reused as-is when there's a single resulting asset.
+			// Otherwise every mesh gets its own uniquely-named file, preferring the mesh's own name when it has one.
+			Path meshOutputFilename = outputFilename;
+			if (bMultipleAssets)
 			{
-				const uint32_t materialIndex = importedMeshData.MaterialIndices[i];
-				if (materialIndex >= importedMaterials.size())
-					continue;
-
-				const auto& material = importedMaterials[materialIndex];
-				importedMeshData.Mesh->SetMaterialAsset(materialIndex, material);
-
-				// The asset is used, register & save it if required
-				if (!AssetManager::Exists(material->GetPath()))
-				{
-					AssetManager::Register(material);
-					Asset::Save(material);
-				}
+				const std::string baseName = !importedMeshData.Name.empty()
+					? importedMeshData.Name
+					: Utils::AsString(outputFilename.stem()) + "_" + std::to_string(i);
+				meshOutputFilename = Utils::GetUniqueAssetFilepath(saveTo, baseName);
 			}
+
+			auto data = Serializer::SerializeAssetStaticMeshFromMesh(importedMeshData.Mesh, GUID{}, pathToRaw,
+				settings.MeshSettings.bCombineMeshes, importedMeshData.Name, uint32_t(i), settings.MeshSettings.bResetLocation);
+			FileSystem::Write(meshOutputFilename, data);
+			outputFilenames.push_back(std::move(meshOutputFilename));
 		}
 
-		auto data = Serializer::SerializeAssetSkeletalMeshFromMesh(importedMeshData.Mesh, GUID{}, pathToRaw);
-		FileSystem::Write(outputFilename, data);
+		return outputFilenames;
+	}
 
-		return true;
+	std::vector<Path> AssetImporter::ImportSkeletalMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings)
+	{
+		std::vector<Utils::SkeletalMeshImportData> importedMeshes = Utils::ImportSkeletalMesh(pathToRaw, settings.MeshSettings.bCombineMeshes, settings.MeshSettings.bResetLocation);
+		if (importedMeshes.empty())
+		{
+			EG_CORE_ERROR("Failed to import a mesh. No meshes in file '{0}'", pathToRaw);
+			return {};
+		}
+
+		std::vector<Ref<AssetMaterial>> importedMaterials;
+		if (settings.MeshSettings.bImportMaterials)
+			importedMaterials = Utils::ImportMaterials(pathToRaw, saveTo);
+
+		const bool bMultipleAssets = importedMeshes.size() > 1;
+		std::vector<Path> outputFilenames;
+		outputFilenames.reserve(importedMeshes.size());
+
+		for (size_t i = 0; i < importedMeshes.size(); ++i)
+		{
+			auto& importedMeshData = importedMeshes[i];
+			AssignImportedMaterials(importedMeshData.Mesh, importedMeshData.MaterialIndices, importedMaterials);
+
+			Path meshOutputFilename = outputFilename;
+			if (bMultipleAssets)
+			{
+				const std::string baseName = !importedMeshData.Name.empty()
+					? importedMeshData.Name
+					: Utils::AsString(outputFilename.stem()) + "_" + std::to_string(i);
+				meshOutputFilename = Utils::GetUniqueAssetFilepath(saveTo, baseName);
+			}
+
+			auto data = Serializer::SerializeAssetSkeletalMeshFromMesh(importedMeshData.Mesh, GUID{}, pathToRaw,
+				settings.MeshSettings.bCombineMeshes, importedMeshData.Name, uint32_t(i), settings.MeshSettings.bResetLocation);
+			FileSystem::Write(meshOutputFilename, data);
+			outputFilenames.push_back(std::move(meshOutputFilename));
+		}
+
+		return outputFilenames;
 	}
 	
 	bool AssetImporter::ImportAudio(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings)

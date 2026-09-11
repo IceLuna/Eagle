@@ -355,9 +355,36 @@ namespace Eagle
 
 	class AssetBaseMesh : public Asset
 	{
+	public:
+		// Describes which mesh(es), inside the raw file at `GetPathToRaw()`, this asset represents.
+		// True: this asset is every mesh in the file merged together.
+		// False: this asset represents a single specific mesh; `GetSourceMeshName()`/`GetSourceMeshIndex()` identify it.
+		// This is required to reload the asset correctly, since the raw file can contain multiple meshes.
+		bool IsCombinedMesh() const { return bCombinedMesh; }
+		const std::string& GetSourceMeshName() const { return m_SourceMeshName; }
+		uint32_t GetSourceMeshIndex() const { return m_SourceMeshIndex; }
+
+		// Only used when `IsCombinedMesh()` is `false`. True if this mesh's original in-file location was
+		// reset on import. Needed so a raw-reload doesn't silently put the mesh back at its original, non-zero location.
+		bool WasLocationReset() const { return bLocationReset; }
+
+		void SetSourceMeshData(bool bCombined, const std::string& sourceMeshName, uint32_t sourceMeshIndex, bool bWasLocationReset)
+		{
+			bCombinedMesh = bCombined;
+			m_SourceMeshName = sourceMeshName;
+			m_SourceMeshIndex = sourceMeshIndex;
+			bLocationReset = bWasLocationReset;
+		}
+
 	protected:
 		AssetBaseMesh(const Path& path, const Path& pathToRaw, AssetType type, GUID guid, const DataBuffer& rawData)
 			: Asset(path, pathToRaw, type, guid, rawData) {}
+
+	private:
+		bool bCombinedMesh = true;
+		bool bLocationReset = false;
+		std::string m_SourceMeshName;
+		uint32_t m_SourceMeshIndex = 0;
 	};
 
 	class AssetStaticMesh : public AssetBaseMesh
@@ -375,6 +402,7 @@ namespace Eagle
 			AssetStaticMesh&& meshAsset = (AssetStaticMesh&&)other;
 			meshAsset.m_Mesh->RemoveOnMaterialPropertyModifiedCallback(m_GUID);
 			m_Mesh = std::move(meshAsset.m_Mesh);
+			SetSourceMeshData(meshAsset.IsCombinedMesh(), meshAsset.GetSourceMeshName(), meshAsset.GetSourceMeshIndex(), meshAsset.WasLocationReset());
 			AddOnMaterialPropertyModifiedCallback();
 
 			return *this;
@@ -410,6 +438,7 @@ namespace Eagle
 			AssetSkeletalMesh&& meshAsset = (AssetSkeletalMesh&&)other;
 			meshAsset.m_Mesh->RemoveOnMaterialPropertyModifiedCallback(m_GUID);
 			m_Mesh = std::move(meshAsset.m_Mesh);
+			SetSourceMeshData(meshAsset.IsCombinedMesh(), meshAsset.GetSourceMeshName(), meshAsset.GetSourceMeshIndex(), meshAsset.WasLocationReset());
 			AddOnMaterialPropertyModifiedCallback();
 
 			return *this;

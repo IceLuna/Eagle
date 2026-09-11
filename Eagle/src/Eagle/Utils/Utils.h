@@ -22,12 +22,14 @@ namespace Eagle::Utils
 	{
 		Ref<StaticMesh> Mesh;
 		std::vector<uint32_t> MaterialIndices; // Indices of imported materials
+		std::string Name; // Name of the source mesh (from the DCC tool such as Blender). Empty when merged from multiple meshes.
 	};
 
 	struct SkeletalMeshImportData
 	{
 		Ref<SkeletalMesh> Mesh;
 		std::vector<uint32_t> MaterialIndices; // Indices of imported materials
+		std::string Name; // Name of the source mesh (from the DCC tool such as Blender). Empty when merged from multiple meshes.
 	};
 
 	std::u32string ToUTF32(const std::string& s);

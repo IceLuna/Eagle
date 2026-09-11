@@ -395,6 +395,10 @@ namespace Eagle
 		return bResult;
 	}
 
+	static const char* s_ResetLocationHelpMsg = "Meshes normally keep the position they had "
+		"within the source file, which is usually not (0, 0, 0) since they're separated from the rest of the meshes. "
+		"If true, each mesh's location gets reset to zero on import. Rotation & scale are kept. Only has an effect when `Combine Meshes` is disabled.";
+
 	void MeshImporterPanel::RenderSettings(const Path& path, AssetImportSettings& settings, bool& bSkeletal, bool* bOverride)
 	{
 		auto& meshSettings = settings.MeshSettings;
@@ -405,6 +409,14 @@ namespace Eagle
 			UI::Text("Path", Utils::AsString(path));
 
 		ImGui::Separator();
+
+		UI::Property("Combine Meshes", meshSettings.bCombineMeshes, "If true, all meshes found in the file are merged into a single mesh asset");
+
+		if (meshSettings.bCombineMeshes)
+			UI::PushItemDisabled();
+		UI::Property("Reset Location", meshSettings.bResetLocation, s_ResetLocationHelpMsg);
+		if (meshSettings.bCombineMeshes)
+			UI::PopItemDisabled();
 
 		if (bOverride)
 		{

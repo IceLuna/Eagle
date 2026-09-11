@@ -153,8 +153,10 @@ namespace Eagle
 			TextureCompressor::Quality compression, bool bNormalMap);
 		static ScopedDataBuffer SerializeAssetTextureCubeFromData(const DataBuffer& textureData, const GUID& guid, const Path& pathToRaw,
 			AssetTextureCubeFormat format, uint32_t layerSize, uint32_t prefilterSize, bool bCompress);
-		static ScopedDataBuffer SerializeAssetStaticMeshFromMesh(const Ref<StaticMesh>& mesh, const GUID& guid, const Path& pathToRaw);
-		static ScopedDataBuffer SerializeAssetSkeletalMeshFromMesh(const Ref<SkeletalMesh>& mesh, const GUID& guid, const Path& pathToRaw);
+		static ScopedDataBuffer SerializeAssetStaticMeshFromMesh(const Ref<StaticMesh>& mesh, const GUID& guid, const Path& pathToRaw,
+			bool bCombinedMesh, const std::string& sourceMeshName, uint32_t sourceMeshIndex, bool bLocationReset);
+		static ScopedDataBuffer SerializeAssetSkeletalMeshFromMesh(const Ref<SkeletalMesh>& mesh, const GUID& guid, const Path& pathToRaw,
+			bool bCombinedMesh, const std::string& sourceMeshName, uint32_t sourceMeshIndex, bool bLocationReset);
 		static ScopedDataBuffer SerializeAssetAudioFromData(const DataBuffer& audioData, const GUID& guid, const Path& pathToRaw,
 			float volume, float pitch, float pan, const Ref<AssetSoundGroup>& soundGroup);
 		static ScopedDataBuffer SerializeAssetFontFromData(const DataBuffer& fontData, const DataBuffer& atlasData, glm::uvec2 atlasSize, const GUID& guid, const Path& pathToRaw);

@@ -432,6 +432,11 @@ namespace Eagle
 
     public static class Renderer
     {
+        public static UInt64 GetFrameNumber()
+        {
+            return GetFrameNumber_Native();
+        }
+
         public static void DrawLine(RendererLine line)
         {
             DrawLine_Native(ref line.Start.Color, ref line.End.Color, ref line.Start.Location, ref line.End.Location);
@@ -872,6 +877,9 @@ namespace Eagle
         }
 
         // Native calls
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern UInt64 GetFrameNumber_Native();
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void DrawLine_Native(ref Color3 startColor, ref Color3 endColor, ref Vector3 start, ref Vector3 end);
 

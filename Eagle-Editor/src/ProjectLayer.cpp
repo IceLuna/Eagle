@@ -151,7 +151,13 @@ namespace Eagle
 
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().ItemSpacing.y);
 
-			ImGui::Text("Location: %s", Utils::AsString(m_NewProjectPath).c_str());
+			const float spacing = ImGui::GetStyle().FramePadding.x;
+
+			ImGui::Text("Folder");
+			ImGui::SameLine(0, spacing);
+			UI::HelpMarker("Project files will be put into this folder");
+			ImGui::SameLine(0, spacing);
+			ImGui::Text(": %s", Utils::AsString(m_NewProjectPath).c_str());
 			ImGui::SameLine();
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3.f);
 			if (ImGui::Button("Browse"))

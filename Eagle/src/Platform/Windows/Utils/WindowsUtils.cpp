@@ -23,8 +23,8 @@ namespace Eagle
 
 			OPENFILENAMEW ofn;
 			WCHAR szFile[bufferSize] = { 0 };
-			ZeroMemory(&ofn, sizeof(OPENFILENAME));
-			ofn.lStructSize = sizeof(OPENFILENAME);
+			ZeroMemory(&ofn, sizeof(OPENFILENAMEW));
+			ofn.lStructSize = sizeof(OPENFILENAMEW);
 			ofn.hwndOwner = (HWND)Application::Get().GetWindow().GetNativeWindow();
 			ofn.lpstrFile = szFile;
 			ofn.nMaxFile = bufferSize;
@@ -52,8 +52,8 @@ namespace Eagle
 
 			OPENFILENAMEW ofn;
 			WCHAR szFile[bufferSize] = { 0 };
-			ZeroMemory(&ofn, sizeof(OPENFILENAME));
-			ofn.lStructSize = sizeof(OPENFILENAME);
+			ZeroMemory(&ofn, sizeof(OPENFILENAMEW));
+			ofn.lStructSize = sizeof(OPENFILENAMEW);
 			ofn.hwndOwner = (HWND)Application::Get().GetWindow().GetNativeWindow();
 			ofn.lpstrFile = szFile;
 			ofn.nMaxFile = bufferSize;
@@ -97,8 +97,8 @@ namespace Eagle
 		{
 			OPENFILENAMEW ofn;
 			WCHAR szFile[256] = { 0 };
-			ZeroMemory(&ofn, sizeof(OPENFILENAME));
-			ofn.lStructSize = sizeof(OPENFILENAME);
+			ZeroMemory(&ofn, sizeof(OPENFILENAMEW));
+			ofn.lStructSize = sizeof(OPENFILENAMEW);
 			ofn.hwndOwner = HWND(Application::Get().GetWindow().GetNativeWindow());
 			ofn.lpstrFile = szFile;
 			ofn.nMaxFile = sizeof(szFile);
@@ -110,7 +110,7 @@ namespace Eagle
 			std::wstring initialDirStr;
 			if (!initialDir.empty())
 			{
-				initialDirStr = initialDir.wstring();
+				initialDirStr = initialDir.is_absolute() ? initialDir.wstring() : std::filesystem::absolute(initialDir).wstring();
 				ofn.lpstrInitialDir = initialDirStr.c_str();
 			}
 

@@ -7360,6 +7360,11 @@ namespace Eagle
 		return Input::IsMouseVisible() ? CursorMode::Normal : CursorMode::Hidden;
 	}
 	
+	uint64_t Script::Eagle_Renderer_GetFrameNumber()
+	{
+		return RenderManager::GetFrameNumber_CPU();
+	}
+
 	//-------------- Renderer --------------
 	void Script::Eagle_Renderer_SetFogSettings(const glm::vec3* color, float minDistance, float maxDistance, float density, FogEquation equation, bool bEnabled)
 	{

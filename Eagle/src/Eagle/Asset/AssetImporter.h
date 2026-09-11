@@ -28,6 +28,15 @@ namespace Eagle
 	{
 		bool bImportMaterials = true;
 		bool bImportAnimations = true;
+
+		// If true, all meshes found in the source file are merged into a single Static/Skeletal Mesh asset.
+		// If false, every mesh in the file is imported as its own separate asset
+		bool bCombineMeshes = true;
+
+		// Meshes normally keep the position they had
+		// within the source file, which is usually not (0, 0, 0) since they're separated from the rest of the meshes.
+		// If true, each mesh's location gets reset to zero on import. Rotation & scale are kept. Only has an effect when `Combine Meshes` is disabled.
+		bool bResetLocation = false;
 	};
 
 	struct AssetImportAnimationSettings
@@ -88,8 +97,10 @@ namespace Eagle
 		// Internal functions
 		static bool ImportTexture2D(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings);
 		static bool ImportTextureCube(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings);
-		static bool ImportStaticMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings);
-		static bool ImportSkeletalMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings);
+		// Returns the path(s) of every asset file written. Empty on failure.
+		// More than one path is returned when `settings.MeshSettings.bCombineMeshes == false` and the source file contains multiple meshes.
+		static std::vector<Path> ImportStaticMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings);
+		static std::vector<Path> ImportSkeletalMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings);
 		static bool ImportAudio(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings);
 		static bool ImportFont(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings);
 		static bool ImportAnimation(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportAnimationSettings& settings);

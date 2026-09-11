@@ -643,7 +643,8 @@ namespace Eagle
 			asset->GetFormat(), textureCube->GetSize().x, textureCube->GetPrefilterSize(), textureCube->IsCompressed());
 	}
 
-	ScopedDataBuffer Serializer::SerializeAssetStaticMeshFromMesh(const Ref<StaticMesh>& mesh, const GUID& guid, const Path& pathToRaw)
+	ScopedDataBuffer Serializer::SerializeAssetStaticMeshFromMesh(const Ref<StaticMesh>& mesh, const GUID& guid, const Path& pathToRaw,
+		bool bCombinedMesh, const std::string& sourceMeshName, uint32_t sourceMeshIndex, bool bLocationReset)
 	{
 		size_t totalSize = sizeof(AssetHeader);
 
@@ -674,6 +675,14 @@ namespace Eagle
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::StaticMesh);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
 		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
+
+		out << YAML::Key << "CombinedMesh" << YAML::Value << bCombinedMesh;
+		if (!bCombinedMesh)
+		{
+			out << YAML::Key << "SourceMeshName" << YAML::Value << sourceMeshName;
+			out << YAML::Key << "SourceMeshIndex" << YAML::Value << sourceMeshIndex;
+			out << YAML::Key << "ResetLocation" << YAML::Value << bLocationReset;
+		}
 
 		// AABB
 		{
@@ -750,10 +759,12 @@ namespace Eagle
 
 	ScopedDataBuffer Serializer::SerializeAssetStaticMesh(const Ref<AssetStaticMesh>& asset)
 	{
-		return SerializeAssetStaticMeshFromMesh(asset->GetMesh(), asset->GetGUID(), asset->GetPathToRaw());
+		return SerializeAssetStaticMeshFromMesh(asset->GetMesh(), asset->GetGUID(), asset->GetPathToRaw(),
+			asset->IsCombinedMesh(), asset->GetSourceMeshName(), asset->GetSourceMeshIndex(), asset->WasLocationReset());
 	}
 
-	ScopedDataBuffer Serializer::SerializeAssetSkeletalMeshFromMesh(const Ref<SkeletalMesh>& mesh, const GUID& guid, const Path& pathToRaw)
+	ScopedDataBuffer Serializer::SerializeAssetSkeletalMeshFromMesh(const Ref<SkeletalMesh>& mesh, const GUID& guid, const Path& pathToRaw,
+		bool bCombinedMesh, const std::string& sourceMeshName, uint32_t sourceMeshIndex, bool bLocationReset)
 	{
 		size_t totalSize = sizeof(AssetHeader);
 
@@ -784,6 +795,14 @@ namespace Eagle
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::SkeletalMesh);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
 		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
+
+		out << YAML::Key << "CombinedMesh" << YAML::Value << bCombinedMesh;
+		if (!bCombinedMesh)
+		{
+			out << YAML::Key << "SourceMeshName" << YAML::Value << sourceMeshName;
+			out << YAML::Key << "SourceMeshIndex" << YAML::Value << sourceMeshIndex;
+			out << YAML::Key << "ResetLocation" << YAML::Value << bLocationReset;
+		}
 
 		// AABB
 		{
@@ -901,7 +920,8 @@ namespace Eagle
 
 	ScopedDataBuffer Serializer::SerializeAssetSkeletalMesh(const Ref<AssetSkeletalMesh>& asset)
 	{
-		return SerializeAssetSkeletalMeshFromMesh(asset->GetMesh(), asset->GetGUID(), asset->GetPathToRaw());
+		return SerializeAssetSkeletalMeshFromMesh(asset->GetMesh(), asset->GetGUID(), asset->GetPathToRaw(),
+			asset->IsCombinedMesh(), asset->GetSourceMeshName(), asset->GetSourceMeshIndex(), asset->WasLocationReset());
 	}
 
 	ScopedDataBuffer Serializer::SerializeAssetAudioFromData(const DataBuffer& audioData, const GUID& guid, const Path& pathToRaw,
@@ -3685,16 +3705,62 @@ namespace Eagle
 
 		GUID guid = baseNode["GUID"].as<GUID>();
 
+		bool bCombinedMesh = true;
+		if (auto node = baseNode["CombinedMesh"])
+			bCombinedMesh = node.as<bool>();
+
+		std::string sourceMeshName;
+		if (auto node = baseNode["SourceMeshName"])
+			sourceMeshName = node.as<std::string>();
+
+		uint32_t sourceMeshIndex = 0;
+		if (auto node = baseNode["SourceMeshIndex"])
+			sourceMeshIndex = node.as<uint32_t>();
+
+		bool bResetLocation = false;
+		if (auto node = baseNode["ResetLocation"])
+			bResetLocation = node.as<bool>();
+
 		if (bReloadRaw)
 		{
-			auto importedMeshData = Utils::ImportStaticMesh(pathToRaw);
-			if (!importedMeshData.Mesh)
+			std::vector<Utils::StaticMeshImportData> importedMeshes = Utils::ImportStaticMesh(pathToRaw, bCombinedMesh, bResetLocation);
+			if (importedMeshes.empty())
 			{
 				EG_CORE_ERROR("Failed to reload a mesh asset: {}", pathToRaw);
 				return {};
 			}
 
-			return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, importedMeshData.Mesh);
+			// When the asset isn't a whole-file combine, it corresponds to one specific mesh in `importedMeshes`.
+			// Match it by name first, falling back to the recorded index if the name isn't found
+			// (for example, the mesh got renamed since the last import).
+			Utils::StaticMeshImportData* match = &importedMeshes[0];
+			if (!bCombinedMesh)
+			{
+				match = nullptr;
+				if (!sourceMeshName.empty())
+				{
+					for (auto& importedMesh : importedMeshes)
+					{
+						if (importedMesh.Name == sourceMeshName)
+						{
+							match = &importedMesh;
+							break;
+						}
+					}
+				}
+				if (!match && sourceMeshIndex < importedMeshes.size())
+					match = &importedMeshes[sourceMeshIndex];
+
+				if (!match)
+				{
+					EG_CORE_ERROR("Failed to find source mesh '{}' while reloading '{}'. It might've been renamed, removed, or reordered in the source file", sourceMeshName, pathToRaw);
+					return {};
+				}
+			}
+
+			Ref<AssetStaticMesh> asset = MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, match->Mesh);
+			asset->SetSourceMeshData(bCombinedMesh, sourceMeshName, sourceMeshIndex, bResetLocation);
+			return asset;
 		}
 
 		AABB aabb{};
@@ -3739,7 +3805,9 @@ namespace Eagle
 			for (const auto& matNode : materialsNode)
 				staticMesh->SetMaterialAsset(matNode["Index"].as<uint32_t>(), GetAsset<AssetMaterial>(matNode["Material"]));
 
-		return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, staticMesh);
+		Ref<AssetStaticMesh> asset = MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, staticMesh);
+		asset->SetSourceMeshData(bCombinedMesh, sourceMeshName, sourceMeshIndex, bResetLocation);
+		return asset;
 	}
 	
 	Ref<AssetSkeletalMesh> Serializer::DeserializeAssetSkeletalMesh(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw)
@@ -3767,16 +3835,60 @@ namespace Eagle
 		}
 
 		GUID guid = baseNode["GUID"].as<GUID>();
+
+		bool bCombinedMesh = true;
+		if (auto node = baseNode["CombinedMesh"])
+			bCombinedMesh = node.as<bool>();
+
+		std::string sourceMeshName;
+		if (auto node = baseNode["SourceMeshName"])
+			sourceMeshName = node.as<std::string>();
+
+		uint32_t sourceMeshIndex = 0;
+		if (auto node = baseNode["SourceMeshIndex"])
+			sourceMeshIndex = node.as<uint32_t>();
+
+		bool bResetLocation = false;
+		if (auto node = baseNode["ResetLocation"])
+			bResetLocation = node.as<bool>();
+
 		if (bReloadRaw)
 		{
-			auto importedMeshData = Utils::ImportSkeletalMesh(pathToRaw);
-			if (!importedMeshData.Mesh)
+			std::vector<Utils::SkeletalMeshImportData> importedMeshes = Utils::ImportSkeletalMesh(pathToRaw, bCombinedMesh, bResetLocation);
+			if (importedMeshes.empty())
 			{
 				EG_CORE_ERROR("Failed to reload a skeletal mesh asset: {}", pathToRaw);
 				return {};
 			}
 
-			return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, importedMeshData.Mesh);
+			Utils::SkeletalMeshImportData* match = &importedMeshes[0];
+			if (!bCombinedMesh)
+			{
+				match = nullptr;
+				if (!sourceMeshName.empty())
+				{
+					for (auto& importedMesh : importedMeshes)
+					{
+						if (importedMesh.Name == sourceMeshName)
+						{
+							match = &importedMesh;
+							break;
+						}
+					}
+				}
+				if (!match && sourceMeshIndex < importedMeshes.size())
+					match = &importedMeshes[sourceMeshIndex];
+
+				if (!match)
+				{
+					EG_CORE_WARN("Failed to find source mesh '{}' while reloading '{}'. It might've been renamed, removed, or reordered in the source file", sourceMeshName, pathToRaw);
+					return {};
+				}
+			}
+
+			Ref<AssetSkeletalMesh> asset = MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, match->Mesh);
+			asset->SetSourceMeshData(bCombinedMesh, sourceMeshName, sourceMeshIndex, bResetLocation);
+			return asset;
 		}
 
 		AABB aabb{};
@@ -3892,7 +4004,9 @@ namespace Eagle
 				skeletalMesh->SetMaterialAsset(matNode["Index"].as<uint32_t>(), GetAsset<AssetMaterial>(matNode["Material"]));
 		}
 
-		return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, skeletalMesh);
+		Ref<AssetSkeletalMesh> asset = MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, skeletalMesh);
+		asset->SetSourceMeshData(bCombinedMesh, sourceMeshName, sourceMeshIndex, bResetLocation);
+		return asset;
 	}
 
 	Ref<AssetAudio> Serializer::DeserializeAssetAudio(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw)

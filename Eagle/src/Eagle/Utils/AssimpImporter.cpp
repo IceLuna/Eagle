@@ -155,14 +155,31 @@ namespace Eagle
 			(*boneName) = (*boneName).substr(nameFilterPos + 1);
 	}
 
-	static Utils::StaticMeshImportData ProcessStaticMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4& coordCorrection, const glm::mat4& tr)
+	static Utils::StaticMeshImportData ProcessStaticMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4& coordCorrection, const glm::mat4& tr, bool bResetLocation)
 	{
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
 		vertices.reserve(mesh->mNumVertices);
 		indices.reserve(mesh->mNumFaces * 3);
 
-		const glm::mat4 correctedTr = coordCorrection * tr;
+		glm::mat4 trAdjusted = tr;
+		if (bResetLocation)
+		{
+			// `mesh->mAABB` reflects the mesh's actual, final local-space extents - i.e. whatever ended up
+			// baked into its raw vertex data, whether that's the node's own transform or, for example, a
+			// residual offset left behind by aiProcess_OptimizeGraph merging sibling nodes together.
+			// Compute its center in "tr space" (before coordCorrection) and fold a compensating shift into `tr`
+			// itself, so it's a single consistent transform from here on (and, for skeletal meshes, so the
+			// same adjusted transform can be reused for `InverseTransform` to keep skinning correct).
+			AABB localAabb;
+			localAabb.Min = glm::vec4(ToGLM(mesh->mAABB.mMin), 1.f);
+			localAabb.Max = glm::vec4(ToGLM(mesh->mAABB.mMax), 1.f);
+			localAabb.Transform(tr);
+			const glm::vec3 center = glm::vec3(localAabb.Min + localAabb.Max) * 0.5f;
+			trAdjusted[3] -= glm::vec4(center, 0.f);
+		}
+
+		const glm::mat4 correctedTr = coordCorrection * trAdjusted;
 		const glm::mat3 normalTr = glm::transpose(glm::inverse(glm::mat3(correctedTr)));
 
 		// walk through each of the mesh's vertices
@@ -208,7 +225,9 @@ namespace Eagle
 		aabb.Max = glm::vec4(ToGLM(mesh->mAABB.mMax), 1.f);
 		aabb.Transform(correctedTr);
 
-		return Utils::StaticMeshImportData{ StaticMesh::Create(vertices, { indices }, aabb), { mesh->mMaterialIndex } };
+		Utils::StaticMeshImportData result{ StaticMesh::Create(vertices, { indices }, aabb), { mesh->mMaterialIndex } };
+		result.Name = mesh->mName.C_Str();
+		return result;
 	}
 
 	static bool ProcessBoneNode(BoneNode& output, const aiNode* node, const BonesMap& bones)
@@ -239,16 +258,32 @@ namespace Eagle
 		return bShouldAdd;
 	}
 
-	static Utils::SkeletalMeshImportData ProcessSkeletalMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4& coordCorrection, const glm::mat4& tr, BonesMap& bones)
+	static Utils::SkeletalMeshImportData ProcessSkeletalMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4& coordCorrection, const glm::mat4& tr, BonesMap& bones, bool bResetLocation)
 	{
 		std::vector<SkeletalVertex> vertices;
 		std::vector<uint32_t> indices;
 		vertices.reserve(mesh->mNumVertices);
 		indices.reserve(mesh->mNumFaces * 3);
 
+		glm::mat4 trAdjusted = tr;
+		if (bResetLocation)
+		{
+			// `mesh->mAABB` reflects the mesh's actual, final local-space extents - i.e. whatever ended up
+			// baked into its raw vertex data, whether that's the node's own transform or, for example, a
+			// residual offset left behind by aiProcess_OptimizeGraph merging sibling nodes together.
+			// Computed in the same (uncorrected) `tr` space that vertex data below is kept in, and folded
+			// into `tr` itself so `InverseTransform` (used for skinning) stays consistent with it.
+			AABB localAabb;
+			localAabb.Min = glm::vec4(ToGLM(mesh->mAABB.mMin), 1.f);
+			localAabb.Max = glm::vec4(ToGLM(mesh->mAABB.mMax), 1.f);
+			localAabb.Transform(tr);
+			const glm::vec3 center = glm::vec3(localAabb.Min + localAabb.Max) * 0.5f;
+			trAdjusted[3] -= glm::vec4(center, 0.f);
+		}
+
 		// Note: we don't apply "coordCorrection" to skeletal vertex data since it'll be applied to vertices through animation matrices inside of a shader
 		// So, we only correct skeletal root bone, and animation's root bone
-		const glm::mat3 normalTr = glm::transpose(glm::inverse(glm::mat3(tr)));
+		const glm::mat3 normalTr = glm::transpose(glm::inverse(glm::mat3(trAdjusted)));
 
 		// walk through each of the mesh's vertices
 		for (unsigned int i = 0; i < mesh->mNumVertices; i++)
@@ -257,7 +292,7 @@ namespace Eagle
 
 			// positions
 			vertex.Position = ToGLM(mesh->mVertices[i]);
-			vertex.Position = tr * glm::vec4(vertex.Position, 1.f);
+			vertex.Position = trAdjusted * glm::vec4(vertex.Position, 1.f);
 
 			// normals
 			if (mesh->HasNormals())
@@ -364,20 +399,29 @@ namespace Eagle
 
 		// Gather skeletal info
 		SkeletalMeshInfo skeletal;
-		skeletal.InverseTransform = glm::inverse(tr);
+		skeletal.InverseTransform = glm::inverse(trAdjusted);
 		skeletal.CoordCorrection = coordCorrection;
 		// Note: skeletal.BoneInfoMap and RootBone will be set at the end
 
-		const glm::mat4 correctedTr = coordCorrection * tr;
+		const glm::mat4 correctedTr = coordCorrection * trAdjusted;
 		AABB aabb;
 		aabb.Min = correctedTr * glm::vec4(ToGLM(mesh->mAABB.mMin), 1.f);
 		aabb.Max = correctedTr * glm::vec4(ToGLM(mesh->mAABB.mMax), 1.f);
-		return Utils::SkeletalMeshImportData{ SkeletalMesh::Create(vertices, { indices }, skeletal, aabb), { mesh->mMaterialIndex } };
+		Utils::SkeletalMeshImportData result{ SkeletalMesh::Create(vertices, { indices }, skeletal, aabb), { mesh->mMaterialIndex } };
+		result.Name = mesh->mName.C_Str();
+		return result;
 	}
 
 	// processes a node in a recursive fashion. Processes each individual mesh located at the node and repeats this process on its children nodes (if any).
+	// @bResetLocation. If true, each mesh gets recentered so it ends up at (0, 0, 0) instead of keeping its
+	//		original place in the scene. Rotation & scale are kept. Only makes sense when meshes are being imported
+	//		as separate assets.
+	// Note: this can't simply zero out the node's translation - some postprocess steps (e.g. aiProcess_OptimizeGraph)
+	// can merge/restructure nodes and bake a mesh's offset directly into its raw vertex data instead of leaving it
+	// in a node transform. Process*Mesh() below derives the actual offset to remove from `mesh->mAABB` itself,
+	// which always reflects the mesh's real, final local-space extents regardless of where that offset came from.
 	template <typename MeshImportData>
-	static void ProcessNode(aiNode* node, const aiScene* scene, std::vector<MeshImportData>& meshes, BonesMap& bones, const glm::mat4& coordCorrection, const glm::mat4& tr = glm::mat4(1.f))
+	static void ProcessNode(aiNode* node, const aiScene* scene, std::vector<MeshImportData>& meshes, BonesMap& bones, const glm::mat4& coordCorrection, bool bResetLocation, const glm::mat4& tr = glm::mat4(1.f))
 	{
 		// These meshes represent some extra data that shouldn't be imported/rendered. For example, collision meshes.
 		// TODO: Add support for collision meshes during import
@@ -413,14 +457,14 @@ namespace Eagle
 				continue;
 
 			if constexpr (std::is_same<MeshImportData, Utils::StaticMeshImportData>::value)
-				meshes.push_back(ProcessStaticMesh(mesh, scene, coordCorrection, nodeTransform));
+				meshes.push_back(ProcessStaticMesh(mesh, scene, coordCorrection, nodeTransform, bResetLocation));
 			else
-				meshes.push_back(ProcessSkeletalMesh(mesh, scene, coordCorrection, nodeTransform, bones));
+				meshes.push_back(ProcessSkeletalMesh(mesh, scene, coordCorrection, nodeTransform, bones, bResetLocation));
 		}
 		// after we've processed all of the meshes (if any) we then recursively process each of the children nodes
 		for (unsigned int i = 0; i < node->mNumChildren; i++)
 		{
-			ProcessNode(node->mChildren[i], scene, meshes, bones, coordCorrection, nodeTransform);
+			ProcessNode(node->mChildren[i], scene, meshes, bones, coordCorrection, bResetLocation, nodeTransform);
 		}
 	}
 
@@ -635,9 +679,9 @@ namespace Eagle
 		}
 
 		std::vector<uint32_t> materialIndices;
-		materialIndices.reserve(importedMeshes.size());
-		for (size_t i = 0; i < importedMeshes.size(); ++i)
-			materialIndices.push_back(importedMeshes[i].MaterialIndices[0]);
+		materialIndices.reserve(meshesPerMaterialCount);
+		for (const auto& [materialIndex, meshIndices] : meshesPerMaterial)
+			materialIndices.push_back(materialIndex);
 
 		// TODO: How to merge InvAnimTransform of skeletal meshes?
 		if constexpr (std::is_same<Utils::SkeletalMeshImportData, MeshImportData>::value)
@@ -651,7 +695,7 @@ namespace Eagle
 	constexpr static uint32_t s_ImportAnimFlags = aiProcess_OptimizeGraph | aiProcess_ImproveCacheLocality | aiProcess_JoinIdenticalVertices | aiProcess_GlobalScale;
 	constexpr static uint32_t s_ImportMaterialsFlags = aiProcess_OptimizeGraph | aiProcess_RemoveRedundantMaterials;
 
-	Utils::StaticMeshImportData Utils::ImportStaticMesh(const Path& path)
+	std::vector<Utils::StaticMeshImportData> Utils::ImportStaticMesh(const Path& path, bool bCombineMeshes, bool bResetLocation)
 	{
 		Assimp::Importer importer;
 		importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1.0f);
@@ -674,21 +718,24 @@ namespace Eagle
 		const glm::mat4 coordCorrection = GetCorrectionMatrix(scene);
 		BonesMap unused1;
 		std::vector<Utils::StaticMeshImportData> importedMeshes;
-		ProcessNode(scene->mRootNode, scene, importedMeshes, unused1, coordCorrection);
-		if (!importedMeshes.empty())
-		{
-			if (importedMeshes.size() > 1)
-			{
-				importedMeshes[0] = MergeMeshes<Utils::StaticMeshImportData, Vertex>(importedMeshes);
-				importedMeshes.resize(1);
-			}
-			return importedMeshes[0];
-		}
-		else
+		// Resetting each mesh's location only makes sense when they're kept as separate, independent assets;
+		// doing it while combining would misalign the parts of the resulting merged mesh
+		ProcessNode(scene->mRootNode, scene, importedMeshes, unused1, coordCorrection, bResetLocation && !bCombineMeshes);
+		if (importedMeshes.empty())
 			return {};
+
+		if (bCombineMeshes && importedMeshes.size() > 1)
+		{
+			Utils::StaticMeshImportData merged = MergeMeshes<Utils::StaticMeshImportData, Vertex>(importedMeshes);
+			merged.Name = Utils::AsString(path.stem());
+			importedMeshes.clear();
+			importedMeshes.push_back(std::move(merged));
+		}
+
+		return importedMeshes;
 	}
 
-	Utils::SkeletalMeshImportData Utils::ImportSkeletalMesh(const Path& path)
+	std::vector<Utils::SkeletalMeshImportData> Utils::ImportSkeletalMesh(const Path& path, bool bCombineMeshes, bool bResetLocation)
 	{
 		Assimp::Importer importer;
 		importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1.0f);
@@ -706,45 +753,59 @@ namespace Eagle
 		const glm::mat4 coordCorrection = GetCorrectionMatrix(scene);
 		BonesMap bones;
 		std::vector<Utils::SkeletalMeshImportData> importedMeshes;
-		ProcessNode(scene->mRootNode, scene, importedMeshes, bones, coordCorrection);
+		// Resetting each mesh's location only makes sense when they're kept as separate, independent assets;
+		// doing it while combining would misalign the parts of the resulting merged mesh
+		ProcessNode(scene->mRootNode, scene, importedMeshes, bones, coordCorrection, bResetLocation && !bCombineMeshes);
 		if (bones.empty())
 		{
 			EG_CORE_ERROR("Failed to import Skeletal Mesh. It has no bones ({})", path);
 			return {};
 		}
-		if (importedMeshes.size() > 1)
+		if (importedMeshes.empty())
+			return {};
+
+		if (bCombineMeshes && importedMeshes.size() > 1)
 		{
-			importedMeshes[0] = MergeMeshes<Utils::SkeletalMeshImportData, SkeletalVertex>(importedMeshes);
-			importedMeshes.resize(1);
+			Utils::SkeletalMeshImportData merged = MergeMeshes<Utils::SkeletalMeshImportData, SkeletalVertex>(importedMeshes);
+			merged.Name = Utils::AsString(path.stem());
+			importedMeshes.clear();
+			importedMeshes.push_back(std::move(merged));
 		}
 
-		if (!importedMeshes.empty())
-		{
-			auto& skeletalInfo = importedMeshes[0].Mesh->GetSkeletalMeshInfo();
-			skeletalInfo.SetBonesInfoMap(std::move(bones));
-			ProcessBoneNode(skeletalInfo.RootBone, scene->mRootNode, skeletalInfo.GetBoneInfoMap());
-			skeletalInfo.RootBone.Transformation = coordCorrection * skeletalInfo.RootBone.Transformation;
+		// All meshes in the file (combined or not) come from the same armature, so they share one skeleton.
+		// Finalize bone/root-bone data using the first mesh, then propagate the exact same result to the rest.
+		auto& skeletalInfo = importedMeshes[0].Mesh->GetSkeletalMeshInfo();
+		skeletalInfo.SetBonesInfoMap(std::move(bones)); // `bones` is consumed here; use `skeletalInfo.GetBoneInfoMap()` as the source from now on
+		ProcessBoneNode(skeletalInfo.RootBone, scene->mRootNode, skeletalInfo.GetBoneInfoMap());
+		skeletalInfo.RootBone.Transformation = coordCorrection * skeletalInfo.RootBone.Transformation;
 
-			// It's possible that we have two root bones: one from the mesh, and one from assimp. So keep only one of them
+		// It's possible that we have two root bones: one from the mesh, and one from assimp. So keep only one of them
+		{
+			const bool bValidBone = skeletalInfo.IsValid(skeletalInfo.FindBoneInfo(skeletalInfo.RootBone.GetName()));
+			if (!bValidBone)
 			{
-				const bool bValidBone = skeletalInfo.IsValid(skeletalInfo.FindBoneInfo(skeletalInfo.RootBone.GetName()));;
-				if (!bValidBone)
+				// It's assimp root, delete it if we have another root
+				if (skeletalInfo.RootBone.Children.size() == 1)
 				{
-					// It's assimp root, delete it if we have another root
-					if (skeletalInfo.RootBone.Children.size() == 1)
-					{
-						auto children = std::move(skeletalInfo.RootBone.Children);
-						children[0].Transformation = skeletalInfo.RootBone.Transformation * children[0].Transformation;
-						skeletalInfo.RootBone = children[0];
-					}
+					auto children = std::move(skeletalInfo.RootBone.Children);
+					children[0].Transformation = skeletalInfo.RootBone.Transformation * children[0].Transformation;
+					skeletalInfo.RootBone = children[0];
 				}
 			}
-
-			importedMeshes[0].Mesh->RegenerateRagdollData(importedMeshes[0].Mesh->GetMinRagdollBoneSize());
-			return importedMeshes[0];
 		}
-		else
-			return {};
+
+		importedMeshes[0].Mesh->RegenerateRagdollData(importedMeshes[0].Mesh->GetMinRagdollBoneSize());
+
+		// Propagate the same finalized skeleton to every other mesh (relevant only when bCombineMeshes == false).
+		for (size_t i = 1; i < importedMeshes.size(); ++i)
+		{
+			auto& otherInfo = importedMeshes[i].Mesh->GetSkeletalMeshInfo();
+			otherInfo.SetBonesInfoMap(BonesMap(skeletalInfo.GetBoneInfoMap()));
+			otherInfo.RootBone = skeletalInfo.RootBone;
+			importedMeshes[i].Mesh->RegenerateRagdollData(importedMeshes[i].Mesh->GetMinRagdollBoneSize());
+		}
+
+		return importedMeshes;
 	}
 
 	std::vector<SkeletalMeshAnimation> Utils::ImportAnimations(const Path& path, const Ref<SkeletalMesh>& skeletal, const RootMotionMode& rootMotionMode)

@@ -72,6 +72,7 @@ namespace Eagle::UI
 	static const VkImageLayout s_VulkanImageLayout = ImageLayoutToVulkan(ImageReadAccess::PixelShaderRead);
 	static const char* s_HelpMarker = "(?)";
 	static FontContext s_Fonts;
+	static const char* s_FloatFormat = "%.4f";
 
 	namespace
 	{
@@ -1047,7 +1048,7 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		bModified = ImGui::DragFloat(s_IDBuffer, &value, speed, min, max);
+		bModified = ImGui::DragFloat(s_IDBuffer, &value, speed, min, max, s_FloatFormat);
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 		return bModified;
@@ -1073,7 +1074,7 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		bModified = ImGui::DragFloat2(s_IDBuffer, &value.x, speed, min, max);
+		bModified = ImGui::DragFloat2(s_IDBuffer, &value.x, speed, min, max, s_FloatFormat);
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 		return bModified;
@@ -1099,7 +1100,7 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		bModified = ImGui::DragFloat3(s_IDBuffer, &value.x, speed, min, max);
+		bModified = ImGui::DragFloat3(s_IDBuffer, &value.x, speed, min, max, s_FloatFormat);
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 		return bModified;
@@ -1125,7 +1126,7 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		bModified = ImGui::DragFloat4(s_IDBuffer, &value.x, speed, min, max);
+		bModified = ImGui::DragFloat4(s_IDBuffer, &value.x, speed, min, max, s_FloatFormat);
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 		return bModified;
@@ -1224,7 +1225,7 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		bModified = ImGui::SliderFloat(s_IDBuffer, &value, min, max);
+		bModified = ImGui::SliderFloat(s_IDBuffer, &value, min, max, s_FloatFormat);
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 		return bModified;
@@ -1245,7 +1246,7 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		bModified = ImGui::SliderFloat2(s_IDBuffer, &value.x, min, max);
+		bModified = ImGui::SliderFloat2(s_IDBuffer, &value.x, min, max, s_FloatFormat);
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 		return bModified;
@@ -1266,7 +1267,7 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		bModified = ImGui::SliderFloat3(s_IDBuffer, &value.x, min, max);
+		bModified = ImGui::SliderFloat3(s_IDBuffer, &value.x, min, max, s_FloatFormat);
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 		return bModified;
@@ -1287,7 +1288,7 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		bModified = ImGui::SliderFloat4(s_IDBuffer, &value.x, min, max);
+		bModified = ImGui::SliderFloat4(s_IDBuffer, &value.x, min, max, s_FloatFormat);
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 		return bModified;
