@@ -125,6 +125,11 @@ namespace Eagle
 			scaleKey.Scale = glm::vec3(1.f);
 		}
 
+		if (auto itHash = FindBone(Utils::CalculateBoneNameHash(rootBoneName)); IsValid(itHash))
+		{
+			itHash->second = bone;
+		}
+
 		RootMotionType = mode;
 
 		return true;
@@ -169,6 +174,11 @@ namespace Eagle
 		{
 			auto& scaleKey = bone.Scales[i];
 			scaleKey.Scale = RootMotion.Scales[i].Scale;
+		}
+
+		if (auto itHash = FindBone(Utils::CalculateBoneNameHash(rootBoneName)); IsValid(itHash))
+		{
+			itHash->second = bone;
 		}
 
 		RootMotion = {};

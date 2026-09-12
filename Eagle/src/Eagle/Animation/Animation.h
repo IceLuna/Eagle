@@ -105,6 +105,16 @@ namespace Eagle
             return m_AnimBonesByHash.find(nameHash);
         }
 
+        auto FindBone(const std::string& name)
+        {
+            return m_AnimBones.find(name);
+        }
+
+        auto FindBone(uint64_t nameHash)
+        {
+            return m_AnimBonesByHash.find(nameHash);
+        }
+
         bool IsValid(const BonesAnimMap::const_iterator& it) const { return it != m_AnimBones.end(); }
         bool IsValid(const BonesAnimMapByHash::const_iterator& it) const { return it != m_AnimBonesByHash.end(); }
 
