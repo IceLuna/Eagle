@@ -2497,7 +2497,14 @@ namespace Eagle
 
 			if (ImGui::TreeNodeEx("Scene stats", flags))
 			{
-				ImGui::Text("CPU Draw Calls: %d", stats.DrawCalls);
+				const float spacing = ImGui::GetStyle().FramePadding.x;
+
+				ImGui::Text("CPU Draw Calls");
+				ImGui::SameLine(0, spacing);
+				UI::HelpMarker("Because of GPU driver rendering, GPU is responsible for generating work (draw calls) for itself. Hence, this doesn't reflect it");
+				ImGui::SameLine(0, spacing);
+				ImGui::Text(": %d", stats.DrawCalls);
+
 				ImGui::Text("Compute Dispatches: %d", stats.Dispatches);
 				ImGui::Separator();
 				ImGui::Text("Static Meshes: %d", m_CurrentScene->GetStaticMeshesCount());

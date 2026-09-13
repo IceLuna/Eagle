@@ -1731,9 +1731,9 @@ namespace Eagle::UI
 		return result;
 	}
 
-	void Tooltip(const std::string_view tooltip, float treshHold)
+	void Tooltip(const std::string_view tooltip)
 	{
-		if (ImGui::IsItemHovered() && GImGui->HoveredIdTimer > treshHold)
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_NoSharedDelay))
 		{
 			ImGui::BeginTooltip();
 			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);

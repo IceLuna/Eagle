@@ -3,7 +3,7 @@
 
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/UI/UI.h"
-
+#include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Components/Components.h"
 
 namespace Eagle
@@ -67,6 +67,28 @@ namespace Eagle
 				}
 			}
 			UI::EndPropertyGrid();
+
+			UI::PopTreeNode();
+		}
+
+		ImGui::Separator();
+		if (UI::PushTreeNode("Metadata"))
+		{
+			UI::BeginPropertyGrid("StaticMeshDetails");
+			const std::string path = Utils::AsString(m_Asset->GetPathToRaw());
+			UI::Text("Path to raw", path);
+			if (!path.empty())
+				UI::Tooltip(path);
+			UI::EndPropertyGrid();
+			if (ImGui::Button("Change..."))
+			{
+				Path path = FileDialog::OpenFile(FileDialog::IMPORT_FILTER);
+				if (std::filesystem::exists(path))
+				{
+					m_Asset->SetPathToRaw(path);
+					bChanged = true;
+				}
+			}
 
 			UI::PopTreeNode();
 		}

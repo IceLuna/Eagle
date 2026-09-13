@@ -5,6 +5,7 @@
 #include "Eagle/UI/UI.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Core/Project.h"
+#include "Eagle/Utils/PlatformUtils.h"
 
 namespace Eagle
 {
@@ -454,6 +455,29 @@ namespace Eagle
 		UI::Text("Indices Mem Usage (Kb)", std::to_string(indicesCount * sizeof(Index) / 1024));
 		UI::EndPropertyGrid();
 
+		ImGui::Separator();
+		if (UI::PushTreeNode("Metadata"))
+		{
+			UI::BeginPropertyGrid("SkeletalMeshDetails");
+			const std::string path = Utils::AsString(m_Asset->GetPathToRaw());
+			UI::Text("Path to raw", path);
+			if (!path.empty())
+				UI::Tooltip(path);
+			UI::EndPropertyGrid();
+			if (ImGui::Button("Change..."))
+			{
+				Path path = FileDialog::OpenFile(FileDialog::IMPORT_FILTER);
+				if (std::filesystem::exists(path))
+				{
+					m_Asset->SetPathToRaw(path);
+					bChanged = true;
+				}
+			}
+
+			UI::PopTreeNode();
+		}
+
+		ImGui::Separator();
 		if (UI::PushTreeNode("Materials", true))
 		{
 			UI::BeginPropertyGrid("SkeletalMeshDetails");
@@ -473,6 +497,7 @@ namespace Eagle
 			UI::PopTreeNode();
 		}
 
+		ImGui::Separator();
 		if (UI::PushTreeNode("Preview Settings"))
 		{
 			UI::BeginPropertyGrid("SkeletalMeshDetails");

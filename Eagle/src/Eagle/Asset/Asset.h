@@ -208,6 +208,10 @@ namespace Eagle
 		AssetType GetAssetType() const { return m_Type; }
 		const ScopedDataBuffer& GetRawData() const { return m_RawData; }
 
+		void SetPathToRaw(const Path& path)
+		{
+			m_PathToRaw = path;
+		}
 		void SetDirty(bool dirty) { bDirty = dirty; }
 		bool IsDirty() const { return bDirty; }
 

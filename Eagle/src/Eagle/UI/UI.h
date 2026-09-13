@@ -199,7 +199,7 @@ namespace Eagle::UI
 
 	bool Button(const std::string_view label, const std::string_view buttonText, const ImVec2& size = ImVec2(0, 0));
 
-	void Tooltip(const std::string_view tooltip, float treshHold = EG_HOVER_THRESHOLD);
+	void Tooltip(const std::string_view tooltip);
 
 	void TextWithSeparator(const std::string_view text, float thickness = 2.5f, const std::string_view helpMessage = "");
 

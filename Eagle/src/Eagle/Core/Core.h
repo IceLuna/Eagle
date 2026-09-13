@@ -16,8 +16,6 @@
 #define EG_GPU_TIMINGS
 #define EG_GPU_MARKERS
 
-#define EG_HOVER_THRESHOLD 0.5f
-
 // One level of macro indirection is required in order to resolve, for example __COUNTER__,
 // and get varname1 instead of varname__COUNTER__.
 #define EG_CONCAT(a, b) EG_CONCAT_INNER(a, b)

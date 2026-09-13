@@ -3,6 +3,7 @@
 
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/UI/UI.h"
+#include "Eagle/Utils/PlatformUtils.h"
 
 #include <imgui_internal.h>
 
@@ -199,6 +200,28 @@ namespace Eagle
 			}
 
 			UI::EndPropertyGrid();
+
+			ImGui::Separator();
+			if (UI::PushTreeNode("Metadata"))
+			{
+				UI::BeginPropertyGrid("TextureDetails");
+				const std::string path = Utils::AsString(m_Asset->GetPathToRaw());
+				UI::Text("Path to raw", path);
+				if (!path.empty())
+					UI::Tooltip(path);
+				UI::EndPropertyGrid();
+				if (ImGui::Button("Change..."))
+				{
+					Path path = FileDialog::OpenFile(FileDialog::IMPORT_FILTER);
+					if (std::filesystem::exists(path))
+					{
+						m_Asset->SetPathToRaw(path);
+						bChanged = true;
+					}
+				}
+
+				UI::PopTreeNode();
+			}
 
 			if (bChanged)
 			{

@@ -3524,6 +3524,8 @@ namespace Eagle
 		if (bReloadRaw)
 		{
 			binary = FileSystem::Read(pathToRaw);
+			stbi_info(Utils::AsString(pathToRaw).c_str(), &width, &height, &channels);
+			assetFormat = ChannelsToAssetTexture2DFormat(channels);
 			if (!binary)
 			{
 				EG_CORE_ERROR("Failed to reload from raw texture 2D: {}", pathToAsset);
