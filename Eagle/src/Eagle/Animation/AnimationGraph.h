@@ -80,7 +80,8 @@ namespace Eagle
 
 		const Ref<AssetSkeletalMesh>& GetSkeletalAsset() const { return m_Skeletal; }
 		const Ref<SkeletalMesh>& GetSkeletal() const;
-		const SkeletalPose& GetPose() const { return m_Pose; }
+		const SkeletalPose& GetPose() const { return m_PosePtr ? *m_PosePtr : m_Pose; }
+		SkeletalPose& GetPose() { return m_PosePtr ? *m_PosePtr : m_Pose; }
 		Ref<AnimationGraph> GetRootGraph() const { return m_RootGraph.lock(); }
 
 		static Ref<AnimationGraph> Create(const Ref<const AnimationGraph>& other); // This constructor creates its own copy of variables, which is not what we want when it's a subgraph
@@ -97,7 +98,8 @@ namespace Eagle
 		Weak<AnimationGraph> m_RootGraph;
 		Ref<AssetSkeletalMesh> m_Skeletal;
 		Ref<GraphNode> m_ResultNode;
-		SkeletalPose m_Pose; // Pose that was calculated by the graph during the latest update
+		SkeletalPose m_Pose; // Pose that was calculated by the graph during the latest update, when it couldn't just alias the result node's own pose
+		SkeletalPose* m_PosePtr = nullptr; // Points at m_ResultNode's resolved pose when we can avoid a copy
 		std::vector<Ref<AnimationStateMachineGraph>> m_StateMachines;
 
 		// Name - variable

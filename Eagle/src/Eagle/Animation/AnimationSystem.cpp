@@ -163,7 +163,7 @@ namespace Eagle
             return finalScale;
         }
 
-        static void CalculateAdditivePose_Internal(const SkeletalPose& refPose, const SkeletalPose& sourcePose, const BoneNode& node, SkeletalPose* resultPose)
+        static void CalculateAdditivePose_Recursive_Internal(const SkeletalPose& refPose, const SkeletalPose& sourcePose, const BoneNode& node, SkeletalPose* resultPose)
         {
             const uint64_t nodeHash = node.GetNameHash();
 
@@ -192,10 +192,10 @@ namespace Eagle
             }
 
             for (auto& child : node.Children)
-                CalculateAdditivePose_Internal(refPose, sourcePose, child, resultPose);
+                CalculateAdditivePose_Recursive_Internal(refPose, sourcePose, child, resultPose);
         }
 
-        static void ApplyAdditive_Internal(const SkeletalPose& targetPose, const SkeletalPose& additivePose, const BoneNode& node, float blendAlpha, SkeletalPose* resultPose)
+        static void ApplyAdditive_Recursive_Internal(const SkeletalPose& targetPose, const SkeletalPose& additivePose, const BoneNode& node, float blendAlpha, SkeletalPose* resultPose)
         {
             const uint64_t nodeHash = node.GetNameHash();
 
@@ -225,10 +225,10 @@ namespace Eagle
             }
 
             for (auto& child : node.Children)
-                ApplyAdditive_Internal(targetPose, additivePose, child, blendAlpha, resultPose);
+                ApplyAdditive_Recursive_Internal(targetPose, additivePose, child, blendAlpha, resultPose);
         }
-        
-        static void BlendPoses_Internal(const SkeletalPose& pose1, const SkeletalPose& pose2, const BoneNode& node, float blendAlpha, SkeletalPose* outPose)
+
+        static void BlendPoses_Recursive_Internal(const SkeletalPose& pose1, const SkeletalPose& pose2, const BoneNode& node, float blendAlpha, SkeletalPose* outPose)
         {
             const uint64_t nodeHash = node.GetNameHash();
 
@@ -260,10 +260,10 @@ namespace Eagle
             }
 
             for (auto& child : node.Children)
-                BlendPoses_Internal(pose1, pose2, child, blendAlpha, outPose);
+                BlendPoses_Recursive_Internal(pose1, pose2, child, blendAlpha, outPose);
         }
-        
-        static void BlendPoses_Internal(const SkeletalPose& pose1, const SkeletalPose& pose2, const SkeletalPose& pose3, const BoneNode& node, const glm::vec3& buv, SkeletalPose* outPose)
+
+        static void BlendPoses_Recursive_Internal(const SkeletalPose& pose1, const SkeletalPose& pose2, const SkeletalPose& pose3, const BoneNode& node, const glm::vec3& buv, SkeletalPose* outPose)
         {
             const uint64_t nodeHash = node.GetNameHash();
 
@@ -283,7 +283,130 @@ namespace Eagle
                 outPose->Bones[nodeHash] = Transform::Blend(bone1Tr, bone2Tr, bone3Tr, buv);
 
             for (auto& child : node.Children)
-                BlendPoses_Internal(pose1, pose2, pose3, child, buv, outPose);
+                BlendPoses_Recursive_Internal(pose1, pose2, pose3, child, buv, outPose);
+        }
+
+        static void CalculateAdditivePose_Internal(const SkeletalPose& refPose, const SkeletalPose& sourcePose, const SkeletalMeshInfo& skeletal, SkeletalPose* resultPose)
+        {
+            for (const auto& entry : skeletal.FlattenedBones)
+            {
+                const uint64_t nodeHash = entry.Node->GetNameHash();
+
+                auto itRef = refPose.FindBone(nodeHash);
+                auto bItRefValid = itRef != refPose.Bones.end();
+                auto itSrc = sourcePose.FindBone(nodeHash);
+                auto bItSrcValid = itSrc != sourcePose.Bones.end();
+
+                Transform refAnimTr;
+                Transform srcAnimTr;
+                if (bItRefValid)
+                {
+                    const auto& bone = itRef->second;
+                    refAnimTr = bone;
+                }
+                if (bItSrcValid)
+                {
+                    const auto& bone = itSrc->second;
+                    srcAnimTr = bone;
+                }
+
+                if (bItRefValid || bItSrcValid)
+                {
+                    Transform& diffTr = resultPose->Bones[nodeHash];
+                    diffTr = srcAnimTr - refAnimTr;
+                }
+            }
+        }
+
+        static void ApplyAdditive_Internal(const SkeletalPose& targetPose, const SkeletalPose& additivePose, const SkeletalMeshInfo& skeletal, float blendAlpha, SkeletalPose* resultPose)
+        {
+            for (const auto& entry : skeletal.FlattenedBones)
+            {
+                const uint64_t nodeHash = entry.Node->GetNameHash();
+
+                auto itTarget = targetPose.FindBone(nodeHash);
+                auto bItTargetValid = itTarget != targetPose.Bones.end();
+                auto itAdditive = additivePose.FindBone(nodeHash);
+                auto bItAdditiveValid = itAdditive != additivePose.Bones.end();
+
+                Transform targetAnimTr;
+                Transform additiveAnimTr;
+                if (bItTargetValid)
+                {
+                    const auto& bone = itTarget->second;
+                    targetAnimTr = bone;
+                }
+                if (bItAdditiveValid)
+                {
+                    const auto& bone = itAdditive->second;
+                    additiveAnimTr = bone;
+                }
+
+                if (bItTargetValid || bItAdditiveValid)
+                {
+                    Transform lerpedAdditive = Transform::Blend(Transform{}, additiveAnimTr, blendAlpha);
+                    Transform& diffTr = resultPose->Bones[nodeHash];
+                    diffTr = lerpedAdditive + targetAnimTr;
+                }
+            }
+        }
+        
+        static void BlendPoses_Internal(const SkeletalPose& pose1, const SkeletalPose& pose2, const SkeletalMeshInfo& skeletal, float blendAlpha, SkeletalPose* outPose)
+        {
+            for (const auto& entry : skeletal.FlattenedBones)
+            {
+                const uint64_t nodeHash = entry.Node->GetNameHash();
+
+                auto it1 = pose1.FindBone(nodeHash);
+                auto it2 = pose2.FindBone(nodeHash);
+                const bool bValid1 = it1 != pose1.Bones.end();
+                const bool bValid2 = it2 != pose2.Bones.end();
+
+                if (bValid1 || bValid2)
+                {
+                    auto& resultTr = outPose->Bones[nodeHash];
+                    if (bValid1 && bValid2)
+                    {
+                        const auto& bone1 = it1->second;
+                        const auto& bone2 = it2->second;
+
+                        resultTr = Transform::Blend(bone1, bone2, blendAlpha);
+                    }
+                    else if (bValid1)
+                    {
+                        const auto& bone = it1->second;
+                        resultTr = bone;
+                    }
+                    else if (bValid2)
+                    {
+                        const auto& bone = it2->second;
+                        resultTr = bone;
+                    }
+                }
+            }
+        }
+        
+        static void BlendPoses_Internal(const SkeletalPose& pose1, const SkeletalPose& pose2, const SkeletalPose& pose3, const SkeletalMeshInfo& skeletal, const glm::vec3& buv, SkeletalPose* outPose)
+        {
+            for (const auto& entry : skeletal.FlattenedBones)
+            {
+                const uint64_t nodeHash = entry.Node->GetNameHash();
+
+                auto it1 = pose1.FindBone(nodeHash);
+                auto it2 = pose2.FindBone(nodeHash);
+                auto it3 = pose3.FindBone(nodeHash);
+                const bool bValid1 = it1 != pose1.Bones.end();
+                const bool bValid2 = it2 != pose2.Bones.end();
+                const bool bValid3 = it3 != pose3.Bones.end();
+
+                const Transform defaultTr = {};
+                const Transform& bone1Tr = bValid1 ? it1->second : defaultTr;
+                const Transform& bone2Tr = bValid2 ? it2->second : defaultTr;
+                const Transform& bone3Tr = bValid3 ? it3->second : defaultTr;
+
+                if (bValid1 || bValid2 || bValid3)
+                    outPose->Bones[nodeHash] = Transform::Blend(bone1Tr, bone2Tr, bone3Tr, buv);
+            }
         }
     
         static void FilterBone_Internal(const SkeletalPose& pose, BoneNode& node, const std::string& boneName, bool bIgnoreParentLocation, bool bIgnoreParentRotation, bool bIgnoreParentScale, SkeletalPose* outPose, bool bProcess = false)
@@ -374,7 +497,7 @@ namespace Eagle
             return newBoneTr;
         }
 
-        static void FinalizePose_Internal(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>& outTransforms, const BoneNode* parentNode = nullptr)
+        static void FinalizePose_Recursive_Internal(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>& outTransforms, const BoneNode* parentNode = nullptr)
         {
             const uint64_t nodeHash = node.GetNameHash();
             glm::mat4 globalTransformation;
@@ -400,10 +523,10 @@ namespace Eagle
             }
 
             for (auto& child : node.Children)
-                FinalizePose_Internal(pose, child, globalTransformation, skeletal, outTransforms, &node);
+                FinalizePose_Recursive_Internal(pose, child, globalTransformation, skeletal, outTransforms, &node);
         }
 
-        static void FinalizePose_Internal(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, const BoneNode* parentNode = nullptr)
+        static void FinalizePose_Recursive_Internal(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, const BoneNode* parentNode = nullptr)
         {
             const uint64_t nodeHash = node.GetNameHash();
             glm::mat4 globalTransformation;
@@ -419,7 +542,75 @@ namespace Eagle
             }
 
             for (auto& child : node.Children)
-                FinalizePose_Internal(pose, child, globalTransformation, skeletal, &node);
+                FinalizePose_Recursive_Internal(pose, child, globalTransformation, skeletal, &node);
+        }
+
+        static void FinalizePose_Internal(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>& outTransforms, const BoneNode* parentNode = nullptr)
+        {
+            // Every caller enters this at `skeletal.RootBone`, so we can walk the whole precomputed
+            // `FlattenedBones` order directly instead of recursing `node`/`node.Children`.
+            EG_CORE_ASSERT(&node == &skeletal.RootBone);
+            thread_local std::vector<glm::mat4> globalTransforms;
+            globalTransforms.resize(skeletal.FlattenedBones.size());
+
+            for (size_t i = 0; i < skeletal.FlattenedBones.size(); ++i)
+            {
+                const auto& entry = skeletal.FlattenedBones[i];
+                const BoneNode& curNode = *entry.Node;
+                const uint64_t nodeHash = curNode.GetNameHash();
+                const glm::mat4& parentTr = (entry.ParentIndex < 0) ? parentTransform : globalTransforms[entry.ParentIndex];
+
+                glm::mat4 globalTransformation;
+                if (auto it = pose.FindBone(nodeHash); it != pose.Bones.end())
+                {
+                    auto& boneTr = it->second;
+                    globalTransformation = parentTr * Utils::FilterTransform(skeletal, parentTr, curNode, boneTr, entry.ParentNode);
+                }
+                else
+                {
+                    pose.Bones[nodeHash] = Math::DecomposeTransformMatrix(curNode.Transformation);
+                    globalTransformation = parentTr * curNode.Transformation;
+                }
+                globalTransforms[i] = globalTransformation;
+
+                if (auto it = skeletal.FindBoneInfo(nodeHash); skeletal.IsValid(it))
+                {
+                    const uint32_t index = it->second.BoneID;
+                    const glm::mat4& offset = it->second.Offset;
+                    if (index >= outTransforms.size())
+                        outTransforms.resize(index + 1);
+
+                    outTransforms[index] = skeletal.InverseTransform * globalTransformation * offset;
+                }
+            }
+        }
+
+        static void FinalizePose_Internal(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, const BoneNode* parentNode = nullptr)
+        {
+            EG_CORE_ASSERT(&node == &skeletal.RootBone);
+            thread_local std::vector<glm::mat4> globalTransforms;
+            globalTransforms.resize(skeletal.FlattenedBones.size());
+
+            for (size_t i = 0; i < skeletal.FlattenedBones.size(); ++i)
+            {
+                const auto& entry = skeletal.FlattenedBones[i];
+                const BoneNode& curNode = *entry.Node;
+                const uint64_t nodeHash = curNode.GetNameHash();
+                const glm::mat4& parentTr = (entry.ParentIndex < 0) ? parentTransform : globalTransforms[entry.ParentIndex];
+
+                glm::mat4 globalTransformation;
+                if (auto it = pose.FindBone(nodeHash); it != pose.Bones.end())
+                {
+                    auto& bone = it->second;
+                    globalTransformation = parentTr * Utils::FilterTransform(skeletal, parentTr, curNode, bone, entry.ParentNode);
+                }
+                else
+                {
+                    pose.Bones[nodeHash] = Math::DecomposeTransformMatrix(curNode.Transformation);
+                    globalTransformation = parentTr * curNode.Transformation;
+                }
+                globalTransforms[i] = globalTransformation;
+            }
         }
 
         static void CalculateBlendSpaceVertexAnimation(const Delaunay::Vertex& v, const SkeletalMeshInfo& skeletal, double prevTimeSeconds, double currentTimeSeconds, bool bGatherAnimEvents, const glm::mat4& parentTransform, SkeletalPose* outPose)
@@ -598,7 +789,7 @@ namespace Eagle
                     if (const auto& graph = mesh->GetAnimationGraph())
                     {
                         graph->Update(ts, &transforms);
-                        mesh->LastPose = graph->GetPose();
+                        mesh->LastPose = std::move(graph->GetPose());
                     }
                     else
                     {
@@ -942,7 +1133,7 @@ namespace Eagle
         }
 
         const glm::vec3 buvf = glm::vec3(buv);
-        Utils::BlendPoses_Internal(poses[0], poses[1], poses[2], skeletalInfo.RootBone, buvf, resultPose);
+        Utils::BlendPoses_Internal(poses[0], poses[1], poses[2], skeletalInfo, buvf, resultPose);
 
         if (poses[0].HasRootMotion() || poses[1].HasRootMotion() || poses[2].HasRootMotion())
         {
@@ -999,16 +1190,16 @@ namespace Eagle
         return false;
     }
 
-    void AnimationSystem::CalculateAdditivePose(const SkeletalPose& refPose, const SkeletalPose& sourcePose, const BoneNode& node, SkeletalPose* resultPose)
+    void AnimationSystem::CalculateAdditivePose(const SkeletalPose& refPose, const SkeletalPose& sourcePose, const SkeletalMeshInfo& skeletal, SkeletalPose* resultPose)
     {
-        Utils::CalculateAdditivePose_Internal(refPose, sourcePose, node, resultPose);
+        Utils::CalculateAdditivePose_Internal(refPose, sourcePose, skeletal, resultPose);
         resultPose->TimeTillAnimationLoops = sourcePose.TimeTillAnimationLoops; // We're probably interested in the source pose, not reference
 
         resultPose->EventsToTrigger = refPose.GetEventsToTrigger();
         resultPose->EventsToTrigger.insert(resultPose->EventsToTrigger.end(), sourcePose.GetEventsToTrigger().begin(), sourcePose.GetEventsToTrigger().end());
     }
 
-    void AnimationSystem::ApplyAdditive(const SkeletalPose& targetPose, const SkeletalPose& additivePose, const BoneNode& node, float blendAlpha, SkeletalPose* resultPose)
+    void AnimationSystem::ApplyAdditive(const SkeletalPose& targetPose, const SkeletalPose& additivePose, const SkeletalMeshInfo& skeletal, float blendAlpha, SkeletalPose* resultPose)
     {
         if (blendAlpha == 0.f)
         {
@@ -1016,7 +1207,7 @@ namespace Eagle
             return;
         }
 
-        Utils::ApplyAdditive_Internal(targetPose, additivePose, node, blendAlpha, resultPose);
+        Utils::ApplyAdditive_Internal(targetPose, additivePose, skeletal, blendAlpha, resultPose);
         if (targetPose.HasRootMotion())
         {
             resultPose->SetRootMotion(targetPose.GetRootMotion());
@@ -1028,7 +1219,7 @@ namespace Eagle
         resultPose->EventsToTrigger.insert(resultPose->EventsToTrigger.end(), additivePose.GetEventsToTrigger().begin(), additivePose.GetEventsToTrigger().end());
     }
 
-    void AnimationSystem::BlendPoses(const SkeletalPose& pose1, const SkeletalPose& pose2, const BoneNode& node, float blendAlpha, SkeletalPose* outPose)
+    void AnimationSystem::BlendPoses(const SkeletalPose& pose1, const SkeletalPose& pose2, const SkeletalMeshInfo& skeletal, float blendAlpha, SkeletalPose* outPose)
     {
         // We check if the animation was filtered.
         // In that case, we avoid this optimization
@@ -1048,7 +1239,7 @@ namespace Eagle
             }
         }
 
-        Utils::BlendPoses_Internal(pose1, pose2, node, blendAlpha, outPose);
+        Utils::BlendPoses_Internal(pose1, pose2, skeletal, blendAlpha, outPose);
 
         if (pose1.HasRootMotion() || pose2.HasRootMotion())
         {
@@ -1077,21 +1268,23 @@ namespace Eagle
 
     void AnimationSystem::AnimationClip(const SkeletalMeshInfo& skeletal, const SkeletalMeshAnimation* animation, const BoneNode& node, float currentTime, SkeletalPose* outPose)
     {
-        const uint64_t nodeHash = node.GetNameHash();
-
-        if (auto it = animation->FindBone(nodeHash); animation->IsValid(it))
+        EG_CORE_ASSERT(&node == &skeletal.RootBone);
+        for (const auto& entry : skeletal.FlattenedBones)
         {
-            const bool bRoot = &node == &skeletal.RootBone;
+            const BoneNode& curNode = *entry.Node;
+            const uint64_t nodeHash = curNode.GetNameHash();
 
-            const auto& bone = it->second;
-            auto& tr = outPose->Bones[nodeHash];
-            tr.Location = (animation->bInPlace && bRoot) ? bone.Locations[0].Location : Utils::InterpolatePositionRaw(bone, currentTime);
-            tr.Rotation = Utils::InterpolateRotationRaw(bone, currentTime);
-            tr.Scale3D = Utils::InterpolateScalingRaw(bone, currentTime);
+            if (auto it = animation->FindBone(nodeHash); animation->IsValid(it))
+            {
+                const bool bRoot = entry.ParentIndex < 0;
+
+                const auto& bone = it->second;
+                auto& tr = outPose->Bones[nodeHash];
+                tr.Location = (animation->bInPlace && bRoot) ? bone.Locations[0].Location : Utils::InterpolatePositionRaw(bone, currentTime);
+                tr.Rotation = Utils::InterpolateRotationRaw(bone, currentTime);
+                tr.Scale3D = Utils::InterpolateScalingRaw(bone, currentTime);
+            }
         }
-
-        for (auto& child : node.Children)
-            AnimationClip(skeletal, animation, child, currentTime, outPose);
     }
 
     void AnimationSystem::FilterPose(const SkeletalPose& pose, BoneNode& node, const std::string& boneName, bool bIgnoreParentLocation, bool bIgnoreParentRotation, bool bIgnoreParentScale, SkeletalPose* outPose)
@@ -1126,31 +1319,40 @@ namespace Eagle
     
     void AnimationSystem::FinalizePoseRagdoll(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>& outTransforms)
     {
-        const uint64_t nodeHash = node.GetNameHash();
-        glm::mat4 globalTransformation;
-        if (auto it = pose.FindBone(nodeHash); it != pose.Bones.end())
-        {
-            const auto& bone = it->second;
-            globalTransformation = Math::ToTransformMatrix(bone); // It's already a global transform
-        }
-        else
-        {
-            globalTransformation = parentTransform * node.Transformation;
-            pose.Bones[nodeHash] = Math::DecomposeTransformMatrix(globalTransformation);
-        }
+        EG_CORE_ASSERT(&node == &skeletal.RootBone);
+        thread_local std::vector<glm::mat4> globalTransforms;
+        globalTransforms.resize(skeletal.FlattenedBones.size());
 
-        if (auto it = skeletal.FindBoneInfo(nodeHash); skeletal.IsValid(it))
+        for (size_t i = 0; i < skeletal.FlattenedBones.size(); ++i)
         {
-            const uint32_t index = it->second.BoneID;
-            const glm::mat4& offset = it->second.Offset;
-            if (index >= outTransforms.size())
-                outTransforms.resize(index + 1);
+            const auto& entry = skeletal.FlattenedBones[i];
+            const BoneNode& curNode = *entry.Node;
+            const uint64_t nodeHash = curNode.GetNameHash();
+            const glm::mat4& parentTr = (entry.ParentIndex < 0) ? parentTransform : globalTransforms[entry.ParentIndex];
 
-            outTransforms[index] = skeletal.InverseTransform * globalTransformation * offset;
+            glm::mat4 globalTransformation;
+            if (auto it = pose.FindBone(nodeHash); it != pose.Bones.end())
+            {
+                const auto& bone = it->second;
+                globalTransformation = Math::ToTransformMatrix(bone); // It's already a global transform
+            }
+            else
+            {
+                globalTransformation = parentTr * curNode.Transformation;
+                pose.Bones[nodeHash] = Math::DecomposeTransformMatrix(globalTransformation);
+            }
+            globalTransforms[i] = globalTransformation;
+
+            if (auto it = skeletal.FindBoneInfo(nodeHash); skeletal.IsValid(it))
+            {
+                const uint32_t index = it->second.BoneID;
+                const glm::mat4& offset = it->second.Offset;
+                if (index >= outTransforms.size())
+                    outTransforms.resize(index + 1);
+
+                outTransforms[index] = skeletal.InverseTransform * globalTransformation * offset;
+            }
         }
-
-        for (auto& child : node.Children)
-            FinalizePoseRagdoll(pose, child, globalTransformation, skeletal, outTransforms);
     }
 
     double AnimationSystem::WrapAnimationTime(double duration, double currentTime, bool bLoop)

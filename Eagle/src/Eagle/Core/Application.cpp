@@ -354,8 +354,24 @@ namespace Eagle
 		auto it = timingsByName.find(timingData);
 		if (it != timingsByName.end()) // Update timings data
 		{
-			(*it).Timing = timingData.Timing;
-			(*it).Children= timingData.Children;
+			const float oldTiming = (*it).Timing;
+			const float newTiming = timingData.Timing;
+			const uint64_t samples = (*it).SamplesCount + 1;
+
+			if (samples > 500)
+			{
+				// Reset
+				(*it).Timing = timingData.Timing;
+				(*it).Children = timingData.Children;
+				(*it).SamplesCount = 1;
+			}
+			else
+			{
+				// Running average
+				(*it).Timing = oldTiming + ((newTiming - oldTiming) / (float)samples);
+				(*it).Children = timingData.Children;
+				(*it).SamplesCount++;
+			}
 		}
 		else
 		{

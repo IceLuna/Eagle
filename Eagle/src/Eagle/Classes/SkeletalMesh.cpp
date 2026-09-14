@@ -129,6 +129,7 @@ namespace Eagle
         m_RagdollRoot = Utils::MergeBones(m_MinRagdollBoneSize, m_Skeletal.GetBoneInfoMap(), m_Skeletal.RootBone);
         Utils::PrepareAABB(m_RagdollRoot);
         Utils::SetUserSettings(m_RagdollRoot, ragdollPerBoneSettings);
+        m_Skeletal.BuildFlattenedBones();
     }
 
     SkeletalMesh::SkeletalMesh(const SkeletalMesh& other)
@@ -144,6 +145,8 @@ namespace Eagle
         , m_MaxRagdollTwist(other.m_MaxRagdollTwist)
         , m_MaxRagdollSwing(other.m_MaxRagdollSwing)
     {
+        m_Skeletal.BuildFlattenedBones();
+
         for (uint32_t i = 0; i < m_MaterialSlots; ++i)
         {
             SetMaterialAsset(i, other.m_Materials[i]);

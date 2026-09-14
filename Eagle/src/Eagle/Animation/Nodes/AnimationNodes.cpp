@@ -276,7 +276,7 @@ namespace Eagle
 			weight = glm::clamp(weight, 0.f, 1.f);
 
 		const auto& skeletal = GetSkeletal()->GetMesh();
-		AnimationSystem::BlendPoses(pose0 ? *pose0 : SkeletalPose{}, pose1 ? *pose1 : SkeletalPose{}, skeletal->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
+		AnimationSystem::BlendPoses(pose0 ? *pose0 : SkeletalPose{}, pose1 ? *pose1 : SkeletalPose{}, skeletal->GetSkeletalMeshInfo(), weight, &m_Pose);
 
 		m_CalculatedOnFrame = currentFrame;
 
@@ -355,9 +355,10 @@ namespace Eagle
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
-			return m_Pose;
+			return m_PosePtr ? *m_PosePtr : m_Pose;
 
 		m_Pose.Reset();
+		m_PosePtr = nullptr;
 		if (m_Inputs[0] && m_Inputs[1])
 		{
 			const auto& skeletal = GetSkeletal()->GetMesh();
@@ -365,21 +366,21 @@ namespace Eagle
 			if (Utils::GetValue(m_Inputs[2], m_Variables[2], ts, &weight))
 				weight = glm::clamp(weight, 0.f, 1.f);
 
-			const auto& pose0 = m_Inputs[0]->Update(ts);
+			auto& pose0 = m_Inputs[0]->Update(ts);
 			const auto& pose1 = m_Inputs[1]->Update(ts);
 			if (pose1.Bones.size() > 0)
-				AnimationSystem::ApplyAdditive(pose0, pose1, skeletal->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
+				AnimationSystem::ApplyAdditive(pose0, pose1, skeletal->GetSkeletalMeshInfo(), weight, &m_Pose);
 			else
-				m_Pose = pose0;
+				m_PosePtr = &pose0;
 		}
 		else if (m_Inputs[0])
 		{
-			m_Pose = m_Inputs[0]->Update(ts);
+			m_PosePtr = &m_Inputs[0]->Update(ts);
 		}
 
 		m_CalculatedOnFrame = currentFrame;
 
-		return m_Pose;
+		return m_PosePtr ? *m_PosePtr : m_Pose;
 	}
 
 	SkeletalPose& AnimationGraphNodeCalculateAdditive::Update(Timestep ts)
@@ -398,7 +399,7 @@ namespace Eagle
 				const auto& skeletal = GetSkeletal()->GetMesh();
 				const auto& pose0 = input0->Update(ts);
 				const auto& pose1 = input1->Update(ts);
-				AnimationSystem::CalculateAdditivePose(pose0, pose1, skeletal->GetSkeletalMeshInfo().RootBone, &m_Pose);
+				AnimationSystem::CalculateAdditivePose(pose0, pose1, skeletal->GetSkeletalMeshInfo(), &m_Pose);
 			}
 		}
 
@@ -411,13 +412,14 @@ namespace Eagle
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
-			return m_Pose;
+			return m_PosePtr ? *m_PosePtr : m_Pose;
 
 		// Used to detect if the node was unused. If so, CurrentTime is reset to 0
 		if (currentFrame - m_CalculatedOnFrame > 1)
 			bPrevValueValid = false;
 
 		m_Pose.Reset();
+		m_PosePtr = nullptr;
 
 		bool bValue = false;
 		Utils::GetValue(m_Inputs[0], m_Variables[0], ts, &bValue);
@@ -441,8 +443,8 @@ namespace Eagle
 		if (transitionTime < 0.001f)
 			bTransitioning = false;
 
-		const SkeletalPose* falsePose = nullptr;
-		const SkeletalPose* truePose = nullptr;
+		SkeletalPose* falsePose = nullptr;
+		SkeletalPose* truePose = nullptr;
 
 		if ((bTransitioning || !bValue) && m_Inputs[1])
 			falsePose = &m_Inputs[1]->Update(ts);
@@ -455,7 +457,7 @@ namespace Eagle
 			const float weight = glm::clamp(m_CurrentTransitionTime / transitionTime, 0.f, 1.f);
 			m_CurrentTransitionTime = bValue ? m_CurrentTransitionTime + ts : m_CurrentTransitionTime - ts;
 
-			AnimationSystem::BlendPoses(falsePose ? *falsePose : SkeletalPose{}, truePose ? *truePose : SkeletalPose{}, m_Skeletal->GetMesh()->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
+			AnimationSystem::BlendPoses(falsePose ? *falsePose : SkeletalPose{}, truePose ? *truePose : SkeletalPose{}, m_Skeletal->GetMesh()->GetSkeletalMeshInfo(), weight, &m_Pose);
 			if (m_CurrentTransitionTime >= transitionTime || m_CurrentTransitionTime <= 0.f)
 			{
 				// Finished transitioning
@@ -465,23 +467,23 @@ namespace Eagle
 		else
 		{
 			if (falsePose)
-				m_Pose = *falsePose;
+				m_PosePtr = falsePose;
 			else if (truePose)
-				m_Pose = *truePose;
+				m_PosePtr = truePose;
 		}
 
 		m_CalculatedOnFrame = currentFrame;
 		bPrevValue = bValue;
 		bPrevValueValid = true;
 
-		return m_Pose;
+		return m_PosePtr ? *m_PosePtr : m_Pose;
 	}
 
 	SkeletalPose& AnimationGraphNodeBlendPoseByInt::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
-			return m_Pose;
+			return m_PosePtr ? *m_PosePtr : m_Pose;
 
 		// Used to detect if the node was unused. If so, CurrentTime is reset to 0
 		if (currentFrame - m_CalculatedOnFrame > 1)
@@ -491,6 +493,7 @@ namespace Eagle
 		}
 
 		m_Pose.Reset();
+		m_PosePtr = nullptr;
 
 		int value = 0;
 		if (Utils::GetValueFromVariable(m_Variables[0], &value))
@@ -526,7 +529,7 @@ namespace Eagle
 		}
 
 		const SkeletalPose* prevPose = nullptr;
-		const SkeletalPose* currentPose = nullptr;
+		SkeletalPose* currentPose = nullptr;
 
 		const bool bValidPrevIndex = prevPoseTransitionTimeIndex < uint32_t(m_Inputs.size());
 		if (bTransitioning && bValidPrevIndex && m_Inputs[prevPoseIndex])
@@ -544,7 +547,7 @@ namespace Eagle
 			const float weight = glm::clamp(m_CurrentTransitionTime / transitionTime, 0.f, 1.f);
 			m_CurrentTransitionTime += ts;
 
-			AnimationSystem::BlendPoses(prevPose ? *prevPose : SkeletalPose{}, currentPose ? *currentPose : SkeletalPose{}, m_Skeletal->GetMesh()->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
+			AnimationSystem::BlendPoses(prevPose ? *prevPose : SkeletalPose{}, currentPose ? *currentPose : SkeletalPose{}, m_Skeletal->GetMesh()->GetSkeletalMeshInfo(), weight, &m_Pose);
 			if (m_CurrentTransitionTime >= transitionTime)
 			{
 				// Finished transitioning
@@ -553,13 +556,13 @@ namespace Eagle
 		}
 		else if (currentPose)
 		{
-			m_Pose = *currentPose;
+			m_PosePtr = currentPose;
 		}
 
 		m_CalculatedOnFrame = currentFrame;
 		m_PrevValue = value;
 
-		return m_Pose;
+		return m_PosePtr ? *m_PosePtr : m_Pose;
 	}
 
 	SkeletalPose& AnimationGraphNodeSelectPoseByBool::Update(Timestep ts)

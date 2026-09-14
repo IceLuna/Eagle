@@ -145,6 +145,15 @@ namespace Eagle
 
 		if (outTransforms)
 		{
+			// FinalizePose mutates the pose it's given (fills in any bones missing from it). If we're
+			// currently just aliasing another node's pose via `m_PosePtr`, create our own copy first
+			// instead of mutating data some other part of the graph may still expect to read this frame.
+			if (m_PosePtr && m_PosePtr != &m_Pose)
+			{
+				m_Pose = *m_PosePtr;
+				m_PosePtr = &m_Pose;
+			}
+
 			const auto& skeletalInfo = m_Skeletal->GetMesh()->GetSkeletalMeshInfo();
 			constexpr glm::mat4 rootTransform = glm::mat4(1.f);
 			AnimationSystem::FinalizePose(m_Pose, skeletalInfo.RootBone, rootTransform, skeletalInfo, *outTransforms);
@@ -154,11 +163,14 @@ namespace Eagle
 	const SkeletalPose& AnimationGraph::Update(Timestep ts)
 	{
 		if (m_ResultNode)
-			m_Pose = m_ResultNode->Update(ts);
+			m_PosePtr = &m_ResultNode->Update(ts);
 		else
+		{
 			m_Pose.Reset();
+			m_PosePtr = nullptr;
+		}
 
-		return m_Pose;
+		return m_PosePtr ? *m_PosePtr : m_Pose;
 	}
 	
 	void AnimationGraph::SetVariablesToUse(const VariablesMap& vars)

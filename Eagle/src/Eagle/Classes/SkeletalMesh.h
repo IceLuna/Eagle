@@ -7,6 +7,7 @@
 #include "Eagle/Physics/PhysicsEngine.h"
 
 #include <vector>
+#include <functional>
 #include <glm/glm.hpp>
 #include <ankerl/unordered_dense.h>
 
@@ -101,6 +102,35 @@ namespace Eagle
 		glm::mat4 InverseTransform = glm::mat4(1.f);
 		glm::mat4 CoordCorrection = glm::mat4(1.f); // Stores matrix that can be used for coord system correction, since some imported meshes can have different basis
 		BoneNode RootBone;
+
+		// One entry per bone in the skeleton, in parent-before-child (topological) order.
+		// Precomputed once (see `BuildFlattenedBones`) so that per-frame pose evaluation
+		// (`FinalizePose`, `BlendPoses`, etc.) can walk a flat array instead of recursing
+		// through `BoneNode::Children` every frame for every bone.
+		struct FlatBoneNode
+		{
+			const BoneNode* Node = nullptr;
+			const BoneNode* ParentNode = nullptr; // nullptr for the root bone
+			int32_t ParentIndex = -1; // Index into `FlattenedBones`, -1 for the root bone
+		};
+		std::vector<FlatBoneNode> FlattenedBones;
+
+		// Must be called once whenever `RootBone`'s tree shape changes (bones added/removed) -
+		// e.g. right after import, or after copying a `SkeletalMeshInfo`/`SkeletalMesh`, since the
+		// cached pointers above point into this specific instance's `RootBone` tree.
+		void BuildFlattenedBones()
+		{
+			FlattenedBones.clear();
+			std::function<void(const BoneNode&, const BoneNode*, int32_t)> visit =
+				[this, &visit](const BoneNode& node, const BoneNode* parentNode, int32_t parentIndex)
+			{
+				const int32_t myIndex = (int32_t)FlattenedBones.size();
+				FlattenedBones.push_back({ &node, parentNode, parentIndex });
+				for (const auto& child : node.Children)
+					visit(child, &node, myIndex);
+			};
+			visit(RootBone, nullptr, -1);
+		}
 
 		void SetBonesInfoMap(BonesMap&& other)
 		{

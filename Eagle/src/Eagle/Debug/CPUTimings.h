@@ -18,6 +18,7 @@ namespace Eagle
 		struct Data
 		{
 			std::string_view Name;
+			mutable uint64_t SamplesCount = 1;
 			mutable float Timing = 0.f;
 			mutable std::vector<Data> Children;
 
