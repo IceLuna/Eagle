@@ -45,7 +45,7 @@
         
         public Color4 TintColor = new Color4(1f);
         public Color3 EmissiveIntensity = new Color3(1f);
-        public float TilingFactor = 1f;
+        public Vector2 TilingFactor = new Vector2(1.0f);
         public MaterialBlendMode BlendMode = MaterialBlendMode.Opaque;
         public bool bDoubleSided = false;
     }

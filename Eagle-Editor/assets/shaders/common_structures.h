@@ -60,7 +60,9 @@ struct CPUMaterial
 	vec4 TintColor;
 
 	vec3 EmissiveIntensity;
-	float TilingFactor;
+	uint Unused0;
+
+	vec2 TilingFactor;
 
 	// Packed indices. 16bits for each index.
 	// Highest bit of the index is used to indicate that the index points into the buffer of raw values (not textures)
@@ -88,6 +90,9 @@ struct CPUMaterial
 	// [28-31] bits Unused
 	uint PackedIndices4;
 
+	uint Unused1;
+	uint Unused2;
+
 #ifdef __cplusplus
 	CPUMaterial()
 		: TintColor(1.f), EmissiveIntensity(0.f), TilingFactor(1.f)
@@ -107,10 +112,10 @@ struct ShaderMaterial
 	vec3 Emissive;
 	float Roughness;
 	
+	vec2 TilingFactor;
 	float AO;
 	float Opacity;
 	float OpacityMask;
-	float TilingFactor;
 
 	// Normal can only be a texture, so we keep it as an index so that the code can verify if the texture was set. If not, geometry normals will be used
 	uint NormalTextureIndex;
@@ -174,7 +179,7 @@ uint Material_GetIndex(uint packed, uint mask, uint offset, out bool bRawValue)
 ShaderMaterial ShaderMaterial_Default()
 {
 	ShaderMaterial result;
-	result.TilingFactor = 1.f;
+	result.TilingFactor = vec2(1.f);
 	result.Albedo = vec3(1, 0, 1);
 	result.Metalness = 0.f;
 	result.Emissive = vec3(0.f);

@@ -37,6 +37,9 @@ namespace Eagle
 		// within the source file, which is usually not (0, 0, 0) since they're separated from the rest of the meshes.
 		// If true, each mesh's location gets reset to zero on import. Rotation & scale are kept. Only has an effect when `Combine Meshes` is disabled.
 		bool bResetLocation = false;
+
+		// If true, a scene asset will be create that contains imported mesh assets
+		bool bCreateScene = false;
 	};
 
 	struct AssetImportAnimationSettings

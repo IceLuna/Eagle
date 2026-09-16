@@ -50,7 +50,7 @@ namespace Eagle
 
 		void SetTintColor(const glm::vec4& tintColor)         { m_TintColor = tintColor;         OnMaterialChanged(); }
 		void SetEmissiveIntensity(const glm::vec3& intensity) { m_EmissiveIntensity = intensity; OnMaterialChanged(); }
-		void SetTilingFactor(float tiling)                    { m_TilingFactor = tiling;         OnMaterialChanged(); }
+		void SetTilingFactor(glm::vec2 tiling)                { m_TilingFactor = tiling;         OnMaterialChanged(); }
 		void SetBlendMode(MaterialBlendMode blendMode)
 		{
 			if (blendMode == m_BlendMode)
@@ -102,7 +102,7 @@ namespace Eagle
 
 		const glm::vec4& GetTintColor() const { return m_TintColor; }
 		const glm::vec3& GetEmissiveIntensity() const { return m_EmissiveIntensity; }
-		float GetTilingFactor() const { return m_TilingFactor; }
+		glm::vec2 GetTilingFactor() const { return m_TilingFactor; }
 		MaterialBlendMode GetBlendMode() const { return m_BlendMode; }
 		bool IsDoubleSided() const { return bDoubleSided; }
 
@@ -164,7 +164,7 @@ namespace Eagle
 
 		glm::vec4 m_TintColor = glm::vec4(1.0);
 		glm::vec3 m_EmissiveIntensity = glm::vec3(1.f);
-		float m_TilingFactor = 1.f;
+		glm::vec2 m_TilingFactor = glm::vec2(1.f);
 		MaterialBlendMode m_BlendMode = MaterialBlendMode::Opaque;
 		bool bDoubleSided = false;
 	};

@@ -4254,7 +4254,10 @@ namespace Eagle
 			material->SetEmissiveIntensity(node.as<glm::vec3>());
 
 		if (auto node = baseNode["TilingFactor"])
-			material->SetTilingFactor(node.as<float>());
+		{
+			const glm::vec2 tiling = node.IsScalar() ? glm::vec2(node.as<float>()) : node.as<glm::vec2>();
+			material->SetTilingFactor(tiling);
+		}
 
 		if (auto node = baseNode["BlendMode"])
 			material->SetBlendMode(Utils::GetEnumFromName<MaterialBlendMode>(node.as<std::string>()));

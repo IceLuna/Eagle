@@ -16,6 +16,7 @@
 #include "Eagle/Renderer/TextureCompressor.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Core/Project.h"
+#include "Eagle/Components/Components.h"
 
 #include <stb_image.h>
 
@@ -56,9 +57,7 @@ namespace Eagle
 			return false;
 		}
 
-		Path outputFilename = saveTo / Utils::AsPath(Utils::AsString(pathToRaw.stem()) + Asset::GetExtension());
-		if (std::filesystem::exists(outputFilename))
-			outputFilename = Utils::GetUniqueAssetFilepath(outputFilename.parent_path(), Utils::AsString(outputFilename.stem()));
+		Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, Utils::AsString(pathToRaw.stem()));
 
 		// Most importers produce exactly one asset. Static/Skeletal Mesh importers can produce several
 		// when `settings.MeshSettings.bCombineMeshes` is `false` and the source file has multiple meshes.
@@ -125,6 +124,56 @@ namespace Eagle
 
 					AssetManager::Register(Asset::Create(output));
 				}
+			}
+		}
+
+		const bool bStatic = type == AssetType::StaticMesh;
+		const bool bSkeletal = type == AssetType::SkeletalMesh;
+		if ((bStatic || bSkeletal) && settings.MeshSettings.bCreateScene)
+		{
+			Ref<Scene> scene = MakeRef<Scene>();
+
+			for (const auto& filename : outputFilenames)
+			{
+				Ref<Asset> asset;
+				AssetManager::Get(filename, &asset);
+
+				if (!asset)
+					continue;
+
+				if (bStatic)
+				{
+					auto mesh = Cast<AssetStaticMesh>(asset);
+					Entity entity = scene->CreateEntity(mesh->GetSourceMeshName());
+					auto& component = entity.AddComponent<StaticMeshComponent>();
+					component.SetMeshAsset(mesh);
+				}
+				else if (bSkeletal)
+				{
+					auto mesh = Cast<AssetSkeletalMesh>(asset);
+					Entity entity = scene->CreateEntity(mesh->GetSourceMeshName());
+					auto& component = entity.AddComponent<SkeletalMeshComponent>();
+					component.SetMeshAsset(mesh);
+				}
+				else
+				{
+					EG_CORE_ASSERT(false);
+				}
+			}
+
+			std::string sceneFilename = Utils::AsString(outputFilename.stem()) + "_Scene";
+			Path sceneAssetPath = AssetImporter::CreateScene(saveTo, sceneFilename);
+			Ref<Asset> asset;
+			if (AssetManager::Get(sceneAssetPath, &asset))
+			{
+				if (Ref<AssetScene> sceneAsset = Cast<AssetScene>(asset))
+					SceneSerializer::Serialize(scene, sceneAssetPath);
+				else
+					EG_CORE_ERROR("Failed to create a scene during mesh import. It's not a scene asset {0}", sceneAssetPath);
+			}
+			else
+			{
+				EG_CORE_ERROR("Failed to create a scene during mesh import. It's not a scene asset {0}", sceneAssetPath);
 			}
 		}
 
@@ -264,6 +313,7 @@ namespace Eagle
 			{ ".hdr",   AssetType::TextureCube },
 			{ ".fbx",   AssetType::StaticMesh },
 			{ ".gltf",  AssetType::StaticMesh },
+			{ ".glb",   AssetType::StaticMesh },
 			{ ".blend", AssetType::StaticMesh },
 			{ ".3ds",   AssetType::StaticMesh },
 			{ ".obj",   AssetType::StaticMesh },

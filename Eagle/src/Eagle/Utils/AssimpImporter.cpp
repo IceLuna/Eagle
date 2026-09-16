@@ -14,10 +14,101 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <assimp/IOStream.hpp>
+#include <assimp/IOSystem.hpp>
 #include <stb_image.h>
 
 namespace Eagle
 {
+	class Utf8IOStream : public Assimp::IOStream
+	{
+	public:
+		explicit Utf8IOStream(FILE* file) : m_File(file) {}
+		~Utf8IOStream() override { if (m_File) fclose(m_File); }
+
+		size_t Read(void* buf, size_t size, size_t count) override
+		{
+			return fread(buf, size, count, m_File);
+		}
+		size_t Write(const void*, size_t, size_t) override { return 0; } // not needed for import
+		aiReturn Seek(size_t offset, aiOrigin origin) override
+		{
+			int whence = (origin == aiOrigin_SET) ? SEEK_SET :
+				(origin == aiOrigin_CUR) ? SEEK_CUR : SEEK_END;
+			return (fseek(m_File, (long)offset, whence) == 0) ? aiReturn_SUCCESS : aiReturn_FAILURE;
+		}
+		size_t Tell() const override { return ftell(m_File); }
+		size_t FileSize() const override
+		{
+			long cur = ftell(m_File);
+			fseek(m_File, 0, SEEK_END);
+			long size = ftell(m_File);
+			fseek(m_File, cur, SEEK_SET);
+			return (size_t)size;
+		}
+		void Flush() override { fflush(m_File); }
+
+	private:
+		FILE* m_File;
+	};
+
+	class Utf8IOSystem : public Assimp::IOSystem
+	{
+	public:
+		bool Exists(const char* file) const override
+		{
+			Path p = FromUtf8(file);
+			std::error_code ec;
+			return std::filesystem::exists(p, ec);
+		}
+
+		char getOsSeparator() const override { return '\\'; }
+
+		Assimp::IOStream* Open(const char* file, const char* mode = "rb") override
+		{
+			Path p = FromUtf8(file);
+
+			// Build a wide-char fopen mode from the narrow one (it's always ASCII, e.g. "rb")
+			std::wstring wmode(mode, mode + strlen(mode));
+
+			FILE* f = _wfopen(p.c_str(), wmode.c_str()); // path::c_str() is already wchar_t* on Windows
+			if (!f)
+				return nullptr;
+			return new Utf8IOStream(f);
+		}
+
+		void Close(Assimp::IOStream* file) override { delete file; }
+
+	private:
+		// assimp always deals in narrow (UTF-8) strings internally for paths/URIs,
+		// so we convert those back to a proper `Path` here.
+		static std::filesystem::path FromUtf8(const char* utf8)
+		{
+			return Path(std::u8string(reinterpret_cast<const char8_t*>(utf8)));
+		}
+	};
+
+	static bool IsGLTF(const Path& filepath)
+	{
+		if (!filepath.has_extension())
+			return false;
+
+		const std::array supportedFileFormats =
+		{
+			".gltf",
+			".glb"
+		};
+
+		static const std::locale& loc = std::locale("RU_ru");
+		std::string extension = Utils::AsString(filepath.extension());
+
+		for (char& c : extension)
+			c = std::tolower(c, loc);
+
+		auto it = std::find(supportedFileFormats.begin(), supportedFileFormats.end(), extension);
+		return it != supportedFileFormats.end();
+	}
+
 	static inline glm::mat4 ToGLM(const aiMatrix4x4& from)
 	{
 		glm::mat4 to;
@@ -690,9 +781,17 @@ namespace Eagle
 			return Utils::StaticMeshImportData{ StaticMesh::Create(vertices, indicesPerMaterial, aabb), materialIndices };
 	}
 
+	// IMPORTANT: this must keep any material-affecting flags (currently just aiProcess_RemoveRedundantMaterials)
+	// in sync with s_ImportMaterialsFlags below. Materials are imported via a separate assimp scene load
+	// (see Utils::ImportMaterials), and each mesh's `mMaterialIndex` here is only meaningful as an index into
+	// that other scene's material list if both loads reduce/reorder materials identically. If they diverge
+	// (as they did when only the materials pass had this flag: 148 materials here vs 128 there for one real
+	// test file), meshes silently end up with the wrong material from roughly the first duplicate onward.
 	constexpr static uint32_t s_ImportMeshFlags = aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace
-		| aiProcess_OptimizeGraph | aiProcess_ImproveCacheLocality | aiProcess_JoinIdenticalVertices | aiProcess_GlobalScale | aiProcess_GenBoundingBoxes | aiProcess_FlipUVs;
+		| aiProcess_OptimizeGraph | aiProcess_ImproveCacheLocality | aiProcess_JoinIdenticalVertices | aiProcess_GlobalScale | aiProcess_GenBoundingBoxes | aiProcess_FlipUVs
+		| aiProcess_RemoveRedundantMaterials;
 	constexpr static uint32_t s_ImportAnimFlags = aiProcess_OptimizeGraph | aiProcess_ImproveCacheLocality | aiProcess_JoinIdenticalVertices | aiProcess_GlobalScale;
+	// Keep this in sync with the material-affecting flags in s_ImportMeshFlags above - see the comment there.
 	constexpr static uint32_t s_ImportMaterialsFlags = aiProcess_OptimizeGraph | aiProcess_RemoveRedundantMaterials;
 
 	std::vector<Utils::StaticMeshImportData> Utils::ImportStaticMesh(const Path& path, bool bCombineMeshes, bool bResetLocation)
@@ -700,10 +799,9 @@ namespace Eagle
 		Assimp::Importer importer;
 		importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1.0f);
 		importer.SetPropertyBool(AI_CONFIG_FBX_CONVERT_TO_M, true);
+		importer.SetIOHandler(new Utf8IOSystem());
 
-		ScopedDataBuffer fileBinary = FileSystem::Read(path);
-		const aiScene* scene = importer.ReadFileFromMemory(fileBinary.Data(), fileBinary.Size(), s_ImportMeshFlags);
-
+		const aiScene* scene = importer.ReadFile(AsString(path).c_str(), s_ImportMeshFlags);
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 		{
 			EG_CORE_ERROR("Failed to load Static Mesh. {0} ({1})", importer.GetErrorString(), path);
@@ -740,10 +838,9 @@ namespace Eagle
 		Assimp::Importer importer;
 		importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1.0f);
 		importer.SetPropertyBool(AI_CONFIG_FBX_CONVERT_TO_M, true);
+		importer.SetIOHandler(new Utf8IOSystem());
 
-		ScopedDataBuffer fileBinary = FileSystem::Read(path);
-		const aiScene* scene = importer.ReadFileFromMemory(fileBinary.Data(), fileBinary.Size(), s_ImportMeshFlags);
-
+		const aiScene* scene = importer.ReadFile(AsString(path).c_str(), s_ImportMeshFlags);
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 		{
 			EG_CORE_ERROR("Failed to import Skeletal Mesh. {0} ({1})", importer.GetErrorString(), path);
@@ -813,10 +910,9 @@ namespace Eagle
 		Assimp::Importer importer;
 		importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1.0f);
 		importer.SetPropertyBool(AI_CONFIG_FBX_CONVERT_TO_M, true);
+		importer.SetIOHandler(new Utf8IOSystem());
 
-		ScopedDataBuffer fileBinary = FileSystem::Read(path);
-		const aiScene* scene = importer.ReadFileFromMemory(fileBinary.Data(), fileBinary.Size(), s_ImportAnimFlags);
-
+		const aiScene* scene = importer.ReadFile(AsString(path).c_str(), s_ImportAnimFlags);
 		if (!scene)
 		{
 			EG_CORE_ERROR("Failed to load animations. {0} ({1})", importer.GetErrorString(), path);
@@ -847,7 +943,7 @@ namespace Eagle
 		return AssetImporter::ImportTexture2DFromMemory(buffer, saveTo, filename, textureSettings);
 	}
 
-	static Ref<AssetTexture2D> ProcessTextureInMaterial(const Path& path, const aiScene* scene, const aiMaterial* aiMat, const Path& saveTo, aiTextureType textureType, aiTextureType fallbackType = aiTextureType_UNKNOWN)
+	static Ref<AssetTexture2D> ProcessTextureInMaterial(std::unordered_map<Path, Ref<AssetTexture2D>>& cache, const Path& path, const aiScene* scene, const aiMaterial* aiMat, const Path& saveTo, aiTextureType textureType, aiTextureType fallbackType = aiTextureType_UNKNOWN)
 	{
 		aiString aiTexturePath;
 		bool hasTexture = aiMat->GetTexture(textureType, 0, &aiTexturePath) == AI_SUCCESS;
@@ -857,8 +953,15 @@ namespace Eagle
 		if (!hasTexture)
 			return {};
 
+		const Path aiTextureAsPath = Path(aiTexturePath.C_Str());
+		if (auto it = cache.find(aiTextureAsPath); it != cache.end())
+		{
+			// We already loaded the texture
+			return it->second;
+		}
+
 		const bool bNormalMap = textureType == aiTextureType_NORMALS;
-		const Path filename = Path(aiTexturePath.C_Str()).filename();
+		const Path filename = aiTextureAsPath.filename();
 		Path texturePath = path.parent_path() / filename;
 
 		Ref<AssetTexture2D> assetTexture;
@@ -916,15 +1019,20 @@ namespace Eagle
 			}
 		}
 
+		if (assetTexture)
+		{
+			cache[aiTextureAsPath] = assetTexture;
+		}
+
 		return assetTexture;
 	}
 
 	std::vector<Ref<AssetMaterial>> Utils::ImportMaterials(const Path& path, const Path& saveTo)
 	{
 		Assimp::Importer importer;
-		ScopedDataBuffer fileBinary = FileSystem::Read(path);
-		const aiScene* scene = importer.ReadFileFromMemory(fileBinary.Data(), fileBinary.Size(), s_ImportMaterialsFlags);
+		importer.SetIOHandler(new Utf8IOSystem());
 
+		const aiScene* scene = importer.ReadFile(AsString(path).c_str(), s_ImportMaterialsFlags);
 		if (!scene)
 		{
 			EG_CORE_ERROR("Failed to load materials. {0} ({1})", importer.GetErrorString(), path);
@@ -937,21 +1045,24 @@ namespace Eagle
 			return {};
 		}
 
+		const bool bGLTF = IsGLTF(path);
 		std::vector<Ref<AssetMaterial>> materialAssets;
 		materialAssets.reserve(scene->mNumMaterials); // We don't wan't to store invalid assets here
+
+		std::unordered_map<Path, Ref<AssetTexture2D>> cache;
 
 		for (uint32_t i = 0; i < scene->mNumMaterials; ++i)
 		{
 			auto aiMaterial = scene->mMaterials[i];
 			Ref<Material> material = Material::Create();
 
-			Ref<AssetTexture2D> albedo = ProcessTextureInMaterial(path, scene, aiMaterial, saveTo, aiTextureType_BASE_COLOR, aiTextureType_DIFFUSE);
-			Ref<AssetTexture2D> normal = ProcessTextureInMaterial(path, scene, aiMaterial, saveTo, aiTextureType_NORMALS);
-			Ref<AssetTexture2D> roughness = ProcessTextureInMaterial(path, scene, aiMaterial, saveTo, aiTextureType_DIFFUSE_ROUGHNESS);
-			Ref<AssetTexture2D> metalness = ProcessTextureInMaterial(path, scene, aiMaterial, saveTo, aiTextureType_METALNESS);
-			Ref<AssetTexture2D> ao = ProcessTextureInMaterial(path, scene, aiMaterial, saveTo, aiTextureType_AMBIENT_OCCLUSION, aiTextureType_AMBIENT);
-			Ref<AssetTexture2D> emissive = ProcessTextureInMaterial(path, scene, aiMaterial, saveTo, aiTextureType_EMISSION_COLOR, aiTextureType_EMISSIVE);
-			Ref<AssetTexture2D> opacity = ProcessTextureInMaterial(path, scene, aiMaterial, saveTo, aiTextureType_OPACITY);
+			Ref<AssetTexture2D> albedo = ProcessTextureInMaterial(cache, path, scene, aiMaterial, saveTo, aiTextureType_BASE_COLOR, aiTextureType_DIFFUSE);
+			Ref<AssetTexture2D> normal = ProcessTextureInMaterial(cache, path, scene, aiMaterial, saveTo, aiTextureType_NORMALS);
+			Ref<AssetTexture2D> roughness = ProcessTextureInMaterial(cache, path, scene, aiMaterial, saveTo, aiTextureType_DIFFUSE_ROUGHNESS);
+			Ref<AssetTexture2D> metalness = ProcessTextureInMaterial(cache, path, scene, aiMaterial, saveTo, aiTextureType_METALNESS);
+			Ref<AssetTexture2D> ao = ProcessTextureInMaterial(cache, path, scene, aiMaterial, saveTo, aiTextureType_AMBIENT_OCCLUSION, aiTextureType_AMBIENT);
+			Ref<AssetTexture2D> emissive = ProcessTextureInMaterial(cache, path, scene, aiMaterial, saveTo, aiTextureType_EMISSION_COLOR, aiTextureType_EMISSIVE);
+			Ref<AssetTexture2D> opacity = ProcessTextureInMaterial(cache, path, scene, aiMaterial, saveTo, aiTextureType_OPACITY);
 			material->SetNormalAsset(normal);
 			if (ao)
 			{
@@ -999,6 +1110,10 @@ namespace Eagle
 				{
 					material->SetEmissiveIntensity(ToGLM(aiValue));
 				}
+				else
+				{
+					material->SetEmissiveIntensity(glm::vec3(0));
+				}
 
 				if (roughness)
 				{
@@ -1044,6 +1159,34 @@ namespace Eagle
 					{
 						material->SetBlendMode(MaterialBlendMode::Translucent);
 						material->SetRawOpacityUsed(true);
+					}
+				}
+
+				aiUVTransform uvTransform;
+				if (aiMaterial->Get(AI_MATKEY_UVTRANSFORM(aiTextureType_BASE_COLOR, 0), uvTransform) == AI_SUCCESS)
+				{
+					glm::vec2 tiling = { uvTransform.mScaling.x, uvTransform.mScaling.y };   // default (1, 1)
+					// glm::vec2 offset = { uvTransform.mTranslation.x, uvTransform.mTranslation.y }; // default (0, 0)
+					// float rotation = uvTransform.mRotation; // radians, ccw, around (0.5, 0.5)
+					material->SetTilingFactor(tiling);
+				}
+
+				if (bGLTF)
+				{
+					const bool bPackedMetalRough = metalness && (metalness == roughness);
+					const bool bPackedORM = bPackedMetalRough && (ao == metalness); // Also check if occlusion shares the same image (full ORM packing)
+					// Known glTF2 convention:
+					//   R = occlusion
+					//   G = roughness
+					//   B = metalness
+					if (bPackedORM)
+					{
+						material->SetAOTextureChannel(Material::TextureChannel::R);
+					}
+					if (bPackedORM || bPackedMetalRough)
+					{
+						material->SetRoughnessTextureChannel(Material::TextureChannel::G);
+						material->SetMetalnessTextureChannel(Material::TextureChannel::B);
 					}
 				}
 			}

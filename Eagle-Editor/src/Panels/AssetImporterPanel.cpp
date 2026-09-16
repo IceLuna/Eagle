@@ -418,6 +418,12 @@ namespace Eagle
 		if (meshSettings.bCombineMeshes)
 			UI::PopItemDisabled();
 
+		// It means we're rendering common settings
+		if (bOverride == nullptr)
+		{
+			UI::Property("Create a scene", meshSettings.bCreateScene, "If true, a scene asset will be create that contains imported mesh assets");
+		}
+
 		if (bOverride)
 		{
 			UI::Property("Override", *bOverride, "Enable if you need to override import settings for this mesh");

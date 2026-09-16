@@ -365,7 +365,7 @@ namespace Eagle
 			bChanged = true;
 		}
 
-		float tiling = material->GetTilingFactor();
+		glm::vec2 tiling = material->GetTilingFactor();
 		if (UI::PropertyDrag("Tiling Factor", tiling, 0.1f))
 		{
 			material->SetTilingFactor(tiling);
