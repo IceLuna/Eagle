@@ -109,6 +109,48 @@ namespace Eagle
 		return false;
 	}
 
+	static void MakeDirectoryEntry(const Path& relativePath, ContentEntry& outEntry)
+	{
+		outEntry.Filepath = relativePath;
+		outEntry.Filename = Utils::AsString(relativePath.filename());
+		outEntry.FullPathString = Utils::AsString(relativePath);
+		outEntry.AssetRef.reset();
+		outEntry.Type = AssetType::None;
+		outEntry.bHasBorderColor = false;
+		outEntry.bDirectory = true;
+	}
+
+	// Returns false if the file is not an asset, in which case it shouldn't be displayed at all.
+	// Note that this filtering happens here (and not while drawing) on purpose:
+	// the list clipper requires `index -> item` to be a stable 1:1 mapping
+	static bool MakeFileEntry(const Path& relativePath, ContentEntry& outEntry)
+	{
+		Ref<Asset> asset;
+		if (AssetManager::Get(relativePath, &asset) == false)
+			return false;
+
+		outEntry.Filepath = relativePath;
+		outEntry.Filename = Utils::AsString(relativePath.stem());
+		outEntry.FullPathString = Utils::AsString(relativePath);
+		outEntry.AssetRef = asset;
+		outEntry.Type = asset->GetAssetType();
+		outEntry.bHasBorderColor = GetAssetBorderColor(outEntry.Type, outEntry.BorderColor);
+		outEntry.bDirectory = false;
+		return true;
+	}
+
+	static int32_t FindEntryIndex(const std::vector<ContentEntry>& entries, const Path& path)
+	{
+		if (path.empty())
+			return -1;
+
+		for (size_t i = 0; i < entries.size(); ++i)
+			if (entries[i].Filepath == path)
+				return int32_t(i);
+
+		return -1;
+	}
+
 	static Path OnPasteAsset(const Path& path, const Path& destinationFolder, bool bCopy)
 	{
 		if (path.empty())
@@ -283,25 +325,29 @@ namespace Eagle
 		}
 		ImGui::Separator();
 
+		// Sets `m_RefreshBrowser` when the OS reports that the current directory was modified,
+		// so that the directory is never rescanned just because time passed
+		UpdateDirectoryWatcher();
+
 		if (!m_Search.empty())
 		{
-			static std::vector<Path> directoriesTempEmpty; // empty dirs not to display dirs
 			if (bSearchInputChanged || m_RefreshBrowser)
 			{
-				m_SearchFiles.clear();
-				GetSearchingContent(m_Search, m_SearchFiles);
+				m_SearchEntries.clear();
+				GetSearchingContent(m_Search, m_SearchEntries);
+				m_RefreshBrowser = false;
 			}
-			DrawContent(directoriesTempEmpty, m_SearchFiles, columns, true);
+			DrawContent(m_SearchEntries, columns, true);
 		}
 		else
 		{
-			if (m_ContentBrowserHovered || m_RefreshBrowser)
+			if (m_RefreshBrowser)
 			{
 				RefreshContentInfo();
+				m_RefreshBrowser = false;
 			}
-			DrawContent(m_Directories, m_Files, columns);
+			DrawContent(m_Entries, columns);
 		}
-		m_RefreshBrowser = false;
 
 		ImGui::PopID();
 
@@ -359,8 +405,7 @@ namespace Eagle
 
 	void ContentBrowserPanel::RefreshContentInfo()
 	{
-		m_Directories.clear();
-		m_Files.clear();
+		m_Entries.clear();
 
 		// If dir is not there anymore, reset to content dir and clear history
 		if (!std::filesystem::exists(m_CurrentDirectory))
@@ -372,14 +417,82 @@ namespace Eagle
 		}
 
 		const Path& projectPath = Project::GetProjectPath();
+
+		// Directories are drawn first, so they go into `m_Entries` right away while files are gathered
+		// separately and appended afterwards
+		m_FileEntries.clear();
+
+		ContentEntry entry;
 		for (auto& dir : std::filesystem::directory_iterator(m_CurrentDirectory))
 		{
-			const auto& path = dir.path();
+			const Path relativePath = std::filesystem::relative(dir.path(), projectPath);
 
 			if (dir.is_directory())
-				m_Directories.push_back(std::filesystem::relative(path, projectPath));
-			else
-				m_Files.push_back(std::filesystem::relative(path, projectPath));
+			{
+				MakeDirectoryEntry(relativePath, entry);
+				m_Entries.push_back(entry);
+			}
+			else if (MakeFileEntry(relativePath, entry)) // Non-assets are ignored
+			{
+				m_FileEntries.push_back(entry);
+			}
+		}
+
+		m_Entries.insert(m_Entries.end(), m_FileEntries.begin(), m_FileEntries.end());
+	}
+
+	void ContentBrowserPanel::UpdateDirectoryWatcher()
+	{
+		// A single file write produces several notifications, and refreshing in the middle of one would pick up
+		// a half-written asset. So the refresh is delayed until the reported changes settle down
+		constexpr float s_RefreshDelay = 0.15f;
+
+		// Only used when the directory can't be watched (a network/removable drive, missing permissions, ...)
+		constexpr float s_PollingInterval = 0.5f;
+
+		const float dt = ImGui::GetIO().DeltaTime;
+
+		// (Re)create the watcher whenever the displayed directory changes
+		if (m_WatchedDirectory != m_CurrentDirectory)
+		{
+			m_WatchedDirectory = m_CurrentDirectory;
+			m_PendingRefreshTimer = 0.f;
+			m_TimeSinceContentRefresh = 0.f;
+			m_RefreshBrowser = true;
+
+			// `m_CurrentDirectory` can be relative (it's resolved against the working directory everywhere else),
+			// while the watcher needs a real directory to open
+			m_DirectoryWatcher.reset();
+			if (std::filesystem::is_directory(m_CurrentDirectory))
+				m_DirectoryWatcher = FileWatcher::Create(std::filesystem::absolute(m_CurrentDirectory), false);
+		}
+
+		if (m_DirectoryWatcher)
+		{
+			if (m_DirectoryWatcher->HasChanges())
+			{
+				m_DirectoryWatcher->ClearEvents();
+				m_PendingRefreshTimer = s_RefreshDelay;
+			}
+
+			if (m_PendingRefreshTimer > 0.f)
+			{
+				m_PendingRefreshTimer -= dt;
+				if (m_PendingRefreshTimer <= 0.f)
+				{
+					m_PendingRefreshTimer = 0.f;
+					m_RefreshBrowser = true;
+				}
+			}
+			return;
+		}
+
+		// No watcher, fall back to polling while the panel is hovered
+		m_TimeSinceContentRefresh += dt;
+		if (m_ContentBrowserHovered && m_TimeSinceContentRefresh >= s_PollingInterval)
+		{
+			m_TimeSinceContentRefresh = 0.f;
+			m_RefreshBrowser = true;
 		}
 	}
 
@@ -662,35 +775,85 @@ namespace Eagle
 		return *s_Instance;
 	}
 
-	void ContentBrowserPanel::DrawContent(const std::vector<Path>& directories, const std::vector<Path>& files, int32_t columns, bool bHintFullPath /* = false */)
+	void ContentBrowserPanel::DrawContent(const std::vector<ContentEntry>& entries, int32_t columns, bool bHintFullPath)
 	{
 		constexpr ImVec2 thumbnailSize = ImVec2(ThumbnailCache::GetThumbnailSize().x, ThumbnailCache::GetThumbnailSize().y);
+		const ImGuiStyle& style = ImGui::GetStyle();
 		bool bHoveredAnyItem = false;
 
 		ImGui::BeginChild("##scrollable_cb");
 
 		DrawContentBrowserPopupMenu();
 
-		if (columns > 1)
+		columns = glm::max(1, columns);
+		const int32_t itemsCount = int32_t(entries.size());
+		const int32_t rowsCount = (itemsCount + columns - 1) / columns;
+
+		// This has to match the height of a cell submitted by `UI::ImageButtonWithText` plus the spacing
+		// ImGui inserts between two lines. If it doesn't match, the scrollbar will drift while scrolling.
+		// Passing -1.f to `clipper.Begin` instead makes ImGui measure the first row itself,
+		// which is always exact but costs one extra frame before the list is displayed
+		const float cellHeight = thumbnailSize.y + ImGui::GetTextLineHeight() + 2.f * style.ItemSpacing.y;
+		const float rowHeight = cellHeight + style.ItemSpacing.y;
+
+		const float startX = ImGui::GetCursorPosX();
+
+		// The clipper submits the full height of the list, so the scrollbar stays correct
+		// even though only the visible rows are actually drawn
+		ImGuiListClipper clipper;
+		clipper.Begin(rowsCount, rowHeight);
+
+		// Keep the row that contains the selected item alive, otherwise `SetScrollHereY` would never be called for it
+		if (m_ScrollToSelected)
 		{
-			ImGui::Columns(columns, nullptr, false);
-			ImGui::SetColumnWidth(0, m_ColumnWidth);
+			const int32_t selectedIndex = FindEntryIndex(entries, m_SelectedFile);
+			if (selectedIndex >= 0)
+				clipper.IncludeItemByIndex(selectedIndex / columns);
 		}
 
-		ImGui::PushID("DIRECTORIES_FILL");
-		for (auto& dir : directories)
+		while (clipper.Step())
 		{
-			const auto& path = dir;
-			std::string pathString = Utils::AsString(path);
-			std::string filename = Utils::AsString(path.filename());
-
+			for (int32_t row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row)
 			{
-				const bool bSelected = m_SelectedFile == path;
-				const bool bFillBg = bSelected;
+				for (int32_t column = 0; column < columns; ++column)
+				{
+					const int32_t index = row * columns + column;
+					if (index >= itemsCount)
+						break;
+
+					if (column > 0)
+						ImGui::SameLine();
+					ImGui::SetCursorPosX(startX + column * m_ColumnWidth);
+
+					ImGui::PushID(index);
+					DrawEntry(entries[index], thumbnailSize, bHintFullPath, bHoveredAnyItem);
+					ImGui::PopID();
+				}
+			}
+		}
+		clipper.End();
+
+		if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && !bHoveredAnyItem)
+		{
+			SetSelected("", false);
+		}
+
+		ImGui::EndChild();
+	}
+
+	void ContentBrowserPanel::DrawEntry(const ContentEntry& entry, const ImVec2& thumbnailSize, bool bHintFullPath, bool& bHoveredAnyItem)
+	{
+		const Path& path = entry.Filepath;
+		const bool bSelected = m_SelectedFile == path;
+		const bool bFillBg = bSelected;
+
+		if (entry.bDirectory)
+		{
+			{
 				if (bFillBg)
 					UI::PushButtonSelectedStyleColors();
 
-				UI::ImageButtonWithText(m_FolderIcon, filename, thumbnailSize, bFillBg);
+				UI::ImageButtonWithText(m_FolderIcon, entry.Filename, thumbnailSize, bFillBg);
 
 				if (bSelected && m_ScrollToSelected)
 				{
@@ -701,8 +864,8 @@ namespace Eagle
 				if (bFillBg)
 					UI::PopButtonSelectedStyleColors();
 			}
-			
-			DrawItemPopupMenu(path);
+
+			DrawItemPopupMenu(path, entry.FullPathString, true);
 			HandleDragDropOnFolder(path);
 
 			bHoveredAnyItem |= ImGui::IsItemHovered();
@@ -722,145 +885,118 @@ namespace Eagle
 				}
 			}
 
-			bHoveredAnyItem |= ImGui::IsItemHovered();
-			UI::Tooltip(bHintFullPath ? pathString : filename);
-			if (columns > 1)
+			if (ImGui::IsItemHovered())
 			{
-				ImGui::NextColumn();
-				ImGui::SetColumnWidth(-1, m_ColumnWidth);
+				bHoveredAnyItem = true;
+				UI::Tooltip(bHintFullPath ? entry.FullPathString : entry.Filename);
 			}
-		}
-		ImGui::PopID();
 
-		ImGui::PushID("FILES_FILL");
-		for (auto& file : files)
+			return;
+		}
+
+		const Ref<Asset>& asset = entry.AssetRef;
+		if (!asset)
+			return;
+
+		const AssetType assetType = entry.Type;
+		Ref<Image> image;
+		Ref<Sampler> sampler = Sampler::BilinearSampler;
+
+		if (assetType == AssetType::Texture2D)
 		{
-			const auto& path = file;
-			std::string pathString = Utils::AsString(path);
-			std::string filename = Utils::AsString(path.stem());
-
-			Ref<Asset> asset;
-			if (AssetManager::Get(path, &asset) == false)
-				continue; // Ignore non assets
-
-			Ref<Image> image;
-			Ref<Sampler> sampler = Sampler::BilinearSampler;
-			const AssetType assetType = asset->GetAssetType();
-
-			if (assetType == AssetType::Texture2D)
-			{
-				const auto& texture = Cast<AssetTexture2D>(asset)->GetTexture();
-				image = texture->GetImage();
-				sampler = texture->GetSampler();
-			}
-			else if (assetType == AssetType::TextureCube)
-			{
-				const auto& texture = Cast<AssetTextureCube>(asset)->GetTexture()->GetTexture2D();
-				image = texture->GetImage();
-				sampler = texture->GetSampler();
-			}
-			else if (ThumbnailCache::IsRenderableAssetType(assetType))
-			{
-				image = ThumbnailCache::Get(asset);
-			}
-
-			if (!image)
-				image = EditorResources::GetAssetIconTexture(assetType)->GetImage();
-
-			bool bClicked = false;
-			ImVec2 p = ImGui::GetCursorScreenPos();
-
-			{
-				const bool bSelected = m_SelectedFile == path;
-				const bool bFillBg = bSelected;
-				if (bFillBg)
-					UI::PushButtonSelectedStyleColors();
-
-				ImVec4 borderColor;
-				const bool bBorderColor = GetAssetBorderColor(assetType, borderColor);
-				if (bBorderColor)
-					ImGui::PushStyleColor(ImGuiCol_Border, borderColor);
-
-				UI::ImageButtonWithText(image, sampler, filename, thumbnailSize, bFillBg, 2.0f);
-
-				if (bSelected && m_ScrollToSelected)
-				{
-					ImGui::SetScrollHereY(0);
-					m_ScrollToSelected = false;
-				}
-
-				if (bBorderColor)
-					ImGui::PopStyleColor();
-
-				if (bFillBg)
-					UI::PopButtonSelectedStyleColors();
-			}
-
-			if (asset->IsDirty())
-			{
-				// Setting asterisk's color to be the inverse of window background color
-				ImVec4 invWindowBg = ImGui::GetStyle().Colors[ImGuiCol_WindowBg];
-				invWindowBg.x = 1.f - invWindowBg.x;
-				invWindowBg.y = 1.f - invWindowBg.y;
-				invWindowBg.z = 1.f - invWindowBg.z;
-				const uint32_t color = IM_COL32(uint32_t(invWindowBg.x * 255.f), uint32_t(invWindowBg.y * 255.f), uint32_t(invWindowBg.z * 255.f), 255u);
-
-				constexpr ImVec2 asteriskDrawOffset = ImVec2(36.f, 36.f);
-				UI::AddImage(m_AsteriskIcon, p + thumbnailSize - asteriskDrawOffset, p + thumbnailSize, ImVec2(0, 0), ImVec2(1, 1), color);
-			}
-			DrawItemPopupMenu(path);
-
-			//Handling Drag Event.
-			{
-				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
-				{
-					const char* cellTag = GetAssetDragDropCellTag(assetType);
-					std::wstring wide = path.wstring();
-					const wchar_t* tt = wide.c_str();
-					ImGui::SetDragDropPayload(cellTag, tt, (wide.size() + 1) * sizeof(wchar_t));
-					ImGui::Text(filename.c_str());
-
-					ImGui::EndDragDropSource();
-				}
-			}
-
-			bHoveredAnyItem |= ImGui::IsItemHovered();
-			bClicked |= ImGui::IsItemClicked();
-			if (bClicked)
-			{
-				if (!ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-					SetSelected(path, false);
-			}
-			bClicked = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && bClicked;
-
-			// Open asset editor
-			if (bClicked)
-			{
-				OpenAssetEditor(asset);
-			}
-
-			bHoveredAnyItem |= ImGui::IsItemHovered();
-			{
-				std::string tooltip = std::string("Asset Type: ") + Utils::GetEnumName(assetType) + '\n';
-				tooltip += bHintFullPath ? pathString : filename;
-				UI::Tooltip(tooltip);
-			}
-			if (columns > 1)
-			{
-				ImGui::NextColumn();
-				ImGui::SetColumnWidth(-1, m_ColumnWidth);
-			}
+			const auto& texture = Cast<AssetTexture2D>(asset)->GetTexture();
+			image = texture->GetImage();
+			sampler = texture->GetSampler();
 		}
-		ImGui::PopID();
-
-		if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && !bHoveredAnyItem)
+		else if (assetType == AssetType::TextureCube)
 		{
-			SetSelected("", false);
+			const auto& texture = Cast<AssetTextureCube>(asset)->GetTexture()->GetTexture2D();
+			image = texture->GetImage();
+			sampler = texture->GetSampler();
+		}
+		else if (ThumbnailCache::IsRenderableAssetType(assetType))
+		{
+			image = ThumbnailCache::Get(asset);
 		}
 
-		ImGui::Columns(1);
+		if (!image)
+			image = EditorResources::GetAssetIconTexture(assetType)->GetImage();
 
-		ImGui::EndChild();
+		bool bClicked = false;
+		ImVec2 p = ImGui::GetCursorScreenPos();
+
+		{
+			if (bFillBg)
+				UI::PushButtonSelectedStyleColors();
+
+			if (entry.bHasBorderColor)
+				ImGui::PushStyleColor(ImGuiCol_Border, entry.BorderColor);
+
+			UI::ImageButtonWithText(image, sampler, entry.Filename, thumbnailSize, bFillBg, 2.0f);
+
+			if (bSelected && m_ScrollToSelected)
+			{
+				ImGui::SetScrollHereY(0);
+				m_ScrollToSelected = false;
+			}
+
+			if (entry.bHasBorderColor)
+				ImGui::PopStyleColor();
+
+			if (bFillBg)
+				UI::PopButtonSelectedStyleColors();
+		}
+
+		if (asset->IsDirty())
+		{
+			// Setting asterisk's color to be the inverse of window background color
+			ImVec4 invWindowBg = ImGui::GetStyle().Colors[ImGuiCol_WindowBg];
+			invWindowBg.x = 1.f - invWindowBg.x;
+			invWindowBg.y = 1.f - invWindowBg.y;
+			invWindowBg.z = 1.f - invWindowBg.z;
+			const uint32_t color = IM_COL32(uint32_t(invWindowBg.x * 255.f), uint32_t(invWindowBg.y * 255.f), uint32_t(invWindowBg.z * 255.f), 255u);
+
+			constexpr ImVec2 asteriskDrawOffset = ImVec2(36.f, 36.f);
+			UI::AddImage(m_AsteriskIcon, p + thumbnailSize - asteriskDrawOffset, p + thumbnailSize, ImVec2(0, 0), ImVec2(1, 1), color);
+		}
+		DrawItemPopupMenu(path, entry.FullPathString, false);
+
+		//Handling Drag Event.
+		{
+			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+			{
+				const char* cellTag = GetAssetDragDropCellTag(assetType);
+				std::wstring wide = path.wstring();
+				const wchar_t* tt = wide.c_str();
+				ImGui::SetDragDropPayload(cellTag, tt, (wide.size() + 1) * sizeof(wchar_t));
+				ImGui::Text(entry.Filename.c_str());
+
+				ImGui::EndDragDropSource();
+			}
+		}
+
+		bHoveredAnyItem |= ImGui::IsItemHovered();
+		bClicked |= ImGui::IsItemClicked();
+		if (bClicked)
+		{
+			if (!ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+				SetSelected(path, false);
+		}
+		bClicked = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && bClicked;
+
+		// Open asset editor
+		if (bClicked)
+		{
+			OpenAssetEditor(asset);
+		}
+
+		if (ImGui::IsItemHovered())
+		{
+			bHoveredAnyItem = true;
+			std::string tooltip = std::string("Asset Type: ") + Utils::GetEnumName(assetType) + '\n';
+			tooltip += bHintFullPath ? entry.FullPathString : entry.Filename;
+			UI::Tooltip(tooltip);
+		}
 	}
 
 	void ContentBrowserPanel::DrawPathHistory()
@@ -934,9 +1070,10 @@ namespace Eagle
 		}
 	}
 
-	void ContentBrowserPanel::GetSearchingContent(const std::string& search, std::vector<Path>& outFiles)
+	void ContentBrowserPanel::GetSearchingContent(const std::string& search, std::vector<ContentEntry>& outEntries)
 	{
 		const Path& projectPath = Project::GetProjectPath();
+		ContentEntry entry;
 		for (auto& dirEntry : std::filesystem::recursive_directory_iterator(m_CurrentDirectory))
 		{
 			if (dirEntry.is_directory())
@@ -948,15 +1085,15 @@ namespace Eagle
 			std::size_t pos = Utils::FindSubstringI(filename, search);
 			if (pos != std::string::npos)
 			{
-				outFiles.push_back(std::filesystem::relative(path, projectPath));
+				if (MakeFileEntry(std::filesystem::relative(path, projectPath), entry)) // Non-assets are ignored
+					outEntries.push_back(entry);
 			}
 		}
 	}
 
-	void ContentBrowserPanel::DrawItemPopupMenu(const Path& path, int timesCalledForASinglePath)
+	void ContentBrowserPanel::DrawItemPopupMenu(const Path& path, const std::string& pathString, bool bDirectory)
 	{
 		static bool bDoneOnce = false;
-		const std::string pathString = Utils::AsString(path);
 		if (ImGui::BeginPopupContextItem(pathString.c_str()))
 		{
 			if (!bDoneOnce)
@@ -967,8 +1104,6 @@ namespace Eagle
 
 			if (ImGui::MenuItem("Show In Explorer"))
 				Utils::ShowInExplorer(path);
-
-			const bool bDirectory = std::filesystem::is_directory(path);
 
 			if (bDirectory)
 			{

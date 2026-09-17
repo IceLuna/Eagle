@@ -267,6 +267,35 @@ namespace Eagle::UI
 
 			return bChanged;
 		}
+
+		// Trims `text` so that it fits into `maxWidth`, putting an ellipsis at the end when it doesn't fit.
+		// The result is written into `outBuffer`.
+		// Returns text size
+		static ImVec2 FitTextToWidth(const std::string_view text, float maxWidth, std::string& outBuffer)
+		{
+			const char* textBegin = text.data();
+			const char* textEnd = text.data() + text.size();
+
+			ImVec2 textSize = ImGui::CalcTextSize(textBegin, textEnd, true);
+			if (textSize.x <= maxWidth)
+			{
+				outBuffer = text;
+				return textSize;
+			}
+
+			static const char* s_Ellipsis = "...";
+			const float ellipsisWidth = ImGui::CalcTextSize(s_Ellipsis).x;
+
+			// Find how much of the text fits into the width that's left once the ellipsis is accounted for
+			const char* fitEnd = textBegin;
+			ImGui::GetFont()->CalcTextSizeA(ImGui::GetFontSize(), glm::max(0.f, maxWidth - ellipsisWidth), 0.f, textBegin, textEnd, &fitEnd);
+
+			outBuffer.assign(textBegin, fitEnd);
+			outBuffer += s_Ellipsis;
+			textSize = ImGui::CalcTextSize(outBuffer.c_str(), NULL, true);
+
+			return textSize;
+		}
 	}
 
 	int TextResizeCallback(ImGuiInputTextCallbackData* data)
@@ -2118,10 +2147,14 @@ namespace Eagle::UI
 	{
 		ImGuiContext& g = *GImGui;
 		const ImVec2 padding = g.Style.FramePadding;
-		const ImVec2 textSize = ImGui::CalcTextSize(text.data(), NULL, true);
 		const float itemSpacingHeight = g.Style.ItemSpacing.y;
 
 		ImVec2 frameSize = size + framePadding;
+
+		// The displayed text is trimmed to the width of the button, the full name is still used for the ID
+		static std::string s_DisplayedText; // Reused between calls to avoid allocating for every single button
+		ImVec2 textSize = FitTextToWidth(text, frameSize.x, s_DisplayedText);
+
 		frameSize.y += textSize.y + 2.f * itemSpacingHeight; // 2 item spacings because we add padding at the top and at the bottom
 
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -2154,7 +2187,7 @@ namespace Eagle::UI
 		// Centering text
 		ImGui::SetCursorScreenPos(ImVec2(glm::max(p.x, p.x + 0.5f * (size.x - textSize.x)), p.y + size.y + itemSpacingHeight + textHeightOffset));
 
-		ImGui::Text(text.data());
+		ImGui::TextUnformatted(s_DisplayedText.c_str());
 
 		window->DC.CursorPos = curLine;
 		window->DC.CursorPosPrevLine = prevLine;
