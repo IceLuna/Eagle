@@ -180,7 +180,7 @@ float DirLight_ShadowCalculation_Soft(sampler2DShadow shadowMap, vec3 fragPosLig
 			samples += 2;
 		}
 
-		visibilitySum /= float(samples);
+		visibility = visibilitySum / float(samples);
 	}
 
 	return visibility;
@@ -271,7 +271,7 @@ float SpotLight_ShadowCalculation_Soft(sampler2DShadow shadowMap, vec3 fragPosLi
 			samples += 2;
 		}
 
-		visibilitySum /= float(samples);
+		visibility = visibilitySum / float(samples);
 	}
 
 	return visibility;

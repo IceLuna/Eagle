@@ -63,7 +63,7 @@ vec3 CalculateSpotLightRadiance(SpotLight spotLight, vec3 worldPos, vec3 geometr
     const vec3 normIncoming = normalize(incoming);
 
     //Cutoff
-    const float innerCutOffCos = cos(spotLight.InnerCutOffRadians);
+    const float innerCutOffCos = spotLight.InnerCutOffCos;
     const float outerCutOffCos = cos(spotLight.OuterCutOffRadians);
     const float epsilon = innerCutOffCos - outerCutOffCos;
     const float theta = clamp(dot(normIncoming, normalize(-spotLight.Direction)), 0.0, 1.0);

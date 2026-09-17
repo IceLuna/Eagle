@@ -62,7 +62,7 @@ namespace Eagle
 		struct SpotLight
 		{
 			glm::vec3 Position;
-			float InnerCutOffRadians;
+			float InnerCutOffCos;
 
 			glm::vec3 Direction;
 			float OuterCutOffRadians;

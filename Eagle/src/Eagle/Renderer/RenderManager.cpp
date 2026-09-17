@@ -704,6 +704,7 @@ namespace Eagle
 
 	void RenderManager::SetPresentImage(const Ref<Image>& image)
 	{
+		EG_CORE_ASSERT(IsRenderThread());
 		s_RendererData->PresentImage = image;
 	}
 

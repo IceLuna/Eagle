@@ -116,7 +116,7 @@ namespace Eagle
 			light.Position = spotLight->GetWorldTransform().Location;
 			light.LightColor = spotLight->GetLightColor() * spotLight->GetIntensity();
 			light.Direction = spotLight->GetForwardVector();
-			light.InnerCutOffRadians = glm::radians(innerAngle);
+			light.InnerCutOffCos = glm::cos(glm::radians(innerAngle));
 			light.OuterCutOffRadians = glm::radians(outerAngle);
 			light.VolumetricFogIntensity = glm::max(spotLight->GetVolumetricFogIntensity(), 0.0f);
 			const float distance = spotLight->GetDistance();

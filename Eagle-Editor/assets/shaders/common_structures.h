@@ -152,7 +152,7 @@ struct DirectionalLight
 struct SpotLight
 {
 	vec3 Position;
-	float InnerCutOffRadians;
+	float InnerCutOffCos;
 
 	vec3 Direction;
 	float OuterCutOffRadians;

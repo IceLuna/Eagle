@@ -448,7 +448,7 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2DShadow shadowMap,
 	const float texelSize = 1.f / textureSize(shadowMap, 0).x;
 
 	//Cutoff
-	const float innerCutOffCos = cos(light.InnerCutOffRadians);
+	const float innerCutOffCos = light.InnerCutOffCos;
 	const float outerCutOffCos = cos(light.OuterCutOffRadians);
 	const float epsilon = innerCutOffCos - outerCutOffCos;
 	const vec3 normSpotDir = normalize(-light.Direction);
