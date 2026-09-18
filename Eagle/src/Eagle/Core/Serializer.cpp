@@ -472,6 +472,12 @@ namespace Eagle
 
 	ScopedDataBuffer Serializer::SerializeAsset(const Ref<Asset>& asset)
 	{
+		if (!asset)
+		{
+			EG_CORE_ERROR("Failed to serialize an asset. The asset is null");
+			return {};
+		}
+
 		switch (asset->GetAssetType())
 		{
 			case AssetType::Texture2D:
@@ -523,17 +529,19 @@ namespace Eagle
 
 		size_t totalSize = sizeof(AssetHeader);
 
-		const size_t origDataSize = textureData.Size; // Required for decompression
 		ScopedDataBuffer compressed(Compressor::Compress(textureData));
-
 		std::vector<CompressedTextureDataInfo> compressedInfo;
-		compressedInfo.reserve(compressedDataPerMip.size());
 		const size_t textureDataOffset = Utils::AddSize(compressed, &totalSize);
-		for (const auto& data : compressedDataPerMip)
+		const bool bStoreCompressedMips = compression != TextureCompressor::Quality::Disabled;
+		if (bStoreCompressedMips)
 		{
-			auto& info = compressedInfo.emplace_back();
-			info.Size = data.Size();
-			info.Offset = Utils::AddSize(data, &totalSize);
+			compressedInfo.reserve(compressedDataPerMip.size());
+			for (const auto& data : compressedDataPerMip)
+			{
+				auto& info = compressedInfo.emplace_back();
+				info.Size = data.Size();
+				info.Offset = Utils::AddSize(data, &totalSize);
+			}
 		}
 
 		YAML::Emitter out;
@@ -553,10 +561,9 @@ namespace Eagle
 		out << YAML::Key << "IsNormalMap" << YAML::Value << bNormalMap;
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "OrigSize" << YAML::Value << origDataSize;
 		out << YAML::Key << "Size" << YAML::Value << compressed.Size();
 		out << YAML::Key << "Offset" << YAML::Value << textureDataOffset;
-		if (compression != TextureCompressor::Quality::Disabled)
+		if (bStoreCompressedMips)
 		{
 			out << YAML::Key << "CompressedFormat" << YAML::Value << Utils::GetEnumName(compressedFormat);
 			out << YAML::Key << "Compressed" << YAML::Value << YAML::BeginSeq;
@@ -579,9 +586,10 @@ namespace Eagle
 		size_t offset = 0;
 		Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
 		Utils::WriteToBuffer(buffer, compressed, &offset);
-		for (const auto& data : compressedDataPerMip)
+		if (bStoreCompressedMips)
 		{
-			Utils::WriteToBuffer(buffer, data, &offset);
+			for (const auto& data : compressedDataPerMip)
+				Utils::WriteToBuffer(buffer, data, &offset);
 		}
 		Utils::WriteYaml(buffer, out, &offset);
 
@@ -601,9 +609,7 @@ namespace Eagle
 	{
 		size_t totalSize = sizeof(AssetHeader);
 
-		const size_t origDataSize = textureData.Size; // Required for decompression
 		ScopedDataBuffer compressed(Compressor::Compress(textureData));
-
 		const size_t textureDataOffset = Utils::AddSize(compressed, &totalSize);
 
 		YAML::Emitter out;
@@ -618,7 +624,6 @@ namespace Eagle
 		out << YAML::Key << "Compress" << YAML::Value << bCompress;
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "OrigSize" << YAML::Value << origDataSize;
 		out << YAML::Key << "Size" << YAML::Value << compressed.Size();
 		out << YAML::Key << "Offset" << YAML::Value << textureDataOffset;
 		out << YAML::EndMap;
@@ -649,16 +654,13 @@ namespace Eagle
 		size_t totalSize = sizeof(AssetHeader);
 
 		DataBuffer verticesBuffer{ (void*)mesh->GetVerticesData(), mesh->GetVerticesCount() * sizeof(Vertex) };
-		const size_t origVerticesDataSize = verticesBuffer.Size; // Required for decompression
 		ScopedDataBuffer compressedVertices(Compressor::Compress(verticesBuffer));
 
 		const uint32_t materialSlots = mesh->GetMaterialSlotsCount();
 		std::vector<ScopedDataBuffer> compressedIndices(materialSlots);
-		std::vector<size_t> origIndicesDataSizes(materialSlots);
 		for (uint32_t i = 0; i < materialSlots; ++i)
 		{
 			DataBuffer indicesBuffer{ (void*)mesh->GetIndicesData(i), mesh->GetIndicesCount(i) * sizeof(Index) };
-			origIndicesDataSizes[i] = indicesBuffer.Size; // Required for decompression
 			compressedIndices[i] = Compressor::Compress(indicesBuffer);
 		}
 
@@ -723,7 +725,6 @@ namespace Eagle
 		}
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "VerticesOrigSize" << YAML::Value << origVerticesDataSize;
 		out << YAML::Key << "VerticesSize" << YAML::Value << compressedVertices.Size();
 		out << YAML::Key << "VerticesOffset" << YAML::Value << verticesOffset;
 
@@ -732,7 +733,6 @@ namespace Eagle
 		for (uint32_t i = 0; i < materialSlots; ++i)
 		{
 			out << YAML::BeginMap;
-			out << YAML::Key << "IndicesOrigSize" << YAML::Value << origIndicesDataSizes[i];
 			out << YAML::Key << "IndicesSize" << YAML::Value << compressedIndices[i].Size();
 			out << YAML::Key << "IndicesOffset" << YAML::Value << indicesOffsets[i];
 			out << YAML::EndMap;
@@ -769,7 +769,6 @@ namespace Eagle
 		size_t totalSize = sizeof(AssetHeader);
 
 		DataBuffer verticesBuffer{ (void*)mesh->GetVerticesData(), mesh->GetVerticesCount() * sizeof(SkeletalVertex) };
-		const size_t origVerticesDataSize = verticesBuffer.Size; // Required for decompression
 		ScopedDataBuffer compressedVertices(Compressor::Compress(verticesBuffer));
 
 		const uint32_t materialSlots = mesh->GetMaterialSlotsCount();
@@ -778,7 +777,6 @@ namespace Eagle
 		for (uint32_t i = 0; i < materialSlots; ++i)
 		{
 			DataBuffer indicesBuffer{ (void*)mesh->GetIndicesData(i), mesh->GetIndicesCount(i) * sizeof(Index) };
-			origIndicesDataSizes[i] = indicesBuffer.Size; // Required for decompression
 			compressedIndices[i] = Compressor::Compress(indicesBuffer);
 		}
 
@@ -884,7 +882,6 @@ namespace Eagle
 		}
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "VerticesOrigSize" << YAML::Value << origVerticesDataSize;
 		out << YAML::Key << "VerticesSize" << YAML::Value << compressedVertices.Size();
 		out << YAML::Key << "VerticesOffset" << YAML::Value << verticesOffset;
 
@@ -893,7 +890,6 @@ namespace Eagle
 		for (uint32_t i = 0; i < materialSlots; ++i)
 		{
 			out << YAML::BeginMap;
-			out << YAML::Key << "IndicesOrigSize" << YAML::Value << origIndicesDataSizes[i];
 			out << YAML::Key << "IndicesSize" << YAML::Value << compressedIndices[i].Size();
 			out << YAML::Key << "IndicesOffset" << YAML::Value << indicesOffsets[i];
 			out << YAML::EndMap;
@@ -929,9 +925,7 @@ namespace Eagle
 	{
 		size_t totalSize = sizeof(AssetHeader);
 
-		const size_t origDataSize = audioData.Size; // Required for decompression
 		ScopedDataBuffer compressed(Compressor::Compress(audioData));
-
 		const size_t dataOffset = Utils::AddSize(compressed, &totalSize);
 
 		YAML::Emitter out;
@@ -947,7 +941,6 @@ namespace Eagle
 			out << YAML::Key << "SoundGroup" << YAML::Value << soundGroup->GetGUID();
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "OrigSize" << YAML::Value << origDataSize;
 		out << YAML::Key << "Size" << YAML::Value << compressed.Size();
 		out << YAML::Key << "Offset" << YAML::Value << dataOffset;
 		out << YAML::EndMap;
@@ -976,10 +969,7 @@ namespace Eagle
 	{
 		size_t totalSize = sizeof(AssetHeader);
 
-		const size_t origDataSize = fontData.Size; // Required for decompression
 		ScopedDataBuffer compressed(Compressor::Compress(fontData));
-
-		const size_t origFontSize = atlasData.Size;
 		ScopedDataBuffer compressedAtlas = Compressor::Compress(atlasData);
 
 		const size_t dataOffset = Utils::AddSize(compressed, &totalSize);
@@ -993,13 +983,11 @@ namespace Eagle
 		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "OrigSize" << YAML::Value << origDataSize;
 		out << YAML::Key << "Size" << YAML::Value << compressed.Size();
 		out << YAML::Key << "Offset" << YAML::Value << dataOffset;
 		out << YAML::EndMap;
 
 		out << YAML::Key << "AtlasData" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "OrigSize" << YAML::Value << origFontSize;
 		out << YAML::Key << "Size" << YAML::Value << compressedAtlas.Size();
 		out << YAML::Key << "Offset" << YAML::Value << atlasOffset;
 		out << YAML::Key << "AtlasSize" << YAML::Value << atlasSize;
@@ -3428,6 +3416,11 @@ namespace Eagle
 	Ref<Asset> Serializer::DeserializeAsset(const Path& pathToAsset, bool bReloadRaw)
 	{
 		ScopedDataBuffer data = FileSystem::Read(pathToAsset);
+		if (!data)
+		{
+			EG_CORE_ERROR("Failed to deserialize an asset. Couldn't read the file: {}", pathToAsset);
+			return {};
+		}
 		return DeserializeAsset(data.GetDataBuffer(), pathToAsset, bReloadRaw);
 	}
 
@@ -3534,11 +3527,14 @@ namespace Eagle
 		}
 		else if (auto baseDataNode = baseNode["Data"])
 		{
-			const size_t origSize = baseDataNode["OrigSize"].as<size_t>();
 			const size_t dataSize = baseDataNode["Size"].as<size_t>();
 			const size_t dataOffset = baseDataNode["Offset"].as<size_t>();
 
-			Utils::ReadCompressedBinary(data, dataSize, dataOffset, origSize, &binary);
+			if (!Utils::ReadCompressedBinary(data, dataSize, dataOffset, &binary))
+			{
+				EG_CORE_ERROR("Failed to deserialize texture 2D. Texture data is corrupted: {}", pathToAsset);
+				return {};
+			}
 
 			if (auto node = baseDataNode["CompressedFormat"])
 			{
@@ -3552,7 +3548,12 @@ namespace Eagle
 					const size_t offset = compressed["Offset"].as<size_t>();
 
 					auto& buffer = compressedTextures.emplace_back();
-					Utils::ReadBinary(data, size, offset, &buffer);
+					if (!Utils::ReadBinary(data, size, offset, &buffer))
+					{
+						EG_CORE_WARN("Compressed mips of a texture are corrupted. They'll be regenerated: {}", pathToAsset);
+						compressedTextures.clear();
+						break;
+					}
 				}
 			}
 		}
@@ -3652,10 +3653,13 @@ namespace Eagle
 		{
 			if (auto baseDataNode = baseNode["Data"])
 			{
-				const size_t origSize = baseDataNode["OrigSize"].as<size_t>();
 				const size_t dataSize = baseDataNode["Size"].as<size_t>();
 				const size_t dataOffset = baseDataNode["Offset"].as<size_t>();
-				Utils::ReadCompressedBinary(data, dataSize, dataOffset, origSize, &binary);
+				if (!Utils::ReadCompressedBinary(data, dataSize, dataOffset, &binary))
+				{
+					EG_CORE_ERROR("Failed to deserialize texture cube. Texture data is corrupted: {}", pathToAsset);
+					return {};
+				}
 			}
 		}
 
@@ -3781,10 +3785,13 @@ namespace Eagle
 		{
 			// Vertices
 			{
-				const size_t origVerticesSize = baseDataNode["VerticesOrigSize"].as<size_t>();
 				const size_t verticesSize = baseDataNode["VerticesSize"].as<size_t>();
 				const size_t verticesOffset = baseDataNode["VerticesOffset"].as<size_t>();
-				Utils::ReadCompressedBinary(data, verticesSize, verticesOffset, origVerticesSize, &vertices);
+				if (!Utils::ReadCompressedBinary(data, verticesSize, verticesOffset, &vertices))
+				{
+					EG_CORE_ERROR("Failed to deserialize a mesh. Vertex data is corrupted: {}", pathToAsset);
+					return {};
+				}
 			}
 
 			// Indices
@@ -3792,12 +3799,15 @@ namespace Eagle
 				auto indicesPerMaterialNode = baseDataNode["IndicesPerMaterial"];
 				for (const auto& node : indicesPerMaterialNode)
 				{
-					const size_t origIndicesSize = node["IndicesOrigSize"].as<size_t>();
 					const size_t indicesSize = node["IndicesSize"].as<size_t>();
 					const size_t indicesOffset = node["IndicesOffset"].as<size_t>();
 
 					auto& indices = indicesPerMaterial.emplace_back();
-					Utils::ReadCompressedBinary(data, indicesSize, indicesOffset, origIndicesSize, &indices);
+					if (!Utils::ReadCompressedBinary(data, indicesSize, indicesOffset, &indices))
+					{
+						EG_CORE_ERROR("Failed to deserialize a mesh. Index data is corrupted: {}", pathToAsset);
+						return {};
+					}
 				}
 			}
 		}
@@ -3977,10 +3987,13 @@ namespace Eagle
 		{
 			// Vertices
 			{
-				const size_t origVerticesSize = baseDataNode["VerticesOrigSize"].as<size_t>();
 				const size_t verticesSize = baseDataNode["VerticesSize"].as<size_t>();
 				const size_t verticesOffset = baseDataNode["VerticesOffset"].as<size_t>();
-				Utils::ReadCompressedBinary(data, verticesSize, verticesOffset, origVerticesSize, &vertices);
+				if (!Utils::ReadCompressedBinary(data, verticesSize, verticesOffset, &vertices))
+				{
+					EG_CORE_ERROR("Failed to deserialize a mesh. Vertex data is corrupted: {}", pathToAsset);
+					return {};
+				}
 			}
 
 			// Indices
@@ -3988,12 +4001,15 @@ namespace Eagle
 				auto indicesPerMaterialNode = baseDataNode["IndicesPerMaterial"];
 				for (const auto& node : indicesPerMaterialNode)
 				{
-					const size_t origIndicesSize = node["IndicesOrigSize"].as<size_t>();
 					const size_t indicesSize = node["IndicesSize"].as<size_t>();
 					const size_t indicesOffset = node["IndicesOffset"].as<size_t>();
 
 					auto& indices = indicesPerMaterial.emplace_back();
-					Utils::ReadCompressedBinary(data, indicesSize, indicesOffset, origIndicesSize, &indices);
+					if (!Utils::ReadCompressedBinary(data, indicesSize, indicesOffset, &indices))
+					{
+						EG_CORE_ERROR("Failed to deserialize a mesh. Index data is corrupted: {}", pathToAsset);
+						return {};
+					}
 				}
 			}
 		}
@@ -4055,10 +4071,9 @@ namespace Eagle
 		{
 			if (auto baseDataNode = baseNode["Data"])
 			{
-				const size_t origSize = baseDataNode["OrigSize"].as<size_t>();
 				const size_t dataSize = baseDataNode["Size"].as<size_t>();
 				const size_t dataOffset = baseDataNode["Offset"].as<size_t>();
-				Utils::ReadCompressedBinary(data, dataSize, dataOffset, origSize, &binary);
+				Utils::ReadCompressedBinary(data, dataSize, dataOffset, &binary);
 			}
 			if (!binary)
 			{
@@ -4126,10 +4141,9 @@ namespace Eagle
 
 			if (auto baseDataNode = baseNode["Data"])
 			{
-				const size_t origSize = baseDataNode["OrigSize"].as<size_t>();
 				const size_t dataSize = baseDataNode["Size"].as<size_t>();
 				const size_t dataOffset = baseDataNode["Offset"].as<size_t>();
-				Utils::ReadCompressedBinary(data, dataSize, dataOffset, origSize, &binary);
+				Utils::ReadCompressedBinary(data, dataSize, dataOffset, &binary);
 			}
 			if (!binary)
 			{
@@ -4139,12 +4153,11 @@ namespace Eagle
 
 			if (auto baseDataNode = baseNode["AtlasData"])
 			{
-				const size_t origSize = baseDataNode["OrigSize"].as<size_t>();
 				const size_t dataSize = baseDataNode["Size"].as<size_t>();
 				const size_t dataOffset = baseDataNode["Offset"].as<size_t>();
 				size = baseDataNode["AtlasSize"].as<glm::uvec2>();
 				
-				Utils::ReadCompressedBinary(data, dataSize, dataOffset, origSize, &atlasBinary);
+				Utils::ReadCompressedBinary(data, dataSize, dataOffset, &atlasBinary);
 			}
 
 			if (atlasBinary)
@@ -4435,7 +4448,7 @@ namespace Eagle
 		if (bReloadRaw)
 		{
 			std::vector<SkeletalMeshAnimation> animations = Utils::ImportAnimations(pathToRaw, skeletal->GetMesh(), GetRootMotionMode(baseNode));
-			if (animations.size() < animIndex)
+			if (animIndex >= animations.size())
 			{
 				const std::string errorMessage = "Failed to reload an animation asset. The asset was initially imported at index " + 
 					std::to_string(animIndex) + ", but now the file doesn't contains an animation at that index: " + Utils::AsString(pathToRaw);
@@ -4474,28 +4487,44 @@ namespace Eagle
 				{
 					const size_t size = rootMotionNode["LocationsSize"].as<size_t>();
 					const size_t offset = rootMotionNode["LocationsOffset"].as<size_t>();
-					Utils::ReadBinary(data, size, offset, &animation.RootMotion.Locations);
+					if (!Utils::ReadBinary(data, size, offset, &animation.RootMotion.Locations))
+					{
+						EG_CORE_ERROR("Failed to deserialize animation. Root motion data is corrupted: {}", pathToAsset);
+						return {};
+					}
 				}
 
 				// Rotations
 				{
 					const size_t size = rootMotionNode["RotationsSize"].as<size_t>();
 					const size_t offset = rootMotionNode["RotationsOffset"].as<size_t>();
-					Utils::ReadBinary(data, size, offset, &animation.RootMotion.Rotations);
+					if (!Utils::ReadBinary(data, size, offset, &animation.RootMotion.Rotations))
+					{
+						EG_CORE_ERROR("Failed to deserialize animation. Root motion data is corrupted: {}", pathToAsset);
+						return {};
+					}
 				}
 
 				// Scales
 				{
 					const size_t size = rootMotionNode["ScalesSize"].as<size_t>();
 					const size_t offset = rootMotionNode["ScalesOffset"].as<size_t>();
-					Utils::ReadBinary(data, size, offset, &animation.RootMotion.Scales);
+					if (!Utils::ReadBinary(data, size, offset, &animation.RootMotion.Scales))
+					{
+						EG_CORE_ERROR("Failed to deserialize animation. Root motion data is corrupted: {}", pathToAsset);
+						return {};
+					}
 				}
 
 				// Pre RM locations
 				{
 					const size_t size = rootMotionNode["PreRMLocationsSize"].as<size_t>();
 					const size_t offset = rootMotionNode["PreRMLocationsOffset"].as<size_t>();
-					Utils::ReadBinary(data, size, offset, &animation.PreRootMotionLocations);
+					if (!Utils::ReadBinary(data, size, offset, &animation.PreRootMotionLocations))
+					{
+						EG_CORE_ERROR("Failed to deserialize animation. Root motion data is corrupted: {}", pathToAsset);
+						return {};
+					}
 				}
 			}
 
@@ -4874,7 +4903,7 @@ namespace Eagle
 
 		if (!baseNode)
 		{
-			EG_CORE_ERROR("Failed to get an asset type: {}", pathToAsset);
+			EG_CORE_ERROR("Failed to get an asset type");
 			return AssetType::None;
 		}
 
@@ -4902,6 +4931,8 @@ namespace Eagle
 	AssetType Serializer::GetAssetType(const Path& pathToAsset)
 	{
 		ScopedDataBuffer data = FileSystem::Read(pathToAsset);
+		if (!data)
+			return AssetType::None;
 		return GetAssetType(data.GetDataBuffer());
 	}
 

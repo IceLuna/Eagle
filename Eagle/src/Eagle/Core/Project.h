@@ -65,6 +65,8 @@ namespace Eagle
 		static Path GetSavedPath() { return GetProjectPath() / "Saved"; }
 		static Path GetPhysicsDebugInfoPath() { return Project::GetSavedPath() / "PhysXDebugInfo"; }
 
+		static Path GetShaderPackRelativePath() { return "Data/ShaderPack.egspack"; }
+
 		static const char* GetExtension() { return ".egproj"; }
 
 	private:

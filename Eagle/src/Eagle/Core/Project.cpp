@@ -338,15 +338,9 @@ namespace Eagle
 			Utils::WriteToBuffer(build, &header, sizeof(header), &offset);
 			Utils::WriteStringToBuffer(build, yamlStr, &offset);
 
-			const size_t origSize = build.Size();
 			ScopedDataBuffer compressed = Compressor::Compress(build);
-
-			ScopedDataBuffer outputData(compressed.Size() + sizeof(size_t)); // We append buffer's size at the beginning, so we need room for it
-			outputData.Write(&origSize, sizeof(size_t));
-			outputData.Write(compressed.Data(), compressed.Size(), sizeof(size_t));
-
-			const Path outputFilename = outputFolder / "Data" / "ShaderPack.egspack";
-			FileSystem::Write(outputFilename, outputData.GetDataBuffer());
+			const Path outputFilename = outputFolder / GetShaderPackRelativePath();
+			FileSystem::Write(outputFilename, compressed.GetDataBuffer());
 		}
 
 		Application::Get().GetImGuiLayer()->AddMessage("The build finished successfully!");
@@ -362,10 +356,7 @@ namespace Eagle
 			exit(-1);
 		}
 
-		const size_t origSize = compressedData.Read<size_t>();
-		DataBuffer compressedDataWithOffset((uint8_t*)compressedData.Data() + sizeof(size_t), compressedData.Size() - sizeof(size_t));
-
-		ScopedDataBuffer data = Compressor::Decompress(compressedDataWithOffset, origSize);
+		ScopedDataBuffer data = Compressor::Decompress(compressedData);
 
 		YAML::Node baseNode;
 		Utils::ReadYAML(data, &baseNode);

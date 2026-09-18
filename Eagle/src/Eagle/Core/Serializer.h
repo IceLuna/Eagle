@@ -130,7 +130,6 @@ namespace Eagle
 		static void DeserializeRendererSettings(YAML::Node& node, SceneRendererSettings& settings);
 		static uint32_t DeserializeProjectCollisionGroupGUIDs(const YAML::Node& node);
 
-		// Nullptr can be passed to create an empty asset
 		static ScopedDataBuffer SerializeAsset(const Ref<Asset>& asset);
 		static ScopedDataBuffer SerializeAssetTexture2D(const Ref<AssetTexture2D>& asset);
 		static ScopedDataBuffer SerializeAssetTextureCube(const Ref<AssetTextureCube>& asset);

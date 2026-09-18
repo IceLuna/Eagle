@@ -59,7 +59,7 @@ namespace Eagle
 
 		if (m_Game)
 		{
-			const Path shaderPackPath = "Data/ShaderPack.egspack";
+			const Path shaderPackPath = Project::GetShaderPackRelativePath();
 			ScopedDataBuffer compressedData = FileSystem::Read(shaderPackPath);
 			if (!compressedData)
 			{
@@ -67,10 +67,7 @@ namespace Eagle
 				exit(-1);
 			}
 
-			const size_t origSize = compressedData.Read<size_t>();
-			DataBuffer compressedDataWithOffset((uint8_t*)compressedData.Data() + sizeof(size_t), compressedData.Size() - sizeof(size_t));
-
-			ScopedDataBuffer data = Compressor::Decompress(compressedDataWithOffset, origSize);
+			ScopedDataBuffer data = Compressor::Decompress(compressedData);
 
 			YAML::Node baseNode;
 			Utils::ReadYAML(data, &baseNode);
