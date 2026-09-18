@@ -331,7 +331,7 @@ namespace Eagle
 				RenderSettings("", m_CommonSettings, m_AsSkeletal);
 			});
 
-			FancyTreeNode("Per-mesh import settings overrides", false, [this]()
+			FancyTreeNode("Per-mesh file import settings overrides", false, [this]()
 			{
 				for (auto& mesh : m_Meshes)
 				{

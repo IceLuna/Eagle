@@ -22,8 +22,9 @@
 
 namespace Eagle
 {
+	// @pathToRaw. Can be empty if it doesn't come from a file
 	// Returns an eagle asset file data
-	static ScopedDataBuffer CreateTexture2DAssetFromMemory(DataBuffer buffer, const Path& outputFilename, const AssetImportTexture2DSettings& settings)
+	static ScopedDataBuffer CreateTexture2DAssetFromMemory(DataBuffer buffer, const Path& outputFilename, const AssetImportTexture2DSettings& settings, const Path pathToRaw = {})
 	{
 		TextureCompressor::Result compressedData{};
 		TextureCompressor::Quality compression = settings.Compression;
@@ -39,7 +40,6 @@ namespace Eagle
 		int width, height, channels;
 		stbi_info_from_memory((uint8_t*)buffer.Data, (int)buffer.Size, &width, &height, &channels);
 
-		const Path pathToRaw = {}; // Empty since it doesn't come from a file
 		auto data = Serializer::SerializeAssetTexture2DFromData(buffer, compressedData.DataPerMip, compressedData.Format, GUID{}, pathToRaw,
 			settings.FilterMode, settings.AddressMode, settings.Anisotropy, settings.MipsCount,
 			width, height, settings.ImportFormat, compression, settings.bNormalMap);
@@ -53,7 +53,6 @@ namespace Eagle
 		if (!std::filesystem::exists(pathToRaw) || std::filesystem::is_directory(pathToRaw))
 		{
 			EG_CORE_ERROR("Import failed. File doesn't exist: {}", pathToRaw);
-			spdlog::info("{}", pathToRaw);
 			return false;
 		}
 
@@ -344,7 +343,7 @@ namespace Eagle
 	bool AssetImporter::ImportTexture2D(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings)
 	{
 		ScopedDataBuffer buffer(FileSystem::Read(pathToRaw));
-		CreateTexture2DAssetFromMemory(buffer.GetDataBuffer(), outputFilename, settings.Texture2DSettings);
+		CreateTexture2DAssetFromMemory(buffer.GetDataBuffer(), outputFilename, settings.Texture2DSettings, pathToRaw);
 		return true;
 	}
 	

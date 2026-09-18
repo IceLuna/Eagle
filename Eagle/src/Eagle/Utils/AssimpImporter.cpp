@@ -11,6 +11,7 @@
 #include "Eagle/Utils/PlatformUtils.h"
 
 #include <glm/gtx/quaternion.hpp>
+#include <assimp/GltfMaterial.h>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -133,6 +134,11 @@ namespace Eagle
 	static inline glm::vec3 ToGLM(const aiColor3D& vec)
 	{
 		return glm::vec3(vec.r, vec.g, vec.b);
+	}
+
+	static inline glm::vec4 ToGLM(const aiColor4D& vec)
+	{
+		return glm::vec4(vec.r, vec.g, vec.b, vec.a);
 	}
 
 	static inline glm::quat ToGLM(const aiQuaternion& pOrientation)
@@ -927,20 +933,9 @@ namespace Eagle
 		return ProcessAnimations(scene, skeletal->GetSkeletalMeshInfo(), rootMotionMode);
 	}
 
-	static Ref<AssetTexture2D> CreateAssetFromEncoded(DataBuffer buffer, const Path& saveTo, const std::string& filename, bool bNormalMap)
+	static Ref<AssetTexture2D> CreateAssetFromEncoded(DataBuffer buffer, const Path& saveTo, const std::string& filename, const AssetImportSettings& settings)
 	{
-		const Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, filename);
-
-		int width, height, channels;
-		stbi_info_from_memory((uint8_t*)buffer.Data, (int)buffer.Size, &width, &height, &channels);
-
-		AssetImportSettings settings{};
-		auto& textureSettings = settings.Texture2DSettings;
-		textureSettings.bNormalMap = bNormalMap;
-		textureSettings.ImportFormat = ChannelsToAssetTexture2DFormat(channels);
-		textureSettings.MipsCount = CalculateMipCount(width, height);
-
-		return AssetImporter::ImportTexture2DFromMemory(buffer, saveTo, filename, textureSettings);
+		return AssetImporter::ImportTexture2DFromMemory(buffer, saveTo, filename, settings.Texture2DSettings);
 	}
 
 	static Ref<AssetTexture2D> ProcessTextureInMaterial(std::unordered_map<Path, Ref<AssetTexture2D>>& cache, const Path& path, const aiScene* scene, const aiMaterial* aiMat, const Path& saveTo, aiTextureType textureType, aiTextureType fallbackType = aiTextureType_UNKNOWN)
@@ -967,6 +962,11 @@ namespace Eagle
 		Ref<AssetTexture2D> assetTexture;
 		if (hasTexture)
 		{
+			AssetImportSettings settings{};
+			auto& textureSettings = settings.Texture2DSettings;
+			textureSettings.bNormalMap = bNormalMap;
+			textureSettings.Compression = bNormalMap ? TextureCompressor::Quality::High : TextureCompressor::Quality::Medium;
+
 			if (auto aiTexture = scene->GetEmbeddedTexture(aiTexturePath.C_Str()))
 			{
 				glm::uvec2 size = { aiTexture->mWidth, aiTexture->mHeight };
@@ -974,7 +974,15 @@ namespace Eagle
 				if (size.y == 0u)
 				{
 					const std::string textureName = Utils::AsString(texturePath.stem());
-					assetTexture = CreateAssetFromEncoded(DataBuffer(aiTexture->pcData, aiTexture->mWidth), saveTo, textureName, bNormalMap);
+					DataBuffer buffer = DataBuffer(aiTexture->pcData, aiTexture->mWidth);
+
+					int width, height, channels;
+					stbi_info_from_memory((uint8_t*)buffer.Data, (int)buffer.Size, &width, &height, &channels);
+					textureSettings.ImportFormat = ChannelsToAssetTexture2DFormat(channels);
+					textureSettings.MipsCount = CalculateMipCount(size.x, size.y);
+					textureSettings.FilterMode = bNormalMap && glm::max(width, height) > 2000 ? FilterMode::Trilinear : FilterMode::Bilinear;
+
+					assetTexture = CreateAssetFromEncoded(buffer, saveTo, textureName, settings);
 				}
 				else if (size.x > 0 && size.y > 0 && (strcmp(aiTexture->achFormatHint, "rgba8888") == 0))
 				{
@@ -983,10 +991,14 @@ namespace Eagle
 					const size_t memSize = size.x * size.y * texelSize;
 					DataBuffer decoded = { aiTexture->pcData, memSize };
 
+					textureSettings.ImportFormat = ChannelsToAssetTexture2DFormat(numChannels);
+					textureSettings.MipsCount = CalculateMipCount(size.x, size.y);
+					textureSettings.FilterMode = bNormalMap && glm::max(size.x, size.y) > 2000 ? FilterMode::Trilinear : FilterMode::Bilinear;
+
 					// We need an encoded (png/jpg etc) image data for asset creation
 					const ScopedDataBuffer png = Utils::ToPNG(decoded, size, numChannels);
 					const std::string textureName = Utils::AsString(texturePath.stem());
-					assetTexture = CreateAssetFromEncoded(png.GetDataBuffer(), saveTo, textureName, bNormalMap);
+					assetTexture = CreateAssetFromEncoded(png.GetDataBuffer(), saveTo, textureName, settings);
 				}
 				else
 				{
@@ -1000,17 +1012,13 @@ namespace Eagle
 					texturePath = texturePath.parent_path() / "textures" / texturePath.filename();
 				}
 
-				AssetImportSettings importSettings{};
-				{
-					auto& settings = importSettings.Texture2DSettings;
-					settings.bNormalMap = Utils::IsNormalMap(texturePath);
+				int width = 0, height = 0, comp = 1;
+				stbi_info(Utils::AsString(texturePath).c_str(), &width, &height, &comp);
+				textureSettings.ImportFormat = ChannelsToAssetTexture2DFormat(comp);
+				textureSettings.FilterMode = bNormalMap && glm::max(width, height) > 2000 ? FilterMode::Trilinear : FilterMode::Bilinear;
+				textureSettings.MipsCount = CalculateMipCount(width, height);
 
-					int comp = 1;
-					int unused = 0;
-					stbi_info(Utils::AsString(texturePath).c_str(), &unused, &unused, &comp);
-					settings.ImportFormat = ChannelsToAssetTexture2DFormat(comp);
-				}
-				if (AssetImporter::Import(texturePath, saveTo, AssetType::Texture2D, importSettings))
+				if (AssetImporter::Import(texturePath, saveTo, AssetType::Texture2D, settings))
 				{
 					Path outputFilename = saveTo / Utils::AsPath(Utils::AsString(texturePath.stem()) + Asset::GetExtension());
 					assetTexture = Cast<AssetTexture2D>(Asset::Create(outputFilename));
@@ -1071,13 +1079,14 @@ namespace Eagle
 			}
 			if (opacity)
 			{
+				material->SetOpacityAsset(opacity);
 				material->SetRawOpacityUsed(false);
 				material->SetBlendMode(MaterialBlendMode::Translucent);
 			}
 
 			{
-				aiColor3D aiValue;
-
+				aiColor4D aiBaseColor;
+				aiColor4D aiValue;
 				if (albedo)
 				{
 					material->SetAlbedoAsset(albedo);
@@ -1085,9 +1094,9 @@ namespace Eagle
 				}
 				else
 				{
-					if (aiMaterial->Get(AI_MATKEY_BASE_COLOR, aiValue) == AI_SUCCESS || aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiValue) == AI_SUCCESS)
+					if (aiMaterial->Get(AI_MATKEY_BASE_COLOR, aiBaseColor) == AI_SUCCESS || aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiBaseColor) == AI_SUCCESS)
 					{
-						material->SetAlbedo(ToGLM(aiValue));
+						material->SetAlbedo(ToGLM(aiBaseColor));
 						material->SetRawAlbedoUsed(true);
 					}
 				}
@@ -1187,6 +1196,48 @@ namespace Eagle
 					{
 						material->SetRoughnessTextureChannel(Material::TextureChannel::G);
 						material->SetMetalnessTextureChannel(Material::TextureChannel::B);
+					}
+
+					// Try to get alpha from the base color
+					if (material->GetBlendMode() == MaterialBlendMode::Opaque)
+					{
+						aiString alphaMode;
+						if (aiMaterial->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode) == AI_SUCCESS)
+						{
+							if (alphaMode == aiString("BLEND"))
+							{
+								material->SetBlendMode(MaterialBlendMode::Translucent);
+								if (albedo)
+								{
+									material->SetOpacityAsset(albedo);
+									material->SetOpacityTextureChannel(Material::TextureChannel::A);
+									material->SetRawOpacityUsed(false);
+								}
+								else
+								{
+									material->SetOpacity(aiBaseColor.a);
+									material->SetRawOpacityUsed(true);
+								}
+							}
+							else if (alphaMode == aiString("MASK"))
+							{
+								// We don't support custom cutoff value
+								// aiMaterial->Get(AI_MATKEY_GLTF_ALPHACUTOFF, cutoff);
+
+								material->SetBlendMode(MaterialBlendMode::Masked);
+								if (albedo)
+								{
+									material->SetOpacityMaskAsset(albedo);
+									material->SetOpacityMaskTextureChannel(Material::TextureChannel::A);
+									material->SetRawOpacityMaskUsed(false);
+								}
+								else
+								{
+									material->SetOpacityMask(aiBaseColor.a);
+									material->SetRawOpacityMaskUsed(true);
+								}
+							}
+						}
 					}
 				}
 			}
