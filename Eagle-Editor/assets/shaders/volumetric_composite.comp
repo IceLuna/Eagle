@@ -24,7 +24,7 @@ layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
 
 #define SIGMA 16.0
 #define BSIGMA 8.f
-#define SIZE 9
+#define SIZE 7
 #define HSIZE (SIZE-1)/2
 
 #define USE_SHARED 1
@@ -74,8 +74,7 @@ void main()
 
 	// Precalculated for 
 	// #define SIGMA 16.0
-	// #define BSIGMA 8.f
-	// #define SIZE 9
+	// #define SIZE 7
 	// #define HSIZE (SIZE-1)/2
 #if 1
 	const float kernel[SIZE] = 
@@ -83,8 +82,6 @@ void main()
 		0.0241666,
 		0.0244993,
 		0.0247397,
-		0.0248851,
-		0.0249337,
 		0.0248851,
 		0.0247397,
 		0.0244993,

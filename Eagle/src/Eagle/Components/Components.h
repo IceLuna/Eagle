@@ -442,11 +442,7 @@ namespace Eagle
 		
 		void SetInnerCutOffAngle(float angle)
 		{
-			angle = glm::clamp(angle, 1.f, 80.f);
-
-			m_InnerCutOffAngle = std::min(m_OuterCutOffAngle, angle);
-			m_OuterCutOffAngle = std::max(m_OuterCutOffAngle, angle);
-
+			m_InnerCutOffAngle = glm::clamp(angle, 1.f, 80.f);
 			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
 		}
 
@@ -454,11 +450,7 @@ namespace Eagle
 		
 		void SetOuterCutOffAngle(float angle)
 		{
-			angle = glm::clamp(angle, 1.f, 80.f);
-
-			m_OuterCutOffAngle = std::max(m_InnerCutOffAngle, angle);
-			m_InnerCutOffAngle = std::min(m_InnerCutOffAngle, angle);
-
+			m_OuterCutOffAngle = glm::clamp(angle, 1.f, 80.f);
 			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
 		}
 

@@ -299,6 +299,7 @@ namespace Eagle
 					insertionIndices = {};
 					lastMesh = instanceKey.Mesh;
 					lastBlendMode = uint32_t(instanceKey.BlendMode);
+					lastDoubleSided = instanceKey.bDoubleSided;
 				}
 
 				const bool bNewMatSlot = lastMaterialSlot != instanceKey.MaterialSlot;
