@@ -33,6 +33,7 @@ namespace Eagle
 		Asset, AssetTexture2D, AssetTextureCube, AssetStaticMesh, AssetSkeletalMesh, AssetAudio, AssetSoundGroup,
 		AssetFont, AssetMaterial, AssetPhysicsMaterial, AssetEntity, AssetScene, AssetAnimation, AssetAnimationGraph,
 		AssetParticleSystem, AssetAnimationBlendSpace, AssetBehaviorGraph,
+		Struct, // User-defined C# struct
 	};
 
 	inline bool IsAssetType(FieldType type)
@@ -80,6 +81,13 @@ namespace Eagle
 		// If `Type` is `Enum` then this can be used to fetch valid `names - values`
 		ScriptEnumFields EnumFields;
 
+		// If `Type` is `Struct`, this describes the struct members (with default values).
+		// It acts as a template: every element of the field (`ArrayLength` of them) has its own copy of these members,
+		// which can be accessed via `GetStructMembers(idx)`.
+		// In runtime these can be used directly together with a boxed struct (see `EditRuntimeStruct()`).
+		// Note: members are not sorted and only public (non-static) fields of a struct are supported, properties are not
+		std::vector<PublicField> StructMembers;
+
 		PublicField() = default;
 		PublicField(const std::string& fullName, const std::string& uiName, const std::string& typeName, const std::string& toolTip, FieldType type,
 			bool bArray, size_t arrayLength);
@@ -97,12 +105,33 @@ namespace Eagle
 		void SetMonoClassField(MonoClassField* value);
 		void SetMonoProperty(MonoProperty* value);
 
+		// Only valid if `Type` is `Struct`. Sets the struct members and resets stored values of all elements to the members' defaults
+		void SetStructMembers(std::vector<PublicField>&& members);
+
+		// Only valid if `Type` is `Struct`.
+		// Returns stored members of an element.
+		// @idx. Used if it's an array
+		std::vector<PublicField>& GetStructMembers(size_t idx = 0);
+		const std::vector<PublicField>& GetStructMembers(size_t idx = 0) const;
+
+		// Only valid if `Type` is `Struct`.
+		// Since structs are value types, their runtime value is a copy. This function:
+		//   1) Retrieves a boxed copy of a struct (element `idx` if it's an array);
+		//   2) Calls `func` with that boxed struct. It can be used as an `instance` for `StructMembers` (for example, `member.GetRuntimeValue<float>(boxedStruct)`);
+		//   3) If `func` returns true, writes the (modified) boxed struct back to `instance`.
+		// Returns what `func` returned (or false if it failed to retrieve the struct)
+		bool EditRuntimeStruct(MonoObject* instance, size_t idx, const std::function<bool(MonoObject* boxedStruct)>& func) const;
+
 		// Returns the index of the new element
-		size_t AppendArrayElement();
+		// @count. How many to append
+		size_t AppendArrayElement(size_t count = 1);
 		void RemoveArrayElement(size_t idx);
 		void ClearArray();
+		// Appends/removes elements at the end so that the array has `newLength` elements
+		void ResizeArray(size_t newLength);
 
-		size_t AppendRuntimeArrayElement(MonoObject* instance);
+		// @count. How many to append
+		size_t AppendRuntimeArrayElement(MonoObject* instance, size_t count = 1);
 		void RemoveRuntimeArrayElement(MonoObject* instance, size_t idx);
 		void ClearRuntimeArray(MonoObject* instance);
 
@@ -113,7 +142,11 @@ namespace Eagle
 
 		// Returns false if failed
 		bool CopyStoredValue(const PublicField& other);
-		bool IsStoredValueEqual(const PublicField& other);
+		bool IsStoredValueEqual(const PublicField& other) const;
+
+		// If `Type` is `Enum`, makes sure that stored values are valid enum values (if not, the first valid value is set).
+		// If `Type` is `Struct`, it's applied to its members recursively.
+		void ValidateEnumValues();
 
 		// @idx. Used if it's an array
 		template<typename T>
@@ -201,6 +234,12 @@ namespace Eagle
 		void ReleaseBuffer();
 
 		void SetRuntimeArray(MonoObject* instance, MonoArray* newArray) const;
+		MonoArray* GetRuntimeArray(MonoObject* instance) const;
+
+		// `Struct` helpers. Returns a boxed copy of a runtime struct
+		MonoObject* GetRuntimeStructBoxed(MonoObject* instance, size_t idx) const;
+		// Writes the value of `boxedStruct` into `instance`
+		void SetRuntimeStructBoxed(MonoObject* instance, MonoObject* boxedStruct, size_t idx) const;
 
 		// @idx. Used if it's an array
 		std::string& GetDataAsString(size_t idx = 0);
@@ -211,6 +250,8 @@ namespace Eagle
 		MonoClassField* m_MonoClassField = nullptr;
 		MonoProperty* m_MonoProperty = nullptr;
 		ScopedDataBuffer m_StoredValueBuffer;
+		// If `Type` is `Struct`, stored values are kept here instead of `m_StoredValueBuffer`. One element per array element
+		std::vector<std::vector<PublicField>> m_StructElements;
 		uint32_t m_FieldSize = 0u;
 	};
 }

@@ -76,6 +76,25 @@ namespace Eagle::UI
 
 	namespace
 	{
+		// Returns the width of a tree node's collapser arrow.
+		// Used to move a tree to the left so that children names are all aligned vertically
+		float GetTreeNodeArrowOffset(ImGuiTreeNodeFlags treeFlags)
+		{
+			ImGuiContext& g = *GImGui;
+			const ImGuiStyle& style = g.Style;
+			const bool display_frame = (treeFlags & ImGuiTreeNodeFlags_Framed) != 0;
+			ImGuiWindow* window = ImGui::GetCurrentWindow();
+			const ImVec2 padding = (display_frame || (treeFlags & ImGuiTreeNodeFlags_FramePadding)) ? style.FramePadding : ImVec2(style.FramePadding.x, ImMin(window->DC.CurrLineTextBaseOffset, style.FramePadding.y));
+			return g.FontSize + (display_frame ? padding.x * 3 : padding.x * 2);
+		}
+
+		// "Namespace.Outer+MyStruct" -> "MyStruct"
+		std::string_view GetShortTypeName(std::string_view typeName)
+		{
+			const size_t pos = typeName.find_last_of(".+/");
+			return pos == std::string_view::npos ? typeName : typeName.substr(pos + 1);
+		}
+
 		bool HandlePublicField(std::string_view label, PublicField& field, MonoObject* instance, size_t fieldIndex, bool bRuntime, Entity entity, const std::function<void()>& customLabelCallback = {})
 		{
 			bool bChanged = false;
@@ -263,6 +282,58 @@ namespace Eagle::UI
 				AssetField_Case(AssetAnimationBlendSpace);
 				AssetField_Case(AssetBehaviorGraph);
 	#undef AssetField_Case
+
+				case FieldType::Struct:
+				{
+					constexpr ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowOverlap;
+
+					ImGui::SetCursorPosX(ImGui::GetCursorPosX() - GetTreeNodeArrowOffset(treeFlags) * 0.5f + 5.f);
+					ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+					const bool bOpened = ImGui::TreeNodeEx("##StructTreeNode", treeFlags, "%s", label.data());
+					if (field.Tooltip.size())
+					{
+						ImGui::SameLine();
+						UI::HelpMarker(field.Tooltip);
+					}
+					if (customLabelCallback)
+					{
+						// Tree nodes (without `ImGuiTreeNodeFlags_FramePadding`) are only as tall as a line of text.
+						// Remove vertical frame padding so that buttons drawn by the callback (e.g. `Remove`) match the node's height
+						ImGui::SameLine();
+						ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(ImGui::GetStyle().FramePadding.x, 0.f));
+						customLabelCallback();
+						ImGui::PopStyleVar();
+					}
+					ImGui::NextColumn();
+
+					const std::string_view typeName = GetShortTypeName(field.TypeName);
+					ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+					ImGui::TextDisabled("%.*s", int(typeName.size()), typeName.data());
+					ImGui::NextColumn();
+
+					if (bOpened)
+					{
+						if (bRuntime)
+						{
+							// Structs are value types, so we get a boxed copy, modify it, and write it back if anything has changed.
+							// `StructMembers` describe members and can be used with any boxed instance of the struct
+							bChanged |= field.EditRuntimeStruct(instance, fieldIndex, [&field, &entity](MonoObject* boxedStruct)
+							{
+								bool bMembersChanged = false;
+								for (auto& member : field.StructMembers)
+									bMembersChanged |= UI::Property(member, boxedStruct, true, entity);
+								return bMembersChanged;
+							});
+						}
+						else
+						{
+							for (auto& member : field.GetStructMembers(fieldIndex))
+								bChanged |= UI::Property(member, nullptr, false, entity);
+						}
+						ImGui::TreePop();
+					}
+					break;
+				}
 			}
 
 			return bChanged;
@@ -928,15 +999,7 @@ namespace Eagle::UI
 
 			// Calculate `collapser arrow width` offset
 			// in order to move a tree to the left so that children names are all aligned vertically
-			float treeOffsetX = 0.f;
-			{
-				ImGuiContext& g = *GImGui;
-				const ImGuiStyle& style = g.Style;
-				const bool display_frame = (treeFlags & ImGuiTreeNodeFlags_Framed) != 0;
-				ImGuiWindow* window = ImGui::GetCurrentWindow();
-				const ImVec2 padding = (display_frame || (treeFlags & ImGuiTreeNodeFlags_FramePadding)) ? style.FramePadding : ImVec2(style.FramePadding.x, ImMin(window->DC.CurrLineTextBaseOffset, style.FramePadding.y));
-				treeOffsetX = g.FontSize + (display_frame ? padding.x * 3 : padding.x * 2);
-			}
+			const float treeOffsetX = GetTreeNodeArrowOffset(treeFlags);
 
 			ImGui::SetCursorPosX(ImGui::GetCursorPosX() - treeOffsetX * 0.5f + 5.f);
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
@@ -948,12 +1011,14 @@ namespace Eagle::UI
 			if (ImGui::Button("+"))
 			{
 				bRuntime ? field.AppendRuntimeArrayElement(instance) : field.AppendArrayElement();
+				bChanged = true;
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Clear"))
 			{
 				bRuntime ? field.ClearRuntimeArray(instance) : field.ClearArray();
 				arrayLength = 0;
+				bChanged = true;
 			}
 			ImGui::NextColumn();
 
@@ -979,6 +1044,7 @@ namespace Eagle::UI
 				if (idxToRemove != invalidIdx)
 				{
 					bRuntime ? field.RemoveRuntimeArrayElement(instance, idxToRemove) : field.RemoveArrayElement(idxToRemove);
+					bChanged = true;
 				}
 			}
 		}

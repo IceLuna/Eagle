@@ -121,6 +121,14 @@ namespace Eagle
 		return mono_type_get_type(type) == MONO_TYPE_SZARRAY;
 	}
 
+	// Only structs defined by the user (in the app assembly) are exposed as `FieldType::Struct`.
+	// That way we don't expose internal/system structs (such as `Eagle.Quat`, `System.DateTime`, etc)
+	static bool IsUserStruct(MonoClass* klass)
+	{
+		return klass && s_AppAssemblyImage && !mono_class_is_enum(klass) && mono_class_is_valuetype(klass)
+			&& (mono_class_get_image(klass) == s_AppAssemblyImage);
+	}
+
 	static FieldType MonoTypeToFieldType(MonoType* monoType)
 	{
 		int type = mono_type_get_type(monoType);
@@ -151,6 +159,9 @@ namespace Eagle
 
 					if (it != s_BuiltInEagleTypes.end())
 						return it->second;
+
+					if (IsUserStruct(klass))
+						return FieldType::Struct;
 				}
 				else if (MonoClass* testClass = mono_type_get_class(monoType))
 				{
@@ -291,7 +302,55 @@ namespace Eagle
 		return result;
 	}
 
+	// Stack of structs that are being parsed. Used to prevent infinite recursion (for example, `struct Node { public Node[] Children; }`)
+	using StructParseStack = std::vector<MonoClass*>;
+
+	static void ParsePublicFields_Internal(MonoClass* klass, MonoObject* instance, std::vector<PublicField>& publicFields, StructParseStack& structStack, bool bParseProperties);
+
+	// Returns the struct class of a field (element class if it's an array)
+	static MonoClass* GetStructClass(MonoType* type, bool bArray)
+	{
+		MonoClass* klass = mono_class_from_mono_type(type);
+		if (klass && bArray)
+			klass = mono_class_get_element_class(klass);
+		return klass;
+	}
+
+	// Parses members of a struct.
+	// Returns false if the struct can't be exposed (it has no supported public members or it's recursive)
+	static bool ParseStructMembers(MonoClass* structClass, const std::string& fieldName, std::vector<PublicField>& outMembers, StructParseStack& structStack)
+	{
+		if (!structClass)
+			return false;
+
+		if (std::find(structStack.begin(), structStack.end(), structClass) != structStack.end())
+		{
+			EG_CORE_WARN("[ScriptEngine] Skipping field '{}'. Recursive structs are not supported ('{}')", fieldName, mono_class_get_name(structClass));
+			return false;
+		}
+
+		// Create a default (zero-initialized) boxed struct so that members can read their default values from it
+		MonoObject* boxedStruct = mono_object_new(mono_domain_get(), structClass);
+		if (!boxedStruct)
+			return false;
+
+		structStack.push_back(structClass);
+		const uint32_t handle = mono_gchandle_new(boxedStruct, true);
+		// Struct properties are not supported since invoking methods on value types requires special handling of `this`
+		ParsePublicFields_Internal(structClass, boxedStruct, outMembers, structStack, false);
+		structStack.pop_back();
+		mono_gchandle_free(handle);
+
+		return !outMembers.empty();
+	}
+
 	void ScriptEngine::ParsePublicFields(MonoClass* klass, MonoObject* instance, std::vector<PublicField>& publicFields)
+	{
+		StructParseStack structStack;
+		ParsePublicFields_Internal(klass, instance, publicFields, structStack, true);
+	}
+
+	static void ParsePublicFields_Internal(MonoClass* klass, MonoObject* instance, std::vector<PublicField>& publicFields, StructParseStack& structStack, bool bParseProperties)
 	{
 		if (!klass)
 			return;
@@ -305,7 +364,7 @@ namespace Eagle
 
 		{
 			// Iterate over parent scripts classes
-			ParsePublicFields(mono_class_get_parent(klass), instance, publicFields);
+			ParsePublicFields_Internal(mono_class_get_parent(klass), instance, publicFields, structStack, bParseProperties);
 
 			// Parse fields
 			{
@@ -319,6 +378,10 @@ namespace Eagle
 					if ((fieldFlags & MONO_FIELD_ATTR_PUBLIC) != MONO_FIELD_ATTR_PUBLIC)
 						continue;
 
+					// Static fields aren't part of an instance
+					if ((fieldFlags & MONO_FIELD_ATTR_STATIC) == MONO_FIELD_ATTR_STATIC)
+						continue;
+
 					bool bArray = false;
 					const char* typeName = nullptr;
 					MonoType* monoFieldType = mono_field_get_type(fieldIter);
@@ -327,6 +390,14 @@ namespace Eagle
 						continue;
 
 					std::string fullName = mono_field_get_name(fieldIter);
+
+					std::vector<PublicField> structMembers;
+					if (fieldType == FieldType::Struct)
+					{
+						if (!ParseStructMembers(GetStructClass(monoFieldType, bArray), fullName, structMembers, structStack))
+							continue;
+					}
+
 					std::string uiName = fullName;
 					std::string tooltip;
 					// Get custom attributes for the field
@@ -340,11 +411,16 @@ namespace Eagle
 					PublicField& publicField = publicFields.emplace_back(std::move(fullName), std::move(uiName), typeName, std::move(tooltip), fieldType, bArray, arrayLength);
 					publicField.SetMonoClassField(fieldIter);
 					publicField.EnumFields = fieldType == FieldType::Enum ? GetEnumFields(monoFieldType) : ScriptEnumFields{};
+					if (fieldType == FieldType::Struct)
+						publicField.SetStructMembers(std::move(structMembers));
 					publicField.CopyStoredValueFromRuntime(instance);
 
 					//EG_CORE_INFO("[ScriptEngine] Script '{0}' - Field type '{1}', Field Name '{2}', Flags: {3}", scriptClass.FullName, typeName, fieldName, fieldFlags);
 				}
 			}
+
+			if (!bParseProperties)
+				return;
 
 			// Parse properties
 			{
@@ -379,6 +455,13 @@ namespace Eagle
 					if (fieldType == FieldType::None) // Not supported
 						continue;
 
+					std::vector<PublicField> structMembers;
+					if (fieldType == FieldType::Struct)
+					{
+						if (!ParseStructMembers(GetStructClass(propertyType, bArray), fullName, structMembers, structStack))
+							continue;
+					}
+
 					std::string uiName = fullName;
 					std::string tooltip;
 					// Get custom attributes for the property
@@ -388,10 +471,12 @@ namespace Eagle
 						mono_custom_attrs_free(attrs);
 					}
 
-					const size_t arrayLength = bArray ? GetMonoArrayLength(instance, propertyIter) : 1;
+					const size_t arrayLength = bArray ? ScriptEngine::GetMonoArrayLength(instance, propertyIter) : 1;
 					PublicField& publicField = publicFields.emplace_back(std::move(fullName), std::move(uiName), typeName, std::move(tooltip), fieldType, bArray, arrayLength);
 					publicField.SetMonoProperty(propertyIter);
 					publicField.EnumFields = fieldType == FieldType::Enum ? GetEnumFields(propertyType) : ScriptEnumFields{};
+					if (fieldType == FieldType::Struct)
+						publicField.SetStructMembers(std::move(structMembers));
 					publicField.CopyStoredValueFromRuntime(instance);
 				}
 			}
@@ -693,26 +778,8 @@ namespace Eagle
 			if ((oldField != oldValues.end()) && (oldField->Type == field.Type))
 			{
 				field.CopyStoredValue(*oldField);
-				// Check if the current enum value is still valid. If not, change it
-				if (field.Type == FieldType::Enum)
-				{
-					if (field.EnumFields.size())
-					{
-						const int storedValue = field.GetStoredValue<int>();
-						bool bValid = false;
-						for (auto& [value, _] : field.EnumFields)
-						{
-							if (storedValue == value)
-							{
-								bValid = true;
-								break;
-							}
-						}
-
-						if (!bValid)
-							field.SetStoredValue<int>(field.EnumFields.empty() ? 0 : field.EnumFields.begin()->first);
-					}
-				}
+				// Check if the current enum values are still valid (also inside of structs). If not, change them
+				field.ValidateEnumValues();
 			}
 		}
 	}

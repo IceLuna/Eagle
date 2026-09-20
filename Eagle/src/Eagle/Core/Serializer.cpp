@@ -4953,11 +4953,37 @@ namespace Eagle
 		out << YAML::EndMap;
 	}
 
+	static void SerializeStructField(YAML::Emitter& out, const PublicField& field)
+	{
+		out << YAML::Value << YAML::BeginMap;
+
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(field.Type);
+		out << YAML::Key << "StructType" << YAML::Value << field.TypeName;
+		out << YAML::Key << "ArrayLength" << YAML::Value << field.ArrayLength;
+		out << YAML::Key << "Values" << YAML::Value << YAML::BeginSeq;
+		for (size_t i = 0; i < field.ArrayLength; ++i)
+		{
+			out << YAML::BeginMap;
+			for (const auto& member : field.GetStructMembers(i))
+			{
+				if (Serializer::HasSerializableType(member))
+					Serializer::SerializePublicFieldValue(out, member);
+			}
+			out << YAML::EndMap;
+		}
+		out << YAML::EndSeq;
+
+		out << YAML::EndMap;
+	}
+
 	void Serializer::SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field)
 	{
 		out << YAML::Key << field.FullName;
 		switch (field.Type)
 		{
+			case FieldType::Struct:
+				SerializeStructField(out, field);
+				break;
 			case FieldType::Int:
 				SerializeField<int>(out, field);
 				break;
@@ -5039,6 +5065,24 @@ namespace Eagle
 
 				PublicField& field = *fieldIt;
 				auto valuesNode = it.second["Values"];
+
+				field.ResizeArray(savedArrayLength); // Does nothing for non-arrays
+
+				if (fieldType == FieldType::Struct)
+				{
+					// `ResizeArray` does nothing for non-arrays, so the lengths can still differ
+					// if a field was changed from `MyStruct[]` to `MyStruct` in scripts
+					const size_t count = std::min(savedArrayLength, field.ArrayLength);
+					for (size_t i = 0; i < count; ++i)
+					{
+						YAML::Node elementNode = valuesNode[i];
+						if (elementNode && elementNode.IsMap())
+							DeserializePublicFieldValues(elementNode, field.GetStructMembers(i));
+					}
+					field.ValidateEnumValues();
+					continue;
+				}
+
 				for (size_t i = 0; i < savedArrayLength; ++i)
 				{
 					auto node = valuesNode[i];
@@ -5132,6 +5176,7 @@ namespace Eagle
 			case FieldType::AssetParticleSystem:
 			case FieldType::AssetAnimationBlendSpace:
 			case FieldType::AssetBehaviorGraph:
+			case FieldType::Struct:
 				return true;
 			default: return false;
 		}

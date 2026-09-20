@@ -146,7 +146,10 @@ namespace Eagle
 			if (IsFFTEnabled())
 			{
 				CreateDSP();
-				m_Channel->addDSP(0, m_DSP);
+
+				// Tail = closest to the sound source, before the fader.
+				// Spectrum data is now independent of volume, mute and 3D distance attenuation
+				m_Channel->addDSP(FMOD_CHANNELCONTROL_DSP_TAIL, m_DSP);
 			}
 		}
 		else
@@ -281,7 +284,11 @@ namespace Eagle
 		{
 			CreateDSP();
 			if (m_Channel)
-				m_Channel->addDSP(0, m_DSP);
+			{
+				// Tail = closest to the sound source, before the fader.
+				// Spectrum data is now independent of volume, mute and 3D distance attenuation
+				m_Channel->addDSP(FMOD_CHANNELCONTROL_DSP_TAIL, m_DSP);
+			}
 		}
 		else
 		{
