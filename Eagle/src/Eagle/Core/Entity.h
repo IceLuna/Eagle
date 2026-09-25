@@ -87,6 +87,7 @@ namespace Eagle
 		}
 
 		void TriggerAnimationEvent(const std::string& name, float time) const;
+		void TriggerSequenceEvent(const std::string& name, float time) const;
 
 		const std::vector<Entity>& GetChildren() const;
 		bool HasParent() const;

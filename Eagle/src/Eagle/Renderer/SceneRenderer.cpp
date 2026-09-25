@@ -50,7 +50,7 @@ namespace Eagle
 	{
 		m_bIsGame = Application::Get().IsGame();
 		SetOptions(options);
-		m_Options_RT = m_Options;
+		m_Options_RT = m_EffectiveOptions;
 
 		{
 			BufferSpecifications cameraViewDataBufferSpecs;
@@ -127,7 +127,7 @@ namespace Eagle
 			cameraCascadeFarPlanes[i] = camera->GetCascadeFarPlane(i);
 		}
 
-		RenderManager::Submit([renderer = shared_from_this(), viewMat, proj = camera->GetProjection(), viewPosition, viewDirection, bRenderGrid = m_bGridEnabled, options = m_Options,
+		RenderManager::Submit([renderer = shared_from_this(), viewMat, proj = camera->GetProjection(), viewPosition, viewDirection, bRenderGrid = m_bGridEnabled, options = m_EffectiveOptions,
 			cascadeProjections = std::move(cameraCascadeProjections), cascadeFarPlanes = std::move(cameraCascadeFarPlanes), shadowDistance = camera->GetShadowFarClip(),
 			cascadesSmoothTransitionAlpha = camera->GetCascadesSmoothTransitionAlpha(), zNear = camera->GetPerspectiveNearClip(), zFar = camera->GetPerspectiveFarClip(),
 			cameraFov = camera->GetPerspectiveVerticalFOV(), bProjectionFlipped = camera->IsProjectionFlipped()](const Ref<CommandBuffer>& cmd) mutable
@@ -401,10 +401,47 @@ namespace Eagle
 	void SceneRenderer::SetOptions(const SceneRendererSettings& options)
 	{
 		m_Options = options;
-		
-		const bool bTAAEnabled = m_Options.AA == AAMethod::TAA;
-		m_Options.InternalState.bMotionBuffer = bTAAEnabled || m_Options.MotionBlur.bEnable || m_Options.ScreenSpaceReflections.bEnable;
-		m_Options.InternalState.bJitter = bTAAEnabled;
+		RecalculateOptions();
+	}
+
+	void SceneRenderer::SetPostProcessOverride(const GUID& owner, const PostProcessOverride& postProcess)
+	{
+		if (m_PostProcessOverrideOwner == owner && m_PostProcessOverride == postProcess)
+			return;
+
+		m_PostProcessOverrideOwner = owner;
+		m_PostProcessOverride = postProcess;
+		RecalculateOptions();
+	}
+
+	void SceneRenderer::ClearPostProcessOverride(const GUID& owner)
+	{
+		if (m_PostProcessOverrideOwner != owner)
+			return;
+
+		ClearPostProcessOverride();
+	}
+
+	void SceneRenderer::ClearPostProcessOverride()
+	{
+		if (m_PostProcessOverride.IsEmpty() && m_PostProcessOverrideOwner.IsNull())
+			return;
+
+		m_PostProcessOverride.Clear();
+		m_PostProcessOverrideOwner = GUID(0, 0);
+		RecalculateOptions();
+	}
+
+	void SceneRenderer::RecalculateOptions()
+	{
+		m_EffectiveOptions = m_Options;
+		m_PostProcessOverride.ApplyTo(m_EffectiveOptions);
+
+		const bool bTAAEnabled = m_EffectiveOptions.AA == AAMethod::TAA;
+		m_EffectiveOptions.InternalState.bMotionBuffer = bTAAEnabled || m_EffectiveOptions.MotionBlur.bEnable || m_EffectiveOptions.ScreenSpaceReflections.bEnable;
+		m_EffectiveOptions.InternalState.bJitter = bTAAEnabled;
+
+		m_Options.InternalState = m_EffectiveOptions.InternalState;
 	}
 
 	void SceneRenderer::SetViewportSize(const glm::uvec2 size)

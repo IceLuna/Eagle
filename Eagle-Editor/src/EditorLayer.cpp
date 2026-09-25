@@ -664,6 +664,13 @@ namespace Eagle
 				comp.SetAsset(asset);
 				return entity;
 			});
+			HandleDrop.template operator()<AssetSceneSequence>(AssetType::SceneSequence, [this](const Ref<AssetSceneSequence>& asset)
+			{
+				Entity entity = m_EditorScene->CreateEntity(Utils::AsString(asset->GetPath().stem()));
+				auto& comp = entity.AddComponent<SceneSequenceComponent>();
+				comp.SetAsset(asset);
+				return entity;
+			});
 
 			ImGui::EndDragDropTarget();
 		}
@@ -928,9 +935,14 @@ namespace Eagle
 			const auto& editorCamera = m_EditorScene->EditorCamera;
 			const auto runtimeCamera = m_CurrentScene->GetRuntimeCamera();
 			const bool bEditing = m_EditorState == EditorState::Edit;
-			glm::mat4 cameraProjection = bEditing ? editorCamera.GetUnreversedProjection() : runtimeCamera->Camera.GetUnreversedProjection();
-			const glm::mat4& cameraViewMatrix = bEditing ? editorCamera.GetViewMatrix() : runtimeCamera->GetViewMatrix();
-			const bool bProjectionFlipped = bEditing ? editorCamera.IsProjectionFlipped() : runtimeCamera->Camera.IsProjectionFlipped();
+
+			const Camera* camera = m_CurrentScene->IsCameraOverridden() ? &m_CurrentScene->GetOverrideCamera()
+				: bEditing ? &editorCamera : &runtimeCamera->Camera;
+			const glm::mat4& cameraViewMatrix = m_CurrentScene->IsCameraOverridden() ? m_CurrentScene->GetOverrideCameraViewMatrix()
+				: bEditing ? editorCamera.GetViewMatrix() : runtimeCamera->GetViewMatrix();
+
+			glm::mat4 cameraProjection = camera->GetUnreversedProjection();
+			const bool bProjectionFlipped = camera->IsProjectionFlipped();
 			if (bProjectionFlipped)
 				cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
 
@@ -1000,9 +1012,11 @@ namespace Eagle
 		// ImOGuizmo
 		if (m_EditorState == EditorState::Edit && bDrawAxisGuizmo)
 		{
+			const bool bOverridenCamera = m_EditorScene->IsCameraOverridden();
+
 			auto& editorCamera = m_EditorScene->EditorCamera;
-			glm::mat4 cameraProjection = editorCamera.GetProjection();
-			glm::mat4 cameraViewMatrix = editorCamera.GetViewMatrix();
+			glm::mat4 cameraProjection = bOverridenCamera ? m_EditorScene->GetOverrideCamera().GetProjection() : editorCamera.GetProjection();
+			glm::mat4 cameraViewMatrix = bOverridenCamera ? m_EditorScene->GetOverrideCameraViewMatrix() : editorCamera.GetViewMatrix();
 			const bool bProjectionFlipped = editorCamera.IsProjectionFlipped();
 			if (bProjectionFlipped)
 				cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
@@ -1015,7 +1029,10 @@ namespace Eagle
 			const float y = m_ViewportBounds[1].y - size * 1.5f;
 			if (ImOGuizmo::Render(x, y, size, glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection)))
 			{
-				editorCamera.SetTransform(Math::DecomposeTransformMatrix(glm::inverse(cameraViewMatrix)));
+				if (!bOverridenCamera)
+				{
+					editorCamera.SetTransform(Math::DecomposeTransformMatrix(glm::inverse(cameraViewMatrix)));
+				}
 			}
 		}
 	}
@@ -1447,6 +1464,12 @@ namespace Eagle
 	void EditorLayer::DrawRendererSettings()
 	{
 		ImGui::Begin("Renderer Settings");
+
+		// A scene sequence can override some of these while it plays or is previewed. The values
+		// shown here are always the scene's own ones, so editing some of them might have no effect.
+		if (m_CurrentScene->IsPostProcessOverridden())
+			ImGui::TextColored(ImVec4(0.9f, 0.75f, 0.25f, 1.f), "Some settings are currently overridden by a Scene Sequence");
+
 		UI::BeginPropertyGrid("RendererSettingsPanel");
 
 		auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
@@ -1968,7 +1991,7 @@ namespace Eagle
 
 				bSettingsChanged |= UI::PropertyDrag("Aperture Shape X", settings.ApertureShape.x, 0.1f, 0.f, 2.f);
 				bSettingsChanged |= UI::PropertyDrag("Aperture Shape Y", settings.ApertureShape.y, 0.1f, 0.f, 2.f);
-				bSettingsChanged |= UI::PropertyDrag("Aperture Size", settings.ApertureSize, 0.01f, 0.f, FLT_MAX);
+				bSettingsChanged |= UI::PropertyDrag("Aperture Size", settings.ApertureSize, 0.01f, 0.f, FLT_MAX, "Set to 0 to disable DoF");
 				bSettingsChanged |= UI::PropertyDrag("Focal Length", settings.FocalLength, 0.01f);
 				bSettingsChanged |= UI::PropertyDrag("COC Scale", settings.COCScale, 0.1f, 0.f, FLT_MAX, "Circle of Confusion scale");
 				bSettingsChanged |= UI::PropertyDrag("Max COC", settings.MaxCOC, 0.1f, 0.f, FLT_MAX, "Max Circle of Confusion");

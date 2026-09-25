@@ -537,6 +537,21 @@ namespace Eagle::Script
 	GUID Eagle_ParticleSystemComponent_GetAsset(GUID entityID);
 	void Eagle_ParticleSystemComponent_DuplicatePose(GUID entityID, uint32_t emitterIndex, GUID compEntityID);
 
+	// Scene Sequence Component
+	void Eagle_SceneSequenceComponent_Play(GUID entityID);
+	void Eagle_SceneSequenceComponent_Pause(GUID entityID);
+	void Eagle_SceneSequenceComponent_Stop(GUID entityID);
+	bool Eagle_SceneSequenceComponent_IsPlaying(GUID entityID);
+	void Eagle_SceneSequenceComponent_SetTime(GUID entityID, float time);
+	float Eagle_SceneSequenceComponent_GetTime(GUID entityID);
+	float Eagle_SceneSequenceComponent_GetDuration(GUID entityID);
+	void Eagle_SceneSequenceComponent_SetPlayRate(GUID entityID, float rate);
+	float Eagle_SceneSequenceComponent_GetPlayRate(GUID entityID);
+	void Eagle_SceneSequenceComponent_SetDriveCamera(GUID entityID, bool value);
+	bool Eagle_SceneSequenceComponent_GetDriveCamera(GUID entityID);
+	void Eagle_SceneSequenceComponent_SetAsset(GUID entityID, GUID assetID);
+	GUID Eagle_SceneSequenceComponent_GetAsset(GUID entityID);
+
 	// Decal Component
 	void Eagle_DecalComponent_SetMaterial(GUID entityID, GUID assetID);
 	GUID Eagle_DecalComponent_GetMaterial(GUID entityID);

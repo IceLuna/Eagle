@@ -6806,6 +6806,162 @@ namespace Eagle
 		return nullptr;
 	}
 
+	//--------------SceneSequence Component--------------
+	static SceneSequenceComponent* GetSceneSequenceComponent(const GUID& entityID, const char* functionName)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene ? scene->GetEntityByGUID(entityID) : Entity::Null;
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call SceneSequenceComponent `{}`. Entity is null", functionName);
+			return nullptr;
+		}
+		if (!entity.HasComponent<SceneSequenceComponent>())
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call SceneSequenceComponent `{}`. Entity '{}' has no Scene Sequence component", functionName, entity.GetName());
+			return nullptr;
+		}
+		return &entity.GetComponent<SceneSequenceComponent>();
+	}
+
+	void Script::Eagle_SceneSequenceComponent_Play(GUID entityID)
+	{
+		SceneSequenceComponent* component = GetSceneSequenceComponent(entityID, "Play");
+		if (!component)
+			return;
+
+		component->Play();
+	}
+
+	void Script::Eagle_SceneSequenceComponent_Pause(GUID entityID)
+	{
+		SceneSequenceComponent* component = GetSceneSequenceComponent(entityID, "Pause");
+		if (!component)
+			return;
+
+		component->Pause();
+	}
+
+	void Script::Eagle_SceneSequenceComponent_Stop(GUID entityID)
+	{
+		SceneSequenceComponent* component = GetSceneSequenceComponent(entityID, "Stop");
+		if (!component)
+			return;
+
+		component->Stop();
+	}
+
+	bool Script::Eagle_SceneSequenceComponent_IsPlaying(GUID entityID)
+	{
+		SceneSequenceComponent* component = GetSceneSequenceComponent(entityID, "IsPlaying");
+		if (!component)
+			return false;
+
+		return component->IsPlaying();
+	}
+
+	void Script::Eagle_SceneSequenceComponent_SetTime(GUID entityID, float time)
+	{
+		SceneSequenceComponent* component = GetSceneSequenceComponent(entityID, "SetTime");
+		if (!component)
+			return;
+
+		component->SetTime(time);
+	}
+
+	float Script::Eagle_SceneSequenceComponent_GetTime(GUID entityID)
+	{
+		SceneSequenceComponent* component = GetSceneSequenceComponent(entityID, "GetTime");
+		if (!component)
+			return 0.f;
+
+		return component->GetTime();
+	}
+
+	float Script::Eagle_SceneSequenceComponent_GetDuration(GUID entityID)
+	{
+		SceneSequenceComponent* component = GetSceneSequenceComponent(entityID, "GetDuration");
+		if (!component)
+			return 0.f;
+
+		return component->GetDuration();
+	}
+
+	void Script::Eagle_SceneSequenceComponent_SetPlayRate(GUID entityID, float rate)
+	{
+		SceneSequenceComponent* component = GetSceneSequenceComponent(entityID, "SetPlayRate");
+		if (!component)
+			return;
+
+		component->SetPlayRate(rate);
+	}
+
+	float Script::Eagle_SceneSequenceComponent_GetPlayRate(GUID entityID)
+	{
+		SceneSequenceComponent* component = GetSceneSequenceComponent(entityID, "GetPlayRate");
+		if (!component)
+			return 0.f;
+
+		return component->GetPlayRate();
+	}
+
+	void Script::Eagle_SceneSequenceComponent_SetDriveCamera(GUID entityID, bool value)
+	{
+		SceneSequenceComponent* component = GetSceneSequenceComponent(entityID, "SetDriveCamera");
+		if (!component)
+			return;
+
+		component->SetDriveCameraAllowed(value);
+	}
+
+	bool Script::Eagle_SceneSequenceComponent_GetDriveCamera(GUID entityID)
+	{
+		SceneSequenceComponent* component = GetSceneSequenceComponent(entityID, "GetDriveCamera");
+		if (!component)
+			return false;
+
+		return component->AllowedToDriveCamera();
+	}
+
+	void Script::Eagle_SceneSequenceComponent_SetAsset(GUID entityID, GUID assetID)
+	{
+		SceneSequenceComponent* component = GetSceneSequenceComponent(entityID, "SetAsset");
+		if (!component)
+			return;
+
+		if (assetID.IsNull())
+		{
+			component->SetAsset(nullptr);
+			return;
+		}
+
+		Ref<Asset> asset;
+		if (!AssetManager::Get(assetID, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call SceneSequenceComponent `SetAsset`. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetSceneSequence> sequenceAsset = Cast<AssetSceneSequence>(asset);
+		if (!sequenceAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call SceneSequenceComponent `SetAsset`. Provided asset is not a Scene Sequence asset");
+			return;
+		}
+
+		component->SetAsset(sequenceAsset);
+	}
+
+	GUID Script::Eagle_SceneSequenceComponent_GetAsset(GUID entityID)
+	{
+		SceneSequenceComponent* component = GetSceneSequenceComponent(entityID, "GetAsset");
+		if (!component)
+			return GUID(0, 0);
+
+		const auto& asset = component->GetAsset();
+		return asset ? asset->GetGUID() : GUID(0, 0);
+	}
+
 	//--------------ParticleSystem Component--------------
 	void Script::Eagle_ParticleSystemComponent_Spawn(GUID entityID)
 	{

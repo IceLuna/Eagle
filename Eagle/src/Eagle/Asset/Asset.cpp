@@ -18,6 +18,7 @@
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Utils/SerializerUtils.h"
 #include "Eagle/Components/Components.h"
+#include "Eagle/SceneSequence/SequenceTrack.h"
 
 #include "Eagle/Physics/PhysXCookingFactory.h"
 
@@ -563,5 +564,272 @@ namespace Eagle
 		{
 			OnModified();
 		});
+	}
+
+	AssetSceneSequence::AssetSceneSequence(const Path& path, GUID guid, std::vector<Ref<SequenceTrack>>&& tracks, float duration, float frameRate, bool bLooping)
+		: Asset(path, {}, AssetType::SceneSequence, guid, {})
+		, m_Duration(glm::max(0.01f, duration))
+		, m_FrameRate(glm::clamp(frameRate, 1.f, 240.f))
+		, bLooping(bLooping)
+	{
+		SetTracks_Internal(std::move(tracks));
+	}
+
+	void AssetSceneSequence::SetTracks_Internal(std::vector<Ref<SequenceTrack>>&& tracks)
+	{
+		m_Tracks = std::move(tracks);
+		m_CameraCutTracks.clear();
+		m_CameraTracks.clear();
+		m_PostProcessTracks.clear();
+		m_EventTracks.clear();
+		for (const auto& track : m_Tracks)
+		{
+			if (track->GetType() == SequenceTrackType::CameraCuts)
+			{
+				const SequenceCameraCutTrack* cameraCut = (const SequenceCameraCutTrack*)track.get();
+				m_CameraCutTracks.push_back(cameraCut);
+			}
+			else if (track->GetType() == SequenceTrackType::Camera)
+			{
+				const SequenceCameraTrack* camera = (const SequenceCameraTrack*)track.get();
+				m_CameraTracks.push_back(camera);
+			}
+			else if (track->GetType() == SequenceTrackType::PostProcess)
+			{
+				const SequencePostProcessTrack* postProcess = (const SequencePostProcessTrack*)track.get();
+				m_PostProcessTracks.push_back(postProcess);
+			}
+			else if (track->GetType() == SequenceTrackType::Event)
+			{
+				const SequenceEventTrack* events = (const SequenceEventTrack*)track.get();
+				m_EventTracks.push_back(events);
+			}
+		}
+	}
+
+	void AssetSceneSequence::SetTracks(std::vector<Ref<SequenceTrack>>&& tracks)
+	{
+		SetTracks_Internal(std::move(tracks));
+		SetDirty(true);
+	}
+
+	void AssetSceneSequence::AddTrack(const Ref<SequenceTrack>& track)
+	{
+		if (!track)
+			return;
+
+		m_Tracks.push_back(track);
+		if (track->GetType() == SequenceTrackType::CameraCuts)
+		{
+			const SequenceCameraCutTrack* cameraCut = (const SequenceCameraCutTrack*)track.get();
+			m_CameraCutTracks.push_back(cameraCut);
+		}
+		else if (track->GetType() == SequenceTrackType::Camera)
+		{
+			const SequenceCameraTrack* camera = (const SequenceCameraTrack*)track.get();
+			m_CameraTracks.push_back(camera);
+		}
+		else if (track->GetType() == SequenceTrackType::PostProcess)
+		{
+			const SequencePostProcessTrack* postProcess = (const SequencePostProcessTrack*)track.get();
+			m_PostProcessTracks.push_back(postProcess);
+		}
+		else if (track->GetType() == SequenceTrackType::Event)
+		{
+			const SequenceEventTrack* events = (const SequenceEventTrack*)track.get();
+			m_EventTracks.push_back(events);
+		}
+		SetDirty(true);
+	}
+
+	bool AssetSceneSequence::RemoveTrack(const GUID& id)
+	{
+		for (auto it = m_Tracks.begin(); it != m_Tracks.end(); ++it)
+		{
+			if ((*it)->GetID() == id)
+			{
+				const SequenceTrackType type = (*it)->GetType();
+				if (type == SequenceTrackType::CameraCuts)
+				{
+					const SequenceCameraCutTrack* cameraCut = (const SequenceCameraCutTrack*)(*it).get();
+					std::erase(m_CameraCutTracks, cameraCut);
+				}
+				else if (type == SequenceTrackType::Camera)
+				{
+					const SequenceCameraTrack* camera = (const SequenceCameraTrack*)(*it).get();
+					std::erase(m_CameraTracks, camera);
+				}
+				else if (type == SequenceTrackType::PostProcess)
+				{
+					const SequencePostProcessTrack* postProcess = (const SequencePostProcessTrack*)(*it).get();
+					std::erase(m_PostProcessTracks, postProcess);
+				}
+				else if (type == SequenceTrackType::Event)
+				{
+					const SequenceEventTrack* events = (const SequenceEventTrack*)(*it).get();
+					std::erase(m_EventTracks, events);
+				}
+				m_Tracks.erase(it);
+				SetDirty(true);
+				return true;
+			}
+		}
+		return false;
+	}
+
+	Ref<SequenceTrack> AssetSceneSequence::FindTrack(const GUID& id) const
+	{
+		for (const auto& track : m_Tracks)
+			if (track->GetID() == id)
+				return track;
+		return {};
+	}
+
+	void AssetSceneSequence::Evaluate(SequenceEvalContext& context) const
+	{
+		// Several camera tracks can exist, but only one of them is live at a time
+		const SequenceCameraTrack* activeCamera = ResolveActiveCamera(context.Time);
+
+		for (const auto& track : m_Tracks)
+		{
+			if (!track || !track->IsEnabled())
+				continue;
+
+			if (track->GetType() == SequenceTrackType::Camera && track.get() != activeCamera)
+				continue;
+
+			// Post process tracks are handled below: whether they apply depends on the live camera
+			if (track->GetType() == SequenceTrackType::PostProcess)
+				continue;
+
+			track->Evaluate(context);
+		}
+
+		// Evaluate post processing tracks.
+		{
+			// Gathers the rendering settings overridden at `context.Time` into `context.PostProcess`
+			// Evaluated in track order, so when two active tracks key the same property,
+			// the one further down the list wins
+			for (const auto& track : m_PostProcessTracks)
+			{
+				if (!track || !track->IsEnabled())
+					continue;
+
+				EG_CORE_ASSERT(track->GetType() == SequenceTrackType::PostProcess);
+
+				// Entering the track applies its properties, leaving it stops overriding them,
+				// which restores the scene's own settings
+				if (!track->IsActiveAt(context.Time))
+					continue;
+
+				// A track tied to a camera only applies while that camera is the live one.
+				// That's what lets one track hold the depth of field for the first camera
+				// and another hold it for the second
+				const GUID& cameraID = track->GetCameraTrackID();
+				if (!cameraID.IsNull() && (!activeCamera || activeCamera->GetID() != cameraID))
+					continue;
+
+				track->Evaluate(context);
+			}
+		}
+	}
+
+	void AssetSceneSequence::GatherEvents(const SequenceEventWindow& window, std::vector<SequenceEvent>& outEvents) const
+	{
+		if (!window.bValid)
+			return;
+
+		const size_t firstNewEvent = outEvents.size();
+		for (const auto& track : m_EventTracks)
+		{
+			if (track && track->IsEnabled())
+				track->GatherEvents(window, outEvents);
+		}
+
+		// Fire in the order playback reached them, not in track order. Matters when a single frame
+		// covers several keys, and when the window wrapped around the end of the sequence
+		const float duration = m_Duration;
+		std::sort(outEvents.begin() + firstNewEvent, outEvents.end(), [&window, duration](const SequenceEvent& a, const SequenceEvent& b)
+		{
+			return window.GetTravelDistance(a.Time, duration) < window.GetTravelDistance(b.Time, duration);
+		});
+	}
+
+	const SequenceCameraTrack* AssetSceneSequence::ResolveActiveCamera(float time) const
+	{
+		auto isUsableCamera = [](const SequenceCameraTrack* camera) -> const SequenceCameraTrack*
+		{
+			if (!camera || !camera->IsEnabled())
+				return nullptr;
+
+			EG_CORE_ASSERT(camera->GetType() == SequenceTrackType::Camera);
+			return camera->HasTransformKeys() ? camera : nullptr;
+		};
+
+		// 1. Explicit cuts. Only the first enabled cuts track with keys counts.
+		// A cut pointing at a deleted or disabled camera falls through to the automatic rule
+		for (const auto& track : m_CameraCutTracks)
+		{
+			if (!track || !track->IsEnabled())
+				continue;
+
+			EG_CORE_ASSERT(track->GetType() == SequenceTrackType::CameraCuts);
+			const GUID cameraID = track->GetCameraAt(time);
+			if (cameraID.IsNull())
+				continue;
+
+			for (const auto& candidate : m_CameraTracks)
+			{
+				if (candidate && candidate->GetID() == cameraID)
+				{
+					if (const SequenceCameraTrack* camera = isUsableCamera(candidate))
+						return camera;
+					break;
+				}
+			}
+			break;
+		}
+
+		// 2. Automatic. `>=` comparisons let tracks further down the list win ties
+		const SequenceCameraTrack* covering = nullptr;
+		float coveringStart = std::numeric_limits<float>::lowest();
+		const SequenceCameraTrack* lastEnded = nullptr;
+		float lastEnd = std::numeric_limits<float>::lowest();
+		const SequenceCameraTrack* firstUpcoming = nullptr;
+		float firstStart = std::numeric_limits<float>::max();
+
+		for (const auto& track : m_CameraTracks)
+		{
+			const SequenceCameraTrack* camera = isUsableCamera(track);
+			float start = 0.f, end = 0.f;
+			if (!camera || !camera->GetShotRange(&start, &end))
+				continue;
+
+			if (time >= start && time <= end)
+			{
+				if (start >= coveringStart)
+				{
+					covering = camera;
+					coveringStart = start;
+				}
+			}
+			else if (end < time)
+			{
+				if (end >= lastEnd)
+				{
+					lastEnded = camera;
+					lastEnd = end;
+				}
+			}
+			else if (start < firstStart)
+			{
+				firstUpcoming = camera;
+				firstStart = start;
+			}
+		}
+
+		if (covering)
+			return covering;
+		return lastEnded ? lastEnded : firstUpcoming;
 	}
 }

@@ -351,13 +351,12 @@ namespace Eagle
 		auto res = m_DSP->getParameterData(FMOD_DSP_FFT_SPECTRUMDATA, (void**)&fftparameter, &length, m_DSPTempBuffer.data(), int(m_DSPTempBuffer.size()));
 		if (res != FMOD_OK)
 		{
-			EG_CORE_WARN("[AudioEngine] Failed to get spectrum data. Error: {}", FMOD_ErrorString(res));
+			EG_CORE_ERROR("[AudioEngine] Failed to get spectrum data. Error: {}", FMOD_ErrorString(res));
 			return false;
 		}
 
 		if (fftparameter->numchannels == 0 || fftparameter->numchannels <= channelIndex)
 		{
-			EG_CORE_WARN("[AudioEngine] Failed to get spectrum data. Probably, FFT is not ready yet");
 			return false;
 		}
 

@@ -16,6 +16,7 @@
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/AI/NavigationDebugDraw.h"
+#include "Eagle/SceneSequence/SequenceTrack.h"
 
 namespace Eagle
 {
@@ -812,6 +813,7 @@ namespace Eagle
 		SceneAddAndCopyComponent<Text2DComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<Image2DComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<ParticleSystemComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<SceneSequenceComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<DecalComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<NavigationCrowdAgentComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<NavigationMeshComponent>(this, m_Registry, other->m_Registry, createdEntities);
@@ -1231,11 +1233,15 @@ namespace Eagle
 	{
 		DestroyPendingEntities();
 
-		EditorCamera.OnUpdate(ts, bCanUpdateEditorCamera);
+		// While something else drives what's rendered (the sequencer previewing a cutscene, for example),
+		// the editor camera isn't what's on screen. Moving it would do nothing visible until the override
+		// is released, so its input is ignored for as long as the override lasts
+		EditorCamera.OnUpdate(ts, bCanUpdateEditorCamera && !bCameraOverrideValid);
 
 		GatherSkeletalMeshes();
 		UpdateAnimations(ts, !bForceAnimationsUpdate, false);
 		UpdateNavMesh(ts);
+		UpdateSceneSequences(ts);
 		m_PhysicsScene->Simulate(ts, false);
 		if (bRender)
 			RenderScene(ts, false);
@@ -1258,9 +1264,55 @@ namespace Eagle
 		SyncCrowdAgents();
 		m_PhysicsScene->Simulate(ts, true);
 		UpdateScripts(ts);
-		AudioEngine::SetListenerData(m_RuntimeCamera->GetWorldTransform().Location, m_RuntimeCamera->GetForwardVector(), m_RuntimeCamera->GetUpVector());
+		UpdateSceneSequences(ts);
+
+		if (bCameraOverrideValid)
+			AudioEngine::SetListenerData(m_OverrideViewPos, m_OverrideViewDir, m_OverrideViewUp);
+		else
+			AudioEngine::SetListenerData(m_RuntimeCamera->GetWorldTransform().Location, m_RuntimeCamera->GetForwardVector(), m_RuntimeCamera->GetUpVector());
 		if (bRender)
 			RenderScene(ts, true);
+	}
+
+	void Scene::UpdateSceneSequences(Timestep ts)
+	{
+		auto view = m_Registry.view<SceneSequenceComponent>();
+		if (view.begin() == view.end())
+			return;
+
+		EG_CPU_TIMING_SCOPED("Scene. Update Scene Sequences");
+
+		const bool bDrawPaths = !bIsPlaying && bDrawMiscellaneous;
+		for (auto entity : view)
+		{
+			auto& component = view.get<SceneSequenceComponent>(entity);
+			component.OnUpdate(ts);
+
+			if (bIsPlaying)
+			{
+				const auto& events = component.GetPlayer().GetFiredEvents();
+				if (!events.empty())
+				{
+					auto& triggerData = m_SequenceEventsToTrigger.emplace_back();
+					triggerData.EntityID = uint32_t(entity);
+					triggerData.Events.reserve(events.size());
+					for (const auto& event : events)
+						triggerData.Events.push_back(event);
+				}
+			}
+
+			// Skipped for the sequence we're currently looking through,
+			// otherwise its own path would be drawn across the screen
+			if (bDrawPaths && component.bDrawPathInEditor)
+			{
+				const bool bIsViewingThrough = bCameraOverrideValid && m_CameraOverrideOwner == component.Parent.GetGUID();
+				if (!bIsViewingThrough)
+				{
+					const Transform base = component.bPlayInWorldSpace ? Transform{} : component.GetWorldTransform();
+					DrawSequencePath(component.GetAsset(), base, component.GetTime());
+				}
+			}
+		}
 	}
 
 	void Scene::UpdateNavMesh(Timestep ts)
@@ -1399,6 +1451,35 @@ namespace Eagle
 		const bool bDirtyBefore = m_DirtyFlags.bSkeletalMeshesDirty;
 		m_DirtyFlags.bSkeletalMeshesDirty = false;
 
+		// C# animation events
+		{
+			for (const auto& [entityID, events] : m_AnimationsToTrigger)
+			{
+				for (const auto& event : events)
+				{
+					Entity entity((entt::entity)entityID, this);
+					entity.TriggerAnimationEvent(event.Name, event.Time);
+				}
+			}
+			m_AnimationsToTrigger.clear();
+		}
+
+		// C# scene sequence events
+		{
+			for (const auto& data : m_SequenceEventsToTrigger)
+			{
+				Entity entity((entt::entity)data.EntityID, this);
+				if (entity)
+				{
+					for (const auto& event : data.Events)
+					{
+						entity.TriggerSequenceEvent(event.Name, event.Time);
+					}
+				}
+			}
+			m_SequenceEventsToTrigger.clear();
+		}
+
 		// C++ scripts
 		{
 			auto view = m_Registry.view<NativeScriptComponent>();
@@ -1418,19 +1499,6 @@ namespace Eagle
 				Entity e = { entity, this };
 				ScriptEngine::OnUpdateEntity(e, ts);
 			}
-		}
-
-		// C# animation events
-		{
-			for (const auto& [entityID, events] : m_AnimationsToTrigger)
-			{
-				for (const auto& event : events)
-				{
-					Entity entity((entt::entity)entityID, this);
-					entity.TriggerAnimationEvent(event.Name, event.Time);
-				}
-			}
-			m_AnimationsToTrigger.clear();
 		}
 
 		bForceSkeletalMeshUpdateNextFrame = m_DirtyFlags.bSkeletalMeshesDirty;
@@ -2033,7 +2101,11 @@ namespace Eagle
 			}
 		}
 
-		const Camera* camera = bIsPlaying ? (Camera*)&m_RuntimeCamera->Camera : (Camera*)&EditorCamera;
+		if (bCameraOverrideValid)
+			m_OverrideCamera.SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+
+		const Camera* camera = bCameraOverrideValid ? (Camera*)&m_OverrideCamera
+			: (bIsPlaying ? (Camera*)&m_RuntimeCamera->Camera : (Camera*)&EditorCamera);
 		if (m_DirtyFlags.bPointLightsDirty)
 			m_SceneRenderer->SetPointLights(m_PointLights);
 		if (m_DirtyFlags.bSpotLightsDirty)
@@ -2103,9 +2175,12 @@ namespace Eagle
 			}
 		}
 
-		const glm::mat4& viewMatrix = bIsPlaying ? m_RuntimeCamera->GetViewMatrix() : EditorCamera.GetViewMatrix();
-		const glm::vec3& viewPos = bIsPlaying ? m_RuntimeCamera->GetWorldTransform().Location : EditorCamera.GetLocation();
-		const glm::vec3& viewDir = bIsPlaying ? m_RuntimeCamera->GetForwardVector() : EditorCamera.GetForwardVector();
+		const glm::mat4& viewMatrix = bCameraOverrideValid ? m_OverrideViewMatrix
+			: (bIsPlaying ? m_RuntimeCamera->GetViewMatrix() : EditorCamera.GetViewMatrix());
+		const glm::vec3& viewPos = bCameraOverrideValid ? m_OverrideViewPos
+			: (bIsPlaying ? m_RuntimeCamera->GetWorldTransform().Location : EditorCamera.GetLocation());
+		const glm::vec3& viewDir = bCameraOverrideValid ? m_OverrideViewDir
+			: (bIsPlaying ? m_RuntimeCamera->GetForwardVector() : EditorCamera.GetForwardVector());
 		{
 			EG_CPU_TIMING_SCOPED("Scene. Render");
 			m_SceneRenderer->Render(camera, viewMatrix, viewPos, viewDir);
@@ -2134,6 +2209,17 @@ namespace Eagle
 			}
 		}
 		
+		// Start auto-playing cutscenes
+		{
+			auto view = m_Registry.view<SceneSequenceComponent>();
+			for (auto entity : view)
+			{
+				auto& comp = view.get<SceneSequenceComponent>(entity);
+				if (comp.bAutoPlay)
+					comp.Play();
+			}
+		}
+
 		// Update C# scripts
 		{
 			auto view = m_Registry.view<ScriptComponent>();
@@ -2185,6 +2271,12 @@ namespace Eagle
 				Entity e = { entity, this };
 				ScriptEngine::RemoveEntityScript(e);
 			}
+		}
+
+		{
+			auto view = m_Registry.view<SceneSequenceComponent>();
+			for (auto entity : view)
+				view.get<SceneSequenceComponent>(entity).Stop();
 		}
 
 		bIsPlaying = false;
@@ -2367,6 +2459,96 @@ namespace Eagle
 		}
 	}
 
+	void Scene::DrawSequencePath(const Ref<AssetSceneSequence>& asset, const Transform& base, float time, const GUID& highlightKeyID)
+	{
+		if (!asset)
+			return;
+
+		constexpr glm::vec3 pathColor = glm::vec3(1.f, 0.85f, 0.2f);
+		constexpr glm::vec3 keyColor = glm::vec3(1.f, 1.f, 1.f);
+		constexpr glm::vec3 highlightColor = glm::vec3(0.2f, 0.6f, 1.f);
+		constexpr glm::vec3 cameraColor = glm::vec3(1.f, 0.3f, 0.3f);
+		constexpr float keyMarkerSize = 0.15f;
+
+		auto addLine = [this](const glm::vec3& a, const glm::vec3& b, const glm::vec3& color)
+		{
+			RendererLine line;
+			line.Start.Location = a;
+			line.Start.Color = color;
+			line.End.Location = b;
+			line.End.Color = color;
+			DrawDebugLine(line);
+		};
+
+		const glm::quat baseRotation = base.Rotation.GetQuat();
+		auto toWorld = [&](const glm::vec3& local)
+		{
+			return base.Location + (baseRotation * (local * base.Scale3D));
+		};
+
+		// Every camera's path is drawn, but only the live camera gets the bright path and the camera marker
+		const SequenceCameraTrack* activeCamera = asset->ResolveActiveCamera(time);
+		constexpr glm::vec3 inactivePathColor = glm::vec3(0.5f, 0.45f, 0.2f);
+
+		std::vector<glm::vec3> points;
+		for (const auto& cameraTrack : asset->GetCameraTracks())
+		{
+			if (!cameraTrack || !cameraTrack->IsEnabled())
+				continue;
+
+			EG_CORE_ASSERT(cameraTrack->GetType() == SequenceTrackType::Camera);
+
+			const auto& locationChannel = cameraTrack->GetLocationChannel();
+			if (locationChannel.IsEmpty())
+				continue;
+
+			// Path
+			cameraTrack->GatherPathPoints(base, locationChannel.GetFirstKeyTime(), locationChannel.GetLastKeyTime(), 30u, points);
+			const bool bActive = cameraTrack == activeCamera;
+			for (size_t i = 1; i < points.size(); ++i)
+				addLine(points[i - 1], points[i], bActive ? pathColor : inactivePathColor);
+
+			// Key markers: a small 3D cross per location key
+			for (const auto& key : locationChannel.GetKeys())
+			{
+				const glm::vec3 p = toWorld(key.Value);
+				const glm::vec3 color = key.ID == highlightKeyID ? highlightColor : keyColor;
+				const float size = key.ID == highlightKeyID ? keyMarkerSize * 2.f : keyMarkerSize;
+				addLine(p - glm::vec3(size, 0.f, 0.f), p + glm::vec3(size, 0.f, 0.f), color);
+				addLine(p - glm::vec3(0.f, size, 0.f), p + glm::vec3(0.f, size, 0.f), color);
+				addLine(p - glm::vec3(0.f, 0.f, size), p + glm::vec3(0.f, 0.f, size), color);
+			}
+
+			if (!bActive)
+				continue;
+
+			// Camera at the playhead: position plus view direction
+			SequenceEvalContext context;
+			context.Base = base;
+			context.Time = time;
+			cameraTrack->Evaluate(context);
+			if (context.Camera.bValid)
+			{
+				const auto& tr = context.Camera.WorldTransform;
+				const glm::vec3 forward = Math::GetForwardVector(tr.Rotation);
+				const glm::vec3 up = Math::GetUpVector(tr.Rotation);
+				const glm::vec3 right = Math::GetRightVector(tr.Rotation);
+
+				addLine(tr.Location, tr.Location + forward * 1.f, cameraColor);
+
+				// Tiny "screen" rectangle in front of the camera so the roll is readable
+				const glm::vec3 c = tr.Location + forward * 0.5f;
+				const glm::vec3 r = right * 0.24f;
+				const glm::vec3 u = up * 0.135f;
+				addLine(c - r - u, c + r - u, cameraColor);
+				addLine(c + r - u, c + r + u, cameraColor);
+				addLine(c + r + u, c - r + u, cameraColor);
+				addLine(c - r + u, c - r - u, cameraColor);
+				addLine(c + u, c + u * 1.8f, cameraColor); // "up" tick
+			}
+		}
+	}
+
 	void Scene::DrawFrustum(const CameraComponent& camera)
 	{
 		const float aspect = float(m_ViewportWidth) / m_ViewportHeight;
@@ -2460,6 +2642,58 @@ namespace Eagle
 		Utils::InvalidateCollisionGroups<SphereColliderComponent>(m_Registry, validMasks);
 		Utils::InvalidateCollisionGroups<CapsuleColliderComponent>(m_Registry, validMasks);
 		Utils::InvalidateCollisionGroups<MeshColliderComponent>(m_Registry, validMasks);
+	}
+
+	void Scene::SetCameraOverride(const GUID& owner, const CameraOverrideData& data)
+	{
+		m_CameraOverrideOwner = owner;
+		bCameraOverrideValid = true;
+
+		m_OverrideCamera.SetProjectionMode(CameraProjectionMode::Perspective);
+		m_OverrideCamera.SetPerspective(data.VerticalFOVRadians, data.NearClip, data.FarClip);
+		m_OverrideCamera.SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+
+		const glm::mat4 R = data.WorldTransform.Rotation.ToMat4();
+		const glm::mat4 T = glm::translate(glm::mat4(1.0f), data.WorldTransform.Location);
+		m_OverrideViewMatrix = glm::inverse(T * R);
+
+		m_OverrideViewPos = data.WorldTransform.Location;
+		m_OverrideViewDir = Math::GetForwardVector(data.WorldTransform.Rotation);
+		m_OverrideViewUp = Math::GetUpVector(data.WorldTransform.Rotation);
+	}
+
+	void Scene::ClearCameraOverride(const GUID& owner)
+	{
+		if (!bCameraOverrideValid)
+			return;
+
+		if (m_CameraOverrideOwner != owner)
+			return;
+
+		ClearCameraOverride();
+	}
+
+	void Scene::ClearCameraOverride()
+	{
+		bCameraOverrideValid = false;
+		m_CameraOverrideOwner = GUID(0, 0);
+	}
+
+	void Scene::SetPostProcessOverride(const GUID& owner, const PostProcessOverride& postProcess)
+	{
+		if (m_SceneRenderer)
+			m_SceneRenderer->SetPostProcessOverride(owner, postProcess);
+	}
+
+	void Scene::ClearPostProcessOverride(const GUID& owner)
+	{
+		if (m_SceneRenderer)
+			m_SceneRenderer->ClearPostProcessOverride(owner);
+	}
+
+	bool Scene::IsPostProcessOverridden() const
+	{
+		return m_SceneRenderer && m_SceneRenderer->IsPostProcessOverridden();
 	}
 
 	CameraComponent* Scene::GetRuntimeCamera()
@@ -2743,6 +2977,7 @@ namespace Eagle
 		EntityCopyComponent<Text2DComponent>(source, dest);
 		EntityCopyComponent<Image2DComponent>(source, dest);
 		EntityCopyComponent<ParticleSystemComponent>(source, dest);
+		EntityCopyComponent<SceneSequenceComponent>(source, dest);
 		EntityCopyComponent<DecalComponent>(source, dest);
 		EntityCopyComponent<NavigationCrowdAgentComponent>(source, dest);
 		EntityCopyComponent<NavigationMeshComponent>(source, dest);

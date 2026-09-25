@@ -1812,4 +1812,145 @@ namespace Eagle
 		}
 		m_TypeHash = 0;
 	}
+
+	SceneSequenceComponent::~SceneSequenceComponent()
+	{
+		ReleaseCameraOverride();
+	}
+
+	SceneSequenceComponent& SceneSequenceComponent::operator=(const SceneSequenceComponent& other)
+	{
+		if (this == &other)
+			return *this;
+
+		SceneComponent::operator=(other);
+
+		// Intentionally not copied: a duplicated cutscene starts from the beginning
+		m_Player = SceneSequencePlayer();
+		m_Player.SetAsset(other.m_Player.GetAsset());
+		m_Player.SetPlayRate(other.m_Player.GetPlayRate());
+
+		bAutoPlay = other.bAutoPlay;
+		bOverrideLooping = other.bOverrideLooping;
+		bLooping = other.bLooping;
+		bPlayInWorldSpace = other.bPlayInWorldSpace;
+		bDriveCamera = other.bDriveCamera;
+		bDrawPathInEditor = other.bDrawPathInEditor;
+
+		Parent.SignalComponentChanged<SceneSequenceComponent>(Notification::OnStateChanged);
+		return *this;
+	}
+
+	void SceneSequenceComponent::SetAsset(const Ref<AssetSceneSequence>& asset)
+	{
+		if (m_Player.GetAsset() == asset)
+			return;
+
+		Stop();
+		m_Player.SetAsset(asset);
+
+		Parent.SignalComponentChanged<SceneSequenceComponent>(Notification::OnStateChanged);
+	}
+
+	void SceneSequenceComponent::Play()
+	{
+		if (!m_Player.GetAsset())
+		{
+			EG_CORE_WARN("Can't play a scene sequence: no asset is assigned. Entity: {}", Parent.GetName());
+			return;
+		}
+
+		if (bOverrideLooping)
+			m_Player.SetLoopOverride(bLooping);
+		else
+			m_Player.ClearLoopOverride();
+
+		m_Player.Play();
+
+		// Apply immediately so the very first rendered frame already uses the sequence camera
+		// instead of showing one frame through the gameplay camera
+		OnUpdate(0.f);
+	}
+
+	void SceneSequenceComponent::Pause()
+	{
+		m_Player.Pause();
+	}
+
+	void SceneSequenceComponent::Stop()
+	{
+		m_Player.Stop();
+		ReleaseCameraOverride();
+	}
+
+	void SceneSequenceComponent::SetTime(float time)
+	{
+		m_Player.SetTime(time);
+
+		// Refresh the camera on the spot if we're the one currently driving it
+		if (bDriveCamera && !m_Player.IsStopped() && IsOwningCamera())
+		{
+			m_Player.ApplyToScene(Parent.GetScene(), Parent.GetGUID(), GetBaseTransform());
+		}
+	}
+
+	void SceneSequenceComponent::OnUpdate(Timestep ts)
+	{
+		if (m_Player.IsStopped())
+			return;
+
+		m_Player.Update(ts);
+		if (m_Player.IsStopped())
+		{
+			ReleaseCameraOverride();
+			return;
+		}
+
+		// Applied even when this component doesn't drive the camera: post process tracks still
+		// override rendering settings while the sequence plays
+		m_Player.ApplyToScene(Parent.GetScene(), Parent.GetGUID(), GetBaseTransform(), bDriveCamera);
+	}
+
+	void SceneSequenceComponent::SetDriveCameraAllowed(bool bAllowed)
+	{
+		bDriveCamera = bAllowed;
+		// Hand the camera back right away rather than on the next update
+		if (!bDriveCamera)
+			SceneSequencePlayer::ReleaseScene(Parent.GetScene(), Parent.GetGUID());
+	}
+
+	void SceneSequenceComponent::SetOverrideLooping(bool bOverride)
+	{
+		bOverrideLooping = bOverride;
+
+		if (bOverrideLooping)
+			m_Player.SetLoopOverride(bLooping);
+		else
+			m_Player.ClearLoopOverride();
+	}
+
+	void SceneSequenceComponent::SetLoopingEnabled(bool bEnable)
+	{
+		bLooping = bEnable;
+		if (bOverrideLooping)
+			m_Player.SetLoopOverride(bLooping);
+	}
+
+	void SceneSequenceComponent::OnRemoved()
+	{
+		ReleaseCameraOverride();
+	}
+
+	bool SceneSequenceComponent::IsOwningCamera() const
+	{
+		return Parent.GetScene()->GetCameraOverrideOwner() == Parent.GetGUID();
+	}
+
+	void SceneSequenceComponent::ReleaseCameraOverride()
+	{
+		if (!Parent)
+			return;
+
+		SceneSequencePlayer::ReleaseScene(Parent.GetScene(), Parent.GetGUID());
+	}
 }

@@ -405,6 +405,224 @@ namespace Eagle
 			SerializeRagdollBonesData(out, child);
 	}
 
+	// Keyframe channels are all serialized through these two helpers, so adding a new
+	// channel value type only needs a `YAML::convert` specialization for that type.
+	template <typename T>
+	static void SerializeSequenceChannel(YAML::Emitter& out, const char* name, const SequenceChannel<T>& channel)
+	{
+		if (channel.IsEmpty())
+			return;
+
+		out << YAML::Key << name << YAML::Value << YAML::BeginSeq;
+		for (const auto& key : channel.GetKeys())
+		{
+			out << YAML::BeginMap;
+			out << YAML::Key << "ID" << YAML::Value << key.ID;
+			out << YAML::Key << "Time" << YAML::Value << key.Time;
+			out << YAML::Key << "Value" << YAML::Value << key.Value;
+			out << YAML::Key << "Interpolation" << YAML::Value << Eagle::Utils::GetEnumName(key.Interpolation);
+
+			// Tangents only mean anything for user-authored cubic keys
+			if (key.Interpolation == SequenceInterpolation::Cubic)
+			{
+				out << YAML::Key << "InTangent" << YAML::Value << key.InTangent;
+				out << YAML::Key << "OutTangent" << YAML::Value << key.OutTangent;
+			}
+			out << YAML::EndMap;
+		}
+		out << YAML::EndSeq;
+	}
+
+	template <typename T>
+	static void DeserializeSequenceChannel(const YAML::Node& parentNode, const char* name, SequenceChannel<T>& channel)
+	{
+		channel.Clear();
+
+		auto channelNode = parentNode[name];
+		if (!channelNode)
+			return;
+
+		auto& keys = channel.GetKeys();
+		keys.reserve(channelNode.size());
+
+		for (auto keyNode : channelNode)
+		{
+			SequenceKey<T> key;
+
+			if (auto node = keyNode["ID"])
+				key.ID = node.as<GUID>();
+
+			if (auto node = keyNode["Time"])
+				key.Time = node.as<float>();
+
+			if (auto node = keyNode["Value"])
+				key.Value = node.as<T>();
+
+			if (auto node = keyNode["Interpolation"])
+				key.Interpolation = Eagle::Utils::GetEnumFromName<SequenceInterpolation>(node.as<std::string>());
+
+			if (auto node = keyNode["InTangent"])
+				key.InTangent = node.as<T>();
+
+			if (auto node = keyNode["OutTangent"])
+				key.OutTangent = node.as<T>();
+
+			keys.push_back(key);
+		}
+
+		// Keys are written sorted, but still sort them just in case
+		channel.SortKeys();
+	}
+
+	static void SerializeSequenceTrack(YAML::Emitter& out, const Ref<SequenceTrack>& track)
+	{
+		out << YAML::BeginMap;
+		out << YAML::Key << "Type" << YAML::Value << Eagle::Utils::GetEnumName(track->GetType());
+		out << YAML::Key << "ID" << YAML::Value << track->GetID();
+		out << YAML::Key << "Name" << YAML::Value << track->GetName();
+		out << YAML::Key << "Enabled" << YAML::Value << track->IsEnabled();
+
+		switch (track->GetType())
+		{
+			case SequenceTrackType::Camera:
+			{
+				const SequenceCameraTrack& cameraTrack = (const SequenceCameraTrack&)(*track);
+
+				out << YAML::Key << "DefaultFOV" << YAML::Value << cameraTrack.GetDefaultFOVDegrees();
+				out << YAML::Key << "NearClip" << YAML::Value << cameraTrack.GetNearClip();
+				out << YAML::Key << "FarClip" << YAML::Value << cameraTrack.GetFarClip();
+
+				SerializeSequenceChannel(out, "Location", cameraTrack.GetLocationChannel());
+				SerializeSequenceChannel(out, "Rotation", cameraTrack.GetRotationChannel());
+				SerializeSequenceChannel(out, "FOV", cameraTrack.GetFOVChannel());
+				break;
+			}
+			case SequenceTrackType::CameraCuts:
+			{
+				const SequenceCameraCutTrack& cutTrack = (const SequenceCameraCutTrack&)(*track);
+				SerializeSequenceChannel(out, "Cuts", cutTrack.GetCutsChannel());
+				break;
+			}
+			case SequenceTrackType::PostProcess:
+			{
+				const SequencePostProcessTrack& postProcessTrack = (const SequencePostProcessTrack&)(*track);
+
+				out << YAML::Key << "CameraTrack" << YAML::Value << postProcessTrack.GetCameraTrackID();
+				out << YAML::Key << "ApplyWholeSequence" << YAML::Value << postProcessTrack.DoesApplyWholeSequence();
+
+				out << YAML::Key << "Properties" << YAML::Value << YAML::BeginSeq;
+				for (const auto& channel : postProcessTrack.GetChannels())
+				{
+					out << YAML::BeginMap;
+					out << YAML::Key << "Property" << YAML::Value << Eagle::Utils::GetEnumName(channel.Property);
+					out << YAML::Key << "Enabled" << YAML::Value << channel.bEnabled;
+					std::visit([&out](const auto& data) { SerializeSequenceChannel(out, "Keys", data); }, channel.Data);
+					out << YAML::EndMap;
+				}
+				out << YAML::EndSeq;
+				break;
+			}
+			case SequenceTrackType::Event:
+			{
+				const SequenceEventTrack& eventTrack = (const SequenceEventTrack&)(*track);
+				SerializeSequenceChannel(out, "Events", eventTrack.GetEventsChannel());
+				break;
+			}
+		}
+
+		out << YAML::EndMap;
+	}
+
+	static Ref<SequenceTrack> DeserializeSequenceTrack(const YAML::Node& trackNode)
+	{
+		auto typeNode = trackNode["Type"];
+		if (!typeNode)
+			return {};
+
+		const SequenceTrackType type = Eagle::Utils::GetEnumFromName<SequenceTrackType>(typeNode.as<std::string>());
+		Ref<SequenceTrack> track = SequenceTrack::Create(type);
+		if (!track)
+			return {};
+
+		if (auto node = trackNode["ID"])
+			track->SetID(node.as<GUID>());
+
+		if (auto node = trackNode["Name"])
+			track->SetName(node.as<std::string>());
+
+		if (auto node = trackNode["Enabled"])
+			track->SetEnabled(node.as<bool>());
+
+		switch (type)
+		{
+			case SequenceTrackType::Camera:
+			{
+				SequenceCameraTrack& cameraTrack = (SequenceCameraTrack&)(*track);
+
+				if (auto node = trackNode["DefaultFOV"])
+					cameraTrack.SetDefaultFOVDegrees(node.as<float>());
+
+				if (auto node = trackNode["NearClip"])
+					cameraTrack.SetNearClip(node.as<float>());
+
+				if (auto node = trackNode["FarClip"])
+					cameraTrack.SetFarClip(node.as<float>());
+
+				DeserializeSequenceChannel(trackNode, "Location", cameraTrack.GetLocationChannel());
+				DeserializeSequenceChannel(trackNode, "Rotation", cameraTrack.GetRotationChannel());
+				DeserializeSequenceChannel(trackNode, "FOV", cameraTrack.GetFOVChannel());
+				break;
+			}
+			case SequenceTrackType::CameraCuts:
+			{
+				SequenceCameraCutTrack& cutTrack = (SequenceCameraCutTrack&)(*track);
+				DeserializeSequenceChannel(trackNode, "Cuts", cutTrack.GetCutsChannel());
+				break;
+			}
+			case SequenceTrackType::PostProcess:
+			{
+				SequencePostProcessTrack& postProcessTrack = (SequencePostProcessTrack&)(*track);
+
+				if (auto node = trackNode["CameraTrack"])
+					postProcessTrack.SetCameraTrackID(node.as<GUID>());
+				if (auto node = trackNode["ApplyWholeSequence"])
+					postProcessTrack.SetApplyWholeSequence(node.as<bool>());
+
+				if (auto propertiesNode = trackNode["Properties"])
+				{
+					for (auto propertyNode : propertiesNode)
+					{
+						auto nameNode = propertyNode["Property"];
+						if (!nameNode)
+							continue;
+
+						const std::string name = nameNode.as<std::string>();
+						const auto property = magic_enum::enum_cast<PostProcessProperty>(name);
+						if (!property.has_value() || !FindPostProcessProperty(*property))
+						{
+							EG_CORE_WARN("[Serializer] Skipping unknown post process property: {}", name);
+							continue;
+						}
+
+						auto& channel = postProcessTrack.AddProperty(*property);
+						if (auto enabledNode = propertyNode["Enabled"])
+							channel.bEnabled = enabledNode.as<bool>();
+						std::visit([&propertyNode](auto& data) { DeserializeSequenceChannel(propertyNode, "Keys", data); }, channel.Data);
+					}
+				}
+				break;
+			}
+			case SequenceTrackType::Event:
+			{
+				SequenceEventTrack& eventTrack = (SequenceEventTrack&)(*track);
+				DeserializeSequenceChannel(trackNode, "Events", eventTrack.GetEventsChannel());
+				break;
+			}
+		}
+
+		return track;
+	}
+
 	// Returns all entities starting from the root (root is included)
 	static void GetAllEntities(Entity root, std::vector<Entity>* outEntities)
 	{
@@ -510,6 +728,8 @@ namespace Eagle
 				return SerializeAssetAnimationBlendSpace(Cast<AssetAnimationBlendSpace>(asset));
 			case AssetType::BehaviorGraph:
 				return SerializeAssetBehaviorGraph(Cast<AssetBehaviorGraph>(asset));
+			case AssetType::SceneSequence:
+				return SerializeAssetSceneSequence(Cast<AssetSceneSequence>(asset));
 			default:
 				EG_CORE_ASSERT(false);
 				EG_CORE_ERROR("Failed to serialize an asset. Unknown asset.");
@@ -1595,6 +1815,97 @@ namespace Eagle
 		return buffer;
 	}
 
+	ScopedDataBuffer Serializer::SerializeAssetSceneSequence(const Ref<AssetSceneSequence>& asset)
+	{
+		size_t totalSize = sizeof(AssetHeader);
+
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::SceneSequence);
+		out << YAML::Key << "GUID" << YAML::Value << (asset ? asset->GetGUID() : GUID{});
+
+		if (asset)
+		{
+			out << YAML::Key << "Duration" << YAML::Value << asset->GetDuration();
+			out << YAML::Key << "FrameRate" << YAML::Value << asset->GetFrameRate();
+			out << YAML::Key << "Looping" << YAML::Value << asset->IsLooping();
+
+			const auto& tracks = asset->GetTracks();
+			if (!tracks.empty())
+			{
+				out << YAML::Key << "Tracks" << YAML::Value << YAML::BeginSeq;
+				for (const auto& track : tracks)
+				{
+					if (track)
+						SerializeSequenceTrack(out, track);
+				}
+				out << YAML::EndSeq;
+			}
+		}
+
+		out << YAML::EndMap;
+
+		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		ScopedDataBuffer buffer(totalSize);
+
+		size_t offset = 0;
+		Utils::WriteToBuffer(buffer, &header, sizeof(header), &offset);
+		Utils::WriteYaml(buffer, out, &offset);
+
+		return buffer;
+	}
+
+	Ref<AssetSceneSequence> Serializer::DeserializeAssetSceneSequence(const DataBuffer& data, const Path& pathToAsset)
+	{
+		YAML::Node baseNode;
+		Utils::ReadYAML(data, &baseNode);
+
+		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::SceneSequence))
+			return {};
+
+		GUID guid = baseNode["GUID"].as<GUID>();
+
+		float duration = 5.f;
+		float frameRate = 30.f;
+		bool bLooping = false;
+
+		if (auto node = baseNode["Duration"])
+			duration = node.as<float>();
+
+		if (auto node = baseNode["FrameRate"])
+			frameRate = node.as<float>();
+
+		if (auto node = baseNode["Looping"])
+			bLooping = node.as<bool>();
+
+		std::vector<Ref<SequenceTrack>> tracks;
+		if (auto tracksNode = baseNode["Tracks"])
+		{
+			tracks.reserve(tracksNode.size());
+			for (auto trackNode : tracksNode)
+			{
+				if (Ref<SequenceTrack> track = DeserializeSequenceTrack(trackNode))
+				{
+					tracks.push_back(std::move(track));
+				}
+				else
+				{
+					EG_CORE_ERROR("Failed to deserialize a sequence track");
+				}
+			}
+		}
+
+		class LocalAssetSceneSequence : public AssetSceneSequence
+		{
+		public:
+			LocalAssetSceneSequence(const Path& path, GUID guid, std::vector<Ref<SequenceTrack>>&& tracks, float duration, float frameRate, bool bLooping)
+				: AssetSceneSequence(path, guid, std::move(tracks), duration, frameRate, bLooping) {}
+		};
+
+		return MakeRef<LocalAssetSceneSequence>(pathToAsset, guid, std::move(tracks), duration, frameRate, bLooping);
+	}
+
 	void Serializer::DeserializeReverb(YAML::Node& reverbNode, ReverbComponent& reverb)
 	{
 		float minDistance = reverbNode["MinDistance"].as<float>();
@@ -2185,6 +2496,29 @@ namespace Eagle
 				out << YAML::Key << "ParticleSystem" << YAML::Value << asset->GetGUID();
 			
 			out << YAML::EndMap; //ParticleSystemComponent
+		}
+
+		if (entity.HasComponent<SceneSequenceComponent>())
+		{
+			auto& sequence = entity.GetComponent<SceneSequenceComponent>();
+
+			out << YAML::Key << "SceneSequenceComponent";
+			out << YAML::BeginMap; //SceneSequenceComponent
+
+			SerializeRelativeTransform(out, sequence.GetRelativeTransform());
+
+			if (const auto& asset = sequence.GetAsset())
+				out << YAML::Key << "SceneSequence" << YAML::Value << asset->GetGUID();
+
+			out << YAML::Key << "AutoPlay" << YAML::Value << sequence.bAutoPlay;
+			out << YAML::Key << "OverrideLooping" << YAML::Value << sequence.DoesOverrideLooping();
+			out << YAML::Key << "Looping" << YAML::Value << sequence.IsLoopingEnabled();
+			out << YAML::Key << "PlayInWorldSpace" << YAML::Value << sequence.bPlayInWorldSpace;
+			out << YAML::Key << "DriveCamera" << YAML::Value << sequence.AllowedToDriveCamera();
+			out << YAML::Key << "DrawPathInEditor" << YAML::Value << sequence.bDrawPathInEditor;
+			out << YAML::Key << "PlayRate" << YAML::Value << sequence.GetPlayRate();
+
+			out << YAML::EndMap; //SceneSequenceComponent
 		}
 
 		if (entity.HasComponent<DecalComponent>())
@@ -2882,6 +3216,32 @@ namespace Eagle
 			system.SetAsset(GetAsset<AssetParticleSystem>(systemNode["ParticleSystem"]));
 		}
 
+		if (auto sequenceNode = entityNode["SceneSequenceComponent"])
+		{
+			auto& sequence = deserializedEntity.AddComponent<SceneSequenceComponent>();
+
+			Transform relativeTransform;
+			DeserializeRelativeTransform(sequenceNode, relativeTransform);
+			sequence.SetRelativeTransform(relativeTransform);
+
+			sequence.SetAsset(GetAsset<AssetSceneSequence>(sequenceNode["SceneSequence"]));
+
+			if (auto node = sequenceNode["AutoPlay"])
+				sequence.bAutoPlay = node.as<bool>();
+			if (auto node = sequenceNode["OverrideLooping"])
+				sequence.SetOverrideLooping(node.as<bool>());
+			if (auto node = sequenceNode["Looping"])
+				sequence.SetLoopingEnabled(node.as<bool>());
+			if (auto node = sequenceNode["PlayInWorldSpace"])
+				sequence.bPlayInWorldSpace = node.as<bool>();
+			if (auto node = sequenceNode["DriveCamera"])
+				sequence.SetDriveCameraAllowed(node.as<bool>());
+			if (auto node = sequenceNode["DrawPathInEditor"])
+				sequence.bDrawPathInEditor = node.as<bool>();
+			if (auto node = sequenceNode["PlayRate"])
+				sequence.SetPlayRate(node.as<float>());
+		}
+
 		if (auto decalNode = entityNode["DecalComponent"])
 		{
 			auto& decal = deserializedEntity.AddComponent<DecalComponent>();
@@ -3462,6 +3822,8 @@ namespace Eagle
 			return DeserializeAssetAnimationBlendSpace(data, pathToAsset);
 		case AssetType::BehaviorGraph:
 			return DeserializeAssetBehaviorGraph(data, pathToAsset);
+		case AssetType::SceneSequence:
+			return DeserializeAssetSceneSequence(data, pathToAsset);
 		default:
 			EG_CORE_ASSERT(false);
 			EG_CORE_ERROR("Failed to serialize an asset. Unknown asset.");

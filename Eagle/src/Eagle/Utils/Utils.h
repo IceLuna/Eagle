@@ -18,6 +18,14 @@ namespace Eagle
 
 namespace Eagle::Utils
 {
+	template<typename T, typename Variant>
+	struct IsVariantType;
+
+	template<typename T, typename... Types>
+	struct IsVariantType<T, std::variant<Types...>>
+		: std::bool_constant<(std::is_same_v<T, Types> || ...)>
+	{};
+
 	struct StaticMeshImportData
 	{
 		Ref<StaticMesh> Mesh;

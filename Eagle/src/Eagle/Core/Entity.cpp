@@ -84,6 +84,14 @@ namespace Eagle
 		ScriptEngine::OnAnimationEventEntity(*this, name, time);
 	}
 
+	void Entity::TriggerSequenceEvent(const std::string& name, float time) const
+	{
+		if (HasComponent<ScriptComponent>() == false)
+			return;
+
+		ScriptEngine::OnSequenceEventEntity(*this, name, time);
+	}
+
 	const std::vector<Entity>& Entity::GetChildren() const
 	{
 		EG_CORE_ASSERT(m_Scene, "Invalid Entity");

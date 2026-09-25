@@ -32,6 +32,13 @@ namespace Eagle
 	class Scene;
 	class AnimationGraph;
 	class AssetAnimation;
+	class SceneSequencePlayer;
+	class SequenceTrack;
+	class SequenceCameraTrack;
+	class SequenceCameraCutTrack;
+	class SequencePostProcessTrack;
+	class SequenceEventTrack;
+	struct SequenceEvalContext;
 	struct SkeletalMeshAnimation;
 
 	enum class AssetType
@@ -53,6 +60,7 @@ namespace Eagle
 		ParticleSystem,
 		AnimationBlendSpace,
 		BehaviorGraph,
+		SceneSequence,
 	};
 
 	enum class AssetTexture2DFormat
@@ -191,6 +199,8 @@ namespace Eagle
 			return "ANIMATION_BLENDSPACE_CELL";
 		case AssetType::BehaviorGraph:
 			return "BEHAVIOR_GRAPH_CELL";
+		case AssetType::SceneSequence:
+			return "SCENE_SEQUENCE_CELL";
 		default:
 			EG_CORE_ASSERT(false);
 			return "INVALID_CELL";
@@ -944,5 +954,93 @@ namespace Eagle
 	private:
 		AIBehaviorNode m_Root;
 		GraphEditorSerializationData m_Data;
+	};
+
+	class AssetSceneSequence : public Asset
+	{
+	public:
+		AssetSceneSequence& operator=(Asset&& other) noexcept override
+		{
+			if (this == &other)
+				return *this;
+
+			Asset::operator=(std::move(other));
+
+			AssetSceneSequence&& asset = (AssetSceneSequence&&)other;
+			m_Tracks = std::move(asset.m_Tracks);
+			m_Duration = std::move(asset.m_Duration);
+			m_FrameRate = std::move(asset.m_FrameRate);
+			bLooping = std::move(asset.bLooping);
+			m_CameraCutTracks = std::move(asset.m_CameraCutTracks);
+			m_CameraTracks = std::move(asset.m_CameraTracks);
+			m_PostProcessTracks = std::move(asset.m_PostProcessTracks);
+			m_EventTracks = std::move(asset.m_EventTracks);
+
+			return *this;
+		}
+
+		void SetTracks(std::vector<Ref<SequenceTrack>>&& tracks);
+		const std::vector<Ref<SequenceTrack>>& GetTracks() const { return m_Tracks; }
+		const std::vector<const SequenceCameraTrack*>& GetCameraTracks() const { return m_CameraTracks; }
+
+		void AddTrack(const Ref<SequenceTrack>& track);
+		bool RemoveTrack(const GUID& id);
+		Ref<SequenceTrack> FindTrack(const GUID& id) const;
+
+		// Length of the sequence in seconds. Playback stops (or loops) here regardless of
+		// whether tracks still have keys beyond it.
+		float GetDuration() const { return m_Duration; }
+		void SetDuration(float duration)
+		{
+			m_Duration = glm::max(0.01f, duration);
+			SetDirty(true);
+		}
+
+		float GetFrameRate() const { return m_FrameRate; }
+		void SetFrameRate(float frameRate)
+		{
+			m_FrameRate = glm::clamp(frameRate, 1.f, 240.f);
+			SetDirty(true);
+		}
+
+		bool IsLooping() const { return bLooping; }
+		void SetLooping(bool bValue)
+		{
+			bLooping = bValue;
+			SetDirty(true);
+		}
+
+		// Samples every enabled track. Only the live camera track drives the camera
+		void Evaluate(SequenceEvalContext& context) const;
+
+		// The camera track the scene renders through at `time`. Null if no camera track has keys.
+		// With a Camera Cuts track, its cuts decide. Otherwise it's automatic: the camera whose keyed shot
+		// covers `time` (the most recently started one if several do); outside every shot, the one that
+		// ended most recently holds, and before any shot starts, the first one to start is used.
+		const SequenceCameraTrack* ResolveActiveCamera(float time) const;
+
+		// Every event whose key was passed during `window`, in the order playback reached them.
+		// The window comes from the player, so this is independent of how often the sequence is evaluated
+		void GatherEvents(const SequenceEventWindow& window, std::vector<SequenceEvent>& outEvents) const;
+
+		static constexpr AssetType GetAssetType_Static() { return AssetType::SceneSequence; }
+
+	protected:
+		AssetSceneSequence(const Path& path, GUID guid, std::vector<Ref<SequenceTrack>>&& tracks, float duration, float frameRate, bool bLooping);
+		void SetTracks_Internal(std::vector<Ref<SequenceTrack>>&& tracks);
+
+	private:
+		std::vector<Ref<SequenceTrack>> m_Tracks;
+
+		// Caching camera tracks to avoid iterating over all tracks to find them.
+		// Required for `ResolveActiveCamera()`
+		std::vector<const SequenceCameraCutTrack*> m_CameraCutTracks;
+		std::vector<const SequenceCameraTrack*> m_CameraTracks;
+		std::vector<const SequencePostProcessTrack*> m_PostProcessTracks;
+		std::vector<const SequenceEventTrack*> m_EventTracks;
+
+		float m_Duration = 5.f;
+		float m_FrameRate = 30.f;
+		bool bLooping = false;
 	};
 }

@@ -39,6 +39,7 @@ namespace Eagle
 	class AssetAnimationBlendSpace;
 	class AssetScene;
 	class AssetBehaviorGraph;
+	class AssetSceneSequence;
 
 	enum class AssetType;
 	enum class AssetTexture2DFormat;
@@ -146,6 +147,7 @@ namespace Eagle
 		static ScopedDataBuffer SerializeAssetParticleSystem(const Ref<AssetParticleSystem>& asset);
 		static ScopedDataBuffer SerializeAssetAnimationBlendSpace(const Ref<AssetAnimationBlendSpace>& asset, const Ref<AssetSkeletalMesh>& meshAsset = nullptr); // `meshAsset` is used if asset is nullptr
 		static ScopedDataBuffer SerializeAssetBehaviorGraph(const Ref<AssetBehaviorGraph>& asset);
+		static ScopedDataBuffer SerializeAssetSceneSequence(const Ref<AssetSceneSequence>& asset);
 
 		static ScopedDataBuffer SerializeAssetTexture2DFromData(const DataBuffer& textureData, const std::vector<ScopedDataBuffer>& compressedDataPerMip, ImageFormat compressedFormat, const GUID& guid,
 			const Path& pathToRaw, FilterMode filterMode, AddressMode addressMode, float anisotropy, uint32_t mipsCount, uint32_t width, uint32_t height, AssetTexture2DFormat format,
@@ -180,6 +182,7 @@ namespace Eagle
 		static Ref<AssetAnimationBlendSpace> DeserializeAssetAnimationBlendSpace(const DataBuffer& data, const Path& pathToAsset);
 		static Ref<AssetScene> DeserializeAssetScene(const DataBuffer& data, const Path& pathToAsset);
 		static Ref<AssetBehaviorGraph> DeserializeAssetBehaviorGraph(const DataBuffer& data, const Path& pathToAsset);
+		static Ref<AssetSceneSequence> DeserializeAssetSceneSequence(const DataBuffer& data, const Path& pathToAsset);
 
 		static AssetType GetAssetType(const DataBuffer& assetData);
 		static AssetType GetAssetType(const Path& pathToAsset);

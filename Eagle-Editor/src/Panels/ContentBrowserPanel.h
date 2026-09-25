@@ -106,6 +106,10 @@ namespace Eagle
 		
 		std::unordered_map<Ref<Asset>, Ref<AssetEditor>> m_AssetEditors;
 
+		// Editors to close on the next frame. Deferred because opening an editor can happen from within
+		// another one's UI, and erasing from `m_AssetEditors` while it's being iterated would be unsafe
+		std::vector<Ref<Asset>> m_AssetEditorsToClose;
+
 		Ref<Texture2D> m_FolderIcon;
 		Ref<Texture2D> m_AsteriskIcon;
 

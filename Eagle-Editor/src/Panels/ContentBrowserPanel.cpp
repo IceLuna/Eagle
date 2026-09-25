@@ -28,6 +28,7 @@
 #include "../AssetEditors/FontAssetEditor.h"
 #include "../AssetEditors/AnimationBlendSpaceAssetEditor.h"
 #include "../AssetEditors/BehaviorGraphAssetEditor.h"
+#include "../AssetEditors/SceneSequenceAssetEditor.h"
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
@@ -104,6 +105,9 @@ namespace Eagle
 			return true;
 		case AssetType::BehaviorGraph:
 			borderColor = ImVec4(1.0f, 0.435f, 0.658f, 1.f);
+			return true;
+		case AssetType::SceneSequence:
+			borderColor = ImVec4(0.9f, 0.85f, 0.2f, 1.f);
 			return true;
 		}
 		return false;
@@ -579,6 +583,10 @@ namespace Eagle
 
 	void ContentBrowserPanel::HandleAssetEditors()
 	{
+		for (const auto& asset : m_AssetEditorsToClose)
+			m_AssetEditors.erase(asset);
+		m_AssetEditorsToClose.clear();
+
 		for (auto it = m_AssetEditors.begin(); it != m_AssetEditors.end(); )
 		{
 			auto& editor = it->second;
@@ -666,6 +674,12 @@ namespace Eagle
 			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::BehaviorGraph), "Behavior Graph", thumbnailSize, thumbnailSize.x))
 			{
 				AssetImporter::CreateBehaviorGraph(m_CurrentDirectoryRelative);
+				bCreatedAsset = true;
+			}
+
+			if (UI::ImageButtonWithTextHorizontal(EditorResources::GetAssetIconTexture(AssetType::SceneSequence), "Scene Sequence", thumbnailSize, thumbnailSize.x))
+			{
+				AssetImporter::CreateSceneSequence(m_CurrentDirectoryRelative);
 				bCreatedAsset = true;
 			}
 
@@ -767,6 +781,17 @@ namespace Eagle
 		case AssetType::BehaviorGraph:
 			AddAssetEditor<BehaviorGraphAssetEditor, AssetBehaviorGraph>(asset);
 			break;
+		case AssetType::SceneSequence:
+		{
+			// Only one scene sequence editor at a time: they all preview through the level viewport camera,
+			// so a second one would fight the first for it. Opening another closes the one that's open
+			for (const auto& it : m_AssetEditors)
+				if (it.first != asset && it.first->GetAssetType() == AssetType::SceneSequence)
+					m_AssetEditorsToClose.push_back(it.first);
+
+			AddAssetEditor<SceneSequenceAssetEditor, AssetSceneSequence>(asset);
+			break;
+		}
 		}
 	}
 
@@ -1186,6 +1211,10 @@ namespace Eagle
 				if (ImGui::MenuItem("Behavior Graph"))
 				{
 					SetSelected(AssetImporter::CreateBehaviorGraph(m_CurrentDirectoryRelative), true);
+				}
+				if (ImGui::MenuItem("Scene Sequence"))
+				{
+					SetSelected(AssetImporter::CreateSceneSequence(m_CurrentDirectoryRelative), true);
 				}
 				if (ImGui::MenuItem("Scene"))
 				{

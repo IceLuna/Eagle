@@ -3143,6 +3143,102 @@ namespace Eagle
         internal static extern void DuplicatePose_Native(GUID entityID, uint emitterIndex, GUID compEntityID);
     }
 
+    public class SceneSequenceComponent : SceneComponent
+    {
+        public SceneSequenceComponent()
+        {
+            m_Type = typeof(SceneSequenceComponent);
+        }
+
+        public void SetAsset(AssetSceneSequence sequence)
+        {
+            SetAsset_Native(Parent.ID, sequence != null ? sequence.GetGUID() : GUID.Null());
+        }
+
+        public AssetSceneSequence GetAsset()
+        {
+            GUID assetID = GetAsset_Native(Parent.ID);
+            if (assetID.IsNull())
+                return null;
+            return new AssetSceneSequence(assetID);
+        }
+
+        // Starts or resumes playback. If `DriveCamera` is set, the scene renders through the sequence camera from this frame on
+        public void Play() { Play_Native(Parent.ID); }
+
+        public void Pause() { Pause_Native(Parent.ID); }
+
+        // Stops, rewinds to the start and hands the camera back
+        public void Stop() { Stop_Native(Parent.ID); }
+
+        public bool IsPlaying() { return IsPlaying_Native(Parent.ID); }
+
+        // Playback position in seconds
+        public float Time
+        {
+            get { return GetTime_Native(Parent.ID); }
+            set { SetTime_Native(Parent.ID, value); }
+        }
+
+        public float Duration
+        {
+            get { return GetDuration_Native(Parent.ID); }
+        }
+
+        // 1 is the default speed. Negative values play the sequence backwards
+        public float PlayRate
+        {
+            get { return GetPlayRate_Native(Parent.ID); }
+            set { SetPlayRate_Native(Parent.ID, value); }
+        }
+
+        // When false, the sequence still plays but doesn't take over the scene camera
+        public bool DriveCamera
+        {
+            get { return GetDriveCamera_Native(Parent.ID); }
+            set { SetDriveCamera_Native(Parent.ID, value); }
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAsset_Native(GUID entityID, GUID assetGUID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID GetAsset_Native(GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Play_Native(GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Pause_Native(GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Stop_Native(GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsPlaying_Native(GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetTime_Native(GUID entityID, float time);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetTime_Native(GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetDuration_Native(GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetPlayRate_Native(GUID entityID, float rate);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetPlayRate_Native(GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetDriveCamera_Native(GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetDriveCamera_Native(GUID entityID);
+    }
+
     public class DecalComponent : SceneComponent
     {
         public DecalComponent()

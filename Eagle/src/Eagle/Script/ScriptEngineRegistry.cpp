@@ -151,6 +151,7 @@ namespace Eagle
 		REGISTER_COMPONENT_TYPE(Text2DComponent);
 		REGISTER_COMPONENT_TYPE(Image2DComponent);
 		REGISTER_COMPONENT_TYPE(ParticleSystemComponent);
+		REGISTER_COMPONENT_TYPE(SceneSequenceComponent);
 		REGISTER_COMPONENT_TYPE(DecalComponent);
 		REGISTER_COMPONENT_TYPE(NavigationMeshComponent);
 		REGISTER_COMPONENT_TYPE(NavigationCrowdAgentComponent);
@@ -761,6 +762,21 @@ namespace Eagle
 		mono_add_internal_call("Eagle.ParticleSystemComponent::SetAsset_Native", Eagle::Script::Eagle_ParticleSystemComponent_SetAsset);
 		mono_add_internal_call("Eagle.ParticleSystemComponent::GetAsset_Native", Eagle::Script::Eagle_ParticleSystemComponent_GetAsset);
 		mono_add_internal_call("Eagle.ParticleSystemComponent::DuplicatePose_Native", Eagle::Script::Eagle_ParticleSystemComponent_DuplicatePose);
+
+		// Scene Sequence Component
+		mono_add_internal_call("Eagle.SceneSequenceComponent::Play_Native", Eagle::Script::Eagle_SceneSequenceComponent_Play);
+		mono_add_internal_call("Eagle.SceneSequenceComponent::Pause_Native", Eagle::Script::Eagle_SceneSequenceComponent_Pause);
+		mono_add_internal_call("Eagle.SceneSequenceComponent::Stop_Native", Eagle::Script::Eagle_SceneSequenceComponent_Stop);
+		mono_add_internal_call("Eagle.SceneSequenceComponent::IsPlaying_Native", Eagle::Script::Eagle_SceneSequenceComponent_IsPlaying);
+		mono_add_internal_call("Eagle.SceneSequenceComponent::SetTime_Native", Eagle::Script::Eagle_SceneSequenceComponent_SetTime);
+		mono_add_internal_call("Eagle.SceneSequenceComponent::GetTime_Native", Eagle::Script::Eagle_SceneSequenceComponent_GetTime);
+		mono_add_internal_call("Eagle.SceneSequenceComponent::GetDuration_Native", Eagle::Script::Eagle_SceneSequenceComponent_GetDuration);
+		mono_add_internal_call("Eagle.SceneSequenceComponent::SetPlayRate_Native", Eagle::Script::Eagle_SceneSequenceComponent_SetPlayRate);
+		mono_add_internal_call("Eagle.SceneSequenceComponent::GetPlayRate_Native", Eagle::Script::Eagle_SceneSequenceComponent_GetPlayRate);
+		mono_add_internal_call("Eagle.SceneSequenceComponent::SetDriveCamera_Native", Eagle::Script::Eagle_SceneSequenceComponent_SetDriveCamera);
+		mono_add_internal_call("Eagle.SceneSequenceComponent::GetDriveCamera_Native", Eagle::Script::Eagle_SceneSequenceComponent_GetDriveCamera);
+		mono_add_internal_call("Eagle.SceneSequenceComponent::SetAsset_Native", Eagle::Script::Eagle_SceneSequenceComponent_SetAsset);
+		mono_add_internal_call("Eagle.SceneSequenceComponent::GetAsset_Native", Eagle::Script::Eagle_SceneSequenceComponent_GetAsset);
 
 		// Decal Component
 		mono_add_internal_call("Eagle.DecalComponent::SetMaterial_Native", Eagle::Script::Eagle_DecalComponent_SetMaterial);

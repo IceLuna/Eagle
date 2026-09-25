@@ -698,6 +698,20 @@ namespace Eagle
 		}
 	}
 
+	void ScriptEngine::OnSequenceEventEntity(const Entity& entity, const std::string& eventName, float time)
+	{
+		typedef void (*OnSequenceEventFunc)(MonoObject*, MonoString*, float, MonoObject**);
+
+		EntityInstance* entityInstance = GetEntityInstance(entity);
+		if (entityInstance && entityInstance->Methods.OnSequenceEventMethod)
+		{
+			OnSequenceEventFunc function = (OnSequenceEventFunc)entityInstance->Methods.OnSequenceEventMethod.Thunk;
+			MonoObject* exception = nullptr;
+			function(entityInstance->GetMonoInstance(), mono_string_new(mono_domain_get(), eventName.c_str()), time, &exception);
+			HandleException(exception);
+		}
+	}
+
 	void ScriptEngine::OnPhysicsUpdateEntity(const Entity& entity, Timestep ts)
 	{
 		typedef void (*PhysicsUpdateFunc)(MonoObject*, float, MonoObject**);
@@ -1608,6 +1622,7 @@ namespace Eagle
 		Methods.OnEventMethod           = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnEvent(Event)", bCheckParentClasses);
 		Methods.OnPhysicsUpdateMethod	= ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnPhysicsUpdate(single)", bCheckParentClasses);
 		Methods.OnAnimationEventMethod  = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnAnimationEvent(string,single)", bCheckParentClasses);
+		Methods.OnSequenceEventMethod   = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnSequenceEvent(string,single)", bCheckParentClasses);
 
 		Methods.OnCollisionBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionBegin(Entity,Vector3,Vector3,Vector3,Vector3)");
 		Methods.OnCollisionEndMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionEnd(Entity,Vector3,Vector3,Vector3,Vector3)");

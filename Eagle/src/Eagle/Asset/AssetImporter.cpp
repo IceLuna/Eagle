@@ -299,6 +299,17 @@ namespace Eagle
 		return outputFilename;
 	}
 
+	Path AssetImporter::CreateSceneSequence(const Path& saveTo, const std::string& filename)
+	{
+		const Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, filename);
+		ScopedDataBuffer data = Serializer::SerializeAssetSceneSequence(nullptr);
+		FileSystem::Write(outputFilename, data);
+
+		AssetManager::Register(Asset::Create(data, outputFilename));
+
+		return outputFilename;
+	}
+
 	AssetType AssetImporter::GetAssetTypeByExtension(const Path& filepath)
 	{
 		if (!filepath.has_extension())

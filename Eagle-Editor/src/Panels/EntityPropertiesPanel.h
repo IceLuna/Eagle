@@ -32,6 +32,7 @@ namespace Eagle
 		DecalComponent,
 		NavigationMeshComponent,
 		NavigationCrowdAgentComponent,
+		SceneSequenceComponent,
 	};
 
 	class EntityPropertiesPanel

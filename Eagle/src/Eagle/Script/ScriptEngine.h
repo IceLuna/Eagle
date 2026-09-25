@@ -52,6 +52,7 @@ namespace Eagle
 		static void OnEventEntity(const Entity& entity, void* eventObj);
 		static void OnEventEntity(const Entity& entity, Event& e);
 		static void OnAnimationEventEntity(const Entity& entity, const std::string& eventName, float time);
+		static void OnSequenceEventEntity(const Entity& entity, const std::string& eventName, float time);
 		static void OnPhysicsUpdateEntity(const Entity& entity, Timestep ts);
 		static void OnDestroyEntity(const Entity& entity);
 

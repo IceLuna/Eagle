@@ -18,6 +18,7 @@
 #include "Eagle/Renderer/Material.h"
 #include "Eagle/Renderer/ParticleEmitter.h"
 #include "Eagle/AI/NavigationMesh.h"
+#include "Eagle/SceneSequence/SceneSequencePlayer.h"
 
 // If new component class is created, other changes are required:
 // 1) Add new line into Scene's copy constructor;
@@ -2180,6 +2181,101 @@ namespace Eagle
 
 	public:
 		bool bAutospawn = true;
+	};
+
+	class SceneSequenceComponent : public SceneComponent
+	{
+	public:
+		SceneSequenceComponent(const Entity& entity) : SceneComponent(entity) {}
+		~SceneSequenceComponent();
+
+		SceneSequenceComponent(const SceneSequenceComponent&) = delete;
+		SceneSequenceComponent(SceneSequenceComponent&&) noexcept = default;
+		SceneSequenceComponent& operator=(SceneSequenceComponent&&) noexcept = default;
+
+		SceneSequenceComponent& operator=(const SceneSequenceComponent& other);
+
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			SceneComponent::SetWorldTransform(worldTransform);
+			Parent.SignalComponentChanged<SceneSequenceComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			SceneComponent::SetRelativeTransform(relativeTransform);
+			Parent.SignalComponentChanged<SceneSequenceComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetAsset(const Ref<AssetSceneSequence>& asset);
+		const Ref<AssetSceneSequence>& GetAsset() const { return m_Player.GetAsset(); }
+
+		void Play();
+		void Pause();
+		void Stop();
+
+		bool IsPlaying() const { return m_Player.IsPlaying(); }
+		bool IsStopped() const { return m_Player.IsStopped(); }
+
+		float GetTime() const { return m_Player.GetTime(); }
+
+		// Moves the playhead. Also refreshes the camera immediately when the sequence is
+		// currently driving it, so scrubbing from a script looks right on the same frame.
+		void SetTime(float time);
+
+		float GetDuration() const { return m_Player.GetDuration(); }
+
+		float GetPlayRate() const { return m_Player.GetPlayRate(); }
+		void SetPlayRate(float rate) { m_Player.SetPlayRate(rate); }
+
+		// Called by `Scene::UpdateSceneSequences` every frame
+		void OnUpdate(Timestep ts);
+
+		SceneSequencePlayer& GetPlayer() { return m_Player; }
+		const SceneSequencePlayer& GetPlayer() const { return m_Player; }
+
+		bool AllowedToDriveCamera() const { return bDriveCamera; }
+		void SetDriveCameraAllowed(bool bAllowed);
+
+		bool DoesOverrideLooping() const { return bOverrideLooping; }
+		void SetOverrideLooping(bool bOverride);
+
+		bool IsLoopingEnabled() const { return bLooping; };
+		void SetLoopingEnabled(bool bEnable);
+
+		void OnRemoved() override;
+
+		bool IsOwningCamera() const;
+
+	private:
+		// Transform the sequence is evaluated relative to
+		Transform GetBaseTransform() const
+		{
+			return bPlayInWorldSpace ? Transform{} : WorldTransform;
+		}
+
+		void ReleaseCameraOverride();
+
+	private:
+		SceneSequencePlayer m_Player;
+
+		// Whether this sequence is allowed to take the scene camera over while playing
+		bool bDriveCamera = true;
+
+		// Overrides the asset's own loop flag when enabled
+		bool bOverrideLooping = false;
+		bool bLooping = false;
+
+	public:
+		bool bAutoPlay = false;
+
+		// When true, keys are final world-space transforms: moving the component
+		// doesn't affect the sequence. When false, keys are offsets from this component's world
+		// transform, so the whole sequence moves with it
+		bool bPlayInWorldSpace = true;
+
+		// Draws the camera path in the editor viewport while this entity is in the scene
+		bool bDrawPathInEditor = true;
 	};
 
 	class DecalComponent : public SceneComponent

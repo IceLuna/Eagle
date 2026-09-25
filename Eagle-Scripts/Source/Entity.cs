@@ -40,6 +40,10 @@ namespace Eagle
 
         public virtual void OnAnimationEvent(string eventName, float time) { }
 
+        // Called when a scene sequence played by this entity's Scene Sequence component passes an event key.
+        // @time. Time of the key inside the sequence
+        public virtual void OnSequenceEvent(string eventName, float time) { }
+
         // Returns actual damage that was taken
         public virtual float TakeDamage(Entity source, float damage)
         {

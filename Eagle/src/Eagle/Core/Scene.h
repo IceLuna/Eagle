@@ -6,6 +6,7 @@
 #include "Eagle/Audio/Sound3D.h"
 #include "Eagle/Physics/PhysicsSettings.h"
 #include "Eagle/Animation/Animation.h"
+#include "Eagle/SceneSequence/SequenceTrack.h"
 #include "GUID.h"
 #include "Notifications.h"
 
@@ -31,6 +32,7 @@ namespace Eagle
 	class EntitySceneNameComponent;
 	class Sound2D;
 	class AssetAudio;
+	class AssetSceneSequence;
 	class AssetEntity;
 	class AssetScene;
 	class AssetAnimationGraph;
@@ -163,6 +165,10 @@ namespace Eagle
 		void DrawCone(const glm::vec3& location, const glm::quat& rotation, float distance, float angleRad);
 		void DrawFrustum(const CameraComponent& camera);
 
+		// Camera path of a scene sequence: the path itself, a marker per location key, and the pose at `time`.
+		// @highlightKeyID. Location key drawn in a highlight colour (e.g. the one selected in the editor). Can be null
+		void DrawSequencePath(const Ref<AssetSceneSequence>& asset, const Transform& base, float time, const GUID& highlightKeyID = GUID(0, 0));
+
 		SceneSoundData SpawnSound2D(const Ref<AssetAudio>& audio, const SoundSettings& settings);
 		SceneSoundData SpawnSound3D(const Ref<AssetAudio>& audio, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, const SoundSettings& settings = {});
 		Ref<Sound> GetSpawnedSound(GUID id) const;
@@ -260,6 +266,36 @@ namespace Eagle
 		const Ref<AINavigation::Mesh>& GetNavMesh() const { return m_CurrentNavMesh; }
 		void BuildCrowd(const AINavigation::CrowdSettings& settings); // Builds crowd system for the current nav mesh
 		
+		// ---- Camera override ----
+		// Allows anyone take over what the scene renders through
+		// For example, the scene sequencer uses this to run cutscenes
+		struct CameraOverrideData
+		{
+			Transform WorldTransform;
+			float VerticalFOVRadians = glm::radians(45.f);
+			float NearClip = 0.01f;
+			float FarClip = 150.f;
+		};
+
+		// @owner. Identifies the requester. The most recent requester wins.
+		void SetCameraOverride(const GUID& owner, const CameraOverrideData& data);
+
+		// Only releases the override if `owner` is the one currently holding it
+		void ClearCameraOverride(const GUID& owner);
+
+		// Releases unconditionally
+		void ClearCameraOverride();
+
+		// Per-property override of the post process settings
+		void SetPostProcessOverride(const GUID& owner, const PostProcessOverride& postProcess);
+		void ClearPostProcessOverride(const GUID& owner);
+		bool IsPostProcessOverridden() const;
+
+		bool IsCameraOverridden() const { return bCameraOverrideValid; }
+		const GUID& GetCameraOverrideOwner() const { return m_CameraOverrideOwner; }
+		const Camera& GetOverrideCamera() const { return m_OverrideCamera; }
+		const glm::mat4& GetOverrideCameraViewMatrix() const { return m_OverrideViewMatrix; }
+
 		//Camera
 		CameraComponent* GetRuntimeCamera();
 		Entity GetPrimaryCameraEntity(); //TODO: Remove
@@ -334,6 +370,7 @@ namespace Eagle
 		void OnUpdateEditor(Timestep ts, bool bRender, bool bForceAnimationsUpdate);
 		void OnUpdateRuntime(Timestep ts, bool bRender, bool bForceAnimationsUpdate);
 		void UpdateNavMesh(Timestep ts);
+		void UpdateSceneSequences(Timestep ts);
 		void SyncCrowdAgents();
 		void SetupOnAppAssemblyReloadedCallback();
 
@@ -624,6 +661,7 @@ namespace Eagle
 		std::unordered_map<GUID, Ref<Sound>> m_SpawnedSounds;
 
 		std::vector<AnimationEventData> m_AnimationsToTrigger;
+		std::vector<SequenceEventData> m_SequenceEventsToTrigger;
 		std::vector<ParticleSystemComponent*> m_SystemsToUpdateAnims;
 
 		// entt::entity. Can't store Entity (forward declaration)
@@ -644,6 +682,18 @@ namespace Eagle
 		std::vector<const SpotLightComponent*> m_SpotLights;
 		std::vector<const DirectionalLightComponent*> m_DirectionalLights;
 		std::vector<std::pair<Entity, bool>> m_EntitiesToDestroy; // 1st - Entity to destroy; 2nd - whether to destroy its children
+
+		// Camera override (see `SetCameraOverride`).
+		// Declared before `m_Registry` on purpose: components release the override from their destructors,
+		// so these must outlive the registry during scene destruction
+		Camera m_OverrideCamera;
+		glm::mat4 m_OverrideViewMatrix = glm::mat4(1.f);
+		glm::vec3 m_OverrideViewPos = glm::vec3(0.f);
+		glm::vec3 m_OverrideViewDir = glm::vec3(0.f, 0.f, -1.f);
+		glm::vec3 m_OverrideViewUp = glm::vec3(0.f, 1.f, 0.f);
+		GUID m_CameraOverrideOwner = GUID(0, 0);
+		bool bCameraOverrideValid = false;
+
 		entt::registry m_Registry;
 		CameraComponent* m_RuntimeCamera = nullptr;
 

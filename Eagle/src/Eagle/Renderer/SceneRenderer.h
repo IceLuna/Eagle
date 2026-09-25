@@ -2,6 +2,7 @@
 
 #include "VidWrappers/Image.h"
 #include "VidWrappers/Buffer.h"
+#include "PostProcessOverride.h"
 
 #include "Tasks/RendererTask.h"
 #include "Tasks/RenderLinesTask.h"
@@ -260,6 +261,19 @@ namespace Eagle
 
 		const SceneRendererSettings& GetOptions_RT() const { return m_Options_RT; }
 		const SceneRendererSettings& GetOptions() const { return m_Options; }
+
+		// What is actually used for rendering. The settings above with the post process override applied on top
+		const SceneRendererSettings& GetEffectiveOptions() const { return m_EffectiveOptions; }
+
+		// Per-property override of the post process settings.
+		// Properties that aren't part of `postProcess` keep whatever the base settings say.
+		// @owner. Identifies the requester, so releasing can't steal the override from someone else
+		void SetPostProcessOverride(const GUID& owner, const PostProcessOverride& postProcess);
+		void ClearPostProcessOverride(const GUID& owner);
+		void ClearPostProcessOverride();
+		bool IsPostProcessOverridden() const { return !m_PostProcessOverride.IsEmpty(); }
+		const GUID& GetPostProcessOverrideOwner() const { return m_PostProcessOverrideOwner; }
+
 		const CameraData& GetCameraMatrices() const { return m_CameraMatrices; }
 		const glm::mat4& GetViewMatrix() const { return m_CameraMatrices.View; }
 		const glm::mat4& GetProjectionMatrix() const { return m_CameraMatrices.Proj; }
@@ -294,6 +308,9 @@ namespace Eagle
 
 	private:
 		void InitWithOptions();
+
+		// Recomputes options from the base settings plus the post process override
+		void RecalculateOptions();
 
 	private:
 		Ref<SkinCacheTask> m_SkinCacheTask;
@@ -374,6 +391,9 @@ namespace Eagle
 		float m_CameraFOV = 1.f;
 		SceneRendererSettings m_Options_RT; // Render thread
 		SceneRendererSettings m_Options;
+		SceneRendererSettings m_EffectiveOptions; // `m_Options` plus the post process override. This is what gets rendered
+		PostProcessOverride m_PostProcessOverride;
+		GUID m_PostProcessOverrideOwner = GUID(0, 0);
 
 		uint32_t m_FrameIndex = 0;
 

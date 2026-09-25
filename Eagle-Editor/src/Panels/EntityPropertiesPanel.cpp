@@ -107,6 +107,7 @@ namespace Eagle
 		case SelectedComponent::ParticleSystemComponent: return &m_Entity.GetComponent<ParticleSystemComponent>();
 		case SelectedComponent::DecalComponent: return &m_Entity.GetComponent<DecalComponent>();
 		case SelectedComponent::NavigationMeshComponent: return &m_Entity.GetComponent<NavigationMeshComponent>();
+		case SelectedComponent::SceneSequenceComponent: return &m_Entity.GetComponent<SceneSequenceComponent>();
 		}
 		return nullptr;
 	}
@@ -143,6 +144,7 @@ namespace Eagle
 			case SelectedComponent::DecalComponent: return m_Entity.HasComponent<DecalComponent>();
 			case SelectedComponent::NavigationMeshComponent: return m_Entity.HasComponent<NavigationMeshComponent>();
 			case SelectedComponent::NavigationCrowdAgentComponent: return m_Entity.HasComponent<NavigationCrowdAgentComponent>();
+			case SelectedComponent::SceneSequenceComponent: return m_Entity.HasComponent<SceneSequenceComponent>();
 		}
 		return false;
 	}
@@ -181,6 +183,7 @@ namespace Eagle
 			UI::TextWithSeparator("Basic");
 			EG_ADD_COMPONENT_MENU_ITEM(ScriptComponent, "C# Script");
 			EG_ADD_COMPONENT_MENU_ITEM(CameraComponent, "Camera");
+			EG_ADD_COMPONENT_MENU_ITEM(SceneSequenceComponent, "Scene Sequence");
 
 			UI::TextWithSeparator("2D");
 			EG_ADD_COMPONENT_MENU_ITEM(SpriteComponent, "Sprite");
@@ -259,6 +262,7 @@ namespace Eagle
 				EG_DRAW_COMPONENT_LINE("Text 2D", Text2DComponent, SelectedComponent::Text2DComponent);
 				EG_DRAW_COMPONENT_LINE("Image 2D", Image2DComponent, SelectedComponent::Image2DComponent);
 				EG_DRAW_COMPONENT_LINE("Camera", CameraComponent, SelectedComponent::CameraComponent);
+				EG_DRAW_COMPONENT_LINE("Scene Sequence", SceneSequenceComponent, SelectedComponent::SceneSequenceComponent);
 				EG_DRAW_COMPONENT_LINE("Point Light", PointLightComponent, SelectedComponent::PointLightComponent);
 				EG_DRAW_COMPONENT_LINE("Directional Light", DirectionalLightComponent, SelectedComponent::DirectionalLightComponent);
 				EG_DRAW_COMPONENT_LINE("Spot Light", SpotLightComponent, SelectedComponent::SpotLightComponent);
@@ -2093,6 +2097,96 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 					bEntityChanged |= UI::Property("Auto-spawn", system.bAutospawn);
+
+					UI::EndPropertyGrid();
+				});
+				break;
+			}
+
+			case SelectedComponent::SceneSequenceComponent:
+			{
+				DrawComponentTransformNode(entity, entity.GetComponent<SceneSequenceComponent>());
+				DrawComponent<SceneSequenceComponent>("Scene Sequence", entity, [&entity, this](SceneSequenceComponent& sequence)
+				{
+					auto asset = sequence.GetAsset();
+					bool bDriveCamera = sequence.AllowedToDriveCamera();
+					bool bOverrideLooping = sequence.DoesOverrideLooping();
+					bool bLooping = sequence.IsLoopingEnabled();
+
+					UI::BeginPropertyGrid("SceneSequenceComponent");
+
+					if (EditorResources::DrawAssetSelection("Scene Sequence", asset, "Click the preview to open the sequence editor"))
+					{
+						sequence.SetAsset(asset);
+						bEntityChanged = true;
+					}
+
+					bEntityChanged |= UI::Property("Auto Play", sequence.bAutoPlay, "Starts playing as soon as the game starts");
+					if (UI::Property("Drive Camera", bDriveCamera, "While playing, the scene renders through the sequence's camera track"))
+					{
+						sequence.SetDriveCameraAllowed(bDriveCamera);
+						bEntityChanged = true;
+					}
+					bEntityChanged |= UI::Property("Play In World Space", sequence.bPlayInWorldSpace,
+						"When enabled (default), keys are final world transforms and moving this entity doesn't affect the sequence.\nWhen disabled, keys are offsets from this component's transform, so the whole sequence moves with the entity");
+					if (UI::Property("Override Looping", bOverrideLooping, "Use the loop flag below instead of the asset's own one"))
+					{
+						sequence.SetOverrideLooping(bOverrideLooping);
+						bEntityChanged = true;
+					}
+					if (!bOverrideLooping)
+						UI::PushItemDisabled();
+					if (UI::Property("Looping", bLooping))
+					{
+						sequence.SetLoopingEnabled(bLooping);
+						bEntityChanged = true;
+					}
+					if (!bOverrideLooping)
+						UI::PopItemDisabled();
+					bEntityChanged |= UI::Property("Draw Path In Editor", sequence.bDrawPathInEditor);
+
+					float playRate = sequence.GetPlayRate();
+					if (UI::PropertyDrag("Play Rate", playRate, 0.01f, -10.f, 10.f, "Negative values play the sequence backwards"))
+					{
+						sequence.SetPlayRate(playRate);
+						bEntityChanged = true;
+					}
+
+					if (asset)
+					{
+						UI::TextWithSeparator("Preview");
+
+						bool bPreviewing = sequence.IsOwningCamera();
+						if (UI::Property("Previewing", bPreviewing))
+						{
+							if (bPreviewing)
+							{
+								sequence.Play();
+								sequence.Pause();
+							}
+							else
+							{
+								sequence.Stop();
+							}
+						}
+
+						float time = sequence.GetTime();
+						if (UI::PropertySlider("Time", time, 0.f, sequence.GetDuration()))
+						{
+							sequence.SetTime(time);
+						}
+
+						const char* playLabel = sequence.IsPlaying() ? "Pause" : "Play";
+						if (UI::Button("Playback", playLabel))
+						{
+							if (sequence.IsPlaying())
+								sequence.Pause();
+							else
+								sequence.Play();
+						}
+						if (UI::Button("", "Stop"))
+							sequence.Stop();
+					}
 
 					UI::EndPropertyGrid();
 				});

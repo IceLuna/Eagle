@@ -59,6 +59,7 @@ namespace Eagle
 		static Ref<Texture2D> s_ParticleSystemIcon;
 		static Ref<Texture2D> s_MaterialIcon;
 		static Ref<Texture2D> s_BehaviorGraphIcon;
+		static Ref<Texture2D> s_SceneSequenceIcon;
 		static Ref<Texture2D> s_UnknownIcon;
 	};
 }
