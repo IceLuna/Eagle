@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace Eagle
@@ -10,6 +12,74 @@ namespace Eagle
         public Vector3 Impulse;
         public Vector3 Force;
     }
+
+    internal enum ComponentKind
+    {
+        Engine,  // Declared in Eagle-Scripts, C++ backed, registered in ScriptEngineRegistry
+        User,    // Pure C#, stored per-entity by the engine but never exposed to the editor/serializer
+        Invalid, // Not a component, or a user type that inherits an engine component (SceneComponent, CameraComponent, ...)
+    }
+
+    internal static class ComponentTypeInfo
+    {
+        private static readonly Assembly s_CoreAssembly = typeof(Component).Assembly;
+        private static readonly Dictionary<Type, ComponentKind> s_Cache = new Dictionary<Type, ComponentKind>();
+
+        public static ComponentKind GetKind(Type type)
+        {
+            if (type == null)
+                return ComponentKind.Invalid;
+
+            if (!s_Cache.TryGetValue(type, out ComponentKind kind))
+            {
+                kind = Classify(type);
+                s_Cache[type] = kind;
+            }
+            return kind;
+        }
+
+        public static void LogInvalid(Type type, string functionName)
+        {
+            string reason;
+            if (type == null)
+                reason = "Type is null";
+            else if (!typeof(Component).IsAssignableFrom(type))
+                reason = $"'{type.FullName}' is not a component";
+            else
+                reason = $"User component '{type.FullName}' must derive from 'Eagle.Component' directly or from another user component. " +
+                         $"It inherits engine component '{GetFirstEngineBase(type)?.FullName}'";
+
+            Log.Error($"Failed to call '{functionName}'. {reason}");
+        }
+
+        private static ComponentKind Classify(Type type)
+        {
+            if (!typeof(Component).IsAssignableFrom(type))
+                return ComponentKind.Invalid;
+
+            if (type.Assembly == s_CoreAssembly)
+                return ComponentKind.Engine;
+
+            // A user component must not inherit engine behaviour (SceneComponent, LightComponent, CameraComponent, ...):
+            // those wrappers forward everything to C++ data that doesn't exist for user types.
+            return GetFirstEngineBase(type) == typeof(Component) ? ComponentKind.User : ComponentKind.Invalid;
+        }
+
+        // Walks up the inheritance chain skipping user classes, returns the first class declared in Eagle-Scripts
+        private static Type GetFirstEngineBase(Type type)
+        {
+            Type engineBase = type.BaseType;
+            while (engineBase != null && engineBase.Assembly != s_CoreAssembly)
+                engineBase = engineBase.BaseType;
+            return engineBase;
+        }
+    }
+
+    internal static class ComponentTypeInfo<T> where T : Component
+    {
+        public static readonly ComponentKind Kind = ComponentTypeInfo.GetKind(typeof(T));
+    }
+
     public class Entity
     {
         // First `Entity` is an entity that owns a callback
@@ -181,6 +251,27 @@ namespace Eagle
 
         public T AddComponent<T>() where T : Component, new()
         {
+            ComponentKind kind = ComponentTypeInfo<T>.Kind;
+            if (kind == ComponentKind.Invalid)
+            {
+                ComponentTypeInfo.LogInvalid(typeof(T), nameof(AddComponent));
+                return null;
+            }
+
+            if (kind == ComponentKind.User)
+            {
+                // Same semantics as engine components: adding twice is an error and you get the existing one back.
+                if (HasUserComponent_Native(ID, typeof(T)))
+                {
+                    Log.Error($"Couldn't add component '{typeof(T).Name}' to '{GetName()}'. This component already exists!");
+                    return GetUserComponent_Native(ID, typeof(T)) as T;
+                }
+
+                T userComponent = new T();
+                userComponent.Parent = this;
+                return AddUserComponent_Native(ID, userComponent) ? userComponent : null;
+            }
+
             AddComponent_Native(ID, typeof(T));
             T component = new T();
             component.Parent = this;
@@ -189,22 +280,49 @@ namespace Eagle
 
         public void RemoveComponent<T>() where T : Component, new()
         {
-            RemoveComponent_Native(ID, typeof(T));
+            switch (ComponentTypeInfo<T>.Kind)
+            {
+                case ComponentKind.User:   RemoveUserComponent_Native(ID, typeof(T)); break;
+                case ComponentKind.Engine: RemoveComponent_Native(ID, typeof(T)); break;
+                default: ComponentTypeInfo.LogInvalid(typeof(T), nameof(RemoveComponent)); break;
+            }
         }
 
         public bool HasComponent<T>() where T : Component, new()
         {
-            return HasComponent_Native(ID, typeof(T));
+            return HasComponent(ComponentTypeInfo<T>.Kind, typeof(T));
         }
 
         public bool HasComponent(Type type)
         {
-            return HasComponent_Native(ID, type);
+            return HasComponent(ComponentTypeInfo.GetKind(type), type);
+        }
+
+        private bool HasComponent(ComponentKind kind, Type type)
+        {
+            switch (kind)
+            {
+                case ComponentKind.User:   return HasUserComponent_Native(ID, type);
+                case ComponentKind.Engine: return HasComponent_Native(ID, type);
+                default:
+                    ComponentTypeInfo.LogInvalid(type, nameof(HasComponent));
+                    return false;
+            }
         }
 
         public T GetComponent<T>() where T : Component, new()
         {
-            if (HasComponent<T>())
+            ComponentKind kind = ComponentTypeInfo<T>.Kind;
+            if (kind == ComponentKind.Invalid)
+            {
+                ComponentTypeInfo.LogInvalid(typeof(T), nameof(GetComponent));
+                return null;
+            }
+
+            if (kind == ComponentKind.User)
+                return GetUserComponent_Native(ID, typeof(T)) as T;
+
+            if (HasComponent_Native(ID, typeof(T)))
             {
                 T component = new T();
                 component.Parent = this;
@@ -379,6 +497,18 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool HasComponent_Native(in GUID entityID, Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool AddUserComponent_Native(in GUID entityID, Component component);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void RemoveUserComponent_Native(in GUID entityID, Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool HasUserComponent_Native(in GUID entityID, Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern Component GetUserComponent_Native(in GUID entityID, Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsValid_Native(in GUID entityID);

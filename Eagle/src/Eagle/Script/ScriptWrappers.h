@@ -26,6 +26,10 @@ namespace Eagle::Script
 	void Eagle_Entity_AddComponent(GUID entityID, void* type);
 	void Eagle_Entity_RemoveComponent(GUID entityID, void* type);
 	bool Eagle_Entity_HasComponent(GUID entityID, void* type);
+	bool Eagle_Entity_AddUserComponent(GUID entityID, MonoObject* component);
+	void Eagle_Entity_RemoveUserComponent(GUID entityID, void* type);
+	bool Eagle_Entity_HasUserComponent(GUID entityID, void* type);
+	MonoObject* Eagle_Entity_GetUserComponent(GUID entityID, void* type);
 	bool Eagle_Entity_IsValid(GUID entityID);
 	MonoString* Eagle_Entity_GetEntityName(GUID entityID);
 	void Eagle_Entity_GetForwardVector(GUID entityID, glm::vec3* result);

@@ -43,6 +43,7 @@ namespace Eagle
 		static MonoObject* GetEntityMonoObject(GUID entityID);
 
 		[[nodiscard]] static uint32_t Instantiate(MonoClass* klass, std::string_view debugName);
+		[[nodiscard]] static uint32_t CreateHandle(MonoObject* object);
 		static void FreeHandle(uint32_t handle);
 		// Note: Don't cache this pointer. It might become invalid if Garbage Collector decides to move it around
 		static MonoObject* GetHandleInstance(uint32_t handle);

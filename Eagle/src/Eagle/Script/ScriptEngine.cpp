@@ -1539,6 +1539,11 @@ namespace Eagle
 		return mono_gchandle_new(instance, false);
 	}
 
+	uint32_t ScriptEngine::CreateHandle(MonoObject* object)
+	{
+		return mono_gchandle_new(object, false);
+	}
+
 	void ScriptEngine::FreeHandle(uint32_t handle)
 	{
 		mono_gchandle_free(handle);

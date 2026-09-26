@@ -16,6 +16,15 @@ namespace Eagle
 		return res;
 	}
 
+	Scope<MonoInstance> MonoInstance::CreateFromObject(MonoObject* object)
+	{
+		class LocalMonoInstance : public MonoInstance {};
+		Scope<MonoInstance> res = MakeScope<LocalMonoInstance>();
+		res->m_Handle = object ? ScriptEngine::CreateHandle(object) : 0u;
+
+		return res;
+	}
+
 	MonoInstance::~MonoInstance()
 	{
 		if (m_Handle != 0)

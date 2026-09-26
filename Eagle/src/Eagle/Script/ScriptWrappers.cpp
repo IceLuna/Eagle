@@ -1,6 +1,7 @@
 #include "egpch.h"
 #include "ScriptWrappers.h"
 #include "ScriptEngine.h"
+#include "ScriptUserComponents.h"
 #include "Eagle/Physics/PhysicsActor.h"
 #include "Eagle/Physics/PhysicsRagdollActor.h"
 #include "Eagle/Physics/PhysicsScene.h"
@@ -225,6 +226,20 @@ namespace Eagle::Script::Utils
 		*outBlendMode = material->GetBlendMode();
 		*bDoubleSided = material->IsDoubleSided();
 	}
+
+	static MonoClass* GetClassFromReflectionType(void* type)
+	{
+		if (!type)
+			return nullptr;
+
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+		return monoType ? mono_class_from_mono_type(monoType) : nullptr;
+	}
+
+	static ScriptUserComponents* GetUserComponents(Entity& entity)
+	{
+		return entity.HasComponent<ScriptUserComponents>() ? &entity.GetComponent<ScriptUserComponents>() : nullptr;
+	}
 }
 
 namespace Eagle
@@ -305,46 +320,146 @@ namespace Eagle
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't add component to Entity. Entity is null");
+			return;
+		}
 
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
-		const bool bAlreadyHasIt = m_HasComponentFunctions[monoType](entity);
-		if (bAlreadyHasIt)
+		auto itHas = m_HasComponentFunctions.find(monoType);
+		auto itAdd = m_AddComponentFunctions.find(monoType);
+		if (itHas == m_HasComponentFunctions.end() || itAdd == m_AddComponentFunctions.end())
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't add component to Entity. '{}' is not an engine component", mono_type_get_name(monoType));
+			return;
+		}
+
+		if (itHas->second(entity))
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't add component to Entity. This component already exists!");
 			return;
 		}
 
-		if (entity)
-		{
-			m_AddComponentFunctions[monoType](entity);
-		}
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't add component to Entity. Entity is null");
-		}
+		itAdd->second(entity);
 	}
 
 	void Script::Eagle_Entity_RemoveComponent(GUID entityID, void* type)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
-
-		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
-		const bool bAlreadyHasIt = m_HasComponentFunctions[monoType](entity);
-		if (!bAlreadyHasIt)
+		if (!entity)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't remove component to Entity. This component doesn't exist!");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't remove component from an Entity. Entity is null");
 			return;
 		}
 
-		if (entity)
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+		auto itHas = m_HasComponentFunctions.find(monoType);
+		auto itRemove = m_RemoveComponentFunctions.find(monoType);
+		if (itHas == m_HasComponentFunctions.end() || itRemove == m_RemoveComponentFunctions.end())
 		{
-			m_RemoveComponentFunctions[monoType](entity);
+			EG_CORE_ERROR("[ScriptEngine] Couldn't remove component from an Entity. '{}' is not an engine component", mono_type_get_name(monoType));
+			return;
 		}
-		else
+
+		if (!itHas->second(entity))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't remove component from an Entity. This component doesn't exist!");
+			return;
+		}
+
+		itRemove->second(entity);
+	}
+
+	// ---------- User C# components ----------
+	// Managed instances are stored in `ScriptUserComponents`
+	// C# decides whether a type is a user component and constructs it; C++ only owns the GC handles.
+	bool Script::Eagle_Entity_AddUserComponent(GUID entityID, MonoObject* component)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't add component to Entity. Entity is null");
+			return false;
+		}
+		if (!component)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't add component to Entity. Component is null");
+			return false;
+		}
+
+		MonoClass* klass = mono_object_get_class(component);
+		auto& storage = entity.HasComponent<ScriptUserComponents>() ? entity.GetComponent<ScriptUserComponents>() : entity.AddComponent<ScriptUserComponents>();
+		auto [it, bInserted] = storage.Instances.try_emplace(klass);
+		if (!bInserted)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't add component '{}' to Entity '{}'. This component already exists!", mono_class_get_name(klass), entity.GetName());
+			return false;
+		}
+
+		it->second = MonoInstance::CreateFromObject(component);
+		return true;
+	}
+
+	void Script::Eagle_Entity_RemoveUserComponent(GUID entityID, void* type)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't remove component from an Entity. Entity is null");
+			return;
 		}
+
+		MonoClass* klass = Utils::GetClassFromReflectionType(type);
+		ScriptUserComponents* storage = Utils::GetUserComponents(entity);
+		if (!klass || !storage || storage->Instances.erase(klass) == 0)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't remove component from an Entity. This component doesn't exist!");
+			return;
+		}
+
+		if (storage->Instances.empty())
+			entity.RemoveComponent<ScriptUserComponents>();
+	}
+
+	bool Script::Eagle_Entity_HasUserComponent(GUID entityID, void* type)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'HasComponent'. Entity is null");
+			return false;
+		}
+
+		MonoClass* klass = Utils::GetClassFromReflectionType(type);
+		const ScriptUserComponents* storage = Utils::GetUserComponents(entity);
+		return klass && storage && storage->Instances.find(klass) != storage->Instances.end();
+	}
+
+	MonoObject* Script::Eagle_Entity_GetUserComponent(GUID entityID, void* type)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetComponent'. Entity is null");
+			return nullptr;
+		}
+
+		MonoClass* klass = Utils::GetClassFromReflectionType(type);
+		const ScriptUserComponents* storage = Utils::GetUserComponents(entity);
+		if (!klass || !storage)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get component from an Entity. This component doesn't exist!");
+			return nullptr;
+		}
+
+		auto it = storage->Instances.find(klass);
+		return it != storage->Instances.end() ? it->second->GetInstance() : nullptr;
 	}
 
 	bool Script::Eagle_Entity_HasComponent(GUID entityID, void* type)

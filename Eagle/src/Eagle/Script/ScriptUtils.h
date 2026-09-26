@@ -54,6 +54,7 @@ namespace Eagle
 		bool IsValid() const { return m_Handle != 0; }
 
 		static Scope<MonoInstance> Create(MonoClass* klass, std::string_view debugName);
+		static Scope<MonoInstance> CreateFromObject(MonoObject* object);
 
 	private:
 		MonoInstance() = default;

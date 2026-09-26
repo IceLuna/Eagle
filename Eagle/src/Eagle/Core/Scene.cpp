@@ -9,6 +9,7 @@
 #include "Eagle/Animation/AnimationGraph.h"
 #include "Eagle/Camera/CameraController.h"
 #include "Eagle/Script/ScriptEngine.h"
+#include "Eagle/Script/ScriptUserComponents.h"
 #include "Eagle/Physics/PhysicsScene.h"
 #include "Eagle/Physics/PhysicsUtils.h"
 #include "Eagle/Audio/AudioEngine.h"
@@ -2271,6 +2272,9 @@ namespace Eagle
 				Entity e = { entity, this };
 				ScriptEngine::RemoveEntityScript(e);
 			}
+
+			// Release user C# components (they're runtime-only and never copied back to the editor scene)
+			m_Registry.clear<ScriptUserComponents>();
 		}
 
 		{

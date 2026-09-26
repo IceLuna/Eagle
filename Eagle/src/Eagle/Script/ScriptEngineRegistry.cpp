@@ -169,6 +169,10 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Entity::AddComponent_Native", Eagle::Script::Eagle_Entity_AddComponent);
 		mono_add_internal_call("Eagle.Entity::RemoveComponent_Native", Eagle::Script::Eagle_Entity_RemoveComponent);
 		mono_add_internal_call("Eagle.Entity::HasComponent_Native", Eagle::Script::Eagle_Entity_HasComponent);
+		mono_add_internal_call("Eagle.Entity::AddUserComponent_Native", Eagle::Script::Eagle_Entity_AddUserComponent);
+		mono_add_internal_call("Eagle.Entity::RemoveUserComponent_Native", Eagle::Script::Eagle_Entity_RemoveUserComponent);
+		mono_add_internal_call("Eagle.Entity::HasUserComponent_Native", Eagle::Script::Eagle_Entity_HasUserComponent);
+		mono_add_internal_call("Eagle.Entity::GetUserComponent_Native", Eagle::Script::Eagle_Entity_GetUserComponent);
 		mono_add_internal_call("Eagle.Entity::IsValid_Native", Eagle::Script::Eagle_Entity_IsValid);
 		mono_add_internal_call("Eagle.Entity::GetEntityName_Native", Eagle::Script::Eagle_Entity_GetEntityName);
 		mono_add_internal_call("Eagle.Entity::GetForwardVector_Native", Eagle::Script::Eagle_Entity_GetForwardVector);
