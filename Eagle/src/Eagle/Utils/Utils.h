@@ -26,11 +26,23 @@ namespace Eagle::Utils
 		: std::bool_constant<(std::is_same_v<T, Types> || ...)>
 	{};
 
+	// One place, in the scene the mesh was imported from, where a mesh asset should be instantiated.
+	// A mesh that wasn't instanced (referenced by only one node in the source file) always has exactly
+	// one entry here with an identity Transform, since its placement is already baked into the mesh's
+	// own vertex data. A mesh that WAS instanced is instead imported once, in its own local space, with one entry per instance
+	// here, each carrying the transform needed to place that instance correctly.
+	struct MeshInstanceImportData
+	{
+		std::string Name; // the source node's own name, distinct from the mesh's name
+		glm::mat4 Transform = glm::mat4(1.f);
+	};
+
 	struct StaticMeshImportData
 	{
 		Ref<StaticMesh> Mesh;
 		std::vector<uint32_t> MaterialIndices; // Indices of imported materials
 		std::string Name; // Name of the source mesh (from the DCC tool such as Blender). Empty when merged from multiple meshes.
+		std::vector<MeshInstanceImportData> Instances; // Always at least 1 entry
 	};
 
 	struct SkeletalMeshImportData
@@ -38,6 +50,7 @@ namespace Eagle::Utils
 		Ref<SkeletalMesh> Mesh;
 		std::vector<uint32_t> MaterialIndices; // Indices of imported materials
 		std::string Name; // Name of the source mesh (from the DCC tool such as Blender). Empty when merged from multiple meshes.
+		std::vector<MeshInstanceImportData> Instances; // Always exactly 1 entry with an identity Transform - skeletal meshes aren't deduplicated when instanced.
 	};
 
 	std::u32string ToUTF32(const std::string& s);

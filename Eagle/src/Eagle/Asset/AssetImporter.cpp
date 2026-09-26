@@ -61,6 +61,7 @@ namespace Eagle
 		// Most importers produce exactly one asset. Static/Skeletal Mesh importers can produce several
 		// when `settings.MeshSettings.bCombineMeshes` is `false` and the source file has multiple meshes.
 		std::vector<Path> outputFilenames;
+		std::vector<MeshImportResult> meshResults;
 		switch (type)
 		{
 			case AssetType::Texture2D:
@@ -72,10 +73,14 @@ namespace Eagle
 					outputFilenames.push_back(outputFilename);
 				break;
 			case AssetType::StaticMesh:
-				outputFilenames = ImportStaticMesh(pathToRaw, saveTo, outputFilename, settings);
+				meshResults = ImportStaticMesh(pathToRaw, saveTo, outputFilename, settings);
+				for (const auto& result : meshResults)
+					outputFilenames.push_back(result.OutputFilename);
 				break;
 			case AssetType::SkeletalMesh:
-				outputFilenames = ImportSkeletalMesh(pathToRaw, saveTo, outputFilename, settings);
+				meshResults = ImportSkeletalMesh(pathToRaw, saveTo, outputFilename, settings);
+				for (const auto& result : meshResults)
+					outputFilenames.push_back(result.OutputFilename);
 				break;
 			case AssetType::Audio:
 				if (ImportAudio(pathToRaw, outputFilename, settings))
@@ -132,31 +137,35 @@ namespace Eagle
 		{
 			Ref<Scene> scene = MakeRef<Scene>();
 
-			for (const auto& filename : outputFilenames)
+			for (const auto& result : meshResults)
 			{
 				Ref<Asset> asset;
-				AssetManager::Get(filename, &asset);
+				AssetManager::Get(result.OutputFilename, &asset);
 
 				if (!asset)
 					continue;
 
-				if (bStatic)
+				for (const auto& instance : result.Instances)
 				{
-					auto mesh = Cast<AssetStaticMesh>(asset);
-					Entity entity = scene->CreateEntity(mesh->GetSourceMeshName());
-					auto& component = entity.AddComponent<StaticMeshComponent>();
-					component.SetMeshAsset(mesh);
-				}
-				else if (bSkeletal)
-				{
-					auto mesh = Cast<AssetSkeletalMesh>(asset);
-					Entity entity = scene->CreateEntity(mesh->GetSourceMeshName());
-					auto& component = entity.AddComponent<SkeletalMeshComponent>();
-					component.SetMeshAsset(mesh);
-				}
-				else
-				{
-					EG_CORE_ASSERT(false);
+					Entity entity = scene->CreateEntity(instance.Name);
+					entity.SetWorldTransform(Math::DecomposeTransformMatrix(instance.Transform));
+
+					if (bStatic)
+					{
+						auto mesh = Cast<AssetStaticMesh>(asset);
+						auto& component = entity.AddComponent<StaticMeshComponent>();
+						component.SetMeshAsset(mesh);
+					}
+					else if (bSkeletal)
+					{
+						auto mesh = Cast<AssetSkeletalMesh>(asset);
+						auto& component = entity.AddComponent<SkeletalMeshComponent>();
+						component.SetMeshAsset(mesh);
+					}
+					else
+					{
+						EG_CORE_ASSERT(false);
+					}
 				}
 			}
 
@@ -395,7 +404,7 @@ namespace Eagle
 		}
 	}
 
-	std::vector<Path> AssetImporter::ImportStaticMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings)
+	std::vector<MeshImportResult> AssetImporter::ImportStaticMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings)
 	{
 		std::vector<Utils::StaticMeshImportData> importedMeshes = Utils::ImportStaticMesh(pathToRaw, settings.MeshSettings.bCombineMeshes, settings.MeshSettings.bResetLocation);
 		if (importedMeshes.empty())
@@ -409,8 +418,8 @@ namespace Eagle
 			importedMaterials = Utils::ImportMaterials(pathToRaw, saveTo);
 
 		const bool bMultipleAssets = importedMeshes.size() > 1;
-		std::vector<Path> outputFilenames;
-		outputFilenames.reserve(importedMeshes.size());
+		std::vector<MeshImportResult> results;
+		results.reserve(importedMeshes.size());
 
 		for (size_t i = 0; i < importedMeshes.size(); ++i)
 		{
@@ -431,13 +440,13 @@ namespace Eagle
 			auto data = Serializer::SerializeAssetStaticMeshFromMesh(importedMeshData.Mesh, GUID{}, pathToRaw,
 				settings.MeshSettings.bCombineMeshes, importedMeshData.Name, uint32_t(i), settings.MeshSettings.bResetLocation);
 			FileSystem::Write(meshOutputFilename, data);
-			outputFilenames.push_back(std::move(meshOutputFilename));
+			results.push_back({ meshOutputFilename, std::move(importedMeshData.Instances) });
 		}
 
-		return outputFilenames;
+		return results;
 	}
 
-	std::vector<Path> AssetImporter::ImportSkeletalMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings)
+	std::vector<MeshImportResult> AssetImporter::ImportSkeletalMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings)
 	{
 		std::vector<Utils::SkeletalMeshImportData> importedMeshes = Utils::ImportSkeletalMesh(pathToRaw, settings.MeshSettings.bCombineMeshes, settings.MeshSettings.bResetLocation);
 		if (importedMeshes.empty())
@@ -451,8 +460,8 @@ namespace Eagle
 			importedMaterials = Utils::ImportMaterials(pathToRaw, saveTo);
 
 		const bool bMultipleAssets = importedMeshes.size() > 1;
-		std::vector<Path> outputFilenames;
-		outputFilenames.reserve(importedMeshes.size());
+		std::vector<MeshImportResult> results;
+		results.reserve(importedMeshes.size());
 
 		for (size_t i = 0; i < importedMeshes.size(); ++i)
 		{
@@ -471,10 +480,10 @@ namespace Eagle
 			auto data = Serializer::SerializeAssetSkeletalMeshFromMesh(importedMeshData.Mesh, GUID{}, pathToRaw,
 				settings.MeshSettings.bCombineMeshes, importedMeshData.Name, uint32_t(i), settings.MeshSettings.bResetLocation);
 			FileSystem::Write(meshOutputFilename, data);
-			outputFilenames.push_back(std::move(meshOutputFilename));
+			results.push_back({ meshOutputFilename, std::move(importedMeshData.Instances) });
 		}
 
-		return outputFilenames;
+		return results;
 	}
 	
 	bool AssetImporter::ImportAudio(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings)

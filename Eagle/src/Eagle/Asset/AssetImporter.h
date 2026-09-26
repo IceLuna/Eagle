@@ -58,6 +58,13 @@ namespace Eagle
 		bool bOnlyImportAnimations = false;
 	};
 
+	// One asset file produced by a mesh import, along with every place it needs to be instantiated to
+	struct MeshImportResult
+	{
+		Path OutputFilename;
+		std::vector<Utils::MeshInstanceImportData> Instances;
+	};
+
 	// The purpose of this class is to take a path to a raw asset data (such as `.png`, `.fbx`, etc...)
 	// and convert it into `.egasset` file format.
 	class AssetImporter
@@ -101,10 +108,11 @@ namespace Eagle
 		// Internal functions
 		static bool ImportTexture2D(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings);
 		static bool ImportTextureCube(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings);
-		// Returns the path(s) of every asset file written. Empty on failure.
-		// More than one path is returned when `settings.MeshSettings.bCombineMeshes == false` and the source file contains multiple meshes.
-		static std::vector<Path> ImportStaticMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings);
-		static std::vector<Path> ImportSkeletalMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings);
+		// Returns elements per asset file written.
+		// More than one element is returned when `settings.MeshSettings.bCombineMeshes == false` and the source file contains multiple meshes;
+		// a single element can itself carry multiple instances when its source mesh was instanced
+		static std::vector<MeshImportResult> ImportStaticMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings);
+		static std::vector<MeshImportResult> ImportSkeletalMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings);
 		static bool ImportAudio(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings);
 		static bool ImportFont(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings);
 		static bool ImportAnimation(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportAnimationSettings& settings);

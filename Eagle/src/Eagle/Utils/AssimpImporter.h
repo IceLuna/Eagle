@@ -12,14 +12,18 @@ namespace Eagle
 namespace Eagle::Utils
 {
 	// @bCombineMeshes. If true, all meshes found in the file are merged into a single asset.
-	//		If false, every mesh in the file is returned as its own separate entry so it can be imported as an independent asset.
+	//		If false, every DISTINCT mesh in the file is returned as its own separate entry so it can be imported as an independent asset.
+	//		A mesh referenced by more than one node (gltf/Assimp-level instancing) is only returned ONCE here baked in its own local space,
+	//		and the array of instances will filled.
 	// @bResetLocation. Only has an effect when `bCombineMeshes == false`. If true, each returned mesh's
-	//		own translation (its position within the file) is stripped, so it ends up centered at (0, 0, 0)
-	//		instead of keeping its original place in the scene. Rotation & scale are kept.
+	//		own translation (its position within the file, or its own local origin for an instanced mesh) is
+	//		stripped, so it ends up centered at (0, 0, 0). Rotation & scale are kept.
 	std::vector<StaticMeshImportData> ImportStaticMesh(const Path& path, bool bCombineMeshes = true, bool bResetLocation = false);
 
 	// @bCombineMeshes. Same as above, but for skeletal meshes. Note: regardless of this flag,
 	//		all returned meshes share the same skeleton (bones & root bone), since they come from the same armature.
+	//		Unlike static meshes, instanced skeletal meshes are NOT deduplicated - each occurrence is still baked
+	//		and returned separately, so every result's `Instances` always has exactly one entry.
 	// @bResetLocation. Same as above. Doesn't affect the skeleton/bone hierarchy or skinning - only the mesh's own rest-pose location.
 	std::vector<SkeletalMeshImportData> ImportSkeletalMesh(const Path& path, bool bCombineMeshes = true, bool bResetLocation = false);
 

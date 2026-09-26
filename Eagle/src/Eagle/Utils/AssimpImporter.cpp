@@ -21,6 +21,24 @@
 
 namespace Eagle
 {
+	// One node that references a given aiMesh, along with that node's own accumulated ("tr space", uncorrected) world transform.
+	struct MeshReference
+	{
+		std::string NodeName;
+		glm::mat4 NodeTransform;
+	};
+
+	// These meshes represent some extra data that shouldn't be imported/rendered. For example, collision meshes.
+	// TODO: Add support for collision meshes during import
+	static const std::vector<const char*> s_CollisionMeshPrefixes = {
+		"UCX_", "UBX_", "USP_", "UCP_",
+		"SOCKET_",
+		"COL_", "Collision_",
+		"PHYS_", "Physics_",
+		"NAV_", "NavMesh_",
+		"TRIGGER_", "HELPER_"
+	};
+
 	class Utf8IOStream : public Assimp::IOStream
 	{
 	public:
@@ -252,7 +270,7 @@ namespace Eagle
 			(*boneName) = (*boneName).substr(nameFilterPos + 1);
 	}
 
-	static Utils::StaticMeshImportData ProcessStaticMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4& coordCorrection, const glm::mat4& tr, bool bResetLocation)
+	static Utils::StaticMeshImportData ProcessStaticMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4& coordCorrection, const glm::mat4& tr, bool bResetLocation, glm::mat4* outTrAdjusted = nullptr)
 	{
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
@@ -275,6 +293,9 @@ namespace Eagle
 			const glm::vec3 center = glm::vec3(localAabb.Min + localAabb.Max) * 0.5f;
 			trAdjusted[3] -= glm::vec4(center, 0.f);
 		}
+
+		if (outTrAdjusted)
+			*outTrAdjusted = trAdjusted;
 
 		const glm::mat4 correctedTr = coordCorrection * trAdjusted;
 		const glm::mat3 normalTr = glm::transpose(glm::inverse(glm::mat3(correctedTr)));
@@ -520,17 +541,6 @@ namespace Eagle
 	template <typename MeshImportData>
 	static void ProcessNode(aiNode* node, const aiScene* scene, std::vector<MeshImportData>& meshes, BonesMap& bones, const glm::mat4& coordCorrection, bool bResetLocation, const glm::mat4& tr = glm::mat4(1.f))
 	{
-		// These meshes represent some extra data that shouldn't be imported/rendered. For example, collision meshes.
-		// TODO: Add support for collision meshes during import
-		static const std::vector<const char*> prefixes = {
-			"UCX_", "UBX_", "USP_", "UCP_",
-			"SOCKET_",
-			"COL_", "Collision_",
-			"PHYS_", "Physics_",
-			"NAV_", "NavMesh_",
-			"TRIGGER_", "HELPER_"
-		};
-
 		glm::mat4 nodeTransform = tr * ToGLM(node->mTransformation);
 		// process each mesh located at the current node
 		for (unsigned int i = 0; i < node->mNumMeshes; i++)
@@ -541,7 +551,7 @@ namespace Eagle
 
 			std::string_view name = mesh->mName.C_Str();
 			bool bHelperMesh = false;
-			for (const auto& p : prefixes)
+			for (const auto& p : s_CollisionMeshPrefixes)
 			{
 				if (StartsWith(name, p))
 				{
@@ -563,6 +573,40 @@ namespace Eagle
 		{
 			ProcessNode(node->mChildren[i], scene, meshes, bones, coordCorrection, bResetLocation, nodeTransform);
 		}
+	}
+
+	// Walks the node tree and, for every static mesh, records every node that references it, A mesh referenced by more than one node is an instance
+	static void CollectMeshReferences(aiNode* node, const aiScene* scene, std::vector<std::pair<aiMesh*, std::vector<MeshReference>>>& out, const glm::mat4& tr = glm::mat4(1.f))
+	{
+		glm::mat4 nodeTransform = tr * ToGLM(node->mTransformation);
+		for (unsigned int i = 0; i < node->mNumMeshes; i++)
+		{
+			aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+
+			std::string_view name = mesh->mName.C_Str();
+			bool bHelperMesh = false;
+			for (const auto& p : s_CollisionMeshPrefixes)
+			{
+				if (StartsWith(name, p))
+				{
+					bHelperMesh = true;
+					break;
+				}
+			}
+			if (bHelperMesh)
+				continue;
+
+			auto it = std::find_if(out.begin(), out.end(), [mesh](const auto& entry) { return entry.first == mesh; });
+			if (it == out.end())
+			{
+				out.push_back({ mesh, {} });
+				it = std::prev(out.end());
+			}
+			it->second.push_back({ node->mName.C_Str(), nodeTransform });
+		}
+
+		for (unsigned int i = 0; i < node->mNumChildren; i++)
+			CollectMeshReferences(node->mChildren[i], scene, out, nodeTransform);
 	}
 
 	static std::vector<SkeletalMeshAnimation> ProcessAnimations(const aiScene* scene, const SkeletalMeshInfo& skeletalInfo, const RootMotionMode& rootMotionMode)
@@ -820,20 +864,65 @@ namespace Eagle
 #endif
 
 		const glm::mat4 coordCorrection = GetCorrectionMatrix(scene);
-		BonesMap unused1;
-		std::vector<Utils::StaticMeshImportData> importedMeshes;
-		// Resetting each mesh's location only makes sense when they're kept as separate, independent assets;
-		// doing it while combining would misalign the parts of the resulting merged mesh
-		ProcessNode(scene->mRootNode, scene, importedMeshes, unused1, coordCorrection, bResetLocation && !bCombineMeshes);
-		if (importedMeshes.empty())
-			return {};
 
-		if (bCombineMeshes && importedMeshes.size() > 1)
+		if (bCombineMeshes)
 		{
-			Utils::StaticMeshImportData merged = MergeMeshes<Utils::StaticMeshImportData, Vertex>(importedMeshes);
-			merged.Name = Utils::AsString(path.stem());
-			importedMeshes.clear();
-			importedMeshes.push_back(std::move(merged));
+			// Instancing doesn't matter here - the result is one mesh regardless.
+			BonesMap unused1;
+			std::vector<Utils::StaticMeshImportData> importedMeshes;
+			ProcessNode(scene->mRootNode, scene, importedMeshes, unused1, coordCorrection, false);
+			if (importedMeshes.empty())
+				return {};
+
+			Utils::StaticMeshImportData result;
+			if (importedMeshes.size() > 1)
+			{
+				result = MergeMeshes<Utils::StaticMeshImportData, Vertex>(importedMeshes);
+				result.Name = Utils::AsString(path.stem());
+			}
+			else
+			{
+				result = std::move(importedMeshes[0]);
+			}
+			result.Instances.push_back({ result.Name, glm::mat4(1.f) });
+			return { std::move(result) };
+		}
+
+		// Group every mesh by the underlying aiMesh, so a mesh referenced by multiple nodes (instancing)
+		// becomes one shared asset with multiple placements instead of one duplicating assets for each occurrence.
+		std::vector<std::pair<aiMesh*, std::vector<MeshReference>>> references;
+		CollectMeshReferences(scene->mRootNode, scene, references);
+
+		std::vector<Utils::StaticMeshImportData> importedMeshes;
+		importedMeshes.reserve(references.size());
+		for (auto& [mesh, refs] : references)
+		{
+			if (refs.size() == 1)
+			{
+				// Not instanced: bake this one node's transform directly into the geometry,
+				// so the asset ends up in its original or recentered (bResetLocation) position.
+				Utils::StaticMeshImportData data = ProcessStaticMesh(mesh, scene, coordCorrection, refs[0].NodeTransform, bResetLocation);
+				const std::string& instanceName = !refs[0].NodeName.empty() ? refs[0].NodeName : data.Name;
+				data.Instances.push_back({ instanceName, glm::mat4(1.f) });
+				importedMeshes.push_back(std::move(data));
+			}
+			else
+			{
+				// Instanced: bake the geometry once in local space, then work out, for every node that actually references it,
+				// the placement transform needed to end up exactly where that occurrence would have landed without deduplication.
+				glm::mat4 trAdjustedCanonical;
+				Utils::StaticMeshImportData data = ProcessStaticMesh(mesh, scene, coordCorrection, glm::mat4(1.f), bResetLocation, &trAdjustedCanonical);
+				const glm::mat4 inverseCanonical = glm::inverse(coordCorrection * trAdjustedCanonical);
+
+				data.Instances.reserve(refs.size());
+				for (auto& ref : refs)
+				{
+					const glm::mat4 instanceTransform = coordCorrection * ref.NodeTransform * inverseCanonical;
+					const std::string& instanceName = !ref.NodeName.empty() ? ref.NodeName : data.Name;
+					data.Instances.push_back({ instanceName, instanceTransform });
+				}
+				importedMeshes.push_back(std::move(data));
+			}
 		}
 
 		return importedMeshes;
@@ -907,6 +996,10 @@ namespace Eagle
 			otherInfo.RootBone = skeletalInfo.RootBone;
 			importedMeshes[i].Mesh->RegenerateRagdollData(importedMeshes[i].Mesh->GetMinRagdollBoneSize());
 		}
+
+		// Unlike static meshes, skeletal meshes aren't deduplicated when instanced
+		for (auto& mesh : importedMeshes)
+			mesh.Instances.push_back({ mesh.Name, glm::mat4(1.f) });
 
 		return importedMeshes;
 	}
