@@ -763,6 +763,13 @@ namespace Eagle
 				*outAccess |= VK_ACCESS_SHADER_READ_BIT;
 				readAccessFlags &= ~BufferReadAccess::NonPixelShaderRead;
 			}
+			if (HasFlags(readAccessFlags, BufferReadAccess::Host))
+			{
+				// A fence alone doesn't make device writes visible to the host, this barrier does
+				*outStage |= VK_PIPELINE_STAGE_HOST_BIT;
+				*outAccess |= VK_ACCESS_HOST_READ_BIT;
+				readAccessFlags &= ~BufferReadAccess::Host;
+			}
 			EG_CORE_ASSERT(readAccessFlags == BufferReadAccess::None);
 			return;
 		}

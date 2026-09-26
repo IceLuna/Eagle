@@ -950,6 +950,17 @@ namespace Eagle
 		bEntityListChanged = false;
 		bAnyEntityNameChanged = false;
 
+		// Object picking. Done before scripts run so that they see the freshest data
+		// The pixel under the mouse is always read back, so hover/click queries at the mouse are always answered
+		if (m_SceneRenderer)
+		{
+			const glm::vec2 viewportSize = ViewportBounds[1] - ViewportBounds[0];
+			const glm::ivec2 mouse = glm::ivec2(ImGuiLayer::GetMousePos() - ViewportBounds[0]);
+			const bool bMouseInViewport = mouse.x >= 0 && mouse.y >= 0 && mouse.x < (int)viewportSize.x && mouse.y < (int)viewportSize.y;
+			m_SceneRenderer->SetMousePickCoord(bMouseInViewport ? std::optional<glm::ivec2>(mouse) : std::nullopt);
+			m_SceneRenderer->ResolveObjectPicking();
+		}
+
 		if (bIsPlaying)
 			OnUpdateRuntime(ts, bRender, bForceAnimationsUpdate);
 		else

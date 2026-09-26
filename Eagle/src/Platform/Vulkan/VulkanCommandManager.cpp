@@ -894,7 +894,7 @@ namespace Eagle
 			uint32_t(regionsCount), imageCopyRegions.data());
 	}
 
-	void VulkanCommandBuffer::CopyImageToBuffer(const Ref<Image>& src, const Ref<Buffer>& dst, const std::vector<BufferImageCopy>& regions)
+	void VulkanCommandBuffer::CopyImageToBuffer(const Ref<Image>& src, const Ref<Buffer>& dst, std::span<const BufferImageCopy> regions)
 	{
 		Ref<VulkanImage> vulkanImage = Cast<VulkanImage>(src);
 
@@ -903,13 +903,22 @@ namespace Eagle
 		EG_CORE_ASSERT(dst->HasUsage(BufferUsage::TransferDst));
 		EG_CORE_ASSERT(regionsCount > 0);
 
-		std::vector<VkBufferImageCopy> imageCopyRegions;
-		imageCopyRegions.reserve(regionsCount);
+		// Small region counts stay on the stack. Only larger ones hit the heap
+		constexpr size_t stackRegionsCount = 16;
+		std::array<VkBufferImageCopy, stackRegionsCount> stackRegions;
+		std::vector<VkBufferImageCopy> heapRegions;
+		VkBufferImageCopy* imageCopyRegions = stackRegions.data();
+		if (regionsCount > stackRegionsCount)
+		{
+			heapRegions.resize(regionsCount);
+			imageCopyRegions = heapRegions.data();
+		}
 		VkImageAspectFlags aspectMask = vulkanImage->GetDefaultAspectMask();
 
-		for (auto& region : regions)
+		for (size_t i = 0; i < regionsCount; ++i)
 		{
-			VkBufferImageCopy& copyRegion = imageCopyRegions.emplace_back();
+			const BufferImageCopy& region = regions[i];
+			VkBufferImageCopy& copyRegion = imageCopyRegions[i];
 			copyRegion = {};
 
 			copyRegion.bufferOffset = region.BufferOffset;
@@ -926,7 +935,7 @@ namespace Eagle
 		}
 
 		vkCmdCopyImageToBuffer(m_CommandBuffer, (VkImage)vulkanImage->GetHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			(VkBuffer)dst->GetHandle(), uint32_t(regionsCount), imageCopyRegions.data());
+			(VkBuffer)dst->GetHandle(), uint32_t(regionsCount), imageCopyRegions);
 	}
 
 	void VulkanCommandBuffer::Write(const Ref<Image>& image, const void* data, size_t size, ImageLayout initialLayout, ImageLayout finalLayout)

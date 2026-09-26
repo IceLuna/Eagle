@@ -590,15 +590,10 @@ namespace Eagle
 
 		if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
 		{
-			Ref<Image>& image = sceneRenderer->GetGBuffer().ObjectIDCopy;
-			int data = -1;
-
-			const ImageSubresourceLayout imageLayout = image->GetImageSubresourceLayout();
-			uint8_t* mapped = (uint8_t*)image->Map();
-			mapped += imageLayout.Offset;
-			mapped += imageLayout.RowPitch * mouseY;
-			memcpy(&data, ((uint32_t*)mapped) + mouseX, sizeof(int));
-			image->Unmap();
+			// Returns false if this coord hasn't been read back yet (only the first frames of polling a new non-mouse coord)
+			int32_t data = -1;
+			if (!sceneRenderer->GetObjectIDAt(glm::ivec2(mouseX, mouseY), data))
+				return false;
 
 			if (data >= 0)
 			{

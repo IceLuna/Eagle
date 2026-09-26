@@ -195,7 +195,7 @@ namespace Eagle
 		void Barrier(const Ref<Image>& image) { TransitionLayout(image, image->GetLayout(), image->GetLayout()); }
 
 		virtual void CopyBufferToImage(const Ref<Buffer>& src, const Ref<Image>& dst, const std::vector<BufferImageCopy>& regions) = 0;
-		virtual void CopyImageToBuffer(const Ref<Image>& src, const Ref<Buffer>& dst, const std::vector<BufferImageCopy>& regions) = 0;
+		virtual void CopyImageToBuffer(const Ref<Image>& src, const Ref<Buffer>& dst, std::span<const BufferImageCopy> regions) = 0;
 
 		virtual void Write(const Ref<Image>& image, const void* data, size_t size, ImageLayout initialLayout, ImageLayout finalLayout) = 0;
 		virtual void Write(const Ref<Buffer>& buffer, const void* data, size_t size, size_t offset, BufferLayout initialLayout, BufferLayout finalLayout) = 0;

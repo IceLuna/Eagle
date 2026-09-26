@@ -563,15 +563,8 @@ namespace Eagle
 
 			if (mouse.x >= 0 && mouse.y >= 0 && mouse.x < (int)viewportSize.x && mouse.y < (int)viewportSize.y)
 			{
-				Ref<Image>& image = m_CurrentScene->GetSceneRenderer()->GetGBuffer().ObjectIDCopy;
-				int data = -1;
-
-				const ImageSubresourceLayout imageLayout = image->GetImageSubresourceLayout();
-				uint8_t* mapped = (uint8_t*)image->Map();
-				mapped += imageLayout.Offset;
-				mapped += imageLayout.RowPitch * mouse.y;
-				memcpy(&data, ((uint32_t*)mapped) + mouse.x, sizeof(int32_t));
-				image->Unmap();
+				int32_t data = -1;
+				m_CurrentScene->GetSceneRenderer()->GetObjectIDUnderMouse(data);
 				m_SceneHierarchyPanel.SetEntitySelected(data == -1 ? Entity::Null : Entity{ (entt::entity)data, m_CurrentScene.get() });
 				return true;
 			}

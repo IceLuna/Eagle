@@ -59,7 +59,6 @@ namespace Eagle
 		Ref<Image> MaterialData; // R: Metallness; G: AO; B: Roughness; A: Used for blending of material data when decals are used
 		Ref<Image> Flags; // R: Flags. Currently, used for `bReceivesDecals`
 		Ref<Image> ObjectID;
-		Ref<Image> ObjectIDCopy;
 		Ref<Image> Depth;
 		Ref<Image> Motion;
 		Ref<Image> HZB;
@@ -256,6 +255,28 @@ namespace Eagle
 
 		const GBuffer& GetGBuffer() const { return m_GBuffer; }
 		GBuffer& GetGBuffer() { return m_GBuffer; }
+
+		// ------------------ Object picking ------------------
+		// Instead of copying the whole ObjectID image to CPU memory every frame, only the requested pixels are copied
+		// (the one under the mouse + whatever was queried recently) into a tiny per-frame-in-flight readback buffer.
+		// All of these are main-thread only and never stall
+
+		// Picks up the readback of the frame that `RenderManager::BeginFrame()` has just waited for.
+		// Must be called between `RenderManager::BeginFrame()` and `RenderManager::EndFrame()`
+		void ResolveObjectPicking();
+
+		// Viewport-relative mouse position. `std::nullopt` if the mouse is outside of the viewport
+		void SetMousePickCoord(std::optional<glm::ivec2> coord) { m_MousePickCoord = coord; }
+		const std::optional<glm::ivec2>& GetMousePickCoord() const { return m_MousePickCoord; }
+
+		// Returns false if it's not known
+		bool GetObjectIDUnderMouse(int32_t& outObjectID) const;
+
+		// ObjectID at an arbitrary viewport coord. Returns false if it's not known yet.
+		// Querying a coord keeps it being read back for the next `s_PickRequestLifetime` frames,
+		// so polling the same coord every frame only misses during the first `FramesInFlight` frames
+		bool GetObjectIDAt(glm::ivec2 coord, int32_t& outObjectID);
+		// ----------------------------------------------------
 		const Ref<Image>& GetOutput() const { return m_FinalImage; }
 		const Ref<Image>& GetHDROutput() const { return m_HDRRTImage; }
 
@@ -404,5 +425,37 @@ namespace Eagle
 
 		RenderStats m_Stats[RendererConfig::FramesInFlight];
 		RenderStats m_Stats_MT{};
+
+		// ------------------ Object picking ------------------
+		static constexpr uint32_t s_MaxPickRequests = 64;
+		static constexpr uint64_t s_PickRequestLifetime = 60; // In frames
+
+		struct PickReadbackSlot
+		{
+			Ref<Buffer> Readback; // `s_MaxPickRequests` int32's. GpuToCpu. Handled by the render thread
+			std::array<glm::ivec2, s_MaxPickRequests> Coords{}; // Main thread copy of what was requested. [0] is the mouse if `bHasMouse`
+			uint32_t CoordsCount = 0;
+			uint64_t SubmittedFrame = 0;
+			bool bHasMouse = false;
+			bool bPending = false;
+		};
+		struct PickRequest
+		{
+			glm::ivec2 Coord;
+			uint64_t LastRequestedFrame;
+		};
+		struct PickResult
+		{
+			glm::ivec2 Coord;
+			int32_t ObjectID;
+		};
+
+		// Main thread owns slot `RenderManager::GetCurrentFrameIndex_CPU()` between BeginFrame() and EndFrame().
+		// The render thread only touches the slot of the frame it's recording.
+		std::array<PickReadbackSlot, RendererConfig::FramesInFlight> m_PickSlots;
+		std::vector<PickRequest> m_PickRequests; // At most `s_MaxPickRequests - 1` (-1 for the mouse), so that requests + mouse always fit
+		std::vector<PickResult> m_PickResults;   // At most `s_MaxPickRequests`
+		std::optional<glm::ivec2> m_MousePickCoord;
+		std::optional<int32_t> m_MousePickResult;
 	};
 }

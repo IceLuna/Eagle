@@ -76,6 +76,11 @@ namespace Eagle
 	
 	void GameLayer::OnUpdate(Timestep ts)
 	{
+		auto& window = Application::Get().GetWindow();
+		const glm::vec2 windowPos = window.GetWindowPos();
+		m_CurrentScene->ViewportBounds[0] = windowPos;
+		m_CurrentScene->ViewportBounds[1] = windowPos + glm::vec2(m_WindowSize);
+
 		m_CurrentScene->OnUpdate(ts, m_WindowFocused);
 	}
 	

@@ -67,6 +67,9 @@ namespace Eagle
 
 				m_ViewportBounds[0] = { viewportMinRegion.x + viewportOffset.x, viewportMinRegion.y + viewportOffset.y };
 				m_ViewportBounds[1] = { viewportMaxRegion.x + viewportOffset.x, viewportMaxRegion.y + viewportOffset.y };
+				// Used by the scene to know which pixel is under the mouse (object picking)
+				m_CurrentScene->ViewportBounds[0] = m_ViewportBounds[0];
+				m_CurrentScene->ViewportBounds[1] = m_ViewportBounds[1];
 			}
 
 			auto& renderer = m_CurrentScene->GetSceneRenderer();

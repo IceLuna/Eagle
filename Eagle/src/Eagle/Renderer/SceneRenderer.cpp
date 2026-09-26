@@ -50,6 +50,9 @@ namespace Eagle
 	{
 		m_bIsGame = Application::Get().IsGame();
 		SetOptions(options);
+
+		m_PickRequests.reserve(s_MaxPickRequests - 1);
+		m_PickResults.reserve(s_MaxPickRequests);
 		m_Options_RT = m_EffectiveOptions;
 
 		{
@@ -118,6 +121,37 @@ namespace Eagle
 	{
 		EG_ASSERT(camera);
 
+		// Make sure the slot we're about to reuse has been consumed
+		ResolveObjectPicking();
+
+		// Object picking requests
+		const uint32_t pickSlotIndex = RenderManager::GetCurrentFrameIndex_CPU();
+		std::array<glm::ivec2, s_MaxPickRequests> pickCoords{};
+		uint32_t pickCoordsCount = 0;
+		if (!IsRuntime() || m_EffectiveOptions.bEnableObjectPicking)
+		{
+			const uint64_t frame = RenderManager::GetFrameNumber_CPU();
+			std::erase_if(m_PickRequests, [frame](const PickRequest& r) { return frame - r.LastRequestedFrame > s_PickRequestLifetime; });
+
+			if (m_MousePickCoord)
+				pickCoords[pickCoordsCount++] = *m_MousePickCoord;
+			for (const auto& request : m_PickRequests)
+				pickCoords[pickCoordsCount++] = request.Coord;
+
+			auto& slot = m_PickSlots[pickSlotIndex];
+			slot.Coords = pickCoords;
+			slot.CoordsCount = pickCoordsCount;
+			slot.bHasMouse = m_MousePickCoord.has_value();
+			slot.SubmittedFrame = frame;
+			slot.bPending = true; // Even if empty, so that the resolve clears stale results (e.g. mouse left the viewport)
+		}
+		else
+		{
+			m_PickRequests.clear();
+			m_PickResults.clear();
+			m_MousePickResult.reset();
+		}
+
 		std::vector<glm::mat4> cameraCascadeProjections = std::vector<glm::mat4>(EG_CASCADES_COUNT);
 		std::vector<float> cameraCascadeFarPlanes = std::vector<float>(EG_CASCADES_COUNT);
 
@@ -130,7 +164,8 @@ namespace Eagle
 		RenderManager::Submit([renderer = shared_from_this(), viewMat, proj = camera->GetProjection(), viewPosition, viewDirection, bRenderGrid = m_bGridEnabled, options = m_EffectiveOptions,
 			cascadeProjections = std::move(cameraCascadeProjections), cascadeFarPlanes = std::move(cameraCascadeFarPlanes), shadowDistance = camera->GetShadowFarClip(),
 			cascadesSmoothTransitionAlpha = camera->GetCascadesSmoothTransitionAlpha(), zNear = camera->GetPerspectiveNearClip(), zFar = camera->GetPerspectiveFarClip(),
-			cameraFov = camera->GetPerspectiveVerticalFOV(), bProjectionFlipped = camera->IsProjectionFlipped()](const Ref<CommandBuffer>& cmd) mutable
+			cameraFov = camera->GetPerspectiveVerticalFOV(), bProjectionFlipped = camera->IsProjectionFlipped(),
+			pickCoords, pickCoordsCount, pickSlotIndex](const Ref<CommandBuffer>& cmd) mutable
 		{
 			renderer->m_bProjectionFlipped = bProjectionFlipped;
 			renderer->m_ZNear = zNear;
@@ -289,29 +324,39 @@ namespace Eagle
 			cmd->TransitionLayout(renderer->m_FinalImage, renderer->m_FinalImage->GetLayout(), ImageReadAccess::PixelShaderRead);
 			renderer->m_GBuffer.PrepareForReading(cmd);
 
-			// Handle object picking. Always enabled in editor mode
-			if (!renderer->IsRuntime() || options.bEnableObjectPicking)
+			// Object picking: copy only the requested pixels instead of the whole image
+			if (pickCoordsCount > 0)
 			{
-				EG_GPU_TIMING_SCOPED(cmd, "Copying ObjectID image");
-				EG_CPU_TIMING_SCOPED("Copying ObjectID image");
+				EG_GPU_TIMING_SCOPED(cmd, "ObjectID readback");
+				EG_CPU_TIMING_SCOPED("ObjectID readback");
 
-				if (!renderer->m_GBuffer.ObjectIDCopy)
+				auto& readback = renderer->m_PickSlots[pickSlotIndex].Readback;
+				if (!readback)
 				{
-					ImageSpecifications objectIDCopySpecs;
-					objectIDCopySpecs.Format = ImageFormat::R32_SInt;
-					objectIDCopySpecs.Size = renderer->m_GBuffer.ObjectID->GetSize();
-					objectIDCopySpecs.Usage = ImageUsage::TransferSrc | ImageUsage::TransferDst | ImageUsage::Sampled;
-					objectIDCopySpecs.MemoryType = MemoryType::GpuToCpu;
-					renderer->m_GBuffer.ObjectIDCopy = Image::Create(objectIDCopySpecs, "GBuffer_ObjectIDCopy");
+					BufferSpecifications specs;
+					specs.Size = s_MaxPickRequests * sizeof(int32_t);
+					specs.Usage = BufferUsage::TransferDst;
+					specs.MemoryType = MemoryType::GpuToCpu;
+					readback = Buffer::Create(specs, "ObjectID_Readback");
 				}
 
-				cmd->CopyImage(renderer->m_GBuffer.ObjectID, renderer->m_GBuffer.ObjectIDCopy,
-					ImageLayoutType::Unknown, ImageReadAccess::CopySource);
-			}
-			else
-			{
-				// Free resource
-				renderer->m_GBuffer.ObjectIDCopy.reset();
+				const auto& objectID = renderer->m_GBuffer.ObjectID;
+				const glm::ivec2 maxCoord = glm::ivec2(glm::uvec2(objectID->GetSize())) - 1;
+
+				std::array<BufferImageCopy, s_MaxPickRequests> regions;
+				for (uint32_t i = 0; i < pickCoordsCount; ++i)
+				{
+					regions[i].BufferOffset = i * sizeof(int32_t);
+					regions[i].ImageOffset = glm::ivec3(glm::clamp(pickCoords[i], glm::ivec2(0), maxCoord), 0);
+					regions[i].ImageExtent = glm::uvec3(1u);
+				}
+
+				const ImageLayout objectIDLayout = objectID->GetLayout();
+				cmd->TransitionLayout(objectID, objectIDLayout, ImageReadAccess::CopySource);
+				cmd->TransitionLayout(readback, readback->GetLayout(), BufferLayoutType::CopyDest);
+				cmd->CopyImageToBuffer(objectID, readback, std::span<const BufferImageCopy>(regions.data(), pickCoordsCount));
+				cmd->TransitionLayout(readback, BufferLayoutType::CopyDest, BufferReadAccess::Host);
+				cmd->TransitionLayout(objectID, ImageReadAccess::CopySource, objectIDLayout);
 			}
 
 			if (renderer->m_bIsGame)
@@ -320,6 +365,62 @@ namespace Eagle
 			renderer->m_Stats_MT = renderer->m_Stats[renderer->m_FrameIndex];
 			renderer->m_FrameIndex = (renderer->m_FrameIndex + 1) % RendererConfig::FramesInFlight;
 		});
+	}
+
+	void SceneRenderer::ResolveObjectPicking()
+	{
+		auto& slot = m_PickSlots[RenderManager::GetCurrentFrameIndex_CPU()];
+		if (!slot.bPending)
+			return;
+		slot.bPending = false;
+
+		if (RenderManager::GetFrameNumber_CPU() - slot.SubmittedFrame > RendererConfig::FramesInFlight)
+			return;
+
+		m_MousePickResult.reset();
+		m_PickResults.clear();
+		if (slot.CoordsCount == 0 || !slot.Readback)
+			return;
+
+		const int32_t* ids = (const int32_t*)slot.Readback->Map();
+
+		uint32_t i = 0;
+		if (slot.bHasMouse)
+			m_MousePickResult = ids[i++];
+
+		for (; i < slot.CoordsCount; ++i)
+			m_PickResults.push_back({ slot.Coords[i], ids[i] });
+
+		slot.Readback->Unmap();
+	}
+
+	bool SceneRenderer::GetObjectIDUnderMouse(int32_t& outObjectID) const
+	{
+		if (!m_MousePickResult)
+			return false;
+
+		outObjectID = *m_MousePickResult;
+		return true;
+	}
+
+	bool SceneRenderer::GetObjectIDAt(glm::ivec2 coord, int32_t& outObjectID)
+	{
+		if (m_MousePickCoord && *m_MousePickCoord == coord)
+			return GetObjectIDUnderMouse(outObjectID);
+
+		const uint64_t frame = RenderManager::GetFrameNumber_CPU();
+		auto requestIt = std::find_if(m_PickRequests.begin(), m_PickRequests.end(), [coord](const PickRequest& r) { return r.Coord == coord; });
+		if (requestIt != m_PickRequests.end())
+			requestIt->LastRequestedFrame = frame;
+		else if (m_PickRequests.size() < s_MaxPickRequests - 1) // -1 for the mouse
+			m_PickRequests.push_back({ coord, frame });
+
+		auto resultIt = std::find_if(m_PickResults.begin(), m_PickResults.end(), [coord](const PickResult& r) { return r.Coord == coord; });
+		if (resultIt == m_PickResults.end())
+			return false;
+
+		outObjectID = resultIt->ObjectID;
+		return true;
 	}
 
 	void SceneRenderer::SetOutputImage(const Ref<Image>& image)
@@ -649,13 +750,6 @@ namespace Eagle
 		objectIDSpecs.Size = size;
 		objectIDSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc | ImageUsage::TransferDst;
 		ObjectID = Image::Create(objectIDSpecs, "GBuffer_ObjectID");
-
-		ImageSpecifications objectIDCopySpecs;
-		objectIDCopySpecs.Format = ImageFormat::R32_SInt;
-		objectIDCopySpecs.Size = size;
-		objectIDCopySpecs.Usage = ImageUsage::TransferSrc | ImageUsage::TransferDst | ImageUsage::Sampled;
-		objectIDCopySpecs.MemoryType = MemoryType::GpuToCpu;
-		ObjectIDCopy = Image::Create(objectIDCopySpecs, "GBuffer_ObjectIDCopy");
 	}
 	
 	void GBuffer::InitOptional(const SceneRendererInternalState& optional, const glm::uvec3& size)
@@ -707,8 +801,6 @@ namespace Eagle
 		Normals->Resize(size);
 		Emissive->Resize(size);
 		ObjectID->Resize(size);
-		if (ObjectIDCopy)
-			ObjectIDCopy->Resize(size);
 		Depth->Resize(size);
 		Flags->Resize(size);
 		if (Motion)

@@ -96,7 +96,7 @@ namespace Eagle
 		void FillBuffer(const Ref<Buffer>& dst, uint32_t data, size_t offset = 0, size_t numBytes = 0) override;
 
 		void CopyBufferToImage(const Ref<Buffer>& src, const Ref<Image>& dst, const std::vector<BufferImageCopy>& regions) override;
-		void CopyImageToBuffer(const Ref<Image>& src, const Ref<Buffer>& dst, const std::vector<BufferImageCopy>& regions) override;
+		void CopyImageToBuffer(const Ref<Image>& src, const Ref<Buffer>& dst, std::span<const BufferImageCopy> regions) override;
 
 		void Write(const Ref<Image>& image, const void* data, size_t size, ImageLayout initialLayout, ImageLayout finalLayout) override;
 		void Write(const Ref<Buffer>& buffer, const void* data, size_t size, size_t offset, BufferLayout initialLayout, BufferLayout finalLayout) override;

@@ -260,7 +260,8 @@ namespace Eagle
         Uniform             = 1 << 3,
         IndirectArgument    = 1 << 4,
         PixelShaderRead     = 1 << 5,
-        NonPixelShaderRead  = 1 << 6
+        NonPixelShaderRead  = 1 << 6,
+        Host                = 1 << 7  // CPU reads the buffer (after a fence wait)
     };
     DECLARE_FLAGS(BufferReadAccess);
 
