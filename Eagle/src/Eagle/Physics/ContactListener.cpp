@@ -75,6 +75,11 @@ namespace Eagle
 			entityB = actor->GetEntity();
 		}
 
+		// A ragdoll consists of many actors that belong to the same entity.
+		// Don't report the entity colliding with itself (limb vs. torso, ragdoll vs. the entity's own collider)
+		if (entityA && entityA == entityB)
+			return;
+
 		const bool bBothValid = entityA && entityB;
 		bool bCanInvokeScriptA = bBothValid && ScriptEngine::IsEntityModuleValid(entityA);
 		bool bCanInvokeScriptB = bBothValid && ScriptEngine::IsEntityModuleValid(entityB);
@@ -92,7 +97,7 @@ namespace Eagle
 
 				collisionInfo.Position = PhysXUtils::FromPhysXVector(contact.position);
 				collisionInfo.Impulse = PhysXUtils::FromPhysXVector(contact.impulse);
-				collisionInfo.Force = collisionInfo.Impulse * simulationTimeStep;
+				collisionInfo.Force = simulationTimeStep > 0.f ? collisionInfo.Impulse / simulationTimeStep : glm::vec3(0.f);
 				collisionInfo.Normal = PhysXUtils::FromPhysXVector(contact.normal);
 			}
 		}

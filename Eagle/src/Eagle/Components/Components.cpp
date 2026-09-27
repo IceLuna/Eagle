@@ -1343,7 +1343,8 @@ namespace Eagle
 			m_PreRagdollLastPose = LastPose;
 			m_RagdollActor = Parent.GetScene()->GetPhysicsScene()->CreateRagdoll(*this);
 			m_bRagdollEnabled = m_RagdollActor.operator bool();
-			m_RagdollActor->SetShowCollision(m_bRagdollCollisionVisible);
+			if (m_RagdollActor)
+				m_RagdollActor->SetShowCollision(m_bRagdollCollisionVisible);
 		}
 		else
 		{
