@@ -65,6 +65,7 @@ namespace Eagle
 					rotation = rotY * rotation;
 				}
 			}
+			rotation = glm::normalize(rotation);
 
 			glm::vec3 right = GetRightVector();
 

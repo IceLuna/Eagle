@@ -450,7 +450,7 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2DShadow shadowMap,
 	//Cutoff
 	const float innerCutOffCos = light.InnerCutOffCos;
 	const float outerCutOffCos = cos(light.OuterCutOffRadians);
-	const float epsilon = innerCutOffCos - outerCutOffCos;
+	const float epsilon = max(innerCutOffCos - outerCutOffCos, 1e-4);
 	const vec3 normSpotDir = normalize(-light.Direction);
 	
 	for (uint i = 0; (i < scatteringSamples) && (currentT < camToFragLen); ++i)

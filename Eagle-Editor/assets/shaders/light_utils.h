@@ -65,7 +65,7 @@ vec3 CalculateSpotLightRadiance(SpotLight spotLight, vec3 worldPos, vec3 geometr
     //Cutoff
     const float innerCutOffCos = spotLight.InnerCutOffCos;
     const float outerCutOffCos = cos(spotLight.OuterCutOffRadians);
-    const float epsilon = innerCutOffCos - outerCutOffCos;
+    const float epsilon = max(innerCutOffCos - outerCutOffCos, 1e-4);
     const float theta = clamp(dot(normIncoming, normalize(-spotLight.Direction)), 0.0, 1.0);
     const float cutoffIntensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
     const float attenuation = cutoffIntensity / max(distance2, EG_FLT_SMALL);

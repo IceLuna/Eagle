@@ -257,7 +257,7 @@ Cone ConeFromSpotLight(const SpotLight& light, mat4 view)
 
     Cone cone;
     cone.T = vec3(view * vec4(light.Position, 1));
-    cone.d = mat3(view) * light.Direction;
+    cone.d = normalize(mat3(view) * light.Direction);
     cone.h = distance;
     cone.r = radius;
 
@@ -324,7 +324,7 @@ uint GetSphereDepthMask(Sphere sphere, float minDepthVS, float rcpDepthRange)
 bool SpotIntersectsAABB(SpotLight light, AABB aabb, mat4 view)
 {
     const vec3 pos = vec3(view * vec4(light.Position, 1));
-    const vec3 dir = mat3(view) * light.Direction;
+    const vec3 dir = normalize(mat3(view) * light.Direction);
 
     float sphereRadius = length(aabb.e);
     vec3 v = aabb.c - pos;

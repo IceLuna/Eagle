@@ -108,8 +108,9 @@ namespace Eagle
 
 			auto& light = tempData.emplace_back();
 
-			const float innerAngle = glm::clamp(spotLight->GetInnerCutOffAngle(), 1.f, 80.f);
 			const float outerAngle = glm::clamp(spotLight->GetOuterCutOffAngle(), 1.f, 80.f);
+			// Inner angle must not exceed the outer one
+			const float innerAngle = glm::clamp(spotLight->GetInnerCutOffAngle(), 1.f, outerAngle);
 			const bool bVolumetric = spotLight->IsVolumetricLight();
 			bHasVolumetric |= bVolumetric;
 
