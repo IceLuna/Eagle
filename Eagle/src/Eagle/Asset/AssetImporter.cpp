@@ -22,10 +22,45 @@
 
 namespace Eagle
 {
+	// Writes an asset file. If writing fails, removes whatever might have been partially written,
+	// so a broken asset file doesn't get picked up the next time the project is opened
+	static bool WriteAssetFile(const Path& outputFilename, const ScopedDataBuffer& data)
+	{
+		if (data && FileSystem::Write(outputFilename, data))
+			return true;
+
+		EG_CORE_ERROR("Failed to write the asset file: {}", outputFilename);
+		std::error_code error;
+		std::filesystem::remove(outputFilename, error);
+		return false;
+	}
+
 	// @pathToRaw. Can be empty if it doesn't come from a file
-	// Returns an eagle asset file data
+	// Returns an eagle asset file data. Empty if the image is invalid or the asset file couldn't be written
 	static ScopedDataBuffer CreateTexture2DAssetFromMemory(DataBuffer buffer, const Path& outputFilename, const AssetImportTexture2DSettings& settings, const Path pathToRaw = {})
 	{
+		const Path& source = pathToRaw.empty() ? outputFilename : pathToRaw;
+		if (!buffer.Data || buffer.Size == 0)
+		{
+			EG_CORE_ERROR("Failed to import a texture. The image data is empty: {}", source);
+			return {};
+		}
+
+		// stb takes the size as an `int`
+		if (buffer.Size > size_t(std::numeric_limits<int>::max()))
+		{
+			EG_CORE_ERROR("Failed to import a texture. The image file is too large ({} bytes): {}", buffer.Size, source);
+			return {};
+		}
+
+		int width = 0, height = 0, channels = 0;
+		if (!stbi_info_from_memory((const stbi_uc*)buffer.Data, (int)buffer.Size, &width, &height, &channels) || width <= 0 || height <= 0)
+		{
+			const char* reason = stbi_failure_reason();
+			EG_CORE_ERROR("Failed to import a texture. Unsupported or corrupted image ({}): {}", reason ? reason : "unknown reason", source);
+			return {};
+		}
+
 		TextureCompressor::Result compressedData{};
 		TextureCompressor::Quality compression = settings.Compression;
 
@@ -37,13 +72,11 @@ namespace Eagle
 				compression = TextureCompressor::Quality::Disabled; // Failed to compress
 		}
 
-		int width, height, channels;
-		stbi_info_from_memory((uint8_t*)buffer.Data, (int)buffer.Size, &width, &height, &channels);
-
 		auto data = Serializer::SerializeAssetTexture2DFromData(buffer, compressedData.DataPerMip, compressedData.Format, GUID{}, pathToRaw,
 			settings.FilterMode, settings.AddressMode, settings.Anisotropy, settings.MipsCount,
 			width, height, settings.ImportFormat, compression, settings.bNormalMap);
-		FileSystem::Write(outputFilename, data);
+		if (!WriteAssetFile(outputFilename, data))
+			return {};
 
 		return data;
 	}
@@ -91,7 +124,11 @@ namespace Eagle
 					outputFilenames.push_back(outputFilename);
 				break;
 			case AssetType::Animation:
-				return ImportAnimation(pathToRaw, saveTo, outputFilename, settings.AnimationSettings);
+			{
+				auto outputs = ImportAnimations(pathToRaw, saveTo, outputFilename, settings.AnimationSettings);
+				outputFilenames.insert(outputFilenames.end(), outputs.begin(), outputs.end());
+				break;
+			}
 			default:
 				EG_CORE_ERROR("Import failed. Unknown asset type: {} - {}", pathToRaw, Utils::GetEnumName(type));
 				return false;
@@ -107,6 +144,12 @@ namespace Eagle
 		for (const auto& filename : outputFilenames)
 		{
 			Ref<Asset> asset = Asset::Create(filename);
+			if (!asset)
+			{
+				EG_CORE_ERROR("Failed to load the asset: {}", filename);
+				continue;
+			}
+
 			AssetManager::Register(asset);
 			const AssetType assetType = asset->GetAssetType();
 			const bool bSkeletal = assetType == AssetType::SkeletalMesh;
@@ -212,9 +255,17 @@ namespace Eagle
 	{
 		const Path outputFilename = Utils::GetUniqueAssetFilepath(saveTo, filename);
 		ScopedDataBuffer assetData = CreateTexture2DAssetFromMemory(buffer, outputFilename, settings);
+		if (!assetData)
+			return {};
+
 		Ref<Asset> asset = Asset::Create(assetData, outputFilename);
-		AssetManager::Register(asset);
-		return Cast<AssetTexture2D>(asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("Failed to load the imported texture: {}", outputFilename);
+			return {};
+		}
+
+		return Cast<AssetTexture2D>(AssetManager::Register(asset));
 	}
 
 	Path AssetImporter::CreateMaterial(const Path& saveTo, const std::string& filename)
@@ -347,11 +398,9 @@ namespace Eagle
 			{ ".otf",   AssetType::Font },
 		};
 
-		static const std::locale& loc = std::locale("RU_ru");
 		std::string extension = Utils::AsString(filepath.extension());
-
 		for (char& c : extension)
-			c = std::tolower(c, loc);
+			c = std::tolower((unsigned char)c);
 
 		auto it = s_SupportedFileFormats.find(extension);
 		if (it != s_SupportedFileFormats.end())
@@ -363,8 +412,14 @@ namespace Eagle
 	bool AssetImporter::ImportTexture2D(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings)
 	{
 		ScopedDataBuffer buffer(FileSystem::Read(pathToRaw));
-		CreateTexture2DAssetFromMemory(buffer.GetDataBuffer(), outputFilename, settings.Texture2DSettings, pathToRaw);
-		return true;
+		if (!buffer)
+		{
+			EG_CORE_ERROR("Failed to import a texture. Couldn't read the file: {}", pathToRaw);
+			return false;
+		}
+
+		const ScopedDataBuffer assetData = CreateTexture2DAssetFromMemory(buffer.GetDataBuffer(), outputFilename, settings.Texture2DSettings, pathToRaw);
+		return assetData.IsValid();
 	}
 	
 	bool AssetImporter::ImportTextureCube(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings)
@@ -374,9 +429,7 @@ namespace Eagle
 
 		auto data = Serializer::SerializeAssetTextureCubeFromData(buffer.GetDataBuffer(), GUID{}, pathToRaw,
 			textureSettings.ImportFormat, textureSettings.LayerSize, textureSettings.PrefilterSize, textureSettings.bCompress);
-		FileSystem::Write(outputFilename, data);
-
-		return true;
+		return FileSystem::Write(outputFilename, data);
 	}
 	
 	// Assigns each imported material to the sub-mesh slot it actually belongs to.
@@ -490,31 +543,41 @@ namespace Eagle
 	{
 		ScopedDataBuffer buffer(FileSystem::Read(pathToRaw));
 		auto data = Serializer::SerializeAssetAudioFromData(buffer.GetDataBuffer(), GUID{}, pathToRaw, 1.f, 1.f, 0.f, nullptr);
-		FileSystem::Write(outputFilename, data);
-
-		return true;
+		return FileSystem::Write(outputFilename, data);
 	}
 	
 	bool AssetImporter::ImportFont(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings)
 	{
 		ScopedDataBuffer buffer(FileSystem::Read(pathToRaw));
+		if (!buffer)
+		{
+			EG_CORE_ERROR("Failed to import a font. Couldn't read the file: {}", pathToRaw);
+			return false;
+		}
 
 		Ref<Font> font = Font::Create(buffer.GetDataBuffer());
-		auto data = Serializer::SerializeAssetFontFromData(buffer.GetDataBuffer(), font->GetAtlasData().GetDataBuffer(), font->GetAtlas()->GetSize(), GUID{}, pathToRaw);
-		FileSystem::Write(outputFilename, data);
+		if (!font || !font->GetAtlas() || !font->GetAtlasData())
+		{
+			EG_CORE_ERROR("Failed to import a font. Unsupported or corrupted font file: {}", pathToRaw);
+			return false;
+		}
 
-		return true;
+		auto data = Serializer::SerializeAssetFontFromData(buffer.GetDataBuffer(), font->GetAtlasData().GetDataBuffer(), font->GetAtlas()->GetSize(), GUID{}, pathToRaw);
+		return WriteAssetFile(outputFilename, data);
 	}
 
-	bool AssetImporter::ImportAnimation(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportAnimationSettings& settings)
+	std::vector<Path> AssetImporter::ImportAnimations(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportAnimationSettings& settings)
 	{
 		const auto& skeletal = settings.Skeletal;
 		std::vector<SkeletalMeshAnimation> animations = Utils::ImportAnimations(pathToRaw, skeletal->GetMesh(), settings.RootMotionType);
 		if (animations.empty())
 		{
 			EG_CORE_ERROR("Failed to import an animation. No animations in file '{0}'", pathToRaw);
-			return false;
+			return {};
 		}
+
+		std::vector<Path> outputs;
+		outputs.reserve(animations.size());
 
 		std::string filename = Utils::AsString(outputFilename.stem());
 		uint32_t animIndex = 0;
@@ -524,8 +587,10 @@ namespace Eagle
 
 			auto data = Serializer::SerializeAssetAnimationFromData(GUID{}, pathToRaw, animIndex++, anim, skeletal);
 			FileSystem::Write(output, data);
+
+			outputs.push_back(std::move(output));
 		}
 
-		return true;
+		return outputs;
 	}
 }

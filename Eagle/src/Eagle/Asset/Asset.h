@@ -82,7 +82,7 @@ namespace Eagle
 		Default = R11G11B10
 	};
 
-	static constexpr uint32_t AssetTextureFormatToChannels(AssetTexture2DFormat format, TextureCompressor::Quality compression)
+	inline constexpr uint32_t AssetTextureFormatToChannels(AssetTexture2DFormat format, TextureCompressor::Quality compression)
 	{
 		using Format = AssetTexture2DFormat;
 
@@ -100,7 +100,7 @@ namespace Eagle
 		return 4;
 	}
 
-	static constexpr AssetTexture2DFormat ChannelsToAssetTexture2DFormat(uint32_t channels)
+	inline constexpr AssetTexture2DFormat ChannelsToAssetTexture2DFormat(uint32_t channels)
 	{
 		switch (channels)
 		{
@@ -118,7 +118,7 @@ namespace Eagle
 		return AssetTexture2DFormat::RGBA8;
 	}
 
-	static constexpr ImageFormat AssetTextureFormatToImageFormat(AssetTexture2DFormat format)
+	inline constexpr ImageFormat AssetTextureFormatToImageFormat(AssetTexture2DFormat format)
 	{
 		using Format = AssetTexture2DFormat;
 		switch (format)
@@ -133,7 +133,7 @@ namespace Eagle
 		return ImageFormat::Unknown;
 	}
 
-	static constexpr uint32_t AssetTextureFormatToChannels(AssetTextureCubeFormat format)
+	inline constexpr uint32_t AssetTextureFormatToChannels(AssetTextureCubeFormat format)
 	{
 		using Format = AssetTextureCubeFormat;
 		switch (format)
@@ -148,7 +148,7 @@ namespace Eagle
 		return 4;
 	}
 
-	static constexpr ImageFormat AssetTextureFormatToImageFormat(AssetTextureCubeFormat format)
+	inline constexpr ImageFormat AssetTextureFormatToImageFormat(AssetTextureCubeFormat format)
 	{
 		using Format = AssetTextureCubeFormat;
 		switch (format)
@@ -163,7 +163,7 @@ namespace Eagle
 		return ImageFormat::Unknown;
 	}
 
-	static constexpr const char* GetAssetDragDropCellTag(AssetType format)
+	inline constexpr const char* GetAssetDragDropCellTag(AssetType format)
 	{
 		switch (format)
 		{
@@ -207,7 +207,7 @@ namespace Eagle
 		}
 	}
 
-	class Asset : virtual public std::enable_shared_from_this<Asset>
+	class Asset : public std::enable_shared_from_this<Asset>
 	{
 	public:
 		virtual ~Asset() = default;
@@ -242,6 +242,7 @@ namespace Eagle
 			m_GUID = std::move(other.m_GUID);
 			m_Type = std::move(other.m_Type);
 			m_RawData = std::move(other.m_RawData);
+			other.m_GUID = GUID(0, 0);
 
 			return *this;
 		}
@@ -260,7 +261,7 @@ namespace Eagle
 		static void Save(const Ref<Asset>& asset);
 
 		// @bReloadRawData. When set to true, raw data will be reloaded (for example, from the original .png file)
-		static void Reload(Ref<Asset>& asset, bool bReloadRawData);
+		static void Reload(const Ref<Asset>& asset, bool bReloadRawData);
 
 		static const char* GetExtension() { return ".egasset"; }
 
@@ -404,12 +405,17 @@ namespace Eagle
 	class AssetStaticMesh : public AssetBaseMesh
 	{
 	public:
+		~AssetStaticMesh();
+
 		const Ref<StaticMesh>& GetMesh() const { return m_Mesh; }
 
 		AssetStaticMesh& operator=(Asset&& other) noexcept override
 		{
 			if (this == &other)
 				return *this;
+
+			if (m_Mesh)
+				m_Mesh->RemoveOnMaterialPropertyModifiedCallback(m_GUID);
 
 			Asset::operator=(std::move(other));
 
@@ -440,12 +446,17 @@ namespace Eagle
 	class AssetSkeletalMesh : public AssetBaseMesh
 	{
 	public:
+		~AssetSkeletalMesh();
+
 		const Ref<SkeletalMesh>& GetMesh() const { return m_Mesh; }
 
 		AssetSkeletalMesh& operator=(Asset&& other) noexcept override
 		{
 			if (this == &other)
 				return *this;
+
+			if (m_Mesh)
+				m_Mesh->RemoveOnMaterialPropertyModifiedCallback(m_GUID);
 
 			Asset::operator=(std::move(other));
 
@@ -813,6 +824,7 @@ namespace Eagle
 			m_BlendTime = std::move(asset.m_BlendTime);
 			m_Horizontal = std::move(asset.m_Horizontal);
 			m_Vertical = std::move(asset.m_Vertical);
+			bUseShortestBlendPath = std::move(asset.bUseShortestBlendPath);
 			bSync = std::move(asset.bSync);
 
 			return *this;
@@ -911,6 +923,7 @@ namespace Eagle
 
 			AssetBehaviorGraph&& asset = (AssetBehaviorGraph&&)other;
 			m_Root = std::move(asset.m_Root);
+			m_Data = std::move(asset.m_Data);
 			RegisterCallback();
 
 			return *this;

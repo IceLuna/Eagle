@@ -284,7 +284,7 @@ namespace Eagle
 					else if (!m_FolderToDelete.empty())
 					{
 						// Delete assets
-						for (auto& dir : std::filesystem::directory_iterator(m_FolderToDelete))
+						for (auto& dir : std::filesystem::recursive_directory_iterator(m_FolderToDelete))
 						{
 							const auto& path = dir.path();
 							if (!dir.is_directory())

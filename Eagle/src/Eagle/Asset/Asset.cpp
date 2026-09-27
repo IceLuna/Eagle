@@ -247,10 +247,33 @@ namespace Eagle
 
 	void Asset::OnModified()
 	{
-		AssetManager::OnModified(shared_from_this());
+		// Keeps the asset alive until every callback has run, since one of them might drop the last reference to it
+		const Ref<Asset> self = shared_from_this();
 
-		for (auto& [_, func] : m_Callbacks)
+		AssetManager::OnModified(self);
+
+		// Callbacks are allowed to add or remove listeners (including themselves) and to destroy other listeners.
+		// So, save the IDs, and look each one up again right before calling it
+		std::vector<GUID> ids;
+		{
+			std::scoped_lock lock(m_Mutex);
+			ids.reserve(m_Callbacks.size());
+			for (const auto& [id, _] : m_Callbacks)
+				ids.push_back(id);
+		}
+
+		for (const GUID& id : ids)
+		{
+			std::function<void()> func;
+			{
+				std::scoped_lock lock(m_Mutex);
+				auto it = m_Callbacks.find(id);
+				if (it == m_Callbacks.end())
+					continue;
+				func = it->second;
+			}
 			func();
+		}
 	}
 
 	Ref<Asset> Asset::Create(const Path& path)
@@ -282,7 +305,7 @@ namespace Eagle
 		asset->SetDirty(false);
 	}
 
-	void Asset::Reload(Ref<Asset>& asset, bool bReloadRawData)
+	void Asset::Reload(const Ref<Asset>& asset, bool bReloadRawData)
 	{
 		const AssetType assetType = asset->GetAssetType();
 		const Path& assetPath = asset->GetPath();
@@ -295,8 +318,11 @@ namespace Eagle
 
 		Ref<Asset> reloaded = Serializer::DeserializeAsset(assetPath, bReloadRawData);
 
-		if (!reloaded)
+		if (!reloaded || reloaded->GetAssetType() != assetType)
+		{
+			EG_CORE_ERROR("Asset reload failed: {}", asset->GetPath());
 			return;
+		}
 
 		if (bReloadRawData)
 		{
@@ -330,13 +356,13 @@ namespace Eagle
 				}
 				PhysXCookingFactory::DeleteCached(oldMesh);
 			}
-
-			asset->SetDirty(true);
-			asset->OnModified();
 		}
 
 		Asset& reloadedRaw = *reloaded.get();
 		*asset = std::move(reloadedRaw);
+
+		asset->SetDirty(true);
+		asset->OnModified();
 
 		// TODO: Use `OnModified`
 		if (assetType == AssetType::Texture2D || assetType == AssetType::Material)
@@ -550,6 +576,12 @@ namespace Eagle
 		});
 	}
 	
+	AssetStaticMesh::~AssetStaticMesh()
+	{
+		if (m_Mesh)
+			m_Mesh->RemoveOnMaterialPropertyModifiedCallback(m_GUID);
+	}
+
 	void AssetStaticMesh::AddOnMaterialPropertyModifiedCallback()
 	{
 		m_Mesh->AddOnMaterialPropertyModifiedCallback(m_GUID, [this]()
@@ -558,6 +590,12 @@ namespace Eagle
 		});
 	}
 	
+	AssetSkeletalMesh::~AssetSkeletalMesh()
+	{
+		if (m_Mesh)
+			m_Mesh->RemoveOnMaterialPropertyModifiedCallback(m_GUID);
+	}
+
 	void AssetSkeletalMesh::AddOnMaterialPropertyModifiedCallback()
 	{
 		m_Mesh->AddOnMaterialPropertyModifiedCallback(m_GUID, [this]()

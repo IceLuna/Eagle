@@ -8,12 +8,13 @@ namespace Eagle
 	PSAutoDestroyScript::PSAutoDestroyScript(PSAutoDestroyScript&& other) noexcept
 	{
 		if (other.m_ParticleAsset)
-			other.m_ParticleAsset->RemoveOnAssetModifiedCallback(m_CallbackID);
+			other.m_ParticleAsset->RemoveOnAssetModifiedCallback(other.m_CallbackID);
 
 		m_ParticleAsset = std::move(other.m_ParticleAsset);
 		m_CallbackID = std::move(other.m_CallbackID);
 		m_Lifetime = std::move(other.m_Lifetime);
 		m_Timer = std::move(other.m_Timer);
+		other.m_CallbackID = GUID(0, 0);
 
 		if (m_ParticleAsset)
 		{
@@ -30,12 +31,13 @@ namespace Eagle
 			return *this;
 
 		if (other.m_ParticleAsset)
-			other.m_ParticleAsset->RemoveOnAssetModifiedCallback(m_CallbackID);
+			other.m_ParticleAsset->RemoveOnAssetModifiedCallback(other.m_CallbackID);
 
 		m_ParticleAsset = std::move(other.m_ParticleAsset);
 		m_CallbackID = std::move(other.m_CallbackID);
 		m_Lifetime = std::move(other.m_Lifetime);
 		m_Timer = std::move(other.m_Timer);
+		other.m_CallbackID = GUID(0, 0);
 
 		if (m_ParticleAsset)
 		{

@@ -38,6 +38,19 @@ namespace Eagle
 	static std::mutex s_Mutex;
 	static bool s_bGame = false;
 
+	// Guards `s_Callbacks`. Kept separate from `s_Mutex` so asset lookups don't contend with callback bookkeeping.
+	// Never held while a callback is being called
+	static std::mutex s_CallbacksMutex;
+
+	// Game only. Assets that are currently being deserialized from the asset pack, keyed by path.
+	// A thread that requests an asset that's already being loaded waits on its future instead of loading it again.
+	struct PendingAssetLoad
+	{
+		std::shared_future<Ref<Asset>> Future;
+		std::thread::id LoadingThread; // Used to detect an asset that (indirectly) depends on itself
+	};
+	static ankerl::unordered_dense::map<Path, PendingAssetLoad> s_PendingLoads;
+
 	void AssetManager::Init()
 	{
 		s_bGame = Application::Get().IsGame();
@@ -215,10 +228,15 @@ namespace Eagle
 
 	void AssetManager::Reset()
 	{
+		{
+			std::scoped_lock lock(s_CallbacksMutex);
+			s_Callbacks.clear();
+		}
+
 		std::scoped_lock lock(s_Mutex);
 
 		AssetEntity::s_EntityAssetsScene.reset();
-		s_Callbacks.clear();
+		s_PendingLoads.clear();
 		s_Assets.clear();
 		s_AssetsByGUID.clear();
 		s_RuntimeAssets.clear();
@@ -243,14 +261,104 @@ namespace Eagle
 		s_RuntimeAssets.clear();
 	}
 
-	void AssetManager::Register(const Ref<Asset>& asset)
+	Ref<Asset> AssetManager::Register(const Ref<Asset>& asset)
 	{
-		if (asset)
+		if (!asset)
+			return {};
+
+		std::scoped_lock lock(s_Mutex);
+		return Register_Internal(asset);
+	}
+
+	Ref<Asset> AssetManager::Register_Internal(const Ref<Asset>& asset)
+	{
+		auto [pathIt, bPathInserted] = s_Assets.emplace(asset->GetPath(), asset);
+		if (!bPathInserted)
 		{
-			std::scoped_lock lock(s_Mutex);
-			s_Assets.emplace(asset->GetPath(), asset);
-			s_AssetsByGUID.emplace(asset->GetGUID(), asset);
+			// Return the existing instance so the caller doesn't end up holding a second copy of the asset that the rest of the engine can't see
+			if (pathIt->second != asset)
+				EG_CORE_WARN("An asset is already registered at this path. Using the existing instance: {}", asset->GetPath());
+			return pathIt->second;
 		}
+
+		auto [guidIt, bGUIDInserted] = s_AssetsByGUID.emplace(asset->GetGUID(), asset);
+		if (!bGUIDInserted && guidIt->second != asset)
+		{
+			// Typically happens when an asset file was copied outside of the editor, so both files carry the same GUID.
+			// Both assets stay reachable by path, but references by GUID will always resolve to the first registered one
+			EG_CORE_ERROR("Two assets share the same GUID: '{}' and '{}'. References to this GUID will resolve to '{}'. "
+				"Was one of them copied outside of the editor? Use `Duplicate` in the Content Browser to make copies of assets",
+				asset->GetPath(), guidIt->second->GetPath(), guidIt->second->GetPath());
+		}
+
+		return asset;
+	}
+
+	Ref<Asset> AssetManager::LoadFromAssetPack(const Path& path, const Ref<ScopedDataBuffer>& assetData)
+	{
+		std::promise<Ref<Asset>> promise;
+		{
+			std::unique_lock lock(s_Mutex);
+
+			// Another thread might have finished loading it between the caller's lookup and now
+			if (auto it = s_Assets.find(path); it != s_Assets.end())
+				return it->second;
+
+			if (auto it = s_PendingLoads.find(path); it != s_PendingLoads.end())
+			{
+				// This thread is already loading this asset further up the stack, meaning the asset depends on itself.
+				// Waiting here would deadlock, so just return.
+				if (it->second.LoadingThread == std::this_thread::get_id())
+				{
+					EG_CORE_ERROR("Failed to load the asset. It (indirectly) references itself: {}", path);
+					return {};
+				}
+
+				// Another thread is loading it. Wait for its result instead of deserializing it a second time
+				std::shared_future<Ref<Asset>> future = it->second.Future;
+				lock.unlock();
+				return future.get();
+			}
+
+			s_PendingLoads.emplace(path, PendingAssetLoad{ promise.get_future().share(), std::this_thread::get_id() });
+		}
+
+		Ref<Asset> result;
+		Timer timer;
+
+		// Catching everything here guarantees that the pending entry gets removed and the promise gets fulfilled.
+		// Otherwise, every thread waiting for this asset would wait forever
+		try
+		{
+			result = Serializer::DeserializeAsset(assetData->GetDataBuffer(), path, false);
+		}
+		catch (const std::exception& e)
+		{
+			EG_CORE_ERROR("Exception while loading the asset {}: {}", path, e.what());
+			result.reset();
+		}
+		catch (...)
+		{
+			EG_CORE_ERROR("Unknown exception while loading the asset: {}", path);
+			result.reset();
+		}
+
+		if (result)
+			EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetSeconds(), path);
+		else
+			EG_CORE_ERROR("Failed to load the asset: {}", path);
+
+		{
+			// Registering and removing the pending entry happen under the same lock,
+			// so other threads always see the asset either as pending or as registered, never as neither
+			std::scoped_lock lock(s_Mutex);
+			if (result)
+				result = Register_Internal(result);
+			s_PendingLoads.erase(path);
+		}
+
+		promise.set_value(result);
+		return result;
 	}
 
 	void AssetManager::AddRuntimeAsset(const Ref<Asset>& asset)
@@ -275,18 +383,18 @@ namespace Eagle
 			}
 		}
 
-		// Try to load it
+		// Try to load it.
+		// Note: `s_AssetPackAssets` is only written by `InitGame` / `Reset`, so it can be read without the lock here
 		if (s_bGame)
 		{
 			auto it = s_AssetPackAssets.find(path);
 			if (it != s_AssetPackAssets.end())
 			{
-				Timer timer;
-				const auto& assetData = it->second;
-				*outAsset = Serializer::DeserializeAsset(assetData->GetDataBuffer(), path, false);
-				EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetSeconds(), path);
+				Ref<Asset> result = LoadFromAssetPack(path, it->second);
+				if (!result)
+					return false;
 
-				Register(*outAsset);
+				*outAsset = std::move(result);
 				return true;
 			}
 		}
@@ -327,11 +435,12 @@ namespace Eagle
 				const auto& assetPath = assetInfo.first;
 				const auto& assetData = assetInfo.second;
 
-				Timer timer;
-				*outAsset = Serializer::DeserializeAsset(assetData->GetDataBuffer(), assetPath, false);
-				EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetSeconds(), assetPath);
+				// Keyed by path, so a GUID request and a path request for the same asset share one load
+				Ref<Asset> result = LoadFromAssetPack(assetPath, assetData);
+				if (!result)
+					return false;
 
-				Register(*outAsset);
+				*outAsset = std::move(result);
 				return true;
 			}
 		}
@@ -393,17 +502,39 @@ namespace Eagle
 
 	void AssetManager::OnModified(const Ref<Asset>& asset)
 	{
-		for (auto& [_, func] : s_Callbacks)
+		// Callbacks are allowed to add or remove listeners (including themselves) and to destroy other listeners.
+		// So, save the IDs, then look each one up again right before calling it,
+		std::vector<GUID> ids;
+		{
+			std::scoped_lock lock(s_CallbacksMutex);
+			ids.reserve(s_Callbacks.size());
+			for (const auto& [id, _] : s_Callbacks)
+				ids.push_back(id);
+		}
+
+		for (const GUID& id : ids)
+		{
+			std::function<void(const Ref<Asset>&)> func;
+			{
+				std::scoped_lock lock(s_CallbacksMutex);
+				auto it = s_Callbacks.find(id);
+				if (it == s_Callbacks.end())
+					continue;
+				func = it->second;
+			}
 			func(asset);
+		}
 	}
 
 	void AssetManager::AddOnAssetModifiedCallback(const GUID& id, const std::function<void(const Ref<Asset>&)>& func)
 	{
+		std::scoped_lock lock(s_CallbacksMutex);
 		s_Callbacks[id] = func;
 	}
 
 	void AssetManager::RemoveOnAssetModifiedCallback(const GUID& id)
 	{
+		std::scoped_lock lock(s_CallbacksMutex);
 		s_Callbacks.erase(id);
 	}
 	
@@ -503,6 +634,13 @@ namespace Eagle
 			EG_CORE_ERROR("Failed to delete {}. Error: {}", assetPath, error.message());
 		else
 		{
+			if (asset->GetAssetType() == AssetType::Entity)
+			{
+				Ref<AssetEntity> entityAsset = Cast<AssetEntity>(asset);
+				Entity entity = *(entityAsset->GetEntity());
+				AssetEntity::GetScene()->DestroyEntityImmediately(entity, true);
+			}
+
 			s_Assets.erase(it);
 			s_AssetsByGUID.erase(asset->GetGUID());
 			EG_CORE_TRACE("Deleted asset at: {}", assetPath);

@@ -185,11 +185,9 @@ namespace Eagle::Utils
 		if (!filepath.has_extension())
 			return false;
 
-		static const std::locale& loc = std::locale("RU_ru");
 		std::string fileExtension = Utils::AsString(filepath.extension());
-
 		for (char& c : fileExtension)
-			c = std::tolower(c, loc);
+			c = std::tolower((unsigned char)c);
 
 		return fileExtension == extension;
 	}

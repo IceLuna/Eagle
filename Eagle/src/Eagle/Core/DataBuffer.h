@@ -107,9 +107,11 @@ namespace Eagle
 			memset((uint8_t*)Data + offset, 0, size);
 		}
 
+		bool IsValid() const { return Data != nullptr; }
+
 		operator bool() const
 		{
-			return Data;
+			return IsValid();
 		}
 
 	public:
@@ -228,9 +230,11 @@ namespace Eagle
 
 		void Release() { m_Buffer.Release(); }
 
+		bool IsValid() const { return m_Buffer.IsValid(); }
+
 		operator bool() const
 		{
-			return m_Buffer;
+			return IsValid();
 		}
 
 		void* Data() { return m_Buffer.Data; }

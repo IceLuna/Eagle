@@ -23,7 +23,11 @@ namespace Eagle
 		static void ResetGameAssets();
 		static void ResetRuntimeAsset();
 
-		static void Register(const Ref<Asset>& asset);
+		// Registers an asset so it can be found by its path and GUID.
+		// Returns the instance that ends up in the manager: `asset` itself, or the instance that was already registered at the same path.
+		// Callers that go on to use the asset should use the returned instance, so everyone shares a single object.
+		// Returns null if `asset` is null.
+		static Ref<Asset> Register(const Ref<Asset>& asset);
 		static void AddRuntimeAsset(const Ref<Asset>& asset); // Created by C#
 		static bool Get(const Path& path, Ref<Asset>* outAsset);
 		static bool Get(const GUID& guid, Ref<Asset>* outAsset);
@@ -58,6 +62,15 @@ namespace Eagle
 		static const Ref<AssetTextureCube>& GetPreviewSkybox() { return s_Skybox; }
 		static const Ref<AssetStaticMesh>& GetPreviewSphere() { return s_Sphere; }
 		static const Ref<AssetStaticMesh>& GetPreviewCube() { return s_Cube; }
+
+	private:
+		// Same as `Register`, but expects `s_Mutex` to be locked by the caller. `asset` must not be null
+		static Ref<Asset> Register_Internal(const Ref<Asset>& asset);
+
+		// Game only. Deserializes an asset from the asset pack and registers it.
+		// If another thread is already loading the same asset, waits for it and returns its result instead of loading it twice.
+		// Returns null on failure
+		static Ref<Asset> LoadFromAssetPack(const Path& path, const Ref<ScopedDataBuffer>& assetData);
 
 	private:
 		static AssetsMap s_Assets;

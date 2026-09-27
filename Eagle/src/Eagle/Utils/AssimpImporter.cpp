@@ -118,11 +118,9 @@ namespace Eagle
 			".glb"
 		};
 
-		static const std::locale& loc = std::locale("RU_ru");
 		std::string extension = Utils::AsString(filepath.extension());
-
 		for (char& c : extension)
-			c = std::tolower(c, loc);
+			c = std::tolower((unsigned char)c);
 
 		auto it = std::find(supportedFileFormats.begin(), supportedFileFormats.end(), extension);
 		return it != supportedFileFormats.end();
