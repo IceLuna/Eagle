@@ -105,7 +105,6 @@ namespace Eagle
 			for (auto& decal : m_Decals)
 			{
 				const auto& material = m_Materials.at(decal.MaterialIndex);
-				decal.AspectRatio = GetAspectRatio(material);
 				if (material->GetNormalAsset())
 					m_WithNormalsDecalsCount++;
 				else

@@ -1152,7 +1152,7 @@ namespace Eagle
         bool bEnable2DObjectPicking = false;
         bool bSortOpaqueParticles = false;
         bool bEnableDebugLinesDepthTest = true;
-        float GridScale = 4.f; // Editor Only
+        float GridCellSize = 0.1f; // Editor Only. World-space size of the smallest grid cell
         uint32_t TransparencyLayers = 4u;
         bool bGeometricSpecularAA = true;
 
@@ -1190,7 +1190,7 @@ namespace Eagle
                 Lens == other.Lens &&
                 SSAOSettings == other.SSAOSettings &&
                 GTAOSettings == other.GTAOSettings &&
-                GridScale == other.GridScale &&
+                GridCellSize == other.GridCellSize &&
                 TransparencyLayers == other.TransparencyLayers &&
                 bGeometricSpecularAA == other.bGeometricSpecularAA &&
                 BloomSettings == other.BloomSettings;

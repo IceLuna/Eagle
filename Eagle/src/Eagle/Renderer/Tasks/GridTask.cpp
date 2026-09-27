@@ -7,8 +7,6 @@
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Debug/GPUTimings.h"
 
-#include "glm/gtc/matrix_transform.hpp"
-
 namespace Eagle
 {
 	GridTask::GridTask(SceneRenderer& renderer)
@@ -25,24 +23,36 @@ namespace Eagle
 		if (m_Pipeline->GetState().ColorAttachments[0].Image != m_Renderer.GetOutput())
 			InitPipeline();
 
-		struct PushData
+		const auto& matrices = m_Renderer.GetCameraMatrices();
+
+		const glm::mat4& viewProj = matrices.ViewProjUnjittered;
+		struct VertexPushData
 		{
-			float GridSize = 0.025f;
-			float GridScale;
-		} pushData;
-		static_assert(sizeof(PushData) <= 128);
+			glm::mat4 InvViewProj;
+		} vertexData;
 
-		const float scale = m_Renderer.GetOptions_RT().GridScale;
-		pushData.GridScale = scale * 2.00f + pushData.GridSize;
+		struct FragmentPushData
+		{
+			// Columns 2 and 3 of `inverse(jittered VP) - inverse(unjittered VP)`. The depth buffer the grid is tested
+			// against was rendered with TAA jitter, so the grid's depth is computed along the jittered ray.
+			// All zeros when TAA is off
+			glm::vec4 JitterDeltaZ;
+			glm::vec4 JitterDeltaW;
+			float CellSize;
+		} fragmentData;
+		static_assert(sizeof(VertexPushData) + sizeof(FragmentPushData) <= 128);
 
-		const glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.f, 0.005f, 0.f))
-			* glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f))
-			* glm::scale(glm::mat4(1.0f), glm::vec3(scale));
-		const glm::mat4 mvp = m_Renderer.GetCameraMatrices().ViewProjUnjittered * transform;
+		vertexData.InvViewProj = glm::inverse(viewProj);
+
+		// Double precision: the difference is tiny compared to the matrices' values
+		const glm::dmat4 jitterDelta = glm::inverse(glm::dmat4(matrices.ViewProj)) - glm::inverse(glm::dmat4(viewProj));
+		fragmentData.JitterDeltaZ = glm::vec4(jitterDelta[2]);
+		fragmentData.JitterDeltaW = glm::vec4(jitterDelta[3]);
+		fragmentData.CellSize = glm::max(m_Renderer.GetOptions_RT().GridCellSize, 0.001f);
 
 		cmd->BeginGraphics(m_Pipeline);
-		cmd->SetGraphicsRootConstants(&mvp, &pushData);
-		cmd->Draw(6, 0);
+		cmd->SetGraphicsRootConstants(&vertexData, &fragmentData);
+		cmd->Draw(3, 0);
 		cmd->EndGraphics();
 
 		auto& stats = m_Renderer.GetStats();
@@ -72,12 +82,14 @@ namespace Eagle
 		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.DepthCompareOp = CompareOperation::GreaterEqual;
+		depthAttachment.bWriteDepth = false;
 
 		PipelineGraphicsState state;
 		state.ColorAttachments.push_back(attachment);
 		state.DepthStencilAttachment = depthAttachment;
 		state.VertexShader = Shader::Create("grid_quad.vert", ShaderType::Vertex);
 		state.FragmentShader = Shader::Create("grid.frag", ShaderType::Fragment);
+		state.CullMode = CullMode::None;
 
 		if (m_Pipeline)
 			m_Pipeline->SetState(state);

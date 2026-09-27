@@ -3368,7 +3368,7 @@ namespace Eagle
 		out << YAML::Key << "Enable2DObjectPicking" << YAML::Value << settings.bEnable2DObjectPicking;
 		out << YAML::Key << "SortOpaqueParticles" << YAML::Value << settings.bSortOpaqueParticles;
 		out << YAML::Key << "LineWidth" << YAML::Value << settings.LineWidth;
-		out << YAML::Key << "GridScale" << YAML::Value << settings.GridScale;
+		out << YAML::Key << "GridCellSize" << YAML::Value << settings.GridCellSize;
 		out << YAML::Key << "TransparencyLayers" << YAML::Value << settings.TransparencyLayers;
 		out << YAML::Key << "AO" << YAML::Value << Utils::GetEnumName(settings.AO);
 		out << YAML::Key << "AA" << YAML::Value << Utils::GetEnumName(settings.AA);
@@ -3563,8 +3563,8 @@ namespace Eagle
 			settings.bSortOpaqueParticles = sortOpaqueParticles.as<bool>();
 		if (auto lineWidthNode = data["LineWidth"])
 			settings.LineWidth = lineWidthNode.as<float>();
-		if (auto gridScaleNode = data["GridScale"])
-			settings.GridScale = gridScaleNode.as<float>();
+		if (auto gridCellSizeNode = data["GridCellSize"])
+			settings.GridCellSize = gridCellSizeNode.as<float>();
 		if (auto layersNode = data["TransparencyLayers"])
 			settings.TransparencyLayers = layersNode.as<uint32_t>();
 		if (auto node = data["AO"])

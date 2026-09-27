@@ -10,6 +10,11 @@
 #ifndef EG_NO_TEXTURES
 layout(set = EG_TEXTURES_SET, binding = EG_BINDING_TEXTURES) uniform sampler2D g_Textures[];
 
+vec2 ReadTextureSize(uint index)
+{
+	return textureSize(g_Textures[nonuniformEXT(index)], 0).xy;
+}
+
 vec4 ReadTexture(uint index, vec2 uv)
 {
 	return texture(g_Textures[nonuniformEXT(index)], uv);
@@ -37,12 +42,19 @@ readonly buffer RawMaterials
 	float g_MaterialRawValues[];
 };
 
-
 uint FetchMaterialNormalTextureIndex(uint index)
 {
 	bool unused;
 	CPUMaterial material = g_Materials[index];
 	return Material_GetIndex(material.PackedIndices2, NormalIndexMask, NormalIndexOffset, unused);
+}
+
+uint FetchMaterialOpacityMaskTextureIndex(uint index)
+{
+	bool bRawValue;
+	CPUMaterial material = g_Materials[index];
+	uint opacityMaskIndex = Material_GetIndex(material.PackedIndices4, OpacityMaskIndexMask, OpacityMaskIndexOffset, bRawValue);
+	return bRawValue ? EG_INVALID_INDEX : opacityMaskIndex;
 }
 
 #ifndef EG_NO_TEXTURES
@@ -51,6 +63,7 @@ ShaderMaterial FetchMaterial(uint index, inout vec2 uv)
 	ShaderMaterial result;
 	const CPUMaterial material = g_Materials[index];
 
+	result.BlendMode = material.BlendMode;
 	result.TilingFactor = material.TilingFactor;
 	uv *= material.TilingFactor;
 

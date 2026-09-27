@@ -126,16 +126,14 @@ void main()
     vec3 history = bicubicSampleCatmullRom((uv - motion) * g_Size);
     history = RGBToYCgCo(history);
 
-    float alpha = g_Alpha;
+    history = clamp(history, colorMin, colorMax);
+
     // Anti-flickering, based on Brian Karis talk @Siggraph 2014
     // https://de45xmedrsdbp.cloudfront.net/Resources/files/TemporalAA_small-59732822.pdf
-    // Reduce blend factor when history is near clamping
-    {
-        float distToClamp = min(abs(colorMin.x - history.x), abs(colorMax.x - history.x));
-        alpha = clamp((g_Alpha * distToClamp) / (distToClamp + colorMax.x - colorMin.x), 0.f, 1.f);
-    }
-
-    history = clamp(history, colorMin, colorMax);
-    vec3 result = YCgCoToRGB(mix(history, color, alpha));
+    // Bright HDR samples get less weight, so a single very bright sample (e.g. a specular sparkle) can't dominate
+    // and flicker. The blend factor itself stays at g_Alpha, so the current frame keeps refreshing the history.
+    const float currentWeight = g_Alpha / (1.0 + max(color.x, 0.0));
+    const float historyWeight = (1.0 - g_Alpha) / (1.0 + max(history.x, 0.0));
+    vec3 result = YCgCoToRGB((history * historyWeight + color * currentWeight) / (historyWeight + currentWeight));
     imageStore(g_Result, pixelCoords, vec4(result, texColor.a));
 }

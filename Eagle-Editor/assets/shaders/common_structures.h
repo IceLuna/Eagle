@@ -14,6 +14,10 @@ using vec4 = glm::vec4;
 
 #endif
 
+const uint BlendMode_Opaque = 0;
+const uint BlendMode_Translucent = 1;
+const uint BlendMode_Masked = 2;
+
 const uint IsRawValueMask          = 0x2000;
 const uint MaterialIndexMask       = 0x3FFF; // 14 bits per index
 const uint TextureChannelIndexMask = 0x3; // 0b11 (two bits)
@@ -60,7 +64,7 @@ struct CPUMaterial
 	vec4 TintColor;
 
 	vec3 EmissiveIntensity;
-	uint Unused0;
+	uint BlendMode; // If space is required, can be packed into free bits since it just needs a couple of them
 
 	vec2 TilingFactor;
 
@@ -95,7 +99,7 @@ struct CPUMaterial
 
 #ifdef __cplusplus
 	CPUMaterial()
-		: TintColor(1.f), EmissiveIntensity(0.f), TilingFactor(1.f)
+		: TintColor(1.f), EmissiveIntensity(0.f), BlendMode(0), TilingFactor(1.f)
 		, PackedIndices(0), PackedIndices2(0), PackedIndices3(0), PackedIndices4(0)
 	{
 	}
@@ -119,6 +123,7 @@ struct ShaderMaterial
 
 	// Normal can only be a texture, so we keep it as an index so that the code can verify if the texture was set. If not, geometry normals will be used
 	uint NormalTextureIndex;
+	uint BlendMode;
 };
 
 struct PointLight
@@ -188,6 +193,7 @@ ShaderMaterial ShaderMaterial_Default()
 	result.Opacity = 1.f;
 	result.OpacityMask = 1.f;
 	result.NormalTextureIndex = EG_INVALID_INDEX;
+	result.BlendMode = BlendMode_Opaque;
 	return result;
 }
 

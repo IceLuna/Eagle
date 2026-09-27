@@ -2446,11 +2446,11 @@ namespace Eagle
 
 			UI::BeginPropertyGrid("EditorPreferences_Misc");
 
-			if (UI::PropertyDrag("Grid Scale", options.GridScale, 0.1f))
+			if (UI::PropertyDrag("Grid Cell Size", options.GridCellSize, 0.1f, 0.f, 0.f, "World-space size of the smallest grid cell. Larger cells (x10, x100, ...) appear automatically when zooming out"))
 			{
-				options.GridScale = glm::max(options.GridScale, 0.f);
+				options.GridCellSize = glm::max(options.GridCellSize, 0.001f);
 				sceneRenderer->SetOptions(options);
-				EG_CORE_TRACE("Changed Grid Scale to: {}", options.GridScale);
+				EG_CORE_TRACE("Changed Grid Cell Size to: {}", options.GridCellSize);
 			}
 
 			if (UI::ComboEnum("Guizmo Mode", guizmoMode))

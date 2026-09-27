@@ -66,6 +66,7 @@ CPUMaterial CPUMaterial::Convert(const Eagle::Ref<Eagle::Material>& material, st
 	result.TintColor = material->GetTintColor();
 	result.EmissiveIntensity = material->GetEmissiveIntensity();
 	result.TilingFactor = material->GetTilingFactor();
+	result.BlendMode = (uint32_t)material->GetBlendMode();
 
 	uint32_t albedoIndex = 0u;
 	if (material->IsRawAlbedoUsed())
