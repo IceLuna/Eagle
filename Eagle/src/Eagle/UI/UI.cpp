@@ -95,6 +95,132 @@ namespace Eagle::UI
 			return pos == std::string_view::npos ? typeName : typeName.substr(pos + 1);
 		}
 
+		// ID of a tree node of a `Struct` field. Array elements' open states are looked up by it when elements are reordered
+		constexpr const char* s_StructTreeNodeID = "##StructTreeNode";
+
+		// Draws a "six dots" grip that can be dragged to reorder array elements. Should be called right before the element's label.
+		// @payloadType. Must be unique per array, so that elements can't be dropped into another array
+		void DrawArrayElementDragHandle(const char* payloadType, size_t idx)
+		{
+			const float fontSize = ImGui::GetFontSize();
+			const ImVec2 size = ImVec2(fontSize * 0.6f, ImGui::GetFrameHeight());
+			const ImVec2 pos = ImGui::GetCursorScreenPos();
+
+			ImGui::InvisibleButton("##ReorderHandle", size);
+			const bool bActive = ImGui::IsItemActive();
+			const bool bHighlighted = bActive || ImGui::IsItemHovered();
+			if (bHighlighted)
+				ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+			if (!bActive)
+				ImGui::SetItemTooltip("Drag to reorder");
+
+			// Grip: 2 columns x 3 rows of dots
+			ImDrawList* drawList = ImGui::GetWindowDrawList();
+			const ImU32 color = ImGui::GetColorU32(bHighlighted ? ImGuiCol_Text : ImGuiCol_TextDisabled);
+			const float radius = ImMax(1.f, fontSize * 0.08f);
+			const float offsetX = radius * 1.75f;
+			const float offsetY = radius * 3.f;
+			const ImVec2 center = ImVec2(pos.x + size.x * 0.5f, pos.y + size.y * 0.5f);
+			for (int row = -1; row <= 1; ++row)
+			{
+				drawList->AddCircleFilled(ImVec2(center.x - offsetX, center.y + row * offsetY), radius, color, 6);
+				drawList->AddCircleFilled(ImVec2(center.x + offsetX, center.y + row * offsetY), radius, color, 6);
+			}
+
+			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceNoHoldToOpenOthers))
+			{
+				ImGui::SetDragDropPayload(payloadType, &idx, sizeof(idx));
+				ImGui::Text("[%zu]", idx);
+				ImGui::EndDragDropSource();
+			}
+		}
+
+		// Makes an array element row a drop target for elements dragged via `DrawArrayElementDragHandle`.
+		// Should be called right after the element is drawn (when the cursor is at the start of the next row).
+		// Dropping onto the upper half of the element inserts the dragged element before it, onto the lower half - after it.
+		// A line is drawn where the element will be inserted.
+		// @rowStart. Cursor screen position before the element was drawn
+		// @bSplitByFirstLine. If true, only the first line is split in halves and anything below it is considered as the lower half.
+		//                     Used for expandable elements (structs) so that an expanded element behaves the same as a collapsed one
+		// Returns true if an element was dropped and needs to be moved. `outFrom` - its current index, `outTo` - its new index
+		bool ArrayElementDropTarget(const char* payloadType, size_t idx, ImVec2 rowStart, bool bSplitByFirstLine, size_t& outFrom, size_t& outTo)
+		{
+			if (!ImGui::GetDragDropPayload())
+				return false; // Nothing is being dragged
+
+			ImGuiWindow* window = ImGui::GetCurrentWindow();
+			const float halfSpacingY = ImGui::GetStyle().ItemSpacing.y * 0.5f;
+			const float rowEndY = ImGui::GetCursorScreenPos().y; // Includes item spacing
+
+			// The row spans all columns. But when columns are used, clip rect is limited to the current column,
+			// so the clip rect (used for hovering tests and drawing) is temporarily expanded to the columns' host
+			const ImRect hostClipRect = window->DC.CurrentColumns ? window->DC.CurrentColumns->HostInitialClipRect : window->ClipRect;
+			const ImRect rowRect(ImVec2(hostClipRect.Min.x, rowStart.y - halfSpacingY), ImVec2(hostClipRect.Max.x, rowEndY - halfSpacingY));
+
+			bool bDropped = false;
+			ImGui::PushClipRect(hostClipRect.Min, hostClipRect.Max, false);
+			if (ImGui::BeginDragDropTargetCustom(rowRect, ImGui::GetID("##ReorderDropTarget")))
+			{
+				constexpr ImGuiDragDropFlags acceptFlags = ImGuiDragDropFlags_AcceptBeforeDelivery | ImGuiDragDropFlags_AcceptNoDrawDefaultRect;
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(payloadType, acceptFlags))
+				{
+					const size_t srcIdx = *(const size_t*)payload->Data;
+
+					const float splitY = bSplitByFirstLine ? (rowStart.y + ImGui::GetFrameHeight() * 0.5f) : (rowRect.Min.y + rowRect.Max.y) * 0.5f;
+					const bool bInsertAfter = ImGui::GetMousePos().y >= splitY;
+					const size_t insertIdx = bInsertAfter ? idx + 1 : idx; // Index in the array before the dragged element is removed
+					const size_t dstIdx = insertIdx > srcIdx ? insertIdx - 1 : insertIdx;
+
+					if (dstIdx != srcIdx)
+					{
+						const float lineY = bInsertAfter ? rowRect.Max.y : rowRect.Min.y;
+						window->DrawList->AddLine(ImVec2(rowStart.x, lineY), ImVec2(rowRect.Max.x, lineY), ImGui::GetColorU32(ImGuiCol_DragDropTarget), 2.f);
+
+						if (payload->IsDelivery())
+						{
+							outFrom = srcIdx;
+							outTo = dstIdx;
+							bDropped = true;
+						}
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+			ImGui::PopClipRect();
+
+			return bDropped;
+		}
+
+		// Tree node open states are stored by IDs that are based on element indices.
+		// This moves open states of `Struct` elements together with the elements, so that an expanded element stays expanded after being moved.
+		// Must be called with the same ID stack as the elements were drawn with (excluding the element's index)
+		void MoveArrayElementOpenState(size_t from, size_t to)
+		{
+			const size_t first = glm::min(from, to);
+			const size_t last = glm::max(from, to);
+
+			ImGuiStorage* storage = ImGui::GetStateStorage();
+			std::vector<ImGuiID> ids;
+			std::vector<int> states;
+			ids.reserve(last - first + 1);
+			states.reserve(last - first + 1);
+			for (size_t i = first; i <= last; ++i)
+			{
+				ImGui::PushID(int(i));
+				ids.push_back(ImGui::GetID(s_StructTreeNodeID));
+				ImGui::PopID();
+				states.push_back(storage->GetInt(ids.back(), 0));
+			}
+
+			if (from < to)
+				std::rotate(states.begin(), states.begin() + 1, states.end());
+			else
+				std::rotate(states.begin(), states.end() - 1, states.end());
+
+			for (size_t i = 0; i < ids.size(); ++i)
+				storage->SetInt(ids[i], states[i]);
+		}
+
 		bool HandlePublicField(std::string_view label, PublicField& field, MonoObject* instance, size_t fieldIndex, bool bRuntime, Entity entity, const std::function<void()>& customLabelCallback = {})
 		{
 			bool bChanged = false;
@@ -289,10 +415,14 @@ namespace Eagle::UI
 
 					ImGui::SetCursorPosX(ImGui::GetCursorPosX() - GetTreeNodeArrowOffset(treeFlags) * 0.5f + 5.f);
 					ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-					const bool bOpened = ImGui::TreeNodeEx("##StructTreeNode", treeFlags, "%s", label.data());
+					// `SameLine()` places items at the Y of the first item on the line, which isn't the tree node
+					// if something was drawn before it (e.g. array element's drag handle). So items that follow the node are explicitly aligned with it
+					const float nodePosY = ImGui::GetCursorPosY();
+					const bool bOpened = ImGui::TreeNodeEx(s_StructTreeNodeID, treeFlags, "%s", label.data());
 					if (field.Tooltip.size())
 					{
 						ImGui::SameLine();
+						ImGui::SetCursorPosY(nodePosY);
 						UI::HelpMarker(field.Tooltip);
 					}
 					if (customLabelCallback)
@@ -300,6 +430,7 @@ namespace Eagle::UI
 						// Tree nodes (without `ImGuiTreeNodeFlags_FramePadding`) are only as tall as a line of text.
 						// Remove vertical frame padding so that buttons drawn by the callback (e.g. `Remove`) match the node's height
 						ImGui::SameLine();
+						ImGui::SetCursorPosY(nodePosY);
 						ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(ImGui::GetStyle().FramePadding.x, 0.f));
 						customLabelCallback();
 						ImGui::PopStyleVar();
@@ -997,6 +1128,11 @@ namespace Eagle::UI
 			size_t arrayLength = bRuntime ? field.GetRuntimeArrayLength(instance) : field.ArrayLength;
 			const std::string elementsStr = "Elements: " + std::to_string(arrayLength);
 
+			// Drag & drop payload type used for reordering elements. It's unique per array (the ID stack contains the field's name and its parents),
+			// so that elements can't be dropped into other arrays (including nested ones)
+			char reorderPayloadType[32];
+			snprintf(reorderPayloadType, sizeof(reorderPayloadType), "EG_ArrayElem_%08X", ImGui::GetID("##ArrayReorder"));
+
 			// Calculate `collapser arrow width` offset
 			// in order to move a tree to the left so that children names are all aligned vertically
 			const float treeOffsetX = GetTreeNodeArrowOffset(treeFlags);
@@ -1026,6 +1162,9 @@ namespace Eagle::UI
 			{
 				constexpr size_t invalidIdx = -1;
 				size_t idxToRemove = invalidIdx;
+				size_t moveFrom = invalidIdx;
+				size_t moveTo = invalidIdx;
+				const bool bStruct = field.Type == FieldType::Struct;
 				for (size_t i = 0; i < arrayLength; ++i)
 				{
 					auto customLabelFunc = [&idxToRemove, i]()
@@ -1037,13 +1176,33 @@ namespace Eagle::UI
 					};
 
 					ImGui::PushID(int(i));
+					const ImVec2 rowStart = ImGui::GetCursorScreenPos();
+
+					DrawArrayElementDragHandle(reorderPayloadType, i);
+					// Structs shift their tree node to the left so that the collapser arrow hangs outside of the labels column.
+					// Compensate for it so that the arrow doesn't overlap the handle
+					const float structArrowOffset = bStruct ? (GetTreeNodeArrowOffset(ImGuiTreeNodeFlags_None) * 0.5f - 5.f) : 0.f;
+					ImGui::SameLine(0.f, ImGui::GetStyle().ItemInnerSpacing.x + structArrowOffset);
+
 					bChanged |= HandlePublicField('[' + std::to_string(i) + ']', field, instance, i, bRuntime, entity, customLabelFunc);
+
+					ArrayElementDropTarget(reorderPayloadType, i, rowStart, bStruct, moveFrom, moveTo);
 					ImGui::PopID();
 				}
+
+				const bool bMove = (moveFrom != invalidIdx) && (idxToRemove == invalidIdx); // Can't do both in the same frame since indices would get invalidated
+				if (bMove && bStruct)
+					MoveArrayElementOpenState(moveFrom, moveTo); // Must be called before `TreePop()` so that the ID stack matches
 				ImGui::TreePop();
+
 				if (idxToRemove != invalidIdx)
 				{
 					bRuntime ? field.RemoveRuntimeArrayElement(instance, idxToRemove) : field.RemoveArrayElement(idxToRemove);
+					bChanged = true;
+				}
+				else if (bMove)
+				{
+					bRuntime ? field.MoveRuntimeArrayElement(instance, moveFrom, moveTo) : field.MoveArrayElement(moveFrom, moveTo);
 					bChanged = true;
 				}
 			}

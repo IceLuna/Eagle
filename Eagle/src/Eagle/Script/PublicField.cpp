@@ -142,6 +142,29 @@ namespace Eagle
 		mono_value_copy_array(dst, int(dstIdx), srcData, int(count));
 	}
 
+	// Moves element `from` of the range starting at `begin` so that it ends up at index `to`, shifting elements in between by one.
+	// @stride. Size of an element in units of `It` (for example, when moving raw bytes)
+	template<typename It>
+	static void MoveRangeElement(It begin, size_t from, size_t to, size_t stride = 1)
+	{
+		if (from < to)
+			std::rotate(begin + from * stride, begin + (from + 1) * stride, begin + (to + 1) * stride);
+		else if (from > to)
+			std::rotate(begin + to * stride, begin + from * stride, begin + (from + 1) * stride);
+	}
+
+	// Inverse of `MoveRangeElement` for a single index: returns an index (before the move) of the element that ends up at `dstIdx` after the move
+	static size_t GetIndexBeforeMove(size_t dstIdx, size_t from, size_t to)
+	{
+		if (dstIdx == to)
+			return from;
+		if (from < to && dstIdx >= from && dstIdx < to)
+			return dstIdx + 1;
+		if (from > to && dstIdx > to && dstIdx <= from)
+			return dstIdx - 1;
+		return dstIdx;
+	}
+
 	// Copies values of `src` members into `dst` members. Members are matched by name, so it works even if the struct definition has changed
 	static void CopyStructMembersStoredValues(std::vector<PublicField>& dst, const std::vector<PublicField>& src)
 	{
@@ -546,6 +569,73 @@ namespace Eagle
 			while (ArrayLength > newLength)
 				RemoveArrayElement(ArrayLength - 1);
 		}
+	}
+
+	void PublicField::MoveArrayElement(size_t from, size_t to)
+	{
+		if (!bArray || from == to || from >= ArrayLength || to >= ArrayLength)
+			return;
+
+		if (Type == FieldType::Struct)
+		{
+			MoveRangeElement(m_StructElements.begin(), from, to);
+		}
+		else if (Type == FieldType::String)
+		{
+			MoveRangeElement((std::string*)m_StoredValueBuffer.Data(), from, to);
+		}
+		else
+		{
+			MoveRangeElement((uint8_t*)m_StoredValueBuffer.Data(), from, to, m_FieldSize);
+		}
+	}
+
+	void PublicField::MoveRuntimeArrayElement(MonoObject* instance, size_t from, size_t to)
+	{
+		if (!bArray || !m_Class || from == to)
+			return;
+
+		MonoArray* oldArray = GetRuntimeArray(instance);
+		if (!oldArray)
+			return;
+
+		const size_t length = mono_array_length(oldArray);
+		if (from >= length || to >= length)
+			return; // Invalid index
+
+		// A new array is created (instead of modifying the existing one in-place) to be consistent with other operations.
+		// This way property setters get called and the change is visible even if a property getter returns a copy.
+
+		// Root the old array because mono_array_new() can trigger GC.
+		const uint32_t oldArrayHandle = mono_gchandle_new((MonoObject*)oldArray, true);
+
+		MonoArray* newArray = mono_array_new(mono_domain_get(), m_Class, length);
+		const uint32_t newArrayHandle = mono_gchandle_new((MonoObject*)newArray, true);
+
+		const bool bReferenceType = Type == FieldType::String || Type == FieldType::Entity || IsAssetType(Type);
+		for (size_t dstIdx = 0; dstIdx < length; ++dstIdx)
+		{
+			const size_t srcIdx = GetIndexBeforeMove(dstIdx, from, to);
+			if (bReferenceType)
+			{
+				MonoObject* obj = mono_array_get(oldArray, MonoObject*, srcIdx);
+				mono_array_setref(newArray, dstIdx, obj);
+			}
+			else if (Type == FieldType::Struct)
+			{
+				CopyStructArrayElements(oldArray, srcIdx, newArray, dstIdx, 1, m_Class);
+			}
+			else
+			{
+				void* src = GetArrayData(oldArray, m_FieldSize, srcIdx);
+				void* dst = GetArrayData(newArray, m_FieldSize, dstIdx);
+				memcpy(dst, src, m_FieldSize);
+			}
+		}
+		mono_gchandle_free(oldArrayHandle);
+
+		SetRuntimeArray(instance, newArray);
+		mono_gchandle_free(newArrayHandle);
 	}
 
 	size_t PublicField::GetRuntimeArrayLength(MonoObject* instance) const

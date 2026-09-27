@@ -135,6 +135,11 @@ namespace Eagle
 		void RemoveRuntimeArrayElement(MonoObject* instance, size_t idx);
 		void ClearRuntimeArray(MonoObject* instance);
 
+		// Moves element `from` so that it ends up at index `to`. Elements in between are shifted by one.
+		// For example, moving 1 -> 3: [A, B, C, D, E] -> [A, C, D, B, E]
+		void MoveArrayElement(size_t from, size_t to);
+		void MoveRuntimeArrayElement(MonoObject* instance, size_t from, size_t to);
+
 		size_t GetRuntimeArrayLength(MonoObject* instance) const;
 
 		void CopyStoredValueFromRuntime(MonoObject* instance);
