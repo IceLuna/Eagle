@@ -60,6 +60,12 @@ namespace Eagle
 			bChanged = true;
 		}
 
+		if (UI::Button("Preview", "Restart"))
+		{
+			m_Timer.Restart();
+			m_Entity.GetComponent<ParticleSystemComponent>().Restart();
+		}
+
 		UI::EndPropertyGrid();
 
 		ImGui::Separator();
@@ -142,6 +148,12 @@ namespace Eagle
 				bEmitterChanged |= UI::PropertyDrag("Loop Count", emitter.LoopCount, 1.f, 0, 0, "0 will loop forever");
 				bEmitterChanged |= UI::PropertyDrag("Loop Duration", emitter.LoopDuration, 0.1f);
 				bEmitterChanged |= UI::PropertyDrag("Spawn Rate", emitter.SpawnRate, 1, 0, int(ParticleEmitter::MaxSpawnRate), "How many particles to spawn in a second. If `Explode` flag is set, this amount of particles will be spawned immediately.");
+				if (UI::PropertyDrag("Fast Forward To", emitter.FastForwardTo, 0.1f, 0, 0, "When the emitter is spawned, it starts as if it had already been running for this many seconds.\n"
+					"For looping emitters, `Lifetime Max` is enough to reach the fully filled state. Collisions are ignored during the fast-forward"))
+				{
+					emitter.FastForwardTo = std::max(0.f, emitter.FastForwardTo);
+					bEmitterChanged = true;
+				}
 
 				UI::EndPropertyGrid();
 				ImGui::TreePop();
@@ -165,13 +177,6 @@ namespace Eagle
 				UI::EndPropertyGrid();
 				ImGui::TreePop();
 			}
-
-			// TODO: it's currently not supported
-			//if (UI::PropertyDrag("Fast forward to", emitter.FastForwardTo, 0.1f, 0, 0, "Allows to fast-forward the simulation to make it look like it was running for `Fast forward to` seconds"))
-			//{
-			//	emitter.FastForwardTo = std::max(0.f, emitter.FastForwardTo);
-			//	bEmitterChanged = true;
-			//}
 
 			if (ImGui::TreeNodeEx("Acceleration", defaultTreeFlags))
 			{

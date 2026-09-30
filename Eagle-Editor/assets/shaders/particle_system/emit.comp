@@ -77,11 +77,53 @@ layout(binding = 12) readonly buffer DecompositedTransformsBuffer
 
 layout(push_constant) uniform PushConstants
 {
+    vec3 g_Gravity;
     uint g_PreSimIndex;
     uint g_FrameNumber;
     uint g_NumEmitters;
     uint g_MaxParticles;
 };
+
+// The fast-forward integrates each particle in steps of at most `FastForward_StepSize`, but not more than `FastForward_MaxSteps` steps per particle
+const float FastForward_StepSize = 1.f / 30.f;
+const uint FastForward_MaxSteps = 256u;
+
+// Moves a fast-forwarded particle to where it would be at `age`, as if it had been simulated all along.
+// Size, color and rotation don't need it: the simulation pass computes them from `CurrentLifetime` this frame.
+// Screen-space collisions are ignored, and the emitter is assumed to have been static
+void FastForwardParticle(inout Particle particle, Emitter emitter, mat3 emitterRotation, float age)
+{
+    particle.CurrentLifetime = age;
+    if (age >= particle.Lifetime)
+        return; // Already dead. The simulation pass will release it this frame
+
+    const bool bWorldSpaceVelocity = HasFlag(emitter.Flags, Emitter_WorldSpaceVelocity_Mask);
+    const uint steps = clamp(uint(ceil(age / FastForward_StepSize)), 1u, FastForward_MaxSteps);
+    const float dt = age / float(steps);
+
+    float time = 0.f;
+    for (uint i = 0; i < steps; ++i)
+    {
+        const float lifeAlpha = time / particle.Lifetime;
+
+        particle.Velocity += Particle_ComputeForce(emitter, particle.Position, emitterRotation, g_Gravity) * dt;
+
+        const vec3 velocityCoef = mix(emitter.VelocityCoefStart, emitter.VelocityCoefEnd, lifeAlpha);
+        const vec3 velocity = ApplyVelocityCoef(particle.Velocity, velocityCoef, emitterRotation, bWorldSpaceVelocity);
+
+        particle.Position += velocity * dt;
+        particle.EffectiveVelocity = velocity;
+
+        time += dt;
+    }
+
+    if (emitter.TextureIndex != EG_INVALID_INDEX)
+    {
+        const uvec2 imagesNum = emitter.AnimationImagesNum;
+        const float animationFPS = emitter.AnimationSpeed * float(imagesNum.x * imagesNum.y) / particle.Lifetime;
+        Particle_AdvanceAnimationBy(particle.AnimationSpriteCoord, imagesNum, uint(age * animationFPS));
+    }
+}
 
 void PushAlive(uint particleIndex)
 {
@@ -376,6 +418,12 @@ void main()
     DecompositedTransform decompositedTr = g_DecompositedTransforms[emitter.TransformIndex];
     particle.SizeScale = decompositedTr.Scale;
     particle.RotationZOffset = decompositedTr.RotationZ;
+
+    if (Emitter_IsFastForwardEnabled(emitter))
+    {
+        const uint particleIndexWithinEmitter = gidx - g_EmittersSpawnOffsets[emitterIndex]; // 0 = the youngest particle
+        FastForwardParticle(particle, emitter, ExtractRotation(worldTr), FastForward_GetParticleAge(emitter, particleIndexWithinEmitter));
+    }
 
     g_Particles[particleIndex] = Particle_Pack(particle, emitter.AnimationImagesNum);
     PushAlive(particleIndex);

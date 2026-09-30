@@ -68,7 +68,7 @@ namespace Eagle
 
 		// Sanity limit for `SpawnRate`. The number of particles that can be alive at once is limited separately, by `SceneRendererSettings::MaxParticlesBudget`.
 		static constexpr uint32_t MaxSpawnRate = 16u * 1024u * 1024u;
-		float FastForwardTo = 0.f; // TODO: Allows to fast-forward the simulation to make it look like it was running for `FastForwardTo` seconds
+		float FastForwardTo = 0.f; // When the emitter is added, it starts as if it had already been running for `FastForwardTo` seconds
 		float RadialAcceleration = 0.f; // If it's negative, particles will move towards the center of the emitter. If positive, they move away from the center
 		float TangentialAcceleration = 0.f; // Particles will move away from the center of the emitter in a spiral way.
 		float NormalVelocityFactor = 0.f; // Adds the emission shape's normal direction (scaled by this value) to the initial velocity. Always follows the emitter, regardless of `VelocitySpace`

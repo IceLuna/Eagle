@@ -405,6 +405,7 @@ namespace Eagle
 		public uint LoopCount; // 0 - infinity
 		public float LoopDuration;
         public uint SpawnRate; // How many particles to spawn in a second
+        public float FastForwardTo; // When the emitter is added, it starts as if it had already been running for `FastForwardTo` seconds
 		public float RadialAcceleration; // If it's negative, particles will move towards the center of the emitter. If positive, they move away from the center
 		public float TangentialAcceleration; // Particles will move away from the center of the emitter in a spiral way.
         public float NormalVelocityFactor; // Adds the emission shape's normal direction (scaled by this value) to the initial velocity. Always follows the emitter, regardless of `VelocitySpace`

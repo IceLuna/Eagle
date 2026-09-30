@@ -122,6 +122,18 @@ namespace Eagle
 			}
 			Emitter_SetIsVisible(outData, false);
 			outData.DeltaTime = emitter.bExplode ? outData.LoopDuration : 0.f;
+
+			// Fast-forward is applied by the first `prepare_data` pass after the emitter is added.
+			// Particles older than `LifetimeMax` are dead, so longer times only matter for loop counting.
+			{
+				float fastForwardTime = glm::max(emitter.FastForwardTo, 0.f);
+				const float lifetimeMax = glm::max(emitter.LifetimeMax, 0.f);
+				if (outData.LoopCount == 0u)
+					fastForwardTime = glm::min(fastForwardTime, lifetimeMax + outData.LoopDuration);
+				else
+					fastForwardTime = glm::min(fastForwardTime, outData.LoopCount * outData.LoopDuration + lifetimeMax); // Everything is finished by then
+				outData.FastForwardTime = fastForwardTime;
+			}
 		}
 	
 		static ParticleSystemTask::DecompositedTransform Decompose(const glm::mat4& mat)
@@ -736,6 +748,7 @@ namespace Eagle
 
 		struct PushData
 		{
+			glm::vec3 Gravity;
 			uint32_t PreSimIndex;
 			uint32_t FrameNumber;
 			uint32_t NumEmitters;
@@ -746,6 +759,7 @@ namespace Eagle
 		pushData.FrameNumber = (uint32_t)RenderManager::GetFrameNumber_RT();
 		pushData.NumEmitters = m_NumEmitters;
 		pushData.MaxParticles = m_MaxParticles;
+		pushData.Gravity = m_Renderer.GetGravity();
 
 		m_Emit->SetBuffer(m_SystemData, 0, 0);
 		m_Emit->SetBuffer(m_ParticlesBuffer, 0, 1);

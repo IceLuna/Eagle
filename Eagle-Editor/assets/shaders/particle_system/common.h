@@ -54,8 +54,9 @@ const uint Emitter_FaceDirection_Mask      = 1 << 7;
 const uint Emitter_SkeletalMesh_Mask       = 1 << 8;
 const uint Emitter_WorldSpaceVelocity_Mask = 1 << 9;
 
-const uint Emitter_Internal_IsVisible_Mask  = 1 << 0;
-const uint Emitter_Internal_WasExplode_Mask = 1 << 1; // Used to handle `bExplode` correctly
+const uint Emitter_Internal_IsVisible_Mask   = 1 << 0;
+const uint Emitter_Internal_WasExplode_Mask  = 1 << 1; // Used to handle `bExplode` correctly
+const uint Emitter_Internal_FastForward_Mask = 1 << 2; // Set for one frame. This frame's emitted particles are the fast-forwarded
 
 // Every time an emitter slot is reused, its generation is bumped, so particles that still belong
 // to the previous owner of the slot can detect it and die instead of using the new emitter's params.
@@ -154,7 +155,7 @@ struct Emitter
 	float SpawnIntervalTimer;
 	uint LoopIteration; // Current loop iteration. When reaches LoopCount, it won't spawn any particles
 	uint InternalFlags;
-	uint Padding1;
+	float FastForwardTime; // Set when the emitter is added, reset by the first `prepare_data` pass
 };
 
 #ifdef __cplusplus
@@ -183,6 +184,20 @@ void Emitter_SetWasExplode(inout Emitter emitter, bool bWasExplode)
 bool Emitter_WasExplode(Emitter emitter)
 {
 	return HasFlag(emitter.InternalFlags, Emitter_Internal_WasExplode_Mask);
+}
+
+#ifdef __cplusplus
+void Emitter_SetFastForwardEnabled(Emitter& emitter, bool bFastForwardBatch)
+#else
+void Emitter_SetFastForwardEnabled(inout Emitter emitter, bool bFastForwardBatch)
+#endif
+{
+	emitter.InternalFlags = SetFlag(emitter.InternalFlags, Emitter_Internal_FastForward_Mask, bFastForwardBatch);
+}
+
+bool Emitter_IsFastForwardEnabled(Emitter emitter)
+{
+	return HasFlag(emitter.InternalFlags, Emitter_Internal_FastForward_Mask);
 }
 
 struct PackedParticle
@@ -295,6 +310,15 @@ void Particle_AdvanceAnimation(inout uvec2 coord, uvec2 animationImagesNum)
 		if (exceededHeight)
 			coord.y = animationImagesNum.y - 1u;
 	}
+}
+
+// Same result as calling `Particle_AdvanceAnimation` `count` times
+void Particle_AdvanceAnimationBy(inout uvec2 coord, uvec2 animationImagesNum, uint count)
+{
+	const uvec2 imagesNum = max(animationImagesNum, uvec2(1u));
+	const uint frame = (coord.y * imagesNum.x + coord.x) + count;
+	coord.x = frame % imagesNum.x;
+	coord.y = min(frame / imagesNum.x, imagesNum.y - 1u);
 }
 
 PackedParticle Particle_Pack(Particle particle, uvec2 animationImagesNum)
@@ -433,6 +457,53 @@ vec3 ApplyVelocityCoef(vec3 worldVelocity, vec3 coef, mat3 emitterRotation, bool
 		return worldVelocity * coef; // World-space or uniform coef, no need to go to local space
 
 	return emitterRotation * ((transpose(emitterRotation) * worldVelocity) * coef);
+}
+
+vec3 Particle_ComputeForce(Emitter emitter, vec3 particlePosition, mat3 emitterRotation, vec3 gravity)
+{
+	vec3 force = vec3(0.f);
+	if (HasFlag(emitter.Flags, Emitter_ApplyGravity_Mask))
+		force += gravity;
+
+	vec3 dir = particlePosition - emitter.WorldPos;
+	if (dot(dir, dir) > 0.0001f) // if dir is not zero
+	{
+		dir = normalize(dir);
+		force += dir * emitter.RadialAcceleration; // Radial
+		force += cross(emitterRotation[2], dir) * emitter.TangentialAcceleration; // Tangential
+	}
+	return force;
+}
+
+// Index of the last spawn event at or before `FastForwardTime`
+float FastForward_LastSpawnEventIndex(Emitter emitter, bool bExplode)
+{
+	const float time = emitter.FastForwardTime;
+	if (bExplode)
+	{
+		float lastExplosion = floor(time / emitter.LoopDuration);
+		if (emitter.LoopCount != 0)
+			lastExplosion = min(lastExplosion, float(emitter.LoopCount - 1u));
+		return lastExplosion;
+	}
+
+	float emissionEnd = time;
+	if (emitter.LoopCount != 0)
+		emissionEnd = min(emissionEnd, emitter.LoopCount * emitter.LoopDuration);
+	return floor(emissionEnd * emitter.SpawnRate);
+}
+
+float FastForward_SpawnEventTime(Emitter emitter, bool bExplode, float spawnEvent)
+{
+	return bExplode ? spawnEvent * emitter.LoopDuration : spawnEvent / float(emitter.SpawnRate);
+}
+
+// Age of the particle `particleIndex` within the fast-forwarded emit batch (0 = the youngest one)
+float FastForward_GetParticleAge(Emitter emitter, uint particleIndex)
+{
+	const bool bExplode = HasFlag(emitter.Flags, Emitter_Explode_Mask);
+	const float spawnEvent = FastForward_LastSpawnEventIndex(emitter, bExplode) - float(bExplode ? particleIndex / emitter.SpawnRate : particleIndex);
+	return emitter.FastForwardTime - FastForward_SpawnEventTime(emitter, bExplode, spawnEvent);
 }
 
 uint EmitterFlagsToParticleFlags(uint flags)

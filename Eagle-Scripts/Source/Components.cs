@@ -3125,7 +3125,14 @@ namespace Eagle
         }
 
         public void Spawn() { Spawn_Native(Parent.ID); }
+        
         public void Destroy(bool bForceImmediateRemoval) { Destroy_Native(Parent.ID, bForceImmediateRemoval); }
+
+        public void Restart()
+        {
+            Destroy(true);
+            Spawn();
+        }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetAsset_Native(GUID entityID, GUID assetGUID);

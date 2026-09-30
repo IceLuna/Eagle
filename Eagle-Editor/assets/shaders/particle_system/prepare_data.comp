@@ -74,6 +74,43 @@ uint ReserveSlots(uint amount, bool bAllowPartial)
     return 0;
 }
 
+// Emits every particle that would be alive if the emitter had been running for `FastForwardTime` seconds,
+// and moves the emitter's own state (spawn timer, loops) to that point in time.
+// The particles themselves are advanced in `emit` pass
+uint FastForwardEmitter(inout Emitter emitter)
+{
+    const float time = emitter.FastForwardTime;
+    const bool bExplode = HasFlag(emitter.Flags, Emitter_Explode_Mask);
+    const float eventsPerSecond = bExplode ? (1.f / emitter.LoopDuration) : float(emitter.SpawnRate);
+    const float particlesPerEvent = bExplode ? float(emitter.SpawnRate) : 1.f;
+
+    const float lastDeadEvent = floor((time - emitter.LifetimeMax) * eventsPerSecond);
+
+    // Spawn events older than `LifetimeMax` can't have alive particles
+    const float firstSpawnEventIndex = max(lastDeadEvent + 1.f, 0.f);
+    const float lastSpawnEventIndex = FastForward_LastSpawnEventIndex(emitter, bExplode);
+    
+    float requested = max(lastSpawnEventIndex - firstSpawnEventIndex + 1, 0) * particlesPerEvent;
+    requested = min(requested, float(s_AvailableSlots)); // Safery guard against crasy high `requested` values before converting to `uint`
+    const uint count = ReserveSlots(uint(requested), true);
+
+    emitter.SpawnIntervalTimer = time - FastForward_SpawnEventTime(emitter, bExplode, lastSpawnEventIndex); // Time since the last spawn
+    if (bExplode)
+    {
+        emitter.LoopIteration = emitter.LoopCount != 0 ? (uint(lastSpawnEventIndex) + 1u) : 0u; // One explosion is one loop iteration
+        emitter.DeltaTime = 0.f;
+    }
+    else
+    {
+        const uint loopsPassed = uint(time / emitter.LoopDuration);
+        emitter.LoopIteration = emitter.LoopCount != 0 ? min(loopsPassed, emitter.LoopCount) : 0u;
+        emitter.DeltaTime = time - loopsPassed * emitter.LoopDuration;
+    }
+    Emitter_SetWasExplode(emitter, bExplode);
+    Emitter_SetFastForwardEnabled(emitter, true); // Tells `emit` pass to fast-forward this emitter's particles. Cleared next frame
+    return count;
+}
+
 layout(local_size_x = GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 void main()
@@ -99,12 +136,27 @@ void main()
         Emitter_SetIsVisible(emitter, bVisible);
         emitter.WorldPos = vec3(emitterTr[3][0], emitterTr[3][1], emitterTr[3][2]);
 
+        // The fast-forward batch was emitted last frame, disable it
+        if (Emitter_IsFastForwardEnabled(emitter))
+        {
+            Emitter_SetFastForwardEnabled(emitter, false);
+            emitter.FastForwardTime = 0.f;
+        }
+
         if (emitter.LoopCount == 0)
             emitter.LoopIteration = 0u;
 
         uint count = 0;
         const bool bEnabled = HasFlag(emitter.Flags, Emitter_Enabled_Mask) && (emitter.LoopCount == 0 || emitter.LoopIteration < emitter.LoopCount);
-        if (bEnabled)
+        if (!bEnabled)
+        {
+            emitter.FastForwardTime = 0.f; // Only applies to an emitter that is enabled when it's added
+        }
+        else if (emitter.FastForwardTime > 0.f)
+        {
+            count = FastForwardEmitter(emitter);
+        }
+        else
         {
             const bool bExplode = HasFlag(emitter.Flags, Emitter_Explode_Mask);
             if (bExplode && !Emitter_WasExplode(emitter))

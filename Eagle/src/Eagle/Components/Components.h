@@ -2159,6 +2159,7 @@ namespace Eagle
 		void Spawn();
 		void Destroy(bool bForceImmediateRemoval = false);
 		void Update();
+		void Restart(); // Kills all particles immediately and spawns the system again from the start
 
 		const GUID& GetSystemID() const { return m_SystemID; }
 

@@ -2097,6 +2097,8 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 					bEntityChanged |= UI::Property("Auto-spawn", system.bAutospawn);
+					if (asset && UI::Button("Simulation", "Restart"))
+						system.Restart();
 
 					UI::EndPropertyGrid();
 				});

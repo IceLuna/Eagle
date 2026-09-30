@@ -170,24 +170,9 @@ void main()
         return;
     }
 
-    vec3 force = vec3(0.f);
-    if (HasFlag(emitter.Flags, Emitter_ApplyGravity_Mask))
-        force += g_Gravity;
-
     const mat4 emitterTr = g_Transforms[emitter.TransformIndex];
     const mat3 emitterRotation = ExtractRotation(emitterTr);
-        
-    // Apply radial & tangential accelerations
-    {
-        vec3 dir = particle.Position - emitter.WorldPos;
-        if (dot(dir, dir) > 0.0001f) // if dir is not zero
-        {
-            dir = normalize(dir);
-            force += dir * emitter.RadialAcceleration; // Radial
-            force += cross(emitterRotation[2], dir) * emitter.TangentialAcceleration; // Tangential
-        }
-    }
-    particle.Velocity += force * g_DeltaTime;
+    particle.Velocity += Particle_ComputeForce(emitter, particle.Position, emitterRotation, g_Gravity) * g_DeltaTime;
 
     if (emitter.CollisionType != ParticleCollisionType_None)
     {
@@ -234,11 +219,7 @@ void main()
         const float currentLifetime = AdvanceAnimationCount > 0 ? nextLifetime : particle.CurrentLifetime;
         animationLerp = fract(currentLifetime * animationFPS);
 
-        while (AdvanceAnimationCount > 0) // TODO: Advance at once
-        {
-            Particle_AdvanceAnimation(particle.AnimationSpriteCoord, emitter.AnimationImagesNum);
-            --AdvanceAnimationCount;
-        }
+        Particle_AdvanceAnimationBy(particle.AnimationSpriteCoord, emitter.AnimationImagesNum, AdvanceAnimationCount);
     }
 
     const float lifeAlpha = particle.CurrentLifetime / particle.Lifetime;

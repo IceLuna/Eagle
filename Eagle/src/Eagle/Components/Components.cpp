@@ -1543,6 +1543,12 @@ namespace Eagle
 		PerEmitterAnimData.clear();
 	}
 	
+	void ParticleSystemComponent::Restart()
+	{
+		Destroy(true);
+		Spawn();
+	}
+
 	void ParticleSystemComponent::Update()
 	{
 		UpdatePerEmitterAnimData();
