@@ -22,9 +22,10 @@ layout(binding = 3) buffer EmittersBuffer
     Emitter g_Emitters[];
 };
 
-layout(binding = 4) buffer EmitterSpawnCountBuffer
+// Exclusive prefix sum of spawn counts per emitter
+layout(binding = 4) buffer EmitterSpawnOffsetsBuffer
 {
-    uint g_EmittersSpawnCount[];
+    uint g_EmittersSpawnOffsets[];
 };
 
 layout(binding = 5) readonly buffer EmitterTransforms
@@ -45,38 +46,32 @@ layout(push_constant) uniform PushConstants
 
 #define GROUP_SIZE 32
 
-shared uint s_EmitCount[GROUP_SIZE];
+shared uint s_EmitCount[GROUP_SIZE]; // Per-thread emit count. After the scan - per-thread exclusive offset
+shared uint s_TotalEmitCount;
 shared uint s_AvailableSlots;
 
-// Performs atomicCompareAndSubtract
-bool CanSpawn(uint amount)
+// Tries to reserve up to `amount` particle slots.
+// Returns the number of reserved slots
+uint ReserveSlots(uint amount, bool bAllowPartial)
 {
-    uint oldVal;
-    uint newVal;
+    if (amount == 0)
+        return 0;
 
     // Atomic CAS loop
     while (true)
     {
-        // Read current (non-atomic)
-        oldVal = s_AvailableSlots;
+        const uint oldVal = s_AvailableSlots;
+        const uint reserved = min(oldVal, amount);
+        if (reserved == 0 || (!bAllowPartial && reserved < amount))
+            return 0;
 
-        if (oldVal < amount)
-            return false;
-
-        newVal = oldVal - amount;
-
-        // Attempt compare-and-swap
-        // If s_AvailableSlots == oldVal, it becomes newVal and CAS returns oldVal.
-        // If s_AvailableSlots != oldVal, CAS returns current value ( != oldVal ) -> retry.
-        uint prev = atomicCompSwap(s_AvailableSlots, oldVal, newVal);
-
-        if (prev == oldVal)
-            return true; // Success
-
-        // Else, another thread modified s_AvailableSlots, so retry
+        // If s_AvailableSlots == oldVal, it becomes (oldVal - reserved) and CAS returns oldVal.
+        // Otherwise another thread modified s_AvailableSlots, so retry
+        if (atomicCompSwap(s_AvailableSlots, oldVal, oldVal - reserved) == oldVal)
+            return reserved;
     }
 
-    return false;
+    return 0;
 }
 
 layout(local_size_x = GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
@@ -89,95 +84,123 @@ void main()
     {
         s_AvailableSlots = g_MaxParticles - g_Data.AliveCount[g_PreSimIndex];
     }
-    memoryBarrierShared();
+    barrier();
 
     const uint emittersPerThread = CalcNumGroups(g_NumEmitters, GROUP_SIZE);
-    for (uint e = 0; e < emittersPerThread; ++e)
+    const uint firstEmitter = min(lid * emittersPerThread, g_NumEmitters);
+    const uint endEmitter = min(firstEmitter + emittersPerThread, g_NumEmitters);
+    for (uint i = firstEmitter; i < endEmitter; ++i)
     {
-        const uint i = lid * emittersPerThread + e;
-        if (i >= g_NumEmitters)
-            break;
-
         Emitter emitter = g_Emitters[i];
-        if (emitter.LoopCount == 0)
-            emitter.LoopIteration = 0u;
 
-        if (HasFlag(emitter.Flags, Emitter_Enabled_Mask) == false || (emitter.LoopCount != 0 && emitter.LoopIteration >= emitter.LoopCount))
-        {
-            g_EmittersSpawnCount[i] = 0;
-            continue;
-        }
-
-        const bool bExpode = HasFlag(emitter.Flags, Emitter_Explode_Mask);
-        if (bExpode)
-        {
-            if (!Emitter_WasExplode(emitter))
-            {
-                emitter.SpawnIntervalTimer = 0.f; // Just entered explode mode. Reset delta time
-                Emitter_SetWasExplode(emitter, true);
-            }
-        }
-
-        // If no longer in explode mode, wait for all exploded particles to die
-        const float spawnInterval = (bExpode || Emitter_WasExplode(emitter)) ? emitter.LoopDuration : 1.f / float(emitter.SpawnRate);
-        float timer = emitter.SpawnIntervalTimer;
-        uint count = 0;
-        bool bCanSpawn = timer >= spawnInterval;
-        if (bCanSpawn)
-        {
-            if (!bExpode && Emitter_WasExplode(emitter))
-            {
-                // No longer in explode mode. We waited for all exploded particles to die.
-                // Restore the default spawn rate
-                Emitter_SetWasExplode(emitter, false);
-                emitter.SpawnIntervalTimer = g_DeltaTime;
-                timer = 0.f; // Don't spawn anything this frame
-            }
-            
-            const uint spawnTriggersCount = uint(timer / spawnInterval);
-            count = spawnTriggersCount * (bExpode ? emitter.SpawnRate: 1u);
-            bCanSpawn = CanSpawn(count); // Check if there are available slots. If not, try to spawn on the next frame
-            if (bCanSpawn)
-            {
-                if (emitter.DeltaTime >= emitter.LoopDuration)
-                {
-                    const uint iterationsPassed = uint(emitter.DeltaTime / emitter.LoopDuration);
-                    if (emitter.LoopCount != 0)
-                        emitter.LoopIteration += uint(emitter.DeltaTime / emitter.LoopDuration);
-                    emitter.DeltaTime -= emitter.LoopDuration * uint(emitter.DeltaTime / emitter.LoopDuration);
-                }
-
-                s_EmitCount[lid] += count;
-                emitter.SpawnIntervalTimer -= spawnInterval * spawnTriggersCount;
-            }
-        }
-
-        if (!bCanSpawn)
-        {
-            count = 0;
-            emitter.SpawnIntervalTimer += g_DeltaTime;
-        }
-        emitter.DeltaTime += g_DeltaTime;
-
+        // Visibility and world position are updated even for disabled emitters, because their particles can still be alive
         const mat4 emitterTr = g_Transforms[emitter.TransformIndex];
         const bool bVisible = FrustumAABBIntersection(g_Frustum, g_View * emitterTr, emitter.AABBMin, emitter.AABBMax);
         Emitter_SetIsVisible(emitter, bVisible);
         emitter.WorldPos = vec3(emitterTr[3][0], emitterTr[3][1], emitterTr[3][2]);
 
+        if (emitter.LoopCount == 0)
+            emitter.LoopIteration = 0u;
+
+        uint count = 0;
+        const bool bEnabled = HasFlag(emitter.Flags, Emitter_Enabled_Mask) && (emitter.LoopCount == 0 || emitter.LoopIteration < emitter.LoopCount);
+        if (bEnabled)
+        {
+            const bool bExplode = HasFlag(emitter.Flags, Emitter_Explode_Mask);
+            if (bExplode && !Emitter_WasExplode(emitter))
+            {
+                emitter.SpawnIntervalTimer = 0.f; // Just entered explode mode. Reset the timer
+                Emitter_SetWasExplode(emitter, true);
+            }
+
+            emitter.SpawnIntervalTimer += g_DeltaTime;
+
+            // If no longer in explode mode, wait for all exploded particles to die
+            const float spawnInterval = (bExplode || Emitter_WasExplode(emitter)) ? emitter.LoopDuration : 1.f / float(emitter.SpawnRate);
+            if (emitter.SpawnIntervalTimer >= spawnInterval)
+            {
+                if (!bExplode && Emitter_WasExplode(emitter))
+                {
+                    // No longer in explode mode. We waited for all exploded particles to die.
+                    // Restore the default spawn rate. Don't spawn anything this frame
+                    Emitter_SetWasExplode(emitter, false);
+                    emitter.SpawnIntervalTimer = 0.f;
+                }
+                else if (bExplode)
+                {
+                    // Only one explosion, even if several loop durations have passed (for example, after a stutter).
+                    // Explosions don't catch up, only the time past the last whole loop duration is kept (0.5s with a 0.4s loop -> 0.1s)
+                    count = ReserveSlots(emitter.SpawnRate, false);
+                    if (count > 0)
+                    {
+                        if (emitter.LoopCount != 0)
+                            emitter.LoopIteration += 1u;
+                        emitter.DeltaTime = 0.f;
+                        emitter.SpawnIntervalTimer = mod(emitter.SpawnIntervalTimer, spawnInterval);
+                    }
+                    else
+                    {
+                        // Not enough free slots. Try again next frame
+                        emitter.SpawnIntervalTimer = spawnInterval;
+                    }
+                }
+                else
+                {
+                    // Spawn as many as we can
+                    const uint spawnTriggersCount = uint(emitter.SpawnIntervalTimer / spawnInterval);
+                    count = ReserveSlots(spawnTriggersCount, true);
+                    if (count > 0)
+                    {
+                        if (emitter.DeltaTime >= emitter.LoopDuration)
+                        {
+                            const uint iterationsPassed = uint(emitter.DeltaTime / emitter.LoopDuration);
+                            if (emitter.LoopCount != 0)
+                                emitter.LoopIteration += iterationsPassed;
+                            emitter.DeltaTime -= emitter.LoopDuration * float(iterationsPassed);
+                        }
+                        emitter.SpawnIntervalTimer -= spawnInterval * float(count);
+                    }
+
+                    if (count < spawnTriggersCount)
+                    {
+                        // Not enough free slots. Reset the interval (keep at most one pending trigger)
+                        // so that we don't get a burst once slots become available
+                        emitter.SpawnIntervalTimer = min(emitter.SpawnIntervalTimer, spawnInterval);
+                    }
+                }
+            }
+            emitter.DeltaTime += g_DeltaTime;
+        }
+
         g_Emitters[i] = emitter;
-        g_EmittersSpawnCount[i] = count;
+        g_EmittersSpawnOffsets[i] = count; // Temporarily stores the count. Converted to an offset below
+        s_EmitCount[lid] += count;
     }
 
-    memoryBarrierShared();
     barrier();
 
-    // Sum up all `emit counts`
-    for (uint cutoff = GROUP_SIZE >> 1; cutoff > 0; cutoff >>= 1)
+    // Exclusive scan of per-thread counts
+    if (lid == 0)
     {
-        if (lid < cutoff)
-            s_EmitCount[lid] += s_EmitCount[lid + cutoff];
-        memoryBarrierShared();
-        barrier();
+        uint sum = 0;
+        for (uint t = 0; t < GROUP_SIZE; ++t)
+        {
+            const uint threadCount = s_EmitCount[t];
+            s_EmitCount[t] = sum; // Reusing `s_EmitCount`
+            sum += threadCount;
+        }
+        s_TotalEmitCount = sum;
+    }
+
+    barrier();
+
+    // Convert this thread's per-emitter counts into global exclusive offsets.
+    uint offset = s_EmitCount[lid];
+    for (uint i = firstEmitter; i < endEmitter; ++i)
+    {
+        const uint emitterCount = g_EmittersSpawnOffsets[i];
+        g_EmittersSpawnOffsets[i] = offset;
+        offset += emitterCount;
     }
 
     if (lid == 0)
@@ -191,7 +214,7 @@ void main()
             g_DrawArgs[i].FirstInstance = 0;
         }
 
-        g_Data.EmitCount = s_EmitCount[0];
+        g_Data.EmitCount = s_TotalEmitCount;
         g_EmitArgs.x = CalcNumGroups(g_Data.EmitCount, EG_PS_THREAD_SIZE);
         g_EmitArgs.y = 1;
         g_EmitArgs.z = 1;

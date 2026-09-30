@@ -3125,7 +3125,7 @@ namespace Eagle
         }
 
         public void Spawn() { Spawn_Native(Parent.ID); }
-        public void Destroy() { Destroy_Native(Parent.ID); }
+        public void Destroy(bool bForceImmediateRemoval) { Destroy_Native(Parent.ID, bForceImmediateRemoval); }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetAsset_Native(GUID entityID, GUID assetGUID);
@@ -3137,7 +3137,7 @@ namespace Eagle
         internal static extern void Spawn_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void Destroy_Native(in GUID entityID);
+        internal static extern void Destroy_Native(in GUID entityID, bool bForceImmediateRemoval);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void DuplicatePose_Native(GUID entityID, uint emitterIndex, GUID compEntityID);

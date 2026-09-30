@@ -428,6 +428,14 @@ namespace Eagle
 		public bool bAdditive;
         public bool bBlendAnimation;
 		public bool bFaceDirection; // When set to true, particles will face the velocity direction
+
+        public uint GetMaxSpawnRate()
+        {
+            return GetMaxSpawnRate_Native();
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern uint GetMaxSpawnRate_Native();
     }
 
     public static class Renderer
@@ -864,6 +872,14 @@ namespace Eagle
             get { return IsSortOpaqueParticlesEnabled_Native(); }
         }
 
+        // Max number of particles that can be alive at once, across all emitters. Particle buffers grow on demand up to this limit.
+        // Lowering it below the currently allocated amount kills all alive particles
+        public static uint MaxParticlesBudget
+        {
+            set { SetMaxParticlesBudget_Native(value); }
+            get { return GetMaxParticlesBudget_Native(); }
+        }
+
         public static bool bEnableDebugLinesDepthTest
         {
             set { SetDebugLinesDepthTestEnabled_Native(value); }
@@ -1059,6 +1075,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern bool IsSortOpaqueParticlesEnabled_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetMaxParticlesBudget_Native(uint value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern uint GetMaxParticlesBudget_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetDebugLinesDepthTestEnabled_Native(bool value);

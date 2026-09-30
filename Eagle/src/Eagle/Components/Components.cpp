@@ -1532,11 +1532,11 @@ namespace Eagle
 		}
 	}
 
-	void ParticleSystemComponent::Destroy()
+	void ParticleSystemComponent::Destroy(bool bForceImmediateRemoval)
 	{
 		if (bSpawned)
 		{
-			Parent.GetScene()->RemoveParticleSystem(*this);
+			Parent.GetScene()->RemoveParticleSystem(*this, bForceImmediateRemoval);
 			bSpawned = false;
 			m_Asset->RemoveOnAssetModifiedCallback(m_SystemID);
 		}

@@ -452,9 +452,9 @@ namespace Eagle
 		m_ParticleTask->UpdateParticleSystem(system);
 	}
 
-	void SceneRenderer::RemoveParticleSystem(const ParticleSystemComponent& system)
+	void SceneRenderer::RemoveParticleSystem(const ParticleSystemComponent& system, bool bForceImmediateRemoval)
 	{
-		m_ParticleTask->RemoveParticleSystem(system);
+		m_ParticleTask->RemoveParticleSystem(system, bForceImmediateRemoval);
 	}
 
 	void SceneRenderer::UpdateParticleTransforms(const std::unordered_set<const ParticleSystemComponent*>& systems)

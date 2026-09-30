@@ -141,7 +141,7 @@ namespace Eagle
 				bEmitterChanged |= EditorResources::DrawAssetSelection("Texture", emitter.Texture);
 				bEmitterChanged |= UI::PropertyDrag("Loop Count", emitter.LoopCount, 1.f, 0, 0, "0 will loop forever");
 				bEmitterChanged |= UI::PropertyDrag("Loop Duration", emitter.LoopDuration, 0.1f);
-				bEmitterChanged |= UI::PropertyDrag("Spawn Rate", emitter.SpawnRate, 1, 0, 0, "How many particles to spawn in a second. If `Explode` flag is set, this amount of particles will be spawned immediately.");
+				bEmitterChanged |= UI::PropertyDrag("Spawn Rate", emitter.SpawnRate, 1, 0, int(ParticleEmitter::MaxSpawnRate), "How many particles to spawn in a second. If `Explode` flag is set, this amount of particles will be spawned immediately.");
 
 				UI::EndPropertyGrid();
 				ImGui::TreePop();

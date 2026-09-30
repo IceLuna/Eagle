@@ -1504,6 +1504,14 @@ namespace Eagle
 			bSettingsChanged = true;
 		}
 
+		if (UI::PropertyDrag("Max particles budget", options.MaxParticlesBudget, 1024.f, int(SceneRendererSettings::MinParticlesBudget), INT_MAX,
+			"Max number of particles that can be alive at once, across all emitters. Particle buffers grow on demand up to this limit. "
+			"Lowering it below the currently allocated amount kills all alive particles"))
+		{
+			EG_CORE_TRACE("Changed `Max particles budget` to: {}", options.MaxParticlesBudget);
+			bSettingsChanged = true;
+		}
+
 		if (UI::PropertyDrag("Line width", options.LineWidth, 0.1f))
 		{
 			options.LineWidth = glm::max(options.LineWidth, 0.f);

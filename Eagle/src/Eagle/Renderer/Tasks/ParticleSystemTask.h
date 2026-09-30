@@ -23,7 +23,7 @@ namespace Eagle
 
 		void AddParticleSystem(const ParticleSystemComponent& system);
 		void UpdateParticleSystem(const ParticleSystemComponent& system);
-		void RemoveParticleSystem(const ParticleSystemComponent& system);
+		void RemoveParticleSystem(const ParticleSystemComponent& system, bool bForceImmediateRemoval);
 		void RemoveAllParticleSystems();
 		void UpdateTransforms(const std::unordered_set<const ParticleSystemComponent*>& systems);
 
@@ -86,6 +86,10 @@ namespace Eagle
 		void RenderPass(const Ref<CommandBuffer>& cmd);
 
 		void SetMaxParticles(const Ref<CommandBuffer>& cmd, uint32_t maxParticles);
+		void ShrinkMaxParticles(const Ref<CommandBuffer>& cmd, uint32_t maxParticles);
+		void ResetGPUState(const Ref<CommandBuffer>& cmd);
+		void ReclaimDeadEmitters();
+		void UpdateMeshEmittersData(const Ref<CommandBuffer>& cmd);
 
 		void AddEmitterMeshData(const ParticleEmitter& emitter);
 		void RemoveEmitterMeshData(const ParticleEmitter& emitter);
@@ -138,7 +142,9 @@ namespace Eagle
 
 		ankerl::unordered_dense::map<GUID, ankerl::unordered_dense::map<ParticleEmitter, EmitterData>> m_SystemToEmittersMapping; // Key - Particle system; Value - its emitters
 		std::vector<ModifyRequest> m_ModifyRequestQueue;
-		std::vector<DeadEmitterData> m_DeadEmitters;
+		std::vector<DeadEmitterData> m_DeadEmitters; // Removed emitters whose particles might still be alive
+		std::vector<uint32_t> m_FreeEmitterSlots; // Free slots inside of `m_EmittersBuffer`
+		std::vector<uint32_t> m_EmitterGenerations; // Per slot of `m_EmittersBuffer`. Bumped every time a slot is (re)used
 
 		std::vector<glm::mat4> m_Transforms;
 		std::vector<DecompositedTransform> m_DecompositedTransforms;
@@ -190,14 +196,18 @@ namespace Eagle
 		uint64_t m_TexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 		bool bUpdateTransforms = false;
 		bool bSortOpaque = false;
+		bool bResetGPUState = false;
+		bool bMaxParticlesBudgetChanged = false;
 
 		uint32_t m_NumEmitters = 0;
-		uint32_t m_MaxParticles = 100000;
+		uint32_t m_MaxParticlesBudget = 0;
+		uint32_t m_MaxParticles = s_InitialMaxParticles; // Currently allocated. Grows on demand up to `m_MaxParticlesBudget`
 		uint32_t m_MaxEmitters = 100;
 
 		Scope<SortTask> m_SortOpaque;
 		SortTask m_SortTranslucent;
 
 		constexpr static uint32_t s_InvalidEmitterIndex = uint32_t(-1);
+		constexpr static uint32_t s_InitialMaxParticles = 100000u;
 	};
 }

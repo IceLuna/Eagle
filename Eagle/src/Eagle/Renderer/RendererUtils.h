@@ -1152,6 +1152,10 @@ namespace Eagle
         bool bEnable2DObjectPicking = false;
         bool bSortOpaqueParticles = false;
         bool bEnableDebugLinesDepthTest = true;
+        // Max number of particles that can be alive at once, across all emitters. Particle buffers grow on demand up to this limit.
+        // Lowering it below the currently allocated amount kills all alive particles
+        uint32_t MaxParticlesBudget = 4u * 1024u * 1024u;
+        static constexpr uint32_t MinParticlesBudget = 1024u;
         float GridCellSize = 0.1f; // Editor Only. World-space size of the smallest grid cell
         uint32_t TransparencyLayers = 4u;
         bool bGeometricSpecularAA = true;
@@ -1184,6 +1188,7 @@ namespace Eagle
                 bEnableObjectPicking == other.bEnableObjectPicking &&
                 bEnable2DObjectPicking == other.bEnable2DObjectPicking &&
                 bSortOpaqueParticles == other.bSortOpaqueParticles &&
+                MaxParticlesBudget == other.MaxParticlesBudget &&
                 bEnableDebugLinesDepthTest == other.bEnableDebugLinesDepthTest &&
                 AutoExposure == other.AutoExposure &&
                 ScreenSpaceReflections == other.ScreenSpaceReflections &&

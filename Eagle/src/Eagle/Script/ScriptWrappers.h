@@ -536,7 +536,7 @@ namespace Eagle::Script
 
 	// Particle System Component
 	void Eagle_ParticleSystemComponent_Spawn(GUID entityID);
-	void Eagle_ParticleSystemComponent_Destroy(GUID entityID);
+	void Eagle_ParticleSystemComponent_Destroy(GUID entityID, bool bForceImmediateRemoval);
 	void Eagle_ParticleSystemComponent_SetAsset(GUID entityID, GUID assetGUID);
 	GUID Eagle_ParticleSystemComponent_GetAsset(GUID entityID);
 	void Eagle_ParticleSystemComponent_DuplicatePose(GUID entityID, uint32_t emitterIndex, GUID compEntityID);
@@ -668,6 +668,8 @@ namespace Eagle::Script
 	bool Eagle_Renderer_Is2DObjectPickingEnabled();
 	void Eagle_Renderer_SetSortOpaqueParticlesEnabled(bool value);
 	bool Eagle_Renderer_IsSortOpaqueParticlesEnabled();
+	void Eagle_Renderer_SetMaxParticlesBudget(uint32_t value);
+	uint32_t Eagle_Renderer_GetMaxParticlesBudget();
 	void Eagle_Renderer_SetDebugLinesDepthTestEnabled(bool value);
 	bool Eagle_Renderer_IsDebugLinesDepthTestEnabled();
 

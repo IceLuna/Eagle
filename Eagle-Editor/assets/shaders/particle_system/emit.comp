@@ -34,9 +34,10 @@ layout(binding = 4) buffer AliveIndicesPreSim
     uint g_AliveIndicesPreSim[];
 };
 
-layout(binding = 5) readonly buffer EmittersSpawnCountBuffer
+// Exclusive prefix sum of spawn counts per emitter
+layout(binding = 5) readonly buffer EmittersSpawnOffsetsBuffer
 {
-    uint g_EmittersSpawnCount[];
+    uint g_EmittersSpawnOffsets[];
 };
 
 layout(binding = 6) readonly buffer TransformsBuffer
@@ -104,15 +105,32 @@ bool PopDead(out uint particleIndex)
     return true;
 }
 
-// TODO: Improve
+// Finds the emitter that spawns particle `id` of this frame
 uint GetEmitterIndex(uint id)
 {
-    for (uint i = 0; i < g_NumEmitters; ++i)
+    // We're looking for the last emitter whose offset is <= id.
+    uint left = 0;
+    uint right = g_NumEmitters;
+    while ((left + 1) < right)
     {
-        if (id < g_EmittersSpawnCount[i])
-            return i;
-        id -= g_EmittersSpawnCount[i];
+        const uint mid = (left + right) / 2;
+        if (g_EmittersSpawnOffsets[mid] <= id)
+            left = mid;
+        else
+            right = mid;
     }
+    return left;
+}
+
+uint RandomTriangle(inout Random random, uint triangleCount)
+{
+    return min(Random_NextUint(random, triangleCount), triangleCount - 1u);
+}
+
+vec3 SafeNormalize(vec3 v)
+{
+    const float len2 = dot(v, v);
+    return len2 > 1e-12f ? v * inversesqrt(len2) : vec3(0.f);
 }
 
 vec3 NormalTowardClosestFace(vec3 point, vec3 aabbMin, vec3 aabbMax)
@@ -142,7 +160,10 @@ void GetPosAndNormalOnStaticMesh(Emitter emitter, inout Random random, inout vec
 {
     // random triangle on emitter surface
 	const uint triangleCount = emitter.IndexCount / 3;
-	const uint tri = Random_NextUint(random, triangleCount);
+	if (triangleCount == 0)
+		return;
+
+	const uint tri = RandomTriangle(random, triangleCount);
 
 	// load indices of triangle from index buffer
 	uint i0 = g_StaticIndices[emitter.IndexOffset + tri * 3 + 0];
@@ -171,7 +192,10 @@ void GetPosAndNormalOnSkeletalMesh(Emitter emitter, inout Random random, inout v
 {
     // random triangle on emitter surface
 	const uint triangleCount = emitter.IndexCount / 3;
-	const uint tri = Random_NextUint(random, triangleCount);
+	if (triangleCount == 0)
+		return;
+
+	const uint tri = RandomTriangle(random, triangleCount);
 
 	// load indices of triangle from index buffer
 	uint i0 = g_SkeletalIndices[emitter.IndexOffset + tri * 3 + 0];
@@ -184,8 +208,11 @@ void GetPosAndNormalOnSkeletalMesh(Emitter emitter, inout Random random, inout v
     vertices[1] = g_SkeletalVertices[emitter.VertexOffset + i1];
     vertices[2] = g_SkeletalVertices[emitter.VertexOffset + i2];
     vec3 normals[3];
-
     for (uint vI = 0; vI < 3; vI++)
+        normals[vI] = Particle_UnpackNormal(vertices[vI].Normal);
+
+    const bool bAnimated = emitter.AnimationOffset != uint(-1);
+    for (uint vI = 0; bAnimated && vI < 3; vI++)
     {
         mat4 boneTransform = mat4(0.f);
         for (uint i = 0; i < 4; ++i)
@@ -198,7 +225,7 @@ void GetPosAndNormalOnSkeletalMesh(Emitter emitter, inout Random random, inout v
             }
         }
         vertices[vI].Position = vec3(boneTransform * vec4(vertices[vI].Position, 1.0));
-        normals[vI] = mat3(boneTransform) * Particle_UnpackNormal(vertices[vI].Normal);
+        normals[vI] = mat3(boneTransform) * normals[vI];
     }
 
     // random barycentric coords
@@ -223,11 +250,11 @@ void Emitter_GetParticlePositionAndNormal(Emitter emitter, inout Random random, 
 		// case EmissionShapeType_Point: return; // Returns 0
 		case EmissionShapeType_Sphere:
 			position = Random_PointInSphere(random, emitter.SphereRadius);
-            normal = normalize(position);
+            normal = SafeNormalize(position);
 			break;
 		case EmissionShapeType_SphereSurface:
 			position = Random_PointOnSphere(random, emitter.SphereRadius);
-            normal = normalize(position);
+            normal = SafeNormalize(position);
 			break;
 		case EmissionShapeType_Box:
         {
@@ -286,7 +313,7 @@ void Emitter_GetParticlePositionAndNormal(Emitter emitter, inout Random random, 
 			position = Random_PointInRing(random, emitter.RingRadius, emitter.RingThickness, normal);
 			break;
 		case EmissionShapeType_Mesh:
-            if (emitter.AnimationOffset != -1)
+            if (HasFlag(emitter.Flags, Emitter_SkeletalMesh_Mask))
 			    GetPosAndNormalOnSkeletalMesh(emitter, random, position, normal);
             else
 			    GetPosAndNormalOnStaticMesh(emitter, random, position, normal);
@@ -318,7 +345,6 @@ void main()
     position = vec3(worldTr * vec4(position, 1.f));
 
     const float bounciness = mix(emitter.BouncinessMin, emitter.BouncinessMax, Random_NextFloat(random));
-    const float opacity = emitter.ColorStart.a;
 
     Particle particle;
     particle.Size = emitter.SizeStart.xy;
@@ -328,12 +354,14 @@ void main()
     particle.Position = position;
     particle.Flags = EmitterFlagsToParticleFlags(emitter.Flags);
 
-    particle.Velocity = normal * emitter.NormalVelocityFactor + mix(emitter.VelocityMin, emitter.VelocityMax, Random_NextFloat3(random));
+    // Velocity is authored in the emitter's local space, but simulated in world space (gravity, collisions, etc. are world-space),
+    const vec3 localVelocity = normal * emitter.NormalVelocityFactor + mix(emitter.VelocityMin, emitter.VelocityMax, Random_NextFloat3(random));
+    particle.Velocity = mat3(worldTr) * localVelocity;
     particle.Bounciness = bounciness;
     particle.RotationZ = emitter.RotationZStart;
 
-    particle.VelocityCoef = emitter.VelocityCoefStart;
-    particle.EmitterIndex = emitterIndex;
+    particle.EffectiveVelocity = ApplyVelocityCoef(particle.Velocity, emitter.VelocityCoefStart, ExtractRotation(worldTr));
+    particle.EmitterRef = Particle_MakeEmitterRef(emitterIndex, emitter.Generation);
 
     particle.Color = emitter.ColorStart;
     particle.TextureIndex = emitter.TextureIndex;

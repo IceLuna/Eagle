@@ -112,7 +112,7 @@ namespace Eagle
 		void SetDecals(const std::vector<const DecalComponent*>& decals) { m_RenderDecalsTask->SetDecals(decals); }
 		void AddParticleSystem(const ParticleSystemComponent& system);
 		void UpdateParticleSystem(const ParticleSystemComponent& system);
-		void RemoveParticleSystem(const ParticleSystemComponent& system);
+		void RemoveParticleSystem(const ParticleSystemComponent& system, bool bForceImmediateRemoval);
 		void UpdateParticleTransforms(const std::unordered_set<const ParticleSystemComponent*>& systems);
 		void RemoveAllParticleSystems();
 		//--------------------------------------------------------------------------------------

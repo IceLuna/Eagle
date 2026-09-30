@@ -2722,10 +2722,10 @@ namespace Eagle
 		m_SceneRenderer->AddParticleSystem(system);
 	}
 
-	void Scene::RemoveParticleSystem(const ParticleSystemComponent& system)
+	void Scene::RemoveParticleSystem(const ParticleSystemComponent& system, bool bForceImmediateRemoval)
 	{
 		m_SkeletalParticles.erase(system.Parent.GetID());
-		m_SceneRenderer->RemoveParticleSystem(system);
+		m_SceneRenderer->RemoveParticleSystem(system, bForceImmediateRemoval);
 	}
 
 	void Scene::UpdateParticleSystem(const ParticleSystemComponent& system)

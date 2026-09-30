@@ -1,7 +1,7 @@
 #include "particle_system/common.h"
 #include "utils.h"
 
-vec2 s_Positions[6] = vec2[](
+const vec2 s_Positions[6] = vec2[](
     vec2(-0.5, -0.5),
     vec2(-0.5,  0.5),
     vec2( 0.5,  0.5),
@@ -29,13 +29,6 @@ layout(binding = 1) readonly buffer IndicesToRender
     uint g_IndicesToRender[];
 };
 
-#ifdef EG_PARTICLE_BACK_TO_FRONT
-layout(binding = 2) uniform DrawDataBuffer
-{
-    DrawArgs g_DrawArgs[2];
-};
-#endif
-
 layout(push_constant) uniform PushConstants
 {
     mat4 g_View;
@@ -50,7 +43,7 @@ layout(location = 4) out float o_AnimationLerp;
 
 vec3 RotateTowardsVelocity(Particle particle, vec3 quadPos)
 {
-    const vec3 velocity = particle.Velocity * particle.VelocityCoef;
+    const vec3 velocity = particle.EffectiveVelocity;
     const float speed = length(velocity);
     if (speed < 0.001f)
     {
@@ -75,11 +68,7 @@ vec3 RotateTowardsVelocity(Particle particle, vec3 quadPos)
 
 void main()
 {
-#ifdef EG_PARTICLE_BACK_TO_FRONT
-    const uint particleIndex = g_IndicesToRender[g_DrawArgs[1].InstanceCount - gl_InstanceIndex - 1u];
-#else
     const uint particleIndex = g_IndicesToRender[gl_InstanceIndex];
-#endif
     const Particle particle = Particle_Unpack(g_Particles[particleIndex]);
 
     const vec2 uv0 = s_TexCoords[gl_VertexIndex] * (particle.AnimationUV1 - particle.AnimationUV0) + particle.AnimationUV0;

@@ -51,9 +51,16 @@ const uint Emitter_AdditiveBlending_Mask   = 1 << 4;
 const uint Emitter_BlendAnimation_Mask     = 1 << 5;
 const uint Emitter_DestroyImmediately_Mask = 1 << 6;
 const uint Emitter_FaceDirection_Mask      = 1 << 7;
+const uint Emitter_SkeletalMesh_Mask       = 1 << 8;
 
 const uint Emitter_Internal_IsVisible_Mask  = 1 << 0;
 const uint Emitter_Internal_WasExplode_Mask = 1 << 1; // Used to handle `bExplode` correctly
+
+// Every time an emitter slot is reused, its generation is bumped, so particles that still belong
+// to the previous owner of the slot can detect it and die instead of using the new emitter's params.
+const uint Emitter_IndexBits      = 24;
+const uint Emitter_MaxIndex       = (1u << Emitter_IndexBits) - 1u;
+const uint Emitter_GenerationMask = 0xFFu;
 
 const uint Particle_Additive_Mask = 1 << 0;
 const uint Particle_BlendAnimation_Mask = 1 << 1;
@@ -137,7 +144,7 @@ struct Emitter
 	float BouncinessMax;
 	uint AnimationOffset; // Used to retrieve animation data when skeletal mesh animation is used
 	float RadialAcceleration;
-	uint Padding0;
+	uint Generation; // Some bits are not used, see Emitter_GenerationMask
 
 	// This is internal data. Keep it at the end because during update only the data before it is being updated
 	vec3 WorldPos; // First
@@ -189,12 +196,12 @@ struct PackedParticle
 	vec3 Velocity;
 	uint Color; // R11G11B10
 
-	vec3 VelocityCoef;
+	vec3 EffectiveVelocity; // World-space velocity after `VelocityCoef` was applied
 	uint Bounciness_Opacity; // packHalf2x16
 
 	uint RotationZ_AnimationLerp; // packHalf2x16
 	uint TextureIndex; // Texture index is stored here to avoid an addition read from emitters buffer just to get this index
-	uint EmitterIndex;
+	uint EmitterRef; // Emitter index + generation, see `Emitter_IndexBits`
 	uint AnimationImagesNum; // Used to calculate SpriteSize, which is used to calculate UV1 from UV0 (uv1 = uv0 + spriteSize)
 
 	vec2 SizeScale;
@@ -250,8 +257,8 @@ struct Particle
 	vec3 Velocity;
 	uint TextureIndex;
 
-	vec3 VelocityCoef;
-	uint EmitterIndex;
+	vec3 EffectiveVelocity;
+	uint EmitterRef; // Emitter index + generation, see `Emitter_IndexBits`
 
 	vec2 AnimationUV0;
 	vec2 AnimationUV1;
@@ -303,11 +310,11 @@ PackedParticle Particle_Pack(Particle particle, uvec2 animationImagesNum)
 	packed.Velocity = particle.Velocity;
 	packed.Color = PackR11G11B10(particle.Color.rgb);
 
-	packed.VelocityCoef = particle.VelocityCoef;
+	packed.EffectiveVelocity = particle.EffectiveVelocity;
 	packed.Bounciness_Opacity = packHalf2x16(vec2(particle.Bounciness, particle.Color.a));
 
 	packed.RotationZ_AnimationLerp = packHalf2x16(vec2(particle.RotationZ, particle.AnimationLerp));
-	packed.EmitterIndex = particle.EmitterIndex;
+	packed.EmitterRef = particle.EmitterRef;
 	packed.TextureIndex = particle.TextureIndex;
 
 	packed.AnimationImagesNum = packUint16(animationImagesNum);
@@ -334,7 +341,7 @@ Particle Particle_Unpack(PackedParticle packed)
 	particle.Color.rgb = UnpackR11G11B10(packed.Color);
 
 	vec2 unpacked = unpackHalf2x16(packed.Bounciness_Opacity);
-	particle.VelocityCoef = packed.VelocityCoef;
+	particle.EffectiveVelocity = packed.EffectiveVelocity;
 	particle.Bounciness = unpacked.x;
 	particle.Color.a = unpacked.y;
 
@@ -345,7 +352,7 @@ Particle Particle_Unpack(PackedParticle packed)
 	particle.RotationZ = unpacked.x;
 	particle.AnimationLerp = unpacked.y;
 	particle.TextureIndex = packed.TextureIndex;
-	particle.EmitterIndex = packed.EmitterIndex;
+	particle.EmitterRef = packed.EmitterRef;
 
 	if (particle.TextureIndex != EG_INVALID_INDEX)
 	{
@@ -380,6 +387,51 @@ Particle Particle_Unpack(PackedParticle packed)
 vec3 Particle_UnpackNormal(uint packed)
 {
 	return DecodeNormal(unpackHalf2x16(packed));
+}
+
+uint Particle_MakeEmitterRef(uint emitterIndex, uint generation)
+{
+	return ((generation & Emitter_GenerationMask) << Emitter_IndexBits) | (emitterIndex & Emitter_MaxIndex);
+}
+
+uint Particle_GetEmitterIndex(uint emitterRef)
+{
+	return emitterRef & Emitter_MaxIndex;
+}
+
+uint Particle_GetEmitterGeneration(uint emitterRef)
+{
+	return emitterRef >> Emitter_IndexBits;
+}
+
+// Maps a float to a uint so that the uint order matches the float order (including negative values).
+// Used to produce sort keys
+uint FloatToSortableUint(float f)
+{
+	const uint bits = floatBitsToUint(f);
+	return (bits & 0x80000000u) != 0u ? ~bits : (bits | 0x80000000u);
+}
+
+// Returns the rotation part of a TRS matrix (scale is removed)
+mat3 ExtractRotation(mat4 m)
+{
+	const float sx = length(m[0].xyz);
+	const float sy = length(m[1].xyz);
+	const float sz = length(m[2].xyz);
+	return mat3(
+		sx > 1e-8f ? m[0].xyz / sx : vec3(1, 0, 0),
+		sy > 1e-8f ? m[1].xyz / sy : vec3(0, 1, 0),
+		sz > 1e-8f ? m[2].xyz / sz : vec3(0, 0, 1));
+}
+
+// `coef` is a per-axis multiplier defined in the emitter's local space.
+// `emitterRotation` must be orthonormal (see `ExtractRotation`)
+vec3 ApplyVelocityCoef(vec3 worldVelocity, vec3 coef, mat3 emitterRotation)
+{
+	if (coef.x == coef.y && coef.y == coef.z)
+		return worldVelocity * coef.x; // Uniform coef, no need to go to local space
+
+	return emitterRotation * ((transpose(emitterRotation) * worldVelocity) * coef);
 }
 
 uint EmitterFlagsToParticleFlags(uint flags)

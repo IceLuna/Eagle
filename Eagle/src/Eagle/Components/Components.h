@@ -292,6 +292,7 @@ namespace Eagle
 
 			m_Ambient = other.m_Ambient;
 			bVisualizeDirection = other.bVisualizeDirection;
+			m_bCastsScreenSpaceShadows = other.m_bCastsScreenSpaceShadows;
 			Parent.SignalComponentChanged<DirectionalLightComponent>(Notification::OnStateChanged);
 			Parent.SignalComponentChanged<DirectionalLightComponent>(Notification::OnDebugStateChanged);
 			return *this;
@@ -2156,7 +2157,7 @@ namespace Eagle
 		const Ref<AssetParticleSystem>& GetAsset() const { return m_Asset; }
 
 		void Spawn();
-		void Destroy();
+		void Destroy(bool bForceImmediateRemoval = false);
 		void Update();
 
 		const GUID& GetSystemID() const { return m_SystemID; }

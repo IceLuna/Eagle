@@ -38,7 +38,7 @@ layout(binding = 6) buffer IndicesToRenderTranslucentBuffer
 
 layout(binding = 7) buffer DistancesTranslucentBuffer
 {
-    float g_DistancesTranslucent[];
+    uint g_DistancesTranslucent[];
 };
 
 layout(binding = 8) buffer DrawArgsBuffer
@@ -67,7 +67,7 @@ layout(binding = 13) buffer IndicesToRenderOpaqueBuffer
 #ifdef EG_SORT_OPAQUE
 layout(binding = 14) buffer DistancesOpaqueBuffer
 {
-    float g_DistancesOpaque[];
+    uint g_DistancesOpaque[];
 };
 #endif
 
@@ -114,22 +114,25 @@ void PushDead(uint particleIndex)
     g_DeadIndices[insertIdx] = particleIndex;
 }
 
-void PushToDrawOpaque(uint particleIndex, float dist)
+// The sort is ascending. `viewZ` is negative in front of the camera.
+// For opaque: key = `-viewZ` -> front-to-back
+// For translucent: key = `viewZ` -> back-to-front
+void PushToDrawOpaque(uint particleIndex, float viewZ)
 {
     uint insertIdx;
     EG_SUBGROUP_ATOMIC_INCREMENT(g_DrawArgs[0].InstanceCount, true, insertIdx);
     g_IndicesToRenderOpaque[insertIdx] = particleIndex;
 #ifdef EG_SORT_OPAQUE
-    g_DistancesOpaque[insertIdx] = dist;
+    g_DistancesOpaque[insertIdx] = FloatToSortableUint(-viewZ);
 #endif
 }
 
-void PushToDrawTranslucent(uint particleIndex, float dist)
+void PushToDrawTranslucent(uint particleIndex, float viewZ)
 {
     uint insertIdx;
     EG_SUBGROUP_ATOMIC_INCREMENT(g_DrawArgs[1].InstanceCount, true, insertIdx);
     g_IndicesToRenderTranslucent[insertIdx] = particleIndex;
-    g_DistancesTranslucent[insertIdx] = dist;
+    g_DistancesTranslucent[insertIdx] = FloatToSortableUint(viewZ);
 }
 
 layout(local_size_x = EG_PS_THREAD_SIZE, local_size_y = 1, local_size_z = 1) in;
@@ -151,7 +154,16 @@ void main()
         return;
     }
 
-    const Emitter emitter = g_Emitters[particle.EmitterIndex];
+    const uint emitterIndex = Particle_GetEmitterIndex(particle.EmitterRef);
+    const Emitter emitter = g_Emitters[emitterIndex];
+
+    // The emitter slot was reused by another emitter, so this particle's emitter no longer exists
+    if (Particle_GetEmitterGeneration(particle.EmitterRef) != (emitter.Generation & Emitter_GenerationMask))
+    {
+        PushDead(particleIndex);
+        return;
+    }
+
     if ((HasFlag(emitter.Flags, Emitter_Enabled_Mask) == false) && HasFlag(emitter.Flags, Emitter_DestroyImmediately_Mask))
     {
         PushDead(particleIndex);
@@ -161,6 +173,9 @@ void main()
     vec3 force = vec3(0.f);
     if (HasFlag(emitter.Flags, Emitter_ApplyGravity_Mask))
         force += g_Gravity;
+
+    const mat4 emitterTr = g_Transforms[emitter.TransformIndex];
+    const mat3 emitterRotation = ExtractRotation(emitterTr);
         
     // Apply radial & tangential accelerations
     {
@@ -169,7 +184,7 @@ void main()
         {
             dir = normalize(dir);
             force += dir * emitter.RadialAcceleration; // Radial
-            force += vec3(-dir.y, dir.x, 0.f) * emitter.TangentialAcceleration; // Tangential
+            force += cross(emitterRotation[2], dir) * emitter.TangentialAcceleration; // Tangential
         }
     }
     particle.Velocity += force * g_DeltaTime;
@@ -177,28 +192,31 @@ void main()
     if (emitter.CollisionType != ParticleCollisionType_None)
     {
         vec4 position = g_ViewProj * vec4(particle.Position, 1.0);
-        position.xyz /= position.w;
-
-        const vec2 uv = position.xy * 0.5 + vec2(0.5);
-        if (uv.x >= 0.f && uv.y >= 0.f && uv.x <= 1.f && uv.y <= 1.f)
+        if (position.w > 0.f)
         {
-            const vec3 normal = DecodeNormal(texture(g_Normal, uv).xy); // .xy - Geometry Normal
-            const float depth = ToLinear(texture(g_Depth, uv).x, g_CameraNear, g_CameraFar);
-            const vec2 particleSize = particle.Size * emitter.ColliderSizeRatio.xy;
-            const float particleSizeMax = max(particleSize.x, particleSize.y);
-		    const float surfaceThickness = 1.5f;
-		    if ((position.w + particleSizeMax > depth) && (position.w - particleSizeMax < depth + surfaceThickness))
+            position.xyz /= position.w;
+
+            const vec2 uv = position.xy * 0.5 + vec2(0.5);
+            if (uv.x >= 0.f && uv.y >= 0.f && uv.x <= 1.f && uv.y <= 1.f)
             {
-                if (dot(particle.Velocity, normal) < 0.0)
+                const vec3 normal = DecodeNormal(texture(g_Normal, uv).xy); // .xy - Geometry Normal
+                const float depth = ToLinear(texture(g_Depth, uv).x, g_CameraNear, g_CameraFar);
+                const vec2 particleSize = particle.Size * emitter.ColliderSizeRatio.xy;
+                const float particleSizeMax = max(particleSize.x, particleSize.y);
+                const float surfaceThickness = 1.5f;
+                if ((position.w + particleSizeMax > depth) && (position.w - particleSizeMax < depth + surfaceThickness))
                 {
-                    switch (emitter.CollisionType)
+                    if (dot(particle.Velocity, normal) < 0.0)
                     {
-                        case ParticleCollisionType_DestroyOnHit:
-                            PushDead(particleIndex);
-                            return;
-                        case ParticleCollisionType_Bounce:
-                            particle.Velocity = reflect(particle.Velocity, normal) * particle.Bounciness; 
-                            break;
+                        switch (emitter.CollisionType)
+                        {
+                            case ParticleCollisionType_DestroyOnHit:
+                                PushDead(particleIndex);
+                                return;
+                            case ParticleCollisionType_Bounce:
+                                particle.Velocity = reflect(particle.Velocity, normal) * particle.Bounciness; 
+                                break;
+                        }
                     }
                 }
             }
@@ -225,15 +243,15 @@ void main()
 
     const float lifeAlpha = particle.CurrentLifetime / particle.Lifetime;
     const float rotationZ = mix(emitter.RotationZStart, emitter.RotationZEnd, lifeAlpha) - particle.RotationZOffset;
-    const mat4 emitterTr = g_Transforms[emitter.TransformIndex];
-    const vec3 velocity = mat3(emitterTr) * (particle.Velocity * particle.VelocityCoef);
+    const vec3 velocityCoef = mix(emitter.VelocityCoefStart, emitter.VelocityCoefEnd, lifeAlpha);
+    const vec3 velocity = ApplyVelocityCoef(particle.Velocity, velocityCoef, emitterRotation);
 
     particle.Size = mix(emitter.SizeStart.xy, emitter.SizeEnd.xy, lifeAlpha) * particle.SizeScale;
     particle.CurrentLifetime += g_DeltaTime;
     particle.Position += velocity * g_DeltaTime;
     particle.Flags = EmitterFlagsToParticleFlags(emitter.Flags);
     particle.RotationZ = rotationZ;
-    particle.VelocityCoef = mix(emitter.VelocityCoefStart, emitter.VelocityCoefEnd, lifeAlpha);
+    particle.EffectiveVelocity = velocity;
     particle.Color = mix(emitter.ColorStart, emitter.ColorEnd, lifeAlpha);
     particle.TextureIndex = emitter.TextureIndex;
     particle.AnimationLerp = animationLerp;

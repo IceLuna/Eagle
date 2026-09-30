@@ -17,18 +17,27 @@ layout(location = 0) out vec4 o_Color;
 void main()
 {
 	vec4 color = i_Color;
-	if (i_TextureIndex != 0)
+	if (i_TextureIndex != EG_INVALID_INDEX)
 	{
+		vec4 texColor;
 		if (HasFlag(i_Flags, Particle_BlendAnimation_Mask))
 		{
 			const vec4 color0 = ReadTexture_sRGB(i_TextureIndex, i_UVs.xy);
 			const vec4 color1 = ReadTexture_sRGB(i_TextureIndex, i_UVs.zw);
-			color *= mix(color0, color1, i_AnimationLerp);
+			texColor = mix(color0, color1, i_AnimationLerp);
 		}
 		else
 		{
-			color *= ReadTexture_sRGB(i_TextureIndex, i_UVs.xy);
+			texColor = ReadTexture_sRGB(i_TextureIndex, i_UVs.xy);
 		}
+
+#ifndef EG_BLEND
+		// Alpha-mask the texture so that sprites aren't rendered as solid quads.
+		// Note: only the texture's alpha is tested, so the emitter's color alpha has no effect on it
+		if (texColor.a < EG_OPACITY_MASK_THRESHOLD)
+			discard;
+#endif
+		color *= texColor;
 	}
 #ifdef EG_BLEND
 	color.rgb *= color.a;

@@ -3367,6 +3367,7 @@ namespace Eagle
 		out << YAML::Key << "EnableObjectPicking" << YAML::Value << settings.bEnableObjectPicking;
 		out << YAML::Key << "Enable2DObjectPicking" << YAML::Value << settings.bEnable2DObjectPicking;
 		out << YAML::Key << "SortOpaqueParticles" << YAML::Value << settings.bSortOpaqueParticles;
+		out << YAML::Key << "MaxParticlesBudget" << YAML::Value << settings.MaxParticlesBudget;
 		out << YAML::Key << "LineWidth" << YAML::Value << settings.LineWidth;
 		out << YAML::Key << "GridCellSize" << YAML::Value << settings.GridCellSize;
 		out << YAML::Key << "TransparencyLayers" << YAML::Value << settings.TransparencyLayers;
@@ -3561,6 +3562,8 @@ namespace Eagle
 			settings.bEnable2DObjectPicking = objectPicking.as<bool>();
 		if (auto sortOpaqueParticles = data["SortOpaqueParticles"])
 			settings.bSortOpaqueParticles = sortOpaqueParticles.as<bool>();
+		if (auto maxParticlesBudget = data["MaxParticlesBudget"])
+			settings.MaxParticlesBudget = maxParticlesBudget.as<uint32_t>();
 		if (auto lineWidthNode = data["LineWidth"])
 			settings.LineWidth = lineWidthNode.as<float>();
 		if (auto gridCellSizeNode = data["GridCellSize"])

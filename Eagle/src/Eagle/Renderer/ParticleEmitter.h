@@ -57,7 +57,10 @@ namespace Eagle
 		AABB VisibilityAABB = AABB(glm::vec3(-1.f), glm::vec3(1.f)); // If not visible by the camera, it's not rendered to improve perf
 		uint32_t LoopCount = 0u; // 0 - infinity
 		float LoopDuration = 1.f;
-		uint32_t SpawnRate = 1; // How many particles to spawn in a second
+		uint32_t SpawnRate = 1; // How many particles to spawn in a second. Clamped to `MaxSpawnRate`
+
+		// Sanity limit for `SpawnRate`. The number of particles that can be alive at once is limited separately, by `SceneRendererSettings::MaxParticlesBudget`.
+		static constexpr uint32_t MaxSpawnRate = 16u * 1024u * 1024u;
 		float FastForwardTo = 0.f; // TODO: Allows to fast-forward the simulation to make it look like it was running for `FastForwardTo` seconds
 		float RadialAcceleration = 0.f; // If it's negative, particles will move towards the center of the emitter. If positive, they move away from the center
 		float TangentialAcceleration = 0.f; // Particles will move away from the center of the emitter in a spiral way.

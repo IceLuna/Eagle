@@ -7088,13 +7088,13 @@ namespace Eagle
 		}
 	}
 
-	void Script::Eagle_ParticleSystemComponent_Destroy(GUID entityID)
+	void Script::Eagle_ParticleSystemComponent_Destroy(GUID entityID, bool bForceImmediateRemoval)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
-			entity.GetComponent<ParticleSystemComponent>().Destroy();
+			entity.GetComponent<ParticleSystemComponent>().Destroy(bForceImmediateRemoval);
 		}
 		else
 		{
@@ -8632,6 +8632,20 @@ namespace Eagle
 	{
 		const auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
 		return sceneRenderer->GetOptions().bSortOpaqueParticles;
+	}
+
+	void Script::Eagle_Renderer_SetMaxParticlesBudget(uint32_t value)
+	{
+		const auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+		options.MaxParticlesBudget = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	uint32_t Script::Eagle_Renderer_GetMaxParticlesBudget()
+	{
+		const auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		return sceneRenderer->GetOptions().MaxParticlesBudget;
 	}
 
 	void Script::Eagle_Renderer_SetDebugLinesDepthTestEnabled(bool value)

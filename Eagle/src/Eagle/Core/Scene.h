@@ -346,7 +346,7 @@ namespace Eagle
 		bool HasEntityListChanged() const { return bEntityListChanged; }
 
 		void AddParticleSystem(const ParticleSystemComponent& system);
-		void RemoveParticleSystem(const ParticleSystemComponent& system);
+		void RemoveParticleSystem(const ParticleSystemComponent& system, bool bForceImmediateRemoval);
 		void UpdateParticleSystem(const ParticleSystemComponent& system);
 
 		void DestroyPendingEntities();
