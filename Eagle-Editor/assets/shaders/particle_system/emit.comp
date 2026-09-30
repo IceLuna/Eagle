@@ -354,13 +354,18 @@ void main()
     particle.Position = position;
     particle.Flags = EmitterFlagsToParticleFlags(emitter.Flags);
 
-    // Velocity is authored in the emitter's local space, but simulated in world space (gravity, collisions, etc. are world-space),
-    const vec3 localVelocity = normal * emitter.NormalVelocityFactor + mix(emitter.VelocityMin, emitter.VelocityMax, Random_NextFloat3(random));
-    particle.Velocity = mat3(worldTr) * localVelocity;
+    // Velocity is simulated in world space (gravity, collisions, etc. are world-space).
+    // `VelocityMin/Max` are in the emitter's local space unless `bWorldSpaceVelocity` is true.
+    const bool bWorldSpaceVelocity = HasFlag(emitter.Flags, Emitter_WorldSpaceVelocity_Mask);
+
+    const mat3 worldTrMat3 = mat3(worldTr);
+    const vec3 randomVelocity = mix(emitter.VelocityMin, emitter.VelocityMax, Random_NextFloat3(random));
+    particle.Velocity = worldTrMat3 * (normal * emitter.NormalVelocityFactor) + (bWorldSpaceVelocity ? randomVelocity : worldTrMat3 * randomVelocity);
     particle.Bounciness = bounciness;
     particle.RotationZ = emitter.RotationZStart;
 
-    particle.EffectiveVelocity = ApplyVelocityCoef(particle.Velocity, emitter.VelocityCoefStart, ExtractRotation(worldTr));
+    const mat3 emitterRotation = bWorldSpaceVelocity ? mat3(1) : ExtractRotation(worldTr);
+    particle.EffectiveVelocity = ApplyVelocityCoef(particle.Velocity, emitter.VelocityCoefStart, emitterRotation, bWorldSpaceVelocity);
     particle.EmitterRef = Particle_MakeEmitterRef(emitterIndex, emitter.Generation);
 
     particle.Color = emitter.ColorStart;

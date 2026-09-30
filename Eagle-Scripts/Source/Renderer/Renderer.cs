@@ -363,6 +363,12 @@ namespace Eagle
         None, [UIName("Destroy on Hit")] DestroyOnHit, Bounce,
 	}
 
+    public enum EmitterVelocitySpaceType
+    {
+        Local, // Relative to the emitter, rotates and scales with it
+        World, // Independent of the emitter's rotation and scale
+    }
+
     public struct ParticleEmitter
 	{
 		// ---------------- Particle properties ----------------
@@ -376,6 +382,7 @@ namespace Eagle
 
 		public Vector3 VelocityCoefStart;
         public Vector3 VelocityCoefEnd;
+        public EmitterVelocitySpaceType VelocitySpace; // Space of `VelocityMin/Max` and `VelocityCoefStart/End`
 
 		public float RotationZStart;
         public float RotationZEnd;
@@ -400,7 +407,7 @@ namespace Eagle
         public uint SpawnRate; // How many particles to spawn in a second
 		public float RadialAcceleration; // If it's negative, particles will move towards the center of the emitter. If positive, they move away from the center
 		public float TangentialAcceleration; // Particles will move away from the center of the emitter in a spiral way.
-        public float NormalVelocityFactor; // If not 0, particle's initial velocity will be affected by `EmissionShapeType` normal direction
+        public float NormalVelocityFactor; // Adds the emission shape's normal direction (scaled by this value) to the initial velocity. Always follows the emitter, regardless of `VelocitySpace`
 
         public EmitterEmissionShapeType EmissionShape;
         // Sphere emission shape

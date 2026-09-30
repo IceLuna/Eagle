@@ -58,6 +58,7 @@ namespace Eagle
 			flags |= emitter.bDestroyImmediately ? Emitter_DestroyImmediately_Mask : 0;
 			flags |= emitter.bFaceDirection ? Emitter_FaceDirection_Mask : 0;
 			flags |= emitter.IsSkeletalMeshUsed() ? Emitter_SkeletalMesh_Mask : 0;
+			flags |= emitter.VelocitySpace == ParticleEmitter::VelocitySpaceType::World ? Emitter_WorldSpaceVelocity_Mask : 0;
 
 			return flags;
 		}

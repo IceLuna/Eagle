@@ -10408,7 +10408,7 @@ namespace Eagle
 	}
 
 	void Script::Eagle_AssetParticleSystem_SetEmitter(void* data, uint32_t index, GUID texture, const glm::vec4* colorStart, const glm::vec4* colorEnd,
-		const glm::vec3* velocityMin, const glm::vec3* velocityMax, const glm::vec3* velocityCoefStart, const glm::vec3* velocityCoefEnd,
+		const glm::vec3* velocityMin, const glm::vec3* velocityMax, const glm::vec3* velocityCoefStart, const glm::vec3* velocityCoefEnd, ParticleEmitter::VelocitySpaceType velocitySpace,
 		float rotationZStart, float rotationZEnd, const glm::vec2* sizeStart, const glm::vec2* sizeEnd, const glm::vec2* colliderSizeRatio,
 		float lifetimeMin, float lifetimeMax, float bouncinessMin, float bouncinessMax, MonoString* name, const Transform* relativeTransform,
 		const AABB* visibilityAABB, uint32_t loopCount, float loopDuration, uint32_t spawnRate, float radialAcceleration, float tangentialAcceleration,
@@ -10427,6 +10427,7 @@ namespace Eagle
 		emitter.VelocityMax = *velocityMax;
 		emitter.VelocityCoefStart = *velocityCoefStart;
 		emitter.VelocityCoefEnd = *velocityCoefEnd;
+		emitter.VelocitySpace = velocitySpace;
 
 		emitter.RotationZStart = rotationZStart;
 		emitter.RotationZEnd = rotationZEnd;
@@ -10525,7 +10526,7 @@ namespace Eagle
 	}
 
 	MonoString* Script::Eagle_AssetParticleSystem_GetEmitter(GUID assetID, uint32_t index, GUID* texture, glm::vec4* colorStart, glm::vec4* colorEnd,
-		glm::vec3* velocityMin, glm::vec3* velocityMax, glm::vec3* velocityCoefStart, glm::vec3* velocityCoefEnd, float* rotationZStart, float* rotationZEnd,
+		glm::vec3* velocityMin, glm::vec3* velocityMax, glm::vec3* velocityCoefStart, glm::vec3* velocityCoefEnd, ParticleEmitter::VelocitySpaceType* velocitySpace, float* rotationZStart, float* rotationZEnd,
 		glm::vec2* sizeStart, glm::vec2* sizeEnd, glm::vec2* colliderSizeRatio, float* lifetimeMin, float* lifetimeMax, float* bouncinessMin, float* bouncinessMax,
 		Transform* relativeTransform, AABB* visibilityAABB, uint32_t* loopCount, float* loopDuration, uint32_t* spawnRate, float* radialAcceleration,
 		float* tangentialAcceleration, float* normalVelocityFactor, ParticleEmitter::EmissionShapeType* emissionShape, glm::vec3* sphereRadius, glm::vec3* boxMin,
@@ -10558,6 +10559,7 @@ namespace Eagle
 			*velocityMax = emitter.VelocityMax;
 			*velocityCoefStart = emitter.VelocityCoefStart;
 			*velocityCoefEnd = emitter.VelocityCoefEnd;
+			*velocitySpace = emitter.VelocitySpace;
 			*rotationZStart = emitter.RotationZStart;
 			*rotationZEnd = emitter.RotationZEnd;
 

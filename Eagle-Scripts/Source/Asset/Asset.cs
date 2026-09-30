@@ -759,7 +759,7 @@ namespace Eagle
 
                 string name = GetEmitter_Native(m_GUID, i,
                     out textureID, out emitters[i].ColorStart, out emitters[i].ColorEnd, out emitters[i].VelocityMin, out emitters[i].VelocityMax,
-                    out emitters[i].VelocityCoefStart, out emitters[i].VelocityCoefEnd, out emitters[i].RotationZStart, out emitters[i].RotationZEnd,
+                    out emitters[i].VelocityCoefStart, out emitters[i].VelocityCoefEnd, out emitters[i].VelocitySpace, out emitters[i].RotationZStart, out emitters[i].RotationZEnd,
                     out emitters[i].SizeStart, out emitters[i].SizeEnd, out emitters[i].ColliderSizeRatio, out emitters[i].LifetimeMin, out emitters[i].LifetimeMax,
                     out emitters[i].BouncinessMin, out emitters[i].BouncinessMax, out emitters[i].RelativeTransform, out emitters[i].VisibilityAABB,
                     out emitters[i].LoopCount, out emitters[i].LoopDuration, out emitters[i].SpawnRate, out emitters[i].RadialAcceleration, out emitters[i].TangentialAcceleration,
@@ -793,7 +793,7 @@ namespace Eagle
 
                     SetEmitter_Native(data, i,
                         textureID, ref emitters[i].ColorStart, ref emitters[i].ColorEnd, ref emitters[i].VelocityMin, ref emitters[i].VelocityMax,
-                        ref emitters[i].VelocityCoefStart, ref emitters[i].VelocityCoefEnd, emitters[i].RotationZStart, emitters[i].RotationZEnd,
+                        ref emitters[i].VelocityCoefStart, ref emitters[i].VelocityCoefEnd, emitters[i].VelocitySpace, emitters[i].RotationZStart, emitters[i].RotationZEnd,
                         ref emitters[i].SizeStart, ref emitters[i].SizeEnd, ref emitters[i].ColliderSizeRatio, emitters[i].LifetimeMin, emitters[i].LifetimeMax,
                         emitters[i].BouncinessMin, emitters[i].BouncinessMax, emitters[i].Name, ref emitters[i].RelativeTransform, ref emitters[i].VisibilityAABB,
                         emitters[i].LoopCount, emitters[i].LoopDuration, emitters[i].SpawnRate, emitters[i].RadialAcceleration, emitters[i].TangentialAcceleration,
@@ -825,7 +825,7 @@ namespace Eagle
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetEmitter_Native(IntPtr data, uint index,
             GUID texture, ref Color4 colorStart, ref Color4 colorEnd, ref Vector3 velocityMin, ref Vector3 velocityMax,
-            ref Vector3 velocityCoefStart, ref Vector3 velocityCoefEnd, float rotationZStart, float rotationZEnd,
+            ref Vector3 velocityCoefStart, ref Vector3 velocityCoefEnd, EmitterVelocitySpaceType velocitySpace, float rotationZStart, float rotationZEnd,
             ref Vector2 sizeStart, ref Vector2 sizeEnd, ref Vector2 colliderSizeRatio, float lifetimeMin, float lifetimeMax,
             float bouncinessMin, float bouncinessMax, string name, ref Transform relativeTransform, ref AABB visibilityAABB,
             uint loopCount, float loopDuration, uint spawnRate, float radialAcceleration, float tangentialAcceleration,
@@ -837,7 +837,7 @@ namespace Eagle
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern string GetEmitter_Native(GUID id, uint index,
             out GUID texture, out Color4 colorStart, out Color4 colorEnd, out Vector3 velocityMin, out Vector3 velocityMax,
-            out Vector3 velocityCoefStart, out Vector3 velocityCoefEnd, out float rotationZStart, out float rotationZEnd,
+            out Vector3 velocityCoefStart, out Vector3 velocityCoefEnd, out EmitterVelocitySpaceType velocitySpace, out float rotationZStart, out float rotationZEnd,
             out Vector2 sizeStart, out Vector2 sizeEnd, out Vector2 colliderSizeRatio, out float lifetimeMin, out float lifetimeMax,
             out float bouncinessMin, out float bouncinessMax, out Transform relativeTransform, out AABB visibilityAABB,
             out uint loopCount, out float loopDuration, out uint spawnRate, out float radialAcceleration, out float tangentialAcceleration,

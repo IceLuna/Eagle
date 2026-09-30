@@ -1645,6 +1645,7 @@ namespace Eagle
 
 				out << YAML::Key << "VelocityCoefStart" << YAML::Value << emitter.VelocityCoefStart;
 				out << YAML::Key << "VelocityCoefEnd" << YAML::Value << emitter.VelocityCoefEnd;
+				out << YAML::Key << "VelocitySpace" << YAML::Value << Utils::GetEnumName(emitter.VelocitySpace);
 
 				out << YAML::Key << "RotationZStart" << YAML::Value << emitter.RotationZStart;
 				out << YAML::Key << "RotationZEnd" << YAML::Value << emitter.RotationZEnd;
@@ -5043,6 +5044,8 @@ namespace Eagle
 				emitter.VelocityCoefStart = n.as<glm::vec3>();
 			if (auto n = node["VelocityCoefEnd"])
 				emitter.VelocityCoefEnd = n.as<glm::vec3>();
+			if (auto n = node["VelocitySpace"])
+				emitter.VelocitySpace = Utils::GetEnumFromName<ParticleEmitter::VelocitySpaceType>(n.as<std::string>());
 
 			if (auto n = node["RotationZStart"])
 				emitter.RotationZStart = n.as<float>();

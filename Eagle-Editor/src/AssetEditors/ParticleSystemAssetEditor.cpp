@@ -178,7 +178,9 @@ namespace Eagle
 				UI::BeginPropertyGrid("ParticleSystemAssetEditor");
 				bEmitterChanged |= UI::PropertyDrag("Radial Acceleration", emitter.RadialAcceleration, 0.1f, 0, 0, "If it's negative, particles will move towards the center of the emitter. If positive, they'll move away from the center");
 				bEmitterChanged |= UI::PropertyDrag("Tangential Acceleration", emitter.TangentialAcceleration, 0.1f, 0, 0, "Particles will move away from the center of the emitter in a spiral way");
-				bEmitterChanged |= UI::PropertyDrag("Normal Velocity Factor", emitter.NormalVelocityFactor, 0.1f, 0, 0, "If not 0, particle's initial velocity will be affected by `EmissionShapeType` normal direction.\nOnly supported for Sphere and Mesh shapes!");
+				bEmitterChanged |= UI::PropertyDrag("Normal Velocity Factor", emitter.NormalVelocityFactor, 0.1f, 0, 0, "Adds the emission shape's normal direction, multiplied by this value, to the particle's initial velocity.\n"
+					"For example, positive values push particles away from the center of a sphere, negative values pull them in. "
+					"Works with every emission shape except `Point`. Always follows the emitter's rotation and scale, regardless of `Velocity Space`");
 
 				UI::EndPropertyGrid();
 				ImGui::TreePop();
@@ -225,11 +227,28 @@ namespace Eagle
 				bEmitterChanged |= UI::PropertyColor("Color Start", emitter.ColorStart, true);
 				bEmitterChanged |= UI::PropertyColor("Color End", emitter.ColorEnd, true);
 
-				bEmitterChanged |= UI::PropertyDrag("Velocity Min", emitter.VelocityMin, 0.05f);
-				bEmitterChanged |= UI::PropertyDrag("Velocity Max", emitter.VelocityMax, 0.05f);
+				UI::EndPropertyGrid();
+				ImGui::Separator();
+				if (ImGui::TreeNodeEx("Velocity settings", defaultTreeFlags))
+				{
+					UI::BeginPropertyGrid("ParticleSystemAssetEditor");
 
-				bEmitterChanged |= UI::PropertyDrag("Velocity Coef Start", emitter.VelocityCoefStart, 0.05f, 0, 0, "Can be used to change the velocity of a particle throughout the lifetime");
-				bEmitterChanged |= UI::PropertyDrag("Velocity Coef End", emitter.VelocityCoefEnd, 0.05f, 0, 0, "Can be used to change the velocity of a particle throughout the lifetime");
+					bEmitterChanged |= UI::ComboEnum("Velocity Space", emitter.VelocitySpace, "Space of `Velocity Min/Max` and `Velocity Coef Start/End`.\n"
+						"Local: relative to the emitter. Velocity rotates and scales with the emitter, and the velocity coef axes rotate with it.\n"
+						"World: world-space values. The emitter's rotation and scale are ignored.\n"
+						"The part of the velocity that comes from `Normal Velocity Factor` always follows the emitter");
+
+					bEmitterChanged |= UI::PropertyDrag("Velocity Min", emitter.VelocityMin, 0.05f);
+					bEmitterChanged |= UI::PropertyDrag("Velocity Max", emitter.VelocityMax, 0.05f);
+
+					bEmitterChanged |= UI::PropertyDrag("Velocity Coef Start", emitter.VelocityCoefStart, 0.05f, 0, 0, "Can be used to change the velocity of a particle throughout the lifetime");
+					bEmitterChanged |= UI::PropertyDrag("Velocity Coef End", emitter.VelocityCoefEnd, 0.05f, 0, 0, "Can be used to change the velocity of a particle throughout the lifetime");
+
+					UI::EndPropertyGrid();
+					ImGui::TreePop();
+				}
+				ImGui::Separator();
+				UI::BeginPropertyGrid("ParticleSystemAssetEditor");
 
 				bEmitterChanged |= UI::PropertyDrag("Rotation Z Start", emitter.RotationZStart, 1.f);
 				bEmitterChanged |= UI::PropertyDrag("Rotation Z End", emitter.RotationZEnd, 1.f);

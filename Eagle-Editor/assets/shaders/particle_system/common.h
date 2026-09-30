@@ -52,6 +52,7 @@ const uint Emitter_BlendAnimation_Mask     = 1 << 5;
 const uint Emitter_DestroyImmediately_Mask = 1 << 6;
 const uint Emitter_FaceDirection_Mask      = 1 << 7;
 const uint Emitter_SkeletalMesh_Mask       = 1 << 8;
+const uint Emitter_WorldSpaceVelocity_Mask = 1 << 9;
 
 const uint Emitter_Internal_IsVisible_Mask  = 1 << 0;
 const uint Emitter_Internal_WasExplode_Mask = 1 << 1; // Used to handle `bExplode` correctly
@@ -424,12 +425,12 @@ mat3 ExtractRotation(mat4 m)
 		sz > 1e-8f ? m[2].xyz / sz : vec3(0, 0, 1));
 }
 
-// `coef` is a per-axis multiplier defined in the emitter's local space.
+// `coef` is a per-axis multiplier defined in the emitter's local space, or in world space if `bWorldSpace` is set.
 // `emitterRotation` must be orthonormal (see `ExtractRotation`)
-vec3 ApplyVelocityCoef(vec3 worldVelocity, vec3 coef, mat3 emitterRotation)
+vec3 ApplyVelocityCoef(vec3 worldVelocity, vec3 coef, mat3 emitterRotation, bool bWorldSpace)
 {
-	if (coef.x == coef.y && coef.y == coef.z)
-		return worldVelocity * coef.x; // Uniform coef, no need to go to local space
+	if (bWorldSpace || (coef.x == coef.y && coef.y == coef.z))
+		return worldVelocity * coef; // World-space or uniform coef, no need to go to local space
 
 	return emitterRotation * ((transpose(emitterRotation) * worldVelocity) * coef);
 }

@@ -244,7 +244,9 @@ void main()
     const float lifeAlpha = particle.CurrentLifetime / particle.Lifetime;
     const float rotationZ = mix(emitter.RotationZStart, emitter.RotationZEnd, lifeAlpha) - particle.RotationZOffset;
     const vec3 velocityCoef = mix(emitter.VelocityCoefStart, emitter.VelocityCoefEnd, lifeAlpha);
-    const vec3 velocity = ApplyVelocityCoef(particle.Velocity, velocityCoef, emitterRotation);
+
+    const bool bWorldSpaceVelocity = HasFlag(emitter.Flags, Emitter_WorldSpaceVelocity_Mask);
+    const vec3 velocity = ApplyVelocityCoef(particle.Velocity, velocityCoef, emitterRotation, bWorldSpaceVelocity);
 
     particle.Size = mix(emitter.SizeStart.xy, emitter.SizeEnd.xy, lifeAlpha) * particle.SizeScale;
     particle.CurrentLifetime += g_DeltaTime;

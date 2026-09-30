@@ -24,6 +24,12 @@ namespace Eagle
 			None, DestroyOnHit, Bounce,
 		};
 
+		enum class VelocitySpaceType
+		{
+			Local, // Relative to the emitter, rotates and scales with it
+			World  // Independent of the emitter's rotation and scale
+		};
+
 		// ---------------- Particle properties ----------------
 		Ref<AssetTexture2D> Texture;
 
@@ -35,6 +41,7 @@ namespace Eagle
 		
 		glm::vec3 VelocityCoefStart = glm::vec3(1);
 		glm::vec3 VelocityCoefEnd = glm::vec3(1);
+		VelocitySpaceType VelocitySpace = VelocitySpaceType::Local; // Space of `VelocityMin/Max` and `VelocityCoefStart/End`
 
 		float RotationZStart = 0.f;
 		float RotationZEnd = 0.f;
@@ -64,7 +71,7 @@ namespace Eagle
 		float FastForwardTo = 0.f; // TODO: Allows to fast-forward the simulation to make it look like it was running for `FastForwardTo` seconds
 		float RadialAcceleration = 0.f; // If it's negative, particles will move towards the center of the emitter. If positive, they move away from the center
 		float TangentialAcceleration = 0.f; // Particles will move away from the center of the emitter in a spiral way.
-		float NormalVelocityFactor = 0.f; // If not 0, particle's initial velocity will be affected by `EmissionShapeType` normal direction
+		float NormalVelocityFactor = 0.f; // Adds the emission shape's normal direction (scaled by this value) to the initial velocity. Always follows the emitter, regardless of `VelocitySpace`
 
 		EmissionShapeType EmissionShape = EmissionShapeType::Point;
 		// Sphere emission shape
