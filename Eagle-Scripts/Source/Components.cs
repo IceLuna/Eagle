@@ -3126,7 +3126,7 @@ namespace Eagle
 
         public void Spawn() { Spawn_Native(Parent.ID); }
         
-        public void Destroy(bool bForceImmediateRemoval) { Destroy_Native(Parent.ID, bForceImmediateRemoval); }
+        public void Destroy(bool bForceImmediateRemoval = false) { Destroy_Native(Parent.ID, bForceImmediateRemoval); }
 
         public void Restart()
         {

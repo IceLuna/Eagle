@@ -304,13 +304,13 @@ namespace Eagle
 		return mono_array_new(mono_domain_get(), ScriptEngine::GetEntityClass(), 0);
 	}
 
-	void Script::Eagle_Entity_DestroyEntity(GUID entityID)
+	void Script::Eagle_Entity_DestroyEntity(GUID entityID, bool bDestroyChildren)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
-			scene->DestroyEntity(entity);
+			scene->DestroyEntity(entity, bDestroyChildren);
 		}
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't destroy entity. Entity is null");

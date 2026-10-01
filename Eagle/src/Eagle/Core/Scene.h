@@ -366,6 +366,10 @@ namespace Eagle
 	private:
 		void CopyComponents(Entity source, Entity dest);
 		void DestroyScripts();
+		void DestroyEntityImmediately_Internal(Entity entity, bool bDestroyChildren = false);
+		Entity CreateFromEntity_Internal(const Entity& source, bool bCopyGUID = false, ankerl::unordered_dense::map<GUID, GUID>* mapping = nullptr);
+		void ResolveCopiedPublicFields(Entity dst, const ankerl::unordered_dense::map<GUID, GUID>& mapping);
+		void CallOnDestroyScripts(Entity entity, bool bPropagateToChildren);
 
 		void OnUpdateEditor(Timestep ts, bool bRender, bool bForceAnimationsUpdate);
 		void OnUpdateRuntime(Timestep ts, bool bRender, bool bForceAnimationsUpdate);

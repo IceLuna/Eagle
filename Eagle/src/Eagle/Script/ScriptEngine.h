@@ -37,6 +37,7 @@ namespace Eagle
 		static void Reset();
 
 		static bool InstantiateEntityClass(Entity entity);
+		static bool CopyFieldsToRuntime(Entity entity);
 		static EntityInstance* CreateEntityInstance(const Entity& entity);
 		static EntityInstance* GetEntityInstance(const Entity& entity);
 		static MonoObject* GetEntityMonoObject(Entity entity);
@@ -114,6 +115,7 @@ namespace Eagle
 		static void InstantiateAINode(const AIBehaviorNode& node, Scope<MonoInstance>* outRootInstance, MonoObject* parentInstance = nullptr);
 		static void AddDecorators(const AIBehaviorNode& node, MonoObject* instance);
 
+		static bool CopyFieldsToRuntime_Internal(Entity entity, const EntityInstance* entityInstance);
 		static bool InitEntityScript(Entity entity);
 		static MonoObject* InstantiateEntityUnmanaged(GUID entityID); // Can be GarbageCollected. ScriptEngine just creates it and forgets aboit it
 

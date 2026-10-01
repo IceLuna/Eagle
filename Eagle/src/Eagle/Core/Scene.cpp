@@ -751,7 +751,6 @@ namespace Eagle
 	, m_RuntimePhysicsScene(other->m_RuntimePhysicsScene)
 	, m_PhysicsScene(other->m_RuntimePhysicsScene)
 	, EditorCamera(other->EditorCamera)
-	, m_EntitiesToDestroy(other->m_EntitiesToDestroy)
 	, m_ViewportWidth(other->m_ViewportWidth)
 	, m_ViewportHeight(other->m_ViewportHeight)
 	, m_DebugName(debugName)
@@ -871,11 +870,17 @@ namespace Eagle
 		return entity;
 	}
 
-	Entity Scene::CreateFromEntity(const Entity& source, bool bCopyGUID)
+	// Outputs a mapping of src->dst entityIDs
+	Entity Scene::CreateFromEntity_Internal(const Entity& source, bool bCopyGUID, ankerl::unordered_dense::map<GUID, GUID>* mapping)
 	{
-		const GUID guid = bCopyGUID ? source.GetComponent<IDComponent>().ID : GUID{};
+		const GUID& srcGUID = source.GetComponent<IDComponent>().ID;
+		const GUID guid = bCopyGUID ? srcGUID : GUID{};
 		Entity result = CreateEntityWithGUID(guid, source.GetName());
 		EntityCopyComponent<TransformComponent>(source, result); //Copying TransformComponent to set childrens transform correctly
+		if (mapping)
+		{
+			(*mapping)[srcGUID] = guid;
+		}
 
 		// Recreating Ownership component
 		const auto& srcChildren = source.GetChildren();
@@ -885,13 +890,87 @@ namespace Eagle
 			if (child.GetScene()->IsPendingDestroy(child))
 				continue;
 
-			Entity myChild = CreateFromEntity(child, bCopyGUID);
+			Entity myChild = CreateFromEntity_Internal(child, bCopyGUID, mapping);
 			myChild.SetParent(result);
 		}
 
 		CopyComponents(source, result);
 
 		return result;
+	}
+
+	void Scene::ResolveCopiedPublicFields(Entity dst, const ankerl::unordered_dense::map<GUID, GUID>& mapping)
+	{
+		if (dst.HasComponent<ScriptComponent>())
+		{
+			auto& dstScript = dst.GetComponent<ScriptComponent>();
+			const size_t fieldsCount = dstScript.PublicFields.size();
+
+			bool bUpdated = false;
+			for (size_t i = 0; i < fieldsCount; ++i)
+			{
+				auto& dstField = dstScript.PublicFields[i];
+				if (dstField.Type == FieldType::Entity)
+				{
+					auto it = mapping.find(dstField.GetStoredValue<GUID>());
+					if (it != mapping.end())
+					{
+						// The src entity was poiniting to another copied entity.
+						// So, dst entity should point to this new entity, instead of the source one
+						dstField.SetStoredValue(it->second);
+						bUpdated = true;
+					}
+				}
+			}
+
+			if (bIsPlaying && bUpdated)
+			{
+				ScriptEngine::CopyFieldsToRuntime(dst);
+			}
+		}
+
+		const auto& dstChildren = dst.GetChildren();
+		for (auto& child : dstChildren)
+		{
+			ResolveCopiedPublicFields(child, mapping);
+		}
+	}
+
+	void Scene::CallOnDestroyScripts(Entity entity, bool bPropagateToChildren)
+	{
+		if (bPropagateToChildren)
+		{
+			const auto& children = entity.GetChildren();
+			for (auto& child : children)
+				CallOnDestroyScripts(child, bPropagateToChildren);
+		}
+
+		if (entity.HasComponent<NativeScriptComponent>())
+			entity.GetComponent<NativeScriptComponent>().Destroy();
+
+		if (entity.HasComponent<ScriptComponent>())
+			ScriptEngine::OnDestroyEntity(entity);
+	}
+
+	Entity Scene::CreateFromEntity(const Entity& source, bool bCopyGUID)
+	{
+		// Key -> src entity GUID; Value -> dst entity GUID
+		// When an entity, that has C# public fields of type `Entity`, is copied,
+		// we need to properly resolve these copies.
+		// For example, SrcEntity1 has child SrcEntity2, and SrcEntity1 has a C# public Entity field that points to SrcEntity2.
+		// In this case, copied entity DstEntity1 needs to point to DstEntity2, instead of SrcEntity2.
+		// If SrcEntity was pointing to any other entity on the scene (that wasn't involved in this copy operation),
+		// then it's left as is.
+		ankerl::unordered_dense::map<GUID, GUID> createdEntities;
+
+		// Not point to resolve public fields if GUIDs are copied. They'll be already correct.
+		Entity dst = CreateFromEntity_Internal(source, bCopyGUID, bCopyGUID ? nullptr : &createdEntities);
+		if (!bCopyGUID)
+		{
+			ResolveCopiedPublicFields(dst, createdEntities);
+		}
+
+		return dst;
 	}
 
 	void Scene::DestroyEntity(Entity entity, bool bDestroyChildren)
@@ -901,14 +980,7 @@ namespace Eagle
 
 		if (bIsPlaying)
 		{
-			if (entity.HasComponent<NativeScriptComponent>())
-			{
-				auto& nsc = entity.GetComponent<NativeScriptComponent>();
-				nsc.Destroy();
-			}
-
-			if (entity.HasComponent<ScriptComponent>())
-				ScriptEngine::OnDestroyEntity(entity);
+			CallOnDestroyScripts(entity, bDestroyChildren);
 		}
 
 		m_EntitiesToDestroy.emplace_back(entity, bDestroyChildren);
@@ -916,7 +988,7 @@ namespace Eagle
 		// EG_CORE_TRACE("Destroyed Entity: {}", entity.GetComponent<EntitySceneNameComponent>().Name);
 	}
 
-	void Scene::DestroyEntityImmediately(Entity entity, bool bDestroyChildren)
+	void Scene::DestroyEntityImmediately_Internal(Entity entity, bool bDestroyChildren)
 	{
 		ScriptEngine::RemoveEntityScript(entity);
 		auto& actor = entity.GetPhysicsActor();
@@ -931,7 +1003,7 @@ namespace Eagle
 		if (bDestroyChildren)
 		{
 			for (size_t i = 0; i < children.size(); ++i)
-				DestroyEntityImmediately(children[i], bDestroyChildren);
+				DestroyEntityImmediately_Internal(children[i], bDestroyChildren);
 		}
 		else
 		{
@@ -943,6 +1015,19 @@ namespace Eagle
 		m_Registry.destroy(entity.GetEnttID());
 
 		bEntityListChanged = true;
+	}
+
+	void Scene::DestroyEntityImmediately(Entity entity, bool bDestroyChildren)
+	{
+		if (!entity)
+			return;
+
+		if (bIsPlaying)
+		{
+			CallOnDestroyScripts(entity, bDestroyChildren);
+		}
+
+		DestroyEntityImmediately_Internal(entity, bDestroyChildren);
 	}
 
 	void Scene::OnUpdate(Timestep ts, bool bRender, bool bForceAnimationsUpdate)
@@ -1442,7 +1527,7 @@ namespace Eagle
 		//Remove entities when a new frame begins
 		for (auto& [entity, bDestroyChildren] : m_EntitiesToDestroy)
 		{
-			DestroyEntityImmediately(entity, bDestroyChildren);
+			DestroyEntityImmediately_Internal(entity, bDestroyChildren);
 		}
 		m_EntitiesToDestroy.clear();
 	}

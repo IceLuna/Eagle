@@ -22,7 +22,7 @@ namespace Eagle::Script
 	MonoObject* Eagle_Entity_GetParent(GUID entityID);
 	void Eagle_Entity_SetParent(GUID entityID, GUID parentID);
 	MonoArray* Eagle_Entity_GetChildren(GUID entityID);
-	void Eagle_Entity_DestroyEntity(GUID entityID);
+	void Eagle_Entity_DestroyEntity(GUID entityID, bool bDestroyChildren);
 	void Eagle_Entity_AddComponent(GUID entityID, void* type);
 	void Eagle_Entity_RemoveComponent(GUID entityID, void* type);
 	bool Eagle_Entity_HasComponent(GUID entityID, void* type);

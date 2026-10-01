@@ -351,9 +351,9 @@ namespace Eagle
             return result;
         }
 
-        public void Destroy()
+        public void Destroy(bool bDestroyChildren = false)
         {
-            DestroyEntity_Native(ID);
+            DestroyEntity_Native(ID, bDestroyChildren);
         }
 
         public bool IsMouseHovered() { return IsMouseHovered_Native(ID); }
@@ -514,7 +514,7 @@ namespace Eagle
         internal static extern bool IsValid_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void DestroyEntity_Native(in GUID entityID);
+        internal static extern void DestroyEntity_Native(in GUID entityID, bool bDestroyChildren);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern string GetEntityName_Native(in GUID entityID);

@@ -626,11 +626,35 @@ namespace Eagle
 		void* param[] = { &guid };
 		CallMethod(entityInstance->GetMonoInstance(), entityInstance->Methods.Constructor, param);
 
-		auto& scriptComponent = entity.GetComponent<ScriptComponent>();
-		for (auto& field : scriptComponent.PublicFields)
+		CopyFieldsToRuntime_Internal(entity, entityInstance);
+
+		return true;
+	}
+
+	bool ScriptEngine::CopyFieldsToRuntime_Internal(Entity entity, const EntityInstance* entityInstance)
+	{
+		EG_CORE_ASSERT(entity.HasComponent<ScriptComponent>());
+
+		MonoObject* instance = entityInstance->GetMonoInstance();
+		const auto& scriptComponent = entity.GetComponent<ScriptComponent>();
+		for (const auto& field : scriptComponent.PublicFields)
 		{
-			field.CopyStoredValueToRuntime(entityInstance->GetMonoInstance());
+			field.CopyStoredValueToRuntime(instance);
 		}
+
+		return true;
+	}
+
+	bool ScriptEngine::CopyFieldsToRuntime(Entity entity)
+	{
+		const EntityInstance* instance = GetEntityInstance(entity);
+		if (!instance)
+		{
+			EG_CORE_ERROR("Failed to copy public fields to runtime. Entity instance doesn't exist!");
+			return false;
+		}
+
+		CopyFieldsToRuntime_Internal(entity, instance);
 
 		return true;
 	}
