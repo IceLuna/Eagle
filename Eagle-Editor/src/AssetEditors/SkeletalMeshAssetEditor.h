@@ -37,6 +37,7 @@ namespace Eagle
 
 	private:
 		bool DrawSkeletalTree(const SkeletalMeshInfo& skeletalInfo, BoneNode& node, size_t baseHash, bool* outDelete = nullptr, const glm::mat4& baseTransform = glm::mat4(1.f), const std::string& parentName = "");
+		void ResolveSelectedBone();
 		bool DrawRagdollTree(SkeletalRagdollBone& node, size_t baseHash);
 		bool DrawSkeletalTab(const Ref<SkeletalMesh>& mesh, size_t& assetHash);
 		bool DrawRagdollTab(const Ref<SkeletalMesh>& mesh, size_t& assetHash);

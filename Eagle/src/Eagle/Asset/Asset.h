@@ -11,8 +11,6 @@
 #include "Eagle/Utils/DelaunayTriangulation.h"
 #include "Eagle/Renderer/TextureCompressor.h"
 
-#include <ankerl/unordered_dense.h>
-
 namespace YAML
 {
 	class Node;

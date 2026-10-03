@@ -9,42 +9,41 @@ namespace Eagle
     {
 		static bool FindRootBoneName(const BonesAnimMap& bones, const SkeletalMeshInfo& skeletalInfo, const BoneNode& node, std::string* outBoneName)
 		{
-			const auto& meshBoneInfoMap = skeletalInfo.GetBoneInfoMap();
-			bool bFoundRootBone = false;
-
-			for (const auto& [boneName, _] : bones)
+			const bool bAnimated = bones.find(node.GetName()) != bones.end();
+			const bool bMeshBone = skeletalInfo.IsValid(skeletalInfo.FindBoneInfo(node.GetNameHash()));
+			if (bAnimated && bMeshBone)
 			{
-				const auto it = meshBoneInfoMap.find(boneName);
-				if (it == meshBoneInfoMap.end())
-					continue;
-
-				const bool bRootNode = boneName == node.GetName();
-				if (bRootNode)
-				{
-					*outBoneName = boneName;
-					bFoundRootBone = true;
-					break;
-				}
+				*outBoneName = node.GetName();
+				return true;
 			}
 
-			if (bFoundRootBone)
-				return true;
-
 			if (node.Children.size() == 1)
-				bFoundRootBone = FindRootBoneName(bones, skeletalInfo, node.Children[0], outBoneName);
+				return FindRootBoneName(bones, skeletalInfo, node.Children[0], outBoneName);
 
-			return bFoundRootBone;
+			return false;
 		}
 
 		static float AngleAroundYAxis(const glm::quat& quat)
 		{
-			static glm::vec3 xAxis = { 1.0f, 0.0f, 0.0f };
-			static glm::vec3 yAxis = { 0.0f, 1.0f, 0.0f };
-			auto rotatedOrthogonal = quat * xAxis;
-			auto projected = glm::normalize(rotatedOrthogonal - (yAxis * glm::dot(rotatedOrthogonal, yAxis)));
-			return acos(glm::dot(xAxis, projected));
+			const glm::vec3 rotatedX = quat * glm::vec3(1.f, 0.f, 0.f);
+			return std::atan2(-rotatedX.z, rotatedX.x);
 		}
     }
+
+	const BoneNode* SkeletalMeshAnimation::FindRootMotionBone(const SkeletalMeshInfo& skeletalInfo) const
+	{
+		const BoneNode* node = &skeletalInfo.RootBone;
+		while (node)
+		{
+			const bool bAnimated = FindBone(node->GetNameHash()) != nullptr;
+			const bool bMeshBone = skeletalInfo.IsValid(skeletalInfo.FindBoneInfo(node->GetNameHash()));
+			if (bAnimated && bMeshBone)
+				return node;
+
+			node = node->Children.size() == 1 ? &node->Children[0] : nullptr;
+		}
+		return nullptr;
+	}
 
     bool SkeletalMeshAnimation::ExtractRootMotion(const SkeletalMeshInfo& skeletalInfo, RootMotionMode mode)
     {
@@ -69,6 +68,14 @@ namespace Eagle
 		EG_CORE_ASSERT(it != m_AnimBones.end());
 
 		auto& bone = it->second;
+		if (bone.Locations.empty())
+		{
+			EG_CORE_ERROR("Failed to extract root motion data. The root bone '{}' doesn't have location keys!", rootBoneName);
+			return false;
+		}
+
+		RootMotion = {};
+		PreRootMotionLocations.clear();
 		PreRootMotionLocations.reserve(bone.Locations.size());
 		RootMotion.Locations.reserve(bone.Locations.size());
 		RootMotion.Rotations.reserve(bone.Rotations.size());
@@ -96,8 +103,8 @@ namespace Eagle
 
 		// Animation should preserve its first frame data, and all other frames will be the same as the first one.
 		// Root motion will contain the delta between the first and the current animation frame and apply it manually.
-		glm::vec3 firstLocation = bFromBasePose ? baseRootTr.Location : bone.Locations.front().Location;
-		glm::vec3 firstAnimLocation = bone.Locations.front().Location;
+		const glm::vec3 firstLocation = bFromBasePose ? baseRootTr.Location : bone.Locations.front().Location;
+		const glm::vec3 firstAnimLocation = bone.Locations.front().Location;
 		for (auto& locationKey : bone.Locations)
 		{
 			PreRootMotionLocations.push_back(locationKey.Location);
@@ -111,7 +118,7 @@ namespace Eagle
 		{
 			const float angleY = bFromBasePose ? basePoseAngleY : Utils::AngleAroundYAxis(rotationKey.Rotation);
 
-			const glm::quat offset = glm::quat{ glm::cos(angleY * 0.5f), glm::vec3{ 0.0f, 1.0f, 0.0f } * glm::sin(angleY * 0.5f) };
+			const glm::quat offset = glm::angleAxis(angleY, glm::vec3{ 0.0f, 1.0f, 0.0f });
 			auto& rootKey = RootMotion.Rotations.emplace_back();
 			rootKey.Rotation = offset;
 			rootKey.TimeStamp = rotationKey.TimeStamp;
@@ -123,11 +130,6 @@ namespace Eagle
 		{
 			RootMotion.Scales.emplace_back(scaleKey);
 			scaleKey.Scale = glm::vec3(1.f);
-		}
-
-		if (auto itHash = FindBone(Utils::CalculateBoneNameHash(rootBoneName)); IsValid(itHash))
-		{
-			itHash->second = bone;
 		}
 
 		RootMotionType = mode;
@@ -153,32 +155,24 @@ namespace Eagle
 
 		auto& bone = it->second;
 
-		for (size_t i = 0; i < bone.Locations.size(); ++i)
+		const size_t numLocations = glm::min(bone.Locations.size(), PreRootMotionLocations.size());
+		for (size_t i = 0; i < numLocations; ++i)
 		{
 			bone.Locations[i].Location = PreRootMotionLocations[i];
 		}
 		PreRootMotionLocations.clear();
 
-		for (size_t i = 0; i < bone.Rotations.size(); ++i)
+		const size_t numRotations = glm::min(bone.Rotations.size(), RootMotion.Rotations.size());
+		for (size_t i = 0; i < numRotations; ++i)
 		{
-			const auto& rootRotation = RootMotion.Rotations[i];
-			const float angleY = glm::acos(rootRotation.Rotation.w) * 2.f;
-
-			const glm::quat rotationAppliedToBoneInv = (glm::quat(glm::cos(angleY * 0.5f), glm::vec3{ 0.0f, 1.0f, 0.0f } * glm::sin(angleY * 0.5f)));
-
 			auto& rotationKey = bone.Rotations[i];
-			rotationKey.Rotation = rotationAppliedToBoneInv * rotationKey.Rotation;
+			rotationKey.Rotation = RootMotion.Rotations[i].Rotation * rotationKey.Rotation;
 		}
 
-		for (size_t i = 0; i < bone.Scales.size(); ++i)
+		const size_t numScales = glm::min(bone.Scales.size(), RootMotion.Scales.size());
+		for (size_t i = 0; i < numScales; ++i)
 		{
-			auto& scaleKey = bone.Scales[i];
-			scaleKey.Scale = RootMotion.Scales[i].Scale;
-		}
-
-		if (auto itHash = FindBone(Utils::CalculateBoneNameHash(rootBoneName)); IsValid(itHash))
-		{
-			itHash->second = bone;
+			bone.Scales[i].Scale = RootMotion.Scales[i].Scale;
 		}
 
 		RootMotion = {};

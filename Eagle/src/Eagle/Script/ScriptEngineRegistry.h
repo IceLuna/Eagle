@@ -6,5 +6,8 @@ namespace Eagle
 	{
 	public:
 		static void RegisterAll();
+
+	private:
+		static void BindFunctions();
 	};
 }

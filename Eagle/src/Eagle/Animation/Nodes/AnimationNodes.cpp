@@ -212,35 +212,13 @@ namespace Eagle
 			AnimationSystem::AnimationClip(skeletalInfo, animation, skeletalInfo.RootBone, CurrentTime, &m_Pose);
 			if (!animation->bInPlace && animation->HasRootMotion())
 			{
-				if (m_PrevSpeed < 0 && speed > 0 || speed < 0 && m_PrevSpeed > 0) // If speed changed signs
-					std::swap(CurrentTime, m_PrevTime);
-				if (speed == 0.f && m_PrevSpeed != speed) // If speed stoped
-					m_PrevTime = CurrentTime;
-
-				m_Pose.SetRootMotion(AnimationSystem::CalculateRootMotion(animation, CurrentTime, m_PrevTime, speed, ts, &m_Pose.TotalRootMotion));
+				m_Pose.SetRootMotion(AnimationSystem::CalculateRootMotion(animation, CurrentTime, m_PrevTime, m_PrevSpeed, ts, &m_Pose.TotalRootMotion));
 			}
 			m_PrevTime = CurrentTime;
 			CurrentTime = AnimationSystem::StepForwardAnimTime(animation, CurrentTime, ts * speed, bLoop);
-			AnimationSystem::GetEventsToTrigger(animation, m_PrevTime, CurrentTime, m_PrevSpeed, speed, &m_Pose.EventsToTrigger);
+			AnimationSystem::GetEventsToTrigger(animation, m_PrevTime, CurrentTime, speed, bLoop, &m_Pose.EventsToTrigger);
 
-			constexpr float speedDelta = 0.00001f;
-			if (speed > speedDelta)
-			{
-				// Playing forward
-				float durationLeft = animation->Duration - CurrentTime;
-				m_Pose.TimeTillAnimationLoops = durationLeft / (speed * animation->TicksPerSecond);
-			}
-			else if (speed < -speedDelta)
-			{
-				// Playing backwards
-				float durationLeft = CurrentTime; // Simplified version of: `Duration - (Duration - CurrentTime)`
-				m_Pose.TimeTillAnimationLoops = durationLeft / (speed * animation->TicksPerSecond);
-			}
-			else
-			{
-				// Speed is 0
-				m_Pose.TimeTillAnimationLoops = FLT_MAX; // Animation is not playing, so we'll never loop
-			}
+			m_Pose.TimeTillAnimationLoops = AnimationSystem::CalculateTimeTillAnimationLoops(animation, CurrentTime, speed);
 		}
 		else
 		{
@@ -303,9 +281,8 @@ namespace Eagle
 			bool bIgnoreParentScale = true;
 			Utils::GetValue(m_Inputs[4], m_Variables[4], ts, &bIgnoreParentScale);
 
-			auto& pose = input->Update(ts);
+			const auto& pose = input->Update(ts);
 			AnimationSystem::FilterPose(pose, skeletal->GetSkeletalMeshInfo().RootBone, boneName, bIgnoreParentLocation, bIgnoreParentRotation, bIgnoreParentScale, &m_Pose);
-			m_Pose.EventsToTrigger_Pointer = &(pose.GetEventsToTrigger());
 		}
 
 		m_CalculatedOnFrame = currentFrame;
@@ -325,7 +302,7 @@ namespace Eagle
 			const auto& skeletal = GetSkeletal();
 			std::string boneName;
 			Utils::GetValueFromVariable(m_Variables[1], &boneName);
-			glm::vec4 rotation;
+			glm::vec4 rotation = glm::vec4(0.f, 0.f, 0.f, 1.f);
 			Utils::GetValue(m_Inputs[2], m_Variables[2], ts, &rotation);
 
 			m_Pose = input->Update(ts);
@@ -1288,8 +1265,9 @@ namespace Eagle
 
 		for (size_t i = offset; i < inputsCount; i += 2)
 		{
-			int overrideIndex;
-			Utils::GetValueFromVariable(m_Variables[i], &overrideIndex);
+			int overrideIndex = -1;
+			if (!Utils::GetValueFromVariable(m_Variables[i], &overrideIndex))
+				continue;
 
 			for (uint32_t vI = 0; vI < 3; ++vI)
 			{

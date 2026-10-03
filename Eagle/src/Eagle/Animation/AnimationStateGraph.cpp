@@ -8,6 +8,9 @@ namespace Eagle
 	{
 		for (auto& connection : m_Connections)
 		{
+			if (!connection.Transition || !connection.ConnectedTo)
+				continue;
+
 			auto transitionNode = Cast<AnimationGraphNodeTransitionOutput>(connection.Transition->GetResult());
 			if (!transitionNode)
 				continue;
@@ -21,7 +24,11 @@ namespace Eagle
 			}
 			else if (transitionNode->ShouldAutoTransition())
 			{
-				const float timeTillLoop = GetResult()->GetTimeTillAnimationLoops();
+				const auto& result = GetResult();
+				if (!result)
+					continue;
+
+				const float timeTillLoop = result->GetTimeTillAnimationLoops();
 				const float transitionTime = transitionNode->GetTransitionTime();
 				const bool bTransition = transitionTime >= timeTillLoop; // Start transitioning before animation is about to finish
 				if (bTransition)

@@ -130,6 +130,22 @@ namespace Eagle
 			return result;
 		}
 
+		static glm::quat NLerp(const glm::quat& q1, const glm::quat& q2, float weight)
+		{
+			const float sign = glm::dot(q1, q2) < 0.f ? -1.f : 1.f;
+			return glm::normalize(q1 * (1.f - weight) + (q2 * sign) * weight);
+		}
+
+		// Same as `Blend` but uses `NLerp` for the rotation
+		static Transform BlendFast(const Transform& tr1, const Transform& tr2, float weight)
+		{
+			Transform result;
+			result.Location = glm::mix(tr1.Location, tr2.Location, weight);
+			result.Rotation = NLerp(tr1.Rotation.GetQuat(), tr2.Rotation.GetQuat(), weight);
+			result.Scale3D = glm::mix(tr1.Scale3D, tr2.Scale3D, weight);
+			return result;
+		}
+
 		static Transform Blend(const Transform& tr1, const Transform& tr2, const Transform& tr3, const glm::vec3& buv)
 		{
 			Transform result;

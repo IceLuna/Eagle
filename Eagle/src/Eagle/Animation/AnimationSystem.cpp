@@ -14,276 +14,90 @@ namespace Eagle
 {
     namespace Utils
     {
-        /* Gets normalized value for Lerp & Slerp */
+        // Gets normalized value for Lerp & Slerp. Clamped so that times outside of the key range don't extrapolate
         static float GetScaleFactor(float lastTimeStamp, float nextTimeStamp, float animationTime)
         {
-            float scaleFactor = 0.0f;
-            float midWayLength = animationTime - lastTimeStamp;
-            float framesDiff = nextTimeStamp - lastTimeStamp;
-            scaleFactor = midWayLength / glm::max(framesDiff, 0.000001f);
-            return scaleFactor;
+            const float midWayLength = animationTime - lastTimeStamp;
+            const float framesDiff = nextTimeStamp - lastTimeStamp;
+            return glm::clamp(midWayLength / glm::max(framesDiff, 0.000001f), 0.f, 1.f);
         }
 
-        /* Gets the current index on KeyPositions to interpolate to based on
-            the current animation time */
-        static size_t GetPositionIndex(const std::vector<KeyPosition>& positions, float animationTime)
+        // Returns index `i` of the key to interpolate from (`i + 1` is the key to interpolate to). `keys.size()` must be >= 2
+        template<typename Key>
+        static size_t FindKeyIndex(const std::vector<Key>& keys, float animationTime)
         {
-            // Note: This is the logic we replicate using `std::lower_bound`
-            // 
-            // for (size_t index = 0; index < positions.size() - 1; ++index)
-            // {
-            //     if (animationTime <= positions[index + 1].TimeStamp)
-            //         return index;
-            // }
-            
-            auto it = std::lower_bound(positions.begin() + 1, positions.end(), animationTime, [](const KeyPosition& key, float animationTime)
+            auto it = std::lower_bound(keys.begin() + 1, keys.end() - 1, animationTime, [](const Key& key, float time)
             {
-                return key.TimeStamp < animationTime;
+                return key.TimeStamp < time;
             });
-            return it - positions.begin() - 1;
+            return size_t(it - keys.begin()) - 1;
         }
 
-        /* Gets the current index on KeyRotations to interpolate to based on the
-        current animation time */
-        static size_t GetRotationIndex(const std::vector<KeyRotation>& rotations, float animationTime)
-        {
-            auto it = std::lower_bound(rotations.begin() + 1, rotations.end(), animationTime, [](const KeyRotation& key, float animationTime)
-            {
-                return key.TimeStamp < animationTime;
-            });
-            return it - rotations.begin() - 1;
-        }
-
-        /* Gets the current index on KeyScalings to interpolate to based on the
-        current animation time */
-        static size_t GetScaleIndex(const std::vector<KeyScale>& scales, float animationTime)
-        {
-            auto it = std::lower_bound(scales.begin() + 1, scales.end(), animationTime, [](const KeyScale& key, float animationTime)
-            {
-                return key.TimeStamp < animationTime;
-            });
-            return it - scales.begin() - 1;
-        }
-
-        /* Figures out which position keys to interpolate b/w and performs the interpolation
-        and returns the translation matrix */
-        static glm::mat4 InterpolatePosition(const BoneAnimation& bone, float animationTime)
-        {
-            const auto& locations = bone.Locations;
-            if (locations.size() == 1)
-                return glm::translate(glm::mat4(1.0f), locations[0].Location);
-
-            size_t p0Index = GetPositionIndex(locations, animationTime);
-            size_t p1Index = p0Index + 1;
-            float scaleFactor = GetScaleFactor(locations[p0Index].TimeStamp, locations[p1Index].TimeStamp, animationTime);
-            glm::vec3 finalPosition = glm::mix(locations[p0Index].Location, locations[p1Index].Location, scaleFactor);
-            return glm::translate(glm::mat4(1.0f), finalPosition);
-        }
-
-        /* Figures out which rotations keys to interpolate b/w and performs the interpolation
-        and returns the rotation matrix */
-        static glm::mat4 InterpolateRotation(const BoneAnimation& bone, float animationTime)
-        {
-            const auto& rotations = bone.Rotations;
-            if (rotations.size() == 1)
-            {
-                auto rotation = glm::normalize(rotations[0].Rotation);
-                return glm::toMat4(rotation);
-            }
-
-            size_t p0Index = GetRotationIndex(rotations, animationTime);
-            size_t p1Index = p0Index + 1;
-            float scaleFactor = GetScaleFactor(rotations[p0Index].TimeStamp, rotations[p1Index].TimeStamp, animationTime);
-            glm::quat finalRotation = glm::slerp(rotations[p0Index].Rotation, rotations[p1Index].Rotation, scaleFactor);
-            finalRotation = glm::normalize(finalRotation);
-            return glm::toMat4(finalRotation);
-        }
-
-        /* Figures out which scaling keys to interpolate b/w and performs the interpolation
-        and returns the scale matrix */
-        static glm::mat4 InterpolateScaling(const BoneAnimation& bone, float animationTime)
-        {
-            const auto& scales = bone.Scales;
-            if (scales.size() == 1)
-                return glm::scale(glm::mat4(1.0f), scales[0].Scale);
-
-            size_t p0Index = GetScaleIndex(scales, animationTime);
-            size_t p1Index = p0Index + 1;
-            float scaleFactor = GetScaleFactor(scales[p0Index].TimeStamp, scales[p1Index].TimeStamp, animationTime);
-            glm::vec3 finalScale = glm::mix(scales[p0Index].Scale, scales[p1Index].Scale, scaleFactor);
-            return glm::scale(glm::mat4(1.0f), finalScale);
-        }
-        
-        /* Figures out which position keys to interpolate b/w and performs the interpolation
-        and returns the translation matrix */
         static glm::vec3 InterpolatePositionRaw(const BoneAnimation& bone, float animationTime)
         {
             const auto& locations = bone.Locations;
+            if (locations.empty())
+                return glm::vec3(0.f);
             if (locations.size() == 1)
                 return locations[0].Location;
 
-            size_t p0Index = GetPositionIndex(locations, animationTime);
-            size_t p1Index = p0Index + 1;
-            float scaleFactor = GetScaleFactor(locations[p0Index].TimeStamp, locations[p1Index].TimeStamp, animationTime);
-            glm::vec3 finalPosition = glm::mix(locations[p0Index].Location, locations[p1Index].Location, scaleFactor);
-            return finalPosition;
+            const size_t p0Index = FindKeyIndex(locations, animationTime);
+            const size_t p1Index = p0Index + 1;
+            const float scaleFactor = GetScaleFactor(locations[p0Index].TimeStamp, locations[p1Index].TimeStamp, animationTime);
+            return glm::mix(locations[p0Index].Location, locations[p1Index].Location, scaleFactor);
         }
 
-        /* Figures out which rotations keys to interpolate b/w and performs the interpolation
-        and returns the rotation matrix */
         static glm::quat InterpolateRotationRaw(const BoneAnimation& bone, float animationTime)
         {
             const auto& rotations = bone.Rotations;
+            if (rotations.empty())
+                return glm::quat(1.f, 0.f, 0.f, 0.f);
             if (rotations.size() == 1)
-            {
-                auto rotation = glm::normalize(rotations[0].Rotation);
-                return rotation;
-            }
+                return glm::normalize(rotations[0].Rotation);
 
-            size_t p0Index = GetRotationIndex(rotations, animationTime);
-            size_t p1Index = p0Index + 1;
-            float scaleFactor = GetScaleFactor(rotations[p0Index].TimeStamp, rotations[p1Index].TimeStamp, animationTime);
-            glm::quat finalRotation = glm::slerp(rotations[p0Index].Rotation, rotations[p1Index].Rotation, scaleFactor);
-            finalRotation = glm::normalize(finalRotation);
-            return finalRotation;
+            const size_t p0Index = FindKeyIndex(rotations, animationTime);
+            const size_t p1Index = p0Index + 1;
+            const float scaleFactor = GetScaleFactor(rotations[p0Index].TimeStamp, rotations[p1Index].TimeStamp, animationTime);
+            // Adjacent keys are close to each other, so nlerp should be visually identical to slerp here, but a lot cheaper
+            return Transform::NLerp(rotations[p0Index].Rotation, rotations[p1Index].Rotation, scaleFactor);
         }
 
-        /* Figures out which scaling keys to interpolate b/w and performs the interpolation
-        and returns the scale matrix */
         static glm::vec3 InterpolateScalingRaw(const BoneAnimation& bone, float animationTime)
         {
             const auto& scales = bone.Scales;
+            if (scales.empty())
+                return glm::vec3(1.f);
             if (scales.size() == 1)
                 return scales[0].Scale;
 
-            size_t p0Index = GetScaleIndex(scales, animationTime);
-            size_t p1Index = p0Index + 1;
-            float scaleFactor = GetScaleFactor(scales[p0Index].TimeStamp, scales[p1Index].TimeStamp, animationTime);
-            glm::vec3 finalScale = glm::mix(scales[p0Index].Scale, scales[p1Index].Scale, scaleFactor);
-            return finalScale;
+            const size_t p0Index = FindKeyIndex(scales, animationTime);
+            const size_t p1Index = p0Index + 1;
+            const float scaleFactor = GetScaleFactor(scales[p0Index].TimeStamp, scales[p1Index].TimeStamp, animationTime);
+            return glm::mix(scales[p0Index].Scale, scales[p1Index].Scale, scaleFactor);
         }
 
-        static void CalculateAdditivePose_Recursive_Internal(const SkeletalPose& refPose, const SkeletalPose& sourcePose, const BoneNode& node, SkeletalPose* resultPose)
+        static Transform FirstKeyTransform(const BoneAnimation& bone)
         {
-            const uint64_t nodeHash = node.GetNameHash();
-
-            auto itRef = refPose.FindBone(nodeHash);
-            auto bItRefValid = itRef != refPose.Bones.end();
-            auto itSrc = sourcePose.FindBone(nodeHash);
-            auto bItSrcValid = itSrc != sourcePose.Bones.end();
-
-            Transform refAnimTr;
-            Transform srcAnimTr;
-            if (bItRefValid)
-            {
-                const auto& bone = itRef->second;
-                refAnimTr = bone;
-            }
-            if (bItSrcValid)
-            {
-                const auto& bone = itSrc->second;
-                srcAnimTr = bone;
-            }
-
-            if (bItRefValid || bItSrcValid)
-            {
-                Transform& diffTr = resultPose->Bones[nodeHash];
-                diffTr = srcAnimTr - refAnimTr;
-            }
-
-            for (auto& child : node.Children)
-                CalculateAdditivePose_Recursive_Internal(refPose, sourcePose, child, resultPose);
+            Transform result;
+            if (!bone.Locations.empty())
+                result.Location = bone.Locations.front().Location;
+            if (!bone.Rotations.empty())
+                result.Rotation = bone.Rotations.front().Rotation;
+            if (!bone.Scales.empty())
+                result.Scale3D = bone.Scales.front().Scale;
+            return result;
         }
 
-        static void ApplyAdditive_Recursive_Internal(const SkeletalPose& targetPose, const SkeletalPose& additivePose, const BoneNode& node, float blendAlpha, SkeletalPose* resultPose)
+        static Transform LastKeyTransform(const BoneAnimation& bone)
         {
-            const uint64_t nodeHash = node.GetNameHash();
-
-            auto itTarget = targetPose.FindBone(nodeHash);
-            auto bItTargetValid = itTarget != targetPose.Bones.end();
-            auto itAdditive = additivePose.FindBone(nodeHash);
-            auto bItAdditiveValid = itAdditive != additivePose.Bones.end();
-
-            Transform targetAnimTr;
-            Transform additiveAnimTr;
-            if (bItTargetValid)
-            {
-                const auto& bone = itTarget->second;
-                targetAnimTr = bone;
-            }
-            if (bItAdditiveValid)
-            {
-                const auto& bone = itAdditive->second;
-                additiveAnimTr = bone;
-            }
-
-            if (bItTargetValid || bItAdditiveValid)
-            {
-                Transform lerpedAdditive = Transform::Blend(Transform{}, additiveAnimTr, blendAlpha);
-                Transform& diffTr = resultPose->Bones[nodeHash];
-                diffTr = lerpedAdditive + targetAnimTr;
-            }
-
-            for (auto& child : node.Children)
-                ApplyAdditive_Recursive_Internal(targetPose, additivePose, child, blendAlpha, resultPose);
-        }
-
-        static void BlendPoses_Recursive_Internal(const SkeletalPose& pose1, const SkeletalPose& pose2, const BoneNode& node, float blendAlpha, SkeletalPose* outPose)
-        {
-            const uint64_t nodeHash = node.GetNameHash();
-
-            auto it1 = pose1.FindBone(nodeHash);
-            auto it2 = pose2.FindBone(nodeHash);
-            const bool bValid1 = it1 != pose1.Bones.end();
-            const bool bValid2 = it2 != pose2.Bones.end();
-
-            if (bValid1 || bValid2)
-            {
-                auto& resultTr = outPose->Bones[nodeHash];
-                if (bValid1 && bValid2)
-                {
-                    const auto& bone1 = it1->second;
-                    const auto& bone2 = it2->second;
-
-                    resultTr = Transform::Blend(bone1, bone2, blendAlpha);
-                }
-                else if (bValid1)
-                {
-                    const auto& bone = it1->second;
-                    resultTr = bone;
-                }
-                else if (bValid2)
-                {
-                    const auto& bone = it2->second;
-                    resultTr = bone;
-                }
-            }
-
-            for (auto& child : node.Children)
-                BlendPoses_Recursive_Internal(pose1, pose2, child, blendAlpha, outPose);
-        }
-
-        static void BlendPoses_Recursive_Internal(const SkeletalPose& pose1, const SkeletalPose& pose2, const SkeletalPose& pose3, const BoneNode& node, const glm::vec3& buv, SkeletalPose* outPose)
-        {
-            const uint64_t nodeHash = node.GetNameHash();
-
-            auto it1 = pose1.FindBone(nodeHash);
-            auto it2 = pose2.FindBone(nodeHash);
-            auto it3 = pose3.FindBone(nodeHash);
-            const bool bValid1 = it1 != pose1.Bones.end();
-            const bool bValid2 = it2 != pose2.Bones.end();
-            const bool bValid3 = it3 != pose3.Bones.end();
-
-            const Transform defaultTr = {};
-            const Transform& bone1Tr = bValid1 ? it1->second : defaultTr;
-            const Transform& bone2Tr = bValid2 ? it2->second : defaultTr;
-            const Transform& bone3Tr = bValid3 ? it3->second : defaultTr;
-
-            if (bValid1 || bValid2 || bValid3)
-                outPose->Bones[nodeHash] = Transform::Blend(bone1Tr, bone2Tr, bone3Tr, buv);
-
-            for (auto& child : node.Children)
-                BlendPoses_Recursive_Internal(pose1, pose2, pose3, child, buv, outPose);
+            Transform result;
+            if (!bone.Locations.empty())
+                result.Location = bone.Locations.back().Location;
+            if (!bone.Rotations.empty())
+                result.Rotation = bone.Rotations.back().Rotation;
+            if (!bone.Scales.empty())
+                result.Scale3D = bone.Scales.back().Scale;
+            return result;
         }
 
         static void CalculateAdditivePose_Internal(const SkeletalPose& refPose, const SkeletalPose& sourcePose, const SkeletalMeshInfo& skeletal, SkeletalPose* resultPose)
@@ -293,27 +107,15 @@ namespace Eagle
                 const uint64_t nodeHash = entry.Node->GetNameHash();
 
                 auto itRef = refPose.FindBone(nodeHash);
-                auto bItRefValid = itRef != refPose.Bones.end();
+                const bool bItRefValid = itRef != refPose.Bones.end();
                 auto itSrc = sourcePose.FindBone(nodeHash);
-                auto bItSrcValid = itSrc != sourcePose.Bones.end();
-
-                Transform refAnimTr;
-                Transform srcAnimTr;
-                if (bItRefValid)
-                {
-                    const auto& bone = itRef->second;
-                    refAnimTr = bone;
-                }
-                if (bItSrcValid)
-                {
-                    const auto& bone = itSrc->second;
-                    srcAnimTr = bone;
-                }
+                const bool bItSrcValid = itSrc != sourcePose.Bones.end();
 
                 if (bItRefValid || bItSrcValid)
                 {
-                    Transform& diffTr = resultPose->Bones[nodeHash];
-                    diffTr = srcAnimTr - refAnimTr;
+                    const Transform refAnimTr = bItRefValid ? itRef->second : Transform{};
+                    const Transform srcAnimTr = bItSrcValid ? itSrc->second : Transform{};
+                    resultPose->Bones[nodeHash] = srcAnimTr - refAnimTr;
                 }
             }
         }
@@ -325,28 +127,16 @@ namespace Eagle
                 const uint64_t nodeHash = entry.Node->GetNameHash();
 
                 auto itTarget = targetPose.FindBone(nodeHash);
-                auto bItTargetValid = itTarget != targetPose.Bones.end();
+                const bool bItTargetValid = itTarget != targetPose.Bones.end();
                 auto itAdditive = additivePose.FindBone(nodeHash);
-                auto bItAdditiveValid = itAdditive != additivePose.Bones.end();
-
-                Transform targetAnimTr;
-                Transform additiveAnimTr;
-                if (bItTargetValid)
-                {
-                    const auto& bone = itTarget->second;
-                    targetAnimTr = bone;
-                }
-                if (bItAdditiveValid)
-                {
-                    const auto& bone = itAdditive->second;
-                    additiveAnimTr = bone;
-                }
+                const bool bItAdditiveValid = itAdditive != additivePose.Bones.end();
 
                 if (bItTargetValid || bItAdditiveValid)
                 {
-                    Transform lerpedAdditive = Transform::Blend(Transform{}, additiveAnimTr, blendAlpha);
-                    Transform& diffTr = resultPose->Bones[nodeHash];
-                    diffTr = lerpedAdditive + targetAnimTr;
+                    const Transform targetAnimTr = bItTargetValid ? itTarget->second : Transform{};
+                    const Transform additiveAnimTr = bItAdditiveValid ? itAdditive->second : Transform{};
+                    const Transform lerpedAdditive = Transform::BlendFast(Transform{}, additiveAnimTr, blendAlpha);
+                    resultPose->Bones[nodeHash] = lerpedAdditive + targetAnimTr;
                 }
             }
         }
@@ -362,32 +152,18 @@ namespace Eagle
                 const bool bValid1 = it1 != pose1.Bones.end();
                 const bool bValid2 = it2 != pose2.Bones.end();
 
-                if (bValid1 || bValid2)
-                {
-                    auto& resultTr = outPose->Bones[nodeHash];
-                    if (bValid1 && bValid2)
-                    {
-                        const auto& bone1 = it1->second;
-                        const auto& bone2 = it2->second;
-
-                        resultTr = Transform::Blend(bone1, bone2, blendAlpha);
-                    }
-                    else if (bValid1)
-                    {
-                        const auto& bone = it1->second;
-                        resultTr = bone;
-                    }
-                    else if (bValid2)
-                    {
-                        const auto& bone = it2->second;
-                        resultTr = bone;
-                    }
-                }
+                if (bValid1 && bValid2)
+                    outPose->Bones[nodeHash] = Transform::BlendFast(it1->second, it2->second, blendAlpha);
+                else if (bValid1)
+                    outPose->Bones[nodeHash] = it1->second;
+                else if (bValid2)
+                    outPose->Bones[nodeHash] = it2->second;
             }
         }
         
         static void BlendPoses_Internal(const SkeletalPose& pose1, const SkeletalPose& pose2, const SkeletalPose& pose3, const SkeletalMeshInfo& skeletal, const glm::vec3& buv, SkeletalPose* outPose)
         {
+            const Transform defaultTr = {};
             for (const auto& entry : skeletal.FlattenedBones)
             {
                 const uint64_t nodeHash = entry.Node->GetNameHash();
@@ -399,77 +175,51 @@ namespace Eagle
                 const bool bValid2 = it2 != pose2.Bones.end();
                 const bool bValid3 = it3 != pose3.Bones.end();
 
-                const Transform defaultTr = {};
-                const Transform& bone1Tr = bValid1 ? it1->second : defaultTr;
-                const Transform& bone2Tr = bValid2 ? it2->second : defaultTr;
-                const Transform& bone3Tr = bValid3 ? it3->second : defaultTr;
-
                 if (bValid1 || bValid2 || bValid3)
+                {
+                    const Transform& bone1Tr = bValid1 ? it1->second : defaultTr;
+                    const Transform& bone2Tr = bValid2 ? it2->second : defaultTr;
+                    const Transform& bone3Tr = bValid3 ? it3->second : defaultTr;
                     outPose->Bones[nodeHash] = Transform::Blend(bone1Tr, bone2Tr, bone3Tr, buv);
+                }
             }
         }
     
-        static void FilterBone_Internal(const SkeletalPose& pose, BoneNode& node, const std::string& boneName, bool bIgnoreParentLocation, bool bIgnoreParentRotation, bool bIgnoreParentScale, SkeletalPose* outPose, bool bProcess = false)
+        static void FilterBone_Internal(const SkeletalPose& pose, const BoneNode& node, uint64_t targetHash, SkeletalPose* outPose, bool bProcess = false)
         {
-            if (!bProcess)
-            {
-                const bool bTargetBone = boneName == node.GetName();
-                bProcess = bTargetBone;
-
-                // Only change target bone node
-                if (bTargetBone)
-                {
-                    node.bIgnoreParentLocation = bIgnoreParentLocation;
-                    node.bIgnoreParentRotation = bIgnoreParentRotation;
-                    node.bIgnoreParentScale = bIgnoreParentScale;
-                }
-            }
+            const uint64_t nodeHash = node.GetNameHash();
+            bProcess = bProcess || (nodeHash == targetHash);
 
             if (bProcess)
             {
-                if (auto it = pose.FindBone(node.GetNameHash()); it != pose.Bones.end())
-                    outPose->Bones.emplace(node.GetNameHash(), it->second); // Copy bone transform
+                if (auto it = pose.FindBone(nodeHash); it != pose.Bones.end())
+                    outPose->Bones.emplace(nodeHash, it->second); // Copy bone transform
             }
 
-            for (auto& child : node.Children)
-                FilterBone_Internal(pose, child, boneName, bIgnoreParentLocation, bIgnoreParentRotation, bIgnoreParentScale, outPose, bProcess);
-        }
-    
-        static bool CheckEvent_Forward(float eventTime, float prevTime, float curTime)
-        {
-            return eventTime >= prevTime && eventTime <= curTime;
-        }
-
-        static bool CheckEvent_ForwardLoopedOver(float eventTime, float prevTime, float curTime)
-        {
-            return eventTime >= prevTime || eventTime <= curTime;
-        }
-
-        static bool CheckEvent_Backward(float eventTime, float prevTime, float curTime)
-        {
-            return eventTime <= prevTime && eventTime >= curTime;
-        }
-
-        static bool CheckEvent_BackwardLoopedOver(float eventTime, float prevTime, float curTime)
-        {
-            return eventTime <= prevTime || eventTime >= curTime;
+            for (const auto& child : node.Children)
+                FilterBone_Internal(pose, child, targetHash, outPose, bProcess);
         }
 
         // @parentNode. We need to use parent nodes base transformation that's not affected by any other animation.
-        static glm::mat4 FilterTransform(const SkeletalMeshInfo& skeletal, const glm::mat4& parentTr, const BoneNode& node, Transform& nodeBoneTr, const BoneNode* parentNode)
+        // @parentOverride. Per-pose "ignore parent" settings for this bone. Can be null
+        static glm::mat4 FilterTransform(const SkeletalMeshInfo& skeletal, const glm::mat4& parentTr, Transform& nodeBoneTr, const BoneNode* parentNode, const BoneParentOverride* parentOverride)
         {
-            if (!node.bIgnoreParentLocation && !node.bIgnoreParentRotation && !node.bIgnoreParentScale)
+            if (!parentOverride || (!parentOverride->bIgnoreParentLocation && !parentOverride->bIgnoreParentRotation && !parentOverride->bIgnoreParentScale))
                 return Math::ToTransformMatrix(nodeBoneTr); // Not ignoring anything
+
+            const bool bIgnoreParentLocation = parentOverride->bIgnoreParentLocation;
+            const bool bIgnoreParentRotation = parentOverride->bIgnoreParentRotation;
+            const bool bIgnoreParentScale = parentOverride->bIgnoreParentScale;
 
             Transform parent = Math::DecomposeTransformMatrix(parentTr);
 
             // We revert parent node's transformation, so that calculating "parentNodeTr * nodeTr" gives us back "nodeTr".
             // Basically, embedding `inverse(parentNodeTr)` into `nodeTr`
-            if (!node.bIgnoreParentLocation)
+            if (!bIgnoreParentLocation)
                 parent.Location = glm::vec3(0);
-            if (!node.bIgnoreParentRotation)
+            if (!bIgnoreParentRotation)
                 parent.Rotation = Rotator{};
-            if (!node.bIgnoreParentScale)
+            if (!bIgnoreParentScale)
                 parent.Scale3D = glm::vec3(1);
 
             // But we don't need to ignore it completely, we just take parent node's base transformation
@@ -482,11 +232,11 @@ namespace Eagle
                     parentBaseTransform = Math::DecomposeTransformMatrix(parentNode->Transformation);
 
                 Transform baseTransform;
-                if (node.bIgnoreParentLocation)
+                if (bIgnoreParentLocation)
                     baseTransform.Location = parentBaseTransform.Location;
-                if (node.bIgnoreParentRotation)
+                if (bIgnoreParentRotation)
                     baseTransform.Rotation = parentBaseTransform.Rotation;
-                if (node.bIgnoreParentScale)
+                if (bIgnoreParentScale)
                     baseTransform.Scale3D = parentBaseTransform.Scale3D;
 
                 nodeBoneTr = baseTransform + nodeBoneTr;
@@ -497,62 +247,15 @@ namespace Eagle
             return newBoneTr;
         }
 
-        static void FinalizePose_Recursive_Internal(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>& outTransforms, const BoneNode* parentNode = nullptr)
+        static void FinalizePose_Internal(SkeletalPose& pose, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>* outTransforms)
         {
-            const uint64_t nodeHash = node.GetNameHash();
-            glm::mat4 globalTransformation;
-            if (auto it = pose.FindBone(nodeHash); it != pose.Bones.end())
-            {
-                auto& boneTr = it->second;
-                globalTransformation = parentTransform * Utils::FilterTransform(skeletal, parentTransform, node, boneTr, parentNode);
-            }
-            else
-            {
-                pose.Bones[nodeHash] = Math::DecomposeTransformMatrix(node.Transformation);
-                globalTransformation = parentTransform * node.Transformation;
-            }
-
-            if (auto it = skeletal.FindBoneInfo(nodeHash); skeletal.IsValid(it))
-            {
-                const uint32_t index = it->second.BoneID;
-                const glm::mat4& offset = it->second.Offset;
-                if (index >= outTransforms.size())
-                    outTransforms.resize(index + 1);
-
-                outTransforms[index] = skeletal.InverseTransform * globalTransformation * offset;
-            }
-
-            for (auto& child : node.Children)
-                FinalizePose_Recursive_Internal(pose, child, globalTransformation, skeletal, outTransforms, &node);
-        }
-
-        static void FinalizePose_Recursive_Internal(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, const BoneNode* parentNode = nullptr)
-        {
-            const uint64_t nodeHash = node.GetNameHash();
-            glm::mat4 globalTransformation;
-            if (auto it = pose.FindBone(nodeHash); it != pose.Bones.end())
-            {
-                auto& bone = it->second;
-                globalTransformation = parentTransform * Utils::FilterTransform(skeletal, parentTransform, node, bone, parentNode);
-            }
-            else
-            {
-                pose.Bones[nodeHash] = Math::DecomposeTransformMatrix(node.Transformation);
-                globalTransformation = parentTransform * node.Transformation;
-            }
-
-            for (auto& child : node.Children)
-                FinalizePose_Recursive_Internal(pose, child, globalTransformation, skeletal, &node);
-        }
-
-        static void FinalizePose_Internal(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>& outTransforms, const BoneNode* parentNode = nullptr)
-        {
-            // Every caller enters this at `skeletal.RootBone`, so we can walk the whole precomputed
-            // `FlattenedBones` order directly instead of recursing `node`/`node.Children`.
-            EG_CORE_ASSERT(&node == &skeletal.RootBone);
-            thread_local std::vector<glm::mat4> globalTransforms;
+            std::vector<glm::mat4> globalTransforms;
             globalTransforms.resize(skeletal.FlattenedBones.size());
 
+            if (outTransforms && outTransforms->size() < skeletal.GetNumBoneTransforms())
+                outTransforms->resize(skeletal.GetNumBoneTransforms());
+
+            const bool bHasOverrides = !pose.ParentOverrides.empty();
             for (size_t i = 0; i < skeletal.FlattenedBones.size(); ++i)
             {
                 const auto& entry = skeletal.FlattenedBones[i];
@@ -563,8 +266,8 @@ namespace Eagle
                 glm::mat4 globalTransformation;
                 if (auto it = pose.FindBone(nodeHash); it != pose.Bones.end())
                 {
-                    auto& boneTr = it->second;
-                    globalTransformation = parentTr * Utils::FilterTransform(skeletal, parentTr, curNode, boneTr, entry.ParentNode);
+                    const BoneParentOverride* parentOverride = bHasOverrides ? pose.FindParentOverride(nodeHash) : nullptr;
+                    globalTransformation = parentTr * Utils::FilterTransform(skeletal, parentTr, it->second, entry.ParentNode, parentOverride);
                 }
                 else
                 {
@@ -573,44 +276,20 @@ namespace Eagle
                 }
                 globalTransforms[i] = globalTransformation;
 
-                if (auto it = skeletal.FindBoneInfo(nodeHash); skeletal.IsValid(it))
+                if (outTransforms && entry.bHasBoneInfo)
                 {
-                    const uint32_t index = it->second.BoneID;
-                    const glm::mat4& offset = it->second.Offset;
-                    if (index >= outTransforms.size())
-                        outTransforms.resize(index + 1);
+                    if (entry.BoneID >= outTransforms->size())
+                        outTransforms->resize(entry.BoneID + 1);
 
-                    outTransforms[index] = skeletal.InverseTransform * globalTransformation * offset;
+                    (*outTransforms)[entry.BoneID] = skeletal.InverseTransform * globalTransformation * entry.Offset;
                 }
             }
         }
 
-        static void FinalizePose_Internal(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, const BoneNode* parentNode = nullptr)
+        static void CalculateBlendSpaceVertexRootMotion(const SkeletalMeshAnimation* meshAnim, float prevTime, float currentTime, float speed, SkeletalPose* outPose)
         {
-            EG_CORE_ASSERT(&node == &skeletal.RootBone);
-            thread_local std::vector<glm::mat4> globalTransforms;
-            globalTransforms.resize(skeletal.FlattenedBones.size());
-
-            for (size_t i = 0; i < skeletal.FlattenedBones.size(); ++i)
-            {
-                const auto& entry = skeletal.FlattenedBones[i];
-                const BoneNode& curNode = *entry.Node;
-                const uint64_t nodeHash = curNode.GetNameHash();
-                const glm::mat4& parentTr = (entry.ParentIndex < 0) ? parentTransform : globalTransforms[entry.ParentIndex];
-
-                glm::mat4 globalTransformation;
-                if (auto it = pose.FindBone(nodeHash); it != pose.Bones.end())
-                {
-                    auto& bone = it->second;
-                    globalTransformation = parentTr * Utils::FilterTransform(skeletal, parentTr, curNode, bone, entry.ParentNode);
-                }
-                else
-                {
-                    pose.Bones[nodeHash] = Math::DecomposeTransformMatrix(curNode.Transformation);
-                    globalTransformation = parentTr * curNode.Transformation;
-                }
-                globalTransforms[i] = globalTransformation;
-            }
+            if (!meshAnim->bInPlace && meshAnim->HasRootMotion())
+                outPose->SetRootMotion(AnimationSystem::CalculateRootMotion(meshAnim, currentTime, prevTime, speed, 0.f, &outPose->TotalRootMotion));
         }
 
         static void CalculateBlendSpaceVertexAnimation(const Delaunay::Vertex& v, const SkeletalMeshInfo& skeletal, double prevTimeSeconds, double currentTimeSeconds, bool bGatherAnimEvents, const glm::mat4& parentTransform, SkeletalPose* outPose)
@@ -620,13 +299,13 @@ namespace Eagle
             {
                 const SkeletalMeshAnimation* meshAnim = bsVertex->Animation->GetAnimation().get();
                 const float ticksPerSecond = bsVertex->AnimSpeed * meshAnim->TicksPerSecond;
-                const double currentTime = AnimationSystem::WrapAnimationTime(double(meshAnim->Duration), currentTimeSeconds * ticksPerSecond, true);
-                AnimationSystem::AnimationClip(skeletal, meshAnim, skeletal.RootBone, float(currentTime), outPose);
+                const float currentTime = (float)AnimationSystem::WrapAnimationTime(double(meshAnim->Duration), currentTimeSeconds * ticksPerSecond, true);
+                const float prevTime = (float)AnimationSystem::WrapAnimationTime(double(meshAnim->Duration), prevTimeSeconds * ticksPerSecond, true);
+                AnimationSystem::AnimationClip(skeletal, meshAnim, skeletal.RootBone, currentTime, outPose);
+                CalculateBlendSpaceVertexRootMotion(meshAnim, prevTime, currentTime, bsVertex->AnimSpeed, outPose);
+                outPose->TimeTillAnimationLoops = AnimationSystem::CalculateTimeTillAnimationLoops(meshAnim, currentTime, bsVertex->AnimSpeed);
                 if (bGatherAnimEvents)
-                {
-                    const double prevTime = AnimationSystem::WrapAnimationTime(double(meshAnim->Duration), prevTimeSeconds * ticksPerSecond, true);
-                    AnimationSystem::GetEventsToTrigger(meshAnim, float(prevTime), float(currentTime), bsVertex->AnimSpeed, bsVertex->AnimSpeed, &outPose->EventsToTrigger);
-                }
+                    AnimationSystem::GetEventsToTrigger(meshAnim, prevTime, currentTime, bsVertex->AnimSpeed, true, &outPose->EventsToTrigger);
             }
             else
             {
@@ -635,28 +314,110 @@ namespace Eagle
         }
 
         // Same as above, but the time isn't provided as seconds, but in ticks as alpha (in [0; 1] range of the duration)
+        // Note: doesn't set `TimeTillAnimationLoops`, it's handled by the caller
         static void CalculateBlendSpaceVertexAnimation_TimeInTicksAlpha(const Delaunay::Vertex& v, const SkeletalMeshInfo& skeletal, double prevTime, double currentTime, bool bGatherAnimEvents, const glm::mat4& parentTransform, SkeletalPose* outPose)
         {
             BlendSpaceVertex* bsVertex = (BlendSpaceVertex*)v.UserData;
             if (bsVertex && (bsVertex->Animation))
             {
                 const SkeletalMeshAnimation* meshAnim = bsVertex->Animation->GetAnimation().get();
-                currentTime *= meshAnim->Duration;
-                AnimationSystem::AnimationClip(skeletal, meshAnim, skeletal.RootBone, float(currentTime), outPose);
+                const float currentTimeTicks = float(currentTime * meshAnim->Duration);
+                const float prevTimeTicks = float(prevTime * meshAnim->Duration);
+                AnimationSystem::AnimationClip(skeletal, meshAnim, skeletal.RootBone, currentTimeTicks, outPose);
+                CalculateBlendSpaceVertexRootMotion(meshAnim, prevTimeTicks, currentTimeTicks, bsVertex->AnimSpeed, outPose);
                 if (bGatherAnimEvents)
-                {
-                    prevTime *= meshAnim->Duration;
-                    AnimationSystem::GetEventsToTrigger(meshAnim, float(prevTime), float(currentTime), bsVertex->AnimSpeed, bsVertex->AnimSpeed, &outPose->EventsToTrigger);
-                }
+                    AnimationSystem::GetEventsToTrigger(meshAnim, prevTimeTicks, currentTimeTicks, bsVertex->AnimSpeed, true, &outPose->EventsToTrigger);
             }
             else
             {
                 AnimationSystem::FinalizePose(*outPose, skeletal.RootBone, parentTransform, skeletal);
             }
         }
+
+        static void UpdateSkeletalMeshComponent(SkeletalMeshComponent* mesh, std::vector<glm::mat4>& transforms, float ts)
+        {
+            const auto& skeletalMesh = mesh->GetMeshAsset()->GetMesh();
+            if (mesh->IsRagdollEnabled())
+            {
+                // When it's in a ragdoll state, we don't update animations,
+                // but rather read `LastPose` which already contains data from ragdoll simulation
+                auto& ragdollActor = mesh->GetRagdollActor();
+                if (ragdollActor->DoesNeedSync())
+                {
+                    ragdollActor->SynchronizeTransform(); // Update `LastPose`
+                }
+                const auto& skeletalInfo = skeletalMesh->GetSkeletalMeshInfo();
+                AnimationSystem::FinalizePoseRagdoll(mesh->LastPose, skeletalInfo.RootBone, glm::mat4(1.f), skeletalInfo, transforms);
+                return;
+            }
+
+            if (mesh->AnimType == AnimationType::Clip)
+            {
+                const auto& animAsset = mesh->GetAnimationAsset();
+                const SkeletalMeshAnimation* animation = animAsset ? animAsset->GetAnimation().get() : nullptr;
+                AnimationSystem::Update(skeletalMesh, animation, mesh->CurrentClipPlayTime, &transforms, &mesh->LastPose);
+                if (animation)
+                {
+                    const float stepSpeed = mesh->PrevClipPlaybackSpeed;
+                    if (!animation->bInPlace && animation->HasRootMotion())
+                    {
+                        mesh->LastPose.SetRootMotion(AnimationSystem::CalculateRootMotion(animation, mesh->CurrentClipPlayTime, mesh->PrevClipPlayTime, stepSpeed, ts, &(mesh->LastPose.TotalRootMotion)));
+                    }
+                    AnimationSystem::GetEventsToTrigger(animation, mesh->PrevClipPlayTime, mesh->CurrentClipPlayTime, stepSpeed, mesh->bClipLooping, &(mesh->LastPose.EventsToTrigger));
+
+                    mesh->PrevClipPlayTime = mesh->CurrentClipPlayTime;
+                    mesh->CurrentClipPlayTime = AnimationSystem::StepForwardAnimTime(animation, mesh->CurrentClipPlayTime, ts * mesh->ClipPlaybackSpeed, mesh->bClipLooping);
+                    mesh->PrevClipPlaybackSpeed = mesh->ClipPlaybackSpeed;
+                }
+            }
+            else
+            {
+                mesh->LastPose.Reset();
+                if (const auto& graph = mesh->GetAnimationGraph())
+                {
+                    graph->Update(ts, &transforms);
+                    mesh->LastPose = std::move(graph->GetPose());
+                }
+                else
+                {
+                    const auto& skeletalInfo = skeletalMesh->GetSkeletalMeshInfo();
+                    AnimationSystem::FinalizePose(mesh->LastPose, skeletalInfo.RootBone, glm::mat4(1.f), skeletalInfo, transforms);
+                }
+            }
+        }
+
+        static uint32_t GetAnimationWorkerThreadsCount()
+        {
+            const uint32_t hwThreads = std::max(1u, std::thread::hardware_concurrency());
+            return hwThreads - 1u;
+        }
+
+        struct SkeletalMeshJob
+        {
+            SkeletalMeshComponent* Mesh = nullptr;
+            std::vector<glm::mat4>* Transforms = nullptr;
+        };
+
+        static void PrepareSkeletalMeshJobs(const std::vector<SkeletalMeshComponent*>& meshes, ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>>& transformsMap, std::vector<Utils::SkeletalMeshJob>* jobs)
+        {
+            jobs->clear();
+            jobs->reserve(meshes.size());
+            for (auto& mesh : meshes)
+            {
+                if (!mesh->GetMeshAsset())
+                    continue;
+
+                jobs->push_back({ mesh, nullptr });
+                transformsMap.emplace(mesh->Parent.GetID(), std::vector<glm::mat4>{});
+            }
+
+            for (auto& job : *jobs)
+                job.Transforms = &transformsMap[job.Mesh->Parent.GetID()];
+        }
     }
 
-    ThreadPool AnimationSystem::s_ThreadPool("AnimationSystem", std::thread::hardware_concurrency() - 1u, false);
+    ThreadPool AnimationSystem::s_ThreadPool("AnimationSystem", Utils::GetAnimationWorkerThreadsCount(), false);
+    static std::vector<Utils::SkeletalMeshJob> s_Jobs;
 
     ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> AnimationSystem::s_Transforms;
     ankerl::unordered_dense::map<GUID, ankerl::unordered_dense::map<GUID, std::vector<glm::mat4>>> AnimationSystem::s_EmittersTransforms;
@@ -666,7 +427,6 @@ namespace Eagle
     void AnimationSystem::Update(const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* animation, float currentTime, std::vector<glm::mat4>* outTransforms, SkeletalPose* outPose)
     {
         outTransforms->clear();
-        outTransforms->reserve(100);
         
         const auto& skeletalInfo = mesh->GetSkeletalMeshInfo();
         outPose->Reset();
@@ -676,7 +436,7 @@ namespace Eagle
             AnimationClip(skeletalInfo, animation, skeletalInfo.RootBone, currentTime, outPose);
         }
 
-        glm::mat4 rootTransform = glm::mat4(1.f);
+        const glm::mat4 rootTransform = glm::mat4(1.f);
         FinalizePose(*outPose, skeletalInfo.RootBone, rootTransform, skeletalInfo, *outTransforms);
     }
     
@@ -689,27 +449,54 @@ namespace Eagle
 
     bool AnimationSystem::IsValidTime(const SkeletalMeshAnimation* animation, float currentTime)
     {
-        return currentTime <= animation->Duration;
+        return currentTime >= 0.f && currentTime <= animation->Duration;
     }
 
-    void AnimationSystem::GetEventsToTrigger(const SkeletalMeshAnimation* animation, float prevTime, float curTime, float prevSpeed, float curSpeed, std::vector<AnimationEvent>* outEvents)
+    float AnimationSystem::CalculateTimeTillAnimationLoops(const SkeletalMeshAnimation* animation, float currentTime, float playbackSpeed)
     {
-        if (prevSpeed < 0 && curSpeed > 0 || curSpeed < 0 && prevSpeed > 0) // If speed changed signs
-            std::swap(curTime, prevTime);
+        constexpr float speedDelta = 0.00001f;
+        const float ticksPerSecond = glm::abs(playbackSpeed) * animation->TicksPerSecond;
+        if (glm::abs(playbackSpeed) <= speedDelta || ticksPerSecond <= 0.f)
+            return FLT_MAX; // Animation is not playing, so we'll never loop
 
-        if (curSpeed == 0.f)
+        // Forward - time left till the end. Backwards - time left till the start.
+        const float ticksLeft = playbackSpeed > 0.f ? (animation->Duration - currentTime) : currentTime;
+        return glm::max(ticksLeft, 0.f) / ticksPerSecond;
+    }
+
+    void AnimationSystem::GetEventsToTrigger(const SkeletalMeshAnimation* animation, float prevTime, float curTime, float speed, bool bLoop, std::vector<AnimationEvent>* outEvents)
+    {
+        if (!animation || speed == 0.f || prevTime == curTime)
             return;
 
-        const bool bForward = curSpeed > 0.f;
+        const bool bForward = speed > 0.f;
         const bool bLoopedOver = bForward ? curTime < prevTime : curTime > prevTime;
+        if (bLoopedOver && !bLoop)
+            return;
 
-        const auto comparisonFunc = bForward ?
-            bLoopedOver ? &Utils::CheckEvent_ForwardLoopedOver : &Utils::CheckEvent_Forward :
-            bLoopedOver ? &Utils::CheckEvent_BackwardLoopedOver : &Utils::CheckEvent_Backward;
+        // A non-looping animation gets clamped at its end. Include that end point so an event placed exactly there fires (once, since the next interval is empty)
+        const bool bIncludeCurTime = !bLoop && (bForward ? curTime >= animation->Duration : curTime <= 0.f);
 
         for (const auto& event : animation->Events)
         {
-            if (comparisonFunc(event.Time, prevTime, curTime))
+            const float t = event.Time;
+            bool bTrigger = false;
+            if (bForward)
+            {
+                if (bLoopedOver)
+                    bTrigger = t >= prevTime || t < curTime; // [prev; Duration] + [0; cur)
+                else
+                    bTrigger = t >= prevTime && (t < curTime || (bIncludeCurTime && t <= curTime)); // [prev; cur)
+            }
+            else
+            {
+                if (bLoopedOver)
+                    bTrigger = t <= prevTime || t > curTime; // [0; prev] + (cur; Duration]
+                else
+                    bTrigger = t <= prevTime && (t > curTime || (bIncludeCurTime && t >= curTime)); // (cur; prev]
+            }
+
+            if (bTrigger)
                 outEvents->push_back(event);
         }
     }
@@ -722,88 +509,17 @@ namespace Eagle
 
         s_Transforms.clear();
         s_Transforms.reserve(meshes.size());
-        // Reserve memory
-        for (auto& mesh : meshes)
+        Utils::PrepareSkeletalMeshJobs(meshes, s_Transforms, &s_Jobs);
+
+        s_ThreadPool->detach_loop(size_t(0), s_Jobs.size(), [ts](size_t i)
         {
-            const auto& asset = mesh->GetMeshAsset();
-            if (!asset)
-                continue;
-
-            s_Transforms.emplace(mesh->Parent.GetID(), std::vector<glm::mat4>{});
-        }
-
-        for (auto& mesh : meshes)
-        {
-            const auto& asset = mesh->GetMeshAsset();
-            if (!asset)
-                continue;
-
-            s_ThreadPool->detach_task([&asset, mesh, ts]()
-            {
-                const auto& skeletalMesh = asset->GetMesh();
-                auto& transforms = s_Transforms[mesh->Parent.GetID()];
-                if (mesh->IsRagdollEnabled())
-                {
-                    // When it's in a ragdoll state, we don't update animations,
-                    // but rather read `LastPose` which already contains data from ragdoll simulation
-                    auto& ragdollActor = mesh->GetRagdollActor();
-                    if (ragdollActor->DoesNeedSync())
-                    {
-                        ragdollActor->SynchronizeTransform(); // Update `LastPose`
-                    }
-                    const auto& skeletalInfo = skeletalMesh->GetSkeletalMeshInfo();
-                    FinalizePoseRagdoll(mesh->LastPose, skeletalInfo.RootBone, glm::mat4(1.f), skeletalInfo, transforms);
-                    return;
-                }
-
-                if (mesh->AnimType == AnimationType::Clip)
-                {
-                    const auto& animAsset = mesh->GetAnimationAsset();
-                    const SkeletalMeshAnimation* animation = animAsset ? animAsset->GetAnimation().get() : nullptr;
-                    Update(skeletalMesh, animation, mesh->CurrentClipPlayTime, &transforms, &mesh->LastPose);
-                    if (animation)
-                    {
-                        if (!animation->bInPlace && animation->HasRootMotion())
-                        {
-                            const float speed = mesh->ClipPlaybackSpeed;
-                            const float prevSpeed = mesh->PrevClipPlaybackSpeed;
-                            float currentTime = mesh->CurrentClipPlayTime;
-                            float prevTime = mesh->PrevClipPlayTime;
-                            if (prevSpeed < 0 && speed > 0 || speed < 0 && prevSpeed > 0) // If speed changed signs
-                                std::swap(currentTime, prevTime);
-                            if (speed == 0.f && prevSpeed != speed) // If speed stoped
-                                prevTime = currentTime;
-
-                            mesh->LastPose.SetRootMotion(CalculateRootMotion(animation, currentTime, prevTime, speed, ts, &(mesh->LastPose.TotalRootMotion)));
-                        }
-                        AnimationSystem::GetEventsToTrigger(animation, mesh->PrevClipPlayTime, mesh->CurrentClipPlayTime, mesh->PrevClipPlaybackSpeed, mesh->ClipPlaybackSpeed, &(mesh->LastPose.EventsToTrigger));
-
-                        mesh->PrevClipPlayTime = mesh->CurrentClipPlayTime;
-                        mesh->CurrentClipPlayTime = StepForwardAnimTime(animation, mesh->CurrentClipPlayTime, ts * mesh->ClipPlaybackSpeed, mesh->bClipLooping);
-                        mesh->PrevClipPlaybackSpeed = mesh->ClipPlaybackSpeed;
-                    }
-                }
-                else
-                {
-                    mesh->LastPose.Reset();
-                    if (const auto& graph = mesh->GetAnimationGraph())
-                    {
-                        graph->Update(ts, &transforms);
-                        mesh->LastPose = std::move(graph->GetPose());
-                    }
-                    else
-                    {
-                        const auto& skeletalInfo = skeletalMesh->GetSkeletalMeshInfo();
-                        FinalizePose(mesh->LastPose, skeletalInfo.RootBone, glm::mat4(1.f), skeletalInfo, transforms);
-                    }
-                }
-            });
-        }
-
+            Utils::UpdateSkeletalMeshComponent(s_Jobs[i].Mesh, *s_Jobs[i].Transforms, ts);
+        });
         s_ThreadPool->wait();
 
-        for (auto& mesh : meshes)
+        for (const auto& job : s_Jobs)
         {
+            SkeletalMeshComponent* mesh = job.Mesh;
             if (bApplyRootMotion && mesh->LastPose.HasRootMotion())
                 ApplyRootMotion(mesh, mesh->LastPose.TotalRootMotion, mesh->LastPose.GetRootMotion());
 
@@ -815,11 +531,12 @@ namespace Eagle
                     auto& data = outEventsToTrigger->emplace_back();
                     data.EntityID = mesh->Parent.GetID();
                     data.Events = std::move(events);
+                    events.clear();
                 }
             }
         }
 
-        return s_Transforms;
+        return std::exchange(s_Transforms, {});
     }
 
     ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> AnimationSystem::UpdateBasePose(const std::vector<SkeletalMeshComponent*>& meshes, float ts)
@@ -829,50 +546,35 @@ namespace Eagle
         s_ThreadPool->wait();
         s_Transforms.clear();
         s_Transforms.reserve(meshes.size());
+        Utils::PrepareSkeletalMeshJobs(meshes, s_Transforms, &s_Jobs);
 
-        // Reserve memory
-        for (auto& mesh : meshes)
+        s_ThreadPool->detach_loop(size_t(0), s_Jobs.size(), [](size_t i)
         {
-            const auto& asset = mesh->GetMeshAsset();
-            if (!asset)
-                continue;
-
-            s_Transforms.emplace(mesh->Parent.GetID(), std::vector<glm::mat4>{});
-        }
-
-        for (auto& mesh : meshes)
-        {
-            const auto& asset = mesh->GetMeshAsset();
-            if (!asset)
-                continue;
-
-            s_ThreadPool->detach_task([mesh, ts, &asset]()
+            SkeletalMeshComponent* mesh = s_Jobs[i].Mesh;
+            auto& transforms = *s_Jobs[i].Transforms;
+            const auto& skeletalMesh = mesh->GetMeshAsset()->GetMesh();
+            const auto& skeletalInfo = skeletalMesh->GetSkeletalMeshInfo();
+            if (mesh->IsRagdollEnabled())
             {
-                const auto& skeletalMesh = asset->GetMesh();
-                auto& transforms = s_Transforms[mesh->Parent.GetID()];
-                const auto& skeletalInfo = skeletalMesh->GetSkeletalMeshInfo();
-                if (mesh->IsRagdollEnabled())
+                // When it's in a ragdoll state, we don't update animations,
+                // but rather read `LastPose` which already contains data from ragdoll simulation
+                auto& ragdollActor = mesh->GetRagdollActor();
+                if (ragdollActor->DoesNeedSync())
                 {
-                    // When it's in a ragdoll state, we don't update animations,
-                    // but rather read `LastPose` which already contains data from ragdoll simulation
-                    auto& ragdollActor = mesh->GetRagdollActor();
-                    if (ragdollActor->DoesNeedSync())
-                    {
-                        ragdollActor->SynchronizeTransform(); // Update `LastPose`
-                    }
-                    FinalizePoseRagdoll(mesh->LastPose, skeletalInfo.RootBone, glm::mat4(1.f), skeletalInfo, transforms);
-                    return;
+                    ragdollActor->SynchronizeTransform(); // Update `LastPose`
                 }
+                FinalizePoseRagdoll(mesh->LastPose, skeletalInfo.RootBone, glm::mat4(1.f), skeletalInfo, transforms);
+                return;
+            }
 
-                mesh->LastPose.Reset();
+            mesh->LastPose.Reset();
 
-                glm::mat4 rootTransform = glm::mat4(1.f);
-                FinalizePose(mesh->LastPose, skeletalInfo.RootBone, rootTransform, skeletalInfo, transforms);
-            });
-        }
+            const glm::mat4 rootTransform = glm::mat4(1.f);
+            FinalizePose(mesh->LastPose, skeletalInfo.RootBone, rootTransform, skeletalInfo, transforms);
+        });
         s_ThreadPool->wait();
 
-        return s_Transforms;
+        return std::exchange(s_Transforms, {});
     }
     
     ankerl::unordered_dense::map<GUID, ankerl::unordered_dense::map<GUID, std::vector<glm::mat4>>> AnimationSystem::Update(const std::vector<ParticleSystemComponent*>& systems, float ts, std::vector<AnimationEventData>* outEventsToTrigger)
@@ -932,6 +634,7 @@ namespace Eagle
                     {
                         const auto& skComp = animData.SrcOfLastPose.GetComponent<SkeletalMeshComponent>();
                         animData.LastPose = skComp.LastPose;
+                        animData.LastPose.EventsToTrigger.clear();
 
                         const auto& skeletalInfo = skeletalMesh->GetSkeletalMeshInfo();
                         FinalizePose(animData.LastPose, skeletalInfo.RootBone, glm::mat4(1.f), skeletalInfo, transforms);
@@ -940,14 +643,13 @@ namespace Eagle
                     }
                     else
                     {
-
                         const auto& animAsset = emitter.MeshAnimationAsset;
                         const SkeletalMeshAnimation* animation = animAsset ? animAsset->GetAnimation().get() : nullptr;
                         Update(skeletalMesh, animation, animData.CurrentClipPlayTime, &transforms, &animData.LastPose);
                         if (animation)
                         {
                             if (emitter.bTriggerAnimationEvents)
-                                AnimationSystem::GetEventsToTrigger(animation, animData.PrevClipPlayTime, animData.CurrentClipPlayTime, animData.PrevClipPlaybackSpeed, emitter.ClipPlaybackSpeed, &(animData.LastPose.EventsToTrigger));
+                                AnimationSystem::GetEventsToTrigger(animation, animData.PrevClipPlayTime, animData.CurrentClipPlayTime, animData.PrevClipPlaybackSpeed, emitter.bClipLooping, &(animData.LastPose.EventsToTrigger));
 
                             animData.PrevClipPlayTime = animData.CurrentClipPlayTime;
                             animData.CurrentClipPlayTime = StepForwardAnimTime(animation, animData.CurrentClipPlayTime, ts * emitter.ClipPlaybackSpeed, emitter.bClipLooping);
@@ -983,12 +685,13 @@ namespace Eagle
                         auto& data = outEventsToTrigger->emplace_back();
                         data.EntityID = system->Parent.GetID();
                         data.Events = std::move(events);
+                        events.clear();
                     }
                 }
             }
         }
 
-        return s_EmittersTransforms;
+        return std::exchange(s_EmittersTransforms, {});
     }
 
     Transform AnimationSystem::CalculateRootMotion(const SkeletalMeshAnimation* animation, float currentTime, float prevTime, float playbackSpeed, Timestep ts, Transform* outTotalRootMotion)
@@ -1013,11 +716,8 @@ namespace Eagle
         {
             if (currentTime < prevTime) // Playing forward, we looped back
             {
-                const auto& locations = animation->RootMotion.Locations;
-                const auto& rotations = animation->RootMotion.Rotations;
-                const auto& scales = animation->RootMotion.Scales;
-                const Transform firstTr{ locations.front().Location, rotations.front().Rotation, scales.front().Scale };
-                const Transform lastTr{ locations.back().Location, rotations.back().Rotation, scales.back().Scale };
+                const Transform firstTr = Utils::FirstKeyTransform(animation->RootMotion);
+                const Transform lastTr = Utils::LastKeyTransform(animation->RootMotion);
 
                 result = (lastTr - rootMotionPrev) + (*outTotalRootMotion - firstTr);
             }
@@ -1028,11 +728,8 @@ namespace Eagle
         {
             if (currentTime > prevTime) // Playing backward, we looped back
             {
-                const auto& locations = animation->RootMotion.Locations;
-                const auto& rotations = animation->RootMotion.Rotations;
-                const auto& scales = animation->RootMotion.Scales;
-                const Transform firstTr{ locations.front().Location, rotations.front().Rotation, scales.front().Scale };
-                const Transform lastTr{ locations.back().Location, rotations.back().Rotation, scales.back().Scale };
+                const Transform firstTr = Utils::FirstKeyTransform(animation->RootMotion);
+                const Transform lastTr = Utils::LastKeyTransform(animation->RootMotion);
 
                 result = (firstTr - rootMotionPrev) + (*outTotalRootMotion - lastTr);
             }
@@ -1100,6 +797,7 @@ namespace Eagle
         }
 
         SkeletalPose poses[3];
+        float timeTillLoops = FLT_MAX;
         if (bSync)
         {
             // In [0; 1] range
@@ -1116,6 +814,8 @@ namespace Eagle
 
                     highestWeightedCurrentTimeAlpha = currentTime / meshAnim->Duration;
                     highestWeightedPrevTimeAlpha = prevTime / meshAnim->Duration;
+
+                    timeTillLoops = CalculateTimeTillAnimationLoops(meshAnim, float(currentTime), highestWeightedVertex->AnimSpeed);
                 }
             }
 
@@ -1129,6 +829,7 @@ namespace Eagle
             for (uint32_t i = 0; i < 3; ++i)
             {
                 Utils::CalculateBlendSpaceVertexAnimation(tr.V[i], skeletalInfo, prevTimeSeconds, currentTimeSeconds, bGatherEvents[i], rootTransform, &poses[i]);
+                timeTillLoops = glm::min(timeTillLoops, poses[i].TimeTillAnimationLoops);
             }
         }
 
@@ -1137,18 +838,15 @@ namespace Eagle
 
         if (poses[0].HasRootMotion() || poses[1].HasRootMotion() || poses[2].HasRootMotion())
         {
-            const auto& pose1RM = poses[0].GetRootMotion();
-            const auto& pose2RM = poses[1].GetRootMotion();
-            const auto& pose3RM = poses[2].GetRootMotion();
-
-            Transform rootMotion = Transform::Blend(pose1RM, pose2RM, pose3RM, buvf);
+            const Transform rootMotion = Transform::Blend(poses[0].GetRootMotion(), poses[1].GetRootMotion(), poses[2].GetRootMotion(), buvf);
+            resultPose->SetRootMotion(rootMotion);
             resultPose->TotalRootMotion = Transform::Blend(poses[0].TotalRootMotion, poses[1].TotalRootMotion, poses[2].TotalRootMotion, buvf);
-            resultPose->TimeTillAnimationLoops = glm::min(poses[0].TimeTillAnimationLoops, glm::min(poses[1].TimeTillAnimationLoops, poses[2].TimeTillAnimationLoops));
         }
+        resultPose->TimeTillAnimationLoops = timeTillLoops;
 
         resultPose->EventsToTrigger = poses[0].GetEventsToTrigger();
-        resultPose->EventsToTrigger.insert(resultPose->EventsToTrigger.end(), poses[1].GetEventsToTrigger().begin(), poses[1].GetEventsToTrigger().end());
-        resultPose->EventsToTrigger.insert(resultPose->EventsToTrigger.end(), poses[2].GetEventsToTrigger().begin(), poses[2].GetEventsToTrigger().end());
+        resultPose->AppendEvents(poses[1]);
+        resultPose->AppendEvents(poses[2]);
 
         return highestWeightedVertex;
     }
@@ -1196,7 +894,7 @@ namespace Eagle
         resultPose->TimeTillAnimationLoops = sourcePose.TimeTillAnimationLoops; // We're probably interested in the source pose, not reference
 
         resultPose->EventsToTrigger = refPose.GetEventsToTrigger();
-        resultPose->EventsToTrigger.insert(resultPose->EventsToTrigger.end(), sourcePose.GetEventsToTrigger().begin(), sourcePose.GetEventsToTrigger().end());
+        resultPose->AppendEvents(sourcePose);
     }
 
     void AnimationSystem::ApplyAdditive(const SkeletalPose& targetPose, const SkeletalPose& additivePose, const SkeletalMeshInfo& skeletal, float blendAlpha, SkeletalPose* resultPose)
@@ -1204,6 +902,7 @@ namespace Eagle
         if (blendAlpha == 0.f)
         {
             *resultPose = targetPose;
+            resultPose->AppendEvents(additivePose);
             return;
         }
 
@@ -1214,89 +913,86 @@ namespace Eagle
             resultPose->TotalRootMotion = targetPose.TotalRootMotion;
         }
         resultPose->TimeTillAnimationLoops = glm::min(targetPose.TimeTillAnimationLoops, additivePose.TimeTillAnimationLoops);
+        resultPose->MergeParentOverrides(targetPose);
 
         resultPose->EventsToTrigger = targetPose.GetEventsToTrigger();
-        resultPose->EventsToTrigger.insert(resultPose->EventsToTrigger.end(), additivePose.GetEventsToTrigger().begin(), additivePose.GetEventsToTrigger().end());
+        resultPose->AppendEvents(additivePose);
     }
 
     void AnimationSystem::BlendPoses(const SkeletalPose& pose1, const SkeletalPose& pose2, const SkeletalMeshInfo& skeletal, float blendAlpha, SkeletalPose* outPose)
     {
+        EG_CORE_ASSERT(outPose != &pose1 && outPose != &pose2, "BlendPoses: `outPose` must not alias an input pose");
+
         // We check if the animation was filtered.
         // In that case, we avoid this optimization
         // Because the user probably wants to combine animations.
         const bool bWasFiltered = pose1.bWasFiltered || pose2.bWasFiltered;
-        if (!bWasFiltered)
+        if (!bWasFiltered && (blendAlpha == 0.f || blendAlpha == 1.f))
         {
-            if (blendAlpha == 0.f)
-            {
-                *outPose = pose1;
-                return;
-            }
-            else if (blendAlpha == 1.f)
-            {
-                *outPose = pose2;
-                return;
-            }
+            const SkeletalPose& selected = blendAlpha == 0.f ? pose1 : pose2;
+            const SkeletalPose& other = blendAlpha == 0.f ? pose2 : pose1;
+            *outPose = selected;
+
+            outPose->AppendEvents(other);
+            outPose->MergeParentOverrides(other);
+            return;
         }
 
+        outPose->Reset();
         Utils::BlendPoses_Internal(pose1, pose2, skeletal, blendAlpha, outPose);
 
         if (pose1.HasRootMotion() || pose2.HasRootMotion())
         {
-            const auto& pose1RootMotion = pose1.GetRootMotion();
-            const auto& pose2RootMotion = pose2.GetRootMotion();
-            Transform rootMotion = Transform::Blend(pose1RootMotion, pose2RootMotion, blendAlpha);
-
+            const Transform rootMotion = Transform::BlendFast(pose1.GetRootMotion(), pose2.GetRootMotion(), blendAlpha);
             outPose->SetRootMotion(rootMotion);
-            outPose->TotalRootMotion = Transform::Blend(pose1.TotalRootMotion, pose2.TotalRootMotion, blendAlpha);
-        }
-        else if (pose1.HasRootMotion())
-        {
-            outPose->SetRootMotion(pose1.GetRootMotion());
-            outPose->TotalRootMotion = pose1.TotalRootMotion;
-        }
-        else if (pose2.HasRootMotion())
-        {
-            outPose->SetRootMotion(pose2.GetRootMotion());
-            outPose->TotalRootMotion = pose2.TotalRootMotion;
+            outPose->TotalRootMotion = Transform::BlendFast(pose1.TotalRootMotion, pose2.TotalRootMotion, blendAlpha);
         }
         outPose->TimeTillAnimationLoops = glm::min(pose1.TimeTillAnimationLoops, pose2.TimeTillAnimationLoops);
+        outPose->MergeParentOverrides(pose1);
+        outPose->MergeParentOverrides(pose2);
 
         outPose->EventsToTrigger = pose1.GetEventsToTrigger();
-        outPose->EventsToTrigger.insert(outPose->EventsToTrigger.end(), pose2.GetEventsToTrigger().begin(), pose2.GetEventsToTrigger().end());
+        outPose->AppendEvents(pose2);
     }
 
     void AnimationSystem::AnimationClip(const SkeletalMeshInfo& skeletal, const SkeletalMeshAnimation* animation, const BoneNode& node, float currentTime, SkeletalPose* outPose)
     {
         EG_CORE_ASSERT(&node == &skeletal.RootBone);
+
+        const BoneNode * inPlaceBone = nullptr;
+        if (animation->bInPlace)
+        {
+            inPlaceBone = animation->FindRootMotionBone(skeletal);
+            if (!inPlaceBone)
+                inPlaceBone = &skeletal.RootBone;
+        }
+
         for (const auto& entry : skeletal.FlattenedBones)
         {
             const BoneNode& curNode = *entry.Node;
             const uint64_t nodeHash = curNode.GetNameHash();
 
-            if (auto it = animation->FindBone(nodeHash); animation->IsValid(it))
+            if (const BoneAnimation* bone = animation->FindBone(nodeHash))
             {
-                const bool bRoot = entry.ParentIndex < 0;
-
-                const auto& bone = it->second;
                 auto& tr = outPose->Bones[nodeHash];
-                tr.Location = (animation->bInPlace && bRoot) ? bone.Locations[0].Location : Utils::InterpolatePositionRaw(bone, currentTime);
-                tr.Rotation = Utils::InterpolateRotationRaw(bone, currentTime);
-                tr.Scale3D = Utils::InterpolateScalingRaw(bone, currentTime);
+                const bool bPinLocation = (&curNode == inPlaceBone) && !bone->Locations.empty();
+                tr.Location = bPinLocation ? bone->Locations[0].Location : Utils::InterpolatePositionRaw(*bone, currentTime);
+                tr.Rotation = Utils::InterpolateRotationRaw(*bone, currentTime);
+                tr.Scale3D = Utils::InterpolateScalingRaw(*bone, currentTime);
             }
         }
     }
 
-    void AnimationSystem::FilterPose(const SkeletalPose& pose, BoneNode& node, const std::string& boneName, bool bIgnoreParentLocation, bool bIgnoreParentRotation, bool bIgnoreParentScale, SkeletalPose* outPose)
+    void AnimationSystem::FilterPose(const SkeletalPose& pose, const BoneNode& rootNode, const std::string& boneName, bool bIgnoreParentLocation, bool bIgnoreParentRotation, bool bIgnoreParentScale, SkeletalPose* outPose)
     {
-        const size_t nameHash = Utils::CalculateBoneNameHash(boneName);
+        const uint64_t nameHash = Utils::CalculateBoneNameHash(boneName);
         if (boneName.empty() || (pose.FindBone(nameHash) == pose.Bones.end()))
         {
             *outPose = pose;
             return;
         }
 
-        Utils::FilterBone_Internal(pose, node, boneName, bIgnoreParentLocation, bIgnoreParentRotation, bIgnoreParentScale, outPose);
+        Utils::FilterBone_Internal(pose, rootNode, nameHash, outPose);
         outPose->bWasFiltered = true;
         if (pose.HasRootMotion())
         {
@@ -1305,16 +1001,27 @@ namespace Eagle
         }
 
         outPose->TimeTillAnimationLoops = pose.TimeTillAnimationLoops;
+        outPose->EventsToTrigger = pose.EventsToTrigger;
+
+        outPose->MergeParentOverrides(pose);
+        BoneParentOverride parentOverride;
+        parentOverride.BoneHash = nameHash;
+        parentOverride.bIgnoreParentLocation = bIgnoreParentLocation;
+        parentOverride.bIgnoreParentRotation = bIgnoreParentRotation;
+        parentOverride.bIgnoreParentScale = bIgnoreParentScale;
+        outPose->AddParentOverride(parentOverride);
     }
 
     void AnimationSystem::FinalizePose(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>& outTransforms)
     {
-        Utils::FinalizePose_Internal(pose, node, parentTransform, skeletal, outTransforms);
+        EG_CORE_ASSERT(&node == &skeletal.RootBone);
+        Utils::FinalizePose_Internal(pose, parentTransform, skeletal, &outTransforms);
     }
 
     void AnimationSystem::FinalizePose(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal)
     {
-        Utils::FinalizePose_Internal(pose, node, parentTransform, skeletal);
+        EG_CORE_ASSERT(&node == &skeletal.RootBone);
+        Utils::FinalizePose_Internal(pose, parentTransform, skeletal, nullptr);
     }
     
     void AnimationSystem::FinalizePoseRagdoll(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>& outTransforms)
@@ -1322,6 +1029,9 @@ namespace Eagle
         EG_CORE_ASSERT(&node == &skeletal.RootBone);
         thread_local std::vector<glm::mat4> globalTransforms;
         globalTransforms.resize(skeletal.FlattenedBones.size());
+
+        if (outTransforms.size() < skeletal.GetNumBoneTransforms())
+            outTransforms.resize(skeletal.GetNumBoneTransforms());
 
         for (size_t i = 0; i < skeletal.FlattenedBones.size(); ++i)
         {
@@ -1343,24 +1053,25 @@ namespace Eagle
             }
             globalTransforms[i] = globalTransformation;
 
-            if (auto it = skeletal.FindBoneInfo(nodeHash); skeletal.IsValid(it))
+            if (entry.bHasBoneInfo)
             {
-                const uint32_t index = it->second.BoneID;
-                const glm::mat4& offset = it->second.Offset;
-                if (index >= outTransforms.size())
-                    outTransforms.resize(index + 1);
+                if (entry.BoneID >= outTransforms.size())
+                    outTransforms.resize(entry.BoneID + 1);
 
-                outTransforms[index] = skeletal.InverseTransform * globalTransformation * offset;
+                outTransforms[entry.BoneID] = skeletal.InverseTransform * globalTransformation * entry.Offset;
             }
         }
     }
 
     double AnimationSystem::WrapAnimationTime(double duration, double currentTime, bool bLoop)
     {
+        if (duration <= 0.0)
+            return 0.0;
+
         if (currentTime > duration)
             currentTime = bLoop ? currentTime - (glm::floor(currentTime / duration) * duration) : duration;
-        else if (currentTime < 0.f) // Animation is playing in reverse
-            currentTime = bLoop ? glm::abs(currentTime - (glm::floor(currentTime / duration) * duration)) : 0.f;
+        else if (currentTime < 0.0) // Animation is playing in reverse
+            currentTime = bLoop ? currentTime - (glm::floor(currentTime / duration) * duration) : 0.0;
 
         return currentTime;
     }

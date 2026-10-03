@@ -248,6 +248,20 @@ namespace Eagle
 		return bHasCollider;
 	}
 
+	void SkeletalMeshAssetEditor::ResolveSelectedBone()
+	{
+		m_SelectedBone = nullptr;
+		if (m_SelectedBoneName.empty())
+			return;
+
+		auto& skeletalInfo = m_Asset->GetMesh()->GetSkeletalMeshInfo();
+		if (!skeletalInfo.RootBone.FindNode(m_SelectedBoneName, &m_SelectedBone))
+		{
+			m_SelectedBone = nullptr;
+			m_SelectedBoneName.clear();
+		}
+	}
+
 	// Returns true if it changed
 	bool SkeletalMeshAssetEditor::DrawSkeletalTree(const SkeletalMeshInfo& skeletalInfo, BoneNode& node, size_t baseHash, bool* outDelete, const glm::mat4& baseTransform, const std::string& parentName)
 	{
@@ -277,6 +291,8 @@ namespace Eagle
 				bone.Transformation = glm::mat4(1.f);
 				bone.bVirtualBone = true;
 				bChanged = true;
+
+				ResolveSelectedBone();
 			}
 
 			if (ImGui::BeginMenu("Attach Mesh (visualization only)"))
@@ -353,6 +369,8 @@ namespace Eagle
 				{
 					OnBoneNodeDeletion(child);
 					it = node.Children.erase(it);
+
+					ResolveSelectedBone();
 				}
 				else
 					++it;
@@ -670,7 +688,11 @@ namespace Eagle
 		{
 			auto& skeletalInfo = mesh->GetSkeletalMeshInfo();
 			auto& root = GetRootBone(skeletalInfo.RootBone, skeletalInfo.GetBoneInfoMap());
-			bChanged |= DrawSkeletalTree(skeletalInfo, root, assetHash);
+			if (DrawSkeletalTree(skeletalInfo, root, assetHash))
+			{
+				skeletalInfo.BuildFlattenedBones();
+				bChanged = true;
+			}
 
 			if (m_SelectedBone)
 			{
@@ -708,6 +730,7 @@ namespace Eagle
 							const std::string oldName = m_SelectedBone->GetName();
 							m_SelectedBone->SetName(m_SelectedBoneName);
 							OnBoneRenamed(oldName, m_SelectedBoneName);
+							skeletalInfo.BuildFlattenedBones();
 							bChanged = true;
 						}
 					}

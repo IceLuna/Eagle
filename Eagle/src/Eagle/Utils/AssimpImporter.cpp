@@ -984,6 +984,7 @@ namespace Eagle
 			}
 		}
 
+		skeletalInfo.BuildFlattenedBones();
 		importedMeshes[0].Mesh->RegenerateRagdollData(importedMeshes[0].Mesh->GetMinRagdollBoneSize());
 
 		// Propagate the same finalized skeleton to every other mesh (relevant only when bCombineMeshes == false).
@@ -992,6 +993,7 @@ namespace Eagle
 			auto& otherInfo = importedMeshes[i].Mesh->GetSkeletalMeshInfo();
 			otherInfo.SetBonesInfoMap(BonesMap(skeletalInfo.GetBoneInfoMap()));
 			otherInfo.RootBone = skeletalInfo.RootBone;
+			otherInfo.BuildFlattenedBones();
 			importedMeshes[i].Mesh->RegenerateRagdollData(importedMeshes[i].Mesh->GetMinRagdollBoneSize());
 		}
 

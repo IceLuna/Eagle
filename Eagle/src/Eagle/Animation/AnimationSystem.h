@@ -49,7 +49,7 @@ namespace Eagle
 		static void ApplyAdditive(const SkeletalPose& targetPose, const SkeletalPose& additivePose, const SkeletalMeshInfo& skeletal, float blendAlpha, SkeletalPose* resultPose);
 		static void BlendPoses(const SkeletalPose& pose1, const SkeletalPose& pose2, const SkeletalMeshInfo& skeletal, float blendAlpha, SkeletalPose* outPose);
 		static void AnimationClip(const SkeletalMeshInfo& skeletal, const SkeletalMeshAnimation* animation, const BoneNode& node, float currentTime, SkeletalPose* outPose);
-		static void FilterPose(const SkeletalPose& pose, BoneNode& node, const std::string& boneName, bool bIgnoreParentLocation, bool bIgnoreParentRotation, bool bIgnoreParentScale, SkeletalPose* outPose);
+		static void FilterPose(const SkeletalPose& pose, const BoneNode& rootNode, const std::string& boneName, bool bIgnoreParentLocation, bool bIgnoreParentRotation, bool bIgnoreParentScale, SkeletalPose* outPose);
 		static void FinalizePose(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>& outTransforms);
 		static void FinalizePose(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal);
 		static void FinalizePoseRagdoll(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>& outTransforms);
@@ -62,7 +62,10 @@ namespace Eagle
 		// Returns true if `currentTime` is valid value for the animation
 		static bool IsValidTime(const SkeletalMeshAnimation* animation, float currentTime);
 
-		static void GetEventsToTrigger(const SkeletalMeshAnimation* animation, float prevTime, float curTime, float prevSpeed, float curSpeed, std::vector<AnimationEvent>* outEvents);
+		static void GetEventsToTrigger(const SkeletalMeshAnimation* animation, float prevTime, float curTime, float speed, bool bLoop, std::vector<AnimationEvent>* outEvents);
+
+		// Returns time in seconds until the animation reaches its end (or its start when playing backwards). Always >= 0.
+		static float CalculateTimeTillAnimationLoops(const SkeletalMeshAnimation* animation, float currentTime, float playbackSpeed);
 
 	private:
 		static ThreadPool s_ThreadPool;

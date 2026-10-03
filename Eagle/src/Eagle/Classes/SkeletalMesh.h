@@ -50,15 +50,11 @@ namespace Eagle
 	{
 	private:
 		std::string m_Name;
-		uint64_t m_NameHash;
+		uint64_t m_NameHash = 0;
 	public:
 		glm::mat4 Transformation = glm::mat4(1.f);
 		std::vector<BoneNode> Children;
-
 		bool bVirtualBone = false;
-		bool bIgnoreParentLocation = false;
-		bool bIgnoreParentRotation = false;
-		bool bIgnoreParentScale = false;
 
 		void SetName(const std::string& name)
 		{
@@ -104,7 +100,7 @@ namespace Eagle
 		BoneNode RootBone;
 
 		// One entry per bone in the skeleton, in parent-before-child (topological) order.
-		// Precomputed once (see `BuildFlattenedBones`) so that per-frame pose evaluation
+		// Precomputed (see `BuildFlattenedBones`) so that per-frame pose evaluation
 		// (`FinalizePose`, `BlendPoses`, etc.) can walk a flat array instead of recursing
 		// through `BoneNode::Children` every frame for every bone.
 		struct FlatBoneNode
@@ -112,25 +108,95 @@ namespace Eagle
 			const BoneNode* Node = nullptr;
 			const BoneNode* ParentNode = nullptr; // nullptr for the root bone
 			int32_t ParentIndex = -1; // Index into `FlattenedBones`, -1 for the root bone
+
+			// Cached `BoneInfo` of this node, so that `FinalizePose` doesn't need a hash look-up per bone per frame
+			glm::mat4 Offset = glm::mat4(1.f);
+			uint32_t BoneID = 0;
+			bool bHasBoneInfo = false;
 		};
 		std::vector<FlatBoneNode> FlattenedBones;
 
-		// Must be called once whenever `RootBone`'s tree shape changes (bones added/removed) -
-		// e.g. right after import, or after copying a `SkeletalMeshInfo`/`SkeletalMesh`, since the
-		// cached pointers above point into this specific instance's `RootBone` tree.
+		SkeletalMeshInfo() = default;
+
+		SkeletalMeshInfo(const SkeletalMeshInfo& other)
+			: m_BoneInfoMap(other.m_BoneInfoMap)
+			, m_BoneInfoMapByHash(other.m_BoneInfoMapByHash)
+			, InverseTransform(other.InverseTransform)
+			, CoordCorrection(other.CoordCorrection)
+			, RootBone(other.RootBone)
+		{
+			BuildFlattenedBones();
+		}
+
+		SkeletalMeshInfo(SkeletalMeshInfo&& other) noexcept
+			: m_BoneInfoMap(std::move(other.m_BoneInfoMap))
+			, m_BoneInfoMapByHash(std::move(other.m_BoneInfoMapByHash))
+			, InverseTransform(other.InverseTransform)
+			, CoordCorrection(other.CoordCorrection)
+			, RootBone(std::move(other.RootBone))
+		{
+			other.FlattenedBones.clear();
+			BuildFlattenedBones();
+		}
+
+		SkeletalMeshInfo& operator=(const SkeletalMeshInfo& other)
+		{
+			if (this != &other)
+			{
+				m_BoneInfoMap = other.m_BoneInfoMap;
+				m_BoneInfoMapByHash = other.m_BoneInfoMapByHash;
+				InverseTransform = other.InverseTransform;
+				CoordCorrection = other.CoordCorrection;
+				RootBone = other.RootBone;
+				BuildFlattenedBones();
+			}
+			return *this;
+		}
+
+		SkeletalMeshInfo& operator=(SkeletalMeshInfo&& other) noexcept
+		{
+			if (this != &other)
+			{
+				m_BoneInfoMap = std::move(other.m_BoneInfoMap);
+				m_BoneInfoMapByHash = std::move(other.m_BoneInfoMapByHash);
+				InverseTransform = other.InverseTransform;
+				CoordCorrection = other.CoordCorrection;
+				RootBone = std::move(other.RootBone);
+				other.FlattenedBones.clear();
+				BuildFlattenedBones();
+			}
+			return *this;
+		}
+
+		// Must be called whenever `RootBone`'s tree changes (bones added/removed/renamed, `RootBone` reassigned).
+		// Adding/removing children can reallocate `BoneNode::Children`, which leaves the cached pointers dead.
 		void BuildFlattenedBones()
 		{
 			FlattenedBones.clear();
+			m_NumBoneTransforms = 0;
 			std::function<void(const BoneNode&, const BoneNode*, int32_t)> visit =
 				[this, &visit](const BoneNode& node, const BoneNode* parentNode, int32_t parentIndex)
 			{
 				const int32_t myIndex = (int32_t)FlattenedBones.size();
-				FlattenedBones.push_back({ &node, parentNode, parentIndex });
+				FlatBoneNode& entry = FlattenedBones.emplace_back();
+				entry.Node = &node;
+				entry.ParentNode = parentNode;
+				entry.ParentIndex = parentIndex;
+				if (auto it = m_BoneInfoMapByHash.find(node.GetNameHash()); it != m_BoneInfoMapByHash.end())
+				{
+					entry.Offset = it->second.Offset;
+					entry.BoneID = it->second.BoneID;
+					entry.bHasBoneInfo = true;
+					m_NumBoneTransforms = glm::max(m_NumBoneTransforms, entry.BoneID + 1u);
+				}
+
 				for (const auto& child : node.Children)
 					visit(child, &node, myIndex);
 			};
 			visit(RootBone, nullptr, -1);
 		}
+
+		uint32_t GetNumBoneTransforms() const { return m_NumBoneTransforms; }
 
 		void SetBonesInfoMap(BonesMap&& other)
 		{
@@ -141,6 +207,7 @@ namespace Eagle
 			{
 				m_BoneInfoMapByHash.emplace(Utils::CalculateBoneNameHash(name), value);
 			}
+			BuildFlattenedBones();
 		}
 
 		const BonesMap& GetBoneInfoMap() const { return m_BoneInfoMap; }
@@ -174,6 +241,9 @@ namespace Eagle
 		{
 			return it != m_BoneInfoMapByHash.end();
 		}
+
+	private:
+		uint32_t m_NumBoneTransforms = 0;
 	};
 
 	struct SkeletalRagdollBone
