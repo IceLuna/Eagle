@@ -408,7 +408,7 @@ namespace Eagle
 	// Keyframe channels are all serialized through these two helpers, so adding a new
 	// channel value type only needs a `YAML::convert` specialization for that type.
 	template <typename T>
-	static void SerializeSequenceChannel(YAML::Emitter& out, const char* name, const SequenceChannel<T>& channel)
+	static void SerializeCurve(YAML::Emitter& out, const char* name, const Curve<T>& channel)
 	{
 		if (channel.IsEmpty())
 			return;
@@ -423,7 +423,7 @@ namespace Eagle
 			out << YAML::Key << "Interpolation" << YAML::Value << Eagle::Utils::GetEnumName(key.Interpolation);
 
 			// Tangents only mean anything for user-authored cubic keys
-			if (key.Interpolation == SequenceInterpolation::Cubic)
+			if (key.Interpolation == CurveInterpolation::Cubic)
 			{
 				out << YAML::Key << "InTangent" << YAML::Value << key.InTangent;
 				out << YAML::Key << "OutTangent" << YAML::Value << key.OutTangent;
@@ -434,7 +434,7 @@ namespace Eagle
 	}
 
 	template <typename T>
-	static void DeserializeSequenceChannel(const YAML::Node& parentNode, const char* name, SequenceChannel<T>& channel)
+	static void DeserializeCurve(const YAML::Node& parentNode, const char* name, Curve<T>& channel)
 	{
 		channel.Clear();
 
@@ -447,7 +447,7 @@ namespace Eagle
 
 		for (auto keyNode : channelNode)
 		{
-			SequenceKey<T> key;
+			CurveKey<T> key;
 
 			if (auto node = keyNode["ID"])
 				key.ID = node.as<GUID>();
@@ -459,7 +459,7 @@ namespace Eagle
 				key.Value = node.as<T>();
 
 			if (auto node = keyNode["Interpolation"])
-				key.Interpolation = Eagle::Utils::GetEnumFromName<SequenceInterpolation>(node.as<std::string>());
+				key.Interpolation = Eagle::Utils::GetEnumFromName<CurveInterpolation>(node.as<std::string>());
 
 			if (auto node = keyNode["InTangent"])
 				key.InTangent = node.as<T>();
@@ -472,6 +472,33 @@ namespace Eagle
 
 		// Keys are written sorted, but still sort them just in case
 		channel.SortKeys();
+	}
+
+	// A `CurveProperty` is stored as its mode, its constant and (when there are any) its curve keys
+	template <typename T>
+	static void SerializeCurveProperty(YAML::Emitter& out, const char* name, const CurveProperty<T>& property)
+	{
+		out << YAML::Key << name << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "Mode" << YAML::Value << Eagle::Utils::GetEnumName(property.Mode);
+		out << YAML::Key << "Constant" << YAML::Value << property.Constant;
+		SerializeCurve(out, "Keys", property.Keys);
+		out << YAML::EndMap;
+	}
+
+	// Returns false if `parentNode` has no such property
+	template <typename T>
+	static bool DeserializeCurveProperty(const YAML::Node& parentNode, const char* name, CurveProperty<T>& property)
+	{
+		auto propertyNode = parentNode[name];
+		if (!propertyNode)
+			return false;
+
+		if (auto node = propertyNode["Mode"])
+			property.Mode = Eagle::Utils::GetEnumFromName<CurvePropertyMode>(node.as<std::string>());
+		if (auto node = propertyNode["Constant"])
+			property.Constant = node.as<T>();
+		DeserializeCurve(propertyNode, "Keys", property.Keys);
+		return true;
 	}
 
 	static void SerializeSequenceTrack(YAML::Emitter& out, const Ref<SequenceTrack>& track)
@@ -492,15 +519,15 @@ namespace Eagle
 				out << YAML::Key << "NearClip" << YAML::Value << cameraTrack.GetNearClip();
 				out << YAML::Key << "FarClip" << YAML::Value << cameraTrack.GetFarClip();
 
-				SerializeSequenceChannel(out, "Location", cameraTrack.GetLocationChannel());
-				SerializeSequenceChannel(out, "Rotation", cameraTrack.GetRotationChannel());
-				SerializeSequenceChannel(out, "FOV", cameraTrack.GetFOVChannel());
+				SerializeCurve(out, "Location", cameraTrack.GetLocationChannel());
+				SerializeCurve(out, "Rotation", cameraTrack.GetRotationChannel());
+				SerializeCurve(out, "FOV", cameraTrack.GetFOVChannel());
 				break;
 			}
 			case SequenceTrackType::CameraCuts:
 			{
 				const SequenceCameraCutTrack& cutTrack = (const SequenceCameraCutTrack&)(*track);
-				SerializeSequenceChannel(out, "Cuts", cutTrack.GetCutsChannel());
+				SerializeCurve(out, "Cuts", cutTrack.GetCutsChannel());
 				break;
 			}
 			case SequenceTrackType::PostProcess:
@@ -516,7 +543,7 @@ namespace Eagle
 					out << YAML::BeginMap;
 					out << YAML::Key << "Property" << YAML::Value << Eagle::Utils::GetEnumName(channel.Property);
 					out << YAML::Key << "Enabled" << YAML::Value << channel.bEnabled;
-					std::visit([&out](const auto& data) { SerializeSequenceChannel(out, "Keys", data); }, channel.Data);
+					std::visit([&out](const auto& data) { SerializeCurve(out, "Keys", data); }, channel.Data);
 					out << YAML::EndMap;
 				}
 				out << YAML::EndSeq;
@@ -525,7 +552,7 @@ namespace Eagle
 			case SequenceTrackType::Event:
 			{
 				const SequenceEventTrack& eventTrack = (const SequenceEventTrack&)(*track);
-				SerializeSequenceChannel(out, "Events", eventTrack.GetEventsChannel());
+				SerializeCurve(out, "Events", eventTrack.GetEventsChannel());
 				break;
 			}
 		}
@@ -568,15 +595,15 @@ namespace Eagle
 				if (auto node = trackNode["FarClip"])
 					cameraTrack.SetFarClip(node.as<float>());
 
-				DeserializeSequenceChannel(trackNode, "Location", cameraTrack.GetLocationChannel());
-				DeserializeSequenceChannel(trackNode, "Rotation", cameraTrack.GetRotationChannel());
-				DeserializeSequenceChannel(trackNode, "FOV", cameraTrack.GetFOVChannel());
+				DeserializeCurve(trackNode, "Location", cameraTrack.GetLocationChannel());
+				DeserializeCurve(trackNode, "Rotation", cameraTrack.GetRotationChannel());
+				DeserializeCurve(trackNode, "FOV", cameraTrack.GetFOVChannel());
 				break;
 			}
 			case SequenceTrackType::CameraCuts:
 			{
 				SequenceCameraCutTrack& cutTrack = (SequenceCameraCutTrack&)(*track);
-				DeserializeSequenceChannel(trackNode, "Cuts", cutTrack.GetCutsChannel());
+				DeserializeCurve(trackNode, "Cuts", cutTrack.GetCutsChannel());
 				break;
 			}
 			case SequenceTrackType::PostProcess:
@@ -607,7 +634,7 @@ namespace Eagle
 						auto& channel = postProcessTrack.AddProperty(*property);
 						if (auto enabledNode = propertyNode["Enabled"])
 							channel.bEnabled = enabledNode.as<bool>();
-						std::visit([&propertyNode](auto& data) { DeserializeSequenceChannel(propertyNode, "Keys", data); }, channel.Data);
+						std::visit([&propertyNode](auto& data) { DeserializeCurve(propertyNode, "Keys", data); }, channel.Data);
 					}
 				}
 				break;
@@ -615,7 +642,7 @@ namespace Eagle
 			case SequenceTrackType::Event:
 			{
 				SequenceEventTrack& eventTrack = (SequenceEventTrack&)(*track);
-				DeserializeSequenceChannel(trackNode, "Events", eventTrack.GetEventsChannel());
+				DeserializeCurve(trackNode, "Events", eventTrack.GetEventsChannel());
 				break;
 			}
 		}
@@ -1637,21 +1664,17 @@ namespace Eagle
 				out << YAML::Key << "Name" << YAML::Value << emitter.Name;
 				if (const auto& asset = emitter.Texture)
 					out << YAML::Key << "Texture" << YAML::Value << asset->GetGUID();
-				out << YAML::Key << "ColorStart" << YAML::Value << emitter.ColorStart;
-				out << YAML::Key << "ColorEnd" << YAML::Value << emitter.ColorEnd;
+				SerializeCurveProperty(out, "Color", emitter.Color);
+				SerializeCurveProperty(out, "ColorIntensity", emitter.ColorIntensity);
 
 				out << YAML::Key << "VelocityMin" << YAML::Value << emitter.VelocityMin;
 				out << YAML::Key << "VelocityMax" << YAML::Value << emitter.VelocityMax;
 
-				out << YAML::Key << "VelocityCoefStart" << YAML::Value << emitter.VelocityCoefStart;
-				out << YAML::Key << "VelocityCoefEnd" << YAML::Value << emitter.VelocityCoefEnd;
+				SerializeCurveProperty(out, "VelocityCoef", emitter.VelocityCoef);
 				out << YAML::Key << "VelocitySpace" << YAML::Value << Utils::GetEnumName(emitter.VelocitySpace);
 
-				out << YAML::Key << "RotationZStart" << YAML::Value << emitter.RotationZStart;
-				out << YAML::Key << "RotationZEnd" << YAML::Value << emitter.RotationZEnd;
-
-				out << YAML::Key << "SizeStart" << YAML::Value << emitter.SizeStart;
-				out << YAML::Key << "SizeEnd" << YAML::Value << emitter.SizeEnd;
+				SerializeCurveProperty(out, "RotationZ", emitter.RotationZ);
+				SerializeCurveProperty(out, "Size", emitter.Size);
 				out << YAML::Key << "ColliderSizeRatio" << YAML::Value << emitter.ColliderSizeRatio;
 
 				out << YAML::Key << "LifetimeMin" << YAML::Value << emitter.LifetimeMin;
@@ -5032,28 +5055,20 @@ namespace Eagle
 			if (auto n = node["Name"])
 				emitter.Name = n.as<std::string>();
 			emitter.Texture = GetAsset<AssetTexture2D>(node["Texture"]);
-			emitter.ColorStart = node["ColorStart"].as<glm::vec4>();
-			emitter.ColorEnd = node["ColorEnd"].as<glm::vec4>();
+			DeserializeCurveProperty(node, "Color", emitter.Color);
+			DeserializeCurveProperty(node, "ColorIntensity", emitter.ColorIntensity);
 
 			if (auto n = node["VelocityMin"])
 				emitter.VelocityMin = n.as<glm::vec3>();
 			if (auto n = node["VelocityMax"])
 				emitter.VelocityMax = n.as<glm::vec3>();
 
-			if (auto n = node["VelocityCoefStart"])
-				emitter.VelocityCoefStart = n.as<glm::vec3>();
-			if (auto n = node["VelocityCoefEnd"])
-				emitter.VelocityCoefEnd = n.as<glm::vec3>();
+			DeserializeCurveProperty(node, "VelocityCoef", emitter.VelocityCoef);
 			if (auto n = node["VelocitySpace"])
 				emitter.VelocitySpace = Utils::GetEnumFromName<ParticleEmitter::VelocitySpaceType>(n.as<std::string>());
 
-			if (auto n = node["RotationZStart"])
-				emitter.RotationZStart = n.as<float>();
-			if (auto n = node["RotationZEnd"])
-				emitter.RotationZEnd = n.as<float>();
-
-			emitter.SizeStart = node["SizeStart"].as<glm::vec2>();
-			emitter.SizeEnd = node["SizeEnd"].as<glm::vec2>();
+			DeserializeCurveProperty(node, "RotationZ", emitter.RotationZ);
+			DeserializeCurveProperty(node, "Size", emitter.Size);
 			emitter.ColliderSizeRatio = node["ColliderSizeRatio"].as<glm::vec2>();
 
 			emitter.LifetimeMin = node["LifetimeMin"].as<float>();

@@ -10375,10 +10375,27 @@ namespace Eagle
 		return;
 	}
 
-	void* Script::Eagle_AssetParticleSystem_SetEmitters_Prepare(uint32_t count)
+	void* Script::Eagle_AssetParticleSystem_SetEmitters_Prepare(GUID assetID, uint32_t count)
 	{
-		std::vector<ParticleEmitter>* emitters = new std::vector<ParticleEmitter>(count);
+		// Start from the asset's current emitters (matched by index), so whatever scripts can't express
+		// (curve shapes, mesh animation settings, emitter IDs) survives a `SetEmitters()` call
+		std::vector<ParticleEmitter>* emitters = new std::vector<ParticleEmitter>();
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (Ref<AssetParticleSystem> ps = Cast<AssetParticleSystem>(asset))
+			*emitters = ps->GetEmitters();
+		emitters->resize(count);
 		return emitters;
+	}
+
+	// Scripts see over-lifetime properties as start/end values. A curve authored in the editor is kept as long as
+	// the script doesn't change its start/end values. Otherwise, it becomes a linear curve (or a constant if both values are equal)
+	template <typename T>
+	static void SetCurvePropertyFromScript(CurveProperty<T>& property, const T& start, const T& end)
+	{
+		if (property.Evaluate(0.f) == start && property.Evaluate(1.f) == end)
+			return;
+		property = CurveProperty<T>::FromStartEnd(start, end);
 	}
 
 	void Script::Eagle_AssetParticleSystem_SetEmitters_Finish(GUID assetID, void* data)
@@ -10407,7 +10424,7 @@ namespace Eagle
 		return asset->GetGUID();
 	}
 
-	void Script::Eagle_AssetParticleSystem_SetEmitter(void* data, uint32_t index, GUID texture, const glm::vec4* colorStart, const glm::vec4* colorEnd,
+	void Script::Eagle_AssetParticleSystem_SetEmitter(void* data, uint32_t index, GUID texture, const glm::vec4* colorStart, const glm::vec4* colorEnd, float colorIntensityStart, float colorIntensityEnd,
 		const glm::vec3* velocityMin, const glm::vec3* velocityMax, const glm::vec3* velocityCoefStart, const glm::vec3* velocityCoefEnd, ParticleEmitter::VelocitySpaceType velocitySpace,
 		float rotationZStart, float rotationZEnd, const glm::vec2* sizeStart, const glm::vec2* sizeEnd, const glm::vec2* colliderSizeRatio,
 		float lifetimeMin, float lifetimeMax, float bouncinessMin, float bouncinessMax, MonoString* name, const Transform* relativeTransform,
@@ -10420,19 +10437,16 @@ namespace Eagle
 		EG_CORE_ASSERT(emitters->size() >= index);
 
 		ParticleEmitter& emitter = (*emitters)[index];
-		emitter.ColorStart = *colorStart;
-		emitter.ColorEnd = *colorEnd;
+		SetCurvePropertyFromScript(emitter.Color, *colorStart, *colorEnd);
+		SetCurvePropertyFromScript(emitter.ColorIntensity, colorIntensityStart, colorIntensityEnd);
 
 		emitter.VelocityMin = *velocityMin;
 		emitter.VelocityMax = *velocityMax;
-		emitter.VelocityCoefStart = *velocityCoefStart;
-		emitter.VelocityCoefEnd = *velocityCoefEnd;
+		SetCurvePropertyFromScript(emitter.VelocityCoef, *velocityCoefStart, *velocityCoefEnd);
 		emitter.VelocitySpace = velocitySpace;
 
-		emitter.RotationZStart = rotationZStart;
-		emitter.RotationZEnd = rotationZEnd;
-		emitter.SizeStart = *sizeStart;
-		emitter.SizeEnd = *sizeEnd;
+		SetCurvePropertyFromScript(emitter.RotationZ, rotationZStart, rotationZEnd);
+		SetCurvePropertyFromScript(emitter.Size, *sizeStart, *sizeEnd);
 		emitter.ColliderSizeRatio = *colliderSizeRatio;
 
 		emitter.LifetimeMin = lifetimeMin;
@@ -10526,7 +10540,7 @@ namespace Eagle
 		}
 	}
 
-	MonoString* Script::Eagle_AssetParticleSystem_GetEmitter(GUID assetID, uint32_t index, GUID* texture, glm::vec4* colorStart, glm::vec4* colorEnd,
+	MonoString* Script::Eagle_AssetParticleSystem_GetEmitter(GUID assetID, uint32_t index, GUID* texture, glm::vec4* colorStart, glm::vec4* colorEnd, float* colorIntensityStart, float* colorIntensityEnd,
 		glm::vec3* velocityMin, glm::vec3* velocityMax, glm::vec3* velocityCoefStart, glm::vec3* velocityCoefEnd, ParticleEmitter::VelocitySpaceType* velocitySpace, float* rotationZStart, float* rotationZEnd,
 		glm::vec2* sizeStart, glm::vec2* sizeEnd, glm::vec2* colliderSizeRatio, float* lifetimeMin, float* lifetimeMax, float* bouncinessMin, float* bouncinessMax,
 		Transform* relativeTransform, AABB* visibilityAABB, uint32_t* loopCount, float* loopDuration, uint32_t* spawnRate, float* fastForwardTo, float* radialAcceleration,
@@ -10553,19 +10567,21 @@ namespace Eagle
 
 			const auto& emitter = emitters[index];
 			*texture = emitter.Texture ? emitter.Texture->GetGUID() : GUID(0, 0);
-			*colorStart = emitter.ColorStart;
-			*colorEnd = emitter.ColorEnd;
+			*colorStart = emitter.Color.Evaluate(0.f);
+			*colorEnd = emitter.Color.Evaluate(1.f);
+			*colorIntensityStart = emitter.ColorIntensity.Evaluate(0.f);
+			*colorIntensityEnd = emitter.ColorIntensity.Evaluate(1.f);
 
 			*velocityMin = emitter.VelocityMin;
 			*velocityMax = emitter.VelocityMax;
-			*velocityCoefStart = emitter.VelocityCoefStart;
-			*velocityCoefEnd = emitter.VelocityCoefEnd;
+			*velocityCoefStart = emitter.VelocityCoef.Evaluate(0.f);
+			*velocityCoefEnd = emitter.VelocityCoef.Evaluate(1.f);
 			*velocitySpace = emitter.VelocitySpace;
-			*rotationZStart = emitter.RotationZStart;
-			*rotationZEnd = emitter.RotationZEnd;
+			*rotationZStart = emitter.RotationZ.Evaluate(0.f);
+			*rotationZEnd = emitter.RotationZ.Evaluate(1.f);
 
-			*sizeStart = emitter.SizeStart;
-			*sizeEnd = emitter.SizeEnd;
+			*sizeStart = emitter.Size.Evaluate(0.f);
+			*sizeEnd = emitter.Size.Evaluate(1.f);
 			*colliderSizeRatio = emitter.ColliderSizeRatio;
 			*lifetimeMin = emitter.LifetimeMin;
 			*lifetimeMax = emitter.LifetimeMax;

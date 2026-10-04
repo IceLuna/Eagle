@@ -95,21 +95,11 @@ struct Emitter
 	vec3 AABBMax;
 	uint EmissionShape;
 
-	vec4 ColorStart;
-	vec4 ColorEnd;
-
 	vec3 VelocityMin;
-	float RotationZStart;
-
-	vec3 VelocityMax;
 	uint SpawnRate; // Particles per second
 
-	vec2 SizeStart;
-	vec2 SizeEnd;
-
-	vec2 ColliderSizeRatio;
-	uint LoopCount;
-	float LoopDuration;
+	vec3 VelocityMax;
+	uint Flags;
 
 	vec3 RingRadius;
 	float BouncinessMin;
@@ -126,11 +116,9 @@ struct Emitter
 	vec3 BoxMax;
 	float LifetimeMax;
 
-	vec3 VelocityCoefStart;
-	uint Flags;
-
-	vec3 VelocityCoefEnd;
-	float RotationZEnd;
+	vec2 ColliderSizeRatio;
+	uint LoopCount;
+	float LoopDuration;
 
 	uvec2 AnimationImagesNum;
 	float AnimationSpeed;
@@ -142,7 +130,6 @@ struct Emitter
 	uint IndexOffset;
 	uint IndexCount;
 
-	// TODO: Pack it somewhere
 	float BouncinessMax;
 	uint AnimationOffset; // Used to retrieve animation data when skeletal mesh animation is used
 	float RadialAcceleration;
@@ -157,6 +144,14 @@ struct Emitter
 	uint InternalFlags;
 	float FastForwardTime; // Set when the emitter is added, reset by the first `prepare_data` pass
 };
+
+// Values over a particle's lifetime, baked on the CPU from the emitter's curves
+// Every emitter slot owns `EmitterCurve_Count` curves of `EmitterCurve_SamplesCount` samples (vec4) in the curves buffer
+const uint EmitterCurve_SamplesCount = 64;
+const uint EmitterCurve_Color = 0;        // rgb - color multiplied by the intensity, a - alpha
+const uint EmitterCurve_SizeRotation = 1; // xy - size, z - rotation Z (radians)
+const uint EmitterCurve_VelocityCoef = 2; // xyz - velocity coef
+const uint EmitterCurve_Count = 3;
 
 #ifdef __cplusplus
 void Emitter_SetIsVisible(Emitter& emitter, bool bVisible)
@@ -457,6 +452,17 @@ vec3 ApplyVelocityCoef(vec3 worldVelocity, vec3 coef, mat3 emitterRotation, bool
 		return worldVelocity * coef; // World-space or uniform coef, no need to go to local space
 
 	return emitterRotation * ((transpose(emitterRotation) * worldVelocity) * coef);
+}
+
+// Indices (in the curves buffer) of the two samples around `lifeAlpha`, and the blend factor between them
+void EmitterCurve_GetSamples(uint emitterIndex, uint curve, float lifeAlpha, out uint index0, out uint index1, out float blend)
+{
+	const float x = clamp(lifeAlpha, 0.f, 1.f) * float(EmitterCurve_SamplesCount - 1u);
+	const uint sample0 = min(uint(x), EmitterCurve_SamplesCount - 1u);
+	const uint base = (emitterIndex * EmitterCurve_Count + curve) * EmitterCurve_SamplesCount;
+	index0 = base + sample0;
+	index1 = base + min(sample0 + 1u, EmitterCurve_SamplesCount - 1u);
+	blend = x - float(sample0);
 }
 
 vec3 Particle_ComputeForce(Emitter emitter, vec3 particlePosition, mat3 emitterRotation, vec3 gravity)

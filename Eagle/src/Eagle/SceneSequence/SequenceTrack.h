@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SequenceCurve.h"
+#include "Eagle/Curves/Curve.h"
 
 #include "Eagle/Renderer/PostProcessOverride.h"
 #include "Eagle/Core/Core.h"
@@ -180,7 +180,7 @@ namespace Eagle
 
 		void ShiftKeys(float deltaTime) override;
 
-		void AddTransformKey(float time, const Transform& transform, SequenceInterpolation interpolation = SequenceInterpolation::Smooth)
+		void AddTransformKey(float time, const Transform& transform, CurveInterpolation interpolation = CurveInterpolation::Smooth)
 		{
 			m_Location.AddKey(time, transform.Location, interpolation);
 			m_Rotation.AddKey(time, transform.Rotation.GetQuat(), interpolation);
@@ -201,15 +201,15 @@ namespace Eagle
 		// Time span covered by the location/rotation keys. Returns false if there are none
 		bool GetShotRange(float* outStart, float* outEnd) const;
 
-		SequenceVec3Channel& GetLocationChannel() { return m_Location; }
-		const SequenceVec3Channel& GetLocationChannel() const { return m_Location; }
+		Vec3Curve& GetLocationChannel() { return m_Location; }
+		const Vec3Curve& GetLocationChannel() const { return m_Location; }
 
-		SequenceQuatChannel& GetRotationChannel() { return m_Rotation; }
-		const SequenceQuatChannel& GetRotationChannel() const { return m_Rotation; }
+		QuatCurve& GetRotationChannel() { return m_Rotation; }
+		const QuatCurve& GetRotationChannel() const { return m_Rotation; }
 
 		// In degrees
-		SequenceFloatChannel& GetFOVChannel() { return m_FOV; }
-		const SequenceFloatChannel& GetFOVChannel() const { return m_FOV; }
+		FloatCurve& GetFOVChannel() { return m_FOV; }
+		const FloatCurve& GetFOVChannel() const { return m_FOV; }
 
 		float GetDefaultFOVDegrees() const { return m_DefaultFOVDegrees; }
 		void SetDefaultFOVDegrees(float value) { m_DefaultFOVDegrees = value; }
@@ -225,9 +225,9 @@ namespace Eagle
 		void GatherPathPoints(const Transform& base, float fromTime, float toTime, uint32_t segmentsPerSecond, std::vector<glm::vec3>& outPoints) const;
 
 	private:
-		SequenceVec3Channel m_Location;
-		SequenceQuatChannel m_Rotation;
-		SequenceFloatChannel m_FOV;
+		Vec3Curve m_Location;
+		QuatCurve m_Rotation;
+		FloatCurve m_FOV;
 
 		// Used when the FOV channel has no keys
 		float m_DefaultFOVDegrees = 45.f;
@@ -257,16 +257,16 @@ namespace Eagle
 
 		void ShiftKeys(float deltaTime) override;
 
-		void AddCut(float time, const GUID& cameraTrackID) { m_Cuts.AddKey(time, cameraTrackID, SequenceInterpolation::Constant); }
+		void AddCut(float time, const GUID& cameraTrackID) { m_Cuts.AddKey(time, cameraTrackID, CurveInterpolation::Constant); }
 
 		// ID of the camera track that's live at `time`. Null if there are no cuts
 		GUID GetCameraAt(float time) const { return m_Cuts.Evaluate(time, GUID(0, 0)); }
 
-		SequenceGUIDChannel& GetCutsChannel() { return m_Cuts; }
-		const SequenceGUIDChannel& GetCutsChannel() const { return m_Cuts; }
+		GUIDCurve& GetCutsChannel() { return m_Cuts; }
+		const GUIDCurve& GetCutsChannel() const { return m_Cuts; }
 
 	private:
-		SequenceGUIDChannel m_Cuts; // ID of a camera track
+		GUIDCurve m_Cuts; // ID of a camera track
 	};
 
 	// Overrides rendering settings for as long as it's active.
@@ -281,7 +281,7 @@ namespace Eagle
 		struct Channel
 		{
 			PostProcessProperty Property = PostProcessProperty::Exposure;
-			SequenceChannelVariant Data;
+			CurveVariant Data;
 			bool bEnabled = true;
 
 			float GetFirstKeyTime() const;
@@ -355,10 +355,10 @@ namespace Eagle
 		// the same asset without interfering with each other
 		void GatherEvents(const SequenceEventWindow& window, std::vector<SequenceEvent>& outEvents) const;
 
-		SequenceStringChannel& GetEventsChannel() { return m_Events; }
-		const SequenceStringChannel& GetEventsChannel() const { return m_Events; }
+		StringCurve& GetEventsChannel() { return m_Events; }
+		const StringCurve& GetEventsChannel() const { return m_Events; }
 
 	private:
-		SequenceStringChannel m_Events;
+		StringCurve m_Events;
 	};
 }

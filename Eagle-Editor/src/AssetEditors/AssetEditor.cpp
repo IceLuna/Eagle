@@ -207,12 +207,25 @@ namespace Eagle
 
 		if (bFirstUseEver && !parentName.empty())
 		{
+			const bool bCustomSize = m_FirstUseDockSize.x > 0.f && m_FirstUseDockSize.y > 0.f;
+			ImVec2 nodePos = ImGui::GetWindowPos();
+			ImVec2 nodeSize = bCustomSize ? m_FirstUseDockSize : ImGui::GetWindowSize();
+			if (bCustomSize)
+			{
+				const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
+				const ImVec2 workMin = mainViewport->WorkPos;
+				const ImVec2 workSize = mainViewport->WorkSize;
+				nodeSize = ImVec2(ImMin(nodeSize.x, workSize.x * 0.95f), ImMin(nodeSize.y, workSize.y * 0.95f));
+				nodePos.x = ImClamp(nodePos.x, workMin.x, workMin.x + workSize.x - nodeSize.x);
+				nodePos.y = ImClamp(nodePos.y, workMin.y, workMin.y + workSize.y - nodeSize.y);
+			}
+
 			ImGuiID parent_node = ImGui::DockBuilderAddNode();
-			ImGui::DockBuilderSetNodePos(parent_node, ImGui::GetWindowPos());
-			ImGui::DockBuilderSetNodeSize(parent_node, ImGui::GetWindowSize());
+			ImGui::DockBuilderSetNodePos(parent_node, nodePos);
+			ImGui::DockBuilderSetNodeSize(parent_node, nodeSize);
 			ImGuiID nodeDetails; // Main window
 			ImGuiID nodeViewport;
-			ImGui::DockBuilderSplitNode(parent_node, ImGuiDir_Left, 0.5f, &nodeViewport, &nodeDetails);
+			ImGui::DockBuilderSplitNode(parent_node, ImGuiDir_Left, m_FirstUseViewportRatio, &nodeViewport, &nodeDetails);
 
 			ImGui::DockBuilderDockWindow(parentName.data(), nodeDetails);
 			ImGui::DockBuilderDockWindow(windowName.data(), nodeViewport);
@@ -223,7 +236,8 @@ namespace Eagle
 				dock->SetLocalFlags(ImGuiDockNodeFlags_NoTabBar);
 			}
 
-			ImGui::SetWindowSize(ImVec2(720.f * 2.f, 560.f));
+			if (!bCustomSize)
+				ImGui::SetWindowSize(ImVec2(720.f * 2.f, 560.f));
 		}
 	}
 

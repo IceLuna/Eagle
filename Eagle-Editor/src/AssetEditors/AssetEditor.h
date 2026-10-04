@@ -50,6 +50,10 @@ namespace Eagle
 		static std::string GetAssetWindowName(const Ref<Asset>& asset, std::string_view ending = "");
 		static ImVec2 GetDefaultWindowSize() { return ImVec2(920.f, 760.f); }
 
+	protected:
+		ImVec2 m_FirstUseDockSize = ImVec2(0.f, 0.f);
+		float m_FirstUseViewportRatio = 0.5f;
+
 	private:
 		void AddSkybox();
 		bool OnKeyPressed(KeyPressedEvent& e);

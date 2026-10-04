@@ -1,19 +1,17 @@
 #pragma once
 
 #include "Eagle/Core/GUID.h"
-#include "Eagle/Math/Transform.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
 #include <algorithm>
-#include <vector>
 
 namespace Eagle
 {
 	// How the segment that STARTS at a key is interpolated.
 	// The mode is owned by the left key of a segment
-	enum class SequenceInterpolation
+	enum class CurveInterpolation
 	{
 		// Value is held until the next key is reached
 		Constant,
@@ -29,7 +27,7 @@ namespace Eagle
 	};
 
 	template <typename T>
-	struct SequenceKey
+	struct CurveKey
 	{
 		// A stable identity so that UI selection survives re-sorting when keys are dragged past each other.
 		GUID ID;
@@ -37,20 +35,20 @@ namespace Eagle
 		float Time = 0.f;
 		T Value{};
 
-		SequenceInterpolation Interpolation = SequenceInterpolation::Smooth;
+		CurveInterpolation Interpolation = CurveInterpolation::Smooth;
 
 		// Only used when `Interpolation == Cubic`. Expressed in units per second.
 		T InTangent{};
 		T OutTangent{};
 
-		SequenceKey() = default;
-		SequenceKey(float time, const T& value, SequenceInterpolation interpolation = SequenceInterpolation::Smooth)
+		CurveKey() = default;
+		CurveKey(float time, const T& value, CurveInterpolation interpolation = CurveInterpolation::Smooth)
 			: Time(time), Value(value), Interpolation(interpolation) {}
 	};
 
-	// Value traits. Add a specialization to support a new channel value type
+	// Value traits. Add a specialization to support a new curve value type
 	template <typename T>
-	struct SequenceValueTraits
+	struct CurveValueTraits
 	{
 		static T Zero() { return T(0); }
 
@@ -85,7 +83,7 @@ namespace Eagle
 	// `glm::quat` gets its own specialization because quaternions can't be
 	// blended component-wise without the rotation wobbling on the way.
 	template <>
-	struct SequenceValueTraits<glm::quat>
+	struct CurveValueTraits<glm::quat>
 	{
 		static glm::quat Zero() { return glm::quat(1.f, 0.f, 0.f, 0.f); }
 
@@ -117,7 +115,7 @@ namespace Eagle
 	// Can't interpolate integer/string based types. Every segment holds its left key
 	// whatever the key's interpolation mode is, and the value switches exactly at the next key's time.
 	template <>
-	struct SequenceValueTraits<bool>
+	struct CurveValueTraits<bool>
 	{
 		static bool Zero() { return false; }
 		static bool Lerp(bool a, bool b, float alpha) { return alpha < 1.f ? a : b; }
@@ -126,7 +124,7 @@ namespace Eagle
 	};
 
 	template <>
-	struct SequenceValueTraits<int32_t>
+	struct CurveValueTraits<int32_t>
 	{
 		static int32_t Zero() { return 0; }
 		static int32_t Lerp(int32_t a, int32_t b, float alpha) { return alpha < 1.f ? a : b; }
@@ -135,7 +133,7 @@ namespace Eagle
 	};
 
 	template <>
-	struct SequenceValueTraits<uint32_t>
+	struct CurveValueTraits<uint32_t>
 	{
 		static uint32_t Zero() { return 0; }
 		static uint32_t Lerp(uint32_t a, uint32_t b, float alpha) { return alpha < 1.f ? a : b; }
@@ -144,7 +142,7 @@ namespace Eagle
 	};
 
 	template <>
-	struct SequenceValueTraits<GUID>
+	struct CurveValueTraits<GUID>
 	{
 		static GUID Zero() { return GUID(0, 0); }
 		static GUID Lerp(const GUID& a, const GUID& b, float alpha) { return alpha < 1.f ? a : b; }
@@ -153,7 +151,7 @@ namespace Eagle
 	};
 
 	template <>
-	struct SequenceValueTraits<std::string>
+	struct CurveValueTraits<std::string>
 	{
 		static std::string Zero() { return ""; }
 		static std::string Lerp(const std::string& a, const std::string& b, float alpha) { return alpha < 1.f ? a : b; }
@@ -162,11 +160,11 @@ namespace Eagle
 	};
 
 	template <typename T>
-	class SequenceChannel
+	class Curve
 	{
 	public:
-		using KeyType = SequenceKey<T>;
-		using Traits = SequenceValueTraits<T>;
+		using KeyType = CurveKey<T>;
+		using Traits = CurveValueTraits<T>;
 
 		bool IsEmpty() const { return m_Keys.empty(); }
 		size_t GetKeysCount() const { return m_Keys.size(); }
@@ -181,7 +179,7 @@ namespace Eagle
 
 		// Returns the index of the newly inserted key.
 		// If a key already exists at (almost) the same time, that key is overwritten instead.
-		size_t AddKey(float time, const T& value, SequenceInterpolation interpolation = SequenceInterpolation::Smooth)
+		size_t AddKey(float time, const T& value, CurveInterpolation interpolation = CurveInterpolation::Smooth)
 		{
 			if (KeyType* existing = FindKeyAtTime(time))
 			{
@@ -261,7 +259,7 @@ namespace Eagle
 			return nullptr;
 		}
 
-		// Call after mutating key times directly (for example while dragging keys in the timeline).
+		// Call after mutating key times directly (for example while dragging keys in an editor).
 		void SortKeys()
 		{
 			std::stable_sort(m_Keys.begin(), m_Keys.end(),
@@ -271,7 +269,7 @@ namespace Eagle
 		float GetFirstKeyTime() const { return m_Keys.empty() ? 0.f : m_Keys.front().Time; }
 		float GetLastKeyTime() const { return m_Keys.empty() ? 0.f : m_Keys.back().Time; }
 
-		// @defaultValue. Returned when the channel has no keys at all
+		// @defaultValue. Returned when the curve has no keys at all
 		T Evaluate(float time, const T& defaultValue) const
 		{
 			const size_t count = m_Keys.size();
@@ -306,14 +304,14 @@ namespace Eagle
 			const float alpha = glm::clamp((time - left.Time) / dt, 0.f, 1.f);
 			switch (left.Interpolation)
 			{
-				case SequenceInterpolation::Constant:
+				case CurveInterpolation::Constant:
 					return left.Value;
 
-				case SequenceInterpolation::Linear:
+				case CurveInterpolation::Linear:
 					return Traits::Lerp(left.Value, right.Value, alpha);
 
-				case SequenceInterpolation::Smooth:
-				case SequenceInterpolation::Cubic:
+				case CurveInterpolation::Smooth:
+				case CurveInterpolation::Cubic:
 				{
 					const T m0 = GetOutTangent(index);
 					const T m1 = GetInTangent(index + 1);
@@ -332,13 +330,13 @@ namespace Eagle
 				return Traits::Zero();
 
 			const KeyType& key = m_Keys[index];
-			if (key.Interpolation == SequenceInterpolation::Cubic)
+			if (key.Interpolation == CurveInterpolation::Cubic)
 				return key.OutTangent;
 
-			if (key.Interpolation == SequenceInterpolation::Constant)
+			if (key.Interpolation == CurveInterpolation::Constant)
 				return Traits::Zero();
 
-			if (key.Interpolation == SequenceInterpolation::Linear)
+			if (key.Interpolation == CurveInterpolation::Linear)
 			{
 				if (index + 1 < m_Keys.size())
 					return Traits::Slope(key.Value, m_Keys[index + 1].Value, m_Keys[index + 1].Time - key.Time);
@@ -355,13 +353,13 @@ namespace Eagle
 				return Traits::Zero();
 
 			const KeyType& key = m_Keys[index];
-			if (key.Interpolation == SequenceInterpolation::Cubic)
+			if (key.Interpolation == CurveInterpolation::Cubic)
 				return key.InTangent;
 
-			if (key.Interpolation == SequenceInterpolation::Constant)
+			if (key.Interpolation == CurveInterpolation::Constant)
 				return Traits::Zero();
 
-			if (key.Interpolation == SequenceInterpolation::Linear)
+			if (key.Interpolation == CurveInterpolation::Linear)
 			{
 				if (index > 0)
 					return Traits::Slope(m_Keys[index - 1].Value, key.Value, key.Time - m_Keys[index - 1].Time);
@@ -394,17 +392,17 @@ namespace Eagle
 		std::vector<KeyType> m_Keys; // Always sorted by time
 	};
 
-	using SequenceBoolChannel = SequenceChannel<bool>;
-	using SequenceIntChannel = SequenceChannel<int32_t>;
-	using SequenceUIntChannel = SequenceChannel<uint32_t>;
-	using SequenceFloatChannel = SequenceChannel<float>;
-	using SequenceVec2Channel = SequenceChannel<glm::vec2>;
-	using SequenceVec3Channel = SequenceChannel<glm::vec3>;
-	using SequenceGUIDChannel = SequenceChannel<GUID>;
-	using SequenceStringChannel = SequenceChannel<std::string>;
-	using SequenceQuatChannel = SequenceChannel<glm::quat>;
+	using BoolCurve = Curve<bool>;
+	using IntCurve = Curve<int32_t>;
+	using UIntCurve = Curve<uint32_t>;
+	using FloatCurve = Curve<float>;
+	using Vec2Curve = Curve<glm::vec2>;
+	using Vec3Curve = Curve<glm::vec3>;
+	using GUIDCurve = Curve<GUID>;
+	using StringCurve = Curve<std::string>;
+	using QuatCurve = Curve<glm::quat>;
 
-	using SequenceChannelVariant = std::variant
-		<SequenceBoolChannel, SequenceIntChannel, SequenceUIntChannel, SequenceFloatChannel,
-		SequenceVec2Channel, SequenceVec3Channel, SequenceGUIDChannel, SequenceStringChannel>;
+	using CurveVariant = std::variant
+		<BoolCurve, IntCurve, UIntCurve, FloatCurve,
+		Vec2Curve, Vec3Curve, GUIDCurve, StringCurve>;
 }

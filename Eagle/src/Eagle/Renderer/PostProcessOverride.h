@@ -63,7 +63,7 @@ namespace Eagle
 		FilmGrainSeedUpdateRate,
 	};
 
-	// When expanded, new `Sequence*Channel` needs to be created for the type (such as `SequenceBoolChannel`)
+	// When expanded, new `Sequence*Channel` needs to be created for the type (such as `BoolCurve`)
 	enum class PostProcessValueType : uint8_t
 	{
 		Bool,

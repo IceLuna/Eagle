@@ -283,15 +283,15 @@ namespace Eagle
 
 		switch (type)
 		{
-			case PostProcessValueType::Bool:   channel.Data = SequenceBoolChannel{};  break;
-			case PostProcessValueType::Int:    channel.Data = SequenceIntChannel{};   break;
-			case PostProcessValueType::UInt:   channel.Data = SequenceUIntChannel{};  break;
-			case PostProcessValueType::Float:  channel.Data = SequenceFloatChannel{}; break;
-			case PostProcessValueType::Enum:   channel.Data = SequenceIntChannel{};   break;
-			case PostProcessValueType::Vec2:   channel.Data = SequenceVec2Channel{};  break;
-			case PostProcessValueType::Vec3:   channel.Data = SequenceVec3Channel{};  break;
-			case PostProcessValueType::Color3: channel.Data = SequenceVec3Channel{};  break;
-			case PostProcessValueType::Asset:  channel.Data = SequenceGUIDChannel{};  break;
+			case PostProcessValueType::Bool:   channel.Data = BoolCurve{};  break;
+			case PostProcessValueType::Int:    channel.Data = IntCurve{};   break;
+			case PostProcessValueType::UInt:   channel.Data = UIntCurve{};  break;
+			case PostProcessValueType::Float:  channel.Data = FloatCurve{}; break;
+			case PostProcessValueType::Enum:   channel.Data = IntCurve{};   break;
+			case PostProcessValueType::Vec2:   channel.Data = Vec2Curve{};  break;
+			case PostProcessValueType::Vec3:   channel.Data = Vec3Curve{};  break;
+			case PostProcessValueType::Color3: channel.Data = Vec3Curve{};  break;
+			case PostProcessValueType::Asset:  channel.Data = GUIDCurve{};  break;
 			default:
 				EG_CORE_ASSERT(!"Unknown type");
 		}

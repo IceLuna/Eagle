@@ -30,102 +30,6 @@ namespace Eagle
 		static constexpr ImU32 s_LiveCameraColor = IM_COL32(90, 220, 110, 255);
 		static constexpr ImU32 s_PostProcessRangeColor = IM_COL32(120, 160, 245, 255);
 
-		// Scalar access used by the curve editor. Specialize to expose a new value type as curves.
-		template <typename T>
-		struct CurveAccess;
-
-		// Step values aren't curves either
-		template <>
-		struct CurveAccess<bool>
-		{
-			static constexpr uint32_t Count = 0;
-			static float Get(const bool&, uint32_t) { return 0.f; }
-			static void Set(bool&, uint32_t, float) {}
-			static const char* Name(uint32_t) { return ""; }
-		};
-
-		template <>
-		struct CurveAccess<int32_t>
-		{
-			static constexpr uint32_t Count = 0;
-			static float Get(const int32_t&, uint32_t) { return 0.f; }
-			static void Set(int32_t&, uint32_t, float) {}
-			static const char* Name(uint32_t) { return ""; }
-		};
-
-		template <>
-		struct CurveAccess<uint32_t>
-		{
-			static constexpr uint32_t Count = 0;
-			static float Get(const uint32_t&, uint32_t) { return 0.f; }
-			static void Set(uint32_t&, uint32_t, float) {}
-			static const char* Name(uint32_t) { return ""; }
-		};
-
-		template <>
-		struct CurveAccess<float>
-		{
-			static constexpr uint32_t Count = 1;
-			static float Get(const float& value, uint32_t) { return value; }
-			static void Set(float& value, uint32_t, float x) { value = x; }
-			static const char* Name(uint32_t) { return "Value"; }
-		};
-
-		template <>
-		struct CurveAccess<glm::vec2>
-		{
-			static constexpr uint32_t Count = 2;
-			static float Get(const glm::vec2& value, uint32_t c) { return value[c]; }
-			static void Set(glm::vec2& value, uint32_t c, float x) { value[c] = x; }
-			static const char* Name(uint32_t c)
-			{
-				static const char* names[] = { "X", "Y" };
-				return names[c < 2 ? c : 0];
-			}
-		};
-
-		template <>
-		struct CurveAccess<glm::vec3>
-		{
-			static constexpr uint32_t Count = 3;
-			static float Get(const glm::vec3& value, uint32_t c) { return value[c]; }
-			static void Set(glm::vec3& value, uint32_t c, float x) { value[c] = x; }
-			static const char* Name(uint32_t c)
-			{
-				static const char* names[] = { "X", "Y", "Z" };
-				return names[c < 3 ? c : 0];
-			}
-		};
-
-		// Rotations aren't shown as curves: per-component quaternion curves are meaningless to
-		// edit by hand, and euler curves would lie about what slerp actually does in between
-		template <>
-		struct CurveAccess<glm::quat>
-		{
-			static constexpr uint32_t Count = 0;
-			static float Get(const glm::quat&, uint32_t) { return 0.f; }
-			static void Set(glm::quat&, uint32_t, float) {}
-			static const char* Name(uint32_t) { return ""; }
-		};
-
-		template <>
-		struct CurveAccess<GUID>
-		{
-			static constexpr uint32_t Count = 0;
-			static float Get(const GUID&, uint32_t) { return 0.f; }
-			static void Set(GUID&, uint32_t, float) {}
-			static const char* Name(uint32_t) { return ""; }
-		};
-
-		template <>
-		struct CurveAccess<std::string>
-		{
-			static constexpr uint32_t Count = 0;
-			static float Get(const std::string&, uint32_t) { return 0.f; }
-			static void Set(std::string&, uint32_t, float) {}
-			static const char* Name(uint32_t) { return ""; }
-		};
-
 		static ImU32 WithAlpha(ImU32 color, float alpha)
 		{
 			ImVec4 c = ImGui::ColorConvertU32ToFloat4(color);
@@ -134,78 +38,28 @@ namespace Eagle
 		}
 
 		// Constant = square, Linear = triangle, Smooth = circle, Cubic = diamond
-		static void DrawKeyShape(ImDrawList* drawList, const ImVec2& c, float r, SequenceInterpolation interpolation, ImU32 fill, ImU32 outline)
+		static void DrawKeyShape(ImDrawList* drawList, const ImVec2& c, float r, CurveInterpolation interpolation, ImU32 fill, ImU32 outline)
 		{
 			switch (interpolation)
 			{
-				case SequenceInterpolation::Constant:
+				case CurveInterpolation::Constant:
 					drawList->AddRectFilled(ImVec2(c.x - r * 0.8f, c.y - r * 0.8f), ImVec2(c.x + r * 0.8f, c.y + r * 0.8f), fill);
 					drawList->AddRect(ImVec2(c.x - r * 0.8f, c.y - r * 0.8f), ImVec2(c.x + r * 0.8f, c.y + r * 0.8f), outline);
 					break;
-				case SequenceInterpolation::Linear:
+				case CurveInterpolation::Linear:
 					drawList->AddTriangleFilled(ImVec2(c.x, c.y - r), ImVec2(c.x + r, c.y + r * 0.8f), ImVec2(c.x - r, c.y + r * 0.8f), fill);
 					drawList->AddTriangle(ImVec2(c.x, c.y - r), ImVec2(c.x + r, c.y + r * 0.8f), ImVec2(c.x - r, c.y + r * 0.8f), outline);
 					break;
-				case SequenceInterpolation::Smooth:
+				case CurveInterpolation::Smooth:
 					drawList->AddCircleFilled(c, r * 0.85f, fill);
 					drawList->AddCircle(c, r * 0.85f, outline);
 					break;
-				case SequenceInterpolation::Cubic:
+				case CurveInterpolation::Cubic:
 				default:
 					drawList->AddQuadFilled(ImVec2(c.x, c.y - r), ImVec2(c.x + r, c.y), ImVec2(c.x, c.y + r), ImVec2(c.x - r, c.y), fill);
 					drawList->AddQuad(ImVec2(c.x, c.y - r), ImVec2(c.x + r, c.y), ImVec2(c.x, c.y + r), ImVec2(c.x - r, c.y), outline);
 					break;
 			}
-		}
-
-		// ---- Value widgets used by the details panel (must be inside a property grid) ----
-		static bool DrawValue(const GUID&, const char* label, bool& value)
-		{
-			return UI::Property(label, value);
-		}
-
-		static bool DrawValue(const GUID&, const char* label, int32_t& value)
-		{
-			return UI::PropertyDrag(label, value, 1.f);
-		}
-
-		static bool DrawValue(const GUID&, const char* label, uint32_t& value)
-		{
-			return UI::PropertyDrag(label, value, 1.f);
-		}
-
-		static bool DrawValue(const GUID&, const char* label, float& value)
-		{
-			return UI::PropertyDrag(label, value, 0.05f);
-		}
-
-		static bool DrawValue(const GUID&, const char* label, glm::vec2& value)
-		{
-			return UI::PropertyDrag(label, value, 0.05f);
-		}
-
-		static bool DrawValue(const GUID&, const char* label, glm::vec3& value)
-		{
-			return UI::PropertyDrag(label, value, 0.05f);
-		}
-
-		static bool DrawValue(const GUID&, const char* label, GUID& value)
-		{
-			UI::Text(label, std::to_string(value.GetHash()));
-			return false;
-		}
-
-		static bool DrawValue(const GUID&, const char* label, std::string& value)
-		{
-			return UI::PropertyText(label, value);
-		}
-
-		static bool DrawValue(const GUID&, const char* label, glm::quat& value)
-		{
-			ImGui::Columns(1);
-			const bool bChanged = UI::DrawQuatControl(std::string(label) + " (Quat)", value);
-			ImGui::Columns(2);
-			return bChanged;
 		}
 
 		// Draws text inside a slot of a fixed width, so that whatever follows on the line doesn't move
@@ -267,184 +121,15 @@ namespace Eagle
 		}
 	}
 
-	// Concrete channel view. One template covers every channel value type; the per-type bits live in
-	// `SequenceValueTraits`, `CurveAccess` and the `DrawValue` overloads (editor).
-	template <typename T>
-	class TypedSequenceChannelView : public SequenceChannelView
-	{
-	public:
-		using Access = CurveAccess<T>;
-		using Traits = SequenceValueTraits<T>;
-
-		TypedSequenceChannelView(const std::string& name, ImU32 color, SequenceChannel<T>* channel, const T& defaultValue)
-			: SequenceChannelView(name, color), m_Channel(channel), m_DefaultValue(defaultValue) {}
-
-		size_t GetKeysCount() const override { return m_Channel->GetKeysCount(); }
-		GUID GetKeyID(size_t index) const override { return m_Channel->GetKey(index).ID; }
-		float GetKeyTime(size_t index) const override { return m_Channel->GetKey(index).Time; }
-		SequenceInterpolation GetKeyInterpolation(size_t index) const override { return m_Channel->GetKey(index).Interpolation; }
-		bool FindKeyIndex(const GUID& id, size_t* outIndex) const override { return m_Channel->GetKeyIndex(id, outIndex); }
-
-		void SetKeyTime(const GUID& id, float time) override
-		{
-			if (auto* key = m_Channel->FindKey(id))
-				key->Time = glm::max(0.f, time);
-		}
-
-		void Sort() override { m_Channel->SortKeys(); }
-
-		void SetKeyInterpolation(const GUID& id, SequenceInterpolation interpolation) override
-		{
-			size_t index = 0;
-			if (!m_Channel->GetKeyIndex(id, &index))
-				return;
-
-			auto& key = m_Channel->GetKey(index);
-			if (key.Interpolation == interpolation)
-				return;
-
-			if (interpolation == SequenceInterpolation::Cubic)
-			{
-				// Seed the tangents from the curve as it is right now, so converting a key to
-				// Cubic doesn't visibly change anything until the user starts editing the handles
-				const T inTangent = m_Channel->GetInTangent(index);
-				const T outTangent = m_Channel->GetOutTangent(index);
-				key.InTangent = inTangent;
-				key.OutTangent = outTangent;
-			}
-			key.Interpolation = interpolation;
-		}
-
-		void FlattenTangents(const GUID& id) override
-		{
-			auto* key = m_Channel->FindKey(id);
-			if (key && key->Interpolation == SequenceInterpolation::Cubic)
-			{
-				key->InTangent = Traits::Zero();
-				key->OutTangent = Traits::Zero();
-			}
-		}
-
-		bool RemoveKey(const GUID& id) override { return m_Channel->RemoveKey(id); }
-
-		GUID AddKeyAtTime(float time) override
-		{
-			time = glm::max(0.f, time);
-			const T value = m_Channel->Evaluate(time, m_DefaultValue);
-
-			// Inherit the mode of the key to the left, so inserting a key mid-curve doesn't
-			// change the character of the segment it lands in
-			SequenceInterpolation interpolation = SequenceInterpolation::Smooth;
-			for (const auto& key : m_Channel->GetKeys())
-			{
-				if (key.Time <= time)
-					interpolation = key.Interpolation;
-				else
-					break;
-			}
-
-			const size_t index = m_Channel->AddKey(time, value, interpolation);
-			return m_Channel->GetKey(index).ID;
-		}
-
-		std::any CopyKey(const GUID& id) const override
-		{
-			if (const auto* key = m_Channel->FindKey(id))
-				return std::any(*key);
-			return {};
-		}
-
-		GUID PasteKey(const std::any& data, float time) override
-		{
-			const SequenceKey<T>* source = std::any_cast<SequenceKey<T>>(&data);
-			if (!source)
-				return GUID(0, 0);
-
-			SequenceKey<T> pasted = *source;
-			pasted.ID = GUID();
-			pasted.Time = glm::max(0.f, time);
-
-			// Pasting onto an existing key replaces it rather than stacking two keys at one time
-			if (auto* existing = m_Channel->FindKeyAtTime(pasted.Time, s_TimeTolerance))
-			{
-				const GUID existingID = existing->ID;
-				*existing = pasted;
-				existing->ID = existingID;
-				return existingID;
-			}
-
-			const size_t index = m_Channel->InsertKey(pasted);
-			return m_Channel->GetKey(index).ID;
-		}
-
-		bool DrawKeyValue(const GUID& id) override
-		{
-			auto* key = m_Channel->FindKey(id);
-			if (!key)
-				return false;
-
-			bool bChanged = DrawValue(id, "Value", key->Value);
-
-			if constexpr (Access::Count > 0)
-			{
-				if (key->Interpolation == SequenceInterpolation::Cubic)
-				{
-					bChanged |= DrawValue(id, "In Tangent", key->InTangent);
-					bChanged |= DrawValue(id, "Out Tangent", key->OutTangent);
-				}
-			}
-			return bChanged;
-		}
-
-		uint32_t GetCurveComponentsCount() const override { return Access::Count; }
-		const char* GetCurveComponentName(uint32_t component) const override { return Access::Name(component); }
-
-		float EvaluateComponent(float time, uint32_t component) const override
-		{
-			return Access::Get(m_Channel->Evaluate(time, m_DefaultValue), component);
-		}
-
-		float GetKeyComponent(size_t index, uint32_t component) const override
-		{
-			return Access::Get(m_Channel->GetKey(index).Value, component);
-		}
-
-		void SetKeyComponent(const GUID& id, uint32_t component, float value) override
-		{
-			if (auto* key = m_Channel->FindKey(id))
-				Access::Set(key->Value, component, value);
-		}
-
-		float GetKeyTangent(size_t index, uint32_t component, bool bOut) const override
-		{
-			return Access::Get(bOut ? m_Channel->GetOutTangent(index) : m_Channel->GetInTangent(index), component);
-		}
-
-		void SetKeyTangent(const GUID& id, uint32_t component, bool bOut, float value) override
-		{
-			size_t index = 0;
-			if (!m_Channel->GetKeyIndex(id, &index))
-				return;
-
-			SetKeyInterpolation(id, SequenceInterpolation::Cubic);
-			auto& key = m_Channel->GetKey(index);
-			Access::Set(bOut ? key.OutTangent : key.InTangent, component, value);
-		}
-
-	protected:
-		SequenceChannel<T>* m_Channel; // Owned by the track
-		T m_DefaultValue;
-	};
-
 	// Keys of a Post Process track. One view per animated rendering property; the registry entry
 	// supplies the label, the drag speed and the limits
 	template <typename T>
-	class PostProcessChannelView : public TypedSequenceChannelView<T>
+	class PostProcessCurveView : public TypedCurveView<T>
 	{
 	public:
-		PostProcessChannelView(const std::string& name, ImU32 color, SequenceChannel<T>* channel, const T& defaultValue,
+		PostProcessCurveView(const std::string& name, ImU32 color, Curve<T>* curve, const T& defaultValue,
 			const PostProcessPropertyInfo* info, bool* enabledFlag)
-			: TypedSequenceChannelView<T>(name, color, channel, defaultValue), m_Info(info), m_EnabledFlag(enabledFlag) {}
+			: TypedCurveView<T>(name, color, curve, defaultValue), m_Info(info), m_EnabledFlag(enabledFlag) {}
 
 		bool CanBeDisabled() const override { return true; }
 		bool IsEnabled() const override { return !m_EnabledFlag || *m_EnabledFlag; }
@@ -456,10 +141,10 @@ namespace Eagle
 			return !std::is_same_v<T, bool> && !std::is_same_v<T, int32_t> && !std::is_same_v<T, uint32_t> && !std::is_same_v<T, GUID>;
 		}
 
-		void SetKeyInterpolation(const GUID& id, SequenceInterpolation interpolation) override
+		void SetKeyInterpolation(const GUID& id, CurveInterpolation interpolation) override
 		{
 			if (IsInterpolationEditable())
-				TypedSequenceChannelView<T>::SetKeyInterpolation(id, interpolation);
+				TypedCurveView<T>::SetKeyInterpolation(id, interpolation);
 		}
 
 		// Label displayed next to a key on the graph
@@ -467,11 +152,11 @@ namespace Eagle
 		{
 			if constexpr (std::is_same_v<T, bool>)
 			{
-				return this->m_Channel->GetKey(index).Value ? "On" : "Off";
+				return this->m_Curve->GetKey(index).Value ? "On" : "Off";
 			}
 			else if constexpr (std::is_same_v<T, int32_t>)
 			{
-				return IsEnum() ? GetEnumValueName(this->m_Channel->GetKey(index).Value) : "";
+				return IsEnum() ? GetEnumValueName(this->m_Curve->GetKey(index).Value) : "";
 			}
 			else if constexpr (std::is_same_v<T, uint32_t>)
 			{
@@ -491,11 +176,11 @@ namespace Eagle
 			}
 			else if constexpr (std::is_same_v<T, GUID>)
 			{
-				return GetAssetName(this->m_Channel->GetKey(index).Value);
+				return GetAssetName(this->m_Curve->GetKey(index).Value);
 			}
 			else if constexpr (std::is_same_v<T, std::string>)
 			{
-				return this->m_Channel->GetKey(index).Value;
+				return this->m_Curve->GetKey(index).Value;
 			}
 			else
 			{
@@ -506,9 +191,9 @@ namespace Eagle
 
 		bool DrawKeyValue(const GUID& id) override
 		{
-			auto* key = this->m_Channel->FindKey(id);
+			auto* key = this->m_Curve->FindKey(id);
 			if (!key || !m_Info)
-				return TypedSequenceChannelView<T>::DrawKeyValue(id);
+				return TypedCurveView<T>::DrawKeyValue(id);
 
 			bool bChanged = false;
 			if constexpr (std::is_same_v<T, bool>)
@@ -597,13 +282,13 @@ namespace Eagle
 
 			if constexpr (CurveAccess<T>::Count > 0)
 			{
-				const bool bDisable = key->Interpolation != SequenceInterpolation::Cubic;
+				const bool bDisable = key->Interpolation != CurveInterpolation::Cubic;
 				if (bDisable)
 					UI::PushItemDisabled();
 				
 				UI::TextWithSeparator("Tangents", 2.5f, "Used only for Cubic interpolation");
-				bChanged |= DrawValue(id, "In Tangent", key->InTangent);
-				bChanged |= DrawValue(id, "Out Tangent", key->OutTangent);
+				bChanged |= CurveUI::DrawValue(id, "In Tangent", key->InTangent);
+				bChanged |= CurveUI::DrawValue(id, "Out Tangent", key->OutTangent);
 
 				if (bDisable)
 					UI::PopItemDisabled();
@@ -652,14 +337,14 @@ namespace Eagle
 	};
 
 	// Keys of a Camera Cuts track: each one names the camera that goes live at its time
-	class CameraCutChannelView : public TypedSequenceChannelView<GUID>
+	class CameraCutCurveView : public TypedCurveView<GUID>
 	{
 	public:
-		CameraCutChannelView(SequenceGUIDChannel* channel, const AssetSceneSequence* asset)
-			: TypedSequenceChannelView<GUID>("Cuts", IM_COL32(235, 200, 80, 255), channel, GUID(0, 0)), m_Asset(asset) {}
+		CameraCutCurveView(GUIDCurve* curve, const AssetSceneSequence* asset)
+			: TypedCurveView<GUID>("Cuts", IM_COL32(235, 200, 80, 255), curve, GUID(0, 0)), m_Asset(asset) {}
 
 		// Cuts are always instant
-		void SetKeyInterpolation(const GUID&, SequenceInterpolation) override {}
+		void SetKeyInterpolation(const GUID&, CurveInterpolation) override {}
 		void SetKeyTangent(const GUID&, uint32_t, bool, float) override {}
 		bool IsInterpolationEditable() const override { return false; }
 
@@ -667,26 +352,26 @@ namespace Eagle
 		{
 			// A new cut is almost always there to switch cameras, so point it at the camera after the live one.
 			// It can be changed in the Details panel
-			const size_t index = m_Channel->AddKey(glm::max(0.f, time), PickNextCamera(time), SequenceInterpolation::Constant);
-			return m_Channel->GetKey(index).ID;
+			const size_t index = m_Curve->AddKey(glm::max(0.f, time), PickNextCamera(time), CurveInterpolation::Constant);
+			return m_Curve->GetKey(index).ID;
 		}
 
 		GUID PasteKey(const std::any& data, float time) override
 		{
-			const GUID id = TypedSequenceChannelView<GUID>::PasteKey(data, time);
-			if (auto* key = m_Channel->FindKey(id))
-				key->Interpolation = SequenceInterpolation::Constant;
+			const GUID id = TypedCurveView<GUID>::PasteKey(data, time);
+			if (auto* key = m_Curve->FindKey(id))
+				key->Interpolation = CurveInterpolation::Constant;
 			return id;
 		}
 
 		std::string GetKeyLabel(size_t index) const override
 		{
-			return GetCameraName(m_Channel->GetKey(index).Value);
+			return GetCameraName(m_Curve->GetKey(index).Value);
 		}
 
 		bool DrawKeyValue(const GUID& id) override
 		{
-			auto* key = m_Channel->FindKey(id);
+			auto* key = m_Curve->FindKey(id);
 			if (!key)
 				return false;
 
@@ -752,28 +437,28 @@ namespace Eagle
 	};
 
 	// Keys of a Event track: each one represents a name of an event to trigger
-	class EventChannelView : public TypedSequenceChannelView<std::string>
+	class EventCurveView : public TypedCurveView<std::string>
 	{
 	public:
-		EventChannelView(SequenceStringChannel* channel)
-			: TypedSequenceChannelView<std::string>("Events", IM_COL32(235, 200, 80, 255), channel, "") {}
+		EventCurveView(StringCurve* curve)
+			: TypedCurveView<std::string>("Events", IM_COL32(235, 200, 80, 255), curve, "") {}
 
 		// Cuts are always instant
-		void SetKeyInterpolation(const GUID&, SequenceInterpolation) override {}
+		void SetKeyInterpolation(const GUID&, CurveInterpolation) override {}
 		void SetKeyTangent(const GUID&, uint32_t, bool, float) override {}
 		bool IsInterpolationEditable() const override { return false; }
 
 		GUID PasteKey(const std::any& data, float time) override
 		{
-			const GUID id = TypedSequenceChannelView<std::string>::PasteKey(data, time);
-			if (auto* key = m_Channel->FindKey(id))
-				key->Interpolation = SequenceInterpolation::Constant;
+			const GUID id = TypedCurveView<std::string>::PasteKey(data, time);
+			if (auto* key = m_Curve->FindKey(id))
+				key->Interpolation = CurveInterpolation::Constant;
 			return id;
 		}
 
 		bool DrawKeyValue(const GUID& id) override
 		{
-			auto* key = m_Channel->FindKey(id);
+			auto* key = m_Curve->FindKey(id);
 			if (!key)
 				return false;
 
@@ -837,18 +522,18 @@ namespace Eagle
 				case SequenceTrackType::Camera:
 				{
 					SequenceCameraTrack* camera = (SequenceCameraTrack*)track.get();
-					views.Channels.push_back(MakeScope<TypedSequenceChannelView<glm::vec3>>("Location", IM_COL32(235, 120, 90, 255),
+					views.Channels.push_back(MakeScope<TypedCurveView<glm::vec3>>("Location", IM_COL32(235, 120, 90, 255),
 						&camera->GetLocationChannel(), glm::vec3(0.f)));
-					views.Channels.push_back(MakeScope<TypedSequenceChannelView<glm::quat>>("Rotation", IM_COL32(120, 205, 120, 255),
+					views.Channels.push_back(MakeScope<TypedCurveView<glm::quat>>("Rotation", IM_COL32(120, 205, 120, 255),
 						&camera->GetRotationChannel(), glm::quat(1.f, 0.f, 0.f, 0.f)));
-					views.Channels.push_back(MakeScope<TypedSequenceChannelView<float>>("Field Of View", IM_COL32(120, 165, 245, 255),
+					views.Channels.push_back(MakeScope<TypedCurveView<float>>("Field Of View", IM_COL32(120, 165, 245, 255),
 						&camera->GetFOVChannel(), camera->GetDefaultFOVDegrees()));
 					break;
 				}
 				case SequenceTrackType::CameraCuts:
 				{
 					SequenceCameraCutTrack* cuts = (SequenceCameraCutTrack*)track.get();
-					views.Channels.push_back(MakeScope<CameraCutChannelView>(&cuts->GetCutsChannel(), m_Asset.get()));
+					views.Channels.push_back(MakeScope<CameraCutCurveView>(&cuts->GetCutsChannel(), m_Asset.get()));
 					break;
 				}
 				case SequenceTrackType::PostProcess:
@@ -865,7 +550,7 @@ namespace Eagle
 						std::visit([&views, &name, color, info, enabledFlag](auto& data)
 						{
 							using ValueType = std::decay_t<decltype(data.GetKey(0).Value)>;
-							views.Channels.push_back(MakeScope<PostProcessChannelView<ValueType>>(name, color, &data, ValueType{}, info, enabledFlag));
+							views.Channels.push_back(MakeScope<PostProcessCurveView<ValueType>>(name, color, &data, ValueType{}, info, enabledFlag));
 						}, channel.Data);
 					}
 					break;
@@ -873,7 +558,7 @@ namespace Eagle
 				case SequenceTrackType::Event:
 				{
 					SequenceEventTrack* events = (SequenceEventTrack*)track.get();
-					views.Channels.push_back(MakeScope<EventChannelView>(&events->GetEventsChannel()));
+					views.Channels.push_back(MakeScope<EventCurveView>(&events->GetEventsChannel()));
 					break;
 				}
 			}
@@ -884,7 +569,7 @@ namespace Eagle
 	{
 		m_Selection.erase(std::remove_if(m_Selection.begin(), m_Selection.end(), [this](const KeyRef& ref)
 		{
-			SequenceChannelView* view = FindView(ref.TrackID, ref.ChannelIndex);
+			CurveView* view = FindView(ref.TrackID, ref.ChannelIndex);
 			return !view || !view->FindKeyIndex(ref.KeyID, nullptr);
 		}), m_Selection.end());
 
@@ -896,7 +581,7 @@ namespace Eagle
 	}
 
 	// ---- Lookups / selection ----
-	SequenceChannelView* SceneSequenceAssetEditor::FindView(const GUID& trackID, uint32_t channelIndex) const
+	CurveView* SceneSequenceAssetEditor::FindView(const GUID& trackID, uint32_t channelIndex) const
 	{
 		for (const auto& views : m_TrackViews)
 		{
@@ -1767,7 +1452,7 @@ namespace Eagle
 				{
 					// Step properties never blend, so their keys are always Constant
 					constexpr bool bStep = std::is_same_v<ValueType, bool> || std::is_same_v<ValueType, int32_t> || std::is_same_v<ValueType, uint32_t> || std::is_same_v<ValueType, std::string>;
-					data.AddKey(time, *typed, bStep ? SequenceInterpolation::Constant : SequenceInterpolation::Smooth);
+					data.AddKey(time, *typed, bStep ? CurveInterpolation::Constant : CurveInterpolation::Smooth);
 				}
 			}
 			else
@@ -1898,7 +1583,7 @@ namespace Eagle
 		local.Rotation = glm::normalize(invBaseRotation * world.Rotation.GetQuat());
 
 		// Match the interpolation of the key to the left so keying mid-sequence keeps the feel
-		SequenceInterpolation interpolation = SequenceInterpolation::Smooth;
+		CurveInterpolation interpolation = CurveInterpolation::Smooth;
 		for (const auto& key : track->GetLocationChannel().GetKeys())
 		{
 			if (key.Time <= time)
@@ -1982,7 +1667,7 @@ namespace Eagle
 
 		for (const auto& ref : m_Selection)
 		{
-			if (SequenceChannelView* view = FindView(ref.TrackID, ref.ChannelIndex))
+			if (CurveView* view = FindView(ref.TrackID, ref.ChannelIndex))
 				view->RemoveKey(ref.KeyID);
 		}
 		ClearSelection();
@@ -1998,7 +1683,7 @@ namespace Eagle
 		float earliest = std::numeric_limits<float>::max();
 		for (const auto& ref : m_Selection)
 		{
-			SequenceChannelView* view = FindView(ref.TrackID, ref.ChannelIndex);
+			CurveView* view = FindView(ref.TrackID, ref.ChannelIndex);
 			size_t index = 0;
 			if (view && view->FindKeyIndex(ref.KeyID, &index))
 				earliest = glm::min(earliest, view->GetKeyTime(index));
@@ -2007,7 +1692,7 @@ namespace Eagle
 		m_Clipboard.clear();
 		for (const auto& ref : m_Selection)
 		{
-			SequenceChannelView* view = FindView(ref.TrackID, ref.ChannelIndex);
+			CurveView* view = FindView(ref.TrackID, ref.ChannelIndex);
 			size_t index = 0;
 			if (!view || !view->FindKeyIndex(ref.KeyID, &index))
 				continue;
@@ -2033,7 +1718,7 @@ namespace Eagle
 		for (const auto& entry : m_Clipboard)
 		{
 			const GUID targetTrack = bRetarget ? m_SelectedTrackID : entry.TrackID;
-			SequenceChannelView* view = FindView(targetTrack, entry.ChannelIndex);
+			CurveView* view = FindView(targetTrack, entry.ChannelIndex);
 			if (!view)
 				continue;
 
@@ -2046,11 +1731,11 @@ namespace Eagle
 			MarkDirty();
 	}
 
-	void SceneSequenceAssetEditor::SetSelectedInterpolation(SequenceInterpolation interpolation)
+	void SceneSequenceAssetEditor::SetSelectedInterpolation(CurveInterpolation interpolation)
 	{
 		for (const auto& ref : m_Selection)
 		{
-			if (SequenceChannelView* view = FindView(ref.TrackID, ref.ChannelIndex))
+			if (CurveView* view = FindView(ref.TrackID, ref.ChannelIndex))
 				view->SetKeyInterpolation(ref.KeyID, interpolation);
 		}
 		MarkDirty();
@@ -2777,7 +2462,7 @@ namespace Eagle
 					const ImU32 fill = selectedCount == refsAtTime.size() && selectedCount > 0 ? s_SelectedKeyColor
 						: (selectedCount > 0 ? WithAlpha(s_SelectedKeyColor, 0.55f) : s_SummaryKeyColor);
 
-					DrawKeyShape(drawList, ImVec2(x, centerY), 5.f, SequenceInterpolation::Cubic, fill, bHovered ? s_HoveredOutlineColor : s_KeyOutlineColor);
+					DrawKeyShape(drawList, ImVec2(x, centerY), 5.f, CurveInterpolation::Cubic, fill, bHovered ? s_HoveredOutlineColor : s_KeyOutlineColor);
 
 					if (bHovered)
 						tooltip = std::to_string(refsAtTime.size()) + " key(s) at " + FormatTime(t) + "\nDrag to retime them together";
@@ -2797,7 +2482,7 @@ namespace Eagle
 			{
 				const float x0 = TimeToX(view->GetKeyTime(i));
 				const float x1 = TimeToX(view->GetKeyTime(i + 1));
-				const bool bHold = view->GetKeyInterpolation(i) == SequenceInterpolation::Constant;
+				const bool bHold = view->GetKeyInterpolation(i) == CurveInterpolation::Constant;
 				drawList->AddLine(ImVec2(x0, centerY), ImVec2(x1, centerY), WithAlpha(view->GetColor(), bHold ? 0.2f : 0.4f), bHold ? 1.f : 2.f);
 			}
 
@@ -2810,7 +2495,7 @@ namespace Eagle
 				const KeyRef ref{ views.Track->GetID(), uint32_t(row.ChannelIndex), view->GetKeyID(i) };
 				const bool bSelected = IsSelected(ref);
 				const bool bHovered = bCanHover && bMouseInRow && glm::abs(mouse.x - x) <= s_KeyHitRadius;
-				const SequenceInterpolation interpolation = view->GetKeyInterpolation(i);
+				const CurveInterpolation interpolation = view->GetKeyInterpolation(i);
 
 				const ImU32 keyColor = bSelected ? s_SelectedKeyColor : view->GetColor();
 				DrawKeyShape(drawList, ImVec2(x, centerY), 6.f, interpolation,
@@ -2873,10 +2558,10 @@ namespace Eagle
 
 				bool bAnyInterpolationEditable = false;
 				for (const auto& ref : m_Selection)
-					if (SequenceChannelView* view = FindView(ref.TrackID, ref.ChannelIndex); view && view->IsInterpolationEditable())
+					if (CurveView* view = FindView(ref.TrackID, ref.ChannelIndex); view && view->IsInterpolationEditable())
 						bAnyInterpolationEditable = true;
 
-				for (const auto& [interpolation, name] : magic_enum::enum_entries<SequenceInterpolation>())
+				for (const auto& [interpolation, name] : magic_enum::enum_entries<CurveInterpolation>())
 				{
 					if (!bAnyInterpolationEditable)
 						break;
@@ -2884,7 +2569,7 @@ namespace Eagle
 					bool bAllMatch = true;
 					for (const auto& ref : m_Selection)
 					{
-						SequenceChannelView* view = FindView(ref.TrackID, ref.ChannelIndex);
+						CurveView* view = FindView(ref.TrackID, ref.ChannelIndex);
 						size_t index = 0;
 						if (view && view->FindKeyIndex(ref.KeyID, &index) && view->GetKeyInterpolation(index) != interpolation)
 						{
@@ -2900,7 +2585,7 @@ namespace Eagle
 				if (ImGui::MenuItem("Flatten Tangents"))
 				{
 					for (const auto& ref : m_Selection)
-						if (SequenceChannelView* view = FindView(ref.TrackID, ref.ChannelIndex))
+						if (CurveView* view = FindView(ref.TrackID, ref.ChannelIndex))
 							view->FlattenTangents(ref.KeyID);
 					MarkDirty();
 				}
@@ -3024,7 +2709,7 @@ namespace Eagle
 					m_DragOriginalTimes.clear();
 					for (const auto& ref : m_Selection)
 					{
-						SequenceChannelView* view = FindView(ref.TrackID, ref.ChannelIndex);
+						CurveView* view = FindView(ref.TrackID, ref.ChannelIndex);
 						size_t index = 0;
 						if (view && view->FindKeyIndex(ref.KeyID, &index))
 							m_DragOriginalTimes.emplace_back(ref, view->GetKeyTime(index));
@@ -3032,7 +2717,7 @@ namespace Eagle
 
 					m_DragAnchorTime = 0.f;
 					const KeyRef& anchor = m_ClickedKeys[0];
-					if (SequenceChannelView* view = FindView(anchor.TrackID, anchor.ChannelIndex))
+					if (CurveView* view = FindView(anchor.TrackID, anchor.ChannelIndex))
 					{
 						size_t index = 0;
 						if (view->FindKeyIndex(anchor.KeyID, &index))
@@ -3072,10 +2757,10 @@ namespace Eagle
 				if (earliest + delta < 0.f)
 					delta = -earliest;
 
-				std::vector<SequenceChannelView*> touched;
+				std::vector<CurveView*> touched;
 				for (const auto& [ref, originalTime] : m_DragOriginalTimes)
 				{
-					SequenceChannelView* view = FindView(ref.TrackID, ref.ChannelIndex);
+					CurveView* view = FindView(ref.TrackID, ref.ChannelIndex);
 					if (!view)
 						continue;
 
@@ -3083,7 +2768,7 @@ namespace Eagle
 					if (std::find(touched.begin(), touched.end(), view) == touched.end())
 						touched.push_back(view);
 				}
-				for (SequenceChannelView* view : touched)
+				for (CurveView* view : touched)
 					view->Sort();
 
 				MarkDirty();
@@ -3377,7 +3062,7 @@ namespace Eagle
 		if (m_Selection.size() == 1)
 		{
 			const KeyRef ref = m_Selection[0];
-			SequenceChannelView* view = FindView(ref.TrackID, ref.ChannelIndex);
+			CurveView* view = FindView(ref.TrackID, ref.ChannelIndex);
 			size_t index = 0;
 			if (!view || !view->FindKeyIndex(ref.KeyID, &index))
 				return;
@@ -3399,7 +3084,7 @@ namespace Eagle
 					MarkDirty();
 				}
 
-				SequenceInterpolation interpolation = view->GetKeyInterpolation(index);
+				CurveInterpolation interpolation = view->GetKeyInterpolation(index);
 				if (view->IsInterpolationEditable() && UI::ComboEnum("Interpolation", interpolation,
 					"How the curve travels from this key to the next one.\n"
 					"Constant: hold the value. Linear: straight line.\n"
@@ -3424,12 +3109,12 @@ namespace Eagle
 		{
 			UI::BeginPropertyGrid("SceneSequenceKeys");
 
-			SequenceInterpolation interpolation = SequenceInterpolation::Smooth;
+			CurveInterpolation interpolation = CurveInterpolation::Smooth;
 			bool bMixed = false;
 			bool bFirst = true;
 			for (const auto& ref : m_Selection)
 			{
-				SequenceChannelView* view = FindView(ref.TrackID, ref.ChannelIndex);
+				CurveView* view = FindView(ref.TrackID, ref.ChannelIndex);
 				size_t index = 0;
 				if (!view || !view->FindKeyIndex(ref.KeyID, &index))
 					continue;
@@ -3455,7 +3140,7 @@ namespace Eagle
 				float earliest = std::numeric_limits<float>::max();
 				for (const auto& ref : m_Selection)
 				{
-					SequenceChannelView* view = FindView(ref.TrackID, ref.ChannelIndex);
+					CurveView* view = FindView(ref.TrackID, ref.ChannelIndex);
 					size_t index = 0;
 					if (view && view->FindKeyIndex(ref.KeyID, &index))
 						earliest = glm::min(earliest, view->GetKeyTime(index));
@@ -3465,7 +3150,7 @@ namespace Eagle
 
 				for (const auto& ref : m_Selection)
 				{
-					SequenceChannelView* view = FindView(ref.TrackID, ref.ChannelIndex);
+					CurveView* view = FindView(ref.TrackID, ref.ChannelIndex);
 					size_t index = 0;
 					if (view && view->FindKeyIndex(ref.KeyID, &index))
 					{
@@ -3500,29 +3185,22 @@ namespace Eagle
 		{
 			m_CurvesTrackID = trackID;
 			m_CurveComponentVisible.clear();
-			bFitCurvesRequested = true;
+			m_CurveEditor.RequestFit();
 		}
-
-		struct CurveEntry
-		{
-			uint32_t Channel = 0;
-			uint32_t Component = 0;
-			ImVec4 Color;
-			std::string Label;
-		};
 
 		static const ImVec4 s_AxisColors[] = { ImVec4(0.95f, 0.35f, 0.35f, 1.f), ImVec4(0.4f, 0.9f, 0.4f, 1.f), ImVec4(0.4f, 0.55f, 1.f, 1.f) };
 
-		std::vector<CurveEntry> curves;
+		std::vector<CurveEditorEntry> curves;
 		for (uint32_t ci = 0; ci < uint32_t(views.Channels.size()); ++ci)
 		{
 			const auto& view = views.Channels[ci];
 			const uint32_t count = view->GetCurveComponentsCount();
 			for (uint32_t c = 0; c < count; ++c)
 			{
-				CurveEntry& entry = curves.emplace_back();
-				entry.Channel = ci;
+				CurveEditorEntry& entry = curves.emplace_back();
+				entry.View = view.get();
 				entry.Component = c;
+				entry.UserIndex = ci;
 				entry.Color = count == 3 ? s_AxisColors[c] : ImGui::ColorConvertU32ToFloat4(view->GetColor());
 				entry.Label = count > 1 ? view->GetName() + "." + view->GetCurveComponentName(c) : view->GetName();
 			}
@@ -3536,30 +3214,12 @@ namespace Eagle
 
 		if (m_CurveComponentVisible.size() != curves.size())
 			m_CurveComponentVisible.assign(curves.size(), true);
-
-		const ImGuiStyle& style = ImGui::GetStyle();
-		const float panelRight = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
 		for (size_t i = 0; i < curves.size(); ++i)
-		{
-			// Flow the checkboxes like text: stay on the line while they fit, wrap otherwise
-			if (i > 0)
-			{
-				const float checkboxWidth = ImGui::GetFrameHeight() + style.ItemInnerSpacing.x + ImGui::CalcTextSize(curves[i].Label.c_str()).x;
-				const float lastItemRight = ImGui::GetItemRectMax().x;
-				if (lastItemRight + style.ItemSpacing.x + checkboxWidth <= panelRight)
-					ImGui::SameLine();
-			}
+			curves[i].bVisible = m_CurveComponentVisible[i];
 
-			ImGui::PushStyleColor(ImGuiCol_CheckMark, curves[i].Color);
-			bool bVisible = m_CurveComponentVisible[i];
-			if (ImGui::Checkbox(curves[i].Label.c_str(), &bVisible))
-				m_CurveComponentVisible[i] = bVisible;
-			ImGui::PopStyleColor();
-		}
-
-		ImGui::SameLine();
-		if (ImGui::Button("Fit"))
-			bFitCurvesRequested = true;
+		m_CurveEditor.DrawVisibilityToggles(curves);
+		for (size_t i = 0; i < curves.size(); ++i)
+			m_CurveComponentVisible[i] = curves[i].bVisible;
 
 		ImGui::SameLine();
 		UI::HelpMarker("Drag points to change a key's time and value. Keys can't be dragged past their neighbours here; use the timeline for that.\n"
@@ -3567,178 +3227,19 @@ namespace Eagle
 			"Rotation is edited in the Details tab.\n"
 			"Double-click the plot to fit it, drag the red line to scrub");
 
-		const ImPlotFlags plotFlags = ImPlotFlags_NoTitle | ImPlotFlags_NoLegend | ImPlotFlags_NoMenus;
-		if (!ImPlot::BeginPlot("##SequenceCurves", ImGui::GetContentRegionAvail(), plotFlags))
-			return;
+		CurveEditorSettings settings;
+		settings.FitTimeMin = 0.f;
+		settings.FitTimeMax = glm::max(0.1f, glm::max(m_Asset->GetDuration(), GetLastKeyTime()));
+		settings.SnapTime = [this](float time) { return SnapTime(time); };
+		settings.FormatTime = [this](float time) { return FormatTime(time); };
+		settings.IsKeySelected = [this, trackID](const CurveEditorEntry& entry, const GUID& keyID) { return IsSelected(KeyRef{ trackID, entry.UserIndex, keyID }); };
+		settings.SelectKey = [this, trackID](const CurveEditorEntry& entry, const GUID& keyID, bool bAdditive) { Select(KeyRef{ trackID, entry.UserIndex, keyID }, bAdditive); };
 
-		ImPlot::SetupAxes("Time (s)", nullptr);
+		const float playheadTime = m_Player.GetTime();
+		settings.PlayheadTime = &playheadTime;
+		settings.SetPlayheadTime = [this](float time) { SetPlayheadTime(SnapTime(time)); };
 
-		if (bFitCurvesRequested)
-		{
-			bFitCurvesRequested = false;
-
-			const float timeEnd = glm::max(0.1f, glm::max(m_Asset->GetDuration(), GetLastKeyTime()));
-			float minValue = std::numeric_limits<float>::max();
-			float maxValue = std::numeric_limits<float>::lowest();
-
-			for (size_t i = 0; i < curves.size(); ++i)
-			{
-				if (!m_CurveComponentVisible[i])
-					continue;
-
-				const auto& view = views.Channels[curves[i].Channel];
-				constexpr int fitSamples = 64;
-				for (int s = 0; s < fitSamples; ++s)
-				{
-					const float value = view->EvaluateComponent(timeEnd * float(s) / float(fitSamples - 1), curves[i].Component);
-					minValue = glm::min(minValue, value);
-					maxValue = glm::max(maxValue, value);
-				}
-			}
-
-			if (minValue > maxValue)
-			{
-				minValue = -1.f;
-				maxValue = 1.f;
-			}
-			const float padding = glm::max(0.1f, (maxValue - minValue) * 0.1f);
-			ImPlot::SetupAxesLimits(-timeEnd * 0.02, timeEnd * 1.02, minValue - padding, maxValue + padding, ImPlotCond_Always);
-		}
-
-		const ImPlotRect limits = ImPlot::GetPlotLimits();
-		const double xMin = limits.X.Min;
-		const double xMax = limits.X.Max;
-
-		// Curves, sampled across whatever part of the timeline is visible
-		constexpr int sampleCount = 300;
-		std::vector<glm::dvec2> points(sampleCount);
-		for (size_t i = 0; i < curves.size(); ++i)
-		{
-			if (!m_CurveComponentVisible[i])
-				continue;
-
-			const auto& entry = curves[i];
-			const auto& view = views.Channels[entry.Channel];
-			for (int s = 0; s < sampleCount; ++s)
-			{
-				const double t = xMin + (xMax - xMin) * double(s) / double(sampleCount - 1);
-				points[s] = glm::dvec2(t, double(view->EvaluateComponent(float(glm::max(t, 0.0)), entry.Component)));
-			}
-
-			ImPlotSpec spec{};
-			spec.Stride = sizeof(glm::dvec2);
-			spec.LineColor = entry.Color;
-			spec.LineWeight = 2.f;
-			ImPlot::PlotLine(entry.Label.c_str(), &points[0].x, &points[0].y, sampleCount, spec);
-		}
-
-		// Key points and tangent handles.
-		// Time changes are applied after the loop so indices stay valid while iterating
-		struct PendingTime
-		{
-			SequenceChannelView* View = nullptr;
-			GUID KeyID = GUID(0, 0);
-			float Time = 0.f;
-		};
-		std::vector<PendingTime> pendingTimes;
-
-		const ImVec4 selectedColor = ImVec4(1.f, 0.8f, 0.25f, 1.f);
-		const ImVec4 handleColor = ImVec4(0.9f, 0.9f, 0.9f, 1.f);
-		const double handleLength = (xMax - xMin) * 0.06;
-		int dragID = 0;
-
-		for (size_t ei = 0; ei < curves.size(); ++ei)
-		{
-			if (!m_CurveComponentVisible[ei])
-				continue;
-
-			const auto& entry = curves[ei];
-			SequenceChannelView* view = views.Channels[entry.Channel].get();
-			const size_t count = view->GetKeysCount();
-
-			for (size_t i = 0; i < count; ++i)
-			{
-				const GUID keyID = view->GetKeyID(i);
-				const KeyRef ref{ trackID, entry.Channel, keyID };
-				const bool bSelected = IsSelected(ref);
-
-				const double keyTime = view->GetKeyTime(i);
-				const double keyValue = view->GetKeyComponent(i, entry.Component);
-
-				double x = keyTime;
-				double y = keyValue;
-				bool bClicked = false;
-				bool bHovered = false;
-				bool bHeld = false;
-				if (ImPlot::DragPoint(dragID++, &x, &y, bSelected ? selectedColor : entry.Color, bSelected ? 6.f : 4.5f,
-					ImPlotDragToolFlags_None, &bClicked, &bHovered, &bHeld))
-				{
-					// Clamp between the neighbours: letting a key overtake another here would reorder
-					// the channel mid-drag, and ImPlot would then hand the drag to a different point
-					const float lowerBound = i > 0 ? view->GetKeyTime(i - 1) + 1e-3f : 0.f;
-					const float upperBound = i + 1 < count ? view->GetKeyTime(i + 1) - 1e-3f : std::numeric_limits<float>::max();
-					float newTime = SnapTime(float(x));
-					newTime = lowerBound <= upperBound ? glm::clamp(newTime, lowerBound, upperBound) : float(keyTime);
-
-					view->SetKeyComponent(keyID, entry.Component, float(y));
-					if (glm::abs(double(newTime) - keyTime) > 1e-6)
-						pendingTimes.push_back({ view, keyID, newTime });
-
-					MarkDirty();
-				}
-
-				if (bClicked)
-					Select(ref, ImGui::GetIO().KeyCtrl);
-
-				if (bHovered)
-					ImGui::SetTooltip("%s\nTime: %s\nValue: %.3f", entry.Label.c_str(), FormatTime(float(keyTime)).c_str(), keyValue);
-
-				// Tangent handles for the selected Cubic keys. The handle has a fixed on-screen time
-				// length; what the user edits is its slope
-				if (bSelected && view->GetKeyInterpolation(i) == SequenceInterpolation::Cubic)
-				{
-					for (int side = 0; side < 2; ++side)
-					{
-						const bool bOut = side == 1;
-						const double direction = bOut ? 1.0 : -1.0;
-						const double tangent = view->GetKeyTangent(i, entry.Component, bOut);
-
-						double handleX = keyTime + direction * handleLength;
-						double handleY = keyValue + direction * handleLength * tangent;
-
-						glm::dvec2 line[2] = { glm::dvec2(keyTime, keyValue), glm::dvec2(handleX, handleY) };
-						ImPlotSpec handleSpec{};
-						handleSpec.Stride = sizeof(glm::dvec2);
-						handleSpec.LineColor = ImVec4(0.9f, 0.9f, 0.9f, 0.7f);
-						handleSpec.LineWeight = 1.f;
-						ImPlot::PlotLine("##Tangent", &line[0].x, &line[0].y, 2, handleSpec);
-
-						if (ImPlot::DragPoint(dragID++, &handleX, &handleY, handleColor, 3.5f, ImPlotDragToolFlags_None, nullptr, nullptr, nullptr))
-						{
-							// Only accept the handle on its own side of the key, otherwise the slope flips sign
-							const double dx = handleX - keyTime;
-							if ((bOut && dx > 1e-6) || (!bOut && dx < -1e-6))
-							{
-								view->SetKeyTangent(keyID, entry.Component, bOut, float((handleY - keyValue) / dx));
-								MarkDirty();
-							}
-						}
-					}
-				}
-			}
-		}
-
-		for (const auto& pending : pendingTimes)
-		{
-			pending.View->SetKeyTime(pending.KeyID, pending.Time);
-			pending.View->Sort();
-		}
-
-		// Playhead
-		double playhead = m_Player.GetTime();
-		if (ImPlot::DragLineX(1 << 20, &playhead, ImVec4(0.9f, 0.25f, 0.25f, 1.f), 1.5f))
-			SetPlayheadTime(SnapTime(float(playhead)));
-
-		ImPlot::EndPlot();
+		if (m_CurveEditor.Draw("##SequenceCurves", curves, settings))
+			MarkDirty();
 	}
 }

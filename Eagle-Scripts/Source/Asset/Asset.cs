@@ -758,7 +758,7 @@ namespace Eagle
                 GUID meshID;
 
                 string name = GetEmitter_Native(m_GUID, i,
-                    out textureID, out emitters[i].ColorStart, out emitters[i].ColorEnd, out emitters[i].VelocityMin, out emitters[i].VelocityMax,
+                    out textureID, out emitters[i].ColorStart, out emitters[i].ColorEnd, out emitters[i].ColorIntensityStart, out emitters[i].ColorIntensityEnd, out emitters[i].VelocityMin, out emitters[i].VelocityMax,
                     out emitters[i].VelocityCoefStart, out emitters[i].VelocityCoefEnd, out emitters[i].VelocitySpace, out emitters[i].RotationZStart, out emitters[i].RotationZEnd,
                     out emitters[i].SizeStart, out emitters[i].SizeEnd, out emitters[i].ColliderSizeRatio, out emitters[i].LifetimeMin, out emitters[i].LifetimeMax,
                     out emitters[i].BouncinessMin, out emitters[i].BouncinessMax, out emitters[i].RelativeTransform, out emitters[i].VisibilityAABB,
@@ -784,7 +784,7 @@ namespace Eagle
             }
             else
             {
-                IntPtr data = SetEmitters_Prepare_Native((uint)emitters.Length);
+                IntPtr data = SetEmitters_Prepare_Native(m_GUID, (uint)emitters.Length);
 
                 for (uint i = 0; i < emitters.Length; i++)
                 {
@@ -792,7 +792,7 @@ namespace Eagle
                     GUID meshID = emitters[i].MeshAsset != null ? emitters[i].MeshAsset.GetGUID() : GUID.Null();
 
                     SetEmitter_Native(data, i,
-                        textureID, ref emitters[i].ColorStart, ref emitters[i].ColorEnd, ref emitters[i].VelocityMin, ref emitters[i].VelocityMax,
+                        textureID, ref emitters[i].ColorStart, ref emitters[i].ColorEnd, emitters[i].ColorIntensityStart, emitters[i].ColorIntensityEnd, ref emitters[i].VelocityMin, ref emitters[i].VelocityMax,
                         ref emitters[i].VelocityCoefStart, ref emitters[i].VelocityCoefEnd, emitters[i].VelocitySpace, emitters[i].RotationZStart, emitters[i].RotationZEnd,
                         ref emitters[i].SizeStart, ref emitters[i].SizeEnd, ref emitters[i].ColliderSizeRatio, emitters[i].LifetimeMin, emitters[i].LifetimeMax,
                         emitters[i].BouncinessMin, emitters[i].BouncinessMax, emitters[i].Name, ref emitters[i].RelativeTransform, ref emitters[i].VisibilityAABB,
@@ -817,14 +817,14 @@ namespace Eagle
         internal static extern void RemoveEmitters_Native(GUID id);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern IntPtr SetEmitters_Prepare_Native(uint count);
+        internal static extern IntPtr SetEmitters_Prepare_Native(GUID id, uint count);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetEmitters_Finish_Native(GUID id, IntPtr data);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetEmitter_Native(IntPtr data, uint index,
-            GUID texture, ref Color4 colorStart, ref Color4 colorEnd, ref Vector3 velocityMin, ref Vector3 velocityMax,
+            GUID texture, ref Color4 colorStart, ref Color4 colorEnd, float colorIntensityStart, float colorIntensityEnd, ref Vector3 velocityMin, ref Vector3 velocityMax,
             ref Vector3 velocityCoefStart, ref Vector3 velocityCoefEnd, EmitterVelocitySpaceType velocitySpace, float rotationZStart, float rotationZEnd,
             ref Vector2 sizeStart, ref Vector2 sizeEnd, ref Vector2 colliderSizeRatio, float lifetimeMin, float lifetimeMax,
             float bouncinessMin, float bouncinessMax, string name, ref Transform relativeTransform, ref AABB visibilityAABB,
@@ -836,7 +836,7 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern string GetEmitter_Native(GUID id, uint index,
-            out GUID texture, out Color4 colorStart, out Color4 colorEnd, out Vector3 velocityMin, out Vector3 velocityMax,
+            out GUID texture, out Color4 colorStart, out Color4 colorEnd, out float colorIntensityStart, out float colorIntensityEnd, out Vector3 velocityMin, out Vector3 velocityMax,
             out Vector3 velocityCoefStart, out Vector3 velocityCoefEnd, out EmitterVelocitySpaceType velocitySpace, out float rotationZStart, out float rotationZEnd,
             out Vector2 sizeStart, out Vector2 sizeEnd, out Vector2 colliderSizeRatio, out float lifetimeMin, out float lifetimeMax,
             out float bouncinessMin, out float bouncinessMax, out Transform relativeTransform, out AABB visibilityAABB,

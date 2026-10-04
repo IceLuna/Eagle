@@ -1,6 +1,8 @@
 #pragma once
 
 #include "AssetEditor.h"
+#include "../Widgets/CurveView.h"
+#include "../Widgets/CurveEditor.h"
 
 #include "Eagle/SceneSequence/SceneSequencePlayer.h"
 
@@ -12,78 +14,6 @@ namespace Eagle
 {
 	class AssetSceneSequence;
 	class Scene;
-
-	// Type-erased view over a single `SequenceChannel<T>`.
-	// The timeline, the details panel and the curve editor only ever talk to this interface.
-	// That's what keeps the editor extensible: supporting a new track type means producing views for its channels in
-	// `SceneSequenceAssetEditor::BuildChannelViews`. Also, `DrawTrackDetails` needs to be updated if necessary.
-	class SequenceChannelView
-	{
-	public:
-		SequenceChannelView(const std::string& name, ImU32 color) : m_Name(name), m_Color(color) {}
-		virtual ~SequenceChannelView() = default;
-
-		const std::string& GetName() const { return m_Name; }
-		ImU32 GetColor() const { return m_Color; }
-
-		virtual size_t GetKeysCount() const = 0;
-		virtual GUID GetKeyID(size_t index) const = 0;
-		virtual float GetKeyTime(size_t index) const = 0;
-		virtual SequenceInterpolation GetKeyInterpolation(size_t index) const = 0;
-		virtual bool FindKeyIndex(const GUID& id, size_t* outIndex) const = 0;
-
-		// Doesn't re-sort, call `Sort()` once all times are updated
-		virtual void SetKeyTime(const GUID& id, float time) = 0;
-		virtual void Sort() = 0;
-
-		// Switching to Cubic seeds the tangents from the current curve so nothing jumps
-		virtual void SetKeyInterpolation(const GUID& id, SequenceInterpolation interpolation) = 0;
-
-		// Sets both tangents of a Cubic key to zero
-		virtual void FlattenTangents(const GUID& id) = 0;
-
-		virtual bool RemoveKey(const GUID& id) = 0;
-
-		// Adds (or overwrites) a key at `time` holding the channel's current value there.
-		// Returns the key's ID.
-		virtual GUID AddKeyAtTime(float time) = 0;
-
-		virtual std::any CopyKey(const GUID& id) const = 0;
-		// Returns a null GUID when `data` holds a key of a different value type
-		virtual GUID PasteKey(const std::any& data, float time) = 0;
-
-		// Returns true if changed
-		virtual bool DrawKeyValue(const GUID& id) = 0;
-
-		// Text drawn next to the key in the timeline
-		virtual std::string GetKeyLabel(size_t index) const { return {}; }
-
-		// False for channels whose keys never blend (for example, camera cuts).
-		// UI then hides interpolation options
-		virtual bool IsInterpolationEditable() const { return true; }
-
-		// Channels that can be switched off individually (for example, post process properties).
-		// A disabled channel contributes nothing, as if it weren't on the track at all
-		virtual bool CanBeDisabled() const { return false; }
-		virtual bool IsEnabled() const { return true; }
-		virtual void SetEnabled(bool) {}
-
-		// Number of scalar curves this channel can be shown as. 0 hides it from the curve editor
-		virtual uint32_t GetCurveComponentsCount() const = 0;
-		virtual const char* GetCurveComponentName(uint32_t component) const = 0;
-		virtual float EvaluateComponent(float time, uint32_t component) const = 0;
-		virtual float GetKeyComponent(size_t index, uint32_t component) const = 0;
-		virtual void SetKeyComponent(const GUID& id, uint32_t component, float value) = 0;
-
-		// Effective tangent (units per second) as used by evaluation, whatever the key's mode
-		virtual float GetKeyTangent(size_t index, uint32_t component, bool bOut) const = 0;
-		// Converts the key to Cubic if needed
-		virtual void SetKeyTangent(const GUID& id, uint32_t component, bool bOut, float value) = 0;
-
-	protected:
-		std::string m_Name;
-		ImU32 m_Color;
-	};
 
 	class SceneSequenceAssetEditor : public AssetEditor
 	{
@@ -112,7 +42,7 @@ namespace Eagle
 		struct TrackViews
 		{
 			Ref<SequenceTrack> Track;
-			std::vector<Scope<SequenceChannelView>> Channels;
+			std::vector<Scope<CurveView>> Channels;
 		};
 
 		// One visual row in the timeline
@@ -201,7 +131,7 @@ namespace Eagle
 		void DeleteSelectedKeys();
 		void CopySelectedKeys();
 		void PasteKeys(float atTime);
-		void SetSelectedInterpolation(SequenceInterpolation interpolation);
+		void SetSelectedInterpolation(CurveInterpolation interpolation);
 		void AddKeysAtTime(uint32_t trackIndex, int32_t channelIndex, float time);
 		void FitViewToContent();
 		void ComputeTickSteps(float* outMajor, float* outMinor) const;
@@ -224,7 +154,7 @@ namespace Eagle
 		void GatherTrackKeysAtTime(uint32_t trackIndex, float time, std::vector<KeyRef>& outRefs) const;
 
 		// ---- Lookups ----
-		SequenceChannelView* FindView(const GUID& trackID, uint32_t channelIndex) const;
+		CurveView* FindView(const GUID& trackID, uint32_t channelIndex) const;
 		int32_t FindTrackIndex(const GUID& trackID) const;
 		Ref<SequenceCameraTrack> GetTargetCameraTrack() const;
 
@@ -294,8 +224,8 @@ namespace Eagle
 		std::vector<KeyRef> m_ContextKeys;
 
 		// Curve editor
+		CurveEditor m_CurveEditor;
 		std::vector<bool> m_CurveComponentVisible;
-		bool bFitCurvesRequested = true;
 		GUID m_CurvesTrackID = GUID(0, 0); // Track the curve editor was last fitted to
 
 		// ---- Options ----

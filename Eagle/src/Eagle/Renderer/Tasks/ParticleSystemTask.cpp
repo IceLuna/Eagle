@@ -70,19 +70,11 @@ namespace Eagle
 			outData.AABBMax = emitter.VisibilityAABB.Max;
 			outData.CollisionType = uint32_t(emitter.CollisionMode);
 			outData.EmissionShape = uint32_t(emitter.EmissionShape);
-			outData.ColorStart = emitter.ColorStart;
-			outData.ColorEnd = emitter.ColorEnd;
 			outData.VelocityMin = emitter.VelocityMin;
 			outData.VelocityMax = emitter.VelocityMax;
-			outData.VelocityCoefStart = emitter.VelocityCoefStart;
-			outData.VelocityCoefEnd = emitter.VelocityCoefEnd;
 			outData.SpawnRate = std::min(emitter.SpawnRate, ParticleEmitter::MaxSpawnRate);
 			outData.LoopDuration = emitter.LoopDuration;
-			outData.RotationZStart = glm::radians(emitter.RotationZStart);
-			outData.RotationZEnd = glm::radians(emitter.RotationZEnd);
 			outData.LoopCount = emitter.LoopCount;
-			outData.SizeStart = emitter.SizeStart;
-			outData.SizeEnd = emitter.SizeEnd;
 			outData.RingRadius = emitter.RingRadius;
 			outData.BouncinessMin = emitter.BouncinessMin;
 			outData.ColliderSizeRatio = emitter.ColliderSizeRatio;
@@ -136,6 +128,34 @@ namespace Eagle
 			}
 		}
 	
+		// Time step of the particle simulation. Long frames/stutters are clamped so that a single huge step doesn't spawn a bunch of particles
+		static float GetSimulationDeltaTime()
+		{
+			constexpr float maxDeltaTime = 0.1f;
+			return std::min(float(Application::Get().GetTimestep()), maxDeltaTime);
+		}
+
+		static constexpr size_t s_EmitterCurvesSize = size_t(EmitterCurve_Count) * EmitterCurve_SamplesCount * sizeof(glm::vec4); // Per emitter slot
+
+		// The shaders blend linearly between neighbouring samples
+		static void BakeEmitterCurves(const ParticleEmitter& emitter, std::vector<glm::vec4>& outSamples)
+		{
+			constexpr uint32_t samplesCount = EmitterCurve_SamplesCount;
+			for (uint32_t i = 0; i < samplesCount; ++i)
+			{
+				const float lifeAlpha = float(i) / float(samplesCount - 1u);
+
+				// Smooth/cubic curves can overshoot
+				const glm::vec4 color = emitter.Color.Evaluate(lifeAlpha);
+				const float intensity = glm::max(emitter.ColorIntensity.Evaluate(lifeAlpha), 0.f);
+				const glm::vec3 rgb = glm::max(glm::vec3(color) * intensity, glm::vec3(0.f));
+
+				outSamples[EmitterCurve_Color * samplesCount + i] = glm::vec4(rgb, glm::clamp(color.a, 0.f, 1.f));
+				outSamples[EmitterCurve_SizeRotation * samplesCount + i] = glm::vec4(emitter.Size.Evaluate(lifeAlpha), glm::radians(emitter.RotationZ.Evaluate(lifeAlpha)), 0.f);
+				outSamples[EmitterCurve_VelocityCoef * samplesCount + i] = glm::vec4(emitter.VelocityCoef.Evaluate(lifeAlpha), 0.f);
+			}
+		}
+
 		static ParticleSystemTask::DecompositedTransform Decompose(const glm::mat4& mat)
 		{
 			const Transform tr = Math::DecomposeTransformMatrix(mat);
@@ -345,6 +365,7 @@ namespace Eagle
 
 		const size_t offset = insertIndex * sizeof(Emitter);
 		cmd->Write(m_EmittersBuffer, &emitter, sizeof(Emitter), offset, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
+		WriteEmitterCurves(cmd, emitterToAdd, insertIndex);
 	}
 
 	void ParticleSystemTask::HandleEmitter_Update_RT(const Ref<CommandBuffer>& cmd, const ModifyRequest& data)
@@ -367,6 +388,16 @@ namespace Eagle
 		const size_t sizeToUpdate = offsetof(Emitter, WorldPos); // We're updating the data before the 'WorldPos' because everything after is an internal state
 		const size_t offset = emitterData.EmitterIndex * sizeof(Emitter);
 		cmd->Write(m_EmittersBuffer, &gpuEmitter, sizeToUpdate, offset, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
+		WriteEmitterCurves(cmd, data.Emitter, emitterData.EmitterIndex);
+	}
+
+	void ParticleSystemTask::WriteEmitterCurves(const Ref<CommandBuffer>& cmd, const ParticleEmitter& emitter, uint32_t emitterIndex)
+	{
+		std::vector<glm::vec4> samples(size_t(EmitterCurve_Count) * EmitterCurve_SamplesCount);
+		Utils::BakeEmitterCurves(emitter, samples);
+
+		const size_t offset = size_t(emitterIndex) * Utils::s_EmitterCurvesSize;
+		cmd->Write(m_EmitterCurvesBuffer, samples.data(), Utils::s_EmitterCurvesSize, offset, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
 	}
 
 	void ParticleSystemTask::HandleEmitter_Remove_RT(const Ref<CommandBuffer>& cmd, const ModifyRequest& data)
@@ -532,6 +563,20 @@ namespace Eagle
 				if (m_NumEmitters > 0)
 					cmd->CopyBuffer(m_EmittersBuffer, newBuffer, 0, 0, m_NumEmitters * sizeof(Emitter));
 				m_EmittersBuffer = std::move(newBuffer);
+			}
+
+			currentSize = m_EmitterCurvesBuffer->GetSize();
+			newSize = numEmittersAfterUpdate * Utils::s_EmitterCurvesSize;
+			if (newSize > currentSize)
+			{
+				newSize = (newSize * 12) / 10; // Resize policy: increase by 20%
+				BufferSpecifications specs = m_EmitterCurvesBuffer->GetSpecs();
+				specs.Size = newSize;
+
+				Ref<Buffer> newBuffer = Buffer::Create(specs, m_EmitterCurvesBuffer->GetDebugName());
+				if (m_NumEmitters > 0)
+					cmd->CopyBuffer(m_EmitterCurvesBuffer, newBuffer, 0, 0, m_NumEmitters * Utils::s_EmitterCurvesSize);
+				m_EmitterCurvesBuffer = std::move(newBuffer);
 			}
 
 			currentSize = m_EmittersSpawnCountBuffer->GetSize();
@@ -713,7 +758,7 @@ namespace Eagle
 		pushData.PreSimIndex = m_PingPong;
 		pushData.PostSimIndex = 1u - m_PingPong;
 		pushData.NumEmitters = m_NumEmitters;
-		pushData.DeltaTime = Application::Get().GetTimestep();
+		pushData.DeltaTime = Utils::GetSimulationDeltaTime();
 		pushData.MaxParticles = m_MaxParticles;
 		pushData.Frustum = cullingData.Frustum;
 
@@ -774,6 +819,7 @@ namespace Eagle
 		m_Emit->SetBuffer(m_SkeletalMeshIndexBuffer, 0, 10);
 		m_Emit->SetBuffer(m_AnimationTransformsBuffer, 0, 11);
 		m_Emit->SetBuffer(m_DecompositedTransformsBuffer, 0, 12);
+		m_Emit->SetBuffer(m_EmitterCurvesBuffer, 0, 13);
 
 		cmd->DispatchIndirect(m_Emit, m_DispatchArgs, 0, &pushData);
 
@@ -808,7 +854,7 @@ namespace Eagle
 		pushData.Gravity = m_Renderer.GetGravity();
 		pushData.CameraNear = m_Renderer.GetZNear();
 		pushData.CameraFar = m_Renderer.GetZFar();
-		pushData.DeltaTime = Application::Get().GetTimestep();
+		pushData.DeltaTime = Utils::GetSimulationDeltaTime();
 		pushData.PreSimIndex = m_PingPong;
 		pushData.PostSimIndex = 1 - m_PingPong;
 		pushData.MaxParticles = m_MaxParticles;
@@ -828,10 +874,11 @@ namespace Eagle
 		m_Simulate->SetImageSampler(gbuffer.Normals, Sampler::PointSamplerClamp, 0, 10);
 		m_Simulate->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 0, 11);
 		m_Simulate->SetBuffer(m_TransformsBuffer, 0, 12);
-		m_Simulate->SetBuffer(m_OpaqueIndicesToRender, 0, 13);
+		m_Simulate->SetBuffer(m_EmitterCurvesBuffer, 0, 13);
+		m_Simulate->SetBuffer(m_OpaqueIndicesToRender, 0, 14);
 		if (bSortOpaque)
 		{
-			m_Simulate->SetBuffer(m_OpaqueDistancesBuffer, 0, 14);
+			m_Simulate->SetBuffer(m_OpaqueDistancesBuffer, 0, 15);
 		}
 
 		const ImageLayout oldDepthLayout = gbuffer.Depth->GetLayout();
@@ -1435,6 +1482,9 @@ namespace Eagle
 			specs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst | BufferUsage::TransferSrc;
 			specs.Size = m_MaxEmitters * sizeof(Emitter);
 			m_EmittersBuffer = Buffer::Create(specs, "ParticleSystem_Emitters");
+
+			specs.Size = m_MaxEmitters * Utils::s_EmitterCurvesSize;
+			m_EmitterCurvesBuffer = Buffer::Create(specs, "ParticleSystem_EmitterCurves");
 
 			specs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 			specs.Size = m_MaxEmitters * sizeof(glm::mat4);

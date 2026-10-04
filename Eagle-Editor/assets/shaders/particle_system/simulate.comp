@@ -59,13 +59,18 @@ layout(binding = 12) readonly buffer TransformsBuffer
     mat4 g_Transforms[];
 };
 
-layout(binding = 13) buffer IndicesToRenderOpaqueBuffer
+layout(binding = 13) readonly buffer EmitterCurvesBuffer
+{
+    vec4 g_EmitterCurves[];
+};
+
+layout(binding = 14) buffer IndicesToRenderOpaqueBuffer
 {
     uint g_IndicesToRenderOpaque[];
 };
 
 #ifdef EG_SORT_OPAQUE
-layout(binding = 14) buffer DistancesOpaqueBuffer
+layout(binding = 15) buffer DistancesOpaqueBuffer
 {
     uint g_DistancesOpaque[];
 };
@@ -84,6 +89,14 @@ layout(push_constant) uniform PushConstants
     uint g_PostSimIndex;
     uint g_MaxParticles;
 };
+
+vec4 SampleEmitterCurve(uint emitterIndex, uint curve, float lifeAlpha)
+{
+    uint index0, index1;
+    float blend;
+    EmitterCurve_GetSamples(emitterIndex, curve, lifeAlpha, index0, index1, blend);
+    return mix(g_EmitterCurves[index0], g_EmitterCurves[index1], blend);
+}
 
 void PushAlive(uint particleIndex)
 {
@@ -223,19 +236,20 @@ void main()
     }
 
     const float lifeAlpha = particle.CurrentLifetime / particle.Lifetime;
-    const float rotationZ = mix(emitter.RotationZStart, emitter.RotationZEnd, lifeAlpha) - particle.RotationZOffset;
-    const vec3 velocityCoef = mix(emitter.VelocityCoefStart, emitter.VelocityCoefEnd, lifeAlpha);
+    const vec4 sizeRotation = SampleEmitterCurve(emitterIndex, EmitterCurve_SizeRotation, lifeAlpha);
+    const float rotationZ = sizeRotation.z - particle.RotationZOffset;
+    const vec3 velocityCoef = SampleEmitterCurve(emitterIndex, EmitterCurve_VelocityCoef, lifeAlpha).xyz;
 
     const bool bWorldSpaceVelocity = HasFlag(emitter.Flags, Emitter_WorldSpaceVelocity_Mask);
     const vec3 velocity = ApplyVelocityCoef(particle.Velocity, velocityCoef, emitterRotation, bWorldSpaceVelocity);
 
-    particle.Size = mix(emitter.SizeStart.xy, emitter.SizeEnd.xy, lifeAlpha) * particle.SizeScale;
+    particle.Size = sizeRotation.xy * particle.SizeScale;
     particle.CurrentLifetime += g_DeltaTime;
     particle.Position += velocity * g_DeltaTime;
     particle.Flags = EmitterFlagsToParticleFlags(emitter.Flags);
     particle.RotationZ = rotationZ;
     particle.EffectiveVelocity = velocity;
-    particle.Color = mix(emitter.ColorStart, emitter.ColorEnd, lifeAlpha);
+    particle.Color = SampleEmitterCurve(emitterIndex, EmitterCurve_Color, lifeAlpha);
     particle.TextureIndex = emitter.TextureIndex;
     particle.AnimationLerp = animationLerp;
 

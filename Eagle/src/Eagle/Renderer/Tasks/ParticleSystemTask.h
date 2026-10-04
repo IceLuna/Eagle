@@ -90,6 +90,7 @@ namespace Eagle
 		void ResetGPUState(const Ref<CommandBuffer>& cmd);
 		void ReclaimDeadEmitters();
 		void UpdateMeshEmittersData(const Ref<CommandBuffer>& cmd);
+		void WriteEmitterCurves(const Ref<CommandBuffer>& cmd, const ParticleEmitter& emitter, uint32_t emitterIndex);
 
 		void AddEmitterMeshData(const ParticleEmitter& emitter);
 		void RemoveEmitterMeshData(const ParticleEmitter& emitter);
@@ -155,6 +156,7 @@ namespace Eagle
 		Ref<Buffer> m_ParticlesBuffer;
 		Ref<Buffer> m_EmittersSpawnCountBuffer;
 		Ref<Buffer> m_EmittersBuffer;
+		Ref<Buffer> m_EmitterCurvesBuffer; // Over-lifetime values of every emitter slot, baked from its curves
 		Ref<Buffer> m_AliveIndices[2]; // Pre/Post simulation
 		Ref<Buffer> m_DeadIndices;
 		Ref<Buffer> m_SystemData;

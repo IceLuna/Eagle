@@ -24,6 +24,12 @@ namespace Eagle
 	static const std::string s_XVarName = "X";
 	static const std::string s_YVarName = "Y";
 
+	static bool IsDeletePressed()
+	{
+		return ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) && !ImGui::IsAnyItemActive() && !ImGui::GetIO().WantTextInput
+			&& ImGui::IsKeyPressed(ImGuiKey_Delete, false);
+	}
+
 	AnimationBlendSpaceAssetEditor::AnimationBlendSpaceAssetEditor(const Ref<AssetAnimationBlendSpace>& asset)
 		: AssetEditor(true, true)
 		, m_Asset(asset)
@@ -189,6 +195,13 @@ namespace Eagle
 		const ImVec2 plotStartPos = ImGui::GetCursorScreenPos();
 		const ImVec2 plotEndPos = plotStartPos + ImGui::GetContentRegionAvail();
 		const ImVec2 mousePos = ImGui::GetMousePos();
+
+		// A double-click adds a point, so ImPlot's double-click-to-fit is moved to the middle mouse button for this plot
+		// The input map is global, it's restored right after the plot
+		ImPlotInputMap& inputMap = ImPlot::GetInputMap();
+		const ImGuiMouseButton previousFitButton = inputMap.Fit;
+		inputMap.Fit = ImGuiMouseButton_Middle;
+
 		if (ImPlot::BeginPlot(m_PlotWindowName.c_str(), ImGui::GetContentRegionAvail(), plotFlags))
 		{
 			ImPlot::SetupAxes(m_Horizontal.Name.c_str(), m_Vertical.Name.c_str());
@@ -215,6 +228,7 @@ namespace Eagle
 			}
 			size_t pointIdxToDelete = s_InvalidIndex;
 			bool bAnyClicked = false;
+			bool bAnyHovered = false;
 
 			for (size_t i = 0; i < m_PointsData.size(); ++i)
 			{
@@ -237,6 +251,7 @@ namespace Eagle
 					m_SelectedPointIdx = i;
 				}
 				bAnyClicked |= bClicked;
+				bAnyHovered |= bHovered;
 
 				if (ImGui::BeginPopup("AnimPoint Context Menu"))
 				{
@@ -261,7 +276,17 @@ namespace Eagle
 				m_SelectedPointIdx = s_InvalidIndex;
 			}
 
-			if (m_SelectedPointIdx != s_InvalidIndex && Input::IsKeyPressed(Key::Delete))
+			if (ImPlot::IsPlotHovered() && !bAnyHovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+			{
+				const ImPlotPoint mouseCoord = ImPlot::GetPlotMousePos();
+				auto& point = m_PointsData.emplace_back();
+				point.Coord.x = glm::clamp(mouseCoord.x, m_Horizontal.Min, m_Horizontal.Max);
+				point.Coord.y = glm::clamp(mouseCoord.y, m_Vertical.Min, m_Vertical.Max);
+				m_SelectedPointIdx = m_PointsData.size() - 1u;
+				bChanged = true;
+			}
+
+			if (m_SelectedPointIdx != s_InvalidIndex && pointIdxToDelete == s_InvalidIndex && IsDeletePressed())
 			{
 				pointIdxToDelete = m_SelectedPointIdx;
 			}
@@ -335,6 +360,8 @@ namespace Eagle
 				ImGui::EndPopup();
 			}
 		}
+
+		inputMap.Fit = previousFitButton;
 
 		ImGui::End();
 
@@ -464,6 +491,12 @@ namespace Eagle
 			}
 
 			UI::PopTreeNode();
+
+			// Delete also works from the points list, when the details window is focused
+			if (pointIdxToDelete == s_InvalidIndex && m_SelectedPointIdx != s_InvalidIndex && IsDeletePressed())
+			{
+				pointIdxToDelete = m_SelectedPointIdx;
+			}
 
 			if (pointIdxToDelete != s_InvalidIndex)
 			{

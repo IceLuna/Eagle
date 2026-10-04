@@ -374,8 +374,12 @@ namespace Eagle
 		// ---------------- Particle properties ----------------
 		public AssetTexture2D TextureAsset;
 
+		// Values over the lifetime are curves in the editor. Scripts see their start/end values.
+		// A curve authored in the editor is kept as long as a script doesn't change its start/end values
 		public Color4 ColorStart;
         public Color4 ColorEnd;
+		public float ColorIntensityStart;
+		public float ColorIntensityEnd;
 		
 		public Vector3 VelocityMin;
         public Vector3 VelocityMax;

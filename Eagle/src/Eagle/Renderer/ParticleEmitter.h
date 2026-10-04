@@ -4,6 +4,7 @@
 #include "Eagle/Math/Transform.h"
 #include "Eagle/Core/GUID.h"
 #include "Eagle/Animation/Animation.h"
+#include "Eagle/Curves/CurveProperty.h"
 #include <glm/glm.hpp>
 
 namespace Eagle
@@ -33,21 +34,17 @@ namespace Eagle
 		// ---------------- Particle properties ----------------
 		Ref<AssetTexture2D> Texture;
 
-		glm::vec4 ColorStart = glm::vec4(1.f);
-		glm::vec4 ColorEnd = glm::vec4(1.f);
-		
+		// Values over a particle's lifetime. Each one is either a constant or a curve over normalized lifetime (0 - spawn, 1 - death)
+		CurveProperty<glm::vec4> Color = CurveProperty<glm::vec4>(glm::vec4(1.f));
+		CurveProperty<float> ColorIntensity = CurveProperty<float>(1.f); // Multiplier for `Color.rgb`
+		CurveProperty<glm::vec2> Size = CurveProperty<glm::vec2>::FromStartEnd(glm::vec2(1.f), glm::vec2(0.f));
+		CurveProperty<float> RotationZ = CurveProperty<float>(0.f); // Degrees
+		CurveProperty<glm::vec3> VelocityCoef = CurveProperty<glm::vec3>(glm::vec3(1.f)); // Multiplies the velocity (in `VelocitySpace`)
+
 		glm::vec3 VelocityMin = glm::vec3(0, 1, 0);
 		glm::vec3 VelocityMax = glm::vec3(0, 1, 0);
-		
-		glm::vec3 VelocityCoefStart = glm::vec3(1);
-		glm::vec3 VelocityCoefEnd = glm::vec3(1);
-		VelocitySpaceType VelocitySpace = VelocitySpaceType::Local; // Space of `VelocityMin/Max` and `VelocityCoefStart/End`
+		VelocitySpaceType VelocitySpace = VelocitySpaceType::Local; // Space of `VelocityMin/Max` and `VelocityCoef`
 
-		float RotationZStart = 0.f;
-		float RotationZEnd = 0.f;
-
-		glm::vec2 SizeStart = glm::vec2(1);
-		glm::vec2 SizeEnd = glm::vec2(0);
 		glm::vec2 ColliderSizeRatio = glm::vec2(1); // Can be used to increase the size of a collider to prevent small and fast-moving particles from clipping through
 
 		// In seconds

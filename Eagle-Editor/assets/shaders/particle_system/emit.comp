@@ -75,6 +75,11 @@ layout(binding = 12) readonly buffer DecompositedTransformsBuffer
     DecompositedTransform g_DecompositedTransforms[];
 };
 
+layout(binding = 13) readonly buffer EmitterCurvesBuffer
+{
+    vec4 g_EmitterCurves[];
+};
+
 layout(push_constant) uniform PushConstants
 {
     vec3 g_Gravity;
@@ -84,6 +89,14 @@ layout(push_constant) uniform PushConstants
     uint g_MaxParticles;
 };
 
+vec4 SampleEmitterCurve(uint emitterIndex, uint curve, float lifeAlpha)
+{
+    uint index0, index1;
+    float blend;
+    EmitterCurve_GetSamples(emitterIndex, curve, lifeAlpha, index0, index1, blend);
+    return mix(g_EmitterCurves[index0], g_EmitterCurves[index1], blend);
+}
+
 // The fast-forward integrates each particle in steps of at most `FastForward_StepSize`, but not more than `FastForward_MaxSteps` steps per particle
 const float FastForward_StepSize = 1.f / 30.f;
 const uint FastForward_MaxSteps = 256u;
@@ -91,7 +104,7 @@ const uint FastForward_MaxSteps = 256u;
 // Moves a fast-forwarded particle to where it would be at `age`, as if it had been simulated all along.
 // Size, color and rotation don't need it: the simulation pass computes them from `CurrentLifetime` this frame.
 // Screen-space collisions are ignored, and the emitter is assumed to have been static
-void FastForwardParticle(inout Particle particle, Emitter emitter, mat3 emitterRotation, float age)
+void FastForwardParticle(inout Particle particle, Emitter emitter, uint emitterIndex, mat3 emitterRotation, float age)
 {
     particle.CurrentLifetime = age;
     if (age >= particle.Lifetime)
@@ -108,7 +121,7 @@ void FastForwardParticle(inout Particle particle, Emitter emitter, mat3 emitterR
 
         particle.Velocity += Particle_ComputeForce(emitter, particle.Position, emitterRotation, g_Gravity) * dt;
 
-        const vec3 velocityCoef = mix(emitter.VelocityCoefStart, emitter.VelocityCoefEnd, lifeAlpha);
+        const vec3 velocityCoef = SampleEmitterCurve(emitterIndex, EmitterCurve_VelocityCoef, lifeAlpha).xyz;
         const vec3 velocity = ApplyVelocityCoef(particle.Velocity, velocityCoef, emitterRotation, bWorldSpaceVelocity);
 
         particle.Position += velocity * dt;
@@ -388,8 +401,10 @@ void main()
 
     const float bounciness = mix(emitter.BouncinessMin, emitter.BouncinessMax, Random_NextFloat(random));
 
+    const vec4 startSizeRotation = SampleEmitterCurve(emitterIndex, EmitterCurve_SizeRotation, 0.f);
+
     Particle particle;
-    particle.Size = emitter.SizeStart.xy;
+    particle.Size = startSizeRotation.xy;
     particle.CurrentLifetime = 0.f;
     particle.Lifetime = mix(emitter.LifetimeMin, emitter.LifetimeMax, Random_NextFloat(random));
 
@@ -404,13 +419,13 @@ void main()
     const vec3 randomVelocity = mix(emitter.VelocityMin, emitter.VelocityMax, Random_NextFloat3(random));
     particle.Velocity = worldTrMat3 * (normal * emitter.NormalVelocityFactor) + (bWorldSpaceVelocity ? randomVelocity : worldTrMat3 * randomVelocity);
     particle.Bounciness = bounciness;
-    particle.RotationZ = emitter.RotationZStart;
+    particle.RotationZ = startSizeRotation.z;
 
     const mat3 emitterRotation = bWorldSpaceVelocity ? mat3(1) : ExtractRotation(worldTr);
-    particle.EffectiveVelocity = ApplyVelocityCoef(particle.Velocity, emitter.VelocityCoefStart, emitterRotation, bWorldSpaceVelocity);
+    particle.EffectiveVelocity = ApplyVelocityCoef(particle.Velocity, SampleEmitterCurve(emitterIndex, EmitterCurve_VelocityCoef, 0.f).xyz, emitterRotation, bWorldSpaceVelocity);
     particle.EmitterRef = Particle_MakeEmitterRef(emitterIndex, emitter.Generation);
 
-    particle.Color = emitter.ColorStart;
+    particle.Color = SampleEmitterCurve(emitterIndex, EmitterCurve_Color, 0.f);
     particle.TextureIndex = emitter.TextureIndex;
     particle.AnimationSpriteCoord = uvec2(0);
     particle.AnimationLerp = 0.0f;
@@ -422,7 +437,7 @@ void main()
     if (Emitter_IsFastForwardEnabled(emitter))
     {
         const uint particleIndexWithinEmitter = gidx - g_EmittersSpawnOffsets[emitterIndex]; // 0 = the youngest particle
-        FastForwardParticle(particle, emitter, ExtractRotation(worldTr), FastForward_GetParticleAge(emitter, particleIndexWithinEmitter));
+        FastForwardParticle(particle, emitter, emitterIndex, ExtractRotation(worldTr), FastForward_GetParticleAge(emitter, particleIndexWithinEmitter));
     }
 
     g_Particles[particleIndex] = Particle_Pack(particle, emitter.AnimationImagesNum);

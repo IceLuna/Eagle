@@ -833,12 +833,12 @@ namespace Eagle::Script
 	// AssetParticleSystem
 	uint32_t Eagle_AssetParticleSystem_GetEmittersCount(GUID assetID);
 	void Eagle_AssetParticleSystem_RemoveEmitters(GUID assetID);
-	void* Eagle_AssetParticleSystem_SetEmitters_Prepare(uint32_t count);
+	void* Eagle_AssetParticleSystem_SetEmitters_Prepare(GUID assetID, uint32_t count);
 	void Eagle_AssetParticleSystem_SetEmitters_Finish(GUID assetID, void* data);
 	GUID Eagle_AssetParticleSystem_Create();
 
 	void Eagle_AssetParticleSystem_SetEmitter(void* data, uint32_t index,
-		GUID texture, const glm::vec4* colorStart, const glm::vec4* colorEnd, const glm::vec3* velocityMin, const glm::vec3* velocityMax,
+		GUID texture, const glm::vec4* colorStart, const glm::vec4* colorEnd, float colorIntensityStart, float colorIntensityEnd, const glm::vec3* velocityMin, const glm::vec3* velocityMax,
 		const glm::vec3* velocityCoefStart, const glm::vec3* velocityCoefEnd, ParticleEmitter::VelocitySpaceType velocitySpace, float rotationZStart, float rotationZEnd,
 		const glm::vec2* sizeStart, const glm::vec2* sizeEnd, const glm::vec2* colliderSizeRatio, float lifetimeMin, float lifetimeMax,
 		float bouncinessMin, float bouncinessMax, MonoString* name, const Transform* relativeTransform, const AABB* visibilityAABB,
@@ -849,7 +849,7 @@ namespace Eagle::Script
 		bool bAdditive, bool bBlendAnimation, bool bFaceDirection);
 
 	MonoString* Eagle_AssetParticleSystem_GetEmitter(GUID assetID, uint32_t index,
-		GUID* texture, glm::vec4* colorStart, glm::vec4* colorEnd, glm::vec3* velocityMin, glm::vec3* velocityMax,
+		GUID* texture, glm::vec4* colorStart, glm::vec4* colorEnd, float* colorIntensityStart, float* colorIntensityEnd, glm::vec3* velocityMin, glm::vec3* velocityMax,
 		glm::vec3* velocityCoefStart, glm::vec3* velocityCoefEnd, ParticleEmitter::VelocitySpaceType* velocitySpace, float* rotationZStart, float* rotationZEnd,
 		glm::vec2* sizeStart, glm::vec2* sizeEnd, glm::vec2* colliderSizeRatio, float* lifetimeMin, float* lifetimeMax,
 		float* bouncinessMin, float* bouncinessMax, Transform* relativeTransform, AABB* visibilityAABB,
