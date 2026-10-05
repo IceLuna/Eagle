@@ -135,6 +135,11 @@ struct Emitter
 	float RadialAcceleration;
 	uint Generation; // Some bits are not used, see Emitter_GenerationMask
 
+	vec4 RandomTintA; // The particle's color is multiplied by a random color between A and B
+	vec4 RandomTintB;
+	vec2 StartRotationRange; // Radians (min, max)
+	vec2 RotationSpeedRange; // Radians per second (min, max)
+
 	// This is internal data. Keep it at the end because during update only the data before it is being updated
 	vec3 WorldPos; // First
 	float DeltaTime;
@@ -216,8 +221,13 @@ struct PackedParticle
 	uint AnimationImagesNum; // Used to calculate SpriteSize, which is used to calculate UV1 from UV0 (uv1 = uv0 + spriteSize)
 
 	vec2 SizeScale;
-	float RotationZOffset;
+	float RotationZOffset; // Includes the particle's random start rotation
 	uint AnimationSpriteCoord; // High 16 bits - x, rest - y
+
+	float TintFactor; // Blend factor between `RandomTintA` and `RandomTintB`
+	float RotationSpeed; // Radians per second
+	uint Padding0;
+	uint Padding1;
 };
 
 #ifndef __cplusplus
@@ -283,6 +293,9 @@ struct Particle
 	vec2 SizeScale;
 	float RotationZOffset;
 	float Bounciness;
+
+	float TintFactor;
+	float RotationSpeed;
 };
 
 void Particle_CalculateAnimationUV(uvec2 coord, uvec2 animationImagesNum, out vec2 uv0, out vec2 uv1)
@@ -343,6 +356,9 @@ PackedParticle Particle_Pack(Particle particle, uvec2 animationImagesNum)
 	packed.SizeScale = particle.SizeScale;
 	packed.RotationZOffset = particle.RotationZOffset;
 
+	packed.TintFactor = particle.TintFactor;
+	packed.RotationSpeed = particle.RotationSpeed;
+
 	return packed;
 }
 
@@ -367,6 +383,8 @@ Particle Particle_Unpack(PackedParticle packed)
 
 	particle.SizeScale = packed.SizeScale;
 	particle.RotationZOffset = packed.RotationZOffset;
+	particle.TintFactor = packed.TintFactor;
+	particle.RotationSpeed = packed.RotationSpeed;
 
 	unpacked = unpackHalf2x16(packed.RotationZ_AnimationLerp);
 	particle.RotationZ = unpacked.x;

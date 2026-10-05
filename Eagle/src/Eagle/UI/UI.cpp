@@ -1248,7 +1248,7 @@ namespace Eagle::UI
 		return TextLink(text, url);
 	}
 
-	bool PropertyDrag(const std::string_view label, int& value, float speed, int min, int max, const std::string_view helpMessage, const std::function<void()>& customLabelCallback)
+	bool PropertyDrag(const std::string_view label, int32_t& value, float speed, int min, int max, const std::string_view helpMessage, const std::function<void()>& customLabelCallback)
 	{
 		bool bModified = false;
 
@@ -1273,12 +1273,46 @@ namespace Eagle::UI
 		return bModified;
 	}
 
+	bool PropertyDrag(const std::string_view label, glm::ivec2& value, float speed, int min, int max, const std::string_view helpMessage, const std::function<void()>& customLabelCallback)
+	{
+		bool bModified = false;
+
+		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		ImGui::Text(label.data());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		if (customLabelCallback)
+		{
+			ImGui::SameLine();
+			customLabelCallback();
+		}
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+		bModified = ImGui::DragInt2(s_IDBuffer, glm::value_ptr(value), speed, min, max);
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+		return bModified;
+	}
+
 	bool PropertyDrag(const std::string_view label, uint32_t& value, float speed, int min, int max, const std::string_view helpMessage)
 	{
 		int temp = (int)value;
 		const bool bChanged = PropertyDrag(label, temp, speed, min, max, helpMessage);
 		if (bChanged)
 			value = uint32_t(glm::max(temp, 0)); // Clamp negatives to 0 so that we don't overflow
+		return bChanged;
+	}
+
+	bool PropertyDrag(const std::string_view label, glm::uvec2& value, float speed, int min, int max, const std::string_view helpMessage)
+	{
+		glm::ivec2 temp = glm::ivec2(value);
+		const bool bChanged = PropertyDrag(label, temp, speed, min, max, helpMessage);
+		if (bChanged)
+			value = glm::uvec2(glm::max(temp, 0)); // Clamp negatives to 0 so that we don't overflow
 		return bChanged;
 	}
 

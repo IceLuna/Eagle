@@ -2280,7 +2280,7 @@ namespace Eagle
 			: (bIsPlaying ? m_RuntimeCamera->GetForwardVector() : EditorCamera.GetForwardVector());
 		{
 			EG_CPU_TIMING_SCOPED("Scene. Render");
-			m_SceneRenderer->Render(camera, viewMatrix, viewPos, viewDir);
+			m_SceneRenderer->Render(ts, camera, viewMatrix, viewPos, viewDir);
 		}
 
 		m_DirtyTransformStaticMeshes.clear();

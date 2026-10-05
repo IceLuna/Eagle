@@ -92,7 +92,7 @@ namespace Eagle
 	public:
 		SceneRenderer(const glm::uvec2 size, const SceneRendererSettings& options = {});
 
-		void Render(const Camera* camera, const glm::mat4& viewMat, glm::vec3 viewPosition, glm::vec3 viewDirection);
+		void Render(Timestep ts, const Camera* camera, const glm::mat4& viewMat, glm::vec3 viewPosition, glm::vec3 viewDirection);
 		void SetOutputImage(const Ref<Image>& image);
 
 		ImageSpecifications GetOutputImageSpecs() const; // Can be used to create an output image that can be used be the renderer (SetOutputImage)
@@ -158,6 +158,8 @@ namespace Eagle
 
 		void SetGravity(const glm::vec3& gravity) { m_Gravity = gravity; }
 		glm::vec3 GetGravity() const { return m_Gravity; }
+
+		float GetDeltaTime_RT() const { return m_DeltaTime; }
 
 		void SetOptions(const SceneRendererSettings& options);
 		void SetViewportSize(const glm::uvec2 size);
@@ -408,6 +410,7 @@ namespace Eagle
 		float m_PhotoLinearScale = 1.f;
 		float m_ZNear = 1.f;
 		glm::vec3 m_Gravity = glm::vec3(0);
+		float m_DeltaTime = 0.f;
 		float m_ZFar = 1.f;
 		float m_CameraFOV = 1.f;
 		SceneRendererSettings m_Options_RT; // Render thread

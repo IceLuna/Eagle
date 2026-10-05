@@ -41,6 +41,13 @@ namespace Eagle
 		CurveProperty<float> RotationZ = CurveProperty<float>(0.f); // Degrees
 		CurveProperty<glm::vec3> VelocityCoef = CurveProperty<glm::vec3>(glm::vec3(1.f)); // Multiplies the velocity (in `VelocitySpace`)
 
+		glm::vec4 RandomTintA = glm::vec4(1.f); // When `bRandomTint` is set, each particle's color is multiplied by a random color between A and B
+		glm::vec4 RandomTintB = glm::vec4(1.f);
+		bool bRandomTint = false;
+
+		glm::vec2 StartRotationRange = glm::vec2(0.f); // Degrees (min, max). A random offset in this range is added to `RotationZ`
+		glm::vec2 RotationSpeedRange = glm::vec2(0.f); // Degrees per second (min, max). Each particle spins at a random speed in this range
+
 		glm::vec3 VelocityMin = glm::vec3(0, 1, 0);
 		glm::vec3 VelocityMax = glm::vec3(0, 1, 0);
 		VelocitySpaceType VelocitySpace = VelocitySpaceType::Local; // Space of `VelocityMin/Max` and `VelocityCoef`
@@ -61,6 +68,7 @@ namespace Eagle
 		AABB VisibilityAABB = AABB(glm::vec3(-1.f), glm::vec3(1.f)); // If not visible by the camera, it's not rendered to improve perf
 		uint32_t LoopCount = 0u; // 0 - infinity
 		float LoopDuration = 1.f;
+		float StartDelay = 0.f; // Seconds before the emitter starts spawning, counted from when it's added (spawned or restarted)
 		uint32_t SpawnRate = 1; // How many particles to spawn in a second. Clamped to `MaxSpawnRate`
 
 		// Sanity limit for `SpawnRate`. The number of particles that can be alive at once is limited separately, by `SceneRendererSettings::MaxParticlesBudget`.

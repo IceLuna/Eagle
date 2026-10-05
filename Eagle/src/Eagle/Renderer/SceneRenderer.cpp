@@ -117,7 +117,7 @@ namespace Eagle
 		InitWithOptions();
 	}
 
-	void SceneRenderer::Render(const Camera* camera, const glm::mat4& viewMat, glm::vec3 viewPosition, glm::vec3 viewDirection)
+	void SceneRenderer::Render(Timestep ts, const Camera* camera, const glm::mat4& viewMat, glm::vec3 viewPosition, glm::vec3 viewDirection)
 	{
 		EG_ASSERT(camera);
 
@@ -165,8 +165,9 @@ namespace Eagle
 			cascadeProjections = std::move(cameraCascadeProjections), cascadeFarPlanes = std::move(cameraCascadeFarPlanes), shadowDistance = camera->GetShadowFarClip(),
 			cascadesSmoothTransitionAlpha = camera->GetCascadesSmoothTransitionAlpha(), zNear = camera->GetPerspectiveNearClip(), zFar = camera->GetPerspectiveFarClip(),
 			cameraFov = camera->GetPerspectiveVerticalFOV(), bProjectionFlipped = camera->IsProjectionFlipped(),
-			pickCoords, pickCoordsCount, pickSlotIndex](const Ref<CommandBuffer>& cmd) mutable
+			pickCoords, pickCoordsCount, pickSlotIndex, ts](const Ref<CommandBuffer>& cmd) mutable
 		{
+			renderer->m_DeltaTime = ts;
 			renderer->m_bProjectionFlipped = bProjectionFlipped;
 			renderer->m_ZNear = zNear;
 			renderer->m_ZFar = zFar;

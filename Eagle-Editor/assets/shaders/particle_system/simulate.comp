@@ -161,6 +161,12 @@ void main()
         return;
 
     Particle particle = Particle_Unpack(g_Particles[particleIndex]);
+
+    // Age first. A particle that reaches its lifetime during this step is neither simulated nor drawn.
+    // So nothing is drawn past its lifetime, the number of alive particles matches `spawn rate * lifetime`,
+    // But it has a side effect: particles that live less than one frame are no longer drawn at all
+    particle.CurrentLifetime += g_DeltaTime;
+
     if (particle.CurrentLifetime >= particle.Lifetime)
     {
         PushDead(particleIndex);
@@ -225,31 +231,29 @@ void main()
     float animationLerp = 0.f;
     if (emitter.TextureIndex != EG_INVALID_INDEX)
     {
-        const float nextLifetime = particle.CurrentLifetime + g_DeltaTime;
         const float animationFPS = emitter.AnimationSpeed * float(emitter.AnimationImagesNum.x * emitter.AnimationImagesNum.y) / particle.Lifetime;
-        // Don't update anim if about to die
-        uint AdvanceAnimationCount = nextLifetime >= particle.Lifetime ? 0u : uint(nextLifetime * animationFPS) - uint(particle.CurrentLifetime * animationFPS);
-        const float currentLifetime = AdvanceAnimationCount > 0 ? nextLifetime : particle.CurrentLifetime;
-        animationLerp = fract(currentLifetime * animationFPS);
+        const float previousLifetime = max(particle.CurrentLifetime - g_DeltaTime, 0.f);
+        const uint advanceAnimationCount = uint(particle.CurrentLifetime * animationFPS) - uint(previousLifetime * animationFPS);
+        animationLerp = fract(particle.CurrentLifetime * animationFPS);
 
-        Particle_AdvanceAnimationBy(particle.AnimationSpriteCoord, emitter.AnimationImagesNum, AdvanceAnimationCount);
+        Particle_AdvanceAnimationBy(particle.AnimationSpriteCoord, emitter.AnimationImagesNum, advanceAnimationCount);
     }
 
     const float lifeAlpha = particle.CurrentLifetime / particle.Lifetime;
     const vec4 sizeRotation = SampleEmitterCurve(emitterIndex, EmitterCurve_SizeRotation, lifeAlpha);
-    const float rotationZ = sizeRotation.z - particle.RotationZOffset;
+    // The particle's own spin is added on top of the rotation curve
+    const float rotationZ = mod(sizeRotation.z + particle.RotationSpeed * particle.CurrentLifetime - particle.RotationZOffset, EG_2PI);
     const vec3 velocityCoef = SampleEmitterCurve(emitterIndex, EmitterCurve_VelocityCoef, lifeAlpha).xyz;
 
     const bool bWorldSpaceVelocity = HasFlag(emitter.Flags, Emitter_WorldSpaceVelocity_Mask);
     const vec3 velocity = ApplyVelocityCoef(particle.Velocity, velocityCoef, emitterRotation, bWorldSpaceVelocity);
 
     particle.Size = sizeRotation.xy * particle.SizeScale;
-    particle.CurrentLifetime += g_DeltaTime;
     particle.Position += velocity * g_DeltaTime;
     particle.Flags = EmitterFlagsToParticleFlags(emitter.Flags);
     particle.RotationZ = rotationZ;
     particle.EffectiveVelocity = velocity;
-    particle.Color = SampleEmitterCurve(emitterIndex, EmitterCurve_Color, lifeAlpha);
+    particle.Color = SampleEmitterCurve(emitterIndex, EmitterCurve_Color, lifeAlpha) * mix(emitter.RandomTintA, emitter.RandomTintB, particle.TintFactor);
     particle.TextureIndex = emitter.TextureIndex;
     particle.AnimationLerp = animationLerp;
 

@@ -97,6 +97,10 @@ namespace Eagle
 			outData.NormalVelocityFactor = emitter.NormalVelocityFactor;
 			outData.AnimationOffset = emitterData.AnimationOffset;
 			outData.Generation = generation;
+			outData.RandomTintA = emitter.bRandomTint ? emitter.RandomTintA : glm::vec4(1.f);
+			outData.RandomTintB = emitter.bRandomTint ? emitter.RandomTintB : glm::vec4(1.f);
+			outData.StartRotationRange = glm::radians(emitter.StartRotationRange);
+			outData.RotationSpeedRange = glm::radians(emitter.RotationSpeedRange);
 			outData.InternalFlags = 0u;
 			outData.LoopIteration = 0u;
 
@@ -106,19 +110,25 @@ namespace Eagle
 				outData.Flags = outData.Flags & (~Emitter_Enabled_Mask);
 			}
 
-			// Needed so it spawns particles on the first update
+			// The emitter's clock starts `StartDelay` seconds behind, so the first spawn and the loop counting
+			// happen that much later. A fast-forward uses up the delay first, and only the rest of it fast-forwards the emitter
+			const float startDelay = glm::max(emitter.StartDelay, 0.f);
+			const float requestedFastForward = glm::max(emitter.FastForwardTo, 0.f);
+			const float remainingDelay = glm::max(startDelay - requestedFastForward, 0.f);
+
+			// Needed so it spawns particles on the first update (or right after the delay)
 			{
 				const float spawnInterval = emitter.bExplode ? outData.LoopDuration : 1.f / float(outData.SpawnRate);
-				outData.SpawnIntervalTimer = spawnInterval;
+				outData.SpawnIntervalTimer = spawnInterval - remainingDelay;
 				Emitter_SetWasExplode(outData, emitter.bExplode);
 			}
 			Emitter_SetIsVisible(outData, false);
-			outData.DeltaTime = emitter.bExplode ? outData.LoopDuration : 0.f;
+			outData.DeltaTime = (emitter.bExplode ? outData.LoopDuration : 0.f) - remainingDelay;
 
 			// Fast-forward is applied by the first `prepare_data` pass after the emitter is added.
 			// Particles older than `LifetimeMax` are dead, so longer times only matter for loop counting.
 			{
-				float fastForwardTime = glm::max(emitter.FastForwardTo, 0.f);
+				float fastForwardTime = glm::max(requestedFastForward - startDelay, 0.f);
 				const float lifetimeMax = glm::max(emitter.LifetimeMax, 0.f);
 				if (outData.LoopCount == 0u)
 					fastForwardTime = glm::min(fastForwardTime, lifetimeMax + outData.LoopDuration);
@@ -129,10 +139,10 @@ namespace Eagle
 		}
 	
 		// Time step of the particle simulation. Long frames/stutters are clamped so that a single huge step doesn't spawn a bunch of particles
-		static float GetSimulationDeltaTime()
+		static float GetSimulationDeltaTime(const SceneRenderer& renderer)
 		{
 			constexpr float maxDeltaTime = 0.1f;
-			return std::min(float(Application::Get().GetTimestep()), maxDeltaTime);
+			return glm::clamp(renderer.GetDeltaTime_RT(), 0.f, maxDeltaTime);
 		}
 
 		static constexpr size_t s_EmitterCurvesSize = size_t(EmitterCurve_Count) * EmitterCurve_SamplesCount * sizeof(glm::vec4); // Per emitter slot
@@ -758,7 +768,7 @@ namespace Eagle
 		pushData.PreSimIndex = m_PingPong;
 		pushData.PostSimIndex = 1u - m_PingPong;
 		pushData.NumEmitters = m_NumEmitters;
-		pushData.DeltaTime = Utils::GetSimulationDeltaTime();
+		pushData.DeltaTime = Utils::GetSimulationDeltaTime(m_Renderer);
 		pushData.MaxParticles = m_MaxParticles;
 		pushData.Frustum = cullingData.Frustum;
 
@@ -854,7 +864,7 @@ namespace Eagle
 		pushData.Gravity = m_Renderer.GetGravity();
 		pushData.CameraNear = m_Renderer.GetZNear();
 		pushData.CameraFar = m_Renderer.GetZFar();
-		pushData.DeltaTime = Utils::GetSimulationDeltaTime();
+		pushData.DeltaTime = Utils::GetSimulationDeltaTime(m_Renderer);
 		pushData.PreSimIndex = m_PingPong;
 		pushData.PostSimIndex = 1 - m_PingPong;
 		pushData.MaxParticles = m_MaxParticles;

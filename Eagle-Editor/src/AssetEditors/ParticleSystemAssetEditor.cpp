@@ -75,6 +75,29 @@ namespace Eagle
 			ImGui::Spacing();
 		}
 
+		bool PropertyRandomRange(const char* label, glm::vec2& range, float speed, const char* minFormat, const char* maxFormat, std::string_view helpMessage)
+		{
+			ImGui::PushID(label);
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+			ImGui::TextUnformatted(label);
+			if (!helpMessage.empty())
+			{
+				ImGui::SameLine();
+				UI::HelpMarker(helpMessage);
+			}
+			ImGui::NextColumn();
+
+			ImGui::SetNextItemWidth(-1.f);
+			const bool bChanged = ImGui::DragFloatRange2("##Range", &range.x, &range.y, speed, 0.f, 0.f, minFormat, maxFormat);
+			if (ImGui::IsItemHovered() && !ImGui::IsItemActive())
+				ImGui::SetTooltip("Each particle picks a random value between Min and Max");
+
+			ImGui::NextColumn();
+			ImGui::PopID();
+
+			return bChanged;
+		}
+
 		// A draggable bar between two panels. Returns the drag delta along its axis.
 		float Splitter(const char* id, bool bVertical, float thickness, float length)
 		{
@@ -361,6 +384,8 @@ namespace Eagle
 		{
 			std::string summary = emitter.bExplode ? ("Bursts of " + std::to_string(emitter.SpawnRate)) : (std::to_string(emitter.SpawnRate) + "/s");
 			summary += emitter.LoopCount == 0 ? ", looping" : (", " + std::to_string(emitter.LoopCount) + (emitter.LoopCount == 1 ? " loop" : " loops"));
+			if (emitter.StartDelay > 0.f)
+				summary += ", delay " + FormatNumber(emitter.StartDelay) + " s";
 
 			if (BeginSection("Emitter", summary, true))
 			{
@@ -374,6 +399,12 @@ namespace Eagle
 					bChanged = true;
 				}
 				bChanged |= UI::PropertyDrag("Loop Count", emitter.LoopCount, 1.f, 0, 0, "How many loops to play. 0 - loop forever");
+				if (UI::PropertyDrag("Start Delay", emitter.StartDelay, 0.05f, 0.f, 0.f, "Seconds to wait before the emitter starts spawning, counted from when it's spawned or restarted.\n"
+					"`Fast Forward To` uses up the delay first"))
+				{
+					emitter.StartDelay = glm::max(0.f, emitter.StartDelay);
+					bChanged = true;
+				}
 				if (UI::PropertyDrag("Fast Forward To", emitter.FastForwardTo, 0.1f, 0.f, 0.f, "When the emitter is spawned, it starts as if it had already been running for this many seconds.\n"
 					"For looping emitters, `Lifetime Max` is enough to reach the fully filled state. Collisions are ignored during the fast-forward"))
 				{
@@ -523,6 +554,8 @@ namespace Eagle
 			const bool bIntensityChanges = !emitter.ColorIntensity.IsConstant() || emitter.ColorIntensity.Constant != 1.f;
 			if (bIntensityChanges)
 				summary += emitter.ColorIntensity.IsConstant() ? (", intensity " + FormatNumber(emitter.ColorIntensity.Constant)) : ", intensity curve";
+			if (emitter.bRandomTint)
+				summary += ", random tint";
 
 			if (BeginSection("Color", summary, true))
 			{
@@ -537,6 +570,16 @@ namespace Eagle
 				params.Max = 1000.f;
 				params.HelpMessage = "HDR brightness multiplier of the color. 1 - unchanged. Values above 1 make particles bright enough to bloom";
 				curveProperty("Intensity", emitter.ColorIntensity, CurveTarget::ColorIntensity, params);
+
+				bChanged |= UI::Property("Random Tint", emitter.bRandomTint, "Each particle's color is multiplied by a random color between the two colors, so particles of the same emitter differ slightly");
+				
+				if (!emitter.bRandomTint)
+					UI::PushItemDisabled();
+				bChanged |= UI::PropertyColor("Random Tint A", emitter.RandomTintA);
+				bChanged |= UI::PropertyColor("Random Tint B", emitter.RandomTintB);
+				if (!emitter.bRandomTint)
+					UI::PopItemDisabled();
+
 				EndSection();
 			}
 		}
@@ -556,6 +599,10 @@ namespace Eagle
 		// ---------------- Rotation ----------------
 		{
 			std::string summary = CurveSummary(emitter.RotationZ, FormatNumber(emitter.RotationZ.Constant) + " deg");
+			if (emitter.StartRotationRange.x != 0.f || emitter.StartRotationRange.y != 0.f)
+				summary += ", random start";
+			if (emitter.RotationSpeedRange.x != 0.f || emitter.RotationSpeedRange.y != 0.f)
+				summary += ", spinning";
 			if (emitter.bFaceDirection)
 				summary += ", faces velocity";
 			if (BeginSection("Rotation", summary, false))
@@ -564,6 +611,10 @@ namespace Eagle
 				params.Speed = 1.f;
 				params.HelpMessage = "Rotation around the view direction, in degrees";
 				curveProperty("Rotation", emitter.RotationZ, CurveTarget::RotationZ, params);
+				bChanged |= PropertyRandomRange("Random Start Rotation", emitter.StartRotationRange, 1.f, "Min: %.0f deg", "Max: %.0f deg",
+					"Added to the rotation above. For example, -180..180 gives every particle a different orientation");
+				bChanged |= PropertyRandomRange("Rotation Speed", emitter.RotationSpeedRange, 1.f, "Min: %.0f deg/s", "Max: %.0f deg/s",
+					"How fast each particle spins, on top of the rotation above. Negative values spin the other way");
 				bChanged |= UI::Property("Face Velocity", emitter.bFaceDirection, "Rotate particles so they point in the direction they move");
 				EndSection();
 			}
@@ -589,8 +640,7 @@ namespace Eagle
 					UI::EndPropertyGrid();
 					UI::TextWithSeparator("Sprite Sheet");
 					UI::BeginPropertyGrid("SpriteSheet");
-					bChanged |= UI::PropertyDrag("Columns", emitter.AnimationImagesNum.x, 1.f, 1, INT_MAX, "Number of frames horizontally in the texture");
-					bChanged |= UI::PropertyDrag("Rows", emitter.AnimationImagesNum.y, 1.f, 1, INT_MAX, "Number of frames vertically in the texture");
+					bChanged |= UI::PropertyDrag("Columns & Rows", emitter.AnimationImagesNum, 1.f, 1, INT_MAX, "Number of frames horizontally/vertically in the texture");
 					if (emitter.AnimationImagesNum.x * emitter.AnimationImagesNum.y > 1u)
 					{
 						bChanged |= UI::PropertyDrag("Animation Speed", emitter.AnimationSpeed, 0.05f, 0.f, 0.f, "How many times the frames are played over a particle's lifetime");
@@ -798,7 +848,7 @@ namespace Eagle
 				break;
 			}
 
-			const float currentLifetime = float(emitter.LoopCount) * emitter.LoopDuration + emitter.LifetimeMax;
+			const float currentLifetime = emitter.StartDelay + float(emitter.LoopCount) * emitter.LoopDuration + emitter.LifetimeMax;
 			m_Lifetime = glm::max(currentLifetime, m_Lifetime);
 		}
 

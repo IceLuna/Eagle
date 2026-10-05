@@ -862,6 +862,9 @@ namespace Eagle::Script
 	// AssetBehaviorGraph
 	void Eagle_AssetBehaviorGraph_CreateTaskManager(GUID assetID, MonoObject** outTaskManager);
 
+	// ParticleEmitter
+	uint32_t Eagle_ParticleEmitter_GetMaxSpawnRate();
+
 	// Math
 	glm::vec3 Eagle_Math_GetForwardVector(const Rotator* rotator);
 	glm::vec3 Eagle_Math_GetUpVector(const Rotator* rotator);

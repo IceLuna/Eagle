@@ -10648,6 +10648,11 @@ namespace Eagle
 			*outTaskManager = nullptr;
 		}
 	}
+
+	uint32_t Script::Eagle_ParticleEmitter_GetMaxSpawnRate()
+	{
+		return ParticleEmitter::MaxSpawnRate;
+	}
 	
 	//--------------Math--------------
 	glm::vec3 Script::Eagle_Math_GetForwardVector(const Rotator* rotator)

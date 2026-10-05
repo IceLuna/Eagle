@@ -158,11 +158,15 @@ namespace Eagle
 		Ref<AssetParticleSystem> assetCopy = AssetParticleSystem::Copy(asset);
 		m_TempAsset = assetCopy;
 		
-		// Mark emitters to be destoyed immediately
+		// Mark emitters to be destoyed immediately, and fast forward it a bit
 		{
 			auto emitters = assetCopy->GetEmitters();
 			for (auto& emitter : emitters)
+			{
 				emitter.bDestroyImmediately = true;
+				if (!emitter.bExplode) // Fast forward a bit so that continues emitters become visible
+					emitter.FastForwardTo = (emitter.LifetimeMin + emitter.LifetimeMax) * 0.5f;
+			}
 			assetCopy->SetEmitters(std::move(emitters));
 		}
 

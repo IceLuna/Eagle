@@ -1695,6 +1695,12 @@ namespace Eagle
 				out << YAML::Key << "LoopDuration" << YAML::Value << emitter.LoopDuration;
 				out << YAML::Key << "SpawnRate" << YAML::Value << emitter.SpawnRate;
 				out << YAML::Key << "FastForwardTo" << YAML::Value << emitter.FastForwardTo;
+				out << YAML::Key << "StartDelay" << YAML::Value << emitter.StartDelay;
+				out << YAML::Key << "RandomTint" << YAML::Value << emitter.bRandomTint;
+				out << YAML::Key << "RandomTintA" << YAML::Value << emitter.RandomTintA;
+				out << YAML::Key << "RandomTintB" << YAML::Value << emitter.RandomTintB;
+				out << YAML::Key << "StartRotationRange" << YAML::Value << emitter.StartRotationRange;
+				out << YAML::Key << "RotationSpeedRange" << YAML::Value << emitter.RotationSpeedRange;
 				out << YAML::Key << "RadialAcceleration" << YAML::Value << emitter.RadialAcceleration;
 				out << YAML::Key << "TangentialAcceleration" << YAML::Value << emitter.TangentialAcceleration;
 				out << YAML::Key << "NormalVelocityFactor" << YAML::Value << emitter.NormalVelocityFactor;
@@ -5094,6 +5100,18 @@ namespace Eagle
 			if (auto n = node["SpawnRate"])
 				emitter.SpawnRate = n.as<uint32_t>();
 			emitter.FastForwardTo = node["FastForwardTo"].as<float>();
+			if (auto n = node["StartDelay"])
+				emitter.StartDelay = n.as<float>();
+			if (auto n = node["RandomTint"])
+				emitter.bRandomTint = n.as<bool>();
+			if (auto n = node["RandomTintA"])
+				emitter.RandomTintA = n.as<glm::vec4>();
+			if (auto n = node["RandomTintB"])
+				emitter.RandomTintB = n.as<glm::vec4>();
+			if (auto n = node["StartRotationRange"])
+				emitter.StartRotationRange = n.as<glm::vec2>();
+			if (auto n = node["RotationSpeedRange"])
+				emitter.RotationSpeedRange = n.as<glm::vec2>();
 			emitter.RadialAcceleration = node["RadialAcceleration"].as<float>();
 			emitter.TangentialAcceleration = node["TangentialAcceleration"].as<float>();
 			if (auto n = node["NormalVelocityFactor"])

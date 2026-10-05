@@ -108,7 +108,7 @@ void FastForwardParticle(inout Particle particle, Emitter emitter, uint emitterI
 {
     particle.CurrentLifetime = age;
     if (age >= particle.Lifetime)
-        return; // Already dead. The simulation pass will release it this frame
+        return; // Already dead. The simulation pass releases it this frame
 
     const bool bWorldSpaceVelocity = HasFlag(emitter.Flags, Emitter_WorldSpaceVelocity_Mask);
     const uint steps = clamp(uint(ceil(age / FastForward_StepSize)), 1u, FastForward_MaxSteps);
@@ -425,14 +425,20 @@ void main()
     particle.EffectiveVelocity = ApplyVelocityCoef(particle.Velocity, SampleEmitterCurve(emitterIndex, EmitterCurve_VelocityCoef, 0.f).xyz, emitterRotation, bWorldSpaceVelocity);
     particle.EmitterRef = Particle_MakeEmitterRef(emitterIndex, emitter.Generation);
 
-    particle.Color = SampleEmitterCurve(emitterIndex, EmitterCurve_Color, 0.f);
+    particle.TintFactor = Random_NextFloat(random);
+    const vec4 randomTint = mix(emitter.RandomTintA, emitter.RandomTintB, particle.TintFactor);
+
+    particle.Color = SampleEmitterCurve(emitterIndex, EmitterCurve_Color, 0.f) * randomTint;
     particle.TextureIndex = emitter.TextureIndex;
     particle.AnimationSpriteCoord = uvec2(0);
     particle.AnimationLerp = 0.0f;
 
     DecompositedTransform decompositedTr = g_DecompositedTransforms[emitter.TransformIndex];
     particle.SizeScale = decompositedTr.Scale;
-    particle.RotationZOffset = decompositedTr.RotationZ;
+
+    particle.RotationSpeed = mix(emitter.RotationSpeedRange.x, emitter.RotationSpeedRange.y, Random_NextFloat(random));
+    const float startRotation = mix(emitter.StartRotationRange.x, emitter.StartRotationRange.y, Random_NextFloat(random));
+    particle.RotationZOffset = decompositedTr.RotationZ - startRotation;
 
     if (Emitter_IsFastForwardEnabled(emitter))
     {
