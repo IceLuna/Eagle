@@ -136,6 +136,11 @@ void main()
         Emitter_SetIsVisible(emitter, bVisible);
         emitter.WorldPos = vec3(emitterTr[3][0], emitterTr[3][1], emitterTr[3][2]);
 
+        const mat3 emitterRotation = ExtractRotation(emitterTr);
+        emitter.RotationColumn0 = emitterRotation[0];
+        emitter.RotationColumn1 = emitterRotation[1];
+        emitter.RotationColumn2 = emitterRotation[2];
+
         // The fast-forward batch was emitted last frame, disable it
         if (Emitter_IsFastForwardEnabled(emitter))
         {

@@ -148,6 +148,14 @@ struct Emitter
 	uint LoopIteration; // Current loop iteration. When reaches LoopCount, it won't spawn any particles
 	uint InternalFlags;
 	float FastForwardTime; // Set when the emitter is added, reset by the first `prepare_data` pass
+
+	// Cached emitter's world rotation without scale
+	vec3 RotationColumn0;
+	uint Padding0;
+	vec3 RotationColumn1;
+	uint Padding1;
+	vec3 RotationColumn2;
+	uint Padding2;
 };
 
 // Values over a particle's lifetime, baked on the CPU from the emitter's curves
@@ -470,6 +478,11 @@ vec3 ApplyVelocityCoef(vec3 worldVelocity, vec3 coef, mat3 emitterRotation, bool
 		return worldVelocity * coef; // World-space or uniform coef, no need to go to local space
 
 	return emitterRotation * ((transpose(emitterRotation) * worldVelocity) * coef);
+}
+
+mat3 Emitter_GetRotation(Emitter emitter)
+{
+	return mat3(emitter.RotationColumn0, emitter.RotationColumn1, emitter.RotationColumn2);
 }
 
 // Indices (in the curves buffer) of the two samples around `lifeAlpha`, and the blend factor between them

@@ -421,7 +421,7 @@ void main()
     particle.Bounciness = bounciness;
     particle.RotationZ = startSizeRotation.z;
 
-    const mat3 emitterRotation = bWorldSpaceVelocity ? mat3(1) : ExtractRotation(worldTr);
+    const mat3 emitterRotation = bWorldSpaceVelocity ? mat3(1) : Emitter_GetRotation(emitter);
     particle.EffectiveVelocity = ApplyVelocityCoef(particle.Velocity, SampleEmitterCurve(emitterIndex, EmitterCurve_VelocityCoef, 0.f).xyz, emitterRotation, bWorldSpaceVelocity);
     particle.EmitterRef = Particle_MakeEmitterRef(emitterIndex, emitter.Generation);
 
@@ -443,7 +443,7 @@ void main()
     if (Emitter_IsFastForwardEnabled(emitter))
     {
         const uint particleIndexWithinEmitter = gidx - g_EmittersSpawnOffsets[emitterIndex]; // 0 = the youngest particle
-        FastForwardParticle(particle, emitter, emitterIndex, ExtractRotation(worldTr), FastForward_GetParticleAge(emitter, particleIndexWithinEmitter));
+        FastForwardParticle(particle, emitter, emitterIndex, Emitter_GetRotation(emitter), FastForward_GetParticleAge(emitter, particleIndexWithinEmitter));
     }
 
     g_Particles[particleIndex] = Particle_Pack(particle, emitter.AnimationImagesNum);

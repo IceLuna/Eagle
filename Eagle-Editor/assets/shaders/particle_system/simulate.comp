@@ -54,23 +54,18 @@ layout(binding = 11) uniform CameraView
 	mat4 g_CameraView;
 };
 
-layout(binding = 12) readonly buffer TransformsBuffer
-{
-    mat4 g_Transforms[];
-};
-
-layout(binding = 13) readonly buffer EmitterCurvesBuffer
+layout(binding = 12) readonly buffer EmitterCurvesBuffer
 {
     vec4 g_EmitterCurves[];
 };
 
-layout(binding = 14) buffer IndicesToRenderOpaqueBuffer
+layout(binding = 13) buffer IndicesToRenderOpaqueBuffer
 {
     uint g_IndicesToRenderOpaque[];
 };
 
 #ifdef EG_SORT_OPAQUE
-layout(binding = 15) buffer DistancesOpaqueBuffer
+layout(binding = 14) buffer DistancesOpaqueBuffer
 {
     uint g_DistancesOpaque[];
 };
@@ -189,8 +184,7 @@ void main()
         return;
     }
 
-    const mat4 emitterTr = g_Transforms[emitter.TransformIndex];
-    const mat3 emitterRotation = ExtractRotation(emitterTr);
+    const mat3 emitterRotation = Emitter_GetRotation(emitter);
     particle.Velocity += Particle_ComputeForce(emitter, particle.Position, emitterRotation, g_Gravity) * g_DeltaTime;
 
     if (emitter.CollisionType != ParticleCollisionType_None)
