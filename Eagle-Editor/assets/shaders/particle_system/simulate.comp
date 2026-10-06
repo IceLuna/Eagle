@@ -59,13 +59,18 @@ layout(binding = 12) readonly buffer EmitterCurvesBuffer
     vec4 g_EmitterCurves[];
 };
 
-layout(binding = 13) buffer IndicesToRenderOpaqueBuffer
+layout(binding = 13) readonly buffer DecompositedTransformsBuffer
+{
+    DecompositedTransform g_DecompositedTransforms[];
+};
+
+layout(binding = 14) buffer IndicesToRenderOpaqueBuffer
 {
     uint g_IndicesToRenderOpaque[];
 };
 
 #ifdef EG_SORT_OPAQUE
-layout(binding = 14) buffer DistancesOpaqueBuffer
+layout(binding = 15) buffer DistancesOpaqueBuffer
 {
     uint g_DistancesOpaque[];
 };
@@ -184,8 +189,23 @@ void main()
         return;
     }
 
-    const mat3 emitterRotation = Emitter_GetRotation(emitter);
-    particle.Velocity += Particle_ComputeForce(emitter, particle.Position, emitterRotation, g_Gravity) * g_DeltaTime;
+    // Local simulation space particles transform with the emitter.
+    // Particles spawned this frame are already placed at the emitter's current transform, so they're ignored
+    if (HasFlag(emitter.Flags, Emitter_LocalSimulation_Mask) && !HasFlag(particle.Flags, Particle_JustSpawned_Mask))
+    {
+        particle.Position = vec3(emitter.DeltaTransform * vec4(particle.Position, 1.f));
+        particle.Velocity = mat3(emitter.DeltaTransform) * particle.Velocity;
+    }
+
+    const float lifeAlpha = particle.CurrentLifetime / particle.Lifetime;
+
+    // xyz - velocity multiplier, w - drag
+    const vec4 velocityCoefDrag = SampleEmitterCurve(emitterIndex, EmitterCurve_VelocityCoef_Drag, lifeAlpha);
+    const float drag = velocityCoefDrag.w;
+
+    const mat3 emitterRotation = DecompositedTransform_GetRotation(g_DecompositedTransforms[emitter.TransformIndex]);
+    particle.Velocity += Particle_ComputeForce(emitter, particle.Position, emitterRotation, g_Gravity, emitter.NoiseOffset) * g_DeltaTime;
+    Particle_ApplyDrag(particle.Velocity, drag, g_DeltaTime);
 
     if (emitter.CollisionType != ParticleCollisionType_None)
     {
@@ -233,11 +253,12 @@ void main()
         Particle_AdvanceAnimationBy(particle.AnimationSpriteCoord, emitter.AnimationImagesNum, advanceAnimationCount);
     }
 
-    const float lifeAlpha = particle.CurrentLifetime / particle.Lifetime;
     const vec4 sizeRotation = SampleEmitterCurve(emitterIndex, EmitterCurve_SizeRotation, lifeAlpha);
-    // The particle's own spin is added on top of the rotation curve
-    const float rotationZ = mod(sizeRotation.z + particle.RotationSpeed * particle.CurrentLifetime - particle.RotationZOffset, EG_2PI);
-    const vec3 velocityCoef = SampleEmitterCurve(emitterIndex, EmitterCurve_VelocityCoef, lifeAlpha).xyz;
+    // The particle's own spin (random speed, constant over its life) and the spin from the rotation speed curve are added on top
+    // of the rotation curve. The curve's spin is baked as an integral over the normalized lifetime, so it's scaled by the lifetime
+    const float spin = particle.RotationSpeed * particle.CurrentLifetime + sizeRotation.w * particle.Lifetime;
+    const float rotationZ = mod(sizeRotation.z + spin - particle.RotationZOffset, EG_2PI);
+    const vec3 velocityCoef = velocityCoefDrag.xyz;
 
     const bool bWorldSpaceVelocity = HasFlag(emitter.Flags, Emitter_WorldSpaceVelocity_Mask);
     const vec3 velocity = ApplyVelocityCoef(particle.Velocity, velocityCoef, emitterRotation, bWorldSpaceVelocity);

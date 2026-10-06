@@ -384,14 +384,32 @@ namespace Eagle
 		{
 			std::string summary = emitter.bExplode ? ("Bursts of " + std::to_string(emitter.SpawnRate)) : (std::to_string(emitter.SpawnRate) + "/s");
 			summary += emitter.LoopCount == 0 ? ", looping" : (", " + std::to_string(emitter.LoopCount) + (emitter.LoopCount == 1 ? " loop" : " loops"));
+			if (!emitter.bExplode && emitter.SpawnPerMeter > 0.f)
+				summary += " + " + FormatNumber(emitter.SpawnPerMeter) + "/m";
 			if (emitter.StartDelay > 0.f)
 				summary += ", delay " + FormatNumber(emitter.StartDelay) + " s";
+			if (emitter.SimulationSpace == ParticleEmitter::SimulationSpaceType::Local)
+				summary += ", local space";
 
 			if (BeginSection("Emitter", summary, true))
 			{
 				bChanged |= UI::PropertyText("Name", emitter.Name);
 				bChanged |= UI::Property("Emit", emitter.bEmit, "Unchecked emitters don't spawn particles");
 				bChanged |= UI::PropertyDrag("Spawn Rate", emitter.SpawnRate, 1.f, 0, int(ParticleEmitter::MaxSpawnRate), emitter.bExplode ? "Particles spawned by each burst" : "Particles spawned per second");
+
+				if (emitter.bExplode)
+					UI::PushItemDisabled();
+
+				if (UI::PropertyDrag("Spawn per Meter", emitter.SpawnPerMeter, 0.1f, 0.f, 0.f, "Extra particles per unit of distance the emitter moves, on top of `Spawn Rate`.\n"
+					"Use it for trails. Moving emitters leave a continuous line of particles, however fast they move. `Spawn Rate` can be 0.\nNot used in `Explode` mode"))
+				{
+					emitter.SpawnPerMeter = glm::max(0.f, emitter.SpawnPerMeter);
+					bChanged = true;
+				}
+
+				if (emitter.bExplode)
+					UI::PopItemDisabled();
+
 				bChanged |= UI::Property("Explode", emitter.bExplode, "Spawn particles in bursts (one burst per loop) instead of continuously");
 				if (UI::PropertyDrag("Loop Duration", emitter.LoopDuration, 0.05f, 0.f, 0.f, emitter.bExplode ? "Time between bursts, in seconds" : "Length of one loop, in seconds"))
 				{
@@ -411,6 +429,8 @@ namespace Eagle
 					emitter.FastForwardTo = glm::max(0.f, emitter.FastForwardTo);
 					bChanged = true;
 				}
+				bChanged |= UI::ComboEnum("Simulation Space", emitter.SimulationSpace, "World: particles stay where they were spawned, so a moving emitter leaves them behind.\n"
+					"Local: particles move, turn and scale with the emitter");
 				bChanged |= UI::Property("Destroy Immediately", emitter.bDestroyImmediately, "When the emitter is disabled or destroyed, remove its particles right away instead of letting them finish their lifetime");
 				UI::EndPropertyGrid();
 
@@ -503,6 +523,8 @@ namespace Eagle
 		// ---------------- Velocity ----------------
 		{
 			std::string summary = emitter.VelocityMin == emitter.VelocityMax ? "Fixed" : "Random";
+			if (emitter.InheritVelocity != 0.f)
+				summary += ", inherits";
 			if (emitter.VelocitySpace == ParticleEmitter::VelocitySpaceType::World)
 				summary += ", world space";
 			if (!emitter.VelocityCoef.IsConstant())
@@ -514,6 +536,8 @@ namespace Eagle
 					"Local: relative to the emitter. Velocity rotates and scales with the emitter, and the multiplier's axes rotate with it.\n"
 					"World: world-space values. The emitter's rotation and scale are ignored.\n"
 					"The part of the velocity that comes from `Normal Velocity Factor` always follows the emitter");
+				bChanged |= UI::PropertyDrag("Inherit Emitter Velocity", emitter.InheritVelocity, 0.01f, 0.f, 0.f, "Fraction of the emitter's own velocity that particles start with.\n"
+					"0 - none, 1 - particles start moving with the emitter (for example, sparks from a moving object)");
 
 				const char* help = "Each particle starts with a random velocity between Min and Max";
 				bChanged |= UI::PropertyDrag("Velocity Min", emitter.VelocityMin, 0.05f, 0.f, 0.f, help);
@@ -536,6 +560,10 @@ namespace Eagle
 				append("Radial");
 			if (emitter.TangentialAcceleration != 0.f)
 				append("Swirl");
+			if (emitter.TurbulenceStrength != 0.f)
+				append("Turbulence");
+			if (!emitter.Drag.IsConstant() || emitter.Drag.Constant > 0.f)
+				append("Drag");
 			if (summary.empty())
 				summary = "None";
 
@@ -544,6 +572,23 @@ namespace Eagle
 				bChanged |= UI::Property("Apply Gravity", emitter.bApplyGravity);
 				bChanged |= UI::PropertyDrag("Radial Acceleration", emitter.RadialAcceleration, 0.1f, 0.f, 0.f, "Positive values push particles away from the emitter's center, negative values pull them in");
 				bChanged |= UI::PropertyDrag("Tangential Acceleration", emitter.TangentialAcceleration, 0.1f, 0.f, 0.f, "Makes particles swirl around the emitter's local Z axis. The sign sets the direction");
+				{
+					CurvePropertyParams dragParams;
+					dragParams.Min = 0.f;
+					dragParams.Max = 1000.f;
+					dragParams.HelpMessage = "Air resistance, per second. Particles lose speed over time. Higher values slow them down faster.\n"
+						"Unlike `Velocity Multiplier`, it changes the particle's real velocity, so with gravity particles reach a steady falling speed.\n"
+						"As a curve, it changes over the particle's lifetime (for example, sparks that fly freely, then get caught by the air)";
+					curveProperty("Drag", emitter.Drag, CurveTarget::Drag, dragParams);
+				}
+				bChanged |= UI::PropertyDrag("Turbulence", emitter.TurbulenceStrength, 0.05f, 0.f, 0.f, "Strength of a swirling force field (curl noise), as an acceleration.\n"
+					"For example, makes smoke/dust move naturally instead of in straight lines. 0 - off");
+				if (UI::PropertyDrag("Turbulence Scale", emitter.TurbulenceScale, 0.05f, 0.01f, 0.f, "Size of the swirls, in world units. Smaller values give tighter, busier swirls"))
+				{
+					emitter.TurbulenceScale = glm::max(0.01f, emitter.TurbulenceScale);
+					bChanged = true;
+				}
+				bChanged |= UI::PropertyDrag("Turbulence Speed", emitter.TurbulenceSpeed, 0.05f, 0.f, 0.f, "How fast the swirl pattern drifts, in world units per second. 0 - a static pattern");
 				EndSection();
 			}
 		}
@@ -587,11 +632,20 @@ namespace Eagle
 		// ---------------- Size ----------------
 		{
 			const glm::vec2 size = emitter.Size.Constant;
-			if (BeginSection("Size", CurveSummary(emitter.Size, FormatNumber(size.x) + " x " + FormatNumber(size.y)), true))
+			std::string summary = CurveSummary(emitter.Size, FormatNumber(size.x) + " x " + FormatNumber(size.y));
+			if (emitter.StartSizeMultiplierRandomRange.x != 1.f || emitter.StartSizeMultiplierRandomRange.y != 1.f)
+				summary += ", random size";
+			if (BeginSection("Size", summary, true))
 			{
 				CurvePropertyParams params;
 				params.HelpMessage = "Width and height of a particle. Also scaled by the emitter's scale";
 				curveProperty("Size", emitter.Size, CurveTarget::Size, params);
+				if (PropertyRandomRange("Random Start Size Multiplier", emitter.StartSizeMultiplierRandomRange, 0.01f, "Min: %.2f", "Max: %.2f",
+					"Each particle's size is multiplied by a random value in this range. [1; 1] - no randomness"))
+				{
+					emitter.StartSizeMultiplierRandomRange = glm::max(emitter.StartSizeMultiplierRandomRange, glm::vec2(0.f));
+					bChanged = true;
+				}
 				EndSection();
 			}
 		}
@@ -599,9 +653,10 @@ namespace Eagle
 		// ---------------- Rotation ----------------
 		{
 			std::string summary = CurveSummary(emitter.RotationZ, FormatNumber(emitter.RotationZ.Constant) + " deg");
-			if (emitter.StartRotationRange.x != 0.f || emitter.StartRotationRange.y != 0.f)
+			if (emitter.StartRotationRandomRange.x != 0.f || emitter.StartRotationRandomRange.y != 0.f)
 				summary += ", random start";
-			if (emitter.RotationSpeedRange.x != 0.f || emitter.RotationSpeedRange.y != 0.f)
+			const bool bSpinCurve = !emitter.RotationSpeed.IsConstant() || emitter.RotationSpeed.Constant != 0.f;
+			if (emitter.StartRotationSpeedRandomRange.x != 0.f || emitter.StartRotationSpeedRandomRange.y != 0.f || bSpinCurve)
 				summary += ", spinning";
 			if (emitter.bFaceDirection)
 				summary += ", faces velocity";
@@ -611,10 +666,17 @@ namespace Eagle
 				params.Speed = 1.f;
 				params.HelpMessage = "Rotation around the view direction, in degrees";
 				curveProperty("Rotation", emitter.RotationZ, CurveTarget::RotationZ, params);
-				bChanged |= PropertyRandomRange("Random Start Rotation", emitter.StartRotationRange, 1.f, "Min: %.0f deg", "Max: %.0f deg",
-					"Added to the rotation above. For example, -180..180 gives every particle a different orientation");
-				bChanged |= PropertyRandomRange("Rotation Speed", emitter.RotationSpeedRange, 1.f, "Min: %.0f deg/s", "Max: %.0f deg/s",
-					"How fast each particle spins, on top of the rotation above. Negative values spin the other way");
+				bChanged |= PropertyRandomRange("Random Start Rotation", emitter.StartRotationRandomRange, 1.f, "Min: %.0f deg", "Max: %.0f deg",
+					"Added to the rotation above. For example, [-180; 180] gives every particle a different orientation");
+				bChanged |= PropertyRandomRange("Random Start Rotation Speed", emitter.StartRotationSpeedRandomRange, 1.f, "Min: %.0f deg/s", "Max: %.0f deg/s",
+					"How fast each particle spins, on top of the rotation above");
+				{
+					CurvePropertyParams speedParams;
+					speedParams.Speed = 1.f;
+					speedParams.HelpMessage = "Spin speed in degrees per second that changes over the particle's lifetime, for example spinning fast and slowing down.\n"
+						"Adds to `Rotation Speed`";
+					curveProperty("Rotation Speed over Lifetime", emitter.RotationSpeed, CurveTarget::RotationSpeed, speedParams);
+				}
 				bChanged |= UI::Property("Face Velocity", emitter.bFaceDirection, "Rotate particles so they point in the direction they move");
 				EndSection();
 			}
@@ -689,6 +751,8 @@ namespace Eagle
 			case CurveTarget::ColorIntensity: info = { "Intensity over lifetime", { "Intensity" } }; break;
 			case CurveTarget::Size:           info = { "Size over lifetime", { "Width", "Height" } }; break;
 			case CurveTarget::RotationZ:      info = { "Rotation over lifetime (degrees)", { "Rotation" } }; break;
+			case CurveTarget::RotationSpeed:  info = { "Rotation speed over lifetime (degrees per second)", { "Speed" } }; break;
+			case CurveTarget::Drag:           info = { "Drag over lifetime (per second)", { "Drag" } }; break;
 			case CurveTarget::VelocityCoef:   info = { "Velocity multiplier over lifetime", { "X", "Y", "Z" } }; break;
 			default: return false;
 		}
@@ -802,6 +866,8 @@ namespace Eagle
 			case CurveTarget::ColorIntensity: drawCurve(emitter.ColorIntensity); break;
 			case CurveTarget::Size:           drawCurve(emitter.Size); break;
 			case CurveTarget::RotationZ:      drawCurve(emitter.RotationZ); break;
+			case CurveTarget::RotationSpeed:  drawCurve(emitter.RotationSpeed); break;
+			case CurveTarget::Drag:           drawCurve(emitter.Drag); break;
 			case CurveTarget::VelocityCoef:   drawCurve(emitter.VelocityCoef); break;
 			default: break;
 		}

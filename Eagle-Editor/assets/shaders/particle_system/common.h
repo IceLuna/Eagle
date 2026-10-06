@@ -6,6 +6,7 @@
 #include "defines.h"
 #include "random.h"
 #include "utils.h"
+#include "noise.h"
 
 #define EG_PS_THREAD_SIZE 64
 
@@ -15,6 +16,7 @@ struct ParticleSystemData
 	uint EmitCount;
 	uint SimulateCount;
 	uint DeadCount;
+	uint DroppedCount; // Particles that couldn't be spawned this frame because the pool was full. Read back by the CPU to grow the pool
 };
 
 const uint ParticleCollisionType_None = 0;
@@ -53,10 +55,12 @@ const uint Emitter_DestroyImmediately_Mask = 1 << 6;
 const uint Emitter_FaceDirection_Mask      = 1 << 7;
 const uint Emitter_SkeletalMesh_Mask       = 1 << 8;
 const uint Emitter_WorldSpaceVelocity_Mask = 1 << 9;
+const uint Emitter_LocalSimulation_Mask    = 1 << 10;
 
 const uint Emitter_Internal_IsVisible_Mask   = 1 << 0;
 const uint Emitter_Internal_WasExplode_Mask  = 1 << 1; // Used to handle `bExplode` correctly
 const uint Emitter_Internal_FastForward_Mask = 1 << 2; // Set for one frame. This frame's emitted particles are the fast-forwarded
+const uint Emitter_Internal_HasPreviousFrame_Mask = 1 << 3; // `PreviousWorldPos` and `Velocity` are valid
 
 // Every time an emitter slot is reused, its generation is bumped, so particles that still belong
 // to the previous owner of the slot can detect it and die instead of using the new emitter's params.
@@ -67,6 +71,7 @@ const uint Emitter_GenerationMask = 0xFFu;
 const uint Particle_Additive_Mask = 1 << 0;
 const uint Particle_BlendAnimation_Mask = 1 << 1;
 const uint Particle_FaceDirection_Mask  = 1 << 2;
+const uint Particle_JustSpawned_Mask    = 1 << 3;
 
 uint SetFlag(uint flags, uint mask, bool bSet)
 {
@@ -137,8 +142,17 @@ struct Emitter
 
 	vec4 RandomTintA; // The particle's color is multiplied by a random color between A and B
 	vec4 RandomTintB;
-	vec2 StartRotationRange; // Radians (min, max)
-	vec2 RotationSpeedRange; // Radians per second (min, max)
+	vec2 StartRotationRandomRange; // Radians (min, max)
+	vec2 StartRotationSpeedRandomRange; // Radians per second (min, max)
+
+	vec2 StartSizeMultiplierRandomRange; // (min, max). Each particle's size is multiplied by a random value in this range
+	uint Padding0;
+	float InheritVelocity; // Fraction of the emitter's velocity that particles start with
+
+	float SpawnPerMeter; // Extra particles per unit of distance the emitter moves (for continuous emitters)
+	float NoiseStrength; // Turbulence acceleration. 0 - off
+	float NoiseFrequency; // 1 / swirl size
+	float NoiseScrollSpeed; // World units per second
 
 	// This is internal data. Keep it at the end because during update only the data before it is being updated
 	vec3 WorldPos; // First
@@ -149,21 +163,27 @@ struct Emitter
 	uint InternalFlags;
 	float FastForwardTime; // Set when the emitter is added, reset by the first `prepare_data` pass
 
-	// Cached emitter's world rotation without scale
-	vec3 RotationColumn0;
-	uint Padding0;
-	vec3 RotationColumn1;
+	vec3 PreviousWorldPos;
+	float DistanceAccumulator; // Distance moved that hasn't spawned particles yet
+	vec3 Velocity; // World units per second
 	uint Padding1;
-	vec3 RotationColumn2;
+
+	// How the emitter's transform changed during the last frame (`current * inverse(previous)`).
+	// `simulate` applies it to the emitter's particles so they move with it
+	mat4 DeltaTransform;
+	mat4 PreviousTransformInverse;
+
+	vec3 NoiseOffset;
 	uint Padding2;
+
 };
 
 // Values over a particle's lifetime, baked on the CPU from the emitter's curves
 // Every emitter slot owns `EmitterCurve_Count` curves of `EmitterCurve_SamplesCount` samples (vec4) in the curves buffer
 const uint EmitterCurve_SamplesCount = 64;
 const uint EmitterCurve_Color = 0;        // rgb - color multiplied by the intensity, a - alpha
-const uint EmitterCurve_SizeRotation = 1; // xy - size, z - rotation Z (radians)
-const uint EmitterCurve_VelocityCoef = 2; // xyz - velocity coef
+const uint EmitterCurve_SizeRotation = 1; // xy - size, z - rotation Z (radians), w - spin from `RotationSpeed` (radians per second of lifetime)
+const uint EmitterCurve_VelocityCoef_Drag = 2; // xyz - velocity coef, w - drag (per second)
 const uint EmitterCurve_Count = 3;
 
 #ifdef __cplusplus
@@ -480,9 +500,27 @@ vec3 ApplyVelocityCoef(vec3 worldVelocity, vec3 coef, mat3 emitterRotation, bool
 	return emitterRotation * ((transpose(emitterRotation) * worldVelocity) * coef);
 }
 
-mat3 Emitter_GetRotation(Emitter emitter)
+void Particle_ApplyDrag(inout vec3 velocity, float drag, float dt)
 {
-	return mat3(emitter.RotationColumn0, emitter.RotationColumn1, emitter.RotationColumn2);
+	if (drag > 0.f)
+		velocity *= exp(-drag * dt);
+}
+
+// Must match `ParticleSystemTask::DecompositedTransform`
+struct DecompositedTransform
+{
+	// World rotation without scale
+	vec3 RotationColumn0;
+	float RotationZ; // Radians
+	vec3 RotationColumn1;
+	float ScaleX;
+	vec3 RotationColumn2;
+	float ScaleY;
+};
+
+mat3 DecompositedTransform_GetRotation(DecompositedTransform decomposited)
+{
+	return mat3(decomposited.RotationColumn0, decomposited.RotationColumn1, decomposited.RotationColumn2);
 }
 
 // Indices (in the curves buffer) of the two samples around `lifeAlpha`, and the blend factor between them
@@ -496,7 +534,14 @@ void EmitterCurve_GetSamples(uint emitterIndex, uint curve, float lifeAlpha, out
 	blend = x - float(sample0);
 }
 
-vec3 Particle_ComputeForce(Emitter emitter, vec3 particlePosition, mat3 emitterRotation, vec3 gravity)
+vec3 Emitter_GetNoiseDriftPerSecond(Emitter emitter)
+{
+	// Turbulence drift, in noise space per second. Along a fixed diagonal, so the swirls keep changing
+	const vec3 noiseDriftDirection = vec3(0.31f, 1.f, 0.47f);
+	return noiseDriftDirection * (emitter.NoiseScrollSpeed * emitter.NoiseFrequency);
+}
+
+vec3 Particle_ComputeForce(Emitter emitter, vec3 particlePosition, mat3 emitterRotation, vec3 gravity, vec3 noiseOffset)
 {
 	vec3 force = vec3(0.f);
 	if (HasFlag(emitter.Flags, Emitter_ApplyGravity_Mask))
@@ -509,6 +554,10 @@ vec3 Particle_ComputeForce(Emitter emitter, vec3 particlePosition, mat3 emitterR
 		force += dir * emitter.RadialAcceleration; // Radial
 		force += cross(emitterRotation[2], dir) * emitter.TangentialAcceleration; // Tangential
 	}
+
+	// Turbulence
+	if (emitter.NoiseStrength != 0.f)
+		force += Noise_Curl(particlePosition * emitter.NoiseFrequency + noiseOffset) * emitter.NoiseStrength;
 	return force;
 }
 

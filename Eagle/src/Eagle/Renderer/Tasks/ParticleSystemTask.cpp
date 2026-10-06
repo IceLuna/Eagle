@@ -59,6 +59,7 @@ namespace Eagle
 			flags |= emitter.bFaceDirection ? Emitter_FaceDirection_Mask : 0;
 			flags |= emitter.IsSkeletalMeshUsed() ? Emitter_SkeletalMesh_Mask : 0;
 			flags |= emitter.VelocitySpace == ParticleEmitter::VelocitySpaceType::World ? Emitter_WorldSpaceVelocity_Mask : 0;
+			flags |= emitter.SimulationSpace == ParticleEmitter::SimulationSpaceType::Local ? Emitter_LocalSimulation_Mask : 0;
 
 			return flags;
 		}
@@ -99,13 +100,23 @@ namespace Eagle
 			outData.Generation = generation;
 			outData.RandomTintA = emitter.bRandomTint ? emitter.RandomTintA : glm::vec4(1.f);
 			outData.RandomTintB = emitter.bRandomTint ? emitter.RandomTintB : glm::vec4(1.f);
-			outData.StartRotationRange = glm::radians(emitter.StartRotationRange);
-			outData.RotationSpeedRange = glm::radians(emitter.RotationSpeedRange);
+			outData.StartRotationRandomRange = glm::radians(emitter.StartRotationRandomRange);
+			outData.StartRotationSpeedRandomRange = glm::radians(emitter.StartRotationSpeedRandomRange);
+			outData.StartSizeMultiplierRandomRange = glm::max(emitter.StartSizeMultiplierRandomRange, glm::vec2(0.f));
+			outData.InheritVelocity = emitter.InheritVelocity;
+			outData.SpawnPerMeter = emitter.bExplode ? 0.f : glm::max(emitter.SpawnPerMeter, 0.f);
+			outData.NoiseStrength = emitter.TurbulenceStrength;
+			outData.NoiseFrequency = 1.f / glm::max(emitter.TurbulenceScale, 0.001f);
+			outData.NoiseScrollSpeed = emitter.TurbulenceSpeed;
+			outData.DistanceAccumulator = 0.f;
+			outData.Velocity = glm::vec3(0.f);
+			outData.NoiseOffset = glm::vec3(0.f);
 			outData.InternalFlags = 0u;
 			outData.LoopIteration = 0u;
 
-			// Disable emitter if it's useless
-			if (outData.SpawnRate == 0u || outData.LoopDuration <= 0.f)
+			// Disable emitter if it's useless. A continuous emitter with `SpawnRate` 0 can still spawn by distance
+			const bool bSpawnsNothing = outData.SpawnRate == 0u && (emitter.bExplode || outData.SpawnPerMeter <= 0.f);
+			if (bSpawnsNothing || outData.LoopDuration <= 0.f)
 			{
 				outData.Flags = outData.Flags & (~Emitter_Enabled_Mask);
 			}
@@ -118,7 +129,8 @@ namespace Eagle
 
 			// Needed so it spawns particles on the first update (or right after the delay)
 			{
-				const float spawnInterval = emitter.bExplode ? outData.LoopDuration : 1.f / float(outData.SpawnRate);
+				// With `SpawnRate` 0 (spawning by distance only), there's no time-based interval
+				const float spawnInterval = emitter.bExplode ? outData.LoopDuration : (outData.SpawnRate > 0u ? 1.f / float(outData.SpawnRate) : 0.f);
 				outData.SpawnIntervalTimer = spawnInterval - remainingDelay;
 				Emitter_SetWasExplode(outData, emitter.bExplode);
 			}
@@ -134,7 +146,8 @@ namespace Eagle
 					fastForwardTime = glm::min(fastForwardTime, lifetimeMax + outData.LoopDuration);
 				else
 					fastForwardTime = glm::min(fastForwardTime, outData.LoopCount * outData.LoopDuration + lifetimeMax); // Everything is finished by then
-				outData.FastForwardTime = fastForwardTime;
+				// Spawning by distance only, which means fast-forwarding a static emitter wouldn't spawn anything
+				outData.FastForwardTime = (outData.SpawnRate > 0u || emitter.bExplode) ? fastForwardTime : 0.f;
 			}
 		}
 	
@@ -151,9 +164,27 @@ namespace Eagle
 		static void BakeEmitterCurves(const ParticleEmitter& emitter, std::vector<glm::vec4>& outSamples)
 		{
 			constexpr uint32_t samplesCount = EmitterCurve_SamplesCount;
+
+			// The angle a particle has spun from `RotationSpeed` is the integral of the speed over its age.
+			// It's integrated over the normalized lifetime here (trapezoids, several per sample), so the result is in
+			// "radians per second of lifetime", so the shader needs to multiply it by the particle's max lifetime
+			constexpr uint32_t integrationSteps = 8u;
+			auto speedAt = [&emitter](float lifeAlpha) { return glm::radians(emitter.RotationSpeed.Evaluate(lifeAlpha)); };
+			float spin = 0.f;
+
 			for (uint32_t i = 0; i < samplesCount; ++i)
 			{
 				const float lifeAlpha = float(i) / float(samplesCount - 1u);
+				if (i > 0u)
+				{
+					const float start = float(i - 1u) / float(samplesCount - 1u);
+					const float step = (lifeAlpha - start) / float(integrationSteps);
+					for (uint32_t s = 0; s < integrationSteps; ++s)
+					{
+						const float lifeAlpha = start + step * float(s);
+						spin += 0.5f * (speedAt(lifeAlpha) + speedAt(lifeAlpha + step)) * step;
+					}
+				}
 
 				// Smooth/cubic curves can overshoot
 				const glm::vec4 color = emitter.Color.Evaluate(lifeAlpha);
@@ -161,8 +192,8 @@ namespace Eagle
 				const glm::vec3 rgb = glm::max(glm::vec3(color) * intensity, glm::vec3(0.f));
 
 				outSamples[EmitterCurve_Color * samplesCount + i] = glm::vec4(rgb, glm::clamp(color.a, 0.f, 1.f));
-				outSamples[EmitterCurve_SizeRotation * samplesCount + i] = glm::vec4(emitter.Size.Evaluate(lifeAlpha), glm::radians(emitter.RotationZ.Evaluate(lifeAlpha)), 0.f);
-				outSamples[EmitterCurve_VelocityCoef * samplesCount + i] = glm::vec4(emitter.VelocityCoef.Evaluate(lifeAlpha), 0.f);
+				outSamples[EmitterCurve_SizeRotation * samplesCount + i] = glm::vec4(emitter.Size.Evaluate(lifeAlpha), glm::radians(emitter.RotationZ.Evaluate(lifeAlpha)), spin);
+				outSamples[EmitterCurve_VelocityCoef_Drag * samplesCount + i] = glm::vec4(emitter.VelocityCoef.Evaluate(lifeAlpha), glm::max(emitter.Drag.Evaluate(lifeAlpha), 0.f));
 			}
 		}
 
@@ -174,6 +205,17 @@ namespace Eagle
 			decomposited.ScaleX = tr.Scale3D.x;
 			decomposited.ScaleY = tr.Scale3D.y;
 			decomposited.RotationZ = tr.Rotation.EulerAngles().z;
+
+			// Rotation without scale
+			auto normalizedColumn = [&mat](uint32_t column, const glm::vec3& fallback)
+			{
+				const glm::vec3 axis = glm::vec3(mat[column]);
+				const float length = glm::length(axis);
+				return length > 1e-8f ? axis / length : fallback;
+			};
+			decomposited.RotationColumn0 = normalizedColumn(0, glm::vec3(1.f, 0.f, 0.f));
+			decomposited.RotationColumn1 = normalizedColumn(1, glm::vec3(0.f, 1.f, 0.f));
+			decomposited.RotationColumn2 = normalizedColumn(2, glm::vec3(0.f, 0.f, 1.f));
 
 			return decomposited;
 		}
@@ -271,6 +313,7 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Particle System");
 		EG_CPU_TIMING_SCOPED("Particle System");
 
+		GrowPoolIfParticlesWereDropped(cmd);
 		Update(cmd);
 
 		// Keep running while removed emitters may still have alive particles.
@@ -279,6 +322,7 @@ namespace Eagle
 			return;
 
 		PreparePass(cmd);
+		ReadBackDroppedParticles(cmd);
 		EmitPass(cmd);
 		SimulatePass(cmd);
 
@@ -315,6 +359,7 @@ namespace Eagle
 		{
 			m_MaxParticlesBudget = budget;
 			bMaxParticlesBudgetChanged = true;
+			bWarnedBudgetFull = false;
 		}
 
 		if (bSortOpaque == settings.bSortOpaqueParticles)
@@ -884,10 +929,11 @@ namespace Eagle
 		m_Simulate->SetImageSampler(gbuffer.Normals, Sampler::PointSamplerClamp, 0, 10);
 		m_Simulate->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 0, 11);
 		m_Simulate->SetBuffer(m_EmitterCurvesBuffer, 0, 12);
-		m_Simulate->SetBuffer(m_OpaqueIndicesToRender, 0, 13);
+		m_Simulate->SetBuffer(m_DecompositedTransformsBuffer, 0, 13);
+		m_Simulate->SetBuffer(m_OpaqueIndicesToRender, 0, 14);
 		if (bSortOpaque)
 		{
-			m_Simulate->SetBuffer(m_OpaqueDistancesBuffer, 0, 14);
+			m_Simulate->SetBuffer(m_OpaqueDistancesBuffer, 0, 15);
 		}
 
 		const ImageLayout oldDepthLayout = gbuffer.Depth->GetLayout();
@@ -1022,6 +1068,63 @@ namespace Eagle
 		if (bSortOpaque)
 			m_SortOpaque = MakeScope<SortTask>(m_MaxParticles, true, true);
 		m_SortTranslucent = SortTask(m_MaxParticles, true, true);
+	}
+
+	void ParticleSystemTask::ReadBackDroppedParticles(const Ref<CommandBuffer>& cmd)
+	{
+		auto& readback = m_DroppedReadbacks[m_DroppedReadbackIndex];
+		if (!readback.ReadbackBuffer)
+		{
+			BufferSpecifications specs;
+			specs.Size = sizeof(uint32_t);
+			specs.Usage = BufferUsage::TransferDst;
+			specs.MemoryType = MemoryType::GpuToCpu;
+			specs.Layout = BufferReadAccess::Host;
+			readback.ReadbackBuffer = Buffer::Create(specs, "ParticleSystem_DroppedReadback");
+		}
+
+		cmd->CopyBuffer(m_SystemData, readback.ReadbackBuffer, offsetof(ParticleSystemData, DroppedCount), 0, sizeof(uint32_t));
+
+		readback.MaxParticlesAtSubmit = m_MaxParticles;
+		readback.bPending = true;
+		m_DroppedReadbackIndex = (m_DroppedReadbackIndex + 1u) % RendererConfig::FramesInFlight;
+	}
+
+	void ParticleSystemTask::GrowPoolIfParticlesWereDropped(const Ref<CommandBuffer>& cmd)
+	{
+		auto& readback = m_DroppedReadbacks[m_DroppedReadbackIndex];
+		if (!readback.bPending)
+			return;
+		readback.bPending = false;
+
+		// The pool was resized/reset since, so this count describes a pool that doesn't exist anymore
+		if (readback.MaxParticlesAtSubmit != m_MaxParticles)
+			return;
+
+		uint32_t droppedCount = 0;
+		{
+			const uint32_t* data = (const uint32_t*)readback.ReadbackBuffer->Map();
+			droppedCount = *data;
+			readback.ReadbackBuffer->Unmap();
+		}
+
+		if (droppedCount == 0u)
+			return;
+
+		if (m_MaxParticles >= m_MaxParticlesBudget)
+		{
+			if (!bWarnedBudgetFull)
+			{
+				EG_CORE_WARN("[ParticleSystem] The particles budget ({}) is full: {} particles couldn't be spawned in a frame. Consider increasing the budget", m_MaxParticlesBudget, droppedCount);
+				bWarnedBudgetFull = true;
+			}
+			return;
+		}
+
+		const uint64_t wanted = uint64_t(m_MaxParticles) + droppedCount;
+		const uint32_t newMaxParticles = uint32_t(glm::min(wanted, uint64_t(m_MaxParticlesBudget)));
+		EG_CORE_WARN("[ParticleSystem] {} particles couldn't be spawned in a frame. Growing the pool from {} to at least {}", droppedCount, m_MaxParticles, newMaxParticles);
+		SetMaxParticles(cmd, newMaxParticles);
 	}
 
 	void ParticleSystemTask::ShrinkMaxParticles(const Ref<CommandBuffer>& cmd, uint32_t maxParticles)
@@ -1511,7 +1614,7 @@ namespace Eagle
 		{
 			BufferSpecifications specs{};
 			specs.Layout = BufferLayoutType::StorageBuffer;
-			specs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+			specs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst | BufferUsage::TransferSrc;
 			specs.Size = sizeof(ParticleSystemData);
 			m_SystemData = Buffer::Create(specs, "ParticleSystem_Data");
 		}

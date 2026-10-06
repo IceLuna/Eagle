@@ -27,13 +27,17 @@ namespace Eagle
 		void RemoveAllParticleSystems();
 		void UpdateTransforms(const std::unordered_set<const ParticleSystemComponent*>& systems);
 
-		// We need to apply scale.XY and rotation.Z only, so instead of decompositing it on GPU side, we'll send it there
+		// Instead of decompositing it on GPU side per particle every frame, we'll send it there
+		// Must match `DecompositedTransform` in particle_system/common.h.
 		struct DecompositedTransform
 		{
-			float ScaleX = 0.f;
-			float ScaleY = 0.f;
+			// World rotation without scale
+			glm::vec3 RotationColumn0 = glm::vec3(1.f, 0.f, 0.f);
 			float RotationZ = 0.f; // Radians
-			float Padding0 = 0.f;
+			glm::vec3 RotationColumn1 = glm::vec3(0.f, 1.f, 0.f);
+			float ScaleX = 0.f;
+			glm::vec3 RotationColumn2 = glm::vec3(0.f, 0.f, 1.f);
+			float ScaleY = 0.f;
 		};
 
 		struct EmitterData
@@ -87,6 +91,8 @@ namespace Eagle
 
 		void SetMaxParticles(const Ref<CommandBuffer>& cmd, uint32_t maxParticles);
 		void ShrinkMaxParticles(const Ref<CommandBuffer>& cmd, uint32_t maxParticles);
+		void GrowPoolIfParticlesWereDropped(const Ref<CommandBuffer>& cmd);
+		void ReadBackDroppedParticles(const Ref<CommandBuffer>& cmd);
 		void ResetGPUState(const Ref<CommandBuffer>& cmd);
 		void ReclaimDeadEmitters();
 		void UpdateMeshEmittersData(const Ref<CommandBuffer>& cmd);
@@ -120,8 +126,19 @@ namespace Eagle
 			uint32_t EmitCount = 0;
 			uint32_t SimulateCount = 0;
 			uint32_t DeadCount = 0;
+			uint32_t DroppedCount = 0;
 
 			ParticleSystemData(uint32_t deadCount) : DeadCount(deadCount) {}
+		};
+
+		// The prepare pass counts the particles it couldn't spawn because the pool was full (`ParticleSystemData::DroppedCount`).
+		// The count is copied to a CPU-readable buffer every frame, and read `RendererConfig::FramesInFlight` frames later.
+		// When particles were dropped, the pool grows (up to the budget)
+		struct DroppedParticlesReadback
+		{
+			Ref<Buffer> ReadbackBuffer;
+			uint32_t MaxParticlesAtSubmit = 0;
+			bool bPending = false;
 		};
 
 		struct DeadEmitterData
@@ -200,10 +217,13 @@ namespace Eagle
 		bool bSortOpaque = false;
 		bool bResetGPUState = false;
 		bool bMaxParticlesBudgetChanged = false;
+		bool bWarnedBudgetFull = false; // So that "the budget is full" is logged once per budget
 
 		uint32_t m_NumEmitters = 0;
 		uint32_t m_MaxParticlesBudget = 0;
 		uint32_t m_MaxParticles = s_InitialMaxParticles; // Currently allocated. Grows on demand up to `m_MaxParticlesBudget`
+		std::array<DroppedParticlesReadback, RendererConfig::FramesInFlight> m_DroppedReadbacks;
+		uint32_t m_DroppedReadbackIndex = 0;
 		uint32_t m_MaxEmitters = 100;
 
 		Scope<SortTask> m_SortOpaque;

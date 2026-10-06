@@ -49,6 +49,7 @@ layout(push_constant) uniform PushConstants
 shared uint s_EmitCount[GROUP_SIZE]; // Per-thread emit count. After the scan - per-thread exclusive offset
 shared uint s_TotalEmitCount;
 shared uint s_AvailableSlots;
+shared uint s_DroppedCount; // Particles that couldn't be spawned this frame because the pool was full
 
 // Tries to reserve up to `amount` particle slots.
 // Returns the number of reserved slots
@@ -91,8 +92,11 @@ uint FastForwardEmitter(inout Emitter emitter)
     const float lastSpawnEventIndex = FastForward_LastSpawnEventIndex(emitter, bExplode);
     
     float requested = max(lastSpawnEventIndex - firstSpawnEventIndex + 1, 0) * particlesPerEvent;
+    const uint wanted = uint(min(requested, float(g_MaxParticles)));
     requested = min(requested, float(s_AvailableSlots)); // Safery guard against crasy high `requested` values before converting to `uint`
     const uint count = ReserveSlots(uint(requested), true);
+    if (wanted > count)
+        atomicAdd(s_DroppedCount, wanted - count);
 
     emitter.SpawnIntervalTimer = time - FastForward_SpawnEventTime(emitter, bExplode, lastSpawnEventIndex); // Time since the last spawn
     if (bExplode)
@@ -120,6 +124,7 @@ void main()
     if (lid == 0)
     {
         s_AvailableSlots = g_MaxParticles - g_Data.AliveCount[g_PreSimIndex];
+        s_DroppedCount = 0u;
     }
     barrier();
 
@@ -134,12 +139,20 @@ void main()
         const mat4 emitterTr = g_Transforms[emitter.TransformIndex];
         const bool bVisible = FrustumAABBIntersection(g_Frustum, g_View * emitterTr, emitter.AABBMin, emitter.AABBMax);
         Emitter_SetIsVisible(emitter, bVisible);
-        emitter.WorldPos = vec3(emitterTr[3][0], emitterTr[3][1], emitterTr[3][2]);
 
-        const mat3 emitterRotation = ExtractRotation(emitterTr);
-        emitter.RotationColumn0 = emitterRotation[0];
-        emitter.RotationColumn1 = emitterRotation[1];
-        emitter.RotationColumn2 = emitterRotation[2];
+        const bool bHasPreviousFrame = HasFlag(emitter.InternalFlags, Emitter_Internal_HasPreviousFrame_Mask);
+        const vec3 worldPos = vec3(emitterTr[3][0], emitterTr[3][1], emitterTr[3][2]);
+        emitter.PreviousWorldPos = bHasPreviousFrame ? emitter.WorldPos : worldPos;
+        emitter.WorldPos = worldPos;
+        emitter.Velocity = g_DeltaTime > 0.f ? (emitter.WorldPos - emitter.PreviousWorldPos) / g_DeltaTime : vec3(0.f);
+        emitter.InternalFlags = SetFlag(emitter.InternalFlags, Emitter_Internal_HasPreviousFrame_Mask, true);
+
+        // The emitter's movement since the last frame, applied to its particles by `simulate` when "Local simulation space" is used
+        emitter.DeltaTransform = bHasPreviousFrame ? emitterTr * emitter.PreviousTransformInverse : mat4(1.f);
+        emitter.PreviousTransformInverse = inverse(emitterTr);
+
+        // Turbulence drift
+        emitter.NoiseOffset = mod(emitter.NoiseOffset + Emitter_GetNoiseDriftPerSecond(emitter) * g_DeltaTime, float(Noise_Period));
 
         // The fast-forward batch was emitted last frame, disable it
         if (Emitter_IsFastForwardEnabled(emitter))
@@ -174,16 +187,19 @@ void main()
 
             // If no longer in explode mode, wait for all exploded particles to die
             const float spawnInterval = (bExplode || Emitter_WasExplode(emitter)) ? emitter.LoopDuration : 1.f / float(emitter.SpawnRate);
-            if (emitter.SpawnIntervalTimer >= spawnInterval)
+            if (!bExplode && Emitter_WasExplode(emitter))
             {
-                if (!bExplode && Emitter_WasExplode(emitter))
+                if (emitter.SpawnIntervalTimer >= spawnInterval)
                 {
                     // No longer in explode mode. We waited for all exploded particles to die.
                     // Restore the default spawn rate. Don't spawn anything this frame
                     Emitter_SetWasExplode(emitter, false);
                     emitter.SpawnIntervalTimer = 0.f;
                 }
-                else if (bExplode)
+            }
+            else if (bExplode)
+            {
+                if (emitter.SpawnIntervalTimer >= spawnInterval)
                 {
                     // Only one explosion, even if several loop durations have passed (for example, after a stutter).
                     // Explosions don't catch up, only the time past the last whole loop duration is kept (0.5s with a 0.4s loop -> 0.1s)
@@ -199,13 +215,30 @@ void main()
                     {
                         // Not enough free slots. Try again next frame
                         emitter.SpawnIntervalTimer = spawnInterval;
+                        atomicAdd(s_DroppedCount, emitter.SpawnRate);
                     }
                 }
-                else
+            }
+            else // Continuous emitters
+            {
+                // Particles triggered by time (`SpawnRate`) and by the distance the emitter moved (`SpawnPerMeter`).
+                const uint timeTriggers = emitter.SpawnIntervalTimer >= spawnInterval ? uint(emitter.SpawnIntervalTimer / spawnInterval) : 0u;
+                uint distanceTriggers = 0u;
+                if (emitter.SpawnPerMeter > 0.f)
                 {
-                    // Spawn as many as we can
-                    const uint spawnTriggersCount = uint(emitter.SpawnIntervalTimer / spawnInterval);
-                    count = ReserveSlots(spawnTriggersCount, true);
+                    emitter.DistanceAccumulator += length(emitter.WorldPos - emitter.PreviousWorldPos);
+                    distanceTriggers = uint(min(emitter.DistanceAccumulator * emitter.SpawnPerMeter, float(g_MaxParticles)));
+                }
+
+                const uint requested = timeTriggers + distanceTriggers;
+                if (requested > 0u)
+                {
+                    // Spawn as many as we can. The distance-based ones first, since we want to make sure a moving trail is continuous
+                    count = ReserveSlots(requested, true);
+                    if (requested > count)
+                        atomicAdd(s_DroppedCount, requested - count);
+                    const uint distanceCount = min(count, distanceTriggers);
+                    const uint timeCount = count - distanceCount;
                     if (count > 0)
                     {
                         if (emitter.DeltaTime >= emitter.LoopDuration)
@@ -215,15 +248,19 @@ void main()
                                 emitter.LoopIteration += iterationsPassed;
                             emitter.DeltaTime -= emitter.LoopDuration * float(iterationsPassed);
                         }
-                        emitter.SpawnIntervalTimer -= spawnInterval * float(count);
                     }
 
-                    if (count < spawnTriggersCount)
-                    {
-                        // Not enough free slots. Reset the interval (keep at most one pending trigger)
-                        // so that we don't get a burst once slots become available
+                    if (timeCount > 0u)
+                        emitter.SpawnIntervalTimer -= spawnInterval * float(timeCount);
+                    if (distanceCount > 0u)
+                        emitter.DistanceAccumulator -= float(distanceCount) / emitter.SpawnPerMeter;
+
+                    // Not enough free slots. Reset the interval (keep at most one pending trigger)
+                    // so that we don't get a burst once slots become available
+                    if (timeCount < timeTriggers)
                         emitter.SpawnIntervalTimer = min(emitter.SpawnIntervalTimer, spawnInterval);
-                    }
+                    if (distanceCount < distanceTriggers)
+                        emitter.DistanceAccumulator = min(emitter.DistanceAccumulator, 1.f / emitter.SpawnPerMeter);
                 }
             }
             emitter.DeltaTime += g_DeltaTime;
@@ -272,6 +309,7 @@ void main()
         }
 
         g_Data.EmitCount = s_TotalEmitCount;
+        g_Data.DroppedCount = s_DroppedCount;
         g_EmitArgs.x = CalcNumGroups(g_Data.EmitCount, EG_PS_THREAD_SIZE);
         g_EmitArgs.y = 1;
         g_EmitArgs.z = 1;

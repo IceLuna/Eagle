@@ -25,7 +25,7 @@ namespace Eagle
 		// Over-lifetime properties that can be opened in the curve panel
 		enum class CurveTarget
 		{
-			None, Color, ColorIntensity, Size, RotationZ, VelocityCoef
+			None, Color, ColorIntensity, Size, RotationZ, RotationSpeed, VelocityCoef, Drag
 		};
 
 		void OnViewportEnd() override { UpdateGuizmo(); }

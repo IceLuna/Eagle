@@ -2,13 +2,6 @@
 #include "skeletal_mesh_vertex_input_layout.h"
 #include "utils.h"
 
-struct DecompositedTransform
-{
-	vec2 Scale;
-	float RotationZ; // Radians
-	float Padding0;
-};
-
 layout(binding = 0) buffer PS_Data
 {
     ParticleSystemData g_Data;
@@ -119,9 +112,16 @@ void FastForwardParticle(inout Particle particle, Emitter emitter, uint emitterI
     {
         const float lifeAlpha = time / particle.Lifetime;
 
-        particle.Velocity += Particle_ComputeForce(emitter, particle.Position, emitterRotation, g_Gravity) * dt;
+        // The turbulence pattern as it was at this point of the particle's past
+        const vec3 noiseOffset = emitter.NoiseOffset - Emitter_GetNoiseDriftPerSecond(emitter) * (age - time);
 
-        const vec3 velocityCoef = SampleEmitterCurve(emitterIndex, EmitterCurve_VelocityCoef, lifeAlpha).xyz;
+        const vec4 velocityCoefDrag = SampleEmitterCurve(emitterIndex, EmitterCurve_VelocityCoef_Drag, lifeAlpha); // xyz - velocity multiplier, w - drag
+        const vec3 velocityCoef = velocityCoefDrag.xyz;
+        const float drag = velocityCoefDrag.w;
+
+        particle.Velocity += Particle_ComputeForce(emitter, particle.Position, emitterRotation, g_Gravity, noiseOffset) * dt;
+        Particle_ApplyDrag(particle.Velocity, drag, dt);
+
         const vec3 velocity = ApplyVelocityCoef(particle.Velocity, velocityCoef, emitterRotation, bWorldSpaceVelocity);
 
         particle.Position += velocity * dt;
@@ -399,6 +399,17 @@ void main()
     Emitter_GetParticlePositionAndNormal(emitter, random, position, normal);
     position = vec3(worldTr * vec4(position, 1.f));
 
+    if (!HasFlag(emitter.Flags, Emitter_Explode_Mask) && !Emitter_IsFastForwardEnabled(emitter))
+    {
+        // Spread this frame's particles along the path the emitter moved during the frame,
+        // instead of spawning them all at its current position
+
+        const uint firstIndex = g_EmittersSpawnOffsets[emitterIndex];
+        const uint endIndex = emitterIndex + 1u < g_NumEmitters ? g_EmittersSpawnOffsets[emitterIndex + 1u] : g_Data.EmitCount;
+        const float pathFraction = (float(gidx - firstIndex) + 0.5f) / float(max(endIndex - firstIndex, 1u)); // 0 - the start of the frame, 1 - now
+        position -= (emitter.WorldPos - emitter.PreviousWorldPos) * (1.f - pathFraction);
+    }
+
     const float bounciness = mix(emitter.BouncinessMin, emitter.BouncinessMax, Random_NextFloat(random));
 
     const vec4 startSizeRotation = SampleEmitterCurve(emitterIndex, EmitterCurve_SizeRotation, 0.f);
@@ -409,7 +420,7 @@ void main()
     particle.Lifetime = mix(emitter.LifetimeMin, emitter.LifetimeMax, Random_NextFloat(random));
 
     particle.Position = position;
-    particle.Flags = EmitterFlagsToParticleFlags(emitter.Flags);
+    particle.Flags = EmitterFlagsToParticleFlags(emitter.Flags) | Particle_JustSpawned_Mask;
 
     // Velocity is simulated in world space (gravity, collisions, etc. are world-space).
     // `VelocityMin/Max` are in the emitter's local space unless `bWorldSpaceVelocity` is true.
@@ -418,11 +429,13 @@ void main()
     const mat3 worldTrMat3 = mat3(worldTr);
     const vec3 randomVelocity = mix(emitter.VelocityMin, emitter.VelocityMax, Random_NextFloat3(random));
     particle.Velocity = worldTrMat3 * (normal * emitter.NormalVelocityFactor) + (bWorldSpaceVelocity ? randomVelocity : worldTrMat3 * randomVelocity);
+    particle.Velocity += emitter.Velocity * emitter.InheritVelocity;
     particle.Bounciness = bounciness;
     particle.RotationZ = startSizeRotation.z;
 
-    const mat3 emitterRotation = bWorldSpaceVelocity ? mat3(1) : Emitter_GetRotation(emitter);
-    particle.EffectiveVelocity = ApplyVelocityCoef(particle.Velocity, SampleEmitterCurve(emitterIndex, EmitterCurve_VelocityCoef, 0.f).xyz, emitterRotation, bWorldSpaceVelocity);
+    const DecompositedTransform decompositedTr = g_DecompositedTransforms[emitter.TransformIndex];
+    const mat3 emitterRotation = bWorldSpaceVelocity ? mat3(1) : DecompositedTransform_GetRotation(decompositedTr);
+    particle.EffectiveVelocity = ApplyVelocityCoef(particle.Velocity, SampleEmitterCurve(emitterIndex, EmitterCurve_VelocityCoef_Drag, 0.f).xyz, emitterRotation, bWorldSpaceVelocity);
     particle.EmitterRef = Particle_MakeEmitterRef(emitterIndex, emitter.Generation);
 
     particle.TintFactor = Random_NextFloat(random);
@@ -433,17 +446,18 @@ void main()
     particle.AnimationSpriteCoord = uvec2(0);
     particle.AnimationLerp = 0.0f;
 
-    DecompositedTransform decompositedTr = g_DecompositedTransforms[emitter.TransformIndex];
-    particle.SizeScale = decompositedTr.Scale;
+    particle.SizeScale = vec2(decompositedTr.ScaleX, decompositedTr.ScaleY);
 
-    particle.RotationSpeed = mix(emitter.RotationSpeedRange.x, emitter.RotationSpeedRange.y, Random_NextFloat(random));
-    const float startRotation = mix(emitter.StartRotationRange.x, emitter.StartRotationRange.y, Random_NextFloat(random));
+    particle.RotationSpeed = mix(emitter.StartRotationSpeedRandomRange.x, emitter.StartRotationSpeedRandomRange.y, Random_NextFloat(random));
+    const float startRotation = mix(emitter.StartRotationRandomRange.x, emitter.StartRotationRandomRange.y, Random_NextFloat(random));
     particle.RotationZOffset = decompositedTr.RotationZ - startRotation;
+
+    particle.SizeScale *= mix(emitter.StartSizeMultiplierRandomRange.x, emitter.StartSizeMultiplierRandomRange.y, Random_NextFloat(random));
 
     if (Emitter_IsFastForwardEnabled(emitter))
     {
         const uint particleIndexWithinEmitter = gidx - g_EmittersSpawnOffsets[emitterIndex]; // 0 = the youngest particle
-        FastForwardParticle(particle, emitter, emitterIndex, Emitter_GetRotation(emitter), FastForward_GetParticleAge(emitter, particleIndexWithinEmitter));
+        FastForwardParticle(particle, emitter, emitterIndex, DecompositedTransform_GetRotation(decompositedTr), FastForward_GetParticleAge(emitter, particleIndexWithinEmitter));
     }
 
     g_Particles[particleIndex] = Particle_Pack(particle, emitter.AnimationImagesNum);

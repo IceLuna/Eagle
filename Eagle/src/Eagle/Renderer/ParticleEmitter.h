@@ -25,6 +25,12 @@ namespace Eagle
 			None, DestroyOnHit, Bounce,
 		};
 
+		enum class SimulationSpaceType
+		{
+			World, // Particles stay where they were spawned
+			Local  // Particles move, turn and scale with the emitter
+		};
+
 		enum class VelocitySpaceType
 		{
 			Local, // Relative to the emitter, rotates and scales with it
@@ -39,14 +45,18 @@ namespace Eagle
 		CurveProperty<float> ColorIntensity = CurveProperty<float>(1.f); // Multiplier for `Color.rgb`
 		CurveProperty<glm::vec2> Size = CurveProperty<glm::vec2>::FromStartEnd(glm::vec2(1.f), glm::vec2(0.f));
 		CurveProperty<float> RotationZ = CurveProperty<float>(0.f); // Degrees
+		CurveProperty<float> RotationSpeed = CurveProperty<float>(0.f); // Degrees per second. Spin that changes over the lifetime. Adds to `StartRotationSpeedRandomRange`
 		CurveProperty<glm::vec3> VelocityCoef = CurveProperty<glm::vec3>(glm::vec3(1.f)); // Multiplies the velocity (in `VelocitySpace`)
 
 		glm::vec4 RandomTintA = glm::vec4(1.f); // When `bRandomTint` is set, each particle's color is multiplied by a random color between A and B
 		glm::vec4 RandomTintB = glm::vec4(1.f);
 		bool bRandomTint = false;
 
-		glm::vec2 StartRotationRange = glm::vec2(0.f); // Degrees (min, max). A random offset in this range is added to `RotationZ`
-		glm::vec2 RotationSpeedRange = glm::vec2(0.f); // Degrees per second (min, max). Each particle spins at a random speed in this range
+		glm::vec2 StartRotationRandomRange = glm::vec2(0.f); // Degrees (min, max). A random offset in this range is added to `RotationZ`
+		glm::vec2 StartRotationSpeedRandomRange = glm::vec2(0.f); // Degrees per second (min, max). Each particle spins at a random speed in this range
+		glm::vec2 StartSizeMultiplierRandomRange = glm::vec2(1.f); // (min, max). Each particle's size is multiplied by a random value in this range
+
+		float InheritVelocity = 0.f; // Fraction of the emitter's own velocity that particles start with
 
 		glm::vec3 VelocityMin = glm::vec3(0, 1, 0);
 		glm::vec3 VelocityMax = glm::vec3(0, 1, 0);
@@ -66,14 +76,23 @@ namespace Eagle
 		GUID ID{};
 		Transform RelativeTransform; // Relative to the particle system
 		AABB VisibilityAABB = AABB(glm::vec3(-1.f), glm::vec3(1.f)); // If not visible by the camera, it's not rendered to improve perf
+		SimulationSpaceType SimulationSpace = SimulationSpaceType::World;
 		uint32_t LoopCount = 0u; // 0 - infinity
 		float LoopDuration = 1.f;
 		float StartDelay = 0.f; // Seconds before the emitter starts spawning, counted from when it's added (spawned or restarted)
 		uint32_t SpawnRate = 1; // How many particles to spawn in a second. Clamped to `MaxSpawnRate`
+		float SpawnPerMeter = 0.f; // Extra particles per unit of distance the emitter moves (for continuous emitters)
 
 		// Sanity limit for `SpawnRate`. The number of particles that can be alive at once is limited separately, by `SceneRendererSettings::MaxParticlesBudget`.
 		static constexpr uint32_t MaxSpawnRate = 16u * 1024u * 1024u;
 		float FastForwardTo = 0.f; // When the emitter is added, it starts as if it had already been running for `FastForwardTo` seconds
+
+		// Turbulence. A curl noise force field that makes particles swirl naturally
+		float TurbulenceStrength = 0.f; // Acceleration. 0 - off
+		float TurbulenceScale = 1.f; // Size of the swirls, in world units
+		float TurbulenceSpeed = 0.5f; // How fast the swirl pattern drifts, in world units per second
+
+		CurveProperty<float> Drag = CurveProperty<float>(0.f); // Per second. Slows particles down physically, their velocity loses this fraction per second
 		float RadialAcceleration = 0.f; // If it's negative, particles will move towards the center of the emitter. If positive, they move away from the center
 		float TangentialAcceleration = 0.f; // Particles will move away from the center of the emitter in a spiral way.
 		float NormalVelocityFactor = 0.f; // Adds the emission shape's normal direction (scaled by this value) to the initial velocity. Always follows the emitter, regardless of `VelocitySpace`

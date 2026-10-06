@@ -1674,6 +1674,7 @@ namespace Eagle
 				out << YAML::Key << "VelocitySpace" << YAML::Value << Utils::GetEnumName(emitter.VelocitySpace);
 
 				SerializeCurveProperty(out, "RotationZ", emitter.RotationZ);
+				SerializeCurveProperty(out, "RotationSpeed", emitter.RotationSpeed);
 				SerializeCurveProperty(out, "Size", emitter.Size);
 				out << YAML::Key << "ColliderSizeRatio" << YAML::Value << emitter.ColliderSizeRatio;
 
@@ -1699,8 +1700,16 @@ namespace Eagle
 				out << YAML::Key << "RandomTint" << YAML::Value << emitter.bRandomTint;
 				out << YAML::Key << "RandomTintA" << YAML::Value << emitter.RandomTintA;
 				out << YAML::Key << "RandomTintB" << YAML::Value << emitter.RandomTintB;
-				out << YAML::Key << "StartRotationRange" << YAML::Value << emitter.StartRotationRange;
-				out << YAML::Key << "RotationSpeedRange" << YAML::Value << emitter.RotationSpeedRange;
+				out << YAML::Key << "StartRotationRandomRange" << YAML::Value << emitter.StartRotationRandomRange;
+				out << YAML::Key << "StartRotationSpeedRandomRange" << YAML::Value << emitter.StartRotationSpeedRandomRange;
+				out << YAML::Key << "StartSizeMultiplierRandomRange" << YAML::Value << emitter.StartSizeMultiplierRandomRange;
+				SerializeCurveProperty(out, "Drag", emitter.Drag);
+				out << YAML::Key << "TurbulenceStrength" << YAML::Value << emitter.TurbulenceStrength;
+				out << YAML::Key << "TurbulenceScale" << YAML::Value << emitter.TurbulenceScale;
+				out << YAML::Key << "TurbulenceSpeed" << YAML::Value << emitter.TurbulenceSpeed;
+				out << YAML::Key << "InheritVelocity" << YAML::Value << emitter.InheritVelocity;
+				out << YAML::Key << "SpawnPerMeter" << YAML::Value << emitter.SpawnPerMeter;
+				out << YAML::Key << "SimulationSpace" << YAML::Value << Utils::GetEnumName(emitter.SimulationSpace);
 				out << YAML::Key << "RadialAcceleration" << YAML::Value << emitter.RadialAcceleration;
 				out << YAML::Key << "TangentialAcceleration" << YAML::Value << emitter.TangentialAcceleration;
 				out << YAML::Key << "NormalVelocityFactor" << YAML::Value << emitter.NormalVelocityFactor;
@@ -5074,6 +5083,7 @@ namespace Eagle
 				emitter.VelocitySpace = Utils::GetEnumFromName<ParticleEmitter::VelocitySpaceType>(n.as<std::string>());
 
 			DeserializeCurveProperty(node, "RotationZ", emitter.RotationZ);
+			DeserializeCurveProperty(node, "RotationSpeed", emitter.RotationSpeed);
 			DeserializeCurveProperty(node, "Size", emitter.Size);
 			emitter.ColliderSizeRatio = node["ColliderSizeRatio"].as<glm::vec2>();
 
@@ -5108,10 +5118,26 @@ namespace Eagle
 				emitter.RandomTintA = n.as<glm::vec4>();
 			if (auto n = node["RandomTintB"])
 				emitter.RandomTintB = n.as<glm::vec4>();
-			if (auto n = node["StartRotationRange"])
-				emitter.StartRotationRange = n.as<glm::vec2>();
-			if (auto n = node["RotationSpeedRange"])
-				emitter.RotationSpeedRange = n.as<glm::vec2>();
+			if (auto n = node["StartRotationRandomRange"])
+				emitter.StartRotationRandomRange = n.as<glm::vec2>();
+			if (auto n = node["StartRotationSpeedRandomRange"])
+				emitter.StartRotationSpeedRandomRange = n.as<glm::vec2>();
+			if (auto n = node["StartSizeMultiplierRandomRange"])
+				emitter.StartSizeMultiplierRandomRange = n.as<glm::vec2>();
+			if (auto n = node["Drag"])
+				DeserializeCurveProperty(node, "Drag", emitter.Drag);
+			if (auto n = node["TurbulenceStrength"])
+				emitter.TurbulenceStrength = n.as<float>();
+			if (auto n = node["TurbulenceScale"])
+				emitter.TurbulenceScale = n.as<float>();
+			if (auto n = node["TurbulenceSpeed"])
+				emitter.TurbulenceSpeed = n.as<float>();
+			if (auto n = node["InheritVelocity"])
+				emitter.InheritVelocity = n.as<float>();
+			if (auto n = node["SpawnPerMeter"])
+				emitter.SpawnPerMeter = n.as<float>();
+			if (auto n = node["SimulationSpace"])
+				emitter.SimulationSpace = Utils::GetEnumFromName<ParticleEmitter::SimulationSpaceType>(n.as<std::string>());
 			emitter.RadialAcceleration = node["RadialAcceleration"].as<float>();
 			emitter.TangentialAcceleration = node["TangentialAcceleration"].as<float>();
 			if (auto n = node["NormalVelocityFactor"])
