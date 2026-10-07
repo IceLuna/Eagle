@@ -68,6 +68,9 @@ const uint Emitter_LocalSimulation_Mask     = 1 << 10;
 const uint Emitter_HasSubEmitters_Mask      = 1 << 11; // Its particles can spawn particles of other emitters
 const uint Emitter_SpawnOnlyFromEvents_Mask = 1 << 12; // Doesn't spawn on its own, only through sub-emitter events
 const uint Emitter_PerParticleCulling_Mask  = 1 << 13; // Each particle is tested against the frustum, instead of the emitter's bounds
+const uint Emitter_HasTurbulence_Mask       = 1 << 14;
+const uint Emitter_ApplyDepthFade_Mask      = 1 << 15; // Translucent particles fade out near the geometry behind them
+const uint Emitter_CameraFade_Mask          = 1 << 16; // Translucent particles fade out near the camera
 
 const uint SubEmitterTrigger_None      = 0;
 const uint SubEmitterTrigger_Death     = 1;
@@ -187,13 +190,17 @@ struct Emitter
 	vec2 StartRotationSpeedRandomRange; // Radians per second (min, max)
 
 	vec2 StartSizeMultiplierRandomRange; // (min, max). Each particle's size is multiplied by a random value in this range
-	uint Padding0;
 	float InheritVelocity; // Fraction of the emitter's velocity that particles start with
-
 	float SpawnPerMeter; // Extra particles per unit of distance the emitter moves (for continuous emitters)
-	float NoiseStrength; // Turbulence acceleration. 0 - off
-	float NoiseFrequency; // 1 / swirl size
+
+	vec2 CameraFadeDistance; // World units from the camera. Fully faded at x, fully visible from y
+	float NoiseFrequency; // 1 / swirl size at the start of the lifetime. Used to drift the pattern
 	float NoiseScrollSpeed; // World units per second
+
+	float DepthFadeDistance;
+	uint Padding0;
+	uint Padding1;
+	uint Padding2;
 
 	// This is internal data. Keep it at the end because during update only the data before it is being updated
 	vec3 WorldPos; // First
@@ -207,7 +214,7 @@ struct Emitter
 	vec3 PreviousWorldPos;
 	float DistanceAccumulator; // Distance moved that hasn't spawned particles yet
 	vec3 Velocity; // World units per second
-	uint Padding1;
+	uint Padding3;
 
 	// How the emitter's transform changed during the last frame (`current * inverse(previous)`).
 	// `simulate` applies it to the emitter's particles so they move with it
@@ -215,8 +222,7 @@ struct Emitter
 	mat4 PreviousTransformInverse;
 
 	vec3 NoiseOffset;
-	uint Padding2;
-
+	uint Padding4;
 };
 
 // Values over a particle's lifetime, baked on the CPU from the emitter's curves
@@ -225,7 +231,9 @@ const uint EmitterCurve_SamplesCount = 64;
 const uint EmitterCurve_Color = 0;        // rgb - color multiplied by the intensity, a - alpha
 const uint EmitterCurve_SizeRotation = 1; // xy - size, z - rotation Z (radians), w - spin from `RotationSpeed` (radians per second of lifetime)
 const uint EmitterCurve_VelocityCoef_Drag = 2; // xyz - velocity coef, w - drag (per second)
-const uint EmitterCurve_Count = 3;
+const uint EmitterCurve_Velocity = 3; // xyz - velocity over lifetime, w - gravity on (1) or off (0)
+const uint EmitterCurve_Turbulence = 4; // x - turbulence strength, y - turbulence frequency (1 / swirl size), zw - unused
+const uint EmitterCurve_Count = 5;
 
 #ifdef __cplusplus
 void Emitter_SetIsVisible(Emitter& emitter, bool bVisible)
@@ -563,6 +571,11 @@ struct DecompositedTransform
 	float ScaleY;
 };
 
+vec3 Particle_VelocityOverLifetimeToWorld(vec3 velocity, mat3 emitterRotation, bool bWorldSpaceVelocity)
+{
+	return bWorldSpaceVelocity ? velocity : emitterRotation * velocity;
+}
+
 mat3 DecompositedTransform_GetRotation(DecompositedTransform decomposited)
 {
 	return mat3(decomposited.RotationColumn0, decomposited.RotationColumn1, decomposited.RotationColumn2);
@@ -586,7 +599,8 @@ vec3 Emitter_GetNoiseDriftPerSecond(Emitter emitter)
 	return noiseDriftDirection * (emitter.NoiseScrollSpeed * emitter.NoiseFrequency);
 }
 
-vec3 Particle_ComputeForce(Emitter emitter, vec3 particlePosition, mat3 emitterRotation, vec3 gravity, vec3 noiseOffset)
+// @turbulence. x - strength, y - frequency
+vec3 Particle_ComputeForce(Emitter emitter, vec3 particlePosition, mat3 emitterRotation, vec3 gravity, vec3 noiseOffset, vec2 turbulence)
 {
 	vec3 force = vec3(0.f);
 	if (HasFlag(emitter.Flags, Emitter_ApplyGravity_Mask))
@@ -601,8 +615,10 @@ vec3 Particle_ComputeForce(Emitter emitter, vec3 particlePosition, mat3 emitterR
 	}
 
 	// Turbulence
-	if (emitter.NoiseStrength != 0.f)
-		force += Noise_Curl(particlePosition * emitter.NoiseFrequency + noiseOffset) * emitter.NoiseStrength;
+	const float turbulenceStrength = turbulence.x;
+	const float noiseFrequency = turbulence.y;
+	if (turbulenceStrength != 0.f)
+		force += Noise_Curl(particlePosition * noiseFrequency + noiseOffset) * turbulenceStrength;
 	return force;
 }
 

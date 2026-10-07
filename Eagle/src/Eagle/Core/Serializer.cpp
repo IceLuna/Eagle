@@ -1671,6 +1671,7 @@ namespace Eagle
 				out << YAML::Key << "VelocityMax" << YAML::Value << emitter.VelocityMax;
 
 				SerializeCurveProperty(out, "VelocityCoef", emitter.VelocityCoef);
+				SerializeCurveProperty(out, "VelocityOverLifetime", emitter.VelocityOverLifetime);
 				out << YAML::Key << "VelocitySpace" << YAML::Value << Utils::GetEnumName(emitter.VelocitySpace);
 
 				SerializeCurveProperty(out, "RotationZ", emitter.RotationZ);
@@ -1704,8 +1705,8 @@ namespace Eagle
 				out << YAML::Key << "StartRotationSpeedRandomRange" << YAML::Value << emitter.StartRotationSpeedRandomRange;
 				out << YAML::Key << "StartSizeMultiplierRandomRange" << YAML::Value << emitter.StartSizeMultiplierRandomRange;
 				SerializeCurveProperty(out, "Drag", emitter.Drag);
-				out << YAML::Key << "TurbulenceStrength" << YAML::Value << emitter.TurbulenceStrength;
-				out << YAML::Key << "TurbulenceScale" << YAML::Value << emitter.TurbulenceScale;
+				SerializeCurveProperty(out, "TurbulenceStrength", emitter.TurbulenceStrength);
+				SerializeCurveProperty(out, "TurbulenceScale", emitter.TurbulenceScale);
 				out << YAML::Key << "TurbulenceSpeed" << YAML::Value << emitter.TurbulenceSpeed;
 				out << YAML::Key << "InheritVelocity" << YAML::Value << emitter.InheritVelocity;
 				out << YAML::Key << "SpawnPerMeter" << YAML::Value << emitter.SpawnPerMeter;
@@ -1749,7 +1750,11 @@ namespace Eagle
 				out << YAML::Key << "bDestroyImmediately" << YAML::Value << emitter.bDestroyImmediately;
 				out << YAML::Key << "bEmit" << YAML::Value << emitter.bEmit;
 				out << YAML::Key << "bExplode" << YAML::Value << emitter.bExplode;
-				out << YAML::Key << "bApplyGravity" << YAML::Value << emitter.bApplyGravity;
+				SerializeCurveProperty(out, "ApplyGravity", emitter.ApplyGravity);
+				out << YAML::Key << "DepthFade" << YAML::Value << emitter.bDepthFade;
+				out << YAML::Key << "DepthFadeDistance" << YAML::Value << emitter.DepthFadeDistance;
+				out << YAML::Key << "CameraFade" << YAML::Value << emitter.bCameraFade;
+				out << YAML::Key << "CameraFadeDistance" << YAML::Value << emitter.CameraFadeDistance;
 				out << YAML::Key << "bAlphaBlending" << YAML::Value << emitter.bAlphaBlending;
 				out << YAML::Key << "bAdditive" << YAML::Value << emitter.bAdditive;
 				out << YAML::Key << "bBlendAnimation" << YAML::Value << emitter.bBlendAnimation;
@@ -5095,6 +5100,7 @@ namespace Eagle
 				emitter.VelocityMax = n.as<glm::vec3>();
 
 			DeserializeCurveProperty(node, "VelocityCoef", emitter.VelocityCoef);
+			DeserializeCurveProperty(node, "VelocityOverLifetime", emitter.VelocityOverLifetime);
 			if (auto n = node["VelocitySpace"])
 				emitter.VelocitySpace = Utils::GetEnumFromName<ParticleEmitter::VelocitySpaceType>(n.as<std::string>());
 
@@ -5143,15 +5149,15 @@ namespace Eagle
 			if (auto n = node["Drag"])
 				DeserializeCurveProperty(node, "Drag", emitter.Drag);
 			if (auto n = node["TurbulenceStrength"])
-				emitter.TurbulenceStrength = n.as<float>();
+				DeserializeCurveProperty(node, "TurbulenceStrength", emitter.TurbulenceStrength);
 			if (auto n = node["TurbulenceScale"])
-				emitter.TurbulenceScale = n.as<float>();
+				DeserializeCurveProperty(node, "TurbulenceScale", emitter.TurbulenceScale);
 			if (auto n = node["TurbulenceSpeed"])
 				emitter.TurbulenceSpeed = n.as<float>();
 			if (auto n = node["InheritVelocity"])
 				emitter.InheritVelocity = n.as<float>();
 			if (auto n = node["SpawnPerMeter"])
-				emitter.SpawnPerMeter = n.as<float>();
+				emitter.SpawnPerMeter = n.as<uint32_t>();
 			if (auto n = node["SimulationSpace"])
 				emitter.SimulationSpace = Utils::GetEnumFromName<ParticleEmitter::SimulationSpaceType>(n.as<std::string>());
 			if (auto n = node["SpawnOnlyFromEvents"])
@@ -5214,7 +5220,16 @@ namespace Eagle
 				emitter.bDestroyImmediately = n.as<bool>();
 			emitter.bEmit = node["bEmit"].as<bool>();
 			emitter.bExplode = node["bExplode"].as<bool>();
-			emitter.bApplyGravity = node["bApplyGravity"].as<bool>();
+			if (auto n = node["DepthFade"])
+				emitter.bDepthFade = n.as<bool>();
+			if (auto n = node["DepthFadeDistance"])
+				emitter.DepthFadeDistance = n.as<float>();
+			if (auto n = node["CameraFade"])
+				emitter.bCameraFade = n.as<bool>();
+			if (auto n = node["CameraFadeDistance"])
+				emitter.CameraFadeDistance = n.as<glm::vec2>();
+			if (auto n = node["ApplyGravity"])
+				DeserializeCurveProperty(node, "ApplyGravity", emitter.ApplyGravity);
 			emitter.bAlphaBlending = node["bAlphaBlending"].as<bool>();
 			if (auto n = node["bAdditive"])
 				emitter.bAdditive = n.as<bool>();

@@ -10479,7 +10479,7 @@ namespace Eagle
 		emitter.bDestroyImmediately = bDestroyImmediately;
 		emitter.bEmit = bEmit;
 		emitter.bExplode = bExplode;
-		emitter.bApplyGravity = bApplyGravity;
+		emitter.ApplyGravity = CurveProperty<bool>(bApplyGravity); // Scripts see gravity as a single on/off value
 		emitter.bAlphaBlending = bAlphaBlending;
 		emitter.bAdditive = bAdditive;
 		emitter.bBlendAnimation = bBlendAnimation;
@@ -10613,7 +10613,7 @@ namespace Eagle
 			*bDestroyImmediately = emitter.bDestroyImmediately;
 			*bEmit = emitter.bEmit;
 			*bExplode = emitter.bExplode;
-			*bApplyGravity = emitter.bApplyGravity;
+			*bApplyGravity = emitter.ApplyGravity.Evaluate(0.f); // At the start of the lifetime
 			*bAlphaBlending = emitter.bAlphaBlending;
 			*bAdditive = emitter.bAdditive;
 			*bBlendAnimation = emitter.bBlendAnimation;

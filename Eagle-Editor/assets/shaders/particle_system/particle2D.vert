@@ -29,6 +29,13 @@ layout(binding = 1) readonly buffer IndicesToRender
     uint g_IndicesToRender[];
 };
 
+#ifdef EG_BLEND
+layout(binding = 2) readonly buffer EmittersBuffer
+{
+    Emitter g_Emitters[];
+};
+#endif
+
 layout(push_constant) uniform PushConstants
 {
     mat4 g_View;
@@ -40,6 +47,12 @@ layout(location = 1) out vec4 o_UVs;
 layout(location = 2) flat out uint o_TextureIndex;
 layout(location = 3) flat out uint o_Flags;
 layout(location = 4) out float o_AnimationLerp;
+
+#ifdef EG_BLEND
+layout(location = 5) out float o_ViewDistance;
+layout(location = 6) flat out vec3 o_FadeParams; // x - depth fade distance (0 - off), y/z - camera fade from/to distance (y >= z - off)
+layout(location = 7) flat out vec2 o_DepthParams; // Projection terms that turn a depth buffer value into a view distance
+#endif
 
 vec3 RotateTowardsVelocity(Particle particle, vec3 quadPos)
 {
@@ -99,4 +112,12 @@ void main()
     }
 
     gl_Position = g_Proj * position;
+
+#ifdef EG_BLEND
+    o_ViewDistance = -position.z; // The camera looks down -z
+    const Emitter emitter = g_Emitters[Particle_GetEmitterIndex(particle.EmitterRef)];
+    o_FadeParams.x = HasFlag(emitter.Flags, Emitter_ApplyDepthFade_Mask) ? emitter.DepthFadeDistance : 0.f;
+    o_FadeParams.yz = HasFlag(emitter.Flags, Emitter_CameraFade_Mask) ? emitter.CameraFadeDistance : vec2(0.f);
+    o_DepthParams = vec2(g_Proj[2][2], g_Proj[3][2]);
+#endif
 }

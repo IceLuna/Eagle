@@ -50,28 +50,57 @@ namespace Eagle
 		}
 
 		// Collapsible section with a short, dimmed summary on its header, so closed sections still tell what they do.
-		bool BeginSection(const char* name, std::string_view summary, bool bDefaultOpen)
+		// Draws `summary` dimmed and right-aligned on the header that was just drawn (a section or a sub-group), if it fits next to `name`
+		void DrawHeaderSummary(const char* name, std::string_view summary)
+		{
+			if (summary.empty())
+				return;
+
+			const ImVec2 min = ImGui::GetItemRectMin();
+			const ImVec2 max = ImGui::GetItemRectMax();
+			const ImVec2 textSize = ImGui::CalcTextSize(summary.data(), summary.data() + summary.size());
+			const float x = max.x - textSize.x - ImGui::GetStyle().FramePadding.x * 2.f;
+			const float labelEnd = min.x + ImGui::GetTreeNodeToLabelSpacing() + ImGui::CalcTextSize(name).x + 16.f;
+			if (x > labelEnd)
+				ImGui::GetWindowDrawList()->AddText(ImVec2(x, min.y + (max.y - min.y - textSize.y) * 0.5f), ImGui::GetColorU32(ImGuiCol_TextDisabled),
+					summary.data(), summary.data() + summary.size());
+		}
+
+		bool BeginSection(const char* name, std::string_view summary, bool bDefaultOpen, bool bBeginGrid = true)
 		{
 			const bool bOpen = ImGui::CollapsingHeader(name, bDefaultOpen ? ImGuiTreeNodeFlags_DefaultOpen : 0);
-			if (!summary.empty())
-			{
-				const ImVec2 min = ImGui::GetItemRectMin();
-				const ImVec2 max = ImGui::GetItemRectMax();
-				const ImVec2 textSize = ImGui::CalcTextSize(summary.data());
-				const float x = max.x - textSize.x - ImGui::GetStyle().FramePadding.x * 2.f;
-				const float labelEnd = min.x + ImGui::GetTreeNodeToLabelSpacing() + ImGui::CalcTextSize(name).x + 16.f;
-				if (x > labelEnd)
-					ImGui::GetWindowDrawList()->AddText(ImVec2(x, min.y + (max.y - min.y - textSize.y) * 0.5f), ImGui::GetColorU32(ImGuiCol_TextDisabled), summary.data());
-			}
+			DrawHeaderSummary(name, summary);
 
-			if (bOpen)
+			if (bOpen && bBeginGrid)
 				UI::BeginPropertyGrid(name);
 			return bOpen;
 		}
 
-		void EndSection()
+		// A collapsible group of related settings inside a section (a tree node), with a short summary on its header.
+		// When it's open, all of its settings are shown whatever their values (disabled rather than hidden),
+		// so the UI doesn't jump around while editing. The section's property grid is closed around the tree node and reopened after it
+		template <typename DrawFunc>
+		void SubGroup(const char* name, std::string_view summary, DrawFunc&& drawSettings)
 		{
-			UI::EndPropertyGrid();
+			ImGui::PushID(name);
+
+			const bool bOpen = UI::PushTreeNode(name, false, false);
+			DrawHeaderSummary(name, summary);
+			if (bOpen)
+			{
+				UI::BeginPropertyGrid("SubGroup");
+				drawSettings();
+				UI::EndPropertyGrid();
+				UI::PopTreeNode();
+			}
+
+			ImGui::PopID();
+		}
+
+		void EndSection(bool bEndGrid = true)
+		{
+			if (bEndGrid)
+				UI::EndPropertyGrid();
 			ImGui::Spacing();
 		}
 
@@ -426,8 +455,8 @@ namespace Eagle
 			{
 				summary = emitter.bExplode ? ("Bursts of " + std::to_string(emitter.SpawnRate)) : (std::to_string(emitter.SpawnRate) + "/s");
 				summary += emitter.LoopCount == 0 ? ", looping" : (", " + std::to_string(emitter.LoopCount) + (emitter.LoopCount == 1 ? " loop" : " loops"));
-				if (!emitter.bExplode && emitter.SpawnPerMeter > 0.f)
-					summary += " + " + FormatNumber(emitter.SpawnPerMeter) + "/m";
+				if (!emitter.bExplode && emitter.SpawnPerMeter > 0)
+					summary += " + " + std::to_string(emitter.SpawnPerMeter) + "/m";
 				if (emitter.StartDelay > 0.f)
 					summary += ", delay " + FormatNumber(emitter.StartDelay) + " s";
 			}
@@ -453,10 +482,10 @@ namespace Eagle
 					if (emitter.bExplode)
 						UI::PushItemDisabled();
 
-					if (UI::PropertyDrag("Spawn per Meter", emitter.SpawnPerMeter, 0.1f, 0.f, 0.f, "Extra particles per unit of distance the emitter moves, on top of `Spawn Rate`.\n"
+					if (UI::PropertyDrag("Spawn per Meter", emitter.SpawnPerMeter, 1.0f, 0, 0, "Extra particles per unit of distance the emitter moves, on top of `Spawn Rate`.\n"
 						"Use it for trails. Moving emitters leave a continuous line of particles, however fast they move. `Spawn Rate` can be 0.\nNot used in `Explode` mode"))
 					{
-						emitter.SpawnPerMeter = glm::max(0.f, emitter.SpawnPerMeter);
+						emitter.SpawnPerMeter = glm::max(0u, emitter.SpawnPerMeter);
 						bChanged = true;
 					}
 
@@ -601,7 +630,7 @@ namespace Eagle
 				summary += ", inherits";
 			if (emitter.VelocitySpace == ParticleEmitter::VelocitySpaceType::World)
 				summary += ", world space";
-			if (!emitter.VelocityCoef.IsConstant())
+			if (!emitter.VelocityCoef.IsConstant() || !emitter.VelocityOverLifetime.IsConstant() || emitter.VelocityOverLifetime.Constant != glm::vec3(0.f))
 				summary += ", over lifetime";
 
 			if (BeginSection("Velocity", summary, false))
@@ -618,8 +647,14 @@ namespace Eagle
 				bChanged |= UI::PropertyDrag("Velocity Max", emitter.VelocityMax, 0.05f, 0.f, 0.f, help);
 
 				CurvePropertyParams params;
-				params.HelpMessage = "Multiplies the velocity over the particle's lifetime, per axis. 1 - no change, 0 - stopped";
+				params.HelpMessage = "Multiplies the particle's movement over its lifetime, per axis (including `Velocity over Lifetime`). 1 - no change, 0 - stopped";
 				curveProperty("Velocity Multiplier", emitter.VelocityCoef, CurveTarget::VelocityCoef, params);
+
+				CurvePropertyParams overLifetimeParams;
+				overLifetimeParams.HelpMessage = "Velocity added to the particle's movement over its lifetime, in `Velocity Space`.\n"
+					"Unlike forces, it doesn't accumulate, meaning when the curve goes back to 0, so does its effect.\n"
+					"Scaled by `Velocity Multiplier`";
+				curveProperty("Velocity over Lifetime", emitter.VelocityOverLifetime, CurveTarget::VelocityOverLifetime, overLifetimeParams);
 				EndSection();
 			}
 		}
@@ -628,22 +663,29 @@ namespace Eagle
 		{
 			std::string summary;
 			auto append = [&summary](const char* text) { summary += summary.empty() ? text : (std::string(", ") + text); };
-			if (emitter.bApplyGravity)
-				append("Gravity");
+			if (!emitter.ApplyGravity.IsConstant() || emitter.ApplyGravity.Constant)
+				append(emitter.ApplyGravity.IsConstant() ? "Gravity" : "Gravity (part of the lifetime)");
 			if (emitter.RadialAcceleration != 0.f)
 				append("Radial");
 			if (emitter.TangentialAcceleration != 0.f)
 				append("Swirl");
-			if (emitter.TurbulenceStrength != 0.f)
+			if (!emitter.TurbulenceStrength.IsConstant() || emitter.TurbulenceStrength.Constant != 0.f)
 				append("Turbulence");
 			if (!emitter.Drag.IsConstant() || emitter.Drag.Constant > 0.f)
 				append("Drag");
 			if (summary.empty())
 				summary = "None";
 
-			if (BeginSection("Forces", summary, false))
+			const bool bBeginGrid = false;
+			if (BeginSection("Forces", summary, false, bBeginGrid))
 			{
-				bChanged |= UI::Property("Apply Gravity", emitter.bApplyGravity);
+				UI::BeginPropertyGrid("Forces");
+				{
+					CurvePropertyParams gravityParams;
+					gravityParams.HelpMessage = "Whether gravity pulls the particles. As a curve, it can be switched on and off over the particle's lifetime "
+						"(keys are on above 0.5, off below). For example, debris that floats, then falls";
+					curveProperty("Apply Gravity", emitter.ApplyGravity, CurveTarget::ApplyGravity, gravityParams);
+				}
 				bChanged |= UI::PropertyDrag("Radial Acceleration", emitter.RadialAcceleration, 0.1f, 0.f, 0.f, "Positive values push particles away from the emitter's center, negative values pull them in");
 				bChanged |= UI::PropertyDrag("Tangential Acceleration", emitter.TangentialAcceleration, 0.1f, 0.f, 0.f, "Makes particles swirl around the emitter's local Z axis. The sign sets the direction");
 				{
@@ -655,15 +697,32 @@ namespace Eagle
 						"As a curve, it changes over the particle's lifetime (for example, sparks that fly freely, then get caught by the air)";
 					curveProperty("Drag", emitter.Drag, CurveTarget::Drag, dragParams);
 				}
-				bChanged |= UI::PropertyDrag("Turbulence", emitter.TurbulenceStrength, 0.05f, 0.f, 0.f, "Strength of a swirling force field (curl noise), as an acceleration.\n"
-					"For example, makes smoke/dust move naturally instead of in straight lines. 0 - off");
-				if (UI::PropertyDrag("Turbulence Scale", emitter.TurbulenceScale, 0.05f, 0.01f, 0.f, "Size of the swirls, in world units. Smaller values give tighter, busier swirls"))
+				UI::EndPropertyGrid();
+
 				{
-					emitter.TurbulenceScale = glm::max(0.01f, emitter.TurbulenceScale);
-					bChanged = true;
+					std::string turbulenceSummary = "Curve";
+					if (emitter.TurbulenceStrength.IsConstant())
+						turbulenceSummary = emitter.TurbulenceStrength.Constant == 0.f ? "Off" : ("Strength " + FormatNumber(emitter.TurbulenceStrength.Constant));
+
+					ImGui::Separator();
+					SubGroup("Turbulence", turbulenceSummary, [&]()
+					{
+						CurvePropertyParams strengthParams;
+						strengthParams.HelpMessage = "Strength of a swirling force field (curl noise), as an acceleration, over the particle's lifetime.\n"
+							"For example, makes smoke/dust move naturally instead of in straight lines. 0 - off";
+						curveProperty("Strength", emitter.TurbulenceStrength, CurveTarget::TurbulenceStrength, strengthParams);
+
+						CurvePropertyParams scaleParams;
+						scaleParams.Min = 0.01f;
+						scaleParams.Max = 100000.f;
+						scaleParams.HelpMessage = "Size of the swirls in world units, over the particle's lifetime. Smaller values give tighter, busier swirls";
+						curveProperty("Scale", emitter.TurbulenceScale, CurveTarget::TurbulenceScale, scaleParams);
+
+						bChanged |= UI::PropertyDrag("Speed", emitter.TurbulenceSpeed, 0.05f, 0.f, 0.f, "How fast the swirl pattern drifts, in world units per second. 0 - a static pattern.\n"
+							"The pattern is shared by all particles of the emitter, whatever their age");
+					});
 				}
-				bChanged |= UI::PropertyDrag("Turbulence Speed", emitter.TurbulenceSpeed, 0.05f, 0.f, 0.f, "How fast the swirl pattern drifts, in world units per second. 0 - a static pattern");
-				EndSection();
+				EndSection(bBeginGrid);
 			}
 		}
 
@@ -676,8 +735,10 @@ namespace Eagle
 			if (emitter.bRandomTint)
 				summary += ", random tint";
 
-			if (BeginSection("Color", summary, true))
+			const bool bBeginGrid = false;
+			if (BeginSection("Color", summary, true, bBeginGrid))
 			{
+				UI::BeginPropertyGrid("Color");
 				bool bEdit = false;
 				bChanged |= CurveUI::PropertyGradient("Color", emitter.Color, "The particle's color and opacity. As a gradient, it changes over the particle's lifetime",
 					m_ActiveCurve == CurveTarget::Color, bEdit);
@@ -689,17 +750,22 @@ namespace Eagle
 				params.Max = 1000.f;
 				params.HelpMessage = "HDR brightness multiplier of the color. 1 - unchanged. Values above 1 make particles bright enough to bloom";
 				curveProperty("Intensity", emitter.ColorIntensity, CurveTarget::ColorIntensity, params);
+				UI::EndPropertyGrid();
+				ImGui::Separator();
 
-				bChanged |= UI::Property("Random Tint", emitter.bRandomTint, "Each particle's color is multiplied by a random color between the two colors, so particles of the same emitter differ slightly");
-				
-				if (!emitter.bRandomTint)
-					UI::PushItemDisabled();
-				bChanged |= UI::PropertyColor("Random Tint A", emitter.RandomTintA);
-				bChanged |= UI::PropertyColor("Random Tint B", emitter.RandomTintB);
-				if (!emitter.bRandomTint)
-					UI::PopItemDisabled();
+				SubGroup("Random Tint", emitter.bRandomTint ? "On" : "Off", [&]()
+				{
+					bChanged |= UI::Property("Random Tint", emitter.bRandomTint, "Each particle's color is multiplied by a random color between the two colors, so particles of the same emitter differ slightly");
 
-				EndSection();
+					if (!emitter.bRandomTint)
+						UI::PushItemDisabled();
+					bChanged |= UI::PropertyColor("Random Tint A", emitter.RandomTintA);
+					bChanged |= UI::PropertyColor("Random Tint B", emitter.RandomTintB);
+					if (!emitter.bRandomTint)
+						UI::PopItemDisabled();
+				});
+
+				EndSection(bBeginGrid);
 			}
 		}
 
@@ -761,29 +827,74 @@ namespace Eagle
 			std::string summary = !emitter.bAlphaBlending ? "Opaque" : (emitter.bAdditive ? "Additive" : "Translucent");
 			if (emitter.Texture)
 				summary += ", textured";
-			if (BeginSection("Rendering", summary, false))
-			{
-				bChanged |= EditorResources::DrawAssetSelection("Texture", emitter.Texture);
-				bChanged |= UI::Property("Alpha Blending", emitter.bAlphaBlending, "Translucent particles. When off, particles are opaque (texture alpha below 0.5 is cut out)");
-				if (!emitter.bAlphaBlending)
-					UI::PushItemDisabled();
-				bChanged |= UI::Property("Additive", emitter.bAdditive, "Particles add light instead of covering what's behind them. Good for fire, sparks and magic");
-				if (!emitter.bAlphaBlending)
-					UI::PopItemDisabled();
+			if (emitter.bAlphaBlending && emitter.bDepthFade)
+				summary += ", depth fade";
+			if (emitter.bAlphaBlending && emitter.bCameraFade)
+				summary += ", camera fade";
 
-				if (emitter.Texture)
+			const bool bBeginGrid = false;
+			if (BeginSection("Rendering", summary, false, bBeginGrid))
+			{
+				const std::string cameraFadeSummary = emitter.bCameraFade
+					? ("On, " + FormatNumber(emitter.CameraFadeDistance.x) + " - " + FormatNumber(emitter.CameraFadeDistance.y))
+					: std::string("Off");
+
+				SubGroup("Texture", emitter.Texture ? "On" : "Off", [&]()
 				{
-					UI::EndPropertyGrid();
-					UI::TextWithSeparator("Sprite Sheet");
-					UI::BeginPropertyGrid("SpriteSheet");
+					bChanged |= EditorResources::DrawAssetSelection("Texture", emitter.Texture);
 					bChanged |= UI::PropertyDrag("Columns & Rows", emitter.AnimationImagesNum, 1.f, 1, INT_MAX, "Number of frames horizontally/vertically in the texture");
 					if (emitter.AnimationImagesNum.x * emitter.AnimationImagesNum.y > 1u)
 					{
 						bChanged |= UI::PropertyDrag("Animation Speed", emitter.AnimationSpeed, 0.05f, 0.f, 0.f, "How many times the frames are played over a particle's lifetime");
 						bChanged |= UI::Property("Blend Frames", emitter.bBlendAnimation, "Smoothly blend between frames instead of switching");
 					}
+				});
+				SubGroup("Depth Fade", emitter.bDepthFade ? ("On, " + FormatNumber(emitter.DepthFadeDistance)) : std::string("Off"), [&]()
+				{
+					bChanged |= UI::Property("Enabled", emitter.bDepthFade, "Fade out where particles get close to the geometry behind them, "
+						"instead of showing a hard line where they cut through it (smoke on the ground, fog against walls). Translucent particles only");
+
+					if (!emitter.bDepthFade)
+						UI::PushItemDisabled();
+					if (UI::PropertyDrag("Distance", emitter.DepthFadeDistance, 0.01f, 0.001f, 0.f, "How far in front of the geometry particles become fully visible, in world units"))
+					{
+						emitter.DepthFadeDistance = glm::max(emitter.DepthFadeDistance, 0.001f);
+						bChanged = true;
+					}
+					if (!emitter.bDepthFade)
+						UI::PopItemDisabled();
+				});
+				SubGroup("Camera Fade", cameraFadeSummary, [&]()
+				{
+					bChanged |= UI::Property("Enabled", emitter.bCameraFade, "Fade out particles close to the camera, instead of popping when they cross it. Translucent particles only");
+
+					if (!emitter.bCameraFade)
+						UI::PushItemDisabled();
+					if (UI::PropertyDrag("Distance", emitter.CameraFadeDistance, 0.05f, 0.f, 0.f, "Distances from the camera, in world units:\n"
+						"X - fully faded at this distance or closer, Y - fully visible from this distance"))
+					{
+						emitter.CameraFadeDistance.x = glm::max(emitter.CameraFadeDistance.x, 0.f);
+						emitter.CameraFadeDistance.y = glm::max(emitter.CameraFadeDistance.y, emitter.CameraFadeDistance.x);
+						bChanged = true;
+					}
+					if (!emitter.bCameraFade)
+						UI::PopItemDisabled();
+				});
+				ImGui::Separator();
+
+				UI::BeginPropertyGrid("Rendering");
+				{
+					bChanged |= UI::Property("Alpha Blending", emitter.bAlphaBlending, "Translucent particles. When off, particles are opaque (texture alpha below 0.5 is cut out)");
+					if (!emitter.bAlphaBlending)
+						UI::PushItemDisabled();
+					bChanged |= UI::Property("Additive", emitter.bAdditive, "Particles add light instead of covering what's behind them. Good for fire, sparks and magic");
+
+					if (!emitter.bAlphaBlending)
+						UI::PopItemDisabled();
 				}
-				EndSection();
+				UI::EndPropertyGrid();
+
+				EndSection(bBeginGrid);
 			}
 		}
 
@@ -974,6 +1085,10 @@ namespace Eagle
 			case CurveTarget::RotationZ:      info = { "Rotation over lifetime (degrees)", { "Rotation" } }; break;
 			case CurveTarget::RotationSpeed:  info = { "Rotation speed over lifetime (degrees per second)", { "Speed" } }; break;
 			case CurveTarget::Drag:           info = { "Drag over lifetime (per second)", { "Drag" } }; break;
+			case CurveTarget::VelocityOverLifetime: info = { "Velocity over lifetime", { "X", "Y", "Z" } }; break;
+			case CurveTarget::TurbulenceStrength: info = { "Turbulence strength over lifetime", { "Strength" } }; break;
+			case CurveTarget::TurbulenceScale: info = { "Turbulence scale over lifetime (world units)", { "Scale" } }; break;
+			case CurveTarget::ApplyGravity: info = { "Gravity over lifetime (on/off)", { "Gravity" } }; break;
 			case CurveTarget::VelocityCoef:   info = { "Velocity multiplier over lifetime", { "X", "Y", "Z" } }; break;
 			default: return false;
 		}
@@ -1007,7 +1122,9 @@ namespace Eagle
 			}
 
 			using ValueType = std::decay_t<decltype(property.Constant)>;
-			TypedCurveView<ValueType> view(info.Title, IM_COL32(230, 230, 230, 255), &property.Keys, property.Constant);
+			// On/off curves (gravity) are plotted as 0/1 steps
+			using ViewType = std::conditional_t<std::is_same_v<ValueType, bool>, OnOffCurveView, TypedCurveView<ValueType>>;
+			ViewType view(info.Title, IM_COL32(230, 230, 230, 255), &property.Keys, property.Constant);
 
 			static const ImVec4 s_ComponentColors[] = { ImVec4(0.95f, 0.35f, 0.35f, 1.f), ImVec4(0.4f, 0.9f, 0.4f, 1.f), ImVec4(0.4f, 0.55f, 1.f, 1.f) };
 			std::vector<CurveEditorEntry> entries;
@@ -1089,6 +1206,10 @@ namespace Eagle
 			case CurveTarget::RotationZ:      drawCurve(emitter.RotationZ); break;
 			case CurveTarget::RotationSpeed:  drawCurve(emitter.RotationSpeed); break;
 			case CurveTarget::Drag:           drawCurve(emitter.Drag); break;
+			case CurveTarget::VelocityOverLifetime: drawCurve(emitter.VelocityOverLifetime); break;
+			case CurveTarget::TurbulenceStrength: drawCurve(emitter.TurbulenceStrength); break;
+			case CurveTarget::TurbulenceScale: drawCurve(emitter.TurbulenceScale); break;
+			case CurveTarget::ApplyGravity: drawCurve(emitter.ApplyGravity); break;
 			case CurveTarget::VelocityCoef:   drawCurve(emitter.VelocityCoef); break;
 			default: break;
 		}

@@ -47,6 +47,9 @@ namespace Eagle
 		CurveProperty<float> RotationZ = CurveProperty<float>(0.f); // Degrees
 		CurveProperty<float> RotationSpeed = CurveProperty<float>(0.f); // Degrees per second. Spin that changes over the lifetime. Adds to `StartRotationSpeedRandomRange`
 		CurveProperty<glm::vec3> VelocityCoef = CurveProperty<glm::vec3>(glm::vec3(1.f)); // Multiplies the velocity (in `VelocitySpace`)
+		// Added to the particle's movement over its lifetime
+		// It isn't accumulated into the particle's velocity, meaning when the curve goes back to 0, so does its effect. Scaled by `VelocityCoef`
+		CurveProperty<glm::vec3> VelocityOverLifetime = CurveProperty<glm::vec3>(glm::vec3(0.f));
 
 		glm::vec4 RandomTintA = glm::vec4(1.f); // When `bRandomTint` is set, each particle's color is multiplied by a random color between A and B
 		glm::vec4 RandomTintB = glm::vec4(1.f);
@@ -112,16 +115,16 @@ namespace Eagle
 		float LoopDuration = 1.f;
 		float StartDelay = 0.f; // Seconds before the emitter starts spawning, counted from when it's added (spawned or restarted)
 		uint32_t SpawnRate = 1; // How many particles to spawn in a second. Clamped to `MaxSpawnRate`
-		float SpawnPerMeter = 0.f; // Extra particles per unit of distance the emitter moves (for continuous emitters)
+		uint32_t SpawnPerMeter = 0; // Extra particles per unit of distance the emitter moves (for continuous emitters)
 
 		// Sanity limit for `SpawnRate`. The number of particles that can be alive at once is limited separately, by `SceneRendererSettings::MaxParticlesBudget`.
 		static constexpr uint32_t MaxSpawnRate = 16u * 1024u * 1024u;
 		float FastForwardTo = 0.f; // When the emitter is added, it starts as if it had already been running for `FastForwardTo` seconds
 
 		// Turbulence. A curl noise force field that makes particles swirl naturally
-		float TurbulenceStrength = 0.f; // Acceleration. 0 - off
-		float TurbulenceScale = 1.f; // Size of the swirls, in world units
-		float TurbulenceSpeed = 0.5f; // How fast the swirl pattern drifts, in world units per second
+		CurveProperty<float> TurbulenceStrength = CurveProperty<float>(0.f); // Acceleration, over the lifetime. 0 - off
+		CurveProperty<float> TurbulenceScale = CurveProperty<float>(1.f); // Size of the swirls in world units
+		float TurbulenceSpeed = 0.5f; // How fast the swirl pattern drifts, in world units per second. Shouldn't be a curve so that the pattern is shared by all particles
 
 		CurveProperty<float> Drag = CurveProperty<float>(0.f); // Per second. Slows particles down physically, their velocity loses this fraction per second
 		float RadialAcceleration = 0.f; // If it's negative, particles will move towards the center of the emitter. If positive, they move away from the center
@@ -154,7 +157,14 @@ namespace Eagle
 		bool bDestroyImmediately = false; // If set to true, particles will be destroyed immediately when emitter is disabled/destroyed (instead of following their lifetime)
 		bool bEmit = true;
 		bool bExplode = false; // If set to true, all particles will be emitted at once. Otherwise, they're emitted sequentially throughout the lifetime
-		bool bApplyGravity = false;
+		CurveProperty<bool> ApplyGravity = CurveProperty<bool>(false); // Can be switched on and off over the lifetime
+
+		// Translucent particles only (`bAlphaBlending`)
+		bool bDepthFade = false; // Fade out where particles get close to the geometry behind them, instead of cutting through it
+		float DepthFadeDistance = 0.1f; // World units. Particles are fully faded where they touch the geometry, fully visible this far in front of it
+		bool bCameraFade = false; // Fade out particles close to the camera, instead of popping when they cross the near plane
+		glm::vec2 CameraFadeDistance = glm::vec2(0.1f, 0.2f); // World units from the camera. Fully faded at (or closer than) x, fully visible from y
+
 		bool bAlphaBlending = true;
 		bool bAdditive = false;
 		bool bBlendAnimation = true;

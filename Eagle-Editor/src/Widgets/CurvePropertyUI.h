@@ -23,6 +23,7 @@ namespace Eagle
 		bool PropertyCurve(std::string_view label, CurveProperty<float>& property, const CurvePropertyParams& params, bool bActive, bool& bOutEditClicked);
 		bool PropertyCurve(std::string_view label, CurveProperty<glm::vec2>& property, const CurvePropertyParams& params, bool bActive, bool& bOutEditClicked);
 		bool PropertyCurve(std::string_view label, CurveProperty<glm::vec3>& property, const CurvePropertyParams& params, bool bActive, bool& bOutEditClicked);
+		bool PropertyCurve(std::string_view label, CurveProperty<bool>& property, const CurvePropertyParams& params, bool bActive, bool& bOutEditClicked);
 
 		// RGBA color, edited as a gradient when it's a curve
 		bool PropertyGradient(std::string_view label, CurveProperty<glm::vec4>& property, std::string_view helpMessage, bool bActive, bool& bOutEditClicked);

@@ -50,10 +50,23 @@ namespace Eagle
 		{
 			// Event-only emitters spawn their particles wherever the events happen, so their bounds can't be used
 			const bool bPerParticleCulling = (emitter.Culling == ParticleEmitter::CullingType::PerParticle) || emitter.bSpawnOnlyFromEvents;
+			const bool bNoTurbulence = emitter.TurbulenceStrength.IsConstant() && emitter.TurbulenceStrength.Constant == 0.f;
+
+			// Check if gravity is on for at least a part of the lifetime
+			bool bAnyGravity = emitter.ApplyGravity.Constant;
+			if (!emitter.ApplyGravity.IsConstant())
+			{
+				bAnyGravity = false;
+				for (const auto& key : emitter.ApplyGravity.Keys.GetKeys())
+					bAnyGravity |= key.Value;
+			}
 
 			uint32_t flags = 0;
 			flags |= emitter.bExplode ? Emitter_Explode_Mask : 0;
-			flags |= emitter.bApplyGravity ? Emitter_ApplyGravity_Mask : 0;
+			flags |= bAnyGravity ? Emitter_ApplyGravity_Mask : 0;
+			flags |= !bNoTurbulence ? Emitter_HasTurbulence_Mask : 0;
+			flags |= (emitter.bAlphaBlending && emitter.bDepthFade) ? Emitter_ApplyDepthFade_Mask : 0;
+			flags |= (emitter.bAlphaBlending && emitter.bCameraFade) ? Emitter_CameraFade_Mask : 0;
 			flags |= emitter.bAlphaBlending ? Emitter_AlphaBlending_Mask : 0;
 			flags |= emitter.bEmit ? Emitter_Enabled_Mask : 0;
 			flags |= emitter.bAdditive ? Emitter_AdditiveBlending_Mask : 0;
@@ -110,10 +123,12 @@ namespace Eagle
 			outData.StartRotationSpeedRandomRange = glm::radians(emitter.StartRotationSpeedRandomRange);
 			outData.StartSizeMultiplierRandomRange = glm::max(emitter.StartSizeMultiplierRandomRange, glm::vec2(0.f));
 			outData.InheritVelocity = emitter.InheritVelocity;
-			outData.SpawnPerMeter = emitter.bExplode ? 0.f : glm::max(emitter.SpawnPerMeter, 0.f);
-			outData.NoiseStrength = emitter.TurbulenceStrength;
-			outData.NoiseFrequency = 1.f / glm::max(emitter.TurbulenceScale, 0.001f);
+			outData.SpawnPerMeter = emitter.bExplode ? 0.f : glm::max(emitter.SpawnPerMeter, 0u);
+			// The pattern's drift is shared by all particles, so it uses the scale at the start of the lifetime
+			outData.NoiseFrequency = 1.f / glm::max(emitter.TurbulenceScale.Evaluate(0.f), 0.001f);
 			outData.NoiseScrollSpeed = emitter.TurbulenceSpeed;
+			outData.DepthFadeDistance = glm::max(emitter.DepthFadeDistance, 0.001f);
+			outData.CameraFadeDistance = glm::vec2(glm::max(emitter.CameraFadeDistance.x, 0.f), glm::max(emitter.CameraFadeDistance.y, emitter.CameraFadeDistance.x + 0.001f));
 			outData.DistanceAccumulator = 0.f;
 			outData.Velocity = glm::vec3(0.f);
 			outData.NoiseOffset = glm::vec3(0.f);
@@ -121,7 +136,7 @@ namespace Eagle
 			outData.LoopIteration = 0u;
 
 			// Disable emitter if it's useless. A continuous emitter with `SpawnRate` 0 can still spawn by distance
-			const bool bSpawnsNothing = outData.SpawnRate == 0u && (emitter.bExplode || outData.SpawnPerMeter <= 0.f);
+			const bool bSpawnsNothing = outData.SpawnRate == 0u && (emitter.bExplode || outData.SpawnPerMeter == 0);
 			// Emitters that only spawn through sub-emitter events don't need a spawn rate or loops
 			if (!emitter.bSpawnOnlyFromEvents && (bSpawnsNothing || outData.LoopDuration <= 0.f))
 			{
@@ -201,6 +216,9 @@ namespace Eagle
 				outSamples[EmitterCurve_Color * samplesCount + i] = glm::vec4(rgb, glm::clamp(color.a, 0.f, 1.f));
 				outSamples[EmitterCurve_SizeRotation * samplesCount + i] = glm::vec4(emitter.Size.Evaluate(lifeAlpha), glm::radians(emitter.RotationZ.Evaluate(lifeAlpha)), spin);
 				outSamples[EmitterCurve_VelocityCoef_Drag * samplesCount + i] = glm::vec4(emitter.VelocityCoef.Evaluate(lifeAlpha), glm::max(emitter.Drag.Evaluate(lifeAlpha), 0.f));
+				outSamples[EmitterCurve_Velocity * samplesCount + i] = glm::vec4(emitter.VelocityOverLifetime.Evaluate(lifeAlpha), emitter.ApplyGravity.Evaluate(lifeAlpha) ? 1.f : 0.f);
+				outSamples[EmitterCurve_Turbulence * samplesCount + i] = glm::vec4(emitter.TurbulenceStrength.Evaluate(lifeAlpha),
+					1.f / glm::max(emitter.TurbulenceScale.Evaluate(lifeAlpha), 0.001f), 0.f, 0.f);
 			}
 		}
 
@@ -1120,6 +1138,8 @@ namespace Eagle
 
 		m_BillboardRenderTranslucent->SetBuffer(m_ParticlesBuffer, 0, 0);
 		m_BillboardRenderTranslucent->SetBuffer(m_TranslucentIndicesToRender, 0, 1);
+		m_BillboardRenderTranslucent->SetBuffer(m_EmittersBuffer, 0, 2);
+		m_BillboardRenderTranslucent->SetImageSamplerDepth(m_Renderer.GetGBuffer().Depth, Sampler::PointSamplerClamp, 0, 3);
 
 		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
 		const bool bTexturesDirty = texturesChangedFrame >= m_TexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()];

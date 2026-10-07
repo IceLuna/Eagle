@@ -261,7 +261,7 @@ void main()
                     timeTriggers = uint(min(float(timeTriggers), validTriggers));
                 }
                 uint distanceTriggers = 0u;
-                if (emitter.SpawnPerMeter > 0.f)
+                if (emitter.SpawnPerMeter > 0)
                 {
                     emitter.DistanceAccumulator += length(emitter.WorldPos - emitter.PreviousWorldPos);
                     distanceTriggers = uint(min(emitter.DistanceAccumulator * emitter.SpawnPerMeter, float(g_MaxParticles)));

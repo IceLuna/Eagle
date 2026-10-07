@@ -8,6 +8,18 @@ namespace Eagle::CurveUI
 {
 	namespace
 	{
+		// Same as `CurveAccess`, but a bool is shown as on (1) / off (0).
+		// `CurveAccess<bool>` has no components, since the curve editor hides bools unless asked to (see `OnOffCurveView`)
+		template <typename T>
+		struct PreviewAccess : CurveAccess<T> {};
+
+		template <>
+		struct PreviewAccess<bool>
+		{
+			static constexpr uint32_t Count = 1;
+			static float Get(bool value, uint32_t) { return value ? 1.f : 0.f; }
+		};
+
 		constexpr static float s_ModeComboWidth = 84.f;
 		constexpr static ImU32 s_ActiveOutlineColor = IM_COL32(255, 200, 60, 255);
 		constexpr static ImU32 s_ComponentColors[] = { IM_COL32(242, 90, 90, 255), IM_COL32(100, 230, 100, 255), IM_COL32(100, 140, 255, 255), IM_COL32(230, 230, 230, 255) };
@@ -61,6 +73,11 @@ namespace Eagle::CurveUI
 			return ImGui::DragFloat2("##Value", &value.x, params.Speed, params.Min, params.Max, "%.3f");
 		}
 
+		bool DrawConstant(bool& value, const CurvePropertyParams&)
+		{
+			return ImGui::Checkbox("##Value", &value);
+		}
+
 		bool DrawConstant(glm::vec3& value, const CurvePropertyParams& params)
 		{
 			ImGui::SetNextItemWidth(-1.f);
@@ -92,7 +109,7 @@ namespace Eagle::CurveUI
 		template <typename T>
 		bool DrawCurvePreview(const CurveProperty<T>& property, bool bActive)
 		{
-			using Access = CurveAccess<T>;
+			using Access = PreviewAccess<T>;
 
 			ImVec2 min, max;
 			const bool bClicked = PreviewButton(min, max);
@@ -187,6 +204,11 @@ namespace Eagle::CurveUI
 	}
 
 	bool PropertyCurve(std::string_view label, CurveProperty<glm::vec3>& property, const CurvePropertyParams& params, bool bActive, bool& bOutEditClicked)
+	{
+		return PropertyCurve_Internal(label, property, params, bActive, bOutEditClicked);
+	}
+
+	bool PropertyCurve(std::string_view label, CurveProperty<bool>& property, const CurvePropertyParams& params, bool bActive, bool& bOutEditClicked)
 	{
 		return PropertyCurve_Internal(label, property, params, bActive, bOutEditClicked);
 	}

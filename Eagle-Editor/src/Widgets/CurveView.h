@@ -417,4 +417,28 @@ namespace Eagle
 		Curve<T>* m_Curve = nullptr; // Owned by the track
 		T m_DefaultValue;
 	};
+
+	// A bool curve plotted as an on/off (1/0) step curve. `CurveAccess<bool>` deliberately hides bools from the curve editor
+	// (the scene sequence editor relies on that), so editors that want to plot them use this view instead.
+	// Dragged keys snap to on (above 0.5) or off
+	class OnOffCurveView : public TypedCurveView<bool>
+	{
+	public:
+		using TypedCurveView<bool>::TypedCurveView;
+
+		bool IsInterpolationEditable() const override { return false; }
+
+		uint32_t GetCurveComponentsCount() const override { return 1u; }
+		const char* GetCurveComponentName(uint32_t) const override { return "On"; }
+		float EvaluateComponent(float time, uint32_t) const override { return m_Curve->Evaluate(time, m_DefaultValue) ? 1.f : 0.f; }
+		float GetKeyComponent(size_t index, uint32_t) const override { return m_Curve->GetKey(index).Value ? 1.f : 0.f; }
+		void SetKeyComponent(const GUID& id, uint32_t, float value) override
+		{
+			if (auto* key = m_Curve->FindKey(id))
+				key->Value = value >= 0.5f;
+		}
+
+		float GetKeyTangent(size_t, uint32_t, bool) const override { return 0.f; }
+		void SetKeyTangent(const GUID&, uint32_t, bool, float) override {}
+	};
 }

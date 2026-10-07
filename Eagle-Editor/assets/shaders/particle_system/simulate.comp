@@ -276,7 +276,13 @@ void main()
     const float drag = velocityCoefDrag.w;
 
     const mat3 emitterRotation = DecompositedTransform_GetRotation(g_DecompositedTransforms[emitter.TransformIndex]);
-    particle.Velocity += Particle_ComputeForce(emitter, particle.Position, emitterRotation, g_Gravity, emitter.NoiseOffset) * g_DeltaTime;
+    const vec4 velocityGravity = SampleEmitterCurve(emitterIndex, EmitterCurve_Velocity, lifeAlpha); // xyz - velocity over lifetime, w - gravity on/off
+    const vec3 velocityOverLife = velocityGravity.xyz;
+    const float gravitySample = velocityGravity.w;
+    const vec3 gravity = gravitySample >= 0.5f ? g_Gravity : vec3(0.f);
+
+    const vec2 turbulence = HasFlag(emitter.Flags, Emitter_HasTurbulence_Mask) ? SampleEmitterCurve(emitterIndex, EmitterCurve_Turbulence, lifeAlpha).xy : vec2(0.f);
+    particle.Velocity += Particle_ComputeForce(emitter, particle.Position, emitterRotation, gravity, emitter.NoiseOffset, turbulence) * g_DeltaTime;
     Particle_ApplyDrag(particle.Velocity, drag, g_DeltaTime);
 
     if (emitter.CollisionType != ParticleCollisionType_None)
@@ -336,7 +342,9 @@ void main()
     const vec3 velocityCoef = velocityCoefDrag.xyz;
 
     const bool bWorldSpaceVelocity = HasFlag(emitter.Flags, Emitter_WorldSpaceVelocity_Mask);
-    const vec3 velocity = ApplyVelocityCoef(particle.Velocity, velocityCoef, emitterRotation, bWorldSpaceVelocity);
+    // Plus the velocity over lifetime. It's not added to `particle.Velocity`, so it doesn't accumulate.
+    const vec3 velocityOverLifetime = Particle_VelocityOverLifetimeToWorld(velocityOverLife, emitterRotation, bWorldSpaceVelocity);
+    const vec3 velocity = ApplyVelocityCoef(particle.Velocity + velocityOverLifetime, velocityCoef, emitterRotation, bWorldSpaceVelocity);
 
     particle.Size = sizeRotation.xy * particle.SizeScale;
     particle.Position += velocity * g_DeltaTime;

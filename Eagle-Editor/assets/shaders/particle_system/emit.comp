@@ -134,10 +134,17 @@ void FastForwardParticle(inout Particle particle, Emitter emitter, uint emitterI
         const vec3 velocityCoef = velocityCoefDrag.xyz;
         const float drag = velocityCoefDrag.w;
 
-        particle.Velocity += Particle_ComputeForce(emitter, particle.Position, emitterRotation, g_Gravity, noiseOffset) * dt;
+        const vec4 velocityGravity = SampleEmitterCurve(emitterIndex, EmitterCurve_Velocity, lifeAlpha); // xyz - velocity over lifetime, w - gravity on/off
+        const vec3 velocityOverLife = velocityGravity.xyz;
+        const float gravitySample = velocityGravity.w;
+        const vec3 gravity = gravitySample >= 0.5f ? g_Gravity : vec3(0.f);
+
+        const vec2 turbulence = HasFlag(emitter.Flags, Emitter_HasTurbulence_Mask) ? SampleEmitterCurve(emitterIndex, EmitterCurve_Turbulence, lifeAlpha).xy : vec2(0);
+        particle.Velocity += Particle_ComputeForce(emitter, particle.Position, emitterRotation, gravity, noiseOffset, turbulence) * dt;
         Particle_ApplyDrag(particle.Velocity, drag, dt);
 
-        const vec3 velocity = ApplyVelocityCoef(particle.Velocity, velocityCoef, emitterRotation, bWorldSpaceVelocity);
+        const vec3 velocityOverLifetime = Particle_VelocityOverLifetimeToWorld(velocityOverLife, emitterRotation, bWorldSpaceVelocity);
+        const vec3 velocity = ApplyVelocityCoef(particle.Velocity + velocityOverLifetime, velocityCoef, emitterRotation, bWorldSpaceVelocity);
 
         particle.Position += velocity * dt;
         particle.EffectiveVelocity = velocity;
