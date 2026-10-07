@@ -73,6 +73,21 @@ layout(binding = 13) readonly buffer EmitterCurvesBuffer
     vec4 g_EmitterCurves[];
 };
 
+#ifdef EG_PS_EMIT_EVENTS
+layout(binding = 14) readonly buffer ParticleEventsBuffer
+{
+    uint g_EventsCount[2]; // Events written into each half
+    uint g_EventsPadding0;
+    uint g_EventsPadding1;
+    ParticleEvent g_Events[]; // Split into two halves (ping-pong)
+};
+
+layout(binding = 15) readonly buffer EventSpawnOffsetsBuffer
+{
+    uint g_EventSpawnOffsets[];
+};
+#endif
+
 layout(push_constant) uniform PushConstants
 {
     vec3 g_Gravity;
@@ -160,16 +175,16 @@ bool PopDead(out uint particleIndex)
     return true;
 }
 
-// Finds the emitter that spawns particle `id` of this frame
-uint GetEmitterIndex(uint id)
+// Finds the emitter that spawns particle of this frame
+uint GetEmitterIndex(uint particleIndex)
 {
-    // We're looking for the last emitter whose offset is <= id.
+    // We're looking for the last emitter whose offset is <= particleIndex.
     uint left = 0;
     uint right = g_NumEmitters;
     while ((left + 1) < right)
     {
         const uint mid = (left + right) / 2;
-        if (g_EmittersSpawnOffsets[mid] <= id)
+        if (g_EmittersSpawnOffsets[mid] <= particleIndex)
             left = mid;
         else
             right = mid;
@@ -378,37 +393,12 @@ void Emitter_GetParticlePositionAndNormal(Emitter emitter, inout Random random, 
 
 layout(local_size_x = EG_PS_THREAD_SIZE, local_size_y = 1, local_size_z = 1) in;
 
-void main()
+// For sub-emitter events, `worldTr` "transform"-part contains the event's position
+Particle CreateParticle(uint emitterIndex, Emitter emitter, mat4 worldTr, inout Random random)
 {
-    const uint gidx = gl_GlobalInvocationID.x;
-    if (gidx >= g_Data.EmitCount)
-        return;
-
-    uint particleIndex;
-    if (!PopDead(particleIndex))
-        return;
-
-    const uint emitterIndex = GetEmitterIndex(gidx);
-    const Emitter emitter = g_Emitters[emitterIndex];
-
-    Random random = Random_Init(uvec2(0, gidx), g_FrameNumber);
-
-    const mat4 worldTr = g_Transforms[emitter.TransformIndex];
-
     vec3 position, normal;
     Emitter_GetParticlePositionAndNormal(emitter, random, position, normal);
     position = vec3(worldTr * vec4(position, 1.f));
-
-    if (!HasFlag(emitter.Flags, Emitter_Explode_Mask) && !Emitter_IsFastForwardEnabled(emitter))
-    {
-        // Spread this frame's particles along the path the emitter moved during the frame,
-        // instead of spawning them all at its current position
-
-        const uint firstIndex = g_EmittersSpawnOffsets[emitterIndex];
-        const uint endIndex = emitterIndex + 1u < g_NumEmitters ? g_EmittersSpawnOffsets[emitterIndex + 1u] : g_Data.EmitCount;
-        const float pathFraction = (float(gidx - firstIndex) + 0.5f) / float(max(endIndex - firstIndex, 1u)); // 0 - the start of the frame, 1 - now
-        position -= (emitter.WorldPos - emitter.PreviousWorldPos) * (1.f - pathFraction);
-    }
 
     const float bounciness = mix(emitter.BouncinessMin, emitter.BouncinessMax, Random_NextFloat(random));
 
@@ -453,9 +443,99 @@ void main()
     particle.RotationZOffset = decompositedTr.RotationZ - startRotation;
 
     particle.SizeScale *= mix(emitter.StartSizeMultiplierRandomRange.x, emitter.StartSizeMultiplierRandomRange.y, Random_NextFloat(random));
+    particle.InheritedColor = vec4(1.f);
+
+    return particle;
+}
+
+#ifdef EG_PS_EMIT_EVENTS
+
+// Finds the event that spawns the particle
+uint GetEventIndex(uint particleIndex, uint eventsCount)
+{
+    uint left = 0;
+    uint right = eventsCount;
+    while ((left + 1) < right)
+    {
+        const uint mid = (left + right) / 2;
+        if (g_EventSpawnOffsets[mid] <= particleIndex)
+            left = mid;
+        else
+            right = mid;
+    }
+    return left;
+}
+
+void main()
+{
+    const uint gidx = gl_GlobalInvocationID.x;
+    if (gidx >= g_Data.EventSpawnBudget)
+        return;
+
+    const uint readHalf = 1u - g_PreSimIndex;
+    const uint eventIndex = GetEventIndex(gidx, min(g_EventsCount[readHalf], ParticleEvents_Capacity));
+    const ParticleEvent particleEvent = g_Events[readHalf * ParticleEvents_Capacity + eventIndex];
+    const uint emitterIndex = Particle_GetEmitterIndex(particleEvent.EmitterRef);
+    if (emitterIndex >= g_NumEmitters)
+        return;
+
+    // The sub-emitter was removed, or it's disabled
+    const Emitter emitter = g_Emitters[emitterIndex];
+    if (Particle_GetEmitterGeneration(particleEvent.EmitterRef) != (emitter.Generation & Emitter_GenerationMask) || !HasFlag(emitter.Flags, Emitter_Enabled_Mask))
+        return;
+
+    uint particleIndex;
+    if (!PopDead(particleIndex))
+        return;
+
+    // The emitter's own transform, moved to the event's position
+    mat4 worldTr = g_Transforms[emitter.TransformIndex];
+    worldTr[3] = vec4(particleEvent.Position, 1.f);
+
+    Random random = Random_Init(uvec2(1, gidx), g_FrameNumber);
+    Particle particle = CreateParticle(emitterIndex, emitter, worldTr, random);
+    particle.Velocity += particleEvent.Velocity;
+    particle.InheritedColor = particleEvent.Color;
+    particle.Color *= particleEvent.Color;
+
+    g_Particles[particleIndex] = Particle_Pack(particle, emitter.AnimationImagesNum);
+    PushAlive(particleIndex);
+}
+
+#else
+
+void main()
+{
+    const uint gidx = gl_GlobalInvocationID.x;
+    if (gidx >= g_Data.EmitCount)
+        return;
+
+    uint particleIndex;
+    if (!PopDead(particleIndex))
+        return;
+
+    const uint emitterIndex = GetEmitterIndex(gidx);
+    const Emitter emitter = g_Emitters[emitterIndex];
+
+    Random random = Random_Init(uvec2(0, gidx), g_FrameNumber);
+
+    const mat4 worldTr = g_Transforms[emitter.TransformIndex];
+    Particle particle = CreateParticle(emitterIndex, emitter, worldTr, random);
+
+    if (!HasFlag(emitter.Flags, Emitter_Explode_Mask) && !Emitter_IsFastForwardEnabled(emitter))
+    {
+        // Spread this frame's particles along the path the emitter moved during the frame,
+        // instead of spawning them all at its current position
+
+        const uint firstIndex = g_EmittersSpawnOffsets[emitterIndex];
+        const uint endIndex = emitterIndex + 1u < g_NumEmitters ? g_EmittersSpawnOffsets[emitterIndex + 1u] : g_Data.EmitCount;
+        const float pathFraction = (float(gidx - firstIndex) + 0.5f) / float(max(endIndex - firstIndex, 1u)); // 0 - the start of the frame, 1 - now
+        particle.Position -= (emitter.WorldPos - emitter.PreviousWorldPos) * (1.f - pathFraction);
+    }
 
     if (Emitter_IsFastForwardEnabled(emitter))
     {
+        const DecompositedTransform decompositedTr = g_DecompositedTransforms[emitter.TransformIndex];
         const uint particleIndexWithinEmitter = gidx - g_EmittersSpawnOffsets[emitterIndex]; // 0 = the youngest particle
         FastForwardParticle(particle, emitter, emitterIndex, DecompositedTransform_GetRotation(decompositedTr), FastForward_GetParticleAge(emitter, particleIndexWithinEmitter));
     }
@@ -463,3 +543,5 @@ void main()
     g_Particles[particleIndex] = Particle_Pack(particle, emitter.AnimationImagesNum);
     PushAlive(particleIndex);
 }
+
+#endif

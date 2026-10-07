@@ -15,6 +15,7 @@ layout(binding = 2) buffer DispatchArgsBuffer
 {
     uvec4 g_EmitArgs;
     uvec4 g_SimulateArgs;
+    uvec4 g_EmitEventsArgs;
 };
 
 layout(binding = 3) buffer EmittersBuffer
@@ -31,6 +32,20 @@ layout(binding = 4) buffer EmitterSpawnOffsetsBuffer
 layout(binding = 5) readonly buffer EmitterTransforms
 {
     mat4 g_Transforms[];
+};
+
+layout(binding = 6) buffer ParticleEventsBuffer
+{
+    uint g_EventsCount[2]; // Events written into each half
+    uint g_EventsPadding0;
+    uint g_EventsPadding1;
+    ParticleEvent g_Events[]; // Split into two halves (ping-pong)
+};
+
+// Exclusive prefix sum of spawn counts per event
+layout(binding = 7) writeonly buffer EventSpawnOffsetsBuffer
+{
+    uint g_EventSpawnOffsets[];
 };
 
 layout(push_constant) uniform PushConstants
@@ -50,6 +65,8 @@ shared uint s_EmitCount[GROUP_SIZE]; // Per-thread emit count. After the scan - 
 shared uint s_TotalEmitCount;
 shared uint s_AvailableSlots;
 shared uint s_DroppedCount; // Particles that couldn't be spawned this frame because the pool was full
+shared uint s_EventParticlesRequested; // By the last frame's sub-emitter events
+shared uint s_EventChunkOffsets[GROUP_SIZE]; // Per thread: the sum of its chunk of events, then its chunk's first particle
 
 // Tries to reserve up to `amount` particle slots.
 // Returns the number of reserved slots
@@ -115,6 +132,11 @@ uint FastForwardEmitter(inout Emitter emitter)
     return count;
 }
 
+uint AddCapped(uint a, uint b)
+{
+    return a + min(b, g_MaxParticles - a);
+}
+
 layout(local_size_x = GROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 void main()
@@ -125,6 +147,8 @@ void main()
     {
         s_AvailableSlots = g_MaxParticles - g_Data.AliveCount[g_PreSimIndex];
         s_DroppedCount = 0u;
+        s_EventParticlesRequested = 0u;
+        g_EventsCount[g_PreSimIndex] = 0u;
     }
     barrier();
 
@@ -166,7 +190,7 @@ void main()
 
         uint count = 0;
         const bool bEnabled = HasFlag(emitter.Flags, Emitter_Enabled_Mask) && (emitter.LoopCount == 0 || emitter.LoopIteration < emitter.LoopCount);
-        if (!bEnabled)
+        if (!bEnabled || HasFlag(emitter.Flags, Emitter_SpawnOnlyFromEvents_Mask))
         {
             emitter.FastForwardTime = 0.f; // Only applies to an emitter that is enabled when it's added
         }
@@ -221,8 +245,21 @@ void main()
             }
             else // Continuous emitters
             {
+                // Time since the current loop started
+                emitter.DeltaTime += g_DeltaTime;
+
                 // Particles triggered by time (`SpawnRate`) and by the distance the emitter moved (`SpawnPerMeter`).
-                const uint timeTriggers = emitter.SpawnIntervalTimer >= spawnInterval ? uint(emitter.SpawnIntervalTimer / spawnInterval) : 0u;
+                uint timeTriggers = emitter.SpawnIntervalTimer >= spawnInterval ? uint(emitter.SpawnIntervalTimer / spawnInterval) : 0u;
+
+                // Decide how many of this frame's spawns still fall inside the emitter's last loop.
+                // A frame can contain several spawns (triggers), and the end of the last loop can land partway through a frame, so the spawns before that point are kept and the ones after it are dropped.
+                if (emitter.LoopCount != 0u && timeTriggers > 0u)
+                {
+                    // time from now until the end of the last loop
+                    const float timeLeft = float(emitter.LoopCount - emitter.LoopIteration) * emitter.LoopDuration - emitter.DeltaTime;
+                    const float validTriggers = max(ceil((emitter.SpawnIntervalTimer + timeLeft) / spawnInterval - 0.001f) - 1.f, 0.f);
+                    timeTriggers = uint(min(float(timeTriggers), validTriggers));
+                }
                 uint distanceTriggers = 0u;
                 if (emitter.SpawnPerMeter > 0.f)
                 {
@@ -239,16 +276,6 @@ void main()
                         atomicAdd(s_DroppedCount, requested - count);
                     const uint distanceCount = min(count, distanceTriggers);
                     const uint timeCount = count - distanceCount;
-                    if (count > 0)
-                    {
-                        if (emitter.DeltaTime >= emitter.LoopDuration)
-                        {
-                            const uint iterationsPassed = uint(emitter.DeltaTime / emitter.LoopDuration);
-                            if (emitter.LoopCount != 0)
-                                emitter.LoopIteration += iterationsPassed;
-                            emitter.DeltaTime -= emitter.LoopDuration * float(iterationsPassed);
-                        }
-                    }
 
                     if (timeCount > 0u)
                         emitter.SpawnIntervalTimer -= spawnInterval * float(timeCount);
@@ -262,13 +289,55 @@ void main()
                     if (distanceCount < distanceTriggers)
                         emitter.DistanceAccumulator = min(emitter.DistanceAccumulator, 1.f / emitter.SpawnPerMeter);
                 }
+
+                if (emitter.DeltaTime >= emitter.LoopDuration)
+                {
+                    const uint loopsPassed = uint(emitter.DeltaTime / emitter.LoopDuration);
+                    if (emitter.LoopCount != 0)
+                        emitter.LoopIteration = min(emitter.LoopIteration + loopsPassed, emitter.LoopCount);
+                    emitter.DeltaTime -= emitter.LoopDuration * float(loopsPassed);
+                }
             }
-            emitter.DeltaTime += g_DeltaTime;
         }
 
         g_Emitters[i] = emitter;
         g_EmittersSpawnOffsets[i] = count; // Temporarily stores the count. Converted to an offset below
         s_EmitCount[lid] += count;
+    }
+
+    const uint eventsCount = min(g_EventsCount[g_PostSimIndex], ParticleEvents_Capacity);
+    const uint eventsPerThread = CalcNumGroups(eventsCount, GROUP_SIZE);
+    const uint firstEvent = min(lid * eventsPerThread, eventsCount);
+    const uint endEvent = min(firstEvent + eventsPerThread, eventsCount);
+    {
+        uint chunkSum = 0u;
+        for (uint e = firstEvent; e < endEvent; ++e)
+            chunkSum = AddCapped(chunkSum, g_Events[g_PostSimIndex * ParticleEvents_Capacity + e].Count);
+        s_EventChunkOffsets[lid] = chunkSum;
+    }
+    barrier();
+
+    if (lid == 0)
+    {
+        // Exclusive scan of the chunk sums
+        uint total = 0u;
+        for (uint t = 0; t < GROUP_SIZE; ++t)
+        {
+            const uint chunkSum = s_EventChunkOffsets[t];
+            s_EventChunkOffsets[t] = total;
+            total = AddCapped(total, chunkSum);
+        }
+        s_EventParticlesRequested = total;
+    }
+    barrier();
+
+    {
+        uint offset = s_EventChunkOffsets[lid];
+        for (uint e = firstEvent; e < endEvent; ++e)
+        {
+            g_EventSpawnOffsets[e] = offset;
+            offset = AddCapped(offset, g_Events[g_PostSimIndex * ParticleEvents_Capacity + e].Count);
+        }
     }
 
     barrier();
@@ -309,18 +378,27 @@ void main()
         }
 
         g_Data.EmitCount = s_TotalEmitCount;
-        g_Data.DroppedCount = s_DroppedCount;
+
+        // Sub-emitter events get the slots left after this frame's regular spawns
+        const uint eventParticles = min(s_EventParticlesRequested, s_AvailableSlots);
+        g_Data.EventSpawnBudget = eventParticles;
+        g_EmitEventsArgs = uvec4(CalcNumGroups(eventParticles, EG_PS_THREAD_SIZE), 1, 1, 0);
         g_EmitArgs.x = CalcNumGroups(g_Data.EmitCount, EG_PS_THREAD_SIZE);
         g_EmitArgs.y = 1;
         g_EmitArgs.z = 1;
 
         // Calculate total number of particles to simulate this frame
-        g_Data.SimulateCount = g_Data.AliveCount[g_PreSimIndex] + g_Data.EmitCount;
+        g_Data.SimulateCount = g_Data.AliveCount[g_PreSimIndex] + g_Data.EmitCount + eventParticles;
         g_SimulateArgs.x = CalcNumGroups(g_Data.SimulateCount, EG_PS_THREAD_SIZE);
         g_SimulateArgs.y = 1;
         g_SimulateArgs.z = 1;
 
+        g_Data.DroppedCount = s_DroppedCount + (s_EventParticlesRequested - eventParticles);
+
         // Reset post sim alive index count
         g_Data.AliveCount[g_PostSimIndex] = 0;
+
+        g_Data.CullingView = g_View;
+        g_Data.CullingFrustum = vec4(g_Frustum.NearRight, g_Frustum.NearTop, g_Frustum.NearPlane, g_Frustum.FarPlane);
     }
 }

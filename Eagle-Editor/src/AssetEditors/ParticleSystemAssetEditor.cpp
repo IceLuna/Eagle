@@ -75,6 +75,30 @@ namespace Eagle
 			ImGui::Spacing();
 		}
 
+		// A (min, max) count in one field
+		bool PropertyCountRange(const char* label, glm::uvec2& range, uint32_t maxValue, std::string_view helpMessage)
+		{
+			ImGui::PushID(label);
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+			ImGui::TextUnformatted(label);
+			if (!helpMessage.empty())
+			{
+				ImGui::SameLine();
+				UI::HelpMarker(helpMessage);
+			}
+			ImGui::NextColumn();
+
+			int values[2] = { int(range.x), int(range.y) };
+			ImGui::SetNextItemWidth(-1.f);
+			const bool bChanged = ImGui::DragIntRange2("##Range", &values[0], &values[1], 0.2f, 0, int(maxValue), "Min: %d", "Max: %d");
+			if (bChanged)
+				range = glm::uvec2(uint32_t(glm::max(values[0], 0)), uint32_t(std::max({ values[1], values[0], 0 })));
+
+			ImGui::NextColumn();
+			ImGui::PopID();
+			return bChanged;
+		}
+
 		bool PropertyRandomRange(const char* label, glm::vec2& range, float speed, const char* minFormat, const char* maxFormat, std::string_view helpMessage)
 		{
 			ImGui::PushID(label);
@@ -99,7 +123,7 @@ namespace Eagle
 		}
 
 		// A draggable bar between two panels. Returns the drag delta along its axis.
-		float Splitter(const char* id, bool bVertical, float thickness, float length)
+		float Splitter(const char* id, bool bVertical, float thickness, float length, bool bDrawCircleHandle)
 		{
 			const ImVec2 size = bVertical ? ImVec2(thickness, length) : ImVec2(length, thickness);
 			ImGui::InvisibleButton(id, size);
@@ -113,12 +137,15 @@ namespace Eagle
 			const ImVec2 max = ImGui::GetItemRectMax();
 			drawList->AddRectFilled(min, max, ImGui::GetColorU32(bActive ? ImGuiCol_SeparatorActive : (bHovered ? ImGuiCol_SeparatorHovered : ImGuiCol_WindowBg)));
 
-			const ImVec2 center((min.x + max.x) * 0.5f, (min.y + max.y) * 0.5f);
-			const ImU32 gripColor = ImGui::GetColorU32((bActive || bHovered) ? ImGuiCol_Text : ImGuiCol_TextDisabled);
-			for (int i = -1; i <= 1; ++i)
+			if (bDrawCircleHandle)
 			{
-				const ImVec2 dot = bVertical ? ImVec2(center.x, center.y + float(i) * 5.f) : ImVec2(center.x + float(i) * 5.f, center.y);
-				drawList->AddCircleFilled(dot, 1.25f, gripColor);
+				const ImVec2 center((min.x + max.x) * 0.5f, (min.y + max.y) * 0.5f);
+				const ImU32 gripColor = ImGui::GetColorU32((bActive || bHovered) ? ImGuiCol_Text : ImGuiCol_TextDisabled);
+				for (int i = -1; i <= 1; ++i)
+				{
+					const ImVec2 dot = bVertical ? ImVec2(center.x, center.y + float(i) * 5.f) : ImVec2(center.x + float(i) * 5.f, center.y);
+					drawList->AddCircleFilled(dot, 1.25f, gripColor);
+				}
 			}
 
 			if (!bActive)
@@ -183,7 +210,7 @@ namespace Eagle
 		ImGui::EndChild();
 
 		ImGui::SameLine(0.f, 0.f);
-		m_EmittersPanelWidth += Splitter("##EmittersSplitter", true, 6.f, contentHeight);
+		m_EmittersPanelWidth += Splitter("##EmittersSplitter", true, 6.f, contentHeight, false);
 		ImGui::SameLine(0.f, 0.f);
 
 		// Right: the selected emitter, and the curve panel under it
@@ -191,7 +218,9 @@ namespace Eagle
 		if (m_SelectedEmitterIndex < m_Emitters.size())
 		{
 			ParticleEmitter& emitter = m_Emitters[m_SelectedEmitterIndex];
-			GetCurrentScene()->DrawAABB(emitter.VisibilityAABB, emitter.RelativeTransform);
+			const bool bUsesBounds = emitter.Culling == ParticleEmitter::CullingType::EmitterBounds && !emitter.bSpawnOnlyFromEvents;
+			if (bUsesBounds)
+				GetCurrentScene()->DrawAABB(emitter.VisibilityAABB, emitter.RelativeTransform);
 
 			const bool bShowCurvePanel = m_ActiveCurve != CurveTarget::None;
 			const float detailsHeight = ImGui::GetContentRegionAvail().y;
@@ -207,7 +236,7 @@ namespace Eagle
 			if (bShowCurvePanel)
 			{
 				ImGui::SetCursorPosY(propertiesTop + propertiesHeight);
-				m_CurvePanelHeight -= Splitter("##CurveSplitter", false, splitterThickness, ImGui::GetContentRegionAvail().x);
+				m_CurvePanelHeight -= Splitter("##CurveSplitter", false, splitterThickness, ImGui::GetContentRegionAvail().x, true);
 				ImGui::SetCursorPosY(propertiesTop + propertiesHeight + splitterThickness);
 				ImGui::BeginChild("##CurvePanel", ImVec2(0.f, 0.f), true);
 				bChanged |= DrawCurvePanel(emitter);
@@ -351,7 +380,13 @@ namespace Eagle
 			}
 			case Operation::Delete:
 			{
+				const GUID deletedID = m_Emitters[operationIndex].ID;
 				m_Emitters.erase(m_Emitters.begin() + operationIndex);
+				for (auto& other : m_Emitters)
+				{
+					auto& links = other.SubEmitters;
+					links.erase(std::remove_if(links.begin(), links.end(), [&deletedID](const ParticleEmitter::SubEmitter& link) { return link.EmitterID == deletedID; }), links.end());
+				}
 				if (m_SelectedEmitterIndex == operationIndex)
 					SelectEmitter(m_Emitters.empty() ? s_InvalidIndex : std::min(operationIndex, m_Emitters.size() - 1u));
 				else if (m_SelectedEmitterIndex != s_InvalidIndex && m_SelectedEmitterIndex > operationIndex)
@@ -382,12 +417,20 @@ namespace Eagle
 
 		// ---------------- Emitter ----------------
 		{
-			std::string summary = emitter.bExplode ? ("Bursts of " + std::to_string(emitter.SpawnRate)) : (std::to_string(emitter.SpawnRate) + "/s");
-			summary += emitter.LoopCount == 0 ? ", looping" : (", " + std::to_string(emitter.LoopCount) + (emitter.LoopCount == 1 ? " loop" : " loops"));
-			if (!emitter.bExplode && emitter.SpawnPerMeter > 0.f)
-				summary += " + " + FormatNumber(emitter.SpawnPerMeter) + "/m";
-			if (emitter.StartDelay > 0.f)
-				summary += ", delay " + FormatNumber(emitter.StartDelay) + " s";
+			std::string summary;
+			if (emitter.bSpawnOnlyFromEvents)
+			{
+				summary = "Spawned by sub-emitter events";
+			}
+			else
+			{
+				summary = emitter.bExplode ? ("Bursts of " + std::to_string(emitter.SpawnRate)) : (std::to_string(emitter.SpawnRate) + "/s");
+				summary += emitter.LoopCount == 0 ? ", looping" : (", " + std::to_string(emitter.LoopCount) + (emitter.LoopCount == 1 ? " loop" : " loops"));
+				if (!emitter.bExplode && emitter.SpawnPerMeter > 0.f)
+					summary += " + " + FormatNumber(emitter.SpawnPerMeter) + "/m";
+				if (emitter.StartDelay > 0.f)
+					summary += ", delay " + FormatNumber(emitter.StartDelay) + " s";
+			}
 			if (emitter.SimulationSpace == ParticleEmitter::SimulationSpaceType::Local)
 				summary += ", local space";
 
@@ -395,65 +438,96 @@ namespace Eagle
 			{
 				bChanged |= UI::PropertyText("Name", emitter.Name);
 				bChanged |= UI::Property("Emit", emitter.bEmit, "Unchecked emitters don't spawn particles");
-				bChanged |= UI::PropertyDrag("Spawn Rate", emitter.SpawnRate, 1.f, 0, int(ParticleEmitter::MaxSpawnRate), emitter.bExplode ? "Particles spawned by each burst" : "Particles spawned per second");
+				bChanged |= UI::Property("Spawn Only from Events", emitter.bSpawnOnlyFromEvents, "The emitter doesn't spawn particles on its own. Its particles are spawned by other emitters "
+					"sub-emitter events (for example, sparks when a particle hits something)");
+				// Event-only emitters keep `Spawn Rate`, `Explode` and `Loop Duration`: sub-emitters can spawn what this emitter would spawn
+				const bool bEventsOnly = emitter.bSpawnOnlyFromEvents;
+				const char* spawnRateHelp = bEventsOnly
+					? (emitter.bExplode ? "Particles per sub-emitter event (one burst), for sub-emitters that use this emitter's spawn settings"
+						: "Particles per second. Sub-emitters that use this emitter's spawn settings spawn one loop's worth at once (`Spawn Rate * Loop Duration`)")
+					: (emitter.bExplode ? "Particles spawned by each burst" : "Particles spawned per second");
+				bChanged |= UI::PropertyDrag("Spawn Rate", emitter.SpawnRate, 1.f, 0, int(ParticleEmitter::MaxSpawnRate), spawnRateHelp);
 
-				if (emitter.bExplode)
-					UI::PushItemDisabled();
-
-				if (UI::PropertyDrag("Spawn per Meter", emitter.SpawnPerMeter, 0.1f, 0.f, 0.f, "Extra particles per unit of distance the emitter moves, on top of `Spawn Rate`.\n"
-					"Use it for trails. Moving emitters leave a continuous line of particles, however fast they move. `Spawn Rate` can be 0.\nNot used in `Explode` mode"))
+				if (!bEventsOnly)
 				{
-					emitter.SpawnPerMeter = glm::max(0.f, emitter.SpawnPerMeter);
-					bChanged = true;
-				}
+					if (emitter.bExplode)
+						UI::PushItemDisabled();
 
-				if (emitter.bExplode)
-					UI::PopItemDisabled();
+					if (UI::PropertyDrag("Spawn per Meter", emitter.SpawnPerMeter, 0.1f, 0.f, 0.f, "Extra particles per unit of distance the emitter moves, on top of `Spawn Rate`.\n"
+						"Use it for trails. Moving emitters leave a continuous line of particles, however fast they move. `Spawn Rate` can be 0.\nNot used in `Explode` mode"))
+					{
+						emitter.SpawnPerMeter = glm::max(0.f, emitter.SpawnPerMeter);
+						bChanged = true;
+					}
+
+					if (emitter.bExplode)
+						UI::PopItemDisabled();
+				}
 
 				bChanged |= UI::Property("Explode", emitter.bExplode, "Spawn particles in bursts (one burst per loop) instead of continuously");
-				if (UI::PropertyDrag("Loop Duration", emitter.LoopDuration, 0.05f, 0.f, 0.f, emitter.bExplode ? "Time between bursts, in seconds" : "Length of one loop, in seconds"))
+				if (!bEventsOnly || !emitter.bExplode)
 				{
-					emitter.LoopDuration = glm::max(0.f, emitter.LoopDuration);
-					bChanged = true;
+					if (UI::PropertyDrag("Loop Duration", emitter.LoopDuration, 0.05f, 0.f, 0.f, emitter.bExplode ? "Time between bursts, in seconds" : "Length of one loop, in seconds"))
+					{
+						emitter.LoopDuration = glm::max(0.f, emitter.LoopDuration);
+						bChanged = true;
+					}
 				}
-				bChanged |= UI::PropertyDrag("Loop Count", emitter.LoopCount, 1.f, 0, 0, "How many loops to play. 0 - loop forever");
-				if (UI::PropertyDrag("Start Delay", emitter.StartDelay, 0.05f, 0.f, 0.f, "Seconds to wait before the emitter starts spawning, counted from when it's spawned or restarted.\n"
-					"`Fast Forward To` uses up the delay first"))
+
+				if (!bEventsOnly)
 				{
-					emitter.StartDelay = glm::max(0.f, emitter.StartDelay);
-					bChanged = true;
-				}
-				if (UI::PropertyDrag("Fast Forward To", emitter.FastForwardTo, 0.1f, 0.f, 0.f, "When the emitter is spawned, it starts as if it had already been running for this many seconds.\n"
-					"For looping emitters, `Lifetime Max` is enough to reach the fully filled state. Collisions are ignored during the fast-forward"))
-				{
-					emitter.FastForwardTo = glm::max(0.f, emitter.FastForwardTo);
-					bChanged = true;
+					bChanged |= UI::PropertyDrag("Loop Count", emitter.LoopCount, 1.f, 0, 0, "How many loops to play. 0 - loop forever");
+					if (UI::PropertyDrag("Start Delay", emitter.StartDelay, 0.05f, 0.f, 0.f, "Seconds to wait before the emitter starts spawning, counted from when it's spawned or restarted.\n"
+						"`Fast Forward To` uses up the delay first"))
+					{
+						emitter.StartDelay = glm::max(0.f, emitter.StartDelay);
+						bChanged = true;
+					}
+					if (UI::PropertyDrag("Fast Forward To", emitter.FastForwardTo, 0.1f, 0.f, 0.f, "When the emitter is spawned, it starts as if it had already been running for this many seconds.\n"
+						"For looping emitters, `Lifetime Max` is enough to reach the fully filled state. Collisions are ignored during the fast-forward"))
+					{
+						emitter.FastForwardTo = glm::max(0.f, emitter.FastForwardTo);
+						bChanged = true;
+					}
 				}
 				bChanged |= UI::ComboEnum("Simulation Space", emitter.SimulationSpace, "World: particles stay where they were spawned, so a moving emitter leaves them behind.\n"
 					"Local: particles move, turn and scale with the emitter");
 				bChanged |= UI::Property("Destroy Immediately", emitter.bDestroyImmediately, "When the emitter is disabled or destroyed, remove its particles right away instead of letting them finish their lifetime");
-				UI::EndPropertyGrid();
 
-				if (ImGui::TreeNodeEx("Transform", ImGuiTreeNodeFlags_SpanAvailWidth))
+				if (emitter.bSpawnOnlyFromEvents)
 				{
-					auto& transform = emitter.RelativeTransform;
-					glm::quat quat = transform.Rotation.GetQuat();
-					bChanged |= UI::DrawVec3Control("Location", transform.Location, glm::vec3{ 0.f });
-					if (UI::DrawQuatControl("Rotation (Quat)", quat))
-					{
-						transform.Rotation = quat;
-						bChanged = true;
-					}
-					bChanged |= UI::DrawVec3Control("Scale", transform.Scale3D, glm::vec3{ 1.f });
-					ImGui::TreePop();
+					UI::Text("Culling", "Per Particle", "Event-only emitters spawn their particles wherever the events happen, so each particle is tested against the camera");
 				}
-
-				UI::BeginPropertyGrid("EmitterBounds");
-				const char* boundsHelp = "When this box isn't visible to the camera, the emitter's particles aren't rendered. Keep it as small as possible, but big enough to contain the particles";
-				bChanged |= UI::PropertyDrag("Culling Bounds Min", emitter.VisibilityAABB.Min, 0.1f, 0.f, 0.f, boundsHelp);
-				bChanged |= UI::PropertyDrag("Culling Bounds Max", emitter.VisibilityAABB.Max, 0.1f, 0.f, 0.f, boundsHelp);
+				else
+				{
+					bChanged |= UI::ComboEnum("Culling", emitter.Culling, "Emitter Bounds: the particles are drawn while the box below (placed at the emitter) is visible. Cheapest, "
+						"but particles that end up outside of the box get cut off when the box leaves the screen.\n"
+						"Per Particle: each particle is tested against the camera. Use it for trails of moving emitters (`Spawn per Meter`), "
+						"world-space particles that travel far, or anything the box can't contain");
+					if (emitter.Culling == ParticleEmitter::CullingType::EmitterBounds)
+					{
+						const char* boundsHelp = "When this box isn't visible to the camera, the emitter's particles aren't rendered. Keep it as small as possible, but big enough to contain the particles";
+						bChanged |= UI::PropertyDrag("Culling Bounds Min", emitter.VisibilityAABB.Min, 0.1f, 0.f, 0.f, boundsHelp);
+						bChanged |= UI::PropertyDrag("Culling Bounds Max", emitter.VisibilityAABB.Max, 0.1f, 0.f, 0.f, boundsHelp);
+					}
+				}
 				EndSection();
 			}
+		}
+
+
+		if (UI::PushTreeNode("Transform"))
+		{
+			auto& transform = emitter.RelativeTransform;
+			glm::quat quat = transform.Rotation.GetQuat();
+			bChanged |= UI::DrawVec3Control("Location", transform.Location, glm::vec3{ 0.f });
+			if (UI::DrawQuatControl("Rotation (Quat)", quat))
+			{
+				transform.Rotation = quat;
+				bChanged = true;
+			}
+			bChanged |= UI::DrawVec3Control("Scale", transform.Scale3D, glm::vec3{ 1.f });
+			UI::PopTreeNode();
 		}
 
 		// ---------------- Lifetime ----------------
@@ -733,6 +807,153 @@ namespace Eagle
 			}
 		}
 
+		// Sub-emitters
+		{
+			uint32_t onDeath = 0, onCollision = 0;
+			for (const auto& subEmitter : emitter.SubEmitters)
+				++(subEmitter.Trigger == ParticleEmitter::SubEmitterTrigger::Death ? onDeath : onCollision);
+
+			std::string summary;
+			if (onDeath > 0)
+				summary = std::to_string(onDeath) + " on death";
+			if (onCollision > 0)
+				summary += (summary.empty() ? "" : ", ") + std::to_string(onCollision) + " on collision";
+			if (summary.empty())
+				summary = "None";
+
+			if (BeginSection("Sub-emitters", summary, false))
+			{
+				UI::EndPropertyGrid();
+				ImGui::TextWrapped("When a particle of this emitter dies or collides, it can spawn particles of other emitters at its position (for example, sparks on impact, or a firework's second explosion)");
+
+				// Other emitters of this system, by ID
+				auto findEmitterName = [this](const GUID& id) -> const char*
+				{
+					for (const auto& other : m_Emitters)
+						if (other.ID == id)
+							return other.Name.c_str();
+					return nullptr;
+				};
+
+				size_t toRemove = s_InvalidIndex;
+				for (size_t i = 0; i < emitter.SubEmitters.size(); ++i)
+				{
+					auto& subEmitter = emitter.SubEmitters[i];
+					ImGui::PushID(int(i));
+
+					UI::TextWithSeparator("Sub-emitter " + std::to_string(i + 1));
+					UI::BeginPropertyGrid("SubEmitter");
+
+					// Emitter: any other emitter of this system
+					{
+						ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+						ImGui::TextUnformatted("Emitter");
+						ImGui::NextColumn();
+
+						const char* currentName = findEmitterName(subEmitter.EmitterID);
+						ImGui::SetNextItemWidth(-1.f);
+						if (ImGui::BeginCombo("##Emitter", currentName ? currentName : "<missing emitter>"))
+						{
+							for (const auto& other : m_Emitters)
+							{
+								if (other.ID == emitter.ID)
+									continue;
+
+								ImGui::PushID((void*)other.ID.GetHash());
+								if (ImGui::Selectable(other.Name.c_str(), other.ID == subEmitter.EmitterID))
+								{
+									subEmitter.EmitterID = other.ID;
+									bChanged = true;
+								}
+								ImGui::PopID();
+							}
+							ImGui::EndCombo();
+						}
+						ImGui::NextColumn();
+					}
+
+					bChanged |= UI::ComboEnum("Trigger", subEmitter.Trigger, "Death: the particle's lifetime ended, or a collision destroyed it.\n"
+						"Collision: the particle hit something (it needs a `Collision Mode`)");
+					bChanged |= UI::Property("Use Emitter's Spawn Settings", subEmitter.bUseEmitterSpawnSettings, "Spawn what the sub-emitter would spawn on its own, so its numbers are authored once:\n"
+						"one burst of an `Explode` emitter (its `Spawn Rate`), or one loop's worth of a continuous emitter (`Spawn Rate * Loop Duration`, all at once).\n"
+						"Uncheck it to set the count here");
+					if (subEmitter.bUseEmitterSpawnSettings)
+					{
+						const ParticleEmitter* target = nullptr;
+						for (const auto& other : m_Emitters)
+							if (other.ID == subEmitter.EmitterID)
+								target = &other;
+
+						std::string countText = "-";
+						if (target)
+						{
+							const uint32_t count = target->bExplode ? target->SpawnRate
+								: uint32_t(glm::ceil(float(target->SpawnRate) * glm::max(target->LoopDuration, 0.f)));
+							countText = std::to_string(count)
+								+ (target->bExplode ? " (one burst)" : " (one loop's worth, at once)");
+						}
+						UI::Text("Count", countText);
+					}
+					else
+					{
+						bChanged |= PropertyCountRange("Count", subEmitter.CountRange, ParticleEmitter::MaxSpawnRate, "How many particles each event spawns, random between Min and Max");
+					}
+					if (UI::PropertyDrag("Probability", subEmitter.Probability, 0.01f, 0.f, 1.f, "Chance that an event spawns anything. 1 - always"))
+					{
+						subEmitter.Probability = glm::clamp(subEmitter.Probability, 0.f, 1.f);
+						bChanged = true;
+					}
+					bChanged |= UI::PropertyDrag("Inherit Velocity", subEmitter.InheritVelocity, 0.01f, 0.f, 0.f, "Fraction of the particle's velocity that the spawned particles start with");
+					bChanged |= UI::Property("Inherit Color", subEmitter.bInheritColor, "The spawned particles are tinted with the particle's color");
+					if (UI::Button("", "Remove"))
+						toRemove = i;
+
+					UI::EndPropertyGrid();
+					ImGui::PopID();
+				}
+
+				if (toRemove != s_InvalidIndex)
+				{
+					emitter.SubEmitters.erase(emitter.SubEmitters.begin() + toRemove);
+					bChanged = true;
+				}
+
+				ImGui::Spacing();
+				const bool bHasOtherEmitters = m_Emitters.size() > 1u;
+				const bool bCanAdd = bHasOtherEmitters && emitter.SubEmitters.size() < ParticleEmitter::MaxSubEmitters;
+				if (!bCanAdd)
+					UI::PushItemDisabled();
+				if (ImGui::Button("Add Sub-emitter"))
+				{
+					auto& subEmitter = emitter.SubEmitters.emplace_back();
+					for (const auto& other : m_Emitters)
+					{
+						if (other.ID != emitter.ID)
+						{
+							subEmitter.EmitterID = other.ID;
+							break;
+						}
+					}
+					bChanged = true;
+				}
+				if (!bCanAdd)
+					UI::PopItemDisabled();
+				if (!bHasOtherEmitters)
+				{
+					ImGui::SameLine();
+					ImGui::TextDisabled("Add another emitter to use it as a sub-emitter");
+				}
+				else if (emitter.SubEmitters.size() >= ParticleEmitter::MaxSubEmitters)
+				{
+					ImGui::SameLine();
+					ImGui::TextDisabled("Up to %u sub-emitters", ParticleEmitter::MaxSubEmitters);
+				}
+
+				UI::BeginPropertyGrid("SubEmittersEnd"); // `EndSection` closes it
+				EndSection();
+			}
+		}
+
 		return bChanged;
 	}
 
@@ -904,18 +1125,49 @@ namespace Eagle
 
 	void ParticleSystemAssetEditor::RecalculateLifetime()
 	{
-		// Time until every particle of a finite system has died
-		m_Lifetime = m_Emitters.empty() ? FLT_MAX : 0.f;
+		// Time until every particle of a finite system has died, so the preview can restart.
+		// Only emitters that spawn on their own count. Disabled emitters spawn nothing, and event-only emitters are spawned by others
+		m_Lifetime = 0.f;
+		bool bAnySpawningEmitter = false;
 		for (const auto& emitter : m_Emitters)
 		{
+			if (!emitter.bEmit || emitter.bSpawnOnlyFromEvents)
+				continue;
+
+			bAnySpawningEmitter = true;
 			if (emitter.LoopCount == 0)
 			{
-				m_Lifetime = FLT_MAX;
+				m_Lifetime = FLT_MAX; // Loops forever
 				break;
 			}
 
 			const float currentLifetime = emitter.StartDelay + float(emitter.LoopCount) * emitter.LoopDuration + emitter.LifetimeMax;
 			m_Lifetime = glm::max(currentLifetime, m_Lifetime);
+		}
+
+		if (!bAnySpawningEmitter)
+		{
+			m_Lifetime = FLT_MAX; // Nothing plays, nothing to restart
+		}
+		else if (m_Lifetime < FLT_MAX)
+		{
+			// Sub-emitter particles are spawned when other particles die or collide, at the latest when the last of them dies.
+			// So they can outlive the rest by their own lifetime (chains of sub-emitters aren't followed further)
+			float subEmitterLifetime = 0.f;
+			for (const auto& emitter : m_Emitters)
+			{
+				if (!emitter.bEmit || !emitter.bSpawnOnlyFromEvents)
+					continue;
+
+				const bool bReferenced = std::any_of(m_Emitters.begin(), m_Emitters.end(), [&emitter](const ParticleEmitter& other)
+				{
+					return other.bEmit && std::any_of(other.SubEmitters.begin(), other.SubEmitters.end(),
+						[&emitter](const ParticleEmitter::SubEmitter& link) { return link.EmitterID == emitter.ID; });
+				});
+				if (bReferenced)
+					subEmitterLifetime = glm::max(subEmitterLifetime, emitter.LifetimeMax);
+			}
+			m_Lifetime += subEmitterLifetime;
 		}
 
 		m_Timer.Restart();

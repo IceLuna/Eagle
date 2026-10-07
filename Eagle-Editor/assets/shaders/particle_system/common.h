@@ -17,6 +17,12 @@ struct ParticleSystemData
 	uint SimulateCount;
 	uint DeadCount;
 	uint DroppedCount; // Particles that couldn't be spawned this frame because the pool was full. Read back by the CPU to grow the pool
+	uint EventSpawnBudget; // Particles spawned by sub-emitter events this frame
+	uint Padding0; // Keeps `CullingView` at offset 32 in C++ too
+
+	// The culling camera of this frame, for per-particle culling (copied by `prepare_data` from its push constants)
+	mat4 CullingView;
+	vec4 CullingFrustum; // NearRight, NearTop, NearPlane, FarPlane (see `CullingFrustum`; the planes are negative view-space z)
 };
 
 const uint ParticleCollisionType_None = 0;
@@ -45,17 +51,52 @@ using uvec2 = glm::uvec2;
 
 #endif
 
-const uint Emitter_Explode_Mask            = 1 << 0;
-const uint Emitter_ApplyGravity_Mask       = 1 << 1;
-const uint Emitter_AlphaBlending_Mask      = 1 << 2;
-const uint Emitter_Enabled_Mask            = 1 << 3;
-const uint Emitter_AdditiveBlending_Mask   = 1 << 4;
-const uint Emitter_BlendAnimation_Mask     = 1 << 5;
-const uint Emitter_DestroyImmediately_Mask = 1 << 6;
-const uint Emitter_FaceDirection_Mask      = 1 << 7;
-const uint Emitter_SkeletalMesh_Mask       = 1 << 8;
-const uint Emitter_WorldSpaceVelocity_Mask = 1 << 9;
-const uint Emitter_LocalSimulation_Mask    = 1 << 10;
+const uint Emitter_MaxSubEmitters = 4; // Per emitter. Must match `ParticleEmitter::MaxSubEmitters`
+const uint ParticleEvents_Capacity = 16384; // Max events per frame
+
+const uint Emitter_Explode_Mask             = 1 << 0;
+const uint Emitter_ApplyGravity_Mask        = 1 << 1;
+const uint Emitter_AlphaBlending_Mask       = 1 << 2;
+const uint Emitter_Enabled_Mask             = 1 << 3;
+const uint Emitter_AdditiveBlending_Mask    = 1 << 4;
+const uint Emitter_BlendAnimation_Mask      = 1 << 5;
+const uint Emitter_DestroyImmediately_Mask  = 1 << 6;
+const uint Emitter_FaceDirection_Mask       = 1 << 7;
+const uint Emitter_SkeletalMesh_Mask        = 1 << 8;
+const uint Emitter_WorldSpaceVelocity_Mask  = 1 << 9;
+const uint Emitter_LocalSimulation_Mask     = 1 << 10;
+const uint Emitter_HasSubEmitters_Mask      = 1 << 11; // Its particles can spawn particles of other emitters
+const uint Emitter_SpawnOnlyFromEvents_Mask = 1 << 12; // Doesn't spawn on its own, only through sub-emitter events
+const uint Emitter_PerParticleCulling_Mask  = 1 << 13; // Each particle is tested against the frustum, instead of the emitter's bounds
+
+const uint SubEmitterTrigger_None      = 0;
+const uint SubEmitterTrigger_Death     = 1;
+const uint SubEmitterTrigger_Collision = 2;
+
+const uint SubEmitter_InheritColor_Mask = 1 << 0;
+
+// A link from an emitter to one of its sub-emitters
+struct SubEmitterLink
+{
+	uint TargetEmitterRef; // The sub-emitter index + generation
+	uint Trigger;
+	uint CountMin;
+	uint CountMax;
+	float Probability;
+	float InheritVelocity;
+	uint Flags;
+	uint Padding0;
+};
+
+// An event that spawns particles of a sub-emitter
+struct ParticleEvent
+{
+	vec3 Position;
+	uint EmitterRef; // The sub-emitter
+	vec3 Velocity; // The inherited part of the particle's velocity
+	uint Count; // Particles to spawn
+	vec4 Color; // The inherited color
+};
 
 const uint Emitter_Internal_IsVisible_Mask   = 1 << 0;
 const uint Emitter_Internal_WasExplode_Mask  = 1 << 1; // Used to handle `bExplode` correctly
@@ -254,8 +295,8 @@ struct PackedParticle
 
 	float TintFactor; // Blend factor between `RandomTintA` and `RandomTintB`
 	float RotationSpeed; // Radians per second
-	uint Padding0;
-	uint Padding1;
+	uint InheritedColorRG; // packHalf2x16. Color inherited from the particle that spawned this one through a sub-emitter event
+	uint InheritedColorBA;
 };
 
 #ifndef __cplusplus
@@ -324,6 +365,7 @@ struct Particle
 
 	float TintFactor;
 	float RotationSpeed;
+	vec4 InheritedColor; // From a sub-emitter event
 };
 
 void Particle_CalculateAnimationUV(uvec2 coord, uvec2 animationImagesNum, out vec2 uv0, out vec2 uv1)
@@ -386,6 +428,8 @@ PackedParticle Particle_Pack(Particle particle, uvec2 animationImagesNum)
 
 	packed.TintFactor = particle.TintFactor;
 	packed.RotationSpeed = particle.RotationSpeed;
+	packed.InheritedColorRG = packHalf2x16(particle.InheritedColor.rg);
+	packed.InheritedColorBA = packHalf2x16(particle.InheritedColor.ba);
 
 	return packed;
 }
@@ -413,6 +457,7 @@ Particle Particle_Unpack(PackedParticle packed)
 	particle.RotationZOffset = packed.RotationZOffset;
 	particle.TintFactor = packed.TintFactor;
 	particle.RotationSpeed = packed.RotationSpeed;
+	particle.InheritedColor = vec4(unpackHalf2x16(packed.InheritedColorRG), unpackHalf2x16(packed.InheritedColorBA));
 
 	unpacked = unpackHalf2x16(packed.RotationZ_AnimationLerp);
 	particle.RotationZ = unpacked.x;
@@ -573,10 +618,14 @@ float FastForward_LastSpawnEventIndex(Emitter emitter, bool bExplode)
 		return lastExplosion;
 	}
 
-	float emissionEnd = time;
+	// For limited loops, particle `k` spawns at `k / SpawnRate`, if that's before the end of the last loop (not at it)
 	if (emitter.LoopCount != 0)
-		emissionEnd = min(emissionEnd, emitter.LoopCount * emitter.LoopDuration);
-	return floor(emissionEnd * emitter.SpawnRate);
+	{
+		const float emissionEnd = float(emitter.LoopCount) * emitter.LoopDuration;
+		if (time >= emissionEnd)
+			return max(ceil(emissionEnd * float(emitter.SpawnRate) - 0.001f) - 1.f, 0.f);
+	}
+	return floor(time * float(emitter.SpawnRate));
 }
 
 float FastForward_SpawnEventTime(Emitter emitter, bool bExplode, float spawnEvent)

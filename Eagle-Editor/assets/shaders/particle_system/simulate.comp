@@ -64,13 +64,27 @@ layout(binding = 13) readonly buffer DecompositedTransformsBuffer
     DecompositedTransform g_DecompositedTransforms[];
 };
 
-layout(binding = 14) buffer IndicesToRenderOpaqueBuffer
+layout(binding = 14) buffer ParticleEventsBuffer
+{
+    uint g_EventsCount[2]; // Events written into each half
+    uint g_EventsPadding0;
+    uint g_EventsPadding1;
+    ParticleEvent g_Events[]; // Split into two halves (ping-pong)
+};
+
+// `Emitter_MaxSubEmitters` links per emitter slot
+layout(binding = 15) readonly buffer SubEmitterLinksBuffer
+{
+    SubEmitterLink g_SubEmitterLinks[];
+};
+
+layout(binding = 16) buffer IndicesToRenderOpaqueBuffer
 {
     uint g_IndicesToRenderOpaque[];
 };
 
 #ifdef EG_SORT_OPAQUE
-layout(binding = 15) buffer DistancesOpaqueBuffer
+layout(binding = 17) buffer DistancesOpaqueBuffer
 {
     uint g_DistancesOpaque[];
 };
@@ -118,6 +132,63 @@ bool PopAlive(out uint particleIndex)
     }
     particleIndex = g_AliveIndicesPreSim[index - 1];
     return true;
+}
+
+// Writes a sub-emitter event for every link of the particle's emitter that reacts to `trigger`.
+// The next frame's `emit` spawns the particles
+void TriggerSubEmitters(uint trigger, Particle particle, uint particleIndex)
+{
+    const uint emitterIndex = Particle_GetEmitterIndex(particle.EmitterRef);
+    const Emitter emitter = g_Emitters[emitterIndex];
+    if (!HasFlag(emitter.Flags, Emitter_HasSubEmitters_Mask) || Particle_GetEmitterGeneration(particle.EmitterRef) != (emitter.Generation & Emitter_GenerationMask))
+        return;
+
+    Random random = Random_Init(uvec2(particleIndex, floatBitsToUint(particle.Lifetime)), floatBitsToUint(particle.Position.x) ^ floatBitsToUint(particle.Position.z));
+    for (uint i = 0; i < Emitter_MaxSubEmitters; ++i)
+    {
+        const SubEmitterLink link = g_SubEmitterLinks[emitterIndex * Emitter_MaxSubEmitters + i];
+        if (link.Trigger != trigger || Random_NextFloat(random) >= link.Probability)
+            continue;
+
+        const uint countRange = link.CountMax - link.CountMin;
+        const uint count = link.CountMin + min(uint(Random_NextFloat(random) * float(countRange + 1u)), countRange);
+        if (count == 0u)
+            continue;
+
+        const uint slot = atomicAdd(g_EventsCount[g_PreSimIndex], 1u);
+        if (slot >= ParticleEvents_Capacity)
+            continue; // Too many events this frame
+
+        ParticleEvent particleEvent;
+        particleEvent.Position = particle.Position;
+        particleEvent.EmitterRef = link.TargetEmitterRef;
+        particleEvent.Velocity = particle.EffectiveVelocity * link.InheritVelocity;
+        particleEvent.Count = count;
+        particleEvent.Color = HasFlag(link.Flags, SubEmitter_InheritColor_Mask) ? particle.Color : vec4(1.f);
+        g_Events[g_PreSimIndex * ParticleEvents_Capacity + slot] = particleEvent;
+    }
+}
+
+// Per-particle culling. A sphere around the particle against this frame's culling frustum, in view space
+// (the same frustum as `FrustumAABBIntersection`)
+bool Particle_IsInFrustum(vec3 worldPos, float radius)
+{
+    const vec3 p = vec3(g_Data.CullingView * vec4(worldPos, 1.f));
+    const float xNear = g_Data.CullingFrustum.x;
+    const float yNear = g_Data.CullingFrustum.y;
+    const float zNear = g_Data.CullingFrustum.z; // Negative
+    const float zFar = g_Data.CullingFrustum.w;  // Negative, smaller than `zNear`
+
+    if (p.z - radius > zNear || p.z + radius < zFar)
+        return false;
+
+    // The side planes go through the eye. Inside: `dot(normal, p) >= 0` (normals point inwards, not normalized)
+    const float lengthX = length(vec2(zNear, xNear));
+    const float lengthY = length(vec2(zNear, yNear));
+    return dot(vec3(zNear, 0.f, -xNear), p) >= -radius * lengthX   // Right
+        && dot(vec3(-zNear, 0.f, -xNear), p) >= -radius * lengthX  // Left
+        && dot(vec3(0.f, zNear, -yNear), p) >= -radius * lengthY   // Top
+        && dot(vec3(0.f, -zNear, -yNear), p) >= -radius * lengthY; // Bottom
 }
 
 void PushDead(uint particleIndex)
@@ -169,6 +240,7 @@ void main()
 
     if (particle.CurrentLifetime >= particle.Lifetime)
     {
+        TriggerSubEmitters(SubEmitterTrigger_Death, particle, particleIndex);
         PushDead(particleIndex);
         return;
     }
@@ -229,9 +301,12 @@ void main()
                         switch (emitter.CollisionType)
                         {
                             case ParticleCollisionType_DestroyOnHit:
+                                TriggerSubEmitters(SubEmitterTrigger_Collision, particle, particleIndex);
+                                TriggerSubEmitters(SubEmitterTrigger_Death, particle, particleIndex);
                                 PushDead(particleIndex);
                                 return;
                             case ParticleCollisionType_Bounce:
+                                TriggerSubEmitters(SubEmitterTrigger_Collision, particle, particleIndex);
                                 particle.Velocity = reflect(particle.Velocity, normal) * particle.Bounciness; 
                                 break;
                         }
@@ -268,14 +343,17 @@ void main()
     particle.Flags = EmitterFlagsToParticleFlags(emitter.Flags);
     particle.RotationZ = rotationZ;
     particle.EffectiveVelocity = velocity;
-    particle.Color = SampleEmitterCurve(emitterIndex, EmitterCurve_Color, lifeAlpha) * mix(emitter.RandomTintA, emitter.RandomTintB, particle.TintFactor);
+    particle.Color = SampleEmitterCurve(emitterIndex, EmitterCurve_Color, lifeAlpha) * mix(emitter.RandomTintA, emitter.RandomTintB, particle.TintFactor) * particle.InheritedColor;
     particle.TextureIndex = emitter.TextureIndex;
     particle.AnimationLerp = animationLerp;
 
     g_Particles[particleIndex] = Particle_Pack(particle, emitter.AnimationImagesNum);
     PushAlive(particleIndex);
 
-    if (Emitter_IsVisible(emitter))
+    const bool bVisible = HasFlag(emitter.Flags, Emitter_PerParticleCulling_Mask)
+        ? Particle_IsInFrustum(particle.Position, 0.5f * length(particle.Size)) // Half the quad's diagonal
+        : Emitter_IsVisible(emitter);
+    if (bVisible)
     {
         const vec4 viewPos = g_CameraView * vec4(particle.Position, 1.0);
         if (HasFlag(emitter.Flags, Emitter_AlphaBlending_Mask))

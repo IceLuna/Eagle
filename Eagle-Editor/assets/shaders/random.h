@@ -68,6 +68,11 @@ vec3 Random_NextFloat3(inout Random random)
     return vec3(Random_NextFloat(random), Random_NextFloat(random), Random_NextFloat(random));
 }
 
+vec4 Random_NextFloat4(inout Random random)
+{
+    return vec4(Random_NextFloat(random), Random_NextFloat(random), Random_NextFloat(random), Random_NextFloat(random));
+}
+
 uint Random_NextUint(inout Random random, uint nmax)
 {
     float f = Random_NextFloat(random);

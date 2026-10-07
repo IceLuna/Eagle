@@ -48,6 +48,9 @@ namespace Eagle
 
 		static uint32_t PackEmitterFlags(const ParticleEmitter& emitter)
 		{
+			// Event-only emitters spawn their particles wherever the events happen, so their bounds can't be used
+			const bool bPerParticleCulling = (emitter.Culling == ParticleEmitter::CullingType::PerParticle) || emitter.bSpawnOnlyFromEvents;
+
 			uint32_t flags = 0;
 			flags |= emitter.bExplode ? Emitter_Explode_Mask : 0;
 			flags |= emitter.bApplyGravity ? Emitter_ApplyGravity_Mask : 0;
@@ -60,6 +63,9 @@ namespace Eagle
 			flags |= emitter.IsSkeletalMeshUsed() ? Emitter_SkeletalMesh_Mask : 0;
 			flags |= emitter.VelocitySpace == ParticleEmitter::VelocitySpaceType::World ? Emitter_WorldSpaceVelocity_Mask : 0;
 			flags |= emitter.SimulationSpace == ParticleEmitter::SimulationSpaceType::Local ? Emitter_LocalSimulation_Mask : 0;
+			flags |= !emitter.SubEmitters.empty() ? Emitter_HasSubEmitters_Mask : 0;
+			flags |= emitter.bSpawnOnlyFromEvents ? Emitter_SpawnOnlyFromEvents_Mask : 0;
+			flags |= bPerParticleCulling ? Emitter_PerParticleCulling_Mask : 0;
 
 			return flags;
 		}
@@ -116,7 +122,8 @@ namespace Eagle
 
 			// Disable emitter if it's useless. A continuous emitter with `SpawnRate` 0 can still spawn by distance
 			const bool bSpawnsNothing = outData.SpawnRate == 0u && (emitter.bExplode || outData.SpawnPerMeter <= 0.f);
-			if (bSpawnsNothing || outData.LoopDuration <= 0.f)
+			// Emitters that only spawn through sub-emitter events don't need a spawn rate or loops
+			if (!emitter.bSpawnOnlyFromEvents && (bSpawnsNothing || outData.LoopDuration <= 0.f))
 			{
 				outData.Flags = outData.Flags & (~Emitter_Enabled_Mask);
 			}
@@ -147,7 +154,7 @@ namespace Eagle
 				else
 					fastForwardTime = glm::min(fastForwardTime, outData.LoopCount * outData.LoopDuration + lifetimeMax); // Everything is finished by then
 				// Spawning by distance only, which means fast-forwarding a static emitter wouldn't spawn anything
-				outData.FastForwardTime = (outData.SpawnRate > 0u || emitter.bExplode) ? fastForwardTime : 0.f;
+				outData.FastForwardTime = (!emitter.bSpawnOnlyFromEvents && (outData.SpawnRate > 0u || emitter.bExplode)) ? fastForwardTime : 0.f;
 			}
 		}
 	
@@ -446,6 +453,87 @@ namespace Eagle
 		WriteEmitterCurves(cmd, data.Emitter, emitterData.EmitterIndex);
 	}
 
+	void ParticleSystemTask::WriteSubEmitterLinks(const Ref<CommandBuffer>& cmd, const GUID& systemID)
+	{
+		auto it = m_SystemToEmittersMapping.find(systemID);
+		if (it == m_SystemToEmittersMapping.end())
+			return; // The system was removed
+
+		EG_GPU_TIMING_SCOPED(cmd, "Particle System. Write Sub-emitter Links");
+		EG_CPU_TIMING_SCOPED("Particle System. Write Sub-emitter Links");
+
+		bool bTransitioned = false;
+
+		const auto& emitters = it->second;
+		for (const auto& [emitter, emitterData] : emitters)
+		{
+			if (!emitterData.IsEmitterIndexValid())
+				continue;
+
+			std::array<SubEmitterLink, Emitter_MaxSubEmitters> links{};
+			uint32_t linksCount = 0;
+			for (const auto& subEmitter : emitter.SubEmitters)
+			{
+				if (linksCount >= Emitter_MaxSubEmitters)
+					break;
+				if (subEmitter.EmitterID == emitter.ID)
+					continue;
+
+				ParticleEmitter key;
+				key.ID = subEmitter.EmitterID;
+				auto target = emitters.find(key);
+				if (target == emitters.end() || !target->second.IsEmitterIndexValid())
+					continue; // Not part of this system (or it was removed)
+
+				const uint32_t targetIndex = target->second.EmitterIndex;
+				uint32_t countMin = subEmitter.CountRange.x;
+				uint32_t countMax = glm::max(subEmitter.CountRange.y, countMin);
+				if (subEmitter.bUseEmitterSpawnSettings)
+				{
+					// One burst, or one loop's worth of a continuous emitter at once
+					const ParticleEmitter& targetEmitter = target->first;
+					const float count = targetEmitter.bExplode ? float(targetEmitter.SpawnRate)
+						: glm::ceil(float(targetEmitter.SpawnRate) * glm::max(targetEmitter.LoopDuration, 0.f));
+					countMin = countMax = uint32_t(glm::min(double(count), double(std::numeric_limits<uint32_t>::max())));
+				}
+
+				SubEmitterLink& link = links[linksCount++];
+				link.TargetEmitterRef = ((m_EmitterGenerations[targetIndex] & Emitter_GenerationMask) << Emitter_IndexBits) | (targetIndex & Emitter_MaxIndex);
+				link.CountMin = countMin;
+				link.CountMax = countMax;
+				link.Probability = glm::clamp(subEmitter.Probability, 0.f, 1.f);
+				link.InheritVelocity = subEmitter.InheritVelocity;
+				link.Flags = subEmitter.bInheritColor ? SubEmitter_InheritColor_Mask : 0u;
+
+				switch (subEmitter.Trigger)
+				{
+					case ParticleEmitter::SubEmitterTrigger::Collision:
+						link.Trigger = SubEmitterTrigger_Collision;
+						break;
+					case ParticleEmitter::SubEmitterTrigger::Death:
+						link.Trigger = SubEmitterTrigger_Death;
+						break;
+					default:
+						link.Trigger = SubEmitterTrigger_None;
+						EG_CORE_ASSERT(false);
+						break;
+				}
+			}
+
+			if (!bTransitioned)
+			{
+				cmd->TransitionLayout(m_SubEmitterLinksBuffer, BufferLayoutType::StorageBuffer, BufferLayoutType::CopyDest);
+				bTransitioned = true;
+			}
+
+			const size_t offset = size_t(emitterData.EmitterIndex) * sizeof(links);
+			cmd->WriteTransitionless(m_SubEmitterLinksBuffer, links.data(), sizeof(links), offset);
+		}
+
+		if (bTransitioned)
+			cmd->TransitionLayout(m_SubEmitterLinksBuffer, BufferLayoutType::CopyDest, BufferLayoutType::StorageBuffer);
+	}
+
 	void ParticleSystemTask::WriteEmitterCurves(const Ref<CommandBuffer>& cmd, const ParticleEmitter& emitter, uint32_t emitterIndex)
 	{
 		std::vector<glm::vec4> samples(size_t(EmitterCurve_Count) * EmitterCurve_SamplesCount);
@@ -508,6 +596,9 @@ namespace Eagle
 	{
 		ParticleSystemData systemData(m_MaxParticles);
 		cmd->Write(m_SystemData, &systemData, sizeof(systemData), 0, m_SystemData->GetLayout(), BufferLayoutType::StorageBuffer);
+
+		const uint32_t eventsHeader[4] = { 0u, 0u, 0u, 0u };
+		cmd->Write(m_ParticleEventsBuffer, eventsHeader, sizeof(eventsHeader), 0, m_ParticleEventsBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 
 		std::vector<uint32_t> deadIndices(m_MaxParticles);
 		for (uint32_t i = 0; i < m_MaxParticles; ++i)
@@ -634,6 +725,21 @@ namespace Eagle
 				m_EmitterCurvesBuffer = std::move(newBuffer);
 			}
 
+			constexpr size_t linksSizePerEmitter = sizeof(SubEmitterLink) * Emitter_MaxSubEmitters;
+			currentSize = m_SubEmitterLinksBuffer->GetSize();
+			newSize = numEmittersAfterUpdate * linksSizePerEmitter;
+			if (newSize > currentSize)
+			{
+				newSize = (newSize * 12) / 10; // Resize policy: increase by 20%
+				BufferSpecifications specs = m_SubEmitterLinksBuffer->GetSpecs();
+				specs.Size = newSize;
+
+				Ref<Buffer> newBuffer = Buffer::Create(specs, m_SubEmitterLinksBuffer->GetDebugName());
+				if (m_NumEmitters > 0)
+					cmd->CopyBuffer(m_SubEmitterLinksBuffer, newBuffer, 0, 0, m_NumEmitters * linksSizePerEmitter);
+				m_SubEmitterLinksBuffer = std::move(newBuffer);
+			}
+
 			currentSize = m_EmittersSpawnCountBuffer->GetSize();
 			newSize = numEmittersAfterUpdate * sizeof(uint32_t);
 			if (newSize > currentSize)
@@ -648,6 +754,7 @@ namespace Eagle
 		{
 			for (const auto& request : m_ModifyRequestQueue)
 			{
+				m_ChangedSystemsTemp.emplace(request.SystemID);
 				switch (request.Type)
 				{
 				case ModifyRequest::RequestType::Add:
@@ -668,6 +775,10 @@ namespace Eagle
 				}
 			}
 			m_ModifyRequestQueue.clear();
+
+			// After all requests, a sub-emitter link needs both emitters to have their GPU slots
+			for (const GUID& systemID : m_ChangedSystemsTemp)
+				WriteSubEmitterLinks(cmd, systemID);
 		}
 		if (bMeshDataRebuilt)
 			UpdateMeshEmittersData(cmd);
@@ -716,6 +827,11 @@ namespace Eagle
 			{
 				for (const auto& [emitter, _] : emitters)
 				{
+					// Sub-emitter particles can't be estimated since they depend on how many particles die or collide.
+					// The pool grows if they don't fit (GPU readback system)
+					if (emitter.bSpawnOnlyFromEvents)
+						continue;
+
 					const uint32_t spawnRate = glm::min(emitter.SpawnRate, ParticleEmitter::MaxSpawnRate);
 					if (emitter.bExplode)
 					{
@@ -823,6 +939,8 @@ namespace Eagle
 		m_PrepareData->SetBuffer(m_EmittersBuffer, 0, 3);
 		m_PrepareData->SetBuffer(m_EmittersSpawnCountBuffer, 0, 4);
 		m_PrepareData->SetBuffer(m_TransformsBuffer, 0, 5);
+		m_PrepareData->SetBuffer(m_ParticleEventsBuffer, 0, 6);
+		m_PrepareData->SetBuffer(m_EventSpawnOffsetsBuffer, 0, 7);
 
 		cmd->TransitionLayout(m_DrawArgs, m_DrawArgs->GetLayout(), BufferLayoutType::StorageBuffer);
 		cmd->TransitionLayout(m_DispatchArgs, m_DispatchArgs->GetLayout(), BufferLayoutType::StorageBuffer);
@@ -861,30 +979,50 @@ namespace Eagle
 		pushData.MaxParticles = m_MaxParticles;
 		pushData.Gravity = m_Renderer.GetGravity();
 
-		m_Emit->SetBuffer(m_SystemData, 0, 0);
-		m_Emit->SetBuffer(m_ParticlesBuffer, 0, 1);
-		m_Emit->SetBuffer(m_EmittersBuffer, 0, 2);
-		m_Emit->SetBuffer(m_DeadIndices, 0, 3);
-		m_Emit->SetBuffer(m_AliveIndices[m_PingPong], 0, 4);
-		m_Emit->SetBuffer(m_EmittersSpawnCountBuffer, 0, 5);
-		m_Emit->SetBuffer(m_TransformsBuffer, 0, 6);
-		m_Emit->SetBuffer(m_StaticMeshVertexBuffer, 0, 7);
-		m_Emit->SetBuffer(m_StaticMeshIndexBuffer, 0, 8);
-		m_Emit->SetBuffer(m_SkeletalMeshVertexBuffer, 0, 9);
-		m_Emit->SetBuffer(m_SkeletalMeshIndexBuffer, 0, 10);
-		m_Emit->SetBuffer(m_AnimationTransformsBuffer, 0, 11);
-		m_Emit->SetBuffer(m_DecompositedTransformsBuffer, 0, 12);
-		m_Emit->SetBuffer(m_EmitterCurvesBuffer, 0, 13);
+		auto bindCommon = [this](const Ref<Pipeline>& pipeline)
+		{
+			pipeline->SetBuffer(m_SystemData, 0, 0);
+			pipeline->SetBuffer(m_ParticlesBuffer, 0, 1);
+			pipeline->SetBuffer(m_EmittersBuffer, 0, 2);
+			pipeline->SetBuffer(m_DeadIndices, 0, 3);
+			pipeline->SetBuffer(m_AliveIndices[m_PingPong], 0, 4);
+			pipeline->SetBuffer(m_EmittersSpawnCountBuffer, 0, 5);
+			pipeline->SetBuffer(m_TransformsBuffer, 0, 6);
+			pipeline->SetBuffer(m_StaticMeshVertexBuffer, 0, 7);
+			pipeline->SetBuffer(m_StaticMeshIndexBuffer, 0, 8);
+			pipeline->SetBuffer(m_SkeletalMeshVertexBuffer, 0, 9);
+			pipeline->SetBuffer(m_SkeletalMeshIndexBuffer, 0, 10);
+			pipeline->SetBuffer(m_AnimationTransformsBuffer, 0, 11);
+			pipeline->SetBuffer(m_DecompositedTransformsBuffer, 0, 12);
+			pipeline->SetBuffer(m_EmitterCurvesBuffer, 0, 13);
+		};
 
-		cmd->DispatchIndirect(m_Emit, m_DispatchArgs, 0, &pushData);
+		// Emits regular particles
+		{
+			bindCommon(m_Emit);
+			cmd->DispatchIndirect(m_Emit, m_DispatchArgs, 0, &pushData);
 
-		cmd->Barrier(m_SystemData);
-		cmd->Barrier(m_ParticlesBuffer);
-		cmd->Barrier(m_DeadIndices);
-		cmd->Barrier(m_AliveIndices[m_PingPong]);
+			cmd->Barrier(m_SystemData);
+			cmd->Barrier(m_ParticlesBuffer);
+			cmd->Barrier(m_DeadIndices);
+			cmd->Barrier(m_AliveIndices[m_PingPong]);
+		}
+
+		// Emits particles of the last frame's sub-emitter events
+		{
+			bindCommon(m_EmitEvents);
+			m_EmitEvents->SetBuffer(m_ParticleEventsBuffer, 0, 14);
+			m_EmitEvents->SetBuffer(m_EventSpawnOffsetsBuffer, 0, 15);
+			cmd->DispatchIndirect(m_EmitEvents, m_DispatchArgs, sizeof(DispatchIndirectArgs) * 2, &pushData);
+
+			cmd->Barrier(m_SystemData);
+			cmd->Barrier(m_ParticlesBuffer);
+			cmd->Barrier(m_DeadIndices);
+			cmd->Barrier(m_AliveIndices[m_PingPong]);
+		}
 
 		auto& stats = m_Renderer.GetStats();
-		++stats.Dispatches;
+		stats.Dispatches += 2;
 	}
 
 	void ParticleSystemTask::SimulatePass(const Ref<CommandBuffer>& cmd)
@@ -930,10 +1068,12 @@ namespace Eagle
 		m_Simulate->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 0, 11);
 		m_Simulate->SetBuffer(m_EmitterCurvesBuffer, 0, 12);
 		m_Simulate->SetBuffer(m_DecompositedTransformsBuffer, 0, 13);
-		m_Simulate->SetBuffer(m_OpaqueIndicesToRender, 0, 14);
+		m_Simulate->SetBuffer(m_ParticleEventsBuffer, 0, 14);
+		m_Simulate->SetBuffer(m_SubEmitterLinksBuffer, 0, 15);
+		m_Simulate->SetBuffer(m_OpaqueIndicesToRender, 0, 16);
 		if (bSortOpaque)
 		{
-			m_Simulate->SetBuffer(m_OpaqueDistancesBuffer, 0, 15);
+			m_Simulate->SetBuffer(m_OpaqueDistancesBuffer, 0, 17);
 		}
 
 		const ImageLayout oldDepthLayout = gbuffer.Depth->GetLayout();
@@ -1598,6 +1738,9 @@ namespace Eagle
 			specs.Size = m_MaxEmitters * Utils::s_EmitterCurvesSize;
 			m_EmitterCurvesBuffer = Buffer::Create(specs, "ParticleSystem_EmitterCurves");
 
+			specs.Size = m_MaxEmitters * sizeof(SubEmitterLink) * Emitter_MaxSubEmitters;
+			m_SubEmitterLinksBuffer = Buffer::Create(specs, "ParticleSystem_SubEmitterLinks");
+
 			specs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 			specs.Size = m_MaxEmitters * sizeof(glm::mat4);
 			m_TransformsBuffer = Buffer::Create(specs, "ParticleSystem_Transforms");
@@ -1620,10 +1763,23 @@ namespace Eagle
 		}
 
 		{
+			// A 16-byte header + two halves of `ParticleEvents_Capacity` events
+			BufferSpecifications specs{};
+			specs.Layout = BufferLayoutType::StorageBuffer;
+			specs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+			specs.Size = sizeof(uint32_t) * 4 + sizeof(ParticleEvent) * ParticleEvents_Capacity * 2;
+			m_ParticleEventsBuffer = Buffer::Create(specs, "ParticleSystem_Events");
+
+			// The first particle of each event
+			specs.Size = sizeof(uint32_t) * ParticleEvents_Capacity;
+			m_EventSpawnOffsetsBuffer = Buffer::Create(specs, "ParticleSystem_EventSpawnOffsets");
+		}
+
+		{
 			BufferSpecifications specs{};
 			specs.Layout = BufferLayoutType::StorageBuffer;
 			specs.Usage = BufferUsage::StorageBuffer | BufferUsage::IndirectBuffer | BufferUsage::UniformBuffer;
-			specs.Size = sizeof(DispatchIndirectArgs) * 2; // Emit args + Simulate args
+			specs.Size = sizeof(DispatchIndirectArgs) * 3; // Emit args + Simulate args + Emit sub-emitter events args
 			m_DispatchArgs = Buffer::Create(specs, "ParticleSystem_DispatchArgs");
 
 			specs.Size = sizeof(DrawIndirectArgs) * 2; // Args for opaque + translucent passes
@@ -1641,10 +1797,13 @@ namespace Eagle
 			m_SkeletalMeshIndexBuffer = Buffer::Create(specs, "ParticleSystem_SkeletalMeshIndices");
 		}
 
-		RenderManager::Submit([dataBuffer = m_SystemData, deadIndices = m_DeadIndices, maxParticles = m_MaxParticles](const Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([dataBuffer = m_SystemData, deadIndices = m_DeadIndices, eventsBuffer = m_ParticleEventsBuffer, maxParticles = m_MaxParticles](const Ref<CommandBuffer>& cmd) mutable
 		{
 			ParticleSystemData systemData(maxParticles);
 			cmd->Write(dataBuffer, &systemData, sizeof(systemData), 0, dataBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
+
+			const uint32_t eventsHeader[4] = { 0u, 0u, 0u, 0u };
+			cmd->Write(eventsBuffer, eventsHeader, sizeof(eventsHeader), 0, eventsBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 
 			std::vector<uint32_t> data(maxParticles);
 			for (size_t i = 0; i < maxParticles; ++i)
@@ -1667,6 +1826,9 @@ namespace Eagle
 			
 			state.ComputeShader = Shader::Create("particle_system/emit.comp", ShaderType::Compute);
 			m_Emit = PipelineCompute::Create(state);
+
+			state.ComputeShader = Shader::Create("particle_system/emit.comp", ShaderType::Compute, { {"EG_PS_EMIT_EVENTS", ""} });
+			m_EmitEvents = PipelineCompute::Create(state);
 		}
 
 		// Graphics pipelines

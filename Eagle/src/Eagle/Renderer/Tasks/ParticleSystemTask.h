@@ -97,6 +97,7 @@ namespace Eagle
 		void ReclaimDeadEmitters();
 		void UpdateMeshEmittersData(const Ref<CommandBuffer>& cmd);
 		void WriteEmitterCurves(const Ref<CommandBuffer>& cmd, const ParticleEmitter& emitter, uint32_t emitterIndex);
+		void WriteSubEmitterLinks(const Ref<CommandBuffer>& cmd, const GUID& systemID);
 
 		void AddEmitterMeshData(const ParticleEmitter& emitter);
 		void RemoveEmitterMeshData(const ParticleEmitter& emitter);
@@ -127,6 +128,10 @@ namespace Eagle
 			uint32_t SimulateCount = 0;
 			uint32_t DeadCount = 0;
 			uint32_t DroppedCount = 0;
+			uint32_t EventSpawnBudget = 0;
+			uint32_t Padding0 = 0;
+			glm::mat4 CullingView = glm::mat4(1.f);
+			glm::vec4 CullingFrustum = glm::vec4(0.f);
 
 			ParticleSystemData(uint32_t deadCount) : DeadCount(deadCount) {}
 		};
@@ -174,6 +179,9 @@ namespace Eagle
 		Ref<Buffer> m_EmittersSpawnCountBuffer;
 		Ref<Buffer> m_EmittersBuffer;
 		Ref<Buffer> m_EmitterCurvesBuffer; // Over-lifetime values of every emitter slot, baked from its curves
+		Ref<Buffer> m_SubEmitterLinksBuffer;
+		Ref<Buffer> m_ParticleEventsBuffer; // Sub-emitter events
+		Ref<Buffer> m_EventSpawnOffsetsBuffer;
 		Ref<Buffer> m_AliveIndices[2]; // Pre/Post simulation
 		Ref<Buffer> m_DeadIndices;
 		Ref<Buffer> m_SystemData;
@@ -194,6 +202,7 @@ namespace Eagle
 		bool bRebuildStaticMeshData = false;
 
 		ankerl::unordered_dense::map<Ref<SkeletalMesh>, MeshEmitterData> m_SkeletalMeshDataMapping; // To avoid duplicating meshes in the memory
+		ankerl::unordered_dense::set<GUID> m_ChangedSystemsTemp; // To avoid every frame allocations
 		std::vector<ParticleSkeletalMeshVertex> m_SkeletalMeshVertices;
 		std::vector<Index> m_SkeletalMeshIndices;
 		Ref<Buffer> m_SkeletalMeshVertexBuffer;
@@ -205,6 +214,7 @@ namespace Eagle
 		Ref<PipelineCompute> m_UpdateMaxParticles;
 		Ref<PipelineCompute> m_PrepareData;
 		Ref<PipelineCompute> m_Emit;
+		Ref<PipelineCompute> m_EmitEvents;
 		Ref<PipelineCompute> m_Simulate;
 
 		Ref<PipelineGraphics> m_BillboardRenderTranslucent;

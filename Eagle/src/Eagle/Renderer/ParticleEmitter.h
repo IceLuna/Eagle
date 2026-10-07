@@ -77,6 +77,37 @@ namespace Eagle
 		Transform RelativeTransform; // Relative to the particle system
 		AABB VisibilityAABB = AABB(glm::vec3(-1.f), glm::vec3(1.f)); // If not visible by the camera, it's not rendered to improve perf
 		SimulationSpaceType SimulationSpace = SimulationSpaceType::World;
+
+		enum class CullingType
+		{
+			EmitterBounds, // The emitter's particles are drawn while `VisibilityAABB` (at the emitter's transform) is visible
+			PerParticle    // Each particle is tested against the camera frustum. Useful for particles that end up far from the emitter (trails, sub-emitters)
+		};
+		CullingType Culling = CullingType::EmitterBounds; // Event-only emitters always use `PerParticle`
+
+		// ---------------- Sub-emitter ----------------
+		enum class SubEmitterTrigger
+		{
+			Death,    // The particle's lifetime ended, or a collision destroyed it
+			Collision // The particle hit something
+		};
+
+		struct SubEmitter
+		{
+			GUID EmitterID = GUID(0, 0); // Another emitter of the same particle system
+			SubEmitterTrigger Trigger = SubEmitterTrigger::Death;
+			bool bUseEmitterSpawnSettings = true; // When enabled, uses spawn rates of the sub-emitter. Otherwise, `CountRange` is used
+			glm::uvec2 CountRange = glm::uvec2(1u); // (min, max) particles spawned per event
+			float Probability = 1.f; // Chance that an event spawns anything [0; 1]
+			float InheritVelocity = 0.f; // Fraction of the particle's velocity that spawned particles start with
+			bool bInheritColor = false; // Spawned particles are tinted with the particle's color. For example, useful for liquid/paint splashes. Particles with random or varied colors hit a surface and spawn droplets of the same color.
+		};
+
+		static constexpr uint32_t MaxSubEmitters = 4; // Per emitter. Must match `Emitter_MaxSubEmitters` on the shader side
+		std::vector<SubEmitter> SubEmitters; // Up to `MaxSubEmitters`
+		bool bSpawnOnlyFromEvents = false; // Doesn't spawn particles on its own, only through other emitters sub-emitter events
+		// ---------------------------------------------
+
 		uint32_t LoopCount = 0u; // 0 - infinity
 		float LoopDuration = 1.f;
 		float StartDelay = 0.f; // Seconds before the emitter starts spawning, counted from when it's added (spawned or restarted)

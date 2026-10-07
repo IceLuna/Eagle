@@ -1710,6 +1710,22 @@ namespace Eagle
 				out << YAML::Key << "InheritVelocity" << YAML::Value << emitter.InheritVelocity;
 				out << YAML::Key << "SpawnPerMeter" << YAML::Value << emitter.SpawnPerMeter;
 				out << YAML::Key << "SimulationSpace" << YAML::Value << Utils::GetEnumName(emitter.SimulationSpace);
+				out << YAML::Key << "SpawnOnlyFromEvents" << YAML::Value << emitter.bSpawnOnlyFromEvents;
+				out << YAML::Key << "Culling" << YAML::Value << Utils::GetEnumName(emitter.Culling);
+				out << YAML::Key << "SubEmitters" << YAML::Value << YAML::BeginSeq;
+				for (const auto& subEmitter : emitter.SubEmitters)
+				{
+					out << YAML::BeginMap;
+					out << YAML::Key << "EmitterID" << YAML::Value << subEmitter.EmitterID;
+					out << YAML::Key << "Trigger" << YAML::Value << Utils::GetEnumName(subEmitter.Trigger);
+					out << YAML::Key << "UseEmitterSpawnSettings" << YAML::Value << subEmitter.bUseEmitterSpawnSettings;
+					out << YAML::Key << "CountRange" << YAML::Value << subEmitter.CountRange;
+					out << YAML::Key << "Probability" << YAML::Value << subEmitter.Probability;
+					out << YAML::Key << "InheritVelocity" << YAML::Value << subEmitter.InheritVelocity;
+					out << YAML::Key << "InheritColor" << YAML::Value << subEmitter.bInheritColor;
+					out << YAML::EndMap;
+				}
+				out << YAML::EndSeq;
 				out << YAML::Key << "RadialAcceleration" << YAML::Value << emitter.RadialAcceleration;
 				out << YAML::Key << "TangentialAcceleration" << YAML::Value << emitter.TangentialAcceleration;
 				out << YAML::Key << "NormalVelocityFactor" << YAML::Value << emitter.NormalVelocityFactor;
@@ -5138,6 +5154,34 @@ namespace Eagle
 				emitter.SpawnPerMeter = n.as<float>();
 			if (auto n = node["SimulationSpace"])
 				emitter.SimulationSpace = Utils::GetEnumFromName<ParticleEmitter::SimulationSpaceType>(n.as<std::string>());
+			if (auto n = node["SpawnOnlyFromEvents"])
+				emitter.bSpawnOnlyFromEvents = n.as<bool>();
+			if (auto n = node["Culling"])
+				emitter.Culling = Utils::GetEnumFromName<ParticleEmitter::CullingType>(n.as<std::string>());
+			if (auto subEmittersNode = node["SubEmitters"])
+			{
+				for (const auto& subEmitterNode : subEmittersNode)
+				{
+					if (emitter.SubEmitters.size() >= ParticleEmitter::MaxSubEmitters)
+						break;
+
+					auto& subEmitter = emitter.SubEmitters.emplace_back();
+					if (auto n = subEmitterNode["EmitterID"])
+						subEmitter.EmitterID = n.as<GUID>();
+					if (auto n = subEmitterNode["Trigger"])
+						subEmitter.Trigger = Utils::GetEnumFromName<ParticleEmitter::SubEmitterTrigger>(n.as<std::string>());
+					if (auto n = subEmitterNode["UseEmitterSpawnSettings"])
+						subEmitter.bUseEmitterSpawnSettings = n.as<bool>();
+					if (auto n = subEmitterNode["CountRange"])
+						subEmitter.CountRange = n.as<glm::uvec2>();
+					if (auto n = subEmitterNode["Probability"])
+						subEmitter.Probability = n.as<float>();
+					if (auto n = subEmitterNode["InheritVelocity"])
+						subEmitter.InheritVelocity = n.as<float>();
+					if (auto n = subEmitterNode["InheritColor"])
+						subEmitter.bInheritColor = n.as<bool>();
+				}
+			}
 			emitter.RadialAcceleration = node["RadialAcceleration"].as<float>();
 			emitter.TangentialAcceleration = node["TangentialAcceleration"].as<float>();
 			if (auto n = node["NormalVelocityFactor"])
