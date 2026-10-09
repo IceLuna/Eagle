@@ -4,8 +4,16 @@
 
 namespace Eagle::Compressor
 {
+	// Called after each compressed chunk with the number of processed input bytes. Return false to abort the compression
+	using CompressProgressFunc = std::function<bool(size_t processedBytes, size_t totalBytes)>;
+
 	[[nodiscard]] ScopedDataBuffer Compress(DataBuffer data);
 	[[nodiscard]] inline ScopedDataBuffer Compress(const ScopedDataBuffer& data) { return Compress(data.GetDataBuffer()); }
+
+	// Same as `Compress`, but the data is compressed in chunks, and `onProgress` is called after each of them.
+	// Returns an empty buffer on failure or if `onProgress` returned false
+	[[nodiscard]] ScopedDataBuffer Compress(DataBuffer data, const CompressProgressFunc& onProgress);
+	[[nodiscard]] inline ScopedDataBuffer Compress(const ScopedDataBuffer& data, const CompressProgressFunc& onProgress) { return Compress(data.GetDataBuffer(), onProgress); }
 
 	size_t CompressFast(DataBuffer src, void* dst, size_t dstCapacity); // Returns compressed size. 0 on failure
 	inline size_t CompressFast(const ScopedDataBuffer& src, void* dst, size_t dstCapacity) { return CompressFast(src.GetDataBuffer(), dst, dstCapacity); }

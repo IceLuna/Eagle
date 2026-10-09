@@ -9,6 +9,7 @@
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Debug/CPUTimings.h"
+#include "Eagle/Core/AsyncTask.h"
 #include "ImOGuizmo.h"
 
 #include <glm/gtc/type_ptr.hpp>
@@ -371,6 +372,10 @@ namespace Eagle
 	bool EditorLayer::OnKeyPressed(KeyPressedEvent& e)
 	{
 		if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
+			return false;
+
+		// A modal background task is running. Shortcuts could open popups that would fight with its progress popup
+		if (AsyncTaskManager::IsModalTaskActive())
 			return false;
 
 		//Shortcuts
@@ -2703,7 +2708,11 @@ namespace Eagle
 			SaveDirtyAssets();
 		}
 
-		if (m_DirtyAssetsReason == DirtyAssetsReason::ProjectClose)
+		if (m_DirtyAssetsReason == DirtyAssetsReason::ProjectClose && !CanCloseProject())
+		{
+			m_CloseEngineRequested = false;
+		}
+		else if (m_DirtyAssetsReason == DirtyAssetsReason::ProjectClose)
 		{
 			if (m_CloseEngineRequested)
 				Application::Get().SetShouldClose(true);
@@ -2845,8 +2854,24 @@ namespace Eagle
 		}
 	}
 
+	bool EditorLayer::CanCloseProject() const
+	{
+		if (!AsyncTaskManager::IsBusy())
+			return true;
+
+		// Background tasks use the project's assets, so the project can't be closed under them
+		const std::string taskName = AsyncTaskManager::GetActiveTaskName();
+		EG_CORE_WARN("Can't close the project while `{}` is in progress", taskName);
+		if (!AsyncTaskManager::IsModalTaskActive()) // A modal task already shows a popup with a Cancel button
+			m_ImGuiLayer->AddMessage("`" + taskName + "` is in progress.\nPlease, wait for it to finish or cancel it before closing the project.");
+		return false;
+	}
+
 	void EditorLayer::HandleCloseRequest(bool bCloseEngine)
 	{
+		if (!CanCloseProject())
+			return;
+
 		m_CloseEngineRequested = bCloseEngine;
 		if (!m_OpenedSceneAsset)
 		{
@@ -2858,6 +2883,12 @@ namespace Eagle
 
 	void EditorLayer::ProcessCloseRequest()
 	{
+		if (!CanCloseProject())
+		{
+			m_CloseEngineRequested = false;
+			return;
+		}
+
 		PrepareDirtyAssets(DirtyAssetsReason::ProjectClose);
 		if (!m_ShowDirtyAssetMessage)
 		{

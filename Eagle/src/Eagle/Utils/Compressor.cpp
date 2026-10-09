@@ -69,6 +69,68 @@ namespace Eagle::Compressor
 		return result;
 	}
 
+	ScopedDataBuffer Compress(DataBuffer data, const CompressProgressFunc& onProgress)
+	{
+		if (!onProgress)
+			return Compress(data);
+
+		ZSTD_CCtx* ctx = GetCCtx();
+		if (!ctx)
+		{
+			EG_CORE_ERROR("Failed to compress data. Couldn't create a zstd context");
+			return {};
+		}
+
+		ZSTD_CCtx_reset(ctx, ZSTD_reset_session_and_parameters);
+		ZSTD_CCtx_setParameter(ctx, ZSTD_c_compressionLevel, s_DefaultLevel);
+		ZSTD_CCtx_setParameter(ctx, ZSTD_c_checksumFlag, 1);    // Detect corruption on decompression
+		ZSTD_CCtx_setParameter(ctx, ZSTD_c_contentSizeFlag, 1); // Store original size in the frame header...
+		ZSTD_CCtx_setPledgedSrcSize(ctx, data.Size);
+
+		ScopedDataBuffer result(ZSTD_compressBound(data.Size));
+		ZSTD_outBuffer output{ result.Data(), result.Size(), 0 };
+
+		// Small enough to report progress often, big enough not to slow the compression down
+		constexpr size_t chunkSize = 4ull * 1024ull * 1024ull;
+		const uint8_t* src = (const uint8_t*)data.Data;
+		size_t processed = 0;
+		while (true)
+		{
+			const size_t currentChunkSize = std::min(chunkSize, data.Size - processed);
+			const bool bLastChunk = processed + currentChunkSize == data.Size;
+			const ZSTD_EndDirective mode = bLastChunk ? ZSTD_e_end : ZSTD_e_continue;
+			ZSTD_inBuffer input{ src + processed, currentChunkSize, 0 };
+
+			while (true)
+			{
+				const size_t remaining = ZSTD_compressStream2(ctx, &output, &input, mode);
+				if (ZSTD_isError(remaining))
+				{
+					EG_CORE_ERROR("Failed to compress data. {}", ZSTD_getErrorName(remaining));
+					ZSTD_CCtx_reset(ctx, ZSTD_reset_session_only);
+					return {};
+				}
+
+				const bool bDone = bLastChunk ? (remaining == 0) : (input.pos == input.size);
+				if (bDone)
+					break;
+			}
+
+			processed += currentChunkSize;
+			if (!onProgress(processed, data.Size))
+			{
+				ZSTD_CCtx_reset(ctx, ZSTD_reset_session_only);
+				return {};
+			}
+
+			if (bLastChunk)
+				break;
+		}
+
+		result.GetDataBuffer().Size = output.pos;
+		return result;
+	}
+
 	size_t CompressFast(DataBuffer data, void* dst, size_t dstCapacity)
 	{
 		const size_t compressedBound = ZSTD_compressBound(data.Size);

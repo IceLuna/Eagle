@@ -107,6 +107,25 @@ namespace Eagle
 	static RenderCommandQueue s_CommandQueue[RendererConfig::FramesInFlight];
 	static RenderCommandQueue s_ResourceFreeQueue[RendererConfig::ReleaseFramesInFlight];
 
+	// Commands submitted by threads other than the main and the render threads.
+	// Those threads can submit at any moment, including while the render thread is executing a frame's `s_CommandQueue`,
+	// so they can't write to it. Instead, they write to `s_AsyncCommandQueues`
+	static constexpr uint32_t s_AsyncCommandQueueCount = 2;
+	static RenderCommandQueue s_AsyncCommandQueues[s_AsyncCommandQueueCount];
+	static uint32_t s_AsyncWriteIndex = 0;
+	static std::thread::id s_MainThreadID;
+
+	static void ExecuteAsyncCommands()
+	{
+		uint32_t readIndex = 0;
+		{
+			std::scoped_lock lock(s_SubmitMutex);
+			readIndex = s_AsyncWriteIndex;
+			s_AsyncWriteIndex ^= 1u;
+		}
+		s_AsyncCommandQueues[readIndex].Execute();
+	}
+
 	// We never access `Shader` so it's fine to hold raw pointer to it
 	static std::unordered_map<const Shader*, ShaderDependencies> s_ShaderDependencies;
 
@@ -369,6 +388,7 @@ namespace Eagle
 	void RenderManager::Init()
 	{
 		bImmediateDeletionMode = false;
+		s_MainThreadID = std::this_thread::get_id();
 
 		Application& app = Application::Get();
 		const bool bGame = app.IsGame();
@@ -540,6 +560,8 @@ namespace Eagle
 			fence->Reset();
 			auto& cmd = GetCurrentFrameCommandBuffer();
 			cmd->Begin();
+			for (uint32_t i = 0; i < s_AsyncCommandQueueCount; ++i)
+				ExecuteAsyncCommands();
 			for (uint32_t i = 0; i < RendererConfig::FramesInFlight; ++i)
 				s_CommandQueue[i].Execute();
 			cmd->End();
@@ -756,6 +778,7 @@ namespace Eagle
 			{
 				EG_CPU_TIMING_SCOPED("Building Command buffer");
 				EG_GPU_TIMING_SCOPED(cmd, "Whole frame");
+				ExecuteAsyncCommands(); // Before anything else, so that the resources created by other threads are ready to be used by this frame
 				MaterialSystem::Update(cmd);
 				s_CommandQueue[frameIndex].Execute();
 				if (bSwapchainValid)
@@ -846,7 +869,10 @@ namespace Eagle
 
 	RenderCommandQueue& RenderManager::GetRenderCommandQueue()
 	{
-		return s_CommandQueue[s_RendererData->CurrentFrameIndex];
+		if (std::this_thread::get_id() == s_MainThreadID)
+			return s_CommandQueue[s_RendererData->CurrentFrameIndex];
+
+		return s_AsyncCommandQueues[s_AsyncWriteIndex];
 	}
 
 	bool RenderManager::IsRenderThread()

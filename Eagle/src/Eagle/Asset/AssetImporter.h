@@ -65,6 +65,21 @@ namespace Eagle
 		std::vector<Utils::MeshInstanceImportData> Instances;
 	};
 
+	struct AssetImportRequest
+	{
+		Path PathToRaw;
+		AssetType Type = AssetType::None; // If `None`, it's detected by the file extension
+		AssetImportSettings Settings;
+	};
+
+	struct AssetImportAsyncResult
+	{
+		uint32_t Succeeded = 0;
+		uint32_t Failed = 0;
+		uint32_t Skipped = 0; // Files that weren't imported because the import was cancelled
+		bool bCancelled = false;
+	};
+
 	// The purpose of this class is to take a path to a raw asset data (such as `.png`, `.fbx`, etc...)
 	// and convert it into `.egasset` file format.
 	class AssetImporter
@@ -79,6 +94,16 @@ namespace Eagle
 		// @pathsToRaw - paths to raw assets (such as `png`, `.fbx`, etc...)
 		// @saveTo - folder to save an imported asset to (must be somewhere within projects content folder)
 		static void Import(const std::vector<Path>& pathsToRaw, const Path& saveTo);
+
+		// Imports assets on a background thread, so the called doesn't freeze.
+		// A progress bar with a `Cancel` button is shown while it's running.
+		// The assets of each file are registered as soon as that file is imported.
+		// Cancelling stops at the next asset. The file that was being imported is rolled back (the files it wrote are deleted), files that were already imported are kept.
+		// @saveTo - folder to save imported assets to (must be somewhere within projects content folder)
+		// @onFinished - main thread. Called once everything is done. Optional
+		// @onFileImported - main thread. Called each time a file's assets were registered. Optional
+		static void ImportAsync(std::vector<AssetImportRequest> requests, const Path& saveTo,
+			std::function<void(const AssetImportAsyncResult&)> onFinished = {}, std::function<void()> onFileImported = {});
 
 		// @buffer. Buffer of encoded image data (png/jpg etc)
 		// @saveTo. Folder to save to

@@ -11,6 +11,7 @@
 #include "Eagle/Utils/Compressor.h"
 #include "Eagle/Utils/SerializerUtils.h"
 #include "Eagle/Physics/PhysicsEngine.h"
+#include "Eagle/Core/AsyncTask.h"
 
 #include <magic_enum_utility.hpp>
 #include <glm/gtc/integer.hpp>
@@ -18,6 +19,9 @@
 namespace Eagle
 {
 	constexpr uint32_t s_MaxCollisionGroups = sizeof(uint32_t) * 8;
+	static bool s_bGameBuildInProgress = false; // Main thread only
+
+	ProjectInfo Project::s_Info = {};
 
 	static void OnCollisionGroupsChanged(const ProjectInfo& info)
 	{
@@ -78,6 +82,15 @@ namespace Eagle
 		OnCollisionGroupsChanged(info);
 	}
 
+	static GUID64 GetCollisionGroupGUID(const ProjectInfo& info, uint32_t mask)
+	{
+		if ((info.AllCollisionGroupsMask & mask) == 0u)
+			return GUID64(0);
+
+		const uint32_t index = glm::log2(mask);
+		return index < info.CollisionGroupGUIDs.size() ? info.CollisionGroupGUIDs[index] : GUID64(0);
+	}
+
 	static void SaveCollisionGroups(YAML::Emitter& out, const ProjectInfo& info)
 	{
 		out << YAML::Key << "CollisionGroups" << YAML::Value;
@@ -87,13 +100,302 @@ namespace Eagle
 			out << YAML::BeginMap;
 			out << YAML::Key << "Name" << YAML::Value << groups.first;
 			out << YAML::Key << "Mask" << YAML::Value << groups.second;
-			out << YAML::Key << "GUID" << YAML::Value << Project::GetCollisionGroupGUIDByMask(groups.second);
+			out << YAML::Key << "GUID" << YAML::Value << GetCollisionGroupGUID(info, groups.second);
 			out << YAML::EndMap;
 		}
 		out << YAML::EndSeq;
 	}
 
-	ProjectInfo Project::s_Info = {};
+	namespace
+	{
+		// Everything a game build needs from the editor. It's gathered on the main thread when the build is requested,
+		// so that the background thread doesn't read state that the editor might change while the build is running
+		struct GameBuildInfo
+		{
+			Path OutputFolder;
+			Path CorePath;
+			Path GameExe;
+			Path ProjectBinariesPath;
+			ProjectInfo ProjectData; // Copy of the opened project info
+			GUID StartupSceneGUID = GUID(0, 0);
+			std::string RendererConfig; // Contents of `Config/RenderConfig.ini`
+		};
+
+		std::string FormatBytes(size_t bytes)
+		{
+			const char* units[] = { "B", "KB", "MB", "GB", "TB" };
+			double value = double(bytes);
+			size_t unit = 0;
+			while (value >= 1024.0 && unit + 1 < std::size(units))
+			{
+				value /= 1024.0;
+				++unit;
+			}
+
+			char buffer[32];
+			snprintf(buffer, sizeof(buffer), unit == 0 ? "%.0f %s" : "%.1f %s", value, units[unit]);
+			return buffer;
+		}
+
+		bool CopyBuildFile(const Path& from, const Path& to, AsyncTaskContext& task)
+		{
+			task.SetDetail(Utils::AsString(to.filename()));
+
+			std::error_code error;
+			std::filesystem::copy_file(from, to, std::filesystem::copy_options::overwrite_existing, error);
+			if (error)
+			{
+				EG_CORE_ERROR("Failed to copy `{}` to `{}`: {}", from, to, error.message());
+				return false;
+			}
+			return true;
+		}
+
+		bool CopyBuildFolder(const Path& from, const Path& to, AsyncTaskContext& task)
+		{
+			namespace fs = std::filesystem;
+
+			std::error_code error;
+			std::vector<fs::directory_entry> entries;
+			for (auto it = fs::recursive_directory_iterator(from, error); !error && it != fs::recursive_directory_iterator(); it.increment(error))
+				entries.push_back(*it);
+
+			if (error)
+			{
+				EG_CORE_ERROR("Failed to copy `{}` to `{}`: {}", from, to, error.message());
+				return false;
+			}
+
+			fs::create_directories(to, error);
+			for (size_t i = 0; i < entries.size(); ++i)
+			{
+				const auto& entry = entries[i];
+				const Path destination = to / fs::relative(entry.path(), from, error);
+				if (!error)
+				{
+					if (entry.is_directory(error))
+					{
+						fs::create_directories(destination, error);
+					}
+					else
+					{
+						task.SetDetail(Utils::AsString(entry.path().filename()));
+						fs::create_directories(destination.parent_path(), error);
+						if (!error)
+							fs::copy_file(entry.path(), destination, fs::copy_options::overwrite_existing, error);
+					}
+				}
+
+				if (error)
+				{
+					EG_CORE_ERROR("Failed to copy `{}` to `{}`: {}", entry.path(), destination, error.message());
+					return false;
+				}
+				task.SetProgress(i + 1, entries.size());
+			}
+			return true;
+		}
+
+		// Executed on a background thread
+		AsyncTaskResult BuildGame(const GameBuildInfo& info, AsyncTaskContext& task)
+		{
+			namespace fs = std::filesystem;
+
+			const Path assetPackPath = info.OutputFolder / "Data" / (info.ProjectData.Name + AssetManager::GetAssetPackExtension());
+			const Path shaderPackPath = info.OutputFolder / Project::GetShaderPackRelativePath();
+
+			// Packs are written into temporary files first, and are moved into place at the very end.
+			// So a cancelled or a failed build doesn't leave a half-written build behind
+			const Path assetPackTempPath = Path(assetPackPath) += ".tmp";
+			const Path shaderPackTempPath = Path(shaderPackPath) += ".tmp";
+
+			auto removeTempFiles = [&]()
+			{
+				std::error_code error;
+				fs::remove(assetPackTempPath, error);
+				fs::remove(shaderPackTempPath, error);
+			};
+			auto onCancelled = [&]()
+			{
+				removeTempFiles();
+				EG_CORE_WARN("The game build was cancelled");
+				return AsyncTaskResult::Cancelled;
+			};
+			auto onFailed = [&](const std::string& reason)
+			{
+				removeTempFiles();
+				EG_CORE_ERROR("Failed to build the game. {}", reason);
+				return AsyncTaskResult::Failed;
+			};
+
+			// Progress bar is split between steps based on how long they usually take
+
+			// 1. Shader pack
+			ScopedDataBuffer shaderPack;
+			{
+				AsyncTaskProgressScope progress(0.00f, 0.05f);
+				task.SetStatus("Packing shaders");
+				task.SetDetail({});
+
+				YAML::Emitter shaderPackOut;
+				ShaderManager::BuildShaderPack(shaderPackOut);
+				if (task.IsCancelRequested())
+					return onCancelled();
+
+				size_t totalSize = sizeof(AssetHeader);
+				const std::string yamlStr = shaderPackOut.c_str();
+				AssetHeader header = Utils::CreateHeader(yamlStr, &totalSize);
+				ScopedDataBuffer build(totalSize);
+
+				size_t offset = 0;
+				Utils::WriteToBuffer(build, &header, sizeof(header), &offset);
+				Utils::WriteStringToBuffer(build, yamlStr, &offset);
+
+				shaderPack = Compressor::Compress(build);
+				if (!shaderPack)
+					return onFailed("Couldn't compress the shader pack");
+			}
+
+			// 2. Read all assets into one buffer
+			ScopedDataBuffer build;
+			{
+				AsyncTaskProgressScope progress(0.05f, 0.35f);
+				task.SetStatus("Packing assets");
+
+				ScopedDataBuffer assetPack = AssetManager::BuildAssetPack(); // Reports progress itself
+				if (task.IsCancelRequested())
+					return onCancelled();
+				if (!assetPack)
+					return onFailed("Couldn't pack the assets");
+
+				task.SetDetail({});
+
+				size_t totalSize = sizeof(AssetHeader);
+				const size_t assetPackOffset = Utils::AddSize(assetPack, &totalSize);
+
+				YAML::Emitter out;
+				out << YAML::BeginMap;
+				out << YAML::Key << "Name" << YAML::Value << info.ProjectData.Name;
+				out << YAML::Key << "Version" << YAML::Value << info.ProjectData.Version;
+
+				if (!info.StartupSceneGUID.IsNull())
+					out << YAML::Key << "StartupScene" << YAML::Value << info.StartupSceneGUID;
+
+				out << YAML::Key << "AssetPackSize" << assetPack.Size();
+				out << YAML::Key << "AssetPackOffset" << assetPackOffset;
+
+				SaveCollisionGroups(out, info.ProjectData);
+				out << YAML::EndMap;
+
+				const std::string yamlStr = out.c_str();
+				AssetHeader header = Utils::CreateHeader(yamlStr, &totalSize);
+				build = ScopedDataBuffer(totalSize);
+
+				size_t offset = 0;
+				Utils::WriteToBuffer(build, &header, sizeof(header), &offset);
+				Utils::WriteToBuffer(build, assetPack, &offset);
+				Utils::WriteStringToBuffer(build, yamlStr, &offset);
+			}
+
+			// 3. Compress
+			ScopedDataBuffer compressed;
+			{
+				AsyncTaskProgressScope progress(0.35f, 0.92f);
+				task.SetStatus("Compressing assets");
+
+				const std::string totalSizeStr = FormatBytes(build.Size());
+				compressed = Compressor::Compress(build, [&task, &totalSizeStr](size_t processed, size_t total)
+				{
+					task.SetProgress(processed, total);
+					task.SetDetail(FormatBytes(processed) + " / " + totalSizeStr);
+					return !task.IsCancelRequested();
+				});
+
+				if (task.IsCancelRequested())
+					return onCancelled();
+				if (!compressed)
+					return onFailed("Couldn't compress the asset pack");
+
+				build.Release();
+			}
+
+			// 4. Write the packs into temporary files
+			{
+				AsyncTaskProgressScope progress(0.92f, 0.95f);
+				task.SetStatus("Writing packs");
+
+				task.SetDetail(Utils::AsString(assetPackPath.filename()));
+				if (!FileSystem::Write(assetPackTempPath, compressed))
+					return onFailed("Couldn't write " + Utils::AsString(assetPackTempPath));
+
+				task.SetDetail(Utils::AsString(shaderPackPath.filename()));
+				if (!FileSystem::Write(shaderPackTempPath, shaderPack))
+					return onFailed("Couldn't write " + Utils::AsString(shaderPackTempPath));
+			}
+
+			if (task.IsCancelRequested())
+				return onCancelled();
+
+			// 5. Game packs are built and ready. Which means we're almost done,
+			// so it doesn't make much sense to let it be canceled at this point
+			task.SetCancelable(false);
+			{
+				AsyncTaskProgressScope progress(0.95f, 1.00f);
+				task.SetStatus("Copying game files");
+
+				const std::string projectScriptsFilename = info.ProjectData.Name + ".dll";
+				bool bSuccess = true;
+				{
+					AsyncTaskProgressScope filesProgress(0.0f, 0.3f);
+					bSuccess = bSuccess && CopyBuildFile(info.GameExe, info.OutputFolder / (info.ProjectData.Name + ".exe"), task);
+					bSuccess = bSuccess && CopyBuildFile(info.CorePath / "Eagle-Scripts.dll", info.OutputFolder / "Eagle-Scripts.dll", task);
+					bSuccess = bSuccess && CopyBuildFile(info.ProjectBinariesPath / projectScriptsFilename, info.OutputFolder / projectScriptsFilename, task);
+					bSuccess = bSuccess && CopyBuildFile(info.CorePath / "assimp-vc143-mt.dll", info.OutputFolder / "assimp-vc143-mt.dll", task);
+					bSuccess = bSuccess && CopyBuildFile(info.CorePath / "mono-2.0-sgen.dll", info.OutputFolder / "mono-2.0-sgen.dll", task);
+#ifdef EG_DEBUG
+					bSuccess = bSuccess && CopyBuildFile(info.CorePath / "fmodL.dll", info.OutputFolder / "fmodL.dll", task);
+#else
+					bSuccess = bSuccess && CopyBuildFile(info.CorePath / "fmod.dll", info.OutputFolder / "fmod.dll", task);
+#endif
+				}
+				{
+					AsyncTaskProgressScope monoProgress(0.3f, 0.9f);
+					bSuccess = bSuccess && CopyBuildFolder(info.CorePath / "mono", info.OutputFolder / "mono", task);
+				}
+				if (!bSuccess)
+					return onFailed("Couldn't copy the game files. See the errors above");
+
+				// Renderer config
+				{
+					task.SetDetail("RenderConfig.ini");
+					const Path configFolder = info.OutputFolder / "Config";
+					std::error_code error;
+					fs::create_directories(configFolder, error);
+
+					std::ofstream fout(configFolder / "RenderConfig.ini");
+					fout << info.RendererConfig;
+					if (!fout)
+						return onFailed("Couldn't write " + Utils::AsString(configFolder / "RenderConfig.ini"));
+				}
+
+				// Move the packs into place
+				{
+					task.SetDetail({});
+					std::error_code error;
+					fs::rename(assetPackTempPath, assetPackPath, error);
+					if (error)
+						return onFailed("Couldn't move the asset pack into place: " + error.message());
+
+					fs::rename(shaderPackTempPath, shaderPackPath, error);
+					if (error)
+						return onFailed("Couldn't move the shader pack into place: " + error.message());
+				}
+			}
+
+			EG_CORE_INFO("The game was built successfully: {}", info.OutputFolder);
+			return AsyncTaskResult::Succeeded;
+		}
+	}
 	
 	bool Project::Create(const ProjectInfo& info)
 	{
@@ -219,131 +521,72 @@ namespace Eagle
 	
 	void Project::Build(const Path& outputFolder)
 	{
+		Ref<ImGuiLayer>& imguiLayer = Application::Get().GetImGuiLayer();
+
 		const Path gameExeFile = Application::GetCorePath() / "Eagle-Game.exe";
 		if (!std::filesystem::exists(gameExeFile))
 		{
-			Application::Get().GetImGuiLayer()->AddMessage("Failed to build the game. Game executable is missing. Please, build the `Eagle-Game` project!");
+			imguiLayer->AddMessage("Failed to build the game. Game executable is missing. Please, build the `Eagle-Game` project!");
 			return;
 		}
 
-		YAML::Emitter shaderPackOut;
-		std::thread buildThread([&outputFolder, &shaderPackOut, &gameExeFile]()
+		if (s_bGameBuildInProgress)
 		{
-			ShaderManager::BuildShaderPack(shaderPackOut);
+			imguiLayer->AddMessage("The game is already being built. Please, wait for it to finish");
+			return;
+		}
 
-			// Creating a renderer config file
-			{
-				const auto& currentScene = Scene::GetCurrentScene();
-				const auto rendererOptions = currentScene ? currentScene->GetSceneRenderer()->GetOptions() : SceneRendererSettings{};
-
-				YAML::Emitter outRenderer;
-				const bool bVSync = Application::Get().GetWindow().IsVSync();
-				outRenderer << YAML::BeginMap;
-				outRenderer << YAML::Key << "VSync" << YAML::Value << bVSync;
-				outRenderer << YAML::Key << "Fullscreen" << YAML::Value << true;
-				Serializer::SerializeRendererSettings(outRenderer, rendererOptions);
-				outRenderer << YAML::EndMap;
-
-				const Path configFolder = outputFolder / "Config";
-				const Path configFilepath = configFolder / "RenderConfig.ini";
-				if (std::filesystem::exists(configFolder) == false)
-					std::filesystem::create_directory(configFolder);
-				std::ofstream fout(configFilepath);
-				fout << outRenderer.c_str();
-			}
-
-			// Copy game executable, scripts, and libs
-			{
-				namespace fs = std::filesystem;
-				const fs::copy_options folderCopyOptions = fs::copy_options::overwrite_existing | fs::copy_options::recursive;
-				const fs::copy_options fileCopyOptions = fs::copy_options::overwrite_existing;
-
-				const Path projectScriptsFilename = s_Info.Name + ".dll";
-				fs::copy(gameExeFile, outputFolder / (s_Info.Name + ".exe"), fileCopyOptions);
-				fs::copy(Application::GetCorePath() / "Eagle-Scripts.dll", outputFolder / "Eagle-Scripts.dll", fileCopyOptions);
-				fs::copy(Project::GetBinariesPath() / projectScriptsFilename, outputFolder / projectScriptsFilename, fileCopyOptions);
-
-				fs::copy(Application::GetCorePath() / "assimp-vc143-mt.dll", outputFolder / "assimp-vc143-mt.dll", fileCopyOptions);
-				fs::copy(Application::GetCorePath() / "mono-2.0-sgen.dll", outputFolder / "mono-2.0-sgen.dll", fileCopyOptions);
-				fs::copy(Application::GetCorePath() / "mono", outputFolder / "mono", folderCopyOptions);
-		#ifdef EG_DEBUG
-				fs::copy(Application::GetCorePath() / "fmodL.dll", outputFolder / "fmodL.dll", fileCopyOptions);
-		#else
-				fs::copy(Application::GetCorePath() / "fmod.dll", outputFolder / "fmod.dll", fileCopyOptions);
-		#endif
-			}
-		});
-
-		size_t totalSize = sizeof(AssetHeader);
-		const ScopedDataBuffer assetPack = AssetManager::BuildAssetPack();
-		const size_t assetPackOffset = Utils::AddSize(assetPack, &totalSize);
-
-		YAML::Emitter out;
-		out << YAML::BeginMap;
-		out << YAML::Key << "Name" << YAML::Value << s_Info.Name;
-		out << YAML::Key << "Version" << YAML::Value << s_Info.Version;
-
+		// Gather everything that's needed from the editor now. The build itself runs on a background thread
+		auto info = MakeRef<GameBuildInfo>();
+		info->OutputFolder = outputFolder;
+		info->CorePath = Application::GetCorePath();
+		info->GameExe = gameExeFile;
+		info->ProjectBinariesPath = GetBinariesPath();
+		info->ProjectData = s_Info;
 		if (s_Info.GameStartupScene)
-			out << YAML::Key << "StartupScene" << YAML::Value << s_Info.GameStartupScene->GetGUID();
+			info->StartupSceneGUID = s_Info.GameStartupScene->GetGUID();
 
-		out << YAML::Key << "AssetPackSize" << assetPack.Size();
-		out << YAML::Key << "AssetPackOffset" << assetPackOffset;
-
-		SaveCollisionGroups(out, s_Info);
-		out << YAML::EndMap;
-
-		// Compress and save
+		// Renderer config
 		{
-			std::string yamlStr = out.c_str();
-			AssetHeader header = Utils::CreateHeader(yamlStr, &totalSize);
-			ScopedDataBuffer build(totalSize);
+			const auto& currentScene = Scene::GetCurrentScene();
+			const auto rendererOptions = currentScene ? currentScene->GetSceneRenderer()->GetOptions() : SceneRendererSettings{};
 
-			size_t offset = 0;
-			Utils::WriteToBuffer(build, &header, sizeof(header), &offset);
-			Utils::WriteToBuffer(build, assetPack, &offset);
-			Utils::WriteStringToBuffer(build, yamlStr, &offset);
+			YAML::Emitter outRenderer;
+			const bool bVSync = Application::Get().GetWindow().IsVSync();
+			outRenderer << YAML::BeginMap;
+			outRenderer << YAML::Key << "VSync" << YAML::Value << bVSync;
+			outRenderer << YAML::Key << "Fullscreen" << YAML::Value << true;
+			Serializer::SerializeRendererSettings(outRenderer, rendererOptions);
+			outRenderer << YAML::EndMap;
+			info->RendererConfig = outRenderer.c_str();
+		}
 
-			const size_t origSize = build.Size();
-			ScopedDataBuffer compressed = Compressor::Compress(build);
+		s_bGameBuildInProgress = true;
 
-			ScopedDataBuffer outputData(compressed.Size() + sizeof(size_t)); // We append buffer's size at the beginning, so we need room for it
-			outputData.Write(&origSize, sizeof(size_t));
-			outputData.Write(compressed.Data(), compressed.Size(), sizeof(size_t));
+		AsyncTaskDesc desc;
+		desc.Name = "Building the game";
+		desc.bCancelable = true;
+		desc.bModal = true; // The editor shouldn't change assets while they're being packed
 
-			const Path outputFilename = outputFolder / "Data" / (s_Info.Name + AssetManager::GetAssetPackExtension());
-			FileSystem::Write(outputFilename, outputData.GetDataBuffer());
-
-#if 0 // Check if compressed correctly
+		AsyncTaskManager::Submit(desc,
+			[info](AsyncTaskContext& task) { return BuildGame(*info, task); },
+			[](AsyncTaskResult result)
 			{
-				ScopedDataBuffer data = ScopedDataBuffer(FileSystem::Read(outputFilename));
-				const size_t compressedSize2 = data.Read<size_t>();
-				DataBuffer compressedData2((uint8_t*)data.Data() + sizeof(size_t), data.Size() - sizeof(size_t));
+				s_bGameBuildInProgress = false;
 
-				ScopedDataBuffer decompressedData = ScopedDataBuffer(Compressor::Decompress(compressedData2, compressedSize2));
-				const bool bValid = Compressor::Validate(packData, DataBuffer(decompressedData.Data(), decompressedData.Size()));
-				EG_CORE_INFO("Asset pack is valid: {}", bValid);
-			}
-#endif
-		}
-
-		{
-			buildThread.join();
-
-			size_t totalSize = sizeof(AssetHeader);
-			std::string yamlStr = shaderPackOut.c_str();
-			AssetHeader header = Utils::CreateHeader(yamlStr, &totalSize);
-			ScopedDataBuffer build(totalSize);
-
-			size_t offset = 0;
-			Utils::WriteToBuffer(build, &header, sizeof(header), &offset);
-			Utils::WriteStringToBuffer(build, yamlStr, &offset);
-
-			ScopedDataBuffer compressed = Compressor::Compress(build);
-			const Path outputFilename = outputFolder / GetShaderPackRelativePath();
-			FileSystem::Write(outputFilename, compressed.GetDataBuffer());
-		}
-
-		Application::Get().GetImGuiLayer()->AddMessage("The build finished successfully!");
+				Ref<ImGuiLayer>& imguiLayer = Application::Get().GetImGuiLayer();
+				switch (result)
+				{
+					case AsyncTaskResult::Succeeded:
+						imguiLayer->AddMessage("The build finished successfully!");
+						break;
+					case AsyncTaskResult::Failed:
+						imguiLayer->AddMessage("Failed to build the game. See logs for more details");
+						break;
+					case AsyncTaskResult::Cancelled:
+						break; // No need for a popup, since the user cancelled it
+				}
+			});
 	}
 	
 	void Project::OpenGameBuild(const Path& filepath)
@@ -523,11 +766,7 @@ namespace Eagle
 
 	GUID64 Project::GetCollisionGroupGUIDByMask(uint32_t mask)
 	{
-		if ((s_Info.AllCollisionGroupsMask & mask) == 0u)
-			return GUID64(0);
-
-		const uint32_t index = glm::log2(mask);
-		return s_Info.CollisionGroupGUIDs[index];
+		return GetCollisionGroupGUID(s_Info, mask);
 	}
 
 	bool Project::Load(const Path& filepath, ProjectInfo* outInfo)

@@ -5,6 +5,7 @@
 #include "Eagle/Core/Serializer.h"
 #include "Eagle/Core/SceneSerializer.h"
 #include "Eagle/Core/ThreadPool.h"
+#include "Eagle/Core/AsyncTask.h"
 #include "Eagle/Utils/Compressor.h"
 #include "Eagle/Utils/Timer.h"
 #include "Eagle/Utils/SerializerUtils.h"
@@ -50,6 +51,24 @@ namespace Eagle
 		std::thread::id LoadingThread; // Used to detect an asset that (indirectly) depends on itself
 	};
 	static ankerl::unordered_dense::map<Path, PendingAssetLoad> s_PendingLoads;
+
+	// Staging scope of the calling thread
+	static thread_local AssetStagingScope* t_StagingScope = nullptr;
+
+	AssetStagingScope::AssetStagingScope()
+	{
+		EG_CORE_ASSERT(t_StagingScope == nullptr, "Asset staging scopes can't be nested");
+		t_StagingScope = this;
+	}
+
+	AssetStagingScope::~AssetStagingScope()
+	{
+		if (t_StagingScope == this)
+			t_StagingScope = nullptr;
+
+		if (!m_Pending.empty())
+			EG_CORE_WARN("{} staged asset(s) were never registered", m_Pending.size());
+	}
 
 	void AssetManager::Init()
 	{
@@ -266,6 +285,31 @@ namespace Eagle
 		if (!asset)
 			return {};
 
+		if (AssetStagingScope* staging = t_StagingScope)
+		{
+			// If it's already registered, use it instead
+			{
+				std::scoped_lock lock(s_Mutex);
+				if (auto it = s_Assets.find(asset->GetPath()); it != s_Assets.end())
+				{
+					return it->second;
+				}
+			}
+
+			auto [pathIt, bPathInserted] = staging->m_ByPath.emplace(asset->GetPath(), asset);
+			if (!bPathInserted)
+			{
+				return pathIt->second;
+			}
+
+			auto [guidIt, bGUIDInserted] = staging->m_ByGUID.emplace(asset->GetGUID(), asset);
+			if (!bGUIDInserted && guidIt->second != asset)
+				EG_CORE_ERROR("Two staged assets share the same GUID: '{}' and '{}'", asset->GetPath(), guidIt->second->GetPath());
+
+			staging->m_Pending.push_back(asset);
+			return asset;
+		}
+
 		std::scoped_lock lock(s_Mutex);
 		return Register_Internal(asset);
 	}
@@ -372,6 +416,15 @@ namespace Eagle
 	
 	bool AssetManager::Get(const Path& path, Ref<Asset>* outAsset)
 	{
+		if (const AssetStagingScope* staging = t_StagingScope)
+		{
+			if (auto it = staging->m_ByPath.find(path); it != staging->m_ByPath.end())
+			{
+				*outAsset = it->second;
+				return true;
+			}
+		}
+
 		{
 			std::scoped_lock lock(s_Mutex);
 
@@ -406,6 +459,15 @@ namespace Eagle
 	{
 		if (guid.IsNull())
 			return false;
+
+		if (const AssetStagingScope* staging = t_StagingScope)
+		{
+			if (auto it = staging->m_ByGUID.find(guid); it != staging->m_ByGUID.end())
+			{
+				*outAsset = it->second;
+				return true;
+			}
+		}
 
 		{
 			std::scoped_lock lock(s_Mutex);
@@ -450,6 +512,12 @@ namespace Eagle
 
 	bool AssetManager::Exists(const Path& path)
 	{
+		if (const AssetStagingScope* staging = t_StagingScope)
+		{
+			if (staging->m_ByPath.find(path) != staging->m_ByPath.end())
+				return true;
+		}
+
 		std::scoped_lock lock(s_Mutex);
 
 		auto it = s_Assets.find(path);
@@ -552,8 +620,11 @@ namespace Eagle
 			return false;
 		}
 
-		s_Assets.erase(assetPath);
-		s_Assets.emplace(filepath, asset);
+		{
+			std::scoped_lock lock(s_Mutex);
+			s_Assets.erase(assetPath);
+			s_Assets.emplace(filepath, asset);
+		}
 		
 		asset->m_Path = filepath;
 
@@ -621,8 +692,12 @@ namespace Eagle
 			return;
 
 		const Path& assetPath = asset->GetPath();
-		auto it = s_Assets.find(assetPath);
-		if (it == s_Assets.end())
+		bool bFound = false;
+		{
+			std::scoped_lock lock(s_Mutex);
+			bFound = s_Assets.find(assetPath) != s_Assets.end();
+		}
+		if (!bFound)
 		{
 			EG_CORE_ERROR("Failed to delete an asset: {}. Didn't find it in the asset manager", assetPath);
 			return;
@@ -641,24 +716,51 @@ namespace Eagle
 				AssetEntity::GetScene()->DestroyEntityImmediately(entity, true);
 			}
 
-			s_Assets.erase(it);
-			s_AssetsByGUID.erase(asset->GetGUID());
+			{
+				std::scoped_lock lock(s_Mutex);
+				s_Assets.erase(assetPath);
+				if (auto guidIt = s_AssetsByGUID.find(asset->GetGUID()); guidIt != s_AssetsByGUID.end() && guidIt->second == asset)
+					s_AssetsByGUID.erase(guidIt);
+			}
 			EG_CORE_TRACE("Deleted asset at: {}", assetPath);
 		}
 	}
 	
 	ScopedDataBuffer AssetManager::BuildAssetPack()
 	{
+		AsyncTaskContext* task = AsyncTaskContext::GetCurrent();
+
+		// Copy the list, so that the lock isn't held while reading files.
+		// Because main thread can modify the assets list
+		std::vector<std::pair<Path, GUID>> assets;
+		{
+			std::scoped_lock lock(s_Mutex);
+			assets.reserve(s_Assets.size());
+			for (const auto& [path, asset] : s_Assets)
+				assets.emplace_back(path, asset->GetGUID());
+		}
+
+		const size_t assetsCount = assets.size();
 		std::vector<ScopedDataBuffer> serializedDatas;
-		serializedDatas.reserve(s_Assets.size());
+		serializedDatas.reserve(assetsCount);
 
 		size_t totalSize = sizeof(AssetHeader);
 
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Assets" << YAML::Value << YAML::BeginSeq;
-		for (const auto& [path, asset] : s_Assets)
+		for (size_t i = 0; i < assetsCount; ++i)
 		{
+			const auto& [path, guid] = assets[i];
+			if (task)
+			{
+				if (task->IsCancelRequested())
+					return {};
+
+				task->SetDetail(Utils::AsString(path));
+				task->SetProgress(i, assetsCount);
+			}
+
 			if (std::filesystem::exists(path) == false)
 				continue;
 
@@ -668,7 +770,7 @@ namespace Eagle
 			out << YAML::BeginMap;
 
 			out << YAML::Key << "Path" << YAML::Value << Utils::AsString(path);
-			out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
+			out << YAML::Key << "GUID" << YAML::Value << guid;
 			out << YAML::Key << "DataSize" << YAML::Value << data.Size();
 			out << YAML::Key << "DataOffset" << YAML::Value << offset;
 

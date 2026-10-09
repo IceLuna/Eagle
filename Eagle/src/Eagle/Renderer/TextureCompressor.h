@@ -13,6 +13,11 @@ namespace Eagle
 	class TextureCompressor
 	{
 	public:
+		// Receives compression processing progress as a percentage in [0; 1] range
+		// Callback need to keep returnting `true` to continue compression.
+		// Note: callback is called on the caller's thread, and it's called regularly (~30 times per second) even if the progress doesn't change
+		using ProgressCallback = std::function<bool(float)>;
+
 		enum class Quality
 		{
 			Disabled,
@@ -53,13 +58,15 @@ namespace Eagle
 		// @targetNumChannels. Number of channels in the compressed textures. Used to determine compression algorithm (BC1/3/4/5 etc)
 		// @mipsCount. Should be >= 1. The value of `1` represents the base level. So if it's 1, mips won't be generated
 		// @bNormalMap. Set to true, if it's a normal map
+		// @progress. Optional callback reporting compression progress
 		// @return. Compressed data per mip and the format
-		static Result Compress(DataBuffer imageData, uint32_t targetNumChannels, uint32_t mipsCount, Quality quality, bool bNormalMap, bool bHDR = false);
+		static Result Compress(DataBuffer imageData, uint32_t targetNumChannels, uint32_t mipsCount, Quality quality, bool bNormalMap, bool bHDR = false, ProgressCallback progress = {});
 
 		// Same, but.
 		// @imageData. Input texture data in RGBA8 format
 		// @size. Texture size
-		static Result CompressDecoded(DataBuffer imageData, glm::uvec2 size, uint32_t targetNumChannels, uint32_t mipsCount, Quality quality, bool bNormalMap, bool bHDR = false);
+		// @progress. Optional callback reporting compression progress
+		static Result CompressDecoded(DataBuffer imageData, glm::uvec2 size, uint32_t targetNumChannels, uint32_t mipsCount, Quality quality, bool bNormalMap, bool bHDR = false, ProgressCallback progress = {});
 
 		// This version of the function performs BC6H compression on the GPU.
 		// @imageData. Input texture data that needs to be compressed

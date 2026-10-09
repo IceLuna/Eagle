@@ -9,6 +9,8 @@
 #include <compressonator/compressonator.h>
 #include <compressonator/common.h>
 
+#include <future>
+
 namespace Eagle
 {
 	static CMP_FORMAT(*s_GetCompressionFormatFunc)(uint32_t, TextureCompressor::TextureType, TextureCompressor::Quality) = nullptr;
@@ -18,6 +20,49 @@ namespace Eagle
 	static Ref<PipelineCompute> s_BC6HPipeline;
 	static Ref<PipelineCompute> s_BC6HCubePipeline;
 	static const uint32_t BC_BLOCK_SIZE = 4;
+
+	// Compressonator may report progress from multiple worker threads
+	static std::atomic<float> s_CMPProgress = 0.f;
+	static std::atomic<bool> s_bCMPStopRequested = false;
+
+	static bool CMP_API OnCMPProgress(float progress, CMP_DWORD_PTR, CMP_DWORD_PTR)
+	{
+		s_CMPProgress = progress * 0.01f; // Convert from [0; 100] range to [0; 1]
+		return s_bCMPStopRequested; // Compressonator stops if we return true
+	}
+
+	// @outCancelled. Set to true if `callback` requested to stop
+	static CMP_ERROR ProcessTextureWithProgress(CMP_MipSet* src, CMP_MipSet* dst, const KernelOptions& options, const TextureCompressor::ProgressCallback& callback, bool* outCancelled)
+	{
+		*outCancelled = false;
+		if (!callback)
+			return CMP_ProcessTexture(src, dst, options, nullptr);
+
+		static std::mutex s_Mutex;
+		std::scoped_lock callLock(s_Mutex);
+		s_CMPProgress = 0.f;
+		s_bCMPStopRequested = false;
+
+		// Compression runs on a separate thread, so that `callback` can be called on this one
+		std::future<CMP_ERROR> result = std::async(std::launch::async, [src, dst, &options]()
+		{
+			return CMP_ProcessTexture(src, dst, options, OnCMPProgress);
+		});
+
+		// Polling with a timeout instead of waiting for notifications.
+		// This way the `callback` gets regular chances to request a cancellation even if the progress doesn't change for a while
+		while (result.wait_for(std::chrono::milliseconds(33)) != std::future_status::ready)
+		{
+			if (!s_bCMPStopRequested && !callback(s_CMPProgress))
+				s_bCMPStopRequested = true; // Compressonator stops the next time it reports progress
+		}
+
+		*outCancelled = s_bCMPStopRequested;
+		const CMP_ERROR status = result.get();
+		if (status == CMP_OK && !*outCancelled)
+			callback(1.f);
+		return status;
+	}
 
 	static uint32_t DivideAndRoundUp(uint32_t x, uint32_t divisor)
 	{
@@ -264,7 +309,7 @@ namespace Eagle
 		return s_IsFormatSupportedFunc ? s_IsFormatSupportedFunc(format) : false;
 	}
 
-	TextureCompressor::Result TextureCompressor::Compress(DataBuffer imageData, uint32_t targetNumChannels, uint32_t mipsCount, Quality quality, bool bNormalMap, bool bHDR)
+	TextureCompressor::Result TextureCompressor::Compress(DataBuffer imageData, uint32_t targetNumChannels, uint32_t mipsCount, Quality quality, bool bNormalMap, bool bHDR, ProgressCallback progress)
 	{
 		if (!s_GetCompressionFormatFunc)
 			return {}; // Compression is not supported
@@ -279,10 +324,10 @@ namespace Eagle
 			return {};
 		}
 
-		return CompressDecoded(decodedData.GetDataBuffer(), glm::uvec2(width, height), targetNumChannels, mipsCount, quality, bNormalMap, bHDR);
+		return CompressDecoded(decodedData.GetDataBuffer(), glm::uvec2(width, height), targetNumChannels, mipsCount, quality, bNormalMap, bHDR, std::move(progress));
 	}
 	
-	TextureCompressor::Result TextureCompressor::CompressDecoded(DataBuffer imageData, glm::uvec2 size, uint32_t targetNumChannels, uint32_t mipsCount, Quality compressionQuality, bool bNormalMap, bool bHDR)
+	TextureCompressor::Result TextureCompressor::CompressDecoded(DataBuffer imageData, glm::uvec2 size, uint32_t targetNumChannels, uint32_t mipsCount, Quality compressionQuality, bool bNormalMap, bool bHDR, ProgressCallback progress)
 	{
 		if (!s_GetCompressionFormatFunc || compressionQuality == Quality::Disabled)
 			return {}; // Compression is not supported
@@ -334,10 +379,14 @@ namespace Eagle
 		CMP_MipSet dst;
 		memset(&dst, 0, sizeof(CMP_MipSet));
 
-		CMP_ERROR status = CMP_ProcessTexture(&src, &dst, kernelOptions, nullptr);
-		if (status != CMP_OK)
+		bool bCancelled = false;
+		CMP_ERROR status = ProcessTextureWithProgress(&src, &dst, kernelOptions, progress, &bCancelled);
+		if (status != CMP_OK || bCancelled)
 		{
-			EG_CORE_ERROR("Failed to compress the texture");
+			if (bCancelled)
+				EG_CORE_WARN("Texture compression was cancelled");
+			else
+				EG_CORE_ERROR("Failed to compress the texture");
 			CMP_FreeMipSet(&src);
 			CMP_FreeMipSet(&dst);
 			return {};
@@ -368,6 +417,10 @@ namespace Eagle
 	
 	bool TextureCompressor::CompressHDR(const void* imageData, glm::uvec2 size, ImageFormat format, const Ref<Image>& dst)
 	{
+		// `s_BC6HPipeline` is shared, so only one thread at a time can use it
+		static std::mutex s_Mutex;
+		std::scoped_lock lock(s_Mutex);
+
 		const size_t dataSize = CalculateImageMemorySize(format, size.x, size.y);
 		glm::uvec2 encodedSize;
 		encodedSize.x = DivideAndRoundUp(size.x, BC_BLOCK_SIZE);

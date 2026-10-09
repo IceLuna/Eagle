@@ -14,6 +14,37 @@ namespace Eagle
 	using AssetsMap = std::map<Path, Ref<Asset>>;
 	using AssetsMapByGUID = ankerl::unordered_dense::map<GUID, Ref<Asset>>;
 
+	// While a staging scope is alive, `AssetManager::Register` calls made on the same thread don't touch the global asset maps.
+	// The assets are staged instead, and they're registered later on the main thread.
+	// Why: the main thread iterates `AssetManager::GetAssets()` without locking (content browser, asset pickers, etc.),
+	// so a background thread must never insert into it.
+	// Scopes can't be nested.
+	class AssetStagingScope
+	{
+	public:
+		AssetStagingScope();
+		~AssetStagingScope();
+
+		AssetStagingScope(const AssetStagingScope&) = delete;
+		AssetStagingScope& operator=(const AssetStagingScope&) = delete;
+
+		std::vector<Ref<Asset>> Flush() { return std::move(m_Pending); }
+
+		void Clear()
+		{
+			m_Pending.clear();
+			m_ByGUID.clear();
+			m_ByPath.clear();
+		}
+
+	private:
+		AssetsMap m_ByPath;
+		AssetsMapByGUID m_ByGUID;
+		std::vector<Ref<Asset>> m_Pending;
+
+		friend class AssetManager;
+	};
+
 	class AssetManager
 	{
 	public:

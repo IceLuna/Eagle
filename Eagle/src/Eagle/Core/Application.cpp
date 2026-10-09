@@ -4,6 +4,7 @@
 #include "Project.h"
 #include "Eagle/Core/Timestep.h"
 #include "Eagle/Core/ThreadPool.h"
+#include "Eagle/Core/AsyncTask.h"
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/Script/ScriptEngine.h"
@@ -112,6 +113,7 @@ namespace Eagle
 
 	Application::~Application()
 	{
+		AsyncTaskManager::Shutdown();
 		ProcessNextFrameFuncs();
 
 		if (Project::IsOpened())
@@ -237,6 +239,8 @@ namespace Eagle
 #endif
 
 			ProcessNextFrameFuncs();
+
+			AsyncTaskManager::Update();
 
 			if (!m_Minimized)
 			{

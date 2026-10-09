@@ -97,6 +97,7 @@ namespace Eagle
 		void HandleOnSimulationButton();
 		void HandleCloseRequest(bool bCloseEngine);
 		void ProcessCloseRequest();
+		bool CanCloseProject() const;
 
 		void BeginDocking();
 		void EndDocking();

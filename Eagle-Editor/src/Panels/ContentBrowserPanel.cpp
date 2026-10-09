@@ -500,6 +500,12 @@ namespace Eagle
 		}
 	}
 
+	void ContentBrowserPanel::RequestRefresh()
+	{
+		if (s_Instance)
+			s_Instance->m_RefreshBrowser = true;
+	}
+
 	bool ContentBrowserPanel::HandleImport()
 	{
 		bool bCreatedAsset = false;
@@ -542,7 +548,20 @@ namespace Eagle
 
 			if (!others.empty())
 			{
-				AssetImporter::Import(others, m_CurrentDirectoryRelative);
+				std::vector<AssetImportRequest> requests;
+				requests.reserve(others.size());
+				for (auto& path : others)
+					requests.emplace_back().PathToRaw = std::move(path);
+
+				// Imported in background. The browser is refreshed as soon as each file is done
+				AssetImporter::ImportAsync(std::move(requests), m_CurrentDirectoryRelative,
+					[](const AssetImportAsyncResult& result)
+					{
+						if (result.Failed > 0)
+							Application::Get().GetImGuiLayer()->AddMessage("At least one asset failed to import. See logs for more details");
+						RequestRefresh();
+					},
+					[]() { RequestRefresh(); });
 				bCreatedAsset = true;
 			}
 		}

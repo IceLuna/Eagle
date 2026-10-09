@@ -1,5 +1,6 @@
 #include "egpch.h"
 #include "AssetImporterPanel.h"
+#include "ContentBrowserPanel.h"
 #include "../EditorResources.h"
 
 #include "Eagle/Core/Application.h"
@@ -165,10 +166,15 @@ namespace Eagle
 			ImGui::SameLine();
 			if (ImGui::Button("Import"))
 			{
-				bool bAnyFailed = false;
+				std::vector<AssetImportRequest> requests;
+				requests.reserve(m_2DTextures.size() + m_CubeTextures.size());
 				for (const auto& texture : m_2DTextures)
 				{
-					AssetImportSettings settings;
+					AssetImportRequest& request = requests.emplace_back();
+					request.PathToRaw = texture.AssetPath;
+					request.Type = AssetType::Texture2D;
+
+					AssetImportSettings& settings = request.Settings;
 					settings.Texture2DSettings = texture.bOverride ? texture.Settings : m_Common2DSettings;
 					settings.Texture2DSettings.bNormalMap = texture.Settings.bNormalMap; // It's always per texture
 
@@ -178,19 +184,23 @@ namespace Eagle
 						const int maxMips = (int)CalculateMipCount(uint32_t(texture.Size.x), uint32_t(texture.Size.y));
 						settings.Texture2DSettings.MipsCount = glm::min(uint32_t(maxMips), m_Common2DSettings.MipsCount);
 					}
-
-					bAnyFailed |= !AssetImporter::Import(texture.AssetPath, importTo, AssetType::Texture2D, settings);
 				}
 				for (const auto& texture : m_CubeTextures)
 				{
-					AssetImportSettings settings;
-					settings.TextureCubeSettings = texture.bOverride ? texture.Settings : m_CommonCubeSettings;
-
-					bAnyFailed |= !AssetImporter::Import(texture.AssetPath, importTo, AssetType::TextureCube, settings);
+					AssetImportRequest& request = requests.emplace_back();
+					request.PathToRaw = texture.AssetPath;
+					request.Type = AssetType::TextureCube;
+					request.Settings.TextureCubeSettings = texture.bOverride ? texture.Settings : m_CommonCubeSettings;
 				}
 
-				if (bAnyFailed)
-					Application::Get().GetImGuiLayer()->AddMessage("At least one texture import failed. See logs for more details");
+				AssetImporter::ImportAsync(std::move(requests), importTo,
+					[](const AssetImportAsyncResult& result)
+					{
+						if (result.Failed > 0)
+							Application::Get().GetImGuiLayer()->AddMessage("At least one texture import failed. See logs for more details");
+						ContentBrowserPanel::RequestRefresh();
+					},
+					[]() { ContentBrowserPanel::RequestRefresh(); });
 
 				*pOpen = false;
 				bResult = true;
@@ -358,29 +368,38 @@ namespace Eagle
 
 			if (ImGui::Button("Import"))
 			{
-				bool bAnyFailed = false;
+				bool bAnyInvalid = false;
+				std::vector<AssetImportRequest> requests;
+				requests.reserve(m_Meshes.size());
 				for (const auto& mesh : m_Meshes)
 				{
-					const AssetImportSettings settings = mesh.bOverride ? mesh.Settings : m_CommonSettings;
+					const AssetImportSettings& settings = mesh.bOverride ? mesh.Settings : m_CommonSettings;
 					const bool bSkeletal = mesh.bOverride ? mesh.bSkeletal : m_AsSkeletal;
 
 					const bool bCanCreate = !bSkeletal || !settings.bOnlyImportAnimations || settings.AnimationSettings.Skeletal;
 					if (!bCanCreate)
 					{
-						EG_CORE_ERROR("Failed to import {}: `Import Animations Only` is set but skeletal mesh is not selected for them to use!");
-						bAnyFailed = true;
+						EG_CORE_ERROR("Failed to import {}: `Import Animations Only` is set but skeletal mesh is not selected for them to use!", mesh.AssetPath);
+						bAnyInvalid = true;
 						continue;
 					}
 
-					const AssetType type = bSkeletal ?
+					AssetImportRequest& request = requests.emplace_back();
+					request.PathToRaw = mesh.AssetPath;
+					request.Settings = settings;
+					request.Type = bSkeletal ?
 						settings.bOnlyImportAnimations ? AssetType::Animation : AssetType::SkeletalMesh
 						: AssetType::StaticMesh;
-
-					bAnyFailed |= !AssetImporter::Import(mesh.AssetPath, importTo, type, settings);
 				}
 
-				if (bAnyFailed)
-					Application::Get().GetImGuiLayer()->AddMessage("At least one mesh failed to import. See logs for more details");
+				AssetImporter::ImportAsync(std::move(requests), importTo,
+					[bAnyInvalid](const AssetImportAsyncResult& result)
+					{
+						if (bAnyInvalid || result.Failed > 0)
+							Application::Get().GetImGuiLayer()->AddMessage("At least one mesh failed to import. See logs for more details");
+						ContentBrowserPanel::RequestRefresh();
+					},
+					[]() { ContentBrowserPanel::RequestRefresh(); });
 
 				*pOpen = false;
 				bResult = true;

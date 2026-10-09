@@ -2,6 +2,7 @@
 
 #include "ImGuiLayer.h"
 #include "Eagle/Renderer/RenderManager.h"
+#include "Eagle/Core/AsyncTask.h"
 #include "Eagle/UI/UI.h"
 #include "Eagle/Input/Input.h"
 #include "Platform/Vulkan/VulkanImGuiLayer.h"
@@ -118,7 +119,11 @@ namespace Eagle
 
 	void ImGuiLayer::OnImGuiRender()
 	{
-		if (m_PopupMessages.empty())
+		if (Application::Get().IsGame())
+			return;
+
+		AsyncTaskManager::OnImGuiRender();
+		if (m_PopupMessages.empty() || AsyncTaskManager::IsModalTaskActive())
 			return;
 
 		// Draw only one at the time
