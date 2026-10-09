@@ -215,6 +215,7 @@ namespace Eagle
 		s_Instance = this;
 		m_FolderIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/foldericon.png");
 		m_AsteriskIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/asterisk.png");
+		m_RefreshIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/refresh.png");
 	}
 
 	ContentBrowserPanel::~ContentBrowserPanel()
@@ -228,8 +229,20 @@ namespace Eagle
 
 		ImGui::Begin(GetWindowName(), nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 		ImGui::PushID("Content Browser");
-		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+
+		// Save some space for the refresh button
+		const float padding = 2.0;
+		const float width = ImGui::GetContentRegionAvail().x;
+		const float buttonSize = ImGui::GetFrameHeight();
+		ImGui::SetNextItemWidth(width - buttonSize - padding);
 		const bool bSearchInputChanged = UI::InputTextWithHint("##search", m_Search, "Search...");
+
+		// Refresh button
+		{
+			ImGui::SameLine(0, padding);
+			if (UI::ImageButton(m_RefreshIcon, ImVec2(buttonSize, buttonSize) - ImGui::GetStyle().FramePadding * 2))
+				m_RefreshBrowser = true;
+		}
 
 		if (m_bShowInputName)
 		{

@@ -114,6 +114,7 @@ namespace Eagle
 
 		Ref<Texture2D> m_FolderIcon;
 		Ref<Texture2D> m_AsteriskIcon;
+		Ref<Texture2D> m_RefreshIcon;
 
 		Path m_ProjectPath;
 		Path m_ContentPath;
