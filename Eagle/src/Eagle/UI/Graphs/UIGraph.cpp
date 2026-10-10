@@ -12,6 +12,27 @@
 
 namespace Eagle
 {
+    class ScopedNodeEditorContext
+    {
+    public:
+        explicit ScopedNodeEditorContext(ed::Detail::EditorContext* editor)
+            : m_Previous(ed::GetCurrentEditor())
+        {
+            ed::SetCurrentEditor(editor);
+        }
+
+        ~ScopedNodeEditorContext()
+        {
+            ed::SetCurrentEditor(m_Previous);
+        }
+
+        ScopedNodeEditorContext(const ScopedNodeEditorContext&) = delete;
+        ScopedNodeEditorContext& operator=(const ScopedNodeEditorContext&) = delete;
+
+    private:
+        ed::Detail::EditorContext* m_Previous = nullptr;
+    };
+
     static inline ImRect ImGui_GetItemRect()
     {
         return ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
@@ -142,20 +163,7 @@ namespace Eagle
     UIGraph::UIGraph(GraphEditor& editor, const std::string_view name)
         : m_Editor(editor)
 	{
-        ed::Detail::EditorContext* editorBefore = ed::GetCurrentEditor();
-
-        m_GraphData.Editor = ed::CreateEditor(&editor.GetConfig());
         m_GraphData.Name = name;
-
-        ed::SetCurrentEditor(m_GraphData.Editor);
-
-        // If deserialization has failed, focus
-        if (m_GraphData.Nodes.size() == 1)
-            ed::NavigateToContent();
-
-        BuildNodes();
-
-        ed::SetCurrentEditor(editorBefore);
 	}
 
     UIGraph::~UIGraph()
@@ -164,14 +172,91 @@ namespace Eagle
             ed::DestroyEditor(m_GraphData.Editor);
     }
 
+    ed::Detail::EditorContext* UIGraph::GetEditorContext()
+    {
+        if (m_GraphData.Editor)
+            return m_GraphData.Editor;
+
+        m_GraphData.Editor = ed::CreateEditor(&m_Editor.GetConfig());
+        ScopedNodeEditorContext editorScope(m_GraphData.Editor);
+
+        if (m_GraphData.bHasViewState)
+        {
+            m_GraphData.Editor->SetViewScroll(m_GraphData.ViewScroll);
+            m_GraphData.Editor->SetViewZoom(m_GraphData.ViewZoom);
+        }
+
+        // Register the nodes in the order they were added (IDs are increasing),
+        // which is the order they'd have been registered in if the context existed from the start
+        std::vector<Node*> nodes;
+        nodes.reserve(m_GraphData.Nodes.size());
+        for (auto& [_, node] : m_GraphData.Nodes)
+            nodes.push_back(&node);
+        std::sort(nodes.begin(), nodes.end(), [](const Node* a, const Node* b) { return a->ID.Get() < b->ID.Get(); });
+
+        for (Node* node : nodes)
+        {
+            m_GraphData.Editor->CreateNode(node->ID);
+            ed::SetNodePosition(node->ID, node->Position);
+            if (node->bApplyGroupSize)
+                ed::SetGroupSize(node->ID, node->Size);
+        }
+
+        return m_GraphData.Editor;
+    }
+
+    ImVec2 UIGraph::GetNodePosition(ed::NodeId id) const
+    {
+        if (m_GraphData.Editor)
+        {
+            ScopedNodeEditorContext editorScope(m_GraphData.Editor);
+            return ed::GetNodePosition(id);
+        }
+
+        const Node* node = FindNode(id);
+        return node ? node->Position : ImVec2(FLT_MAX, FLT_MAX); // Same as imgui-node-editor returns for unknown nodes
+    }
+
+    ImVec2 UIGraph::GetNodeSize(ed::NodeId id) const
+    {
+        if (m_GraphData.Editor)
+        {
+            ScopedNodeEditorContext editorScope(m_GraphData.Editor);
+            return ed::GetNodeSize(id);
+        }
+
+        const Node* node = FindNode(id);
+        return node ? node->Size : ImVec2(0, 0);
+    }
+
+    void UIGraph::SetNodePosition(Node& node, ImVec2 position)
+    {
+        node.Position = position;
+        if (m_GraphData.Editor)
+        {
+            ScopedNodeEditorContext editorScope(m_GraphData.Editor);
+            ed::SetNodePosition(node.ID, position);
+        }
+    }
+
+    void UIGraph::SetNodeGroupSize(Node& node, ImVec2 size)
+    {
+        node.Size = size;
+        node.bApplyGroupSize = true;
+        if (m_GraphData.Editor)
+        {
+            ScopedNodeEditorContext editorScope(m_GraphData.Editor);
+            ed::SetGroupSize(node.ID, size);
+        }
+    }
+
     void UIGraph::OnEvent(Event& e)
     {
-        ed::Detail::EditorContext* editorBefore = ed::GetCurrentEditor();
-        ed::SetCurrentEditor(m_GraphData.Editor);
+        if (!m_GraphData.Editor)
+            return;
 
+        ScopedNodeEditorContext editorScope(m_GraphData.Editor);
         Event::Dispatch<KeyPressedEvent>(e, EG_BIND_FN(UIGraph::OnKeyPressed));
-
-        ed::SetCurrentEditor(editorBefore);
     }
 
     bool UIGraph::OnKeyPressed(KeyPressedEvent& e)
@@ -196,7 +281,7 @@ namespace Eagle
 
     void UIGraph::OnImGuiRender(bool* pOpen)
     {
-        ed::SetCurrentEditor(m_GraphData.Editor);
+        ed::SetCurrentEditor(GetEditorContext());
 
         // Select variable in the list
         if (ed::HasSelectionChanged())
@@ -350,22 +435,16 @@ namespace Eagle
 
     void UIGraph::OnStartedRenamingNode(Node* node)
     {
-        UpdateNodeSize(m_GraphData.Editor->GetSettings(), *node);
+        if (m_GraphData.Editor)
+            UpdateNodeSize(m_GraphData.Editor->GetSettings(), *node);
         m_RenamingNodeTemp = node->GetName();
         node->bEditing = true;
     }
 
     Ref<GraphNode> UIGraph::Compile_Internal(Node* outputNode, VariablesMap& outUsedVars, std::unordered_set<UIGraph*>& compiledGraphs)
     {
-        ed::Detail::EditorContext* editorBefore = ed::GetCurrentEditor();
-        ed::SetCurrentEditor(m_GraphData.Editor);
-
         Parse(outputNode, true, outUsedVars, compiledGraphs);
-        Ref<GraphNode> compiledNode = outputNode->GraphNode;
-
-        ed::SetCurrentEditor(editorBefore);
-
-        return compiledNode;
+        return outputNode->GraphNode;
     }
 
     Ref<GraphNode> UIGraph::Compile(VariablesMap& outUsedVars)
@@ -742,15 +821,23 @@ namespace Eagle
 
     GraphSerializationData UIGraph::Serialize() const
     {
-        ed::Detail::EditorContext* editorBefore = ed::GetCurrentEditor();
-        ed::SetCurrentEditor(m_GraphData.Editor);
-
-        const auto& settings = m_GraphData.Editor->GetSettings();
+        std::optional<ScopedNodeEditorContext> editorScope;
+        if (m_GraphData.Editor)
+            editorScope.emplace(m_GraphData.Editor);
 
         GraphSerializationData result;
         result.Name = m_GraphData.Name;
-        result.ScrollOffset = glm::vec2(settings.m_ViewScroll.x, settings.m_ViewScroll.y);
-        result.Zoom = settings.m_ViewZoom;
+        if (m_GraphData.Editor)
+        {
+            const auto& settings = m_GraphData.Editor->GetSettings();
+            result.ScrollOffset = glm::vec2(settings.m_ViewScroll.x, settings.m_ViewScroll.y);
+            result.Zoom = settings.m_ViewZoom;
+        }
+        else
+        {
+            result.ScrollOffset = glm::vec2(m_GraphData.ViewScroll.x, m_GraphData.ViewScroll.y);
+            result.Zoom = m_GraphData.ViewZoom;
+        }
         result.ID = m_ID;
 
         for (const auto& [_, node] : m_GraphData.Nodes)
@@ -758,9 +845,14 @@ namespace Eagle
             if (node.Graph)
                 result.Subgraphs.emplace_back(node.Graph->Serialize());
 
-            EG_CORE_ASSERT(ed::HasNode(node.ID));
-            ImVec2 pos = ed::GetNodePosition(node.ID);
-            ImVec2 size = ed::GetNodeSize(node.ID);
+            ImVec2 pos = node.Position;
+            ImVec2 size = node.Size;
+            if (m_GraphData.Editor)
+            {
+                EG_CORE_ASSERT(ed::HasNode(node.ID));
+                pos = ed::GetNodePosition(node.ID);
+                size = ed::GetNodeSize(node.ID);
+            }
             GraphNodeSerializationData nodeData;
             nodeData.OwnerID = m_ID;
             nodeData.Name = node.Name;
@@ -820,7 +912,6 @@ namespace Eagle
 
             result.Nodes.push_back(nodeData);
         }
-        ed::SetCurrentEditor(editorBefore);
 
         return result;
     }
@@ -863,12 +954,18 @@ namespace Eagle
     {
         deserializedGraphs.push_back(this);
 
-        ed::Detail::EditorContext* editorBefore = ed::GetCurrentEditor();
-        ed::SetCurrentEditor(m_GraphData.Editor);
-
+        // Note: this must not touch imgui-node-editor (unless it already has a node editor context).
+        // Graphs are deserialized when assets are loaded, which can happen on any thread. Node layout is stored and applied in `GetEditorContext()`
         m_GraphData.Name = data.Name;
-        m_GraphData.Editor->SetViewScroll(ImVec2(data.ScrollOffset.x, data.ScrollOffset.y));
-        m_GraphData.Editor->SetViewZoom(data.Zoom);
+        m_GraphData.ViewScroll = ImVec2(data.ScrollOffset.x, data.ScrollOffset.y);
+        m_GraphData.ViewZoom = data.Zoom;
+        m_GraphData.bHasViewState = true;
+        if (m_GraphData.Editor)
+        {
+            ScopedNodeEditorContext editorScope(m_GraphData.Editor);
+            m_GraphData.Editor->SetViewScroll(m_GraphData.ViewScroll);
+            m_GraphData.Editor->SetViewZoom(m_GraphData.ViewZoom);
+        }
         m_ID = data.ID;
 
         // Create nodes
@@ -876,8 +973,9 @@ namespace Eagle
         {
             if (auto nodeID = GetOutputNodeID(); nodeData.bOutputNode && nodeID)
             {
-                ed::SetNodePosition(nodeID, ImVec2(nodeData.Position.x, nodeData.Position.y));
                 Node* node = GetOutputNode();
+                if (node)
+                    SetNodePosition(*node, ImVec2(nodeData.Position.x, nodeData.Position.y));
                 HandlePinsData(node, nodeData);
                 continue;
             }
@@ -887,14 +985,14 @@ namespace Eagle
                 if (const auto& var = m_Editor.GetVariable(nodeData.Name))
                 {
                     Node& createdNode = GraphNodeFactory::SpawnVarNode(*this, nodeData.Name, GetPinType(var->GetType()));
-                    ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
+                    SetNodePosition(createdNode, ImVec2(nodeData.Position.x, nodeData.Position.y));
                     HandlePinsData(&createdNode, nodeData);
                 }
             }
             else if (nodeData.Type == GraphNodeType::PoseCache)
             {
                 Node& createdNode = GraphNodeFactory::SpawnCachePoseNode(*this, nodeData.Name);
-                ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
+                SetNodePosition(createdNode, ImVec2(nodeData.Position.x, nodeData.Position.y));
                 HandlePinsData(&createdNode, nodeData);
             }
             else if (nodeData.Type == GraphNodeType::PoseCacheGetter)
@@ -903,7 +1001,7 @@ namespace Eagle
                 // so we temporarily set it to nullptr, and at the end of deserialization, assign correct values
                 const Node* cached = nullptr;
                 Node& createdNode = GraphNodeFactory::SpawnCachePoseGetterNode(*this, cached);
-                ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
+                SetNodePosition(createdNode, ImVec2(nodeData.Position.x, nodeData.Position.y));
                 HandlePinsData(&createdNode, nodeData);
 
                 auto& data = poseCacheGetterData.emplace_back();
@@ -921,9 +1019,8 @@ namespace Eagle
                     {
                         auto func = it->second;
                         Node& createdNode = (*func)(*this, nodeData.Name);
-                        createdNode.Size = ImVec2(nodeData.Size.x, nodeData.Size.y);
-                        ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
-                        ed::SetGroupSize(createdNode.ID, createdNode.Size);
+                        SetNodePosition(createdNode, ImVec2(nodeData.Position.x, nodeData.Position.y));
+                        SetNodeGroupSize(createdNode, ImVec2(nodeData.Size.x, nodeData.Size.y));
                         createdNode.UserData = nodeData.UserData;
                         HandlePinsData(&createdNode, nodeData);
 
@@ -950,9 +1047,8 @@ namespace Eagle
             {
                 const auto& bs = nodeData.BlendSpace;
                 Node& createdNode = GraphNodeFactory::SpawnBlendSpaceNode(*this, nodeData.Name, bs);
-                createdNode.Size = ImVec2(nodeData.Size.x, nodeData.Size.y);
-                ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
-                ed::SetGroupSize(createdNode.ID, createdNode.Size);
+                SetNodePosition(createdNode, ImVec2(nodeData.Position.x, nodeData.Position.y));
+                SetNodeGroupSize(createdNode, ImVec2(nodeData.Size.x, nodeData.Size.y));
                 createdNode.UserData = nodeData.UserData;
                 HandlePinsData(&createdNode, nodeData);
             }
@@ -980,9 +1076,8 @@ namespace Eagle
                     }
                     createdNode->SetName(nodeData.Name);
 
-                    createdNode->Size = ImVec2(nodeData.Size.x, nodeData.Size.y);
-                    ed::SetNodePosition(createdNode->ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
-                    ed::SetGroupSize(createdNode->ID, createdNode->Size);
+                    SetNodePosition(*createdNode, ImVec2(nodeData.Position.x, nodeData.Position.y));
+                    SetNodeGroupSize(*createdNode, ImVec2(nodeData.Size.x, nodeData.Size.y));
                     createdNode->UserData = nodeData.UserData;
                     HandlePinsData(createdNode, nodeData);
                 }
@@ -1007,8 +1102,6 @@ namespace Eagle
                 }
             }
         }
-
-        ed::SetCurrentEditor(editorBefore);
     }
 
     void UIGraph::Deserialize(const GraphEditorSerializationData& editorData, const GraphSerializationData& data)

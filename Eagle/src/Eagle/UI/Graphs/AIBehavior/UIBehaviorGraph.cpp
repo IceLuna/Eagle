@@ -360,7 +360,7 @@ namespace Eagle
 
     void UIBehaviorGraph::OnImGuiRender(bool* pOpen)
     {
-        ed::SetCurrentEditor(m_GraphData.Editor);
+        ed::SetCurrentEditor(GetEditorContext());
 
         RenderLeftPanel();
         UIGraph::OnImGuiRender(pOpen);
@@ -631,7 +631,7 @@ namespace Eagle
         {
             auto& data = internalData.emplace_back();
             data.ID = outputData.NodeID;
-            data.PositionX = ed::GetNodePosition(outputData.NodeID).x;
+            data.PositionX = GetNodePosition(outputData.NodeID).x;
         }
 
         std::sort(internalData.begin(), internalData.end(), [](const NodeState_Internal& a, const NodeState_Internal& b)
@@ -682,9 +682,6 @@ namespace Eagle
             return;
         }
 
-        auto oldEditor = ed::GetCurrentEditor();
-        ed::SetCurrentEditor(m_GraphData.Editor);
-
         // It's pointless to parse an actual root from UI since it doesn't represent an AI node
         Node* startNode = FindNode(root->OutputsPerPin[0][0].NodeID);
         if (!startNode)
@@ -699,9 +696,6 @@ namespace Eagle
         AIBehaviorNode nodeData;
         RebuildBehaviorTree_Internal(startNode, nodeData, startIndex);
         m_Asset->SetRoot(std::move(nodeData));
-
-        if (oldEditor != m_GraphData.Editor)
-            ed::SetCurrentEditor(oldEditor);
 
         //Print(nodeData);
     }

@@ -22,7 +22,9 @@ namespace Eagle
     UIAnimationStateMachineGraph::UIAnimationStateMachineGraph(GraphEditor& editor, const std::string_view name)
 		: UIGraph(editor, name)
 	{
-		m_ArrowTexture = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/arrow.png");
+        // Note: nothing here should touch ImGui, imgui-node-editor or the renderer,
+        // because graph editors are also created to compile graphs when assets are loaded/deserialized, which can happen on any thread.
+        // UI resources should be created when the editor is drawn for the first time
 
         SetupInitialNodes();
         SetupNodeFactory();
@@ -240,9 +242,6 @@ namespace Eagle
 
     Ref<GraphNode> UIAnimationStateMachineGraph::Compile_Internal(Node* node, VariablesMap& outUsedVars, std::unordered_set<UIGraph*>& compiledGraphs)
     {
-        ed::Detail::EditorContext* editorBefore = ed::GetCurrentEditor();
-        ed::SetCurrentEditor(m_GraphData.Editor);
-
         auto stateMachine = MakeRef<AnimationStateMachineGraph>();
         const auto& graphAsset = ((AnimationGraphEditor&)m_Editor).GetGraphAsset();
         const auto& graph = graphAsset->GetGraph();
@@ -271,8 +270,6 @@ namespace Eagle
 
         Ref<GraphNode> compiledNode = node->GraphNode;
         m_CompiledNodes.clear();
-
-        ed::SetCurrentEditor(editorBefore);
 
         return compiledNode;
     }
@@ -448,6 +445,9 @@ namespace Eagle
     void UIAnimationStateMachineGraph::DrawLinks()
     {
         UIGraph::DrawLinks();
+
+        if (!m_ArrowTexture)
+            m_ArrowTexture = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/arrow.png");
 
         auto textureID = UI::GetTextureID(m_ArrowTexture);
         ImGuiID id = (ImGuiID)m_ArrowTexture->GetGUID().GetHash();

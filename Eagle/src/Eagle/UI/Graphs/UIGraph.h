@@ -135,6 +135,9 @@ namespace Eagle
         CachedNodeData CachedNode; // Used if a node is a "PoseCacheGetter".
         ImVec2 PrevPosition = ImVec2(0, 0);
 
+        ImVec2 Position = ImVec2(0, 0);
+        bool bApplyGroupSize = false; // If true, `Size` is applied as the group size when the node editor context is created
+
         std::vector<std::vector<PinConnectionData>> InputsPerPin;
         std::vector<std::vector<PinConnectionData>> OutputsPerPin; // One pin-output can be used as an input for multiple nodes.
 
@@ -230,8 +233,14 @@ namespace Eagle
 
     struct GraphData
     {
+        // It's created lazily
         ax::NodeEditor::Detail::EditorContext* Editor = nullptr;
         std::string Name;
+
+        // View state that's applied when `Editor` is created
+        ImVec2 ViewScroll = ImVec2(0, 0);
+        float ViewZoom = 1.f;
+        bool bHasViewState = false;
 
         int NextId = 1;
         const int PinIconSize = 24;
@@ -319,6 +328,15 @@ namespace Eagle
 
         const GraphData& GetGraphData() const { return m_GraphData; }
 
+        // UI only (main thread)
+        ed::Detail::EditorContext* GetEditorContext();
+        bool HasEditorContext() const { return m_GraphData.Editor != nullptr; }
+
+        ImVec2 GetNodePosition(ed::NodeId id) const;
+        ImVec2 GetNodeSize(ed::NodeId id) const;
+        void SetNodePosition(Node& node, ImVec2 position);
+        void SetNodeGroupSize(Node& node, ImVec2 size);
+
         Node* FindNode(ed::NodeId id);
         Node* FindNodeByGUID(const GUID& id);
         const Node* FindNode(ed::NodeId id) const;
@@ -335,7 +353,8 @@ namespace Eagle
             ed::NodeId id = GetNextId();
             auto inserted = m_GraphData.Nodes.emplace(id, Node{ this, id, name, color, bDeletable });
             auto& it = inserted.first;
-            m_GraphData.Editor->CreateNode(id);
+            if (m_GraphData.Editor)
+                m_GraphData.Editor->CreateNode(id);
             return it->second;
         }
 

@@ -144,9 +144,6 @@ namespace Eagle
 			else if (type == AssetType::AnimationGraph)
 			{
 				assetsToLoadQueue[5].Paths.emplace_back(std::move(assetPath));
-				// Currently, we can't load graphs in parallel because during its compilation we use imgui node editor and it causes issues
-				// TODO: fix it by decoupling it from node editor
-				assetsToLoadQueue[5].bAsync = false;
 				continue;
 			}
 			// Entity: we can't load entities unless all assets are loaded since entities might refer to anything

@@ -95,7 +95,9 @@ namespace Eagle
     GraphEditor::GraphEditor(const std::string_view name)
         : m_Name(name)
     {
-        m_HeaderTexture = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/BlueprintBackground.png");
+        // Note: nothing here should touch ImGui, imgui-node-editor or the renderer,
+        // because graph editors are also created to compile graphs when assets are loaded/deserialized, which can happen on any thread.
+        // UI resources should be created when the editor is drawn for the first time
 
         // Init editor
         m_Config.UserPointer = this;
@@ -120,6 +122,8 @@ namespace Eagle
 
     bool GraphEditor::OnImGuiRender(bool* pOpen)
     {
+        if (!m_HeaderTexture)
+            m_HeaderTexture = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/BlueprintBackground.png");
         m_HeaderBackground = UI::GetTextureID(m_HeaderTexture);
 
         // Required to not mark asset as dirty.
@@ -182,7 +186,10 @@ namespace Eagle
         if (ImGui::Button("Save"))
             Save();
         if (ImGui::Button("Zoom to Content"))
+        {
+            ed::SetCurrentEditor(m_Graphs.back()->GetEditorContext());
             ed::NavigateToContent();
+        }
         ImGui::Spring();
         ImGui::EndHorizontal();
         ImGui::Separator();
