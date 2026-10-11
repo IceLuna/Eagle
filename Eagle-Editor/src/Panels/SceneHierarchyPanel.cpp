@@ -70,8 +70,13 @@ namespace Eagle
 			const bool bRuntime = bScenePlaying;
 			const bool bVolumetricsEnabled = bVolumetricsEnabledOverride ? *bVolumetricsEnabledOverride : m_Scene->GetSceneRenderer()->GetOptions().VolumetricSettings.bEnable;
 
-			bChanged |= m_Properties.OnImGuiRender(m_SelectedEntity, bRuntime, bVolumetricsEnabled);
+			Entity newEntitySelection = Entity::Null;
+			bChanged |= m_Properties.OnImGuiRender(m_SelectedEntity, bRuntime, bVolumetricsEnabled, &newEntitySelection);
 			m_UpdateSearchResults |= m_Scene->HasEntityListChanged() || m_Scene->AnyEntityNameChanged();
+			if (newEntitySelection != Entity::Null)
+			{
+				SetEntitySelected(newEntitySelection, m_Properties.GetSelectedComponentType());
+			}
 		}
 		ImGui::End(); //Properties
 

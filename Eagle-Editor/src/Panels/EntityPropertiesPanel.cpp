@@ -62,14 +62,14 @@ namespace Eagle
 	static const char* s_CapsuleClimbModeHelpMsg = "Easy - let the capsule climb over surfaces according to impact normal.\n"
 		"Constrained - try to limit climbing according to the step offset.";
 
-	bool EntityPropertiesPanel::OnImGuiRender(Entity entity, bool bRuntime, bool bVolumetricsEnabled)
+	bool EntityPropertiesPanel::OnImGuiRender(Entity entity, bool bRuntime, bool bVolumetricsEnabled, Entity* newEntitySelection)
 	{
 		this->bRuntime = bRuntime;
 		this->bVolumetricsEnabled = bVolumetricsEnabled;
 		m_Entity = entity;
 		bEntityChanged = false;
 
-		DrawComponents(entity);
+		DrawComponents(entity, newEntitySelection);
 
 		return bEntityChanged;
 	}
@@ -145,11 +145,12 @@ namespace Eagle
 			case SelectedComponent::NavigationMeshComponent: return m_Entity.HasComponent<NavigationMeshComponent>();
 			case SelectedComponent::NavigationCrowdAgentComponent: return m_Entity.HasComponent<NavigationCrowdAgentComponent>();
 			case SelectedComponent::SceneSequenceComponent: return m_Entity.HasComponent<SceneSequenceComponent>();
+			case SelectedComponent::EntityAssetComponent: return m_Entity.HasComponent<EntityAssetComponent>();
 		}
 		return false;
 	}
 
-	void EntityPropertiesPanel::DrawComponents(Entity& entity)
+	void EntityPropertiesPanel::DrawComponents(Entity entity, Entity* newEntitySelection)
 	{
 		ImGui::PushID((void*)entity.GetGUID().GetHash());
 
@@ -157,7 +158,6 @@ namespace Eagle
 		{
 			m_SelectedComponent = SelectedComponent::None;
 		}
-		
 		
 		std::string entityName = entity.GetName();
 		if (UI::InputText("##Name", entityName))
@@ -245,6 +245,7 @@ namespace Eagle
 
 #define EG_DRAW_COMPONENT_LINE(label, type, typeEnum) { if (DrawComponentLine<type>(label, entity, m_SelectedComponent == typeEnum)) m_SelectedComponent = typeEnum; }
 #define EG_DRAW_COMPONENT_LINE_EX(label, type, typeEnum, bCanRemove) { if (DrawComponentLine<type>(label, entity, m_SelectedComponent == typeEnum, bCanRemove)) m_SelectedComponent = typeEnum; }
+				EG_DRAW_COMPONENT_LINE_EX("Entity Asset", EntityAssetComponent, SelectedComponent::EntityAssetComponent, false);
 				EG_DRAW_COMPONENT_LINE("C# Script", ScriptComponent, SelectedComponent::ScriptComponent);
 				EG_DRAW_COMPONENT_LINE("Audio", AudioComponent, SelectedComponent::AudioComponent);
 				EG_DRAW_COMPONENT_LINE("Reverb", ReverbComponent, SelectedComponent::ReverbComponent);
@@ -2442,6 +2443,33 @@ namespace Eagle
 					}
 				});
 				
+				break;
+			}
+
+			case SelectedComponent::EntityAssetComponent:
+			{
+				DrawComponent<EntityAssetComponent>("Entity Asset", entity, [&entity, this, &newEntitySelection](EntityAssetComponent& component)
+				{
+					Ref<Asset> asset;
+					AssetManager::Get(component.AssetGUID, &asset);
+
+					ImGui::Text("This entity was created from an entity asset: %s", asset ? Utils::AsString(asset->GetPath().stem()) : "<unknown>");
+
+					const bool bDisable = bRuntime || (asset == nullptr);
+					if (bDisable)
+						UI::PushItemDisabled();
+
+					if (ImGui::Button("Reload from the asset"))
+					{
+						Entity newEntity = Scene::GetCurrentScene()->ReloadEntityCreatedFromAsset(entity);
+						if (newEntitySelection)
+							*newEntitySelection = newEntity;
+						bEntityChanged = true;
+					}
+
+					if (bDisable)
+						UI::PopItemDisabled();
+				});
 				break;
 			}
 		}

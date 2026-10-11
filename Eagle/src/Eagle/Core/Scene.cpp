@@ -2441,6 +2441,67 @@ namespace Eagle
 		return createdEntity;
 	}
 
+	void Scene::ResolveEntityReload(const GUID& oldGUID, const GUID& newGUID)
+	{
+		auto view = m_Registry.view<ScriptComponent>();
+		for (auto& e : view)
+		{
+			ScriptComponent& script = m_Registry.get<ScriptComponent>(e);
+			const size_t fieldsCount = script.PublicFields.size();
+
+			bool bUpdated = false;
+			for (size_t i = 0; i < fieldsCount; ++i)
+			{
+				auto& dstField = script.PublicFields[i];
+				if (dstField.Type == FieldType::Entity)
+				{
+					if (dstField.GetStoredValue<GUID>() == oldGUID)
+					{
+						dstField.SetStoredValue(newGUID);
+						bUpdated = true;
+					}
+				}
+			}
+		}
+
+		// Note: childrent are not resolved at all.
+		// Currently, there's no way to detect whether a child came from the asset or it was created manually by the user
+	}
+
+	Entity Scene::ReloadEntityCreatedFromAsset(Entity entity)
+	{
+		if (!entity.HasComponent<EntityAssetComponent>())
+			return Entity::Null;
+
+		const auto& component = entity.GetComponent<EntityAssetComponent>();
+		Ref<Asset> asset;
+		if (!AssetManager::Get(component.AssetGUID, &asset))
+		{
+			EG_CORE_ERROR("Failed to reload entity '{}' from its entity asset. The asset wasn't found", entity.GetName());
+			return Entity::Null;
+		}
+
+		auto assetEntity = Cast<AssetEntity>(asset);
+		if (!assetEntity)
+		{
+			EG_CORE_ERROR("Failed to reload entity '{}' from its entity asset. The asset isn't a entity asset: {}", entity.GetName(), Utils::AsString(asset->GetPath()));
+			return Entity::Null;
+		}
+
+		std::string oldName = entity.GetName();
+		Transform transform = entity.GetWorldTransform();
+		GUID oldGUID = entity.GetGUID();
+		DestroyEntity(entity, true);
+
+		Entity newEntity = CreateFromEntityAsset(assetEntity);
+		newEntity.SetWorldTransform(transform);
+		newEntity.SetName(oldName);
+
+		ResolveEntityReload(oldGUID, newEntity.GetGUID());
+
+		return newEntity;
+	}
+
 	void Scene::ReloadEntitiesCreatedFromAsset(const Ref<AssetEntity>& asset)
 	{
 		auto view = m_Registry.view<EntityAssetComponent>();
@@ -2452,12 +2513,7 @@ namespace Eagle
 			const auto& id = m_Registry.get<EntityAssetComponent>(e).AssetGUID;
 			if (id == assetID)
 			{
-				Entity thisEntity = Entity(e, this);
-				Transform transform = thisEntity.GetWorldTransform();
-				DestroyEntity(thisEntity, true);
-
-				Entity newEntity = CreateFromEntityAsset(asset);
-				newEntity.SetWorldTransform(transform);
+				ReloadEntityCreatedFromAsset(Entity(e, this));
 			}
 		}
 	}

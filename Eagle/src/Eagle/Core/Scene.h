@@ -127,6 +127,9 @@ namespace Eagle
 		// @bDestroyChildren. If set to true, child entities will also be removed from the scene and invalidated
 		void DestroyEntityImmediately(Entity entity, bool bDestroyChildren = false);
 
+		// Deletes an old entity and creates a new one instead of it.
+		// Returns a newly create entity
+		Entity ReloadEntityCreatedFromAsset(Entity entity);
 		void ReloadEntitiesCreatedFromAsset(const Ref<AssetEntity>& asset);
 
 		void OnUpdate(Timestep ts, bool bRender = true, bool bForceAnimationsUpdate = false);
@@ -388,6 +391,7 @@ namespace Eagle
 		void DestroyEntityImmediately_Internal(Entity entity, bool bDestroyChildren = false);
 		Entity CreateFromEntity_Internal(const Entity& source, bool bCopyGUID = false, ankerl::unordered_dense::map<GUID, GUID>* mapping = nullptr);
 		void ResolveCopiedPublicFields(Entity dst, const ankerl::unordered_dense::map<GUID, GUID>& mapping);
+		void ResolveEntityReload(const GUID& oldGUID, const GUID& newGUID);
 		void CallOnDestroyScripts(Entity entity, bool bPropagateToChildren);
 
 		void OnUpdateEditor(Timestep ts, bool bRender, bool bForceAnimationsUpdate);

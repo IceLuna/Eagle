@@ -33,6 +33,7 @@ namespace Eagle
 		NavigationMeshComponent,
 		NavigationCrowdAgentComponent,
 		SceneSequenceComponent,
+		EntityAssetComponent,
 	};
 
 	class EntityPropertiesPanel
@@ -40,8 +41,9 @@ namespace Eagle
 	public:
 		EntityPropertiesPanel() = default;
 
-		// Returns true if something was changed
-		bool OnImGuiRender(Entity entity, bool bRuntime, bool bVolumetricsEnabled);
+		// @newEntitySelection. If not null, assigns an entity that should be selected
+		// Returns true if something was changed.
+		bool OnImGuiRender(Entity entity, bool bRuntime, bool bVolumetricsEnabled, Entity* newEntitySelection = nullptr);
 		void SetEntitySelected(Entity entity, SelectedComponent selectedComponent);
 		SelectedComponent GetSelectedComponentType() const { return m_SelectedComponent; }
 		SceneComponent* GetSelectedComponent();
@@ -49,7 +51,7 @@ namespace Eagle
 	private:
 		bool HasSelectedComponent() const;
 
-		void DrawComponents(Entity& entity);
+		void DrawComponents(Entity entity, Entity* newEntitySelection);
 
 		template <typename T, typename UIFunction>
 		void DrawComponent(const std::string& name, Entity& entity, UIFunction&& function, bool canRemove = true)
