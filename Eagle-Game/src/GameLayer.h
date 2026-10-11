@@ -29,7 +29,6 @@ namespace Eagle
 		glm::uvec2 m_WindowSize = {};
 		
 		bool m_WindowFocused = true;
-		bool m_DrawUI = false;
 		bool m_VSync = true;
 		bool m_Fullscreen = true;
 	};

@@ -223,6 +223,16 @@ namespace Eagle
 		void SetDirty(bool dirty) { bDirty = dirty; }
 		bool IsDirty() const { return bDirty; }
 
+		bool IsAlwaysIncludedInGameBuilds() const { return bAlwaysIncludeInGameBuilds; }
+		void SetAlwaysIncludedInGameBuilds(bool bAlwaysInclude)
+		{
+			if (bAlwaysIncludeInGameBuilds == bAlwaysInclude)
+				return;
+
+			bAlwaysIncludeInGameBuilds = bAlwaysInclude;
+			SetDirty(true);
+		}
+
 		void AddOnAssetModifiedCallback(const GUID& id, const std::function<void()>& func);
 		void RemoveOnAssetModifiedCallback(const GUID& id)
 		{
@@ -240,6 +250,7 @@ namespace Eagle
 			m_GUID = std::move(other.m_GUID);
 			m_Type = std::move(other.m_Type);
 			m_RawData = std::move(other.m_RawData);
+			bAlwaysIncludeInGameBuilds = other.bAlwaysIncludeInGameBuilds;
 			other.m_GUID = GUID(0, 0);
 
 			return *this;
@@ -266,7 +277,7 @@ namespace Eagle
 		static constexpr AssetType GetAssetType_Static() { return AssetType::None; }
 
 	protected:
-		Asset(const Path& path, const Path& pathToRaw, AssetType type, GUID guid, const DataBuffer& rawData);
+		Asset(const Path& path, const Path& pathToRaw, AssetType type, GUID guid, bool bAlwaysIncludeInGameBuilds, const DataBuffer& rawData);
 
 	protected:
 		std::mutex m_Mutex;
@@ -277,6 +288,7 @@ namespace Eagle
 		AssetType m_Type = AssetType::None;
 		ScopedDataBuffer m_RawData;
 		bool bDirty = false; // Used for indication in UI that this assets needs to be saved
+		bool bAlwaysIncludeInGameBuilds = false;
 
 		friend class AssetManager;
 	};
@@ -316,7 +328,7 @@ namespace Eagle
 		static constexpr AssetType GetAssetType_Static() { return AssetType::Texture2D; }
 
 	protected:
-		AssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, std::vector<ScopedDataBuffer>&& compressedDataPerMip,
+		AssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, bool bAlwaysIncludeInGameBuilds, const DataBuffer& rawData, std::vector<ScopedDataBuffer>&& compressedDataPerMip,
 			const Ref<Texture2D>& texture, AssetTexture2DFormat format, TextureCompressor::Quality compression, bool bNormalMap);
 
 		void UpdateTextureData_Internal(uint32_t mipsCount);
@@ -358,8 +370,8 @@ namespace Eagle
 		static constexpr AssetType GetAssetType_Static() { return AssetType::TextureCube; }
 
 	protected:
-		AssetTextureCube(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<TextureCube>& texture, AssetTextureCubeFormat format)
-			: Asset(path, pathToRaw, AssetType::TextureCube, guid, rawData), m_Texture(texture), m_Format(format) {}
+		AssetTextureCube(const Path& path, const Path& pathToRaw, GUID guid, bool bAlwaysIncludeInGameBuilds, const DataBuffer& rawData, const Ref<TextureCube>& texture, AssetTextureCubeFormat format)
+			: Asset(path, pathToRaw, AssetType::TextureCube, guid, bAlwaysIncludeInGameBuilds, rawData), m_Texture(texture), m_Format(format) {}
 
 	private:
 		Ref<TextureCube> m_Texture;
@@ -390,8 +402,8 @@ namespace Eagle
 		}
 
 	protected:
-		AssetBaseMesh(const Path& path, const Path& pathToRaw, AssetType type, GUID guid, const DataBuffer& rawData)
-			: Asset(path, pathToRaw, type, guid, rawData) {}
+		AssetBaseMesh(const Path& path, const Path& pathToRaw, AssetType type, GUID guid, bool bAlwaysIncludeInGameBuilds, const DataBuffer& rawData)
+			: Asset(path, pathToRaw, type, guid, bAlwaysIncludeInGameBuilds, rawData) {}
 
 	private:
 		bool bCombinedMesh = true;
@@ -429,8 +441,8 @@ namespace Eagle
 		static constexpr AssetType GetAssetType_Static() { return AssetType::StaticMesh; }
 
 	protected:
-		AssetStaticMesh(const Path& path, const Path& pathToRaw, GUID guid, const Ref<StaticMesh>& mesh)
-			: AssetBaseMesh(path, pathToRaw, AssetType::StaticMesh, guid, {}), m_Mesh(mesh)
+		AssetStaticMesh(const Path& path, const Path& pathToRaw, GUID guid, bool bAlwaysIncludeInGameBuilds, const Ref<StaticMesh>& mesh)
+			: AssetBaseMesh(path, pathToRaw, AssetType::StaticMesh, guid, bAlwaysIncludeInGameBuilds, {}), m_Mesh(mesh)
 		{
 			AddOnMaterialPropertyModifiedCallback();
 		}
@@ -470,8 +482,8 @@ namespace Eagle
 		static constexpr AssetType GetAssetType_Static() { return AssetType::SkeletalMesh; }
 
 	protected:
-		AssetSkeletalMesh(const Path& path, const Path& pathToRaw, GUID guid, const Ref<SkeletalMesh>& mesh)
-			: AssetBaseMesh(path, pathToRaw, AssetType::SkeletalMesh, guid, {}), m_Mesh(mesh)
+		AssetSkeletalMesh(const Path& path, const Path& pathToRaw, GUID guid, bool bAlwaysIncludeInGameBuilds, const Ref<SkeletalMesh>& mesh)
+			: AssetBaseMesh(path, pathToRaw, AssetType::SkeletalMesh, guid, bAlwaysIncludeInGameBuilds, {}), m_Mesh(mesh)
 		{
 			AddOnMaterialPropertyModifiedCallback();
 		}
@@ -503,8 +515,8 @@ namespace Eagle
 		static constexpr AssetType GetAssetType_Static() { return AssetType::SoundGroup; }
 
 	protected:
-		AssetSoundGroup(const Path& path, GUID guid, const Ref<SoundGroup>& group)
-			: Asset(path, {}, AssetType::SoundGroup, guid, {}), m_SoundGroup(group) {}
+		AssetSoundGroup(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds, const Ref<SoundGroup>& group)
+			: Asset(path, {}, AssetType::SoundGroup, guid, bAlwaysIncludeInGameBuilds, {}), m_SoundGroup(group) {}
 
 	private:
 		Ref<SoundGroup> m_SoundGroup;
@@ -535,8 +547,8 @@ namespace Eagle
 		static constexpr AssetType GetAssetType_Static() { return AssetType::Audio; }
 
 	protected:
-		AssetAudio(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Audio>& audio, const Ref<AssetSoundGroup>& soundGroup)
-			: Asset(path, pathToRaw, AssetType::Audio, guid, rawData), m_Audio(audio)
+		AssetAudio(const Path& path, const Path& pathToRaw, GUID guid, bool bAlwaysIncludeInGameBuilds, const DataBuffer& rawData, const Ref<Audio>& audio, const Ref<AssetSoundGroup>& soundGroup)
+			: Asset(path, pathToRaw, AssetType::Audio, guid, bAlwaysIncludeInGameBuilds, rawData), m_Audio(audio)
 		{
 			SetSoundGroupAsset(soundGroup);
 		}
@@ -567,8 +579,8 @@ namespace Eagle
 		static constexpr AssetType GetAssetType_Static() { return AssetType::Font; }
 
 	protected:
-		AssetFont(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Font>& font)
-			: Asset(path, pathToRaw, AssetType::Font, guid, rawData), m_Font(font) {}
+		AssetFont(const Path& path, const Path& pathToRaw, GUID guid, bool bAlwaysIncludeInGameBuilds, const DataBuffer& rawData, const Ref<Font>& font)
+			: Asset(path, pathToRaw, AssetType::Font, guid, bAlwaysIncludeInGameBuilds, rawData), m_Font(font) {}
 
 	private:
 		Ref<Font> m_Font;
@@ -603,8 +615,8 @@ namespace Eagle
 		static constexpr AssetType GetAssetType_Static() { return AssetType::Material; }
 
 	protected:
-		AssetMaterial(const Path& path, GUID guid, const Ref<Material>& material)
-			: Asset(path, {}, AssetType::Material, guid, {}), m_Material(material) {}
+		AssetMaterial(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds, const Ref<Material>& material)
+			: Asset(path, {}, AssetType::Material, guid, bAlwaysIncludeInGameBuilds, {}), m_Material(material) {}
 
 	private:
 		Ref<Material> m_Material;
@@ -640,8 +652,8 @@ namespace Eagle
 		static constexpr AssetType GetAssetType_Static() { return AssetType::PhysicsMaterial; }
 
 	protected:
-		AssetPhysicsMaterial(const Path& path, GUID guid, const Ref<PhysicsMaterial>& material)
-			: Asset(path, {}, AssetType::PhysicsMaterial, guid, {}), m_Material(material) {}
+		AssetPhysicsMaterial(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds, const Ref<PhysicsMaterial>& material)
+			: Asset(path, {}, AssetType::PhysicsMaterial, guid, bAlwaysIncludeInGameBuilds, {}), m_Material(material) {}
 
 	private:
 		Ref<PhysicsMaterial> m_Material;
@@ -677,8 +689,8 @@ namespace Eagle
 		static constexpr AssetType GetAssetType_Static() { return AssetType::Entity; }
 
 	protected:
-		AssetEntity(const Path& path, GUID guid, const Ref<Entity>& entity)
-			: Asset(path, {}, AssetType::Entity, guid, {}), m_Entity(entity) {}
+		AssetEntity(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds, const Ref<Entity>& entity)
+			: Asset(path, {}, AssetType::Entity, guid, bAlwaysIncludeInGameBuilds, {}), m_Entity(entity) {}
 
 	private:
 		Ref<Entity> m_Entity;
@@ -693,8 +705,8 @@ namespace Eagle
 		static constexpr AssetType GetAssetType_Static() { return AssetType::Scene; }
 
 	protected:
-		AssetScene(const Path& path, GUID guid)
-			: Asset(path, {}, AssetType::Scene, guid, {}) {}
+		AssetScene(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds)
+			: Asset(path, {}, AssetType::Scene, guid, bAlwaysIncludeInGameBuilds, {}) {}
 	};
 
 	class AssetAnimation : public Asset
@@ -722,8 +734,8 @@ namespace Eagle
 		static constexpr AssetType GetAssetType_Static() { return AssetType::Animation; }
 
 	protected:
-		AssetAnimation(const Path& path, const Path& pathToRaw, GUID guid, const Ref<SkeletalMeshAnimation>& anim, const Ref<AssetSkeletalMesh>& skeletal, uint32_t animIndex)
-			: Asset(path, pathToRaw, AssetType::Animation, guid, {}), m_Animation(anim), m_Skeletal(skeletal), m_AnimIndex(animIndex) {}
+		AssetAnimation(const Path& path, const Path& pathToRaw, GUID guid, bool bAlwaysIncludeInGameBuilds, const Ref<SkeletalMeshAnimation>& anim, const Ref<AssetSkeletalMesh>& skeletal, uint32_t animIndex)
+			: Asset(path, pathToRaw, AssetType::Animation, guid, bAlwaysIncludeInGameBuilds, {}), m_Animation(anim), m_Skeletal(skeletal), m_AnimIndex(animIndex) {}
 
 	private:
 		Ref<AssetSkeletalMesh> m_Skeletal; // Ref skeletal that was used to create the animation
@@ -762,8 +774,8 @@ namespace Eagle
 		static constexpr AssetType GetAssetType_Static() { return AssetType::AnimationGraph; }
 
 	protected:
-		AssetAnimationGraph(const Path& path, GUID guid, const Ref<AnimationGraph>& graph, const GraphEditorSerializationData& data)
-			: Asset(path, {}, AssetType::AnimationGraph, guid, {}), m_Graph(graph), m_Data(data) {}
+		AssetAnimationGraph(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds, const Ref<AnimationGraph>& graph, const GraphEditorSerializationData& data)
+			: Asset(path, {}, AssetType::AnimationGraph, guid, bAlwaysIncludeInGameBuilds, {}), m_Graph(graph), m_Data(data) {}
 
 	private:
 		Ref<AnimationGraph> m_Graph;
@@ -797,8 +809,8 @@ namespace Eagle
 		static constexpr AssetType GetAssetType_Static() { return AssetType::ParticleSystem; }
 
 	protected:
-		AssetParticleSystem(const Path& path, GUID guid, const std::vector<ParticleEmitter>& emitters)
-			: Asset(path, {}, AssetType::ParticleSystem, guid, {}), m_Emitters(emitters) {}
+		AssetParticleSystem(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds, const std::vector<ParticleEmitter>& emitters)
+			: Asset(path, {}, AssetType::ParticleSystem, guid, bAlwaysIncludeInGameBuilds, {}), m_Emitters(emitters) {}
 
 	private:
 		std::vector<ParticleEmitter> m_Emitters;
@@ -879,9 +891,9 @@ namespace Eagle
 		static constexpr AssetType GetAssetType_Static() { return AssetType::AnimationBlendSpace; }
 
 	protected:
-		AssetAnimationBlendSpace(const Path& path, GUID guid, const Ref<AssetSkeletalMesh>& skeletal, const BlendSpaceAxisSettings& horAxis, const BlendSpaceAxisSettings& verAxis,
+		AssetAnimationBlendSpace(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds, const Ref<AssetSkeletalMesh>& skeletal, const BlendSpaceAxisSettings& horAxis, const BlendSpaceAxisSettings& verAxis,
 			const std::vector<BlendSpaceVertex>& points, BlendSpaceEventsTriggerMode mode)
-			: Asset(path, {}, AssetType::AnimationBlendSpace, guid, {})
+			: Asset(path, {}, AssetType::AnimationBlendSpace, guid, bAlwaysIncludeInGameBuilds, {})
 			, m_SkeletalMesh(skeletal)
 			, m_EventsTriggerMode(mode)
 			, m_Horizontal(horAxis)
@@ -954,8 +966,8 @@ namespace Eagle
 		static constexpr AssetType GetAssetType_Static() { return AssetType::BehaviorGraph; }
 
 	protected:
-		AssetBehaviorGraph(const Path& path, GUID guid, AIBehaviorNode&& root, GraphEditorSerializationData&& data)
-			: Asset(path, {}, AssetType::BehaviorGraph, guid, {}), m_Root(std::move(root)), m_Data(std::move(data))
+		AssetBehaviorGraph(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds, AIBehaviorNode&& root, GraphEditorSerializationData&& data)
+			: Asset(path, {}, AssetType::BehaviorGraph, guid, bAlwaysIncludeInGameBuilds, {}), m_Root(std::move(root)), m_Data(std::move(data))
 		{
 			RegisterCallback();
 		}
@@ -1037,7 +1049,7 @@ namespace Eagle
 		static constexpr AssetType GetAssetType_Static() { return AssetType::SceneSequence; }
 
 	protected:
-		AssetSceneSequence(const Path& path, GUID guid, std::vector<Ref<SequenceTrack>>&& tracks, float duration, float frameRate, bool bLooping);
+		AssetSceneSequence(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds, std::vector<Ref<SequenceTrack>>&& tracks, float duration, float frameRate, bool bLooping);
 		void SetTracks_Internal(std::vector<Ref<SequenceTrack>>&& tracks);
 
 	private:

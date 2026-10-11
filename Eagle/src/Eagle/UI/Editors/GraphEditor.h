@@ -158,6 +158,13 @@ namespace Eagle
             m_RenderPreviewVarsCallback = func;
         }
 
+        void SetRenderAssetSettingsCallback(const std::function<void()>& func)
+        {
+            m_RenderAssetSettingsCallback = func;
+        }
+
+        void RenderAssetSettings();
+
     private:
         void RenderVariablesUI();
         void RenderSelectedVariableDetails();
@@ -190,6 +197,7 @@ namespace Eagle
 
         std::function<void(float, float)> m_RenderPreviewPanelCallback;
         std::function<void()> m_RenderPreviewVarsCallback;
+        std::function<void()> m_RenderAssetSettingsCallback;
 
         float m_LeftPanelWidth = 400.f;
         float m_RightPanelWidth = 800.f;

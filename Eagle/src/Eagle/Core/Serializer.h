@@ -151,18 +151,18 @@ namespace Eagle
 
 		static ScopedDataBuffer SerializeAssetTexture2DFromData(const DataBuffer& textureData, const std::vector<ScopedDataBuffer>& compressedDataPerMip, ImageFormat compressedFormat, const GUID& guid,
 			const Path& pathToRaw, FilterMode filterMode, AddressMode addressMode, float anisotropy, uint32_t mipsCount, uint32_t width, uint32_t height, AssetTexture2DFormat format,
-			TextureCompressor::Quality compression, bool bNormalMap);
+			TextureCompressor::Quality compression, bool bNormalMap, bool bAlwaysIncludeInGameBuilds = false);
 		static ScopedDataBuffer SerializeAssetTextureCubeFromData(const DataBuffer& textureData, const GUID& guid, const Path& pathToRaw,
-			AssetTextureCubeFormat format, uint32_t layerSize, uint32_t prefilterSize, bool bCompress);
+			AssetTextureCubeFormat format, uint32_t layerSize, uint32_t prefilterSize, bool bCompress, bool bAlwaysIncludeInGameBuilds = false);
 		static ScopedDataBuffer SerializeAssetStaticMeshFromMesh(const Ref<StaticMesh>& mesh, const GUID& guid, const Path& pathToRaw,
-			bool bCombinedMesh, const std::string& sourceMeshName, uint32_t sourceMeshIndex, bool bLocationReset);
+			bool bCombinedMesh, const std::string& sourceMeshName, uint32_t sourceMeshIndex, bool bLocationReset, bool bAlwaysIncludeInGameBuilds = false);
 		static ScopedDataBuffer SerializeAssetSkeletalMeshFromMesh(const Ref<SkeletalMesh>& mesh, const GUID& guid, const Path& pathToRaw,
-			bool bCombinedMesh, const std::string& sourceMeshName, uint32_t sourceMeshIndex, bool bLocationReset);
+			bool bCombinedMesh, const std::string& sourceMeshName, uint32_t sourceMeshIndex, bool bLocationReset, bool bAlwaysIncludeInGameBuilds = false);
 		static ScopedDataBuffer SerializeAssetAudioFromData(const DataBuffer& audioData, const GUID& guid, const Path& pathToRaw,
-			float volume, float pitch, float pan, const Ref<AssetSoundGroup>& soundGroup);
-		static ScopedDataBuffer SerializeAssetFontFromData(const DataBuffer& fontData, const DataBuffer& atlasData, glm::uvec2 atlasSize, const GUID& guid, const Path& pathToRaw);
+			float volume, float pitch, float pan, const Ref<AssetSoundGroup>& soundGroup, bool bAlwaysIncludeInGameBuilds = false);
+		static ScopedDataBuffer SerializeAssetFontFromData(const DataBuffer& fontData, const DataBuffer& atlasData, glm::uvec2 atlasSize, const GUID& guid, const Path& pathToRaw, bool bAlwaysIncludeInGameBuilds = false);
 		static ScopedDataBuffer SerializeAssetAnimationFromData(const GUID& guid, const Path& pathToRaw, uint32_t animIndex,
-			const SkeletalMeshAnimation& anim, const Ref<AssetSkeletalMesh>& skeletal);
+			const SkeletalMeshAnimation& anim, const Ref<AssetSkeletalMesh>& skeletal, bool bAlwaysIncludeInGameBuilds = false);
 
 		static Ref<Asset> DeserializeAsset(const Path& pathToAsset, bool bReloadRaw = false);
 		static Ref<Asset> DeserializeAsset(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw = false);

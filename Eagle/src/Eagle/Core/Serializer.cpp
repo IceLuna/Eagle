@@ -766,7 +766,7 @@ namespace Eagle
 
 	ScopedDataBuffer Serializer::SerializeAssetTexture2DFromData(const DataBuffer& textureData, const std::vector<ScopedDataBuffer>& compressedDataPerMip, ImageFormat compressedFormat,
 		const GUID& guid, const Path& pathToRaw, FilterMode filterMode, AddressMode addressMode, float anisotropy, uint32_t mipsCount, uint32_t width, uint32_t height,
-		AssetTexture2DFormat format, TextureCompressor::Quality compression, bool bNormalMap)
+		AssetTexture2DFormat format, TextureCompressor::Quality compression, bool bNormalMap, bool bAlwaysIncludeInGameBuilds)
 	{
 		struct CompressedTextureDataInfo
 		{
@@ -796,6 +796,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Texture2D);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
+		out << YAML::Key << "AlwaysIncludeInGameBuilds" << YAML::Value << bAlwaysIncludeInGameBuilds;
 		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 		out << YAML::Key << "FilterMode" << YAML::Value << Utils::GetEnumName(filterMode);
 		out << YAML::Key << "AddressMode" << YAML::Value << Utils::GetEnumName(addressMode);
@@ -849,10 +850,10 @@ namespace Eagle
 
 		return SerializeAssetTexture2DFromData(asset->GetRawData().GetDataBuffer(), asset->GetCompressedDataPerMip(), texture->GetFormat(), asset->GetGUID(), asset->GetPathToRaw(),
 			texture->GetFilterMode(), texture->GetAddressMode(), texture->GetAnisotropy(), texture->GetMipsCount(), texture->GetWidth(), texture->GetHeight(),
-			asset->GetFormat(), asset->GetCompressionQuality(), asset->IsNormalMap());
+			asset->GetFormat(), asset->GetCompressionQuality(), asset->IsNormalMap(), asset->IsAlwaysIncludedInGameBuilds());
 	}
 
-	ScopedDataBuffer Serializer::SerializeAssetTextureCubeFromData(const DataBuffer& textureData, const GUID& guid, const Path& pathToRaw, AssetTextureCubeFormat format, uint32_t layerSize, uint32_t prefilterSize, bool bCompress)
+	ScopedDataBuffer Serializer::SerializeAssetTextureCubeFromData(const DataBuffer& textureData, const GUID& guid, const Path& pathToRaw, AssetTextureCubeFormat format, uint32_t layerSize, uint32_t prefilterSize, bool bCompress, bool bAlwaysIncludeInGameBuilds)
 	{
 		size_t totalSize = sizeof(AssetHeader);
 
@@ -864,6 +865,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::TextureCube);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
+		out << YAML::Key << "AlwaysIncludeInGameBuilds" << YAML::Value << bAlwaysIncludeInGameBuilds;
 		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(format);
 		out << YAML::Key << "LayerSize" << YAML::Value << layerSize;
@@ -892,11 +894,11 @@ namespace Eagle
 	{
 		const auto& textureCube = asset->GetTexture();
 		return SerializeAssetTextureCubeFromData(asset->GetRawData().GetDataBuffer(), asset->GetGUID(), asset->GetPathToRaw(),
-			asset->GetFormat(), textureCube->GetSize().x, textureCube->GetPrefilterSize(), textureCube->IsCompressed());
+			asset->GetFormat(), textureCube->GetSize().x, textureCube->GetPrefilterSize(), textureCube->IsCompressed(), asset->IsAlwaysIncludedInGameBuilds());
 	}
 
 	ScopedDataBuffer Serializer::SerializeAssetStaticMeshFromMesh(const Ref<StaticMesh>& mesh, const GUID& guid, const Path& pathToRaw,
-		bool bCombinedMesh, const std::string& sourceMeshName, uint32_t sourceMeshIndex, bool bLocationReset)
+		bool bCombinedMesh, const std::string& sourceMeshName, uint32_t sourceMeshIndex, bool bLocationReset, bool bAlwaysIncludeInGameBuilds)
 	{
 		size_t totalSize = sizeof(AssetHeader);
 
@@ -923,6 +925,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::StaticMesh);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
+		out << YAML::Key << "AlwaysIncludeInGameBuilds" << YAML::Value << bAlwaysIncludeInGameBuilds;
 		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 
 		out << YAML::Key << "CombinedMesh" << YAML::Value << bCombinedMesh;
@@ -1007,11 +1010,11 @@ namespace Eagle
 	ScopedDataBuffer Serializer::SerializeAssetStaticMesh(const Ref<AssetStaticMesh>& asset)
 	{
 		return SerializeAssetStaticMeshFromMesh(asset->GetMesh(), asset->GetGUID(), asset->GetPathToRaw(),
-			asset->IsCombinedMesh(), asset->GetSourceMeshName(), asset->GetSourceMeshIndex(), asset->WasLocationReset());
+			asset->IsCombinedMesh(), asset->GetSourceMeshName(), asset->GetSourceMeshIndex(), asset->WasLocationReset(), asset->IsAlwaysIncludedInGameBuilds());
 	}
 
 	ScopedDataBuffer Serializer::SerializeAssetSkeletalMeshFromMesh(const Ref<SkeletalMesh>& mesh, const GUID& guid, const Path& pathToRaw,
-		bool bCombinedMesh, const std::string& sourceMeshName, uint32_t sourceMeshIndex, bool bLocationReset)
+		bool bCombinedMesh, const std::string& sourceMeshName, uint32_t sourceMeshIndex, bool bLocationReset, bool bAlwaysIncludeInGameBuilds)
 	{
 		size_t totalSize = sizeof(AssetHeader);
 
@@ -1039,6 +1042,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::SkeletalMesh);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
+		out << YAML::Key << "AlwaysIncludeInGameBuilds" << YAML::Value << bAlwaysIncludeInGameBuilds;
 		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 
 		out << YAML::Key << "CombinedMesh" << YAML::Value << bCombinedMesh;
@@ -1164,11 +1168,11 @@ namespace Eagle
 	ScopedDataBuffer Serializer::SerializeAssetSkeletalMesh(const Ref<AssetSkeletalMesh>& asset)
 	{
 		return SerializeAssetSkeletalMeshFromMesh(asset->GetMesh(), asset->GetGUID(), asset->GetPathToRaw(),
-			asset->IsCombinedMesh(), asset->GetSourceMeshName(), asset->GetSourceMeshIndex(), asset->WasLocationReset());
+			asset->IsCombinedMesh(), asset->GetSourceMeshName(), asset->GetSourceMeshIndex(), asset->WasLocationReset(), asset->IsAlwaysIncludedInGameBuilds());
 	}
 
 	ScopedDataBuffer Serializer::SerializeAssetAudioFromData(const DataBuffer& audioData, const GUID& guid, const Path& pathToRaw,
-		float volume, float pitch, float pan, const Ref<AssetSoundGroup>& soundGroup)
+		float volume, float pitch, float pan, const Ref<AssetSoundGroup>& soundGroup, bool bAlwaysIncludeInGameBuilds)
 	{
 		size_t totalSize = sizeof(AssetHeader);
 
@@ -1180,6 +1184,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Audio);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
+		out << YAML::Key << "AlwaysIncludeInGameBuilds" << YAML::Value << bAlwaysIncludeInGameBuilds;
 		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 		out << YAML::Key << "Volume" << YAML::Value << volume;
 		out << YAML::Key << "Pitch" << YAML::Value << pitch;
@@ -1209,10 +1214,10 @@ namespace Eagle
 	{
 		const auto& audio = asset->GetAudio();
 		return SerializeAssetAudioFromData(asset->GetRawData().GetDataBuffer(), asset->GetGUID(), asset->GetPathToRaw(),
-			audio->GetVolume(), audio->GetPitch(), audio->GetPan(), asset->GetSoundGroupAsset());
+			audio->GetVolume(), audio->GetPitch(), audio->GetPan(), asset->GetSoundGroupAsset(), asset->IsAlwaysIncludedInGameBuilds());
 	}
 
-	ScopedDataBuffer Serializer::SerializeAssetFontFromData(const DataBuffer& fontData, const DataBuffer& atlasData, glm::uvec2 atlasSize, const GUID& guid, const Path& pathToRaw)
+	ScopedDataBuffer Serializer::SerializeAssetFontFromData(const DataBuffer& fontData, const DataBuffer& atlasData, glm::uvec2 atlasSize, const GUID& guid, const Path& pathToRaw, bool bAlwaysIncludeInGameBuilds)
 	{
 		size_t totalSize = sizeof(AssetHeader);
 
@@ -1227,6 +1232,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Font);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
+		out << YAML::Key << "AlwaysIncludeInGameBuilds" << YAML::Value << bAlwaysIncludeInGameBuilds;
 		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
@@ -1257,7 +1263,7 @@ namespace Eagle
 	ScopedDataBuffer Serializer::SerializeAssetFont(const Ref<AssetFont>& asset)
 	{
 		const auto& font = asset->GetFont();
-		return SerializeAssetFontFromData(asset->GetRawData().GetDataBuffer(), font->GetAtlasData().GetDataBuffer(), glm::uvec2(font->GetAtlas()->GetSize()), asset->GetGUID(), asset->GetPathToRaw());
+		return SerializeAssetFontFromData(asset->GetRawData().GetDataBuffer(), font->GetAtlasData().GetDataBuffer(), glm::uvec2(font->GetAtlas()->GetSize()), asset->GetGUID(), asset->GetPathToRaw(), asset->IsAlwaysIncludedInGameBuilds());
 	}
 
 	ScopedDataBuffer Serializer::SerializeAssetMaterial(const Ref<AssetMaterial>& asset)
@@ -1269,6 +1275,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Material);
 		out << YAML::Key << "GUID" << YAML::Value << (asset ? asset->GetGUID() : GUID{});
+		out << YAML::Key << "AlwaysIncludeInGameBuilds" << YAML::Value << (asset ? asset->IsAlwaysIncludedInGameBuilds() : false);
 		
 		if (asset)
 		{
@@ -1344,6 +1351,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::PhysicsMaterial);
 		out << YAML::Key << "GUID" << YAML::Value << (asset ? asset->GetGUID() : GUID{});
+		out << YAML::Key << "AlwaysIncludeInGameBuilds" << YAML::Value << (asset ? asset->IsAlwaysIncludedInGameBuilds() : false);
 
 		if (asset)
 		{
@@ -1374,6 +1382,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::SoundGroup);
 		out << YAML::Key << "GUID" << YAML::Value << (asset ? asset->GetGUID() : GUID{});
+		out << YAML::Key << "AlwaysIncludeInGameBuilds" << YAML::Value << (asset ? asset->IsAlwaysIncludedInGameBuilds() : false);
 
 		if (asset)
 		{
@@ -1412,6 +1421,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Entity);
 		out << YAML::Key << "GUID" << YAML::Value << (asset ? asset->GetGUID() : GUID{});
+		out << YAML::Key << "AlwaysIncludeInGameBuilds" << YAML::Value << (asset ? asset->IsAlwaysIncludedInGameBuilds() : false);
 
 		Serializer::SerializeProjectCollisionGroupGUIDs(out);
 
@@ -1442,7 +1452,7 @@ namespace Eagle
 		return buffer;
 	}
 
-	ScopedDataBuffer Serializer::SerializeAssetAnimationFromData(const GUID& guid, const Path& pathToRaw, uint32_t animIndex, const SkeletalMeshAnimation& anim, const Ref<AssetSkeletalMesh>& skeletal)
+	ScopedDataBuffer Serializer::SerializeAssetAnimationFromData(const GUID& guid, const Path& pathToRaw, uint32_t animIndex, const SkeletalMeshAnimation& anim, const Ref<AssetSkeletalMesh>& skeletal, bool bAlwaysIncludeInGameBuilds)
 	{
 		size_t totalSize = sizeof(AssetHeader);
 
@@ -1451,6 +1461,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Animation);
 		out << YAML::Key << "GUID" << YAML::Value << guid;
+		out << YAML::Key << "AlwaysIncludeInGameBuilds" << YAML::Value << bAlwaysIncludeInGameBuilds;
 		out << YAML::Key << "RawPath" << YAML::Value << Utils::AsString(pathToRaw);
 		out << YAML::Key << "Index" << YAML::Value << animIndex;
 		out << YAML::Key << "Skeletal" << YAML::Value << skeletal->GetGUID();
@@ -1586,7 +1597,7 @@ namespace Eagle
 
 	ScopedDataBuffer Serializer::SerializeAssetAnimation(const Ref<AssetAnimation>& asset)
 	{
-		return SerializeAssetAnimationFromData(asset->GetGUID(), asset->GetPathToRaw(), asset->GetAnimationIndex(), *asset->GetAnimation().get(), asset->GetSkeletal());
+		return SerializeAssetAnimationFromData(asset->GetGUID(), asset->GetPathToRaw(), asset->GetAnimationIndex(), *asset->GetAnimation().get(), asset->GetSkeletal(), asset->IsAlwaysIncludedInGameBuilds());
 	}
 
 	ScopedDataBuffer Serializer::SerializeAssetAnimationGraph(const Ref<AssetAnimationGraph>& asset, const Ref<AssetSkeletalMesh>& meshAsset)
@@ -1598,6 +1609,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::AnimationGraph);
 		out << YAML::Key << "GUID" << YAML::Value << (asset ? asset->GetGUID() : GUID{});
+		out << YAML::Key << "AlwaysIncludeInGameBuilds" << YAML::Value << (asset ? asset->IsAlwaysIncludedInGameBuilds() : false);
 		if (!asset)
 			out << YAML::Key << "SkeletalMesh" << YAML::Value << meshAsset->GetGUID();
 
@@ -1652,6 +1664,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::ParticleSystem);
 		out << YAML::Key << "GUID" << YAML::Value << (asset ? asset->GetGUID() : GUID{});
+		out << YAML::Key << "AlwaysIncludeInGameBuilds" << YAML::Value << (asset ? asset->IsAlwaysIncludedInGameBuilds() : false);
 
 		if (asset)
 		{
@@ -1786,6 +1799,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::AnimationBlendSpace);
 		out << YAML::Key << "GUID" << YAML::Value << (asset ? asset->GetGUID() : GUID{});
+		out << YAML::Key << "AlwaysIncludeInGameBuilds" << YAML::Value << (asset ? asset->IsAlwaysIncludedInGameBuilds() : false);
 		if (!asset)
 			out << YAML::Key << "SkeletalMesh" << YAML::Value << meshAsset->GetGUID();
 
@@ -1846,6 +1860,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::BehaviorGraph);
 		out << YAML::Key << "GUID" << YAML::Value << (asset ? asset->GetGUID() : GUID{});
+		out << YAML::Key << "AlwaysIncludeInGameBuilds" << YAML::Value << (asset ? asset->IsAlwaysIncludedInGameBuilds() : false);
 
 		if (asset)
 		{
@@ -1884,6 +1899,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::SceneSequence);
 		out << YAML::Key << "GUID" << YAML::Value << (asset ? asset->GetGUID() : GUID{});
+		out << YAML::Key << "AlwaysIncludeInGameBuilds" << YAML::Value << (asset ? asset->IsAlwaysIncludedInGameBuilds() : false);
 
 		if (asset)
 		{
@@ -1914,56 +1930,6 @@ namespace Eagle
 		Utils::WriteYaml(buffer, out, &offset);
 
 		return buffer;
-	}
-
-	Ref<AssetSceneSequence> Serializer::DeserializeAssetSceneSequence(const DataBuffer& data, const Path& pathToAsset)
-	{
-		YAML::Node baseNode;
-		Utils::ReadYAML(data, &baseNode);
-
-		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::SceneSequence))
-			return {};
-
-		GUID guid = baseNode["GUID"].as<GUID>();
-
-		float duration = 5.f;
-		float frameRate = 30.f;
-		bool bLooping = false;
-
-		if (auto node = baseNode["Duration"])
-			duration = node.as<float>();
-
-		if (auto node = baseNode["FrameRate"])
-			frameRate = node.as<float>();
-
-		if (auto node = baseNode["Looping"])
-			bLooping = node.as<bool>();
-
-		std::vector<Ref<SequenceTrack>> tracks;
-		if (auto tracksNode = baseNode["Tracks"])
-		{
-			tracks.reserve(tracksNode.size());
-			for (auto trackNode : tracksNode)
-			{
-				if (Ref<SequenceTrack> track = DeserializeSequenceTrack(trackNode))
-				{
-					tracks.push_back(std::move(track));
-				}
-				else
-				{
-					EG_CORE_ERROR("Failed to deserialize a sequence track");
-				}
-			}
-		}
-
-		class LocalAssetSceneSequence : public AssetSceneSequence
-		{
-		public:
-			LocalAssetSceneSequence(const Path& path, GUID guid, std::vector<Ref<SequenceTrack>>&& tracks, float duration, float frameRate, bool bLooping)
-				: AssetSceneSequence(path, guid, std::move(tracks), duration, frameRate, bLooping) {}
-		};
-
-		return MakeRef<LocalAssetSceneSequence>(pathToAsset, guid, std::move(tracks), duration, frameRate, bLooping);
 	}
 
 	void Serializer::DeserializeReverb(YAML::Node& reverbNode, ReverbComponent& reverb)
@@ -3912,6 +3878,7 @@ namespace Eagle
 		}
 
 		const GUID guid = baseNode["GUID"].as<GUID>();
+		const bool bAlwaysIncludeInGameBuilds = baseNode["AlwaysIncludeInGameBuilds"] ? baseNode["AlwaysIncludeInGameBuilds"].as<bool>() : false;
 		int width = 0, height = 0, channels = 0;
 
 		Texture2DSpecifications specs{};
@@ -4031,12 +3998,12 @@ namespace Eagle
 		class LocalAssetTexture2D : public AssetTexture2D
 		{
 		public:
-			LocalAssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, std::vector<ScopedDataBuffer>&& compressedDataPerMip,
+			LocalAssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, bool bAlwaysIncludeInGameBuilds, const DataBuffer& rawData, std::vector<ScopedDataBuffer>&& compressedDataPerMip,
 				const Ref<Texture2D>& texture, AssetTexture2DFormat format, TextureCompressor::Quality compression, bool bNormalMap)
-				: AssetTexture2D(path, pathToRaw, guid, rawData, std::move(compressedDataPerMip), texture, format, compression, bNormalMap) {}
+				: AssetTexture2D(path, pathToRaw, guid, bAlwaysIncludeInGameBuilds, rawData, std::move(compressedDataPerMip), texture, format, compression, bNormalMap) {}
 		};
 
-		Ref<AssetTexture2D> asset = MakeRef<LocalAssetTexture2D>(pathToAsset, pathToRaw, guid,
+		Ref<AssetTexture2D> asset = MakeRef<LocalAssetTexture2D>(pathToAsset, pathToRaw, guid, bAlwaysIncludeInGameBuilds,
 			binary.GetDataBuffer(), std::move(compressedData.DataPerMip), texture, assetFormat, compression, bNormalMap);
 
 		return asset;
@@ -4060,6 +4027,7 @@ namespace Eagle
 		}
 
 		const GUID guid = baseNode["GUID"].as<GUID>();
+		const bool bAlwaysIncludeInGameBuilds = baseNode["AlwaysIncludeInGameBuilds"] ? baseNode["AlwaysIncludeInGameBuilds"].as<bool>() : false;
 		const AssetTextureCubeFormat assetFormat = Utils::GetEnumFromName<AssetTextureCubeFormat>(baseNode["Format"].as<std::string>());
 		const uint32_t layerSize = baseNode["LayerSize"].as<uint32_t>();
 		uint32_t prefilterSize = layerSize;
@@ -4100,11 +4068,11 @@ namespace Eagle
 		class LocalAssetTextureCube : public AssetTextureCube
 		{
 		public:
-			LocalAssetTextureCube(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<TextureCube>& texture, AssetTextureCubeFormat format)
-				: AssetTextureCube(path, pathToRaw, guid, rawData, texture, format) {}
+			LocalAssetTextureCube(const Path& path, const Path& pathToRaw, GUID guid, bool bAlwaysIncludeInGameBuilds, const DataBuffer& rawData, const Ref<TextureCube>& texture, AssetTextureCubeFormat format)
+				: AssetTextureCube(path, pathToRaw, guid, bAlwaysIncludeInGameBuilds, rawData, texture, format) {}
 		};
 
-		Ref<AssetTextureCube> asset = MakeRef<LocalAssetTextureCube>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(),
+		Ref<AssetTextureCube> asset = MakeRef<LocalAssetTextureCube>(pathToAsset, pathToRaw, guid, bAlwaysIncludeInGameBuilds, binary.GetDataBuffer(),
 			TextureCube::Create(Utils::AsString(pathToAsset.stem()), desiredFormat, imageData.Data(), glm::uvec2(width, height), layerSize, prefilterSize, bCompress), assetFormat);
 
 		return asset;
@@ -4118,8 +4086,8 @@ namespace Eagle
 		class LocalAssetMesh : public AssetStaticMesh
 		{
 		public:
-			LocalAssetMesh(const Path& path, const Path& pathToRaw, GUID guid, const Ref<StaticMesh>& mesh)
-				: AssetStaticMesh(path, pathToRaw, guid, mesh) {}
+			LocalAssetMesh(const Path& path, const Path& pathToRaw, GUID guid, bool bAlwaysIncludeInGameBuilds, const Ref<StaticMesh>& mesh)
+				: AssetStaticMesh(path, pathToRaw, guid, bAlwaysIncludeInGameBuilds, mesh) {}
 		};
 
 		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::StaticMesh))
@@ -4135,6 +4103,7 @@ namespace Eagle
 		}
 
 		GUID guid = baseNode["GUID"].as<GUID>();
+		const bool bAlwaysIncludeInGameBuilds = baseNode["AlwaysIncludeInGameBuilds"] ? baseNode["AlwaysIncludeInGameBuilds"].as<bool>() : false;
 
 		bool bCombinedMesh = true;
 		if (auto node = baseNode["CombinedMesh"])
@@ -4189,7 +4158,7 @@ namespace Eagle
 				}
 			}
 
-			Ref<AssetStaticMesh> asset = MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, match->Mesh);
+			Ref<AssetStaticMesh> asset = MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, bAlwaysIncludeInGameBuilds, match->Mesh);
 			asset->SetSourceMeshData(bCombinedMesh, sourceMeshName, sourceMeshIndex, bResetLocation);
 			return asset;
 		}
@@ -4242,7 +4211,7 @@ namespace Eagle
 			for (const auto& matNode : materialsNode)
 				staticMesh->SetMaterialAsset(matNode["Index"].as<uint32_t>(), GetAsset<AssetMaterial>(matNode["Material"]));
 
-		Ref<AssetStaticMesh> asset = MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, staticMesh);
+		Ref<AssetStaticMesh> asset = MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, bAlwaysIncludeInGameBuilds, staticMesh);
 		asset->SetSourceMeshData(bCombinedMesh, sourceMeshName, sourceMeshIndex, bResetLocation);
 		return asset;
 	}
@@ -4252,8 +4221,8 @@ namespace Eagle
 		class LocalAssetMesh : public AssetSkeletalMesh
 		{
 		public:
-			LocalAssetMesh(const Path& path, const Path& pathToRaw, GUID guid, const Ref<SkeletalMesh>& mesh)
-				: AssetSkeletalMesh(path, pathToRaw, guid, mesh) {}
+			LocalAssetMesh(const Path& path, const Path& pathToRaw, GUID guid, bool bAlwaysIncludeInGameBuilds, const Ref<SkeletalMesh>& mesh)
+				: AssetSkeletalMesh(path, pathToRaw, guid, bAlwaysIncludeInGameBuilds, mesh) {}
 		};
 
 		YAML::Node baseNode;
@@ -4272,6 +4241,7 @@ namespace Eagle
 		}
 
 		GUID guid = baseNode["GUID"].as<GUID>();
+		const bool bAlwaysIncludeInGameBuilds = baseNode["AlwaysIncludeInGameBuilds"] ? baseNode["AlwaysIncludeInGameBuilds"].as<bool>() : false;
 
 		bool bCombinedMesh = true;
 		if (auto node = baseNode["CombinedMesh"])
@@ -4323,7 +4293,7 @@ namespace Eagle
 				}
 			}
 
-			Ref<AssetSkeletalMesh> asset = MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, match->Mesh);
+			Ref<AssetSkeletalMesh> asset = MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, bAlwaysIncludeInGameBuilds, match->Mesh);
 			asset->SetSourceMeshData(bCombinedMesh, sourceMeshName, sourceMeshIndex, bResetLocation);
 			return asset;
 		}
@@ -4447,7 +4417,7 @@ namespace Eagle
 				skeletalMesh->SetMaterialAsset(matNode["Index"].as<uint32_t>(), GetAsset<AssetMaterial>(matNode["Material"]));
 		}
 
-		Ref<AssetSkeletalMesh> asset = MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, skeletalMesh);
+		Ref<AssetSkeletalMesh> asset = MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, bAlwaysIncludeInGameBuilds, skeletalMesh);
 		asset->SetSourceMeshData(bCombinedMesh, sourceMeshName, sourceMeshIndex, bResetLocation);
 		return asset;
 	}
@@ -4470,6 +4440,7 @@ namespace Eagle
 		}
 
 		GUID guid = baseNode["GUID"].as<GUID>();
+		const bool bAlwaysIncludeInGameBuilds = baseNode["AlwaysIncludeInGameBuilds"] ? baseNode["AlwaysIncludeInGameBuilds"].as<bool>() : false;
 
 		const float volume = baseNode["Volume"].as<float>();
 		float pitch = 1.f;
@@ -4510,15 +4481,15 @@ namespace Eagle
 		class LocalAssetAudio : public AssetAudio
 		{
 		public:
-			LocalAssetAudio(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Audio>& audio, const Ref<AssetSoundGroup>& soundGroup)
-				: AssetAudio(path, pathToRaw, guid, rawData, audio, soundGroup) {}
+			LocalAssetAudio(const Path& path, const Path& pathToRaw, GUID guid, bool bAlwaysIncludeInGameBuilds, const DataBuffer& rawData, const Ref<Audio>& audio, const Ref<AssetSoundGroup>& soundGroup)
+				: AssetAudio(path, pathToRaw, guid, bAlwaysIncludeInGameBuilds, rawData, audio, soundGroup) {}
 		};
 
 		Ref<Audio> audio = Audio::Create(binary);
 		audio->SetVolume(volume);
 		audio->SetPitch(pitch);
 		audio->SetPan(pan);
-		return MakeRef<LocalAssetAudio>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(), audio, soundGroup);
+		return MakeRef<LocalAssetAudio>(pathToAsset, pathToRaw, guid, bAlwaysIncludeInGameBuilds, binary.GetDataBuffer(), audio, soundGroup);
 	}
 
 	Ref<AssetFont> Serializer::DeserializeAssetFont(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw)
@@ -4526,8 +4497,8 @@ namespace Eagle
 		class LocalAssetFont : public AssetFont
 		{
 		public:
-			LocalAssetFont(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Font>& font)
-				: AssetFont(path, pathToRaw, guid, rawData, font) {
+			LocalAssetFont(const Path& path, const Path& pathToRaw, GUID guid, bool bAlwaysIncludeInGameBuilds, const DataBuffer& rawData, const Ref<Font>& font)
+				: AssetFont(path, pathToRaw, guid, bAlwaysIncludeInGameBuilds, rawData, font) {
 			}
 		};
 
@@ -4547,6 +4518,7 @@ namespace Eagle
 		}
 
 		const GUID guid = baseNode["GUID"].as<GUID>();
+		const bool bAlwaysIncludeInGameBuilds = baseNode["AlwaysIncludeInGameBuilds"] ? baseNode["AlwaysIncludeInGameBuilds"].as<bool>() : false;
 		if (bReloadRaw)
 		{
 			ScopedDataBuffer binary = FileSystem::Read(pathToRaw);
@@ -4556,7 +4528,7 @@ namespace Eagle
 				return {};
 			}
 
-			return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(), Font::Create(binary.GetDataBuffer(), Utils::AsString(pathToAsset.stem())));
+			return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, bAlwaysIncludeInGameBuilds, binary.GetDataBuffer(), Font::Create(binary.GetDataBuffer(), Utils::AsString(pathToAsset.stem())));
 		}
 		else
 		{
@@ -4587,12 +4559,12 @@ namespace Eagle
 
 			if (atlasBinary)
 			{
-				return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(), Font::Create(atlasBinary.GetDataBuffer(), size, binary.GetDataBuffer(), Utils::AsString(pathToAsset.stem())));
+				return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, bAlwaysIncludeInGameBuilds, binary.GetDataBuffer(), Font::Create(atlasBinary.GetDataBuffer(), size, binary.GetDataBuffer(), Utils::AsString(pathToAsset.stem())));
 			}
 			else
 			{
 				EG_CORE_WARN("Failed to load font atlas from an asset. Generating it... Prease, resave the asset");
-				return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(), Font::Create(binary.GetDataBuffer(), Utils::AsString(pathToAsset.stem())));
+				return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, bAlwaysIncludeInGameBuilds, binary.GetDataBuffer(), Font::Create(binary.GetDataBuffer(), Utils::AsString(pathToAsset.stem())));
 			}
 		}
 	}
@@ -4606,6 +4578,7 @@ namespace Eagle
 			return {};
 
 		GUID guid = baseNode["GUID"].as<GUID>();
+		const bool bAlwaysIncludeInGameBuilds = baseNode["AlwaysIncludeInGameBuilds"] ? baseNode["AlwaysIncludeInGameBuilds"].as<bool>() : false;
 
 		Ref<Material> material = Material::Create();
 
@@ -4706,11 +4679,11 @@ namespace Eagle
 		class LocalAssetMaterial : public AssetMaterial
 		{
 		public:
-			LocalAssetMaterial(const Path& path, GUID guid, const Ref<Material>& material)
-				: AssetMaterial(path, guid, material) {}
+			LocalAssetMaterial(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds, const Ref<Material>& material)
+				: AssetMaterial(path, guid, bAlwaysIncludeInGameBuilds, material) {}
 		};
 
-		return MakeRef<LocalAssetMaterial>(pathToAsset, guid, material);
+		return MakeRef<LocalAssetMaterial>(pathToAsset, guid, bAlwaysIncludeInGameBuilds, material);
 	}
 
 	Ref<AssetPhysicsMaterial> Serializer::DeserializeAssetPhysicsMaterial(const DataBuffer& data, const Path& pathToAsset)
@@ -4722,6 +4695,7 @@ namespace Eagle
 			return {};
 
 		GUID guid = baseNode["GUID"].as<GUID>();
+		const bool bAlwaysIncludeInGameBuilds = baseNode["AlwaysIncludeInGameBuilds"] ? baseNode["AlwaysIncludeInGameBuilds"].as<bool>() : false;
 
 		float staticFriction = 0.6f;
 		float dynamicFriction = 0.6f;
@@ -4739,11 +4713,11 @@ namespace Eagle
 		class LocalAssetPhysicsMaterial : public AssetPhysicsMaterial
 		{
 		public:
-			LocalAssetPhysicsMaterial(const Path& path, GUID guid, const Ref<PhysicsMaterial>& material)
-				: AssetPhysicsMaterial(path, guid, material) {}
+			LocalAssetPhysicsMaterial(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds, const Ref<PhysicsMaterial>& material)
+				: AssetPhysicsMaterial(path, guid, bAlwaysIncludeInGameBuilds, material) {}
 		};
 
-		return MakeRef<LocalAssetPhysicsMaterial>(pathToAsset, guid, PhysicsMaterial::Create(staticFriction, dynamicFriction, bounciness));
+		return MakeRef<LocalAssetPhysicsMaterial>(pathToAsset, guid, bAlwaysIncludeInGameBuilds, PhysicsMaterial::Create(staticFriction, dynamicFriction, bounciness));
 	}
 
 	Ref<AssetSoundGroup> Serializer::DeserializeAssetSoundGroup(const DataBuffer& data, const Path& pathToAsset)
@@ -4755,6 +4729,7 @@ namespace Eagle
 			return {};
 
 		GUID guid = baseNode["GUID"].as<GUID>();
+		const bool bAlwaysIncludeInGameBuilds = baseNode["AlwaysIncludeInGameBuilds"] ? baseNode["AlwaysIncludeInGameBuilds"].as<bool>() : false;
 		Ref<SoundGroup> soundGroup = SoundGroup::Create();
 
 		const float volume = baseNode["Volume"].as<float>();
@@ -4769,11 +4744,11 @@ namespace Eagle
 		class LocalAssetSoundGroup : public AssetSoundGroup
 		{
 		public:
-			LocalAssetSoundGroup(const Path& path, GUID guid, const Ref<SoundGroup>& soundGroup)
-				: AssetSoundGroup(path, guid, soundGroup) {}
+			LocalAssetSoundGroup(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds, const Ref<SoundGroup>& soundGroup)
+				: AssetSoundGroup(path, guid, bAlwaysIncludeInGameBuilds, soundGroup) {}
 		};
 
-		return MakeRef<LocalAssetSoundGroup>(pathToAsset, guid, soundGroup);
+		return MakeRef<LocalAssetSoundGroup>(pathToAsset, guid, bAlwaysIncludeInGameBuilds, soundGroup);
 	}
 
 	Ref<AssetEntity> Serializer::DeserializeAssetEntity(const DataBuffer& data, const Path& pathToAsset)
@@ -4785,6 +4760,7 @@ namespace Eagle
 			return {};
 
 		GUID guid = baseNode["GUID"].as<GUID>();
+		const bool bAlwaysIncludeInGameBuilds = baseNode["AlwaysIncludeInGameBuilds"] ? baseNode["AlwaysIncludeInGameBuilds"].as<bool>() : false;
 
 		Entity rootEntity;
 		const auto& scene = AssetEntity::GetScene();
@@ -4830,11 +4806,11 @@ namespace Eagle
 		class LocalAssetEntity: public AssetEntity
 		{
 		public:
-			LocalAssetEntity(const Path& path, GUID guid, const Ref<Entity>& entity)
-				: AssetEntity(path, guid, entity) {}
+			LocalAssetEntity(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds, const Ref<Entity>& entity)
+				: AssetEntity(path, guid, bAlwaysIncludeInGameBuilds, entity) {}
 		};
 
-		return MakeRef<LocalAssetEntity>(pathToAsset, guid, MakeRef<Entity>(rootEntity));
+		return MakeRef<LocalAssetEntity>(pathToAsset, guid, bAlwaysIncludeInGameBuilds, MakeRef<Entity>(rootEntity));
 	}
 
 	Ref<AssetAnimation> Serializer::DeserializeAssetAnimation(const DataBuffer& data, const Path& pathToAsset, bool bReloadRaw)
@@ -4842,8 +4818,8 @@ namespace Eagle
 		class LocalAssetAnimation : public AssetAnimation
 		{
 		public:
-			LocalAssetAnimation(const Path& path, const Path& pathToRaw, GUID guid, const Ref<SkeletalMeshAnimation>& anim, const Ref<AssetSkeletalMesh>& skeletal, uint32_t index)
-				: AssetAnimation(path, pathToRaw, guid, anim, skeletal, index) {}
+			LocalAssetAnimation(const Path& path, const Path& pathToRaw, GUID guid, bool bAlwaysIncludeInGameBuilds, const Ref<SkeletalMeshAnimation>& anim, const Ref<AssetSkeletalMesh>& skeletal, uint32_t index)
+				: AssetAnimation(path, pathToRaw, guid, bAlwaysIncludeInGameBuilds, anim, skeletal, index) {}
 		};
 
 		YAML::Node baseNode;
@@ -4870,6 +4846,7 @@ namespace Eagle
 		}
 
 		const GUID guid = baseNode["GUID"].as<GUID>();
+		const bool bAlwaysIncludeInGameBuilds = baseNode["AlwaysIncludeInGameBuilds"] ? baseNode["AlwaysIncludeInGameBuilds"].as<bool>() : false;
 		if (bReloadRaw)
 		{
 			std::vector<SkeletalMeshAnimation> animations = Utils::ImportAnimations(pathToRaw, skeletal->GetMesh(), GetRootMotionMode(baseNode));
@@ -4882,7 +4859,7 @@ namespace Eagle
 				return {};
 			}
 
-			return MakeRef<LocalAssetAnimation>(pathToAsset, pathToRaw, guid, MakeRef<SkeletalMeshAnimation>(std::move(animations[animIndex])), skeletal, animIndex);
+			return MakeRef<LocalAssetAnimation>(pathToAsset, pathToRaw, guid, bAlwaysIncludeInGameBuilds, MakeRef<SkeletalMeshAnimation>(std::move(animations[animIndex])), skeletal, animIndex);
 		}
 
 		SkeletalMeshAnimation animation;
@@ -5010,7 +4987,7 @@ namespace Eagle
 			}
 		}
 
-		return MakeRef<LocalAssetAnimation>(pathToAsset, pathToRaw, guid, MakeRef<SkeletalMeshAnimation>(std::move(animation)), skeletal, animIndex);
+		return MakeRef<LocalAssetAnimation>(pathToAsset, pathToRaw, guid, bAlwaysIncludeInGameBuilds, MakeRef<SkeletalMeshAnimation>(std::move(animation)), skeletal, animIndex);
 	}
 
 	Ref<AssetAnimationGraph> Serializer::DeserializeAssetAnimationGraph(const DataBuffer& data, const Path& pathToAsset)
@@ -5022,6 +4999,7 @@ namespace Eagle
 			return {};
 
 		GUID guid = baseNode["GUID"].as<GUID>();
+		const bool bAlwaysIncludeInGameBuilds = baseNode["AlwaysIncludeInGameBuilds"] ? baseNode["AlwaysIncludeInGameBuilds"].as<bool>() : false;
 
 		auto mesh = GetAsset<AssetSkeletalMesh>(baseNode["SkeletalMesh"]);
 		if (!mesh)
@@ -5050,11 +5028,11 @@ namespace Eagle
 		class LocalAssetAnimationGraph : public AssetAnimationGraph
 		{
 		public:
-			LocalAssetAnimationGraph(const Path& path, GUID guid, const Ref<AnimationGraph>& graph, const GraphEditorSerializationData& data)
-				: AssetAnimationGraph(path, guid, graph, data) {}
+			LocalAssetAnimationGraph(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds, const Ref<AnimationGraph>& graph, const GraphEditorSerializationData& data)
+				: AssetAnimationGraph(path, guid, bAlwaysIncludeInGameBuilds, graph, data) {}
 		};
 
-		auto result = MakeRef<LocalAssetAnimationGraph>(pathToAsset, guid, graph, graphEditorData);
+		auto result = MakeRef<LocalAssetAnimationGraph>(pathToAsset, guid, bAlwaysIncludeInGameBuilds, graph, graphEditorData);
 		result->Compile();
 
 		const auto& usedVars = result->GetGraph()->GetVariables();
@@ -5081,6 +5059,7 @@ namespace Eagle
 			return {};
 
 		GUID guid = baseNode["GUID"].as<GUID>();
+		const bool bAlwaysIncludeInGameBuilds = baseNode["AlwaysIncludeInGameBuilds"] ? baseNode["AlwaysIncludeInGameBuilds"].as<bool>() : false;
 
 		std::vector<ParticleEmitter> emitters;
 		auto emittersNode = baseNode["Emitters"];
@@ -5242,11 +5221,11 @@ namespace Eagle
 		class LocalAssetParticleSystem : public AssetParticleSystem
 		{
 		public:
-			LocalAssetParticleSystem(const Path& path, GUID guid, const std::vector<ParticleEmitter>& emitters)
-				: AssetParticleSystem(path, guid, emitters) {}
+			LocalAssetParticleSystem(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds, const std::vector<ParticleEmitter>& emitters)
+				: AssetParticleSystem(path, guid, bAlwaysIncludeInGameBuilds, emitters) {}
 		};
 
-		return MakeRef<LocalAssetParticleSystem>(pathToAsset, guid, emitters);
+		return MakeRef<LocalAssetParticleSystem>(pathToAsset, guid, bAlwaysIncludeInGameBuilds, emitters);
 	}
 
 	Ref<AssetAnimationBlendSpace> Serializer::DeserializeAssetAnimationBlendSpace(const DataBuffer& data, const Path& pathToAsset)
@@ -5258,6 +5237,7 @@ namespace Eagle
 			return {};
 
 		GUID guid = baseNode["GUID"].as<GUID>();
+		const bool bAlwaysIncludeInGameBuilds = baseNode["AlwaysIncludeInGameBuilds"] ? baseNode["AlwaysIncludeInGameBuilds"].as<bool>() : false;
 
 		auto mesh = GetAsset<AssetSkeletalMesh>(baseNode["SkeletalMesh"]);
 		if (!mesh)
@@ -5318,13 +5298,13 @@ namespace Eagle
 		class LocalAssetAnimationBlendSpace : public AssetAnimationBlendSpace
 		{
 		public:
-			LocalAssetAnimationBlendSpace(const Path& path, GUID guid, const Ref<AssetSkeletalMesh>& skeletal, const BlendSpaceAxisSettings& horAxis, const BlendSpaceAxisSettings& verAxis,
+			LocalAssetAnimationBlendSpace(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds, const Ref<AssetSkeletalMesh>& skeletal, const BlendSpaceAxisSettings& horAxis, const BlendSpaceAxisSettings& verAxis,
 				const std::vector<BlendSpaceVertex>& pointsData, BlendSpaceEventsTriggerMode mode)
-				: AssetAnimationBlendSpace(path, guid, skeletal, horAxis, verAxis, pointsData, mode) {
+				: AssetAnimationBlendSpace(path, guid, bAlwaysIncludeInGameBuilds, skeletal, horAxis, verAxis, pointsData, mode) {
 			}
 		};
 
-		auto result = MakeRef<LocalAssetAnimationBlendSpace>(pathToAsset, guid, mesh, horAxis, verAxis, points, mode);
+		auto result = MakeRef<LocalAssetAnimationBlendSpace>(pathToAsset, guid, bAlwaysIncludeInGameBuilds, mesh, horAxis, verAxis, points, mode);
 		result->SetBlendTime(blendTime);
 		result->SetSyncEnabled(bSyncEnabled);
 		result->SetUseShortestBlendPath(bUseShortestBlendPath);
@@ -5337,8 +5317,8 @@ namespace Eagle
 		class LocalAssetScene : public AssetScene
 		{
 		public:
-			LocalAssetScene(const Path& path, GUID guid)
-				: AssetScene(path, guid) {
+			LocalAssetScene(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds)
+				: AssetScene(path, guid, bAlwaysIncludeInGameBuilds) {
 			}
 		};
 
@@ -5348,7 +5328,8 @@ namespace Eagle
 		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::Scene))
 			return {};
 
-		return MakeRef<LocalAssetScene>(pathToAsset, baseNode["GUID"].as<GUID>());
+		const bool bAlwaysIncludeInGameBuilds = baseNode["AlwaysIncludeInGameBuilds"] ? baseNode["AlwaysIncludeInGameBuilds"].as<bool>() : false;
+		return MakeRef<LocalAssetScene>(pathToAsset, baseNode["GUID"].as<GUID>(), bAlwaysIncludeInGameBuilds);
 	}
 
 	Ref<AssetBehaviorGraph> Serializer::DeserializeAssetBehaviorGraph(const DataBuffer& data, const Path& pathToAsset)
@@ -5360,6 +5341,7 @@ namespace Eagle
 			return {};
 
 		GUID guid = baseNode["GUID"].as<GUID>();
+		const bool bAlwaysIncludeInGameBuilds = baseNode["AlwaysIncludeInGameBuilds"] ? baseNode["AlwaysIncludeInGameBuilds"].as<bool>() : false;
 
 		AIBehaviorNode rootNode;
 		if (auto node = baseNode["Nodes"])
@@ -5372,12 +5354,64 @@ namespace Eagle
 		class LocalAssetBehaviorGraph : public AssetBehaviorGraph
 		{
 		public:
-			LocalAssetBehaviorGraph(const Path& path, GUID guid, AIBehaviorNode&& root, GraphEditorSerializationData&& data)
-				: AssetBehaviorGraph(path, guid, std::move(root), std::move(data)) {
+			LocalAssetBehaviorGraph(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds, AIBehaviorNode&& root, GraphEditorSerializationData&& data)
+				: AssetBehaviorGraph(path, guid, bAlwaysIncludeInGameBuilds, std::move(root), std::move(data)) {
 			}
 		};
 
-		return MakeRef<LocalAssetBehaviorGraph>(pathToAsset, guid, std::move(rootNode), std::move(graphEditorData));
+		return MakeRef<LocalAssetBehaviorGraph>(pathToAsset, guid, bAlwaysIncludeInGameBuilds, std::move(rootNode), std::move(graphEditorData));
+	}
+
+	Ref<AssetSceneSequence> Serializer::DeserializeAssetSceneSequence(const DataBuffer& data, const Path& pathToAsset)
+	{
+		YAML::Node baseNode;
+		Utils::ReadYAML(data, &baseNode);
+
+		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::SceneSequence))
+			return {};
+
+		GUID guid = baseNode["GUID"].as<GUID>();
+		bool bAlwaysIncludeInGameBuilds = baseNode["AlwaysIncludeInGameBuilds"] ? baseNode["AlwaysIncludeInGameBuilds"].as<bool>() : false;
+
+		float duration = 5.f;
+		float frameRate = 30.f;
+		bool bLooping = false;
+
+		if (auto node = baseNode["Duration"])
+			duration = node.as<float>();
+
+		if (auto node = baseNode["FrameRate"])
+			frameRate = node.as<float>();
+
+		if (auto node = baseNode["Looping"])
+			bLooping = node.as<bool>();
+
+		std::vector<Ref<SequenceTrack>> tracks;
+		if (auto tracksNode = baseNode["Tracks"])
+		{
+			tracks.reserve(tracksNode.size());
+			for (auto trackNode : tracksNode)
+			{
+				if (Ref<SequenceTrack> track = DeserializeSequenceTrack(trackNode))
+				{
+					tracks.push_back(std::move(track));
+				}
+				else
+				{
+					EG_CORE_ERROR("Failed to deserialize a sequence track");
+				}
+			}
+		}
+
+		class LocalAssetSceneSequence : public AssetSceneSequence
+		{
+		public:
+			LocalAssetSceneSequence(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds, std::vector<Ref<SequenceTrack>>&& tracks, float duration, float frameRate, bool bLooping)
+				: AssetSceneSequence(path, guid, bAlwaysIncludeInGameBuilds, std::move(tracks), duration, frameRate, bLooping) {
+			}
+		};
+
+		return MakeRef<LocalAssetSceneSequence>(pathToAsset, guid, bAlwaysIncludeInGameBuilds, std::move(tracks), duration, frameRate, bLooping);
 	}
 
 	AssetType Serializer::GetAssetType(const DataBuffer& assetData)

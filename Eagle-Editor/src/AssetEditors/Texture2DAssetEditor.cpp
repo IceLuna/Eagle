@@ -94,6 +94,7 @@ namespace Eagle
 			UI::BeginPropertyGrid("TextureDetails");
 			UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 			UI::Text("Type", "Texture 2D");
+			AssetEditor::DrawAlwaysIncludeInGameBuilds(m_Asset);
 			UI::Text("Resolution", baseSizeString);
 			UI::Text("Mip resolution", mipSizeString);
 

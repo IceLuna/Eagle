@@ -46,6 +46,8 @@ namespace Eagle
 		void OnEvent(Event& e);
 
 		void OpenAssetEditor(const Ref<Asset>& asset);
+		void CloseAssetEditor(const Ref<Asset>& asset) { m_AssetEditorsToClose.push_back(asset); }
+		void ShowAsset(const Path& path);
 
 		const Path& GetCurrentRelativeDirectory() const { return m_CurrentDirectoryRelative; }
 		void RefreshBrowserContent() { m_RefreshBrowser = true; }

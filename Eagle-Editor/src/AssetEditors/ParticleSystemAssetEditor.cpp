@@ -320,6 +320,9 @@ namespace Eagle
 		ImGui::SameLine();
 		UI::HelpMarker("Values marked 'Curve' change over each particle's lifetime. Click a curve's preview to edit it in the panel below the settings.\n"
 			"Use the gizmo in the viewport to move the selected emitter");
+
+		ImGui::SameLine();
+		AssetEditor::DrawAlwaysIncludeInGameBuildsCheckbox(m_Asset);
 	}
 
 	bool ParticleSystemAssetEditor::DrawEmittersList()

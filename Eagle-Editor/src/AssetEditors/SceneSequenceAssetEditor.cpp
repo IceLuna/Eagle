@@ -1094,10 +1094,6 @@ namespace Eagle
 			UI::PopItemDisabled();
 		UI::Tooltip("While piloting, every camera move rewrites the key at the playhead");
 
-		ImGui::SameLine();
-		if (ImGui::Button(m_Asset->IsDirty() ? "Save*" : "Save", ImVec2(60.f, 0.f)))
-			Asset::Save(m_Asset);
-
 		// Preview context: which component's transform the sequence is played relative to
 		if (Ref<Scene> scene = GetEditorScene())
 		{
@@ -1143,6 +1139,13 @@ namespace Eagle
 			UI::HelpMarker("Preview Context. Keys are offsets from the transform of the chosen Scene Sequence component "
 				"(unless it plays in world space), exactly as they will be at runtime. 'World Origin' treats keys as world positions.");
 		}
+
+		ImGui::SameLine();
+		AssetEditor::DrawAlwaysIncludeInGameBuildsCheckbox(m_Asset);
+
+		ImGui::SameLine();
+		if (ImGui::Button(m_Asset->IsDirty() ? "Save*" : "Save", ImVec2(60.f, 0.f)))
+			Asset::Save(m_Asset);
 	}
 
 	void SceneSequenceAssetEditor::HandleShortcuts()

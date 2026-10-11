@@ -62,13 +62,20 @@ namespace Eagle
 		constexpr bool bVolumetricsEnabled = true;
 		constexpr bool bDrawTransform = false;
 
-		ImGui::SetNextWindowSize(ImVec2(720.f, 160.f), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(720.f, 240.f), ImGuiCond_FirstUseEver);
 		if (ImGui::Begin(m_WindowName.c_str(), pOpen))
 		{
 			const auto& scene = GetCurrentScene();
 			const bool bEntityChanged = m_SceneHierarchy.OnImGuiRender(scene, bRuntime, true, &bVolumetricsEnabled);
 			if (bEntityChanged)
 				OnEntityChanged();
+
+			{
+				UI::TextWithSeparator("Asset settings");
+				UI::BeginPropertyGrid("EntityAssetSettings");
+				AssetEditor::DrawAlwaysIncludeInGameBuilds(m_Asset);
+				UI::EndPropertyGrid();
+			}
 
 			{
 				bool bEnableSkybox = scene->IsSkyboxEnabled();

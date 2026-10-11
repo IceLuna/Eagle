@@ -17,6 +17,12 @@
 
 namespace Eagle
 {
+	static const char* s_AlwaysIncludeInGameBuildsHelpMsg = "Game builds only include the assets that the game uses: the startup scene, the assets it references, the assets they reference, and so on.\n"
+		"Assets whose paths are written in C# scripts (Asset.Get(\"Content/...\")) are included as well.\n"
+		"Enable it if the game loads this asset in a way that can't be detected. "
+		"For example, if a script loads it by a path that's built at runtime: Asset.Get(\"Content/Levels/\" + name + \".egasset\").\n"
+		"The assets that this asset references are included too";
+
 	AssetEditor::AssetEditor(bool bNeedRenderer, bool bNeedSkybox)
 	{
 		if (bNeedRenderer)
@@ -307,6 +313,27 @@ namespace Eagle
 		return Utils::AsString(asset->GetPath().stem()) + (ending.empty() ? "" : ending.data()) + "##" + std::to_string(asset->GetGUID().GetHash());
 	}
 	
+	bool AssetEditor::DrawAlwaysIncludeInGameBuilds(const Ref<Asset>& asset)
+	{
+		bool bAlwaysInclude = asset->IsAlwaysIncludedInGameBuilds();
+		if (!UI::Property("Always build", bAlwaysInclude, s_AlwaysIncludeInGameBuildsHelpMsg))
+			return false;
+
+		asset->SetAlwaysIncludedInGameBuilds(bAlwaysInclude);
+		return true;
+	}
+
+	bool AssetEditor::DrawAlwaysIncludeInGameBuildsCheckbox(const Ref<Asset>& asset)
+	{
+		bool bAlwaysInclude = asset->IsAlwaysIncludedInGameBuilds();
+		const bool bChanged = ImGui::Checkbox("Always build", &bAlwaysInclude);
+		ImGui::SameLine();
+		UI::HelpMarker(s_AlwaysIncludeInGameBuildsHelpMsg);
+		if (bChanged)
+			asset->SetAlwaysIncludedInGameBuilds(bAlwaysInclude);
+		return bChanged;
+	}
+
 	void AssetEditor::HandleCameraFocus()
 	{
 		if (m_SimulationScene)

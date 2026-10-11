@@ -79,8 +79,8 @@ namespace Eagle
 
 	Ref<Scene> AssetEntity::s_EntityAssetsScene;
 
-	Asset::Asset(const Path& path, const Path& pathToRaw, AssetType type, GUID guid, const DataBuffer& rawData)
-		: m_Path(path), m_PathToRaw(pathToRaw), m_GUID(guid), m_Type(type)
+	Asset::Asset(const Path& path, const Path& pathToRaw, AssetType type, GUID guid, bool bAlwaysIncludeInGameBuilds, const DataBuffer& rawData)
+		: m_Path(path), m_PathToRaw(pathToRaw), m_GUID(guid), m_Type(type), bAlwaysIncludeInGameBuilds(bAlwaysIncludeInGameBuilds)
 	{
 		if (rawData.Size)
 		{
@@ -89,9 +89,9 @@ namespace Eagle
 		}
 	}
 
-	AssetTexture2D::AssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, std::vector<ScopedDataBuffer>&& compressedDataPerMip,
+	AssetTexture2D::AssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, bool bAlwaysIncludeInGameBuilds, const DataBuffer& rawData, std::vector<ScopedDataBuffer>&& compressedDataPerMip,
 		const Ref<Texture2D>& texture, AssetTexture2DFormat format, TextureCompressor::Quality compression, bool bNormalMap)
-	: Asset(path, pathToRaw, AssetType::Texture2D, guid, rawData)
+	: Asset(path, pathToRaw, AssetType::Texture2D, guid, bAlwaysIncludeInGameBuilds, rawData)
 		, m_CompressedDataPerMip(std::move(compressedDataPerMip))
 		, m_Texture(texture)
 		, m_Format(format)
@@ -394,7 +394,7 @@ namespace Eagle
 		{
 		public:
 			LocalAssetMaterial(const Path& path, GUID guid, const Ref<Material>& material)
-				: AssetMaterial(path, guid, material) {}
+				: AssetMaterial(path, guid, false, material) {}
 		};
 
 		return MakeRef<LocalAssetMaterial>("", GUID(), material);
@@ -415,7 +415,7 @@ namespace Eagle
 		{
 		public:
 			LocalAssetPhysicsMaterial(const Path& path, GUID guid, const Ref<PhysicsMaterial>& material)
-				: AssetPhysicsMaterial(path, guid, material) {}
+				: AssetPhysicsMaterial(path, guid, false, material) {}
 		};
 
 		return MakeRef<LocalAssetPhysicsMaterial>("", GUID(), material);
@@ -438,7 +438,7 @@ namespace Eagle
 		{
 		public:
 			LocalAssetEntity(const Path& path, GUID guid, const Ref<Entity>& entity)
-				: AssetEntity(path, guid, entity) {
+				: AssetEntity(path, guid, false, entity) {
 			}
 		};
 
@@ -490,7 +490,7 @@ namespace Eagle
 		{
 		public:
 			LocalAssetParticleSystem(const Path& path, GUID guid, const std::vector<ParticleEmitter>& emitters)
-				: AssetParticleSystem(path, guid, emitters) {}
+				: AssetParticleSystem(path, guid, false, emitters) {}
 		};
 
 		return MakeRef<LocalAssetParticleSystem>("", GUID{}, std::vector<ParticleEmitter>{});
@@ -501,11 +501,11 @@ namespace Eagle
 		class LocalAssetParticleSystem : public AssetParticleSystem
 		{
 		public:
-			LocalAssetParticleSystem(const Path& path, GUID guid, const std::vector<ParticleEmitter>& emitters)
-				: AssetParticleSystem(path, guid, emitters) {}
+			LocalAssetParticleSystem(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds, const std::vector<ParticleEmitter>& emitters)
+				: AssetParticleSystem(path, guid, bAlwaysIncludeInGameBuilds, emitters) {}
 		};
 
-		return MakeRef<LocalAssetParticleSystem>(asset->GetPath(), asset->GetGUID(), asset->GetEmitters());
+		return MakeRef<LocalAssetParticleSystem>(asset->GetPath(), asset->GetGUID(), asset->IsAlwaysIncludedInGameBuilds(), asset->GetEmitters());
 	}
 
 	void AssetAnimationBlendSpace::SetPointsData(const std::vector<BlendSpaceVertex>& pointsData)
@@ -608,8 +608,8 @@ namespace Eagle
 		});
 	}
 
-	AssetSceneSequence::AssetSceneSequence(const Path& path, GUID guid, std::vector<Ref<SequenceTrack>>&& tracks, float duration, float frameRate, bool bLooping)
-		: Asset(path, {}, AssetType::SceneSequence, guid, {})
+	AssetSceneSequence::AssetSceneSequence(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds, std::vector<Ref<SequenceTrack>>&& tracks, float duration, float frameRate, bool bLooping)
+		: Asset(path, {}, AssetType::SceneSequence, guid, bAlwaysIncludeInGameBuilds, {})
 		, m_Duration(glm::max(0.01f, duration))
 		, m_FrameRate(glm::clamp(frameRate, 1.f, 240.f))
 		, bLooping(bLooping)

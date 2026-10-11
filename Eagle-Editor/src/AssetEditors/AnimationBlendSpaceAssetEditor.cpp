@@ -106,6 +106,7 @@ namespace Eagle
 		UI::BeginPropertyGrid("AnimationBlendSpaceDetails");
 		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 		UI::Text("Type", "Animation Blend Space");
+		AssetEditor::DrawAlwaysIncludeInGameBuilds(m_Asset);
 
 		ImGui::Separator();
 
@@ -563,7 +564,7 @@ namespace Eagle
 		{
 		public:
 			LocalAssetAnimationGraph(const Ref<AssetSkeletalMesh>& sk, const GraphEditorSerializationData& data)
-				: AssetAnimationGraph("", GUID{}, MakeRef<AnimationGraph>(sk), data) {
+				: AssetAnimationGraph("", GUID{}, false, MakeRef<AnimationGraph>(sk), data) {
 			}
 		};
 

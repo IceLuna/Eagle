@@ -32,7 +32,8 @@ namespace Eagle
 		static bool Open(const Path& filepath);
 		static bool Close();
 		static void GenerateSolution(const ProjectInfo& info);
-		static void Build(const Path& outputFolder);
+		// @excludedAssets. Assets that aren't packed into the build
+		static void Build(const Path& outputFolder, const std::vector<GUID>& excludedAssets = {});
 		static void OpenGameBuild(const Path& filepath); // Path to .egpack
 		static void Save();
 		static void Save(const ProjectInfo& info);
@@ -63,6 +64,7 @@ namespace Eagle
 		static Path GetCachePath() { return GetProjectPath() / "Cache"; }
 		static Path GetRendererCachePath() { return GetCachePath() / "Renderer"; }
 		static Path GetSavedPath() { return GetProjectPath() / "Saved"; }
+		static Path GetSourcePath() { return GetProjectPath() / "Source"; }
 		static Path GetPhysicsDebugInfoPath() { return Project::GetSavedPath() / "PhysXDebugInfo"; }
 
 		static Path GetShaderPackRelativePath() { return "Data/ShaderPack.egspack"; }

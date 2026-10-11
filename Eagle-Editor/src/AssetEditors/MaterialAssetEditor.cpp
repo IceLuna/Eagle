@@ -56,6 +56,7 @@ namespace Eagle
 		UI::BeginPropertyGrid("MaterialDetails");
 		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 		UI::Text("Type", "Material");
+		AssetEditor::DrawAlwaysIncludeInGameBuilds(m_Asset);
 
 		bool bDoubleSided = material->IsDoubleSided();
 		if (UI::Property("Double Sided", bDoubleSided))

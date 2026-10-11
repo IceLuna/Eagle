@@ -15,44 +15,6 @@ namespace Eagle
 {
 	namespace Utils
 	{
-		struct GatherDependenciesContext
-		{
-			std::vector<AssetManager::AssetPackDependency> Result;
-			ankerl::unordered_dense::set<GUID> Visited;
-		};
-
-		void CollectGUIDs(const YAML::Node& node, std::vector<GUID>& outGUIDs)
-		{
-			// Avoid doing `node.as<GUID>()` since it throws an exception
-			// and there'll be a lot of them thrown when trying to parse the file.
-			// So, to avoid wasting perf on exception handling, manually checking for GUID style
-
-			// If one of these ever fails, decoding part below should be updated
-			static_assert(GUID::NumValues() == 2u);
-			static_assert(std::same_as<GUID::ValueType, uint64_t>);
-
-			if (node.IsSequence())
-			{
-				if (node.size() == 2 && node[0].IsScalar() && node[1].IsScalar())
-				{
-					uint64_t high = 0, low = 0;
-					if (YAML::convert<uint64_t>::decode(node[0], high) && YAML::convert<uint64_t>::decode(node[1], low))
-					{
-						outGUIDs.emplace_back(high, low);
-						return;
-					}
-				}
-
-				for (const auto& child : node)
-					CollectGUIDs(child, outGUIDs);
-			}
-			else if (node.IsMap())
-			{
-				for (const auto& keyValue : node)
-					CollectGUIDs(keyValue.second, outGUIDs);
-			}
-		}
-
 		static bool IsAssetExtension(const Path& filepath)
 		{
 			return Utils::HasExtension(filepath, Asset::GetExtension());
@@ -595,15 +557,49 @@ namespace Eagle
 		return type == AssetType::Entity;
 	}
 
+	void AssetManager::CollectGUIDs(const YAML::Node& node, std::vector<GUID>& outGUIDs)
+	{
+		// Avoid doing `node.as<GUID>()` since it throws an exception
+		// and there'll be a lot of them thrown when trying to parse the file.
+		// So, to avoid wasting perf on exception handling, manually checking for GUID style
+
+		// If one of these ever fails, decoding part below should be updated
+		static_assert(GUID::NumValues() == 2u);
+		static_assert(std::same_as<GUID::ValueType, uint64_t>);
+
+		if (node.IsSequence())
+		{
+			if (node.size() == 2 && node[0].IsScalar() && node[1].IsScalar())
+			{
+				uint64_t high = 0, low = 0;
+				if (YAML::convert<uint64_t>::decode(node[0], high) && YAML::convert<uint64_t>::decode(node[1], low))
+				{
+					outGUIDs.emplace_back(high, low);
+					return;
+				}
+			}
+
+			for (const auto& child : node)
+				CollectGUIDs(child, outGUIDs);
+		}
+		else if (node.IsMap())
+		{
+			for (const auto& keyValue : node)
+				CollectGUIDs(keyValue.second, outGUIDs);
+		}
+	}
+
 	std::vector<AssetManager::AssetPackDependency> AssetManager::GatherAssetPackDependencies(const YAML::Node& node)
 	{
 		if (!s_bGame)
 			return {};
 
-		Utils::GatherDependenciesContext context;
-		std::function<void(const GUID&)> visitAsset = [&context, &visitAsset](const GUID& guid)
+		std::vector<AssetManager::AssetPackDependency> result;
+		ankerl::unordered_dense::set<GUID> visited;
+
+		std::function<void(const GUID&)> visitAsset = [&result, &visited, &visitAsset](const GUID& guid)
 		{
-			if (guid.IsNull() || !context.Visited.insert(guid).second)
+			if (guid.IsNull() || !visited.insert(guid).second)
 				return;
 
 			auto it = s_AssetPackAssetsByGUID.find(guid);
@@ -621,7 +617,7 @@ namespace Eagle
 			{
 				YAML::Node assetNode;
 				Utils::ReadYAML(data, &assetNode);
-				Utils::CollectGUIDs(assetNode, references);
+				CollectGUIDs(assetNode, references);
 			}
 			catch (const std::exception& e)
 			{
@@ -632,15 +628,15 @@ namespace Eagle
 			for (const GUID& reference : references)
 				visitAsset(reference);
 
-			context.Result.push_back({ guid, data.Size, RequiresMainThread(type) });
+			result.push_back({ guid, data.Size, RequiresMainThread(type) });
 		};
 
 		std::vector<GUID> references;
-		Utils::CollectGUIDs(node, references);
+		CollectGUIDs(node, references);
 		for (const GUID& reference : references)
 			visitAsset(reference);
 
-		return std::move(context.Result);
+		return std::move(result);
 	}
 
 	bool AssetManager::GetRuntimeAssetData(const Path& path, Ref<ScopedDataBuffer>* outData)
@@ -813,24 +809,68 @@ namespace Eagle
 			EG_CORE_ERROR("Failed to delete {}. Error: {}", assetPath, error.message());
 		else
 		{
-			if (asset->GetAssetType() == AssetType::Entity)
-			{
-				Ref<AssetEntity> entityAsset = Cast<AssetEntity>(asset);
-				Entity entity = *(entityAsset->GetEntity());
-				AssetEntity::GetScene()->DestroyEntityImmediately(entity, true);
-			}
-
-			{
-				std::scoped_lock lock(s_Mutex);
-				s_Assets.erase(assetPath);
-				if (auto guidIt = s_AssetsByGUID.find(asset->GetGUID()); guidIt != s_AssetsByGUID.end() && guidIt->second == asset)
-					s_AssetsByGUID.erase(guidIt);
-			}
 			EG_CORE_TRACE("Deleted asset at: {}", assetPath);
+			Unregister_Internal(asset);
 		}
 	}
+
+	bool AssetManager::MoveOutOfProject(const Ref<Asset>& asset, const Path& destinationFolder)
+	{
+		if (!asset)
+			return false;
+
+		const Path assetPath = asset->GetPath(); // Copy
+		{
+			std::scoped_lock lock(s_Mutex);
+			auto it = s_Assets.find(assetPath);
+			if (it == s_Assets.end() || it->second != asset)
+			{
+				EG_CORE_ERROR("Failed to remove an asset from the project: {}. Didn't find it in the asset manager", assetPath);
+				return false;
+			}
+		}
+
+		namespace fs = std::filesystem;
+		const Path destination = destinationFolder / assetPath.relative_path();
+		std::error_code error;
+		fs::create_directories(destination.parent_path(), error);
+		if (!error)
+			fs::rename(assetPath, destination, error);
+		if (error)
+		{
+			// `rename` fails if the destination is on another drive. Copy & remove instead
+			error.clear();
+			fs::copy_file(assetPath, destination, fs::copy_options::overwrite_existing, error);
+			if (!error)
+				fs::remove(assetPath, error);
+		}
+		if (error)
+		{
+			EG_CORE_ERROR("Failed to move {} to {}. Error: {}", assetPath, destination, error.message());
+			return false;
+		}
+
+		EG_CORE_INFO("Moved {} out of the project to {}", assetPath, destination);
+		Unregister_Internal(asset);
+		return true;
+	}
+
+	void AssetManager::Unregister_Internal(const Ref<Asset>& asset)
+	{
+		if (asset->GetAssetType() == AssetType::Entity)
+		{
+			Ref<AssetEntity> entityAsset = Cast<AssetEntity>(asset);
+			Entity entity = *(entityAsset->GetEntity());
+			AssetEntity::GetScene()->DestroyEntityImmediately(entity, true);
+		}
+
+		std::scoped_lock lock(s_Mutex);
+		s_Assets.erase(asset->GetPath());
+		if (auto guidIt = s_AssetsByGUID.find(asset->GetGUID()); guidIt != s_AssetsByGUID.end() && guidIt->second == asset)
+			s_AssetsByGUID.erase(guidIt);
+	}
 	
-	ScopedDataBuffer AssetManager::BuildAssetPack()
+	ScopedDataBuffer AssetManager::BuildAssetPack(const ankerl::unordered_dense::set<GUID>* excludedAssets)
 	{
 		AsyncTaskContext* task = AsyncTaskContext::GetCurrent();
 
@@ -841,7 +881,11 @@ namespace Eagle
 			std::scoped_lock lock(s_Mutex);
 			assets.reserve(s_Assets.size());
 			for (const auto& [path, asset] : s_Assets)
+			{
+				if (excludedAssets && excludedAssets->find(asset->GetGUID()) != excludedAssets->end())
+					continue;
 				assets.emplace_back(path, asset->GetGUID());
+			}
 		}
 
 		const size_t assetsCount = assets.size();

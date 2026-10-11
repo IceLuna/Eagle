@@ -49,10 +49,14 @@ namespace Eagle
 
 	bool SceneSerializer::Serialize(const Ref<Scene>& scene, YAML::Emitter& out)
 	{
+		Ref<Asset> sceneAsset;
+		const bool bAlwaysIncludeInGameBuilds = scene && AssetManager::Get(scene->GetGUID(), &sceneAsset) && sceneAsset->IsAlwaysIncludedInGameBuilds();
+
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Scene);
 		out << YAML::Key << "GUID" << YAML::Value << (scene ? scene->GetGUID() : GUID{});
+		out << YAML::Key << "AlwaysIncludeInGameBuilds" << YAML::Value << bAlwaysIncludeInGameBuilds;
 
 		if (!scene)
 		{

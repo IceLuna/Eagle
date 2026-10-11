@@ -194,6 +194,8 @@ namespace Eagle
         ImGui::EndHorizontal();
         ImGui::Separator();
 
+        RenderAssetSettings();
+
         ImGui::GetWindowDrawList()->AddRectFilled(
             ImGui::GetCursorScreenPos(),
             ImGui::GetCursorScreenPos() + ImVec2(panelWidth, ImGui::GetTextLineHeight() * 1.35f),
@@ -256,6 +258,15 @@ namespace Eagle
 
         return bRecompiled;
 	}
+
+    void GraphEditor::RenderAssetSettings()
+    {
+        if (!m_RenderAssetSettingsCallback)
+            return;
+
+        m_RenderAssetSettingsCallback();
+        ImGui::Separator();
+    }
 
     void GraphEditor::OnEvent(Event& e)
     {

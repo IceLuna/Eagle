@@ -79,6 +79,7 @@ namespace Eagle
 			UI::BeginPropertyGrid("TextureCubeDetails");
 			UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 			UI::Text("Type", "Texture Cube");
+			AssetEditor::DrawAlwaysIncludeInGameBuilds(m_Asset);
 			UI::Text("Resolution", textureSizeString);
 
 			if (gpuMemSize < 1024)

@@ -40,6 +40,7 @@ namespace Eagle
 		UI::BeginPropertyGrid("FontDetails");
 		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 		UI::Text("Type", "Font");
+		AssetEditor::DrawAlwaysIncludeInGameBuilds(m_Asset);
 		UI::EndPropertyGrid();
 
 		ImGui::Separator();

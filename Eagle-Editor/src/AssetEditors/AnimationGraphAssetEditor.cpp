@@ -43,6 +43,13 @@ namespace Eagle
 			OnViewportEnd();
 		});
 
+		m_Graph->SetRenderAssetSettingsCallback([this]()
+		{
+			UI::BeginPropertyGrid("AnimGraph_AssetSettings");
+			AssetEditor::DrawAlwaysIncludeInGameBuilds(m_Asset);
+			UI::EndPropertyGrid();
+		});
+
 		m_Graph->SetRenderPreviewVarsCallback([this]()
 		{
 			UI::BeginPropertyGrid("AnimGraph_Variables");

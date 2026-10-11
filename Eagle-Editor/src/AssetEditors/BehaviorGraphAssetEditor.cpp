@@ -10,6 +10,12 @@ namespace Eagle
 		, m_WindowName(AssetEditor::GetAssetWindowName(m_Asset))
 		, m_Graph(MakeScope<BehaviorGraphEditor>(m_Asset, m_WindowName))
 	{
+		m_Graph->SetRenderAssetSettingsCallback([this]()
+		{
+			UI::BeginPropertyGrid("BehaviorGraph_AssetSettings");
+			AssetEditor::DrawAlwaysIncludeInGameBuilds(m_Asset);
+			UI::EndPropertyGrid();
+		});
 	}
 
 	void BehaviorGraphAssetEditor::OnImGuiRender(bool* pOpen)

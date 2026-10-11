@@ -467,6 +467,7 @@ namespace Eagle
 		UI::BeginPropertyGrid("SkeletalMeshDetails");
 		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 		UI::Text("Type", "Skeletal Mesh");
+		AssetEditor::DrawAlwaysIncludeInGameBuilds(m_Asset);
 		UI::Text("Vertices", std::to_string(verticesCount));
 		UI::Text("Indices", std::to_string(indicesCount));
 		UI::Text("Vertices Mem Usage (Kb)", std::to_string(verticesCount * sizeof(SkeletalVertex) / 1024));

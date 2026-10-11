@@ -106,31 +106,6 @@ namespace Eagle
 	
 	void GameLayer::OnImGuiRender()
 	{
-		if (!m_DrawUI)
-			return;
-		
-		EG_CPU_TIMING_SCOPED("GameLayer. UI");
-		
-		if (ImGui::Begin("Game Layer"))
-		{
-			if (ImGui::Button("Open the test scene"))
-			{
-				Ref<Asset> asset;
-				if (AssetManager::Get("Content/Scenes/test.egasset", &asset))
-					Scene::OpenScene(Cast<AssetScene>(asset), true, true);
-			}
-			if (ImGui::Button("Open the test copy scene"))
-			{
-				Ref<Asset> asset;
-				if (AssetManager::Get("Content/Scenes/test_Copy.egasset", &asset))
-					Scene::OpenScene(Cast<AssetScene>(asset), true, true);
-			}
-			ImGui::Text("FPS: %d", int(1.f / Application::Get().GetTimestep()));
-			ImGui::Separator();
-			if (ImGui::Button("Exit"))
-				Application::Get().SetShouldClose(true);
-		}
-		ImGui::End();
 	}
 	
 	bool GameLayer::OnKeyPressed(KeyPressedEvent& e)
@@ -138,19 +113,6 @@ namespace Eagle
 		//Shortcuts
 		if (e.GetRepeatCount() > 0)
 			return false;
-
-		const bool control = Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl);
-		const bool leftShift = Input::IsKeyPressed(Key::LeftShift);
-		const bool rightShift = Input::IsKeyPressed(Key::RightShift);
-		const bool shift = leftShift || rightShift;
-
-		const Key pressedKey = e.GetKey();
-		switch (pressedKey)
-		{
-		case Key::F1:
-			if (control && shift)
-				m_DrawUI = !m_DrawUI;
-		}
 
 		return false;
 	}

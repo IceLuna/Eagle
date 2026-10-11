@@ -24,6 +24,7 @@ namespace Eagle
 
 		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 		UI::Text("Type", "Sound Group");
+		AssetEditor::DrawAlwaysIncludeInGameBuilds(m_Asset);
 
 		float volume = soundGroup->GetVolume();
 		if (UI::PropertyDrag("Volume", volume, 0.05f))

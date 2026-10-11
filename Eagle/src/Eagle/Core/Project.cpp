@@ -119,6 +119,7 @@ namespace Eagle
 			ProjectInfo ProjectData; // Copy of the opened project info
 			GUID StartupSceneGUID = GUID(0, 0);
 			std::string RendererConfig; // Contents of `Config/RenderConfig.ini`
+			ankerl::unordered_dense::set<GUID> ExcludedAssets;
 		};
 
 		std::string FormatBytes(size_t bytes)
@@ -262,11 +263,13 @@ namespace Eagle
 				AsyncTaskProgressScope progress(0.05f, 0.35f);
 				task.SetStatus("Packing assets");
 
-				ScopedDataBuffer assetPack = AssetManager::BuildAssetPack(); // Reports progress itself
+				ScopedDataBuffer assetPack = AssetManager::BuildAssetPack(&info.ExcludedAssets); // Reports progress itself
 				if (task.IsCancelRequested())
 					return onCancelled();
 				if (!assetPack)
 					return onFailed("Couldn't pack the assets");
+				if (!info.ExcludedAssets.empty())
+					EG_CORE_INFO("{} unused asset(s) weren't packed into the game build", info.ExcludedAssets.size());
 
 				task.SetDetail({});
 
@@ -519,7 +522,7 @@ namespace Eagle
 		}
 	}
 	
-	void Project::Build(const Path& outputFolder)
+	void Project::Build(const Path& outputFolder, const std::vector<GUID>& excludedAssets)
 	{
 		Ref<ImGuiLayer>& imguiLayer = Application::Get().GetImGuiLayer();
 
@@ -545,6 +548,8 @@ namespace Eagle
 		info->ProjectData = s_Info;
 		if (s_Info.GameStartupScene)
 			info->StartupSceneGUID = s_Info.GameStartupScene->GetGUID();
+		info->ExcludedAssets.insert(excludedAssets.begin(), excludedAssets.end());
+		info->ExcludedAssets.erase(info->StartupSceneGUID); // Just in case
 
 		// Renderer config
 		{

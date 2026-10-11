@@ -47,6 +47,7 @@ namespace Eagle
 
 		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 		UI::Text("Type", "Animation");
+		AssetEditor::DrawAlwaysIncludeInGameBuilds(m_Asset);
 		UI::Text("Duration", std::to_string(animation->Duration) + " ticks (" + durationSec + " seconds)");
 		UI::Text("Ticks per Second", std::to_string(animation->TicksPerSecond));
 

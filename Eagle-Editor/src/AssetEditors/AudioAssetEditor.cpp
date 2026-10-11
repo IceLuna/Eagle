@@ -24,6 +24,7 @@ namespace Eagle
 
 		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 		UI::Text("Type", "Audio");
+		AssetEditor::DrawAlwaysIncludeInGameBuilds(m_Asset);
 		UI::Text("Channels", std::to_string(m_Asset->GetAudio()->GetChannelsCount()));
 
 		float volume = audio->GetVolume();

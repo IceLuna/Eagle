@@ -116,6 +116,7 @@ namespace Eagle
 
 		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 		UI::Text("Type", "Physics Material");
+		AssetEditor::DrawAlwaysIncludeInGameBuilds(m_Asset);
 
 		bool bPhysicsMaterialChanged = false;
 		float staticFriction = material->GetStaticFriction();

@@ -102,9 +102,19 @@ namespace Eagle
 
 		static void Delete(const Ref<Asset>& asset);
 
+		// Finds everything in `node` that looks like a GUID.
+		// That's how assets reference other assets (including C# public fields). Not everything found is a GUID of an asset, so the results must be checked
+		static void CollectGUIDs(const YAML::Node& node, std::vector<GUID>& outGUIDs);
+
+		// Removes an asset from the project without deleting its file: the file is moved into `destinationFolder`, keeping its path.
+		// For example, "Content/Textures/a.egasset" is moved to "<destinationFolder>/Content/Textures/a.egasset".
+		// It can be restored by moving the file back and reopening the project
+		static bool MoveOutOfProject(const Ref<Asset>& asset, const Path& destinationFolder);
+
 		static const AssetsMap& GetAssets() { return s_Assets; }
 
-		static ScopedDataBuffer BuildAssetPack();
+		// @excludedAssets. Optional. Assets that aren't packed (see `AssetUsage`)
+		static ScopedDataBuffer BuildAssetPack(const ankerl::unordered_dense::set<GUID>* excludedAssets = nullptr);
 
 		static const char* GetAssetPackExtension() { return ".egpack"; }
 
@@ -115,6 +125,8 @@ namespace Eagle
 	private:
 		// Same as `Register`, but expects `s_Mutex` to be locked by the caller. `asset` must not be null
 		static Ref<Asset> Register_Internal(const Ref<Asset>& asset);
+
+		static void Unregister_Internal(const Ref<Asset>& asset);
 
 		// Game only. Deserializes an asset from the asset pack and registers it.
 		// If another thread is already loading the same asset, waits for it and returns its result instead of loading it twice.

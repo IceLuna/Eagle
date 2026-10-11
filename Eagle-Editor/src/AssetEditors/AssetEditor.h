@@ -50,6 +50,10 @@ namespace Eagle
 		static std::string GetAssetWindowName(const Ref<Asset>& asset, std::string_view ending = "");
 		static ImVec2 GetDefaultWindowSize() { return ImVec2(920.f, 760.f); }
 
+		// It's here to avoid duplicating help msg all over the code base
+		static bool DrawAlwaysIncludeInGameBuilds(const Ref<Asset>& asset);
+		static bool DrawAlwaysIncludeInGameBuildsCheckbox(const Ref<Asset>& asset);
+
 	protected:
 		ImVec2 m_FirstUseDockSize = ImVec2(0.f, 0.f);
 		float m_FirstUseViewportRatio = 0.5f;

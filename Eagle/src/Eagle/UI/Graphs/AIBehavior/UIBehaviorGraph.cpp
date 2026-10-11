@@ -427,6 +427,7 @@ namespace Eagle
         ImGui::EndHorizontal();
 
         ImGui::Separator();
+        m_Editor.RenderAssetSettings();
         HandleSelectedNode();
 
         ImGui::EndChild();

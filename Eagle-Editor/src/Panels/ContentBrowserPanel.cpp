@@ -819,7 +819,7 @@ namespace Eagle
 			// so a second one would fight the first for it. Opening another closes the one that's open
 			for (const auto& it : m_AssetEditors)
 				if (it.first != asset && it.first->GetAssetType() == AssetType::SceneSequence)
-					m_AssetEditorsToClose.push_back(it.first);
+					CloseAssetEditor(it.first);
 
 			AddAssetEditor<SceneSequenceAssetEditor, AssetSceneSequence>(asset);
 			break;
@@ -1382,6 +1382,12 @@ namespace Eagle
 		m_BackHistory.push_back(previousPath);
 		m_ForwardHistory.clear();
 		m_RefreshBrowser = true;
+	}
+
+	void ContentBrowserPanel::ShowAsset(const Path& path)
+	{
+		NavigateToFile(path);
+		ImGui::SetWindowFocus(GetWindowName());
 	}
 
 	void ContentBrowserPanel::NavigateToFile(const Path& path)

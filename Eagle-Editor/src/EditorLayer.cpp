@@ -47,6 +47,11 @@ namespace Eagle
 	static const char* s_ScreenSpaceShadowsBilinearThresholdHelpMsg = "Percentage threshold for determining if the difference between two depth values represents an edge, and should not perform interpolation. "
 		"To tune this value, set 'Debug Output Edge Mask' to true to visualize where edges are being detected.";
 	static const char* s_GTAOBentNormalHelpMsg = "If enabled, bent normal will be used for diffuse shading from IBL. Surface's normals is bent to face the direction where ambient light is coming from to provide a better estimate for lighting";
+	static const char* s_AlwaysIncludeInGameBuildsHelpMsg = "Game builds only include the assets that the game uses: the startup scene, the assets it references, the assets they reference, and so on.\n"
+		"Assets whose paths are written in C# scripts (Asset.Get(\"Content/...\")) are included as well.\n"
+		"Enable it if the game loads this asset in a way that can't be detected. "
+		"For example, if a script loads it by a path that's built at runtime: Asset.Get(\"Content/Levels/\" + name + \".egasset\").\n"
+		"The assets that this asset references are included too";
 
 	static std::mutex s_DeferredCallsMutex;
 	
@@ -318,6 +323,7 @@ namespace Eagle
 			}
 			m_ContentBrowserPanel.OnImGuiRender();
 			m_ConsolePanel.OnImGuiRender();
+			m_AssetUsagePanel.OnImGuiRender();
 			HandleDirtyAssetsPopup();
 
 			if (m_bFirstContentBrowserRender)
@@ -1081,9 +1087,7 @@ namespace Eagle
 						PrepareDirtyAssets(DirtyAssetsReason::ProjectBuild);
 						if (!m_ShowDirtyAssetMessage) // No unsaved assets, build.
 						{
-							const Path projectFolder = FileDialog::OpenFolder();
-							if (!projectFolder.empty())
-								Project::Build(projectFolder);
+							m_AssetUsagePanel.BuildGame();
 						}
 					}
 				}
@@ -1120,6 +1124,10 @@ namespace Eagle
 
 				if (ImGui::Checkbox("Console", &bConsoleOpened))
 					m_ConsolePanel.SetOpened(bConsoleOpened);
+
+				bool bUnusedAssetsOpened = m_AssetUsagePanel.IsOpened();
+				if (ImGui::Checkbox(AssetUsagePanel::GetWindowName(), &bUnusedAssetsOpened))
+					m_AssetUsagePanel.SetOpened(bUnusedAssetsOpened);
 				if (ImGui::Checkbox("Fullscreen (Shift + F11)", &bFullscreen))
 					ToggleWindowFullscreenState();
 
@@ -1326,6 +1334,27 @@ namespace Eagle
 
 		ImGui::PushID("SceneSettings");
 		ImGui::Begin("Scene Settings");
+
+		if (m_OpenedSceneAsset)
+		{
+			ImGui::Separator();
+			if (UI::PushTreeNode("Scene Asset", true))
+			{
+				const bool bSimulating = m_EditorState != EditorState::Edit;
+				if (bSimulating)
+					UI::PushItemDisabled();
+
+				UI::BeginPropertyGrid("SceneAssetSettings");
+				bool bAlwaysInclude = m_OpenedSceneAsset->IsAlwaysIncludedInGameBuilds();
+				if (UI::Property("Always build", bAlwaysInclude, s_AlwaysIncludeInGameBuildsHelpMsg))
+					m_OpenedSceneAsset->SetAlwaysIncludedInGameBuilds(bAlwaysInclude);
+				UI::EndPropertyGrid();
+
+				if (bSimulating)
+					UI::PopItemDisabled();
+				UI::PopTreeNode();
+			}
+		}
 
 		{
 			ImGui::Separator();
@@ -2725,9 +2754,7 @@ namespace Eagle
 
 		if (m_DirtyAssetsReason == DirtyAssetsReason::ProjectBuild)
 		{
-			const Path projectFolder = FileDialog::OpenFolder();
-			if (!projectFolder.empty())
-				Project::Build(projectFolder);
+			m_AssetUsagePanel.BuildGame();
 		}
 
 		m_DirtyAssetsReason = DirtyAssetsReason::None;

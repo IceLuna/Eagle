@@ -9275,7 +9275,7 @@ namespace Eagle
 	//--------------Asset--------------
 	bool Script::Eagle_Asset_Get(MonoString* path, AssetType* outType, GUID* outGUID)
 	{
-		Path filepath = MonoStringHandler(path).c_str();
+		Path filepath = Eagle::Utils::AsPath(MonoStringHandler(path).c_str());
 		Ref<Asset> asset;
 		if (AssetManager::Get(filepath, &asset))
 		{
