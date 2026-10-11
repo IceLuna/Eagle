@@ -15,6 +15,44 @@ namespace Eagle
 {
 	namespace Utils
 	{
+		struct GatherDependenciesContext
+		{
+			std::vector<AssetManager::AssetPackDependency> Result;
+			ankerl::unordered_dense::set<GUID> Visited;
+		};
+
+		void CollectGUIDs(const YAML::Node& node, std::vector<GUID>& outGUIDs)
+		{
+			// Avoid doing `node.as<GUID>()` since it throws an exception
+			// and there'll be a lot of them thrown when trying to parse the file.
+			// So, to avoid wasting perf on exception handling, manually checking for GUID style
+
+			// If one of these ever fails, decoding part below should be updated
+			static_assert(GUID::NumValues() == 2u);
+			static_assert(std::same_as<GUID::ValueType, uint64_t>);
+
+			if (node.IsSequence())
+			{
+				if (node.size() == 2 && node[0].IsScalar() && node[1].IsScalar())
+				{
+					uint64_t high = 0, low = 0;
+					if (YAML::convert<uint64_t>::decode(node[0], high) && YAML::convert<uint64_t>::decode(node[1], low))
+					{
+						outGUIDs.emplace_back(high, low);
+						return;
+					}
+				}
+
+				for (const auto& child : node)
+					CollectGUIDs(child, outGUIDs);
+			}
+			else if (node.IsMap())
+			{
+				for (const auto& keyValue : node)
+					CollectGUIDs(keyValue.second, outGUIDs);
+			}
+		}
+
 		static bool IsAssetExtension(const Path& filepath)
 		{
 			return Utils::HasExtension(filepath, Asset::GetExtension());
@@ -337,6 +375,16 @@ namespace Eagle
 
 	Ref<Asset> AssetManager::LoadFromAssetPack(const Path& path, const Ref<ScopedDataBuffer>& assetData)
 	{
+		if (!MainThread::IsMainThread() && RequiresMainThread(Serializer::GetAssetType(assetData->GetDataBuffer())))
+		{
+			Ref<Asset> result;
+			MainThread::SubmitAndWait([&path, &assetData, &result]()
+			{
+				result = LoadFromAssetPack(path, assetData);
+			});
+			return result;
+		}
+
 		std::promise<Ref<Asset>> promise;
 		{
 			std::unique_lock lock(s_Mutex);
@@ -534,6 +582,65 @@ namespace Eagle
 		}
 
 		return false;
+	}
+
+	bool AssetManager::IsLoaded(const GUID& guid)
+	{
+		std::scoped_lock lock(s_Mutex);
+		return s_AssetsByGUID.find(guid) != s_AssetsByGUID.end();
+	}
+
+	bool AssetManager::RequiresMainThread(AssetType type)
+	{
+		return type == AssetType::Entity;
+	}
+
+	std::vector<AssetManager::AssetPackDependency> AssetManager::GatherAssetPackDependencies(const YAML::Node& node)
+	{
+		if (!s_bGame)
+			return {};
+
+		Utils::GatherDependenciesContext context;
+		std::function<void(const GUID&)> visitAsset = [&context, &visitAsset](const GUID& guid)
+		{
+			if (guid.IsNull() || !context.Visited.insert(guid).second)
+				return;
+
+			auto it = s_AssetPackAssetsByGUID.find(guid);
+			if (it == s_AssetPackAssetsByGUID.end())
+				return;
+
+			const auto& [assetPath, assetData] = it->second;
+			const DataBuffer& data = assetData->GetDataBuffer();
+			const AssetType type = Serializer::GetAssetType(data);
+			if (type == AssetType::None || type == AssetType::Scene)
+				return;
+
+			std::vector<GUID> references;
+			try
+			{
+				YAML::Node assetNode;
+				Utils::ReadYAML(data, &assetNode);
+				Utils::CollectGUIDs(assetNode, references);
+			}
+			catch (const std::exception& e)
+			{
+				EG_CORE_ERROR("Failed to read the dependencies of the asset {}: {}", assetPath, e.what());
+			}
+
+			// Dependencies first
+			for (const GUID& reference : references)
+				visitAsset(reference);
+
+			context.Result.push_back({ guid, data.Size, RequiresMainThread(type) });
+		};
+
+		std::vector<GUID> references;
+		Utils::CollectGUIDs(node, references);
+		for (const GUID& reference : references)
+			visitAsset(reference);
+
+		return std::move(context.Result);
 	}
 
 	bool AssetManager::GetRuntimeAssetData(const Path& path, Ref<ScopedDataBuffer>* outData)

@@ -705,8 +705,17 @@ namespace Eagle::Script
 	MonoString* Eagle_Project_GetRendererCachePath();
 	MonoString* Eagle_Project_GetSavedPath();
 
+	// SceneLoadRequest
+	float Eagle_SceneLoadRequest_GetProgress(uint64_t id);
+	int32_t Eagle_SceneLoadRequest_GetState(uint64_t id);
+	GUID Eagle_SceneLoadRequest_GetSceneAssetGUID(uint64_t id);
+	void Eagle_SceneLoadRequest_Activate(uint64_t id);
+	void Eagle_SceneLoadRequest_Cancel(uint64_t id);
+
 	// Scene
 	void Eagle_Scene_OpenScene(GUID assetID);
+	uint64_t Eagle_Scene_OpenSceneAsync(GUID assetID, bool bActivateWhenReady);
+	uint64_t Eagle_Scene_GetActiveSceneLoad();
 	void Eagle_Scene_QuitGame();
 	bool Eagle_Scene_Raycast(const glm::vec3* origin, const glm::vec3* dir, float maxDistance, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore, MonoObject** outHitEntity, glm::vec3* outPosition, glm::vec3* outNormal, float* outDistance);
 	MonoArray* Eagle_Scene_OverlapBox(const Transform* transform, const glm::vec3* boxHalfSize, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore);

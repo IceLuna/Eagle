@@ -64,6 +64,24 @@ namespace Eagle
 		static bool Get(const GUID& guid, Ref<Asset>* outAsset);
 		static bool Exists(const Path& path);
 		static bool GetRuntimeAssetData(const Path& path, Ref<ScopedDataBuffer>* outData);
+		static bool IsLoaded(const GUID& guid);
+
+		// Some asset types can only be created on the main thread (entity assets)
+		static bool RequiresMainThread(AssetType type);
+
+		struct AssetPackDependency
+		{
+			GUID ID;
+			size_t DataSize = 0; // Size of the asset's data in the asset pack
+			bool bRequiresMainThread = false;
+		};
+
+		// Game builds only (thread safe)
+		// Returns all assets of the asset pack that `node` references (including indirectly through other assets)
+		// They're ordered so that an asset comes after the assets it references, so loading them in this order loads one asset at a time.
+		// Note: Scene assets are ignored. Also finds references in C# public fields
+		static std::vector<AssetPackDependency> GatherAssetPackDependencies(const YAML::Node& node);
+
 		static std::vector<Ref<Asset>> GetDirtyAssets();
 
 		static void OnModified(const Ref<Asset>& asset);

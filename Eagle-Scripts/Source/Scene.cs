@@ -11,9 +11,98 @@ namespace Eagle
         public Vector3 Normal;
     };
 
+    public enum SceneLoadState
+    {
+        Queued,    // Waiting for the background thread to start loading it
+		Loading,
+		Ready,     // Loaded, waiting for `Activate()` (only happens if it was requested with `bActivateWhenReady == false`)
+		Activated, // Opened (or it's about to be opened at the beginning of the next frame)
+		Failed,
+		Cancelled,
+	};
+
+    // A scene that's being loaded in the background. See `Scene.OpenSceneAsync`
+    public class SceneLoadRequest
+    {
+        internal SceneLoadRequest(ulong id) { ID = id; }
+
+        internal readonly ulong ID;
+
+        // Loading progress in [0; 1] range
+        public float Progress => GetProgress_Native(ID);
+
+        public SceneLoadState State => GetState_Native(ID);
+
+        // Loaded and waiting for `Activate()`
+        public bool IsReady => State == SceneLoadState.Ready;
+
+		// True if it's finished (activated, failed or cancelled)
+        public bool IsDone
+        {
+            get
+            {
+                SceneLoadState state = State;
+                return state == SceneLoadState.Activated || state == SceneLoadState.Failed || state == SceneLoadState.Cancelled;
+            }
+        }
+
+        public AssetScene SceneAsset
+        {
+            get
+            {
+                GUID guid = GetSceneAssetGUID_Native(ID);
+                return guid.IsNull() ? null : new AssetScene(guid);
+            }
+        }
+
+        // Opens the loaded scene at the beginning of the next frame. If it's still loading, it's opened as soon as it's loaded
+        public void Activate() { Activate_Native(ID); }
+
+        // Stops loading it or drops it, if it's loaded but not activated yet
+        public void Cancel() { Cancel_Native(ID); }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern float GetProgress_Native(ulong id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern SceneLoadState GetState_Native(ulong id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern GUID GetSceneAssetGUID_Native(ulong id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void Activate_Native(ulong id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void Cancel_Native(ulong id);
+    }
+
     public class Scene
     {
+        // Cancels previous async loads
         public static void OpenScene(AssetScene scene) { OpenScene_Native(scene.GetGUID()); }
+
+        // Loads a scene in the background while the current scene keeps running (for example, a loading screen that displays `Progress`).
+        // Only one scene is loaded at a time meaning calling it again (or calling `OpenScene`) cancels the previous load.
+        // But you can stack `OpenScene` and `OpenSceneAsync`. For example, you can call a regular `OpenScene` to open a loading screen scene,
+        // and right after this call, you can issue `OpenSceneAsync` request. Calling `OpenSceneAsync` won't cancel `OpenScene` since `OpenScene` is not async
+        // @bActivateWhenReady. If false, the loaded scene waits until `SceneLoadRequest.Activate()` is called (for example, "Press any key to continue")
+        public static SceneLoadRequest OpenSceneAsync(AssetScene scene, bool bActivateWhenReady = true)
+        {
+            if (scene == null)
+                return null;
+
+            ulong id = OpenSceneAsync_Native(scene.GetGUID(), bActivateWhenReady);
+            return id == 0 ? null : new SceneLoadRequest(id);
+        }
+
+        // Returns the scene that's being loaded in the background, or null.
+        // Useful when the load was started by another scene (for example, a menu that opened the loading screen and requested the level)
+        public static SceneLoadRequest GetActiveSceneLoad()
+        {
+            ulong id = GetActiveSceneLoad_Native();
+            return id == 0 ? null : new SceneLoadRequest(id);
+        }
 
         public static void QuitGame() { QuitGame_Native(); }
 
@@ -112,6 +201,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void OpenScene_Native(GUID assetID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern ulong OpenSceneAsync_Native(GUID assetID, bool bActivateWhenReady);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern ulong GetActiveSceneLoad_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void QuitGame_Native();

@@ -868,7 +868,7 @@ namespace Eagle
 		return true;
 	}
 
-	void ScriptEngine::UpdateEntityPublicFields(Entity entity)
+	void ScriptEngine::UpdateEntityPublicFields(Entity entity, bool bRemoveScriptIfInvalid)
 	{
 		EG_CORE_ASSERT(entity.HasComponent<ScriptComponent>(), "Entity doesn't have a Script Component");
 
@@ -879,7 +879,8 @@ namespace Eagle
 		entityPublicFields.clear();
 		if (moduleName.empty())
 		{
-			RemoveEntityScript(entity);
+			if (bRemoveScriptIfInvalid)
+				RemoveEntityScript(entity);
 			return;
 		}
 
@@ -887,7 +888,8 @@ namespace Eagle
 		if (itClassData == s_EntityClasses.end())
 		{
 			EG_CORE_ERROR("[ScriptEngine] Invalid module name '{0}'!", moduleName);
-			RemoveEntityScript(entity);
+			if (bRemoveScriptIfInvalid)
+				RemoveEntityScript(entity);
 			return;
 		}
 
@@ -945,7 +947,15 @@ namespace Eagle
 
 		LoadListOfAppAssemblyClasses();
 
-		for (const auto& [_, callback] : s_AppAssemblyReloadedCallbacks)
+		// Copied under the lock because scenes might modify it from other threads
+		std::vector<std::function<void()>> callbacks;
+		{
+			std::scoped_lock lock(s_Mutex);
+			callbacks.reserve(s_AppAssemblyReloadedCallbacks.size());
+			for (const auto& [_, callback] : s_AppAssemblyReloadedCallbacks)
+				callbacks.push_back(callback);
+		}
+		for (const auto& callback : callbacks)
 			callback();
 
 		return true;

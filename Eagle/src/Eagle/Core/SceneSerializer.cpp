@@ -149,7 +149,7 @@ namespace Eagle
 		return true;
 	}
 
-	bool SceneSerializer::Deserialize(const Ref<Scene>& scene, YAML::Node& baseNode)
+	bool SceneSerializer::Deserialize(const Ref<Scene>& scene, YAML::Node& baseNode, const std::function<bool(size_t done, size_t total)>& onProgress)
 	{
 		AssetType assetType = AssetType::None;
 		if (auto node = baseNode["Type"])
@@ -162,7 +162,7 @@ namespace Eagle
 
 		YAML::Node data = baseNode["Scene"];
 		if (!data)
-			return false;
+			return true; // It's an empty scene
 
 		GUID navMeshEntityGUID = GUID(0, 0);
 
@@ -210,6 +210,8 @@ namespace Eagle
 			//uint32_t - entity that has an parent, uint32_t - parent id
 			std::unordered_map<uint32_t, uint32_t> childs;
 
+			const size_t entitiesCount = entities.size();
+			size_t deserializedCount = 0;
 			for (const auto& entityNode : entities)
 			{
 				uint32_t id;
@@ -221,6 +223,10 @@ namespace Eagle
 				{
 					childs[deserializedEntity.GetID()] = parentID;
 				}
+
+				++deserializedCount;
+				if (onProgress && !onProgress(deserializedCount, entitiesCount))
+					return false;
 			}
 
 			for (const auto& element : childs)

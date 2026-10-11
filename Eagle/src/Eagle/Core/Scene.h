@@ -36,6 +36,8 @@ namespace Eagle
 	class AssetEntity;
 	class AssetScene;
 	class AssetAnimationGraph;
+	class Component;
+	class SceneLoadRequest;
 
 	namespace AINavigation
 	{
@@ -101,6 +103,10 @@ namespace Eagle
 		// Used by asset manager to store entity assets since they need to be tied to a scene.
 		// So don't use it.
 		Scene();
+
+		// Used by `AsyncSceneLoader`. Creates a scene without a scene renderer, so that it can be built on a background thread
+		// So don't use it.
+		Scene(const std::string& debugName, bool bRuntime);
 
 		Scene(const std::string& debugName, const Ref<SceneRenderer>& sceneRenderer = nullptr, bool bRuntime = false);
 		Scene(const Ref<Scene>& other, const std::string& debugName);
@@ -314,6 +320,14 @@ namespace Eagle
 		// @bRuntime. Set to true if a scene will be used for runtime simulations.
 		static void OpenScene(const Ref<AssetScene>& sceneAsset, bool bReuseCurrentSceneRenderer = true, bool bRuntime = false);
 
+		// Main thread only.
+		// Loads a scene on a background thread while the current scene keeps running and rendering (for example, a loading screen).
+		// Only one scene is loaded in the background at a time, meaning calling it again (or calling `OpenScene`) cancels the previous load.
+		// @bActivateWhenReady. If false, the loaded scene waits until `SceneLoadRequest::Activate()` is called
+		// @bReuseCurrentSceneRenderer. If set to true, `s_CurrentScene`s SceneRenderer will be reused. Useful to not recreate GPU resources
+		// @bRuntime. Set to true if a scene will be used for runtime simulations.
+		static Ref<SceneLoadRequest> OpenSceneAsync(const Ref<AssetScene>& sceneAsset, bool bActivateWhenReady = true, bool bReuseCurrentSceneRenderer = true, bool bRuntime = false);
+
 		// @id. It's used to identify the callback function. It can be used to remove a callback.
 		// Using the same ID for adding callback will remove the old callback
 		[[nodiscard]] static GUID AddOnSceneOpenedCallback(const std::function<void(const Ref<Scene>&)>& func);
@@ -364,6 +378,11 @@ namespace Eagle
 		static void OnSceneOpened(const Ref<Scene>& scene);
 
 	private:
+		void InitPhysicsScenes(bool bRuntime);
+
+		// Main thread only
+		void SetSceneRenderer(const Ref<SceneRenderer>& sceneRenderer);
+
 		void CopyComponents(Entity source, Entity dest);
 		void DestroyScripts();
 		void DestroyEntityImmediately_Internal(Entity entity, bool bDestroyChildren = false);
@@ -698,6 +717,10 @@ namespace Eagle
 		GUID m_CameraOverrideOwner = GUID(0, 0);
 		bool bCameraOverrideValid = false;
 
+		// Components that observe entities of this scene. Key - entt::entity (see `ComponentsNotificationSystem`).
+		// Declared before `m_Registry` on purpose because components unregister themselves when they're destroyed, so it must outlive the registry
+		ankerl::unordered_dense::map<uint32_t, std::vector<Component*>> m_ComponentObservers;
+
 		entt::registry m_Registry;
 		CameraComponent* m_RuntimeCamera = nullptr;
 
@@ -756,5 +779,7 @@ namespace Eagle
 		GUID m_CurrentNavMeshEntityGUID = GUID(0, 0);
 
 		friend class Entity;
+		friend class ComponentsNotificationSystem;
+		friend class AsyncSceneLoader;
 	};
 }

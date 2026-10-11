@@ -2986,7 +2986,7 @@ namespace Eagle
 			auto& scriptComponent = deserializedEntity.AddComponent<ScriptComponent>();
 
 			scriptComponent.ModuleName = scriptComponentNode["ModuleName"].as<std::string>();
-			ScriptEngine::UpdateEntityPublicFields(deserializedEntity);
+			ScriptEngine::UpdateEntityPublicFields(deserializedEntity, false);
 
 			auto publicFieldsNode = scriptComponentNode["PublicFields"];
 			if (publicFieldsNode)

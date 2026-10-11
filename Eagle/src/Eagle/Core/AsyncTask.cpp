@@ -49,44 +49,32 @@ namespace Eagle
 			bool bModalPopupOpen = false; // Main thread only
 		};
 
-		ManagerData& GetData()
-		{
-			static ManagerData s_Data;
-			return s_Data;
-		}
-
 		thread_local AsyncTaskContext* t_CurrentContext = nullptr;
-
 		constexpr const char* s_ModalPopupID = "###EagleAsyncTaskModal";
 
-		bool IsMainThread()
-		{
-			return std::this_thread::get_id() == GetData().MainThreadID.load();
-		}
+		static ManagerData s_Data;
 
 		void PushMainThreadFunc(std::function<void()> func)
 		{
-			auto& data = GetData();
-			std::scoped_lock lock(data.MainThreadMutex);
-			data.MainThreadFuncs.push_back(std::move(func));
+			std::scoped_lock lock(s_Data.MainThreadMutex);
+			s_Data.MainThreadFuncs.push_back(std::move(func));
 		}
 
 		void WorkerThreadFunc()
 		{
-			auto& data = GetData();
 			while (true)
 			{
 				Ref<AsyncTaskState> task;
 				{
-					std::unique_lock lock(data.Mutex);
-					data.CV.wait(lock, [&data]() { return data.bStop || !data.Queue.empty(); });
+					std::unique_lock lock(s_Data.Mutex);
+					s_Data.CV.wait(lock, []() { return s_Data.bStop || !s_Data.Queue.empty(); });
 
-					if (data.Queue.empty())
+					if (s_Data.Queue.empty())
 						break;
 
-					task = std::move(data.Queue.front());
-					data.Queue.pop_front();
-					data.Running = task;
+					task = std::move(s_Data.Queue.front());
+					s_Data.Queue.pop_front();
+					s_Data.Running = task;
 				}
 
 				AsyncTaskResult result = AsyncTaskResult::Cancelled;
@@ -139,10 +127,9 @@ namespace Eagle
 					}
 
 					{
-						auto& data = GetData();
-						std::scoped_lock lock(data.Mutex);
-						if (data.Running == task)
-							data.Running.reset();
+						std::scoped_lock lock(s_Data.Mutex);
+						if (s_Data.Running == task)
+							s_Data.Running.reset();
 					}
 
 					finished.set_value();
@@ -150,23 +137,22 @@ namespace Eagle
 				finishedFuture.wait();
 			}
 
-			data.bWorkerExited = true;
+			s_Data.bWorkerExited = true;
 		}
 
 		Ref<AsyncTaskState> GetDisplayedTask(size_t* outQueuedCount)
 		{
-			auto& data = GetData();
-			std::scoped_lock lock(data.Mutex);
+			std::scoped_lock lock(s_Data.Mutex);
 
-			if (data.Running)
+			if (s_Data.Running)
 			{
-				*outQueuedCount = data.Queue.size();
-				return data.Running;
+				*outQueuedCount = s_Data.Queue.size();
+				return s_Data.Running;
 			}
-			if (!data.Queue.empty())
+			if (!s_Data.Queue.empty())
 			{
-				*outQueuedCount = data.Queue.size() - 1;
-				return data.Queue.front();
+				*outQueuedCount = s_Data.Queue.size() - 1;
+				return s_Data.Queue.front();
 			}
 
 			*outQueuedCount = 0;
@@ -228,16 +214,37 @@ namespace Eagle
 
 	void AsyncTaskContext::RunOnMainThread(std::function<void()> func)
 	{
-		if (func)
-			PushMainThreadFunc(std::move(func));
+		MainThread::Submit(std::move(func));
 	}
 
 	void AsyncTaskContext::RunOnMainThreadAndWait(const std::function<void()>& func)
 	{
+		MainThread::SubmitAndWait(func);
+	}
+
+	// ----------------- MainThread -----------------
+	void MainThread::Init()
+	{
+		s_Data.MainThreadID = std::this_thread::get_id();
+	}
+
+	bool MainThread::IsMainThread()
+	{
+		return std::this_thread::get_id() == s_Data.MainThreadID.load();
+	}
+
+	void MainThread::Submit(std::function<void()> func)
+	{
+		if (func)
+			PushMainThreadFunc(std::move(func));
+	}
+
+	void MainThread::SubmitAndWait(const std::function<void()>& func)
+	{
 		if (!func)
 			return;
 
-		if (IsMainThread())
+		if (MainThread::IsMainThread())
 		{
 			func();
 			return;
@@ -258,6 +265,33 @@ namespace Eagle
 			}
 		});
 		doneFuture.get(); // Rethrows if `func` threw
+	}
+
+	void MainThread::ExecutePending()
+	{
+		EG_CORE_ASSERT(MainThread::IsMainThread());
+
+		std::vector<std::function<void()>> funcs;
+		{
+			std::scoped_lock lock(s_Data.MainThreadMutex);
+			funcs.swap(s_Data.MainThreadFuncs);
+		}
+
+		for (auto& func : funcs)
+		{
+			try
+			{
+				func();
+			}
+			catch (const std::exception& e)
+			{
+				EG_CORE_ERROR("A function queued for the main thread threw an exception: {}", e.what());
+			}
+			catch (...)
+			{
+				EG_CORE_ERROR("A function queued for the main thread threw an unknown exception");
+			}
+		}
 	}
 
 	AsyncTaskContext* AsyncTaskContext::GetCurrent()
@@ -317,10 +351,9 @@ namespace Eagle
 		task->OnFinished = std::move(onFinished);
 		task->bCancelable = desc.bCancelable;
 
-		auto& data = GetData();
 		{
-			std::scoped_lock lock(data.Mutex);
-			if (data.bStop)
+			std::scoped_lock lock(s_Data.Mutex);
+			if (s_Data.bStop)
 			{
 				EG_CORE_WARN("Can't start a background task `{}`. The app is shutting down", desc.Name);
 				if (task->OnFinished)
@@ -328,46 +361,17 @@ namespace Eagle
 				return;
 			}
 
-			data.Queue.push_back(task);
-			if (!data.Worker.joinable())
-				data.Worker = std::thread(WorkerThreadFunc);
+			s_Data.Queue.push_back(task);
+			if (!s_Data.Worker.joinable())
+				s_Data.Worker = std::thread(WorkerThreadFunc);
 		}
-		data.CV.notify_one();
-	}
-
-	void AsyncTaskManager::Update()
-	{
-		auto& data = GetData();
-		data.MainThreadID = std::this_thread::get_id();
-
-		std::vector<std::function<void()>> funcs;
-		{
-			std::scoped_lock lock(data.MainThreadMutex);
-			funcs.swap(data.MainThreadFuncs);
-		}
-
-		for (auto& func : funcs)
-		{
-			try
-			{
-				func();
-			}
-			catch (const std::exception& e)
-			{
-				EG_CORE_ERROR("A main-thread function of a background task threw an exception: {}", e.what());
-			}
-			catch (...)
-			{
-				EG_CORE_ERROR("A main-thread function of a background task threw an unknown exception");
-			}
-		}
+		s_Data.CV.notify_one();
 	}
 
 	bool AsyncTaskManager::IsBusy()
 	{
-		auto& data = GetData();
-		std::scoped_lock lock(data.Mutex);
-		return data.Running || !data.Queue.empty();
+		std::scoped_lock lock(s_Data.Mutex);
+		return s_Data.Running || !s_Data.Queue.empty();
 	}
 
 	bool AsyncTaskManager::IsModalTaskActive()
@@ -386,41 +390,38 @@ namespace Eagle
 
 	void AsyncTaskManager::CancelAll()
 	{
-		auto& data = GetData();
-		std::scoped_lock lock(data.Mutex);
+		std::scoped_lock lock(s_Data.Mutex);
 
-		for (auto& task : data.Queue)
+		for (auto& task : s_Data.Queue)
 			task->bCancelRequested = true;
-		if (data.Running)
-			data.Running->bCancelRequested = true;
+		if (s_Data.Running)
+			s_Data.Running->bCancelRequested = true;
 	}
 
 	void AsyncTaskManager::Shutdown()
 	{
-		auto& data = GetData();
-
 		const std::string runningTask = GetActiveTaskName();
 		if (!runningTask.empty())
 			EG_CORE_WARN("Cancelling background tasks. Waiting for `{}` to stop...", runningTask);
 
 		CancelAll();
 		{
-			std::scoped_lock lock(data.Mutex);
-			data.bStop = true;
+			std::scoped_lock lock(s_Data.Mutex);
+			s_Data.bStop = true;
 		}
-		data.CV.notify_all();
+		s_Data.CV.notify_all();
 
-		if (data.Worker.joinable())
+		if (s_Data.Worker.joinable())
 		{
 			// The worker might be waiting for the main thread (`RunOnMainThreadAndWait`, `onFinished`), so keep executing main-thread functions
-			while (!data.bWorkerExited)
+			while (!s_Data.bWorkerExited)
 			{
-				Update();
+				MainThread::ExecutePending();
 				std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			}
-			data.Worker.join();
+			s_Data.Worker.join();
 		}
-		Update();
+		MainThread::ExecutePending();
 	}
 
 	// ----------------- UI -----------------
@@ -525,8 +526,6 @@ namespace Eagle
 
 	void AsyncTaskManager::OnImGuiRender()
 	{
-		auto& data = GetData();
-
 		size_t queuedCount = 0;
 		Ref<AsyncTaskState> task = GetDisplayedTask(&queuedCount);
 		const bool bModal = task && task->Desc.bModal;
@@ -551,12 +550,12 @@ namespace Eagle
 				DrawTaskBody(*task, queuedCount, contentWidth);
 				ImGui::EndPopup();
 			}
-			data.bModalPopupOpen = true;
+			s_Data.bModalPopupOpen = true;
 		}
-		else if (data.bModalPopupOpen)
+		else if (s_Data.bModalPopupOpen)
 		{
 			// The modal task has finished. Close its popup without submitting it again, so that an empty popup doesn't flash for a frame
-			data.bModalPopupOpen = false;
+			s_Data.bModalPopupOpen = false;
 			ImGuiContext& g = *GImGui;
 			const ImGuiID popupID = ImGui::GetID(s_ModalPopupID);
 			for (int i = 0; i < g.OpenPopupStack.Size; ++i)

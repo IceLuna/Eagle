@@ -5,6 +5,7 @@
 #include "Eagle/Core/Timestep.h"
 #include "Eagle/Core/ThreadPool.h"
 #include "Eagle/Core/AsyncTask.h"
+#include "Eagle/Core/AsyncSceneLoader.h"
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/Script/ScriptEngine.h"
@@ -43,6 +44,7 @@ namespace Eagle
 	{
 		EG_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
+		MainThread::Init();
 
 		m_Game = props.bGame;
 		m_CorePath = props.argv[0];
@@ -113,6 +115,7 @@ namespace Eagle
 
 	Application::~Application()
 	{
+		AsyncSceneLoader::Shutdown();
 		AsyncTaskManager::Shutdown();
 		ProcessNextFrameFuncs();
 
@@ -173,6 +176,8 @@ namespace Eagle
 	{
 		Get().CallNextFrame([bOpened, corePath = Get().m_CorePath, imguiLayer = Get().m_ImGuiLayer]()
 		{
+			AsyncSceneLoader::CancelAll(true);
+
 			ThumbnailCache::Release();
 			RenderManager::Reset();
 			ScriptEngine::Reset();
@@ -240,7 +245,7 @@ namespace Eagle
 
 			ProcessNextFrameFuncs();
 
-			AsyncTaskManager::Update();
+			MainThread::ExecutePending();
 
 			if (!m_Minimized)
 			{

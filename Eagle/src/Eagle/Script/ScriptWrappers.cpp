@@ -8,6 +8,7 @@
 #include "Eagle/Audio/AudioEngine.h"
 #include "Eagle/Audio/SoundGroup.h"
 #include "Eagle/Core/Project.h"
+#include "Eagle/Core/AsyncSceneLoader.h"
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Utils/Utils.h"
@@ -8698,6 +8699,39 @@ namespace Eagle
 		return mono_string_new(mono_domain_get(), Eagle::Utils::AsString(Project::GetSavedPath()).c_str());
 	}
 
+	//-------------- SceneLoadRequest --------------
+	float Script::Eagle_SceneLoadRequest_GetProgress(uint64_t id)
+	{
+		const Ref<SceneLoadRequest> request = AsyncSceneLoader::FindRequest(id);
+		return request ? request->GetProgress() : 0.f;
+	}
+
+	int32_t Script::Eagle_SceneLoadRequest_GetState(uint64_t id)
+	{
+		const Ref<SceneLoadRequest> request = AsyncSceneLoader::FindRequest(id);
+		return int32_t(request ? request->GetState() : SceneLoadState::Cancelled);
+	}
+
+	GUID Script::Eagle_SceneLoadRequest_GetSceneAssetGUID(uint64_t id)
+	{
+		const Ref<SceneLoadRequest> request = AsyncSceneLoader::FindRequest(id);
+		return request ? request->GetSceneAsset()->GetGUID() : GUID(0, 0);
+	}
+
+	void Script::Eagle_SceneLoadRequest_Activate(uint64_t id)
+	{
+		if (const Ref<SceneLoadRequest> request = AsyncSceneLoader::FindRequest(id))
+			request->Activate();
+		else
+			EG_CORE_ERROR("Failed to activate a scene load request. The request wasn't found");
+	}
+
+	void Script::Eagle_SceneLoadRequest_Cancel(uint64_t id)
+	{
+		if (const Ref<SceneLoadRequest> request = AsyncSceneLoader::FindRequest(id))
+			request->Cancel();
+	}
+
 	//-------------- Scene --------------
 	void Script::Eagle_Scene_OpenScene(GUID assetID)
 	{
@@ -8717,6 +8751,27 @@ namespace Eagle
 		}
 
 		Scene::OpenScene(sceneAsset, true, true);
+	}
+
+	uint64_t Script::Eagle_Scene_OpenSceneAsync(GUID assetID, bool bActivateWhenReady)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		Ref<AssetScene> sceneAsset = Cast<AssetScene>(asset);
+		if (!sceneAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't open a scene asynchronously. {}", asset ? "It's not a scene asset" : "Couldn't find an asset");
+			return 0;
+		}
+
+		Ref<SceneLoadRequest> request = Scene::OpenSceneAsync(sceneAsset, bActivateWhenReady, true, true);
+		return request ? request->GetID() : 0;
+	}
+
+	uint64_t Script::Eagle_Scene_GetActiveSceneLoad()
+	{
+		const Ref<SceneLoadRequest> request = AsyncSceneLoader::GetActiveRequest();
+		return request ? request->GetID() : 0;
 	}
 
 	void Script::Eagle_Scene_QuitGame()

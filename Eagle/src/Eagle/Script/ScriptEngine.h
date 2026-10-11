@@ -63,7 +63,10 @@ namespace Eagle
 		static void OnTriggerBegin(const Entity& entity, const Entity& other);
 		static void OnTriggerEnd(const Entity& entity, const Entity& other);
 
-		static void UpdateEntityPublicFields(Entity entity);
+		// @bRemoveScriptIfInvalid. If the module is empty/invalid, also removes the entity's script instance.
+		// Pass false for entities that can't have an instance yet (e.g. while deserializing), so the global instance map isn't touched.
+		// Then it's safe to call on a background thread
+		static void UpdateEntityPublicFields(Entity entity, bool bRemoveScriptIfInvalid = true);
 		static void RemoveEntityScript(const Entity& entity);
 		static bool ModuleExists(const std::string& moduleName);
 		static bool IsEntityModuleValid(const Entity& entity);

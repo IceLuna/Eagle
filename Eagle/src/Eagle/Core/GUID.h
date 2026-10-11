@@ -45,9 +45,12 @@ namespace Eagle
 		uint64_t GetHigh() const { return m_Higher64; }
 		uint64_t GetLow() const { return m_Lower64; }
 
+		static constexpr uint32_t NumValues() { return 2u; } // m_Higher64 & m_Lower64
+		using ValueType = uint64_t;
+
 	private:
-		uint64_t m_Higher64;
-		uint64_t m_Lower64;
+		ValueType m_Higher64;
+		ValueType m_Lower64;
 	};
 
 	// 64bit GUID

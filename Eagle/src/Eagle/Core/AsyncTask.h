@@ -29,6 +29,23 @@ namespace Eagle
 
 	struct AsyncTaskState;
 
+	// Lets any thread run code on the main thread.
+	namespace MainThread
+	{
+		void Init();
+
+		bool IsMainThread();
+
+		void Submit(std::function<void()> func);
+
+		// Note: the main thread must never block waiting for the calling thread without executing queued functions, otherwise it deadlocks
+		void SubmitAndWait(const std::function<void()>& func);
+
+		// Main thread only. Executes queued functions.
+		// Also used when the main thread needs to wait for another thread that might be waiting for the main thread
+		void ExecutePending();
+	}
+
 	// Given to a task's function. Used to report progress and to check whether the user requested a cancellation.
 	// It must only be used on the thread that runs the task (`IsCancelRequested` is the exception, it can be called from anywhere).
 	class AsyncTaskContext
@@ -111,10 +128,6 @@ namespace Eagle
 		// @func. Executed on the background thread.
 		// @onFinished. Executed on the main thread once the task is done. Also executed (with `Cancelled`) if the task was cancelled before it started
 		static void Submit(const AsyncTaskDesc& desc, TaskFunc func, FinishedFunc onFinished = {});
-
-		// Main thread only. Should be called once per frame.
-		// Executes the functions that tasks queued with `RunOnMainThread` and their `onFinished` callbacks
-		static void Update();
 
 		// Main thread only. Draws the progress UI (a modal popup for modal tasks, an overlay in the corner for others)
 		static void OnImGuiRender();

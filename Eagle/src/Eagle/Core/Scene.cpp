@@ -4,6 +4,7 @@
 #include "Entity.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Core/SceneSerializer.h"
+#include "Eagle/Core/AsyncSceneLoader.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Animation/AnimationSystem.h"
 #include "Eagle/Animation/AnimationGraph.h"
@@ -705,8 +706,18 @@ namespace Eagle
 	Scene::Scene()
 		: m_DebugName("Empty")
 	{
+		// No scene renderer on purpose
 		m_RuntimePhysicsScene = MakeRef<PhysicsScene>(PhysicsSettings());
 		m_PhysicsScene = m_RuntimePhysicsScene;
+		SetupOnAppAssemblyReloadedCallback();
+	}
+
+	Scene::Scene(const std::string& debugName, bool bRuntime)
+		: m_DebugName(debugName)
+	{
+		// No scene renderer on purpose
+		ConnectSignals();
+		InitPhysicsScenes(bRuntime);
 		SetupOnAppAssemblyReloadedCallback();
 	}
 
@@ -728,7 +739,12 @@ namespace Eagle
 		SetSkyboxIntensity(m_SkyboxIntensity);
 		SetSkybox(m_Sky);
 		ConnectSignals();
+		InitPhysicsScenes(bRuntime);
+		SetupOnAppAssemblyReloadedCallback();
+	}
 
+	void Scene::InitPhysicsScenes(bool bRuntime)
+	{
 		m_RuntimePhysicsScene = MakeRef<PhysicsScene>(m_RuntimePhysicsSettings);
 		if (bRuntime)
 		{
@@ -743,7 +759,23 @@ namespace Eagle
 			editorSettings.bEditorScene = true;
 			m_PhysicsScene = MakeRef<PhysicsScene>(editorSettings);
 		}
-		SetupOnAppAssemblyReloadedCallback();
+	}
+
+	void Scene::SetSceneRenderer(const Ref<SceneRenderer>& sceneRenderer)
+	{
+		EG_CORE_ASSERT(sceneRenderer);
+		m_SceneRenderer = sceneRenderer;
+
+		const glm::uvec2 viewportSize = m_SceneRenderer->GetViewportSize();
+		OnViewportResize(viewportSize.x, viewportSize.y);
+		SetUseSkyAsBackground(m_bUseSkyAsBackground);
+		SetRenderSkybox(m_bRenderSkybox);
+		SetSkyboxEnabled(m_bSkyboxEnabled);
+		SetSkyboxIntensity(m_SkyboxIntensity);
+		SetSkybox(m_Sky);
+		SetSkybox(m_Cubemap);
+
+		m_DirtyFlags.SetEverythingDirty(true);
 	}
 
 	Scene::Scene(const Ref<Scene>& other, const std::string& debugName)
@@ -1054,10 +1086,12 @@ namespace Eagle
 
 	void Scene::OpenScene(const Ref<AssetScene>& sceneAsset, bool bReuseCurrentSceneRenderer, bool bRuntime)
 	{
+		// Cancelled here (and not in `func`), so that `OpenScene(loadingScreen)` followed by `OpenSceneAsync()` keeps the async load
+		AsyncSceneLoader::CancelAll(false);
+
 		auto func = [path = sceneAsset ? sceneAsset->GetPath() : "", bReuseCurrentSceneRenderer, bRuntime]()
 		{
-			ComponentsNotificationSystem::Reset();
-			ScriptEngine::Reset();
+			// Note: when this function is modified, don't forget to update `AsyncSceneLoader::LoadScene`
 			RenderManager::Wait();
 			Ref<Scene> scene = MakeRef<Scene>(Utils::AsString(path), (bReuseCurrentSceneRenderer && s_CurrentScene) ? s_CurrentScene->GetSceneRenderer() : nullptr, bRuntime);
 			scene->SetSkybox(SkySettings{});
@@ -1089,6 +1123,11 @@ namespace Eagle
 		};
 
 		Application::Get().CallNextFrame(func);
+	}
+
+	Ref<SceneLoadRequest> Scene::OpenSceneAsync(const Ref<AssetScene>& sceneAsset, bool bActivateWhenReady, bool bReuseCurrentSceneRenderer, bool bRuntime)
+	{
+		return AsyncSceneLoader::Load(sceneAsset, bActivateWhenReady, bReuseCurrentSceneRenderer, bRuntime);
 	}
 
 	void Scene::SetForceShowCollision(bool bForce)
@@ -2294,6 +2333,8 @@ namespace Eagle
 	{
 		bIsPlaying = true;
 
+		ScriptEngine::Reset();
+
 		// Update Audio
 		{
 			auto view = m_Registry.view<AudioComponent>();
@@ -2460,7 +2501,8 @@ namespace Eagle
 		m_ViewportHeight = height;
 
 		EditorCamera.SetViewportSize(width, height);
-		m_SceneRenderer->SetViewportSize({ width, height });
+		if (m_SceneRenderer)
+			m_SceneRenderer->SetViewportSize({ width, height });
 	}
 
 	void Scene::DestroyScripts()
@@ -2804,13 +2846,15 @@ namespace Eagle
 	void Scene::AddParticleSystem(const ParticleSystemComponent& system)
 	{
 		RegisterSkeletalParticleIfCan(system);
-		m_SceneRenderer->AddParticleSystem(system);
+		if (m_SceneRenderer)
+			m_SceneRenderer->AddParticleSystem(system);
 	}
 
 	void Scene::RemoveParticleSystem(const ParticleSystemComponent& system, bool bForceImmediateRemoval)
 	{
 		m_SkeletalParticles.erase(system.Parent.GetID());
-		m_SceneRenderer->RemoveParticleSystem(system, bForceImmediateRemoval);
+		if (m_SceneRenderer)
+			m_SceneRenderer->RemoveParticleSystem(system, bForceImmediateRemoval);
 	}
 
 	void Scene::UpdateParticleSystem(const ParticleSystemComponent& system)
@@ -2818,7 +2862,8 @@ namespace Eagle
 		m_DirtyTransformParticles.erase(system.Parent.GetID()); // No need to update transform separately
 		m_SkeletalParticles.erase(system.Parent.GetID());
 		RegisterSkeletalParticleIfCan(system);
-		m_SceneRenderer->UpdateParticleSystem(system);
+		if (m_SceneRenderer)
+			m_SceneRenderer->UpdateParticleSystem(system);
 	}
 
 	void Scene::OnStaticMeshComponentRemoved(entt::registry& r, entt::entity e)

@@ -20,12 +20,12 @@ namespace Eagle
 	class Component;
 	class Entity;
 
+	// Note: observers are stored per scene in the scene of the observed entity
 	class ComponentsNotificationSystem
 	{
 	public:
 		static void AddObserver(const Entity& parent, Component* observer);
 		static void RemoveObserver(const Entity& parent, Component* observer);
 		static void Notify(const Entity& parent, Notification notification);
-		static void Reset();
 	};
 }

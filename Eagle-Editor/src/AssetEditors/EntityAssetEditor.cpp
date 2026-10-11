@@ -9,8 +9,8 @@
 
 namespace Eagle
 {
-	static const char* s_ReloadHelpMsg = "The scene needs to be re-saved to save reloaded assets.\n"
-		"Warning: if an entity is passed to C# scripts through UI, it will be invalidated since entities are basically recreated. So, update your C# script components if required";
+	static const char* s_ReloadHelpMsg = "On the opened scene, all entities created from this assets will be reloaded to match this asset. The scene needs to be re-saved to save reloaded assets.\n"
+		"Warning: if an entity is passed to C# scripts through UI, it will be invalidated since entities are basically recreated. So, update your C# script components if required.";
 
 	EntityAssetEditor::EntityAssetEditor(const Ref<AssetEntity>& asset, const EditorLayer& editorLayer)
 		: AssetEditor(true), m_Asset(asset), m_EditorLayer(editorLayer)
@@ -101,8 +101,6 @@ namespace Eagle
 
 				if (bDisableReload)
 					UI::PopItemDisabled();
-
-				UI::Tooltip("On the opened scene, all entities created from this assets will be reloaded to match this asset");
 			}
 
 		}

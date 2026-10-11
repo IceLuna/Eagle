@@ -687,8 +687,17 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Project::GetRendererCachePath_Native", Eagle::Script::Eagle_Project_GetRendererCachePath);
 		mono_add_internal_call("Eagle.Project::GetSavedPath_Native", Eagle::Script::Eagle_Project_GetSavedPath);
 
+		// SceneLoadRequest
+		mono_add_internal_call("Eagle.SceneLoadRequest::GetProgress_Native", Eagle::Script::Eagle_SceneLoadRequest_GetProgress);
+		mono_add_internal_call("Eagle.SceneLoadRequest::GetState_Native", Eagle::Script::Eagle_SceneLoadRequest_GetState);
+		mono_add_internal_call("Eagle.SceneLoadRequest::GetSceneAssetGUID_Native", Eagle::Script::Eagle_SceneLoadRequest_GetSceneAssetGUID);
+		mono_add_internal_call("Eagle.SceneLoadRequest::Activate_Native", Eagle::Script::Eagle_SceneLoadRequest_Activate);
+		mono_add_internal_call("Eagle.SceneLoadRequest::Cancel_Native", Eagle::Script::Eagle_SceneLoadRequest_Cancel);
+
 		// Scene
 		mono_add_internal_call("Eagle.Scene::OpenScene_Native", Eagle::Script::Eagle_Scene_OpenScene);
+		mono_add_internal_call("Eagle.Scene::OpenSceneAsync_Native", Eagle::Script::Eagle_Scene_OpenSceneAsync);
+		mono_add_internal_call("Eagle.Scene::GetActiveSceneLoad_Native", Eagle::Script::Eagle_Scene_GetActiveSceneLoad);
 		mono_add_internal_call("Eagle.Scene::QuitGame_Native", Eagle::Script::Eagle_Scene_QuitGame);
 		mono_add_internal_call("Eagle.Scene::Raycast_Native", Eagle::Script::Eagle_Scene_Raycast);
 		mono_add_internal_call("Eagle.Scene::OverlapBox_Native", Eagle::Script::Eagle_Scene_OverlapBox);

@@ -10,6 +10,7 @@
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Core/AsyncTask.h"
+#include "Eagle/Core/AsyncSceneLoader.h"
 #include "ImOGuizmo.h"
 
 #include <glm/gtc/type_ptr.hpp>
@@ -531,7 +532,7 @@ namespace Eagle
 		static bool bRequiresScriptsRebuild = false;
 		if (bRequiresScriptsRebuild || Utils::WereScriptsRebuild())
 		{
-			if (m_EditorState == EditorState::Edit)
+			if (m_EditorState == EditorState::Edit && !AsyncSceneLoader::IsBusy())
 			{
 				bRequiresScriptsRebuild = false;
 				LoadAppAssembly();
@@ -2814,6 +2815,10 @@ namespace Eagle
 			return;
 
 		EG_CORE_TRACE("Editor Stop pressed");
+
+		// To avoid the game request leaking into the editor
+		AsyncSceneLoader::CancelAll(false);
+
 		m_SimulationScene->OnRuntimeStop();
 		m_EditorState = EditorState::Edit;
 		m_SimulationScene.reset();

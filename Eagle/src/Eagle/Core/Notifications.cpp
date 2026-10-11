@@ -5,38 +5,50 @@
 
 namespace Eagle
 {
-	static ankerl::unordered_dense::map<Entity, std::vector<Component*>> s_Entities;
-	
+	static Scene* GetObserversScene(Entity parent)
+	{
+		return parent.GetEnttID() == entt::null ? nullptr : parent.GetScene();
+	}
+
 	void ComponentsNotificationSystem::AddObserver(const Entity& parent, Component* observer)
 	{
-		s_Entities[parent].push_back(observer);
+		if (Scene* scene = GetObserversScene(parent))
+			scene->m_ComponentObservers[uint32_t(parent.GetEnttID())].push_back(observer);
 	}
 	
 	void ComponentsNotificationSystem::RemoveObserver(const Entity& parent, Component* observer)
 	{
-		auto it = s_Entities.find(parent);
-		if (it != s_Entities.end())
+		Scene* scene = GetObserversScene(parent);
+		if (!scene)
+			return;
+
+		auto& observers = scene->m_ComponentObservers;
+		auto it = observers.find(uint32_t(parent.GetEnttID()));
+		if (it != observers.end())
 		{
 			auto& children = it->second;
-			auto it = std::find(children.begin(), children.end(), observer);
-			if (it != children.end())
-				children.erase(it);
+			auto childIt = std::find(children.begin(), children.end(), observer);
+			if (childIt != children.end())
+				children.erase(childIt);
+
+			// Note: the entry itself is kept on purpose. Erasing it could move other entries of the map
+			// while `Notify` is iterating one of them (an observer might remove itself or another one from `OnNotify`)
 		}
 	}
 	
 	void ComponentsNotificationSystem::Notify(const Entity& parent, Notification notification)
 	{
-		auto it = s_Entities.find(parent);
-		if (it == s_Entities.end())
+		Scene* scene = GetObserversScene(parent);
+		if (!scene)
+			return;
+
+		auto& observers = scene->m_ComponentObservers;
+		auto it = observers.find(uint32_t(parent.GetEnttID()));
+		if (it == observers.end())
 			return;
 
 		auto& children = it->second;
 		for (auto& child : children)
 			child->OnNotify(notification);
-	}
-	
-	void ComponentsNotificationSystem::Reset()
-	{
-		s_Entities.clear();
 	}
 }
