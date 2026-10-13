@@ -1043,6 +1043,9 @@ namespace Eagle
 				children[i].SetParent(myParent);
 		}
 
+		if (m_EntityOutlines.erase(entity.GetID()) > 0)
+			m_DirtyFlags.bOutlinesDirty = true;
+
 		m_AliveEntities.erase(entity.GetGUID());
 		m_Registry.destroy(entity.GetEnttID());
 
@@ -2268,6 +2271,8 @@ namespace Eagle
 		m_SceneRenderer->SetGravity(m_RuntimePhysicsSettings.Gravity);
 		if (m_DirtyFlags.bDecalsDirty)
 			m_SceneRenderer->SetDecals(m_Decals);
+		if (m_DirtyFlags.bOutlinesDirty)
+			UpdateOutlines();
 
 		if (!m_DebugCameras.empty())
 		{
@@ -2588,6 +2593,102 @@ namespace Eagle
 		}
 	}
 
+	void Scene::UpdateOutlines()
+	{
+		ankerl::unordered_dense::map<uint32_t, OutlineSettings> outlines;
+		outlines.reserve(m_EntityOutlines.size());
+		for (const auto& [entityID, layers] : m_EntityOutlines)
+		{
+			// The highest layer has priority
+			for (auto it = layers.rbegin(); it != layers.rend(); ++it)
+			{
+				if (it->has_value())
+				{
+					outlines.emplace(entityID, **it);
+					break;
+				}
+			}
+		}
+
+		m_SceneRenderer->SetOutlines(std::move(outlines));
+		m_DirtyFlags.bOutlinesDirty = false;
+	}
+
+	void Scene::SetEntityOutline(const Entity& entity, const OutlineSettings& settings, OutlineLayer layer)
+	{
+		if (!entity || entity.GetScene() != this)
+			return;
+
+		auto& outline = m_EntityOutlines[entity.GetID()][(size_t)layer];
+		if (outline == settings)
+			return;
+
+		outline = settings;
+		m_DirtyFlags.bOutlinesDirty = true;
+	}
+
+	void Scene::RemoveEntityOutline(const Entity& entity, OutlineLayer layer)
+	{
+		if (!entity || entity.GetScene() != this)
+			return;
+
+		auto it = m_EntityOutlines.find(entity.GetID());
+		if (it == m_EntityOutlines.end())
+			return;
+
+		auto& layers = it->second;
+		auto& outline = layers[(size_t)layer];
+		if (!outline)
+			return;
+
+		outline.reset();
+		if (std::none_of(layers.begin(), layers.end(), [](const auto& value) { return value.has_value(); }))
+			m_EntityOutlines.erase(it);
+
+		m_DirtyFlags.bOutlinesDirty = true;
+	}
+
+	void Scene::ClearEntityOutlines(OutlineLayer layer)
+	{
+		const size_t layerIndex = (size_t)layer;
+		std::vector<uint32_t> emptyEntries;
+		bool bChanged = false;
+		for (auto& [entityID, layers] : m_EntityOutlines)
+		{
+			if (!layers[layerIndex])
+				continue;
+
+			layers[layerIndex].reset();
+			bChanged = true;
+			if (std::none_of(layers.begin(), layers.end(), [](const auto& value) { return value.has_value(); }))
+				emptyEntries.push_back(entityID);
+		}
+
+		for (const uint32_t entityID : emptyEntries)
+			m_EntityOutlines.erase(entityID);
+
+		if (bChanged)
+			m_DirtyFlags.bOutlinesDirty = true;
+	}
+
+	bool Scene::HasEntityOutline(const Entity& entity, OutlineLayer layer) const
+	{
+		return GetEntityOutline(entity, layer) != nullptr;
+	}
+
+	const OutlineSettings* Scene::GetEntityOutline(const Entity& entity, OutlineLayer layer) const
+	{
+		if (!entity || entity.GetScene() != this)
+			return nullptr;
+
+		auto it = m_EntityOutlines.find(entity.GetID());
+		if (it == m_EntityOutlines.end())
+			return nullptr;
+
+		const auto& outline = it->second[(size_t)layer];
+		return outline ? &outline.value() : nullptr;
+	}
+
 	void Scene::ClearScene()
 	{
 		DestroyScripts();
@@ -2595,6 +2696,7 @@ namespace Eagle
 		m_PhysicsScene->Reset();
 		m_CurrentNavMesh.reset();
 		m_SpawnedSounds.clear();
+		m_EntityOutlines.clear();
 		m_Registry.clear();
 	}
 

@@ -796,6 +796,73 @@ namespace Eagle
 		}
 	}
 
+	void Script::Eagle_Entity_SetOutline(GUID entityID, const glm::vec4* color, OutlineMode mode, float thickness, float hiddenOpacity)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set outline. Entity is null");
+			return;
+		}
+
+		if (!magic_enum::enum_contains(mode))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set outline. Invalid outline mode: {}", (int)mode);
+			return;
+		}
+
+		OutlineSettings settings;
+		settings.Color = *color;
+		settings.Mode = mode;
+		settings.Thickness = glm::clamp(thickness, 0.f, OutlineSettings::MaxThickness);
+		settings.HiddenOpacity = glm::clamp(hiddenOpacity, 0.f, 1.f);
+		scene->SetEntityOutline(entity, settings, OutlineLayer::Gameplay);
+	}
+
+	void Script::Eagle_Entity_RemoveOutline(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			scene->RemoveEntityOutline(entity, OutlineLayer::Gameplay);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't remove outline. Entity is null");
+	}
+
+	bool Script::Eagle_Entity_HasOutline(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `HasOutline`. Entity is null");
+			return false;
+		}
+		return scene->HasEntityOutline(entity, OutlineLayer::Gameplay);
+	}
+
+	bool Script::Eagle_Entity_GetOutline(GUID entityID, glm::vec4* outColor, OutlineMode* outMode, float* outThickness, float* outHiddenOpacity)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get outline. Entity is null");
+			return false;
+		}
+
+		const OutlineSettings* settings = scene->GetEntityOutline(entity, OutlineLayer::Gameplay);
+		if (!settings)
+			return false;
+
+		*outColor = settings->Color;
+		*outMode = settings->Mode;
+		*outThickness = settings->Thickness;
+		*outHiddenOpacity = settings->HiddenOpacity;
+		return true;
+	}
+
 	//-------------- Scene Component --------------
 	void Script::Eagle_SceneComponent_GetWorldTransform(GUID entityID, void* type, Transform* outTransform)
 	{

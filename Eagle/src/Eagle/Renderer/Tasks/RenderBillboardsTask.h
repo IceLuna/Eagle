@@ -13,6 +13,14 @@ namespace Eagle
 	class Texture2D;
 	struct Transform;
 
+	struct BillboardVertex
+	{
+		glm::vec3 Position = glm::vec3{ 0.f }; // View space
+		glm::vec3 PrevPosition = glm::vec3{ 0.f };
+		uint32_t TextureIndex = 0;
+		int EntityID = -1;
+	};
+
 	class RenderBillboardsTask : public RendererTask
 	{
 	public:
@@ -26,14 +34,11 @@ namespace Eagle
 		void SetBillboards(const std::vector<const BillboardComponent*>& billboards);
 		void AddAdditionalBillboard(const Transform& worldTransform, const Ref<Texture2D>& texture, int entityID = -1);
 
+		const std::vector<BillboardVertex>& GetVertices() const { return m_Vertices; }
+		const Ref<Buffer>& GetVertexBuffer() const { return m_VertexBuffer; }
+		const Ref<Buffer>& GetIndexBuffer() const { return m_IndexBuffer; }
+
 	private:
-		struct BillboardVertex
-		{
-			glm::vec3 Position = glm::vec3{ 0.f };
-			glm::vec3 PrevPosition = glm::vec3{ 0.f };
-			uint32_t TextureIndex = 0;
-			int EntityID = -1;
-		};
 
 		struct BillboardData
 		{

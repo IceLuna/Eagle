@@ -29,6 +29,35 @@ namespace Eagle
         public RendererVertex V0, V1, V2;
     }
 
+    // Which parts of an object's silhouette get outlined.
+    public enum OutlineMode
+    {
+        VisibleOnly,
+        HiddenOnly,
+        DimHidden, // Outline the whole silhouette. Occluded parts are drawn with `HiddenOpacity`
+        Always,    // Outline the whole silhouette.
+    }
+
+    public struct OutlineSettings
+    {
+        public const float MaxThickness = 16f;
+
+        public Color4 Color;
+        public OutlineMode Mode;
+        public float Thickness;     // In pixels. [0; MaxThickness]
+        public float HiddenOpacity; // Multiplier for occluded parts. Used only by `OutlineMode.DimHidden`
+
+        public OutlineSettings(Color4 color, OutlineMode mode = OutlineMode.DimHidden, float thickness = 2f, float hiddenOpacity = 0.35f)
+        {
+            Color = color;
+            Mode = mode;
+            Thickness = thickness;
+            HiddenOpacity = hiddenOpacity;
+        }
+
+        public static OutlineSettings Default => new OutlineSettings(new Color4(1f, 0.5f, 0f, 1f));
+    }
+
     public enum FogEquation
     {
         Linear = 0,

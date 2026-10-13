@@ -40,7 +40,10 @@ namespace Eagle
 	void RenderBillboardsTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
 		if (m_BillboardsData.empty())
+		{
+			m_Vertices.clear();
 			return;
+		}
 
 		EG_GPU_TIMING_SCOPED(cmd, "Billboards");
 		EG_CPU_TIMING_SCOPED("Billboards");

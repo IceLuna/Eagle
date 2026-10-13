@@ -45,6 +45,18 @@ namespace Eagle
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
 		out << YAML::Key << "GuizmoMode" << YAML::Value << Utils::GetEnumName((ImGuizmo::MODE)editor->m_GuizmoMode);
 
+		// Selection outline
+		{
+			const OutlineSettings& outline = editor->m_SelectionOutline;
+			out << YAML::Key << "SelectionOutline" << YAML::BeginMap;
+			out << YAML::Key << "Enabled" << YAML::Value << editor->bDrawSelectionOutline;
+			out << YAML::Key << "Color" << YAML::Value << outline.Color;
+			out << YAML::Key << "Mode" << YAML::Value << Utils::GetEnumName(outline.Mode);
+			out << YAML::Key << "Thickness" << YAML::Value << outline.Thickness;
+			out << YAML::Key << "HiddenOpacity" << YAML::Value << outline.HiddenOpacity;
+			out << YAML::EndMap;
+		}
+
 		// Editor camera
 		{
 			// Location & Rotation aren't saved. They're saved in the scene asset
@@ -144,6 +156,21 @@ namespace Eagle
 			bVSync = VSyncNode.as<bool>();
 		if (auto node = data["GuizmoMode"])
 			guizmoMode = Utils::GetEnumFromName<ImGuizmo::MODE>(node.as<std::string>());
+
+		if (auto outlineNode = data["SelectionOutline"])
+		{
+			OutlineSettings& outline = editor->m_SelectionOutline;
+			if (auto node = outlineNode["Enabled"])
+				editor->bDrawSelectionOutline = node.as<bool>();
+			if (auto node = outlineNode["Color"])
+				outline.Color = node.as<glm::vec4>();
+			if (auto node = outlineNode["Mode"])
+				outline.Mode = Utils::GetEnumFromName<OutlineMode>(node.as<std::string>());
+			if (auto node = outlineNode["Thickness"])
+				outline.Thickness = glm::clamp(node.as<float>(), 0.f, OutlineSettings::MaxThickness);
+			if (auto node = outlineNode["HiddenOpacity"])
+				outline.HiddenOpacity = glm::clamp(node.as<float>(), 0.f, 1.f);
+		}
 
 		if (auto editorCameraNode = data["EditorCamera"])
 		{

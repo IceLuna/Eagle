@@ -356,6 +356,29 @@ namespace Eagle
             DestroyEntity_Native(ID, bDestroyChildren);
         }
 
+        // Outlines everything this entity renders (static/skeletal meshes, sprites, 3D texts, billboards)
+        // Note: child entities aren't affected.
+        public void SetOutline(OutlineSettings settings)
+        {
+            SetOutline_Native(ID, ref settings.Color, settings.Mode, settings.Thickness, settings.HiddenOpacity);
+        }
+
+        public void SetOutline(Color4 color, OutlineMode mode = OutlineMode.DimHidden, float thickness = 2f)
+        {
+            SetOutline(new OutlineSettings(color, mode, thickness));
+        }
+
+        public void RemoveOutline() { RemoveOutline_Native(ID); }
+
+        public bool HasOutline() { return HasOutline_Native(ID); }
+
+        // Returns false if the entity doesn't have an outline
+        public bool GetOutline(out OutlineSettings settings)
+        {
+            settings = new OutlineSettings();
+            return GetOutline_Native(ID, out settings.Color, out settings.Mode, out settings.Thickness, out settings.HiddenOpacity);
+        }
+
         public bool IsMouseHovered() { return IsMouseHovered_Native(ID); }
 
         // @ mouseCoord. Mouse coord within a viewport
@@ -530,6 +553,18 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern Entity GetChildrenByName_Native(in GUID entityID, string name);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetOutline_Native(in GUID entityID, ref Color4 color, OutlineMode mode, float thickness, float hiddenOpacity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void RemoveOutline_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool HasOutline_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetOutline_Native(in GUID entityID, out Color4 color, out OutlineMode mode, out float thickness, out float hiddenOpacity);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsMouseHovered_Native(GUID entityID);

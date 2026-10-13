@@ -74,6 +74,7 @@ namespace Eagle
 		void UpdateSceneEditorCamera(const Ref<Scene>& scene, bool bUpdateTransform = false);
 
 		void UpdateGuizmo();
+		void UpdateSelectionOutline();
 		void DrawMenuBar();
 		void DrawSceneSettings();
 		void DrawRendererSettings();
@@ -156,7 +157,16 @@ namespace Eagle
 		bool bDrawMeshAABBs = false;
 		bool bDrawAxisGuizmo = true;
 		bool bForceDrawGuizmo = false;
+		bool bDrawSelectionOutline = true;
 		Key m_StopSimulationKey = Key::Escape;
+		OutlineSettings m_SelectionOutline{};
+
+		struct AppliedSelectionOutline
+		{
+			std::weak_ptr<Scene> TargetScene;
+			std::vector<GUID> EntityGUIDs;
+			OutlineSettings Settings{};
+		} m_AppliedSelectionOutline;
 		
 		ImGuiWindowClass m_SimulatePanelSettings;
 

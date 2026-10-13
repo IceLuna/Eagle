@@ -101,6 +101,7 @@ namespace Eagle
 		m_DOFTask = MakeRef<DOFTask>(*this);
 		m_ParticleTask = MakeRef<ParticleSystemTask>(*this);
 		m_ScreenSpaceShadows = MakeRef<ScreenSpaceShadowsTask>(*this);
+		m_OutlineTask = MakeRef<OutlineTask>(*this);
 		
 		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this);
 		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);
@@ -322,6 +323,8 @@ namespace Eagle
 			if (bRenderGrid)
 				renderer->m_GridTask->RecordCommandBuffer(cmd);
 
+			renderer->m_OutlineTask->RecordCommandBuffer(cmd);
+
 			cmd->TransitionLayout(renderer->m_FinalImage, renderer->m_FinalImage->GetLayout(), ImageReadAccess::PixelShaderRead);
 			renderer->m_GBuffer.PrepareForReading(cmd);
 
@@ -468,6 +471,14 @@ namespace Eagle
 		m_ParticleTask->RemoveAllParticleSystems();
 	}
 
+	void SceneRenderer::SetOutlines(ankerl::unordered_dense::map<uint32_t, OutlineSettings> outlines)
+	{
+		RenderManager::Submit([task = m_OutlineTask, outlines = std::move(outlines)](const Ref<CommandBuffer>&) mutable
+		{
+			task->SetOutlines(std::move(outlines));
+		});
+	}
+
 	void SceneRenderer::SetSkybox(const Ref<AssetTextureCube>& cubemap)
 	{
 		RenderManager::Submit([renderer = shared_from_this(), cubemap](const Ref<CommandBuffer>& cmd) mutable
@@ -585,6 +596,7 @@ namespace Eagle
 		m_TransparencyTask->OnResize(m_Size);
 		m_DOFTask->OnResize(m_Size);
 		m_ParticleTask->OnResize(m_Size);
+		m_OutlineTask->OnResize(m_Size);
 
 		if (m_BloomTask)
 			m_BloomTask->OnResize(m_Size);
@@ -687,6 +699,7 @@ namespace Eagle
 		m_ScreenSpaceShadows->InitWithOptions(options);
 		m_DOFTask->InitWithOptions(options);
 		m_ParticleTask->InitWithOptions(options);
+		m_OutlineTask->InitWithOptions(options);
 
 		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this);
 		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);

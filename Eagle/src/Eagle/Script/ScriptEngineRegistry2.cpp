@@ -30,6 +30,10 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Entity::IsMouseHoveredByCoord_Native", Eagle::Script::Eagle_Entity_IsMouseHoveredByCoord);
 		mono_add_internal_call("Eagle.Entity::SetTag_Native", Eagle::Script::Eagle_Entity_SetTag);
 		mono_add_internal_call("Eagle.Entity::GetTag_Native", Eagle::Script::Eagle_Entity_GetTag);
+		mono_add_internal_call("Eagle.Entity::SetOutline_Native", Eagle::Script::Eagle_Entity_SetOutline);
+		mono_add_internal_call("Eagle.Entity::RemoveOutline_Native", Eagle::Script::Eagle_Entity_RemoveOutline);
+		mono_add_internal_call("Eagle.Entity::HasOutline_Native", Eagle::Script::Eagle_Entity_HasOutline);
+		mono_add_internal_call("Eagle.Entity::GetOutline_Native", Eagle::Script::Eagle_Entity_GetOutline);
 
 		//Input
 		mono_add_internal_call("Eagle.Input::IsMouseButtonPressed_Native", Eagle::Script::Eagle_Input_IsMouseButtonPressed);

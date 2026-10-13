@@ -257,6 +257,7 @@ namespace Eagle
 		const bool bShouldRenderBasedOnFocus = !bRenderOnlyWhenFocused || m_WindowFocused;
 		ReloadScriptsIfNecessary();
 		HandleResize();
+		UpdateSelectionOutline();
 		m_CurrentScene->OnUpdate(ts, !m_ViewportHidden && bShouldRenderBasedOnFocus, bUpdateAnimationsInEditor);
 
 		if (m_EditorState == EditorState::Edit)
@@ -905,6 +906,44 @@ namespace Eagle
 		// Reset transform back
 		if (!bUpdateTransform)
 			scene->EditorCamera.SetTransform(oldTransform);
+	}
+
+	void EditorLayer::UpdateSelectionOutline()
+	{
+		std::vector<GUID> selectedGUIDs;
+
+		if (bDrawSelectionOutline && m_EditorState != EditorState::Play)
+		{
+			Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
+			if (selectedEntity && selectedEntity.GetScene() == m_CurrentScene.get())
+				selectedGUIDs.push_back(selectedEntity.GetGUID());
+		}
+
+		auto& applied = m_AppliedSelectionOutline;
+		const Ref<Scene> appliedScene = applied.TargetScene.lock();
+		const bool bUpToDate = appliedScene == m_CurrentScene && applied.EntityGUIDs == selectedGUIDs && applied.Settings == m_SelectionOutline;
+		if (bUpToDate)
+			return;
+
+		// Remove what was applied before
+		if (appliedScene)
+		{
+			for (const GUID& guid : applied.EntityGUIDs)
+			{
+				if (Entity entity = appliedScene->GetEntityByGUID(guid))
+					appliedScene->RemoveEntityOutline(entity, OutlineLayer::Editor);
+			}
+		}
+
+		for (const GUID& guid : selectedGUIDs)
+		{
+			if (Entity entity = m_CurrentScene->GetEntityByGUID(guid))
+				m_CurrentScene->SetEntityOutline(entity, m_SelectionOutline, OutlineLayer::Editor);
+		}
+
+		applied.TargetScene = m_CurrentScene;
+		applied.EntityGUIDs = std::move(selectedGUIDs);
+		applied.Settings = m_SelectionOutline;
 	}
 
 	void EditorLayer::UpdateGuizmo()
@@ -2502,6 +2541,27 @@ namespace Eagle
 			UI::Property("Update Animations", bUpdateAnimationsInEditor, "If checked, animations will be updated in the editor mode");
 			UI::ComboEnum<Eagle::Key>("Stop simulation key", m_StopSimulationKey, "The editor will stop the game-simulation when this key is pressed. Set it to 'None' to disable");
 			ImGuiLayer::ShowStyleSelector("Style", m_EditorStyle);
+
+			UI::EndPropertyGrid();
+			UI::PopTreeNode();
+		}
+		ImGui::Separator();
+
+		if (UI::PushTreeNode("Selection Outline"))
+		{
+			UI::BeginPropertyGrid("EditorPreferences_SelectionOutline");
+
+			UI::Property("Enabled", bDrawSelectionOutline, "Highlights the selected entity in the viewport");
+			UI::PropertyColor("Color", m_SelectionOutline.Color, false, "Alpha controls the opacity of the outline");
+			UI::ComboEnum("Mode", m_SelectionOutline.Mode,
+				"Determines which parts of the silhouette are outlined.\n"
+				"VisibleOnly - only the visible parts.\n"
+				"HiddenOnly - only the hidden parts.\n"
+				"DimHidden - the whole silhouette, hidden parts are dimmed.\n"
+				"Always - the whole silhouette, ignoring occlusion.");
+			UI::PropertySlider("Thickness", m_SelectionOutline.Thickness, 0.f, OutlineSettings::MaxThickness, "In pixels");
+			if (m_SelectionOutline.Mode == OutlineMode::DimHidden)
+				UI::PropertySlider("Hidden Opacity", m_SelectionOutline.HiddenOpacity, 0.f, 1.f, "Opacity of the parts of the outline that are occluded by other objects");
 
 			UI::EndPropertyGrid();
 			UI::PopTreeNode();

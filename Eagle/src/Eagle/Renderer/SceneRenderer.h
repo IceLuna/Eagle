@@ -24,6 +24,7 @@
 #include "Tasks/FrustumCullingTask.h"
 #include "Tasks/LightCullingTask.h"
 #include "Tasks/ScreenSpaceShadowsTask.h"
+#include "Tasks/OutlineTask.h"
 
 #include <ankerl/unordered_dense.h>
 
@@ -135,6 +136,8 @@ namespace Eagle
 
 		void SetGridEnabled(bool bEnabled) { m_bGridEnabled = bEnabled; }
 
+		void SetOutlines(ankerl::unordered_dense::map<uint32_t, OutlineSettings> outlines);
+
 		void SetIsRuntime(bool bRuntime) { m_bIsRuntime = bRuntime; }
 		bool IsRuntime() const { return m_bIsRuntime; }
 		//--------------------------------------------------------------------------------------
@@ -226,6 +229,11 @@ namespace Eagle
 		const Ref<Buffer>& GetTextsTransformsBuffer() const { return m_GeometryManagerTask->GetTextsTransformBuffer(); }
 		const Ref<Buffer>& GetTextsPrevTransformBuffer() const { return m_GeometryManagerTask->GetTextsPrevTransformBuffer(); }
 		const std::vector<Ref<Texture2D>>& GetAtlases() const { return m_GeometryManagerTask->GetAtlases(); }
+		uint64_t GetGeometryVersion() const { return m_GeometryManagerTask->GetVersion(); }
+
+		const auto& GetBillboardsVertices() const { return m_RenderBillboardsTask->GetVertices(); }
+		const Ref<Buffer>& GetBillboardsVertexBuffer() const { return m_RenderBillboardsTask->GetVertexBuffer(); }
+		const Ref<Buffer>& GetBillboardsIndexBuffer() const { return m_RenderBillboardsTask->GetIndexBuffer(); }
 
 		const std::vector<Ref<Image>>& GetPointLightShadowMaps() const { return m_ShadowPassTask->GetPointLightShadowMaps(); }
 		const std::vector<Ref<Image>>& GetPointLightShadowMapsColored() const { return m_ShadowPassTask->GetPointLightShadowMapsColored(); }
@@ -372,6 +380,7 @@ namespace Eagle
 		Ref<LightCullingTask> m_LightCullingTask;
 		Ref<ScreenSpaceShadowsTask> m_ScreenSpaceShadows;
 		Ref<RendererTask> m_HZBTask;
+		Ref<OutlineTask> m_OutlineTask;
 		
 		Ref<Buffer> m_CameraDataBuffer;
 		

@@ -59,6 +59,10 @@ namespace Eagle::Script
 
 	void Eagle_Entity_SetTag(GUID entityID, MonoString* monoTag);
 	MonoString* Eagle_Entity_GetTag(GUID entityID);
+	void Eagle_Entity_SetOutline(GUID entityID, const glm::vec4* color, OutlineMode mode, float thickness, float hiddenOpacity);
+	void Eagle_Entity_RemoveOutline(GUID entityID);
+	bool Eagle_Entity_HasOutline(GUID entityID);
+	bool Eagle_Entity_GetOutline(GUID entityID, glm::vec4* outColor, OutlineMode* outMode, float* outThickness, float* outHiddenOpacity);
 
 	// Input
 	bool Eagle_Input_IsMouseButtonPressed(Mouse button);

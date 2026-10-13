@@ -367,6 +367,10 @@ namespace Eagle
 		const Ref<Buffer>& GetTextsPrevTransformBuffer() const { return m_TextPrevTransformsBuffer; }
 		const std::vector<Ref<Texture2D>>& GetAtlases() const { return m_Atlases; }
 
+		// Incremented every time static/skeletal meshes, sprites or texts are re-sorted. Meaning, their draw data, offsets or vertex buffers might have changed.
+		// Can be used by other tasks to know when to rebuild data that depends on the geometry layout
+		uint64_t GetVersion() const { return m_Version; }
+
 	private:
 		// ------- Meshes -------
 		void SortMeshes(const Ref<CommandBuffer>& cmd);
@@ -471,6 +475,7 @@ namespace Eagle
 		bool bUploadTextSpecificTransforms = false;
 		// ------- !Lit Text 3D -------
 
+		uint64_t m_Version = 0;
 		bool bMotionRequired = false;
 	};
 	

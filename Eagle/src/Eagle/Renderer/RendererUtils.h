@@ -1234,6 +1234,43 @@ namespace Eagle
         std::array<RendererDebugVertex, 3> Vertices;
     };
 
+    enum class OutlineMode
+    {
+        VisibleOnly,
+        HiddenOnly,
+        DimHidden, // Outline the whole silhouette. Occluded parts are drawn with `HiddenOpacity`
+        Always,    // Outline the whole silhouette.
+    };
+
+    struct OutlineSettings
+    {
+        static constexpr float MaxThickness = 16.f; // In pixels
+
+        glm::vec4 Color = glm::vec4(1.f, 0.5f, 0.f, 1.f);
+        OutlineMode Mode = OutlineMode::DimHidden;
+        float Thickness = 2.f; // In pixels. [0; MaxThickness]
+        float HiddenOpacity = 0.35f; // Multiplier for occluded parts. Used only by `OutlineMode::DimHidden`
+
+        bool operator== (const OutlineSettings& other) const
+        {
+            return Color == other.Color &&
+                Mode == other.Mode &&
+                Thickness == other.Thickness &&
+                HiddenOpacity == other.HiddenOpacity;
+        }
+
+        bool operator!= (const OutlineSettings& other) const { return !(*this == other); }
+    };
+
+    // These exist so that editor/gameplay outlines don't overwrite the other's.
+    // Note: the highest layer has priority (editor over gameplay)
+    enum class OutlineLayer : uint8_t
+    {
+        Gameplay,
+        Editor,
+    };
+    static constexpr uint32_t s_OutlineLayersCount = (uint32_t)magic_enum::enum_count<OutlineLayer>();
+
     // Returns bits
     inline constexpr uint32_t GetImageFormatBPP(ImageFormat format)
     {

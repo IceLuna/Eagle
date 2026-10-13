@@ -766,6 +766,7 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Sort static meshes based on Blend Mode");
 		EG_GPU_TIMING_SCOPED(cmd, "Static Meshes. Upload instance vertex buffer");
 
+		++m_Version;
 		auto& ivbData = m_StaticMeshesBuffers.InstanceVertices;
 		ivbData.clear();
 		m_StaticMeshesDrawData.Clear();
@@ -894,6 +895,7 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Sort skeletal meshes based on Blend Mode");
 		EG_GPU_TIMING_SCOPED(cmd, "Skeletal Meshes. Upload instance vertex buffer");
 
+		++m_Version;
 		auto& ivbData = m_SkeletalMeshesBuffers.InstanceVertices;
 		ivbData.clear();
 		m_SkeletalMeshesDrawData.Clear();
@@ -942,6 +944,7 @@ namespace Eagle
 	{
 		EG_CPU_TIMING_SCOPED("Sort sprites based on Blend Mode");
 
+		++m_Version;
 		m_SingleSidedSprites.Clear();
 		m_DoubleSidedSprites.Clear();
 
@@ -1517,6 +1520,7 @@ namespace Eagle
 	{
 		EG_CPU_TIMING_SCOPED("Sort lit texts based on Blend Mode");
 
+		++m_Version;
 		m_SingleSidedTexts.Clear();
 		m_DoubleSidedTexts.Clear();
 		m_FontAtlases.clear();

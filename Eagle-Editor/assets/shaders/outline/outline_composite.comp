@@ -1,0 +1,94 @@
+#include "outline/outline_common.h"
+
+layout(set = 0, binding = 0) uniform usampler2D g_Mask;
+layout(set = 0, binding = 1, rgba8) uniform image2D g_Output;
+layout(set = 0, binding = 2) readonly buffer StylesBuffer
+{
+    OutlineStyle g_Styles[];
+};
+
+layout(push_constant) uniform PushData
+{
+    ivec2 g_Size;
+    uint g_Radius;
+};
+
+#define GROUP_SIZE 16
+#define MAX_RADIUS 16 // Must be >= OutlineSettings::MaxThickness
+#define TILE_MAX_SIZE (GROUP_SIZE + 2 * MAX_RADIUS)
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+shared uint s_Mask[TILE_MAX_SIZE * TILE_MAX_SIZE];
+shared uint s_AnyCovered;
+
+// A pixel gets outlined if it isn't covered by an outlined object, and there's an outlined object within `Thickness` pixels of it.
+void main()
+{
+    const int radius = int(min(g_Radius, MAX_RADIUS));
+    const int tileSize = GROUP_SIZE + 2 * radius;
+    const ivec2 tileOrigin = ivec2(gl_WorkGroupID.xy) * GROUP_SIZE - radius;
+
+    if (gl_LocalInvocationIndex == 0)
+        s_AnyCovered = 0u;
+    barrier();
+
+    // Load the tile
+    uint anyCovered = 0u;
+    for (int i = int(gl_LocalInvocationIndex); i < tileSize * tileSize; i += GROUP_SIZE * GROUP_SIZE)
+    {
+        const ivec2 coords = tileOrigin + ivec2(i % tileSize, i / tileSize);
+        uint mask = 0u;
+        if (all(greaterThanEqual(coords, ivec2(0))) && all(lessThan(coords, g_Size)))
+            mask = texelFetch(g_Mask, coords, 0).x;
+
+        s_Mask[i] = mask;
+        anyCovered |= mask;
+    }
+    if (anyCovered != 0u)
+        atomicOr(s_AnyCovered, 1u);
+    barrier();
+
+    if (s_AnyCovered == 0u)
+        return;
+
+    const ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+    if (pixel.x >= g_Size.x || pixel.y >= g_Size.y)
+        return;
+
+    const ivec2 center = ivec2(gl_LocalInvocationID.xy) + radius;
+    if (s_Mask[center.y * tileSize + center.x] != 0u)
+        return; // Outlines are drawn only around objects
+
+    float bestAlpha = 0.0;
+    vec3 bestColor = vec3(0.0);
+    for (int y = -radius; y <= radius; ++y)
+    {
+        const int rowOffset = (center.y + y) * tileSize + center.x;
+        for (int x = -radius; x <= radius; ++x)
+        {
+            const uint mask = s_Mask[rowOffset + x];
+            if (mask == 0u)
+                continue;
+
+            const OutlineStyle style = g_Styles[(mask & EG_OUTLINE_STYLE_MASK) - 1u];
+            const vec4 styleColor = unpackUnorm4x8(style.Color);
+            const bool bVisible = (mask & EG_OUTLINE_VISIBLE_BIT) != 0u;
+
+            // 1 within `Thickness`, then fades out over one pixel to get a bit of anti-aliasing
+            const float coverage = clamp(style.Thickness + 1.0 - length(vec2(x, y)), 0.0, 1.0);
+            const float alpha = coverage * styleColor.a * (bVisible ? style.VisibleOpacity : style.HiddenOpacity);
+            if (alpha > bestAlpha)
+            {
+                bestAlpha = alpha;
+                bestColor = styleColor.rgb;
+            }
+        }
+    }
+
+    if (bestAlpha <= 0.0)
+        return;
+
+    vec4 color = imageLoad(g_Output, pixel);
+    color.rgb = mix(color.rgb, bestColor, bestAlpha);
+    imageStore(g_Output, pixel, color);
+}

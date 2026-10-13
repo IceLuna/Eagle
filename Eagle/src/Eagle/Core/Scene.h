@@ -78,6 +78,8 @@ namespace Eagle
 
 			bool bRecreateParticleSystems = true;
 
+			bool bOutlinesDirty = true;
+
 			void SetEverythingDirty(bool bDirty)
 			{
 				bStaticMeshesDirty = bDirty;
@@ -96,6 +98,7 @@ namespace Eagle
 				bDecalsDirty = bDirty;
 				bDecalTransformsDirty = bDirty;
 				bRecreateParticleSystems = bDirty;
+				bOutlinesDirty = bDirty;
 			}
 		};
 
@@ -300,6 +303,13 @@ namespace Eagle
 		void ClearPostProcessOverride(const GUID& owner);
 		bool IsPostProcessOverridden() const;
 
+		// Child entities aren't affected. Not serialized.
+		void SetEntityOutline(const Entity& entity, const OutlineSettings& settings, OutlineLayer layer);
+		void RemoveEntityOutline(const Entity& entity, OutlineLayer layer);
+		void ClearEntityOutlines(OutlineLayer layer); // Removes outlines of all entities in that layer
+		bool HasEntityOutline(const Entity& entity, OutlineLayer layer) const;
+		const OutlineSettings* GetEntityOutline(const Entity& entity, OutlineLayer layer) const;
+
 		bool IsCameraOverridden() const { return bCameraOverrideValid; }
 		const GUID& GetCameraOverrideOwner() const { return m_CameraOverrideOwner; }
 		const Camera& GetOverrideCamera() const { return m_OverrideCamera; }
@@ -406,6 +416,7 @@ namespace Eagle
 		void UpdateScripts(Timestep ts);
 		void UpdateAnimations(Timestep ts, bool bUseBasePose, bool bApplyRootMotion);
 		void RenderScene(Timestep ts, bool bRuntime);
+		void UpdateOutlines();
 		CameraComponent* FindOrCreateRuntimeCamera();
 		void ConnectSignals();
 		void RegisterSkeletalParticleIfCan(const ParticleSystemComponent& system);
@@ -776,6 +787,11 @@ namespace Eagle
 		std::unordered_set<uint32_t> m_CharacterControllerDebug;
 		std::unordered_set<uint32_t> m_ReverbDebugBoxes;
 		std::unordered_set<uint32_t> m_DebugCameras;
+
+		// Key - entt::entity. Can't store Entity (forward declaration)
+		// Value - outline per layer (indexed by `OutlineLayer`)
+		using EntityOutlineLayers = std::array<std::optional<OutlineSettings>, s_OutlineLayersCount>;
+		ankerl::unordered_dense::map<uint32_t, EntityOutlineLayers> m_EntityOutlines;
 
 		GUID m_GUID;
 
