@@ -578,7 +578,15 @@ namespace Eagle
 			{
 				int32_t data = -1;
 				m_CurrentScene->GetSceneRenderer()->GetObjectIDUnderMouse(data);
-				m_SceneHierarchyPanel.SetEntitySelected(data == -1 ? Entity::Null : Entity{ (entt::entity)data, m_CurrentScene.get() });
+				const Entity newSelection = data == -1 ? Entity::Null : Entity{ (entt::entity)data, m_CurrentScene.get() };
+
+				// When an entity is selected, guizmo might appear right under the mouse, which immediately starts a drag as if the user clicked the guizmo.
+				// To fix it, skipping the guizmo for this frame
+				const bool bGuizmoMoves = newSelection && (newSelection != selectedEntity || m_SceneHierarchyPanel.GetSelectedComponent());
+				if (bGuizmoMoves)
+					m_bSkipGuizmoThisFrame = true;
+
+				m_SceneHierarchyPanel.SetEntitySelected(newSelection);
 				return true;
 			}
 		}
@@ -967,7 +975,10 @@ namespace Eagle
 			}
 		}
 
-		if (selectedEntity && (m_GuizmoType != -1))
+		if (m_bSkipGuizmoThisFrame)
+			m_bUsingImGuizmoOrHovered = false;
+
+		if (selectedEntity && (m_GuizmoType != -1) && !m_bSkipGuizmoThisFrame)
 		{
 			ImGuizmo::PushID(this);
 			//ImGuizmo::SetOrthographic(false); //TODO: Set to true when using Orthographic
@@ -2689,6 +2700,7 @@ namespace Eagle
 
 		if (m_EditorState == EditorState::Edit || bForceDrawGuizmo)
 			UpdateGuizmo();
+		m_bSkipGuizmoThisFrame = false; // Reset here, since the guizmo isn't always updated
 
 		ImGui::End(); //Viewport
 		ImGui::PopStyleVar();
