@@ -96,7 +96,10 @@ namespace Eagle
 
 		static void Add(const Ref<Shader>& shader);
 		static bool Exists(const Path& filepath);
+		// Returns an empty string if there's no such file
 		static const std::string& GetSource(const Path& filepath);
+		// Returns nullptr if there's no such file
+		static const std::string* FindSource(const Path& filepath);
 
 		static void BuildShaderPack(YAML::Emitter& out);
 		static void ReloadAllShaders();

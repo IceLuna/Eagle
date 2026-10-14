@@ -16,7 +16,14 @@
 
 namespace Eagle
 {
-	static const char* s_EntryPoint = "main";
+	static constexpr const char* s_EntryPoint = "main";
+	static constexpr const char* s_ShaderVersion = "#version 460\n";
+
+#ifdef EG_RELEASE
+	static constexpr bool s_bGenerateDebugInfo = false;
+#else
+	static constexpr bool s_bGenerateDebugInfo = true;
+#endif
 
 	namespace Utils
 	{
@@ -39,6 +46,7 @@ namespace Eagle
 			case VK_SHADER_STAGE_VERTEX_BIT:    return shaderc_vertex_shader;
 			case VK_SHADER_STAGE_FRAGMENT_BIT:  return shaderc_fragment_shader;
 			case VK_SHADER_STAGE_COMPUTE_BIT:   return shaderc_compute_shader;
+			case VK_SHADER_STAGE_GEOMETRY_BIT:   return shaderc_geometry_shader;
 			}
 			EG_CORE_ASSERT(false);
 			return (shaderc_shader_kind)0;
@@ -50,6 +58,7 @@ namespace Eagle
 			{
 			case ShaderType::Vertex:    return shaderc_vertex_shader;
 			case ShaderType::Fragment:  return shaderc_fragment_shader;
+			case ShaderType::Geometry:  return shaderc_geometry_shader;
 			case ShaderType::Compute:   return shaderc_compute_shader;
 			}
 			EG_CORE_ASSERT(false);
@@ -221,43 +230,149 @@ namespace Eagle
 		ReloadInternal(false);
 	}
 
-	static void ParseIncludes(std::string& source)
+	// Resolves `#include`s for shaderc. Includes are resolved by the compiler's preprocessor.
+	// Each file is included only once per shader
+	class ShaderIncluder : public shaderc::CompileOptions::IncluderInterface
 	{
-		const std::string include = "#include ";
-		const size_t includeSize = include.size();
-		std::stringstream buffer;
-		std::vector<Path> includedPaths;
-		includedPaths.reserve(10);
+	public:
+		// @outIncludedFiles. Optional. Receives every file that was included in the order of inclusion
+		ShaderIncluder(std::vector<std::string>* outIncludedFiles = nullptr)
+			: m_IncludedFiles(outIncludedFiles) {}
 
-		size_t pos = source.find(include);
-		while (pos != std::string::npos)
+		shaderc_include_result* GetInclude(const char* requestedSource, shaderc_include_type type, const char* requestingSource, size_t includeDepth) override
 		{
-			size_t endLinePos = source.find_first_of('\n', pos);
+			IncludeData* data = new IncludeData();
+			data->Name = requestedSource;
 
-			size_t offset = pos + includeSize + 1;
-			const Path filename = source.substr(offset, endLinePos - offset - 1);
-			buffer << "#line 1 // Include file: " << filename << '\n';
-
-			if (std::find(includedPaths.begin(), includedPaths.end(), filename) == includedPaths.end())
+			const Path filename = requestedSource;
+			const bool bFirstInclude = std::find(m_IncludedPaths.begin(), m_IncludedPaths.end(), filename) == m_IncludedPaths.end();
+			if (bFirstInclude)
 			{
-				includedPaths.push_back(filename);
-				const std::string& includeSource = ShaderManager::GetSource(filename);
-				if (includeSource.empty())
+				const std::string* source = ShaderManager::FindSource(filename);
+				if (!source)
 				{
-					EG_RENDERER_CRITICAL("Failed to open shader file: {0}", filename);
-					return;
+					data->Content = "Shader file not found: " + data->Name;
+					data->Name.clear();
 				}
-				// Adding defines and reading shader code from the file
-				buffer << includeSource;
+				else
+				{
+					m_IncludedPaths.push_back(filename);
+					data->Content = *source;
+					if (m_IncludedFiles)
+						m_IncludedFiles->push_back(data->Name);
+				}
 			}
 
-			std::string includeSource = buffer.str();
-			source.replace(pos, endLinePos - pos + 1, includeSource);
-
-			buffer.str(std::string(""));
-			buffer.clear();
-			pos = source.find("#include ");
+			data->Result.source_name = data->Name.c_str();
+			data->Result.source_name_length = data->Name.size();
+			data->Result.content = data->Content.c_str();
+			data->Result.content_length = data->Content.size();
+			data->Result.user_data = data;
+			return &data->Result;
 		}
+
+		void ReleaseInclude(shaderc_include_result* result) override
+		{
+			delete (IncludeData*)result->user_data;
+		}
+
+	private:
+		struct IncludeData
+		{
+			shaderc_include_result Result{};
+			std::string Name;
+			std::string Content;
+		};
+
+		std::vector<Path> m_IncludedPaths;
+		std::vector<std::string>* m_IncludedFiles = nullptr;
+	};
+
+	// It's safe to use it from multiple threads
+	static shaderc::Compiler& GetShaderCompiler()
+	{
+		static shaderc::Compiler compiler;
+		return compiler;
+	}
+
+	// So that build with different settings doesn't load binaries from the cache that were compiled differently
+	static const std::string& GetCompileSettingsKey()
+	{
+		static const std::string key = "VulkanEnv=" + std::to_string((int)Utils::GetShaderCVersion()) +
+			";DebugInfo=" + std::to_string((int)s_bGenerateDebugInfo) + '\n';
+		return key;
+	}
+
+	static shaderc::CompileOptions CreateShaderCompileOptions(std::vector<std::string>* outIncludedFiles = nullptr)
+	{
+		shaderc::CompileOptions options;
+		options.SetTargetEnvironment(shaderc_target_env_vulkan, Utils::GetShaderCVersion());
+		options.SetWarningsAsErrors();
+		if constexpr (s_bGenerateDebugInfo)
+			options.SetGenerateDebugInfo();
+		options.SetIncluder(std::make_unique<ShaderIncluder>(outIncludedFiles));
+		return options;
+	}
+
+	// Hash of the shader and everything it includes, so that a change in any header changes the hash too (which invalidates the cache and reloads the shader).
+	static size_t HashShaderSource(const std::string& source, const std::vector<std::string>& includedFiles)
+	{
+		std::string hashSource = GetCompileSettingsKey();
+		hashSource += source;
+		for (const auto& file : includedFiles)
+		{
+			hashSource += '\0';
+			hashSource += file;
+			hashSource += '\0';
+			// A deleted file must change the hash even if it was empty, so that the next reload reports the missing include.
+			if (const std::string* fileSource = ShaderManager::FindSource(Path(file)))
+				hashSource += *fileSource;
+			else
+				hashSource += '\0';
+		}
+		return std::hash<std::string>()(hashSource);
+	}
+
+	static bool ReadShaderCache(const Path& cacheFilePath, std::vector<uint32_t>& outBinary)
+	{
+		if (!std::filesystem::exists(cacheFilePath))
+			return false;
+
+		std::ifstream cacheFin(cacheFilePath, std::ios_base::binary);
+		std::stringstream cacheBuffer;
+		cacheBuffer << cacheFin.rdbuf();
+		cacheFin.close();
+		std::string cacheBinaryStr = cacheBuffer.str();
+
+		size_t strBinarySize = cacheBinaryStr.size();
+		outBinary.clear();
+		// Binary has uint32 type and string is char. So we divide caches size by 4
+		outBinary.reserve(strBinarySize / 4);
+		for (size_t i = 0; i < strBinarySize; i += 4)
+			outBinary.push_back(*(uint32_t*)&cacheBinaryStr[i]); // Reading 4 chars as uint32_t
+		return true;
+	}
+
+	// The list of included files is cached next to the binaries, so that loading a shader from the cache doesn't need to run the preprocessor
+	static bool ReadIncludedFilesCache(const Path& path, std::vector<std::string>& outIncludedFiles)
+	{
+		std::ifstream fin(path);
+		if (!fin)
+			return false;
+
+		outIncludedFiles.clear();
+		std::string line;
+		while (std::getline(fin, line))
+			if (!line.empty())
+				outIncludedFiles.push_back(std::move(line));
+		return true;
+	}
+
+	static void WriteIncludedFilesCache(const Path& path, const std::vector<std::string>& includedFiles)
+	{
+		std::ofstream fout(path, std::ios_base::out | std::ios_base::trunc);
+		for (const auto& file : includedFiles)
+			fout << file << '\n';
 	}
 
 	bool VulkanShader::LoadBinary(bool bFromDefines)
@@ -285,74 +400,113 @@ namespace Eagle
 		}
 
 		if (!bFromDefines)
-		{
 			m_Source = ShaderManager::GetSource(m_Path);
-			ParseIncludes(m_Source);
+
+		const std::string source = s_ShaderVersion + m_DefinesSource + m_Source;
+		const std::string shaderName = Utils::AsString(m_Path);
+		const std::string fileName = Utils::AsString(m_Path.filename());
+		const shaderc_shader_kind shaderKind = Utils::ShaderTypeToShaderC(m_ShaderType);
+		const Path cachePath = GetShaderCacheDir();
+		auto getCacheFilePath = [&](size_t sourceHash) { return cachePath / Utils::AsPath(fileName + "_" + std::to_string(sourceHash) + ".bin"); };
+		// Keyed by the hash of the source without includes
+		const Path includedFilesCachePath = cachePath / Utils::AsPath(fileName + "_" + std::to_string(std::hash<std::string>()(source)) + ".includes");
+
+		// 1) Fast path. Using the files that were included the last time (by this shader, or by any shader with the same source & defines),
+		// without running the preprocessor. If the hash matches the current binary, nothing has changed.
+		// If there's a binary for this hash in the cache, it's up to date too
+		{
+			std::vector<std::string> includedFiles;
+			bool bHasIncludedFiles = false;
+			if (m_SourceHash != 0 && source == m_LoadedSource)
+			{
+				includedFiles = m_IncludedFiles;
+				bHasIncludedFiles = true;
+			}
+			else
+				bHasIncludedFiles = ReadIncludedFilesCache(includedFilesCachePath, includedFiles);
+
+			if (bHasIncludedFiles)
+			{
+				const size_t sourceHash = HashShaderSource(source, includedFiles);
+				if (sourceHash == m_SourceHash)
+					return false; // Nothing has changed
+
+				if (ReadShaderCache(getCacheFilePath(sourceHash), m_Binary))
+				{
+					m_SourceHash = sourceHash;
+					m_LoadedSource = source;
+					m_IncludedFiles = std::move(includedFiles);
+					return true;
+				}
+			}
 		}
 
-		std::string source = s_ShaderVersion + m_DefinesSource + m_Source;
-		const size_t sourceHash = std::hash<std::string>()(source);
-		bool bReloaded = m_SourceHash != sourceHash;
-		m_SourceHash = sourceHash;
-
-		// Trying to find a cache for the shader
-		Path cachePath = GetShaderCacheDir();
-		Path cacheFilePath = cachePath / Utils::AsPath(Utils::AsString(m_Path.filename()) + "_" + std::to_string(sourceHash) + ".bin");
-		bool bLoadedFromCache = false;
-		if (std::filesystem::exists(cacheFilePath))
+		// 2) Something has changed (or it's the first time this shader is loaded)
+		shaderc::Compiler& compiler = GetShaderCompiler();
+		auto onFailed = [&](const std::string& failedSource, const std::string& error)
 		{
-			bLoadedFromCache = true;
-			std::ifstream cacheFin(cacheFilePath, std::ios_base::binary);
-			std::stringstream cacheBuffer;
-			cacheBuffer << cacheFin.rdbuf();
-			cacheFin.close();
-			std::string cacheBinaryStr = cacheBuffer.str();
+			// So that the next reload tries again (and reports the error again) even if nothing changes
+			m_SourceHash = 0;
 
-			size_t strBinarySize = cacheBinaryStr.size();
-			m_Binary.clear();
-			// Binary has uint32 type and string is char. So we divide caches size by 4
-			m_Binary.reserve(strBinarySize / 4);
-			for (size_t i = 0; i < strBinarySize; i += 4)
-				m_Binary.push_back(*(uint32_t*)&cacheBinaryStr[i]); // Reading 4 chars as uint32_t
-		}
-
-		if (!bLoadedFromCache)
-		{
+			EG_RENDERER_CRITICAL("Failed to compile shader at: {0}", m_Path);
 			if (!std::filesystem::exists(cachePath))
 				std::filesystem::create_directories(cachePath);
 
-			// 1) Compile
-			shaderc::Compiler compiler;
-			shaderc::CompileOptions options;
-			options.SetTargetEnvironment(shaderc_target_env_vulkan, Utils::GetShaderCVersion());
-			options.SetWarningsAsErrors();
-			options.SetGenerateDebugInfo();
-
-			EG_RENDERER_TRACE("Compiling shader: {}", m_Path);
-			shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, Utils::ShaderTypeToShaderC(m_ShaderType), Utils::AsString(m_Path).c_str(), options);
-			if (module.GetCompilationStatus() != shaderc_compilation_status_success)
+			Path filePath = cachePath / Utils::AsPath(fileName + "_failed.txt");
+			std::ofstream fout(filePath);
+			if (fout)
 			{
-				EG_RENDERER_CRITICAL("Failed to compile shader at: {0}", m_Path);
-				Path filePath = cachePath / Utils::AsPath(Utils::AsString(m_Path.filename()) + "_failed.txt");
-				std::ofstream fout(filePath);
-				if (fout)
-				{
-					fout << source;
-					fout.close();
-					EG_RENDERER_TRACE("Outputing shader to: {}", filePath);
-				}
-				EG_RENDERER_TRACE("Error: \n{0}", module.GetErrorMessage());
-				return false;
+				fout << failedSource;
+				fout.close();
+				EG_RENDERER_TRACE("Outputing shader to: {}", filePath);
 			}
+			EG_RENDERER_TRACE("Error: \n{0}", error);
+		};
 
-			m_Binary = std::vector<uint32_t>(module.begin(), module.end());
-
-			// 2) Write to cache
-			std::ofstream out(cacheFilePath, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
-			out.write((const char*)m_Binary.data(), m_Binary.size() * sizeof(uint32_t));
-			out.close();
-			EG_RENDERER_TRACE("Compilation took {} ms", timer.GetMilliseconds());
+		std::vector<std::string> includedFiles;
+		shaderc::PreprocessedSourceCompilationResult preprocessed = compiler.PreprocessGlsl(source, shaderKind, shaderName.c_str(), CreateShaderCompileOptions(&includedFiles));
+		if (preprocessed.GetCompilationStatus() != shaderc_compilation_status_success)
+		{
+			onFailed(source, preprocessed.GetErrorMessage());
+			return false;
 		}
+
+		const size_t sourceHash = HashShaderSource(source, includedFiles);
+		const bool bReloaded = m_SourceHash != sourceHash;
+
+		if (!std::filesystem::exists(cachePath))
+			std::filesystem::create_directories(cachePath);
+
+		if (bReloaded)
+		{
+			// 3) Trying to find a cache for the shader
+			const Path cacheFilePath = getCacheFilePath(sourceHash);
+			if (!ReadShaderCache(cacheFilePath, m_Binary))
+			{
+				// 4) Compile
+				EG_RENDERER_TRACE("Compiling shader: {}", m_Path);
+				shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, shaderKind, shaderName.c_str(), CreateShaderCompileOptions());
+				if (module.GetCompilationStatus() != shaderc_compilation_status_success)
+				{
+					// Outputing the preprocessed source, since it has all the includes expanded
+					onFailed(std::string(preprocessed.begin(), preprocessed.end()), module.GetErrorMessage());
+					return false;
+				}
+
+				m_Binary = std::vector<uint32_t>(module.begin(), module.end());
+
+				// 5) Write to cache
+				std::ofstream out(cacheFilePath, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
+				out.write((const char*)m_Binary.data(), m_Binary.size() * sizeof(uint32_t));
+				out.close();
+				EG_RENDERER_TRACE("Compilation took {} ms", timer.GetMilliseconds());
+			}
+		}
+
+		WriteIncludedFilesCache(includedFilesCachePath, includedFiles);
+		m_SourceHash = sourceHash;
+		m_LoadedSource = source;
+		m_IncludedFiles = std::move(includedFiles);
 
 		return bReloaded;
 	}

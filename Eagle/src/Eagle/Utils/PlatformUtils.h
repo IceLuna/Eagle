@@ -27,8 +27,11 @@ namespace Eagle
 	{
 		bool Write(const Path& path, const DataBuffer& buffer);
 		inline bool Write(const Path& path, const ScopedDataBuffer& buffer) { return Write(path, buffer.GetDataBuffer()); }
+
 		[[nodiscard]] ScopedDataBuffer Read(const Path& path);
+		bool Read(const Path& path, ScopedDataBuffer* outBuffer); // Returns false on failure
 		[[nodiscard]] std::string ReadText(const Path& path);
+		bool ReadText(const Path& path, std::string* outText); // Returns false on failure
 
 		// Returns absolute path
 		Path GetFullPath(const Path& path);

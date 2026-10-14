@@ -41,8 +41,7 @@ namespace Eagle
 		void Reflect(const std::vector<uint32_t>& binary);
 
 		// if bFromDefines is true, that means we just changed defines.
-		// So no need to parse all files & includes
-		// We can just update defines & compile
+		// So no need to get the shader source again, we can just update defines & compile
 		void ReloadInternal(bool bFromDefines);
 
 	private:
@@ -53,9 +52,11 @@ namespace Eagle
 		VkPipelineShaderStageCreateInfo m_PipelineShaderStageCI;
 		size_t m_SourceHash = 0;
 
+		// What the current binary was compiled from, so that reloading doesn't need to run the preprocessor again if nothing has changed
+		std::string m_LoadedSource; // With defines
+		std::vector<std::string> m_IncludedFiles;
+
 		std::string m_Source; // Source of the shader without passed defines
 		std::string m_DefinesSource;
-
-		static constexpr const char* s_ShaderVersion = "#version 460\n";
 	};
 }

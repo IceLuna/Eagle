@@ -40,9 +40,11 @@ namespace Eagle
 				if (!IsShaderExtension(shaderPath))
 					continue;
 
-				std::string sourceCode = FileSystem::ReadText(shaderPath);
-				if (!sourceCode.empty())
-					sourceCodes.emplace(std::filesystem::relative(shaderPath, shadersFolder), std::move(sourceCode));
+				std::string sourceCode;
+				if (!FileSystem::ReadText(shaderPath, &sourceCode))
+					continue;
+
+				sourceCodes.emplace(std::filesystem::relative(shaderPath, shadersFolder), std::move(sourceCode));
 			}
 			return sourceCodes;
 		}
@@ -136,8 +138,14 @@ namespace Eagle
 	const std::string& ShaderManager::GetSource(const Path& filepath)
 	{
 		static const std::string empty;
+		const std::string* source = FindSource(filepath);
+		return source ? *source : empty;
+	}
+
+	const std::string* ShaderManager::FindSource(const Path& filepath)
+	{
 		auto it = m_ShadersSourceCode.find(filepath);
-		return it != m_ShadersSourceCode.end() ? it->second : empty;
+		return it != m_ShadersSourceCode.end() ? &it->second : nullptr;
 	}
 
 	void ShaderManager::BuildShaderPack(YAML::Emitter& out)

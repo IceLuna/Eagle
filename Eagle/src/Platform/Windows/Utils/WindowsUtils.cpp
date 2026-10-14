@@ -187,64 +187,79 @@ namespace Eagle
 	
 		ScopedDataBuffer Read(const Path& path)
 		{
+			ScopedDataBuffer result;
+			Read(path, &result);
+			return result;
+		}
+
+		bool Read(const Path& path, ScopedDataBuffer* outBuffer)
+		{
 			if (std::filesystem::exists(path) == false)
 			{
 				EG_CORE_ERROR("Couldn't read a file, it doesn't exist: {}", path);
-				return {};
+				return false;
 			}
 			std::ifstream stream(path, std::ios::binary | std::ios::ate);
 			if (!stream)
 			{
 				EG_CORE_ERROR("Couldn't open a file: {}", path);
-				return {};
+				return false;
 			}
 
 			const size_t size = (size_t)stream.tellg();
 			if (size == 0)
 			{
 				EG_CORE_WARN("Empty file read, returning null: {}", path);
-				return {};
+				outBuffer->Release();
+				return true;
 			}
 			stream.seekg(0, std::ios::beg);
 
-			ScopedDataBuffer buffer(size);
-			if (!stream.read((char*)buffer.Data(), buffer.Size()))
+			outBuffer->Allocate(size);
+			if (!stream.read((char*)outBuffer->Data(), outBuffer->Size()))
 			{
 				EG_CORE_ERROR("Failed to read a file: {}", path);
-				return {};
+				return false;
 			}
 
-			return buffer;
+			return true;
 		}
 	
 		std::string ReadText(const Path& path)
 		{
+			std::string result;
+			ReadText(path, &result);
+			return result;
+		}
+
+		bool ReadText(const Path& path, std::string* outText)
+		{
 			if (std::filesystem::exists(path) == false)
 			{
 				EG_CORE_ERROR("Couldn't read a file, it doesn't exist: {}", path);
-				return {};
+				return false;
 			}
 			std::ifstream stream(path, std::ios::ate);
 			if (!stream)
 			{
 				EG_CORE_ERROR("Failed to open a file file: {}", path);
-				return {};
+				return false;
 			}
 			std::streampos end = stream.tellg();
 			stream.seekg(0, std::ios::beg);
 			size_t size = end - stream.tellg();
 
-			std::string result, temp;
-			result.reserve(size);
+			std::string temp;
+			outText->reserve(size);
 
 			while (std::getline(stream, temp))
 			{
-				result += temp;
+				(*outText) += temp;
 				if (!stream.eof())
-					result += '\n';
+					(*outText) += '\n';
 			}
 
-			return result;
+			return true;
 		}
 
 		Path GetFullPath(const Path& path)
