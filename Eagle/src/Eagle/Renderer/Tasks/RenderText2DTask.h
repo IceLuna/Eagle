@@ -28,10 +28,12 @@ namespace Eagle
 		{
 			glm::vec3 Color;
 			uint32_t AtlasIndex;
-			glm::vec2 Position;
+			glm::vec2 Position; // Offset from `Origin` before rotation, in NDC units
 			glm::vec2 TexCoord;
 			int EntityID;
 			float Opacity;
+			glm::vec2 Origin; // NDC. Rotation pivot
+			float Rotation;
 		};
 
 		struct Text2DComponentData

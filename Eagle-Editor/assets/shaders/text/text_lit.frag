@@ -15,6 +15,7 @@ layout(location = 8) flat in uint i_ReceivesDecals;
 layout(location = 9) in vec3 i_CurPos;
 layout(location = 10) in vec3 i_PrevPos;
 #endif
+layout(location = 11) in vec2 i_MaterialUV;
 
 layout(location = 0) out vec4 outAlbedo;
 layout(location = 1) out vec4 outGeometryShadingNormals;
@@ -43,7 +44,7 @@ float ScreenPxRange()
 
 void main()
 {
-    vec2 uv = i_TexCoords;
+    vec2 uv = i_MaterialUV;
     const ShaderMaterial material = FetchMaterial(i_MaterialIndex, uv);
 
 #ifdef EG_MASKED
@@ -59,7 +60,7 @@ void main()
     const float screenPxDistance = ScreenPxRange() * (sd - 0.5f);
     const float opacity = clamp(screenPxDistance + 0.5f, 0.f, 1.f);
 
-    if (IS_ZERO(opacity))
+    if (opacity < 0.5f)
     {
         discard;
         return;

@@ -94,6 +94,7 @@ namespace Eagle
 		Ref<PipelineGraphics> m_CompositePipeline;
 
 		Ref<Shader> m_TransparencyColorShader;
+		Ref<Shader> m_TransparencySpriteColorShader;
 		Ref<Shader> m_TransparencyDepthShader;
 		Ref<Shader> m_TransparencyCompositeShader;
 

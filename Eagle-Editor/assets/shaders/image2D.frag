@@ -20,7 +20,6 @@ layout(binding = 0) uniform sampler2D g_Textures[];
 void main()
 {
 	vec4 color = texture(g_Textures[nonuniformEXT(i_TextureIndex)], i_TexCoords);
-	color.rgb = Color_SRGBToLinear(color.rgb);
 	color *= i_Tint;
 
 	if (IS_ZERO(color.a))

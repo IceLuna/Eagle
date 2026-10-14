@@ -30,7 +30,7 @@ void main()
     const float screenPxDistance = ScreenPxRange() * (sd - 0.5f);
     const float fadeoutOpacity = clamp(screenPxDistance + 0.5f, 0.f, 1.f);
 
-    if (IS_ZERO(fadeoutOpacity))
+    if (fadeoutOpacity < 0.5f)
     {
         discard;
         return;

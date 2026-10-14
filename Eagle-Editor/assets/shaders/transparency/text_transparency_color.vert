@@ -20,6 +20,7 @@ layout(location = 2) flat out uint o_AtlasIndex;
 layout(location = 3) flat out uint o_MaterialIndex;
 layout(location = 4) out vec2 o_TexCoords;
 layout(location = 5) out mat3 o_TBN;
+layout(location = 8) out vec2 o_MaterialUV;
 
 void main()
 {
@@ -28,10 +29,7 @@ void main()
     gl_Position = g_ViewProjection * model * vec4(a_Position, 0.f, 1.0);
     
     const mat3 normalModel = mat3(transpose(inverse(model)));
-    vec3 worldNormal = normalize(normalModel * s_Normal);
-    const bool bInvert = (gl_VertexIndex % 8u) < 4;
-    if (bInvert)
-        worldNormal = -worldNormal;
+    const vec3 worldNormal = normalize(normalModel * s_Normal);
     o_Normal = worldNormal;
 
     const uint materialIndex  = a_MaterialIndex;
@@ -47,4 +45,5 @@ void main()
     o_AtlasIndex = a_AtlasIndex;
     o_MaterialIndex = materialIndex;
     o_TexCoords = a_TexCoords;
+    o_MaterialUV = GetTextMaterialUV();
 }

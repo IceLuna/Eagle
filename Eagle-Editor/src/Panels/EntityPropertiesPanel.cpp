@@ -18,12 +18,14 @@ namespace Eagle
 	static const char* s_OpacityHelpMsg = "Controls the translucency of the material. 0 - fully transparent, 1 - fully opaque. Default is 0.5";
 	static const char* s_OpacityMaskHelpMsg = "When in Masked mode, a material is either completely visible or completely invisible.\nValues below 0.5 are invisible";
 	static const char* s_CastsShadowsHelpMsg = "Translucent materials don't cast shadows unless 'Translucent shadows' feature is enabled. Translucent materials don't cast shadows on other translucent materials!";
-	static const char* s_Text2DPosHelpMsg = "Normalized Device Coords. It's the position of the top left vertex of the first symbol\n"
+	static const char* s_Text2DPosHelpMsg = "Normalized Device Coords. It's the position of the left end of the first line's baseline (letters extend above it). It's also the rotation pivot\n"
 		"Text2D will try to be at the same position of the screen no matter the resolution. Also it'll try to occupy the same amount of space\n"
 		"(-1; -1) is the top left corner of the screen\n(0; 0) is the center\n(1; 1) is the bottom right corner of the screen";
-	static const char* s_Image2DPosHelpMsg = "Normalized Device Coords. It's the position of the top left corner\n"
+	static const char* s_UI2DRotationHelpMsg = "Degrees. Positive values rotate counter-clockwise around 'Position'";
+	static const char* s_UI2DColorHelpMsg = "Display-space color. 2D UI is drawn after tonemapping, so it isn't affected by exposure, bloom or other post-processing";
+	static const char* s_Image2DPosHelpMsg = "Normalized Device Coords. It's the position of the top left corner. It's also the rotation pivot\n"
 		"Image2D will try to be at the same position of the screen no matter the resolution. Also it'll try to occupy the same amount of space\n"
-		"(-1; -1) is the top left corner of the screen\n(0; 0) is the center\n(1; 1) is the top bottom corner of the screen";
+		"(-1; -1) is the top left corner of the screen\n(0; 0) is the center\n(1; 1) is the bottom right corner of the screen";
 	static const char* s_IsVolumetricLightHelpMsg = "Note that it's performance intensive. For it to account for object interaction, light needs to cast shadows.\nIf you want to use it, enable volumetric light in Renderer Settings";
 	static const char* s_TwoSidedMeshColliderHelpMsg = "Only affects non-convex mesh colliders.\nNon-convex meshes are one-sided meaning collision won't be registered from the back side. For example, that might be a problem for windows."
 		" To fix it, set this flag";
@@ -719,7 +721,7 @@ namespace Eagle
 					}
 
 					glm::vec3 color = component.GetColor();
-					if (UI::PropertyColor("Color", color, true))
+					if (UI::PropertyColor("Color", color, false, s_UI2DColorHelpMsg))
 					{
 						component.SetColor(color);
 						bEntityChanged = true;
@@ -740,7 +742,7 @@ namespace Eagle
 					}
 
 					float rotation = component.GetRotation();
-					if (UI::PropertyDrag("Rotation", rotation, 1.f))
+					if (UI::PropertyDrag("Rotation", rotation, 1.f, 0.f, 0.f, s_UI2DRotationHelpMsg))
 					{
 						component.SetRotation(rotation);
 						bEntityChanged = true;
@@ -798,7 +800,7 @@ namespace Eagle
 					}
 
 					glm::vec3 tint = component.GetTint();
-					if (UI::PropertyColor("Tint", tint, true))
+					if (UI::PropertyColor("Tint", tint, false, s_UI2DColorHelpMsg))
 					{
 						component.SetTint(tint);
 						bEntityChanged = true;
@@ -819,7 +821,7 @@ namespace Eagle
 					}
 
 					float rotation = component.GetRotation();
-					if (UI::PropertyDrag("Rotation", rotation, 1.f))
+					if (UI::PropertyDrag("Rotation", rotation, 1.f, 0.f, 0.f, s_UI2DRotationHelpMsg))
 					{
 						component.SetRotation(rotation);
 						bEntityChanged = true;

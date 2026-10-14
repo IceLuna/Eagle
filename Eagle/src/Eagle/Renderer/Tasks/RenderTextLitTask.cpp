@@ -17,7 +17,6 @@ namespace Eagle
 	struct PushData
 	{
 		glm::mat4 ViewProj;
-		glm::mat4 PrevViewProj;
 	};
 
 	RenderTextLitTask::RenderTextLitTask(SceneRenderer& renderer)
@@ -25,7 +24,6 @@ namespace Eagle
 	{
 		const auto& settings = m_Renderer.GetOptions();
 		bMotionRequired = settings.InternalState.bMotionBuffer;
-		bJitter = settings.InternalState.bJitter;
 		bGeometricSpecularAA = settings.bGeometricSpecularAA;
 
 		InitPipeline();
@@ -105,8 +103,8 @@ namespace Eagle
 		m_OpaquePipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
 		if (bMotionRequired)
 		{
-			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
 			m_OpaquePipeline->SetBuffer(m_Renderer.GetTextsPrevTransformBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+			m_OpaquePipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
 		}
 		m_OpaquePipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 
@@ -146,8 +144,8 @@ namespace Eagle
 		m_MaskedPipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
 		if (bMotionRequired)
 		{
-			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
 			m_MaskedPipeline->SetBuffer(m_Renderer.GetTextsPrevTransformBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+			m_MaskedPipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
 		}
 		m_MaskedPipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 
@@ -215,8 +213,6 @@ namespace Eagle
 			vertexDefines["EG_MOTION"] = "";
 			fragmentDefines["EG_MOTION"] = "";
 		}
-		if (bJitter)
-			vertexDefines["EG_JITTER"] = "";
 		if (bGeometricSpecularAA)
 			fragmentDefines["EG_GEOMETRIC_SPECULAR_AA"] = "";
 

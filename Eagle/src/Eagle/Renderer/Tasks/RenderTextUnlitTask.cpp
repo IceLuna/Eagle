@@ -19,6 +19,16 @@ namespace Eagle
 	RenderTextUnlitTask::RenderTextUnlitTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
+		bMotionRequired = m_Renderer.GetOptions_RT().InternalState.bMotionBuffer;
+		InitPipeline();
+	}
+
+	void RenderTextUnlitTask::InitWithOptions(const SceneRendererSettings& settings)
+	{
+		if (bMotionRequired == settings.InternalState.bMotionBuffer)
+			return;
+
+		bMotionRequired = settings.InternalState.bMotionBuffer;
 		InitPipeline();
 	}
 
@@ -74,6 +84,11 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Render Text3D Unlit");
 
 		m_Pipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
+		if (bMotionRequired)
+		{
+			m_Pipeline->SetBuffer(m_Renderer.GetTextsPrevTransformBuffer(), 0, 1);
+			m_Pipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 0, 2);
+		}
 		m_Pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 
 		const auto& vp = m_Renderer.GetViewProjection();
@@ -116,11 +131,24 @@ namespace Eagle
 		depthAttachment.DepthCompareOp = CompareOperation::GreaterEqual;
 		depthAttachment.ClearOperation = ClearOperation::Load;
 
+		ShaderDefines defines;
+		if (bMotionRequired)
+			defines["EG_MOTION"] = "";
+
 		PipelineGraphicsState state;
-		state.VertexShader = Shader::Create("text/text.vert", ShaderType::Vertex);
-		state.FragmentShader = Shader::Create("text/text.frag", ShaderType::Fragment);
+		state.VertexShader = Shader::Create("text/text.vert", ShaderType::Vertex, defines);
+		state.FragmentShader = Shader::Create("text/text.frag", ShaderType::Fragment, defines);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.ColorAttachments.push_back(objectIDAttachment);
+		if (bMotionRequired)
+		{
+			ColorAttachment velocityAttachment;
+			velocityAttachment.Image = m_Renderer.GetGBuffer().Motion;
+			velocityAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+			velocityAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+			velocityAttachment.ClearOperation = ClearOperation::Load;
+			state.ColorAttachments.push_back(velocityAttachment);
+		}
 		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::Dynamic;
 

@@ -603,4 +603,11 @@ uvec2 CalcNumGroups(uvec2 size, uvec2 groupSize)
     outputIndex = waveStartIndex - localIndex; \
 }
 
+vec2 Rotate2D(vec2 v, float radians)
+{
+    const float c = cos(radians);
+    const float s = sin(radians);
+    return mat2(c, -s, s, c) * v;
+}
+
 #endif

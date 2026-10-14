@@ -14,6 +14,7 @@ layout(location = 0) in vec2 i_TexCoords;
 layout(location = 1) flat in uint i_AtlasIndex;
 #ifdef EG_MATERIALS_REQUIRED
 layout(location = 2) flat in uint i_MaterialIndex;
+layout(location = 3) in vec2 i_MaterialUV;
 #endif
 
 #ifdef EG_TRANSLUCENT
@@ -41,7 +42,7 @@ float ScreenPxRange()
 void main()
 {
 #ifdef EG_MATERIALS_REQUIRED
-    vec2 uv = i_TexCoords;
+    vec2 uv = i_MaterialUV;
     const ShaderMaterial material = FetchMaterial(i_MaterialIndex, uv);
 #endif
 
@@ -58,7 +59,7 @@ void main()
     const float screenPxDistance = ScreenPxRange() * (sd - 0.5f);
     const float opacity = clamp(screenPxDistance + 0.5f, 0.f, 1.f);
 
-	if (IS_ZERO(opacity))
+	if (opacity < 0.5f)
 		discard;
 
 #ifdef EG_TRANSLUCENT

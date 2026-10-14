@@ -36,10 +36,7 @@ void main()
     o_WorldPos = vec3(model * vec4(s_QuadVertexPosition[vertexID], 1.f));
 
     const mat3 normalModel = mat3(transpose(inverse(model)));
-    vec3 worldNormal = normalize(normalModel * s_Normal);
-    const bool bInvert = (gl_VertexIndex % 8u) >= 4;
-    if (bInvert)
-        worldNormal = -worldNormal;
+    const vec3 worldNormal = normalize(normalModel * s_Normal);
     o_Normal = worldNormal;
 
     const uint normalTextureIndex = FetchMaterialNormalTextureIndex(materialIndex);

@@ -32,6 +32,13 @@ namespace Eagle
 	
 	constexpr static uint32_t s_OITFillValue = 0x0u; // 0xFFFFFFFFu
 
+	ShaderDefines GetSpriteColorDefines(const ShaderDefines& refShaderDefines)
+	{
+		ShaderDefines defines = refShaderDefines;
+		defines["EG_FLIP_BACK_FACE_NORMALS"] = "";
+		return defines;
+	}
+
 	TransparencyTask::TransparencyTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
@@ -50,9 +57,10 @@ namespace Eagle
 		SetGeometicSpecularAAEnabled(options.bGeometricSpecularAA);
 		bObjectPickingEnabled = options.bEnableObjectPicking;
 
-		m_TransparencyColorShader     = Shader::Create("transparency/transparency_color.frag", ShaderType::Fragment, defines);
-		m_TransparencyDepthShader     = Shader::Create("transparency/transparency.frag", ShaderType::Fragment, { {"EG_DEPTH_PASS",     ""}, {"EG_OIT_LAYERS", layersString} });
-		m_TransparencyCompositeShader = Shader::Create("transparency/transparency.frag", ShaderType::Fragment, { {"EG_COMPOSITE_PASS", ""}, {"EG_OIT_LAYERS", layersString} });
+		m_TransparencyColorShader       = Shader::Create("transparency/transparency_color.frag", ShaderType::Fragment, defines);
+		m_TransparencySpriteColorShader = Shader::Create("transparency/transparency_color.frag", ShaderType::Fragment, GetSpriteColorDefines(m_ShaderDefines));
+		m_TransparencyDepthShader       = Shader::Create("transparency/transparency.frag", ShaderType::Fragment, { {"EG_DEPTH_PASS",     ""}, {"EG_OIT_LAYERS", layersString} });
+		m_TransparencyCompositeShader   = Shader::Create("transparency/transparency.frag", ShaderType::Fragment, { {"EG_COMPOSITE_PASS", ""}, {"EG_OIT_LAYERS", layersString} });
 
 		m_TransparencyTextDepthShader = Shader::Create("transparency/transparency_text_depth.frag", ShaderType::Fragment, defines);
 		m_TransparencyTextColorShader = Shader::Create("transparency/transparency_text_color.frag", ShaderType::Fragment, defines);
@@ -128,6 +136,7 @@ namespace Eagle
 		if (bReloadShader)
 		{
 			m_TransparencyColorShader->SetDefines(m_ShaderDefines);
+			m_TransparencySpriteColorShader->SetDefines(GetSpriteColorDefines(m_ShaderDefines));
 			m_TransparencyTextColorShader->SetDefines(m_ShaderDefines);
 		}
 
@@ -1104,6 +1113,7 @@ namespace Eagle
 		if (bUpdateDefines)
 		{
 			m_TransparencyColorShader->SetDefines(m_ShaderDefines);
+			m_TransparencySpriteColorShader->SetDefines(GetSpriteColorDefines(m_ShaderDefines));
 			m_TransparencyTextColorShader->SetDefines(m_ShaderDefines);
 		}
 	}

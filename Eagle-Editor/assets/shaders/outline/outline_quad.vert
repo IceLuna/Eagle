@@ -44,6 +44,9 @@ layout(location = 2) flat out uint o_MaterialIndex;
 #if defined(EG_LIT_TEXT) || defined(EG_UNLIT_TEXT) || defined(EG_BILLBOARD)
 layout(location = 3) flat out uint o_TextureIndex;
 #endif
+#if defined(EG_LIT_TEXT) && defined(EG_MATERIALS_REQUIRED)
+layout(location = 4) out vec2 o_MaterialUV;
+#endif
 
 void main()
 {
@@ -72,5 +75,8 @@ void main()
 
 #ifdef EG_MATERIALS_REQUIRED
     o_MaterialIndex = a_MaterialIndex;
+#endif
+#if defined(EG_LIT_TEXT) && defined(EG_MATERIALS_REQUIRED)
+    o_MaterialUV = GetTextMaterialUV();
 #endif
 }

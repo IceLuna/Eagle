@@ -89,15 +89,15 @@ namespace Eagle
 		{
 			size_t newSize = glm::max(currentVertexSize, vb->GetSize() * 3 / 2);
 			constexpr size_t alignment = 4 * sizeof(TextVertexType);
-			newSize += alignment - (newSize % alignment);
+			newSize = (newSize + alignment - 1) / alignment * alignment;
 
 			vb->Resize(newSize);
 		}
 		if (currentIndexSize > ib->GetSize())
 		{
-			size_t newSize = glm::max(currentVertexSize, ib->GetSize() * 3 / 2);
+			size_t newSize = glm::max(currentIndexSize, ib->GetSize() * 3 / 2);
 			constexpr size_t alignment = 6 * sizeof(Index);
-			newSize += alignment - (newSize % alignment);
+			newSize = (newSize + alignment - 1) / alignment * alignment;
 
 			ib->Resize(newSize);
 			UploadIndexBuffer(cmd, ib);
@@ -111,6 +111,11 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Render Text 2D");
 		EG_CPU_TIMING_SCOPED("Render Text 2D");
 
+		const glm::vec2 viewportSize = glm::vec2(m_Renderer.GetOutput()->GetSize());
+
+		if (m_Pipeline->GetState().ColorAttachments[0].Image != m_Renderer.GetOutput())
+			InitPipeline();
+
 		const auto& options = m_Renderer.GetOptions_RT();
 		const bool bObjectPickingEnabled = options.bEnableObjectPicking && options.bEnable2DObjectPicking;
 		auto& pipeline = (m_Renderer.IsRuntime() && !bObjectPickingEnabled) ? m_PipelineNoEntityID : m_Pipeline;
@@ -118,6 +123,7 @@ namespace Eagle
 
 		const uint32_t quadsCount = (uint32_t)(m_Quads.size() / 4);
 		cmd->BeginGraphics(pipeline);
+		cmd->SetGraphicsRootConstants(&viewportSize, nullptr);
 		cmd->DrawIndexed(m_VertexBuffer, m_IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 
@@ -206,9 +212,10 @@ namespace Eagle
 				component.LineSpacing, component.KerningOffset, component.MaxWidth);
 
 			{
-				const glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), glm::radians(component.Rotation), glm::vec3(0.0f, 0.0f, 1.0f));
-				const glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), glm::vec3(component.Scale.x, -component.Scale.y, 1.f));
-				const glm::mat4 transform = scaleMat * rotate;
+				// Y is flipped since glyphs are laid out with Y pointing up, but NDC has Y pointing down.
+				// Rotation is applied in the vertex shader in pixel space, so that it doesn't depend on the viewport's aspect ratio
+				const glm::vec2 scale = glm::vec2(component.Scale.x, -component.Scale.y);
+				const float rotation = glm::radians(component.Rotation);
 
 				double x = 0.0;
 				double fsScale = 1 / (metrics.ascenderY - metrics.descenderY);
@@ -266,30 +273,32 @@ namespace Eagle
 						auto& q1 = m_Quads.emplace_back();
 						q1.Color = component.Color;
 						q1.AtlasIndex = atlasIndex;
-						q1.Position = glm::vec2(transform * glm::vec4(pl, pb, 0.f, 1.f)) + component.Pos;
+						q1.Position = glm::vec2(pl, pb) * scale;
 						q1.TexCoord = { l, b };
 						q1.EntityID = component.EntityID;
 						q1.Opacity = component.Opacity;
+						q1.Origin = component.Pos;
+						q1.Rotation = rotation;
 					}
 
 					{
 						auto& q2 = m_Quads.emplace_back();
 						q2 = m_Quads[q1Index];
-						q2.Position = glm::vec2(transform * glm::vec4(pr, pb, 0.f, 1.f)) + component.Pos;
+						q2.Position = glm::vec2(pr, pb) * scale;
 						q2.TexCoord = { r, b };
 					}
 
 					{
 						auto& q3 = m_Quads.emplace_back();
 						q3 = m_Quads[q1Index];
-						q3.Position = glm::vec2(transform * glm::vec4(pr, pt, 0.f, 1.f)) + component.Pos;
+						q3.Position = glm::vec2(pr, pt) * scale;
 						q3.TexCoord = { r, t };
 					}
 
 					{
 						auto& q4 = m_Quads.emplace_back();
 						q4 = m_Quads[q1Index];
-						q4.Position = glm::vec2(transform * glm::vec4(pl, pt, 0.f, 1.f)) + component.Pos;
+						q4.Position = glm::vec2(pl, pt) * scale;
 						q4.TexCoord = { l, t };
 					}
 
@@ -309,7 +318,7 @@ namespace Eagle
 	void RenderText2DTask::InitPipeline()
 	{
 		ColorAttachment colorAttachment;
-		colorAttachment.Image = m_Renderer.GetHDROutput();
+		colorAttachment.Image = m_Renderer.GetOutput();
 		colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
 		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		colorAttachment.ClearOperation = ClearOperation::Load;
@@ -320,8 +329,8 @@ namespace Eagle
 		colorAttachment.BlendingState.BlendDst = BlendFactor::OneMinusSrcAlpha;
 
 		colorAttachment.BlendingState.BlendOpAlpha = BlendOperation::Add;
-		colorAttachment.BlendingState.BlendSrcAlpha = BlendFactor::SrcAlpha;
-		colorAttachment.BlendingState.BlendDstAlpha = BlendFactor::OneMinusSrcAlpha;
+		colorAttachment.BlendingState.BlendSrcAlpha = BlendFactor::Zero;
+		colorAttachment.BlendingState.BlendDstAlpha = BlendFactor::One;
 
 		ColorAttachment objectIDAttachment;
 		objectIDAttachment.Image = m_Renderer.GetGBuffer().ObjectID;

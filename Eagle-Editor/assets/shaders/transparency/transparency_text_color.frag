@@ -22,6 +22,7 @@ layout(location = 2) flat in uint i_AtlasIndex;
 layout(location = 3) flat in uint i_MaterialIndex;
 layout(location = 4) in vec2      i_TexCoords;
 layout(location = 5) in mat3      i_TBN;
+layout(location = 8) in vec2      i_MaterialUV;
 
 layout(location = 0) out vec4 outColor;
 
@@ -83,7 +84,7 @@ float ScreenPxRange()
 
 void main()
 {
-    vec2 uv = i_TexCoords;
+    vec2 uv = i_MaterialUV;
     const ShaderMaterial material = FetchMaterial(i_MaterialIndex, uv);
 
     const vec3 msd = texture(g_FontAtlases[nonuniformEXT(i_AtlasIndex)], i_TexCoords).rgb;
@@ -97,7 +98,7 @@ void main()
         return;
     }
 
-    vec4 color = vec4(vec3(0.f), material.Opacity);
+    vec4 color = vec4(vec3(0.f), material.Opacity * fadeoutOpacity);
     if (!IS_ZERO(material.Opacity))
         color.rgb = Lighting(material, uv);
 
@@ -154,7 +155,7 @@ vec3 Lighting(ShaderMaterial material, vec2 uv)
 {
     const vec3 albedo = material.Albedo;
     const vec3 worldPos = i_WorldPos;
-    const vec3 geometryNormal = normalize(i_Normal);
+    const vec3 geometryNormal = normalize(gl_FrontFacing ? i_Normal : -i_Normal);
 
     const float metalness = material.Metalness;
     const float ao = material.AO;
@@ -170,7 +171,10 @@ vec3 Lighting(ShaderMaterial material, vec2 uv)
     {
         shadingNormal = ReadTexture(material.NormalTextureIndex, uv).rgb;
         shadingNormal = normalize(shadingNormal * 2.0 - 1.0);
-        shadingNormal = normalize(i_TBN * shadingNormal);
+        mat3 tbn = i_TBN;
+        if (!gl_FrontFacing)
+            tbn[2] = -tbn[2]; // Flip the normal
+        shadingNormal = normalize(tbn * shadingNormal);
     }
 
     const uvec2 tileID = uvec2(gl_FragCoord.xy) / EG_LIGHT_CULLING_TILE_SIZE;

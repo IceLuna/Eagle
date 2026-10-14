@@ -7,6 +7,12 @@ layout(location = 5) in uint  a_MaterialIndex;
 
 const vec3 s_Normal = vec3(0.0f, 0.0f, 1.0f);
 
+// `a_TexCoords` can't be used to sample the material, since they are font atlas UVs
+vec2 GetTextMaterialUV()
+{
+	return vec2(a_Position.x, -a_Position.y);
+}
+
 const float s_QuadPosition = 0.5f;
 const vec3 s_QuadVertexPosition[4] = {
 	vec3(-0.5f, -0.5f, 0.0f),

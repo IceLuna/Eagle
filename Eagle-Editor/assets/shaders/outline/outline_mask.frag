@@ -20,6 +20,9 @@ layout(location = 2) flat in uint i_MaterialIndex;
 #if defined(EG_TEXT) || defined(EG_BILLBOARD)
 layout(location = 3) flat in uint i_TextureIndex;
 #endif
+#if defined(EG_TEXT) && defined(EG_MATERIALS_REQUIRED)
+layout(location = 4) in vec2 i_MaterialUV; // Text's atlas UVs (`i_TexCoords`) can't be used to sample its material
+#endif
 
 layout(set = EG_OUTLINE_PASS_SET, binding = 0) uniform sampler2D g_SceneDepth;
 #ifdef EG_TEXT
@@ -65,7 +68,11 @@ void main()
 
 #ifdef EG_MATERIALS_REQUIRED
     {
+#ifdef EG_TEXT
+        vec2 uv = i_MaterialUV;
+#else
         vec2 uv = i_TexCoords;
+#endif
         const ShaderMaterial material = FetchMaterial(i_MaterialIndex, uv);
         bDiscard = bDiscard || (material.OpacityMask < EG_OPACITY_MASK_THRESHOLD);
     }

@@ -48,7 +48,7 @@ void main()
     const float screenPxDistance = ScreenPxRange() * (sd - 0.5f);
     const float opacity = clamp(screenPxDistance + 0.5f, 0.f, 1.f);
 
-	if (IS_ZERO(opacity))
+	if (opacity < 0.5f)
 		discard;
 
 #ifdef EG_TRANSLUCENT

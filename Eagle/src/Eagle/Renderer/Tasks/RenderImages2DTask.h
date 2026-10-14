@@ -27,9 +27,11 @@ namespace Eagle
 		{
 			glm::vec3 Tint;
 			uint32_t TextureIndex;
-			glm::vec2 Position;
+			glm::vec2 Position; // Offset from `Origin` before rotation, in NDC units
 			int EntityID;
 			float Opacity;
+			glm::vec2 Origin; // NDC. Rotation pivot
+			float Rotation;
 		};
 
 		struct Image2DComponentData

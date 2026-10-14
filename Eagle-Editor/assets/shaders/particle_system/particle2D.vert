@@ -93,11 +93,8 @@ void main()
     o_Flags = particle.Flags;
     o_AnimationLerp = float(particle.AnimationLerp);
 
-    const float rotationZ = particle.RotationZ;
-    vec3 quadPos = vec3(s_Positions[gl_VertexIndex], 0.f);
-    mat2 rotMat = mat2(cos(rotationZ), -sin(rotationZ), sin(rotationZ), cos(rotationZ));
-    quadPos.xy = rotMat * quadPos.xy;
-    quadPos.xy *= particle.Size.xy;
+    vec3 quadPos = vec3(s_Positions[gl_VertexIndex] * particle.Size.xy, 0.f);
+    quadPos.xy = Rotate2D(quadPos.xy, particle.RotationZ);
 
     vec4 position = vec4(particle.Position, 1.0);
     if (HasFlag(particle.Flags, Particle_FaceDirection_Mask))

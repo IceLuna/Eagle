@@ -37,6 +37,7 @@ layout(location = 0) out vec2 o_TexCoords;
 layout(location = 1) flat out uint o_AtlasIndex;
 #ifdef EG_MATERIALS_REQUIRED
 layout(location = 2) flat out uint o_MaterialIndex;
+layout(location = 3) out vec2 o_MaterialUV;
 #endif
 
 void main()
@@ -50,6 +51,7 @@ void main()
     o_AtlasIndex = a_AtlasIndex;
 #ifdef EG_MATERIALS_REQUIRED
     o_MaterialIndex = a_MaterialIndex;
+    o_MaterialUV = GetTextMaterialUV();
 #endif
 
 #ifdef EG_POINT_LIGHT_PASS

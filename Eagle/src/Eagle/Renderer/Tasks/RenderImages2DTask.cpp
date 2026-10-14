@@ -12,13 +12,6 @@
 
 namespace Eagle
 {
-	static constexpr glm::vec4 s_QuadVertexPosition[4] = {
-		{ 0.f, 0.f, 0.0f, 1.0f },
-		{ 1.f, 0.f, 0.0f, 1.0f },
-		{ 1.f, 1.f, 0.0f, 1.0f },
-		{ 0.f, 1.f, 0.0f, 1.0f }
-	};
-
 	static void UploadIndexBuffer(const Ref<CommandBuffer>& cmd, Ref<Buffer>& buffer)
 	{
 		const size_t& ibSize = buffer->GetSize();
@@ -92,15 +85,15 @@ namespace Eagle
 		{
 			size_t newSize = glm::max(currentVertexSize, vb->GetSize() * 3 / 2);
 			constexpr size_t alignment = 4 * sizeof(QuadVertex);
-			newSize += alignment - (newSize % alignment);
+			newSize = (newSize + alignment - 1) / alignment * alignment;
 
 			vb->Resize(newSize);
 		}
 		if (currentIndexSize > ib->GetSize())
 		{
-			size_t newSize = glm::max(currentVertexSize, ib->GetSize() * 3 / 2);
+			size_t newSize = glm::max(currentIndexSize, ib->GetSize() * 3 / 2);
 			constexpr size_t alignment = 6 * sizeof(Index);
-			newSize += alignment - (newSize % alignment);
+			newSize = (newSize + alignment - 1) / alignment * alignment;
 
 			ib->Resize(newSize);
 			UploadIndexBuffer(cmd, ib);
@@ -114,6 +107,11 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Render Images 2D");
 		EG_CPU_TIMING_SCOPED("Render Images 2D");
 
+		const glm::vec2 viewportSize = glm::vec2(m_Renderer.GetOutput()->GetSize());
+
+		if (m_Pipeline->GetState().ColorAttachments[0].Image != m_Renderer.GetOutput())
+			InitPipeline();
+
 		const auto& options = m_Renderer.GetOptions_RT();
 		const bool bObjectPickingEnabled = options.bEnableObjectPicking && options.bEnable2DObjectPicking;
 		auto& pipeline = (m_Renderer.IsRuntime() && !bObjectPickingEnabled) ? m_PipelineNoEntityID : m_Pipeline;
@@ -121,6 +119,7 @@ namespace Eagle
 
 		const uint32_t quadsCount = (uint32_t)(m_Quads.size() / 4);
 		cmd->BeginGraphics(pipeline);
+		cmd->SetGraphicsRootConstants(&viewportSize, nullptr);
 		cmd->DrawIndexed(m_VertexBuffer, m_IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 
@@ -160,25 +159,25 @@ namespace Eagle
 				textureIndex = it->second;
 
 			{
-				const glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), glm::radians(component.Rotation), glm::vec3(0.0f, 0.0f, 1.0f));
-				const glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), glm::vec3(component.Scale, 1.f));
-				const glm::mat4 transform = scaleMat * rotate;
-
-				constexpr glm::vec4 s_TexCoords[4] = {
-					glm::vec4(0.f, 1.f, 0.f, 1.f),
-					glm::vec4(1.f, 1.f, 0.f, 1.f),
-					glm::vec4(1.f, 0.f, 0.f, 1.f),
-					glm::vec4(0.f, 0.f, 0.f, 1.f)
+				constexpr glm::vec2 s_TexCoords[4] = {
+					glm::vec2(0.f, 1.f),
+					glm::vec2(1.f, 1.f),
+					glm::vec2(1.f, 0.f),
+					glm::vec2(0.f, 0.f)
 				};
 
+				// Rotation is applied in the vertex shader in pixel space, so that it doesn't depend on the viewport's aspect ratio
+				const float rotation = glm::radians(component.Rotation);
 				for (int i = 0; i < 4; ++i)
 				{
 					auto& q1 = m_Quads.emplace_back();
 					q1.Tint = component.Tint;
 					q1.TextureIndex = textureIndex;
-					q1.Position = glm::vec2(transform * s_TexCoords[i]) + component.Pos;
+					q1.Position = s_TexCoords[i] * component.Scale;
 					q1.EntityID = component.EntityID;
 					q1.Opacity = component.Opacity;
+					q1.Origin = component.Pos;
+					q1.Rotation = rotation;
 				}
 			}
 		}
@@ -233,7 +232,7 @@ namespace Eagle
 	void RenderImages2DTask::InitPipeline()
 	{
 		ColorAttachment colorAttachment;
-		colorAttachment.Image = m_Renderer.GetHDROutput();
+		colorAttachment.Image = m_Renderer.GetOutput();
 		colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
 		colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
 		colorAttachment.ClearOperation = ClearOperation::Load;
@@ -244,8 +243,8 @@ namespace Eagle
 		colorAttachment.BlendingState.BlendDst = BlendFactor::OneMinusSrcAlpha;
 
 		colorAttachment.BlendingState.BlendOpAlpha = BlendOperation::Add;
-		colorAttachment.BlendingState.BlendSrcAlpha = BlendFactor::SrcAlpha;
-		colorAttachment.BlendingState.BlendDstAlpha = BlendFactor::OneMinusSrcAlpha;
+		colorAttachment.BlendingState.BlendSrcAlpha = BlendFactor::Zero;
+		colorAttachment.BlendingState.BlendDstAlpha = BlendFactor::One;
 
 		ColorAttachment objectIDAttachment;
 		objectIDAttachment.Image = m_Renderer.GetGBuffer().ObjectID;
@@ -258,7 +257,7 @@ namespace Eagle
 		state.VertexShader = Shader::Create("image2D.vert", ShaderType::Vertex, noObjectIDDefine);
 		state.FragmentShader = Shader::Create("image2D.frag", ShaderType::Fragment, noObjectIDDefine);
 		state.ColorAttachments.push_back(colorAttachment);
-		state.CullMode = CullMode::Back;
+		state.CullMode = CullMode::None;
 
 		if (m_PipelineNoEntityID)
 			m_PipelineNoEntityID->SetState(state);

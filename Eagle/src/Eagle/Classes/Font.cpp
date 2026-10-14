@@ -183,16 +183,13 @@ namespace Eagle
 
 	bool Font::NextLine(int index, const std::vector<int>& lines)
 	{
-		for (int line : lines)
-		{
-			if (line == index)
-				return true;
-		}
-		return false;
+		// `lines` come from `GetNextLines()`, which returns them sorted
+		return std::binary_search(lines.begin(), lines.end(), index);
 	}
 	
 	std::vector<int> Font::GetNextLines(const msdfgen::FontMetrics& metrics, const Scope<msdf_atlas::FontGeometry>& fontGeometry, const std::u32string& text, const double spaceAdvance, float lineHeightOffset, float kerningOffset, float maxWidth)
 	{
+		// Returned indices are sorted in ascending order (`NextLine()` relies on it)
 		double x = 0.0;
 		double fsScale = 1 / (metrics.ascenderY - metrics.descenderY);
 		double y = -fsScale * metrics.ascenderY;
@@ -209,6 +206,25 @@ namespace Eagle
 			{
 				x = 0;
 				y -= fsScale * metrics.lineHeight + lineHeightOffset;
+				lastSpace = -1; // A space on a previous line must never be used as a break point
+				continue;
+			}
+
+			const bool bIsTab = character == '\t';
+			if (character == ' ' || bIsTab)
+			{
+				lastSpace = i;
+
+				double advance = spaceAdvance;
+				if (i < textSize - 1)
+				{
+					char32_t nextCharacter = text[i + 1];
+					if (nextCharacter == '\t')
+						nextCharacter = ' ';
+					fontGeometry->getAdvance(advance, ' ', nextCharacter);
+				}
+
+				x += (fsScale * advance + kerningOffset) * (bIsTab ? 4.0 : 1.0);
 				continue;
 			}
 
@@ -218,31 +234,21 @@ namespace Eagle
 			if (!glyph)
 				continue;
 
-			if (character != ' ')
-			{
-				// Calc geo
-				double pl, pb, pr, pt;
-				glyph->getQuadPlaneBounds(pl, pb, pr, pt);
-				glm::vec2 quadMin((float)pl, (float)pb);
-				glm::vec2 quadMax((float)pr, (float)pt);
+			double pl, pb, pr, pt;
+			glyph->getQuadPlaneBounds(pl, pb, pr, pt);
+			const double quadMaxX = pr * fsScale + x;
 
-				quadMin *= fsScale;
-				quadMax *= fsScale;
-				quadMin += glm::vec2(x, y);
-				quadMax += glm::vec2(x, y);
-
-				if (quadMax.x > maxWidth && lastSpace != -1)
-				{
-					i = lastSpace;
-					nextLines.emplace_back(lastSpace);
-					lastSpace = -1;
-					x = 0;
-					y -= fsScale * metrics.lineHeight + lineHeightOffset;
-				}
-			}
-			else
+			if (quadMaxX > maxWidth && lastSpace != -1)
 			{
-				lastSpace = i;
+				// Break at the last space and start measuring the new line from the character right after it.
+				nextLines.emplace_back(lastSpace);
+				i = lastSpace; // `i++` moves to the first character of the new line
+				lastSpace = -1;
+				x = 0;
+				y -= fsScale * metrics.lineHeight + lineHeightOffset;
+
+				// the new line must start at x = 0, without the advance of the glyph that didn't fit
+				continue;
 			}
 
 			if (i + 1 < textSize)

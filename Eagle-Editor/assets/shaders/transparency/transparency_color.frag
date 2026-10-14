@@ -128,7 +128,11 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
 {
     const vec3 albedo = material.Albedo;
     const vec3 worldPos = i_WorldPos;
+#ifdef EG_FLIP_BACK_FACE_NORMALS
+    const vec3 geometryNormal = normalize(gl_FrontFacing ? i_Normal : -i_Normal);
+#else
     const vec3 geometryNormal = normalize(i_Normal);
+#endif
 
     const float metalness = material.Metalness;
     const float ao = material.AO;
@@ -144,7 +148,12 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
     {
         shadingNormal = ReadTexture(material.NormalTextureIndex, uv).rgb;
         shadingNormal = normalize(shadingNormal * 2.0 - 1.0);
-        shadingNormal = normalize(i_TBN * shadingNormal);
+        mat3 tbn = i_TBN;
+#ifdef EG_FLIP_BACK_FACE_NORMALS
+        if (!gl_FrontFacing)
+            tbn[2] = -tbn[2]; // Flip the normal
+#endif
+        shadingNormal = normalize(tbn * shadingNormal);
     }
 
     const uvec2 tileID = uvec2(gl_FragCoord.xy) / EG_LIGHT_CULLING_TILE_SIZE;
