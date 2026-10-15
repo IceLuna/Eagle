@@ -9,18 +9,80 @@ namespace msdf_atlas
 	class GlyphGeometry;
 }
 
-namespace msdfgen
-{
-	struct FontMetrics;
-}
-
 namespace Eagle
 {
 	class Texture2D;
 
+	enum class TextAlignment
+	{
+		Left, Center, Right
+	};
+
+	// 0 - left, 0.5 - center, 1 - right
+	inline float GetTextAlignmentFactor(TextAlignment alignment)
+	{
+		return (alignment == TextAlignment::Center) ? 0.5f : (alignment == TextAlignment::Right) ? 1.f : 0.f;
+	}
+
+	// The origin is the left end of the first line's baseline, Y points up
+	struct TextLayoutSettings
+	{
+		float LineSpacing = 0.f;   // Added to the font's line height
+		float KerningOffset = 0.f; // Added to the advance of each character
+		float MaxWidth = 0.f;      // Lines are wrapped at spaces & tabs to fit into it
+		TextAlignment Alignment = TextAlignment::Left; // Alignment of lines within the layout box
+	};
+
+	struct TextLayoutGlyph
+	{
+		glm::vec2 PlaneMin;
+		glm::vec2 PlaneMax;
+		glm::vec2 AtlasUVMin;
+		glm::vec2 AtlasUVMax;
+
+		// Quad corners in this order: bottom-left, bottom-right, top-right, top-left
+		glm::vec2 GetPosition(uint32_t corner) const { return GetCorner(PlaneMin, PlaneMax, corner); }
+		glm::vec2 GetAtlasUV(uint32_t corner) const { return GetCorner(AtlasUVMin, AtlasUVMax, corner); }
+
+	private:
+		static glm::vec2 GetCorner(glm::vec2 min, glm::vec2 max, uint32_t corner)
+		{
+			EG_CORE_ASSERT(corner < 4);
+			return { (corner == 1 || corner == 2) ? max.x : min.x, (corner >= 2) ? max.y : min.y };
+		}
+	};
+
+	struct TextLayoutLine
+	{
+		uint32_t FirstGlyph = 0;
+		uint32_t GlyphsCount = 0;
+		float BaselineY = 0.f;
+		float Width = 0.f; // Right edge of its glyphs
+	};
+
+	struct TextLayout
+	{
+		std::vector<TextLayoutGlyph> Glyphs;
+		std::vector<TextLayoutLine> Lines; // Always has at least one line
+		glm::vec2 BoundsMin = glm::vec2(0.f); // Bounds of all glyph quads. Zero if there are no glyphs
+		glm::vec2 BoundsMax = glm::vec2(0.f);
+
+		// Layout box. X: from 0 to the widest line. Y: from the last line's descender to the first line's ascender.
+		// Unlike the bounds, it doesn't depend on which glyphs are used, so it's suitable for pivots
+		glm::vec2 BoxMin = glm::vec2(0.f);
+		glm::vec2 BoxMax = glm::vec2(0.f);
+
+		float Ascender = 0.f;  // Font's ascender & descender relative to a baseline
+		float Descender = 0.f;
+	};
+
 	class Font
 	{
 	public:
+		// Stored in font assets. If an asset's atlas has a different version, the atlas is regenerated from the font data.
+		// Increase it when the atlas generation changes and it invalidates old assets.
+		static constexpr uint32_t AtlasVersion = 2;
+
 		const Ref<Texture2D>& GetAtlas() const { return m_Atlas; }
 		const Scope<msdf_atlas::FontGeometry>& GetFontGeometry() const { return m_FontGeometry; }
 		const ScopedDataBuffer& GetAtlasData() const { return m_AtlasData; }
@@ -31,9 +93,7 @@ namespace Eagle
 		// Instead of building the atlas, uses the provided one
 		static Ref<Font> Create(const DataBuffer& atlasData, glm::uvec2 size, const DataBuffer& fontBuffer, const std::string& name = "Font");
 
-		static bool NextLine(int index, const std::vector<int>& lines);
-		static std::vector<int> GetNextLines(const msdfgen::FontMetrics& metrics, const Scope<msdf_atlas::FontGeometry>& fontGeometry, const std::u32string& text, const double spaceAdvance,
-			float lineHeightOffset, float kerningOffset, float maxWidth);
+		TextLayout Layout(const std::u32string& text, const TextLayoutSettings& settings) const;
 
 	protected:
 		Font(const DataBuffer& fontBuffer, const std::string& name);

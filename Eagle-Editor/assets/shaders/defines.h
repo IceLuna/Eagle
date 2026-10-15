@@ -5,6 +5,7 @@
 #define EG_MAX_LIGHT_SHADOW_MAPS 1024 // TODO: Replace with dynamic array and move this to size to C++ so we can resize it if we exceed max number.
 #define EG_INVALID_INDEX 0 // Must be 0
 #define EG_INVALID_SHADOW_MAP (0xFFFFFFFF)
+#define EG_MSDF_PIXEL_RANGE 2.0 // Distance range of font atlases in pixels. If changed, increase `Font::AtlasVersion`
 
 #define EG_LIGHT_CULLING_TILE_SIZE 16
 #define EG_MAX_LIGHTS_PER_TILE 256

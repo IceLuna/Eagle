@@ -7,6 +7,11 @@ using static Eagle.CrowdNavigation;
 
 namespace Eagle
 {
+    public enum TextAlignment
+    {
+        Left, Center, Right
+    }
+
     public enum CameraProjectionMode
     {
         Perspective = 0,
@@ -1526,6 +1531,12 @@ namespace Eagle
             set { SetMaxWidth_Native(Parent.ID, value); }
         }
 
+        public TextAlignment Alignment
+        {
+            get { return GetAlignment_Native(Parent.ID); }
+            set { SetAlignment_Native(Parent.ID, value); }
+        }
+
         public bool bCastsShadows
         {
             get { return DoesCastShadows_Native(Parent.ID); }
@@ -1591,6 +1602,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetMaxWidth_Native(in GUID entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern TextAlignment GetAlignment_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAlignment_Native(in GUID entityID, TextAlignment value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetIsLit_Native(in GUID entityID, bool value);

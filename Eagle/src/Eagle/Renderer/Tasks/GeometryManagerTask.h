@@ -6,6 +6,7 @@
 #include "Eagle/Classes/SkeletalMesh.h"
 #include "Eagle/Core/GUID.h"
 #include "Eagle/Math/Transform.h"
+#include "Eagle/Classes/Font.h"
 
 struct CPUMaterial;
 
@@ -294,6 +295,7 @@ namespace Eagle
 		float LineHeightOffset;
 		float KerningOffset;
 		float MaxWidth;
+		TextAlignment Alignment = TextAlignment::Left;
 		uint32_t TransformIndex;
 		uint32_t MaterialIndex;
 		bool bCastsShadows = false;
@@ -308,6 +310,7 @@ namespace Eagle
 		float LineHeightOffset;
 		float KerningOffset;
 		float MaxWidth;
+		TextAlignment Alignment = TextAlignment::Left;
 		uint32_t TransformIndex;
 		bool bCastsShadows = false;
 		bool bDoubleSided = false;

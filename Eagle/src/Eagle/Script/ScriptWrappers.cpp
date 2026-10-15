@@ -5977,6 +5977,29 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set max width of Text Component. Entity is null");
 	}
 
+	TextAlignment Script::Eagle_TextComponent_GetAlignment(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<TextComponent>().GetAlignment();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get alignment of Text Component. Entity is null");
+			return TextAlignment::Left;
+		}
+	}
+
+	void Script::Eagle_TextComponent_SetAlignment(GUID entityID, TextAlignment value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetAlignment(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set alignment of Text Component. Entity is null");
+	}
+
 	bool Script::Eagle_TextComponent_GetIsLit(GUID entityID)
 	{
 		auto& scene = Scene::GetCurrentScene();

@@ -928,6 +928,7 @@ namespace Eagle
 		float GetLineSpacing() const { return m_LineSpacing; }
 		float GetKerning() const { return m_Kerning; }
 		float GetMaxWidth() const { return m_MaxWidth; }
+		TextAlignment GetAlignment() const { return m_Alignment; }
 		bool IsLit() const { return m_bLit; }
 
 		void SetFontAsset(const Ref<AssetFont>& font)
@@ -963,6 +964,12 @@ namespace Eagle
 		void SetMaxWidth(float value)
 		{
 			m_MaxWidth = glm::max(value, 0.f);
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetAlignment(TextAlignment alignment)
+		{
+			m_Alignment = alignment;
 			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
 		}
 
@@ -1015,6 +1022,7 @@ namespace Eagle
 		float m_LineSpacing = 0.0f;
 		float m_Kerning = 0.0f;
 		float m_MaxWidth = 10.0f;
+		TextAlignment m_Alignment = TextAlignment::Left;
 
 		bool m_bDoubleSided = false; // Used if bLit == false
 		bool m_bLit = false;

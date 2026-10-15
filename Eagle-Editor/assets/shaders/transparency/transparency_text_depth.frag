@@ -5,6 +5,7 @@
 
 #include "defines.h"
 #include "utils.h"
+#include "text/msdf.h"
 #define EG_OIT_NULL 0x0u // 0xFFFFFFFFu
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -36,25 +37,9 @@ layout(binding = 2) uniform UniformBuffer
 
 layout(set = 1, binding = 0) uniform sampler2D g_FontAtlases[];
 
-float median(float r, float g, float b)
-{
-    return max(min(r, g), min(max(r, g), b));
-}
-
-float ScreenPxRange()
-{
-    const float pxRange = 2.0f;
-    const vec2 unitRange = vec2(pxRange) / vec2(textureSize(g_FontAtlases[nonuniformEXT(i_AtlasIndex)], 0));
-    vec2 screenTexSize = vec2(1.0) / fwidth(i_TexCoords);
-    return max(0.5f * dot(unitRange, screenTexSize), 1.0);
-}
-
 void main()
 {
-    const vec3 msd = texture(g_FontAtlases[nonuniformEXT(i_AtlasIndex)], i_TexCoords).rgb;
-    const float sd = median(msd.r, msd.g, msd.b);
-    const float screenPxDistance = ScreenPxRange() * (sd - 0.5f);
-    const float fadeoutOpacity = clamp(screenPxDistance + 0.5f, 0.f, 1.f);
+    const float fadeoutOpacity = MSDF_COVERAGE(g_FontAtlases[nonuniformEXT(i_AtlasIndex)], i_TexCoords);
 
     if (IS_ZERO(fadeoutOpacity))
     {

@@ -6,14 +6,30 @@
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
 #include "Eagle/Components/Components.h"
+#include "Eagle/Classes/Font.h"
 
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Debug/GPUTimings.h"
 
-#include "msdf-atlas-gen.h"
-
 namespace Eagle
 {
+	template<typename MapType>
+	static uint32_t GetFontAtlasIndex(MapType& atlases, const Ref<Texture2D>& atlas)
+	{
+		if (auto it = atlases.find(atlas); it != atlases.end())
+			return it->second;
+
+		if (atlases.size() == RendererConfig::MaxTextures)
+		{
+			EG_CORE_CRITICAL("Not enough samplers to store all font atlases! Max supported fonts: {}", RendererConfig::MaxTextures);
+			return 0;
+		}
+
+		const uint32_t index = (uint32_t)atlases.size();
+		atlases.emplace(atlas, index);
+		return index;
+	}
+
 	static void UploadIndexBuffer(const Ref<CommandBuffer>& cmd, Ref<Buffer>& buffer)
 	{
 		const size_t& ibSize = buffer->GetSize();
@@ -181,138 +197,38 @@ namespace Eagle
 
 	uint32_t RenderText2DTask::ProcessTexts(const std::vector<Text2DComponentData>& textComponents)
 	{
-		if (textComponents.empty())
-			return 0;
-
-		uint32_t atlasCurrentIndex = 0u;
 		for (auto& component : textComponents)
 		{
-			const auto& fontGeometry = component.Font->GetFontGeometry();
-			const auto& metrics = fontGeometry->getMetrics();
-			const auto& text = component.Text;
-			const auto& atlas = component.Font->GetAtlas();
-			uint32_t atlasIndex = atlasCurrentIndex;
+			TextLayoutSettings settings;
+			settings.LineSpacing = component.LineSpacing;
+			settings.KerningOffset = component.KerningOffset;
+			settings.MaxWidth = component.MaxWidth;
+			const TextLayout layout = component.Font->Layout(component.Text, settings);
+			const uint32_t atlasIndex = GetFontAtlasIndex(m_FontAtlases, component.Font->GetAtlas());
 
-			auto it = m_FontAtlases.find(atlas);
-			if (it == m_FontAtlases.end())
+			// Y is flipped since glyphs are laid out with Y pointing up, but NDC has Y pointing down.
+			// Rotation is applied in the vertex shader in pixel space, so that it doesn't depend on the viewport's aspect ratio
+			const glm::vec2 scale = glm::vec2(component.Scale.x, -component.Scale.y);
+			const float rotation = glm::radians(component.Rotation);
+
+			for (const auto& glyph : layout.Glyphs)
 			{
-				if (m_FontAtlases.size() == RendererConfig::MaxTextures) // Can't be more than EG_MAX_TEXTURES
+				for (uint32_t corner = 0; corner < 4; ++corner)
 				{
-					EG_CORE_CRITICAL("Not enough samplers to store all font atlases! Max supported fonts: {}", RendererConfig::MaxTextures);
-					atlasIndex = 0;
-				}
-				else
-					m_FontAtlases.emplace(atlas, atlasCurrentIndex++);
-			}
-			else
-				atlasIndex = it->second;
-
-			const double spaceAdvance = fontGeometry->getGlyph(' ')->getAdvance();
-			std::vector<int> nextLines = Font::GetNextLines(metrics, fontGeometry, text, spaceAdvance,
-				component.LineSpacing, component.KerningOffset, component.MaxWidth);
-
-			{
-				// Y is flipped since glyphs are laid out with Y pointing up, but NDC has Y pointing down.
-				// Rotation is applied in the vertex shader in pixel space, so that it doesn't depend on the viewport's aspect ratio
-				const glm::vec2 scale = glm::vec2(component.Scale.x, -component.Scale.y);
-				const float rotation = glm::radians(component.Rotation);
-
-				double x = 0.0;
-				double fsScale = 1 / (metrics.ascenderY - metrics.descenderY);
-				double y = 0.0;
-				const size_t textSize = text.size();
-				for (int i = 0; i < textSize; i++)
-				{
-					char32_t character = text[i];
-					if (character == '\n' || Font::NextLine(i, nextLines))
-					{
-						x = 0;
-						y -= fsScale * metrics.lineHeight + component.LineSpacing;
-						continue;
-					}
-
-					const bool bIsTab = character == '\t';
-					if (character == ' ' || bIsTab)
-					{
-						character = ' '; // treat tabs as spaces
-						double advance = spaceAdvance;
-						if (i < textSize - 1)
-						{
-							char32_t nextCharacter = text[i + 1];
-							if (nextCharacter == '\t')
-								nextCharacter = ' ';
-							fontGeometry->getAdvance(advance, character, nextCharacter);
-						}
-
-						// Tab is 4 spaces
-						x += (fsScale * advance + component.KerningOffset) * (bIsTab ? 4.0 : 1.0);
-						continue;
-					}
-
-					auto glyph = fontGeometry->getGlyph(character);
-					if (!glyph)
-						glyph = fontGeometry->getGlyph('?');
-					if (!glyph)
-						continue;
-
-					double l, b, r, t;
-					glyph->getQuadAtlasBounds(l, b, r, t);
-
-					double pl, pb, pr, pt;
-					glyph->getQuadPlaneBounds(pl, pb, pr, pt);
-
-					pl *= fsScale, pb *= fsScale, pr *= fsScale, pt *= fsScale;
-					pl += x, pb += y, pr += x, pt += y;
-
-					double texelWidth = 1. / atlas->GetWidth();
-					double texelHeight = 1. / atlas->GetHeight();
-					l *= texelWidth, b *= texelHeight, r *= texelWidth, t *= texelHeight;
-
-					const size_t q1Index = m_Quads.size();
-					{
-						auto& q1 = m_Quads.emplace_back();
-						q1.Color = component.Color;
-						q1.AtlasIndex = atlasIndex;
-						q1.Position = glm::vec2(pl, pb) * scale;
-						q1.TexCoord = { l, b };
-						q1.EntityID = component.EntityID;
-						q1.Opacity = component.Opacity;
-						q1.Origin = component.Pos;
-						q1.Rotation = rotation;
-					}
-
-					{
-						auto& q2 = m_Quads.emplace_back();
-						q2 = m_Quads[q1Index];
-						q2.Position = glm::vec2(pr, pb) * scale;
-						q2.TexCoord = { r, b };
-					}
-
-					{
-						auto& q3 = m_Quads.emplace_back();
-						q3 = m_Quads[q1Index];
-						q3.Position = glm::vec2(pr, pt) * scale;
-						q3.TexCoord = { r, t };
-					}
-
-					{
-						auto& q4 = m_Quads.emplace_back();
-						q4 = m_Quads[q1Index];
-						q4.Position = glm::vec2(pl, pt) * scale;
-						q4.TexCoord = { l, t };
-					}
-
-					if (i + 1 < textSize)
-					{
-						double advance = glyph->getAdvance();
-						fontGeometry->getAdvance(advance, character, text[i + 1]);
-						x += fsScale * advance + component.KerningOffset;
-					}
+					auto& vertex = m_Quads.emplace_back();
+					vertex.Color = component.Color;
+					vertex.AtlasIndex = atlasIndex;
+					vertex.Position = glyph.GetPosition(corner) * scale;
+					vertex.TexCoord = glyph.GetAtlasUV(corner);
+					vertex.EntityID = component.EntityID;
+					vertex.Opacity = component.Opacity;
+					vertex.Origin = component.Pos;
+					vertex.Rotation = rotation;
 				}
 			}
 		}
 
-		return atlasCurrentIndex;
+		return (uint32_t)m_FontAtlases.size();
 	}
 	
 	void RenderText2DTask::InitPipeline()

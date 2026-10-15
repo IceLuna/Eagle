@@ -506,7 +506,7 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					UI::ComboEnum("Animation Type", smComponent.AnimType);
+					bEntityChanged |= UI::ComboEnum("Animation Type", smComponent.AnimType);
 
 					const RootMotionLockFlag lockFlags = smComponent.GetRootMotionLockFlags();
 					bool bLockPositions[3] = { HasFlags(lockFlags, RootMotionLockFlag::PositionX), HasFlags(lockFlags, RootMotionLockFlag::PositionY), HasFlags(lockFlags, RootMotionLockFlag::PositionZ) };
@@ -688,6 +688,13 @@ namespace Eagle
 					if (UI::PropertyDrag("Max Width", maxWidth, 0.1f))
 					{
 						component.SetMaxWidth(maxWidth);
+						bEntityChanged = true;
+					}
+
+					TextAlignment alignment = component.GetAlignment();
+					if (UI::ComboEnum("Alignment", alignment))
+					{
+						component.SetAlignment(alignment);
 						bEntityChanged = true;
 					}
 

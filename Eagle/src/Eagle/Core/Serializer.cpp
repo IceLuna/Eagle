@@ -1244,6 +1244,7 @@ namespace Eagle
 		out << YAML::Key << "Size" << YAML::Value << compressedAtlas.Size();
 		out << YAML::Key << "Offset" << YAML::Value << atlasOffset;
 		out << YAML::Key << "AtlasSize" << YAML::Value << atlasSize;
+		out << YAML::Key << "AtlasVersion" << YAML::Value << Font::AtlasVersion;
 		out << YAML::EndMap;
 
 		out << YAML::EndMap;
@@ -2462,6 +2463,7 @@ namespace Eagle
 			out << YAML::Key << "LineSpacing" << YAML::Value << text.GetLineSpacing();
 			out << YAML::Key << "Kerning" << YAML::Value << text.GetKerning();
 			out << YAML::Key << "MaxWidth" << YAML::Value << text.GetMaxWidth();
+			out << YAML::Key << "Alignment" << YAML::Value << Utils::GetEnumName(text.GetAlignment());
 
 			out << YAML::EndMap; //TextComponent
 		}
@@ -3199,6 +3201,8 @@ namespace Eagle
 			text.SetLineSpacing(textNode["LineSpacing"].as<float>());
 			text.SetKerning(textNode["Kerning"].as<float>());
 			text.SetMaxWidth(textNode["MaxWidth"].as<float>());
+			if (auto node = textNode["Alignment"])
+				text.SetAlignment(Utils::GetEnumFromName<TextAlignment>(node.as<std::string>()));
 		}
 
 		if (auto textNode = entityNode["Text2DComponent"])
@@ -4548,13 +4552,19 @@ namespace Eagle
 				return {};
 			}
 
+			bool bOutdatedAtlas = false;
 			if (auto baseDataNode = baseNode["AtlasData"])
 			{
-				const size_t dataSize = baseDataNode["Size"].as<size_t>();
-				const size_t dataOffset = baseDataNode["Offset"].as<size_t>();
-				size = baseDataNode["AtlasSize"].as<glm::uvec2>();
-				
-				Utils::ReadCompressedBinary(data, dataSize, dataOffset, &atlasBinary);
+				const uint32_t atlasVersion = baseDataNode["AtlasVersion"] ? baseDataNode["AtlasVersion"].as<uint32_t>() : 1u;
+				bOutdatedAtlas = atlasVersion != Font::AtlasVersion;
+				if (!bOutdatedAtlas)
+				{
+					const size_t dataSize = baseDataNode["Size"].as<size_t>();
+					const size_t dataOffset = baseDataNode["Offset"].as<size_t>();
+					size = baseDataNode["AtlasSize"].as<glm::uvec2>();
+
+					Utils::ReadCompressedBinary(data, dataSize, dataOffset, &atlasBinary);
+				}
 			}
 
 			if (atlasBinary)
@@ -4563,7 +4573,10 @@ namespace Eagle
 			}
 			else
 			{
-				EG_CORE_WARN("Failed to load font atlas from an asset. Generating it... Prease, resave the asset");
+				if (bOutdatedAtlas)
+					EG_CORE_WARN("Font atlas of an asset is outdated. Regenerating it... Please, resave the asset: {}", pathToAsset);
+				else
+					EG_CORE_WARN("Failed to load font atlas from an asset. Generating it... Please, resave the asset: {}", pathToAsset);
 				return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, bAlwaysIncludeInGameBuilds, binary.GetDataBuffer(), Font::Create(binary.GetDataBuffer(), Utils::AsString(pathToAsset.stem())));
 			}
 		}

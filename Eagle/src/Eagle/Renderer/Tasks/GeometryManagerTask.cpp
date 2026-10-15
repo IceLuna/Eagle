@@ -17,7 +17,7 @@
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Debug/GPUTimings.h"
 
-#include "msdf-atlas-gen.h"
+#include "Eagle/Classes/Font.h"
 
 // TODO v0.7: Test this functionality on heavy scenes and check if it's faster than uploading the whole buffer at once
 #define EG_UPLOAD_ONLY_REQUIRED_TRANSFORMS 1
@@ -1145,140 +1145,50 @@ namespace Eagle
 		}
 	}
 
+	template<typename MapType>
+	static uint32_t GetFontAtlasIndex(MapType& atlases, const Ref<Texture2D>& atlas)
+	{
+		if (auto it = atlases.find(atlas); it != atlases.end())
+			return it->second;
+
+		if (atlases.size() == RendererConfig::MaxTextures)
+		{
+			EG_CORE_CRITICAL("Not enough samplers to store all font atlases! Max supported fonts: {}", RendererConfig::MaxTextures);
+			return 0;
+		}
+
+		const uint32_t index = (uint32_t)atlases.size();
+		atlases.emplace(atlas, index);
+		return index;
+	}
+
 	// --------- Texts ---------
 	template <typename TextDataType, typename VertexType>
-	static void ProcessTextData(const TextDataType& component, ankerl::unordered_dense::map<Ref<Texture2D>, uint32_t>& fontAtlases,
-		std::vector<VertexType>& vertices, uint32_t& atlasCurrentIndex)
+	static void ProcessTextData(const TextDataType& component, ankerl::unordered_dense::map<Ref<Texture2D>, uint32_t>& fontAtlases, std::vector<VertexType>& vertices)
 	{
-		const auto& fontGeometry = component.Font->GetFontGeometry();
-		const auto& metrics = fontGeometry->getMetrics();
-		const auto& text = component.Text;
-		const auto& atlas = component.Font->GetAtlas();
-		uint32_t atlasIndex = atlasCurrentIndex;
-		auto it = fontAtlases.find(atlas);
-		if (it == fontAtlases.end())
+		TextLayoutSettings settings;
+		settings.LineSpacing = component.LineHeightOffset;
+		settings.KerningOffset = component.KerningOffset;
+		settings.MaxWidth = component.MaxWidth;
+		settings.Alignment = component.Alignment;
+		const TextLayout layout = component.Font->Layout(component.Text, settings);
+		const uint32_t atlasIndex = GetFontAtlasIndex(fontAtlases, component.Font->GetAtlas());
+
+		const glm::vec2 origin = glm::vec2(layout.BoxMax.x * GetTextAlignmentFactor(component.Alignment), 0.f);
+		for (const auto& glyph : layout.Glyphs)
 		{
-			if (fontAtlases.size() == RendererConfig::MaxTextures)
+			for (uint32_t corner = 0; corner < 4; ++corner)
 			{
-				EG_CORE_CRITICAL("Not enough samplers to store all font atlases! Max supported fonts: {}", RendererConfig::MaxTextures);
-				atlasIndex = 0;
-			}
-			else
-				fontAtlases.emplace(atlas, atlasCurrentIndex++);
-		}
-		else
-			atlasIndex = it->second;
-
-		const double spaceAdvance = fontGeometry->getGlyph(' ')->getAdvance();
-		std::vector<int> nextLines = Font::GetNextLines(metrics, fontGeometry, text, spaceAdvance,
-			component.LineHeightOffset, component.KerningOffset, component.MaxWidth);
-
-		{
-			double x = 0.0;
-			double fsScale = 1 / (metrics.ascenderY - metrics.descenderY);
-			double y = 0.0;
-			const uint32_t transformIndex = component.TransformIndex;
-
-			const size_t textSize = text.size();
-			for (int i = 0; i < textSize; i++)
-			{
-				char32_t character = text[i];
-				if (character == '\n' || Font::NextLine(i, nextLines))
-				{
-					x = 0;
-					y -= fsScale * metrics.lineHeight + component.LineHeightOffset;
-					continue;
-				}
-
-				const bool bIsTab = character == '\t';
-				if (character == ' ' || bIsTab)
-				{
-					character = ' '; // treat tabs as spaces
-					double advance = spaceAdvance;
-					if (i < textSize - 1)
-					{
-						char32_t nextCharacter = text[i + 1];
-						if (nextCharacter == '\t')
-							nextCharacter = ' ';
-						fontGeometry->getAdvance(advance, character, nextCharacter);
-					}
-
-					// Tab is 4 spaces
-					x += (fsScale * advance + component.KerningOffset) * (bIsTab ? 4.0 : 1.0);
-					continue;
-				}
-
-				auto glyph = fontGeometry->getGlyph(character);
-				if (!glyph)
-					glyph = fontGeometry->getGlyph('?');
-				if (!glyph)
-					continue;
-
-				double l, b, r, t;
-				glyph->getQuadAtlasBounds(l, b, r, t);
-
-				double pl, pb, pr, pt;
-				glyph->getQuadPlaneBounds(pl, pb, pr, pt);
-
-				pl *= fsScale, pb *= fsScale, pr *= fsScale, pt *= fsScale;
-				pl += x, pb += y, pr += x, pt += y;
-
-				double texelWidth = 1. / atlas->GetWidth();
-				double texelHeight = 1. / atlas->GetHeight();
-				l *= texelWidth, b *= texelHeight, r *= texelWidth, t *= texelHeight;
-
-				const size_t q1Index = vertices.size();
+				auto& vertex = vertices.emplace_back();
+				vertex.Position = glyph.GetPosition(corner) - origin;
+				vertex.TexCoord = glyph.GetAtlasUV(corner);
+				vertex.EntityID = component.EntityID;
+				vertex.AtlasIndex = atlasIndex;
+				vertex.TransformIndex = component.TransformIndex;
 				if constexpr (std::is_same_v<TextDataType, LitTextData>)
-				{
-					auto& q1 = vertices.emplace_back();
-					q1.Position = glm::vec2(pl, pb);
-					q1.MaterialIndex = component.MaterialIndex;
-					q1.TexCoord = { l, b };
-					q1.EntityID = component.EntityID;
-					q1.AtlasIndex = atlasIndex;
-					q1.TransformIndex = transformIndex;
-				}
+					vertex.MaterialIndex = component.MaterialIndex;
 				else
-				{
-					auto& q1 = vertices.emplace_back();
-					q1.Position = glm::vec2(pl, pb);
-					q1.Color = component.Color;
-					q1.TexCoord = { l, b };
-					q1.EntityID = component.EntityID;
-					q1.AtlasIndex = atlasIndex;
-					q1.TransformIndex = component.TransformIndex;
-				}
-
-				const size_t q2Index = vertices.size();
-				{
-					auto& q2 = vertices.emplace_back();
-					q2 = vertices[q1Index];
-					q2.Position = glm::vec2(pr, pb);
-					q2.TexCoord = { r, b };
-				}
-
-				const size_t q3Index = vertices.size();
-				{
-					auto& q3 = vertices.emplace_back();
-					q3 = vertices[q1Index];
-					q3.Position = glm::vec2(pr, pt);
-					q3.TexCoord = { r, t };
-				}
-
-				const size_t q4Index = vertices.size();
-				{
-					auto& q4 = vertices.emplace_back();
-					q4 = vertices[q1Index];
-					q4.Position = glm::vec2(pl, pt);
-					q4.TexCoord = { l, t };
-				}
-
-				if (i + 1 < textSize)
-				{
-					double advance = glyph->getAdvance();
-					fontGeometry->getAdvance(advance, character, text[i + 1]);
-					x += fsScale * advance + component.KerningOffset;
-				}
+					vertex.Color = component.Color;
 			}
 		}
 	}
@@ -1314,6 +1224,7 @@ namespace Eagle
 				data.LineHeightOffset = text->GetLineSpacing();
 				data.KerningOffset = text->GetKerning();
 				data.MaxWidth = text->GetMaxWidth();
+				data.Alignment = text->GetAlignment();
 				data.TransformIndex = transformIndex | (text->DoesReceiveDecals() ? (1 << 31) : 0u);
 				data.MaterialIndex = MaterialSystem::GetMaterialIndex(data.Material);
 				data.bCastsShadows = text->DoesCastShadows();
@@ -1329,6 +1240,7 @@ namespace Eagle
 				data.LineHeightOffset = text->GetLineSpacing();
 				data.KerningOffset = text->GetKerning();
 				data.MaxWidth = text->GetMaxWidth();
+				data.Alignment = text->GetAlignment();
 				data.bCastsShadows = text->DoesCastShadows();
 				data.bDoubleSided = text->IsDoubleSided();
 			}
@@ -1398,7 +1310,6 @@ namespace Eagle
 		m_FontAtlases.clear();
 		m_Atlases.clear();
 
-		uint32_t atlasCurrentIndex = 0;
 		{
 			const size_t textsCount = m_LitTexts.size();
 			for (size_t i = 0; i < textsCount; ++i)
@@ -1413,25 +1324,25 @@ namespace Eagle
 					case MaterialBlendMode::Opaque:
 					{
 						if (text.bCastsShadows)
-							ProcessTextData(text, m_FontAtlases, textsData.Opaque.ShadowCastingQuads.QuadVertices, atlasCurrentIndex);
+							ProcessTextData(text, m_FontAtlases, textsData.Opaque.ShadowCastingQuads.QuadVertices);
 						else
-							ProcessTextData(text, m_FontAtlases, textsData.Opaque.NonShadowQuads.QuadVertices, atlasCurrentIndex);
+							ProcessTextData(text, m_FontAtlases, textsData.Opaque.NonShadowQuads.QuadVertices);
 						break;
 					}
 					case MaterialBlendMode::Translucent:
 					{
 						if (text.bCastsShadows)
-							ProcessTextData(text, m_FontAtlases, textsData.Translucent.ShadowCastingQuads.QuadVertices, atlasCurrentIndex);
+							ProcessTextData(text, m_FontAtlases, textsData.Translucent.ShadowCastingQuads.QuadVertices);
 						else
-							ProcessTextData(text, m_FontAtlases, textsData.Translucent.NonShadowQuads.QuadVertices, atlasCurrentIndex);
+							ProcessTextData(text, m_FontAtlases, textsData.Translucent.NonShadowQuads.QuadVertices);
 						break;
 					}
 					case MaterialBlendMode::Masked:
 					{
 						if (text.bCastsShadows)
-							ProcessTextData(text, m_FontAtlases, textsData.Masked.ShadowCastingQuads.QuadVertices, atlasCurrentIndex);
+							ProcessTextData(text, m_FontAtlases, textsData.Masked.ShadowCastingQuads.QuadVertices);
 						else
-							ProcessTextData(text, m_FontAtlases, textsData.Masked.NonShadowQuads.QuadVertices, atlasCurrentIndex);
+							ProcessTextData(text, m_FontAtlases, textsData.Masked.NonShadowQuads.QuadVertices);
 						break;
 					}
 					default: EG_CORE_ASSERT("Unknown blend mode!");
@@ -1446,13 +1357,13 @@ namespace Eagle
 				const auto& text = m_UnlitTexts[i];
 				auto& textsData = text.bDoubleSided ? m_DoubleSidedUnlitTexts : m_SingleSidedUnlitTexts;
 				if (text.bCastsShadows)
-					ProcessTextData(text, m_FontAtlases, textsData.Opaque.ShadowCastingQuads.QuadVertices, atlasCurrentIndex);
+					ProcessTextData(text, m_FontAtlases, textsData.Opaque.ShadowCastingQuads.QuadVertices);
 				else
-					ProcessTextData(text, m_FontAtlases, textsData.Opaque.NonShadowQuads.QuadVertices, atlasCurrentIndex);
+					ProcessTextData(text, m_FontAtlases, textsData.Opaque.NonShadowQuads.QuadVertices);
 			}
 		}
 
-		m_Atlases.resize(atlasCurrentIndex);
+		m_Atlases.resize(m_FontAtlases.size());
 		for (auto& atlas : m_FontAtlases)
 			m_Atlases[atlas.second] = atlas.first;
 	}

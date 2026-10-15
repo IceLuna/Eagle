@@ -2,6 +2,7 @@
 
 #include "defines.h"
 #include "utils.h"
+#include "text/msdf.h"
 
 #ifdef EG_MATERIALS_REQUIRED
 #include "pipeline_layout.h"
@@ -26,19 +27,6 @@ layout(location = 1) out float o_Depth;
 
 layout(set = s_Set, binding = 0) uniform sampler2D g_FontAtlases[];
 
-float median(float r, float g, float b)
-{
-    return max(min(r, g), min(max(r, g), b));
-}
-
-float ScreenPxRange()
-{
-	const float pxRange = 2.0f;
-    const vec2 unitRange = vec2(pxRange) / vec2(textureSize(g_FontAtlases[nonuniformEXT(i_AtlasIndex)], 0));
-    vec2 screenTexSize = vec2(1.0) / fwidth(i_TexCoords);
-    return max(0.5f * dot(unitRange, screenTexSize), 1.0);
-}
-
 void main()
 {
 #ifdef EG_MATERIALS_REQUIRED
@@ -54,10 +42,7 @@ void main()
 	}
 #endif
 
-	const vec3 msd = texture(g_FontAtlases[nonuniformEXT(i_AtlasIndex)], i_TexCoords).rgb;
-    const float sd = median(msd.r, msd.g, msd.b);
-    const float screenPxDistance = ScreenPxRange() * (sd - 0.5f);
-    const float opacity = clamp(screenPxDistance + 0.5f, 0.f, 1.f);
+	const float opacity = MSDF_COVERAGE(g_FontAtlases[nonuniformEXT(i_AtlasIndex)], i_TexCoords);
 
 	if (opacity < 0.5f)
 		discard;

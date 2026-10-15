@@ -2,6 +2,7 @@
 
 #include "defines.h"
 #include "outline/outline_common.h"
+#include "text/msdf.h"
 
 #if defined(EG_BILLBOARD) && !defined(EG_MATERIALS_REQUIRED)
 #define EG_NO_MATERIALS // Billboards only need textures
@@ -31,13 +32,6 @@ layout(set = EG_OUTLINE_PASS_SET, binding = 1) uniform sampler2D g_FontAtlases[]
 
 layout(location = 0) out uint o_Mask;
 
-#ifdef EG_TEXT
-float Median(float r, float g, float b)
-{
-    return max(min(r, g), min(max(r, g), b));
-}
-#endif
-
 void main()
 {
     const float depth = gl_FragCoord.z;
@@ -46,14 +40,7 @@ void main()
 
 #ifdef EG_TEXT
     {
-        const vec3 msd = texture(g_FontAtlases[nonuniformEXT(i_TextureIndex)], i_TexCoords).rgb;
-        const float sd = Median(msd.r, msd.g, msd.b);
-
-        const float pxRange = 2.0;
-        const vec2 unitRange = vec2(pxRange) / vec2(textureSize(g_FontAtlases[nonuniformEXT(i_TextureIndex)], 0));
-        const vec2 screenTexSize = vec2(1.0) / fwidth(i_TexCoords);
-        const float screenPxRange = max(0.5 * dot(unitRange, screenTexSize), 1.0);
-        const float opacity = clamp(screenPxRange * (sd - 0.5) + 0.5, 0.0, 1.0);
+        const float opacity = MSDF_COVERAGE(g_FontAtlases[nonuniformEXT(i_TextureIndex)], i_TexCoords);
 
         bDiscard = bDiscard || (opacity < 0.5);
     }

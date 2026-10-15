@@ -454,6 +454,8 @@ namespace Eagle::Script
 	void Eagle_TextComponent_SetKerning(GUID entityID, float value);
 	float Eagle_TextComponent_GetMaxWidth(GUID entityID);
 	void Eagle_TextComponent_SetMaxWidth(GUID entityID, float value);
+	TextAlignment Eagle_TextComponent_GetAlignment(GUID entityID);
+	void Eagle_TextComponent_SetAlignment(GUID entityID, TextAlignment value);
 	void Eagle_TextComponent_SetIsLit(GUID entityID, bool value);
 	bool Eagle_TextComponent_GetIsLit(GUID entityID);
 	void Eagle_TextComponent_SetCastsShadows(GUID entityID, bool value);
