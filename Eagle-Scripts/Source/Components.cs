@@ -1525,10 +1525,10 @@ namespace Eagle
             set { SetLineSpacing_Native(Parent.ID, value); }
         }
         
-        public float Kerning
+        public float LetterSpacing
         {
-            get { return GetKerning_Native(Parent.ID); }
-            set { SetKerning_Native(Parent.ID, value); }
+            get { return GetLetterSpacing_Native(Parent.ID); }
+            set { SetLetterSpacing_Native(Parent.ID, value); }
         }
         
 		// Lines are wrapped at spaces to fit into it. 0 - no wrapping, the box is as wide as the widest line
@@ -1605,10 +1605,10 @@ namespace Eagle
         internal static extern void SetLineSpacing_Native(in GUID entityID, float value);
         
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern float GetKerning_Native(in GUID entityID);
+        internal static extern float GetLetterSpacing_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetKerning_Native(in GUID entityID, float value);
+        internal static extern void SetLetterSpacing_Native(in GUID entityID, float value);
         
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetMaxWidth_Native(in GUID entityID);
@@ -1738,10 +1738,10 @@ namespace Eagle
             set { SetRotation_Native(Parent.ID, value); }
         }
 
-        public float Kerning
+        public float LetterSpacing
         {
-            get { return GetKerning_Native(Parent.ID); }
-            set { SetKerning_Native(Parent.ID, value); }
+            get { return GetLetterSpacing_Native(Parent.ID); }
+            set { SetLetterSpacing_Native(Parent.ID, value); }
         }
 
         // Width of the text box in reference pixels (Project Settings -> UI Scale). Lines are wrapped at spaces to fit into it, and aligned within it.
@@ -1825,10 +1825,10 @@ namespace Eagle
         internal static extern void SetLineSpacing_Native(in GUID entityID, float value);
         
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern float GetKerning_Native(in GUID entityID);
+        internal static extern float GetLetterSpacing_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetKerning_Native(in GUID entityID, float value);
+        internal static extern void SetLetterSpacing_Native(in GUID entityID, float value);
         
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetMaxWidth_Native(in GUID entityID);

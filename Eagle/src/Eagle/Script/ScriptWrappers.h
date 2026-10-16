@@ -452,8 +452,8 @@ namespace Eagle::Script
 	void Eagle_TextComponent_SetOpacity(GUID entityID, float value);
 	float Eagle_TextComponent_GetLineSpacing(GUID entityID);
 	void Eagle_TextComponent_SetLineSpacing(GUID entityID, float value);
-	float Eagle_TextComponent_GetKerning(GUID entityID);
-	void Eagle_TextComponent_SetKerning(GUID entityID, float value);
+	float Eagle_TextComponent_GetLetterSpacing(GUID entityID);
+	void Eagle_TextComponent_SetLetterSpacing(GUID entityID, float value);
 	float Eagle_TextComponent_GetMaxWidth(GUID entityID);
 	void Eagle_TextComponent_SetMaxWidth(GUID entityID, float value);
 	TextAlignment Eagle_TextComponent_GetAlignment(GUID entityID);
@@ -492,8 +492,8 @@ namespace Eagle::Script
 	void Eagle_Text2DComponent_SetRotation(GUID entityID, float value);
 	float Eagle_Text2DComponent_GetLineSpacing(GUID entityID);
 	void Eagle_Text2DComponent_SetLineSpacing(GUID entityID, float value);
-	float Eagle_Text2DComponent_GetKerning(GUID entityID);
-	void Eagle_Text2DComponent_SetKerning(GUID entityID, float value);
+	float Eagle_Text2DComponent_GetLetterSpacing(GUID entityID);
+	void Eagle_Text2DComponent_SetLetterSpacing(GUID entityID, float value);
 	float Eagle_Text2DComponent_GetMaxWidth(GUID entityID);
 	void Eagle_Text2DComponent_SetMaxWidth(GUID entityID, float value);
 	void Eagle_Text2DComponent_SetOpacity(GUID entityID, float value);

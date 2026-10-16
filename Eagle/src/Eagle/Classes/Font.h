@@ -28,7 +28,7 @@ namespace Eagle
 	struct TextLayoutSettings
 	{
 		float LineSpacing = 0.f;   // Added to the font's line height
-		float KerningOffset = 0.f; // Added to the advance of each character
+		float LetterSpacing = 0.f; // Added to the advance of each character
 		float MaxWidth = 0.f;      // Lines are wrapped at spaces & tabs to fit into it
 		float BoxWidth = 0.f;      // If > 0, the layout box has this width instead of the widest line's
 		TextAlignment Alignment = TextAlignment::Left; // Alignment of lines within the layout box

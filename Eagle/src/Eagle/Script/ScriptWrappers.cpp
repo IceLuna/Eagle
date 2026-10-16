@@ -5952,27 +5952,27 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set line spacing of Text Component. Entity is null");
 	}
 
-	float Script::Eagle_TextComponent_GetKerning(GUID entityID)
+	float Script::Eagle_TextComponent_GetLetterSpacing(GUID entityID)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			return entity.GetComponent<TextComponent>().GetKerning();
+			return entity.GetComponent<TextComponent>().GetLetterSpacing();
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get kerning of Text Component. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get letter spacing of Text Component. Entity is null");
 			return 0.f;
 		}
 	}
 
-	void Script::Eagle_TextComponent_SetKerning(GUID entityID, float value)
+	void Script::Eagle_TextComponent_SetLetterSpacing(GUID entityID, float value)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<TextComponent>().SetKerning(value);
+			entity.GetComponent<TextComponent>().SetLetterSpacing(value);
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set kerning of Text Component. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set letter spacing of Text Component. Entity is null");
 	}
 
 	float Script::Eagle_TextComponent_GetMaxWidth(GUID entityID)
@@ -6476,25 +6476,25 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set line spacing of Text2D Component. Entity is null");
 	}
 
-	float Script::Eagle_Text2DComponent_GetKerning(GUID entityID)
+	float Script::Eagle_Text2DComponent_GetLetterSpacing(GUID entityID)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			return entity.GetComponent<Text2DComponent>().GetKerning();
+			return entity.GetComponent<Text2DComponent>().GetLetterSpacing();
 
-		EG_CORE_ERROR("[ScriptEngine] Couldn't get kerning of Text2D Component. Entity is null");
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get letter spacing of Text2D Component. Entity is null");
 		return 0.f;
 	}
 
-	void Script::Eagle_Text2DComponent_SetKerning(GUID entityID, float value)
+	void Script::Eagle_Text2DComponent_SetLetterSpacing(GUID entityID, float value)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<Text2DComponent>().SetKerning(value);
+			entity.GetComponent<Text2DComponent>().SetLetterSpacing(value);
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set kerning of Text2D Component. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set letter spacing of Text2D Component. Entity is null");
 	}
 
 	float Script::Eagle_Text2DComponent_GetMaxWidth(GUID entityID)

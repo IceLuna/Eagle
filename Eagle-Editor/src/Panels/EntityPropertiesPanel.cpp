@@ -600,7 +600,7 @@ namespace Eagle
 				DrawComponent<TextComponent>("Text", entity, [&entity, this](TextComponent& component)
 				{
 					float lineSpacing = component.GetLineSpacing();
-					float kerning = component.GetKerning();
+					float letterSpacing = component.GetLetterSpacing();
 					float maxWidth = component.GetMaxWidth();
 					std::string text = component.GetText();
 					bool bLit = component.IsLit();
@@ -686,9 +686,9 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					if (UI::PropertyDrag("Kerning", kerning, 0.1f))
+					if (UI::PropertyDrag("Letter Spacing", letterSpacing, 0.1f))
 					{
-						component.SetKerning(kerning);
+						component.SetLetterSpacing(letterSpacing);
 						bEntityChanged = true;
 					}
 
@@ -715,7 +715,7 @@ namespace Eagle
 				DrawComponent<Text2DComponent>("Text 2D", entity, [&entity, this](Text2DComponent& component)
 				{
 					float lineSpacing = component.GetLineSpacing();
-					float kerning = component.GetKerning();
+					float letterSpacing = component.GetLetterSpacing();
 					float maxWidth = component.GetMaxWidth();
 					std::string text = component.GetText();
 					Ref<AssetFont> asset = component.GetFontAsset();
@@ -803,9 +803,9 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					if (UI::PropertyDrag("Kerning", kerning, 0.01f, 0.f, 0.f, "Added to the advance of each character. In font sizes"))
+					if (UI::PropertyDrag("Letter Spacing", letterSpacing, 0.01f, 0.f, 0.f, "Added to the advance of each character. In font sizes"))
 					{
-						component.SetKerning(kerning);
+						component.SetLetterSpacing(letterSpacing);
 						bEntityChanged = true;
 					}
 

@@ -949,7 +949,7 @@ namespace Eagle
 		const glm::vec3& GetColor() const { return m_Color; }
 		float GetOpacity() const { return m_Opacity; }
 		float GetLineSpacing() const { return m_LineSpacing; }
-		float GetKerning() const { return m_Kerning; }
+		float GetLetterSpacing() const { return m_LetterSpacing; }
 		float GetMaxWidth() const { return m_MaxWidth; }
 		TextAlignment GetAlignment() const { return m_Alignment; }
 		bool IsLit() const { return m_bLit; }
@@ -958,7 +958,7 @@ namespace Eagle
 		{
 			TextLayoutSettings settings;
 			settings.LineSpacing = m_LineSpacing;
-			settings.KerningOffset = m_Kerning;
+			settings.LetterSpacing = m_LetterSpacing;
 			settings.MaxWidth = (m_MaxWidth > 0.f) ? m_MaxWidth : std::numeric_limits<float>::max();
 			settings.BoxWidth = m_MaxWidth; // Doesn't move the text since its origin follows the alignment, but the box shows the wrap width
 			settings.Alignment = m_Alignment;
@@ -996,9 +996,9 @@ namespace Eagle
 			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
 		}
 
-		void SetKerning(float value)
+		void SetLetterSpacing(float value)
 		{
-			m_Kerning = value;
+			m_LetterSpacing = value;
 			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
 		}
 
@@ -1063,7 +1063,7 @@ namespace Eagle
 		glm::vec3 m_Color = glm::vec3(1.f); // Used if bLit == false
 		float m_Opacity = 1.f; // Used if bLit == false
 		float m_LineSpacing = 0.0f;
-		float m_Kerning = 0.0f;
+		float m_LetterSpacing = 0.0f;
 		float m_MaxWidth = 10.0f;
 		TextAlignment m_Alignment = TextAlignment::Left;
 
@@ -1106,9 +1106,9 @@ namespace Eagle
 		}
 
 		// In font sizes
-		void SetKerning(float value)
+		void SetLetterSpacing(float value)
 		{
-			m_Kerning = value;
+			m_LetterSpacing = value;
 			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
 		}
 
@@ -1178,7 +1178,7 @@ namespace Eagle
 		const std::string& GetText() const { return m_Text; }
 		const glm::vec3& GetColor() const { return m_Color; }
 		float GetLineSpacing() const { return m_LineSpacing; }
-		float GetKerning() const { return m_Kerning; }
+		float GetLetterSpacing() const { return m_LetterSpacing; }
 		float GetMaxWidth() const { return m_MaxWidth; }
 		float GetFontSize() const { return m_FontSize; }
 		TextAlignment GetAlignment() const { return m_Alignment; }
@@ -1195,7 +1195,7 @@ namespace Eagle
 
 			TextLayoutSettings settings;
 			settings.LineSpacing = m_LineSpacing;
-			settings.KerningOffset = m_Kerning;
+			settings.LetterSpacing = m_LetterSpacing;
 			settings.MaxWidth = (maxWidth > 0.f) ? maxWidth : std::numeric_limits<float>::max();
 			settings.BoxWidth = maxWidth;
 			settings.Alignment = m_Alignment;
@@ -1208,7 +1208,7 @@ namespace Eagle
 
 		glm::vec3 m_Color = glm::vec3(1.f);
 		float m_LineSpacing = 0.0f;
-		float m_Kerning = 0.0f;
+		float m_LetterSpacing = 0.0f;
 		float m_MaxWidth = 0.f;
 		float m_FontSize = 64.f;
 		TextAlignment m_Alignment = TextAlignment::Left;

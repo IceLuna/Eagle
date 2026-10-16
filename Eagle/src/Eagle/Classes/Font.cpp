@@ -244,7 +244,7 @@ namespace Eagle
 					fontGeometry.getAdvance(advance, ' ', nextCharacter);
 				}
 
-				x += (fsScale * advance + settings.KerningOffset) * (bIsTab ? 4.0 : 1.0);
+				x += (fsScale * advance + settings.LetterSpacing) * (bIsTab ? 4.0 : 1.0);
 				continue;
 			}
 
@@ -283,7 +283,7 @@ namespace Eagle
 			{
 				double advance = glyph->getAdvance();
 				fontGeometry.getAdvance(advance, character, text[i + 1]);
-				x += fsScale * advance + settings.KerningOffset;
+				x += fsScale * advance + settings.LetterSpacing;
 			}
 		}
 

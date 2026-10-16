@@ -2462,7 +2462,7 @@ namespace Eagle
 			out << YAML::Key << "bReceivesDecals" << YAML::Value << text.DoesReceiveDecals();
 			out << YAML::Key << "IsVisible" << YAML::Value << text.IsVisible();
 			out << YAML::Key << "LineSpacing" << YAML::Value << text.GetLineSpacing();
-			out << YAML::Key << "Kerning" << YAML::Value << text.GetKerning();
+			out << YAML::Key << "LetterSpacing" << YAML::Value << text.GetLetterSpacing();
 			out << YAML::Key << "MaxWidth" << YAML::Value << text.GetMaxWidth();
 			out << YAML::Key << "Alignment" << YAML::Value << Utils::GetEnumName(text.GetAlignment());
 
@@ -2482,7 +2482,7 @@ namespace Eagle
 			out << YAML::Key << "Text" << YAML::Value << text.GetText();
 			out << YAML::Key << "Color" << YAML::Value << text.GetColor();
 			out << YAML::Key << "LineSpacing" << YAML::Value << text.GetLineSpacing();
-			out << YAML::Key << "Kerning" << YAML::Value << text.GetKerning();
+			out << YAML::Key << "LetterSpacing" << YAML::Value << text.GetLetterSpacing();
 			out << YAML::Key << "MaxWidth" << YAML::Value << text.GetMaxWidth();
 			out << YAML::Key << "FontSize" << YAML::Value << text.GetFontSize();
 			out << YAML::Key << "Alignment" << YAML::Value << Utils::GetEnumName(text.GetAlignment());
@@ -3207,7 +3207,10 @@ namespace Eagle
 			if (auto node = textNode["IsVisible"])
 				text.SetVisible(node.as<bool>());
 			text.SetLineSpacing(textNode["LineSpacing"].as<float>());
-			text.SetKerning(textNode["Kerning"].as<float>());
+			if (auto node = textNode["LetterSpacing"])
+				text.SetLetterSpacing(node.as<float>());
+			else if (auto oldNode = textNode["Kerning"])
+				text.SetLetterSpacing(oldNode.as<float>());
 			text.SetMaxWidth(textNode["MaxWidth"].as<float>());
 			if (auto node = textNode["Alignment"])
 				text.SetAlignment(Utils::GetEnumFromName<TextAlignment>(node.as<std::string>()));
@@ -3223,7 +3226,10 @@ namespace Eagle
 			text.SetLineSpacing(textNode["LineSpacing"].as<float>());
 			text.SetRotation(textNode["Rotation"].as<float>());
 			text.SetIsVisible(textNode["IsVisible"].as<bool>());
-			text.SetKerning(textNode["Kerning"].as<float>());
+			if (auto node = textNode["LetterSpacing"])
+				text.SetLetterSpacing(node.as<float>());
+			else if (auto oldNode = textNode["Kerning"])
+				text.SetLetterSpacing(oldNode.as<float>());
 			text.SetMaxWidth(textNode["MaxWidth"].as<float>());
 			text.SetOpacity(textNode["Opacity"].as<float>());
 			if (auto anchorNode = textNode["Anchor"])

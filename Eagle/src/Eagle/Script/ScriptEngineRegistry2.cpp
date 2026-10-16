@@ -554,8 +554,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.TextComponent::SetOpacity_Native", Eagle::Script::Eagle_TextComponent_SetOpacity);
 		mono_add_internal_call("Eagle.TextComponent::GetLineSpacing_Native", Eagle::Script::Eagle_TextComponent_GetLineSpacing);
 		mono_add_internal_call("Eagle.TextComponent::SetLineSpacing_Native", Eagle::Script::Eagle_TextComponent_SetLineSpacing);
-		mono_add_internal_call("Eagle.TextComponent::GetKerning_Native", Eagle::Script::Eagle_TextComponent_GetKerning);
-		mono_add_internal_call("Eagle.TextComponent::SetKerning_Native", Eagle::Script::Eagle_TextComponent_SetKerning);
+		mono_add_internal_call("Eagle.TextComponent::GetLetterSpacing_Native", Eagle::Script::Eagle_TextComponent_GetLetterSpacing);
+		mono_add_internal_call("Eagle.TextComponent::SetLetterSpacing_Native", Eagle::Script::Eagle_TextComponent_SetLetterSpacing);
 		mono_add_internal_call("Eagle.TextComponent::GetMaxWidth_Native", Eagle::Script::Eagle_TextComponent_GetMaxWidth);
 		mono_add_internal_call("Eagle.TextComponent::SetMaxWidth_Native", Eagle::Script::Eagle_TextComponent_SetMaxWidth);
 		mono_add_internal_call("Eagle.TextComponent::GetAlignment_Native", Eagle::Script::Eagle_TextComponent_GetAlignment);
@@ -582,8 +582,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Text2DComponent::SetColor_Native", Eagle::Script::Eagle_Text2DComponent_SetColor);
 		mono_add_internal_call("Eagle.Text2DComponent::GetLineSpacing_Native", Eagle::Script::Eagle_Text2DComponent_GetLineSpacing);
 		mono_add_internal_call("Eagle.Text2DComponent::SetLineSpacing_Native", Eagle::Script::Eagle_Text2DComponent_SetLineSpacing);
-		mono_add_internal_call("Eagle.Text2DComponent::GetKerning_Native", Eagle::Script::Eagle_Text2DComponent_GetKerning);
-		mono_add_internal_call("Eagle.Text2DComponent::SetKerning_Native", Eagle::Script::Eagle_Text2DComponent_SetKerning);
+		mono_add_internal_call("Eagle.Text2DComponent::GetLetterSpacing_Native", Eagle::Script::Eagle_Text2DComponent_GetLetterSpacing);
+		mono_add_internal_call("Eagle.Text2DComponent::SetLetterSpacing_Native", Eagle::Script::Eagle_Text2DComponent_SetLetterSpacing);
 		mono_add_internal_call("Eagle.Text2DComponent::GetMaxWidth_Native", Eagle::Script::Eagle_Text2DComponent_GetMaxWidth);
 		mono_add_internal_call("Eagle.Text2DComponent::SetMaxWidth_Native", Eagle::Script::Eagle_Text2DComponent_SetMaxWidth);
 		mono_add_internal_call("Eagle.Text2DComponent::SetOpacity_Native", Eagle::Script::Eagle_Text2DComponent_SetOpacity);
