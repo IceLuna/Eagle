@@ -903,15 +903,23 @@ namespace Eagle
 			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
 		}
 
+		void SetPivotFollowsAnchor(bool bFollows)
+		{
+			m_PivotFollowsAnchor = bFollows;
+			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
+		}
+
 		const Ref<AssetTexture2D>& GetTextureAsset() const { return m_TextureAsset; }
 		glm::vec3 GetTint() const { return m_Tint; }
 		glm::vec2 GetAnchor() const { return m_Anchor; }
 		glm::vec2 GetPivot() const { return m_Pivot; }
+		glm::vec2 GetActualPivot() const { return m_PivotFollowsAnchor ? m_Anchor : m_Pivot; } // Returns anchor values if `m_PivotFollowsAnchor` is true
 		glm::vec2 GetOffset() const { return m_Offset; }
 		glm::vec2 GetSize() const { return m_Size; }
 		float GetRotation() const { return m_Rotation; }
 		float GetOpacity() const { return m_Opacity; }
 		bool IsVisible() const { return m_IsVisible; }
+		bool DoesPivotFollowAnchor() const { return m_PivotFollowsAnchor; }
 
 	private:
 		Ref<AssetTexture2D> m_TextureAsset;
@@ -923,6 +931,7 @@ namespace Eagle
 		float m_Rotation = 0.f;
 		float m_Opacity = 1.f;
 		bool m_IsVisible = true;
+		bool m_PivotFollowsAnchor = false; // If true, anchor value will be used for the pivot
 	};
 
 	class TextComponent : public SceneComponent
@@ -963,6 +972,11 @@ namespace Eagle
 			settings.BoxWidth = m_MaxWidth; // Doesn't move the text since its origin follows the alignment, but the box shows the wrap width
 			settings.Alignment = m_Alignment;
 			return settings;
+		}
+
+		Ref<const TextLayout> GetLayout() const
+		{
+			return m_LayoutCache.Get(m_FontAsset ? m_FontAsset->GetFont() : nullptr, m_Text, GetLayoutSettings());
 		}
 
 		void SetFontAsset(const Ref<AssetFont>& font)
@@ -1059,6 +1073,7 @@ namespace Eagle
 		std::string m_Text = "Hello, World!";
 		Ref<AssetFont> m_FontAsset;
 		Ref<AssetMaterial> m_MaterialAsset; // Used if bLit == true
+		mutable TextLayoutCache m_LayoutCache;
 
 		glm::vec3 m_Color = glm::vec3(1.f); // Used if bLit == false
 		float m_Opacity = 1.f; // Used if bLit == false
@@ -1174,6 +1189,12 @@ namespace Eagle
 			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
 		}
 
+		void SetPivotFollowsAnchor(bool bFollows)
+		{
+			m_PivotFollowsAnchor = bFollows;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
 		const Ref<AssetFont>& GetFontAsset() const { return m_FontAsset; }
 		const std::string& GetText() const { return m_Text; }
 		const glm::vec3& GetColor() const { return m_Color; }
@@ -1184,10 +1205,12 @@ namespace Eagle
 		TextAlignment GetAlignment() const { return m_Alignment; }
 		glm::vec2 GetAnchor() const { return m_Anchor; }
 		glm::vec2 GetPivot() const { return m_Pivot; }
+		glm::vec2 GetActualPivot() const { return m_PivotFollowsAnchor ? m_Anchor : m_Pivot; } // Returns anchor values if `m_PivotFollowsAnchor` is true
 		glm::vec2 GetOffset() const { return m_Offset; }
 		float GetRotation() const { return m_Rotation; }
 		float GetOpacity() const { return m_Opacity; }
 		bool IsVisible() const { return m_IsVisible; }
+		bool DoesPivotFollowAnchor() const { return m_PivotFollowsAnchor; }
 
 		TextLayoutSettings GetLayoutSettings() const
 		{
@@ -1202,9 +1225,15 @@ namespace Eagle
 			return settings;
 		}
 
+		Ref<const TextLayout> GetLayout() const
+		{
+			return m_LayoutCache.Get(m_FontAsset ? m_FontAsset->GetFont() : nullptr, m_Text, GetLayoutSettings());
+		}
+
 	private:
 		std::string m_Text = "Hello, 2D World!";
 		Ref<AssetFont> m_FontAsset;
+		mutable TextLayoutCache m_LayoutCache;
 
 		glm::vec3 m_Color = glm::vec3(1.f);
 		float m_LineSpacing = 0.0f;
@@ -1218,6 +1247,7 @@ namespace Eagle
 		float m_Rotation = 0.f;
 		float m_Opacity = 1.f;
 		bool m_IsVisible = true;
+		bool m_PivotFollowsAnchor = false; // If true, anchor value will be used for the pivot
 	};
 
 	class CameraComponent : public SceneComponent

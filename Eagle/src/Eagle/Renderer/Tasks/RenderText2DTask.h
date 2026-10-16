@@ -39,9 +39,8 @@ namespace Eagle
 		struct Text2DComponentData
 		{
 			Ref<Font> Font;
-			std::u32string Text;
+			Ref<const TextLayout> Layout;
 			glm::vec3 Color;
-			TextLayoutSettings LayoutSettings;
 			float FontSize;
 			glm::vec2 Anchor;
 			glm::vec2 Pivot;

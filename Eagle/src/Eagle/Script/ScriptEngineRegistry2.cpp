@@ -604,6 +604,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Text2DComponent::IsVisible_Native", Eagle::Script::Eagle_Text2DComponent_IsVisible);
 		mono_add_internal_call("Eagle.Text2DComponent::SetFont_Native", Eagle::Script::Eagle_Text2DComponent_SetFont);
 		mono_add_internal_call("Eagle.Text2DComponent::GetFont_Native", Eagle::Script::Eagle_Text2DComponent_GetFont);
+		mono_add_internal_call("Eagle.Text2DComponent::SetPivotFollowsAnchor_Native", Eagle::Script::Eagle_Text2DComponent_SetPivotFollowsAnchor);
+		mono_add_internal_call("Eagle.Text2DComponent::DoesPivotFollowAnchor_Native", Eagle::Script::Eagle_Text2DComponent_DoesPivotFollowAnchor);
 
 		// Image2D Component
 		mono_add_internal_call("Eagle.Image2DComponent::GetTexture_Native", Eagle::Script::Eagle_Image2DComponent_GetTexture);
@@ -624,6 +626,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Image2DComponent::GetSize_Native", Eagle::Script::Eagle_Image2DComponent_GetSize);
 		mono_add_internal_call("Eagle.Image2DComponent::SetIsVisible_Native", Eagle::Script::Eagle_Image2DComponent_SetIsVisible);
 		mono_add_internal_call("Eagle.Image2DComponent::IsVisible_Native", Eagle::Script::Eagle_Image2DComponent_IsVisible);
+		mono_add_internal_call("Eagle.Image2DComponent::SetPivotFollowsAnchor_Native", Eagle::Script::Eagle_Image2DComponent_SetPivotFollowsAnchor);
+		mono_add_internal_call("Eagle.Image2DComponent::DoesPivotFollowAnchor_Native", Eagle::Script::Eagle_Image2DComponent_DoesPivotFollowAnchor);
 
 		// Billboard Component
 		mono_add_internal_call("Eagle.BillboardComponent::SetTexture_Native", Eagle::Script::Eagle_BillboardComponent_SetTexture);

@@ -2354,14 +2354,13 @@ namespace Eagle
 		// 3D text: debug lines in world space
 		auto addText = [&](const TextComponent& text)
 		{
-			const auto& fontAsset = text.GetFontAsset();
-			if (!fontAsset || !fontAsset->GetFont() || !text.IsVisible())
+			const Ref<const TextLayout> layoutRef = text.IsVisible() ? text.GetLayout() : nullptr;
+			if (!layoutRef)
 				return;
 
 			const bool bSelected = text.Parent == selectedEntity;
-			const TextLayoutSettings settings = text.GetLayoutSettings();
-			const TextLayout layout = fontAsset->GetFont()->Layout(Utils::ToUTF32(text.GetText()), settings);
-			const glm::vec2 origin = layout.GetAlignmentOrigin(settings.Alignment);
+			const TextLayout& layout = *layoutRef;
+			const glm::vec2 origin = layout.GetAlignmentOrigin(text.GetAlignment());
 			const glm::mat4 transform = Math::ToTransformMatrix(text.GetWorldTransform());
 			auto addLine = [&](glm::vec2 start, glm::vec2 end, const glm::vec3& color)
 			{
@@ -2435,14 +2434,14 @@ namespace Eagle
 
 		auto addText2D = [&](const Text2DComponent& text)
 		{
-			const auto& fontAsset = text.GetFontAsset();
 			const float fontSize = text.GetFontSize();
-			if (!fontAsset || !fontAsset->GetFont() || fontSize <= 0.f || !text.IsVisible())
+			const Ref<const TextLayout> layoutRef = (fontSize > 0.f && text.IsVisible()) ? text.GetLayout() : nullptr;
+			if (!layoutRef)
 				return;
 
 			const bool bSelected = text.Parent == selectedEntity;
-			const TextLayout layout = fontAsset->GetFont()->Layout(Utils::ToUTF32(text.GetText()), text.GetLayoutSettings());
-			const glm::vec2 pivot = layout.GetBoxPoint(text.GetPivot());
+			const TextLayout& layout = *layoutRef;
+			const glm::vec2 pivot = layout.GetBoxPoint(text.GetActualPivot());
 			const glm::vec2 toPixels = glm::vec2(fontSize, -fontSize);
 			auto toLocal = [&](glm::vec2 p) { return (p - pivot) * toPixels; };
 
@@ -2463,7 +2462,7 @@ namespace Eagle
 				return;
 
 			const glm::vec2 size = image.GetSize();
-			const glm::vec2 pivot = image.GetPivot() * size;
+			const glm::vec2 pivot = image.GetActualPivot() * size;
 			addUIElement(image.GetAnchor(), image.GetOffset(), image.GetRotation(), -pivot, size - pivot, image.Parent == selectedEntity, {});
 		};
 

@@ -258,6 +258,8 @@ project "Eagle"
 		buildoptions { "/bigobj" }
 	filter "files:Eagle/src/Eagle/Core/Serializer.cpp"
 		buildoptions { "/bigobj" }
+	filter "files:Eagle/src/Eagle/Core/Scene.cpp"
+		buildoptions { "/bigobj" }
 
 	filter "system:windows"
 		systemversion "latest"

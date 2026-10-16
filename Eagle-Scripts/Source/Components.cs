@@ -1764,6 +1764,14 @@ namespace Eagle
             set { SetIsVisible_Native(Parent.ID, value); }
         }
 
+        // If true, anchor value will be used for the pivot.
+        // Note: Stored pivot value stays unchanged. To retrieve the actual pivot, do: `actualPivot = bPivotFollowsAnchor ? Anchor : Pivot`;
+        public bool bPivotFollowsAnchor
+        {
+            get { return DoesPivotFollowAnchor_Native(Parent.ID); }
+            set { SetPivotFollowsAnchor_Native(Parent.ID, value); }
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern GUID GetFont_Native(in GUID entityID);
 
@@ -1847,6 +1855,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsVisible_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetPivotFollowsAnchor_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool DoesPivotFollowAnchor_Native(in GUID entityID);
     }
     
     public class Image2DComponent : Component
@@ -1921,6 +1935,14 @@ namespace Eagle
             set { SetIsVisible_Native(Parent.ID, value); }
         }
 
+        // If true, anchor value will be used for the pivot.
+        // Note: Stored pivot value stays unchanged. To retrieve the actual pivot, do: `actualPivot = bPivotFollowsAnchor ? Anchor : Pivot`;
+        public bool bPivotFollowsAnchor
+        {
+            get { return DoesPivotFollowAnchor_Native(Parent.ID); }
+            set { SetPivotFollowsAnchor_Native(Parent.ID, value); }
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetTexture_Native(in GUID entityID, in GUID textureID);
 
@@ -1974,6 +1996,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsVisible_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetPivotFollowsAnchor_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool DoesPivotFollowAnchor_Native(in GUID entityID);
     }
 
     public class AudioComponent : SceneComponent

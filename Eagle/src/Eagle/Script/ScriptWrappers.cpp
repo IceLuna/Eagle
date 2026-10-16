@@ -6560,6 +6560,27 @@ namespace Eagle
 		return true;
 	}
 
+	void Script::Eagle_Text2DComponent_SetPivotFollowsAnchor(GUID entityID, bool value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetPivotFollowsAnchor(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'bPivotFollowsAnchor' of Text2D Component. Entity is null");
+	}
+
+	bool Script::Eagle_Text2DComponent_DoesPivotFollowAnchor(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Text2DComponent>().DoesPivotFollowAnchor();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get 'bPivotFollowsAnchor' of Text2D Component. Entity is null");
+		return true;
+	}
+
 	//--------------Image2D Component--------------
 	void Script::Eagle_Image2DComponent_SetTexture(GUID entityID, GUID assetID)
 	{
@@ -6771,6 +6792,27 @@ namespace Eagle
 
 		EG_CORE_ERROR("[ScriptEngine] Couldn't get 'IsVisible' of Image2D Component. Entity is null");
 		return false;
+	}
+
+	void Script::Eagle_Image2DComponent_SetPivotFollowsAnchor(GUID entityID, bool value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Image2DComponent>().SetPivotFollowsAnchor(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'bPivotFollowsAnchor' of Image2D Component. Entity is null");
+	}
+
+	bool Script::Eagle_Image2DComponent_DoesPivotFollowAnchor(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Image2DComponent>().DoesPivotFollowAnchor();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get 'bPivotFollowsAnchor' of Image2D Component. Entity is null");
+		return true;
 	}
 
 	//--------------Billboard Component--------------

@@ -32,6 +32,14 @@ namespace Eagle
 		float MaxWidth = 0.f;      // Lines are wrapped at spaces & tabs to fit into it
 		float BoxWidth = 0.f;      // If > 0, the layout box has this width instead of the widest line's
 		TextAlignment Alignment = TextAlignment::Left; // Alignment of lines within the layout box
+
+		bool operator==(const TextLayoutSettings& other) const
+		{
+			return LineSpacing == other.LineSpacing && LetterSpacing == other.LetterSpacing && MaxWidth == other.MaxWidth &&
+				BoxWidth == other.BoxWidth && Alignment == other.Alignment;
+		}
+
+		bool operator!=(const TextLayoutSettings& other) const { return !(*this == other); }
 	};
 
 	struct TextLayoutGlyph
@@ -122,5 +130,20 @@ namespace Eagle
 
 		Ref<Texture2D> m_Atlas;
 		GUID m_GUID;
+	};
+
+	// Keeps the last layout, and lays the text out again only when the font, the text or the settings change.
+	// The layout is immutable, so it can be shared with the render thread
+	class TextLayoutCache
+	{
+	public:
+		// Null if there's no font
+		const Ref<const TextLayout>& Get(const Ref<Font>& font, const std::string& text, const TextLayoutSettings& settings);
+
+	private:
+		Ref<const TextLayout> m_Layout;
+		Ref<Font> m_Font;
+		std::string m_Text;
+		TextLayoutSettings m_Settings;
 	};
 }

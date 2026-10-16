@@ -228,6 +228,7 @@ namespace Eagle
 		{
 			DecalData Data;
 			uint32_t SortPriority;
+			GUID EntityGUID;
 		};
 
 		ankerl::unordered_dense::map<uint32_t, uint64_t> decalsTransformsMapping; // key - entity ID; value - index into m_Transforms
@@ -255,6 +256,7 @@ namespace Eagle
 
 				auto& updateData = decalsData.emplace_back();
 				updateData.SortPriority = decalComp->GetSortPriority();
+				updateData.EntityGUID = decalComp->Parent.GetGUID();
 				auto& data = updateData.Data;
 				data.MaterialIndex = MaterialSystem::GetMaterialIndex(material);
 				data.TransformIndex = transformIndex;
@@ -270,7 +272,11 @@ namespace Eagle
 
 		std::sort(decalsData.begin(), decalsData.end(), [](const UpdateData& a, const UpdateData& b)
 		{
-			return a.SortPriority < b.SortPriority; // We want lower priorities to be first
+			// We want lower priorities to be first. Equal priorities are ordered by GUID, so that their order doesn't depend on
+			// the order of the components in the registry (it can change when entities are created/destroyed)
+			if (a.SortPriority != b.SortPriority)
+				return a.SortPriority < b.SortPriority;
+			return a.EntityGUID < b.EntityGUID;
 		});
 
 		RenderManager::Submit([task = shared_from_this(), decals = std::move(decalsData), transforms = std::move(decalTransforms),

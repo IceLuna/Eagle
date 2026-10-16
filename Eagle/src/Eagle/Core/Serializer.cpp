@@ -2488,6 +2488,7 @@ namespace Eagle
 			out << YAML::Key << "Alignment" << YAML::Value << Utils::GetEnumName(text.GetAlignment());
 			out << YAML::Key << "Anchor" << YAML::Value << text.GetAnchor();
 			out << YAML::Key << "Pivot" << YAML::Value << text.GetPivot();
+			out << YAML::Key << "PivotFollowsAnchor" << YAML::Value << text.DoesPivotFollowAnchor();
 			out << YAML::Key << "Offset" << YAML::Value << text.GetOffset();
 			out << YAML::Key << "Rotation" << YAML::Value << text.GetRotation();
 			out << YAML::Key << "IsVisible" << YAML::Value << text.IsVisible();
@@ -2508,6 +2509,7 @@ namespace Eagle
 			out << YAML::Key << "Tint" << YAML::Value << text.GetTint();
 			out << YAML::Key << "Anchor" << YAML::Value << text.GetAnchor();
 			out << YAML::Key << "Pivot" << YAML::Value << text.GetPivot();
+			out << YAML::Key << "PivotFollowsAnchor" << YAML::Value << text.DoesPivotFollowAnchor();
 			out << YAML::Key << "Offset" << YAML::Value << text.GetOffset();
 			out << YAML::Key << "Size" << YAML::Value << text.GetSize();
 			out << YAML::Key << "Rotation" << YAML::Value << text.GetRotation();
@@ -3239,6 +3241,8 @@ namespace Eagle
 				text.SetOffset(textNode["Offset"].as<glm::vec2>());
 				text.SetFontSize(textNode["FontSize"].as<float>());
 				text.SetAlignment(Utils::GetEnumFromName<TextAlignment>(textNode["Alignment"].as<std::string>()));
+				if (auto node = textNode["PivotFollowsAnchor"])
+					text.SetPivotFollowsAnchor(node.as<bool>());
 			}
 		}
 
@@ -3256,6 +3260,8 @@ namespace Eagle
 				image2D.SetPivot(imageNode["Pivot"].as<glm::vec2>());
 				image2D.SetOffset(imageNode["Offset"].as<glm::vec2>());
 				image2D.SetSize(imageNode["Size"].as<glm::vec2>());
+				if (auto node = imageNode["PivotFollowsAnchor"])
+					image2D.SetPivotFollowsAnchor(node.as<bool>());
 			}
 			image2D.SetIsVisible(imageNode["IsVisible"].as<bool>());
 			image2D.SetOpacity(imageNode["Opacity"].as<float>());

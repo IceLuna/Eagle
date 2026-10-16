@@ -1165,10 +1165,10 @@ namespace Eagle
 	template <typename TextDataType, typename VertexType>
 	static void ProcessTextData(const TextDataType& component, ankerl::unordered_dense::map<Ref<Texture2D>, uint32_t>& fontAtlases, std::vector<VertexType>& vertices)
 	{
-		const TextLayout layout = component.Font->Layout(component.Text, component.LayoutSettings);
+		const TextLayout& layout = *component.Layout;
 		const uint32_t atlasIndex = GetFontAtlasIndex(fontAtlases, component.Font->GetAtlas());
 
-		const glm::vec2 origin = layout.GetAlignmentOrigin(component.LayoutSettings.Alignment);
+		const glm::vec2 origin = layout.GetAlignmentOrigin(component.Alignment);
 		for (const auto& glyph : layout.Glyphs)
 		{
 			for (uint32_t corner = 0; corner < 4; ++corner)
@@ -1206,10 +1206,11 @@ namespace Eagle
 
 		for (auto& text : texts)
 		{
-			const auto& asset = text->GetFontAsset();
-			if (!asset)
+			Ref<const TextLayout> layout = text->GetLayout();
+			if (!layout)
 				continue;
 
+			const auto& asset = text->GetFontAsset();
 			const uint32_t transformIndex = (uint32_t)tempTransforms.size();
 			if (text->IsLit())
 			{
@@ -1217,10 +1218,10 @@ namespace Eagle
 				Ref<Material> material = materialAsset ? materialAsset->GetMaterial() : nullptr;
 				LitTextData& data = litTexts.emplace_back();
 				data.Material = std::move(material);
-				data.Text = Utils::ToUTF32(text->GetText());
+				data.Layout = layout;
 				data.Font = asset->GetFont();
 				data.EntityID = text->Parent.GetID();
-				data.LayoutSettings = text->GetLayoutSettings();
+				data.Alignment = text->GetAlignment();
 				data.TransformIndex = transformIndex | (text->DoesReceiveDecals() ? (1 << 31) : 0u);
 				data.MaterialIndex = MaterialSystem::GetMaterialIndex(data.Material);
 				data.bCastsShadows = text->DoesCastShadows();
@@ -1229,12 +1230,12 @@ namespace Eagle
 			{
 				auto& data = unlitTexts.emplace_back();
 				data.TransformIndex = transformIndex;
-				data.Text = Utils::ToUTF32(text->GetText());
+				data.Layout = layout;
 				data.Font = asset->GetFont();
 				data.Color = text->GetColor();
 				data.Opacity = text->GetOpacity();
 				data.EntityID = text->Parent.GetID();
-				data.LayoutSettings = text->GetLayoutSettings();
+				data.Alignment = text->GetAlignment();
 				data.bCastsShadows = text->DoesCastShadows();
 				data.bDoubleSided = text->IsDoubleSided();
 			}

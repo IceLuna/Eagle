@@ -166,18 +166,17 @@ namespace Eagle
 
 		for (auto& text : texts)
 		{
-			const auto& asset = text->GetFontAsset();
-			if (!asset)
+			Ref<const TextLayout> layout = text->GetLayout();
+			if (!layout)
 				continue;
 
 			auto& data = datas.emplace_back();
-			data.Font = asset->GetFont();
-			data.Text = Utils::ToUTF32(text->GetText());
+			data.Font = text->GetFontAsset()->GetFont();
+			data.Layout = std::move(layout);
 			data.Color = text->GetColor();
-			data.LayoutSettings = text->GetLayoutSettings();
 			data.FontSize = text->GetFontSize();
 			data.Anchor = text->GetAnchor();
-			data.Pivot = text->GetPivot();
+			data.Pivot = text->GetActualPivot();
 			data.Offset = text->GetOffset();
 			data.Rotation = text->GetRotation();
 			data.EntityID = text->Parent.GetID();
@@ -209,7 +208,7 @@ namespace Eagle
 			if (fontSize <= 0.f)
 				continue;
 
-			const TextLayout layout = component.Font->Layout(component.Text, component.LayoutSettings);
+			const TextLayout& layout = *component.Layout;
 			const uint32_t atlasIndex = GetFontAtlasIndex(m_FontAtlases, component.Font->GetAtlas());
 
 			// Y is flipped since glyphs are laid out with Y pointing up, but NDC has Y pointing down.

@@ -290,10 +290,10 @@ namespace Eagle
 	struct LitTextData
 	{
 		Ref<Material> Material;
-		std::u32string Text;
+		Ref<const TextLayout> Layout;
 		Ref<Font> Font;
 		int EntityID;
-		TextLayoutSettings LayoutSettings;
+		TextAlignment Alignment;
 		uint32_t TransformIndex;
 		uint32_t MaterialIndex;
 		bool bCastsShadows = false;
@@ -303,10 +303,10 @@ namespace Eagle
 	{
 		glm::vec3 Color;
 		float Opacity;
-		std::u32string Text;
+		Ref<const TextLayout> Layout;
 		Ref<Font> Font;
 		int EntityID;
-		TextLayoutSettings LayoutSettings;
+		TextAlignment Alignment;
 		uint32_t TransformIndex;
 		bool bCastsShadows = false;
 		bool bDoubleSided = false;

@@ -502,6 +502,8 @@ namespace Eagle::Script
 	bool Eagle_Text2DComponent_IsVisible(GUID entityID);
 	GUID Eagle_Text2DComponent_GetFont(GUID entityID);
 	void Eagle_Text2DComponent_SetFont(GUID entityID, GUID assetID);
+	void Eagle_Text2DComponent_SetPivotFollowsAnchor(GUID entityID, bool value);
+	bool Eagle_Text2DComponent_DoesPivotFollowAnchor(GUID entityID);
 
 	// Image2D Component
 	void Eagle_Image2DComponent_SetTexture(GUID entityID, GUID textureID);
@@ -522,6 +524,8 @@ namespace Eagle::Script
 	float Eagle_Image2DComponent_GetOpacity(GUID entityID);
 	void Eagle_Image2DComponent_SetIsVisible(GUID entityID, bool value);
 	bool Eagle_Image2DComponent_IsVisible(GUID entityID);
+	void Eagle_Image2DComponent_SetPivotFollowsAnchor(GUID entityID, bool value);
+	bool Eagle_Image2DComponent_DoesPivotFollowAnchor(GUID entityID);
 
 	// Billboard Component
 	void Eagle_BillboardComponent_SetTexture(GUID entityID, GUID textureID);

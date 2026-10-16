@@ -203,7 +203,7 @@ namespace Eagle
 			auto& data = datas.emplace_back();
 			data.Tint = image->GetTint();
 			data.Anchor = image->GetAnchor();
-			data.Pivot = image->GetPivot();
+			data.Pivot = image->GetActualPivot();
 			data.Offset = image->GetOffset();
 			data.Size = image->GetSize();
 			data.Rotation = image->GetRotation();

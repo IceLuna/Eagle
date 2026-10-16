@@ -333,4 +333,23 @@ namespace Eagle
 
 		return layout;
 	}
+
+	const Ref<const TextLayout>& TextLayoutCache::Get(const Ref<Font>& font, const std::string& text, const TextLayoutSettings& settings)
+	{
+		if (!font)
+		{
+			m_Layout.reset();
+			m_Font.reset();
+			return m_Layout;
+		}
+
+		if (!m_Layout || font != m_Font || settings != m_Settings || text != m_Text)
+		{
+			m_Layout = MakeRef<const TextLayout>(font->Layout(Utils::ToUTF32(text), settings));
+			m_Font = font;
+			m_Text = text;
+			m_Settings = settings;
+		}
+		return m_Layout;
+	}
 }

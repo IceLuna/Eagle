@@ -719,6 +719,7 @@ namespace Eagle
 					float maxWidth = component.GetMaxWidth();
 					std::string text = component.GetText();
 					Ref<AssetFont> asset = component.GetFontAsset();
+					bool bPivotFollowsAnchor = component.DoesPivotFollowAnchor();
 
 					UI::BeginPropertyGrid("Text2DComponent");
 
@@ -748,10 +749,22 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					glm::vec2 pivot = component.GetPivot();
+					if (bPivotFollowsAnchor)
+						UI::PushItemDisabled();
+
+					glm::vec2 pivot = bPivotFollowsAnchor ? anchor : component.GetPivot();
 					if (UI::PropertyDrag("Pivot", pivot, 0.01f, 0.f, 0.f, s_Text2DPivotHelpMsg))
 					{
 						component.SetPivot(pivot);
+						bEntityChanged = true;
+					}
+
+					if (bPivotFollowsAnchor)
+						UI::PopItemDisabled();
+
+					if (UI::Property("Pivot follows Anchor", bPivotFollowsAnchor))
+					{
+						component.SetPivotFollowsAnchor(bPivotFollowsAnchor);
 						bEntityChanged = true;
 					}
 
@@ -848,10 +861,23 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					glm::vec2 pivot = component.GetPivot();
+					bool bPivotFollowsAnchor = component.DoesPivotFollowAnchor();
+					if (bPivotFollowsAnchor)
+						UI::PushItemDisabled();
+
+					glm::vec2 pivot = bPivotFollowsAnchor ? anchor : component.GetPivot();
 					if (UI::PropertyDrag("Pivot", pivot, 0.01f, 0.f, 0.f, s_Image2DPivotHelpMsg))
 					{
 						component.SetPivot(pivot);
+						bEntityChanged = true;
+					}
+
+					if (bPivotFollowsAnchor)
+						UI::PopItemDisabled();
+
+					if (UI::Property("Pivot follows Anchor", bPivotFollowsAnchor))
+					{
+						component.SetPivotFollowsAnchor(bPivotFollowsAnchor);
 						bEntityChanged = true;
 					}
 
