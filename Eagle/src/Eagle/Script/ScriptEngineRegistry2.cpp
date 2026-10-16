@@ -550,6 +550,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.TextComponent::SetText_Native", Eagle::Script::Eagle_TextComponent_SetText);
 		mono_add_internal_call("Eagle.TextComponent::GetColor_Native", Eagle::Script::Eagle_TextComponent_GetColor);
 		mono_add_internal_call("Eagle.TextComponent::SetColor_Native", Eagle::Script::Eagle_TextComponent_SetColor);
+		mono_add_internal_call("Eagle.TextComponent::GetOpacity_Native", Eagle::Script::Eagle_TextComponent_GetOpacity);
+		mono_add_internal_call("Eagle.TextComponent::SetOpacity_Native", Eagle::Script::Eagle_TextComponent_SetOpacity);
 		mono_add_internal_call("Eagle.TextComponent::GetLineSpacing_Native", Eagle::Script::Eagle_TextComponent_GetLineSpacing);
 		mono_add_internal_call("Eagle.TextComponent::SetLineSpacing_Native", Eagle::Script::Eagle_TextComponent_SetLineSpacing);
 		mono_add_internal_call("Eagle.TextComponent::GetKerning_Native", Eagle::Script::Eagle_TextComponent_GetKerning);

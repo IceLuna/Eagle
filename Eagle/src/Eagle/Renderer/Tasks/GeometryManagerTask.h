@@ -90,6 +90,7 @@ namespace Eagle
 		int EntityID = -1;
 		uint32_t AtlasIndex = 0;
 		uint32_t TransformIndex = 0;
+		float Opacity = 1.f;
 	};
 
 	struct PerInstanceData
@@ -178,7 +179,7 @@ namespace Eagle
 			Translucent.NonShadowQuads.Clear();
 		}
 
-		void Init(const BufferSpecifications& vertexSpecs, const BufferSpecifications& indexSpecs, bool bOpaqueOnly = false);
+		void Init(const BufferSpecifications& vertexSpecs, const BufferSpecifications& indexSpecs);
 	};
 
 	struct LitTextGeometryData
@@ -301,6 +302,7 @@ namespace Eagle
 	struct UnlitTextData
 	{
 		glm::vec3 Color;
+		float Opacity;
 		std::u32string Text;
 		Ref<Font> Font;
 		int EntityID;
@@ -477,16 +479,13 @@ namespace Eagle
 	};
 	
 	template<typename GeometryDataType>
-	inline void QuadsRenderData<GeometryDataType>::Init(const BufferSpecifications& vertexSpecs, const BufferSpecifications& indexSpecs, bool bOpaqueOnly)
+	inline void QuadsRenderData<GeometryDataType>::Init(const BufferSpecifications& vertexSpecs, const BufferSpecifications& indexSpecs)
 	{
 		Opaque.ShadowCastingQuads.VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D_Opaque");
 		Opaque.ShadowCastingQuads.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Opaque");
 
 		Opaque.NonShadowQuads.VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D_Opaque_NotCastingShadow");
 		Opaque.NonShadowQuads.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Opaque_NotCastingShadow");
-
-		if (bOpaqueOnly)
-			return;
 
 		Masked.ShadowCastingQuads.VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D_Masked");
 		Masked.ShadowCastingQuads.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Masked");

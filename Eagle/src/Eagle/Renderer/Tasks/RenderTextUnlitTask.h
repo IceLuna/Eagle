@@ -12,7 +12,7 @@ namespace Eagle
 		RenderTextUnlitTask(SceneRenderer& renderer);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
-		void OnResize(glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
+		void OnResize(glm::uvec2 size) override;
 		void InitWithOptions(const SceneRendererSettings& settings) override;
 
 		static void Draw(const Ref<CommandBuffer>& cmd, const Ref<PipelineGraphics>& pipeline, const QuadsRenderData<UnlitTextGeometryData>::BlendModeGeomType& data, const void* pushData, RenderStats& stats);
@@ -23,6 +23,7 @@ namespace Eagle
 
 	private:
 		Ref<PipelineGraphics> m_Pipeline;
+		Ref<PipelineGraphics> m_TranslucentPipeline;
 		bool bMotionRequired = false;
 	};
 }

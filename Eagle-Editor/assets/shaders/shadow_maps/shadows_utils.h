@@ -34,7 +34,7 @@ vec3 GetPointLightSamplePosition(samplerCubeShadow shadowMap, PointLight light, 
 	{
 		const float shadowMapSize = float(textureSize(shadowMap, 0).x);
 		const float texelWorldSize = receiverDistance / shadowMapSize;
-		const float normalBiasScale = mix(0.5, 2.0, 1.0 - NdotL);
+		const float normalBiasScale = 4; // mix(3, 4, 1.0 - NdotL);
 
 		normalOffset = geomNormal * texelWorldSize * normalBiasScale * 2.0;
 	}
@@ -122,8 +122,8 @@ float ShadowVisibility_PCF(sampler2DShadow shadowMap, vec2 uv, float currentDept
 
 	const float texelSize = 1.0 / float(textureSize(shadowMap, 0).x);
 	float visibility = 0.f;
-	for (int x = -pcfRange; x <= pcfRange; ++x)
-		for (int y = -pcfRange; y <= pcfRange; ++y)
+	for (int y = -pcfRange; y <= pcfRange; ++y)
+		for (int x = -pcfRange; x <= pcfRange; ++x)
 		{
 			const vec2 uv = uv + vec2(x, y) * texelSize;
 			visibility += texture(shadowMap, vec3(uv, currentDepth));
@@ -303,9 +303,12 @@ float PointLight_ShadowCalculation_Hard(samplerCubeShadow depthTexture, vec3 sam
 	const float bias = s_BaseBias;
 	const float currentDepth = VectorToDepth(samplePos, farDistance, EG_POINT_LIGHT_NEAR) + bias;
 	float visibility = 0.f;
-	
-	const float baseDiskRadius = 0.0001f;
-	const float diskRadius = max(10.f * baseDiskRadius * (1.f - NdotL), baseDiskRadius);
+
+	const float distanceToLight = length(samplePos);
+	const float shadowMapResolution = textureSize(depthTexture, 0).x;
+	const float filterRadiusTexels = 1.0;
+	const float baseDiskRadius = distanceToLight * (2.0 * filterRadiusTexels / shadowMapResolution);
+	const float diskRadius = baseDiskRadius;
 	for (int i = 0; i < samples; ++i)
 	{
 		visibility += texture(depthTexture, vec4(samplePos + normalize(sampleOffsetDirections[i]) * diskRadius, currentDepth));
@@ -325,19 +328,68 @@ float SpotLight_ShadowCalculation_Hard(sampler2DShadow shadowMap, vec3 fragPosLi
 
 vec3 DirLight_ColoredShadowCalculation_Hard(sampler2D coloredTexture, vec3 fragPosLightSpace)
 {
-	const vec2 uv = fragPosLightSpace.xy * 0.5f + 0.5f;
-	return texture(coloredTexture, uv).rgb;
+	const int pcfSize = 3;
+	const int pcfRange = pcfSize / 2;
+	const float invPCFMatrixSize = 1.f / (pcfSize * pcfSize);
+
+	const float texelSize = 1.f / textureSize(coloredTexture, 0).x;
+	const vec2 projCoords = fragPosLightSpace.xy * 0.5f + 0.5f;
+
+	vec3 coloredShadow = vec3(0.f);
+	for (int y = -pcfRange; y <= pcfRange; ++y)
+		for (int x = -pcfRange; x <= pcfRange; ++x)
+		{
+			const vec2 uv = projCoords + vec2(x, y) * texelSize;
+			coloredShadow += texture(coloredTexture, uv).rgb;
+		}
+
+	return coloredShadow * invPCFMatrixSize;
 }
 
 vec3 PointLight_ColoredShadowCalculation_Hard(samplerCube depthTexture, vec3 lightToFrag)
 {
-	return texture(depthTexture, lightToFrag).rgb;
+	const int samples = 20;
+	const float invSamples = 1.f / float(samples);
+	const vec3 sampleOffsetDirections[samples] = vec3[]
+	(
+		vec3(1, 1, +1), vec3(+1, -1, +1), vec3(-1, -1, +1), vec3(-1, +1, +1),
+		vec3(1, 1, -1), vec3(+1, -1, -1), vec3(-1, -1, -1), vec3(-1, +1, -1),
+		vec3(1, 1, +0), vec3(+1, -1, +0), vec3(-1, -1, +0), vec3(-1, +1, +0),
+		vec3(1, 0, +1), vec3(-1, +0, +1), vec3(+1, +0, -1), vec3(-1, +0, -1),
+		vec3(0, 1, +1), vec3(+0, -1, +1), vec3(+0, -1, -1), vec3(+0, +1, -1)
+	);
+
+	const float distanceToLight = length(lightToFrag);
+	const float shadowMapResolution = textureSize(depthTexture, 0).x;
+	const float filterRadiusTexels = 1.5;
+	const float baseDiskRadius = distanceToLight * (2.0 * filterRadiusTexels / shadowMapResolution);
+	const float diskRadius = baseDiskRadius;
+
+	vec3 coloredShadow = vec3(0.f);
+	for (int i = 0; i < samples; ++i)
+		coloredShadow += texture(depthTexture, lightToFrag + normalize(sampleOffsetDirections[i]) * diskRadius).rgb;
+
+	return coloredShadow * invSamples;
 }
 
 vec3 SpotLight_ColoredShadowCalculation_Hard(sampler2D coloredTexture, vec3 fragPosLightSpace)
 {
-	const vec2 uv = fragPosLightSpace.xy * 0.5 + 0.5;
-	return texture(coloredTexture, uv).rgb;
+	const float texelSize = 1.f / float(textureSize(coloredTexture, 0));
+	const vec2 projCoords = fragPosLightSpace.xy * 0.5f + 0.5f;
+
+	const int pcfSize = 3;
+	const int pcfRange = pcfSize / 2;
+	const float invPCFMatrixSize = 1.f / (pcfSize * pcfSize);
+
+	vec3 color = vec3(0.f);
+	for (int y = -pcfRange; y <= pcfRange; ++y)
+		for (int x = -pcfRange; x <= pcfRange; ++x)
+		{
+			const vec2 uv = projCoords + vec2(x, y) * texelSize;
+			color += texture(coloredTexture, uv).rgb;
+		}
+
+	return color * invPCFMatrixSize;
 }
 
 // 0 = in shadow, 1 = not in shadow

@@ -28,6 +28,10 @@ layout(push_constant) uniform PushData
 
 layout(location = 0) out vec2 o_TexCoords;
 layout(location = 1) flat out uint o_AtlasIndex;
+#ifdef EG_TRANSLUCENT
+layout(location = 2) flat out vec3  o_Albedo;
+layout(location = 3) flat out float o_Opacity;
+#endif
 
 void main()
 {
@@ -44,5 +48,10 @@ void main()
     gl_Position = g_ViewProj * worldPos;
 #else
     gl_Position = g_ViewProj * worldPos;
+#endif
+
+#ifdef EG_TRANSLUCENT
+    o_Albedo = a_Color;
+    o_Opacity = a_Opacity;
 #endif
 }

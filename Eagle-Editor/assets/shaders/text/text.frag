@@ -11,6 +11,7 @@ layout(location = 3) flat in uint i_AtlasIndex;
 layout(location = 4) in vec3 i_CurPos;
 layout(location = 5) in vec3 i_PrevPos;
 #endif
+layout(location = 6) in float i_Opacity;
 
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out int  outObjectID;
@@ -22,10 +23,17 @@ layout(set = 1, binding = 0) uniform sampler2D g_FontAtlases[];
 
 void main()
 {
-	const float opacity = MSDF_COVERAGE(g_FontAtlases[nonuniformEXT(i_AtlasIndex)], i_TexCoords);
+	const float coverage = MSDF_COVERAGE(g_FontAtlases[nonuniformEXT(i_AtlasIndex)], i_TexCoords);
 
+#ifdef EG_TRANSLUCENT
+    const float opacity = coverage * i_Opacity;
+    if (IS_ZERO(opacity))
+        discard;
+#else
+    const float opacity = coverage;
     if (opacity < 0.5f)
         discard;
+#endif
 
     outColor = vec4(i_Color, opacity);
     outObjectID = i_EntityID;

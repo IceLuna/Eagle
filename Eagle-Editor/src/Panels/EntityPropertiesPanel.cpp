@@ -665,6 +665,13 @@ namespace Eagle
 							bEntityChanged = true;
 						}
 
+						float opacity = component.GetOpacity();
+						if (UI::PropertyDrag("Opacity", opacity, 0.05f, 0.f, 1.f))
+						{
+							component.SetOpacity(opacity);
+							bEntityChanged = true;
+						}
+
 						bool bDoubleSided = component.IsDoubleSided();
 						if (UI::Property("Double Sided", bDoubleSided))
 						{

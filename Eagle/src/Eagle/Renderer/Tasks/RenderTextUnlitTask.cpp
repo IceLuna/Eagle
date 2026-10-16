@@ -77,27 +77,51 @@ namespace Eagle
 		const auto& singleSided = m_Renderer.GetSingleSidedUnlitTextsRenderData();
 		const auto& doubleSided = m_Renderer.GetDoubleSidedUnlitTextsRenderData();
 
-		if (singleSided.Opaque.IsEmpty() && doubleSided.Opaque.IsEmpty())
+		const bool bHasOpaque = !singleSided.Opaque.IsEmpty() || !doubleSided.Opaque.IsEmpty();
+		const bool bHasTranslucent = !singleSided.Translucent.IsEmpty() || !doubleSided.Translucent.IsEmpty();
+		if (!bHasOpaque && !bHasTranslucent)
 			return;
 
 		EG_CPU_TIMING_SCOPED("Render Text3D Unlit");
 		EG_GPU_TIMING_SCOPED(cmd, "Render Text3D Unlit");
 
-		m_Pipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
-		if (bMotionRequired)
-		{
-			m_Pipeline->SetBuffer(m_Renderer.GetTextsPrevTransformBuffer(), 0, 1);
-			m_Pipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 0, 2);
-		}
-		m_Pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
-
 		const auto& vp = m_Renderer.GetViewProjection();
 		auto& stats = m_Renderer.GetStats();
-		cmd->SetGraphicsCullMode(CullMode::Back);
-		Draw(cmd, m_Pipeline, singleSided.Opaque, glm::value_ptr(vp), stats);
 
-		cmd->SetGraphicsCullMode(CullMode::None);
-		Draw(cmd, m_Pipeline, doubleSided.Opaque, glm::value_ptr(vp), stats);
+		if (bHasOpaque)
+		{
+			m_Pipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
+			if (bMotionRequired)
+			{
+				m_Pipeline->SetBuffer(m_Renderer.GetTextsPrevTransformBuffer(), 0, 1);
+				m_Pipeline->SetBuffer(m_Renderer.GetCameraMatricesBuffer(), 0, 2);
+			}
+			m_Pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+
+			cmd->SetGraphicsCullMode(CullMode::Back);
+			Draw(cmd, m_Pipeline, singleSided.Opaque, glm::value_ptr(vp), stats);
+
+			cmd->SetGraphicsCullMode(CullMode::None);
+			Draw(cmd, m_Pipeline, doubleSided.Opaque, glm::value_ptr(vp), stats);
+		}
+
+		if (bHasTranslucent)
+		{
+			m_TranslucentPipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
+			m_TranslucentPipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+
+			cmd->SetGraphicsCullMode(CullMode::Back);
+			Draw(cmd, m_TranslucentPipeline, singleSided.Translucent, glm::value_ptr(vp), stats);
+
+			cmd->SetGraphicsCullMode(CullMode::None);
+			Draw(cmd, m_TranslucentPipeline, doubleSided.Translucent, glm::value_ptr(vp), stats);
+		}
+	}
+
+	void RenderTextUnlitTask::OnResize(glm::uvec2 size)
+	{
+		m_Pipeline->Resize(size.x, size.y);
+		m_TranslucentPipeline->Resize(size.x, size.y);
 	}
 
 	void RenderTextUnlitTask::InitPipeline()
@@ -156,5 +180,17 @@ namespace Eagle
 			m_Pipeline->SetState(state);
 		else
 			m_Pipeline = PipelineGraphics::Create(state);
+
+		ShaderDefines translucentDefines;
+		translucentDefines["EG_TRANSLUCENT"] = "";
+		state.VertexShader = Shader::Create("text/text.vert", ShaderType::Vertex, translucentDefines);
+		state.FragmentShader = Shader::Create("text/text.frag", ShaderType::Fragment, translucentDefines);
+		state.ColorAttachments.resize(2); // Color & object ID
+		state.DepthStencilAttachment.bWriteDepth = false;
+
+		if (m_TranslucentPipeline)
+			m_TranslucentPipeline->SetState(state);
+		else
+			m_TranslucentPipeline = PipelineGraphics::Create(state);
 	}
 }

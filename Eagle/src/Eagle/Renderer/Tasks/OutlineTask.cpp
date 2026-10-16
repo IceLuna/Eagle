@@ -398,9 +398,9 @@ namespace Eagle
 			GatherBlendModeQuads(litTexts.Translucent, bDoubleSided, getStyleID, m_DrawLists.LitTexts);
 			GatherBlendModeQuads(litTexts.Masked, bDoubleSided, getStyleID, m_DrawLists.MaskedLitTexts);
 
-			// Unlit texts are always opaque
 			const auto& unlitTexts = bDoubleSided ? m_Renderer.GetDoubleSidedUnlitTextsRenderData() : m_Renderer.GetSingleSidedUnlitTextsRenderData();
 			GatherBlendModeQuads(unlitTexts.Opaque, bDoubleSided, getStyleID, m_DrawLists.UnlitTexts);
+			GatherBlendModeQuads(unlitTexts.Translucent, bDoubleSided, getStyleID, m_DrawLists.UnlitTexts);
 		}
 	}
 

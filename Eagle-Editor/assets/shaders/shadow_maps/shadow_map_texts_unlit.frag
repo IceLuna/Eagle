@@ -6,9 +6,6 @@
 
 layout(location = 0) in vec2 i_TexCoords;
 layout(location = 1) flat in uint i_AtlasIndex;
-#ifdef EG_MASKED
-layout(location = 2) flat in float i_OpacityMask;
-#endif
 #ifdef EG_TRANSLUCENT
 layout(location = 2) flat in vec3  i_Albedo;
 layout(location = 3) flat in float i_Opacity;
@@ -23,17 +20,8 @@ layout(set = 1, binding = 0) uniform sampler2D g_FontAtlases[];
 
 void main()
 {
-#ifdef EG_MASKED
-	if (i_OpacityMask < EG_OPACITY_MASK_THRESHOLD)
-	{
-		discard;
-		return;
-	}
-#endif
-
-	const float opacity = MSDF_COVERAGE(g_FontAtlases[nonuniformEXT(i_AtlasIndex)], i_TexCoords);
-
-	if (opacity < 0.5f)
+	const float coverage = MSDF_COVERAGE(g_FontAtlases[nonuniformEXT(i_AtlasIndex)], i_TexCoords);
+	if (coverage < 0.5f)
 		discard;
 
 #ifdef EG_TRANSLUCENT

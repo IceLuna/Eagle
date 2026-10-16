@@ -53,6 +53,7 @@ namespace Eagle
 		void InitTranslucentLitTextsPipelines();
 
 		void InitUnlitTextsPipelines();
+		void InitTranslucentUnlitTextsPipelines();
 
 		void CreateIfNeededDirectionalLightShadowMaps();
 		void InitDirectionalLightShadowMaps();
@@ -89,6 +90,7 @@ namespace Eagle
 		void ShadowPassTranslucentLitTexts(const Ref<CommandBuffer>& cmd);
 
 		void ShadowPassUnlitTexts(const Ref<CommandBuffer>& cmd);
+		void ShadowPassTranslucentUnlitTexts(const Ref<CommandBuffer>& cmd);
 
 		glm::uvec2 GetPointLightSMSize(float distanceToCamera, float maxShadowDistance);
 		glm::uvec2 GetSpotLightSMSize(float distanceToCamera, float maxShadowDistance);
@@ -193,6 +195,11 @@ namespace Eagle
 		Ref<PipelineGraphics> m_UnlitTPLPipeline;
 		Ref<PipelineGraphics> m_UnlitTSLPipeline;
 		Ref<PipelineGraphics> m_UnlitTDLPipeline;
+
+		// For translucent unlit texts
+		Ref<PipelineGraphics> m_TranslucentUnlitTPLPipeline;
+		Ref<PipelineGraphics> m_TranslucentUnlitTSLPipeline;
+		Ref<PipelineGraphics> m_TranslucentUnlitTDLPipeline;
 
 		uint64_t m_MaskedMeshesDLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 		uint64_t m_MaskedMeshesPLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };

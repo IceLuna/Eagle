@@ -448,6 +448,8 @@ namespace Eagle::Script
 	void Eagle_TextComponent_SetText(GUID entityID, MonoString* value);
 	void Eagle_TextComponent_GetColor(GUID entityID, glm::vec3* outValue);
 	void Eagle_TextComponent_SetColor(GUID entityID, const glm::vec3* value);
+	float Eagle_TextComponent_GetOpacity(GUID entityID);
+	void Eagle_TextComponent_SetOpacity(GUID entityID, float value);
 	float Eagle_TextComponent_GetLineSpacing(GUID entityID);
 	void Eagle_TextComponent_SetLineSpacing(GUID entityID, float value);
 	float Eagle_TextComponent_GetKerning(GUID entityID);

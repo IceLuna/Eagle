@@ -2455,6 +2455,7 @@ namespace Eagle
 
 			out << YAML::Key << "Text" << YAML::Value << text.GetText();
 			out << YAML::Key << "Color" << YAML::Value << text.GetColor();
+			out << YAML::Key << "Opacity" << YAML::Value << text.GetOpacity();
 			out << YAML::Key << "IsLit" << YAML::Value << text.IsLit();
 			out << YAML::Key << "IsDoubleSided" << YAML::Value << text.IsDoubleSided();
 			out << YAML::Key << "bCastsShadows" << YAML::Value << text.DoesCastShadows();
@@ -3194,6 +3195,8 @@ namespace Eagle
 			text.SetMaterialAsset(GetAsset<AssetMaterial>(textNode["Material"]));
 			text.SetText(textNode["Text"].as<std::string>());
 			text.SetColor(textNode["Color"].as<glm::vec3>());
+			if (auto node = textNode["Opacity"])
+				text.SetOpacity(node.as<float>());
 			text.SetIsLit(textNode["IsLit"].as<bool>());
 			if (auto node = textNode["IsDoubleSided"])
 				text.SetDoubleSided(node.as<bool>());

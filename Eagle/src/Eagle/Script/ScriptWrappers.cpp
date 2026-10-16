@@ -5908,6 +5908,27 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set color of Text Component. Entity is null");
 	}
 
+	float Script::Eagle_TextComponent_GetOpacity(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<TextComponent>().GetOpacity();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get opacity of Text Component. Entity is null");
+		return 1.f;
+	}
+
+	void Script::Eagle_TextComponent_SetOpacity(GUID entityID, float value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetOpacity(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set opacity of Text Component. Entity is null");
+	}
+
 	float Script::Eagle_TextComponent_GetLineSpacing(GUID entityID)
 	{
 		auto& scene = Scene::GetCurrentScene();

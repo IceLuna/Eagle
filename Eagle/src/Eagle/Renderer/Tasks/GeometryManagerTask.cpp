@@ -482,9 +482,8 @@ namespace Eagle
 			m_SingleSidedTexts.Init(vertexSpecs, indexSpecs);
 			m_DoubleSidedTexts.Init(vertexSpecs, indexSpecs);
 
-			constexpr bool bOpaqueOnly = true;
-			m_SingleSidedUnlitTexts.Init(vertexSpecs, indexSpecs, bOpaqueOnly);
-			m_DoubleSidedUnlitTexts.Init(vertexSpecs, indexSpecs, bOpaqueOnly);
+			m_SingleSidedUnlitTexts.Init(vertexSpecs, indexSpecs);
+			m_DoubleSidedUnlitTexts.Init(vertexSpecs, indexSpecs);
 
 			m_TextTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Text_TransformsBuffer");
 		}
@@ -1181,9 +1180,14 @@ namespace Eagle
 				vertex.AtlasIndex = atlasIndex;
 				vertex.TransformIndex = component.TransformIndex;
 				if constexpr (std::is_same_v<TextDataType, LitTextData>)
+				{
 					vertex.MaterialIndex = component.MaterialIndex;
+				}
 				else
+				{
 					vertex.Color = component.Color;
+					vertex.Opacity = component.Opacity;
+				}
 			}
 		}
 	}
@@ -1228,6 +1232,7 @@ namespace Eagle
 				data.Text = Utils::ToUTF32(text->GetText());
 				data.Font = asset->GetFont();
 				data.Color = text->GetColor();
+				data.Opacity = text->GetOpacity();
 				data.EntityID = text->Parent.GetID();
 				data.LayoutSettings = text->GetLayoutSettings();
 				data.bCastsShadows = text->DoesCastShadows();
@@ -1345,10 +1350,11 @@ namespace Eagle
 			{
 				const auto& text = m_UnlitTexts[i];
 				auto& textsData = text.bDoubleSided ? m_DoubleSidedUnlitTexts : m_SingleSidedUnlitTexts;
+				auto& blendModeData = (text.Opacity < 1.f) ? textsData.Translucent : textsData.Opaque;
 				if (text.bCastsShadows)
-					ProcessTextData(text, m_FontAtlases, textsData.Opaque.ShadowCastingQuads.QuadVertices);
+					ProcessTextData(text, m_FontAtlases, blendModeData.ShadowCastingQuads.QuadVertices);
 				else
-					ProcessTextData(text, m_FontAtlases, textsData.Opaque.NonShadowQuads.QuadVertices);
+					ProcessTextData(text, m_FontAtlases, blendModeData.NonShadowQuads.QuadVertices);
 			}
 		}
 

@@ -1700,14 +1700,14 @@ namespace Eagle
 				ImGui::Separator();
 
 				ShadowMapsSettings& settings = options.ShadowsSettings;
-				if (UI::PropertyDrag("Point Light ShadowMap Size", settings.PointLightShadowMapSize, 32.f, 0, 16384))
+				if (UI::PropertyDrag("Point Light ShadowMap Size", settings.PointLightShadowMapSize, 32.f, 0, 4096))
 				{
 					settings.PointLightShadowMapSize = glm::max(settings.PointLightShadowMapSize, ShadowMapsSettings::MinPointLightShadowMapSize);
 					EG_CORE_TRACE("Point Light ShadowMap Size changed to: {}", settings.PointLightShadowMapSize);
 					bSettingsChanged = true;
 				}
 
-				if (UI::PropertyDrag("Spot Light ShadowMap Size", settings.SpotLightShadowMapSize, 32.f, 0, 16384))
+				if (UI::PropertyDrag("Spot Light ShadowMap Size", settings.SpotLightShadowMapSize, 32.f, 0, 4096))
 				{
 					settings.SpotLightShadowMapSize = glm::max(settings.SpotLightShadowMapSize, ShadowMapsSettings::MinSpotLightShadowMapSize);
 					EG_CORE_TRACE("Spot Light ShadowMap Size changed to: {}", settings.SpotLightShadowMapSize);

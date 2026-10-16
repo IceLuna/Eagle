@@ -13,6 +13,7 @@ layout(location = 3) flat out uint o_AtlasIndex;
 layout(location = 4) out vec3 o_CurPos;
 layout(location = 5) out vec3 o_PrevPos;
 #endif
+layout(location = 6) out float o_Opacity;
 
 layout(binding = 0)
 readonly buffer TransformsBuffer
@@ -50,6 +51,7 @@ void main()
     o_Color = a_Color;
     o_EntityID = a_EntityID;
     o_AtlasIndex = a_AtlasIndex;
+    o_Opacity = a_Opacity;
 
 #ifdef EG_MOTION
     const vec4 curPos = g_Camera.ViewProjUnjittered * model * vec4(a_Position, 0.f, 1.f);

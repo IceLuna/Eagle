@@ -947,6 +947,7 @@ namespace Eagle
 		const Ref<AssetMaterial>& GetMaterialAsset() const { return m_MaterialAsset; }
 		const std::string& GetText() const { return m_Text; }
 		const glm::vec3& GetColor() const { return m_Color; }
+		float GetOpacity() const { return m_Opacity; }
 		float GetLineSpacing() const { return m_LineSpacing; }
 		float GetKerning() const { return m_Kerning; }
 		float GetMaxWidth() const { return m_MaxWidth; }
@@ -979,6 +980,13 @@ namespace Eagle
 		void SetColor(const glm::vec3& color)
 		{
 			m_Color = color;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		// Only used by unlit texts
+		void SetOpacity(float opacity)
+		{
+			m_Opacity = glm::clamp(opacity, 0.f, 1.f);
 			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
 		}
 
@@ -1053,6 +1061,7 @@ namespace Eagle
 		Ref<AssetMaterial> m_MaterialAsset; // Used if bLit == true
 
 		glm::vec3 m_Color = glm::vec3(1.f); // Used if bLit == false
+		float m_Opacity = 1.f; // Used if bLit == false
 		float m_LineSpacing = 0.0f;
 		float m_Kerning = 0.0f;
 		float m_MaxWidth = 10.0f;

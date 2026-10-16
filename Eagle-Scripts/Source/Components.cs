@@ -1512,6 +1512,12 @@ namespace Eagle
             get { GetColor_Native(Parent.ID, out Color3 result); return result; }
             set { SetColor_Native(Parent.ID, ref value); }
         }
+
+        public float Opacity // Used only if bLit is false
+        {
+            get { return GetOpacity_Native(Parent.ID); }
+            set { SetOpacity_Native(Parent.ID, value); }
+        }
         
         public float LineSpacing
         {
@@ -1585,6 +1591,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetColor_Native(in GUID entityID, ref Color3 value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetOpacity_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetOpacity_Native(in GUID entityID, float value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetLineSpacing_Native(in GUID entityID);

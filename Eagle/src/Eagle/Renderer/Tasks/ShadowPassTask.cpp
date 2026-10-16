@@ -150,6 +150,7 @@ namespace Eagle
 		InitTranslucentLitTextsPipelines();
 
 		InitUnlitTextsPipelines();
+		InitTranslucentUnlitTextsPipelines();
 
 		BufferSpecifications pointLightsVPBufferSpecs;
 		pointLightsVPBufferSpecs.Size = sizeof(glm::mat4) * 6 * 10;
@@ -182,6 +183,7 @@ namespace Eagle
 		ShadowPassOpaqueLitTexts(cmd);
 		ShadowPassMaskedLitTexts(cmd);
 		ShadowPassUnlitTexts(cmd);
+		ShadowPassTranslucentUnlitTexts(cmd);
 		
 		if (bTranslucencyShadowsEnabled)
 		{
@@ -536,6 +538,7 @@ namespace Eagle
 			InitTranslucentSkeletalMeshPipelines();
 			InitTranslucentSpritesPipelines();
 			InitTranslucentLitTextsPipelines();
+			InitTranslucentUnlitTextsPipelines();
 		}
 
 		if (bDirLightChanged)
@@ -1923,6 +1926,91 @@ namespace Eagle
 		}
 	}
 
+	void ShadowPassTask::ShadowPassTranslucentUnlitTexts(const Ref<CommandBuffer>& cmd)
+	{
+		const auto& singleSided = m_Renderer.GetSingleSidedUnlitTextsRenderData().Translucent;
+		const auto& doubleSided = m_Renderer.GetDoubleSidedUnlitTextsRenderData().Translucent;
+
+		if (singleSided.IsEmpty() && doubleSided.IsEmpty())
+			return;
+
+		EG_GPU_TIMING_SCOPED(cmd, "Translucent Unlit Texts shadow pass");
+		EG_CPU_TIMING_SCOPED("Translucent Unlit Texts shadow pass");
+
+		const auto& transformsBuffer = m_Renderer.GetTextsTransformsBuffer();
+		const auto& lightMatrices = m_Renderer.GetLightMatrices();
+		auto& stats = m_Renderer.GetStats();
+
+		// For directional light
+		const auto& dirLight = m_Renderer.GetDirectionalLight();
+		if (m_Renderer.HasDirectionalLight() && dirLight.DoesCastShadows())
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Translucent Unlit Texts: CSM Shadow pass");
+			EG_CPU_TIMING_SCOPED("Translucent Unlit Texts: CSM Shadow pass");
+
+			auto& pipeline = m_TranslucentUnlitTDLPipeline;
+			auto& framebuffers = m_DLCFramebuffers;
+			pipeline->SetBuffer(transformsBuffer, 0, 0);
+			pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
+			{
+				const auto& viewProj = lightMatrices[dirLight.ViewProjOffset + i];
+				cmd->SetGraphicsCullMode(CullMode::Front);
+				RenderTextUnlitTask::Draw(cmd, pipeline, singleSided.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
+				cmd->SetGraphicsCullMode(CullMode::None);
+				RenderTextUnlitTask::Draw(cmd, pipeline, doubleSided.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
+			}
+		}
+
+		// Point lights
+		if (m_PointLightIndices.size())
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Translucent Unlit Texts: Point Lights Shadow pass");
+			EG_CPU_TIMING_SCOPED("Translucent Unlit Texts: Point Lights Shadow pass");
+
+			auto& vpsBuffer = m_PLVPsBuffer;
+			auto& pipeline = m_TranslucentUnlitTPLPipeline;
+			auto& framebuffers = m_PLCFramebuffers;
+			pipeline->SetBuffer(transformsBuffer, 0, 0);
+			pipeline->SetBuffer(vpsBuffer, 0, 1);
+			pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+
+			for (size_t i = 0; i < m_PointLightIndices.size(); ++i)
+			{
+				cmd->SetGraphicsCullMode(CullMode::Front);
+				RenderTextUnlitTask::Draw(cmd, pipeline, singleSided.ShadowCastingQuads, &i, stats, framebuffers[i]);
+				cmd->SetGraphicsCullMode(CullMode::None);
+				RenderTextUnlitTask::Draw(cmd, pipeline, doubleSided.ShadowCastingQuads, &i, stats, framebuffers[i]);
+			}
+		}
+
+		// Spot lights
+		if (m_SpotLightIndices.size())
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Translucent Unlit Texts: Spot Lights Shadow pass");
+			EG_CPU_TIMING_SCOPED("Translucent Unlit Texts: Spot Lights Shadow pass");
+
+			auto& spotLights = m_Renderer.GetCulledSpotLights();
+			uint32_t spotLightsCount = 0;
+			auto& pipeline = m_TranslucentUnlitTSLPipeline;
+			const auto& framebuffers = m_SLCFramebuffers;
+			pipeline->SetBuffer(transformsBuffer, 0, 0);
+			pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+
+			for (size_t i = 0; i < m_SpotLightIndices.size(); ++i)
+			{
+				const size_t index = m_SpotLightIndices[i];
+				auto& spotLight = spotLights[index];
+				const auto& viewProj = lightMatrices[spotLight.ViewProjOffset];
+
+				cmd->SetGraphicsCullMode(CullMode::Front);
+				RenderTextUnlitTask::Draw(cmd, pipeline, singleSided.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
+				cmd->SetGraphicsCullMode(CullMode::None);
+				RenderTextUnlitTask::Draw(cmd, pipeline, doubleSided.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
+			}
+		}
+	}
+
 	void ShadowPassTask::InitOpacityMaskedMeshPipelines()
 	{
 		// For directional light
@@ -3100,6 +3188,160 @@ namespace Eagle
 			state.CullMode = CullMode::None;
 
 			m_UnlitTSLPipeline = PipelineGraphics::Create(state);
+		}
+	}
+
+	void ShadowPassTask::InitTranslucentUnlitTextsPipelines()
+	{
+		ShaderDefines vertexDefines = { {"EG_TRANSLUCENT", ""} };
+		ShaderDefines fragmentDefines;
+		fragmentDefines["EG_TRANSLUCENT"] = "";
+		if (bUseVolumetricLights)
+			fragmentDefines["EG_OUTPUT_DEPTH"] = "";
+
+		Ref<Shader> fragShader = Shader::Create("shadow_maps/shadow_map_texts_unlit.frag", ShaderType::Fragment, fragmentDefines);
+
+		// Directional light
+		{
+			ColorAttachment colorAttachment;
+			colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+			colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+			colorAttachment.Image = RenderManager::GetDummyImage();
+			colorAttachment.ClearOperation = ClearOperation::Load;
+			colorAttachment.bBlendEnabled = true;
+			colorAttachment.BlendingState.BlendSrc = BlendFactor::Zero;
+			colorAttachment.BlendingState.BlendDst = BlendFactor::SrcColor;
+			colorAttachment.BlendingState.BlendOp = BlendOperation::Add;
+
+			ColorAttachment depthColorAttachment;
+			depthColorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+			depthColorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+			depthColorAttachment.Image = RenderManager::GetDummyImageR16();
+			depthColorAttachment.ClearOperation = ClearOperation::Load;
+			depthColorAttachment.bBlendEnabled = true;
+			depthColorAttachment.BlendingState.BlendSrc = BlendFactor::One;
+			depthColorAttachment.BlendingState.BlendDst = BlendFactor::One;
+			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Max;
+
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
+			depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
+			depthAttachment.Image = RenderManager::GetDummyDepthImage();
+			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.bWriteDepth = false;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_unlit.vert", ShaderType::Vertex, vertexDefines);
+			state.FragmentShader = fragShader;
+			state.ColorAttachments.push_back(colorAttachment);
+			if (bUseVolumetricLights)
+				state.ColorAttachments.push_back(depthColorAttachment);
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Dynamic;
+
+			if (m_TranslucentUnlitTDLPipeline)
+				m_TranslucentUnlitTDLPipeline->SetState(state);
+			else
+				m_TranslucentUnlitTDLPipeline = PipelineGraphics::Create(state);
+		}
+
+		// Point light
+		{
+			ColorAttachment colorAttachment;
+			colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+			colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+			colorAttachment.Image = RenderManager::GetDummyImageCube();
+			colorAttachment.ClearOperation = ClearOperation::Load;
+			colorAttachment.bBlendEnabled = true;
+			colorAttachment.BlendingState.BlendSrc = BlendFactor::Zero;
+			colorAttachment.BlendingState.BlendDst = BlendFactor::SrcColor;
+			colorAttachment.BlendingState.BlendOp = BlendOperation::Add;
+
+			ColorAttachment depthColorAttachment;
+			depthColorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+			depthColorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+			depthColorAttachment.Image = RenderManager::GetDummyImageR16Cube();
+			depthColorAttachment.ClearOperation = ClearOperation::Load;
+			depthColorAttachment.bBlendEnabled = true;
+			depthColorAttachment.BlendingState.BlendSrc = BlendFactor::One;
+			depthColorAttachment.BlendingState.BlendDst = BlendFactor::One;
+			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Max;
+
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
+			depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
+			depthAttachment.Image = RenderManager::GetDummyDepthCubeImage();
+			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.bWriteDepth = false;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
+
+			ShaderDefines plDefines = vertexDefines;
+			plDefines["EG_POINT_LIGHT_PASS"] = "";
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_unlit.vert", ShaderType::Vertex, plDefines);
+			state.FragmentShader = fragShader;
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Dynamic;
+			state.bEnableMultiViewRendering = true;
+			state.MultiViewPasses = 6;
+			state.ColorAttachments.push_back(colorAttachment);
+			if (bUseVolumetricLights)
+				state.ColorAttachments.push_back(depthColorAttachment);
+
+			if (m_TranslucentUnlitTPLPipeline)
+				m_TranslucentUnlitTPLPipeline->SetState(state);
+			else
+				m_TranslucentUnlitTPLPipeline = PipelineGraphics::Create(state);
+		}
+
+		// Spot light
+		{
+			ColorAttachment colorAttachment;
+			colorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+			colorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+			colorAttachment.Image = RenderManager::GetDummyImage();
+			colorAttachment.ClearOperation = ClearOperation::Load;
+			colorAttachment.bBlendEnabled = true;
+			colorAttachment.BlendingState.BlendSrc = BlendFactor::Zero;
+			colorAttachment.BlendingState.BlendDst = BlendFactor::SrcColor;
+			colorAttachment.BlendingState.BlendOp = BlendOperation::Add;
+
+			ColorAttachment depthColorAttachment;
+			depthColorAttachment.InitialLayout = ImageLayoutType::RenderTarget;
+			depthColorAttachment.FinalLayout = ImageLayoutType::RenderTarget;
+			depthColorAttachment.Image = RenderManager::GetDummyImageR16();
+			depthColorAttachment.ClearOperation = ClearOperation::Load;
+			depthColorAttachment.bBlendEnabled = true;
+			depthColorAttachment.BlendingState.BlendSrc = BlendFactor::One;
+			depthColorAttachment.BlendingState.BlendDst = BlendFactor::One;
+			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Max;
+
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
+			depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
+			depthAttachment.Image = RenderManager::GetDummyDepthImage();
+			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.bWriteDepth = false;
+			depthAttachment.DepthCompareOp = CompareOperation::Greater;
+
+			ShaderDefines slDefines = vertexDefines;
+			slDefines["EG_SPOT_LIGHT_PASS"] = "";
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("shadow_maps/shadow_map_texts_unlit.vert", ShaderType::Vertex, slDefines);
+			state.FragmentShader = fragShader;
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Dynamic;
+			state.ColorAttachments.push_back(colorAttachment);
+			if (bUseVolumetricLights)
+				state.ColorAttachments.push_back(depthColorAttachment);
+
+			if (m_TranslucentUnlitTSLPipeline)
+				m_TranslucentUnlitTSLPipeline->SetState(state);
+			else
+				m_TranslucentUnlitTSLPipeline = PipelineGraphics::Create(state);
 		}
 	}
 	
