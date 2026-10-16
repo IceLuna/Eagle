@@ -628,6 +628,44 @@ namespace Eagle
         static constexpr uint32_t MaxTextures = 1024;
     };
 
+    enum class UIScaleMode
+    {
+        MatchWidthOrHeight, // Follows the viewport's width, its height, or a blend of them based on `UIScaleSettings::MatchWidthOrHeight`)
+        Expand,             // The whole reference resolution always fits into the viewport. The viewport has extra space along one axis
+        Shrink,             // The reference resolution always covers the viewport. Some of it is outside of the viewport along one axis
+    };
+
+    // 2D UI is authored in reference pixels - pixels of a viewport with `ReferenceResolution`.
+    // On other viewports, it's scaled uniformly so that it occupies the same part of the screen
+    struct UIScaleSettings
+    {
+        glm::uvec2 ReferenceResolution = glm::uvec2(1920u, 1080u);
+        UIScaleMode Mode = UIScaleMode::MatchWidthOrHeight;
+
+        // Only used by `UIScaleMode::MatchWidthOrHeight`.
+        // 0 - the scale follows the viewport's width, 1 - its height. Values in between blend them
+        float MatchWidthOrHeight = 1.f;
+
+        // Size of a reference pixel in viewport pixels
+        float GetScale(glm::vec2 viewportSize) const
+        {
+            const glm::vec2 ratio = glm::max(viewportSize, glm::vec2(1.f)) / glm::max(glm::vec2(ReferenceResolution), glm::vec2(1.f));
+            switch (Mode)
+            {
+                case UIScaleMode::Expand: return glm::min(ratio.x, ratio.y);
+                case UIScaleMode::Shrink: return glm::max(ratio.x, ratio.y);
+                default: return glm::exp2(glm::mix(glm::log2(ratio.x), glm::log2(ratio.y), glm::clamp(MatchWidthOrHeight, 0.f, 1.f)));
+            }
+        }
+
+        bool operator==(const UIScaleSettings& other) const
+        {
+            return ReferenceResolution == other.ReferenceResolution && Mode == other.Mode && MatchWidthOrHeight == other.MatchWidthOrHeight;
+        }
+
+        bool operator!=(const UIScaleSettings& other) const { return !(*this == other); }
+    };
+
     class AssetTexture2D;
     struct BloomSettings
     {
@@ -1227,6 +1265,21 @@ namespace Eagle
     {
         RendererDebugVertex Start;
         RendererDebugVertex End;
+    };
+
+    struct RendererDebugVertex2D
+    {
+        glm::vec4 Color = glm::vec4(1.f);
+        glm::vec2 Anchor = glm::vec2(0.f);
+        glm::vec2 Offset = glm::vec2(0.f); // Reference pixels
+        glm::vec2 Position = glm::vec2(0.f); // Reference pixels, rotated by `Rotation`
+        float Rotation = 0.f; // Radians
+    };
+
+    struct RendererLine2D
+    {
+        RendererDebugVertex2D Start;
+        RendererDebugVertex2D End;
     };
 
     struct RendererTriangle

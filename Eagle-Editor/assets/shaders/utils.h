@@ -610,4 +610,12 @@ vec2 Rotate2D(vec2 v, float radians)
     return mat2(c, -s, s, c) * v;
 }
 
+// 2D UI is laid out in reference pixels (Y points down) around an anchor, which is a point of the viewport [0; 1].
+// `position` is relative to the element's pivot.
+vec4 UI2D_GetClipPosition(vec2 viewportSize, float uiScale, vec2 anchor, vec2 offset, vec2 position, float rotation)
+{
+    const vec2 pixel = anchor * viewportSize + uiScale * (offset + Rotate2D(position, rotation));
+    return vec4(pixel / viewportSize * 2.0 - 1.0, 0.0, 1.0);
+}
+
 #endif

@@ -292,10 +292,7 @@ namespace Eagle
 		std::u32string Text;
 		Ref<Font> Font;
 		int EntityID;
-		float LineHeightOffset;
-		float KerningOffset;
-		float MaxWidth;
-		TextAlignment Alignment = TextAlignment::Left;
+		TextLayoutSettings LayoutSettings;
 		uint32_t TransformIndex;
 		uint32_t MaterialIndex;
 		bool bCastsShadows = false;
@@ -307,10 +304,7 @@ namespace Eagle
 		std::u32string Text;
 		Ref<Font> Font;
 		int EntityID;
-		float LineHeightOffset;
-		float KerningOffset;
-		float MaxWidth;
-		TextAlignment Alignment = TextAlignment::Left;
+		TextLayoutSettings LayoutSettings;
 		uint32_t TransformIndex;
 		bool bCastsShadows = false;
 		bool bDoubleSided = false;

@@ -855,21 +855,39 @@ namespace Eagle
 			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
 		}
 
-		void SetPosition(glm::vec2 pos)
+		// Point of the viewport it's attached to: (0, 0) - top-left corner, (1, 1) - bottom-right corner
+		void SetAnchor(glm::vec2 value)
 		{
-			m_Pos = pos;
+			m_Anchor = value;
 			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
 		}
 
-		void SetScale(glm::vec2 scale)
+		// Point of the image placed at the anchor (+ offset). (0, 0) - top-left corner, (1, 1) - bottom-right corner.
+		// Basically, determines which part of the image to pin to anchor.
+		void SetPivot(glm::vec2 value)
 		{
-			m_Scale = scale;
+			m_Pivot = value;
 			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
 		}
 
-		void SetRotation(float rotationZ)
+		// Offset from the anchor in reference pixels (see `UIScaleSettings`). X points right, Y points down
+		void SetOffset(glm::vec2 value)
 		{
-			m_Rotation = rotationZ;
+			m_Offset = value;
+			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
+		}
+
+		// In reference pixels (see `UIScaleSettings`). A negative size mirrors the image
+		void SetSize(glm::vec2 value)
+		{
+			m_Size = value;
+			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
+		}
+
+		// Degrees, counter-clockwise around the pivot
+		void SetRotation(float value)
+		{
+			m_Rotation = value;
 			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
 		}
 
@@ -887,8 +905,10 @@ namespace Eagle
 
 		const Ref<AssetTexture2D>& GetTextureAsset() const { return m_TextureAsset; }
 		glm::vec3 GetTint() const { return m_Tint; }
-		glm::vec2 GetPosition() const { return m_Pos; }
-		glm::vec2 GetScale() const { return m_Scale; }
+		glm::vec2 GetAnchor() const { return m_Anchor; }
+		glm::vec2 GetPivot() const { return m_Pivot; }
+		glm::vec2 GetOffset() const { return m_Offset; }
+		glm::vec2 GetSize() const { return m_Size; }
 		float GetRotation() const { return m_Rotation; }
 		float GetOpacity() const { return m_Opacity; }
 		bool IsVisible() const { return m_IsVisible; }
@@ -896,8 +916,10 @@ namespace Eagle
 	private:
 		Ref<AssetTexture2D> m_TextureAsset;
 		glm::vec3 m_Tint = glm::vec3(1.f);
-		glm::vec2 m_Pos = glm::vec2{ 0.0f }; // Normalized device coords
-		glm::vec2 m_Scale = glm::vec2{ 0.5f };
+		glm::vec2 m_Anchor = glm::vec2(0.5f);
+		glm::vec2 m_Pivot = glm::vec2(0.5f);
+		glm::vec2 m_Offset = glm::vec2(0.f);
+		glm::vec2 m_Size = glm::vec2(256.f);
 		float m_Rotation = 0.f;
 		float m_Opacity = 1.f;
 		bool m_IsVisible = true;
@@ -931,6 +953,17 @@ namespace Eagle
 		TextAlignment GetAlignment() const { return m_Alignment; }
 		bool IsLit() const { return m_bLit; }
 
+		TextLayoutSettings GetLayoutSettings() const
+		{
+			TextLayoutSettings settings;
+			settings.LineSpacing = m_LineSpacing;
+			settings.KerningOffset = m_Kerning;
+			settings.MaxWidth = (m_MaxWidth > 0.f) ? m_MaxWidth : std::numeric_limits<float>::max();
+			settings.BoxWidth = m_MaxWidth; // Doesn't move the text since its origin follows the alignment, but the box shows the wrap width
+			settings.Alignment = m_Alignment;
+			return settings;
+		}
+
 		void SetFontAsset(const Ref<AssetFont>& font)
 		{
 			m_FontAsset = font;
@@ -961,6 +994,7 @@ namespace Eagle
 			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
 		}
 
+		// Lines are wrapped at spaces to fit into it. 0 - no wrapping, the box is as wide as the widest line
 		void SetMaxWidth(float value)
 		{
 			m_MaxWidth = glm::max(value, 0.f);
@@ -1055,39 +1089,67 @@ namespace Eagle
 			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
 		}
 
+		// In font sizes
 		void SetLineSpacing(float value)
 		{
 			m_LineSpacing = value;
 			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
 		}
 
+		// In font sizes
 		void SetKerning(float value)
 		{
 			m_Kerning = value;
 			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
 		}
 
+		// Width of the text box in reference pixels (see `UIScaleSettings`). Lines are wrapped at spaces to fit into it, and aligned within it.
+		// 0 - no wrapping, the box is as wide as the widest line
 		void SetMaxWidth(float value)
 		{
 			m_MaxWidth = glm::max(value, 0.f);
 			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
 		}
 
-		void SetPosition(glm::vec2 pos)
+		// Height of the font (ascender to descender) in reference pixels (see `UIScaleSettings`)
+		void SetFontSize(float value)
 		{
-			m_Pos = pos;
+			m_FontSize = glm::max(value, 0.f);
 			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
 		}
 
-		void SetScale(glm::vec2 scale)
+		void SetAlignment(TextAlignment value)
 		{
-			m_Scale = scale;
+			m_Alignment = value;
 			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
 		}
 
-		void SetRotation(float rotationZ)
+		// Point of the viewport it's attached to: (0, 0) - top-left corner, (1, 1) - bottom-right corner
+		void SetAnchor(glm::vec2 value)
 		{
-			m_Rotation = rotationZ;
+			m_Anchor = value;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		// Point of the text box placed at the anchor (+ offset). (0, 0) - top-left corner, (1, 1) - bottom-right corner.
+		// Basically, determines which part of the text box to pin to anchor.
+		void SetPivot(glm::vec2 value)
+		{
+			m_Pivot = value;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		// Offset from the anchor in reference pixels (see `UIScaleSettings`). X points right, Y points down
+		void SetOffset(glm::vec2 value)
+		{
+			m_Offset = value;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		// Degrees, counter-clockwise around the pivot
+		void SetRotation(float value)
+		{
+			m_Rotation = value;
 			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
 		}
 
@@ -1109,11 +1171,27 @@ namespace Eagle
 		float GetLineSpacing() const { return m_LineSpacing; }
 		float GetKerning() const { return m_Kerning; }
 		float GetMaxWidth() const { return m_MaxWidth; }
-		glm::vec2 GetPosition() const { return m_Pos; }
-		glm::vec2 GetScale() const { return m_Scale; }
+		float GetFontSize() const { return m_FontSize; }
+		TextAlignment GetAlignment() const { return m_Alignment; }
+		glm::vec2 GetAnchor() const { return m_Anchor; }
+		glm::vec2 GetPivot() const { return m_Pivot; }
+		glm::vec2 GetOffset() const { return m_Offset; }
 		float GetRotation() const { return m_Rotation; }
 		float GetOpacity() const { return m_Opacity; }
 		bool IsVisible() const { return m_IsVisible; }
+
+		TextLayoutSettings GetLayoutSettings() const
+		{
+			const float maxWidth = (m_MaxWidth > 0.f && m_FontSize > 0.f) ? (m_MaxWidth / m_FontSize) : 0.f;
+
+			TextLayoutSettings settings;
+			settings.LineSpacing = m_LineSpacing;
+			settings.KerningOffset = m_Kerning;
+			settings.MaxWidth = (maxWidth > 0.f) ? maxWidth : std::numeric_limits<float>::max();
+			settings.BoxWidth = maxWidth;
+			settings.Alignment = m_Alignment;
+			return settings;
+		}
 
 	private:
 		std::string m_Text = "Hello, 2D World!";
@@ -1121,11 +1199,14 @@ namespace Eagle
 
 		glm::vec3 m_Color = glm::vec3(1.f);
 		float m_LineSpacing = 0.0f;
-		glm::vec2 m_Pos = glm::vec2{ 0.0f }; // Normalized device coords
-		glm::vec2 m_Scale = glm::vec2{ 0.5f };
-		float m_Rotation = 0.f;
 		float m_Kerning = 0.0f;
-		float m_MaxWidth = 10.0f;
+		float m_MaxWidth = 0.f;
+		float m_FontSize = 64.f;
+		TextAlignment m_Alignment = TextAlignment::Left;
+		glm::vec2 m_Anchor = glm::vec2(0.5f);
+		glm::vec2 m_Pivot = glm::vec2(0.5f);
+		glm::vec2 m_Offset = glm::vec2(0.f);
+		float m_Rotation = 0.f;
 		float m_Opacity = 1.f;
 		bool m_IsVisible = true;
 	};

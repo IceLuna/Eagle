@@ -30,6 +30,7 @@ namespace Eagle
 		float LineSpacing = 0.f;   // Added to the font's line height
 		float KerningOffset = 0.f; // Added to the advance of each character
 		float MaxWidth = 0.f;      // Lines are wrapped at spaces & tabs to fit into it
+		float BoxWidth = 0.f;      // If > 0, the layout box has this width instead of the widest line's
 		TextAlignment Alignment = TextAlignment::Left; // Alignment of lines within the layout box
 	};
 
@@ -67,13 +68,25 @@ namespace Eagle
 		glm::vec2 BoundsMin = glm::vec2(0.f); // Bounds of all glyph quads. Zero if there are no glyphs
 		glm::vec2 BoundsMax = glm::vec2(0.f);
 
-		// Layout box. X: from 0 to the widest line. Y: from the last line's descender to the first line's ascender.
+		// Layout box. X: from 0 to `BoxWidth` (or the widest line). Y: from the last line's descender to the first line's ascender.
 		// Unlike the bounds, it doesn't depend on which glyphs are used, so it's suitable for pivots
 		glm::vec2 BoxMin = glm::vec2(0.f);
 		glm::vec2 BoxMax = glm::vec2(0.f);
 
 		float Ascender = 0.f;  // Font's ascender & descender relative to a baseline
 		float Descender = 0.f;
+
+		// Point of the layout box. (0, 0) - top-left corner, (1, 1) - bottom-right corner
+		glm::vec2 GetBoxPoint(glm::vec2 point) const
+		{
+			return glm::vec2(BoxMin.x + (BoxMax.x - BoxMin.x) * point.x, BoxMax.y - (BoxMax.y - BoxMin.y) * point.y);
+		}
+
+		// Point of the first baseline at the left edge, center or right edge of the box. It's the origin of 3D text
+		glm::vec2 GetAlignmentOrigin(TextAlignment alignment) const
+		{
+			return glm::vec2(BoxMin.x + (BoxMax.x - BoxMin.x) * GetTextAlignmentFactor(alignment), 0.f);
+		}
 	};
 
 	class Font

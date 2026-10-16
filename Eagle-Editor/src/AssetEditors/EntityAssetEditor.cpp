@@ -114,6 +114,14 @@ namespace Eagle
 		}
 		ImGui::End(); // Entity Editor
 
+		{
+			// Outlines of text boxes and 2D UI
+			const auto& scene = GetCurrentScene();
+			Entity selectedEntity = m_SceneHierarchy.GetSelectedEntity();
+			scene->TextUIDebugSelectedEntity = selectedEntity ? selectedEntity.GetGUID() : GUID(0, 0);
+			scene->bDrawAllTextUIBounds = m_EditorLayer.IsDrawingAllTextUIBounds();
+		}
+
 		DrawViewport(m_UpdateAnims, m_WindowName);
 	}
 

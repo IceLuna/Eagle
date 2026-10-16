@@ -1166,15 +1166,10 @@ namespace Eagle
 	template <typename TextDataType, typename VertexType>
 	static void ProcessTextData(const TextDataType& component, ankerl::unordered_dense::map<Ref<Texture2D>, uint32_t>& fontAtlases, std::vector<VertexType>& vertices)
 	{
-		TextLayoutSettings settings;
-		settings.LineSpacing = component.LineHeightOffset;
-		settings.KerningOffset = component.KerningOffset;
-		settings.MaxWidth = component.MaxWidth;
-		settings.Alignment = component.Alignment;
-		const TextLayout layout = component.Font->Layout(component.Text, settings);
+		const TextLayout layout = component.Font->Layout(component.Text, component.LayoutSettings);
 		const uint32_t atlasIndex = GetFontAtlasIndex(fontAtlases, component.Font->GetAtlas());
 
-		const glm::vec2 origin = glm::vec2(layout.BoxMax.x * GetTextAlignmentFactor(component.Alignment), 0.f);
+		const glm::vec2 origin = layout.GetAlignmentOrigin(component.LayoutSettings.Alignment);
 		for (const auto& glyph : layout.Glyphs)
 		{
 			for (uint32_t corner = 0; corner < 4; ++corner)
@@ -1221,10 +1216,7 @@ namespace Eagle
 				data.Text = Utils::ToUTF32(text->GetText());
 				data.Font = asset->GetFont();
 				data.EntityID = text->Parent.GetID();
-				data.LineHeightOffset = text->GetLineSpacing();
-				data.KerningOffset = text->GetKerning();
-				data.MaxWidth = text->GetMaxWidth();
-				data.Alignment = text->GetAlignment();
+				data.LayoutSettings = text->GetLayoutSettings();
 				data.TransformIndex = transformIndex | (text->DoesReceiveDecals() ? (1 << 31) : 0u);
 				data.MaterialIndex = MaterialSystem::GetMaterialIndex(data.Material);
 				data.bCastsShadows = text->DoesCastShadows();
@@ -1237,10 +1229,7 @@ namespace Eagle
 				data.Font = asset->GetFont();
 				data.Color = text->GetColor();
 				data.EntityID = text->Parent.GetID();
-				data.LineHeightOffset = text->GetLineSpacing();
-				data.KerningOffset = text->GetKerning();
-				data.MaxWidth = text->GetMaxWidth();
-				data.Alignment = text->GetAlignment();
+				data.LayoutSettings = text->GetLayoutSettings();
 				data.bCastsShadows = text->DoesCastShadows();
 				data.bDoubleSided = text->IsDoubleSided();
 			}

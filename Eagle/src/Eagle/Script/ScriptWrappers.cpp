@@ -6307,44 +6307,110 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set color of Text2D Component. Entity is null");
 	}
 
-	void Script::Eagle_Text2DComponent_GetPosition(GUID entityID, glm::vec2* outPos)
+	void Script::Eagle_Text2DComponent_GetAnchor(GUID entityID, glm::vec2* outValue)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			*outPos = entity.GetComponent<Text2DComponent>().GetPosition();
+			*outValue = entity.GetComponent<Text2DComponent>().GetAnchor();
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get position of Text2D Component. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get anchor of Text2D Component. Entity is null");
 	}
 
-	void Script::Eagle_Text2DComponent_SetPosition(GUID entityID, const glm::vec2* pos)
+	void Script::Eagle_Text2DComponent_SetAnchor(GUID entityID, const glm::vec2* value)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<Text2DComponent>().SetPosition(*pos);
+			entity.GetComponent<Text2DComponent>().SetAnchor(*value);
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set position of Text2D Component. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set anchor of Text2D Component. Entity is null");
 	}
 
-	void Script::Eagle_Text2DComponent_GetScale(GUID entityID, glm::vec2* outScale)
+	void Script::Eagle_Text2DComponent_GetPivot(GUID entityID, glm::vec2* outValue)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			*outScale = entity.GetComponent<Text2DComponent>().GetScale();
+			*outValue = entity.GetComponent<Text2DComponent>().GetPivot();
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get scale of Text2D Component. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get pivot of Text2D Component. Entity is null");
 	}
 
-	void Script::Eagle_Text2DComponent_SetScale(GUID entityID, const glm::vec2* scale)
+	void Script::Eagle_Text2DComponent_SetPivot(GUID entityID, const glm::vec2* value)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<Text2DComponent>().SetScale(*scale);
+			entity.GetComponent<Text2DComponent>().SetPivot(*value);
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set scale of Text2D Component. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set pivot of Text2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Text2DComponent_GetOffset(GUID entityID, glm::vec2* outValue)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			*outValue = entity.GetComponent<Text2DComponent>().GetOffset();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get offset of Text2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Text2DComponent_SetOffset(GUID entityID, const glm::vec2* value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetOffset(*value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set offset of Text2D Component. Entity is null");
+	}
+
+	float Script::Eagle_Text2DComponent_GetFontSize(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Text2DComponent>().GetFontSize();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get font size of Text2D Component. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_Text2DComponent_SetFontSize(GUID entityID, float value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetFontSize(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set font size of Text2D Component. Entity is null");
+	}
+
+	TextAlignment Script::Eagle_Text2DComponent_GetAlignment(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Text2DComponent>().GetAlignment();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get alignment of Text2D Component. Entity is null");
+			return TextAlignment::Left;
+		}
+	}
+
+	void Script::Eagle_Text2DComponent_SetAlignment(GUID entityID, TextAlignment value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetAlignment(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set alignment of Text2D Component. Entity is null");
 	}
 
 	float Script::Eagle_Text2DComponent_GetRotation(GUID entityID)
@@ -6543,44 +6609,84 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set tint of Image2D Component. Entity is null");
 	}
 
-	void Script::Eagle_Image2DComponent_GetPosition(GUID entityID, glm::vec2* outValue)
+	void Script::Eagle_Image2DComponent_GetAnchor(GUID entityID, glm::vec2* outValue)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			*outValue = entity.GetComponent<Image2DComponent>().GetPosition();
+			*outValue = entity.GetComponent<Image2DComponent>().GetAnchor();
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get position of Image2D Component. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get anchor of Image2D Component. Entity is null");
 	}
 
-	void Script::Eagle_Image2DComponent_SetPosition(GUID entityID, const glm::vec2* value)
+	void Script::Eagle_Image2DComponent_SetAnchor(GUID entityID, const glm::vec2* value)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<Image2DComponent>().SetPosition(*value);
+			entity.GetComponent<Image2DComponent>().SetAnchor(*value);
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set position of Image2D Component. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set anchor of Image2D Component. Entity is null");
 	}
 
-	void Script::Eagle_Image2DComponent_GetScale(GUID entityID, glm::vec2* outValue)
+	void Script::Eagle_Image2DComponent_GetPivot(GUID entityID, glm::vec2* outValue)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			*outValue = entity.GetComponent<Image2DComponent>().GetScale();
+			*outValue = entity.GetComponent<Image2DComponent>().GetPivot();
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get scale of Image2D Component. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get pivot of Image2D Component. Entity is null");
 	}
 
-	void Script::Eagle_Image2DComponent_SetScale(GUID entityID, const glm::vec2* value)
+	void Script::Eagle_Image2DComponent_SetPivot(GUID entityID, const glm::vec2* value)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<Image2DComponent>().SetScale(*value);
+			entity.GetComponent<Image2DComponent>().SetPivot(*value);
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set scale of Image2D Component. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set pivot of Image2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Image2DComponent_GetOffset(GUID entityID, glm::vec2* outValue)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			*outValue = entity.GetComponent<Image2DComponent>().GetOffset();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get offset of Image2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Image2DComponent_SetOffset(GUID entityID, const glm::vec2* value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Image2DComponent>().SetOffset(*value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set offset of Image2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Image2DComponent_GetSize(GUID entityID, glm::vec2* outValue)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			*outValue = entity.GetComponent<Image2DComponent>().GetSize();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get size of Image2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Image2DComponent_SetSize(GUID entityID, const glm::vec2* value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Image2DComponent>().SetSize(*value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set size of Image2D Component. Entity is null");
 	}
 
 	float Script::Eagle_Image2DComponent_GetRotation(GUID entityID)
@@ -8534,6 +8640,33 @@ namespace Eagle
 	void Script::Eagle_Renderer_GetViewportSize(glm::vec2* outSize)
 	{
 		*outSize = glm::vec2(Scene::GetCurrentScene()->GetSceneRenderer()->GetViewportSize());
+	}
+
+	void Script::Eagle_Renderer_SetUIScaleSettings(const glm::vec2* referenceResolution, UIScaleMode mode, float matchWidthOrHeight)
+	{
+		UIScaleSettings settings;
+		settings.ReferenceResolution = glm::max(glm::uvec2(glm::round(glm::max(*referenceResolution, glm::vec2(0.f)))), glm::uvec2(1u));
+		settings.Mode = mode;
+		settings.MatchWidthOrHeight = glm::clamp(matchWidthOrHeight, 0.f, 1.f);
+		Scene::GetCurrentScene()->GetSceneRenderer()->SetUIScaleSettingsOverride(settings);
+	}
+
+	void Script::Eagle_Renderer_GetUIScaleSettings(glm::vec2* outReferenceResolution, UIScaleMode* outMode, float* outMatchWidthOrHeight)
+	{
+		const UIScaleSettings& settings = Scene::GetCurrentScene()->GetSceneRenderer()->GetUIScaleSettings();
+		*outReferenceResolution = glm::vec2(settings.ReferenceResolution);
+		*outMode = settings.Mode;
+		*outMatchWidthOrHeight = settings.MatchWidthOrHeight;
+	}
+
+	void Script::Eagle_Renderer_ResetUIScaleSettings()
+	{
+		Scene::GetCurrentScene()->GetSceneRenderer()->SetUIScaleSettingsOverride(std::nullopt);
+	}
+
+	float Script::Eagle_Renderer_GetUIScale()
+	{
+		return Scene::GetCurrentScene()->GetSceneRenderer()->GetUIScale();
 	}
 
 	void Script::Eagle_Renderer_SetSkybox(GUID cubemapID)

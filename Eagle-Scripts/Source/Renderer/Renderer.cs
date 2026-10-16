@@ -168,6 +168,23 @@ namespace Eagle
         public bool bEnableCumulusClouds;
     }
 
+    public enum UIScaleMode
+    {
+        MatchWidthOrHeight, // Follows the viewport's width, its height, or a blend of them (see `UIScaleSettings.MatchWidthOrHeight`)
+        Expand,             // The whole reference resolution always fits into the viewport. The viewport has extra space along one axis
+        Shrink,             // The reference resolution always covers the viewport. Some of it is outside of the viewport along one axis
+    }
+
+    public struct UIScaleSettings
+    {
+        public Vector2 ReferenceResolution; // Text2D/Image2D sizes, offsets and font sizes are in pixels of this resolution
+        public UIScaleMode Mode;
+
+        // Only used by `UIScaleMode.MatchWidthOrHeight`
+        // [0; 1] range. 0 - the scale follows the viewport's width, 1 - its height. Values in between blend them
+        public float MatchWidthOrHeight;
+    }
+
     public struct FogSettings
     {
         public Color3 Color;
@@ -799,6 +816,33 @@ namespace Eagle
             return result;
         }
 
+        // Overrides the project's UI scale settings (Project Settings -> UI Scale) until `ResetUIScaleSettings()` is called.
+        // Note: the override is kept when another scene is opened
+        public static void SetUIScaleSettings(UIScaleSettings value)
+        {
+            SetUIScaleSettings_Native(ref value.ReferenceResolution, value.Mode, value.MatchWidthOrHeight);
+        }
+
+        // The settings in use. Either the project's, or the ones set by `SetUIScaleSettings()`
+        public static UIScaleSettings GetUIScaleSettings()
+        {
+            UIScaleSettings value = new UIScaleSettings();
+            GetUIScaleSettings_Native(out value.ReferenceResolution, out value.Mode, out value.MatchWidthOrHeight);
+            return value;
+        }
+
+        // Reset back to the project's UI scale settings
+        public static void ResetUIScaleSettings()
+        {
+            ResetUIScaleSettings_Native();
+        }
+
+        // Size of a reference pixel in viewport pixels. For example, `ReferencePixels * UIScale` gives viewport pixels
+        public static float UIScale
+        {
+            get { return GetUIScale_Native(); }
+        }
+
         public static bool bUseSkyAsBackground
         {
             set { SetUseSkyAsBackground_Native(value); }
@@ -1198,6 +1242,18 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void GetViewportSize_Native(out Vector2 size);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetUIScaleSettings_Native(ref Vector2 referenceResolution, UIScaleMode mode, float matchWidthOrHeight);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetUIScaleSettings_Native(out Vector2 referenceResolution, out UIScaleMode mode, out float matchWidthOrHeight);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void ResetUIScaleSettings_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern float GetUIScale_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetSkybox_Native(GUID cubemapID);

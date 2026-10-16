@@ -2,12 +2,13 @@
 
 layout(location = 0) in vec3  a_Color;
 layout(location = 1) in uint  a_AtlasIndex;
-layout(location = 2) in vec2  a_Position;
+layout(location = 2) in vec2  a_Position; // Relative to the pivot, reference pixels
 layout(location = 3) in vec2  a_TexCoords;
 layout(location = 4) in int   a_EntityID;
 layout(location = 5) in float a_Opacity;
-layout(location = 6) in vec2  a_Origin;   // NDC
-layout(location = 7) in float a_Rotation;
+layout(location = 6) in vec2  a_Anchor;
+layout(location = 7) in vec2  a_Offset;   // Reference pixels
+layout(location = 8) in float a_Rotation; // Radians
 
 layout(location = 0) out vec3 o_Color;
 layout(location = 1) out vec2 o_TexCoords;
@@ -20,13 +21,12 @@ layout(location = 4) flat out int o_EntityID;
 layout(push_constant) uniform PushConstants
 {
     vec2 g_ViewportSize;
+    float g_UIScale; // Size of a reference pixel in viewport pixels
 };
 
 void main()
 {
-    const vec2 halfViewport = 0.5f * g_ViewportSize;
-    const vec2 offsetPx = Rotate2D(a_Position * halfViewport, a_Rotation);
-    gl_Position = vec4(a_Origin + offsetPx / halfViewport, 0.f, 1.0);
+    gl_Position = UI2D_GetClipPosition(g_ViewportSize, g_UIScale, a_Anchor, a_Offset, a_Position, a_Rotation);
 
     o_TexCoords = a_TexCoords;
     o_Color = a_Color;

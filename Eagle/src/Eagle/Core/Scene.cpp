@@ -5,6 +5,7 @@
 #include "Eagle/Components/Components.h"
 #include "Eagle/Core/SceneSerializer.h"
 #include "Eagle/Core/AsyncSceneLoader.h"
+#include "Eagle/Core/Project.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Animation/AnimationSystem.h"
 #include "Eagle/Animation/AnimationGraph.h"
@@ -2150,6 +2151,8 @@ namespace Eagle
 				m_UserBoxes.clear();
 			}
 
+			AddTextUIBoundsDebugLines();
+
 			// Append user provided lines
 			m_DebugLinesToDraw.insert(m_DebugLinesToDraw.end(), m_UserDebugLines.begin(), m_UserDebugLines.end());
 			m_DebugTrianglesToDraw.insert(m_DebugTrianglesToDraw.end(), m_UserDebugTriangles.begin(), m_UserDebugTriangles.end());
@@ -2257,6 +2260,7 @@ namespace Eagle
 		if (m_DirtyFlags.bSpritesDirty)
 			m_SceneRenderer->SetSprites(m_Sprites);
 		m_SceneRenderer->SetDebugLines(m_DebugLinesToDraw);
+		m_SceneRenderer->SetDebugLines2D(m_DebugLines2DToDraw);
 		m_SceneRenderer->SetDebugTriangles(m_DebugTrianglesToDraw);
 		m_SceneRenderer->SetBillboards(m_Billboards);
 		if (m_DirtyFlags.bTextDirty)
@@ -2265,6 +2269,8 @@ namespace Eagle
 			m_SceneRenderer->SetTexts2D(m_Texts2D);
 		if (m_DirtyFlags.bImage2DDirty)
 			m_SceneRenderer->SetImages2D(m_Images2D);
+		if (const auto& uiScale = Project::GetProjectInfo().UIScale; uiScale != m_SceneRenderer->GetProjectUIScaleSettings())
+			m_SceneRenderer->SetProjectUIScaleSettings(uiScale);
 		m_SceneRenderer->SetIsRuntime(bIsPlaying);
 		m_SceneRenderer->SetMeshesAnimationTransforms(std::move(m_AnimationTransforms));
 		m_SceneRenderer->SetSkeletalParticleAnimationTransforms(std::move(m_SkeletalParticlesAnimationTransforms));
@@ -2332,6 +2338,156 @@ namespace Eagle
 		m_DirtyTransformSprites.clear();
 		m_DirtyTransformTexts.clear();
 		m_DirtyFlags.SetEverythingDirty(false);
+	}
+
+	void Scene::AddTextUIBoundsDebugLines()
+	{
+		m_DebugLines2DToDraw.clear();
+
+		Entity selectedEntity = TextUIDebugSelectedEntity.IsNull() ? Entity::Null : GetEntityByGUID(TextUIDebugSelectedEntity);
+		if (!selectedEntity && !bDrawAllTextUIBounds)
+			return;
+
+		const glm::vec3 lineColor = glm::vec3(1.f, 0.78f, 0.f);
+		const glm::vec3 dimLineColor = glm::vec3(0.5f, 0.39f, 0.f);
+
+		// 3D text: debug lines in world space
+		auto addText = [&](const TextComponent& text)
+		{
+			const auto& fontAsset = text.GetFontAsset();
+			if (!fontAsset || !fontAsset->GetFont() || !text.IsVisible())
+				return;
+
+			const bool bSelected = text.Parent == selectedEntity;
+			const TextLayoutSettings settings = text.GetLayoutSettings();
+			const TextLayout layout = fontAsset->GetFont()->Layout(Utils::ToUTF32(text.GetText()), settings);
+			const glm::vec2 origin = layout.GetAlignmentOrigin(settings.Alignment);
+			const glm::mat4 transform = Math::ToTransformMatrix(text.GetWorldTransform());
+			auto addLine = [&](glm::vec2 start, glm::vec2 end, const glm::vec3& color)
+			{
+				auto& line = m_DebugLinesToDraw.emplace_back();
+				line.Start.Location = glm::vec3(transform * glm::vec4(start - origin, 0.f, 1.f));
+				line.End.Location = glm::vec3(transform * glm::vec4(end - origin, 0.f, 1.f));
+				line.Start.Color = line.End.Color = color;
+			};
+
+			const glm::vec3& color = bSelected ? lineColor : dimLineColor;
+			const glm::vec2 boxMin = layout.BoxMin;
+			const glm::vec2 boxMax = layout.BoxMax;
+			addLine(boxMin, glm::vec2(boxMax.x, boxMin.y), color);
+			addLine(glm::vec2(boxMax.x, boxMin.y), boxMax, color);
+			addLine(boxMax, glm::vec2(boxMin.x, boxMax.y), color);
+			addLine(glm::vec2(boxMin.x, boxMax.y), boxMin, color);
+			if (bSelected)
+			{
+				for (const auto& line : layout.Lines)
+					addLine(glm::vec2(boxMin.x, line.BaselineY), glm::vec2(boxMax.x, line.BaselineY), dimLineColor);
+			}
+		};
+
+		// 2D UI: drawn over the UI, in the same space as its vertices
+		const glm::vec4 uiLineColor = glm::vec4(lineColor, 1.f);
+		const glm::vec4 uiDimLineColor = glm::vec4(lineColor, 0.4f);
+		const glm::vec4 uiAnchorColor = glm::vec4(0.31f, 0.78f, 1.f, 1.f);
+
+		// `boxMin` & `boxMax` are relative to the pivot, in reference pixels (Y points down). `baselines` - Y of each text line, same space
+		auto addUIElement = [&](glm::vec2 anchor, glm::vec2 offset, float rotationDegrees, glm::vec2 boxMin, glm::vec2 boxMax, bool bSelected, const std::vector<float>& baselines)
+		{
+			RendererDebugVertex2D vertex;
+			vertex.Anchor = anchor;
+			vertex.Offset = offset;
+			vertex.Rotation = glm::radians(rotationDegrees);
+			auto addLine = [&](glm::vec2 start, glm::vec2 end, const glm::vec4& color)
+			{
+				auto& line = m_DebugLines2DToDraw.emplace_back();
+				line.Start = line.End = vertex;
+				line.Start.Position = start;
+				line.End.Position = end;
+				line.Start.Color = line.End.Color = color;
+			};
+
+			const glm::vec4& color = bSelected ? uiLineColor : uiDimLineColor;
+			addLine(boxMin, glm::vec2(boxMax.x, boxMin.y), color);
+			addLine(glm::vec2(boxMax.x, boxMin.y), boxMax, color);
+			addLine(boxMax, glm::vec2(boxMin.x, boxMax.y), color);
+			addLine(glm::vec2(boxMin.x, boxMax.y), boxMin, color);
+			if (!bSelected)
+				return;
+
+			for (float y : baselines)
+				addLine(glm::vec2(boxMin.x, y), glm::vec2(boxMax.x, y), uiDimLineColor);
+
+			// Pivot (cross)
+			constexpr float crossSize = 6.f;
+			addLine(glm::vec2(-crossSize, 0.f), glm::vec2(crossSize, 0.f), color);
+			addLine(glm::vec2(0.f, -crossSize), glm::vec2(0.f, crossSize), color);
+
+			// Anchor (diamond) and the offset from it to the pivot (line)
+			vertex.Offset = glm::vec2(0.f);
+			vertex.Rotation = 0.f;
+			constexpr float anchorSize = 4.f;
+			const glm::vec2 diamond[4] = { { -anchorSize, 0.f }, { 0.f, -anchorSize }, { anchorSize, 0.f }, { 0.f, anchorSize } };
+			for (uint32_t i = 0; i < 4; ++i)
+				addLine(diamond[i], diamond[(i + 1) % 4], uiAnchorColor);
+			addLine(glm::vec2(0.f), glm::vec2(0.f), uiAnchorColor);
+			m_DebugLines2DToDraw.back().End.Offset = offset;
+		};
+
+		auto addText2D = [&](const Text2DComponent& text)
+		{
+			const auto& fontAsset = text.GetFontAsset();
+			const float fontSize = text.GetFontSize();
+			if (!fontAsset || !fontAsset->GetFont() || fontSize <= 0.f || !text.IsVisible())
+				return;
+
+			const bool bSelected = text.Parent == selectedEntity;
+			const TextLayout layout = fontAsset->GetFont()->Layout(Utils::ToUTF32(text.GetText()), text.GetLayoutSettings());
+			const glm::vec2 pivot = layout.GetBoxPoint(text.GetPivot());
+			const glm::vec2 toPixels = glm::vec2(fontSize, -fontSize);
+			auto toLocal = [&](glm::vec2 p) { return (p - pivot) * toPixels; };
+
+			std::vector<float> baselines;
+			if (bSelected)
+			{
+				baselines.reserve(layout.Lines.size());
+				for (const auto& line : layout.Lines)
+					baselines.push_back(toLocal(glm::vec2(0.f, line.BaselineY)).y);
+			}
+			addUIElement(text.GetAnchor(), text.GetOffset(), text.GetRotation(),
+				toLocal(glm::vec2(layout.BoxMin.x, layout.BoxMax.y)), toLocal(glm::vec2(layout.BoxMax.x, layout.BoxMin.y)), bSelected, baselines);
+		};
+
+		auto addImage2D = [&](const Image2DComponent& image)
+		{
+			if (!image.IsVisible())
+				return;
+
+			const glm::vec2 size = image.GetSize();
+			const glm::vec2 pivot = image.GetPivot() * size;
+			addUIElement(image.GetAnchor(), image.GetOffset(), image.GetRotation(), -pivot, size - pivot, image.Parent == selectedEntity, {});
+		};
+
+		if (bDrawAllTextUIBounds)
+		{
+			auto texts = m_Registry.view<TextComponent>();
+			for (auto entity : texts)
+				addText(texts.get<TextComponent>(entity));
+			auto images = m_Registry.view<Image2DComponent>();
+			for (auto entity : images)
+				addImage2D(images.get<Image2DComponent>(entity));
+			auto texts2D = m_Registry.view<Text2DComponent>();
+			for (auto entity : texts2D)
+				addText2D(texts2D.get<Text2DComponent>(entity));
+		}
+		else
+		{
+			if (selectedEntity.HasComponent<TextComponent>())
+				addText(selectedEntity.GetComponent<TextComponent>());
+			if (selectedEntity.HasComponent<Image2DComponent>())
+				addImage2D(selectedEntity.GetComponent<Image2DComponent>());
+			if (selectedEntity.HasComponent<Text2DComponent>())
+				addText2D(selectedEntity.GetComponent<Text2DComponent>());
+		}
 	}
 
 	void Scene::OnRuntimeStart()

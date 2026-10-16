@@ -27,10 +27,11 @@ namespace Eagle
 		{
 			glm::vec3 Tint;
 			uint32_t TextureIndex;
-			glm::vec2 Position; // Offset from `Origin` before rotation, in NDC units
+			glm::vec2 Position; // Relative to the pivot, before rotation. Reference pixels, Y points down
 			int EntityID;
 			float Opacity;
-			glm::vec2 Origin; // NDC. Rotation pivot
+			glm::vec2 Anchor;
+			glm::vec2 Offset; // Reference pixels
 			float Rotation;
 		};
 
@@ -38,8 +39,10 @@ namespace Eagle
 		{
 			Ref<Texture2D> Texture;
 			glm::vec3 Tint;
-			glm::vec2 Pos;
-			glm::vec2 Scale;
+			glm::vec2 Anchor;
+			glm::vec2 Pivot;
+			glm::vec2 Offset;
+			glm::vec2 Size;
 			float Rotation;
 			int EntityID;
 			float Opacity;

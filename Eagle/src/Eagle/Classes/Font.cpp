@@ -299,6 +299,8 @@ namespace Eagle
 				line.Width = glm::max(line.Width, layout.Glyphs[g].PlaneMax.x);
 			boxWidth = glm::max(boxWidth, line.Width);
 		}
+		if (settings.BoxWidth > 0.f)
+			boxWidth = settings.BoxWidth;
 
 		// Alignment
 		if (settings.Alignment != TextAlignment::Left)

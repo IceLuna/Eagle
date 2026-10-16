@@ -91,6 +91,29 @@ namespace Eagle
 		return index < info.CollisionGroupGUIDs.size() ? info.CollisionGroupGUIDs[index] : GUID64(0);
 	}
 
+	static void LoadUIScaleSettings(const YAML::Node& node, ProjectInfo& info)
+	{
+		info.UIScale = {};
+		if (!node)
+			return;
+
+		if (auto resolutionNode = node["ReferenceResolution"])
+			info.UIScale.ReferenceResolution = glm::max(resolutionNode.as<glm::uvec2>(), glm::uvec2(1u));
+		if (auto modeNode = node["Mode"])
+			info.UIScale.Mode = Utils::GetEnumFromName<UIScaleMode>(modeNode.as<std::string>());
+		if (auto matchNode = node["MatchWidthOrHeight"])
+			info.UIScale.MatchWidthOrHeight = glm::clamp(matchNode.as<float>(), 0.f, 1.f);
+	}
+
+	static void SaveUIScaleSettings(YAML::Emitter& out, const ProjectInfo& info)
+	{
+		out << YAML::Key << "UIScale" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "ReferenceResolution" << YAML::Value << info.UIScale.ReferenceResolution;
+		out << YAML::Key << "Mode" << YAML::Value << Utils::GetEnumName(info.UIScale.Mode);
+		out << YAML::Key << "MatchWidthOrHeight" << YAML::Value << info.UIScale.MatchWidthOrHeight;
+		out << YAML::EndMap;
+	}
+
 	static void SaveCollisionGroups(YAML::Emitter& out, const ProjectInfo& info)
 	{
 		out << YAML::Key << "CollisionGroups" << YAML::Value;
@@ -288,6 +311,7 @@ namespace Eagle
 				out << YAML::Key << "AssetPackOffset" << assetPackOffset;
 
 				SaveCollisionGroups(out, info.ProjectData);
+				SaveUIScaleSettings(out, info.ProjectData);
 				out << YAML::EndMap;
 
 				const std::string yamlStr = out.c_str();
@@ -623,6 +647,7 @@ namespace Eagle
 		}
 
 		LoadCollisionGroups(baseNode["CollisionGroups"], s_Info);
+		LoadUIScaleSettings(baseNode["UIScale"], s_Info);
 
 		DataBuffer assetPack(assetPackSize);
 		Utils::ReadBinary(data.GetDataBuffer(), assetPackSize, assetPackOffset, &assetPack);
@@ -655,6 +680,7 @@ namespace Eagle
 			out << YAML::Key << "Game Startup Scene" << YAML::Value << info.GameStartupScene->GetGUID();
 
 		SaveCollisionGroups(out, info);
+		SaveUIScaleSettings(out, info);
 
 		out << YAML::EndMap;
 
@@ -799,6 +825,7 @@ namespace Eagle
 				(*outInfo).GameStartupScene = Cast<AssetScene>(asset);
 		}
 		LoadCollisionGroups(data["CollisionGroups"], *outInfo);
+		LoadUIScaleSettings(data["UIScale"], *outInfo);
 
 		return true;
 	}

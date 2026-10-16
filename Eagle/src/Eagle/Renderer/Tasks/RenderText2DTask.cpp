@@ -127,7 +127,13 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Render Text 2D");
 		EG_CPU_TIMING_SCOPED("Render Text 2D");
 
-		const glm::vec2 viewportSize = glm::vec2(m_Renderer.GetOutput()->GetSize());
+		struct PushData
+		{
+			glm::vec2 ViewportSize;
+			float UIScale;
+		} pushData;
+		pushData.ViewportSize = glm::vec2(m_Renderer.GetOutput()->GetSize());
+		pushData.UIScale = m_Renderer.GetUIScaleSettings_RT().GetScale(pushData.ViewportSize);
 
 		if (m_Pipeline->GetState().ColorAttachments[0].Image != m_Renderer.GetOutput())
 			InitPipeline();
@@ -139,7 +145,7 @@ namespace Eagle
 
 		const uint32_t quadsCount = (uint32_t)(m_Quads.size() / 4);
 		cmd->BeginGraphics(pipeline);
-		cmd->SetGraphicsRootConstants(&viewportSize, nullptr);
+		cmd->SetGraphicsRootConstants(&pushData, nullptr);
 		cmd->DrawIndexed(m_VertexBuffer, m_IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 
@@ -168,12 +174,12 @@ namespace Eagle
 			data.Font = asset->GetFont();
 			data.Text = Utils::ToUTF32(text->GetText());
 			data.Color = text->GetColor();
-			data.LineSpacing = text->GetLineSpacing();
-			data.Pos = text->GetPosition();
-			data.Scale = text->GetScale();
+			data.LayoutSettings = text->GetLayoutSettings();
+			data.FontSize = text->GetFontSize();
+			data.Anchor = text->GetAnchor();
+			data.Pivot = text->GetPivot();
+			data.Offset = text->GetOffset();
 			data.Rotation = text->GetRotation();
-			data.KerningOffset = text->GetKerning();
-			data.MaxWidth = text->GetMaxWidth();
 			data.EntityID = text->Parent.GetID();
 			data.Opacity = text->GetOpacity();
 		}
@@ -199,16 +205,17 @@ namespace Eagle
 	{
 		for (auto& component : textComponents)
 		{
-			TextLayoutSettings settings;
-			settings.LineSpacing = component.LineSpacing;
-			settings.KerningOffset = component.KerningOffset;
-			settings.MaxWidth = component.MaxWidth;
-			const TextLayout layout = component.Font->Layout(component.Text, settings);
+			const float fontSize = component.FontSize;
+			if (fontSize <= 0.f)
+				continue;
+
+			const TextLayout layout = component.Font->Layout(component.Text, component.LayoutSettings);
 			const uint32_t atlasIndex = GetFontAtlasIndex(m_FontAtlases, component.Font->GetAtlas());
 
 			// Y is flipped since glyphs are laid out with Y pointing up, but NDC has Y pointing down.
+			const glm::vec2 toPixels = glm::vec2(fontSize, -fontSize);
+			const glm::vec2 pivot = layout.GetBoxPoint(component.Pivot);
 			// Rotation is applied in the vertex shader in pixel space, so that it doesn't depend on the viewport's aspect ratio
-			const glm::vec2 scale = glm::vec2(component.Scale.x, -component.Scale.y);
 			const float rotation = glm::radians(component.Rotation);
 
 			for (const auto& glyph : layout.Glyphs)
@@ -218,11 +225,12 @@ namespace Eagle
 					auto& vertex = m_Quads.emplace_back();
 					vertex.Color = component.Color;
 					vertex.AtlasIndex = atlasIndex;
-					vertex.Position = glyph.GetPosition(corner) * scale;
+					vertex.Position = (glyph.GetPosition(corner) - pivot) * toPixels;
 					vertex.TexCoord = glyph.GetAtlasUV(corner);
 					vertex.EntityID = component.EntityID;
 					vertex.Opacity = component.Opacity;
-					vertex.Origin = component.Pos;
+					vertex.Anchor = component.Anchor;
+					vertex.Offset = component.Offset;
 					vertex.Rotation = rotation;
 				}
 			}

@@ -41,6 +41,7 @@ namespace Eagle
 		out << YAML::Key << "ForceDrawGuizmo" << YAML::Value << editor->bForceDrawGuizmo;
 		out << YAML::Key << "DrawNavMesh" << YAML::Value << editor->bDrawNavMesh;
 		out << YAML::Key << "DrawMeshAABBs" << YAML::Value << editor->bDrawMeshAABBs;
+		out << YAML::Key << "DrawAllTextUIBounds" << YAML::Value << editor->bDrawAllTextUIBounds;
 		out << YAML::Key << "StopSimulationKey" << YAML::Value << Utils::GetEnumName(editor->m_StopSimulationKey);
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
 		out << YAML::Key << "GuizmoMode" << YAML::Value << Utils::GetEnumName((ImGuizmo::MODE)editor->m_GuizmoMode);
@@ -150,6 +151,8 @@ namespace Eagle
 			bDrawNavMesh = node.as<bool>();
 		if (auto node = data["DrawMeshAABBs"])
 			bDrawMeshAABBs = node.as<bool>();
+		if (auto node = data["DrawAllTextUIBounds"])
+			editor->bDrawAllTextUIBounds = node.as<bool>();
 		if (auto node = data["StopSimulationKey"])
 			stopSimulationKey = Utils::GetEnumFromName<Eagle::Key>(node.as<std::string>());
 		if (auto VSyncNode = data["VSync"])

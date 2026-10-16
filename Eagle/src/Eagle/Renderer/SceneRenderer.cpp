@@ -86,6 +86,7 @@ namespace Eagle
 		m_LightsManagerTask = MakeRef<LightsManagerTask>(*this);
 		m_GeometryManagerTask = MakeRef<GeometryManagerTask>(*this);
 		m_RenderLinesTask = MakeRef<RenderLinesTask>(*this);
+		m_RenderLines2DTask = MakeRef<RenderLines2DTask>(*this);
 		m_RenderTrianglesTask = MakeRef<RenderTrianglesTask>(*this);
 		m_RenderBillboardsTask = MakeRef<RenderBillboardsTask>(*this);
 		m_RenderLitTextTask = MakeRef<RenderTextLitTask>(*this);
@@ -322,6 +323,7 @@ namespace Eagle
 
 			renderer->m_Images2DTask->RecordCommandBuffer(cmd);
 			renderer->m_Text2DTask->RecordCommandBuffer(cmd);
+			renderer->m_RenderLines2DTask->RecordCommandBuffer(cmd);
 
 			renderer->m_OutlineTask->RecordCommandBuffer(cmd);
 
@@ -425,6 +427,26 @@ namespace Eagle
 
 		outObjectID = resultIt->ObjectID;
 		return true;
+	}
+
+	void SceneRenderer::SetProjectUIScaleSettings(const UIScaleSettings& settings)
+	{
+		m_ProjectUIScaleSettings = settings;
+		ApplyUIScaleSettings();
+	}
+
+	void SceneRenderer::SetUIScaleSettingsOverride(const std::optional<UIScaleSettings>& settings)
+	{
+		m_UIScaleSettingsOverride = settings;
+		ApplyUIScaleSettings();
+	}
+
+	void SceneRenderer::ApplyUIScaleSettings()
+	{
+		RenderManager::Submit([renderer = shared_from_this(), settings = GetUIScaleSettings()](const Ref<CommandBuffer>&)
+		{
+			renderer->m_UIScaleSettings_RT = settings;
+		});
 	}
 
 	void SceneRenderer::SetOutputImage(const Ref<Image>& image)
@@ -581,6 +603,7 @@ namespace Eagle
 		m_RenderDecalsTask->OnResize(m_Size);
 		m_LightsManagerTask->OnResize(m_Size);
 		m_RenderLinesTask->OnResize(m_Size);
+		m_RenderLines2DTask->OnResize(m_Size);
 		m_RenderTrianglesTask->OnResize(m_Size);
 		m_RenderBillboardsTask->OnResize(m_Size);
 		m_RenderUnlitTextTask->OnResize(m_Size);
@@ -692,6 +715,7 @@ namespace Eagle
 		m_Images2DTask->InitWithOptions(options);
 		m_PBRPassTask->InitWithOptions(options);
 		m_RenderLinesTask->InitWithOptions(options);
+		m_RenderLines2DTask->InitWithOptions(options);
 		m_RenderTrianglesTask->InitWithOptions(options);
 		m_PostProcessingPassTask->InitWithOptions(options);
 		m_TransparencyTask->InitWithOptions(options);

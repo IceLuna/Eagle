@@ -42,6 +42,7 @@ namespace Eagle
 		bool IsViewportHovered() const { return m_ViewportHovered; }
 
 		const glm::vec3& GetSnappingValues() const { return m_SnappingValues; }
+		bool IsDrawingAllTextUIBounds() const { return bDrawAllTextUIBounds; }
 
 		// Oh boy... I guess it's better than passing around `EditorLayer`
 		static EditorLayer* Get();
@@ -75,6 +76,7 @@ namespace Eagle
 
 		void UpdateGuizmo();
 		void UpdateSelectionOutline();
+		void UpdateTextUIBounds();
 		void DrawMenuBar();
 		void DrawSceneSettings();
 		void DrawRendererSettings();
@@ -158,6 +160,7 @@ namespace Eagle
 		bool bDrawAxisGuizmo = true;
 		bool bForceDrawGuizmo = false;
 		bool bDrawSelectionOutline = true;
+		bool bDrawAllTextUIBounds = false;
 		Key m_StopSimulationKey = Key::Escape;
 		OutlineSettings m_SelectionOutline{};
 

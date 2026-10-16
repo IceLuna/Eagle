@@ -674,7 +674,12 @@ namespace Eagle
 		bool bDrawMeshAABBs = false;
 		bool bDrawBones = false;
 
+		GUID TextUIDebugSelectedEntity = GUID(0, 0);
+		bool bDrawAllTextUIBounds = false;
+
 	private:
+		void AddTextUIBoundsDebugLines();
+
 		static Ref<Scene> s_CurrentScene;
 		Ref<PhysicsScene> m_PhysicsScene;
 		Ref<PhysicsScene> m_RuntimePhysicsScene;
@@ -775,6 +780,7 @@ namespace Eagle
 		// Debug data
 		std::vector<RendererLine> m_UserDebugLines;
 		std::vector<RendererLine> m_DebugLinesToDraw;
+		std::vector<RendererLine2D> m_DebugLines2DToDraw;
 		std::vector<RendererTriangle> m_DebugTrianglesToDraw;
 		std::vector<RendererTriangle> m_UserDebugTriangles;
 		std::vector<std::pair<AABB, Transform>> m_UserBoxes; // Box and its world transform

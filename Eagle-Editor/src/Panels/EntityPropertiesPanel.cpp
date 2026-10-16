@@ -18,14 +18,14 @@ namespace Eagle
 	static const char* s_OpacityHelpMsg = "Controls the translucency of the material. 0 - fully transparent, 1 - fully opaque. Default is 0.5";
 	static const char* s_OpacityMaskHelpMsg = "When in Masked mode, a material is either completely visible or completely invisible.\nValues below 0.5 are invisible";
 	static const char* s_CastsShadowsHelpMsg = "Translucent materials don't cast shadows unless 'Translucent shadows' feature is enabled. Translucent materials don't cast shadows on other translucent materials!";
-	static const char* s_Text2DPosHelpMsg = "Normalized Device Coords. It's the position of the left end of the first line's baseline (letters extend above it). It's also the rotation pivot\n"
-		"Text2D will try to be at the same position of the screen no matter the resolution. Also it'll try to occupy the same amount of space\n"
-		"(-1; -1) is the top left corner of the screen\n(0; 0) is the center\n(1; 1) is the bottom right corner of the screen";
-	static const char* s_UI2DRotationHelpMsg = "Degrees. Positive values rotate counter-clockwise around 'Position'";
+	static const char* s_UI2DAnchorHelpMsg = "Point of the viewport it's attached to.\n(0; 0) is the top left corner of the viewport\n(0.5; 0.5) is the center\n(1; 1) is the bottom right corner";
+	static const char* s_UI2DOffsetHelpMsg = "Offset from the anchor in reference pixels (Project Settings -> UI Scale). X points right, Y points down";
+	static const char* s_Image2DPivotHelpMsg = "Point of the image placed at the anchor (+ offset). Basically, it determines which part of the image to pin to anchor. It's also the rotation pivot.\n"
+		"(0; 0) is the top left corner of the image\n(0.5; 0.5) is the center\n(1; 1) is the bottom right corner";
+	static const char* s_Text2DPivotHelpMsg = "Point of the text box placed at the anchor (+ offset). Basically, it determines which part of the text box to pin to anchor. It's also the rotation pivot.\n"
+		"The box spans from the first line's ascender to the last line's descender. Its width is Max Width, or the width of the widest line if Max Width is 0.\n(0; 0) is the top left corner of the box\n(0.5; 0.5) is the center\n(1; 1) is the bottom right corner";
+	static const char* s_UI2DRotationHelpMsg = "Degrees. Positive values rotate counter-clockwise around the pivot";
 	static const char* s_UI2DColorHelpMsg = "Display-space color. 2D UI is drawn after tonemapping, so it isn't affected by exposure, bloom or other post-processing";
-	static const char* s_Image2DPosHelpMsg = "Normalized Device Coords. It's the position of the top left corner. It's also the rotation pivot\n"
-		"Image2D will try to be at the same position of the screen no matter the resolution. Also it'll try to occupy the same amount of space\n"
-		"(-1; -1) is the top left corner of the screen\n(0; 0) is the center\n(1; 1) is the bottom right corner of the screen";
 	static const char* s_IsVolumetricLightHelpMsg = "Note that it's performance intensive. For it to account for object interaction, light needs to cast shadows.\nIf you want to use it, enable volumetric light in Renderer Settings";
 	static const char* s_TwoSidedMeshColliderHelpMsg = "Only affects non-convex mesh colliders.\nNon-convex meshes are one-sided meaning collision won't be registered from the back side. For example, that might be a problem for windows."
 		" To fix it, set this flag";
@@ -685,7 +685,7 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					if (UI::PropertyDrag("Max Width", maxWidth, 0.1f))
+					if (UI::PropertyDrag("Max Width", maxWidth, 0.1f, 0.f, 0.f, "Lines are wrapped at spaces to fit into it.\n0 - no wrapping, the box is as wide as the widest line"))
 					{
 						component.SetMaxWidth(maxWidth);
 						bEntityChanged = true;
@@ -734,17 +734,38 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					glm::vec2 pos = component.GetPosition();
-					if (UI::PropertyDrag("Position", pos, 0.01f, 0.f, 0.f, s_Text2DPosHelpMsg))
+					glm::vec2 anchor = component.GetAnchor();
+					if (UI::PropertyDrag("Anchor", anchor, 0.01f, 0.f, 0.f, s_UI2DAnchorHelpMsg))
 					{
-						component.SetPosition(pos);
+						component.SetAnchor(anchor);
 						bEntityChanged = true;
 					}
 
-					glm::vec2 scale = component.GetScale();
-					if (UI::PropertyDrag("Scale", scale, 0.01f))
+					glm::vec2 pivot = component.GetPivot();
+					if (UI::PropertyDrag("Pivot", pivot, 0.01f, 0.f, 0.f, s_Text2DPivotHelpMsg))
 					{
-						component.SetScale(scale);
+						component.SetPivot(pivot);
+						bEntityChanged = true;
+					}
+
+					glm::vec2 offset = component.GetOffset();
+					if (UI::PropertyDrag("Offset", offset, 1.f, 0.f, 0.f, s_UI2DOffsetHelpMsg))
+					{
+						component.SetOffset(offset);
+						bEntityChanged = true;
+					}
+
+					float fontSize = component.GetFontSize();
+					if (UI::PropertyDrag("Font Size", fontSize, 0.5f, 0.f, 0.f, "Height of the font (ascender to descender) in reference pixels"))
+					{
+						component.SetFontSize(fontSize);
+						bEntityChanged = true;
+					}
+
+					TextAlignment alignment = component.GetAlignment();
+					if (UI::ComboEnum<TextAlignment>("Alignment", alignment, "Alignment of the lines within the text box"))
+					{
+						component.SetAlignment(alignment);
 						bEntityChanged = true;
 					}
 
@@ -769,19 +790,19 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 					
-					if (UI::PropertyDrag("Line Spacing", lineSpacing, 0.1f))
+					if (UI::PropertyDrag("Line Spacing", lineSpacing, 0.01f, 0.f, 0.f, "Added to the font's line height. In font sizes"))
 					{
 						component.SetLineSpacing(lineSpacing);
 						bEntityChanged = true;
 					}
 
-					if (UI::PropertyDrag("Kerning", kerning, 0.1f))
+					if (UI::PropertyDrag("Kerning", kerning, 0.01f, 0.f, 0.f, "Added to the advance of each character. In font sizes"))
 					{
 						component.SetKerning(kerning);
 						bEntityChanged = true;
 					}
 
-					if (UI::PropertyDrag("Max Width", maxWidth, 0.1f))
+					if (UI::PropertyDrag("Max Width", maxWidth, 1.f, 0.f, 0.f, "Width of the text box in reference pixels. Lines are wrapped at spaces to fit into it, and aligned within it.\n0 - no wrapping, the box is as wide as the widest line"))
 					{
 						component.SetMaxWidth(maxWidth);
 						bEntityChanged = true;
@@ -813,17 +834,31 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					glm::vec2 pos = component.GetPosition();
-					if (UI::PropertyDrag("Position", pos, 0.01f, 0.f, 0.f, s_Image2DPosHelpMsg))
+					glm::vec2 anchor = component.GetAnchor();
+					if (UI::PropertyDrag("Anchor", anchor, 0.01f, 0.f, 0.f, s_UI2DAnchorHelpMsg))
 					{
-						component.SetPosition(pos);
+						component.SetAnchor(anchor);
 						bEntityChanged = true;
 					}
 
-					glm::vec2 scale = component.GetScale();
-					if (UI::PropertyDrag("Scale", scale, 0.01f))
+					glm::vec2 pivot = component.GetPivot();
+					if (UI::PropertyDrag("Pivot", pivot, 0.01f, 0.f, 0.f, s_Image2DPivotHelpMsg))
 					{
-						component.SetScale(scale);
+						component.SetPivot(pivot);
+						bEntityChanged = true;
+					}
+
+					glm::vec2 offset = component.GetOffset();
+					if (UI::PropertyDrag("Offset", offset, 1.f, 0.f, 0.f, s_UI2DOffsetHelpMsg))
+					{
+						component.SetOffset(offset);
+						bEntityChanged = true;
+					}
+
+					glm::vec2 size = component.GetSize();
+					if (UI::PropertyDrag("Size", size, 1.f, 0.f, 0.f, "In reference pixels. A negative size mirrors the image"))
+					{
+						component.SetSize(size);
 						bEntityChanged = true;
 					}
 

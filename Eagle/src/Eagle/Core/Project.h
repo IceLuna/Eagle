@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Eagle/Core/GUID.h"
+#include "Eagle/Renderer/RendererUtils.h"
 
 namespace Eagle
 {
@@ -19,6 +20,7 @@ namespace Eagle
 		std::vector<CollisionGroupInfo> AllCollisionGroups;
 		uint32_t AllCollisionGroupsMask = 0u; // It's a XOR of all collision groups. Can be used to check if as certain mask is valid within a project. (Used to reset a mask if it was removed)
 		std::vector<GUID64> CollisionGroupGUIDs; // GUIDs of all collision groups. Used to identify if groups were changed
+		UIScaleSettings UIScale;
 	};
 
 	class Project
@@ -41,6 +43,7 @@ namespace Eagle
 
 		static void SetStartupScene(const Ref<AssetScene>& scene) { s_Info.GameStartupScene = scene; }
 		static void SetVersion(const glm::uvec3& version) { s_Info.Version = version; }
+		static void SetUIScaleSettings(const UIScaleSettings& settings) { s_Info.UIScale = settings; }
 
 		static const ProjectInfo& GetProjectInfo() { return s_Info; }
 

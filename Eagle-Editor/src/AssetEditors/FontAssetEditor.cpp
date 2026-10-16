@@ -18,17 +18,18 @@ namespace Eagle
 		m_Component = &entity.AddComponent<Text2DComponent>();
 		m_Component->SetFontAsset(asset);
 		m_Component->SetText(m_Text);
-		m_Component->SetPosition({ -0.9f, -0.9f });
-		m_Component->SetScale(glm::vec2(0.1f));
-		m_Component->SetMaxWidth(20.f);
+		m_Component->SetAnchor(glm::vec2(0.05f));
+		m_Component->SetPivot(glm::vec2(0.f));
+		m_Component->SetFontSize(100.f);
+		m_Component->SetMaxWidth(1080.f);
 
 		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
 	}
 
 	void FontAssetEditor::OnImGuiRender(bool* pOpen)
 	{
-		glm::vec2 position = m_Component->GetPosition();
-		glm::vec2 scale = m_Component->GetScale();
+		glm::vec2 anchor = m_Component->GetAnchor();
+		float fontSize = m_Component->GetFontSize();
 		float maxWidth = m_Component->GetMaxWidth();
 		bool bChanged = false;
 
@@ -72,12 +73,13 @@ namespace Eagle
 
 			if (UI::PropertyTextMultiline("Text", m_Text))
 				m_Component->SetText(m_Text);
-			if (UI::PropertyDrag("Position", position, 0.05f, 0.f, 0.f, "In normalized device coordinates"))
-				m_Component->SetPosition(position);
-			if (UI::PropertyDrag("Scale", scale, 0.05f))
-				m_Component->SetScale(scale);
-			if (UI::PropertyDrag("Max Width", maxWidth, 0.05f))
+			if (UI::PropertyDrag("Anchor", anchor, 0.01f, 0.f, 0.f, "Point of the viewport the text's top left corner is attached to.\n(0; 0) is the top left corner, (1; 1) is the bottom right corner"))
+				m_Component->SetAnchor(anchor);
+			if (UI::PropertyDrag("Font Size", fontSize, 0.5f, 0.f, 0.f, "In reference pixels"))
+				m_Component->SetFontSize(fontSize);
+			if (UI::PropertyDrag("Max Width", maxWidth, 1.f, 0.f, 0.f, "In reference pixels. 0 - no wrapping"))
 				m_Component->SetMaxWidth(maxWidth);
+			UI::Property("Draw Text Bounds", m_bDrawTextBounds, "Outlines the text box and shows the baselines. Lines are wrapped at the box's right edge (Max Width)");
 
 			UI::EndPropertyGrid();
 			UI::PopTreeNode();
@@ -97,6 +99,7 @@ namespace Eagle
 
 		ImGui::End();
 
+		GetCurrentScene()->TextUIDebugSelectedEntity = m_bDrawTextBounds ? m_Component->Parent.GetGUID() : GUID(0, 0);
 		DrawViewport(false, m_WindowName);
 	}
 }

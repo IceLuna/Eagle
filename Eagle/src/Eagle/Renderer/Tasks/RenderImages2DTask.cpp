@@ -107,7 +107,13 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Render Images 2D");
 		EG_CPU_TIMING_SCOPED("Render Images 2D");
 
-		const glm::vec2 viewportSize = glm::vec2(m_Renderer.GetOutput()->GetSize());
+		struct PushData
+		{
+			glm::vec2 ViewportSize;
+			float UIScale;
+		} pushData;
+		pushData.ViewportSize = glm::vec2(m_Renderer.GetOutput()->GetSize());
+		pushData.UIScale = m_Renderer.GetUIScaleSettings_RT().GetScale(pushData.ViewportSize);
 
 		if (m_Pipeline->GetState().ColorAttachments[0].Image != m_Renderer.GetOutput())
 			InitPipeline();
@@ -119,7 +125,7 @@ namespace Eagle
 
 		const uint32_t quadsCount = (uint32_t)(m_Quads.size() / 4);
 		cmd->BeginGraphics(pipeline);
-		cmd->SetGraphicsRootConstants(&viewportSize, nullptr);
+		cmd->SetGraphicsRootConstants(&pushData, nullptr);
 		cmd->DrawIndexed(m_VertexBuffer, m_IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 
@@ -167,16 +173,18 @@ namespace Eagle
 				};
 
 				// Rotation is applied in the vertex shader in pixel space, so that it doesn't depend on the viewport's aspect ratio
+				const glm::vec2 pivot = component.Pivot * component.Size;
 				const float rotation = glm::radians(component.Rotation);
 				for (int i = 0; i < 4; ++i)
 				{
 					auto& q1 = m_Quads.emplace_back();
 					q1.Tint = component.Tint;
 					q1.TextureIndex = textureIndex;
-					q1.Position = s_TexCoords[i] * component.Scale;
+					q1.Position = s_TexCoords[i] * component.Size - pivot;
 					q1.EntityID = component.EntityID;
 					q1.Opacity = component.Opacity;
-					q1.Origin = component.Pos;
+					q1.Anchor = component.Anchor;
+					q1.Offset = component.Offset;
 					q1.Rotation = rotation;
 				}
 			}
@@ -194,8 +202,10 @@ namespace Eagle
 		{
 			auto& data = datas.emplace_back();
 			data.Tint = image->GetTint();
-			data.Pos = image->GetPosition();
-			data.Scale = image->GetScale();
+			data.Anchor = image->GetAnchor();
+			data.Pivot = image->GetPivot();
+			data.Offset = image->GetOffset();
+			data.Size = image->GetSize();
 			data.Rotation = image->GetRotation();
 			data.EntityID = image->Parent.GetID();
 			data.Opacity = image->GetOpacity();

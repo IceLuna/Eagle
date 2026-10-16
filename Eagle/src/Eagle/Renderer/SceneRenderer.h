@@ -6,6 +6,7 @@
 
 #include "Tasks/RendererTask.h"
 #include "Tasks/RenderLinesTask.h"
+#include "Tasks/RenderLines2DTask.h"
 #include "Tasks/RenderTrianglesTask.h"
 #include "Tasks/RenderBillboardsTask.h"
 #include "Tasks/ShadowPassTask.h"
@@ -110,6 +111,16 @@ namespace Eagle
 		void SetTexts(const std::vector<const TextComponent*>& texts) { m_GeometryManagerTask->SetTexts(texts); }
 		void SetTexts2D(const std::vector<const Text2DComponent*>& texts) { m_Text2DTask->SetTexts(texts); }
 		void SetImages2D(const std::vector<const Image2DComponent*>& images) { m_Images2DTask->SetImages(images); }
+
+		void SetProjectUIScaleSettings(const UIScaleSettings& settings);
+		const UIScaleSettings& GetProjectUIScaleSettings() const { return m_ProjectUIScaleSettings; }
+		void SetUIScaleSettingsOverride(const std::optional<UIScaleSettings>& settings);
+		const std::optional<UIScaleSettings>& GetUIScaleSettingsOverride() const { return m_UIScaleSettingsOverride; }
+
+		const UIScaleSettings& GetUIScaleSettings() const { return m_UIScaleSettingsOverride ? *m_UIScaleSettingsOverride : m_ProjectUIScaleSettings; }
+		const UIScaleSettings& GetUIScaleSettings_RT() const { return m_UIScaleSettings_RT; }
+		float GetUIScale() const { return GetUIScaleSettings().GetScale(glm::vec2(m_Size)); }
+
 		void SetDecals(const std::vector<const DecalComponent*>& decals) { m_RenderDecalsTask->SetDecals(decals); }
 		void AddParticleSystem(const ParticleSystemComponent& system);
 		void UpdateParticleSystem(const ParticleSystemComponent& system);
@@ -120,6 +131,7 @@ namespace Eagle
 		//---------------------------------- Render functions ----------------------------------
 		void SetBillboards(const std::vector<const BillboardComponent*>& billboards) { m_RenderBillboardsTask->SetBillboards(billboards); }
 		void SetDebugLines(const std::vector<RendererLine>& lines) { m_RenderLinesTask->SetDebugLines(lines); }
+		void SetDebugLines2D(const std::vector<RendererLine2D>& lines) { m_RenderLines2DTask->SetLines(lines); }
 		void SetDebugTriangles(const std::vector<RendererTriangle>& triangles) { m_RenderTrianglesTask->SetDebugTriangles(triangles); }
 		void AddAdditionalBillboard(const Transform& worldTransform, const Ref<Texture2D>& texture, int entityID = -1) { m_RenderBillboardsTask->AddAdditionalBillboard(worldTransform, texture, entityID); } // For internal usage
 
@@ -339,6 +351,7 @@ namespace Eagle
 
 	private:
 		void InitWithOptions();
+		void ApplyUIScaleSettings(); // Sends the settings in use to the render thread
 
 		// Recomputes options from the base settings plus the post process override
 		void RecalculateOptions();
@@ -354,6 +367,7 @@ namespace Eagle
 		Ref<RenderTextUnlitTask> m_RenderUnlitTextTask;
 		Ref<LightsManagerTask> m_LightsManagerTask;
 		Ref<RenderLinesTask> m_RenderLinesTask;
+		Ref<RenderLines2DTask> m_RenderLines2DTask;
 		Ref<RenderTrianglesTask> m_RenderTrianglesTask;
 		Ref<RendererTask> m_TAATask;
 		Ref<RendererTask> m_MSAATask;
@@ -370,6 +384,9 @@ namespace Eagle
 		Ref<RendererTask> m_TransparencyTask;
 		Ref<RenderText2DTask> m_Text2DTask;
 		Ref<RenderImages2DTask> m_Images2DTask;
+		UIScaleSettings m_ProjectUIScaleSettings;
+		std::optional<UIScaleSettings> m_UIScaleSettingsOverride;
+		UIScaleSettings m_UIScaleSettings_RT;
 		Ref<RendererTask> m_VolumetricTask;
 		Ref<FogPassTask> m_FogTask;
 		Ref<ParticleSystemTask> m_ParticleTask;

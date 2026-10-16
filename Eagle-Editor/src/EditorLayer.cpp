@@ -258,6 +258,7 @@ namespace Eagle
 		ReloadScriptsIfNecessary();
 		HandleResize();
 		UpdateSelectionOutline();
+		UpdateTextUIBounds();
 		m_CurrentScene->OnUpdate(ts, !m_ViewportHidden && bShouldRenderBasedOnFocus, bUpdateAnimationsInEditor);
 
 		if (m_EditorState == EditorState::Edit)
@@ -952,6 +953,16 @@ namespace Eagle
 		applied.TargetScene = m_CurrentScene;
 		applied.EntityGUIDs = std::move(selectedGUIDs);
 		applied.Settings = m_SelectionOutline;
+	}
+
+	void EditorLayer::UpdateTextUIBounds()
+	{
+		const bool bPlaying = m_EditorState == EditorState::Play;
+		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
+		const bool bSelectedInScene = selectedEntity && selectedEntity.GetScene() == m_CurrentScene.get();
+
+		m_CurrentScene->TextUIDebugSelectedEntity = (!bPlaying && bSelectedInScene) ? selectedEntity.GetGUID() : GUID(0, 0);
+		m_CurrentScene->bDrawAllTextUIBounds = !bPlaying && bDrawAllTextUIBounds;
 	}
 
 	void EditorLayer::UpdateGuizmo()
@@ -2395,6 +2406,38 @@ namespace Eagle
 			}
 		}
 
+		// 2D UI scale
+		{
+			if (UI::PushTreeNode("UI Scale"))
+			{
+				UI::BeginPropertyGrid("ProjectSettingsPanel_UIScale");
+
+				UIScaleSettings uiScale = projectInfo.UIScale;
+				bool bUIScaleChanged = false;
+				bUIScaleChanged |= UI::PropertyDrag("Reference Resolution", uiScale.ReferenceResolution, 1.f, 1, 16384,
+					"Resolution the 2D UI is designed for. Offsets, sizes & font sizes of Text2D and Image2D are in pixels of this resolution");
+				bUIScaleChanged |= UI::ComboEnum("Mode", uiScale.Mode,
+					"How the UI is scaled when the viewport's aspect ratio differs from the reference resolution's.\n"
+					"MatchWidthOrHeight - follows the viewport's width, its height, or a blend of them.\n"
+					"Expand - the whole reference resolution always fits into the viewport. The viewport has extra space along one axis.\n"
+					"Shrink - the reference resolution always covers the viewport. Some of it is outside of the viewport along one axis");
+				if (uiScale.Mode == UIScaleMode::MatchWidthOrHeight)
+				{
+					bUIScaleChanged |= UI::PropertySlider("Match Width/Height", uiScale.MatchWidthOrHeight, 0.f, 1.f,
+						"0 - the UI is scaled with the viewport's width\n1 - with the viewport's height\nValues in between blend them");
+				}
+				if (bUIScaleChanged)
+				{
+					uiScale.ReferenceResolution = glm::max(uiScale.ReferenceResolution, glm::uvec2(1u));
+					Project::SetUIScaleSettings(uiScale);
+					bChanged = true;
+				}
+
+				UI::EndPropertyGrid();
+				UI::PopTreeNode();
+			}
+		}
+
 		if (bRuntime)
 			UI::PopItemDisabled();
 
@@ -2595,6 +2638,7 @@ namespace Eagle
 			UI::Property("Draw Editor Miscellaneous", m_bDrawEditorMisc);
 			UI::Property("Draw Nav Mesh", bDrawNavMesh);
 			UI::Property("Draw AABBs of Meshes", bDrawMeshAABBs);
+			UI::Property("Draw All Text & UI Bounds", bDrawAllTextUIBounds, "Outlines the boxes of all 2D/3D texts and 2D images");
 			if (UI::Property("Debug lines depth test", bEnableDebugLinesDepthTest, "If disabled, debug lines will be drawn over everything"))
 			{
 				options.bEnableDebugLinesDepthTest = bEnableDebugLinesDepthTest;
@@ -2928,6 +2972,7 @@ namespace Eagle
 		{
 			auto& sceneRenderer = m_EditorScene->GetSceneRenderer();
 			sceneRenderer->SetOptions(m_BeforeSimulationData.RendererSettings);
+			sceneRenderer->SetUIScaleSettingsOverride(std::nullopt);
 			m_CurrentScene->SetSkybox(m_BeforeSimulationData.Cubemap);
 			m_CurrentScene->SetSkybox(m_BeforeSimulationData.Sky);
 			m_CurrentScene->SetSkyboxIntensity(m_BeforeSimulationData.CubemapIntensity);

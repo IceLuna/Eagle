@@ -1525,6 +1525,7 @@ namespace Eagle
             set { SetKerning_Native(Parent.ID, value); }
         }
         
+		// Lines are wrapped at spaces to fit into it. 0 - no wrapping, the box is as wide as the widest line
         public float MaxWidth
         {
             get { return GetMaxWidth_Native(Parent.ID); }
@@ -1682,18 +1683,43 @@ namespace Eagle
             set { SetLineSpacing_Native(Parent.ID, value); }
         }
 
-        public Vector2 Position // Normalized device coords
+		// Point of the viewport it's attached to: (0, 0) - top-left corner, (1, 1) - bottom-right corner
+        public Vector2 Anchor
         {
-            get { GetPosition_Native(Parent.ID, out Vector2 result); return result; }
-            set { SetPosition_Native(Parent.ID, ref value); }
+            get { GetAnchor_Native(Parent.ID, out Vector2 result); return result; }
+            set { SetAnchor_Native(Parent.ID, ref value); }
         }
 
-        public Vector2 Scale
+        // Point of the text box placed at the anchor (+ offset). (0, 0) - top-left corner, (1, 1) - bottom-right corner.
+        // Basically, determines which part of the text box to pin to anchor.
+        public Vector2 Pivot
         {
-            get { GetScale_Native(Parent.ID, out Vector2 result); return result; }
-            set { SetScale_Native(Parent.ID, ref value); }
+            get { GetPivot_Native(Parent.ID, out Vector2 result); return result; }
+            set { SetPivot_Native(Parent.ID, ref value); }
         }
 
+        // Offset from the anchor in reference pixels (Project Settings -> UI Scale). X points right, Y points down
+        public Vector2 Offset
+        {
+            get { GetOffset_Native(Parent.ID, out Vector2 result); return result; }
+            set { SetOffset_Native(Parent.ID, ref value); }
+        }
+
+        // Height of the font (ascender to descender) in reference pixels (Project Settings -> UI Scale)
+        public float FontSize
+        {
+            get { return GetFontSize_Native(Parent.ID); }
+            set { SetFontSize_Native(Parent.ID, value); }
+        }
+
+        // Alignment of the lines within the text box
+        public TextAlignment Alignment
+        {
+            get { return GetAlignment_Native(Parent.ID); }
+            set { SetAlignment_Native(Parent.ID, value); }
+        }
+
+        // Degrees, counter-clockwise around the pivot
         public float Rotation
         {
             get { return GetRotation_Native(Parent.ID); }
@@ -1705,6 +1731,9 @@ namespace Eagle
             get { return GetKerning_Native(Parent.ID); }
             set { SetKerning_Native(Parent.ID, value); }
         }
+
+        // Width of the text box in reference pixels (Project Settings -> UI Scale). Lines are wrapped at spaces to fit into it, and aligned within it.
+        // 0 - no wrapping, the box is as wide as the widest line
         public float MaxWidth
         {
             get { return GetMaxWidth_Native(Parent.ID); }
@@ -1742,16 +1771,34 @@ namespace Eagle
         internal static extern void SetColor_Native(in GUID entityID, ref Color3 value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetPosition_Native(in GUID entityID, out Vector2 outValue);
+        internal static extern void GetAnchor_Native(in GUID entityID, out Vector2 outValue);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetPosition_Native(in GUID entityID, ref Vector2 value);
+        internal static extern void SetAnchor_Native(in GUID entityID, ref Vector2 value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetScale_Native(in GUID entityID, out Vector2 outValue);
+        internal static extern void GetPivot_Native(in GUID entityID, out Vector2 outValue);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetScale_Native(in GUID entityID, ref Vector2 value);
+        internal static extern void SetPivot_Native(in GUID entityID, ref Vector2 value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetOffset_Native(in GUID entityID, out Vector2 outValue);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetOffset_Native(in GUID entityID, ref Vector2 value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetFontSize_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetFontSize_Native(in GUID entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern TextAlignment GetAlignment_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAlignment_Native(in GUID entityID, TextAlignment value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetRotation_Native(in GUID entityID);
@@ -1814,18 +1861,36 @@ namespace Eagle
             set { SetTint_Native(Parent.ID, ref value); }
         }
 
-        public Vector2 Position // Normalized device coords
+		// Point of the viewport it's attached to: (0, 0) - top-left corner, (1, 1) - bottom-right corner
+        public Vector2 Anchor
         {
-            get { GetPosition_Native(Parent.ID, out Vector2 result); return result; }
-            set { SetPosition_Native(Parent.ID, ref value); }
+            get { GetAnchor_Native(Parent.ID, out Vector2 result); return result; }
+            set { SetAnchor_Native(Parent.ID, ref value); }
         }
 
-        public Vector2 Scale
+        // Point of the image placed at the anchor (+ offset). (0, 0) - top-left corner, (1, 1) - bottom-right corner.
+        // Basically, determines which part of the image to pin to anchor.
+        public Vector2 Pivot
         {
-            get { GetScale_Native(Parent.ID, out Vector2 result); return result; }
-            set { SetScale_Native(Parent.ID, ref value); }
+            get { GetPivot_Native(Parent.ID, out Vector2 result); return result; }
+            set { SetPivot_Native(Parent.ID, ref value); }
         }
 
+        // Offset from the anchor in reference pixels (Project Settings -> UI Scale). X points right, Y points down
+        public Vector2 Offset
+        {
+            get { GetOffset_Native(Parent.ID, out Vector2 result); return result; }
+            set { SetOffset_Native(Parent.ID, ref value); }
+        }
+
+        // In reference pixels. A negative size mirrors the image
+        public Vector2 Size
+        {
+            get { GetSize_Native(Parent.ID, out Vector2 result); return result; }
+            set { SetSize_Native(Parent.ID, ref value); }
+        }
+
+        // Degrees, counter-clockwise around the pivot
         public float Rotation
         {
             get { return GetRotation_Native(Parent.ID); }
@@ -1857,16 +1922,28 @@ namespace Eagle
         internal static extern void SetTint_Native(in GUID entityID, ref Color3 value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetPosition_Native(in GUID entityID, out Vector2 outValue);
+        internal static extern void GetAnchor_Native(in GUID entityID, out Vector2 outValue);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetPosition_Native(in GUID entityID, ref Vector2 value);
+        internal static extern void SetAnchor_Native(in GUID entityID, ref Vector2 value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetScale_Native(in GUID entityID, out Vector2 outValue);
+        internal static extern void GetPivot_Native(in GUID entityID, out Vector2 outValue);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetScale_Native(in GUID entityID, ref Vector2 value);
+        internal static extern void SetPivot_Native(in GUID entityID, ref Vector2 value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetOffset_Native(in GUID entityID, out Vector2 outValue);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetOffset_Native(in GUID entityID, ref Vector2 value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetSize_Native(in GUID entityID, out Vector2 outValue);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetSize_Native(in GUID entityID, ref Vector2 value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetRotation_Native(in GUID entityID);

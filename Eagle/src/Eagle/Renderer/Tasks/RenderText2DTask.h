@@ -2,8 +2,7 @@
 
 #include "RendererTask.h"
 #include "Eagle/Renderer/VidWrappers/PipelineGraphics.h"
-
-#include <glm/gtc/matrix_transform.hpp>
+#include "Eagle/Classes/Font.h"
 
 namespace Eagle
 {
@@ -28,11 +27,12 @@ namespace Eagle
 		{
 			glm::vec3 Color;
 			uint32_t AtlasIndex;
-			glm::vec2 Position; // Offset from `Origin` before rotation, in NDC units
+			glm::vec2 Position; // Relative to the pivot, before rotation. Reference pixels, Y points down
 			glm::vec2 TexCoord;
 			int EntityID;
 			float Opacity;
-			glm::vec2 Origin; // NDC. Rotation pivot
+			glm::vec2 Anchor;
+			glm::vec2 Offset; // Reference pixels
 			float Rotation;
 		};
 
@@ -41,12 +41,12 @@ namespace Eagle
 			Ref<Font> Font;
 			std::u32string Text;
 			glm::vec3 Color;
-			float LineSpacing;
-			glm::vec2 Pos;
-			glm::vec2 Scale;
+			TextLayoutSettings LayoutSettings;
+			float FontSize;
+			glm::vec2 Anchor;
+			glm::vec2 Pivot;
+			glm::vec2 Offset;
 			float Rotation;
-			float KerningOffset;
-			float MaxWidth;
 			int EntityID;
 			float Opacity;
 		};

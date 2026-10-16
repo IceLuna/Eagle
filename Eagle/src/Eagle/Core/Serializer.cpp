@@ -2481,12 +2481,15 @@ namespace Eagle
 			out << YAML::Key << "Text" << YAML::Value << text.GetText();
 			out << YAML::Key << "Color" << YAML::Value << text.GetColor();
 			out << YAML::Key << "LineSpacing" << YAML::Value << text.GetLineSpacing();
-			out << YAML::Key << "Pos" << YAML::Value << text.GetPosition();
-			out << YAML::Key << "Scale" << YAML::Value << text.GetScale();
-			out << YAML::Key << "Rotation" << YAML::Value << text.GetRotation();
-			out << YAML::Key << "IsVisible" << YAML::Value << text.IsVisible();
 			out << YAML::Key << "Kerning" << YAML::Value << text.GetKerning();
 			out << YAML::Key << "MaxWidth" << YAML::Value << text.GetMaxWidth();
+			out << YAML::Key << "FontSize" << YAML::Value << text.GetFontSize();
+			out << YAML::Key << "Alignment" << YAML::Value << Utils::GetEnumName(text.GetAlignment());
+			out << YAML::Key << "Anchor" << YAML::Value << text.GetAnchor();
+			out << YAML::Key << "Pivot" << YAML::Value << text.GetPivot();
+			out << YAML::Key << "Offset" << YAML::Value << text.GetOffset();
+			out << YAML::Key << "Rotation" << YAML::Value << text.GetRotation();
+			out << YAML::Key << "IsVisible" << YAML::Value << text.IsVisible();
 			out << YAML::Key << "Opacity" << YAML::Value << text.GetOpacity();
 
 			out << YAML::EndMap; //Text2DComponent
@@ -2502,8 +2505,10 @@ namespace Eagle
 			if (const auto& asset = text.GetTextureAsset())
 				out << YAML::Key << "Texture" << YAML::Value << asset->GetGUID();
 			out << YAML::Key << "Tint" << YAML::Value << text.GetTint();
-			out << YAML::Key << "Pos" << YAML::Value << text.GetPosition();
-			out << YAML::Key << "Scale" << YAML::Value << text.GetScale();
+			out << YAML::Key << "Anchor" << YAML::Value << text.GetAnchor();
+			out << YAML::Key << "Pivot" << YAML::Value << text.GetPivot();
+			out << YAML::Key << "Offset" << YAML::Value << text.GetOffset();
+			out << YAML::Key << "Size" << YAML::Value << text.GetSize();
 			out << YAML::Key << "Rotation" << YAML::Value << text.GetRotation();
 			out << YAML::Key << "IsVisible" << YAML::Value << text.IsVisible();
 			out << YAML::Key << "Opacity" << YAML::Value << text.GetOpacity();
@@ -3213,13 +3218,19 @@ namespace Eagle
 			text.SetText(textNode["Text"].as<std::string>());
 			text.SetColor(textNode["Color"].as<glm::vec3>());
 			text.SetLineSpacing(textNode["LineSpacing"].as<float>());
-			text.SetPosition(textNode["Pos"].as<glm::vec2>());
-			text.SetScale(textNode["Scale"].as<glm::vec2>());
 			text.SetRotation(textNode["Rotation"].as<float>());
 			text.SetIsVisible(textNode["IsVisible"].as<bool>());
 			text.SetKerning(textNode["Kerning"].as<float>());
 			text.SetMaxWidth(textNode["MaxWidth"].as<float>());
 			text.SetOpacity(textNode["Opacity"].as<float>());
+			if (auto anchorNode = textNode["Anchor"])
+			{
+				text.SetAnchor(anchorNode.as<glm::vec2>());
+				text.SetPivot(textNode["Pivot"].as<glm::vec2>());
+				text.SetOffset(textNode["Offset"].as<glm::vec2>());
+				text.SetFontSize(textNode["FontSize"].as<float>());
+				text.SetAlignment(Utils::GetEnumFromName<TextAlignment>(textNode["Alignment"].as<std::string>()));
+			}
 		}
 
 		if (auto imageNode = entityNode["Image2DComponent"])
@@ -3229,9 +3240,14 @@ namespace Eagle
 			Ref<AssetTexture2D> asset = GetAsset<AssetTexture2D>(imageNode["Texture"]);
 			image2D.SetTextureAsset(asset);
 			image2D.SetTint(imageNode["Tint"].as<glm::vec3>());
-			image2D.SetPosition(imageNode["Pos"].as<glm::vec2>());
-			image2D.SetScale(imageNode["Scale"].as<glm::vec2>());
 			image2D.SetRotation(imageNode["Rotation"].as<float>());
+			if (auto anchorNode = imageNode["Anchor"])
+			{
+				image2D.SetAnchor(anchorNode.as<glm::vec2>());
+				image2D.SetPivot(imageNode["Pivot"].as<glm::vec2>());
+				image2D.SetOffset(imageNode["Offset"].as<glm::vec2>());
+				image2D.SetSize(imageNode["Size"].as<glm::vec2>());
+			}
 			image2D.SetIsVisible(imageNode["IsVisible"].as<bool>());
 			image2D.SetOpacity(imageNode["Opacity"].as<float>());
 		}
