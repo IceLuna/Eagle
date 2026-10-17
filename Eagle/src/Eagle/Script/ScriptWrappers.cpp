@@ -6518,6 +6518,52 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set MaxWidth of Text2D Component. Entity is null");
 	}
 
+	void Script::Eagle_Text2DComponent_SetEffects(GUID entityID, const glm::vec4* outlineColor, float outlineWidth, const glm::vec4* glowColor, float glowSize,
+		const glm::vec4* shadowColor, const glm::vec2* shadowOffset, float shadowSoftness, bool bOutline, bool bGlow, bool bShadow)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set effects of Text2D Component. Entity is null");
+			return;
+		}
+
+		Text2DEffects effects;
+		effects.OutlineColor = *outlineColor;
+		effects.OutlineWidth = outlineWidth;
+		effects.GlowColor = *glowColor;
+		effects.GlowSize = glowSize;
+		effects.ShadowColor = *shadowColor;
+		effects.ShadowOffset = *shadowOffset;
+		effects.ShadowSoftness = shadowSoftness;
+		effects.bOutline = bOutline;
+		effects.bGlow = bGlow;
+		effects.bShadow = bShadow;
+		entity.GetComponent<Text2DComponent>().SetEffects(effects);
+	}
+
+	void Script::Eagle_Text2DComponent_GetEffects(GUID entityID, glm::vec4* outOutlineColor, float* outOutlineWidth, glm::vec4* outGlowColor, float* outGlowSize,
+		glm::vec4* outShadowColor, glm::vec2* outShadowOffset, float* outShadowSoftness, bool* outbOutline, bool* outbGlow, bool* outbShadow)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		const Text2DEffects effects = entity ? entity.GetComponent<Text2DComponent>().GetEffects() : Text2DEffects{};
+		if (!entity)
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get effects of Text2D Component. Entity is null");
+
+		*outOutlineColor = effects.OutlineColor;
+		*outOutlineWidth = effects.OutlineWidth;
+		*outGlowColor = effects.GlowColor;
+		*outGlowSize = effects.GlowSize;
+		*outShadowColor = effects.ShadowColor;
+		*outShadowOffset = effects.ShadowOffset;
+		*outShadowSoftness = effects.ShadowSoftness;
+		*outbOutline = effects.bOutline;
+		*outbGlow = effects.bGlow;
+		*outbShadow = effects.bShadow;
+	}
+
 	float Script::Eagle_Text2DComponent_GetOpacity(GUID entityID)
 	{
 		auto& scene = Scene::GetCurrentScene();

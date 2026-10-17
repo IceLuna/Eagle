@@ -666,6 +666,24 @@ namespace Eagle
         bool operator!=(const UIScaleSettings& other) const { return !(*this == other); }
     };
 
+    // Sizes are in reference pixels. Effects reach at most about 10% of the font size outside of the glyphs, larger sizes are clamped
+    struct Text2DEffects
+    {
+        glm::vec4 OutlineColor = glm::vec4(0.f, 0.f, 0.f, 1.f);
+        float OutlineWidth = 2.f;
+
+        glm::vec4 GlowColor = glm::vec4(1.f, 1.f, 1.f, 0.6f);
+        float GlowSize = 4.f; // How far it reaches outside of the outline
+
+        glm::vec4 ShadowColor = glm::vec4(0.f, 0.f, 0.f, 0.6f);
+        glm::vec2 ShadowOffset = glm::vec2(2.f, 2.f); // X points right, Y points down
+        float ShadowSoftness = 2.f;
+
+        bool bOutline = false;
+        bool bGlow = false;
+        bool bShadow = false;
+    };
+
     class AssetTexture2D;
     struct BloomSettings
     {

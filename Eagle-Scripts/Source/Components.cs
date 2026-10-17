@@ -12,6 +12,22 @@ namespace Eagle
         Left, Center, Right
     }
 
+    // Effects of Text2D. Sizes are in reference pixels.
+    // Effects reach at most about 10% of the font size outside of the glyphs, larger sizes are clamped
+    public struct Text2DEffects
+    {
+        public Color4 OutlineColor;
+        public float OutlineWidth;
+        public Color4 GlowColor;
+        public float GlowSize;
+        public Color4 ShadowColor;
+        public Vector2 ShadowOffset;
+        public float ShadowSoftness;
+        public bool bOutline;
+        public bool bGlow;
+        public bool bShadow;
+    }
+
     public enum CameraProjectionMode
     {
         Perspective = 0,
@@ -1758,6 +1774,22 @@ namespace Eagle
             set { SetOpacity_Native(Parent.ID, value); }
         }
 
+        public Text2DEffects Effects
+        {
+            get
+            {
+                Text2DEffects result = new Text2DEffects();
+                GetEffects_Native(Parent.ID, out result.OutlineColor, out result.OutlineWidth, out result.GlowColor, out result.GlowSize,
+                    out result.ShadowColor, out result.ShadowOffset, out result.ShadowSoftness, out result.bOutline, out result.bGlow, out result.bShadow);
+                return result;
+            }
+            set
+            {
+                SetEffects_Native(Parent.ID, ref value.OutlineColor, value.OutlineWidth, ref value.GlowColor, value.GlowSize,
+                    ref value.ShadowColor, ref value.ShadowOffset, value.ShadowSoftness, value.bOutline, value.bGlow, value.bShadow);
+            }
+        }
+
         public bool bVisible
         {
             get { return IsVisible_Native(Parent.ID); }
@@ -1849,6 +1881,14 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetOpacity_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetEffects_Native(in GUID entityID, ref Color4 outlineColor, float outlineWidth, ref Color4 glowColor, float glowSize,
+            ref Color4 shadowColor, ref Vector2 shadowOffset, float shadowSoftness, bool bOutline, bool bGlow, bool bShadow);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetEffects_Native(in GUID entityID, out Color4 outlineColor, out float outlineWidth, out Color4 glowColor, out float glowSize,
+            out Color4 shadowColor, out Vector2 shadowOffset, out float shadowSoftness, out bool bOutline, out bool bGlow, out bool bShadow);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetIsVisible_Native(in GUID entityID, bool value);

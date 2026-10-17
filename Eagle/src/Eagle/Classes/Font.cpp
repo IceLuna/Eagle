@@ -9,6 +9,8 @@
 
 namespace Eagle
 {
+	static constexpr double s_AtlasScale = 40.0; // Atlas texels per em
+
 	Ref<Font> Font::Create(const DataBuffer& fontBuffer, const std::string& name)
 	{
 		class LocalFont : public Font
@@ -82,7 +84,7 @@ namespace Eagle
 		// setPixelRange or setUnitRange
 		packer.setPixelRange(EG_MSDF_PIXEL_RANGE);
 		packer.setMiterLimit(1.0);
-		packer.setScale(40.0);
+		packer.setScale(s_AtlasScale);
 		// Compute atlas layout - pack glyphs
 		int remaining = packer.pack(m_Glyphs.data(), (int)m_Glyphs.size());
 		if (remaining != 0)
@@ -167,7 +169,7 @@ namespace Eagle
 		// setPixelRange or setUnitRange
 		packer.setPixelRange(EG_MSDF_PIXEL_RANGE);
 		packer.setMiterLimit(1.0);
-		packer.setScale(40.0);
+		packer.setScale(s_AtlasScale);
 		// Compute atlas layout - pack glyphs
 		int remaining = packer.pack(m_Glyphs.data(), (int)m_Glyphs.size());
 		if (remaining != 0)
@@ -202,7 +204,13 @@ namespace Eagle
 
 		layout.Ascender = float(fsScale * metrics.ascenderY);
 		layout.Descender = float(fsScale * metrics.descenderY);
+		layout.DistanceRange = float(fsScale * EG_MSDF_PIXEL_RANGE / s_AtlasScale);
 		layout.Glyphs.reserve(text.size());
+
+		// Right end of each glyph's advance. Lines are measured with it rather than with the glyph quads,
+		// since the quads include the padding of the atlas (half of its distance range on each side)
+		std::vector<float> glyphsRight;
+		glyphsRight.reserve(text.size());
 
 		double x = 0.0;
 		double y = 0.0;
@@ -260,11 +268,13 @@ namespace Eagle
 			pr = pr * fsScale + x;
 			pb = pb * fsScale + y;
 			pt = pt * fsScale + y;
+			const double right = x + fsScale * glyph->getAdvance();
 
-			if (pr > settings.MaxWidth && lastSpace != -1)
+			if (right > settings.MaxWidth && lastSpace != -1)
 			{
 				// Too wide. Remove the glyphs after the last space and lay them out again on a new line
 				layout.Glyphs.resize(glyphsCountAtLastSpace);
+				glyphsRight.resize(glyphsCountAtLastSpace);
 				i = lastSpace; // `++i` moves to the first character after the space
 				startNewLine();
 				continue;
@@ -278,6 +288,7 @@ namespace Eagle
 			layoutGlyph.PlaneMax = glm::vec2(pr, pt);
 			layoutGlyph.AtlasUVMin = glm::vec2(l * texelWidth, b * texelHeight);
 			layoutGlyph.AtlasUVMax = glm::vec2(r * texelWidth, t * texelHeight);
+			glyphsRight.push_back((float)right);
 
 			if (i + 1 < textSize)
 			{
@@ -296,7 +307,7 @@ namespace Eagle
 			const uint32_t end = (i + 1 < layout.Lines.size()) ? layout.Lines[i + 1].FirstGlyph : glyphsCount;
 			line.GlyphsCount = end - line.FirstGlyph;
 			for (uint32_t g = line.FirstGlyph; g < end; ++g)
-				line.Width = glm::max(line.Width, layout.Glyphs[g].PlaneMax.x);
+				line.Width = glm::max(line.Width, glyphsRight[g]);
 			boxWidth = glm::max(boxWidth, line.Width);
 		}
 		if (settings.BoxWidth > 0.f)

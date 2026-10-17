@@ -63,6 +63,8 @@ namespace Eagle
 		"Otherwise, shape's center location will be used.";
 	static const char* s_CapsuleClimbModeHelpMsg = "Easy - let the capsule climb over surfaces according to impact normal.\n"
 		"Constrained - try to limit climbing according to the step offset.";
+	static const char* s_Text2DEffectSizeHelpMsg = "In reference pixels. Effects reach at most about 10% of the font size outside of the glyphs, larger sizes are clamped";
+
 
 	bool EntityPropertiesPanel::OnImGuiRender(Entity entity, bool bRuntime, bool bVolumetricsEnabled, Entity* newEntitySelection)
 	{
@@ -735,6 +737,13 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
+					bool bVisible = component.IsVisible();
+					if (UI::Property("Is Visible", bVisible))
+					{
+						component.SetIsVisible(bVisible);
+						bEntityChanged = true;
+					}
+
 					glm::vec3 color = component.GetColor();
 					if (UI::PropertyColor("Color", color, false, s_UI2DColorHelpMsg))
 					{
@@ -802,13 +811,6 @@ namespace Eagle
 						component.SetOpacity(opacity);
 						bEntityChanged = true;
 					}
-
-					bool bVisible = component.IsVisible();
-					if (UI::Property("Is Visible", bVisible))
-					{
-						component.SetIsVisible(bVisible);
-						bEntityChanged = true;
-					}
 					
 					if (UI::PropertyDrag("Line Spacing", lineSpacing, 0.01f, 0.f, 0.f, "Added to the font's line height. In font sizes"))
 					{
@@ -829,6 +831,62 @@ namespace Eagle
 					}
 
 					UI::EndPropertyGrid();
+
+					ImGui::Separator();
+					if (UI::PushTreeNode("Effects"))
+					{
+						Text2DEffects effects = component.GetEffects();
+						bool bEffectsChanged = false;
+
+						UI::BeginPropertyGrid("Text2DEffects");
+
+						// Outline
+						{
+							bEffectsChanged |= UI::Property("Outline", effects.bOutline);
+
+							if (!effects.bOutline)
+								UI::PushItemDisabled();
+							bEffectsChanged |= UI::PropertyColor("Outline Color", effects.OutlineColor);
+							bEffectsChanged |= UI::PropertyDrag("Outline Width", effects.OutlineWidth, 0.1f, 0.f, FLT_MAX, s_Text2DEffectSizeHelpMsg);
+							if (!effects.bOutline)
+								UI::PopItemDisabled();
+						}
+						ImGui::Separator();
+
+						// Glow
+						{
+							bEffectsChanged |= UI::Property("Glow", effects.bGlow);
+
+							if (!effects.bGlow)
+								UI::PushItemDisabled();
+							bEffectsChanged |= UI::PropertyColor("Glow Color", effects.GlowColor);
+							bEffectsChanged |= UI::PropertyDrag("Glow Size", effects.GlowSize, 0.1f, 0.f, FLT_MAX, std::string("How far the glow reaches outside of the outline.\n") + s_Text2DEffectSizeHelpMsg);
+							if (!effects.bGlow)
+								UI::PopItemDisabled();
+						}
+						ImGui::Separator();
+
+						// Shadow
+						{
+							bEffectsChanged |= UI::Property("Shadow", effects.bShadow);
+
+							if (!effects.bShadow)
+								UI::PushItemDisabled();
+							bEffectsChanged |= UI::PropertyColor("Shadow Color", effects.ShadowColor);
+							bEffectsChanged |= UI::PropertyDrag("Shadow Offset", effects.ShadowOffset, 0.5f, 0.f, 0.f, "In reference pixels. X points right, Y points down. It doesn't rotate with the text");
+							bEffectsChanged |= UI::PropertyDrag("Shadow Softness", effects.ShadowSoftness, 0.1f, 0.f, FLT_MAX, s_Text2DEffectSizeHelpMsg);
+							if (!effects.bShadow)
+								UI::PopItemDisabled();
+						}
+						UI::EndPropertyGrid();
+
+						if (bEffectsChanged)
+						{
+							component.SetEffects(effects);
+							bEntityChanged = true;
+						}
+						UI::PopTreeNode();
+					}
 				});
 				break;
 			}
@@ -840,6 +898,13 @@ namespace Eagle
 					Ref<AssetTexture2D> asset = component.GetTextureAsset();
 
 					UI::BeginPropertyGrid("Image2DComponent");
+
+					bool bVisible = component.IsVisible();
+					if (UI::Property("Is Visible", bVisible))
+					{
+						component.SetIsVisible(bVisible);
+						bEntityChanged = true;
+					}
 
 					if (EditorResources::DrawAssetSelection("Texture", asset))
 					{
@@ -906,13 +971,6 @@ namespace Eagle
 					if (UI::PropertyDrag("Opacity", opacity, 0.05f, 0.f, 1.f))
 					{
 						component.SetOpacity(opacity);
-						bEntityChanged = true;
-					}
-
-					bool bVisible = component.IsVisible();
-					if (UI::Property("Is Visible", bVisible))
-					{
-						component.SetIsVisible(bVisible);
 						bEntityChanged = true;
 					}
 

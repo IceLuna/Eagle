@@ -11,6 +11,8 @@
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Debug/GPUTimings.h"
 
+#include "../../Eagle-Editor/assets/shaders/defines.h"
+
 namespace Eagle
 {
 	template<typename MapType>
@@ -68,6 +70,13 @@ namespace Eagle
 
 		m_VertexBuffer = Buffer::Create(vertexSpecs, "Text2D_VertexBuffer");
 		m_IndexBuffer = Buffer::Create(indexSpecs, "Text2D_IndexBuffer");
+
+		BufferSpecifications effectsSpecs;
+		effectsSpecs.Size = sizeof(TextEffectsData) * 16;
+		effectsSpecs.Layout = BufferLayoutType::StorageBuffer;
+		effectsSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+		m_EffectsBuffer = Buffer::Create(effectsSpecs, "Text2D_EffectsBuffer");
+		m_Effects.emplace_back();
 	}
 	
 	void RenderText2DTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
@@ -120,6 +129,11 @@ namespace Eagle
 		}
 
 		cmd->Write(vb, quads.data(), currentVertexSize, 0, vb->GetLayout(), BufferReadAccess::Vertex);
+
+		const size_t effectsSize = m_Effects.size() * sizeof(TextEffectsData);
+		if (effectsSize > m_EffectsBuffer->GetSize())
+			m_EffectsBuffer->Resize(glm::max(effectsSize, m_EffectsBuffer->GetSize() * 3 / 2));
+		cmd->Write(m_EffectsBuffer, m_Effects.data(), effectsSize, 0, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
 	}
 
 	void RenderText2DTask::Render(const Ref<CommandBuffer>& cmd)
@@ -142,6 +156,7 @@ namespace Eagle
 		const bool bObjectPickingEnabled = options.bEnableObjectPicking && options.bEnable2DObjectPicking;
 		auto& pipeline = (m_Renderer.IsRuntime() && !bObjectPickingEnabled) ? m_PipelineNoEntityID : m_Pipeline;
 		pipeline->SetTextureArray(m_Atlases, 0, 0);
+		pipeline->SetBuffer(m_EffectsBuffer, 1, 0);
 
 		const uint32_t quadsCount = (uint32_t)(m_Quads.size() / 4);
 		cmd->BeginGraphics(pipeline);
@@ -181,6 +196,7 @@ namespace Eagle
 			data.Rotation = text->GetRotation();
 			data.EntityID = text->Parent.GetID();
 			data.Opacity = text->GetOpacity();
+			data.Effects = text->GetEffects();
 		}
 
 		RenderManager::Submit([components = std::move(datas), task = shared_from_this()](const Ref<CommandBuffer>&)
@@ -189,6 +205,7 @@ namespace Eagle
 
 			thisRef->bUpload = true;
 			thisRef->m_Quads.clear();
+			thisRef->m_Effects.resize(1);
 			thisRef->m_Atlases.clear();
 			thisRef->m_FontAtlases.clear();
 
@@ -217,22 +234,59 @@ namespace Eagle
 			// Rotation is applied in the vertex shader in pixel space, so that it doesn't depend on the viewport's aspect ratio
 			const float rotation = glm::radians(component.Rotation);
 
-			for (const auto& glyph : layout.Glyphs)
+			// Effects, converted from reference pixels to layout units. They're limited to what the distance field
+			// reaches outside of the glyphs (half of the distance range, minus a texel)
+			const Text2DEffects& effects = component.Effects;
+			uint32_t effectsIndex = 0;
+			if (effects.bOutline || effects.bGlow || effects.bShadow)
 			{
-				for (uint32_t corner = 0; corner < 4; ++corner)
+				const float maxReach = layout.DistanceRange * (0.5f - 1.f / float(EG_MSDF_PIXEL_RANGE));
+				auto& data = m_Effects.emplace_back();
+				data.DistanceRange = layout.DistanceRange;
+				if (effects.bOutline)
 				{
-					auto& vertex = m_Quads.emplace_back();
-					vertex.Color = component.Color;
-					vertex.AtlasIndex = atlasIndex;
-					vertex.Position = (glyph.GetPosition(corner) - pivot) * toPixels;
-					vertex.TexCoord = glyph.GetAtlasUV(corner);
-					vertex.EntityID = component.EntityID;
-					vertex.Opacity = component.Opacity;
-					vertex.Anchor = component.Anchor;
-					vertex.Offset = component.Offset;
-					vertex.Rotation = rotation;
+					data.OutlineColor = effects.OutlineColor;
+					data.OutlineWidth = glm::clamp(effects.OutlineWidth / fontSize, 0.f, maxReach);
 				}
+				const float reachLeft = maxReach - data.OutlineWidth;
+				if (effects.bGlow)
+				{
+					data.GlowColor = effects.GlowColor;
+					data.GlowSize = glm::clamp(effects.GlowSize / fontSize, 0.f, reachLeft);
+				}
+				if (effects.bShadow)
+				{
+					data.ShadowColor = effects.ShadowColor;
+					data.ShadowSoftness = glm::clamp(effects.ShadowSoftness / fontSize, 0.f, 2.f * reachLeft);
+				}
+				effectsIndex = uint32_t(m_Effects.size() - 1);
 			}
+
+			auto addGlyphs = [&](glm::vec2 offset, uint32_t effectsIndex)
+			{
+				for (const auto& glyph : layout.Glyphs)
+				{
+					for (uint32_t corner = 0; corner < 4; ++corner)
+					{
+						auto& vertex = m_Quads.emplace_back();
+						vertex.Color = component.Color;
+						vertex.AtlasIndex = atlasIndex;
+						vertex.Position = (glyph.GetPosition(corner) - pivot) * toPixels;
+						vertex.TexCoord = glyph.GetAtlasUV(corner);
+						vertex.EntityID = component.EntityID;
+						vertex.Opacity = component.Opacity;
+						vertex.Anchor = component.Anchor;
+						vertex.Offset = offset;
+						vertex.Rotation = rotation;
+						vertex.EffectsIndex = effectsIndex;
+					}
+				}
+			};
+
+			// The shadow is drawn under the text
+			if (effects.bShadow)
+				addGlyphs(component.Offset + effects.ShadowOffset, effectsIndex | EG_TEXT_SHADOW_MASK);
+			addGlyphs(component.Offset, effectsIndex);
 		}
 
 		return (uint32_t)m_FontAtlases.size();

@@ -2494,6 +2494,20 @@ namespace Eagle
 			out << YAML::Key << "IsVisible" << YAML::Value << text.IsVisible();
 			out << YAML::Key << "Opacity" << YAML::Value << text.GetOpacity();
 
+			const Text2DEffects& effects = text.GetEffects();
+			out << YAML::Key << "Effects" << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Outline" << YAML::Value << effects.bOutline;
+			out << YAML::Key << "OutlineColor" << YAML::Value << effects.OutlineColor;
+			out << YAML::Key << "OutlineWidth" << YAML::Value << effects.OutlineWidth;
+			out << YAML::Key << "Glow" << YAML::Value << effects.bGlow;
+			out << YAML::Key << "GlowColor" << YAML::Value << effects.GlowColor;
+			out << YAML::Key << "GlowSize" << YAML::Value << effects.GlowSize;
+			out << YAML::Key << "Shadow" << YAML::Value << effects.bShadow;
+			out << YAML::Key << "ShadowColor" << YAML::Value << effects.ShadowColor;
+			out << YAML::Key << "ShadowOffset" << YAML::Value << effects.ShadowOffset;
+			out << YAML::Key << "ShadowSoftness" << YAML::Value << effects.ShadowSoftness;
+			out << YAML::EndMap;
+
 			out << YAML::EndMap; //Text2DComponent
 		}
 
@@ -3234,6 +3248,31 @@ namespace Eagle
 				text.SetLetterSpacing(oldNode.as<float>());
 			text.SetMaxWidth(textNode["MaxWidth"].as<float>());
 			text.SetOpacity(textNode["Opacity"].as<float>());
+			if (auto effectsNode = textNode["Effects"])
+			{
+				Text2DEffects effects;
+				if (auto node = effectsNode["Outline"])
+					effects.bOutline = node.as<bool>();
+				if (auto node = effectsNode["OutlineColor"])
+					effects.OutlineColor = node.as<glm::vec4>();
+				if (auto node = effectsNode["OutlineWidth"])
+					effects.OutlineWidth = node.as<float>();
+				if (auto node = effectsNode["Glow"])
+					effects.bGlow = node.as<bool>();
+				if (auto node = effectsNode["GlowColor"])
+					effects.GlowColor = node.as<glm::vec4>();
+				if (auto node = effectsNode["GlowSize"])
+					effects.GlowSize = node.as<float>();
+				if (auto node = effectsNode["Shadow"])
+					effects.bShadow = node.as<bool>();
+				if (auto node = effectsNode["ShadowColor"])
+					effects.ShadowColor = node.as<glm::vec4>();
+				if (auto node = effectsNode["ShadowOffset"])
+					effects.ShadowOffset = node.as<glm::vec2>();
+				if (auto node = effectsNode["ShadowSoftness"])
+					effects.ShadowSoftness = node.as<float>();
+				text.SetEffects(effects);
+			}
 			if (auto anchorNode = textNode["Anchor"])
 			{
 				text.SetAnchor(anchorNode.as<glm::vec2>());

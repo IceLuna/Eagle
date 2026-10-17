@@ -34,6 +34,20 @@ namespace Eagle
 			glm::vec2 Anchor;
 			glm::vec2 Offset; // Reference pixels
 			float Rotation;
+			uint32_t EffectsIndex; // Index into `m_Effects`. The highest bit is set for shadow quads
+		};
+
+		// Sizes are in layout units (font sizes)
+		// Note: keep in sync with `TextEffectsData` in `text_effects.h`
+		struct TextEffectsData
+		{
+			glm::vec4 OutlineColor = glm::vec4(0.f);
+			glm::vec4 GlowColor = glm::vec4(0.f);
+			glm::vec4 ShadowColor = glm::vec4(0.f);
+			float OutlineWidth = 0.f;
+			float GlowSize = 0.f;
+			float ShadowSoftness = 0.f;
+			float DistanceRange = 1.f;
 		};
 
 		struct Text2DComponentData
@@ -48,6 +62,7 @@ namespace Eagle
 			float Rotation;
 			int EntityID;
 			float Opacity;
+			Text2DEffects Effects;
 		};
 
 		void InitPipeline();
@@ -60,8 +75,10 @@ namespace Eagle
 		Ref<PipelineGraphics> m_PipelineNoEntityID;
 		Ref<Buffer> m_VertexBuffer;
 		Ref<Buffer> m_IndexBuffer;
+		Ref<Buffer> m_EffectsBuffer;
 
 		std::vector<QuadVertex> m_Quads;
+		std::vector<TextEffectsData> m_Effects; // [0] - no effects
 		std::unordered_map<Ref<Texture2D>, uint32_t> m_FontAtlases;
 		std::vector<Ref<Texture2D>> m_Atlases;
 

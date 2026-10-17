@@ -498,6 +498,10 @@ namespace Eagle::Script
 	void Eagle_Text2DComponent_SetMaxWidth(GUID entityID, float value);
 	void Eagle_Text2DComponent_SetOpacity(GUID entityID, float value);
 	float Eagle_Text2DComponent_GetOpacity(GUID entityID);
+	void Eagle_Text2DComponent_SetEffects(GUID entityID, const glm::vec4* outlineColor, float outlineWidth, const glm::vec4* glowColor, float glowSize,
+		const glm::vec4* shadowColor, const glm::vec2* shadowOffset, float shadowSoftness, bool bOutline, bool bGlow, bool bShadow);
+	void Eagle_Text2DComponent_GetEffects(GUID entityID, glm::vec4* outOutlineColor, float* outOutlineWidth, glm::vec4* outGlowColor, float* outGlowSize,
+		glm::vec4* outShadowColor, glm::vec2* outShadowOffset, float* outShadowSoftness, bool* outbOutline, bool* outbGlow, bool* outbShadow);
 	void Eagle_Text2DComponent_SetIsVisible(GUID entityID, bool value);
 	bool Eagle_Text2DComponent_IsVisible(GUID entityID);
 	GUID Eagle_Text2DComponent_GetFont(GUID entityID);

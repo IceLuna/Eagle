@@ -1195,6 +1195,12 @@ namespace Eagle
 			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
 		}
 
+		void SetEffects(const Text2DEffects& effects)
+		{
+			m_Effects = effects;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
 		const Ref<AssetFont>& GetFontAsset() const { return m_FontAsset; }
 		const std::string& GetText() const { return m_Text; }
 		const glm::vec3& GetColor() const { return m_Color; }
@@ -1211,6 +1217,7 @@ namespace Eagle
 		float GetOpacity() const { return m_Opacity; }
 		bool IsVisible() const { return m_IsVisible; }
 		bool DoesPivotFollowAnchor() const { return m_PivotFollowsAnchor; }
+		const Text2DEffects& GetEffects() const { return m_Effects; }
 
 		TextLayoutSettings GetLayoutSettings() const
 		{
@@ -1245,6 +1252,7 @@ namespace Eagle
 		glm::vec2 m_Pivot = glm::vec2(0.5f);
 		glm::vec2 m_Offset = glm::vec2(0.f);
 		float m_Rotation = 0.f;
+		Text2DEffects m_Effects;
 		float m_Opacity = 1.f;
 		bool m_IsVisible = true;
 		bool m_PivotFollowsAnchor = false; // If true, anchor value will be used for the pivot

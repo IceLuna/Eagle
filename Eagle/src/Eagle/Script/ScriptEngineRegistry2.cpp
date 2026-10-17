@@ -588,6 +588,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Text2DComponent::SetMaxWidth_Native", Eagle::Script::Eagle_Text2DComponent_SetMaxWidth);
 		mono_add_internal_call("Eagle.Text2DComponent::SetOpacity_Native", Eagle::Script::Eagle_Text2DComponent_SetOpacity);
 		mono_add_internal_call("Eagle.Text2DComponent::GetOpacity_Native", Eagle::Script::Eagle_Text2DComponent_GetOpacity);
+		mono_add_internal_call("Eagle.Text2DComponent::SetEffects_Native", Eagle::Script::Eagle_Text2DComponent_SetEffects);
+		mono_add_internal_call("Eagle.Text2DComponent::GetEffects_Native", Eagle::Script::Eagle_Text2DComponent_GetEffects);
 		mono_add_internal_call("Eagle.Text2DComponent::SetRotation_Native", Eagle::Script::Eagle_Text2DComponent_SetRotation);
 		mono_add_internal_call("Eagle.Text2DComponent::GetRotation_Native", Eagle::Script::Eagle_Text2DComponent_GetRotation);
 		mono_add_internal_call("Eagle.Text2DComponent::SetAnchor_Native", Eagle::Script::Eagle_Text2DComponent_SetAnchor);

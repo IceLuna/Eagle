@@ -66,7 +66,7 @@ namespace Eagle
 		uint32_t FirstGlyph = 0;
 		uint32_t GlyphsCount = 0;
 		float BaselineY = 0.f;
-		float Width = 0.f; // Right edge of its glyphs
+		float Width = 0.f; // Right end of the advance of its last glyph (without the atlas padding of the glyph quads)
 	};
 
 	struct TextLayout
@@ -83,6 +83,7 @@ namespace Eagle
 
 		float Ascender = 0.f;  // Font's ascender & descender relative to a baseline
 		float Descender = 0.f;
+		float DistanceRange = 0.f; // Distance range of the font atlas in layout units. Effects can reach half of it outside of glyphs
 
 		// Point of the layout box. (0, 0) - top-left corner, (1, 1) - bottom-right corner
 		glm::vec2 GetBoxPoint(glm::vec2 point) const
@@ -102,7 +103,7 @@ namespace Eagle
 	public:
 		// Stored in font assets. If an asset's atlas has a different version, the atlas is regenerated from the font data.
 		// Increase it when the atlas generation changes and it invalidates old assets.
-		static constexpr uint32_t AtlasVersion = 2;
+		static constexpr uint32_t AtlasVersion = 3;
 
 		const Ref<Texture2D>& GetAtlas() const { return m_Atlas; }
 		const Scope<msdf_atlas::FontGeometry>& GetFontGeometry() const { return m_FontGeometry; }
