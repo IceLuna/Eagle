@@ -80,6 +80,7 @@ namespace Eagle
 		const glm::vec2 windowPos = window.GetWindowPos();
 		m_CurrentScene->ViewportBounds[0] = windowPos;
 		m_CurrentScene->ViewportBounds[1] = windowPos + glm::vec2(m_WindowSize);
+		m_CurrentScene->bViewportHovered = true;
 
 		m_CurrentScene->OnUpdate(ts, m_WindowFocused);
 	}

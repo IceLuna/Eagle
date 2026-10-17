@@ -580,6 +580,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Text2DComponent::SetText_Native", Eagle::Script::Eagle_Text2DComponent_SetText);
 		mono_add_internal_call("Eagle.Text2DComponent::GetColor_Native", Eagle::Script::Eagle_Text2DComponent_GetColor);
 		mono_add_internal_call("Eagle.Text2DComponent::SetColor_Native", Eagle::Script::Eagle_Text2DComponent_SetColor);
+		mono_add_internal_call("Eagle.Text2DComponent::GetTint_Native", Eagle::Script::Eagle_Text2DComponent_GetTint);
+		mono_add_internal_call("Eagle.Text2DComponent::SetTint_Native", Eagle::Script::Eagle_Text2DComponent_SetTint);
 		mono_add_internal_call("Eagle.Text2DComponent::GetLineSpacing_Native", Eagle::Script::Eagle_Text2DComponent_GetLineSpacing);
 		mono_add_internal_call("Eagle.Text2DComponent::SetLineSpacing_Native", Eagle::Script::Eagle_Text2DComponent_SetLineSpacing);
 		mono_add_internal_call("Eagle.Text2DComponent::GetLetterSpacing_Native", Eagle::Script::Eagle_Text2DComponent_GetLetterSpacing);
@@ -608,6 +610,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Text2DComponent::GetFont_Native", Eagle::Script::Eagle_Text2DComponent_GetFont);
 		mono_add_internal_call("Eagle.Text2DComponent::SetPivotFollowsAnchor_Native", Eagle::Script::Eagle_Text2DComponent_SetPivotFollowsAnchor);
 		mono_add_internal_call("Eagle.Text2DComponent::DoesPivotFollowAnchor_Native", Eagle::Script::Eagle_Text2DComponent_DoesPivotFollowAnchor);
+		mono_add_internal_call("Eagle.Text2DComponent::IsHitTestable_Native", Eagle::Script::Eagle_Text2DComponent_IsHitTestable);
+		mono_add_internal_call("Eagle.Text2DComponent::SetIsHitTestable_Native", Eagle::Script::Eagle_Text2DComponent_SetIsHitTestable);
 
 		// Image2D Component
 		mono_add_internal_call("Eagle.Image2DComponent::GetTexture_Native", Eagle::Script::Eagle_Image2DComponent_GetTexture);
@@ -630,6 +634,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Image2DComponent::IsVisible_Native", Eagle::Script::Eagle_Image2DComponent_IsVisible);
 		mono_add_internal_call("Eagle.Image2DComponent::SetPivotFollowsAnchor_Native", Eagle::Script::Eagle_Image2DComponent_SetPivotFollowsAnchor);
 		mono_add_internal_call("Eagle.Image2DComponent::DoesPivotFollowAnchor_Native", Eagle::Script::Eagle_Image2DComponent_DoesPivotFollowAnchor);
+		mono_add_internal_call("Eagle.Image2DComponent::IsHitTestable_Native", Eagle::Script::Eagle_Image2DComponent_IsHitTestable);
+		mono_add_internal_call("Eagle.Image2DComponent::SetIsHitTestable_Native", Eagle::Script::Eagle_Image2DComponent_SetIsHitTestable);
 
 		// Billboard Component
 		mono_add_internal_call("Eagle.BillboardComponent::SetTexture_Native", Eagle::Script::Eagle_BillboardComponent_SetTexture);
@@ -727,6 +733,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Scene::OpenSceneAsync_Native", Eagle::Script::Eagle_Scene_OpenSceneAsync);
 		mono_add_internal_call("Eagle.Scene::GetActiveSceneLoad_Native", Eagle::Script::Eagle_Scene_GetActiveSceneLoad);
 		mono_add_internal_call("Eagle.Scene::QuitGame_Native", Eagle::Script::Eagle_Scene_QuitGame);
+		mono_add_internal_call("Eagle.Scene::GetUIEntityAt_Native", Eagle::Script::Eagle_Scene_GetUIEntityAt);
+		mono_add_internal_call("Eagle.Scene::GetHoveredUIEntity_Native", Eagle::Script::Eagle_Scene_GetHoveredUIEntity);
 		mono_add_internal_call("Eagle.Scene::Raycast_Native", Eagle::Script::Eagle_Scene_Raycast);
 		mono_add_internal_call("Eagle.Scene::OverlapBox_Native", Eagle::Script::Eagle_Scene_OverlapBox);
 		mono_add_internal_call("Eagle.Scene::OverlapCapsule_Native", Eagle::Script::Eagle_Scene_OverlapCapsule);

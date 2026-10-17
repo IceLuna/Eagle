@@ -1705,6 +1705,13 @@ namespace Eagle
             get { GetColor_Native(Parent.ID, out Color3 result); return result; }
             set { SetColor_Native(Parent.ID, ref value); }
         }
+
+        public Color3 Tint
+        {
+            get { GetTint_Native(Parent.ID, out Color3 result); return result; }
+            set { SetTint_Native(Parent.ID, ref value); }
+        }
+
         public float LineSpacing
         {
             get { return GetLineSpacing_Native(Parent.ID); }
@@ -1804,6 +1811,13 @@ namespace Eagle
             set { SetPivotFollowsAnchor_Native(Parent.ID, value); }
         }
 
+        // If true, the entity receives mouse events (for example, `Entity.OnMouseClick`) and blocks the 2D UI under it
+        public bool bHitTestable
+        {
+            get { return IsHitTestable_Native(Parent.ID); }
+            set { SetIsHitTestable_Native(Parent.ID, value); }
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern GUID GetFont_Native(in GUID entityID);
 
@@ -1821,6 +1835,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetColor_Native(in GUID entityID, ref Color3 value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetTint_Native(in GUID entityID, out Color3 outValue);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetTint_Native(in GUID entityID, ref Color3 value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetAnchor_Native(in GUID entityID, out Vector2 outValue);
@@ -1901,6 +1921,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool DoesPivotFollowAnchor_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsHitTestable_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetIsHitTestable_Native(in GUID entityID, bool value);
     }
     
     public class Image2DComponent : Component
@@ -1983,6 +2009,13 @@ namespace Eagle
             set { SetPivotFollowsAnchor_Native(Parent.ID, value); }
         }
 
+        // If true, the entity receives mouse events (for example, `Entity.OnMouseClick`) and blocks the 2D UI under it
+        public bool bHitTestable
+        {
+            get { return IsHitTestable_Native(Parent.ID); }
+            set { SetIsHitTestable_Native(Parent.ID, value); }
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetTexture_Native(in GUID entityID, in GUID textureID);
 
@@ -2042,6 +2075,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool DoesPivotFollowAnchor_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsHitTestable_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetIsHitTestable_Native(in GUID entityID, bool value);
     }
 
     public class AudioComponent : SceneComponent

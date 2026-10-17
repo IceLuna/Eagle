@@ -106,6 +106,14 @@ namespace Eagle
 
         public static void QuitGame() { QuitGame_Native(); }
 
+        // Topmost visible, hit-testable Text2D or Image2D at the point
+        public static Entity GetUIEntityAt(Vector2 positionInViewport) { return GetUIEntityAt_Native(ref positionInViewport); }
+
+        // Topmost visible, hit-testable Text2D or Image2D under the mouse
+        public static Entity GetHoveredUIEntity() { return GetHoveredUIEntity_Native(); }
+
+        public static bool IsMouseOverUI() { return GetHoveredUIEntity() != null; }
+
         public static bool Raycast(Vector3 origin, Vector3 dir, float maxDistance, out RaycastHit outHit, PhysicsQueryType query = PhysicsQueryType.Default, CollisionGroup collisionGroup = CollisionGroup.Any, Entity[] entitiesToIgnore = null)
         {
             GUID[] entityGUIDsToIgnore = GetEntityGUIDs(entitiesToIgnore);
@@ -210,6 +218,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void QuitGame_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern Entity GetUIEntityAt_Native(ref Vector2 positionInViewport);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern Entity GetHoveredUIEntity_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern bool Raycast_Native(ref Vector3 origin, ref Vector3 dir, float maxDistance, PhysicsQueryType query, CollisionGroup group, GUID[] entitiesToIgnore, out Entity hitEntity, out Vector3 position, out Vector3 normal, out float distance);

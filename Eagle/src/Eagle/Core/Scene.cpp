@@ -11,6 +11,7 @@
 #include "Eagle/Animation/AnimationGraph.h"
 #include "Eagle/Camera/CameraController.h"
 #include "Eagle/Script/ScriptEngine.h"
+#include "Eagle/Input/Input.h"
 #include "Eagle/Script/ScriptUserComponents.h"
 #include "Eagle/Physics/PhysicsScene.h"
 #include "Eagle/Physics/PhysicsUtils.h"
@@ -711,6 +712,9 @@ namespace Eagle
 		m_RuntimePhysicsScene = MakeRef<PhysicsScene>(PhysicsSettings());
 		m_PhysicsScene = m_RuntimePhysicsScene;
 		SetupOnAppAssemblyReloadedCallback();
+
+		// Not enough bits in `m_UIPressedButtons` to store the state for each mouse button
+		static_assert(magic_enum::enum_count<Mouse>() <= sizeof(m_UIPressedButtons) * 8);
 	}
 
 	Scene::Scene(const std::string& debugName, bool bRuntime)
@@ -742,41 +746,6 @@ namespace Eagle
 		ConnectSignals();
 		InitPhysicsScenes(bRuntime);
 		SetupOnAppAssemblyReloadedCallback();
-	}
-
-	void Scene::InitPhysicsScenes(bool bRuntime)
-	{
-		m_RuntimePhysicsScene = MakeRef<PhysicsScene>(m_RuntimePhysicsSettings);
-		if (bRuntime)
-		{
-			m_PhysicsScene = m_RuntimePhysicsScene;
-		}
-		else
-		{
-			PhysicsSettings editorSettings;
-			editorSettings.UpdateRate = 30u;
-			editorSettings.Gravity = glm::vec3{ 0.f };
-			editorSettings.bDebugOnPlay = false;
-			editorSettings.bEditorScene = true;
-			m_PhysicsScene = MakeRef<PhysicsScene>(editorSettings);
-		}
-	}
-
-	void Scene::SetSceneRenderer(const Ref<SceneRenderer>& sceneRenderer)
-	{
-		EG_CORE_ASSERT(sceneRenderer);
-		m_SceneRenderer = sceneRenderer;
-
-		const glm::uvec2 viewportSize = m_SceneRenderer->GetViewportSize();
-		OnViewportResize(viewportSize.x, viewportSize.y);
-		SetUseSkyAsBackground(m_bUseSkyAsBackground);
-		SetRenderSkybox(m_bRenderSkybox);
-		SetSkyboxEnabled(m_bSkyboxEnabled);
-		SetSkyboxIntensity(m_SkyboxIntensity);
-		SetSkybox(m_Sky);
-		SetSkybox(m_Cubemap);
-
-		m_DirtyFlags.SetEverythingDirty(true);
 	}
 
 	Scene::Scene(const Ref<Scene>& other, const std::string& debugName)
@@ -880,6 +849,41 @@ namespace Eagle
 		m_Registry.clear();
 
 		ScriptEngine::RemoveOnAppAssemblyReloadedCallback(m_GUID);
+	}
+
+	void Scene::InitPhysicsScenes(bool bRuntime)
+	{
+		m_RuntimePhysicsScene = MakeRef<PhysicsScene>(m_RuntimePhysicsSettings);
+		if (bRuntime)
+		{
+			m_PhysicsScene = m_RuntimePhysicsScene;
+		}
+		else
+		{
+			PhysicsSettings editorSettings;
+			editorSettings.UpdateRate = 30u;
+			editorSettings.Gravity = glm::vec3{ 0.f };
+			editorSettings.bDebugOnPlay = false;
+			editorSettings.bEditorScene = true;
+			m_PhysicsScene = MakeRef<PhysicsScene>(editorSettings);
+		}
+	}
+
+	void Scene::SetSceneRenderer(const Ref<SceneRenderer>& sceneRenderer)
+	{
+		EG_CORE_ASSERT(sceneRenderer);
+		m_SceneRenderer = sceneRenderer;
+
+		const glm::uvec2 viewportSize = m_SceneRenderer->GetViewportSize();
+		OnViewportResize(viewportSize.x, viewportSize.y);
+		SetUseSkyAsBackground(m_bUseSkyAsBackground);
+		SetRenderSkybox(m_bRenderSkybox);
+		SetSkyboxEnabled(m_bSkyboxEnabled);
+		SetSkyboxIntensity(m_SkyboxIntensity);
+		SetSkybox(m_Sky);
+		SetSkybox(m_Cubemap);
+
+		m_DirtyFlags.SetEverythingDirty(true);
 	}
 
 	Entity Scene::CreateEntity(const std::string& name)
@@ -1587,6 +1591,8 @@ namespace Eagle
 	void Scene::UpdateScripts(Timestep ts)
 	{
 		EG_CPU_TIMING_SCOPED("Scene. Run Scripts");
+
+		UpdateUIMouse();
 
 		const bool bDirtyBefore = m_DirtyFlags.bSkeletalMeshesDirty;
 		m_DirtyFlags.bSkeletalMeshesDirty = false;
@@ -2340,6 +2346,139 @@ namespace Eagle
 		m_DirtyFlags.SetEverythingDirty(false);
 	}
 
+	// Inverse of the 2D UI placement (`UI2D_GetClipPosition` in utils.h): `pixel = anchor * viewportSize + uiScale * (offset + Rotate2D(position, rotation))`.
+	static bool UIRectContainsPoint(glm::vec2 pixel, glm::vec2 viewportSize, float uiScale,
+		glm::vec2 anchor, glm::vec2 offset, float rotationDegrees, glm::vec2 rectMin, glm::vec2 rectMax)
+	{
+		const glm::vec2 rotated = (pixel - anchor * viewportSize) / uiScale - offset;
+		const float radians = glm::radians(rotationDegrees);
+		const float c = glm::cos(radians);
+		const float s = glm::sin(radians);
+		const glm::vec2 position = glm::vec2(c * rotated.x - s * rotated.y, s * rotated.x + c * rotated.y);
+
+		const glm::vec2 boxMin = glm::min(rectMin, rectMax);
+		const glm::vec2 boxMax = glm::max(rectMin, rectMax);
+		return glm::all(glm::greaterThanEqual(position, boxMin)) && glm::all(glm::lessThanEqual(position, boxMax));
+	}
+
+	Entity Scene::GetUIElementAt(glm::vec2 viewportPosition)
+	{
+		if (!m_SceneRenderer)
+			return Entity::Null;
+
+		const glm::vec2 viewportSize = glm::vec2(m_SceneRenderer->GetViewportSize());
+		const float uiScale = m_SceneRenderer->GetUIScale();
+		if (uiScale <= 0.f)
+			return Entity::Null;
+
+		// Same order as they're drawn: images, then texts. Each in the reversed order of their views to test topmost elements first
+
+		auto texts = m_Registry.view<Text2DComponent>();
+		for (auto it = texts.rbegin(); it != texts.rend(); ++it)
+		{
+			const auto& text = texts.get<Text2DComponent>(*it);
+			const float fontSize = text.GetFontSize();
+			if (!text.IsVisible() || !text.IsHitTestable() || fontSize <= 0.f)
+				continue;
+
+			const Ref<const TextLayout> layout = text.GetLayout();
+			if (!layout)
+				continue;
+
+			const glm::vec2 size = (layout->BoxMax - layout->BoxMin) * fontSize;
+			const glm::vec2 rectMin = -text.GetActualPivot() * size;
+			if (UIRectContainsPoint(viewportPosition, viewportSize, uiScale, text.GetAnchor(), text.GetOffset(), text.GetRotation(), rectMin, rectMin + size))
+				return Entity(*it, this);
+		}
+
+		auto images = m_Registry.view<Image2DComponent>();
+		for (auto it = images.rbegin(); it != images.rend(); ++it)
+		{
+			const auto& image = images.get<Image2DComponent>(*it);
+			if (!image.IsVisible() || !image.IsHitTestable())
+				continue;
+
+			const glm::vec2 size = image.GetSize();
+			const glm::vec2 rectMin = -image.GetActualPivot() * size;
+			if (UIRectContainsPoint(viewportPosition, viewportSize, uiScale, image.GetAnchor(), image.GetOffset(), image.GetRotation(), rectMin, rectMin + size))
+				return Entity(*it, this);
+		}
+
+		return Entity::Null;
+	}
+
+	Entity Scene::GetHoveredUIElement() const
+	{
+		return m_UIHoveredEntity.IsNull() ? Entity::Null : GetEntityByGUID(m_UIHoveredEntity);
+	}
+
+	std::optional<glm::vec2> Scene::GetMousePositionInViewport() const
+	{
+		if (!bViewportHovered)
+			return {};
+
+		const glm::vec2 position = ImGuiLayer::GetMousePos() - ViewportBounds[0];
+		const glm::vec2 size = ViewportBounds[1] - ViewportBounds[0];
+		if (glm::any(glm::lessThan(position, glm::vec2(0.f))) || glm::any(glm::greaterThanEqual(position, size)))
+			return {};
+		return position;
+	}
+
+	void Scene::UpdateUIMouse()
+	{
+		EG_CPU_TIMING_SCOPED("Scene. Update UI Mouse");
+
+		Entity hovered;
+		if (const auto position = GetMousePositionInViewport())
+			hovered = GetUIElementAt(*position);
+
+		const GUID previouslyHovered = m_UIHoveredEntity;
+		m_UIHoveredEntity = hovered ? hovered.GetGUID() : GUID(0, 0);
+
+		if (previouslyHovered != m_UIHoveredEntity)
+		{
+			if (Entity entity = GetEntityByGUID(previouslyHovered))
+			{
+				ScriptEngine::OnUIMouseEvent(entity, UIMouseEvent::Exit);
+			}
+			if (GetEntityByGUID(m_UIHoveredEntity))
+			{
+				ScriptEngine::OnUIMouseEvent(hovered, UIMouseEvent::Enter);
+			}
+		}
+
+		for (uint32_t i = 0; i < magic_enum::enum_count<Mouse>(); ++i)
+		{
+			const Mouse button = magic_enum::enum_value<Mouse>(i);;
+			const uint32_t bit = 1u << i;
+			const bool bPressed = Input::IsMouseButtonPressed(button);
+			if (bPressed == ((m_UIPressedButtons & bit) != 0u))
+				continue;
+			m_UIPressedButtons ^= bit;
+
+			if (bPressed)
+			{
+				m_UIPressedEntities[i] = m_UIHoveredEntity;
+				if (hovered)
+					ScriptEngine::OnUIMouseEvent(hovered, UIMouseEvent::Down, button);
+				continue;
+			}
+
+			const GUID pressed = m_UIPressedEntities[i];
+			m_UIPressedEntities[i] = GUID(0, 0);
+			if (pressed.IsNull())
+				continue;
+
+			Entity entity = GetEntityByGUID(pressed);
+			if (!entity)
+				continue;
+			
+			ScriptEngine::OnUIMouseEvent(entity, UIMouseEvent::Up, button);
+			if (entity == hovered) // Only if it's released over the same entity
+				ScriptEngine::OnUIMouseEvent(entity, UIMouseEvent::Click, button);
+		}
+	}
+
 	void Scene::AddTextUIBoundsDebugLines()
 	{
 		m_DebugLines2DToDraw.clear();
@@ -3034,6 +3173,8 @@ namespace Eagle
 
 	Entity Scene::GetEntityByGUID(const GUID& guid) const
 	{
+		if (guid.IsNull())
+			return Entity::Null;
 		auto it = m_AliveEntities.find(guid);
 		return it != m_AliveEntities.end() ? it->second : Entity::Null;
 	}

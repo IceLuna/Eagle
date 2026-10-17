@@ -909,6 +909,12 @@ namespace Eagle
 			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
 		}
 
+		void SetIsHitTestable(bool bHitTestable)
+		{
+			m_bHitTestable = bHitTestable;
+			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
+		}
+
 		const Ref<AssetTexture2D>& GetTextureAsset() const { return m_TextureAsset; }
 		glm::vec3 GetTint() const { return m_Tint; }
 		glm::vec2 GetAnchor() const { return m_Anchor; }
@@ -920,6 +926,7 @@ namespace Eagle
 		float GetOpacity() const { return m_Opacity; }
 		bool IsVisible() const { return m_IsVisible; }
 		bool DoesPivotFollowAnchor() const { return m_PivotFollowsAnchor; }
+		bool IsHitTestable() const { return m_bHitTestable; }
 
 	private:
 		Ref<AssetTexture2D> m_TextureAsset;
@@ -932,6 +939,7 @@ namespace Eagle
 		float m_Opacity = 1.f;
 		bool m_IsVisible = true;
 		bool m_PivotFollowsAnchor = false; // If true, anchor value will be used for the pivot
+		bool m_bHitTestable = true;
 	};
 
 	class TextComponent : public SceneComponent
@@ -1113,6 +1121,12 @@ namespace Eagle
 			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
 		}
 
+		void SetTint(const glm::vec3& tint)
+		{
+			m_Tint = tint;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
 		// In font sizes
 		void SetLineSpacing(float value)
 		{
@@ -1195,6 +1209,12 @@ namespace Eagle
 			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
 		}
 
+		void SetIsHitTestable(bool bHitTestable)
+		{
+			m_bHitTestable = bHitTestable;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
 		void SetEffects(const Text2DEffects& effects)
 		{
 			m_Effects = effects;
@@ -1204,6 +1224,7 @@ namespace Eagle
 		const Ref<AssetFont>& GetFontAsset() const { return m_FontAsset; }
 		const std::string& GetText() const { return m_Text; }
 		const glm::vec3& GetColor() const { return m_Color; }
+		const glm::vec3& GetTint() const { return m_Tint; }
 		float GetLineSpacing() const { return m_LineSpacing; }
 		float GetLetterSpacing() const { return m_LetterSpacing; }
 		float GetMaxWidth() const { return m_MaxWidth; }
@@ -1217,6 +1238,7 @@ namespace Eagle
 		float GetOpacity() const { return m_Opacity; }
 		bool IsVisible() const { return m_IsVisible; }
 		bool DoesPivotFollowAnchor() const { return m_PivotFollowsAnchor; }
+		bool IsHitTestable() const { return m_bHitTestable; }
 		const Text2DEffects& GetEffects() const { return m_Effects; }
 
 		TextLayoutSettings GetLayoutSettings() const
@@ -1243,6 +1265,7 @@ namespace Eagle
 		mutable TextLayoutCache m_LayoutCache;
 
 		glm::vec3 m_Color = glm::vec3(1.f);
+		glm::vec3 m_Tint = glm::vec3(1.f);
 		float m_LineSpacing = 0.0f;
 		float m_LetterSpacing = 0.0f;
 		float m_MaxWidth = 0.f;
@@ -1256,6 +1279,7 @@ namespace Eagle
 		float m_Opacity = 1.f;
 		bool m_IsVisible = true;
 		bool m_PivotFollowsAnchor = false; // If true, anchor value will be used for the pivot
+		bool m_bHitTestable = true;
 	};
 
 	class CameraComponent : public SceneComponent

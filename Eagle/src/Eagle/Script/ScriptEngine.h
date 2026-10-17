@@ -63,6 +63,9 @@ namespace Eagle
 		static void OnTriggerBegin(const Entity& entity, const Entity& other);
 		static void OnTriggerEnd(const Entity& entity, const Entity& other);
 
+		static bool HasUIMouseEvent(const Entity& entity, UIMouseEvent event);
+		static void OnUIMouseEvent(const Entity& entity, UIMouseEvent event, Mouse button = Mouse::ButtonLeft);
+
 		// @bRemoveScriptIfInvalid. If the module is empty/invalid, also removes the entity's script instance.
 		// Pass false for entities that can't have an instance yet (e.g. while deserializing), so the global instance map isn't touched.
 		// Then it's safe to call on a background thread

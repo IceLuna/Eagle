@@ -478,6 +478,8 @@ namespace Eagle::Script
 	void Eagle_Text2DComponent_SetText(GUID entityID, MonoString* value);
 	void Eagle_Text2DComponent_GetColor(GUID entityID, glm::vec3* outColor);
 	void Eagle_Text2DComponent_SetColor(GUID entityID, const glm::vec3* color);
+	void Eagle_Text2DComponent_GetTint(GUID entityID, glm::vec3* outTint);
+	void Eagle_Text2DComponent_SetTint(GUID entityID, const glm::vec3* tint);
 	void Eagle_Text2DComponent_GetAnchor(GUID entityID, glm::vec2* outValue);
 	void Eagle_Text2DComponent_SetAnchor(GUID entityID, const glm::vec2* value);
 	void Eagle_Text2DComponent_GetPivot(GUID entityID, glm::vec2* outValue);
@@ -508,6 +510,8 @@ namespace Eagle::Script
 	void Eagle_Text2DComponent_SetFont(GUID entityID, GUID assetID);
 	void Eagle_Text2DComponent_SetPivotFollowsAnchor(GUID entityID, bool value);
 	bool Eagle_Text2DComponent_DoesPivotFollowAnchor(GUID entityID);
+	bool Eagle_Text2DComponent_IsHitTestable(GUID entityID);
+	void Eagle_Text2DComponent_SetIsHitTestable(GUID entityID, bool value);
 
 	// Image2D Component
 	void Eagle_Image2DComponent_SetTexture(GUID entityID, GUID textureID);
@@ -530,6 +534,8 @@ namespace Eagle::Script
 	bool Eagle_Image2DComponent_IsVisible(GUID entityID);
 	void Eagle_Image2DComponent_SetPivotFollowsAnchor(GUID entityID, bool value);
 	bool Eagle_Image2DComponent_DoesPivotFollowAnchor(GUID entityID);
+	bool Eagle_Image2DComponent_IsHitTestable(GUID entityID);
+	void Eagle_Image2DComponent_SetIsHitTestable(GUID entityID, bool value);
 
 	// Billboard Component
 	void Eagle_BillboardComponent_SetTexture(GUID entityID, GUID textureID);
@@ -747,6 +753,8 @@ namespace Eagle::Script
 	uint64_t Eagle_Scene_OpenSceneAsync(GUID assetID, bool bActivateWhenReady);
 	uint64_t Eagle_Scene_GetActiveSceneLoad();
 	void Eagle_Scene_QuitGame();
+	MonoObject* Eagle_Scene_GetUIEntityAt(const glm::vec2* positionInViewport);
+	MonoObject* Eagle_Scene_GetHoveredUIEntity();
 	bool Eagle_Scene_Raycast(const glm::vec3* origin, const glm::vec3* dir, float maxDistance, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore, MonoObject** outHitEntity, glm::vec3* outPosition, glm::vec3* outNormal, float* outDistance);
 	MonoArray* Eagle_Scene_OverlapBox(const Transform* transform, const glm::vec3* boxHalfSize, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore);
 	MonoArray* Eagle_Scene_OverlapCapsule(const Transform* transform, float radius, float halfHeight, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore);

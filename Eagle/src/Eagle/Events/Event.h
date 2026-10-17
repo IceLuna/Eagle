@@ -32,6 +32,16 @@ namespace Eagle
 	};
 	DECLARE_FLAGS(EventCategory);
 
+	// Used by 2D UI elements
+	enum class UIMouseEvent
+	{
+		Enter,
+		Exit,
+		Down,
+		Up,
+		Click
+	};
+
 #define EVENT_CLASS_TYPE(type, ...) static EventType GetStaticType() { return EventType::type; }\
 								virtual EventType GetEventType() const override { return GetStaticType(); }\
 								virtual const char* GetName() const override { return #type; }\

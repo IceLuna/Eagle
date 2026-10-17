@@ -145,6 +145,9 @@ namespace Eagle
 
 		void OnViewportResize(uint32_t width, uint32_t height);
 
+		Entity GetUIElementAt(glm::vec2 viewportPosition); // Topmost visible, hit-testable Text2D or Image2D at the point
+		Entity GetHoveredUIElement() const; // Topmost visible, hit-testable Text2D or Image2D under the mouse
+
 		void ClearScene();
 
 		bool IsPlaying() const { return bIsPlaying; }
@@ -668,6 +671,7 @@ namespace Eagle
 	public:
 		EditorCamera EditorCamera;
 		glm::vec2 ViewportBounds[2] = { glm::vec2(0.f) };
+		bool bViewportHovered = true; // If false, the mouse doesn't interact with 2D UI
 		bool bCanUpdateEditorCamera = false;
 		bool bDrawMiscellaneous = true;
 		bool bDrawNavMesh = false;
@@ -679,6 +683,8 @@ namespace Eagle
 
 	private:
 		void AddTextUIBoundsDebugLines();
+		void UpdateUIMouse();
+		std::optional<glm::vec2> GetMousePositionInViewport() const;
 
 		static Ref<Scene> s_CurrentScene;
 		Ref<PhysicsScene> m_PhysicsScene;
@@ -754,6 +760,19 @@ namespace Eagle
 		std::vector<const TextComponent*> m_Texts;
 		std::vector<const Text2DComponent*> m_Texts2D;
 		std::vector<const Image2DComponent*> m_Images2D;
+
+		// Mouse over 2D UI
+		// Hovered when mouse buttons were pressed (stores state for each mouse button)
+		std::array<GUID, magic_enum::enum_count<Mouse>()> m_UIPressedEntities = []()
+		{
+			// Init all elements to zeros instead of doing it in each constructor and potentially missing it
+			std::array<GUID, magic_enum::enum_count<Mouse>()> arr;
+			arr.fill(GUID(0, 0));
+			return arr;
+		}();
+		uint32_t m_UIPressedButtons = 0u; // Bit per button
+		GUID m_UIHoveredEntity = GUID(0, 0);
+
 		std::vector<const DecalComponent*> m_Decals;
 		std::string m_DebugName;
 

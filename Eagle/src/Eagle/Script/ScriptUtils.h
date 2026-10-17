@@ -37,6 +37,11 @@ namespace Eagle
 		UnmanagedMethod OnPhysicsUpdateMethod;
 		UnmanagedMethod OnAnimationEventMethod;
 		UnmanagedMethod OnSequenceEventMethod;
+		UnmanagedMethod OnMouseEnterMethod;
+		UnmanagedMethod OnMouseExitMethod;
+		UnmanagedMethod OnMouseDownMethod;
+		UnmanagedMethod OnMouseUpMethod;
+		UnmanagedMethod OnMouseClickMethod;
 
 		MonoMethod* OnCollisionBeginMethod = nullptr;
 		MonoMethod* OnCollisionEndMethod = nullptr;

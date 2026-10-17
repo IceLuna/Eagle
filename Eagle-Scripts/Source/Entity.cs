@@ -114,6 +114,13 @@ namespace Eagle
         // @time. Time of the key inside the sequence
         public virtual void OnSequenceEvent(string eventName, float time) { }
 
+        // 2D UI mouse events. Called before `OnUpdate`. The mouse hits hit-testable images & texts (see `bHitTestable` of Text2DComponent & Image2DComponent).
+        public virtual void OnMouseEnter() { }
+        public virtual void OnMouseExit() { }
+        public virtual void OnMouseDown(MouseButton button) { }
+        public virtual void OnMouseUp(MouseButton button) { } // Note: `Up` is called for the entity that got `Down`, even if the mouse has left it
+        public virtual void OnMouseClick(MouseButton button) { } // Pressed and released over this entity
+
         // Returns actual damage that was taken
         public virtual float TakeDamage(Entity source, float damage)
         {

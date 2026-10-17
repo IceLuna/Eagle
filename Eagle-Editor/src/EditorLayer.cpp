@@ -2730,6 +2730,7 @@ namespace Eagle
 			if (Input::IsMouseVisible())
 				m_ViewportHovered = ImGui::IsWindowHovered();
 			m_ViewportFocused = ImGui::IsWindowFocused();
+			m_CurrentScene->bViewportHovered = m_ViewportHovered;
 
 			if (m_EditorState == EditorState::Edit)
 			{

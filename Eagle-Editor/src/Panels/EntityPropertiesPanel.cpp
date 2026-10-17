@@ -64,6 +64,8 @@ namespace Eagle
 	static const char* s_CapsuleClimbModeHelpMsg = "Easy - let the capsule climb over surfaces according to impact normal.\n"
 		"Constrained - try to limit climbing according to the step offset.";
 	static const char* s_Text2DEffectSizeHelpMsg = "In reference pixels. Effects reach at most about 10% of the font size outside of the glyphs, larger sizes are clamped";
+	static const char* s_2DHitTestHelpMsg = "If set, the entity receives mouse events and blocks the 2D UI under it (even if it's transparent)\n"
+		"C# Mouse events (for example, C# `Entity.OnMouseEnter`) get triggered during runtime.";
 
 
 	bool EntityPropertiesPanel::OnImGuiRender(Entity entity, bool bRuntime, bool bVolumetricsEnabled, Entity* newEntitySelection)
@@ -751,6 +753,13 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
+					glm::vec3 tint = component.GetTint();
+					if (UI::PropertyColor("Tint", tint, false, s_UI2DColorHelpMsg))
+					{
+						component.SetTint(tint);
+						bEntityChanged = true;
+					}
+
 					glm::vec2 anchor = component.GetAnchor();
 					if (UI::PropertyDrag("Anchor", anchor, 0.01f, 0.f, 0.f, s_UI2DAnchorHelpMsg))
 					{
@@ -827,6 +836,13 @@ namespace Eagle
 					if (UI::PropertyDrag("Max Width", maxWidth, 1.f, 0.f, 0.f, "Width of the text box in reference pixels. Lines are wrapped at spaces to fit into it, and aligned within it.\n0 - no wrapping, the box is as wide as the widest line"))
 					{
 						component.SetMaxWidth(maxWidth);
+						bEntityChanged = true;
+					}
+
+					bool bHitTestable = component.IsHitTestable();
+					if (UI::Property("Hit Testable", bHitTestable, s_2DHitTestHelpMsg))
+					{
+						component.SetIsHitTestable(bHitTestable);
 						bEntityChanged = true;
 					}
 
@@ -971,6 +987,13 @@ namespace Eagle
 					if (UI::PropertyDrag("Opacity", opacity, 0.05f, 0.f, 1.f))
 					{
 						component.SetOpacity(opacity);
+						bEntityChanged = true;
+					}
+
+					bool bHitTestable = component.IsHitTestable();
+					if (UI::Property("Hit Testable", bHitTestable, s_2DHitTestHelpMsg))
+					{
+						component.SetIsHitTestable(bHitTestable);
 						bEntityChanged = true;
 					}
 

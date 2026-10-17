@@ -188,7 +188,7 @@ namespace Eagle
 			auto& data = datas.emplace_back();
 			data.Font = text->GetFontAsset()->GetFont();
 			data.Layout = std::move(layout);
-			data.Color = text->GetColor();
+			data.Color = glm::clamp(text->GetColor() * text->GetTint(), glm::vec3(0), glm::vec3(1));
 			data.FontSize = text->GetFontSize();
 			data.Anchor = text->GetAnchor();
 			data.Pivot = text->GetActualPivot();

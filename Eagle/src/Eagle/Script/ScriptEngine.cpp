@@ -344,6 +344,20 @@ namespace Eagle
 		return !outMembers.empty();
 	}
 
+	static const UnmanagedMethod& GetUIMouseMethod(const EntityScriptMethods& methods, UIMouseEvent event)
+	{
+		switch (event)
+		{
+			case UIMouseEvent::Enter: return methods.OnMouseEnterMethod;
+			case UIMouseEvent::Exit: return methods.OnMouseExitMethod;
+			case UIMouseEvent::Down: return methods.OnMouseDownMethod;
+			case UIMouseEvent::Up: return methods.OnMouseUpMethod;
+			case UIMouseEvent::Click: return methods.OnMouseClickMethod;
+		}
+		EG_CORE_ASSERT(false, "Unknown UI Mouse event");
+		return methods.OnMouseClickMethod;
+	}
+
 	void ScriptEngine::ParsePublicFields(MonoClass* klass, MonoObject* instance, std::vector<PublicField>& publicFields)
 	{
 		StructParseStack structStack;
@@ -734,6 +748,33 @@ namespace Eagle
 			function(entityInstance->GetMonoInstance(), mono_string_new(mono_domain_get(), eventName.c_str()), time, &exception);
 			HandleException(exception);
 		}
+	}
+
+	bool ScriptEngine::HasUIMouseEvent(const Entity& entity, UIMouseEvent event)
+	{
+		const EntityInstance* entityInstance = GetEntityInstance(entity);
+		return entityInstance && GetUIMouseMethod(entityInstance->Methods, event);
+	}
+
+	void ScriptEngine::OnUIMouseEvent(const Entity& entity, UIMouseEvent event, Mouse button)
+	{
+		typedef void (*OnMouseFunc)(MonoObject*, MonoObject**);
+		typedef void (*OnMouseButtonFunc)(MonoObject*, int32_t, MonoObject**);
+
+		EntityInstance* entityInstance = GetEntityInstance(entity);
+		if (!entityInstance)
+			return;
+
+		const UnmanagedMethod& method = GetUIMouseMethod(entityInstance->Methods, event);
+		if (!method)
+			return;
+
+		MonoObject* exception = nullptr;
+		if (event == UIMouseEvent::Enter || event == UIMouseEvent::Exit)
+			((OnMouseFunc)method.Thunk)(entityInstance->GetMonoInstance(), &exception);
+		else
+			((OnMouseButtonFunc)method.Thunk)(entityInstance->GetMonoInstance(), int32_t(button), &exception);
+		HandleException(exception);
 	}
 
 	void ScriptEngine::OnPhysicsUpdateEntity(const Entity& entity, Timestep ts)
@@ -1662,6 +1703,11 @@ namespace Eagle
 		Methods.OnPhysicsUpdateMethod	= ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnPhysicsUpdate(single)", bCheckParentClasses);
 		Methods.OnAnimationEventMethod  = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnAnimationEvent(string,single)", bCheckParentClasses);
 		Methods.OnSequenceEventMethod   = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnSequenceEvent(string,single)", bCheckParentClasses);
+		Methods.OnMouseEnterMethod      = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnMouseEnter()", bCheckParentClasses);
+		Methods.OnMouseExitMethod       = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnMouseExit()", bCheckParentClasses);
+		Methods.OnMouseDownMethod       = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnMouseDown(MouseButton)", bCheckParentClasses);
+		Methods.OnMouseUpMethod         = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnMouseUp(MouseButton)", bCheckParentClasses);
+		Methods.OnMouseClickMethod      = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnMouseClick(MouseButton)", bCheckParentClasses);
 
 		Methods.OnCollisionBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionBegin(Entity,Vector3,Vector3,Vector3,Vector3)");
 		Methods.OnCollisionEndMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionEnd(Entity,Vector3,Vector3,Vector3,Vector3)");

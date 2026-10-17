@@ -6328,6 +6328,26 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set color of Text2D Component. Entity is null");
 	}
 
+	void Script::Eagle_Text2DComponent_GetTint(GUID entityID, glm::vec3* outTint)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			*outTint = entity.GetComponent<Text2DComponent>().GetTint();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get tint of Text2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Text2DComponent_SetTint(GUID entityID, const glm::vec3* tint)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetTint(*tint);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set tint of Text2D Component. Entity is null");
+	}
+
 	void Script::Eagle_Text2DComponent_GetAnchor(GUID entityID, glm::vec2* outValue)
 	{
 		auto& scene = Scene::GetCurrentScene();
@@ -6627,6 +6647,27 @@ namespace Eagle
 		return true;
 	}
 
+	bool Script::Eagle_Text2DComponent_IsHitTestable(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Text2DComponent>().IsHitTestable();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get 'bHitTestable' of Text2D Component. Entity is null");
+		return false;
+	}
+
+	void Script::Eagle_Text2DComponent_SetIsHitTestable(GUID entityID, bool value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetIsHitTestable(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'bHitTestable' of Text2D Component. Entity is null");
+	}
+
 	//--------------Image2D Component--------------
 	void Script::Eagle_Image2DComponent_SetTexture(GUID entityID, GUID assetID)
 	{
@@ -6859,6 +6900,27 @@ namespace Eagle
 
 		EG_CORE_ERROR("[ScriptEngine] Couldn't get 'bPivotFollowsAnchor' of Image2D Component. Entity is null");
 		return true;
+	}
+
+	bool Script::Eagle_Image2DComponent_IsHitTestable(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Image2DComponent>().IsHitTestable();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get 'bHitTestable' of Image2D Component. Entity is null");
+		return false;
+	}
+
+	void Script::Eagle_Image2DComponent_SetIsHitTestable(GUID entityID, bool value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Image2DComponent>().SetIsHitTestable(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'bHitTestable' of Image2D Component. Entity is null");
 	}
 
 	//--------------Billboard Component--------------
@@ -9110,6 +9172,22 @@ namespace Eagle
 	{
 		WindowCloseEvent e(true);
 		Application::Get().OnEvent(e);
+	}
+
+	MonoObject* Script::Eagle_Scene_GetUIEntityAt(const glm::vec2* positionInViewport)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		if (Entity entity = scene->GetUIElementAt(*positionInViewport))
+			return ScriptEngine::GetEntityMonoObject(entity);
+		return nullptr;
+	}
+
+	MonoObject* Script::Eagle_Scene_GetHoveredUIEntity()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		if (Entity entity = scene->GetHoveredUIElement())
+			return ScriptEngine::GetEntityMonoObject(entity);
+		return nullptr;
 	}
 
 	bool Script::Eagle_Scene_Raycast(const glm::vec3* origin, const glm::vec3* dir, float maxDistance, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore,

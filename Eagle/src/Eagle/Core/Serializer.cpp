@@ -2481,6 +2481,7 @@ namespace Eagle
 
 			out << YAML::Key << "Text" << YAML::Value << text.GetText();
 			out << YAML::Key << "Color" << YAML::Value << text.GetColor();
+			out << YAML::Key << "Tint" << YAML::Value << text.GetTint();
 			out << YAML::Key << "LineSpacing" << YAML::Value << text.GetLineSpacing();
 			out << YAML::Key << "LetterSpacing" << YAML::Value << text.GetLetterSpacing();
 			out << YAML::Key << "MaxWidth" << YAML::Value << text.GetMaxWidth();
@@ -2489,6 +2490,7 @@ namespace Eagle
 			out << YAML::Key << "Anchor" << YAML::Value << text.GetAnchor();
 			out << YAML::Key << "Pivot" << YAML::Value << text.GetPivot();
 			out << YAML::Key << "PivotFollowsAnchor" << YAML::Value << text.DoesPivotFollowAnchor();
+			out << YAML::Key << "HitTestable" << YAML::Value << text.IsHitTestable();
 			out << YAML::Key << "Offset" << YAML::Value << text.GetOffset();
 			out << YAML::Key << "Rotation" << YAML::Value << text.GetRotation();
 			out << YAML::Key << "IsVisible" << YAML::Value << text.IsVisible();
@@ -2524,6 +2526,7 @@ namespace Eagle
 			out << YAML::Key << "Anchor" << YAML::Value << text.GetAnchor();
 			out << YAML::Key << "Pivot" << YAML::Value << text.GetPivot();
 			out << YAML::Key << "PivotFollowsAnchor" << YAML::Value << text.DoesPivotFollowAnchor();
+			out << YAML::Key << "HitTestable" << YAML::Value << text.IsHitTestable();
 			out << YAML::Key << "Offset" << YAML::Value << text.GetOffset();
 			out << YAML::Key << "Size" << YAML::Value << text.GetSize();
 			out << YAML::Key << "Rotation" << YAML::Value << text.GetRotation();
@@ -3239,9 +3242,13 @@ namespace Eagle
 			text.SetFontAsset(GetAsset<AssetFont>(textNode["Font"]));
 			text.SetText(textNode["Text"].as<std::string>());
 			text.SetColor(textNode["Color"].as<glm::vec3>());
+			if (auto node = textNode["Tint"])
+				text.SetTint(node.as<glm::vec3>());
 			text.SetLineSpacing(textNode["LineSpacing"].as<float>());
 			text.SetRotation(textNode["Rotation"].as<float>());
 			text.SetIsVisible(textNode["IsVisible"].as<bool>());
+			if (auto node = textNode["HitTestable"])
+				text.SetIsHitTestable(node.as<bool>());
 			if (auto node = textNode["LetterSpacing"])
 				text.SetLetterSpacing(node.as<float>());
 			else if (auto oldNode = textNode["Kerning"])
@@ -3303,6 +3310,8 @@ namespace Eagle
 					image2D.SetPivotFollowsAnchor(node.as<bool>());
 			}
 			image2D.SetIsVisible(imageNode["IsVisible"].as<bool>());
+			if (auto node = imageNode["HitTestable"])
+				image2D.SetIsHitTestable(node.as<bool>());
 			image2D.SetOpacity(imageNode["Opacity"].as<float>());
 		}
 
