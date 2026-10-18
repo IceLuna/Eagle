@@ -22,13 +22,12 @@ namespace Eagle
 		ImageSpecifications specs;
 		specs.Format = ImageFormat::R11G11B10_Float;
 		specs.Size = halfSize;
-		specs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::Storage;
+		specs.Usage = ImageUsage::Sampled | ImageUsage::Storage;
 		m_VolumetricsImage = Image::Create(specs, "PBR_Volumetric");
 		m_VolumetricsImageBlurred = Image::Create(specs, "PBR_Volumetric_Blurred");
 
 		const auto& options = m_Renderer.GetOptions();
 		m_VolumetricSettings = options.VolumetricSettings;
-		m_Constants.VolumetricSamples = m_VolumetricSettings.Samples;
 		bTranslucentShadows = options.bTranslucentShadows;
 
 		{
@@ -45,7 +44,7 @@ namespace Eagle
 			m_PrepareArgsPipeline = PipelineCompute::Create(state);
 		}
 
-		InitPipeline(false, false);
+		InitPipeline();
     }
 
 	void VolumetricLightTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
@@ -66,7 +65,7 @@ namespace Eagle
 		const Timestep ts = Application::Get().GetTimestep();
 		m_Time += ts * m_VolumetricSettings.FogSpeed;
 
-		struct PushDataVol
+		struct VolumetricPushData
 		{
 			glm::vec3 CameraPos;
 			float VolumetricMaxScatteringDist;
@@ -75,36 +74,25 @@ namespace Eagle
 			uint32_t DownscaleFactor;
 			glm::vec3 FogAlbedo;
 			float FogAnisotropy;
-			float NearPlane;
 			uint32_t TilesBufferWidth;
 			uint32_t HasDirLight;
-		} pushData;
-		static_assert(sizeof(PushDataVol) <= 128);
+		} volumetricPushData;
+		static_assert(sizeof(VolumetricPushData) <= 128);
 
-		pushData.CameraPos = m_Renderer.GetViewPosition();
-		pushData.VolumetricMaxScatteringDist = m_VolumetricSettings.MaxScatteringDistance;
-		pushData.Size = volumetricsImageSize;
-		pushData.Time = m_Time;
-		pushData.FogAlbedo = m_VolumetricSettings.Albedo;
-		pushData.FogAnisotropy = m_VolumetricSettings.Anisotropy;
-		pushData.NearPlane = m_Renderer.GetZNear();
-		pushData.TilesBufferWidth = lightCulling->GetTilesBufferWidth();
-		pushData.DownscaleFactor = s_DownscaleFactor;
-		pushData.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());
-
-		ConstantData info;
-		info.VolumetricSamples = m_VolumetricSettings.Samples;
-		if (info != m_Constants)
-		{
-			m_Constants = info;
-			InitPipeline(false, false);
-		}
+		volumetricPushData.CameraPos = m_Renderer.GetViewPosition();
+		volumetricPushData.VolumetricMaxScatteringDist = m_VolumetricSettings.MaxScatteringDistance;
+		volumetricPushData.Size = volumetricsImageSize;
+		volumetricPushData.Time = m_Time;
+		volumetricPushData.FogAlbedo = m_VolumetricSettings.Albedo;
+		volumetricPushData.FogAnisotropy = m_VolumetricSettings.Anisotropy;
+		volumetricPushData.TilesBufferWidth = lightCulling->GetTilesBufferWidth();
+		volumetricPushData.DownscaleFactor = s_DownscaleFactor;
+		volumetricPushData.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());
 
 		const auto& gbuffer = m_Renderer.GetGBuffer();
 		m_Pipeline->SetImage(m_VolumetricsImage, 0, 0);
 		m_Pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSampler, 0, 1);
-		m_Pipeline->SetImageSampler(gbuffer.Normals, Sampler::PointSampler, 0, 2);
-		m_Pipeline->SetBuffer(m_IndirectArgs, 0, 3);
+		m_Pipeline->SetBuffer(m_IndirectArgs, 0, 2);
 		m_Pipeline->SetBuffer(lightCulling->GetCulledPointLightsBuffer(), EG_SCENE_SET, 0);
 		m_Pipeline->SetBuffer(lightCulling->GetCulledSpotLightsBuffer(), EG_SCENE_SET, 1);
 		m_Pipeline->SetBuffer(lightCulling->GetTiles_Translucent_PL(), EG_SCENE_SET, 2);
@@ -133,11 +121,9 @@ namespace Eagle
 
 		const ImageLayout resultLayout = input->GetLayout();
 		const ImageLayout depthLayout = gbuffer.Depth->GetLayout();
-		const ImageLayout normalsLayout = gbuffer.Normals->GetLayout();
 
 		cmd->TransitionLayout(input, resultLayout, ImageLayoutType::StorageImage);
 		cmd->TransitionLayout(gbuffer.Depth, depthLayout, ImageReadAccess::PixelShaderRead);
-		cmd->TransitionLayout(gbuffer.Normals, normalsLayout, ImageReadAccess::PixelShaderRead);
 
 		cmd->FillBuffer(m_IndirectArgs, 0);
 
@@ -148,67 +134,69 @@ namespace Eagle
 			const glm::uvec2 numGroups = CalcNumGroups(volumetricsImageSize, m_Pipeline->GetWorkGroupSize());
 
 			cmd->TransitionLayout(m_VolumetricsImage, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
-			cmd->Dispatch(m_Pipeline, numGroups, &pushData);
+			cmd->Dispatch(m_Pipeline, numGroups, &volumetricPushData);
 			cmd->TransitionLayout(m_VolumetricsImage, ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
 			++stats.Dispatches;
 		}
 		cmd->TransitionLayout(gbuffer.Depth, ImageReadAccess::PixelShaderRead, depthLayout);
-		cmd->TransitionLayout(gbuffer.Normals, ImageReadAccess::PixelShaderRead, normalsLayout);
 		cmd->Barrier(m_IndirectArgs);
 
-		const glm::uvec2 blurGroupSize = m_GuassianPipeline->GetWorkGroupSize();
+		const glm::uvec2 blurGroupSize = m_BlurPipeline->GetWorkGroupSize();
 		const glm::uvec2 compositeGroupSize = m_CompositePipeline->GetWorkGroupSize();
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Volumetric Lights. Prepare args");
 			EG_CPU_TIMING_SCOPED("Volumetric Lights. Prepare args");
 
-			struct PushData
+			struct PrepareArgsPushData
 			{
 				glm::uvec2 BlurSize;
 				glm::uvec2 CompositeSize;
 				glm::uvec2 BlurGroupSize;
 				glm::uvec2 CompositeGroupSize;
-			} pushData;
-			pushData.BlurSize = volumetricsImageSize;
-			pushData.CompositeSize = size;
-			pushData.BlurGroupSize = blurGroupSize;
-			pushData.CompositeGroupSize = compositeGroupSize;
+			} prepareArgsPushData;
+			prepareArgsPushData.BlurSize = volumetricsImageSize;
+			prepareArgsPushData.CompositeSize = size;
+			prepareArgsPushData.BlurGroupSize = blurGroupSize;
+			prepareArgsPushData.CompositeGroupSize = compositeGroupSize;
 
 			m_PrepareArgsPipeline->SetBuffer(m_IndirectArgs, 0, 0);
-			cmd->Dispatch(m_PrepareArgsPipeline, 1, 1, 1, &pushData);
+			cmd->Dispatch(m_PrepareArgsPipeline, 1, 1, 1, &prepareArgsPushData);
 			cmd->TransitionLayout(m_IndirectArgs, BufferLayoutType::StorageBuffer, BufferReadAccess::IndirectArgument);
 		}
 
-		struct PushDataComp
+		// Used by both, blur & composite passes
+		struct ImageSizePushData
 		{
 			glm::ivec2 Size;
 			glm::vec2 TexelSize;
-		} pushDataComp;
+		};
 
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Volumetric Blur");
 			EG_CPU_TIMING_SCOPED("Volumetric Blur");
 
-			m_GuassianPipeline->SetImageSampler(m_VolumetricsImage, Sampler::BilinearSamplerClamp, 0, 0);
-			m_GuassianPipeline->SetImage(m_VolumetricsImageBlurred, 0, 1);
+			m_BlurPipeline->SetImageSampler(m_VolumetricsImage, Sampler::BilinearSamplerClamp, 0, 0);
+			m_BlurPipeline->SetImage(m_VolumetricsImageBlurred, 0, 1);
 
-			pushDataComp.Size = pushData.Size;
-			pushDataComp.TexelSize = 1.f / glm::vec2(pushData.Size);
+			ImageSizePushData blurPushData;
+			blurPushData.Size = volumetricsImageSize;
+			blurPushData.TexelSize = 1.f / glm::vec2(volumetricsImageSize);
 
 			cmd->TransitionLayout(m_VolumetricsImageBlurred, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
-			cmd->DispatchIndirect(m_GuassianPipeline, m_IndirectArgs, 0, &pushDataComp);
+			cmd->DispatchIndirect(m_BlurPipeline, m_IndirectArgs, 0, &blurPushData);
 			cmd->TransitionLayout(m_VolumetricsImageBlurred, ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
 			++stats.Dispatches;
 		}
-
-		pushDataComp.Size = size;
-		pushDataComp.TexelSize = 1.f / glm::vec2(pushDataComp.Size);
 
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Volumetric Composite");
 			EG_CPU_TIMING_SCOPED("Volumetric Composite");
 
-			cmd->DispatchIndirect(m_CompositePipeline, m_IndirectArgs, sizeof(DispatchIndirectArgs), &pushDataComp);
+			ImageSizePushData compositePushData;
+			compositePushData.Size = size;
+			compositePushData.TexelSize = 1.f / glm::vec2(size);
+
+			cmd->DispatchIndirect(m_CompositePipeline, m_IndirectArgs, sizeof(DispatchIndirectArgs), &compositePushData);
 			++stats.Dispatches;
 		}
 
@@ -218,38 +206,15 @@ namespace Eagle
 
 	void VolumetricLightTask::InitWithOptions(const SceneRendererSettings& settings)
 	{
-		bool bReloadPipeline = false;
-		bool bVolumetricFogChanged = false;
-		if (m_VolumetricSettings != settings.VolumetricSettings)
-		{
-			bReloadPipeline |= m_VolumetricSettings.Samples != settings.VolumetricSettings.Samples;
-			bVolumetricFogChanged = m_VolumetricSettings.bFogEnable != settings.VolumetricSettings.bFogEnable;
-			bReloadPipeline |= bVolumetricFogChanged;
+		const bool bSamplesChanged = m_VolumetricSettings.Samples != settings.VolumetricSettings.Samples;
+		const bool bFogChanged = m_VolumetricSettings.bFogEnable != settings.VolumetricSettings.bFogEnable;
+		const bool bTranslucentShadowsChanged = bTranslucentShadows != settings.bTranslucentShadows;
 
-			m_VolumetricSettings = settings.VolumetricSettings;
-			m_Constants.VolumetricSamples = m_VolumetricSettings.Samples;
-
-			if (m_VolumetricSettings.bEnable)
-			{
-				if (!m_VolumetricsImage)
-				{
-					ImageSpecifications specs;
-					specs.Format = ImageFormat::R16G16B16A16_Float;
-					specs.Size = glm::max(m_Renderer.GetHDROutput()->GetSize() / 2u, glm::uvec3(1u));
-					specs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::Storage;
-					m_VolumetricsImage = Image::Create(specs, "PBR_Volumetric");
-				}
-			}
-			else
-				m_VolumetricsImage.reset();
-		}
-
-		const bool translucentShadowsChanged = bTranslucentShadows != settings.bTranslucentShadows;
-		bReloadPipeline |= translucentShadowsChanged;
+		m_VolumetricSettings = settings.VolumetricSettings;
 		bTranslucentShadows = settings.bTranslucentShadows;
 
-		if (bReloadPipeline)
-			InitPipeline(translucentShadowsChanged, bVolumetricFogChanged);
+		if (bSamplesChanged || bFogChanged || bTranslucentShadowsChanged)
+			InitPipeline();
 	}
 
 	void VolumetricLightTask::OnResize(glm::uvec2 size)
@@ -259,73 +224,36 @@ namespace Eagle
 		m_VolumetricsImageBlurred->Resize(glm::uvec3(halfSize, 1u));
 	}
 
-	void VolumetricLightTask::InitPipeline(bool translucentShadowsChanged, bool bVolumetricFogChanged)
+	ShaderDefines VolumetricLightTask::GetShaderDefines() const
 	{
-		ShaderSpecializationInfo constants;
-		constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
-		constants.Data = &m_Constants;
-		constants.Size = sizeof(m_Constants);
+		ShaderDefines defines;
+		if (bTranslucentShadows)
+			defines["EG_TRANSLUCENT_SHADOWS"] = "";
+		if (m_VolumetricSettings.bFogEnable)
+			defines["EG_VOLUMETRIC_FOG"] = "";
+		return defines;
+	}
+
+	void VolumetricLightTask::InitPipeline()
+	{
+		m_Constants.VolumetricSamples = glm::max(m_VolumetricSettings.Samples, 1u);
+		const ShaderDefines defines = GetShaderDefines();
 
 		if (m_Pipeline)
 		{
-			auto state = m_Pipeline->GetState();
-			state.ComputeSpecializationInfo = constants;
-			m_Pipeline->SetState(state);
-
-			bool bUpdateDefines = false;
-			auto defines = state.ComputeShader->GetDefines();
-			if (translucentShadowsChanged)
-			{
-				auto it = defines.find("EG_TRANSLUCENT_SHADOWS");
-				if (bTranslucentShadows)
-				{
-					if (it == defines.end())
-					{
-						defines["EG_TRANSLUCENT_SHADOWS"] = "";
-						bUpdateDefines = true;
-					}
-				}
-				else
-				{
-					if (it != defines.end())
-					{
-						defines.erase(it);
-						bUpdateDefines = true;
-					}
-				}
-			}
-			if (bVolumetricFogChanged)
-			{
-				auto it = defines.find("EG_VOLUMETRIC_FOG");
-				if (m_VolumetricSettings.bFogEnable)
-				{
-					if (it == defines.end())
-					{
-						defines["EG_VOLUMETRIC_FOG"] = "";
-						bUpdateDefines = true;
-					}
-				}
-				else
-				{
-					if (it != defines.end())
-					{
-						defines.erase(it);
-						bUpdateDefines = true;
-					}
-				}
-			}
-
-			if (bUpdateDefines)
-				state.ComputeShader->SetDefines(defines);
+			// The pipeline references `m_Constants`, so it's enough to just recreate it
+			const Ref<Shader>& shader = m_Pipeline->GetState().ComputeShader;
+			if (shader->GetDefines() != defines)
+				shader->SetDefines(defines);
+			else
+				m_Pipeline->Recreate();
 		}
 		else
 		{
-			ShaderDefines defines;
-			defines["EG_VOLUMETRIC_LIGHT"] = "";
-			if (bTranslucentShadows)
-				defines["EG_TRANSLUCENT_SHADOWS"] = "";
-			if (m_VolumetricSettings.bFogEnable)
-				defines["EG_VOLUMETRIC_FOG"] = "";
+			ShaderSpecializationInfo constants;
+			constants.MapEntries.push_back({ 0, uint32_t(offsetof(ConstantData, VolumetricSamples)), sizeof(uint32_t) });
+			constants.Data = &m_Constants;
+			constants.Size = sizeof(m_Constants);
 
 			PipelineComputeState state;
 			state.ComputeShader = Shader::Create("volumetric_light.comp", ShaderType::Compute, defines);
@@ -341,11 +269,11 @@ namespace Eagle
 			m_CompositePipeline = PipelineCompute::Create(state);
 		}
 
-		if (!m_GuassianPipeline)
+		if (!m_BlurPipeline)
 		{
 			PipelineComputeState state;
-			state.ComputeShader = Shader::Create("guassian.comp", ShaderType::Compute);
-			m_GuassianPipeline = PipelineCompute::Create(state);
+			state.ComputeShader = Shader::Create("volumetric_blur.comp", ShaderType::Compute);
+			m_BlurPipeline = PipelineCompute::Create(state);
 		}
 	}
 }

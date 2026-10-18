@@ -6,8 +6,7 @@
 
 layout(set = 0, binding = 0, r11f_g11f_b10f) uniform writeonly image2D g_Result;
 layout(set = 0, binding = 1) uniform sampler2D g_DepthTexture;
-layout(set = 0, binding = 2) uniform sampler2D g_GeometryShadingNormalsTexture;
-layout(set = 0, binding = 3) buffer IndirectArgs
+layout(set = 0, binding = 2) buffer IndirectArgs
 {
     uvec4 g_DispatchArgs;
 };
@@ -85,7 +84,6 @@ layout(push_constant) uniform PushConstants
     uint g_DownscaleFactor;
     vec3 g_FogAlbedo;
     float g_FogAnisotropy;
-    float g_Near;
     uint g_TilesBufferWidth;
     uint g_HasDirLight;
 };
@@ -109,9 +107,9 @@ void main()
 
     const float depth = texture(g_DepthTexture, uv).x;
     const vec3 worldPos = WorldPosFromDepth(g_ViewProjInv, uv, depth);
+    const float rayOffset = GetRayMarchOffset(pixelCoords);
 
     vec3 Lo = vec3(0.f);
-    const vec3 geometryNormal = DecodeNormal(texture(g_GeometryShadingNormalsTexture, uv).xy); // xy - geometry, zw - shading
 
     // Upscale to full-res to get correct tile ID
     const uvec2 tileID = (pixelCoords * g_DownscaleFactor) / EG_LIGHT_CULLING_TILE_SIZE;
@@ -134,27 +132,14 @@ void main()
 	        if (!bVolumetricLight)
 		        continue;
 
-            const uint shadowMapIndex = pointLight.ShadowMapIndex;
-            const vec3 incoming = pointLight.Position - worldPos;
-            const bool bCastsShadows = pointLight.Radius2 < 0;
-            const bool bCheckShadows = shadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS;
+            const bool bCastsShadows = (pointLight.Radius2 < 0) && (pointLight.ShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS);
+            const uint shadowMapIndex = bCastsShadows ? pointLight.ShadowMapIndex : 0u;
 
-            if (bCastsShadows)
-            {
-                Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[nonuniformEXT(shadowMapIndex)],
-    #ifdef EG_TRANSLUCENT_SHADOWS
-                    g_PointShadowMapsColored[nonuniformEXT(shadowMapIndex)], g_PointShadowMapsColoredDepth[nonuniformEXT(shadowMapIndex)],
-    #endif
-                    worldPos, g_CameraPos, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, bCheckShadows);
-            }
-            else
-            {
-                Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[0],
-    #ifdef EG_TRANSLUCENT_SHADOWS
-                    g_PointShadowMapsColored[0], g_PointShadowMapsColoredDepth[0],
-    #endif
-                    worldPos, g_CameraPos, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, false);
-            }
+            Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[nonuniformEXT(shadowMapIndex)],
+#ifdef EG_TRANSLUCENT_SHADOWS
+                g_PointShadowMapsColored[nonuniformEXT(shadowMapIndex)], g_PointShadowMapsColoredDepth[nonuniformEXT(shadowMapIndex)],
+#endif
+                worldPos, g_CameraPos, s_VolumetricSamples, g_VolumetricMaxDistance, rayOffset, bCastsShadows);
         }
     }
 
@@ -174,27 +159,14 @@ void main()
 	        if (!bVolumetricLight)
 		        continue;
 
-            const uint shadowMapIndex = spotLight.ShadowMapIndex;
-            const vec3 incoming = spotLight.Position - worldPos;
-            const bool bCastsShadows = spotLight.bCastsShadows != 0;
-            const bool bCheckShadows = shadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS;
+            const bool bCastsShadows = (spotLight.bCastsShadows != 0) && (spotLight.ShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS);
+            const uint shadowMapIndex = bCastsShadows ? spotLight.ShadowMapIndex : 0u;
 
-            if (bCastsShadows)
-            {
-                Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[nonuniformEXT(shadowMapIndex)],
-    #ifdef EG_TRANSLUCENT_SHADOWS
-                    g_SpotShadowMapsColored[nonuniformEXT(shadowMapIndex)], g_SpotShadowMapsColoredDepth[nonuniformEXT(shadowMapIndex)],
-    #endif
-                    worldPos, g_CameraPos, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, bCheckShadows);
-            }
-            else
-            {
-                Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[0],
-    #ifdef EG_TRANSLUCENT_SHADOWS
-                    g_SpotShadowMapsColored[0], g_SpotShadowMapsColoredDepth[0],
-    #endif
-                    worldPos, g_CameraPos, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, false);
-            }
+            Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[nonuniformEXT(shadowMapIndex)],
+#ifdef EG_TRANSLUCENT_SHADOWS
+                g_SpotShadowMapsColored[nonuniformEXT(shadowMapIndex)], g_SpotShadowMapsColoredDepth[nonuniformEXT(shadowMapIndex)],
+#endif
+                worldPos, g_CameraPos, s_VolumetricSamples, g_VolumetricMaxDistance, rayOffset, bCastsShadows);
         }
     }
 
@@ -208,7 +180,7 @@ void main()
 #ifdef EG_TRANSLUCENT_SHADOWS
                 g_DirShadowMapsColored, g_DirShadowMapsColoredDepth,
 #endif
-                worldPos, g_CameraPos, incoming, geometryNormal, g_CameraView, s_VolumetricSamples, g_VolumetricMaxDistance);
+                worldPos, g_CameraPos, incoming, g_CameraView, s_VolumetricSamples, g_VolumetricMaxDistance, rayOffset);
         }
     }
 

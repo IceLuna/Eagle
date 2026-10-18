@@ -57,14 +57,13 @@ void main()
     const int threadIndex = int(gl_LocalInvocationIndex);
     const vec2 uv = (pixelCoords + 0.5) * g_TexelSize;
 	const vec2 groupUV = (vec2(gl_WorkGroupID.xy) * g_TexelSize) * GROUP_SIZE;
-	const ivec2 localID = ivec2(gl_LocalInvocationID);
 
 #if USE_SHARED
 	for (int i = threadIndex; i < NUM_PIXELS; i += GROUP_SIZE * GROUP_SIZE)
 	{
 		const ivec2 pixel = Unflatten2D(i);
 		const ivec2 pixelOffset = pixel - HSIZE;
-		s_Colors[pixel.x][pixel.y] = texture(g_Volumetric, groupUV + pixelOffset * g_TexelSize).rgb;
+		s_Colors[pixel.x][pixel.y] = texture(g_Volumetric, groupUV + (vec2(pixelOffset) + 0.5f) * g_TexelSize).rgb;
 	}
 	barrier();
 #endif
