@@ -1,0 +1,77 @@
+#include "defines.h"
+#include "volumetrics/common.h"
+
+layout(set = 0, binding = 0) uniform sampler2D g_Volumetric;
+layout(set = 0, binding = 1) uniform sampler2D g_VolumetricDepth;
+layout(set = 0, binding = 2) uniform sampler2D g_DepthTexture;
+layout(set = 0, binding = 3, r11f_g11f_b10f) uniform image2D g_Result;
+
+layout(set = 0, binding = 4)
+uniform CameraView
+{
+    mat4 g_CameraView;
+    mat4 g_ViewProjInv;
+    mat4 g_ViewProj;
+    mat4 g_PrevViewProj;
+    mat4 g_Proj;
+    mat4 g_ProjInv;
+};
+
+layout(push_constant) uniform PushConstants
+{
+    ivec2 g_Size;
+    vec2 g_TexelSize;
+    uint g_DownscaleFactor;
+};
+
+#define GROUP_SIZE 8
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+void main()
+{
+    const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID);
+    if (pixelCoords.x >= g_Size.x || pixelCoords.y >= g_Size.y)
+        return;
+
+    const vec2 uv = (vec2(pixelCoords) + 0.5f) * g_TexelSize;
+    const float depth = Volumetric_GetLinearDepth(g_ProjInv, uv, texelFetch(g_DepthTexture, pixelCoords, 0).x);
+
+    // Position of this pixel's center in low-res pixel coordinates, where integers are low-res pixel centers
+    const vec2 lowResPos = (vec2(pixelCoords) + 0.5f) / float(g_DownscaleFactor) - 0.5f;
+    const ivec2 lowResBase = ivec2(floor(lowResPos));
+    const vec2 f = lowResPos - vec2(lowResBase);
+    const ivec2 lowResMax = textureSize(g_Volumetric, 0) - 1;
+
+    const ivec2 offsets[4] = ivec2[](ivec2(0, 0), ivec2(1, 0), ivec2(0, 1), ivec2(1, 1));
+    const float bilinearWeights[4] = float[]((1.0 - f.x) * (1.0 - f.y), f.x * (1.0 - f.y), (1.0 - f.x) * f.y, f.x * f.y);
+
+    vec4 volumetric = vec4(0);
+    float weightsSum = 0;
+    ivec2 closestPixel = clamp(lowResBase, ivec2(0), lowResMax);
+    float closestDepthDifference = FLT_MAX;
+
+    // Out of the 4 low-res pixels around the full-res one, only those that belong to the same surface are bilinearly interpolated.
+    // If none of them does, the one with the closest depth is used. That keeps volumetric light from bleeding over silhouettes
+    for (int i = 0; i < 4; ++i)
+    {
+        const ivec2 lowResPixel = clamp(lowResBase + offsets[i], ivec2(0), lowResMax);
+        const float depthDifference = Volumetric_GetRelativeDepthDifference(texelFetch(g_VolumetricDepth, lowResPixel, 0).x, depth);
+        if (depthDifference < closestDepthDifference)
+        {
+            closestDepthDifference = depthDifference;
+            closestPixel = lowResPixel;
+        }
+
+        if (depthDifference < EG_VOLUMETRIC_DEPTH_TOLERANCE)
+        {
+            volumetric += bilinearWeights[i] * texelFetch(g_Volumetric, lowResPixel, 0);
+            weightsSum += bilinearWeights[i];
+        }
+    }
+
+    // Re-normalize
+    volumetric = (weightsSum > 1e-4) ? (volumetric / weightsSum) : texelFetch(g_Volumetric, closestPixel, 0);
+
+    const vec3 scene = imageLoad(g_Result, pixelCoords).rgb;
+    imageStore(g_Result, pixelCoords, vec4(scene * volumetric.a + volumetric.rgb, 1.f));
+}

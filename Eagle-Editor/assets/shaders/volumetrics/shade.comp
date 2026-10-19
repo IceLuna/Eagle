@@ -3,10 +3,12 @@
 #include "defines.h"
 #include "utils.h"
 #include "common_structures.h"
+#include "volumetrics/common.h"
 
-layout(set = 0, binding = 0, r11f_g11f_b10f) uniform writeonly image2D g_Result;
-layout(set = 0, binding = 1) uniform sampler2D g_DepthTexture;
-layout(set = 0, binding = 2) buffer IndirectArgs
+layout(set = 0, binding = 0, rgba16f) uniform writeonly image2D g_Result; // rgb - in-scattered light, a - transmittance
+layout(set = 0, binding = 1, r32f) uniform writeonly image2D g_ResultDepth;
+layout(set = 0, binding = 2) uniform sampler2D g_DepthTexture;
+layout(set = 0, binding = 3) buffer IndirectArgs
 {
     uvec4 g_DispatchArgs;
 };
@@ -53,6 +55,10 @@ uniform CameraView
 {
     mat4 g_CameraView;
     mat4 g_ViewProjInv;
+    mat4 g_ViewProj;
+    mat4 g_PrevViewProj;
+    mat4 g_Proj;
+    mat4 g_ProjInv;
 };
 
 layout(set = 1, binding = 7)
@@ -86,15 +92,46 @@ layout(push_constant) uniform PushConstants
     float g_FogAnisotropy;
     uint g_TilesBufferWidth;
     uint g_HasDirLight;
+    float g_Density;
 };
 
 layout(constant_id = 0) const uint s_VolumetricSamples = 20;
 
 #define EG_PIXEL_COORDS vec2(gl_GlobalInvocationID)
-#include "volumetric_utils.h"
+#include "volumetrics/utils.h"
 
 #define GROUP_SIZE 8
 layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+// Selects the full-res pixel (out of the ones covered by this low-res pixel) that the ray is traced to.
+// The closest and the farthest pixels are selected in a checkerboard pattern. That way, both, foreground & background surfaces
+// are represented in the low-res result at depth discontinuities, which is what the depth-aware blur & upsampling rely on.
+ivec2 SelectFullResPixel(ivec2 pixelCoords, out float outDepth)
+{
+    const ivec2 fullResSize = textureSize(g_DepthTexture, 0);
+    const bool bSelectClosest = ((pixelCoords.x + pixelCoords.y) & 1) == 0;
+    pixelCoords = pixelCoords * int(g_DownscaleFactor);
+
+    ivec2 selectedPixel = min(pixelCoords, fullResSize - 1);
+    float selectedDepth = texelFetch(g_DepthTexture, selectedPixel, 0).x;
+    for (int y = 0; y < int(g_DownscaleFactor); ++y)
+    {
+        for (int x = 0; x < int(g_DownscaleFactor); ++x)
+        {
+            const ivec2 pixel = min(pixelCoords + ivec2(x, y), fullResSize - 1);
+            const float depth = texelFetch(g_DepthTexture, pixel, 0).x;
+            const float closer = (depth - selectedDepth) * (EG_DEPTH_NEAR - EG_DEPTH_FAR);
+            if (bSelectClosest ? (closer > 0.f) : (closer < 0.f))
+            {
+                selectedPixel = pixel;
+                selectedDepth = depth;
+            }
+        }
+    }
+
+    outDepth = selectedDepth;
+    return selectedPixel;
+}
 
 void main()
 {
@@ -102,17 +139,16 @@ void main()
     if (pixelCoords.x >= g_Size.x || pixelCoords.y >= g_Size.y)
         return;
 
-    const vec2 texelSize = 1.f / g_Size;
-    const vec2 uv = (pixelCoords + 0.5) * texelSize;
-
-    const float depth = texture(g_DepthTexture, uv).x;
+    float depth;
+    const ivec2 fullResPixel = SelectFullResPixel(pixelCoords, depth);
+    const vec2 uv = (vec2(fullResPixel) + 0.5f) / vec2(textureSize(g_DepthTexture, 0));
     const vec3 worldPos = WorldPosFromDepth(g_ViewProjInv, uv, depth);
     const float rayOffset = GetRayMarchOffset(pixelCoords);
 
     vec3 Lo = vec3(0.f);
 
-    // Upscale to full-res to get correct tile ID
-    const uvec2 tileID = (pixelCoords * g_DownscaleFactor) / EG_LIGHT_CULLING_TILE_SIZE;
+    // Light culling tiles are in full-res
+    const uvec2 tileID = uvec2(fullResPixel) / EG_LIGHT_CULLING_TILE_SIZE;
     const uint tileIndex = tileID.x + tileID.y * g_TilesBufferWidth;
     const uint bucketStartIndex = tileIndex * EG_LIGHTS_BUCKET_COUNT;
 
@@ -184,10 +220,15 @@ void main()
         }
     }
 
-    Lo *= g_FogAlbedo;
-    imageStore(g_Result, pixelCoords, vec4(Lo, 1.f));
+    // Scattering coef
+    Lo *= g_FogAlbedo * g_Density;
 
-    if (any(greaterThan(Lo, vec3(0))))
+    const float transmittance = Transmittance(min(distance(worldPos, g_CameraPos), g_VolumetricMaxDistance));
+
+    imageStore(g_Result, pixelCoords, vec4(Lo, transmittance));
+    imageStore(g_ResultDepth, pixelCoords, vec4(Volumetric_GetLinearDepth(g_ProjInv, uv, depth)));
+
+    if (any(greaterThan(Lo, vec3(0))) || transmittance < 1.f)
     {
         // We just need an indication that we have something on the screen that's worth applying
         g_DispatchArgs.x = 1;

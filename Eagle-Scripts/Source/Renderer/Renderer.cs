@@ -272,6 +272,7 @@ namespace Eagle
     {
         public Vector3 Albedo;
         public float Anisotropy;
+        public float Density; // Extinction coefficient
         public uint Samples;
         public float MaxScatteringDistance;
         public float FogSpeed;
@@ -695,15 +696,16 @@ namespace Eagle
 
         public static void SetVolumetricLightsSettings(VolumetricLightsSettings value)
         {
-            SetVolumetricLightsSettings_Native(ref value.Albedo, value.Anisotropy, value.Samples, value.MaxScatteringDistance, value.FogSpeed, value.bFogEnabled, value.bEnabled);
+            SetVolumetricLightsSettings_Native(ref value.Albedo, value.Anisotropy, value.Density, value.Samples, value.MaxScatteringDistance, value.FogSpeed, value.bFogEnabled, value.bEnabled);
         }
 
         public static VolumetricLightsSettings GetVolumetricLightsSettings()
         {
-            GetVolumetricLightsSettings_Native(out Vector3 albedo, out float anisotropy, out uint samples, out float maxScatteringDistance, out float fogSpeed, out bool bFogEnabled, out bool bEnabled);
+            GetVolumetricLightsSettings_Native(out Vector3 albedo, out float anisotropy, out float density, out uint samples, out float maxScatteringDistance, out float fogSpeed, out bool bFogEnabled, out bool bEnabled);
             VolumetricLightsSettings settings = new VolumetricLightsSettings();
             settings.Albedo = albedo;
             settings.Anisotropy = anisotropy;
+            settings.Density = density;
             settings.Samples = samples;
             settings.MaxScatteringDistance = maxScatteringDistance;
             settings.FogSpeed = fogSpeed;
@@ -1186,10 +1188,10 @@ namespace Eagle
         private static extern void SetSkySettings_Native(ref Vector3 SunPos, ref Color3 CloudsColor, float skyIntensity, float cloudsIntensity, float scattering, float cirrus, float cumulus, uint cumulusLayers, bool bEnableCirrusClouds, bool bEnableCumulusClouds);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetVolumetricLightsSettings_Native(ref Vector3 albedo, float anisotropy, uint samples, float maxScatteringDist, float fogSpeed, bool bFogEnable, bool bEnable);
+        private static extern void SetVolumetricLightsSettings_Native(ref Vector3 albedo, float anisotropy, float density, uint samples, float maxScatteringDist, float fogSpeed, bool bFogEnable, bool bEnable);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetVolumetricLightsSettings_Native(out Vector3 albedo, out float anisotropy, out uint samples, out float maxScatteringDist, out float fogSpeed, out bool bFogEnable, out bool bEnable);
+        private static extern void GetVolumetricLightsSettings_Native(out Vector3 albedo, out float anisotropy, out float density, out uint samples, out float maxScatteringDist, out float fogSpeed, out bool bFogEnable, out bool bEnable);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern uint[] GetShadowMapsSettings_Native(out uint pointLightSize, out uint spotLightSize);

@@ -1,10 +1,13 @@
 #include "defines.h"
+#include "volumetrics/common.h"
 
-// Resolves the 4x4 ray-march dither pattern (see `GetRayMarchOffset()` in `volumetric_utils.h`).
+// Resolves the 4x4 ray-march dither pattern (see `GetRayMarchOffset()` in `volumetrics/utils.h`).
 // The kernel is the separable 5-tap filter [1 2 2 2 1] / 8, applied in both directions.
 // Its two outermost taps are 4 pixels apart, i.e. they belong to the same dither phase, so together they weigh as much as any of the inner taps.
 // As a result, each of the 16 phases of the 4x4 pattern ((x mod 4, y mod 4) pairs) receives exactly the same total weight (1/16),
 // which cancels the pattern exactly while keeping the filter centered and as narrow as possible.
+// Neighbors, whose depth differs from the center's, are weighed down,
+// so that volumetric light doesn't leak across silhouettes. The weights are renormalized.
 
 layout(push_constant) uniform PushConstants
 {
@@ -18,10 +21,12 @@ layout(push_constant) uniform PushConstants
 #define TILE_SIZE (GROUP_SIZE + 2 * KERNEL_RADIUS)
 layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
 
-layout(set = 0, binding = 0) uniform sampler2D g_Volumetric;
-layout(set = 0, binding = 1, r11f_g11f_b10f) uniform writeonly image2D g_Result;
+layout(set = 0, binding = 0) uniform sampler2D g_Volumetric; // rgb - in-scattered light, a - transmittance
+layout(set = 0, binding = 1) uniform sampler2D g_VolumetricDepth; // Linear depth
+layout(set = 0, binding = 2, rgba16f) uniform writeonly image2D g_Result;
 
-shared vec3 s_Tile[TILE_SIZE][TILE_SIZE]; // [y][x]
+shared vec4 s_Tile[TILE_SIZE][TILE_SIZE]; // [y][x]
+shared float s_TileDepth[TILE_SIZE][TILE_SIZE]; // [y][x]
 
 const float s_Kernel[KERNEL_SIZE] = float[](1.f / 8.f, 2.f / 8.f, 2.f / 8.f, 2.f / 8.f, 1.f / 8.f);
 
@@ -32,7 +37,8 @@ void main()
     {
         const ivec2 tileCoords = ivec2(i % TILE_SIZE, i / TILE_SIZE);
         const ivec2 pixel = clamp(tileOrigin + tileCoords, ivec2(0), g_Size - 1);
-        s_Tile[tileCoords.y][tileCoords.x] = texelFetch(g_Volumetric, pixel, 0).rgb;
+        s_Tile[tileCoords.y][tileCoords.x] = texelFetch(g_Volumetric, pixel, 0);
+        s_TileDepth[tileCoords.y][tileCoords.x] = texelFetch(g_VolumetricDepth, pixel, 0).x;
     }
     barrier();
 
@@ -41,7 +47,9 @@ void main()
         return;
 
     const ivec2 localCoords = ivec2(gl_LocalInvocationID.xy) + KERNEL_RADIUS;
-    vec3 result = vec3(0.f);
+    const float centerDepth = s_TileDepth[localCoords.y][localCoords.x];
+
+    vec4 result = vec4(0.f);
     float weightsSum = 0.f;
     for (int y = -KERNEL_RADIUS; y <= KERNEL_RADIUS; ++y)
     {
@@ -51,11 +59,15 @@ void main()
             if (any(lessThan(neighbor, ivec2(0))) || any(greaterThanEqual(neighbor, g_Size)))
                 continue;
 
-            const float weight = s_Kernel[x + KERNEL_RADIUS] * s_Kernel[y + KERNEL_RADIUS];
-            result += weight * s_Tile[localCoords.y + y][localCoords.x + x];
+            const ivec2 tileCoords = localCoords + ivec2(x, y);
+            const float depthDifference = Volumetric_GetRelativeDepthDifference(s_TileDepth[tileCoords.y][tileCoords.x], centerDepth);
+            const float depthWeight = clamp(1.f - depthDifference / EG_VOLUMETRIC_DEPTH_TOLERANCE, 0.f, 1.f);
+
+            const float weight = s_Kernel[x + KERNEL_RADIUS] * s_Kernel[y + KERNEL_RADIUS] * depthWeight;
+            result += weight * s_Tile[tileCoords.y][tileCoords.x];
             weightsSum += weight;
         }
     }
 
-    imageStore(g_Result, pixelCoords, vec4(result / weightsSum, 1.f));
+    imageStore(g_Result, pixelCoords, result / weightsSum);
 }

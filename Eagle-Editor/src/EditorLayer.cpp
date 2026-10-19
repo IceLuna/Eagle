@@ -2031,12 +2031,17 @@ namespace Eagle
 					bSettingsChanged = true;
 					EG_CORE_TRACE("Changed Volumetric Max Scattering Distance to: {}", settings.MaxScatteringDistance);
 				}
+				if (UI::PropertyDrag("Density", settings.Density, 0.001f, 0.f, FLT_MAX, "Extinction coefficient. Higher values make the light scatter more, and the scene behind the medium fade out faster"))
+				{
+					bSettingsChanged = true;
+					EG_CORE_TRACE("Changed Volumetric Density to: {}", settings.Density);
+				}
 				if (UI::PropertyDrag("Fog Speed", settings.FogSpeed, 0.01f))
 				{
 					bSettingsChanged = true;
 					EG_CORE_TRACE("Changed Volumetric Fog Speed to: {}", settings.FogSpeed);
 				}
-				if (UI::PropertyColor("Albedo", settings.Albedo))
+				if (UI::PropertyColor("Albedo", settings.Albedo, false))
 				{
 					bSettingsChanged = true;
 					EG_CORE_TRACE("Changed Volumetric Albedo to: {}", settings.Albedo);

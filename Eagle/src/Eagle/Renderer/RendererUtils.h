@@ -893,6 +893,7 @@ namespace Eagle
         float MaxScatteringDistance = 100.f;
         float FogSpeed = 1.f;
         float Anisotropy = 0.f;
+        float Density = 0.01f; // Extinction coefficient
         bool bFogEnable = true;
         bool bEnable = false;
 
@@ -900,6 +901,7 @@ namespace Eagle
         {
             return Albedo == other.Albedo &&
                 Anisotropy == other.Anisotropy &&
+                Density == other.Density &&
                 Samples == other.Samples &&
                 MaxScatteringDistance == other.MaxScatteringDistance &&
                 FogSpeed == other.FogSpeed &&

@@ -1,5 +1,5 @@
-#ifndef EG_VOLUMETRIC_UTILS
-#define EG_VOLUMETRIC_UTILS
+#ifndef EG_VOLUMETRICS_UTILS
+#define EG_VOLUMETRICS_UTILS
 
 #include "defines.h"
 #include "shadow_maps/shadows_utils.h"
@@ -53,7 +53,20 @@ float Noise3D(vec3 p, float spd, float time)
 
 float SampleFog(vec3 pos)
 {
-	return (Noise3D(pos * 2.2 / 8, 0.2f, g_Time) * 0.75) * 5.f; // 5 is an arbitrary number so that overall intensity doesn't drop
+	// Mean value of `Noise3D()`. Measured numerically (10^7 samples at random positions & times; the standard error is ~1e-4)
+	const float noiseMean = 0.28658;
+	return Noise3D(pos * 2.2 / 8, 0.2f, g_Time) * (1.f / noiseMean);
+}
+
+float Transmittance(float distance)
+{
+	return exp(-g_Density * distance);
+}
+
+// 1 - exp(-x), accurate for small x too
+float OneMinusExpNeg(float x)
+{
+	return x < 1e-3f ? x * (1.f - 0.5f * x) : 1.f - exp(-x);
 }
 
 float PhaseFunction(float anisotropy, float cosAngle)
@@ -154,8 +167,13 @@ vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2DShadow depthTe
 	const float camToFragLen = length(camToFrag);
 	const vec3 camDir = camToFrag / camToFragLen;
 	const float marchLength = min(camToFragLen, scatteringZFar);
-	const float deltaStep = marchLength / float(scatteringSamples);
 	const float phase = PhaseFunction(g_FogAnisotropy, dot(incoming, camDir));
+	const float opticalDepth = g_Density * marchLength;
+	const float oneMinusTransmittance = OneMinusExpNeg(opticalDepth);
+
+	// Samples are distributed proportionally to the transmittance (exponentially along the ray), so that we have more samples close to the camera in dense media.
+	// If the medium is too thin for that to be numerically meaningful, the samples are distributed uniformly.
+	const bool bExponentialSampling = opticalDepth >= 1e-3f;
 
 #ifdef EG_TRANSLUCENT_SHADOWS
 	vec3 result = vec3(0.0);
@@ -166,7 +184,8 @@ vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2DShadow depthTe
 	const bool bCastsShadows = (light.Flags & EG_DIR_LIGHT_CASTS_SHADOWS_MASK) != 0;
 	for (uint i = 0; i < scatteringSamples; ++i)
 	{
-		const float t = (float(i) + rayOffset) * deltaStep;
+		const float u = (float(i) + rayOffset) / float(scatteringSamples);
+		const float t = bExponentialSampling ? (-log(1.f - u * oneMinusTransmittance) / g_Density) : (u * marchLength);
 		const vec3 currentPos = cameraPos + camDir * t;
 
 #ifdef EG_TRANSLUCENT_SHADOWS
@@ -193,15 +212,18 @@ vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2DShadow depthTe
 #else
 		float fog = 1.f;
 #endif
+		// With uniform sampling, the transmittance has to be applied explicitly
+		const float transmittance = bExponentialSampling ? 1.f : Transmittance(t);
 
 #ifdef EG_TRANSLUCENT_SHADOWS
-		result += fog * coloredVisibility * visibility * phase;
+		result += transmittance * fog * coloredVisibility * visibility;
 #else
-		result += fog * visibility * phase;
+		result += transmittance * fog * visibility;
 #endif
 	}
 
-	return result / scatteringSamples * light.LightColor * abs(light.VolumetricFogIntensity);
+	const float weight = bExponentialSampling ? (oneMinusTransmittance / g_Density) : marchLength;
+	return result * (weight / float(scatteringSamples) * phase) * light.LightColor * abs(light.VolumetricFogIntensity);
 }
 
 bool SphereIntersect(vec3 ro, vec3 rd, vec3 sphere, float radius2, out float t0, out float t1)
@@ -296,15 +318,16 @@ vec3 PointLight_Volumetric(in PointLight light, samplerCubeShadow shadowMap,
 			float fog = 1.f;
 #endif
 
+			const float weight = Transmittance(t) * fog * attenuation * PhaseFunction(g_FogAnisotropy, dot(normIncoming, camDir));
 #ifdef EG_TRANSLUCENT_SHADOWS
-			result += fog * coloredVisibility * visibility * attenuation * PhaseFunction(g_FogAnisotropy, dot(normIncoming, camDir));
+			result += weight * coloredVisibility * visibility;
 #else
-			result += fog * visibility * attenuation * PhaseFunction(g_FogAnisotropy, dot(normIncoming, camDir));
+			result += weight * visibility;
 #endif
 		}
 	}
 
-	return result / scatteringSamples * light.LightColor * abs(light.VolumetricFogIntensity);
+	return result * deltaStep * light.LightColor * abs(light.VolumetricFogIntensity);
 }
 
 // Cone-ray intersection routine
@@ -464,15 +487,16 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2DShadow shadowMap,
 			float fog = 1.f;
 #endif
 
+			const float weight = Transmittance(t) * fog * attenuation * PhaseFunction(g_FogAnisotropy, dot(normIncoming, camDir));
 #ifdef EG_TRANSLUCENT_SHADOWS
-			result += fog * coloredShadow * visibility * attenuation * PhaseFunction(g_FogAnisotropy, dot(normIncoming, camDir));
+			result += weight * coloredShadow * visibility;
 #else
-			result += fog * visibility * attenuation * PhaseFunction(g_FogAnisotropy, dot(normIncoming, camDir));
+			result += weight * visibility;
 #endif
 		}
 	}
 
-	return result / scatteringSamples * light.LightColor * abs(light.VolumetricFogIntensity);
+	return result * deltaStep * light.LightColor * abs(light.VolumetricFogIntensity);
 }
 
 #endif

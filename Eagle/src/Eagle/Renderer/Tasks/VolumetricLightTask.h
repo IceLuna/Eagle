@@ -32,8 +32,9 @@ namespace Eagle
 		Ref<PipelineCompute> m_PrepareArgsPipeline;
 
 		VolumetricLightsSettings m_VolumetricSettings;
-		Ref<Image> m_VolumetricsImage; // Volumetric effect is rendered separately into here. Half res
+		Ref<Image> m_VolumetricsImage; // Volumetric effect is rendered separately into here. Half res. rgb - in-scattered light, a - transmittance
 		Ref<Image> m_VolumetricsImageBlurred;
+		Ref<Image> m_VolumetricsDepthImage; // Linear depth that each pixel of `m_VolumetricsImage` was traced to
 		Ref<Buffer> m_IndirectArgs;
 		
 		float m_Time = 0.0;

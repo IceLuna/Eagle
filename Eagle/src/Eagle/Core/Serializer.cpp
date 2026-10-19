@@ -3539,6 +3539,7 @@ namespace Eagle
 		out << YAML::Key << "MaxScatteringDistance" << YAML::Value << volumetricSettings.MaxScatteringDistance;
 		out << YAML::Key << "FogSpeed" << YAML::Value << volumetricSettings.FogSpeed;
 		out << YAML::Key << "Anisotropy" << YAML::Value << volumetricSettings.Anisotropy;
+		out << YAML::Key << "Density" << YAML::Value << volumetricSettings.Density;
 		out << YAML::Key << "bFogEnable" << YAML::Value << volumetricSettings.bFogEnable;
 		out << YAML::Key << "bEnable" << YAML::Value << volumetricSettings.bEnable;
 		out << YAML::EndMap; // Volumetric Light Settings
@@ -3757,6 +3758,8 @@ namespace Eagle
 				settings.VolumetricSettings.FogSpeed = node.as<float>();
 			if (auto node = volumetricSettingsNode["Anisotropy"])
 				settings.VolumetricSettings.Anisotropy = node.as<float>();
+			if (auto node = volumetricSettingsNode["Density"])
+				settings.VolumetricSettings.Density = node.as<float>();
 			settings.VolumetricSettings.bFogEnable = volumetricSettingsNode["bFogEnable"].as<bool>();
 			settings.VolumetricSettings.bEnable = volumetricSettingsNode["bEnable"].as<bool>();
 		}
