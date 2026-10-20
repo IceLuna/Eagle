@@ -20,6 +20,9 @@ namespace Eagle
 		void InitPipeline();
 		ShaderDefines GetShaderDefines() const;
 
+		uint32_t GetDownscaleFactor() const;
+		glm::uvec2 GetResourceSize(glm::uvec2 fullResSize) const;
+
 		struct ConstantData
 		{
 			uint32_t VolumetricSamples = 20;
@@ -32,7 +35,7 @@ namespace Eagle
 		Ref<PipelineCompute> m_PrepareArgsPipeline;
 
 		VolumetricLightsSettings m_VolumetricSettings;
-		Ref<Image> m_VolumetricsImage; // Volumetric effect is rendered separately into here. Half res. rgb - in-scattered light, a - transmittance
+		Ref<Image> m_VolumetricsImage; // Volumetric effect is rendered separately into here. rgb - in-scattered light, a - transmittance
 		Ref<Image> m_VolumetricsImageBlurred;
 		Ref<Image> m_VolumetricsDepthImage; // Linear depth that each pixel of `m_VolumetricsImage` was traced to
 		Ref<Buffer> m_IndirectArgs;

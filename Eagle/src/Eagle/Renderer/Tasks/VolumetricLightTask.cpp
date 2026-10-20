@@ -11,27 +11,22 @@
 
 namespace Eagle
 {
-	constexpr uint32_t s_DownscaleFactor = 2u; // Volumetrics are calculated in half res
-
     VolumetricLightTask::VolumetricLightTask(SceneRenderer& renderer)
         : RendererTask(renderer)
     {
-		const glm::uvec3 size = m_Renderer.GetHDROutput()->GetSize();
-		const glm::uvec3 halfSize = glm::max(size / s_DownscaleFactor, glm::uvec3(1u));
+		const auto& options = m_Renderer.GetOptions();
+		m_VolumetricSettings = options.VolumetricSettings;
+		bTranslucentShadows = options.bTranslucentShadows;
 
 		ImageSpecifications specs;
 		specs.Format = ImageFormat::R16G16B16A16_Float; // rgb - in-scattered light, a - transmittance
-		specs.Size = halfSize;
+		specs.Size = glm::uvec3(GetResourceSize(m_Renderer.GetHDROutput()->GetSize()), 1u);
 		specs.Usage = ImageUsage::Sampled | ImageUsage::Storage;
 		m_VolumetricsImage = Image::Create(specs, "PBR_Volumetric");
 		m_VolumetricsImageBlurred = Image::Create(specs, "PBR_Volumetric_Blurred");
 
 		specs.Format = ImageFormat::R32_Float;
 		m_VolumetricsDepthImage = Image::Create(specs, "PBR_Volumetric_Depth"); // Linear depth that each low-res pixel was traced to
-
-		const auto& options = m_Renderer.GetOptions();
-		m_VolumetricSettings = options.VolumetricSettings;
-		bTranslucentShadows = options.bTranslucentShadows;
 
 		{
 			BufferSpecifications specs{};
@@ -90,7 +85,7 @@ namespace Eagle
 		volumetricPushData.FogAlbedo = m_VolumetricSettings.Albedo;
 		volumetricPushData.FogAnisotropy = m_VolumetricSettings.Anisotropy;
 		volumetricPushData.TilesBufferWidth = lightCulling->GetTilesBufferWidth();
-		volumetricPushData.DownscaleFactor = s_DownscaleFactor;
+		volumetricPushData.DownscaleFactor = GetDownscaleFactor();
 		volumetricPushData.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());
 		volumetricPushData.Density = glm::max(m_VolumetricSettings.Density, 0.f);
 
@@ -204,7 +199,7 @@ namespace Eagle
 			} compositePushData;
 			compositePushData.Size = size;
 			compositePushData.TexelSize = 1.f / glm::vec2(size);
-			compositePushData.DownscaleFactor = s_DownscaleFactor;
+			compositePushData.DownscaleFactor = GetDownscaleFactor();
 
 			m_CompositePipeline->SetImageSampler(m_VolumetricsImageBlurred, Sampler::PointSamplerClamp, 0, 0);
 			m_CompositePipeline->SetImageSampler(m_VolumetricsDepthImage, Sampler::PointSamplerClamp, 0, 1);
@@ -226,20 +221,45 @@ namespace Eagle
 		const bool bSamplesChanged = m_VolumetricSettings.Samples != settings.VolumetricSettings.Samples;
 		const bool bFogChanged = m_VolumetricSettings.bFogEnable != settings.VolumetricSettings.bFogEnable;
 		const bool bTranslucentShadowsChanged = bTranslucentShadows != settings.bTranslucentShadows;
+		const bool bResolutionChanged = m_VolumetricSettings.EvalResolution != settings.VolumetricSettings.EvalResolution;
 
 		m_VolumetricSettings = settings.VolumetricSettings;
 		bTranslucentShadows = settings.bTranslucentShadows;
 
 		if (bSamplesChanged || bFogChanged || bTranslucentShadowsChanged)
 			InitPipeline();
+
+		if (bResolutionChanged)
+			OnResize(m_Renderer.GetHDROutput()->GetSize());
 	}
 
 	void VolumetricLightTask::OnResize(glm::uvec2 size)
 	{
-		const glm::uvec2 halfSize = glm::max(size / s_DownscaleFactor, glm::uvec2(1u));
-		m_VolumetricsImage->Resize(glm::uvec3(halfSize, 1u));
-		m_VolumetricsImageBlurred->Resize(glm::uvec3(halfSize, 1u));
-		m_VolumetricsDepthImage->Resize(glm::uvec3(halfSize, 1u));
+		const glm::uvec3 lowResSize = glm::uvec3(GetResourceSize(size), 1u);
+		m_VolumetricsImage->Resize(lowResSize);
+		m_VolumetricsImageBlurred->Resize(lowResSize);
+		m_VolumetricsDepthImage->Resize(lowResSize);
+	}
+
+	uint32_t VolumetricLightTask::GetDownscaleFactor() const
+	{
+		switch (m_VolumetricSettings.EvalResolution)
+		{
+			case VolumetricLightsSettings::Resolution::Full:
+				return 1u;
+			case VolumetricLightsSettings::Resolution::Half:
+				return 2u;
+			case VolumetricLightsSettings::Resolution::Quarter:
+				return 4u;
+			default:
+				EG_CORE_ASSERT(false);
+				return 2u;
+		}
+	}
+
+	glm::uvec2 VolumetricLightTask::GetResourceSize(glm::uvec2 fullResSize) const
+	{
+		return glm::max(fullResSize / GetDownscaleFactor(), glm::uvec2(1u));
 	}
 
 	ShaderDefines VolumetricLightTask::GetShaderDefines() const

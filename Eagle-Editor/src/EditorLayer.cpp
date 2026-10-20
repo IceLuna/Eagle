@@ -2021,6 +2021,12 @@ namespace Eagle
 					EG_CORE_TRACE("Enabled Volumetric Fog: {}", settings.bFogEnable);
 				}
 
+				if (UI::ComboEnum("Resolution", settings.EvalResolution, "Resolution at which volumetrics will be computed"))
+				{
+					bSettingsChanged = true;
+					EG_CORE_TRACE("Volumetric Lights Resolution changed to: {}", Utils::GetEnumName(settings.EvalResolution));
+				}
+
 				if (UI::PropertyDrag("Samples", settings.Samples, 1.f, 1, 0, "Use with caution! Making it to high might kill the performance. Especially if the light casts shadows"))
 				{
 					bSettingsChanged = true;

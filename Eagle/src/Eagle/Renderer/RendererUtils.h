@@ -888,12 +888,18 @@ namespace Eagle
 
     struct VolumetricLightsSettings
     {
+        enum class Resolution
+        {
+            Full, Half, Quarter
+        };
+
         glm::vec3 Albedo = glm::vec3(1.f);
         uint32_t Samples = 20;
         float MaxScatteringDistance = 100.f;
         float FogSpeed = 1.f;
         float Anisotropy = 0.f;
         float Density = 0.01f; // Extinction coefficient
+        Resolution EvalResolution = Resolution::Half; // Resolution at which volumetrics will be computed
         bool bFogEnable = true;
         bool bEnable = false;
 
@@ -906,6 +912,7 @@ namespace Eagle
                 MaxScatteringDistance == other.MaxScatteringDistance &&
                 FogSpeed == other.FogSpeed &&
                 bFogEnable == other.bFogEnable &&
+                EvalResolution == other.EvalResolution &&
                 bEnable == other.bEnable;
         }
 

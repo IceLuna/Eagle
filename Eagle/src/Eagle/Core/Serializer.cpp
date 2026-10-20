@@ -3541,6 +3541,7 @@ namespace Eagle
 		out << YAML::Key << "Anisotropy" << YAML::Value << volumetricSettings.Anisotropy;
 		out << YAML::Key << "Density" << YAML::Value << volumetricSettings.Density;
 		out << YAML::Key << "bFogEnable" << YAML::Value << volumetricSettings.bFogEnable;
+		out << YAML::Key << "Resolution" << YAML::Value << Utils::GetEnumName(volumetricSettings.EvalResolution);
 		out << YAML::Key << "bEnable" << YAML::Value << volumetricSettings.bEnable;
 		out << YAML::EndMap; // Volumetric Light Settings
 
@@ -3761,6 +3762,8 @@ namespace Eagle
 			if (auto node = volumetricSettingsNode["Density"])
 				settings.VolumetricSettings.Density = node.as<float>();
 			settings.VolumetricSettings.bFogEnable = volumetricSettingsNode["bFogEnable"].as<bool>();
+			if (auto node = volumetricSettingsNode["Resolution"])
+				settings.VolumetricSettings.EvalResolution = Utils::GetEnumFromName<VolumetricLightsSettings::Resolution>(node.as<std::string>());
 			settings.VolumetricSettings.bEnable = volumetricSettingsNode["bEnable"].as<bool>();
 		}
 

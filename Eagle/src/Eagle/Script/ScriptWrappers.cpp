@@ -8514,7 +8514,8 @@ namespace Eagle
 		return scene->IsSkyboxEnabled();
 	}
 
-	void Script::Eagle_Renderer_SetVolumetricLightsSettings(const glm::vec3* albedo, float anisotropy, float density, uint32_t samples, float maxScatteringDist, float fogSpeed, bool bFogEnable, bool bEnable)
+	void Script::Eagle_Renderer_SetVolumetricLightsSettings(const glm::vec3* albedo, float anisotropy, float density, uint32_t samples, float maxScatteringDist,
+		float fogSpeed, bool bFogEnable, VolumetricLightsSettings::Resolution resolution, bool bEnable)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		auto& sceneRenderer = scene->GetSceneRenderer();
@@ -8527,11 +8528,13 @@ namespace Eagle
 		settings.VolumetricSettings.MaxScatteringDistance = maxScatteringDist;
 		settings.VolumetricSettings.FogSpeed = fogSpeed;
 		settings.VolumetricSettings.bFogEnable = bFogEnable;
+		settings.VolumetricSettings.EvalResolution = resolution;
 		settings.VolumetricSettings.bEnable = bEnable;
 		sceneRenderer->SetOptions(settings);
 	}
 
-	void Script::Eagle_Renderer_GetVolumetricLightsSettings(glm::vec3* albedo, float* anisotropy, float* density, uint32_t* outSamples, float* outMaxScatteringDist, float* fogSpeed, bool* bFogEnable, bool* bEnable)
+	void Script::Eagle_Renderer_GetVolumetricLightsSettings(glm::vec3* albedo, float* anisotropy, float* density, uint32_t* outSamples, float* outMaxScatteringDist,
+		float* fogSpeed, bool* bFogEnable, VolumetricLightsSettings::Resolution* resolution, bool* bEnable)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		const auto& sceneRenderer = scene->GetSceneRenderer();
@@ -8544,6 +8547,7 @@ namespace Eagle
 		*outMaxScatteringDist = settings.MaxScatteringDistance;
 		*fogSpeed = settings.FogSpeed;
 		*bFogEnable = settings.bFogEnable;
+		*resolution = settings.EvalResolution;
 		*bEnable = settings.bEnable;
 	}
 
