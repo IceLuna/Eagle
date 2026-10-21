@@ -2047,6 +2047,16 @@ namespace Eagle
 					bSettingsChanged = true;
 					EG_CORE_TRACE("Changed Volumetric Fog Speed to: {}", settings.FogSpeed);
 				}
+				if (UI::PropertyDrag("Fog Scale", settings.FogScale, 0.1f, VolumetricLightsSettings::MinFogScale, FLT_MAX, "World units covered by one tile of the fog noise. Bigger values make bigger fog shapes"))
+				{
+					bSettingsChanged = true;
+					EG_CORE_TRACE("Changed Volumetric Fog Scale to: {}", settings.FogScale);
+				}
+				if (UI::PropertyDrag("Wind Direction", settings.WindDirection, 0.01f, 0.f, 0.f, "Direction in which the volumetric fog moves"))
+				{
+					bSettingsChanged = true;
+					EG_CORE_TRACE("Changed Volumetric Wind Direction to: {}", settings.WindDirection);
+				}
 				if (UI::PropertyColor("Albedo", settings.Albedo, false))
 				{
 					bSettingsChanged = true;

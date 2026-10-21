@@ -23,6 +23,10 @@ namespace Eagle
 		uint32_t GetDownscaleFactor() const;
 		glm::uvec2 GetResourceSize(glm::uvec2 fullResSize) const;
 
+		void CreateFogNoise(const Ref<CommandBuffer>& cmd);
+		void UpdateFogNoiseOffsets(float deltaTime);
+		float GetFogScale() const;
+
 		struct ConstantData
 		{
 			uint32_t VolumetricSamples = 20;
@@ -38,9 +42,10 @@ namespace Eagle
 		Ref<Image> m_VolumetricsImage; // Volumetric effect is rendered separately into here. rgb - in-scattered light, a - transmittance
 		Ref<Image> m_VolumetricsImageBlurred;
 		Ref<Image> m_VolumetricsDepthImage; // Linear depth that each pixel of `m_VolumetricsImage` was traced to
+		Ref<Image> m_FogNoise;
 		Ref<Buffer> m_IndirectArgs;
-		
-		float m_Time = 0.0;
+
+		glm::vec3 m_FogNoiseOffsets[2] = { glm::vec3(0.f), glm::vec3(0.f) }; // Displacements of the base & detail layers of the fog noise. In tiles of each layer, wrapped to [0; 1)
 		bool bTranslucentShadows = false;
 	};
 }

@@ -276,11 +276,13 @@ namespace Eagle
         };
 
         public Vector3 Albedo;
+        public Vector3 WindDirection; // Direction in which the fog moves.
         public float Anisotropy;
         public float Density; // Extinction coefficient
         public uint Samples;
         public float MaxScatteringDistance;
         public float FogSpeed;
+        public float FogScale; // World units covered by one tile of the fog noise. Bigger values make bigger fog shapes
         public Resolution EvalResolution; // Resolution at which volumetrics will be computed
         public bool bFogEnabled;
         public bool bEnabled;
@@ -702,20 +704,22 @@ namespace Eagle
 
         public static void SetVolumetricLightsSettings(VolumetricLightsSettings value)
         {
-            SetVolumetricLightsSettings_Native(ref value.Albedo, value.Anisotropy, value.Density, value.Samples, value.MaxScatteringDistance, value.FogSpeed, value.bFogEnabled, value.EvalResolution, value.bEnabled);
+            SetVolumetricLightsSettings_Native(ref value.Albedo, value.Anisotropy, value.Density, value.Samples, value.MaxScatteringDistance, value.FogSpeed, value.FogScale, ref value.WindDirection, value.bFogEnabled, value.EvalResolution, value.bEnabled);
         }
 
         public static VolumetricLightsSettings GetVolumetricLightsSettings()
         {
-            GetVolumetricLightsSettings_Native(out Vector3 albedo, out float anisotropy, out float density, out uint samples, out float maxScatteringDistance, out float fogSpeed, out bool bFogEnabled,
+            GetVolumetricLightsSettings_Native(out Vector3 albedo, out float anisotropy, out float density, out uint samples, out float maxScatteringDistance, out float fogSpeed, out float fogScale, out Vector3 windDir, out bool bFogEnabled,
                 out VolumetricLightsSettings.Resolution resolution, out bool bEnabled);
             VolumetricLightsSettings settings = new VolumetricLightsSettings();
             settings.Albedo = albedo;
+            settings.WindDirection = windDir;
             settings.Anisotropy = anisotropy;
             settings.Density = density;
             settings.Samples = samples;
             settings.MaxScatteringDistance = maxScatteringDistance;
             settings.FogSpeed = fogSpeed;
+            settings.FogScale = fogScale;
             settings.bFogEnabled = bFogEnabled;
             settings.EvalResolution = resolution;
             settings.bEnabled = bEnabled;
@@ -1196,10 +1200,11 @@ namespace Eagle
         private static extern void SetSkySettings_Native(ref Vector3 SunPos, ref Color3 CloudsColor, float skyIntensity, float cloudsIntensity, float scattering, float cirrus, float cumulus, uint cumulusLayers, bool bEnableCirrusClouds, bool bEnableCumulusClouds);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetVolumetricLightsSettings_Native(ref Vector3 albedo, float anisotropy, float density, uint samples, float maxScatteringDist, float fogSpeed, bool bFogEnable, VolumetricLightsSettings.Resolution resolution, bool bEnable);
+        private static extern void SetVolumetricLightsSettings_Native(ref Vector3 albedo, float anisotropy, float density, uint samples, float maxScatteringDist, float fogSpeed, float fogScale, ref Vector3 windDir,
+            bool bFogEnable, VolumetricLightsSettings.Resolution resolution, bool bEnable);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetVolumetricLightsSettings_Native(out Vector3 albedo, out float anisotropy, out float density, out uint samples, out float maxScatteringDist, out float fogSpeed, out bool bFogEnable,
+        private static extern void GetVolumetricLightsSettings_Native(out Vector3 albedo, out float anisotropy, out float density, out uint samples, out float maxScatteringDist, out float fogSpeed, out float fogScale, out Vector3 windDir, out bool bFogEnable,
             out VolumetricLightsSettings.Resolution resolution, out bool bEnable);
 
         [MethodImpl(MethodImplOptions.InternalCall)]

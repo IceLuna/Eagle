@@ -8515,7 +8515,7 @@ namespace Eagle
 	}
 
 	void Script::Eagle_Renderer_SetVolumetricLightsSettings(const glm::vec3* albedo, float anisotropy, float density, uint32_t samples, float maxScatteringDist,
-		float fogSpeed, bool bFogEnable, VolumetricLightsSettings::Resolution resolution, bool bEnable)
+		float fogSpeed, float fogScale, const glm::vec3* windDirection, bool bFogEnable, VolumetricLightsSettings::Resolution resolution, bool bEnable)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		auto& sceneRenderer = scene->GetSceneRenderer();
@@ -8527,6 +8527,8 @@ namespace Eagle
 		settings.VolumetricSettings.Samples = samples;
 		settings.VolumetricSettings.MaxScatteringDistance = maxScatteringDist;
 		settings.VolumetricSettings.FogSpeed = fogSpeed;
+		settings.VolumetricSettings.FogScale = fogScale;
+		settings.VolumetricSettings.WindDirection = *windDirection;
 		settings.VolumetricSettings.bFogEnable = bFogEnable;
 		settings.VolumetricSettings.EvalResolution = resolution;
 		settings.VolumetricSettings.bEnable = bEnable;
@@ -8534,7 +8536,7 @@ namespace Eagle
 	}
 
 	void Script::Eagle_Renderer_GetVolumetricLightsSettings(glm::vec3* albedo, float* anisotropy, float* density, uint32_t* outSamples, float* outMaxScatteringDist,
-		float* fogSpeed, bool* bFogEnable, VolumetricLightsSettings::Resolution* resolution, bool* bEnable)
+		float* fogSpeed, float* fogScale, glm::vec3* windDirection, bool* bFogEnable, VolumetricLightsSettings::Resolution* resolution, bool* bEnable)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		const auto& sceneRenderer = scene->GetSceneRenderer();
@@ -8546,6 +8548,8 @@ namespace Eagle
 		*outSamples = settings.Samples;
 		*outMaxScatteringDist = settings.MaxScatteringDistance;
 		*fogSpeed = settings.FogSpeed;
+		*fogScale = settings.FogScale;
+		*windDirection = settings.WindDirection;
 		*bFogEnable = settings.bFogEnable;
 		*resolution = settings.EvalResolution;
 		*bEnable = settings.bEnable;

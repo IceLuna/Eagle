@@ -3538,6 +3538,8 @@ namespace Eagle
 		out << YAML::Key << "Samples" << YAML::Value << volumetricSettings.Samples;
 		out << YAML::Key << "MaxScatteringDistance" << YAML::Value << volumetricSettings.MaxScatteringDistance;
 		out << YAML::Key << "FogSpeed" << YAML::Value << volumetricSettings.FogSpeed;
+		out << YAML::Key << "FogScale" << YAML::Value << volumetricSettings.FogScale;
+		out << YAML::Key << "WindDirection" << YAML::Value << volumetricSettings.WindDirection;
 		out << YAML::Key << "Anisotropy" << YAML::Value << volumetricSettings.Anisotropy;
 		out << YAML::Key << "Density" << YAML::Value << volumetricSettings.Density;
 		out << YAML::Key << "bFogEnable" << YAML::Value << volumetricSettings.bFogEnable;
@@ -3757,6 +3759,10 @@ namespace Eagle
 			settings.VolumetricSettings.MaxScatteringDistance = volumetricSettingsNode["MaxScatteringDistance"].as<float>();
 			if (auto node = volumetricSettingsNode["FogSpeed"])
 				settings.VolumetricSettings.FogSpeed = node.as<float>();
+			if (auto node = volumetricSettingsNode["FogScale"])
+				settings.VolumetricSettings.FogScale = node.as<float>();
+			if (auto node = volumetricSettingsNode["WindDirection"])
+				settings.VolumetricSettings.WindDirection = node.as<glm::vec3>();
 			if (auto node = volumetricSettingsNode["Anisotropy"])
 				settings.VolumetricSettings.Anisotropy = node.as<float>();
 			if (auto node = volumetricSettingsNode["Density"])

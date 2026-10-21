@@ -12,6 +12,9 @@ layout(set = 0, binding = 3) buffer IndirectArgs
 {
     uvec4 g_DispatchArgs;
 };
+#ifdef EG_VOLUMETRIC_FOG
+layout(set = 0, binding = 4) uniform sampler3D g_FogNoise;
+#endif
 
 layout(set = 1, binding = 0)
 readonly buffer PointLightsBuffer
@@ -86,13 +89,15 @@ layout(push_constant) uniform PushConstants
     vec3 g_CameraPos;
     float g_VolumetricMaxDistance;
     ivec2 g_Size;
-    float g_Time;
     uint g_DownscaleFactor;
+    uint g_TilesBufferWidth;
     vec3 g_FogAlbedo;
     float g_FogAnisotropy;
-    uint g_TilesBufferWidth;
+    vec3 g_FogNoiseOffset0; // Base layer
     uint g_HasDirLight;
+    vec3 g_FogNoiseOffset1; // Detail layer
     float g_Density;
+    float g_FogScaleRCP;
 };
 
 layout(constant_id = 0) const uint s_VolumetricSamples = 20;

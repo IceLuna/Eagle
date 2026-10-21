@@ -14,49 +14,18 @@
 #define EG_VOLUMETRIC_LIGHT_SOURCE_RADIUS 0.1f
 #define EG_VOLUMETRIC_LIGHT_SOURCE_RADIUS2 (EG_VOLUMETRIC_LIGHT_SOURCE_RADIUS * EG_VOLUMETRIC_LIGHT_SOURCE_RADIUS)
 
-float tri(float x)
-{
-	return abs(fract(x) - .5);
-}
-
-vec3 tri3(vec3 p)
-{
-	return vec3(
-		tri(p.z + tri(p.y * 1.)),
-		tri(p.z + tri(p.x * 1.)),
-		tri(p.y + tri(p.x * 1.))
-	);
-}
-
-// Taken from https://www.shadertoy.com/view/4ts3z2
-// By NIMITZ  (twitter: @stormoid)
-float Noise3D(vec3 p, float spd, float time)
-{
-	float z = 1.4;
-	float rz = 0.;
-	vec3 bp = p;
-	for (float i = 0.; i <= 3.; i++)
-	{
-		vec3 dg = tri3(bp * 2.);
-		p += (dg + time * spd);
-		
-		bp *= 1.8;
-		z *= 1.5;
-		p *= 1.2;
-		//p.xz*= m2;
-		
-		rz += (tri(p.z + tri(p.x + tri(p.y)))) / z;
-		bp += 0.14;
-	}
-	return rz;
-}
-
+#ifdef EG_VOLUMETRIC_FOG
+// Two layers of the same tileable noise texture are blended: a base one, and a finer one that moves faster so that the fog's shape evolves.
+// Their scales aren't integer multiples, so the tiling isn't noticeable. `g_FogNoiseOffset0/1` are the layer's displacements in their own tiles, wrapped to [0; 1).
+// A. Schneider, N. Vos, "The Real-time Volumetric Cloudscapes of Horizon: Zero Dawn", SIGGRAPH 2015 Advances in Real-Time Rendering course
 float SampleFog(vec3 pos)
 {
-	// Mean value of `Noise3D()`. Measured numerically (10^7 samples at random positions & times; the standard error is ~1e-4)
-	const float noiseMean = 0.28658;
-	return Noise3D(pos * 2.2 / 8, 0.2f, g_Time) * (1.f / noiseMean);
+	const vec3 baseCoords = pos * g_FogScaleRCP; // In tiles of the base layer
+	const float baseLayer = textureLod(g_FogNoise, baseCoords - g_FogNoiseOffset0, 0.f).x;
+	const float detailLayer = textureLod(g_FogNoise, baseCoords * EG_FOG_NOISE_DETAIL_SCALE - g_FogNoiseOffset1, 0.f).x;
+	return mix(baseLayer, detailLayer, EG_FOG_NOISE_DETAIL_WEIGHT);
 }
+#endif
 
 float Transmittance(float distance)
 {

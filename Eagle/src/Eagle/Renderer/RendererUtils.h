@@ -893,10 +893,14 @@ namespace Eagle
             Full, Half, Quarter
         };
 
+        static constexpr float MinFogScale = 0.01f;
+
         glm::vec3 Albedo = glm::vec3(1.f);
+        glm::vec3 WindDirection = glm::vec3(1.f); // Direction in which the fog moves.
         uint32_t Samples = 20;
         float MaxScatteringDistance = 100.f;
         float FogSpeed = 1.f;
+        float FogScale = 32.f; // World units covered by one tile of the fog noise. Bigger values make bigger fog shapes
         float Anisotropy = 0.f;
         float Density = 0.01f; // Extinction coefficient
         Resolution EvalResolution = Resolution::Half; // Resolution at which volumetrics will be computed
@@ -906,11 +910,13 @@ namespace Eagle
         bool operator== (const VolumetricLightsSettings& other) const
         {
             return Albedo == other.Albedo &&
+                WindDirection == other.WindDirection &&
                 Anisotropy == other.Anisotropy &&
                 Density == other.Density &&
                 Samples == other.Samples &&
                 MaxScatteringDistance == other.MaxScatteringDistance &&
                 FogSpeed == other.FogSpeed &&
+                FogScale == other.FogScale &&
                 bFogEnable == other.bFogEnable &&
                 EvalResolution == other.EvalResolution &&
                 bEnable == other.bEnable;

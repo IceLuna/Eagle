@@ -666,8 +666,8 @@ namespace Eagle::Script
 	void Eagle_Renderer_SetSkySettings(const glm::vec3* sunPos, const glm::vec3* cloudsColor, float skyIntensity, float cloudsIntensity, float scattering, float cirrus, float cumulus, uint32_t cumulusLayers, bool bEnableCirrusClouds, bool bEnableCumulusClouds);
 	void Eagle_Renderer_SetUseSkyAsBackground(bool value);
 	bool Eagle_Renderer_GetUseSkyAsBackground();
-	void Eagle_Renderer_SetVolumetricLightsSettings(const glm::vec3* albedo, float anisotropy, float density, uint32_t samples, float maxScatteringDist, float fogSpeed, bool bFogEnable, VolumetricLightsSettings::Resolution resolution, bool bEnable);
-	void Eagle_Renderer_GetVolumetricLightsSettings(glm::vec3* albedo, float* anisotropy, float* density, uint32_t* outSamples, float* outMaxScatteringDist, float* fogSpeed, bool* bFogEnable, VolumetricLightsSettings::Resolution* resolution, bool* bEnable);
+	void Eagle_Renderer_SetVolumetricLightsSettings(const glm::vec3* albedo, float anisotropy, float density, uint32_t samples, float maxScatteringDist, float fogSpeed, float fogScale, const glm::vec3* windDirection, bool bFogEnable, VolumetricLightsSettings::Resolution resolution, bool bEnable);
+	void Eagle_Renderer_GetVolumetricLightsSettings(glm::vec3* albedo, float* anisotropy, float* density, uint32_t* outSamples, float* outMaxScatteringDist, float* fogSpeed, float* fogScale, glm::vec3* windDirection, bool* bFogEnable, VolumetricLightsSettings::Resolution* resolution, bool* bEnable);
 	MonoArray* Eagle_Renderer_GetShadowMapsSettings(uint32_t* outPointLightSize, uint32_t* outSpotLightSize);
 	void Eagle_Renderer_GetScreenSpaceShadowsSettings(uint32_t* samples, uint32_t* hardShadowSamples, uint32_t* fadeOutSamples, float* surfaceThickness, float* bilinearThreshold,
 		float* shadowContrast, bool* bIgnoreEdgePixels, bool* bUsePrecisionOffset, bool* bBilinearSamplingOffsetMode, bool* bUseEarlyOut);

@@ -57,6 +57,12 @@
 #define EG_SM_DISTRIBUTION_FILTER_SIZE 8
 #define EG_SM_DISTRIBUTION_RANDOM_RADIUS 2.f
 
+// Volumetric fog noise
+#define EG_FOG_NOISE_TEXTURE_SIZE 64
+#define EG_FOG_NOISE_DETAIL_SCALE 2.73f // Frequency of the detail layer relative to the base one
+#define EG_FOG_NOISE_DETAIL_SPEED 1.5f  // Speed of the detail layer relative to the base one, so that the shape of the fog evolves as it moves
+#define EG_FOG_NOISE_DETAIL_WEIGHT 0.4f
+
 #define EG_POINT_LIGHT_NEAR 0.01f
 
 #define EG_PI     3.1415926535
