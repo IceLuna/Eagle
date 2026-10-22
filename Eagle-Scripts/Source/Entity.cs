@@ -340,6 +340,9 @@ namespace Eagle
 
         public bool IsValid() { return IsValid_Native(ID); }
 
+        // True if the entity will be destroyed at the beginning of the next frame
+        public bool IsPendingDestroy() { return IsPendingDestroy_Native(ID); }
+
         public Vector3 GetForwardVector()
         {
             GetForwardVector_Native(ID, out Vector3 result);
@@ -358,6 +361,7 @@ namespace Eagle
             return result;
         }
 
+        // This does nothing if `IsPendingDestroy` is true
         public void Destroy(bool bDestroyChildren = false)
         {
             DestroyEntity_Native(ID, bDestroyChildren);
@@ -542,6 +546,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsValid_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsPendingDestroy_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void DestroyEntity_Native(in GUID entityID, bool bDestroyChildren);

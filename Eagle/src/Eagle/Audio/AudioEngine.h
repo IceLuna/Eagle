@@ -34,6 +34,12 @@ namespace Eagle
 
 		static const Ref<SoundGroup>& GetMasterSoundGroup();
 
+		// Sample rate of the software mixer. Every DSP (including the FFT used for spectrum data) runs at this rate,
+		// regardless of the sample rate of the audio files
+		static float GetSpectrumSampleRate();
+
+		static bool IsAudioDataSupported(const DataBuffer& buffer, std::string* outError = nullptr);
+
 	private:
 		AudioEngine() = default;
 		static FMOD::System* GetSystem();

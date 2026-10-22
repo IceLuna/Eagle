@@ -2232,15 +2232,26 @@ namespace Eagle
             return GetFFTType_Native(Parent.ID);
         }
 
+		// Fills `data` with spectrum magnitudes. Bin `i` is at `i * GetSpectrumBinWidth()` Hz.
+		// Returns false if the sound isn't playing or no spectrum is available yet.
 		// channelIndex. Allows to get data from a specific audio channel. Starts from 0. If -1, get average over all channels
         public bool GetSpectrumData(ref float[] data, int channelIndex = -1)
         {
             return GetSpectrumData_Native(Parent.ID, data, channelIndex);
         }
 
+        // Sample rate of the audio file.
+        // Note: spectrum data is NOT computed at this rate. Use `Sound.GetSpectrumSampleRate()` instead
         public float GetSampleRate()
         {
             return GetSampleRate_Native(Parent.ID);
+        }
+
+        // Width of one spectrum bin in Hz
+        public float GetSpectrumBinWidth()
+        {
+            uint samples = GetFFTSamples();
+            return samples > 0 ? Sound.GetSpectrumSampleRate() / (2f * samples) : 0f;
         }
 
         public int GetChannelsCount()

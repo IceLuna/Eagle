@@ -35,7 +35,16 @@ namespace Eagle
 		: m_SoundGroup(AudioEngine::GetMasterSoundGroup())
 		, m_Volume(volume)
 	{
-		AudioEngine::CreateSoundFromBuffer(buffer.GetDataBuffer(), FMOD_DEFAULT, &m_Sound);
+		const FMOD_RESULT res = FMOD_RESULT(AudioEngine::CreateSoundFromBuffer(buffer.GetDataBuffer(), FMOD_DEFAULT, &m_Sound));
+		if (res != FMOD_OK)
+		{
+			EG_CORE_ERROR("[AudioEngine] Failed to create a sound. Error: {}", FMOD_ErrorString(res));
+			if (m_Sound)
+			{
+				m_Sound->release();
+				m_Sound = nullptr;
+			}
+		}
 	}
 
 	Audio::~Audio()
@@ -77,6 +86,9 @@ namespace Eagle
 
 	int Audio::GetChannelsCount() const
 	{
+		if (!m_Sound)
+			return 0;
+
 		int channels = 0;
 		m_Sound->getFormat(nullptr, nullptr, &channels, nullptr);
 		return channels;
@@ -84,7 +96,18 @@ namespace Eagle
 
 	void Audio::Play()
 	{
-		AudioEngine::PlaySound(m_Sound, &m_Channel);
+		if (!m_Sound)
+		{
+			EG_CORE_WARN("[AudioEngine] Failed to play the audio. The audio is invalid");
+			return;
+		}
+
+		if (!AudioEngine::PlaySound(m_Sound, &m_Channel))
+		{
+			m_Channel = nullptr;
+			return;
+		}
+
 		m_Channel->setVolume(m_Volume);
 		m_Channel->setPitch(m_Pitch);
 		m_Channel->setPan(m_Pan);
@@ -128,12 +151,22 @@ namespace Eagle
 	{
 		if (IsPlaying())
 			Stop();
+
+		ReleaseDSP();
 	}
 
 	void Sound::Play()
 	{
-		FMOD::Sound* sound = m_Audio->GetFMODSound();
-		if (sound && AudioEngine::PlaySound(sound, &m_Channel))
+		DetachDSP();
+
+		FMOD::Sound* sound = m_Audio ? m_Audio->GetFMODSound() : nullptr;
+		if (!sound)
+		{
+			EG_CORE_WARN("[AudioEngine] Failed to play the sound. The audio is invalid");
+			return;
+		}
+
+		if (AudioEngine::PlaySound(sound, &m_Channel))
 		{
 			m_Channel->setLoopCount(m_Settings.LoopCount);
 			m_Channel->setVolume(m_Settings.VolumeMultiplier * m_Audio->GetVolume());
@@ -146,29 +179,22 @@ namespace Eagle
 			if (IsFFTEnabled())
 			{
 				CreateDSP();
-
-				// Tail = closest to the sound source, before the fader.
-				// Spectrum data is now independent of volume, mute and 3D distance attenuation
-				m_Channel->addDSP(FMOD_CHANNELCONTROL_DSP_TAIL, m_DSP);
+				AttachDSP();
 			}
 		}
 		else
-			EG_CORE_WARN("[AudioEngine] Failed to play the sound");
+			m_Channel = nullptr;
 	}
 
 	void Sound::Stop()
 	{
 		if (IsPlaying())
 		{
+			DetachDSP();
+
 			auto res = m_Channel->stop();
 			if (res != FMOD_OK)
 				EG_CORE_WARN("[AudioEngine] Failed to stop the sound. Error: {}", FMOD_ErrorString(res));
-
-			if (m_DSP)
-			{
-				m_DSP->release();
-				m_DSP = nullptr;
-			}
 		}
 	}
 
@@ -283,19 +309,12 @@ namespace Eagle
 		if (bEnable)
 		{
 			CreateDSP();
-			if (m_Channel)
-			{
-				// Tail = closest to the sound source, before the fader.
-				// Spectrum data is now independent of volume, mute and 3D distance attenuation
-				m_Channel->addDSP(FMOD_CHANNELCONTROL_DSP_TAIL, m_DSP);
-			}
+			if (IsPlaying())
+				AttachDSP();
 		}
 		else
 		{
-			if (m_Channel)
-				m_Channel->removeDSP(m_DSP);
-			m_DSP->release();
-			m_DSP = nullptr;
+			ReleaseDSP();
 		}
 	}
 	
@@ -338,6 +357,9 @@ namespace Eagle
 			return false;
 		}
 
+		if (!m_DSP || !IsPlaying())
+			return false;
+
 		const int channelsCount = m_Audio->GetChannelsCount();
 		if (channelIndex >= channelsCount)
 		{
@@ -360,7 +382,11 @@ namespace Eagle
 			return false;
 		}
 
-		const uint32_t numSamples = std::min(dataCount, m_Settings.FFTSamples);
+		if (fftparameter->length <= 0)
+			return false;
+
+		// The FFT returns `length` bins, but only the first half [0; Nyquist) is meaningful
+		const uint32_t numSamples = std::min({ dataCount, m_Settings.FFTSamples, uint32_t(fftparameter->length) / 2u });
 		if (channelIndex == -1)
 		{
 			for (uint32_t i = 0; i < numSamples; ++i)
@@ -385,8 +411,12 @@ namespace Eagle
 
 	float Sound::GetSampleRate() const
 	{
+		FMOD::Sound* sound = m_Audio ? m_Audio->GetFMODSound() : nullptr;
+		if (!sound)
+			return 0.f;
+
 		float sampleRate = 0.f;
-		m_Audio->GetFMODSound()->getDefaults(&sampleRate, nullptr);
+		sound->getDefaults(&sampleRate, nullptr);
 		return sampleRate;
 	}
 	
@@ -400,5 +430,44 @@ namespace Eagle
 		m_DSP->setParameterInt(FMOD_DSP_FFT_WINDOWTYPE, ToFMODType(m_Settings.FFTType));
 		m_DSP->setParameterInt(FMOD_DSP_FFT_WINDOWSIZE, int(m_Settings.FFTSamples * 2u));
 		m_DSPTempBuffer.resize(m_Settings.FFTSamples * 2u);
+	}
+
+	void Sound::AttachDSP()
+	{
+		if (!m_DSP || !m_Channel)
+			return;
+
+		// Tail = closest to the sound source, before the fader.
+		// Spectrum data is independent of volume, mute and 3D distance attenuation
+		auto res = m_Channel->addDSP(FMOD_CHANNELCONTROL_DSP_TAIL, m_DSP);
+		if (res == FMOD_ERR_DSP_INUSE)
+		{
+			// Still connected to a channel that wasn't cleaned up. Disconnect it and try again
+			m_DSP->disconnectAll(true, true);
+			res = m_Channel->addDSP(FMOD_CHANNELCONTROL_DSP_TAIL, m_DSP);
+		}
+		if (res != FMOD_OK)
+			EG_CORE_WARN("[AudioEngine] Failed to attach the FFT DSP. Error: {}", FMOD_ErrorString(res));
+	}
+
+	void Sound::DetachDSP()
+	{
+		if (!m_DSP || !m_Channel)
+			return;
+
+		// The channel may already be gone (finished or stolen). FMOD reports that as an invalid handle, which is fine here
+		auto res = m_Channel->removeDSP(m_DSP);
+		if (res != FMOD_OK && res != FMOD_ERR_INVALID_HANDLE && res != FMOD_ERR_CHANNEL_STOLEN && res != FMOD_ERR_DSP_NOTFOUND)
+			EG_CORE_WARN("[AudioEngine] Failed to detach the FFT DSP. Error: {}", FMOD_ErrorString(res));
+	}
+
+	void Sound::ReleaseDSP()
+	{
+		if (!m_DSP)
+			return;
+
+		DetachDSP();
+		m_DSP->release();
+		m_DSP = nullptr;
 	}
 }

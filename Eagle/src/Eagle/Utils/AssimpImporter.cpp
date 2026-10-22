@@ -1208,14 +1208,9 @@ namespace Eagle
 					}
 				}
 
-				if (aiMaterial->Get(AI_MATKEY_EMISSIVE_INTENSITY, aiValue) == AI_SUCCESS)
-				{
-					material->SetEmissiveIntensity(ToGLM(aiValue));
-				}
-				else
-				{
-					material->SetEmissiveIntensity(glm::vec3(0));
-				}
+				ai_real emissiveIntensity = 0;
+				aiMaterial->Get(AI_MATKEY_EMISSIVE_INTENSITY, emissiveIntensity);
+				material->SetEmissiveIntensity(glm::vec3(emissiveIntensity));
 
 				if (roughness)
 				{

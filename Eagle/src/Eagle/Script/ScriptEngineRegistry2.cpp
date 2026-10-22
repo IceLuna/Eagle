@@ -21,6 +21,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Entity::HasUserComponent_Native", Eagle::Script::Eagle_Entity_HasUserComponent);
 		mono_add_internal_call("Eagle.Entity::GetUserComponent_Native", Eagle::Script::Eagle_Entity_GetUserComponent);
 		mono_add_internal_call("Eagle.Entity::IsValid_Native", Eagle::Script::Eagle_Entity_IsValid);
+		mono_add_internal_call("Eagle.Entity::IsPendingDestroy_Native", Eagle::Script::Eagle_Entity_IsPendingDestroy);
 		mono_add_internal_call("Eagle.Entity::GetEntityName_Native", Eagle::Script::Eagle_Entity_GetEntityName);
 		mono_add_internal_call("Eagle.Entity::GetForwardVector_Native", Eagle::Script::Eagle_Entity_GetForwardVector);
 		mono_add_internal_call("Eagle.Entity::GetRightVector_Native", Eagle::Script::Eagle_Entity_GetRightVector);
@@ -331,6 +332,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Sound::GetFFTType_Native", Eagle::Script::Eagle_Sound_GetFFTType);
 		mono_add_internal_call("Eagle.Sound::GetSpectrumData_Native", Eagle::Script::Eagle_Sound_GetSpectrumData);
 		mono_add_internal_call("Eagle.Sound::GetSampleRate_Native", Eagle::Script::Eagle_Sound_GetSampleRate);
+		mono_add_internal_call("Eagle.Sound::GetSpectrumSampleRate_Native", Eagle::Script::Eagle_Sound_GetSpectrumSampleRate);
 		mono_add_internal_call("Eagle.Sound::GetChannelsCount_Native", Eagle::Script::Eagle_Sound_GetChannelsCount);
 
 		//Sound2D

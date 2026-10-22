@@ -31,6 +31,7 @@ namespace Eagle::Script
 	bool Eagle_Entity_HasUserComponent(GUID entityID, void* type);
 	MonoObject* Eagle_Entity_GetUserComponent(GUID entityID, void* type);
 	bool Eagle_Entity_IsValid(GUID entityID);
+	bool Eagle_Entity_IsPendingDestroy(GUID entityID);
 	MonoString* Eagle_Entity_GetEntityName(GUID entityID);
 	void Eagle_Entity_GetForwardVector(GUID entityID, glm::vec3* result);
 	void Eagle_Entity_GetRightVector(GUID entityID, glm::vec3* result);
@@ -229,6 +230,7 @@ namespace Eagle::Script
 	FFTWindowType Eagle_Sound_GetFFTType(GUID id);
 	bool Eagle_Sound_GetSpectrumData(GUID id, MonoArray* data, int channelIndex);
 	float Eagle_Sound_GetSampleRate(GUID id);
+	float Eagle_Sound_GetSpectrumSampleRate();
 	int Eagle_Sound_GetChannelsCount(GUID id);
 
 	// Sound2D

@@ -167,15 +167,31 @@ namespace Eagle
             return GetFFTType_Native(ID);
         }
 
+		// Fills `data` with spectrum magnitudes. Bin `i` is at `i * GetSpectrumBinWidth()` Hz.
+		// Returns false if the sound isn't playing or no spectrum is available yet.
 		// channelIndex. Allows to get data from a specific audio channel. Starts from 0. If -1, get average over all channels
         public bool GetSpectrumData(ref float[] data, int channelIndex = -1)
         {
-            return GetSpectrumData(ID, data, channelIndex);
+            return GetSpectrumData_Native(ID, data, channelIndex);
         }
 
+        // Sample rate of the audio file. Note: spectrum data is NOT computed at this rate. Use `GetSpectrumSampleRate()`
         public float GetSampleRate()
         {
             return GetSampleRate_Native(ID);
+        }
+
+        // Sample rate the spectrum data is computed at (usually 48000)
+        static public float GetSpectrumSampleRate()
+        {
+            return GetSpectrumSampleRate_Native();
+        }
+
+        // Width of one spectrum bin in Hz
+        public float GetSpectrumBinWidth()
+        {
+            uint samples = GetFFTSamples();
+            return samples > 0 ? GetSpectrumSampleRate() / (2f * samples) : 0f;
         }
 
         public int GetChannelsCount()
@@ -208,7 +224,7 @@ namespace Eagle
         internal static extern uint GetPosition_Native(GUID id);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool GetSpectrumData(GUID id, float[] data, int channelIndex);
+        internal static extern bool GetSpectrumData_Native(GUID id, float[] data, int channelIndex);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetFFTEnabled_Native(GUID id, bool value);
@@ -230,6 +246,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetSampleRate_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetSpectrumSampleRate_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern int GetChannelsCount_Native(GUID id);

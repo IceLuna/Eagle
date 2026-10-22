@@ -1015,12 +1015,29 @@ namespace Eagle
 		if (!entity)
 			return;
 
+		// Repeated requests are merged
+		auto it = m_EntitiesToDestroy.find(entity.GetEnttID());
+		if (it != m_EntitiesToDestroy.end())
+		{
+			if (bDestroyChildren && !it->second)
+			{
+				it->second = true;
+				if (bIsPlaying)
+					CallOnDestroyScripts(entity, true); // `OnDestroy` is called once per script, already notified ones are skipped
+			}
+			return;
+		}
+
+		if (IsPendingDestroy(entity))
+			return;
+
+		// Scheduled before notifying scripts, so destroy requests made from `OnDestroy` are merged
+		m_EntitiesToDestroy.emplace(entity.GetEnttID(), bDestroyChildren);
+
 		if (bIsPlaying)
 		{
 			CallOnDestroyScripts(entity, bDestroyChildren);
 		}
-
-		m_EntitiesToDestroy.emplace_back(entity, bDestroyChildren);
 
 		// EG_CORE_TRACE("Destroyed Entity: {}", entity.GetComponent<EntitySceneNameComponent>().Name);
 	}
@@ -1067,6 +1084,7 @@ namespace Eagle
 			CallOnDestroyScripts(entity, bDestroyChildren);
 		}
 
+		m_EntitiesToDestroy.erase(entity.GetEnttID());
 		DestroyEntityImmediately_Internal(entity, bDestroyChildren);
 	}
 
@@ -1571,9 +1589,13 @@ namespace Eagle
 	{
 		EG_CPU_TIMING_SCOPED("Scene. Destroy Pending Entities");
 
-		//Remove entities when a new frame begins
-		for (auto& [entity, bDestroyChildren] : m_EntitiesToDestroy)
+		// Remove entities when a new frame begins
+		for (const auto& [enttID, bDestroyChildren] : m_EntitiesToDestroy)
 		{
+			Entity entity{ enttID, this };
+			if (!entity.IsValid())
+				continue;
+
 			DestroyEntityImmediately_Internal(entity, bDestroyChildren);
 		}
 		m_EntitiesToDestroy.clear();
@@ -1581,11 +1603,20 @@ namespace Eagle
 
 	bool Scene::IsPendingDestroy(Entity entity) const
 	{
-		auto it = std::find_if(m_EntitiesToDestroy.begin(), m_EntitiesToDestroy.end(), [entity](const std::pair<Entity, bool>& val)
+		if (m_EntitiesToDestroy.empty() || !entity)
+			return false;
+
+		if (m_EntitiesToDestroy.find(entity.GetEnttID()) != m_EntitiesToDestroy.end())
+			return true;
+
+		// Scheduled through the parent that destroys its children
+		for (Entity parent = entity.GetParent(); parent; parent = parent.GetParent())
 		{
-			return val.first == entity;
-		});
-		return it != m_EntitiesToDestroy.end();
+			auto it = m_EntitiesToDestroy.find(parent.GetEnttID());
+			if (it != m_EntitiesToDestroy.end() && it->second)
+				return true;
+		}
+		return false;
 	}
 
 	void Scene::UpdateScripts(Timestep ts)

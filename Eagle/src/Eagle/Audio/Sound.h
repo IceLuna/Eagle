@@ -58,6 +58,8 @@ namespace Eagle
 
 		const FMOD::Sound* GetFMODSound() const { return m_Sound; }
 		FMOD::Sound* GetFMODSound() { return m_Sound; }
+
+		bool IsValid() const { return m_Sound != nullptr; }
 		
 		// If `soundGroup` is nullptr, master group is assigned
 		void SetSoundGroup(const Ref<SoundGroup>& soundGroup);
@@ -127,7 +129,7 @@ namespace Eagle
 		bool IsLooping() const { return m_Settings.IsLooping; }
 
 		virtual void SetStreaming(bool bStreaming) = 0;
-		bool IsStreaming() const { return m_Settings.IsLooping; }
+		bool IsStreaming() const { return m_Settings.IsStreaming; }
 
 		void SetFFTEnabled(bool bEnable);
 		bool IsFFTEnabled() const { return m_Settings.bEnableFFT; }
@@ -138,12 +140,17 @@ namespace Eagle
 		void SetFFTType(FFTWindowType type);
 		FFTWindowType GetFFTType() const { return m_Settings.FFTType; }
 
+		// Fills `outData` with spectrum magnitudes. Bin `i` is at `i * AudioEngine::GetSpectrumSampleRate() / (2 * GetFFTSamples())` Hz.
+		// Returns false if the sound isn't playing or if there's no a spectrum yet.
 		// dataCount. Array size of `outData`
 		// channelIndex. Allows to get data from a specific audio channel. Starts from 0. If -1, get average over all channels
 		bool GetSpectrumData(float* outData, uint32_t dataCount, int channelIndex = -1) const;
 
+		// Sample rate of the audio file. Returns 0 if the audio is invalid.
+		// Note: spectrum data is NOT computed at this rate. Use `AudioEngine::GetSpectrumSampleRate()` instead
 		float GetSampleRate() const;
-		int GetChannelsCount() const { return m_Audio->GetChannelsCount(); }
+
+		int GetChannelsCount() const { return m_Audio ? m_Audio->GetChannelsCount() : 0; }
 
 		const SoundSettings& GetSettings() const { return m_Settings; }
 
@@ -151,6 +158,9 @@ namespace Eagle
 
 	private:
 		void CreateDSP();
+		void AttachDSP();
+		void DetachDSP();
+		void ReleaseDSP();
 
 	protected:
 		Sound(const Ref<Audio>& audio, const SoundSettings& settings)

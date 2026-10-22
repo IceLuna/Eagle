@@ -730,7 +730,7 @@ namespace Eagle
 		std::vector<const PointLightComponent*> m_PointLights;
 		std::vector<const SpotLightComponent*> m_SpotLights;
 		std::vector<const DirectionalLightComponent*> m_DirectionalLights;
-		std::vector<std::pair<Entity, bool>> m_EntitiesToDestroy; // 1st - Entity to destroy; 2nd - whether to destroy its children
+		ankerl::unordered_dense::map<entt::entity, bool> m_EntitiesToDestroy; // Key - entity to destroy; Value - whether to destroy its children
 
 		// Camera override (see `SetCameraOverride`).
 		// Declared before `m_Registry` on purpose: components release the override from their destructors,

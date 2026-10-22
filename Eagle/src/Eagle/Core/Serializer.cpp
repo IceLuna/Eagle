@@ -4581,6 +4581,20 @@ namespace Eagle
 		};
 
 		Ref<Audio> audio = Audio::Create(binary);
+		if (!audio->IsValid())
+		{
+			if (bReloadRaw)
+			{
+				// Keep the currently loaded asset instead of replacing it with an unplayable one
+				const std::string errorMessage = "Failed to reload an asset. Unsupported or corrupted audio file: " + Utils::AsString(pathToRaw);
+				EG_CORE_ERROR("{}", errorMessage);
+				Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
+				return {};
+			}
+
+			// Still loaded, so that references to it stay valid and it can be reloaded from a fixed raw file
+			EG_CORE_ERROR("Audio asset contains audio data that can't be decoded, unsupported or corrupted audio file: {}. Re-import it from a supported format", pathToAsset);
+		}
 		audio->SetVolume(volume);
 		audio->SetPitch(pitch);
 		audio->SetPan(pan);

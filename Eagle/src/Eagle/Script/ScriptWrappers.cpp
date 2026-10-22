@@ -493,6 +493,13 @@ namespace Eagle
 		return entity.IsValid();
 	}
 
+	bool Script::Eagle_Entity_IsPendingDestroy(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		return entity && scene->IsPendingDestroy(entity);
+	}
+
 	MonoString* Script::Eagle_Entity_GetEntityName(GUID entityID)
 	{
 		auto& scene = Scene::GetCurrentScene();
@@ -3152,6 +3159,12 @@ namespace Eagle
 
 		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetSampleRate`. Sound is not found");
 		return 0.f;
+	}
+
+	float Script::Eagle_Sound_GetSpectrumSampleRate()
+	{
+		// Same for every sound: spectrum data is computed at the FMOD mixer rate
+		return AudioEngine::GetSpectrumSampleRate();
 	}
 
 	int Script::Eagle_Sound_GetChannelsCount(GUID id)

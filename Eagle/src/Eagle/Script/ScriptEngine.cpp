@@ -270,6 +270,18 @@ namespace Eagle
 		return visibility == MONO_TYPE_ATTR_PUBLIC || visibility == MONO_TYPE_ATTR_NESTED_PUBLIC;
 	}
 
+	// Abstract classes, interfaces and open generic types can't be instantiated, so they can't be used as scripts or AI nodes
+	static bool IsInstantiableClass(MonoClass* klass)
+	{
+		const uint32_t flags = mono_class_get_flags(klass);
+		if ((flags & MONO_TYPE_ATTR_ABSTRACT) || (flags & MONO_TYPE_ATTR_INTERFACE))
+			return false;
+
+		// Generic type definitions are named with an arity suffix (`MyScript`1`) in metadata
+		const char* name = mono_class_get_name(klass);
+		return name && strchr(name, '`') == nullptr;
+	}
+
 	static bool IsPublicMethod(MonoMethod* method)
 	{
 		const uint32_t visibility = mono_method_get_flags(method, NULL) & MONO_METHOD_ATTR_ACCESS_MASK;
@@ -316,6 +328,51 @@ namespace Eagle
 		return klass;
 	}
 
+	// A struct can provide its defaults through a public static `Default` property or field of its own type.
+	// Otherwise the struct is zero-initialized
+	static MonoObject* CreateDefaultStruct(MonoClass* structClass)
+	{
+		MonoDomain* domain = mono_domain_get();
+
+		if (MonoProperty* property = mono_class_get_property_from_name(structClass, "Default"))
+		{
+			MonoMethod* getter = mono_property_get_get_method(property);
+			const uint32_t getterFlags = getter ? mono_method_get_flags(getter, nullptr) : 0u;
+			if (getter && (getterFlags & MONO_METHOD_ATTR_STATIC) && IsPublicMethod(getter))
+			{
+				MonoMethodSignature* signature = mono_method_signature(getter);
+				MonoType* returnType = signature ? mono_signature_get_return_type(signature) : nullptr;
+				if (returnType && mono_class_from_mono_type(returnType) == structClass)
+				{
+					MonoObject* exception = nullptr;
+					MonoObject* value = mono_runtime_invoke(getter, nullptr, nullptr, &exception); // Value types are returned boxed
+					if (exception)
+						EG_CORE_ERROR("[ScriptEngine] '{}.Default' threw an exception. Using a zero-initialized value instead", mono_class_get_name(structClass));
+					else if (value)
+						return value;
+				}
+			}
+		}
+		else if (MonoClassField* field = mono_class_get_field_from_name(structClass, "Default"))
+		{
+			const uint32_t fieldFlags = mono_field_get_flags(field);
+			const bool bPublicStatic = ((fieldFlags & MONO_FIELD_ATTR_PUBLIC) == MONO_FIELD_ATTR_PUBLIC) && ((fieldFlags & MONO_FIELD_ATTR_STATIC) == MONO_FIELD_ATTR_STATIC);
+			if (bPublicStatic && mono_class_from_mono_type(mono_field_get_type(field)) == structClass)
+			{
+				MonoObject* boxedStruct = mono_object_new(domain, structClass);
+				if (boxedStruct)
+				{
+					MonoVTable* vtable = mono_class_vtable(domain, structClass);
+					mono_runtime_class_init(vtable); // Make sure the static constructor has initialized `Default`
+					mono_field_static_get_value(vtable, field, mono_object_unbox(boxedStruct));
+					return boxedStruct;
+				}
+			}
+		}
+
+		return mono_object_new(domain, structClass);
+	}
+
 	// Parses members of a struct.
 	// Returns false if the struct can't be exposed (it has no supported public members or it's recursive)
 	static bool ParseStructMembers(MonoClass* structClass, const std::string& fieldName, std::vector<PublicField>& outMembers, StructParseStack& structStack)
@@ -329,8 +386,8 @@ namespace Eagle
 			return false;
 		}
 
-		// Create a default (zero-initialized) boxed struct so that members can read their default values from it
-		MonoObject* boxedStruct = mono_object_new(mono_domain_get(), structClass);
+		// Create a default boxed struct so that members can read their default values from it
+		MonoObject* boxedStruct = CreateDefaultStruct(structClass);
 		if (!boxedStruct)
 			return false;
 
@@ -692,7 +749,7 @@ namespace Eagle
 		typedef void (*UpdateFunc)(MonoObject*, float, MonoObject**);
 
 		EntityInstance* entityInstance = GetEntityInstance(entity);
-		if (entityInstance && entityInstance->Methods.OnUpdateMethod)
+		if (entityInstance && !entityInstance->bDestroyed && entityInstance->Methods.OnUpdateMethod)
 		{
 			UpdateFunc function = (UpdateFunc)entityInstance->Methods.OnUpdateMethod.Thunk;
 			MonoObject* exception = nullptr;
@@ -782,7 +839,7 @@ namespace Eagle
 		typedef void (*PhysicsUpdateFunc)(MonoObject*, float, MonoObject**);
 
 		EntityInstance* entityInstance = GetEntityInstance(entity);
-		if (entityInstance && entityInstance->Methods.OnPhysicsUpdateMethod)
+		if (entityInstance && !entityInstance->bDestroyed && entityInstance->Methods.OnPhysicsUpdateMethod)
 		{
 			PhysicsUpdateFunc function = (PhysicsUpdateFunc)entityInstance->Methods.OnPhysicsUpdateMethod.Thunk;
 			MonoObject* exception = nullptr;
@@ -796,7 +853,11 @@ namespace Eagle
 		typedef void (*OnDestroyFunc)(MonoObject*, MonoObject**);
 
 		EntityInstance* entityInstance = GetEntityInstance(entity);
-		if (entityInstance && entityInstance->Methods.OnDestroyMethod)
+		if (!entityInstance || entityInstance->bDestroyed)
+			return;
+
+		entityInstance->bDestroyed = true;
+		if (entityInstance->Methods.OnDestroyMethod)
 		{
 			OnDestroyFunc function = (OnDestroyFunc)entityInstance->Methods.OnDestroyMethod.Thunk;
 			MonoObject* exception = nullptr;
@@ -892,6 +953,7 @@ namespace Eagle
 		GUID entityGUID = entity.GetGUID();
 		EntityInstance& entityInstance = s_EntityInstanceDataMap[entityGUID];
 		entityInstance.Methods = entityClassData.Methods;
+		entityInstance.bDestroyed = false;
 
 		// Default construct an instance of the script class
 		// We then use this to set initial values for any public fields that are
@@ -1028,7 +1090,7 @@ namespace Eagle
 			if (!monoClass)
 				continue;
 
-			if (IsPublicClass(monoClass))
+			if (IsPublicClass(monoClass) && IsInstantiableClass(monoClass))
 			{
 				std::string fullName = ToFullName(nameSpace, className);
 				if (mono_class_is_subclass_of(monoClass, s_EntityClass, false))
@@ -1096,7 +1158,7 @@ namespace Eagle
 			if (!monoClass)
 				continue;
 
-			if (IsPublicClass(monoClass))
+			if (IsPublicClass(monoClass) && IsInstantiableClass(monoClass))
 			{
 				const std::string fullName = ToFullName(nameSpace, className);
 				if (monoClass != s_AITaskClass && mono_class_is_subclass_of(monoClass, s_AITaskClass, false))
@@ -1685,10 +1747,10 @@ namespace Eagle
 	MonoObject* ScriptEngine::GetEntityMonoObject(GUID entityID)
 	{
 		auto it = s_EntityInstanceDataMap.find(entityID);
-		if (it == s_EntityInstanceDataMap.end())
-			return InstantiateEntityUnmanaged(entityID);
+		if (it != s_EntityInstanceDataMap.end())
+			return it->second.GetMonoInstance();
 
-		return s_EntityInstanceDataMap[entityID].GetMonoInstance();
+		return InstantiateEntityUnmanaged(entityID);
 	}
 	
 	void EntityScriptClass::InitClassMethods()

@@ -2075,6 +2075,7 @@ namespace Eagle
 			return false;
 		}
 
+		// Sample rate of the audio file. Spectrum data is computed at `AudioEngine::GetSpectrumSampleRate()` instead
 		float GetSampleRate() const
 		{
 			if (m_Sound)

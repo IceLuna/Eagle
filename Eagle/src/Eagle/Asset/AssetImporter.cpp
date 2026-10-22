@@ -9,6 +9,7 @@
 #include "Eagle/Classes/StaticMesh.h"
 #include "Eagle/Classes/SkeletalMesh.h"
 #include "Eagle/Animation/Animation.h"
+#include "Eagle/Audio/AudioEngine.h"
 #include "Eagle/Utils/Compressor.h"
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Utils/YamlUtils.h"
@@ -679,7 +680,7 @@ namespace Eagle
 			{ ".mp3",   AssetType::Audio },
 			{ ".wav",   AssetType::Audio },
 			{ ".ogg",   AssetType::Audio },
-			{ ".wma",   AssetType::Audio },
+			{ ".flac",  AssetType::Audio },
 			{ ".ttf",   AssetType::Font },
 			{ ".otf",   AssetType::Font },
 		};
@@ -889,8 +890,21 @@ namespace Eagle
 	bool AssetImporter::ImportAudio(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings)
 	{
 		ScopedDataBuffer buffer(FileSystem::Read(pathToRaw));
+		if (!buffer)
+		{
+			EG_CORE_ERROR("Failed to import audio. Couldn't read the file: {}", pathToRaw);
+			return false;
+		}
+
+		std::string error;
+		if (!AudioEngine::IsAudioDataSupported(buffer.GetDataBuffer(), &error))
+		{
+			EG_CORE_ERROR("Failed to import audio. Unsupported or corrupted audio file: {}. Error: {}", pathToRaw, error);
+			return false;
+		}
+
 		auto data = Serializer::SerializeAssetAudioFromData(buffer.GetDataBuffer(), GUID{}, pathToRaw, 1.f, 1.f, 0.f, nullptr);
-		return WriteImportedFile(outputFilename, data);
+		return WriteAssetFile(outputFilename, data);
 	}
 	
 	bool AssetImporter::ImportFont(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings)

@@ -15,6 +15,7 @@ namespace Eagle
 	{
 		EntityScriptMethods Methods;
 		Scope<MonoInstance> Instance;
+		bool bDestroyed = false; // `OnDestroy` is called once per instance, no matter how many times it's requested
 
 		MonoObject* GetMonoInstance() const { return Instance ? Instance->GetInstance() : nullptr; }
 	};

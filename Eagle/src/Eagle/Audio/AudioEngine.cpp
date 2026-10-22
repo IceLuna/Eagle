@@ -45,6 +45,21 @@ namespace Eagle
 		}
 	}
 	
+	float AudioEngine::GetSpectrumSampleRate()
+	{
+		int sampleRate = 0;
+		if (s_CoreData.System)
+		{
+			auto res = s_CoreData.System->getSoftwareFormat(&sampleRate, nullptr, nullptr);
+			if (res != FMOD_OK)
+			{
+				EG_CORE_ERROR("[AudioEngine] Failed to get the spectrum sample rate. Error: {}", FMOD_ErrorString(res));
+				sampleRate = 0;
+			}
+		}
+		return float(sampleRate);
+	}
+
 	void AudioEngine::Shutdown()
 	{
 		s_MasterGroup.reset();
@@ -52,8 +67,33 @@ namespace Eagle
 		s_CoreData.System = nullptr;
 	}
 
+	bool AudioEngine::IsAudioDataSupported(const DataBuffer& buffer, std::string* outError)
+	{
+		if (!buffer.Data || buffer.Size == 0)
+		{
+			if (outError)
+				*outError = "The audio data is empty";
+			return false;
+		}
+
+		FMOD::Sound* sound = nullptr;
+		const FMOD_RESULT res = FMOD_RESULT(CreateSoundFromBuffer(buffer, FMOD_CREATESTREAM | FMOD_OPENONLY, &sound));
+		if (sound)
+			sound->release();
+
+		if (res != FMOD_OK)
+		{
+			if (outError)
+				*outError = FMOD_ErrorString(res);
+			return false;
+		}
+		return true;
+	}
+
 	uint32_t AudioEngine::CreateSoundFromBuffer(const DataBuffer& buffer, uint32_t playMode, FMOD::Sound** sound)
 	{
+		*sound = nullptr;
+
 		const char* audioBuffer = (const char*)buffer.Data;
 		FMOD_CREATESOUNDEXINFO exinfo;
 		memset(&exinfo, 0, sizeof(FMOD_CREATESOUNDEXINFO));
@@ -77,7 +117,12 @@ namespace Eagle
 	bool AudioEngine::PlaySound(FMOD::Sound* sound, FMOD::Channel** channel)
 	{
 		auto res = s_CoreData.System->playSound(sound, nullptr, false, channel);
-		return res == FMOD_OK;
+		if (res != FMOD_OK)
+		{
+			EG_CORE_ERROR("[AudioEngine] Failed to play a sound. Error: {}", FMOD_ErrorString(res));
+			return false;
+		}
+		return true;
 	}
 
 	void AudioEngine::Update(Timestep ts)
