@@ -10,7 +10,7 @@ layout(binding = 5, r32ui) uniform writeonly uimage2D g_ResultBentNormals;
 #endif
 
 #define XE_GTAO_DENOISE
-#include "XeGTAO/XeGTAO.h"
+#include "xegtao/XeGTAO.h"
 
 layout(push_constant) uniform PushConstants
 {

@@ -20,7 +20,7 @@ layout(binding = 6, r32ui) uniform writeonly uimage2D g_BentNormalsResult;
 #endif
 
 #define XE_GTAO_MAIN_PASS
-#include "XeGTAO/XeGTAO.h"
+#include "xegtao/XeGTAO.h"
 
 layout(push_constant) uniform PushConstants
 {

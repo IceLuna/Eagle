@@ -455,6 +455,7 @@ project "Eagle-Editor"
 	postbuildcommands 
 	{
 		'{COPY} "%{cfg.targetdir}/%{prj.name}.exe" "."',
+		'{COPY} "%{LibDir.assimp}/assimp-vc143-mt.dll" "."',
 	}
 
 	filter "configurations:Debug"
