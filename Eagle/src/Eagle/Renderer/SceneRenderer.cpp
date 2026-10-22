@@ -536,6 +536,7 @@ namespace Eagle
 	void SceneRenderer::SetOptions(const SceneRendererSettings& options)
 	{
 		m_Options = options;
+		m_Options.ScreenSpaceShadows.Validate();
 		RecalculateOptions();
 	}
 

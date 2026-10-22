@@ -342,7 +342,7 @@ namespace Eagle
 		const std::vector<float>& GetCascadeFarPlanes() const { return m_CameraCascadeFarPlanes; }
 		float GetShadowMaxDistance() const { return m_MaxShadowDistance; }
 
-		float IsProjectionFlipped() const { return m_bProjectionFlipped; }
+		bool IsProjectionFlipped() const { return m_bProjectionFlipped; }
 
 	public:
 		RenderStats& GetStats() { return m_Stats[m_FrameIndex]; }

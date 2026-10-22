@@ -1740,9 +1740,9 @@ namespace Eagle
 				UI::BeginPropertyGrid("ScreenSpaceSettings");
 
 				auto& settings = options.ScreenSpaceShadows;
-				bSettingsChanged |= UI::PropertyDrag("Samples", settings.Samples, 1, 0, INT_MAX, "Number of shadow samples per-pixel. Determines overall cost, as this value controls the length of the shadow (in pixels)");
-				bSettingsChanged |= UI::PropertyDrag("Hard Shadow Samples", settings.HardShadowSamples, 1, 0, INT_MAX, "Number of initial shadow samples that will produce a hard shadow, and not perform sample-averaging. This trades aliasing for grounding pixels very close to the shadow caster.");
-				bSettingsChanged |= UI::PropertyDrag("Fade Out Samples", settings.FadeOutSamples, 1, 0, INT_MAX, "Number of samples that will fade out at the end of the shadow (for a minor cost).");
+				bSettingsChanged |= UI::PropertyDrag("Samples", settings.Samples, 1, 1, int(ScreenSpaceShadowsSettings::MaxSamples), "Number of shadow samples per-pixel. Determines overall cost, as this value controls the length of the shadow (in pixels)");
+				bSettingsChanged |= UI::PropertyDrag("Hard Shadow Samples", settings.HardShadowSamples, 1, 0, int(ScreenSpaceShadowsSettings::MaxSamples), "Number of initial shadow samples that will produce a hard shadow, and not perform sample-averaging. This trades aliasing for grounding pixels very close to the shadow caster.");
+				bSettingsChanged |= UI::PropertyDrag("Fade Out Samples", settings.FadeOutSamples, 1, 0, int(ScreenSpaceShadowsSettings::MaxSamples), "Number of samples that will fade out at the end of the shadow (for a minor cost).");
 				bSettingsChanged |= UI::PropertyDrag("Surface Thickness", settings.SurfaceThickness, 0.005f, 0, 1.0, "This is the assumed thickness of each pixel for shadow-casting, measured as a percentage of the difference in non-linear depth between the sample and FarDepthValue (which is 1.0).");
 				bSettingsChanged |= UI::PropertyDrag("Bilinear Threshold", settings.BilinearThreshold, 0.005f, 0, 1.0, s_ScreenSpaceShadowsBilinearThresholdHelpMsg);
 				bSettingsChanged |= UI::PropertyDrag("Shadow Contrast", settings.ShadowContrast, 0.01f, 1.0f, FLT_MAX, "A contrast boost is applied to the transition in/out of shadow. Must be >= 1.0");

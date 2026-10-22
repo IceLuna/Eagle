@@ -43,6 +43,13 @@ layout(constant_id = 10) const bool  s_bDebugOutputEdgeMask = false;
 #define USE_UV_PIXEL_BIAS 1
 
 #include "defines.h"
+
+// ScreenSpaceShadowsTask samples depth with an opaque black border sampler, and Bend requires the border to be the far depth value.
+// 0.0 is the far depth only with reversed depth.
+#ifndef EG_REVERSED_DEPTH
+#error "bend_sss: the depth sampler border (0.0) must match EG_DEPTH_FAR. Switch ScreenSpaceShadowsTask's sampler to an opaque white border when disabling reversed depth."
+#endif
+
 #include "screen_space_shadows/bend_sss_gpu.h"
 
 layout (binding = 0) uniform sampler2D g_Depth;
@@ -93,5 +100,7 @@ void main()
 	float resultVisibility;
     WriteScreenSpaceShadow(params, groupID, localID, g_Depth, writeXY, resultVisibility);
 
-	imageStore(g_Output, ivec2(writeXY), vec4(resultVisibility));
+	const ivec2 outputCoords = ivec2(writeXY);
+	if (all(greaterThanEqual(outputCoords, ivec2(0))) && all(lessThan(outputCoords, imageSize(g_Output))))
+		imageStore(g_Output, outputCoords, vec4(resultVisibility));
 }

@@ -966,6 +966,8 @@ namespace Eagle
 
     struct ScreenSpaceShadowsSettings
     {
+        static constexpr uint32_t MaxSamples = 256u;
+
         // Number of shadow samples per-pixel.
         // Determines overall cost, as this value controls the length of the shadow (in pixels).
         uint32_t Samples = 60;
@@ -1007,6 +1009,17 @@ namespace Eagle
         bool bUseEarlyOut = true;
 
         bool bDebugOutputEdgeMask = false;
+
+        // Clamps values to ranges the shader can handle safely
+        void Validate()
+        {
+            Samples = glm::clamp(Samples, 1u, MaxSamples);
+            HardShadowSamples = glm::min(HardShadowSamples, Samples);
+            FadeOutSamples = glm::min(FadeOutSamples, Samples - HardShadowSamples);
+            SurfaceThickness = glm::max(SurfaceThickness, 0.f);
+            BilinearThreshold = glm::max(BilinearThreshold, 0.f);
+            ShadowContrast = glm::max(ShadowContrast, 1.f);
+        }
 
         bool operator== (const ScreenSpaceShadowsSettings& other) const
         {

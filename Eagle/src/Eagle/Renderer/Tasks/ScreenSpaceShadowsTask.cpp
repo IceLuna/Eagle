@@ -92,8 +92,10 @@ namespace Bend
         result.LightCoordinate_Shader[0] = ((inLightProjection[0] / xy_light_w) * +0.5f + 0.5f) * (float)inViewportSize[0];
         result.LightCoordinate_Shader[1] = ((inLightProjection[1] / xy_light_w) * -0.5f + 0.5f) * (float)inViewportSize[1];
         result.LightCoordinate_Shader[2] = inLightProjection[3] == 0 ? 0 : (inLightProjection[2] / inLightProjection[3]);
-        // Use proper single precision float to avoid warning that the original code has
-        result.LightCoordinate_Shader[3] = inLightProjection[3] > 0 ? 1.0f : -1.0f;
+        // Eagle change: the original code uses `inLightProjection[3] > 0` here, while XY above treats w == 0 as positive (+FP_limit).
+        // That mismatch reverses the ray direction when w == 0 exactly, which is always the case for orthographic cameras (shadows get cast towards the light).
+        // Use the same adjusted w for both so they agree.
+        result.LightCoordinate_Shader[3] = xy_light_w > 0 ? 1.0f : -1.0f;
 
         if (inExpandedZRange)
         {
@@ -227,6 +229,10 @@ namespace Eagle
 		specs.Size = glm::uvec3(m_Renderer.GetViewportSize(), 1u);
 		specs.Usage = ImageUsage::Storage | ImageUsage::Sampled | ImageUsage::TransferDst;
 		m_ShadowMap = Image::Create(specs, "Screen Space Shadows");
+
+        // Bend requires the border color to be equal to the far depth value.
+        // Opaque black (0.0) is used because the engine uses reversed depth (EG_REVERSED_DEPTH).
+        // If reversed depth is ever disabled, this has to become an opaque white border (bend_sss.comp will #error in that case).
         m_Sampler = Sampler::Create(FilterMode::Point, AddressMode::ClampToOpaqueBlack, CompareOperation::Never, 0.0f, 0.0f);
         
         m_Settings = m_Renderer.GetOptions().ScreenSpaceShadows;
@@ -242,13 +248,17 @@ namespace Eagle
 
 		if (!m_Renderer.HasDirectionalLight() || !m_Renderer.GetDirectionalLight().DoesCastScreenSpaceShadows())
 		{
-			cmd->ClearColorImage(m_ShadowMap, glm::vec4(0.0f), m_ShadowMap->GetLayout(), finalLayout);
+			cmd->ClearColorImage(m_ShadowMap, glm::vec4(1.0f), m_ShadowMap->GetLayout(), finalLayout);
 			return;
 		}
 
-        glm::mat4 proj = m_Renderer.GetProjectionMatrix();
-        proj[1][1] = m_Renderer.IsProjectionFlipped() ? -proj[1][1] : proj[1][1];
-        const glm::mat4 vp = proj * m_Renderer.GetViewMatrix();
+        // Use the same (jittered) view-projection the depth buffer was rendered with.
+        // Bend's BuildDispatchList() expects D3D-style NDC where +Y is up (it does `y * -0.5 + 0.5`).
+        // Vulkan's NDC +Y is always down, so the whole Y row is always negated, regardless of `IsProjectionFlipped()`.
+        // Negating the whole row (not just [1][1]) also flips the TAA jitter term in [2][1].
+        glm::mat4 vp = m_Renderer.GetCameraMatrices().ViewProj;
+        for (int column = 0; column < 4; ++column)
+            vp[column][1] = -vp[column][1];
 
         const glm::ivec2 size = m_Renderer.GetViewportSize();
         const auto& light = m_Renderer.GetDirectionalLight();
