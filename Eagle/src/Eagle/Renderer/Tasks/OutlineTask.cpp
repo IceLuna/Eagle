@@ -2,6 +2,7 @@
 #include "OutlineTask.h"
 #include "RenderMeshesTask.h"
 #include "RenderSkeletalMeshesTask.h"
+#include "RenderBillboardsTask.h"
 
 #include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/Renderer/SceneRenderer.h"

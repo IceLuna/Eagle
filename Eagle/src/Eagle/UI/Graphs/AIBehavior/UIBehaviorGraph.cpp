@@ -1,6 +1,7 @@
 #include "egpch.h"
 #include "UIBehaviorGraph.h"
 
+#include "Eagle/Core/Application.h"
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/UI/UI.h"
 #include "Eagle/Input/Input.h"

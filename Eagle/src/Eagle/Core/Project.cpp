@@ -5,12 +5,12 @@
 #include "Eagle/Core/Scene.h"
 #include "Eagle/Core/Serializer.h"
 #include "Eagle/Asset/AssetManager.h"
+#include "Eagle/Renderer/SceneRenderer.h"
 #include "Eagle/Renderer/VidWrappers/Shader.h"
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Utils/YamlUtils.h"
 #include "Eagle/Utils/Compressor.h"
 #include "Eagle/Utils/SerializerUtils.h"
-#include "Eagle/Physics/PhysicsEngine.h"
 #include "Eagle/Core/AsyncTask.h"
 
 #include <magic_enum_utility.hpp>

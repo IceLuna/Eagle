@@ -2,9 +2,10 @@
 
 #include "AssetThumbnailRenderer.h"
 
-#include "Eagle/Core/Scene.h"
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Components/Components.h"
+#include "Eagle/Core/Scene.h"
+#include "Eagle/Renderer/SceneRenderer.h"
 
 namespace Eagle
 {

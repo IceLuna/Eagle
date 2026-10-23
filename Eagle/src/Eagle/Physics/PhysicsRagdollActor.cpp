@@ -4,8 +4,9 @@
 #include "PhysXInternal.h"
 #include "PhysicsUtils.h"
 
-#include "Eagle/Components/Components.h"
 #include "Eagle/Animation/AnimationSystem.h"
+#include "Eagle/Components/Components.h"
+#include "Eagle/Classes/SkeletalMesh.h"
 
 namespace Eagle
 {

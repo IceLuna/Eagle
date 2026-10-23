@@ -2,6 +2,7 @@
 #include "AnimationBlendSpaceAssetEditor.h"
 #include "../EditorResources.h"
 
+#include "Eagle/Animation/AnimationGraph.h"
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/UI/UI.h"
 #include "Eagle/Input/Input.h"

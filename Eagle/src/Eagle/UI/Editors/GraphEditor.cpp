@@ -1,6 +1,7 @@
 #include "egpch.h"
 #include "GraphEditor.h"
 
+#include "Eagle/Core/Application.h"
 #include "Eagle/Core/Serializer.h"
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/UI/UI.h"

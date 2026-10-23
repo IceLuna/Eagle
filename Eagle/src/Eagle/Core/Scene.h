@@ -1,7 +1,9 @@
 #pragma once
 
-#include "Eagle/Renderer/SceneRenderer.h"
+#include "Eagle/Renderer/RendererUtils.h"
+#include "Eagle/Renderer/PostProcessOverride.h"
 #include "Eagle/Core/Timestep.h"
+#include "Eagle/Input/MouseButtonCodes.h"
 #include "Eagle/Camera/EditorCamera.h"
 #include "Eagle/Audio/Sound3D.h"
 #include "Eagle/Physics/PhysicsSettings.h"
@@ -15,7 +17,16 @@
 
 namespace Eagle
 {
+	class SceneRenderer;
 	class Entity;
+	class SpriteComponent;
+	class BillboardComponent;
+	class TextComponent;
+	class Text2DComponent;
+	class Image2DComponent;
+	class ParticleSystemComponent;
+	class DecalComponent;
+	class AssetTextureCube;
 	class Event;
 	class CameraComponent;
 	class PhysicsScene;
@@ -682,6 +693,8 @@ namespace Eagle
 		bool bDrawAllTextUIBounds = false;
 
 	private:
+		// Implemented in SceneDebugDraw.cpp
+		bool GatherDebugDrawData();
 		void AddTextUIBoundsDebugLines();
 		void UpdateUIMouse();
 		std::optional<glm::vec2> GetMousePositionInViewport() const;
@@ -763,10 +776,10 @@ namespace Eagle
 
 		// Mouse over 2D UI
 		// Hovered when mouse buttons were pressed (stores state for each mouse button)
-		std::array<GUID, magic_enum::enum_count<Mouse>()> m_UIPressedEntities = []()
+		std::array<GUID, s_MouseButtonsCount> m_UIPressedEntities = []()
 		{
 			// Init all elements to zeros instead of doing it in each constructor and potentially missing it
-			std::array<GUID, magic_enum::enum_count<Mouse>()> arr;
+			std::array<GUID, s_MouseButtonsCount> arr;
 			arr.fill(GUID(0, 0));
 			return arr;
 		}();
@@ -815,7 +828,7 @@ namespace Eagle
 
 		// Key - entt::entity. Can't store Entity (forward declaration)
 		// Value - outline per layer (indexed by `OutlineLayer`)
-		using EntityOutlineLayers = std::array<std::optional<OutlineSettings>, s_OutlineLayersCount>;
+		using EntityOutlineLayers = std::array<std::optional<OutlineSettings>, (uint32_t)OutlineLayer::Num>;
 		ankerl::unordered_dense::map<uint32_t, EntityOutlineLayers> m_EntityOutlines;
 
 		GUID m_GUID;

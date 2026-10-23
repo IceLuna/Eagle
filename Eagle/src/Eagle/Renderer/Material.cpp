@@ -8,6 +8,8 @@
 
 namespace Eagle
 {
+	static_assert(magic_enum::enum_count<MaterialBlendMode>() == s_MaxBlendModes, "Update s_MaxBlendModes in RendererUtils.h");
+
 	class PrivateMaterial : public Material
 	{
 	public:

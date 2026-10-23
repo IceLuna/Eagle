@@ -1,13 +1,14 @@
 #include "egpch.h"
-#include "Component.h"
+#include "Components.h"
 
+#include "Eagle/Classes/SkeletalMesh.h"
+#include "Eagle/Animation/AnimationGraph.h"
 #include "Eagle/Animation/AnimationSystem.h"
 #include "Eagle/Physics/PhysicsActor.h"
 #include "Eagle/Physics/PhysicsRagdollActor.h"
 #include "Eagle/Physics/PhysicsShapes.h"
 #include "Eagle/Physics/PhysicsScene.h"
 #include "Eagle/Physics/PhysicsCharacterController.h"
-#include "Components.h"
 
 namespace Eagle
 {

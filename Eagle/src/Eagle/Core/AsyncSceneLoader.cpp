@@ -7,6 +7,7 @@
 #include "Eagle/Core/SceneSerializer.h"
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Renderer/RenderManager.h"
+#include "Eagle/Renderer/SceneRenderer.h"
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Utils/SerializerUtils.h"

@@ -3,6 +3,7 @@
 #include "Eagle/Core/Serializer.h"
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Utils/PlatformUtils.h"
+#include "Eagle/Utils/YamlUtils.h"
 
 #include "EditorSerializer.h"
 #include "EditorLayer.h"

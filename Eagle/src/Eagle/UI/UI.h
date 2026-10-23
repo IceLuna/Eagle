@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Eagle/Core/Entity.h"
 #include "Eagle/Core/EnumUtils.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Asset/AssetManager.h"

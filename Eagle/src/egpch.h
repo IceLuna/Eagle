@@ -34,7 +34,15 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <ankerl/unordered_dense.h>
+#include <entt.hpp>
+#include <magic_enum.hpp>
 
 #ifdef EG_PLATFORM_WINDOWS
+	#ifndef WIN32_LEAN_AND_MEAN
+		#define WIN32_LEAN_AND_MEAN
+	#endif
+	#ifndef NOMINMAX
+		#define NOMINMAX
+	#endif
 	#include <Windows.h>
 #endif

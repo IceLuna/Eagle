@@ -22,6 +22,22 @@
 #include "Tasks/ScreenSpaceReflectionsTask.h"
 #include "Tasks/ParticleSystemTask.h"
 #include "Tasks/HZBTask.h"
+#include "Tasks/RenderLinesTask.h"
+#include "Tasks/RenderLines2DTask.h"
+#include "Tasks/RenderTrianglesTask.h"
+#include "Tasks/RenderBillboardsTask.h"
+#include "Tasks/ShadowPassTask.h"
+#include "Tasks/PBRPassTask.h"
+#include "Tasks/RenderTextUnlitTask.h"
+#include "Tasks/RenderTextLitTask.h"
+#include "Tasks/RenderText2DTask.h"
+#include "Tasks/RenderImages2DTask.h"
+#include "Tasks/RenderDecalsTask.h"
+#include "Tasks/SSAOTask.h"
+#include "Tasks/GTAOTask.h"
+#include "Tasks/FogPassTask.h"
+#include "Tasks/ScreenSpaceShadowsTask.h"
+#include "Tasks/OutlineTask.h"
 
 #include "Eagle/Debug/CPUTimings.h" 
 #include "Eagle/Debug/GPUTimings.h"
@@ -883,5 +899,155 @@ namespace Eagle
 		cmd->TransitionLayout(Emissive, Emissive->GetLayout(), ImageReadAccess::PixelShaderRead);
 		cmd->TransitionLayout(MaterialData, MaterialData->GetLayout(), ImageReadAccess::PixelShaderRead);
 		cmd->TransitionLayout(Flags, Flags->GetLayout(), ImageReadAccess::PixelShaderRead);
+	}
+
+	void SceneRenderer::SetTexts2D(const std::vector<const Text2DComponent*>& texts)
+	{
+		m_Text2DTask->SetTexts(texts);
+	}
+
+	void SceneRenderer::SetImages2D(const std::vector<const Image2DComponent*>& images)
+	{
+		m_Images2DTask->SetImages(images);
+	}
+
+	void SceneRenderer::SetDecals(const std::vector<const DecalComponent*>& decals)
+	{
+		m_RenderDecalsTask->SetDecals(decals);
+	}
+
+	void SceneRenderer::SetBillboards(const std::vector<const BillboardComponent*>& billboards)
+	{
+		m_RenderBillboardsTask->SetBillboards(billboards);
+	}
+
+	void SceneRenderer::SetDebugLines(const std::vector<RendererLine>& lines)
+	{
+		m_RenderLinesTask->SetDebugLines(lines);
+	}
+
+	void SceneRenderer::SetDebugLines2D(const std::vector<RendererLine2D>& lines)
+	{
+		m_RenderLines2DTask->SetLines(lines);
+	}
+
+	void SceneRenderer::SetDebugTriangles(const std::vector<RendererTriangle>& triangles)
+	{
+		m_RenderTrianglesTask->SetDebugTriangles(triangles);
+	}
+
+	void SceneRenderer::AddAdditionalBillboard(const Transform& worldTransform, const Ref<Texture2D>& texture, int entityID)
+	{
+		m_RenderBillboardsTask->AddAdditionalBillboard(worldTransform, texture, entityID);
+	}
+
+	void SceneRenderer::UpdateDecalsTransforms(const std::vector<const DecalComponent*>& decals)
+	{
+		m_RenderDecalsTask->SetTransforms(decals);
+	}
+
+	const std::vector<BillboardVertex>& SceneRenderer::GetBillboardsVertices() const
+	{
+		return m_RenderBillboardsTask->GetVertices();
+	}
+
+	const Ref<Buffer>& SceneRenderer::GetBillboardsVertexBuffer() const
+	{
+		return m_RenderBillboardsTask->GetVertexBuffer();
+	}
+
+	const Ref<Buffer>& SceneRenderer::GetBillboardsIndexBuffer() const
+	{
+		return m_RenderBillboardsTask->GetIndexBuffer();
+	}
+
+	const std::vector<Ref<Image>>& SceneRenderer::GetPointLightShadowMaps() const
+	{
+		return m_ShadowPassTask->GetPointLightShadowMaps();
+	}
+
+	const std::vector<Ref<Image>>& SceneRenderer::GetPointLightShadowMapsColored() const
+	{
+		return m_ShadowPassTask->GetPointLightShadowMapsColored();
+	}
+
+	const std::vector<Ref<Image>>& SceneRenderer::GetPointLightShadowMapsColoredDepth() const
+	{
+		return m_ShadowPassTask->GetPointLightShadowMapsColoredDepth();
+	}
+
+	const std::vector<Ref<Image>>& SceneRenderer::GetSpotLightShadowMaps() const
+	{
+		return m_ShadowPassTask->GetSpotLightShadowMaps();
+	}
+
+	const std::vector<Ref<Image>>& SceneRenderer::GetSpotLightShadowMapsColored() const
+	{
+		return m_ShadowPassTask->GetSpotLightShadowMapsColored();
+	}
+
+	const std::vector<Ref<Image>>& SceneRenderer::GetSpotLightShadowMapsColoredDepth() const
+	{
+		return m_ShadowPassTask->GetSpotLightShadowMapsColoredDepth();
+	}
+
+	const std::vector<Ref<Image>>& SceneRenderer::GetDirectionalLightShadowMaps() const
+	{
+		return m_ShadowPassTask->GetDirectionalLightShadowMaps();
+	}
+
+	const std::vector<Ref<Image>>& SceneRenderer::GetDirectionalLightShadowMapsColored() const
+	{
+		return m_ShadowPassTask->GetDirectionalLightShadowMapsColored();
+	}
+
+	const std::vector<Ref<Image>>& SceneRenderer::GetDirectionalLightShadowMapsColoredDepth() const
+	{
+		return m_ShadowPassTask->GetDirectionalLightShadowMapsColoredDepth();
+	}
+
+	const Ref<Sampler>& SceneRenderer::GetShadowMapPCFSampler() const
+	{
+		return m_ShadowPassTask->GetPCFSampler();
+	}
+
+	const Ref<Sampler>& SceneRenderer::GetShadowMapPointSampler() const
+	{
+		return m_ShadowPassTask->GetPointSampler();
+	}
+
+	const Ref<Sampler>& SceneRenderer::GetColoredShadowMapSampler() const
+	{
+		return m_ShadowPassTask->GetColoredShadowMapsSampler();
+	}
+
+	const Ref<Buffer>& SceneRenderer::GetFogDataBuffer() const
+	{
+		return m_FogTask->GetFogDataBuffer();
+	}
+
+	const Ref<Image>& SceneRenderer::GetSMDistribution() const
+	{
+		return m_PBRPassTask->GetSMDistribution();
+	}
+
+	Ref<Image> SceneRenderer::GetSSAOResult() const
+	{
+		return m_SSAOTask ? m_SSAOTask->GetResult() : nullptr;
+	}
+
+	Ref<Image> SceneRenderer::GetGTAOResult() const
+	{
+		return m_GTAOTask ? m_GTAOTask->GetResult() : nullptr;
+	}
+
+	Ref<Image> SceneRenderer::GetGTAOBentNormals() const
+	{
+		return m_GTAOTask ? m_GTAOTask->GetBentNormals() : nullptr;
+	}
+
+	const Ref<Image>& SceneRenderer::GetScreenSpaceShadows() const
+	{
+		return m_ScreenSpaceShadows->GetResult();
 	}
 }

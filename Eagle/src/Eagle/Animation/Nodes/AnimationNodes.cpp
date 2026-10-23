@@ -4,8 +4,9 @@
 #include "Eagle/Animation/AnimationGraph.h"
 #include "Eagle/Animation/AnimationStateMachineGraph.h"
 #include "Eagle/Animation/AnimationSystem.h"
-#include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/Asset/Asset.h"
+#include "Eagle/Classes/SkeletalMesh.h"
+#include "Eagle/Renderer/RenderManager.h"
 
 #include <type_traits>
 

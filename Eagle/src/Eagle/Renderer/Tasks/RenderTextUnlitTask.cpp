@@ -4,6 +4,7 @@
 #include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/Renderer/VidWrappers/Buffer.h"
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
+#include "Eagle/Renderer/SceneRenderer.h"
 
 #include "Eagle/Components/Components.h"
 

@@ -3,6 +3,7 @@
 
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/Asset/AssetManager.h"
+#include "Eagle/Core/Application.h"
 #include "Eagle/UI/UI.h"
 #include "Eagle/UI/Editors/GraphEditor.h"
 #include "Eagle/UI/Editors/AnimationGraphEditor.h"

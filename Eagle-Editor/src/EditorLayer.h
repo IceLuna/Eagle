@@ -11,6 +11,7 @@
 namespace Eagle
 {
 	class Sound2D;
+	class SceneRenderer;
 
 	enum class EditorState
 	{

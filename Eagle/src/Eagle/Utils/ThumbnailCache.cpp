@@ -1,8 +1,9 @@
 #include "egpch.h"
 #include "ThumbnailCache.h"
 
-#include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Asset/AssetManager.h"
+#include "Eagle/Renderer/RenderManager.h"
+#include "Eagle/Renderer/VidWrappers/Texture.h"
 
 namespace Eagle
 {

@@ -7,6 +7,7 @@
 #include "Eagle/Renderer/TextureCompressor.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 
+#include "Eagle/Classes/SkeletalMesh.h"
 #include "Eagle/Core/Entity.h"
 #include "Eagle/Core/Scene.h"
 #include "Eagle/Core/Serializer.h"
@@ -218,6 +219,11 @@ namespace Eagle
 		m_Format = format;
 
 		return true;
+	}
+	
+	bool AssetTextureCube::IsCompressed() const
+	{
+		return m_Texture->IsCompressed();
 	}
 
 	bool AssetTextureCube::SetCompressed(bool bCompress)
@@ -586,6 +592,25 @@ namespace Eagle
 			m_Mesh->RemoveOnMaterialPropertyModifiedCallback(m_GUID);
 	}
 
+	AssetStaticMesh& AssetStaticMesh::operator=(Asset&& other) noexcept
+	{
+		if (this == &other)
+			return *this;
+
+		if (m_Mesh)
+			m_Mesh->RemoveOnMaterialPropertyModifiedCallback(m_GUID);
+
+		Asset::operator=(std::move(other));
+
+		AssetStaticMesh&& meshAsset = (AssetStaticMesh&&)other;
+		meshAsset.m_Mesh->RemoveOnMaterialPropertyModifiedCallback(m_GUID);
+		m_Mesh = std::move(meshAsset.m_Mesh);
+		SetSourceMeshData(meshAsset.IsCombinedMesh(), meshAsset.GetSourceMeshName(), meshAsset.GetSourceMeshIndex(), meshAsset.WasLocationReset());
+		AddOnMaterialPropertyModifiedCallback();
+
+		return *this;
+	}
+
 	void AssetStaticMesh::AddOnMaterialPropertyModifiedCallback()
 	{
 		m_Mesh->AddOnMaterialPropertyModifiedCallback(m_GUID, [this]()
@@ -598,6 +623,25 @@ namespace Eagle
 	{
 		if (m_Mesh)
 			m_Mesh->RemoveOnMaterialPropertyModifiedCallback(m_GUID);
+	}
+
+	AssetSkeletalMesh& AssetSkeletalMesh::operator=(Asset&& other) noexcept
+	{
+		if (this == &other)
+			return *this;
+
+		if (m_Mesh)
+			m_Mesh->RemoveOnMaterialPropertyModifiedCallback(m_GUID);
+
+		Asset::operator=(std::move(other));
+
+		AssetSkeletalMesh&& meshAsset = (AssetSkeletalMesh&&)other;
+		meshAsset.m_Mesh->RemoveOnMaterialPropertyModifiedCallback(m_GUID);
+		m_Mesh = std::move(meshAsset.m_Mesh);
+		SetSourceMeshData(meshAsset.IsCombinedMesh(), meshAsset.GetSourceMeshName(), meshAsset.GetSourceMeshIndex(), meshAsset.WasLocationReset());
+		AddOnMaterialPropertyModifiedCallback();
+
+		return *this;
 	}
 
 	void AssetSkeletalMesh::AddOnMaterialPropertyModifiedCallback()

@@ -37,6 +37,8 @@ namespace Eagle
 	class SequencePostProcessTrack;
 	class SequenceEventTrack;
 	struct SequenceEvalContext;
+	struct SequenceEventWindow;
+	struct SequenceEvent;
 	struct SkeletalMeshAnimation;
 
 	enum class AssetType
@@ -351,7 +353,7 @@ namespace Eagle
 
 		const Ref<TextureCube>& GetTexture() const { return m_Texture; }
 		AssetTextureCubeFormat GetFormat() const { return m_Format; }
-		bool IsCompressed() const { return m_Texture->IsCompressed(); }
+		bool IsCompressed() const;
 
 		AssetTextureCube& operator=(Asset&& other) noexcept override
 		{
@@ -419,24 +421,7 @@ namespace Eagle
 
 		const Ref<StaticMesh>& GetMesh() const { return m_Mesh; }
 
-		AssetStaticMesh& operator=(Asset&& other) noexcept override
-		{
-			if (this == &other)
-				return *this;
-
-			if (m_Mesh)
-				m_Mesh->RemoveOnMaterialPropertyModifiedCallback(m_GUID);
-
-			Asset::operator=(std::move(other));
-
-			AssetStaticMesh&& meshAsset = (AssetStaticMesh&&)other;
-			meshAsset.m_Mesh->RemoveOnMaterialPropertyModifiedCallback(m_GUID);
-			m_Mesh = std::move(meshAsset.m_Mesh);
-			SetSourceMeshData(meshAsset.IsCombinedMesh(), meshAsset.GetSourceMeshName(), meshAsset.GetSourceMeshIndex(), meshAsset.WasLocationReset());
-			AddOnMaterialPropertyModifiedCallback();
-
-			return *this;
-		}
+		AssetStaticMesh& operator=(Asset&& other) noexcept override;
 
 		static constexpr AssetType GetAssetType_Static() { return AssetType::StaticMesh; }
 
@@ -460,24 +445,7 @@ namespace Eagle
 
 		const Ref<SkeletalMesh>& GetMesh() const { return m_Mesh; }
 
-		AssetSkeletalMesh& operator=(Asset&& other) noexcept override
-		{
-			if (this == &other)
-				return *this;
-
-			if (m_Mesh)
-				m_Mesh->RemoveOnMaterialPropertyModifiedCallback(m_GUID);
-
-			Asset::operator=(std::move(other));
-
-			AssetSkeletalMesh&& meshAsset = (AssetSkeletalMesh&&)other;
-			meshAsset.m_Mesh->RemoveOnMaterialPropertyModifiedCallback(m_GUID);
-			m_Mesh = std::move(meshAsset.m_Mesh);
-			SetSourceMeshData(meshAsset.IsCombinedMesh(), meshAsset.GetSourceMeshName(), meshAsset.GetSourceMeshIndex(), meshAsset.WasLocationReset());
-			AddOnMaterialPropertyModifiedCallback();
-
-			return *this;
-		}
+		AssetSkeletalMesh& operator=(Asset&& other) noexcept override;
 
 		static constexpr AssetType GetAssetType_Static() { return AssetType::SkeletalMesh; }
 

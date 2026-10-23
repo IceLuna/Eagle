@@ -5,27 +5,11 @@
 #include "PostProcessOverride.h"
 
 #include "Tasks/RendererTask.h"
-#include "Tasks/RenderLinesTask.h"
-#include "Tasks/RenderLines2DTask.h"
-#include "Tasks/RenderTrianglesTask.h"
-#include "Tasks/RenderBillboardsTask.h"
-#include "Tasks/ShadowPassTask.h"
-#include "Tasks/PBRPassTask.h"
 #include "Tasks/LightsManagerTask.h"
 #include "Tasks/GeometryManagerTask.h"
-#include "Tasks/RenderTextUnlitTask.h"
-#include "Tasks/RenderTextLitTask.h"
-#include "Tasks/RenderText2DTask.h"
-#include "Tasks/RenderImages2DTask.h"
-#include "Tasks/RenderDecalsTask.h"
-#include "Tasks/SSAOTask.h"
-#include "Tasks/GTAOTask.h"
-#include "Tasks/FogPassTask.h"
 #include "Tasks/SkinCacheTask.h"
 #include "Tasks/FrustumCullingTask.h"
 #include "Tasks/LightCullingTask.h"
-#include "Tasks/ScreenSpaceShadowsTask.h"
-#include "Tasks/OutlineTask.h"
 
 #include <ankerl/unordered_dense.h>
 
@@ -39,6 +23,7 @@ namespace Eagle
 	class Text2DComponent;
 	class Image2DComponent;
 	class ParticleSystemComponent;
+	class DecalComponent;
 
 	class PointLightComponent;
 	class SpotLightComponent;
@@ -52,6 +37,23 @@ namespace Eagle
 	class Camera;
 
 	class ParticleSystemTask;
+	class RenderLinesTask;
+	class RenderLines2DTask;
+	class RenderTrianglesTask;
+	class RenderBillboardsTask;
+	class ShadowPassTask;
+	class PBRPassTask;
+	class RenderTextUnlitTask;
+	class RenderTextLitTask;
+	class RenderText2DTask;
+	class RenderImages2DTask;
+	class RenderDecalsTask;
+	class SSAOTask;
+	class GTAOTask;
+	class FogPassTask;
+	class ScreenSpaceShadowsTask;
+	class OutlineTask;
+	struct BillboardVertex;
 
 	struct GBuffer
 	{
@@ -109,8 +111,8 @@ namespace Eagle
 		void SetPointLights(const std::vector<const PointLightComponent*>& pointLights) { m_LightsManagerTask->SetPointLights(pointLights); }
 		void SetSpotLights(const std::vector<const SpotLightComponent*>& spotLights) { m_LightsManagerTask->SetSpotLights(spotLights); }
 		void SetTexts(const std::vector<const TextComponent*>& texts) { m_GeometryManagerTask->SetTexts(texts); }
-		void SetTexts2D(const std::vector<const Text2DComponent*>& texts) { m_Text2DTask->SetTexts(texts); }
-		void SetImages2D(const std::vector<const Image2DComponent*>& images) { m_Images2DTask->SetImages(images); }
+		void SetTexts2D(const std::vector<const Text2DComponent*>& texts);
+		void SetImages2D(const std::vector<const Image2DComponent*>& images);
 
 		void SetProjectUIScaleSettings(const UIScaleSettings& settings);
 		const UIScaleSettings& GetProjectUIScaleSettings() const { return m_ProjectUIScaleSettings; }
@@ -121,7 +123,7 @@ namespace Eagle
 		const UIScaleSettings& GetUIScaleSettings_RT() const { return m_UIScaleSettings_RT; }
 		float GetUIScale() const { return GetUIScaleSettings().GetScale(glm::vec2(m_Size)); }
 
-		void SetDecals(const std::vector<const DecalComponent*>& decals) { m_RenderDecalsTask->SetDecals(decals); }
+		void SetDecals(const std::vector<const DecalComponent*>& decals);
 		void AddParticleSystem(const ParticleSystemComponent& system);
 		void UpdateParticleSystem(const ParticleSystemComponent& system);
 		void RemoveParticleSystem(const ParticleSystemComponent& system, bool bForceImmediateRemoval);
@@ -129,11 +131,11 @@ namespace Eagle
 		void RemoveAllParticleSystems();
 		//--------------------------------------------------------------------------------------
 		//---------------------------------- Render functions ----------------------------------
-		void SetBillboards(const std::vector<const BillboardComponent*>& billboards) { m_RenderBillboardsTask->SetBillboards(billboards); }
-		void SetDebugLines(const std::vector<RendererLine>& lines) { m_RenderLinesTask->SetDebugLines(lines); }
-		void SetDebugLines2D(const std::vector<RendererLine2D>& lines) { m_RenderLines2DTask->SetLines(lines); }
-		void SetDebugTriangles(const std::vector<RendererTriangle>& triangles) { m_RenderTrianglesTask->SetDebugTriangles(triangles); }
-		void AddAdditionalBillboard(const Transform& worldTransform, const Ref<Texture2D>& texture, int entityID = -1) { m_RenderBillboardsTask->AddAdditionalBillboard(worldTransform, texture, entityID); } // For internal usage
+		void SetBillboards(const std::vector<const BillboardComponent*>& billboards);
+		void SetDebugLines(const std::vector<RendererLine>& lines);
+		void SetDebugLines2D(const std::vector<RendererLine2D>& lines);
+		void SetDebugTriangles(const std::vector<RendererTriangle>& triangles);
+		void AddAdditionalBillboard(const Transform& worldTransform, const Ref<Texture2D>& texture, int entityID = -1); // For internal usage
 
 		// `directionalLight` can be set to nullptr to disable directional light
 		void SetDirectionalLight(const DirectionalLightComponent* directionalLight) { m_LightsManagerTask->SetDirectionalLight(directionalLight); }
@@ -143,7 +145,7 @@ namespace Eagle
 		void UpdateMeshesTransforms(const std::vector<const StaticMeshComponent*>& meshes) { m_GeometryManagerTask->SetTransforms(meshes); }
 		void UpdateSkeletalMeshesTransforms(const std::vector<const SkeletalMeshComponent*>& meshes) { m_GeometryManagerTask->SetTransforms(meshes); }
 		void UpdateSpritesTransforms(const std::vector<const SpriteComponent*>& sprites) { m_GeometryManagerTask->SetTransforms(sprites); }
-		void UpdateDecalsTransforms(const std::vector<const DecalComponent*>& decals) { m_RenderDecalsTask->SetTransforms(decals); }
+		void UpdateDecalsTransforms(const std::vector<const DecalComponent*>& decals);
 		void UpdateTextsTransforms(const std::vector<const TextComponent*>& texts) { m_GeometryManagerTask->SetTransforms(texts); }
 
 		void SetGridEnabled(bool bEnabled) { m_bGridEnabled = bEnabled; }
@@ -243,36 +245,36 @@ namespace Eagle
 		const std::vector<Ref<Texture2D>>& GetAtlases() const { return m_GeometryManagerTask->GetAtlases(); }
 		uint64_t GetGeometryVersion() const { return m_GeometryManagerTask->GetVersion(); }
 
-		const auto& GetBillboardsVertices() const { return m_RenderBillboardsTask->GetVertices(); }
-		const Ref<Buffer>& GetBillboardsVertexBuffer() const { return m_RenderBillboardsTask->GetVertexBuffer(); }
-		const Ref<Buffer>& GetBillboardsIndexBuffer() const { return m_RenderBillboardsTask->GetIndexBuffer(); }
+		const std::vector<BillboardVertex>& GetBillboardsVertices() const;
+		const Ref<Buffer>& GetBillboardsVertexBuffer() const;
+		const Ref<Buffer>& GetBillboardsIndexBuffer() const;
 
-		const std::vector<Ref<Image>>& GetPointLightShadowMaps() const { return m_ShadowPassTask->GetPointLightShadowMaps(); }
-		const std::vector<Ref<Image>>& GetPointLightShadowMapsColored() const { return m_ShadowPassTask->GetPointLightShadowMapsColored(); }
-		const std::vector<Ref<Image>>& GetPointLightShadowMapsColoredDepth() const { return m_ShadowPassTask->GetPointLightShadowMapsColoredDepth(); }
+		const std::vector<Ref<Image>>& GetPointLightShadowMaps() const;
+		const std::vector<Ref<Image>>& GetPointLightShadowMapsColored() const;
+		const std::vector<Ref<Image>>& GetPointLightShadowMapsColoredDepth() const;
 
-		const std::vector<Ref<Image>>& GetSpotLightShadowMaps() const { return m_ShadowPassTask->GetSpotLightShadowMaps(); }
-		const std::vector<Ref<Image>>& GetSpotLightShadowMapsColored() const { return m_ShadowPassTask->GetSpotLightShadowMapsColored(); }
-		const std::vector<Ref<Image>>& GetSpotLightShadowMapsColoredDepth() const { return m_ShadowPassTask->GetSpotLightShadowMapsColoredDepth(); }
+		const std::vector<Ref<Image>>& GetSpotLightShadowMaps() const;
+		const std::vector<Ref<Image>>& GetSpotLightShadowMapsColored() const;
+		const std::vector<Ref<Image>>& GetSpotLightShadowMapsColoredDepth() const;
 
-		const std::vector<Ref<Image>>& GetDirectionalLightShadowMaps() const { return m_ShadowPassTask->GetDirectionalLightShadowMaps(); }
-		const std::vector<Ref<Image>>& GetDirectionalLightShadowMapsColored() const { return m_ShadowPassTask->GetDirectionalLightShadowMapsColored(); }
-		const std::vector<Ref<Image>>& GetDirectionalLightShadowMapsColoredDepth() const { return m_ShadowPassTask->GetDirectionalLightShadowMapsColoredDepth(); }
+		const std::vector<Ref<Image>>& GetDirectionalLightShadowMaps() const;
+		const std::vector<Ref<Image>>& GetDirectionalLightShadowMapsColored() const;
+		const std::vector<Ref<Image>>& GetDirectionalLightShadowMapsColoredDepth() const;
 
-		const Ref<Sampler>& GetShadowMapPCFSampler() const { return m_ShadowPassTask->GetPCFSampler(); }
-		const Ref<Sampler>& GetShadowMapPointSampler() const { return m_ShadowPassTask->GetPointSampler(); }
-		const Ref<Sampler>& GetColoredShadowMapSampler() const { return m_ShadowPassTask->GetColoredShadowMapsSampler(); }
+		const Ref<Sampler>& GetShadowMapPCFSampler() const;
+		const Ref<Sampler>& GetShadowMapPointSampler() const;
+		const Ref<Sampler>& GetColoredShadowMapSampler() const;
 
-		const Ref<Buffer>& GetFogDataBuffer() const { return m_FogTask->GetFogDataBuffer(); }
+		const Ref<Buffer>& GetFogDataBuffer() const;
 
 		// Contains View Matrix, InvVP
 		const Ref<Buffer>& GetCameraMatricesBuffer() const { return m_CameraDataBuffer; }
-		const Ref<Image>& GetSMDistribution() const { return m_PBRPassTask->GetSMDistribution(); }
+		const Ref<Image>& GetSMDistribution() const;
 
-		Ref<Image> GetSSAOResult() const { return m_SSAOTask ? m_SSAOTask->GetResult() : nullptr; }
-		Ref<Image> GetGTAOResult() const { return m_GTAOTask ? m_GTAOTask->GetResult() : nullptr; }
-		Ref<Image> GetGTAOBentNormals() const { return m_GTAOTask ? m_GTAOTask->GetBentNormals() : nullptr; }
-		const Ref<Image>& GetScreenSpaceShadows() const { return m_ScreenSpaceShadows->GetResult(); }
+		Ref<Image> GetSSAOResult() const;
+		Ref<Image> GetGTAOResult() const;
+		Ref<Image> GetGTAOBentNormals() const;
+		const Ref<Image>& GetScreenSpaceShadows() const;
 		// ------------------------------------------------
 
 		const GBuffer& GetGBuffer() const { return m_GBuffer; }

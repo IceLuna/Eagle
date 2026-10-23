@@ -1,10 +1,13 @@
 #include "egpch.h"
-#include "Eagle/Core/Entity.h"
-#include "Eagle/Core/GUID.h"
-#include "Eagle/Components/Components.h"
+
 #include "ScriptEngine.h"
 #include "ScriptEngineRegistry.h"
 #include "PublicField.h"
+
+#include "Eagle/Core/Application.h"
+#include "Eagle/Core/Entity.h"
+#include "Eagle/Core/GUID.h"
+#include "Eagle/Components/Components.h"
 
 #include "Eagle/Physics/PhysicsEngine.h"
 
@@ -629,6 +632,11 @@ namespace Eagle
 		
 		s_RootDomain = nullptr;
 		s_CurrentMonoDomain = nullptr;
+	}
+
+	MonoImage* ScriptEngine::GetCoreAssemblyImage()
+	{
+		return s_CoreAssemblyImage;
 	}
 
 	MonoClass* ScriptEngine::GetEntityClass()

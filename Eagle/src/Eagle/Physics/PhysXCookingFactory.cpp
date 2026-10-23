@@ -1,11 +1,13 @@
 #include "egpch.h"
 #include "PhysXCookingFactory.h"
 #include "PhysXInternal.h"
+
+#include "Eagle/Asset/Asset.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Core/Project.h"
 #include "Eagle/Core/DataBuffer.h"
+#include "Eagle/Classes/SkeletalMesh.h"
 #include "Eagle/Utils/PlatformUtils.h"
-#include "Eagle/Asset/Asset.h"
 
 namespace Eagle
 {

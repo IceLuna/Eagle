@@ -19,4 +19,7 @@ namespace Eagle
 		ButtonRight = Button1,
 		ButtonMiddle = Button2
 	};
+
+	// Not computed with magic_enum here since this header is included by a lot of files. Checked by a static_assert in Scene.cpp
+	inline constexpr size_t s_MouseButtonsCount = (size_t)Mouse::ButtonLast + 1;
 }

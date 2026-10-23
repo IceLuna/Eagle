@@ -26,6 +26,8 @@ namespace Eagle
 		static void Init(const Path& assemblyPath);
 		static void Shutdown();
 
+		static MonoImage* GetCoreAssemblyImage();
+
 		static MonoClass* GetEntityClass();
 		static MonoClass* GetAssetClass();
 		static MonoClass* GetVector3Class();

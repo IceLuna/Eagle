@@ -125,8 +125,10 @@ group "Dependecies"
 	include "Eagle/vendor/ImPlot"
 	include "Eagle/vendor/yaml-cpp"
 	include "Eagle/vendor/msdf-atlas-gen"
+	include "Eagle/vendor/spdlog.lua"
 	group "Dependecies/RecastNavigation"
 		include "Eagle/vendor/recastnavigation"
+	group "Dependecies"
 group ""
 
 project "Eagle"
@@ -214,6 +216,7 @@ project "Eagle"
 		"_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING",
 		"KHRONOS_STATIC",
 		"_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING",
+		"SPDLOG_COMPILED_LIB",
 	}
 
 	libdirs
@@ -224,6 +227,7 @@ project "Eagle"
 
 	links
 	{
+		"spdlog",
 		"GLFW",
 		"ImGui",
 		"ImPlot",
@@ -254,12 +258,6 @@ project "Eagle"
 
 	filter "files:Eagle/vendor/ImGuizmo/src/**.cpp"
 		enablepch "Off"
-	filter "files:Eagle/src/Eagle/Script/ScriptEngineRegistry.cpp"
-		buildoptions { "/bigobj" }
-	filter "files:Eagle/src/Eagle/Core/Serializer.cpp"
-		buildoptions { "/bigobj" }
-	filter "files:Eagle/src/Eagle/Core/Scene.cpp"
-		buildoptions { "/bigobj" }
 
 	filter "system:windows"
 		systemversion "latest"
@@ -384,6 +382,10 @@ project "Eagle-Editor"
 	cppdialect "C++23"
 	staticruntime "off"
 
+	pchheader "edpch.h"
+	pchsource "Eagle-Editor/src/edpch.cpp"
+	forceincludes { "edpch.h" }
+
 	targetdir ("%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
@@ -398,6 +400,7 @@ project "Eagle-Editor"
 
 	includedirs
 	{
+		"%{prj.name}/src", -- so the force-included PCH header is found from every subfolder
 		"Eagle/vendor/spdlog/include",
 		"Eagle/src",
 		"Eagle/vendor",
@@ -433,6 +436,7 @@ project "Eagle-Editor"
 		"IMGUI_DEFINE_MATH_OPERATORS",
 		"KHRONOS_STATIC",
 		"_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING",
+		"SPDLOG_COMPILED_LIB",
 	}
 
 	linkoptions
@@ -535,6 +539,10 @@ project "Eagle-Game"
 	language "C++"
 	cppdialect "C++23"
 	staticruntime "off"
+	
+	pchheader "gamepch.h"
+	pchsource "Eagle-Game/src/gamepch.cpp"
+	forceincludes { "gamepch.h" }
 
 	targetdir ("Eagle-Editor")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
@@ -550,6 +558,7 @@ project "Eagle-Game"
 
 	includedirs
 	{
+		"%{prj.name}/src", -- so the force-included PCH header is found from every subfolder
 		"Eagle/vendor/spdlog/include",
 		"Eagle/src",
 		"Eagle/vendor",
@@ -585,6 +594,7 @@ project "Eagle-Game"
 		"IMGUI_DEFINE_MATH_OPERATORS",
 		"KHRONOS_STATIC",
 		"_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING",
+		"SPDLOG_COMPILED_LIB",
 	}
 
 	linkoptions

@@ -9,7 +9,7 @@
 template<>
 struct fmt::formatter<glm::vec2> : fmt::formatter<std::string>
 {
-	auto format(const glm::vec3& my, format_context& ctx) const -> decltype(ctx.out())
+	auto format(const glm::vec2& my, format_context& ctx) const -> decltype(ctx.out())
 	{
 		return fmt::format_to(ctx.out(), "[{}, {}]", my.x, my.y);
 	}

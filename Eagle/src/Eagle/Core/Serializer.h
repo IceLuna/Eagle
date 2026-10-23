@@ -1,16 +1,22 @@
 #pragma once
 
-#include "Eagle/Core/Entity.h"
+#include "Eagle/Core/GUID.h"
 #include "Eagle/Math/Transform.h"
 #include "Eagle/Core/DataBuffer.h"
-#include "Eagle/Animation/AnimationGraph.h"
-#include "Eagle/Utils/Utils.h"
-#include "Eagle/Utils/YamlUtils.h"
 #include "Eagle/AI/BehaviorGraph.h"
 #include "Eagle/Renderer/TextureCompressor.h"
 
+namespace YAML
+{
+	class Emitter;
+	class Node;
+}
+
 namespace Eagle
 {
+	class Entity;
+	class Scene;
+	class GraphVariable;
 	class Material;
 	class PhysicsMaterial;
 	class PublicField;

@@ -38,6 +38,8 @@ namespace std
 
 namespace Eagle
 {
+    class GraphNode;
+
     enum class PinType
     {
         Flow,
