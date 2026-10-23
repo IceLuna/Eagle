@@ -1,21 +1,21 @@
 project "spdlog"
-	location "Eagle/vendor/spdlog"
+	location "spdlog"
 	kind "StaticLib"
 	language "C++"
 	cppdialect "C++23"
 	staticruntime "off"
 
-	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
-	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+	targetdir ("../../bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("../../bin-int/" .. outputdir .. "/%{prj.name}")
 
 	files
 	{
-		"Eagle/vendor/spdlog/src/*.cpp"
+		"spdlog/src/*.cpp"
 	}
 
 	includedirs
 	{
-		"Eagle/vendor/spdlog/include"
+		"spdlog/include"
 	}
 
 	defines

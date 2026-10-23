@@ -1358,6 +1358,7 @@ namespace Eagle
 		else
 		{
 			m_RefreshBrowser = true;
+			SetSelected(newFilepath, true);
 		}
 	}
 
