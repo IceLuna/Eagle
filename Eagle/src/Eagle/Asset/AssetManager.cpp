@@ -368,6 +368,12 @@ namespace Eagle
 				// Another thread is loading it. Wait for its result instead of deserializing it a second time
 				std::shared_future<Ref<Asset>> future = it->second.Future;
 				lock.unlock();
+				if (MainThread::IsMainThread())
+				{
+					// The loading thread might be waiting for the main thread (SubmitAndWait), so keep executing main-thread functions
+					while (future.wait_for(std::chrono::milliseconds(1)) != std::future_status::ready)
+						MainThread::ExecutePending();
+				}
 				return future.get();
 			}
 
