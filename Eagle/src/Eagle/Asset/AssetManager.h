@@ -65,6 +65,7 @@ namespace Eagle
 		static bool Exists(const Path& path);
 		static bool GetRuntimeAssetData(const Path& path, Ref<ScopedDataBuffer>* outData);
 		static bool IsLoaded(const GUID& guid);
+		static bool IsRuntimeAsset(const Ref<Asset>& asset);
 
 		// Some asset types can only be created on the main thread (entity assets)
 		static bool RequiresMainThread(AssetType type);

@@ -78,6 +78,25 @@ namespace Eagle
 		return RenderManager::GetFrameNumber_CPU();
 	}
 
+	void Script::Eagle_Renderer_GetGPUInfo(MonoString** vendor, MonoString** device, MonoString** driverVersion, MonoString** apiVersion, uint64_t* deviceVRAM, float* maxAnisotropy,
+		bool* bTextureCompressionASTC_LDR, bool* bTextureCompressionETC2, bool* bTextureCompressionBC)
+	{
+		const auto& caps = Application::Get().GetRenderContext()->GetCapabilities();
+
+		MonoDomain* domain = mono_domain_get();
+		*vendor = mono_string_new(domain, caps.Vendor.c_str());
+		*device = mono_string_new(domain, caps.Device.c_str());
+		*driverVersion = mono_string_new(domain, caps.DriverVersion.c_str());
+		*apiVersion = mono_string_new(domain, caps.ApiVersion.c_str());
+
+		*deviceVRAM = caps.DeviceVRAM;
+		*maxAnisotropy = caps.MaxAnisotropy;
+
+		*bTextureCompressionASTC_LDR = caps.bTextureCompressionASTC_LDR;
+		*bTextureCompressionETC2 = caps.bTextureCompressionETC2;
+		*bTextureCompressionBC = caps.bTextureCompressionBC;
+	}
+
 	//-------------- Renderer --------------
 	void Script::Eagle_Renderer_SetFogSettings(const glm::vec3* color, float minDistance, float maxDistance, float density, FogEquation equation, bool bEnabled)
 	{

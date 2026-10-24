@@ -307,11 +307,22 @@ namespace Eagle
 		m_Caps.DriverVersion = driverProps.driverInfo;
 		m_Caps.ApiVersion = VulkanAPIVersionToString(props.apiVersion);
 		m_Caps.MaxAnisotropy = bSupportsAnisotropy ? props.limits.maxSamplerAnisotropy : 1.f;
-		m_Caps.MaxSamples = props.limits.maxDescriptorSetSamplers;
-		m_Caps.MaxSamples = props.limits.maxDescriptorSetSamplers;
 		m_Caps.bTextureCompressionASTC_LDR = supportedFeatures.bTextureCompressionASTC_LDR;
 		m_Caps.bTextureCompressionETC2 = supportedFeatures.bTextureCompressionETC2;
 		m_Caps.bTextureCompressionBC = supportedFeatures.bTextureCompressionBC;
+		m_Caps.DeviceVRAM = 0;
+
+		{
+			const auto& memProps = m_PhysicalDevice->GetMemoryProperties();
+			for (uint32_t i = 0; i < memProps.memoryHeapCount; ++i)
+			{
+				const VkMemoryHeap& heap = memProps.memoryHeaps[i];
+				if (heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
+				{
+					m_Caps.DeviceVRAM += heap.size;
+				}
+			}
+		}
 
 		Utils::DumpGPUInfo();
 	}

@@ -552,6 +552,12 @@ namespace Eagle
 		return s_AssetsByGUID.find(guid) != s_AssetsByGUID.end();
 	}
 
+	bool AssetManager::IsRuntimeAsset(const Ref<Asset>& asset)
+	{
+		std::scoped_lock lock(s_Mutex);
+		return s_RuntimeAssets.find(asset->GetGUID()) != s_RuntimeAssets.end();
+	}
+
 	bool AssetManager::RequiresMainThread(AssetType type)
 	{
 		return type == AssetType::Entity;

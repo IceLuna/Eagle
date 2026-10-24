@@ -12,6 +12,22 @@ namespace Eagle
         x8 = 8,
     };
 
+    public struct GPUInfo
+    {
+        public string Vendor; // AMD, NVIDIA, Intel, etc...
+        public string Device; // Device Name
+        public string DriverVersion;
+        public string ApiVersion;
+
+        public ulong DeviceVRAM; // In bytes
+        public float MaxAnisotropy;
+
+        // Whether a compression is supported
+        public bool bTextureCompressionASTC_LDR;
+        public bool bTextureCompressionETC2;
+        public bool bTextureCompressionBC;
+    }
+
     public struct RendererVertex
     {
         public Vector3 Location;
@@ -512,6 +528,15 @@ namespace Eagle
             return GetFrameNumber_Native();
         }
 
+        public static GPUInfo GetGPUInfo()
+        {
+            GPUInfo info = new GPUInfo();
+            GetGPUInfo_Native(out info.Vendor, out info.Device, out info.DriverVersion, out info.ApiVersion, out info.DeviceVRAM, out info.MaxAnisotropy,
+                out info.bTextureCompressionASTC_LDR, out info.bTextureCompressionETC2, out info.bTextureCompressionBC);
+
+            return info;
+        }
+
         public static void DrawLine(RendererLine line)
         {
             DrawLine_Native(ref line.Start.Color, ref line.End.Color, ref line.Start.Location, ref line.End.Location);
@@ -994,6 +1019,10 @@ namespace Eagle
         // Native calls
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern UInt64 GetFrameNumber_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetGPUInfo_Native(out string vendor, out string device, out string driverVersion, out string apiVersion, out ulong deviceVRAM, out float maxAnisotropy,
+            out bool bTextureCompressionASTC_LDR, out bool bTextureCompressionETC2, out bool bTextureCompressionBC);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void DrawLine_Native(ref Color3 startColor, ref Color3 endColor, ref Vector3 start, ref Vector3 end);

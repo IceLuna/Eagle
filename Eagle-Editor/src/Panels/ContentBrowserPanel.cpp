@@ -760,6 +760,9 @@ namespace Eagle
 
 	void ContentBrowserPanel::OpenAssetEditor(const Ref<Asset>& asset)
 	{
+		if (AssetManager::IsRuntimeAsset(asset))
+			return;
+
 		switch (asset->GetAssetType())
 		{
 		case AssetType::Texture2D:

@@ -521,6 +521,13 @@ namespace Eagle
         x8 = 8,
     };
 
+    enum class AmbientOcclusion
+    {
+        None,
+        SSAO,
+        GTAO
+    };
+
     struct MSAASettings
     {
         MSAASamples Samples = MSAASamples::x4;
@@ -706,13 +713,6 @@ namespace Eagle
         }
 
         bool operator!= (const BloomSettings& other) const { return !(*this == other); }
-    };
-
-    enum class AmbientOcclusion
-    {
-        None,
-        SSAO,
-        GTAO
     };
 
     struct SSAOSettings

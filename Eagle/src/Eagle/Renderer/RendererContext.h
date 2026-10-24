@@ -17,7 +17,7 @@ namespace Eagle
 		std::string DriverVersion;
 		std::string ApiVersion;
 
-		uint32_t MaxSamples = 0;
+		size_t DeviceVRAM = 0;
 		float MaxAnisotropy = 0.f;
 
 		bool bTextureCompressionASTC_LDR = false;

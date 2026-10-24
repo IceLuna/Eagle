@@ -48,6 +48,7 @@ namespace Eagle
 
 		// Renderer
 		mono_add_internal_call("Eagle.Renderer::GetFrameNumber_Native", Eagle::Script::Eagle_Renderer_GetFrameNumber);
+		mono_add_internal_call("Eagle.Renderer::GetGPUInfo_Native", Eagle::Script::Eagle_Renderer_GetGPUInfo);
 		mono_add_internal_call("Eagle.Renderer::SetFogSettings_Native", Eagle::Script::Eagle_Renderer_SetFogSettings);
 		mono_add_internal_call("Eagle.Renderer::GetFogSettings_Native", Eagle::Script::Eagle_Renderer_GetFogSettings);
 		mono_add_internal_call("Eagle.Renderer::SetBloomSettings_Native", Eagle::Script::Eagle_Renderer_SetBloomSettings);

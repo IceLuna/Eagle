@@ -622,6 +622,8 @@ namespace Eagle::Script
 
 	// Renderer
 	uint64_t Eagle_Renderer_GetFrameNumber();
+	void Eagle_Renderer_GetGPUInfo(MonoString** vendor, MonoString** device, MonoString** driverVersion, MonoString** apiVersion, uint64_t* deviceVRAM, float* maxAnisotropy,
+		bool* bTextureCompressionASTC_LDR, bool* bTextureCompressionETC2, bool* bTextureCompressionBC);
 	void Eagle_Renderer_SetFogSettings(const glm::vec3* color, float minDistance, float maxDistance, float density, FogEquation equation, bool bEnabled);
 	void Eagle_Renderer_GetFogSettings(glm::vec3* outcolor, float* outMinDistance, float* outMaxDistance, float* outDensity, FogEquation* outEquation, bool* outbEnabled);
 	void Eagle_Renderer_SetBloomSettings(GUID dirt, float threashold, float intensity, float dirtIntensity, float knee, bool bEnabled);
