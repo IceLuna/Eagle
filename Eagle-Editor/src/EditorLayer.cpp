@@ -159,7 +159,8 @@ namespace Eagle
 		: Layer("EditorLayer")
 		, m_Window(Application::Get().GetWindow())
 	{
-		m_SimulatePanelSettings.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_AutoHideTabBar | ImGuiDockNodeFlags_NoTabBar;
+		m_SimulatePanelSettings.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_AutoHideTabBar | ImGuiDockNodeFlags_NoTabBar
+			| ImGuiDockNodeFlags_NoDockingOverMe | ImGuiDockNodeFlags_NoDockingSplit;
 	}
 
 	void EditorLayer::OnAttach()

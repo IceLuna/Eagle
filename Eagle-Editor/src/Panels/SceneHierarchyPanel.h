@@ -5,6 +5,8 @@
 
 #include <functional>
 
+struct ImGuiWindowClass;
+
 namespace Eagle
 {
 	class EditorLayer;
@@ -16,6 +18,10 @@ namespace Eagle
 		SceneHierarchyPanel();
 
 		void SetHashID(uint64_t uniqueID);
+
+		// If set, it's applied to the panel's windows to restrict where they can be docked.
+		// The pointer must stay valid while the panel is used
+		void SetWindowClass(const ImGuiWindowClass* windowClass) { m_WindowClass = windowClass; }
 		void ClearSelection();
 
 		bool OnEvent(const Ref<Scene>& scene, Event& e, bool bViewportFocused);
@@ -71,6 +77,7 @@ namespace Eagle
 
 		std::string m_SceneHierarchyWindowName;
 		std::string m_PropertiesWindowName;
+		const ImGuiWindowClass* m_WindowClass = nullptr;
 		std::string m_Search;
 		std::unordered_set<Entity> m_AllowedForDisplayEntities; // Only valid when searching
 

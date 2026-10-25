@@ -32,7 +32,6 @@ namespace Eagle
 		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 2.f); // Move back
 		camera.LookAt(center);
 
-		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
 	}
 
 	void AnimationAssetEditor::OnImGuiRender(bool* pOpen)
@@ -41,8 +40,8 @@ namespace Eagle
 		bool bChanged = false;
 		const std::string durationSec = std::to_string(animation->Duration / animation->TicksPerSecond);
 
-		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
-		ImGui::Begin(m_WindowName.c_str(), pOpen);
+		DrawEditorWindow(pOpen);
+		BeginPanel(GetDetailsPanelName());
 		UI::BeginPropertyGrid("AnimationDetails");
 
 		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
@@ -194,7 +193,7 @@ namespace Eagle
 
 		ImGui::End();
 
-		DrawViewport(true, m_WindowName);
+		DrawViewport(true);
 		if (!bPlayAnimation)
 			m_Component->CurrentClipPlayTime = m_Component->PrevClipPlayTime; // Prevent animation from advancing
 	}

@@ -22,10 +22,10 @@ namespace Eagle
 		const Ref<Asset> GetAsset() const override { return Cast<Asset>(m_Asset); }
 	
 	protected:
-		void HandleFirstWindowRender(std::string_view windowName, std::string_view parentName) override;
+		void BuildDefaultLayout(ImGuiID dockspaceID) override;
 
 	private:
-		bool DrawDetails(bool* pOpen);
+		bool DrawDetails();
 		bool DrawPlot();
 		bool DrawAxisTreeNode(const char* name, BlendSpaceAxisSettings& axis);
 		bool DrawAddPointTreeNode();
@@ -42,8 +42,7 @@ namespace Eagle
 		Ref<AssetAnimationGraph> m_AnimGraph;
 		Entity m_Entity;
 
-		std::string m_DetailsWindowName;
-		std::string m_PlotWindowName;
+		std::string m_PlotPanelName;
 
 		BlendSpaceVertex m_CurrentlyAddingPoint;
 		std::vector<BlendSpaceVertex> m_PointsData;

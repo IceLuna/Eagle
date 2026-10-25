@@ -27,7 +27,6 @@ namespace Eagle
 		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 2.f); // Move back
 		camera.LookAt(center);
 
-		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
 	}
 
 	void StaticMeshAssetEditor::OnImGuiRender(bool* pOpen)
@@ -39,8 +38,8 @@ namespace Eagle
 			indicesCount += mesh->GetIndicesCount(i);
 		bool bChanged = false;
 
-		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
-		ImGui::Begin(m_WindowName.c_str(), pOpen);
+		DrawEditorWindow(pOpen);
+		BeginPanel(GetDetailsPanelName());
 
 		UI::BeginPropertyGrid("StaticMeshDetails");
 		UI::TextWithSeparator("Data");
@@ -107,6 +106,6 @@ namespace Eagle
 
 		ImGui::End();
 
-		DrawViewport(false, m_WindowName);
+		DrawViewport(false);
 	}
 }

@@ -19,7 +19,6 @@ namespace Eagle
 	private:
 		Ref<AssetAnimation> m_Asset;
 		SkeletalMeshComponent* m_Component = nullptr;
-		std::string m_WindowName;
 		bool bPlayAnimation = true;
 		bool bInPlace = true;
 	};

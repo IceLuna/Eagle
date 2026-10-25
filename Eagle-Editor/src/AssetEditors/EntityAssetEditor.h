@@ -25,13 +25,12 @@ namespace Eagle
 		bool HandleEntitySelection(MouseButtonPressedEvent& e);
 		void OnEntityChanged();
 
-		void HandleFirstWindowRender(std::string_view windowName, std::string_view parentName) override;
+		void BuildDefaultLayout(ImGuiID dockspaceID) override;
 
 	private:
 		const EditorLayer& m_EditorLayer;
 		Ref<AssetEntity> m_Asset;
 		SceneHierarchyPanel m_SceneHierarchy;
-		std::string m_WindowName;
 		bool m_UpdateAnims = true;
 
 		Entity m_Entity;

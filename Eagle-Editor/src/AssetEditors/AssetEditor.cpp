@@ -52,17 +52,12 @@ namespace Eagle
 		m_Renderer.reset();
 	}
 
-	void AssetEditor::DrawViewport(bool bForceAnimUpdate, const std::string_view parentName)
+	void AssetEditor::DrawViewport(bool bForceAnimUpdate)
 	{
 		if (!m_CurrentScene)
 			return;
 
-		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
-
-		if (m_ViewportWindowName.empty())
-			m_ViewportWindowName = GetAssetWindowName(GetAsset(), "_Viewport");
-		bViewportVisible = ImGui::Begin(m_ViewportWindowName.c_str());
-		HandleFirstWindowRender(m_ViewportWindowName, parentName);
+		bViewportVisible = BeginPanel(m_ViewportPanelName, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse, true);
 
 		if (bViewportVisible)
 		{
@@ -207,44 +202,161 @@ namespace Eagle
 		m_CurrentScene->SetEverythingDirty();
 	}
 
-	void AssetEditor::HandleFirstWindowRender(std::string_view windowName, std::string_view parentName)
+	void AssetEditor::InitEditorWindowNames()
 	{
-		const bool bFirstUseEver = (ImGui::GetCurrentWindow()->SetWindowDockAllowFlags & ImGuiCond_FirstUseEver) == ImGuiCond_FirstUseEver;
+		const Ref<Asset> asset = GetAsset();
+		const std::string assetID = std::to_string(asset->GetGUID().GetHash());
 
-		if (bFirstUseEver && !parentName.empty())
+		m_EditorWindowName = Utils::AsString(asset->GetPath().stem()) + "###AssetEditor_" + assetID;
+		m_DetailsPanelName = GetPanelName(asset, "Details");
+		m_ViewportPanelName = GetPanelName(asset, "Viewport");
+
+		// Panes can only be docked with each other, inside this editor's dockspace
+		m_PanelWindowClass = ImGuiWindowClass();
+		m_PanelWindowClass.ClassId = ImHashStr(m_EditorWindowName.c_str());
+		m_PanelWindowClass.DockingAllowUnclassed = false;
+	}
+
+	bool AssetEditor::DrawEditorWindow(bool* pOpen)
+	{
+		if (m_EditorWindowName.empty())
+			InitEditorWindowNames();
+
+		// Size & position of the editor when it's opened for the first time. Proportional to the main window, and centered
 		{
-			const bool bCustomSize = m_FirstUseDockSize.x > 0.f && m_FirstUseDockSize.y > 0.f;
-			ImVec2 nodePos = ImGui::GetWindowPos();
-			ImVec2 nodeSize = bCustomSize ? m_FirstUseDockSize : ImGui::GetWindowSize();
-			if (bCustomSize)
-			{
-				const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
-				const ImVec2 workMin = mainViewport->WorkPos;
-				const ImVec2 workSize = mainViewport->WorkSize;
-				nodeSize = ImVec2(ImMin(nodeSize.x, workSize.x * 0.95f), ImMin(nodeSize.y, workSize.y * 0.95f));
-				nodePos.x = ImClamp(nodePos.x, workMin.x, workMin.x + workSize.x - nodeSize.x);
-				nodePos.y = ImClamp(nodePos.y, workMin.y, workMin.y + workSize.y - nodeSize.y);
-			}
+			constexpr ImVec2 minSize = ImVec2(1120.f, 680.f);
+			const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
+			const ImVec2 workSize = mainViewport->WorkSize;
+			ImVec2 size = ImVec2(ImMax(workSize.x * m_FirstUseSizeRatio.x, minSize.x), ImMax(workSize.y * m_FirstUseSizeRatio.y, minSize.y));
+			size = ImVec2(ImMin(size.x, workSize.x * 0.95f), ImMin(size.y, workSize.y * 0.95f));
 
-			ImGuiID parent_node = ImGui::DockBuilderAddNode();
-			ImGui::DockBuilderSetNodePos(parent_node, nodePos);
-			ImGui::DockBuilderSetNodeSize(parent_node, nodeSize);
-			ImGuiID nodeDetails; // Main window
-			ImGuiID nodeViewport;
-			ImGui::DockBuilderSplitNode(parent_node, ImGuiDir_Left, m_FirstUseViewportRatio, &nodeViewport, &nodeDetails);
-
-			ImGui::DockBuilderDockWindow(parentName.data(), nodeDetails);
-			ImGui::DockBuilderDockWindow(windowName.data(), nodeViewport);
-
-			// Disable tab bar for the viewport
-			if (ImGuiDockNode* dock = ImGui::DockContextFindNodeByID(GImGui, nodeViewport))
-			{
-				dock->SetLocalFlags(ImGuiDockNodeFlags_NoTabBar);
-			}
-
-			if (!bCustomSize)
-				ImGui::SetWindowSize(ImVec2(720.f * 2.f, 560.f));
+			ImGui::SetNextWindowSize(size, ImGuiCond_FirstUseEver);
+			ImGui::SetNextWindowPos(mainViewport->GetWorkCenter(), ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
 		}
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
+		const bool bVisible = ImGui::Begin(m_EditorWindowName.c_str(), pOpen, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+		ImGui::PopStyleVar();
+
+		m_DockSpaceID = ImGui::GetID("AssetEditorDockSpace");
+		if (ImGui::DockBuilderGetNode(m_DockSpaceID) == nullptr)
+		{
+			// No layout yet, build the default one
+			const ImVec2 contentSize = ImGui::GetContentRegionAvail();
+			const ImVec2 nodeSize = (contentSize.x > 0.f && contentSize.y > 0.f) ? contentSize : ImGui::GetWindowSize();
+
+			ImGui::DockBuilderAddNode(m_DockSpaceID, ImGuiDockNodeFlags_DockSpace);
+			ImGui::DockBuilderSetNodeSize(m_DockSpaceID, nodeSize);
+			BuildDefaultLayout(m_DockSpaceID);
+			ImGui::DockBuilderFinish(m_DockSpaceID);
+		}
+
+		UpdateCentralNode();
+
+		// The dockspace must be submitted even when the editor isn't visible,
+		// otherwise the panes would be undocked and become floating windows
+		const ImGuiDockNodeFlags dockSpaceFlags = bVisible ? ImGuiDockNodeFlags_None : ImGuiDockNodeFlags_KeepAliveOnly;
+		ImGui::DockSpace(m_DockSpaceID, ImVec2(0.f, 0.f), dockSpaceFlags, &m_PanelWindowClass);
+
+		ImGui::End();
+
+		return bVisible;
+	}
+
+	bool AssetEditor::BeginPanel(const std::string& panelName, ImGuiWindowFlags flags, bool bNoPadding)
+	{
+		EG_CORE_ASSERT(m_DockSpaceID != 0, "`DrawEditorWindow` must be called first");
+
+		ImGui::SetNextWindowClass(&m_PanelWindowClass);
+		if (bNoPadding)
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
+		const bool bVisible = ImGui::Begin(panelName.c_str(), nullptr, flags);
+		if (bNoPadding)
+			ImGui::PopStyleVar();
+		return bVisible;
+	}
+
+	void AssetEditor::BuildDefaultLayout(ImGuiID dockspaceID)
+	{
+		ImGuiID nodeViewport;
+		ImGuiID nodeDetails;
+		ImGui::DockBuilderSplitNode(dockspaceID, ImGuiDir_Left, m_FirstUseViewportRatio, &nodeViewport, &nodeDetails);
+
+		ImGui::DockBuilderDockWindow(m_ViewportPanelName.c_str(), nodeViewport);
+		ImGui::DockBuilderDockWindow(m_DetailsPanelName.c_str(), nodeDetails);
+		HideTabBar(nodeViewport);
+		SetCentralNode(dockspaceID, nodeViewport);
+	}
+
+	void AssetEditor::HideTabBar(ImGuiID dockNodeID)
+	{
+		if (ImGuiDockNode* node = ImGui::DockBuilderGetNode(dockNodeID))
+			node->SetLocalFlags(node->LocalFlags | ImGuiDockNodeFlags_HiddenTabBar);
+	}
+
+	// Note: `ImGuiDockNode::CentralNode` of the root can't be used to find the central node. It's only updated when the dockspace is submitted,
+	// and it can point to a deleted node until then (for example, after nodes were merged because a panel was undocked)
+	static ImGuiDockNode* FindCentralNode(ImGuiDockNode* node)
+	{
+		if (!node)
+			return nullptr;
+		if (node->IsLeafNode())
+			return (node->LocalFlags & ImGuiDockNodeFlags_CentralNode) ? node : nullptr;
+		if (ImGuiDockNode* centralNode = FindCentralNode(node->ChildNodes[0]))
+			return centralNode;
+		return FindCentralNode(node->ChildNodes[1]);
+	}
+
+	void AssetEditor::SetCentralNode(ImGuiID dockspaceID, ImGuiID dockNodeID)
+	{
+		ImGuiDockNode* root = ImGui::DockBuilderGetNode(dockspaceID);
+		if (!root)
+			return;
+
+		ImGuiDockNode* node = dockNodeID ? ImGui::DockBuilderGetNode(dockNodeID) : nullptr;
+		if (node && (!node->IsLeafNode() || ImGui::DockNodeGetRootNode(node) != root))
+			return;
+
+		// Note: after `DockBuilderSplitNode()`, the central node is the child on the opposite side of the split direction
+		// (for example, the details when splitting the viewport to the left), so undocking that panel would leave an empty space behind
+		if (ImGuiDockNode* oldCentralNode = FindCentralNode(root); oldCentralNode && oldCentralNode != node)
+			oldCentralNode->SetLocalFlags(oldCentralNode->LocalFlags & ~ImGuiDockNodeFlags_CentralNode);
+		if (node)
+			node->SetLocalFlags(node->LocalFlags | ImGuiDockNodeFlags_CentralNode);
+		root->CentralNode = node;
+	}
+
+	void AssetEditor::UpdateCentralNode()
+	{
+		// Keeps the viewport's node as the central node (see `SetCentralNode`), also after the user rearranged the panes.
+		// If the viewport isn't docked in this editor (it's floating), there's no central node, so no empty space is left behind.
+		// It's only done once the viewport panel exists, so the panels are already bound to their dock nodes (otherwise every node looks empty)
+		ImGuiWindow* viewportWindow = ImGui::FindWindowByName(m_ViewportPanelName.c_str());
+		ImGuiDockNode* root = ImGui::DockBuilderGetNode(m_DockSpaceID);
+		if (!viewportWindow || !root)
+			return;
+
+		const bool bViewportDockedHere = viewportWindow->DockNode && ImGui::DockNodeGetRootNode(viewportWindow->DockNode) == root;
+		ImGuiDockNode* newCentralNode = bViewportDockedHere ? viewportWindow->DockNode : nullptr;
+		ImGuiDockNode* oldCentralNode = FindCentralNode(root);
+		if (newCentralNode == oldCentralNode)
+			return;
+
+		// An empty node is only kept if it's the central node. Every other empty node is removed (and its neighbour takes its space)
+		const bool bOldCentralNodeEmpty = oldCentralNode && oldCentralNode->ParentNode && oldCentralNode->IsLeafNode() && oldCentralNode->Windows.Size == 0;
+		if (!newCentralNode && !bOldCentralNodeEmpty)
+			return; // The viewport is floating, but the current central node isn't empty, so it doesn't leave an empty space. Keep it
+
+		SetCentralNode(m_DockSpaceID, newCentralNode ? newCentralNode->ID : 0);
+
+		// ImGui only removes an empty node when its last window leaves it. The old central node was kept back then, so remove it now
+		if (bOldCentralNodeEmpty)
+			ImGui::DockBuilderRemoveNode(oldCentralNode->ID);
+	}
+
+	std::string AssetEditor::GetPanelName(const Ref<Asset>& asset, std::string_view panel)
+	{
+		return std::string(panel) + "##" + std::to_string(asset->GetGUID().GetHash());
 	}
 
 	void AssetEditor::AddSkybox()
@@ -261,7 +373,10 @@ namespace Eagle
 		if (!asset)
 			return;
 
-		if (ImGuiWindow* window = ImGui::FindWindowByName(m_ViewportWindowName.c_str()))
+		// The host window, then the viewport panel if there's one
+		if (ImGuiWindow* window = ImGui::FindWindowByName(m_EditorWindowName.c_str()))
+			ImGui::FocusWindow(window);
+		if (ImGuiWindow* window = ImGui::FindWindowByName(m_ViewportPanelName.c_str()))
 			ImGui::FocusWindow(window);
 	}
 	

@@ -100,7 +100,6 @@ namespace Eagle
 		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 2.5f); // Move back
 		camera.LookAt(center);
 
-		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
 	}
 
 	void PhysicsMaterialAssetEditor::OnImGuiRender(bool* pOpen)
@@ -110,8 +109,8 @@ namespace Eagle
 
 		auto& material = m_Asset->GetMaterial();
 
-		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
-		ImGui::Begin(m_WindowName.c_str(), pOpen);
+		DrawEditorWindow(pOpen);
+		BeginPanel(GetDetailsPanelName());
 		UI::BeginPropertyGrid("PhysicsMaterialDetails");
 
 		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
@@ -181,7 +180,7 @@ namespace Eagle
 
 		ImGui::End();
 
-		DrawViewport(false, m_WindowName);
+		DrawViewport(false);
 	}
 	
 	void PhysicsMaterialAssetEditor::ResetScene()

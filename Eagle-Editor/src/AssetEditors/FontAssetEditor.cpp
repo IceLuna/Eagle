@@ -23,7 +23,6 @@ namespace Eagle
 		m_Component->SetFontSize(100.f);
 		m_Component->SetMaxWidth(1080.f);
 
-		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
 	}
 
 	void FontAssetEditor::OnImGuiRender(bool* pOpen)
@@ -33,8 +32,8 @@ namespace Eagle
 		float maxWidth = m_Component->GetMaxWidth();
 		bool bChanged = false;
 
-		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
-		ImGui::Begin(m_WindowName.c_str(), pOpen);
+		DrawEditorWindow(pOpen);
+		BeginPanel(GetDetailsPanelName());
 
 		UI::TextWithSeparator("Data");
 
@@ -100,6 +99,6 @@ namespace Eagle
 		ImGui::End();
 
 		GetCurrentScene()->TextUIDebugSelectedEntity = m_bDrawTextBounds ? m_Component->Parent.GetGUID() : GUID(0, 0);
-		DrawViewport(false, m_WindowName);
+		DrawViewport(false);
 	}
 }

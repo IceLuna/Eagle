@@ -16,6 +16,7 @@ namespace Eagle
 	EntityAssetEditor::EntityAssetEditor(const Ref<AssetEntity>& asset, const EditorLayer& editorLayer)
 		: AssetEditor(true), m_Asset(asset), m_EditorLayer(editorLayer)
 	{
+		m_FirstUseViewportRatio = 0.6f;
 		const auto& scene = GetCurrentScene();
 		m_Entity = scene->CreateFromEntityAsset(m_Asset, true);
 
@@ -53,7 +54,7 @@ namespace Eagle
 		}
 
 		m_SceneHierarchy.SetHashID(asset->GetGUID().GetHigh());
-		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
+		m_SceneHierarchy.SetWindowClass(&GetPanelWindowClass());
 	}
 
 	void EntityAssetEditor::OnImGuiRender(bool* pOpen)
@@ -62,13 +63,15 @@ namespace Eagle
 		constexpr bool bVolumetricsEnabled = true;
 		constexpr bool bDrawTransform = false;
 
-		ImGui::SetNextWindowSize(ImVec2(720.f, 240.f), ImGuiCond_FirstUseEver);
-		if (ImGui::Begin(m_WindowName.c_str(), pOpen))
+		DrawEditorWindow(pOpen);
+
+		const bool bEntityChanged = m_SceneHierarchy.OnImGuiRender(GetCurrentScene(), bRuntime, true, &bVolumetricsEnabled);
+		if (bEntityChanged)
+			OnEntityChanged();
+
+		if (BeginPanel(GetDetailsPanelName()))
 		{
 			const auto& scene = GetCurrentScene();
-			const bool bEntityChanged = m_SceneHierarchy.OnImGuiRender(scene, bRuntime, true, &bVolumetricsEnabled);
-			if (bEntityChanged)
-				OnEntityChanged();
 
 			{
 				UI::TextWithSeparator("Asset settings");
@@ -122,7 +125,7 @@ namespace Eagle
 			scene->bDrawAllTextUIBounds = m_EditorLayer.IsDrawingAllTextUIBounds();
 		}
 
-		DrawViewport(m_UpdateAnims, m_WindowName);
+		DrawViewport(m_UpdateAnims);
 	}
 
 	void EntityAssetEditor::OnEvent(Event& e)
@@ -227,39 +230,24 @@ namespace Eagle
 		m_Asset->OnModified();
 	}
 	
-	void EntityAssetEditor::HandleFirstWindowRender(std::string_view windowName, std::string_view parentName)
+	void EntityAssetEditor::BuildDefaultLayout(ImGuiID dockspaceID)
 	{
-		const bool bFirstUseEver = (ImGui::GetCurrentWindow()->SetWindowDockAllowFlags & ImGuiCond_FirstUseEver) == ImGuiCond_FirstUseEver;
+		// Left: details (top), scene hierarchy, properties (bottom). Right: viewport
+		ImGuiID nodeDetails;
+		ImGuiID nodeViewport;
+		ImGui::DockBuilderSplitNode(dockspaceID, ImGuiDir_Left, 1.f - m_FirstUseViewportRatio, &nodeDetails, &nodeViewport);
 
-		if (bFirstUseEver && !parentName.empty())
-		{
-			ImGuiID parent_node = ImGui::DockBuilderAddNode();
-			ImGui::DockBuilderSetNodePos(parent_node, ImGui::GetWindowPos());
-			ImGui::DockBuilderSetNodeSize(parent_node, ImGui::GetWindowSize());
-			ImGuiID nodeDetails; // Main window
-			ImGuiID nodeViewport;
-			ImGui::DockBuilderSplitNode(parent_node, ImGuiDir_Left, 0.5f, &nodeDetails, &nodeViewport);
+		ImGuiID nodeSceneHierarchy;
+		ImGui::DockBuilderSplitNode(nodeDetails, ImGuiDir_Up, 0.2f, &nodeDetails, &nodeSceneHierarchy);
 
-			ImGui::DockBuilderDockWindow(parentName.data(), nodeDetails);
-			ImGui::DockBuilderDockWindow(windowName.data(), nodeViewport);
+		ImGuiID nodeEntityProperties;
+		ImGui::DockBuilderSplitNode(nodeSceneHierarchy, ImGuiDir_Up, 0.5f, &nodeSceneHierarchy, &nodeEntityProperties);
 
-			ImGuiID nodeSceneHierarchy;
-			ImGui::DockBuilderSplitNode(nodeDetails, ImGuiDir_Up, 0.2f, &nodeDetails, &nodeSceneHierarchy);
-			ImGui::DockBuilderDockWindow(parentName.data(), nodeDetails);
-			ImGui::DockBuilderDockWindow(m_SceneHierarchy.GetSceneHierarchyWindowName().c_str(), nodeSceneHierarchy);
-
-			ImGuiID nodeEntityProperties;
-			ImGui::DockBuilderSplitNode(nodeSceneHierarchy, ImGuiDir_Up, 0.5f, &nodeSceneHierarchy, &nodeEntityProperties);
-			ImGui::DockBuilderDockWindow(m_SceneHierarchy.GetSceneHierarchyWindowName().c_str(), nodeSceneHierarchy);
-			ImGui::DockBuilderDockWindow(m_SceneHierarchy.GetPropertiesWindowName().c_str(), nodeEntityProperties);
-
-			// Disable tab bar for the viewport
-			if (ImGuiDockNode* dock = ImGui::DockContextFindNodeByID(GImGui, nodeViewport))
-			{
-				dock->SetLocalFlags(ImGuiDockNodeFlags_NoTabBar);
-			}
-
-			ImGui::SetWindowSize(ImVec2(720.f * 2.f, 560.f));
-		}
+		ImGui::DockBuilderDockWindow(GetDetailsPanelName().c_str(), nodeDetails);
+		ImGui::DockBuilderDockWindow(m_SceneHierarchy.GetSceneHierarchyWindowName().c_str(), nodeSceneHierarchy);
+		ImGui::DockBuilderDockWindow(m_SceneHierarchy.GetPropertiesWindowName().c_str(), nodeEntityProperties);
+		ImGui::DockBuilderDockWindow(GetViewportPanelName().c_str(), nodeViewport);
+		HideTabBar(nodeViewport);
+		SetCentralNode(dockspaceID, nodeViewport);
 	}
 }

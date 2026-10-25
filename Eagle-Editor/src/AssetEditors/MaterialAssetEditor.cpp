@@ -34,7 +34,6 @@ namespace Eagle
 		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 5.f); // Move back
 		camera.LookAt(center);
 
-		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
 	}
 
 	void MaterialAssetEditor::OnImGuiRender(bool* pOpen)
@@ -50,8 +49,8 @@ namespace Eagle
 		const auto& material = m_Asset->GetMaterial();
 		bool bChanged = false;
 
-		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
-		ImGui::Begin(m_WindowName.c_str(), pOpen);
+		DrawEditorWindow(pOpen);
+		BeginPanel(GetDetailsPanelName());
 		
 		UI::BeginPropertyGrid("MaterialDetails");
 		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
@@ -388,6 +387,6 @@ namespace Eagle
 
 		ImGui::End();
 
-		DrawViewport(false, m_WindowName);
+		DrawViewport(false);
 	}
 }

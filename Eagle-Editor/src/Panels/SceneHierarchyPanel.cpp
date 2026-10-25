@@ -21,8 +21,8 @@ namespace Eagle
 
 	void SceneHierarchyPanel::SetHashID(uint64_t uniqueID)
 	{
-		m_SceneHierarchyWindowName = uniqueID == 0u ? "Scene Hierarchy" : "Scene Hierarchy##" + std::to_string(uniqueID);
-		m_PropertiesWindowName = uniqueID == 0u ? "Properties" : "Properties##" + std::to_string(uniqueID);
+		m_SceneHierarchyWindowName = uniqueID == 0u ? "Scene Hierarchy" : "Scene Hierarchy###" + std::to_string(uniqueID);
+		m_PropertiesWindowName = uniqueID == 0u ? "Properties" : "Properties###" + std::to_string(uniqueID);
 	}
 
 	void SceneHierarchyPanel::ClearSelection()
@@ -63,6 +63,8 @@ namespace Eagle
 		bool bChanged = false;
 		bChanged |= DrawSceneHierarchy();
 		
+		if (m_WindowClass)
+			ImGui::SetNextWindowClass(m_WindowClass);
 		ImGui::Begin(m_PropertiesWindowName.c_str());
 		m_PropertiesHovered = ImGui::IsWindowHovered();
 		if (m_SelectedEntity)
@@ -95,6 +97,8 @@ namespace Eagle
 		bool bChanged = false;
 		m_RootEntity = Entity::Null;
 
+		if (m_WindowClass)
+			ImGui::SetNextWindowClass(m_WindowClass);
 		ImGui::Begin(m_SceneHierarchyWindowName.c_str());
 		//TODO: Replace to "Drop on empty space"
 		if (!m_AllowOnlySingleRoot && ImGui::BeginDragDropTarget())

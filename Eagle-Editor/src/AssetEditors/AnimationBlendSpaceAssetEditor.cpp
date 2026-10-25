@@ -35,8 +35,8 @@ namespace Eagle
 		: AssetEditor(true, true)
 		, m_Asset(asset)
 	{
-		m_DetailsWindowName = AssetEditor::GetAssetWindowName(m_Asset);
-		m_PlotWindowName = AssetEditor::GetAssetWindowName(m_Asset, "_Plot");
+		m_FirstUseViewportRatio = 0.6f;
+		m_PlotPanelName = AssetEditor::GetPanelName(m_Asset, "Plot");
 
 		m_Horizontal = m_Asset->GetHorizontalAxis();
 		m_Vertical = m_Asset->GetVerticalAxis();
@@ -71,9 +71,11 @@ namespace Eagle
 		bAxisLimitsChanged = false;
 		bool bChanged = false;
 
-		bChanged |= DrawDetails(pOpen);
+		DrawEditorWindow(pOpen);
+
+		bChanged |= DrawDetails();
 		bChanged |= DrawPlot();
-		DrawViewport(true, m_DetailsWindowName);
+		DrawViewport(true);
 
 		if (bChanged)
 		{
@@ -97,12 +99,11 @@ namespace Eagle
 		return false;
 	}
 
-	bool AnimationBlendSpaceAssetEditor::DrawDetails(bool* pOpen)
+	bool AnimationBlendSpaceAssetEditor::DrawDetails()
 	{
 		bool bChanged = false;
 
-		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
-		ImGui::Begin(m_DetailsWindowName.c_str(), pOpen);
+		BeginPanel(GetDetailsPanelName());
 
 		UI::BeginPropertyGrid("AnimationBlendSpaceDetails");
 		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
@@ -171,8 +172,7 @@ namespace Eagle
 	{
 		bool bChanged = false;
 
-		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
-		ImGui::Begin(m_PlotWindowName.c_str());
+		BeginPanel(m_PlotPanelName);
 
 		ImGui::Checkbox("Draw Triangulation", &bDrawTriangulation);
 		if (m_SelectedPointIdx != s_InvalidIndex)
@@ -204,7 +204,7 @@ namespace Eagle
 		const ImGuiMouseButton previousFitButton = inputMap.Fit;
 		inputMap.Fit = ImGuiMouseButton_Middle;
 
-		if (ImPlot::BeginPlot(m_PlotWindowName.c_str(), ImGui::GetContentRegionAvail(), plotFlags))
+		if (ImPlot::BeginPlot(m_PlotPanelName.c_str(), ImGui::GetContentRegionAvail(), plotFlags))
 		{
 			ImPlot::SetupAxes(m_Horizontal.Name.c_str(), m_Vertical.Name.c_str());
 			ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, m_Horizontal.Min, m_Horizontal.Max);
@@ -651,38 +651,21 @@ namespace Eagle
 		m_AnimGraph->Compile();
 	}
 
-	void AnimationBlendSpaceAssetEditor::HandleFirstWindowRender(std::string_view windowName, std::string_view parentName)
+	void AnimationBlendSpaceAssetEditor::BuildDefaultLayout(ImGuiID dockspaceID)
 	{
-		const bool bFirstUseEver = (ImGui::GetCurrentWindow()->SetWindowDockAllowFlags & ImGuiCond_FirstUseEver) == ImGuiCond_FirstUseEver;
+		// Left: viewport (top), plot (bottom). Right: details
+		ImGuiID nodeViewport;
+		ImGuiID nodeDetails;
+		ImGui::DockBuilderSplitNode(dockspaceID, ImGuiDir_Left, m_FirstUseViewportRatio, &nodeViewport, &nodeDetails);
 
-		if (bFirstUseEver && !parentName.empty())
-		{
-			ImGuiID parent_node = ImGui::DockBuilderAddNode();
-			ImGui::DockBuilderSetNodePos(parent_node, ImGui::GetWindowPos());
-			ImGui::DockBuilderSetNodeSize(parent_node, ImGui::GetWindowSize());
-			ImGuiID nodeDetails; // Main window
-			ImGuiID nodeViewport;
-			ImGui::DockBuilderSplitNode(parent_node, ImGuiDir_Left, 0.5f, &nodeViewport, &nodeDetails);
+		ImGuiID nodePlot;
+		ImGui::DockBuilderSplitNode(nodeViewport, ImGuiDir_Up, 0.5f, &nodeViewport, &nodePlot);
 
-			ImGui::DockBuilderDockWindow(parentName.data(), nodeDetails);
-			ImGui::DockBuilderDockWindow(windowName.data(), nodeViewport);
-
-			ImGuiID nodePlot;
-			ImGui::DockBuilderSplitNode(nodeViewport, ImGuiDir_Up, 0.5f, &nodeViewport, &nodePlot);
-			ImGui::DockBuilderDockWindow(m_PlotWindowName.c_str(), nodePlot);
-			ImGui::DockBuilderDockWindow(windowName.data(), nodeViewport);
-
-			// Disable tab bar for plot & viewport
-			if (ImGuiDockNode* dock = ImGui::DockContextFindNodeByID(GImGui, nodePlot))
-			{
-				dock->SetLocalFlags(ImGuiDockNodeFlags_NoTabBar);
-			}
-			if (ImGuiDockNode* dock = ImGui::DockContextFindNodeByID(GImGui, nodeViewport))
-			{
-				dock->SetLocalFlags(ImGuiDockNodeFlags_NoTabBar);
-			}
-
-			ImGui::SetWindowSize(ImVec2(720.f * 2.f, 560.f));
-		}
+		ImGui::DockBuilderDockWindow(GetDetailsPanelName().c_str(), nodeDetails);
+		ImGui::DockBuilderDockWindow(GetViewportPanelName().c_str(), nodeViewport);
+		ImGui::DockBuilderDockWindow(m_PlotPanelName.c_str(), nodePlot);
+		HideTabBar(nodeViewport);
+		HideTabBar(nodePlot);
+		SetCentralNode(dockspaceID, nodeViewport);
 	}
 }

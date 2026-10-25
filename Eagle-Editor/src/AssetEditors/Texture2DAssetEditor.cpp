@@ -18,17 +18,15 @@ namespace Eagle
 	{
 		const auto& textureToView = m_Asset->GetTexture();
 		m_GenerateMipsCount = textureToView->GetMipsCount();
-		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
-		m_ViewportWindowName = "##" + std::to_string(m_Asset->GetGUID().GetHash());
 	}
 
 	void Texture2DAssetEditor::OnImGuiRender(bool* pOpen)
 	{
 		const auto& textureToView = m_Asset->GetTexture();
 
-		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
-		bool bHidden = !ImGui::Begin(m_ViewportWindowName.c_str());
-		bDetailsVisible = (!bHidden) || (bHidden && !bDetailsDocked);
+		DrawEditorWindow(pOpen);
+
+		BeginPanel(GetViewportPanelName(), ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse, true);
 		ImVec2 availSize = ImGui::GetContentRegionAvail();
 		glm::vec2 visualizeImageSize = textureToView->GetSize();
 		const uint32_t mipsCount = textureToView->GetMipsCount(); // MipsCount == 1 means no mips, just the original
@@ -47,7 +45,6 @@ namespace Eagle
 
 		ImGui::End();
 
-		if (bDetailsVisible)
 		{
 			float anisotropy = textureToView->GetAnisotropy();
 			FilterMode filterMode = textureToView->GetFilterMode();
@@ -64,33 +61,7 @@ namespace Eagle
 			const std::string baseSizeString = std::to_string(baseTextureSize.x) + "x" + std::to_string(baseTextureSize.y);
 			const std::string mipSizeString = std::to_string(mipTextureSize.x) + "x" + std::to_string(mipTextureSize.y);
 
-			ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
-			ImGui::Begin(m_WindowName.c_str(), pOpen);
-
-			const bool bFirstUseEver = (ImGui::GetCurrentWindow()->SetWindowDockAllowFlags & ImGuiCond_FirstUseEver) == ImGuiCond_FirstUseEver;
-			if (bFirstUseEver && !m_ViewportWindowName.empty())
-			{
-				ImGuiID parent_node = ImGui::DockBuilderAddNode();
-				ImGui::DockBuilderSetNodePos(parent_node, ImGui::GetWindowPos());
-				ImGui::DockBuilderSetNodeSize(parent_node, ImGui::GetWindowSize());
-				ImGuiID nodeA;
-				ImGuiID nodeB;
-				ImGui::DockBuilderSplitNode(parent_node, ImGuiDir_Right, 0.5f, &nodeB, &nodeA);
-
-				ImGui::DockBuilderDockWindow(m_ViewportWindowName.data(), nodeA);
-				ImGui::DockBuilderDockWindow(m_WindowName.c_str(), nodeB);
-
-				// Disable tab bar for the viewport
-				if (ImGuiDockNode* dock = ImGui::DockContextFindNodeByID(GImGui, nodeA))
-				{
-					dock->SetLocalFlags(ImGuiDockNodeFlags_NoTabBar);
-				}
-
-				const auto defaultSize = AssetEditor::GetDefaultWindowSize();
-				ImGui::SetWindowSize(ImVec2(defaultSize.x * 1.5f, defaultSize.y));
-			}
-
-			bDetailsDocked = ImGui::IsWindowDocked();
+			BeginPanel(GetDetailsPanelName());
 			UI::BeginPropertyGrid("TextureDetails");
 			UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 			UI::Text("Type", "Texture 2D");

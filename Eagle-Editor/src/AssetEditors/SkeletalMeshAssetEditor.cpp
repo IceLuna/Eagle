@@ -446,7 +446,6 @@ namespace Eagle
 		sceneRenderer->SetOptions(settings);
 		OnSimulateRagdollChanged();
 
-		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
 	}
 
 	void SkeletalMeshAssetEditor::OnImGuiRender(bool* pOpen)
@@ -460,8 +459,8 @@ namespace Eagle
 			indicesCount += mesh->GetIndicesCount(i);
 		bool bChanged = false;
 
-		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
-		ImGui::Begin(m_WindowName.c_str(), pOpen);
+		DrawEditorWindow(pOpen);
+		BeginPanel(GetDetailsPanelName());
 
 		UI::TextWithSeparator("Data");
 		UI::BeginPropertyGrid("SkeletalMeshDetails");
@@ -655,7 +654,7 @@ namespace Eagle
 		}
 
 		const bool bUpdateAnimation = m_PreviewAnimation.operator bool();
-		DrawViewport(bUpdateAnimation, m_WindowName);
+		DrawViewport(bUpdateAnimation);
 		bChanged |= bGuizmoChanged;
 		bGuizmoChanged = false;
 

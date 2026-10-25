@@ -25,7 +25,6 @@ namespace Eagle
 	private:
 		Ref<AssetPhysicsMaterial> m_Asset;
 		SphereColliderComponent* m_Component = nullptr; // Not owning
-		std::string m_WindowName;
 
 		Entity m_Sphere1;
 		Entity m_Sphere2;

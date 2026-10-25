@@ -186,7 +186,7 @@ namespace Eagle
 	ParticleSystemAssetEditor::ParticleSystemAssetEditor(const Ref<AssetParticleSystem>& asset)
 		: AssetEditor(true, false), m_Asset(asset)
 	{
-		m_FirstUseDockSize = ImVec2(1500.f, 900.f);
+		m_FirstUseSizeRatio = ImVec2(0.8f, 0.85f);
 		m_FirstUseViewportRatio = 0.45f;
 
 		EG_CORE_ASSERT(m_Asset);
@@ -218,13 +218,12 @@ namespace Eagle
 		camera.LookAt(center);
 		RecalculateLifetime();
 
-		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
 	}
 
 	void ParticleSystemAssetEditor::OnImGuiRender(bool* pOpen)
 	{
-		ImGui::SetNextWindowSize(ImVec2(m_FirstUseDockSize.x * (1.f - m_FirstUseViewportRatio), m_FirstUseDockSize.y), ImGuiCond_FirstUseEver);
-		ImGui::Begin(m_WindowName.c_str(), pOpen);
+		DrawEditorWindow(pOpen);
+		BeginPanel(GetDetailsPanelName());
 
 		DrawToolbar();
 		ImGui::Separator();
@@ -296,7 +295,7 @@ namespace Eagle
 
 		ImGui::End();
 
-		DrawViewport(false, m_WindowName);
+		DrawViewport(false);
 	}
 
 	void ParticleSystemAssetEditor::DrawToolbar()
