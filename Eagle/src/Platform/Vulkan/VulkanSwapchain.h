@@ -11,6 +11,7 @@ namespace Eagle
 {
 	class Image;
 	class Semaphore;
+	class Fence;
 
 	class VulkanSwapchain
 	{
@@ -31,8 +32,13 @@ namespace Eagle
 
 		void Present(const Ref<Semaphore>& waitSemaphore, uint32_t imageIndex);
 
-		// Returns a semaphore that will be signaled when image is ready
+		// Returns a semaphore that will be signaled when image is ready.
+		// A fence is signaled too, so `WaitForAcquireFence` must be called before the next acquire (it's also called automatically)
 		const Ref<Semaphore>& AcquireImage(uint32_t frameIndex, uint32_t* outImageIndex);
+
+		// Blocks the CPU until the image returned by the latest `AcquireImage` is actually available (released by the presentation engine).
+		// Must be called from the thread that acquires & presents.
+		void WaitForAcquireFence();
 
 		glm::uvec2 GetSize() const { return { m_Extent.width, m_Extent.height }; }
 
@@ -48,6 +54,8 @@ namespace Eagle
 		std::function<void()> m_RecreatedCallback;
 		std::vector<Ref<Image>> m_Images;
 		std::vector<Ref<Semaphore>> m_WaitSemaphores;
+		std::vector<Ref<Fence>> m_AcquireFences;
+		Fence* m_PendingAcquireFence = nullptr; // Fence of the latest acquire that hasn't been waited on yet
 		SwapchainSupportDetails m_SupportDetails;
 		VkExtent2D m_Extent;
 		VkSurfaceFormatKHR m_Format;

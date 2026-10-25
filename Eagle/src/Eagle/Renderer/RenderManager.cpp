@@ -29,15 +29,6 @@ namespace Eagle
 	static std::mutex s_SubmitMutex;
 	static std::mutex s_SubmitFreeMutex;
 
-	// TODO:
-	// Can't figure out how to properly fix VSync, so falling back to 1 frame in flight.
-	// The problem: let's say we have 3 frames in flight and the main thread prepares them in an instant.
-	// As a result, we have pending frames #0, #1, #2.
-	// The next time we reach #2, we need to wait for its fence, but here's the problem: the fence will wait for frames #0 and #1 to finish.
-	// Because they are queued up in the swapchain, and #2 won't execute it's present logic till #0 and #1 vertical syncs are finished.
-	// As a result, we'll get a crazy stutter (~33ms on 60Hz monitors)
-	static const uint32_t s_VSyncFramesInFlight = 1u;
-
 	struct RendererData
 	{
 		ThreadPool ThreadPool{"Render Thread", 1};
@@ -59,8 +50,13 @@ namespace Eagle
 		Ref<ImGuiLayer>* ImGuiLayer = nullptr; // Pointer is used just to avoid incrementing counter
 
 		Ref<CommandManager> GraphicsCommandManager;
+		// Each frame is submitted in two parts, so that the GPU can render the scene while the render thread waits for a swapchain image:
+		// 1) `CommandBuffers`: everything that doesn't touch the swapchain image. Signals `SceneFences`
+		// 2) `PresentCommandBuffers`: the present pass into the swapchain image. Signals `Fences`
 		std::vector<Ref<CommandBuffer>> CommandBuffers;
+		std::vector<Ref<CommandBuffer>> PresentCommandBuffers;
 		std::vector<Ref<Fence>> Fences;
+		std::vector<Ref<Fence>> SceneFences;
 		std::vector<Ref<Semaphore>> Semaphores;
 
 		Ref<Image> DummyImage;
@@ -86,7 +82,6 @@ namespace Eagle
 		Ref<Texture2D> BlueNoise;
 		glm::vec2 HaltonSequence[s_JitterSize];
 
-		uint32_t FramesInFlight = RendererConfig::FramesInFlight;
 		uint32_t CurrentRenderingFrameIndex = 0;
 		uint32_t CurrentFrameIndex = 0;
 		uint32_t CurrentReleaseFrameIndex = 0;
@@ -395,7 +390,6 @@ namespace Eagle
 		s_RendererData = new RendererData();
 		s_RendererData->Swapchain = app.GetWindow().GetSwapchain();
 		s_RendererData->PresentFunc = bGame ? &RenderManager::PresentGame : &RenderManager::PresentEditor;
-		s_RendererData->FramesInFlight = s_RendererData->Swapchain->IsVSyncEnabled() ? s_VSyncFramesInFlight : RendererConfig::FramesInFlight;
 
 		InitHaltonSequence();
 
@@ -416,11 +410,15 @@ namespace Eagle
 
 		s_RendererData->GraphicsCommandManager = CommandManager::Create(CommandQueueFamily::Graphics, true);
 		s_RendererData->CommandBuffers.reserve(RendererConfig::FramesInFlight);
+		s_RendererData->PresentCommandBuffers.reserve(RendererConfig::FramesInFlight);
 		s_RendererData->Fences.reserve(RendererConfig::FramesInFlight);
+		s_RendererData->SceneFences.reserve(RendererConfig::FramesInFlight);
 		for (uint32_t i = 0; i < RendererConfig::FramesInFlight; ++i)
 		{
 			s_RendererData->CommandBuffers.push_back(s_RendererData->GraphicsCommandManager->AllocateCommandBuffer(false));
+			s_RendererData->PresentCommandBuffers.push_back(s_RendererData->GraphicsCommandManager->AllocateCommandBuffer(false));
 			s_RendererData->Fences.push_back(Fence::Create(true));
+			s_RendererData->SceneFences.push_back(Fence::Create(true));
 		}
 		s_RendererData->DescriptorManager = DescriptorManager::Create(DescriptorManager::MaxNumDescriptors, DescriptorManager::MaxSets);
 
@@ -721,7 +719,6 @@ namespace Eagle
 	{
 		Wait();
 		ReleasePendingResources();
-		s_RendererData->FramesInFlight = bEnabled ? s_VSyncFramesInFlight : RendererConfig::FramesInFlight;
 	}
 
 	void RenderManager::SetPresentImage(const Ref<Image>& image)
@@ -761,10 +758,16 @@ namespace Eagle
 
 			uint32_t swapchainImageIndex = 0;
 			auto& fence = s_RendererData->Fences[frameIndex];
+			auto& sceneFence = s_RendererData->SceneFences[frameIndex];
 			Ref<Semaphore> imageAcquireSemaphore = s_RendererData->Swapchain->AcquireImage(frameIndex, &swapchainImageIndex);
 			auto& semaphore = s_RendererData->Semaphores[swapchainImageIndex];
 			const bool bSwapchainValid = s_RendererData->Swapchain->IsValid() && imageAcquireSemaphore;
 			fence->Reset();
+
+			// `BeginFrame` already waited on `fence`, which was submitted after this one, so this wait should return immediately.
+			// But it's here just to be safe. Also, resetting a fence while its signal is still pending is invalid, so `Wait` needs to be called
+			sceneFence->Wait();
+			sceneFence->Reset();
 
 			{
 				EG_CPU_TIMING_SCOPED("Freeing resources");
@@ -773,6 +776,8 @@ namespace Eagle
 
 			UpdateGPUTimings();
 
+			// Part 1: everything that doesn't touch the swapchain image.
+			// It doesn't wait on the acquire semaphore, so the GPU starts on it right away, while we wait for the swapchain image below
 			auto& cmd = GetCurrentFrameCommandBuffer();
 			cmd->Begin();
 			{
@@ -781,22 +786,50 @@ namespace Eagle
 				ExecuteAsyncCommands(); // Before anything else, so that the resources created by other threads are ready to be used by this frame
 				MaterialSystem::Update(cmd);
 				s_CommandQueue[frameIndex].Execute();
-				if (bSwapchainValid)
-				{
-					s_RendererData->PresentFunc(cmd, s_RendererData->PresentImage, swapchainImageIndex);
-				}
 			}
 			cmd->End();
+			{
+				EG_CPU_TIMING_SCOPED("Submit scene");
+				s_RendererData->GraphicsCommandManager->Submit(cmd, sceneFence);
+			}
+
+			{
+				// Frame pacing.
+				// The render thread waits on this before submitting a frame, so it blocks until the swapchain image is actually free.
+				// Without it, `vkAcquireNextImageKHR` returns immediately and only the GPU waits (on the acquire semaphore). Then the only throttle is
+				// `RenderManager::BeginFrame` waiting on frame N-FramesInFlight's fence. With VSync, once the swapchain queue is full, each fence signals
+				// a fixed number of vsyncs after its submit, so every frame-in-flight slot keeps its own vsync phase forever and nothing pushes the slots apart.
+				// After a burst (for example, `RenderManager::Wait()` on resize, then several frames issued back-to-back), two slots can end up sharing a vsync,
+				// and they stay that way: BeginFrame waits go 0ms / 17ms / 33ms on a 60Hz display, and frames are timed unevenly.
+				// Waiting here moves the throttle to the render thread, so frames come out evenly spaced.
+				// It also means the GPU never idles on the acquire semaphore, since the image is free by the time we submit.
+
+				EG_CPU_TIMING_SCOPED("Waiting for swapchain image");
+				s_RendererData->Swapchain->WaitForAcquireFence();
+			}
+
+			// Part 2: the present pass into the swapchain image (which is free by now).
+			// It's submitted even if the swapchain is invalid as an empty command buffer, so that `fence` still gets signaled
+			auto& presentCmd = s_RendererData->PresentCommandBuffers[frameIndex];
+			presentCmd->Begin();
+			if (bSwapchainValid)
+			{
+				EG_CPU_TIMING_SCOPED("Building Present Command buffer");
+				s_RendererData->PresentFunc(presentCmd, s_RendererData->PresentImage, swapchainImageIndex);
+			}
+			presentCmd->End();
 
 			{
 				EG_CPU_TIMING_SCOPED("Submit & Present");
+				// `fence` is signaled after all previously submitted work on this queue has completed.
+				// That includes waiting for Part 1 to finish, since `presentCmd` waits for them because of the barriers
 				if (imageAcquireSemaphore)
 				{
-					s_RendererData->GraphicsCommandManager->Submit(cmd, fence, imageAcquireSemaphore, semaphore);
+					s_RendererData->GraphicsCommandManager->Submit(presentCmd, fence, imageAcquireSemaphore, semaphore);
 				}
 				else
 				{
-					s_RendererData->GraphicsCommandManager->Submit(cmd, fence, std::span<const Semaphore*>{}, semaphore);
+					s_RendererData->GraphicsCommandManager->Submit(presentCmd, fence, std::span<const Semaphore*>{}, semaphore);
 				}
 				if (bSwapchainValid)
 				{
@@ -804,13 +837,13 @@ namespace Eagle
 				}
 			}
 
-			s_RendererData->CurrentRenderingFrameIndex = (s_RendererData->CurrentRenderingFrameIndex + 1) % s_RendererData->FramesInFlight;
-			s_RendererData->CurrentReleaseFrameIndex = (s_RendererData->CurrentReleaseFrameIndex + 1) % s_RendererData->FramesInFlight;
+			s_RendererData->CurrentRenderingFrameIndex = (s_RendererData->CurrentRenderingFrameIndex + 1) % RendererConfig::FramesInFlight;
+			s_RendererData->CurrentReleaseFrameIndex = (s_RendererData->CurrentReleaseFrameIndex + 1) % RendererConfig::FramesInFlight;
 			s_RendererData->FrameNumber++;
 		});
 
 		s_RendererData->FrameNumber_CPU++;
-		s_RendererData->CurrentFrameIndex = (s_RendererData->CurrentFrameIndex + 1) % s_RendererData->FramesInFlight;
+		s_RendererData->CurrentFrameIndex = (s_RendererData->CurrentFrameIndex + 1) % RendererConfig::FramesInFlight;
 	}
 
 	void RenderManager::PresentEditor(const Ref<CommandBuffer>& cmd, const Ref<Image>& presentImage, uint32_t swapchainImageIndex)

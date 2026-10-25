@@ -3,6 +3,7 @@
 #include "VulkanUtils.h"
 #include "VulkanImage.h"
 #include "VulkanSemaphore.h"
+#include "VulkanFence.h"
 
 #include <GLFW/glfw3.h>
 
@@ -32,6 +33,15 @@ namespace Eagle
 			return VK_PRESENT_MODE_FIFO_KHR;
 		}
 
+		static void WaitForSwapchainQueuesIdle(const VulkanDevice* device)
+		{
+			VkQueue graphicsQueue = device->GetGraphicsQueue();
+			VkQueue presentQueue = device->GetPresentQueue();
+			VK_CHECK(vkQueueWaitIdle(graphicsQueue));
+			if (presentQueue && presentQueue != graphicsQueue)
+				VK_CHECK(vkQueueWaitIdle(presentQueue));
+		}
+
 		static VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window)
 		{
 			if (capabilities.currentExtent.width != UINT_MAX)
@@ -57,6 +67,8 @@ namespace Eagle
 
 	VulkanSwapchain::~VulkanSwapchain()
 	{
+		WaitForAcquireFence();
+		m_AcquireFences.clear();
 		m_WaitSemaphores.clear();
 		m_Images.clear();
 
@@ -120,9 +132,21 @@ namespace Eagle
 		}
 	}
 
+	void VulkanSwapchain::WaitForAcquireFence()
+	{
+		if (m_PendingAcquireFence)
+		{
+			m_PendingAcquireFence->Wait();
+			m_PendingAcquireFence->Reset();
+			m_PendingAcquireFence = nullptr;
+		}
+	}
+
 	const Ref<Semaphore>& VulkanSwapchain::AcquireImage(uint32_t frameIndex, uint32_t* outFrameIndex)
 	{
 		static Ref<Semaphore> s_Invalid;
+
+		WaitForAcquireFence();
 
 		m_FrameIndex = (m_FrameIndex + 1) % uint32_t(m_WaitSemaphores.size());
 		// We check if the swapchain is valid. If it's not, we try to recreate it.
@@ -138,24 +162,41 @@ namespace Eagle
 				return s_Invalid;
 		}
 
+		const Ref<Fence>& acquireFence = m_AcquireFences[m_FrameIndex];
+		VkFence vkFence = (VkFence)acquireFence->GetHandle();
+
 		VkSemaphore vkSemaphore = (VkSemaphore)m_WaitSemaphores[m_FrameIndex]->GetHandle();
-		VkResult result = vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_Swapchain, UINT64_MAX, vkSemaphore, VK_NULL_HANDLE, outFrameIndex);
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+		VkResult result = vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_Swapchain, UINT64_MAX, vkSemaphore, vkFence, outFrameIndex);
+
+		// Note: VK_SUBOPTIMAL_KHR means an image WAS acquired (and the semaphore/fence will be signaled), so we use it.
+		// The swapchain is recreated when `Present` returns VK_SUBOPTIMAL_KHR.
+		// Recreating here would leave the semaphore & fence with a pending signal, and they couldn't be reused safely
+		if (result == VK_ERROR_OUT_OF_DATE_KHR)
 		{
+			// Nothing was acquired, so neither the semaphore nor the fence will be signaled
 			if (!Recreate())
 				return s_Invalid; // Recreation failed, the window is minimized
 
 			// Recreate semaphore so it can be used for another `acquire` call
 			m_WaitSemaphores[m_FrameIndex] = MakeRef<VulkanSemaphore>();
 			VkSemaphore vkSemaphore = (VkSemaphore)m_WaitSemaphores[m_FrameIndex]->GetHandle();
-			VK_CHECK(vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_Swapchain, UINT64_MAX, vkSemaphore, VK_NULL_HANDLE, outFrameIndex));
+			result = vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_Swapchain, UINT64_MAX, vkSemaphore, vkFence, outFrameIndex);
 		}
 
+		if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+		{
+			VK_CHECK(result);
+			return s_Invalid;
+		}
+
+		m_PendingAcquireFence = acquireFence.get();
 		return m_WaitSemaphores[m_FrameIndex];
 	}
 
 	bool VulkanSwapchain::Recreate()
 	{
+		WaitForAcquireFence();
+
 		VkDevice device = m_Device->GetVulkanDevice();
 		m_SupportDetails = m_Device->GetPhysicalDevice()->QuerySwapchainSupportDetails(m_Surface);
 
@@ -166,6 +207,10 @@ namespace Eagle
 		m_Extent = Utils::ChooseSwapExtent(capabilities, m_Window);
 		if (m_Extent.width == 0 || m_Extent.height == 0)
 		{
+			if (m_Swapchain)
+			{
+				Utils::WaitForSwapchainQueuesIdle(m_Device);
+			}
 			vkDestroySwapchainKHR(device, m_Swapchain, nullptr);
 			m_Swapchain = nullptr;
 			return false;
@@ -213,7 +258,10 @@ namespace Eagle
 		VK_CHECK(vkCreateSwapchainKHR(device, &createInfo, nullptr, &m_Swapchain));
 
 		if (oldSwapchain)
+		{
+			Utils::WaitForSwapchainQueuesIdle(m_Device);
 			vkDestroySwapchainKHR(device, oldSwapchain, nullptr);
+		}
 
 		// Swapchain can create more images than we requested. So we should retrive image count
 		vkGetSwapchainImagesKHR(device, m_Swapchain, &imageCount, nullptr);
@@ -242,7 +290,11 @@ namespace Eagle
 	void VulkanSwapchain::CreateSyncObjects()
 	{
 		m_WaitSemaphores.clear();
+		m_AcquireFences.clear();
 		for (auto& imageView : m_Images)
+		{
 			m_WaitSemaphores.push_back(MakeRef<VulkanSemaphore>());
+			m_AcquireFences.push_back(Fence::Create(false));
+		}
 	}
 }
