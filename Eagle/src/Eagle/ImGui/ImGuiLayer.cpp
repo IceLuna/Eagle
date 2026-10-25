@@ -36,12 +36,12 @@ namespace Eagle
 		UploadFonts();
 	}
 
-	void ImGuiLayer::SetIniFilepath(const Path& filepath)
+	bool ImGuiLayer::SetIniFilepath(const Path& filepath)
 	{
 		if (!std::filesystem::exists(filepath))
 		{
 			EG_CORE_ERROR("Failed to set ImGui ini filepath. The file doesn't exist: {}", filepath);
-			return;
+			return false;
 		}
 
 		ImGuiIO& io = ImGui::GetIO();
@@ -50,6 +50,8 @@ namespace Eagle
 		m_IniPath = Utils::AsString(filepath);
 		io.IniFilename = m_IniPath.c_str();
 		ImGui::LoadIniSettingsFromDisk(io.IniFilename);
+
+		return true;
 	}
 
 	ImGuiLayer::ImGuiLayer(const std::string& name)

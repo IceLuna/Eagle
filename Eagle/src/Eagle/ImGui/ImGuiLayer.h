@@ -35,7 +35,7 @@ namespace Eagle
 
 		void AddMessage(const std::string& message);
 		void RebuildFonts();
-		void SetIniFilepath(const Path& filepath);
+		bool SetIniFilepath(const Path& filepath);
 
 		static void SetDarkThemeColors();
 
@@ -47,6 +47,8 @@ namespace Eagle
 
 	protected:
 		virtual void Render(const Ref<CommandBuffer>& cmd) = 0;
+		// Renders & presents ImGui windows that were dragged outside of the main window. Called on the render thread
+		virtual void RenderPlatformWindows() {}
 		virtual void UploadFonts() {}
 
 		friend class RenderManager;

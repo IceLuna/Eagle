@@ -15,6 +15,7 @@ namespace Eagle
 
 	private:
 		void Render(const Ref<CommandBuffer>& cmd) override;
+		void RenderPlatformWindows() override;
 		void UpdatePlatform() override;
 		void UploadFonts() override;
 

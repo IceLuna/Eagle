@@ -157,6 +157,9 @@ namespace Eagle
 
 		static bool IsRenderThread();
 
+		// Runs `func` on the render thread and blocks until it's done
+		static void ExecuteOnRenderThread(const std::function<void()>& func);
+
 		static void RegisterShaderDependency(const Shader* shader, const Ref<Pipeline>& pipeline);
 		static void RemoveShaderDependency(const Shader* shader, const Ref<Pipeline>& pipeline);
 		static void OnShaderReloaded(const Shader* shader);

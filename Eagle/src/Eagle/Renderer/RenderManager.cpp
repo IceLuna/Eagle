@@ -837,6 +837,13 @@ namespace Eagle
 				}
 			}
 
+			// ImGui windows, that were dragged outside of the main window, are rendered here after this frame's work and on the same queue.
+			// So the images they display (for example, the scene viewport) are synchronized by the same barriers as the main window's ImGui pass
+			{
+				EG_CPU_TIMING_SCOPED("ImGui platform windows");
+				(*s_RendererData->ImGuiLayer)->RenderPlatformWindows();
+			}
+
 			s_RendererData->CurrentRenderingFrameIndex = (s_RendererData->CurrentRenderingFrameIndex + 1) % RendererConfig::FramesInFlight;
 			s_RendererData->CurrentReleaseFrameIndex = (s_RendererData->CurrentReleaseFrameIndex + 1) % RendererConfig::FramesInFlight;
 			s_RendererData->FrameNumber++;
@@ -911,6 +918,17 @@ namespace Eagle
 	bool RenderManager::IsRenderThread()
 	{
 		return std::this_thread::get_id() == s_RendererData->ThreadPool->get_thread_ids()[0];
+	}
+
+	void RenderManager::ExecuteOnRenderThread(const std::function<void()>& func)
+	{
+		if (s_RendererData == nullptr || IsRenderThread())
+		{
+			func();
+			return;
+		}
+
+		s_RendererData->ThreadPool->submit_task([&func]() { func(); }).wait();
 	}
 
 	void RenderManager::RegisterShaderDependency(const Shader* shader, const Ref<Pipeline>& pipeline)

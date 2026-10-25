@@ -174,7 +174,7 @@ namespace Eagle
 
 	void Application::OnProjectChanged(bool bOpened)
 	{
-		Get().CallNextFrame([bOpened, corePath = Get().m_CorePath, imguiLayer = Get().m_ImGuiLayer]()
+		Get().CallNextFrame([bOpened, bGame = Get().m_Game, corePath = Get().m_CorePath, imguiLayer = Get().m_ImGuiLayer]()
 		{
 			AsyncSceneLoader::CancelAll(true);
 
@@ -189,7 +189,18 @@ namespace Eagle
 				std::filesystem::current_path(Project::GetProjectPath());
 				AssetManager::Init();
 				ThumbnailCache::Init();
-				imguiLayer->SetIniFilepath(Project::GetConfigPath() / "imgui.ini");
+				if (!imguiLayer->SetIniFilepath(Project::GetConfigPath() / "imgui.ini"))
+				{
+					if (!bGame)
+					{
+						EG_CORE_WARN("Copying the default imgui layout to the project and trying again...");
+						std::filesystem::copy(Application::GetCorePath() / "default_imgui_layout.ini", Project::GetConfigPath() / "imgui.ini");
+						if (imguiLayer->SetIniFilepath(Project::GetConfigPath() / "imgui.ini"))
+						{
+							EG_CORE_INFO("Successfully restored ImGui ini file");
+						}
+					}
+				}
 				Project::OnProjectOpenProcessed();
 			}
 			else

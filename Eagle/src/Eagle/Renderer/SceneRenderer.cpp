@@ -604,7 +604,7 @@ namespace Eagle
 		RenderManager::Wait();
 		RenderManager::SetImmediateDeletionMode(true);
 
-		m_Size = size;
+		m_Size = glm::max(glm::uvec2(1), size);
 
 		m_FinalImage->Resize({ m_Size, 1 });
 		m_HDRRTImage->Resize({ m_Size, 1 });
