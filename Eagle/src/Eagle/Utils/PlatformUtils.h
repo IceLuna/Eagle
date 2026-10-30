@@ -14,6 +14,7 @@ namespace Eagle
 		static const wchar_t* MESH_FILTER = L"3D-Model (*.fbx,*.gltf,*.glb,*.blend,*.3ds,*.obj,*.smd,*.vta,*.stl)\0*.fbx;*.gltf;*.glb;*.blend;*.3ds;*.obj;*.smd;*.vta;*.stl\0";
 		static const wchar_t* SOUND_FILTER = L"Sound (*.mp3,*.wav,*.ogg,*.flac)\0*.mp3;*.wav;*.ogg;*.flac\0";
 		static const wchar_t* FONT_FILTER = L"Font (*.ttf,*.otf)\0*.ttf;*.otf\0";
+		static const wchar_t* SPLASH_SCREEN_FILTER = L"Image (*.png,*.jpg,*.jpeg,*.bmp)\0*.png;*.jpg;*.jpeg;*.bmp\0";
 		static const wchar_t* IMPORT_FILTER = L"File (*.png,*.jpg,*.tga,*.hdr,*.fbx,*.gltf,*.glb,*.blend,*.3ds,*.obj,*.smd,*.vta,*.stl,*.mp3,*.wav,*.ogg,*.flac,*.ttf,*.otf)\0*.png;*.jpg;*.tga;*.hdr;*.fbx;*.gltf;*.glb;*.blend;*.3ds;*.obj;*.smd;*.vta;*.stl;*.mp3;*.wav;*.ogg;*.flac;*.ttf;*.otf\0";
 
 		//Returns empty string if failed
@@ -47,6 +48,10 @@ namespace Eagle
 
 		bool IsSSE2Supported();
 		int Execute(const Path& exePath, const std::string& args);
+
+		// Replaces the icon of an executable file (the one shown by the OS for the file itself).
+		// Returns false on failure
+		bool SetExecutableIcon(const Path& exePath, const Path& imagePath);
 	}
 
 	namespace Dialog

@@ -145,7 +145,7 @@ namespace Eagle
 		Entity selectedEntity = m_SceneHierarchy.GetSelectedEntity();
 		bool bUsingImGuizmo = selectedEntity && bUsingImGuizmoOrHovered;
 		const auto& scene = GetCurrentScene();
-		if (bViewportHovered && !bUsingImGuizmo && Input::IsMouseButtonPressed(Mouse::ButtonLeft))
+		if (bViewportHovered && !bViewportToolbarHovered && !bUsingImGuizmo && Input::IsMouseButtonPressed(Mouse::ButtonLeft))
 		{
 			const glm::vec2 viewportSize = m_ViewportBounds[1] - m_ViewportBounds[0];
 			const glm::ivec2 mouse = GetMousePosWithinViewport();

@@ -5,6 +5,7 @@
 #include "Eagle/Events/ApplicationEvent.h"
 #include "Eagle/Core/Layer.h"
 #include "Eagle/Core/LayerStack.h"
+#include "Eagle/Core/SplashScreen.h"
 
 #include "Eagle/ImGui/ImGuiLayer.h"
 #include "Eagle/Debug/CPUTimings.h"
@@ -26,10 +27,15 @@ namespace Eagle
 	struct ApplicationProperties
 	{
 		WindowProperties WindowProps;
-		bool bGame;
+		bool bGame = false;
 
-		int argc;
-		char** argv;
+		// The splash screen is shown while the application starts up, until it renders its first frames. Relative paths are relative to the executable's folder.
+		// A game build uses the splash screen it was built with (the project's settings, see `Project::LoadGameBuildSplashScreen()`), these are ignored then
+		SplashScreenDesc SplashScreen;
+		bool bSplashScreen = true;
+
+		int argc = 0;
+		char** argv = nullptr;
 	};
 
 	class Application
@@ -56,6 +62,9 @@ namespace Eagle
 
 		// Returns true if it's a game build
 		bool IsGame() const { return m_Game; }
+
+		void ShowSplashScreen(const SplashScreenDesc& desc);
+		const SplashScreenDesc& GetSplashScreenDesc() const { return m_SplashScreenDesc; }
 
 		void PushLayer(const Ref<Layer>& layer);
 		bool PopLayer(const Ref<Layer>& layer);
@@ -87,8 +96,18 @@ namespace Eagle
 		virtual bool OnWindowClose(WindowCloseEvent& e);
 		virtual bool OnWindowResize(WindowResizeEvent& e);
 
-		void ProcessCmdCommands(int argc, char** argv);
+		void ParseCmdArguments(int argc, char** argv);
+		void ProcessCmdCommands();
 		void ProcessNextFrameFuncs();
+
+	private:
+		// `bProcessEvents` is false for the frames that are run from within `Window::ProcessEvents()`, see `Window::SetModalLoopCallback()`
+		void RunFrame(bool bProcessEvents);
+		void UpdateTime();
+
+		void ShowStartupSplashScreen(const ApplicationProperties& props);
+		void BeginWindowReveal();
+		void UpdateWindowReveal();
 
 	protected:
 		Ref<Window> m_Window;
@@ -105,10 +124,25 @@ namespace Eagle
 		std::vector<std::function<void()>> m_NextFrameFuncs;
 		bool bProcessingNextFrameFuncs = false; // Used to prevent pushes to `m_NextFrameFuncs` from inside `m_NextFrameFuncs`. Instead, they're called immediately
 
+		enum class WindowRevealState
+		{
+			Revealed,
+			WaitingForWork,
+			WaitingForFrame,
+			Revealing,
+		};
+		WindowRevealState m_RevealState = WindowRevealState::WaitingForWork;
+		uint64_t m_RevealFrameNumber = 0;
+
+		SplashScreenDesc m_SplashScreenDesc;
+		bool m_bSplashScreenEnabled = true;
+		Path m_CmdProjectPath; // `--project` argument
+
 		Path m_CorePath;
 
 		Timestep m_Timestep = 0.f;
 		double m_Time = 0.f;
+		double m_LastFrameTime = 0.0;
 
 		bool m_Running = true;
 		bool m_Minimized = false;

@@ -9,8 +9,6 @@
 #include <compressonator/compressonator.h>
 #include <compressonator/common.h>
 
-#include <future>
-
 namespace Eagle
 {
 	static CMP_FORMAT(*s_GetCompressionFormatFunc)(uint32_t, TextureCompressor::TextureType, TextureCompressor::Quality) = nullptr;

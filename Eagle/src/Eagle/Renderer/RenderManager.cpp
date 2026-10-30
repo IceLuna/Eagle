@@ -88,6 +88,12 @@ namespace Eagle
 		uint64_t FrameNumber = 0;
 		uint64_t FrameNumber_CPU = 0;
 
+		// `SubmittedFrames` is the number of frames handed to the render thread (main thread only),
+		// `AcquiredFrames` is the number of them whose swapchain image is available (incremented by the render thread)
+		uint64_t SubmittedFrames = 0;
+		std::atomic<uint64_t> AcquiredFrames = 0;
+		std::atomic<uint64_t> LastPresentedFrameNumber = 0;
+
 		void (*PresentFunc)(const Ref<CommandBuffer>&, const Ref<Image>&, uint32_t swapchainImageIndex) = nullptr;
 	};
 
@@ -729,6 +735,22 @@ namespace Eagle
 
 	void RenderManager::BeginFrame()
 	{
+		// With VSync, the render thread is paced by the display. It waits for a swapchain image before presenting each frame.
+		// Without this wait, the main thread would run up to `FramesInFlight` frames ahead of it, so every frame would be shown several vsyncs
+		// after its input was read, which means a noticable input lag/latency. So, the main thread doesn't start a frame until the previous one
+		// got its swapchain image. A frame is then shown ~2 vsyncs after its input is read (the swapchain itself still queues a frame).
+		if (s_RendererData->Swapchain->IsVSyncEnabled())
+		{
+			EG_CPU_TIMING_SCOPED("Waiting for the previous frame's swapchain image");
+			const uint64_t submittedFrames = s_RendererData->SubmittedFrames;
+			uint64_t acquiredFrames = s_RendererData->AcquiredFrames.load();
+			while (acquiredFrames < submittedFrames)
+			{
+				s_RendererData->AcquiredFrames.wait(acquiredFrames);
+				acquiredFrames = s_RendererData->AcquiredFrames.load();
+			}
+		}
+
 		// Waiting for the previous execution to finish
 		auto& fence = s_RendererData->Fences[s_RendererData->CurrentFrameIndex];
 		auto& task = s_RendererData->ThreadPoolTasks[s_RendererData->CurrentFrameIndex];
@@ -793,8 +815,8 @@ namespace Eagle
 				s_RendererData->GraphicsCommandManager->Submit(cmd, sceneFence);
 			}
 
+			// Frame pacing
 			{
-				// Frame pacing.
 				// The render thread waits on this before submitting a frame, so it blocks until the swapchain image is actually free.
 				// Without it, `vkAcquireNextImageKHR` returns immediately and only the GPU waits (on the acquire semaphore). Then the only throttle is
 				// `RenderManager::BeginFrame` waiting on frame N-FramesInFlight's fence. With VSync, once the swapchain queue is full, each fence signals
@@ -806,6 +828,10 @@ namespace Eagle
 
 				EG_CPU_TIMING_SCOPED("Waiting for swapchain image");
 				s_RendererData->Swapchain->WaitForAcquireFence();
+
+				// Let the main thread start the next frame
+				s_RendererData->AcquiredFrames.fetch_add(1);
+				s_RendererData->AcquiredFrames.notify_all();
 			}
 
 			// Part 2: the present pass into the swapchain image (which is free by now).
@@ -834,6 +860,7 @@ namespace Eagle
 				if (bSwapchainValid)
 				{
 					s_RendererData->Swapchain->Present(semaphore, swapchainImageIndex);
+					s_RendererData->LastPresentedFrameNumber.store(s_RendererData->FrameNumber + 1);
 				}
 			}
 
@@ -850,6 +877,7 @@ namespace Eagle
 		});
 
 		s_RendererData->FrameNumber_CPU++;
+		s_RendererData->SubmittedFrames++;
 		s_RendererData->CurrentFrameIndex = (s_RendererData->CurrentFrameIndex + 1) % RendererConfig::FramesInFlight;
 	}
 
@@ -1122,6 +1150,11 @@ namespace Eagle
 	uint64_t RenderManager::GetFrameNumber_RT()
 	{
 		return s_RendererData->FrameNumber;
+	}
+
+	uint64_t RenderManager::GetLastPresentedFrameNumber()
+	{
+		return s_RendererData->LastPresentedFrameNumber.load();
 	}
 
 	GPUTimingsContainer RenderManager::GetTimings()

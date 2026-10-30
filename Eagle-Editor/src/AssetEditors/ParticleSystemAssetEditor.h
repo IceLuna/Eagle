@@ -20,6 +20,7 @@ namespace Eagle
 		void OnImGuiRender(bool* pOpen) override;
 
 		const Ref<Asset> GetAsset() const override { return Cast<Asset>(m_Asset); }
+		bool UsesGuizmo() const override { return true; }
 
 	private:
 		// Over-lifetime properties that can be opened in the curve panel

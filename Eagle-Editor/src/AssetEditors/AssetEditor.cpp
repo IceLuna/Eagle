@@ -10,6 +10,8 @@
 #include "Eagle/Camera/CameraController.h"
 #include "../EditorLayer.h"
 #include "../ImOGuizmo.h"
+#include "../Panels/ContentBrowserPanel.h"
+#include "../Widgets/ViewportToolbar.h"
 
 #include <imgui/imgui_internal.h>
 #include <ImGuizmo.h>
@@ -43,6 +45,8 @@ namespace Eagle
 
 	AssetEditor::~AssetEditor()
 	{
+		EditorFrames::RemoveTab(this);
+
 		if (m_SimulationScene)
 			m_SimulationScene->OnRuntimeStop();
 
@@ -86,6 +90,8 @@ namespace Eagle
 
 			if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
 				ImGui::SetWindowFocus();
+
+			DrawViewportToolbar();
 
 			// When we're moving the camera, we hide the mouse and disable ImGui mouse inputs, and `IsWindowHovered` starts returning false
 			// which prevents us from changing the camera speed. So if the mouse is not visible, don't change the state
@@ -131,9 +137,10 @@ namespace Eagle
 		glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
 
 		//Snapping
-		const glm::vec3& snapping = EditorLayer::Get()->GetSnappingValues();
-		const float snapValues[3] = { snapping[snappingIndex], snapping[snappingIndex], snapping[snappingIndex] };
-		const bool bSnap = Input::IsKeyPressed(Key::LeftShift);
+		const SnapSettings& snapSettings = EditorLayer::Get()->GetSnapSettings();
+		const float snapValue = snapSettings.GetValue(m_GuizmoType);
+		const float snapValues[3] = { snapValue, snapValue, snapValue };
+		const bool bSnap = snapSettings.IsSnapping(m_GuizmoType);
 
 		ImGuizmo::Enable(bEnabled);
 		ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,
@@ -202,7 +209,7 @@ namespace Eagle
 		m_CurrentScene->SetEverythingDirty();
 	}
 
-	void AssetEditor::InitEditorWindowNames()
+	void AssetEditor::InitEditorWindowNames() const
 	{
 		const Ref<Asset> asset = GetAsset();
 		const std::string assetID = std::to_string(asset->GetGUID().GetHash());
@@ -222,23 +229,31 @@ namespace Eagle
 		if (m_EditorWindowName.empty())
 			InitEditorWindowNames();
 
-		// Size & position of the editor when it's opened for the first time. Proportional to the main window, and centered
+		// The editor opens as a tab of the main window. That's its size when it's dragged out into its own window for the first time,
+		// proportional to the main window
 		{
 			constexpr ImVec2 minSize = ImVec2(1120.f, 680.f);
-			const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
-			const ImVec2 workSize = mainViewport->WorkSize;
+			const ImVec2 workSize = ImGui::GetMainViewport()->WorkSize;
 			ImVec2 size = ImVec2(ImMax(workSize.x * m_FirstUseSizeRatio.x, minSize.x), ImMax(workSize.y * m_FirstUseSizeRatio.y, minSize.y));
 			size = ImVec2(ImMin(size.x, workSize.x * 0.95f), ImMin(size.y, workSize.y * 0.95f));
-
 			ImGui::SetNextWindowSize(size, ImGuiCond_FirstUseEver);
-			ImGui::SetNextWindowPos(mainViewport->GetWorkCenter(), ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
 		}
 
+		PrepareTabWindow();
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
-		const bool bVisible = ImGui::Begin(m_EditorWindowName.c_str(), pOpen, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+		const bool bVisible = ImGui::Begin(m_EditorWindowName.c_str(), pOpen, EditorFrames::TabWindowFlags | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 		ImGui::PopStyleVar();
 
 		m_DockSpaceID = ImGui::GetID("AssetEditorDockSpace");
+
+		// The default layout is built again below, it docks the panels back
+		if (m_bResetLayout)
+		{
+			m_bResetLayout = false;
+			if (ImGui::DockBuilderGetNode(m_DockSpaceID))
+				ImGui::DockBuilderRemoveNode(m_DockSpaceID);
+		}
+
 		if (ImGui::DockBuilderGetNode(m_DockSpaceID) == nullptr)
 		{
 			// No layout yet, build the default one
@@ -373,11 +388,108 @@ namespace Eagle
 		if (!asset)
 			return;
 
-		// The host window, then the viewport panel if there's one
-		if (ImGuiWindow* window = ImGui::FindWindowByName(m_EditorWindowName.c_str()))
+		// The tab, then the viewport panel if there's one
+		if (IsMajorTab())
+			EditorFrames::FocusTab(this);
+		else if (ImGuiWindow* window = ImGui::FindWindowByName(GetTabWindowName().c_str()))
 			ImGui::FocusWindow(window);
-		if (ImGuiWindow* window = ImGui::FindWindowByName(m_ViewportPanelName.c_str()))
-			ImGui::FocusWindow(window);
+
+		if (!m_ViewportPanelName.empty())
+			if (ImGuiWindow* window = ImGui::FindWindowByName(m_ViewportPanelName.c_str()))
+				ImGui::FocusWindow(window);
+	}
+
+	const std::string& AssetEditor::GetTabWindowName() const
+	{
+		if (m_EditorWindowName.empty())
+			InitEditorWindowNames();
+		return m_EditorWindowName;
+	}
+
+	std::string AssetEditor::GetTabTitle() const
+	{
+		const Ref<Asset> asset = GetAsset();
+		return asset ? Utils::AsString(asset->GetPath().stem()) : std::string("Asset Editor");
+	}
+
+	void AssetEditor::CloseTab()
+	{
+		if (const Ref<Asset> asset = GetAsset())
+			ContentBrowserPanel::Get().CloseAssetEditor(asset);
+	}
+
+	void AssetEditor::PrepareTabWindow()
+	{
+		if (IsMajorTab())
+			EditorFrames::PrepareTabWindow(this);
+	}
+
+	void AssetEditor::DrawTabMenus()
+	{
+		const Ref<Asset> asset = GetAsset();
+		EditorLayer* editorLayer = EditorLayer::Get();
+
+		if (ImGui::BeginMenu("File"))
+		{
+			if (ImGui::MenuItem("Save", nullptr, false, asset != nullptr))
+				Asset::Save(asset);
+			ImGui::Separator();
+			if (ImGui::MenuItem("Close"))
+				CloseTab();
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Asset"))
+		{
+			if (ImGui::MenuItem("Find in Content Browser", nullptr, false, asset != nullptr))
+			{
+				// The content browser is a panel of the level editor
+				EditorFrames::FocusTab(editorLayer);
+				ContentBrowserPanel::Get().ShowAsset(asset->GetPath());
+			}
+			ImGui::EndMenu();
+		}
+
+		// Only editors with panels have a layout
+		if (m_DockSpaceID != 0 && ImGui::BeginMenu("Window"))
+		{
+			if (ImGui::MenuItem("Reset Layout"))
+				m_bResetLayout = true;
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Help"))
+		{
+			if (ImGui::MenuItem("Shortcuts"))
+				editorLayer->ShowShortcutsWindow();
+			ImGui::Separator();
+			if (ImGui::MenuItem("About"))
+				editorLayer->ShowAboutWindow();
+			ImGui::EndMenu();
+		}
+	}
+
+	void AssetEditor::DrawViewportToolbar()
+	{
+		// Only while editing, a simulation has its own camera
+		if (m_SimulationScene || !m_CurrentScene)
+		{
+			bViewportToolbarHovered = false;
+			return;
+		}
+
+		ViewportToolbar toolbar;
+		if (UsesGuizmo())
+		{
+			toolbar.GuizmoType = &m_GuizmoType;
+			toolbar.Snap = &EditorLayer::Get()->GetSnapSettings();
+		}
+		toolbar.Camera = &m_CurrentScene->EditorCamera;
+
+		// The mouse is hidden while the camera moves (ImGui doesn't get the mouse input then), so the state is kept
+		const bool bHovered = toolbar.Draw("##ViewportToolbar", ImVec2(m_ViewportBounds[0].x, m_ViewportBounds[0].y), ImVec2(m_ViewportBounds[1].x, m_ViewportBounds[1].y));
+		if (Input::IsMouseVisible())
+			bViewportToolbarHovered = bHovered;
 	}
 	
 	void AssetEditor::OnEvent(Event& e)
@@ -489,7 +601,7 @@ namespace Eagle
 			{
 				if (ImGui::IsMouseReleased(1) || !bViewportFocused)
 					m_Scene->bCanUpdateEditorCamera = false;
-				else if (m_Scene->bCanUpdateEditorCamera || (bViewportHovered && ImGui::IsMouseClicked(1, true)))
+				else if (m_Scene->bCanUpdateEditorCamera || (bViewportHovered && !bViewportToolbarHovered && ImGui::IsMouseClicked(1, true)))
 					m_Scene->bCanUpdateEditorCamera = true;
 			}
 			else

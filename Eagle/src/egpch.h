@@ -1,20 +1,21 @@
 #pragma once
 
-//Utility
+// Utility
 #include <memory>
 #include <utility>
 #include <algorithm>
 #include <functional>
 #include <chrono>
+#include <future>
 
-//Streams
+// Streams
 #include <iostream>
 #include <string>
 #include <fstream>
 #include <filesystem>
 #include <sstream>
 
-//Containers
+// Containers
 #include <array>
 #include <vector>
 #include <set>
@@ -23,7 +24,7 @@
 #include <unordered_map>
 #include <span>
 
-//Engine core
+// Engine core
 #include "Eagle/Core/Core.h"
 #include "Eagle/Events/ApplicationEvent.h"
 #include "Eagle/Events/KeyEvent.h"

@@ -179,6 +179,9 @@ namespace Eagle
 		static uint64_t GetFrameNumber_RT();
 		static uint64_t GetFrameNumber_CPU();
 
+		// The last frame that was presented into a valid swapchain
+		static uint64_t GetLastPresentedFrameNumber();
+
 		static void SetImmediateDeletionMode(bool bEnabled) { bImmediateDeletionMode = bEnabled; }
 
 	private:

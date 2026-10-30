@@ -25,6 +25,9 @@ namespace Eagle
 
 		const Ref<Asset> GetAsset() const override { return Cast<Asset>(m_Asset); }
 
+		// The sequencer previews through the level editor's viewport, so it's a panel of the level editor rather than a tab of its own
+		bool IsMajorTab() const override { return false; }
+
 	private:
 		// Identifies one key. IDs rather than indices, so it survives keys being re-sorted mid-drag
 		struct KeyRef

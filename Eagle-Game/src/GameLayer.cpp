@@ -12,7 +12,10 @@ namespace Eagle
 {
 	void GameLayer::OnAttach()
 	{
+		SplashScreen::SetStatus("Loading scripts");
+		SplashScreen::SetProgress(-1.f);
 		ScriptEngine::LoadAppAssembly(Project::GetProjectInfo().Name + ".dll");
+		SplashScreen::SetStatus("Loading the startup scene");
 
 		auto& window = Application::Get().GetWindow();
 		

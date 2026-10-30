@@ -16,13 +16,15 @@ namespace Eagle
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 
-		const glm::vec3& snapValues = editor->m_SnappingValues;
+		const SnapSettings& snapSettings = editor->m_SnapSettings;
 		int guizmoType = editor->m_GuizmoType;
 
+		// The placement, so that the size & position are the window's normal ones even if it's maximized
 		const Window& window = Application::Get().GetWindow();
-		glm::vec2 windowSize = window.GetWindowSize();
-		bool bWindowMaximized = window.IsMaximized();
-		glm::vec2 windowPos = window.GetWindowPos();
+		const WindowPlacement windowPlacement = window.GetWindowPlacement();
+		const glm::vec2 windowSize = glm::vec2(windowPlacement.Size);
+		const glm::vec2 windowPos = glm::vec2(windowPlacement.Pos);
+		const bool bWindowMaximized = windowPlacement.bMaximized;
 		bool bVSync = window.IsVSync();
 		
 		const auto rendererOptions = editor->GetEditorState() == EditorState::Play ? editor->m_BeforeSimulationData.RendererSettings :
@@ -33,7 +35,9 @@ namespace Eagle
 		out << YAML::Key << "WindowSize" << YAML::Value << windowSize;
 		out << YAML::Key << "WindowMaximized" << YAML::Value << bWindowMaximized;
 		out << YAML::Key << "WindowPos" << YAML::Value << windowPos;
-		out << YAML::Key << "SnapValues" << YAML::Value << snapValues;
+		out << YAML::Key << "SnapValues" << YAML::Value << snapSettings.Values;
+		out << YAML::Key << "SnapEnabled" << YAML::Value << YAML::Flow << YAML::BeginSeq
+			<< snapSettings.bEnabled[0] << snapSettings.bEnabled[1] << snapSettings.bEnabled[2] << YAML::EndSeq;
 		out << YAML::Key << "GuizmoType" << YAML::Value << guizmoType;
 		out << YAML::Key << "Style" << YAML::Value << Utils::GetEnumName(editor->m_EditorStyle);
 		out << YAML::Key << "EcoRendering" << YAML::Value << editor->bRenderOnlyWhenFocused;
@@ -98,9 +102,8 @@ namespace Eagle
 
 	bool EditorSerializer::Deserialize(EditorLayer* editor, const Path& filepath)
 	{
-		glm::vec2 windowSize = glm::vec2{ -1, -1 };
-		glm::vec2 windowPos = glm::vec2{ -1, -1 };
-		bool bWindowMaximized = true;
+		WindowPlacement windowPlacement = Application::Get().GetWindow().GetWindowPlacement();
+		windowPlacement.bMaximized = true;
 		SceneRendererSettings settings;
 
 		if (!std::filesystem::exists(filepath))
@@ -129,15 +132,29 @@ namespace Eagle
 			}
 		}
 		if (auto windowSizeNode = data["WindowSize"])
-			windowSize = windowSizeNode.as<glm::vec2>();
+		{
+			const glm::ivec2 windowSize = glm::ivec2(windowSizeNode.as<glm::vec2>());
+			if (windowSize.x > 0 && windowSize.y > 0)
+				windowPlacement.Size = windowSize;
+		}
 		if (auto windowMaximizedNode = data["WindowMaximized"])
-			bWindowMaximized = windowMaximizedNode.as<bool>();
+			windowPlacement.bMaximized = windowMaximizedNode.as<bool>();
 		if (auto windowPosNode = data["WindowPos"])
-			windowPos = windowPosNode.as<glm::vec2>();
+			windowPlacement.Pos = glm::ivec2(windowPosNode.as<glm::vec2>()); // Can be negative (a monitor on the left of the primary one)
 		if (auto snapValuesNode = data["SnapValues"])
-			editor->m_SnappingValues = snapValuesNode.as<glm::vec3>();
+			editor->m_SnapSettings.Values = snapValuesNode.as<glm::vec3>();
+		if (auto node = data["SnapEnabled"]; node && node.IsSequence() && node.size() == 3)
+		{
+			for (int i = 0; i < 3; ++i)
+				editor->m_SnapSettings.bEnabled[i] = node[i].as<bool>();
+		}
 		if (auto GuizmoTypeNode = data["GuizmoType"])
-			editor->m_GuizmoType = std::max(0, GuizmoTypeNode.as<int>());
+		{
+			// -1 means no gizmo
+			const int guizmoType = GuizmoTypeNode.as<int>();
+			const bool bValid = guizmoType == -1 || SnapSettings::GetIndex(guizmoType) != -1;
+			editor->m_GuizmoType = bValid ? guizmoType : ImGuizmo::OPERATION::TRANSLATE;
+		}
 		if (auto styleNode = data["Style"])
 			editor->m_EditorStyle = Utils::GetEnumFromName<ImGuiLayer::Style>(styleNode.as<std::string>());
 		if (auto node = data["EcoRendering"])
@@ -202,7 +219,7 @@ namespace Eagle
 		
 		Serializer::DeserializeRendererSettings(data, settings);
 
-		editor->OnDeserialized(camera, windowSize, windowPos, settings, bWindowMaximized, bVSync, bRenderOnlyWhenFocused, bDrawNavMesh, bDrawMeshAABBs, bDrawAxisGuizmo, bForceDrawGuizmo, stopSimulationKey, bUpdateAnimationsInEditor, guizmoMode);
+		editor->OnDeserialized(camera, windowPlacement, settings, bVSync, bRenderOnlyWhenFocused, bDrawNavMesh, bDrawMeshAABBs, bDrawAxisGuizmo, bForceDrawGuizmo, stopSimulationKey, bUpdateAnimationsInEditor, guizmoMode);
 		return true;
 	}
 }

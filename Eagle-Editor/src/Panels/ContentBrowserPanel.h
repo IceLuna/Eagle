@@ -43,6 +43,9 @@ namespace Eagle
 
 		void OnImGuiRender();
 
+		// Asset editors are major tabs (see `MajorTab`), so they're drawn separately from the content browser
+		void DrawAssetEditors();
+
 		void OnEvent(Event& e);
 
 		void OpenAssetEditor(const Ref<Asset>& asset);
@@ -63,7 +66,6 @@ namespace Eagle
 		void DrawEntry(const ContentEntry& entry, const ImVec2& thumbnailSize, bool bHintFullPath, bool& bHoveredAnyItem);
 		void DrawPathHistory();
 		void HandleAddPanel();
-		void HandleAssetEditors();
 		void RefreshContentInfo();
 		void UpdateDirectoryWatcher();
 		bool HandleImport();

@@ -1,5 +1,6 @@
 #include "ProjectLayer.h"
 #include "EditorLayer.h"
+#include "Frames/TitleBar.h"
 
 #include "Eagle/Utils/PlatformUtils.h"
 
@@ -8,13 +9,8 @@
 
 namespace Eagle
 {
-	static void BeginDocking();
-	static void EndDocking();
-
 	void ProjectLayer::OnAttach()
 	{
-		m_NoTabBar.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_AutoHideTabBar | ImGuiDockNodeFlags_NoTabBar;
-
 		// Enable VSync during `ProjectLayer`
 		Application& app = Application::Get();
 		Window& window = app.GetWindow();
@@ -22,12 +18,16 @@ namespace Eagle
 		bWasVSync = window.IsVSync();
 		if (!bWasVSync)
 			window.SetVSync(true);
+
+		// The window draws its own title bar
+		window.SetTitleBarHitTestCallback(TitleBar::MakeHitTestCallback(ImGui::GetMainViewport()->ID));
 		
 		const auto& corePath = app.GetCorePath();
 		const auto basePath = corePath / "assets/textures/Editor";
 		m_OpenProjectIcon = Texture2D::Create(basePath / "openproject.png");
 		m_CreateProjectIcon = Texture2D::Create(basePath / "newproject.png");
 		m_UserProjectIcon = Texture2D::Create(basePath / "userproject.png");
+		m_EditorIcon = Texture2D::Create(basePath / "icon.png");
 
 		const Path recentProjectsFile = corePath / "Saved/RecentProjects";
 		if (std::filesystem::exists(recentProjectsFile))
@@ -46,6 +46,7 @@ namespace Eagle
 		auto& app = Application::Get();
 		if (!bWasVSync)
 			app.GetWindow().SetVSync(bWasVSync);
+		app.GetWindow().SetTitleBarHitTestCallback(nullptr);
 
 		const auto savedDir = app.GetCorePath() / "Saved";
 		if (!std::filesystem::exists(savedDir))
@@ -78,10 +79,44 @@ namespace Eagle
 	{
 		EG_CPU_TIMING_SCOPED("ProjectLayer. UI");
 
-		BeginDocking();
+		TitleBar::NewFrame();
 
-		ImGui::SetNextWindowClass(&m_NoTabBar);
-		if (ImGui::Begin("Project Selector", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse))
+		// A window that covers the main window: the title bar, and the project selector below it
+		const ImGuiViewport* viewport = ImGui::GetMainViewport();
+		ImGui::SetNextWindowPos(viewport->Pos);
+		ImGui::SetNextWindowSize(viewport->Size);
+		ImGui::SetNextWindowViewport(viewport->ID);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
+		ImGui::PushStyleColor(ImGuiCol_WindowBg, TitleBar::GetBackgroundColor()); // The edges around the content are a part of the frame
+		ImGui::Begin("##ProjectsFrame", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings
+			| ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoScrollWithMouse);
+		ImGui::PopStyleColor();
+		ImGui::PopStyleVar(3);
+
+		ImGuiWindow* frame = ImGui::GetCurrentWindow();
+		const Window& window = Application::Get().GetWindow();
+		float titleBarHeight = 0.f;
+		if (window.HasCustomTitleBar() && !window.IsFullscreen())
+		{
+			TitleBarDesc titleBar;
+			titleBar.Title = window.GetWindowTitle();
+			titleBar.Icon = m_EditorIcon;
+			titleBar.OnClose = &TitleBar::RequestAppClose;
+			TitleBar::Draw(titleBar);
+			titleBarHeight = TitleBar::GetHeight();
+		}
+
+		// The edges of the window resize it, so the content is inset by them
+		const float border = TitleBar::GetResizeBorder(viewport);
+		ImGui::SetCursorScreenPos(ImVec2(frame->Pos.x + border, frame->Pos.y + titleBarHeight));
+		const ImVec2 contentSize(ImMax(1.f, frame->Size.x - border * 2.f), ImMax(1.f, frame->Size.y - titleBarHeight - border));
+
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
+		const bool bContentVisible = ImGui::BeginChild("Project Selector", contentSize, ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+		ImGui::PopStyleColor();
+		if (bContentVisible)
 		{
 			DrawCreateOpenButtons();
 
@@ -112,16 +147,20 @@ namespace Eagle
 				}
 			}
 		}
+		ImGui::EndChild();
 
 		ImGui::End();
-
-		EndDocking();
 	}
 
 	void ProjectLayer::OpenEditor()
 	{
 		const auto path = Project::GetProjectFilePath();
 		AddRecentProject(std::filesystem::absolute(path));
+
+		Application& app = Application::Get();
+		SplashScreenDesc splashScreen = app.GetSplashScreenDesc();
+		splashScreen.Subtitle = Project::GetProjectInfo().Name;
+		app.ShowSplashScreen(splashScreen);
 
 		Application::Get().CallNextFrame([projectLayer = shared_from_this()]()
 		{
@@ -326,57 +365,5 @@ namespace Eagle
 			m_RecentProjects.erase(it);
 
 		m_RecentProjects.emplace_back(path);
-	}
-
-	static void BeginDocking()
-	{
-		static bool dockspaceOpen = true;
-		static bool opt_fullscreen_persistant = true;
-		bool opt_fullscreen = opt_fullscreen_persistant;
-		static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_NoCloseButton;
-
-		// We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
-		// because it would be confusing to have two docking targets within each others.
-		ImGuiWindowFlags window_flags = (true ? 0u : ImGuiWindowFlags_MenuBar) | ImGuiWindowFlags_NoDocking;
-		if (opt_fullscreen)
-		{
-			ImGuiViewport* viewport = ImGui::GetMainViewport();
-			ImGui::SetNextWindowPos(viewport->Pos);
-			ImGui::SetNextWindowSize(viewport->Size);
-			ImGui::SetNextWindowViewport(viewport->ID);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-			window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-			window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-		}
-
-		// When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background and handle the pass-thru hole, so we ask Begin() to not render a background.
-		if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
-			window_flags |= ImGuiWindowFlags_NoBackground;
-
-		// Important: note that we proceed even if Begin() returns false (aka window is collapsed).
-		// This is because we want to keep our DockSpace() active. If a DockSpace() is inactive, 
-		// all active windows docked into it will lose their parent and become undocked.
-		// We cannot preserve the docking relationship between an active window and an inactive docking, otherwise 
-		// any change of dockspace/settings would lead to windows being stuck in limbo and never being visible.
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-		ImGui::Begin("Project_DockspaceWindow", &dockspaceOpen, window_flags);
-		ImGui::PopStyleVar();
-
-		if (opt_fullscreen)
-			ImGui::PopStyleVar(2);
-
-		// DockSpace
-		ImGuiIO& io = ImGui::GetIO();
-		if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
-		{
-			ImGuiID dockspace_id = ImGui::GetID("Project_Dockspace");
-			ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
-		}
-	}
-
-	static void EndDocking()
-	{
-		ImGui::End(); //Docking
 	}
 }

@@ -17,6 +17,7 @@ namespace Eagle
 		void OnEvent(Event& e) override;
 
 		const Ref<Asset> GetAsset() const override { return Cast<Asset>(m_Asset); }
+		bool UsesGuizmo() const override { return true; }
 
 	private:
 		void UpdateGuizmo();

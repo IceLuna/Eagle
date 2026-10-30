@@ -1,6 +1,7 @@
 ﻿#include "EditorLayer.h"
 #include "ProjectLayer.h"
 #include "EditorResources.h"
+#include "Frames/TitleBar.h"
 
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/Asset/AssetManager.h"
@@ -59,8 +60,8 @@ namespace Eagle
 	static glm::vec4 notUsed2;
 	static EditorLayer* s_EditorLayer = nullptr;
 
-	static void ShowShortcutsWindow(bool* p_open = nullptr);
-	static void ShowHelpWindow(bool* p_open = nullptr);
+	static void DrawShortcutsWindow(bool* p_open = nullptr);
+	static void DrawAboutWindow(bool* p_open = nullptr);
 
 	static void DisplayTiming(const GPUTimingData& data, size_t i = 0)
 	{
@@ -155,8 +156,104 @@ namespace Eagle
 		}
 	};
 
+	// Returns the image's path relative to the project.
+	// An image from outside of the project is copied into its Config folder, so that the project stays self-contained.
+	// @copyName. The name of the copy (without an extension)
+	static std::optional<Path> ImportProjectImage(const Path& image, std::string_view copyName)
+	{
+		namespace fs = std::filesystem;
+
+		std::error_code error;
+		const Path projectPath = fs::weakly_canonical(Project::GetProjectPath(), error);
+		const Path imagePath = fs::weakly_canonical(image, error);
+		const Path relativePath = imagePath.lexically_relative(projectPath);
+		if (!relativePath.empty() && relativePath.is_relative() && *relativePath.begin() != "..")
+			return relativePath;
+
+		std::string extension = Utils::AsString(imagePath.extension());
+		std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return char(std::tolower(c)); });
+		const Path destination = Project::GetConfigPath() / (Utils::AsPath(std::string(copyName)) += extension);
+
+		fs::create_directories(destination.parent_path(), error);
+		fs::copy_file(imagePath, destination, fs::copy_options::overwrite_existing, error);
+		if (error)
+		{
+			EG_CORE_ERROR("Failed to copy the image `{}` into the project: {}", imagePath, error.message());
+			Application::Get().GetImGuiLayer()->AddMessage("Failed to copy the image into the project. See logs for more details");
+			return std::nullopt;
+		}
+		return fs::relative(destination, Project::GetProjectPath(), error);
+	}
+
+	// A property grid row that selects an image file of the project
+	// @emptyText. Shown when no image is selected
+	static bool DrawProjectImageProperty(std::string_view label, Path& image, std::string_view emptyText, std::string_view copyName, std::string_view helpMessage)
+	{
+		bool bChanged = false;
+
+		ImGui::PushID(label.data(), label.data() + label.size());
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		ImGui::TextUnformatted(label.data(), label.data() + label.size());
+		if (!helpMessage.empty())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		ImGui::NextColumn();
+
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		if (image.empty())
+		{
+			ImGui::TextDisabled("%.*s", int(emptyText.size()), emptyText.data());
+		}
+		else
+		{
+			std::error_code error;
+			const Path absolutePath = Project::GetProjectPath() / image;
+			const bool bExists = std::filesystem::is_regular_file(absolutePath, error);
+			const std::string text = Utils::AsString(image);
+			if (bExists)
+				ImGui::TextUnformatted(text.c_str());
+			else
+				ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1.f), "%s (missing)", text.c_str());
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("%s", bExists ? Utils::AsString(std::filesystem::absolute(absolutePath, error)).c_str() : "The file doesn't exist");
+		}
+
+		if (ImGui::Button("Browse..."))
+		{
+			const Path selected = FileDialog::OpenFile(FileDialog::SPLASH_SCREEN_FILTER, Project::GetProjectPath());
+			if (!selected.empty())
+			{
+				if (std::optional<Path> relativePath = ImportProjectImage(selected, copyName))
+				{
+					image = *relativePath;
+					bChanged = true;
+				}
+			}
+		}
+
+		ImGui::SameLine();
+		const bool bCanClear = !image.empty();
+		if (!bCanClear)
+			UI::PushItemDisabled();
+		if (ImGui::Button("Clear"))
+		{
+			image.clear();
+			bChanged = true;
+		}
+		if (!bCanClear)
+			UI::PopItemDisabled();
+
+		ImGui::PopID();
+		ImGui::NextColumn();
+		return bChanged;
+	}
+
 	EditorLayer::EditorLayer()
 		: Layer("EditorLayer")
+		, m_LevelTabWindowName("Level Editor###LevelEditor")
+		, m_LevelTabTitle("Level Editor")
 		, m_Window(Application::Get().GetWindow())
 	{
 		m_SimulatePanelSettings.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_AutoHideTabBar | ImGuiDockNodeFlags_NoTabBar
@@ -171,6 +268,10 @@ namespace Eagle
 		EditorResources::Init();
 
 		m_ImGuiLayer = Application::Get().GetImGuiLayer();
+
+		m_EditorIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/icon.png");
+		EditorFrames::Init(m_EditorIcon);
+		m_Window.SetTitleBarHitTestCallback(TitleBar::MakeHitTestCallback(ImGui::GetMainViewport()->ID));
 
 		CheckAppAssembly();
 
@@ -205,6 +306,8 @@ namespace Eagle
 		});
 
 		// If failed to deserialize, create EditorDefault.ini & open a new scene
+		SplashScreen::SetStatus("Opening the scene");
+		SplashScreen::SetProgress(-1.f);
 		const Path editorIni = Project::GetConfigPath() / "EditorDefault.ini";
 		if (EditorSerializer::Deserialize(this, editorIni) == false)
 		{
@@ -222,6 +325,12 @@ namespace Eagle
 
 	void EditorLayer::OnDetach()
 	{
+		if (m_SplashScreenPreviewEndTime > 0.0)
+		{
+			SplashScreen::Hide();
+			m_SplashScreenPreviewEndTime = 0.0;
+		}
+
 		EditorSerializer::Serialize(this, Project::GetConfigPath() / "EditorDefault.ini");
 		if (m_EditorState != EditorState::Edit && m_SimulationScene)
 		{
@@ -233,6 +342,10 @@ namespace Eagle
 		m_CurrentScene.reset();
 		Scene::SetCurrentScene(nullptr);
 		Scene::RemoveOnSceneOpenedCallback(m_OpenedSceneCallbackID);
+		m_Window.SetTitleBarHitTestCallback(nullptr);
+		EditorFrames::RemoveTab(this);
+		EditorFrames::Shutdown();
+		m_EditorIcon.reset();
 		EditorResources::Release();
 		EG_CORE_ASSERT(s_EditorLayer);
 		s_EditorLayer = nullptr;
@@ -243,6 +356,12 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("EditorLayer. OnUpdate");
 
 		m_Ts = ts;
+		if (m_SplashScreenPreviewEndTime > 0.0 && Application::Get().GetTime() >= m_SplashScreenPreviewEndTime)
+		{
+			SplashScreen::Hide();
+			m_SplashScreenPreviewEndTime = 0.0;
+		}
+
 		m_CurrentScene->bDrawMiscellaneous = m_bDrawEditorMisc;
 		m_CurrentScene->bDrawNavMesh = bDrawNavMesh;
 		m_CurrentScene->bDrawMeshAABBs = bDrawMeshAABBs;
@@ -300,13 +419,17 @@ namespace Eagle
 
 		const auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
 		const GBuffer& gBuffers = sceneRenderer->GetGBuffer();
+		if (!IsVisualizingBufferTypeAvailable(m_VisualizingGBufferType))
+			SetVisualizingBufferType(GBufferVisualizingType::Final);
 		m_ViewportImage = GetRequiredGBufferImage(sceneRenderer, gBuffers);
 
-		BeginDocking();
+		// The frames (the main window and the floating ones), then the major tabs: the level editor with its panels, and the asset editors
+		EditorFrames::BeginFrame();
+		DrawLevelEditorTab();
+		DrawDebugWindows();
 
 		if (!m_bFullScreen)
 		{
-			DrawMenuBar();
 			DrawSceneSettings();
 			DrawRendererSettings();
 			DrawProjectSettings();
@@ -367,7 +490,9 @@ namespace Eagle
 			}
 		}
 
-		EndDocking();
+		m_ContentBrowserPanel.DrawAssetEditors();
+
+		EditorFrames::EndFrame();
 
 		//ImGui::ShowStyleEditor();
 		//ImGui::ShowDemoWindow();
@@ -571,7 +696,7 @@ namespace Eagle
 		// Entity Selection
 		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
 		bool bUsingImGuizmo = selectedEntity && m_bUsingImGuizmoOrHovered;
-		if (m_ViewportHovered && !bUsingImGuizmo && Input::IsMouseButtonPressed(Mouse::ButtonLeft))
+		if (m_ViewportHovered && !m_bViewportToolbarHovered && !bUsingImGuizmo && Input::IsMouseButtonPressed(Mouse::ButtonLeft))
 		{
 			const glm::vec2 viewportSize = m_ViewportBounds[1] - m_ViewportBounds[0];
 			const glm::ivec2 mouse = GetMousePosWithinViewport();
@@ -836,6 +961,10 @@ namespace Eagle
 
 	void EditorLayer::UpdateEditorTitle(const Ref<AssetScene>& scene)
 	{
+		// The level editor's tab is named after the scene
+		m_LevelTabTitle = scene ? Utils::AsString(scene->GetPath().stem()) : std::string("Untitled");
+		m_LevelTabWindowName = m_LevelTabTitle + "###LevelEditor";
+
 		if (!scene)
 		{
 			m_Window.SetWindowTitle(m_WindowTitle + std::string(" - <New Scene>"));
@@ -850,7 +979,7 @@ namespace Eagle
 		m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + displayName);
 	}
 
-	void EditorLayer::OnDeserialized(const EditorCamera& camera, const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync,
+	void EditorLayer::OnDeserialized(const EditorCamera& camera, const WindowPlacement& windowPlacement, const SceneRendererSettings& settings, bool bVSync,
 		bool bRenderOnlyWhenFocused, bool bDrawNavMesh, bool bDrawMeshAABBs, bool bDrawAxisGuizmo, bool bForceDrawGuizmo, Key stopSimulationKey, bool bUpdateAnimationsInEditor, int guizmoMode)
 	{
 		m_Camera = camera;
@@ -885,15 +1014,7 @@ namespace Eagle
 		m_GuizmoMode = guizmoMode;
 		m_StopSimulationKey = stopSimulationKey;
 
-		if ((int)windowSize.x > 0 && (int)windowSize.y > 0)
-		{
-			window.SetWindowSize((int)windowSize[0], (int)windowSize[1]);
-		}
-		if (windowPos.x >= 0 && windowPos.y >= 0)
-		{
-			window.SetWindowPos((int)windowPos.x, (int)windowPos.y);
-		}
-		window.SetWindowMaximized(bWindowMaximized);
+		window.SetWindowPlacement(windowPlacement);
 		
 		auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
 		sceneRenderer->SetOptions(settings);
@@ -1040,8 +1161,9 @@ namespace Eagle
 				snappingIndex = 2;
 
 			//Snapping
-			const float snapValues[3] = { m_SnappingValues[snappingIndex], m_SnappingValues[snappingIndex], m_SnappingValues[snappingIndex] };
-			const bool bSnap = Input::IsKeyPressed(Key::LeftShift);
+			const float snapValue = m_SnapSettings.GetValue(m_GuizmoType);
+			const float snapValues[3] = { snapValue, snapValue, snapValue };
+			const bool bSnap = m_SnapSettings.IsSnapping(m_GuizmoType);
 
 			glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
 			ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,
@@ -1104,177 +1226,145 @@ namespace Eagle
 		}
 	}
 
-	void EditorLayer::DrawMenuBar()
+	void EditorLayer::DrawMenus()
 	{
-		static bool bShowGPUMemoryUsage = false;
-		static bool bShowGPUTimings = false;
-		static bool bShowCPUTimings = false;
 		auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
-		const GBuffer& gBuffers = sceneRenderer->GetGBuffer();
 
-		if (ImGui::BeginMenuBar())
+		if (ImGui::BeginMenu("File"))
 		{
-			if (ImGui::BeginMenu("File"))
+			if (ImGui::MenuItem("New Scene", "Ctrl+N"))
 			{
-				if (ImGui::MenuItem("Open VS Solution"))
+				m_ShowSaveScenePopupForNewScene = true;
+			}
+			ImGui::Separator();
+			if (ImGui::MenuItem("Save", "Ctrl+S"))
+			{
+				SaveScene();
+			}
+			if (ImGui::MenuItem("Save as...", "Ctrl+Shift+S"))
+			{
+				SaveSceneAs();
+			}
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("Open VS Solution"))
+			{
+				const auto& projectInfo = Project::GetProjectInfo();
+				Path solutionFile = projectInfo.BasePath / (projectInfo.Name + ".sln");
+				if (std::filesystem::exists(solutionFile))
 				{
-					const auto& projectInfo = Project::GetProjectInfo();
-					Path solutionFile = projectInfo.BasePath / (projectInfo.Name + ".sln");
+					Utils::OpenInExplorer(solutionFile);
+				}
+				else
+				{
+					solutionFile = projectInfo.BasePath / (projectInfo.Name + ".slnx");
 					if (std::filesystem::exists(solutionFile))
 					{
 						Utils::OpenInExplorer(solutionFile);
 					}
-					else
-					{
-						solutionFile = projectInfo.BasePath / (projectInfo.Name + ".slnx");
-						if (std::filesystem::exists(solutionFile))
-						{
-							Utils::OpenInExplorer(solutionFile);
-						}
-					}
 				}
-				if (ImGui::MenuItem("Generate VS Solution"))
-				{
-					Project::GenerateSolution(Project::GetProjectInfo());
-				}
-				ImGui::Separator();
-				if (ImGui::MenuItem("Build the game"))
-				{
-					if (!Project::GetProjectInfo().GameStartupScene)
-					{
-						m_ImGuiLayer->AddMessage("Please set a game startup scene in the 'Project Settings' tab");
-					}
-					else
-					{
-						PrepareDirtyAssets(DirtyAssetsReason::ProjectBuild);
-						if (!m_ShowDirtyAssetMessage) // No unsaved assets, build.
-						{
-							m_AssetUsagePanel.BuildGame();
-						}
-					}
-				}
-				ImGui::Separator();
-				if (ImGui::MenuItem("Close the project"))
-				{
-					HandleCloseRequest(false);
-				}
-				ImGui::Separator();
-				if (ImGui::MenuItem("New Scene", "Ctrl+N"))
-				{
-					m_ShowSaveScenePopupForNewScene = true;
-				}
-				ImGui::Separator();
-				if (ImGui::MenuItem("Save", "Ctrl+S"))
-				{
-					SaveScene();
-				}
-				if (ImGui::MenuItem("Save as...", "Ctrl+Shift+S"))
-				{
-					SaveSceneAs();
-				}
-				ImGui::Separator();
-
-				if (ImGui::MenuItem("Exit"))
-					HandleCloseRequest(true);
-				ImGui::EndMenu();
 			}
-
-			if (ImGui::BeginMenu("Windows"))
+			if (ImGui::MenuItem("Generate VS Solution"))
 			{
-				bool bConsoleOpened = m_ConsolePanel.IsOpened();
-				bool bFullscreen = Application::Get().GetWindow().IsFullscreen();
-
-				if (ImGui::Checkbox("Console", &bConsoleOpened))
-					m_ConsolePanel.SetOpened(bConsoleOpened);
-
-				bool bUnusedAssetsOpened = m_AssetUsagePanel.IsOpened();
-				if (ImGui::Checkbox(AssetUsagePanel::GetWindowName(), &bUnusedAssetsOpened))
-					m_AssetUsagePanel.SetOpened(bUnusedAssetsOpened);
-				if (ImGui::Checkbox("Fullscreen (Shift + F11)", &bFullscreen))
-					ToggleWindowFullscreenState();
-
-				ImGui::EndMenu();
+				Project::GenerateSolution(Project::GetProjectInfo());
 			}
+			ImGui::Separator();
 
-			if (ImGui::BeginMenu("Debug"))
+			if (ImGui::MenuItem("Build the game"))
 			{
-				if (ImGui::BeginMenu("GPU Buffers"))
+				if (!Project::GetProjectInfo().GameStartupScene)
 				{
-					const bool bMotion = sceneRenderer->GetOptions().InternalState.bMotionBuffer;
-					if (!bMotion && m_VisualizingGBufferType == GBufferVisualizingType::Motion)
-					{
-						m_SelectedBufferIndex = 0;
-						SetVisualizingBufferType(GBufferVisualizingType::Final);
-					}
-
-					int radioButtonIndex = 0;
-
-					if (ImGui::RadioButton("Final", &m_SelectedBufferIndex, radioButtonIndex++))
-						SetVisualizingBufferType(GBufferVisualizingType::Final);
-
-					if (ImGui::RadioButton("Albedo", &m_SelectedBufferIndex, radioButtonIndex++))
-						SetVisualizingBufferType(GBufferVisualizingType::Albedo);
-
-					if (ImGui::RadioButton("Emission", &m_SelectedBufferIndex, radioButtonIndex++))
-						SetVisualizingBufferType(GBufferVisualizingType::Emissive);
-
-					if (ImGui::RadioButton("Screen Space Shadows", &m_SelectedBufferIndex, radioButtonIndex++))
-						SetVisualizingBufferType(GBufferVisualizingType::ScreenSpaceShadows);
-
-					if (bMotion)
-						if (ImGui::RadioButton("Motion", &m_SelectedBufferIndex, radioButtonIndex++))
-							SetVisualizingBufferType(GBufferVisualizingType::Motion);
-
-					if (sceneRenderer->GetOptions().AO != AmbientOcclusion::None)
-						if (ImGui::RadioButton("AO", &m_SelectedBufferIndex, radioButtonIndex++))
-								SetVisualizingBufferType(GBufferVisualizingType::AO);
-
-					ImGui::EndMenu();
+					m_ImGuiLayer->AddMessage("Please set a game startup scene in the 'Project Settings' tab");
 				}
-
-#ifdef EG_CPU_TIMINGS
-				UI::Property("Show CPU timings", bShowCPUTimings);
-#endif
-#ifdef EG_GPU_TIMINGS
-				UI::Property("Show GPU timings", bShowGPUTimings);
-#endif
-				UI::Property("Show GPU memory usage", bShowGPUMemoryUsage);
-
-				SceneRendererSettings options = sceneRenderer->GetOptions();
-				if (UI::Property("Visualize CSM", options.bVisualizeCascades, "Red, green, blue, purple. Doesn't work if there's no directional light"))
-					sceneRenderer->SetOptions(options);
-				if (UI::Property("Visualize Light Tiles", options.bVisualizeLightTiles, s_VisualizeTilesHelpMsg))
-					sceneRenderer->SetOptions(options);
-
-				ImGui::EndMenu();
+				else
+				{
+					PrepareDirtyAssets(DirtyAssetsReason::ProjectBuild);
+					if (!m_ShowDirtyAssetMessage) // No unsaved assets, build.
+					{
+						m_AssetUsagePanel.BuildGame();
+					}
+				}
 			}
+			ImGui::Separator();
 
-			static bool bShowShortcuts = false;
-			static bool bShowHelp = false;
-			if (ImGui::BeginMenu("Help"))
+			if (ImGui::MenuItem("Close the project"))
 			{
-				if (ImGui::MenuItem("Shortcuts"))
-					bShowShortcuts = true;
-
-				ImGui::Separator();
-
-				if (ImGui::MenuItem("About"))
-					bShowHelp = true;
-
-				ImGui::EndMenu();
+				HandleCloseRequest(false);
 			}
+			ImGui::Separator();
 
-			if (bShowShortcuts)
-				ShowShortcutsWindow(&bShowShortcuts);
+			if (ImGui::MenuItem("Exit"))
+				HandleCloseRequest(true);
 
-			if (bShowHelp)
-				ShowHelpWindow(&bShowHelp);
-
-			ImGui::EndMenuBar();
+			ImGui::EndMenu();
 		}
 
+		if (ImGui::BeginMenu("Windows"))
+		{
+			bool bConsoleOpened = m_ConsolePanel.IsOpened();
+			bool bFullscreen = Application::Get().GetWindow().IsFullscreen();
+
+			if (ImGui::Checkbox("Console", &bConsoleOpened))
+				m_ConsolePanel.SetOpened(bConsoleOpened);
+
+			bool bUnusedAssetsOpened = m_AssetUsagePanel.IsOpened();
+			if (ImGui::Checkbox(AssetUsagePanel::GetWindowName(), &bUnusedAssetsOpened))
+				m_AssetUsagePanel.SetOpened(bUnusedAssetsOpened);
+			if (ImGui::Checkbox("Fullscreen (Shift + F11)", &bFullscreen))
+				ToggleWindowFullscreenState();
+
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Debug"))
+		{
+			if (ImGui::BeginMenu("GPU Buffers"))
+			{
+				DrawViewModeMenuItems();
+				ImGui::EndMenu();
+			}
+
+#ifdef EG_CPU_TIMINGS
+			UI::Property("Show CPU timings", m_bShowCPUTimings);
+#endif
 #ifdef EG_GPU_TIMINGS
-		if (bShowGPUTimings)
+			UI::Property("Show GPU timings", m_bShowGPUTimings);
+#endif
+			UI::Property("Show GPU memory usage", m_bShowGPUMemoryUsage);
+
+			SceneRendererSettings options = sceneRenderer->GetOptions();
+			if (UI::Property("Visualize CSM", options.bVisualizeCascades, "Red, green, blue, purple. Doesn't work if there's no directional light"))
+				sceneRenderer->SetOptions(options);
+			if (UI::Property("Visualize Light Tiles", options.bVisualizeLightTiles, s_VisualizeTilesHelpMsg))
+				sceneRenderer->SetOptions(options);
+
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Help"))
+		{
+			if (ImGui::MenuItem("Shortcuts"))
+				m_bShowShortcuts = true;
+
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("About"))
+				m_bShowAbout = true;
+
+			ImGui::EndMenu();
+		}
+	}
+
+	void EditorLayer::DrawDebugWindows()
+	{
+		if (m_bShowShortcuts)
+			DrawShortcutsWindow(&m_bShowShortcuts);
+
+		if (m_bShowAbout)
+			DrawAboutWindow(&m_bShowAbout);
+
+#ifdef EG_GPU_TIMINGS
+		if (m_bShowGPUTimings)
 		{
 			static GPUTimingsContainer timings;
 			static bool bPaused = false;
@@ -1285,7 +1375,7 @@ namespace Eagle
 			if (!bPaused)
 				timings = RenderManager::GetTimings();
 
-			ImGui::Begin("GPU Timings", &bShowGPUTimings);
+			ImGui::Begin("GPU Timings", &m_bShowGPUTimings);
 
 			if (ImGui::BeginChild("ScrollingRegion", ImVec2(0, -footer_height_to_reserve), false, ImGuiWindowFlags_HorizontalScrollbar))
 			{
@@ -1311,7 +1401,7 @@ namespace Eagle
 #endif
 
 #ifdef EG_CPU_TIMINGS
-		if (bShowCPUTimings)
+		if (m_bShowCPUTimings)
 		{
 			static CPUTimingsContainer timingsPerThread;
 			static bool bPaused = false;
@@ -1319,7 +1409,7 @@ namespace Eagle
 			if (!bPaused)
 				timingsPerThread = Application::Get().GetCPUTimings();
 
-			ImGui::Begin("CPU Timings", &bShowCPUTimings);
+			ImGui::Begin("CPU Timings", &m_bShowCPUTimings);
 
 			// Reserve enough left-over height for 1 separator + 1 property text
 			const float footer_height_to_reserve = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing() + 3.f;
@@ -1359,12 +1449,12 @@ namespace Eagle
 		}
 #endif
 
-		if (bShowGPUMemoryUsage)
+		if (m_bShowGPUMemoryUsage)
 		{
 			constexpr float toMBs = 1.f / (1024 * 1024);
 			auto stats = Application::Get().GetRenderContext()->GetMemoryStats();
 
-			ImGui::Begin("GPU Memory usage", &bShowGPUMemoryUsage);
+			ImGui::Begin("GPU Memory usage", &m_bShowGPUMemoryUsage);
 			UI::BeginPropertyGrid("GPUMemUsage");
 
 			UI::Text("Resource name", "Size (MBs)");
@@ -1637,7 +1727,6 @@ namespace Eagle
 					if (m_VisualizingGBufferType == GBufferVisualizingType::AO)
 					{
 						SetVisualizingBufferType(GBufferVisualizingType::Final);
-						m_SelectedBufferIndex = 0;
 						m_ViewportImage = sceneRenderer->GetOutput();
 					}
 				}
@@ -2460,6 +2549,8 @@ namespace Eagle
 			}
 		}
 
+		DrawGameSplashScreenSettings(bChanged);
+
 		if (bRuntime)
 			UI::PopItemDisabled();
 
@@ -2468,10 +2559,90 @@ namespace Eagle
 
 		ImGui::End();
 	}
-	
+
+	void EditorLayer::DrawGameSplashScreenSettings(bool& bChanged)
+	{
+		if (!UI::PushTreeNode("Game Splash Screen", false, true, "Shown while the game is starting, until its first frames are rendered.\n"
+			"It doesn't affect the editor, it has its own splash screen"))
+			return;
+
+		const auto& projectInfo = Project::GetProjectInfo();
+		GameSplashScreenSettings settings = projectInfo.SplashScreen;
+		bool bSettingsChanged = false;
+
+		UI::BeginPropertyGrid("GameSplashScreenSettings");
+		bSettingsChanged |= DrawProjectImageProperty("Image", settings.Image, "Default", "SplashScreen",
+			"Replaces the default background. The splash screen takes the image's aspect ratio.\n"
+			"An image from outside of the project is copied into the project's Config folder");
+		bSettingsChanged |= DrawProjectImageProperty("Icon", settings.Icon, "None", "GameIcon",
+			"Drawn next to the title, and used as the taskbar icon of the splash screen.\n"
+			"It's also the icon of the game's window and of the game's executable.\n"
+			"An image from outside of the project is copied into the project's Config folder");
+
+		{
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+			ImGui::TextUnformatted("Title");
+			ImGui::SameLine();
+			UI::HelpMarker("If it's empty, the project's name is used");
+			ImGui::NextColumn();
+			ImGui::PushItemWidth(-1);
+			bSettingsChanged |= UI::InputTextWithHint("##SplashScreenTitle", settings.Title, projectInfo.Name);
+			ImGui::PopItemWidth();
+			ImGui::NextColumn();
+		}
+		bSettingsChanged |= UI::PropertyText("Subtitle", settings.Subtitle);
+		bSettingsChanged |= UI::Property("Text Over Image", settings.bShowTextOverImage,
+			"Draw the icon, title & subtitle over the custom image. Usually, an image already contains the title, so they aren't drawn over it.\n"
+			"Without a custom image, they're always drawn");
+		bSettingsChanged |= UI::PropertyColor("Title Color", settings.Colors.Title);
+		bSettingsChanged |= UI::PropertyColor("Subtitle Color", settings.Colors.Subtitle);
+		bSettingsChanged |= UI::PropertyColor("Progress Bar Color", settings.Colors.Progress);
+		UI::EndPropertyGrid();
+
+		const float buttonWidth = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+		if (ImGui::Button("Preview", ImVec2(buttonWidth, 0.f)))
+		{
+			Project::SetSplashScreenSettings(settings);
+			PreviewSplashScreen();
+		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Shows the splash screen for a few seconds, exactly as the game will show it");
+
+		ImGui::SameLine();
+		const bool bDefaultColors = settings.Colors == SplashScreenColors{};
+		if (bDefaultColors)
+			UI::PushItemDisabled();
+		if (ImGui::Button("Reset Colors", ImVec2(buttonWidth, 0.f)))
+		{
+			settings.Colors = SplashScreenColors{};
+			bSettingsChanged = true;
+		}
+		if (bDefaultColors)
+			UI::PopItemDisabled();
+
+		if (bSettingsChanged)
+		{
+			Project::SetSplashScreenSettings(settings);
+			bChanged = true;
+		}
+		UI::PopTreeNode();
+	}
+
+	void EditorLayer::PreviewSplashScreen()
+	{
+		// The same description the game build makes, so that the preview matches it
+		SplashScreenDesc desc = Project::GetGameSplashScreenDesc();
+		desc.NearWindow = m_Window.GetNativeWindow();
+
+		SplashScreen::Show(desc);
+		SplashScreen::SetStatus("Preview");
+		SplashScreen::SetProgress(-1.f);
+		m_SplashScreenPreviewEndTime = Application::Get().GetTime() + 3.0;
+	}
+
 	void EditorLayer::DrawEditorPreferences()
 	{
-		glm::vec3 tempSnappingValues = m_SnappingValues;
+		glm::vec3 tempSnappingValues = m_SnapSettings.Values;
 		ImGuizmo::MODE guizmoMode = (ImGuizmo::MODE)m_GuizmoMode;
 		ImGui::Begin("Editor Preferences");
 
@@ -2481,17 +2652,17 @@ namespace Eagle
 			if (UI::InputFloat("Location", tempSnappingValues[0], 0.1f, 1.f))
 			{
 				if (tempSnappingValues[0] >= 0.f)
-					m_SnappingValues[0] = tempSnappingValues[0];
+					m_SnapSettings.Values[0] = tempSnappingValues[0];
 			}
 			if (UI::InputFloat("Rotation", tempSnappingValues[1], 1.f, 5.f))
 			{
 				if (tempSnappingValues[1] >= 0.f)
-					m_SnappingValues[1] = tempSnappingValues[1];
+					m_SnapSettings.Values[1] = tempSnappingValues[1];
 			}
 			if (UI::InputFloat("Scale", tempSnappingValues[2], 0.1f, 1.f))
 			{
 				if (tempSnappingValues[2] >= 0.f)
-					m_SnappingValues[2] = tempSnappingValues[2];
+					m_SnapSettings.Values[2] = tempSnappingValues[2];
 			}
 			UI::EndPropertyGrid();
 			UI::PopTreeNode();
@@ -2747,6 +2918,24 @@ namespace Eagle
 			if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
 				ImGui::SetWindowFocus();
 
+			// While the camera is moving, the mouse is hidden and ImGui doesn't get the mouse input, so the state is kept
+			if (m_EditorState == EditorState::Edit)
+			{
+				ViewportToolbar toolbar;
+				toolbar.GuizmoType = &m_GuizmoType;
+				toolbar.GuizmoMode = &m_GuizmoMode;
+				toolbar.Snap = &m_SnapSettings;
+				toolbar.Camera = &m_EditorScene->EditorCamera;
+				toolbar.ShowMenu = [this]() { DrawShowFlagsMenuItems(); };
+				toolbar.ViewModeName = GetVisualizingBufferTypeName(m_VisualizingGBufferType);
+				toolbar.ViewModeMenu = [this]() { DrawViewModeMenuItems(); };
+				const bool bToolbarHovered = toolbar.Draw("##ViewportToolbar", ImVec2(m_ViewportBounds[0].x, m_ViewportBounds[0].y), ImVec2(m_ViewportBounds[1].x, m_ViewportBounds[1].y));
+				if (Input::IsMouseVisible())
+					m_bViewportToolbarHovered = bToolbarHovered;
+			}
+			else
+				m_bViewportToolbarHovered = false;
+
 			// When we're moving the camera, we hide the mouse and disable ImGui mouse inputs, and `IsWindowHovered` starts returning false
 			// which prevents us from changing the camera speed. So if the mouse is not visible, don't change the state
 			if (Input::IsMouseVisible())
@@ -2758,12 +2947,15 @@ namespace Eagle
 			{
 				if (ImGui::IsMouseReleased(1) || !m_ViewportFocused)
 					m_EditorScene->bCanUpdateEditorCamera = false;
-				else if (m_EditorScene->bCanUpdateEditorCamera || (m_ViewportHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right, true)))
+				else if (m_EditorScene->bCanUpdateEditorCamera || (m_ViewportHovered && !m_bViewportToolbarHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right, true)))
 					m_EditorScene->bCanUpdateEditorCamera = true;
 			}
 		}
 		else
+		{
 			m_EditorScene->bCanUpdateEditorCamera = false;
+			m_bViewportToolbarHovered = false;
+		}
 
 		if (m_EditorState == EditorState::Edit || bForceDrawGuizmo)
 			UpdateGuizmo();
@@ -3107,59 +3299,74 @@ namespace Eagle
 		m_VisualizingGBufferType = value;
 	}
 
-	void EditorLayer::BeginDocking()
+	bool EditorLayer::IsVisualizingBufferTypeAvailable(GBufferVisualizingType value) const
 	{
-		static bool dockspaceOpen = true;
-		static bool opt_fullscreen_persistant = true;
-		bool opt_fullscreen = opt_fullscreen_persistant;
-		static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_NoCloseButton;
-
-		// We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
-		// because it would be confusing to have two docking targets within each others.
-		ImGuiWindowFlags window_flags = (m_bFullScreen ? 0u : ImGuiWindowFlags_MenuBar) | ImGuiWindowFlags_NoDocking;
-		if (opt_fullscreen)
+		const SceneRendererSettings& options = m_CurrentScene->GetSceneRenderer()->GetOptions();
+		switch (value)
 		{
-			ImGuiViewport* viewport = ImGui::GetMainViewport();
-			ImGui::SetNextWindowPos(viewport->Pos);
-			ImGui::SetNextWindowSize(viewport->Size);
-			ImGui::SetNextWindowViewport(viewport->ID);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-			window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-			window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+			case GBufferVisualizingType::Motion: return options.InternalState.bMotionBuffer;
+			case GBufferVisualizingType::AO: return options.AO != AmbientOcclusion::None;
+			default: return true;
 		}
+	}
 
-		// When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background and handle the pass-thru hole, so we ask Begin() to not render a background.
-		if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
-			window_flags |= ImGuiWindowFlags_NoBackground;
+	const char* EditorLayer::GetVisualizingBufferTypeName(GBufferVisualizingType value)
+	{
+		switch (value)
+		{
+			case GBufferVisualizingType::Final: return "Final";
+			case GBufferVisualizingType::Albedo: return "Albedo";
+			case GBufferVisualizingType::Emissive: return "Emission";
+			case GBufferVisualizingType::ScreenSpaceShadows: return "Screen Space Shadows";
+			case GBufferVisualizingType::AO: return "AO";
+			case GBufferVisualizingType::Motion: return "Motion";
+			default:
+				EG_CORE_ASSERT(false);
+				return "";
+		}
+	}
 
-		// Important: note that we proceed even if Begin() returns false (aka window is collapsed).
-		// This is because we want to keep our DockSpace() active. If a DockSpace() is inactive, 
-		// all active windows docked into it will lose their parent and become undocked.
-		// We cannot preserve the docking relationship between an active window and an inactive docking, otherwise 
-		// any change of dockspace/settings would lead to windows being stuck in limbo and never being visible.
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-		ImGui::Begin("Eagle_DockspaceWindow", &dockspaceOpen, window_flags);
+	void EditorLayer::DrawViewModeMenuItems()
+	{
+		constexpr std::size_t count = magic_enum::enum_count<GBufferVisualizingType>();
+		for (uint32_t i = 0; i < count; ++i)
+		{
+			GBufferVisualizingType type = magic_enum::enum_value<GBufferVisualizingType>(i);
+
+			if (!IsVisualizingBufferTypeAvailable(type))
+				continue;
+
+			if (ImGui::MenuItem(GetVisualizingBufferTypeName(type), nullptr, m_VisualizingGBufferType == type))
+				SetVisualizingBufferType(type);
+		}
+	}
+
+	void EditorLayer::DrawShowFlagsMenuItems()
+	{
+		ImGui::MenuItem("Editor Helpers", "G", &m_bDrawEditorMisc);
+		ImGui::MenuItem("Selection Outline", nullptr, &bDrawSelectionOutline);
+		ImGui::MenuItem("Axis Gizmo", nullptr, &bDrawAxisGuizmo);
+		ImGui::Separator();
+		ImGui::MenuItem("Navigation Mesh", nullptr, &bDrawNavMesh);
+		ImGui::MenuItem("Mesh Bounds", nullptr, &bDrawMeshAABBs);
+		ImGui::MenuItem("Text UI Bounds", nullptr, &bDrawAllTextUIBounds);
+	}
+
+	void EditorLayer::DrawLevelEditorTab()
+	{
+		// The level editor is the main tab of the editor, its panels are docked into its dockspace
+		EditorFrames::PrepareTabWindow(this);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
+		ImGui::Begin(m_LevelTabWindowName.c_str(), nullptr, EditorFrames::TabWindowFlags | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 		ImGui::PopStyleVar();
 
-		if (opt_fullscreen)
-			ImGui::PopStyleVar(2);
+		static const ImGuiID s_DockspaceID = ImHashStr("Eagle_Dockspace", 0, ImHashStr("Eagle_DockspaceWindow"));
+		ImGui::DockSpace(s_DockspaceID, ImVec2(0.f, 0.f), ImGuiDockNodeFlags_NoCloseButton);
 
-		// DockSpace
-		ImGuiIO& io = ImGui::GetIO();
-		if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
-		{
-			ImGuiID dockspace_id = ImGui::GetID("Eagle_Dockspace");
-			ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
-		}
+		ImGui::End();
 	}
 
-	void EditorLayer::EndDocking()
-	{
-		ImGui::End(); //Docking
-	}
-
-	static void ShowShortcutsWindow(bool* p_open)
+	static void DrawShortcutsWindow(bool* p_open)
 	{
 		if (!ImGui::Begin("Shortcuts", p_open))
 		{
@@ -3178,12 +3385,14 @@ namespace Eagle
 		ImGui::BulletText("F11. Toggles viewport fullscreen mode.");
 		ImGui::BulletText("Shift+F11. Toggles window fullscreen mode.");
 		ImGui::BulletText("Q/W/E/R. Hidden/Location/Rotation/Scale gizmo modes.");
+		ImGui::BulletText("Shift (hold). Inverts snapping while transforming with the gizmo (snapping is toggled in the viewport's toolbar).");
+		ImGui::BulletText("Right mouse button + scroll. Changes the camera speed while moving.");
 
 		ImGui::PopID();
 		ImGui::End();
 	}
 
-	static void ShowHelpWindow(bool* p_open)
+	static void DrawAboutWindow(bool* p_open)
 	{
 		if (!ImGui::Begin("Help", p_open, ImGuiWindowFlags_AlwaysAutoResize))
 		{

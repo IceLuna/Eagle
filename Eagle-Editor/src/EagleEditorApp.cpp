@@ -27,6 +27,10 @@ namespace Eagle
 		props.WindowProps.Height = 900;
 		props.WindowProps.VSync = true;
 		props.WindowProps.Fullscreen = false;
+		props.WindowProps.bCustomTitleBar = true;
+		props.WindowProps.IconPath = "assets/textures/Editor/icon.png";
+		props.SplashScreen.Title = "Eagle Editor";
+		props.SplashScreen.IconPath = "assets/textures/Editor/icon.png";
 
 		props.bGame = false;
 		props.argc = argc;

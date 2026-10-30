@@ -11,6 +11,7 @@ namespace Eagle
 		: m_Asset(asset)
 	{
 		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
+		SetTabWindowName(m_WindowName);
 	}
 
 	void Eagle::AudioAssetEditor::OnImGuiRender(bool* pOpen)
@@ -19,7 +20,8 @@ namespace Eagle
 		bool bChanged = false;
 
 		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
-		bool bHidden = !ImGui::Begin(m_WindowName.c_str(), pOpen);
+		PrepareTabWindow();
+		bool bHidden = !ImGui::Begin(m_WindowName.c_str(), pOpen, EditorFrames::TabWindowFlags);
 		UI::BeginPropertyGrid("AudioDetails");
 
 		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));

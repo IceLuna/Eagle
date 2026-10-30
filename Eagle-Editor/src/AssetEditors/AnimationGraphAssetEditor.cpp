@@ -15,6 +15,8 @@ namespace Eagle
 		, m_WindowName(AssetEditor::GetAssetWindowName(m_Asset))
 		, m_Graph(MakeScope<AnimationGraphEditor>(m_Asset, m_WindowName))
 	{
+		SetTabWindowName(m_WindowName);
+
 		m_Graph->SetRenderPreviewPanelCallback([this](float w, float h)
 		{
 			const auto& currentScene = GetCurrentScene();
@@ -81,6 +83,7 @@ namespace Eagle
 
 	void AnimationGraphAssetEditor::OnImGuiRender(bool* pOpen)
 	{
+		PrepareTabWindow();
 		const bool bRecompiled = m_Graph->OnImGuiRender(pOpen);
 		if (bRecompiled)
 		{

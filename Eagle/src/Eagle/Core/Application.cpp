@@ -26,6 +26,12 @@
 
 namespace Eagle
 {
+	static void SetSplashStatus(std::string_view status)
+	{
+		SplashScreen::SetStatus(status);
+		SplashScreen::SetProgress(-1.f);
+	}
+
 	static std::mutex s_TimingsMutex;
 
 #ifdef EG_CPU_TIMINGS
@@ -55,11 +61,16 @@ namespace Eagle
 		m_CPUTimingsInUse.reserve(4);
 		m_Threads[std::this_thread::get_id()] = "Main Thread";
 
+		ParseCmdArguments(props.argc, props.argv);
+		ShowStartupSplashScreen(props);
+
+		SetSplashStatus("Initializing the renderer");
 		RendererContext::SetAPI(RendererAPIType::Vulkan);
 		m_RendererContext = RendererContext::Create();
 		m_Window = Window::Create(m_WindowProps);
 		m_Window->SetEventCallback(EG_BIND_FN(OnEvent));
 
+		SetSplashStatus("Loading shaders");
 		if (m_Game)
 		{
 			const Path shaderPackPath = Project::GetShaderPackRelativePath();
@@ -80,15 +91,20 @@ namespace Eagle
 		{
 			ShaderManager::Init();
 		}
+		SetSplashStatus("Initializing the renderer");
 		RenderManager::Init();
 		TextureCompressor::Init();
 
+		SetSplashStatus("Initializing physics");
 		PhysicsEngine::Init();
+		SetSplashStatus("Initializing audio");
 		AudioEngine::Init();
+		SetSplashStatus("Initializing scripting");
 		ScriptEngine::Init(m_CorePath / "Eagle-Scripts.dll");
 
 		if (m_Game)
 		{
+			SetSplashStatus("Loading game data");
 			const Path dataPath = "Data/";
 			for (auto& dirEntry : std::filesystem::recursive_directory_iterator(dataPath))
 			{
@@ -109,12 +125,96 @@ namespace Eagle
 		m_ImGuiLayer = ImGuiLayer::Create();
 		PushLayer(m_ImGuiLayer);
 
-		ProcessCmdCommands(props.argc, props.argv);
+		ProcessCmdCommands();
 		ProcessNextFrameFuncs();
+	}
+
+	void Application::ShowStartupSplashScreen(const ApplicationProperties& props)
+	{
+		m_bSplashScreenEnabled = props.bSplashScreen;
+		m_SplashScreenDesc = props.SplashScreen;
+		for (Path* path : { &m_SplashScreenDesc.ImagePath, &m_SplashScreenDesc.IconPath, &m_WindowProps.IconPath })
+		{
+			if (!path->empty() && path->is_relative())
+				*path = m_CorePath / *path;
+		}
+
+		SplashScreenDesc desc = m_SplashScreenDesc;
+		if (m_Game)
+		{
+			SplashScreenDesc gameSplash;
+			if (Project::LoadGameBuildSplashScreen(&gameSplash))
+			{
+				desc = gameSplash;
+				if (m_WindowProps.IconPath.empty())
+					m_WindowProps.IconPath = gameSplash.IconPath;
+			}
+			else if (desc.Title.empty() && props.argv && props.argv[0])
+			{
+				// There are no settings for some reason.
+				// And since the project isn't loaded yet, use the executable name
+				desc.Title = Utils::AsString(Path(props.argv[0]).stem());
+			}
+		}
+		else if (!m_CmdProjectPath.empty())
+		{
+			desc.Subtitle = Project::ReadProjectName(m_CmdProjectPath);
+		}
+
+		if (m_bSplashScreenEnabled)
+			SplashScreen::Show(desc);
+	}
+
+	void Application::ShowSplashScreen(const SplashScreenDesc& desc)
+	{
+		if (m_bSplashScreenEnabled)
+		{
+			SplashScreenDesc splashDesc = desc;
+			if (!splashDesc.NearWindow && m_Window->IsVisible())
+				splashDesc.NearWindow = m_Window->GetNativeWindow();
+
+			// Shown first, so that the focus goes to it from the window
+			SplashScreen::Show(splashDesc);
+			SetSplashStatus({});
+		}
+
+		m_Window->Hide();
+		m_RevealState = WindowRevealState::WaitingForWork;
+	}
+
+	void Application::BeginWindowReveal()
+	{
+		// Showing the window applies its position & fullscreen state, which can resize it.
+		// So it's done before the frame is built, so that the frame is rendered at the final size
+		m_Window->Show(true);
+		m_RevealFrameNumber = RenderManager::GetFrameNumber_CPU() + 1; // The frame that's about to be built
+		m_RevealState = WindowRevealState::Revealing;
+	}
+
+	void Application::UpdateWindowReveal()
+	{
+		if (m_RevealState != WindowRevealState::Revealing)
+			return;
+
+		// The first frame after the window was shown might be rendered for its old size, the next one is presented at the final size
+		constexpr uint64_t framesToPresent = 2;
+
+		// To avoid keeping the window invisible forever, just in case the frames aren't presented (for example, the swapchain is invalid)
+		constexpr uint64_t maxFramesToWait = 8;
+
+		const bool bPresented = RenderManager::GetLastPresentedFrameNumber() >= m_RevealFrameNumber + framesToPresent - 1;
+		const bool bGiveUp = RenderManager::GetFrameNumber_CPU() >= m_RevealFrameNumber + maxFramesToWait;
+		if (!bPresented && !bGiveUp && !m_Minimized)
+			return;
+
+		m_Window->Uncloak();
+		SplashScreen::Hide();
+		m_RevealState = WindowRevealState::Revealed;
 	}
 
 	Application::~Application()
 	{
+		SplashScreen::Hide();
 		AsyncSceneLoader::Shutdown();
 		AsyncTaskManager::Shutdown();
 		ProcessNextFrameFuncs();
@@ -135,11 +235,10 @@ namespace Eagle
 		s_Instance = nullptr;
 	}
 
-	void Application::ProcessCmdCommands(int argc, char** argv)
+	void Application::ParseCmdArguments(int argc, char** argv)
 	{
 		argparse::ArgumentParser program("Eagle Engine");
 		program.add_argument("--project").help("Path to a .egproj file");
-		bool bParsedCmd = true;
 
 		try
 		{
@@ -149,18 +248,23 @@ namespace Eagle
 		{
 			EG_CORE_ERROR("Error occured while parsing CMD arguments: {}", err.what());
 			EG_CORE_ERROR("\t{}", program.help().str());
-			bParsedCmd = false;
+			return;
 		}
 
-		if (bParsedCmd)
+		if (!m_Game && program.is_used("--project"))
 		{
-			if (program.is_used("--project"))
-			{
-				Path projectPath = program.get("--project");
-				if (std::filesystem::exists(projectPath))
-					Project::Open(projectPath);
-			}
+			Path projectPath = program.get("--project");
+			if (std::filesystem::exists(projectPath))
+				m_CmdProjectPath = std::filesystem::absolute(projectPath); // The current path changes later
+			else
+				EG_CORE_ERROR("The project passed with `--project` doesn't exist: {}", projectPath);
 		}
+	}
+
+	void Application::ProcessCmdCommands()
+	{
+		if (!m_CmdProjectPath.empty())
+			Project::Open(m_CmdProjectPath);
 	}
 
 	void Application::ProcessNextFrameFuncs()
@@ -213,74 +317,125 @@ namespace Eagle
 
 	void Application::Run()
 	{
-		double lastFrameTime = glfwGetTime();
-		while (m_Running)
+		m_LastFrameTime = glfwGetTime();
+
+		// While the user moves or resizes a window, the OS doesn't let `ProcessEvents()` return until the mouse is released.
+		// So frames are run from within it, otherwise the content of the windows would freeze (and resized windows would show stretched or cut off content)
+		m_Window->SetModalLoopCallback([this]()
 		{
+			if (m_Running)
+				RunFrame(false);
+		});
+
+		while (m_Running)
+			RunFrame(true);
+
+		m_Window->SetModalLoopCallback({});
+	}
+
+	void Application::RunFrame(bool bProcessEvents)
+	{
 #ifdef EG_CPU_TIMINGS
+		// A frame run from within `ProcessEvents()` is nested in the outer one, so the outer frame's timings are still in use
+		if (bProcessEvents)
+		{
+			std::scoped_lock lock(s_TimingsMutex);
+
+			for (auto& [threadID, timings] : m_CPUTimings)
 			{
-				std::scoped_lock lock(s_TimingsMutex);
+				auto& timingsInUse = m_CPUTimingsInUse.find(threadID)->second;
 
-				for (auto& [threadID, timings] : m_CPUTimings)
+				for (auto it = timings.begin(); it != timings.end();)
 				{
-					auto& timingsInUse = m_CPUTimingsInUse.find(threadID)->second;
-
-					for (auto it = timings.begin(); it != timings.end();)
+					std::string_view name = (*it).Name;
+					auto inUseIt = timingsInUse.find(name);
+					if (inUseIt != timingsInUse.end())
 					{
-						std::string_view name = (*it).Name;
-						auto inUseIt = timingsInUse.find(name);
-						if (inUseIt != timingsInUse.end())
-						{
-							++it;
-						}
-						else
-						{
-							it = timings.erase(it);
-						}
+						++it;
+					}
+					else
+					{
+						it = timings.erase(it);
 					}
 				}
-				for (auto& it : m_CPUTimingsInUse)
-					it.second.clear();
 			}
+			for (auto& it : m_CPUTimingsInUse)
+				it.second.clear();
+		}
 #endif
-			EG_CPU_TIMING_SCOPED("Whole frame");
-			m_Time = glfwGetTime();
-			const double currentFrameTime = m_Time;
-			m_Timestep = float(currentFrameTime - lastFrameTime);
-			lastFrameTime = currentFrameTime;
+		EG_CPU_TIMING_SCOPED("Whole frame");
+		UpdateTime();
+
+		ProcessNextFrameFuncs();
+
+		MainThread::ExecutePending();
+
+		// The work the hidden window was waiting for is done. The next frame is the first one to show
+		// And it's done because we went past `ProcessNextFrameFuncs`, which loads the project because `Application::OnProjectChanged()` pushes the work there
+		if (m_RevealState == WindowRevealState::WaitingForWork)
+		{
+			m_RevealState = WindowRevealState::WaitingForFrame;
+			SetSplashStatus("Finishing up");
+		}
+
+		// The events are processed right before the frame is built (after `RenderManager::BeginFrame` waited for the renderer),
+		// so that the frame reacts to the latest input
+		const bool bBeganFrame = !m_Minimized;
+		if (bBeganFrame)
+			RenderManager::BeginFrame();
+
+		if (bProcessEvents)
+		{
+			const uint64_t frameNumber = RenderManager::GetFrameNumber_CPU();
+			m_Window->ProcessEvents();
+
+			// Frames were run from within `ProcessEvents()` (the user moved or resized a window), and they submitted the frame `BeginFrame` was waiting for.
+			// So this frame waits for the renderer again, as if it just started
+			if (RenderManager::GetFrameNumber_CPU() != frameNumber)
+			{
+				UpdateTime();
+				if (bBeganFrame && !m_Minimized)
+					RenderManager::BeginFrame();
+			}
+		}
+
+		// The events might have minimized the window. If they restored it, the frame starts next iteration, since `BeginFrame` wasn't called
+		if (bBeganFrame && !m_Minimized)
+		{
+			if (m_RevealState == WindowRevealState::WaitingForFrame)
+				BeginWindowReveal();
+
+			ThumbnailCache::NextFrame();
+
+			for (auto& layer : m_LayerStack)
+				layer->OnUpdate(m_Timestep);
+
+			// ImGui
+			{
+				m_ImGuiLayer->BeginFrame();
+				for (auto& layer : m_LayerStack)
+					layer->OnImGuiRender();
+				m_ImGuiLayer->EndFrame();
+				m_ImGuiLayer->UpdatePlatform();
+			}
+
+			RenderManager::EndFrame();
+		}
+		AudioEngine::Update(m_Timestep);
+		UpdateWindowReveal();
+	}
+
+	void Application::UpdateTime()
+	{
+		m_Time = glfwGetTime();
+		m_Timestep = float(m_Time - m_LastFrameTime);
+		m_LastFrameTime = m_Time;
 
 #ifndef EG_RELEASE
-			//If timestep is too big that probably means that we were debugging. In that case, reset timestep to 60fps value
-			if (m_Timestep > 1.f)
-				m_Timestep = 0.016f;
+		//If timestep is too big that probably means that we were debugging. In that case, reset timestep to 60fps value
+		if (m_Timestep > 1.f)
+			m_Timestep = 0.016f;
 #endif
-
-			ProcessNextFrameFuncs();
-
-			MainThread::ExecutePending();
-
-			if (!m_Minimized)
-			{
-				RenderManager::BeginFrame();
-
-				ThumbnailCache::NextFrame();
-
-				for (auto& layer : m_LayerStack)
-					layer->OnUpdate(m_Timestep);
-
-				// ImGui
-				{
-					m_ImGuiLayer->BeginFrame();
-					for (auto& layer : m_LayerStack)
-						layer->OnImGuiRender();
-					m_ImGuiLayer->EndFrame();
-					m_ImGuiLayer->UpdatePlatform();
-				}
-
-				RenderManager::EndFrame();
-			}
-			AudioEngine::Update(m_Timestep);
-			m_Window->ProcessEvents();
-		}
 	}
 
 	void Application::OnEvent(Event& e)

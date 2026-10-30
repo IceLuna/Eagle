@@ -402,7 +402,6 @@ namespace Eagle
 			}
 		}
 
-		HandleAssetEditors();
 		HandleAddPanel();
 
 		if (m_DrawTextureImporter)
@@ -613,7 +612,7 @@ namespace Eagle
 		m_RefreshBrowser = true;
 	}
 
-	void ContentBrowserPanel::HandleAssetEditors()
+	void ContentBrowserPanel::DrawAssetEditors()
 	{
 		for (const auto& asset : m_AssetEditorsToClose)
 			m_AssetEditors.erase(asset);

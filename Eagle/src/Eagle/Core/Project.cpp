@@ -114,6 +114,64 @@ namespace Eagle
 		out << YAML::EndMap;
 	}
 
+	static void SaveSplashScreenSettings(YAML::Emitter& out, const GameSplashScreenSettings& settings)
+	{
+		out << YAML::Key << "Splash Screen" << YAML::Value << YAML::BeginMap;
+		if (!settings.Image.empty())
+			out << YAML::Key << "Image" << YAML::Value << Utils::AsString(settings.Image);
+		if (!settings.Icon.empty())
+			out << YAML::Key << "Icon" << YAML::Value << Utils::AsString(settings.Icon);
+		if (!settings.Title.empty())
+			out << YAML::Key << "Title" << YAML::Value << settings.Title;
+		if (!settings.Subtitle.empty())
+			out << YAML::Key << "Subtitle" << YAML::Value << settings.Subtitle;
+		out << YAML::Key << "ShowTextOverImage" << YAML::Value << settings.bShowTextOverImage;
+		out << YAML::Key << "TitleColor" << YAML::Value << settings.Colors.Title;
+		out << YAML::Key << "SubtitleColor" << YAML::Value << settings.Colors.Subtitle;
+		out << YAML::Key << "ProgressColor" << YAML::Value << settings.Colors.Progress;
+		out << YAML::EndMap;
+	}
+
+	static void LoadSplashScreenSettings(const YAML::Node& node, GameSplashScreenSettings& settings)
+	{
+		settings = {};
+		if (!node)
+			return;
+
+		auto clampColor = [](const glm::vec3& color) { return glm::clamp(color, glm::vec3(0.f), glm::vec3(1.f)); };
+		if (auto imageNode = node["Image"])
+			settings.Image = Utils::AsPath(imageNode.as<std::string>());
+		if (auto iconNode = node["Icon"])
+			settings.Icon = Utils::AsPath(iconNode.as<std::string>());
+		if (auto titleNode = node["Title"])
+			settings.Title = titleNode.as<std::string>();
+		if (auto subtitleNode = node["Subtitle"])
+			settings.Subtitle = subtitleNode.as<std::string>();
+		if (auto showTextNode = node["ShowTextOverImage"])
+			settings.bShowTextOverImage = showTextNode.as<bool>();
+		if (auto colorNode = node["TitleColor"])
+			settings.Colors.Title = clampColor(colorNode.as<glm::vec3>());
+		if (auto colorNode = node["SubtitleColor"])
+			settings.Colors.Subtitle = clampColor(colorNode.as<glm::vec3>());
+		if (auto colorNode = node["ProgressColor"])
+			settings.Colors.Progress = clampColor(colorNode.as<glm::vec3>());
+	}
+
+	// Absolute path to a file of the splash screen. Empty if it's not set, or doesn't exist
+	static Path ResolveSplashScreenFile(const Path& baseFolder, const Path& path)
+	{
+		if (path.empty())
+			return {};
+
+		const Path fullPath = path.is_absolute() ? path : baseFolder / path;
+		if (!std::filesystem::is_regular_file(fullPath))
+		{
+			EG_CORE_WARN("The splash screen's file doesn't exist: {}", fullPath);
+			return {};
+		}
+		return std::filesystem::absolute(fullPath);
+	}
+
 	static void SaveCollisionGroups(YAML::Emitter& out, const ProjectInfo& info)
 	{
 		out << YAML::Key << "CollisionGroups" << YAML::Value;
@@ -142,6 +200,8 @@ namespace Eagle
 			ProjectInfo ProjectData; // Copy of the opened project info
 			GUID StartupSceneGUID = GUID(0, 0);
 			std::string RendererConfig; // Contents of `Config/RenderConfig.ini`
+			Path SplashScreenImage; // Absolute. Empty if the project doesn't have one
+			Path SplashScreenIcon;  // Absolute. Empty if the project doesn't have one
 			ankerl::unordered_dense::set<GUID> ExcludedAssets;
 		};
 
@@ -392,6 +452,65 @@ namespace Eagle
 				if (!bSuccess)
 					return onFailed("Couldn't copy the game files. See the errors above");
 
+				// Splash screen. The image & icon are copied into `Data`, the settings are written next to them.
+				// So that the game can show its splash screen before it loads anything
+				{
+					task.SetDetail("Splash screen");
+					const Path dataFolder = info.OutputFolder / "Data";
+					fs::create_directories(dataFolder);
+
+					// Remove files from a previous build are removed
+					for (const std::string& extension : Project::GetSplashScreenImageExtensions())
+					{
+						fs::remove(dataFolder / (Path("Splash") += extension));
+						fs::remove(dataFolder / (Path("Icon") += extension));
+					}
+
+					auto copyImage = [&](const Path& source, const char* name) -> std::optional<Path>
+					{
+						std::string extension = Utils::AsString(source.extension());
+						std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return char(std::tolower(c)); });
+						const Path filename = Path(name) += extension;
+						if (!CopyBuildFile(source, dataFolder / filename, task))
+							return std::nullopt;
+						return filename;
+					};
+
+					GameSplashScreenSettings settings = info.ProjectData.SplashScreen;
+					settings.Image.clear();
+					settings.Icon.clear();
+					if (!info.SplashScreenImage.empty())
+					{
+						std::optional<Path> image = copyImage(info.SplashScreenImage, "Splash");
+						if (!image)
+							return onFailed("Couldn't copy the splash screen image");
+						settings.Image = *image;
+					}
+					if (!info.SplashScreenIcon.empty())
+					{
+						std::optional<Path> icon = copyImage(info.SplashScreenIcon, "Icon");
+						if (!icon)
+							return onFailed("Couldn't copy the icon");
+						settings.Icon = *icon;
+
+						// The icon the OS shows for the executable itself
+						const Path gameExe = info.OutputFolder / (info.ProjectData.Name + ".exe");
+						if (!Utils::SetExecutableIcon(gameExe, info.SplashScreenIcon))
+							EG_CORE_WARN("Couldn't set the icon of the game's executable. It's still used by the game's window. See the errors above");
+					}
+
+					YAML::Emitter out;
+					out << YAML::BeginMap;
+					out << YAML::Key << "ProjectName" << YAML::Value << info.ProjectData.Name;
+					SaveSplashScreenSettings(out, settings);
+					out << YAML::EndMap;
+
+					std::ofstream fout(info.OutputFolder / Project::GetGameBuildSplashScreenRelativePath());
+					fout << out.c_str();
+					if (!fout)
+						return onFailed("Couldn't write " + Utils::AsString(info.OutputFolder / Project::GetGameBuildSplashScreenRelativePath()));
+				}
+
 				// Renderer config
 				{
 					task.SetDetail("RenderConfig.ini");
@@ -574,6 +693,8 @@ namespace Eagle
 			info->StartupSceneGUID = s_Info.GameStartupScene->GetGUID();
 		info->ExcludedAssets.insert(excludedAssets.begin(), excludedAssets.end());
 		info->ExcludedAssets.erase(info->StartupSceneGUID); // Just in case
+		info->SplashScreenImage = ResolveSplashScreenFile(s_Info.BasePath, s_Info.SplashScreen.Image);
+		info->SplashScreenIcon = ResolveSplashScreenFile(s_Info.BasePath, s_Info.SplashScreen.Icon);
 
 		// Renderer config
 		{
@@ -678,6 +799,7 @@ namespace Eagle
 		out << YAML::Key << "Project Version" << YAML::Value << info.Version;
 		if (info.GameStartupScene)
 			out << YAML::Key << "Game Startup Scene" << YAML::Value << info.GameStartupScene->GetGUID();
+		SaveSplashScreenSettings(out, info.SplashScreen);
 
 		SaveCollisionGroups(out, info);
 		SaveUIScaleSettings(out, info);
@@ -824,9 +946,59 @@ namespace Eagle
 			if (AssetManager::Get(guid, &asset))
 				(*outInfo).GameStartupScene = Cast<AssetScene>(asset);
 		}
+		LoadSplashScreenSettings(data["Splash Screen"], (*outInfo).SplashScreen);
 		LoadCollisionGroups(data["CollisionGroups"], *outInfo);
 		LoadUIScaleSettings(data["UIScale"], *outInfo);
 
 		return true;
+	}
+
+	const std::vector<std::string>& Project::GetSplashScreenImageExtensions()
+	{
+		static const std::vector<std::string> s_Extensions = { ".png", ".jpg", ".jpeg", ".bmp" };
+		return s_Extensions;
+	}
+
+	SplashScreenDesc Project::MakeGameSplashScreenDesc(const GameSplashScreenSettings& settings, const std::string& projectName, const Path& baseFolder)
+	{
+		SplashScreenDesc desc;
+		desc.Title = settings.Title.empty() ? projectName : settings.Title;
+		desc.Subtitle = settings.Subtitle;
+		desc.ImagePath = ResolveSplashScreenFile(baseFolder, settings.Image);
+		desc.IconPath = ResolveSplashScreenFile(baseFolder, settings.Icon);
+		desc.bShowTextOverImage = settings.bShowTextOverImage;
+		desc.Colors = settings.Colors;
+		return desc;
+	}
+
+	bool Project::LoadGameBuildSplashScreen(SplashScreenDesc* outDesc)
+	{
+		const Path path = Application::GetCorePath() / GetGameBuildSplashScreenRelativePath();
+		if (!std::filesystem::is_regular_file(path))
+			return false;
+
+		YAML::Node data = YAML::Load(FileSystem::ReadText(path));
+		const std::string projectName = data["ProjectName"] ? data["ProjectName"].as<std::string>() : std::string();
+
+		GameSplashScreenSettings settings;
+		LoadSplashScreenSettings(data["Splash Screen"], settings);
+		*outDesc = MakeGameSplashScreenDesc(settings, projectName, path.parent_path()); // The files are next to it
+		return true;
+	}
+
+	std::string Project::ReadProjectName(const Path& projectFile)
+	{
+		std::string name = Utils::AsString(projectFile.stem());
+		try
+		{
+			YAML::Node data = YAML::Load(FileSystem::ReadText(projectFile));
+			if (auto nameNode = data["Name"])
+				name = nameNode.as<std::string>();
+		}
+		catch (const std::exception& e)
+		{
+			EG_CORE_WARN("Couldn't read the project's name: {}. {}", projectFile, e.what());
+		}
+		return name;
 	}
 }

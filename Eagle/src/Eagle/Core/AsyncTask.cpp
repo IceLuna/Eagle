@@ -6,8 +6,6 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
-#include <future>
-
 namespace Eagle
 {
 	using Clock = std::chrono::steady_clock;

@@ -26,8 +26,7 @@ namespace Eagle
 	private:
 		bool bWasVSync = false;
 
-		ImGuiWindowClass m_NoTabBar;
-
+		Ref<Texture2D> m_EditorIcon;
 		Ref<Texture2D> m_OpenProjectIcon;
 		Ref<Texture2D> m_CreateProjectIcon;
 		Ref<Texture2D> m_UserProjectIcon;

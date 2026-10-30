@@ -5,6 +5,8 @@
 #include "Panels/ContentBrowserPanel.h"
 #include "Panels/ConsolePanel.h"
 #include "Panels/AssetUsagePanel.h"
+#include "Frames/EditorFrames.h"
+#include "Widgets/ViewportToolbar.h"
 #include "EditorSerializer.h"
 #include <filesystem>
 
@@ -23,7 +25,8 @@ namespace Eagle
 		None, ProjectClose, ProjectBuild
 	};
 
-	class EditorLayer : public Layer
+	// The level editor. It's the main tab of the editor. It's always in the main window, and asset editors are opened next to it
+	class EditorLayer : public Layer, public MajorTab
 	{
 	public:
 		EditorLayer();
@@ -34,6 +37,11 @@ namespace Eagle
 		void OnEvent(Event& e) override;
 		void OnImGuiRender() override;
 
+		const std::string& GetTabWindowName() const override { return m_LevelTabWindowName; }
+		std::string GetTabTitle() const override { return m_LevelTabTitle; }
+		void DrawTabMenus() override { DrawMenus(); }
+		bool IsPinnedToMainFrame() const override { return true; }
+
 		void OpenScene(const Ref<AssetScene>& sceneAsset);
 		bool SaveScene();
 
@@ -42,8 +50,12 @@ namespace Eagle
 		bool IsViewportFocused() const { return m_ViewportFocused; }
 		bool IsViewportHovered() const { return m_ViewportHovered; }
 
-		const glm::vec3& GetSnappingValues() const { return m_SnappingValues; }
+		SnapSettings& GetSnapSettings() { return m_SnapSettings; }
+		const SnapSettings& GetSnapSettings() const { return m_SnapSettings; }
 		bool IsDrawingAllTextUIBounds() const { return bDrawAllTextUIBounds; }
+
+		void ShowShortcutsWindow() { m_bShowShortcuts = true; }
+		void ShowAboutWindow() { m_bShowAbout = true; }
 
 		// Oh boy... I guess it's better than passing around `EditorLayer`
 		static EditorLayer* Get();
@@ -69,7 +81,7 @@ namespace Eagle
 
 		void UpdateEditorTitle(const Ref<AssetScene>& scene);
 
-		void OnDeserialized(const EditorCamera& camera, const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync, bool bRenderOnlyWhenFocused,
+		void OnDeserialized(const EditorCamera& camera, const WindowPlacement& windowPlacement, const SceneRendererSettings& settings, bool bVSync, bool bRenderOnlyWhenFocused,
 			bool bDrawNavMesh, bool bDrawMeshAABBs, bool bDrawAxisGuizmo, bool bForceDrawGuizmo, Key stopSimulationKey, bool bUpdateAnimationsInEditor, int guizmoMode);
 		void SetCurrentScene(const Ref<Scene>& scene);
 
@@ -78,10 +90,16 @@ namespace Eagle
 		void UpdateGuizmo();
 		void UpdateSelectionOutline();
 		void UpdateTextUIBounds();
-		void DrawMenuBar();
+		void DrawLevelEditorTab();
+		void DrawMenus();
+		void DrawDebugWindows();
+		void DrawViewModeMenuItems();
+		void DrawShowFlagsMenuItems();
 		void DrawSceneSettings();
 		void DrawRendererSettings();
 		void DrawProjectSettings();
+		void DrawGameSplashScreenSettings(bool& bChanged);
+		void PreviewSplashScreen();
 		void DrawEditorPreferences();
 		void DrawStats();
 		void DrawViewport();
@@ -104,9 +122,6 @@ namespace Eagle
 		void ProcessCloseRequest();
 		bool CanCloseProject() const;
 
-		void BeginDocking();
-		void EndDocking();
-
 		Ref<Image> GetRequiredGBufferImage(const Ref<SceneRenderer>& renderer, const GBuffer& gbuffer);
 
 	private:
@@ -115,6 +130,8 @@ namespace Eagle
 			Final, Albedo, Emissive, ScreenSpaceShadows, AO, Motion
 		};
 		void SetVisualizingBufferType(GBufferVisualizingType value);
+		bool IsVisualizingBufferTypeAvailable(GBufferVisualizingType value) const;
+		static const char* GetVisualizingBufferTypeName(GBufferVisualizingType value);
 
 		Ref<ImGuiLayer> m_ImGuiLayer = nullptr;
 
@@ -130,18 +147,21 @@ namespace Eagle
 		Ref<Scene> m_CurrentScene;
 		Ref<Image> m_ViewportImage;
 		GBufferVisualizingType m_VisualizingGBufferType = GBufferVisualizingType::Final;
-		int m_SelectedBufferIndex = 0;
 
 		Ref<Texture2D> m_PlayButtonIcon;
 		Ref<Texture2D> m_StopButtonIcon;
+		Ref<Texture2D> m_EditorIcon;
+		double m_SplashScreenPreviewEndTime = 0.0; // Not 0 while the splash screen is previewed (Project Settings)
 
 		Ref<Sound2D> m_PlaySound;
 
 		Ref<AssetScene> m_OpenedSceneAsset;
 		std::string m_WindowTitle;
+		std::string m_LevelTabWindowName; // The name changes with the opened scene, the ID stays the same
+		std::string m_LevelTabTitle;
 
 		EditorCamera m_Camera;
-		glm::vec3 m_SnappingValues = glm::vec3(0.1f, 10.f, 0.1f);
+		SnapSettings m_SnapSettings;
 		glm::vec2 m_CurrentViewportSize = {1.f, 1.f};
 		glm::vec2 m_NewViewportSize = {1.f, 1.f};
 		glm::vec2 m_ViewportBounds[2] = {glm::vec2(), glm::vec2()};
@@ -198,6 +218,13 @@ namespace Eagle
 		bool m_bFirstContentBrowserRender = true;
 		bool m_bUsingImGuizmoOrHovered = false;
 		bool m_bSkipGuizmoThisFrame = false;
+		bool m_bViewportToolbarHovered = false; // The mouse is over the viewport's toolbar (or one of its popups is open), so the viewport ignores clicks
+		
+		bool m_bShowShortcuts = false;
+		bool m_bShowAbout = false;
+		bool m_bShowGPUTimings = false;
+		bool m_bShowCPUTimings = false;
+		bool m_bShowGPUMemoryUsage = false;
 
 		bool m_CloseEngineRequested = false;
 		bool m_ShowDirtyAssetMessage = false;

@@ -6,6 +6,7 @@
 #include "Eagle/Core/SceneSerializer.h"
 #include "Eagle/Core/ThreadPool.h"
 #include "Eagle/Core/AsyncTask.h"
+#include "Eagle/Core/SplashScreen.h"
 #include "Eagle/Utils/Compressor.h"
 #include "Eagle/Utils/Timer.h"
 #include "Eagle/Utils/SerializerUtils.h"
@@ -94,6 +95,8 @@ namespace Eagle
 		const Path& projectPath = Project::GetProjectPath();
 
 		const auto& project = Project::GetProjectInfo();
+		SplashScreen::SetStatus("Loading scripts");
+		SplashScreen::SetProgress(-1.f);
 		if (!ScriptEngine::LoadAppAssembly(Project::GetBinariesPath() / (project.Name + ".dll")))
 		{
 			const std::string error = std::string("Open VS solution (") +
@@ -102,6 +105,8 @@ namespace Eagle
 		}
 
 		Timer globalTimer;
+		size_t assetsToLoad = 0;
+		SplashScreen::SetStatus("Loading assets");
 		for (auto& dirEntry : std::filesystem::recursive_directory_iterator(contentPath))
 		{
 			if (dirEntry.is_directory())
@@ -111,6 +116,7 @@ namespace Eagle
 			if (!Utils::IsAssetExtension(assetPath))
 				continue;
 
+			assetsToLoad++;
 			const AssetType type = Serializer::GetAssetType(assetPath);
 
 			// We deffer the loading of some assets:
@@ -167,11 +173,20 @@ namespace Eagle
 		const uint32_t threadCount = bEnableAsyncLoading ? std::thread::hardware_concurrency() : 1u;
 		ThreadPool threadPool("AssetManager", threadCount, false);
 
-		auto loadAssetFunc = [&mutex](const Path& assetPath, bool bUseMutex)
+		std::atomic<size_t> loadedAssets = 0;
+		auto reportProgress = [assetsToLoad](size_t loaded)
+		{
+			SplashScreen::SetStatus("Loading assets (" + std::to_string(loaded) + "/" + std::to_string(assetsToLoad) + ")");
+			SplashScreen::SetProgress(assetsToLoad > 0 ? float(loaded) / float(assetsToLoad) : 1.f);
+		};
+		reportProgress(0);
+
+		auto loadAssetFunc = [&mutex, &loadedAssets, &reportProgress](const Path& assetPath, bool bUseMutex)
 		{
 			Timer timer;
 			Ref<Asset> asset = Asset::Create(assetPath);
 			EG_CORE_INFO("Loaded asset in {}s: {}", timer.GetSeconds(), assetPath);
+			reportProgress(loadedAssets.fetch_add(1) + 1);
 			if (bUseMutex)
 			{
 				std::scoped_lock lock(mutex);
@@ -208,6 +223,7 @@ namespace Eagle
 		}
 
 		EG_CORE_INFO("Took {}s to load all {} project assets using {} threads", globalTimer.GetSeconds(), s_Assets.size(), threadCount);
+		SplashScreen::SetProgress(-1.f);
 
 		s_Skybox = Cast<AssetTextureCube>(Asset::Create(Application::GetCorePath() / "assets/textures/IBL.egasset"));
 		s_Sphere = Cast<AssetStaticMesh>(Asset::Create(Application::GetCorePath() / "assets/meshes/Sphere.egasset"));

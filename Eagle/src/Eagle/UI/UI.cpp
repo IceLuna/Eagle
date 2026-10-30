@@ -98,15 +98,26 @@ namespace Eagle::UI
 		// ID of a tree node of a `Struct` field. Array elements' open states are looked up by it when elements are reordered
 		constexpr const char* s_StructTreeNodeID = "##StructTreeNode";
 
-		// Draws a "six dots" grip that can be dragged to reorder array elements. Should be called right before the element's label.
-		// @payloadType. Must be unique per array, so that elements can't be dropped into another array
-		void DrawArrayElementDragHandle(const char* payloadType, size_t idx)
+		float GetArrayElementDragHandleWidth()
 		{
-			const float fontSize = ImGui::GetFontSize();
-			const ImVec2 size = ImVec2(fontSize * 0.6f, ImGui::GetFrameHeight());
-			const ImVec2 pos = ImGui::GetCursorScreenPos();
+			return ImGui::GetFontSize() * 0.6f;
+		}
 
-			ImGui::InvisibleButton("##ReorderHandle", size);
+		// Draws a "six dots" grip that can be dragged to reorder array elements. Should be called after the element is drawn.
+		// It doesn't take part in the layout: the element's label reserves space for it (see `GetArrayElementDragHandleWidth()`).
+		// If it was placed before the label as a regular item, the label would no longer be the first item on its line,
+		// so the label's vertical offset (labels are moved down to line up with framed widgets) would only apply to the label's text,
+		// while the items that follow it on the same line (help marker, `Remove` button) would stay at the line's original Y.
+		// @payloadType. Must be unique per array, so that elements can't be dropped into another array
+		// @rect. Screen space rectangle of the handle. Its height should match the element's first line
+		void DrawArrayElementDragHandle(const char* payloadType, size_t idx, const ImRect& rect)
+		{
+			const ImGuiID id = ImGui::GetID("##ReorderHandle");
+			if (!ImGui::ItemAdd(rect, id))
+				return;
+
+			bool bHovered = false, bHeld = false;
+			ImGui::ButtonBehavior(rect, id, &bHovered, &bHeld);
 			const bool bActive = ImGui::IsItemActive();
 			const bool bHighlighted = bActive || ImGui::IsItemHovered();
 			if (bHighlighted)
@@ -117,10 +128,10 @@ namespace Eagle::UI
 			// Grip: 2 columns x 3 rows of dots
 			ImDrawList* drawList = ImGui::GetWindowDrawList();
 			const ImU32 color = ImGui::GetColorU32(bHighlighted ? ImGuiCol_Text : ImGuiCol_TextDisabled);
-			const float radius = ImMax(1.f, fontSize * 0.08f);
+			const float radius = ImMax(1.f, ImGui::GetFontSize() * 0.08f);
 			const float offsetX = radius * 1.75f;
 			const float offsetY = radius * 3.f;
-			const ImVec2 center = ImVec2(pos.x + size.x * 0.5f, pos.y + size.y * 0.5f);
+			const ImVec2 center = rect.GetCenter();
 			for (int row = -1; row <= 1; ++row)
 			{
 				drawList->AddCircleFilled(ImVec2(center.x - offsetX, center.y + row * offsetY), radius, color, 6);
@@ -416,7 +427,7 @@ namespace Eagle::UI
 					ImGui::SetCursorPosX(ImGui::GetCursorPosX() - GetTreeNodeArrowOffset(treeFlags) * 0.5f + 5.f);
 					ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 					// `SameLine()` places items at the Y of the first item on the line, which isn't the tree node
-					// if something was drawn before it (e.g. array element's drag handle). So items that follow the node are explicitly aligned with it
+					// if something was drawn before it. So items that follow the node are explicitly aligned with it
 					const float nodePosY = ImGui::GetCursorPosY();
 					const bool bOpened = ImGui::TreeNodeEx(s_StructTreeNodeID, treeFlags, "%s", label.data());
 					if (field.Tooltip.size())
@@ -1167,24 +1178,30 @@ namespace Eagle::UI
 				const bool bStruct = field.Type == FieldType::Struct;
 				for (size_t i = 0; i < arrayLength; ++i)
 				{
-					auto customLabelFunc = [&idxToRemove, i]()
+					ImGui::PushID(int(i));
+					const ImVec2 rowStart = ImGui::GetCursorScreenPos();
+
+					// The `Remove` button is drawn on the element's label line, so the drag handle is lined up with it
+					const float handleWidth = GetArrayElementDragHandleWidth();
+					ImRect handleRect(rowStart, ImVec2(rowStart.x + handleWidth, rowStart.y + ImGui::GetFrameHeight()));
+					auto customLabelFunc = [&idxToRemove, &handleRect, i]()
 					{
 						if (ImGui::Button("Remove"))
 						{
 							idxToRemove = i;
 						}
+						handleRect.Min.y = ImGui::GetItemRectMin().y;
+						handleRect.Max.y = ImGui::GetItemRectMax().y;
 					};
 
-					ImGui::PushID(int(i));
-					const ImVec2 rowStart = ImGui::GetCursorScreenPos();
-
-					DrawArrayElementDragHandle(reorderPayloadType, i);
+					// Reserve space for the drag handle. It's drawn after the element, see `DrawArrayElementDragHandle()`.
 					// Structs shift their tree node to the left so that the collapser arrow hangs outside of the labels column.
 					// Compensate for it so that the arrow doesn't overlap the handle
 					const float structArrowOffset = bStruct ? (GetTreeNodeArrowOffset(ImGuiTreeNodeFlags_None) * 0.5f - 5.f) : 0.f;
-					ImGui::SameLine(0.f, ImGui::GetStyle().ItemInnerSpacing.x + structArrowOffset);
+					ImGui::SetCursorPosX(ImGui::GetCursorPosX() + handleWidth + ImGui::GetStyle().ItemInnerSpacing.x + structArrowOffset);
 
 					bChanged |= HandlePublicField('[' + std::to_string(i) + ']', field, instance, i, bRuntime, entity, customLabelFunc);
+					DrawArrayElementDragHandle(reorderPayloadType, i, handleRect);
 
 					ArrayElementDropTarget(reorderPayloadType, i, rowStart, bStruct, moveFrom, moveTo);
 					ImGui::PopID();

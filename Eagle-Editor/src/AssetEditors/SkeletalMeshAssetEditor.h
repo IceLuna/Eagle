@@ -34,6 +34,7 @@ namespace Eagle
 		void OnImGuiRender(bool* pOpen) override;
 
 		const Ref<Asset> GetAsset() const override { return Cast<Asset>(m_Asset); }
+		bool UsesGuizmo() const override { return true; }
 
 	private:
 		bool DrawSkeletalTree(const SkeletalMeshInfo& skeletalInfo, BoneNode& node, size_t baseHash, bool* outDelete = nullptr, const glm::mat4& baseTransform = glm::mat4(1.f), const std::string& parentName = "");

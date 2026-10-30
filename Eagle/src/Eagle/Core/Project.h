@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Eagle/Core/GUID.h"
+#include "Eagle/Core/SplashScreen.h"
 #include "Eagle/Renderer/RendererUtils.h"
 
 namespace Eagle
@@ -9,6 +10,17 @@ namespace Eagle
 
 	// Name, Mask
 	using CollisionGroupInfo = std::pair<std::string, uint32_t>;
+
+	// The splash screen a game build shows while it's starting
+	struct GameSplashScreenSettings
+	{
+		Path Image; // Relative to the project folder. Empty - the default background
+		Path Icon;  // Relative to the project folder. It's also the icon of the game's window & executable. Empty - no icon
+		std::string Title; // Empty - the project's name
+		std::string Subtitle;
+		bool bShowTextOverImage = false;
+		SplashScreenColors Colors;
+	};
 
 	struct ProjectInfo
 	{
@@ -21,6 +33,7 @@ namespace Eagle
 		uint32_t AllCollisionGroupsMask = 0u; // It's a XOR of all collision groups. Can be used to check if as certain mask is valid within a project. (Used to reset a mask if it was removed)
 		std::vector<GUID64> CollisionGroupGUIDs; // GUIDs of all collision groups. Used to identify if groups were changed
 		UIScaleSettings UIScale;
+		GameSplashScreenSettings SplashScreen;
 	};
 
 	class Project
@@ -44,6 +57,7 @@ namespace Eagle
 		static void SetStartupScene(const Ref<AssetScene>& scene) { s_Info.GameStartupScene = scene; }
 		static void SetVersion(const glm::uvec3& version) { s_Info.Version = version; }
 		static void SetUIScaleSettings(const UIScaleSettings& settings) { s_Info.UIScale = settings; }
+		static void SetSplashScreenSettings(const GameSplashScreenSettings& settings) { s_Info.SplashScreen = settings; }
 
 		static const ProjectInfo& GetProjectInfo() { return s_Info; }
 
@@ -71,6 +85,23 @@ namespace Eagle
 		static Path GetPhysicsDebugInfoPath() { return Project::GetSavedPath() / "PhysXDebugInfo"; }
 
 		static Path GetShaderPackRelativePath() { return "Data/ShaderPack.egspack"; }
+
+		// Image formats the splash screen image & icon can have
+		static const std::vector<std::string>& GetSplashScreenImageExtensions();
+
+		// The game build copies the splash screen's image & icon into `Data`, and writes the rest of its settings into this file.
+		// So that the game can show its splash screen before it loads anything
+		static Path GetGameBuildSplashScreenRelativePath() { return "Data/Splash.yaml"; }
+
+		// @baseFolder. The folder that the paths in `settings` are relative to
+		static SplashScreenDesc MakeGameSplashScreenDesc(const GameSplashScreenSettings& settings, const std::string& projectName, const Path& baseFolder);
+
+		static SplashScreenDesc GetGameSplashScreenDesc() { return MakeGameSplashScreenDesc(s_Info.SplashScreen, s_Info.Name, s_Info.BasePath); }
+
+		static bool LoadGameBuildSplashScreen(SplashScreenDesc* outDesc);
+
+		// @projectFile. Path to `.egproj`
+		static std::string ReadProjectName(const Path& projectFile);
 
 		static const char* GetExtension() { return ".egproj"; }
 

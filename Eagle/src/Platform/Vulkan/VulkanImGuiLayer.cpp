@@ -97,20 +97,18 @@ namespace
 	// ImGui's renderer callbacks for platform windows. We call them on the render thread, see `HookPlatformWindowCallbacks`
 	static void (*s_OriginalCreateWindow)(ImGuiViewport*) = nullptr;
 	static void (*s_OriginalDestroyWindow)(ImGuiViewport*) = nullptr;
-	static void (*s_OriginalSetWindowSize)(ImGuiViewport*, ImVec2) = nullptr;
 
 	// ImGui calls these from the main thread (in `ImGui::UpdatePlatformWindows()`, `ImGui::NewFrame()`, `ImGui::DestroyPlatformWindows()`).
 	// They create/destroy the Vulkan resources of platform windows, which the render thread uses, and they call vkDeviceWaitIdle(),
 	// which requires that no other thread uses any queue at the same time. So we run them on the render thread instead.
 	// That also guarantees that all frames queued before them, which might still use a destroyed window, have completed.
-	// Note: this blocks the main thread until the render thread catches up, but it only happens when a platform window is created/destroyed/resized
+	// Note: this blocks the main thread until the render thread catches up, but it only happens when a platform window is created/destroyed
 	static void HookPlatformWindowCallbacks()
 	{
 		ImGuiPlatformIO& platformIO = ImGui::GetPlatformIO();
 		s_OriginalCreateWindow = platformIO.Renderer_CreateWindow;
 		s_OriginalDestroyWindow = platformIO.Renderer_DestroyWindow;
-		s_OriginalSetWindowSize = platformIO.Renderer_SetWindowSize;
-		EG_CORE_ASSERT(s_OriginalCreateWindow && s_OriginalDestroyWindow && s_OriginalSetWindowSize);
+		EG_CORE_ASSERT(s_OriginalCreateWindow && s_OriginalDestroyWindow);
 
 		platformIO.Renderer_CreateWindow = [](ImGuiViewport* viewport)
 		{
@@ -125,10 +123,12 @@ namespace
 					snapshots.erase(viewport->ID);
 			});
 		};
-		platformIO.Renderer_SetWindowSize = [](ImGuiViewport* viewport, ImVec2 size)
-		{
-			Eagle::RenderManager::ExecuteOnRenderThread([viewport, size]() { s_OriginalSetWindowSize(viewport, size); });
-		};
+		
+		// Nothing to do here. The swapchain is resized by `ImGui_ImplVulkan_RenderViewport()` on the render thread,
+		// when it renders the first frame that was laid out for the new size (the size is snapshotted with the draw data, see `UpdatePlatform`).
+		// So the main thread doesn't wait for the render thread on every size change (which happens every frame while a window is being resized),
+		// and the frames that are still in flight are rendered into the swapchain of the size they were laid out for
+		platformIO.Renderer_SetWindowSize = [](ImGuiViewport*, ImVec2) {};
 
 		// We don't use `ImGui::RenderPlatformWindowsDefault()`. See `UpdatePlatform` and `RenderPlatformWindows`
 		platformIO.Renderer_RenderWindow = nullptr;

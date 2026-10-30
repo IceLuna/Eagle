@@ -482,6 +482,7 @@ namespace Eagle
 		: m_Asset(asset)
 	{
 		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
+		SetTabWindowName(m_WindowName);
 		m_Player.SetAsset(m_Asset);
 
 		// New sequences open with every track expanded
