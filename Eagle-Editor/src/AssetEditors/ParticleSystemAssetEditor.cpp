@@ -1,12 +1,14 @@
 #include "egpch.h"
 #include "ParticleSystemAssetEditor.h"
+#include "../Widgets/CurvePropertyUI.h"
 
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/UI/UI.h"
 #include "Eagle/Renderer/ParticleEmitter.h"
 #include "Eagle/Components/Components.h"
+#include "Eagle/Core/Serializer.h"
 
-#include "../Widgets/CurvePropertyUI.h"
+#include <yaml-cpp/yaml.h>
 
 namespace Eagle
 {
@@ -185,6 +187,7 @@ namespace Eagle
 
 	ParticleSystemAssetEditor::ParticleSystemAssetEditor(const Ref<AssetParticleSystem>& asset)
 		: AssetEditor(true, false), m_Asset(asset)
+		, m_EditTracker(&CaptureState, &ApplyState, &DescribeState)
 	{
 		m_FirstUseSizeRatio = ImVec2(0.8f, 0.85f);
 		m_FirstUseViewportRatio = 0.45f;
@@ -218,12 +221,23 @@ namespace Eagle
 		camera.LookAt(center);
 		RecalculateLifetime();
 
+		m_UndoHistory.SetOnAppliedCallback([this](const UndoTransaction&, bool)
+		{
+			// The editor edits a copy of the emitters
+			m_Emitters = m_Asset->GetEmitters();
+			if (m_SelectedEmitterIndex != s_InvalidIndex && m_SelectedEmitterIndex >= m_Emitters.size())
+				m_SelectedEmitterIndex = m_Emitters.empty() ? s_InvalidIndex : m_Emitters.size() - 1u;
+			m_CurveEditor.ClearSelection();
+			RecalculateLifetime();
+		});
+
 	}
 
 	void ParticleSystemAssetEditor::OnImGuiRender(bool* pOpen)
 	{
 		DrawEditorWindow(pOpen);
 		BeginPanel(GetDetailsPanelName());
+		m_EditTracker.BeginFrame(&m_UndoHistory, m_Asset);
 
 		DrawToolbar();
 		ImGui::Separator();
@@ -278,16 +292,8 @@ namespace Eagle
 		}
 		ImGui::EndChild();
 
-		bChanged |= bGuizmoChanged;
-		bGuizmoChanged = false;
-
 		if (bChanged)
-		{
-			m_Asset->SetEmitters(m_Emitters);
-			RecalculateLifetime();
-			m_Asset->SetDirty(true);
-			m_Asset->OnModified();
-		}
+			ApplyEmitters();
 
 		// Finite systems are restarted automatically once everything has finished
 		if (m_Timer.GetSeconds() >= m_Lifetime)
@@ -296,6 +302,21 @@ namespace Eagle
 		ImGui::End();
 
 		DrawViewport(false);
+		m_EditTracker.EndFrame();
+	}
+
+	void ParticleSystemAssetEditor::ApplyEmitters()
+	{
+		m_Asset->SetEmitters(m_Emitters);
+		RecalculateLifetime();
+		m_Asset->SetDirty(true);
+		m_Asset->OnModified();
+	}
+
+	void ParticleSystemAssetEditor::OnViewportEnd()
+	{
+		m_EditTracker.BeginFrame(&m_UndoHistory, m_Asset);
+		UpdateGuizmo();
 	}
 
 	void ParticleSystemAssetEditor::DrawToolbar()
@@ -1302,6 +1323,57 @@ namespace Eagle
 			return;
 
 		auto& emitter = m_Emitters[m_SelectedEmitterIndex];
-		bGuizmoChanged = DrawGuizmo(emitter.RelativeTransform, true, false);
+		if (DrawGuizmo(emitter.RelativeTransform, true, false))
+			ApplyEmitters(); // Right away, so that the edit is recorded once the guizmo is released
+	}
+
+	size_t ParticleSystemAssetEditor::EditState::GetMemoryUsage() const
+	{
+		size_t result = sizeof(*this) + Emitters.capacity() * sizeof(ParticleEmitter) + Serialized.capacity() * sizeof(std::string);
+		for (const std::string& emitter : Serialized)
+			result += emitter.capacity() * 2; // The YAML, and roughly the same for the curves & names of the emitter itself
+		return result;
+	}
+
+	ParticleSystemAssetEditor::EditState ParticleSystemAssetEditor::CaptureState(const Ref<AssetParticleSystem>& asset)
+	{
+		EditState state;
+		state.Emitters = asset->GetEmitters();
+		state.Serialized.reserve(state.Emitters.size());
+		for (const ParticleEmitter& emitter : state.Emitters)
+		{
+			YAML::Emitter out;
+			Serializer::SerializeParticleEmitter(out, emitter);
+			state.Serialized.emplace_back(out.c_str(), out.size());
+		}
+		return state;
+	}
+
+	void ParticleSystemAssetEditor::ApplyState(const Ref<AssetParticleSystem>& asset, const EditState& state)
+	{
+		asset->SetEmitters(state.Emitters);
+	}
+
+	std::string ParticleSystemAssetEditor::DescribeState(const EditState& before, const EditState& after)
+	{
+		if (after.Emitters.size() > before.Emitters.size())
+			return after.Emitters.size() - before.Emitters.size() == 1u ? "Add Emitter" : "Add Emitters";
+		if (after.Emitters.size() < before.Emitters.size())
+			return before.Emitters.size() - after.Emitters.size() == 1u ? "Delete Emitter" : "Delete Emitters";
+
+		const ParticleEmitter* changed = nullptr;
+		for (size_t i = 0; i < after.Emitters.size(); ++i)
+		{
+			if (before.Emitters[i].ID != after.Emitters[i].ID)
+				return "Reorder Emitters";
+
+			if (before.Serialized[i] != after.Serialized[i])
+			{
+				if (changed)
+					return "Edit Emitters";
+				changed = &after.Emitters[i];
+			}
+		}
+		return changed ? "Edit Emitter '" + changed->Name + "'" : std::string("Edit Emitters");
 	}
 }

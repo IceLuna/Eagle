@@ -11,10 +11,16 @@ namespace Eagle
 {
 	TextureCubeAssetEditor::TextureCubeAssetEditor(const Ref<AssetTextureCube>& asset)
 		: m_Asset(asset)
+		, m_EditTracker(&DescribeState)
 	{
-		const auto& texture = m_Asset->GetTexture();
-		m_LayersSize = (int)texture->GetSize().x;
-		m_PrefilterSize = (int)texture->GetPrefilterSize();
+		m_LayersSize = (int)m_Asset->GetLayerSize();
+		m_PrefilterSize = (int)m_Asset->GetPrefilterSize();
+
+		m_UndoHistory.SetOnAppliedCallback([this](const UndoTransaction&, bool)
+		{
+			m_LayersSize = (int)m_Asset->GetLayerSize();
+			m_PrefilterSize = (int)m_Asset->GetPrefilterSize();
+		});
 	}
 
 	void TextureCubeAssetEditor::OnImGuiRender(bool* pOpen)
@@ -47,6 +53,8 @@ namespace Eagle
 			bool bChanged = false;
 
 			BeginPanel(GetDetailsPanelName());
+			m_EditTracker.BeginFrame(&m_UndoHistory, m_Asset);
+
 			UI::BeginPropertyGrid("TextureCubeDetails");
 			UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 			UI::Text("Type", "Texture Cube");
@@ -171,6 +179,17 @@ namespace Eagle
 				Asset::Save(m_Asset);
 
 			ImGui::End();
+			m_EditTracker.EndFrame();
 		}
+	}
+
+	std::string TextureCubeAssetEditor::DescribeState(const AssetTextureCube::Settings& before, const AssetTextureCube::Settings& after)
+	{
+		return UndoUtils::Describe({
+			{ "Format", before.Format != after.Format },
+			{ "Compression", before.bCompressed != after.bCompressed },
+			{ "Layer Size", before.LayerSize != after.LayerSize },
+			{ "Prefilter Size", before.PrefilterSize != after.PrefilterSize },
+		}, "Edit Texture Cube");
 	}
 }

@@ -18,23 +18,7 @@ namespace Eagle
 	};
 
     Material::Material(const Ref<Material>& other)
-		: m_AlbedoAsset(other->m_AlbedoAsset)
-		, m_NormalAsset(other->m_NormalAsset)
-		, m_MetallnessAsset(other->m_MetallnessAsset)
-		, m_RoughnessAsset(other->m_RoughnessAsset)
-		, m_AOAsset(other->m_AOAsset)
-		, m_EmissiveAsset(other->m_EmissiveAsset)
-		, m_OpacityAsset(other->m_OpacityAsset)
-		, m_OpacityMaskAsset(other->m_OpacityMaskAsset)
-		, m_MetalnessTextureChannel(other->m_MetalnessTextureChannel)
-		, m_RoughnessTextureChannel(other->m_RoughnessTextureChannel)
-		, m_AOTextureChannel(other->m_AOTextureChannel)
-		, m_OpacityTextureChannel(other->m_OpacityTextureChannel)
-		, m_OpacityMaskTextureChannel(other->m_OpacityMaskTextureChannel)
-		, m_TintColor(other->m_TintColor)
-		, m_EmissiveIntensity(other->m_EmissiveIntensity)
-		, m_TilingFactor(other->m_TilingFactor)
-		, m_BlendMode(other->m_BlendMode)
+		: m_Settings(other->m_Settings)
 	{}
 	
 	Ref<Material> Material::Create()
@@ -49,6 +33,22 @@ namespace Eagle
 		Ref<Material> material = MakeRef<PrivateMaterial>(other);
 		MaterialSystem::AddMaterial(material);
 		return material;
+	}
+
+	void Material::SetSettings(const MaterialSettings& settings)
+	{
+		MaterialSettings newSettings = settings;
+		newSettings.Metalness = glm::clamp(settings.Metalness, 0.f, 1.f);
+		newSettings.Roughness = glm::clamp(settings.Roughness, 0.f, 1.f);
+		newSettings.AO = glm::clamp(settings.AO, 0.f, 1.f);
+		newSettings.Opacity = glm::clamp(settings.Opacity, 0.f, 1.f);
+		newSettings.OpacityMask = glm::clamp(settings.OpacityMask, 0.f, 1.f);
+		if (newSettings == m_Settings)
+			return;
+
+		const bool bRenderModeChanged = newSettings.BlendMode != m_Settings.BlendMode || newSettings.bDoubleSided != m_Settings.bDoubleSided;
+		m_Settings = newSettings;
+		OnMaterialChanged(bRenderModeChanged);
 	}
 
 	void Material::OnMaterialChanged(bool bRenderModeChanged)

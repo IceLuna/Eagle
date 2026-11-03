@@ -78,6 +78,9 @@ namespace Eagle
 		Ref<Image> oldImage = m_Image;
 		m_Image = CreateImage();
 
+		const uint32_t newMipsCount = m_Image->GetMipsCount();
+		m_Sampler = Sampler::Create(m_Specs.FilterMode, m_Specs.AddressMode, CompareOperation::Never, 0.f, float(newMipsCount - 1), m_Specs.MaxAnisotropy);
+
 		RenderManager::Submit([oldImage = std::move(oldImage), image = m_Image](const Ref<CommandBuffer>& cmd) mutable
 		{
 			cmd->CopyImage(oldImage, image, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);

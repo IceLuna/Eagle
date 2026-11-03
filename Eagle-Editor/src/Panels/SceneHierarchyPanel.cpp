@@ -9,8 +9,6 @@
 #include <imgui/imgui_internal.h>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <filesystem>
-
 namespace Eagle
 {
 	SceneHierarchyPanel::SceneHierarchyPanel()
@@ -37,7 +35,7 @@ namespace Eagle
 
 		if (entity)
 		{
-			m_Scene = entity.GetScene();
+			m_bSelectedOutside = true;
 			m_SelectedEntity = entity;
 			m_Properties.SetEntitySelected(entity, component);
 			m_ScrollToSelected = true;
@@ -48,40 +46,143 @@ namespace Eagle
 	{
 		EG_CPU_TIMING_SCOPED("Scene Hierarchy Panel");
 
-		const bool bSceneChanged = m_Scene != scene.get();
-		if (bSceneChanged)
-		{
-			ClearSelection();
-			m_Properties = {};
-		}
-		m_Scene = scene.get();
+		UpdateScene(scene);
 		m_AllowOnlySingleRoot = bAllowOnlySingleRoot;
-
-		m_UpdateSearchResults |= bSceneChanged;
-		m_UpdateSearchResults |= m_Scene->HasEntityListChanged() || m_Scene->AnyEntityNameChanged();
+		m_UpdateSearchResults |= scene->HasEntityListChanged() || scene->AnyEntityNameChanged();
 
 		bool bChanged = false;
-		bChanged |= DrawSceneHierarchy();
-		
 		if (m_WindowClass)
 			ImGui::SetNextWindowClass(m_WindowClass);
-		ImGui::Begin(m_PropertiesWindowName.c_str());
+
+		ImGui::Begin(m_SceneHierarchyWindowName.c_str());
+		if (m_bPropertiesInHierarchyWindow)
+		{
+			// The list of entities has its own height, the user can change it with the splitter under it. The properties take the rest.
+			// The limits are applied every frame, so that the properties stay visible when the window gets smaller
+			const float rowHeight = ImGui::GetTextLineHeightWithSpacing();
+			const float splitterThickness = ImGui::GetStyle().ItemSpacing.y * 2.f + 2.f;
+			const float searchBarHeight = ImGui::GetFrameHeightWithSpacing() + ImGui::GetStyle().ItemSpacing.y; // And the separator under it
+			const float minListHeight = rowHeight * 2.f;
+			const float minPropertiesHeight = rowHeight * 4.f;
+			const float maxListHeight = glm::max(minListHeight, ImGui::GetContentRegionAvail().y - searchBarHeight - splitterThickness - minPropertiesHeight);
+
+			constexpr float defaultListRows = 6.f;
+			if (m_EntitiesListHeight <= 0.f)
+				m_EntitiesListHeight = rowHeight * defaultListRows;
+			const float listHeight = glm::clamp(m_EntitiesListHeight, minListHeight, maxListHeight);
+
+			bChanged |= DrawSceneHierarchy(scene, listHeight);
+
+			// Splitter
+			{
+				ImGui::InvisibleButton("##EntitiesSplitter", ImVec2(glm::max(1.f, ImGui::GetContentRegionAvail().x), splitterThickness));
+				const bool bActive = ImGui::IsItemActive();
+				const bool bHovered = ImGui::IsItemHovered();
+				if (bActive || bHovered)
+					ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+
+				// What the user chose is kept even if the window is too small for it right now, so it's restored when the window gets bigger
+				if (bActive)
+					m_EntitiesListHeight = glm::clamp(listHeight + ImGui::GetIO().MouseDelta.y, minListHeight, maxListHeight);
+
+				const ImVec2 min = ImGui::GetItemRectMin();
+				const ImVec2 max = ImGui::GetItemRectMax();
+				const float y = (min.y + max.y) * 0.5f;
+				ImGui::GetWindowDrawList()->AddLine(ImVec2(min.x, y), ImVec2(max.x, y),
+					ImGui::GetColorU32(bActive ? ImGuiCol_SeparatorActive : bHovered ? ImGuiCol_SeparatorHovered : ImGuiCol_Separator), bActive || bHovered ? 2.f : 1.f);
+			}
+
+			if (ImGui::BeginChild("##EntityProperties", ImVec2(0.f, 0.f), ImGuiChildFlags_None))
+				bChanged |= DrawProperties(scene, bScenePlaying, bVolumetricsEnabledOverride);
+			ImGui::EndChild();
+		}
+		else
+		{
+			bChanged |= DrawSceneHierarchy(scene, 0.f);
+		}
+		ImGui::End(); //Scene Hierarchy
+
+		if (!m_bPropertiesInHierarchyWindow)
+		{
+			if (m_WindowClass)
+				ImGui::SetNextWindowClass(m_WindowClass);
+
+			ImGui::Begin(m_PropertiesWindowName.c_str());
+			bChanged |= DrawProperties(scene, bScenePlaying, bVolumetricsEnabledOverride);
+			ImGui::End();
+		}
+		m_EditTracker.EndFrame();
+
+		m_bSelectedOutside = false; // Selected by the panel. It's an entity of the scene
+		return bChanged;
+	}
+
+	void SceneHierarchyPanel::UpdateScene(const Ref<Scene>& scene)
+	{
+		if (m_Scene.lock() != scene)
+		{
+			const bool bKeepSelection = m_bSelectedOutside && m_SelectedEntity && m_SelectedEntity.GetScene() == scene.get();
+			if (!bKeepSelection)
+			{
+				ClearSelection();
+				m_Properties = {};
+			}
+			m_EditTracker.Reset();
+			m_UpdateSearchResults = true;
+			m_Scene = scene;
+		}
+		m_bSelectedOutside = false;
+	}
+
+	void SceneHierarchyPanel::OnUndoApplied(const UndoTransaction& transaction)
+	{
+		if (m_SelectedEntity && !m_SelectedEntity.IsValid())
+			ClearSelection();
+
+		if (m_SelectedEntity)
+			return;
+
+		for (const auto& command : transaction.Commands)
+		{
+			const SceneEntitiesCommand* sceneCommand = Cast<SceneEntitiesCommand>(command);
+			if (!sceneCommand)
+				continue;
+
+			const Ref<Scene> scene = sceneCommand->GetScene();
+			if (!scene || scene != m_Scene.lock()) // For example, the entities of entity assets
+				continue;
+
+			for (const SceneEntitiesCommand::Change& change : sceneCommand->GetChanges())
+			{
+				Entity entity = scene->GetEntityByGUID(change.EntityGUID);
+				if (entity && !scene->IsPendingDestroy(entity))
+				{
+					SetEntitySelected(entity);
+					return;
+				}
+			}
+		}
+	}
+
+	bool SceneHierarchyPanel::DrawProperties(const Ref<Scene>& scene, bool bScenePlaying, const bool* bVolumetricsEnabledOverride)
+	{
+		bool bChanged = false;
 		m_PropertiesHovered = ImGui::IsWindowHovered();
 		if (m_SelectedEntity)
 		{
 			const bool bRuntime = bScenePlaying;
-			const bool bVolumetricsEnabled = bVolumetricsEnabledOverride ? *bVolumetricsEnabledOverride : m_Scene->GetSceneRenderer()->GetOptions().VolumetricSettings.bEnable;
+			const bool bVolumetricsEnabled = bVolumetricsEnabledOverride ? *bVolumetricsEnabledOverride : scene->GetSceneRenderer()->GetOptions().VolumetricSettings.bEnable;
 
 			Entity newEntitySelection = Entity::Null;
+			m_Properties.SetUndoContext(m_UndoHistory, scene);
+			m_EditTracker.BeginFrame(m_UndoHistory, scene, m_SelectedEntity);
 			bChanged |= m_Properties.OnImGuiRender(m_SelectedEntity, bRuntime, bVolumetricsEnabled, &newEntitySelection);
-			m_UpdateSearchResults |= m_Scene->HasEntityListChanged() || m_Scene->AnyEntityNameChanged();
+			m_UpdateSearchResults |= scene->HasEntityListChanged() || scene->AnyEntityNameChanged();
 			if (newEntitySelection != Entity::Null)
 			{
 				SetEntitySelected(newEntitySelection, m_Properties.GetSelectedComponentType());
 			}
 		}
-		ImGui::End(); //Properties
-
 		return bChanged;
 	}
 
@@ -92,22 +193,23 @@ namespace Eagle
 			AddSearchingEntity(entity.GetParent(), output);
 	}
 
-	bool SceneHierarchyPanel::DrawSceneHierarchy()
+	// Within the hierarchy's window
+	// @listHeight. Height of the list of entities. 0 - the rest of the window
+	bool SceneHierarchyPanel::DrawSceneHierarchy(const Ref<Scene>& scene, float listHeight)
 	{
 		bool bChanged = false;
 		m_RootEntity = Entity::Null;
 
-		if (m_WindowClass)
-			ImGui::SetNextWindowClass(m_WindowClass);
-		ImGui::Begin(m_SceneHierarchyWindowName.c_str());
-		//TODO: Replace to "Drop on empty space"
+		// TODO: Replace to "Drop on empty space"
 		if (!m_AllowOnlySingleRoot && ImGui::BeginDragDropTarget())
 		{
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIERARCHY_ENTITY_CELL"))
 			{
 				uint32_t payload_n = *(uint32_t*)payload->Data;
 
-				Entity droppedEntity((entt::entity)payload_n, m_Scene);
+				Entity droppedEntity((entt::entity)payload_n, scene.get());
+				SceneTransaction transaction(m_UndoHistory, scene, "Detach Entity");
+				transaction.Track(droppedEntity);
 				droppedEntity.SetParent(Entity::Null);
 				bChanged = true;
 			}
@@ -137,7 +239,7 @@ namespace Eagle
 
 		ImGui::Separator();
 
-		auto view = m_Scene->GetAllEntitiesWith<EntitySceneNameComponent>();
+		auto view = scene->GetAllEntitiesWith<EntitySceneNameComponent>();
 
 		if (m_Search.empty())
 			m_AllowedForDisplayEntities.clear();
@@ -146,16 +248,16 @@ namespace Eagle
 		if (bPerformSearch)
 		{
 			m_AllowedForDisplayEntities.clear();
-			GatherSearchingEntities(view, m_Search, m_AllowedForDisplayEntities);
+			GatherSearchingEntities(scene.get(), view, m_Search, m_AllowedForDisplayEntities);
 		}
 
-		ImGui::BeginChild("SceneHierarchyScrollingRegion", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar);
+		ImGui::BeginChild("SceneHierarchyScrollingRegion", ImVec2(0.f, listHeight), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar);
 		m_SceneHierarchyHovered = ImGui::IsWindowHovered();
 		m_SceneHierarchyFocused = ImGui::IsWindowFocused();
 
 		for (auto& entity : view)
 		{
-			bChanged |= DrawEntityNode(Entity(entity, m_Scene), !m_Search.empty());
+			bChanged |= DrawEntityNode(scene, Entity(entity, scene.get()), !m_Search.empty());
 		}
 
 		if (ImGui::IsMouseDown(0) && ImGui::IsWindowHovered())
@@ -168,11 +270,13 @@ namespace Eagle
 		{
 			if (ImGui::MenuItem("Create Entity"))
 			{
-				Entity newEntity = m_Scene->CreateEntity("New Entity");
+				SceneTransaction transaction(m_UndoHistory, scene, "Create Entity");
+				Entity newEntity = scene->CreateEntity("New Entity");
 				if (m_AllowOnlySingleRoot)
 				{
 					newEntity.SetParent(m_RootEntity);
 				}
+				transaction.TrackCreated(newEntity);
 				SetEntitySelected(newEntity);
 				bChanged = true;
 			}
@@ -181,14 +285,13 @@ namespace Eagle
 		}
 
 		ImGui::EndChild();
-		ImGui::End(); //Scene Hierarchy
 
 		m_UpdateSearchResults = false;
 
 		return bChanged;
 	}
 
-	bool SceneHierarchyPanel::DrawEntityNode(Entity entity, bool bFilteredOnly)
+	bool SceneHierarchyPanel::DrawEntityNode(const Ref<Scene>& scene, Entity entity, bool bFilteredOnly)
 	{
 		if (entity.HasParent()) //For drawing children use DrawChilds
 			return false;
@@ -227,7 +330,7 @@ namespace Eagle
 		{
 			if (opened)
 			{
-				bChanged |= DrawChilds(entity, bFilteredOnly);
+				bChanged |= DrawChilds(scene, entity, bFilteredOnly);
 				ImGui::TreePop();
 			}
 			return bChanged;
@@ -256,9 +359,11 @@ namespace Eagle
 			const bool bCanDelete = !m_AllowOnlySingleRoot || entity.HasParent(); // Can't delete the root entity
 			if (ImGui::MenuItem("Create Entity"))
 			{
-				Entity newEntity = m_Scene->CreateEntity("New Entity");
+				SceneTransaction transaction(m_UndoHistory, scene, "Create Entity");
+				Entity newEntity = scene->CreateEntity("New Entity");
 				newEntity.SetWorldTransform(entity.GetWorldTransform());
 				newEntity.SetParent(entity);
+				transaction.TrackCreated(newEntity);
 				SetEntitySelected(newEntity);
 				bChanged = true;
 			}
@@ -269,14 +374,14 @@ namespace Eagle
 				{
 					if (m_SelectedEntity == entity)
 						ClearSelection();
-					m_Scene->DestroyEntity(entity);
+					DestroyEntity(scene, entity, false);
 					bChanged = true;
 				}
 				if (ImGui::MenuItem("Delete Entity and its Children"))
 				{
 					if (m_SelectedEntity == entity)
 						ClearSelection();
-					m_Scene->DestroyEntity(entity, true);
+					DestroyEntity(scene, entity, true);
 					bChanged = true;
 				}
 			}
@@ -300,9 +405,11 @@ namespace Eagle
 			{
 				uint32_t payload_n = *(uint32_t*)payload->Data;
 
-				Entity droppedEntity((entt::entity)payload_n, m_Scene);
+				Entity droppedEntity((entt::entity)payload_n, scene.get());
 				if (!droppedEntity.IsParentOf(entity) && droppedEntity.GetParent() != entity)
 				{
+					SceneTransaction transaction(m_UndoHistory, scene, "Attach Entity");
+					transaction.Track(droppedEntity);
 					droppedEntity.SetParent(entity);
 					bChanged = true;
 				}
@@ -313,14 +420,14 @@ namespace Eagle
 	
 		if (opened)
 		{
-			bChanged |= DrawChilds(entity, bFilteredOnly);
+			bChanged |= DrawChilds(scene, entity, bFilteredOnly);
 			ImGui::TreePop();
 		}
 
 		return bChanged;
 	}
 
-	bool SceneHierarchyPanel::DrawChilds(Entity entity, bool bFilteredOnly)
+	bool SceneHierarchyPanel::DrawChilds(const Ref<Scene>& scene, Entity entity, bool bFilteredOnly)
 	{
 		bool bChanged = false;
 		auto& children = entity.GetComponent<OwnershipComponent>().Children;
@@ -354,7 +461,7 @@ namespace Eagle
 			{
 				if (openedChild)
 				{
-					bChanged |= DrawChilds(child, bFilteredOnly);
+					bChanged |= DrawChilds(scene, child, bFilteredOnly);
 					ImGui::TreePop();
 				}
 				continue;
@@ -381,9 +488,11 @@ namespace Eagle
 				}
 				if (ImGui::MenuItem("Create Entity"))
 				{
-					Entity newEntity = m_Scene->CreateEntity("New Entity");
+					SceneTransaction transaction(m_UndoHistory, scene, "Create Entity");
+					Entity newEntity = scene->CreateEntity("New Entity");
 					newEntity.SetWorldTransform(child.GetWorldTransform());
 					newEntity.SetParent(child);
+					transaction.TrackCreated(newEntity);
 					SetEntitySelected(newEntity);
 					bChanged = true;
 				}
@@ -392,6 +501,8 @@ namespace Eagle
 					UI::PushItemDisabled();
 				if (ImGui::MenuItem("Detach from parent"))
 				{
+					SceneTransaction transaction(m_UndoHistory, scene, "Detach Entity");
+					transaction.Track(child);
 					if (m_AllowOnlySingleRoot)
 					{
 						child.SetParent(m_RootEntity);
@@ -409,14 +520,14 @@ namespace Eagle
 				{
 					if (m_SelectedEntity == child)
 						ClearSelection();
-					m_Scene->DestroyEntity(child);
+					DestroyEntity(scene, child, false);
 					bChanged = true;
 				}
 				if (ImGui::MenuItem("Delete Entity and its Children"))
 				{
 					if (m_SelectedEntity == child)
 						ClearSelection();
-					m_Scene->DestroyEntity(child, true);
+					DestroyEntity(scene, child, true);
 					bChanged = true;
 				}
 
@@ -440,10 +551,12 @@ namespace Eagle
 				{
 					uint32_t payload_n = *(uint32_t*)payload->Data;
 
-					Entity droppedEntity((entt::entity)payload_n, m_Scene);
+					Entity droppedEntity((entt::entity)payload_n, scene.get());
 					
 					if (!droppedEntity.IsParentOf(child) && droppedEntity.GetParent() != child)
 					{
+						SceneTransaction transaction(m_UndoHistory, scene, "Attach Entity");
+						transaction.Track(droppedEntity);
 						droppedEntity.SetParent(child);
 						bChanged = true;
 					}
@@ -454,7 +567,7 @@ namespace Eagle
 
 			if (openedChild)
 			{
-				bChanged |= DrawChilds(child, bFilteredOnly);
+				bChanged |= DrawChilds(scene, child, bFilteredOnly);
 				ImGui::TreePop();
 			}
 		}
@@ -464,11 +577,24 @@ namespace Eagle
 
 	bool SceneHierarchyPanel::OnEvent(const Ref<Scene>& scene, Event& e, bool bViewportFocused)
 	{
-		m_Scene = scene.get();
-		return Event::Dispatch<KeyPressedEvent>(e, EG_BIND_FN(SceneHierarchyPanel::OnKeyPressed), bViewportFocused);
+		if (!scene)
+			return false;
+
+		UpdateScene(scene);
+		const bool bChanged = Event::Dispatch<KeyPressedEvent>(e, [this, &scene, bViewportFocused](KeyPressedEvent& keyEvent) { return OnKeyPressed(scene, keyEvent, bViewportFocused); });
+		m_bSelectedOutside = false; // Selected by the panel
+
+		return bChanged;
 	}
 
-	bool SceneHierarchyPanel::OnKeyPressed(KeyPressedEvent& e, bool bViewportFocused)
+	void SceneHierarchyPanel::DestroyEntity(const Ref<Scene>& scene, Entity entity, bool bDestroyChildren)
+	{
+		SceneTransaction transaction(m_UndoHistory, scene, bDestroyChildren ? "Delete Entity and Children" : "Delete Entity");
+		transaction.Track(entity, true); // Its children are tracked either way. They're either destroyed too, or moved to its parent
+		scene->DestroyEntity(entity, bDestroyChildren);
+	}
+
+	bool SceneHierarchyPanel::OnKeyPressed(const Ref<Scene>& scene, KeyPressedEvent& e, bool bViewportFocused)
 	{
 		const bool bAllowAction = m_SelectedEntity && (!m_AllowOnlySingleRoot || m_SelectedEntity.HasParent());
 		const bool bShift = Input::IsKeyPressed(Key::LeftShift) || Input::IsKeyPressed(Key::RightShift);
@@ -478,14 +604,16 @@ namespace Eagle
 			if (e.GetKey() == Key::Delete)
 			{
 				const bool bDeleteChildren = bShift;
-				m_Scene->DestroyEntity(m_SelectedEntity, bDeleteChildren);
+				DestroyEntity(scene, m_SelectedEntity, bDeleteChildren);
 				ClearSelection();
 				return true;
 			}
-			else if (Input::IsKeyPressed(Key::LeftControl) && (e.GetKey() == Key::D) && !m_Scene->IsPlaying())
+			else if (Input::IsKeyPressed(Key::LeftControl) && (e.GetKey() == Key::D) && !scene->IsPlaying())
 			{
-				Entity newEntity = m_Scene->CreateFromEntity(m_SelectedEntity);
+				SceneTransaction transaction(m_UndoHistory, scene, "Duplicate Entity");
+				Entity newEntity = scene->CreateFromEntity(m_SelectedEntity);
 				newEntity.SetParent(m_SelectedEntity.GetParent());
+				transaction.TrackCreated(newEntity);
 				m_SelectedEntity = newEntity;
 				return true;
 			}

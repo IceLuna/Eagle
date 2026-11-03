@@ -288,7 +288,7 @@ namespace Eagle
 
         static void CalculateBlendSpaceVertexRootMotion(const SkeletalMeshAnimation* meshAnim, float prevTime, float currentTime, float speed, SkeletalPose* outPose)
         {
-            if (!meshAnim->bInPlace && meshAnim->HasRootMotion())
+            if (!meshAnim->Settings.bInPlace && meshAnim->HasRootMotion())
                 outPose->SetRootMotion(AnimationSystem::CalculateRootMotion(meshAnim, currentTime, prevTime, speed, 0.f, &outPose->TotalRootMotion));
         }
 
@@ -359,7 +359,7 @@ namespace Eagle
                 if (animation)
                 {
                     const float stepSpeed = mesh->PrevClipPlaybackSpeed;
-                    if (!animation->bInPlace && animation->HasRootMotion())
+                    if (!animation->Settings.bInPlace && animation->HasRootMotion())
                     {
                         mesh->LastPose.SetRootMotion(AnimationSystem::CalculateRootMotion(animation, mesh->CurrentClipPlayTime, mesh->PrevClipPlayTime, stepSpeed, ts, &(mesh->LastPose.TotalRootMotion)));
                     }
@@ -477,7 +477,7 @@ namespace Eagle
         // A non-looping animation gets clamped at its end. Include that end point so an event placed exactly there fires (once, since the next interval is empty)
         const bool bIncludeCurTime = !bLoop && (bForward ? curTime >= animation->Duration : curTime <= 0.f);
 
-        for (const auto& event : animation->Events)
+        for (const auto& event : animation->Settings.Events)
         {
             const float t = event.Time;
             bool bTrigger = false;
@@ -960,7 +960,7 @@ namespace Eagle
         EG_CORE_ASSERT(&node == &skeletal.RootBone);
 
         const BoneNode * inPlaceBone = nullptr;
-        if (animation->bInPlace)
+        if (animation->Settings.bInPlace)
         {
             inPlaceBone = animation->FindRootMotionBone(skeletal);
             if (!inPlaceBone)

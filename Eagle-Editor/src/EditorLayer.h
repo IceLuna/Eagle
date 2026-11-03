@@ -5,8 +5,11 @@
 #include "Panels/ContentBrowserPanel.h"
 #include "Panels/ConsolePanel.h"
 #include "Panels/AssetUsagePanel.h"
+#include "Panels/ProjectSettingsTab.h"
 #include "Frames/EditorFrames.h"
 #include "Widgets/ViewportToolbar.h"
+#include "Undo/SceneUndo.h"
+#include "Undo/SettingsUndo.h"
 #include "EditorSerializer.h"
 #include <filesystem>
 
@@ -42,6 +45,8 @@ namespace Eagle
 		void DrawTabMenus() override { DrawMenus(); }
 		bool IsPinnedToMainFrame() const override { return true; }
 
+		UndoHistory* GetUndoHistory() override { return m_EditorState == EditorState::Edit ? &m_UndoHistory : nullptr; }
+
 		void OpenScene(const Ref<AssetScene>& sceneAsset);
 		bool SaveScene();
 
@@ -56,6 +61,10 @@ namespace Eagle
 
 		void ShowShortcutsWindow() { m_bShowShortcuts = true; }
 		void ShowAboutWindow() { m_bShowAbout = true; }
+
+		void OpenProjectSettings();
+		void OnCollisionGroupsChanged();
+		void PreviewSplashScreen();
 
 		// Oh boy... I guess it's better than passing around `EditorLayer`
 		static EditorLayer* Get();
@@ -97,9 +106,6 @@ namespace Eagle
 		void DrawShowFlagsMenuItems();
 		void DrawSceneSettings();
 		void DrawRendererSettings();
-		void DrawProjectSettings();
-		void DrawGameSplashScreenSettings(bool& bChanged);
-		void PreviewSplashScreen();
 		void DrawEditorPreferences();
 		void DrawStats();
 		void DrawViewport();
@@ -139,6 +145,13 @@ namespace Eagle
 		ContentBrowserPanel m_ContentBrowserPanel;
 		ConsolePanel m_ConsolePanel;
 		AssetUsagePanel m_AssetUsagePanel;
+		Scope<ProjectSettingsTab> m_ProjectSettingsTab;
+
+		UndoHistory m_UndoHistory;
+		SceneSettingsEditTracker m_SceneSettingsEditTracker;
+		RendererSettingsEditTracker m_RendererSettingsEditTracker;
+		std::optional<SceneTransaction> m_GuizmoTransaction;
+		bool m_bGuizmoUsed = false; // This frame
 
 		std::vector<std::function<void()>> m_DeferredCalls;
 
@@ -151,7 +164,7 @@ namespace Eagle
 		Ref<Texture2D> m_PlayButtonIcon;
 		Ref<Texture2D> m_StopButtonIcon;
 		Ref<Texture2D> m_EditorIcon;
-		double m_SplashScreenPreviewEndTime = 0.0; // Not 0 while the splash screen is previewed (Project Settings)
+		double m_SplashScreenPreviewEndTime = 0.0; // Not 0 while the splash screen is previewed (see `PreviewSplashScreen()`)
 
 		Ref<Sound2D> m_PlaySound;
 
@@ -187,7 +200,7 @@ namespace Eagle
 
 		struct AppliedSelectionOutline
 		{
-			std::weak_ptr<Scene> TargetScene;
+			Weak<Scene> TargetScene;
 			std::vector<GUID> EntityGUIDs;
 			OutlineSettings Settings{};
 		} m_AppliedSelectionOutline;
@@ -197,12 +210,7 @@ namespace Eagle
 		struct BeforeSimulationData
 		{
 			SceneRendererSettings RendererSettings{};
-			Ref<AssetTextureCube> Cubemap;
-			SkySettings Sky{};
-			float CubemapIntensity = 1.f;
-			bool bSkyAsBackground = false;
-			bool bSkyboxEnabled = false;
-			bool bRenderSkybox = false;
+			SceneSkyboxSettings Skybox;
 		} m_BeforeSimulationData;
 
 		glm::vec2 m_WindowSizeBeforeFS;

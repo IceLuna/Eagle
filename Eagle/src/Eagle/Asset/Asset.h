@@ -6,6 +6,8 @@
 #include "Eagle/Renderer/RendererUtils.h"
 #include "Eagle/Renderer/ParticleEmitter.h"
 #include "Eagle/Physics/PhysicsMaterial.h"
+#include "Eagle/Audio/Sound.h"
+#include "Eagle/Audio/SoundGroup.h"
 #include "Eagle/Animation/BlendSpaceUtils.h"
 #include "Eagle/AI/BehaviorGraph.h"
 #include "Eagle/Utils/DelaunayTriangulation.h"
@@ -21,10 +23,10 @@ namespace Eagle
 	class Texture2D;
 	class TextureCube;
 	class Material;
+	struct MaterialSettings;
 	class StaticMesh;
 	class SkeletalMesh;
 	class Audio;
-	class SoundGroup;
 	class Font;
 	class Entity;
 	class Scene;
@@ -40,6 +42,8 @@ namespace Eagle
 	struct SequenceEventWindow;
 	struct SequenceEvent;
 	struct SkeletalMeshAnimation;
+	struct SkeletalMeshSettings;
+	struct AnimationSettings;
 
 	enum class AssetType
 	{
@@ -298,17 +302,42 @@ namespace Eagle
 	class AssetTexture2D : public Asset
 	{
 	public:
-		// Can be used to generate new mips: asset->SetIsCompressed(asset->IsCompressed(), newMipsCount);
+		struct Settings
+		{
+			AssetTexture2DFormat Format = AssetTexture2DFormat::Default;
+			TextureCompressor::Quality Compression = TextureCompressor::Quality::Medium;
+			uint32_t MipsCount = 1; // 1 means no mips, just the original
+			float Anisotropy = 1.f;
+			FilterMode Filter = FilterMode::Bilinear;
+			AddressMode Address = AddressMode::Wrap;
+			bool bNormalMap = false; // Currently, only affects compressed textures
+
+			bool operator==(const Settings& other) const = default;
+		};
+
+		// GetSettings()` returns what was actually applied. the mips count is limited by the size of the texture,
+		// the anisotropy is limited by the hardware, and the compression is disabled if it fails
+		void SetSettings(const Settings& settings);
+		const Settings& GetSettings() const { return m_Settings; }
+
 		void SetCompression(TextureCompressor::Quality compression, uint32_t mipsCount);
 		void SetIsNormalMap(bool bNormalMap);
 		void SetFormat(AssetTexture2DFormat format);
+		void SetMipsCount(uint32_t mipsCount);
+		void SetAnisotropy(float anisotropy);
+		void SetFilterMode(FilterMode filterMode);
+		void SetAddressMode(AddressMode addressMode);
 
 		const std::vector<ScopedDataBuffer>& GetCompressedDataPerMip() const { return m_CompressedDataPerMip; }
 		const Ref<Texture2D>& GetTexture() const { return m_Texture; }
-		AssetTexture2DFormat GetFormat() const { return m_Format; }
-		TextureCompressor::Quality GetCompressionQuality() const { return m_Compression; }
-		bool IsCompressed() const { return m_Compression != TextureCompressor::Quality::Disabled; }
-		bool IsNormalMap() const { return bNormalMap; }
+		AssetTexture2DFormat GetFormat() const { return m_Settings.Format; }
+		TextureCompressor::Quality GetCompressionQuality() const { return m_Settings.Compression; }
+		bool IsCompressed() const { return m_Settings.Compression != TextureCompressor::Quality::Disabled; }
+		bool IsNormalMap() const { return m_Settings.bNormalMap; }
+		uint32_t GetMipsCount() const { return m_Settings.MipsCount; }
+		float GetAnisotropy() const { return m_Settings.Anisotropy; }
+		FilterMode GetFilterMode() const { return m_Settings.Filter; }
+		AddressMode GetAddressMode() const { return m_Settings.Address; }
 
 		AssetTexture2D& operator=(Asset&& other) noexcept override
 		{
@@ -320,9 +349,7 @@ namespace Eagle
 			AssetTexture2D&& textureAsset = (AssetTexture2D&&)other;
 			m_CompressedDataPerMip = std::move(textureAsset.m_CompressedDataPerMip);
 			m_Texture = std::move(textureAsset.m_Texture);
-			m_Format = std::move(textureAsset.m_Format);
-			m_Compression = std::move(textureAsset.m_Compression);
-			bNormalMap = std::move(textureAsset.bNormalMap);
+			m_Settings = std::move(textureAsset.m_Settings);
 
 			return *this;
 		}
@@ -338,22 +365,36 @@ namespace Eagle
 	private:
 		std::vector<ScopedDataBuffer> m_CompressedDataPerMip;
 		Ref<Texture2D> m_Texture;
-		AssetTexture2DFormat m_Format;
-		TextureCompressor::Quality m_Compression = TextureCompressor::Quality::Medium;
-		bool bNormalMap = false;
+		Settings m_Settings;
 	};
 
 	class AssetTextureCube : public Asset
 	{
 	public:
+		struct Settings
+		{
+			AssetTextureCubeFormat Format = AssetTextureCubeFormat::Default;
+			uint32_t LayerSize = 0; // Resolution of a cube side
+			uint32_t PrefilterSize = 0; // The quality of IBL reflection
+			bool bCompressed = false;
+
+			bool operator==(const Settings& other) const = default;
+		};
+
+		// Returns false if the format or compression couldn't be changed because the texture data couldn't be loaded
+		bool SetSettings(const Settings& settings);
+		const Settings& GetSettings() const { return m_Settings; }
+
 		void SetLayerSize(uint32_t layerSize);
 		void SetPrefilterSize(uint32_t prefilter);
 		bool SetFormat(AssetTextureCubeFormat format);
 		bool SetCompressed(bool bCompress);
 
 		const Ref<TextureCube>& GetTexture() const { return m_Texture; }
-		AssetTextureCubeFormat GetFormat() const { return m_Format; }
-		bool IsCompressed() const;
+		AssetTextureCubeFormat GetFormat() const { return m_Settings.Format; }
+		uint32_t GetLayerSize() const { return m_Settings.LayerSize; }
+		uint32_t GetPrefilterSize() const { return m_Settings.PrefilterSize; }
+		bool IsCompressed() const { return m_Settings.bCompressed; }
 
 		AssetTextureCube& operator=(Asset&& other) noexcept override
 		{
@@ -364,7 +405,7 @@ namespace Eagle
 
 			AssetTextureCube&& textureAsset = (AssetTextureCube&&)other;
 			m_Texture = std::move(textureAsset.m_Texture);
-			m_Format = std::move(textureAsset.m_Format);
+			m_Settings = std::move(textureAsset.m_Settings);
 
 			return *this;
 		}
@@ -372,12 +413,11 @@ namespace Eagle
 		static constexpr AssetType GetAssetType_Static() { return AssetType::TextureCube; }
 
 	protected:
-		AssetTextureCube(const Path& path, const Path& pathToRaw, GUID guid, bool bAlwaysIncludeInGameBuilds, const DataBuffer& rawData, const Ref<TextureCube>& texture, AssetTextureCubeFormat format)
-			: Asset(path, pathToRaw, AssetType::TextureCube, guid, bAlwaysIncludeInGameBuilds, rawData), m_Texture(texture), m_Format(format) {}
+		AssetTextureCube(const Path& path, const Path& pathToRaw, GUID guid, bool bAlwaysIncludeInGameBuilds, const DataBuffer& rawData, const Ref<TextureCube>& texture, AssetTextureCubeFormat format);
 
 	private:
 		Ref<TextureCube> m_Texture;
-		AssetTextureCubeFormat m_Format;
+		Settings m_Settings;
 	};
 
 	class AssetBaseMesh : public Asset
@@ -417,7 +457,18 @@ namespace Eagle
 	class AssetStaticMesh : public AssetBaseMesh
 	{
 	public:
+		struct Settings
+		{
+			std::vector<Ref<AssetMaterial>> Materials;
+
+			size_t GetMemoryUsage() const { return sizeof(*this) + Materials.capacity() * sizeof(Ref<AssetMaterial>); }
+			bool operator==(const Settings& other) const = default;
+		};
+
 		~AssetStaticMesh();
+
+		Settings GetSettings() const;
+		void SetSettings(const Settings& settings);
 
 		const Ref<StaticMesh>& GetMesh() const { return m_Mesh; }
 
@@ -441,7 +492,12 @@ namespace Eagle
 	class AssetSkeletalMesh : public AssetBaseMesh
 	{
 	public:
+		using Settings = SkeletalMeshSettings;
+
 		~AssetSkeletalMesh();
+
+		Settings GetSettings() const;
+		void SetSettings(const Settings& settings);
 
 		const Ref<SkeletalMesh>& GetMesh() const { return m_Mesh; }
 
@@ -465,6 +521,11 @@ namespace Eagle
 	class AssetSoundGroup : public Asset
 	{
 	public:
+		using Settings = SoundGroupSettings;
+
+		const Settings& GetSettings() const { return m_SoundGroup->GetSettings(); }
+		void SetSettings(const Settings& settings) { m_SoundGroup->SetSettings(settings); }
+
 		const Ref<SoundGroup>& GetSoundGroup() const { return m_SoundGroup; }
 
 		AssetSoundGroup& operator=(Asset&& other) noexcept override
@@ -493,6 +554,17 @@ namespace Eagle
 	class AssetAudio : public Asset
 	{
 	public:
+		struct Settings
+		{
+			Ref<AssetSoundGroup> SoundGroup;
+			AudioSettings Audio;
+
+			bool operator==(const Settings& other) const = default;
+		};
+
+		Settings GetSettings() const { return { m_SoundGroup, m_Audio->GetSettings() }; }
+		void SetSettings(const Settings& settings);
+
 		const Ref<Audio>& GetAudio() const { return m_Audio; }
 		const Ref<AssetSoundGroup>& GetSoundGroupAsset() const { return m_SoundGroup; }
 
@@ -557,6 +629,11 @@ namespace Eagle
 	class AssetMaterial : public Asset
 	{
 	public:
+		using Settings = MaterialSettings;
+
+		const Settings& GetSettings() const;
+		void SetSettings(const Settings& settings);
+
 		const Ref<Material>& GetMaterial() const { return m_Material; }
 		void SetMaterial(const Ref<Material>& material)
 		{
@@ -593,6 +670,11 @@ namespace Eagle
 	class AssetPhysicsMaterial : public Asset
 	{
 	public:
+		using Settings = PhysicsMaterialSettings;
+
+		const Settings& GetSettings() const { return m_Material->GetSettings(); }
+		void SetSettings(const Settings& settings) { m_Material->SetSettings(settings); }
+
 		void SetMaterial(const Ref<PhysicsMaterial>& material)
 		{
 			m_Material = material;
@@ -680,6 +762,11 @@ namespace Eagle
 	class AssetAnimation : public Asset
 	{
 	public:
+		using Settings = AnimationSettings;
+
+		const Settings& GetSettings() const;
+		void SetSettings(const Settings& settings);
+
 		const Ref<AssetSkeletalMesh>& GetSkeletal() const { return m_Skeletal; }
 		const Ref<SkeletalMeshAnimation>& GetAnimation() const { return m_Animation; }
 		uint32_t GetAnimationIndex() const { return m_AnimIndex; }
@@ -787,6 +874,24 @@ namespace Eagle
 	class AssetAnimationBlendSpace : public Asset
 	{
 	public:
+		struct Settings
+		{
+			std::vector<BlendSpaceVertex> Points;
+			BlendSpaceAxisSettings Horizontal;
+			BlendSpaceAxisSettings Vertical;
+			BlendSpaceEventsTriggerMode EventsTriggerMode = BlendSpaceEventsTriggerMode::HighestWeightedAnimation;
+			float BlendTime = 0.1f; // The time it takes to transition to new X/Y values
+			bool bSync = true;
+			bool bUseShortestBlendPath = true;
+
+			size_t GetMemoryUsage() const
+			{
+				return sizeof(*this) + Points.capacity() * sizeof(BlendSpaceVertex) + Horizontal.Name.capacity() + Vertical.Name.capacity();
+			}
+
+			bool operator==(const Settings& other) const = default;
+		};
+
 		AssetAnimationBlendSpace& operator=(Asset&& other) noexcept override
 		{
 			if (this == &other)
@@ -796,65 +901,62 @@ namespace Eagle
 
 			AssetAnimationBlendSpace&& asset = (AssetAnimationBlendSpace&&)other;
 			m_SkeletalMesh = std::move(asset.m_SkeletalMesh);
-			m_PointsData = std::move(asset.m_PointsData);
+			m_Settings = std::move(asset.m_Settings);
 			m_Triangulation = std::move(asset.m_Triangulation);
-			m_EventsTriggerMode = std::move(asset.m_EventsTriggerMode);
-			m_BlendTime = std::move(asset.m_BlendTime);
-			m_Horizontal = std::move(asset.m_Horizontal);
-			m_Vertical = std::move(asset.m_Vertical);
-			bUseShortestBlendPath = std::move(asset.bUseShortestBlendPath);
-			bSync = std::move(asset.bSync);
 
 			return *this;
 		}
 
 		const Ref<AssetSkeletalMesh>& GetSkeletalMesh() const { return m_SkeletalMesh; }
 
+		void SetSettings(const Settings& settings);
+		const Settings& GetSettings() const { return m_Settings; }
+
 		void SetPointsData(const std::vector<BlendSpaceVertex>& pointsData);
-		const std::vector<BlendSpaceVertex>& GetPointsData() const { return m_PointsData; }
+		const std::vector<BlendSpaceVertex>& GetPointsData() const { return m_Settings.Points; }
 
 		const std::vector<Delaunay::Triangle>& GetTriangulation() const { return m_Triangulation; }
 
 		void SetAxes(const BlendSpaceAxisSettings& horAxis, const BlendSpaceAxisSettings& verAxis)
 		{
-			m_Horizontal = horAxis;
-			m_Vertical = verAxis;
-			SetPointsData(m_PointsData);
+			m_Settings.Horizontal = horAxis;
+			m_Settings.Vertical = verAxis;
+			SetPointsData(m_Settings.Points);
 		}
 
 		void SetHorizontalAxis(const BlendSpaceAxisSettings& horAxis)
 		{
-			m_Horizontal = horAxis;
-			SetPointsData(m_PointsData);
+			m_Settings.Horizontal = horAxis;
+			SetPointsData(m_Settings.Points);
 		}
-		const BlendSpaceAxisSettings& GetHorizontalAxis() const { return m_Horizontal; }
+		const BlendSpaceAxisSettings& GetHorizontalAxis() const { return m_Settings.Horizontal; }
 
 		void SetVerticalAxis(const BlendSpaceAxisSettings& verAxis)
 		{
-			m_Vertical = verAxis;
-			SetPointsData(m_PointsData);
+			m_Settings.Vertical = verAxis;
+			SetPointsData(m_Settings.Points);
 		}
-		const BlendSpaceAxisSettings& GetVerticalAxis() const { return m_Vertical; }
+		const BlendSpaceAxisSettings& GetVerticalAxis() const { return m_Settings.Vertical; }
 
-		void SetEventsTriggerMode(BlendSpaceEventsTriggerMode mode) { m_EventsTriggerMode = mode; }
-		BlendSpaceEventsTriggerMode GetEventsTriggerMode() const { return m_EventsTriggerMode; }
+		void SetEventsTriggerMode(BlendSpaceEventsTriggerMode mode) { m_Settings.EventsTriggerMode = mode; }
+		BlendSpaceEventsTriggerMode GetEventsTriggerMode() const { return m_Settings.EventsTriggerMode; }
 
 		// The time it takes to transition to new X/Y values
-		void SetBlendTime(float blendTime) { m_BlendTime = blendTime; }
-		float GetBlendTime() const { return m_BlendTime; }
+		void SetBlendTime(float blendTime) { m_Settings.BlendTime = blendTime; }
+		float GetBlendTime() const { return m_Settings.BlendTime; }
 
 		// When animations have different durations, they might blend in a weird way.
 		// To help to fix it, enable sync. When it's enabled, highest weighted animation will lead others.
 		// Meaning, if it's at 25% of its duration, other animations will also be at 25% of their durations.
 		// When it resets to 0 (loops back), other animations also reset to 0. 
-		void SetSyncEnabled(bool bEnabled) { bSync = bEnabled; }
-		bool IsSyncEnabled() const { return bSync; }
+		void SetSyncEnabled(bool bEnabled) { m_Settings.bSync = bEnabled; }
+		bool IsSyncEnabled() const { return m_Settings.bSync; }
 
 		// When enabled, the system will blend using the shortest path to the target.
 		// For example, if X-axis is [-100; 100], and input has changed from `-99` to `99`, instead of blending all the way from `-99` to `99`,
 		// it'll blend from `-99` to `-100`, flip over to `100` and blend from `100` to `99`. So, the blend length is only `2` units, instead of `198`.
-		void SetUseShortestBlendPath(bool bEnabled) { bUseShortestBlendPath = bEnabled; }
-		bool IsShortestBlendPathEnabled() const { return bUseShortestBlendPath; }
+		void SetUseShortestBlendPath(bool bEnabled) { m_Settings.bUseShortestBlendPath = bEnabled; }
+		bool IsShortestBlendPathEnabled() const { return m_Settings.bUseShortestBlendPath; }
 
 		static constexpr AssetType GetAssetType_Static() { return AssetType::AnimationBlendSpace; }
 
@@ -863,10 +965,10 @@ namespace Eagle
 			const std::vector<BlendSpaceVertex>& points, BlendSpaceEventsTriggerMode mode)
 			: Asset(path, {}, AssetType::AnimationBlendSpace, guid, bAlwaysIncludeInGameBuilds, {})
 			, m_SkeletalMesh(skeletal)
-			, m_EventsTriggerMode(mode)
-			, m_Horizontal(horAxis)
-			, m_Vertical(verAxis)
 		{
+			m_Settings.EventsTriggerMode = mode;
+			m_Settings.Horizontal = horAxis;
+			m_Settings.Vertical = verAxis;
 			SetPointsData_Internal(points);
 		}
 
@@ -876,15 +978,8 @@ namespace Eagle
 
 	private:
 		Ref<AssetSkeletalMesh> m_SkeletalMesh;
-		std::vector<BlendSpaceVertex> m_PointsData;
+		Settings m_Settings;
 		std::vector<Delaunay::Triangle> m_Triangulation;
-		BlendSpaceEventsTriggerMode m_EventsTriggerMode = BlendSpaceEventsTriggerMode::HighestWeightedAnimation;
-		float m_BlendTime = 0.1f;
-		bool bUseShortestBlendPath = true;
-		bool bSync = true;
-
-		BlendSpaceAxisSettings m_Horizontal;
-		BlendSpaceAxisSettings m_Vertical;
 	};
 
 	class AssetBehaviorGraph : public Asset
@@ -950,6 +1045,16 @@ namespace Eagle
 	class AssetSceneSequence : public Asset
 	{
 	public:
+		// The settings of the sequence itself. Tracks aren't a part of them
+		struct Settings
+		{
+			float Duration = 5.f;
+			float FrameRate = 30.f;
+			bool bLooping = false;
+
+			bool operator==(const Settings& other) const = default;
+		};
+
 		AssetSceneSequence& operator=(Asset&& other) noexcept override
 		{
 			if (this == &other)
@@ -959,9 +1064,7 @@ namespace Eagle
 
 			AssetSceneSequence&& asset = (AssetSceneSequence&&)other;
 			m_Tracks = std::move(asset.m_Tracks);
-			m_Duration = std::move(asset.m_Duration);
-			m_FrameRate = std::move(asset.m_FrameRate);
-			bLooping = std::move(asset.bLooping);
+			m_Settings = std::move(asset.m_Settings);
 			m_CameraCutTracks = std::move(asset.m_CameraCutTracks);
 			m_CameraTracks = std::move(asset.m_CameraTracks);
 			m_PostProcessTracks = std::move(asset.m_PostProcessTracks);
@@ -978,27 +1081,33 @@ namespace Eagle
 		bool RemoveTrack(const GUID& id);
 		Ref<SequenceTrack> FindTrack(const GUID& id) const;
 
+		void SetSettings(const Settings& settings);
+		const Settings& GetSettings() const { return m_Settings; }
+
 		// Length of the sequence in seconds. Playback stops (or loops) here regardless of
 		// whether tracks still have keys beyond it.
-		float GetDuration() const { return m_Duration; }
+		float GetDuration() const { return m_Settings.Duration; }
 		void SetDuration(float duration)
 		{
-			m_Duration = glm::max(0.01f, duration);
-			SetDirty(true);
+			Settings settings = m_Settings;
+			settings.Duration = duration;
+			SetSettings(settings);
 		}
 
-		float GetFrameRate() const { return m_FrameRate; }
+		float GetFrameRate() const { return m_Settings.FrameRate; }
 		void SetFrameRate(float frameRate)
 		{
-			m_FrameRate = glm::clamp(frameRate, 1.f, 240.f);
-			SetDirty(true);
+			Settings settings = m_Settings;
+			settings.FrameRate = frameRate;
+			SetSettings(settings);
 		}
 
-		bool IsLooping() const { return bLooping; }
+		bool IsLooping() const { return m_Settings.bLooping; }
 		void SetLooping(bool bValue)
 		{
-			bLooping = bValue;
-			SetDirty(true);
+			Settings settings = m_Settings;
+			settings.bLooping = bValue;
+			SetSettings(settings);
 		}
 
 		// Samples every enabled track. Only the live camera track drives the camera
@@ -1030,8 +1139,6 @@ namespace Eagle
 		std::vector<const SequencePostProcessTrack*> m_PostProcessTracks;
 		std::vector<const SequenceEventTrack*> m_EventTracks;
 
-		float m_Duration = 5.f;
-		float m_FrameRate = 30.f;
-		bool bLooping = false;
+		Settings m_Settings;
 	};
 }

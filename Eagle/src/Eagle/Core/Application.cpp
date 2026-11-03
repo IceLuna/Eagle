@@ -420,6 +420,13 @@ namespace Eagle
 			}
 
 			RenderManager::EndFrame();
+
+			// While the user moves or resizes a window, the OS resizes it again as soon as this returns to its modal loop.
+			// If the render thread presents this frame after that, the present fails because the swapchain no longer matches the window,
+			// and the frame is dropped. While the mouse keeps moving, every frame can lose that race, so the window's content stays frozen.
+			// So the frame is presented before the OS gets to make the next step. The window can't change meanwhile, since that only happens on this thread
+			if (!bProcessEvents)
+				RenderManager::WaitForFramesPresented();
 		}
 		AudioEngine::Update(m_Timestep);
 		UpdateWindowReveal();

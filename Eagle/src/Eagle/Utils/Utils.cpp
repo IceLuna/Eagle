@@ -265,6 +265,56 @@ namespace Eagle
 		stbi_write_png_to_func(ToPNGCallback, &encoded, size.x, size.y, numChannels, imageData.Data, stride);
 		return encoded;
 	}
+
+	std::string Utils::ToDisplayName(std::string_view key)
+	{
+		constexpr std::string_view componentSuffix = "Component";
+		if (key.size() > componentSuffix.size() && key.ends_with(componentSuffix))
+			key.remove_suffix(componentSuffix.size());
+
+		// Booleans are prefixed with 'b'
+		if (key.size() > 1 && key[0] == 'b' && std::isupper((unsigned char)key[1]))
+			key.remove_prefix(1);
+
+		std::string result;
+		result.reserve(key.size() + 4);
+		for (size_t i = 0; i < key.size(); ++i)
+		{
+			const unsigned char c = (unsigned char)key[i];
+			if (c == '_')
+			{
+				if (!result.empty() && result.back() != ' ')
+					result += ' ';
+				continue;
+			}
+
+			if (i > 0 && !result.empty() && result.back() != ' ')
+			{
+				const unsigned char prev = (unsigned char)key[i - 1];
+				const unsigned char next = i + 1 < key.size() ? (unsigned char)key[i + 1] : 0;
+
+				bool bWordStart = false;
+				if (std::isupper(c))
+				{
+					bWordStart = std::islower(prev)
+						|| ((std::isupper(prev) || std::isdigit(prev)) && std::islower(next)); // The word after an acronym or a number
+				}
+				else if (std::isdigit(c) && std::islower(prev))
+				{
+					// A number is a separate word only when a capital follows it, like "2D". Otherwise it's a part of the name: "Vec4", "Exp2"
+					size_t numberEnd = i + 1;
+					while (numberEnd < key.size() && std::isdigit((unsigned char)key[numberEnd]))
+						++numberEnd;
+					bWordStart = numberEnd < key.size() && std::isupper((unsigned char)key[numberEnd]);
+				}
+
+				if (bWordStart)
+					result += ' ';
+			}
+			result += (char)c;
+		}
+		return result;
+	}
 	
 	Path Utils::GetUniqueAssetFilepath(const Path& saveTo, const std::string& assetFilename)
 	{

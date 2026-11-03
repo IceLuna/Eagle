@@ -848,17 +848,7 @@ namespace Eagle
         FogEquation Equation = FogEquation::Linear;
         bool bEnable = false;
 
-        bool operator== (const FogSettings& other) const
-        {
-            return Color == other.Color &&
-                MinDistance == other.MinDistance &&
-                MaxDistance == other.MaxDistance &&
-                Density == other.Density &&
-                Equation == other.Equation &&
-                bEnable == other.bEnable;
-        }
-
-        bool operator!= (const FogSettings& other) const { return !(*this == other); }
+        bool operator== (const FogSettings& other) const = default;
     };
 
     struct SceneRendererInternalState
@@ -885,6 +875,8 @@ namespace Eagle
         
         bool bEnableCirrusClouds = false;
         bool bEnableCumulusClouds = false;
+
+        bool operator== (const SkySettings& other) const = default;
     };
 
     struct VolumetricLightsSettings

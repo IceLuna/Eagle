@@ -2,16 +2,28 @@
 
 namespace Eagle
 {
+	struct PhysicsMaterialSettings
+	{
+		float StaticFriction = 0.6f;
+		float DynamicFriction = 0.6f;
+		float Bounciness = 0.f; // (-inf; 1]
+
+		bool operator==(const PhysicsMaterialSettings& other) const = default;
+	};
+
 	class PhysicsMaterial
 	{
 	public:
+		const PhysicsMaterialSettings& GetSettings() const { return m_Settings; }
+		void SetSettings(const PhysicsMaterialSettings& settings);
+
 		void SetStaticFriction(float value);
 		void SetDynamicFriction(float value);
 		void SetBounciness(float value);
 
-		float GetStaticFriction() const { return m_StaticFriction; }
-		float GetDynamicFriction() const { return m_DynamicFriction; }
-		float GetBounciness() const { return m_Bounciness; }
+		float GetStaticFriction() const { return m_Settings.StaticFriction; }
+		float GetDynamicFriction() const { return m_Settings.DynamicFriction; }
+		float GetBounciness() const { return m_Settings.Bounciness; }
 		void* GetNativeHandle() const { return m_NativeHandle; }
 
 		static Ref<PhysicsMaterial> Create(float staticFriction = 0.6f, float dynamicFriction = 0.6f, float bounciness = 0.0f);
@@ -21,9 +33,7 @@ namespace Eagle
 		virtual ~PhysicsMaterial();
 
 	private:
-		float m_StaticFriction = 0.6f;
-		float m_DynamicFriction = 0.6f;
-		float m_Bounciness = 0.5f;
+		PhysicsMaterialSettings m_Settings;
 		void* m_NativeHandle = nullptr;
 	};
 }

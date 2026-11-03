@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AssetEditor.h"
+#include "../Undo/AssetUndo.h"
 #include "Eagle/Math/Transform.h"
 
 namespace Eagle
@@ -22,5 +23,6 @@ namespace Eagle
 		Text2DComponent* m_Component = nullptr; // Not owning
 		std::string m_Text = "The quick brown fox jumps over the lazy dog\n0123456789";
 		bool m_bDrawTextBounds = true;
+		AssetEditTracker<AssetFont, NoAssetState> m_EditTracker;
 	};
 }

@@ -806,19 +806,17 @@ namespace Eagle
 			aabb.Max = aabbNode["Max"].as<glm::vec3>();
 		}
 
-		float minRagdollBoneSize = 0.1f;
-		float maxRagdollTwist = 22.5f;
-		float maxRagdollSwing = 45.0f;
+		RagdollGenerationSettings ragdollSettings;
 		CollisionDetectionType collisionDetectionType = CollisionDetectionType::Discrete;
 		CollisionGroup collisionGroup = s_DefaultCollisionGroup;
 		CollisionGroup interactingCollisionGroup = s_DefaultInteractingCollisionGroup;
 
 		if (auto node = baseNode["MinRagdollBoneSize"])
-			minRagdollBoneSize = node.as<float>();
+			ragdollSettings.MinBoneSize = node.as<float>();
 		if (auto node = baseNode["MaxRagdollTwist"])
-			maxRagdollTwist = node.as<float>();
+			ragdollSettings.MaxTwist = node.as<float>();
 		if (auto node = baseNode["MaxRagdollSwing"])
-			maxRagdollSwing = node.as<float>();
+			ragdollSettings.MaxSwing = node.as<float>();
 		if (auto node = baseNode["CollisionDetectionType"])
 			collisionDetectionType = Utils::GetEnumFromName<CollisionDetectionType>(node.as<std::string>());
 
@@ -911,7 +909,7 @@ namespace Eagle
 		}
 
 		Ref<SkeletalMesh> skeletalMesh = SkeletalMesh::Create(vertices, indicesPerMaterial, skeletalInfo, aabb, ragdollPerBoneData,
-			minRagdollBoneSize, maxRagdollTwist, maxRagdollSwing, collisionDetectionType, collisionGroup, interactingCollisionGroup);
+			ragdollSettings, collisionDetectionType, collisionGroup, interactingCollisionGroup);
 		if (auto materialsNode = baseNode["Materials"])
 		{
 			for (const auto& matNode : materialsNode)
@@ -1399,7 +1397,7 @@ namespace Eagle
 			animation.Duration = baseAnimNode["Duration"].as<float>();
 			animation.TicksPerSecond = baseAnimNode["TicksPerSecond"].as<float>();
 			if (auto inPlaceNode = baseAnimNode["bInPlace"])
-				animation.bInPlace = inPlaceNode.as<bool>();
+				animation.Settings.bInPlace = inPlaceNode.as<bool>();
 
 			// Root Motion
 			if (auto rootMotionNode = baseAnimNode["RootMotion"])
@@ -1459,7 +1457,7 @@ namespace Eagle
 			{
 				for (const auto& eventNode : eventsNode)
 				{
-					auto& event = animation.Events.emplace_back();
+					auto& event = animation.Settings.Events.emplace_back();
 					event.Name = eventNode["Name"].as<std::string>();
 					event.Time = eventNode["Time"].as<float>();
 				}

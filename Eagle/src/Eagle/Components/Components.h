@@ -23,7 +23,7 @@
 // If new component class is created, other changes are required:
 // 1) Add new line into Scene's copy constructor;
 // 2) Add new line into Scene::CopyComponents function;
-// 3) Make it serializable;
+// 3) Make it serializable (make sure `s_SerializedComponentTypes` is updated);
 // 4) Add it to EntityPropertiesPanel to draw UI (optional)
 // 5) Add to ScriptEngineRegistry (optional)
 

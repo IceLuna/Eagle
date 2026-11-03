@@ -23,7 +23,31 @@ namespace Eagle
 
         virtual void Compile() {}
 
-        virtual GraphEditorSerializationData Save();
+        // Writes the graphs & variables into the asset (see `WriteToAsset()`), and saves the asset to disk
+        virtual void Save() = 0;
+
+        // Writes the graphs & variables into the asset, without saving the asset to disk. The asset is marked as modified.
+        // The asset is what everything else uses (saving it from outside the editor, compiling it, the game), so it's kept up to date with the editor
+        virtual void WriteToAsset() = 0;
+
+        // @bCloneValues. Values (variables, default values of pins) are copies, so the result isn't affected when the graphs are edited further.
+        // For example, for undo
+        GraphEditorSerializationData CaptureState(bool bCloneValues = false) const;
+
+        // Replaces the graphs & variables with a state captured by `CaptureState()`.
+        // The views (scroll & zoom) of the graphs, the opened graph, and the selected nodes are kept where possible
+        void RestoreState(const GraphEditorSerializationData& data);
+
+        // True while `RestoreState()` rebuilds the graphs
+        bool IsRestoringState() const { return m_bRestoringState; }
+
+        const UIGraph& GetRootGraph() const { return *m_Graphs[0]; }
+
+        // Called right after the editor's window has begun, before its content is drawn
+        void SetBeginWindowCallback(const std::function<void()>& func)
+        {
+            m_BeginWindowCallback = func;
+        }
 
         void SetInFocus();
 
@@ -125,6 +149,9 @@ namespace Eagle
         virtual void OnAddGraphPre() = 0;
         virtual void OnAddGraphPost() = 0;
 
+        // Creates an empty base graph (its initial nodes only). Used to rebuild the graphs (see `RestoreState()`)
+        virtual Ref<UIGraph> CreateRootGraph() = 0;
+
         const ed::Config& GetConfig() const { return m_Config; }
         const VariablesMap& GetVariables() const { return m_Variables; }
         const Ref<GraphVariable>& GetVariable(const std::string& name) const
@@ -198,11 +225,13 @@ namespace Eagle
         std::function<void(float, float)> m_RenderPreviewPanelCallback;
         std::function<void()> m_RenderPreviewVarsCallback;
         std::function<void()> m_RenderAssetSettingsCallback;
+        std::function<void()> m_BeginWindowCallback;
 
         float m_LeftPanelWidth = 400.f;
         float m_RightPanelWidth = 800.f;
         float m_PreviewPanelHeight = 500.f;
         bool m_bIgnoreChangedEvent = true;
+        bool m_bRestoringState = false;
         bool m_bGraphFocused = false;
     };
 }

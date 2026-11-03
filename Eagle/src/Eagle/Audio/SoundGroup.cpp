@@ -16,7 +16,12 @@ namespace Eagle
 
 	SoundGroup::SoundGroup(FMOD::ChannelGroup* channelGroup)
 	: m_ChannelGroup(channelGroup)
-	{}
+	{
+		m_ChannelGroup->getVolume(&m_Settings.Volume);
+		m_ChannelGroup->getPitch(&m_Settings.Pitch);
+		m_ChannelGroup->getPaused(&m_Settings.bPaused);
+		m_ChannelGroup->getMute(&m_Settings.bMuted);
+	}
 
 	SoundGroup::~SoundGroup()
 	{
@@ -33,51 +38,40 @@ namespace Eagle
 		m_ChannelGroup->stop();
 	}
 
+	void SoundGroup::SetSettings(const SoundGroupSettings& settings)
+	{
+		m_Settings = settings;
+		m_ChannelGroup->setVolume(m_Settings.Volume);
+		m_ChannelGroup->setPitch(m_Settings.Pitch);
+		m_ChannelGroup->setPaused(m_Settings.bPaused);
+		m_ChannelGroup->setMute(m_Settings.bMuted);
+	}
+
 	void SoundGroup::SetPaused(bool bPaused)
 	{
-		m_ChannelGroup->setPaused(bPaused);
+		SoundGroupSettings settings = m_Settings;
+		settings.bPaused = bPaused;
+		SetSettings(settings);
 	}
 
 	void SoundGroup::SetVolume(float volume)
 	{
-		m_ChannelGroup->setVolume(volume);
+		SoundGroupSettings settings = m_Settings;
+		settings.Volume = volume;
+		SetSettings(settings);
 	}
 
 	void SoundGroup::SetMuted(bool bMuted)
 	{
-		m_ChannelGroup->setMute(bMuted);
+		SoundGroupSettings settings = m_Settings;
+		settings.bMuted = bMuted;
+		SetSettings(settings);
 	}
 
 	void SoundGroup::SetPitch(float pitch)
 	{
-		m_ChannelGroup->setPitch(pitch);
-	}
-
-	bool SoundGroup::IsPaused() const
-	{
-		bool value = false;
-		m_ChannelGroup->getPaused(&value);
-		return value;
-	}
-
-	float SoundGroup::GetVolume() const
-	{
-		float value = 0.f;
-		m_ChannelGroup->getVolume(&value);
-		return value;
-	}
-
-	bool SoundGroup::IsMuted() const
-	{
-		bool value = false;
-		m_ChannelGroup->getMute(&value);
-		return value;
-	}
-
-	float SoundGroup::GetPitch() const
-	{
-		float value = 0.f;
-		m_ChannelGroup->getPitch(&value);
-		return value;
+		SoundGroupSettings settings = m_Settings;
+		settings.Pitch = pitch;
+		SetSettings(settings);
 	}
 }

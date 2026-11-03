@@ -5,6 +5,8 @@
 
 namespace Eagle
 {
+	class UndoHistory;
+
 	enum class SelectedComponent
 	{
 		None,
@@ -47,6 +49,8 @@ namespace Eagle
 		void SetEntitySelected(Entity entity, SelectedComponent selectedComponent);
 		SelectedComponent GetSelectedComponentType() const { return m_SelectedComponent; }
 		SceneComponent* GetSelectedComponent();
+
+		void SetUndoContext(UndoHistory* history, const Ref<Scene>& scene) { m_UndoHistory = history; m_UndoScene = scene; }
 
 	private:
 		bool HasSelectedComponent() const;
@@ -190,6 +194,8 @@ namespace Eagle
 
 	private:
 		Entity m_Entity;
+		UndoHistory* m_UndoHistory = nullptr;
+		Weak<Scene> m_UndoScene;
 		SelectedComponent m_SelectedComponent = SelectedComponent::None;
 		bool bRuntime = false;
 		bool bVolumetricsEnabled = false;

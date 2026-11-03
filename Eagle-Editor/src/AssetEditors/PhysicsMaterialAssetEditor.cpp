@@ -15,6 +15,7 @@ namespace Eagle
 
 	PhysicsMaterialAssetEditor::PhysicsMaterialAssetEditor(const Ref<AssetPhysicsMaterial>& asset)
 		: AssetEditor(true, true), m_Asset(asset)
+		, m_EditTracker(&DescribeState)
 	{
 		SetSimulationEnabled(true);
 
@@ -111,6 +112,8 @@ namespace Eagle
 
 		DrawEditorWindow(pOpen);
 		BeginPanel(GetDetailsPanelName());
+		m_EditTracker.BeginFrame(&m_UndoHistory, m_Asset);
+
 		UI::BeginPropertyGrid("PhysicsMaterialDetails");
 
 		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
@@ -179,8 +182,18 @@ namespace Eagle
 			Asset::Save(m_Asset);
 
 		ImGui::End();
+		m_EditTracker.EndFrame();
 
 		DrawViewport(false);
+	}
+
+	std::string PhysicsMaterialAssetEditor::DescribeState(const AssetPhysicsMaterial::Settings& before, const AssetPhysicsMaterial::Settings& after)
+	{
+		return UndoUtils::Describe({
+			{ "Static Friction", before.StaticFriction != after.StaticFriction },
+			{ "Dynamic Friction", before.DynamicFriction != after.DynamicFriction },
+			{ "Bounciness", before.Bounciness != after.Bounciness },
+		}, "Edit Physics Material");
 	}
 	
 	void PhysicsMaterialAssetEditor::ResetScene()

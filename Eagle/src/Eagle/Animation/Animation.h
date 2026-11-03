@@ -50,6 +50,25 @@ namespace Eagle
     {
         std::string Name = "Event name";
         float Time = 0.f; // A value between [0; Duration] when an event should be triggered
+
+        bool operator==(const AnimationEvent& other) const = default;
+    };
+
+    // The settings of an animation that can be edited. Keyframes and root motion aren't a part of them
+    struct AnimationSettings
+    {
+        std::vector<AnimationEvent> Events;
+        bool bInPlace = false; // Pins the root motion bone in place
+
+        size_t GetMemoryUsage() const
+        {
+            size_t result = sizeof(*this) + Events.capacity() * sizeof(AnimationEvent);
+            for (const AnimationEvent& event : Events)
+                result += event.Name.capacity();
+            return result;
+        }
+
+        bool operator==(const AnimationSettings& other) const = default;
     };
 
     struct AnimationEventData
@@ -68,20 +87,19 @@ namespace Eagle
         ankerl::unordered_dense::map<uint64_t, uint32_t> m_AnimBoneIndexByHash;
     public:
         BoneAnimation RootMotion;
-        std::vector<AnimationEvent> Events;
+        AnimationSettings Settings;
         std::vector<glm::vec3> PreRootMotionLocations;
         RootMotionMode RootMotionType = RootMotionMode::Disabled;
 
         float Duration = 0.f; // In ticks
         float TicksPerSecond = 0.f;
-        bool bInPlace = false;
 
         bool HasRootMotion() const { return RootMotionType != RootMotionMode::Disabled && RootMotion.Locations.size() > 0; }
 
         bool ExtractRootMotion(const SkeletalMeshInfo& skeletalInfo, RootMotionMode mode);
         bool RemoveRootMotion(const SkeletalMeshInfo& skeletalInfo);
 
-        // Returns the bone that root motion is extracted from and that `bInPlace` pins in place.
+        // Returns the bone that root motion is extracted from and that `Settings.bInPlace` pins in place.
         // It's the first bone (walking down from the skeleton root through single-child nodes) that both is a mesh bone and has an animation track.
         const BoneNode* FindRootMotionBone(const SkeletalMeshInfo& skeletalInfo) const;
 

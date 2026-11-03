@@ -2,6 +2,8 @@
 #include "ProjectLayer.h"
 #include "EditorResources.h"
 #include "Frames/TitleBar.h"
+#include "Undo/UndoUI.h"
+#include "Widgets/EditorNotifications.h"
 
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/Asset/AssetManager.h"
@@ -156,100 +158,6 @@ namespace Eagle
 		}
 	};
 
-	// Returns the image's path relative to the project.
-	// An image from outside of the project is copied into its Config folder, so that the project stays self-contained.
-	// @copyName. The name of the copy (without an extension)
-	static std::optional<Path> ImportProjectImage(const Path& image, std::string_view copyName)
-	{
-		namespace fs = std::filesystem;
-
-		std::error_code error;
-		const Path projectPath = fs::weakly_canonical(Project::GetProjectPath(), error);
-		const Path imagePath = fs::weakly_canonical(image, error);
-		const Path relativePath = imagePath.lexically_relative(projectPath);
-		if (!relativePath.empty() && relativePath.is_relative() && *relativePath.begin() != "..")
-			return relativePath;
-
-		std::string extension = Utils::AsString(imagePath.extension());
-		std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return char(std::tolower(c)); });
-		const Path destination = Project::GetConfigPath() / (Utils::AsPath(std::string(copyName)) += extension);
-
-		fs::create_directories(destination.parent_path(), error);
-		fs::copy_file(imagePath, destination, fs::copy_options::overwrite_existing, error);
-		if (error)
-		{
-			EG_CORE_ERROR("Failed to copy the image `{}` into the project: {}", imagePath, error.message());
-			Application::Get().GetImGuiLayer()->AddMessage("Failed to copy the image into the project. See logs for more details");
-			return std::nullopt;
-		}
-		return fs::relative(destination, Project::GetProjectPath(), error);
-	}
-
-	// A property grid row that selects an image file of the project
-	// @emptyText. Shown when no image is selected
-	static bool DrawProjectImageProperty(std::string_view label, Path& image, std::string_view emptyText, std::string_view copyName, std::string_view helpMessage)
-	{
-		bool bChanged = false;
-
-		ImGui::PushID(label.data(), label.data() + label.size());
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		ImGui::TextUnformatted(label.data(), label.data() + label.size());
-		if (!helpMessage.empty())
-		{
-			ImGui::SameLine();
-			UI::HelpMarker(helpMessage);
-		}
-		ImGui::NextColumn();
-
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		if (image.empty())
-		{
-			ImGui::TextDisabled("%.*s", int(emptyText.size()), emptyText.data());
-		}
-		else
-		{
-			std::error_code error;
-			const Path absolutePath = Project::GetProjectPath() / image;
-			const bool bExists = std::filesystem::is_regular_file(absolutePath, error);
-			const std::string text = Utils::AsString(image);
-			if (bExists)
-				ImGui::TextUnformatted(text.c_str());
-			else
-				ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.4f, 1.f), "%s (missing)", text.c_str());
-			if (ImGui::IsItemHovered())
-				ImGui::SetTooltip("%s", bExists ? Utils::AsString(std::filesystem::absolute(absolutePath, error)).c_str() : "The file doesn't exist");
-		}
-
-		if (ImGui::Button("Browse..."))
-		{
-			const Path selected = FileDialog::OpenFile(FileDialog::SPLASH_SCREEN_FILTER, Project::GetProjectPath());
-			if (!selected.empty())
-			{
-				if (std::optional<Path> relativePath = ImportProjectImage(selected, copyName))
-				{
-					image = *relativePath;
-					bChanged = true;
-				}
-			}
-		}
-
-		ImGui::SameLine();
-		const bool bCanClear = !image.empty();
-		if (!bCanClear)
-			UI::PushItemDisabled();
-		if (ImGui::Button("Clear"))
-		{
-			image.clear();
-			bChanged = true;
-		}
-		if (!bCanClear)
-			UI::PopItemDisabled();
-
-		ImGui::PopID();
-		ImGui::NextColumn();
-		return bChanged;
-	}
-
 	EditorLayer::EditorLayer()
 		: Layer("EditorLayer")
 		, m_LevelTabWindowName("Level Editor###LevelEditor")
@@ -278,11 +186,31 @@ namespace Eagle
 		m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
 		m_GuizmoMode = ImGuizmo::MODE::WORLD;
 
+		m_SceneHierarchyPanel.SetUndoHistory(&m_UndoHistory);
+		m_UndoHistory.SetOnAppliedCallback([this](const UndoTransaction& transaction, bool)
+		{
+			if (m_OpenedSceneAsset && m_EditorScene)
+			{
+				const bool bModifiesLevel = std::any_of(transaction.Commands.begin(), transaction.Commands.end(),
+					[this](const Scope<UndoCommand>& command) { return command->ModifiesScene(*m_EditorScene); });
+
+				if (bModifiesLevel)
+					m_OpenedSceneAsset->SetDirty(true);
+			}
+			m_SceneHierarchyPanel.OnUndoApplied(transaction);
+		});
+
 		m_WindowTitle = "Eagle Editor";
 		m_OpenedSceneCallbackID = Scene::AddOnSceneOpenedCallback([this](const Ref<Scene>& scene)
 		{
 			if (m_EditorState == EditorState::Edit)
 			{
+				// Reset the history of the previous scene
+				m_GuizmoTransaction.reset();
+				m_SceneSettingsEditTracker.Reset();
+				m_RendererSettingsEditTracker.Reset();
+				m_UndoHistory.Clear();
+
 				m_EditorScene = scene;
 				Ref<Asset> asset;
 				if (AssetManager::Get(m_EditorScene->GetGUID(), &asset))
@@ -425,6 +353,10 @@ namespace Eagle
 
 		// The frames (the main window and the floating ones), then the major tabs: the level editor with its panels, and the asset editors
 		EditorFrames::BeginFrame();
+		UndoUI::HandleShortcuts(); // For the focused tab, which might be an asset editor, and might be in a floating window
+
+		// The level editor's window and its panels
+		std::optional<EditorFrames::TabContentScope> levelTabScope(std::in_place, this);
 		DrawLevelEditorTab();
 		DrawDebugWindows();
 
@@ -432,10 +364,11 @@ namespace Eagle
 		{
 			DrawSceneSettings();
 			DrawRendererSettings();
-			DrawProjectSettings();
 			DrawEditorPreferences();
 			DrawStats();
 		}
+		m_SceneSettingsEditTracker.EndFrame();
+		m_RendererSettingsEditTracker.EndFrame();
 
 		DrawViewport();
 		
@@ -490,9 +423,14 @@ namespace Eagle
 			}
 		}
 
+		levelTabScope.reset();
+
 		m_ContentBrowserPanel.DrawAssetEditors();
+		if (m_ProjectSettingsTab && !m_ProjectSettingsTab->OnImGuiRender())
+			m_ProjectSettingsTab.reset();
 
 		EditorFrames::EndFrame();
+		EditorNotifications::Draw();
 
 		//ImGui::ShowStyleEditor();
 		//ImGui::ShowDemoWindow();
@@ -771,8 +709,10 @@ namespace Eagle
 
 								editorLayer->Submit([editorLayer, depth, castedAsset, uv, func]()
 								{
+									SceneTransaction transaction(editorLayer->GetUndoHistory(), editorLayer->m_EditorScene, "Place " + Utils::AsString(castedAsset->GetPath().stem()));
 									Entity createdEntity = func(castedAsset);
 									editorLayer->SpawnEntityAtDepth(createdEntity, uv, depth);
+									transaction.TrackCreated(createdEntity);
 								});
 							});
 						}
@@ -1187,6 +1127,14 @@ namespace Eagle
 				if (m_GuizmoType == ImGuizmo::OPERATION::SCALE)
 					finalTransform.Scale3D = transform.Scale3D;
 
+				// The whole drag is one transaction. Its state is captured before the first change
+				m_bGuizmoUsed = true;
+				if (!m_GuizmoTransaction && bEditing)
+				{
+					m_GuizmoTransaction.emplace(GetUndoHistory(), m_EditorScene, UndoUI::GetGuizmoTransactionName(m_GuizmoType, selectedComponent != nullptr));
+					m_GuizmoTransaction->Track(selectedEntity);
+				}
+
 				if (m_OpenedSceneAsset)
 					m_OpenedSceneAsset->SetDirty(true);
 				if (selectedComponent)
@@ -1274,7 +1222,7 @@ namespace Eagle
 			{
 				if (!Project::GetProjectInfo().GameStartupScene)
 				{
-					m_ImGuiLayer->AddMessage("Please set a game startup scene in the 'Project Settings' tab");
+					m_ImGuiLayer->AddMessage("Please set a game startup scene in Edit -> Project Settings");
 				}
 				else
 				{
@@ -1296,6 +1244,15 @@ namespace Eagle
 			if (ImGui::MenuItem("Exit"))
 				HandleCloseRequest(true);
 
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Edit"))
+		{
+			UndoUI::DrawMenuItems(*this);
+			ImGui::Separator();
+			if (ImGui::MenuItem("Project Settings"))
+				OpenProjectSettings();
 			ImGui::EndMenu();
 		}
 
@@ -1486,6 +1443,7 @@ namespace Eagle
 
 		ImGui::PushID("SceneSettings");
 		ImGui::Begin("Scene Settings");
+		m_SceneSettingsEditTracker.BeginFrame(GetUndoHistory(), m_CurrentScene);
 
 		if (m_OpenedSceneAsset)
 		{
@@ -1497,9 +1455,30 @@ namespace Eagle
 					UI::PushItemDisabled();
 
 				UI::BeginPropertyGrid("SceneAssetSettings");
-				bool bAlwaysInclude = m_OpenedSceneAsset->IsAlwaysIncludedInGameBuilds();
+				const bool bWasAlwaysIncluded = m_OpenedSceneAsset->IsAlwaysIncludedInGameBuilds();
+				bool bAlwaysInclude = bWasAlwaysIncluded;
 				if (UI::Property("Always build", bAlwaysInclude, s_AlwaysIncludeInGameBuildsHelpMsg))
+				{
+					// It's recorded directly, so the edits in progress (of this panel and the others) are recorded first
+					UndoHistory* history = GetUndoHistory();
+					if (history)
+						history->FlushPendingEdits();
+
 					m_OpenedSceneAsset->SetAlwaysIncludedInGameBuilds(bAlwaysInclude);
+
+					// It's saved with the scene, so it's a part of the scene's history
+					if (history)
+					{
+						const Weak<AssetScene> weakAsset = m_OpenedSceneAsset;
+						history->Record("Edit Always Build", MakeScope<ValueCommand<bool>>(bWasAlwaysIncluded, bAlwaysInclude,
+							[weakAsset](const bool& bValue)
+							{
+								if (const Ref<AssetScene> asset = weakAsset.lock())
+									asset->SetAlwaysIncludedInGameBuilds(bValue);
+							},
+							[weakAsset]() { return !weakAsset.expired(); }));
+					}
+				}
 				UI::EndPropertyGrid();
 
 				if (bSimulating)
@@ -1644,6 +1623,7 @@ namespace Eagle
 	void EditorLayer::DrawRendererSettings()
 	{
 		ImGui::Begin("Renderer Settings");
+		m_RendererSettingsEditTracker.BeginFrame(GetUndoHistory(), m_CurrentScene);
 
 		// A scene sequence can override some of these while it plays or is previewed. The values
 		// shown here are always the scene's own ones, so editing some of them might have no effect.
@@ -2438,194 +2418,21 @@ namespace Eagle
 		ImGui::End(); //Settings
 	}
 
-	void EditorLayer::DrawProjectSettings()
+	void EditorLayer::OpenProjectSettings()
 	{
-		const auto& projectInfo = Project::GetProjectInfo();
-		Ref<AssetScene> startupScene = projectInfo.GameStartupScene;
-		glm::uvec3 version = projectInfo.Version;
-		const bool bRuntime = m_EditorState != EditorState::Edit;
-
-		if (bRuntime)
-			UI::PushItemDisabled();
-
-		ImGui::Begin("Project Settings");
-		UI::BeginPropertyGrid("ProjectSettingsPanel");
-
-		bool bChanged = false;
-		if (EditorResources::DrawAssetSelection("Game startup scene", startupScene, "If 'None' is selected, an empty scene will be opened"))
-		{
-			Project::SetStartupScene(startupScene);
-			bChanged = true;
-		}
-
-		if (UI::PropertyDrag("Version", version, 1, 0, 0, "Major - Minor - Patch"))
-		{
-			Project::SetVersion(version);
-			bChanged = true;
-		}
-
-		UI::EndPropertyGrid();
-
-		// Physics Collision groups
-		{
-			if (UI::PushTreeNode("Collision Groups"))
-			{
-				UI::BeginPropertyGrid("ProjectSettingsPanel");
-
-				auto userGroups = Project::GetUserCollisionGroups();
-
-				for (auto it = userGroups.begin(); it != userGroups.end(); ++it)
-				{
-					auto& name = it->first;
-					auto& mask = it->second;
-
-					ImGui::PushID(mask);
-					if (ImGui::Button("Delete"))
-					{
-						Project::RemoveUserCollisionGroup(mask);
-						m_CurrentScene->InvalidateCollisionGroups(Project::GetValidCollisionGroupsMask());
-						m_OpenedSceneAsset->SetDirty(true);
-						bChanged = true;
-					}
-					ImGui::SameLine();
-					ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3.f);
-					if (UI::PropertyText("Name", name))
-					{
-						Project::RenameUserCollisionGroup(mask, name);
-						bChanged = true;
-					}
-					ImGui::PopID();
-				}
-
-				UI::EndPropertyGrid();
-				ImGui::Separator();
-
-				const bool bCanAdd = Project::CanAddUserCollisionGroup();
-				if (!bCanAdd)
-					UI::PushItemDisabled();
-				if (ImGui::Button("Add", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
-				{
-					Project::AddUserCollisionGroup("New Group");
-					m_CurrentScene->InvalidateCollisionGroups(Project::GetValidCollisionGroupsMask());
-					m_OpenedSceneAsset->SetDirty(true);
-					bChanged = true;
-				}
-				if (!bCanAdd)
-					UI::PopItemDisabled();
-
-				UI::PopTreeNode();
-			}
-		}
-
-		// 2D UI scale
-		{
-			if (UI::PushTreeNode("UI Scale"))
-			{
-				UI::BeginPropertyGrid("ProjectSettingsPanel_UIScale");
-
-				UIScaleSettings uiScale = projectInfo.UIScale;
-				bool bUIScaleChanged = false;
-				bUIScaleChanged |= UI::PropertyDrag("Reference Resolution", uiScale.ReferenceResolution, 1.f, 1, 16384,
-					"Resolution the 2D UI is designed for. Offsets, sizes & font sizes of Text2D and Image2D are in pixels of this resolution");
-				bUIScaleChanged |= UI::ComboEnum("Mode", uiScale.Mode,
-					"How the UI is scaled when the viewport's aspect ratio differs from the reference resolution's.\n"
-					"MatchWidthOrHeight - follows the viewport's width, its height, or a blend of them.\n"
-					"Expand - the whole reference resolution always fits into the viewport. The viewport has extra space along one axis.\n"
-					"Shrink - the reference resolution always covers the viewport. Some of it is outside of the viewport along one axis");
-				if (uiScale.Mode == UIScaleMode::MatchWidthOrHeight)
-				{
-					bUIScaleChanged |= UI::PropertySlider("Match Width/Height", uiScale.MatchWidthOrHeight, 0.f, 1.f,
-						"0 - the UI is scaled with the viewport's width\n1 - with the viewport's height\nValues in between blend them");
-				}
-				if (bUIScaleChanged)
-				{
-					uiScale.ReferenceResolution = glm::max(uiScale.ReferenceResolution, glm::uvec2(1u));
-					Project::SetUIScaleSettings(uiScale);
-					bChanged = true;
-				}
-
-				UI::EndPropertyGrid();
-				UI::PopTreeNode();
-			}
-		}
-
-		DrawGameSplashScreenSettings(bChanged);
-
-		if (bRuntime)
-			UI::PopItemDisabled();
-
-		if (bChanged)
-			Project::Save();
-
-		ImGui::End();
+		if (m_ProjectSettingsTab)
+			EditorFrames::FocusTab(m_ProjectSettingsTab.get());
+		else
+			m_ProjectSettingsTab = MakeScope<ProjectSettingsTab>();
 	}
 
-	void EditorLayer::DrawGameSplashScreenSettings(bool& bChanged)
+	void EditorLayer::OnCollisionGroupsChanged()
 	{
-		if (!UI::PushTreeNode("Game Splash Screen", false, true, "Shown while the game is starting, until its first frames are rendered.\n"
-			"It doesn't affect the editor, it has its own splash screen"))
-			return;
-
-		const auto& projectInfo = Project::GetProjectInfo();
-		GameSplashScreenSettings settings = projectInfo.SplashScreen;
-		bool bSettingsChanged = false;
-
-		UI::BeginPropertyGrid("GameSplashScreenSettings");
-		bSettingsChanged |= DrawProjectImageProperty("Image", settings.Image, "Default", "SplashScreen",
-			"Replaces the default background. The splash screen takes the image's aspect ratio.\n"
-			"An image from outside of the project is copied into the project's Config folder");
-		bSettingsChanged |= DrawProjectImageProperty("Icon", settings.Icon, "None", "GameIcon",
-			"Drawn next to the title, and used as the taskbar icon of the splash screen.\n"
-			"It's also the icon of the game's window and of the game's executable.\n"
-			"An image from outside of the project is copied into the project's Config folder");
-
-		{
-			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-			ImGui::TextUnformatted("Title");
-			ImGui::SameLine();
-			UI::HelpMarker("If it's empty, the project's name is used");
-			ImGui::NextColumn();
-			ImGui::PushItemWidth(-1);
-			bSettingsChanged |= UI::InputTextWithHint("##SplashScreenTitle", settings.Title, projectInfo.Name);
-			ImGui::PopItemWidth();
-			ImGui::NextColumn();
-		}
-		bSettingsChanged |= UI::PropertyText("Subtitle", settings.Subtitle);
-		bSettingsChanged |= UI::Property("Text Over Image", settings.bShowTextOverImage,
-			"Draw the icon, title & subtitle over the custom image. Usually, an image already contains the title, so they aren't drawn over it.\n"
-			"Without a custom image, they're always drawn");
-		bSettingsChanged |= UI::PropertyColor("Title Color", settings.Colors.Title);
-		bSettingsChanged |= UI::PropertyColor("Subtitle Color", settings.Colors.Subtitle);
-		bSettingsChanged |= UI::PropertyColor("Progress Bar Color", settings.Colors.Progress);
-		UI::EndPropertyGrid();
-
-		const float buttonWidth = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
-		if (ImGui::Button("Preview", ImVec2(buttonWidth, 0.f)))
-		{
-			Project::SetSplashScreenSettings(settings);
-			PreviewSplashScreen();
-		}
-		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip("Shows the splash screen for a few seconds, exactly as the game will show it");
-
-		ImGui::SameLine();
-		const bool bDefaultColors = settings.Colors == SplashScreenColors{};
-		if (bDefaultColors)
-			UI::PushItemDisabled();
-		if (ImGui::Button("Reset Colors", ImVec2(buttonWidth, 0.f)))
-		{
-			settings.Colors = SplashScreenColors{};
-			bSettingsChanged = true;
-		}
-		if (bDefaultColors)
-			UI::PopItemDisabled();
-
-		if (bSettingsChanged)
-		{
-			Project::SetSplashScreenSettings(settings);
-			bChanged = true;
-		}
-		UI::PopTreeNode();
+		// The entities of the level lose the groups that no longer exist (the engine updates the assets).
+		// The scene is saved with the groups of the project, see `Serializer::SerializeProjectCollisionGroupGUIDs()`
+		m_EditorScene->InvalidateCollisionGroups(Project::GetValidCollisionGroupsMask());
+		if (m_OpenedSceneAsset)
+			m_OpenedSceneAsset->SetDirty(true);
 	}
 
 	void EditorLayer::PreviewSplashScreen()
@@ -2802,9 +2609,9 @@ namespace Eagle
 			UI::PropertyColor("Color", m_SelectionOutline.Color, false, "Alpha controls the opacity of the outline");
 			UI::ComboEnum("Mode", m_SelectionOutline.Mode,
 				"Determines which parts of the silhouette are outlined.\n"
-				"VisibleOnly - only the visible parts.\n"
-				"HiddenOnly - only the hidden parts.\n"
-				"DimHidden - the whole silhouette, hidden parts are dimmed.\n"
+				"Visible Only - only the visible parts.\n"
+				"Hidden Only - only the hidden parts.\n"
+				"Dim Hidden - the whole silhouette, hidden parts are dimmed.\n"
 				"Always - the whole silhouette, ignoring occlusion.");
 			UI::PropertySlider("Thickness", m_SelectionOutline.Thickness, 0.f, OutlineSettings::MaxThickness, "In pixels");
 			if (m_SelectionOutline.Mode == OutlineMode::DimHidden)
@@ -2960,6 +2767,14 @@ namespace Eagle
 		if (m_EditorState == EditorState::Edit || bForceDrawGuizmo)
 			UpdateGuizmo();
 		m_bSkipGuizmoThisFrame = false; // Reset here, since the guizmo isn't always updated
+
+		// The drag has ended (or the guizmo isn't drawn anymore)
+		if (!m_bGuizmoUsed && m_GuizmoTransaction)
+		{
+			m_GuizmoTransaction->Commit();
+			m_GuizmoTransaction.reset();
+		}
+		m_bGuizmoUsed = false;
 
 		ImGui::End(); //Viewport
 		ImGui::PopStyleVar();
@@ -3152,12 +2967,7 @@ namespace Eagle
 		{
 			const auto& sceneRenderer = m_EditorScene->GetSceneRenderer();
 			m_BeforeSimulationData.RendererSettings = sceneRenderer->GetOptions();
-			m_BeforeSimulationData.Cubemap = m_EditorScene->GetSkybox();
-			m_BeforeSimulationData.Sky = m_EditorScene->GetSkySettings();
-			m_BeforeSimulationData.CubemapIntensity = m_EditorScene->GetSkyboxIntensity();
-			m_BeforeSimulationData.bSkyAsBackground = m_EditorScene->GetUseSkyAsBackground();
-			m_BeforeSimulationData.bSkyboxEnabled = m_EditorScene->IsSkyboxEnabled();
-			m_BeforeSimulationData.bRenderSkybox = m_EditorScene->IsRenderSkyboxEnabled();
+			m_BeforeSimulationData.Skybox = m_EditorScene->GetSkyboxSettings();
 		}
 
 		EG_CORE_TRACE("Editor Play pressed");
@@ -3188,12 +2998,7 @@ namespace Eagle
 			auto& sceneRenderer = m_EditorScene->GetSceneRenderer();
 			sceneRenderer->SetOptions(m_BeforeSimulationData.RendererSettings);
 			sceneRenderer->SetUIScaleSettingsOverride(std::nullopt);
-			m_CurrentScene->SetSkybox(m_BeforeSimulationData.Cubemap);
-			m_CurrentScene->SetSkybox(m_BeforeSimulationData.Sky);
-			m_CurrentScene->SetSkyboxIntensity(m_BeforeSimulationData.CubemapIntensity);
-			m_CurrentScene->SetUseSkyAsBackground(m_BeforeSimulationData.bSkyAsBackground);
-			m_CurrentScene->SetSkyboxEnabled(m_BeforeSimulationData.bSkyboxEnabled);
-			m_CurrentScene->SetRenderSkybox(m_BeforeSimulationData.bRenderSkybox);
+			m_CurrentScene->SetSkyboxSettings(m_BeforeSimulationData.Skybox);
 		}
 		Input::SetShowMouse(true); // Just in case restore the mouse state.
 	}

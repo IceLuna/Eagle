@@ -180,6 +180,10 @@ namespace Eagle::Utils
 		return values[0];
 	}
 
+	// "PointLightComponent" -> "Point Light", "bCastsShadows" -> "Casts Shadows", "Text2DComponent" -> "Text 2D", "IBLIntensity" -> "IBL Intensity".
+	// Numbers stay a part of the name unless a capital follows them: "Vec4", "RGBA8", "F12"
+	std::string ToDisplayName(std::string_view key);
+
 	static bool HasExtension(const Path& filepath, const char* extension)
 	{
 		if (!filepath.has_extension())

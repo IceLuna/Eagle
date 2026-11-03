@@ -120,6 +120,26 @@ namespace Eagle::UI
 	bool ComboWithNone(const std::string_view label, std::string& moduleName, const std::map<std::string, EntityScriptClass>& entityClasses);
 	bool Combo(const std::string_view label, int currentValue, const ScriptEnumFields& fields, int& outSelectedValue, const std::string_view helpMessage = "", const std::function<void()>& customLabelCallback = {});
 
+	// How an enum value is shown: its name split into words, e.g. "MatchWidthOrHeight" -> "Match Width Or Height"
+	std::string GetEnumDisplayName(std::string_view name);
+
+	template <typename Enum> requires std::is_enum_v<Enum>
+	const std::string& GetEnumDisplayName(Enum value)
+	{
+		static const auto names = []
+		{
+			constexpr auto& enumNames = magic_enum::enum_names<Enum>();
+			std::array<std::string, enumNames.size()> result;
+			for (size_t i = 0; i < enumNames.size(); ++i)
+				result[i] = GetEnumDisplayName(enumNames[i]);
+			return result;
+		}();
+
+		static const std::string s_Unknown;
+		const auto index = magic_enum::enum_index(value);
+		return index ? names[*index] : s_Unknown;
+	}
+
 	template <typename Enum>
 	bool ComboEnum(const std::string_view label, Enum& current, const std::string_view helpMessage = "")
 	{
@@ -135,8 +155,7 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		const auto currentName = magic_enum::enum_name(current);
-		if (ImGui::BeginCombo(GetIDBuffer(), currentName.data()))
+		if (ImGui::BeginCombo(GetIDBuffer(), GetEnumDisplayName(current).c_str()))
 		{
 			constexpr auto& entries = magic_enum::enum_entries<Enum>();
 			for (size_t i = 0; i < entries.size(); ++i)
@@ -144,7 +163,7 @@ namespace Eagle::UI
 				const auto& entry = entries[i];
 				bool isSelected = (current == entry.first);
 
-				if (ImGui::Selectable(entry.second.data(), isSelected))
+				if (ImGui::Selectable(GetEnumDisplayName(entry.first).c_str(), isSelected))
 				{
 					bModified = true;
 					current = entry.first;
@@ -184,7 +203,7 @@ namespace Eagle::UI
 		{
 			const auto& entry = entries[i];
 
-			if (ImGui::RadioButton(entry.second.data(), &currentInt, int(entry.first)))
+			if (ImGui::RadioButton(GetEnumDisplayName(entry.first).c_str(), &currentInt, int(entry.first)))
 			{
 				current = (Enum)currentInt;
 				bModified = true;
@@ -562,4 +581,12 @@ namespace Eagle::UI
 	{
 		return DrawAssetSelection(label, modifyingAsset, "", -1.f, preview, outPreviewClicked);
 	}
+
+	// Whether the current ImGui window (including its child windows and popups) received input this frame
+	// that a widget could react to: a mouse button or wheel while it's hovered, or a key or text while it's focused.
+	// Widgets only change values in response to input (or while they're active), so a frame without it can't start an edit
+	bool HasWidgetInput();
+
+	// Whether the user is interacting with a widget (for example, dragging a value, typing, or dragging the guizmo)
+	bool IsInteracting();
 }

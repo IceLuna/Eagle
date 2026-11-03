@@ -10,6 +10,7 @@ namespace Eagle
 {
 	MaterialAssetEditor::MaterialAssetEditor(const Ref<AssetMaterial>& asset)
 		: AssetEditor(true), m_Asset(asset)
+		, m_EditTracker(&DescribeState)
 	{
 		m_Sphere = AssetManager::GetPreviewSphere();
 
@@ -51,7 +52,8 @@ namespace Eagle
 
 		DrawEditorWindow(pOpen);
 		BeginPanel(GetDetailsPanelName());
-		
+		m_EditTracker.BeginFrame(&m_UndoHistory, m_Asset);
+
 		UI::BeginPropertyGrid("MaterialDetails");
 		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 		UI::Text("Type", "Material");
@@ -386,7 +388,27 @@ namespace Eagle
 			Asset::Save(m_Asset);
 
 		ImGui::End();
+		m_EditTracker.EndFrame();
 
 		DrawViewport(false);
+	}
+
+	std::string MaterialAssetEditor::DescribeState(const AssetMaterial::Settings& a, const AssetMaterial::Settings& b)
+	{
+		return UndoUtils::Describe({
+			{ "Double Sided", a.bDoubleSided != b.bDoubleSided },
+			{ "Blend Mode", a.BlendMode != b.BlendMode },
+			{ "Albedo", a.AlbedoAsset != b.AlbedoAsset || a.Albedo != b.Albedo || a.bRawAlbedo != b.bRawAlbedo },
+			{ "Metalness", a.MetalnessAsset != b.MetalnessAsset || a.Metalness != b.Metalness || a.bRawMetalness != b.bRawMetalness || a.MetalnessChannel != b.MetalnessChannel },
+			{ "Normal", a.NormalAsset != b.NormalAsset },
+			{ "Roughness", a.RoughnessAsset != b.RoughnessAsset || a.Roughness != b.Roughness || a.bRawRoughness != b.bRawRoughness || a.RoughnessChannel != b.RoughnessChannel },
+			{ "AO", a.AOAsset != b.AOAsset || a.AO != b.AO || a.bRawAO != b.bRawAO || a.AOChannel != b.AOChannel },
+			{ "Emissive", a.EmissiveAsset != b.EmissiveAsset || a.Emissive != b.Emissive || a.bRawEmissive != b.bRawEmissive },
+			{ "Opacity", a.OpacityAsset != b.OpacityAsset || a.Opacity != b.Opacity || a.bRawOpacity != b.bRawOpacity || a.OpacityChannel != b.OpacityChannel },
+			{ "Opacity Mask", a.OpacityMaskAsset != b.OpacityMaskAsset || a.OpacityMask != b.OpacityMask || a.bRawOpacityMask != b.bRawOpacityMask || a.OpacityMaskChannel != b.OpacityMaskChannel },
+			{ "Emissive Intensity", a.EmissiveIntensity != b.EmissiveIntensity },
+			{ "Tint Color", a.TintColor != b.TintColor },
+			{ "Tiling Factor", a.TilingFactor != b.TilingFactor },
+		}, "Edit Material");
 	}
 }

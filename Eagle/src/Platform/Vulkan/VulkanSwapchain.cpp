@@ -33,24 +33,12 @@ namespace Eagle
 			return VK_PRESENT_MODE_FIFO_KHR;
 		}
 
-		static void WaitForSwapchainQueuesIdle(const VulkanDevice* device)
-		{
-			VkQueue graphicsQueue = device->GetGraphicsQueue();
-			VkQueue presentQueue = device->GetPresentQueue();
-			VK_CHECK(vkQueueWaitIdle(graphicsQueue));
-			if (presentQueue && presentQueue != graphicsQueue)
-				VK_CHECK(vkQueueWaitIdle(presentQueue));
-		}
-
-		static VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window)
+		static VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, glm::uvec2 windowSize)
 		{
 			if (capabilities.currentExtent.width != UINT_MAX)
 				return capabilities.currentExtent;
 
-			int width, height;
-			glfwGetFramebufferSize(window, &width, &height);
-
-			VkExtent2D extent = { uint32_t(width), uint32_t(height) };
+			VkExtent2D extent = { windowSize.x, windowSize.y };
 			extent.width = std::clamp(extent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
 			extent.height = std::clamp(extent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 
@@ -72,12 +60,18 @@ namespace Eagle
 		m_WaitSemaphores.clear();
 		m_Images.clear();
 
-		RenderManager::SubmitResourceFree([device = m_Device->GetVulkanDevice(), swapchain = m_Swapchain, instance = m_Instance, surface = m_Surface]()
+		RenderManager::SubmitResourceFree([device = m_Device->GetVulkanDevice(), swapchain = m_Swapchain, renderCompleteSemaphores = std::move(m_RenderCompleteSemaphores),
+			retired = std::move(m_RetiredSwapchains), instance = m_Instance, surface = m_Surface]() mutable
 		{
+			for (RetiredSwapchain& retiredSwapchain : retired)
+			{
+				vkDestroySwapchainKHR(device, retiredSwapchain.Swapchain, nullptr);
+				retiredSwapchain.RenderCompleteSemaphores.clear();
+			}
 			vkDestroySwapchainKHR(device, swapchain, nullptr);
+			renderCompleteSemaphores.clear();
 			vkDestroySurfaceKHR(instance, surface, nullptr);
 		});
-		
 	}
 
 	void VulkanSwapchain::Init(const VulkanDevice* device, bool bEnableVSync)
@@ -93,6 +87,7 @@ namespace Eagle
 			std::exit(-1);
 		}
 
+		m_WindowSize = GetWindowFramebufferSize();
 		Recreate();
 		CreateSyncObjects();
 	}
@@ -103,6 +98,7 @@ namespace Eagle
 		{
 			RenderManager::Wait();
 			m_bVSyncEnabled = bEnabled;
+			m_WindowSize = GetWindowFramebufferSize();
 			Recreate();
 			RenderManager::OnVSyncEnabled(bEnabled);
 		}
@@ -129,6 +125,60 @@ namespace Eagle
 				return;
 			}
 			else VK_CHECK(result);
+		}
+	}
+
+	glm::uvec2 VulkanSwapchain::GetWindowFramebufferSize() const
+	{
+		int width = 0, height = 0;
+		glfwGetFramebufferSize(m_Window, &width, &height);
+		return glm::uvec2(uint32_t(std::max(width, 0)), uint32_t(std::max(height, 0)));
+	}
+
+	void VulkanSwapchain::ResizeIfNeeded(glm::uvec2 windowSize)
+	{
+		m_WindowSize = windowSize;
+
+		if (!m_Swapchain || windowSize == GetSize())
+			return;
+
+		VkSurfaceCapabilitiesKHR capabilities{};
+		VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_Device->GetPhysicalDevice()->GetVulkanPhysicalDevice(), m_Surface, &capabilities));
+		const VkExtent2D extent = Utils::ChooseSwapExtent(capabilities, windowSize);
+		if (extent.width != m_Extent.width || extent.height != m_Extent.height)
+			Recreate();
+	}
+
+	void VulkanSwapchain::RetireSwapchain(VkSwapchainKHR swapchain)
+	{
+		if (swapchain == VK_NULL_HANDLE && m_RenderCompleteSemaphores.empty())
+			return;
+
+		RetiredSwapchain& retired = m_RetiredSwapchains.emplace_back();
+		retired.Swapchain = swapchain;
+		retired.FrameNumber = RenderManager::GetFrameNumber_RT();
+		retired.RenderCompleteSemaphores = std::move(m_RenderCompleteSemaphores);
+		m_RenderCompleteSemaphores.clear();
+	}
+
+	void VulkanSwapchain::ReleaseRetiredSwapchains()
+	{
+		const uint64_t frameNumber = RenderManager::GetFrameNumber_RT();
+		for (auto it = m_RetiredSwapchains.begin(); it != m_RetiredSwapchains.end();)
+		{
+			if (it->FrameNumber < frameNumber)
+			{
+				RenderManager::SubmitResourceFree([device = m_Device->GetVulkanDevice(), swapchain = it->Swapchain, renderCompleteSemaphores = std::move(it->RenderCompleteSemaphores)]() mutable
+				{
+					vkDestroySwapchainKHR(device, swapchain, nullptr);
+					renderCompleteSemaphores.clear();
+				});
+				it = m_RetiredSwapchains.erase(it);
+			}
+			else
+			{
+				++it;
+			}
 		}
 	}
 
@@ -204,15 +254,12 @@ namespace Eagle
 
 		m_Format = Utils::ChooseSwapSurfaceFormat(m_SupportDetails.Formats);
 		VkPresentModeKHR presentMode = m_bVSyncEnabled ? VK_PRESENT_MODE_FIFO_KHR : Utils::ChooseSwapPresentMode(m_SupportDetails.PresentModes);
-		m_Extent = Utils::ChooseSwapExtent(capabilities, m_Window);
+		m_Extent = Utils::ChooseSwapExtent(capabilities, m_WindowSize);
 		if (m_Extent.width == 0 || m_Extent.height == 0)
 		{
-			if (m_Swapchain)
-			{
-				Utils::WaitForSwapchainQueuesIdle(m_Device);
-			}
-			vkDestroySwapchainKHR(device, m_Swapchain, nullptr);
-			m_Swapchain = nullptr;
+			// Its last presents might still be pending
+			RetireSwapchain(m_Swapchain);
+			m_Swapchain = VK_NULL_HANDLE;
 			return false;
 		}
 
@@ -257,11 +304,8 @@ namespace Eagle
 
 		VK_CHECK(vkCreateSwapchainKHR(device, &createInfo, nullptr, &m_Swapchain));
 
-		if (oldSwapchain)
-		{
-			Utils::WaitForSwapchainQueuesIdle(m_Device);
-			vkDestroySwapchainKHR(device, oldSwapchain, nullptr);
-		}
+		// Its last presents might still be pending
+		RetireSwapchain(oldSwapchain);
 
 		// Swapchain can create more images than we requested. So we should retrive image count
 		vkGetSwapchainImagesKHR(device, m_Swapchain, &imageCount, nullptr);
@@ -280,6 +324,10 @@ namespace Eagle
 		int i = 0;
 		for (auto& image : vkImages)
 			m_Images.push_back(MakeRef<VulkanImage>(image, specs, false, debugName + std::to_string(i++)));
+
+		EG_CORE_ASSERT(m_RenderCompleteSemaphores.empty()); // The previous ones were retired with the previous swapchain
+		for (size_t imageIndex = 0; imageIndex < m_Images.size(); ++imageIndex)
+			m_RenderCompleteSemaphores.push_back(MakeRef<VulkanSemaphore>());
 
 		if (m_RecreatedCallback)
 			m_RecreatedCallback();

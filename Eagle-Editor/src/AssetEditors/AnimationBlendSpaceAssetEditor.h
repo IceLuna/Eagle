@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AssetEditor.h"
+#include "../Undo/AssetUndo.h"
 #include "Eagle/Core/Entity.h"
 #include "Eagle/Utils/DelaunayTriangulation.h"
 
@@ -37,8 +38,11 @@ namespace Eagle
 		void CreateAnimGraphForViewport();
 		bool OnKeyPressedEvent(KeyPressedEvent& e);
 
+		static std::string DescribeState(const AssetAnimationBlendSpace::Settings& before, const AssetAnimationBlendSpace::Settings& after);
+
 	private:
 		Ref<AssetAnimationBlendSpace> m_Asset;
+		AssetEditTracker<AssetAnimationBlendSpace, AssetAnimationBlendSpace::Settings> m_EditTracker;
 		Ref<AssetAnimationGraph> m_AnimGraph;
 		Entity m_Entity;
 

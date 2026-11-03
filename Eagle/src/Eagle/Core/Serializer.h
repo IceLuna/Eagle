@@ -27,6 +27,7 @@ namespace Eagle
 	class Texture2D;
 	class Reverb3D;
 	class Font;
+	struct ParticleEmitter;
 
 	class Asset;
 	class AssetTexture2D;
@@ -46,6 +47,7 @@ namespace Eagle
 	class AssetScene;
 	class AssetBehaviorGraph;
 	class AssetSceneSequence;
+	class SequenceTrack;
 
 	enum class AssetType;
 	enum class AssetTexture2DFormat;
@@ -124,6 +126,7 @@ namespace Eagle
 		static void EmitBoneNode(YAML::Emitter& out, const BoneNode& node);
 		static void SerializeReverb(YAML::Emitter& out, const Ref<Reverb3D>& reverb);
 		static void SerializeEntity(YAML::Emitter& out, Entity entity);
+		static void SerializeEntityComponents(YAML::Emitter& out, Entity entity);
 		static void SerializeRelativeTransform(YAML::Emitter& out, const Transform& relativeTransform);
 		static void SerializeRendererSettings(YAML::Emitter& out, const SceneRendererSettings& settings);
 		static void SerializeProjectCollisionGroupGUIDs(YAML::Emitter& out);
@@ -133,6 +136,7 @@ namespace Eagle
 		// @outEntityID. Entity ID of the entity that was created
 		// @outParentID. Its parent ID
 		[[nodiscard]] static Entity DeserializeEntity(const Ref<Scene>& scene, const YAML::Node& entityNode, uint32_t collisionGroupValidMasks, uint32_t* outEntityID, int* outParentID = nullptr); // Doesn't handle parents
+		static void DeserializeEntityComponents(Entity entity, const YAML::Node& componentsNode);
 		static void DeserializeRelativeTransform(YAML::Node& node, Transform& relativeTransform);
 		static void DeserializeRendererSettings(YAML::Node& node, SceneRendererSettings& settings);
 		static uint32_t DeserializeProjectCollisionGroupGUIDs(const YAML::Node& node);
@@ -151,9 +155,15 @@ namespace Eagle
 		static ScopedDataBuffer SerializeAssetAnimation(const Ref<AssetAnimation>& asset);
 		static ScopedDataBuffer SerializeAssetAnimationGraph(const Ref<AssetAnimationGraph>& asset, const Ref<AssetSkeletalMesh>& meshAsset = nullptr); // `meshAsset` is used if asset is nullptr
 		static ScopedDataBuffer SerializeAssetParticleSystem(const Ref<AssetParticleSystem>& asset);
+
+		static void SerializeGraphEditorContent(YAML::Emitter& out, const GraphEditorSerializationData& data);
+		static void SerializeGraphVariables(YAML::Emitter& out, const std::vector<GraphVariableSerializationData>& variables);
+		static void SerializeGraphNodeContent(YAML::Emitter& out, const GraphNodeSerializationData& node);
+		static void SerializeParticleEmitter(YAML::Emitter& out, const ParticleEmitter& emitter);
 		static ScopedDataBuffer SerializeAssetAnimationBlendSpace(const Ref<AssetAnimationBlendSpace>& asset, const Ref<AssetSkeletalMesh>& meshAsset = nullptr); // `meshAsset` is used if asset is nullptr
 		static ScopedDataBuffer SerializeAssetBehaviorGraph(const Ref<AssetBehaviorGraph>& asset);
 		static ScopedDataBuffer SerializeAssetSceneSequence(const Ref<AssetSceneSequence>& asset);
+		static void SerializeSequenceTrack(YAML::Emitter& out, const Ref<SequenceTrack>& track);
 
 		static ScopedDataBuffer SerializeAssetTexture2DFromData(const DataBuffer& textureData, const std::vector<ScopedDataBuffer>& compressedDataPerMip, ImageFormat compressedFormat, const GUID& guid,
 			const Path& pathToRaw, FilterMode filterMode, AddressMode addressMode, float anisotropy, uint32_t mipsCount, uint32_t width, uint32_t height, AssetTexture2DFormat format,
@@ -196,5 +206,9 @@ namespace Eagle
 		static void SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field);
 		static void DeserializePublicFieldValues(YAML::Node& publicFieldsNode, std::vector<PublicField>& publicFields);
 		static bool HasSerializableType(const PublicField& field);
+
+	private:
+		static void SerializeComponents(YAML::Emitter& out, Entity entity);
+		static void DeserializeComponents(Entity deserializedEntity, const YAML::Node& entityNode, uint32_t collisionGroupValidMasks);
 	};
 }

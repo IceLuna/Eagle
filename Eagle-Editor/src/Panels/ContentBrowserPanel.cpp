@@ -622,7 +622,10 @@ namespace Eagle
 		{
 			auto& editor = it->second;
 			bool bOpened = true;
-			editor->OnImGuiRender(&bOpened);
+			{
+				EditorFrames::TabContentScope tabScope(editor->GetOwnerTab());
+				editor->OnImGuiRender(&bOpened);
+			}
 
 			if (bOpened == false)
 				it = m_AssetEditors.erase(it);
@@ -1052,7 +1055,7 @@ namespace Eagle
 		if (ImGui::IsItemHovered())
 		{
 			bHoveredAnyItem = true;
-			std::string tooltip = std::string("Asset Type: ") + Utils::GetEnumName(assetType) + '\n';
+			std::string tooltip = "Asset Type: " + UI::GetEnumDisplayName(assetType) + '\n';
 			tooltip += bHintFullPath ? entry.FullPathString : entry.Filename;
 			UI::Tooltip(tooltip);
 		}

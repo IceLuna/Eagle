@@ -6,6 +6,7 @@
 #include "Eagle/Components/Components.h"
 #include "Eagle/Core/Project.h"
 #include "Eagle/Utils/PlatformUtils.h"
+#include "../Undo/SettingsUndo.h"
 
 namespace Eagle
 {
@@ -414,11 +415,24 @@ namespace Eagle
 
 	SkeletalMeshAssetEditor::SkeletalMeshAssetEditor(const Ref<AssetSkeletalMesh>& asset)
 		: AssetEditor(true, true), m_Asset(asset)
+		, m_EditTracker(&DescribeState)
+		, m_RagdollSettingsTracker(
+			[](SkeletalMeshAssetEditor* const& editor) -> std::optional<RagdollGenerationSettings> { return editor->m_RagdollSettings; },
+			[](UndoHistory& history, SkeletalMeshAssetEditor* const& editor, RagdollGenerationSettings&& before, RagdollGenerationSettings&& after)
+			{
+				std::string name = UndoUtils::Describe({
+					{ "Min Ragdoll Bone Size", before.MinBoneSize != after.MinBoneSize },
+					{ "Max Twist Angle", before.MaxTwist != after.MaxTwist },
+					{ "Max Swing Angle", before.MaxSwing != after.MaxSwing },
+				}, "Edit Ragdoll Generation Settings");
+
+				// The command belongs to the editor's history, so it never outlives the editor
+				history.Record(std::move(name), MakeScope<ValueCommand<RagdollGenerationSettings>>(std::move(before), std::move(after),
+					[editor](const RagdollGenerationSettings& settings) { editor->m_RagdollSettings = settings; }));
+			})
 	{
 		const auto& mesh = m_Asset->GetMesh();
-		m_MinRagdollBoneSize = mesh->GetMinRagdollBoneSize();
-		m_Twist = mesh->GetRagdollMaxTwist();
-		m_Swing = mesh->GetRagdollMaxSwing();
+		m_RagdollSettings = mesh->GetRagdollSettings();
 		m_CollisionDetection = mesh->GetCollisionDetectionType();
 		m_CollisionGroup = (uint32_t)mesh->GetCollisionGroup();
 		m_InteractingCollisionGroup = (uint32_t)mesh->GetInteractingCollisionGroup();
@@ -446,6 +460,7 @@ namespace Eagle
 		sceneRenderer->SetOptions(settings);
 		OnSimulateRagdollChanged();
 
+		m_UndoHistory.SetOnAppliedCallback([this](const UndoTransaction&, bool) { OnUndoApplied(); });
 	}
 
 	void SkeletalMeshAssetEditor::OnImGuiRender(bool* pOpen)
@@ -461,6 +476,8 @@ namespace Eagle
 
 		DrawEditorWindow(pOpen);
 		BeginPanel(GetDetailsPanelName());
+		m_EditTracker.BeginFrame(&m_UndoHistory, m_Asset);
+		m_RagdollSettingsTracker.BeginFrame(&m_UndoHistory, this);
 
 		UI::TextWithSeparator("Data");
 		UI::BeginPropertyGrid("SkeletalMeshDetails");
@@ -662,6 +679,95 @@ namespace Eagle
 		{
 			m_Asset->SetDirty(true);
 			m_Asset->OnModified();
+		}
+
+		m_EditTracker.EndFrame();
+		m_RagdollSettingsTracker.EndFrame();
+	}
+
+	void SkeletalMeshAssetEditor::OnViewportEnd()
+	{
+		m_EditTracker.BeginFrame(&m_UndoHistory, m_Asset);
+		UpdateGuizmo();
+	}
+
+	void SkeletalMeshAssetEditor::ResolveSelectedRagdollBone()
+	{
+		m_SelectedRagdollBone = nullptr;
+		if (m_SelectedRagdollBoneName.empty())
+			return;
+
+		auto find = [this](auto& self, SkeletalRagdollBone& bone) -> SkeletalRagdollBone*
+		{
+			if (bone.Name == m_SelectedRagdollBoneName)
+				return &bone;
+
+			for (SkeletalRagdollBone& child : bone.Children)
+			{
+				if (SkeletalRagdollBone* found = self(self, child))
+					return found;
+			}
+			return nullptr;
+		};
+
+		m_SelectedRagdollBone = find(find, m_Asset->GetMesh()->GetRagdollRoot());
+		if (!m_SelectedRagdollBone)
+			m_SelectedRagdollBoneName.clear();
+	}
+
+	void SkeletalMeshAssetEditor::OnUndoApplied()
+	{
+		const auto& mesh = m_Asset->GetMesh();
+
+		ResolveSelectedBone();
+		if (m_SelectedBone)
+		{
+			BoneNode* parent = nullptr;
+			auto findParent = [this](auto& self, BoneNode& node) -> BoneNode*
+			{
+				for (BoneNode& child : node.Children)
+				{
+					if (child.GetName() == m_SelectedBoneName)
+						return &node;
+					if (BoneNode* found = self(self, child))
+						return found;
+				}
+				return nullptr;
+			};
+			parent = findParent(findParent, mesh->GetSkeletalMeshInfo().RootBone);
+			m_SelectedBoneParentName = parent ? parent->GetName() : std::string();
+		}
+		ResolveSelectedRagdollBone();
+
+		// Preview meshes & primitives attached to bones that no longer exist (for example, an added virtual bone was undone)
+		auto& rootBone = mesh->GetSkeletalMeshInfo().RootBone;
+		auto removeMissing = [this, &rootBone](auto& attachments)
+		{
+			for (auto it = attachments.begin(); it != attachments.end();)
+			{
+				BoneNode* bone = nullptr;
+				if (rootBone.FindNode(it->first, &bone))
+				{
+					++it;
+					continue;
+				}
+				GetCurrentScene()->DestroyEntity(it->second.Entity);
+				it = attachments.erase(it);
+			}
+		};
+		removeMissing(m_AttachedToBonesMeshes);
+		removeMissing(m_AttachedToBonesColliders);
+
+		// The preview entity uses the mesh's materials
+		auto& component = m_Entity.GetComponent<SkeletalMeshComponent>();
+		for (uint32_t i = 0; i < mesh->GetMaterialSlotsCount(); ++i)
+			component.SetMaterialAsset(i, mesh->GetMaterialAsset(i));
+
+		if (m_OpenedTab == OpenedTabType::Ragdoll)
+		{
+			component.SetRagdollEnabled(false);
+			component.SetRagdollEnabled(true);
+			component.SetShowRagdollCollision(bVisualizeRagdollBones);
 		}
 	}
 
@@ -889,11 +995,20 @@ namespace Eagle
 		const auto& collisionGroups = Project::GetAllCollisionGroups();
 		bool bRegenerate = false; // TODO v0.7 Should always do it on change?
 
+		// Unlike the other ragdoll settings, these are applied to the mesh as soon as they're changed, so the mesh is what's shown.
+		// It can be changed from outside of the editor: removing a collision group in the project settings removes it from the mesh too
+		{
+			const auto& mesh = m_Asset->GetMesh();
+			m_CollisionDetection = mesh->GetCollisionDetectionType();
+			m_CollisionGroup = (uint32_t)mesh->GetCollisionGroup();
+			m_InteractingCollisionGroup = (uint32_t)mesh->GetInteractingCollisionGroup();
+		}
+
 		UI::BeginPropertyGrid("Ragdoll props");
-		if (UI::PropertyDrag("Min ragdoll bone size", m_MinRagdollBoneSize, 0.05f, 0.01f))
-			m_MinRagdollBoneSize = glm::max(m_MinRagdollBoneSize, 0.05f);
-		UI::PropertyDrag("Max Twist angle", m_Twist, 1.f, 0.01f, 180.f);
-		UI::PropertyDrag("Max Swing angle", m_Swing, 1.f, 0.01f, 180.f);
+		if (UI::PropertyDrag("Min ragdoll bone size", m_RagdollSettings.MinBoneSize, 0.05f, 0.01f))
+			m_RagdollSettings.MinBoneSize = glm::max(m_RagdollSettings.MinBoneSize, 0.05f);
+		UI::PropertyDrag("Max Twist angle", m_RagdollSettings.MaxTwist, 1.f, 0.01f, 180.f);
+		UI::PropertyDrag("Max Swing angle", m_RagdollSettings.MaxSwing, 1.f, 0.01f, 180.f);
 		bRegenerate |= UI::ComboEnum<CollisionDetectionType>("Collision Detection", m_CollisionDetection, s_CollisionDetectionTypeHelpMsg);
 		UI::EndPropertyGrid();
 
@@ -924,12 +1039,10 @@ namespace Eagle
 		if (ImGui::Button("Regenerate") || bRegenerate)
 		{
 			auto& mesh = m_Asset->GetMesh();
-			mesh->SetRagdollMaxTwist(m_Twist);
-			mesh->SetRagdollMaxSwing(m_Swing);
 			mesh->SetCollisionDetectionType(m_CollisionDetection);
 			mesh->SetCollisionGroup(CollisionGroup(m_CollisionGroup));
 			mesh->SetInteractingCollisionGroup(CollisionGroup(m_InteractingCollisionGroup));
-			mesh->RegenerateRagdollData(m_MinRagdollBoneSize);
+			mesh->RegenerateRagdollData(m_RagdollSettings);
 			bChanged = true;
 		}
 
@@ -1085,5 +1198,28 @@ namespace Eagle
 			m_AttachedToBonesColliders.erase(it);
 			m_AttachedToBonesColliders[newName] = std::move(value);
 		}
+	}
+
+	std::string SkeletalMeshAssetEditor::DescribeState(const AssetSkeletalMesh::Settings& before, const AssetSkeletalMesh::Settings& after)
+	{
+		const bool bSameBones = before.RootBone == after.RootBone;
+		const bool bSameRagdoll = before.HasSameRagdoll(after);
+		const bool bSameMaterials = before.Materials == after.Materials;
+
+		if (!bSameMaterials && bSameBones && bSameRagdoll)
+			return "Edit Materials";
+		if (!bSameBones && bSameRagdoll && bSameMaterials)
+			return "Edit Virtual Bones";
+		if (!bSameRagdoll && bSameBones && bSameMaterials)
+		{
+			if (before.Group != after.Group || before.InteractingGroup != after.InteractingGroup)
+				return "Edit Ragdoll Collision Groups";
+			if (before.CollisionDetection != after.CollisionDetection)
+				return "Edit Ragdoll Collision Detection";
+			if (before.Ragdoll != after.Ragdoll)
+				return "Regenerate Ragdoll";
+			return "Edit Ragdoll";
+		}
+		return "Edit Skeletal Mesh";
 	}
 }

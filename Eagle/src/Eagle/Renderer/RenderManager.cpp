@@ -57,7 +57,6 @@ namespace Eagle
 		std::vector<Ref<CommandBuffer>> PresentCommandBuffers;
 		std::vector<Ref<Fence>> Fences;
 		std::vector<Ref<Fence>> SceneFences;
-		std::vector<Ref<Semaphore>> Semaphores;
 
 		Ref<Image> DummyImage;
 		Ref<Image> DummyImageCube;
@@ -260,12 +259,8 @@ namespace Eagle
 		state.CullMode = CullMode::Back;
 
 		s_RendererData->PresentPipeline = PipelineGraphics::Create(state);
-		s_RendererData->Semaphores.clear();
 		for (const auto& image : swapchainImages)
-		{
 			s_RendererData->PresentFramebuffers.push_back(Framebuffer::Create({ image }, size, s_RendererData->PresentPipeline->GetRenderPassHandle()));
-			s_RendererData->Semaphores.push_back(Semaphore::Create());
-		}
 	}
 
 	static void SetupBRDFLUTPipeline()
@@ -406,12 +401,8 @@ namespace Eagle
 			glm::uvec2 size = s_RendererData->Swapchain->GetSize();
 			const void* renderPassHandle = data->PresentPipeline->GetRenderPassHandle();
 
-			data->Semaphores.clear();
 			for (const auto& image : swapchainImages)
-			{
 				data->PresentFramebuffers.push_back(Framebuffer::Create({ image }, size, data->PresentPipeline->GetRenderPassHandle()));
-				data->Semaphores.push_back(Semaphore::Create());
-			}
 		});
 
 		s_RendererData->GraphicsCommandManager = CommandManager::Create(CommandQueueFamily::Graphics, true);
@@ -715,6 +706,18 @@ namespace Eagle
 		Application::Get().GetRenderContext()->WaitIdle();
 	}
 
+	void RenderManager::WaitForFramesPresented()
+	{
+		// The future is kept for `BeginFrame()` to process it
+		const uint32_t lastFrameIndex = (s_RendererData->CurrentFrameIndex + RendererConfig::FramesInFlight - 1) % RendererConfig::FramesInFlight;
+		auto& task = s_RendererData->ThreadPoolTasks[lastFrameIndex];
+		if (task.valid())
+		{
+			EG_CPU_TIMING_SCOPED("Waiting for the frame to be presented");
+			task.wait();
+		}
+	}
+
 	void RenderManager::ReleasePendingResources()
 	{
 		for (uint32_t i = 0; i < RendererConfig::ReleaseFramesInFlight; ++i)
@@ -771,19 +774,17 @@ namespace Eagle
 	{
 		auto& pool = s_RendererData->ThreadPool;
 		auto& tasks = s_RendererData->ThreadPoolTasks;
+		const glm::uvec2 windowSize = s_RendererData->Swapchain->GetWindowFramebufferSize(); // The size the swapchain should have for this frame
+
 		tasks[s_RendererData->CurrentFrameIndex] = 
-			pool->submit_task([frameIndex = s_RendererData->CurrentFrameIndex]()
+			pool->submit_task([frameIndex = s_RendererData->CurrentFrameIndex, windowSize]()
 		{
 			EG_CPU_TIMING_SCOPED("Preparing a frame");
 
 			StagingManager::NextFrame();
 
-			uint32_t swapchainImageIndex = 0;
 			auto& fence = s_RendererData->Fences[frameIndex];
 			auto& sceneFence = s_RendererData->SceneFences[frameIndex];
-			Ref<Semaphore> imageAcquireSemaphore = s_RendererData->Swapchain->AcquireImage(frameIndex, &swapchainImageIndex);
-			auto& semaphore = s_RendererData->Semaphores[swapchainImageIndex];
-			const bool bSwapchainValid = s_RendererData->Swapchain->IsValid() && imageAcquireSemaphore;
 			fence->Reset();
 
 			// `BeginFrame` already waited on `fence`, which was submitted after this one, so this wait should return immediately.
@@ -791,10 +792,17 @@ namespace Eagle
 			sceneFence->Wait();
 			sceneFence->Reset();
 
+			// Done before the swapchain is recreated below, since that releases the resources of the previous one.
+			// Otherwise, they'd be freed right away, by this, while the previous frames might still use them
 			{
 				EG_CPU_TIMING_SCOPED("Freeing resources");
 				s_ResourceFreeQueue[s_RendererData->CurrentReleaseFrameIndex].Execute();
 			}
+
+			uint32_t swapchainImageIndex = 0;
+			s_RendererData->Swapchain->ResizeIfNeeded(windowSize);
+			Ref<Semaphore> imageAcquireSemaphore = s_RendererData->Swapchain->AcquireImage(frameIndex, &swapchainImageIndex);
+			const bool bSwapchainValid = s_RendererData->Swapchain->IsValid() && imageAcquireSemaphore;
 
 			UpdateGPUTimings();
 
@@ -849,18 +857,17 @@ namespace Eagle
 				EG_CPU_TIMING_SCOPED("Submit & Present");
 				// `fence` is signaled after all previously submitted work on this queue has completed.
 				// That includes waiting for Part 1 to finish, since `presentCmd` waits for them because of the barriers
-				if (imageAcquireSemaphore)
+				EG_CORE_ASSERT(!imageAcquireSemaphore || bSwapchainValid); // An image is only acquired from a valid swapchain
+				if (bSwapchainValid)
 				{
-					s_RendererData->GraphicsCommandManager->Submit(presentCmd, fence, imageAcquireSemaphore, semaphore);
+					const Ref<Semaphore>& renderCompleteSemaphore = s_RendererData->Swapchain->GetRenderCompleteSemaphore(swapchainImageIndex);
+					s_RendererData->GraphicsCommandManager->Submit(presentCmd, fence, imageAcquireSemaphore, renderCompleteSemaphore);
+					s_RendererData->Swapchain->Present(renderCompleteSemaphore, swapchainImageIndex);
+					s_RendererData->LastPresentedFrameNumber.store(s_RendererData->FrameNumber + 1);
 				}
 				else
 				{
-					s_RendererData->GraphicsCommandManager->Submit(presentCmd, fence, std::span<const Semaphore*>{}, semaphore);
-				}
-				if (bSwapchainValid)
-				{
-					s_RendererData->Swapchain->Present(semaphore, swapchainImageIndex);
-					s_RendererData->LastPresentedFrameNumber.store(s_RendererData->FrameNumber + 1);
+					s_RendererData->GraphicsCommandManager->Submit(presentCmd, fence);
 				}
 			}
 
@@ -870,6 +877,8 @@ namespace Eagle
 				EG_CPU_TIMING_SCOPED("ImGui platform windows");
 				(*s_RendererData->ImGuiLayer)->RenderPlatformWindows();
 			}
+
+			s_RendererData->Swapchain->ReleaseRetiredSwapchains();
 
 			s_RendererData->CurrentRenderingFrameIndex = (s_RendererData->CurrentRenderingFrameIndex + 1) % RendererConfig::FramesInFlight;
 			s_RendererData->CurrentReleaseFrameIndex = (s_RendererData->CurrentReleaseFrameIndex + 1) % RendererConfig::FramesInFlight;

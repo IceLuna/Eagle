@@ -70,16 +70,17 @@ namespace Eagle
 		//Editor camera
 		const auto& camera = scene->EditorCamera;
 		const auto& transform = camera.GetTransform();
-		
+		const auto& settings = scene->GetPhysicsSettings();
+
 		// Only location & rotation are stored. Other settings are provided by the editor
 		out << YAML::Key << "EditorCamera"	<< YAML::BeginMap;
 		out << YAML::Key << "Location" << YAML::Value << transform.Location;
 		out << YAML::Key << "Rotation" << YAML::Value << transform.Rotation;
 		out << YAML::EndMap; //Editor Camera
-		out << YAML::Key << "Gravity" << YAML::Value << scene->GetGravity();
-		out << YAML::Key << "PhysicsUpdateRate" << YAML::Value << scene->GetPhysicsUpdateRate();
-		out << YAML::Key << "PhysicsDebugOnPlay" << YAML::Value << scene->IsPhysicsDebugOnPlayEnabled();
-		out << YAML::Key << "PhysicsDebugType" << YAML::Value << Utils::GetEnumName(scene->GetPhysicsDebugType());
+		out << YAML::Key << "Gravity" << YAML::Value << settings.Gravity;
+		out << YAML::Key << "PhysicsUpdateRate" << YAML::Value << settings.UpdateRate;
+		out << YAML::Key << "PhysicsDebugOnPlay" << YAML::Value << settings.bDebugOnPlay;
+		out << YAML::Key << "PhysicsDebugType" << YAML::Value << Utils::GetEnumName(settings.DebugType);
 
 		Serializer::SerializeProjectCollisionGroupGUIDs(out);
 
@@ -180,22 +181,25 @@ namespace Eagle
 			
 			camera.SetTransform(transform);
 		}
+
+		PhysicsSettings physics = scene->GetPhysicsSettings();
 		if (auto node = data["Gravity"])
 		{
-			scene->SetGravity(node.as<glm::vec3>());
+			physics.Gravity = node.as<glm::vec3>();
 		}
 		if (auto node = data["PhysicsUpdateRate"])
 		{
-			scene->SetPhysicsUpdateRate(node.as<uint32_t>());
+			physics.UpdateRate = node.as<uint32_t>();
 		}
 		if (auto node = data["PhysicsDebugOnPlay"])
 		{
-			scene->SetPhysicsDebugOnPlay(node.as<bool>());
+			physics.bDebugOnPlay = node.as<bool>();
 		}
 		if (auto node = data["PhysicsDebugType"])
 		{
-			scene->SetPhysicsDebugType(Utils::GetEnumFromName<DebugType>(node.as<std::string>()));
+			physics.DebugType = Utils::GetEnumFromName<DebugType>(node.as<std::string>());
 		}
+		scene->SetPhysicsSettings(physics);
 
 		const uint32_t collisionGroupValidMasks = Serializer::DeserializeProjectCollisionGroupGUIDs(data);
 
@@ -266,14 +270,16 @@ namespace Eagle
 
 	void SceneSerializer::SerializeSkybox(const Ref<Scene>& scene, YAML::Emitter& out)
 	{
+		const auto& settings = scene->GetSkyboxSettings();
+
 		out << YAML::Key << "Skybox" << YAML::BeginMap;
 		{
-			if (const Ref<AssetTextureCube>& ibl = scene->GetSkybox())
-				out << YAML::Key << "IBL" << YAML::Value << ibl->GetGUID();
-			out << YAML::Key << "Intensity" << YAML::Value << scene->GetSkyboxIntensity();
+			if (settings.IBL)
+				out << YAML::Key << "IBL" << YAML::Value << settings.IBL->GetGUID();
+			out << YAML::Key << "Intensity" << YAML::Value << settings.Intensity;
 
 			{
-				const auto& sky = scene->GetSkySettings();
+				const auto& sky = settings.Sky;
 				out << YAML::Key << "Sky" << YAML::BeginMap;
 				out << YAML::Key << "SunPos" << YAML::Value << sky.SunPos;
 				out << YAML::Key << "SkyIntensity" << YAML::Value << sky.SkyIntensity;
@@ -288,9 +294,9 @@ namespace Eagle
 				out << YAML::EndMap;
 			}
 		}
-		out << YAML::Key << "bUseSky" << YAML::Value << scene->GetUseSkyAsBackground();
-		out << YAML::Key << "bRenderSkybox" << YAML::Value << scene->IsRenderSkyboxEnabled();
-		out << YAML::Key << "bEnabled" << YAML::Value << scene->IsSkyboxEnabled();
+		out << YAML::Key << "bUseSky" << YAML::Value << settings.bUseSkyAsBackground;
+		out << YAML::Key << "bRenderSkybox" << YAML::Value << settings.bRenderSkybox;
+		out << YAML::Key << "bEnabled" << YAML::Value << settings.bEnabled;
 		out << YAML::EndMap;
 	}
 
@@ -300,21 +306,16 @@ namespace Eagle
 		if (!skyboxNode)
 			return;
 
-		Ref<AssetTextureCube> skybox;
-		float skyboxIntensity = 1.f;
-
+		SceneSkyboxSettings settings;
 		if (auto iblNode = skyboxNode["IBL"])
-			skybox = GetAsset<AssetTextureCube>(iblNode);
+			settings.IBL = GetAsset<AssetTextureCube>(iblNode);
 
 		if (auto intensityNode = skyboxNode["Intensity"])
-			skyboxIntensity = intensityNode.as<float>();
+			settings.Intensity = intensityNode.as<float>();
 
-		scene->SetSkybox(skybox);
-		scene->SetSkyboxIntensity(skyboxIntensity);
-
-		SkySettings sky{};
 		if (auto skyNode = skyboxNode["Sky"])
 		{
+			auto& sky = settings.Sky;
 			sky.SunPos = skyNode["SunPos"].as<glm::vec3>();
 			sky.SkyIntensity = skyNode["SkyIntensity"].as<float>();
 			sky.CloudsIntensity = skyNode["CloudsIntensity"].as<float>();
@@ -326,17 +327,14 @@ namespace Eagle
 			sky.bEnableCirrusClouds = skyNode["bEnableCirrusClouds"].as<bool>();
 			sky.bEnableCumulusClouds = skyNode["bEnableCumulusClouds"].as<bool>();
 		}
-		scene->SetSkybox(sky);
-		scene->SetUseSkyAsBackground(skyboxNode["bUseSky"].as<bool>());
 
-		bool bRenderSkybox = true;
+		if (auto node = skyboxNode["bUseSky"])
+			settings.bUseSkyAsBackground = node.as<bool>();
 		if (auto node = skyboxNode["bRenderSkybox"])
-			bRenderSkybox = node.as<bool>();
-		scene->SetRenderSkybox(bRenderSkybox);
-
-		bool bSkyboxEnabled = true;
+			settings.bRenderSkybox = node.as<bool>();
 		if (auto node = skyboxNode["bEnabled"])
-			bSkyboxEnabled = node.as<bool>();
-		scene->SetSkyboxEnabled(bSkyboxEnabled);
+			settings.bEnabled = node.as<bool>();
+
+		scene->SetSkyboxSettings(settings);
 	}
 }

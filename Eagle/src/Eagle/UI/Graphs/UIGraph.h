@@ -167,6 +167,9 @@ namespace Eagle
         const std::string& GetName() const { return Graph ? UserData : Name; }
         std::string& GetName() { return Graph ? UserData : Name; }
 
+        // Its size is set by the user (a comment). The other nodes are sized by their content when they're drawn
+        bool IsResizable() const { return Type == NodeType::Comment; }
+
         bool CanAddPins() const { return m_CanAddPinsCallback ? m_CanAddPinsCallback(*this) : false; }
         bool CanRemovePins() const { return m_CanRemovePinsCallback ? m_CanRemovePinsCallback(*this) : false; }
 
@@ -333,6 +336,11 @@ namespace Eagle
         // UI only (main thread)
         ed::Detail::EditorContext* GetEditorContext();
         bool HasEditorContext() const { return m_GraphData.Editor != nullptr; }
+
+        void GetViewState(ImVec2* outScroll, float* outZoom) const;
+
+        std::vector<GUID> GetSelectedNodes() const;
+        void SelectNodes(const std::vector<GUID>& nodeIDs);
 
         ImVec2 GetNodePosition(ed::NodeId id) const;
         ImVec2 GetNodeSize(ed::NodeId id) const;

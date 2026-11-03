@@ -83,7 +83,7 @@ namespace Eagle
 		: m_DebugName("Empty")
 	{
 		// No scene renderer on purpose
-		m_RuntimePhysicsScene = MakeRef<PhysicsScene>(PhysicsSettings());
+		m_RuntimePhysicsScene = MakeRef<PhysicsScene>(m_Settings.Physics);
 		m_PhysicsScene = m_RuntimePhysicsScene;
 		SetupOnAppAssemblyReloadedCallback();
 
@@ -113,11 +113,7 @@ namespace Eagle
 			m_SceneRenderer = MakeRef<SceneRenderer>(glm::uvec2{ m_ViewportWidth, m_ViewportHeight });
 		}
 		OnViewportResize(m_SceneRenderer->GetViewportSize().x, m_SceneRenderer->GetViewportSize().y);
-		SetUseSkyAsBackground(m_bUseSkyAsBackground);
-		SetRenderSkybox(m_bRenderSkybox);
-		SetSkyboxEnabled(m_bSkyboxEnabled);
-		SetSkyboxIntensity(m_SkyboxIntensity);
-		SetSkybox(m_Sky);
+		ApplySkyboxSettings();
 		ConnectSignals();
 		InitPhysicsScenes(bRuntime);
 		SetupOnAppAssemblyReloadedCallback();
@@ -131,27 +127,17 @@ namespace Eagle
 	, m_ViewportWidth(other->m_ViewportWidth)
 	, m_ViewportHeight(other->m_ViewportHeight)
 	, m_DebugName(debugName)
-	, m_RuntimePhysicsSettings(other->m_RuntimePhysicsSettings)
+	, m_Settings(other->m_Settings)
 	, bDrawMiscellaneous(other->bDrawMiscellaneous)
 	, bDrawNavMesh(other->bDrawNavMesh)
 	, bDrawMeshAABBs(other->bDrawMeshAABBs)
 	, bDrawBones(other->bDrawBones)
-	, m_Cubemap(other->m_Cubemap)
-	, m_Sky(other->m_Sky)
-	, m_SkyboxIntensity(other->m_SkyboxIntensity)
-	, m_bSkyboxEnabled(other->m_bSkyboxEnabled)
-	, m_bRenderSkybox(other->m_bRenderSkybox)
-	, m_bUseSkyAsBackground(other->m_bUseSkyAsBackground)
 	, m_CurrentNavMeshEntityGUID(other->m_CurrentNavMeshEntityGUID)
 	{
 		// Reuse renderer so that we don't allocate additional GPU resources
 		m_SceneRenderer = other->m_SceneRenderer;
 		OnViewportResize(m_SceneRenderer->GetViewportSize().x, m_SceneRenderer->GetViewportSize().y);
-		SetUseSkyAsBackground(m_bUseSkyAsBackground);
-		SetRenderSkybox(m_bRenderSkybox);
-		SetSkyboxEnabled(m_bSkyboxEnabled);
-		SetSkyboxIntensity(m_SkyboxIntensity);
-		SetSkybox(m_Sky);
+		ApplySkyboxSettings();
 
 		ankerl::unordered_dense::map<entt::entity, entt::entity> createdEntities;
 		createdEntities.reserve(other->GetEntitiesCount());
@@ -228,7 +214,7 @@ namespace Eagle
 
 	void Scene::InitPhysicsScenes(bool bRuntime)
 	{
-		m_RuntimePhysicsScene = MakeRef<PhysicsScene>(m_RuntimePhysicsSettings);
+		m_RuntimePhysicsScene = MakeRef<PhysicsScene>(m_Settings.Physics);
 		if (bRuntime)
 		{
 			m_PhysicsScene = m_RuntimePhysicsScene;
@@ -239,8 +225,7 @@ namespace Eagle
 			editorSettings.UpdateRate = 30u;
 			editorSettings.Gravity = glm::vec3{ 0.f };
 			editorSettings.bDebugOnPlay = false;
-			editorSettings.bEditorScene = true;
-			m_PhysicsScene = MakeRef<PhysicsScene>(editorSettings);
+			m_PhysicsScene = MakeRef<PhysicsScene>(editorSettings, true);
 		}
 	}
 
@@ -251,12 +236,7 @@ namespace Eagle
 
 		const glm::uvec2 viewportSize = m_SceneRenderer->GetViewportSize();
 		OnViewportResize(viewportSize.x, viewportSize.y);
-		SetUseSkyAsBackground(m_bUseSkyAsBackground);
-		SetRenderSkybox(m_bRenderSkybox);
-		SetSkyboxEnabled(m_bSkyboxEnabled);
-		SetSkyboxIntensity(m_SkyboxIntensity);
-		SetSkybox(m_Sky);
-		SetSkybox(m_Cubemap);
+		ApplySkyboxSettings();
 
 		m_DirtyFlags.SetEverythingDirty(true);
 	}
@@ -579,46 +559,78 @@ namespace Eagle
 		}
 	}
 
-	void Scene::SetSkybox(const Ref<AssetTextureCube>& cubemap)
+	void Scene::SetSettings(const SceneSettings& settings)
 	{
-		m_Cubemap = cubemap;
-		if (m_SceneRenderer)
-			m_SceneRenderer->SetSkybox(m_Cubemap);
+		const auto& [physics, skybox] = settings;
+
+		if (physics != m_Settings.Physics)
+			SetPhysicsSettings(physics);
+
+		if (skybox != m_Settings.Skybox)
+			SetSkyboxSettings(skybox);
+	}
+
+	void Scene::SetSkyboxSettings(const SceneSkyboxSettings& settings)
+	{
+		m_Settings.Skybox = settings;
+		m_Settings.Skybox.Intensity = glm::max(0.f, settings.Intensity);
+		ApplySkyboxSettings();
+	}
+
+	void Scene::ApplySkyboxSettings()
+	{
+		if (!m_SceneRenderer)
+			return;
+
+		const auto& skybox = m_Settings.Skybox;
+		m_SceneRenderer->SetSkybox(skybox.IBL);
+		m_SceneRenderer->SetSkybox(skybox.Sky);
+		m_SceneRenderer->SetSkyboxIntensity(skybox.Intensity);
+		m_SceneRenderer->SetSkyboxEnabled(skybox.bEnabled);
+		m_SceneRenderer->SetRenderSkybox(skybox.bRenderSkybox);
+		m_SceneRenderer->SetUseSkyAsBackground(skybox.bUseSkyAsBackground);
+	}
+
+	void Scene::SetSkybox(const Ref<AssetTextureCube>& ibl)
+	{
+		SceneSkyboxSettings settings = m_Settings.Skybox;
+		settings.IBL = ibl;
+		SetSkyboxSettings(settings);
 	}
 
 	void Scene::SetSkybox(const SkySettings& sky)
 	{
-		m_Sky = sky;
-		if (m_SceneRenderer)
-			m_SceneRenderer->SetSkybox(m_Sky);
+		SceneSkyboxSettings settings = m_Settings.Skybox;
+		settings.Sky = sky;
+		SetSkyboxSettings(settings);
 	}
 
 	void Scene::SetSkyboxIntensity(float intensity)
 	{
-		m_SkyboxIntensity = glm::max(0.f, intensity);
-		if (m_SceneRenderer)
-			m_SceneRenderer->SetSkyboxIntensity(intensity);
+		SceneSkyboxSettings settings = m_Settings.Skybox;
+		settings.Intensity = intensity;
+		SetSkyboxSettings(settings);
 	}
 
 	void Scene::SetSkyboxEnabled(bool bEnabled)
 	{
-		m_bSkyboxEnabled = bEnabled;
-		if (m_SceneRenderer)
-			m_SceneRenderer->SetSkyboxEnabled(m_bSkyboxEnabled);
+		SceneSkyboxSettings settings = m_Settings.Skybox;
+		settings.bEnabled = bEnabled;
+		SetSkyboxSettings(settings);
 	}
 
 	void Scene::SetRenderSkybox(bool bEnabled)
 	{
-		m_bRenderSkybox = bEnabled;
-		if (m_SceneRenderer)
-			m_SceneRenderer->SetRenderSkybox(m_bRenderSkybox);
+		SceneSkyboxSettings settings = m_Settings.Skybox;
+		settings.bRenderSkybox = bEnabled;
+		SetSkyboxSettings(settings);
 	}
 
 	void Scene::SetUseSkyAsBackground(bool value)
 	{
-		m_bUseSkyAsBackground = value;
-		if (m_SceneRenderer)
-			m_SceneRenderer->SetUseSkyAsBackground(m_bUseSkyAsBackground);
+		SceneSkyboxSettings settings = m_Settings.Skybox;
+		settings.bUseSkyAsBackground = value;
+		SetSkyboxSettings(settings);
 	}
 
 	void Scene::BuildNavMesh(NavigationMeshComponent* navMesh)
@@ -1382,7 +1394,7 @@ namespace Eagle
 		m_SceneRenderer->SetIsRuntime(bIsPlaying);
 		m_SceneRenderer->SetMeshesAnimationTransforms(std::move(m_AnimationTransforms));
 		m_SceneRenderer->SetSkeletalParticleAnimationTransforms(std::move(m_SkeletalParticlesAnimationTransforms));
-		m_SceneRenderer->SetGravity(m_RuntimePhysicsSettings.Gravity);
+		m_SceneRenderer->SetGravity(m_Settings.Physics.Gravity);
 		if (m_DirtyFlags.bDecalsDirty)
 			m_SceneRenderer->SetDecals(m_Decals);
 		if (m_DirtyFlags.bOutlinesDirty)
@@ -1630,10 +1642,7 @@ namespace Eagle
 			}
 		}
 
-		m_PhysicsScene->SetGravity(m_RuntimePhysicsSettings.Gravity);
-		m_PhysicsScene->SetUpdateRate(m_RuntimePhysicsSettings.UpdateRate);
-		m_PhysicsScene->SetDebugOnPlay(m_RuntimePhysicsSettings.bDebugOnPlay);
-		m_PhysicsScene->SetDebugType(m_RuntimePhysicsSettings.DebugType);
+		ApplyPhysicsSettings(*m_PhysicsScene);
 		m_PhysicsScene->StartDebugging();
 	}
 
@@ -2017,32 +2026,50 @@ namespace Eagle
 		SetupOnAppAssemblyReloadedCallback();
 	}
 
+	void Scene::SetPhysicsSettings(const PhysicsSettings& settings)
+	{
+		m_Settings.Physics = settings;
+		m_Settings.Physics.UpdateRate = glm::clamp(settings.UpdateRate, PhysicsSettings::s_MinUpdateRate, PhysicsSettings::s_MaxUpdateRate);
+
+		// The editor's physics scene has its own settings
+		if (m_PhysicsScene && m_PhysicsScene == m_RuntimePhysicsScene)
+			ApplyPhysicsSettings(*m_PhysicsScene);
+	}
+
+	void Scene::ApplyPhysicsSettings(PhysicsScene& physicsScene) const
+	{
+		physicsScene.SetGravity(m_Settings.Physics.Gravity);
+		physicsScene.SetUpdateRate(m_Settings.Physics.UpdateRate);
+		physicsScene.SetDebugOnPlay(m_Settings.Physics.bDebugOnPlay);
+		physicsScene.SetDebugType(m_Settings.Physics.DebugType);
+	}
+
 	void Scene::SetGravity(const glm::vec3& gravity)
 	{
-		m_RuntimePhysicsSettings.Gravity = gravity;
-		if (m_PhysicsScene && m_PhysicsScene == m_RuntimePhysicsScene)
-			m_PhysicsScene->SetGravity(m_RuntimePhysicsSettings.Gravity);
+		PhysicsSettings settings = m_Settings.Physics;
+		settings.Gravity = gravity;
+		SetPhysicsSettings(settings);
 	}
 
 	void Scene::SetPhysicsUpdateRate(uint32_t updateRate)
 	{
-		m_RuntimePhysicsSettings.UpdateRate = glm::clamp(updateRate, PhysicsSettings::s_MinUpdateRate, PhysicsSettings::s_MaxUpdateRate);
-		if (m_PhysicsScene && m_PhysicsScene == m_RuntimePhysicsScene)
-			m_PhysicsScene->SetUpdateRate(m_RuntimePhysicsSettings.UpdateRate);
+		PhysicsSettings settings = m_Settings.Physics;
+		settings.UpdateRate = updateRate;
+		SetPhysicsSettings(settings);
 	}
 
 	void Scene::SetPhysicsDebugOnPlay(bool bEnable)
 	{
-		m_RuntimePhysicsSettings.bDebugOnPlay = bEnable;
-		if (m_PhysicsScene && m_PhysicsScene == m_RuntimePhysicsScene)
-			m_PhysicsScene->SetDebugOnPlay(bEnable);
+		PhysicsSettings settings = m_Settings.Physics;
+		settings.bDebugOnPlay = bEnable;
+		SetPhysicsSettings(settings);
 	}
 
 	void Scene::SetPhysicsDebugType(DebugType type)
 	{
-		m_RuntimePhysicsSettings.DebugType = type;
-		if (m_PhysicsScene && m_PhysicsScene == m_RuntimePhysicsScene)
-			m_PhysicsScene->SetDebugType(type);
+		PhysicsSettings settings = m_Settings.Physics;
+		settings.DebugType = type;
+		SetPhysicsSettings(settings);
 	}
 
 	void Scene::InvalidateCollisionGroups(uint32_t validMasks)

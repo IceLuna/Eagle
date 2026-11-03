@@ -985,7 +985,7 @@ namespace Eagle
 		}
 
 		skeletalInfo.BuildFlattenedBones();
-		importedMeshes[0].Mesh->RegenerateRagdollData(importedMeshes[0].Mesh->GetMinRagdollBoneSize());
+		importedMeshes[0].Mesh->RegenerateRagdollData(importedMeshes[0].Mesh->GetRagdollSettings());
 
 		// Propagate the same finalized skeleton to every other mesh (relevant only when bCombineMeshes == false).
 		for (size_t i = 1; i < importedMeshes.size(); ++i)
@@ -994,7 +994,7 @@ namespace Eagle
 			otherInfo.SetBonesInfoMap(BonesMap(skeletalInfo.GetBoneInfoMap()));
 			otherInfo.RootBone = skeletalInfo.RootBone;
 			otherInfo.BuildFlattenedBones();
-			importedMeshes[i].Mesh->RegenerateRagdollData(importedMeshes[i].Mesh->GetMinRagdollBoneSize());
+			importedMeshes[i].Mesh->RegenerateRagdollData(importedMeshes[i].Mesh->GetRagdollSettings());
 		}
 
 		// Unlike static meshes, skeletal meshes aren't deduplicated when instanced

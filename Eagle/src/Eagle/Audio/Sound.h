@@ -49,6 +49,15 @@ namespace Eagle
 
 	class SoundGroup;
 
+	struct AudioSettings
+	{
+		float Volume = 1.f;
+		float Pitch = 1.f;
+		float Pan = 0.f;
+
+		bool operator==(const AudioSettings& other) const = default;
+	};
+
 	// It's a wrapper around FMOD::Sound.
 	// This class is not used for playing, but rather passed to `Sound` classes to be used
 	class Audio
@@ -65,14 +74,17 @@ namespace Eagle
 		void SetSoundGroup(const Ref<SoundGroup>& soundGroup);
 		const Ref<SoundGroup>& GetSoundGroup() const { return m_SoundGroup; }
 
+		const AudioSettings& GetSettings() const { return m_Settings; }
+		void SetSettings(const AudioSettings& settings);
+
 		void SetVolume(float volume);
-		float GetVolume() const { return m_Volume; }
+		float GetVolume() const { return m_Settings.Volume; }
 
 		void SetPitch(float pitch);
-		float GetPitch() const { return m_Pitch; }
+		float GetPitch() const { return m_Settings.Pitch; }
 
 		void SetPan(float pan);
-		float GetPan() const { return m_Pan; }
+		float GetPan() const { return m_Settings.Pan; }
 
 		int GetChannelsCount() const;
 
@@ -86,12 +98,13 @@ namespace Eagle
 		Audio(const ScopedDataBuffer& buffer, float volume = 1.f);
 
 	private:
+		void ApplySettings();
+
+	private:
 		FMOD::Sound* m_Sound = nullptr;
 		FMOD::Channel* m_Channel = nullptr;
 		Ref<SoundGroup> m_SoundGroup;
-		float m_Volume = 1.f;
-		float m_Pitch = 1.f;
-		float m_Pan = 0.f;
+		AudioSettings m_Settings;
 	};
 
 	class Sound

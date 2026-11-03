@@ -75,6 +75,8 @@ namespace Eagle
 
 		const std::string& GetName() const { return m_Name; }
 		uint64_t GetNameHash() const { return m_NameHash; }
+
+		bool operator==(const BoneNode& other) const = default;
 	};
 
 	struct BoneInfo
@@ -268,7 +270,45 @@ namespace Eagle
 			{
 				Box, Sphere, Capsule
 			} Shape = ShapeType::Capsule;
+
+			bool operator== (const UserSettings&) const = default;
 		} Settings;
+
+		bool operator==(const SkeletalRagdollBone& other) const = default;
+	};
+
+	// The settings a ragdoll is generated with
+	struct RagdollGenerationSettings
+	{
+		float MinBoneSize = 0.1f; // Smaller bones are merged
+		float MaxTwist = 22.5f;
+		float MaxSwing = 45.f;
+
+		bool operator==(const RagdollGenerationSettings&) const = default;
+	};
+
+	// The settings of a skeletal mesh that can be edited
+	struct SkeletalMeshSettings
+	{
+		std::vector<Ref<AssetMaterial>> Materials;
+		BoneNode RootBone;
+		SkeletalRagdollBone RagdollRoot;
+		RagdollGenerationSettings Ragdoll; // What `RagdollRoot` was generated with
+		CollisionDetectionType CollisionDetection = CollisionDetectionType::Discrete;
+		CollisionGroup Group = s_DefaultCollisionGroup;
+		CollisionGroup InteractingGroup = s_DefaultInteractingCollisionGroup;
+
+		// The project's collision groups that `Group` and `InteractingGroup` refer to.
+		// Groups are stored as bits, and the bit of a removed group can be reused by a group that's added later.
+		// So when the settings are applied, only the bits of the groups that are still the same are kept. Empty means the current groups.
+		// Not compared
+		std::vector<GUID64> CollisionGroupGUIDs;
+
+		size_t GetMemoryUsage() const;
+
+		// Compares the ragdoll, its generation settings and its collision settings
+		bool HasSameRagdoll(const SkeletalMeshSettings& other) const;
+		bool operator==(const SkeletalMeshSettings& other) const;
 	};
 
 	class SkeletalMesh
@@ -276,7 +316,7 @@ namespace Eagle
 	protected:
 		SkeletalMesh() = default;
 		SkeletalMesh(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
-			const std::unordered_map<std::string, SkeletalRagdollBone::UserSettings>& ragdollPerBoneSettings = {}, float minRagdollBoneSize = 0.1f, float maxRagdollTwist = 22.5f, float maxRagdollSwing = 45.f,
+			const std::unordered_map<std::string, SkeletalRagdollBone::UserSettings>& ragdollPerBoneSettings = {}, const RagdollGenerationSettings& ragdollSettings = {},
 			CollisionDetectionType collisionDetection = CollisionDetectionType::Discrete, CollisionGroup collisionGroup = s_DefaultCollisionGroup, CollisionGroup interactingCollisionGroup = s_DefaultInteractingCollisionGroup);
 		SkeletalMesh(const SkeletalMesh& other);
 
@@ -319,14 +359,16 @@ namespace Eagle
 		uint32_t GetMaterialSlotsCount() const { return m_MaterialSlots; }
 
 		void SetMaterialAsset(uint32_t index, const Ref<AssetMaterial>& asset);
-		const Ref<AssetMaterial>& GetMaterialAsset(uint32_t index) { return m_Materials[index]; }
+		const Ref<AssetMaterial>& GetMaterialAsset(uint32_t index) const { return m_Materials[index]; }
 
 		void AddOnMaterialPropertyModifiedCallback(const GUID& id, const std::function<void()>& func);
 		void RemoveOnMaterialPropertyModifiedCallback(const GUID& id);
 
-		void RegenerateRagdollData(float minBoneSize);
-		void SetRagdollMaxTwist(float twist) { m_MaxRagdollTwist = twist; }
-		void SetRagdollMaxSwing(float swing) { m_MaxRagdollSwing = swing; }
+		SkeletalMeshSettings GetSettings() const;
+		void SetSettings(const SkeletalMeshSettings& settings);
+
+		void SetRagdollData(const SkeletalRagdollBone& root, const RagdollGenerationSettings& settings);
+		void RegenerateRagdollData(const RagdollGenerationSettings& settings);
 		void SetCollisionDetectionType(CollisionDetectionType type) { m_CollisionDetection = type; }
 		void SetCollisionGroup(CollisionGroup groups) { m_CollisionGroup = groups; }
 		void SetInteractingCollisionGroup(CollisionGroup groups) { m_InteractingCollisionGroup = groups; }
@@ -335,9 +377,10 @@ namespace Eagle
 
 		const SkeletalRagdollBone& GetRagdollRoot() const { return m_RagdollRoot; }
 		SkeletalRagdollBone& GetRagdollRoot() { return m_RagdollRoot; }
-		float GetMinRagdollBoneSize() const { return m_MinRagdollBoneSize; }
-		float GetRagdollMaxTwist() const { return m_MaxRagdollTwist; }
-		float GetRagdollMaxSwing() const { return m_MaxRagdollSwing; }
+		const RagdollGenerationSettings& GetRagdollSettings() const { return m_RagdollSettings; }
+		float GetMinRagdollBoneSize() const { return m_RagdollSettings.MinBoneSize; }
+		float GetRagdollMaxTwist() const { return m_RagdollSettings.MaxTwist; }
+		float GetRagdollMaxSwing() const { return m_RagdollSettings.MaxSwing; }
 		CollisionDetectionType GetCollisionDetectionType() const { return m_CollisionDetection; }
 		CollisionGroup GetCollisionGroup() const { return m_CollisionGroup; }
 		CollisionGroup GetInteractingCollisionGroup() const { return m_InteractingCollisionGroup; }
@@ -345,7 +388,7 @@ namespace Eagle
 	public:
 		// @ragdollOffsets. Can be used to override `UserOffset` inside `SkeletalRagdollBone`. std::string is a bone name which `UserOffset` needs to be overwritten
 		static Ref<SkeletalMesh> Create(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& m_IndicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
-			const std::unordered_map<std::string, SkeletalRagdollBone::UserSettings>& ragdollPerBoneSettings = {}, float minRagdollBoneSize = 0.1f, float maxRagdollTwist = 22.5f, float maxRagdollSwing = 45.f,
+			const std::unordered_map<std::string, SkeletalRagdollBone::UserSettings>& ragdollPerBoneSettings = {}, const RagdollGenerationSettings& ragdollSettings = {},
 			CollisionDetectionType collisionDetection = CollisionDetectionType::Discrete, CollisionGroup collisionGroup = s_DefaultCollisionGroup, CollisionGroup interactingCollisionGroup = s_DefaultInteractingCollisionGroup);
 		static Ref<SkeletalMesh> Create(const Ref<SkeletalMesh>& other);
 
@@ -365,9 +408,7 @@ namespace Eagle
 		
 		// Ragdoll data
 		SkeletalRagdollBone m_RagdollRoot;
-		float m_MinRagdollBoneSize = 0.1f;
-		float m_MaxRagdollTwist = 22.5f;
-		float m_MaxRagdollSwing = 45.0f;
+		RagdollGenerationSettings m_RagdollSettings;
 		CollisionDetectionType m_CollisionDetection = CollisionDetectionType::Discrete;
 		CollisionGroup m_CollisionGroup = s_DefaultCollisionGroup;
 		CollisionGroup m_InteractingCollisionGroup = s_DefaultInteractingCollisionGroup;

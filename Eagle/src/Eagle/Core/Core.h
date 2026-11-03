@@ -117,6 +117,16 @@ namespace Eagle
 			return std::static_pointer_cast<ToType>(ref);
 	}
 
+	// Doesn't take the ownership. The scope keeps owning the object, the result just points to it.
+	template<typename ToType, typename FromType>
+	constexpr ToType* Cast(const Scope<FromType>& scope)
+	{
+		if constexpr (std::is_polymorphic_v<FromType>)
+			return dynamic_cast<ToType*>(scope.get());
+		else
+			return static_cast<ToType*>(scope.get());
+	}
+
 	template <class T>
 	inline void HashCombine(std::size_t& seed, const T& v)
 	{

@@ -4,6 +4,7 @@
 #include "Eagle/Utils/Timer.h"
 
 #include "AssetEditor.h"
+#include "../Undo/AssetUndo.h"
 #include "../Widgets/CurveEditor.h"
 #include "../Widgets/GradientEditor.h"
 
@@ -29,8 +30,20 @@ namespace Eagle
 			None, Color, ColorIntensity, Size, RotationZ, RotationSpeed, VelocityCoef, VelocityOverLifetime, Drag, TurbulenceStrength, TurbulenceScale, ApplyGravity
 		};
 
-		void OnViewportEnd() override { UpdateGuizmo(); }
+		void OnViewportEnd() override;
 		void UpdateGuizmo();
+
+		void ApplyEmitters();
+
+		struct EditState
+		{
+			std::vector<ParticleEmitter> Emitters;
+			std::vector<std::string> Serialized; // Per emitter, as they're saved. Emitters only compare their IDs, so this is what's compared
+
+			size_t GetMemoryUsage() const;
+			bool operator==(const EditState& other) const { return Serialized == other.Serialized; }
+		};
+
 		void RecalculateLifetime();
 		void RestartPreview();
 
@@ -41,6 +54,10 @@ namespace Eagle
 		void OpenCurve(CurveTarget target);
 		void SelectEmitter(size_t index);
 
+		static EditState CaptureState(const Ref<AssetParticleSystem>& asset);
+		static void ApplyState(const Ref<AssetParticleSystem>& asset, const EditState& state);
+		static std::string DescribeState(const EditState& before, const EditState& after);
+
 	private:
 		static constexpr size_t s_InvalidIndex = size_t(-1);
 
@@ -50,7 +67,7 @@ namespace Eagle
 		Entity m_Entity;
 		Timer m_Timer;
 		float m_Lifetime = FLT_MAX;
-		bool bGuizmoChanged = false;
+		AssetEditTracker<AssetParticleSystem, EditState> m_EditTracker;
 
 		// UI state
 		CurveTarget m_ActiveCurve = CurveTarget::None;

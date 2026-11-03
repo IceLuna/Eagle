@@ -48,7 +48,8 @@ namespace Eagle
 		AABB WorldAABB = AABB(glm::vec3(-1000.f), glm::vec3(1000.f));
 		uint32_t WorldBoundsSubdivisions = 2;
 		bool bDebugOnPlay = false;
-		bool bEditorScene = false;
-		DebugType DebugType = DebugType::Live;
+		Eagle::DebugType DebugType = Eagle::DebugType::Live;
+
+		bool operator==(const PhysicsSettings& other) const = default;
 	};
 }

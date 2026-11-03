@@ -1,5 +1,7 @@
 #include "EntityPropertiesPanel.h"
 #include "../EditorResources.h"
+#include "../Undo/SceneUndo.h"
+#include "EditorLayer.h"
 
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Animation/Animation.h"
@@ -88,7 +90,7 @@ namespace Eagle
 
 	SceneComponent* EntityPropertiesPanel::GetSelectedComponent()
 	{
-		if (!m_Entity)
+		if (!HasSelectedComponent())
 			return nullptr;
 
 		switch (m_SelectedComponent)
@@ -1110,6 +1112,7 @@ namespace Eagle
 						const auto& scene = entity.GetScene();
 						const auto& editorCamera = scene->EditorCamera;
 						cameraComponent.SetWorldTransform(editorCamera.GetTransform());
+						bEntityChanged = true;
 					}
 				});
 				break;
@@ -2404,7 +2407,7 @@ namespace Eagle
 						entity.GetScene()->BuildNavMesh(&component);
 						bEntityChanged = true;
 					}
-					UI::Property("Auto Rebuild", component.bAutoRebuild, "If enabled, nav mesh is rebuilt automatically when its transform or settings are changed");
+					bEntityChanged |= UI::Property("Auto Rebuild", component.bAutoRebuild, "If enabled, nav mesh is rebuilt automatically when its transform or settings are changed");
 
 					UI::EndPropertyGrid();
 
@@ -2613,13 +2616,24 @@ namespace Eagle
 
 					ImGui::Text("This entity was created from an entity asset: %s", asset ? Utils::AsString(asset->GetPath().stem()) : "<unknown>");
 
+					if (ImGui::Button("Show in Content Browser") && asset)
+					{
+						EditorLayer* editorLayer = EditorLayer::Get();
+						EditorFrames::FocusTab(editorLayer);
+						ContentBrowserPanel::Get().ShowAsset(asset->GetPath());
+					}
+
 					const bool bDisable = bRuntime || (asset == nullptr);
 					if (bDisable)
 						UI::PushItemDisabled();
 
 					if (ImGui::Button("Reload from the asset"))
 					{
-						Entity newEntity = Scene::GetCurrentScene()->ReloadEntityCreatedFromAsset(entity);
+						// The entity is recreated and references to it are updated, so any entity of the scene can change
+						const Ref<Scene> scene = m_UndoScene.lock();
+						SceneTransaction transaction(m_UndoHistory, scene && scene.get() == entity.GetScene() ? scene : nullptr, "Reload Entity from Asset");
+						transaction.TrackAll();
+						Entity newEntity = entity.GetScene()->ReloadEntityCreatedFromAsset(entity);
 						if (newEntitySelection)
 							*newEntitySelection = newEntity;
 						bEntityChanged = true;

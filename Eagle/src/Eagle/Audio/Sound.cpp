@@ -33,8 +33,9 @@ namespace Eagle
 
 	Audio::Audio(const ScopedDataBuffer& buffer, float volume)
 		: m_SoundGroup(AudioEngine::GetMasterSoundGroup())
-		, m_Volume(volume)
 	{
+		m_Settings.Volume = volume;
+
 		const FMOD_RESULT res = FMOD_RESULT(AudioEngine::CreateSoundFromBuffer(buffer.GetDataBuffer(), FMOD_DEFAULT, &m_Sound));
 		if (res != FMOD_OK)
 		{
@@ -63,25 +64,42 @@ namespace Eagle
 			m_Channel->setChannelGroup(m_SoundGroup ? m_SoundGroup->GetFMODGroup() : nullptr);
 	}
 
+	void Audio::SetSettings(const AudioSettings& settings)
+	{
+		m_Settings = settings;
+		m_Settings.Pitch = std::max(settings.Pitch, 0.f);
+		ApplySettings();
+	}
+
+	void Audio::ApplySettings()
+	{
+		if (!m_Channel)
+			return;
+
+		m_Channel->setVolume(m_Settings.Volume);
+		m_Channel->setPitch(m_Settings.Pitch);
+		m_Channel->setPan(m_Settings.Pan);
+	}
+
 	void Audio::SetVolume(float volume)
 	{
-		m_Volume = volume;
-		if (m_Channel)
-			m_Channel->setVolume(m_Volume);
+		AudioSettings settings = m_Settings;
+		settings.Volume = volume;
+		SetSettings(settings);
 	}
 
 	void Audio::SetPitch(float pitch)
 	{
-		m_Pitch = std::clamp(pitch, 0.f, 10.f);
-		if (m_Channel)
-			m_Channel->setPitch(m_Pitch);
+		AudioSettings settings = m_Settings;
+		settings.Pitch = pitch;
+		SetSettings(settings);
 	}
 
 	void Audio::SetPan(float pan)
 	{
-		m_Pan = pan;
-		if (m_Channel)
-			m_Channel->setPan(m_Pan);
+		AudioSettings settings = m_Settings;
+		settings.Pan = pan;
+		SetSettings(settings);
 	}
 
 	int Audio::GetChannelsCount() const
@@ -108,9 +126,7 @@ namespace Eagle
 			return;
 		}
 
-		m_Channel->setVolume(m_Volume);
-		m_Channel->setPitch(m_Pitch);
-		m_Channel->setPan(m_Pan);
+		ApplySettings();
 
 		if (const auto& group = GetSoundGroup())
 			m_Channel->setChannelGroup(group->GetFMODGroup());

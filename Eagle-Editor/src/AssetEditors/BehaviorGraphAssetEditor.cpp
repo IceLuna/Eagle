@@ -9,8 +9,12 @@ namespace Eagle
 		: m_Asset(asset)
 		, m_WindowName(AssetEditor::GetAssetWindowName(m_Asset))
 		, m_Graph(MakeScope<BehaviorGraphEditor>(m_Asset, m_WindowName))
+		, m_EditTracker(*m_Graph, m_Asset)
+		, m_AssetSync(*m_Graph, m_UndoHistory)
 	{
 		SetTabWindowName(m_WindowName);
+
+		m_Graph->SetBeginWindowCallback([this]() { m_EditTracker.BeginFrame(&m_UndoHistory); });
 
 		m_Graph->SetRenderAssetSettingsCallback([this]()
 		{
@@ -24,6 +28,8 @@ namespace Eagle
 	{
 		PrepareTabWindow();
 		m_Graph->OnImGuiRender(pOpen);
+		m_EditTracker.EndFrame();
+		m_AssetSync.Update();
 	}
 
 	void BehaviorGraphAssetEditor::SetInFocus()

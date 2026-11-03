@@ -12,7 +12,7 @@ namespace Eagle
 {
 	static const char* s_RootMotionHelpMsg = "Animation root motion will be used to drive the transformation of an entity\n"
 		"Base Pose: use base pose root bone transform\n"
-		"AnimFirstFrame: use root bone transform of the first animation frame";
+		"Anim First Frame: use root bone transform of the first animation frame";
 	static const char* s_2DCommonSettingsHelpMsg = "`Is Normal Map` and `Import Alpha channel` aren't present in common settings. "
 		"You can control them via per texture settings";
 	static const char* s_CompressionHelpMsg = "If set to true, the engine will try to compress the image. "

@@ -60,6 +60,7 @@ namespace Eagle
 		static void Shutdown();
 		static void Reset(); // Resets some systems such as TextureSystem and MaterialSystem
 		static void Wait();
+		static void WaitForFramesPresented(); // Blocks until the render thread has submitted and presented every frame ended so far. Unlike `Wait()`, it doesn't wait for the whole GPU
 		static void ReleasePendingResources();
 
 		static void OnVSyncEnabled(bool bEnabled);

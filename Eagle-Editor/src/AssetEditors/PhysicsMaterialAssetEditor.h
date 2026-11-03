@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AssetEditor.h"
+#include "../Undo/AssetUndo.h"
 
 #include "Eagle/Core/Entity.h"
 
@@ -22,9 +23,12 @@ namespace Eagle
 		void ResetScene();
 		void WakeUpActors();
 
+		static std::string DescribeState(const AssetPhysicsMaterial::Settings& before, const AssetPhysicsMaterial::Settings& after);
+
 	private:
 		Ref<AssetPhysicsMaterial> m_Asset;
 		SphereColliderComponent* m_Component = nullptr; // Not owning
+		AssetEditTracker<AssetPhysicsMaterial, AssetPhysicsMaterial::Settings> m_EditTracker;
 
 		Entity m_Sphere1;
 		Entity m_Sphere2;

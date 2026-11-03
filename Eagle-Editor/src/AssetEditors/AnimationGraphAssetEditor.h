@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AssetEditor.h"
+#include "../Undo/GraphUndo.h"
 
 namespace Eagle
 {
@@ -24,6 +25,8 @@ namespace Eagle
 		Ref<AssetAnimationGraph> m_Asset;
 		std::string m_WindowName;
 		Scope<AnimationGraphEditor> m_Graph;
+		GraphEditTracker m_EditTracker; // After `m_Graph`, it refers to it
+		GraphAssetSync m_AssetSync; // After `m_Graph`, it writes into the asset through it when it's destroyed
 		Entity m_Entity;
 	};
 }

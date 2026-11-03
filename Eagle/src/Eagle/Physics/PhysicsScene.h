@@ -23,7 +23,8 @@ namespace Eagle
 	class PhysicsScene
 	{
 	public:
-		PhysicsScene(const PhysicsSettings& settings);
+		// @bEditorScene. The physics scene of a scene that's edited (not played). Its objects only collide with queries (for example, to select them)
+		PhysicsScene(const PhysicsSettings& settings, bool bEditorScene = false);
 		~PhysicsScene() { Destroy(); }
 
 		void Simulate(Timestep ts, bool bCallScripts);

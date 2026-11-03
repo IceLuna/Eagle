@@ -31,8 +31,8 @@ namespace Eagle
 
 		// Returns false on failure (for example, if variables have different types)
 		virtual bool CopyValue(const Ref<GraphVariable>& other) = 0;
-
 		virtual bool HasValue() const = 0;
+		virtual Ref<GraphVariable> Clone() const = 0;
 
 		GraphVariableType GetType() const { return m_Type; }
 		bool IsDefaultVar() const { return bDefaultVar; }
@@ -66,6 +66,7 @@ namespace Eagle
 		}
 
 		virtual bool HasValue() const override { return true; }
+		Ref<GraphVariable> Clone() const override { return MakeRef<GraphVariableBool>(*this); }
 
 		bool Value = false;
 	};
@@ -92,6 +93,7 @@ namespace Eagle
 		}
 
 		virtual bool HasValue() const override { return true; }
+		Ref<GraphVariable> Clone() const override { return MakeRef<GraphVariableInt>(*this); }
 
 		int Value = 0;
 	};
@@ -118,6 +120,7 @@ namespace Eagle
 		}
 
 		virtual bool HasValue() const override { return true; }
+		Ref<GraphVariable> Clone() const override { return MakeRef<GraphVariableFloat>(*this); }
 
 		float Value = 0.f;
 	};
@@ -144,6 +147,7 @@ namespace Eagle
 		}
 
 		virtual bool HasValue() const override { return Value.operator bool(); }
+		Ref<GraphVariable> Clone() const override { return MakeRef<GraphVariableAnimation>(*this); }
 
 		Ref<AssetAnimation> Value;
 	};
@@ -170,6 +174,7 @@ namespace Eagle
 		}
 
 		virtual bool HasValue() const override { return true; }
+		Ref<GraphVariable> Clone() const override { return MakeRef<GraphVariableString>(*this); }
 
 		std::string Value;
 	};
@@ -196,6 +201,7 @@ namespace Eagle
 		}
 
 		virtual bool HasValue() const override { return true; }
+		Ref<GraphVariable> Clone() const override { return MakeRef<GraphVariableVec4>(*this); }
 
 		glm::vec4 Value = glm::vec4(0);
 	};

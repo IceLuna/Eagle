@@ -17,6 +17,7 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imgui_impl_vulkan.h>
+#include <ImGuizmo.h>
 
 namespace Eagle::UI
 {
@@ -2562,5 +2563,54 @@ namespace Eagle::UI
 			return textureID.GetTexID();
 		}
 		return 0;
+	}
+
+	bool HasWidgetInput()
+	{
+		ImGuiContext& g = *GImGui;
+		if (g.InputEventsTrail.empty())
+			return false;
+
+		// Popups opened by the window are a part of it (for example, the list of a combo)
+		const bool bHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
+		const bool bFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+
+		// The events that ImGui processed this frame
+		for (const ImGuiInputEvent& event : g.InputEventsTrail)
+		{
+			switch (event.Type)
+			{
+			case ImGuiInputEventType_MouseButton:
+			case ImGuiInputEventType_MouseWheel:
+				if (bHovered)
+					return true;
+				break;
+
+			case ImGuiInputEventType_Key:
+			case ImGuiInputEventType_Text:
+				if (bFocused)
+					return true;
+				break;
+
+			default: // Mouse movement doesn't change values by itself (a drag only does while its widget is active)
+				break;
+			}
+		}
+		return false;
+	}
+
+	bool IsInteracting()
+	{
+		// The guizmo doesn't use ImGui items, it's tracked separately
+		return ImGui::IsAnyItemActive() || ImGuizmo::IsUsingAny();
+	}
+
+	std::string GetEnumDisplayName(std::string_view name)
+	{
+		constexpr std::string_view exceptions[] = { "AgX" };
+		if (std::ranges::contains(exceptions, name))
+			return std::string(name);
+
+		return Utils::ToDisplayName(name);
 	}
 }

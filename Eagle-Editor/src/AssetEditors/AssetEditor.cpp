@@ -12,6 +12,7 @@
 #include "../ImOGuizmo.h"
 #include "../Panels/ContentBrowserPanel.h"
 #include "../Widgets/ViewportToolbar.h"
+#include "../Undo/UndoUI.h"
 
 #include <imgui/imgui_internal.h>
 #include <ImGuizmo.h>
@@ -418,6 +419,14 @@ namespace Eagle
 			ContentBrowserPanel::Get().CloseAssetEditor(asset);
 	}
 
+	MajorTab* AssetEditor::GetOwnerTab()
+	{
+		if (IsMajorTab())
+			return this;
+
+		return EditorLayer::Get();
+	}
+
 	void AssetEditor::PrepareTabWindow()
 	{
 		if (IsMajorTab())
@@ -439,9 +448,18 @@ namespace Eagle
 			ImGui::EndMenu();
 		}
 
+		if (ImGui::BeginMenu("Edit"))
+		{
+			UndoUI::DrawMenuItems(*this);
+			ImGui::Separator();
+			if (ImGui::MenuItem("Project Settings"))
+				editorLayer->OpenProjectSettings();
+			ImGui::EndMenu();
+		}
+
 		if (ImGui::BeginMenu("Asset"))
 		{
-			if (ImGui::MenuItem("Find in Content Browser", nullptr, false, asset != nullptr))
+			if (ImGui::MenuItem("Show in Content Browser", nullptr, false, asset != nullptr))
 			{
 				// The content browser is a panel of the level editor
 				EditorFrames::FocusTab(editorLayer);

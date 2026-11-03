@@ -17,6 +17,16 @@ namespace Eagle
 
 		DataBuffer(void* data, size_t size) : Data(data), Size(size) {}
 
+		bool operator== (const DataBuffer& other) const
+		{
+			return Size == other.Size && (Size == 0 || std::memcmp(Data, other.Data, Size) == 0);
+		}
+
+		bool operator!= (const DataBuffer& other) const
+		{
+			return !(*this == other);
+		}
+
 		static DataBuffer Copy(const void* data, size_t size)
 		{
 			DataBuffer buffer;
@@ -161,6 +171,16 @@ namespace Eagle
 			m_Buffer = other.m_Buffer;
 
 			other.m_Buffer = {};
+		}
+
+		bool operator== (const ScopedDataBuffer& other) const
+		{
+			return m_Buffer == other.m_Buffer;
+		}
+
+		bool operator!= (const ScopedDataBuffer& other) const
+		{
+			return !(*this == other);
 		}
 
 		static ScopedDataBuffer Copy(const ScopedDataBuffer& other)

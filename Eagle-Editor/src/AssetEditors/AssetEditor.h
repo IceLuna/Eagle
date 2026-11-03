@@ -2,6 +2,7 @@
 
 #include "../EditorResources.h"
 #include "../Frames/EditorFrames.h"
+#include "../Undo/UndoHistory.h"
 
 #include "Eagle/Math/Transform.h"
 
@@ -28,6 +29,10 @@ namespace Eagle
 
 		virtual bool IsMajorTab() const { return true; }
 		virtual bool UsesGuizmo() const { return false; }
+
+		MajorTab* GetOwnerTab();
+
+		UndoHistory* GetUndoHistory() override { return &m_UndoHistory; }
 
 		// pOpen - In case X button is clicked, this flag will be set to false.
 		// pOpen - if nullptr set, windows will not have X button 
@@ -105,6 +110,7 @@ namespace Eagle
 		static bool DrawAlwaysIncludeInGameBuildsCheckbox(const Ref<Asset>& asset);
 
 	protected:
+		UndoHistory m_UndoHistory;
 		ImVec2 m_FirstUseSizeRatio = ImVec2(0.7f, 0.75f);
 		float m_FirstUseViewportRatio = 0.65f;
 

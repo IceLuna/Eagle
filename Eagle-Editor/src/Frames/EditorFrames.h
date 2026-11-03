@@ -7,6 +7,7 @@
 namespace Eagle
 {
 	class Texture2D;
+	class UndoHistory;
 
 	// A top-level tab of the editor.
 	// The title bar of a frame shows the menus of its active tab
@@ -28,6 +29,10 @@ namespace Eagle
 
 		// If true, the tab always stays in the main frame: it can't be dragged out of it
 		virtual bool IsPinnedToMainFrame() const { return false; }
+
+		// The undo history of the tab.
+		// Null if the tab doesn't support undo (or it can't be used at the moment, for example while the game is played)
+		virtual UndoHistory* GetUndoHistory() { return nullptr; }
 	};
 
 	// Frames are the editor's windows: they have the editor's title bar, and a tab well that holds major tabs (see `MajorTab`).
@@ -38,6 +43,19 @@ namespace Eagle
 	class EditorFrames
 	{
 	public:
+		// The windows submitted while it exists belong to the tab: its window, its panels (wherever they are, docked or floating), their child windows and popups.
+		// It's how the focused tab is found (see `GetFocusedTab()`): a floating panel isn't connected to its tab otherwise.
+		// Scopes can be nested, a window belongs to the innermost one
+		class TabContentScope
+		{
+		public:
+			explicit TabContentScope(MajorTab* tab);
+			~TabContentScope();
+
+			TabContentScope(const TabContentScope&) = delete;
+			TabContentScope& operator=(const TabContentScope&) = delete;
+		};
+
 		// @icon. Shown in the title bars
 		static void Init(const Ref<Texture2D>& icon);
 
@@ -55,6 +73,13 @@ namespace Eagle
 		static void RemoveTab(MajorTab* tab);
 
 		static void FocusTab(MajorTab* tab);
+
+		// The tab the user is working in.
+		// If none has it (for example, a frame's title bar is focused, or nothing is), it's the tab that had it last. Null if there's none
+		static MajorTab* GetFocusedTab();
+
+		// The ImGui viewport (an OS window) the tab is in. Null if the tab's window doesn't exist yet
+		static ImGuiViewport* GetTabViewport(const MajorTab* tab);
 
 		// Recommended flags of major tabs' windows. Their placement is managed by the frames, so it's not saved
 		static constexpr ImGuiWindowFlags TabWindowFlags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings;

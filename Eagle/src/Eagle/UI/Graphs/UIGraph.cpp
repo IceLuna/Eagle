@@ -206,6 +206,59 @@ namespace Eagle
         return m_GraphData.Editor;
     }
 
+    void UIGraph::GetViewState(ImVec2* outScroll, float* outZoom) const
+    {
+        if (m_GraphData.Editor)
+        {
+            const auto& settings = m_GraphData.Editor->GetSettings();
+            *outScroll = settings.m_ViewScroll;
+            *outZoom = settings.m_ViewZoom;
+        }
+        else
+        {
+            *outScroll = m_GraphData.ViewScroll;
+            *outZoom = m_GraphData.ViewZoom;
+        }
+    }
+
+    std::vector<GUID> UIGraph::GetSelectedNodes() const
+    {
+        std::vector<GUID> result;
+        if (!m_GraphData.Editor)
+            return result;
+
+        ScopedNodeEditorContext editorScope(m_GraphData.Editor);
+        const int selectedCount = ed::GetSelectedObjectCount();
+        std::vector<ed::NodeId> selected(selectedCount);
+        if (selected.empty())
+            return result;
+
+        const int count = ed::GetSelectedNodes(selected.data(), int(selected.size()));
+        result.reserve(count);
+
+        for (int i = 0; i < count; ++i)
+        {
+            if (const Node* node = FindNode(selected[i]))
+                result.push_back(node->UUID);
+        }
+
+        return result;
+    }
+
+    void UIGraph::SelectNodes(const std::vector<GUID>& nodeIDs)
+    {
+        if (nodeIDs.empty())
+            return;
+
+        ScopedNodeEditorContext editorScope(GetEditorContext());
+        ed::ClearSelection();
+        for (const GUID& id : nodeIDs)
+        {
+            if (const Node* node = FindNodeByGUID(id))
+                ed::SelectNode(node->ID, true);
+        }
+    }
+
     ImVec2 UIGraph::GetNodePosition(ed::NodeId id) const
     {
         if (m_GraphData.Editor)
@@ -1057,10 +1110,13 @@ namespace Eagle
             {
                 if (const auto& bg = ((UIBehaviorGraph*)this)->GetBehaviorGraphAsset())
                 {
+                    // Because the tree is rebuilt on every edit, it always reflects the current graph.
+                    // When undo restores an earlier state, looking nodes up in the tree would return the current field values, not the ones being restored.
+                    // Hence, `m_Editor.IsRestoringState()` check
                     AIBehaviorNode behaviorNodeData;
-                    if (!bg->GetClassNodeData(nodeData.BehaviorClassData.ID, &behaviorNodeData))
+                    if (m_Editor.IsRestoringState() || !bg->GetClassNodeData(nodeData.BehaviorClassData.ID, &behaviorNodeData))
                     {
-                        // Failed because it's not used by the asset. Use fallback data
+                        // Or it failed because it's not used by the asset. Use fallback data
                         behaviorNodeData.Data = nodeData.BehaviorClassData;
                         behaviorNodeData.AttachedDecorators = nodeData.AttachedDecorators;
                     }

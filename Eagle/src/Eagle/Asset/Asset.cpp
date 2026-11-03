@@ -7,7 +7,9 @@
 #include "Eagle/Renderer/TextureCompressor.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 
+#include "Eagle/Classes/StaticMesh.h"
 #include "Eagle/Classes/SkeletalMesh.h"
+#include "Eagle/Animation/Animation.h"
 #include "Eagle/Core/Entity.h"
 #include "Eagle/Core/Scene.h"
 #include "Eagle/Core/Serializer.h"
@@ -95,10 +97,17 @@ namespace Eagle
 	: Asset(path, pathToRaw, AssetType::Texture2D, guid, bAlwaysIncludeInGameBuilds, rawData)
 		, m_CompressedDataPerMip(std::move(compressedDataPerMip))
 		, m_Texture(texture)
-		, m_Format(format)
-		, m_Compression(compression)
-		, bNormalMap(bNormalMap)
-	{}
+	{
+		EG_CORE_ASSERT(m_Texture);
+
+		m_Settings.Format = format;
+		m_Settings.Compression = compression;
+		m_Settings.bNormalMap = bNormalMap;
+		m_Settings.MipsCount = m_Texture->GetMipsCount();
+		m_Settings.Anisotropy = m_Texture->GetAnisotropy();
+		m_Settings.Filter = m_Texture->GetFilterMode();
+		m_Settings.Address = m_Texture->GetAddressMode();
+	}
 
 	void AssetAnimationGraph::Compile()
 	{
@@ -106,45 +115,92 @@ namespace Eagle
 		editor.Compile();
 	}
 
-	void AssetTexture2D::SetCompression(TextureCompressor::Quality compression, uint32_t mipsCount)
+	void AssetTexture2D::SetSettings(const Settings& settings)
 	{
 		EG_CORE_ASSERT(m_Texture);
 
-		// If compression state didn't change and it's not compressed,
-		// we can just generate mips. Otherwise, we need to upload the new data
-		if (m_Compression == compression && m_Compression == TextureCompressor::Quality::Disabled)
-		{
-			if (m_Texture->GetMipsCount() != mipsCount)
-				m_Texture->GenerateMips(mipsCount);
-		}
-		else
-		{
-			m_Compression = compression;
-			UpdateTextureData_Internal(mipsCount);
-		}
+		Settings newSettings = settings;
+		newSettings.MipsCount = glm::clamp(settings.MipsCount, 1u, CalculateMipCount(m_Texture->GetSize()));
+		if (newSettings == m_Settings)
+			return;
+
+		// Compressed mips are made by the compressor, so changing their count requires compressing again.
+		// If the texture isn't compressed and stays that way, its mips can be generated from the uploaded data
+		const bool bCompressed = newSettings.Compression != TextureCompressor::Quality::Disabled;
+		const bool bMipsChanged = m_Texture->GetMipsCount() != newSettings.MipsCount;
+		const bool bUploadData = m_Settings.Format != newSettings.Format || m_Settings.Compression != newSettings.Compression
+			|| (bCompressed && (m_Settings.bNormalMap != newSettings.bNormalMap || bMipsChanged));
+
+		m_Settings.Format = newSettings.Format;
+		m_Settings.Compression = newSettings.Compression;
+		m_Settings.bNormalMap = newSettings.bNormalMap;
+		if (bUploadData)
+			UpdateTextureData_Internal(newSettings.MipsCount);
+		else if (bMipsChanged)
+			m_Texture->GenerateMips(newSettings.MipsCount);
+
+		if (m_Texture->GetAnisotropy() != newSettings.Anisotropy)
+			m_Texture->SetAnisotropy(newSettings.Anisotropy);
+		if (m_Texture->GetFilterMode() != newSettings.Filter)
+			m_Texture->SetFilterMode(newSettings.Filter);
+		if (m_Texture->GetAddressMode() != newSettings.Address)
+			m_Texture->SetAddressMode(newSettings.Address);
+
+		// What was actually applied (`UpdateTextureData_Internal()` keeps `m_Settings.Compression` up to date)
+		m_Settings.MipsCount = m_Texture->GetMipsCount();
+		m_Settings.Anisotropy = m_Texture->GetAnisotropy();
+		m_Settings.Filter = m_Texture->GetFilterMode();
+		m_Settings.Address = m_Texture->GetAddressMode();
+	}
+
+	void AssetTexture2D::SetCompression(TextureCompressor::Quality compression, uint32_t mipsCount)
+	{
+		Settings settings = m_Settings;
+		settings.Compression = compression;
+		settings.MipsCount = mipsCount;
+		SetSettings(settings);
 	}
 
 	void AssetTexture2D::SetIsNormalMap(bool bNormalMap)
 	{
-		EG_CORE_ASSERT(m_Texture);
-
-		if (bNormalMap == this->bNormalMap)
-			return;
-
-		this->bNormalMap = bNormalMap;
-		if (m_Compression != TextureCompressor::Quality::Disabled) // Only affects compressed textures
-			UpdateTextureData_Internal(m_Texture->GetMipsCount());
+		Settings settings = m_Settings;
+		settings.bNormalMap = bNormalMap;
+		SetSettings(settings);
 	}
 
 	void AssetTexture2D::SetFormat(AssetTexture2DFormat format)
 	{
-		EG_CORE_ASSERT(m_Texture);
+		Settings settings = m_Settings;
+		settings.Format = format;
+		SetSettings(settings);
+	}
 
-		if (m_Format == format)
-			return;
+	void AssetTexture2D::SetMipsCount(uint32_t mipsCount)
+	{
+		Settings settings = m_Settings;
+		settings.MipsCount = mipsCount;
+		SetSettings(settings);
+	}
 
-		m_Format = format;
-		UpdateTextureData_Internal(m_Texture->GetMipsCount());
+	void AssetTexture2D::SetAnisotropy(float anisotropy)
+	{
+		Settings settings = m_Settings;
+		settings.Anisotropy = anisotropy;
+		SetSettings(settings);
+	}
+
+	void AssetTexture2D::SetFilterMode(FilterMode filterMode)
+	{
+		Settings settings = m_Settings;
+		settings.Filter = filterMode;
+		SetSettings(settings);
+	}
+
+	void AssetTexture2D::SetAddressMode(AddressMode addressMode)
+	{
+		Settings settings = m_Settings;
+		settings.Address = addressMode;
+		SetSettings(settings);
 	}
 
 	void AssetTexture2D::UpdateTextureData_Internal(uint32_t mipsCount)
@@ -153,10 +209,12 @@ namespace Eagle
 		// If the generation of compressed data has failed because the hardware doesn't support it, fallback to regular format
 
 		const auto& rawData = GetRawData();
-		if (m_Compression != TextureCompressor::Quality::Disabled)
+		auto& compression = m_Settings.Compression;
+		const AssetTexture2DFormat format = m_Settings.Format;
+		if (compression != TextureCompressor::Quality::Disabled)
 		{
-			const uint32_t targetNumChannels = AssetTextureFormatToChannels(m_Format, m_Compression);
-			auto compressedData = TextureCompressor::Compress(rawData.GetDataBuffer(), targetNumChannels, mipsCount, m_Compression, bNormalMap);
+			const uint32_t targetNumChannels = AssetTextureFormatToChannels(format, compression);
+			auto compressedData = TextureCompressor::Compress(rawData.GetDataBuffer(), targetNumChannels, mipsCount, compression, m_Settings.bNormalMap);
 			if (compressedData)
 			{
 				m_Texture->SetData(compressedData.DataPerMip, compressedData.Format);
@@ -165,20 +223,20 @@ namespace Eagle
 			else
 			{
 				EG_CORE_ERROR("Failed to generate compressed texture: {}", GetPath());
-				m_Compression = TextureCompressor::Quality::Disabled;
+				compression = TextureCompressor::Quality::Disabled;
 			}
 		}
 
-		if (m_Compression == TextureCompressor::Quality::Disabled)
+		if (compression == TextureCompressor::Quality::Disabled)
 		{
-			const int desiredChannels = AssetTextureFormatToChannels(m_Format, m_Compression);
+			const int desiredChannels = AssetTextureFormatToChannels(format, compression);
 			int width = 0, height = 0, channels = 0;
 
 			m_CompressedDataPerMip.clear();
 			ScopedDataBuffer imageData = Utils::LoadTextureFromMemory(rawData, &width, &height, &channels, desiredChannels);
 			if (imageData)
 			{
-				const ImageFormat imageFormat = AssetTextureFormatToImageFormat(m_Format);
+				const ImageFormat imageFormat = AssetTextureFormatToImageFormat(format);
 				m_Texture->SetData(imageData.GetDataBuffer(), imageFormat);
 			}
 			else
@@ -191,57 +249,77 @@ namespace Eagle
 		}
 	}
 
+	AssetTextureCube::AssetTextureCube(const Path& path, const Path& pathToRaw, GUID guid, bool bAlwaysIncludeInGameBuilds, const DataBuffer& rawData, const Ref<TextureCube>& texture, AssetTextureCubeFormat format)
+		: Asset(path, pathToRaw, AssetType::TextureCube, guid, bAlwaysIncludeInGameBuilds, rawData)
+		, m_Texture(texture)
+	{
+		EG_CORE_ASSERT(m_Texture);
+
+		m_Settings.Format = format;
+		m_Settings.LayerSize = m_Texture->GetSize().x;
+		m_Settings.PrefilterSize = m_Texture->GetPrefilterSize();
+		m_Settings.bCompressed = m_Texture->IsCompressed();
+	}
+
+	bool AssetTextureCube::SetSettings(const Settings& settings)
+	{
+		EG_CORE_ASSERT(m_Texture);
+
+		bool bResult = true;
+		if (m_Settings.Format != settings.Format || m_Settings.bCompressed != settings.bCompressed)
+		{
+			int width, height, channels;
+			const ImageFormat desiredFormat = AssetTextureFormatToImageFormat(settings.Format);
+			ScopedDataBuffer imageData = Utils::LoadHDRTextureFromMemory(m_RawData, &width, &height, &channels, desiredFormat);
+			if (imageData)
+			{
+				m_Texture->SetData(imageData.GetDataBuffer(), desiredFormat, settings.bCompressed);
+				m_Settings.Format = settings.Format;
+				m_Settings.bCompressed = settings.bCompressed;
+			}
+			else
+			{
+				EG_CORE_ERROR("Failed to change the format or compression of TextureCube asset. Failed to load the texture data from memory: {} - {}", m_Path, Utils::GetEnumName(settings.Format));
+				bResult = false;
+			}
+		}
+
+		if (m_Texture->GetSize().x != settings.LayerSize)
+			m_Texture->SetLayerSize(settings.LayerSize);
+		if (m_Texture->GetPrefilterSize() != settings.PrefilterSize)
+			m_Texture->SetPrefilterSize(settings.PrefilterSize);
+		m_Settings.LayerSize = m_Texture->GetSize().x;
+		m_Settings.PrefilterSize = m_Texture->GetPrefilterSize();
+
+		return bResult;
+	}
+
 	void AssetTextureCube::SetLayerSize(uint32_t layerSize)
 	{
-		m_Texture->SetLayerSize(layerSize);
+		Settings settings = m_Settings;
+		settings.LayerSize = layerSize;
+		SetSettings(settings);
 	}
 
 	void AssetTextureCube::SetPrefilterSize(uint32_t prefilter)
 	{
-		m_Texture->SetPrefilterSize(prefilter);
+		Settings settings = m_Settings;
+		settings.PrefilterSize = prefilter;
+		SetSettings(settings);
 	}
 
 	bool AssetTextureCube::SetFormat(AssetTextureCubeFormat format)
 	{
-		if (m_Format == format)
-			return true;
-
-		int width, height, channels;
-		const ImageFormat desiredFormat = AssetTextureFormatToImageFormat(format);
-		ScopedDataBuffer imageData = Utils::LoadHDRTextureFromMemory(m_RawData, &width, &height, &channels, desiredFormat);
-		if (!imageData)
-		{
-			EG_CORE_ERROR("Failed to change format of TextureCube asset. Failed to load the texture data from memory: {} - {}", m_Path, Utils::GetEnumName(format));
-			return false;
-		}
-
-		m_Texture->SetData(imageData.GetDataBuffer(), desiredFormat, IsCompressed());
-		m_Format = format;
-
-		return true;
-	}
-	
-	bool AssetTextureCube::IsCompressed() const
-	{
-		return m_Texture->IsCompressed();
+		Settings settings = m_Settings;
+		settings.Format = format;
+		return SetSettings(settings);
 	}
 
 	bool AssetTextureCube::SetCompressed(bool bCompress)
 	{
-		if (IsCompressed() == bCompress)
-			return true;
-
-		int width, height, channels;
-		const ImageFormat desiredFormat = AssetTextureFormatToImageFormat(m_Format);
-		ScopedDataBuffer imageData = Utils::LoadHDRTextureFromMemory(m_RawData, &width, &height, &channels, desiredFormat);
-		if (!imageData)
-		{
-			EG_CORE_ERROR("Failed to change compression of TextureCube asset. Failed to load the texture data from memory: {} - {}", m_Path, Utils::GetEnumName(m_Format));
-			return false;
-		}
-
-		m_Texture->SetData(imageData.GetDataBuffer(), desiredFormat, bCompress);
-		return true;
+		Settings settings = m_Settings;
+		settings.bCompressed = bCompress;
+		return SetSettings(settings);
 	}
 
 	void Asset::AddOnAssetModifiedCallback(const GUID& id, const std::function<void()>& func)
@@ -406,6 +484,14 @@ namespace Eagle
 		return MakeRef<LocalAssetMaterial>("", GUID(), material);
 	}
 	
+	void AssetAudio::SetSettings(const Settings& settings)
+	{
+		if (m_SoundGroup != settings.SoundGroup)
+			SetSoundGroupAsset(settings.SoundGroup);
+
+		m_Audio->SetSettings(settings.Audio);
+	}
+
 	void AssetAudio::SetSoundGroupAsset(const Ref<AssetSoundGroup>& soundGroup)
 	{
 		m_SoundGroup = soundGroup;
@@ -413,6 +499,26 @@ namespace Eagle
 			m_Audio->SetSoundGroup(m_SoundGroup->GetSoundGroup());
 		else
 			m_Audio->SetSoundGroup(nullptr);
+	}
+
+	const AssetAnimation::Settings& AssetAnimation::GetSettings() const
+	{
+		return m_Animation->Settings;
+	}
+
+	void AssetAnimation::SetSettings(const Settings& settings)
+	{
+		m_Animation->Settings = settings;
+	}
+
+	const AssetMaterial::Settings& AssetMaterial::GetSettings() const
+	{
+		return m_Material->GetSettings();
+	}
+
+	void AssetMaterial::SetSettings(const Settings& settings)
+	{
+		m_Material->SetSettings(settings);
 	}
 
 	Ref<AssetPhysicsMaterial> AssetPhysicsMaterial::Create(const Ref<PhysicsMaterial>& material)
@@ -521,24 +627,38 @@ namespace Eagle
 		OnModified();
 	}
 
+	void AssetAnimationBlendSpace::SetSettings(const Settings& settings)
+	{
+		if (m_Settings == settings)
+			return;
+
+		m_Settings = settings;
+		SetPointsData_Internal(m_Settings.Points);
+		SetDirty(true);
+		OnModified();
+	}
+
 	void AssetAnimationBlendSpace::SetPointsData_Internal(const std::vector<BlendSpaceVertex>& pointsData)
 	{
-		m_PointsData = pointsData;
+		auto& points = m_Settings.Points;
+		if (&points != &pointsData)
+			points = pointsData;
 
-		for (auto& pointData : m_PointsData)
+		for (auto& pointData : points)
 		{
-			pointData.Coord.x = glm::clamp(pointData.Coord.x, m_Horizontal.Min, m_Horizontal.Max);
-			pointData.Coord.y = glm::clamp(pointData.Coord.y, m_Vertical.Min, m_Vertical.Max);
+			pointData.Coord.x = glm::clamp(pointData.Coord.x, m_Settings.Horizontal.Min, m_Settings.Horizontal.Max);
+			pointData.Coord.y = glm::clamp(pointData.Coord.y, m_Settings.Vertical.Min, m_Settings.Vertical.Max);
 		}
 		Triangulate();
 	}
 
 	void AssetAnimationBlendSpace::Triangulate()
 	{
-		std::vector<Delaunay::Vertex> vertices(m_PointsData.size());
-		for (size_t i = 0; i < m_PointsData.size(); ++i)
+		auto& points = m_Settings.Points;
+		std::vector<Delaunay::Vertex> vertices(points.size());
+		for (size_t i = 0; i < points.size(); ++i)
 		{
-			auto& point = m_PointsData[i];
+			auto& point = points[i];
 
 			point.Index = uint32_t(i);
 			vertices[i].Coord = point.Coord;
@@ -611,6 +731,27 @@ namespace Eagle
 		return *this;
 	}
 
+	AssetStaticMesh::Settings AssetStaticMesh::GetSettings() const
+	{
+		Settings settings;
+		const uint32_t count = m_Mesh->GetMaterialSlotsCount();
+		settings.Materials.reserve(count);
+		for (uint32_t i = 0; i < count; ++i)
+			settings.Materials.push_back(m_Mesh->GetMaterialAsset(i));
+
+		return settings;
+	}
+
+	void AssetStaticMesh::SetSettings(const Settings& settings)
+	{
+		const uint32_t count = glm::min(m_Mesh->GetMaterialSlotsCount(), uint32_t(settings.Materials.size()));
+		for (uint32_t i = 0; i < count; ++i)
+		{
+			if (m_Mesh->GetMaterialAsset(i) != settings.Materials[i])
+				m_Mesh->SetMaterialAsset(i, settings.Materials[i]);
+		}
+	}
+
 	void AssetStaticMesh::AddOnMaterialPropertyModifiedCallback()
 	{
 		m_Mesh->AddOnMaterialPropertyModifiedCallback(m_GUID, [this]()
@@ -644,6 +785,16 @@ namespace Eagle
 		return *this;
 	}
 
+	AssetSkeletalMesh::Settings AssetSkeletalMesh::GetSettings() const
+	{
+		return m_Mesh->GetSettings();
+	}
+
+	void AssetSkeletalMesh::SetSettings(const Settings& settings)
+	{
+		m_Mesh->SetSettings(settings);
+	}
+
 	void AssetSkeletalMesh::AddOnMaterialPropertyModifiedCallback()
 	{
 		m_Mesh->AddOnMaterialPropertyModifiedCallback(m_GUID, [this]()
@@ -654,11 +805,19 @@ namespace Eagle
 
 	AssetSceneSequence::AssetSceneSequence(const Path& path, GUID guid, bool bAlwaysIncludeInGameBuilds, std::vector<Ref<SequenceTrack>>&& tracks, float duration, float frameRate, bool bLooping)
 		: Asset(path, {}, AssetType::SceneSequence, guid, bAlwaysIncludeInGameBuilds, {})
-		, m_Duration(glm::max(0.01f, duration))
-		, m_FrameRate(glm::clamp(frameRate, 1.f, 240.f))
-		, bLooping(bLooping)
 	{
+		m_Settings.Duration = glm::max(0.01f, duration);
+		m_Settings.FrameRate = glm::clamp(frameRate, 1.f, 240.f);
+		m_Settings.bLooping = bLooping;
 		SetTracks_Internal(std::move(tracks));
+	}
+
+	void AssetSceneSequence::SetSettings(const Settings& settings)
+	{
+		m_Settings = settings;
+		m_Settings.Duration = glm::max(0.01f, settings.Duration);
+		m_Settings.FrameRate = glm::clamp(settings.FrameRate, 1.f, 240.f);
+		SetDirty(true);
 	}
 
 	void AssetSceneSequence::SetTracks_Internal(std::vector<Ref<SequenceTrack>>&& tracks)
@@ -834,7 +993,7 @@ namespace Eagle
 
 		// Fire in the order playback reached them, not in track order. Matters when a single frame
 		// covers several keys, and when the window wrapped around the end of the sequence
-		const float duration = m_Duration;
+		const float duration = m_Settings.Duration;
 		std::sort(outEvents.begin() + firstNewEvent, outEvents.end(), [&window, duration](const SequenceEvent& a, const SequenceEvent& b)
 		{
 			return window.GetTravelDistance(a.Time, duration) < window.GetTravelDistance(b.Time, duration);

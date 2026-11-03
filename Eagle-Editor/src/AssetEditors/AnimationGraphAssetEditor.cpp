@@ -14,8 +14,12 @@ namespace Eagle
 		, m_Asset(asset)
 		, m_WindowName(AssetEditor::GetAssetWindowName(m_Asset))
 		, m_Graph(MakeScope<AnimationGraphEditor>(m_Asset, m_WindowName))
+		, m_EditTracker(*m_Graph, m_Asset)
+		, m_AssetSync(*m_Graph, m_UndoHistory)
 	{
 		SetTabWindowName(m_WindowName);
+
+		m_Graph->SetBeginWindowCallback([this]() { m_EditTracker.BeginFrame(&m_UndoHistory); });
 
 		m_Graph->SetRenderPreviewPanelCallback([this](float w, float h)
 		{
@@ -85,6 +89,9 @@ namespace Eagle
 	{
 		PrepareTabWindow();
 		const bool bRecompiled = m_Graph->OnImGuiRender(pOpen);
+		m_EditTracker.EndFrame();
+		m_AssetSync.Update();
+
 		if (bRecompiled)
 		{
 			// Graphs are reloaded automatically on recompilation.

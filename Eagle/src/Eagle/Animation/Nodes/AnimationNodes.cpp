@@ -211,7 +211,7 @@ namespace Eagle
 
 			const auto& skeletalInfo = skeletal->GetSkeletalMeshInfo();
 			AnimationSystem::AnimationClip(skeletalInfo, animation, skeletalInfo.RootBone, CurrentTime, &m_Pose);
-			if (!animation->bInPlace && animation->HasRootMotion())
+			if (!animation->Settings.bInPlace && animation->HasRootMotion())
 			{
 				m_Pose.SetRootMotion(AnimationSystem::CalculateRootMotion(animation, CurrentTime, m_PrevTime, m_PrevSpeed, ts, &m_Pose.TotalRootMotion));
 			}

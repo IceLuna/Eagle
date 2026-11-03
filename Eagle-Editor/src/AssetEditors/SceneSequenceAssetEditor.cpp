@@ -10,7 +10,10 @@
 #include "Eagle/Asset/AssetManager.h"
 
 #include "../EditorResources.h"
+#include "../EditorLayer.h"
+#include "Eagle/Core/Serializer.h"
 
+#include <yaml-cpp/yaml.h>
 #include <implot.h>
 
 namespace Eagle
@@ -213,9 +216,9 @@ namespace Eagle
 					{
 						if (m_Info->EnumType == PostProcessEnumType::FogEquation)
 						{
-							for (const auto& [value, name] : magic_enum::enum_entries<FogEquation>())
+							for (const FogEquation value : magic_enum::enum_values<FogEquation>())
 							{
-								if (ImGui::Selectable(std::string(name).c_str(), int32_t(value) == key->Value))
+								if (ImGui::Selectable(UI::GetEnumDisplayName(value).c_str(), int32_t(value) == key->Value))
 								{
 									key->Value = int32_t(value);
 									bChanged = true;
@@ -322,7 +325,7 @@ namespace Eagle
 				switch (m_Info->EnumType)
 				{
 					case PostProcessEnumType::FogEquation:
-						return Utils::GetEnumName(FogEquation(value));
+						return UI::GetEnumDisplayName(FogEquation(value));
 					default:
 						EG_CORE_ASSERT(false);
 						return "<Unknown>";
@@ -480,6 +483,7 @@ namespace Eagle
 	// ------------------------------------------------------------------------------------------------
 	SceneSequenceAssetEditor::SceneSequenceAssetEditor(const Ref<AssetSceneSequence>& asset)
 		: m_Asset(asset)
+		, m_EditTracker(&CaptureState, &ApplyState, &DescribeState)
 	{
 		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
 		SetTabWindowName(m_WindowName);
@@ -811,6 +815,8 @@ namespace Eagle
 				const Transform& current = scene->EditorCamera.GetTransform();
 				const bool bMoved = glm::distance(current.Location, m_LastPilotTransform.Location) > 1e-4f
 					|| glm::abs(glm::dot(current.Rotation.GetQuat(), m_LastPilotTransform.Rotation.GetQuat())) < 0.999999f;
+
+				UpdateAutoKeyRecording(bMoved);
 				if (bMoved)
 				{
 					KeyCameraFromViewport(GetTargetCameraTrack(), SnapTime(m_Player.GetTime()));
@@ -818,11 +824,16 @@ namespace Eagle
 				}
 			}
 		}
+		else
+		{
+			UpdateAutoKeyRecording(false);
+		}
 
 		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
 		const bool bVisible = ImGui::Begin(m_WindowName.c_str(), pOpen, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 		if (bVisible)
 		{
+			m_EditTracker.BeginFrame(GetHistory(), m_Asset);
 			DrawToolbar();
 			ImGui::Separator();
 
@@ -879,6 +890,7 @@ namespace Eagle
 		// Structural changes to a track's properties are applied here, where nothing holds
 		// a pointer into the channel vector any more
 		ApplyPendingPropertyOps();
+		m_EditTracker.EndFrame();
 
 		const bool bClosing = pOpen && !(*pOpen);
 		UpdatePreview(bVisible && !bClosing);
@@ -1292,7 +1304,7 @@ namespace Eagle
 		if (!track)
 			return;
 
-		const std::string baseName = Utils::GetEnumName(type);
+		const std::string& baseName = UI::GetEnumDisplayName(type);
 		uint32_t sameTypeCount = 0;
 		for (const auto& views : m_TrackViews)
 			if (views.Track->GetType() == type)
@@ -1840,9 +1852,9 @@ namespace Eagle
 	{
 		if (ImGui::BeginPopup("##AddTrackPopup"))
 		{
-			for (const auto& [type, name] : magic_enum::enum_entries<SequenceTrackType>())
+			for (const SequenceTrackType type : magic_enum::enum_values<SequenceTrackType>())
 			{
-				if (ImGui::MenuItem(std::string(name).c_str()))
+				if (ImGui::MenuItem(UI::GetEnumDisplayName(type).c_str()))
 					AddTrack(type);
 			}
 			ImGui::EndPopup();
@@ -1884,7 +1896,7 @@ namespace Eagle
 			"\n"
 			"Several cameras: the green bar on a camera track shows when it's live, and the green dot marks the\n"
 			"live camera at the playhead. By default the live camera is the one whose keys cover the current time.\n"
-			"For exact control add a 'CameraCuts' track, or right-click a camera track and pick 'Cut To This Camera'\n"
+			"For exact control add a 'Camera Cuts' track, or right-click a camera track and pick 'Cut To This Camera'\n"
 			"\n"
 			"Shortcuts: Space play/pause, K key camera, Del delete, Ctrl+C/V copy/paste,\n"
 			"Left/Right step a frame, Home/End jump, F fit view\n"
@@ -2525,7 +2537,7 @@ namespace Eagle
 					if (!label.empty())
 						tooltip += "\n" + label;
 					if (view->IsInterpolationEditable())
-						tooltip += std::string("\nInterpolation: ") + Utils::GetEnumName(interpolation);
+						tooltip += "\nInterpolation: " + UI::GetEnumDisplayName(interpolation);
 				}
 			}
 		}
@@ -2565,7 +2577,7 @@ namespace Eagle
 					if (CurveView* view = FindView(ref.TrackID, ref.ChannelIndex); view && view->IsInterpolationEditable())
 						bAnyInterpolationEditable = true;
 
-				for (const auto& [interpolation, name] : magic_enum::enum_entries<CurveInterpolation>())
+				for (const CurveInterpolation interpolation : magic_enum::enum_values<CurveInterpolation>())
 				{
 					if (!bAnyInterpolationEditable)
 						break;
@@ -2582,7 +2594,7 @@ namespace Eagle
 						}
 					}
 
-					if (ImGui::MenuItem(std::string(name).c_str(), nullptr, bAllMatch))
+					if (ImGui::MenuItem(UI::GetEnumDisplayName(interpolation).c_str(), nullptr, bAllMatch))
 						SetSelectedInterpolation(interpolation);
 				}
 
@@ -2892,7 +2904,7 @@ namespace Eagle
 		{
 			UI::BeginPropertyGrid("SceneSequenceTrackSettings");
 
-			UI::Text("Type", Utils::GetEnumName(track->GetType()));
+			UI::Text("Type", UI::GetEnumDisplayName(track->GetType()));
 
 			std::string name = track->GetName();
 			if (UI::PropertyText("Name", name))
@@ -3245,5 +3257,138 @@ namespace Eagle
 
 		if (m_CurveEditor.Draw("##SequenceCurves", curves, settings))
 			MarkDirty();
+	}
+
+	UndoHistory* SceneSequenceAssetEditor::GetHistory()
+	{
+		EditorLayer* editorLayer = EditorLayer::Get();
+		return editorLayer ? editorLayer->GetUndoHistory() : nullptr;
+	}
+
+	void SceneSequenceAssetEditor::UpdateAutoKeyRecording(bool bCameraMoved)
+	{
+		UndoHistory* history = GetHistory();
+		if (bCameraMoved)
+		{
+			if (!history)
+				return;
+
+			if (!m_AutoKeyBefore)
+			{
+				history->FlushPendingEdits(); // The auto-key keys are recorded manually, so an edit made through the panel (or another one) is recorded first
+				m_AutoKeyBefore = CaptureState(m_Asset);
+				m_AutoKeyHistoryVersion = history->GetVersion();
+			}
+			else if (history->GetVersion() != m_AutoKeyHistoryVersion)
+			{
+				// Something was undone (for example, with the shortcut while the camera is being panned) or recorded meanwhile, so the captured state is outdated.
+				// The keys written from now on are recorded on top of it
+				m_AutoKeyBefore = CaptureState(m_Asset);
+				m_AutoKeyHistoryVersion = history->GetVersion();
+			}
+			return;
+		}
+
+		if (!m_AutoKeyBefore)
+			return;
+
+		// The camera is still being flown, it just didn't move this frame
+		if (ImGui::IsMouseDown(ImGuiMouseButton_Right) || ImGui::IsMouseDown(ImGuiMouseButton_Middle))
+			return;
+
+		EditState before = std::move(*m_AutoKeyBefore);
+		m_AutoKeyBefore.reset();
+
+		// Something was recorded or applied meanwhile, so `before` might be outdated
+		if (!history || history->GetVersion() != m_AutoKeyHistoryVersion)
+			return;
+
+		EditState after = CaptureState(m_Asset);
+		if (before != after)
+			history->Record("Auto Key Camera", MakeScope<AssetStateCommand<AssetSceneSequence, EditState>>(m_Asset, std::move(before), std::move(after), &ApplyState));
+	}
+
+	size_t SceneSequenceAssetEditor::EditState::GetMemoryUsage() const
+	{
+		size_t result = sizeof(*this) + Tracks.capacity() * sizeof(Ref<SequenceTrack>) + Serialized.capacity() * sizeof(std::string);
+		for (const std::string& track : Serialized)
+			result += track.capacity() * 2; // The YAML, and roughly the same for the keys of the track copy
+		return result;
+	}
+
+	bool SceneSequenceAssetEditor::EditState::operator==(const EditState& other) const
+	{
+		return Settings == other.Settings && Serialized == other.Serialized;
+	}
+
+	SceneSequenceAssetEditor::EditState SceneSequenceAssetEditor::CaptureState(const Ref<AssetSceneSequence>& asset)
+	{
+		EditState state;
+		state.Settings = asset->GetSettings();
+
+		const auto& tracks = asset->GetTracks();
+		state.Tracks.reserve(tracks.size());
+		state.Serialized.reserve(tracks.size());
+		for (const auto& track : tracks)
+		{
+			if (!track)
+				continue;
+
+			state.Tracks.push_back(track->Clone());
+			YAML::Emitter out;
+			Serializer::SerializeSequenceTrack(out, track);
+			state.Serialized.emplace_back(out.c_str(), out.size());
+		}
+		return state;
+	}
+
+	void SceneSequenceAssetEditor::ApplyState(const Ref<AssetSceneSequence>& asset, const EditState& state)
+	{
+		// The asset gets copies, so that the recorded ones aren't affected when it's edited again
+		std::vector<Ref<SequenceTrack>> tracks;
+		tracks.reserve(state.Tracks.size());
+		for (const auto& track : state.Tracks)
+			tracks.push_back(track->Clone());
+
+		asset->SetTracks(std::move(tracks));
+		asset->SetSettings(state.Settings);
+	}
+
+	std::string SceneSequenceAssetEditor::DescribeState(const EditState& before, const EditState& after)
+	{
+		if (after.Tracks.size() != before.Tracks.size())
+		{
+			if (after.Tracks.size() > before.Tracks.size())
+				return after.Tracks.size() - before.Tracks.size() == 1u ? "Add Track" : "Add Tracks";
+			return before.Tracks.size() - after.Tracks.size() == 1u ? "Delete Track" : "Delete Tracks";
+		}
+
+		const SequenceTrack* changedTrack = nullptr;
+		uint32_t changedTracks = 0u;
+		for (size_t i = 0; i < after.Tracks.size(); ++i)
+		{
+			if (before.Tracks[i]->GetID() != after.Tracks[i]->GetID())
+				return "Reorder Tracks";
+			if (before.Serialized[i] != after.Serialized[i])
+			{
+				changedTrack = after.Tracks[i].get();
+				++changedTracks;
+			}
+		}
+
+		const bool bSettingsChanged = before.Settings != after.Settings;
+		if (changedTracks == 0u)
+		{
+			return UndoUtils::Describe({
+				{ "Duration", before.Settings.Duration != after.Settings.Duration },
+				{ "Frame Rate", before.Settings.FrameRate != after.Settings.FrameRate },
+				{ "Looping", before.Settings.bLooping != after.Settings.bLooping },
+			}, "Edit Sequence Settings");
+		}
+
+		if (changedTracks == 1u && !bSettingsChanged)
+			return "Edit Track '" + changedTrack->GetName() + "'";
+
+		return "Edit Sequence";
 	}
 }

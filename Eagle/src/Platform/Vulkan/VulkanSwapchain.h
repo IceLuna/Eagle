@@ -32,6 +32,8 @@ namespace Eagle
 
 		void Present(const Ref<Semaphore>& waitSemaphore, uint32_t imageIndex);
 
+		const Ref<Semaphore>& GetRenderCompleteSemaphore(uint32_t imageIndex) const { return m_RenderCompleteSemaphores[imageIndex]; }
+
 		// Returns a semaphore that will be signaled when image is ready.
 		// A fence is signaled too, so `WaitForAcquireFence` must be called before the next acquire (it's also called automatically)
 		const Ref<Semaphore>& AcquireImage(uint32_t frameIndex, uint32_t* outImageIndex);
@@ -39,6 +41,11 @@ namespace Eagle
 		// Blocks the CPU until the image returned by the latest `AcquireImage` is actually available (released by the presentation engine).
 		// Must be called from the thread that acquires & presents.
 		void WaitForAcquireFence();
+
+		glm::uvec2 GetWindowFramebufferSize() const; // Main thread only
+		void ResizeIfNeeded(glm::uvec2 windowSize); // Render thread only
+		
+		void ReleaseRetiredSwapchains(); // Render thread only
 
 		glm::uvec2 GetSize() const { return { m_Extent.width, m_Extent.height }; }
 
@@ -49,15 +56,26 @@ namespace Eagle
 
 	private:
 		void CreateSyncObjects();
+		void RetireSwapchain(VkSwapchainKHR swapchain);
 
 	private:
+		struct RetiredSwapchain
+		{
+			VkSwapchainKHR Swapchain = VK_NULL_HANDLE;
+			uint64_t FrameNumber = 0;
+			std::vector<Ref<Semaphore>> RenderCompleteSemaphores;
+		};
+
 		std::function<void()> m_RecreatedCallback;
+		std::vector<RetiredSwapchain> m_RetiredSwapchains;
 		std::vector<Ref<Image>> m_Images;
+		std::vector<Ref<Semaphore>> m_RenderCompleteSemaphores;
 		std::vector<Ref<Semaphore>> m_WaitSemaphores;
 		std::vector<Ref<Fence>> m_AcquireFences;
 		Fence* m_PendingAcquireFence = nullptr; // Fence of the latest acquire that hasn't been waited on yet
 		SwapchainSupportDetails m_SupportDetails;
 		VkExtent2D m_Extent;
+		glm::uvec2 m_WindowSize = glm::uvec2(0u);
 		VkSurfaceFormatKHR m_Format;
 		VkInstance m_Instance;
 		VkSurfaceKHR m_Surface = VK_NULL_HANDLE;

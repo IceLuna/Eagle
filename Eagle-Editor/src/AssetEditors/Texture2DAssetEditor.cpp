@@ -15,9 +15,14 @@ namespace Eagle
 
 	Texture2DAssetEditor::Texture2DAssetEditor(const Ref<AssetTexture2D>& asset)
 		: m_Asset(asset)
+		, m_EditTracker(&DescribeState)
 	{
-		const auto& textureToView = m_Asset->GetTexture();
-		m_GenerateMipsCount = textureToView->GetMipsCount();
+		m_GenerateMipsCount = m_Asset->GetMipsCount();
+
+		m_UndoHistory.SetOnAppliedCallback([this](const UndoTransaction&, bool)
+		{
+			m_GenerateMipsCount = m_Asset->GetMipsCount();
+		});
 	}
 
 	void Texture2DAssetEditor::OnImGuiRender(bool* pOpen)
@@ -46,9 +51,9 @@ namespace Eagle
 		ImGui::End();
 
 		{
-			float anisotropy = textureToView->GetAnisotropy();
-			FilterMode filterMode = textureToView->GetFilterMode();
-			AddressMode addressMode = textureToView->GetAddressMode();
+			float anisotropy = m_Asset->GetAnisotropy();
+			FilterMode filterMode = m_Asset->GetFilterMode();
+			AddressMode addressMode = m_Asset->GetAddressMode();
 			const float maxAnisotropy = RenderManager::GetCapabilities().MaxAnisotropy;
 			const size_t gpuMemSize = textureToView->GetMemoryUsage();
 			TextureCompressor::Quality compression = m_Asset->GetCompressionQuality();
@@ -62,6 +67,8 @@ namespace Eagle
 			const std::string mipSizeString = std::to_string(mipTextureSize.x) + "x" + std::to_string(mipTextureSize.y);
 
 			BeginPanel(GetDetailsPanelName());
+			m_EditTracker.BeginFrame(&m_UndoHistory, m_Asset);
+
 			UI::BeginPropertyGrid("TextureDetails");
 			UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
 			UI::Text("Type", "Texture 2D");
@@ -90,7 +97,7 @@ namespace Eagle
 
 			if (UI::ComboEnum("Compression", compression, s_CompressionHelpMsg))
 			{
-				m_Asset->SetCompression(compression, textureToView->GetMipsCount());
+				m_Asset->SetCompression(compression, m_Asset->GetMipsCount());
 				bChanged = true;
 			}
 
@@ -98,7 +105,7 @@ namespace Eagle
 			ImGui::Separator();
 			if (UI::PropertySlider("Anisotropy", anisotropy, 1.f, maxAnisotropy))
 			{
-				textureToView->SetAnisotropy(anisotropy);
+				m_Asset->SetAnisotropy(anisotropy);
 				bChanged = true;
 			}
 
@@ -109,7 +116,7 @@ namespace Eagle
 				if (UI::Combo("Filtering", (uint32_t)filterMode, modesStrings, selectedIndex))
 				{
 					filterMode = FilterMode(selectedIndex);
-					textureToView->SetFilterMode(filterMode);
+					m_Asset->SetFilterMode(filterMode);
 					bChanged = true;
 				}
 			}
@@ -122,7 +129,7 @@ namespace Eagle
 				if (UI::Combo("Wrapping", (uint32_t)addressMode, modesStrings, selectedIndex))
 				{
 					addressMode = AddressMode(selectedIndex);
-					textureToView->SetAddressMode(addressMode);
+					m_Asset->SetAddressMode(addressMode);
 					bChanged = true;
 				}
 			}
@@ -166,7 +173,7 @@ namespace Eagle
 
 				if (ImGui::Button("Generate"))
 				{
-					m_Asset->SetCompression(m_Asset->GetCompressionQuality(), uint32_t(m_GenerateMipsCount));
+					m_Asset->SetMipsCount(uint32_t(m_GenerateMipsCount));
 					bChanged = true;
 				}
 			}
@@ -208,6 +215,20 @@ namespace Eagle
 				Asset::Save(m_Asset);
 
 			ImGui::End();
+			m_EditTracker.EndFrame();
 		}
+	}
+
+	std::string Texture2DAssetEditor::DescribeState(const AssetTexture2D::Settings& before, const AssetTexture2D::Settings& after)
+	{
+		return UndoUtils::Describe({
+			{ "Format", before.Format != after.Format },
+			{ "Is Normal Map", before.bNormalMap != after.bNormalMap },
+			{ "Compression", before.Compression != after.Compression },
+			{ "Mips", before.MipsCount != after.MipsCount && before.Compression == after.Compression },
+			{ "Anisotropy", before.Anisotropy != after.Anisotropy },
+			{ "Filtering", before.Filter != after.Filter },
+			{ "Wrapping", before.Address != after.Address },
+		}, "Edit Texture");
 	}
 }

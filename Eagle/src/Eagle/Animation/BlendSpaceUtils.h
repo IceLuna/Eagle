@@ -21,6 +21,11 @@ namespace Eagle
 		glm::dvec2 Coord = glm::dvec2(0.0);
 		float AnimSpeed = 1.f;
 		uint32_t Index = 0; // For internal use. Vertex index into `std::vector<BlendSpaceVertex>` inside `AssetAnimationBlendSpace`
+
+		bool operator== (const BlendSpaceVertex& other) const
+		{
+			return Animation == other.Animation && Coord == other.Coord && AnimSpeed == other.AnimSpeed;
+		}
 	};
 
 	struct BlendSpaceAxisSettings
@@ -28,5 +33,7 @@ namespace Eagle
 		std::string Name = "Axis";
 		double Min = 0.f;
 		double Max = 1.f;
+
+		bool operator== (const BlendSpaceAxisSettings& other) const = default;
 	};
 }

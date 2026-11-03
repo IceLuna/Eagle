@@ -42,7 +42,7 @@ namespace Eagle
 
 			mesh->SetCollisionGroup(CollisionGroup(collisionGroup));
 			mesh->SetInteractingCollisionGroup(CollisionGroup(interactingCollisionGroup));
-			mesh->RegenerateRagdollData(mesh->GetMinRagdollBoneSize());
+			mesh->RegenerateRagdollData(mesh->GetRagdollSettings());
 		}
 	}
 

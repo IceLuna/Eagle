@@ -89,6 +89,8 @@ namespace Eagle
         static Node& SpawnAnimationEntryStateNode(UIGraph& graph);
 
         // Behavior graph
+        // The node keeps the ID of `data`, so that a loaded or restored node stays associated with its behavior node.
+        // A new ID is generated if it has none (for example, for a new node)
         static Node& SpawnBehaviorTaskNode(UIGraph& graph, const AIBehaviorNode& data);
         static Node& SpawnBehaviorCompositeNode(UIGraph& graph, const AIBehaviorNode& data);
         static Node& SpawnBehaviorRootNode(UIGraph& graph);

@@ -97,7 +97,7 @@ namespace Eagle
 		uint32_t GetMaterialSlotsCount() const { return m_MaterialSlots; }
 
 		void SetMaterialAsset(uint32_t index, const Ref<AssetMaterial>& material);
-		const Ref<AssetMaterial>& GetMaterialAsset(uint32_t index) { return m_Materials[index]; }
+		const Ref<AssetMaterial>& GetMaterialAsset(uint32_t index) const { return m_Materials[index]; }
 
 		void AddOnMaterialPropertyModifiedCallback(const GUID& id, const std::function<void()>& func);
 		void RemoveOnMaterialPropertyModifiedCallback(const GUID& id);

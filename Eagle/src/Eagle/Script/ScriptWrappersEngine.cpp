@@ -1845,7 +1845,7 @@ namespace Eagle
 			return;
 		}
 
-		textureAsset->GetTexture()->SetAnisotropy(anisotropy);
+		textureAsset->SetAnisotropy(anisotropy);
 	}
 
 	float Script::Eagle_AssetTexture2D_GetAnisotropy(GUID id)
@@ -1864,7 +1864,7 @@ namespace Eagle
 			return 1.f;
 		}
 
-		return textureAsset->GetTexture()->GetAnisotropy();
+		return textureAsset->GetAnisotropy();
 	}
 
 	void Script::Eagle_AssetTexture2D_SetFilterMode(GUID id, FilterMode filterMode)
@@ -1883,7 +1883,7 @@ namespace Eagle
 			return;
 		}
 
-		textureAsset->GetTexture()->SetFilterMode(filterMode);
+		textureAsset->SetFilterMode(filterMode);
 	}
 
 	FilterMode Script::Eagle_AssetTexture2D_GetFilterMode(GUID id)
@@ -1902,7 +1902,7 @@ namespace Eagle
 			return FilterMode::Point;
 		}
 
-		return textureAsset->GetTexture()->GetFilterMode();
+		return textureAsset->GetFilterMode();
 	}
 
 	void Script::Eagle_AssetTexture2D_SetAddressMode(GUID id, AddressMode addressMode)
@@ -1921,7 +1921,7 @@ namespace Eagle
 			return;
 		}
 
-		textureAsset->GetTexture()->SetAddressMode(addressMode);
+		textureAsset->SetAddressMode(addressMode);
 	}
 
 	AddressMode Script::Eagle_AssetTexture2D_GetAddressMode(GUID id)
@@ -1940,7 +1940,7 @@ namespace Eagle
 			return AddressMode::Wrap;
 		}
 
-		return textureAsset->GetTexture()->GetAddressMode();
+		return textureAsset->GetAddressMode();
 	}
 
 	void Script::Eagle_AssetTexture2D_SetMipsCount(GUID id, uint32_t mipsCount)
@@ -1959,11 +1959,7 @@ namespace Eagle
 			return;
 		}
 
-		constexpr uint32_t minMips = 1u;
-		auto& texture = textureAsset->GetTexture();
-		const uint32_t maxMips = CalculateMipCount(texture->GetSize());
-		mipsCount = glm::clamp(mipsCount, minMips, maxMips);
-		texture->GenerateMips(mipsCount);
+		textureAsset->SetMipsCount(mipsCount); // It's clamped by the asset
 	}
 
 	uint32_t Script::Eagle_AssetTexture2D_GetMipsCount(GUID id)
@@ -1982,7 +1978,7 @@ namespace Eagle
 			return 1u;
 		}
 
-		return textureAsset->GetTexture()->GetMipsCount();
+		return textureAsset->GetMipsCount();
 	}
 
 	void Script::Eagle_AssetTexture2D_SetFormat(GUID id, AssetTexture2DFormat value)
@@ -2044,7 +2040,7 @@ namespace Eagle
 			return;
 		}
 
-		textureAsset->SetCompression(quality, textureAsset->GetTexture()->GetMipsCount());
+		textureAsset->SetCompression(quality, textureAsset->GetMipsCount());
 	}
 
 	AssetTexture2DFormat Script::Eagle_AssetTexture2D_GetFormat(GUID id)
@@ -2197,7 +2193,7 @@ namespace Eagle
 			return 0u;
 		}
 
-		return textureAsset->GetTexture()->GetSize().x;
+		return textureAsset->GetLayerSize();
 	}
 
 	uint32_t Script::Eagle_AssetTextureCube_GetPrefilterSize(GUID id)
@@ -2216,7 +2212,7 @@ namespace Eagle
 			return 0u;
 		}
 
-		return textureAsset->GetTexture()->GetPrefilterSize();
+		return textureAsset->GetPrefilterSize();
 	}
 
 	AssetTextureCubeFormat Script::Eagle_AssetTextureCube_GetFormat(GUID id)
@@ -2856,7 +2852,7 @@ namespace Eagle
 			return;
 		}
 
-		auto& event = animationAsset->GetAnimation()->Events.emplace_back();
+		auto& event = animationAsset->GetAnimation()->Settings.Events.emplace_back();
 		event.Name = MonoStringHandler(name).c_str();
 		event.Time = time;
 	}
@@ -2879,7 +2875,7 @@ namespace Eagle
 
 		const std::string name = MonoStringHandler(monoName).c_str();
 
-		auto& events = animationAsset->GetAnimation()->Events;
+		auto& events = animationAsset->GetAnimation()->Settings.Events;
 		auto it = std::find_if(events.begin(), events.end(), [&name](const AnimationEvent& a) { return a.Name == name; });
 		if (it != events.end())
 		{
@@ -2908,7 +2904,7 @@ namespace Eagle
 
 		const std::string name = MonoStringHandler(monoName).c_str();
 
-		const auto& events = animationAsset->GetAnimation()->Events;
+		const auto& events = animationAsset->GetAnimation()->Settings.Events;
 		auto it = std::find_if(events.begin(), events.end(), [&name](const AnimationEvent& a) { return a.Name == name; });
 		return it != events.end();
 	}

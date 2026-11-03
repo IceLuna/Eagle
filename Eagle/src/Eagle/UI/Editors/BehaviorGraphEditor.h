@@ -12,10 +12,12 @@ namespace Eagle
         // We'll draw it manually in `UIBehaviorGraph`
         bool RenderLeftPanel() override { return false; }
 
-        GraphEditorSerializationData Save() override;
+        void Save() override;
+        void WriteToAsset() override;
 
         void OnAddGraphPre() override;
         void OnAddGraphPost() override;
+        Ref<UIGraph> CreateRootGraph() override;
 
         const Ref<AssetBehaviorGraph>& GetBehaviorGraphAsset() const { return m_Asset; }
 

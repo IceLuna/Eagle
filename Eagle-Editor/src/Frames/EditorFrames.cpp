@@ -32,7 +32,19 @@ namespace Eagle
 			bool bSelectWhenDocked = false; // Make it the active tab of its tab well once it's docked there
 		};
 
+		// The windows submitted within a `TabContentScope`, by their begin order within the frame (`ImGuiWindow::BeginOrderWithinContext`)
+		struct TabContentRange
+		{
+			MajorTab* Tab = nullptr;
+			int Begin = 0; // The first window
+			int End = 0;   // After the last one
+		};
+
 		std::vector<TabState> s_Tabs;
+		MajorTab* s_LastFocusedTab = nullptr;
+		std::vector<TabContentRange> s_OpenTabContentScopes; // `End` isn't set yet
+		std::vector<TabContentRange> s_TabContentRanges; // Of the current frame
+		std::unordered_map<ImGuiID, MajorTab*> s_WindowTabs; // The windows that were submitted within a `TabContentScope` last frame, and their tabs
 		std::vector<Frame> s_Frames;
 		Ref<Texture2D> s_Icon;
 		ImGuiWindowClass s_TabWindowClass;
@@ -91,6 +103,57 @@ namespace Eagle
 			}
 
 			return false;
+		}
+
+		// Which tab each window that was submitted this frame belongs to (see `TabContentScope`)
+		void UpdateWindowTabs()
+		{
+			const ImGuiContext& g = *GImGui;
+			s_WindowTabs.clear();
+			for (const ImGuiWindow* window : g.Windows)
+			{
+				if (window->LastFrameActive != g.FrameCount)
+					continue; // Not submitted this frame, its begin order is from an earlier one
+
+				// The innermost scope, in case they're nested
+				const TabContentRange* owner = nullptr;
+				for (const TabContentRange& range : s_TabContentRanges)
+				{
+					const int order = window->BeginOrderWithinContext;
+					if (order >= range.Begin && order < range.End && (!owner || range.End - range.Begin < owner->End - owner->Begin))
+						owner = &range;
+				}
+				if (owner)
+					s_WindowTabs[window->ID] = owner->Tab;
+			}
+			s_TabContentRanges.clear();
+		}
+
+		// The tab of the focused window. It's either one of the windows of the tab (see `TabContentScope`), or leads to one:
+		// docked panels lead to the window that hosts their dockspace, popups and child windows lead to the window that opened them
+		MajorTab* FindFocusedTab()
+		{
+			constexpr int maxDepth = 64; // Just in case, the chain is short
+			const ImGuiWindow* window = GImGui->NavWindow;
+			for (int depth = 0; window && depth < maxDepth; ++depth)
+			{
+				if (auto it = s_WindowTabs.find(window->ID); it != s_WindowTabs.end())
+					return it->second;
+
+				for (const TabState& state : s_Tabs)
+				{
+					if (state.WindowID == window->ID)
+						return state.Tab;
+				}
+
+				if (window->DockNode && window->DockNode->HostWindow && window->DockNode->HostWindow != window)
+					window = window->DockNode->HostWindow;
+				else if (window->ParentWindowInBeginStack)
+					window = window->ParentWindowInBeginStack;
+				else
+					window = window->ParentWindow;
+			}
+			return nullptr;
 		}
 
 		MajorTab* GetActiveTab(ImGuiID tabWellID)
@@ -163,7 +226,13 @@ namespace Eagle
 				desc.Icon = s_Icon;
 				desc.OnClose = onClose;
 				if (activeTab)
-					desc.DrawMenus = [activeTab]() { activeTab->DrawTabMenus(); };
+				{
+					desc.DrawMenus = [activeTab]()
+					{
+						EditorFrames::TabContentScope scope(activeTab);
+						activeTab->DrawTabMenus();
+					};
+				}
 
 				ImGui::SetCursorScreenPos(window->Pos);
 				TitleBar::Draw(desc);
@@ -410,6 +479,10 @@ namespace Eagle
 
 	void EditorFrames::BeginFrame()
 	{
+		EG_CORE_ASSERT(s_OpenTabContentScopes.empty(), "A `TabContentScope` was left open");
+		s_OpenTabContentScopes.clear();
+		s_TabContentRanges.clear();
+
 		TitleBar::NewFrame();
 		RemoveFrames(false);
 
@@ -420,6 +493,10 @@ namespace Eagle
 
 	void EditorFrames::EndFrame()
 	{
+		UpdateWindowTabs();
+		if (MajorTab* focusedTab = FindFocusedTab())
+			s_LastFocusedTab = focusedTab;
+
 		SelectDockedTabs();
 		WrapFloatingTabs();
 		UpdateEmptyFrames();
@@ -459,7 +536,21 @@ namespace Eagle
 
 	void EditorFrames::RemoveTab(MajorTab* tab)
 	{
+		if (s_LastFocusedTab == tab)
+			s_LastFocusedTab = nullptr;
+
+		for (auto it = s_WindowTabs.begin(); it != s_WindowTabs.end(); )
+			it = it->second == tab ? s_WindowTabs.erase(it) : std::next(it);
+
+		auto isTabRange = [tab](const TabContentRange& range) { return range.Tab == tab; };
+		s_TabContentRanges.erase(std::remove_if(s_TabContentRanges.begin(), s_TabContentRanges.end(), isTabRange), s_TabContentRanges.end());
 		s_Tabs.erase(std::remove_if(s_Tabs.begin(), s_Tabs.end(), [tab](const TabState& state) { return state.Tab == tab; }), s_Tabs.end());
+
+		for (TabContentRange& range : s_OpenTabContentScopes)
+		{
+			if (range.Tab == tab)
+				range.Tab = nullptr; // Its windows don't belong to any tab
+		}
 	}
 
 	void EditorFrames::FocusTab(MajorTab* tab)
@@ -473,5 +564,38 @@ namespace Eagle
 		if (window->DockNode && window->DockNode->TabBar)
 			window->DockNode->TabBar->NextSelectedTabId = window->TabId;
 		ImGui::FocusWindow(window);
+	}
+
+	EditorFrames::TabContentScope::TabContentScope(MajorTab* tab)
+	{
+		s_OpenTabContentScopes.push_back({ tab, GImGui->WindowsActiveCount, 0 });
+	}
+
+	EditorFrames::TabContentScope::~TabContentScope()
+	{
+		EG_CORE_ASSERT(!s_OpenTabContentScopes.empty(), "Unbalanced `TabContentScope`");
+		if (s_OpenTabContentScopes.empty())
+			return;
+
+		TabContentRange range = s_OpenTabContentScopes.back();
+		s_OpenTabContentScopes.pop_back();
+		range.End = GImGui->WindowsActiveCount;
+		if (range.Tab && range.End > range.Begin)
+			s_TabContentRanges.push_back(range);
+	}
+
+	MajorTab* EditorFrames::GetFocusedTab()
+	{
+		if (MajorTab* focusedTab = FindFocusedTab())
+			return focusedTab;
+
+		return s_LastFocusedTab;
+	}
+
+	ImGuiViewport* EditorFrames::GetTabViewport(const MajorTab* tab)
+	{
+		const TabState* state = FindTab(tab);
+		const ImGuiWindow* window = state ? ImGui::FindWindowByID(state->WindowID) : nullptr;
+		return window ? window->Viewport : nullptr;
 	}
 }

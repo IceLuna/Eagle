@@ -1269,7 +1269,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         node.InputPins.emplace_back(graph.GetNextId(), "", PinType::StateFlow);
         node.Color = ImColor(128, 128, 128, 200);
         node.BehaviorNodeData = data;
-        node.BehaviorNodeData.Data.ID = GUID{}; // Generate a new ID for it
+        if (node.BehaviorNodeData.Data.ID.IsNull())
+            node.BehaviorNodeData.Data.ID = GUID{};
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);
@@ -1285,7 +1286,8 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::StateFlow);
         node.Color = ImColor(128, 128, 128, 200);
         node.BehaviorNodeData = data;
-        node.BehaviorNodeData.Data.ID = GUID{}; // Generate a new ID for it
+        if (node.BehaviorNodeData.Data.ID.IsNull())
+            node.BehaviorNodeData.Data.ID = GUID{};
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);

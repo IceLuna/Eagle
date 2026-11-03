@@ -10,6 +10,7 @@ namespace Eagle
 {
 	FontAssetEditor::FontAssetEditor(const Ref<AssetFont>& asset)
 		: AssetEditor(true, false), m_Asset(asset)
+		, m_EditTracker([](const NoAssetState&, const NoAssetState&) { return std::string("Edit Font"); })
 	{
 		const auto& scene = GetCurrentScene();
 		scene->bDrawMiscellaneous = false;
@@ -34,6 +35,7 @@ namespace Eagle
 
 		DrawEditorWindow(pOpen);
 		BeginPanel(GetDetailsPanelName());
+		m_EditTracker.BeginFrame(&m_UndoHistory, m_Asset); // The visualization settings aren't a part of the asset
 
 		UI::TextWithSeparator("Data");
 
@@ -97,6 +99,7 @@ namespace Eagle
 			Asset::Save(m_Asset);
 
 		ImGui::End();
+		m_EditTracker.EndFrame();
 
 		GetCurrentScene()->TextUIDebugSelectedEntity = m_bDrawTextBounds ? m_Component->Parent.GetGUID() : GUID(0, 0);
 		DrawViewport(false);

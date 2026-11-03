@@ -16,11 +16,13 @@ namespace Eagle
 
         const Ref<AssetAnimationGraph>& GetGraphAsset() const { return m_Graph; }
 
-        GraphEditorSerializationData Save() override;
+        void Save() override;
+        void WriteToAsset() override;
 
         void OnGraphChanged() override;
         void OnAddGraphPre() override;
         void OnAddGraphPost() override;
+        Ref<UIGraph> CreateRootGraph() override;
 
         void Compile() override;
 

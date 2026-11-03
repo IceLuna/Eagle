@@ -4,6 +4,7 @@
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/UI/UI.h"
 #include "../EditorLayer.h"
+#include "../Undo/UndoUI.h"
 
 #include <ImGuizmo.h>
 
@@ -15,6 +16,7 @@ namespace Eagle
 
 	EntityAssetEditor::EntityAssetEditor(const Ref<AssetEntity>& asset, const EditorLayer& editorLayer)
 		: AssetEditor(true), m_Asset(asset), m_EditorLayer(editorLayer)
+		, m_AssetSettingsTracker([](const NoAssetState&, const NoAssetState&) { return std::string("Edit Asset Settings"); })
 	{
 		m_FirstUseViewportRatio = 0.6f;
 		const auto& scene = GetCurrentScene();
@@ -55,6 +57,14 @@ namespace Eagle
 
 		m_SceneHierarchy.SetHashID(asset->GetGUID().GetHigh());
 		m_SceneHierarchy.SetWindowClass(&GetPanelWindowClass());
+		m_SceneHierarchy.SetPropertiesInHierarchyWindow(true);
+		m_SceneHierarchy.SetUndoHistory(&m_UndoHistory);
+
+		m_UndoHistory.SetOnAppliedCallback([this](const UndoTransaction& transaction, bool)
+		{
+			m_SceneHierarchy.OnUndoApplied(transaction);
+			OnEntityChanged();
+		});
 	}
 
 	void EntityAssetEditor::OnImGuiRender(bool* pOpen)
@@ -75,6 +85,8 @@ namespace Eagle
 
 			{
 				UI::TextWithSeparator("Asset settings");
+				m_AssetSettingsTracker.BeginFrame(&m_UndoHistory, m_Asset);
+
 				UI::BeginPropertyGrid("EntityAssetSettings");
 				AssetEditor::DrawAlwaysIncludeInGameBuilds(m_Asset);
 				UI::EndPropertyGrid();
@@ -103,6 +115,11 @@ namespace Eagle
 
 				if (ImGui::Button("Reload entities"))
 				{
+					// It changes the level, so it's recorded by the level editor. The entities are recreated and references to them are updated,
+					// so any entity of the level can change
+					EditorLayer* editorLayer = EditorLayer::Get();
+					SceneTransaction transaction(editorLayer->GetUndoHistory(), Scene::GetCurrentScene(), "Reload Entities from Asset");
+					transaction.TrackAll();
 					Scene::GetCurrentScene()->ReloadEntitiesCreatedFromAsset(m_Asset);
 					if (auto& sceneAsset = m_EditorLayer.GetOpenedSceneAsset())
 						sceneAsset->SetDirty(true);
@@ -116,6 +133,7 @@ namespace Eagle
 
 		}
 		ImGui::End(); // Entity Editor
+		m_AssetSettingsTracker.EndFrame();
 
 		{
 			// Outlines of text boxes and 2D UI
@@ -163,6 +181,16 @@ namespace Eagle
 
 	void EntityAssetEditor::UpdateGuizmo()
 	{
+		if (!DrawSelectionGuizmo() && m_GuizmoTransaction)
+		{
+			// The drag has ended
+			m_GuizmoTransaction->Commit();
+			m_GuizmoTransaction.reset();
+		}
+	}
+
+	bool EntityAssetEditor::DrawSelectionGuizmo()
+	{
 		Entity selectedEntity = m_SceneHierarchy.GetSelectedEntity();
 		SceneComponent* selectedComponent = m_SceneHierarchy.GetSelectedComponent();
 		if (selectedComponent)
@@ -183,7 +211,7 @@ namespace Eagle
 		}
 
 		if (!selectedEntity || (m_GuizmoType == -1))
-			return;
+			return false;
 
 		Transform transform;
 		bool bRelative = false; // Only used for rotations
@@ -203,20 +231,29 @@ namespace Eagle
 		if (bRelative)
 			transform.Rotation = (selectedComponent ? selectedComponent->GetRelativeTransform() : selectedEntity.GetRelativeTransform()).Rotation;
 
-		if (DrawGuizmo(transform, true, !bRelative))
+		if (!DrawGuizmo(transform, true, !bRelative))
+			return false;
+
+		// The whole drag is one transaction. Its state is captured before the first change
+		if (!m_GuizmoTransaction)
 		{
-			if (bRelative && GetGuizmoType() == ImGuizmo::OPERATION::ROTATE)
-			{
-				Rotator newRotation = transform.Rotation;
-				transform = selectedComponent ? selectedComponent->GetRelativeTransform() : selectedEntity.GetRelativeTransform();
-				transform.Rotation = newRotation;
-			}
-			if (selectedComponent)
-				bRelative ? selectedComponent->SetRelativeTransform(transform) : selectedComponent->SetWorldTransform(transform);
-			else
-				bRelative ? selectedEntity.SetRelativeTransform(transform) : selectedEntity.SetWorldTransform(transform);
-			OnEntityChanged();
+			m_GuizmoTransaction.emplace(&m_UndoHistory, GetCurrentScene(), UndoUI::GetGuizmoTransactionName(m_GuizmoType, selectedComponent != nullptr));
+			m_GuizmoTransaction->Track(selectedEntity);
 		}
+
+		if (bRelative && GetGuizmoType() == ImGuizmo::OPERATION::ROTATE)
+		{
+			Rotator newRotation = transform.Rotation;
+			transform = selectedComponent ? selectedComponent->GetRelativeTransform() : selectedEntity.GetRelativeTransform();
+			transform.Rotation = newRotation;
+		}
+		if (selectedComponent)
+			bRelative ? selectedComponent->SetRelativeTransform(transform) : selectedComponent->SetWorldTransform(transform);
+		else
+			bRelative ? selectedEntity.SetRelativeTransform(transform) : selectedEntity.SetWorldTransform(transform);
+		OnEntityChanged();
+
+		return true;
 	}
 	
 	void EntityAssetEditor::OnEntityChanged()
@@ -232,7 +269,7 @@ namespace Eagle
 	
 	void EntityAssetEditor::BuildDefaultLayout(ImGuiID dockspaceID)
 	{
-		// Left: details (top), scene hierarchy, properties (bottom). Right: viewport
+		// Left: details (top), scene hierarchy with the properties of the selected entity (bottom). Right: viewport
 		ImGuiID nodeDetails;
 		ImGuiID nodeViewport;
 		ImGui::DockBuilderSplitNode(dockspaceID, ImGuiDir_Left, 1.f - m_FirstUseViewportRatio, &nodeDetails, &nodeViewport);
@@ -240,12 +277,8 @@ namespace Eagle
 		ImGuiID nodeSceneHierarchy;
 		ImGui::DockBuilderSplitNode(nodeDetails, ImGuiDir_Up, 0.2f, &nodeDetails, &nodeSceneHierarchy);
 
-		ImGuiID nodeEntityProperties;
-		ImGui::DockBuilderSplitNode(nodeSceneHierarchy, ImGuiDir_Up, 0.5f, &nodeSceneHierarchy, &nodeEntityProperties);
-
 		ImGui::DockBuilderDockWindow(GetDetailsPanelName().c_str(), nodeDetails);
 		ImGui::DockBuilderDockWindow(m_SceneHierarchy.GetSceneHierarchyWindowName().c_str(), nodeSceneHierarchy);
-		ImGui::DockBuilderDockWindow(m_SceneHierarchy.GetPropertiesWindowName().c_str(), nodeEntityProperties);
 		ImGui::DockBuilderDockWindow(GetViewportPanelName().c_str(), nodeViewport);
 		HideTabBar(nodeViewport);
 		SetCentralNode(dockspaceID, nodeViewport);

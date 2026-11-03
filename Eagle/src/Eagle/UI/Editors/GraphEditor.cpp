@@ -93,6 +93,21 @@ namespace Eagle
         return SplitterBehavior(bb, id, split_vertically ? ImGuiAxis_X : ImGuiAxis_Y, size1, size2, min_size1, min_size2, 0.0f);
     }
 
+    static void CloneDefaultValues(GraphSerializationData& graph)
+    {
+        for (auto& node : graph.Nodes)
+        {
+            for (auto& pin : node.InputPins)
+            {
+                if (pin.DefaultValue)
+                    pin.DefaultValue = pin.DefaultValue->Clone();
+            }
+        }
+
+        for (auto& subgraph : graph.Subgraphs)
+            CloneDefaultValues(subgraph);
+    }
+
     GraphEditor::GraphEditor(const std::string_view name)
         : m_Name(name)
     {
@@ -145,6 +160,9 @@ namespace Eagle
         ImGui::SetNextWindowSize(ImVec2(920.f, 760.f), ImGuiCond_FirstUseEver);
         if (ImGui::Begin(m_Name.c_str(), pOpen))
         {
+            if (m_BeginWindowCallback)
+                m_BeginWindowCallback();
+
             m_bGraphFocused = ImGui::IsWindowFocused();
             bRecompiled = RenderLeftPanel();
 
@@ -522,12 +540,13 @@ namespace Eagle
         m_RenamingVarTemp = var;
     }
 
-    GraphEditorSerializationData GraphEditor::Save()
+    GraphEditorSerializationData GraphEditor::CaptureState(bool bCloneValues) const
     {
         GraphEditorSerializationData result;
 
-        const auto& graphToSave = m_Graphs[0];
-        result.Graph = graphToSave->Serialize();
+        result.Graph = m_Graphs[0]->Serialize();
+        if (bCloneValues)
+            CloneDefaultValues(result.Graph); // Otherwise, they're the values the nodes use
 
         const auto& variables = GetVariables();
         // Vars
@@ -535,12 +554,128 @@ namespace Eagle
         {
             auto& var = result.Variables.emplace_back();
             var.Name = name;
-            var.Value = value;
+            var.Value = bCloneValues && value ? value->Clone() : value;
         }
 
         return result;
     }
-    
+
+    void GraphEditor::RestoreState(const GraphEditorSerializationData& data)
+    {
+        // The nodes are going to use the values, so they're copied again. `data` stays as it is
+        GraphEditorSerializationData state = data;
+        CloneDefaultValues(state.Graph);
+
+        // Opened graphs keep their views and selected nodes, and stay opened if they still exist. So do the ones that can be reopened with the "forward" mouse button
+        std::unordered_map<GUID, std::pair<ImVec2, float>> views;
+        std::unordered_map<GUID, std::vector<GUID>> selectedNodes;
+        std::vector<GUID> openedGraphs;
+        std::vector<GUID> forwardGraphs; // `m_History`, the next one to reopen first. Each one is a subgraph of the previous one (the first one, of the last opened graph)
+        auto saveGraphState = [&views, &selectedNodes](const Ref<UIGraph>& graph)
+        {
+            ImVec2 scroll;
+            float zoom = 1.f;
+            graph->GetViewState(&scroll, &zoom);
+            views[graph->GetID()] = { scroll, zoom };
+            selectedNodes[graph->GetID()] = graph->GetSelectedNodes();
+        };
+        for (size_t i = 0; i < m_Graphs.size(); ++i)
+        {
+            saveGraphState(m_Graphs[i]);
+            if (i > 0)
+                openedGraphs.push_back(m_Graphs[i]->GetID());
+        }
+        for (auto it = m_History.rbegin(); it != m_History.rend(); ++it)
+        {
+            saveGraphState(*it);
+            forwardGraphs.push_back((*it)->GetID());
+        }
+
+        auto applyViews = [&views](auto& self, GraphSerializationData& graph) -> void
+        {
+            if (auto it = views.find(graph.ID); it != views.end())
+            {
+                graph.ScrollOffset = glm::vec2(it->second.first.x, it->second.first.y);
+                graph.Zoom = it->second.second;
+            }
+            for (auto& subgraph : graph.Subgraphs)
+                self(self, subgraph);
+        };
+        applyViews(applyViews, state.Graph);
+
+        // The graphs refer to the nodes of each other (pose caches), so they're all rebuilt
+        m_Graphs.clear();
+        m_GraphsToAdd.clear();
+        m_History.clear(); // Restored below
+        m_PoseCacheNodes.clear();
+
+        m_Variables.clear();
+        for (const auto& var : state.Variables)
+        {
+            if (var.Value)
+                CreateVariable(var.Value->Clone(), var.Name);
+        }
+        if (!GetVariable(m_SelectedVar))
+            m_SelectedVar.clear();
+
+        Ref<UIGraph> root = CreateRootGraph();
+        m_Graphs.push_back(root);
+        m_bRestoringState = true;
+        OnAddGraphPre();
+        root->Deserialize(state, state.Graph);
+        OnAddGraphPost();
+        m_bRestoringState = false;
+
+        auto findSubgraph = [](const Ref<UIGraph>& parent, const GUID& graphID) -> Ref<UIGraph>
+        {
+            for (const auto& [_, node] : parent->GetGraphData().Nodes)
+            {
+                if (node.Graph && node.Graph->GetID() == graphID)
+                    return node.Graph;
+            }
+            return nullptr;
+        };
+
+        bool bAllReopened = true;
+        for (const GUID& graphID : openedGraphs)
+        {
+            Ref<UIGraph> opened = findSubgraph(m_Graphs.back(), graphID);
+            if (!opened)
+            {
+                bAllReopened = false;
+                break;
+            }
+            m_Graphs.push_back(opened);
+        }
+
+        std::vector<Ref<UIGraph>> forward;
+        if (bAllReopened)
+        {
+            Ref<UIGraph> parent = m_Graphs.back();
+            for (const GUID& graphID : forwardGraphs)
+            {
+                parent = findSubgraph(parent, graphID);
+                if (!parent)
+                    break;
+                forward.push_back(parent);
+            }
+        }
+        m_History.assign(forward.rbegin(), forward.rend());
+
+        auto restoreSelection = [&selectedNodes](const Ref<UIGraph>& graph)
+        {
+            if (auto it = selectedNodes.find(graph->GetID()); it != selectedNodes.end())
+                graph->SelectNodes(it->second);
+        };
+        for (const auto& graph : m_Graphs)
+            restoreSelection(graph);
+        for (const auto& graph : m_History)
+            restoreSelection(graph);
+
+        // When the new graphs are drawn for the first time, the node editor reports their nodes as changed
+        m_bIgnoreChangedEvent = true;
+    }
+
     void GraphEditor::SetInFocus()
     {
         if (ImGuiWindow* window = ImGui::FindWindowByName(m_Name.c_str()))

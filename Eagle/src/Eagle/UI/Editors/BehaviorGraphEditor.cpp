@@ -9,8 +9,7 @@ namespace Eagle
     BehaviorGraphEditor::BehaviorGraphEditor(const Ref<AssetBehaviorGraph>& asset, const std::string& name)
         : GraphEditor(name), m_Asset(asset)
     {
-        m_Graph = MakeRef<UIBehaviorGraph>(*this, name);
-        m_Graphs.emplace_back(m_Graph);
+        m_Graphs.emplace_back(CreateRootGraph());
 
         OnAddGraphPre();
         Deserialize();
@@ -23,12 +22,21 @@ namespace Eagle
         m_Graphs[0]->Deserialize(data, data.Graph);
     }
 
-    GraphEditorSerializationData BehaviorGraphEditor::Save()
+    void BehaviorGraphEditor::Save()
     {
-        GraphEditorSerializationData result = GraphEditor::Save();
-        m_Asset->SetSerializationData(result);
+        WriteToAsset();
         Asset::Save(m_Asset);
-        return result;
+    }
+
+    void BehaviorGraphEditor::WriteToAsset()
+    {
+        m_Asset->SetSerializationData(GraphEditor::CaptureState());
+    }
+
+    Ref<UIGraph> BehaviorGraphEditor::CreateRootGraph()
+    {
+        m_Graph = MakeRef<UIBehaviorGraph>(*this, m_Name);
+        return m_Graph;
     }
 
     void BehaviorGraphEditor::OnAddGraphPre()

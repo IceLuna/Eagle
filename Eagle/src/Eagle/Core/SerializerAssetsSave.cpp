@@ -14,6 +14,18 @@
 
 namespace Eagle
 {
+	// What `SerializeGraphNode()` writes, besides what defines the node.
+	// It's needed for undo system. It controls what counts as a change, and how the change is named. There are three ways a node gets written:
+	// - Saving the asset: everything is written
+	// - Comparing two graph states: everything is written, except for the size. Sizes are left out because most nodes are sized by their content when they're drawn
+	// - Node's content: everything is set to `false` here. Those are compared separately (NodeSummary::Position, Size, Connections), so a change can be named "Move Node `X`", "Resize Node `X`", "Connect `A` to `B`"
+	struct GraphNodeParts
+	{
+		bool bPosition = true;
+		bool bSize = true;
+		bool bConnections = true;
+	};
+
 	static void SerializeAIBehaviorNode(YAML::Emitter& out, const AIBehaviorNode& node)
 	{
 		out << YAML::Key << "FullName" << YAML::Value << node.Data.ClassData.FullName;
@@ -53,59 +65,55 @@ namespace Eagle
 		}
 	}
 
-	static void SerializeGraph(YAML::Emitter& out, const GraphSerializationData& data)
+	static void SerializeGraphNode(YAML::Emitter& out, const GraphNodeSerializationData& node, const GraphNodeParts& parts)
 	{
-		out << YAML::Key << "Name" << YAML::Value << data.Name;
-		out << YAML::Key << "Scroll" << YAML::Value << data.ScrollOffset;
-		out << YAML::Key << "ID" << YAML::Value << data.ID;
-		out << YAML::Key << "Zoom" << YAML::Value << data.Zoom;
-
-		out << YAML::Key << "Nodes" << YAML::Value << YAML::BeginSeq;
-		for (const auto& node : data.Nodes)
-		{
-			out << YAML::BeginMap;
-			out << YAML::Key << "OwnerID" << YAML::Value << node.OwnerID;
-			out << YAML::Key << "Name" << YAML::Value << node.Name;
+		out << YAML::BeginMap;
+		out << YAML::Key << "OwnerID" << YAML::Value << node.OwnerID;
+		out << YAML::Key << "Name" << YAML::Value << node.Name;
+		if (parts.bPosition)
 			out << YAML::Key << "Position" << YAML::Value << node.Position;
+		if (parts.bSize)
 			out << YAML::Key << "Size" << YAML::Value << node.Size;
-			out << YAML::Key << "NodeID" << YAML::Value << node.NodeID;
-			out << YAML::Key << "IsOutputNode" << YAML::Value << node.bOutputNode;
-			out << YAML::Key << "CachedOwnerID" << YAML::Value << node.CachedOwnerID;
-			out << YAML::Key << "CachedNodeID" << YAML::Value << node.CachedNodeID;
-			out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(node.Type);
-			if (node.Type == GraphNodeType::BlendSpace && node.BlendSpace)
-				out << YAML::Key << "BlendSpace" << YAML::Value << node.BlendSpace->GetGUID();
-			out << YAML::Key << "AddedCounter" << YAML::Value << node.AddedCounter;
-			if (node.UserData.empty() == false)
-				out << YAML::Key << "UserData" << YAML::Value << node.UserData;
-			if (node.Type == GraphNodeType::AIBehaviorNode)
-			{
-				AIBehaviorNode behaviorNode;
-				behaviorNode.Data = node.BehaviorClassData;
-				behaviorNode.AttachedDecorators = node.AttachedDecorators;
+		out << YAML::Key << "NodeID" << YAML::Value << node.NodeID;
+		out << YAML::Key << "IsOutputNode" << YAML::Value << node.bOutputNode;
+		out << YAML::Key << "CachedOwnerID" << YAML::Value << node.CachedOwnerID;
+		out << YAML::Key << "CachedNodeID" << YAML::Value << node.CachedNodeID;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(node.Type);
+		if (node.Type == GraphNodeType::BlendSpace && node.BlendSpace)
+			out << YAML::Key << "BlendSpace" << YAML::Value << node.BlendSpace->GetGUID();
+		out << YAML::Key << "AddedCounter" << YAML::Value << node.AddedCounter;
+		if (node.UserData.empty() == false)
+			out << YAML::Key << "UserData" << YAML::Value << node.UserData;
+		if (node.Type == GraphNodeType::AIBehaviorNode)
+		{
+			AIBehaviorNode behaviorNode;
+			behaviorNode.Data = node.BehaviorClassData;
+			behaviorNode.AttachedDecorators = node.AttachedDecorators;
 
-				out << YAML::Key << "BehaviorNodeData" << YAML::Value << YAML::BeginMap;
-				SerializeAIBehaviorNode(out, behaviorNode);
-				out << YAML::EndMap;
-			}
+			out << YAML::Key << "BehaviorNodeData" << YAML::Value << YAML::BeginMap;
+			SerializeAIBehaviorNode(out, behaviorNode);
+			out << YAML::EndMap;
+		}
 
+		{
+			out << YAML::Key << "InputPins" << YAML::Value << YAML::BeginSeq;
+			for (const auto& pin : node.InputPins)
 			{
-				out << YAML::Key << "InputPins" << YAML::Value << YAML::BeginSeq;
-				for (const auto& pin : node.InputPins)
+				out << YAML::BeginMap;
+				out << YAML::Key << "ID" << YAML::Value << pin.Index;
+				if (pin.DefaultValue)
 				{
-					out << YAML::BeginMap;
-					out << YAML::Key << "ID" << YAML::Value << pin.Index;
-					if (pin.DefaultValue)
-					{
-						out << YAML::Key << "DefaultValue" << YAML::Value << YAML::BeginMap;
-						SerializeGraphVar(out, pin.DefaultValue);
-						out << YAML::EndMap;
-					}
+					out << YAML::Key << "DefaultValue" << YAML::Value << YAML::BeginMap;
+					SerializeGraphVar(out, pin.DefaultValue);
 					out << YAML::EndMap;
 				}
-				out << YAML::EndSeq;
+				out << YAML::EndMap;
 			}
+			out << YAML::EndSeq;
+		}
 
+		if (parts.bConnections)
+		{
 			out << YAML::Key << "Connections" << YAML::Value << YAML::BeginSeq;
 			for (const auto& connection : node.OutputConnections)
 			{
@@ -115,9 +123,26 @@ namespace Eagle
 				out << YAML::EndMap;
 			}
 			out << YAML::EndSeq;
-
-			out << YAML::EndMap;
 		}
+
+		out << YAML::EndMap;
+	}
+
+	// @bContentOnly. Without the view (scroll & zoom) and the sizes of the nodes (see `Serializer::SerializeGraphEditorContent()`)
+	static void SerializeGraph(YAML::Emitter& out, const GraphSerializationData& data, bool bContentOnly = false)
+	{
+		out << YAML::Key << "Name" << YAML::Value << data.Name;
+		out << YAML::Key << "ID" << YAML::Value << data.ID;
+		if (!bContentOnly)
+		{
+			out << YAML::Key << "Zoom" << YAML::Value << data.Zoom;
+			out << YAML::Key << "Scroll" << YAML::Value << data.ScrollOffset;
+		}
+
+		out << YAML::Key << "Nodes" << YAML::Value << YAML::BeginSeq;
+		const GraphNodeParts parts{ .bPosition = true, .bSize = !bContentOnly, .bConnections = true };
+		for (const auto& node : data.Nodes)
+			SerializeGraphNode(out, node, parts);
 		out << YAML::EndSeq;
 
 		if (data.Subgraphs.size())
@@ -127,7 +152,7 @@ namespace Eagle
 			for (const auto& subgraph : data.Subgraphs)
 			{
 				out << YAML::BeginMap;
-				SerializeGraph(out, subgraph);
+				SerializeGraph(out, subgraph, bContentOnly);
 				out << YAML::EndMap;
 			}
 
@@ -195,7 +220,7 @@ namespace Eagle
 		out << YAML::EndMap;
 	}
 
-	static void SerializeSequenceTrack(YAML::Emitter& out, const Ref<SequenceTrack>& track)
+	void Serializer::SerializeSequenceTrack(YAML::Emitter& out, const Ref<SequenceTrack>& track)
 	{
 		out << YAML::BeginMap;
 		out << YAML::Key << "Type" << YAML::Value << Eagle::Utils::GetEnumName(track->GetType());
@@ -264,6 +289,12 @@ namespace Eagle
 		{
 			GetAllEntities(child, outEntities);
 		}
+	}
+
+	void Serializer::SerializeGraphNodeContent(YAML::Emitter& out, const GraphNodeSerializationData& node)
+	{
+		constexpr GraphNodeParts parts{ false, false, false };
+		SerializeGraphNode(out, node, parts);
 	}
 
 	ScopedDataBuffer Serializer::SerializeAsset(const Ref<Asset>& asset)
@@ -400,7 +431,7 @@ namespace Eagle
 		const auto& texture = asset->GetTexture();
 
 		return SerializeAssetTexture2DFromData(asset->GetRawData().GetDataBuffer(), asset->GetCompressedDataPerMip(), texture->GetFormat(), asset->GetGUID(), asset->GetPathToRaw(),
-			texture->GetFilterMode(), texture->GetAddressMode(), texture->GetAnisotropy(), texture->GetMipsCount(), texture->GetWidth(), texture->GetHeight(),
+			asset->GetFilterMode(), asset->GetAddressMode(), asset->GetAnisotropy(), asset->GetMipsCount(), texture->GetWidth(), texture->GetHeight(),
 			asset->GetFormat(), asset->GetCompressionQuality(), asset->IsNormalMap(), asset->IsAlwaysIncludedInGameBuilds());
 	}
 
@@ -443,9 +474,8 @@ namespace Eagle
 
 	ScopedDataBuffer Serializer::SerializeAssetTextureCube(const Ref<AssetTextureCube>& asset)
 	{
-		const auto& textureCube = asset->GetTexture();
 		return SerializeAssetTextureCubeFromData(asset->GetRawData().GetDataBuffer(), asset->GetGUID(), asset->GetPathToRaw(),
-			asset->GetFormat(), textureCube->GetSize().x, textureCube->GetPrefilterSize(), textureCube->IsCompressed(), asset->IsAlwaysIncludedInGameBuilds());
+			asset->GetFormat(), asset->GetLayerSize(), asset->GetPrefilterSize(), asset->IsCompressed(), asset->IsAlwaysIncludedInGameBuilds());
 	}
 
 	ScopedDataBuffer Serializer::SerializeAssetStaticMeshFromMesh(const Ref<StaticMesh>& mesh, const GUID& guid, const Path& pathToRaw,
@@ -1029,7 +1059,7 @@ namespace Eagle
 
 			out << YAML::Key << "Duration" << YAML::Value << anim.Duration;
 			out << YAML::Key << "TicksPerSecond" << YAML::Value << anim.TicksPerSecond;
-			out << YAML::Key << "bInPlace" << YAML::Value << anim.bInPlace;
+			out << YAML::Key << "bInPlace" << YAML::Value << anim.Settings.bInPlace;
 
 			if (bHasRootMotion)
 			{
@@ -1061,11 +1091,11 @@ namespace Eagle
 			}
 
 			// Events
-			if (anim.Events.size() > 0)
+			if (anim.Settings.Events.size() > 0)
 			{
 				out << YAML::Key << "Events" << YAML::Value << YAML::BeginSeq;
 
-				for (const auto& event : anim.Events)
+				for (const auto& event : anim.Settings.Events)
 				{
 					out << YAML::BeginMap;
 
@@ -1207,6 +1237,138 @@ namespace Eagle
 		return buffer;
 	}
 
+	void Serializer::SerializeParticleEmitter(YAML::Emitter& out, const ParticleEmitter& emitter)
+	{
+		out << YAML::BeginMap;
+		out << YAML::Key << "Name" << YAML::Value << emitter.Name;
+		if (const auto& asset = emitter.Texture)
+			out << YAML::Key << "Texture" << YAML::Value << asset->GetGUID();
+		SerializeCurveProperty(out, "Color", emitter.Color);
+		SerializeCurveProperty(out, "ColorIntensity", emitter.ColorIntensity);
+
+		out << YAML::Key << "VelocityMin" << YAML::Value << emitter.VelocityMin;
+		out << YAML::Key << "VelocityMax" << YAML::Value << emitter.VelocityMax;
+
+		SerializeCurveProperty(out, "VelocityCoef", emitter.VelocityCoef);
+		SerializeCurveProperty(out, "VelocityOverLifetime", emitter.VelocityOverLifetime);
+		out << YAML::Key << "VelocitySpace" << YAML::Value << Utils::GetEnumName(emitter.VelocitySpace);
+
+		SerializeCurveProperty(out, "RotationZ", emitter.RotationZ);
+		SerializeCurveProperty(out, "RotationSpeed", emitter.RotationSpeed);
+		SerializeCurveProperty(out, "Size", emitter.Size);
+		out << YAML::Key << "ColliderSizeRatio" << YAML::Value << emitter.ColliderSizeRatio;
+
+		out << YAML::Key << "LifetimeMin" << YAML::Value << emitter.LifetimeMin;
+		out << YAML::Key << "LifetimeMax" << YAML::Value << emitter.LifetimeMax;
+
+		out << YAML::Key << "BouncinessMin" << YAML::Value << emitter.BouncinessMin;
+		out << YAML::Key << "BouncinessMax" << YAML::Value << emitter.BouncinessMax;
+
+		out << YAML::Key << "AnimationImagesNum" << YAML::Value << emitter.AnimationImagesNum;
+		out << YAML::Key << "AnimationSpeed" << YAML::Value << emitter.AnimationSpeed;
+
+		out << YAML::Key << "ID" << YAML::Value << emitter.ID;
+		out << YAML::Key << "RelativeLocation" << YAML::Value << emitter.RelativeTransform.Location;
+		out << YAML::Key << "RelativeRotation" << YAML::Value << emitter.RelativeTransform.Rotation;
+		out << YAML::Key << "VisibilityAABBMin" << YAML::Value << emitter.VisibilityAABB.Min;
+		out << YAML::Key << "VisibilityAABBMax" << YAML::Value << emitter.VisibilityAABB.Max;
+		out << YAML::Key << "LoopCount" << YAML::Value << emitter.LoopCount;
+		out << YAML::Key << "LoopDuration" << YAML::Value << emitter.LoopDuration;
+		out << YAML::Key << "SpawnRate" << YAML::Value << emitter.SpawnRate;
+		out << YAML::Key << "FastForwardTo" << YAML::Value << emitter.FastForwardTo;
+		out << YAML::Key << "StartDelay" << YAML::Value << emitter.StartDelay;
+		out << YAML::Key << "RandomTint" << YAML::Value << emitter.bRandomTint;
+		out << YAML::Key << "RandomTintA" << YAML::Value << emitter.RandomTintA;
+		out << YAML::Key << "RandomTintB" << YAML::Value << emitter.RandomTintB;
+		out << YAML::Key << "StartRotationRandomRange" << YAML::Value << emitter.StartRotationRandomRange;
+		out << YAML::Key << "StartRotationSpeedRandomRange" << YAML::Value << emitter.StartRotationSpeedRandomRange;
+		out << YAML::Key << "StartSizeMultiplierRandomRange" << YAML::Value << emitter.StartSizeMultiplierRandomRange;
+		SerializeCurveProperty(out, "Drag", emitter.Drag);
+		SerializeCurveProperty(out, "TurbulenceStrength", emitter.TurbulenceStrength);
+		SerializeCurveProperty(out, "TurbulenceScale", emitter.TurbulenceScale);
+		out << YAML::Key << "TurbulenceSpeed" << YAML::Value << emitter.TurbulenceSpeed;
+		out << YAML::Key << "InheritVelocity" << YAML::Value << emitter.InheritVelocity;
+		out << YAML::Key << "SpawnPerMeter" << YAML::Value << emitter.SpawnPerMeter;
+		out << YAML::Key << "SimulationSpace" << YAML::Value << Utils::GetEnumName(emitter.SimulationSpace);
+		out << YAML::Key << "SpawnOnlyFromEvents" << YAML::Value << emitter.bSpawnOnlyFromEvents;
+		out << YAML::Key << "Culling" << YAML::Value << Utils::GetEnumName(emitter.Culling);
+		out << YAML::Key << "SubEmitters" << YAML::Value << YAML::BeginSeq;
+		for (const auto& subEmitter : emitter.SubEmitters)
+		{
+			out << YAML::BeginMap;
+			out << YAML::Key << "EmitterID" << YAML::Value << subEmitter.EmitterID;
+			out << YAML::Key << "Trigger" << YAML::Value << Utils::GetEnumName(subEmitter.Trigger);
+			out << YAML::Key << "UseEmitterSpawnSettings" << YAML::Value << subEmitter.bUseEmitterSpawnSettings;
+			out << YAML::Key << "CountRange" << YAML::Value << subEmitter.CountRange;
+			out << YAML::Key << "Probability" << YAML::Value << subEmitter.Probability;
+			out << YAML::Key << "InheritVelocity" << YAML::Value << subEmitter.InheritVelocity;
+			out << YAML::Key << "InheritColor" << YAML::Value << subEmitter.bInheritColor;
+			out << YAML::EndMap;
+		}
+		out << YAML::EndSeq;
+		out << YAML::Key << "RadialAcceleration" << YAML::Value << emitter.RadialAcceleration;
+		out << YAML::Key << "TangentialAcceleration" << YAML::Value << emitter.TangentialAcceleration;
+		out << YAML::Key << "NormalVelocityFactor" << YAML::Value << emitter.NormalVelocityFactor;
+
+		out << YAML::Key << "EmissionShape" << YAML::Value << Utils::GetEnumName(emitter.EmissionShape);
+		out << YAML::Key << "SphereRadius" << YAML::Value << emitter.SphereRadius;
+		out << YAML::Key << "BoxMin" << YAML::Value << emitter.BoxMin;
+		out << YAML::Key << "BoxMax" << YAML::Value << emitter.BoxMax;
+		out << YAML::Key << "RingRadius" << YAML::Value << emitter.RingRadius;
+		out << YAML::Key << "RingThickness" << YAML::Value << emitter.RingThickness;
+		if (emitter.MeshAsset)
+			out << YAML::Key << "Mesh" << YAML::Value << emitter.MeshAsset->GetGUID();
+		if (const auto& animAsset = emitter.MeshAnimationAsset)
+			out << YAML::Key << "AnimationClip" << YAML::Value << animAsset->GetGUID();
+		out << YAML::Key << "ClipPlaybackSpeed" << emitter.ClipPlaybackSpeed;
+		out << YAML::Key << "ClipLooping" << emitter.bClipLooping;
+		out << YAML::Key << "TriggerAnimationEvents" << emitter.bTriggerAnimationEvents;
+
+		out << YAML::Key << "CollisionMode" << YAML::Value << Utils::GetEnumName(emitter.CollisionMode);
+
+		out << YAML::Key << "bDestroyImmediately" << YAML::Value << emitter.bDestroyImmediately;
+		out << YAML::Key << "bEmit" << YAML::Value << emitter.bEmit;
+		out << YAML::Key << "bExplode" << YAML::Value << emitter.bExplode;
+		SerializeCurveProperty(out, "ApplyGravity", emitter.ApplyGravity);
+		out << YAML::Key << "DepthFade" << YAML::Value << emitter.bDepthFade;
+		out << YAML::Key << "DepthFadeDistance" << YAML::Value << emitter.DepthFadeDistance;
+		out << YAML::Key << "CameraFade" << YAML::Value << emitter.bCameraFade;
+		out << YAML::Key << "CameraFadeDistance" << YAML::Value << emitter.CameraFadeDistance;
+		out << YAML::Key << "bAlphaBlending" << YAML::Value << emitter.bAlphaBlending;
+		out << YAML::Key << "bAdditive" << YAML::Value << emitter.bAdditive;
+		out << YAML::Key << "bBlendAnimation" << YAML::Value << emitter.bBlendAnimation;
+		out << YAML::Key << "bFaceDirection" << YAML::Value << emitter.bFaceDirection;
+
+		out << YAML::EndMap;
+	}
+
+	void Serializer::SerializeGraphVariables(YAML::Emitter& out, const std::vector<GraphVariableSerializationData>& variables)
+	{
+		out << YAML::BeginSeq;
+		for (const auto& var : variables)
+		{
+			out << YAML::BeginMap;
+			out << YAML::Key << "Name" << YAML::Value << var.Name;
+			SerializeGraphVar(out, var.Value);
+			out << YAML::EndMap;
+		}
+		out << YAML::EndSeq;
+	}
+
+	void Serializer::SerializeGraphEditorContent(YAML::Emitter& out, const GraphEditorSerializationData& data)
+	{
+		constexpr bool bContentOnly = true;
+
+		out << YAML::BeginMap;
+		out << YAML::Key << "Variables" << YAML::Value;
+		SerializeGraphVariables(out, data.Variables);
+
+		out << YAML::Key << "Graph" << YAML::Value << YAML::BeginMap;
+		SerializeGraph(out, data.Graph, bContentOnly);
+		out << YAML::EndMap;
+		out << YAML::EndMap;
+	}
+
 	ScopedDataBuffer Serializer::SerializeAssetParticleSystem(const Ref<AssetParticleSystem>& asset)
 	{
 		size_t totalSize = sizeof(AssetHeader);
@@ -1224,109 +1386,7 @@ namespace Eagle
 			out << YAML::BeginSeq;
 			const auto& emitters = asset->GetEmitters();
 			for (const auto& emitter : emitters)
-			{
-				out << YAML::BeginMap;
-				out << YAML::Key << "Name" << YAML::Value << emitter.Name;
-				if (const auto& asset = emitter.Texture)
-					out << YAML::Key << "Texture" << YAML::Value << asset->GetGUID();
-				SerializeCurveProperty(out, "Color", emitter.Color);
-				SerializeCurveProperty(out, "ColorIntensity", emitter.ColorIntensity);
-
-				out << YAML::Key << "VelocityMin" << YAML::Value << emitter.VelocityMin;
-				out << YAML::Key << "VelocityMax" << YAML::Value << emitter.VelocityMax;
-
-				SerializeCurveProperty(out, "VelocityCoef", emitter.VelocityCoef);
-				SerializeCurveProperty(out, "VelocityOverLifetime", emitter.VelocityOverLifetime);
-				out << YAML::Key << "VelocitySpace" << YAML::Value << Utils::GetEnumName(emitter.VelocitySpace);
-
-				SerializeCurveProperty(out, "RotationZ", emitter.RotationZ);
-				SerializeCurveProperty(out, "RotationSpeed", emitter.RotationSpeed);
-				SerializeCurveProperty(out, "Size", emitter.Size);
-				out << YAML::Key << "ColliderSizeRatio" << YAML::Value << emitter.ColliderSizeRatio;
-
-				out << YAML::Key << "LifetimeMin" << YAML::Value << emitter.LifetimeMin;
-				out << YAML::Key << "LifetimeMax" << YAML::Value << emitter.LifetimeMax;
-
-				out << YAML::Key << "BouncinessMin" << YAML::Value << emitter.BouncinessMin;
-				out << YAML::Key << "BouncinessMax" << YAML::Value << emitter.BouncinessMax;
-
-				out << YAML::Key << "AnimationImagesNum" << YAML::Value << emitter.AnimationImagesNum;
-				out << YAML::Key << "AnimationSpeed" << YAML::Value << emitter.AnimationSpeed;
-
-				out << YAML::Key << "ID" << YAML::Value << emitter.ID;
-				out << YAML::Key << "RelativeLocation" << YAML::Value << emitter.RelativeTransform.Location;
-				out << YAML::Key << "RelativeRotation" << YAML::Value << emitter.RelativeTransform.Rotation;
-				out << YAML::Key << "VisibilityAABBMin" << YAML::Value << emitter.VisibilityAABB.Min;
-				out << YAML::Key << "VisibilityAABBMax" << YAML::Value << emitter.VisibilityAABB.Max;
-				out << YAML::Key << "LoopCount" << YAML::Value << emitter.LoopCount;
-				out << YAML::Key << "LoopDuration" << YAML::Value << emitter.LoopDuration;
-				out << YAML::Key << "SpawnRate" << YAML::Value << emitter.SpawnRate;
-				out << YAML::Key << "FastForwardTo" << YAML::Value << emitter.FastForwardTo;
-				out << YAML::Key << "StartDelay" << YAML::Value << emitter.StartDelay;
-				out << YAML::Key << "RandomTint" << YAML::Value << emitter.bRandomTint;
-				out << YAML::Key << "RandomTintA" << YAML::Value << emitter.RandomTintA;
-				out << YAML::Key << "RandomTintB" << YAML::Value << emitter.RandomTintB;
-				out << YAML::Key << "StartRotationRandomRange" << YAML::Value << emitter.StartRotationRandomRange;
-				out << YAML::Key << "StartRotationSpeedRandomRange" << YAML::Value << emitter.StartRotationSpeedRandomRange;
-				out << YAML::Key << "StartSizeMultiplierRandomRange" << YAML::Value << emitter.StartSizeMultiplierRandomRange;
-				SerializeCurveProperty(out, "Drag", emitter.Drag);
-				SerializeCurveProperty(out, "TurbulenceStrength", emitter.TurbulenceStrength);
-				SerializeCurveProperty(out, "TurbulenceScale", emitter.TurbulenceScale);
-				out << YAML::Key << "TurbulenceSpeed" << YAML::Value << emitter.TurbulenceSpeed;
-				out << YAML::Key << "InheritVelocity" << YAML::Value << emitter.InheritVelocity;
-				out << YAML::Key << "SpawnPerMeter" << YAML::Value << emitter.SpawnPerMeter;
-				out << YAML::Key << "SimulationSpace" << YAML::Value << Utils::GetEnumName(emitter.SimulationSpace);
-				out << YAML::Key << "SpawnOnlyFromEvents" << YAML::Value << emitter.bSpawnOnlyFromEvents;
-				out << YAML::Key << "Culling" << YAML::Value << Utils::GetEnumName(emitter.Culling);
-				out << YAML::Key << "SubEmitters" << YAML::Value << YAML::BeginSeq;
-				for (const auto& subEmitter : emitter.SubEmitters)
-				{
-					out << YAML::BeginMap;
-					out << YAML::Key << "EmitterID" << YAML::Value << subEmitter.EmitterID;
-					out << YAML::Key << "Trigger" << YAML::Value << Utils::GetEnumName(subEmitter.Trigger);
-					out << YAML::Key << "UseEmitterSpawnSettings" << YAML::Value << subEmitter.bUseEmitterSpawnSettings;
-					out << YAML::Key << "CountRange" << YAML::Value << subEmitter.CountRange;
-					out << YAML::Key << "Probability" << YAML::Value << subEmitter.Probability;
-					out << YAML::Key << "InheritVelocity" << YAML::Value << subEmitter.InheritVelocity;
-					out << YAML::Key << "InheritColor" << YAML::Value << subEmitter.bInheritColor;
-					out << YAML::EndMap;
-				}
-				out << YAML::EndSeq;
-				out << YAML::Key << "RadialAcceleration" << YAML::Value << emitter.RadialAcceleration;
-				out << YAML::Key << "TangentialAcceleration" << YAML::Value << emitter.TangentialAcceleration;
-				out << YAML::Key << "NormalVelocityFactor" << YAML::Value << emitter.NormalVelocityFactor;
-
-				out << YAML::Key << "EmissionShape" << YAML::Value << Utils::GetEnumName(emitter.EmissionShape);
-				out << YAML::Key << "SphereRadius" << YAML::Value << emitter.SphereRadius;
-				out << YAML::Key << "BoxMin" << YAML::Value << emitter.BoxMin;
-				out << YAML::Key << "BoxMax" << YAML::Value << emitter.BoxMax;
-				out << YAML::Key << "RingRadius" << YAML::Value << emitter.RingRadius;
-				out << YAML::Key << "RingThickness" << YAML::Value << emitter.RingThickness;
-				if (emitter.MeshAsset)
-					out << YAML::Key << "Mesh" << YAML::Value << emitter.MeshAsset->GetGUID();
-				if (const auto& animAsset = emitter.MeshAnimationAsset)
-					out << YAML::Key << "AnimationClip" << YAML::Value << animAsset->GetGUID();
-				out << YAML::Key << "ClipPlaybackSpeed" << emitter.ClipPlaybackSpeed;
-				out << YAML::Key << "ClipLooping" << emitter.bClipLooping;
-				out << YAML::Key << "TriggerAnimationEvents" << emitter.bTriggerAnimationEvents;
-
-				out << YAML::Key << "CollisionMode" << YAML::Value << Utils::GetEnumName(emitter.CollisionMode);
-
-				out << YAML::Key << "bDestroyImmediately" << YAML::Value << emitter.bDestroyImmediately;
-				out << YAML::Key << "bEmit" << YAML::Value << emitter.bEmit;
-				out << YAML::Key << "bExplode" << YAML::Value << emitter.bExplode;
-				SerializeCurveProperty(out, "ApplyGravity", emitter.ApplyGravity);
-				out << YAML::Key << "DepthFade" << YAML::Value << emitter.bDepthFade;
-				out << YAML::Key << "DepthFadeDistance" << YAML::Value << emitter.DepthFadeDistance;
-				out << YAML::Key << "CameraFade" << YAML::Value << emitter.bCameraFade;
-				out << YAML::Key << "CameraFadeDistance" << YAML::Value << emitter.CameraFadeDistance;
-				out << YAML::Key << "bAlphaBlending" << YAML::Value << emitter.bAlphaBlending;
-				out << YAML::Key << "bAdditive" << YAML::Value << emitter.bAdditive;
-				out << YAML::Key << "bBlendAnimation" << YAML::Value << emitter.bBlendAnimation;
-				out << YAML::Key << "bFaceDirection" << YAML::Value << emitter.bFaceDirection;
-
-				out << YAML::EndMap;
-			}
+				SerializeParticleEmitter(out, emitter);
 			out << YAML::EndSeq;
 		}
 

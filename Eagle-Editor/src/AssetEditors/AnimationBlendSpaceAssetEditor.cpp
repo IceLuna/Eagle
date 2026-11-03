@@ -34,6 +34,7 @@ namespace Eagle
 	AnimationBlendSpaceAssetEditor::AnimationBlendSpaceAssetEditor(const Ref<AssetAnimationBlendSpace>& asset)
 		: AssetEditor(true, true)
 		, m_Asset(asset)
+		, m_EditTracker(&DescribeState)
 	{
 		m_FirstUseViewportRatio = 0.6f;
 		m_PlotPanelName = AssetEditor::GetPanelName(m_Asset, "Plot");
@@ -64,6 +65,15 @@ namespace Eagle
 			camera.SetLocation(center - cameraDir * aabb.MaxSide() * 2.f); // Move back
 			camera.LookAt(center);
 		}
+
+		m_UndoHistory.SetOnAppliedCallback([this](const UndoTransaction&, bool)
+		{
+			m_Horizontal = m_Asset->GetHorizontalAxis();
+			m_Vertical = m_Asset->GetVerticalAxis();
+			m_PointsData = m_Asset->GetPointsData();
+			if (m_SelectedPointIdx != s_InvalidIndex && m_SelectedPointIdx >= m_PointsData.size())
+				m_SelectedPointIdx = s_InvalidIndex;
+		});
 	}
 
 	void AnimationBlendSpaceAssetEditor::OnImGuiRender(bool* pOpen)
@@ -81,6 +91,8 @@ namespace Eagle
 		{
 			m_Asset->SetPointsData(m_PointsData);
 		}
+
+		m_EditTracker.EndFrame();
 	}
 
 	void AnimationBlendSpaceAssetEditor::OnEvent(Event& e)
@@ -104,6 +116,7 @@ namespace Eagle
 		bool bChanged = false;
 
 		BeginPanel(GetDetailsPanelName());
+		m_EditTracker.BeginFrame(&m_UndoHistory, m_Asset); // The visualization values and the point that's about to be added aren't a part of the asset
 
 		UI::BeginPropertyGrid("AnimationBlendSpaceDetails");
 		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
@@ -173,6 +186,7 @@ namespace Eagle
 		bool bChanged = false;
 
 		BeginPanel(m_PlotPanelName);
+		m_EditTracker.BeginFrame(&m_UndoHistory, m_Asset);
 
 		ImGui::Checkbox("Draw Triangulation", &bDrawTriangulation);
 		if (m_SelectedPointIdx != s_InvalidIndex)
@@ -667,5 +681,28 @@ namespace Eagle
 		HideTabBar(nodeViewport);
 		HideTabBar(nodePlot);
 		SetCentralNode(dockspaceID, nodeViewport);
+	}
+
+	std::string AnimationBlendSpaceAssetEditor::DescribeState(const AssetAnimationBlendSpace::Settings& before, const AssetAnimationBlendSpace::Settings& after)
+	{
+		if (after.Points.size() != before.Points.size() && before.Horizontal == after.Horizontal && before.Vertical == after.Vertical)
+		{
+			if (after.Points.empty())
+				return "Remove All Points";
+			return after.Points.size() > before.Points.size() ? "Add Point" : "Delete Point";
+		}
+
+		const bool bPointsChanged = !std::equal(before.Points.begin(), before.Points.end(), after.Points.begin(), after.Points.end(),
+			[](const BlendSpaceVertex& a, const BlendSpaceVertex& b) { return a.Animation == b.Animation && a.Coord == b.Coord && a.AnimSpeed == b.AnimSpeed; });
+
+		return UndoUtils::Describe({
+			{ "Events Trigger Mode", before.EventsTriggerMode != after.EventsTriggerMode },
+			{ "Blend Time", before.BlendTime != after.BlendTime },
+			{ "Shortest Blend Path", before.bUseShortestBlendPath != after.bUseShortestBlendPath },
+			{ "Sync Animations", before.bSync != after.bSync },
+			{ "Horizontal Axis", before.Horizontal != after.Horizontal },
+			{ "Vertical Axis", before.Vertical != after.Vertical },
+			{ "Point", bPointsChanged },
+		}, "Edit Blend Space");
 	}
 }

@@ -6,9 +6,9 @@
 namespace Eagle
 {
 	PhysicsMaterial::PhysicsMaterial(float staticFriction, float dynamicFriction, float bounciness)
-		: m_StaticFriction(staticFriction), m_DynamicFriction(dynamicFriction), m_Bounciness(bounciness)
+		: m_Settings{ staticFriction, dynamicFriction, bounciness }
 	{
-		m_NativeHandle = PhysXInternal::GetPhysics().createMaterial(m_StaticFriction, m_DynamicFriction, m_Bounciness);
+		m_NativeHandle = PhysXInternal::GetPhysics().createMaterial(m_Settings.StaticFriction, m_Settings.DynamicFriction, m_Settings.Bounciness);
 	}
 
 	PhysicsMaterial::~PhysicsMaterial()
@@ -18,28 +18,36 @@ namespace Eagle
 		m_NativeHandle = nullptr;
 	}
 
-	void PhysicsMaterial::SetStaticFriction(float value)
+	void PhysicsMaterial::SetSettings(const PhysicsMaterialSettings& settings)
 	{
-		m_StaticFriction = value;
+		m_Settings = settings;
+		m_Settings.Bounciness = glm::min(settings.Bounciness, 1.f);
 
 		physx::PxMaterial* material = (physx::PxMaterial*)m_NativeHandle;
-		material->setStaticFriction(m_StaticFriction);
+		material->setStaticFriction(m_Settings.StaticFriction);
+		material->setDynamicFriction(m_Settings.DynamicFriction);
+		material->setRestitution(m_Settings.Bounciness);
+	}
+
+	void PhysicsMaterial::SetStaticFriction(float value)
+	{
+		PhysicsMaterialSettings settings = m_Settings;
+		settings.StaticFriction = value;
+		SetSettings(settings);
 	}
 
 	void PhysicsMaterial::SetDynamicFriction(float value)
 	{
-		m_DynamicFriction = value;
-
-		physx::PxMaterial* material = (physx::PxMaterial*)m_NativeHandle;
-		material->setDynamicFriction(m_DynamicFriction);
+		PhysicsMaterialSettings settings = m_Settings;
+		settings.DynamicFriction = value;
+		SetSettings(settings);
 	}
 
 	void PhysicsMaterial::SetBounciness(float value)
 	{
-		m_Bounciness = glm::clamp(value, 0.f, 1.f);
-
-		physx::PxMaterial* material = (physx::PxMaterial*)m_NativeHandle;
-		material->setRestitution(m_Bounciness);
+		PhysicsMaterialSettings settings = m_Settings;
+		settings.Bounciness = value;
+		SetSettings(settings);
 	}
 	
 	Ref<PhysicsMaterial> PhysicsMaterial::Create(float staticFriction, float dynamicFriction, float bounciness)

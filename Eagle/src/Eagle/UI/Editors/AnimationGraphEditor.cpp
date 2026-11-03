@@ -11,7 +11,7 @@ namespace Eagle
 	AnimationGraphEditor::AnimationGraphEditor(const Ref<AssetAnimationGraph>& graph, const std::string& name)
         : GraphEditor(name), m_Graph(graph)
 	{
-        m_Graphs.emplace_back(MakeRef<UIAnimationGraph>(*this, name));
+        m_Graphs.emplace_back(CreateRootGraph());
 
         OnAddGraphPre();
         Deserialize();
@@ -53,19 +53,26 @@ namespace Eagle
         m_Graph->OnModified();
     }
 
-    GraphEditorSerializationData AnimationGraphEditor::Save()
+    void AnimationGraphEditor::Save()
     {
-        GraphEditorSerializationData result = GraphEditor::Save();
-
-        m_Graph->SetSerializationData(result);
+        WriteToAsset();
         Asset::Save(m_Graph);
-        return result;
+    }
+
+    void AnimationGraphEditor::WriteToAsset()
+    {
+        m_Graph->SetSerializationData(GraphEditor::CaptureState());
     }
     
     void AnimationGraphEditor::OnGraphChanged()
     {
         if (IgnoreChangedEvent() == false)
             m_Graph->SetDirty(true);
+    }
+
+    Ref<UIGraph> AnimationGraphEditor::CreateRootGraph()
+    {
+        return MakeRef<UIAnimationGraph>(*this, m_Name);
     }
 
     void AnimationGraphEditor::OnAddGraphPre()

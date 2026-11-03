@@ -62,6 +62,26 @@ namespace Eagle
 		Ref<Sound> Sound;
 	};
 
+	struct SceneSkyboxSettings
+	{
+		Ref<AssetTextureCube> IBL;
+		SkySettings Sky;
+		float Intensity = 1.f;
+		bool bEnabled = true;
+		bool bRenderSkybox = true;
+		bool bUseSkyAsBackground = true;
+
+		bool operator==(const SceneSkyboxSettings& other) const = default;
+	};
+
+	struct SceneSettings
+	{
+		PhysicsSettings Physics;
+		SceneSkyboxSettings Skybox;
+
+		bool operator==(const SceneSettings& other) const = default;
+	};
+
 	class Scene
 	{
 		struct DirtyFlags
@@ -214,17 +234,26 @@ namespace Eagle
 		GUID GetGUID() const { return m_GUID; }
 		void SetGUID(GUID guid);
 
+		const SceneSettings& GetSettings() const { return m_Settings; }
+		void SetSettings(const SceneSettings& settings);
+
+		const PhysicsSettings& GetPhysicsSettings() const { return m_Settings.Physics; }
+		void SetPhysicsSettings(const PhysicsSettings& settings);
+
+		const SceneSkyboxSettings& GetSkyboxSettings() const { return m_Settings.Skybox; }
+		void SetSkyboxSettings(const SceneSkyboxSettings& settings);
+
 		void SetGravity(const glm::vec3& gravity);
-		const glm::vec3& GetGravity() const { return m_RuntimePhysicsSettings.Gravity; }
+		const glm::vec3& GetGravity() const { return m_Settings.Physics.Gravity; }
 
 		void SetPhysicsUpdateRate(uint32_t updateRate);
-		uint32_t GetPhysicsUpdateRate() const { return m_RuntimePhysicsSettings.UpdateRate; }
+		uint32_t GetPhysicsUpdateRate() const { return m_Settings.Physics.UpdateRate; }
 
 		void SetPhysicsDebugOnPlay(bool bEnable);
-		bool IsPhysicsDebugOnPlayEnabled() const { return m_RuntimePhysicsSettings.bDebugOnPlay; }
+		bool IsPhysicsDebugOnPlayEnabled() const { return m_Settings.Physics.bDebugOnPlay; }
 
 		void SetPhysicsDebugType(DebugType type);
-		DebugType GetPhysicsDebugType() const { return m_RuntimePhysicsSettings.DebugType; }
+		DebugType GetPhysicsDebugType() const { return m_Settings.Physics.DebugType; }
 		
 		void InvalidateCollisionGroups(uint32_t validMasks);
 
@@ -268,22 +297,22 @@ namespace Eagle
 		void SetForceShowCollision(bool bForce);
 
 		// Skybox
-		void SetSkybox(const Ref<AssetTextureCube>& cubemap);
-		const Ref<AssetTextureCube>& GetSkybox() const { return m_Cubemap; }
+		void SetSkybox(const Ref<AssetTextureCube>& ibl);
+		const Ref<AssetTextureCube>& GetSkybox() const { return m_Settings.Skybox.IBL; }
 		void SetSkyboxIntensity(float intensity);
-		float GetSkyboxIntensity() const { return m_SkyboxIntensity; }
+		float GetSkyboxIntensity() const { return m_Settings.Skybox.Intensity; }
 
 		void SetSkybox(const SkySettings& sky);
-		const SkySettings& GetSkySettings() const { return m_Sky; }
+		const SkySettings& GetSkySettings() const { return m_Settings.Skybox.Sky; }
 
 		// Also disables/enables sky (not just cubemap)
 		void SetSkyboxEnabled(bool bEnabled);
-		bool IsSkyboxEnabled() const { return m_bSkyboxEnabled; }
+		bool IsSkyboxEnabled() const { return m_Settings.Skybox.bEnabled; }
 		void SetRenderSkybox(bool bEnabled);
-		bool IsRenderSkyboxEnabled() const { return m_bRenderSkybox; }
+		bool IsRenderSkyboxEnabled() const { return m_Settings.Skybox.bRenderSkybox; }
 
 		void SetUseSkyAsBackground(bool value);
-		bool GetUseSkyAsBackground() const { return m_bUseSkyAsBackground; }
+		bool GetUseSkyAsBackground() const { return m_Settings.Skybox.bUseSkyAsBackground; }
 
 		// Currently, scene can only have on NavMesh. So all other NavMeshes are destroyed.
 		// Can pass a nullptr to remove all nav meshes & update obstacles properly
@@ -399,13 +428,16 @@ namespace Eagle
 		size_t GetPointLightsCount() const { return m_PointLights.size(); }
 		size_t GetSpotLightsCount() const { return m_SpotLights.size(); }
 		size_t GetDirLightsCount() const { return m_DirectionalLights.size(); }
-		bool HasIBL() const { return m_Cubemap && IsSkyboxEnabled(); }
+		bool HasIBL() const { return m_Settings.Skybox.IBL && IsSkyboxEnabled(); }
 
 	private:
 		static void OnSceneOpened(const Ref<Scene>& scene);
 
 	private:
 		void InitPhysicsScenes(bool bRuntime);
+
+		void ApplyPhysicsSettings(PhysicsScene& physicsScene) const;
+		void ApplySkyboxSettings();
 
 		// Main thread only
 		void SetSceneRenderer(const Ref<SceneRenderer>& sceneRenderer);
@@ -702,7 +734,7 @@ namespace Eagle
 		static Ref<Scene> s_CurrentScene;
 		Ref<PhysicsScene> m_PhysicsScene;
 		Ref<PhysicsScene> m_RuntimePhysicsScene;
-		PhysicsSettings m_RuntimePhysicsSettings{};
+		SceneSettings m_Settings;
 		uint32_t m_ViewportWidth = 1;
 		uint32_t m_ViewportHeight = 1;
 		Ref<SceneRenderer> m_SceneRenderer;
@@ -711,14 +743,6 @@ namespace Eagle
 		ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> m_AnimationTransforms;
 		// Key - system ID; Value - transforms per emitter
 		ankerl::unordered_dense::map<GUID, ankerl::unordered_dense::map<GUID, std::vector<glm::mat4>>> m_SkeletalParticlesAnimationTransforms;
-
-		// Skybox
-		Ref<AssetTextureCube> m_Cubemap;
-		SkySettings m_Sky;
-		float m_SkyboxIntensity = 1.f;
-		bool m_bSkyboxEnabled = true;
-		bool m_bRenderSkybox = true;
-		bool m_bUseSkyAsBackground = true;
 
 		std::unordered_map<GUID, Ref<Sound>> m_SpawnedSounds;
 

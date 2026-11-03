@@ -10,6 +10,7 @@ namespace Eagle
 {
 	StaticMeshAssetEditor::StaticMeshAssetEditor(const Ref<AssetStaticMesh>& asset)
 		: AssetEditor(true), m_Asset(asset)
+		, m_EditTracker(&DescribeState)
 	{
 		const auto& scene = GetCurrentScene();
 
@@ -27,6 +28,12 @@ namespace Eagle
 		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 2.f); // Move back
 		camera.LookAt(center);
 
+		m_UndoHistory.SetOnAppliedCallback([this](const UndoTransaction&, bool)
+		{
+			const auto& mesh = m_Asset->GetMesh();
+			for (uint32_t i = 0; i < mesh->GetMaterialSlotsCount(); ++i)
+				m_Component->SetMaterialAsset(i, mesh->GetMaterialAsset(i));
+		});
 	}
 
 	void StaticMeshAssetEditor::OnImGuiRender(bool* pOpen)
@@ -40,6 +47,7 @@ namespace Eagle
 
 		DrawEditorWindow(pOpen);
 		BeginPanel(GetDetailsPanelName());
+		m_EditTracker.BeginFrame(&m_UndoHistory, m_Asset);
 
 		UI::BeginPropertyGrid("StaticMeshDetails");
 		UI::TextWithSeparator("Data");
@@ -105,7 +113,13 @@ namespace Eagle
 			Asset::Save(m_Asset);
 
 		ImGui::End();
+		m_EditTracker.EndFrame();
 
 		DrawViewport(false);
+	}
+
+	std::string StaticMeshAssetEditor::DescribeState(const AssetStaticMesh::Settings& before, const AssetStaticMesh::Settings& after)
+	{
+		return "Edit Materials";
 	}
 }

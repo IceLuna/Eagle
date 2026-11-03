@@ -1,14 +1,13 @@
 #pragma once
 
 #include "AssetEditor.h"
+#include "../Undo/AssetUndo.h"
 #include "../Widgets/CurveView.h"
 #include "../Widgets/CurveEditor.h"
 
 #include "Eagle/SceneSequence/SceneSequencePlayer.h"
 
 #include <any>
-#include <string>
-#include <vector>
 
 namespace Eagle
 {
@@ -148,6 +147,26 @@ namespace Eagle
 		void StartPiloting();
 		void StopPiloting();
 
+		// The sequencer is a panel of the level editor, so its changes are recorded into the level editor's history. Null while the level is played
+		static UndoHistory* GetHistory();
+
+		// Auto-key writes the camera every frame it moves, so the keys written while the camera keeps moving are recorded as one change
+		void UpdateAutoKeyRecording(bool bCameraMoved);
+
+		struct EditState
+		{
+			std::vector<Ref<SequenceTrack>> Tracks; // Copies, so that they're not affected by later edits
+			std::vector<std::string> Serialized;
+			AssetSceneSequence::Settings Settings;
+
+			size_t GetMemoryUsage() const;
+			bool operator==(const EditState& other) const;
+		};
+
+		static EditState CaptureState(const Ref<AssetSceneSequence>& asset);
+		static void ApplyState(const Ref<AssetSceneSequence>& asset, const EditState& state);
+		static std::string DescribeState(const EditState& before, const EditState& after);
+
 		// ---- Selection ----
 		bool IsSelected(const KeyRef& ref) const;
 		void Select(const KeyRef& ref, bool bAdditive);
@@ -178,6 +197,9 @@ namespace Eagle
 
 	private:
 		Ref<AssetSceneSequence> m_Asset;
+		AssetEditTracker<AssetSceneSequence, EditState> m_EditTracker;
+		std::optional<EditState> m_AutoKeyBefore; // Auto-key keys are being written. Before the first of them
+		uint64_t m_AutoKeyHistoryVersion = 0;
 		SceneSequencePlayer m_Player;
 		std::string m_WindowName;
 

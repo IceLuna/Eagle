@@ -7,64 +7,24 @@
 
 namespace Eagle
 {
-	void Serializer::DeserializeReverb(YAML::Node& reverbNode, ReverbComponent& reverb)
+	namespace
 	{
-		float minDistance = reverbNode["MinDistance"].as<float>();
-		float maxDistance = reverbNode["MaxDistance"].as<float>();
-		reverb.SetMinMaxDistance(minDistance, maxDistance);
-		reverb.SetPreset(Utils::GetEnumFromName<ReverbPreset>(reverbNode["Preset"].as<std::string>()));
-		reverb.SetActive(reverbNode["IsActive"].as<bool>());
-	}
-
-	void Serializer::SerializeEntity(YAML::Emitter& out, Entity entity)
-	{
-		out << YAML::BeginMap; //Entity
-
-		out << YAML::Key << "EntityID" << YAML::Value << entity.GetID();
-		out << YAML::Key << "GUID" << YAML::Value << entity.GetGUID();
-
-		if (entity.HasComponent<EntityAssetComponent>())
+		void SerializeEntityAssetComponent(YAML::Emitter& out, Entity entity, const char* key)
 		{
-			const auto& component = entity.GetComponent<EntityAssetComponent>();
-			out << YAML::Key << "Asset" << YAML::Value << component.AssetGUID;
+			out << YAML::Key << key << YAML::Value << entity.GetComponent<EntityAssetComponent>().AssetGUID;
 		}
 
-		if (entity.HasComponent<EntitySceneNameComponent>())
+		void DeserializeEntityAssetComponent(Entity deserializedEntity, YAML::Node assetNode)
 		{
-			const auto& sceneNameComponent = entity.GetComponent<EntitySceneNameComponent>();
-			const auto& name = sceneNameComponent.GetName();
+			if (!deserializedEntity.HasComponent<EntityAssetComponent>())
+				deserializedEntity.AddComponent<EntityAssetComponent>();
 
-			int parentID = -1;
-			if (Entity parent = entity.GetParent())
-				parentID = (int)parent.GetID();
-
-			out << YAML::Key << "EntitySceneParams";
-			out << YAML::BeginMap; //EntitySceneName
-
-			out << YAML::Key << "Name" << YAML::Value << name;
-			out << YAML::Key << "Parent" << YAML::Value << parentID;
-
-			out << YAML::EndMap; //EntitySceneParams
+			deserializedEntity.GetComponent<EntityAssetComponent>().AssetGUID = assetNode.as<GUID>();
 		}
 
-		if (entity.HasComponent<TransformComponent>())
+		void SerializeTagComponent(YAML::Emitter& out, Entity entity, const char* key)
 		{
-			const auto& worldTransform = entity.GetWorldTransform();
-			const auto& relativeTransform = entity.GetRelativeTransform();
-
-			out << YAML::Key << "TransformComponent";
-			out << YAML::BeginMap; //TransformComponent
-
-			out << YAML::Key << "WorldLocation" << YAML::Value << worldTransform.Location;
-			out << YAML::Key << "WorldRotation" << YAML::Value << worldTransform.Rotation;
-			out << YAML::Key << "WorldScale" << YAML::Value << worldTransform.Scale3D;
-
-			out << YAML::EndMap; //TransformComponent
-		}
-
-		if (entity.HasComponent<TagComponent>())
-		{
-			out << YAML::Key << "TagComponent";
+			out << YAML::Key << key;
 			out << YAML::BeginMap; //TagComponent
 
 			out << YAML::Key << "Tag" << YAML::Value << entity.GetComponent<TagComponent>().Tag;
@@ -72,12 +32,17 @@ namespace Eagle
 			out << YAML::EndMap; //TagComponent
 		}
 
-		if (entity.HasComponent<CameraComponent>())
+		void DeserializeTagComponent(Entity deserializedEntity, YAML::Node tagComponentNode)
+		{
+			deserializedEntity.GetComponent<TagComponent>().Tag = tagComponentNode["Tag"].as<std::string>();
+		}
+
+		void SerializeCameraComponent(YAML::Emitter& out, Entity entity, const char* key)
 		{
 			auto& cameraComponent = entity.GetComponent<CameraComponent>();
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
 
-			out << YAML::Key << "CameraComponent";
+			out << YAML::Key << key;
 			out << YAML::BeginMap; //CameraComponent;
 
 			out << YAML::Key << "Camera";
@@ -97,7 +62,7 @@ namespace Eagle
 
 			out << YAML::EndMap; //Camera
 
-			SerializeRelativeTransform(out, cameraComponent.GetRelativeTransform());
+			Serializer::SerializeRelativeTransform(out, cameraComponent.GetRelativeTransform());
 
 			out << YAML::Key << "Primary" << YAML::Value << cameraComponent.Primary;
 			out << YAML::Key << "FixedAspectRatio" << YAML::Value << cameraComponent.FixedAspectRatio;
@@ -105,14 +70,47 @@ namespace Eagle
 			out << YAML::EndMap; //CameraComponent;
 		}
 
-		if (entity.HasComponent<SpriteComponent>())
+		void DeserializeCameraComponent(Entity deserializedEntity, YAML::Node cameraComponentNode)
+		{
+			auto& cameraComponent = deserializedEntity.AddComponent<CameraComponent>();
+			auto& camera = cameraComponent.Camera;
+			Transform relativeTransform;
+
+			auto cameraNode = cameraComponentNode["Camera"];
+			camera.SetProjectionMode(Utils::GetEnumFromName<CameraProjectionMode>(cameraNode["ProjectionMode"].as<std::string>()));
+
+			camera.SetPerspectiveVerticalFOV(cameraNode["PerspectiveVerticalFOV"].as<float>());
+			camera.SetPerspectiveNearClip(cameraNode["PerspectiveNearClip"].as<float>());
+			camera.SetPerspectiveFarClip(cameraNode["PerspectiveFarClip"].as<float>());
+
+			camera.SetOrthographicSize(cameraNode["OrthographicSize"].as<float>());
+			camera.SetOrthographicNearClip(cameraNode["OrthographicNearClip"].as<float>());
+			camera.SetOrthographicFarClip(cameraNode["OrthographicFarClip"].as<float>());
+			if (auto node = cameraNode["ShadowFarClip"])
+				camera.SetShadowFarClip(node.as<float>());
+			if (auto node = cameraNode["DirLightShadowFarClip"])
+				camera.SetDirLightShadowFarClip(node.as<float>());
+			if (auto node = cameraNode["CascadesSplitAlpha"])
+				camera.SetCascadesSplitAlpha(node.as<float>());
+			if (auto node = cameraNode["CascadesSmoothTransitionAlpha"])
+				camera.SetCascadesSmoothTransitionAlpha(node.as<float>());
+
+			Serializer::DeserializeRelativeTransform(cameraComponentNode, relativeTransform);
+
+			cameraComponent.SetRelativeTransform(relativeTransform);
+
+			cameraComponent.Primary = cameraComponentNode["Primary"].as<bool>();
+			cameraComponent.FixedAspectRatio = cameraComponentNode["FixedAspectRatio"].as<bool>();
+		}
+
+		void SerializeSpriteComponent(YAML::Emitter& out, Entity entity, const char* key)
 		{
 			const auto& spriteComponent = entity.GetComponent<SpriteComponent>();
 
-			out << YAML::Key << "SpriteComponent";
+			out << YAML::Key << key;
 			out << YAML::BeginMap; //SpriteComponent
 
-			SerializeRelativeTransform(out, spriteComponent.GetRelativeTransform());
+			Serializer::SerializeRelativeTransform(out, spriteComponent.GetRelativeTransform());
 
 			out << YAML::Key << "bAtlas" << YAML::Value << spriteComponent.IsAtlas();
 			out << YAML::Key << "bCastsShadows" << YAML::Value << spriteComponent.DoesCastShadows();
@@ -127,14 +125,41 @@ namespace Eagle
 			out << YAML::EndMap; //SpriteComponent
 		}
 
-		if (entity.HasComponent<BillboardComponent>())
+		void DeserializeSpriteComponent(Entity deserializedEntity, YAML::Node spriteComponentNode)
+		{
+			auto& spriteComponent = deserializedEntity.AddComponent<SpriteComponent>();
+
+			Transform relativeTransform;
+			Serializer::DeserializeRelativeTransform(spriteComponentNode, relativeTransform);
+			spriteComponent.SetRelativeTransform(relativeTransform);
+
+			if (auto materialNode = spriteComponentNode["Material"])
+				spriteComponent.SetMaterialAsset(GetAsset<AssetMaterial>(materialNode));
+
+			if (auto node = spriteComponentNode["bAtlas"])
+				spriteComponent.SetIsAtlas(node.as<bool>());
+			if (auto node = spriteComponentNode["bCastsShadows"])
+				spriteComponent.SetCastsShadows(node.as<bool>());
+			if (auto node = spriteComponentNode["bReceivesDecals"])
+				spriteComponent.SetReceivesDecals(node.as<bool>());
+			if (auto node = spriteComponentNode["IsVisible"])
+				spriteComponent.SetVisible(node.as<bool>());
+			if (auto node = spriteComponentNode["AtlasSpriteCoords"])
+				spriteComponent.SetAtlasSpriteCoords(node.as<glm::vec2>());
+			if (auto node = spriteComponentNode["AtlasSpriteSize"])
+				spriteComponent.SetAtlasSpriteSize(node.as<glm::vec2>());
+			if (auto node = spriteComponentNode["AtlasSpriteSizeCoef"])
+				spriteComponent.SetAtlasSpriteSizeCoef(node.as<glm::vec2>());
+		}
+
+		void SerializeBillboardComponent(YAML::Emitter& out, Entity entity, const char* key)
 		{
 			auto& component = entity.GetComponent<BillboardComponent>();
 
-			out << YAML::Key << "BillboardComponent";
+			out << YAML::Key << key;
 			out << YAML::BeginMap; //BillboardComponent
 
-			SerializeRelativeTransform(out, component.GetRelativeTransform());
+			Serializer::SerializeRelativeTransform(out, component.GetRelativeTransform());
 			if (component.TextureAsset)
 				out << YAML::Key << "Texture" << YAML::Value << component.TextureAsset->GetGUID();
 			out << YAML::Key << "IsVisible" << YAML::Value << component.bVisible;
@@ -142,22 +167,35 @@ namespace Eagle
 			out << YAML::EndMap; //BillboardComponent
 		}
 
-		if (entity.HasComponent<StaticMeshComponent>())
+		void DeserializeBillboardComponent(Entity deserializedEntity, YAML::Node billboardComponentNode)
+		{
+			auto& billboardComponent = deserializedEntity.AddComponent<BillboardComponent>();
+			Transform relativeTransform;
+
+			Serializer::DeserializeRelativeTransform(billboardComponentNode, relativeTransform);
+			billboardComponent.TextureAsset = GetAsset<AssetTexture2D>(billboardComponentNode["Texture"]);
+			if (auto node = billboardComponentNode["IsVisible"])
+				billboardComponent.bVisible = node.as<bool>();
+
+			billboardComponent.SetRelativeTransform(relativeTransform);
+		}
+
+		void SerializeStaticMeshComponent(YAML::Emitter& out, Entity entity, const char* key)
 		{
 			auto& smComponent = entity.GetComponent<StaticMeshComponent>();
 
-			out << YAML::Key << "StaticMeshComponent";
+			out << YAML::Key << key;
 			out << YAML::BeginMap; //StaticMeshComponent
 
 			out << YAML::Key << "bCastsShadows" << YAML::Value << smComponent.DoesCastShadows();
 			out << YAML::Key << "bReceivesDecals" << YAML::Value << smComponent.DoesReceiveDecals();
 			out << YAML::Key << "IsVisible" << YAML::Value << smComponent.IsVisible();
 
-			SerializeRelativeTransform(out, smComponent.GetRelativeTransform());
+			Serializer::SerializeRelativeTransform(out, smComponent.GetRelativeTransform());
 
 			if (const auto& meshAsset = smComponent.GetMeshAsset())
 				out << YAML::Key << "Mesh" << YAML::Value << meshAsset->GetGUID();
-			
+
 			if (const uint32_t materialsCount = smComponent.GetMaterialsSlotsCount())
 			{
 				out << YAML::Key << "Materials" << YAML::Value << YAML::BeginSeq;
@@ -175,18 +213,38 @@ namespace Eagle
 			out << YAML::EndMap; //StaticMeshComponent
 		}
 
-		if (entity.HasComponent<SkeletalMeshComponent>())
+		void DeserializeStaticMeshComponent(Entity deserializedEntity, YAML::Node staticMeshComponentNode)
+		{
+			auto& smComponent = deserializedEntity.AddComponent<StaticMeshComponent>();
+			smComponent.SetCastsShadows(staticMeshComponentNode["bCastsShadows"].as<bool>());
+			if (auto node = staticMeshComponentNode["bReceivesDecals"])
+				smComponent.SetReceivesDecals(node.as<bool>());
+			if (auto node = staticMeshComponentNode["IsVisible"])
+				smComponent.SetVisible(node.as<bool>());
+
+			Transform relativeTransform;
+			Serializer::DeserializeRelativeTransform(staticMeshComponentNode, relativeTransform);
+			smComponent.SetRelativeTransform(relativeTransform);
+
+			if (auto meshNode = staticMeshComponentNode["Mesh"])
+				smComponent.SetMeshAsset(GetAsset<AssetStaticMesh>(meshNode));
+			if (auto materialsNode = staticMeshComponentNode["Materials"])
+				for (const auto& matNode : materialsNode)
+					smComponent.SetMaterialAsset(matNode["Index"].as<uint32_t>(), GetAsset<AssetMaterial>(matNode["Material"]));
+		}
+
+		void SerializeSkeletalMeshComponent(YAML::Emitter& out, Entity entity, const char* key)
 		{
 			auto& smComponent = entity.GetComponent<SkeletalMeshComponent>();
 
-			out << YAML::Key << "SkeletalMeshComponent";
+			out << YAML::Key << key;
 			out << YAML::BeginMap; //SkeletalMeshComponent
 
 			out << YAML::Key << "bCastsShadows" << YAML::Value << smComponent.DoesCastShadows();
 			out << YAML::Key << "bReceivesDecals" << YAML::Value << smComponent.DoesReceiveDecals();
 			out << YAML::Key << "IsVisible" << YAML::Value << smComponent.IsVisible();
 
-			SerializeRelativeTransform(out, smComponent.GetRelativeTransform());
+			Serializer::SerializeRelativeTransform(out, smComponent.GetRelativeTransform());
 
 			if (const auto& meshAsset = smComponent.GetMeshAsset())
 				out << YAML::Key << "Mesh" << YAML::Value << meshAsset->GetGUID();
@@ -239,671 +297,7 @@ namespace Eagle
 			out << YAML::EndMap; //SkeletalMeshComponent
 		}
 
-		if (entity.HasComponent<PointLightComponent>())
-		{
-			auto& pointLightComponent = entity.GetComponent<PointLightComponent>();
-
-			out << YAML::Key << "PointLightComponent";
-			out << YAML::BeginMap; //PointLightComponent
-
-			SerializeRelativeTransform(out, pointLightComponent.GetRelativeTransform());
-
-			out << YAML::Key << "LightColor" << YAML::Value << pointLightComponent.GetLightColor();
-			out << YAML::Key << "Intensity" << YAML::Value << pointLightComponent.GetIntensity();
-			out << YAML::Key << "VolumetricFogIntensity" << YAML::Value << pointLightComponent.GetVolumetricFogIntensity();
-			out << YAML::Key << "Radius" << YAML::Value << pointLightComponent.GetRadius();
-			out << YAML::Key << "AffectsWorld" << YAML::Value << pointLightComponent.DoesAffectWorld();
-			out << YAML::Key << "CastsShadows" << YAML::Value << pointLightComponent.DoesCastShadows();
-			out << YAML::Key << "VisualizeRadius" << YAML::Value << pointLightComponent.VisualizeRadiusEnabled();
-			out << YAML::Key << "IsVolumetric" << YAML::Value << pointLightComponent.IsVolumetricLight();
-
-			out << YAML::EndMap; //PointLightComponent
-		}
-
-		if (entity.HasComponent<DirectionalLightComponent>())
-		{
-			auto& directionalLightComponent = entity.GetComponent<DirectionalLightComponent>();
-
-			out << YAML::Key << "DirectionalLightComponent";
-			out << YAML::BeginMap; //DirectionalLightComponent
-
-			SerializeRelativeTransform(out, directionalLightComponent.GetRelativeTransform());
-
-			out << YAML::Key << "LightColor" << YAML::Value << directionalLightComponent.GetLightColor();
-			out << YAML::Key << "Ambient" << YAML::Value << directionalLightComponent.GetAmbientColor();
-			out << YAML::Key << "Intensity" << YAML::Value << directionalLightComponent.GetIntensity();
-			out << YAML::Key << "VolumetricFogIntensity" << YAML::Value << directionalLightComponent.GetVolumetricFogIntensity();
-			out << YAML::Key << "AffectsWorld" << YAML::Value << directionalLightComponent.DoesAffectWorld();
-			out << YAML::Key << "CastsShadows" << YAML::Value << directionalLightComponent.DoesCastShadows();
-			out << YAML::Key << "CastsScreenSpaceShadows" << YAML::Value << directionalLightComponent.DoesCastScreenSpaceShadows();
-			out << YAML::Key << "IsVolumetric" << YAML::Value << directionalLightComponent.IsVolumetricLight();
-			out << YAML::Key << "Visualize" << YAML::Value << directionalLightComponent.IsVisualizeDirectionEnabled();
-
-			out << YAML::EndMap; //DirectionalLightComponent
-		}
-
-		if (entity.HasComponent<SpotLightComponent>())
-		{
-			auto& spotLightComponent = entity.GetComponent<SpotLightComponent>();
-
-			out << YAML::Key << "SpotLightComponent";
-			out << YAML::BeginMap; //SpotLightComponent
-
-			SerializeRelativeTransform(out, spotLightComponent.GetRelativeTransform());
-
-			out << YAML::Key << "LightColor" << YAML::Value << spotLightComponent.GetLightColor();
-			out << YAML::Key << "InnerCutOffAngle" << YAML::Value << spotLightComponent.GetInnerCutOffAngle();
-			out << YAML::Key << "OuterCutOffAngle" << YAML::Value << spotLightComponent.GetOuterCutOffAngle();
-			out << YAML::Key << "Intensity" << YAML::Value << spotLightComponent.GetIntensity();
-			out << YAML::Key << "VolumetricFogIntensity" << YAML::Value << spotLightComponent.GetVolumetricFogIntensity();
-			out << YAML::Key << "Distance" << YAML::Value << spotLightComponent.GetDistance();
-			out << YAML::Key << "AffectsWorld" << YAML::Value << spotLightComponent.DoesAffectWorld();
-			out << YAML::Key << "CastsShadows" << YAML::Value << spotLightComponent.DoesCastShadows();
-			out << YAML::Key << "VisualizeDistance" << YAML::Value << spotLightComponent.VisualizeDistanceEnabled();
-			out << YAML::Key << "IsVolumetric" << YAML::Value << spotLightComponent.IsVolumetricLight();
-
-			out << YAML::EndMap; //SpotLightComponent
-		}
-
-		if (entity.HasComponent<ScriptComponent>())
-		{
-			auto& scriptComponent = entity.GetComponent<ScriptComponent>();
-
-			out << YAML::Key << "ScriptComponent";
-			out << YAML::BeginMap;
-
-			out << YAML::Key << "ModuleName" << YAML::Value << scriptComponent.ModuleName;
-
-			SerializeScriptFields(out, scriptComponent.PublicFields);
-
-			out << YAML::EndMap;
-		}
-
-		if (entity.HasComponent<RigidBodyComponent>())
-		{
-			auto& rigidBodyComponent = entity.GetComponent<RigidBodyComponent>();
-
-			out << YAML::Key << "RigidBodyComponent";
-			out << YAML::BeginMap; //RigidBodyComponent
-
-			out << YAML::Key << "BodyType" << YAML::Value << Utils::GetEnumName(rigidBodyComponent.GetBodyType());
-			out << YAML::Key << "CollisionDetectionType" << YAML::Value << Utils::GetEnumName(rigidBodyComponent.GetCollisionDetectionType());
-			out << YAML::Key << "PositionSolverIterations" << YAML::Value << rigidBodyComponent.GetPositionSolverIterations();
-			out << YAML::Key << "VelocitySolverIterations" << YAML::Value << rigidBodyComponent.GetVelocitySolverIterations();
-			out << YAML::Key << "Mass" << YAML::Value << rigidBodyComponent.GetMass();
-			out << YAML::Key << "LinearDamping" << YAML::Value << rigidBodyComponent.GetLinearDamping();
-			out << YAML::Key << "AngularDamping" << YAML::Value << rigidBodyComponent.GetAngularDamping();
-			out << YAML::Key << "MaxLinearVelocity" << YAML::Value << rigidBodyComponent.GetMaxLinearVelocity();
-			out << YAML::Key << "MaxAngularVelocity" << YAML::Value << rigidBodyComponent.GetMaxAngularVelocity();
-			out << YAML::Key << "EnableGravity" << YAML::Value << rigidBodyComponent.IsGravityEnabled();
-			out << YAML::Key << "IsKinematic" << YAML::Value << rigidBodyComponent.IsKinematic();
-			out << YAML::Key << "LockFlags" << YAML::Value << (uint32_t)rigidBodyComponent.GetLockFlags();
-
-			out << YAML::EndMap; //RigidBodyComponent
-		}
-
-		if (entity.HasComponent<CharacterControllerComponent>())
-		{
-			auto& component = entity.GetComponent<CharacterControllerComponent>();
-
-			out << YAML::Key << "CharacterControllerComponent";
-			out << YAML::BeginMap; //CharacterControllerComponent
-
-			SerializeRelativeTransform(out, component.GetRelativeTransform());
-
-			out << YAML::Key << "SlopeLimit" << YAML::Value << component.GetSlopeLimit();
-			out << YAML::Key << "ContactOffset" << YAML::Value << component.GetContactOffset();
-			out << YAML::Key << "StepOffset" << YAML::Value << component.GetStepOffset();
-			if (const auto& material = component.GetPhysicsMaterialAsset())
-				out << YAML::Key << "PhysicsMaterial" << YAML::Value << material->GetGUID();
-			out << YAML::Key << "Shape" << YAML::Value << Utils::GetEnumName(component.GetShapeType());
-			out << YAML::Key << "ClimbingMode" << YAML::Value << Utils::GetEnumName(component.GetCapsuleClimbingMode());
-			out << YAML::Key << "CapsuleRadius" << YAML::Value << component.GetCapsuleRadius();
-			out << YAML::Key << "CapsuleHeight" << YAML::Value << component.GetCapsuleHeight();
-			out << YAML::Key << "BoxSize" << YAML::Value << component.GetBoxSize();
-			out << YAML::Key << "IsCollisionVisible" << YAML::Value << component.IsCollisionVisible();
-			out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(component.GetCollisionGroup());
-			out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(component.GetInteractingCollisionGroup());
-			out << YAML::Key << "UpDirection" << YAML::Value << component.GetControllerUpDirection();
-			out << YAML::Key << "CollidesWithOtherControllers" << YAML::Value << component.DoesCollideWithOtherControllers();
-			out << YAML::Key << "bMoveWholeEntity" << YAML::Value << component.bMoveWholeEntity;
-			out << YAML::Key << "bUseFootLocation" << YAML::Value << component.bUseFootLocation;
-
-			out << YAML::EndMap; //CharacterControllerComponent
-		}
-
-		if (entity.HasComponent<BoxColliderComponent>())
-		{
-			auto& collider = entity.GetComponent<BoxColliderComponent>();
-
-			out << YAML::Key << "BoxColliderComponent";
-			out << YAML::BeginMap; //BoxColliderComponent
-
-			SerializeRelativeTransform(out, collider.GetRelativeTransform());
-
-			if (const auto& asset = collider.GetPhysicsMaterialAsset())
-				out << YAML::Key << "PhysicsMaterial" << YAML::Value << asset->GetGUID();
-
-			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
-			out << YAML::Key << "IsCollisionEnabled" << YAML::Value << collider.IsCollisionEnabled();
-			out << YAML::Key << "Size" << YAML::Value << collider.GetSize();
-			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
-			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
-			out << YAML::Key << "DoesAffectNavMeshBuild" << YAML::Value << collider.DoesAffectNavMeshBuild();
-			out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(collider.GetCollisionGroup());
-			out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(collider.GetInteractingCollisionGroup());
-			out << YAML::EndMap; //BoxColliderComponent
-		}
-
-		if (entity.HasComponent<SphereColliderComponent>())
-		{
-			auto& collider = entity.GetComponent<SphereColliderComponent>();
-
-			out << YAML::Key << "SphereColliderComponent";
-			out << YAML::BeginMap; //SphereColliderComponent
-
-			SerializeRelativeTransform(out, collider.GetRelativeTransform());
-
-			if (const auto& asset = collider.GetPhysicsMaterialAsset())
-				out << YAML::Key << "PhysicsMaterial" << YAML::Value << asset->GetGUID();
-
-			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
-			out << YAML::Key << "IsCollisionEnabled" << YAML::Value << collider.IsCollisionEnabled();
-			out << YAML::Key << "Radius" << YAML::Value << collider.GetRadius();
-			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
-			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
-			out << YAML::Key << "DoesAffectNavMeshBuild" << YAML::Value << collider.DoesAffectNavMeshBuild();
-			out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(collider.GetCollisionGroup());
-			out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(collider.GetInteractingCollisionGroup());
-			out << YAML::EndMap; //SphereColliderComponent
-		}
-
-		if (entity.HasComponent<CapsuleColliderComponent>())
-		{
-			auto& collider = entity.GetComponent<CapsuleColliderComponent>();
-
-			out << YAML::Key << "CapsuleColliderComponent";
-			out << YAML::BeginMap; //CapsuleColliderComponent
-
-			SerializeRelativeTransform(out, collider.GetRelativeTransform());
-
-			if (const auto& asset = collider.GetPhysicsMaterialAsset())
-				out << YAML::Key << "PhysicsMaterial" << YAML::Value << asset->GetGUID();
-
-			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
-			out << YAML::Key << "IsCollisionEnabled" << YAML::Value << collider.IsCollisionEnabled();
-			out << YAML::Key << "Radius" << YAML::Value << collider.GetRadius();
-			out << YAML::Key << "Height" << YAML::Value << collider.GetHeight();
-			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
-			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
-			out << YAML::Key << "DoesAffectNavMeshBuild" << YAML::Value << collider.DoesAffectNavMeshBuild();
-			out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(collider.GetCollisionGroup());
-			out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(collider.GetInteractingCollisionGroup());
-			out << YAML::EndMap; //CapsuleColliderComponent
-		}
-
-		if (entity.HasComponent<MeshColliderComponent>())
-		{
-			auto& collider = entity.GetComponent<MeshColliderComponent>();
-
-			out << YAML::Key << "MeshColliderComponent";
-			out << YAML::BeginMap; //MeshColliderComponent
-
-			SerializeRelativeTransform(out, collider.GetRelativeTransform());
-
-			if (const auto& meshAsset = collider.GetCollisionMeshAsset())
-				out << YAML::Key << "Mesh" << YAML::Value << meshAsset->GetGUID();
-
-			if (const auto& asset = collider.GetPhysicsMaterialAsset())
-				out << YAML::Key << "PhysicsMaterial" << YAML::Value << asset->GetGUID();
-
-			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
-			out << YAML::Key << "IsCollisionEnabled" << YAML::Value << collider.IsCollisionEnabled();
-			out << YAML::Key << "IsConvex" << YAML::Value << collider.IsConvex();
-			out << YAML::Key << "IsTwoSided" << YAML::Value << collider.IsTwoSided();
-			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
-			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
-			out << YAML::Key << "DoesAffectNavMeshBuild" << YAML::Value << collider.DoesAffectNavMeshBuild();
-			out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(collider.GetCollisionGroup());
-			out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(collider.GetInteractingCollisionGroup());
-			out << YAML::EndMap; //MeshColliderComponent
-		}
-
-		if (entity.HasComponent<AudioComponent>())
-		{
-			auto& audio = entity.GetComponent<AudioComponent>();
-
-			out << YAML::Key << "AudioComponent";
-			out << YAML::BeginMap; //AudioComponent
-
-			SerializeRelativeTransform(out, audio.GetRelativeTransform());
-			if (const auto& asset = audio.GetAudioAsset())
-				out << YAML::Key << "Sound" << YAML::Value << asset->GetGUID();
-
-			out << YAML::Key << "Volume" << YAML::Value << audio.GetVolume();
-			out << YAML::Key << "Pitch" << YAML::Value << audio.GetPitch();
-			out << YAML::Key << "Pan" << YAML::Value << audio.GetPan();
-			out << YAML::Key << "LoopCount" << YAML::Value << audio.GetLoopCount();
-			out << YAML::Key << "FFTSamples" << YAML::Value << audio.GetFFTSamples();
-			out << YAML::Key << "FFTType" << YAML::Value << Utils::GetEnumName(audio.GetFFTType());
-			out << YAML::Key << "IsLooping" << YAML::Value << audio.IsLooping();
-			out << YAML::Key << "IsMuted" << YAML::Value << audio.IsMuted();
-			out << YAML::Key << "IsStreaming" << YAML::Value << audio.IsStreaming();
-			out << YAML::Key << "FFTEnabled" << YAML::Value << audio.IsFFTEnabled();
-			out << YAML::Key << "MinDistance" << YAML::Value << audio.GetMinDistance();
-			out << YAML::Key << "MaxDistance" << YAML::Value << audio.GetMaxDistance();
-			out << YAML::Key << "RollOff" << YAML::Value << Utils::GetEnumName(audio.GetRollOffModel());
-			out << YAML::Key << "Autoplay" << YAML::Value << audio.bAutoplay;
-			out << YAML::Key << "EnableDopplerEffect" << YAML::Value << audio.bEnableDopplerEffect;
-			out << YAML::Key << "Is3D" << YAML::Value << audio.Is3D();
-
-			out << YAML::EndMap; //AudioComponent
-		}
-
-		if (entity.HasComponent<ReverbComponent>())
-		{
-			auto& reverb = entity.GetComponent<ReverbComponent>();
-
-			out << YAML::Key << "ReverbComponent";
-			out << YAML::BeginMap; //ReverbComponent
-
-			SerializeRelativeTransform(out, reverb.GetRelativeTransform());
-			out << YAML::Key << "bVisualize" << YAML::Value << reverb.IsVisualizeRadiusEnabled();
-			Serializer::SerializeReverb(out, reverb.GetReverb());
-
-			out << YAML::EndMap; //ReverbComponent
-		}
-
-		if (entity.HasComponent<TextComponent>())
-		{
-			auto& text = entity.GetComponent<TextComponent>();
-
-			out << YAML::Key << "TextComponent";
-			out << YAML::BeginMap; //TextComponent
-
-			SerializeRelativeTransform(out, text.GetRelativeTransform());
-			if (const auto& asset = text.GetFontAsset())
-				out << YAML::Key << "Font" << YAML::Value << asset->GetGUID();
-			if (const auto& asset = text.GetMaterialAsset())
-				out << YAML::Key << "Material" << YAML::Value << asset->GetGUID();
-
-			out << YAML::Key << "Text" << YAML::Value << text.GetText();
-			out << YAML::Key << "Color" << YAML::Value << text.GetColor();
-			out << YAML::Key << "Opacity" << YAML::Value << text.GetOpacity();
-			out << YAML::Key << "IsLit" << YAML::Value << text.IsLit();
-			out << YAML::Key << "IsDoubleSided" << YAML::Value << text.IsDoubleSided();
-			out << YAML::Key << "bCastsShadows" << YAML::Value << text.DoesCastShadows();
-			out << YAML::Key << "bReceivesDecals" << YAML::Value << text.DoesReceiveDecals();
-			out << YAML::Key << "IsVisible" << YAML::Value << text.IsVisible();
-			out << YAML::Key << "LineSpacing" << YAML::Value << text.GetLineSpacing();
-			out << YAML::Key << "LetterSpacing" << YAML::Value << text.GetLetterSpacing();
-			out << YAML::Key << "MaxWidth" << YAML::Value << text.GetMaxWidth();
-			out << YAML::Key << "Alignment" << YAML::Value << Utils::GetEnumName(text.GetAlignment());
-
-			out << YAML::EndMap; //TextComponent
-		}
-
-		if (entity.HasComponent<Text2DComponent>())
-		{
-			auto& text = entity.GetComponent<Text2DComponent>();
-
-			out << YAML::Key << "Text2DComponent";
-			out << YAML::BeginMap; //Text2DComponent
-
-			if (const auto& asset = text.GetFontAsset())
-				out << YAML::Key << "Font" << YAML::Value << asset->GetGUID();
-
-			out << YAML::Key << "Text" << YAML::Value << text.GetText();
-			out << YAML::Key << "Color" << YAML::Value << text.GetColor();
-			out << YAML::Key << "Tint" << YAML::Value << text.GetTint();
-			out << YAML::Key << "LineSpacing" << YAML::Value << text.GetLineSpacing();
-			out << YAML::Key << "LetterSpacing" << YAML::Value << text.GetLetterSpacing();
-			out << YAML::Key << "MaxWidth" << YAML::Value << text.GetMaxWidth();
-			out << YAML::Key << "FontSize" << YAML::Value << text.GetFontSize();
-			out << YAML::Key << "Alignment" << YAML::Value << Utils::GetEnumName(text.GetAlignment());
-			out << YAML::Key << "Anchor" << YAML::Value << text.GetAnchor();
-			out << YAML::Key << "Pivot" << YAML::Value << text.GetPivot();
-			out << YAML::Key << "PivotFollowsAnchor" << YAML::Value << text.DoesPivotFollowAnchor();
-			out << YAML::Key << "HitTestable" << YAML::Value << text.IsHitTestable();
-			out << YAML::Key << "Offset" << YAML::Value << text.GetOffset();
-			out << YAML::Key << "Rotation" << YAML::Value << text.GetRotation();
-			out << YAML::Key << "IsVisible" << YAML::Value << text.IsVisible();
-			out << YAML::Key << "Opacity" << YAML::Value << text.GetOpacity();
-
-			const Text2DEffects& effects = text.GetEffects();
-			out << YAML::Key << "Effects" << YAML::Value << YAML::BeginMap;
-			out << YAML::Key << "Outline" << YAML::Value << effects.bOutline;
-			out << YAML::Key << "OutlineColor" << YAML::Value << effects.OutlineColor;
-			out << YAML::Key << "OutlineWidth" << YAML::Value << effects.OutlineWidth;
-			out << YAML::Key << "Glow" << YAML::Value << effects.bGlow;
-			out << YAML::Key << "GlowColor" << YAML::Value << effects.GlowColor;
-			out << YAML::Key << "GlowSize" << YAML::Value << effects.GlowSize;
-			out << YAML::Key << "Shadow" << YAML::Value << effects.bShadow;
-			out << YAML::Key << "ShadowColor" << YAML::Value << effects.ShadowColor;
-			out << YAML::Key << "ShadowOffset" << YAML::Value << effects.ShadowOffset;
-			out << YAML::Key << "ShadowSoftness" << YAML::Value << effects.ShadowSoftness;
-			out << YAML::EndMap;
-
-			out << YAML::EndMap; //Text2DComponent
-		}
-
-		if (entity.HasComponent<Image2DComponent>())
-		{
-			auto& text = entity.GetComponent<Image2DComponent>();
-
-			out << YAML::Key << "Image2DComponent";
-			out << YAML::BeginMap; //Image2DComponent
-
-			if (const auto& asset = text.GetTextureAsset())
-				out << YAML::Key << "Texture" << YAML::Value << asset->GetGUID();
-			out << YAML::Key << "Tint" << YAML::Value << text.GetTint();
-			out << YAML::Key << "Anchor" << YAML::Value << text.GetAnchor();
-			out << YAML::Key << "Pivot" << YAML::Value << text.GetPivot();
-			out << YAML::Key << "PivotFollowsAnchor" << YAML::Value << text.DoesPivotFollowAnchor();
-			out << YAML::Key << "HitTestable" << YAML::Value << text.IsHitTestable();
-			out << YAML::Key << "Offset" << YAML::Value << text.GetOffset();
-			out << YAML::Key << "Size" << YAML::Value << text.GetSize();
-			out << YAML::Key << "Rotation" << YAML::Value << text.GetRotation();
-			out << YAML::Key << "IsVisible" << YAML::Value << text.IsVisible();
-			out << YAML::Key << "Opacity" << YAML::Value << text.GetOpacity();
-
-			out << YAML::EndMap; //Image2DComponent
-		}
-
-		if (entity.HasComponent<ParticleSystemComponent>())
-		{
-			auto& system = entity.GetComponent<ParticleSystemComponent>();
-
-			out << YAML::Key << "ParticleSystemComponent";
-			out << YAML::BeginMap; //ParticleSystemComponent
-			
-			SerializeRelativeTransform(out, system.GetRelativeTransform());
-
-			if (const auto& asset = system.GetAsset())
-				out << YAML::Key << "ParticleSystem" << YAML::Value << asset->GetGUID();
-			
-			out << YAML::EndMap; //ParticleSystemComponent
-		}
-
-		if (entity.HasComponent<SceneSequenceComponent>())
-		{
-			auto& sequence = entity.GetComponent<SceneSequenceComponent>();
-
-			out << YAML::Key << "SceneSequenceComponent";
-			out << YAML::BeginMap; //SceneSequenceComponent
-
-			SerializeRelativeTransform(out, sequence.GetRelativeTransform());
-
-			if (const auto& asset = sequence.GetAsset())
-				out << YAML::Key << "SceneSequence" << YAML::Value << asset->GetGUID();
-
-			out << YAML::Key << "AutoPlay" << YAML::Value << sequence.bAutoPlay;
-			out << YAML::Key << "OverrideLooping" << YAML::Value << sequence.DoesOverrideLooping();
-			out << YAML::Key << "Looping" << YAML::Value << sequence.IsLoopingEnabled();
-			out << YAML::Key << "PlayInWorldSpace" << YAML::Value << sequence.bPlayInWorldSpace;
-			out << YAML::Key << "DriveCamera" << YAML::Value << sequence.AllowedToDriveCamera();
-			out << YAML::Key << "DrawPathInEditor" << YAML::Value << sequence.bDrawPathInEditor;
-			out << YAML::Key << "PlayRate" << YAML::Value << sequence.GetPlayRate();
-
-			out << YAML::EndMap; //SceneSequenceComponent
-		}
-
-		if (entity.HasComponent<DecalComponent>())
-		{
-			auto& decal = entity.GetComponent<DecalComponent>();
-
-			out << YAML::Key << "DecalComponent";
-			out << YAML::BeginMap; //DecalComponent
-			
-			SerializeRelativeTransform(out, decal.GetRelativeTransform());
-			out << YAML::Key << "SortPriority" << YAML::Value << decal.GetSortPriority();
-			out << YAML::Key << "AdjustAspectRatio" << YAML::Value << decal.IsAdjustAspectRatioEnabled();
-			if (const auto& asset = decal.GetMaterialAsset())
-				out << YAML::Key << "Material" << YAML::Value << asset->GetGUID();
-			out << YAML::Key << "IsVisible" << YAML::Value << decal.IsVisible();
-
-			out << YAML::EndMap; //DecalComponent
-		}
-
-		if (entity.HasComponent<NavigationMeshComponent>())
-		{
-			auto& component = entity.GetComponent<NavigationMeshComponent>();
-
-			out << YAML::Key << "NavigationMeshComponent";
-			out << YAML::BeginMap; // NavigationMeshComponent
-
-			SerializeRelativeTransform(out, component.GetRelativeTransform());
-			out << YAML::Key << "bAutoRebuild" << YAML::Value << component.bAutoRebuild;
-
-			// Settings
-			{
-				const auto& settings = component.GetSettings();
-
-				out << YAML::Key << "Settings" << YAML::Value << YAML::BeginMap;
-
-				// AABB
-				out << YAML::Key << "AABB" << YAML::Value << YAML::BeginMap;
-				out << YAML::Key << "Min" << YAML::Value << settings.AABB.Min;
-				out << YAML::Key << "Max" << YAML::Value << settings.AABB.Max;
-				out << YAML::EndMap;
-
-				out << YAML::Key << "MaxQueryNodes" << YAML::Value << settings.MaxQueryNodes;
-				out << YAML::Key << "ExpectedLayersPerTile" << YAML::Value << settings.ExpectedLayersPerTile;
-				out << YAML::Key << "MaxLayers" << YAML::Value << settings.MaxLayers;
-				out << YAML::Key << "MaxObstacles" << YAML::Value << settings.MaxObstacles;
-				out << YAML::Key << "TileSize" << YAML::Value << settings.TileSize;
-				out << YAML::Key << "CellSize" << YAML::Value << settings.CellSize;
-				out << YAML::Key << "CellHeight" << YAML::Value << settings.CellHeight;
-				out << YAML::Key << "MaxSlope" << YAML::Value << settings.MaxSlope;
-				out << YAML::Key << "AgentHeight" << YAML::Value << settings.AgentHeight;
-				out << YAML::Key << "AgentMaxClimb" << YAML::Value << settings.AgentMaxClimb;
-				out << YAML::Key << "AgentRadius" << YAML::Value << settings.AgentRadius;
-				out << YAML::Key << "EdgeMaxLen" << YAML::Value << settings.EdgeMaxLen;
-				out << YAML::Key << "EdgeMaxError" << YAML::Value << settings.EdgeMaxError;
-				out << YAML::Key << "RegionMinSize" << YAML::Value << settings.RegionMinSize;
-				out << YAML::Key << "RegionMergeSize" << YAML::Value << settings.RegionMergeSize;
-				out << YAML::Key << "VertsPerPoly" << YAML::Value << settings.VertsPerPoly;
-				out << YAML::Key << "BorderSize" << YAML::Value << settings.BorderSize;
-				out << YAML::Key << "FilterLowHangingObstacles" << YAML::Value << settings.FilterLowHangingObstacles;
-				out << YAML::Key << "FilterLedgeSpans" << YAML::Value << settings.FilterLedgeSpans;
-				out << YAML::Key << "FilterWalkableLowHeightSpans" << YAML::Value << settings.FilterWalkableLowHeightSpans;
-
-				out << YAML::EndMap;
-			}
-
-			// Crowd Settings
-			{
-				const auto& settings = component.GetCrowdSettings();
-
-				out << YAML::Key << "CrowdSettings" << YAML::Value << YAML::BeginMap;
-
-				out << YAML::Key << "MaxAgents" << YAML::Value << settings.MaxAgents;
-				out << YAML::Key << "MaxAgentRadius" << YAML::Value << settings.MaxAgentRadius;
-
-				out << YAML::EndMap;
-			}
-
-			out << YAML::EndMap; // NavigationMeshComponent
-		}
-
-		if (entity.HasComponent<NavigationCrowdAgentComponent>())
-		{
-			auto& component = entity.GetComponent<NavigationCrowdAgentComponent>();
-
-			out << YAML::Key << "NavigationCrowdAgentComponent";
-			out << YAML::BeginMap; // NavigationCrowdAgentComponent
-
-			// Settings
-			{
-				const auto& settings = component.GetSettings();
-
-				out << YAML::Key << "Settings" << YAML::Value << YAML::BeginMap;
-
-				out << YAML::Key << "AgentRadius" << YAML::Value << settings.AgentRadius;
-				out << YAML::Key << "AgentHeight" << YAML::Value << settings.AgentHeight;
-				out << YAML::Key << "MaxAcceleration" << YAML::Value << settings.MaxAcceleration;
-				out << YAML::Key << "MaxSpeed" << YAML::Value << settings.MaxSpeed;
-				out << YAML::Key << "SeparationWeight" << YAML::Value << settings.SeparationWeight;
-				out << YAML::Key << "ObstacleAvoidanceQuality" << YAML::Value << Utils::GetEnumName(settings.ObstacleAvoidanceQuality);
-				out << YAML::Key << "bAnticipateTurns" << YAML::Value << settings.bAnticipateTurns;
-				out << YAML::Key << "bOptimizeVis" << YAML::Value << settings.bOptimizeVis;
-				out << YAML::Key << "bOptimizeTopo" << YAML::Value << settings.bOptimizeTopo;
-				out << YAML::Key << "bSeparation" << YAML::Value << settings.bSeparation;
-
-				out << YAML::EndMap;
-			}
-
-			out << YAML::EndMap; // NavigationMeshComponent
-		}
-	
-		out << YAML::EndMap; //Entity
-	}
-
-	Entity Serializer::DeserializeEntity(const Ref<Scene>& scene, const YAML::Node& entityNode, uint32_t collisionGroupValidMasks, uint32_t* outEntityID, int* outParentID)
-	{
-		*outEntityID = entityNode["EntityID"].as<uint32_t>();
-		GUID guid(0, 0);
-		if (auto node = entityNode["GUID"])
-			guid = node.as<GUID>();
-		else
-			guid = GUID{}; // Generate a new one
-
-		if (outParentID)
-			*outParentID = -1;
-
-		Entity deserializedEntity = scene->CreateEntityWithGUID(guid);
-
-		if (auto node = entityNode["Asset"])
-		{
-			if (deserializedEntity.HasComponent<EntityAssetComponent>() == false)
-				deserializedEntity.AddComponent<EntityAssetComponent>();
-			
-			auto& component = deserializedEntity.GetComponent<EntityAssetComponent>();
-			component.AssetGUID = node.as<GUID>();
-		}
-
-		if (auto sceneNameComponentNode = entityNode["EntitySceneParams"])
-		{
-			if (deserializedEntity.HasComponent<EntitySceneNameComponent>() == false)
-				deserializedEntity.AddComponent<EntitySceneNameComponent>();
-			
-			auto& sceneNameComponent = deserializedEntity.GetComponent<EntitySceneNameComponent>();
-			sceneNameComponent.SetName(sceneNameComponentNode["Name"].as<std::string>());
-			if (outParentID)
-				*outParentID = sceneNameComponentNode["Parent"].as<int>();
-		}
-
-		if (auto transformComponentNode = entityNode["TransformComponent"])
-		{
-			//Every entity has a transform component
-			Transform worldTransform;
-
-			worldTransform.Location = transformComponentNode["WorldLocation"].as<glm::vec3>();
-			worldTransform.Rotation = transformComponentNode["WorldRotation"].as<Rotator>();
-			worldTransform.Scale3D = transformComponentNode["WorldScale"].as<glm::vec3>();
-
-			deserializedEntity.SetWorldTransform(worldTransform);
-		}
-
-		if (auto tagComponentNode = entityNode["TagComponent"])
-		{
-			deserializedEntity.GetComponent<TagComponent>().Tag = tagComponentNode["Tag"].as<std::string>();
-		}
-
-		if (auto cameraComponentNode = entityNode["CameraComponent"])
-		{
-			auto& cameraComponent = deserializedEntity.AddComponent<CameraComponent>();
-			auto& camera = cameraComponent.Camera;
-			Transform relativeTransform;
-
-			auto cameraNode = cameraComponentNode["Camera"];
-			camera.SetProjectionMode(Utils::GetEnumFromName<CameraProjectionMode>(cameraNode["ProjectionMode"].as<std::string>()));
-
-			camera.SetPerspectiveVerticalFOV(cameraNode["PerspectiveVerticalFOV"].as<float>());
-			camera.SetPerspectiveNearClip(cameraNode["PerspectiveNearClip"].as<float>());
-			camera.SetPerspectiveFarClip(cameraNode["PerspectiveFarClip"].as<float>());
-
-			camera.SetOrthographicSize(cameraNode["OrthographicSize"].as<float>());
-			camera.SetOrthographicNearClip(cameraNode["OrthographicNearClip"].as<float>());
-			camera.SetOrthographicFarClip(cameraNode["OrthographicFarClip"].as<float>());
-			if (auto node = cameraNode["ShadowFarClip"])
-				camera.SetShadowFarClip(node.as<float>());
-			if (auto node = cameraNode["DirLightShadowFarClip"])
-				camera.SetDirLightShadowFarClip(node.as<float>());
-			if (auto node = cameraNode["CascadesSplitAlpha"])
-				camera.SetCascadesSplitAlpha(node.as<float>());
-			if (auto node = cameraNode["CascadesSmoothTransitionAlpha"])
-				camera.SetCascadesSmoothTransitionAlpha(node.as<float>());
-
-			DeserializeRelativeTransform(cameraComponentNode, relativeTransform);
-
-			cameraComponent.SetRelativeTransform(relativeTransform);
-
-			cameraComponent.Primary = cameraComponentNode["Primary"].as<bool>();
-			cameraComponent.FixedAspectRatio = cameraComponentNode["FixedAspectRatio"].as<bool>();
-		}
-
-		if (auto spriteComponentNode = entityNode["SpriteComponent"])
-		{
-			auto& spriteComponent = deserializedEntity.AddComponent<SpriteComponent>();
-
-			Transform relativeTransform;
-			DeserializeRelativeTransform(spriteComponentNode, relativeTransform);
-			spriteComponent.SetRelativeTransform(relativeTransform);
-
-			if (auto materialNode = spriteComponentNode["Material"])
-				spriteComponent.SetMaterialAsset(GetAsset<AssetMaterial>(materialNode));
-
-			if (auto node = spriteComponentNode["bAtlas"])
-				spriteComponent.SetIsAtlas(node.as<bool>());
-			if (auto node = spriteComponentNode["bCastsShadows"])
-				spriteComponent.SetCastsShadows(node.as<bool>());
-			if (auto node = spriteComponentNode["bReceivesDecals"])
-				spriteComponent.SetReceivesDecals(node.as<bool>());
-			if (auto node = spriteComponentNode["IsVisible"])
-				spriteComponent.SetVisible(node.as<bool>());
-			if (auto node = spriteComponentNode["AtlasSpriteCoords"])
-				spriteComponent.SetAtlasSpriteCoords(node.as<glm::vec2>());
-			if (auto node = spriteComponentNode["AtlasSpriteSize"])
-				spriteComponent.SetAtlasSpriteSize(node.as<glm::vec2>());
-			if (auto node = spriteComponentNode["AtlasSpriteSizeCoef"])
-				spriteComponent.SetAtlasSpriteSizeCoef(node.as<glm::vec2>());
-		}
-
-		if (auto billboardComponentNode = entityNode["BillboardComponent"])
-		{
-			auto& billboardComponent = deserializedEntity.AddComponent<BillboardComponent>();
-			Transform relativeTransform;
-
-			DeserializeRelativeTransform(billboardComponentNode, relativeTransform);
-			billboardComponent.TextureAsset = GetAsset<AssetTexture2D>(billboardComponentNode["Texture"]);
-			if (auto node = billboardComponentNode["IsVisible"])
-				billboardComponent.bVisible = node.as<bool>();
-
-			billboardComponent.SetRelativeTransform(relativeTransform);
-		}
-
-		if (auto staticMeshComponentNode = entityNode["StaticMeshComponent"])
-		{
-			auto& smComponent = deserializedEntity.AddComponent<StaticMeshComponent>();
-			smComponent.SetCastsShadows(staticMeshComponentNode["bCastsShadows"].as<bool>());
-			if (auto node = staticMeshComponentNode["bReceivesDecals"])
-				smComponent.SetReceivesDecals(node.as<bool>());
-			if (auto node = staticMeshComponentNode["IsVisible"])
-				smComponent.SetVisible(node.as<bool>());
-
-			Transform relativeTransform;
-			DeserializeRelativeTransform(staticMeshComponentNode, relativeTransform);
-			smComponent.SetRelativeTransform(relativeTransform);
-
-			if (auto meshNode = staticMeshComponentNode["Mesh"])
-				smComponent.SetMeshAsset(GetAsset<AssetStaticMesh>(meshNode));
-			if (auto materialsNode = staticMeshComponentNode["Materials"])
-				for (const auto& matNode : materialsNode)
-					smComponent.SetMaterialAsset(matNode["Index"].as<uint32_t>(), GetAsset<AssetMaterial>(matNode["Material"]));
-		}
-
-		if (auto skeletalMeshComponentNode = entityNode["SkeletalMeshComponent"])
+		void DeserializeSkeletalMeshComponent(Entity deserializedEntity, YAML::Node skeletalMeshComponentNode)
 		{
 			auto& smComponent = deserializedEntity.AddComponent<SkeletalMeshComponent>();
 			smComponent.SetCastsShadows(skeletalMeshComponentNode["bCastsShadows"].as<bool>());
@@ -913,7 +307,7 @@ namespace Eagle
 				smComponent.SetVisible(node.as<bool>());
 
 			Transform relativeTransform;
-			DeserializeRelativeTransform(skeletalMeshComponentNode, relativeTransform);
+			Serializer::DeserializeRelativeTransform(skeletalMeshComponentNode, relativeTransform);
 			smComponent.SetRelativeTransform(relativeTransform);
 
 			if (auto meshNode = skeletalMeshComponentNode["Mesh"])
@@ -964,12 +358,33 @@ namespace Eagle
 				smComponent.SetRagdollEnabled(node.as<bool>());
 		}
 
-		if (auto pointLightComponentNode = entityNode["PointLightComponent"])
+		void SerializePointLightComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& pointLightComponent = entity.GetComponent<PointLightComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap; //PointLightComponent
+
+			Serializer::SerializeRelativeTransform(out, pointLightComponent.GetRelativeTransform());
+
+			out << YAML::Key << "LightColor" << YAML::Value << pointLightComponent.GetLightColor();
+			out << YAML::Key << "Intensity" << YAML::Value << pointLightComponent.GetIntensity();
+			out << YAML::Key << "VolumetricFogIntensity" << YAML::Value << pointLightComponent.GetVolumetricFogIntensity();
+			out << YAML::Key << "Radius" << YAML::Value << pointLightComponent.GetRadius();
+			out << YAML::Key << "AffectsWorld" << YAML::Value << pointLightComponent.DoesAffectWorld();
+			out << YAML::Key << "CastsShadows" << YAML::Value << pointLightComponent.DoesCastShadows();
+			out << YAML::Key << "VisualizeRadius" << YAML::Value << pointLightComponent.VisualizeRadiusEnabled();
+			out << YAML::Key << "IsVolumetric" << YAML::Value << pointLightComponent.IsVolumetricLight();
+
+			out << YAML::EndMap; //PointLightComponent
+		}
+
+		void DeserializePointLightComponent(Entity deserializedEntity, YAML::Node pointLightComponentNode)
 		{
 			auto& pointLightComponent = deserializedEntity.AddComponent<PointLightComponent>();
 
 			Transform relativeTransform;
-			DeserializeRelativeTransform(pointLightComponentNode, relativeTransform);
+			Serializer::DeserializeRelativeTransform(pointLightComponentNode, relativeTransform);
 			pointLightComponent.SetRelativeTransform(relativeTransform);
 
 			pointLightComponent.SetLightColor(pointLightComponentNode["LightColor"].as<glm::vec3>());
@@ -989,12 +404,34 @@ namespace Eagle
 				pointLightComponent.SetIsVolumetricLight(node.as<bool>());
 		}
 
-		if (auto directionalLightComponentNode = entityNode["DirectionalLightComponent"])
+		void SerializeDirectionalLightComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& directionalLightComponent = entity.GetComponent<DirectionalLightComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap; //DirectionalLightComponent
+
+			Serializer::SerializeRelativeTransform(out, directionalLightComponent.GetRelativeTransform());
+
+			out << YAML::Key << "LightColor" << YAML::Value << directionalLightComponent.GetLightColor();
+			out << YAML::Key << "Ambient" << YAML::Value << directionalLightComponent.GetAmbientColor();
+			out << YAML::Key << "Intensity" << YAML::Value << directionalLightComponent.GetIntensity();
+			out << YAML::Key << "VolumetricFogIntensity" << YAML::Value << directionalLightComponent.GetVolumetricFogIntensity();
+			out << YAML::Key << "AffectsWorld" << YAML::Value << directionalLightComponent.DoesAffectWorld();
+			out << YAML::Key << "CastsShadows" << YAML::Value << directionalLightComponent.DoesCastShadows();
+			out << YAML::Key << "CastsScreenSpaceShadows" << YAML::Value << directionalLightComponent.DoesCastScreenSpaceShadows();
+			out << YAML::Key << "IsVolumetric" << YAML::Value << directionalLightComponent.IsVolumetricLight();
+			out << YAML::Key << "Visualize" << YAML::Value << directionalLightComponent.IsVisualizeDirectionEnabled();
+
+			out << YAML::EndMap; //DirectionalLightComponent
+		}
+
+		void DeserializeDirectionalLightComponent(Entity deserializedEntity, YAML::Node directionalLightComponentNode)
 		{
 			auto& directionalLightComponent = deserializedEntity.AddComponent<DirectionalLightComponent>();
 
 			Transform relativeTransform;
-			DeserializeRelativeTransform(directionalLightComponentNode, relativeTransform);
+			Serializer::DeserializeRelativeTransform(directionalLightComponentNode, relativeTransform);
 			directionalLightComponent.SetRelativeTransform(relativeTransform);
 
 			if (auto lightColorNode = directionalLightComponentNode["LightColor"])
@@ -1017,12 +454,35 @@ namespace Eagle
 				directionalLightComponent.SetVisualizeDirectionEnabled(node.as<bool>());
 		}
 
-		if (auto spotLightComponentNode = entityNode["SpotLightComponent"])
+		void SerializeSpotLightComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& spotLightComponent = entity.GetComponent<SpotLightComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap; //SpotLightComponent
+
+			Serializer::SerializeRelativeTransform(out, spotLightComponent.GetRelativeTransform());
+
+			out << YAML::Key << "LightColor" << YAML::Value << spotLightComponent.GetLightColor();
+			out << YAML::Key << "InnerCutOffAngle" << YAML::Value << spotLightComponent.GetInnerCutOffAngle();
+			out << YAML::Key << "OuterCutOffAngle" << YAML::Value << spotLightComponent.GetOuterCutOffAngle();
+			out << YAML::Key << "Intensity" << YAML::Value << spotLightComponent.GetIntensity();
+			out << YAML::Key << "VolumetricFogIntensity" << YAML::Value << spotLightComponent.GetVolumetricFogIntensity();
+			out << YAML::Key << "Distance" << YAML::Value << spotLightComponent.GetDistance();
+			out << YAML::Key << "AffectsWorld" << YAML::Value << spotLightComponent.DoesAffectWorld();
+			out << YAML::Key << "CastsShadows" << YAML::Value << spotLightComponent.DoesCastShadows();
+			out << YAML::Key << "VisualizeDistance" << YAML::Value << spotLightComponent.VisualizeDistanceEnabled();
+			out << YAML::Key << "IsVolumetric" << YAML::Value << spotLightComponent.IsVolumetricLight();
+
+			out << YAML::EndMap; //SpotLightComponent
+		}
+
+		void DeserializeSpotLightComponent(Entity deserializedEntity, YAML::Node spotLightComponentNode)
 		{
 			auto& spotLightComponent = deserializedEntity.AddComponent<SpotLightComponent>();
 
 			Transform relativeTransform;
-			DeserializeRelativeTransform(spotLightComponentNode, relativeTransform);
+			Serializer::DeserializeRelativeTransform(spotLightComponentNode, relativeTransform);
 			spotLightComponent.SetRelativeTransform(relativeTransform);
 
 			spotLightComponent.SetLightColor(spotLightComponentNode["LightColor"].as<glm::vec3>());
@@ -1048,7 +508,21 @@ namespace Eagle
 				spotLightComponent.SetIsVolumetricLight(node.as<bool>());
 		}
 
-		if (auto scriptComponentNode = entityNode["ScriptComponent"])
+		void SerializeScriptComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& scriptComponent = entity.GetComponent<ScriptComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap;
+
+			out << YAML::Key << "ModuleName" << YAML::Value << scriptComponent.ModuleName;
+
+			SerializeScriptFields(out, scriptComponent.PublicFields);
+
+			out << YAML::EndMap;
+		}
+
+		void DeserializeScriptComponent(Entity deserializedEntity, YAML::Node scriptComponentNode)
 		{
 			auto& scriptComponent = deserializedEntity.AddComponent<ScriptComponent>();
 
@@ -1060,7 +534,30 @@ namespace Eagle
 				Serializer::DeserializePublicFieldValues(publicFieldsNode, scriptComponent.PublicFields);
 		}
 
-		if (auto rigidBodyComponentNode = entityNode["RigidBodyComponent"])
+		void SerializeRigidBodyComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& rigidBodyComponent = entity.GetComponent<RigidBodyComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap; //RigidBodyComponent
+
+			out << YAML::Key << "BodyType" << YAML::Value << Utils::GetEnumName(rigidBodyComponent.GetBodyType());
+			out << YAML::Key << "CollisionDetectionType" << YAML::Value << Utils::GetEnumName(rigidBodyComponent.GetCollisionDetectionType());
+			out << YAML::Key << "PositionSolverIterations" << YAML::Value << rigidBodyComponent.GetPositionSolverIterations();
+			out << YAML::Key << "VelocitySolverIterations" << YAML::Value << rigidBodyComponent.GetVelocitySolverIterations();
+			out << YAML::Key << "Mass" << YAML::Value << rigidBodyComponent.GetMass();
+			out << YAML::Key << "LinearDamping" << YAML::Value << rigidBodyComponent.GetLinearDamping();
+			out << YAML::Key << "AngularDamping" << YAML::Value << rigidBodyComponent.GetAngularDamping();
+			out << YAML::Key << "MaxLinearVelocity" << YAML::Value << rigidBodyComponent.GetMaxLinearVelocity();
+			out << YAML::Key << "MaxAngularVelocity" << YAML::Value << rigidBodyComponent.GetMaxAngularVelocity();
+			out << YAML::Key << "EnableGravity" << YAML::Value << rigidBodyComponent.IsGravityEnabled();
+			out << YAML::Key << "IsKinematic" << YAML::Value << rigidBodyComponent.IsKinematic();
+			out << YAML::Key << "LockFlags" << YAML::Value << (uint32_t)rigidBodyComponent.GetLockFlags();
+
+			out << YAML::EndMap; //RigidBodyComponent
+		}
+
+		void DeserializeRigidBodyComponent(Entity deserializedEntity, YAML::Node rigidBodyComponentNode)
 		{
 			PhysicsBodyType bodyType = Utils::GetEnumFromName<PhysicsBodyType>(rigidBodyComponentNode["BodyType"].as<std::string>());
 			auto& rigidBodyComponent = deserializedEntity.AddComponent<RigidBodyComponent>(bodyType);
@@ -1081,12 +578,35 @@ namespace Eagle
 			rigidBodyComponent.SetLockFlag(ActorLockFlag(rigidBodyComponentNode["LockFlags"].as<uint32_t>()));
 		}
 
-		if (auto boxColliderNode = entityNode["BoxColliderComponent"])
+		void SerializeBoxColliderComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& collider = entity.GetComponent<BoxColliderComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap; //BoxColliderComponent
+
+			Serializer::SerializeRelativeTransform(out, collider.GetRelativeTransform());
+
+			if (const auto& asset = collider.GetPhysicsMaterialAsset())
+				out << YAML::Key << "PhysicsMaterial" << YAML::Value << asset->GetGUID();
+
+			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
+			out << YAML::Key << "IsCollisionEnabled" << YAML::Value << collider.IsCollisionEnabled();
+			out << YAML::Key << "Size" << YAML::Value << collider.GetSize();
+			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
+			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
+			out << YAML::Key << "DoesAffectNavMeshBuild" << YAML::Value << collider.DoesAffectNavMeshBuild();
+			out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(collider.GetCollisionGroup());
+			out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(collider.GetInteractingCollisionGroup());
+			out << YAML::EndMap; //BoxColliderComponent
+		}
+
+		void DeserializeBoxColliderComponent(Entity deserializedEntity, YAML::Node boxColliderNode, uint32_t collisionGroupValidMasks)
 		{
 			auto& collider = deserializedEntity.AddComponent<BoxColliderComponent>();
 
 			Transform relativeTransform;
-			DeserializeRelativeTransform(boxColliderNode, relativeTransform);
+			Serializer::DeserializeRelativeTransform(boxColliderNode, relativeTransform);
 			collider.SetRelativeTransform(relativeTransform);
 
 			collider.SetPhysicsMaterialAsset(GetAsset<AssetPhysicsMaterial>(boxColliderNode["PhysicsMaterial"]));
@@ -1105,7 +625,37 @@ namespace Eagle
 				collider.SetInteractingCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
 		}
 
-		if (auto ccNode = entityNode["CharacterControllerComponent"])
+		void SerializeCharacterControllerComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& component = entity.GetComponent<CharacterControllerComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap; //CharacterControllerComponent
+
+			Serializer::SerializeRelativeTransform(out, component.GetRelativeTransform());
+
+			out << YAML::Key << "SlopeLimit" << YAML::Value << component.GetSlopeLimit();
+			out << YAML::Key << "ContactOffset" << YAML::Value << component.GetContactOffset();
+			out << YAML::Key << "StepOffset" << YAML::Value << component.GetStepOffset();
+			if (const auto& material = component.GetPhysicsMaterialAsset())
+				out << YAML::Key << "PhysicsMaterial" << YAML::Value << material->GetGUID();
+			out << YAML::Key << "Shape" << YAML::Value << Utils::GetEnumName(component.GetShapeType());
+			out << YAML::Key << "ClimbingMode" << YAML::Value << Utils::GetEnumName(component.GetCapsuleClimbingMode());
+			out << YAML::Key << "CapsuleRadius" << YAML::Value << component.GetCapsuleRadius();
+			out << YAML::Key << "CapsuleHeight" << YAML::Value << component.GetCapsuleHeight();
+			out << YAML::Key << "BoxSize" << YAML::Value << component.GetBoxSize();
+			out << YAML::Key << "IsCollisionVisible" << YAML::Value << component.IsCollisionVisible();
+			out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(component.GetCollisionGroup());
+			out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(component.GetInteractingCollisionGroup());
+			out << YAML::Key << "UpDirection" << YAML::Value << component.GetControllerUpDirection();
+			out << YAML::Key << "CollidesWithOtherControllers" << YAML::Value << component.DoesCollideWithOtherControllers();
+			out << YAML::Key << "bMoveWholeEntity" << YAML::Value << component.bMoveWholeEntity;
+			out << YAML::Key << "bUseFootLocation" << YAML::Value << component.bUseFootLocation;
+
+			out << YAML::EndMap; //CharacterControllerComponent
+		}
+
+		void DeserializeCharacterControllerComponent(Entity deserializedEntity, YAML::Node ccNode, uint32_t collisionGroupValidMasks)
 		{
 			auto& component = deserializedEntity.AddComponent<CharacterControllerComponent>();
 
@@ -1134,16 +684,39 @@ namespace Eagle
 			// Above function calls can adjust the transform. But since we want to match exactly,
 			// we call it at the end of the deserialization
 			Transform relativeTransform;
-			DeserializeRelativeTransform(ccNode, relativeTransform);
+			Serializer::DeserializeRelativeTransform(ccNode, relativeTransform);
 			component.SetRelativeTransform(relativeTransform);
 		}
 
-		if (auto sphereColliderNode = entityNode["SphereColliderComponent"])
+		void SerializeSphereColliderComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& collider = entity.GetComponent<SphereColliderComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap; //SphereColliderComponent
+
+			Serializer::SerializeRelativeTransform(out, collider.GetRelativeTransform());
+
+			if (const auto& asset = collider.GetPhysicsMaterialAsset())
+				out << YAML::Key << "PhysicsMaterial" << YAML::Value << asset->GetGUID();
+
+			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
+			out << YAML::Key << "IsCollisionEnabled" << YAML::Value << collider.IsCollisionEnabled();
+			out << YAML::Key << "Radius" << YAML::Value << collider.GetRadius();
+			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
+			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
+			out << YAML::Key << "DoesAffectNavMeshBuild" << YAML::Value << collider.DoesAffectNavMeshBuild();
+			out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(collider.GetCollisionGroup());
+			out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(collider.GetInteractingCollisionGroup());
+			out << YAML::EndMap; //SphereColliderComponent
+		}
+
+		void DeserializeSphereColliderComponent(Entity deserializedEntity, YAML::Node sphereColliderNode, uint32_t collisionGroupValidMasks)
 		{
 			auto& collider = deserializedEntity.AddComponent<SphereColliderComponent>();
 
 			Transform relativeTransform;
-			DeserializeRelativeTransform(sphereColliderNode, relativeTransform);
+			Serializer::DeserializeRelativeTransform(sphereColliderNode, relativeTransform);
 			collider.SetRelativeTransform(relativeTransform);
 
 			collider.SetPhysicsMaterialAsset(GetAsset<AssetPhysicsMaterial>(sphereColliderNode["PhysicsMaterial"]));
@@ -1162,12 +735,36 @@ namespace Eagle
 				collider.SetInteractingCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
 		}
 
-		if (auto capsuleColliderNode = entityNode["CapsuleColliderComponent"])
+		void SerializeCapsuleColliderComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& collider = entity.GetComponent<CapsuleColliderComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap; //CapsuleColliderComponent
+
+			Serializer::SerializeRelativeTransform(out, collider.GetRelativeTransform());
+
+			if (const auto& asset = collider.GetPhysicsMaterialAsset())
+				out << YAML::Key << "PhysicsMaterial" << YAML::Value << asset->GetGUID();
+
+			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
+			out << YAML::Key << "IsCollisionEnabled" << YAML::Value << collider.IsCollisionEnabled();
+			out << YAML::Key << "Radius" << YAML::Value << collider.GetRadius();
+			out << YAML::Key << "Height" << YAML::Value << collider.GetHeight();
+			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
+			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
+			out << YAML::Key << "DoesAffectNavMeshBuild" << YAML::Value << collider.DoesAffectNavMeshBuild();
+			out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(collider.GetCollisionGroup());
+			out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(collider.GetInteractingCollisionGroup());
+			out << YAML::EndMap; //CapsuleColliderComponent
+		}
+
+		void DeserializeCapsuleColliderComponent(Entity deserializedEntity, YAML::Node capsuleColliderNode, uint32_t collisionGroupValidMasks)
 		{
 			auto& collider = deserializedEntity.AddComponent<CapsuleColliderComponent>();
 
 			Transform relativeTransform;
-			DeserializeRelativeTransform(capsuleColliderNode, relativeTransform);
+			Serializer::DeserializeRelativeTransform(capsuleColliderNode, relativeTransform);
 			collider.SetRelativeTransform(relativeTransform);
 
 			collider.SetPhysicsMaterialAsset(GetAsset<AssetPhysicsMaterial>(capsuleColliderNode["PhysicsMaterial"]));
@@ -1187,12 +784,39 @@ namespace Eagle
 				collider.SetInteractingCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
 		}
 
-		if (auto meshColliderNode = entityNode["MeshColliderComponent"])
+		void SerializeMeshColliderComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& collider = entity.GetComponent<MeshColliderComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap; //MeshColliderComponent
+
+			Serializer::SerializeRelativeTransform(out, collider.GetRelativeTransform());
+
+			if (const auto& meshAsset = collider.GetCollisionMeshAsset())
+				out << YAML::Key << "Mesh" << YAML::Value << meshAsset->GetGUID();
+
+			if (const auto& asset = collider.GetPhysicsMaterialAsset())
+				out << YAML::Key << "PhysicsMaterial" << YAML::Value << asset->GetGUID();
+
+			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
+			out << YAML::Key << "IsCollisionEnabled" << YAML::Value << collider.IsCollisionEnabled();
+			out << YAML::Key << "IsConvex" << YAML::Value << collider.IsConvex();
+			out << YAML::Key << "IsTwoSided" << YAML::Value << collider.IsTwoSided();
+			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
+			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
+			out << YAML::Key << "DoesAffectNavMeshBuild" << YAML::Value << collider.DoesAffectNavMeshBuild();
+			out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(collider.GetCollisionGroup());
+			out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(collider.GetInteractingCollisionGroup());
+			out << YAML::EndMap; //MeshColliderComponent
+		}
+
+		void DeserializeMeshColliderComponent(Entity deserializedEntity, YAML::Node meshColliderNode, uint32_t collisionGroupValidMasks)
 		{
 			auto& collider = deserializedEntity.AddComponent<MeshColliderComponent>();
 
 			Transform relativeTransform;
-			DeserializeRelativeTransform(meshColliderNode, relativeTransform);
+			Serializer::DeserializeRelativeTransform(meshColliderNode, relativeTransform);
 			collider.SetRelativeTransform(relativeTransform);
 
 			collider.SetPhysicsMaterialAsset(GetAsset<AssetPhysicsMaterial>(meshColliderNode["PhysicsMaterial"]));
@@ -1215,13 +839,44 @@ namespace Eagle
 				collider.SetInteractingCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
 		}
 
-		if (auto audioNode = entityNode["AudioComponent"])
+		void SerializeAudioComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& audio = entity.GetComponent<AudioComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap; //AudioComponent
+
+			Serializer::SerializeRelativeTransform(out, audio.GetRelativeTransform());
+			if (const auto& asset = audio.GetAudioAsset())
+				out << YAML::Key << "Sound" << YAML::Value << asset->GetGUID();
+
+			out << YAML::Key << "Volume" << YAML::Value << audio.GetVolume();
+			out << YAML::Key << "Pitch" << YAML::Value << audio.GetPitch();
+			out << YAML::Key << "Pan" << YAML::Value << audio.GetPan();
+			out << YAML::Key << "LoopCount" << YAML::Value << audio.GetLoopCount();
+			out << YAML::Key << "FFTSamples" << YAML::Value << audio.GetFFTSamples();
+			out << YAML::Key << "FFTType" << YAML::Value << Utils::GetEnumName(audio.GetFFTType());
+			out << YAML::Key << "IsLooping" << YAML::Value << audio.IsLooping();
+			out << YAML::Key << "IsMuted" << YAML::Value << audio.IsMuted();
+			out << YAML::Key << "IsStreaming" << YAML::Value << audio.IsStreaming();
+			out << YAML::Key << "FFTEnabled" << YAML::Value << audio.IsFFTEnabled();
+			out << YAML::Key << "MinDistance" << YAML::Value << audio.GetMinDistance();
+			out << YAML::Key << "MaxDistance" << YAML::Value << audio.GetMaxDistance();
+			out << YAML::Key << "RollOff" << YAML::Value << Utils::GetEnumName(audio.GetRollOffModel());
+			out << YAML::Key << "Autoplay" << YAML::Value << audio.bAutoplay;
+			out << YAML::Key << "EnableDopplerEffect" << YAML::Value << audio.bEnableDopplerEffect;
+			out << YAML::Key << "Is3D" << YAML::Value << audio.Is3D();
+
+			out << YAML::EndMap; //AudioComponent
+		}
+
+		void DeserializeAudioComponent(Entity deserializedEntity, YAML::Node audioNode)
 		{
 			auto& audio = deserializedEntity.AddComponent<AudioComponent>();
 			Path soundPath;
 
 			Transform relativeTransform;
-			DeserializeRelativeTransform(audioNode, relativeTransform);
+			Serializer::DeserializeRelativeTransform(audioNode, relativeTransform);
 			audio.SetRelativeTransform(relativeTransform);
 			auto asset = GetAsset<AssetAudio>(audioNode["Sound"]);
 
@@ -1261,12 +916,26 @@ namespace Eagle
 			audio.SetAudioAsset(asset);
 		}
 
-		if (auto reverbNode = entityNode["ReverbComponent"])
+		void SerializeReverbComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& reverb = entity.GetComponent<ReverbComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap; //ReverbComponent
+
+			Serializer::SerializeRelativeTransform(out, reverb.GetRelativeTransform());
+			out << YAML::Key << "bVisualize" << YAML::Value << reverb.IsVisualizeRadiusEnabled();
+			Serializer::SerializeReverb(out, reverb.GetReverb());
+
+			out << YAML::EndMap; //ReverbComponent
+		}
+
+		void DeserializeReverbComponent(Entity deserializedEntity, YAML::Node reverbNode)
 		{
 			auto& reverb = deserializedEntity.AddComponent<ReverbComponent>();
 
 			Transform relativeTransform;
-			DeserializeRelativeTransform(reverbNode, relativeTransform);
+			Serializer::DeserializeRelativeTransform(reverbNode, relativeTransform);
 			reverb.SetRelativeTransform(relativeTransform);
 
 			if (auto node = reverbNode["bVisualize"])
@@ -1276,12 +945,41 @@ namespace Eagle
 				Serializer::DeserializeReverb(node, reverb);
 		}
 
-		if (auto textNode = entityNode["TextComponent"])
+		void SerializeTextComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& text = entity.GetComponent<TextComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap; //TextComponent
+
+			Serializer::SerializeRelativeTransform(out, text.GetRelativeTransform());
+			if (const auto& asset = text.GetFontAsset())
+				out << YAML::Key << "Font" << YAML::Value << asset->GetGUID();
+			if (const auto& asset = text.GetMaterialAsset())
+				out << YAML::Key << "Material" << YAML::Value << asset->GetGUID();
+
+			out << YAML::Key << "Text" << YAML::Value << text.GetText();
+			out << YAML::Key << "Color" << YAML::Value << text.GetColor();
+			out << YAML::Key << "Opacity" << YAML::Value << text.GetOpacity();
+			out << YAML::Key << "IsLit" << YAML::Value << text.IsLit();
+			out << YAML::Key << "IsDoubleSided" << YAML::Value << text.IsDoubleSided();
+			out << YAML::Key << "bCastsShadows" << YAML::Value << text.DoesCastShadows();
+			out << YAML::Key << "bReceivesDecals" << YAML::Value << text.DoesReceiveDecals();
+			out << YAML::Key << "IsVisible" << YAML::Value << text.IsVisible();
+			out << YAML::Key << "LineSpacing" << YAML::Value << text.GetLineSpacing();
+			out << YAML::Key << "LetterSpacing" << YAML::Value << text.GetLetterSpacing();
+			out << YAML::Key << "MaxWidth" << YAML::Value << text.GetMaxWidth();
+			out << YAML::Key << "Alignment" << YAML::Value << Utils::GetEnumName(text.GetAlignment());
+
+			out << YAML::EndMap; //TextComponent
+		}
+
+		void DeserializeTextComponent(Entity deserializedEntity, YAML::Node textNode)
 		{
 			auto& text = deserializedEntity.AddComponent<TextComponent>();
 
 			Transform relativeTransform;
-			DeserializeRelativeTransform(textNode, relativeTransform);
+			Serializer::DeserializeRelativeTransform(textNode, relativeTransform);
 			text.SetRelativeTransform(relativeTransform);
 
 			text.SetFontAsset(GetAsset<AssetFont>(textNode["Font"]));
@@ -1309,7 +1007,51 @@ namespace Eagle
 				text.SetAlignment(Utils::GetEnumFromName<TextAlignment>(node.as<std::string>()));
 		}
 
-		if (auto textNode = entityNode["Text2DComponent"])
+		void SerializeText2DComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& text = entity.GetComponent<Text2DComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap; //Text2DComponent
+
+			if (const auto& asset = text.GetFontAsset())
+				out << YAML::Key << "Font" << YAML::Value << asset->GetGUID();
+
+			out << YAML::Key << "Text" << YAML::Value << text.GetText();
+			out << YAML::Key << "Color" << YAML::Value << text.GetColor();
+			out << YAML::Key << "Tint" << YAML::Value << text.GetTint();
+			out << YAML::Key << "LineSpacing" << YAML::Value << text.GetLineSpacing();
+			out << YAML::Key << "LetterSpacing" << YAML::Value << text.GetLetterSpacing();
+			out << YAML::Key << "MaxWidth" << YAML::Value << text.GetMaxWidth();
+			out << YAML::Key << "FontSize" << YAML::Value << text.GetFontSize();
+			out << YAML::Key << "Alignment" << YAML::Value << Utils::GetEnumName(text.GetAlignment());
+			out << YAML::Key << "Anchor" << YAML::Value << text.GetAnchor();
+			out << YAML::Key << "Pivot" << YAML::Value << text.GetPivot();
+			out << YAML::Key << "PivotFollowsAnchor" << YAML::Value << text.DoesPivotFollowAnchor();
+			out << YAML::Key << "HitTestable" << YAML::Value << text.IsHitTestable();
+			out << YAML::Key << "Offset" << YAML::Value << text.GetOffset();
+			out << YAML::Key << "Rotation" << YAML::Value << text.GetRotation();
+			out << YAML::Key << "IsVisible" << YAML::Value << text.IsVisible();
+			out << YAML::Key << "Opacity" << YAML::Value << text.GetOpacity();
+
+			const Text2DEffects& effects = text.GetEffects();
+			out << YAML::Key << "Effects" << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Outline" << YAML::Value << effects.bOutline;
+			out << YAML::Key << "OutlineColor" << YAML::Value << effects.OutlineColor;
+			out << YAML::Key << "OutlineWidth" << YAML::Value << effects.OutlineWidth;
+			out << YAML::Key << "Glow" << YAML::Value << effects.bGlow;
+			out << YAML::Key << "GlowColor" << YAML::Value << effects.GlowColor;
+			out << YAML::Key << "GlowSize" << YAML::Value << effects.GlowSize;
+			out << YAML::Key << "Shadow" << YAML::Value << effects.bShadow;
+			out << YAML::Key << "ShadowColor" << YAML::Value << effects.ShadowColor;
+			out << YAML::Key << "ShadowOffset" << YAML::Value << effects.ShadowOffset;
+			out << YAML::Key << "ShadowSoftness" << YAML::Value << effects.ShadowSoftness;
+			out << YAML::EndMap;
+
+			out << YAML::EndMap; //Text2DComponent
+		}
+
+		void DeserializeText2DComponent(Entity deserializedEntity, YAML::Node textNode)
 		{
 			auto& text = deserializedEntity.AddComponent<Text2DComponent>();
 
@@ -1366,7 +1108,30 @@ namespace Eagle
 			}
 		}
 
-		if (auto imageNode = entityNode["Image2DComponent"])
+		void SerializeImage2DComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& text = entity.GetComponent<Image2DComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap; //Image2DComponent
+
+			if (const auto& asset = text.GetTextureAsset())
+				out << YAML::Key << "Texture" << YAML::Value << asset->GetGUID();
+			out << YAML::Key << "Tint" << YAML::Value << text.GetTint();
+			out << YAML::Key << "Anchor" << YAML::Value << text.GetAnchor();
+			out << YAML::Key << "Pivot" << YAML::Value << text.GetPivot();
+			out << YAML::Key << "PivotFollowsAnchor" << YAML::Value << text.DoesPivotFollowAnchor();
+			out << YAML::Key << "HitTestable" << YAML::Value << text.IsHitTestable();
+			out << YAML::Key << "Offset" << YAML::Value << text.GetOffset();
+			out << YAML::Key << "Size" << YAML::Value << text.GetSize();
+			out << YAML::Key << "Rotation" << YAML::Value << text.GetRotation();
+			out << YAML::Key << "IsVisible" << YAML::Value << text.IsVisible();
+			out << YAML::Key << "Opacity" << YAML::Value << text.GetOpacity();
+
+			out << YAML::EndMap; //Image2DComponent
+		}
+
+		void DeserializeImage2DComponent(Entity deserializedEntity, YAML::Node imageNode)
 		{
 			auto& image2D = deserializedEntity.AddComponent<Image2DComponent>();
 
@@ -1389,22 +1154,63 @@ namespace Eagle
 			image2D.SetOpacity(imageNode["Opacity"].as<float>());
 		}
 
-		if (auto systemNode = entityNode["ParticleSystemComponent"])
+		void SerializeParticleSystemComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& system = entity.GetComponent<ParticleSystemComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap; //ParticleSystemComponent
+
+			Serializer::SerializeRelativeTransform(out, system.GetRelativeTransform());
+
+			if (const auto& asset = system.GetAsset())
+				out << YAML::Key << "ParticleSystem" << YAML::Value << asset->GetGUID();
+			out << YAML::Key << "bAutospawn" << YAML::Value << system.bAutospawn;
+
+			out << YAML::EndMap; //ParticleSystemComponent
+		}
+
+		void DeserializeParticleSystemComponent(Entity deserializedEntity, YAML::Node systemNode)
 		{
 			auto& system = deserializedEntity.AddComponent<ParticleSystemComponent>();
 
 			Transform relativeTransform;
-			DeserializeRelativeTransform(systemNode, relativeTransform);
+			Serializer::DeserializeRelativeTransform(systemNode, relativeTransform);
 			system.SetRelativeTransform(relativeTransform);
 			system.SetAsset(GetAsset<AssetParticleSystem>(systemNode["ParticleSystem"]));
+			if (auto autospawnNode = systemNode["bAutospawn"])
+				system.bAutospawn = autospawnNode.as<bool>();
 		}
 
-		if (auto sequenceNode = entityNode["SceneSequenceComponent"])
+		void SerializeSceneSequenceComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& sequence = entity.GetComponent<SceneSequenceComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap; //SceneSequenceComponent
+
+			Serializer::SerializeRelativeTransform(out, sequence.GetRelativeTransform());
+
+			if (const auto& asset = sequence.GetAsset())
+				out << YAML::Key << "SceneSequence" << YAML::Value << asset->GetGUID();
+
+			out << YAML::Key << "AutoPlay" << YAML::Value << sequence.bAutoPlay;
+			out << YAML::Key << "OverrideLooping" << YAML::Value << sequence.DoesOverrideLooping();
+			out << YAML::Key << "Looping" << YAML::Value << sequence.IsLoopingEnabled();
+			out << YAML::Key << "PlayInWorldSpace" << YAML::Value << sequence.bPlayInWorldSpace;
+			out << YAML::Key << "DriveCamera" << YAML::Value << sequence.AllowedToDriveCamera();
+			out << YAML::Key << "DrawPathInEditor" << YAML::Value << sequence.bDrawPathInEditor;
+			out << YAML::Key << "PlayRate" << YAML::Value << sequence.GetPlayRate();
+
+			out << YAML::EndMap; //SceneSequenceComponent
+		}
+
+		void DeserializeSceneSequenceComponent(Entity deserializedEntity, YAML::Node sequenceNode)
 		{
 			auto& sequence = deserializedEntity.AddComponent<SceneSequenceComponent>();
 
 			Transform relativeTransform;
-			DeserializeRelativeTransform(sequenceNode, relativeTransform);
+			Serializer::DeserializeRelativeTransform(sequenceNode, relativeTransform);
 			sequence.SetRelativeTransform(relativeTransform);
 
 			sequence.SetAsset(GetAsset<AssetSceneSequence>(sequenceNode["SceneSequence"]));
@@ -1425,12 +1231,29 @@ namespace Eagle
 				sequence.SetPlayRate(node.as<float>());
 		}
 
-		if (auto decalNode = entityNode["DecalComponent"])
+		void SerializeDecalComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& decal = entity.GetComponent<DecalComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap; //DecalComponent
+
+			Serializer::SerializeRelativeTransform(out, decal.GetRelativeTransform());
+			out << YAML::Key << "SortPriority" << YAML::Value << decal.GetSortPriority();
+			out << YAML::Key << "AdjustAspectRatio" << YAML::Value << decal.IsAdjustAspectRatioEnabled();
+			if (const auto& asset = decal.GetMaterialAsset())
+				out << YAML::Key << "Material" << YAML::Value << asset->GetGUID();
+			out << YAML::Key << "IsVisible" << YAML::Value << decal.IsVisible();
+
+			out << YAML::EndMap; //DecalComponent
+		}
+
+		void DeserializeDecalComponent(Entity deserializedEntity, YAML::Node decalNode)
 		{
 			auto& decal = deserializedEntity.AddComponent<DecalComponent>();
 
 			Transform relativeTransform;
-			DeserializeRelativeTransform(decalNode, relativeTransform);
+			Serializer::DeserializeRelativeTransform(decalNode, relativeTransform);
 			decal.SetRelativeTransform(relativeTransform);
 			if (auto node = decalNode["SortPriority"])
 				decal.SetSortPriority(node.as<uint32_t>());
@@ -1441,12 +1264,73 @@ namespace Eagle
 				decal.SetVisible(node.as<bool>());
 		}
 
-		if (auto componentNode = entityNode["NavigationMeshComponent"])
+		void SerializeNavigationMeshComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& component = entity.GetComponent<NavigationMeshComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap; // NavigationMeshComponent
+
+			Serializer::SerializeRelativeTransform(out, component.GetRelativeTransform());
+			out << YAML::Key << "bAutoRebuild" << YAML::Value << component.bAutoRebuild;
+
+			// Settings
+			{
+				const auto& settings = component.GetSettings();
+
+				out << YAML::Key << "Settings" << YAML::Value << YAML::BeginMap;
+
+				// AABB
+				out << YAML::Key << "AABB" << YAML::Value << YAML::BeginMap;
+				out << YAML::Key << "Min" << YAML::Value << settings.AABB.Min;
+				out << YAML::Key << "Max" << YAML::Value << settings.AABB.Max;
+				out << YAML::EndMap;
+
+				out << YAML::Key << "MaxQueryNodes" << YAML::Value << settings.MaxQueryNodes;
+				out << YAML::Key << "ExpectedLayersPerTile" << YAML::Value << settings.ExpectedLayersPerTile;
+				out << YAML::Key << "MaxLayers" << YAML::Value << settings.MaxLayers;
+				out << YAML::Key << "MaxObstacles" << YAML::Value << settings.MaxObstacles;
+				out << YAML::Key << "TileSize" << YAML::Value << settings.TileSize;
+				out << YAML::Key << "CellSize" << YAML::Value << settings.CellSize;
+				out << YAML::Key << "CellHeight" << YAML::Value << settings.CellHeight;
+				out << YAML::Key << "MaxSlope" << YAML::Value << settings.MaxSlope;
+				out << YAML::Key << "AgentHeight" << YAML::Value << settings.AgentHeight;
+				out << YAML::Key << "AgentMaxClimb" << YAML::Value << settings.AgentMaxClimb;
+				out << YAML::Key << "AgentRadius" << YAML::Value << settings.AgentRadius;
+				out << YAML::Key << "EdgeMaxLen" << YAML::Value << settings.EdgeMaxLen;
+				out << YAML::Key << "EdgeMaxError" << YAML::Value << settings.EdgeMaxError;
+				out << YAML::Key << "RegionMinSize" << YAML::Value << settings.RegionMinSize;
+				out << YAML::Key << "RegionMergeSize" << YAML::Value << settings.RegionMergeSize;
+				out << YAML::Key << "VertsPerPoly" << YAML::Value << settings.VertsPerPoly;
+				out << YAML::Key << "BorderSize" << YAML::Value << settings.BorderSize;
+				out << YAML::Key << "FilterLowHangingObstacles" << YAML::Value << settings.FilterLowHangingObstacles;
+				out << YAML::Key << "FilterLedgeSpans" << YAML::Value << settings.FilterLedgeSpans;
+				out << YAML::Key << "FilterWalkableLowHeightSpans" << YAML::Value << settings.FilterWalkableLowHeightSpans;
+
+				out << YAML::EndMap;
+			}
+
+			// Crowd Settings
+			{
+				const auto& settings = component.GetCrowdSettings();
+
+				out << YAML::Key << "CrowdSettings" << YAML::Value << YAML::BeginMap;
+
+				out << YAML::Key << "MaxAgents" << YAML::Value << settings.MaxAgents;
+				out << YAML::Key << "MaxAgentRadius" << YAML::Value << settings.MaxAgentRadius;
+
+				out << YAML::EndMap;
+			}
+
+			out << YAML::EndMap; // NavigationMeshComponent
+		}
+
+		void DeserializeNavigationMeshComponent(Entity deserializedEntity, YAML::Node componentNode)
 		{
 			auto& component = deserializedEntity.AddComponent<NavigationMeshComponent>();
 
 			Transform relativeTransform;
-			DeserializeRelativeTransform(componentNode, relativeTransform);
+			Serializer::DeserializeRelativeTransform(componentNode, relativeTransform);
 			component.SetRelativeTransform(relativeTransform);
 			if (auto rebuildNode = componentNode["bAutoRebuild"])
 				component.bAutoRebuild = rebuildNode.as<bool>();
@@ -1493,7 +1377,37 @@ namespace Eagle
 			component.SetSettings(settings);
 		}
 
-		if (auto componentNode = entityNode["NavigationCrowdAgentComponent"])
+		void SerializeNavigationCrowdAgentComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& component = entity.GetComponent<NavigationCrowdAgentComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap; // NavigationCrowdAgentComponent
+
+			// Settings
+			{
+				const auto& settings = component.GetSettings();
+
+				out << YAML::Key << "Settings" << YAML::Value << YAML::BeginMap;
+
+				out << YAML::Key << "AgentRadius" << YAML::Value << settings.AgentRadius;
+				out << YAML::Key << "AgentHeight" << YAML::Value << settings.AgentHeight;
+				out << YAML::Key << "MaxAcceleration" << YAML::Value << settings.MaxAcceleration;
+				out << YAML::Key << "MaxSpeed" << YAML::Value << settings.MaxSpeed;
+				out << YAML::Key << "SeparationWeight" << YAML::Value << settings.SeparationWeight;
+				out << YAML::Key << "ObstacleAvoidanceQuality" << YAML::Value << Utils::GetEnumName(settings.ObstacleAvoidanceQuality);
+				out << YAML::Key << "bAnticipateTurns" << YAML::Value << settings.bAnticipateTurns;
+				out << YAML::Key << "bOptimizeVis" << YAML::Value << settings.bOptimizeVis;
+				out << YAML::Key << "bOptimizeTopo" << YAML::Value << settings.bOptimizeTopo;
+				out << YAML::Key << "bSeparation" << YAML::Value << settings.bSeparation;
+
+				out << YAML::EndMap;
+			}
+
+			out << YAML::EndMap; // NavigationMeshComponent
+		}
+
+		void DeserializeNavigationCrowdAgentComponent(Entity deserializedEntity, YAML::Node componentNode)
 		{
 			auto& component = deserializedEntity.AddComponent<NavigationCrowdAgentComponent>();
 
@@ -1514,7 +1428,290 @@ namespace Eagle
 
 			component.SetSettings(settings);
 		}
-	
+
+		// Calls a deserialize function. It takes the valid masks of collision groups only if it uses them
+		template<auto DeserializeFn>
+		void DeserializeComponent(Entity deserializedEntity, YAML::Node node, uint32_t collisionGroupValidMasks)
+		{
+			using DeserializeFnType = decltype(DeserializeFn);
+			if constexpr (std::is_invocable_v<DeserializeFnType, Entity, YAML::Node, uint32_t>)
+			{
+				DeserializeFn(deserializedEntity, node, collisionGroupValidMasks);
+			}
+			else
+			{
+				static_assert(std::is_invocable_v<DeserializeFnType, Entity, YAML::Node>,
+					"Expected `void(Entity, YAML::Node)` or `void(Entity, YAML::Node, uint32_t collisionGroupValidMasks)`");
+				DeserializeFn(deserializedEntity, node);
+			}
+		}
+
+		struct SerializedComponentType
+		{
+			const char* Key = nullptr; // Of the component in the map of the entity
+			bool (*Has)(const Entity& entity) = nullptr;
+			void (*Remove)(Entity& entity) = nullptr;
+			void (*Serialize)(YAML::Emitter& out, Entity entity, const char* key) = nullptr;
+			void (*Deserialize)(Entity deserializedEntity, YAML::Node node, uint32_t collisionGroupValidMasks) = nullptr;
+			bool bCollider = false; // It's attached to the physics actor of the rigid body, so it's recreated along with it
+			bool bRigidBody = false;
+		};
+
+		template<typename T, void (*SerializeFn)(YAML::Emitter&, Entity, const char*), auto DeserializeFn>
+		constexpr SerializedComponentType MakeSerializedComponentType(const char* key)
+		{
+			SerializedComponentType type;
+			type.Key = key;
+			type.Has = [](const Entity& entity) { return entity.HasComponent<T>(); };
+			if constexpr (std::is_same_v<T, TagComponent>)
+			{
+				type.Remove = [](Entity& entity) { entity.GetComponent<TagComponent>().Tag.clear(); }; // All entities have it, so it's cleared instead
+			}
+			else
+			{
+				type.Remove = [](Entity& entity) { entity.RemoveComponent<T>(); };
+			}
+			type.Serialize = SerializeFn;
+			type.Deserialize = &DeserializeComponent<DeserializeFn>;
+			type.bCollider = std::is_base_of_v<BaseColliderComponent, T>;
+			type.bRigidBody = std::is_same_v<T, RigidBodyComponent>;
+			return type;
+		}
+
+		// The key is the name of the component's type. Note: renaming a component type renames its key, so files saved before that won't have the component when they're loaded
+		#define EG_SERIALIZED_COMPONENT(Component) MakeSerializedComponentType<Component, &Serialize##Component, &Deserialize##Component>(#Component)
+
+		// Every component that's saved with an entity (besides its name, parent and transform, see `Serializer::SerializeEntity()`).
+		// They're written & read in this order: for example, a rigid body is read before the colliders that are attached to it.
+		// A component is serialized by adding it here
+		constexpr SerializedComponentType s_SerializedComponentTypes[] =
+		{
+			EG_SERIALIZED_COMPONENT(EntityAssetComponent),
+			EG_SERIALIZED_COMPONENT(TagComponent),
+			EG_SERIALIZED_COMPONENT(CameraComponent),
+			EG_SERIALIZED_COMPONENT(SpriteComponent),
+			EG_SERIALIZED_COMPONENT(BillboardComponent),
+			EG_SERIALIZED_COMPONENT(StaticMeshComponent),
+			EG_SERIALIZED_COMPONENT(SkeletalMeshComponent),
+			EG_SERIALIZED_COMPONENT(PointLightComponent),
+			EG_SERIALIZED_COMPONENT(DirectionalLightComponent),
+			EG_SERIALIZED_COMPONENT(SpotLightComponent),
+			EG_SERIALIZED_COMPONENT(ScriptComponent),
+			EG_SERIALIZED_COMPONENT(RigidBodyComponent),
+			EG_SERIALIZED_COMPONENT(BoxColliderComponent),
+			EG_SERIALIZED_COMPONENT(SphereColliderComponent),
+			EG_SERIALIZED_COMPONENT(CapsuleColliderComponent),
+			EG_SERIALIZED_COMPONENT(MeshColliderComponent),
+			EG_SERIALIZED_COMPONENT(CharacterControllerComponent),
+			EG_SERIALIZED_COMPONENT(AudioComponent),
+			EG_SERIALIZED_COMPONENT(ReverbComponent),
+			EG_SERIALIZED_COMPONENT(TextComponent),
+			EG_SERIALIZED_COMPONENT(Text2DComponent),
+			EG_SERIALIZED_COMPONENT(Image2DComponent),
+			EG_SERIALIZED_COMPONENT(ParticleSystemComponent),
+			EG_SERIALIZED_COMPONENT(SceneSequenceComponent),
+			EG_SERIALIZED_COMPONENT(DecalComponent),
+			EG_SERIALIZED_COMPONENT(NavigationMeshComponent),
+			EG_SERIALIZED_COMPONENT(NavigationCrowdAgentComponent),
+		};
+
+		#undef EG_SERIALIZED_COMPONENT
+	}
+
+	void Serializer::DeserializeReverb(YAML::Node& reverbNode, ReverbComponent& reverb)
+	{
+		float minDistance = reverbNode["MinDistance"].as<float>();
+		float maxDistance = reverbNode["MaxDistance"].as<float>();
+		reverb.SetMinMaxDistance(minDistance, maxDistance);
+		reverb.SetPreset(Utils::GetEnumFromName<ReverbPreset>(reverbNode["Preset"].as<std::string>()));
+		reverb.SetActive(reverbNode["IsActive"].as<bool>());
+	}
+
+	void Serializer::SerializeEntity(YAML::Emitter& out, Entity entity)
+	{
+		out << YAML::BeginMap; //Entity
+
+		out << YAML::Key << "EntityID" << YAML::Value << entity.GetID();
+		out << YAML::Key << "GUID" << YAML::Value << entity.GetGUID();
+
+		// Note: intentionally kept outside of `SerializeComponents` because Undo system handles parents separately
+		if (entity.HasComponent<EntitySceneNameComponent>())
+		{
+			const auto& sceneNameComponent = entity.GetComponent<EntitySceneNameComponent>();
+			const auto& name = sceneNameComponent.GetName();
+
+			int parentID = -1;
+			if (Entity parent = entity.GetParent())
+				parentID = (int)parent.GetID();
+
+			out << YAML::Key << "EntitySceneParams";
+			out << YAML::BeginMap; //EntitySceneName
+
+			out << YAML::Key << "Name" << YAML::Value << name;
+			out << YAML::Key << "Parent" << YAML::Value << parentID;
+
+			out << YAML::EndMap; //EntitySceneParams
+		}
+
+		// Note: intentionally kept outside of `SerializeComponents` because Undo system handles transforms separately
+		if (entity.HasComponent<TransformComponent>())
+		{
+			const auto& worldTransform = entity.GetWorldTransform();
+			const auto& relativeTransform = entity.GetRelativeTransform();
+
+			out << YAML::Key << "TransformComponent";
+			out << YAML::BeginMap; //TransformComponent
+
+			out << YAML::Key << "WorldLocation" << YAML::Value << worldTransform.Location;
+			out << YAML::Key << "WorldRotation" << YAML::Value << worldTransform.Rotation;
+			out << YAML::Key << "WorldScale" << YAML::Value << worldTransform.Scale3D;
+
+			out << YAML::EndMap; //TransformComponent
+		}
+
+		SerializeComponents(out, entity);
+
+		out << YAML::EndMap; //Entity
+	}
+
+	void Serializer::SerializeComponents(YAML::Emitter& out, Entity entity)
+	{
+		for (const SerializedComponentType& type : s_SerializedComponentTypes)
+		{
+			if (type.Has(entity))
+				type.Serialize(out, entity, type.Key);
+		}
+	}
+
+	Entity Serializer::DeserializeEntity(const Ref<Scene>& scene, const YAML::Node& entityNode, uint32_t collisionGroupValidMasks, uint32_t* outEntityID, int* outParentID)
+	{
+		*outEntityID = entityNode["EntityID"].as<uint32_t>();
+		GUID guid(0, 0);
+		if (auto node = entityNode["GUID"])
+			guid = node.as<GUID>();
+		else
+			guid = GUID{}; // Generate a new one
+
+		if (outParentID)
+			*outParentID = -1;
+
+		Entity deserializedEntity = scene->CreateEntityWithGUID(guid);
+
+		// Note: intentionally kept outside of `DeserializeComponents` because Undo system handles parents separately
+		if (auto sceneNameComponentNode = entityNode["EntitySceneParams"])
+		{
+			if (deserializedEntity.HasComponent<EntitySceneNameComponent>() == false)
+				deserializedEntity.AddComponent<EntitySceneNameComponent>();
+			
+			auto& sceneNameComponent = deserializedEntity.GetComponent<EntitySceneNameComponent>();
+			sceneNameComponent.SetName(sceneNameComponentNode["Name"].as<std::string>());
+			if (outParentID)
+				*outParentID = sceneNameComponentNode["Parent"].as<int>();
+		}
+
+		// Note: intentionally kept outside of `DeserializeComponents` because Undo system handles parents separately
+		if (auto transformComponentNode = entityNode["TransformComponent"])
+		{
+			//Every entity has a transform component
+			Transform worldTransform;
+
+			worldTransform.Location = transformComponentNode["WorldLocation"].as<glm::vec3>();
+			worldTransform.Rotation = transformComponentNode["WorldRotation"].as<Rotator>();
+			worldTransform.Scale3D = transformComponentNode["WorldScale"].as<glm::vec3>();
+
+			deserializedEntity.SetWorldTransform(worldTransform);
+		}
+
+		DeserializeComponents(deserializedEntity, entityNode, collisionGroupValidMasks);
+
 		return deserializedEntity;
+	}
+
+	void Serializer::DeserializeComponents(Entity deserializedEntity, const YAML::Node& entityNode, uint32_t collisionGroupValidMasks)
+	{
+		for (const SerializedComponentType& type : s_SerializedComponentTypes)
+		{
+			if (YAML::Node node = entityNode[type.Key])
+				type.Deserialize(deserializedEntity, node, collisionGroupValidMasks);
+		}
+	}
+
+	void Serializer::SerializeEntityComponents(YAML::Emitter& out, Entity entity)
+	{
+		out << YAML::BeginMap;
+
+		// Collision groups are stored as indices into the project's collision groups. Like in scene files, the groups are saved too,
+		// so that the indices of the groups that have changed since then are invalidated when it's deserialized
+		SerializeProjectCollisionGroupGUIDs(out);
+		SerializeComponents(out, entity);
+
+		out << YAML::EndMap;
+	}
+
+	void Serializer::DeserializeEntityComponents(Entity entity, const YAML::Node& componentsNode)
+	{
+		EG_CORE_ASSERT(entity, "Invalid entity");
+
+		// The current state, to find out which components differ
+		YAML::Emitter currentOut;
+		SerializeEntityComponents(currentOut, entity);
+		const YAML::Node currentNode = YAML::Load(currentOut.c_str());
+
+		auto Differs = [&currentNode, &componentsNode](const char* key)
+		{
+			const YAML::Node current = currentNode[key];
+			const YAML::Node target = componentsNode[key];
+			if (!current || !target)
+				return bool(current) != bool(target);
+			return YAML::Dump(current) != YAML::Dump(target);
+		};
+
+		constexpr size_t typesCount = std::size(s_SerializedComponentTypes);
+		bool bRecreate[typesCount] = {};
+		bool bRecreateRigidBody = false;
+		for (size_t i = 0; i < typesCount; ++i)
+		{
+			const auto& type = s_SerializedComponentTypes[i];
+			bRecreate[i] = Differs(type.Key);
+			if (bRecreate[i] && type.bRigidBody)
+				bRecreateRigidBody = true;
+		}
+		if (bRecreateRigidBody)
+		{
+			for (size_t i = 0; i < typesCount; ++i)
+				bRecreate[i] |= s_SerializedComponentTypes[i].bCollider;
+		}
+
+		// The nav mesh of the scene is removed along with its component. When a scene is loaded, it's built after its entities were deserialized
+		Scene* scene = entity.GetScene();
+		bool bRebuildNavMesh = false;
+		if (entity.HasComponent<NavigationMeshComponent>())
+		{
+			const auto& navMesh = entity.GetComponent<NavigationMeshComponent>().GetNavMesh();
+			bRebuildNavMesh = navMesh && navMesh == scene->GetNavMesh();
+		}
+
+		// Removed in the reverse order, so that, for example, colliders are removed before the rigid body
+		YAML::Node recreatedNode(YAML::NodeType::Map);
+		for (size_t i = typesCount; i-- > 0;)
+		{
+			if (!bRecreate[i])
+				continue;
+
+			const SerializedComponentType& type = s_SerializedComponentTypes[i];
+			if (type.Has(entity))
+				type.Remove(entity);
+			if (const YAML::Node node = componentsNode[type.Key])
+				recreatedNode[type.Key] = node;
+		}
+
+		DeserializeComponents(entity, recreatedNode, DeserializeProjectCollisionGroupGUIDs(componentsNode));
+
+		if (bRebuildNavMesh && entity.HasComponent<NavigationMeshComponent>())
+		{
+			auto& navMesh = entity.GetComponent<NavigationMeshComponent>();
+			if (!navMesh.GetNavMesh())
+				scene->BuildNavMesh(&navMesh);
+		}
 	}
 }

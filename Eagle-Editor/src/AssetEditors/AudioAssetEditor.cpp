@@ -9,6 +9,7 @@ namespace Eagle
 {
 	AudioAssetEditor::AudioAssetEditor(const Ref<AssetAudio>& asset)
 		: m_Asset(asset)
+		, m_EditTracker(&DescribeState)
 	{
 		m_WindowName = AssetEditor::GetAssetWindowName(m_Asset);
 		SetTabWindowName(m_WindowName);
@@ -22,6 +23,8 @@ namespace Eagle
 		ImGui::SetNextWindowSize(AssetEditor::GetDefaultWindowSize(), ImGuiCond_FirstUseEver);
 		PrepareTabWindow();
 		bool bHidden = !ImGui::Begin(m_WindowName.c_str(), pOpen, EditorFrames::TabWindowFlags);
+		m_EditTracker.BeginFrame(&m_UndoHistory, m_Asset);
+
 		UI::BeginPropertyGrid("AudioDetails");
 
 		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
@@ -106,10 +109,21 @@ namespace Eagle
 			Asset::Save(m_Asset);
 
 		ImGui::End();
+		m_EditTracker.EndFrame();
 
 		if (pOpen && (*pOpen == false))
 		{
 			audio->Stop(); // Stop on exit
 		}
+	}
+
+	std::string AudioAssetEditor::DescribeState(const AssetAudio::Settings& before, const AssetAudio::Settings& after)
+	{
+		return UndoUtils::Describe({
+			{ "Volume", before.Audio.Volume != after.Audio.Volume },
+			{ "Pitch", before.Audio.Pitch != after.Audio.Pitch },
+			{ "Pan", before.Audio.Pan != after.Audio.Pan },
+			{ "Sound Group", before.SoundGroup != after.SoundGroup },
+		}, "Edit Audio");
 	}
 }

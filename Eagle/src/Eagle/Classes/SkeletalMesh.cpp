@@ -4,6 +4,7 @@
 #include "Eagle/Animation/Animation.h"
 #include "Eagle/Animation/AnimationSystem.h"
 #include "Eagle/Asset/Asset.h"
+#include "Eagle/Core/Project.h"
 
 namespace Eagle
 {
@@ -110,7 +111,7 @@ namespace Eagle
 	}
 
     SkeletalMesh::SkeletalMesh(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
-        const std::unordered_map<std::string, SkeletalRagdollBone::UserSettings>& ragdollPerBoneSettings, float minRagdollBoneSize, float maxRagdollTwist, float maxRagdollSwing,
+        const std::unordered_map<std::string, SkeletalRagdollBone::UserSettings>& ragdollPerBoneSettings, const RagdollGenerationSettings& ragdollSettings,
         CollisionDetectionType collisionDetection, CollisionGroup collisionGroup, CollisionGroup interactingCollisionGroup)
         : m_Vertices(vertices)
         , m_IndicesPerMaterial(indicesPerMaterial)
@@ -119,14 +120,12 @@ namespace Eagle
         , m_MaterialSlots((uint32_t)m_IndicesPerMaterial.size())
         , m_Materials(m_MaterialSlots)
         , m_MaterialsCallbacks(m_MaterialSlots)
-        , m_MinRagdollBoneSize(minRagdollBoneSize)
-        , m_MaxRagdollTwist(maxRagdollTwist)
-        , m_MaxRagdollSwing(maxRagdollSwing)
+        , m_RagdollSettings(ragdollSettings)
         , m_CollisionDetection(collisionDetection)
         , m_CollisionGroup(collisionGroup)
         , m_InteractingCollisionGroup(interactingCollisionGroup)
     {
-        m_RagdollRoot = Utils::MergeBones(m_MinRagdollBoneSize, m_Skeletal.GetBoneInfoMap(), m_Skeletal.RootBone);
+        m_RagdollRoot = Utils::MergeBones(m_RagdollSettings.MinBoneSize, m_Skeletal.GetBoneInfoMap(), m_Skeletal.RootBone);
         Utils::PrepareAABB(m_RagdollRoot);
         Utils::SetUserSettings(m_RagdollRoot, ragdollPerBoneSettings);
         m_Skeletal.BuildFlattenedBones();
@@ -141,9 +140,10 @@ namespace Eagle
         , m_Materials(m_MaterialSlots)
         , m_MaterialsCallbacks(m_MaterialSlots)
         , m_RagdollRoot(other.m_RagdollRoot)
-        , m_MinRagdollBoneSize(other.m_MinRagdollBoneSize)
-        , m_MaxRagdollTwist(other.m_MaxRagdollTwist)
-        , m_MaxRagdollSwing(other.m_MaxRagdollSwing)
+        , m_RagdollSettings(other.m_RagdollSettings)
+        , m_CollisionDetection(other.m_CollisionDetection)
+        , m_CollisionGroup(other.m_CollisionGroup)
+        , m_InteractingCollisionGroup(other.m_InteractingCollisionGroup)
     {
         m_Skeletal.BuildFlattenedBones();
 
@@ -198,14 +198,103 @@ namespace Eagle
             func();
     }
 
-    void SkeletalMesh::RegenerateRagdollData(float minBoneSize)
+    static size_t GetBoneTreeMemoryUsage(const BoneNode& node)
     {
-        m_MinRagdollBoneSize = minBoneSize;
+        size_t result = sizeof(BoneNode) + node.GetName().capacity() + (node.Children.capacity() - node.Children.size()) * sizeof(BoneNode);
+        for (const BoneNode& child : node.Children)
+            result += GetBoneTreeMemoryUsage(child);
+
+        return result;
+    }
+
+    static size_t GetRagdollTreeMemoryUsage(const SkeletalRagdollBone& bone)
+    {
+        size_t result = sizeof(SkeletalRagdollBone) + bone.Name.capacity() + (bone.Children.capacity() - bone.Children.size()) * sizeof(SkeletalRagdollBone);
+        for (const SkeletalRagdollBone& child : bone.Children)
+            result += GetRagdollTreeMemoryUsage(child);
+
+        return result;
+    }
+
+    size_t SkeletalMeshSettings::GetMemoryUsage() const
+    {
+        // The roots are counted by `sizeof(*this)`
+        return sizeof(*this) + Materials.capacity() * sizeof(Ref<AssetMaterial>) + CollisionGroupGUIDs.capacity() * sizeof(GUID64)
+            + GetBoneTreeMemoryUsage(RootBone) - sizeof(BoneNode) + GetRagdollTreeMemoryUsage(RagdollRoot) - sizeof(SkeletalRagdollBone);
+    }
+
+    bool SkeletalMeshSettings::HasSameRagdoll(const SkeletalMeshSettings& other) const
+    {
+        return Ragdoll == other.Ragdoll && CollisionDetection == other.CollisionDetection
+            && Group == other.Group && InteractingGroup == other.InteractingGroup && RagdollRoot == other.RagdollRoot;
+    }
+
+    bool SkeletalMeshSettings::operator==(const SkeletalMeshSettings& other) const
+    {
+        return Materials == other.Materials && HasSameRagdoll(other) && RootBone == other.RootBone;
+    }
+
+    SkeletalMeshSettings SkeletalMesh::GetSettings() const
+    {
+        SkeletalMeshSettings settings;
+        settings.Materials = m_Materials;
+        settings.RootBone = m_Skeletal.RootBone;
+        settings.RagdollRoot = m_RagdollRoot;
+        settings.Ragdoll = m_RagdollSettings;
+        settings.CollisionDetection = m_CollisionDetection;
+        settings.Group = m_CollisionGroup;
+        settings.InteractingGroup = m_InteractingCollisionGroup;
+        settings.CollisionGroupGUIDs = Project::GetProjectInfo().CollisionGroupGUIDs;
+        return settings;
+    }
+
+    void SkeletalMesh::SetSettings(const SkeletalMeshSettings& settings)
+    {
+        const uint32_t materialsCount = glm::min(m_MaterialSlots, uint32_t(settings.Materials.size()));
+        for (uint32_t i = 0; i < materialsCount; ++i)
+        {
+            if (m_Materials[i] != settings.Materials[i])
+                SetMaterialAsset(i, settings.Materials[i]);
+        }
+
+        if (m_Skeletal.RootBone != settings.RootBone)
+        {
+            m_Skeletal.RootBone = settings.RootBone;
+            m_Skeletal.BuildFlattenedBones(); // It caches pointers to the nodes
+        }
+
+        // The groups that were removed since the settings were captured (in the project settings) aren't restored
+        const ProjectInfo& projectInfo = Project::GetProjectInfo();
+        uint32_t validGroups = projectInfo.AllCollisionGroupsMask;
+        if (!settings.CollisionGroupGUIDs.empty())
+        {
+            for (size_t i = 0; i < projectInfo.CollisionGroupGUIDs.size() && i < 32u; ++i)
+            {
+                if (i >= settings.CollisionGroupGUIDs.size() || settings.CollisionGroupGUIDs[i] != projectInfo.CollisionGroupGUIDs[i])
+                    validGroups &= ~(1u << i);
+            }
+        }
+
+        m_CollisionDetection = settings.CollisionDetection;
+        m_CollisionGroup = CollisionGroup(uint32_t(settings.Group) & validGroups);
+        m_InteractingCollisionGroup = CollisionGroup(uint32_t(settings.InteractingGroup) & validGroups);
+        SetRagdollData(settings.RagdollRoot, settings.Ragdoll);
+    }
+
+    void SkeletalMesh::SetRagdollData(const SkeletalRagdollBone& root, const RagdollGenerationSettings& settings)
+    {
+        m_RagdollRoot = root;
+        m_RagdollSettings = settings;
+    }
+
+    void SkeletalMesh::RegenerateRagdollData(const RagdollGenerationSettings& settings)
+    {
+        m_RagdollSettings = settings;
 
         std::unordered_map<std::string, SkeletalRagdollBone::UserSettings> ragdollPerBoneSettings;
         Utils::GetUserSettings(m_RagdollRoot, ragdollPerBoneSettings);
 
-        m_RagdollRoot = Utils::MergeBones(m_MinRagdollBoneSize, m_Skeletal.GetBoneInfoMap(), m_Skeletal.RootBone);
+        m_RagdollRoot = Utils::MergeBones(m_RagdollSettings.MinBoneSize, m_Skeletal.GetBoneInfoMap(), m_Skeletal.RootBone);
         Utils::PrepareAABB(m_RagdollRoot);
         Utils::SetUserSettings(m_RagdollRoot, ragdollPerBoneSettings);
     }
@@ -216,19 +305,19 @@ namespace Eagle
     }
 
     Ref<SkeletalMesh> SkeletalMesh::Create(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
-        const std::unordered_map<std::string, SkeletalRagdollBone::UserSettings>& ragdollPerBoneSettings, float minRagdollBoneSize, float maxRagdollTwist, float maxRagdollSwing,
+        const std::unordered_map<std::string, SkeletalRagdollBone::UserSettings>& ragdollPerBoneSettings, const RagdollGenerationSettings& ragdollSettings,
         CollisionDetectionType collisionDetection, CollisionGroup collisionGroup, CollisionGroup interactingCollisionGroup)
 	{
 		class LocalSkeletalMesh : public SkeletalMesh
 		{
 		public:
 			LocalSkeletalMesh(const std::vector<SkeletalVertex>& vertices, const std::vector<std::vector<Index>>& indicesPerMaterial, const SkeletalMeshInfo& skeletal, const AABB& aabb,
-                const std::unordered_map<std::string, SkeletalRagdollBone::UserSettings>& ragdollSettings, float minRagdollBoneSize, float maxRagdollTwist, float maxRagdollSwing,
+                const std::unordered_map<std::string, SkeletalRagdollBone::UserSettings>& ragdollPerBoneSettings, const RagdollGenerationSettings& ragdollSettings,
                 CollisionDetectionType collisionDetection, CollisionGroup collisionGroup, CollisionGroup interactingCollisionGroup)
-				: SkeletalMesh(vertices, indicesPerMaterial, skeletal, aabb, ragdollSettings, minRagdollBoneSize, maxRagdollTwist, maxRagdollSwing, collisionDetection, collisionGroup, interactingCollisionGroup) {}
+				: SkeletalMesh(vertices, indicesPerMaterial, skeletal, aabb, ragdollPerBoneSettings, ragdollSettings, collisionDetection, collisionGroup, interactingCollisionGroup) {}
 		};
 
-		return MakeRef<LocalSkeletalMesh>(vertices, indicesPerMaterial, skeletal, aabb, ragdollPerBoneSettings, minRagdollBoneSize, maxRagdollTwist, maxRagdollSwing, collisionDetection, collisionGroup, interactingCollisionGroup);
+		return MakeRef<LocalSkeletalMesh>(vertices, indicesPerMaterial, skeletal, aabb, ragdollPerBoneSettings, ragdollSettings, collisionDetection, collisionGroup, interactingCollisionGroup);
 	}
 
 	Ref<SkeletalMesh> SkeletalMesh::Create(const Ref<SkeletalMesh>& other)

@@ -11,6 +11,7 @@ namespace Eagle
 	AnimationAssetEditor::AnimationAssetEditor(const Ref<AssetAnimation>& asset)
 		: AssetEditor(true)
 		, m_Asset(asset)
+		, m_EditTracker(&DescribeState)
 	{
 		const auto& skeletalMeshAsset = m_Asset->GetSkeletal();
 		const auto& scene = GetCurrentScene();
@@ -42,6 +43,8 @@ namespace Eagle
 
 		DrawEditorWindow(pOpen);
 		BeginPanel(GetDetailsPanelName());
+		m_EditTracker.BeginFrame(&m_UndoHistory, m_Asset);
+
 		UI::BeginPropertyGrid("AnimationDetails");
 
 		UI::Text("Name", Utils::AsString(m_Asset->GetPath().stem()));
@@ -52,16 +55,31 @@ namespace Eagle
 
 		ImGui::Separator();
 
-		bChanged |= UI::Property("In Place", animation->bInPlace);
+		bChanged |= UI::Property("In Place", animation->Settings.bInPlace);
 
 		RootMotionMode rootMotionMode = animation->RootMotionType;
 		if (UI::ComboEnum("Root Motion Mode", rootMotionMode))
 		{
+			// It changes the keyframes, so the whole animation is recorded. It's too heavy to be captured by the edit tracker on every edit.
+			// It's recorded manually, so the edit in progress is recorded first
+			m_UndoHistory.FlushPendingEdits();
+
+			AnimationData before{ *animation };
+
 			const auto& skeletalInfo = m_Asset->GetSkeletal()->GetMesh()->GetSkeletalMeshInfo();
+			bool bRootMotionChanged = false;
 			if (rootMotionMode != RootMotionMode::Disabled)
-				bChanged |= animation->ExtractRootMotion(skeletalInfo, rootMotionMode);
+				bRootMotionChanged = animation->ExtractRootMotion(skeletalInfo, rootMotionMode);
 			else
-				bChanged |= animation->RemoveRootMotion(skeletalInfo);
+				bRootMotionChanged = animation->RemoveRootMotion(skeletalInfo);
+
+			if (bRootMotionChanged)
+			{
+				m_UndoHistory.Record(rootMotionMode != RootMotionMode::Disabled ? "Extract Root Motion" : "Remove Root Motion",
+					MakeScope<AssetStateCommand<AssetAnimation, AnimationData>>(m_Asset, std::move(before), AnimationData{ *animation },
+						[](const Ref<AssetAnimation>& asset, const AnimationData& data) { *asset->GetAnimation() = data.Animation; }));
+				bChanged = true;
+			}
 		}
 
 		UI::EndPropertyGrid();
@@ -112,7 +130,7 @@ namespace Eagle
 				ImGui::SameLine(contentRegionAvailable.x - textWidth);
 				if (ImGui::Button(addEventText, ImVec2{ textWidth + ImGui::GetStyle().FramePadding.y * 2.f, lineHeight }))
 				{
-					auto& event = animation->Events.emplace_back();
+					auto& event = animation->Settings.Events.emplace_back();
 					event.Time = m_Component->CurrentClipPlayTime;
 					bChanged = true;
 				}
@@ -123,7 +141,7 @@ namespace Eagle
 			if (bOpened)
 			{
 				constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_AllowOverlap | ImGuiTreeNodeFlags_SpanAvailWidth;
-				for (auto it = animation->Events.begin(); it != animation->Events.end();)
+				for (auto it = animation->Settings.Events.begin(); it != animation->Settings.Events.end();)
 				{
 					auto& event = *it;
 
@@ -152,7 +170,7 @@ namespace Eagle
 
 					if (bDelete)
 					{
-						it = animation->Events.erase(it);
+						it = animation->Settings.Events.erase(it);
 						bChanged = true;
 					}
 					else
@@ -192,9 +210,40 @@ namespace Eagle
 			Asset::Save(m_Asset);
 
 		ImGui::End();
+		m_EditTracker.EndFrame();
 
 		DrawViewport(true);
 		if (!bPlayAnimation)
 			m_Component->CurrentClipPlayTime = m_Component->PrevClipPlayTime; // Prevent animation from advancing
+	}
+
+	size_t AnimationAssetEditor::AnimationData::GetMemoryUsage() const
+	{
+		size_t result = sizeof(*this);
+		auto addBone = [&result](const BoneAnimation& bone)
+		{
+			result += sizeof(BoneAnimation) + bone.Locations.capacity() * sizeof(KeyPosition)
+				+ bone.Rotations.capacity() * sizeof(KeyRotation) + bone.Scales.capacity() * sizeof(KeyScale);
+		};
+		for (const auto& [name, bone] : Animation.GetAnimationBones())
+		{
+			result += name.capacity();
+			addBone(bone);
+		}
+		addBone(Animation.RootMotion);
+		result += Animation.PreRootMotionLocations.capacity() * sizeof(glm::vec3);
+		result += Animation.Settings.GetMemoryUsage() - sizeof(AnimationSettings); // `sizeof(*this)` includes it
+		return result;
+	}
+
+	std::string AnimationAssetEditor::DescribeState(const AssetAnimation::Settings& before, const AssetAnimation::Settings& after)
+	{
+		if (before.bInPlace != after.bInPlace)
+			return before.Events.size() == after.Events.size() ? "Edit In Place" : "Edit Animation";
+		if (after.Events.size() > before.Events.size())
+			return "Add Animation Event";
+		if (after.Events.size() < before.Events.size())
+			return "Delete Animation Event";
+		return "Edit Animation Event";
 	}
 }

@@ -31,7 +31,7 @@ namespace Eagle
         }
     }
 
-    PhysicsScene::PhysicsScene(const PhysicsSettings& settings)
+    PhysicsScene::PhysicsScene(const PhysicsSettings& settings, bool bEditorScene)
     : m_Settings(settings)
     {
         physx::PxSceneDesc sceneDesc(PhysXInternal::GetPhysics().getTolerancesScale());
@@ -43,7 +43,7 @@ namespace Eagle
         sceneDesc.gravity = PhysXUtils::ToPhysXVector(settings.Gravity);
         sceneDesc.broadPhaseType = PhysXUtils::ToPhysXBroadphaseType(settings.BroadphaseAlgorithm);
         sceneDesc.cpuDispatcher = PhysXInternal::GetCPUDispatcher();
-        sceneDesc.filterShader = m_Settings.bEditorScene ? (physx::PxSimulationFilterShader)PhysXInternal::EditorFilterShader :(physx::PxSimulationFilterShader)PhysXInternal::FilterShader;
+        sceneDesc.filterShader = bEditorScene ? (physx::PxSimulationFilterShader)PhysXInternal::EditorFilterShader :(physx::PxSimulationFilterShader)PhysXInternal::FilterShader;
         sceneDesc.simulationEventCallback = &s_ContactListener;
         sceneDesc.solverType = ToPhysXSolverType(m_Settings.Solver);
 

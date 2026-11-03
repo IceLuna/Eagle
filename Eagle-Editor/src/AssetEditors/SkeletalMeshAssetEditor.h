@@ -1,8 +1,11 @@
 #pragma once
 
 #include "AssetEditor.h"
-#include "Eagle/Math/Transform.h"
+#include "../Undo/AssetUndo.h"
+
 #include "Eagle/Core/Entity.h"
+#include "Eagle/Classes/SkeletalMesh.h"
+#include "Eagle/Math/Transform.h"
 
 namespace Eagle
 {
@@ -43,7 +46,14 @@ namespace Eagle
 		bool DrawSkeletalTab(const Ref<SkeletalMesh>& mesh, size_t& assetHash);
 		bool DrawRagdollTab(const Ref<SkeletalMesh>& mesh, size_t& assetHash);
 		void UpdateGuizmo();
-		void OnViewportEnd() override { UpdateGuizmo(); }
+		void OnViewportEnd() override;
+		void ResolveSelectedRagdollBone();
+
+		// Updates what the editor shows after the asset was changed by undo/redo
+		void OnUndoApplied();
+
+		static std::string DescribeState(const AssetSkeletalMesh::Settings& before, const AssetSkeletalMesh::Settings& after);
+
 		Transform GetSelectedRagdollBoneWorldTransform();
 		Transform GetBoneWorldTransform(const std::string& name);
 
@@ -61,6 +71,8 @@ namespace Eagle
 
 	private:
 		Ref<AssetSkeletalMesh> m_Asset;
+		AssetEditTracker<AssetSkeletalMesh, AssetSkeletalMesh::Settings> m_EditTracker;
+		EditTracker<SkeletalMeshAssetEditor*, RagdollGenerationSettings> m_RagdollSettingsTracker;
 		Ref<AssetAnimation> m_PreviewAnimation;
 
 		std::string m_SelectedBoneName;
@@ -77,9 +89,7 @@ namespace Eagle
 		OpenedTabType m_OpenedTab = OpenedTabType::Unknown;
 		Entity m_Entity;
 		GUID m_PlaneEntityGUID;
-		float m_MinRagdollBoneSize = 0.1f;
-		float m_Twist = 22.5f;
-		float m_Swing = 45.f;
+		RagdollGenerationSettings m_RagdollSettings; // Applied to the mesh when the ragdoll is regenerated
 		CollisionDetectionType m_CollisionDetection = CollisionDetectionType::Discrete;
 		uint32_t m_CollisionGroup = 0;
 		uint32_t m_InteractingCollisionGroup = 0;

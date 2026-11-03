@@ -106,7 +106,7 @@ namespace Eagle
 					ImGui::TableNextColumn();
 					ImGui::TextUnformatted(Utils::AsString(data.Filepath.stem()).c_str());
 					ImGui::TableNextColumn();
-					ImGui::TextUnformatted(Utils::GetEnumName(data.Type));
+					ImGui::TextUnformatted(UI::GetEnumDisplayName(data.Type).c_str());
 					ImGui::TableNextColumn();
 					ImGui::TextUnformatted(FormatSize(data.FileSize).c_str());
 					ImGui::TableNextColumn();
@@ -258,7 +258,8 @@ namespace Eagle
 			return true;
 
 		return ToLower(Utils::AsString(data.Filepath)).find(ToLower(m_Filter)) != std::string::npos
-			|| ToLower(Utils::GetEnumName(data.Type)).find(ToLower(m_Filter)) != std::string::npos;
+			|| ToLower(UI::GetEnumDisplayName(data.Type)).find(ToLower(m_Filter)) != std::string::npos
+			|| ToLower(Utils::GetEnumName(data.Type)).find(ToLower(m_Filter)) != std::string::npos; // "staticmesh" matches too
 	}
 
 	void AssetUsagePanel::SortUnused()
@@ -280,7 +281,7 @@ namespace Eagle
 				case 1:
 					return Utils::AsString(a.Filepath.stem()) < Utils::AsString(b.Filepath.stem());
 				case 2:
-					return std::string_view(Utils::GetEnumName(a.Type)) < std::string_view(Utils::GetEnumName(b.Type));
+					return UI::GetEnumDisplayName(a.Type) < UI::GetEnumDisplayName(b.Type);
 				case 3:
 					return a.FileSize < b.FileSize;
 				default:
@@ -406,7 +407,7 @@ namespace Eagle
 				}
 
 				ImGui::TableNextColumn();
-				ImGui::TextUnformatted(Utils::GetEnumName(data.Type));
+				ImGui::TextUnformatted(UI::GetEnumDisplayName(data.Type).c_str());
 				ImGui::TableNextColumn();
 				ImGui::TextUnformatted(FormatSize(data.FileSize).c_str());
 				ImGui::TableNextColumn();
