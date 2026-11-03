@@ -449,7 +449,10 @@ namespace Eagle
         if (!m_ArrowTexture)
             m_ArrowTexture = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/arrow.png");
 
-        auto textureID = UI::GetTextureID(m_ArrowTexture);
+        const ImTextureID textureID = UI::GetTextureID(m_ArrowTexture);
+        if (textureID == ImTextureID_Invalid)
+            return;
+
         ImGuiID id = (ImGuiID)m_ArrowTexture->GetGUID().GetHash();
 
         // Draws transition arrows

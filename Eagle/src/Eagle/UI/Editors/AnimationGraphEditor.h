@@ -26,6 +26,8 @@ namespace Eagle
 
         void Compile() override;
 
+        std::string_view GetGraphTypeLabel() const override { return "ANIMATION"; }
+
     private:
         void Deserialize();
 

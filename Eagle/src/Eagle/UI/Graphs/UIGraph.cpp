@@ -351,6 +351,10 @@ namespace Eagle
             }
         }
 
+        const ImVec2 canvasMin = ImGui::GetCursorScreenPos();
+        const ImVec2 canvasSize = ImGui::GetContentRegionAvail();
+        m_Editor.RenderGraphBackground(canvasMin, canvasSize);
+        ed::PushStyleColor(ed::StyleColor_Bg, ImVec4(0.f, 0.f, 0.f, 0.f));
         ed::Begin(m_GraphData.Name.c_str());
 
         ProcessPendingDeletion();
@@ -365,6 +369,11 @@ namespace Eagle
         // Draw popups
         {
             ed::Suspend();
+            {
+                const float invZoom = ed::GetCurrentZoom();
+                m_Editor.RenderNavigationBar(canvasMin, canvasSize, invZoom > 0.f ? 1.f / invZoom : 1.f);
+            }
+
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
 
             DrawNodeContextPopup();
@@ -377,6 +386,7 @@ namespace Eagle
         }
 
         ed::End();
+        ed::PopStyleColor();
     }
 
     void UIGraph::Parse(Node* node, bool bCloneVars, VariablesMap& outVariables, std::unordered_set<UIGraph*>& compiledGraphs)

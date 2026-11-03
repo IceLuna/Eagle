@@ -174,6 +174,15 @@ namespace Eagle
 
             if (bIgnoreChanges)
                 OnAddGraphPost();
+
+            switch (m_NavigationRequest)
+            {
+                case NavigationRequest::Back: NavigateBack(); break;
+                case NavigationRequest::Forward: NavigateForward(); break;
+                case NavigationRequest::BackTo: NavigateBackTo(m_NavigationRequestDepth); break;
+                case NavigationRequest::None: break;
+            }
+            m_NavigationRequest = NavigationRequest::None;
         }
         ImGui::End();
 
@@ -215,33 +224,6 @@ namespace Eagle
 
         RenderAssetSettings();
 
-        ImGui::GetWindowDrawList()->AddRectFilled(
-            ImGui::GetCursorScreenPos(),
-            ImGui::GetCursorScreenPos() + ImVec2(panelWidth, ImGui::GetTextLineHeight() * 1.35f),
-            ImColor(ImGui::GetStyle().Colors[ImGuiCol_HeaderActive]), ImGui::GetTextLineHeight() * 0.25f);
-        ImGui::Spacing(); ImGui::SameLine();
-
-        const size_t graphsCount = m_Graphs.size();
-        for (size_t i = 0; i < graphsCount; ++i)
-        {
-            const auto& graph = m_Graphs[i];
-            if (ImGui::Button(graph->GetName().c_str()))
-            {
-                // Remove other graphs
-                m_Graphs.resize(i + 1);
-                m_History.clear();
-                break;
-            }
-
-            // Don't display " / " if it's last one
-            if (i != (graphsCount - 1))
-            {
-                ImGui::SameLine();
-                ImGui::Text(" / ");
-                ImGui::SameLine();
-            }
-        }
-
         if (m_RenderPreviewPanelCallback)
         {
             float unused = 0;
@@ -278,6 +260,147 @@ namespace Eagle
         return bRecompiled;
 	}
 
+    void GraphEditor::RenderGraphBackground(ImVec2 canvasMin, ImVec2 canvasSize)
+    {
+        const ImVec2 canvasMax = canvasMin + canvasSize;
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+        drawList->AddRectFilled(canvasMin, canvasMax, ImGui::ColorConvertFloat4ToU32(ed::GetStyle().Colors[ed::StyleColor_Bg]));
+
+        // The type of the graph, faintly in the bottom-right corner
+        const std::string_view typeLabel = GetGraphTypeLabel();
+        if (!typeLabel.empty())
+        {
+            const ImGuiStyle& style = ImGui::GetStyle();
+            UI::PushFontHeader2(ImGui::GetFontSize() * 3.f);
+            const ImVec2 textSize = ImGui::CalcTextSize(typeLabel.data(), typeLabel.data() + typeLabel.size());
+            ImVec4 color = style.Colors[ImGuiCol_Text];
+            color.w *= 0.12f;
+            drawList->AddText(canvasMax - style.WindowPadding - textSize, ImGui::GetColorU32(color), typeLabel.data(), typeLabel.data() + typeLabel.size());
+            UI::PopFont();
+        }
+    }
+
+    void GraphEditor::RenderNavigationBar(ImVec2 canvasMin, ImVec2 canvasSize, float zoom)
+    {
+        if (canvasSize.x <= 0.f || canvasSize.y <= 0.f)
+            return;
+
+        // A child window, so that it's drawn on top of the graph, and the graph doesn't react to the mouse while it's over the bar.
+        const ImGuiStyle& style = ImGui::GetStyle();
+        const float height = ImGui::GetFrameHeight() + style.FramePadding.y * 2.f;
+        ImGui::SetCursorScreenPos(canvasMin);
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, style.FramePadding);
+
+        constexpr ImGuiChildFlags childFlags = ImGuiChildFlags_AlwaysUseWindowPadding;
+        constexpr ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoNav;
+        if (ImGui::BeginChild("##GraphNavigationBar", ImVec2(canvasSize.x, height), childFlags, windowFlags))
+        {
+            const ImGuiWindow* window = ImGui::GetCurrentWindow();
+            const ImVec2 barMin = window->Pos;
+            const ImVec2 barMax = window->Pos + window->Size;
+            {
+                ImVec4 background = style.Colors[ImGuiCol_WindowBg];
+                background.w = 0.75f;
+                ImDrawList* drawList = ImGui::GetWindowDrawList();
+                drawList->PushClipRect(barMin, barMax, true);
+                drawList->AddRectFilled(barMin, barMax, ImGui::GetColorU32(background));
+                drawList->PopClipRect();
+            }
+
+            // The zoom level, on the right
+            char zoomText[32];
+            const int zoomPercent = int(zoom * 100.f + 0.5f);
+            if (zoomPercent == 100)
+                snprintf(zoomText, sizeof(zoomText), "Zoom 1:1");
+            else
+                snprintf(zoomText, sizeof(zoomText), "Zoom %d%%", zoomPercent);
+            const float zoomX = barMax.x - style.FramePadding.x - ImGui::CalcTextSize(zoomText).x;
+
+            // The navigation, on the left. It's clipped before the zoom level, if the graph is too narrow for both
+            const ImVec2 lineStart = ImGui::GetCursorScreenPos();
+            ImGui::PushClipRect(barMin, ImVec2(ImMax(barMin.x, zoomX - style.ItemSpacing.x), barMax.y), true);
+
+            ImGui::BeginDisabled(m_Graphs.size() <= 1);
+            if (ImGui::ArrowButton("##Back", ImGuiDir_Left))
+                m_NavigationRequest = NavigationRequest::Back;
+            ImGui::SetItemTooltip("Back (Mouse Back Button)");
+            ImGui::EndDisabled();
+
+            ImGui::SameLine(0.f, style.ItemInnerSpacing.x);
+            ImGui::BeginDisabled(m_History.empty());
+            if (ImGui::ArrowButton("##Forward", ImGuiDir_Right))
+                m_NavigationRequest = NavigationRequest::Forward;
+            ImGui::SetItemTooltip("Forward (Mouse Forward Button)");
+            ImGui::EndDisabled();
+
+            // The path to the opened graph. The graphs it goes through can be clicked to go back to them
+            ImGui::SameLine(0.f, style.ItemSpacing.x * 2.f);
+            ImGui::AlignTextToFramePadding();
+            const size_t graphsCount = m_Graphs.size();
+            for (size_t i = 0; i < graphsCount; ++i)
+            {
+                ImGui::PushID(int(i));
+                if (i > 0)
+                {
+                    ImGui::SameLine();
+                    ImGui::TextDisabled(">");
+                    ImGui::SameLine();
+                }
+
+                const std::string& name = m_Graphs[i]->GetName();
+                if (i + 1 == graphsCount)
+                {
+                    UI::PushFontBold();
+                    ImGui::TextUnformatted(name.c_str());
+                    UI::PopFont();
+                }
+                else if (ImGui::TextLink(name.c_str()))
+                {
+                    m_NavigationRequest = NavigationRequest::BackTo;
+                    m_NavigationRequestDepth = i;
+                }
+                ImGui::PopID();
+            }
+            ImGui::PopClipRect();
+
+            ImGui::SetCursorScreenPos(ImVec2(zoomX, lineStart.y));
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextDisabled("%s", zoomText);
+        }
+        ImGui::EndChild();
+
+        ImGui::PopStyleVar();
+    }
+
+    bool GraphEditor::NavigateBack()
+    {
+        if (m_Graphs.size() <= 1)
+            return false;
+
+        m_History.push_back(m_Graphs.back());
+        m_Graphs.pop_back();
+        return true;
+    }
+
+    bool GraphEditor::NavigateForward()
+    {
+        if (m_History.empty())
+            return false;
+
+        m_Graphs.push_back(m_History.back());
+        m_History.pop_back();
+        return true;
+    }
+
+    void GraphEditor::NavigateBackTo(size_t depth)
+    {
+        while (m_Graphs.size() > depth + 1 && NavigateBack())
+        {
+        }
+    }
+
     void GraphEditor::RenderAssetSettings()
     {
         if (!m_RenderAssetSettingsCallback)
@@ -310,25 +433,11 @@ namespace Eagle
 
     bool GraphEditor::OnMousePressedEvent(MouseButtonPressedEvent& e)
     {
-        Mouse button = e.GetMouseCode();
+        const Mouse button = e.GetMouseCode();
         if (button == Mouse::Button3)
-        {
-            if (m_Graphs.size() > 1)
-            {
-                m_History.push_back(m_Graphs.back());
-                m_Graphs.pop_back();
-                return true;
-            }
-        }
-        else if (button == Mouse::Button4)
-        {
-            if (m_History.size())
-            {
-                m_Graphs.push_back(m_History.back());
-                m_History.pop_back();
-                return true;
-            }
-        }
+            return NavigateBack();
+        if (button == Mouse::Button4)
+            return NavigateForward();
 
         return false;
     }

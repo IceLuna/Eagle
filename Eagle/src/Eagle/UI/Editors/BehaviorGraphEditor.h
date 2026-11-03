@@ -21,6 +21,8 @@ namespace Eagle
 
         const Ref<AssetBehaviorGraph>& GetBehaviorGraphAsset() const { return m_Asset; }
 
+        std::string_view GetGraphTypeLabel() const override { return "BEHAVIOR"; }
+
     private:
         void Deserialize();
 

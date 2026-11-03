@@ -19,6 +19,22 @@ namespace Eagle
         // Returns true if the graph was recompiled this frame
         virtual bool RenderLeftPanel();
 
+        // @canvasMin. The top-left corner of the canvas, in screen space
+        // @canvasSize. Its size
+        // @zoom. The canvas' scale. 1 is the actual size
+        void RenderNavigationBar(ImVec2 canvasMin, ImVec2 canvasSize, float zoom);
+
+        // @canvasMin. The top-left corner of the canvas, in screen space
+        // @canvasSize. Its size
+        void RenderGraphBackground(ImVec2 canvasMin, ImVec2 canvasSize);
+
+        // What kind of graph the editor edits, such as "ANIMATION". It's shown faintly in the corner of the graph. Empty for none
+        virtual std::string_view GetGraphTypeLabel() const { return {}; }
+
+        bool NavigateBack();
+        bool NavigateForward();
+        void NavigateBackTo(size_t depth); // Goes back to the graph at `depth` in the path to the opened graph (0 is the root graph)
+
         virtual void OnEvent(Event& e);
 
         virtual void Compile() {}
@@ -168,7 +184,7 @@ namespace Eagle
         std::vector<CachedNodeData>& GetPoseCacheNodes() { return m_PoseCacheNodes; }
 
         const Ref<Texture2D>& GetHeaderTexture() const { return m_HeaderTexture; }
-        ImTextureRef GetHeaderTextureID() const { return m_HeaderBackground; }
+        ImTextureID GetHeaderTextureID() const { return m_HeaderBackground; }
 
         const char* GetVarDragDropTag() { return m_VarDragDropTag.c_str(); }
 
@@ -212,9 +228,17 @@ namespace Eagle
         std::string m_RenamingVarTemp;
 
         Ref<Texture2D> m_HeaderTexture;
-        ImTextureRef m_HeaderBackground = nullptr;
+        ImTextureID m_HeaderBackground = 0;
 
         std::vector<Ref<UIGraph>> m_History; // For back/forward navigation
+
+        // Navigation requested by the navigation bar. It's applied once the opened graph is done drawing, since it can close that graph
+        enum class NavigationRequest
+        {
+            None, Back, Forward, BackTo
+        };
+        NavigationRequest m_NavigationRequest = NavigationRequest::None;
+        size_t m_NavigationRequestDepth = 0; // For `NavigationRequest::BackTo`
 
         VariablesMap m_Variables;
 
