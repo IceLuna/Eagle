@@ -7,9 +7,9 @@ namespace Eagle
 {
 	static Ref<PhysicsMaterial> s_DefaultMaterial;
 
-	void PhysicsEngine::Init()
+	void PhysicsEngine::Init(bool bVisualDebugger)
 	{
-		PhysXInternal::Init();
+		PhysXInternal::Init(bVisualDebugger);
 		s_DefaultMaterial = PhysicsMaterial::Create();
 	}
 

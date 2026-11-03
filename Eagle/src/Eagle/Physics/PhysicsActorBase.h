@@ -22,5 +22,6 @@ namespace Eagle
 	protected:
 		Entity m_Entity;
 		physx::PxRigidActor* m_RigidActor = nullptr;
+		std::string m_Name;
 	};
 }

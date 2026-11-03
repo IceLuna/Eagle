@@ -10,7 +10,6 @@ namespace Eagle
 		physx::PxPvdTransport* Transport = nullptr;
 	};
 
-#ifndef EG_RELEASE
 	static PhysXDebuggerData* s_DebuggerData = nullptr;
 	
 	void PhysXDebugger::Init()
@@ -24,6 +23,10 @@ namespace Eagle
 	
 	void PhysXDebugger::Shutdown()
 	{
+		if (!s_DebuggerData)
+			return;
+
+		StopDebugging();
 		s_DebuggerData->Debugger->release();
 		delete s_DebuggerData;
 		s_DebuggerData = nullptr;
@@ -31,6 +34,9 @@ namespace Eagle
 	
 	void PhysXDebugger::StartDebugging(const Path& filepath, bool networkDebugging)
 	{
+		if (!s_DebuggerData)
+			return;
+
 		StopDebugging();
 
 		if (networkDebugging)
@@ -47,29 +53,26 @@ namespace Eagle
 	
 	bool PhysXDebugger::IsDebugging()
 	{
-		return s_DebuggerData->Debugger->isConnected();
+		return s_DebuggerData && s_DebuggerData->Debugger->isConnected();
 	}
 
 	void PhysXDebugger::StopDebugging()
 	{
-		if (!IsDebugging())
+		if (!s_DebuggerData)
 			return;
 
-		s_DebuggerData->Debugger->disconnect();
-		s_DebuggerData->Transport->release();
+		if (IsDebugging())
+			s_DebuggerData->Debugger->disconnect();
+
+		if (s_DebuggerData->Transport)
+		{
+			s_DebuggerData->Transport->release();
+			s_DebuggerData->Transport = nullptr;
+		}
 	}
 	
 	physx::PxPvd* PhysXDebugger::GetDebugger()
 	{
-		return s_DebuggerData->Debugger;
+		return s_DebuggerData ? s_DebuggerData->Debugger : nullptr;
 	}
-
-#else
-	void PhysXDebugger::Init() {}
-	void PhysXDebugger::Shutdown() {}
-	void PhysXDebugger::StartDebugging(const Path& filepath, bool networkDebugging) {}
-	bool PhysXDebugger::IsDebugging() { return false; }
-	void PhysXDebugger::StopDebugging() {}
-	physx::PxPvd* PhysXDebugger::GetDebugger() { return nullptr; }
-#endif
 }

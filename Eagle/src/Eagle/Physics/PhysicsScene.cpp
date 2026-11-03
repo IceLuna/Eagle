@@ -415,23 +415,19 @@ namespace Eagle
 
     void PhysicsScene::StartDebugging()
     {
-#ifndef EG_RELEASE
-        if (m_Settings.bDebugOnPlay && !PhysXDebugger::IsDebugging())
+        if (m_Settings.bDebugOnPlay && PhysicsEngine::IsVisualDebuggingSupported() && !PhysXDebugger::IsDebugging())
         {
             bStartedDebugSession = true;
             PhysXDebugger::StartDebugging(Project::GetPhysicsDebugInfoPath(), m_Settings.DebugType == DebugType::Live);
         }
-#endif
     }
 
     void PhysicsScene::StopDebugging()
     {
-#ifndef EG_RELEASE
-        if (bStartedDebugSession && PhysXDebugger::IsDebugging())
+        if (bStartedDebugSession)
         {
             PhysXDebugger::StopDebugging();
             bStartedDebugSession = false;
         }
-#endif
     }
 }

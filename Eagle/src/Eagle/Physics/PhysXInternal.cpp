@@ -26,7 +26,7 @@ namespace Eagle
 
 	static PhysXData* s_PhysXData = nullptr;
 
-	void PhysXInternal::Init()
+	void PhysXInternal::Init(bool bVisualDebugger)
 	{
 		EG_CORE_ASSERT(!s_PhysXData, "Trying to init physics twice!");
 
@@ -38,13 +38,10 @@ namespace Eagle
 		scale.length = 1.f;
 		scale.speed = 9.81f;
 
-		PhysXDebugger::Init();
+		if (bVisualDebugger)
+			PhysXDebugger::Init();
 
-#ifndef EG_RELEASE
-		bool bTrackMemoryAllocs = true;
-#else
-		bool bTrackMemoryAllocs = false;
-#endif
+		const bool bTrackMemoryAllocs = bVisualDebugger;
 
 		s_PhysXData->Physics = PxCreatePhysics(PX_PHYSICS_VERSION, *s_PhysXData->Foundation, scale, bTrackMemoryAllocs, PhysXDebugger::GetDebugger());
 		EG_CORE_ASSERT(s_PhysXData->Physics, "Failed to create Physics");

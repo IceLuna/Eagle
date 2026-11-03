@@ -13,7 +13,7 @@ namespace Eagle
 	class PhysXInternal
 	{
 	public:
-		static void Init();
+		static void Init(bool bVisualDebugger);
 		static void Shutdown();
 		static bool IsVisualDebuggingSupported();
 

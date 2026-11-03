@@ -100,7 +100,8 @@ namespace Eagle
 	class PhysicsEngine
 	{
 	public:
-		static void Init();
+		// @`bVisualDebugger`. Whether the PhysX Visual Debugger (PVD) can be used. The PhysX build that is linked needs to support it (see premake5.lua)
+		static void Init(bool bVisualDebugger);
 		static void Shutdown();
 
 		static bool IsVisualDebuggingSupported();

@@ -642,10 +642,11 @@ namespace Eagle
 		}
 
 		m_RigidActor->userData = this;
-#ifndef EG_RELEASE
-		const auto& name = m_Entity.GetName();
-		m_RigidActor->setName(name.c_str());
-#endif
+		if (PhysicsEngine::IsVisualDebuggingSupported())
+		{
+			m_Name = m_Entity.GetName();
+			m_RigidActor->setName(m_Name.c_str());
+		}
 	}
 	
 	void PhysicsActor::SynchronizeTransform()

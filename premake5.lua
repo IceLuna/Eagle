@@ -64,32 +64,23 @@ LibFiles = {}
 LibFiles["monoDebug"] = "%{wks.location}/Eagle/vendor/mono/lib/Debug/mono-2.0-sgen.lib"
 LibFiles["monoRelease"] = "%{wks.location}/Eagle/vendor/mono/lib/Release/mono-2.0-sgen.lib"
 
-LibFiles["PhysXDebug"] = "%{LibDir.PhysXDebug}/PhysX_static_64.lib"
-LibFiles["PhysXCharacterKinematicDebug"] = "%{LibDir.PhysXDebug}PhysXCharacterKinematic_static_64.lib"
-LibFiles["PhysXCommonDebug"] = "%{LibDir.PhysXDebug}/PhysXCommon_static_64.lib"
-LibFiles["PhysXCookingDebug"] = "%{LibDir.PhysXDebug}/PhysXCooking_static_64.lib"
-LibFiles["PhysXExtensionsDebug"] = "%{LibDir.PhysXDebug}/PhysXExtensions_static_64.lib"
-LibFiles["PhysXFoundationDebug"] = "%{LibDir.PhysXDebug}/PhysXFoundation_static_64.lib"
-LibFiles["PhysXPvdSDKDebug"] = "%{LibDir.PhysXDebug}/PhysXPvdSDK_static_64.lib"
-LibFiles["PhysXVehicleDebug"] = "%{LibDir.PhysXDebug}/PhysXVehicle2_static_64.lib"
+-- PhysX is linked by the applications, not by Eagle: a static library merges the libraries it links into itself,
+-- so the editor and a game couldn't link different builds of it.
+-- The editor links a build with PhysX Visual Debugger (PVD) support in every configuration, and so do the Debug and
+-- ReleaseWithDebug builds of a game. A game's Release build links the one without it, for full performance.
+-- Eagle decides whether to use PVD at runtime (see `Application`), so it's built once for both.
+local function PhysXLibFiles(libDir)
+	local result = {}
+	for _, name in ipairs({ "PhysX", "PhysXCharacterKinematic", "PhysXCommon", "PhysXCooking", "PhysXExtensions", "PhysXFoundation", "PhysXPvdSDK", "PhysXVehicle2" }) do
+		table.insert(result, libDir .. name .. "_static_64.lib")
+	end
+	return result
+end
 
-LibFiles["PhysXPhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}/PhysX_static_64.lib"
-LibFiles["PhysXCharacterKinematicPhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}PhysXCharacterKinematic_static_64.lib"
-LibFiles["PhysXCommonPhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}/PhysXCommon_static_64.lib"
-LibFiles["PhysXCookingPhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}/PhysXCooking_static_64.lib"
-LibFiles["PhysXExtensionsPhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}/PhysXExtensions_static_64.lib"
-LibFiles["PhysXFoundationPhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}/PhysXFoundation_static_64.lib"
-LibFiles["PhysXPvdSDKPhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}/PhysXPvdSDK_static_64.lib"
-LibFiles["PhysXVehiclePhysXReleaseWithDebug"] = "%{LibDir.PhysXReleaseWithDebug}/PhysXVehicle2_static_64.lib"
-
-LibFiles["PhysXRelease"] = "%{LibDir.PhysXRelease}/PhysX_static_64.lib"
-LibFiles["PhysXCharacterKinematicRelease"] = "%{LibDir.PhysXRelease}PhysXCharacterKinematic_static_64.lib"
-LibFiles["PhysXCommonRelease"] = "%{LibDir.PhysXRelease}/PhysXCommon_static_64.lib"
-LibFiles["PhysXCookingRelease"] = "%{LibDir.PhysXRelease}/PhysXCooking_static_64.lib"
-LibFiles["PhysXExtensionsRelease"] = "%{LibDir.PhysXRelease}/PhysXExtensions_static_64.lib"
-LibFiles["PhysXFoundationRelease"] = "%{LibDir.PhysXRelease}/PhysXFoundation_static_64.lib"
-LibFiles["PhysXPvdSDKRelease"] = "%{LibDir.PhysXRelease}/PhysXPvdSDK_static_64.lib"
-LibFiles["PhysXVehicleRelease"] = "%{LibDir.PhysXRelease}/PhysXVehicle2_static_64.lib"
+PhysXLibs = {}
+PhysXLibs["Debug"]   = PhysXLibFiles(LibDir.PhysXDebug)
+PhysXLibs["PVD"]     = PhysXLibFiles(LibDir.PhysXReleaseWithDebug) -- Release with PVD support
+PhysXLibs["Release"] = PhysXLibFiles(LibDir.PhysXRelease)
 
 LibFiles["Vulkan"] = "%{LibDir.VulkanSDK}/vulkan-1.lib"
 
@@ -268,19 +259,10 @@ project "Eagle"
 		symbols "on"
 		libdirs
 		{
-			"%{LibDir.PhysXDebug}",
 			"%{LibDir.fmodDebug}"
 		}
 		links
 		{
-			"%{LibFiles.PhysXDebug}",
-			"%{LibFiles.PhysXCharacterKinematicDebug}",
-			"%{LibFiles.PhysXCommonDebug}",
-			"%{LibFiles.PhysXCookingDebug}", 
-			"%{LibFiles.PhysXExtensionsDebug}",
-			"%{LibFiles.PhysXFoundationDebug}",
-			"%{LibFiles.PhysXPvdSDKDebug}",
-			"%{LibFiles.PhysXVehicleDebug}",
 			"%{LibFiles.fmodDebug}",
 			"%{LibFiles.monoDebug}",
 			"%{LibFiles.zstdDebug}",
@@ -302,19 +284,10 @@ project "Eagle"
 		}
 		libdirs
 		{
-			"%{LibDir.PhysXPhysXReleaseWithDebug}",
 			"%{LibDir.fmodRelease}"
 		}
 		links
 		{
-			"%{LibFiles.PhysXPhysXReleaseWithDebug}",
-			"%{LibFiles.PhysXCharacterKinematicPhysXReleaseWithDebug}",
-			"%{LibFiles.PhysXCommonPhysXReleaseWithDebug}",
-			"%{LibFiles.PhysXCookingPhysXReleaseWithDebug}", 
-			"%{LibFiles.PhysXExtensionsPhysXReleaseWithDebug}",
-			"%{LibFiles.PhysXFoundationPhysXReleaseWithDebug}",
-			"%{LibFiles.PhysXPvdSDKPhysXReleaseWithDebug}",
-			"%{LibFiles.PhysXVehiclePhysXReleaseWithDebug}",
 			"%{LibFiles.fmodRelease}",
 			"%{LibFiles.monoRelease}",
 			"%{LibFiles.zstdRelease}",
@@ -343,19 +316,10 @@ project "Eagle"
 		}
 		libdirs
 		{
-			"%{LibDir.PhysXRelease}",
 			"%{LibDir.fmodRelease}"
 		}
 		links
 		{
-			"%{LibFiles.PhysXRelease}",
-			"%{LibFiles.PhysXCharacterKinematicRelease}",
-			"%{LibFiles.PhysXCommonRelease}",
-			"%{LibFiles.PhysXCookingRelease}", 
-			"%{LibFiles.PhysXExtensionsRelease}",
-			"%{LibFiles.PhysXFoundationRelease}",
-			"%{LibFiles.PhysXPvdSDKRelease}",
-			"%{LibFiles.PhysXVehicleRelease}",
 			"%{LibFiles.fmodRelease}",
 			"%{LibFiles.monoRelease}",
 			"%{LibFiles.zstdRelease}",
@@ -466,6 +430,7 @@ project "Eagle-Editor"
 		defines "EG_DEBUG"
 		runtime "Debug"
 		symbols "on"
+		links { PhysXLibs.Debug }
 
 		postbuildcommands 
 		{
@@ -487,6 +452,7 @@ project "Eagle-Editor"
 		runtime "Release"
 		optimize "Speed"
 		symbols "on"
+		links { PhysXLibs.PVD }
 
 		postbuildcommands 
 		{
@@ -507,6 +473,7 @@ project "Eagle-Editor"
 		runtime "Release"
 		optimize "Speed"
 		kind "WindowedApp"
+		links { PhysXLibs.PVD } -- The editor keeps PVD in Release to allow users to debug physics
 
 		postbuildcommands 
 		{
@@ -618,6 +585,7 @@ project "Eagle-Game"
 		defines "EG_DEBUG"
 		runtime "Debug"
 		symbols "on"
+		links { PhysXLibs.Debug }
 
 	filter "configurations:ReleaseWithDebug"
 		defines 
@@ -632,6 +600,7 @@ project "Eagle-Game"
 		runtime "Release"
 		optimize "Speed"
 		symbols "on"
+		links { PhysXLibs.PVD }
 
 	filter "configurations:Release"
 		defines 
@@ -646,3 +615,4 @@ project "Eagle-Game"
 		runtime "Release"
 		optimize "Speed"
 		kind "WindowedApp"
+		links { PhysXLibs.Release } -- Without PVD support, for full performance

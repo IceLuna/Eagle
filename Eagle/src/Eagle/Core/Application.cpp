@@ -96,7 +96,16 @@ namespace Eagle
 		TextureCompressor::Init();
 
 		SetSplashStatus("Initializing physics");
-		PhysicsEngine::Init();
+		{
+			// The PhysX Visual Debugger is available in the editor, and in games but their Release builds,
+			// which link PhysX without its support for performance
+#ifdef EG_RELEASE
+			const bool bVisualDebugger = !m_Game;
+#else
+			const bool bVisualDebugger = true;
+#endif
+			PhysicsEngine::Init(bVisualDebugger);
+		}
 		SetSplashStatus("Initializing audio");
 		AudioEngine::Init();
 		SetSplashStatus("Initializing scripting");
