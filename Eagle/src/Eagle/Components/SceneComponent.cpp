@@ -28,12 +28,11 @@ namespace Eagle
 
 		Rotator inverseParentWorldRotation = parentWorldTransform.Rotation.Conjugate();
 
-		RelativeTransform.Location = WorldTransform.Location - parentWorldTransform.Location;
 		RelativeTransform.Rotation = inverseParentWorldRotation * WorldTransform.Rotation;
 		RelativeTransform.Scale3D = WorldTransform.Scale3D / parentWorldTransform.Scale3D;
 
-		RelativeTransform.Location /= parentWorldTransform.Scale3D; // Undo parent's scaling
-		RelativeTransform.Location = inverseParentWorldRotation.GetQuat() * RelativeTransform.Location;
+		RelativeTransform.Location = inverseParentWorldRotation.GetQuat() * (WorldTransform.Location - parentWorldTransform.Location);
+		RelativeTransform.Location /= parentWorldTransform.Scale3D;
 	}
 
 	void SceneComponent::SetRelativeTransform(const Transform& relativeTransform)

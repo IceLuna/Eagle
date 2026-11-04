@@ -5,6 +5,7 @@
 #include "Eagle/UI/UI.h"
 #include "../EditorLayer.h"
 #include "../Undo/UndoUI.h"
+#include "../Widgets/ViewportToolbar.h"
 
 #include <ImGuizmo.h>
 
@@ -59,6 +60,8 @@ namespace Eagle
 		m_SceneHierarchy.SetWindowClass(&GetPanelWindowClass());
 		m_SceneHierarchy.SetPropertiesInHierarchyWindow(true);
 		m_SceneHierarchy.SetUndoHistory(&m_UndoHistory);
+		m_SceneHierarchy.SetMultiSelectionEnabled(true);
+		m_GuizmoMode = ImGuizmo::MODE::WORLD;
 
 		m_UndoHistory.SetOnAppliedCallback([this](const UndoTransaction& transaction, bool)
 		{
@@ -141,6 +144,9 @@ namespace Eagle
 			Entity selectedEntity = m_SceneHierarchy.GetSelectedEntity();
 			scene->TextUIDebugSelectedEntity = selectedEntity ? selectedEntity.GetGUID() : GUID(0, 0);
 			scene->bDrawAllTextUIBounds = m_EditorLayer.IsDrawingAllTextUIBounds();
+
+			if (bViewportVisible && selectedEntity && selectedEntity.GetScene() == scene.get())
+				EditorUtils::DrawSelectedComponentHelpers(*scene, m_SceneHierarchy.GetSelectedComponent());
 		}
 
 		DrawViewport(m_UpdateAnims);
@@ -161,7 +167,7 @@ namespace Eagle
 	{
 		// Entity Selection
 		Entity selectedEntity = m_SceneHierarchy.GetSelectedEntity();
-		bool bUsingImGuizmo = selectedEntity && bUsingImGuizmoOrHovered;
+		bool bUsingImGuizmo = selectedEntity && m_SelectionGuizmo.IsUsingOrHovered();
 		const auto& scene = GetCurrentScene();
 		if (bViewportHovered && !bViewportToolbarHovered && !bUsingImGuizmo && Input::IsMouseButtonPressed(Mouse::ButtonLeft))
 		{
@@ -172,7 +178,7 @@ namespace Eagle
 			{
 				int32_t data = -1;
 				scene->GetSceneRenderer()->GetObjectIDUnderMouse(data);
-				m_SceneHierarchy.SetEntitySelected(data == -1 ? Entity::Null : Entity{ (entt::entity)data, scene.get() });
+				m_SceneHierarchy.OnViewportEntityClicked(data == -1 ? Entity::Null : Entity{ (entt::entity)data, scene.get() });
 				return true;
 			}
 		}
@@ -181,79 +187,36 @@ namespace Eagle
 
 	void EntityAssetEditor::UpdateGuizmo()
 	{
-		if (!DrawSelectionGuizmo() && m_GuizmoTransaction)
+		const auto& scene = GetCurrentScene();
+		SelectionGuizmo::Viewport viewport;
+		if (bViewportVisible && GetGuizmoCameraMatrices(viewport.View, viewport.Projection))
 		{
-			// The drag has ended
-			m_GuizmoTransaction->Commit();
-			m_GuizmoTransaction.reset();
+			viewport.Min = m_ViewportBounds[0];
+			viewport.Max = m_ViewportBounds[1];
+
+			SelectionGuizmo::Settings settings;
+			settings.Operation = m_GuizmoType;
+			settings.Mode = m_GuizmoMode;
+			settings.Pivot = m_GuizmoPivot;
+			settings.GroupTransform = m_GuizmoGroupTransform;
+			settings.Snap = &EditorLayer::Get()->GetSnapSettings();
+
+			SelectionGuizmo::Selection selection;
+			selection.Active = m_SceneHierarchy.GetSelectedEntity();
+			selection.Entities = m_SceneHierarchy.GetSelectedEntities();
+			selection.Component = m_SceneHierarchy.GetSelectedComponent();
+
+			if (m_SelectionGuizmo.Update(selection, scene, viewport, settings, &m_UndoHistory))
+				OnEntityChanged();
 		}
+		m_SelectionGuizmo.EndFrame();
 	}
 
-	bool EntityAssetEditor::DrawSelectionGuizmo()
+	void EntityAssetEditor::SetupViewportToolbar(ViewportToolbar& toolbar)
 	{
-		Entity selectedEntity = m_SceneHierarchy.GetSelectedEntity();
-		SceneComponent* selectedComponent = m_SceneHierarchy.GetSelectedComponent();
-		if (selectedComponent)
-		{
-			const auto selectedType = m_SceneHierarchy.GetSelectedComponentType();
-			if (selectedType == SelectedComponent::DecalComponent)
-			{
-				const AABB aabb(glm::vec3(-0.5f), glm::vec3(0.5f));
-				GetCurrentScene()->DrawBox(aabb, selectedComponent->GetWorldTransform());
-				const auto& start = selectedComponent->GetWorldTransform().Location;
-				GetCurrentScene()->DrawArrow(start, start + selectedComponent->GetForwardVector() * 0.25f, selectedComponent->GetUpVector());
-			}
-			else if (selectedType == SelectedComponent::CameraComponent)
-			{
-				CameraComponent& camera = *(CameraComponent*)selectedComponent;
-				GetCurrentScene()->DrawFrustum(camera);
-			}
-		}
-
-		if (!selectedEntity || (m_GuizmoType == -1))
-			return false;
-
-		Transform transform;
-		bool bRelative = false; // Only used for rotations
-		if (selectedComponent)
-		{
-			transform = selectedComponent->GetWorldTransform();
-			bRelative = m_GuizmoType == ImGuizmo::OPERATION::ROTATE;
-		}
-		else
-		{
-			transform = selectedEntity.GetWorldTransform();
-			bRelative = selectedEntity.HasParent() && (m_GuizmoType == ImGuizmo::OPERATION::ROTATE);
-		}
-
-		// If relative, we only get relative rotation, since other params need to be in world coords.
-		// Otherwise, for example, guizmo will be renderer in the position if we used relative location
-		if (bRelative)
-			transform.Rotation = (selectedComponent ? selectedComponent->GetRelativeTransform() : selectedEntity.GetRelativeTransform()).Rotation;
-
-		if (!DrawGuizmo(transform, true, !bRelative))
-			return false;
-
-		// The whole drag is one transaction. Its state is captured before the first change
-		if (!m_GuizmoTransaction)
-		{
-			m_GuizmoTransaction.emplace(&m_UndoHistory, GetCurrentScene(), UndoUI::GetGuizmoTransactionName(m_GuizmoType, selectedComponent != nullptr));
-			m_GuizmoTransaction->Track(selectedEntity);
-		}
-
-		if (bRelative && GetGuizmoType() == ImGuizmo::OPERATION::ROTATE)
-		{
-			Rotator newRotation = transform.Rotation;
-			transform = selectedComponent ? selectedComponent->GetRelativeTransform() : selectedEntity.GetRelativeTransform();
-			transform.Rotation = newRotation;
-		}
-		if (selectedComponent)
-			bRelative ? selectedComponent->SetRelativeTransform(transform) : selectedComponent->SetWorldTransform(transform);
-		else
-			bRelative ? selectedEntity.SetRelativeTransform(transform) : selectedEntity.SetWorldTransform(transform);
-		OnEntityChanged();
-
-		return true;
+		toolbar.GuizmoMode = &m_GuizmoMode;
+		toolbar.Pivot = &m_GuizmoPivot;
+		toolbar.GroupTransform = &m_GuizmoGroupTransform;
 	}
 	
 	void EntityAssetEditor::OnEntityChanged()

@@ -76,7 +76,7 @@ namespace Eagle
 		m_ColliderScale = component.GetWorldTransform().Scale3D * component.GetSize();
 		physx::PxBoxGeometry geometry = physx::PxBoxGeometry(m_ColliderScale.x * 0.5f, m_ColliderScale.y * 0.5f, m_ColliderScale.z * 0.5f);
 		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), geometry, *material);
-		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(component.GetRelativeTransform()));
+		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(component.GetShapeLocalPose()));
 		m_Shape->userData = this;
 		SetShowCollision(component.IsCollisionVisible());
 		SetIsTrigger(component.IsTrigger());
@@ -119,7 +119,7 @@ namespace Eagle
 
 		physx::PxSphereGeometry geometry = physx::PxSphereGeometry(radius);
 		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), geometry, *material);
-		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(component.GetRelativeTransform()));
+		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(component.GetShapeLocalPose()));
 		m_Shape->userData = this;
 		SetShowCollision(component.IsCollisionVisible());
 		SetIsTrigger(component.IsTrigger());
@@ -166,7 +166,7 @@ namespace Eagle
 
 		physx::PxCapsuleGeometry geometry = physx::PxCapsuleGeometry(radius, height * 0.5f);
 		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), geometry, *material);
-		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(component.GetRelativeTransform()));
+		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(component.GetShapeLocalPose()));
 		m_Shape->userData = this;
 
 		SetShowCollision(component.IsCollisionVisible());
@@ -234,7 +234,7 @@ namespace Eagle
 		convexGeometry.meshFlags = physx::PxConvexMeshGeometryFlag::Enum::eTIGHT_BOUNDS;
 
 		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), convexGeometry, *material);
-		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(component.GetRelativeTransform()));
+		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(component.GetShapeLocalPose()));
 		SetShowCollision(component.IsCollisionVisible());
 		SetIsTrigger(component.IsTrigger());
 		SetCollisionGroup(component.GetCollisionGroup());
@@ -299,7 +299,7 @@ namespace Eagle
 			physx::PxMeshScale(PhysXUtils::ToPhysXVector(m_ColliderScale)));
 
 		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), triGeometry, *material);
-		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(component.GetRelativeTransform()));
+		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(component.GetShapeLocalPose()));
 		SetShowCollision(component.IsCollisionVisible());
 		SetIsTrigger(component.IsTrigger());
 		SetCollisionGroup(component.GetCollisionGroup());

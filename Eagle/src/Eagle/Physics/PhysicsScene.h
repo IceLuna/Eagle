@@ -19,6 +19,7 @@ namespace Eagle
 
 	class PhysicsRagdollActor;
 	struct PhysicsSettings;
+	struct RendererLine;
 
 	class PhysicsScene
 	{
@@ -62,7 +63,7 @@ namespace Eagle
 		Ref<PhysicsRagdollActor> CreateRagdoll(const SkeletalMeshComponent& skeletalComp);
 		void ReleaseRagdoll(const SkeletalMeshComponent& skeletalComp);
 
-		const physx::PxRenderBuffer& GetRenderBuffer() const { return m_Scene->getRenderBuffer(); }
+		void GatherCollisionDebugLines(std::vector<RendererLine>& outLines);
 		const PhysicsSettings& GetSettings() const { return m_Settings; }
 
 		QueryHits CollectCollidersWithinVolume(const AABB& volume);
@@ -99,6 +100,8 @@ namespace Eagle
 		mutable QueryHits m_QueryHits; // Exists just to avoid allocations on every query
 		mutable UniqueQueryHits m_UniqueQueryHits; // Exists just to avoid allocations on every query
 		std::vector<uint32_t> m_BroadPhaseRegionHandles;
+		std::vector<physx::PxActor*> m_DebugDrawActors; // Exists just to avoid allocations every frame
+		std::vector<physx::PxShape*> m_DebugDrawShapes;
 
 		float m_SubstepSize = 1.f;
 		float m_Accumulator = 0.f;

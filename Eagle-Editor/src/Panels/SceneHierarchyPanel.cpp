@@ -23,10 +23,23 @@ namespace Eagle
 		m_PropertiesWindowName = uniqueID == 0u ? "Properties" : "Properties###" + std::to_string(uniqueID);
 	}
 
+	void SceneHierarchyPanel::SetMultiSelectionEnabled(bool bEnabled)
+	{
+		m_bMultiSelection = bEnabled;
+		if (!bEnabled && m_SelectedEntities.size() > 1)
+			m_SelectedEntities.erase(m_SelectedEntities.begin(), m_SelectedEntities.end() - 1); // Keep the active one
+	}
+
 	void SceneHierarchyPanel::ClearSelection()
 	{
 		m_SelectedEntity = Entity::Null;
+		m_SelectedEntities.clear();
 		m_Properties.SetEntitySelected(Entity::Null, SelectedComponent::None);
+	}
+
+	bool SceneHierarchyPanel::IsEntitySelected(const Entity& entity) const
+	{
+		return entity && std::ranges::contains(m_SelectedEntities, entity);
 	}
 
 	void SceneHierarchyPanel::SetEntitySelected(Entity entity, SelectedComponent component)
@@ -37,9 +50,127 @@ namespace Eagle
 		{
 			m_bSelectedOutside = true;
 			m_SelectedEntity = entity;
+			m_SelectedEntities.push_back(entity);
 			m_Properties.SetEntitySelected(entity, component);
 			m_ScrollToSelected = true;
 		}
+	}
+
+	void SceneHierarchyPanel::SetEntitiesSelected(const std::vector<Entity>& entities, SelectedComponent component)
+	{
+		if (!m_bMultiSelection)
+		{
+			SetEntitySelected(entities.empty() ? Entity::Null : entities.back(), component);
+			return;
+		}
+
+		ClearSelection();
+		for (const Entity& entity : entities)
+		{
+			if (entity && !IsEntitySelected(entity))
+				m_SelectedEntities.push_back(entity);
+		}
+
+		if (m_SelectedEntities.empty())
+			return;
+
+		m_bSelectedOutside = true;
+		m_SelectedEntity = m_SelectedEntities.back();
+		m_Properties.SetEntitySelected(m_SelectedEntity, component);
+		m_ScrollToSelected = true;
+	}
+
+	void SceneHierarchyPanel::ToggleEntitySelected(Entity entity)
+	{
+		if (!entity)
+			return;
+
+		if (!m_bMultiSelection)
+		{
+			SetEntitySelected(entity);
+			return;
+		}
+
+		m_bSelectedOutside = true;
+		if (ToggleSelection(entity))
+			m_ScrollToSelected = true;
+	}
+
+	void SceneHierarchyPanel::OnViewportEntityClicked(Entity entity)
+	{
+		const bool bCtrl = Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl);
+		if (m_bMultiSelection && bCtrl)
+		{
+			if (entity)
+			{
+				ToggleEntitySelected(entity);
+			}
+			return;
+		}
+
+		SetEntitySelected(entity);
+	}
+
+	bool SceneHierarchyPanel::ToggleSelection(Entity entity)
+	{
+		if (IsEntitySelected(entity))
+		{
+			DeselectEntity(entity);
+			return false;
+		}
+
+		m_SelectedEntities.push_back(entity);
+		SetActiveEntity(entity);
+		return true;
+	}
+
+	void SceneHierarchyPanel::OnEntityRowClicked(Entity entity)
+	{
+		if (m_bMultiSelection && ImGui::GetIO().KeyCtrl)
+		{
+			ToggleSelection(entity);
+			return;
+		}
+
+		ClearSelection();
+		m_SelectedEntity = entity;
+		m_SelectedEntities.push_back(entity);
+	}
+
+	void SceneHierarchyPanel::DeselectEntity(const Entity& entity)
+	{
+		auto it = std::find(m_SelectedEntities.begin(), m_SelectedEntities.end(), entity);
+		if (it == m_SelectedEntities.end())
+			return;
+
+		m_SelectedEntities.erase(it);
+		if (m_SelectedEntity != entity)
+			return;
+
+		if (m_SelectedEntities.empty())
+			ClearSelection();
+		else
+			SetActiveEntity(m_SelectedEntities.back());
+	}
+
+	void SceneHierarchyPanel::RemoveDestroyedFromSelection()
+	{
+		if (m_SelectedEntities.empty())
+			return;
+
+		const Entity active = m_SelectedEntity;
+		std::erase_if(m_SelectedEntities, [](const Entity& entity) { return !entity.IsValid() || entity.GetScene()->IsPendingDestroy(entity); });
+
+		if (m_SelectedEntities.empty())
+			ClearSelection();
+		else if (m_SelectedEntities.back() != active)
+			SetActiveEntity(m_SelectedEntities.back());
+	}
+
+	void SceneHierarchyPanel::SetActiveEntity(Entity entity)
+	{
+		m_SelectedEntity = entity;
+		m_Properties.SetEntitySelected(entity, SelectedComponent::None);
 	}
 
 	bool SceneHierarchyPanel::OnImGuiRender(const Ref<Scene>& scene, bool bScenePlaying, bool bAllowOnlySingleRoot, const bool* bVolumetricsEnabledOverride)
@@ -47,6 +178,7 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Scene Hierarchy Panel");
 
 		UpdateScene(scene);
+		RemoveDestroyedFromSelection();
 		m_AllowOnlySingleRoot = bAllowOnlySingleRoot;
 		m_UpdateSearchResults |= scene->HasEntityListChanged() || scene->AnyEntityNameChanged();
 
@@ -136,8 +268,7 @@ namespace Eagle
 
 	void SceneHierarchyPanel::OnUndoApplied(const UndoTransaction& transaction)
 	{
-		if (m_SelectedEntity && !m_SelectedEntity.IsValid())
-			ClearSelection();
+		RemoveDestroyedFromSelection();
 
 		if (m_SelectedEntity)
 			return;
@@ -173,6 +304,9 @@ namespace Eagle
 			const bool bRuntime = bScenePlaying;
 			const bool bVolumetricsEnabled = bVolumetricsEnabledOverride ? *bVolumetricsEnabledOverride : scene->GetSceneRenderer()->GetOptions().VolumetricSettings.bEnable;
 
+			if (m_SelectedEntities.size() > 1)
+				ImGui::TextDisabled("%zu entities are selected. These are the properties of the active one", m_SelectedEntities.size());
+
 			Entity newEntitySelection = Entity::Null;
 			m_Properties.SetUndoContext(m_UndoHistory, scene);
 			m_EditTracker.BeginFrame(m_UndoHistory, scene, m_SelectedEntity);
@@ -199,30 +333,40 @@ namespace Eagle
 	{
 		bool bChanged = false;
 		m_RootEntity = Entity::Null;
+		m_bEntityRowHovered = false;
 
-		// TODO: Replace to "Drop on empty space"
-		if (!m_AllowOnlySingleRoot && ImGui::BeginDragDropTarget())
+		auto view = scene->GetAllEntitiesWith<EntitySceneNameComponent>();
+		
+		if (m_AllowOnlySingleRoot)
 		{
-			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIERARCHY_ENTITY_CELL"))
+			for (auto& entity : view)
 			{
-				uint32_t payload_n = *(uint32_t*)payload->Data;
-
-				Entity droppedEntity((entt::entity)payload_n, scene.get());
-				SceneTransaction transaction(m_UndoHistory, scene, "Detach Entity");
-				transaction.Track(droppedEntity);
-				droppedEntity.SetParent(Entity::Null);
-				bChanged = true;
+				if (!Entity(entity, scene.get()).HasParent())
+				{
+					m_RootEntity = Entity(entity, scene.get());
+					break;
+				}
 			}
-
-			ImGui::EndDragDropTarget();
 		}
 
-		// Save some space for the refresh button
+		// Save some space for the create and the refresh buttons
 		const float padding = 2.0;
 		const float width = ImGui::GetContentRegionAvail().x;
 		const float buttonSize = ImGui::GetFrameHeight();
-		ImGui::SetNextItemWidth(width - buttonSize - padding);
+
+		ImGui::SetNextItemWidth(width - (buttonSize + padding) * 2.f);
 		const bool bSearchInputChanged = UI::InputTextWithHint("##search", m_Search, "Search...");
+
+		// Add button
+		{
+			ImGui::SameLine(0, padding);
+			if (ImGui::Button("+##CreateEntity", ImVec2(buttonSize, buttonSize)))
+			{
+				CreateEmptyEntity(scene);
+				bChanged = true;
+			}
+			UI::Tooltip("Create Entity");
+		}
 
 		// Refresh button
 		{
@@ -238,8 +382,6 @@ namespace Eagle
 		}
 
 		ImGui::Separator();
-
-		auto view = scene->GetAllEntitiesWith<EntitySceneNameComponent>();
 
 		if (m_Search.empty())
 			m_AllowedForDisplayEntities.clear();
@@ -260,24 +402,44 @@ namespace Eagle
 			bChanged |= DrawEntityNode(scene, Entity(entity, scene.get()), !m_Search.empty());
 		}
 
-		if (ImGui::IsMouseDown(0) && ImGui::IsWindowHovered())
+		// There's always some empty space under the entities, even when the list is scrolled to the end.
+		// It can be right-clicked to create an entity that isn't attached to another one, and an entity can be dropped onto it to detach it
+		ImGui::Dummy(ImVec2(1.f, ImGui::GetTextLineHeightWithSpacing() * 2.f));
+
+		// An entity dropped onto the empty space is detached from its parent. In the single root mode, it's attached to the root then.
+		// The rows are drop targets of their own (the entity is attached to the row's entity), so this one isn't used over them
+		if (!m_bEntityRowHovered && ImGui::BeginDragDropTargetCustom(ImGui::GetCurrentWindow()->InnerClipRect, ImGui::GetID("##DetachDropTarget")))
+		{
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIERARCHY_ENTITY_CELL"))
+			{
+				const uint32_t droppedEntityID = *(const uint32_t*)payload->Data;
+				Entity droppedEntity((entt::entity)droppedEntityID, scene.get());
+				const Entity newParent = m_AllowOnlySingleRoot ? m_RootEntity : Entity::Null;
+
+				if (droppedEntity.IsValid() && droppedEntity != newParent && droppedEntity.GetParent() != newParent)
+				{
+					SceneTransaction transaction(m_UndoHistory, scene, "Detach Entity");
+					transaction.Track(droppedEntity);
+					droppedEntity.SetParent(newParent);
+					bChanged = true;
+				}
+			}
+
+			ImGui::EndDragDropTarget();
+		}
+
+		// A click on empty space deselects
+		if (ImGui::IsMouseDown(0) && ImGui::IsWindowHovered() && !(m_bMultiSelection && ImGui::GetIO().KeyCtrl))
 		{
 			ClearSelection();
 		}
 
-		//Right-click on empty space in Scene Hierarchy
+		// Right-click on empty space in Scene Hierarchy
 		if (ImGui::BeginPopupContextWindow("SceneHierarchyCreateEntity", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverExistingPopup | ImGuiPopupFlags_NoOpenOverItems))
 		{
 			if (ImGui::MenuItem("Create Entity"))
 			{
-				SceneTransaction transaction(m_UndoHistory, scene, "Create Entity");
-				Entity newEntity = scene->CreateEntity("New Entity");
-				if (m_AllowOnlySingleRoot)
-				{
-					newEntity.SetParent(m_RootEntity);
-				}
-				transaction.TrackCreated(newEntity);
-				SetEntitySelected(newEntity);
+				CreateEmptyEntity(scene);
 				bChanged = true;
 			}
 
@@ -291,6 +453,29 @@ namespace Eagle
 		return bChanged;
 	}
 
+	void SceneHierarchyPanel::CreateEmptyEntity(const Ref<Scene>& scene)
+	{
+		SceneTransaction transaction(m_UndoHistory, scene, "Create Entity");
+
+		Entity newEntity = scene->CreateEntity("New Entity");
+		if (m_AllowOnlySingleRoot && m_RootEntity)
+			newEntity.SetParent(m_RootEntity);
+
+		transaction.TrackCreated(newEntity);
+		SetEntitySelected(newEntity);
+	}
+
+	void SceneHierarchyPanel::UpdateEntityRowHovered()
+	{
+		// The row of the last item, the tree node. The mouse is tested against the visible part of it (the clip rect).
+		// The gap between rows counts as the rows, so the empty space's drop target doesn't flicker while an entity is dragged over the list
+		const float halfSpacing = ImGui::GetStyle().ItemSpacing.y * 0.5f;
+		const ImVec2 min = ImGui::GetItemRectMin() - ImVec2(0.f, halfSpacing);
+		const ImVec2 max = ImGui::GetItemRectMax() + ImVec2(0.f, halfSpacing);
+		if (ImGui::IsMouseHoveringRect(min, max))
+			m_bEntityRowHovered = true;
+	}
+
 	bool SceneHierarchyPanel::DrawEntityNode(const Ref<Scene>& scene, Entity entity, bool bFilteredOnly)
 	{
 		if (entity.HasParent()) //For drawing children use DrawChilds
@@ -301,11 +486,7 @@ namespace Eagle
 			return false;
 		}
 
-		if (m_AllowOnlySingleRoot)
-		{
-			EG_CORE_ASSERT(!m_RootEntity);
-			m_RootEntity = entity;
-		}
+		EG_CORE_ASSERT(!m_AllowOnlySingleRoot || entity == m_RootEntity, "Only one entity can be at the root");
 
 		bool bChanged = false;
 		const auto& entityName = entity.GetName();
@@ -322,7 +503,7 @@ namespace Eagle
 			ImGui::SetScrollHereY(0.f);
 		}
 
-		ImGuiTreeNodeFlags flags = (m_SelectedEntity == entity ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow
+		ImGuiTreeNodeFlags flags = (IsEntitySelected(entity) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow
 			| ImGuiTreeNodeFlags_SpanAvailWidth | (entity.HasChildren() ? 0 : ImGuiTreeNodeFlags_Leaf);
 		bool opened = ImGui::TreeNodeEx((void*)(uint64_t)entity.GetID(), flags, entityName.c_str());
 
@@ -335,12 +516,10 @@ namespace Eagle
 			}
 			return bChanged;
 		}
+		UpdateEntityRowHovered();
 
 		if (ImGui::IsItemClicked())
-		{
-			ClearSelection();
-			m_SelectedEntity = entity;
-		}
+			OnEntityRowClicked(entity);
 
 		std::string popupID = std::to_string(entity.GetID());
 		if (ImGui::BeginPopupContextItem(popupID.c_str()))
@@ -369,19 +548,32 @@ namespace Eagle
 			}
 			if (bCanDelete)
 			{
+				const bool bSelection = m_SelectedEntities.size() > 1 && IsEntitySelected(entity);
 				ImGui::Separator();
-				if (ImGui::MenuItem("Delete Entity"))
+				if (ImGui::MenuItem(bSelection ? "Delete Selected Entities" : "Delete Entity"))
 				{
-					if (m_SelectedEntity == entity)
-						ClearSelection();
-					DestroyEntity(scene, entity, false);
+					if (bSelection)
+					{
+						DestroySelectedEntities(scene, false);
+					}
+					else
+					{
+						DeselectEntity(entity);
+						DestroyEntity(scene, entity, false);
+					}
 					bChanged = true;
 				}
-				if (ImGui::MenuItem("Delete Entity and its Children"))
+				if (ImGui::MenuItem(bSelection ? "Delete Selected Entities and their Children" : "Delete Entity and its Children"))
 				{
-					if (m_SelectedEntity == entity)
-						ClearSelection();
-					DestroyEntity(scene, entity, true);
+					if (bSelection)
+					{
+						DestroySelectedEntities(scene, true);
+					}
+					else
+					{
+						DeselectEntity(entity);
+						DestroyEntity(scene, entity, true);
+					}
 					bChanged = true;
 				}
 			}
@@ -390,11 +582,11 @@ namespace Eagle
 
 		if (!m_AllowOnlySingleRoot && ImGui::BeginDragDropSource())
 		{
-			uint32_t selectedEntityID = m_SelectedEntity.GetID();
-			const auto& selectedEntityName = entity.GetName();
+			uint32_t draggedEntityID = entity.GetID();
+			const auto& draggedEntityName = entity.GetName();
 
-			ImGui::SetDragDropPayload("HIERARCHY_ENTITY_CELL", &selectedEntityID, sizeof(uint32_t));
-			ImGui::Text(selectedEntityName.c_str());
+			ImGui::SetDragDropPayload("HIERARCHY_ENTITY_CELL", &draggedEntityID, sizeof(uint32_t));
+			ImGui::Text(draggedEntityName.c_str());
 
 			ImGui::EndDragDropSource();
 		}
@@ -442,7 +634,7 @@ namespace Eagle
 				continue;
 			}
 
-			ImGuiTreeNodeFlags childTreeFlags = flags | (child.HasChildren() ? 0 : ImGuiTreeNodeFlags_Leaf) | (m_SelectedEntity == child ? ImGuiTreeNodeFlags_Selected : 0);
+			ImGuiTreeNodeFlags childTreeFlags = flags | (child.HasChildren() ? 0 : ImGuiTreeNodeFlags_Leaf) | (IsEntitySelected(child) ? ImGuiTreeNodeFlags_Selected : 0);
 
 			//If selected child of this entity, open tree node
 			if (m_SelectedEntity && m_SelectedEntity != child)
@@ -466,12 +658,10 @@ namespace Eagle
 				}
 				continue;
 			}
+			UpdateEntityRowHovered();
 
 			if (ImGui::IsItemClicked())
-			{
-				ClearSelection();
-				m_SelectedEntity = child;
-			}
+				OnEntityRowClicked(child);
 
 			std::string popupID = std::to_string(child.GetID());
 			if (ImGui::BeginPopupContextItem(popupID.c_str()))
@@ -516,18 +706,32 @@ namespace Eagle
 				if (bDisableDetach)
 					UI::PopItemDisabled();
 				ImGui::Separator();
-				if (ImGui::MenuItem("Delete Entity"))
+
+				const bool bSelection = m_SelectedEntities.size() > 1 && IsEntitySelected(child);
+				if (ImGui::MenuItem(bSelection ? "Delete Selected Entities" : "Delete Entity"))
 				{
-					if (m_SelectedEntity == child)
-						ClearSelection();
-					DestroyEntity(scene, child, false);
+					if (bSelection)
+					{
+						DestroySelectedEntities(scene, false);
+					}
+					else
+					{
+						DeselectEntity(child);
+						DestroyEntity(scene, child, false);
+					}
 					bChanged = true;
 				}
-				if (ImGui::MenuItem("Delete Entity and its Children"))
+				if (ImGui::MenuItem(bSelection ? "Delete Selected Entities and their Children" : "Delete Entity and its Children"))
 				{
-					if (m_SelectedEntity == child)
-						ClearSelection();
-					DestroyEntity(scene, child, true);
+					if (bSelection)
+					{
+						DestroySelectedEntities(scene, true);
+					}
+					else
+					{
+						DeselectEntity(child);
+						DestroyEntity(scene, child, true);
+					}
 					bChanged = true;
 				}
 
@@ -536,11 +740,11 @@ namespace Eagle
 
 			if (ImGui::BeginDragDropSource())
 			{
-				uint32_t selectedEntityID = m_SelectedEntity.GetID();
-				const auto& selectedEntityName = child.GetName();
+				uint32_t draggedEntityID = child.GetID();
+				const auto& draggedEntityName = child.GetName();
 
-				ImGui::SetDragDropPayload("HIERARCHY_ENTITY_CELL", &selectedEntityID, sizeof(uint32_t));
-				ImGui::Text(selectedEntityName.c_str());
+				ImGui::SetDragDropPayload("HIERARCHY_ENTITY_CELL", &draggedEntityID, sizeof(uint32_t));
+				ImGui::Text(draggedEntityName.c_str());
 
 				ImGui::EndDragDropSource();
 			}
@@ -581,6 +785,7 @@ namespace Eagle
 			return false;
 
 		UpdateScene(scene);
+		RemoveDestroyedFromSelection();
 		const bool bChanged = Event::Dispatch<KeyPressedEvent>(e, [this, &scene, bViewportFocused](KeyPressedEvent& keyEvent) { return OnKeyPressed(scene, keyEvent, bViewportFocused); });
 		m_bSelectedOutside = false; // Selected by the panel
 
@@ -594,9 +799,73 @@ namespace Eagle
 		scene->DestroyEntity(entity, bDestroyChildren);
 	}
 
+	void SceneHierarchyPanel::DestroySelectedEntities(const Ref<Scene>& scene, bool bDestroyChildren)
+	{
+		// The root entity can't be deleted
+		std::vector<Entity> entities = m_SelectedEntities;
+		if (m_AllowOnlySingleRoot)
+			std::erase_if(entities, [](const Entity& entity) { return !entity.HasParent(); });
+
+		// Children are destroyed with their parents
+		if (bDestroyChildren)
+			entities = Entity::GetTopmostEntities(entities);
+
+		if (entities.empty())
+			return;
+
+		if (entities.size() == 1)
+		{
+			DestroyEntity(scene, entities[0], bDestroyChildren);
+		}
+		else
+		{
+			SceneTransaction transaction(m_UndoHistory, scene, bDestroyChildren ? "Delete Entities and Children" : "Delete Entities");
+			for (const Entity& entity : entities)
+				transaction.Track(entity, true); // Their children are tracked either way. They're either destroyed too, or moved to their parents
+			for (const Entity& entity : entities)
+				scene->DestroyEntity(entity, bDestroyChildren);
+		}
+		ClearSelection();
+	}
+
+	void SceneHierarchyPanel::DuplicateSelectedEntities(const Ref<Scene>& scene)
+	{
+		// An entity is duplicated with its children
+		std::vector<Entity> sources = Entity::GetTopmostEntities(m_SelectedEntities);
+		if (m_AllowOnlySingleRoot)
+			std::erase_if(sources, [](const Entity& entity) { return !entity.HasParent(); });
+
+		if (sources.empty())
+			return;
+
+		SceneTransaction transaction(m_UndoHistory, scene, sources.size() == 1 ? "Duplicate Entity" : "Duplicate Entities");
+		std::vector<Entity> duplicates;
+		duplicates.reserve(sources.size());
+		for (Entity& source : sources)
+		{
+			Entity newEntity = scene->CreateFromEntity(source);
+			newEntity.SetParent(source.GetParent());
+			transaction.TrackCreated(newEntity);
+			duplicates.push_back(newEntity);
+		}
+
+		// The duplicates are selected in the order of their sources
+		if (duplicates.size() == 1)
+		{
+			ClearSelection();
+			m_SelectedEntity = duplicates[0];
+			m_SelectedEntities.push_back(duplicates[0]);
+		}
+		else
+		{
+			SetEntitiesSelected(duplicates);
+		}
+	}
+
 	bool SceneHierarchyPanel::OnKeyPressed(const Ref<Scene>& scene, KeyPressedEvent& e, bool bViewportFocused)
 	{
-		const bool bAllowAction = m_SelectedEntity && (!m_AllowOnlySingleRoot || m_SelectedEntity.HasParent());
+		const bool bAllowAction = m_SelectedEntity && (!m_AllowOnlySingleRoot ||
+			std::any_of(m_SelectedEntities.begin(), m_SelectedEntities.end(), [](const Entity& entity) { return entity.HasParent(); }));
 		const bool bShift = Input::IsKeyPressed(Key::LeftShift) || Input::IsKeyPressed(Key::RightShift);
 
 		if (bAllowAction && !m_PropertiesHovered && (bViewportFocused || m_SceneHierarchyFocused))
@@ -604,17 +873,12 @@ namespace Eagle
 			if (e.GetKey() == Key::Delete)
 			{
 				const bool bDeleteChildren = bShift;
-				DestroyEntity(scene, m_SelectedEntity, bDeleteChildren);
-				ClearSelection();
+				DestroySelectedEntities(scene, bDeleteChildren);
 				return true;
 			}
 			else if (Input::IsKeyPressed(Key::LeftControl) && (e.GetKey() == Key::D) && !scene->IsPlaying())
 			{
-				SceneTransaction transaction(m_UndoHistory, scene, "Duplicate Entity");
-				Entity newEntity = scene->CreateFromEntity(m_SelectedEntity);
-				newEntity.SetParent(m_SelectedEntity.GetParent());
-				transaction.TrackCreated(newEntity);
-				m_SelectedEntity = newEntity;
+				DuplicateSelectedEntities(scene);
 				return true;
 			}
 		}

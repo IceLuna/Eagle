@@ -12,6 +12,7 @@ namespace Eagle
 	class Scene;
 	class SceneRenderer;
 	class AssetTextureCube;
+	struct ViewportToolbar;
 
 	// Asset editors are major tabs. They open next to the level editor, and can be dragged out into their own windows.
 	// An editor that isn't a major tab is a regular panel of the level editor
@@ -101,6 +102,12 @@ namespace Eagle
 
 		void HandleCameraFocus();
 		glm::ivec2 GetMousePosWithinViewport() const;
+
+		// Returns false on failure
+		bool GetGuizmoCameraMatrices(glm::mat4& outView, glm::mat4& outProjection) const;
+
+		// Called before the viewport's toolbar is drawn to add options to it. The gizmo type and the snapping are already set if the editor uses the gizmo
+		virtual void SetupViewportToolbar(ViewportToolbar& toolbar) {}
 
 		static std::string GetAssetWindowName(const Ref<Asset>& asset, std::string_view ending = "");
 		static ImVec2 GetDefaultWindowSize() { return ImVec2(920.f, 760.f); }

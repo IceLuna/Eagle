@@ -93,6 +93,10 @@ namespace Eagle
 		bool HasParent() const;
 		bool HasChildren() const;
 		bool IsParentOf(const Entity& entity) const;
+
+		// Excludes entities from the input if it already contains its parent.
+		// Returns the updated list
+		static std::vector<Entity> GetTopmostEntities(const std::vector<Entity>& entities);
 		bool IsValid() const;
 
 		EntityIDType GetID() const { return (EntityIDType)m_Entity; }

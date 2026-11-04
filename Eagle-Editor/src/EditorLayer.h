@@ -8,6 +8,8 @@
 #include "Panels/ProjectSettingsTab.h"
 #include "Frames/EditorFrames.h"
 #include "Widgets/ViewportToolbar.h"
+#include "Widgets/SelectionGuizmo.h"
+#include "Widgets/SelectionVisuals.h"
 #include "Undo/SceneUndo.h"
 #include "Undo/SettingsUndo.h"
 #include "EditorSerializer.h"
@@ -59,6 +61,9 @@ namespace Eagle
 		const SnapSettings& GetSnapSettings() const { return m_SnapSettings; }
 		bool IsDrawingAllTextUIBounds() const { return bDrawAllTextUIBounds; }
 
+		bool IsDrawingSelectionOutline() const { return bDrawSelectionOutline; }
+		const OutlineSettings& GetSelectionOutlineSettings() const { return m_SelectionOutline; }
+
 		void ShowShortcutsWindow() { m_bShowShortcuts = true; }
 		void ShowAboutWindow() { m_bShowAbout = true; }
 
@@ -97,7 +102,7 @@ namespace Eagle
 		void UpdateSceneEditorCamera(const Ref<Scene>& scene, bool bUpdateTransform = false);
 
 		void UpdateGuizmo();
-		void UpdateSelectionOutline();
+		void UpdateSelectionVisuals();
 		void UpdateTextUIBounds();
 		void DrawLevelEditorTab();
 		void DrawMenus();
@@ -150,8 +155,7 @@ namespace Eagle
 		UndoHistory m_UndoHistory;
 		SceneSettingsEditTracker m_SceneSettingsEditTracker;
 		RendererSettingsEditTracker m_RendererSettingsEditTracker;
-		std::optional<SceneTransaction> m_GuizmoTransaction;
-		bool m_bGuizmoUsed = false; // This frame
+		SelectionGuizmo m_SelectionGuizmo;
 
 		std::vector<std::function<void()>> m_DeferredCalls;
 
@@ -185,6 +189,8 @@ namespace Eagle
 
 		int m_GuizmoType = 7; // TRANSLATE;
 		int m_GuizmoMode = 1; // ImGuizmo::WORLD;
+		GuizmoPivot m_GuizmoPivot = GuizmoPivot::ActiveEntity;
+		GuizmoGroupTransform m_GuizmoGroupTransform = GuizmoGroupTransform::AroundPivot;
 		ImGuiLayer::Style m_EditorStyle = ImGuiLayer::Style::Default;
 		EditorState m_EditorState = EditorState::Edit;
 		bool bRenderOnlyWhenFocused = true;
@@ -198,12 +204,7 @@ namespace Eagle
 		Key m_StopSimulationKey = Key::Escape;
 		OutlineSettings m_SelectionOutline{};
 
-		struct AppliedSelectionOutline
-		{
-			Weak<Scene> TargetScene;
-			std::vector<GUID> EntityGUIDs;
-			OutlineSettings Settings{};
-		} m_AppliedSelectionOutline;
+		SelectionOutline m_AppliedSelectionOutline;
 		
 		ImGuiWindowClass m_SimulatePanelSettings;
 
@@ -224,8 +225,6 @@ namespace Eagle
 		bool m_ShowSaveScenePopupForNewScene = false;
 		bool m_bDrawEditorMisc = true;
 		bool m_bFirstContentBrowserRender = true;
-		bool m_bUsingImGuizmoOrHovered = false;
-		bool m_bSkipGuizmoThisFrame = false;
 		bool m_bViewportToolbarHovered = false; // The mouse is over the viewport's toolbar (or one of its popups is open), so the viewport ignores clicks
 		
 		bool m_bShowShortcuts = false;

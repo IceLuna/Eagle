@@ -25,12 +25,36 @@ namespace Eagle
 		// Draws the properties of the selected entity under the hierarchy, in the hierarchy's window, instead of in a window of their own.
 		void SetPropertiesInHierarchyWindow(bool bEnabled) { m_bPropertiesInHierarchyWindow = bEnabled; }
 
+		// Note: even if it's enabled, only one of them is active (the one selected last).
+		// Meaning only its properties are drawn
+		void SetMultiSelectionEnabled(bool bEnabled);
+		bool IsMultiSelectionEnabled() const { return m_bMultiSelection; }
+
 		void ClearSelection();
 
 		bool OnEvent(const Ref<Scene>& scene, Event& e, bool bViewportFocused);
 
 		Entity GetSelectedEntity() const { return m_SelectedEntity; }
+
+		// In the order they were selected, the active one is the last
+		const std::vector<Entity>& GetSelectedEntities() const { return m_SelectedEntities; }
+		bool IsEntitySelected(const Entity& entity) const;
+
+		// Selects only this entity
 		void SetEntitySelected(Entity entity, SelectedComponent component = SelectedComponent::None);
+
+		// Selects these entities. The last one becomes active, with the component selected.
+		// Only the last one is selected if multi selection is disabled
+		void SetEntitiesSelected(const std::vector<Entity>& entities, SelectedComponent component = SelectedComponent::None);
+
+		// Ctrl+click. Selects the entity, which becomes active, if it isn't selected. Otherwise, deselects it.
+		// Selects only this entity if multi selection is disabled
+		void ToggleEntitySelected(Entity entity);
+
+		// An entity was clicked in a viewport. Null - nothing was clicked.
+		// With Ctrl held and the multi selection is enabled, it's added to the selection or removed from it, and a click on nothing keeps the selection.
+		// Otherwise, only the clicked entity is selected
+		void OnViewportEntityClicked(Entity entity);
 
 		const std::string& GetSceneHierarchyWindowName() const { return m_SceneHierarchyWindowName; }
 		const std::string& GetPropertiesWindowName() const { return m_PropertiesWindowName; }
@@ -65,6 +89,17 @@ namespace Eagle
 		bool DrawChilds(const Ref<Scene>& scene, Entity entity, bool bFilteredOnly);
 		bool OnKeyPressed(const Ref<Scene>& scene, KeyPressedEvent& e, bool bViewportFocused);
 		void DestroyEntity(const Ref<Scene>& scene, Entity entity, bool bDestroyChildren);
+		void DestroySelectedEntities(const Ref<Scene>& scene, bool bDestroyChildren);
+		void DuplicateSelectedEntities(const Ref<Scene>& scene);
+
+		void CreateEmptyEntity(const Ref<Scene>& scene);
+		void UpdateEntityRowHovered();
+
+		void OnEntityRowClicked(Entity entity);
+		bool ToggleSelection(Entity entity);
+		void DeselectEntity(const Entity& entity);
+		void RemoveDestroyedFromSelection();
+		void SetActiveEntity(Entity entity);
 
 		void AddSearchingEntity(const Entity& entity, std::unordered_set<Entity>& output);
 
@@ -90,6 +125,7 @@ namespace Eagle
 		UndoHistory* m_UndoHistory = nullptr;
 		EntityEditTracker m_EditTracker;
 		Entity m_SelectedEntity;
+		std::vector<Entity> m_SelectedEntities;
 		Entity m_RootEntity; // Only valid when `m_AllowOnlySingleRoot` is set to true
 		Ref<Texture2D> m_RefreshIcon;
 
@@ -108,5 +144,7 @@ namespace Eagle
 		bool m_bSelectedOutside = false; // `SetEntitySelected()` was called since the last `OnImGuiRender()` or `OnEvent()`, from outside of them
 		bool m_AllowOnlySingleRoot = false;
 		bool m_UpdateSearchResults = false;
+		bool m_bMultiSelection = false;
+		bool m_bEntityRowHovered = false; // In this frame, the mouse is over the row of an entity
 	};
 }

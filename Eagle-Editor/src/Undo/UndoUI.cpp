@@ -104,7 +104,7 @@ namespace Eagle::UndoUI
 			Redo(tab);
 	}
 
-	std::string GetGuizmoTransactionName(int guizmoOperation, bool bComponent)
+	std::string GetGuizmoTransactionName(int guizmoOperation, bool bComponent, size_t entitiesCount)
 	{
 		const char* action = "Transform";
 		if (guizmoOperation == ImGuizmo::OPERATION::TRANSLATE)
@@ -114,6 +114,6 @@ namespace Eagle::UndoUI
 		else if (guizmoOperation == ImGuizmo::OPERATION::SCALE)
 			action = "Scale";
 
-		return std::string(action) + (bComponent ? " Component" : " Entity");
+		return std::string(action) + (bComponent ? " Component" : entitiesCount > 1 ? " Entities" : " Entity");
 	}
 }

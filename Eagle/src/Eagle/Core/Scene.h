@@ -726,7 +726,9 @@ namespace Eagle
 
 	private:
 		// Implemented in SceneDebugDraw.cpp
-		bool GatherDebugDrawData();
+		void GatherDebugDrawData();
+		void ClearUserDebugDraws();
+
 		void AddTextUIBoundsDebugLines();
 		void UpdateUIMouse();
 		std::optional<glm::vec2> GetMousePositionInViewport() const;

@@ -2,6 +2,8 @@
 
 #include "AssetEditor.h"
 #include "../Panels/SceneHierarchyPanel.h"
+#include "../Widgets/SelectionGuizmo.h"
+#include "../Widgets/SelectionVisuals.h"
 #include "../Undo/SceneUndo.h"
 #include "../Undo/AssetUndo.h"
 
@@ -23,8 +25,8 @@ namespace Eagle
 
 	private:
 		void UpdateGuizmo();
-		bool DrawSelectionGuizmo(); // Returns true if the guizmo is being dragged
 		void OnViewportEnd() override { UpdateGuizmo(); }
+		void SetupViewportToolbar(ViewportToolbar& toolbar) override;
 
 		bool HandleEntitySelection(MouseButtonPressedEvent& e);
 		void OnEntityChanged();
@@ -35,8 +37,12 @@ namespace Eagle
 		const EditorLayer& m_EditorLayer;
 		Ref<AssetEntity> m_Asset;
 		SceneHierarchyPanel m_SceneHierarchy;
-		std::optional<SceneTransaction> m_GuizmoTransaction; // Open while the guizmo is being dragged
+		SelectionGuizmo m_SelectionGuizmo;
+		SelectionOutline m_SelectionOutline;
 		AssetEditTracker<AssetEntity, NoAssetState> m_AssetSettingsTracker;
+		int m_GuizmoMode = 1; // ImGuizmo::WORLD
+		GuizmoPivot m_GuizmoPivot = GuizmoPivot::ActiveEntity;
+		GuizmoGroupTransform m_GuizmoGroupTransform = GuizmoGroupTransform::AroundPivot;
 		bool m_UpdateAnims = true;
 
 		Entity m_Entity;

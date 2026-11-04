@@ -1546,6 +1546,10 @@ namespace Eagle
 		virtual void SetWorldTransform(const Transform& worldTransform) override;
 		virtual void SetRelativeTransform(const Transform& relativeTransform) override;
 
+		// The pose of its shape relative to the entity, without its scale,
+		// so the relative location is scaled by the entity's scale here (the shape's size is scaled separately)
+		Transform GetShapeLocalPose() const;
+
 		virtual void UpdateShowCollisionState() = 0;
 		bool IsCollisionVisible() const { return bShowCollision; }
 		void SetShowCollision(bool bShowCollision)

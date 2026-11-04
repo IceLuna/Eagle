@@ -116,12 +116,11 @@ namespace Eagle
 
 			Rotator inverseParentWorldRotation = parentWorldTransform.Rotation.Conjugate();
 
-			myRelativeTransform.Location = myWorldTransform.Location - parentWorldTransform.Location;
 			myRelativeTransform.Rotation = inverseParentWorldRotation * myWorldTransform.Rotation;
 			myRelativeTransform.Scale3D = myWorldTransform.Scale3D / parentWorldTransform.Scale3D;
 
-			myRelativeTransform.Location /= parentWorldTransform.Scale3D; // Undo parent's scaling
-			myRelativeTransform.Location = inverseParentWorldRotation.GetQuat() * myRelativeTransform.Location;
+			myRelativeTransform.Location = inverseParentWorldRotation.GetQuat() * (myWorldTransform.Location - parentWorldTransform.Location);
+			myRelativeTransform.Location /= parentWorldTransform.Scale3D;
 		}
 		else
 		{
@@ -304,6 +303,20 @@ namespace Eagle
 				return true;
 		}
 		return false;
+	}
+
+	std::vector<Entity> Entity::GetTopmostEntities(const std::vector<Entity>& entities)
+	{
+		std::vector<Entity> result;
+		result.reserve(entities.size());
+		for (const Entity& entity : entities)
+		{
+			const bool bParentListed = std::any_of(entities.begin(), entities.end(), [&entity](const Entity& other) { return other != entity && other.IsParentOf(entity); });
+			if (!bParentListed)
+				result.push_back(entity);
+		}
+
+		return result;
 	}
 
 	bool Entity::IsValid() const

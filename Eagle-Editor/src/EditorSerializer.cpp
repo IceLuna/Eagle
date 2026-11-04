@@ -50,6 +50,8 @@ namespace Eagle
 		out << YAML::Key << "StopSimulationKey" << YAML::Value << Utils::GetEnumName(editor->m_StopSimulationKey);
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
 		out << YAML::Key << "GuizmoMode" << YAML::Value << Utils::GetEnumName((ImGuizmo::MODE)editor->m_GuizmoMode);
+		out << YAML::Key << "GuizmoPivot" << YAML::Value << Utils::GetEnumName(editor->m_GuizmoPivot);
+		out << YAML::Key << "GuizmoGroupTransform" << YAML::Value << Utils::GetEnumName(editor->m_GuizmoGroupTransform);
 
 		// Selection outline
 		{
@@ -177,6 +179,10 @@ namespace Eagle
 			bVSync = VSyncNode.as<bool>();
 		if (auto node = data["GuizmoMode"])
 			guizmoMode = Utils::GetEnumFromName<ImGuizmo::MODE>(node.as<std::string>());
+		if (auto node = data["GuizmoPivot"])
+			editor->m_GuizmoPivot = Utils::GetEnumFromName<GuizmoPivot>(node.as<std::string>());
+		if (auto node = data["GuizmoGroupTransform"])
+			editor->m_GuizmoGroupTransform = Utils::GetEnumFromName<GuizmoGroupTransform>(node.as<std::string>());
 
 		if (auto outlineNode = data["SelectionOutline"])
 		{

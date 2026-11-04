@@ -509,6 +509,11 @@ namespace Eagle
 		UpdatePhysicsTransform();
 	}
 
+	Transform BaseColliderComponent::GetShapeLocalPose() const
+	{
+		return Transform(RelativeTransform.Location * Parent.GetWorldTransform().Scale3D, RelativeTransform.Rotation);
+	}
+
 	void BaseColliderComponent::SetIsObstacle(bool bValue)
 	{
 		if (bObstacle == bValue)
@@ -658,7 +663,7 @@ namespace Eagle
 	{
 		if (m_Shape)
 		{
-			m_Shape->SetRelativeLocationAndRotation(RelativeTransform);
+			m_Shape->SetRelativeLocationAndRotation(GetShapeLocalPose());
 
 			const glm::vec3 size = WorldTransform.Scale3D * m_Size;
 			m_Shape->SetSize(size);
@@ -774,7 +779,7 @@ namespace Eagle
 	{
 		if (m_Shape)
 		{
-			m_Shape->SetRelativeLocationAndRotation(RelativeTransform);
+			m_Shape->SetRelativeLocationAndRotation(GetShapeLocalPose());
 
 			const auto& scale = WorldTransform.Scale3D;
 			const float largestAxis = glm::max(scale.x, glm::max(scale.y, scale.z));
@@ -898,7 +903,7 @@ namespace Eagle
 	{
 		if (m_Shape)
 		{
-			m_Shape->SetRelativeLocationAndRotation(RelativeTransform);
+			m_Shape->SetRelativeLocationAndRotation(GetShapeLocalPose());
 
 			const auto& scale = WorldTransform.Scale3D;
 			const float radius = glm::max(scale.x, scale.z) * m_Radius;
@@ -1094,7 +1099,7 @@ namespace Eagle
 		{
 			if (shape)
 			{
-				shape->SetRelativeLocationAndRotation(RelativeTransform);
+				shape->SetRelativeLocationAndRotation(GetShapeLocalPose());
 				shape->SetScale(WorldTransform.Scale3D);
 			}
 		}

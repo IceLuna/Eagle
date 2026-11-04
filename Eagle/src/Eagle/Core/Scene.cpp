@@ -794,6 +794,8 @@ namespace Eagle
 		m_PhysicsScene->Simulate(ts, false);
 		if (bRender)
 			RenderScene(ts, false);
+
+		ClearUserDebugDraws();
 	}
 
 	void Scene::OnUpdateRuntime(Timestep ts, bool bRender, bool bForceAnimationsUpdate)
@@ -821,6 +823,8 @@ namespace Eagle
 			AudioEngine::SetListenerData(m_RuntimeCamera->GetWorldTransform().Location, m_RuntimeCamera->GetForwardVector(), m_RuntimeCamera->GetUpVector());
 		if (bRender)
 			RenderScene(ts, true);
+
+		ClearUserDebugDraws();
 	}
 
 	void Scene::UpdateSceneSequences(Timestep ts)
@@ -1278,8 +1282,7 @@ namespace Eagle
 			}
 		}
 
-		if (!GatherDebugDrawData())
-			return;
+		GatherDebugDrawData();
 
 		// Text components
 		if (m_DirtyFlags.bTextDirty)

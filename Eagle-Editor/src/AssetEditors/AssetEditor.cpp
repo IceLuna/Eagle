@@ -120,14 +120,10 @@ namespace Eagle
 		ImGuizmo::SetDrawlist();
 		ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
 
-		//Camera
-		const auto& editorCamera = m_CurrentScene->EditorCamera;
-		const auto runtimeCamera = m_CurrentScene->GetRuntimeCamera();
-		glm::mat4 cameraProjection = m_SimulationScene ? runtimeCamera->Camera.GetUnreversedProjection() : editorCamera.GetUnreversedProjection();
-		const glm::mat4& cameraViewMatrix = m_SimulationScene ? runtimeCamera->GetViewMatrix() : editorCamera.GetViewMatrix();
-		const bool bProjectionFlipped = m_SimulationScene ? runtimeCamera->Camera.IsProjectionFlipped() : editorCamera.IsProjectionFlipped();
-		if (bProjectionFlipped)
-			cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
+		// Camera
+		glm::mat4 cameraViewMatrix;
+		glm::mat4 cameraProjection;
+		GetGuizmoCameraMatrices(cameraViewMatrix, cameraProjection);
 
 		int snappingIndex = 0;
 		if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
@@ -137,7 +133,7 @@ namespace Eagle
 
 		glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
 
-		//Snapping
+		// Snapping
 		const SnapSettings& snapSettings = EditorLayer::Get()->GetSnapSettings();
 		const float snapValue = snapSettings.GetValue(m_GuizmoType);
 		const float snapValues[3] = { snapValue, snapValue, snapValue };
@@ -164,6 +160,23 @@ namespace Eagle
 		}
 		ImGuizmo::PopID();
 		return bChanged;
+	}
+
+	bool AssetEditor::GetGuizmoCameraMatrices(glm::mat4& outView, glm::mat4& outProjection) const
+	{
+		if (!m_CurrentScene)
+			return false;
+
+		const auto& editorCamera = m_CurrentScene->EditorCamera;
+		const auto runtimeCamera = m_SimulationScene ? m_CurrentScene->GetRuntimeCamera() : nullptr;
+		const Camera& camera = runtimeCamera ? static_cast<const Camera&>(runtimeCamera->Camera) : static_cast<const Camera&>(editorCamera);
+
+		outView = runtimeCamera ? runtimeCamera->GetViewMatrix() : editorCamera.GetViewMatrix();
+		outProjection = camera.GetUnreversedProjection();
+		if (camera.IsProjectionFlipped())
+			outProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
+
+		return true;
 	}
 
 	void AssetEditor::DrawOGuizmo()
@@ -503,6 +516,7 @@ namespace Eagle
 			toolbar.Snap = &EditorLayer::Get()->GetSnapSettings();
 		}
 		toolbar.Camera = &m_CurrentScene->EditorCamera;
+		SetupViewportToolbar(toolbar);
 
 		// The mouse is hidden while the camera moves (ImGui doesn't get the mouse input then), so the state is kept
 		const bool bHovered = toolbar.Draw("##ViewportToolbar", ImVec2(m_ViewportBounds[0].x, m_ViewportBounds[0].y), ImVec2(m_ViewportBounds[1].x, m_ViewportBounds[1].y));

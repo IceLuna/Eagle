@@ -11,11 +11,157 @@
 #include "Eagle/Core/Project.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Debug/CPUTimings.h"
+#include "Eagle/Renderer/RendererUtils.h"
 
 namespace Eagle
 {
     static ContactListener s_ContactListener;
     static Ref<PhysicsActor> s_InvalidPhysicsActor = nullptr;
+
+    namespace DebugDraw
+    {
+        constexpr uint32_t s_CircleSegments = 24;
+
+        static void AddLine(std::vector<RendererLine>& lines, const physx::PxTransform& pose, const physx::PxVec3& start, const physx::PxVec3& end)
+        {
+            RendererLine& line = lines.emplace_back();
+            line.Start.Location = PhysXUtils::FromPhysXVector(pose.transform(start));
+            line.End.Location = PhysXUtils::FromPhysXVector(pose.transform(end));
+        }
+
+        // An arc of a circle around `center`, in the plane of the `axis1` and `axis2` directions. Angles in radians, from `axis1` towards `axis2`
+        static void AddArc(std::vector<RendererLine>& lines, const physx::PxTransform& pose, const physx::PxVec3& center, const physx::PxVec3& axis1, const physx::PxVec3& axis2,
+            float radius, float angleStart, float angleEnd, uint32_t segments)
+        {
+            const float step = (angleEnd - angleStart) / float(segments);
+            physx::PxVec3 previous = center + (axis1 * std::cos(angleStart) + axis2 * std::sin(angleStart)) * radius;
+            for (uint32_t i = 1; i <= segments; ++i)
+            {
+                const float angle = angleStart + step * float(i);
+                const physx::PxVec3 point = center + (axis1 * std::cos(angle) + axis2 * std::sin(angle)) * radius;
+                AddLine(lines, pose, previous, point);
+                previous = point;
+            }
+        }
+
+        static void AddBox(std::vector<RendererLine>& lines, const physx::PxTransform& pose, const physx::PxBoxGeometry& box)
+        {
+            const physx::PxVec3& e = box.halfExtents;
+            const physx::PxVec3 corners[8] =
+            {
+                { -e.x, -e.y, -e.z }, { e.x, -e.y, -e.z }, { e.x, -e.y, e.z }, { -e.x, -e.y, e.z },
+                { -e.x, e.y, -e.z }, { e.x, e.y, -e.z }, { e.x, e.y, e.z }, { -e.x, e.y, e.z },
+            };
+            constexpr uint32_t edges[12][2] =
+            {
+                { 0, 1 }, { 1, 2 }, { 2, 3 }, { 3, 0 }, // Bottom
+                { 4, 5 }, { 5, 6 }, { 6, 7 }, { 7, 4 }, // Top
+                { 0, 4 }, { 1, 5 }, { 2, 6 }, { 3, 7 }, // Sides
+            };
+            for (const auto& edge : edges)
+                AddLine(lines, pose, corners[edge[0]], corners[edge[1]]);
+        }
+
+        static void AddSphere(std::vector<RendererLine>& lines, const physx::PxTransform& pose, const physx::PxSphereGeometry& sphere)
+        {
+            const physx::PxVec3 x(1.f, 0.f, 0.f), y(0.f, 1.f, 0.f), z(0.f, 0.f, 1.f), center(0.f);
+            AddArc(lines, pose, center, x, y, sphere.radius, 0.f, physx::PxTwoPi, s_CircleSegments);
+            AddArc(lines, pose, center, x, z, sphere.radius, 0.f, physx::PxTwoPi, s_CircleSegments);
+            AddArc(lines, pose, center, y, z, sphere.radius, 0.f, physx::PxTwoPi, s_CircleSegments);
+        }
+
+        // PhysX capsules are along the X axis
+        static void AddCapsule(std::vector<RendererLine>& lines, const physx::PxTransform& pose, const physx::PxCapsuleGeometry& capsule)
+        {
+            const physx::PxVec3 x(1.f, 0.f, 0.f), y(0.f, 1.f, 0.f), z(0.f, 0.f, 1.f);
+            const float r = capsule.radius;
+            const float h = capsule.halfHeight;
+            const physx::PxVec3 top(h, 0.f, 0.f), bottom(-h, 0.f, 0.f);
+
+            // Where the hemispheres meet the cylinder
+            AddArc(lines, pose, top, y, z, r, 0.f, physx::PxTwoPi, s_CircleSegments);
+            AddArc(lines, pose, bottom, y, z, r, 0.f, physx::PxTwoPi, s_CircleSegments);
+
+            // Hemispheres
+            const uint32_t halfSegments = s_CircleSegments / 2;
+            AddArc(lines, pose, top, y, x, r, 0.f, physx::PxPi, halfSegments);
+            AddArc(lines, pose, top, z, x, r, 0.f, physx::PxPi, halfSegments);
+            AddArc(lines, pose, bottom, y, -x, r, 0.f, physx::PxPi, halfSegments);
+            AddArc(lines, pose, bottom, z, -x, r, 0.f, physx::PxPi, halfSegments);
+
+            // Cylinder
+            for (const physx::PxVec3& offset : { y * r, -y * r, z * r, -z * r })
+                AddLine(lines, pose, bottom + offset, top + offset);
+        }
+
+        // The edges of its polygons
+        static void AddConvexMesh(std::vector<RendererLine>& lines, const physx::PxTransform& pose, const physx::PxConvexMeshGeometry& geometry)
+        {
+            const physx::PxConvexMesh* mesh = geometry.convexMesh;
+            if (!mesh)
+                return;
+
+            const physx::PxVec3* vertices = mesh->getVertices();
+            const physx::PxU8* indices = mesh->getIndexBuffer();
+            const uint32_t polygonsCount = mesh->getNbPolygons();
+            for (uint32_t i = 0; i < polygonsCount; ++i)
+            {
+                physx::PxHullPolygon polygon;
+                if (!mesh->getPolygonData(i, polygon))
+                    continue;
+
+                for (uint32_t v = 0; v < polygon.mNbVerts; ++v)
+                {
+                    const physx::PxU8 start = indices[polygon.mIndexBase + v];
+                    const physx::PxU8 end = indices[polygon.mIndexBase + (v + 1) % polygon.mNbVerts];
+                    AddLine(lines, pose, geometry.scale.transform(vertices[start]), geometry.scale.transform(vertices[end]));
+                }
+            }
+        }
+
+        // The edges of its triangles
+        static void AddTriangleMesh(std::vector<RendererLine>& lines, const physx::PxTransform& pose, const physx::PxTriangleMeshGeometry& geometry)
+        {
+            const physx::PxTriangleMesh* mesh = geometry.triangleMesh;
+            if (!mesh)
+                return;
+
+            const physx::PxVec3* vertices = mesh->getVertices();
+            const uint32_t trianglesCount = mesh->getNbTriangles();
+            const bool b16BitIndices = mesh->getTriangleMeshFlags().isSet(physx::PxTriangleMeshFlag::e16_BIT_INDICES);
+            const void* triangles = mesh->getTriangles();
+            auto getIndex = [b16BitIndices, triangles](uint32_t i) -> uint32_t
+            {
+                return b16BitIndices ? static_cast<const physx::PxU16*>(triangles)[i] : static_cast<const physx::PxU32*>(triangles)[i];
+            };
+
+            lines.reserve(lines.size() + trianglesCount * 3);
+            for (uint32_t i = 0; i < trianglesCount; ++i)
+            {
+                const physx::PxVec3 a = geometry.scale.transform(vertices[getIndex(i * 3)]);
+                const physx::PxVec3 b = geometry.scale.transform(vertices[getIndex(i * 3 + 1)]);
+                const physx::PxVec3 c = geometry.scale.transform(vertices[getIndex(i * 3 + 2)]);
+                AddLine(lines, pose, a, b);
+                AddLine(lines, pose, b, c);
+                AddLine(lines, pose, c, a);
+            }
+        }
+
+        static void AddShape(std::vector<RendererLine>& lines, const physx::PxTransform& pose, const physx::PxGeometry& geometry)
+        {
+            switch (geometry.getType())
+            {
+                case physx::PxGeometryType::eBOX: AddBox(lines, pose, static_cast<const physx::PxBoxGeometry&>(geometry)); break;
+                case physx::PxGeometryType::eSPHERE: AddSphere(lines, pose, static_cast<const physx::PxSphereGeometry&>(geometry)); break;
+                case physx::PxGeometryType::eCAPSULE: AddCapsule(lines, pose, static_cast<const physx::PxCapsuleGeometry&>(geometry)); break;
+                case physx::PxGeometryType::eCONVEXMESH: AddConvexMesh(lines, pose, static_cast<const physx::PxConvexMeshGeometry&>(geometry)); break;
+                case physx::PxGeometryType::eTRIANGLEMESH: AddTriangleMesh(lines, pose, static_cast<const physx::PxTriangleMeshGeometry&>(geometry)); break;
+                default:
+                    EG_CORE_ASSERT(false);
+                    break;
+            }
+        }
+    }
 
     static physx::PxSolverType::Enum ToPhysXSolverType(SolverType solver)
     {
@@ -51,11 +197,7 @@ namespace Eagle
 
         m_Scene = PhysXInternal::GetPhysics().createScene(sceneDesc);
         EG_CORE_ASSERT(m_Scene, "Invalid scene");
-        m_Scene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE, 1.f);
-        m_Scene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES, 1.f);
         m_Scene->userData = this;
-        //m_Scene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LOCAL_FRAMES, 0.01f);
-        //m_Scene->setVisualizationParameter(physx::PxVisualizationParameter::eJOINT_LIMITS, 1.0f);
 
         CreateRegions();
         SetUpdateRate(m_Settings.UpdateRate);
@@ -428,6 +570,43 @@ namespace Eagle
         {
             PhysXDebugger::StopDebugging();
             bStartedDebugSession = false;
+        }
+    }
+
+    void PhysicsScene::GatherCollisionDebugLines(std::vector<RendererLine>& outLines)
+    {
+        const physx::PxActorTypeFlags actorTypes = physx::PxActorTypeFlag::eRIGID_STATIC | physx::PxActorTypeFlag::eRIGID_DYNAMIC;
+        m_DebugDrawActors.resize(m_Scene->getNbActors(actorTypes));
+        if (m_DebugDrawActors.empty())
+            return;
+
+        EG_CPU_TIMING_SCOPED("PhysicsScene. Gather collision debug lines");
+
+        m_DebugDrawActors.resize(m_Scene->getActors(actorTypes, m_DebugDrawActors.data(), (uint32_t)m_DebugDrawActors.size()));
+        for (physx::PxActor* actor : m_DebugDrawActors)
+        {
+            const physx::PxActorFlags actorFlags = actor->getActorFlags();
+            if (!actorFlags.isSet(physx::PxActorFlag::eVISUALIZATION) || actorFlags.isSet(physx::PxActorFlag::eDISABLE_SIMULATION))
+                continue;
+
+            const physx::PxRigidActor* rigidActor = actor->is<physx::PxRigidActor>();
+            if (!rigidActor)
+                continue;
+
+            m_DebugDrawShapes.resize(rigidActor->getNbShapes());
+            if (m_DebugDrawShapes.empty())
+                continue;
+
+            m_DebugDrawShapes.resize(rigidActor->getShapes(m_DebugDrawShapes.data(), (uint32_t)m_DebugDrawShapes.size()));
+
+            const physx::PxTransform actorPose = rigidActor->getGlobalPose();
+            for (const physx::PxShape* shape : m_DebugDrawShapes)
+            {
+                if (!shape->getFlags().isSet(physx::PxShapeFlag::eVISUALIZATION))
+                    continue;
+
+                DebugDraw::AddShape(outLines, actorPose * shape->getLocalPose(), shape->getGeometry());
+            }
         }
     }
 }

@@ -12,7 +12,8 @@ namespace Eagle
 	{
 		enum class ToolbarIcon
 		{
-			Select, Translate, Rotate, Scale, World, Local, SnapTranslation, SnapRotation, SnapScale, Camera, Show, ViewMode
+			Select, Translate, Rotate, Scale, World, Local, PivotActive, PivotCenter, AroundPivot, IndividualOrigins,
+			SnapTranslation, SnapRotation, SnapScale, Camera, Show, ViewMode
 		};
 
 		struct ToolbarStyle
@@ -190,6 +191,72 @@ namespace Eagle
 					drawList->AddLine(c, bottom, color, thickness);
 					break;
 				}
+				case ToolbarIcon::PivotActive:
+				case ToolbarIcon::PivotCenter:
+				{
+					// Three entities. The pivot, a dot with a cross, is on the active one (filled), or in their center
+					const float half = r * 0.25f;
+					const ImVec2 entities[] = { ImVec2(c.x - r * 0.55f, c.y + r * 0.45f), ImVec2(c.x + r * 0.6f, c.y + r * 0.3f), ImVec2(c.x + r * 0.05f, c.y - r * 0.6f) };
+					const bool bActive = icon == ToolbarIcon::PivotActive;
+					for (int i = 0; i < IM_ARRAYSIZE(entities); ++i)
+					{
+						const ImVec2& p = entities[i];
+						if (bActive && i == 0)
+							drawList->AddRectFilled(ImVec2(p.x - half, p.y - half), ImVec2(p.x + half, p.y + half), color);
+						else
+							drawList->AddRect(ImVec2(p.x - half, p.y - half), ImVec2(p.x + half, p.y + half), color, 0.f, ImDrawFlags_None, thickness);
+					}
+					if (!bActive)
+					{
+						const float arm = r * 0.3f;
+						drawList->AddLine(ImVec2(c.x - arm, c.y), ImVec2(c.x + arm, c.y), color, thickness);
+						drawList->AddLine(ImVec2(c.x, c.y - arm), ImVec2(c.x, c.y + arm), color, thickness);
+						drawList->AddCircleFilled(c, r * 0.12f, color);
+					}
+					break;
+				}
+				case ToolbarIcon::AroundPivot:
+				{
+					// Two entities on a circular arrow around the pivot
+					const float radius = r * 0.78f;
+					const float angleMin = IM_PI * 0.15f;
+					const float angleMax = IM_PI * 1.85f;
+					drawList->PathArcTo(c, radius, angleMin, angleMax, 24);
+					drawList->PathStroke(color, ImDrawFlags_None, thickness);
+					const ImVec2 end(c.x + cosf(angleMax) * radius, c.y + sinf(angleMax) * radius);
+					const ImVec2 tangent(-sinf(angleMax), cosf(angleMax));
+					const float head = r * 0.45f;
+					DrawArrowHead(drawList, ImVec2(end.x + tangent.x * head * 0.5f, end.y + tangent.y * head * 0.5f), tangent, head, head * 0.6f, color);
+
+					const float half = r * 0.2f;
+					for (float angle : { IM_PI * 0.75f, IM_PI * 1.35f })
+					{
+						const ImVec2 p(c.x + cosf(angle) * radius, c.y + sinf(angle) * radius);
+						drawList->AddRectFilled(ImVec2(p.x - half, p.y - half), ImVec2(p.x + half, p.y + half), color);
+					}
+					drawList->AddCircleFilled(c, r * 0.14f, color);
+					break;
+				}
+				case ToolbarIcon::IndividualOrigins:
+				{
+					// Two entities, each with a circular arrow around it
+					const float half = r * 0.18f;
+					const float radius = r * 0.42f;
+					for (float x : { c.x - r * 0.5f, c.x + r * 0.5f })
+					{
+						const ImVec2 p(x, c.y);
+						drawList->AddRectFilled(ImVec2(p.x - half, p.y - half), ImVec2(p.x + half, p.y + half), color);
+						const float angleMin = IM_PI * 0.2f;
+						const float angleMax = IM_PI * 1.7f;
+						drawList->PathArcTo(p, radius, angleMin, angleMax, 16);
+						drawList->PathStroke(color, ImDrawFlags_None, thickness);
+						const ImVec2 end(p.x + cosf(angleMax) * radius, p.y + sinf(angleMax) * radius);
+						const ImVec2 tangent(-sinf(angleMax), cosf(angleMax));
+						const float head = r * 0.3f;
+						DrawArrowHead(drawList, ImVec2(end.x + tangent.x * head * 0.5f, end.y + tangent.y * head * 0.5f), tangent, head, head * 0.6f, color);
+					}
+					break;
+				}
 				case ToolbarIcon::SnapTranslation:
 				{
 					// A grid
@@ -289,7 +356,17 @@ namespace Eagle
 				const bool bShowTooltip = item.Tooltip && ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip | ImGuiHoveredFlags_AllowWhenDisabled);
 				ImGui::EndDisabled();
 				if (bShowTooltip)
-					ImGui::SetTooltip("%s", item.Tooltip);
+				{
+					ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, style.PopupPadding);
+					if (ImGui::BeginTooltip())
+					{
+						ImGui::PushTextWrapPos(ImGui::GetFontSize() * 30.f);
+						ImGui::TextUnformatted(item.Tooltip);
+						ImGui::PopTextWrapPos();
+						ImGui::EndTooltip();
+					}
+					ImGui::PopStyleVar();
+				}
 				bHovered |= bItemHovered;
 
 				ImU32 background = item.bSelected ? style.Selected : 0;
@@ -515,6 +592,35 @@ namespace Eagle
 				item.bEnabled = !bScale;
 				item.Tooltip = bScale ? "Scaling is always done in the local space" : bWorld ? "World space. Click to switch to the local space" : "Local space. Click to switch to the world space";
 				item.OnClick = [guizmoMode, bWorld]() { *guizmoMode = bWorld ? ImGuizmo::MODE::LOCAL : ImGuizmo::MODE::WORLD; };
+			}
+
+			if (Pivot || GroupTransform)
+			{
+				ToolbarGroup& selectionGroup = leftGroups.emplace_back();
+				if (Pivot)
+				{
+					GuizmoPivot* pivot = Pivot;
+					const bool bActive = *pivot == GuizmoPivot::ActiveEntity;
+
+					ToolbarItem& item = selectionGroup.Items.emplace_back();
+					item.ID = "##Pivot";
+					item.Icon = bActive ? ToolbarIcon::PivotActive : ToolbarIcon::PivotCenter;
+					item.Tooltip = bActive ? "Pivot: the active entity (the one selected last). Click to use the center of the selection"
+						: "Pivot: the center of the selection. Click to use the active entity (the one selected last)";
+					item.OnClick = [pivot, bActive]() { *pivot = bActive ? GuizmoPivot::SelectionCenter : GuizmoPivot::ActiveEntity; };
+				}
+				if (GroupTransform)
+				{
+					GuizmoGroupTransform* groupTransform = GroupTransform;
+					const bool bAroundPivot = *groupTransform == GuizmoGroupTransform::AroundPivot;
+
+					ToolbarItem& item = selectionGroup.Items.emplace_back();
+					item.ID = "##GroupTransform";
+					item.Icon = bAroundPivot ? ToolbarIcon::AroundPivot : ToolbarIcon::IndividualOrigins;
+					item.Tooltip = bAroundPivot ? "Rotation and scale: the selected entities as a whole, around the pivot. Click to transform each around its own origin"
+						: "Rotation and scale: each selected entity around its own origin. Click to transform them as a whole, around the pivot";
+					item.OnClick = [groupTransform, bAroundPivot]() { *groupTransform = bAroundPivot ? GuizmoGroupTransform::IndividualOrigins : GuizmoGroupTransform::AroundPivot; };
+				}
 			}
 
 			if (Snap)

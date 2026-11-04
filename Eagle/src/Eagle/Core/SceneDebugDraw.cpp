@@ -638,19 +638,15 @@ namespace Eagle
 		}
 	}
 
-	// Returns false if the rest of RenderScene() must be skipped (keeps the early-outs the code had when it was inlined there)
-	bool Scene::GatherDebugDrawData()
+	void Scene::GatherDebugDrawData()
 	{
-		auto& rb = m_PhysicsScene->GetRenderBuffer();
-		const uint32_t debugCollisionsLinesSize = rb.getNbLines();
-
 		constexpr size_t linesPerDirLight = 3ull;
 		size_t debugDirLightLinesCount = 0;
 		auto dirLightsView = m_Registry.view<DirectionalLightComponent>();
 		debugDirLightLinesCount = dirLightsView.size() * linesPerDirLight;
 
 		m_DebugLinesToDraw.clear();
-		m_DebugLinesToDraw.reserve(debugCollisionsLinesSize + m_UserDebugLines.size() + debugDirLightLinesCount);
+		m_DebugLinesToDraw.reserve(m_UserDebugLines.size() + debugDirLightLinesCount);
 		m_DebugTrianglesToDraw.clear();
 
 		// Gather Debug data
@@ -660,7 +656,7 @@ namespace Eagle
 			{
 				Entity entity((entt::entity)lightEntityID, this);
 				if (!entity.HasComponent<PointLightComponent>())
-					return false;
+					continue;
 
 				const auto& light = entity.GetComponent<PointLightComponent>();
 				const glm::vec3& center = light.GetWorldTransform().Location;
@@ -675,7 +671,7 @@ namespace Eagle
 			{
 				Entity entity((entt::entity)lightEntityID, this);
 				if (!entity.HasComponent<SpotLightComponent>())
-					return false;
+					continue;
 
 				const auto& light = entity.GetComponent<SpotLightComponent>();
 
@@ -726,7 +722,7 @@ namespace Eagle
 			{
 				Entity entity((entt::entity)reverbEntityID, this);
 				if (!entity.HasComponent<ReverbComponent>())
-					return false;
+					continue;
 
 				const auto& reverb = entity.GetComponent<ReverbComponent>();
 				const glm::vec3& center = reverb.GetReverb()->GetPosition();
@@ -741,7 +737,7 @@ namespace Eagle
 			{
 				Entity entity((entt::entity)lightEntityID, this);
 				if (!entity.HasComponent<DirectionalLightComponent>())
-					return false;
+					continue;
 
 				const auto& dir = entity.GetComponent<DirectionalLightComponent>();
 				const glm::vec3& location = dir.GetWorldTransform().Location;
@@ -752,20 +748,7 @@ namespace Eagle
 			}
 		}
 
-		// Debug collisions
-		if (debugCollisionsLinesSize)
-		{
-			const physx::PxDebugLine* physicsLines = rb.getLines();
-
-			for (uint32_t i = 0; i < debugCollisionsLinesSize; ++i)
-			{
-				auto& line = physicsLines[i];
-				RendererLine rendererLine;
-				rendererLine.Start.Location = PhysXUtils::FromPhysXVector(line.pos0);
-				rendererLine.End.Location = PhysXUtils::FromPhysXVector(line.pos1);
-				m_DebugLinesToDraw.push_back(rendererLine);
-			}
-		}
+		m_PhysicsScene->GatherCollisionDebugLines(m_DebugLinesToDraw);
 
 		// Debug CCT
 		{
@@ -784,7 +767,8 @@ namespace Eagle
 				{
 					Entity entity((entt::entity)entID, this);
 					if (!entity.HasComponent<CharacterControllerComponent>())
-						return false;
+						continue;
+
 					Utils::DrawCCT(m_DebugLinesToDraw, entity.GetComponent<CharacterControllerComponent>());
 				}
 			}
@@ -933,8 +917,6 @@ namespace Eagle
 			{
 				Utils::DrawBox(m_DebugLinesToDraw, aabb, transform);
 			}
-			m_UserAABBs.clear();
-			m_UserBoxes.clear();
 		}
 
 		AddTextUIBoundsDebugLines();
@@ -942,11 +924,16 @@ namespace Eagle
 		// Append user provided lines
 		m_DebugLinesToDraw.insert(m_DebugLinesToDraw.end(), m_UserDebugLines.begin(), m_UserDebugLines.end());
 		m_DebugTrianglesToDraw.insert(m_DebugTrianglesToDraw.end(), m_UserDebugTriangles.begin(), m_UserDebugTriangles.end());
-		// User provided lines need to provided each frame. So clear it.
+
+		ClearUserDebugDraws();
+	}
+
+	void Scene::ClearUserDebugDraws()
+	{
 		m_UserDebugLines.clear();
 		m_UserDebugTriangles.clear();
-
-		return true;
+		m_UserBoxes.clear();
+		m_UserAABBs.clear();
 	}
 
 	void Scene::AddTextUIBoundsDebugLines()

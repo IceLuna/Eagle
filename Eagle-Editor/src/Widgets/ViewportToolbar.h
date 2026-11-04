@@ -22,12 +22,28 @@ namespace Eagle
 		static int GetIndex(int guizmoType);
 	};
 
+	// Where the transform gizmo is when several entities are selected
+	enum class GuizmoPivot
+	{
+		ActiveEntity,   // The one selected last
+		SelectionCenter // The center of the bounds of the selected entities locations
+	};
+
+	// How several entities are rotated and scaled with the gizmo
+	enum class GuizmoGroupTransform
+	{
+		AroundPivot,      // As a whole, around the gizmo
+		IndividualOrigins // Each around its own origin
+	};
+
 	// Buttons drawn over the top of a viewport.
 	// Every part is optional, it's drawn only if its value is set
 	struct ViewportToolbar
 	{
 		int* GuizmoType = nullptr;      // ImGuizmo::OPERATION: TRANSLATE, ROTATE, SCALE, or -1 (no gizmo)
 		int* GuizmoMode = nullptr;      // ImGuizmo::MODE: WORLD or LOCAL
+		GuizmoPivot* Pivot = nullptr;
+		GuizmoGroupTransform* GroupTransform = nullptr;
 		SnapSettings* Snap = nullptr;
 		EditorCamera* Camera = nullptr; // For its speed
 

@@ -17,7 +17,6 @@
 #include "ImOGuizmo.h"
 
 #include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/matrix_decompose.hpp>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <ImGuizmo.h>
@@ -58,8 +57,6 @@ namespace Eagle
 
 	static std::mutex s_DeferredCallsMutex;
 	
-	static glm::vec3 notUsed1;
-	static glm::vec4 notUsed2;
 	static EditorLayer* s_EditorLayer = nullptr;
 
 	static void DrawShortcutsWindow(bool* p_open = nullptr);
@@ -187,6 +184,7 @@ namespace Eagle
 		m_GuizmoMode = ImGuizmo::MODE::WORLD;
 
 		m_SceneHierarchyPanel.SetUndoHistory(&m_UndoHistory);
+		m_SceneHierarchyPanel.SetMultiSelectionEnabled(true);
 		m_UndoHistory.SetOnAppliedCallback([this](const UndoTransaction& transaction, bool)
 		{
 			if (m_OpenedSceneAsset && m_EditorScene)
@@ -206,7 +204,7 @@ namespace Eagle
 			if (m_EditorState == EditorState::Edit)
 			{
 				// Reset the history of the previous scene
-				m_GuizmoTransaction.reset();
+				m_SelectionGuizmo.Reset();
 				m_SceneSettingsEditTracker.Reset();
 				m_RendererSettingsEditTracker.Reset();
 				m_UndoHistory.Clear();
@@ -305,7 +303,7 @@ namespace Eagle
 		const bool bShouldRenderBasedOnFocus = !bRenderOnlyWhenFocused || m_WindowFocused;
 		ReloadScriptsIfNecessary();
 		HandleResize();
-		UpdateSelectionOutline();
+		UpdateSelectionVisuals();
 		UpdateTextUIBounds();
 		m_CurrentScene->OnUpdate(ts, !m_ViewportHidden && bShouldRenderBasedOnFocus, bUpdateAnimationsInEditor);
 
@@ -633,7 +631,7 @@ namespace Eagle
 
 		// Entity Selection
 		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
-		bool bUsingImGuizmo = selectedEntity && m_bUsingImGuizmoOrHovered;
+		bool bUsingImGuizmo = selectedEntity && m_SelectionGuizmo.IsUsingOrHovered();
 		if (m_ViewportHovered && !m_bViewportToolbarHovered && !bUsingImGuizmo && Input::IsMouseButtonPressed(Mouse::ButtonLeft))
 		{
 			const glm::vec2 viewportSize = m_ViewportBounds[1] - m_ViewportBounds[0];
@@ -644,14 +642,7 @@ namespace Eagle
 				int32_t data = -1;
 				m_CurrentScene->GetSceneRenderer()->GetObjectIDUnderMouse(data);
 				const Entity newSelection = data == -1 ? Entity::Null : Entity{ (entt::entity)data, m_CurrentScene.get() };
-
-				// When an entity is selected, guizmo might appear right under the mouse, which immediately starts a drag as if the user clicked the guizmo.
-				// To fix it, skipping the guizmo for this frame
-				const bool bGuizmoMoves = newSelection && (newSelection != selectedEntity || m_SceneHierarchyPanel.GetSelectedComponent());
-				if (bGuizmoMoves)
-					m_bSkipGuizmoThisFrame = true;
-
-				m_SceneHierarchyPanel.SetEntitySelected(newSelection);
+				m_SceneHierarchyPanel.OnViewportEntityClicked(newSelection);
 				return true;
 			}
 		}
@@ -979,42 +970,14 @@ namespace Eagle
 			scene->EditorCamera.SetTransform(oldTransform);
 	}
 
-	void EditorLayer::UpdateSelectionOutline()
+	void EditorLayer::UpdateSelectionVisuals()
 	{
-		std::vector<GUID> selectedGUIDs;
+		const bool bPlaying = m_EditorState == EditorState::Play;
+		m_AppliedSelectionOutline.Update(m_SceneHierarchyPanel.GetSelectedEntities(), m_CurrentScene, m_SelectionOutline, bDrawSelectionOutline && !bPlaying);
 
-		if (bDrawSelectionOutline && m_EditorState != EditorState::Play)
-		{
-			Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
-			if (selectedEntity && selectedEntity.GetScene() == m_CurrentScene.get())
-				selectedGUIDs.push_back(selectedEntity.GetGUID());
-		}
-
-		auto& applied = m_AppliedSelectionOutline;
-		const Ref<Scene> appliedScene = applied.TargetScene.lock();
-		const bool bUpToDate = appliedScene == m_CurrentScene && applied.EntityGUIDs == selectedGUIDs && applied.Settings == m_SelectionOutline;
-		if (bUpToDate)
-			return;
-
-		// Remove what was applied before
-		if (appliedScene)
-		{
-			for (const GUID& guid : applied.EntityGUIDs)
-			{
-				if (Entity entity = appliedScene->GetEntityByGUID(guid))
-					appliedScene->RemoveEntityOutline(entity, OutlineLayer::Editor);
-			}
-		}
-
-		for (const GUID& guid : selectedGUIDs)
-		{
-			if (Entity entity = m_CurrentScene->GetEntityByGUID(guid))
-				m_CurrentScene->SetEntityOutline(entity, m_SelectionOutline, OutlineLayer::Editor);
-		}
-
-		applied.TargetScene = m_CurrentScene;
-		applied.EntityGUIDs = std::move(selectedGUIDs);
-		applied.Settings = m_SelectionOutline;
+		const Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
+		if (!bPlaying && selectedEntity && selectedEntity.GetScene() == m_CurrentScene.get())
+			EditorUtils::DrawSelectedComponentHelpers(*m_CurrentScene, m_SceneHierarchyPanel.GetSelectedComponent());
 	}
 
 	void EditorLayer::UpdateTextUIBounds()
@@ -1029,121 +992,42 @@ namespace Eagle
 
 	void EditorLayer::UpdateGuizmo()
 	{
-		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
-		SceneComponent* selectedComponent = m_SceneHierarchyPanel.GetSelectedComponent();
-		if (selectedComponent)
 		{
-			const auto selectedType = m_SceneHierarchyPanel.GetSelectedComponentType();
-			if (selectedType == SelectedComponent::DecalComponent)
-			{
-				const AABB aabb(glm::vec3(-0.5f), glm::vec3(0.5f));
-				m_CurrentScene->DrawBox(aabb, selectedComponent->GetWorldTransform());
-				const auto& start = selectedComponent->GetWorldTransform().Location;
-				m_CurrentScene->DrawArrow(start, start + selectedComponent->GetForwardVector() * 0.25f, selectedComponent->GetUpVector());
-			}
-			else if (selectedType == SelectedComponent::CameraComponent)
-			{
-				CameraComponent& camera = *(CameraComponent*)selectedComponent;
-				m_CurrentScene->DrawFrustum(camera);
-			}
-		}
-
-		if (m_bSkipGuizmoThisFrame)
-			m_bUsingImGuizmoOrHovered = false;
-
-		if (selectedEntity && (m_GuizmoType != -1) && !m_bSkipGuizmoThisFrame)
-		{
-			ImGuizmo::PushID(this);
-			//ImGuizmo::SetOrthographic(false); //TODO: Set to true when using Orthographic
-			ImGuizmo::SetDrawlist();
-
-			ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
-
-			//Camera
+			// Camera
 			const auto& editorCamera = m_EditorScene->EditorCamera;
 			const auto runtimeCamera = m_CurrentScene->GetRuntimeCamera();
 			const bool bEditing = m_EditorState == EditorState::Edit;
+			const bool bOverriddenCamera = m_CurrentScene->IsCameraOverridden();
+			if (!bOverriddenCamera && !bEditing && !runtimeCamera)
+				return;
 
-			const Camera* camera = m_CurrentScene->IsCameraOverridden() ? &m_CurrentScene->GetOverrideCamera()
+			const Camera* camera = bOverriddenCamera ? &m_CurrentScene->GetOverrideCamera()
 				: bEditing ? &editorCamera : &runtimeCamera->Camera;
-			const glm::mat4& cameraViewMatrix = m_CurrentScene->IsCameraOverridden() ? m_CurrentScene->GetOverrideCameraViewMatrix()
+
+			SelectionGuizmo::Viewport viewport;
+			viewport.Min = m_ViewportBounds[0];
+			viewport.Max = m_ViewportBounds[1];
+			viewport.View = bOverriddenCamera ? m_CurrentScene->GetOverrideCameraViewMatrix()
 				: bEditing ? editorCamera.GetViewMatrix() : runtimeCamera->GetViewMatrix();
+			viewport.Projection = camera->GetUnreversedProjection();
+			if (camera->IsProjectionFlipped())
+				viewport.Projection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
 
-			glm::mat4 cameraProjection = camera->GetUnreversedProjection();
-			const bool bProjectionFlipped = camera->IsProjectionFlipped();
-			if (bProjectionFlipped)
-				cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
+			SelectionGuizmo::Settings settings;
+			settings.Operation = m_GuizmoType;
+			settings.Mode = m_GuizmoMode;
+			settings.Pivot = m_GuizmoPivot;
+			settings.GroupTransform = m_GuizmoGroupTransform;
+			settings.Snap = &m_SnapSettings;
 
-			Transform transform;
-			Transform finalTransform;
-			bool bRelative = false; // Only used for rotations
-			if (selectedComponent)
-			{
-				transform = selectedComponent->GetWorldTransform();
-				bRelative = m_GuizmoType == ImGuizmo::OPERATION::ROTATE;
-			}
-			else
-			{
-				transform = selectedEntity.GetWorldTransform();
-				bRelative = selectedEntity.HasParent() && (m_GuizmoType == ImGuizmo::OPERATION::ROTATE);
-			}
-			finalTransform = transform;
+			SelectionGuizmo::Selection selection;
+			selection.Active = m_SceneHierarchyPanel.GetSelectedEntity();
+			selection.Entities = m_SceneHierarchyPanel.GetSelectedEntities();
+			selection.Component = m_SceneHierarchyPanel.GetSelectedComponent();
 
-			// If relative, we only get relative rotation, since other params need to be in world coords.
-			// Otherwise, for example, guizmo will be renderer in the position if we used relative location
-			if (bRelative)
-				transform.Rotation = (selectedComponent ? selectedComponent->GetRelativeTransform() : selectedEntity.GetRelativeTransform()).Rotation;
-
-			int snappingIndex = 0;
-			if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
-				snappingIndex = 1;
-			else if (m_GuizmoType == ImGuizmo::OPERATION::SCALE)
-				snappingIndex = 2;
-
-			//Snapping
-			const float snapValue = m_SnapSettings.GetValue(m_GuizmoType);
-			const float snapValues[3] = { snapValue, snapValue, snapValue };
-			const bool bSnap = m_SnapSettings.IsSnapping(m_GuizmoType);
-
-			glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
-			ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,
-				(ImGuizmo::MODE)m_GuizmoMode, glm::value_ptr(transformMatrix), nullptr, bSnap ? snapValues : nullptr);
-
-			m_bUsingImGuizmoOrHovered = ImGuizmo::IsUsing() || ImGuizmo::IsOver();
-			if (ImGuizmo::IsUsing())
-			{
-				glm::quat newRotation;
-
-				glm::decompose(transformMatrix, transform.Scale3D, newRotation, transform.Location, notUsed1, notUsed2);
-
-				if (m_GuizmoType == ImGuizmo::OPERATION::TRANSLATE)
-					finalTransform.Location = transform.Location;
-				if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
-				{
-					if (bRelative)
-						finalTransform = selectedComponent ? selectedComponent->GetRelativeTransform() : selectedEntity.GetRelativeTransform();
-					finalTransform.Rotation = newRotation;
-				}
-				if (m_GuizmoType == ImGuizmo::OPERATION::SCALE)
-					finalTransform.Scale3D = transform.Scale3D;
-
-				// The whole drag is one transaction. Its state is captured before the first change
-				m_bGuizmoUsed = true;
-				if (!m_GuizmoTransaction && bEditing)
-				{
-					m_GuizmoTransaction.emplace(GetUndoHistory(), m_EditorScene, UndoUI::GetGuizmoTransactionName(m_GuizmoType, selectedComponent != nullptr));
-					m_GuizmoTransaction->Track(selectedEntity);
-				}
-
-				if (m_OpenedSceneAsset)
-					m_OpenedSceneAsset->SetDirty(true);
-				if (selectedComponent)
-					bRelative ? selectedComponent->SetRelativeTransform(finalTransform) : selectedComponent->SetWorldTransform(finalTransform);
-				else
-					bRelative ? selectedEntity.SetRelativeTransform(finalTransform) : selectedEntity.SetWorldTransform(finalTransform);
-			}
-
-			ImGuizmo::PopID();
+			const bool bChanged = m_SelectionGuizmo.Update(selection, m_CurrentScene, viewport, settings, bEditing ? GetUndoHistory() : nullptr, m_EditorScene);
+			if (bChanged && m_OpenedSceneAsset)
+				m_OpenedSceneAsset->SetDirty(true);
 		}
 
 		// ImOGuizmo
@@ -2605,7 +2489,7 @@ namespace Eagle
 		{
 			UI::BeginPropertyGrid("EditorPreferences_SelectionOutline");
 
-			UI::Property("Enabled", bDrawSelectionOutline, "Highlights the selected entity in the viewport");
+			UI::Property("Enabled", bDrawSelectionOutline, "Highlights the selected entities in the viewport");
 			UI::PropertyColor("Color", m_SelectionOutline.Color, false, "Alpha controls the opacity of the outline");
 			UI::ComboEnum("Mode", m_SelectionOutline.Mode,
 				"Determines which parts of the silhouette are outlined.\n"
@@ -2731,6 +2615,8 @@ namespace Eagle
 				ViewportToolbar toolbar;
 				toolbar.GuizmoType = &m_GuizmoType;
 				toolbar.GuizmoMode = &m_GuizmoMode;
+				toolbar.Pivot = &m_GuizmoPivot;
+				toolbar.GroupTransform = &m_GuizmoGroupTransform;
 				toolbar.Snap = &m_SnapSettings;
 				toolbar.Camera = &m_EditorScene->EditorCamera;
 				toolbar.ShowMenu = [this]() { DrawShowFlagsMenuItems(); };
@@ -2766,15 +2652,7 @@ namespace Eagle
 
 		if (m_EditorState == EditorState::Edit || bForceDrawGuizmo)
 			UpdateGuizmo();
-		m_bSkipGuizmoThisFrame = false; // Reset here, since the guizmo isn't always updated
-
-		// The drag has ended (or the guizmo isn't drawn anymore)
-		if (!m_bGuizmoUsed && m_GuizmoTransaction)
-		{
-			m_GuizmoTransaction->Commit();
-			m_GuizmoTransaction.reset();
-		}
-		m_bGuizmoUsed = false;
+		m_SelectionGuizmo.EndFrame();
 
 		ImGui::End(); //Viewport
 		ImGui::PopStyleVar();
@@ -3007,19 +2885,28 @@ namespace Eagle
 	{
 		// To restore selection settings
 		auto selectedComp = m_SceneHierarchyPanel.GetSelectedComponentType();
-		GUID selectedEntityGUID(0, 0);
-		if (Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity())
-			selectedEntityGUID = selectedEntity.GetGUID();
+		std::vector<GUID> selectedEntityGUIDs;
+		for (const Entity& selectedEntity : m_SceneHierarchyPanel.GetSelectedEntities())
+		{
+			if (selectedEntity.IsValid())
+				selectedEntityGUIDs.push_back(selectedEntity.GetGUID());
+		}
 
 		if (m_EditorState == EditorState::Edit)
 			PlayScene();
 		else if (m_EditorState != EditorState::Edit)
 			StopPlayingScene();
 
-		if (!selectedEntityGUID.IsNull())
+		if (!selectedEntityGUIDs.empty())
 		{
-			Entity selectedEntity = m_CurrentScene->GetEntityByGUID(selectedEntityGUID);
-			m_SceneHierarchyPanel.SetEntitySelected(selectedEntity, selectedComp);
+			std::vector<Entity> selectedEntities;
+			selectedEntities.reserve(selectedEntityGUIDs.size());
+			for (const GUID& guid : selectedEntityGUIDs)
+			{
+				if (Entity selectedEntity = m_CurrentScene->GetEntityByGUID(guid))
+					selectedEntities.push_back(selectedEntity);
+			}
+			m_SceneHierarchyPanel.SetEntitiesSelected(selectedEntities, selectedComp);
 		}
 	}
 

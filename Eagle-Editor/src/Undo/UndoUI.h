@@ -24,6 +24,7 @@ namespace Eagle
 		bool CanUseShortcuts();
 
 		// "Move Entity", "Rotate Component", etc
-		std::string GetGuizmoTransactionName(int guizmoOperation, bool bComponent);
+		// @entitiesCount. How many entities are transformed together
+		std::string GetGuizmoTransactionName(int guizmoOperation, bool bComponent, size_t entitiesCount = 1);
 	}
 }
