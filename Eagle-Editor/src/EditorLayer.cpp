@@ -415,7 +415,7 @@ namespace Eagle
 				m_ShowSaveScenePopupForNewScene = false;
 			}
 
-			if (!m_ShowSaveScenePopupForNewScene && m_CloseEngineRequested)
+			if (!m_ShowSaveScenePopupForNewScene && m_HandlingCloseRequest)
 			{
 				ProcessCloseRequest();
 			}
@@ -2929,6 +2929,7 @@ namespace Eagle
 			return;
 
 		m_CloseEngineRequested = bCloseEngine;
+		m_HandlingCloseRequest = true;
 		if (!m_OpenedSceneAsset)
 		{
 			m_ShowSaveScenePopupForNewScene = true;
@@ -2939,6 +2940,8 @@ namespace Eagle
 
 	void EditorLayer::ProcessCloseRequest()
 	{
+		m_HandlingCloseRequest = false;
+
 		if (!CanCloseProject())
 		{
 			m_CloseEngineRequested = false;

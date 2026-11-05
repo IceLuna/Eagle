@@ -410,7 +410,7 @@ namespace Eagle
 
 		out << YAML::EndMap;
 
-		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		const AssetHeader header = Utils::CreateAssetHeader(out, uint16_t(AssetType::Texture2D), 0, &totalSize);
 		ScopedDataBuffer buffer(totalSize);
 
 		size_t offset = 0;
@@ -461,7 +461,7 @@ namespace Eagle
 
 		out << YAML::EndMap;
 
-		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		const AssetHeader header = Utils::CreateAssetHeader(out, uint16_t(AssetType::TextureCube), 0, &totalSize);
 		ScopedDataBuffer buffer(totalSize);
 
 		size_t offset = 0;
@@ -573,7 +573,7 @@ namespace Eagle
 		out << YAML::EndMap;
 		out << YAML::EndMap;
 
-		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		const AssetHeader header = Utils::CreateAssetHeader(out, uint16_t(AssetType::StaticMesh), 0, &totalSize);
 		ScopedDataBuffer buffer(totalSize);
 
 		size_t offset = 0;
@@ -731,7 +731,7 @@ namespace Eagle
 		out << YAML::EndMap;
 		out << YAML::EndMap;
 
-		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		const AssetHeader header = Utils::CreateAssetHeader(out, uint16_t(AssetType::SkeletalMesh), 0, &totalSize);
 		ScopedDataBuffer buffer(totalSize);
 
 		size_t offset = 0;
@@ -780,7 +780,7 @@ namespace Eagle
 
 		out << YAML::EndMap;
 
-		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		const AssetHeader header = Utils::CreateAssetHeader(out, uint16_t(AssetType::Audio), 0, &totalSize);
 		ScopedDataBuffer buffer(totalSize);
 
 		size_t offset = 0;
@@ -830,7 +830,7 @@ namespace Eagle
 
 		out << YAML::EndMap;
 
-		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		const AssetHeader header = Utils::CreateAssetHeader(out, uint16_t(AssetType::Font), 0, &totalSize);
 		ScopedDataBuffer buffer(totalSize);
 
 		size_t offset = 0;
@@ -914,7 +914,7 @@ namespace Eagle
 		
 		out << YAML::EndMap;
 
-		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		const AssetHeader header = Utils::CreateAssetHeader(out, uint16_t(AssetType::Material), 0, &totalSize);
 		ScopedDataBuffer buffer(totalSize);
 
 		size_t offset = 0;
@@ -945,7 +945,7 @@ namespace Eagle
 
 		out << YAML::EndMap;
 
-		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		const AssetHeader header = Utils::CreateAssetHeader(out, uint16_t(AssetType::PhysicsMaterial), 0, &totalSize);
 		ScopedDataBuffer buffer(totalSize);
 
 		size_t offset = 0;
@@ -984,7 +984,7 @@ namespace Eagle
 
 		out << YAML::EndMap;
 
-		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		const AssetHeader header = Utils::CreateAssetHeader(out, uint16_t(AssetType::SoundGroup), 0, &totalSize);
 		ScopedDataBuffer buffer(totalSize);
 
 		size_t offset = 0;
@@ -1024,7 +1024,7 @@ namespace Eagle
 
 		out << YAML::EndMap;
 
-		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		const AssetHeader header = Utils::CreateAssetHeader(out, uint16_t(AssetType::Entity), 0, &totalSize);
 		ScopedDataBuffer buffer(totalSize);
 
 		size_t offset = 0;
@@ -1158,7 +1158,7 @@ namespace Eagle
 
 		out << YAML::EndMap;
 
-		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		const AssetHeader header = Utils::CreateAssetHeader(out, uint16_t(AssetType::Animation), 0, &totalSize);
 		ScopedDataBuffer buffer(totalSize);
 
 		size_t offset = 0;
@@ -1227,7 +1227,7 @@ namespace Eagle
 
 		out << YAML::EndMap;
 
-		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		const AssetHeader header = Utils::CreateAssetHeader(out, uint16_t(AssetType::AnimationGraph), 0, &totalSize);
 		ScopedDataBuffer buffer(totalSize);
 
 		size_t offset = 0;
@@ -1392,7 +1392,7 @@ namespace Eagle
 
 		out << YAML::EndMap;
 
-		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		const AssetHeader header = Utils::CreateAssetHeader(out, uint16_t(AssetType::ParticleSystem), 0, &totalSize);
 		ScopedDataBuffer buffer(totalSize);
 
 		size_t offset = 0;
@@ -1453,7 +1453,7 @@ namespace Eagle
 
 		out << YAML::EndMap;
 
-		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		const AssetHeader header = Utils::CreateAssetHeader(out, uint16_t(AssetType::AnimationBlendSpace), 0, &totalSize);
 		ScopedDataBuffer buffer(totalSize);
 
 		size_t offset = 0;
@@ -1492,7 +1492,7 @@ namespace Eagle
 
 		out << YAML::EndMap;
 
-		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		const AssetHeader header = Utils::CreateAssetHeader(out, uint16_t(AssetType::BehaviorGraph), 0, &totalSize);
 		ScopedDataBuffer buffer(totalSize);
 
 		size_t offset = 0;
@@ -1534,7 +1534,7 @@ namespace Eagle
 
 		out << YAML::EndMap;
 
-		const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+		const AssetHeader header = Utils::CreateAssetHeader(out, uint16_t(AssetType::SceneSequence), 0, &totalSize);
 		ScopedDataBuffer buffer(totalSize);
 
 		size_t offset = 0;

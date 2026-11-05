@@ -10,6 +10,9 @@ namespace Eagle
 	// This way we can easily modify YAML in any text editor without worrying about any alignments issues
 	struct AssetHeader
 	{
+		uint8_t Magic[4] = { 'E', 'A', 'G', 'L' };
+		uint16_t AssetType = 0;
+		uint16_t Version = 0;
 		size_t OffsetToYaml = 0;
 	};
 	static_assert(std::is_trivially_copyable_v<AssetHeader>);
@@ -77,7 +80,27 @@ namespace Eagle
 			return oldSize;
 		}
 
-		// Creates a header and updates `outTotalSize`
+		// Creates a header and adds YAML size to `outTotalSize`
+		inline AssetHeader CreateAssetHeader(const YAML::Emitter& emitter, uint16_t assetType, uint16_t version, size_t* outTotalSize)
+		{
+			AssetHeader header;
+			header.AssetType = assetType;
+			header.Version = version;
+			header.OffsetToYaml = AddSize(emitter, outTotalSize);
+			return header;
+		}
+
+		// Creates a header and adds YAML size to `outTotalSize`
+		inline AssetHeader CreateAssetHeader(const std::string& yamlDescription, uint16_t assetType, uint16_t version, size_t* outTotalSize)
+		{
+			AssetHeader header;
+			header.AssetType = assetType;
+			header.Version = version;
+			header.OffsetToYaml = AddSize(yamlDescription, outTotalSize);
+			return header;
+		}
+
+		// Creates a header and adds YAML size to `outTotalSize`
 		inline AssetHeader CreateHeader(const YAML::Emitter& emitter, size_t* outTotalSize)
 		{
 			AssetHeader header;
@@ -85,7 +108,7 @@ namespace Eagle
 			return header;
 		}
 
-		// Creates a header and updates `outTotalSize`
+		// Creates a header and adds YAML size to `outTotalSize`
 		inline AssetHeader CreateHeader(const std::string& yamlDescription, size_t* outTotalSize)
 		{
 			AssetHeader header;
@@ -195,11 +218,19 @@ namespace Eagle
 			return Utils::WriteStringToBuffer(dst, yaml.c_str(), yaml.size(), outOffset);
 		}
 
+		inline bool VerifyHeader(const AssetHeader& header)
+		{
+			AssetHeader defaultHeader{};
+			return std::memcmp(header.Magic, defaultHeader.Magic, std::size(header.Magic)) == 0;
+		}
+
 		template<typename BufferType>
 		inline AssetHeader ReadHeader(const BufferType& data)
 		{
 			static_assert(std::is_same_v<BufferType, DataBuffer> || std::is_same_v<BufferType, ScopedDataBuffer>);
-			return data.Read<AssetHeader>();
+			auto header = data.Read<AssetHeader>();
+			EG_CORE_ASSERT(VerifyHeader(header));
+			return header;
 		}
 
 		inline void ReadYAML(const DataBuffer& data, YAML::Node* outYaml)
@@ -215,7 +246,7 @@ namespace Eagle
 			ReadYAML(data.GetDataBuffer(), outYaml);
 		}
 
-		static inline std::string ReadYAMLToString(const DataBuffer& data)
+		inline std::string ReadYAMLToString(const DataBuffer& data)
 		{
 			const AssetHeader header = ReadHeader(data);
 			const uint8_t* yamlData = (const uint8_t*)data.Data + header.OffsetToYaml;
@@ -226,13 +257,6 @@ namespace Eagle
 		inline std::string ReadYAMLToString(const ScopedDataBuffer& data)
 		{
 			return ReadYAMLToString(data.GetDataBuffer());
-		}
-
-		inline const char* ReadYAMLAsCString(const DataBuffer& data)
-		{
-			const AssetHeader header = ReadHeader(data);
-			const uint8_t* yamlData = (const uint8_t*)data.Data + header.OffsetToYaml;
-			return (const char*)yamlData;
 		}
 
 		// All `ReadBinary` / `ReadCompressedBinary` functions validate the requested range and

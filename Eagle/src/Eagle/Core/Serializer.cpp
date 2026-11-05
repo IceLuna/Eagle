@@ -517,36 +517,8 @@ namespace Eagle
 
 	AssetType Serializer::GetAssetType(const DataBuffer& assetData)
 	{
-		AssetType actualType = AssetType::None;
-#if 0
-		YAML::Node baseNode;
-		Utils::ReadYAML(assetData, &baseNode);
-
-		if (!baseNode)
-		{
-			EG_CORE_ERROR("Failed to get an asset type");
-			return AssetType::None;
-		}
-
-		if (auto node = baseNode["Type"])
-			actualType = Utils::GetEnumFromName<AssetType>(node.as<std::string>());
-#else
-		// This approach is much faster since we avoid parsing the whole YAML hierarchy
-		// But this is less safer
-		std::string_view yaml = Utils::ReadYAMLAsCString(assetData);
-
-		constexpr char searchKey[] = "Type: ";
-		const size_t pos = yaml.find(searchKey);
-		if (pos != std::string::npos)
-		{
-			const size_t endLinePos = yaml.find_first_of('\n', pos);
-			constexpr size_t keySize = sizeof(searchKey) - 1; // -1 to remove '\0'
-			std::string_view type = yaml.substr(pos + keySize, endLinePos - pos - keySize);
-			actualType = Utils::GetEnumFromName<AssetType>(type);
-		}
-#endif
-
-		return actualType;
+		const AssetHeader header = Utils::ReadHeader(assetData);
+		return magic_enum::enum_contains<AssetType>(header.AssetType) ? AssetType(header.AssetType) : AssetType::None;
 	}
 
 	AssetType Serializer::GetAssetType(const Path& pathToAsset)
@@ -554,6 +526,7 @@ namespace Eagle
 		ScopedDataBuffer data = FileSystem::Read(pathToAsset);
 		if (!data)
 			return AssetType::None;
+
 		return GetAssetType(data.GetDataBuffer());
 	}
 

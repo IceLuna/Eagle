@@ -34,7 +34,7 @@ namespace Eagle
 		if (Serialize(scene, out))
 		{
 			size_t totalSize = sizeof(AssetHeader);
-			const AssetHeader header = Utils::CreateHeader(out, &totalSize);
+			const AssetHeader header = Utils::CreateAssetHeader(out, uint16_t(AssetType::Scene), 0, &totalSize);
 			ScopedDataBuffer buffer(totalSize);
 
 			size_t offset = 0;
@@ -258,7 +258,7 @@ namespace Eagle
 	bool SceneSerializer::SerializeWithYaml(const Path& filepath, const std::string& yaml)
 	{
 		size_t totalSize = sizeof(AssetHeader);
-		const AssetHeader header = Utils::CreateHeader(yaml, &totalSize);
+		const AssetHeader header = Utils::CreateAssetHeader(yaml, uint16_t(AssetType::Scene), 0, &totalSize);
 		ScopedDataBuffer buffer(totalSize);
 
 		size_t offset = 0;

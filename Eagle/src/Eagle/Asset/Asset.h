@@ -45,7 +45,8 @@ namespace Eagle
 	struct SkeletalMeshSettings;
 	struct AnimationSettings;
 
-	enum class AssetType
+	// Note: don't change the order. It's saved in an asset as a number
+	enum class AssetType : uint16_t
 	{
 		None,
 		Texture2D,

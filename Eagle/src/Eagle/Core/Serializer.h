@@ -49,7 +49,7 @@ namespace Eagle
 	class AssetSceneSequence;
 	class SequenceTrack;
 
-	enum class AssetType;
+	enum class AssetType : uint16_t;
 	enum class AssetTexture2DFormat;
 	enum class AssetTextureCubeFormat;
 	struct SceneRendererSettings;

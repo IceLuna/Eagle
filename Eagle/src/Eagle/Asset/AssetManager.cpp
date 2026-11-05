@@ -118,6 +118,11 @@ namespace Eagle
 
 			assetsToLoad++;
 			const AssetType type = Serializer::GetAssetType(assetPath);
+			if (type == AssetType::None)
+			{
+				EG_CORE_ERROR("Failed to load the asset, it has invalid asset type: {}", assetPath);
+				continue;
+			}
 
 			// We deffer the loading of some assets:
 			// Materials: we can't load materials unless all textures are loaded since materials refer to them

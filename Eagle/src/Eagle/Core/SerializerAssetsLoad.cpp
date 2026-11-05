@@ -401,7 +401,7 @@ namespace Eagle
 
 		ScopedDataBuffer binary;
 		ImageFormat compressedFormat = ImageFormat::Unknown;
-		std::vector<ScopedDataBuffer> compressedTextures;
+		TextureCompressor::Result compressedData{};
 
 		// Reload the data from disk
 		// Or get the data from the asset file.
@@ -440,11 +440,11 @@ namespace Eagle
 					const size_t size = compressed["Size"].as<size_t>();
 					const size_t offset = compressed["Offset"].as<size_t>();
 
-					auto& buffer = compressedTextures.emplace_back();
+					auto& buffer = compressedData.DataPerMip.emplace_back();
 					if (!Utils::ReadBinary(data, size, offset, &buffer))
 					{
 						EG_CORE_WARN("Compressed mips of a texture are corrupted. They'll be regenerated: {}", pathToAsset);
-						compressedTextures.clear();
+						compressedData.DataPerMip.clear();
 						break;
 					}
 				}
@@ -456,13 +456,12 @@ namespace Eagle
 			return {};
 		}
 
-		TextureCompressor::Result compressedData{};
 		Ref<Texture2D> texture;
 		if (compression != TextureCompressor::Quality::Disabled)
 		{
-			if (!compressedTextures.empty() && compressedFormat != ImageFormat::Unknown && TextureCompressor::IsCompressionFormatSupported(compressedFormat))
+			if (!compressedData.DataPerMip.empty() && compressedFormat != ImageFormat::Unknown && TextureCompressor::IsCompressionFormatSupported(compressedFormat))
 			{
-				texture = Texture2D::Create(Utils::AsString(pathToAsset.stem()), compressedFormat, glm::uvec2(width, height), compressedTextures, specs);
+				texture = Texture2D::Create(Utils::AsString(pathToAsset.stem()), compressedFormat, glm::uvec2(width, height), compressedData.DataPerMip, specs);
 			}
 			else
 			{
