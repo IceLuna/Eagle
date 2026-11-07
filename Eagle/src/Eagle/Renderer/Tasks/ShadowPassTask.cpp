@@ -2560,7 +2560,6 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_sprites.vert", ShaderType::Vertex);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Dynamic;
-			state.FrontFace = FrontFaceMode::Clockwise;
 
 			m_OpacitySDLPipeline = PipelineGraphics::Create(state);
 		}
@@ -2581,7 +2580,6 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_sprites.vert", ShaderType::Vertex, plDefines);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Dynamic;
-			state.FrontFace = FrontFaceMode::Clockwise;
 			state.bEnableMultiViewRendering = true;
 			state.MultiViewPasses = 6;
 
@@ -2604,7 +2602,6 @@ namespace Eagle
 			state.VertexShader = Shader::Create("shadow_maps/shadow_map_sprites.vert", ShaderType::Vertex, slDefines);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Dynamic;
-			state.FrontFace = FrontFaceMode::Clockwise;
 
 			m_OpacitySSLPipeline = PipelineGraphics::Create(state);
 		}
@@ -2626,7 +2623,6 @@ namespace Eagle
 			state.FragmentShader = Shader::Create("shadow_maps/shadow_map_masked.frag", ShaderType::Fragment);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Dynamic;
-			state.FrontFace = FrontFaceMode::Clockwise;
 
 			m_MaskedSDLPipeline = PipelineGraphics::Create(state);
 		}
@@ -2649,7 +2645,6 @@ namespace Eagle
 			state.FragmentShader = Shader::Create("shadow_maps/shadow_map_masked.frag", ShaderType::Fragment);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Dynamic;
-			state.FrontFace = FrontFaceMode::Clockwise;
 			state.bEnableMultiViewRendering = true;
 			state.MultiViewPasses = 6;
 
@@ -2674,7 +2669,6 @@ namespace Eagle
 			state.FragmentShader = Shader::Create("shadow_maps/shadow_map_masked.frag", ShaderType::Fragment);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Dynamic;
-			state.FrontFace = FrontFaceMode::Clockwise;
 
 			m_MaskedSSLPipeline = PipelineGraphics::Create(state);
 		}
