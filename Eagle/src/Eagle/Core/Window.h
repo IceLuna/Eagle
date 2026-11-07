@@ -86,7 +86,9 @@ namespace Eagle
 
 		// While the user moves or resizes one of the app's windows (including ImGui's platform windows), the OS runs its own modal loop,
 		// so `ProcessEvents()` doesn't return until the mouse is released. The callback is called from within that loop after each move/resize step,
-		// and periodically while nothing moves, so that the app keeps rendering (otherwise, the window's content would only update once the mouse is released)
+		// and periodically while nothing moves, so that the app keeps rendering (otherwise, the window's content would only update once the mouse is released).
+		// It's only called from within `ProcessEvents()`, never from a modal loop that runs elsewhere (for example, while a blocking file dialog
+		// opened in the middle of a frame is moved, or shows its context menu), since the frame that's running then hasn't ended
 		virtual void SetModalLoopCallback(const ModalLoopCallbackFn& callback) = 0;
 
 		// Only used if the window has a custom title bar.

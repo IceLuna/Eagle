@@ -74,6 +74,7 @@ namespace Eagle
 		uint32_t m_ModalLoopDepth = 0;
 		bool m_bModalLoopFramePosted = false;
 		bool m_bInModalLoopCallback = false;
+		bool m_bProcessingEvents = false;
 
 		void* m_BigIcon = nullptr;   // HICON
 		void* m_SmallIcon = nullptr; // HICON
