@@ -203,6 +203,7 @@ namespace Eagle
 			Path SplashScreenImage; // Absolute. Empty if the project doesn't have one
 			Path SplashScreenIcon;  // Absolute. Empty if the project doesn't have one
 			ankerl::unordered_dense::set<GUID> ExcludedAssets;
+			bool bScriptDebugging = false;
 		};
 
 		std::string FormatBytes(size_t bytes)
@@ -444,6 +445,29 @@ namespace Eagle
 #else
 					bSuccess = bSuccess && CopyBuildFile(info.CorePath / "fmod.dll", info.OutputFolder / "fmod.dll", task);
 #endif
+
+					// The debugger needs the scripts' symbols
+					const std::string projectSymbolsFilename = info.ProjectData.Name + ".pdb";
+					if (info.bScriptDebugging)
+					{
+						auto copySymbols = [&](const Path& from, const Path& to)
+						{
+							std::error_code error;
+							if (fs::exists(from, error))
+								CopyBuildFile(from, to, task); // Not a reason to fail the build
+							else
+								EG_CORE_WARN("`{}` is missing. The game's scripts can't be debugged without it", from);
+						};
+						copySymbols(info.CorePath / "Eagle-Scripts.pdb", info.OutputFolder / "Eagle-Scripts.pdb");
+						copySymbols(info.ProjectBinariesPath / projectSymbolsFilename, info.OutputFolder / projectSymbolsFilename);
+					}
+					else
+					{
+						// Remove symbols left behind by an earlier build with script debugging
+						std::error_code error;
+						fs::remove(info.OutputFolder / "Eagle-Scripts.pdb", error);
+						fs::remove(info.OutputFolder / projectSymbolsFilename, error);
+					}
 				}
 				{
 					AsyncTaskProgressScope monoProgress(0.3f, 0.9f);
@@ -511,6 +535,33 @@ namespace Eagle
 						return onFailed("Couldn't write " + Utils::AsString(info.OutputFolder / Project::GetGameBuildSplashScreenRelativePath()));
 				}
 
+				// Build settings. Only builds with script debugging have the file
+				{
+					const Path settingsPath = info.OutputFolder / Project::GetGameDebuggingSettingsRelativePath();
+					task.SetDetail(Utils::AsString(settingsPath.filename()));
+
+					if (info.bScriptDebugging)
+					{
+						YAML::Emitter out;
+						out << YAML::BeginMap;
+						out << YAML::Key << "ScriptDebugging" << YAML::Value << true;
+						out << YAML::EndMap;
+
+						std::ofstream fout(settingsPath);
+						fout << out.c_str();
+						if (!fout)
+							return onFailed("Couldn't write " + Utils::AsString(settingsPath));
+					}
+					else
+					{
+						// Remove the file of an earlier build with script debugging. Otherwise, this build would be debuggable too
+						std::error_code error;
+						fs::remove(settingsPath, error);
+						if (error)
+							return onFailed("Couldn't remove " + Utils::AsString(settingsPath) + ": " + error.message());
+					}
+				}
+
 				// Renderer config
 				{
 					task.SetDetail("RenderConfig.ini");
@@ -539,6 +590,8 @@ namespace Eagle
 			}
 
 			EG_CORE_INFO("The game was built successfully: {}", info.OutputFolder);
+			if (info.bScriptDebugging)
+				EG_CORE_WARN("The game was built with script debugging and it lets script debuggers attach to it. It's not recommended to give this build to players");
 			return AsyncTaskResult::Succeeded;
 		}
 	}
@@ -665,7 +718,7 @@ namespace Eagle
 		}
 	}
 	
-	void Project::Build(const Path& outputFolder, const std::vector<GUID>& excludedAssets)
+	void Project::Build(const Path& outputFolder, const std::vector<GUID>& excludedAssets, bool bScriptDebugging)
 	{
 		Ref<ImGuiLayer>& imguiLayer = Application::Get().GetImGuiLayer();
 
@@ -693,6 +746,7 @@ namespace Eagle
 			info->StartupSceneGUID = s_Info.GameStartupScene->GetGUID();
 		info->ExcludedAssets.insert(excludedAssets.begin(), excludedAssets.end());
 		info->ExcludedAssets.erase(info->StartupSceneGUID); // Just in case
+		info->bScriptDebugging = bScriptDebugging;
 		info->SplashScreenImage = ResolveSplashScreenFile(s_Info.BasePath, s_Info.SplashScreen.Image);
 		info->SplashScreenIcon = ResolveSplashScreenFile(s_Info.BasePath, s_Info.SplashScreen.Icon);
 
@@ -984,6 +1038,25 @@ namespace Eagle
 		LoadSplashScreenSettings(data["Splash Screen"], settings);
 		*outDesc = MakeGameSplashScreenDesc(settings, projectName, path.parent_path()); // The files are next to it
 		return true;
+	}
+
+	bool Project::IsGameBuildScriptDebuggingEnabled()
+	{
+		const Path path = Application::GetCorePath() / GetGameDebuggingSettingsRelativePath();
+		if (!std::filesystem::is_regular_file(path))
+			return false;
+
+		try
+		{
+			YAML::Node data = YAML::Load(FileSystem::ReadText(path));
+			if (auto node = data["ScriptDebugging"])
+				return node.as<bool>();
+		}
+		catch (const std::exception& e)
+		{
+			EG_CORE_WARN("Couldn't read the game's build settings: {}. {}", path, e.what());
+		}
+		return false;
 	}
 
 	std::string Project::ReadProjectName(const Path& projectFile)

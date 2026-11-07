@@ -1,6 +1,7 @@
 #include "ProjectLayer.h"
 #include "EditorLayer.h"
 #include "Frames/TitleBar.h"
+#include "Widgets/ProjectFileAssociation.h"
 
 #include "Eagle/Utils/PlatformUtils.h"
 
@@ -150,6 +151,8 @@ namespace Eagle
 		ImGui::EndChild();
 
 		ImGui::End();
+
+		ProjectFileAssociationWidget::Draw();
 	}
 
 	void ProjectLayer::OpenEditor()

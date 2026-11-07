@@ -154,11 +154,11 @@ namespace Eagle
 		mono_add_internal_call("Eagle.GTAOSettings::GetQuality_Ultra_Native", Eagle::Script::Eagle_GTAO_GetQuality_Ultra);
 
 		// Log
-		mono_add_internal_call("Eagle.Log::Trace", Eagle::Script::Eagle_Log_Trace);
-		mono_add_internal_call("Eagle.Log::Info", Eagle::Script::Eagle_Log_Info);
-		mono_add_internal_call("Eagle.Log::Warn", Eagle::Script::Eagle_Log_Warn);
-		mono_add_internal_call("Eagle.Log::Error", Eagle::Script::Eagle_Log_Error);
-		mono_add_internal_call("Eagle.Log::Critical", Eagle::Script::Eagle_Log_Critical);
+		mono_add_internal_call("Eagle.Log::Trace_Native", Eagle::Script::Eagle_Log_Trace);
+		mono_add_internal_call("Eagle.Log::Info_Native", Eagle::Script::Eagle_Log_Info);
+		mono_add_internal_call("Eagle.Log::Warn_Native", Eagle::Script::Eagle_Log_Warn);
+		mono_add_internal_call("Eagle.Log::Error_Native", Eagle::Script::Eagle_Log_Error);
+		mono_add_internal_call("Eagle.Log::Critical_Native", Eagle::Script::Eagle_Log_Critical);
 
 		// Entity transforms
 		mono_add_internal_call("Eagle.Entity::GetWorldTransform_Native", Eagle::Script::Eagle_Entity_GetWorldTransform);

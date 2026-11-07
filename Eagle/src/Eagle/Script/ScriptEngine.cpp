@@ -2,9 +2,12 @@
 
 #include "ScriptEngine.h"
 #include "ScriptEngineRegistry.h"
+#include "ScriptDebuggerInfo.h"
 #include "PublicField.h"
 
 #include "Eagle/Core/Application.h"
+#include "Eagle/Core/Project.h"
+#include "Eagle/Core/SplashScreen.h"
 #include "Eagle/Core/Entity.h"
 #include "Eagle/Core/GUID.h"
 #include "Eagle/Components/Components.h"
@@ -63,6 +66,8 @@ namespace Eagle
 	static ankerl::unordered_dense::map<MonoClass*, FieldType> s_BuiltInEagleTypes;
 
 	static bool s_EnableDebugging = false;
+	static uint16_t s_DebuggerPort = 0;
+	static std::string s_DebuggerAgentOptions;
 
 	static void PrintAssemblyTypes(MonoAssembly* assembly)
 	{
@@ -593,17 +598,32 @@ namespace Eagle
 
 	void ScriptEngine::Init(const Path& assemblyPath)
 	{
-		// Enabling debugging if it's not a game
-		s_EnableDebugging = !Application::Get().IsGame();
+		s_EnableDebugging = !Application::Get().IsGame() || Project::IsGameBuildScriptDebuggingEnabled();
 		if (s_EnableDebugging)
 		{
+			// Each editor and game uses its own port, so that several of them can run at the same time.
+			// Debuggers find the port in a file, see `UpdateDebuggerInfo()`
+			s_DebuggerPort = ScriptDebuggerInfo::FindFreePort(ScriptDebuggerInfo::FirstPort, ScriptDebuggerInfo::PortCount);
+			if (s_DebuggerPort == 0)
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't find a free port for the script debugger (tried {}-{}). Script debugging is disabled",
+					ScriptDebuggerInfo::FirstPort, ScriptDebuggerInfo::FirstPort + ScriptDebuggerInfo::PortCount - 1);
+				s_EnableDebugging = false;
+			}
+		}
+		if (s_EnableDebugging)
+		{
+			const std::string port = std::to_string(s_DebuggerPort);
+			s_DebuggerAgentOptions = "--debugger-agent=transport=dt_socket,address=127.0.0.1:" + port + ",server=y,suspend=n";
+
 			const char* argv[2] = {
-				"--debugger-agent=transport=dt_socket,address=127.0.0.1:2550,server=y,suspend=n,loglevel=3,logfile=MonoDebugger.log",
+				s_DebuggerAgentOptions.c_str(),
 				"--soft-breakpoints"
 			};
 
 			mono_jit_parse_options(2, (char**)argv);
 			mono_debug_init(MONO_DEBUG_FORMAT_MONO);
+			EG_CORE_INFO("[ScriptEngine] Script debugger port: {}", s_DebuggerPort);
 		}
 		//Init mono
 		mono_set_assemblies_path("mono/lib");
@@ -619,6 +639,8 @@ namespace Eagle
 
 	void ScriptEngine::Shutdown()
 	{
+		ScriptDebuggerInfo::Revoke();
+
 		s_EntityClasses.clear();
 		s_EntityInstanceDataMap.clear();
 		s_CoreAIClasses.Clear();
@@ -632,6 +654,42 @@ namespace Eagle
 		
 		s_RootDomain = nullptr;
 		s_CurrentMonoDomain = nullptr;
+	}
+
+	void ScriptEngine::UpdateDebuggerInfo()
+	{
+		ScriptDebuggerInfo::Revoke();
+		if (!s_EnableDebugging || !Project::IsOpened())
+			return;
+
+		const bool bGame = Application::Get().IsGame();
+		const Path filepath = bGame ? ScriptDebuggerInfo::GetTempFilePath() : Project::GetScriptsDebuggerCachePath() / "Debugger.yaml";
+		ScriptDebuggerInfo::Publish(filepath, Project::GetProjectInfo().Name, s_DebuggerPort, bGame);
+	}
+
+	void ScriptEngine::WaitForDebugger()
+	{
+		if (!s_EnableDebugging)
+		{
+			EG_CORE_WARN("[ScriptEngine] `Wait for Debugger` calls is ignored: script debugging isn't enabled{}",
+				Application::Get().IsGame() ? " (the game wasn't built with the \"Script debugging\" option)" : "");
+			return;
+		}
+
+		if (mono_is_debugger_attached())
+			return;
+
+		EG_CORE_INFO("[ScriptEngine] Waiting for a script debugger to attach (port {})", s_DebuggerPort);
+		SplashScreen::SetStatus("Waiting for the debugger to attach");
+		SplashScreen::SetProgress(-1.f);
+
+		while (!mono_is_debugger_attached())
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+		// `mono_is_debugger_attached` is true as soon as the debugger connects.
+		// Give it some time to send its breakpoints before scripts start running
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+		EG_CORE_INFO("[ScriptEngine] Script debugger attached");
 	}
 
 	MonoImage* ScriptEngine::GetCoreAssemblyImage()

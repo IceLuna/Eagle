@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 
 namespace Eagle
 {
@@ -21,6 +22,9 @@ namespace Eagle
             {
                 Log.Error("Unknown exception!");
             }
+
+            if (Debugger.IsAttached)
+                Debugger.Break();
         }
     }
 }

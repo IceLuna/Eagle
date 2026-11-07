@@ -48,7 +48,8 @@ namespace Eagle
 		static bool Close();
 		static void GenerateSolution(const ProjectInfo& info);
 		// @excludedAssets. Assets that aren't packed into the build
-		static void Build(const Path& outputFolder, const std::vector<GUID>& excludedAssets = {});
+		// @bScriptDebugging. Whether script debuggers can attach to the game
+		static void Build(const Path& outputFolder, const std::vector<GUID>& excludedAssets = {}, bool bScriptDebugging = false);
 		static void OpenGameBuild(const Path& filepath); // Path to .egpack
 		static void Save();
 		static void Save(const ProjectInfo& info);
@@ -80,6 +81,7 @@ namespace Eagle
 		static Path GetContentPath() { return GetProjectPath() / "Content"; }
 		static Path GetCachePath() { return GetProjectPath() / "Cache"; }
 		static Path GetRendererCachePath() { return GetCachePath() / "Renderer"; }
+		static Path GetScriptsDebuggerCachePath() { return GetCachePath() / "Scripts"; }
 		static Path GetSavedPath() { return GetProjectPath() / "Saved"; }
 		static Path GetSourcePath() { return GetProjectPath() / "Source"; }
 		static Path GetPhysicsDebugInfoPath() { return Project::GetSavedPath() / "PhysXDebugInfo"; }
@@ -92,6 +94,12 @@ namespace Eagle
 		// The game build copies the splash screen's image & icon into `Data`, and writes the rest of its settings into this file.
 		// So that the game can show its splash screen before it loads anything
 		static Path GetGameBuildSplashScreenRelativePath() { return "Data/Splash.yaml"; }
+
+		// A game built with script debugging has this file
+		static Path GetGameDebuggingSettingsRelativePath() { return "Data/Debugging.yaml"; }
+
+		// Games only. Whether the game was built with script debugging. False if the file is missing or can't be read
+		static bool IsGameBuildScriptDebuggingEnabled();
 
 		// @baseFolder. The folder that the paths in `settings` are relative to
 		static SplashScreenDesc MakeGameSplashScreenDesc(const GameSplashScreenSettings& settings, const std::string& projectName, const Path& baseFolder);

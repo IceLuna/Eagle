@@ -137,6 +137,7 @@ namespace Eagle
 		SplashScreenDesc m_SplashScreenDesc;
 		bool m_bSplashScreenEnabled = true;
 		Path m_CmdProjectPath; // `--project` argument
+		bool m_bCmdWaitForDebugger = false; // `--wait-for-debugger` argument (games)
 
 		Path m_CorePath;
 

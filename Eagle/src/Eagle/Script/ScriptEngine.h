@@ -39,6 +39,9 @@ namespace Eagle
 
 		static void Reset();
 
+		static void UpdateDebuggerInfo();
+		static void WaitForDebugger();
+
 		static bool InstantiateEntityClass(Entity entity);
 		static bool CopyFieldsToRuntime(Entity entity);
 		static EntityInstance* CreateEntityInstance(const Entity& entity);

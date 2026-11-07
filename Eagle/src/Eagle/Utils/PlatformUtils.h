@@ -49,9 +49,38 @@ namespace Eagle
 		bool IsSSE2Supported();
 		int Execute(const Path& exePath, const std::string& args);
 
+		// The absolute path of the running executable. Empty on failure
+		Path GetExecutablePath();
+
 		// Replaces the icon of an executable file (the one shown by the OS for the file itself).
 		// Returns false on failure
 		bool SetExecutableIcon(const Path& exePath, const Path& imagePath);
+	}
+
+	// Which program the OS opens project files (.egproj) with
+	namespace ProjectFileAssociation
+	{
+		enum class AssociationStatus
+		{
+			NotRegistered,
+			ProgramMissing,
+			ThisProgram,
+			OtherProgram
+		};
+
+		struct Info
+		{
+			AssociationStatus Status = AssociationStatus::NotRegistered;
+			Path Program; // The registered program. Empty if `NotRegistered`
+		};
+
+		[[nodiscard]] Info Get();
+
+		// Makes the running executable open project files, for the current user (doesn't require admin rights).
+		// Returns false if it couldn't be registered.
+		// Note: after it, `Get()` might still return another program, if the user picked one for them with "Open with > Always",
+		// which takes priority over the registered one and can only be changed by the user
+		bool Register();
 	}
 
 	namespace Dialog

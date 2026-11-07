@@ -4,6 +4,7 @@
 #include "Frames/TitleBar.h"
 #include "Undo/UndoUI.h"
 #include "Widgets/EditorNotifications.h"
+#include "Widgets/ProjectFileAssociation.h"
 
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/Asset/AssetManager.h"
@@ -428,6 +429,7 @@ namespace Eagle
 			m_ProjectSettingsTab.reset();
 
 		EditorFrames::EndFrame();
+		ProjectFileAssociationWidget::Draw();
 		EditorNotifications::Draw();
 
 		//ImGui::ShowStyleEditor();
@@ -1186,6 +1188,11 @@ namespace Eagle
 		{
 			if (ImGui::MenuItem("Shortcuts"))
 				m_bShowShortcuts = true;
+
+			if (ImGui::MenuItem("Open Projects with this Editor..."))
+				ProjectFileAssociationWidget::Open();
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("Shows which program opens project files (%s) when they're double-clicked, and lets you register this editor", Project::GetExtension());
 
 			ImGui::Separator();
 

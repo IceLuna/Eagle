@@ -129,6 +129,10 @@ namespace Eagle
 				m_WindowProps.Title = Project::GetProjectInfo().Name;
 				break;
 			}
+
+			ScriptEngine::UpdateDebuggerInfo();
+			if (m_bCmdWaitForDebugger)
+				ScriptEngine::WaitForDebugger();
 		}
 
 		m_ImGuiLayer = ImGuiLayer::Create();
@@ -248,6 +252,10 @@ namespace Eagle
 	{
 		argparse::ArgumentParser program("Eagle Engine");
 		program.add_argument("--project").help("Path to a .egproj file");
+		program.add_argument("--wait-for-debugger")
+			.help("Games: wait at the splash screen until a script debugger attaches, so that startup code can be debugged")
+			.default_value(false)
+			.implicit_value(true);
 
 		try
 		{
@@ -268,6 +276,9 @@ namespace Eagle
 			else
 				EG_CORE_ERROR("The project passed with `--project` doesn't exist: {}", projectPath);
 		}
+
+		if (m_Game)
+			m_bCmdWaitForDebugger = program.get<bool>("--wait-for-debugger");
 	}
 
 	void Application::ProcessCmdCommands()
@@ -321,6 +332,8 @@ namespace Eagle
 				std::filesystem::current_path(corePath);
 				imguiLayer->SetIniFilepath(corePath / "imgui.ini");
 			}
+
+			ScriptEngine::UpdateDebuggerInfo();
 		});
 	}
 

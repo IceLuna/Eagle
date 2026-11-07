@@ -13,7 +13,8 @@ namespace Eagle
 
 		void OnImGuiRender();
 
-		// Finds the assets that the game doesn't use and asks the user to confirm that they can be left out. Then builds the game
+		// Finds the assets that the game doesn't use, shows them and the build options (for example, script debugging),
+		// and asks the user to confirm that they can be left out. Then builds the game
 		void BuildGame();
 
 		void SetOpened(bool bOpened);
@@ -58,5 +59,6 @@ namespace Eagle
 		AssetUsageReport m_BuildReport;
 		bool m_bPreparingBuild = false;
 		bool m_bOpenBuildPopup = false;
+		bool m_bBuildScriptDebugging = false; // Build option. Reset for each build
 	};
 }

@@ -502,7 +502,7 @@ namespace Eagle
 
 	void AssetUsagePanel::DrawBuildPopup()
 	{
-		constexpr const char* popupName = "Unused Assets##GameBuild";
+		constexpr const char* popupName = "Build Game##GameBuild";
 		if (m_bOpenBuildPopup && !AsyncTaskManager::IsModalTaskActive())
 		{
 			ImGui::OpenPopup(popupName);
@@ -513,54 +513,75 @@ namespace Eagle
 			return;
 
 		const auto& unused = m_BuildReport.Unused;
-		constexpr float width = 900.f;
+		const float width = unused.empty() ? 600.f : 900.f;
 
 		ImGui::PushTextWrapPos(width);
-		ImGui::Text("%zu asset(s) (%s) aren't used by the game, so they won't be included in the build:", unused.size(), FormatSize(m_BuildReport.UnusedSize).c_str());
+		if (!unused.empty())
+		{
+			ImGui::Text("%zu asset(s) (%s) aren't used by the game, so they won't be included in the build:", unused.size(), FormatSize(m_BuildReport.UnusedSize).c_str());
 
-		std::vector<const AssetUsageData*> datas;
-		datas.reserve(unused.size());
-		for (const auto& data : unused)
-			datas.push_back(&data);
+			std::vector<const AssetUsageData*> datas;
+			datas.reserve(unused.size());
+			for (const auto& data : unused)
+				datas.push_back(&data);
 
-		const float rowHeight = ImGui::GetTextLineHeightWithSpacing() + ImGui::GetStyle().CellPadding.y * 2.f;
-		const float tableHeight = rowHeight * float(std::min<size_t>(datas.size(), 15) + 1) + ImGui::GetStyle().ScrollbarSize;
-		DrawAssetsTable("##ExcludedAssets", datas, nullptr, ImVec2(width, tableHeight));
+			const float rowHeight = ImGui::GetTextLineHeightWithSpacing() + ImGui::GetStyle().CellPadding.y * 2.f;
+			const float tableHeight = rowHeight * float(std::min<size_t>(datas.size(), 15) + 1) + ImGui::GetStyle().ScrollbarSize;
+			DrawAssetsTable("##ExcludedAssets", datas, nullptr, ImVec2(width, tableHeight));
 
-		ImGui::TextWrapped("An asset is used by the game if the startup scene references it, or if a used asset references it, and so on. "
-			"Assets whose paths are written in C# scripts, and assets marked as \"Always build\" are always used.");
-		ImGui::TextColored(s_WarningColor, "If the game loads some of these assets in another way (for example, by a path that's built at runtime), "
-			"enable \"Always build\" in their asset editors (for scenes, in the Scene Settings), save them, and build again.");
+			ImGui::TextWrapped("An asset is used by the game if the startup scene references it, or if a used asset references it, and so on. "
+				"Assets whose paths are written in C# scripts, and assets marked as \"Always build\" are always used.");
+			ImGui::TextColored(s_WarningColor, "If the game loads some of these assets in another way (for example, by a path that's built at runtime), "
+				"enable \"Always build\" in their asset editors (for scenes, in the Scene Settings), save them, and build again.");
+		}
 		if (!m_BuildReport.Warnings.empty())
 			ImGui::TextColored(s_WarningColor, "There were %zu warning(s) while checking the assets. See the log.", m_BuildReport.Warnings.size());
+
+		if (!unused.empty() || !m_BuildReport.Warnings.empty())
+			ImGui::Separator();
+
+		// Build options
+		ImGui::Checkbox("Script debugging", &m_bBuildScriptDebugging);
+		ImGui::SameLine();
+		UI::HelpMarker("Lets a script debugger (Visual Studio with Eagle Debug Tools) attach to the game, and includes the script symbols (.pdb) in the build.\n"
+			"While the game runs, it listens for debuggers on this computer. Don't enable it for builds that are given to players.");
+		if (m_bBuildScriptDebugging)
+		{
+			ImGui::TextColored(s_WarningColor, "For more accurate stepping, build the scripts in the Debug configuration before building the game. "
+				"Release scripts are optimized: some lines can't be stepped through, and some local variables can't be inspected.");
+		}
 		ImGui::PopTextWrapPos();
 
 		ImGui::Separator();
-		if (ImGui::Button("Build without them"))
+		auto build = [this](const std::vector<GUID>& excluded)
 		{
-			std::vector<GUID> excluded;
-			excluded.reserve(unused.size());
-			for (const auto& data : unused)
-				excluded.push_back(data.ID);
+			Path buildFolder = FileDialog::OpenFolder();
+			if (buildFolder.empty())
+				return;
 
-			Path buildFolder = FileDialog::OpenFolder();
-			if (!buildFolder.empty())
-			{
-				Project::Build(buildFolder, excluded);
-				m_BuildReport = {};
-				ImGui::CloseCurrentPopup();
-			}
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Include all assets"))
+			Project::Build(buildFolder, excluded, m_bBuildScriptDebugging);
+			m_BuildReport = {};
+			ImGui::CloseCurrentPopup();
+		};
+
+		if (unused.empty())
 		{
-			Path buildFolder = FileDialog::OpenFolder();
-			if (!buildFolder.empty())
+			if (ImGui::Button("Build"))
+				build({});
+		}
+		else
+		{
+			if (ImGui::Button("Build without them"))
 			{
-				Project::Build(buildFolder);
-				m_BuildReport = {};
-				ImGui::CloseCurrentPopup();
+				std::vector<GUID> excluded;
+				excluded.reserve(unused.size());
+				for (const auto& data : unused)
+					excluded.push_back(data.ID);
+				build(excluded);
 			}
+			ImGui::SameLine();
+			if (ImGui::Button("Include all assets"))
+				build({});
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Cancel"))
@@ -762,19 +783,9 @@ namespace Eagle
 				for (const auto& warning : job->Report.Warnings)
 					EG_CORE_WARN("[Game build] {}", warning);
 
-				if (job->Report.Unused.empty())
-				{
-					Path buildFolder = FileDialog::OpenFolder();
-					if (buildFolder.empty())
-					{
-						return; // Canceled
-					}
-
-					Project::Build(buildFolder);
-					return;
-				}
-
+				// Shows the unused assets (if there are any) and the build options
 				m_BuildReport = std::move(job->Report);
+				m_bBuildScriptDebugging = false;
 				m_bOpenBuildPopup = true;
 			});
 	}

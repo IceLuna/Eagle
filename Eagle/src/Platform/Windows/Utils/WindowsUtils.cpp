@@ -327,6 +327,24 @@ namespace Eagle
 			const std::string cmd = "call " + Utils::AsString(exePath) + ' ' + args;
 			return system(cmd.c_str());
 		}
+
+		Path GetExecutablePath()
+		{
+			std::wstring buffer(MAX_PATH, L'\0');
+			while (true)
+			{
+				const DWORD length = GetModuleFileNameW(nullptr, buffer.data(), DWORD(buffer.size()));
+				if (length == 0)
+					return {};
+
+				if (length < buffer.size())
+				{
+					buffer.resize(length);
+					return Path(buffer);
+				}
+				buffer.resize(buffer.size() * 2); // The path didn't fit
+			}
+		}
 	}
 	
 	namespace Dialog
