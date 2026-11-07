@@ -18,7 +18,7 @@ namespace Eagle
 		static void Update(const Ref<CommandBuffer>& cmd);
 
 		static uint32_t GetMaterialIndex(const Ref<Material>& material);
-		static bool HasRenderingModeChanged() { return s_RenderingModeChanged; }
+		static uint64_t GetRenderingModeVersion() { return s_RenderingModeVersion; }
 
 		static const Ref<Buffer>& GetMaterialsBuffer() { return s_MaterialsBuffer; }
 		static const Ref<Buffer>& GetMaterialsRawBuffer() { return s_MaterialsRawBuffer; }
@@ -42,7 +42,7 @@ namespace Eagle
 
 		// If true, materials were changed or new ones were added
 		static bool s_Dirty;
-		static bool s_RenderingModeChanged; // Either blend mode or double-sided state have changed
+		static uint64_t s_RenderingModeVersion; // Either blend mode or double-sided state have changed. When it happens, this increments so that tasks can update the data
 
 		friend class Material;
 	};

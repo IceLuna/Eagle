@@ -498,7 +498,10 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Process Geometry");
 
 		// If it changed, we need to re-sort meshes
-		const bool bRenderingModeChanged = MaterialSystem::HasRenderingModeChanged();
+		const uint64_t latestRenderingModeVersion = MaterialSystem::GetRenderingModeVersion();
+		const bool bRenderingModeChanged = m_RenderingModeVersion != latestRenderingModeVersion;
+		if (bRenderingModeChanged)
+			m_RenderingModeVersion = latestRenderingModeVersion;
 
 		// Meshes
 		{

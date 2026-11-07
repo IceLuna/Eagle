@@ -18,7 +18,7 @@ namespace Eagle
 	ankerl::unordered_dense::map<Ref<Material>, uint32_t> MaterialSystem::s_UsedMaterialsMap;
 	std::vector<size_t> MaterialSystem::s_FreeIndices; // Free slots inside `s_Materials`
 	bool MaterialSystem::s_Dirty = true;
-	bool MaterialSystem::s_RenderingModeChanged = true;
+	uint64_t MaterialSystem::s_RenderingModeVersion = 1;
 
 	static std::vector<CPUMaterial> s_CPUMaterials;
 	static std::vector<float> s_CPURawMaterials;
@@ -105,7 +105,6 @@ namespace Eagle
 		
 		if (!s_Dirty)
 		{
-			s_RenderingModeChanged = false;
 			return;
 		}
 
@@ -178,7 +177,8 @@ namespace Eagle
 	{
 		std::scoped_lock lock(s_Mutex);
 		
-		s_Dirty = s_RenderingModeChanged = true;
+		s_Dirty = true;
+		s_RenderingModeVersion++;
 	}
 
 	void MaterialSystem::OnMaterialChanged(const Ref<Material>& material, bool bRenderingModeChanged)
@@ -192,7 +192,8 @@ namespace Eagle
 		if (it != s_UsedMaterialsMap.end())
 		{
 			SetDirty_Internal();
-			s_RenderingModeChanged |= bRenderingModeChanged;
+			if (bRenderingModeChanged)
+				s_RenderingModeVersion++;
 		}
 	}
 

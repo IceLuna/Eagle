@@ -474,6 +474,7 @@ namespace Eagle
 		bool bUploadTextSpecificTransforms = false;
 		// ------- !Lit Text 3D -------
 
+		uint64_t m_RenderingModeVersion = 0;
 		uint64_t m_Version = 0;
 		bool bMotionRequired = false;
 	};
