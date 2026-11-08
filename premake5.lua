@@ -485,6 +485,7 @@ project "Eagle-Scripts"
 	location "Eagle-Scripts"
 	kind "SharedLib"
 	language "C#"
+	csversion "12"
 
 	targetdir ("Eagle-Editor")
 	--targetdir ("bin/" .. outputdir .. "/%{prj.name}")

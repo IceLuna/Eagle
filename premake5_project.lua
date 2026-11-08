@@ -42,6 +42,7 @@ project "%{ProjectName}"
 	location ("%{ProjectDir}" .. "/Source")
 	kind "SharedLib"
 	language "C#"
+	csversion "12"
 
 	targetdir ("%{ProjectDir}" .. "/Binaries")
 	objdir ("%{ProjectDir}" .. "/Binaries/Intermediate/" .. outputdir)
