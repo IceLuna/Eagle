@@ -357,6 +357,16 @@ namespace Eagle
 
 	void Application::RunFrame(bool bProcessEvents)
 	{
+		// While the window is minimized, nothing is shown, so frames are only run `minimizedFramesPerSecond` times per second.
+		// Otherwise, the loop would keep spinning as fast at it can
+		if (bProcessEvents && m_Minimized)
+		{
+			constexpr double minimizedFramesPerSecond = 30.0;
+			const double remaining = (m_LastFrameTime - glfwGetTime()) + 1.0 / minimizedFramesPerSecond;
+			if (remaining > 0.0)
+				m_Window->WaitEvents(remaining);
+		}
+
 #ifdef EG_CPU_TIMINGS
 		// A frame run from within `ProcessEvents()` is nested in the outer one, so the outer frame's timings are still in use
 		if (bProcessEvents)
@@ -401,10 +411,9 @@ namespace Eagle
 		}
 
 		// The events are processed right before the frame is built (after `RenderManager::BeginFrame` waited for the renderer),
-		// so that the frame reacts to the latest input
-		const bool bBeganFrame = !m_Minimized;
-		if (bBeganFrame)
-			RenderManager::BeginFrame();
+		// so that the frame reacts to the latest input.
+		// Render frames also run while the window is minimized, since updates can queue work for the render thread
+		RenderManager::BeginFrame();
 
 		if (bProcessEvents)
 		{
@@ -416,40 +425,50 @@ namespace Eagle
 			if (RenderManager::GetFrameNumber_CPU() != frameNumber)
 			{
 				UpdateTime();
-				if (bBeganFrame && !m_Minimized)
-					RenderManager::BeginFrame();
+				RenderManager::BeginFrame();
 			}
 		}
 
-		// The events might have minimized the window. If they restored it, the frame starts next iteration, since `BeginFrame` wasn't called
-		if (bBeganFrame && !m_Minimized)
+		// While minimized (the events might have just minimized or restored it), the layers keep updating, so the engine keeps running.
+		const bool bMinimized = m_Minimized;
+		if (!bMinimized)
 		{
 			if (m_RevealState == WindowRevealState::WaitingForFrame)
 				BeginWindowReveal();
 
 			ThumbnailCache::NextFrame();
+		}
 
+		const bool bPaused = m_Minimized && Project::IsOpened() && Project::GetProjectInfo().bPauseWhenMinimized;
+		if (!bPaused)
+		{
 			for (auto& layer : m_LayerStack)
 				layer->OnUpdate(m_Timestep);
-
-			// ImGui
-			{
-				m_ImGuiLayer->BeginFrame();
-				for (auto& layer : m_LayerStack)
-					layer->OnImGuiRender();
-				m_ImGuiLayer->EndFrame();
-				m_ImGuiLayer->UpdatePlatform();
-			}
-
-			RenderManager::EndFrame();
-
-			// While the user moves or resizes a window, the OS resizes it again as soon as this returns to its modal loop.
-			// If the render thread presents this frame after that, the present fails because the swapchain no longer matches the window,
-			// and the frame is dropped. While the mouse keeps moving, every frame can lose that race, so the window's content stays frozen.
-			// So the frame is presented before the OS gets to make the next step. The window can't change meanwhile, since that only happens on this thread
-			if (!bProcessEvents)
-				RenderManager::WaitForFramesPresented();
 		}
+
+		// ImGui
+		if (!bMinimized)
+		{
+			m_ImGuiLayer->BeginFrame();
+			for (auto& layer : m_LayerStack)
+				layer->OnImGuiRender();
+			m_ImGuiLayer->EndFrame();
+			m_ImGuiLayer->UpdatePlatform();
+		}
+		else
+		{
+			m_ImGuiLayer->SkipFrame();
+		}
+
+		RenderManager::EndFrame();
+
+		// While the user moves or resizes a window, the OS resizes it again as soon as this returns to its modal loop.
+		// If the render thread presents this frame after that, the present fails because the swapchain no longer matches the window,
+		// and the frame is dropped. While the mouse keeps moving, every frame can lose that race, so the window's content stays frozen.
+		// So the frame is presented before the OS gets to make the next step. The window can't change meanwhile, since that only happens on this thread
+		if (!bProcessEvents)
+			RenderManager::WaitForFramesPresented();
+
 		AudioEngine::Update(m_Timestep);
 		UpdateWindowReveal();
 	}

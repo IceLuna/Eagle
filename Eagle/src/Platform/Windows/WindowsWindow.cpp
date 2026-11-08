@@ -464,6 +464,18 @@ namespace Eagle
 		m_bProcessingEvents = false;
 	}
 
+	void WindowsWindow::WaitEvents(double timeoutSeconds)
+	{
+		EG_CORE_ASSERT(!m_bInModalLoopCallback, "Events can't be processed from within the modal loop callback");
+
+		m_bProcessingEvents = true;
+		if (timeoutSeconds > 0.0)
+			glfwWaitEventsTimeout(timeoutSeconds);
+		else
+			glfwPollEvents();
+		m_bProcessingEvents = false;
+	}
+
 	// How the app keeps running while the user moves or resizes a window:
 	// `glfwPollEvents()` doesn't return until the mouse is released, since the OS runs its own modal loop meanwhile. That loop still dispatches
 	// posted & timer messages of the thread's windows, so the frames are run from the window procedure of a hidden window (`ModalLoopWindowProc()`):

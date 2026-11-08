@@ -29,6 +29,10 @@ namespace Eagle
 		virtual void BeginFrame() = 0;
 		virtual void EndFrame() = 0;
 		virtual void UpdatePlatform() = 0;
+
+		// Called instead of `BeginFrame()`...`UpdatePlatform()` while the main window is minimized.
+		// Otherwise, the render thread would render the platform windows of an older frame (the one that used the same frame index)
+		virtual void SkipFrame() = 0;
 		void OnImGuiRender() override;
 		void OnUpdate(Timestep ts) override;
 		void OnEvent(Event& e) override;

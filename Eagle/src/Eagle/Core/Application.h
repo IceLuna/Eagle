@@ -57,6 +57,7 @@ namespace Eagle
 		static const Path& GetCorePath() { return Get().m_CorePath; }
 		static Application& Get() { return *s_Instance; }
 		inline Window& GetWindow() { return *m_Window; }
+		const Window& GetWindow() const { return *m_Window; }
 		inline bool IsMinimized() const { return m_Minimized; }
 		void SetShouldClose(bool close);
 

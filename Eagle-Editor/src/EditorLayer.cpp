@@ -301,7 +301,7 @@ namespace Eagle
 		}
 
 		// We shouldn't render if window is unfocused, and the user requested not to do it in that case.
-		const bool bShouldRenderBasedOnFocus = !bRenderOnlyWhenFocused || m_WindowFocused;
+		const bool bShouldRenderBasedOnFocus = (!bRenderOnlyWhenFocused || m_WindowFocused) && !Application::Get().IsMinimized();
 		ReloadScriptsIfNecessary();
 		HandleResize();
 		UpdateSelectionVisuals();

@@ -134,6 +134,66 @@ namespace
 		platformIO.Renderer_RenderWindow = nullptr;
 		platformIO.Renderer_SwapBuffers = nullptr;
 	}
+
+#ifdef EG_PLATFORM_WINDOWS
+	// The GLFW backend doesn't support OS-level parenting of platform windows (`ImGuiBackendFlags_HasParentViewport`), so each floating window
+	// is a top-level window. So while the main window is minimized, they'd stay on screen, frozen and ignoring input, since no UI frames run then.
+	// So, like the Win32 backend does, the platform windows that have a parent viewport are owned by the main window.
+	// Windows hides them while it's minimized and shows them when it's restored. It also keeps them above it, like tool windows.
+	// Note: they're owned by the main window even if their parent viewport is another one. The main window outlives them,
+	// while another owner could be destroyed first, which would destroy them too (Windows destroys the windows that an owner owns)
+	static void (*s_OriginalPlatformUpdateWindow)(ImGuiViewport*) = nullptr;
+	static void (*s_OriginalPlatformShowWindow)(ImGuiViewport*) = nullptr;
+
+	static HWND GetPlatformWindowOwner(const ImGuiViewport* viewport)
+	{
+		return viewport->ParentViewport ? (HWND)ImGui::GetMainViewport()->PlatformHandleRaw : nullptr;
+	}
+
+	// Win32 calls `GWLP_HWNDPARENT` the owner of a window that isn't `WS_CHILD`. `SetParent()` would make it a child window (clipped to the parent)
+	static HWND GetWindowOwner(HWND hwnd) { return (HWND)::GetWindowLongPtrW(hwnd, GWLP_HWNDPARENT); }
+	static void SetWindowOwner(HWND hwnd, HWND owner) { ::SetWindowLongPtrW(hwnd, GWLP_HWNDPARENT, (LONG_PTR)owner); }
+
+	static void HookPlatformWindowOwnership()
+	{
+		// Platform windows have the main viewport as their parent (unless a window class sets another one), which matches them being owned by it.
+		// ImGui also uses it to guess which windows are above others
+		ImGui::GetIO().ConfigViewportsNoDefaultParent = false;
+
+		ImGuiPlatformIO& platformIO = ImGui::GetPlatformIO();
+		s_OriginalPlatformUpdateWindow = platformIO.Platform_UpdateWindow;
+		s_OriginalPlatformShowWindow = platformIO.Platform_ShowWindow;
+		EG_CORE_ASSERT(s_OriginalPlatformShowWindow);
+
+		// ImGui calls it every frame for each platform window, and before a new one is shown. Its parent viewport can change
+		platformIO.Platform_UpdateWindow = [](ImGuiViewport* viewport)
+		{
+			if (s_OriginalPlatformUpdateWindow)
+				s_OriginalPlatformUpdateWindow(viewport);
+
+			const HWND hwnd = (HWND)viewport->PlatformHandleRaw;
+			const HWND owner = GetPlatformWindowOwner(viewport);
+			if (hwnd && GetWindowOwner(hwnd) != owner)
+				SetWindowOwner(hwnd, owner);
+		};
+
+		// Showing an owned window brings its owner to the front, even if it isn't activated. So the popups and tooltips of a floating window
+		// would bring the main window in front of other apps. Like the Win32 backend, they're unowned while they're shown (ImGui #7354, #8669)
+		platformIO.Platform_ShowWindow = [](ImGuiViewport* viewport)
+		{
+			const HWND hwnd = (HWND)viewport->PlatformHandleRaw;
+			const HWND owner = hwnd ? GetWindowOwner(hwnd) : nullptr;
+			const bool bAvoidBringingOwnerToFront = owner && (viewport->Flags & (ImGuiViewportFlags_NoFocusOnAppearing | ImGuiViewportFlags_NoTaskBarIcon));
+			if (bAvoidBringingOwnerToFront)
+				SetWindowOwner(hwnd, nullptr);
+
+			s_OriginalPlatformShowWindow(viewport);
+
+			if (bAvoidBringingOwnerToFront)
+				SetWindowOwner(hwnd, owner);
+		};
+	}
+#endif
 }
 
 namespace Eagle
@@ -215,7 +275,12 @@ namespace Eagle
 		initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 		ImGui_ImplVulkan_Init(&initInfo, (VkRenderPass)RenderManager::GetPresentRenderPassHandle());
 		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
 			HookPlatformWindowCallbacks();
+#ifdef EG_PLATFORM_WINDOWS
+			HookPlatformWindowOwnership();
+#endif
+		}
 
 		UploadFonts();
 	}
@@ -264,6 +329,16 @@ namespace Eagle
 	{
 		auto& snapshot = s_Snapshots[RenderManager::GetCurrentFrameIndex()];
 		ImGui_ImplVulkan_RenderDrawData(&snapshot.DrawData, (VkCommandBuffer)cmd->GetHandle());
+	}
+
+	void VulkanImGuiLayer::SkipFrame()
+	{
+		s_PlatformWindowsToRender[RenderManager::GetCurrentFrameIndex_CPU()].clear();
+
+		ImGuiIO& io = ImGui::GetIO();
+		io.ClearEventsQueue();
+		io.ClearInputKeys();
+		io.ClearInputMouse();
 	}
 
 	void VulkanImGuiLayer::UpdatePlatform()

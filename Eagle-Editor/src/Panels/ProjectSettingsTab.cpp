@@ -24,7 +24,7 @@ namespace Eagle
 		// In the order of the list
 		constexpr SectionInfo s_Sections[] =
 		{
-			{ ProjectSettingsTab::Section::General, "General", "The scene the game starts with, and the version of the game" },
+			{ ProjectSettingsTab::Section::General, "General", "The scene the game starts with, the version of the game, and whether it runs while its window is minimized" },
 			{ ProjectSettingsTab::Section::CollisionGroups, "Collision Groups",
 				"Groups of physics objects. Colliders, character controllers and ragdolls belong to groups, and choose which groups they interact with.\n"
 				"Deleting a group removes it from everything that uses it" },
@@ -240,6 +240,7 @@ namespace Eagle
 		const ProjectInfo& projectInfo = Project::GetProjectInfo();
 		Ref<AssetScene> startupScene = projectInfo.GameStartupScene;
 		glm::uvec3 version = projectInfo.Version;
+		bool bPauseWhenMinimized = projectInfo.bPauseWhenMinimized;
 		bool bChanged = false;
 
 		UI::BeginPropertyGrid("ProjectSettingsGeneral");
@@ -252,6 +253,13 @@ namespace Eagle
 		if (UI::PropertyDrag("Version", version, 1, 0, 0, "Major - Minor - Patch"))
 		{
 			Project::SetVersion(version);
+			bChanged = true;
+		}
+
+		if (UI::Property("Pause when minimized", bPauseWhenMinimized, "If set, the game doesn't update while its window is minimized (also when it's played in the editor). "
+			"Otherwise, it keeps running and updating the systems (such as scripts, physics, animations, audio), but nothing is rendered, and it updates at a lower rate"))
+		{
+			Project::SetPauseWhenMinimized(bPauseWhenMinimized);
 			bChanged = true;
 		}
 		UI::EndPropertyGrid();

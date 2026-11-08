@@ -13,6 +13,7 @@ namespace Eagle
 		virtual ~WindowsWindow();
 
 		void ProcessEvents() override;
+		void WaitEvents(double timeoutSeconds) override;
 
 		virtual void* GetNativeWindow() const override;
 

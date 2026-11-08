@@ -367,6 +367,7 @@ namespace Eagle
 
 				if (!info.StartupSceneGUID.IsNull())
 					out << YAML::Key << "StartupScene" << YAML::Value << info.StartupSceneGUID;
+				out << YAML::Key << "PauseWhenMinimized" << YAML::Value << info.ProjectData.bPauseWhenMinimized;
 
 				out << YAML::Key << "AssetPackSize" << assetPack.Size();
 				out << YAML::Key << "AssetPackOffset" << assetPackOffset;
@@ -821,6 +822,9 @@ namespace Eagle
 			startupSceneGUID = startupSceneNode.as<GUID>();
 		}
 
+		if (auto node = baseNode["PauseWhenMinimized"])
+			s_Info.bPauseWhenMinimized = node.as<bool>();
+
 		LoadCollisionGroups(baseNode["CollisionGroups"], s_Info);
 		LoadUIScaleSettings(baseNode["UIScale"], s_Info);
 
@@ -853,6 +857,7 @@ namespace Eagle
 		out << YAML::Key << "Project Version" << YAML::Value << info.Version;
 		if (info.GameStartupScene)
 			out << YAML::Key << "Game Startup Scene" << YAML::Value << info.GameStartupScene->GetGUID();
+		out << YAML::Key << "PauseWhenMinimized" << YAML::Value << info.bPauseWhenMinimized;
 		SaveSplashScreenSettings(out, info.SplashScreen);
 
 		SaveCollisionGroups(out, info);
@@ -1000,6 +1005,8 @@ namespace Eagle
 			if (AssetManager::Get(guid, &asset))
 				(*outInfo).GameStartupScene = Cast<AssetScene>(asset);
 		}
+		if (auto node = data["PauseWhenMinimized"])
+			(*outInfo).bPauseWhenMinimized = node.as<bool>();
 		LoadSplashScreenSettings(data["Splash Screen"], (*outInfo).SplashScreen);
 		LoadCollisionGroups(data["CollisionGroups"], *outInfo);
 		LoadUIScaleSettings(data["UIScale"], *outInfo);

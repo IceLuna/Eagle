@@ -53,6 +53,9 @@ namespace Eagle
 
 		virtual void ProcessEvents() = 0;
 
+		// The same as `ProcessEvents()`, but if there are no events, it waits for one, up to `timeoutSeconds`
+		virtual void WaitEvents(double timeoutSeconds) = 0;
+
 		uint32_t GetWidth() const { return m_Props.Width; }
 		uint32_t GetHeight() const { return m_Props.Height; }
 		bool IsVSync() const { return m_Props.VSync; }

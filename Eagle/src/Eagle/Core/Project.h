@@ -34,6 +34,10 @@ namespace Eagle
 		std::vector<GUID64> CollisionGroupGUIDs; // GUIDs of all collision groups. Used to identify if groups were changed
 		UIScaleSettings UIScale;
 		GameSplashScreenSettings SplashScreen;
+
+		// The game (also when played in the editor) doesn't update while its window is minimized.
+		// Otherwise, the engine keeps updating its systems without rendering
+		bool bPauseWhenMinimized = false;
 	};
 
 	class Project
@@ -57,6 +61,7 @@ namespace Eagle
 
 		static void SetStartupScene(const Ref<AssetScene>& scene) { s_Info.GameStartupScene = scene; }
 		static void SetVersion(const glm::uvec3& version) { s_Info.Version = version; }
+		static void SetPauseWhenMinimized(bool bPause) { s_Info.bPauseWhenMinimized = bPause; }
 		static void SetUIScaleSettings(const UIScaleSettings& settings) { s_Info.UIScale = settings; }
 		static void SetSplashScreenSettings(const GameSplashScreenSettings& settings) { s_Info.SplashScreen = settings; }
 
