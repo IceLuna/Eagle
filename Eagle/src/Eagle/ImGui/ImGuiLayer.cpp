@@ -167,6 +167,12 @@ namespace Eagle
 			m_PopupMessages.push_back(message);
 	}
 
+	void ImGuiLayer::AddMessage(std::string&& message)
+	{
+		if (Application::Get().IsGame() == false)
+			m_PopupMessages.push_back(std::move(message));
+	}
+
 	Ref<ImGuiLayer> ImGuiLayer::Create()
 	{
 		switch (RenderManager::GetAPI())

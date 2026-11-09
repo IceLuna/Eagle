@@ -73,6 +73,7 @@ namespace Eagle
             m_Blackboard.TryGetValue(Target, out m_Target);
             m_Blackboard.TryGetValue(MoveSpeed, out m_MoveSpeed);
             m_Blackboard.TryGetValue(RotationSpeed, out m_RotationSpeed);
+            m_MoveState.Reset();
         }
 
         protected override AINodeStatus Update(float ts)
@@ -80,11 +81,21 @@ namespace Eagle
             if (m_Owner == null)
                 return AINodeStatus.Failed;
 
-            bool bFinished = Navigation.MoveToTarget(m_Owner, m_Target, AcceptanceDistance, ts, m_MoveSpeed, m_RotationSpeed);
+            bool bFinished = Navigation.MoveToTarget(m_Owner, m_Target, AcceptanceDistance, ts, m_MoveSpeed, m_RotationSpeed, m_MoveState);
             return bFinished ? AINodeStatus.Succeeded : AINodeStatus.Running;
         }
 
+        public override void OnEnd(AINodeStatus status)
+        {
+            base.OnEnd(status);
+
+            if (m_Owner != null)
+                Navigation.StopMoving(m_Owner);
+            m_MoveState.Reset();
+        }
+
         protected Vector3 m_Target = new Vector3(0);
+        private MoveToTargetState m_MoveState = new MoveToTargetState();
         private Entity m_Owner = null;
         private float m_MoveSpeed = 1f;
         private float m_RotationSpeed = 3.5f;
@@ -115,6 +126,7 @@ namespace Eagle
             m_Blackboard.TryGetValue(TargetEntity, out m_TargetEntity);
             m_Blackboard.TryGetValue(MoveSpeed, out m_MoveSpeed);
             m_Blackboard.TryGetValue(RotationSpeed, out m_RotationSpeed);
+            m_MoveState.Reset();
         }
 
         protected override AINodeStatus Update(float ts)
@@ -122,10 +134,20 @@ namespace Eagle
             if (m_Owner == null || m_TargetEntity == null)
                 return AINodeStatus.Failed;
 
-            bool bFinished = Navigation.MoveToTarget(m_Owner, m_TargetEntity.WorldLocation, AcceptanceDistance, ts, m_MoveSpeed, m_RotationSpeed);
+            bool bFinished = Navigation.MoveToTarget(m_Owner, m_TargetEntity.WorldLocation, AcceptanceDistance, ts, m_MoveSpeed, m_RotationSpeed, m_MoveState);
             return bFinished ? AINodeStatus.Succeeded : AINodeStatus.Running;
         }
 
+        public override void OnEnd(AINodeStatus status)
+        {
+            base.OnEnd(status);
+
+            if (m_Owner != null)
+                Navigation.StopMoving(m_Owner);
+            m_MoveState.Reset();
+        }
+
+        private MoveToTargetState m_MoveState = new MoveToTargetState();
         private Entity m_TargetEntity = null;
         private Entity m_Owner = null;
         private float m_MoveSpeed = 1f;
@@ -156,6 +178,7 @@ namespace Eagle
             m_Blackboard.TryGetValue(Owner, out m_Owner);
             m_Blackboard.TryGetValue(MoveSpeed, out m_MoveSpeed);
             m_Blackboard.TryGetValue(RotationSpeed, out m_RotationSpeed);
+            m_MoveState.Reset();
 
             if (m_Owner != null && m_Blackboard.TryGetValue(Radius, out float radius))
                 Navigation.FindRandomPointInCircle(m_Owner.WorldLocation, radius, out m_Target);
@@ -166,10 +189,20 @@ namespace Eagle
             if (m_Owner == null)
                 return AINodeStatus.Failed;
 
-            bool bFinished = Navigation.MoveToTarget(m_Owner, m_Target, AcceptanceDistance, ts, m_MoveSpeed, m_RotationSpeed);
+            bool bFinished = Navigation.MoveToTarget(m_Owner, m_Target, AcceptanceDistance, ts, m_MoveSpeed, m_RotationSpeed, m_MoveState);
             return bFinished ? AINodeStatus.Succeeded : AINodeStatus.Running;
         }
 
+        public override void OnEnd(AINodeStatus status)
+        {
+            base.OnEnd(status);
+
+            if (m_Owner != null)
+                Navigation.StopMoving(m_Owner);
+            m_MoveState.Reset();
+        }
+
+        protected MoveToTargetState m_MoveState = new MoveToTargetState();
         protected Entity m_Owner = null;
         protected Vector3 m_Target = new Vector3(0);
         protected float m_MoveSpeed = 1f;

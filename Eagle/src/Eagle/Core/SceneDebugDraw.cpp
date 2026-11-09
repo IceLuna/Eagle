@@ -842,8 +842,8 @@ namespace Eagle
 				{
 					const auto& navigation = view.get<NavigationMeshComponent>(entity);
 					const auto& settings = navigation.GetSettings();
-					const auto& aabb = settings.AABB;
-					Utils::DrawBox(m_DebugLinesToDraw, aabb, navigation.GetWorldTransform(), glm::vec3(1, 0, 0));
+					const auto& aabb = settings.Bounds;
+					Utils::DrawAABB(m_DebugLinesToDraw, aabb, navigation.GetWorldTransform(), glm::vec3(1, 0, 0));
 
 					AINavigation::DebugDraw debugDraw(m_DebugLinesToDraw, m_DebugTrianglesToDraw);
 					navigation.GetNavMeshDebugDraw(&debugDraw);

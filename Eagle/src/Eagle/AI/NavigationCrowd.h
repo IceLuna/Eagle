@@ -3,6 +3,7 @@
 #include "Eagle/Core/Timestep.h"
 
 #include <DetourCrowd.h>
+#include <glm/glm.hpp>
 
 namespace Eagle::AINavigation
 {
@@ -27,8 +28,20 @@ namespace Eagle::AINavigation
 
 	struct CrowdSettings
 	{
+		// Detour's proximity grid stores 4 entries per agent in 16-bit indices (0xffff is its null index),
+		// so 4 * MaxAgents must stay below 65535
+		static constexpr uint32_t MaxAgentsLimit = 16383u;
+		// The proximity grid's cell size is 3 * MaxAgentRadius and must be positive
+		static constexpr float MinAgentRadius = 0.01f;
+
 		uint32_t MaxAgents = 256u;
 		float MaxAgentRadius = 0.6f;
+
+		void Clamp()
+		{
+			MaxAgents = glm::clamp(MaxAgents, 1u, MaxAgentsLimit);
+			MaxAgentRadius = glm::max(MaxAgentRadius, MinAgentRadius);
+		}
 	};
 
 	class Crowd
@@ -37,10 +50,12 @@ namespace Eagle::AINavigation
 		Crowd();
 		~Crowd();
 
-		void Init(const CrowdSettings& settings, dtNavMesh* navMesh, dtNavMeshQuery* navQuery, const dtQueryFilter& filter);
+		// Returns false if failed
+		bool Init(const CrowdSettings& settings, dtNavMesh* navMesh, dtNavMeshQuery* navQuery, const dtQueryFilter& filter);
 		void Release();
+		bool IsInitialized() const { return m_Crowd != nullptr; }
 
-		void SetSettings(const CrowdSettings& settings);
+		bool SetSettings(const CrowdSettings& settings);
 		const CrowdSettings& GetSettings() const { return m_Settings; }
 
 		// Returns an index of an agent

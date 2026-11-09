@@ -708,12 +708,10 @@ namespace Eagle
 			{
 				if (notification == Notification::OnStateChanged)
 				{
-					if (component.bAutoRebuild)
-					{
-						auto& navMesh = component.GetNavMesh();
-						if (navMesh && navMesh == m_CurrentNavMesh)
-							BuildNavMesh(&component);
-					}
+					// Checked by GUID rather than by its nav mesh, because after a failed build there's no nav mesh,
+					// but the component is still the scene's active one and should rebuild once its settings are fixed
+					if (component.bAutoRebuild && !m_CurrentNavMeshEntityGUID.IsNull() && component.Parent.GetGUID() == m_CurrentNavMeshEntityGUID)
+						BuildNavMesh(&component);
 				}
 			}
 

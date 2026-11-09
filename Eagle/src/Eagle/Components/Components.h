@@ -1605,6 +1605,11 @@ namespace Eagle
 		virtual void SetInteractingCollisionGroup(CollisionGroup groups) = 0;
 		CollisionGroup GetInteractingCollisionGroup() const { return m_InteractingCollisionGroup; }
 
+		// Internal use only. Used by the scene when it destroys its nav mesh, which destroys its obstacles too. The obstacle ref is forgotten
+		// without asking Detour to remove it, so that a stale ref is never sent to a new nav mesh (where it could remove another collider's obstacle)
+		void ForgetObstacle() { m_ObstacleID = 0u; }
+		void RecreateObstacle() { if (bObstacle) CreateObstacle(); }
+
 	protected:
 		BaseColliderComponent(const Entity& entity) : SceneComponent(entity){}
 		BaseColliderComponent& operator=(const BaseColliderComponent& other);
@@ -2584,13 +2589,18 @@ namespace Eagle
 		void SetSettings(const AINavigation::MeshSettings& settings)
 		{
 			m_Settings = settings;
+			m_Settings.Clamp();
 			OnChanged();
 		}
 
 		void SetCrowdSettings(const AINavigation::CrowdSettings& settings)
 		{
 			m_CrowdSettings = settings;
-			Parent.GetScene()->BuildCrowd(m_CrowdSettings);
+			m_CrowdSettings.Clamp();
+
+			Scene* scene = Parent.GetScene();
+			if (m_NavMesh && m_NavMesh == scene->GetNavMesh())
+				scene->BuildCrowd(m_CrowdSettings);
 		}
 
 		const AINavigation::MeshSettings& GetSettings() const { return m_Settings; }

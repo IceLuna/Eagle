@@ -21,8 +21,16 @@ namespace Eagle::AINavigation
 {
 	struct MeshSettings
 	{
-		AABB AABB = { glm::vec3(-0.5f), glm::vec3(0.5f) };
+		// Limits of Recast/Detour
+		static constexpr uint32_t MaxTileSizeLimit = 255u;     // Tile layer width/height are stored in 8 bits
+		static constexpr uint32_t MinTileSizeLimit = 8u;       // Detour's tile cache builds broken polygons for small tiles
+		static constexpr uint32_t MinBorderSizeLimit = 2u;     // Below 2, tiles aren't linked to their neighbors
+		static constexpr uint32_t MaxLayersLimit = 63u;        // RC_MAX_LAYERS
+		static constexpr uint32_t MaxObstaclesLimit = 65535u;  // Obstacle refs store the index in 16 bits
+		static constexpr uint32_t MaxQueryNodesLimit = 65535u; // dtNavMeshQuery::init
+		static constexpr uint32_t MaxTileBits = 14u;           // At most 2^14 = 16384 tile layers can be addressed
 
+		AABB Bounds = { glm::vec3(-0.5f), glm::vec3(0.5f) };
 		uint32_t MaxQueryNodes = 2048u;
 		uint32_t ExpectedLayersPerTile = 4u;
 		uint32_t MaxLayers = 32u;
@@ -34,16 +42,35 @@ namespace Eagle::AINavigation
 		float AgentHeight = 2.f;
 		float AgentMaxClimb = 0.9f;
 		float AgentRadius = 0.6f;
-		float EdgeMaxLen = 12.f;
 		float EdgeMaxError = 1.3f;
-		float RegionMinSize = 8.f;
-		float RegionMergeSize = 20.f;
-		uint32_t VertsPerPoly = 6u;
 		uint32_t BorderSize = 3u;
 
 		bool FilterLowHangingObstacles = true;
 		bool FilterLedgeSpans = true;
 		bool FilterWalkableLowHeightSpans = true;
+
+		void Clamp()
+		{
+			const glm::vec3 boundsMin = glm::min(Bounds.Min, Bounds.Max);
+			const glm::vec3 boundsMax = glm::max(Bounds.Min, Bounds.Max);
+			Bounds.Min = boundsMin;
+			Bounds.Max = boundsMax;
+
+			MaxQueryNodes         = glm::clamp(MaxQueryNodes, 1u, MaxQueryNodesLimit);
+			MaxLayers             = glm::clamp(MaxLayers, 1u, MaxLayersLimit);
+			ExpectedLayersPerTile = glm::clamp(ExpectedLayersPerTile, 1u, MaxLayersLimit);
+			MaxObstacles          = glm::clamp(MaxObstacles, 1u, MaxObstaclesLimit);
+			TileSize              = glm::clamp(TileSize, MinTileSizeLimit, MaxTileSizeLimit);
+			BorderSize            = glm::max(BorderSize, MinBorderSizeLimit);
+
+			CellSize      = glm::max(CellSize, 0.005f);
+			CellHeight    = glm::max(CellHeight, 0.001f);
+			AgentHeight   = glm::max(AgentHeight, 0.001f);
+			AgentMaxClimb = glm::max(AgentMaxClimb, 0.f);
+			AgentRadius   = glm::max(AgentRadius, 0.f);
+			EdgeMaxError  = glm::max(EdgeMaxError, 0.f);
+			MaxSlope      = glm::clamp(MaxSlope, 0.f, 90.f);
+		}
 	};
 
 	class Mesh
@@ -52,7 +79,8 @@ namespace Eagle::AINavigation
 		Mesh(const OverlapGeometryData& tiles, const MeshSettings& meshSettings, const CrowdSettings& crowdSettings);
 		~Mesh();
 
-		// Updates the tile cache by rebuilding tiles touched by unfinished obstacle requests.
+		// Updates the tile cache by rebuilding tiles touched by unfinished obstacle requests (up to `MaxTileRebuildsPerUpdate`).
+		// Also updates the crowd
 		void Update(Timestep ts);
 
 		dtObstacleRef AddCylinderObstacle(const glm::vec3& pos, float radius, float height);
@@ -69,16 +97,28 @@ namespace Eagle::AINavigation
 
 		void GetDebugDraw(duDebugDraw* debugDraw) const;
 		const rcConfig& GetConfig() const { return m_Config; }
-		const AABB& GetAABB() const { return m_Settings.AABB; }
+		const AABB& GetAABB() const { return m_Settings.Bounds; }
 
 		Crowd& GetCrowd() { return m_Crowd; }
 		const Crowd& GetCrowd() const { return m_Crowd; }
 
+		// Returns null if the build failed
 		static Ref<Mesh> Create(const OverlapGeometryData& tiles, const MeshSettings& settings, const CrowdSettings& crowdSettings);
+
+		// Per-frame budget for `Update()`.
+		// Detour's tile cache rebuilds one tile per `dtTileCache::update` call.
+		// Leftover work continues on the next frame
+		static constexpr uint32_t MaxTileRebuildsPerUpdate = 64u;
 
 	private:
 
-		void InitConfig();
+		bool InitConfig();
+		bool UpdateTileCache(float dt, uint32_t maxCalls); // Returns true if it's up to date
+		void FlushObstacleRequests(); // Processes queued obstacle requests right away, and rebuilds all their tiles
+		void ReserveBatchTiles(const dtCompressedTileRef* tiles, uint32_t count);
+		void ReserveBatchTiles(const float* bmin, const float* bmax);
+		void WarnIfObstacleTouchesTooManyTiles(const float* bmin, const float* bmax);
+		uint32_t GetMaxTilesPerBatch() const { return (uint32_t)m_TileCache->getMaxTileUpdates(); }
 		bool CreateTileCache();
 		bool CreateNavigationMesh();
 		bool RasterizeInputPolygonSoup(int x, int y);
@@ -118,6 +158,13 @@ namespace Eagle::AINavigation
 		dtTileCacheParams m_TileCacheConfig{};
 		dtQueryFilter m_Filter{};
 		Crowd m_Crowd;
+		int m_TilesX = 0; // Tile grid size
+		int m_TilesZ = 0;
+		bool m_bValid = false;
+		bool m_bWarnedLargeObstacle = false;
+		// Distinct tiles touched by obstacle requests queued since the tile cache was last up to date.
+		// Detour's next batch is part of these, so keeping this within `GetMaxTilesPerBatch()` keeps the batch within it too
+		std::vector<dtCompressedTileRef> m_BatchTiles;
 
 		// Temp data for build process
 		rcHeightfield* m_Solid = nullptr;

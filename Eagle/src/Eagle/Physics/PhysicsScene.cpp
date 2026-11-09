@@ -484,16 +484,15 @@ namespace Eagle
             if (!overlapHit.Body)
                 continue;
 
+            // The shape's world pose. The poses are composed, so that the shape's offset is rotated by the body.
             // Create an AABB for the Recast tile in local space and pass it in to GetGeometry so that large geometry sets
             // (like heightfields) can just return the subset of geometry that overlaps the AABB.
-            Transform pose = PhysXUtils::FromPhysXTransform(overlapHit.Shape->GetShape()->getLocalPose());
-            const glm::vec3 offset = -pose.Location;
-            AABB localScanBounds = AABB(geometry.ScanBounds.Min + offset, geometry.ScanBounds.Max + offset);
+            const physx::PxTransform shapeGlobalPose = overlapHit.Body->getGlobalPose() * overlapHit.Shape->GetShape()->getLocalPose();
+            const glm::mat4 t = Math::ToTransformMatrix(PhysXUtils::FromPhysXTransform(shapeGlobalPose));
+            const AABB localScanBounds = AABB::Transformed(geometry.ScanBounds, glm::inverse(t));
             overlapHit.Shape->GetGeometry(vertices, indices, &localScanBounds);
 
-            // Note: returned geometry data is also in local space
-            Transform tBody = PhysXUtils::FromPhysXTransform(overlapHit.Body->getGlobalPose());
-            glm::mat4 t = Math::ToTransformMatrix(tBody + pose);
+            // Note: returned geometry data is in the shape's local space
 
             if (vertices.empty())
                 continue;

@@ -3,6 +3,7 @@
 #include "DetourDebugDraw.h"
 #include "RecastDebugDraw.h"
 #include "DetourCommon.h"
+#include "Eagle/Core/Application.h"
 #include "Eagle/Core/Random.h"
 #include "Eagle/Physics/PhysicsEngine.h"
 
@@ -22,11 +23,22 @@ namespace Eagle::AINavigation
 		return v;
 	}
 
-	static void CalcGridSize(const float* minBounds, const float* maxBounds, const float cellSize, int* sizeX, int* sizeZ)
+	// Same as `rcCalcGridSize`, but it's computed in double precision and returns false if the grid doesn't fit in an int
+	static bool CalcGridSize(const float* minBounds, const float* maxBounds, const float cellSize, int* sizeX, int* sizeZ)
 	{
-		rcCalcGridSize(minBounds, maxBounds, cellSize, sizeX, sizeZ);
-		*sizeX = glm::abs(*sizeX);
-		*sizeZ = glm::abs(*sizeZ);
+		const double x = (double(maxBounds[0]) - double(minBounds[0])) / double(cellSize) + 0.5;
+		const double z = (double(maxBounds[2]) - double(minBounds[2])) / double(cellSize) + 0.5;
+		constexpr double maxSize = double(std::numeric_limits<int>::max());
+		if (!(x >= 0.0 && z >= 0.0 && x < maxSize && z < maxSize)) // Also catches NaN
+		{
+			*sizeX = 0;
+			*sizeZ = 0;
+			return false;
+		}
+
+		*sizeX = int(x);
+		*sizeZ = int(z);
+		return true;
 	}
 
 	static uint32_t log2(uint32_t v)
@@ -97,9 +109,28 @@ namespace Eagle::AINavigation
 		}
 	}
 
+	// Returns 0 if there's no polygon near `pos`
+	static dtPolyRef FindNearestPoly(const dtNavMeshQuery* navQuery, const glm::vec3& pos, const dtQueryFilter& filter)
+	{
+		const float searchHalfExtent[3] = { 2, 4, 2 }; // TODO: Expose
+		dtPolyRef poly = 0;
+		if (dtStatusFailed(navQuery->findNearestPoly(&pos[0], searchHalfExtent, &filter, &poly, nullptr)))
+			return 0;
+
+		return poly;
+	}
+
+	static void ReportError(std::string&& message)
+	{
+		EG_CORE_ERROR(message);
+		Application::Get().GetImGuiLayer()->AddMessage(std::move(message));
+	}
+
 	Mesh::Mesh(const OverlapGeometryData& geometry, const MeshSettings& meshSettings, const CrowdSettings& crowdSettings)
 		: m_Settings(meshSettings)
 	{
+		m_Settings.Clamp();
+
 		m_Filter.setIncludeFlags(SAMPLE_POLYFLAGS_ALL ^ SAMPLE_POLYFLAGS_DISABLED);
 		m_Filter.setExcludeFlags(0);
 		m_Filter.setAreaCost(SAMPLE_POLYAREA_GROUND, 1.0f);
@@ -110,7 +141,8 @@ namespace Eagle::AINavigation
 		m_Compressor = MakeScope<TileCacheCompressor>();
 		m_MeshProcess = MakeScope<TileCacheMeshProcess>();
 
-		InitConfig();
+		if (!InitConfig())
+			return;
 		if (!CreateTileCache())
 			return;
 		if (!CreateNavigationMesh())
@@ -124,17 +156,12 @@ namespace Eagle::AINavigation
 		m_ChunkyMesh.Reset();
 		if (!rcCreateChunkyTriMesh(m_Vertices, m_TriangleData, m_TriangleCount, 256, &m_ChunkyMesh))
 		{
-			EG_CORE_ERROR("[AINavigation] Failed to build chunky mesh");
+			ReportError("[AINavigation] Failed to build chunky mesh");
+			return;
 		}
 
-		const float* bmin = glm::value_ptr(m_Settings.AABB.Min);
-		const float* bmax = glm::value_ptr(m_Settings.AABB.Max);
-
-		int gw = 0, gh = 0;
-		CalcGridSize(bmin, bmax, m_Settings.CellSize, &gw, &gh);
-		const int ts = (int)m_Settings.TileSize;
-		const int tw = (gw + ts - 1) / ts;
-		const int th = (gh + ts - 1) / ts;
+		const int tw = m_TilesX;
+		const int th = m_TilesZ;
 
 		{
 			const uint32_t initialSize = 4096;
@@ -174,15 +201,38 @@ namespace Eagle::AINavigation
 			}
 		}
 
+		int failedTileColumns = 0;
 		for (int y = 0; y < th; ++y)
 		{
 			for (int x = 0; x < tw; ++x)
 			{
-				m_TileCache->buildNavMeshTilesAt(x, y, m_NavMesh);
+				const dtStatus status = m_TileCache->buildNavMeshTilesAt(x, y, m_NavMesh);
+				if (dtStatusFailed(status))
+					++failedTileColumns;
 			}
 		}
-	
+		if (failedTileColumns > 0)
+		{
+			ReportError(std::format("[AINavigation] Failed to add the tiles of {} tile column(s) to the nav mesh, so parts of it are missing. "
+				"Detour can address at most {} tile layers. Increase Tile Size or Cell Size, decrease Expected Layers per tile, or make the volume smaller",
+				failedTileColumns, 1u << MeshSettings::MaxTileBits));
+		}
+
 		m_Crowd.Init(crowdSettings, m_NavMesh, m_NavQuery, m_Filter);
+
+		// The source geometry belongs to the caller and isn't needed after the build
+		m_Vertices = nullptr;
+		m_VertexCount = 0;
+		m_TriangleData = nullptr;
+		m_TriangleCount = 0;
+		m_ChunkyMesh.Reset();
+		m_ChunkyMesh.nnodes = 0;
+		m_ChunkyMesh.ntris = 0;
+		m_CIDs = {};
+		m_TrianglesAreas = {};
+		m_Tiles = {};
+
+		m_bValid = true;
 	}
 
 	Mesh::~Mesh()
@@ -210,35 +260,158 @@ namespace Eagle::AINavigation
 
 	void Mesh::Update(Timestep ts)
 	{
-		m_TileCache->update(ts, m_NavMesh);
+		if (!m_bValid)
+			return;
+
+		UpdateTileCache(ts, MaxTileRebuildsPerUpdate);
 		m_Crowd.Update(ts);
+	}
+
+	bool Mesh::UpdateTileCache(float dt, uint32_t maxCalls)
+	{
+		bool bUpToDate = false;
+		for (uint32_t i = 0; i < maxCalls && !bUpToDate; ++i)
+			m_TileCache->update(dt, m_NavMesh, &bUpToDate);
+
+		if (bUpToDate)
+			m_BatchTiles.clear();
+
+		return bUpToDate;
+	}
+
+	void Mesh::FlushObstacleRequests()
+	{
+		// Worst case when a full batch of tiles is waiting (that many calls), then the next call takes the queued requests
+		// and rebuilds one of their (at most a full batch of) tiles, and the rest take one call each
+		const uint32_t maxCalls = 2u * GetMaxTilesPerBatch();
+		if (!UpdateTileCache(0.f, maxCalls))
+			EG_CORE_ERROR("[AINavigation] Failed to process obstacle requests in {} tile cache updates", maxCalls);
+	}
+
+	void Mesh::ReserveBatchTiles(const dtCompressedTileRef* tiles, uint32_t count)
+	{
+		uint32_t newTiles = 0u;
+		for (uint32_t i = 0; i < count; ++i)
+		{
+			if (!std::ranges::contains(m_BatchTiles, tiles[i]))
+				++newTiles;
+		}
+
+		if (newTiles == 0u)
+			return;
+
+		// Detour would skip the tiles past its limit. Process the queued requests first, so that this one starts a new batch
+		if (m_BatchTiles.size() + newTiles > GetMaxTilesPerBatch())
+			FlushObstacleRequests();
+
+		for (uint32_t i = 0; i < count; ++i)
+		{
+			if (!std::ranges::contains(m_BatchTiles, tiles[i]))
+				m_BatchTiles.push_back(tiles[i]);
+		}
+	}
+
+	void Mesh::ReserveBatchTiles(const float* bmin, const float* bmax)
+	{
+		// The same tiles Detour finds when it takes the request (`dtTileCache::update`)
+		dtCompressedTileRef touched[DT_MAX_TOUCHED_TILES];
+		int touchedCount = 0;
+		m_TileCache->queryTiles(bmin, bmax, touched, &touchedCount, DT_MAX_TOUCHED_TILES);
+		ReserveBatchTiles(touched, (uint32_t)touchedCount);
+	}
+
+	void Mesh::WarnIfObstacleTouchesTooManyTiles(const float* bmin, const float* bmax)
+	{
+		if (m_bWarnedLargeObstacle)
+			return;
+
+		dtCompressedTileRef touched[DT_MAX_TOUCHED_TILES + 1];
+		int touchedCount = 0;
+		m_TileCache->queryTiles(bmin, bmax, touched, &touchedCount, DT_MAX_TOUCHED_TILES + 1);
+		if (touchedCount > DT_MAX_TOUCHED_TILES)
+		{
+			m_bWarnedLargeObstacle = true;
+
+			ReportError(std::format("[AINavigation] An obstacle touches more than {} tile layers. Detour only carves the first {} of them, so part of the obstacle stays walkable. "
+				"Increase the nav mesh's Tile Size or Cell Size, or use smaller obstacles. (Reported once per nav mesh)", DT_MAX_TOUCHED_TILES, DT_MAX_TOUCHED_TILES));
+		}
 	}
 
 	dtObstacleRef Mesh::AddCylinderObstacle(const glm::vec3& pos, float radius, float height)
 	{
+		if (!m_bValid)
+			return 0;
+
+		// Same bounds as `dtTileCache::getObstacleBounds` uses for cylinders
+		const float bmin[3] = { pos.x - radius, pos.y, pos.z - radius };
+		const float bmax[3] = { pos.x + radius, pos.y + height, pos.z + radius };
+		ReserveBatchTiles(bmin, bmax);
+
 		dtObstacleRef obstacle = 0;
-		const dtStatus status = m_TileCache->addObstacle(&pos[0], radius, height, &obstacle);
+		dtStatus status = m_TileCache->addObstacle(&pos[0], radius, height, &obstacle);
+		if (dtStatusFailed(status) && dtStatusDetail(status, DT_BUFFER_TOO_SMALL))
+		{
+			// The request queue is full
+			FlushObstacleRequests();
+			status = m_TileCache->addObstacle(&pos[0], radius, height, &obstacle);
+		}
 		if (dtStatusFailed(status))
 		{
 			EG_CORE_ERROR("[AINavigation] Failed to add a cylinder obstacle. Error code: {}", status);
+			return 0;
 		}
+
+		WarnIfObstacleTouchesTooManyTiles(bmin, bmax);
+
 		return obstacle;
 	}
 
 	dtObstacleRef Mesh::AddBoxObstacle(const glm::vec3& pos, const glm::vec3& halfExtents, float yRadians)
 	{
+		if (!m_bValid)
+			return 0;
+
+		// Same bounds as `dtTileCache::getObstacleBounds` uses for oriented boxes
+		const float maxr = 1.41f * glm::max(halfExtents.x, halfExtents.z);
+		const float bmin[3] = { pos.x - maxr, pos.y - halfExtents.y, pos.z - maxr };
+		const float bmax[3] = { pos.x + maxr, pos.y + halfExtents.y, pos.z + maxr };
+		ReserveBatchTiles(bmin, bmax);
+
 		dtObstacleRef obstacle = 0;
-		const dtStatus status = m_TileCache->addBoxObstacle(&pos[0], &halfExtents[0], yRadians, &obstacle);
+		dtStatus status = m_TileCache->addBoxObstacle(&pos[0], &halfExtents[0], yRadians, &obstacle);
+		if (dtStatusFailed(status) && dtStatusDetail(status, DT_BUFFER_TOO_SMALL))
+		{
+			// The request queue is full
+			FlushObstacleRequests();
+			status = m_TileCache->addBoxObstacle(&pos[0], &halfExtents[0], yRadians, &obstacle);
+		}
 		if (dtStatusFailed(status))
 		{
 			EG_CORE_ERROR("[AINavigation] Failed to add a box obstacle. Error code: {}", status);
+			return 0;
 		}
+
+		WarnIfObstacleTouchesTooManyTiles(bmin, bmax);
+
 		return obstacle;
 	}
 
 	bool Mesh::RemoveObstacle(dtObstacleRef obstacle)
 	{
-		const dtStatus status = m_TileCache->removeObstacle(obstacle);
+		if (!m_bValid)
+			return false;
+
+		// A removal rebuilds the tiles the obstacle touched when it was added
+		if (const dtTileCacheObstacle* ob = m_TileCache->getObstacleByRef(obstacle))
+			ReserveBatchTiles(ob->touched, ob->ntouched);
+
+		dtStatus status = m_TileCache->removeObstacle(obstacle);
+		if (dtStatusFailed(status) && dtStatusDetail(status, DT_BUFFER_TOO_SMALL))
+		{
+			// The request queue is full
+			FlushObstacleRequests();
+			status = m_TileCache->removeObstacle(obstacle);
+		}
 		const bool bSuccess = dtStatusSucceed(status);
 		if (!bSuccess)
 		{
@@ -249,10 +422,14 @@ namespace Eagle::AINavigation
 
 	std::vector<glm::vec3> Mesh::FindStraightPath(const glm::vec3& start, const glm::vec3& end, uint32_t maxPolys) const
 	{
-		const float searchHalfExtent[3] = { 2, 4, 2 };
-		dtPolyRef startPoly, endPoly;
-		m_NavQuery->findNearestPoly(&start[0], searchHalfExtent, &m_Filter, &startPoly, nullptr);
-		m_NavQuery->findNearestPoly(&end[0], searchHalfExtent, &m_Filter, &endPoly, nullptr);
+		if (!m_bValid || maxPolys == 0u)
+			return {};
+
+		const dtPolyRef startPoly = FindNearestPoly(m_NavQuery, start, m_Filter);
+		const dtPolyRef endPoly = FindNearestPoly(m_NavQuery, end, m_Filter);
+		if (startPoly == 0 || endPoly == 0)
+			return {};
+
 		std::vector<dtPolyRef> polys(maxPolys);
 		int npolys = 0;
 		m_NavQuery->findPath(startPoly, endPoly, &start[0], &end[0], &m_Filter, polys.data(), &npolys, maxPolys);
@@ -271,23 +448,29 @@ namespace Eagle::AINavigation
 		std::vector<glm::vec3> straightPath(maxPolys);
 		std::vector<unsigned char> straightPathFlags(maxPolys);
 		std::vector<dtPolyRef> straightPathPolys(maxPolys);
-		int nstraightPath;
+		int nstraightPath = 0;
 		int straightPathOptions = 0;
 
-		m_NavQuery->findStraightPath(&start[0], epos, polys.data(), npolys,
+		const dtStatus status = m_NavQuery->findStraightPath(&start[0], epos, polys.data(), npolys,
 			&straightPath[0].x, straightPathFlags.data(),
 			straightPathPolys.data(), &nstraightPath, maxPolys, straightPathOptions);
+		if (dtStatusFailed(status))
+			return {};
 
-		straightPath.resize(nstraightPath);
+		straightPath.resize(glm::clamp(nstraightPath, 0, (int)maxPolys));
 		return straightPath;
 	}
 
 	std::vector<glm::vec3> Mesh::FindSmoothPath(const glm::vec3& start, const glm::vec3& end, uint32_t maxPolys, uint32_t maxSmooth) const
 	{
-		const float searchHalfExtent[3] = { 2, 4, 2 }; // TODO: Expose
-		dtPolyRef startPoly, endPoly;
-		m_NavQuery->findNearestPoly(&start[0], searchHalfExtent, &m_Filter, &startPoly, nullptr);
-		m_NavQuery->findNearestPoly(&end[0], searchHalfExtent, &m_Filter, &endPoly, nullptr);
+		if (!m_bValid || maxPolys == 0u || maxSmooth == 0u)
+			return {};
+
+		const dtPolyRef startPoly = FindNearestPoly(m_NavQuery, start, m_Filter);
+		const dtPolyRef endPoly = FindNearestPoly(m_NavQuery, end, m_Filter);
+		if (startPoly == 0 || endPoly == 0)
+			return {};
+
 		std::vector<dtPolyRef> polys(maxPolys);
 		int npolys = 0;
 		m_NavQuery->findPath(startPoly, endPoly, &start[0], &end[0], &m_Filter, polys.data(), &npolys, maxPolys);
@@ -302,8 +485,11 @@ namespace Eagle::AINavigation
 
 		// Iterate over the path to find smooth path on the detail mesh surface.
 		float iterPos[3], targetPos[3];
-		m_NavQuery->closestPointOnPoly(startPoly, &start[0], iterPos, 0);
-		m_NavQuery->closestPointOnPoly(polys[npolys - 1], &end[0], targetPos, 0);
+		if (dtStatusFailed(m_NavQuery->closestPointOnPoly(startPoly, &start[0], iterPos, 0)) ||
+			dtStatusFailed(m_NavQuery->closestPointOnPoly(polys[npolys - 1], &end[0], targetPos, 0)))
+		{
+			return {};
+		}
 
 		static const float STEP_SIZE = 0.5f;
 		static const float SLOP = 0.01f;
@@ -315,7 +501,7 @@ namespace Eagle::AINavigation
 
 		// Move towards target a small advancement at a time until target reached or
 		// when ran out of memory to store the path.
-		while (npolys && nsmoothPath < (int)maxPolys)
+		while (npolys && nsmoothPath < (int)maxSmooth)
 		{
 			// Find location to steer towards.
 			float steerPos[3];
@@ -350,9 +536,10 @@ namespace Eagle::AINavigation
 			npolys = dtMergeCorridorStartMoved(polys.data(), npolys, maxPolys, visited, nvisited);
 			npolys = FixupShortcuts(polys.data(), npolys, m_NavQuery);
 
+			// Keep the height from `moveAlongSurface` if Detour can't find one (it fails for points on a polygon's edge)
 			float h = 0;
-			m_NavQuery->getPolyHeight(polys[0], result, &h);
-			result[1] = h;
+			if (dtStatusSucceed(m_NavQuery->getPolyHeight(polys[0], result, &h)))
+				result[1] = h;
 			dtVcopy(iterPos, result);
 
 			// Handle end of path and off-mesh links when close enough.
@@ -394,7 +581,7 @@ namespace Eagle::AINavigation
 						dtVcopy(&smoothPath[nsmoothPath].x, startPos);
 						nsmoothPath++;
 						// Hack to make the dotted path not visible during off-mesh connection.
-						if (nsmoothPath & 1)
+						if ((nsmoothPath & 1) && nsmoothPath < (int)maxSmooth)
 						{
 							dtVcopy(&smoothPath[nsmoothPath].x, startPos);
 							nsmoothPath++;
@@ -403,8 +590,8 @@ namespace Eagle::AINavigation
 					// Move position at the other side of the off-mesh link.
 					dtVcopy(iterPos, endPos);
 					float eh = 0.0f;
-					m_NavQuery->getPolyHeight(polys[0], iterPos, &eh);
-					iterPos[1] = eh;
+					if (dtStatusSucceed(m_NavQuery->getPolyHeight(polys[0], iterPos, &eh)))
+						iterPos[1] = eh;
 				}
 			}
 
@@ -422,9 +609,12 @@ namespace Eagle::AINavigation
 
 	bool Mesh::FindDistanceToWall(const glm::vec3& pos, float maxRadius, glm::vec3* outHitPos, glm::vec3* outHitNormal, float* outHitDistance)
 	{
-		const float searchHalfExtent[3] = { 2, 4, 2 };
-		dtPolyRef poly;
-		m_NavQuery->findNearestPoly(&pos[0], searchHalfExtent, &m_Filter, &poly, nullptr);
+		if (!m_bValid)
+			return false;
+
+		const dtPolyRef poly = FindNearestPoly(m_NavQuery, pos, m_Filter);
+		if (poly == 0)
+			return false;
 
 		const dtStatus status = m_NavQuery->findDistanceToWall(poly, &pos[0], maxRadius, &m_Filter, outHitDistance, &outHitPos->x, &outHitNormal->x);
 		return dtStatusSucceed(status);
@@ -432,32 +622,42 @@ namespace Eagle::AINavigation
 
 	bool Mesh::FindRandomPoint(glm::vec3* outRandomPoint)
 	{
-		dtPolyRef randomPoly;
+		if (!m_bValid)
+			return false;
+
+		dtPolyRef randomPoly = 0;
 		const dtStatus status = m_NavQuery->findRandomPoint(&m_Filter, Random::Float, &randomPoly, &outRandomPoint->x);
 		return dtStatusSucceed(status);
 	}
 
 	bool Mesh::FindRandomPointInCircle(const glm::vec3& pos, float radius, glm::vec3* outRandomPoint)
 	{
-		const float searchHalfExtent[3] = { 2, 4, 2 };
-		dtPolyRef poly;
-		m_NavQuery->findNearestPoly(&pos[0], searchHalfExtent, &m_Filter, &poly, nullptr);
+		if (!m_bValid)
+			return false;
 
-		dtPolyRef randomPoly;
+		const dtPolyRef poly = FindNearestPoly(m_NavQuery, pos, m_Filter);
+		if (poly == 0)
+			return false;
+
+		dtPolyRef randomPoly = 0;
 		const dtStatus status = m_NavQuery->findRandomPointAroundCircle(poly, &pos.x, radius, &m_Filter, Random::Float, &randomPoly, &outRandomPoint->x);
 		return dtStatusSucceed(status);
 	}
 
 	bool Mesh::IsValidPoint(const glm::vec3& pos)
 	{
-		const float searchHalfExtent[3] = { 2, 4, 2 };
-		dtPolyRef poly;
-		m_NavQuery->findNearestPoly(&pos[0], searchHalfExtent, &m_Filter, &poly, nullptr);
-		return m_NavQuery->isValidPolyRef(poly, &m_Filter);
+		if (!m_bValid)
+			return false;
+
+		const dtPolyRef poly = FindNearestPoly(m_NavQuery, pos, m_Filter);
+		return poly != 0 && m_NavQuery->isValidPolyRef(poly, &m_Filter);
 	}
 
 	void Mesh::GetDebugDraw(duDebugDraw* debugDraw) const
 	{
+		if (!m_bValid)
+			return;
+
 		constexpr uint8_t drawFlags = DU_DRAWNAVMESH_OFFMESHCONS | DU_DRAWNAVMESH_CLOSEDLIST | DU_DRAWNAVMESH_COLOR_TILES;
 
 		//drawTiles(debugDraw, m_TileCache);
@@ -467,13 +667,19 @@ namespace Eagle::AINavigation
 
 	Ref<Mesh> Mesh::Create(const OverlapGeometryData& geometry, const MeshSettings& settings, const CrowdSettings& crowdSettings)
 	{
-		return MakeRef<Mesh>(geometry, settings, crowdSettings);
+		Ref<Mesh> mesh = MakeRef<Mesh>(geometry, settings, crowdSettings);
+		if (!mesh->m_bValid)
+		{
+			EG_CORE_ERROR("[AINavigation] Failed to build the navigation mesh");
+			return nullptr;
+		}
+		return mesh;
 	}
 
-	void Mesh::InitConfig()
+	bool Mesh::InitConfig()
 	{
-		const float* bmin = glm::value_ptr(m_Settings.AABB.Min);
-		const float* bmax = glm::value_ptr(m_Settings.AABB.Max);
+		const float* bmin = glm::value_ptr(m_Settings.Bounds.Min);
+		const float* bmax = glm::value_ptr(m_Settings.Bounds.Max);
 
 		{
 			constexpr float DetailSampleDist = 6.f;
@@ -487,28 +693,48 @@ namespace Eagle::AINavigation
 			cfg.walkableHeight = (int)ceilf(m_Settings.AgentHeight / cfg.ch);
 			cfg.walkableClimb = (int)floorf(m_Settings.AgentMaxClimb / cfg.ch);
 			cfg.walkableRadius = (int)ceilf(m_Settings.AgentRadius / cfg.cs);
-			cfg.maxEdgeLen = (int)(m_Settings.EdgeMaxLen / m_Settings.CellSize);
 			cfg.maxSimplificationError = m_Settings.EdgeMaxError;
-			cfg.minRegionArea = (int)rcSqr(m_Settings.RegionMinSize);		// Note: area = size*size
-			cfg.mergeRegionArea = (int)rcSqr(m_Settings.RegionMergeSize);	// Note: area = size*size
-			cfg.maxVertsPerPoly = (int)m_Settings.VertsPerPoly;
 			cfg.tileSize = (int)m_Settings.TileSize;
 			cfg.borderSize = cfg.walkableRadius + (int)m_Settings.BorderSize; // Reserve enough padding.
 			cfg.detailSampleDist = DetailSampleDist < 0.9f ? 0 : m_Settings.CellSize * DetailSampleDist;
 			cfg.detailSampleMaxError = m_Settings.CellHeight * DetailSampleMaxError;
 			rcVcopy(cfg.bmin, bmin);
 			rcVcopy(cfg.bmax, bmax);
-			CalcGridSize(cfg.bmin, cfg.bmax, cfg.cs, &cfg.width, &cfg.height);
+			if (!CalcGridSize(cfg.bmin, cfg.bmax, cfg.cs, &cfg.width, &cfg.height))
+			{
+				ReportError(std::format("[AINavigation] The nav mesh volume is too large for its Cell Size ({})", cfg.cs));
+				return false;
+			}
+			if (cfg.width == 0 || cfg.height == 0)
+			{
+				ReportError(std::format("[AINavigation] The nav mesh volume is empty. Its size on X and Z must be at least the Cell Size ({})", cfg.cs));
+				return false;
+			}
+		}
+
+		// Tile grid. Computed in 64 bits, since `tiles * layers` can overflow an int
+		{
+			const int64_t ts = (int64_t)m_Settings.TileSize;
+			const int64_t tw = ((int64_t)m_Config.width + ts - 1) / ts;
+			const int64_t th = ((int64_t)m_Config.height + ts - 1) / ts;
+			const uint64_t tileLayers = uint64_t(tw) * uint64_t(th) * uint64_t(m_Settings.ExpectedLayersPerTile);
+			if (tileLayers > (uint64_t)std::numeric_limits<int>::max())
+			{
+				ReportError(std::format("[AINavigation] The nav mesh volume is too large: {}x{} tiles with {} expected layers per tile. "
+					"Increase Tile Size or Cell Size, or make the volume smaller", tw, th, m_Settings.ExpectedLayersPerTile));
+				return false;
+			}
+			// Note: more than 2^MaxTileBits tile layers can't be addressed by the nav mesh. It's not reported here, since
+			// `ExpectedLayersPerTile` is only an estimate. Tiles that really don't fit are reported after the build
+
+			m_TilesX = (int)tw;
+			m_TilesZ = (int)th;
 		}
 
 		// Tile cache params.
 		{
-			int gw = 0, gh = 0;
-			CalcGridSize(bmin, bmax, m_Settings.CellSize, &gw, &gh);
-
-			const int ts = (int)m_Settings.TileSize;
-			const int tw = (gw + ts - 1) / ts;
-			const int th = (gh + ts - 1) / ts;
+			const int tw = m_TilesX;
+			const int th = m_TilesZ;
 
 			dtTileCacheParams& tcparams = m_TileCacheConfig;
 			memset(&tcparams, 0, sizeof(tcparams));
@@ -521,9 +747,11 @@ namespace Eagle::AINavigation
 			tcparams.walkableRadius = m_Settings.AgentRadius;
 			tcparams.walkableClimb = m_Settings.AgentMaxClimb;
 			tcparams.maxSimplificationError = m_Settings.EdgeMaxError;
-			tcparams.maxTiles = tw * th * m_Settings.ExpectedLayersPerTile;
-			tcparams.maxObstacles = m_Settings.MaxObstacles;
+			tcparams.maxTiles = (int)(tw * th * (int)m_Settings.ExpectedLayersPerTile); // Checked above to fit in an int
+			tcparams.maxObstacles = (int)m_Settings.MaxObstacles;
 		}
+
+		return true;
 	}
 
 	bool Mesh::CreateTileCache()
@@ -532,14 +760,14 @@ namespace Eagle::AINavigation
 		m_TileCache = dtAllocTileCache();
 		if (!m_TileCache)
 		{
-			EG_CORE_ERROR("[AINavigation] Failed to allocate TileCache");
+			ReportError("[AINavigation] Failed to allocate TileCache");
 			return false;
 		}
 
 		auto status = m_TileCache->init(&m_TileCacheConfig, &m_Allocator, m_Compressor.get(), m_MeshProcess.get());
 		if (dtStatusFailed(status))
 		{
-			EG_CORE_ERROR("[AINavigation] Failed to init TileCache");
+			ReportError("[AINavigation] Failed to init TileCache");
 			return false;
 		}
 
@@ -552,24 +780,18 @@ namespace Eagle::AINavigation
 		m_NavMesh = dtAllocNavMesh();
 		if (!m_NavMesh)
 		{
-			EG_CORE_ERROR("[AINavigation] Failed to allocate NavMesh");
+			ReportError("[AINavigation] Failed to allocate NavMesh");
 			return false;
 		}
 
 		const float* bmin = m_Config.bmin;
-		const float* bmax = m_Config.bmax;
-
-		int gw = 0, gh = 0;
-		CalcGridSize(bmin, bmax, m_Settings.CellSize, &gw, &gh);
-		const int ts = (int)m_Settings.TileSize;
-		const int tw = (gw + ts - 1) / ts;
-		const int th = (gh + ts - 1) / ts;
 
 		// Max tiles and max polys affect how the tile IDs are caculated.
 		// There are 22 bits available for identifying a tile and a polygon.
-		int tileBits = rcMin((int)log2(nextPow2(tw * th * m_Settings.ExpectedLayersPerTile)), 14);
-		if (tileBits > 14) tileBits = 14;
-		int polyBits = 22 - tileBits;
+		// Note: `InitConfig` made sure that it fits in an int
+		const uint32_t tileLayers = uint32_t(m_TilesX) * uint32_t(m_TilesZ) * m_Settings.ExpectedLayersPerTile;
+		const int tileBits = rcMin((int)log2(nextPow2(tileLayers)), (int)MeshSettings::MaxTileBits);
+		const int polyBits = 22 - tileBits;
 
 		dtNavMeshParams params;
 		memset(&params, 0, sizeof(params));
@@ -582,17 +804,22 @@ namespace Eagle::AINavigation
 		dtStatus status = m_NavMesh->init(&params);
 		if (dtStatusFailed(status))
 		{
-			EG_CORE_ERROR("[AINavigation] Failed to init NavMesh");
+			ReportError("[AINavigation] Failed to init NavMesh");
 			return false;
 		}
 
 		dtFreeNavMeshQuery(m_NavQuery);
 		m_NavQuery = dtAllocNavMeshQuery();
+		if (!m_NavQuery)
+		{
+			ReportError("[AINavigation] Failed to allocate NavMesh query");
+			return false;
+		}
 
 		status = m_NavQuery->init(m_NavMesh, m_Settings.MaxQueryNodes);
 		if (dtStatusFailed(status))
 		{
-			EG_CORE_ERROR("[AINavigation] Failed to init NavMesh query");
+			ReportError("[AINavigation] Failed to init NavMesh query");
 			return false;
 		}
 
@@ -631,13 +858,13 @@ namespace Eagle::AINavigation
 		m_Solid = rcAllocHeightfield();
 		if (!m_Solid)
 		{
-			EG_CORE_ERROR("[AINavigation] Failed to allocate Heightfield");
+			ReportError("[AINavigation] Failed to allocate Heightfield");
 			return false;
 		}
 		if (!rcCreateHeightfield(&m_Context, *m_Solid, tcfg.width, tcfg.height,
 			tcfg.bmin, tcfg.bmax, tcfg.cs, tcfg.ch))
 		{
-			EG_CORE_ERROR("[AINavigation] Failed to create Heightfield");
+			ReportError("[AINavigation] Failed to create Heightfield");
 			return false;
 		}
 
@@ -673,7 +900,7 @@ namespace Eagle::AINavigation
 
 			if (!rcRasterizeTriangles(&m_Context, m_Vertices, m_VertexCount, tris, m_TrianglesAreas.data(), ntris, *m_Solid, tcfg.walkableClimb))
 			{
-				EG_CORE_ERROR("[AINavigation] Failed to rasterize triangles at tile {}x{}, ID: {}", x, y, i);
+				ReportError(std::format("[AINavigation] Failed to rasterize triangles at tile {}x{}, ID: {}", x, y, i));
 			}
 		}
 
@@ -689,12 +916,12 @@ namespace Eagle::AINavigation
 		m_CompactHeightfield = rcAllocCompactHeightfield();
 		if (!m_CompactHeightfield)
 		{
-			EG_CORE_ERROR("[AINavigation] Failed to allocate CompactHeightfield");
+			ReportError("[AINavigation] Failed to allocate CompactHeightfield");
 			return false;
 		}
 		if (!rcBuildCompactHeightfield(&m_Context, m_Config.walkableHeight, m_Config.walkableClimb, *m_Solid, *m_CompactHeightfield))
 		{
-			EG_CORE_ERROR("[AINavigation] Failed to build CompactHeightfield");
+			ReportError("[AINavigation] Failed to build CompactHeightfield");
 			return false;
 		}
 
@@ -704,7 +931,7 @@ namespace Eagle::AINavigation
 		// Erode the walkable area by agent radius.
 		if (!rcErodeWalkableArea(&m_Context, m_Config.walkableRadius, *m_CompactHeightfield))
 		{
-			EG_CORE_ERROR("[AINavigation] Failed to erode Walkable Area");
+			ReportError("[AINavigation] Failed to erode Walkable Area");
 			return false;
 		}
 
@@ -712,12 +939,12 @@ namespace Eagle::AINavigation
 		m_HeightfieldLayerSet = rcAllocHeightfieldLayerSet();
 		if (!m_HeightfieldLayerSet)
 		{
-			EG_CORE_ERROR("[AINavigation] Failed to allocate Heightfield Layer Set");
+			ReportError("[AINavigation] Failed to allocate Heightfield Layer Set");
 			return false;
 		}
 		if (!rcBuildHeightfieldLayers(&m_Context, *m_CompactHeightfield, m_Config.borderSize, m_Config.walkableHeight, *m_HeightfieldLayerSet))
 		{
-			EG_CORE_ERROR("[AINavigation] Failed to build Heightfield Layers");
+			ReportError("[AINavigation] Failed to build Heightfield Layers");
 			return false;
 		}
 		rcFreeCompactHeightfield(m_CompactHeightfield);
@@ -758,7 +985,7 @@ namespace Eagle::AINavigation
 				&tile.m_data, &tile.m_size);
 			if (dtStatusFailed(status))
 			{
-				EG_CORE_ERROR("[AINavigation] Failed to build TileCache layer");
+				ReportError("[AINavigation] Failed to build TileCache layer");
 				continue;
 			}
 		}
@@ -774,7 +1001,7 @@ namespace Eagle::AINavigation
 			auto status = m_TileCache->addTile(tile.m_data, tile.m_size, DT_COMPRESSEDTILE_FREE_DATA, 0);
 			if (dtStatusFailed(status))
 			{
-				EG_CORE_ERROR("[AINavigation] Failed to add tile");
+				ReportError("[AINavigation] Failed to add tile");
 				dtFree(tile.m_data);
 				tile.m_size = 0;
 			}
@@ -789,7 +1016,7 @@ namespace Eagle::AINavigation
 		const dtStatus status = m_NavMesh->addTile(tileData.m_data, tileData.m_size, DT_TILE_FREE_DATA, 0, &tileRef);
 		if (dtStatusFailed(status))
 		{
-			EG_CORE_ERROR("[AINavigation] Failed to add tile");
+			ReportError("[AINavigation] Failed to add tile");
 			dtFree(tileData.m_data);
 			return false;
 		}

@@ -3065,6 +3065,7 @@ namespace Eagle
 		public void SetInteractingCollisionGroup(CollisionGroup groups) { SetInteractingCollisionGroup_Native(Parent.ID, m_Type, groups); }
 		public CollisionGroup GetInteractingCollisionGroup() { return GetInteractingCollisionGroup_Native(Parent.ID, m_Type); }
 
+        // Non-convex mesh colliders can't be triggers
         public void SetIsTrigger(bool bTrigger) { SetIsTrigger_Native(Parent.ID, m_Type, bTrigger); }
         
         public bool IsTrigger() { return IsTrigger_Native(Parent.ID, m_Type); }
@@ -3100,6 +3101,9 @@ namespace Eagle
             return DoesAffectNavMeshBuild_Native(Parent.ID, m_Type);
         }
 
+        // Makes the collider block AI navigation paths at runtime without rebuilding the nav mesh.
+        // It works for triggers and colliders with disabled collision too (for example, a trigger can mark a zone that AI should avoid).
+        // Mesh colliders can't be obstacles
         public void SetIsObstacle(bool bObstacle)
         {
             SetIsObstacle_Native(Parent.ID, m_Type, bObstacle);

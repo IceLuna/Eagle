@@ -85,6 +85,82 @@ namespace Eagle
 		}
 	}
 
+	namespace ObstacleUtils
+	{
+		// Detour obstacles are upright (cylinders, and boxes that can only be rotated around Y)
+		struct UprightBox
+		{
+			glm::vec3 HalfExtents = glm::vec3(0.f);
+			float Yaw = 0.f; // Radians, around Y. Same convention as glm (and Detour's `addBoxObstacle`)
+		};
+
+		// Yaw that turns the X axis to the direction of `v` projected on the XZ plane
+		static float YawOf(const glm::vec3& v)
+		{
+			return std::atan2(-v.z, v.x);
+		}
+
+		// Finds the smallest upright box around a box with the given rotation and half extents.
+		// For a box that's only rotated around Y, it's the box itself
+		static UprightBox GetUprightBoxAround(const glm::quat& rotation, const glm::vec3& halfExtents)
+		{
+			const glm::vec3 axes[3] =
+			{
+				rotation * glm::vec3(halfExtents.x, 0.f, 0.f),
+				rotation * glm::vec3(0.f, halfExtents.y, 0.f),
+				rotation * glm::vec3(0.f, 0.f, halfExtents.z)
+			};
+
+			UprightBox result;
+			result.HalfExtents.y = glm::abs(axes[0].y) + glm::abs(axes[1].y) + glm::abs(axes[2].y);
+
+			// Try aligning the upright box with each of the box's axes (projected on XZ) and keep the smallest footprint
+			float bestArea = std::numeric_limits<float>::max();
+			for (const glm::vec3& candidate : axes)
+			{
+				if (candidate.x * candidate.x + candidate.z * candidate.z < 1e-12f)
+					continue; // Vertical axis or zero extent
+
+				const float yaw = YawOf(candidate);
+				const glm::vec3 boxX = glm::vec3(std::cos(yaw), 0.f, -std::sin(yaw)); // Upright box's X axis
+				const glm::vec3 boxZ = glm::vec3(std::sin(yaw), 0.f, std::cos(yaw));  // Upright box's Z axis
+
+				float hx = 0.f, hz = 0.f;
+				for (const glm::vec3& axis : axes)
+				{
+					hx += glm::abs(glm::dot(axis, boxX));
+					hz += glm::abs(glm::dot(axis, boxZ));
+				}
+
+				const float area = hx * hz;
+				if (area < bestArea)
+				{
+					bestArea = area;
+					result.HalfExtents.x = hx;
+					result.HalfExtents.z = hz;
+					result.Yaw = yaw;
+				}
+			}
+
+			if (bestArea == std::numeric_limits<float>::max())
+			{
+				// Degenerate box. Use its axis aligned bounds
+				result.HalfExtents.x = glm::abs(axes[0].x) + glm::abs(axes[1].x) + glm::abs(axes[2].x);
+				result.HalfExtents.z = glm::abs(axes[0].z) + glm::abs(axes[1].z) + glm::abs(axes[2].z);
+				result.Yaw = 0.f;
+			}
+
+			return result;
+		}
+
+		// Half extents of the axis aligned bounds of a rotated box
+		static glm::vec3 GetRotatedBoxExtents(const glm::quat& rotation, const glm::vec3& halfExtents)
+		{
+			const glm::mat3 m = glm::mat3_cast(rotation);
+			return glm::abs(m[0]) * halfExtents.x + glm::abs(m[1]) * halfExtents.y + glm::abs(m[2]) * halfExtents.z;
+		}
+	}
+
 	void RigidBodyComponent::SetBodyType(PhysicsBodyType type)
 	{
 		m_BodyType = type;
@@ -597,12 +673,15 @@ namespace Eagle
 			return;
 
 		const glm::vec3 halfExtents = m_Shape->GetColliderScale() * 0.5f;
-		AABB aabb(WorldTransform.Location - halfExtents, WorldTransform.Location + halfExtents);
+		const glm::quat& rotation = WorldTransform.Rotation.GetQuat();
+		const glm::vec3 worldExtents = ObstacleUtils::GetRotatedBoxExtents(rotation, halfExtents);
+		AABB aabb(WorldTransform.Location - worldExtents, WorldTransform.Location + worldExtents);
 		if (!AABB::Overlap(aabb, navMesh->GetAABB()))
 			return; // Don't create if it doesn't overlap a nav mesh
 
-		const float yRotation = WorldTransform.Rotation.EulerAngles().y;
-		m_ObstacleID = navMesh->AddBoxObstacle(WorldTransform.Location, halfExtents, yRotation);
+		// Detour boxes can only be rotated around Y. A tilted box is covered by the smallest upright box around it
+		const ObstacleUtils::UprightBox box = ObstacleUtils::GetUprightBoxAround(rotation, halfExtents);
+		m_ObstacleID = navMesh->AddBoxObstacle(WorldTransform.Location, box.HalfExtents, box.Yaw);
 	}
 
 	void BoxColliderComponent::UpdateShowCollisionState()
@@ -875,17 +954,34 @@ namespace Eagle
 		if (!navMesh)
 			return;
 
+		// Like in PhysX, the capsule lies along its X axis and is centered at its location.
+		// Its segment has a length of `height`, plus `radius` at each end
 		const glm::vec3& scale = m_Shape->GetColliderScale();
-		const float& radius = scale.x;
-		const float& height = scale.y;
+		const float radius = scale.x;
+		const float halfHeight = scale.y * 0.5f;
 
-		const glm::vec3 halfExtent1 = glm::vec3(radius, 0.f, radius);
-		const glm::vec3 halfExtent2 = glm::vec3(radius, height, radius);
-		AABB aabb(WorldTransform.Location - halfExtent1, WorldTransform.Location + halfExtent2);
+		const glm::vec3 center = WorldTransform.Location;
+		const glm::vec3 axis = WorldTransform.Rotation.GetQuat() * glm::vec3(1.f, 0.f, 0.f);
+		const float horizontal = glm::sqrt(axis.x * axis.x + axis.z * axis.z); // Length of the axis projected on XZ
+		const float halfY = glm::abs(axis.y) * halfHeight + radius;
+
+		// Detour obstacles are upright. Use an upright cylinder or a box along the capsule, whichever is smaller
+		const float cylinderRadius = horizontal * halfHeight + radius;
+		const float cylinderArea = glm::pi<float>() * cylinderRadius * cylinderRadius;
+		const glm::vec3 boxHalfExtents = glm::vec3(horizontal * halfHeight + radius, halfY, radius);
+		const float boxArea = 4.f * boxHalfExtents.x * boxHalfExtents.z;
+		const bool bUseBox = horizontal > 1e-4f && boxArea < cylinderArea;
+
+		const glm::vec3 extents = bUseBox ? ObstacleUtils::GetRotatedBoxExtents(glm::angleAxis(ObstacleUtils::YawOf(axis), glm::vec3(0.f, 1.f, 0.f)), boxHalfExtents)
+		                                  : glm::vec3(cylinderRadius, halfY, cylinderRadius);
+		AABB aabb(center - extents, center + extents);
 		if (!AABB::Overlap(aabb, navMesh->GetAABB()))
 			return; // Don't create if it doesn't overlap a nav mesh
 
-		m_ObstacleID = navMesh->AddCylinderObstacle(WorldTransform.Location, radius, height);
+		if (bUseBox)
+			m_ObstacleID = navMesh->AddBoxObstacle(center, boxHalfExtents, ObstacleUtils::YawOf(axis));
+		else
+			m_ObstacleID = navMesh->AddCylinderObstacle(center - glm::vec3(0.f, halfY, 0.f), cylinderRadius, halfY * 2.f); // Detour cylinders start at the bottom
 	}
 
 	void CapsuleColliderComponent::OnRemoved()
@@ -1635,9 +1731,9 @@ namespace Eagle
 
 		glm::mat4 worldTr = Math::ToTransformMatrix(GetWorldTransform());
 		auto settings = m_Settings;
-		settings.AABB.Transform(worldTr);
+		settings.Bounds.Transform(worldTr);
 
-		const QueryHits overlaps = physicsScene->CollectCollidersWithinVolume(settings.AABB);
+		const QueryHits overlaps = physicsScene->CollectCollidersWithinVolume(settings.Bounds);
 		
 		// Remove colliders that shouldn't affect the nav mesh
 		QueryHits filteredOverlaps;
@@ -1677,7 +1773,7 @@ namespace Eagle
 			}
 		}
 
-		auto geometry = physicsScene->AppendColliderGeometry(settings.AABB, filteredOverlaps);
+		auto geometry = physicsScene->AppendColliderGeometry(settings.Bounds, filteredOverlaps);
 		m_NavMesh = AINavigation::Mesh::Create(geometry, settings, m_CrowdSettings);
 	}
 	

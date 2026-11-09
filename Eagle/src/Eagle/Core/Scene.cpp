@@ -637,45 +637,35 @@ namespace Eagle
 
 	void Scene::BuildNavMesh(NavigationMeshComponent* navMesh)
 	{
-		std::vector<BaseColliderComponent*> obstacleColliders;
-		obstacleColliders.reserve(100u);
-		// Collect obstacle colliders
+		std::vector<BaseColliderComponent*> colliders;
+		colliders.reserve(100u);
+		// Collect colliders that can be obstacles
 		{
 			// Box colliders
 			{
 				auto view = m_Registry.view<BoxColliderComponent>();
 				for (auto entity : view)
-				{
-					auto& component = view.get<BoxColliderComponent>(entity);
-					if (component.IsObstacle())
-						obstacleColliders.push_back(&component);
-				}
+					colliders.push_back(&view.get<BoxColliderComponent>(entity));
 			}
 			// Sphere colliders
 			{
 				auto view = m_Registry.view<SphereColliderComponent>();
 				for (auto entity : view)
-				{
-					auto& component = view.get<SphereColliderComponent>(entity);
-					if (component.IsObstacle())
-						obstacleColliders.push_back(&component);
-				}
+					colliders.push_back(&view.get<SphereColliderComponent>(entity));
 			}
 			// Capsule colliders
 			{
 				auto view = m_Registry.view<CapsuleColliderComponent>();
 				for (auto entity : view)
-				{
-					auto& component = view.get<CapsuleColliderComponent>(entity);
-					if (component.IsObstacle())
-						obstacleColliders.push_back(&component);
-				}
+					colliders.push_back(&view.get<CapsuleColliderComponent>(entity));
 			}
 		}
 
-		// Go through all colliders and delete obstacles
-		for (BaseColliderComponent* collider : obstacleColliders)
-			collider->SetIsObstacle(false);
+		// The current nav mesh is destroyed below, and its obstacles with it. So the colliders just forget their obstacles.
+		// Removing them one by one would queue a request per obstacle on a mesh that's about to be destroyed anyway,
+		// and a failed removal could leave a stale ref that was later sent to the new nav mesh
+		for (BaseColliderComponent* collider : colliders)
+			collider->ForgetObstacle();
 
 		// Go through all agents and delete them
 		auto agentComponents = m_Registry.view<NavigationCrowdAgentComponent>();
@@ -716,8 +706,8 @@ namespace Eagle
 		}
 
 		// Go through all colliders and generate obstacles back
-		for (BaseColliderComponent* collider : obstacleColliders)
-			collider->SetIsObstacle(true);
+		for (BaseColliderComponent* collider : colliders)
+			collider->RecreateObstacle();
 	}
 
 	void Scene::RebuildNavMesh()

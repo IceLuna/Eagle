@@ -1308,8 +1308,8 @@ namespace Eagle
 
 				// AABB
 				out << YAML::Key << "AABB" << YAML::Value << YAML::BeginMap;
-				out << YAML::Key << "Min" << YAML::Value << settings.AABB.Min;
-				out << YAML::Key << "Max" << YAML::Value << settings.AABB.Max;
+				out << YAML::Key << "Min" << YAML::Value << settings.Bounds.Min;
+				out << YAML::Key << "Max" << YAML::Value << settings.Bounds.Max;
 				out << YAML::EndMap;
 
 				out << YAML::Key << "MaxQueryNodes" << YAML::Value << settings.MaxQueryNodes;
@@ -1323,11 +1323,7 @@ namespace Eagle
 				out << YAML::Key << "AgentHeight" << YAML::Value << settings.AgentHeight;
 				out << YAML::Key << "AgentMaxClimb" << YAML::Value << settings.AgentMaxClimb;
 				out << YAML::Key << "AgentRadius" << YAML::Value << settings.AgentRadius;
-				out << YAML::Key << "EdgeMaxLen" << YAML::Value << settings.EdgeMaxLen;
 				out << YAML::Key << "EdgeMaxError" << YAML::Value << settings.EdgeMaxError;
-				out << YAML::Key << "RegionMinSize" << YAML::Value << settings.RegionMinSize;
-				out << YAML::Key << "RegionMergeSize" << YAML::Value << settings.RegionMergeSize;
-				out << YAML::Key << "VertsPerPoly" << YAML::Value << settings.VertsPerPoly;
 				out << YAML::Key << "BorderSize" << YAML::Value << settings.BorderSize;
 				out << YAML::Key << "FilterLowHangingObstacles" << YAML::Value << settings.FilterLowHangingObstacles;
 				out << YAML::Key << "FilterLedgeSpans" << YAML::Value << settings.FilterLedgeSpans;
@@ -1367,8 +1363,8 @@ namespace Eagle
 			{
 				if (auto aabbNode = settingsNode["AABB"])
 				{
-					settings.AABB.Min = aabbNode["Min"].as<glm::vec3>();
-					settings.AABB.Max = aabbNode["Max"].as<glm::vec3>();
+					settings.Bounds.Min = aabbNode["Min"].as<glm::vec3>();
+					settings.Bounds.Max = aabbNode["Max"].as<glm::vec3>();
 				}
 				settings.MaxQueryNodes = settingsNode["MaxQueryNodes"].as<uint32_t>();
 				settings.ExpectedLayersPerTile = settingsNode["ExpectedLayersPerTile"].as<uint32_t>();
@@ -1381,11 +1377,7 @@ namespace Eagle
 				settings.AgentHeight = settingsNode["AgentHeight"].as<float>();
 				settings.AgentMaxClimb = settingsNode["AgentMaxClimb"].as<float>();
 				settings.AgentRadius = settingsNode["AgentRadius"].as<float>();
-				settings.EdgeMaxLen = settingsNode["EdgeMaxLen"].as<float>();
 				settings.EdgeMaxError = settingsNode["EdgeMaxError"].as<float>();
-				settings.RegionMinSize = settingsNode["RegionMinSize"].as<float>();
-				settings.RegionMergeSize = settingsNode["RegionMergeSize"].as<float>();
-				settings.VertsPerPoly = settingsNode["VertsPerPoly"].as<uint32_t>();
 				settings.BorderSize = settingsNode["BorderSize"].as<uint32_t>();
 				settings.FilterLowHangingObstacles = settingsNode["FilterLowHangingObstacles"].as<bool>();
 				settings.FilterLedgeSpans = settingsNode["FilterLedgeSpans"].as<bool>();

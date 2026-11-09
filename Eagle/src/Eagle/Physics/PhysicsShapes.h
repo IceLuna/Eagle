@@ -40,6 +40,7 @@ namespace Eagle
 		void SetRelativeLocationAndRotation(const Transform& transform);
 		void SetShowCollision(bool bShowCollision);
 		void SetCollisionEnabled(bool bEnabled);
+		bool IsCollisionEnabled() const { return m_CollisionEnabled; }
 
 		// Collision groups it belongs to. It can belong to different groups (use XOR to combine groups)
 		void SetCollisionGroup(CollisionGroup group);
@@ -62,6 +63,9 @@ namespace Eagle
 		const glm::vec3& GetColliderScale() const { return m_ColliderScale; }
 
 		virtual void GetGeometry(std::vector<glm::vec3>& vertices, std::vector<uint32_t>& indices, const AABB* optionalBounds = nullptr) const = 0;
+
+	private:
+		void UpdateCollisionFlags();
 	
 	protected:
 		physx::PxShape* m_Shape = nullptr; // Note: it's not released manually since it's created as an Exclusive Shape
@@ -70,6 +74,7 @@ namespace Eagle
 		CollisionGroup m_CollisionGroup = s_DefaultCollisionGroup;
 		CollisionGroup m_InteractingCollisionGroup = s_DefaultInteractingCollisionGroup;
 		bool m_IsTrigger = false;
+		bool m_CollisionEnabled = true;
 	};
 	
 	class BoxColliderShape : public ColliderShape

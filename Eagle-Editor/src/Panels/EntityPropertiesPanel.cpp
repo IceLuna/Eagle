@@ -14,7 +14,7 @@ namespace Eagle
 	static const char* s_MetalnessHelpMsg = "Controls how 'metal-like' surface looks like.\nDefault is 0";
 	static const char* s_RoughnessHelpMsg = "Controls how rough surface looks like.\nRoughness of 0 is a mirror reflection and 1 is completely matte.\nDefault is 0.5";
 	static const char* s_AOHelpMsg = "Can be used to affect how ambient lighting is applied to an object. If it's 0, ambient lighting won't affect it. Default is 1.0";
-	static const char* s_TriggerHelpMsg = "Its role is to report that there has been an overlap with another shape.\nTrigger shapes play no part in the simulation of the scene";
+	static const char* s_TriggerHelpMsg = "Its role is to report that there has been an overlap with another shape.\nTrigger shapes play no part in the simulation of the scene.\nNon-convex mesh colliders can't be triggers";
 	static const char* s_AttenuationRadiusHelpMsg = "Bounds of the light's visible influence.\nThis clamping of the light's influence is not physically correct but very important for performance";
 	static const char* s_BlendModeHelpMsg = "Translucent materials do not cast shadows!\nUse translucent materials with caution cause rendering them can be expensive";
 	static const char* s_OpacityHelpMsg = "Controls the translucency of the material. 0 - fully transparent, 1 - fully opaque. Default is 0.5";
@@ -32,8 +32,11 @@ namespace Eagle
 	static const char* s_TwoSidedMeshColliderHelpMsg = "Only affects non-convex mesh colliders.\nNon-convex meshes are one-sided meaning collision won't be registered from the back side. For example, that might be a problem for windows."
 		" To fix it, set this flag";
 	static const char* s_SpriteCoordsHelpMsg = "It's a sprite index within an atlas. For example, if an atlas is 128x128 and a sprite has a 32x32 size, and in case you want to select a sprite at 64x32, here you enter 2x1.";
-	static const char* s_ObstacleHelpMsg = "Can be used for AI Navigation to block the path. Note: only box obstacles react to rotation (along Y), other obstacles don't rotate!\nMesh colliders can't be obstacles";
-	static const char* s_AffectsNavMeshHelpMsg = "If set to false, it won't affect NavMesh builds. It still can be used as an obstacle though";
+	static const char* s_ObstacleHelpMsg = "Can be used for AI Navigation to block the path. Note: nav mesh obstacles are upright. A tilted box is covered by the smallest upright box around it, "
+		"a capsule by an upright cylinder or a box along it (whichever is smaller), and a sphere by an upright cylinder.\n"
+		"It works for triggers and colliders with disabled collision too. For example, a trigger can mark a zone that AI should avoid.\nMesh colliders can't be obstacles";
+	static const char* s_AffectsNavMeshHelpMsg = "If set to false, it won't affect NavMesh builds. It still can be used as an obstacle though.\n"
+		"Only static colliders/triggers affect NavMesh builds";
 	static const char* s_FilterLowHangingObstaclesHelpMsg = "Marks non-walkable spans as walkable if their maximum is within AgentMaxClimb of the span below them.\n"
 		"This removes small obstacles and rasterization artifacts that the agent would be able to walk over such as curbs.\n"
 		"It also allows agents to move up terraced structures like stairs.";
@@ -2460,32 +2463,32 @@ namespace Eagle
 						bool bChanged = false;
 						auto settings = component.GetSettings();
 
-						bChanged |= UI::PropertyDrag("AABB Min", settings.AABB.Min, 0.1f, 0, 0);
-						bChanged |= UI::PropertyDrag("AABB Max", settings.AABB.Max, 0.1f, 0, 0);
+						bChanged |= UI::PropertyDrag("Bounds Min", settings.Bounds.Min, 0.1f, 0, 0);
+						bChanged |= UI::PropertyDrag("Bounds Max", settings.Bounds.Max, 0.1f, 0, 0);
 
 						if (UI::PropertyDrag("Max Query Nodes", settings.MaxQueryNodes, 32.f, 1, 65535, "Maximum number of search nodes. [Limits: 0 < value <= 65535]"))
 						{
 							settings.MaxQueryNodes = glm::clamp(settings.MaxQueryNodes, 1u, 65535u);
 							bChanged = true;
 						}
-						if (UI::PropertyDrag("Expected Layers per tile", settings.ExpectedLayersPerTile))
+						if (UI::PropertyDrag("Expected Layers per tile", settings.ExpectedLayersPerTile, 1.f, 1, (int)AINavigation::MeshSettings::MaxLayersLimit, "[Limits: 1 <= value <= 63]"))
 						{
-							settings.ExpectedLayersPerTile = glm::clamp(settings.ExpectedLayersPerTile, 1u, 65535u);
+							settings.ExpectedLayersPerTile = glm::clamp(settings.ExpectedLayersPerTile, 1u, AINavigation::MeshSettings::MaxLayersLimit);
 							bChanged = true;
 						}
-						if (UI::PropertyDrag("Max Layers", settings.MaxLayers))
+						if (UI::PropertyDrag("Max Layers", settings.MaxLayers, 1.f, 1, (int)AINavigation::MeshSettings::MaxLayersLimit, "[Limits: 1 <= value <= 63]"))
 						{
-							settings.MaxLayers = glm::clamp(settings.MaxLayers, 1u, 65535u);
+							settings.MaxLayers = glm::clamp(settings.MaxLayers, 1u, AINavigation::MeshSettings::MaxLayersLimit);
 							bChanged = true;
 						}
-						if (UI::PropertyDrag("Max Obstacles", settings.MaxObstacles))
+						if (UI::PropertyDrag("Max Obstacles", settings.MaxObstacles, 1.f, 1, (int)AINavigation::MeshSettings::MaxObstaclesLimit, "[Limits: 1 <= value <= 65535]"))
 						{
-							settings.MaxObstacles = glm::clamp(settings.MaxObstacles, 0u, 1u << 24u);
+							settings.MaxObstacles = glm::clamp(settings.MaxObstacles, 1u, AINavigation::MeshSettings::MaxObstaclesLimit);
 							bChanged = true;
 						}
-						if (UI::PropertyDrag("Tile Size", settings.TileSize, 1.f, 0, 0, "The width/height size of tile's on the xz-plane"))
+						if (UI::PropertyDrag("Tile Size", settings.TileSize, 1.f, (int)AINavigation::MeshSettings::MinTileSizeLimit, (int)AINavigation::MeshSettings::MaxTileSizeLimit, "The width/height size of tile's on the xz-plane. [Limits: 8 <= value <= 255]"))
 						{
-							settings.TileSize = glm::clamp(settings.TileSize, 1u, 1u << 24u);
+							settings.TileSize = glm::clamp(settings.TileSize, AINavigation::MeshSettings::MinTileSizeLimit, AINavigation::MeshSettings::MaxTileSizeLimit);
 							bChanged = true;
 						}
 						if (UI::PropertyDrag("Cell Size", settings.CellSize, 0.001f, 0, 0, "The xz-plane cell size to use for fields"))
@@ -2519,33 +2522,16 @@ namespace Eagle
 							settings.AgentRadius = glm::max(settings.AgentRadius, 0.0f);
 							bChanged = true;
 						}
-						if (UI::PropertyDrag("Edge Max Len", settings.EdgeMaxLen, 0.05f, 0.f, 0.f, "The maximum allowed length for contour edges along the border of the mesh"))
-						{
-							settings.EdgeMaxLen = glm::max(settings.EdgeMaxLen, 0.0f);
-							bChanged = true;
-						}
 						if (UI::PropertyDrag("Edge Max Error", settings.EdgeMaxError, 0.05f, 0.f, 0.f, "The maximum distance a simplified contour's border edges should deviate the original raw contour"))
 						{
 							settings.EdgeMaxError = glm::max(settings.EdgeMaxError, 0.0f);
 							bChanged = true;
 						}
-						if (UI::PropertyDrag("Region Min Size", settings.RegionMinSize, 0.05f, 0.f, 0.f, "The minimum number of cells allowed to form isolated island areas"))
+						if (UI::PropertyDrag("Border Size", settings.BorderSize, 1, (int)AINavigation::MeshSettings::MinBorderSizeLimit, 0, "The size of the non-navigable border around the heightfield. [Limits: value >= 2]"))
 						{
-							settings.RegionMinSize = glm::max(settings.RegionMinSize, 0.0f);
+							settings.BorderSize = glm::max(settings.BorderSize, AINavigation::MeshSettings::MinBorderSizeLimit);
 							bChanged = true;
 						}
-						if (UI::PropertyDrag("Region Merge Size", settings.RegionMergeSize, 0.05f, 0.f, 0.f, "Any regions with a span count smaller than this value will, if possible, be merged with larger regions"))
-						{
-							settings.RegionMergeSize = glm::max(settings.RegionMergeSize, 0.0f);
-							bChanged = true;
-						}
-						if (UI::PropertyDrag("Verts Per Poly", settings.VertsPerPoly, 1, 3, 0, "The maximum number of vertices allowed for polygons generated during the contour to polygon conversion process"))
-						{
-							settings.VertsPerPoly = glm::clamp(settings.VertsPerPoly, 3u, 65535u);
-							bChanged = true;
-						}
-
-						bChanged |= UI::PropertyDrag("Border Size", settings.BorderSize, 1, 0, 0, "The size of the non-navigable border around the heightfield");
 						bChanged |= UI::Property("Filter Low Hanging Obstacles", settings.FilterLowHangingObstacles, s_FilterLowHangingObstaclesHelpMsg);
 						bChanged |= UI::Property("Filter Ledge Spans", settings.FilterLedgeSpans, s_FilterLedgeSpans);
 						bChanged |= UI::Property("Filter Walkable Low Height Spans", settings.FilterWalkableLowHeightSpans, s_FilterWalkableLowHeightSpans);
@@ -2568,11 +2554,15 @@ namespace Eagle
 						auto settings = component.GetCrowdSettings();
 						bool bCrowdChanged = false;
 
-						bCrowdChanged |= UI::PropertyDrag("Max Agents", settings.MaxAgents);
-
-						if (UI::PropertyDrag("Max Agent Radius", settings.MaxAgentRadius, 0.05f))
+						if (UI::PropertyDrag("Max Agents", settings.MaxAgents, 1.f, 1, (int)AINavigation::CrowdSettings::MaxAgentsLimit, "[Limits: 1 <= value <= 16383]"))
 						{
-							settings.MaxAgentRadius = glm::max(settings.MaxAgentRadius, 0.0f);
+							settings.MaxAgents = glm::clamp(settings.MaxAgents, 1u, AINavigation::CrowdSettings::MaxAgentsLimit);
+							bCrowdChanged = true;
+						}
+
+						if (UI::PropertyDrag("Max Agent Radius", settings.MaxAgentRadius, 0.05f, 0.f, 0.f, "[Limits: value >= 0.01]"))
+						{
+							settings.MaxAgentRadius = glm::max(settings.MaxAgentRadius, AINavigation::CrowdSettings::MinAgentRadius);
 							bCrowdChanged = true;
 						}
 

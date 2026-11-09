@@ -2,6 +2,8 @@
 #include "NavigationCrowd.h"
 #include "NavigationUtils.h"
 
+#include "Eagle/Core/Application.h"
+
 namespace Eagle::AINavigation
 {
 	static dtCrowdAgentParams AgentSettingsToDetour(const AgentSettings& settings)
@@ -33,6 +35,12 @@ namespace Eagle::AINavigation
 		return ap;
 	}
 
+	static void ReportError(std::string&& message)
+	{
+		EG_CORE_ERROR(message);
+		Application::Get().GetImGuiLayer()->AddMessage(std::move(message));
+	}
+
 	Crowd::Crowd()
 	{}
 	
@@ -41,23 +49,36 @@ namespace Eagle::AINavigation
 		Release();
 	}
 	
-	void Crowd::Init(const CrowdSettings& settings, dtNavMesh* navMesh, dtNavMeshQuery* navQuery, const dtQueryFilter& filter)
+	bool Crowd::Init(const CrowdSettings& settings, dtNavMesh* navMesh, dtNavMeshQuery* navQuery, const dtQueryFilter& filter)
 	{
 		m_Settings = settings;
+		m_Settings.Clamp();
 		m_NavMesh = navMesh;
 		m_NavQuery = navQuery;
 		m_Filter = filter;
+		m_TargetRef = 0u;
 
 		EG_CORE_ASSERT(!m_Crowd);
+
+		if (!m_NavMesh || !m_NavQuery)
+		{
+			EG_CORE_ERROR("[AINavigation] Failed to set up the crowd. There's no navigation mesh");
+			return false;
+		}
 
 		m_Crowd = dtAllocCrowd();
 		if (!m_Crowd)
 		{
 			EG_CORE_ERROR("[AINavigation] Failed to allocate crowd");
-			return;
+			return false;
 		}
 
-		m_Crowd->init(m_Settings.MaxAgents, m_Settings.MaxAgentRadius, navMesh);
+		if (!m_Crowd->init((int)m_Settings.MaxAgents, m_Settings.MaxAgentRadius, navMesh))
+		{
+			ReportError(std::format("[AINavigation] Failed to initialize the crowd (Max Agents: {}, Max Agent Radius: {}). Crowd agents won't work", m_Settings.MaxAgents, m_Settings.MaxAgentRadius));
+			Release();
+			return false;
+		}
 
 		// Make polygons with 'disabled' flag invalid.
 		m_Crowd->getEditableFilter(0)->setExcludeFlags(SAMPLE_POLYFLAGS_DISABLED);
@@ -99,6 +120,8 @@ namespace Eagle::AINavigation
 
 		m_Crowd->setObstacleAvoidanceParams(3, &params);
 		static_assert(int(AgentObstacleAvoidanceQuality::High) == 3);
+
+		return true;
 	}
 
 	void Crowd::Release()
@@ -107,10 +130,10 @@ namespace Eagle::AINavigation
 		m_Crowd = nullptr;
 	}
 
-	void Crowd::SetSettings(const CrowdSettings& settings)
+	bool Crowd::SetSettings(const CrowdSettings& settings)
 	{
 		Release();
-		Init(settings, m_NavMesh, m_NavQuery, m_Filter);
+		return Init(settings, m_NavMesh, m_NavQuery, m_Filter);
 	}
 
 	int Crowd::AddAgent(const glm::vec3& pos, const AgentSettings& settings)
@@ -216,9 +239,14 @@ namespace Eagle::AINavigation
 		}
 
 		const float* searchHalfExtent = m_Crowd->getQueryExtents();
-		dtPolyRef targetRef;
-		glm::vec3 targetPos;
-		m_NavQuery->findNearestPoly(&pos.x, searchHalfExtent, &m_Filter, &targetRef, &targetPos.x);
+		dtPolyRef targetRef = 0u;
+		glm::vec3 targetPos = pos;
+		const dtStatus status = m_NavQuery->findNearestPoly(&pos.x, searchHalfExtent, &m_Filter, &targetRef, &targetPos.x);
+		if (dtStatusFailed(status) || targetRef == 0u)
+		{
+			EG_CORE_ERROR("Failed to set the crowd move target for the agent at index {}. No nav mesh polygon near the target (or an invalid position)", agentIndex);
+			return;
+		}
 
 		const dtCrowdAgent* ag = m_Crowd->getAgent(agentIndex);
 		if (ag && ag->active)
@@ -234,7 +262,15 @@ namespace Eagle::AINavigation
 		}
 
 		const float* searchHalfExtent = m_Crowd->getQueryExtents();
-		m_NavQuery->findNearestPoly(&pos.x, searchHalfExtent, &m_Filter, &m_TargetRef, &m_TargetPos.x);
+		m_TargetRef = 0u;
+		m_TargetPos = pos;
+		const dtStatus status = m_NavQuery->findNearestPoly(&pos.x, searchHalfExtent, &m_Filter, &m_TargetRef, &m_TargetPos.x);
+		if (dtStatusFailed(status) || m_TargetRef == 0u)
+		{
+			m_TargetRef = 0u;
+			EG_CORE_ERROR("Failed to set the crowd move target. No nav mesh polygon near the target (or an invalid position)");
+			return;
+		}
 
 		for (int i = 0; i < m_Crowd->getAgentCount(); ++i)
 		{
@@ -300,10 +336,7 @@ namespace Eagle::AINavigation
 	void Crowd::Update(Timestep ts)
 	{
 		if (!m_Crowd)
-		{
-			EG_CORE_ERROR("Failed to update crowd system. It's not initialized");
 			return;
-		}
 
 		m_Crowd->update(ts, nullptr);
 	}

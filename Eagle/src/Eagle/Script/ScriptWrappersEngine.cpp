@@ -1676,7 +1676,7 @@ namespace Eagle
 			return mono_array_new(mono_domain_get(), ScriptEngine::GetVector3Class(), 0);
 		}
 
-		std::vector<glm::vec3> path = navMesh->FindSmoothPath(*start, *end, maxPolys);
+		std::vector<glm::vec3> path = navMesh->FindSmoothPath(*start, *end, maxPolys, maxSmooth);
 		MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetVector3Class(), path.size());
 		size_t index = 0;
 		for (auto& point : path)

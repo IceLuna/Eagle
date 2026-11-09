@@ -38,6 +38,7 @@ namespace Eagle
 		void OnEvent(Event& e) override;
 
 		void AddMessage(const std::string& message);
+		void AddMessage(std::string&& message);
 		void RebuildFonts();
 		bool SetIniFilepath(const Path& filepath);
 

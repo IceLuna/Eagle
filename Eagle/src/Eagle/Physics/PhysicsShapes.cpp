@@ -22,9 +22,15 @@ namespace Eagle
 
 	void ColliderShape::SetIsTrigger(bool bTrigger)
 	{
+		if (bTrigger && m_Type == ColliderType::TriangleMesh)
+		{
+			// PhysX doesn't support triangle mesh triggers
+			EG_CORE_WARN("Non-convex mesh colliders can't be triggers. Make the mesh collider convex to use it as a trigger");
+			bTrigger = false;
+		}
+
 		m_IsTrigger = bTrigger;
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !bTrigger);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, bTrigger);
+		UpdateCollisionFlags();
 	}
 
 	void ColliderShape::SetRelativeLocationAndRotation(const Transform& transform)
@@ -39,11 +45,29 @@ namespace Eagle
 
 	void ColliderShape::SetCollisionEnabled(bool bEnabled)
 	{
+		m_CollisionEnabled = bEnabled;
+		UpdateCollisionFlags();
+	}
+
+	void ColliderShape::UpdateCollisionFlags()
+	{
 		using namespace physx;
 
-		PxShapeFlag::Enum flag = m_IsTrigger ? PxShapeFlag::Enum::eTRIGGER_SHAPE : PxShapeFlag::Enum::eSIMULATION_SHAPE;
-		m_Shape->setFlag(flag, bEnabled);
-		m_Shape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, bEnabled);
+		// All flags are set at once because PhysX validates every change, and rejects any state where a shape is both a trigger and a simulation shape.
+		// So setting the flags one by one fails when the trigger flag is cleared after the simulation flag is set, and the shape ends up with neither
+		PxShapeFlags flags = m_Shape->getFlags();
+		flags.clear(PxShapeFlag::eSIMULATION_SHAPE);
+		flags.clear(PxShapeFlag::eTRIGGER_SHAPE);
+		flags.clear(PxShapeFlag::eSCENE_QUERY_SHAPE);
+
+		if (m_CollisionEnabled)
+		{
+			flags |= m_IsTrigger ? PxShapeFlag::eTRIGGER_SHAPE : PxShapeFlag::eSIMULATION_SHAPE;
+			flags |= PxShapeFlag::eSCENE_QUERY_SHAPE;
+		}
+
+		if (flags != m_Shape->getFlags())
+			m_Shape->setFlags(flags);
 	}
 	
 	void ColliderShape::SetCollisionGroup(CollisionGroup group)
@@ -114,7 +138,8 @@ namespace Eagle
 		physx::PxMaterial* material = GetMaterial_Internal(materialAsset);
 
 		const auto& scale = component.GetWorldTransform().Scale3D;
-		const float radius = scale.x * component.GetRadius();
+		const float largestAxis = glm::max(scale.x, glm::max(scale.y, scale.z));
+		const float radius = glm::max(0.000001f, glm::abs(largestAxis * component.GetRadius()));
 		m_ColliderScale = glm::vec3(radius);
 
 		physx::PxSphereGeometry geometry = physx::PxSphereGeometry(radius);
@@ -160,8 +185,8 @@ namespace Eagle
 		physx::PxMaterial* material = GetMaterial_Internal(materialAsset);
 
 		const auto& scale = component.GetWorldTransform().Scale3D;
-		const float radius = scale.x * component.GetRadius();
-		const float height = scale.y * component.GetHeight();
+		const float radius = glm::max(0.000001f, glm::abs(glm::max(scale.x, scale.z) * component.GetRadius()));
+		const float height = glm::max(0.000001f, glm::abs(scale.y * component.GetHeight()));
 		m_ColliderScale = glm::vec3(radius, height, 1.f);
 
 		physx::PxCapsuleGeometry geometry = physx::PxCapsuleGeometry(radius, height * 0.5f);
